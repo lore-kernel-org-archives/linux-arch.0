@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 42608C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Mar 2022 12:41:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A5FDBC4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Mar 2022 12:41:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236440AbiC2Mmy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Mar 2022 08:42:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60564 "EHLO
+        id S236378AbiC2Mm5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Mar 2022 08:42:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60566 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236414AbiC2Mm0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2022 08:42:26 -0400
-Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F41A5203A42
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:42 -0700 (PDT)
-Received: by mail-ed1-x549.google.com with SMTP id u17-20020a05640207d100b00418f00014f8so5707092edy.18
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:42 -0700 (PDT)
+        with ESMTP id S236461AbiC2Mmr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2022 08:42:47 -0400
+Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D16A621547C
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:53 -0700 (PDT)
+Received: by mail-ed1-x54a.google.com with SMTP id b71-20020a509f4d000000b00418d658e9d1so10842687edf.19
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:40:53 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=3RM0qhEhF66BtuM0ZXwaEhPbHnfCR09wU8nC/pTqHi8=;
-        b=ZfQ96zQsPsKfBQ/c9B+p0T/40FovJz4CFLCUEiSSbflULpKaBSwZh18ccdw9FjFMR/
-         6CL212sJnEyxZj6LrueXeIA3af+ha93f5SXcMHFxIvZ8XcaA3jgjh2CgfsWeI5aC/FoO
-         SsZxN2XfUHXoWAeOjgXaOjO75UgBK6Rk75Jr8fIsEu0Ij5ADYX0ek6w89sp3ufSZz+VH
-         z3XgZl5AChOAcBCeLORpdjPovuJuV3Q3SgS4VWwGIZ606KqelRUzogETo02XK3PN9Ui9
-         gob299cB95qVQVVfrCpMAbauzPoQU2jiYcZtRwKNYM8m/tLM7wpaFE+a7CQHD2mcjmDA
-         fVYQ==
+        bh=O7QheLFrb7/gpanG0WgUH3CDvOfcWzGQKyw+meqIa2c=;
+        b=nwdrOPNgrlRK/p217vtYWLPWJHANewfRLQpav+XSHbkAVHEnW3oP60FbQ/XxJx5Wey
+         8DRycD6Z8aEu0MC/3X0fisGnjf5imwmv/pW9pycKVeSdzaHTJ5Rg895wxW0ZrqOGPo10
+         IfXG+qAD/A/UF9Bi9etjM3pLZn0NbG7nPno2kSpwLlV8g6SDRLw6y8Wk3qoccWfMZ8be
+         drDAk5gciM2kZ8tcU4aiCTs8FvlgiztSYF5pfb76GBFYTSFhMc7u/3/M4f77WEnkaJxj
+         KHDu5r2kXFtX3OnAiGQmLBocYjFXf2eOhSXJmKa/Qj5ogXrOHpI3AL+qNsyyhKmK9AoV
+         8PsQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=3RM0qhEhF66BtuM0ZXwaEhPbHnfCR09wU8nC/pTqHi8=;
-        b=e0QSBEzkNCSH9kK+to15j+X1nGg9gF3ra6NFiJ+fTL+zGpRyogAAJy/yauMptax4lJ
-         UsRsO7xgY9oh3hn0A3fkxGQNyw/uS/51YnJyvAIUHwQrwTVTh4QzmIf+Rfc/deKODi7C
-         og9nnVgVt1H2iDJSZuVDtYf5zzYEgQMqXeF7EZZtU4vJTTF+eJaaVAT/dPaBUGliHrZs
-         MEq0iMmjrJHafQA2K8HdYTG8VT8eDhqkkKldYc6Gc8v5PGzy4Xu/qHukXYCbKJ5ZAPJi
-         UC8Jkj5gxENcTRkUG6O+msHEXMD3rNmLhuzCeINJIhZSgCYkaSDbrIfbaG86BzecHoQ9
-         ssGg==
-X-Gm-Message-State: AOAM5308/wB54oArKi6EjBmmjJiV3asXyNaKB1yhAXuSKo3zoum6xVB/
-        KH+GcHtJtHZV/YTS7B10LHKMaYdnz/k=
-X-Google-Smtp-Source: ABdhPJxZVbkRLRuOZHRe+6vIay7XNPuEELMpuQ9mw5W8uiPx5u+x394b7lBiwbP526tqAx4KRk6EWhiX5Zw=
+        bh=O7QheLFrb7/gpanG0WgUH3CDvOfcWzGQKyw+meqIa2c=;
+        b=qAvv8HeI3KKl04gxgFnQkV5lQ2HpkHS6TTuYUGL+wrD5np+mJ3Zo4bHC//votaKfpJ
+         ESW37FE5raowdB4OCdeBxAYTrpl0Ewlv2iSinFK0vxsLIgQ5L38oApoXevlR5RNDL31S
+         51hfyjOWFvc1/3MX4WlRIy+t55GuMA0+hD//vx9nbnDoOUGRPV7oOWEq75on8UKChgDo
+         jJK7VqXC2e6FmS6ueoHZfZbD01ufsSbBXENll037cBNnB7j0lO8jNPIkP7fxDPNo/3P+
+         tebtMduc8JUbUcilY4ukN6ss+VCqy5/PlLvSvmhba/YIQPjd7bF31fT4WE+Td9AuB8X6
+         rd2w==
+X-Gm-Message-State: AOAM532I93ngXqs0a9giljPZvPwsuzd+/n2pKrQg3t/AfWSJLx9qJNd3
+        klQJuZCBTxyekOVakY7ETa43WGiVOhc=
+X-Google-Smtp-Source: ABdhPJw72M5zTQlc12l/JxfWqejUITTKjW22Nisg7zg2gWpioCaXSJXtz0/OVqyNYeeR7potvImif+IfrBc=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:36eb:759:798f:98c3])
- (user=glider job=sendgmr) by 2002:a17:907:2ce3:b0:6df:d4a8:9039 with SMTP id
- hz3-20020a1709072ce300b006dfd4a89039mr33974181ejc.697.1648557641243; Tue, 29
- Mar 2022 05:40:41 -0700 (PDT)
-Date:   Tue, 29 Mar 2022 14:39:34 +0200
+ (user=glider job=sendgmr) by 2002:a17:907:60cc:b0:6e0:dab3:ca76 with SMTP id
+ hv12-20020a17090760cc00b006e0dab3ca76mr19088650ejc.154.1648557652185; Tue, 29
+ Mar 2022 05:40:52 -0700 (PDT)
+Date:   Tue, 29 Mar 2022 14:39:38 +0200
 In-Reply-To: <20220329124017.737571-1-glider@google.com>
-Message-Id: <20220329124017.737571-6-glider@google.com>
+Message-Id: <20220329124017.737571-10-glider@google.com>
 Mime-Version: 1.0
 References: <20220329124017.737571-1-glider@google.com>
 X-Mailer: git-send-email 2.35.1.1021.g381101b075-goog
-Subject: [PATCH v2 05/48] x86: asm: instrument usercopy in get_user() and __put_user_size()
+Subject: [PATCH v2 09/48] kmsan: mark noinstr as __no_sanitize_memory
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -88,71 +88,33 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use hooks from instrumented.h to notify bug detection tools about
-usercopy events in get_user() and put_user_size().
-
-It's still unclear how to instrument put_user(), which assumes that
-instrumentation code doesn't clobber RAX.
+noinstr functions should never be instrumented, so make KMSAN skip them
+by applying the __no_sanitize_memory attribute.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/Ia9f12bfe5832623250e20f1859fdf5cc485a2fce
----
- arch/x86/include/asm/uaccess.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+v2:
+ -- moved this patch earlier in the series per Mark Rutland's request
 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index ac96f9b2d64b3..e6abe6f27ae99 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -5,6 +5,7 @@
-  * User space memory access functions
-  */
- #include <linux/compiler.h>
-+#include <linux/instrumented.h>
- #include <linux/kasan-checks.h>
- #include <linux/string.h>
- #include <asm/asm.h>
-@@ -126,11 +127,13 @@ extern int __get_user_bad(void);
- 	int __ret_gu;							\
- 	register __inttype(*(ptr)) __val_gu asm("%"_ASM_DX);		\
- 	__chk_user_ptr(ptr);						\
-+	instrument_copy_from_user_before((void *)&(x), ptr, sizeof(*(ptr))); \
- 	asm volatile("call __" #fn "_%P4"				\
- 		     : "=a" (__ret_gu), "=r" (__val_gu),		\
- 			ASM_CALL_CONSTRAINT				\
- 		     : "0" (ptr), "i" (sizeof(*(ptr))));		\
- 	(x) = (__force __typeof__(*(ptr))) __val_gu;			\
-+	instrument_copy_from_user_after((void *)&(x), ptr, sizeof(*(ptr)), 0); \
- 	__builtin_expect(__ret_gu, 0);					\
- })
+Link: https://linux-review.googlesource.com/id/I3c9abe860b97b49bc0c8026918b17a50448dec0d
+---
+ include/linux/compiler_types.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index 3c1795fdb5686..286675559cbba 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -221,7 +221,8 @@ struct ftrace_likely_data {
+ /* Section for code which can't be instrumented at all */
+ #define noinstr								\
+ 	noinline notrace __attribute((__section__(".noinstr.text")))	\
+-	__no_kcsan __no_sanitize_address __no_profile __no_sanitize_coverage
++	__no_kcsan __no_sanitize_address __no_profile __no_sanitize_coverage \
++	__no_sanitize_memory
  
-@@ -275,7 +278,9 @@ extern void __put_user_nocheck_8(void);
+ #endif /* __KERNEL__ */
  
- #define __put_user_size(x, ptr, size, label)				\
- do {									\
-+	__typeof__(*(ptr)) __pus_val = x;				\
- 	__chk_user_ptr(ptr);						\
-+	instrument_copy_to_user(ptr, &(__pus_val), size);		\
- 	switch (size) {							\
- 	case 1:								\
- 		__put_user_goto(x, ptr, "b", "iq", label);		\
-@@ -313,6 +318,7 @@ do {									\
- #define __get_user_size(x, ptr, size, label)				\
- do {									\
- 	__chk_user_ptr(ptr);						\
-+	instrument_copy_from_user_before((void *)&(x), ptr, size);	\
- 	switch (size) {							\
- 	case 1:	{							\
- 		unsigned char x_u8__;					\
-@@ -332,6 +338,7 @@ do {									\
- 	default:							\
- 		(x) = __get_user_bad();					\
- 	}								\
-+	instrument_copy_from_user_after((void *)&(x), ptr, size, 0);	\
- } while (0)
- 
- #define __get_user_asm(x, addr, itype, ltype, label)			\
 -- 
 2.35.1.1021.g381101b075-goog
 
