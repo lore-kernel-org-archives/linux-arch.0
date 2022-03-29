@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 565FDC433FE
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 75F1CC433EF
 	for <linux-arch@archiver.kernel.org>; Tue, 29 Mar 2022 12:48:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236616AbiC2Mtp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Mar 2022 08:49:45 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35248 "EHLO
+        id S236648AbiC2Mts (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Mar 2022 08:49:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55664 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236720AbiC2MrY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2022 08:47:24 -0400
+        with ESMTP id S236802AbiC2MsF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2022 08:48:05 -0400
 Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 674AC25AED1
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:42:12 -0700 (PDT)
-Received: by mail-ed1-x54a.google.com with SMTP id b71-20020a509f4d000000b00418d658e9d1so10844383edf.19
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:42:12 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1949325CB97
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:42:19 -0700 (PDT)
+Received: by mail-ed1-x54a.google.com with SMTP id l14-20020aa7cace000000b003f7f8e1cbbdso10943085edt.20
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2022 05:42:19 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=T39GYI/vBjMdfMtH+Dx38ArgDU/LjDSVRO95NSUKYys=;
-        b=Ga2g0KSm7zN5HCLMp88eZDrOW0thBYZOgl2SJsxhqq1/9JhR9hzR13gng3zeCxso+w
-         i/qtco4gzCEgnTlb2mhL9BTKSiQMQJdKNozm6n1+hL+sDqOwULwTLCdwyrZELS+NA7W/
-         c5qB98YvHHLJ3BMBq1pJMPQpE9RNLyE4eXN+o9MmFC6t7LQ+u14xMMOIVA+bA5naY+8s
-         gRNrHJavp3e4jVaVQltJlMKiFbXubOTSrISRSTmFuJe4c/qmXIPakHSoPpaD9bKOA9pq
-         oeNXL7OnbYXNrhPT7iXlkE3Z7JYvDzAHoBqV8prd4N81xr62OjBryDQm9qe/C7bS4tTD
-         qDsQ==
+        bh=eekKcS683P9sWiTSuhgkvdPXp9EdJwN5ZjFsPJMzm7E=;
+        b=nThiYlFFBsJrC6J4CsRmdsKff+pDAxmWAIIBI48Vo80VmKhgV7dastoHrc6SVW9X6d
+         jx/eMpAi1+TKGKqks/kz1GydwiVFtB3s4/Iqslz0Sb0I1p4yER6QQnh5/UL9bNG2RLeo
+         C5XtiIVh5zpbhTTlL5airTyDdq93mQxCRjBtLqk2mbuMHgpMJxTKy/8BxllO8FXvoXri
+         ekBImg/blQGPTzvxUnzHyySXJs6MIGJ9C3qLF6RA9zgxjyAbLcaI48UrWAydgcCoo14J
+         kueGk3ukqrtHmHCvYLUUERRZzvhgDhUfNxGvcRCiVUwTYx9WsgjVrySPvU/5ycGH8wZP
+         hUMA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=T39GYI/vBjMdfMtH+Dx38ArgDU/LjDSVRO95NSUKYys=;
-        b=ogeFaZ9vGVM33jQtDP66YA2bxAuWZCBhYcaCcCZivLLJO3bmRyYLlEWxdiwKesa3n1
-         0YIQznftDsbYfZ0rBsHPWFLbd64FYFktjlVOuviGAifUJbhcgdowP21VtqspwQviv4yL
-         nNEemToZUGgicKF/k5woP25jP1srPb9K1GNnG/DrTh4nTAGEBGID80JuNH511rZEaUSv
-         f4zh8pQOIVi6Ojz5W4Y5wcFXhPx3K0jM4Ak66lAkrNDnYAXdOAk8sMtiQoJ3Mvqzy0cQ
-         ZL9j6J3DnNNX/SCgWXtdxqAavc3/OCC1Lp8sSXcVJzEJSeMeqTiLkGYjlhoPozYOtfTm
-         qTkw==
-X-Gm-Message-State: AOAM530GGNxi8EYPlMhPxYS543xCy6YqehVth4sgRfiikv+AHHbppE8p
-        AE3lktakdlzjTeJpE0uCYSLV2GbqE78=
-X-Google-Smtp-Source: ABdhPJxnAD1WnRha3aT8bQpiv1ryLHN37wPgdzyd6u5jtCYTidxo5YWhjtFuZMhdjM/eFbjpolf6XzG13+Y=
+        bh=eekKcS683P9sWiTSuhgkvdPXp9EdJwN5ZjFsPJMzm7E=;
+        b=44mGJphwglphwRYSWB09LQWbZ0urY7+n35PmcPzLdnTcTpSXG68eB605SFL46FfNpC
+         cSqphKkv7nPRh+9JTD3z1cEAm0Yf4LWwxH7M8JS6thoAbpoYgwAwUroiVfwNYg0Nb9u9
+         S/kVgJd59OyfsB59xJ3sYuwL2umjvQ7HX+ybhuMx55WX2QA3mNlrGM9RuG4qlaA7jdIw
+         arvvLwjBzqY1MoDMnNgcCKG733N0CSyKLJFWEFeyg9BcvISnaCDlnR94dgs4WLulByxq
+         ZaP2rwUuBqHQWvCSm7NMrPhzNdjZbCqvPBWzwrQA1s5WSgmzTiroiw0hKxmNGsj0XqtF
+         h24g==
+X-Gm-Message-State: AOAM533ubC5qfKLk+sfHRf8bbPdr2Haq7vwXidQ1BaNNgCrifWPAOF5f
+        ytZpT8She4HVjElewlKiAHfh3zQi9Dk=
+X-Google-Smtp-Source: ABdhPJzQ+mzPatwMfV3rPhv+G2Q81dnqKFY/srjOhBDb0t1yefVaA5tyYkGIYP5vkw1Slryk14/AH+9Tlek=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:36eb:759:798f:98c3])
- (user=glider job=sendgmr) by 2002:a17:907:1ca4:b0:6da:86a4:1ec7 with SMTP id
- nb36-20020a1709071ca400b006da86a41ec7mr34900718ejc.556.1648557730788; Tue, 29
- Mar 2022 05:42:10 -0700 (PDT)
-Date:   Tue, 29 Mar 2022 14:40:07 +0200
+ (user=glider job=sendgmr) by 2002:a50:c010:0:b0:418:d53c:24ec with SMTP id
+ r16-20020a50c010000000b00418d53c24ecmr4358428edb.17.1648557738276; Tue, 29
+ Mar 2022 05:42:18 -0700 (PDT)
+Date:   Tue, 29 Mar 2022 14:40:10 +0200
 In-Reply-To: <20220329124017.737571-1-glider@google.com>
-Message-Id: <20220329124017.737571-39-glider@google.com>
+Message-Id: <20220329124017.737571-42-glider@google.com>
 Mime-Version: 1.0
 References: <20220329124017.737571-1-glider@google.com>
 X-Mailer: git-send-email 2.35.1.1021.g381101b075-goog
-Subject: [PATCH v2 38/48] objtool: kmsan: list KMSAN API functions as uaccess-safe
+Subject: [PATCH v2 41/48] x86: kmsan: skip shadow checks in __switch_to()
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -88,47 +88,53 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN inserts API function calls in a lot of places (function entries
-and exits, local variables, memory accesses), so they may get called
-from the uaccess regions as well.
+When instrumenting functions, KMSAN obtains the per-task state (mostly
+pointers to metadata for function arguments and return values) once per
+function at its beginning, using the `current` pointer.
 
+Every time the instrumented function calls another function, this state
+(`struct kmsan_context_state`) is updated with shadow/origin data of the
+passed and returned values.
+
+When `current` changes in the low-level arch code, instrumented code can
+not notice that, and will still refer to the old state, possibly corrupting
+it or using stale data. This may result in false positive reports.
+
+To deal with that, we need to apply __no_kmsan_checks to the functions
+performing context switching - this will result in skipping all KMSAN
+shadow checks and marking newly created values as initialized,
+preventing all false positive reports in those functions. False negatives
+are still possible, but we expect them to be rare and impersistent.
+
+Suggested-by: Marco Elver <elver@google.com>
 Signed-off-by: Alexander Potapenko <glider@google.com>
----
-Link: https://linux-review.googlesource.com/id/I242bc9816273fecad4ea3d977393784396bb3c35
----
- tools/objtool/check.c | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
 
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index 7c33ec67c4a95..8518eaf05bff0 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -943,6 +943,25 @@ static const char *uaccess_safe_builtin[] = {
- 	"__sanitizer_cov_trace_cmp4",
- 	"__sanitizer_cov_trace_cmp8",
- 	"__sanitizer_cov_trace_switch",
-+	/* KMSAN */
-+	"kmsan_copy_to_user",
-+	"kmsan_report",
-+	"kmsan_unpoison_memory",
-+	"__msan_chain_origin",
-+	"__msan_get_context_state",
-+	"__msan_instrument_asm_store",
-+	"__msan_metadata_ptr_for_load_1",
-+	"__msan_metadata_ptr_for_load_2",
-+	"__msan_metadata_ptr_for_load_4",
-+	"__msan_metadata_ptr_for_load_8",
-+	"__msan_metadata_ptr_for_load_n",
-+	"__msan_metadata_ptr_for_store_1",
-+	"__msan_metadata_ptr_for_store_2",
-+	"__msan_metadata_ptr_for_store_4",
-+	"__msan_metadata_ptr_for_store_8",
-+	"__msan_metadata_ptr_for_store_n",
-+	"__msan_poison_alloca",
-+	"__msan_warning",
- 	/* UBSAN */
- 	"ubsan_type_mismatch_common",
- 	"__ubsan_handle_type_mismatch",
+---
+v2:
+ -- This patch was previously called "kmsan: skip shadow checks in files
+    doing context switches". Per Mark Rutland's suggestion, we now only
+    skip checks in low-level arch-specific code, as context switches in
+    common code should be invisible to KMSAN. We also apply the checks
+    to precisely the functions performing the context switch instead of
+    the whole file.
+
+Link: https://linux-review.googlesource.com/id/I45e3ed9c5f66ee79b0409d1673d66ae419029bcb
+---
+ arch/x86/kernel/process_64.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 3402edec236c4..838b1e9808d6f 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -553,6 +553,7 @@ void compat_start_thread(struct pt_regs *regs, u32 new_ip, u32 new_sp, bool x32)
+  * Kprobes not supported here. Set the probe on schedule instead.
+  * Function graph tracer not supported too.
+  */
++__no_kmsan_checks
+ __visible __notrace_funcgraph struct task_struct *
+ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
+ {
 -- 
 2.35.1.1021.g381101b075-goog
 
