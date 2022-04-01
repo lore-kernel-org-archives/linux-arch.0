@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 88F69C43217
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Apr 2022 23:43:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 29D55C43219
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Apr 2022 23:43:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353472AbiDAXpV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 1 Apr 2022 19:45:21 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56440 "EHLO
+        id S1353474AbiDAXpW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 1 Apr 2022 19:45:22 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56512 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353444AbiDAXpQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2022 19:45:16 -0400
+        with ESMTP id S1353459AbiDAXpS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2022 19:45:18 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id BA093273A;
-        Fri,  1 Apr 2022 16:43:24 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 2A5742DCA;
+        Fri,  1 Apr 2022 16:43:27 -0700 (PDT)
 Received: from localhost.localdomain (c-73-140-2-214.hsd1.wa.comcast.net [73.140.2.214])
-        by linux.microsoft.com (Postfix) with ESMTPSA id 5E78720DF569;
+        by linux.microsoft.com (Postfix) with ESMTPSA id D50A820DF56E;
         Fri,  1 Apr 2022 16:43:24 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 5E78720DF569
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com D50A820DF56E
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1648856604;
-        bh=xWZo/CSo22CarPEM9asusj2BEE04dwPEtFudHgCqIKE=;
+        s=default; t=1648856605;
+        bh=R2wmpWeJqkJGpUihjavIWxYmwa4YCuMevl2v9Hn3sEY=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=sBVlKsuFxgDzIokj4+PST2th9lP6GYCYMjZCT1Wapb3ytXbu8vjajqLIMRvI101QP
-         37QUXO9TQ8S6SMxC0Hx362lAyWheunrWa4bmJ5ULLJB+FUoCx+URJM9srdUVmTlvUS
-         sIkV/BYY0Z3PdMIL6tIwubcHEriHDzLPnXzT2QO8=
+        b=ELVMFzeEFRG66+UxugzKTJfbVUt6Vewyjcwp4JHmR4EnWSEUTnV3NHD/YC+mgaigW
+         lMtIO8VhVLoFTnL7M23sa7zI7HQ3v8sIlSPoowvexMtDb7TkMHPsfDQoe1JtS+GCi2
+         MNjfd7aj6zN58QGukD4mcrYz6M12U+E6EC3phl0Q=
 From:   Beau Belgrave <beaub@linux.microsoft.com>
 To:     rostedt@goodmis.org, mhiramat@kernel.org,
         mathieu.desnoyers@efficios.com
 Cc:     linux-trace-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, beaub@linux.microsoft.com
-Subject: [PATCH 4/7] tracing/user_events: Ensure user provided strings are safely formatted
-Date:   Fri,  1 Apr 2022 16:43:06 -0700
-Message-Id: <20220401234309.21252-5-beaub@linux.microsoft.com>
+Subject: [PATCH 6/7] tracing/user_events: Use bits vs bytes for enabled status page data
+Date:   Fri,  1 Apr 2022 16:43:08 -0700
+Message-Id: <20220401234309.21252-7-beaub@linux.microsoft.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220401234309.21252-1-beaub@linux.microsoft.com>
 References: <20220401234309.21252-1-beaub@linux.microsoft.com>
@@ -42,148 +42,338 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-User processes can provide bad strings that may cause issues or leak
-kernel details back out. Don't trust the content of these strings
-when formatting strings for matching.
+User processes may require many events and when they do the cache
+performance of a byte index status check is less ideal than a bit index.
+The previous event limit per-page was 4096, the new limit is 32,768.
 
-This also moves to a consistent dynamic length string creation model.
+This change adds a mask property to the user_reg struct. Programs check
+that the byte at status_index has a bit set by ANDing the status_mask.
 
 Link: https://lore.kernel.org/all/2059213643.196683.1648499088753.JavaMail.zimbra@efficios.com/
 
-Reported-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Suggested-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 Signed-off-by: Beau Belgrave <beaub@linux.microsoft.com>
 ---
- kernel/trace/trace_events_user.c | 91 +++++++++++++++++++++-----------
- 1 file changed, 59 insertions(+), 32 deletions(-)
+ include/linux/user_events.h                   | 19 +++---
+ kernel/trace/trace_events_user.c              | 58 ++++++++++++++++---
+ samples/user_events/example.c                 | 12 ++--
+ .../selftests/user_events/ftrace_test.c       | 16 ++---
+ .../testing/selftests/user_events/perf_test.c |  6 +-
+ 5 files changed, 77 insertions(+), 34 deletions(-)
 
+diff --git a/include/linux/user_events.h b/include/linux/user_events.h
+index 736e05603463..c5051fee26c6 100644
+--- a/include/linux/user_events.h
++++ b/include/linux/user_events.h
+@@ -20,15 +20,6 @@
+ #define USER_EVENTS_SYSTEM "user_events"
+ #define USER_EVENTS_PREFIX "u:"
+ 
+-/* Bits 0-6 are for known probe types, Bit 7 is for unknown probes */
+-#define EVENT_BIT_FTRACE 0
+-#define EVENT_BIT_PERF 1
+-#define EVENT_BIT_OTHER 7
+-
+-#define EVENT_STATUS_FTRACE (1 << EVENT_BIT_FTRACE)
+-#define EVENT_STATUS_PERF (1 << EVENT_BIT_PERF)
+-#define EVENT_STATUS_OTHER (1 << EVENT_BIT_OTHER)
+-
+ /* Create dynamic location entry within a 32-bit value */
+ #define DYN_LOC(offset, size) ((size) << 16 | (offset))
+ 
+@@ -48,9 +39,17 @@ struct user_reg {
+ 	/* Output: Byte index of the event within the status page */
+ 	__u32 status_index;
+ 
++	/* Output: Mask for the event within the status page byte */
++	__u32 status_mask;
++
+ 	/* Output: Index of the event to use when writing data */
+ 	__u32 write_index;
+-};
++} __attribute__((__packed__));
++
++static inline int user_event_enabled(void *status_data, int index, int mask)
++{
++	return status_data && (((const char *)status_data)[index] & mask);
++}
+ 
+ #define DIAG_IOC_MAGIC '*'
+ 
 diff --git a/kernel/trace/trace_events_user.c b/kernel/trace/trace_events_user.c
-index 15edbf6b1e2e..f9bb7d37d76f 100644
+index 2bcae7abfa81..d960b5ea76c4 100644
 --- a/kernel/trace/trace_events_user.c
 +++ b/kernel/trace/trace_events_user.c
-@@ -45,7 +45,6 @@
+@@ -40,17 +40,26 @@
+  */
+ #define MAX_PAGE_ORDER 0
+ #define MAX_PAGES (1 << MAX_PAGE_ORDER)
+-#define MAX_EVENTS (MAX_PAGES * PAGE_SIZE)
++#define MAX_BYTES (MAX_PAGES * PAGE_SIZE)
++#define MAX_EVENTS (MAX_BYTES * 8)
+ 
+ /* Limit how long of an event name plus args within the subsystem. */
  #define MAX_EVENT_DESC 512
  #define EVENT_NAME(user_event) ((user_event)->tracepoint.name)
  #define MAX_FIELD_ARRAY_SIZE 1024
--#define MAX_FIELD_ARG_NAME 256
  
++#define STATUS_BYTE(bit) ((bit) >> 3)
++#define STATUS_MASK(bit) (1 << ((bit) & 7))
++
++/* Internal bits to keep track of connected probes */
++#define EVENT_STATUS_FTRACE (1 << 0)
++#define EVENT_STATUS_PERF (1 << 1)
++#define EVENT_STATUS_OTHER (1 << 7)
++
  static char *register_page_data;
  
-@@ -483,6 +482,48 @@ static bool user_field_is_dyn_string(const char *type, const char **str_func)
+ static DEFINE_MUTEX(reg_mutex);
+-static DEFINE_HASHTABLE(register_table, 4);
++static DEFINE_HASHTABLE(register_table, 8);
+ static DECLARE_BITMAP(page_bitmap, MAX_EVENTS);
+ 
+ /*
+@@ -72,6 +81,7 @@ struct user_event {
+ 	int index;
+ 	int flags;
+ 	int min_size;
++	char status;
+ };
+ 
+ /*
+@@ -106,6 +116,22 @@ static u32 user_event_key(char *name)
+ 	return jhash(name, strlen(name), 0);
  }
  
- #define LEN_OR_ZERO (len ? len - pos : 0)
-+static int user_dyn_field_set_string(int argc, const char **argv, int *iout,
-+				     char *buf, int len, bool *colon)
++static __always_inline
++void user_event_register_set(struct user_event *user)
 +{
-+	int pos = 0, i = *iout;
++	int i = user->index;
 +
-+	*colon = false;
-+
-+	for (; i < argc; ++i) {
-+		if (i != *iout)
-+			pos += snprintf(buf + pos, LEN_OR_ZERO, " ");
-+
-+		pos += snprintf(buf + pos, LEN_OR_ZERO, "%s", argv[i]);
-+
-+		if (strchr(argv[i], ';')) {
-+			++i;
-+			*colon = true;
-+			break;
-+		}
-+	}
-+
-+	/* Actual set, advance i */
-+	if (len != 0)
-+		*iout = i;
-+
-+	return pos + 1;
++	register_page_data[STATUS_BYTE(i)] |= STATUS_MASK(i);
 +}
 +
-+static int user_field_set_string(struct ftrace_event_field *field,
-+				 char *buf, int len, bool colon)
++static __always_inline
++void user_event_register_clear(struct user_event *user)
 +{
-+	int pos = 0;
++	int i = user->index;
 +
-+	pos += snprintf(buf + pos, LEN_OR_ZERO, "%s", field->type);
-+	pos += snprintf(buf + pos, LEN_OR_ZERO, " ");
-+	pos += snprintf(buf + pos, LEN_OR_ZERO, "%s", field->name);
-+
-+	if (colon)
-+		pos += snprintf(buf + pos, LEN_OR_ZERO, ";");
-+
-+	return pos + 1;
++	register_page_data[STATUS_BYTE(i)] &= ~STATUS_MASK(i);
 +}
 +
- static int user_event_set_print_fmt(struct user_event *user, char *buf, int len)
+ static __always_inline __must_check
+ bool user_event_last_ref(struct user_event *user)
  {
- 	struct ftrace_event_field *field, *next;
-@@ -926,49 +967,35 @@ static int user_event_free(struct dyn_event *ev)
- static bool user_field_match(struct ftrace_event_field *field, int argc,
- 			     const char **argv, int *iout)
+@@ -648,7 +674,7 @@ static int destroy_user_event(struct user_event *user)
+ 
+ 	dyn_event_remove(&user->devent);
+ 
+-	register_page_data[user->index] = 0;
++	user_event_register_clear(user);
+ 	clear_bit(user->index, page_bitmap);
+ 	hash_del(&user->node);
+ 
+@@ -827,7 +853,12 @@ static void update_reg_page_for(struct user_event *user)
+ 		rcu_read_unlock_sched();
+ 	}
+ 
+-	register_page_data[user->index] = status;
++	if (status)
++		user_event_register_set(user);
++	else
++		user_event_register_clear(user);
++
++	user->status = status;
+ }
+ 
+ /*
+@@ -1332,7 +1363,17 @@ static long user_reg_get(struct user_reg __user *ureg, struct user_reg *kreg)
+ 	if (size > PAGE_SIZE)
+ 		return -E2BIG;
+ 
+-	return copy_struct_from_user(kreg, sizeof(*kreg), ureg, size);
++	if (size < offsetofend(struct user_reg, write_index))
++		return -EINVAL;
++
++	ret = copy_struct_from_user(kreg, sizeof(*kreg), ureg, size);
++
++	if (ret)
++		return ret;
++
++	kreg->size = size;
++
++	return 0;
+ }
+ 
+ /*
+@@ -1376,7 +1417,8 @@ static long user_events_ioctl_reg(struct file *file, unsigned long uarg)
+ 		return ret;
+ 
+ 	put_user((u32)ret, &ureg->write_index);
+-	put_user(user->index, &ureg->status_index);
++	put_user(STATUS_BYTE(user->index), &ureg->status_index);
++	put_user(STATUS_MASK(user->index), &ureg->status_mask);
+ 
+ 	return 0;
+ }
+@@ -1485,7 +1527,7 @@ static int user_status_mmap(struct file *file, struct vm_area_struct *vma)
  {
--	char *field_name, *arg_name;
--	int len, pos, i = *iout;
-+	char *field_name = NULL, *dyn_field_name = NULL;
- 	bool colon = false, match = false;
-+	int dyn_len, len;
+ 	unsigned long size = vma->vm_end - vma->vm_start;
  
--	if (i >= argc)
-+	if (*iout >= argc)
- 		return false;
+-	if (size != MAX_EVENTS)
++	if (size != MAX_BYTES)
+ 		return -EINVAL;
  
--	len = MAX_FIELD_ARG_NAME;
--	field_name = kmalloc(len, GFP_KERNEL);
--	arg_name = kmalloc(len, GFP_KERNEL);
-+	dyn_len = user_dyn_field_set_string(argc, argv, iout, dyn_field_name,
-+					    0, &colon);
+ 	return remap_pfn_range(vma, vma->vm_start,
+@@ -1520,7 +1562,7 @@ static int user_seq_show(struct seq_file *m, void *p)
+ 	mutex_lock(&reg_mutex);
  
--	if (!arg_name || !field_name)
--		goto out;
--
--	pos = 0;
--
--	for (; i < argc; ++i) {
--		if (i != *iout)
--			pos += snprintf(arg_name + pos, len - pos, " ");
-+	len = user_field_set_string(field, field_name, 0, colon);
+ 	hash_for_each(register_table, i, user, node) {
+-		status = register_page_data[user->index];
++		status = user->status;
+ 		flags = user->flags;
  
--		pos += snprintf(arg_name + pos, len - pos, argv[i]);
--
--		if (strchr(argv[i], ';')) {
--			++i;
--			colon = true;
--			break;
--		}
--	}
-+	if (dyn_len != len)
-+		return false;
+ 		seq_printf(m, "%d:%s", user->index, EVENT_NAME(user));
+diff --git a/samples/user_events/example.c b/samples/user_events/example.c
+index 4f5778e441c0..e72260bf6e49 100644
+--- a/samples/user_events/example.c
++++ b/samples/user_events/example.c
+@@ -33,7 +33,8 @@ static int event_status(char **status)
+ 	return 0;
+ }
  
--	pos = 0;
-+	dyn_field_name = kmalloc(dyn_len, GFP_KERNEL);
-+	field_name = kmalloc(len, GFP_KERNEL);
+-static int event_reg(int fd, const char *command, int *status, int *write)
++static int event_reg(int fd, const char *command, int *index, int *mask,
++		     int *write)
+ {
+ 	struct user_reg reg = {0};
  
--	pos += snprintf(field_name + pos, len - pos, field->type);
--	pos += snprintf(field_name + pos, len - pos, " ");
--	pos += snprintf(field_name + pos, len - pos, field->name);
-+	if (!dyn_field_name || !field_name)
-+		goto out;
+@@ -43,7 +44,8 @@ static int event_reg(int fd, const char *command, int *status, int *write)
+ 	if (ioctl(fd, DIAG_IOCSREG, &reg) == -1)
+ 		return -1;
  
--	if (colon)
--		pos += snprintf(field_name + pos, len - pos, ";");
-+	user_dyn_field_set_string(argc, argv, iout, dyn_field_name,
-+				  dyn_len, &colon);
+-	*status = reg.status_index;
++	*index = reg.status_index;
++	*mask = reg.status_mask;
+ 	*write = reg.write_index;
  
--	*iout = i;
-+	user_field_set_string(field, field_name, len, colon);
+ 	return 0;
+@@ -51,7 +53,7 @@ static int event_reg(int fd, const char *command, int *status, int *write)
  
--	match = strcmp(arg_name, field_name) == 0;
-+	match = strcmp(dyn_field_name, field_name) == 0;
- out:
--	kfree(arg_name);
-+	kfree(dyn_field_name);
- 	kfree(field_name);
+ int main(int argc, char **argv)
+ {
+-	int data_fd, status, write;
++	int data_fd, index, mask, write;
+ 	char *status_page;
+ 	struct iovec io[2];
+ 	__u32 count = 0;
+@@ -61,7 +63,7 @@ int main(int argc, char **argv)
  
- 	return match;
+ 	data_fd = open(data_file, O_RDWR);
+ 
+-	if (event_reg(data_fd, "test u32 count", &status, &write) == -1)
++	if (event_reg(data_fd, "test u32 count", &index, &mask, &write) == -1)
+ 		return errno;
+ 
+ 	/* Setup iovec */
+@@ -75,7 +77,7 @@ int main(int argc, char **argv)
+ 	getchar();
+ 
+ 	/* Check if anyone is listening */
+-	if (status_page[status]) {
++	if (user_event_enabled(status_page, index, mask)) {
+ 		/* Yep, trace out our data */
+ 		writev(data_fd, (const struct iovec *)io, 2);
+ 
+diff --git a/tools/testing/selftests/user_events/ftrace_test.c b/tools/testing/selftests/user_events/ftrace_test.c
+index a80fb5ef61d5..ba7a2757dcbd 100644
+--- a/tools/testing/selftests/user_events/ftrace_test.c
++++ b/tools/testing/selftests/user_events/ftrace_test.c
+@@ -197,12 +197,12 @@ TEST_F(user, register_events) {
+ 	/* Register should work */
+ 	ASSERT_EQ(0, ioctl(self->data_fd, DIAG_IOCSREG, &reg));
+ 	ASSERT_EQ(0, reg.write_index);
+-	ASSERT_NE(0, reg.status_index);
++	ASSERT_EQ(0, reg.status_index == 0 && reg.status_mask == 1);
+ 
+ 	/* Multiple registers should result in same index */
+ 	ASSERT_EQ(0, ioctl(self->data_fd, DIAG_IOCSREG, &reg));
+ 	ASSERT_EQ(0, reg.write_index);
+-	ASSERT_NE(0, reg.status_index);
++	ASSERT_EQ(0, reg.status_index == 0 && reg.status_mask == 1);
+ 
+ 	/* Ensure disabled */
+ 	self->enable_fd = open(enable_file, O_RDWR);
+@@ -212,15 +212,15 @@ TEST_F(user, register_events) {
+ 	/* MMAP should work and be zero'd */
+ 	ASSERT_NE(MAP_FAILED, status_page);
+ 	ASSERT_NE(NULL, status_page);
+-	ASSERT_EQ(0, status_page[reg.status_index]);
++	ASSERT_EQ(0, status_page[reg.status_index] & reg.status_mask);
+ 
+ 	/* Enable event and ensure bits updated in status */
+ 	ASSERT_NE(-1, write(self->enable_fd, "1", sizeof("1")))
+-	ASSERT_EQ(EVENT_STATUS_FTRACE, status_page[reg.status_index]);
++	ASSERT_NE(0, status_page[reg.status_index] & reg.status_mask);
+ 
+ 	/* Disable event and ensure bits updated in status */
+ 	ASSERT_NE(-1, write(self->enable_fd, "0", sizeof("0")))
+-	ASSERT_EQ(0, status_page[reg.status_index]);
++	ASSERT_EQ(0, status_page[reg.status_index] & reg.status_mask);
+ 
+ 	/* File still open should return -EBUSY for delete */
+ 	ASSERT_EQ(-1, ioctl(self->data_fd, DIAG_IOCSDEL, "__test_event"));
+@@ -257,7 +257,7 @@ TEST_F(user, write_events) {
+ 	/* Register should work */
+ 	ASSERT_EQ(0, ioctl(self->data_fd, DIAG_IOCSREG, &reg));
+ 	ASSERT_EQ(0, reg.write_index);
+-	ASSERT_NE(0, reg.status_index);
++	ASSERT_EQ(0, reg.status_index == 0 && reg.status_mask == 1);
+ 
+ 	/* Write should fail on invalid slot with ENOENT */
+ 	io[0].iov_base = &field2;
+@@ -298,7 +298,7 @@ TEST_F(user, write_fault) {
+ 	/* Register should work */
+ 	ASSERT_EQ(0, ioctl(self->data_fd, DIAG_IOCSREG, &reg));
+ 	ASSERT_EQ(0, reg.write_index);
+-	ASSERT_NE(0, reg.status_index);
++	ASSERT_EQ(0, reg.status_index == 0 && reg.status_mask == 1);
+ 
+ 	/* Write should work normally */
+ 	ASSERT_NE(-1, writev(self->data_fd, (const struct iovec *)io, 2));
+@@ -322,7 +322,7 @@ TEST_F(user, write_validator) {
+ 	/* Register should work */
+ 	ASSERT_EQ(0, ioctl(self->data_fd, DIAG_IOCSREG, &reg));
+ 	ASSERT_EQ(0, reg.write_index);
+-	ASSERT_NE(0, reg.status_index);
++	ASSERT_EQ(0, reg.status_index == 0 && reg.status_mask == 1);
+ 
+ 	io[0].iov_base = &reg.write_index;
+ 	io[0].iov_len = sizeof(reg.write_index);
+diff --git a/tools/testing/selftests/user_events/perf_test.c b/tools/testing/selftests/user_events/perf_test.c
+index 26851d51d6bb..81ceaf71e364 100644
+--- a/tools/testing/selftests/user_events/perf_test.c
++++ b/tools/testing/selftests/user_events/perf_test.c
+@@ -120,8 +120,8 @@ TEST_F(user, perf_write) {
+ 	/* Register should work */
+ 	ASSERT_EQ(0, ioctl(self->data_fd, DIAG_IOCSREG, &reg));
+ 	ASSERT_EQ(0, reg.write_index);
+-	ASSERT_NE(0, reg.status_index);
+-	ASSERT_EQ(0, status_page[reg.status_index]);
++	ASSERT_EQ(0, reg.status_index == 0 && reg.status_mask == 1);
++	ASSERT_EQ(0, status_page[reg.status_index] & reg.status_mask);
+ 
+ 	/* Id should be there */
+ 	id = get_id();
+@@ -144,7 +144,7 @@ TEST_F(user, perf_write) {
+ 	ASSERT_NE(MAP_FAILED, perf_page);
+ 
+ 	/* Status should be updated */
+-	ASSERT_EQ(EVENT_STATUS_PERF, status_page[reg.status_index]);
++	ASSERT_NE(0, status_page[reg.status_index] & reg.status_mask);
+ 
+ 	event.index = reg.write_index;
+ 	event.field1 = 0xc001;
 -- 
 2.25.1
 
