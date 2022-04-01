@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 86DDCC433FE
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Apr 2022 23:43:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 659BEC41535
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Apr 2022 23:43:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353478AbiDAXpX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1353482AbiDAXpX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Fri, 1 Apr 2022 19:45:23 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56510 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56504 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353458AbiDAXpS (ORCPT
+        with ESMTP id S1353456AbiDAXpS (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2022 19:45:18 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 2A6EA38B4;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 2A61F2DF7;
         Fri,  1 Apr 2022 16:43:27 -0700 (PDT)
 Received: from localhost.localdomain (c-73-140-2-214.hsd1.wa.comcast.net [73.140.2.214])
-        by linux.microsoft.com (Postfix) with ESMTPSA id 9979420DF56B;
-        Fri,  1 Apr 2022 16:43:24 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 9979420DF56B
+        by linux.microsoft.com (Postfix) with ESMTPSA id 20B5920DF570;
+        Fri,  1 Apr 2022 16:43:25 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 20B5920DF570
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1648856604;
-        bh=Yas84WJ4NXuOO1nmdoxbY/IEroFAtoghAgKJn/H+CD0=;
+        s=default; t=1648856605;
+        bh=dxneIxyFrTOTz7WRpQU5x5JzmKlH6pr4TBlRuoXEHsU=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=dhUbokt6fF7kUhY9WKZejckFnyXq56DxG2EH5WrzRIFSkLVvXphN7MMywu/xObLZM
-         VeHaIL6aooc2sCuxNQyyRo4Khf/wzUAURYzJwHoYHInoT2DMt9B+BZy4nVQ2p4zPi5
-         7ZiAtRndev/D0kTenZkl9YpXR0z+JAMeD+/eJoZQ=
+        b=n5KSa9Db49+uG+J/PM8NwppUB1DtfCKpVLACIieSGy329S5K8EPhCwDPpFNnB/O0H
+         h24uG7buNojo2g6phn7T+Zx5shTFUHdFO4yUKUkLP/Q7OMEq7DrNKnI793gEqEMTiQ
+         vxN0TENfcqj5qFpXdVkMfjShUxPv8QvrHtQOQfDE=
 From:   Beau Belgrave <beaub@linux.microsoft.com>
 To:     rostedt@goodmis.org, mhiramat@kernel.org,
         mathieu.desnoyers@efficios.com
 Cc:     linux-trace-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, beaub@linux.microsoft.com
-Subject: [PATCH 5/7] tracing/user_events: Use refcount instead of atomic for ref tracking
-Date:   Fri,  1 Apr 2022 16:43:07 -0700
-Message-Id: <20220401234309.21252-6-beaub@linux.microsoft.com>
+Subject: [PATCH 7/7] tracing/user_events: Update ABI documentation to align to bits vs bytes
+Date:   Fri,  1 Apr 2022 16:43:09 -0700
+Message-Id: <20220401234309.21252-8-beaub@linux.microsoft.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220401234309.21252-1-beaub@linux.microsoft.com>
 References: <20220401234309.21252-1-beaub@linux.microsoft.com>
@@ -42,187 +42,106 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-User processes could open up enough event references to cause rollovers.
-These could cause use after free scenarios, which we do not want.
-Switching to refcount APIs prevent this, but will leak memory once
-saturated.
+Update the documentation to reflect the new ABI requirements and how to
+use the byte index with the mask properly to check event status.
 
-Once saturated, user processes can still use the events. This prevents
-a bad user process from stopping existing telemetry from being emitted.
-
-Link: https://lore.kernel.org/all/2059213643.196683.1648499088753.JavaMail.zimbra@efficios.com/
-
-Reported-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
 Signed-off-by: Beau Belgrave <beaub@linux.microsoft.com>
 ---
- kernel/trace/trace_events_user.c | 53 +++++++++++++++-----------------
- 1 file changed, 24 insertions(+), 29 deletions(-)
+ Documentation/trace/user_events.rst | 46 +++++++++++++----------------
+ 1 file changed, 21 insertions(+), 25 deletions(-)
 
-diff --git a/kernel/trace/trace_events_user.c b/kernel/trace/trace_events_user.c
-index f9bb7d37d76f..2bcae7abfa81 100644
---- a/kernel/trace/trace_events_user.c
-+++ b/kernel/trace/trace_events_user.c
-@@ -14,6 +14,7 @@
- #include <linux/uio.h>
- #include <linux/ioctl.h>
- #include <linux/jhash.h>
-+#include <linux/refcount.h>
- #include <linux/trace_events.h>
- #include <linux/tracefs.h>
- #include <linux/types.h>
-@@ -57,7 +58,7 @@ static DECLARE_BITMAP(page_bitmap, MAX_EVENTS);
-  * within a file a user_event might be created if it does not
-  * already exist. These are globally used and their lifetime
-  * is tied to the refcnt member. These cannot go away until the
-- * refcnt reaches zero.
-+ * refcnt reaches one.
-  */
- struct user_event {
- 	struct tracepoint tracepoint;
-@@ -67,7 +68,7 @@ struct user_event {
- 	struct hlist_node node;
- 	struct list_head fields;
- 	struct list_head validators;
--	atomic_t refcnt;
-+	refcount_t refcnt;
- 	int index;
- 	int flags;
- 	int min_size;
-@@ -105,6 +106,12 @@ static u32 user_event_key(char *name)
- 	return jhash(name, strlen(name), 0);
- }
+diff --git a/Documentation/trace/user_events.rst b/Documentation/trace/user_events.rst
+index c180936f49fc..6aabdb126f2e 100644
+--- a/Documentation/trace/user_events.rst
++++ b/Documentation/trace/user_events.rst
+@@ -20,14 +20,15 @@ dynamic_events is the same as the ioctl with the u: prefix applied.
  
-+static __always_inline __must_check
-+bool user_event_last_ref(struct user_event *user)
-+{
-+	return refcount_read(&user->refcnt) == 1;
-+}
+ Typically programs will register a set of events that they wish to expose to
+ tools that can read trace_events (such as ftrace and perf). The registration
+-process gives back two ints to the program for each event. The first int is the
+-status index. This index describes which byte in the
++process gives back three ints to the program for each event. The first int is
++the status index. This index describes which byte in the
+ /sys/kernel/debug/tracing/user_events_status file represents this event. The
+-second int is the write index. This index describes the data when a write() or
+-writev() is called on the /sys/kernel/debug/tracing/user_events_data file.
++second int is the mask to use on the byte to check the event status. The third
++int is the write index which describes the data when a write() or writev() is
++called on the /sys/kernel/debug/tracing/user_events_data file.
+ 
+-The structures referenced in this document are contained with the
+-/include/uap/linux/user_events.h file in the source tree.
++The structures referenced in this document are contained within the
++/include/uapi/linux/user_events.h file in the source tree.
+ 
+ **NOTE:** *Both user_events_status and user_events_data are under the tracefs
+ filesystem and may be mounted at different paths than above.*
+@@ -44,6 +45,7 @@ This command takes a struct user_reg as an argument::
+         u32 size;
+         u64 name_args;
+         u32 status_index;
++        u32 status_mask;
+         u32 write_index;
+   };
+ 
+@@ -112,14 +114,19 @@ writev() calls when something is actively attached to the event.
+ 
+ User programs call mmap() on /sys/kernel/debug/tracing/user_events_status to
+ check the status for each event that is registered. The byte to check in the
+-file is given back after the register ioctl() via user_reg.status_index.
++file is given back after the register ioctl() via user_reg.status_index. The
++byte needs to be AND'd with the user_reg.status_mask value to check if the
++event is enabled currently.
 +
- static __always_inline __must_check
- size_t copy_nofault(void *addr, size_t bytes, struct iov_iter *i)
- {
-@@ -662,7 +669,7 @@ static struct user_event *find_user_event(char *name, u32 *outkey)
+ Currently the size of user_events_status is a single page, however, custom
+ kernel configurations can change this size to allow more user based events. In
+ all cases the size of the file is a multiple of a page size.
  
- 	hash_for_each_possible(register_table, user, node, key)
- 		if (!strcmp(EVENT_NAME(user), name)) {
--			atomic_inc(&user->refcnt);
-+			refcount_inc(&user->refcnt);
- 			return user;
- 		}
+-For example, if the register ioctl() gives back a status_index of 3 you would
+-check byte 3 of the returned mmap data to see if anything is attached to that
+-event.
++For example, if the register ioctl() gives back a status_index of 3 and a mask
++of 1 you would check byte 3 of the returned mmap data and then AND the result
++with 1 (e.g. status_page[3] & 1) to see if anything is attached to that event.
++A helper function is available called user_event_enabled() which does this for
++you.
  
-@@ -876,12 +883,12 @@ static int user_event_reg(struct trace_event_call *call,
+ Administrators can easily check the status of all registered events by reading
+ the user_events_status file directly via a terminal. The output is as follows::
+@@ -137,7 +144,7 @@ For example, on a system that has a single event the output looks like this::
  
- 	return ret;
- inc:
--	atomic_inc(&user->refcnt);
-+	refcount_inc(&user->refcnt);
- 	update_reg_page_for(user);
- 	return 0;
- dec:
- 	update_reg_page_for(user);
--	atomic_dec(&user->refcnt);
-+	refcount_dec(&user->refcnt);
- 	return 0;
- }
+   Active: 1
+   Busy: 0
+-  Max: 4096
++  Max: 32768
  
-@@ -907,7 +914,7 @@ static int user_event_create(const char *raw_command)
- 	ret = user_event_parse_cmd(name, &user);
+ If a user enables the user event via ftrace, the output would change to this::
  
- 	if (!ret)
--		atomic_dec(&user->refcnt);
-+		refcount_dec(&user->refcnt);
+@@ -145,21 +152,10 @@ If a user enables the user event via ftrace, the output would change to this::
  
- 	mutex_unlock(&reg_mutex);
- 
-@@ -951,14 +958,14 @@ static bool user_event_is_busy(struct dyn_event *ev)
- {
- 	struct user_event *user = container_of(ev, struct user_event, devent);
- 
--	return atomic_read(&user->refcnt) != 0;
-+	return !user_event_last_ref(user);
- }
- 
- static int user_event_free(struct dyn_event *ev)
- {
- 	struct user_event *user = container_of(ev, struct user_event, devent);
- 
--	if (atomic_read(&user->refcnt) != 0)
-+	if (!user_event_last_ref(user))
- 		return -EBUSY;
- 
- 	return destroy_user_event(user);
-@@ -1137,8 +1144,8 @@ static int user_event_parse(char *name, char *args, char *flags,
- 
- 	user->index = index;
- 
--	/* Ensure we track ref */
--	atomic_inc(&user->refcnt);
-+	/* Ensure we track self ref and caller ref (2) */
-+	refcount_set(&user->refcnt, 2);
- 
- 	dyn_event_init(&user->devent, &user_event_dops);
- 	dyn_event_add(&user->devent, &user->call);
-@@ -1164,29 +1171,17 @@ static int user_event_parse(char *name, char *args, char *flags,
- static int delete_user_event(char *name)
- {
- 	u32 key;
--	int ret;
- 	struct user_event *user = find_user_event(name, &key);
- 
- 	if (!user)
- 		return -ENOENT;
- 
--	/* Ensure we are the last ref */
--	if (atomic_read(&user->refcnt) != 1) {
--		ret = -EBUSY;
--		goto put_ref;
--	}
+   Active: 1
+   Busy: 1
+-  Max: 4096
 -
--	ret = destroy_user_event(user);
-+	refcount_dec(&user->refcnt);
- 
--	if (ret)
--		goto put_ref;
+-**NOTE:** *A status index of 0 will never be returned. This allows user
+-programs to have an index that can be used on error cases.*
 -
--	return ret;
--put_ref:
--	/* No longer have this ref */
--	atomic_dec(&user->refcnt);
-+	if (!user_event_last_ref(user))
-+		return -EBUSY;
+-Status Bits
+-^^^^^^^^^^^
+-The byte being checked will be non-zero if anything is attached. Programs can
+-check specific bits in the byte to see what mechanism has been attached.
+-
+-The following values are defined to aid in checking what has been attached:
+-
+-**EVENT_STATUS_FTRACE** - Bit set if ftrace has been attached (Bit 0).
++  Max: 32768
  
--	return ret;
-+	return destroy_user_event(user);
- }
+-**EVENT_STATUS_PERF** - Bit set if perf has been attached (Bit 1).
++**NOTE:** *A status index of 0 with a mask of 1 will never be returned. This
++allows user programs to have an index and mask that can be used on error cases.*
  
- /*
-@@ -1314,7 +1309,7 @@ static int user_events_ref_add(struct file *file, struct user_event *user)
- 
- 	new_refs->events[i] = user;
- 
--	atomic_inc(&user->refcnt);
-+	refcount_inc(&user->refcnt);
- 
- 	rcu_assign_pointer(file->private_data, new_refs);
- 
-@@ -1374,7 +1369,7 @@ static long user_events_ioctl_reg(struct file *file, unsigned long uarg)
- 	ret = user_events_ref_add(file, user);
- 
- 	/* No longer need parse ref, ref_add either worked or not */
--	atomic_dec(&user->refcnt);
-+	refcount_dec(&user->refcnt);
- 
- 	/* Positive number is index and valid */
- 	if (ret < 0)
-@@ -1464,7 +1459,7 @@ static int user_events_release(struct inode *node, struct file *file)
- 		user = refs->events[i];
- 
- 		if (user)
--			atomic_dec(&user->refcnt);
-+			refcount_dec(&user->refcnt);
- 	}
- out:
- 	file->private_data = NULL;
+ Writing Data
+ ------------
 -- 
 2.25.1
 
