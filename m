@@ -2,40 +2,40 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4CD1FC433F5
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BC109C41535
 	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 06:20:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1377457AbiDDGWj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 02:22:39 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44438 "EHLO
+        id S1377439AbiDDGWk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 02:22:40 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44476 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1377422AbiDDGWd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 02:22:33 -0400
+        with ESMTP id S1377429AbiDDGWe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 02:22:34 -0400
 Received: from conuserg-08.nifty.com (conuserg-08.nifty.com [210.131.2.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AFA8C377ED;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9BC13377D3;
         Sun,  3 Apr 2022 23:20:30 -0700 (PDT)
 Received: from grover.. (133-32-177-133.west.xps.vectant.ne.jp [133.32.177.133]) (authenticated)
-        by conuserg-08.nifty.com with ESMTP id 2346K1Bk008244;
-        Mon, 4 Apr 2022 15:20:02 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 2346K1Bk008244
+        by conuserg-08.nifty.com with ESMTP id 2346K1Br008244;
+        Mon, 4 Apr 2022 15:20:06 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 2346K1Br008244
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1649053202;
-        bh=a1RDShE0uWC0OhbAt+4QzV+tQ/pdHe8WAiRE756c3W0=;
+        s=dec2015msa; t=1649053207;
+        bh=0K4SM890AXVb9yL32lizEN5lNqgMqpVmCB0ZtXPBQyY=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=fJPyIo+5xtFjhpXfI/BagGdqzFGxiVFbkzFEFKe/4hq72+9HM+ofFhg3C+avRmDFi
-         hza7CyscxdpcubFRlNiLS0kbH61rK+vhmw6kZAm7CaNkIeAEntqhg53Vk4rcNy1ywo
-         x/TGhBjhkBk8txewXSq0PGSbyR19/mmt9p8GzRs5zqjnD5m+k2cYD2Xe4nTnoicemn
-         47NSP1iNGOYi50tRjT1+05Skq/DjvIpW0r2NYOgLpzSCW6tUYxSVx6uVWAFxpyAllz
-         3fTV+2QMQb9SQbK52ZNYV6nGQynwNpHpAMaAfT3YMuhr98ArpRyfEJ/QCVf2X7apei
-         HNSlPD8YILMog==
+        b=F9sOVL7DA9P1ovJNmmoz7LYEGMQKCHLFRHXEpGNhEXtt+Uy88Shx9J83GxKAgZL7O
+         a0eW/hvcWw4w6A5g8udfkNRqpro8cNGENMVvQq8Pef0RkfvMPM5g1IOtNnQynfxBOB
+         3eWHDPVwXH8t+3D/PA6Cs3OFs+Bfgh2XN5XSleshCAONgvIFeo7mYd1FSluNCMYKO1
+         Xn2KJiyT7MBQFoXTVueG8ZD9TMPl04HoCpzBSBAykHG9bzoG+Mwp6pEC4AMiJtjLVh
+         hG2d3j9Pc99bjsOUMhm7s8T36l2zu8Z2Pjg02tFwvrFDysrZcUBkRgkGu3Dy1m/hZP
+         wDawh5v4NlwEQ==
 X-Nifty-SrcIP: [133.32.177.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
 Cc:     linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 1/8] agpgart.h: do not include <stdlib.h> from exported header
-Date:   Mon,  4 Apr 2022 15:19:41 +0900
-Message-Id: <20220404061948.2111820-2-masahiroy@kernel.org>
+Subject: [PATCH 8/8] virtio_ring.h: do not include <stdint.h> from exported header
+Date:   Mon,  4 Apr 2022 15:19:48 +0900
+Message-Id: <20220404061948.2111820-9-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
 In-Reply-To: <20220404061948.2111820-1-masahiroy@kernel.org>
 References: <20220404061948.2111820-1-masahiroy@kernel.org>
@@ -45,47 +45,53 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit 35d0f1d54ecd ("include/uapi/linux/agpgart.h: include stdlib.h in
-userspace") included <stdlib.h> to fix the unknown size_t error, but
-I do not think it is the right fix.
+Arnd mentioned a limitation when including <stdint.h> from UAPI
+headers. [1]
 
-This header already uses __kernel_size_t a few lines below.
+Besides, I'd like exported headers to be as compliant with the
+traditional C as possible.
 
-Replace the remaining size_t, and stop including <stdlib.h>.
+In fact, the UAPI headers are compile-tested with -std=c90 (see
+usr/include/Makefile) even though the kernel itself is now built
+with -std=gnu11.
+
+Currently, include/uapi/linux/virtio_ring.h includes <stdint.h>
+presumably because it uses uintptr_t.
+
+Replace it with __kernel_uintptr_t, and stop including <stdint.h>.
+
+[1]: https://lore.kernel.org/all/CAK8P3a0bz8XYJOsmND2=CT_oTDmGMJGaRo9+QMroEhpekSMEaQ@mail.gmail.com/
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- include/uapi/linux/agpgart.h | 9 ++++-----
- 1 file changed, 4 insertions(+), 5 deletions(-)
+ include/uapi/linux/virtio_ring.h | 6 ++----
+ 1 file changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/include/uapi/linux/agpgart.h b/include/uapi/linux/agpgart.h
-index f5251045181a..9cc3448c0b5b 100644
---- a/include/uapi/linux/agpgart.h
-+++ b/include/uapi/linux/agpgart.h
-@@ -52,7 +52,6 @@
- 
- #ifndef __KERNEL__
+diff --git a/include/uapi/linux/virtio_ring.h b/include/uapi/linux/virtio_ring.h
+index 476d3e5c0fe7..6329e4ff35f4 100644
+--- a/include/uapi/linux/virtio_ring.h
++++ b/include/uapi/linux/virtio_ring.h
+@@ -31,9 +31,7 @@
+  * SUCH DAMAGE.
+  *
+  * Copyright Rusty Russell IBM Corporation 2007. */
+-#ifndef __KERNEL__
+-#include <stdint.h>
+-#endif
++
  #include <linux/types.h>
--#include <stdlib.h>
+ #include <linux/virtio_types.h>
  
- struct agp_version {
- 	__u16 major;
-@@ -64,10 +63,10 @@ typedef struct _agp_info {
- 	__u32 bridge_id;	/* bridge vendor/device         */
- 	__u32 agp_mode;		/* mode info of bridge          */
- 	unsigned long aper_base;/* base of aperture             */
--	size_t aper_size;	/* size of aperture             */
--	size_t pg_total;	/* max pages (swap + system)    */
--	size_t pg_system;	/* max pages (system)           */
--	size_t pg_used;		/* current pages used           */
-+	__kernel_size_t aper_size;	/* size of aperture             */
-+	__kernel_size_t pg_total;	/* max pages (swap + system)    */
-+	__kernel_size_t pg_system;	/* max pages (system)           */
-+	__kernel_size_t pg_used;	/* current pages used           */
- } agp_info;
+@@ -196,7 +194,7 @@ static inline void vring_init(struct vring *vr, unsigned int num, void *p,
+ 	vr->num = num;
+ 	vr->desc = p;
+ 	vr->avail = (struct vring_avail *)((char *)p + num * sizeof(struct vring_desc));
+-	vr->used = (void *)(((uintptr_t)&vr->avail->ring[num] + sizeof(__virtio16)
++	vr->used = (void *)(((__kernel_uintptr_t)&vr->avail->ring[num] + sizeof(__virtio16)
+ 		+ align-1) & ~(align - 1));
+ }
  
- typedef struct _agp_setup {
 -- 
 2.32.0
 
