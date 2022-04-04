@@ -2,87 +2,82 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EAAC8C433F5
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 08:02:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 11531C433EF
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 08:04:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235550AbiDDIED (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 04:04:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40376 "EHLO
+        id S1377891AbiDDIGR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 04:06:17 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45158 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1377882AbiDDIED (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 04:04:03 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.134])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 462963B2BB;
-        Mon,  4 Apr 2022 01:02:07 -0700 (PDT)
-Received: from mail-wr1-f43.google.com ([209.85.221.43]) by
+        with ESMTP id S1343920AbiDDIGQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 04:06:16 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.187])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D87FF31DE5;
+        Mon,  4 Apr 2022 01:04:20 -0700 (PDT)
+Received: from mail-wr1-f45.google.com ([209.85.221.45]) by
  mrelayeu.kundenserver.de (mreue011 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1MIxJq-1nH0x52y5q-00KLsF; Mon, 04 Apr 2022 10:02:05 +0200
-Received: by mail-wr1-f43.google.com with SMTP id c7so13268308wrd.0;
-        Mon, 04 Apr 2022 01:02:05 -0700 (PDT)
-X-Gm-Message-State: AOAM532517R/lSVGLXAwA+N5AKi/nm029RBFReXMZngAg6CGv5ne444x
-        T8XwKcxBHDYQhah1che4FV8J/iwRIPC/IeBYapk=
-X-Google-Smtp-Source: ABdhPJxfJvKKixoejzphmCX0GQJtCAcdZjnwkNDn/9M06aiYqWjmBipXxJ1GIcogwlUWxIq3sw2sGEnVe8T8dDL1brk=
+ 1Mzhzd-1nxVVy0j8j-00vdgg; Mon, 04 Apr 2022 10:04:19 +0200
+Received: by mail-wr1-f45.google.com with SMTP id k23so597882wrd.8;
+        Mon, 04 Apr 2022 01:04:19 -0700 (PDT)
+X-Gm-Message-State: AOAM530YXNFGrNMOFA4dEuOzsAItLv9RtMPpd0ZyYrtM20Nm0TBAhBQG
+        QKSIZpGc1gStJjMZKeUSGwrRj718FSGAchsgeFE=
+X-Google-Smtp-Source: ABdhPJwqJxfqlqagcViI+smBcTQCtvDqO5imtzJeW3lPtlQWh/wDdnZ51ocnA4CpI0iS26royJspuxNotXJbtEBu7nc=
 X-Received: by 2002:a5d:6505:0:b0:205:9a98:e184 with SMTP id
- x5-20020a5d6505000000b002059a98e184mr15347532wru.317.1649059325250; Mon, 04
- Apr 2022 01:02:05 -0700 (PDT)
+ x5-20020a5d6505000000b002059a98e184mr15354390wru.317.1649059458839; Mon, 04
+ Apr 2022 01:04:18 -0700 (PDT)
 MIME-Version: 1.0
 References: <20220404061948.2111820-1-masahiroy@kernel.org>
- <20220404061948.2111820-3-masahiroy@kernel.org> <YkqhQhJIQEL2qh8C@infradead.org>
-In-Reply-To: <YkqhQhJIQEL2qh8C@infradead.org>
+ <20220404061948.2111820-9-masahiroy@kernel.org> <Ykqh3mEy5uY8spe8@infradead.org>
+In-Reply-To: <Ykqh3mEy5uY8spe8@infradead.org>
 From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Mon, 4 Apr 2022 10:01:49 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a0+fxiQGTu_XAOtNMkO91fZ7fQg3MZZahUjdNJCFaUxfw@mail.gmail.com>
-Message-ID: <CAK8P3a0+fxiQGTu_XAOtNMkO91fZ7fQg3MZZahUjdNJCFaUxfw@mail.gmail.com>
-Subject: Re: [PATCH 2/8] kbuild: prevent exported headers from including
- <stdlib.h>, <stdbool.h>
+Date:   Mon, 4 Apr 2022 10:04:02 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a07ZdqA0UBC_qkqzMsZWLUK=Rti3AkFe2VVEWLivuZAqA@mail.gmail.com>
+Message-ID: <CAK8P3a07ZdqA0UBC_qkqzMsZWLUK=Rti3AkFe2VVEWLivuZAqA@mail.gmail.com>
+Subject: Re: [PATCH 8/8] virtio_ring.h: do not include <stdint.h> from
+ exported header
 To:     Christoph Hellwig <hch@infradead.org>
 Cc:     Masahiro Yamada <masahiroy@kernel.org>,
         Arnd Bergmann <arnd@arndb.de>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+        linux-arch <linux-arch@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:3CUoZQ9i738Pk1BDtFcQ17q6rJoOWZGhlf4AebmA6cuYFvtjqBY
- hWIGBvUybTD30MNo/igW2cL/K2IJWxgooaSR0MaxllcDW6BYCYoTrxem4uxL2+FQwEc8YhX
- ER1VPY7PouqNcWbtdXXbAXaf5bhddZbiGmfbryls7ezODnm7Fl5VrJ631sNPOBRUFyeTuLX
- 9qFnAB9IaO7SrYhhSW8fQ==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:r/J0NwWuQF8=:oSO9ZQsNRoYQwcgkMf5vQB
- 3cQdSgt4HRCdc0EYK2Po/M1kMIDRxlRecyLaq/jdKrKjCF8xcWCnhPSwoq/Virt8AH1YhpCEM
- 1urqSSOAH3vFaOpY97gPg6sTXDK9yL5uJ2Gw8iBTE1vzY3384dm6Ce3/F0VubMjVppok5pOsx
- 5xtMzj1Gy2Ec76onRuA3eucjqNv3nLjXMqfyDHh9nhzfDeq44FmMP4tPG8z7xe8TtK95SYGQw
- fCD70LEqnQEJVuE4XacWc1+GLbn4YWtCmOiQ1ggSpWUkyAWeUPyH2r4oCqW2iakhcfnLKjUN8
- ZdTOVlVWp0leXJ+Eu9xo4ZtGZXJyLZtjWTyi5scy3xP9AKWl4kAPhOQma4UxdG8d2yCmjnPBg
- cyGaw8vkgW3ZskAAJS2Dn1i277HvS7qYMrTAxqd4hD1ab2dBsUf/9fWb1apZmWbie504wHKNQ
- cJ57zSpgCQz8DpFSJvzwG49zizD9+/8nWM9s0KzB72XWHvTlWRLs3dtPddWoSuhKTipheW8JA
- 2g5DtsmQxUKrWPtOCpoYiT1h0xQATo8I57lihjvRQgNC8Lk92O2FO4w2IX+U7M74B0w5Vs2yN
- RGwsNyDkVOihEkWDbgvgrZsUaI7u7Ru67HUXNPd/l8RG2+zcSkAlexTnDTGIxtAlLCbsMvITM
- D/yYnU2cFzc/SUlO8rcHft6jI0tELUCfZXI0DMvXSum9SXLZBp4+1PUjAux5buoyVGiw=
+X-Provags-ID: V03:K1:xrx78JDc2cIU2KMmuE4laAS0LK4GO0thkkuMWLoJs5LqHA9pfnd
+ h4+CwdxRSHUOACc6EbQsSgNU2DoX7sjIgBgciCKjHUZFmkwUOpd+VIz4slIpgol4VDfo4D2
+ MqePrLb1dAB/miskZxkpwc3gElTsvndJ7c9oSc1EZEU5azD97bRRTx5dJwAXYJd9XGSn4Uy
+ 5eppBOqMT7vX1Hk2u9mTA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:nIaGZmEwUbM=:cs2DasC4bE/H4q277mj8DL
+ STC90UmrPCoOucsGcE33kkNS/YzehPiv78UB2fC60YOKCwD1zBLx4uWkXUC+rwHpAxJJegYyD
+ o0A4V5K2Lc8o5L0iR442QOx/fVBdKWltRgYrKtcB8osc0lwCyNmFcZ422ySG+MDiLe4kJqhLc
+ xj4tFZOYqvQm41dwSasU/pOpPBjD/PkxhNtmhu2h1LQaqNTMDZ3PoDO5PdoMoXV7KKc6atbzj
+ trEIPuLHkcIXSIIZG6j/TSJyqIaXcj/VYy3VCDkAlsgbjpW9mhvcGuIBepJLqcGWfWdQVZ5wY
+ Vn53+c8ypzUHe9th7HX0tXinRk1iWzMecYyEdfzIEOX8AJZZwtKgn9KhRWpMc3cXk50ROPDtH
+ am3Ga1YXKGQ0AjZ+n0T2W5MhLAB40zIX1MzFLEQZPANeN3fCOmy0fszN6ZYMoZzx9fazbh1ur
+ 08PHANRTI7BFOIduSBElr8khbOMhapkqjL3/8Lxm839rIYHFxvhrFNBpsv1QK7C2GwB3L7GqL
+ jBooPHHBmA7GF+v7lfydO4LqbHjXdGPUPoPWC1/K0MfsKSkN/XD8n+mDwRJyOYNHfkHzuhsgb
+ iIZSxaIuoUFLsWaNeA65GqzWEyRl+iQ92L2FfDJCVA+wSyF2gTFseAHv0V/niTe6sj1KBOeH7
+ pmXp/5h8EW7Qe9T7lKHYp2G3aXauNCdn878VfpGqt+hMA9+xgLlh5Eqbvjf77QdbCLgnU35V3
+ hCZPQV2PM9Rs0YjhcvPEKzxv9/KLRU+UrUNaMyRpquEYVRTbk90Wb7vY+v2M3sao5Yq1t/+7D
+ nSv/iMMWgarTzRiEyq4AetPakj/QdQClItmxgUwtcQdUlfIhnM=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Apr 4, 2022 at 9:41 AM Christoph Hellwig <hch@infradead.org> wrote:
+On Mon, Apr 4, 2022 at 9:44 AM Christoph Hellwig <hch@infradead.org> wrote:
+> On Mon, Apr 04, 2022 at 03:19:48PM +0900, Masahiro Yamada wrote:
+> >       vr->num = num;
+> >       vr->desc = p;
+> >       vr->avail = (struct vring_avail *)((char *)p + num * sizeof(struct vring_desc));
+> > -     vr->used = (void *)(((uintptr_t)&vr->avail->ring[num] + sizeof(__virtio16)
+> > +     vr->used = (void *)(((__kernel_uintptr_t)&vr->avail->ring[num] + sizeof(__virtio16)
+> >               + align-1) & ~(align - 1));
 >
-> On Mon, Apr 04, 2022 at 03:19:42PM +0900, Masahiro Yamada wrote:
-> > If we can make kernel headers self-contained (that is, none of exported
-> > kernel headers includes system headers), we will be able to add the
-> > -nostdinc flag, but that is much far from where we stand now.
->
-> What is still missing for that?
+> This really does not look like it should be in a uapi header to start
+> with.
 
-One case that I don't know how to solve is
-
-include/uapi/sound/asound.h:typedef struct { unsigned char
-pad[sizeof(time_t) - sizeof(int)]; } __time_pad;
-
-Here we define a structure layout based on a libc-provided type. There are two
-possible variants (32-bit and 64-bit time_t), and the kernel interface
-can handle
-both versions because they get different ioctl command numbers, but user space
-must see the one that matches its normal time_t.
-
-There are a couple of similar cases like this, but I think the other ones don't
-need to define architecture specific padding like this.
+The header is shared between kernel and other projects using virtio, such as
+qemu and any boot loaders booting from virtio devices. It's not technically a
+/kernel/ ABI, but it is an ABI and for practical reasons the kernel version is
+maintained as the master copy if I understand it correctly.
 
        Arnd
