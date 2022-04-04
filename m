@@ -2,94 +2,115 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 14BF3C4167B
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 21:28:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C8D9C433FE
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 21:28:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1357274AbiDDVai (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 17:30:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54470 "EHLO
+        id S1382520AbiDDVal (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 17:30:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49466 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1380675AbiDDU6p (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 16:58:45 -0400
-Received: from mail-ej1-x629.google.com (mail-ej1-x629.google.com [IPv6:2a00:1450:4864:20::629])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3C62430F6D;
-        Mon,  4 Apr 2022 13:56:49 -0700 (PDT)
-Received: by mail-ej1-x629.google.com with SMTP id bg10so22574945ejb.4;
-        Mon, 04 Apr 2022 13:56:49 -0700 (PDT)
+        with ESMTP id S1379545AbiDDR3I (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 13:29:08 -0400
+Received: from mail-pj1-x1030.google.com (mail-pj1-x1030.google.com [IPv6:2607:f8b0:4864:20::1030])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0617031909
+        for <linux-arch@vger.kernel.org>; Mon,  4 Apr 2022 10:27:11 -0700 (PDT)
+Received: by mail-pj1-x1030.google.com with SMTP id u14so5600661pjj.0
+        for <linux-arch@vger.kernel.org>; Mon, 04 Apr 2022 10:27:11 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=bVlKvULZm2JgZ5AGytzLrLB0CSLrK0ggDRTo65+yxyA=;
-        b=ku1Mni2YP6skEb4UzKwM1qgc933zwKLIlMM21YZAd7k4Ios0mzpOc/rIaiQVjhFQSY
-         G+txssoqd3A6QKy5AZVACJTlGPSO1le+tQYos/vc/E2PB8bCCueGVPQ5Scvt5bZZ0s2f
-         I52BoNzvPo67Aqv6eXqqyFzU1vQDqrs2VWVcVapC6o/pGzwkb1H3txizNNHwVD4d6ScG
-         2eIDS0ScxBnD2FZzrF1d1lKbTPDJ8/l3KKd8gewI19+L9UviMfXxa0WaQTj9+PHYcB7I
-         7cJb+/UH9X0jvg07Ut3LmEkLNSOS7IFE/S9dHP7d26coaZhJq40PwzaU1UKeGEFNTonV
-         YiIQ==
+        d=google.com; s=20210112;
+        h=date:from:to:cc:subject:message-id:references:mime-version
+         :content-disposition:in-reply-to;
+        bh=VYvPl145gx1NnQ2E3OJKFVQPxapHGXttn5rOGVj8YXo=;
+        b=hd+vUeBK2jke4Z79gSu5EYlGJK/30+8ZPm5vusOwihjccMo+JYQaFziQAAtCID0e5b
+         qiLbaSXJpB5nRDykwDoLmPmHeyaA4U3mO1aNEDIrpBI1y7KWpUIIYaKFkz1sQOFACAOc
+         aM6lCqWr9wZwWsklSOxLwTatnC3eKJ1E18Cyxx8CEA5zLgAe9sm4oTFjzF7SzNxlrSY7
+         5YCfCpDy23ULHUPSewKuWau9wE833jCsfozeqx9dNss7+g86jPjfaK+eh0C/KKY3VLXw
+         f3jp5vi8jNmhQOZlIPVusBowj6XA96wM7engEJdtxH6nw+nNIUhWc7hzzmvwmP0aO5k+
+         ThIw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=bVlKvULZm2JgZ5AGytzLrLB0CSLrK0ggDRTo65+yxyA=;
-        b=ADpGwSD2J3Ly+6ODxHl337T+g8oWZTx2PZ3zU49l6o/xvzRODv9nx9nQV+abr+jPK1
-         4QgB1M0hR+TJfiCil8X6v+le+V+njcTlHPlXbj+nA6716xVsQTlEXW1j8GrE1Ex7hmXV
-         BAqxTavkO759OTbrW6hw66hWZqz6TfRQiCpm0pCwfOkyLWd+NAg1RmFs0WFGi9tnyLBk
-         sT4Y/dHaPudG7t/kX1chw8OURNqnuWm8lX3n8Z8WmBPRsXL2Qrg7tetTEz58Cz3o+VqN
-         HjQ12vjDbhJpdR61SLFixyEd31HkkoberI2vJKeVogTwj0QkUk3+T7xGOOTZLrOVrCx1
-         9N6g==
-X-Gm-Message-State: AOAM532p0QLx0Om0oA3qug+ZlJ/gCGkAqDEjIGu6xPgI3hcu5ix33ik9
-        X65GOOYNZ8mAVMLJISe0Kde6e+u6wL4RnYTQ/ClAfvlb7Vc=
-X-Google-Smtp-Source: ABdhPJxR6ykDRFXeBPhlCfq09GQEDxUi37N3Qk4mgFJMv7QLL7sMtSVvzSM8nSllVj9W6nUE0impfg7PMyukPyB4+IQ=
-X-Received: by 2002:a17:906:f75a:b0:6e6:e3f1:c946 with SMTP id
- jp26-20020a170906f75a00b006e6e3f1c946mr67964ejb.676.1649105807881; Mon, 04
- Apr 2022 13:56:47 -0700 (PDT)
+        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
+         :mime-version:content-disposition:in-reply-to;
+        bh=VYvPl145gx1NnQ2E3OJKFVQPxapHGXttn5rOGVj8YXo=;
+        b=LpW+N1zj+I9cl1t8bzATJhmVYia93xQGLy1QhmynvKiC+6MMAzFMwUU6OFboSe5eF2
+         l2Jr0sI50iF8cbsVbyKIIwxjE0+FFTOziT1XMdbFTUr7+2Yz59kT+xv7KHVFOAYrcWBp
+         eyU3yDMBE7tNV99QfxLuUoltyW8hCtHLoWaVCHTI+PzNjvJu3NtYbFlA7I7YhMI/PXOR
+         CGkT/OCV/q6n8BhaVpSTFNkS9xe7LTqSDtveaGilti4U7iNbNL4iDcESbtASaSIorE8Z
+         rYHuRRu8NVfisiNYjmTqXn480PzH60nv4Y+eKfgr4JIv9cFAKtRXOIsL96+CshMnEdBK
+         8Dag==
+X-Gm-Message-State: AOAM532yJjhHewh/2y7cD0l8UVIz2WkGKpDmRHPONlKKMklKPhgaLNFB
+        3jeYEpPF2+r3AHZ//AJf11Gtjg==
+X-Google-Smtp-Source: ABdhPJzIn8VUPSw0kXUgBANdTlP1KbT/bIOfaGMgMZZeENIi+FbBiFh+hZ3dFMto7+s4V24GWdOQ6w==
+X-Received: by 2002:a17:90b:1c07:b0:1c7:5324:c68e with SMTP id oc7-20020a17090b1c0700b001c75324c68emr255680pjb.202.1649093231294;
+        Mon, 04 Apr 2022 10:27:11 -0700 (PDT)
+Received: from google.com ([2620:15c:211:202:9d5:9b93:ffb4:574a])
+        by smtp.gmail.com with ESMTPSA id gt14-20020a17090af2ce00b001c701e0a129sm73834pjb.38.2022.04.04.10.27.09
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 04 Apr 2022 10:27:09 -0700 (PDT)
+Date:   Mon, 4 Apr 2022 10:27:02 -0700
+From:   Nick Desaulniers <ndesaulniers@google.com>
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH 1/8] agpgart.h: do not include <stdlib.h> from exported
+ header
+Message-ID: <YksqZv5IqECbFB7a@google.com>
+References: <20220404061948.2111820-1-masahiroy@kernel.org>
+ <20220404061948.2111820-2-masahiroy@kernel.org>
 MIME-Version: 1.0
-References: <Yib9F5SqKda/nH9c@infradead.org> <CAK8P3a1dUVsZzhAe81usLSkvH29zHgiV9fhEkWdq7_W+nQBWbg@mail.gmail.com>
- <YkmWh2tss8nXKqc5@infradead.org> <CAK8P3a0QdFOJbM72geYTWOKumeKPSCVD8Nje5pBpZWazX0GEnQ@mail.gmail.com>
- <CAMo8BfKgn0T5RtUTb89fPvygNJJYLy7r1=RZTmTTm=jiDfx1hQ@mail.gmail.com>
- <CAK8P3a0J1--WSyWY+TptFa0nn5d-mOxapadCE1csGRkfhSPbVw@mail.gmail.com>
- <CAMo8BfLT8vMw3aGQPs1+9ry7W63SQphmDc4Tt4A3JvADHJhxiQ@mail.gmail.com>
- <CAK8P3a3iFb+ZacZ40d8PC_xcJpLVFXT0Qc-oYEZNkFqXdsfNZw@mail.gmail.com> <CAK8P3a1goN3c772xiFtz13kHZs0XEDSxfXX=ub7OH3S98Mddsw@mail.gmail.com>
-In-Reply-To: <CAK8P3a1goN3c772xiFtz13kHZs0XEDSxfXX=ub7OH3S98Mddsw@mail.gmail.com>
-From:   Max Filippov <jcmvbkbc@gmail.com>
-Date:   Mon, 4 Apr 2022 13:56:36 -0700
-Message-ID: <CAMo8BfJ5oqq3DXGf31uy8ab01EXqfzsO8hA2Tia=F1fBGiznKw@mail.gmail.com>
-Subject: Re: [RFC PULL] remove arch/h8300
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Christoph Hellwig <hch@infradead.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        "moderated list:H8/300 ARCHITECTURE" 
-        <uclinux-h8-devel@lists.sourceforge.jp>,
-        "open list:TENSILICA XTENSA PORT (xtensa)" 
-        <linux-xtensa@linux-xtensa.org>,
-        Linux-sh list <linux-sh@vger.kernel.org>,
-        linux-m68k <linux-m68k@lists.linux-m68k.org>,
-        Greg Ungerer <gerg@linux-m68k.org>,
-        Damien Le Moal <damien.lemoal@wdc.com>,
-        linux-riscv <linux-riscv@lists.infradead.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20220404061948.2111820-2-masahiroy@kernel.org>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Apr 4, 2022 at 12:44 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> Let me know if I need to enable additional options to get a compiler
-> that works for all xtensa targets. Usually the --enable-targets=all
-> is meant to be sufficient.
+On Mon, Apr 04, 2022 at 03:19:41PM +0900, Masahiro Yamada wrote:
+> Commit 35d0f1d54ecd ("include/uapi/linux/agpgart.h: include stdlib.h in
+> userspace") included <stdlib.h> to fix the unknown size_t error, but
+> I do not think it is the right fix.
+> 
+> This header already uses __kernel_size_t a few lines below.
+> 
+> Replace the remaining size_t, and stop including <stdlib.h>.
+> 
+> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 
-This is not possible with the current design of the xtensa toolchain port.
-There's an effort to make switching between the core configurations easy
-(without the whole toolchain rebuild:
- https://github.com/jcmvbkbc/xtensa-dynconfig
- https://github.com/jcmvbkbc/gcc-xtensa/tree/xtensa-dynconfig
- https://github.com/jcmvbkbc/binutils-gdb-xtensa/tree/xtensa-plugin-env ),
-but it still involves building plugins for the parts of the toolchain
-for each new xtensa core.
+Thanks for the patch.
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 
--- 
-Thanks.
--- Max
+> ---
+> 
+>  include/uapi/linux/agpgart.h | 9 ++++-----
+>  1 file changed, 4 insertions(+), 5 deletions(-)
+> 
+> diff --git a/include/uapi/linux/agpgart.h b/include/uapi/linux/agpgart.h
+> index f5251045181a..9cc3448c0b5b 100644
+> --- a/include/uapi/linux/agpgart.h
+> +++ b/include/uapi/linux/agpgart.h
+> @@ -52,7 +52,6 @@
+>  
+>  #ifndef __KERNEL__
+>  #include <linux/types.h>
+> -#include <stdlib.h>
+>  
+>  struct agp_version {
+>  	__u16 major;
+> @@ -64,10 +63,10 @@ typedef struct _agp_info {
+>  	__u32 bridge_id;	/* bridge vendor/device         */
+>  	__u32 agp_mode;		/* mode info of bridge          */
+>  	unsigned long aper_base;/* base of aperture             */
+> -	size_t aper_size;	/* size of aperture             */
+> -	size_t pg_total;	/* max pages (swap + system)    */
+> -	size_t pg_system;	/* max pages (system)           */
+> -	size_t pg_used;		/* current pages used           */
+> +	__kernel_size_t aper_size;	/* size of aperture             */
+> +	__kernel_size_t pg_total;	/* max pages (swap + system)    */
+> +	__kernel_size_t pg_system;	/* max pages (system)           */
+> +	__kernel_size_t pg_used;	/* current pages used           */
+>  } agp_info;
+>  
+>  typedef struct _agp_setup {
+> -- 
+> 2.32.0
+> 
