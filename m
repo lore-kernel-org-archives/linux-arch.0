@@ -2,58 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BC9A3C433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CCBDFC4332F
 	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 21:28:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356048AbiDDVat (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 17:30:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52398 "EHLO
+        id S1382527AbiDDVan (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 17:30:43 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53950 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1379721AbiDDR7K (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 13:59:10 -0400
-Received: from mail-ej1-x62a.google.com (mail-ej1-x62a.google.com [IPv6:2a00:1450:4864:20::62a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 187E334BB9;
-        Mon,  4 Apr 2022 10:57:14 -0700 (PDT)
-Received: by mail-ej1-x62a.google.com with SMTP id bq8so21564259ejb.10;
-        Mon, 04 Apr 2022 10:57:14 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=LbauJjsyWfyUgbBcVSH3nfrWUAPSnEOj9xP8Lf2uMQc=;
-        b=UG944lrMDFa46xw5mJXf3ez+C/4ds1SQUW0we6U55dMyhEZZ7nlsdZThXtaE9WVYzw
-         Jfy65lB6zabNtWssWwmJd9J4VR9M1BfJ3erzVCwXOfMJvwO00IoZn6aX0ZU8yKagMGIT
-         m/2efF5EDkOSKH0VH5qjuwCWsiLJzSMR4adJbiFDFKN/kHS+ytNGd9JEIUJq19xGg53J
-         v1ltJfw45hvtfnHqx3K3wH9zjB7RDEdktgzKQk1rnDUvWEpt6DLklfwHBAJ+DIePeLH+
-         MY/AkXEjvBAlDwOi3r2ud91AVrcXv7wmi2UD5ZZ37GjYD6yw1xgCIhWoiGcMF3s7g6z7
-         +EDA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=LbauJjsyWfyUgbBcVSH3nfrWUAPSnEOj9xP8Lf2uMQc=;
-        b=rMra94lm9dtre0XiDam+8gKrQWUORlRgC2DySihnWEZwxItH7/XnCXSQEQHlsf0lf9
-         Q8epiWf3Sge21TEoK+ZWNG9P9CV+Lys1KP8IMdyFq7/SoW9UtK7RCl269DH5/EslDVpE
-         xcgni/1t0VMjhoj/9bAuTsQJBd1U3X/khjo6G0kyPhNa0vUYxG89K7Yb9DqXdMUM4jKj
-         BXc245x4cMdvjm0Aw2BKQCQ0Mw5VRujkN7fbmGz+ItvmcsRtWD01rvB5CCAxD2c/TOWH
-         IIi97y84dpuRbhA2RuMiHlwfvR1jUzRshAHzNjBtL7K7aqBAQatdBRDxX6iOZiyMpDu4
-         HMCw==
-X-Gm-Message-State: AOAM533SuTLde/FWYCzsJNd3zL0P/H7eAd9XFppxa2ws/r+SgezJy+34
-        6MySgJYmjwrtGxORsJewxgZKrq9QdQUT97bM+vE=
-X-Google-Smtp-Source: ABdhPJz6VPW+goa8wHgWwkrJ9LveFINVQNnHYtPycIFT9TB7eAJpR4uYm/cUBC6mR+k35uivnhYmWtrACl6sZDox9MU=
-X-Received: by 2002:a17:906:64ca:b0:6e0:1648:571c with SMTP id
- p10-20020a17090664ca00b006e01648571cmr1191237ejn.477.1649095032585; Mon, 04
- Apr 2022 10:57:12 -0700 (PDT)
+        with ESMTP id S1380344AbiDDTiD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 15:38:03 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.133])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B0C9E13F10;
+        Mon,  4 Apr 2022 12:36:05 -0700 (PDT)
+Received: from mail-wm1-f51.google.com ([209.85.128.51]) by
+ mrelayeu.kundenserver.de (mreue009 [213.165.67.97]) with ESMTPSA (Nemesis) id
+ 1MCbMx-1njTEW44DD-009jfe; Mon, 04 Apr 2022 21:36:04 +0200
+Received: by mail-wm1-f51.google.com with SMTP id n38-20020a05600c502600b0038e4a0fc5easo213006wmr.3;
+        Mon, 04 Apr 2022 12:36:03 -0700 (PDT)
+X-Gm-Message-State: AOAM530e3QZh9j+3Ooh3C0vd1rJqdVrpEYpJ4xevEjcsg9wHhQ/FD8IZ
+        EK41q4GhFhMNvGHap+YyW6nhSnhr8aPX/mbmF/4=
+X-Google-Smtp-Source: ABdhPJxpqVUnzSThWxFis0+czy1waV2fEyvClqHAXtfCqV11EeZgFuDvKELwz3h19yH6dPE8NNhk9binn9y/5RzmubM=
+X-Received: by 2002:a7b:cd13:0:b0:38b:f39c:1181 with SMTP id
+ f19-20020a7bcd13000000b0038bf39c1181mr626838wmj.20.1649100963560; Mon, 04 Apr
+ 2022 12:36:03 -0700 (PDT)
 MIME-Version: 1.0
 References: <Yib9F5SqKda/nH9c@infradead.org> <CAK8P3a1dUVsZzhAe81usLSkvH29zHgiV9fhEkWdq7_W+nQBWbg@mail.gmail.com>
  <YkmWh2tss8nXKqc5@infradead.org> <CAK8P3a0QdFOJbM72geYTWOKumeKPSCVD8Nje5pBpZWazX0GEnQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a0QdFOJbM72geYTWOKumeKPSCVD8Nje5pBpZWazX0GEnQ@mail.gmail.com>
-From:   Max Filippov <jcmvbkbc@gmail.com>
-Date:   Mon, 4 Apr 2022 10:57:01 -0700
-Message-ID: <CAMo8BfKgn0T5RtUTb89fPvygNJJYLy7r1=RZTmTTm=jiDfx1hQ@mail.gmail.com>
+ <CAMo8BfKgn0T5RtUTb89fPvygNJJYLy7r1=RZTmTTm=jiDfx1hQ@mail.gmail.com>
+ <CAK8P3a0J1--WSyWY+TptFa0nn5d-mOxapadCE1csGRkfhSPbVw@mail.gmail.com> <CAMo8BfLT8vMw3aGQPs1+9ry7W63SQphmDc4Tt4A3JvADHJhxiQ@mail.gmail.com>
+In-Reply-To: <CAMo8BfLT8vMw3aGQPs1+9ry7W63SQphmDc4Tt4A3JvADHJhxiQ@mail.gmail.com>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Mon, 4 Apr 2022 21:35:47 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a3iFb+ZacZ40d8PC_xcJpLVFXT0Qc-oYEZNkFqXdsfNZw@mail.gmail.com>
+Message-ID: <CAK8P3a3iFb+ZacZ40d8PC_xcJpLVFXT0Qc-oYEZNkFqXdsfNZw@mail.gmail.com>
 Subject: Re: [RFC PULL] remove arch/h8300
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Christoph Hellwig <hch@infradead.org>,
+To:     Max Filippov <jcmvbkbc@gmail.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Christoph Hellwig <hch@infradead.org>,
         Linus Torvalds <torvalds@linux-foundation.org>,
         Yoshinori Sato <ysato@users.sourceforge.jp>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
@@ -68,25 +53,54 @@ Cc:     Christoph Hellwig <hch@infradead.org>,
         Damien Le Moal <damien.lemoal@wdc.com>,
         linux-riscv <linux-riscv@lists.infradead.org>
 Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:Na3Qbp5Gp6zqpmOBXFOCu/SbbvSoNPqbD2qfv/xtPRYs5dDgRg8
+ mIdvfyyz7e473bmnPVXYgmko/IBAFkN0E/0D7L82k9H4z0qRYeIYCVhV+iBQaif2iegOb1n
+ G5GibOdTpi5drETUpiRkAyzxuEliV1e4OIvYnLs7V+EvzmsZHy+EQlKk4xe7MwQlb5by+Gj
+ apal2zq108Xa8Zht5qXpA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:48eYd4DVt+g=:4SxC9dH5qGnv0NPa9/lmmK
+ UAUr1kr+bxQ+cT9ipiNeobPoYMARqZ1sXLPPb3RBuM/FeNM7LQl77+5LxFq0kVfxe8KDYB4vN
+ Z8JggpZz9US2JF8u4D1euzH3LMC0rUGjLA6xk2QeqlKzQNxztcyfiaKL7kCPK5lvF7/NhjJjm
+ Swp1pisPzQ9HvqHjNeMJkJ2a4rD3LV4/lQCYUUTteh05i3GBs1z3KUY9h+u4vOJsahunt9u/7
+ UEWXIJ5FHaY+Kg5OddLjsQNqdG/IzYDl2M90gSCz3do1klkpweaHIPLfcDxJ0vetqH/Vggist
+ 5lDFBLF4Wo25IJOCBa18M/BKIdtH8rl23rqLFf5Fvcet2m0VvUD7U8HP6yKV8ymGG6/ov8aZe
+ gQxJKJbIENHMLnE5megUW5rVZtr354v9QVUuFdzh9dagMhLLpKUEKs8vTJ7BN+3gE8GYdZGpL
+ Bo/xYSaz0uLLPNOpOqG1kfthmEe7l3+plFBLCIIazo+4Mcqx+7ZNShmqkypDmA/xIcKtBQ8dc
+ NmzLqnCgrQ9/2IVEmwctfWzPjKTtnUCedPdKJSdQ/qssI4tEDRqVpkxp1acvz5NNBTgTxUELX
+ uqB979KDMIR3cGeZugP1tN4TZ38aXn7B5irg5iPGIrQPRCO1/vd6dfEbrSnw5BZRpfnYXyDcq
+ u3A3XldZFbTmEWmghOVIWe9qIjVUliUudF01SMdQYIT6uzOIqWyXXpOOsCI+qcaB35QVCkt9O
+ uF4Lu3l3rij+1BQ33ZXHCR2EL9GONZ8qmcUv3u8ZH3cy1aJCehhrzUJ5EUkg2iRvthWeHiHVf
+ YjqmX4js+KyPmAuMSzHGB2eGmBBtP1KClfsYLfBtY2d0HB90eQ=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Arnd,
+On Mon, Apr 4, 2022 at 9:14 PM Max Filippov <jcmvbkbc@gmail.com> wrote:
+> On Mon, Apr 4, 2022 at 12:01 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> > On Mon, Apr 4, 2022 at 7:57 PM Max Filippov <jcmvbkbc@gmail.com> wrote:
+> > > Please let me know if you observe any specific build/runtime issues.
+> > xtensa-linux-gcc-11.1.0 -DKCONFIG_SEED=
+> ...
+> > /git/arm-soc/arch/xtensa/kernel/head.S: Assembler messages:
+> > /git/arm-soc/arch/xtensa/kernel/head.S:87: Error: invalid register
+> > 'atomctl' for 'wsr' instruction
+>
+> Sure, one cannot use an arbitrary xtensa compiler for the kernel
+> build, the compiler configuration must match the core variant selected
+> in the linux configuration. Specifically, for the nommu_kc705_defconfig
+> the following compiler can be used:
+>
+> https://github.com/foss-xtensa/toolchain/releases/download/2020.07/x86_64-2020.07-xtensa-de212-elf.tar.gz
+>
+> If you build the toolchain yourself using crosstool-ng or buildroot they
+> accept the 'configuration overlay' parameter that does the compiler
+> customization.
+>
+> Perhaps the documentation for this part is what needs to be improved.
 
-On Mon, Apr 4, 2022 at 6:07 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> 1. xtensa nommu has does not compile in mainline and as far as I can
-> tell never did
+It sounds like a bug in the kernel Makefile. On all other architectures,
+you can generally just pick any (recent) compiler and build any kernel,
+as the compiler arguments set the exact target machine type based
+on the kernel config. You can't normally rely on the compiler defaults
+for kernel builds.
 
-I have a different picture here. If you look at the logs at
-  https://kerneltests.org/builders/qemu-xtensa-master/
-
-there's a line for noMMU config in every one of them:
-  Building xtensa:de212:kc705-nommu:nommu_kc705_defconfig ... running
-............ passed
-
-Please let me know if you observe any specific build/runtime issues.
-
--- 
-Thanks.
--- Max
+         Arnd
