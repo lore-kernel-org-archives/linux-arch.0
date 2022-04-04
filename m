@@ -2,40 +2,40 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F173DC4332F
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 06:20:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4CD1FC433F5
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 06:20:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1377454AbiDDGWi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 02:22:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44356 "EHLO
+        id S1377457AbiDDGWj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 02:22:39 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44438 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1377427AbiDDGWd (ORCPT
+        with ESMTP id S1377422AbiDDGWd (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 02:22:33 -0400
 Received: from conuserg-08.nifty.com (conuserg-08.nifty.com [210.131.2.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35D423700C;
-        Sun,  3 Apr 2022 23:20:29 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AFA8C377ED;
+        Sun,  3 Apr 2022 23:20:30 -0700 (PDT)
 Received: from grover.. (133-32-177-133.west.xps.vectant.ne.jp [133.32.177.133]) (authenticated)
-        by conuserg-08.nifty.com with ESMTP id 2346K1Bn008244;
-        Mon, 4 Apr 2022 15:20:04 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 2346K1Bn008244
+        by conuserg-08.nifty.com with ESMTP id 2346K1Bk008244;
+        Mon, 4 Apr 2022 15:20:02 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 2346K1Bk008244
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1649053204;
-        bh=v8waAouIUGkxU/aNRA3BQI4iA3QkcGu9o6MGxOfVIVA=;
+        s=dec2015msa; t=1649053202;
+        bh=a1RDShE0uWC0OhbAt+4QzV+tQ/pdHe8WAiRE756c3W0=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=BAnV+HljdwWp89suOUT2tJIaStBnzQ2aDP/UptXIaBWZaTBmkkDIoxiSxtNfMFkvN
-         xNcj77UAFLdBVdNtBtZV4ezLjIG4unzTbCG+tqECIRSJbOVVsC+ya/0PIit2ZG7XYI
-         05S2ZBh5VtZD7wQKfdYC6uSxGIR3aFjr97NK4LK2xi3DHbByFDHJKFS9Yhu9cNd1ui
-         xLA1dyeucfLD4nCbOdcG7CAuDNnJcftP+Ad4bt8EtpBnQsofZfucSoYForxIDcZ6bO
-         cW+zukNVcBHbyWtqkj8/VTdFbgfwMln9RJIjRbU4YbXFUslB66ckN2YpLn6nydCxwL
-         SkAUhtR6HmcOQ==
+        b=fJPyIo+5xtFjhpXfI/BagGdqzFGxiVFbkzFEFKe/4hq72+9HM+ofFhg3C+avRmDFi
+         hza7CyscxdpcubFRlNiLS0kbH61rK+vhmw6kZAm7CaNkIeAEntqhg53Vk4rcNy1ywo
+         x/TGhBjhkBk8txewXSq0PGSbyR19/mmt9p8GzRs5zqjnD5m+k2cYD2Xe4nTnoicemn
+         47NSP1iNGOYi50tRjT1+05Skq/DjvIpW0r2NYOgLpzSCW6tUYxSVx6uVWAFxpyAllz
+         3fTV+2QMQb9SQbK52ZNYV6nGQynwNpHpAMaAfT3YMuhr98ArpRyfEJ/QCVf2X7apei
+         HNSlPD8YILMog==
 X-Nifty-SrcIP: [133.32.177.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org
 Cc:     linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 4/8] mips: add asm/stat.h to UAPI compile-test coverage
-Date:   Mon,  4 Apr 2022 15:19:44 +0900
-Message-Id: <20220404061948.2111820-5-masahiroy@kernel.org>
+Subject: [PATCH 1/8] agpgart.h: do not include <stdlib.h> from exported header
+Date:   Mon,  4 Apr 2022 15:19:41 +0900
+Message-Id: <20220404061948.2111820-2-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.32.0
 In-Reply-To: <20220404061948.2111820-1-masahiroy@kernel.org>
 References: <20220404061948.2111820-1-masahiroy@kernel.org>
@@ -45,109 +45,47 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-asm/stat.h is currently excluded from the UAPI compile-test for
-ARCH=mips because of the errors like follows:
+Commit 35d0f1d54ecd ("include/uapi/linux/agpgart.h: include stdlib.h in
+userspace") included <stdlib.h> to fix the unknown size_t error, but
+I do not think it is the right fix.
 
-    HDRTEST usr/include/asm/stat.h
-  In file included from <command-line>:32:
-  ./usr/include/asm/stat.h:22:2: error: unknown type name 'ino_t'
-     22 |  ino_t  st_ino;
-        |  ^~~~~
-  ./usr/include/asm/stat.h:23:2: error: unknown type name 'mode_t'
-     23 |  mode_t  st_mode;
-        |  ^~~~~~
-  ./usr/include/asm/stat.h:25:2: error: unknown type name 'uid_t'
-     25 |  uid_t  st_uid;
-        |  ^~~~~
-  ./usr/include/asm/stat.h:26:2: error: unknown type name 'gid_t'
-     26 |  gid_t  st_gid;
-        |  ^~~~~
-  ./usr/include/asm/stat.h:58:2: error: unknown type name 'mode_t'
-     58 |  mode_t  st_mode;
-        |  ^~~~~~
-  ./usr/include/asm/stat.h:61:2: error: unknown type name 'uid_t'
-     61 |  uid_t  st_uid;
-        |  ^~~~~
-  ./usr/include/asm/stat.h:62:2: error: unknown type name 'gid_t'
-     62 |  gid_t  st_gid;
-        |  ^~~~~
+This header already uses __kernel_size_t a few lines below.
 
-The errors can be fixed by prefixing the types with __kernel_.
-
-Then, remove the no-header-test entry from user/include/Makefile.
+Replace the remaining size_t, and stop including <stdlib.h>.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- arch/mips/include/uapi/asm/stat.h | 20 ++++++++++----------
- usr/include/Makefile              |  4 ----
- 2 files changed, 10 insertions(+), 14 deletions(-)
+ include/uapi/linux/agpgart.h | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
 
-diff --git a/arch/mips/include/uapi/asm/stat.h b/arch/mips/include/uapi/asm/stat.h
-index 3d2a3b71845c..8a8bb78883a4 100644
---- a/arch/mips/include/uapi/asm/stat.h
-+++ b/arch/mips/include/uapi/asm/stat.h
-@@ -19,11 +19,11 @@
- struct stat {
- 	unsigned	st_dev;
- 	long		st_pad1[3];		/* Reserved for network id */
--	ino_t		st_ino;
--	mode_t		st_mode;
-+	__kernel_ino_t	st_ino;
-+	__kernel_mode_t	st_mode;
- 	__u32		st_nlink;
--	uid_t		st_uid;
--	gid_t		st_gid;
-+	__kernel_uid_t	st_uid;
-+	__kernel_gid_t	st_gid;
- 	unsigned	st_rdev;
- 	long		st_pad2[2];
- 	long		st_size;
-@@ -55,11 +55,11 @@ struct stat64 {
+diff --git a/include/uapi/linux/agpgart.h b/include/uapi/linux/agpgart.h
+index f5251045181a..9cc3448c0b5b 100644
+--- a/include/uapi/linux/agpgart.h
++++ b/include/uapi/linux/agpgart.h
+@@ -52,7 +52,6 @@
  
- 	unsigned long long	st_ino;
+ #ifndef __KERNEL__
+ #include <linux/types.h>
+-#include <stdlib.h>
  
--	mode_t		st_mode;
-+	__kernel_mode_t	st_mode;
- 	__u32		st_nlink;
+ struct agp_version {
+ 	__u16 major;
+@@ -64,10 +63,10 @@ typedef struct _agp_info {
+ 	__u32 bridge_id;	/* bridge vendor/device         */
+ 	__u32 agp_mode;		/* mode info of bridge          */
+ 	unsigned long aper_base;/* base of aperture             */
+-	size_t aper_size;	/* size of aperture             */
+-	size_t pg_total;	/* max pages (swap + system)    */
+-	size_t pg_system;	/* max pages (system)           */
+-	size_t pg_used;		/* current pages used           */
++	__kernel_size_t aper_size;	/* size of aperture             */
++	__kernel_size_t pg_total;	/* max pages (swap + system)    */
++	__kernel_size_t pg_system;	/* max pages (system)           */
++	__kernel_size_t pg_used;	/* current pages used           */
+ } agp_info;
  
--	uid_t		st_uid;
--	gid_t		st_gid;
-+	__kernel_uid_t	st_uid;
-+	__kernel_gid_t	st_gid;
- 
- 	unsigned long	st_rdev;
- 	unsigned long	st_pad1[3];	/* Reserved for st_rdev expansion  */
-@@ -96,11 +96,11 @@ struct stat {
- 
- 	unsigned long		st_ino;
- 
--	mode_t			st_mode;
-+	__kernel_mode_t		st_mode;
- 	__u32			st_nlink;
- 
--	uid_t			st_uid;
--	gid_t			st_gid;
-+	__kernel_uid_t		st_uid;
-+	__kernel_gid_t		st_gid;
- 
- 	unsigned int		st_rdev;
- 	unsigned int		st_pad1[3]; /* Reserved for st_rdev expansion */
-diff --git a/usr/include/Makefile b/usr/include/Makefile
-index a1a8403896cf..da280bdcb391 100644
---- a/usr/include/Makefile
-+++ b/usr/include/Makefile
-@@ -65,10 +65,6 @@ no-header-test += asm/sigcontext.h
- no-header-test += linux/if_bonding.h
- endif
- 
--ifeq ($(SRCARCH),mips)
--no-header-test += asm/stat.h
--endif
--
- ifeq ($(SRCARCH),powerpc)
- no-header-test += asm/stat.h
- no-header-test += linux/bpf_perf_event.h
+ typedef struct _agp_setup {
 -- 
 2.32.0
 
