@@ -2,97 +2,126 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3363BC433EF
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 14:57:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 230ECC433EF
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 21:28:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241887AbiDDO7J (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 10:59:09 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36080 "EHLO
+        id S1379986AbiDDVa3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 17:30:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41330 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237128AbiDDO7I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 10:59:08 -0400
-Received: from mail-yb1-xb36.google.com (mail-yb1-xb36.google.com [IPv6:2607:f8b0:4864:20::b36])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC7F11C10E
-        for <linux-arch@vger.kernel.org>; Mon,  4 Apr 2022 07:57:12 -0700 (PDT)
-Received: by mail-yb1-xb36.google.com with SMTP id w134so10249648ybe.10
-        for <linux-arch@vger.kernel.org>; Mon, 04 Apr 2022 07:57:12 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=oQXip11/mOq1QEIb7Uh7PfUGeTnBxSjdGMNgDU3H0ac=;
-        b=sFPpy6/1ERVilOjkhoNtdU6pzyexFt9dvn8SKKMJfIG2Qtk3XLX6kW46rCfdemme06
-         QLVikzfPklS+9789YRedbVZNG9vCKmAXYBqTm+oxmSoXtl7AEU9lAaUa5jWqs9UYE9sM
-         yFECOLoBML1fKtj4hqurE1FBRLG7nsR1mpmLYtb5ijpgb6frVlG1HTH0L96Epwz/Kyz7
-         /DjT9HpXAGnx+MUwOrA9zFVUEGhhPS2zohqq/7QJJDqEBtdzjIkyXPAaZ4+FGbv9CfFv
-         fBMcu+KM0UNHhn7zzrqdnQFSR6CG0Sk216wg118fddoib1KIuZl5NG+K4xOVbSVAQT4D
-         CY1Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=oQXip11/mOq1QEIb7Uh7PfUGeTnBxSjdGMNgDU3H0ac=;
-        b=nhEKwU/rZJ35WSzqCHyrN9Z6xsr28Q129OyLBuX7PMVysNLLNEZaNe+toJClS+eAp/
-         ZfAnw+SFW1hLV0uB+o5MUGgSfC0cb5emsMAhKQOutV3851Kr3UreyzlrC025AA7az6tZ
-         ZortWMHQbxvhbQrtzQLYqwgPybeTzlSSX4VN6H1YnXKvNGa5J6dYmB3414OyD3kJCQIA
-         qECaWz2U+JBeMwBeD85oaNVwaIFTbdvpPzC2TglcnB8v7dxOUuGtrDOW7f5ZD7Wl3c0f
-         8ES/KftYWdKTNUy6Pb2hWWTtsvJRMsQBu+LMS4AaMBv/qlolqQ1nzkJylRX3zNqiIwvX
-         n2iQ==
-X-Gm-Message-State: AOAM531VLsNknN/GTPOUBEsgLq2FC19e5NzNg8lSO0XAD6HvpFwYce9S
-        CBGxjLRftdWfADgnFzfQ7ebuUSeKkHSKYzMUvThj9w==
-X-Google-Smtp-Source: ABdhPJzw1DgZAsjP77DWhNJHF9MxDZ8jfkBeWpV+GnWhN3Ppz05CKQlwJDA6qtB0VyPTIdnI6RaZeiSysOLf9uEgkgU=
-X-Received: by 2002:a25:d897:0:b0:63d:af73:1115 with SMTP id
- p145-20020a25d897000000b0063daf731115mr185537ybg.274.1649084231809; Mon, 04
- Apr 2022 07:57:11 -0700 (PDT)
+        with ESMTP id S1380361AbiDDTqo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 15:46:44 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [217.72.192.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6BB5C31225;
+        Mon,  4 Apr 2022 12:44:47 -0700 (PDT)
+Received: from mail-wr1-f43.google.com ([209.85.221.43]) by
+ mrelayeu.kundenserver.de (mreue108 [213.165.67.113]) with ESMTPSA (Nemesis)
+ id 1N17cq-1nzCXH2wKw-012bHf; Mon, 04 Apr 2022 21:44:45 +0200
+Received: by mail-wr1-f43.google.com with SMTP id w4so16093476wrg.12;
+        Mon, 04 Apr 2022 12:44:45 -0700 (PDT)
+X-Gm-Message-State: AOAM531bPpPiXsyBuu1Yr8dOuiJWOEbyTNC5wCcidziOUplTMbkUXomW
+        wRILfUd3mFBk2LOwTW6lxnZEaQTZU7t70MvZnAk=
+X-Google-Smtp-Source: ABdhPJyRqH0qibkfjPRGnJDcURrE8ZPrQIGLNSwn/9l1FUg/Sz1o5iKs76jxTh4W551VdZ+S32lMVfdTx28z5w2iC30=
+X-Received: by 2002:a05:6000:10c7:b0:206:135e:c84e with SMTP id
+ b7-20020a05600010c700b00206135ec84emr984244wrx.12.1649101485314; Mon, 04 Apr
+ 2022 12:44:45 -0700 (PDT)
 MIME-Version: 1.0
-References: <20220329124017.737571-1-glider@google.com> <20220329124017.737571-32-glider@google.com>
-In-Reply-To: <20220329124017.737571-32-glider@google.com>
-From:   Alexander Potapenko <glider@google.com>
-Date:   Mon, 4 Apr 2022 16:56:35 +0200
-Message-ID: <CAG_fn=Xt6a0MS4EM33KbMDwqUem4_xnSfNFR6P7MHNgaC2wpPg@mail.gmail.com>
-Subject: Re: [PATCH v2 31/48] kernel: kmsan: don't instrument stacktrace.c
-To:     Alexander Potapenko <glider@google.com>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        Linux Memory Management List <linux-mm@kvack.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>
+References: <Yib9F5SqKda/nH9c@infradead.org> <CAK8P3a1dUVsZzhAe81usLSkvH29zHgiV9fhEkWdq7_W+nQBWbg@mail.gmail.com>
+ <YkmWh2tss8nXKqc5@infradead.org> <CAK8P3a0QdFOJbM72geYTWOKumeKPSCVD8Nje5pBpZWazX0GEnQ@mail.gmail.com>
+ <CAMo8BfKgn0T5RtUTb89fPvygNJJYLy7r1=RZTmTTm=jiDfx1hQ@mail.gmail.com>
+ <CAK8P3a0J1--WSyWY+TptFa0nn5d-mOxapadCE1csGRkfhSPbVw@mail.gmail.com>
+ <CAMo8BfLT8vMw3aGQPs1+9ry7W63SQphmDc4Tt4A3JvADHJhxiQ@mail.gmail.com> <CAK8P3a3iFb+ZacZ40d8PC_xcJpLVFXT0Qc-oYEZNkFqXdsfNZw@mail.gmail.com>
+In-Reply-To: <CAK8P3a3iFb+ZacZ40d8PC_xcJpLVFXT0Qc-oYEZNkFqXdsfNZw@mail.gmail.com>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Mon, 4 Apr 2022 21:44:29 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a1goN3c772xiFtz13kHZs0XEDSxfXX=ub7OH3S98Mddsw@mail.gmail.com>
+Message-ID: <CAK8P3a1goN3c772xiFtz13kHZs0XEDSxfXX=ub7OH3S98Mddsw@mail.gmail.com>
+Subject: Re: [RFC PULL] remove arch/h8300
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Max Filippov <jcmvbkbc@gmail.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        "moderated list:H8/300 ARCHITECTURE" 
+        <uclinux-h8-devel@lists.sourceforge.jp>,
+        "open list:TENSILICA XTENSA PORT (xtensa)" 
+        <linux-xtensa@linux-xtensa.org>,
+        Linux-sh list <linux-sh@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Greg Ungerer <gerg@linux-m68k.org>,
+        Damien Le Moal <damien.lemoal@wdc.com>,
+        linux-riscv <linux-riscv@lists.infradead.org>
 Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:Qw+lTynQ9FdEIf/dV0Hp8dxBMWgXsLK2Hu91jlgCSXci/9G/4Qc
+ LhhlwV8BuRehAQq6IqnNWf8tdRoO1iPeJrjM21R41fRtfu83xVpvU2pqw5CdITVmh8XS0Lk
+ 3XNIJxiYBwAGyXKzZWz0mIOxTUV7ApES9AyWxPi+JQCvTVxx4xxA2YAu9KCgIyADBkf8RPP
+ 15kIpgfD1xMa9hbZDD3KA==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:8B+XYFobVuQ=:9dNh0l+zhbsBsyfsmjDetF
+ t09Tnj6ird7kCuEKoLpCBUo6Sl+7KzqmNJ4Fb4YmFJevUKFBA9NKFYIrSnGRMnauCp40cULvm
+ Diw38BGNYWCiKoAhXJbz0RKPtHdq+zqx58oWsFwIZ/Lbgh4UiOY0g0V925e8eQWaj/4iVajN8
+ 9sUo4HkUcRFFYS0ax+5bwB6CO87e06MRTmYFzS9f+3VlRcqKDxejmGvelEuDASJ0bfSLgDDR3
+ mKvnax+e/VNeWOlp2yBPwLztUTEXo81O+oeh6UTiVJemBAduOef3K7oUTfrjoNyrmvlKsDXb5
+ v6kS8Kxm/TITqpnCsk4QpIp/GHF86SYKemT9E5gslt3Jom7Ii9rgFYoMqQXFnVgPRe8kDkxfN
+ Om5DxEjB9KrDYBJSlFw+vCtsxj+GNK4RUToFDC6nR9bXRVu02Kljr30xaQCMbo7sor6+q2PMh
+ aas5WrGIjG8nFxN7Z/hIA+kq4vDggcfEFoFwUQ6Njg1JGHlSxig3mep/yGI414qOMetQ55Q+u
+ Pb+C5yFR6sMBsVt8nwV4KQKxHId8/MYTVIcsHq2KuwGFud/CeFPqmUMWewDZoB0Fe8VjhZFhx
+ Ih2QrOtLgE4w1p62yki7mhccVS5LTWPCU5FKuu6lEuD8eMU7I7DSVjm8bjdkxfNYduU72ZTkB
+ LbULHP7j1Ox/UCi9AHHW10IXpLthI1elT++Kev+3GlaQyu7y2DriiMAwF2LqHj+o9+9CT2UAn
+ TgX3/N46OXL/SnWHuY00AV62H3sBOSblleHiMTwEPwWkv3IEuAHGYMUn5tn0ouDUpLkOIwkH4
+ /kgor7hwSb5nKlOgx6S8Ht5+fpC6oARD8C8QLTR/JvkZZtDxoA=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 29, 2022 at 2:41 PM Alexander Potapenko <glider@google.com> wrote:
+On Mon, Apr 4, 2022 at 9:35 PM Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> When unwinding stack traces, the kernel may pick uninitialized data from
-> the stack. To avoid false reports on that data, we do not instrument
-> stacktrace.c
+> On Mon, Apr 4, 2022 at 9:14 PM Max Filippov <jcmvbkbc@gmail.com> wrote:
+> > On Mon, Apr 4, 2022 at 12:01 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> > > On Mon, Apr 4, 2022 at 7:57 PM Max Filippov <jcmvbkbc@gmail.com> wrote:
+> > > > Please let me know if you observe any specific build/runtime issues.
+> > > xtensa-linux-gcc-11.1.0 -DKCONFIG_SEED=
+> > ...
+> > > /git/arm-soc/arch/xtensa/kernel/head.S: Assembler messages:
+> > > /git/arm-soc/arch/xtensa/kernel/head.S:87: Error: invalid register
+> > > 'atomctl' for 'wsr' instruction
+> >
+> > Sure, one cannot use an arbitrary xtensa compiler for the kernel
+> > build, the compiler configuration must match the core variant selected
+> > in the linux configuration. Specifically, for the nommu_kc705_defconfig
+> > the following compiler can be used:
+> >
+> > https://github.com/foss-xtensa/toolchain/releases/download/2020.07/x86_64-2020.07-xtensa-de212-elf.tar.gz
+> >
+> > If you build the toolchain yourself using crosstool-ng or buildroot they
+> > accept the 'configuration overlay' parameter that does the compiler
+> > customization.
+> >
+> > Perhaps the documentation for this part is what needs to be improved.
+>
+> It sounds like a bug in the kernel Makefile. On all other architectures,
+> you can generally just pick any (recent) compiler and build any kernel,
+> as the compiler arguments set the exact target machine type based
+> on the kernel config. You can't normally rely on the compiler defaults
+> for kernel builds.
 
-This patch is not needed anymore if we unpoison the stack traces
-passed to __stack_depot_save() from KMSAN core.
+FWIW, the compiler I used is the one I built for kernel.org [1] using unmodified
+upstream sources The config I used for this is
+
+${SRCTREE}/configure ../log-gcc-configure /home/arnd/git/gcc/configure
+--target=xtensa-linux --enable-targets=all
+--prefix=/home/arnd/cross/x86_64/gcc-11.1.0-nolibc/xtensa-linux
+--enable-languages=c --without-headers --disable-bootstrap
+--disable-nls --disable-threads --disable-shared --disable-libmudflap
+--disable-libssp --disable-libgomp --disable-decimal-float
+--disable-libquadmath --disable-libatomic --disable-libcc1
+--disable-libmpx --enable-checking=release
+
+Let me know if I need to enable additional options to get a compiler
+that works for all xtensa targets. Usually the --enable-targets=all
+is meant to be sufficient.
+
+        Arnd
+
+[1] https://mirrors.edge.kernel.org/pub/tools/crosstool/files/bin/x86_64/11.1.0/
