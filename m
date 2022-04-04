@@ -2,115 +2,91 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C8D9C433FE
-	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 21:28:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BC9A3C433EF
+	for <linux-arch@archiver.kernel.org>; Mon,  4 Apr 2022 21:28:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1382520AbiDDVal (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Apr 2022 17:30:41 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49466 "EHLO
+        id S1356048AbiDDVat (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 4 Apr 2022 17:30:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52398 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1379545AbiDDR3I (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 13:29:08 -0400
-Received: from mail-pj1-x1030.google.com (mail-pj1-x1030.google.com [IPv6:2607:f8b0:4864:20::1030])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0617031909
-        for <linux-arch@vger.kernel.org>; Mon,  4 Apr 2022 10:27:11 -0700 (PDT)
-Received: by mail-pj1-x1030.google.com with SMTP id u14so5600661pjj.0
-        for <linux-arch@vger.kernel.org>; Mon, 04 Apr 2022 10:27:11 -0700 (PDT)
+        with ESMTP id S1379721AbiDDR7K (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2022 13:59:10 -0400
+Received: from mail-ej1-x62a.google.com (mail-ej1-x62a.google.com [IPv6:2a00:1450:4864:20::62a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 187E334BB9;
+        Mon,  4 Apr 2022 10:57:14 -0700 (PDT)
+Received: by mail-ej1-x62a.google.com with SMTP id bq8so21564259ejb.10;
+        Mon, 04 Apr 2022 10:57:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=date:from:to:cc:subject:message-id:references:mime-version
-         :content-disposition:in-reply-to;
-        bh=VYvPl145gx1NnQ2E3OJKFVQPxapHGXttn5rOGVj8YXo=;
-        b=hd+vUeBK2jke4Z79gSu5EYlGJK/30+8ZPm5vusOwihjccMo+JYQaFziQAAtCID0e5b
-         qiLbaSXJpB5nRDykwDoLmPmHeyaA4U3mO1aNEDIrpBI1y7KWpUIIYaKFkz1sQOFACAOc
-         aM6lCqWr9wZwWsklSOxLwTatnC3eKJ1E18Cyxx8CEA5zLgAe9sm4oTFjzF7SzNxlrSY7
-         5YCfCpDy23ULHUPSewKuWau9wE833jCsfozeqx9dNss7+g86jPjfaK+eh0C/KKY3VLXw
-         f3jp5vi8jNmhQOZlIPVusBowj6XA96wM7engEJdtxH6nw+nNIUhWc7hzzmvwmP0aO5k+
-         ThIw==
+        d=gmail.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=LbauJjsyWfyUgbBcVSH3nfrWUAPSnEOj9xP8Lf2uMQc=;
+        b=UG944lrMDFa46xw5mJXf3ez+C/4ds1SQUW0we6U55dMyhEZZ7nlsdZThXtaE9WVYzw
+         Jfy65lB6zabNtWssWwmJd9J4VR9M1BfJ3erzVCwXOfMJvwO00IoZn6aX0ZU8yKagMGIT
+         m/2efF5EDkOSKH0VH5qjuwCWsiLJzSMR4adJbiFDFKN/kHS+ytNGd9JEIUJq19xGg53J
+         v1ltJfw45hvtfnHqx3K3wH9zjB7RDEdktgzKQk1rnDUvWEpt6DLklfwHBAJ+DIePeLH+
+         MY/AkXEjvBAlDwOi3r2ud91AVrcXv7wmi2UD5ZZ37GjYD6yw1xgCIhWoiGcMF3s7g6z7
+         +EDA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:from:to:cc:subject:message-id:references
-         :mime-version:content-disposition:in-reply-to;
-        bh=VYvPl145gx1NnQ2E3OJKFVQPxapHGXttn5rOGVj8YXo=;
-        b=LpW+N1zj+I9cl1t8bzATJhmVYia93xQGLy1QhmynvKiC+6MMAzFMwUU6OFboSe5eF2
-         l2Jr0sI50iF8cbsVbyKIIwxjE0+FFTOziT1XMdbFTUr7+2Yz59kT+xv7KHVFOAYrcWBp
-         eyU3yDMBE7tNV99QfxLuUoltyW8hCtHLoWaVCHTI+PzNjvJu3NtYbFlA7I7YhMI/PXOR
-         CGkT/OCV/q6n8BhaVpSTFNkS9xe7LTqSDtveaGilti4U7iNbNL4iDcESbtASaSIorE8Z
-         rYHuRRu8NVfisiNYjmTqXn480PzH60nv4Y+eKfgr4JIv9cFAKtRXOIsL96+CshMnEdBK
-         8Dag==
-X-Gm-Message-State: AOAM532yJjhHewh/2y7cD0l8UVIz2WkGKpDmRHPONlKKMklKPhgaLNFB
-        3jeYEpPF2+r3AHZ//AJf11Gtjg==
-X-Google-Smtp-Source: ABdhPJzIn8VUPSw0kXUgBANdTlP1KbT/bIOfaGMgMZZeENIi+FbBiFh+hZ3dFMto7+s4V24GWdOQ6w==
-X-Received: by 2002:a17:90b:1c07:b0:1c7:5324:c68e with SMTP id oc7-20020a17090b1c0700b001c75324c68emr255680pjb.202.1649093231294;
-        Mon, 04 Apr 2022 10:27:11 -0700 (PDT)
-Received: from google.com ([2620:15c:211:202:9d5:9b93:ffb4:574a])
-        by smtp.gmail.com with ESMTPSA id gt14-20020a17090af2ce00b001c701e0a129sm73834pjb.38.2022.04.04.10.27.09
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 04 Apr 2022 10:27:09 -0700 (PDT)
-Date:   Mon, 4 Apr 2022 10:27:02 -0700
-From:   Nick Desaulniers <ndesaulniers@google.com>
-To:     Masahiro Yamada <masahiroy@kernel.org>
-Cc:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
-        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [PATCH 1/8] agpgart.h: do not include <stdlib.h> from exported
- header
-Message-ID: <YksqZv5IqECbFB7a@google.com>
-References: <20220404061948.2111820-1-masahiroy@kernel.org>
- <20220404061948.2111820-2-masahiroy@kernel.org>
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=LbauJjsyWfyUgbBcVSH3nfrWUAPSnEOj9xP8Lf2uMQc=;
+        b=rMra94lm9dtre0XiDam+8gKrQWUORlRgC2DySihnWEZwxItH7/XnCXSQEQHlsf0lf9
+         Q8epiWf3Sge21TEoK+ZWNG9P9CV+Lys1KP8IMdyFq7/SoW9UtK7RCl269DH5/EslDVpE
+         xcgni/1t0VMjhoj/9bAuTsQJBd1U3X/khjo6G0kyPhNa0vUYxG89K7Yb9DqXdMUM4jKj
+         BXc245x4cMdvjm0Aw2BKQCQ0Mw5VRujkN7fbmGz+ItvmcsRtWD01rvB5CCAxD2c/TOWH
+         IIi97y84dpuRbhA2RuMiHlwfvR1jUzRshAHzNjBtL7K7aqBAQatdBRDxX6iOZiyMpDu4
+         HMCw==
+X-Gm-Message-State: AOAM533SuTLde/FWYCzsJNd3zL0P/H7eAd9XFppxa2ws/r+SgezJy+34
+        6MySgJYmjwrtGxORsJewxgZKrq9QdQUT97bM+vE=
+X-Google-Smtp-Source: ABdhPJz6VPW+goa8wHgWwkrJ9LveFINVQNnHYtPycIFT9TB7eAJpR4uYm/cUBC6mR+k35uivnhYmWtrACl6sZDox9MU=
+X-Received: by 2002:a17:906:64ca:b0:6e0:1648:571c with SMTP id
+ p10-20020a17090664ca00b006e01648571cmr1191237ejn.477.1649095032585; Mon, 04
+ Apr 2022 10:57:12 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20220404061948.2111820-2-masahiroy@kernel.org>
+References: <Yib9F5SqKda/nH9c@infradead.org> <CAK8P3a1dUVsZzhAe81usLSkvH29zHgiV9fhEkWdq7_W+nQBWbg@mail.gmail.com>
+ <YkmWh2tss8nXKqc5@infradead.org> <CAK8P3a0QdFOJbM72geYTWOKumeKPSCVD8Nje5pBpZWazX0GEnQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a0QdFOJbM72geYTWOKumeKPSCVD8Nje5pBpZWazX0GEnQ@mail.gmail.com>
+From:   Max Filippov <jcmvbkbc@gmail.com>
+Date:   Mon, 4 Apr 2022 10:57:01 -0700
+Message-ID: <CAMo8BfKgn0T5RtUTb89fPvygNJJYLy7r1=RZTmTTm=jiDfx1hQ@mail.gmail.com>
+Subject: Re: [RFC PULL] remove arch/h8300
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Christoph Hellwig <hch@infradead.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        "moderated list:H8/300 ARCHITECTURE" 
+        <uclinux-h8-devel@lists.sourceforge.jp>,
+        "open list:TENSILICA XTENSA PORT (xtensa)" 
+        <linux-xtensa@linux-xtensa.org>,
+        Linux-sh list <linux-sh@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Greg Ungerer <gerg@linux-m68k.org>,
+        Damien Le Moal <damien.lemoal@wdc.com>,
+        linux-riscv <linux-riscv@lists.infradead.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Apr 04, 2022 at 03:19:41PM +0900, Masahiro Yamada wrote:
-> Commit 35d0f1d54ecd ("include/uapi/linux/agpgart.h: include stdlib.h in
-> userspace") included <stdlib.h> to fix the unknown size_t error, but
-> I do not think it is the right fix.
-> 
-> This header already uses __kernel_size_t a few lines below.
-> 
-> Replace the remaining size_t, and stop including <stdlib.h>.
-> 
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+Hi Arnd,
 
-Thanks for the patch.
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+On Mon, Apr 4, 2022 at 6:07 AM Arnd Bergmann <arnd@arndb.de> wrote:
+> 1. xtensa nommu has does not compile in mainline and as far as I can
+> tell never did
 
-> ---
-> 
->  include/uapi/linux/agpgart.h | 9 ++++-----
->  1 file changed, 4 insertions(+), 5 deletions(-)
-> 
-> diff --git a/include/uapi/linux/agpgart.h b/include/uapi/linux/agpgart.h
-> index f5251045181a..9cc3448c0b5b 100644
-> --- a/include/uapi/linux/agpgart.h
-> +++ b/include/uapi/linux/agpgart.h
-> @@ -52,7 +52,6 @@
->  
->  #ifndef __KERNEL__
->  #include <linux/types.h>
-> -#include <stdlib.h>
->  
->  struct agp_version {
->  	__u16 major;
-> @@ -64,10 +63,10 @@ typedef struct _agp_info {
->  	__u32 bridge_id;	/* bridge vendor/device         */
->  	__u32 agp_mode;		/* mode info of bridge          */
->  	unsigned long aper_base;/* base of aperture             */
-> -	size_t aper_size;	/* size of aperture             */
-> -	size_t pg_total;	/* max pages (swap + system)    */
-> -	size_t pg_system;	/* max pages (system)           */
-> -	size_t pg_used;		/* current pages used           */
-> +	__kernel_size_t aper_size;	/* size of aperture             */
-> +	__kernel_size_t pg_total;	/* max pages (swap + system)    */
-> +	__kernel_size_t pg_system;	/* max pages (system)           */
-> +	__kernel_size_t pg_used;	/* current pages used           */
->  } agp_info;
->  
->  typedef struct _agp_setup {
-> -- 
-> 2.32.0
-> 
+I have a different picture here. If you look at the logs at
+  https://kerneltests.org/builders/qemu-xtensa-master/
+
+there's a line for noMMU config in every one of them:
+  Building xtensa:de212:kc705-nommu:nommu_kc705_defconfig ... running
+............ passed
+
+Please let me know if you observe any specific build/runtime issues.
+
+-- 
+Thanks.
+-- Max
