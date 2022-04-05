@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E8D5BC4167B
-	for <linux-arch@archiver.kernel.org>; Tue,  5 Apr 2022 07:15:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C27F0C3527E
+	for <linux-arch@archiver.kernel.org>; Tue,  5 Apr 2022 07:15:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231528AbiDEHRI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 5 Apr 2022 03:17:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55780 "EHLO
+        id S231537AbiDEHRJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 5 Apr 2022 03:17:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58334 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231582AbiDEHQX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2022 03:16:23 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D6AEF1107;
-        Tue,  5 Apr 2022 00:14:21 -0700 (PDT)
+        with ESMTP id S231633AbiDEHQo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2022 03:16:44 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3A39E101B;
+        Tue,  5 Apr 2022 00:14:47 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id BBE96B81B14;
-        Tue,  5 Apr 2022 07:14:19 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AB6E4C34112;
-        Tue,  5 Apr 2022 07:14:13 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id CBF64615FB;
+        Tue,  5 Apr 2022 07:14:46 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 65104C34115;
+        Tue,  5 Apr 2022 07:14:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1649142858;
-        bh=i7PzdXl6Dn+FdofUFi023qh/x+M4yzmCIkQuIb/yw0M=;
+        s=k20201202; t=1649142886;
+        bh=czcF1B6lamA2QE0/pzTN2aNL2pufxwZMl+tVG9rkf3I=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=HJCIg9dymp/i3aYY8UDGKP6XwUMI28CDXVTTuITqtu219zO0Lxn23mDuhegiJzT9o
-         6VoKVF8iGni6jpWF9GRDjJb6aoZw7Gc/Jzm7gD+EMaiYqASXVyeql+u4JQJGgPbkVQ
-         m7RkMxlBkVTY071Sdi1zkDXSUPfpbycxNWKkl6WEqcwIXzGXqsdeelojFAlyNKiEtz
-         KTL5O27JfICsO8FoUskCgR/ON5gA0/y/3OdDj2cV9WGlC2p6ME2xqLYnFS8tNl1NvT
-         Ghp1FSuIuHRSTQmgQJLxPrkjcZZIOacuzpf592EwBhj7o7JasfnhZ0w2Y4fo75Fa8X
-         muA3+K2dMOUhQ==
+        b=RJWOm7M3XXGmDosd3qRUX35iFS117oeOyg0m88AcYGHci3soFwkrSnRJkYjLyvBZl
+         BtVhGrOs08GluxiCoLUt3DNWb2a6bdJNfZnZSUmKiTlJKpQJuHNyZtd3UqS80e90Ls
+         aqHLZ0DaYiuEN3aqiOI6n1kQqV/eMeXkopBndYHDnS7tWb8i8xDf0+xh/5jHPpv1UE
+         GjeZk5QASjUzv5VcVqM8QUJfjNTJGaSU4JYxZvjL1dqRqgn6z1MAnjDUyrm898lRdr
+         QZliXcoWVqmMrdJ3VWEErBTHQc7sADJpMGtJVqrDwPQqmu0emi8jBrf9FovTGheWjw
+         /N8GgOqJw9MDQ==
 From:   guoren@kernel.org
 To:     guoren@kernel.org, palmer@dabbelt.com, arnd@arndb.de,
         gregkh@linuxfoundation.org, hch@lst.de, nathan@kernel.org,
@@ -41,9 +41,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-parisc@vger.kernel.org, linux-mips@vger.kernel.org,
         linux-arm-kernel@lists.infradead.org, x86@kernel.org,
         heiko@sntech.de, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V12 08/20] riscv: Fixup difference with defconfig
-Date:   Tue,  5 Apr 2022 15:13:02 +0800
-Message-Id: <20220405071314.3225832-9-guoren@kernel.org>
+Subject: [PATCH V12 13/20] riscv: compat: process: Add UXL_32 support in start_thread
+Date:   Tue,  5 Apr 2022 15:13:07 +0800
+Message-Id: <20220405071314.3225832-14-guoren@kernel.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220405071314.3225832-1-guoren@kernel.org>
 References: <20220405071314.3225832-1-guoren@kernel.org>
@@ -55,35 +55,39 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Let's follow the origin patch's spirit:
+If the current task is in COMPAT mode, set SR_UXL_32 in status for
+returning userspace. We need CONFIG _COMPAT to prevent compiling
+errors with rv32 defconfig.
 
-The only difference between rv32_defconfig and defconfig is that
-rv32_defconfig has  CONFIG_ARCH_RV32I=y.
-
-This is helpful to compare rv64-compat-rv32 v.s. rv32-linux.
-
-Fixes: 1b937e8faa87ccfb ("RISC-V: Add separate defconfig for 32bit systems")
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 Tested-by: Heiko Stuebner <heiko@sntech.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/riscv/Makefile | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/riscv/kernel/process.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
-index 7d81102cffd4..c6ca1b9cbf71 100644
---- a/arch/riscv/Makefile
-+++ b/arch/riscv/Makefile
-@@ -154,3 +154,7 @@ PHONY += rv64_randconfig
- rv64_randconfig:
- 	$(Q)$(MAKE) KCONFIG_ALLCONFIG=$(srctree)/arch/riscv/configs/64-bit.config \
- 		-f $(srctree)/Makefile randconfig
+diff --git a/arch/riscv/kernel/process.c b/arch/riscv/kernel/process.c
+index 504b496787aa..b4421c16198c 100644
+--- a/arch/riscv/kernel/process.c
++++ b/arch/riscv/kernel/process.c
+@@ -98,6 +98,15 @@ void start_thread(struct pt_regs *regs, unsigned long pc,
+ 	}
+ 	regs->epc = pc;
+ 	regs->sp = sp;
 +
-+PHONY += rv32_defconfig
-+rv32_defconfig:
-+	$(Q)$(MAKE) -f $(srctree)/Makefile defconfig 32-bit.config
++#ifdef CONFIG_64BIT
++	regs->status &= ~SR_UXL;
++
++	if (is_compat_task())
++		regs->status |= SR_UXL_32;
++	else
++		regs->status |= SR_UXL_64;
++#endif
+ }
+ 
+ void flush_thread(void)
 -- 
 2.25.1
 
