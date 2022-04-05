@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0A1E3C35273
-	for <linux-arch@archiver.kernel.org>; Tue,  5 Apr 2022 07:15:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 116D5C35276
+	for <linux-arch@archiver.kernel.org>; Tue,  5 Apr 2022 07:15:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231460AbiDEHRB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 5 Apr 2022 03:17:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58658 "EHLO
+        id S231468AbiDEHRD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 5 Apr 2022 03:17:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55716 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231652AbiDEHQu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2022 03:16:50 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9D502C39;
-        Tue,  5 Apr 2022 00:14:52 -0700 (PDT)
+        with ESMTP id S231588AbiDEHQX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2022 03:16:23 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5F44B26C1;
+        Tue,  5 Apr 2022 00:14:25 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 39C4E615FB;
-        Tue,  5 Apr 2022 07:14:52 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C8AE7C34111;
-        Tue,  5 Apr 2022 07:14:46 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id F0A8861615;
+        Tue,  5 Apr 2022 07:14:24 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1A7FAC34111;
+        Tue,  5 Apr 2022 07:14:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1649142891;
-        bh=0gzQGGxdHWRt9A+64eem+dLQzBOPjB9Pfn9kxqzAZaI=;
+        s=k20201202; t=1649142864;
+        bh=Ozahyc/w+nU9i7KqLsvrZN14JQ1Eg6uadYyBxIpHozM=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=pAxwn75t4d3o6bXrhGs0jyZfoZT/W4uV6ltpOG9V709KVwAGveEPeUdJIe4F2zoxj
-         2h/D7oY4VEZOWvLcSjxHATfYjAK4V8mF/iE2hhCNTAlHC/PpvsdQG5I76ke7gVOZpE
-         IgUwxEfszo8G/RiWC83JD9VlkN0EDkmBu/XnKwmmQEgi8Slw1f9bhSb/2XZ0ePMPll
-         3mdIKhzsMMyN5eDcYj6QK+hNVesoO4XvMVXpEPNlEbvi4p3L+YKgAmCVge6rc/9pj/
-         CceP22NTsvPdEzjszer2MHrUM1Jf1rcC+42aHbUQi12xYqvNCSebSw3ZevKbAThtZj
-         1hLN0W37SAzKQ==
+        b=Ys8Cmi6POwUaireIIRTeLhKK+v7o2EqkTGQSRxqajtar5HmxCLoC3GA0eeO2Jdh7f
+         7WhzZ8247EkkROcV33xkAmsA6ZVRM/KJfhGALQlgJAH8DdgD+HuhdZyO2JrLPvyLbD
+         lK6zMp958X6Nu06bQQzZV5xZNo7ixFrZt7ypv7re/+p5ulumO9Mo1qR1WuOjxV7MnT
+         jE2p2eV+1qxQVnMDMWoSQz93kfij6KBuG7JfR+6KNumajqsqAvV6rtsOqZFK7SSRYW
+         eXSdkrbZ3DAxMyJHVNYk03/zfADcWc6XefNmEjDQtImrxrupXdOMLp+0LVQUTeANq7
+         CEq9QZi2uMpyA==
 From:   guoren@kernel.org
 To:     guoren@kernel.org, palmer@dabbelt.com, arnd@arndb.de,
         gregkh@linuxfoundation.org, hch@lst.de, nathan@kernel.org,
@@ -41,9 +41,9 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-parisc@vger.kernel.org, linux-mips@vger.kernel.org,
         linux-arm-kernel@lists.infradead.org, x86@kernel.org,
         heiko@sntech.de, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V12 14/20] riscv: compat: Add elf.h implementation
-Date:   Tue,  5 Apr 2022 15:13:08 +0800
-Message-Id: <20220405071314.3225832-15-guoren@kernel.org>
+Subject: [PATCH V12 09/20] riscv: compat: Add basic compat data type implementation
+Date:   Tue,  5 Apr 2022 15:13:03 +0800
+Message-Id: <20220405071314.3225832-10-guoren@kernel.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220405071314.3225832-1-guoren@kernel.org>
 References: <20220405071314.3225832-1-guoren@kernel.org>
@@ -55,113 +55,170 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Implement necessary type and macro for compat elf. See the code
-comment for detail.
+Implement riscv asm/compat.h for struct compat_xxx,
+is_compat_task, compat_user_regset, regset convert.
+
+The rv64 compat.h has inherited most of the structs
+from the generic one.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 Tested-by: Heiko Stuebner <heiko@sntech.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Palmer Dabbelt <palmer@dabbelt.com>
 ---
- arch/riscv/include/asm/elf.h | 41 +++++++++++++++++++++++++++++++++++-
- 1 file changed, 40 insertions(+), 1 deletion(-)
+ arch/riscv/include/asm/compat.h      | 129 +++++++++++++++++++++++++++
+ arch/riscv/include/asm/thread_info.h |   1 +
+ 2 files changed, 130 insertions(+)
+ create mode 100644 arch/riscv/include/asm/compat.h
 
-diff --git a/arch/riscv/include/asm/elf.h b/arch/riscv/include/asm/elf.h
-index f53c40026c7a..a234656cfb5d 100644
---- a/arch/riscv/include/asm/elf.h
-+++ b/arch/riscv/include/asm/elf.h
-@@ -8,6 +8,8 @@
- #ifndef _ASM_RISCV_ELF_H
- #define _ASM_RISCV_ELF_H
- 
-+#include <uapi/linux/elf.h>
-+#include <linux/compat.h>
- #include <uapi/asm/elf.h>
- #include <asm/auxvec.h>
- #include <asm/byteorder.h>
-@@ -18,11 +20,13 @@
-  */
- #define ELF_ARCH	EM_RISCV
- 
-+#ifndef ELF_CLASS
- #ifdef CONFIG_64BIT
- #define ELF_CLASS	ELFCLASS64
- #else
- #define ELF_CLASS	ELFCLASS32
- #endif
-+#endif
- 
- #define ELF_DATA	ELFDATA2LSB
- 
-@@ -31,6 +35,8 @@
-  */
- #define elf_check_arch(x) ((x)->e_machine == EM_RISCV)
- 
-+#define compat_elf_check_arch(x) ((x)->e_machine == EM_RISCV)
+diff --git a/arch/riscv/include/asm/compat.h b/arch/riscv/include/asm/compat.h
+new file mode 100644
+index 000000000000..2ac955b51148
+--- /dev/null
++++ b/arch/riscv/include/asm/compat.h
+@@ -0,0 +1,129 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __ASM_COMPAT_H
++#define __ASM_COMPAT_H
 +
- #define CORE_DUMP_USE_REGSET
- #define ELF_EXEC_PAGESIZE	(PAGE_SIZE)
++#define COMPAT_UTS_MACHINE	"riscv\0\0"
++
++/*
++ * Architecture specific compatibility types
++ */
++#include <linux/types.h>
++#include <linux/sched.h>
++#include <linux/sched/task_stack.h>
++#include <asm-generic/compat.h>
++
++static inline int is_compat_task(void)
++{
++	return test_thread_flag(TIF_32BIT);
++}
++
++struct compat_user_regs_struct {
++	compat_ulong_t pc;
++	compat_ulong_t ra;
++	compat_ulong_t sp;
++	compat_ulong_t gp;
++	compat_ulong_t tp;
++	compat_ulong_t t0;
++	compat_ulong_t t1;
++	compat_ulong_t t2;
++	compat_ulong_t s0;
++	compat_ulong_t s1;
++	compat_ulong_t a0;
++	compat_ulong_t a1;
++	compat_ulong_t a2;
++	compat_ulong_t a3;
++	compat_ulong_t a4;
++	compat_ulong_t a5;
++	compat_ulong_t a6;
++	compat_ulong_t a7;
++	compat_ulong_t s2;
++	compat_ulong_t s3;
++	compat_ulong_t s4;
++	compat_ulong_t s5;
++	compat_ulong_t s6;
++	compat_ulong_t s7;
++	compat_ulong_t s8;
++	compat_ulong_t s9;
++	compat_ulong_t s10;
++	compat_ulong_t s11;
++	compat_ulong_t t3;
++	compat_ulong_t t4;
++	compat_ulong_t t5;
++	compat_ulong_t t6;
++};
++
++static inline void regs_to_cregs(struct compat_user_regs_struct *cregs,
++				 struct pt_regs *regs)
++{
++	cregs->pc	= (compat_ulong_t) regs->epc;
++	cregs->ra	= (compat_ulong_t) regs->ra;
++	cregs->sp	= (compat_ulong_t) regs->sp;
++	cregs->gp	= (compat_ulong_t) regs->gp;
++	cregs->tp	= (compat_ulong_t) regs->tp;
++	cregs->t0	= (compat_ulong_t) regs->t0;
++	cregs->t1	= (compat_ulong_t) regs->t1;
++	cregs->t2	= (compat_ulong_t) regs->t2;
++	cregs->s0	= (compat_ulong_t) regs->s0;
++	cregs->s1	= (compat_ulong_t) regs->s1;
++	cregs->a0	= (compat_ulong_t) regs->a0;
++	cregs->a1	= (compat_ulong_t) regs->a1;
++	cregs->a2	= (compat_ulong_t) regs->a2;
++	cregs->a3	= (compat_ulong_t) regs->a3;
++	cregs->a4	= (compat_ulong_t) regs->a4;
++	cregs->a5	= (compat_ulong_t) regs->a5;
++	cregs->a6	= (compat_ulong_t) regs->a6;
++	cregs->a7	= (compat_ulong_t) regs->a7;
++	cregs->s2	= (compat_ulong_t) regs->s2;
++	cregs->s3	= (compat_ulong_t) regs->s3;
++	cregs->s4	= (compat_ulong_t) regs->s4;
++	cregs->s5	= (compat_ulong_t) regs->s5;
++	cregs->s6	= (compat_ulong_t) regs->s6;
++	cregs->s7	= (compat_ulong_t) regs->s7;
++	cregs->s8	= (compat_ulong_t) regs->s8;
++	cregs->s9	= (compat_ulong_t) regs->s9;
++	cregs->s10	= (compat_ulong_t) regs->s10;
++	cregs->s11	= (compat_ulong_t) regs->s11;
++	cregs->t3	= (compat_ulong_t) regs->t3;
++	cregs->t4	= (compat_ulong_t) regs->t4;
++	cregs->t5	= (compat_ulong_t) regs->t5;
++	cregs->t6	= (compat_ulong_t) regs->t6;
++};
++
++static inline void cregs_to_regs(struct compat_user_regs_struct *cregs,
++				 struct pt_regs *regs)
++{
++	regs->epc	= (unsigned long) cregs->pc;
++	regs->ra	= (unsigned long) cregs->ra;
++	regs->sp	= (unsigned long) cregs->sp;
++	regs->gp	= (unsigned long) cregs->gp;
++	regs->tp	= (unsigned long) cregs->tp;
++	regs->t0	= (unsigned long) cregs->t0;
++	regs->t1	= (unsigned long) cregs->t1;
++	regs->t2	= (unsigned long) cregs->t2;
++	regs->s0	= (unsigned long) cregs->s0;
++	regs->s1	= (unsigned long) cregs->s1;
++	regs->a0	= (unsigned long) cregs->a0;
++	regs->a1	= (unsigned long) cregs->a1;
++	regs->a2	= (unsigned long) cregs->a2;
++	regs->a3	= (unsigned long) cregs->a3;
++	regs->a4	= (unsigned long) cregs->a4;
++	regs->a5	= (unsigned long) cregs->a5;
++	regs->a6	= (unsigned long) cregs->a6;
++	regs->a7	= (unsigned long) cregs->a7;
++	regs->s2	= (unsigned long) cregs->s2;
++	regs->s3	= (unsigned long) cregs->s3;
++	regs->s4	= (unsigned long) cregs->s4;
++	regs->s5	= (unsigned long) cregs->s5;
++	regs->s6	= (unsigned long) cregs->s6;
++	regs->s7	= (unsigned long) cregs->s7;
++	regs->s8	= (unsigned long) cregs->s8;
++	regs->s9	= (unsigned long) cregs->s9;
++	regs->s10	= (unsigned long) cregs->s10;
++	regs->s11	= (unsigned long) cregs->s11;
++	regs->t3	= (unsigned long) cregs->t3;
++	regs->t4	= (unsigned long) cregs->t4;
++	regs->t5	= (unsigned long) cregs->t5;
++	regs->t6	= (unsigned long) cregs->t6;
++};
++
++#endif /* __ASM_COMPAT_H */
+diff --git a/arch/riscv/include/asm/thread_info.h b/arch/riscv/include/asm/thread_info.h
+index 74d888c8d631..78933ac04995 100644
+--- a/arch/riscv/include/asm/thread_info.h
++++ b/arch/riscv/include/asm/thread_info.h
+@@ -97,6 +97,7 @@ struct thread_info {
+ #define TIF_SECCOMP		8	/* syscall secure computing */
+ #define TIF_NOTIFY_SIGNAL	9	/* signal notifications exist */
+ #define TIF_UPROBE		10	/* uprobe breakpoint or singlestep */
++#define TIF_32BIT		11	/* compat-mode 32bit process */
  
-@@ -43,8 +49,14 @@
- #define ELF_ET_DYN_BASE		((TASK_SIZE / 3) * 2)
- 
- #ifdef CONFIG_64BIT
-+#ifdef CONFIG_COMPAT
-+#define STACK_RND_MASK		(test_thread_flag(TIF_32BIT) ? \
-+				 0x7ff >> (PAGE_SHIFT - 12) : \
-+				 0x3ffff >> (PAGE_SHIFT - 12))
-+#else
- #define STACK_RND_MASK		(0x3ffff >> (PAGE_SHIFT - 12))
- #endif
-+#endif
- /*
-  * This yields a mask that user programs can use to figure out what
-  * instruction set this CPU supports.  This could be done in user space,
-@@ -60,11 +72,19 @@ extern unsigned long elf_hwcap;
-  */
- #define ELF_PLATFORM	(NULL)
- 
-+#define COMPAT_ELF_PLATFORM	(NULL)
-+
- #ifdef CONFIG_MMU
- #define ARCH_DLINFO						\
- do {								\
-+	/*							\
-+	 * Note that we add ulong after elf_addr_t because	\
-+	 * casting current->mm->context.vdso triggers a cast	\
-+	 * warning of cast from pointer to integer for		\
-+	 * COMPAT ELFCLASS32.					\
-+	 */							\
- 	NEW_AUX_ENT(AT_SYSINFO_EHDR,				\
--		(elf_addr_t)current->mm->context.vdso);		\
-+		(elf_addr_t)(ulong)current->mm->context.vdso);	\
- 	NEW_AUX_ENT(AT_L1I_CACHESIZE,				\
- 		get_cache_size(1, CACHE_TYPE_INST));		\
- 	NEW_AUX_ENT(AT_L1I_CACHEGEOMETRY,			\
-@@ -90,4 +110,23 @@ do {							\
- 		*(struct user_regs_struct *)regs;	\
- } while (0);
- 
-+#ifdef CONFIG_COMPAT
-+
-+#define SET_PERSONALITY(ex)					\
-+do {    if ((ex).e_ident[EI_CLASS] == ELFCLASS32)		\
-+		set_thread_flag(TIF_32BIT);			\
-+	else							\
-+		clear_thread_flag(TIF_32BIT);			\
-+	if (personality(current->personality) != PER_LINUX32)	\
-+		set_personality(PER_LINUX |			\
-+			(current->personality & (~PER_MASK)));	\
-+} while (0)
-+
-+#define COMPAT_ELF_ET_DYN_BASE		((TASK_SIZE_32 / 3) * 2)
-+
-+/* rv32 registers */
-+typedef compat_ulong_t			compat_elf_greg_t;
-+typedef compat_elf_greg_t		compat_elf_gregset_t[ELF_NGREG];
-+
-+#endif /* CONFIG_COMPAT */
- #endif /* _ASM_RISCV_ELF_H */
+ #define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
+ #define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
 -- 
 2.25.1
 
