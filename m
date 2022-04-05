@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EC400C433FE
-	for <linux-arch@archiver.kernel.org>; Tue,  5 Apr 2022 07:14:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 475BCC43219
+	for <linux-arch@archiver.kernel.org>; Tue,  5 Apr 2022 07:15:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231417AbiDEHPz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 5 Apr 2022 03:15:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55258 "EHLO
+        id S230084AbiDEHQy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 5 Apr 2022 03:16:54 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56630 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231423AbiDEHPo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2022 03:15:44 -0400
+        with ESMTP id S231583AbiDEHQX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2022 03:16:23 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 267A9101B;
-        Tue,  5 Apr 2022 00:13:46 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3452291573;
+        Tue,  5 Apr 2022 00:14:14 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id B2A27615F2;
-        Tue,  5 Apr 2022 07:13:45 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 15E41C34110;
-        Tue,  5 Apr 2022 07:13:39 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id AFF9B615F2;
+        Tue,  5 Apr 2022 07:14:13 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4474CC340EE;
+        Tue,  5 Apr 2022 07:14:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1649142825;
-        bh=G+0AfE7fg3YZ31nVbGgXwDbWLMbNh9zLjXb0j5/M9J0=;
+        s=k20201202; t=1649142853;
+        bh=WR+ViwuRqnCNHeWZRXz67/g9MyXNDCz9XQM2h/2HeVE=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=hg9A0ZUMbegvkVZuThrs1ia8iZPEYRY0lQMvLLIqtpCetW7qSu4KdeNggSwvdPzRZ
-         vdXV0CR4AxHItnb3A8brWNCwTS3aRr8wAsDO0ICbwP+iaYd7vN/IOA3CvggnKlm49H
-         tyoXFObs2nuKA/cv+aFmJXCG+/Ix6l6G5KRSvR5OFlXfBZqQ4gAYr4eGQxQBv8HdGe
-         IQ0ASPr55NXWYDy9AMrrLSXyVK2FXcTpIwVcudFAo1+hV4ln7T6cuzynwgfBu+wQuF
-         59MFs1C64vkbD8FLlqPmqm/d5XTHFMyvdgeydHuy1jYGUJfsRCqBJdkQ/vpEHqUxgw
-         ChElq6EWgsxqw==
+        b=NrkPetNRnWyVa7n2UX5xp73zdUkxZLEVCjDWABkHLNKABgGip/o0qlmAp7d7vFFyp
+         IGG2qTcYRTWf9syIyZZEh6mLvhZAUHUMkix8jfgflb64ubT4i5Fk0CaHHDZxKHYDYP
+         lyQ04H7YQyiW3/Ywi9gb7K3j4jH+IQeMVQqyV31+6du/YcC3O0Pan85QRRzKEGYFrE
+         nk0QS7Vv9GTZGJJeOvzMH8eX8umBhnu8DR4z1Fhn4X9Zi5r2hUzNfMPUGOiYVb2tjj
+         l4Avx6doc58bkZw+BiQlGw8uRpWDsWnVtDXGXZDx6WyJ85nBj4m1X4fhVPJk26o1Ba
+         h2vxErCqXqe/g==
 From:   guoren@kernel.org
 To:     guoren@kernel.org, palmer@dabbelt.com, arnd@arndb.de,
         gregkh@linuxfoundation.org, hch@lst.de, nathan@kernel.org,
@@ -40,10 +40,10 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         sparclinux@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         linux-parisc@vger.kernel.org, linux-mips@vger.kernel.org,
         linux-arm-kernel@lists.infradead.org, x86@kernel.org,
-        heiko@sntech.de
-Subject: [PATCH V12 02/20] uapi: always define F_GETLK64/F_SETLK64/F_SETLKW64 in fcntl.h
-Date:   Tue,  5 Apr 2022 15:12:56 +0800
-Message-Id: <20220405071314.3225832-3-guoren@kernel.org>
+        heiko@sntech.de, Guo Ren <guoren@linux.alibaba.com>
+Subject: [PATCH V12 07/20] syscalls: compat: Fix the missing part for __SYSCALL_COMPAT
+Date:   Tue,  5 Apr 2022 15:13:01 +0800
+Message-Id: <20220405071314.3225832-8-guoren@kernel.org>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20220405071314.3225832-1-guoren@kernel.org>
 References: <20220405071314.3225832-1-guoren@kernel.org>
@@ -53,181 +53,65 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Christoph Hellwig <hch@lst.de>
+From: Guo Ren <guoren@linux.alibaba.com>
 
-The F_GETLK64/F_SETLK64/F_SETLKW64 fcntl opcodes are only implemented
-for the 32-bit syscall APIs, but are also needed for compat handling
-on 64-bit kernels.
+Make "uapi asm unistd.h" could be used for architectures' COMPAT
+mode. The __SYSCALL_COMPAT is first used in riscv.
 
-Consolidate them in unistd.h instead of definining the internal compat
-definitions in compat.h, which is rather error prone (e.g. parisc
-gets the values wrong currently).
-
-Note that before this change they were never visible to userspace due
-to the fact that CONFIG_64BIT is only set for kernel builds.
-
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
 Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
 Tested-by: Heiko Stuebner <heiko@sntech.de>
 ---
- arch/arm64/include/asm/compat.h        | 4 ----
- arch/mips/include/asm/compat.h         | 4 ----
- arch/mips/include/uapi/asm/fcntl.h     | 4 ++--
- arch/powerpc/include/asm/compat.h      | 4 ----
- arch/s390/include/asm/compat.h         | 4 ----
- arch/sparc/include/asm/compat.h        | 4 ----
- arch/x86/include/asm/compat.h          | 4 ----
- include/uapi/asm-generic/fcntl.h       | 4 ++--
- tools/include/uapi/asm-generic/fcntl.h | 2 --
- 9 files changed, 4 insertions(+), 30 deletions(-)
+ include/uapi/asm-generic/unistd.h       | 4 ++--
+ tools/include/uapi/asm-generic/unistd.h | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
-index eaa6ca062d89..276328765408 100644
---- a/arch/arm64/include/asm/compat.h
-+++ b/arch/arm64/include/asm/compat.h
-@@ -73,10 +73,6 @@ struct compat_flock {
- 	compat_pid_t	l_pid;
- };
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 1c48b0ae3ba3..45fa180cc56a 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -383,7 +383,7 @@ __SYSCALL(__NR_syslog, sys_syslog)
  
--#define F_GETLK64	12	/*  using 'struct flock64' */
--#define F_SETLK64	13
--#define F_SETLKW64	14
--
- struct compat_flock64 {
- 	short		l_type;
- 	short		l_whence;
-diff --git a/arch/mips/include/asm/compat.h b/arch/mips/include/asm/compat.h
-index bbb3bc5a42fd..6a350c1f70d7 100644
---- a/arch/mips/include/asm/compat.h
-+++ b/arch/mips/include/asm/compat.h
-@@ -65,10 +65,6 @@ struct compat_flock {
- 	s32		pad[4];
- };
+ /* kernel/ptrace.c */
+ #define __NR_ptrace 117
+-__SYSCALL(__NR_ptrace, sys_ptrace)
++__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
  
--#define F_GETLK64	33
--#define F_SETLK64	34
--#define F_SETLKW64	35
--
- struct compat_flock64 {
- 	short		l_type;
- 	short		l_whence;
-diff --git a/arch/mips/include/uapi/asm/fcntl.h b/arch/mips/include/uapi/asm/fcntl.h
-index 9e44ac810db9..0369a38e3d4f 100644
---- a/arch/mips/include/uapi/asm/fcntl.h
-+++ b/arch/mips/include/uapi/asm/fcntl.h
-@@ -44,11 +44,11 @@
- #define F_SETOWN	24	/*  for sockets. */
- #define F_GETOWN	23	/*  for sockets. */
+ /* kernel/sched/core.c */
+ #define __NR_sched_setparam 118
+@@ -779,7 +779,7 @@ __SYSCALL(__NR_rseq, sys_rseq)
+ #define __NR_kexec_file_load 294
+ __SYSCALL(__NR_kexec_file_load,     sys_kexec_file_load)
+ /* 295 through 402 are unassigned to sync up with generic numbers, don't use */
+-#if __BITS_PER_LONG == 32
++#if defined(__SYSCALL_COMPAT) || __BITS_PER_LONG == 32
+ #define __NR_clock_gettime64 403
+ __SYSCALL(__NR_clock_gettime64, sys_clock_gettime)
+ #define __NR_clock_settime64 404
+diff --git a/tools/include/uapi/asm-generic/unistd.h b/tools/include/uapi/asm-generic/unistd.h
+index 1c48b0ae3ba3..45fa180cc56a 100644
+--- a/tools/include/uapi/asm-generic/unistd.h
++++ b/tools/include/uapi/asm-generic/unistd.h
+@@ -383,7 +383,7 @@ __SYSCALL(__NR_syslog, sys_syslog)
  
--#ifndef __mips64
-+#if __BITS_PER_LONG == 32 || defined(__KERNEL__)
- #define F_GETLK64	33	/*  using 'struct flock64' */
- #define F_SETLK64	34
- #define F_SETLKW64	35
--#endif
-+#endif /* __BITS_PER_LONG == 32 || defined(__KERNEL__) */
+ /* kernel/ptrace.c */
+ #define __NR_ptrace 117
+-__SYSCALL(__NR_ptrace, sys_ptrace)
++__SC_COMP(__NR_ptrace, sys_ptrace, compat_sys_ptrace)
  
- #if _MIPS_SIM != _MIPS_SIM_ABI64
- #define __ARCH_FLOCK_EXTRA_SYSID	long l_sysid;
-diff --git a/arch/powerpc/include/asm/compat.h b/arch/powerpc/include/asm/compat.h
-index 7afc96fb6524..83d8f70779cb 100644
---- a/arch/powerpc/include/asm/compat.h
-+++ b/arch/powerpc/include/asm/compat.h
-@@ -52,10 +52,6 @@ struct compat_flock {
- 	compat_pid_t	l_pid;
- };
- 
--#define F_GETLK64	12	/*  using 'struct flock64' */
--#define F_SETLK64	13
--#define F_SETLKW64	14
--
- struct compat_flock64 {
- 	short		l_type;
- 	short		l_whence;
-diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
-index cdc7ae72529d..0f14b3188b1b 100644
---- a/arch/s390/include/asm/compat.h
-+++ b/arch/s390/include/asm/compat.h
-@@ -110,10 +110,6 @@ struct compat_flock {
- 	compat_pid_t	l_pid;
- };
- 
--#define F_GETLK64       12
--#define F_SETLK64       13
--#define F_SETLKW64      14    
--
- struct compat_flock64 {
- 	short		l_type;
- 	short		l_whence;
-diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
-index bd949fcf9d63..108078751bb5 100644
---- a/arch/sparc/include/asm/compat.h
-+++ b/arch/sparc/include/asm/compat.h
-@@ -84,10 +84,6 @@ struct compat_flock {
- 	short		__unused;
- };
- 
--#define F_GETLK64	12
--#define F_SETLK64	13
--#define F_SETLKW64	14
--
- struct compat_flock64 {
- 	short		l_type;
- 	short		l_whence;
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index 7516e4199b3c..8d19a212f4f2 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -58,10 +58,6 @@ struct compat_flock {
- 	compat_pid_t	l_pid;
- };
- 
--#define F_GETLK64	12	/*  using 'struct flock64' */
--#define F_SETLK64	13
--#define F_SETLKW64	14
--
- /*
-  * IA32 uses 4 byte alignment for 64 bit quantities,
-  * so we need to pack this structure.
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index 77aa9f2ff98d..f13d37b60775 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -116,13 +116,13 @@
- #define F_GETSIG	11	/* for sockets. */
- #endif
- 
--#ifndef CONFIG_64BIT
-+#if __BITS_PER_LONG == 32 || defined(__KERNEL__)
- #ifndef F_GETLK64
- #define F_GETLK64	12	/*  using 'struct flock64' */
- #define F_SETLK64	13
- #define F_SETLKW64	14
- #endif
--#endif
-+#endif /* __BITS_PER_LONG == 32 || defined(__KERNEL__) */
- 
- #ifndef F_SETOWN_EX
- #define F_SETOWN_EX	15
-diff --git a/tools/include/uapi/asm-generic/fcntl.h b/tools/include/uapi/asm-generic/fcntl.h
-index 99bc9b15ce2b..0197042b7dfb 100644
---- a/tools/include/uapi/asm-generic/fcntl.h
-+++ b/tools/include/uapi/asm-generic/fcntl.h
-@@ -115,13 +115,11 @@
- #define F_GETSIG	11	/* for sockets. */
- #endif
- 
--#ifndef CONFIG_64BIT
- #ifndef F_GETLK64
- #define F_GETLK64	12	/*  using 'struct flock64' */
- #define F_SETLK64	13
- #define F_SETLKW64	14
- #endif
--#endif
- 
- #ifndef F_SETOWN_EX
- #define F_SETOWN_EX	15
+ /* kernel/sched/core.c */
+ #define __NR_sched_setparam 118
+@@ -779,7 +779,7 @@ __SYSCALL(__NR_rseq, sys_rseq)
+ #define __NR_kexec_file_load 294
+ __SYSCALL(__NR_kexec_file_load,     sys_kexec_file_load)
+ /* 295 through 402 are unassigned to sync up with generic numbers, don't use */
+-#if __BITS_PER_LONG == 32
++#if defined(__SYSCALL_COMPAT) || __BITS_PER_LONG == 32
+ #define __NR_clock_gettime64 403
+ __SYSCALL(__NR_clock_gettime64, sys_clock_gettime)
+ #define __NR_clock_settime64 404
 -- 
 2.25.1
 
