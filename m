@@ -2,90 +2,90 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3D533C433F5
-	for <linux-arch@archiver.kernel.org>; Tue, 12 Apr 2022 23:26:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C1D03C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 12 Apr 2022 23:27:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230038AbiDLX2j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 12 Apr 2022 19:28:39 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44324 "EHLO
+        id S230273AbiDLX3b (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 12 Apr 2022 19:29:31 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39404 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231376AbiDLX2V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Apr 2022 19:28:21 -0400
-Received: from mail-pj1-x102f.google.com (mail-pj1-x102f.google.com [IPv6:2607:f8b0:4864:20::102f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8915E78912
-        for <linux-arch@vger.kernel.org>; Tue, 12 Apr 2022 15:33:13 -0700 (PDT)
-Received: by mail-pj1-x102f.google.com with SMTP id o5-20020a17090ad20500b001ca8a1dc47aso4427451pju.1
-        for <linux-arch@vger.kernel.org>; Tue, 12 Apr 2022 15:33:13 -0700 (PDT)
+        with ESMTP id S231449AbiDLX2Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 12 Apr 2022 19:28:24 -0400
+Received: from mail-pf1-x42b.google.com (mail-pf1-x42b.google.com [IPv6:2607:f8b0:4864:20::42b])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 07BD89F392
+        for <linux-arch@vger.kernel.org>; Tue, 12 Apr 2022 15:32:01 -0700 (PDT)
+Received: by mail-pf1-x42b.google.com with SMTP id s2so307638pfh.6
+        for <linux-arch@vger.kernel.org>; Tue, 12 Apr 2022 15:32:01 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=chromium.org; s=google;
-        h=from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=wFSlDAEzxG2DmB4Xo/jpKWlcMReBrQbKvAja9Mz03WY=;
-        b=BAgyN2cjIkVkau6NaxZfdrINA1JnGPeOxEMSQIuNw88cOd9poeQU7JYlOrJo65FxMh
-         SBZgNZs5Eozgz9MxeaLL6P9JPOH5DJW1eYYB93FJ2KdIzLY35CGr7lfUEU8C4VpTHqN3
-         NKIU5fUui4D5BaZHPQ5Pgq3P7eJ2M8bgOu89A=
+        d=kernel-dk.20210112.gappssmtp.com; s=20210112;
+        h=from:to:cc:in-reply-to:references:subject:message-id:date
+         :mime-version:content-transfer-encoding;
+        bh=UTSp/G8zwV18QcS++FuQzWULt0VtGmmOqsMfzG5ErkA=;
+        b=2u8RZR5Z/ycl0/rlZlTpBfbAQMR7bXJ9y/kQiA4x/saJN2+hoVZnRddqJRcYY7lb2v
+         Bjodb+LUw3QTYFHpteR0dVcP6+jjnQlsCS2yVTUPgAvAxhQH75k3PFMoYpY6TcXVJXKy
+         JudGJnkgu6CrhOQLuBs8YxpJVIjKnGliYLhm3kWUrWEIfz+27mq+rL0MLrS8sbQXWZrI
+         TM3hM45jKo3JLLTbPZWOzw4mttlmyYdOIXO71hIow4aJYgK5BDO+uhK9qlDEA1o4UzPc
+         MC44eMEGnQEArcYYjgJJcZcNJr56zFC6KsUykNSU1QOvOTGRE6FBdf8bZjZO/OGZ7EQ4
+         tqnQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:from:to:cc:subject:date:message-id:mime-version
-         :content-transfer-encoding;
-        bh=wFSlDAEzxG2DmB4Xo/jpKWlcMReBrQbKvAja9Mz03WY=;
-        b=e2LJCcUQ1kl0mzHkRHffS/FjnTFb8kaI8+HkjUr/7VtZnUm/bEWQR/hCcB7EqJ7Ikn
-         eo0YgUfiTz4eYduY5pvr5Lb89J+aZQiupqwHjkH9N2Bz9XkA1yv/De0s/Vy/DqaajVJY
-         a8zRu+10I9/qWTPSmVoWzDXvImbwDEdV/DurfR/nNEZ6aFi1FD+DUr76OyOklQ2bvc8x
-         r8kfe40AVQx7ArudJxDvHMW6R5Drfp1tD1fHUJH/+hVDhBJ2EYlNjSFZXlAhQ7EuZoZd
-         244ABktNis5EX6fsEGLxoJSASAHig4OGf9QugG13/7c1xGGx4QaV7kqGlxJOWYzl1iO+
-         P34A==
-X-Gm-Message-State: AOAM531xWxbdQsre4pziibDRglX9O9rUQZtdTnfBddhz2FXcIkxvLEwL
-        rB10/UO+v5wXW1iP31M5w5bSiwDrFfmqfA==
-X-Google-Smtp-Source: ABdhPJzbjoFfvbiVhFHrd/ap9MG24S9rnvtRGaAqVEv5YOwoNHzH2GnHp5wYCqSOLPVNm+CpToaQlA==
-X-Received: by 2002:a17:902:e84d:b0:156:bf35:6449 with SMTP id t13-20020a170902e84d00b00156bf356449mr39376031plg.26.1649798738080;
-        Tue, 12 Apr 2022 14:25:38 -0700 (PDT)
-Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
-        by smtp.gmail.com with ESMTPSA id 123-20020a620681000000b004fa7c20d732sm38747092pfg.133.2022.04.12.14.25.37
+        h=x-gm-message-state:from:to:cc:in-reply-to:references:subject
+         :message-id:date:mime-version:content-transfer-encoding;
+        bh=UTSp/G8zwV18QcS++FuQzWULt0VtGmmOqsMfzG5ErkA=;
+        b=Es7YnJX4WMtl8NSS59h+n1e3DPR6l0Zj6W98Ss5in+ss0y+NP8kOC/DPlv9tS12e6E
+         MCnPcLnqYtGmwZ4yu7cJ8as5xClTY+5sP4LLsz07Dsgd+8SNDRDpWxWQBYNAWUSOms5+
+         QVsLu0F8XmNi93MY/eUsvtnLJPiNj5Fq8pVNlhUvjnHH9gxf/UOf1J84C3EQXIN74UGY
+         3TMRk4rocZ42TqXYM1TKInm0V2du1aZOTvQKi/qa0PECzu7Iobaw6gzrHwoxkRuj7VpH
+         uURUPqWGj9DbYXnB3scGwjD8It7eyzJFLXKyAjgXI7JviOQA2JoKZ1rOWDvZxZzh74qB
+         HtRg==
+X-Gm-Message-State: AOAM5338QWdJf2Z+mQIPCx0f53e5wd0afbMAil4NsKI3UC5h/7sAtkeP
+        MQh73E/aRMM2dosXRFOEr6iayw==
+X-Google-Smtp-Source: ABdhPJxfJJwMFnMw12ISX69ykkGJykL+olL9K1M/959vnjtHTUaLHqNf2JTnUA5fym5wfUqCsaxWhQ==
+X-Received: by 2002:a65:6a07:0:b0:39d:8c35:426b with SMTP id m7-20020a656a07000000b0039d8c35426bmr5415538pgu.171.1649802720473;
+        Tue, 12 Apr 2022 15:32:00 -0700 (PDT)
+Received: from [127.0.1.1] ([198.8.77.157])
+        by smtp.gmail.com with ESMTPSA id x6-20020a17090aa38600b001ca2f87d271sm535902pjp.15.2022.04.12.15.31.58
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 12 Apr 2022 14:25:37 -0700 (PDT)
-From:   Kees Cook <keescook@chromium.org>
-To:     Nathan Chancellor <nathan@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>
-Cc:     Kees Cook <keescook@chromium.org>,
-        Masahiro Yamada <masahiroy@kernel.org>, x86@kernel.org,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-hardening@vger.kernel.org
-Subject: [PATCH] init/Kconfig: Remove USELIB syscall by default
-Date:   Tue, 12 Apr 2022 14:25:20 -0700
-Message-Id: <20220412212519.4113845-1-keescook@chromium.org>
-X-Mailer: git-send-email 2.32.0
+        Tue, 12 Apr 2022 15:31:59 -0700 (PDT)
+From:   Jens Axboe <axboe@kernel.dk>
+To:     alobakin@pm.me, linux-crypto@vger.kernel.org,
+        linux-nvme@lists.infradead.org, linux-block@vger.kernel.org
+Cc:     bvanassche@acm.org, linux-kernel@vger.kernel.org, kch@nvidia.com,
+        kbusch@kernel.org, Christoph Hellwig <hch@lst.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        linux-arch@vger.kernel.org, martin.petersen@oracle.com,
+        Arnd Bergmann <arnd@arndb.de>
+In-Reply-To: <20220412215220.75677-1-alobakin@pm.me>
+References: <20220412215220.75677-1-alobakin@pm.me>
+Subject: Re: [PATCH RESEND] asm-generic: fix __get_unaligned_be48() on 32 bit platforms
+Message-Id: <164980271890.301666.4533609890818235558.b4-ty@kernel.dk>
+Date:   Tue, 12 Apr 2022 16:31:58 -0600
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=804; h=from:subject; bh=6oMzRtW3jqjXSXD7mwm7E3NvhHShAvTH9FoLSWVAO4M=; b=owEBbQKS/ZANAwAKAYly9N/cbcAmAcsmYgBiVe4+5UcWIk2DLvOe8RGsuRpGeIvF3QQi+b9keWfe ae+3yXGJAjMEAAEKAB0WIQSlw/aPIp3WD3I+bhOJcvTf3G3AJgUCYlXuPgAKCRCJcvTf3G3AJkLiD/ 96HnJHanZQA4f1r3EyXeSCTJK9Br96PbdgM0mL+dn+KI2TY5vNV9yastv+A68vDF1obNNVqoReykC5 5FN5BcdjFCoiim0fnBWl4jfiIL2cWZh5j4Yy24c2l6fo18d5VLT1I72U1VTkxOtR8M+oywg0x7RUj3 oWVEcGIBOfHJ49YBhM+Y/suTJEuCVy/+WMLl2miWyTj5iO1mNfn5mClXdG5B5HJlwxlULu9LijoC5L LUw+yx5pA6uq+8TCkkkMqg3L+242aXJ9qrUsNPbzQOertituEAg6BTEcLB+0mvw56CjNLSKeuXCujP VhSbgWg9jIfAwh4njrUTNuhpCdsvQcpHwq2EVl6M58ZEgW/r55JXgZ7GEqvHy/EXU130mZ01OcyBOD PWsleIP4AuCncIMwLoJdmCct7m76kqBt+tpD9eapWSat6+Rm1+21ajAidllEIIguzs12iXm35LCpiC IT2f/oKL99C79d34/n8pCbsaSJiIVW8TjmNQX2NtFt84SyM/ScriTvsbQIQ3WD3qIedxUGg8iEkQ+I 2oDnhfLQ0J0leXj7EqVIgepP9NEd+dGTxVnbg3OlYRbCbbx2RilC5zweK4hQoim5epE4p4oSWOg1Tb kHXFcL/j/XLHkgOrIC3BmKfszU+YZK6oJBJNO3fhyuHnHzshnZ/OurXaEt4A==
-X-Developer-Key: i=keescook@chromium.org; a=openpgp; fpr=A5C3F68F229DD60F723E6E138972F4DFDC6DC026
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The uselib syscall has been long deprecated. There's no need to keep
-this enabled by default under X86_32.
+On Tue, 12 Apr 2022 21:59:16 +0000, Alexander Lobakin wrote:
+> While testing the new macros for working with 48 bit containers,
+> I faced a weird problem:
+> 
+> 32 + 16: 0x2ef6e8da 0x79e60000
+> 48: 0xffffe8da + 0x79e60000
+> 
+> All the bits starting from the 32nd were getting 1d in 9/10 cases.
+> The debug showed:
+> 
+> [...]
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- init/Kconfig | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Applied, thanks!
 
-diff --git a/init/Kconfig b/init/Kconfig
-index ddcbefe535e9..5cddb9ba0eef 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -435,8 +435,8 @@ config CROSS_MEMORY_ATTACH
- 	  See the man page for more details.
- 
- config USELIB
--	bool "uselib syscall"
--	def_bool ALPHA || M68K || SPARC || X86_32 || IA32_EMULATION
-+	bool "uselib syscall (for libc5 and earlier)"
-+	default ALPHA || M68K || SPARC
- 	help
- 	  This option enables the uselib syscall, a system call used in the
- 	  dynamic linker from libc5 and earlier.  glibc does not use this
+[1/1] asm-generic: fix __get_unaligned_be48() on 32 bit platforms
+      commit: b97687527be85a55e12804c98745c5619eadcc32
+
+Best regards,
 -- 
-2.32.0
+Jens Axboe
+
 
