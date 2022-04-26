@@ -2,208 +2,95 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8FF8AC433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:48:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A1153C4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 17:31:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236496AbiDZQvt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:51:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43198 "EHLO
+        id S1346402AbiDZRed (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 13:34:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49294 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239611AbiDZQuQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:50:16 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 32B3E40911
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:35 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id dt18-20020a170907729200b006f377ebe5cbso4559399ejc.22
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=date:in-reply-to:message-id:mime-version:references:subject:from:to
-         :cc;
-        bh=7rWXomHmmGtw2qSW/Jql3Xky6Nc8Jl3o+xpl6HNe0X8=;
-        b=q5MasDLtRuk73svjnlxTla0qBFDkgnt0PsXrVkFMN41i4z8Uc7BjsHa4IZlwyI4mOh
-         PSjNtr6oT4aSfGpSW0YXGpJKMOZ3sk1QnOzt4PQcjsP2frb+KqFrSVrmWcDHhZkns/d/
-         pdEqJGCSd8xeQiS1/OQIYoiHjeol8c3Q+yW+/B+Knn6wOUS02dBp111b/1mBG/LNHKLX
-         o57oj7KW5sVZwCE68ycL0SdOrbqmApIoCkh8dUgH6H+ygVwXbl7Gp7mJ6YMwZNc44jBv
-         kf7eWkFxMSiWJtqo7427dYj43Sgw5gav9YAFNr+RIt6rHBJ0ZfsALEQce0T6+nWFX4OZ
-         E6gw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:date:in-reply-to:message-id:mime-version
-         :references:subject:from:to:cc;
-        bh=7rWXomHmmGtw2qSW/Jql3Xky6Nc8Jl3o+xpl6HNe0X8=;
-        b=S4KLCTG7jMYGvJu36QqlpAiQhl1heftOjGqx3Sn3aqfAIBmW/is7cYewBdXUp2lmAT
-         WHTh/Nym8ClKTLVxanoMPWcNUTv28aucbiYqgq5uoYC0SBgm2ksE7NWo9sHHP/btRl+r
-         tVLDQXyfusJemDToh//TXuBOirbBQMmmXfXYjMWxa+8DWF5ls94qfmGnOI4ZgZTUpv0t
-         CHyDd/k/+JB+oeTA2MRXEk79GhavuQZ8b2EBZW7fyQdyfnqyJNmApTdn99gdYU9jbLMV
-         49m01Wv+PDaC5Qu147QDnKF6XpHPEheHP91n+juDrO3PJp73tbHzb6H36//es1b/kbXy
-         WwEA==
-X-Gm-Message-State: AOAM532JzBCeERtNmZrJLZTZtHo/F4AvvgRPv7gMdr2MQifPOitypZFJ
-        3+uaq22iX+87CY2wv6v28DUQXYmYSpU=
-X-Google-Smtp-Source: ABdhPJyHNp1hORgE0TcahA4SesrvDuNa9ln2vyqb/yiKW2MgJrSo3ZS2uZRSG/oHoxHKcWZIpPWb90g9a0g=
-X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a05:6402:27d1:b0:425:f92f:aac0 with SMTP id
- c17-20020a05640227d100b00425f92faac0mr5194069ede.409.1650991533278; Tue, 26
- Apr 2022 09:45:33 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:57 +0200
-In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-29-glider@google.com>
-Mime-Version: 1.0
-References: <20220426164315.625149-1-glider@google.com>
-X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 28/46] kmsan: entry: handle register passing from
- uninstrumented code
-From:   Alexander Potapenko <glider@google.com>
-To:     glider@google.com
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
+        with ESMTP id S244815AbiDZRe1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 13:34:27 -0400
+Received: from mail.skyhub.de (mail.skyhub.de [IPv6:2a01:4f8:190:11c2::b:1457])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D4F171FA4A;
+        Tue, 26 Apr 2022 10:31:19 -0700 (PDT)
+Received: from zn.tnic (p5de8eeb4.dip0.t-ipconnect.de [93.232.238.180])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 1A39F1EC04F9;
+        Tue, 26 Apr 2022 19:31:14 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=dkim;
+        t=1650994274;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:in-reply-to:in-reply-to:  references:references;
+        bh=+xYV1ChaydvSUgBTfjtQMIuLFvZBBr5YN11vYi9Ld+E=;
+        b=mHHpxddAp1KGl7iVSXBqP485BzzHfEiDLirauISvPiHFQA4pKujjt94hu/0G5btJIrAYXs
+        AgKOhoTfGuODLk8Pcj96q5/sA/QKxxyESUH1NMiE/NrrGBlMujDp4LDHT+JRqWlnAGsJrc
+        IP179lVA+WstNQvMGVBAYBDzybKjVJY=
+Date:   Tue, 26 Apr 2022 19:31:14 +0200
+From:   Borislav Petkov <bp@alien8.de>
+To:     Juergen Gross <jgross@suse.com>
+Cc:     linux-kernel@vger.kernel.org, x86@kernel.org,
+        linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-hyperv@vger.kernel.org,
+        virtualization@lists.linux-foundation.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Heiko Carstens <hca@linux.ibm.com>,
         Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>, kasan-dev@googlegroups.com,
-        linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "Michael S. Tsirkin" <mst@redhat.com>,
+        Jason Wang <jasowang@redhat.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Oleksandr Tyshchenko <olekstysh@gmail.com>
+Subject: Re: [PATCH 1/2] kernel: add platform_has() infrastructure
+Message-ID: <YmgsYvWQchxub8cW@zn.tnic>
+References: <20220426134021.11210-1-jgross@suse.com>
+ <20220426134021.11210-2-jgross@suse.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20220426134021.11210-2-jgross@suse.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Replace instrumentation_begin()	with instrumentation_begin_with_regs()
-to let KMSAN handle the non-instrumented code and unpoison pt_regs
-passed from the instrumented part.
+On Tue, Apr 26, 2022 at 03:40:20PM +0200, Juergen Gross wrote:
+> diff --git a/kernel/platform-feature.c b/kernel/platform-feature.c
+> new file mode 100644
+> index 000000000000..2d52f8442cd5
+> --- /dev/null
+> +++ b/kernel/platform-feature.c
+> @@ -0,0 +1,7 @@
+> +// SPDX-License-Identifier: GPL-2.0
+> +
+> +#include <linux/cache.h>
+> +#include <linux/platform-feature.h>
+> +
+> +unsigned long __read_mostly platform_features[PLATFORM_FEAT_ARRAY_SZ];
 
-Signed-off-by: Alexander Potapenko <glider@google.com>
----
-Link: https://linux-review.googlesource.com/id/I7f0a9809b66bd85faae43142971d0095771b7a42
----
- kernel/entry/common.c | 22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+Probably __ro_after_init.
 
-diff --git a/kernel/entry/common.c b/kernel/entry/common.c
-index 93c3b86e781c1..ce2324374882c 100644
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -23,7 +23,7 @@ static __always_inline void __enter_from_user_mode(struct pt_regs *regs)
- 	CT_WARN_ON(ct_state() != CONTEXT_USER);
- 	user_exit_irqoff();
- 
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	trace_hardirqs_off_finish();
- 	instrumentation_end();
- }
-@@ -105,7 +105,7 @@ noinstr long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall)
- 
- 	__enter_from_user_mode(regs);
- 
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	local_irq_enable();
- 	ret = __syscall_enter_from_user_work(regs, syscall);
- 	instrumentation_end();
-@@ -116,7 +116,7 @@ noinstr long syscall_enter_from_user_mode(struct pt_regs *regs, long syscall)
- noinstr void syscall_enter_from_user_mode_prepare(struct pt_regs *regs)
- {
- 	__enter_from_user_mode(regs);
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	local_irq_enable();
- 	instrumentation_end();
- }
-@@ -290,7 +290,7 @@ void syscall_exit_to_user_mode_work(struct pt_regs *regs)
- 
- __visible noinstr void syscall_exit_to_user_mode(struct pt_regs *regs)
- {
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	__syscall_exit_to_user_mode_work(regs);
- 	instrumentation_end();
- 	__exit_to_user_mode();
-@@ -303,7 +303,7 @@ noinstr void irqentry_enter_from_user_mode(struct pt_regs *regs)
- 
- noinstr void irqentry_exit_to_user_mode(struct pt_regs *regs)
- {
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	exit_to_user_mode_prepare(regs);
- 	instrumentation_end();
- 	__exit_to_user_mode();
-@@ -351,7 +351,7 @@ noinstr irqentry_state_t irqentry_enter(struct pt_regs *regs)
- 		 */
- 		lockdep_hardirqs_off(CALLER_ADDR0);
- 		rcu_irq_enter();
--		instrumentation_begin();
-+		instrumentation_begin_with_regs(regs);
- 		trace_hardirqs_off_finish();
- 		instrumentation_end();
- 
-@@ -366,7 +366,7 @@ noinstr irqentry_state_t irqentry_enter(struct pt_regs *regs)
- 	 * in having another one here.
- 	 */
- 	lockdep_hardirqs_off(CALLER_ADDR0);
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	rcu_irq_enter_check_tick();
- 	trace_hardirqs_off_finish();
- 	instrumentation_end();
-@@ -413,7 +413,7 @@ noinstr void irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
- 		 * and RCU as the return to user mode path.
- 		 */
- 		if (state.exit_rcu) {
--			instrumentation_begin();
-+			instrumentation_begin_with_regs(regs);
- 			/* Tell the tracer that IRET will enable interrupts */
- 			trace_hardirqs_on_prepare();
- 			lockdep_hardirqs_on_prepare(CALLER_ADDR0);
-@@ -423,7 +423,7 @@ noinstr void irqentry_exit(struct pt_regs *regs, irqentry_state_t state)
- 			return;
- 		}
- 
--		instrumentation_begin();
-+		instrumentation_begin_with_regs(regs);
- 		if (IS_ENABLED(CONFIG_PREEMPTION))
- 			irqentry_exit_cond_resched();
- 
-@@ -451,7 +451,7 @@ irqentry_state_t noinstr irqentry_nmi_enter(struct pt_regs *regs)
- 	lockdep_hardirq_enter();
- 	rcu_nmi_enter();
- 
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	trace_hardirqs_off_finish();
- 	ftrace_nmi_enter();
- 	instrumentation_end();
-@@ -461,7 +461,7 @@ irqentry_state_t noinstr irqentry_nmi_enter(struct pt_regs *regs)
- 
- void noinstr irqentry_nmi_exit(struct pt_regs *regs, irqentry_state_t irq_state)
- {
--	instrumentation_begin();
-+	instrumentation_begin_with_regs(regs);
- 	ftrace_nmi_exit();
- 	if (irq_state.lockdep) {
- 		trace_hardirqs_on_prepare();
+> +EXPORT_SYMBOL_GPL(platform_features);
+
+You probably should make that thing static and use only accessors to
+modify it in case you wanna change the underlying data structure in the
+future.
+
 -- 
-2.36.0.rc2.479.g8af0fa9b8e-goog
+Regards/Gruss,
+    Boris.
 
+https://people.kernel.org/tglx/notes-about-netiquette
