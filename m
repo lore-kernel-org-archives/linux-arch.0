@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2EC9AC433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:47:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D837C433EF
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:47:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353193AbiDZQuq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:50:46 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45100 "EHLO
+        id S1353297AbiDZQvA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:51:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44226 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353186AbiDZQtG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:49:06 -0400
-Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6442637031
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:19 -0700 (PDT)
-Received: by mail-ed1-x54a.google.com with SMTP id r26-20020a50aada000000b00425afa72622so7755410edc.19
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:19 -0700 (PDT)
+        with ESMTP id S1353302AbiDZQtL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:49:11 -0400
+Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF4273C701
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:24 -0700 (PDT)
+Received: by mail-ed1-x549.google.com with SMTP id r30-20020a50d69e000000b00425e1e97671so3850946edi.18
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:24 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=8DiARL40b6+V/ufuvO47fdIAJou+WObIc+AUIejVSTY=;
-        b=EUCnsUCRGBWdtTQAs7pEjigjtVlLNT5aUlwj+4ZqDn1AxMPgRR2DYXAW2EBPSLj5jq
-         LSB/caN3RsCO5hDsl8In3F4gA8EH5xPbxv6LqVGHvoRzyZyXGYgANA68YhHsXXS+vnZ+
-         OcYOcvT0i08OEQfBjlycTxaFszB8WC9yK9ds1kfWnbajGrhHWXXsFXSdRLABRxG1dZSW
-         Rhw88HYvuatIRRgwKt2yrWqq1vsLUCOLFOAIO8iKRMXZrvUjfGJ3c3X0qRnKvcsyUZMs
-         Xb1mFmXQFpitzvw/5RfLlpk7s39iSkZsekeMIYoYzpQiwCw44UexPBJH9QY30S2Loi24
-         sKNA==
+        bh=ae6KBGyLKJoXcxB2yOctfhYiWJk7lyt59+0aGNQoZFE=;
+        b=kru0e6mwMpQdFsNTXlAfmTpSGH0ko9Z62aiquxpVYOR0JXp5EtPpYUXKeC/mmsN9Uv
+         Mp3CAzX6GOJEixW0dclu6CRFgdkOwz2UImg1qNv1NPxGTD3yEIxR2rgv8ej3AjUD5RT0
+         1+4QmZncDejfeevrwV59cqIXS/SsyVIM1YxmMil8RxMiL6nOjlfyWrun6JkjBe06L8gX
+         yPe6oH2Oe0cNHqZUNa5jyVwSkEa/2QoaQq9AU6Rl3YYAf/EnVNPhfP0bZRfTEIERvMVW
+         XKOQ0Si/wyaghQgFEr588BSzsT8VRUjOfovii7JYjgVO78nBwq8Bg/+CpEfFdTD5/Zo5
+         GoAA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=8DiARL40b6+V/ufuvO47fdIAJou+WObIc+AUIejVSTY=;
-        b=b2n/xtF/ffZTXHhuDQytUerl5X67Kiowu0C3ipFAf9y0aZexUgVHDns2pNzY0n6cHO
-         komc4JhBaI8ppUYt6B51khNJUx2o/GJBPwhr9Fab1QG053MxfJNRHvu+sGejga2LAk2Z
-         NGYTf8eoerT3NHz7o6xxhsZomxaMEbyOEiq4oaqUrlMxZ1a1cVEnYblf3CbCoVbJlb55
-         KuNnTb0P5fUDoVp4bxjW+mWmpjuY7xMmQMxm8qSa0Ve7nJnl7DGJDJb0iY728Acn0XOs
-         Yg5R0un+qjdv0dB528BX3G1eguTB9YqZURbqgmKbyh4Sooziw0mS7zxCD1sUeoPItjrs
-         4PJA==
-X-Gm-Message-State: AOAM530Yq8U+jE8cqYtQnqYDCc4QWN6PvQy8W0uqMQacw5NH52FvuWAc
-        oWjipWm6qFpLrC+Zgrgp+5LzMnr6sSM=
-X-Google-Smtp-Source: ABdhPJx8IprxR1s4FocdY4Bbtloh6XPKAEXkKiAjkB9XNvQcFCjh141Gp/J8iNuLq3R7S/RE8xQrIOLnKF8=
+        bh=ae6KBGyLKJoXcxB2yOctfhYiWJk7lyt59+0aGNQoZFE=;
+        b=HfJWLFpYc5qOxuwepAexl+UferaxD5LjhGgdGPXqsaCPr1KIdvlCLbGZFXtUVPs2VD
+         7Py7KYesvOfRkJeXpm5ekqTo/RKMF6ItQIwXAFtov9PMo5N32luUsnU9A6M2b7QSjvOV
+         gzHifdkH+6qa+Kj2xKH55g4eYgfjUWt2OMlJjxjU4Cm7UFiksh93GtY5JBIuAydJYTlA
+         ErAz4dKfM488mWKbiDncNIbsBJZVl8aTjkbA0uanRBqdCzCSxE57Z2mZRQKj4jo++dN0
+         rLxBH0MT79Ff5mrI3BkIq2rV4DH3qUJOAgTM3M2P5I/hUkiCJGNg0f9PYCzvgLvCKhSM
+         bxTw==
+X-Gm-Message-State: AOAM531WhTMzWUkxjsVFnKi2Jjp8Z9HvfGd5ZfsNNshy6wlzdIzn6cL/
+        5NR4Rfn6lBlEX1OyzYJMalMOgFAzpKY=
+X-Google-Smtp-Source: ABdhPJwgCnNxvqRMEZQ8KvQ5jOB/J8AlGoWTaRunP9zD2mXvGus8OSk8rSp8TRR9z2UMTYCCAqyWXZmoFZQ=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:aa7:c31a:0:b0:425:df3c:de8e with SMTP id
- l26-20020aa7c31a000000b00425df3cde8emr14404475edq.83.1650991517926; Tue, 26
- Apr 2022 09:45:17 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:51 +0200
+ (user=glider job=sendgmr) by 2002:a05:6402:274b:b0:423:fe73:95a0 with SMTP id
+ z11-20020a056402274b00b00423fe7395a0mr25532792edd.224.1650991523134; Tue, 26
+ Apr 2022 09:45:23 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:53 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-23-glider@google.com>
+Message-Id: <20220426164315.625149-25-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 22/46] kmsan: add iomap support
+Subject: [PATCH v3 24/46] kmsan: dma: unpoison DMA mappings
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,201 +89,206 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Functions from lib/iomap.c interact with hardware, so KMSAN must ensure
-that:
- - every read function returns an initialized value
- - every write function checks values before sending them to hardware.
+KMSAN doesn't know about DMA memory writes performed by devices.
+We unpoison such memory when it's mapped to avoid false positive
+reports.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
-
 ---
-Link: https://linux-review.googlesource.com/id/I45527599f09090aca046dfe1a26df453adab100d
----
- lib/iomap.c | 40 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 40 insertions(+)
+v2:
+ -- move implementation of kmsan_handle_dma() and kmsan_handle_dma_sg() here
 
-diff --git a/lib/iomap.c b/lib/iomap.c
-index fbaa3e8f19d6c..bdda1a42771b2 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -6,6 +6,7 @@
+Link: https://linux-review.googlesource.com/id/Ia162dc4c5a92e74d4686c1be32a4dfeffc5c32cd
+---
+ include/linux/kmsan.h | 41 +++++++++++++++++++++++++++++
+ kernel/dma/mapping.c  |  9 ++++---
+ mm/kmsan/hooks.c      | 61 +++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 108 insertions(+), 3 deletions(-)
+
+diff --git a/include/linux/kmsan.h b/include/linux/kmsan.h
+index a5767c728a46b..d8667161a10c8 100644
+--- a/include/linux/kmsan.h
++++ b/include/linux/kmsan.h
+@@ -9,6 +9,7 @@
+ #ifndef _LINUX_KMSAN_H
+ #define _LINUX_KMSAN_H
+ 
++#include <linux/dma-direction.h>
+ #include <linux/gfp.h>
+ #include <linux/kmsan-checks.h>
+ #include <linux/stackdepot.h>
+@@ -18,6 +19,7 @@
+ struct page;
+ struct kmem_cache;
+ struct task_struct;
++struct scatterlist;
+ 
+ #ifdef CONFIG_KMSAN
+ 
+@@ -205,6 +207,35 @@ void kmsan_ioremap_page_range(unsigned long addr, unsigned long end,
   */
- #include <linux/pci.h>
- #include <linux/io.h>
-+#include <linux/kmsan-checks.h>
+ void kmsan_iounmap_page_range(unsigned long start, unsigned long end);
  
- #include <linux/export.h>
++/**
++ * kmsan_handle_dma() - Handle a DMA data transfer.
++ * @page:   first page of the buffer.
++ * @offset: offset of the buffer within the first page.
++ * @size:   buffer size.
++ * @dir:    one of possible dma_data_direction values.
++ *
++ * Depending on @direction, KMSAN:
++ * * checks the buffer, if it is copied to device;
++ * * initializes the buffer, if it is copied from device;
++ * * does both, if this is a DMA_BIDIRECTIONAL transfer.
++ */
++void kmsan_handle_dma(struct page *page, size_t offset, size_t size,
++		      enum dma_data_direction dir);
++
++/**
++ * kmsan_handle_dma_sg() - Handle a DMA transfer using scatterlist.
++ * @sg:    scatterlist holding DMA buffers.
++ * @nents: number of scatterlist entries.
++ * @dir:   one of possible dma_data_direction values.
++ *
++ * Depending on @direction, KMSAN:
++ * * checks the buffers in the scatterlist, if they are copied to device;
++ * * initializes the buffers, if they are copied from device;
++ * * does both, if this is a DMA_BIDIRECTIONAL transfer.
++ */
++void kmsan_handle_dma_sg(struct scatterlist *sg, int nents,
++			 enum dma_data_direction dir);
++
+ #else
  
-@@ -70,26 +71,31 @@ static void bad_io_access(unsigned long port, const char *access)
- #define mmio_read64be(addr) swab64(readq(addr))
+ static inline void kmsan_init_shadow(void)
+@@ -287,6 +318,16 @@ static inline void kmsan_iounmap_page_range(unsigned long start,
+ {
+ }
+ 
++static inline void kmsan_handle_dma(struct page *page, size_t offset,
++				    size_t size, enum dma_data_direction dir)
++{
++}
++
++static inline void kmsan_handle_dma_sg(struct scatterlist *sg, int nents,
++				       enum dma_data_direction dir)
++{
++}
++
  #endif
  
-+__no_sanitize_memory
- unsigned int ioread8(const void __iomem *addr)
- {
- 	IO_COND(addr, return inb(port), return readb(addr));
- 	return 0xff;
- }
-+__no_sanitize_memory
- unsigned int ioread16(const void __iomem *addr)
- {
- 	IO_COND(addr, return inw(port), return readw(addr));
- 	return 0xffff;
- }
-+__no_sanitize_memory
- unsigned int ioread16be(const void __iomem *addr)
- {
- 	IO_COND(addr, return pio_read16be(port), return mmio_read16be(addr));
- 	return 0xffff;
- }
-+__no_sanitize_memory
- unsigned int ioread32(const void __iomem *addr)
- {
- 	IO_COND(addr, return inl(port), return readl(addr));
- 	return 0xffffffff;
- }
-+__no_sanitize_memory
- unsigned int ioread32be(const void __iomem *addr)
- {
- 	IO_COND(addr, return pio_read32be(port), return mmio_read32be(addr));
-@@ -142,18 +148,21 @@ static u64 pio_read64be_hi_lo(unsigned long port)
- 	return lo | (hi << 32);
- }
+ #endif /* _LINUX_KMSAN_H */
+diff --git a/kernel/dma/mapping.c b/kernel/dma/mapping.c
+index db7244291b745..5d17d5d62166b 100644
+--- a/kernel/dma/mapping.c
++++ b/kernel/dma/mapping.c
+@@ -156,6 +156,7 @@ dma_addr_t dma_map_page_attrs(struct device *dev, struct page *page,
+ 		addr = dma_direct_map_page(dev, page, offset, size, dir, attrs);
+ 	else
+ 		addr = ops->map_page(dev, page, offset, size, dir, attrs);
++	kmsan_handle_dma(page, offset, size, dir);
+ 	debug_dma_map_page(dev, page, offset, size, dir, addr, attrs);
  
-+__no_sanitize_memory
- u64 ioread64_lo_hi(const void __iomem *addr)
- {
- 	IO_COND(addr, return pio_read64_lo_hi(port), return readq(addr));
- 	return 0xffffffffffffffffULL;
- }
+ 	return addr;
+@@ -194,11 +195,13 @@ static int __dma_map_sg_attrs(struct device *dev, struct scatterlist *sg,
+ 	else
+ 		ents = ops->map_sg(dev, sg, nents, dir, attrs);
  
-+__no_sanitize_memory
- u64 ioread64_hi_lo(const void __iomem *addr)
- {
- 	IO_COND(addr, return pio_read64_hi_lo(port), return readq(addr));
- 	return 0xffffffffffffffffULL;
- }
+-	if (ents > 0)
++	if (ents > 0) {
++		kmsan_handle_dma_sg(sg, nents, dir);
+ 		debug_dma_map_sg(dev, sg, nents, ents, dir, attrs);
+-	else if (WARN_ON_ONCE(ents != -EINVAL && ents != -ENOMEM &&
+-			      ents != -EIO))
++	} else if (WARN_ON_ONCE(ents != -EINVAL && ents != -ENOMEM &&
++				ents != -EIO)) {
+ 		return -EIO;
++	}
  
-+__no_sanitize_memory
- u64 ioread64be_lo_hi(const void __iomem *addr)
- {
- 	IO_COND(addr, return pio_read64be_lo_hi(port),
-@@ -161,6 +170,7 @@ u64 ioread64be_lo_hi(const void __iomem *addr)
- 	return 0xffffffffffffffffULL;
+ 	return ents;
  }
+diff --git a/mm/kmsan/hooks.c b/mm/kmsan/hooks.c
+index 1cdb4420977f1..8a6947a2a2f22 100644
+--- a/mm/kmsan/hooks.c
++++ b/mm/kmsan/hooks.c
+@@ -10,9 +10,11 @@
+  */
  
-+__no_sanitize_memory
- u64 ioread64be_hi_lo(const void __iomem *addr)
- {
- 	IO_COND(addr, return pio_read64be_hi_lo(port),
-@@ -188,22 +198,32 @@ EXPORT_SYMBOL(ioread64be_hi_lo);
+ #include <linux/cacheflush.h>
++#include <linux/dma-direction.h>
+ #include <linux/gfp.h>
+ #include <linux/mm.h>
+ #include <linux/mm_types.h>
++#include <linux/scatterlist.h>
+ #include <linux/slab.h>
+ #include <linux/uaccess.h>
  
- void iowrite8(u8 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, outb(val,port), writeb(val, addr));
+@@ -250,6 +252,65 @@ void kmsan_copy_to_user(void __user *to, const void *from, size_t to_copy,
  }
- void iowrite16(u16 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, outw(val,port), writew(val, addr));
- }
- void iowrite16be(u16 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, pio_write16be(val,port), mmio_write16be(val, addr));
- }
- void iowrite32(u32 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, outl(val,port), writel(val, addr));
- }
- void iowrite32be(u32 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, pio_write32be(val,port), mmio_write32be(val, addr));
- }
- EXPORT_SYMBOL(iowrite8);
-@@ -239,24 +259,32 @@ static void pio_write64be_hi_lo(u64 val, unsigned long port)
+ EXPORT_SYMBOL(kmsan_copy_to_user);
  
- void iowrite64_lo_hi(u64 val, void __iomem *addr)
++static void kmsan_handle_dma_page(const void *addr, size_t size,
++				  enum dma_data_direction dir)
++{
++	switch (dir) {
++	case DMA_BIDIRECTIONAL:
++		kmsan_internal_check_memory((void *)addr, size, /*user_addr*/ 0,
++					    REASON_ANY);
++		kmsan_internal_unpoison_memory((void *)addr, size,
++					       /*checked*/ false);
++		break;
++	case DMA_TO_DEVICE:
++		kmsan_internal_check_memory((void *)addr, size, /*user_addr*/ 0,
++					    REASON_ANY);
++		break;
++	case DMA_FROM_DEVICE:
++		kmsan_internal_unpoison_memory((void *)addr, size,
++					       /*checked*/ false);
++		break;
++	case DMA_NONE:
++		break;
++	}
++}
++
++/* Helper function to handle DMA data transfers. */
++void kmsan_handle_dma(struct page *page, size_t offset, size_t size,
++		      enum dma_data_direction dir)
++{
++	u64 page_offset, to_go, addr;
++
++	if (PageHighMem(page))
++		return;
++	addr = (u64)page_address(page) + offset;
++	/*
++	 * The kernel may occasionally give us adjacent DMA pages not belonging
++	 * to the same allocation. Process them separately to avoid triggering
++	 * internal KMSAN checks.
++	 */
++	while (size > 0) {
++		page_offset = addr % PAGE_SIZE;
++		to_go = min(PAGE_SIZE - page_offset, (u64)size);
++		kmsan_handle_dma_page((void *)addr, to_go, dir);
++		addr += to_go;
++		size -= to_go;
++	}
++}
++EXPORT_SYMBOL(kmsan_handle_dma);
++
++void kmsan_handle_dma_sg(struct scatterlist *sg, int nents,
++			 enum dma_data_direction dir)
++{
++	struct scatterlist *item;
++	int i;
++
++	for_each_sg(sg, item, nents, i)
++		kmsan_handle_dma(sg_page(item), item->offset, item->length,
++				 dir);
++}
++EXPORT_SYMBOL(kmsan_handle_dma_sg);
++
+ /* Functions from kmsan-checks.h follow. */
+ void kmsan_poison_memory(const void *address, size_t size, gfp_t flags)
  {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, pio_write64_lo_hi(val, port),
- 		writeq(val, addr));
- }
- 
- void iowrite64_hi_lo(u64 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, pio_write64_hi_lo(val, port),
- 		writeq(val, addr));
- }
- 
- void iowrite64be_lo_hi(u64 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, pio_write64be_lo_hi(val, port),
- 		mmio_write64be(val, addr));
- }
- 
- void iowrite64be_hi_lo(u64 val, void __iomem *addr)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(&val, sizeof(val));
- 	IO_COND(addr, pio_write64be_hi_lo(val, port),
- 		mmio_write64be(val, addr));
- }
-@@ -328,14 +356,20 @@ static inline void mmio_outsl(void __iomem *addr, const u32 *src, int count)
- void ioread8_rep(const void __iomem *addr, void *dst, unsigned long count)
- {
- 	IO_COND(addr, insb(port,dst,count), mmio_insb(addr, dst, count));
-+	/* KMSAN must treat values read from devices as initialized. */
-+	kmsan_unpoison_memory(dst, count);
- }
- void ioread16_rep(const void __iomem *addr, void *dst, unsigned long count)
- {
- 	IO_COND(addr, insw(port,dst,count), mmio_insw(addr, dst, count));
-+	/* KMSAN must treat values read from devices as initialized. */
-+	kmsan_unpoison_memory(dst, count * 2);
- }
- void ioread32_rep(const void __iomem *addr, void *dst, unsigned long count)
- {
- 	IO_COND(addr, insl(port,dst,count), mmio_insl(addr, dst, count));
-+	/* KMSAN must treat values read from devices as initialized. */
-+	kmsan_unpoison_memory(dst, count * 4);
- }
- EXPORT_SYMBOL(ioread8_rep);
- EXPORT_SYMBOL(ioread16_rep);
-@@ -343,14 +377,20 @@ EXPORT_SYMBOL(ioread32_rep);
- 
- void iowrite8_rep(void __iomem *addr, const void *src, unsigned long count)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(src, count);
- 	IO_COND(addr, outsb(port, src, count), mmio_outsb(addr, src, count));
- }
- void iowrite16_rep(void __iomem *addr, const void *src, unsigned long count)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(src, count * 2);
- 	IO_COND(addr, outsw(port, src, count), mmio_outsw(addr, src, count));
- }
- void iowrite32_rep(void __iomem *addr, const void *src, unsigned long count)
- {
-+	/* Make sure uninitialized memory isn't copied to devices. */
-+	kmsan_check_memory(src, count * 4);
- 	IO_COND(addr, outsl(port, src,count), mmio_outsl(addr, src, count));
- }
- EXPORT_SYMBOL(iowrite8_rep);
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
