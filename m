@@ -2,193 +2,204 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0F4E8C4332F
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 13:37:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E3D7EC4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 13:40:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231183AbiDZNkJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 09:40:09 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33986 "EHLO
+        id S245174AbiDZNnk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 09:43:40 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47552 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230361AbiDZNkJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 09:40:09 -0400
-Received: from mga11.intel.com (mga11.intel.com [192.55.52.93])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6BFDF41625;
-        Tue, 26 Apr 2022 06:37:01 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1650980221; x=1682516221;
-  h=date:from:to:cc:subject:in-reply-to:message-id:
-   references:mime-version;
-  bh=znIfZ7k0b3tsWKqeY8a7aZ2RvvRTYgQ+kYfB+nCfQQ0=;
-  b=MMJNEsWFI+0DfJs8wJp6M8oM9elNbUXh8fSd8IQ+AShv8/ywTzfvPFHN
-   Sl/GDr+gs4anzFAxGEvAiQd6a2pnKynRJghQZyLk95PLrcex6WWJXc2F6
-   1aZMGnhqWQ5zfjGwFa+ywu4PViyPPHi5lS7HwGO1fBx7wAT99RD3MdW8t
-   hOyiy5PZJaj6VBwHFdh6522W7AvjP0v23nDIKxlEumTh7cfWBWPWqBg9I
-   fgoh4vth8+ZuhBzVc+MDLqV8jiMU4MvsM4AGA2iiXS+jySdoSAqcDgwzx
-   QXgUr+JfAAoWI5Op7/wlfDAjh38GRQmxupg/LYCyFl9kDjzHl69FtRGhm
-   Q==;
-X-IronPort-AV: E=McAfee;i="6400,9594,10328"; a="263171745"
-X-IronPort-AV: E=Sophos;i="5.90,290,1643702400"; 
-   d="scan'208";a="263171745"
-Received: from orsmga008.jf.intel.com ([10.7.209.65])
-  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Apr 2022 06:37:00 -0700
-X-IronPort-AV: E=Sophos;i="5.90,290,1643702400"; 
-   d="scan'208";a="579897467"
-Received: from mmilkovx-mobl.amr.corp.intel.com ([10.249.47.245])
-  by orsmga008-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Apr 2022 06:36:52 -0700
-Date:   Tue, 26 Apr 2022 16:36:49 +0300 (EEST)
-From:   =?ISO-8859-15?Q?Ilpo_J=E4rvinen?= <ilpo.jarvinen@linux.intel.com>
-To:     Greg KH <gregkh@linuxfoundation.org>
-cc:     linux-serial <linux-serial@vger.kernel.org>,
-        Jiri Slaby <jirislaby@kernel.org>,
-        Lukas Wunner <lukas@wunner.de>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        =?ISO-8859-15?Q?Uwe_Kleine-K=F6nig?= 
-        <u.kleine-koenig@pengutronix.de>,
-        Vicente Bergas <vicencb@gmail.com>,
-        Johan Hovold <johan@kernel.org>, heiko@sntech.de,
-        giulio.benetti@micronovasrl.com,
-        Heikki Krogerus <heikki.krogerus@linux.intel.com>,
-        linux-api@vger.kernel.org,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-mips@vger.kernel.org,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        linuxppc-dev@lists.ozlabs.org,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, linux-sh@vger.kernel.org,
-        "David S. Miller" <davem@davemloft.net>,
-        sparclinux@vger.kernel.org, Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        linux-xtensa@linux-xtensa.org, Arnd Bergmann <arnd@arndb.de>,
-        linux-arch@vger.kernel.org, linux-doc@vger.kernel.org
-Subject: Re: [PATCH v5 06/10] serial: General support for multipoint
- addresses
-In-Reply-To: <YmfsDng2Z04PT3GS@kroah.com>
-Message-ID: <e67014bd-3c32-e7d-2982-a0edb741f3c0@linux.intel.com>
-References: <20220426122448.38997-1-ilpo.jarvinen@linux.intel.com> <20220426122448.38997-7-ilpo.jarvinen@linux.intel.com> <YmfsDng2Z04PT3GS@kroah.com>
+        with ESMTP id S1351026AbiDZNnh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 09:43:37 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0113C33A1C;
+        Tue, 26 Apr 2022 06:40:28 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id 085AD1F388;
+        Tue, 26 Apr 2022 13:40:27 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+        t=1650980427; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=GG2/24loSbPlV806594gWkld0KggttOumq+zKG7ktIg=;
+        b=iCatdcTkIdF9yVZmiEFGO6jxUleCkjmBzcA4j8AtRDE8PRGhttdcZVsGvGPTPFpXmFtjod
+        drCYBMBhGEP0vsH1ShSavOYO91HFx4nrvNBlzFA6Pw1snBnOZmIbrNzLpnpcUfkfOPuRpo
+        wojlzerPy/lLPxqnsDksaJe8AiZcxc8=
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 5214813AE0;
+        Tue, 26 Apr 2022 13:40:26 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id qLK/Ekr2Z2ImNQAAMHmgww
+        (envelope-from <jgross@suse.com>); Tue, 26 Apr 2022 13:40:26 +0000
+From:   Juergen Gross <jgross@suse.com>
+To:     linux-kernel@vger.kernel.org, x86@kernel.org,
+        linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-hyperv@vger.kernel.org,
+        virtualization@lists.linux-foundation.org
+Cc:     Juergen Gross <jgross@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        "K. Y. Srinivasan" <kys@microsoft.com>,
+        Haiyang Zhang <haiyangz@microsoft.com>,
+        Stephen Hemminger <sthemmin@microsoft.com>,
+        Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "Michael S. Tsirkin" <mst@redhat.com>,
+        Jason Wang <jasowang@redhat.com>,
+        Christoph Hellwig <hch@infradead.org>,
+        Oleksandr Tyshchenko <olekstysh@gmail.com>
+Subject: [PATCH 1/2] kernel: add platform_has() infrastructure
+Date:   Tue, 26 Apr 2022 15:40:20 +0200
+Message-Id: <20220426134021.11210-2-jgross@suse.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20220426134021.11210-1-jgross@suse.com>
+References: <20220426134021.11210-1-jgross@suse.com>
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="8323329-1346511227-1650980220=:1644"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+Add a simple infrastructure for setting, resetting and querying
+platform feature flags.
 
---8323329-1346511227-1650980220=:1644
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
+Flags can be either global or architecture specific.
 
-On Tue, 26 Apr 2022, Greg KH wrote:
+Signed-off-by: Juergen Gross <jgross@suse.com>
+---
+ MAINTAINERS                            |  8 +++++++
+ include/asm-generic/Kbuild             |  1 +
+ include/asm-generic/platform-feature.h |  8 +++++++
+ include/linux/platform-feature.h       | 29 ++++++++++++++++++++++++++
+ kernel/Makefile                        |  2 +-
+ kernel/platform-feature.c              |  7 +++++++
+ 6 files changed, 54 insertions(+), 1 deletion(-)
+ create mode 100644 include/asm-generic/platform-feature.h
+ create mode 100644 include/linux/platform-feature.h
+ create mode 100644 kernel/platform-feature.c
 
-> On Tue, Apr 26, 2022 at 03:24:44PM +0300, Ilpo Järvinen wrote:
-> > Add generic support for serial multipoint addressing. Two new ioctls
-> > are added. TIOCSADDR is used to indicate the destination/receive
-> > address. TIOCGADDR returns the current address in use. The driver
-> > should implement set_addr and get_addr to support addressing mode.
-> > 
-> > Adjust ADDRB clearing to happen only if driver does not provide
-> > set_addr (=the driver doesn't support address mode).
-> > 
-> > This change is necessary for supporting devices with RS485 multipoint
-> > addressing [*]. A following patch in the patch series adds support for
-> > Synopsys Designware UART capable for 9th bit addressing mode. In this
-> > mode, 9th bit is used to indicate an address (byte) within the
-> > communication line. The 9th bit addressing mode is selected using ADDRB
-> > introduced by the previous patch.
-> > 
-> > Transmit addresses / receiver filter are specified by setting the flags
-> > SER_ADDR_DEST and/or SER_ADDR_RECV. When the user supplies the transmit
-> > address, in the 9bit addressing mode it is sent out immediately with
-> > the 9th bit set to 1. After that, the subsequent normal data bytes are
-> > sent with 9th bit as 0 and they are intended to the device with the
-> > given address. It is up to receiver to enforce the filter using
-> > SER_ADDR_RECV. When userspace has supplied the receive address, the
-> > driver is expected to handle the matching of the address and only data
-> > with that address is forwarded to the user. Both SER_ADDR_DEST and
-> > SER_ADDR_RECV can be given at the same time in a single call if the
-> > addresses are the same.
-> > 
-> > The user can clear the receive filter with SER_ADDR_RECV_CLEAR.
-> > 
-> > [*] Technically, RS485 is just an electronic spec and does not itself
-> > specify the 9th bit addressing mode but 9th bit seems at least
-> > "semi-standard" way to do addressing with RS485.
-> > 
-> > Cc: linux-api@vger.kernel.org
-> > Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> > Cc: Matt Turner <mattst88@gmail.com>
-> > Cc: linux-alpha@vger.kernel.org
-> > Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-> > Cc: linux-mips@vger.kernel.org
-> > Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-> > Cc: Helge Deller <deller@gmx.de>
-> > Cc: linux-parisc@vger.kernel.org
-> > Cc: Michael Ellerman <mpe@ellerman.id.au>
-> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Cc: Paul Mackerras <paulus@samba.org>
-> > Cc: linuxppc-dev@lists.ozlabs.org
-> > Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> > Cc: Rich Felker <dalias@libc.org>
-> > Cc: linux-sh@vger.kernel.org
-> > Cc: "David S. Miller" <davem@davemloft.net>
-> > Cc: sparclinux@vger.kernel.org
-> > Cc: Chris Zankel <chris@zankel.net>
-> > Cc: Max Filippov <jcmvbkbc@gmail.com>
-> > Cc: linux-xtensa@linux-xtensa.org
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: linux-arch@vger.kernel.org
-> > Cc: linux-doc@vger.kernel.org
-> > Signed-off-by: Ilpo Järvinen <ilpo.jarvinen@linux.intel.com>
-> > ---
-
-> > diff --git a/include/uapi/linux/serial.h b/include/uapi/linux/serial.h
-> > index fa6b16e5fdd8..8cb785ea7087 100644
-> > --- a/include/uapi/linux/serial.h
-> > +++ b/include/uapi/linux/serial.h
-> > @@ -149,4 +149,12 @@ struct serial_iso7816 {
-> >  	__u32	reserved[5];
-> >  };
-> >  
-> > +struct serial_addr {
-> > +	__u32	flags;
-> > +#define SER_ADDR_RECV			(1 << 0)
-> > +#define SER_ADDR_RECV_CLEAR		(1 << 1)
-> > +#define SER_ADDR_DEST			(1 << 2)
-> 
-> You never check for invalid flags being sent to the kernel, which means
-> this api can never change in the future to add new flags :(
-
-Ok, so you mean the general level should to check
-if (...->flags & ~(SER_ADDR_FLAGS_ALL))
-	return -EINVAL;
-?
-
-There's some code in the driver that detects invalid flag combinations 
-(in 10/10) but I guess it doesn't satisfies what you're after. It is 
-similar to how serial_rs485 flags is handled, that is, clearing flags it 
-didn't handle (when it can) and returning -EINVAL for impossible 
-combinations such as getting both RECV and DEST addr at the same time.
-I don't know if serial_rs485 flags is a good example at all, it certainly 
-doesn't check whether bits are set where there's no flag defined.
-
-> And what about struct serial_rs485?  Shouldn't that be used here
-> instead?  Why do we need a new ioctl and structure?
-
-It is possible (Lukas already mentioned that option too). It just means
-this will be available only on RS485 which could well be enough but Andy 
-mentioned he has in the past come across addressing mode also with some 
-RS232 thing (he didn't remember details anymore and it could be 
-insignificant for the real world of today).
-
-
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 5e8c2f611766..eb943f089eda 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -15650,6 +15650,14 @@ S:	Maintained
+ F:	Documentation/devicetree/bindings/iio/chemical/plantower,pms7003.yaml
+ F:	drivers/iio/chemical/pms7003.c
+ 
++PLATFORM FEATURE INFRASTRUCTURE
++M:	Juergen Gross <jgross@suse.com>
++S:	Maintained
++F:	arch/*/include/asm/platform-feature.h
++F:	include/asm-generic/platform-feature.h
++F:	include/linux/platform-feature.h
++F:	kernel/platform-feature.c
++
+ PLDMFW LIBRARY
+ M:	Jacob Keller <jacob.e.keller@intel.com>
+ S:	Maintained
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index 302506bbc2a4..8e47d483b524 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -44,6 +44,7 @@ mandatory-y += msi.h
+ mandatory-y += pci.h
+ mandatory-y += percpu.h
+ mandatory-y += pgalloc.h
++mandatory-y += platform-feature.h
+ mandatory-y += preempt.h
+ mandatory-y += rwonce.h
+ mandatory-y += sections.h
+diff --git a/include/asm-generic/platform-feature.h b/include/asm-generic/platform-feature.h
+new file mode 100644
+index 000000000000..4b0af3d51588
+--- /dev/null
++++ b/include/asm-generic/platform-feature.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_GENERIC_PLATFORM_FEATURE_H
++#define _ASM_GENERIC_PLATFORM_FEATURE_H
++
++/* Number of arch specific feature flags. */
++#define PLATFORM_ARCH_FEAT_N	0
++
++#endif /* _ASM_GENERIC_PLATFORM_FEATURE_H */
+diff --git a/include/linux/platform-feature.h b/include/linux/platform-feature.h
+new file mode 100644
+index 000000000000..df393d502a4f
+--- /dev/null
++++ b/include/linux/platform-feature.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _PLATFORM_FEATURE_H
++#define _PLATFORM_FEATURE_H
++
++#include <linux/bitops.h>
++#include <asm/platform-feature.h>
++
++/* The platform features are starting with the architecture specific ones. */
++#define PLATFORM_FEAT_N				(0 + PLATFORM_ARCH_FEAT_N)
++
++#define PLATFORM_FEAT_ARRAY_SZ	BITS_TO_LONGS(PLATFORM_FEAT_N)
++extern unsigned long platform_features[PLATFORM_FEAT_ARRAY_SZ];
++
++static inline void platform_set_feature(unsigned int feature)
++{
++	set_bit(feature, platform_features);
++}
++
++static inline void platform_reset_feature(unsigned int feature)
++{
++	clear_bit(feature, platform_features);
++}
++
++static inline bool platform_has(unsigned int feature)
++{
++	return test_bit(feature, platform_features);
++}
++
++#endif /* _PLATFORM_FEATURE_H */
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 847a82bfe0e3..2f412f80110d 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -7,7 +7,7 @@ obj-y     = fork.o exec_domain.o panic.o \
+ 	    cpu.o exit.o softirq.o resource.o \
+ 	    sysctl.o capability.o ptrace.o user.o \
+ 	    signal.o sys.o umh.o workqueue.o pid.o task_work.o \
+-	    extable.o params.o \
++	    extable.o params.o platform-feature.o \
+ 	    kthread.o sys_ni.o nsproxy.o \
+ 	    notifier.o ksysfs.o cred.o reboot.o \
+ 	    async.o range.o smpboot.o ucount.o regset.o
+diff --git a/kernel/platform-feature.c b/kernel/platform-feature.c
+new file mode 100644
+index 000000000000..2d52f8442cd5
+--- /dev/null
++++ b/kernel/platform-feature.c
+@@ -0,0 +1,7 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/cache.h>
++#include <linux/platform-feature.h>
++
++unsigned long __read_mostly platform_features[PLATFORM_FEAT_ARRAY_SZ];
++EXPORT_SYMBOL_GPL(platform_features);
 -- 
- i.
+2.34.1
 
---8323329-1346511227-1650980220=:1644--
