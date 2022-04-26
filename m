@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4622CC4332F
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:44:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0BBF9C433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:44:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353118AbiDZQru (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:47:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40346 "EHLO
+        id S1353126AbiDZQrv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:47:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40386 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353096AbiDZQrr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:47:47 -0400
-Received: from mail-lj1-x24a.google.com (mail-lj1-x24a.google.com [IPv6:2a00:1450:4864:20::24a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7083019144A
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:27 -0700 (PDT)
-Received: by mail-lj1-x24a.google.com with SMTP id n4-20020a2ebd04000000b0024b618dec69so4815576ljq.18
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:27 -0700 (PDT)
+        with ESMTP id S1353134AbiDZQrs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:47:48 -0400
+Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 56AFC191C6C
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:32 -0700 (PDT)
+Received: by mail-ej1-x64a.google.com with SMTP id dp12-20020a170906c14c00b006e7e8234ae2so9349286ejc.2
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:32 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=x9iYgpTxv0DnaRejeNz0igsc6c2qOQO28HLcQTucooU=;
-        b=Gl3v87A3gpptfoX1Pv7tGOGPPJqWORLwAIxyRCfUwrY6EM/33Sv4bGLyko673V+5xF
-         W4mSZxl9y8ecIksGz4CC6cMM37/vZPTybFun3kcP8rmLRp4jIpgojrsWED7hIGm2tK41
-         cIHamgbg09osnortXRg8+8xhIFhauRGd+cc35eZAYByb70I71asbchC3HhT2gEtPLrwF
-         xHbkxkx9ilVJt+VW8y7uX1hEOh+kXUF62M21NT0ICSoUX6MwHxuJtZpqVVShleTmOQJ7
-         6zRLG6oUiR8di2OatEIxd1W+NN2xViGHvdecFvaeGc48EuCrlgSCU2KO294xezzXHnF7
-         M+aw==
+        bh=jT7N8sHbqw5Bt63XokggrytDJOztxBUcMGiWNZUZnNs=;
+        b=socyW/SWH6WVUElWDQ9so0Jec6CqBHZso2QGVjaGlPPUu+vTsdFC6iZP42U1gWVUW8
+         lw5Omaj6xQ6NIAx4hEPTVPQZVPhUnOOdq2KiTARpdZyQ3LitifZ9pKoTzPHYkhsda4Rc
+         I3/96cm8sYfgVBN9+zu56yewNbGMMZugG3lvIt1FRn+zBDIMu2owM5cLnh00hlx9RTgJ
+         2Z6YBAV3FKrKFXGf4sOcstHFSQon+8TmbuzAsNLmJ8iTodBN45fyl/KZmz89vwrBf1cr
+         dJFUsGH8Xd4MrMUpg558yBB4sq9J25PoMnfrF15rZOAHy5XHDqKNCFXnOKuvMldOAx0v
+         Xc1w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=x9iYgpTxv0DnaRejeNz0igsc6c2qOQO28HLcQTucooU=;
-        b=XkYPOgALuJmIKBwgFZ85mSxvfwKHQ8OJQgujXHzBIpkW3kXubJqO+YHr8mx6VRxGU2
-         jcWMVjt6/m4PuyRFsrovUm0VTI3Uu6sOQEiGVDw9/WQqAjmfwcUi6ZJbDBjoq4xLc9IZ
-         vgnpfHen+z8+JrLRpqeDYgOUW/QbIWGIDo2twRGDf/Ns9uvJrVhIeubPyQParJrAr5em
-         rhCc5MfmokKjqicCl7lVXcwXz13DbcT3y8uvPUgnLd2K9xfd067JAu3TsMDjyz89RvZG
-         3OAkZOq4C/Ol5J0zYoKtli+9bTjFk/JUl3ZT2UmjJ3nLZyLJlKdmLrb+W/UrE8zVeB/n
-         O3yQ==
-X-Gm-Message-State: AOAM531kU5S4dKQHORiDqhE5xIMgqbgWRRC6u2KdFi6BkJIo2aMJHThR
-        OZn6pHvhojDYYoELjiTIImekpnX2Uck=
-X-Google-Smtp-Source: ABdhPJzXv4WU2IWezWx9nTDWae496L7Hc+FMPGMUtJ3yOHwUWfZiIbEVA68sUonu6ecYeBhxtBfXHrcPzyE=
+        bh=jT7N8sHbqw5Bt63XokggrytDJOztxBUcMGiWNZUZnNs=;
+        b=7MmBvjHYQwbNAj0yZuexCLOfMGId4PRyXLeYicvwIcNwsnkvHLCAdy37cktjexlbEi
+         zxdpdj5ushCqlbVMyx7SzILCxTW2QgmL7otOkIaLIlqmNz+xPGF5HmAUhant+Xtia+eW
+         bh69FFslkujdwQwuqJI5bMxDc27vnJQ9Mx2dme2sUZLGJZGEhT6muQho29aQzUsF97ez
+         sWoOKtqkyFN33er5SfrzApssXRb4QikJui7Ba3+MNrnPrTIfKazFHyOIowg7nhMClO9S
+         gZPu0Vwh9gSJUXSyrgQ0T4G0tqtwBGeNKzKnPosIziHr0RCR3pB7PmFZ1s/xN/FbJXH2
+         +8EA==
+X-Gm-Message-State: AOAM533Z3mmNpn3oP/lrwYVrNXn9EuJ9JrUcVPTQvtH/1b2hXZIsdaTa
+        4ppftnkGzw8UV/yc+r4BkCaiD1CkzX8=
+X-Google-Smtp-Source: ABdhPJzVoY4VqalpQr3d8BPXtD+NaAh71WbLc1nD76HvvUm8mcb7U8Xkr1TFGyyyj1Et3ec1q26DZC4DL3U=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:ac2:424e:0:b0:46b:9249:8ce3 with SMTP id
- m14-20020ac2424e000000b0046b92498ce3mr17070835lfl.282.1650991465442; Tue, 26
- Apr 2022 09:44:25 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:31 +0200
+ (user=glider job=sendgmr) by 2002:a05:6402:3593:b0:425:dfd4:2947 with SMTP id
+ y19-20020a056402359300b00425dfd42947mr14309082edc.137.1650991470646; Tue, 26
+ Apr 2022 09:44:30 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:33 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-3-glider@google.com>
+Message-Id: <20220426164315.625149-5-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 02/46] stackdepot: reserve 5 extra bits in depot_stack_handle_t
+Subject: [PATCH v3 04/46] instrumented.h: allow instrumenting both sides of copy_from_user()
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,147 +89,152 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Some users (currently only KMSAN) may want to use spare bits in
-depot_stack_handle_t. Let them do so by adding @extra_bits to
-__stack_depot_save() to store arbitrary flags, and providing
-stack_depot_get_extra_bits() to retrieve those flags.
+Introduce instrument_copy_from_user_before() and
+instrument_copy_from_user_after() hooks to be invoked before and after
+the call to copy_from_user().
+
+KASAN and KCSAN will be only using instrument_copy_from_user_before(),
+but for KMSAN we'll need to insert code after copy_from_user().
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/I0587f6c777667864768daf07821d594bce6d8ff9
+Link: https://linux-review.googlesource.com/id/I855034578f0b0f126734cbd734fb4ae1d3a6af99
 ---
- include/linux/stackdepot.h |  8 ++++++++
- lib/stackdepot.c           | 29 ++++++++++++++++++++++++-----
- 2 files changed, 32 insertions(+), 5 deletions(-)
+ include/linux/instrumented.h | 21 +++++++++++++++++++--
+ include/linux/uaccess.h      | 19 ++++++++++++++-----
+ lib/iov_iter.c               |  9 ++++++---
+ lib/usercopy.c               |  3 ++-
+ 4 files changed, 41 insertions(+), 11 deletions(-)
 
-diff --git a/include/linux/stackdepot.h b/include/linux/stackdepot.h
-index 17f992fe6355b..fd641d266bead 100644
---- a/include/linux/stackdepot.h
-+++ b/include/linux/stackdepot.h
-@@ -14,9 +14,15 @@
- #include <linux/gfp.h>
+diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
+index 42faebbaa202a..ee8f7d17d34f5 100644
+--- a/include/linux/instrumented.h
++++ b/include/linux/instrumented.h
+@@ -120,7 +120,7 @@ instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
+ }
  
- typedef u32 depot_stack_handle_t;
-+/*
-+ * Number of bits in the handle that stack depot doesn't use. Users may store
-+ * information in them.
-+ */
-+#define STACK_DEPOT_EXTRA_BITS 5
- 
- depot_stack_handle_t __stack_depot_save(unsigned long *entries,
- 					unsigned int nr_entries,
-+					unsigned int extra_bits,
- 					gfp_t gfp_flags, bool can_alloc);
- 
- /*
-@@ -41,6 +47,8 @@ depot_stack_handle_t stack_depot_save(unsigned long *entries,
- unsigned int stack_depot_fetch(depot_stack_handle_t handle,
- 			       unsigned long **entries);
- 
-+unsigned int stack_depot_get_extra_bits(depot_stack_handle_t handle);
-+
- int stack_depot_snprint(depot_stack_handle_t handle, char *buf, size_t size,
- 		       int spaces);
- 
-diff --git a/lib/stackdepot.c b/lib/stackdepot.c
-index bf5ba9af05009..6dc11a3b7b88e 100644
---- a/lib/stackdepot.c
-+++ b/lib/stackdepot.c
-@@ -42,7 +42,8 @@
- #define STACK_ALLOC_OFFSET_BITS (STACK_ALLOC_ORDER + PAGE_SHIFT - \
- 					STACK_ALLOC_ALIGN)
- #define STACK_ALLOC_INDEX_BITS (DEPOT_STACK_BITS - \
--		STACK_ALLOC_NULL_PROTECTION_BITS - STACK_ALLOC_OFFSET_BITS)
-+		STACK_ALLOC_NULL_PROTECTION_BITS - \
-+		STACK_ALLOC_OFFSET_BITS - STACK_DEPOT_EXTRA_BITS)
- #define STACK_ALLOC_SLABS_CAP 8192
- #define STACK_ALLOC_MAX_SLABS \
- 	(((1LL << (STACK_ALLOC_INDEX_BITS)) < STACK_ALLOC_SLABS_CAP) ? \
-@@ -55,6 +56,7 @@ union handle_parts {
- 		u32 slabindex : STACK_ALLOC_INDEX_BITS;
- 		u32 offset : STACK_ALLOC_OFFSET_BITS;
- 		u32 valid : STACK_ALLOC_NULL_PROTECTION_BITS;
-+		u32 extra : STACK_DEPOT_EXTRA_BITS;
- 	};
- };
- 
-@@ -73,6 +75,14 @@ static int next_slab_inited;
- static size_t depot_offset;
- static DEFINE_RAW_SPINLOCK(depot_lock);
- 
-+unsigned int stack_depot_get_extra_bits(depot_stack_handle_t handle)
-+{
-+	union handle_parts parts = { .handle = handle };
-+
-+	return parts.extra;
-+}
-+EXPORT_SYMBOL(stack_depot_get_extra_bits);
-+
- static bool init_stack_slab(void **prealloc)
- {
- 	if (!*prealloc)
-@@ -136,6 +146,7 @@ depot_alloc_stack(unsigned long *entries, int size, u32 hash, void **prealloc)
- 	stack->handle.slabindex = depot_index;
- 	stack->handle.offset = depot_offset >> STACK_ALLOC_ALIGN;
- 	stack->handle.valid = 1;
-+	stack->handle.extra = 0;
- 	memcpy(stack->entries, entries, flex_array_size(stack, entries, size));
- 	depot_offset += required_size;
- 
-@@ -320,6 +331,7 @@ EXPORT_SYMBOL_GPL(stack_depot_fetch);
+ /**
+- * instrument_copy_from_user - instrument writes of copy_from_user
++ * instrument_copy_from_user_before - add instrumentation before copy_from_user
   *
-  * @entries:		Pointer to storage array
-  * @nr_entries:		Size of the storage array
-+ * @extra_bits:		Flags to store in unused bits of depot_stack_handle_t
-  * @alloc_flags:	Allocation gfp flags
-  * @can_alloc:		Allocate stack slabs (increased chance of failure if false)
-  *
-@@ -331,6 +343,10 @@ EXPORT_SYMBOL_GPL(stack_depot_fetch);
-  * If the stack trace in @entries is from an interrupt, only the portion up to
-  * interrupt entry is saved.
-  *
-+ * Additional opaque flags can be passed in @extra_bits, stored in the unused
-+ * bits of the stack handle, and retrieved using stack_depot_get_extra_bits()
-+ * without calling stack_depot_fetch().
-+ *
-  * Context: Any context, but setting @can_alloc to %false is required if
-  *          alloc_pages() cannot be used from the current context. Currently
-  *          this is the case from contexts where neither %GFP_ATOMIC nor
-@@ -340,10 +356,11 @@ EXPORT_SYMBOL_GPL(stack_depot_fetch);
+  * Instrument writes to kernel memory, that are due to copy_from_user (and
+  * variants). The instrumentation should be inserted before the accesses.
+@@ -130,10 +130,27 @@ instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
+  * @n number of bytes to copy
   */
- depot_stack_handle_t __stack_depot_save(unsigned long *entries,
- 					unsigned int nr_entries,
-+					unsigned int extra_bits,
- 					gfp_t alloc_flags, bool can_alloc)
+ static __always_inline void
+-instrument_copy_from_user(const void *to, const void __user *from, unsigned long n)
++instrument_copy_from_user_before(const void *to, const void __user *from, unsigned long n)
  {
- 	struct stack_record *found = NULL, **bucket;
--	depot_stack_handle_t retval = 0;
-+	union handle_parts retval = { .handle = 0 };
- 	struct page *page = NULL;
- 	void *prealloc = NULL;
- 	unsigned long flags;
-@@ -427,9 +444,11 @@ depot_stack_handle_t __stack_depot_save(unsigned long *entries,
- 		free_pages((unsigned long)prealloc, STACK_ALLOC_ORDER);
- 	}
- 	if (found)
--		retval = found->handle.handle;
-+		retval.handle = found->handle.handle;
- fast_exit:
--	return retval;
-+	retval.extra = extra_bits;
-+
-+	return retval.handle;
+ 	kasan_check_write(to, n);
+ 	kcsan_check_write(to, n);
  }
- EXPORT_SYMBOL_GPL(__stack_depot_save);
  
-@@ -449,6 +468,6 @@ depot_stack_handle_t stack_depot_save(unsigned long *entries,
- 				      unsigned int nr_entries,
- 				      gfp_t alloc_flags)
++/**
++ * instrument_copy_from_user_after - add instrumentation after copy_from_user
++ *
++ * Instrument writes to kernel memory, that are due to copy_from_user (and
++ * variants). The instrumentation should be inserted after the accesses.
++ *
++ * @to destination address
++ * @from source address
++ * @n number of bytes to copy
++ * @left number of bytes not copied (as returned by copy_from_user)
++ */
++static __always_inline void
++instrument_copy_from_user_after(const void *to, const void __user *from,
++				unsigned long n, unsigned long left)
++{
++}
++
+ #endif /* _LINUX_INSTRUMENTED_H */
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 546179418ffa2..079bdea3b9dcd 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -58,20 +58,28 @@
+ static __always_inline __must_check unsigned long
+ __copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
  {
--	return __stack_depot_save(entries, nr_entries, alloc_flags, true);
-+	return __stack_depot_save(entries, nr_entries, 0, alloc_flags, true);
+-	instrument_copy_from_user(to, from, n);
++	unsigned long res;
++
++	instrument_copy_from_user_before(to, from, n);
+ 	check_object_size(to, n, false);
+-	return raw_copy_from_user(to, from, n);
++	res = raw_copy_from_user(to, from, n);
++	instrument_copy_from_user_after(to, from, n, res);
++	return res;
  }
- EXPORT_SYMBOL_GPL(stack_depot_save);
+ 
+ static __always_inline __must_check unsigned long
+ __copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
++	unsigned long res;
++
+ 	might_fault();
++	instrument_copy_from_user_before(to, from, n);
+ 	if (should_fail_usercopy())
+ 		return n;
+-	instrument_copy_from_user(to, from, n);
+ 	check_object_size(to, n, false);
+-	return raw_copy_from_user(to, from, n);
++	res = raw_copy_from_user(to, from, n);
++	instrument_copy_from_user_after(to, from, n, res);
++	return res;
+ }
+ 
+ /**
+@@ -115,8 +123,9 @@ _copy_from_user(void *to, const void __user *from, unsigned long n)
+ 	unsigned long res = n;
+ 	might_fault();
+ 	if (!should_fail_usercopy() && likely(access_ok(from, n))) {
+-		instrument_copy_from_user(to, from, n);
++		instrument_copy_from_user_before(to, from, n);
+ 		res = raw_copy_from_user(to, from, n);
++		instrument_copy_from_user_after(to, from, n, res);
+ 	}
+ 	if (unlikely(res))
+ 		memset(to + (n - res), 0, res);
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index 6dd5330f7a995..fb19401c29c4f 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -159,13 +159,16 @@ static int copyout(void __user *to, const void *from, size_t n)
+ 
+ static int copyin(void *to, const void __user *from, size_t n)
+ {
++	size_t res = n;
++
+ 	if (should_fail_usercopy())
+ 		return n;
+ 	if (access_ok(from, n)) {
+-		instrument_copy_from_user(to, from, n);
+-		n = raw_copy_from_user(to, from, n);
++		instrument_copy_from_user_before(to, from, n);
++		res = raw_copy_from_user(to, from, n);
++		instrument_copy_from_user_after(to, from, n, res);
+ 	}
+-	return n;
++	return res;
+ }
+ 
+ static size_t copy_page_to_iter_iovec(struct page *page, size_t offset, size_t bytes,
+diff --git a/lib/usercopy.c b/lib/usercopy.c
+index 7413dd300516e..1505a52f23a01 100644
+--- a/lib/usercopy.c
++++ b/lib/usercopy.c
+@@ -12,8 +12,9 @@ unsigned long _copy_from_user(void *to, const void __user *from, unsigned long n
+ 	unsigned long res = n;
+ 	might_fault();
+ 	if (!should_fail_usercopy() && likely(access_ok(from, n))) {
+-		instrument_copy_from_user(to, from, n);
++		instrument_copy_from_user_before(to, from, n);
+ 		res = raw_copy_from_user(to, from, n);
++		instrument_copy_from_user_after(to, from, n, res);
+ 	}
+ 	if (unlikely(res))
+ 		memset(to + (n - res), 0, res);
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
