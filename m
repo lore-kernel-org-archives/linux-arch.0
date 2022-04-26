@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 38E24C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:44:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5CE25C433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:45:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353128AbiDZQrz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:47:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40510 "EHLO
+        id S1353184AbiDZQs1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:48:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40816 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353148AbiDZQrt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:47:49 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D4A51968A0
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:37 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id o8-20020a170906974800b006f3a8be7502so2042845ejy.8
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:37 -0700 (PDT)
+        with ESMTP id S1353127AbiDZQrx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:47:53 -0400
+Received: from mail-lj1-x24a.google.com (mail-lj1-x24a.google.com [IPv6:2a00:1450:4864:20::24a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 46BA61906BA
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:45 -0700 (PDT)
+Received: by mail-lj1-x24a.google.com with SMTP id v11-20020a2e9f4b000000b0024f195a39a0so1006239ljk.1
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:45 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=cG4bw4Dybp9do4PvtZBZ2e2ITt4Wsjs9LSUgy4lmV+4=;
-        b=RcuVhtgi/Tw1bMDtabWe38GwlUcwg4SUjFJCfkW2os/ElbHByzMYCT2RYzqn62C0bn
-         cbc56TqAri4pL54mxEkGuVkiAaJJ9tXSwdeAGi+nY3slj4lCV4ZtmvWqeaNCS3QKANio
-         WW7rLfKq9u9Kd3RXcYrkCGHS0aT05KrVMUMkow7J5zXgyXnRiQ3E/SReE2LZFqObeM2p
-         smA+CIkkQF6Odog2q36ChSrXewTMVXM+93iY1Gau5URCGueQT5zBnFATmZOSwzbaRVC1
-         zWWjq4eJBwkMFtGAv2hVypAFZhEDp0HEN6QVTrNW6nJcUAwldpsVdCTpJbkD3ZSC1KHK
-         QTEQ==
+        bh=ednioRVQi+463GyxSxojLtYXRmMb4k6reZrR8s7PDTk=;
+        b=s7nDKeE2uO8tPBSHXhKtgeVd4KJBULrFKzji5KxbrLSqAsd9qwd5XqsiW4sxXc2Zuj
+         /LDHzi6oYDxLjayBmNbbHHd8x60Z1q11m24TiSwhP8RYbreiv3W6YuCWDnMHnOA40Zg6
+         2XAh/SQC3o2WwNcd888BCR1ayDkPme9nLNf+yFJmAhhH+5m2makPEnGrUgDcpKDvSpAx
+         uZ/EMSRFu7oZ7g4w8LFxCUmwK7SAeXqsUvws74aRat1Udaq+/e8oYjQBcJ/MQ0phtMYp
+         ItWJ4UPus1+bGv6Mz6YHzcXh/jQw/SqfpbBVzObyfR2JQ5g2erl9ttRuMQ0dfEHG3Yf8
+         GoPQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=cG4bw4Dybp9do4PvtZBZ2e2ITt4Wsjs9LSUgy4lmV+4=;
-        b=HAoX6GPst1//UBaQqf56Vw+/Pwed5sIwwXxwWZvebnyWKbmWNeciUKYRXai1giVWt6
-         AJ3z2AhIJ/rIgkgt1h4kEXtFUl5GPdapRyScH8AwBIbWZfiO791TgLOO7VL/rnoTLB6B
-         NUsBx2upx+bARZ9L8/AIh+WYV12x3ce5gmSAJ4VrPx2qBKwk5MsJhZuLG2E02I32l86j
-         9P6LOZTxrQPohgif2VON0KZT9xhn9Wagu36rlcvcU+L3folrx6bCIUL1i7HzoXvg+Reh
-         Z+C8zVaBncDM2OfiRxTe0xjrFqPkQ0ypPhizWtXW3ScwWABLZkogsnx9WN1EQiPBi5rh
-         ByGQ==
-X-Gm-Message-State: AOAM530T6SgSCIZmX6WAXzrnaWQyFgAbitkf3wWw9wzckkTnu4cFNO3e
-        +MUm2K2SduO1iG6XWq+q3NqywK3Xyp8=
-X-Google-Smtp-Source: ABdhPJwJq5G2rpZj9OKDdv47ee+grpfL1muZK+Akh8tj6QCkzJXGooM+Bx/fhzrHXRviMJo4c+0ZnBDuFgY=
+        bh=ednioRVQi+463GyxSxojLtYXRmMb4k6reZrR8s7PDTk=;
+        b=igq1giKFoPOyervgD0Sgn0HV6G2XR5o5IbRq0xH8N/qE4KkT8i1kgDGFikhwgpU800
+         ukfFFkhBCZBIdIn3+umwywF6RaBjQr7HTlm9TLGmsG2KV/xYnEeLS7g4JLnGQpnxEZP4
+         mxKr7xomsp/oVI8IGo7OVip2vqiFoyAbhdQ+sgn2nZugwdEgRTiMCbvU101E50kkvIxZ
+         din6DDViVIo+EKDy4ZaHxxKeENgJBpb70yQ8S+U5lxgnHYkRCLWRZHWGwIViLh7CRRYd
+         Yli8giD1Ie7VIBuXasrgGPewgvUxt57kRCytIbPG08L1yBDCpbl9efFG9MUNbOSqOoxI
+         oSCw==
+X-Gm-Message-State: AOAM532b0PGD+h5UKTJgJTvLhJaC1YjzJnMkflmZeY3DMkkDfOQzcK3i
+        Wp5ObB3DqCyQyyX6VGfHwAQ34KunnXc=
+X-Google-Smtp-Source: ABdhPJxHrJcKOCcTiJCxWbbHxqyDNc8yKbgnQVG+zhnL2F1NE0oryK8Ze862y3s98aS3FdAQ1AuU/NMiTCE=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a05:6402:2809:b0:423:e123:5e40 with SMTP id
- h9-20020a056402280900b00423e1235e40mr25792114ede.84.1650991475654; Tue, 26
- Apr 2022 09:44:35 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:35 +0200
+ (user=glider job=sendgmr) by 2002:a05:6512:114f:b0:471:b097:4a29 with SMTP id
+ m15-20020a056512114f00b00471b0974a29mr17572189lfg.93.1650991483323; Tue, 26
+ Apr 2022 09:44:43 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:38 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-7-glider@google.com>
+Message-Id: <20220426164315.625149-10-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 06/46] asm-generic: instrument usercopy in cacheflush.h
+Subject: [PATCH v3 09/46] kmsan: mark noinstr as __no_sanitize_memory
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,50 +89,33 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Notify memory tools about usercopy events in copy_to_user_page() and
-copy_from_user_page().
+noinstr functions should never be instrumented, so make KMSAN skip them
+by applying the __no_sanitize_memory attribute.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/Ic1ee8da1886325f46ad67f52176f48c2c836c48f
----
- include/asm-generic/cacheflush.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+v2:
+ -- moved this patch earlier in the series per Mark Rutland's request
 
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index 4f07afacbc239..0f63eb325025f 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_GENERIC_CACHEFLUSH_H
- #define _ASM_GENERIC_CACHEFLUSH_H
+Link: https://linux-review.googlesource.com/id/I3c9abe860b97b49bc0c8026918b17a50448dec0d
+---
+ include/linux/compiler_types.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/compiler_types.h b/include/linux/compiler_types.h
+index 1c2c33ae1b37d..a9ba5edd8208b 100644
+--- a/include/linux/compiler_types.h
++++ b/include/linux/compiler_types.h
+@@ -227,7 +227,8 @@ struct ftrace_likely_data {
+ /* Section for code which can't be instrumented at all */
+ #define noinstr								\
+ 	noinline notrace __attribute((__section__(".noinstr.text")))	\
+-	__no_kcsan __no_sanitize_address __no_profile __no_sanitize_coverage
++	__no_kcsan __no_sanitize_address __no_profile __no_sanitize_coverage \
++	__no_sanitize_memory
  
-+#include <linux/instrumented.h>
-+
- struct mm_struct;
- struct vm_area_struct;
- struct page;
-@@ -105,6 +107,7 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
- #ifndef copy_to_user_page
- #define copy_to_user_page(vma, page, vaddr, dst, src, len)	\
- 	do { \
-+		instrument_copy_to_user(dst, src, len); \
- 		memcpy(dst, src, len); \
- 		flush_icache_user_page(vma, page, vaddr, len); \
- 	} while (0)
-@@ -112,7 +115,11 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
+ #endif /* __KERNEL__ */
  
- #ifndef copy_from_user_page
- #define copy_from_user_page(vma, page, vaddr, dst, src, len) \
--	memcpy(dst, src, len)
-+	do { \
-+		instrument_copy_from_user_before(dst, src, len); \
-+		memcpy(dst, src, len); \
-+		instrument_copy_from_user_after(dst, src, len, 0); \
-+	} while (0)
- #endif
- 
- #endif /* _ASM_GENERIC_CACHEFLUSH_H */
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
