@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AAB0C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:44:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C83B1C433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:44:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353113AbiDZQrc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:47:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39020 "EHLO
+        id S1353158AbiDZQrt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:47:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40372 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353095AbiDZQrc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:47:32 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3A860162F22
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:24 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id dp12-20020a170906c14c00b006e7e8234ae2so9349143ejc.2
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:24 -0700 (PDT)
+        with ESMTP id S1353124AbiDZQrs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:47:48 -0400
+Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A8D72191456
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:29 -0700 (PDT)
+Received: by mail-ej1-x64a.google.com with SMTP id o8-20020a170906974800b006f3a8be7502so2042678ejy.8
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:29 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=A3NTwB+RJ9VPcHTGR65MbBZ7w/cFn7M1ATQGzKSwE+o=;
-        b=Ev6F5DoTQsSpCxCbmkM4Tk/VDlOb3s/m5trmUrtt8ohNngUKfb9OF00S9Mc2nr8vO/
-         IQzu1xDBWcfWryuhjSAG5ZlBXRwwzNyAPtvuMgv9hqu42UyoqcQ5XEuNIQ0sSyZ+pKNG
-         nprOiwF/8Y6uwcYL1a16ovvRkuJ0Its6Mt6zvkHc2in2l3Y1ZetLaSNnUX8xEJI6/5bz
-         L2BalAbeuA6NEVFDlHzBHWrt3POZUDMrT8BCTJ4wmAs/5Yaek0/+fGGtYHWXx1vHXyga
-         CXr7UuHGTuK2cG9qbHwIW0QwOAeaZ8omncUskx4plnax4j1B4kX2WY7MzorNhLUuUpPW
-         zBig==
+        bh=nOhCPOtwmNXODLijzTSO8M7zxl8h4T8Tb26PN26Qq0M=;
+        b=LZKEFbB8TPQO7kgBdpU2j4eYblKuzaR2Gi1xLMal4r01UVgMm32iuP23KamR8oVwXU
+         A0Q2g9OquWtPZUG20Kv+3FzPplKg/UvdC5tL/zaE1RpHoBAA4uWQSRvxSviAcVNValYR
+         atgp44CzDP4JuJCWMVAOztuYyp83xVUCTOdMgjPZtZT/I1G2Uvo4gRCy0vOJEAK515qh
+         z6CoYJ90tMK9fDUC0vXsGNpavg5yM2TgwZG7Lr5lZNNSi4LNKj1E9yf0Md2SkqX4WdS2
+         da8nli8jJ9UvooA1jnZ8RZWFp4syKCdzroiMyC5ygmwL4OY2QmTJ4Viu/eSQqGFOkxbA
+         m6yg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=A3NTwB+RJ9VPcHTGR65MbBZ7w/cFn7M1ATQGzKSwE+o=;
-        b=AzLpV5qtwM9+FfruMsgeUFZs/lqzezgSOddImgH0JI/qNhwCIl506KDCNP4e/ZXeUE
-         DeA2Sq+8cjYYnIH3BzFBpTLATzeNZXP03PLZtT/JCQpFH0d24cCO33LoZsJQFGDDDAxR
-         GdQlDMBJF6V4MA604fc/gOBTknt08DyHL6rT5O/1Ad3rB0jwMJ0CYHyINFPuqiMAwNvB
-         5hRCGqwpq1/0VCdp1z4ODvB8DnhllgBfvgQzalJCgAt3ZTk/StOo/OKh51x6sTzE6wtA
-         hPEeBKSZ87EC9Yd5uQphwEU/rqHiBbNIy8l+ivSC0XATwOYx296cvFiPcWf99sfFqFik
-         QeSQ==
-X-Gm-Message-State: AOAM530T8b+lLou3L6OywZYW5CGGBNeYCe9WXE/fF5p3VvncojZdw/nC
-        TSUwK7KXRh6tioq//r+GgqfHosKNGRw=
-X-Google-Smtp-Source: ABdhPJy2UkBps++xwJwtis+DecVA+28tEyDZziiiovCJIOEA9Q4lRIjJpV+/umWCIrcsFJtphuW7vqpus3Q=
+        bh=nOhCPOtwmNXODLijzTSO8M7zxl8h4T8Tb26PN26Qq0M=;
+        b=BSy2CQz4DX8xxqE1AOYPi/+4uN261UmcAwCC8XBu6j0sntzBA7s7BfYp+F3Rg0AkqB
+         ljWbBAzQpl6Vd4HGe7IZLYubaGMhksssPsEJjZ1vhfLIv9Q+ib1FlEjEkcoqwYOPg6J7
+         QRw9r7yJYFI7RNBgcSsLECjtAQnoliJtTKEVh5VDJczf6xQwmGqblg7unZ30WtCUjvfa
+         K2Zco59+zB/pFcF8oU9E28cu4m1TCt5mmfZ8ID27khIZhV5cB94DVWyCCuhNno/g7VCu
+         Yhc7t1bTF1GX7Do277or/jNkUqyanaB4rnEor6krk7JRXjgsIDNgpQ1VaO5IBvMlSw56
+         nojA==
+X-Gm-Message-State: AOAM531eUWr5YaktklKUUXdXvEKuDjMAzDZUMOLC48DYbHeKeTR/SsRH
+        HEFfMP1RTdcN+LRqM4/jrwKwY5Vi2Lg=
+X-Google-Smtp-Source: ABdhPJwSu8anY6YzOERS1Ux22TtxUqNV58xGV4qRNVaMI4J71hTHmmbMpjG+iLMULK2X+phM8pbqjHM5UG4=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a50:fe1a:0:b0:425:e276:5adf with SMTP id
- f26-20020a50fe1a000000b00425e2765adfmr13327701edt.284.1650991462573; Tue, 26
- Apr 2022 09:44:22 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:30 +0200
+ (user=glider job=sendgmr) by 2002:a17:907:7815:b0:6ce:5242:1280 with SMTP id
+ la21-20020a170907781500b006ce52421280mr22103960ejc.217.1650991468011; Tue, 26
+ Apr 2022 09:44:28 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:32 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-2-glider@google.com>
+Message-Id: <20220426164315.625149-4-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 01/46] x86: add missing include to sparsemem.h
+Subject: [PATCH v3 03/46] kasan: common: adapt to the new prototype of __stack_depot_save()
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,35 +89,29 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Dmitry Vyukov <dvyukov@google.com>
+Pass extra_bits=0, as KASAN does not intend to store additional
+information in the stack handle. No functional change.
 
-sparsemem.h:34:32: error: unknown type name 'phys_addr_t'
-extern int phys_to_target_node(phys_addr_t start);
-                               ^
-sparsemem.h:36:39: error: unknown type name 'u64'
-extern int memory_add_physaddr_to_nid(u64 start);
-                                      ^
-Signed-off-by: Dmitry Vyukov <dvyukov@google.com>
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/Ifae221ce85d870d8f8d17173bd44d5cf9be2950f
+Link: https://linux-review.googlesource.com/id/I932d8f4f11a41b7483e0d57078744cc94697607a
 ---
- arch/x86/include/asm/sparsemem.h | 2 ++
- 1 file changed, 2 insertions(+)
+ mm/kasan/common.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/sparsemem.h b/arch/x86/include/asm/sparsemem.h
-index 6a9ccc1b2be5d..64df897c0ee30 100644
---- a/arch/x86/include/asm/sparsemem.h
-+++ b/arch/x86/include/asm/sparsemem.h
-@@ -2,6 +2,8 @@
- #ifndef _ASM_X86_SPARSEMEM_H
- #define _ASM_X86_SPARSEMEM_H
+diff --git a/mm/kasan/common.c b/mm/kasan/common.c
+index d9079ec11f313..5d244746ac4fe 100644
+--- a/mm/kasan/common.c
++++ b/mm/kasan/common.c
+@@ -36,7 +36,7 @@ depot_stack_handle_t kasan_save_stack(gfp_t flags, bool can_alloc)
+ 	unsigned int nr_entries;
  
-+#include <linux/types.h>
-+
- #ifdef CONFIG_SPARSEMEM
- /*
-  * generic non-linear memory support:
+ 	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 0);
+-	return __stack_depot_save(entries, nr_entries, flags, can_alloc);
++	return __stack_depot_save(entries, nr_entries, 0, flags, can_alloc);
+ }
+ 
+ void kasan_set_track(struct kasan_track *track, gfp_t flags)
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
