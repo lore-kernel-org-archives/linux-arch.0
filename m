@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 41950C433FE
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:47:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A7A77C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:48:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353276AbiDZQvB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:51:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44230 "EHLO
+        id S1353263AbiDZQv1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:51:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44082 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353305AbiDZQtL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:49:11 -0400
-Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C9413D4BD
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:27 -0700 (PDT)
-Received: by mail-ed1-x549.google.com with SMTP id n4-20020a5099c4000000b00418ed58d92fso10618114edb.0
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:27 -0700 (PDT)
+        with ESMTP id S1353258AbiDZQuS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:50:18 -0400
+Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9734747394
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:39 -0700 (PDT)
+Received: by mail-ej1-x64a.google.com with SMTP id nd34-20020a17090762a200b006e0ef16745cso9335270ejc.20
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:39 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=n12oscJoQy25ZeJEgKUppRaHioaFclURl8PsqxmYCmo=;
-        b=PIyBhpOCM8Ov1/+Aan+YSMRBfpf54pHX8ytL+CV9/1wxPrduFClfDo2MC25BFRGqUr
-         LC5Hr2Ef8nJt4G1Cr30fbnTHYjTJ5Gax8GaKjFXG0iL+r/c29mApiZT+RSwu1Gv2kkOz
-         34uVLpDsIsKTbG2q42gMn4a9Vr9GOVlaxiLfXa8b/4pWebY6TjT2x9JFCSEXRuOPPg3n
-         b/OGc6pwoUP/SU7+PJ629KnVXCQHZctVc5m6qyPQPfIcXk7XKqS9AYp6qyxiblVFksU/
-         vePEsS5V3b8GJxiZEtgsjh4z7hZSSCwDY93JM9PnMnCLZhZrlsTx6bFvrt7KV12fLlqe
-         re3Q==
+        bh=bWOHkFAZUowQhXbgV/15IRTSfhe/pFIeo0hpg6VoqgU=;
+        b=Y425LRYJ7pqp2qUV4Un5BKaPtlMc56oRipAYvk35bNiZHMqwQj5K1oHUY+3UtaBrm8
+         6F8LD23RH7puAqmN6VxxN3dzRPCX2o3jtXwChLes9m38UGHVO/PjltBdViFuvOO0/pv+
+         9a5CV3vayhrQVrbmrEv1bjS0Nmz7caoEnvxuLCxERX2znPJk4SiPOZ9Qb7HS9LCHG3Lh
+         qNuuAbPiqTn/Kfp6058UKfvV0NLpFCO10Egzm+8gacy2cKWG5HhTdR3sVdEPim8XyvUO
+         oM/6bhYxYTS9e2sL18gV9sczR7Og8Y4lewCULG7qERx2rzD5bbV+C50LUjYRSUrnHoTG
+         GPqg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=n12oscJoQy25ZeJEgKUppRaHioaFclURl8PsqxmYCmo=;
-        b=BfjcXfvMzZmDUZ7VLTYIlNZQN10OX1OKvRTJvMCocwXexnpaJ3tQWrvlISnfuWujP+
-         Zwsqi3e2XFsR9VEIx3VQUFXfEoiBQi+dMmX3nMys38KXI/Py07xxqqjRSH2O4+14D1Yu
-         4Sjc9fYveubVMI5530JtZx9DgjORVLU2XEPhS2cHzOiPIm8pVfMgG1cQ+KhUmwHbuvst
-         zvrh+/nljj6KsttSdELDwTxckHBL7SCzUcd21ZXraRPBEhsnxWk/sWg6Nk7UgUQc+gWE
-         sYZXt/rafOdIKJ+Gj484ddGQyhniHlGDhbZ+VO7cJxUkW7thJTkkhFqoWxp/VEgRj7Gw
-         iTKA==
-X-Gm-Message-State: AOAM530T4lRTkVS50pGcmHj5IxZTLlaEPklhc7OHSuL23pHvi3iFUWmI
-        N8jC4T0rIwbuLQt7k4P30paV+3b8pWI=
-X-Google-Smtp-Source: ABdhPJxU8JwPhcVfaOXEOS2U2ep3mvLwmmcZHEz36qAom9R3kEeJAH/9Z6s5Sw7k1Wv/sYn9qCbZoM2w78E=
+        bh=bWOHkFAZUowQhXbgV/15IRTSfhe/pFIeo0hpg6VoqgU=;
+        b=hMvz0K0de9LvJSxo3fJ7YCr0OlS3zRvDvrXsuwdG94xxNHcgxEa7Pp7boAQRg9WnFK
+         0RfwHEjUvEcJbs2PLxuMJfdcrgltTeifv6d3TB9EQjSyP1Y3YyWuXREZMQA+ISnFMttJ
+         ukAssNEyhZVwN5BiTzJTp+WQvg+sKxrg7lrU72P7l4TkLM1hy17y+VsobOaeS5DCg/Q5
+         T/jus6KPlBJGTZ7aFfPJFwIsDbBmqX+gglH04e6AJklezFrjK6zSWWeUALOGmayM1a8v
+         dQjK+wNvHJ2WVjqyx0Ra1ikC8oVsA6hpVo1rReKbiHUq8P/OmXGUbkxFLigcoQf6VpxU
+         7f8g==
+X-Gm-Message-State: AOAM531SRc3RZEIQ6eU9tnklwuyipCBEGPkmdupiA3NduuvdoV4u/8zA
+        slq1TsnSmQtabDjunfkhUKiN079XpmI=
+X-Google-Smtp-Source: ABdhPJy8hRX/dOnDKYiAzHg5kT/4VfAMjL04J1HrqWNmAu8buMPT+aF4N+PIwLqQH/MNoEjw6XwUMlGRDw4=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a05:6402:5210:b0:423:de77:2a4d with SMTP id
- s16-20020a056402521000b00423de772a4dmr25186177edd.295.1650991525861; Tue, 26
- Apr 2022 09:45:25 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:54 +0200
+ (user=glider job=sendgmr) by 2002:aa7:c789:0:b0:413:605d:8d17 with SMTP id
+ n9-20020aa7c789000000b00413605d8d17mr25370617eds.100.1650991538395; Tue, 26
+ Apr 2022 09:45:38 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:59 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-26-glider@google.com>
+Message-Id: <20220426164315.625149-31-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 25/46] kmsan: virtio: check/unpoison scatterlist in vring_map_one_sg()
+Subject: [PATCH v3 30/46] kmsan: disable strscpy() optimization under KMSAN
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,48 +89,36 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-If vring doesn't use the DMA API, KMSAN is unable to tell whether the
-memory is initialized by hardware. Explicitly call kmsan_handle_dma()
-from vring_map_one_sg() in this case to prevent false positives.
+Disable the efficient 8-byte reading under KMSAN to avoid false positives.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
-Acked-by: Michael S. Tsirkin <mst@redhat.com>
 
 ---
-Link: https://linux-review.googlesource.com/id/I211533ecb86a66624e151551f83ddd749536b3af
----
- drivers/virtio/virtio_ring.c | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/virtio/virtio_ring.c b/drivers/virtio/virtio_ring.c
-index cfb028ca238eb..faecd9e3d6560 100644
---- a/drivers/virtio/virtio_ring.c
-+++ b/drivers/virtio/virtio_ring.c
-@@ -11,6 +11,7 @@
- #include <linux/module.h>
- #include <linux/hrtimer.h>
- #include <linux/dma-mapping.h>
-+#include <linux/kmsan-checks.h>
- #include <linux/spinlock.h>
- #include <xen/xen.h>
+Link: https://linux-review.googlesource.com/id/Iffd8336965e88fce915db2e6a9d6524422975f69
+---
+ lib/string.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/lib/string.c b/lib/string.c
+index 485777c9da832..4ece4c7e7831b 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -197,6 +197,14 @@ ssize_t strscpy(char *dest, const char *src, size_t count)
+ 		max = 0;
+ #endif
  
-@@ -331,8 +332,15 @@ static dma_addr_t vring_map_one_sg(const struct vring_virtqueue *vq,
- 				   struct scatterlist *sg,
- 				   enum dma_data_direction direction)
- {
--	if (!vq->use_dma_api)
-+	if (!vq->use_dma_api) {
-+		/*
-+		 * If DMA is not used, KMSAN doesn't know that the scatterlist
-+		 * is initialized by the hardware. Explicitly check/unpoison it
-+		 * depending on the direction.
-+		 */
-+		kmsan_handle_dma(sg_page(sg), sg->offset, sg->length, direction);
- 		return (dma_addr_t)sg_phys(sg);
-+	}
++	/*
++	 * read_word_at_a_time() below may read uninitialized bytes after the
++	 * trailing zero and use them in comparisons. Disable this optimization
++	 * under KMSAN to prevent false positive reports.
++	 */
++	if (IS_ENABLED(CONFIG_KMSAN))
++		max = 0;
++
+ 	while (max >= sizeof(unsigned long)) {
+ 		unsigned long c, data;
  
- 	/*
- 	 * We can't use dma_map_sg, because we don't use scatterlists in
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
