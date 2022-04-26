@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 158B1C433F5
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:48:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5F02FC4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:48:28 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353432AbiDZQvc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:51:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45496 "EHLO
+        id S1353275AbiDZQvd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:51:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43282 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353301AbiDZQu7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:50:59 -0400
-Received: from mail-lj1-x24a.google.com (mail-lj1-x24a.google.com [IPv6:2a00:1450:4864:20::24a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB41422280
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:46:00 -0700 (PDT)
-Received: by mail-lj1-x24a.google.com with SMTP id 23-20020a05651c00d700b0024f12064717so1744996ljr.15
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:46:00 -0700 (PDT)
+        with ESMTP id S1353270AbiDZQvB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:51:01 -0400
+Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 90A964838F
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:46:08 -0700 (PDT)
+Received: by mail-ej1-x64a.google.com with SMTP id dt18-20020a170907729200b006f377ebe5cbso4560356ejc.22
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:46:08 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=W69+Dls+nKFAD4lCWK/D6+Hgr/p3mJKYHKVaWr09RwM=;
-        b=owm+BOhtu0whEqeXMLhBmz/yzdgp3Ss1TLbeF+Aik4tkycnXKmYZ3n1neSo8hb18hb
-         BX0hjeRGCN6xXxA1vzrvFH0v9CoRUCtTXQLKrHwmCu+y1ae44cMIL85bcgh0tq9Lx1ES
-         uePdvpJnw//wlpuLMvMpt4JuP6ldvIkHR8UsAm0u7Ixqgiie37sR8o/J92rLVnj0THtN
-         xbPhuRh0HxLLsvpwoO6qui2q+WyPa1s+kNb5h9WxXtLlSB5Ib2oPyXAg/DQqG7CPduQ+
-         iUtgABXZYumPoT6y5CGoxk/KW2xPtKCKp9d94Q7dOcFmZ/oeIYyV2FFgehwWZr7RwBiW
-         UUTQ==
+        bh=+FBFHZ/D2CVM8zHnxvAf38XdMkZWjnGIg8UqYOIGTJc=;
+        b=eLrL3mhFQT5kOKuWWPsXYa6Om2vKcm1WdEFQHStYaEyvCoapAOY8AFslQqrxPfYmIf
+         rXp6G49IKCxSIadhwDU/svB9bjlSTioT2d+8nFtnyoxtGkFZ5hU6IZRnk3EvL9+LHqKl
+         YImrZr+ZfLnQxJu37Qjyj/MDxN8AmGTCABbxmGUID5Rdgt4TWVzw9Gx7nZ/Cv3t0o4mj
+         7IL5zxZSeAJwNc5HAOQNmnltHzHmQdS3We85em43fb3OAi9L+VU3jozzjW4Z5BOBjLbl
+         9zuRJUkSroGkn/RtJMaMYsf10xB5Km6ymFu+cfmKhvrnUfSPObf8M//QzCvTkk4jAHil
+         C3cA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=W69+Dls+nKFAD4lCWK/D6+Hgr/p3mJKYHKVaWr09RwM=;
-        b=qgqWY7MYFfowu7xPmEmRiBO7AU+BVTFeaEJWfipFXNXm00Kmq61PsxR38XeGfT9yZ6
-         Nu7pbPlsbEiFEjIOaj8zEPlzbPNTQbBarKN/u4NrYv00T9mlFP8XLq7u49JR401YFIp5
-         wmdYLQNJXQglh8d91c+cBXg0ChWx8O7ETvIbIV8OWyvBtjXR5F4SRnAaMXSLO3j6W5od
-         pnX1z75TAZka+NhiL7m9Xw/lMdtWIEa7L1f0MIxImtwDOWQO1E22vakgXKVRkWB9b1px
-         /mH3lC5+19vGSTPrnK0Frgg/bhJ8NGrORCv7wCTAUugz+z4EVUpQVsrYI6vjaxhqDmj8
-         cDMw==
-X-Gm-Message-State: AOAM531jQ6Ero7vr+s64OL1VkbYkWvDW1dw2e/nzP9nBfJWjU3rQWRoU
-        2r5D81zy2KXnDEI04nHT6Rqfmw31Xms=
-X-Google-Smtp-Source: ABdhPJwEO/56WzEvUU6hiW7HK6Xy45a+LFdxcYVfERHbSU9DhLBh7fMmnT9aTpw3X2NOrWJtIFseLCU8PIU=
+        bh=+FBFHZ/D2CVM8zHnxvAf38XdMkZWjnGIg8UqYOIGTJc=;
+        b=HMBnWpHfzCSibUO8v2yXARwdawfNLs7Vu/ROmAhshtH0WkBimNpo5NspUCdfnEtQrK
+         skwiyXx4Vx+TayVt/3O9gsfB0EZxHtL2uBc0BZhY9A9aGmas4K6WlF/o0KMPq5hVuTdy
+         5IRiuIJLXSBr4uC3jHDprK4D8jIqsc3G/+1dryj+ufxhjc1FJ4lqdXm0JXp9LFfc/BO0
+         ghdU+WeW47Z1lkOIsQeWZ2mIj68qH5Q3mLPivmZOMfMHHUk/mvNTP8hJh1e9Ov6O6iiu
+         teC6zhn5AmCphlJFUUGEX8o8xhu1b8XsUpObE/8AVgCew4fkQGdZEaIlfw/lGPn5aHnN
+         fLkQ==
+X-Gm-Message-State: AOAM5318QbFLGCWR0T9bg7ofG6PbR3pZ9LP5X3FNfZe1mTDcZo6vxeeC
+        mo/IxAALC6PBMZt1fcbUSbAGUNujeZc=
+X-Google-Smtp-Source: ABdhPJzl2WkvDMC8oytisA9bFCUfSdKFjxjddbCsinvPLHHRa3ZNDj4UDz7djBQ5AhjJmhi+1lV1TeExHmQ=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a05:6512:25a4:b0:471:fbe9:8893 with SMTP id
- bf36-20020a05651225a400b00471fbe98893mr11183684lfb.147.1650991558811; Tue, 26
- Apr 2022 09:45:58 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:43:07 +0200
+ (user=glider job=sendgmr) by 2002:aa7:c793:0:b0:408:4a69:90b4 with SMTP id
+ n19-20020aa7c793000000b004084a6990b4mr25741991eds.58.1650991567128; Tue, 26
+ Apr 2022 09:46:07 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:43:10 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-39-glider@google.com>
+Message-Id: <20220426164315.625149-42-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 38/46] x86: kmsan: disable instrumentation of unsupported code
+Subject: [PATCH v3 41/46] x86: kmsan: use __msan_ string functions where possible.
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,138 +89,99 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Instrumenting some files with KMSAN will result in kernel being unable
-to link, boot or crashing at runtime for various reasons (e.g. infinite
-recursion caused by instrumentation hooks calling instrumented code again).
+Unless stated otherwise (by explicitly calling __memcpy(), __memset() or
+__memmove()) we want all string functions to call their __msan_ versions
+(e.g. __msan_memcpy() instead of memcpy()), so that shadow and origin
+values are updated accordingly.
 
-Completely omit KMSAN instrumentation in the following places:
- - arch/x86/boot and arch/x86/realmode/rm, as KMSAN doesn't work for i386;
- - arch/x86/entry/vdso, which isn't linked with KMSAN runtime;
- - three files in arch/x86/kernel - boot problems;
- - arch/x86/mm/cpu_entry_area.c - recursion.
+Bootloader must still use the default string functions to avoid crashes.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-v2:
- -- moved the patch earlier in the series so that KMSAN can compile
- -- split off the non-x86 part into a separate patch
 
-v3:
- -- added a comment to lib/Makefile
-
-Link: https://linux-review.googlesource.com/id/Id5e5c4a9f9d53c24a35ebb633b814c414628d81b
+Link: https://linux-review.googlesource.com/id/I7ca9bd6b4f5c9b9816404862ae87ca7984395f33
 ---
- arch/x86/boot/Makefile            | 1 +
- arch/x86/boot/compressed/Makefile | 1 +
- arch/x86/entry/vdso/Makefile      | 3 +++
- arch/x86/kernel/Makefile          | 2 ++
- arch/x86/kernel/cpu/Makefile      | 1 +
- arch/x86/mm/Makefile              | 2 ++
- arch/x86/realmode/rm/Makefile     | 1 +
- lib/Makefile                      | 2 ++
- 8 files changed, 13 insertions(+)
+ arch/x86/include/asm/string_64.h | 23 +++++++++++++++++++++--
+ include/linux/fortify-string.h   |  2 ++
+ 2 files changed, 23 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
-index b5aecb524a8aa..d5623232b763f 100644
---- a/arch/x86/boot/Makefile
-+++ b/arch/x86/boot/Makefile
-@@ -12,6 +12,7 @@
- # Sanitizer runtimes are unavailable and cannot be linked for early boot code.
- KASAN_SANITIZE			:= n
- KCSAN_SANITIZE			:= n
-+KMSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
+diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+index 6e450827f677a..3b87d889b6e16 100644
+--- a/arch/x86/include/asm/string_64.h
++++ b/arch/x86/include/asm/string_64.h
+@@ -11,11 +11,23 @@
+    function. */
  
- # Kernel does not boot with kcov instrumentation here.
-diff --git a/arch/x86/boot/compressed/Makefile b/arch/x86/boot/compressed/Makefile
-index 6115274fe10fc..6e2e34d2655ce 100644
---- a/arch/x86/boot/compressed/Makefile
-+++ b/arch/x86/boot/compressed/Makefile
-@@ -20,6 +20,7 @@
- # Sanitizer runtimes are unavailable and cannot be linked for early boot code.
- KASAN_SANITIZE			:= n
- KCSAN_SANITIZE			:= n
-+KMSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
+ #define __HAVE_ARCH_MEMCPY 1
++#if defined(__SANITIZE_MEMORY__)
++#undef memcpy
++void *__msan_memcpy(void *dst, const void *src, size_t size);
++#define memcpy __msan_memcpy
++#else
+ extern void *memcpy(void *to, const void *from, size_t len);
++#endif
+ extern void *__memcpy(void *to, const void *from, size_t len);
  
- # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
-diff --git a/arch/x86/entry/vdso/Makefile b/arch/x86/entry/vdso/Makefile
-index 693f8b9031fb8..4f835eaa03ec1 100644
---- a/arch/x86/entry/vdso/Makefile
-+++ b/arch/x86/entry/vdso/Makefile
-@@ -11,6 +11,9 @@ include $(srctree)/lib/vdso/Makefile
+ #define __HAVE_ARCH_MEMSET
++#if defined(__SANITIZE_MEMORY__)
++extern void *__msan_memset(void *s, int c, size_t n);
++#undef memset
++#define memset __msan_memset
++#else
+ void *memset(void *s, int c, size_t n);
++#endif
+ void *__memset(void *s, int c, size_t n);
  
- # Sanitizer runtimes are unavailable and cannot be linked here.
- KASAN_SANITIZE			:= n
-+KMSAN_SANITIZE_vclock_gettime.o := n
-+KMSAN_SANITIZE_vgetcpu.o	:= n
-+
- UBSAN_SANITIZE			:= n
- KCSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index c41ef42adbe8a..fcbf6cf875a90 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -33,6 +33,8 @@ KASAN_SANITIZE_sev.o					:= n
- # With some compiler versions the generated code results in boot hangs, caused
- # by several compilation units. To be safe, disable all instrumentation.
- KCSAN_SANITIZE := n
-+KMSAN_SANITIZE_head$(BITS).o				:= n
-+KMSAN_SANITIZE_nmi.o					:= n
+ #define __HAVE_ARCH_MEMSET16
+@@ -55,7 +67,13 @@ static inline void *memset64(uint64_t *s, uint64_t v, size_t n)
+ }
  
- OBJECT_FILES_NON_STANDARD_test_nx.o			:= y
+ #define __HAVE_ARCH_MEMMOVE
++#if defined(__SANITIZE_MEMORY__)
++#undef memmove
++void *__msan_memmove(void *dest, const void *src, size_t len);
++#define memmove __msan_memmove
++#else
+ void *memmove(void *dest, const void *src, size_t count);
++#endif
+ void *__memmove(void *dest, const void *src, size_t count);
  
-diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
-index 9661e3e802be5..f10a921ee7565 100644
---- a/arch/x86/kernel/cpu/Makefile
-+++ b/arch/x86/kernel/cpu/Makefile
-@@ -12,6 +12,7 @@ endif
- # If these files are instrumented, boot hangs during the first second.
- KCOV_INSTRUMENT_common.o := n
- KCOV_INSTRUMENT_perf_event.o := n
-+KMSAN_SANITIZE_common.o := n
+ int memcmp(const void *cs, const void *ct, size_t count);
+@@ -64,8 +82,7 @@ char *strcpy(char *dest, const char *src);
+ char *strcat(char *dest, const char *src);
+ int strcmp(const char *cs, const char *ct);
  
- # As above, instrumenting secondary CPU boot code causes boot hangs.
- KCSAN_SANITIZE_common.o := n
-diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
-index fe3d3061fc116..ada726784012f 100644
---- a/arch/x86/mm/Makefile
-+++ b/arch/x86/mm/Makefile
-@@ -12,6 +12,8 @@ KASAN_SANITIZE_mem_encrypt_identity.o	:= n
- # Disable KCSAN entirely, because otherwise we get warnings that some functions
- # reference __initdata sections.
- KCSAN_SANITIZE := n
-+# Avoid recursion by not calling KMSAN hooks for CEA code.
-+KMSAN_SANITIZE_cpu_entry_area.o := n
+-#if defined(CONFIG_KASAN) && !defined(__SANITIZE_ADDRESS__)
+-
++#if (defined(CONFIG_KASAN) && !defined(__SANITIZE_ADDRESS__))
+ /*
+  * For files that not instrumented (e.g. mm/slub.c) we
+  * should use not instrumented version of mem* functions.
+@@ -73,7 +90,9 @@ int strcmp(const char *cs, const char *ct);
  
- ifdef CONFIG_FUNCTION_TRACER
- CFLAGS_REMOVE_mem_encrypt.o		= -pg
-diff --git a/arch/x86/realmode/rm/Makefile b/arch/x86/realmode/rm/Makefile
-index 83f1b6a56449f..f614009d3e4e2 100644
---- a/arch/x86/realmode/rm/Makefile
-+++ b/arch/x86/realmode/rm/Makefile
-@@ -10,6 +10,7 @@
- # Sanitizer runtimes are unavailable and cannot be linked here.
- KASAN_SANITIZE			:= n
- KCSAN_SANITIZE			:= n
-+KMSAN_SANITIZE			:= n
- OBJECT_FILES_NON_STANDARD	:= y
+ #undef memcpy
+ #define memcpy(dst, src, len) __memcpy(dst, src, len)
++#undef memmove
+ #define memmove(dst, src, len) __memmove(dst, src, len)
++#undef memset
+ #define memset(s, c, n) __memset(s, c, n)
  
- # Prevents link failures: __sanitizer_cov_trace_pc() is not linked in.
-diff --git a/lib/Makefile b/lib/Makefile
-index caeb55f661726..444c961f2f2e1 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -269,6 +269,8 @@ obj-$(CONFIG_IRQ_POLL) += irq_poll.o
- CFLAGS_stackdepot.o += -fno-builtin
- obj-$(CONFIG_STACKDEPOT) += stackdepot.o
- KASAN_SANITIZE_stackdepot.o := n
-+# In particular, instrumenting stackdepot.c with KMSAN will result in infinite
-+# recursion.
- KMSAN_SANITIZE_stackdepot.o := n
- KCOV_INSTRUMENT_stackdepot.o := n
+ #ifndef __NO_FORTIFY
+diff --git a/include/linux/fortify-string.h b/include/linux/fortify-string.h
+index 295637a66c46b..fe48f77599e04 100644
+--- a/include/linux/fortify-string.h
++++ b/include/linux/fortify-string.h
+@@ -269,8 +269,10 @@ __FORTIFY_INLINE void fortify_memset_chk(__kernel_size_t size,
+  * __builtin_object_size() must be captured here to avoid evaluating argument
+  * side-effects further into the macro layers.
+  */
++#ifndef CONFIG_KMSAN
+ #define memset(p, c, s) __fortify_memset_chk(p, c, s,			\
+ 		__builtin_object_size(p, 0), __builtin_object_size(p, 1))
++#endif
  
+ /*
+  * To make sure the compiler can enforce protection against buffer overflows,
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
