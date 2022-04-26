@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E7FC8C43217
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:47:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 41950C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:47:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353267AbiDZQvD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:51:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44704 "EHLO
+        id S1353276AbiDZQvB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:51:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44230 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353250AbiDZQtl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:49:41 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 718553CFCC
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:32 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id nb10-20020a1709071c8a00b006e8f89863ceso9377361ejc.18
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:32 -0700 (PDT)
+        with ESMTP id S1353305AbiDZQtL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:49:11 -0400
+Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C9413D4BD
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:27 -0700 (PDT)
+Received: by mail-ed1-x549.google.com with SMTP id n4-20020a5099c4000000b00418ed58d92fso10618114edb.0
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:45:27 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=8+FTymzEXuQwrQ48VSTvyp6MK3t+ENPCVe5WmeEaVIc=;
-        b=fcJ50fxU8vlV4Zt4ow5QLp80TC8c56IdxjhwU67LEgyBqe8j9VHcHGiTXWvty1WMSf
-         1bPBfjkXUa51JG42+wVa+w3aHgsOYSrC1f9U8SZ2jz031VP/HC88wQw4NfXbVOoGdtcl
-         SS8jFJBwA5MYs/dZR6sjMvgZtOfXiYQhrCsRhuTSkWp5gWJqFxoT0Go1VP32lUvN66NF
-         QMYm/Pv7rIuLPqSnr2MRY4/KkU+A6liqUHe5KRLS7lCFdZ3JcG6G4DdynX7jifdqwnNt
-         rgjoa8UfdHnj1e0EoDPPBI7pDd0IfYihgK9kALl0k/qSo8xllk+StsshEgAnxbfsnzPI
-         nRkQ==
+        bh=n12oscJoQy25ZeJEgKUppRaHioaFclURl8PsqxmYCmo=;
+        b=PIyBhpOCM8Ov1/+Aan+YSMRBfpf54pHX8ytL+CV9/1wxPrduFClfDo2MC25BFRGqUr
+         LC5Hr2Ef8nJt4G1Cr30fbnTHYjTJ5Gax8GaKjFXG0iL+r/c29mApiZT+RSwu1Gv2kkOz
+         34uVLpDsIsKTbG2q42gMn4a9Vr9GOVlaxiLfXa8b/4pWebY6TjT2x9JFCSEXRuOPPg3n
+         b/OGc6pwoUP/SU7+PJ629KnVXCQHZctVc5m6qyPQPfIcXk7XKqS9AYp6qyxiblVFksU/
+         vePEsS5V3b8GJxiZEtgsjh4z7hZSSCwDY93JM9PnMnCLZhZrlsTx6bFvrt7KV12fLlqe
+         re3Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=8+FTymzEXuQwrQ48VSTvyp6MK3t+ENPCVe5WmeEaVIc=;
-        b=lW15y8AXkpWW435p1S4No+6ha2uKDWUa2XexG7xCY12zK+fWV0M0rj2mTGPvip4ma7
-         39XKU/kwvc7BgsH03EF/N3xSJQ93hkDMEh2q9n6eyZNsMlCsOmkaKEat9HyKJxej7ZQr
-         7U1NDi7/WKxWUwcf/+AtODGoMmdpBS+vbzFMVBovSaq8cf0slx4+FX/GUb31lzlmzYXJ
-         BPErIQ8oa+xTdR4JREj1+lvgOAPwtWG1IpAZL/2aYqUJtcSpTFPPyJmWWamOWMXEhDfE
-         hraodZve3+6y0x6vQ+TGEHGf+2cQaUy0AwkiGxVhUdgkdcfGILP50ghFV++12d+TQqkr
-         m+aQ==
-X-Gm-Message-State: AOAM531Br/NqobwFfcIUjSSUaLZXYRbCb9+vD6nKyJkZW5SOFQYBGdMV
-        o7Fx8F4p2eZeqxbrVGOYMm+dMB4dkCw=
-X-Google-Smtp-Source: ABdhPJzMNlQ7wgMMMKP2+ozorBxditMXEaVfv9SlYu5XvLbQQ4QNVo7xn2ciiuqzzcwq86sHWkzQRQWNmV4=
+        bh=n12oscJoQy25ZeJEgKUppRaHioaFclURl8PsqxmYCmo=;
+        b=BfjcXfvMzZmDUZ7VLTYIlNZQN10OX1OKvRTJvMCocwXexnpaJ3tQWrvlISnfuWujP+
+         Zwsqi3e2XFsR9VEIx3VQUFXfEoiBQi+dMmX3nMys38KXI/Py07xxqqjRSH2O4+14D1Yu
+         4Sjc9fYveubVMI5530JtZx9DgjORVLU2XEPhS2cHzOiPIm8pVfMgG1cQ+KhUmwHbuvst
+         zvrh+/nljj6KsttSdELDwTxckHBL7SCzUcd21ZXraRPBEhsnxWk/sWg6Nk7UgUQc+gWE
+         sYZXt/rafOdIKJ+Gj484ddGQyhniHlGDhbZ+VO7cJxUkW7thJTkkhFqoWxp/VEgRj7Gw
+         iTKA==
+X-Gm-Message-State: AOAM530T4lRTkVS50pGcmHj5IxZTLlaEPklhc7OHSuL23pHvi3iFUWmI
+        N8jC4T0rIwbuLQt7k4P30paV+3b8pWI=
+X-Google-Smtp-Source: ABdhPJxU8JwPhcVfaOXEOS2U2ep3mvLwmmcZHEz36qAom9R3kEeJAH/9Z6s5Sw7k1Wv/sYn9qCbZoM2w78E=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a50:eb87:0:b0:425:c3e2:17a9 with SMTP id
- y7-20020a50eb87000000b00425c3e217a9mr22640245edr.109.1650991530577; Tue, 26
- Apr 2022 09:45:30 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:56 +0200
+ (user=glider job=sendgmr) by 2002:a05:6402:5210:b0:423:de77:2a4d with SMTP id
+ s16-20020a056402521000b00423de772a4dmr25186177edd.295.1650991525861; Tue, 26
+ Apr 2022 09:45:25 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:54 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-28-glider@google.com>
+Message-Id: <20220426164315.625149-26-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 27/46] kmsan: instrumentation.h: add instrumentation_begin_with_regs()
+Subject: [PATCH v3 25/46] kmsan: virtio: check/unpoison scatterlist in vring_map_one_sg()
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,108 +89,48 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When calling KMSAN-instrumented functions from non-instrumented
-functions, function parameters may not be initialized properly, leading
-to false positive reports. In particular, this happens all the time when
-calling interrupt handlers from `noinstr` IDT entries.
-
-We introduce instrumentation_begin_with_regs(), which calls
-instrumentation_begin() and notifies KMSAN about the beginning of the
-potentially instrumented region by calling
-kmsan_instrumentation_begin(), which:
- - wipes the current KMSAN state at the beginning of the region, ensuring
-   that the first call of an instrumented function receives initialized
-   parameters (this is a pretty good approximation of having all other
-   instrumented functions receive initialized parameters);
- - unpoisons the `struct pt_regs` set up by the non-instrumented assembly
-   code.
+If vring doesn't use the DMA API, KMSAN is unable to tell whether the
+memory is initialized by hardware. Explicitly call kmsan_handle_dma()
+from vring_map_one_sg() in this case to prevent false positives.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
----
-Link: https://linux-review.googlesource.com/id/I0f5e3372e00bd5fe25ddbf286f7260aae9011858
----
- include/linux/instrumentation.h |  6 ++++++
- include/linux/kmsan.h           | 11 +++++++++++
- mm/kmsan/hooks.c                | 16 ++++++++++++++++
- 3 files changed, 33 insertions(+)
+Acked-by: Michael S. Tsirkin <mst@redhat.com>
 
-diff --git a/include/linux/instrumentation.h b/include/linux/instrumentation.h
-index 24359b4a96053..3bbce9d556381 100644
---- a/include/linux/instrumentation.h
-+++ b/include/linux/instrumentation.h
-@@ -15,6 +15,11 @@
- })
- #define instrumentation_begin() __instrumentation_begin(__COUNTER__)
+---
+Link: https://linux-review.googlesource.com/id/I211533ecb86a66624e151551f83ddd749536b3af
+---
+ drivers/virtio/virtio_ring.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/virtio/virtio_ring.c b/drivers/virtio/virtio_ring.c
+index cfb028ca238eb..faecd9e3d6560 100644
+--- a/drivers/virtio/virtio_ring.c
++++ b/drivers/virtio/virtio_ring.c
+@@ -11,6 +11,7 @@
+ #include <linux/module.h>
+ #include <linux/hrtimer.h>
+ #include <linux/dma-mapping.h>
++#include <linux/kmsan-checks.h>
+ #include <linux/spinlock.h>
+ #include <xen/xen.h>
  
-+#define instrumentation_begin_with_regs(regs) do {			\
-+	__instrumentation_begin(__COUNTER__);				\
-+	kmsan_instrumentation_begin(regs);				\
-+} while (0)
-+
- /*
-  * Because instrumentation_{begin,end}() can nest, objtool validation considers
-  * _begin() a +1 and _end() a -1 and computes a sum over the instructions.
-@@ -55,6 +60,7 @@
- #define instrumentation_end() __instrumentation_end(__COUNTER__)
- #else
- # define instrumentation_begin()	do { } while(0)
-+# define instrumentation_begin_with_regs(regs) kmsan_instrumentation_begin(regs)
- # define instrumentation_end()		do { } while(0)
- #endif
- 
-diff --git a/include/linux/kmsan.h b/include/linux/kmsan.h
-index 55f976b721566..209a5a2192e22 100644
---- a/include/linux/kmsan.h
-+++ b/include/linux/kmsan.h
-@@ -247,6 +247,13 @@ void kmsan_handle_dma_sg(struct scatterlist *sg, int nents,
-  */
- void kmsan_handle_urb(const struct urb *urb, bool is_out);
- 
-+/**
-+ * kmsan_instrumentation_begin() - handle instrumentation_begin().
-+ * @regs: pointer to struct pt_regs that non-instrumented code passes to
-+ *        instrumented code.
-+ */
-+void kmsan_instrumentation_begin(struct pt_regs *regs);
-+
- #else
- 
- static inline void kmsan_init_shadow(void)
-@@ -343,6 +350,10 @@ static inline void kmsan_handle_urb(const struct urb *urb, bool is_out)
+@@ -331,8 +332,15 @@ static dma_addr_t vring_map_one_sg(const struct vring_virtqueue *vq,
+ 				   struct scatterlist *sg,
+ 				   enum dma_data_direction direction)
  {
- }
+-	if (!vq->use_dma_api)
++	if (!vq->use_dma_api) {
++		/*
++		 * If DMA is not used, KMSAN doesn't know that the scatterlist
++		 * is initialized by the hardware. Explicitly check/unpoison it
++		 * depending on the direction.
++		 */
++		kmsan_handle_dma(sg_page(sg), sg->offset, sg->length, direction);
+ 		return (dma_addr_t)sg_phys(sg);
++	}
  
-+static inline void kmsan_instrumentation_begin(struct pt_regs *regs)
-+{
-+}
-+
- #endif
- 
- #endif /* _LINUX_KMSAN_H */
-diff --git a/mm/kmsan/hooks.c b/mm/kmsan/hooks.c
-index 9aecbf2825837..c20d105c143c1 100644
---- a/mm/kmsan/hooks.c
-+++ b/mm/kmsan/hooks.c
-@@ -366,3 +366,19 @@ void kmsan_check_memory(const void *addr, size_t size)
- 					   REASON_ANY);
- }
- EXPORT_SYMBOL(kmsan_check_memory);
-+
-+void kmsan_instrumentation_begin(struct pt_regs *regs)
-+{
-+	struct kmsan_context_state *state = &kmsan_get_context()->cstate;
-+
-+	if (state)
-+		__memset(state, 0, sizeof(struct kmsan_context_state));
-+	if (!kmsan_enabled || !regs)
-+		return;
-+	/*
-+	 * @regs may reside in cpu_entry_area, for which KMSAN does not allocate
-+	 * metadata. Do not force an error in that case.
-+	 */
-+	kmsan_internal_unpoison_memory(regs, sizeof(*regs), /*checked*/ false);
-+}
-+EXPORT_SYMBOL(kmsan_instrumentation_begin);
+ 	/*
+ 	 * We can't use dma_map_sg, because we don't use scatterlists in
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
