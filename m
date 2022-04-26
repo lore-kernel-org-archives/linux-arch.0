@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4A3A9C433F5
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:45:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D485FC433F5
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Apr 2022 16:46:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348760AbiDZQsp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Apr 2022 12:48:45 -0400
+        id S1353208AbiDZQtG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Apr 2022 12:49:06 -0400
 Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41978 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353187AbiDZQs2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:48:28 -0400
-Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3F4081942E9
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:50 -0700 (PDT)
-Received: by mail-ej1-x64a.google.com with SMTP id mp18-20020a1709071b1200b006e7f314ecb3so9373194ejc.23
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:50 -0700 (PDT)
+        with ESMTP id S1353185AbiDZQso (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2022 12:48:44 -0400
+Received: from mail-lf1-x149.google.com (mail-lf1-x149.google.com [IPv6:2a00:1450:4864:20::149])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E2716FD6
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:58 -0700 (PDT)
+Received: by mail-lf1-x149.google.com with SMTP id b33-20020a0565120ba100b004720174b354so3179063lfv.19
+        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2022 09:44:58 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=date:in-reply-to:message-id:mime-version:references:subject:from:to
          :cc;
-        bh=SEm8RFoD3mzqXjcHWM9Z/XfNnVTnRxEBaTJIwFUC6FI=;
-        b=V1UPpoK10uyPLSVeGxmKmWLpz7MVRMo+4uiBOQTE+btQjeiF7bX14i8xIN4hWxvfsI
-         BKp6ezW66yD/fgl4XMpuBdON6QxtTZCTto768iFnXFc2LH7l5QwZpTox8pUyK0cZZMcU
-         9diZqYTWDNczn8waY+ysJcw4lWMp4tfA90aPMraK8ja0L3fYlvQlBZsap+cS3cIoYkUy
-         i+K1sOjum2D1Snfi9ezBpkT3FqJQbpZ1ZkJb010JMdv/VFlzNAOneWXO4NmYGXJdCYB8
-         LxjKRUcmGqytLknAlHvn7Ijdu7TEekTSbAaIp3JV0enFaH8f7pcQ4jDbiUGAEReAXkN8
-         4fmA==
+        bh=QRr/YK4fONn3HTG8Fp9y+tnnWkzL1O1MoaFJezJL3sE=;
+        b=GRtnB1LL/0WxvgZxxJD6lyURNXu6W8fs61POQbIbc0oumZ7k69NQoqD3tuCVl5yHj/
+         Gx/zngh3XGQ7t3vv0vTrJzo1vEkQTQ/ZRo418CMleof5FGdj9l6StzKqWUtXQAScQwo5
+         7P5qB/cvRckWW+BL+XiMdliFEO5yd4aWG7n9leQq17xa//Gzq2wBQTSCFsGG0JWGpu0+
+         pqy91hZcYLp1jkzx4uiMbKUqjtEQl6oUHgMvxwlnBvwzVMZsM6AIx5QoYYlhWVc7tQxH
+         mHkgIrHRenuJcacBwVLYMBUhS7EqeYlTJUvvLtw99sQakaUg4whscJWcJBjl5RDYQ691
+         p17g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:date:in-reply-to:message-id:mime-version
          :references:subject:from:to:cc;
-        bh=SEm8RFoD3mzqXjcHWM9Z/XfNnVTnRxEBaTJIwFUC6FI=;
-        b=3k48vb8mP/GBzZBo/V8ITEvQKXTx2o6YN4r8PqI1SMFD/EUvLbm9p84RPynb+MVjdc
-         XnvvqMi80t7MAYpk5s6MypnoGY2AFGIfoiYkyrGsONdlMJhBbWhrK5DeVXdFLDbg6fIT
-         bz0VBmdODRlRl+zf7T/4CQZ+7hsWX5/LchkJRpof7Cg4U8allkIKQs1DOkMU8edDF6/3
-         iiyazhx5gOO6pzyBffIdtigNfgcXRSvOVG16cBTeD7NhjUIJ1UA+DV6f1hxlK+VDPRCo
-         wD8tWmG/rufifi2VzsmqmsJkj0EwGlNPnXlu3LW8SH683Do9tMuggXuuP9e47GC7x4i+
-         mk8A==
-X-Gm-Message-State: AOAM531hYPFUKHdWBG1XWmfUQIOKwERBXNXrqF3L+u980DfVFsa++LF+
-        72nXcN5YMiFiWg3nBJEgsCjrDVJeH5M=
-X-Google-Smtp-Source: ABdhPJzlxnxEzq09x8VRCHG67jl1BT+tZuNt6ukFhmOsg7s6+uxFS5/FlyCj/NdcpcGzVA6sRk/t/wnlBr4=
+        bh=QRr/YK4fONn3HTG8Fp9y+tnnWkzL1O1MoaFJezJL3sE=;
+        b=Dg41FnFwePMeZ4dC1E42Vt/imPMAFFERquKDDL2xKmtBUbuZcK9BRFy7okJZ4nhpJP
+         qsvcrNWK4RtfZgCHX4dG0T23ZaDTpKDt98pISh5/uyi5WvO2/tPbUMuMTNWclx/0gjS+
+         tK5zGGnKj0uKuaCJvREFOVvoMP8txA24Crr5XQpMQuMpY9pKeIAYnGaTvJqtje01KNIP
+         S+W3LttfUZEhiBhLkf5Xm5zo/ql8eVioxc8wX22n8Wd/XNdQWb0lMQQFHZtj+Q1BB9gg
+         Fw3FUxTlOJRoMMDvdtgC/XPgsnoTMSgYlmU37NdBrsX2djjQ1QXf89gp3eCHtH02ekN2
+         xBYg==
+X-Gm-Message-State: AOAM533akRIF3IHe+vwH8sz0l/b05pqeg/oMxQcTg0A/2B+Sh3SwvlCg
+        6LApalfR7vvldh/6WF8AU0Re7m2cGTA=
+X-Google-Smtp-Source: ABdhPJxO/IzNek0yZm9+I1xLkkVDvFA7Rtx6U+bdK1jYJgO+mP11K/pbQde5ZHHXccF1PEslgOn1O7FKoX8=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:15:13:d580:abeb:bf6d:5726])
- (user=glider job=sendgmr) by 2002:a05:6402:35d2:b0:424:1eb0:45c2 with SMTP id
- z18-20020a05640235d200b004241eb045c2mr25704880edc.152.1650991488637; Tue, 26
- Apr 2022 09:44:48 -0700 (PDT)
-Date:   Tue, 26 Apr 2022 18:42:40 +0200
+ (user=glider job=sendgmr) by 2002:a05:6512:104a:b0:471:f0c2:99ee with SMTP id
+ c10-20020a056512104a00b00471f0c299eemr14014612lfb.142.1650991496992; Tue, 26
+ Apr 2022 09:44:56 -0700 (PDT)
+Date:   Tue, 26 Apr 2022 18:42:43 +0200
 In-Reply-To: <20220426164315.625149-1-glider@google.com>
-Message-Id: <20220426164315.625149-12-glider@google.com>
+Message-Id: <20220426164315.625149-15-glider@google.com>
 Mime-Version: 1.0
 References: <20220426164315.625149-1-glider@google.com>
 X-Mailer: git-send-email 2.36.0.rc2.479.g8af0fa9b8e-goog
-Subject: [PATCH v3 11/46] libnvdimm/pfn_dev: increase MAX_STRUCT_PAGE_SIZE
+Subject: [PATCH v3 14/46] kmsan: disable instrumentation of unsupported common
+ kernel code
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -89,43 +90,77 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN adds extra metadata fields to struct page, so it does not fit into
-64 bytes anymore.
+EFI stub cannot be linked with KMSAN runtime, so we disable
+instrumentation for it.
+
+Instrumenting kcov, stackdepot or lockdep leads to infinite recursion
+caused by instrumentation hooks calling instrumented code again.
+
+This patch was previously part of "kmsan: disable KMSAN instrumentation
+for certain kernel parts", but was split away per Mark Rutland's
+request.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/I353796acc6a850bfd7bb342aa1b63e616fc614f1
+Link: https://linux-review.googlesource.com/id/I41ae706bd3474f074f6a870bfc3f0f90e9c720f7
 ---
- drivers/nvdimm/nd.h       | 2 +-
- drivers/nvdimm/pfn_devs.c | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ drivers/firmware/efi/libstub/Makefile | 1 +
+ kernel/Makefile                       | 1 +
+ kernel/locking/Makefile               | 3 ++-
+ lib/Makefile                          | 1 +
+ 4 files changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/nvdimm/nd.h b/drivers/nvdimm/nd.h
-index ec5219680092d..85ca5b4da3cf3 100644
---- a/drivers/nvdimm/nd.h
-+++ b/drivers/nvdimm/nd.h
-@@ -652,7 +652,7 @@ void devm_namespace_disable(struct device *dev,
- 		struct nd_namespace_common *ndns);
- #if IS_ENABLED(CONFIG_ND_CLAIM)
- /* max struct page size independent of kernel config */
--#define MAX_STRUCT_PAGE_SIZE 64
-+#define MAX_STRUCT_PAGE_SIZE 128
- int nvdimm_setup_pfn(struct nd_pfn *nd_pfn, struct dev_pagemap *pgmap);
- #else
- static inline int nvdimm_setup_pfn(struct nd_pfn *nd_pfn,
-diff --git a/drivers/nvdimm/pfn_devs.c b/drivers/nvdimm/pfn_devs.c
-index c31e184bfa45e..d51a3cd6581b1 100644
---- a/drivers/nvdimm/pfn_devs.c
-+++ b/drivers/nvdimm/pfn_devs.c
-@@ -784,7 +784,7 @@ static int nd_pfn_init(struct nd_pfn *nd_pfn)
- 		 * when populating the vmemmap. This *should* be equal to
- 		 * PMD_SIZE for most architectures.
- 		 *
--		 * Also make sure size of struct page is less than 64. We
-+		 * Also make sure size of struct page is less than 128. We
- 		 * want to make sure we use large enough size here so that
- 		 * we don't have a dynamic reserve space depending on
- 		 * struct page size. But we also want to make sure we notice
+diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+index d0537573501e9..81432d0c904b1 100644
+--- a/drivers/firmware/efi/libstub/Makefile
++++ b/drivers/firmware/efi/libstub/Makefile
+@@ -46,6 +46,7 @@ GCOV_PROFILE			:= n
+ # Sanitizer runtimes are unavailable and cannot be linked here.
+ KASAN_SANITIZE			:= n
+ KCSAN_SANITIZE			:= n
++KMSAN_SANITIZE			:= n
+ UBSAN_SANITIZE			:= n
+ OBJECT_FILES_NON_STANDARD	:= y
+ 
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 847a82bfe0e3a..2a98e46479817 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -39,6 +39,7 @@ KCOV_INSTRUMENT_kcov.o := n
+ KASAN_SANITIZE_kcov.o := n
+ KCSAN_SANITIZE_kcov.o := n
+ UBSAN_SANITIZE_kcov.o := n
++KMSAN_SANITIZE_kcov.o := n
+ CFLAGS_kcov.o := $(call cc-option, -fno-conserve-stack) -fno-stack-protector
+ 
+ # Don't instrument error handlers
+diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
+index d51cabf28f382..ea925731fa40f 100644
+--- a/kernel/locking/Makefile
++++ b/kernel/locking/Makefile
+@@ -5,8 +5,9 @@ KCOV_INSTRUMENT		:= n
+ 
+ obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o
+ 
+-# Avoid recursion lockdep -> KCSAN -> ... -> lockdep.
++# Avoid recursion lockdep -> sanitizer -> ... -> lockdep.
+ KCSAN_SANITIZE_lockdep.o := n
++KMSAN_SANITIZE_lockdep.o := n
+ 
+ ifdef CONFIG_FUNCTION_TRACER
+ CFLAGS_REMOVE_lockdep.o = $(CC_FLAGS_FTRACE)
+diff --git a/lib/Makefile b/lib/Makefile
+index 6b9ffc1bd1eed..caeb55f661726 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -269,6 +269,7 @@ obj-$(CONFIG_IRQ_POLL) += irq_poll.o
+ CFLAGS_stackdepot.o += -fno-builtin
+ obj-$(CONFIG_STACKDEPOT) += stackdepot.o
+ KASAN_SANITIZE_stackdepot.o := n
++KMSAN_SANITIZE_stackdepot.o := n
+ KCOV_INSTRUMENT_stackdepot.o := n
+ 
+ obj-$(CONFIG_REF_TRACKER) += ref_tracker.o
 -- 
 2.36.0.rc2.479.g8af0fa9b8e-goog
 
