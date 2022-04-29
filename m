@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E617CC433F5
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:45:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CC093C433EF
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:45:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233639AbiD2Jsa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Apr 2022 05:48:30 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33470 "EHLO
+        id S1356737AbiD2Jsd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Apr 2022 05:48:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33528 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1350258AbiD2Js3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:29 -0400
-Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8D637167C6;
-        Fri, 29 Apr 2022 02:45:11 -0700 (PDT)
-Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.57])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4KqSHc5151zfZtl;
-        Fri, 29 Apr 2022 17:44:12 +0800 (CST)
+        with ESMTP id S1356678AbiD2Jsa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:30 -0400
+Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3342117E2C;
+        Fri, 29 Apr 2022 02:45:12 -0700 (PDT)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.55])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4KqSJK1TPqzhYs7;
+        Fri, 29 Apr 2022 17:44:49 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
  dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:09 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:10 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:09 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:10 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>,
         <linux-arm-kernel@lists.infradead.org>,
@@ -36,9 +36,9 @@ CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
         <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
         <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
         <chenzhongjin@huawei.com>
-Subject: [RFC PATCH v4 01/37] tools: Add some generic functions and headers
-Date:   Fri, 29 Apr 2022 17:43:19 +0800
-Message-ID: <20220429094355.122389-2-chenzhongjin@huawei.com>
+Subject: [RFC PATCH v4 06/37] objtool: arm64: Decode jump and call related instructions
+Date:   Fri, 29 Apr 2022 17:43:24 +0800
+Message-ID: <20220429094355.122389-7-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
 References: <20220429094355.122389-1-chenzhongjin@huawei.com>
@@ -54,115 +54,46 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Julien Thierry <jthierry@redhat.com>
 
-These will be needed to be able to use arm64 instruction decoder in
-userland tools.
+Decode branch, branch and link (aarch64's call) and return instructions.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
+Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- tools/include/asm-generic/bitops/__ffs.h | 11 +++++++
- tools/include/linux/kernel.h             | 21 +++++++++++++
- tools/include/linux/printk.h             | 40 ++++++++++++++++++++++++
- 3 files changed, 72 insertions(+)
- create mode 100644 tools/include/linux/printk.h
+ tools/objtool/arch/arm64/decode.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-diff --git a/tools/include/asm-generic/bitops/__ffs.h b/tools/include/asm-generic/bitops/__ffs.h
-index 9d1310519497..963f8a22212f 100644
---- a/tools/include/asm-generic/bitops/__ffs.h
-+++ b/tools/include/asm-generic/bitops/__ffs.h
-@@ -42,4 +42,15 @@ static __always_inline unsigned long __ffs(unsigned long word)
- 	return num;
- }
- 
-+static inline unsigned long __ffs64(u64 word)
-+{
-+#if BITS_PER_LONG == 32
-+	if (((u32)word) == 0UL)
-+		return __ffs((u32)(word >> 32)) + 32;
-+#elif BITS_PER_LONG != 64
-+#error BITS_PER_LONG not 32 or 64
-+#endif
-+	return __ffs((unsigned long)word);
-+}
-+
- #endif /* _TOOLS_LINUX_ASM_GENERIC_BITOPS___FFS_H_ */
-diff --git a/tools/include/linux/kernel.h b/tools/include/linux/kernel.h
-index 4b0673bf52c2..47f24f07e8f1 100644
---- a/tools/include/linux/kernel.h
-+++ b/tools/include/linux/kernel.h
-@@ -102,6 +102,27 @@ int scnprintf_pad(char * buf, size_t size, const char * fmt, ...);
- #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
- #endif
- 
-+/**
-+ * upper_32_bits - return bits 32-63 of a number
-+ * @n: the number we're accessing
-+ *
-+ * A basic shift-right of a 64- or 32-bit quantity.  Use this to suppress
-+ * the "right shift count >= width of type" warning when that quantity is
-+ * 32-bits.
-+ */
-+#define upper_32_bits(n) ((u32)(((n) >> 16) >> 16))
-+
-+/**
-+ * lower_32_bits - return bits 0-31 of a number
-+ * @n: the number we're accessing
-+ */
-+#define lower_32_bits(n) ((u32)(n))
-+
-+/* Inspired from ALIGN_*_KERNEL */
-+#define __ALIGN_MASK(x, mask)	(((x) + (mask)) & ~(mask))
-+#define __ALIGN(x, a)		__ALIGN_MASK(x, (typeof(x))(a) - 1)
-+#define ALIGN_DOWN(x, a)	__ALIGN((x) - ((a) - 1), (a))
-+
- #define current_gfp_context(k) 0
- #define synchronize_rcu()
- 
-diff --git a/tools/include/linux/printk.h b/tools/include/linux/printk.h
-new file mode 100644
-index 000000000000..515ebdc47e6e
---- /dev/null
-+++ b/tools/include/linux/printk.h
-@@ -0,0 +1,40 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _TOOLS_LINUX_KERNEL_PRINTK_H_
-+#define _TOOLS_LINUX_KERNEL_PRINTK_H_
-+
-+#include <stdarg.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+
-+#define printk(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
-+#define pr_info printk
-+#define pr_notice printk
-+#define pr_cont printk
-+
-+#define pr_warn(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
-+#define pr_err pr_warn
-+#define pr_alert pr_warn
-+#define pr_emerg pr_warn
-+#define pr_crit pr_warn
-+
-+/*
-+ * Dummy printk for disabled debugging statements to use whilst maintaining
-+ * gcc's format checking.
-+ */
-+#define no_printk(fmt, ...)				\
-+({							\
-+	if (0)						\
-+		printk(fmt, ##__VA_ARGS__);		\
-+	0;						\
-+})
-+
-+/* pr_devel() should produce zero code unless DEBUG is defined */
-+#ifdef DEBUG
-+#define pr_devel(fmt, ...) printk
-+#else
-+#define pr_devel(fmt, ...) no_printk
-+#endif
-+
-+#define pr_debug pr_devel
-+
-+#endif /* _TOOLS_LINUX_KERNEL_PRINTK_H_ */
+diff --git a/tools/objtool/arch/arm64/decode.c b/tools/objtool/arch/arm64/decode.c
+index 84daec62006a..351f8b1bbd6d 100644
+--- a/tools/objtool/arch/arm64/decode.c
++++ b/tools/objtool/arch/arm64/decode.c
+@@ -219,6 +219,27 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
+ 			}
+ 		}
+ 		break;
++	case AARCH64_INSN_CLS_BR_SYS:
++		if (aarch64_insn_is_ret(insn) &&
++		    aarch64_insn_decode_register(AARCH64_INSN_REGTYPE_RN, insn)
++			== AARCH64_INSN_REG_LR) {
++			*type = INSN_RETURN;
++		} else if (aarch64_insn_is_bl(insn)) {
++			*type = INSN_CALL;
++			*immediate = aarch64_get_branch_offset(insn);
++		} else if (aarch64_insn_is_blr(insn)) {
++			*type = INSN_CALL_DYNAMIC;
++		} else if (aarch64_insn_is_b(insn)) {
++			*type = INSN_JUMP_UNCONDITIONAL;
++			*immediate = aarch64_get_branch_offset(insn);
++		} else if (aarch64_insn_is_br(insn)) {
++			*type = INSN_JUMP_DYNAMIC;
++		} else if (aarch64_insn_is_branch_imm(insn)) {
++			/* Remaining branch opcodes are conditional */
++			*type = INSN_JUMP_CONDITIONAL;
++			*immediate = aarch64_get_branch_offset(insn);
++		}
++		break;
+ 	default:
+ 		break;
+ 	}
 -- 
 2.17.1
 
