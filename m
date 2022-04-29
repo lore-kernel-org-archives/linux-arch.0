@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 167A3C433F5
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:46:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1F43FC4332F
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:46:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356733AbiD2JtQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Apr 2022 05:49:16 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34424 "EHLO
+        id S1356742AbiD2JtR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Apr 2022 05:49:17 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34452 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1356790AbiD2Jss (ORCPT
+        with ESMTP id S1356763AbiD2Jss (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:48 -0400
 Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 27FA48FF93;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6CF55939AB;
         Fri, 29 Apr 2022 02:45:21 -0700 (PDT)
 Received: from dggpemm500022.china.huawei.com (unknown [172.30.72.56])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4KqSJb6Vp9zhYqJ;
+        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4KqSJb5V4tzhYq4;
         Fri, 29 Apr 2022 17:45:03 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
  dggpemm500022.china.huawei.com (7.185.36.162) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:11 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:09 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:11 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:09 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>,
         <linux-arm-kernel@lists.infradead.org>,
@@ -36,12 +36,10 @@ CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
         <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
         <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
         <chenzhongjin@huawei.com>
-Subject: [RFC PATCH v4 10/37] objtool: arm64: Accept non-instruction data in code sections
-Date:   Fri, 29 Apr 2022 17:43:28 +0800
-Message-ID: <20220429094355.122389-11-chenzhongjin@huawei.com>
+Subject: [RFC PATCH v4 00/37] objtool: add base support for arm64
+Date:   Fri, 29 Apr 2022 17:43:18 +0800
+Message-ID: <20220429094355.122389-1-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
-References: <20220429094355.122389-1-chenzhongjin@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 X-Originating-IP: [10.67.175.36]
@@ -52,50 +50,162 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Julien Thierry <jthierry@redhat.com>
+This series enables objtool to start doing stack validation/check 
+on arm64 kernel builds.
 
-The compiler can generate some '0x0' words in code sections to pad the
-end of functions. Also some pesudo-instructions can generate data in
-code sections.
-Record these instructions which can't be decoded as ignored for
-objtool check.
+Gathering Julien's previous work[1][2], now objtool can check build
+on arm64 build for defconfig and yesconfig, with only few unreachable
+warning.
 
-Signed-off-by: Julien Thierry <jthierry@redhat.com>
-Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
+This series includes objtool part (1-15) and arm64 part (16-37), if
+necessary it can be taken apart as two series.
+
+I'm not sure that UNWIND_HINT added to entry (33-36) is complete
+and correct, because after Julien finished it there was a
+refactoring for entry. It will be fully tested after I implement
+unwinder_orc for arm64.
+
+[1] https://lkml.org/lkml/2021/3/3/1135
+[2] https://github.com/julien-thierry/linux.git
+
 ---
- tools/objtool/arch/arm64/decode.c | 19 +++++++++++++++++--
- 1 file changed, 17 insertions(+), 2 deletions(-)
+Changes v3 -> v4:
+- [1] fix EX_ENTRY_SIZE from 8 to 12.
+- [14-37] modify arm64 for supporting objtool, including annotation,
+	asm code modification, ignoring some validation, to make objtool
+	be enable to pass arm64 builds.
 
-diff --git a/tools/objtool/arch/arm64/decode.c b/tools/objtool/arch/arm64/decode.c
-index b62addece734..d2522ef43101 100644
---- a/tools/objtool/arch/arm64/decode.c
-+++ b/tools/objtool/arch/arm64/decode.c
-@@ -389,8 +389,23 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
- 
- 	switch (aarch64_get_insn_class(insn)) {
- 	case AARCH64_INSN_CLS_UNKNOWN:
--		WARN("can't decode instruction at %s:0x%lx", sec->name, offset);
--		return -1;
-+		/*
-+		 * There are a few reasons that non-valid opcodes in code sections:
-+		 * - For LDR ops, assembler can generate the data to be
-+		 *   loaded in the code section
-+		 * - Compiler/assembler can generate zeroes to pad function that
-+		 *   do not end on 8-byte alignment
-+		 * - Some pseudo-instructions can also generate data in code
-+		 *   section
-+		 *
-+		 * Record these data as ignored so that they won't cause fault
-+		 */
-+		if (insn == 0x0)
-+			*type = INSN_NOP;
-+		else if (record_invalid_insn(sec, offset, false))
-+			return -1;
-+
-+		break;
- 	case AARCH64_INSN_CLS_DP_IMM:
- 		/* Mov register to and from SP are aliases of add_imm */
- 		if (aarch64_insn_is_add_imm(insn) ||
+Changes v2 -> v3:
+- [04] rebase Julien's version to mainstream and solve conflicts.
+- [05, 06, 08] Merge dumplicate "*type = INSN_OTHER".
+- [08, 09, 10] When meeting unrecognized instructions such as  datas
+	in .text code or 0x0 padding insns, last version used
+	"loc->ignorable" to mark and remove them from objtool insn list.
+
+	However there are two problems to do so:
+	1. when meeting insns can't be decoded or excluded, objtool will
+	just stop.
+	
+	2. deleting every insn can cause problems in fellow procedure.
+
+	So I changed "record_invalid_insn" that we can delete one insn or
+	just set it ignored. Now check will throw an error and going on when
+	meeting undecodable instructions.
+
+	Also, to prevent the confusion between "loc->ignorable" and
+	"insn->ignore" I changed "ignore" to "delete".
+
+Changes v1 -> v2:
+	- Drop gcc plugin in favor of -fno-jump-tables
+	- miscelaneous fixes and cleanups
+
+--->
+Chen Zhongjin (6):
+  arm64: Add annotate_reachable() for objtools
+  arm64: irq-gic: Replace unreachable() with -EINVAL
+  arm64: ftrace: Skip validation of entry-ftrace.o
+  arm64: bpf: Skip validation of ___bpf_prog_run
+  arm64: Annotate ASM symbols with unknown stack state
+  arm64: entry: Align stack size for alternative
+
+Julien Thierry (29):
+  tools: Add some generic functions and headers
+  tools: arm64: Make aarch64 instruction decoder available to tools
+  tools: bug: Remove duplicate definition
+  objtool: arm64: Add base definition for arm64 backend
+  objtool: arm64: Decode add/sub instructions
+  objtool: arm64: Decode jump and call related instructions
+  objtool: arm64: Decode other system instructions
+  objtool: arm64: Decode load/store instructions
+  objtool: arm64: Decode LDR instructions
+  objtool: arm64: Accept non-instruction data in code sections
+  objtool: arm64: Handle supported relocations in alternatives
+  objtool: arm64: Ignore replacement section for alternative callback
+  objtool: check: Support data in text section
+  objtool: arm64: Add unwind_hint support
+  arm64: bug: Add reachable annotation to warning macros
+  arm64: kgdb: Mark code following kgdb brk as reachable
+  arm64: Set intra-function call annotations
+  arm64: kernel: Skip validation of proton-pack.c.c and hibernate.c
+  arm64: kernel: Skip validation of sigreturn32.o
+  arm64: crypto: Remove unnecessary stackframe
+  arm64: sleep: Properly set frame pointer before call
+  arm64: Change symbol annotations
+  arm64: efi-header: Mark efi header as data
+  arm64: head: Mark constants as data
+  arm64: proc: Mark constant as data
+  arm64: crypto: Mark data in code sections
+  arm64: entry: Annotate valid stack in kernel entry
+  arm64: entry: Annotate code switching to tasks
+  arm64: kvm: Annotate stack state for guest enter/exit code
+
+Raphael Gault (2):
+  objtool: arm64: Enable stack validation for arm64
+  arm64: kernel: Skip validation of kuser32.o
+
+ arch/arm64/Kconfig                            |    1 +
+ arch/arm64/Makefile                           |    4 +
+ arch/arm64/crypto/aes-neonbs-core.S           |   14 +-
+ arch/arm64/crypto/crct10dif-ce-core.S         |    5 +
+ arch/arm64/crypto/poly1305-armv8.pl           |    4 +
+ arch/arm64/crypto/sha512-armv8.pl             |   29 +-
+ arch/arm64/include/asm/assembler.h            |    2 +
+ arch/arm64/include/asm/bug.h                  |    6 +-
+ arch/arm64/include/asm/kgdb.h                 |    1 +
+ arch/arm64/include/asm/unwind_hints.h         |   27 +
+ arch/arm64/kernel/Makefile                    |   10 +
+ arch/arm64/kernel/cpu-reset.S                 |    2 +
+ arch/arm64/kernel/efi-entry.S                 |    2 +
+ arch/arm64/kernel/efi-header.S                |    2 +
+ arch/arm64/kernel/entry.S                     |   29 +-
+ arch/arm64/kernel/head.S                      |   75 +-
+ arch/arm64/kernel/hibernate-asm.S             |    2 +
+ arch/arm64/kernel/hibernate.c                 |    2 +
+ arch/arm64/kernel/proton-pack.c               |    2 +
+ arch/arm64/kernel/relocate_kernel.S           |    2 +
+ arch/arm64/kernel/sleep.S                     |    8 +-
+ arch/arm64/kvm/hyp/entry.S                    |    7 +-
+ arch/arm64/kvm/hyp/hyp-entry.S                |    3 +
+ arch/arm64/kvm/hyp/vgic-v3-sr.c               |    7 +-
+ arch/arm64/mm/proc.S                          |    4 +-
+ drivers/irqchip/irq-gic-v3.c                  |    2 +-
+ include/linux/compiler.h                      |    9 +
+ kernel/bpf/core.c                             |    3 +
+ tools/arch/arm64/include/asm/insn.h           |  565 +++++++
+ tools/arch/arm64/include/asm/unwind_hints.h   |   27 +
+ tools/arch/arm64/lib/insn.c                   | 1464 +++++++++++++++++
+ tools/include/asm-generic/bitops/__ffs.h      |   11 +
+ tools/include/linux/bug.h                     |    6 +-
+ tools/include/linux/kernel.h                  |   21 +
+ tools/include/linux/printk.h                  |   40 +
+ tools/objtool/Makefile                        |    5 +
+ tools/objtool/arch/arm64/Build                |    8 +
+ tools/objtool/arch/arm64/decode.c             |  506 ++++++
+ .../arch/arm64/include/arch/cfi_regs.h        |   14 +
+ tools/objtool/arch/arm64/include/arch/elf.h   |    8 +
+ .../arch/arm64/include/arch/endianness.h      |    9 +
+ .../objtool/arch/arm64/include/arch/special.h |   22 +
+ tools/objtool/arch/arm64/special.c            |   36 +
+ tools/objtool/arch/x86/decode.c               |    5 +
+ tools/objtool/check.c                         |   25 +-
+ tools/objtool/elf.c                           |   14 +
+ tools/objtool/include/objtool/arch.h          |    3 +
+ tools/objtool/include/objtool/elf.h           |    1 +
+ tools/objtool/sync-check.sh                   |    5 +
+ 49 files changed, 2985 insertions(+), 74 deletions(-)
+ create mode 100644 arch/arm64/include/asm/unwind_hints.h
+ create mode 100644 tools/arch/arm64/include/asm/insn.h
+ create mode 100644 tools/arch/arm64/include/asm/unwind_hints.h
+ create mode 100644 tools/arch/arm64/lib/insn.c
+ create mode 100644 tools/include/linux/printk.h
+ create mode 100644 tools/objtool/arch/arm64/Build
+ create mode 100644 tools/objtool/arch/arm64/decode.c
+ create mode 100644 tools/objtool/arch/arm64/include/arch/cfi_regs.h
+ create mode 100644 tools/objtool/arch/arm64/include/arch/elf.h
+ create mode 100644 tools/objtool/arch/arm64/include/arch/endianness.h
+ create mode 100644 tools/objtool/arch/arm64/include/arch/special.h
+ create mode 100644 tools/objtool/arch/arm64/special.c
+
 -- 
 2.17.1
 
