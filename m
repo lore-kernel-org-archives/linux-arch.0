@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D63E4C433F5
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:45:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 91656C433EF
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:45:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356779AbiD2Jsl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Apr 2022 05:48:41 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33774 "EHLO
+        id S1356783AbiD2Jso (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Apr 2022 05:48:44 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33746 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1356751AbiD2Jsf (ORCPT
+        with ESMTP id S1356747AbiD2Jsf (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:35 -0400
-Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 35EDA1DA5B;
-        Fri, 29 Apr 2022 02:45:17 -0700 (PDT)
+Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 437A128993;
+        Fri, 29 Apr 2022 02:45:16 -0700 (PDT)
 Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.53])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4KqSJW6wp0zhYcy;
-        Fri, 29 Apr 2022 17:44:59 +0800 (CST)
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4KqSJP1nm2zhYsL;
+        Fri, 29 Apr 2022 17:44:53 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
  dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:15 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:14 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:15 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:14 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>,
         <linux-arm-kernel@lists.infradead.org>,
@@ -36,9 +36,9 @@ CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
         <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
         <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
         <chenzhongjin@huawei.com>
-Subject: [RFC PATCH v4 31/37] arm64: proc: Mark constant as data
-Date:   Fri, 29 Apr 2022 17:43:49 +0800
-Message-ID: <20220429094355.122389-32-chenzhongjin@huawei.com>
+Subject: [RFC PATCH v4 26/37] arm64: crypto: Remove unnecessary stackframe
+Date:   Fri, 29 Apr 2022 17:43:44 +0800
+Message-ID: <20220429094355.122389-27-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
 References: <20220429094355.122389-1-chenzhongjin@huawei.com>
@@ -54,29 +54,41 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Julien Thierry <jthierry@redhat.com>
 
-Label __idmap_kpti_flag represents the location of a constant.
-Mark it as data symbol.
+The way sha256_block_neon restore the stackframe confuses objtool.
+But it turns out this function is a leaf function and does not use
+FP nor LR as scratch register.
+
+Do not create a stackframe in this function as it is not necessary.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
+Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- arch/arm64/mm/proc.S | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/arm64/crypto/sha512-armv8.pl | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/arch/arm64/mm/proc.S b/arch/arm64/mm/proc.S
-index 50bbed947bec..c34ea1778b1e 100644
---- a/arch/arm64/mm/proc.S
-+++ b/arch/arm64/mm/proc.S
-@@ -222,8 +222,8 @@ SYM_FUNC_END(idmap_cpu_replace_ttbr1)
-  *
-  * Called exactly once from stop_machine context by each CPU found during boot.
-  */
--__idmap_kpti_flag:
--	.long	1
-+SYM_DATA_LOCAL(__idmap_kpti_flag, .long	1)
-+
- SYM_FUNC_START(idmap_kpti_install_ng_mappings)
- 	cpu		.req	w0
- 	num_cpus	.req	w1
+diff --git a/arch/arm64/crypto/sha512-armv8.pl b/arch/arm64/crypto/sha512-armv8.pl
+index 35ec9ae99fe1..dca0f22df07f 100644
+--- a/arch/arm64/crypto/sha512-armv8.pl
++++ b/arch/arm64/crypto/sha512-armv8.pl
+@@ -644,8 +644,6 @@ $code.=<<___;
+ .align	4
+ sha256_block_neon:
+ .Lneon_entry:
+-	stp	x29, x30, [sp, #-16]!
+-	mov	x29, sp
+ 	sub	sp,sp,#16*4
+ 
+ 	adr	$Ktbl,.LK256
+@@ -732,8 +730,7 @@ $code.=<<___;
+ 	 mov	$Xfer,sp
+ 	b.ne	.L_00_48
+ 
+-	ldr	x29,[x29]
+-	add	sp,sp,#16*4+16
++	add	sp,sp,#16*4
+ 	ret
+ .size	sha256_block_neon,.-sha256_block_neon
+ ___
 -- 
 2.17.1
 
