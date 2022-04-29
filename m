@@ -2,80 +2,87 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C0309C433EF
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:46:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D3C85C433EF
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 11:06:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356920AbiD2Jtu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Apr 2022 05:49:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34780 "EHLO
+        id S239211AbiD2LJh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Apr 2022 07:09:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41090 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1356873AbiD2Js6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:58 -0400
-Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 97AAD95A3D;
-        Fri, 29 Apr 2022 02:45:40 -0700 (PDT)
-Received: from dggpemm500024.china.huawei.com (unknown [172.30.72.55])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4KqSG50sxVzGpWx;
-        Fri, 29 Apr 2022 17:42:53 +0800 (CST)
-Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500024.china.huawei.com (7.185.36.203) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:14 +0800
-Received: from ubuntu1804.huawei.com (10.67.175.36) by
- dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:14 +0800
-From:   Chen Zhongjin <chenzhongjin@huawei.com>
-To:     <linux-kernel@vger.kernel.org>,
-        <linux-arm-kernel@lists.infradead.org>,
-        <linux-arch@vger.kernel.org>
-CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
-        <will@kernel.org>, <masahiroy@kernel.org>, <jpoimboe@redhat.com>,
-        <peterz@infradead.org>, <ycote@redhat.com>,
-        <herbert@gondor.apana.org.au>, <mark.rutland@arm.com>,
-        <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
-        <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
-        <chenzhongjin@huawei.com>
-Subject: [RFC PATCH v4 27/37] arm64: sleep: Properly set frame pointer before call
-Date:   Fri, 29 Apr 2022 17:43:45 +0800
-Message-ID: <20220429094355.122389-28-chenzhongjin@huawei.com>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
+        with ESMTP id S239174AbiD2LJh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 07:09:37 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 658122BB3E;
+        Fri, 29 Apr 2022 04:06:18 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=fMdiNIX6IDBT9DuqskkT0WgA7a07Qd6BHjsFV1ujKlo=; b=e0dW1trDuU4PBeSW86P1pgQAS2
+        2nuk5t5yASP8KqGzPRbvt0cBRTGQ7fIQFj2mSk4QyXZ8ZyYIkeBv0PaxcrWTXMqk6H+SYFKBX8Gjk
+        i+k8F9N2XDatZdkQgtWGtd3COYPMeU97bH5edEhyCRWPoXhpo9S3dHdil45qQ+azZc7Agi4z5fPHe
+        JsoKfPCkxdraIkwe2QDF871CPa2nonymoBcR9emMbsuqiu35DXqp3jo3xxmRLii2o7ufNJvPG7E07
+        dsmSSsJdMNycNv+RQjG68xGFBqVLnisrF36wBic9JiA7JRONwm5w75MrdFr2Misi7tg2J8tGKO0qs
+        m6HNZXYA==;
+Received: from j217100.upc-j.chello.nl ([24.132.217.100] helo=noisy.programming.kicks-ass.net)
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1nkORa-00CLBP-JT; Fri, 29 Apr 2022 11:05:50 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 9A312300385;
+        Fri, 29 Apr 2022 13:05:49 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
+        id 7E49320295B05; Fri, 29 Apr 2022 13:05:49 +0200 (CEST)
+Date:   Fri, 29 Apr 2022 13:05:49 +0200
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     Chen Zhongjin <chenzhongjin@huawei.com>
+Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-arch@vger.kernel.org, jthierry@redhat.com,
+        catalin.marinas@arm.com, will@kernel.org, masahiroy@kernel.org,
+        jpoimboe@redhat.com, ycote@redhat.com, herbert@gondor.apana.org.au,
+        mark.rutland@arm.com, davem@davemloft.net, ardb@kernel.org,
+        maz@kernel.org, tglx@linutronix.de, luc.vanoostenryck@gmail.com
+Subject: Re: [RFC PATCH v4 22/37] arm64: kernel: Skip validation of kuser32.o
+Message-ID: <YmvGja62yWdPHPOW@hirez.programming.kicks-ass.net>
 References: <20220429094355.122389-1-chenzhongjin@huawei.com>
+ <20220429094355.122389-23-chenzhongjin@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain
-X-Originating-IP: [10.67.175.36]
-X-ClientProxiedBy: dggems704-chm.china.huawei.com (10.3.19.181) To
- dggpemm500013.china.huawei.com (7.185.36.172)
-X-CFilter-Loop: Reflected
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20220429094355.122389-23-chenzhongjin@huawei.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Julien Thierry <jthierry@redhat.com>
+On Fri, Apr 29, 2022 at 05:43:40PM +0800, Chen Zhongjin wrote:
+> From: Raphael Gault <raphael.gault@arm.com>
+> 
+> kuser32 being used for compatibility, it contains a32 instructions
+> which are not recognised by objtool when trying to analyse arm64
+> object files. Thus, we add an exception to skip validation on this
+> particular file.
+> 
+> Signed-off-by: Raphael Gault <raphael.gault@arm.com>
+> Signed-off-by: Julien Thierry <jthierry@redhat.com>
+> Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
+> ---
+>  arch/arm64/kernel/Makefile | 3 +++
+>  1 file changed, 3 insertions(+)
+> 
+> diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+> index 986837d7ec82..c4f01bfe79b4 100644
+> --- a/arch/arm64/kernel/Makefile
+> +++ b/arch/arm64/kernel/Makefile
+> @@ -41,6 +41,9 @@ obj-$(CONFIG_COMPAT)			+= sys32.o signal32.o			\
+>  					   sys_compat.o
+>  obj-$(CONFIG_COMPAT)			+= sigreturn32.o
+>  obj-$(CONFIG_KUSER_HELPERS)		+= kuser32.o
+> +
+> +OBJECT_FILES_NON_STANDARD_kuser32.o := y
 
-In __cpu_suspend_enter, the FP and LR are properly saved on the stack to
-form a stack frame, but the frame pointer is not set afterwards.
+File based skipping is depricated in the face of LTO and other link
+target based objtool runs.
 
-Have the frame pointer point to the new frame.
-
-Signed-off-by: Julien Thierry <jthierry@redhat.com>
----
- arch/arm64/kernel/sleep.S | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/arch/arm64/kernel/sleep.S b/arch/arm64/kernel/sleep.S
-index 4ea9392f86e0..3bb9b4b2df08 100644
---- a/arch/arm64/kernel/sleep.S
-+++ b/arch/arm64/kernel/sleep.S
-@@ -91,6 +91,7 @@ SYM_FUNC_START(__cpu_suspend_enter)
- 	str	x0, [x1]
- 	add	x0, x0, #SLEEP_STACK_DATA_SYSTEM_REGS
- 	stp	x29, lr, [sp, #-16]!
-+	mov	x29, sp
- 	bl	cpu_do_suspend
- 	ldp	x29, lr, [sp], #16
- 	mov	x0, #1
--- 
-2.17.1
-
+Please use function based blacklisting as per the previous patch.
