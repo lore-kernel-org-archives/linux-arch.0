@@ -2,132 +2,167 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BFF7CC433EF
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 08:16:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E617CC433F5
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:45:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353558AbiD2ITk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Apr 2022 04:19:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54396 "EHLO
+        id S233639AbiD2Jsa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Apr 2022 05:48:30 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33470 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1355681AbiD2ISv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 04:18:51 -0400
-Received: from out30-56.freemail.mail.aliyun.com (out30-56.freemail.mail.aliyun.com [115.124.30.56])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8F148C3EBD;
-        Fri, 29 Apr 2022 01:15:22 -0700 (PDT)
-X-Alimail-AntiSpam: AC=PASS;BC=-1|-1;BR=01201311R191e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=e01e04394;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=31;SR=0;TI=SMTPD_---0VBgmob1_1651220115;
-Received: from localhost(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0VBgmob1_1651220115)
-          by smtp.aliyun-inc.com(127.0.0.1);
-          Fri, 29 Apr 2022 16:15:16 +0800
-From:   Baolin Wang <baolin.wang@linux.alibaba.com>
-To:     akpm@linux-foundation.org, mike.kravetz@oracle.com,
-        catalin.marinas@arm.com, will@kernel.org
-Cc:     tsbogend@alpha.franken.de, James.Bottomley@HansenPartnership.com,
-        deller@gmx.de, mpe@ellerman.id.au, benh@kernel.crashing.org,
-        paulus@samba.org, hca@linux.ibm.com, gor@linux.ibm.com,
-        agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
-        svens@linux.ibm.com, ysato@users.sourceforge.jp, dalias@libc.org,
-        davem@davemloft.net, arnd@arndb.de, baolin.wang@linux.alibaba.com,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org,
-        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org
-Subject: [PATCH 3/3] mm: rmap: Fix CONT-PTE/PMD size hugetlb issue when unmapping
-Date:   Fri, 29 Apr 2022 16:14:43 +0800
-Message-Id: <c91e04ebb792ef7b72966edea8bd6fa2dfa5bfa7.1651216964.git.baolin.wang@linux.alibaba.com>
-X-Mailer: git-send-email 1.8.3.1
-In-Reply-To: <cover.1651216964.git.baolin.wang@linux.alibaba.com>
-References: <cover.1651216964.git.baolin.wang@linux.alibaba.com>
-In-Reply-To: <cover.1651216964.git.baolin.wang@linux.alibaba.com>
-References: <cover.1651216964.git.baolin.wang@linux.alibaba.com>
+        with ESMTP id S1350258AbiD2Js3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:29 -0400
+Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8D637167C6;
+        Fri, 29 Apr 2022 02:45:11 -0700 (PDT)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.57])
+        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4KqSHc5151zfZtl;
+        Fri, 29 Apr 2022 17:44:12 +0800 (CST)
+Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
+ dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:09 +0800
+Received: from ubuntu1804.huawei.com (10.67.175.36) by
+ dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:09 +0800
+From:   Chen Zhongjin <chenzhongjin@huawei.com>
+To:     <linux-kernel@vger.kernel.org>,
+        <linux-arm-kernel@lists.infradead.org>,
+        <linux-arch@vger.kernel.org>
+CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
+        <will@kernel.org>, <masahiroy@kernel.org>, <jpoimboe@redhat.com>,
+        <peterz@infradead.org>, <ycote@redhat.com>,
+        <herbert@gondor.apana.org.au>, <mark.rutland@arm.com>,
+        <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
+        <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
+        <chenzhongjin@huawei.com>
+Subject: [RFC PATCH v4 01/37] tools: Add some generic functions and headers
+Date:   Fri, 29 Apr 2022 17:43:19 +0800
+Message-ID: <20220429094355.122389-2-chenzhongjin@huawei.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
+References: <20220429094355.122389-1-chenzhongjin@huawei.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+X-Originating-IP: [10.67.175.36]
+X-ClientProxiedBy: dggems704-chm.china.huawei.com (10.3.19.181) To
+ dggpemm500013.china.huawei.com (7.185.36.172)
+X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On some architectures (like ARM64), it can support CONT-PTE/PMD size
-hugetlb, which means it can support not only PMD/PUD size hugetlb:
-2M and 1G, but also CONT-PTE/PMD size: 64K and 32M if a 4K page
-size specified.
+From: Julien Thierry <jthierry@redhat.com>
 
-When unmapping a hugetlb page, we will get the relevant page table
-entry by huge_pte_offset() only once to nuke it. This is correct
-for PMD or PUD size hugetlb, since they always contain only one
-pmd entry or pud entry in the page table.
+These will be needed to be able to use arm64 instruction decoder in
+userland tools.
 
-However this is incorrect for CONT-PTE and CONT-PMD size hugetlb,
-since they can contain several continuous pte or pmd entry with
-same page table attributes, so we will nuke only one pte or pmd
-entry for this CONT-PTE/PMD size hugetlb page.
-
-And now we only use try_to_unmap() to unmap a poisoned hugetlb page,
-which means now we will unmap only one pte entry for a CONT-PTE or
-CONT-PMD size poisoned hugetlb page, and we can still access other
-subpages of a CONT-PTE or CONT-PMD size poisoned hugetlb page,
-which will cause serious issues possibly.
-
-So we should change to use huge_ptep_clear_flush() to nuke the
-hugetlb page table to fix this issue, which already considered
-CONT-PTE and CONT-PMD size hugetlb.
-
-Note we've already used set_huge_swap_pte_at() to set a poisoned
-swap entry for a poisoned hugetlb page.
-
-Signed-off-by: Baolin Wang <baolin.wang@linux.alibaba.com>
+Signed-off-by: Julien Thierry <jthierry@redhat.com>
 ---
- mm/rmap.c | 34 +++++++++++++++++-----------------
- 1 file changed, 17 insertions(+), 17 deletions(-)
+ tools/include/asm-generic/bitops/__ffs.h | 11 +++++++
+ tools/include/linux/kernel.h             | 21 +++++++++++++
+ tools/include/linux/printk.h             | 40 ++++++++++++++++++++++++
+ 3 files changed, 72 insertions(+)
+ create mode 100644 tools/include/linux/printk.h
 
-diff --git a/mm/rmap.c b/mm/rmap.c
-index 7cf2408..1e168d7 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1564,28 +1564,28 @@ static bool try_to_unmap_one(struct folio *folio, struct vm_area_struct *vma,
- 					break;
- 				}
- 			}
-+			pteval = huge_ptep_clear_flush(vma, address, pvmw.pte);
- 		} else {
- 			flush_cache_page(vma, address, pte_pfn(*pvmw.pte));
--		}
--
--		/*
--		 * Nuke the page table entry. When having to clear
--		 * PageAnonExclusive(), we always have to flush.
--		 */
--		if (should_defer_flush(mm, flags) && !anon_exclusive) {
- 			/*
--			 * We clear the PTE but do not flush so potentially
--			 * a remote CPU could still be writing to the folio.
--			 * If the entry was previously clean then the
--			 * architecture must guarantee that a clear->dirty
--			 * transition on a cached TLB entry is written through
--			 * and traps if the PTE is unmapped.
-+			 * Nuke the page table entry. When having to clear
-+			 * PageAnonExclusive(), we always have to flush.
- 			 */
--			pteval = ptep_get_and_clear(mm, address, pvmw.pte);
-+			if (should_defer_flush(mm, flags) && !anon_exclusive) {
-+				/*
-+				 * We clear the PTE but do not flush so potentially
-+				 * a remote CPU could still be writing to the folio.
-+				 * If the entry was previously clean then the
-+				 * architecture must guarantee that a clear->dirty
-+				 * transition on a cached TLB entry is written through
-+				 * and traps if the PTE is unmapped.
-+				 */
-+				pteval = ptep_get_and_clear(mm, address, pvmw.pte);
+diff --git a/tools/include/asm-generic/bitops/__ffs.h b/tools/include/asm-generic/bitops/__ffs.h
+index 9d1310519497..963f8a22212f 100644
+--- a/tools/include/asm-generic/bitops/__ffs.h
++++ b/tools/include/asm-generic/bitops/__ffs.h
+@@ -42,4 +42,15 @@ static __always_inline unsigned long __ffs(unsigned long word)
+ 	return num;
+ }
  
--			set_tlb_ubc_flush_pending(mm, pte_dirty(pteval));
--		} else {
--			pteval = ptep_clear_flush(vma, address, pvmw.pte);
-+				set_tlb_ubc_flush_pending(mm, pte_dirty(pteval));
-+			} else {
-+				pteval = ptep_clear_flush(vma, address, pvmw.pte);
-+			}
- 		}
++static inline unsigned long __ffs64(u64 word)
++{
++#if BITS_PER_LONG == 32
++	if (((u32)word) == 0UL)
++		return __ffs((u32)(word >> 32)) + 32;
++#elif BITS_PER_LONG != 64
++#error BITS_PER_LONG not 32 or 64
++#endif
++	return __ffs((unsigned long)word);
++}
++
+ #endif /* _TOOLS_LINUX_ASM_GENERIC_BITOPS___FFS_H_ */
+diff --git a/tools/include/linux/kernel.h b/tools/include/linux/kernel.h
+index 4b0673bf52c2..47f24f07e8f1 100644
+--- a/tools/include/linux/kernel.h
++++ b/tools/include/linux/kernel.h
+@@ -102,6 +102,27 @@ int scnprintf_pad(char * buf, size_t size, const char * fmt, ...);
+ #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]) + __must_be_array(arr))
+ #endif
  
- 		/*
++/**
++ * upper_32_bits - return bits 32-63 of a number
++ * @n: the number we're accessing
++ *
++ * A basic shift-right of a 64- or 32-bit quantity.  Use this to suppress
++ * the "right shift count >= width of type" warning when that quantity is
++ * 32-bits.
++ */
++#define upper_32_bits(n) ((u32)(((n) >> 16) >> 16))
++
++/**
++ * lower_32_bits - return bits 0-31 of a number
++ * @n: the number we're accessing
++ */
++#define lower_32_bits(n) ((u32)(n))
++
++/* Inspired from ALIGN_*_KERNEL */
++#define __ALIGN_MASK(x, mask)	(((x) + (mask)) & ~(mask))
++#define __ALIGN(x, a)		__ALIGN_MASK(x, (typeof(x))(a) - 1)
++#define ALIGN_DOWN(x, a)	__ALIGN((x) - ((a) - 1), (a))
++
+ #define current_gfp_context(k) 0
+ #define synchronize_rcu()
+ 
+diff --git a/tools/include/linux/printk.h b/tools/include/linux/printk.h
+new file mode 100644
+index 000000000000..515ebdc47e6e
+--- /dev/null
++++ b/tools/include/linux/printk.h
+@@ -0,0 +1,40 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _TOOLS_LINUX_KERNEL_PRINTK_H_
++#define _TOOLS_LINUX_KERNEL_PRINTK_H_
++
++#include <stdarg.h>
++#include <stdio.h>
++#include <stdlib.h>
++
++#define printk(fmt, ...) fprintf(stdout, fmt, ##__VA_ARGS__)
++#define pr_info printk
++#define pr_notice printk
++#define pr_cont printk
++
++#define pr_warn(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
++#define pr_err pr_warn
++#define pr_alert pr_warn
++#define pr_emerg pr_warn
++#define pr_crit pr_warn
++
++/*
++ * Dummy printk for disabled debugging statements to use whilst maintaining
++ * gcc's format checking.
++ */
++#define no_printk(fmt, ...)				\
++({							\
++	if (0)						\
++		printk(fmt, ##__VA_ARGS__);		\
++	0;						\
++})
++
++/* pr_devel() should produce zero code unless DEBUG is defined */
++#ifdef DEBUG
++#define pr_devel(fmt, ...) printk
++#else
++#define pr_devel(fmt, ...) no_printk
++#endif
++
++#define pr_debug pr_devel
++
++#endif /* _TOOLS_LINUX_KERNEL_PRINTK_H_ */
 -- 
-1.8.3.1
+2.17.1
 
