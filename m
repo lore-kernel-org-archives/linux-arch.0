@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 82B85C433FE
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:46:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A7EFC4332F
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:46:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356888AbiD2Jtd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1356910AbiD2Jtd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Fri, 29 Apr 2022 05:49:33 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34792 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33868 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1356876AbiD2Js6 (ORCPT
+        with ESMTP id S1356875AbiD2Js6 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:58 -0400
 Received: from szxga08-in.huawei.com (szxga08-in.huawei.com [45.249.212.255])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9E5E7A76D4;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF3CDA76DD;
         Fri, 29 Apr 2022 02:45:40 -0700 (PDT)
 Received: from dggpemm500021.china.huawei.com (unknown [172.30.72.53])
-        by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4KqSJB3Xhjz1JBnH;
+        by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4KqSJB4TBqz1JBnF;
         Fri, 29 Apr 2022 17:44:42 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
  dggpemm500021.china.huawei.com (7.185.36.109) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:12 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:13 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:12 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:13 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>,
         <linux-arm-kernel@lists.infradead.org>,
@@ -36,9 +36,9 @@ CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
         <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
         <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
         <chenzhongjin@huawei.com>
-Subject: [RFC PATCH v4 18/37] arm64: kgdb: Mark code following kgdb brk as reachable
-Date:   Fri, 29 Apr 2022 17:43:36 +0800
-Message-ID: <20220429094355.122389-19-chenzhongjin@huawei.com>
+Subject: [RFC PATCH v4 23/37] arm64: kernel: Skip validation of sigreturn32.o
+Date:   Fri, 29 Apr 2022 17:43:41 +0800
+Message-ID: <20220429094355.122389-24-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
 References: <20220429094355.122389-1-chenzhongjin@huawei.com>
@@ -54,26 +54,30 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Julien Thierry <jthierry@redhat.com>
 
-In the general use case, KGDB breakpoint handler should return normally
-to the instruction following the brk.
+sigreturn32.o contains aarch32 getting copied to the VDSO for
+compat user tasks.
+
+This code shouldn't get validated by arm64 objtool.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
 ---
- arch/arm64/include/asm/kgdb.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/arm64/kernel/Makefile | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/arm64/include/asm/kgdb.h b/arch/arm64/include/asm/kgdb.h
-index 21fc85e9d2be..a8cb91d8d59b 100644
---- a/arch/arm64/include/asm/kgdb.h
-+++ b/arch/arm64/include/asm/kgdb.h
-@@ -19,6 +19,7 @@
- static inline void arch_kgdb_breakpoint(void)
- {
- 	asm ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));
-+	annotate_reachable();
- }
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index c4f01bfe79b4..eee5eb7d782b 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -40,6 +40,9 @@ $(obj)/%.stub.o: $(obj)/%.o FORCE
+ obj-$(CONFIG_COMPAT)			+= sys32.o signal32.o			\
+ 					   sys_compat.o
+ obj-$(CONFIG_COMPAT)			+= sigreturn32.o
++ifeq ($(CONFIG_COMPAT), y)
++OBJECT_FILES_NON_STANDARD_sigreturn32.o := y
++endif
+ obj-$(CONFIG_KUSER_HELPERS)		+= kuser32.o
  
- extern void kgdb_handle_bus_error(void);
+ OBJECT_FILES_NON_STANDARD_kuser32.o := y
 -- 
 2.17.1
 
