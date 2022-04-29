@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 08895C433EF
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7672C433F5
 	for <linux-arch@archiver.kernel.org>; Fri, 29 Apr 2022 09:45:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1354920AbiD2Jst (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Apr 2022 05:48:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33862 "EHLO
+        id S1356809AbiD2Jsy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Apr 2022 05:48:54 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33868 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1356762AbiD2Jsg (ORCPT
+        with ESMTP id S1356764AbiD2Jsg (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Apr 2022 05:48:36 -0400
-Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0019C85977;
-        Fri, 29 Apr 2022 02:45:17 -0700 (PDT)
-Received: from dggpemm500020.china.huawei.com (unknown [172.30.72.53])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4KqSJQ65SWzhYtC;
-        Fri, 29 Apr 2022 17:44:54 +0800 (CST)
+Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B7091890AB;
+        Fri, 29 Apr 2022 02:45:18 -0700 (PDT)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.53])
+        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4KqSCY5cx3zCsSp;
+        Fri, 29 Apr 2022 17:40:41 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500020.china.huawei.com (7.185.36.49) with Microsoft SMTP Server
+ dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
  15.1.2375.24; Fri, 29 Apr 2022 17:45:16 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Fri, 29 Apr 2022 17:45:15 +0800
+ 15.1.2375.24; Fri, 29 Apr 2022 17:45:16 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>,
         <linux-arm-kernel@lists.infradead.org>,
@@ -36,9 +36,9 @@ CC:     <jthierry@redhat.com>, <catalin.marinas@arm.com>,
         <davem@davemloft.net>, <ardb@kernel.org>, <maz@kernel.org>,
         <tglx@linutronix.de>, <luc.vanoostenryck@gmail.com>,
         <chenzhongjin@huawei.com>
-Subject: [RFC PATCH v4 34/37] arm64: entry: Annotate valid stack in kernel entry
-Date:   Fri, 29 Apr 2022 17:43:52 +0800
-Message-ID: <20220429094355.122389-35-chenzhongjin@huawei.com>
+Subject: [RFC PATCH v4 36/37] arm64: entry: Align stack size for alternative
+Date:   Fri, 29 Apr 2022 17:43:54 +0800
+Message-ID: <20220429094355.122389-37-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220429094355.122389-1-chenzhongjin@huawei.com>
 References: <20220429094355.122389-1-chenzhongjin@huawei.com>
@@ -52,37 +52,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Julien Thierry <jthierry@redhat.com>
+In kernel_exit there is a alternative branch for KPTI which causes
+stack size conflict for two instruction boundaries.
 
-When taking an exception/interrupt, add unwind hints to indicate from
-which point the stack pointer is known to be valid.
+To fix that, make both branch move the sp and then revert it in
+tramp_exit branch.
 
-Signed-off-by: Julien Thierry <jthierry@redhat.com>
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- arch/arm64/kernel/entry.S | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/arm64/kernel/entry.S | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index 10fac8f13982..eeb576ec97ba 100644
+index c7ab5143949f..fa3c5a2cd2c3 100644
 --- a/arch/arm64/kernel/entry.S
 +++ b/arch/arm64/kernel/entry.S
-@@ -68,6 +68,7 @@
- 	tbnz	x0, #THREAD_SHIFT, 0f
- 	sub	x0, sp, x0			// x0'' = sp' - x0' = (sp + x0) - sp = x0
- 	sub	sp, sp, x0			// sp'' = sp' - x0 = (sp + x0) - x0 = sp
-+	UNWIND_HINT_FUNC sp_offset=S_FRAME_SIZE
- 	b	el\el\ht\()_\regsize\()_\label
- 
- 0:
-@@ -100,6 +101,7 @@
- 	sub	sp, sp, x0
- 	mrs	x0, tpidrro_el0
- #endif
-+	UNWIND_HINT_FUNC sp_offset=S_FRAME_SIZE
- 	b	el\el\ht\()_\regsize\()_\label
- .org .Lventry_start\@ + 128	// Did we overflow the ventry slot?
+@@ -429,7 +429,11 @@ alternative_if_not ARM64_UNMAP_KERNEL_AT_EL0
+ 	ldr	lr, [sp, #S_LR]
+ 	add	sp, sp, #PT_REGS_SIZE		// restore sp
+ 	eret
+-alternative_else_nop_endif
++alternative_else
++	nop
++	add sp, sp, #PT_REGS_SIZE       // restore sp
++	nop
++alternative_endif
+ #ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+ 	bne	4f
+ 	msr	far_el1, x29
+@@ -726,6 +730,7 @@ alternative_else_nop_endif
  	.endm
+ 
+ 	.macro tramp_exit, regsize = 64
++	sub sp, sp, #PT_REGS_SIZE       // revert sp
+ 	tramp_data_read_var	x30, this_cpu_vector
+ 	get_this_cpu_offset x29
+ 	ldr	x30, [x30, x29]
 -- 
 2.17.1
 
