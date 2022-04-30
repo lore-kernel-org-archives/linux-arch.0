@@ -2,54 +2,54 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AD637C433F5
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C66FDC433FE
 	for <linux-arch@archiver.kernel.org>; Sat, 30 Apr 2022 15:38:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1383010AbiD3Pli (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 30 Apr 2022 11:41:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44104 "EHLO
+        id S1382429AbiD3Pll (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 30 Apr 2022 11:41:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45648 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1352787AbiD3PlT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Apr 2022 11:41:19 -0400
-Received: from mail-pj1-x1034.google.com (mail-pj1-x1034.google.com [IPv6:2607:f8b0:4864:20::1034])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 060B7A0BDD
-        for <linux-arch@vger.kernel.org>; Sat, 30 Apr 2022 08:37:57 -0700 (PDT)
-Received: by mail-pj1-x1034.google.com with SMTP id iq2-20020a17090afb4200b001d93cf33ae9so12887002pjb.5
-        for <linux-arch@vger.kernel.org>; Sat, 30 Apr 2022 08:37:57 -0700 (PDT)
+        with ESMTP id S1382967AbiD3Plh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Apr 2022 11:41:37 -0400
+Received: from mail-pl1-x632.google.com (mail-pl1-x632.google.com [IPv6:2607:f8b0:4864:20::632])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4F072A1457
+        for <linux-arch@vger.kernel.org>; Sat, 30 Apr 2022 08:38:00 -0700 (PDT)
+Received: by mail-pl1-x632.google.com with SMTP id c23so9496470plo.0
+        for <linux-arch@vger.kernel.org>; Sat, 30 Apr 2022 08:38:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
         h=subject:date:message-id:in-reply-to:references:mime-version
          :content-transfer-encoding:cc:from:to;
-        bh=GsO1g7Ro+rsf0io9vopg1aQfP2P2g91oLlrkEyQDXiM=;
-        b=kF7TN9WBue7gogtLcWCSwM/BfmlmiiSeL5p6P+r9TFf7mJTPo7V03Vb2pERNLvb7OE
-         aRiiolMYojHxd4x5cQCGpG9H2wT2LX9AGbU77WuAKd7VD9xTc7yVRQuxr9CmreoFTg1r
-         PvNjg/njaujbrqAe+WzlaHXAa3YGjcCyPClqxCArzRUK1f4wnu8wIGOKQzuuPux3fanL
-         dNudXAVOCI0w1bdRz0Bat3QH8ewK8iAbnP04kEkDwytD4R2TvR69JqSwtluXppkeLWp+
-         iJKg4ylgLJ4xSXkYkJB/5TkTjMKtqArr+XkBvDHr/ZIlgr8RD4A5+MLPtRKEzg0pyefW
-         MJ6Q==
+        bh=PhfY9SC+wYhs3i/pCnS1F0qe7XGea8rOjY/kEhC+LrE=;
+        b=sCDHVOiLVN32Y8ICH+ZkCKw/InoCrY43xa27irUukeSvGPghb/JBYOw6oTCkeIBkNa
+         +H/XBYvBx7CV0nBuiGA7CSeqpBzMXbIkhHwzR01gcHQLnmqthIK6PG5GbP5QbH/LT2af
+         9Em8Bhs6r45/fJ462zBxoDeJfmyc3zQOXCJQOLKUa7NZyWoNpE+p5rq+evLX48Wxqz7Z
+         8QuGzNeewDVFwR94Xv+ACR39i3XWraOwk4MmDN7l7tVP+OXZvX8sxAPK4yys2j11psjV
+         Aa1jdjYTmV+9Er+vvhIB/vTozu0gkGHHg2IByGGcQHC5KnFPIj4uZM2dHaqz/yWVmr+t
+         6dBg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:subject:date:message-id:in-reply-to:references
          :mime-version:content-transfer-encoding:cc:from:to;
-        bh=GsO1g7Ro+rsf0io9vopg1aQfP2P2g91oLlrkEyQDXiM=;
-        b=nwmY3ooSq8xeijmIn/x6QsrDY7AUUAxw8PSWAEMmyMDwHwuUDA1auH6vHMKL415h5d
-         5S2GqWPlu7kF2E5Oga1Iee6madyZjTx5dFU/AQY3SvMuM/rdi3h0LRF/zxEDi0VqVIWE
-         8mK157qyylkwAicXsS/Bch7aY3sxME3flmuP3eGnZwDfK661nwnoJUqR4r5n6qUMvNyt
-         z6bJXpjngn/h2uhEVib5uIfSOUWp0H11/DBECMJke2MqQm9i93Ngw0O8McZb+hH7k8OK
-         Be6/CxEYxZ87kTzqLjB4wpvo/OwxKjouwiNaDuTxKEXut2a1Bu/Z23fsIdh8KXQWEO40
-         crZA==
-X-Gm-Message-State: AOAM533ReaQh1p56bxlin9heo+kNS50j9xP1+ADBaLIfvmq2MDZzWNAc
-        NOf0who8usPyMKbmvJXjMEBiXw==
-X-Google-Smtp-Source: ABdhPJzNtj8d/a+lfHQeb2reqO0YCZeJo7LPF+70BVvrDTXjKfwmfYC5tWlm1kzXph5Ui9RlcPxgHQ==
-X-Received: by 2002:a17:902:8d8e:b0:159:4f6:c4aa with SMTP id v14-20020a1709028d8e00b0015904f6c4aamr4142558plo.115.1651333076544;
-        Sat, 30 Apr 2022 08:37:56 -0700 (PDT)
+        bh=PhfY9SC+wYhs3i/pCnS1F0qe7XGea8rOjY/kEhC+LrE=;
+        b=h8gFxlB7zqpSc0WSvWpLK9DEFLeKix9xYFTXNKtS0dAsXdmsRQVJ9zbXhNjBFAt6td
+         gdEGxyVTmaQEwNAAQmOtFvpUVY75lkK2Pv404TkqkcKoODE9m57PXyXqLZqwlAHJLq8/
+         gHhh+Hd2kkEQNYx06OhFOiXS8EoCNHjTIYC9eUeMifiltFtI1R81OJvcELqWdp4poNm+
+         r0PRvOQeYcG+kOT9l6myFaHOBM8K9wjdifOc6VJbPoTmAIaATOWOO3r/S6a9b5SeYb/b
+         G7MHP0xbRmGPXgzWXLDAHuv9sDTr6q8GpoqtX1FEetgBpb3AFeVjo06wSxoLf9SyaxDi
+         7HLg==
+X-Gm-Message-State: AOAM530FkKkzgs88ZoknZJUJgUKC27VQqryhEJazDwN59oIIKYEWpPz+
+        MuNmcU+W7Oa08i8ao4wKgCLO6g==
+X-Google-Smtp-Source: ABdhPJyQzZr23BkCwG1+xSArqcEmCk72rbg9rU3h9fy701WXzCXMfDWtm+qk2uXLdC5yg4y6n4z3Nw==
+X-Received: by 2002:a17:902:b789:b0:15b:5d52:7542 with SMTP id e9-20020a170902b78900b0015b5d527542mr4396814pls.26.1651333079791;
+        Sat, 30 Apr 2022 08:37:59 -0700 (PDT)
 Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
-        by smtp.gmail.com with ESMTPSA id m2-20020a17090a2c0200b001d7761ee6fcsm12923373pjd.3.2022.04.30.08.37.56
+        by smtp.gmail.com with ESMTPSA id x5-20020aa793a5000000b0050dc7628201sm1677478pff.219.2022.04.30.08.37.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 30 Apr 2022 08:37:56 -0700 (PDT)
-Subject: [PATCH v4 3/7] asm-generic: qrwlock: Document the spinlock fairness requirements
-Date:   Sat, 30 Apr 2022 08:36:22 -0700
-Message-Id: <20220430153626.30660-4-palmer@rivosinc.com>
+        Sat, 30 Apr 2022 08:37:59 -0700 (PDT)
+Subject: [PATCH v4 6/7] RISC-V: Move to queued RW locks
+Date:   Sat, 30 Apr 2022 08:36:25 -0700
+Message-Id: <20220430153626.30660-7-palmer@rivosinc.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220430153626.30660-1-palmer@rivosinc.com>
 References: <20220430153626.30660-1-palmer@rivosinc.com>
@@ -76,29 +76,179 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Palmer Dabbelt <palmer@rivosinc.com>
 
-I could only find the fairness requirements documented as the C code,
-this calls them out in a comment just to be a bit more explicit.
+Now that we have fair spinlocks we can use the generic queued rwlocks,
+so we might as well do so.
 
 Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
 ---
- include/asm-generic/qrwlock.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/riscv/Kconfig                      |  1 +
+ arch/riscv/include/asm/Kbuild           |  2 +
+ arch/riscv/include/asm/spinlock.h       | 99 -------------------------
+ arch/riscv/include/asm/spinlock_types.h | 24 ------
+ 4 files changed, 3 insertions(+), 123 deletions(-)
+ delete mode 100644 arch/riscv/include/asm/spinlock.h
+ delete mode 100644 arch/riscv/include/asm/spinlock_types.h
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 7ae0ece07b4e..24ae09c1db9f 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -2,6 +2,10 @@
- /*
-  * Queue read/write lock
-  *
-+ * These use generic atomic and locking routines, but depend on a fair spinlock
-+ * implementation in order to be fair themselves.  The implementation in
-+ * asm-generic/spinlock.h meets these requirements.
-+ *
-  * (C) Copyright 2013-2014 Hewlett-Packard Development Company, L.P.
-  *
-  * Authors: Waiman Long <waiman.long@hp.com>
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 00fd9c548f26..f8a55d94016d 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -39,6 +39,7 @@ config RISCV
+ 	select ARCH_SUPPORTS_DEBUG_PAGEALLOC if MMU
+ 	select ARCH_SUPPORTS_HUGETLBFS if MMU
+ 	select ARCH_USE_MEMTEST
++	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT if MMU
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select ARCH_WANT_GENERAL_HUGETLB
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index c3f229ae8033..504f8b7e72d4 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -3,6 +3,8 @@ generic-y += early_ioremap.h
+ generic-y += flat.h
+ generic-y += kvm_para.h
+ generic-y += parport.h
++generic-y += spinlock.h
++generic-y += spinlock_types.h
+ generic-y += qrwlock.h
+ generic-y += qrwlock_types.h
+ generic-y += user.h
+diff --git a/arch/riscv/include/asm/spinlock.h b/arch/riscv/include/asm/spinlock.h
+deleted file mode 100644
+index 88a4d5d0d98a..000000000000
+--- a/arch/riscv/include/asm/spinlock.h
++++ /dev/null
+@@ -1,99 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
+-/*
+- * Copyright (C) 2015 Regents of the University of California
+- * Copyright (C) 2017 SiFive
+- */
+-
+-#ifndef _ASM_RISCV_SPINLOCK_H
+-#define _ASM_RISCV_SPINLOCK_H
+-
+-/* This is horible, but the whole file is going away in the next commit. */
+-#define __ASM_GENERIC_QRWLOCK_H
+-
+-#include <linux/kernel.h>
+-#include <asm/current.h>
+-#include <asm/fence.h>
+-#include <asm-generic/spinlock.h>
+-
+-static inline void arch_read_lock(arch_rwlock_t *lock)
+-{
+-	int tmp;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bltz	%1, 1b\n"
+-		"	addi	%1, %1, 1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		: "+A" (lock->lock), "=&r" (tmp)
+-		:: "memory");
+-}
+-
+-static inline void arch_write_lock(arch_rwlock_t *lock)
+-{
+-	int tmp;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		"	li	%1, -1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		: "+A" (lock->lock), "=&r" (tmp)
+-		:: "memory");
+-}
+-
+-static inline int arch_read_trylock(arch_rwlock_t *lock)
+-{
+-	int busy;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bltz	%1, 1f\n"
+-		"	addi	%1, %1, 1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		"1:\n"
+-		: "+A" (lock->lock), "=&r" (busy)
+-		:: "memory");
+-
+-	return !busy;
+-}
+-
+-static inline int arch_write_trylock(arch_rwlock_t *lock)
+-{
+-	int busy;
+-
+-	__asm__ __volatile__(
+-		"1:	lr.w	%1, %0\n"
+-		"	bnez	%1, 1f\n"
+-		"	li	%1, -1\n"
+-		"	sc.w	%1, %1, %0\n"
+-		"	bnez	%1, 1b\n"
+-		RISCV_ACQUIRE_BARRIER
+-		"1:\n"
+-		: "+A" (lock->lock), "=&r" (busy)
+-		:: "memory");
+-
+-	return !busy;
+-}
+-
+-static inline void arch_read_unlock(arch_rwlock_t *lock)
+-{
+-	__asm__ __volatile__(
+-		RISCV_RELEASE_BARRIER
+-		"	amoadd.w x0, %1, %0\n"
+-		: "+A" (lock->lock)
+-		: "r" (-1)
+-		: "memory");
+-}
+-
+-static inline void arch_write_unlock(arch_rwlock_t *lock)
+-{
+-	smp_store_release(&lock->lock, 0);
+-}
+-
+-#endif /* _ASM_RISCV_SPINLOCK_H */
+diff --git a/arch/riscv/include/asm/spinlock_types.h b/arch/riscv/include/asm/spinlock_types.h
+deleted file mode 100644
+index f2f9b5d7120d..000000000000
+--- a/arch/riscv/include/asm/spinlock_types.h
++++ /dev/null
+@@ -1,24 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
+-/*
+- * Copyright (C) 2015 Regents of the University of California
+- */
+-
+-#ifndef _ASM_RISCV_SPINLOCK_TYPES_H
+-#define _ASM_RISCV_SPINLOCK_TYPES_H
+-
+-/* This is horible, but the whole file is going away in the next commit. */
+-#define __ASM_GENERIC_QRWLOCK_TYPES_H
+-
+-#ifndef __LINUX_SPINLOCK_TYPES_RAW_H
+-# error "please don't include this file directly"
+-#endif
+-
+-#include <asm-generic/spinlock_types.h>
+-
+-typedef struct {
+-	volatile unsigned int lock;
+-} arch_rwlock_t;
+-
+-#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
+-
+-#endif /* _ASM_RISCV_SPINLOCK_TYPES_H */
 -- 
 2.34.1
 
