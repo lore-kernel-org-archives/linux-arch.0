@@ -2,58 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 13742C433EF
-	for <linux-arch@archiver.kernel.org>; Sat, 30 Apr 2022 10:05:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C0B52C433FE
+	for <linux-arch@archiver.kernel.org>; Sat, 30 Apr 2022 10:48:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1382565AbiD3KJH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 30 Apr 2022 06:09:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39800 "EHLO
+        id S239153AbiD3Kvt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 30 Apr 2022 06:51:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57856 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1382556AbiD3KIm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Apr 2022 06:08:42 -0400
-Received: from mail-vs1-xe32.google.com (mail-vs1-xe32.google.com [IPv6:2607:f8b0:4864:20::e32])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E82D15FFE;
-        Sat, 30 Apr 2022 03:05:19 -0700 (PDT)
-Received: by mail-vs1-xe32.google.com with SMTP id t85so9684120vst.4;
-        Sat, 30 Apr 2022 03:05:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=jDlJEsYHsH5/u4hrMRhfUbsT0qjmPw77962C19d54XE=;
-        b=MOdZAyOylVEF9SHL6setlZ43OIx9F+W6/c/NrJKf7DW4FGIlMHhfB4tzN3SQZf11Z3
-         QQo6L95/ja4fa+5ds9gJXdSVto5O+awjhKs5JNu9cJLhZpThas37pc1ca2HnnWbqEJCb
-         WNkPGP5Okq7/BIj1ltz5ZIj9gLkOperYtSygRb4wIqLgzoxc66Y7/ZEqjxSmjgkAaQ+m
-         OQI8VNL5flG4E0GjNWyaCeKAwojjPfvjS2J9AeAm9dMA9mky9me3ivk4j4H57L3xuH+V
-         KBSJQSheDl/1GK6K9/MmxQ+AV8KwqGlvUTj4xXPt/rKg08Ce73gwj1qkvhF6HBUovwst
-         sdAQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=jDlJEsYHsH5/u4hrMRhfUbsT0qjmPw77962C19d54XE=;
-        b=COZMT6xdEzfS+y9NlTNrKIubUyuGL/gzItxALGkt3EjSgONqn5VLNdwsqx7/Xqn033
-         FdfuJZA3gKvivfDNJZlWBSSiDNeRXzQwPGxWiubGYzEk4NexVp2okd7FhYPf9LKz6oQs
-         NiMAPHL276U/AN5sEcgo280bTv2nQGQYP+8pNPkPqPXg+11HiD4d05wih/t15wK6hQU8
-         uAIhl5BUOHZtpr4oREn7it/MN9QG+AT3IMjH5yRzJkallYrqBKhRRyXZGbZqR355tGH5
-         xj86eLmbzLg5E3kFxFQJoNMgJ3ZVH6S/byi2hhSXpFtnYFHEC7LOZif92pSLJBzyl9q1
-         wRLA==
-X-Gm-Message-State: AOAM5301A3QU1fFJ1FAPdMMhk6wwvJDDiMJAyXntbzfGUrKeeqKgV2Om
-        tqB+MCIN0qNtlnBZDm80GTBR9HyN4xFQ6RjkY8E=
-X-Google-Smtp-Source: ABdhPJwmXkH2wMcWDejlFEFo295A9u0t4tWrF0aD1JhDKO4YeoP5fZQjceWB6sG7nt9k1EK5IAldqHoVV38AJo2pwHk=
-X-Received: by 2002:a67:ea4f:0:b0:328:1db4:d85c with SMTP id
- r15-20020a67ea4f000000b003281db4d85cmr963977vso.20.1651313118631; Sat, 30 Apr
- 2022 03:05:18 -0700 (PDT)
+        with ESMTP id S230459AbiD3Kvn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 30 Apr 2022 06:51:43 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.17.24])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 41AD295499;
+        Sat, 30 Apr 2022 03:48:21 -0700 (PDT)
+Received: from mail-yb1-f177.google.com ([209.85.219.177]) by
+ mrelayeu.kundenserver.de (mreue109 [213.165.67.113]) with ESMTPSA (Nemesis)
+ id 1MwQKp-1o1BTC1i8j-00sOOA; Sat, 30 Apr 2022 12:48:19 +0200
+Received: by mail-yb1-f177.google.com with SMTP id d12so18534069ybc.4;
+        Sat, 30 Apr 2022 03:48:19 -0700 (PDT)
+X-Gm-Message-State: AOAM5339bAUwu+qUmnymsiXelobcYRZ1ShdCZtZ4E43aMBum0im16TmY
+        fOMttPf5ZHiG4Zrw+J03x3l7RgOVwbx2PD3YWpY=
+X-Google-Smtp-Source: ABdhPJwpzn9EC0RwN/J7S1C0YhM4S7/xT03EODVmCgkuoTRktIMKwUMUL90gkxIf9qXlOUH0npNethOfeHG9D6/pL7I=
+X-Received: by 2002:a25:c50a:0:b0:647:b840:df2c with SMTP id
+ v10-20020a25c50a000000b00647b840df2cmr3193581ybe.106.1651315335679; Sat, 30
+ Apr 2022 03:42:15 -0700 (PDT)
 MIME-Version: 1.0
 References: <20220430090518.3127980-1-chenhuacai@loongson.cn>
- <20220430090518.3127980-14-chenhuacai@loongson.cn> <CAK8P3a0A9dW4mwJ6JHDiJxizL7vWfr4r4c5KhbjtAY0sWbZJVA@mail.gmail.com>
-In-Reply-To: <CAK8P3a0A9dW4mwJ6JHDiJxizL7vWfr4r4c5KhbjtAY0sWbZJVA@mail.gmail.com>
-From:   Huacai Chen <chenhuacai@gmail.com>
-Date:   Sat, 30 Apr 2022 18:05:07 +0800
-Message-ID: <CAAhV-H4te_+AS69viO4eBz=abBUm5oQ6AfoY1Cb+nOCZyyeMdA@mail.gmail.com>
-Subject: Re: [PATCH V9 13/24] LoongArch: Add system call support
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Huacai Chen <chenhuacai@loongson.cn>,
+ <20220430090518.3127980-17-chenhuacai@loongson.cn> <CAK8P3a097Z_DKXbrLrCB7JZUB0J0duSmZRHSJkjRM5=rteit6g@mail.gmail.com>
+ <CAAhV-H4COmSy1RNBKi1XCDerAhiQb1Z=g4rEmBz4xgLkSpKmmA@mail.gmail.com>
+In-Reply-To: <CAAhV-H4COmSy1RNBKi1XCDerAhiQb1Z=g4rEmBz4xgLkSpKmmA@mail.gmail.com>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Sat, 30 Apr 2022 12:41:59 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a1Cnp-SNiXnSbnUdbw9jC+aT1TxEjckK2jFYgwT-CSpcw@mail.gmail.com>
+Message-ID: <CAK8P3a1Cnp-SNiXnSbnUdbw9jC+aT1TxEjckK2jFYgwT-CSpcw@mail.gmail.com>
+Subject: Re: [PATCH V9 16/24] LoongArch: Add misc common routines
+To:     Huacai Chen <chenhuacai@gmail.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Huacai Chen <chenhuacai@loongson.cn>,
         Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
         Peter Zijlstra <peterz@infradead.org>,
@@ -67,43 +51,57 @@ Cc:     Huacai Chen <chenhuacai@loongson.cn>,
         Xuefeng Li <lixuefeng@loongson.cn>,
         Yanteng Si <siyanteng@loongson.cn>,
         Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Guo Ren <guoren@linux.alibaba.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>
 Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:7KAKj9I+D5At570gbNGr3cglDF4vT1MGlSQ6gRQI5WKGPBqqhXN
+ rSU6LIxKBM1mX77Y49GAJ8oHRNK+f0d+75I0IM7hXJA/mG2wEKp/N21qMfcYH4qAtWF/aJ8
+ E7VlGyPy8xSrlCcULZ69Iv5lVOIKmquTHlildb4eU77VSFUQoBBPf1qoRtAdhoKkPVavx/m
+ oWqYr89xL8luxaH9PC9tw==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:avuFvZTkDnI=:LCL8ARtw02iWBlwVmCDdwM
+ GGOqcejykQPT9n5mOtxsKPpB2xclvbwZzOigMweQE/nQw7Sn3lypQ6mLCYJPFZlyOX4BGXY+f
+ 01XmYuuvoHgUw8bjiLbvGXk/tzbzOXCmCYuPvIBz9QiM1jfYsXNNOaFDeaSRI6ahRjuPbt1zg
+ fkiPa2/pN53poTpZzdKWYSWC3QAboSTUq1lCeHLbhVQdeZ+/1L/1EeF94WVtMcZ+ejpyb956d
+ I4wsN+iwFWSDpmuuw0GjDZE+0rduO/GmvK1etFFgM9IYrcPfUfcL9QUbvPMrJ5UDM/Wknc8JP
+ s7fJBtRzEB9UJ67NbhkEyqLknEvv8DpQbduELrQgKFwdqbDRuO8dI2LGyEQc8suE2nfKPkB9l
+ StyMPhfdBmGsoF6ZLjYaYnFTeT5bg/oTdKEWcrn0a+EZDzlGAqYfdsE9oOxJ9Y8WnqPSwW58O
+ QtsyYF0OfBW+Gq1HBKxyVddgXeH3fb9di/zFJNhevnMcUci/LsEjYspUTct9tJ1SEFY60nTSB
+ dJ4yBE0mfD3dlUwrOswqdV8mlIQp2uj/99oe1FyoBC0Z/oFV9Je12MnKCfl4q4aXAl8tCp2pO
+ bi38wW5mNT69macSgvUB6Pi9XyzPJhzhO88qAUafoOCgzpD3+/0lis7CAsAIXw9+AuGGkLI+p
+ gySBbeHZWOtRLxveU/iLs9eoay50Z6xxHKZ2K+RthSzL31OxeNVw0YhRK6jz7n3ukilHNCrPH
+ XKeR9XDGhngrb6Th0Pn5dgDNRiqGX20I0GCNoMS7xol8kQ8rje6CdnUoTDTMG0tF/2UeIWatb
+ ZALBjQqmus19tgo6NpzjVvBO723wFjqqFPAg4uJWsVFSyQ/hS/cToPgz1Z9GNeY28GKSGZR
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi, Arnd,
+On Sat, Apr 30, 2022 at 12:00 PM Huacai Chen <chenhuacai@gmail.com> wrote:
+>
+> On Sat, Apr 30, 2022 at 5:50 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> >
+> > On Sat, Apr 30, 2022 at 11:05 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
+> >
+> > > +unsigned long __xchg_small(volatile void *ptr, unsigned long val, unsigned int size)
+> > > +{
+> > > +       u32 old32, mask, temp;
+> > > +       volatile u32 *ptr32;
+> > > +       unsigned int shift;
+> > > +
+> > > +       /* Check that ptr is naturally aligned */
+> >
+> > As discussed, please remove this function and all the references to it.
+>
+> It seems that "generic ticket spinlock" hasn't been merged in 5.18?
 
-On Sat, Apr 30, 2022 at 5:45 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Sat, Apr 30, 2022 at 11:05 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
-> >
-> > This patch adds system call support and related uaccess.h for LoongArch.
-> >
-> > Q: Why keep __ARCH_WANT_NEW_STAT definition while there is statx:
-> > A: Until the latest glibc release (2.34), statx is only used for 32-bit
-> >    platforms, or 64-bit platforms with 32-bit timestamp. I.e., Most 64-
-> >    bit platforms still use newstat now.
-> >
-> > Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
-> > A: The latest glibc release (2.34) has some basic support for clone3 but
-> >    it isn't complete. E.g., pthread_create() and spawni() have converted
-> >    to use clone3 but fork() will still use clone. Moreover, some seccomp
-> >    related applications can still not work perfectly with clone3. E.g.,
-> >    Chromium sandbox cannot work at all and there is no solution for it,
-> >    which is more terrible than the fork() story [1].
-> >
-> > [1] https://chromium-review.googlesource.com/c/chromium/src/+/2936184
->
-> I still think these have to be removed. There is no mainline glibc or musl
-> port yet, and neither of them should actually be required. Please remove
-> them here, and modify your libc patches accordingly when you send those
-> upstream.
-If this is just a problem that can be resolved by upgrading
-glibc/musl, I will remove them. But the Chromium problem (or sandbox
-problem in general) seems to have no solution now.
+No, but we can merge it together with the loongarch architecture for 5.19.
 
-Huacai
->
->        Arnd
+I suggested you coordinate with Guo Ren and Palmer Dabbelt about how
+to best merge it. The latest version was pasted two weeks ago [1], and
+it sounds like there are only minor issues to work out and that I can merge
+v4 into the asm-generic tree before merging the loongarch code in the
+same place.
+
+     Arnd
+
+[1] https://lore.kernel.org/lkml/20220414220214.24556-1-palmer@rivosinc.com/
