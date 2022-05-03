@@ -2,75 +2,96 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D3CDC433F5
-	for <linux-arch@archiver.kernel.org>; Tue,  3 May 2022 14:55:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A4EDC433EF
+	for <linux-arch@archiver.kernel.org>; Tue,  3 May 2022 23:38:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237532AbiECO7Q convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 3 May 2022 10:59:16 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52840 "EHLO
+        id S244292AbiECXll (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 3 May 2022 19:41:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54580 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237551AbiECO7E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 May 2022 10:59:04 -0400
-X-Greylist: delayed 400 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 03 May 2022 07:55:32 PDT
-Received: from mail.megasoftsol.com (mail.megasoftsol.com [43.231.250.141])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 197A418384
-        for <linux-arch@vger.kernel.org>; Tue,  3 May 2022 07:55:31 -0700 (PDT)
-Received: from localhost (localhost [127.0.0.1])
-        by mail.megasoftsol.com (Postfix) with ESMTP id 536EF90E99F
-        for <linux-arch@vger.kernel.org>; Tue,  3 May 2022 20:16:20 +0530 (IST)
-Received: from mail.megasoftsol.com ([127.0.0.1])
-        by localhost (mail.megasoftsol.com [127.0.0.1]) (amavisd-new, port 10032)
-        with ESMTP id d-pHY8VLiOop for <linux-arch@vger.kernel.org>;
-        Tue,  3 May 2022 20:16:19 +0530 (IST)
-Received: from localhost (localhost [127.0.0.1])
-        by mail.megasoftsol.com (Postfix) with ESMTP id D570690E9A6
-        for <linux-arch@vger.kernel.org>; Tue,  3 May 2022 20:16:19 +0530 (IST)
-X-Virus-Scanned: amavisd-new at megasoftsol.com
-Received: from mail.megasoftsol.com ([127.0.0.1])
-        by localhost (mail.megasoftsol.com [127.0.0.1]) (amavisd-new, port 10026)
-        with ESMTP id W0sy1Qhp3huz for <linux-arch@vger.kernel.org>;
-        Tue,  3 May 2022 20:16:19 +0530 (IST)
-Received: from asda.co.uk (unknown [20.97.211.134])
-        (Authenticated sender: admin)
-        by mail.megasoftsol.com (Postfix) with ESMTPSA id 1418190E9B4
-        for <linux-arch@vger.kernel.org>; Tue,  3 May 2022 20:16:18 +0530 (IST)
-Reply-To: sales@asdaa.uk
-From:   ASDA Stores Limited <Hanes.Thomas23877@asda.co.uk>
-To:     linux-arch@vger.kernel.org
-Subject: 2nd Quater puchase request
-Date:   03 May 2022 14:48:47 +0000
-Message-ID: <20220503092157.D0812087126016DC@asda.co.uk>
+        with ESMTP id S234374AbiECXlk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 3 May 2022 19:41:40 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F2D0E42EC0;
+        Tue,  3 May 2022 16:38:06 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 7D7EC617EB;
+        Tue,  3 May 2022 23:38:06 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id A049EC385A4;
+        Tue,  3 May 2022 23:38:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1651621085;
+        bh=TddFjYfs0IlmmoRmRJhIId5AulGG33VI0BNiobU2CvQ=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:From;
+        b=lEN+VqFrouY3qh8AlZeGsjaIYP0MaQQQlhpXsVSepSP9KdbbBSuXXKMiHLEGcG9YZ
+         kiZVWt1yUF8om4fV1V8DpcIuYczrnTa/4b9S4l4qMfx98ZdlWVXUqC6Md/EEiGLSJY
+         KmL5Ho4NK6WdEIEFfRJiIl3SDFAzZC0xxXGbt8FVF3D878jtS1HJvdkr9mIHxvzsiO
+         Gbcpz/nIeL/ouVLq+qNZZfmm9k/mgKWcedPUj+SqRF/VWCcngli20fhii3vDanQdh+
+         iJ3Gfe6PQzcXpbh6gCpOYr8U+0Xlwh/BOSR0C+nOsyPy5wsLVcd7sem18wia46moP9
+         dB5xoO03WTSFQ==
+Date:   Tue, 3 May 2022 18:38:02 -0500
+From:   Bjorn Helgaas <helgaas@kernel.org>
+To:     Niklas Schnelle <schnelle@linux.ibm.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-pci@vger.kernel.org,
+        Dominik Brodowski <linux@dominikbrodowski.net>,
+        Arnd Bergmann <arnd@kernel.org>
+Subject: Re: [RFC v2 25/39] pcmcia: add HAS_IOPORT dependencies
+Message-ID: <20220503233802.GA420374@bhelgaas>
 MIME-Version: 1.0
-Content-Type: text/plain;
-        charset="utf-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20220429135108.2781579-44-schnelle@linux.ibm.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Dear linux-arch
+On Fri, Apr 29, 2022 at 03:50:41PM +0200, Niklas Schnelle wrote:
+> In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
+> not being declared. PCMCIA devices are either LEGACY_PCI devices
+> which implies HAS_IOPORT or require HAS_IOPORT.
+> 
+> Acked-by: Dominik Brodowski <linux@dominikbrodowski.net>
+> Co-developed-by: Arnd Bergmann <arnd@kernel.org>
+> Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
+> ---
+>  drivers/pcmcia/Kconfig | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/drivers/pcmcia/Kconfig b/drivers/pcmcia/Kconfig
+> index 2ce261cfff8e..32b5cd324c58 100644
+> --- a/drivers/pcmcia/Kconfig
+> +++ b/drivers/pcmcia/Kconfig
+> @@ -5,7 +5,7 @@
+>  
+>  menuconfig PCCARD
+>  	tristate "PCCard (PCMCIA/CardBus) support"
+> -	depends on !UML
+> +	depends on HAS_IOPORT
 
-We are interested in having some of your hot selling product in 
-our stores and outlets spread all over United Kingdom, Northern 
-Island and Africa. ASDA Stores Limited is one of the highest-
-ranking Wholesale & Retail outlets in the United Kingdom. 
-  
-We shall furnish our detailed company profile in our next 
-correspondent. However, it would be appreciated if you can send 
-us your catalog through email to learn more about your company's 
-products and wholesale quote. It is hopeful that we can start a 
-viable long-lasting business relationship (partnership) with you.  
-  
-  
-Your prompt response would be delightfully appreciated. 
-  
-Best Wishes 
-  
-  
-Hanes S. Thomas 
-Procurement Office. 
-ASDA Stores Limited 
-Tel:  + 44 - 7451271650 
-WhatsApp: + 44 – 7441440360 
-Website: www.asda.co.uk
+I don't know much about PC Card.  Is there a requirement that these
+devices must use I/O port space?  If so, can you include a spec
+reference in the commit log?
+
+I do see the PC Card spec, r8.1, sec 5.5.4.2.2 says:
+
+  All CardBus PC Card adapters must support either memory-mapped I/O
+  or both memory-mapped I/O and I/O space. The selection will depend
+  largely on the system architecture the adapter is intended to be
+  used in. The requirement to also support memory-mapped I/O, if I/O
+  space is supported, is driven by the potential emergence of
+  memory-mapped I/O only cards. Supporting both modes may also
+  position the adapter to be sold into multiple system architectures.
+
+which sounds like I/O space is optional.
+
+>  	help
+>  	  Say Y here if you want to attach PCMCIA- or PC-cards to your Linux
+>  	  computer.  These are credit-card size devices such as network cards,
+> -- 
+> 2.32.0
+> 
