@@ -2,107 +2,84 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7FA7BC433EF
-	for <linux-arch@archiver.kernel.org>; Wed,  4 May 2022 12:05:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 55DE9C4332F
+	for <linux-arch@archiver.kernel.org>; Wed,  4 May 2022 12:38:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1348729AbiEDMJS convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 May 2022 08:09:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46098 "EHLO
+        id S1349821AbiEDMmU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 May 2022 08:42:20 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56466 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1349352AbiEDMJE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2022 08:09:04 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.17.24])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D86332AC1;
-        Wed,  4 May 2022 05:05:21 -0700 (PDT)
-Received: from mail-wm1-f47.google.com ([209.85.128.47]) by
- mrelayeu.kundenserver.de (mreue108 [213.165.67.113]) with ESMTPSA (Nemesis)
- id 1Mspu2-1o64sF3C2q-00tDXf; Wed, 04 May 2022 14:00:11 +0200
-Received: by mail-wm1-f47.google.com with SMTP id p7-20020a05600c358700b00393e80c59daso2530300wmq.0;
-        Wed, 04 May 2022 05:00:11 -0700 (PDT)
-X-Gm-Message-State: AOAM533SDCVqzQiAdKsV83vgiJE9VyJH9Jl2sQzi1xyjCxHP/8W/lFlE
-        M/RrauBA2UJujaaNl1c8a9CIW84ywx7qwk6yP2E=
-X-Google-Smtp-Source: ABdhPJxa91M6kOpYUD0iTKIgWao6CfWQbX+SRQAAcnEVkI7cNck+veUzwJT66OrSTBCPZk65kSjp++m9nNZ6refLZnU=
-X-Received: by 2002:a7b:cc93:0:b0:394:2622:fcd9 with SMTP id
- p19-20020a7bcc93000000b003942622fcd9mr7695473wma.20.1651665611020; Wed, 04
- May 2022 05:00:11 -0700 (PDT)
-MIME-Version: 1.0
-References: <2c8c96f-a12f-aadc-18ac-34c1d371929c@linux.intel.com>
- <CAK8P3a0hy8Ras7pwF9rJADtCAfeV49K7GWkftJnzqeGiQ6j-zA@mail.gmail.com> <ca39c741-8d15-33c0-7bd6-635778cc436@linux.intel.com>
-In-Reply-To: <ca39c741-8d15-33c0-7bd6-635778cc436@linux.intel.com>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Wed, 4 May 2022 13:59:55 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a33b4KvsGayDV7fXte0+1FzCJp_J60d8LuZO3P+i1NUEg@mail.gmail.com>
-Message-ID: <CAK8P3a33b4KvsGayDV7fXte0+1FzCJp_J60d8LuZO3P+i1NUEg@mail.gmail.com>
-Subject: Re: [PATCH 1/1] termbits: Convert octal defines to hex
-To:     =?UTF-8?Q?Ilpo_J=C3=A4rvinen?= <ilpo.jarvinen@linux.intel.com>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
-        Greg KH <gregkh@linuxfoundation.org>,
-        linux-serial <linux-serial@vger.kernel.org>,
-        Jiri Slaby <jirislaby@kernel.org>,
-        Linux API <linux-api@vger.kernel.org>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>,
-        alpha <linux-alpha@vger.kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
-        "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        Parisc List <linux-parisc@vger.kernel.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Benjamin Herrenschmidt <benh@kernel.crashing.org>,
-        Paul Mackerras <paulus@samba.org>,
-        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
+        with ESMTP id S1349822AbiEDMmS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2022 08:42:18 -0400
+Received: from angie.orcam.me.uk (angie.orcam.me.uk [78.133.224.34])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 4376233A3B;
+        Wed,  4 May 2022 05:38:36 -0700 (PDT)
+Received: by angie.orcam.me.uk (Postfix, from userid 500)
+        id 6A2FD92009C; Wed,  4 May 2022 14:38:35 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by angie.orcam.me.uk (Postfix) with ESMTP id 5C9E092009B;
+        Wed,  4 May 2022 13:38:35 +0100 (BST)
+Date:   Wed, 4 May 2022 13:38:35 +0100 (BST)
+From:   "Maciej W. Rozycki" <macro@orcam.me.uk>
+To:     Arnd Bergmann <arnd@kernel.org>
+cc:     Bjorn Helgaas <helgaas@kernel.org>,
+        Niklas Schnelle <schnelle@linux.ibm.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-X-Provags-ID: V03:K1:7CQbFrqW4cTrqLaKVG3j35bzBmKn+IuU4tx6h+ezN6PVZKgk+sz
- 8qiTIxQWgKVg592Oz6fM8BuTAJRta1OJthsCcRFJWgMJrQl+8iOo18131rIlBhcQ167uw2s
- qAsXBkV140cw0H0Uw5CXNeANe/rq7NcMXdg9AUUoijd/XgP/QBj+C4gUWMGdBbcXYryCDEK
- fMwzJlPIbalz2Qph2RNqA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:COPjXxKqg1Q=:VZTn72NtlgaYBDBCvL5I0k
- M7DGX/NMGjayrppYB0LPSZo4Fb0C/Dund+x/w084MgQANdpltVj92fHlfclpNX3TSS7P9fFdO
- 1ZndGa8zjXzVRxASqTuOGxvwNskOIfVB/DP7LyZqQR9/x/7YmdHgAmJWBXNGXqoTzm5xTzNTw
- /wNGfn6qcX2yxiPbsHntjmfHuLU2Khbc9tg6j/7zboJOpTOUo5PCKtHtEoL+MPsfirWp8LZYc
- OISYXsoOceS3FeZw1OfzZ6P6nDeHDerMGHShA/EuI0zAEn06zgMJJCeWkZHU8rdUIyBarHA9c
- 9lf4M9ZI4N6QHZx7HrdA4zF5YhLq4WEUPjOrK1foApXnfxsgFX50MbWxhnJkm/QYsrp5NmwVG
- uz2nwueC1bbCdhA99DYuLquD97jx6gMrhpIU1dkUZwhy03A+q8nM2RA9HQ1gp7Fa8r7TZJf9g
- b1mnW7C5llZ+Sby/KMRChcy9Ll+o02WXKM9/aHmCQfrA/pHjsIliYNzDQLMOxhlTqfH6FAHFY
- Cel4dtDXgpwDpcgSHZcH87yZTC0RhtNZC5wWplk4WbKsbm7X+ZIahx3CwdwYchrSa7SoxyCIf
- ps3O+Y3fOmOWHWmToMrJW0OW0NeH96aemgaKzORFWNOiGXrWZf/0EuGkI9IgdnOkqWhkLtNuA
- B4aXh1nXwzlsqJuTsozi8kkASB5qQHn216j/ky+JHL/Yce2pQaA6Tho7m7QKLPKPS/lJmxq4w
- uxtW68qM3nLVpvOJwGksIEOeBfzsUTUgUjA48BW2yRDp/9AZ46oo+QJ5v1tmEwb8YyD0EWp00
- M1jbs3JJDosCeiNtbb2VAKMtaAlSHZpTRf1fQbcy8OiJtLqwKM=
+        linux-pci <linux-pci@vger.kernel.org>,
+        Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: Re: [RFC v2 25/39] pcmcia: add HAS_IOPORT dependencies
+In-Reply-To: <CAK8P3a02vidd7u5Kp6UJj=9tj_hFGL24SmzuNpDGu1GOa1w9+w@mail.gmail.com>
+Message-ID: <alpine.DEB.2.21.2205041311280.9548@angie.orcam.me.uk>
+References: <20220429135108.2781579-44-schnelle@linux.ibm.com> <20220503233802.GA420374@bhelgaas> <CAK8P3a02vidd7u5Kp6UJj=9tj_hFGL24SmzuNpDGu1GOa1w9+w@mail.gmail.com>
+User-Agent: Alpine 2.21 (DEB 202 2017-01-01)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, May 4, 2022 at 10:33 AM Ilpo Järvinen
-<ilpo.jarvinen@linux.intel.com> wrote:
-> On Wed, 4 May 2022, Arnd Bergmann wrote:
-> > On Wed, May 4, 2022 at 9:20 AM Ilpo Järvinen <ilpo.jarvinen@linux.intel.com> wrote:
-> > >
-> > After applying the patch locally, I still see a bunch of whitespace
-> > differences in the
-> > changed lines if I run
-> >
-> > vimdiff arch/*/include/uapi/asm/termbits.h include/uapi/asm-generic/termbits.h
-> >
-> > I think this mostly because you left the sparc version alone (it already
-> > uses hex constants), but it may be nice to edit this a little more to
-> > make the actual differences stick out more.
->
-> I took a look on further harmonizing, however, it turned out to be not
-> that simple. This is basically the pipeline I use to further cleanup the
-> differences and remove comments if you want to play yourself, just remove
-> stages from the tail to get the intermediate datas (gawk is required for
-> --non-decimal-data):
+On Wed, 4 May 2022, Arnd Bergmann wrote:
 
-I've played around with it some more to adjust the number of leading
-zeroes and the type of whitespace. This is what I ended up with on top
-of your patch: https://pastebin.com/raw/pkDPaKN1
+> Almost all architectures that support CONFIG_PCI also provide
+> HAS_IOPORT today (at least at compile time, if not at runtime),
+> with s390 as a notable exception. Any machines that have legacy
+> PCI device support will also have I/O ports because a lot of
+> legacy PCI cards used it, and any machine with a pc-card slot
+> should also support legacy PCI devices.
+> 
+> If we get new architectures without I/O space in the future, they
+> would certainly not care about supporting old cardbus devices.
 
-Feel free to fold it into yours.
+ POWER9 is another architecture with no port I/O space[1]:
 
-        Arnd
+Table 3-2. PCIe TLP command summary
+-----------+-----------------------------+-------------------------------
+  Class    |           Type Name         |           Notes
+===========+=============================+===============================
+Completion | Completion without Data     | For PCI CFG Writes (nonposted)
+           |                             | or for error responses.
+Completion | Completion with Data        | CI load responses.
+Nonposted  | Configuration Read Request  | Outbound only.
+Nonposted  | Configuration Write Request | Outbound only.
+Posted     | Message Request             | Inbound only.
+Nonposted  | Memory Read Request         |
+Posted     | Memory Write Request        |
+===========+=============================+===============================
+ 1. All other valid PCIe command types are ignored and dropped.
+ 2. Invalid PCIe request command types will result in a completion
+    response of Unsupported Request.
+------------------------------------+------------------------------------
+
+that we do support -- I have such a system.  And I guess POWER10 is the 
+same, as will be all future architecture updates.
+
+References:
+
+[1] "Power Systems Host Bridge 4 (PHB4) Specification", Version 1.0, 
+    International Business Machines Corporation, 27 July 2018, Section 3.1 
+    "PHB4 Command Details", p.29
+
+  Maciej
