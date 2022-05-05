@@ -2,73 +2,78 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 99719C433F5
-	for <linux-arch@archiver.kernel.org>; Thu,  5 May 2022 08:26:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5EC21C433FE
+	for <linux-arch@archiver.kernel.org>; Thu,  5 May 2022 08:46:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1347188AbiEEIaD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 5 May 2022 04:30:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40184 "EHLO
+        id S231734AbiEEItY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 5 May 2022 04:49:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59676 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1348045AbiEEI34 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2022 04:29:56 -0400
-X-Greylist: delayed 473 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Thu, 05 May 2022 01:26:16 PDT
-Received: from sym2.noone.org (sym.noone.org [IPv6:2a01:4f8:120:4161::3])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D322F2D1F5
-        for <linux-arch@vger.kernel.org>; Thu,  5 May 2022 01:26:16 -0700 (PDT)
-Received: by sym2.noone.org (Postfix, from userid 1002)
-        id 4Kv65g2Lwvzvjfm; Thu,  5 May 2022 10:18:15 +0200 (CEST)
-From:   Tobias Klauser <tklauser@distanz.ch>
-To:     Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>
-Cc:     Mike Rapoport <rppt@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org
-Subject: [PATCH] riscv: Wire up memfd_secret in UAPI header
-Date:   Thu,  5 May 2022 10:18:15 +0200
-Message-Id: <20220505081815.22808-1-tklauser@distanz.ch>
-X-Mailer: git-send-email 2.11.0
+        with ESMTP id S241214AbiEEIs5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2022 04:48:57 -0400
+Received: from angie.orcam.me.uk (angie.orcam.me.uk [IPv6:2001:4190:8020::34])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 30906B93;
+        Thu,  5 May 2022 01:45:15 -0700 (PDT)
+Received: by angie.orcam.me.uk (Postfix, from userid 500)
+        id 4E39792009C; Thu,  5 May 2022 10:45:14 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by angie.orcam.me.uk (Postfix) with ESMTP id 4A38F92009B;
+        Thu,  5 May 2022 09:45:14 +0100 (BST)
+Date:   Thu, 5 May 2022 09:45:14 +0100 (BST)
+From:   "Maciej W. Rozycki" <macro@orcam.me.uk>
+To:     Bjorn Helgaas <helgaas@kernel.org>
+cc:     Arnd Bergmann <arnd@kernel.org>,
+        Niklas Schnelle <schnelle@linux.ibm.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        linux-pci <linux-pci@vger.kernel.org>,
+        Dominik Brodowski <linux@dominikbrodowski.net>
+Subject: Re: [RFC v2 25/39] pcmcia: add HAS_IOPORT dependencies
+In-Reply-To: <20220504172201.GA454911@bhelgaas>
+Message-ID: <alpine.DEB.2.21.2205050917160.52331@angie.orcam.me.uk>
+References: <20220504172201.GA454911@bhelgaas>
+User-Agent: Alpine 2.21 (DEB 202 2017-01-01)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Move the __ARCH_WANT_MEMFD_SECRET define added in commit 7bb7f2ac24a0
-("arch, mm: wire up memfd_secret system call where relevant") to
-<uapi/asm/unistd.h> so __NR_memfd_secret is defined when including
-<unistd.h> in userspace.
+On Wed, 4 May 2022, Bjorn Helgaas wrote:
 
-This allows the memds_secret selftest to pass on riscv.
+> >  Well, yes, except I would expect POWER9_CPU (and any higher versions we 
+> > eventually get) to clear HAS_IOPORT.  Generic configurations (GENERIC_CPU) 
+> > would set HAS_IOPORT of course, as would any lower architecture variants 
+> > that do or may support port I/O (it's not clear to me if there are any 
+> > that do not).  Ideally a generic configuration would not issue accesses to 
+> > random MMIO locations for port I/O accesses via `inb'/`outb', etc. for 
+> > systems that do not support port I/O (which it now does, or at least used 
+> > to until recently).
+> 
+> It would seem weird to me that a module would build and run on a
+> generic kernel running on POWER9 (with some safe way of handling
+> inb/outb that don't actually work), but not on a kernel built
+> specifically for POWER9_CPU.
 
-Cc: Mike Rapoport <rppt@kernel.org>
-Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
----
- arch/riscv/include/asm/unistd.h      | 1 -
- arch/riscv/include/uapi/asm/unistd.h | 1 +
- 2 files changed, 1 insertion(+), 1 deletion(-)
+ Why?  If you say configure your Alpha kernel for ALPHA_JENSEN, a pure 
+EISA system, then you won't get PCI support nor any PCI drivers offered 
+even though a generic Alpha kernel will get them all and still run on a 
+Jensen system.  I find that no different from our case here.
 
-diff --git a/arch/riscv/include/asm/unistd.h b/arch/riscv/include/asm/unistd.h
-index 6c316093a1e5..977ee6181dab 100644
---- a/arch/riscv/include/asm/unistd.h
-+++ b/arch/riscv/include/asm/unistd.h
-@@ -9,7 +9,6 @@
-  */
- 
- #define __ARCH_WANT_SYS_CLONE
--#define __ARCH_WANT_MEMFD_SECRET
- 
- #include <uapi/asm/unistd.h>
- 
-diff --git a/arch/riscv/include/uapi/asm/unistd.h b/arch/riscv/include/uapi/asm/unistd.h
-index 8062996c2dfd..d95fbf5846b0 100644
---- a/arch/riscv/include/uapi/asm/unistd.h
-+++ b/arch/riscv/include/uapi/asm/unistd.h
-@@ -21,6 +21,7 @@
- #endif /* __LP64__ */
- 
- #define __ARCH_WANT_SYS_CLONE3
-+#define __ARCH_WANT_MEMFD_SECRET
- 
- #include <asm-generic/unistd.h>
- 
--- 
-2.36.0
+ And if we do ever get TURBOchannel Alpha support, then a generic kernel 
+configuration will offer EISA, PCI and TURBOchannel drivers, while you 
+won't be offered TURBOchannel drivers for a PCI system and vice versa.  
+It would make no sense to me.
 
+ Please mind that the main objective for system-specific configurations is 
+optimisation, including both size and speed, and a part of the solution is 
+discarding stuff that's irrelevant for the respective system.  So in our 
+case we do want any port I/O code not to be there at all in compiled code 
+and consequently any driver that absolutely requires port I/O code to work 
+will have to become a useless stub in its compiled form.  What would be 
+the point then of having it there in the first place except to spread 
+confusion?
+
+  Maciej
