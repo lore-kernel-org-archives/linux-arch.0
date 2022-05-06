@@ -2,95 +2,104 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 87C89C433FE
-	for <linux-arch@archiver.kernel.org>; Fri,  6 May 2022 14:15:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 51D50C433F5
+	for <linux-arch@archiver.kernel.org>; Fri,  6 May 2022 14:34:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1442166AbiEFOTh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 6 May 2022 10:19:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42892 "EHLO
+        id S1442214AbiEFOi0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 6 May 2022 10:38:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57774 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1442190AbiEFOTe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2022 10:19:34 -0400
-X-Greylist: delayed 210 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Fri, 06 May 2022 07:15:46 PDT
-Received: from out02.mta.xmission.com (out02.mta.xmission.com [166.70.13.232])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3A10022BC4;
-        Fri,  6 May 2022 07:15:45 -0700 (PDT)
-Received: from in01.mta.xmission.com ([166.70.13.51]:56272)
-        by out02.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1nmykC-009n4e-Hs; Fri, 06 May 2022 08:15:44 -0600
-Received: from ip68-227-174-4.om.om.cox.net ([68.227.174.4]:37210 helo=localhost.localdomain)
-        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1nmykB-007Cxx-Eb; Fri, 06 May 2022 08:15:44 -0600
-From:   "Eric W. Biederman" <ebiederm@xmission.com>
-To:     linux-arch@vger.kernel.org
-Cc:     Tejun Heo <tj@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Al Viro <viro@ZenIV.linux.org.uk>,
-        Jens Axboe <axboe@kernel.dk>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Linus Torvalds <torvalds@linuxfoundation.org>,
-        linux-kernel@vger.kernel.org,
-        "Eric W. Biederman" <ebiederm@xmission.com>
-Date:   Fri,  6 May 2022 09:15:10 -0500
-Message-Id: <20220506141512.516114-5-ebiederm@xmission.com>
-X-Mailer: git-send-email 2.30.2
-In-Reply-To: <87mtfu4up3.fsf@email.froward.int.ebiederm.org>
-References: <87mtfu4up3.fsf@email.froward.int.ebiederm.org>
-MIME-Version: 1.0
+        with ESMTP id S1343536AbiEFOiY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2022 10:38:24 -0400
+Received: from mail-pf1-x431.google.com (mail-pf1-x431.google.com [IPv6:2607:f8b0:4864:20::431])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D3D29692A0
+        for <linux-arch@vger.kernel.org>; Fri,  6 May 2022 07:34:41 -0700 (PDT)
+Received: by mail-pf1-x431.google.com with SMTP id c14so6415707pfn.2
+        for <linux-arch@vger.kernel.org>; Fri, 06 May 2022 07:34:41 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
+        h=date:subject:in-reply-to:cc:from:to:message-id:mime-version
+         :content-transfer-encoding;
+        bh=7u3OwSkyFfQPtUMBSXJ+m0o3AIK+1qwz0/mjtmfCQB0=;
+        b=FdeTUfLPDw9k8X6pTEaLv52yUet9VfSQ7bi4HQ1t2xxaDysAJZFgQ7VRrYNlmPjTaj
+         2tZL8ukYEo7mNc766P4NQqVT9VU4xcQVvoq18pPjJEP+0zEMAny+6Y6R1wOkE1tgO1wN
+         uO8kog1rHC8+u41oS0ocTQzuT0i21hJ3Uz5f+CifLuIMIngaK02mJcE8pu1U5afhbLJI
+         DQvD2wdX+c/IHeRxzEhPxhM8zCujiWsHkyNF2bZlVm+qDJtsTHgLYuDntTJYuurXEomy
+         6N6H/Q1iuEHCKEfOxPpaFPLiJqifIcesYahJuQ4SUdI1fRp5qzJFzMshG8VThV3XD+0t
+         zf6w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:date:subject:in-reply-to:cc:from:to:message-id
+         :mime-version:content-transfer-encoding;
+        bh=7u3OwSkyFfQPtUMBSXJ+m0o3AIK+1qwz0/mjtmfCQB0=;
+        b=6R1OzQL54o3sha0YO8GpuIGcjSP3OyqRMWmJwVwk6QZds0rBtKcWf1bWtOVRG858z/
+         naABLltRMrJD/igwEDVnkyx5HLLalj8ISp1hYh1UBQeLKYNa8eJUicXE0A+X3Z/fdnbv
+         zN1rrh7kPEGLN92EKLakATcFwe+nOSOuIgcFmiX6LrQQPmPpnugQafk1p9Y/RmK/IFlK
+         9Iv/6FJXE5+rLlmQyCdxQKJSBh3Hs57Zyi/DcWIF47tlt6EeADxTSQSLSnE/haCYobgW
+         NP6TGm70NjG7LRAzQH6hGG9eS6OlrvAWobDRH76f6IpDfdOMVtAr4JahWRpo48iqTukT
+         v1ZQ==
+X-Gm-Message-State: AOAM532Sj7S3ILgDgwAw0QfIHCm4Nx/ObxEYXC9qS5bgjwH1V0PoIO5w
+        HI1Rj6/t3Z/HfmWxS/0Pkv2+aw==
+X-Google-Smtp-Source: ABdhPJxRyjLgEf03HBpUE/mZuN6gq4KYh/avgT4q6TfXPSIwYir1NJqPKE0fyCteJUZc4c2jSgcLGw==
+X-Received: by 2002:a63:d00b:0:b0:3c1:6c87:2135 with SMTP id z11-20020a63d00b000000b003c16c872135mr2936313pgf.93.1651847681336;
+        Fri, 06 May 2022 07:34:41 -0700 (PDT)
+Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
+        by smtp.gmail.com with ESMTPSA id a21-20020a170902ee9500b0015e8d4eb241sm1820885pld.139.2022.05.06.07.34.40
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 06 May 2022 07:34:41 -0700 (PDT)
+Date:   Fri, 06 May 2022 07:34:41 -0700 (PDT)
+X-Google-Original-Date: Fri, 06 May 2022 07:34:18 PDT (-0700)
+Subject:     Re: [PATCH v4 0/7] Generic Ticket Spinlocks
+In-Reply-To: <CAK8P3a1VjunJE5zAm96pkQX7EvVDcN6VGT8usedeO709KQnB_g@mail.gmail.com>
+CC:     Arnd Bergmann <arnd@arndb.de>, guoren@kernel.org,
+        peterz@infradead.org, mingo@redhat.com,
+        Will Deacon <will@kernel.org>, longman@redhat.com,
+        boqun.feng@gmail.com, jonas@southpole.se,
+        stefan.kristiansson@saunalahti.fi, shorne@gmail.com,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        aou@eecs.berkeley.edu, Greg KH <gregkh@linuxfoundation.org>,
+        sudipm.mukherjee@gmail.com, macro@orcam.me.uk, jszhang@kernel.org,
+        linux-csky@vger.kernel.org, linux-kernel@vger.kernel.org,
+        openrisc@lists.librecores.org, linux-riscv@lists.infradead.org,
+        linux-arch@vger.kernel.org
+From:   Palmer Dabbelt <palmer@rivosinc.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Message-ID: <mhng-2750a5d4-cb79-4142-a8c6-e7e0c80f8e85@palmer-mbp2014>
+Mime-Version: 1.0 (MHng)
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Transfer-Encoding: 8bit
-X-XM-SPF: eid=1nmykB-007Cxx-Eb;;;mid=<20220506141512.516114-5-ebiederm@xmission.com>;;;hst=in01.mta.xmission.com;;;ip=68.227.174.4;;;frm=ebiederm@xmission.com;;;spf=softfail
-X-XM-AID: U2FsdGVkX1+YtAybj6KSom4BKXaqhR+tPpLicoHoVIw=
-X-SA-Exim-Connect-IP: 68.227.174.4
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: [PATCH 5/7] init: Deal with the init process being a user mode process
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-It is silly for user_mode_thread to leave PF_KTHREAD set
-on the resulting task.  Update the init process so that
-it does not care if PF_KTHREAD is set or not.
+On Thu, 05 May 2022 04:09:46 PDT (-0700), Arnd Bergmann wrote:
+> On Sat, Apr 30, 2022 at 5:36 PM Palmer Dabbelt <palmer@rivosinc.com> wrote:
+>>
+>> Comments on the v3 looked pretty straight-forward, essentially just that
+>> RCsc issue I'd missed from the v2 and some cleanups.  A part of the
+>> discussion some additional possible cleanups came up related to the
+>> qrwlock headers, but I hadn't looked at those yet and I had already
+>> handled everything else.  This went on the back burner, but given that
+>> LoongArch appears to want to use it for their new port I think it's best
+>> to just run with this and defer the other cleanups until later.
+>>
+>> I've placed the whole patch set at palmer/tspinlock-v4, and also tagged
+>> the asm-generic bits as generic-ticket-spinlocks-v4.  Ideally I'd like
+>> to take that, along with the RISC-V patches, into my tree as there's
+>> some RISC-V specific testing before things land in linux-next.  This
+>> passes all my testing, but I'll hold off until merging things anywhere
+>> else to make sure everyone has time to look.  There's no rush on my end
+>> for this one, but I don't want to block LoongArch so I'll try to stay a
+>> bit more on top of this one.
+>
+> I took another look as well and everything seems fine. I had expected
+> that I would merge it into the asm-generic tree first and did not bother
+> sending a separate Reviewed-by tag, but I agree that it's best if you
+> create the branch.
+>
+> Can you add 'Reviewed-by: Arnd Bergmann <arnd@arndb.de>'
+> to each patch and send me a pull request for a v5 tag so we can
+> merge that into both the riscv and the asm-generic trees?
 
-Ensure do_populate_rootfs flushes all delayed fput work by calling
-task_work_run.  In the rare instance that async_schedule_domain calls
-do_populate_rootfs synchronously it is possible do_populate_rootfs
-will be called directly from the init process.  At which point fput
-will call "task_work_add(current, ..., TWA_RESUME)".  The files on the
-initramfs need to be completely put before we attempt to exec them
-(which is before the code enters userspace).  So call task_work_run
-just in case there are any pending fput operations.
-
-Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
----
- init/initramfs.c | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/init/initramfs.c b/init/initramfs.c
-index 2f3d96dc3db6..41e7857d510d 100644
---- a/init/initramfs.c
-+++ b/init/initramfs.c
-@@ -15,6 +15,7 @@
- #include <linux/mm.h>
- #include <linux/namei.h>
- #include <linux/init_syscalls.h>
-+#include <linux/task_work.h>
- #include <linux/umh.h>
- 
- static ssize_t __init xwrite(struct file *file, const char *p, size_t count,
-@@ -703,6 +704,7 @@ static void __init do_populate_rootfs(void *unused, async_cookie_t cookie)
- 	initrd_end = 0;
- 
- 	flush_delayed_fput();
-+	task_work_run();
- }
- 
- static ASYNC_DOMAIN_EXCLUSIVE(initramfs_domain);
--- 
-2.35.3
-
+Yep.  There were some other minor comments, I'll clean those up as well 
+and send something soon.
