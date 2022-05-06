@@ -2,108 +2,237 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D0EC8C433F5
-	for <linux-arch@archiver.kernel.org>; Fri,  6 May 2022 14:08:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5A3D5C433EF
+	for <linux-arch@archiver.kernel.org>; Fri,  6 May 2022 14:15:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1381640AbiEFOLo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 6 May 2022 10:11:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33936 "EHLO
+        id S1442128AbiEFOTT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 6 May 2022 10:19:19 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42688 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231739AbiEFOLn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2022 10:11:43 -0400
-Received: from mail-qk1-f169.google.com (mail-qk1-f169.google.com [209.85.222.169])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DAD7C5A2DF;
-        Fri,  6 May 2022 07:07:56 -0700 (PDT)
-Received: by mail-qk1-f169.google.com with SMTP id 126so5939014qkm.4;
-        Fri, 06 May 2022 07:07:56 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=HLS1owR3CUUM/pxIukdO3Yvx2ZZOeSpZS2VuYEsMpRM=;
-        b=Z247zpROugve+xccj1mnDqoSRDmWrS7IWjEOtk9VS9GM5cLRjoubnC0NSdY93eDmX4
-         q4KzWOLYKwHChJ/R4FsGLq2i7+zhI5MrUk8JIpNpxHG0z5SWS5BQqFsOitZwr3bVdFe5
-         SC3W8p3GtmHHsGSmcJQt+D3GEAwjN2n0L36wH6SKonwNiQ3SMkqUtKCZ6ZjZVL8fYdKY
-         AtLPCn8WEtmQjqlDpavK2Wad8InHJassoAvR8eHhF7ciB/2HAdNQusnsbCz6Havq/kg6
-         0GXkomAaKuhQHC3cHM4Q7647YloD/eHKgomqdPnIrfvWt4fBw2rOAbHFEAOkiyVjyiD4
-         HYlQ==
-X-Gm-Message-State: AOAM531zVuJ0S+P7Rtk2XWvoJBMgSXM61gWTdyiyW8wOtPwMEFUhm9q9
-        +yfXauaZoOCPQUsqkY/7bdCq2ffMsrR5gg==
-X-Google-Smtp-Source: ABdhPJzmpBReCv37qqtfOf8Imzp9MGGDEq/Ufzp603XZWxvx5nIRaOd6RMNBNV8Y0JqOU/4mlOaHBw==
-X-Received: by 2002:a37:a743:0:b0:69f:e64c:74c9 with SMTP id q64-20020a37a743000000b0069fe64c74c9mr2455682qke.432.1651846075717;
-        Fri, 06 May 2022 07:07:55 -0700 (PDT)
-Received: from mail-yb1-f182.google.com (mail-yb1-f182.google.com. [209.85.219.182])
-        by smtp.gmail.com with ESMTPSA id u12-20020ac8750c000000b002f39b99f69csm2580370qtq.54.2022.05.06.07.07.55
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 06 May 2022 07:07:55 -0700 (PDT)
-Received: by mail-yb1-f182.google.com with SMTP id w187so13077449ybe.2;
-        Fri, 06 May 2022 07:07:55 -0700 (PDT)
-X-Received: by 2002:a05:6902:905:b0:64a:2089:f487 with SMTP id
- bu5-20020a056902090500b0064a2089f487mr2392502ybb.202.1651846074895; Fri, 06
- May 2022 07:07:54 -0700 (PDT)
+        with ESMTP id S1390697AbiEFOTR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2022 10:19:17 -0400
+Received: from out03.mta.xmission.com (out03.mta.xmission.com [166.70.13.233])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D469A1DA6B;
+        Fri,  6 May 2022 07:15:33 -0700 (PDT)
+Received: from in01.mta.xmission.com ([166.70.13.51]:33830)
+        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1nmyjz-001V0o-S3; Fri, 06 May 2022 08:15:32 -0600
+Received: from ip68-227-174-4.om.om.cox.net ([68.227.174.4]:37210 helo=localhost.localdomain)
+        by in01.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.93)
+        (envelope-from <ebiederm@xmission.com>)
+        id 1nmyjy-007Cxx-8O; Fri, 06 May 2022 08:15:31 -0600
+From:   "Eric W. Biederman" <ebiederm@xmission.com>
+To:     linux-arch@vger.kernel.org
+Cc:     Tejun Heo <tj@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
+        Vincent Guittot <vincent.guittot@linaro.org>,
+        Al Viro <viro@ZenIV.linux.org.uk>,
+        Jens Axboe <axboe@kernel.dk>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Linus Torvalds <torvalds@linuxfoundation.org>,
+        linux-kernel@vger.kernel.org,
+        "Eric W. Biederman" <ebiederm@xmission.com>,
+        stable@vger.kernel.org,
+        =?UTF-8?q?=D0=9C=D0=B0=D0=BA=D1=81=D0=B8=D0=BC=20=D0=9A=D1=83=D1=82=D1=8F=D0=B2=D0=B8=D0=BD?= 
+        <maximkabox13@gmail.com>
+Date:   Fri,  6 May 2022 09:15:06 -0500
+Message-Id: <20220506141512.516114-1-ebiederm@xmission.com>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <87mtfu4up3.fsf@email.froward.int.ebiederm.org>
+References: <87mtfu4up3.fsf@email.froward.int.ebiederm.org>
 MIME-Version: 1.0
-References: <Yib9F5SqKda/nH9c@infradead.org>
-In-Reply-To: <Yib9F5SqKda/nH9c@infradead.org>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Fri, 6 May 2022 16:07:43 +0200
-X-Gmail-Original-Message-ID: <CAMuHMdXVS6ROvp4rkZzBOBJBkQYjtdL0-m0ok=8UvTkwp-X4bw@mail.gmail.com>
-Message-ID: <CAMuHMdXVS6ROvp4rkZzBOBJBkQYjtdL0-m0ok=8UvTkwp-X4bw@mail.gmail.com>
-Subject: Re: [RFC PULL] remove arch/h8300
-To:     Christoph Hellwig <hch@infradead.org>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        "moderated list:H8/300 ARCHITECTURE" 
-        <uclinux-h8-devel@lists.sourceforge.jp>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-XM-SPF: eid=1nmyjy-007Cxx-8O;;;mid=<20220506141512.516114-1-ebiederm@xmission.com>;;;hst=in01.mta.xmission.com;;;ip=68.227.174.4;;;frm=ebiederm@xmission.com;;;spf=softfail
+X-XM-AID: U2FsdGVkX1/6Fq28LXF6kTwesTM8nfhPUaGtjnsT1W4=
+X-SA-Exim-Connect-IP: 68.227.174.4
+X-SA-Exim-Mail-From: ebiederm@xmission.com
+Subject: [PATCH 1/7] kthread: Don't allocate kthread_struct for init and umh
+X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
+X-SA-Exim-Scanned: Yes (on in01.mta.xmission.com)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Chrisoph,
+If kthread_is_per_cpu runs concurrently with free_kthread_struct the
+kthread_struct that was just freed may be read from.
 
-On Tue, Mar 8, 2022 at 12:04 PM Christoph Hellwig <hch@infradead.org> wrote:
-> h8300 hasn't been maintained for quite a while, with even years old
-> pull request lingering in the old repo.  Given that it always was
-> rather fringe to start with I'd suggest to go ahead and remove the
-> port:
->
-> The following changes since commit 5c1ee569660d4a205dced9cb4d0306b907fb7599:
->
->   Merge branch 'for-5.17-fixes' of git://git.kernel.org/pub/scm/linux/kernel/git/tj/cgroup (2022-02-22 16:14:35 -0800)
->
-> are available in the Git repository at:
->
->   git://git.infradead.org/users/hch/misc.git remove-h8300
->
-> for you to fetch changes up to 1c4b5ecb7ea190fa3e9f9d6891e6c90b60e04f24:
->
->   remove the h8300 architecture (2022-02-23 08:52:50 +0100)
->
-> ----------------------------------------------------------------
-> Christoph Hellwig (1):
->       remove the h8300 architecture
->
->  .../bindings/clock/renesas,h8300-div-clock.txt     |  24 --
->  Documentation/devicetree/bindings/h8300/cpu.txt    |  13 -
->  .../interrupt-controller/renesas,h8300h-intc.txt   |  22 --
->  .../interrupt-controller/renesas,h8s-intc.txt      |  22 --
->  .../memory-controllers/renesas,h8300-bsc.yaml      |  35 --
+This bug was introduced by commit 40966e316f86 ("kthread: Ensure
+struct kthread is present for all kthreads").  When kthread_struct
+started to be allocated for all tasks that have PF_KTHREAD set.  This
+in turn required the kthread_struct to be freed in kernel_execve and
+violated the assumption that kthread_struct will have the same
+lifetime as the task.
 
-More DT bindings to garbage-collect:
-Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
-Documentation/devicetree/bindings/timer/renesas,16bit-timer.txt
-Documentation/devicetree/bindings/timer/renesas,8bit-timer.txt
+Looking a bit deeper this only applies to callers of kernel_execve
+which is just the init process and the user mode helper processes.
+These processes really don't want to be kernel threads but are for
+historical reasons.  Mostly that copy_thread does not know how to take
+a kernel mode function to the process with for processes without
+PF_KTHREAD or PF_IO_WORKER set.
 
-Gr{oetje,eeting}s,
+Solve this by not allocating kthread_struct for the init process and
+the user mode helper processes.
 
-                        Geert
+This is done by adding a kthread member to struct kernel_clone_args.
+Setting kthread in fork_idle and kernel_thread.  Adding
+user_mode_thread that works like kernel_thread except it does not set
+kthread.  In fork only allocating the kthread_struct if .kthread is set.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+I have looked at kernel/kthread.c and since commit 40966e316f86
+("kthread: Ensure struct kthread is present for all kthreads") there
+have been no assumptions added that to_kthread or __to_kthread will
+not return NULL.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+There are a few callers of to_kthread or __to_kthread that assume a
+non-NULL struct kthread pointer will be returned.  These functions are
+kthread_data(), kthread_parmme(), kthread_exit(), kthread(),
+kthread_park(), kthread_unpark(), kthread_stop().  All of those functions
+can reasonably expected to be called when it is know that a task is a
+kthread so that assumption seems reasonable.
+
+Cc: stable@vger.kernel.org
+Fixes: 40966e316f86 ("kthread: Ensure struct kthread is present for all kthreads")
+Reported-by: Максим Кутявин <maximkabox13@gmail.com>
+Signed-off-by: "Eric W. Biederman" <ebiederm@xmission.com>
+---
+ fs/exec.c                  |  6 ++++--
+ include/linux/sched/task.h |  2 ++
+ init/main.c                |  2 +-
+ kernel/fork.c              | 22 ++++++++++++++++++++--
+ kernel/umh.c               |  6 +++---
+ 5 files changed, 30 insertions(+), 8 deletions(-)
+
+diff --git a/fs/exec.c b/fs/exec.c
+index e3e55d5e0be1..75eb6e0ee7b2 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1308,8 +1308,6 @@ int begin_new_exec(struct linux_binprm * bprm)
+ 	if (retval)
+ 		goto out_unlock;
+ 
+-	if (me->flags & PF_KTHREAD)
+-		free_kthread_struct(me);
+ 	me->flags &= ~(PF_RANDOMIZE | PF_FORKNOEXEC | PF_KTHREAD |
+ 					PF_NOFREEZE | PF_NO_SETAFFINITY);
+ 	flush_thread();
+@@ -1955,6 +1953,10 @@ int kernel_execve(const char *kernel_filename,
+ 	int fd = AT_FDCWD;
+ 	int retval;
+ 
++	if (WARN_ON_ONCE((current->flags & PF_KTHREAD) &&
++			(current->worker_private)))
++		return -EINVAL;
++
+ 	filename = getname_kernel(kernel_filename);
+ 	if (IS_ERR(filename))
+ 		return PTR_ERR(filename);
+diff --git a/include/linux/sched/task.h b/include/linux/sched/task.h
+index 719c9a6cac8d..4492266935dd 100644
+--- a/include/linux/sched/task.h
++++ b/include/linux/sched/task.h
+@@ -32,6 +32,7 @@ struct kernel_clone_args {
+ 	size_t set_tid_size;
+ 	int cgroup;
+ 	int io_thread;
++	int kthread;
+ 	struct cgroup *cgrp;
+ 	struct css_set *cset;
+ };
+@@ -89,6 +90,7 @@ struct task_struct *create_io_thread(int (*fn)(void *), void *arg, int node);
+ struct task_struct *fork_idle(int);
+ struct mm_struct *copy_init_mm(void);
+ extern pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
++extern pid_t user_mode_thread(int (*fn)(void *), void *arg, unsigned long flags);
+ extern long kernel_wait4(pid_t, int __user *, int, struct rusage *);
+ int kernel_wait(pid_t pid, int *stat);
+ 
+diff --git a/init/main.c b/init/main.c
+index 98182c3c2c4b..39baac0211c6 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -688,7 +688,7 @@ noinline void __ref rest_init(void)
+ 	 * the init task will end up wanting to create kthreads, which, if
+ 	 * we schedule it before we create kthreadd, will OOPS.
+ 	 */
+-	pid = kernel_thread(kernel_init, NULL, CLONE_FS);
++	pid = user_mode_thread(kernel_init, NULL, CLONE_FS);
+ 	/*
+ 	 * Pin init on the boot CPU. Task migration is not properly working
+ 	 * until sched_init_smp() has been run. It will set the allowed
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 9796897560ab..27c5203750b4 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -2157,7 +2157,7 @@ static __latent_entropy struct task_struct *copy_process(
+ 	p->io_context = NULL;
+ 	audit_set_context(p, NULL);
+ 	cgroup_fork(p);
+-	if (p->flags & PF_KTHREAD) {
++	if (args->kthread) {
+ 		if (!set_kthread_struct(p))
+ 			goto bad_fork_cleanup_delayacct;
+ 	}
+@@ -2548,7 +2548,8 @@ struct task_struct * __init fork_idle(int cpu)
+ {
+ 	struct task_struct *task;
+ 	struct kernel_clone_args args = {
+-		.flags = CLONE_VM,
++		.flags		= CLONE_VM,
++		.kthread	= 1,
+ 	};
+ 
+ 	task = copy_process(&init_struct_pid, 0, cpu_to_node(cpu), &args);
+@@ -2679,6 +2680,23 @@ pid_t kernel_clone(struct kernel_clone_args *args)
+  * Create a kernel thread.
+  */
+ pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
++{
++	struct kernel_clone_args args = {
++		.flags		= ((lower_32_bits(flags) | CLONE_VM |
++				    CLONE_UNTRACED) & ~CSIGNAL),
++		.exit_signal	= (lower_32_bits(flags) & CSIGNAL),
++		.stack		= (unsigned long)fn,
++		.stack_size	= (unsigned long)arg,
++		.kthread	= 1,
++	};
++
++	return kernel_clone(&args);
++}
++
++/*
++ * Create a user mode thread.
++ */
++pid_t user_mode_thread(int (*fn)(void *), void *arg, unsigned long flags)
+ {
+ 	struct kernel_clone_args args = {
+ 		.flags		= ((lower_32_bits(flags) | CLONE_VM |
+diff --git a/kernel/umh.c b/kernel/umh.c
+index 36c123360ab8..b989736e8707 100644
+--- a/kernel/umh.c
++++ b/kernel/umh.c
+@@ -132,7 +132,7 @@ static void call_usermodehelper_exec_sync(struct subprocess_info *sub_info)
+ 
+ 	/* If SIGCLD is ignored do_wait won't populate the status. */
+ 	kernel_sigaction(SIGCHLD, SIG_DFL);
+-	pid = kernel_thread(call_usermodehelper_exec_async, sub_info, SIGCHLD);
++	pid = user_mode_thread(call_usermodehelper_exec_async, sub_info, SIGCHLD);
+ 	if (pid < 0)
+ 		sub_info->retval = pid;
+ 	else
+@@ -171,8 +171,8 @@ static void call_usermodehelper_exec_work(struct work_struct *work)
+ 		 * want to pollute current->children, and we need a parent
+ 		 * that always ignores SIGCHLD to ensure auto-reaping.
+ 		 */
+-		pid = kernel_thread(call_usermodehelper_exec_async, sub_info,
+-				    CLONE_PARENT | SIGCHLD);
++		pid = user_mode_thread(call_usermodehelper_exec_async, sub_info,
++				       CLONE_PARENT | SIGCHLD);
+ 		if (pid < 0) {
+ 			sub_info->retval = pid;
+ 			umh_complete(sub_info);
+-- 
+2.35.3
+
