@@ -2,55 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1DD9CC433FE
-	for <linux-arch@archiver.kernel.org>; Mon,  9 May 2022 22:32:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C6593C433FE
+	for <linux-arch@archiver.kernel.org>; Mon,  9 May 2022 22:32:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231634AbiEIWgX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 May 2022 18:36:23 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56208 "EHLO
+        id S231757AbiEIWgY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 May 2022 18:36:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56360 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231645AbiEIWgT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2022 18:36:19 -0400
+        with ESMTP id S231758AbiEIWgW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2022 18:36:22 -0400
 Received: from mail-pf1-x430.google.com (mail-pf1-x430.google.com [IPv6:2607:f8b0:4864:20::430])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33C642B9C82
-        for <linux-arch@vger.kernel.org>; Mon,  9 May 2022 15:32:24 -0700 (PDT)
-Received: by mail-pf1-x430.google.com with SMTP id y41so8594594pfw.12
-        for <linux-arch@vger.kernel.org>; Mon, 09 May 2022 15:32:24 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A02AD2B94FE
+        for <linux-arch@vger.kernel.org>; Mon,  9 May 2022 15:32:27 -0700 (PDT)
+Received: by mail-pf1-x430.google.com with SMTP id j6so13409615pfe.13
+        for <linux-arch@vger.kernel.org>; Mon, 09 May 2022 15:32:27 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
-        h=subject:date:message-id:mime-version:content-transfer-encoding:cc
-         :from:to;
-        bh=wogL5SNF6fBWUFbVfNImZXe0oagV0GR5P/uvXUVTGHw=;
-        b=IJlSe/QYx+QBVtXsevt86SPgzwgnfYUoN/+MtyvqGNjARDi5TpCiQz6TJD5R7+mW5m
-         x1JKsPS1APmscP3dprFiIQRfFzjXXfYVyAdBp2oqTtlD1pomh7P+T8/J1bw9I193p9rb
-         iVTOupRBY/ZlX0QdHDGqSv2jYXcpZIJ3YFVWw8NHqfqSpy1JsSbHDLG1NlA8aj1y3A0B
-         deI6rVkM4HytF4YzYO3kSyKYzQRH/4jZ9v0kI2MOFYw1Tqmz4RjwXhlBTcoq+tlKfZ7W
-         HZ2zuhLgAk5S9uqogxOl7tNwVp13lu6ZXSnuV0Irnw4mmHrGSywUR+iz7poAhIuNIWUQ
-         /hHQ==
+        h=subject:date:message-id:in-reply-to:references:mime-version
+         :content-transfer-encoding:cc:from:to;
+        bh=pWbw2Mwy88SDSkfpA4D7g/Rmsq9eS9lL/9r9k9KvO7g=;
+        b=aKb0kPhWVd5eMpmlkl9NknitMxg8gh5oazT3otM1H7wNssSLITeEgVYd3fLrFpqhAN
+         6lW7y7N8edPrk+YAtulN/xaP8NiOVNXKZAi6KA0NNveYzfnxDp9ggPIafs2mYWMuEWpF
+         yisEk6Vl9il9YEGMryMzMjf2wBlPJtypJNMiXj/O7kxrK4628fYPSch836eJYFLJD5Wl
+         OrKTh30iRJgEMKA4TvqbYiX+DIHWjjGEmbm+VHeiIrDIZkzUjvIVMUmJT2O64m4s1rq4
+         s75jC01yaX0ljYX5/96b4XICWLQpDnMGWrtzgp0A1FvhK7kRpUekOBDbUefjzvvkL2IY
+         V5Zg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=x-gm-message-state:subject:date:message-id:mime-version
-         :content-transfer-encoding:cc:from:to;
-        bh=wogL5SNF6fBWUFbVfNImZXe0oagV0GR5P/uvXUVTGHw=;
-        b=UnUIKQvwjVzm68ybthmOcqluT1+SYoAfWETKnEqFq5HBFFeHIZyr4zouneOCF1kwKj
-         +hwLqUmAKSVDysoqiZXYvrIKYYXWuBw4K272ivD+yalOLzMcvy29mrDI20k7UDWodf5L
-         GLIgDX3EGc8PSm3YSwHNjlcCwV/TiLg+KoXC4zDDApF0saf0Dbi+qpg84jtn3pPDrHVK
-         +XazSWSMnuWpvj8IT04muFzPJIgCeHaXhs5FAmFrC5mxyJ31kk/wuZ5+nsZVSRCg+3uD
-         F/Xn0Z5yUmb9udJzKsMBmD2QgjtISATWoxNmtF5MTVXw9zrtvhXpsgGc6OikD8hgD8jC
-         duMg==
-X-Gm-Message-State: AOAM530f1vzEmRPfIMujfFlGP7JfCFWlWTDxBxZ+HpfxRj+YL3hCVEj9
-        1gYCpM1owGxb87daIc9E2Tj3vg==
-X-Google-Smtp-Source: ABdhPJyAwHjkK3tRBZ297rtg0Bed+Rov0Lqf/ttVjbMRkoVNvpEnT2Uuc+cDP/CXmoRrMY/G7ikPDg==
-X-Received: by 2002:a63:f710:0:b0:3c6:3561:42a5 with SMTP id x16-20020a63f710000000b003c6356142a5mr14416105pgh.295.1652135543686;
-        Mon, 09 May 2022 15:32:23 -0700 (PDT)
+        h=x-gm-message-state:subject:date:message-id:in-reply-to:references
+         :mime-version:content-transfer-encoding:cc:from:to;
+        bh=pWbw2Mwy88SDSkfpA4D7g/Rmsq9eS9lL/9r9k9KvO7g=;
+        b=138B/3BhWqcen/NBjOyQqig6SJeENwO/DYEnTKHpVLtSYJfcM2x5BXiE4Kj3ulVfXP
+         Tp9ou2IucwliBA0TyS5ypgIn8PzzLUa03C4jCiTWirJjS3JJS/fJ1TPM+1cvTldYvwyV
+         eUmZQOLj4Pi/wj8Vy+iShTH7QeJm/M1zlInPMUOKN4hXK1wuX+nEl+QkI0jj4zst4/2h
+         WlzeN98OrmbHi9dC9a2Eg8w9ylGvf/hi2l0kad+fC8qkZBwElH+EOvXjFeXkPrvjDuc0
+         Luc14EwKfImxl/bgUQmsQ4Xx6jAiHdlPLeYW/5bEEuFCR+6mwQVx2XUDI7vn1my2/Rl+
+         xrOQ==
+X-Gm-Message-State: AOAM530FGNtffZlJNoKeJ5u2X1602oeS2rlPoCQjl9FtTRC+MAVL/cx8
+        uA1ctmn8zKVD+3TaPY4/oA/Vpg==
+X-Google-Smtp-Source: ABdhPJxUc/qGM9x1mbDewFdh0f2iSebcv/MH281VDWnsTPJAYa63hm5brMdaLkqzPiol6IuhZdvYkA==
+X-Received: by 2002:a05:6a02:10d:b0:381:f4c8:ad26 with SMTP id bg13-20020a056a02010d00b00381f4c8ad26mr14585787pgb.135.1652135546996;
+        Mon, 09 May 2022 15:32:26 -0700 (PDT)
 Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
-        by smtp.gmail.com with ESMTPSA id q10-20020a170902daca00b0015e8d4eb1besm423397plx.8.2022.05.09.15.32.23
+        by smtp.gmail.com with ESMTPSA id w19-20020a1709029a9300b0015e8d4eb1ddsm407885plp.39.2022.05.09.15.32.26
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 09 May 2022 15:32:23 -0700 (PDT)
-Subject: [PATCH v5 0/7] Generic Ticket Spinlocks
-Date:   Mon,  9 May 2022 15:29:49 -0700
-Message-Id: <20220509222956.2886-1-palmer@rivosinc.com>
+        Mon, 09 May 2022 15:32:26 -0700 (PDT)
+Subject: [PATCH v5 3/7] asm-generic: qrwlock: Document the spinlock fairness requirements
+Date:   Mon,  9 May 2022 15:29:52 -0700
+Message-Id: <20220509222956.2886-4-palmer@rivosinc.com>
 X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20220509222956.2886-1-palmer@rivosinc.com>
+References: <20220509222956.2886-1-palmer@rivosinc.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Cc:     guoren@kernel.org, peterz@infradead.org, mingo@redhat.com,
@@ -65,44 +67,39 @@ Cc:     guoren@kernel.org, peterz@infradead.org, mingo@redhat.com,
         linux-csky@vger.kernel.org, linux-kernel@vger.kernel.org,
         openrisc@lists.librecores.org, linux-riscv@lists.infradead.org,
         linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
-        linux-kernel@vger.kernel.org
+        linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@rivosinc.com>
 From:   Palmer Dabbelt <palmer@rivosinc.com>
 To:     Arnd Bergmann <arnd@arndb.de>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The changes since v5 have been very minor, just some tags and a few
-wording changes to the qspinlock comment.  There's also a PR for Arnd's
-tree, assuming that lands I'll take the RISC-V bits into my tree and
-assuming the csky and openrisc folks don't say anything I'll take those
-too (though now that we're got a multi-tree merge going that doesn't
-matter so much, but I said I'd take them so I'm going to default to
-that as everyone else may have tuned out).
+From: Palmer Dabbelt <palmer@rivosinc.com>
 
-Changes since v4 <20220430153626.30660-1-palmer@rivosinc.com>:
-* Some wording cleanups for the qspinlock comment.
-* Collected reviewed/tested tags.
+I could only find the fairness requirements documented as the C code,
+this calls them out in a comment just to be a bit more explicit.
 
-Changes since v3 <20220414220214.24556-1-palmer@rivosinc.com>:
-* Added a smp_mb() in the lock slow-path, to make sure that is RCsc.
-* Fixed the header guards.
+Reviewed-by: Arnd Bergmann <arnd@arndb.de
+Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
+---
+ include/asm-generic/qrwlock.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-Changes since v2 <20220319035457.2214979-1-guoren@kernel.org>:
-* Picked up Peter's SOBs, which were posted on the v1.
-* Re-ordered the first two patches, as they
-* Re-worded the RISC-V qrwlock patch, as it was a bit mushy.  I also
-  added a blurb in the qrwlock's top comment about this dependency.
-* Picked up Stafford's fix for big-endian systems, which I have not
-  tested as I don't have one (at least easily availiable, I think the BE
-  MIPS systems are still in that pile in my garage).
-* Call the generic version <asm-genenic/spinlock{_types}.h>, as there's
-  really no utility to the version that only errors out.
-
-Changes since v1 <20220316232600.20419-1-palmer@rivosinc.com>:
-* Follow Arnd suggestion to make the patch series more generic.
-* Add csky in the series.
-* Combine RISC-V's two patches into one.
-* Modify openrisc's patch to suit the new generic version.
-
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 7ae0ece07b4e..24ae09c1db9f 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -2,6 +2,10 @@
+ /*
+  * Queue read/write lock
+  *
++ * These use generic atomic and locking routines, but depend on a fair spinlock
++ * implementation in order to be fair themselves.  The implementation in
++ * asm-generic/spinlock.h meets these requirements.
++ *
+  * (C) Copyright 2013-2014 Hewlett-Packard Development Company, L.P.
+  *
+  * Authors: Waiman Long <waiman.long@hp.com>
+-- 
+2.34.1
 
