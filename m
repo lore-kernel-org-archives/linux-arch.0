@@ -2,162 +2,89 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 19911C433EF
-	for <linux-arch@archiver.kernel.org>; Mon,  9 May 2022 10:08:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60511C433EF
+	for <linux-arch@archiver.kernel.org>; Mon,  9 May 2022 10:15:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231190AbiEIKMb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 May 2022 06:12:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34240 "EHLO
+        id S231987AbiEIKTG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 May 2022 06:19:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38084 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233003AbiEIKM3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2022 06:12:29 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 368CF233A6A;
-        Mon,  9 May 2022 03:08:30 -0700 (PDT)
+        with ESMTP id S231322AbiEIKTE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2022 06:19:04 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E2B991BDDA8;
+        Mon,  9 May 2022 03:15:08 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id A54AAB80D3C;
-        Mon,  9 May 2022 10:01:06 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 308F7C385A8;
-        Mon,  9 May 2022 10:01:01 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1652090465;
-        bh=Xj+BxxtzqKq6ClC+lgtNkIEjRLg+0U/DyE+0EsHanR4=;
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 2FC5E60C0B;
+        Mon,  9 May 2022 10:14:51 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 729AEC385AB;
+        Mon,  9 May 2022 10:14:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+        s=korg; t=1652091290;
+        bh=+9srvDHqiWKm6OjKS3qVUqzfohs6qxQD/zq2WlbkEa0=;
         h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=rVhyEI4DCCNX9EpA2cYe+oghmzpR+KJ7NQEvWTwkt57PG8e+pkVTuXwkv68g1h8ty
-         X0d530Fm1dTEXvRXxQo84SlftXYiVkh6cviQ9dYCER0QlBP6uf83H4OEoiPXZFyh/y
-         831mCcvaiHL8kyxFd9ZkztQaBJQV1AKE8sqHtYI12swbA6JHnt/fURNh7iDnXA/025
-         Zbnoj/7G6qtsBV6hdnhu3VLlfjJtadyE0ZW6ckVDMUKZvdDf2Omi4GgcMKYXtlg+W0
-         2Nny282doe/wTCMPH/Zs+Uc79huxL3X5FjzwT7h6qM4vt1n0cH0b3/qcH2hhclM/Ao
-         JOLdtch+eOtmQ==
-Date:   Mon, 9 May 2022 12:00:58 +0200
-From:   Christian Brauner <brauner@kernel.org>
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Huacai Chen <chenhuacai@gmail.com>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        David Airlie <airlied@linux.ie>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Yanteng Si <siyanteng@loongson.cn>,
-        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Linux API <linux-api@vger.kernel.org>
-Subject: Re: [PATCH V9 13/24] LoongArch: Add system call support
-Message-ID: <20220509100058.vmrgn5fkk3ayt63v@wittgenstein>
-References: <20220430090518.3127980-1-chenhuacai@loongson.cn>
- <20220430090518.3127980-14-chenhuacai@loongson.cn>
- <CAK8P3a0A9dW4mwJ6JHDiJxizL7vWfr4r4c5KhbjtAY0sWbZJVA@mail.gmail.com>
- <CAAhV-H4te_+AS69viO4eBz=abBUm5oQ6AfoY1Cb+nOCZyyeMdA@mail.gmail.com>
- <CAK8P3a0DqQcApv8aa2dgBS5At=tEkN7cnaskoUeXDi2-Bu9Rnw@mail.gmail.com>
- <20220507121104.7soocpgoqkvwv3gc@wittgenstein>
+        b=z7vtLfTH8SA1J3f2yk0yw/6kQ1lAOH0G7IygugS0czPnxCS71yOLEDkH9PKXy1in/
+         PshnArIMLgpNvDyeaVZIyWVAGJn5J67zPbng2Cu+rjP7yWCDRKdyHzx1SaHITM5mB4
+         UQmrOxirfZMwsX7gnCdghtChxLaLJI+zMEpL/yGI=
+Date:   Mon, 9 May 2022 12:14:46 +0200
+From:   Greg KH <gregkh@linuxfoundation.org>
+To:     Chen Zhongjin <chenzhongjin@huawei.com>
+Cc:     linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-arch@vger.kernel.org, stable@vger.kernel.org,
+        peterz@infradead.org, tglx@linutronix.de, namit@vmware.com,
+        gor@linux.ibm.com, rdunlap@infradead.org, sashal@kernel.org
+Subject: Re: [PATCH 5.10 v3] locking/csd_lock: fix csdlock_debug cause arm64
+ boot panic
+Message-ID: <YnjpljvWncezV0G0@kroah.com>
+References: <20220507084510.14761-1-chenzhongjin@huawei.com>
+ <YnZAO+3Rhj0gwq38@kroah.com>
+ <e8715911-f835-059d-27f8-cc5f5ad30a07@huawei.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20220507121104.7soocpgoqkvwv3gc@wittgenstein>
+In-Reply-To: <e8715911-f835-059d-27f8-cc5f5ad30a07@huawei.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, May 07, 2022 at 02:11:04PM +0200, Christian Brauner wrote:
-> On Sat, Apr 30, 2022 at 12:34:52PM +0200, Arnd Bergmann wrote:
-> > On Sat, Apr 30, 2022 at 12:05 PM Huacai Chen <chenhuacai@gmail.com> wrote:
-> > > On Sat, Apr 30, 2022 at 5:45 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> > > > On Sat, Apr 30, 2022 at 11:05 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
-> > > > >
-> > > > > This patch adds system call support and related uaccess.h for LoongArch.
-> > > > >
-> > > > > Q: Why keep __ARCH_WANT_NEW_STAT definition while there is statx:
-> > > > > A: Until the latest glibc release (2.34), statx is only used for 32-bit
-> > > > >    platforms, or 64-bit platforms with 32-bit timestamp. I.e., Most 64-
-> > > > >    bit platforms still use newstat now.
-> > > > >
-> > > > > Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
-> > > > > A: The latest glibc release (2.34) has some basic support for clone3 but
-> > > > >    it isn't complete. E.g., pthread_create() and spawni() have converted
-> > > > >    to use clone3 but fork() will still use clone. Moreover, some seccomp
-> > > > >    related applications can still not work perfectly with clone3. E.g.,
-> > > > >    Chromium sandbox cannot work at all and there is no solution for it,
-> > > > >    which is more terrible than the fork() story [1].
-> > > > >
-> > > > > [1] https://chromium-review.googlesource.com/c/chromium/src/+/2936184
-> > > >
-> > > > I still think these have to be removed. There is no mainline glibc or musl
-> > > > port yet, and neither of them should actually be required. Please remove
-> > > > them here, and modify your libc patches accordingly when you send those
-> > > > upstream.
-> > >
-> > > If this is just a problem that can be resolved by upgrading
-> > > glibc/musl, I will remove them. But the Chromium problem (or sandbox
-> > > problem in general) seems to have no solution now.
-> > 
-> > I added Christian Brauner to Cc now, maybe he has come across the
-> > sandbox problem before and has an idea for a solution.
+
+A: http://en.wikipedia.org/wiki/Top_post
+Q: Were do I find info about this thing called top-posting?
+A: Because it messes up the order in which people normally read text.
+Q: Why is top-posting such a bad thing?
+A: Top-posting.
+Q: What is the most annoying thing in e-mail?
+
+A: No.
+Q: Should I include quotations after my reply?
+
+http://daringfireball.net/2007/07/on_top
+
+On Mon, May 09, 2022 at 11:14:12AM +0800, Chen Zhongjin wrote:
+> Hi Greg,
 > 
-> (I just got back from LSFMM so I'll reply in more detail next week. I'm
-> still pretty jet-lagged.)
+> Since the patch:
+> https://lore.kernel.org/all/20210420093559.23168-1-catalin.marinas@arm.com/
+> has forced CONFIG_SPARSEMEM_VMEMMAP=y from 5.12, it's not necessary to include
+> this patch on master.
+> 
+> However this problem still exist on 5.10 stable, so either we can backport the
+> above patch to 5.10, or independently apply mine.
+> 
+> I'm not sure if backporting one exist patch is better, but that patch only
+> changed configs without any fix for old builds.
+> 
+> If you have any advice please tell me.
 
-Right, I forgot about the EPERM/ENOSYS sandbox thread.
+If you want to include a patch in the stable tree that is NOT in Linus's
+tree, then you need to document it very very well as to why this is not
+the case.
 
-Kees and I gave a talk about this problem at LPC 2019 (see [2]). The
-proposed solutions back then was to add basic deep argument inspection
-for first-level pointers to seccomp.
+If backporting the above commit is better, I would much rather do that,
+please ask the maintainers and developers of it if they will do that.
 
-There are problems with this approach such as not useable on
-second-level pointers (although we concluded that's ok) and if the input
-args are very large copying stuff from within seccomp becomes rather
-costly and in general the various approaches seemed handwavy at the
-time.
+thanks,
 
-If seccomp were to be made to support some basic form of eBPF such that
-it can still be safely called by unprivileged users then this would
-likely be easier to do (famous last words) but given that the stance has
-traditionally bee to not port seccomp it remains a tricky patch.
-
-Some time after that I talked to Mathieu Desnoyers about this issue who
-used another angle of attack. The idea seems less complicated to me.
-Instead of argument inspection we introduce basic syscall argument
-checksumming for seccomp. It would only be done when seccomp is
-interested in syscall input args and checksumming would be per syscall
-argument. It would be validated within the syscall when it actually
-reads the arguments; again, only if seccomp is used. If the checksums
-mismatch an error is returned or the calling process terminated.
-
-There's one case that deserves mentioning: since we introduced the
-seccomp notifier we do allow advanced syscall interception and we do use
-it extensively in various projects.
-
-Roughly, it works by allowing a userspace process (the "supervisor") to
-listen on a seccomp fd. The seccomp fd is an fd referring to the filter
-of a target task (the "supervisee"). When the supervisee performs a
-syscall listed in the seccomp notify filter the supervisor will receive
-a notification on the seccomp fd for the filter.
-
-I mention this because it is possible for the supervisor to e.g.
-intercept an bpf() system call and then modify/create/attach a bpf
-program for the supervisee and then update fields in the supervisee's
-bpf struct that was passed to the bpf() syscall by it. So the supervisor
-might rewrite syscall args and continue the syscall (In general, it's
-not recommeneded because of TOCTOU. But still doable in certain
-scenarios where we can guarantee that this is safe even if syscall args
-are rewritten to something else by a MIT attack.).
-
-Arguably, the checksumming approach could even be made to work with this
-if the seccomp fd learns a new ioctl() or similar to safely update the
-checksum.
-
-I can try and move a poc for this up the todo list.
-
-Without an approach like this certain sandboxes will fallback to
-ENOSYSing system calls they can't filter. This is a generic problem
-though with clone3() being one promiment example.
-
-[2]: https://www.youtube.com/watch?v=PnOSPsRzVYM&list=PLVsQ_xZBEyN2Ol7y8axxhbTsG47Va3Se2
+greg k-h
