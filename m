@@ -2,108 +2,79 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9EB81C433F5
-	for <linux-arch@archiver.kernel.org>; Tue, 10 May 2022 15:24:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 458A6C433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 10 May 2022 15:38:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243965AbiEJP2C (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 10 May 2022 11:28:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36060 "EHLO
+        id S244910AbiEJPmI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 10 May 2022 11:42:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45134 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346248AbiEJP0v (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 May 2022 11:26:51 -0400
-Received: from out03.mta.xmission.com (out03.mta.xmission.com [166.70.13.233])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EB81C200F62;
-        Tue, 10 May 2022 08:14:12 -0700 (PDT)
-Received: from in02.mta.xmission.com ([166.70.13.52]:55498)
-        by out03.mta.xmission.com with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1noRYx-00Cznd-JJ; Tue, 10 May 2022 09:14:11 -0600
-Received: from ip68-227-174-4.om.om.cox.net ([68.227.174.4]:37640 helo=email.froward.int.ebiederm.org.xmission.com)
-        by in02.mta.xmission.com with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <ebiederm@xmission.com>)
-        id 1noRYv-00Dzkh-Bm; Tue, 10 May 2022 09:14:11 -0600
-From:   "Eric W. Biederman" <ebiederm@xmission.com>
-To:     Thomas Gleixner <tglx@linutronix.de>
-Cc:     linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>,
+        with ESMTP id S1346550AbiEJPls (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 10 May 2022 11:41:48 -0400
+Received: from alexa-out-sd-02.qualcomm.com (alexa-out-sd-02.qualcomm.com [199.106.114.39])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 131FD1E21A5;
+        Tue, 10 May 2022 08:37:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+  d=quicinc.com; i=@quicinc.com; q=dns/txt; s=qcdkim;
+  t=1652197023; x=1683733023;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=PZaeU8lUSOufc8Yfj/7fqq3unEqTIIuyyp2tOasU13k=;
+  b=HkaibwYgIjg1mn78mPixjzcTqm+CWGS77QhOWAlNGO8cE/VWTtA6yrVE
+   G4Q/stUJXIOesLBESvZzGJTB0qHGmpPOIvlcPChybjM43wMIrFA/SaU8/
+   EnW+PlryOoFBy6x1+SC4Eiwp8dSeRWhyP7ECKCjnJirYCbXNtVb/KXYZP
+   k=;
+Received: from unknown (HELO ironmsg04-sd.qualcomm.com) ([10.53.140.144])
+  by alexa-out-sd-02.qualcomm.com with ESMTP; 10 May 2022 08:37:02 -0700
+X-QCInternal: smtphost
+Received: from nasanex01c.na.qualcomm.com ([10.47.97.222])
+  by ironmsg04-sd.qualcomm.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 10 May 2022 08:37:01 -0700
+Received: from nalasex01a.na.qualcomm.com (10.47.209.196) by
+ nasanex01c.na.qualcomm.com (10.47.97.222) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.986.22; Tue, 10 May 2022 08:37:01 -0700
+Received: from qian (10.80.80.8) by nalasex01a.na.qualcomm.com (10.47.209.196)
+ with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.986.22; Tue, 10 May
+ 2022 08:37:00 -0700
+Date:   Tue, 10 May 2022 11:36:58 -0400
+From:   Qian Cai <quic_qiancai@quicinc.com>
+To:     "Eric W. Biederman" <ebiederm@xmission.com>
+CC:     <linux-arch@vger.kernel.org>, Tejun Heo <tj@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
         Vincent Guittot <vincent.guittot@linaro.org>,
         Al Viro <viro@ZenIV.linux.org.uk>,
         Jens Axboe <axboe@kernel.dk>,
+        Thomas Gleixner <tglx@linutronix.de>,
         Linus Torvalds <torvalds@linuxfoundation.org>,
-        linux-kernel@vger.kernel.org, stable@vger.kernel.org,
-        =?utf-8?B?0JzQsNC60YHQuNC8INCa0YPRgtGP0LLQuNC9?= 
-        <maximkabox13@gmail.com>
-References: <87mtfu4up3.fsf@email.froward.int.ebiederm.org>
-        <20220506141512.516114-1-ebiederm@xmission.com> <87fslhpi58.ffs@tglx>
-Date:   Tue, 10 May 2022 10:14:01 -0500
-In-Reply-To: <87fslhpi58.ffs@tglx> (Thomas Gleixner's message of "Tue, 10 May
-        2022 16:38:27 +0200")
-Message-ID: <87v8udwhc6.fsf@email.froward.int.ebiederm.org>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/27.1 (gnu/linux)
+        <linux-kernel@vger.kernel.org>
+Subject: Re: [PATCH 0/7] fork: Make init and umh ordinary tasks
+Message-ID: <20220510153658.GA159@qian>
+References: <87a6czifo7.fsf@email.froward.int.ebiederm.org>
+ <CAHk-=wj=EHvH-DEUHbkoB3vDZJ1xRzrk44JibtNOepNkachxPw@mail.gmail.com>
+ <87ilrn1drx.ffs@tglx>
+ <877d7zk1cf.ffs@tglx>
+ <CAHk-=wiJPeANKYU4imYaeEuV6sNP+EDR=rWURSKv=y4Mhcn1hA@mail.gmail.com>
+ <87y20fid4d.ffs@tglx>
+ <87bkx5q3pk.fsf_-_@email.froward.int.ebiederm.org>
+ <87mtfu4up3.fsf@email.froward.int.ebiederm.org>
+ <20220509204654.GA200@qian>
+ <87r152xtko.fsf@email.froward.int.ebiederm.org>
 MIME-Version: 1.0
-Content-Type: text/plain
-X-XM-SPF: eid=1noRYv-00Dzkh-Bm;;;mid=<87v8udwhc6.fsf@email.froward.int.ebiederm.org>;;;hst=in02.mta.xmission.com;;;ip=68.227.174.4;;;frm=ebiederm@xmission.com;;;spf=softfail
-X-XM-AID: U2FsdGVkX18r1alnvHdXXOMJb1iQYhRdbubmdw+zTt0=
-X-SA-Exim-Connect-IP: 68.227.174.4
-X-SA-Exim-Mail-From: ebiederm@xmission.com
-Subject: Re: [PATCH 1/7] kthread: Don't allocate kthread_struct for init and
- umh
-X-SA-Exim-Version: 4.2.1 (built Sat, 08 Feb 2020 21:53:50 +0000)
-X-SA-Exim-Scanned: Yes (on in02.mta.xmission.com)
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <87r152xtko.fsf@email.froward.int.ebiederm.org>
+X-Originating-IP: [10.80.80.8]
+X-ClientProxiedBy: nasanex01a.na.qualcomm.com (10.52.223.231) To
+ nalasex01a.na.qualcomm.com (10.47.209.196)
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Thomas Gleixner <tglx@linutronix.de> writes:
+On Mon, May 09, 2022 at 04:52:07PM -0500, Eric W. Biederman wrote:
+> I believe this only happens when numa rebalancing happens at an
+> unfortunate moment.
+> 
+> Qian Cai can you test this?
 
-> On Fri, May 06 2022 at 09:15, Eric W. Biederman wrote:
->>  	 * the init task will end up wanting to create kthreads, which, if
->>  	 * we schedule it before we create kthreadd, will OOPS.
->>  	 */
->> -	pid = kernel_thread(kernel_init, NULL, CLONE_FS);
->> +	pid = user_mode_thread(kernel_init, NULL, CLONE_FS);
->
-> So init does not have PF_KTHREAD set anymore, which causes this to go
-> sideways with a NULL pointer dereference in get_mm_counter() on next:
-
-Well not after the change above, but in a later patch yes.
-
-Patch 1/7 really gets us back to the previous status quo, where
-I introduced the breakage.
-
->  get_mm_counter include/linux/mm.h:1996 [inline]
->  get_mm_rss include/linux/mm.h:2049 [inline]
->  task_nr_scan_windows.isra.0+0x23/0x120 kernel/sched/fair.c:1123
->  task_scan_min kernel/sched/fair.c:1144 [inline]
->  task_scan_start+0x6c/0x400 kernel/sched/fair.c:1150
->  task_tick_numa kernel/sched/fair.c:2944 [inline]
->  task_tick_fair+0xaeb/0xef0 kernel/sched/fair.c:11186
->  scheduler_tick+0x20a/0x5e0 kernel/sched/core.c:5380
->
->  https://lore.kernel.org/lkml/0000000000008a9fbb05dea76400@google.com
->
-> because the fence in task_tick_numa():
->
->  	if ((curr->flags & (PF_EXITING | PF_KTHREAD)) || work->next != work)
-> 		return;
->
-> is not longer sufficient. It needs also to bail if !curr->mm.
-
-Agreed.  I proposed a patch to do just that a little while ago.
-
-> I'm worried that there are more of these issues lurking. Haven't looked
-> yet.
-
-I looked earlier and I missed this one.  I am going to look again today,
-along with applying the obvious fix to task_tick_numa.
-
-I don't think there are many but when the code has evolved into a shape
-that is not easy to understand things occasionally slip through when the
-abstractions are made clear to understand.  The reason to rework the
-code and make it clear is that once the code has evolved to a point of
-many subtle issues making any change is brittle.
-
-Eric
-
+Yes, this works fine so far.
