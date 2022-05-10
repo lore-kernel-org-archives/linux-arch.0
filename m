@@ -2,136 +2,98 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BA27FC433EF
-	for <linux-arch@archiver.kernel.org>; Mon,  9 May 2022 22:34:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AC1BBC433FE
+	for <linux-arch@archiver.kernel.org>; Tue, 10 May 2022 01:27:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231820AbiEIWhx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 May 2022 18:37:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56316 "EHLO
+        id S234181AbiEJBbi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 May 2022 21:31:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55664 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231748AbiEIWgV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2022 18:36:21 -0400
-Received: from mail-pj1-x102c.google.com (mail-pj1-x102c.google.com [IPv6:2607:f8b0:4864:20::102c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7425F2B94FB
-        for <linux-arch@vger.kernel.org>; Mon,  9 May 2022 15:32:26 -0700 (PDT)
-Received: by mail-pj1-x102c.google.com with SMTP id x88so2798215pjj.1
-        for <linux-arch@vger.kernel.org>; Mon, 09 May 2022 15:32:26 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
-        h=subject:date:message-id:in-reply-to:references:mime-version
-         :content-transfer-encoding:cc:from:to;
-        bh=08o9m5Hkc1DwgHXwEhIgYa1O84W5gO7UU5kFrcD0IRY=;
-        b=Ivfni2BR3drjv+XoR/hBXUrgG62qyubSK3Ofq7nGB2uI3j7DeKiw7jRrhjYIPRgbiL
-         fX9foK05Y7Jog/gVmvwsgPmkiISwecG0vWlaNbZPsib7PJe/U0FrjNlpjZeqJTMnA4Ud
-         xD2a5Ri7G1reYFJHWM8J0ABchfZtYYpFEJm7EacP6oMYWcpyn/f0Z1zDck1YxAxeMMcF
-         un3MVzMWYPTLkAP7W6QyxETK9WwzzVdbB+7M0G8w56mYUpSu+iAgFJ/e7C0edwi86i0F
-         9CtnFPdWIKaX25L03L6TPjghHJhiIfuQAKj24e211/mTSajbwfjFHu6V4QDWxV3ozgp7
-         ADmw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:subject:date:message-id:in-reply-to:references
-         :mime-version:content-transfer-encoding:cc:from:to;
-        bh=08o9m5Hkc1DwgHXwEhIgYa1O84W5gO7UU5kFrcD0IRY=;
-        b=vALaKOyRAwYemBBd8WrAKAMuudqtC03DDJvbKNubqo4n5RdPNbu/Fh4HFiAj/w2aD1
-         3tH86Ln0y4Rrese3+WCxhxBw1W/Isqca8tyHTJAJjj3HWLOJEV/b58pngxb10c9y6yLC
-         PUNIL0S/shIP9XWd47lwbYeXe6NXTtqmih0LYBwzVld0fDyS/U84Zq4e/IaCgQXVjmKf
-         XCoWZ9h226VbmdMNeL3top2No9S/84+CxBGFCnoUk3E49ptBI1HFDQjLdrkVnqTJKAHs
-         C7hsTsOekdLTM2RrLp5w8ZKJySyXITgFEGkXjgphDLcHsYQnIPPjcDPhFen35yZI5q1P
-         ZeBg==
-X-Gm-Message-State: AOAM533PlpY6JGtbxv1HMBvFfXFfFDBsAUjzmUTFg/pfzN2ozvjMQuFt
-        tG5NyOFSU5IHXhuJwOgEF8MquQ==
-X-Google-Smtp-Source: ABdhPJwfKDrkaUHJSNgn6XFJOuCcJbR4otch9RHfl10t4H02hdxl8ivFVYd6BH4xCpPZNyXowDk67w==
-X-Received: by 2002:a17:903:1205:b0:15e:804c:fab4 with SMTP id l5-20020a170903120500b0015e804cfab4mr18051563plh.112.1652135545965;
-        Mon, 09 May 2022 15:32:25 -0700 (PDT)
-Received: from localhost (76-210-143-223.lightspeed.sntcca.sbcglobal.net. [76.210.143.223])
-        by smtp.gmail.com with ESMTPSA id oa7-20020a17090b1bc700b001dcc0cb262asm224098pjb.17.2022.05.09.15.32.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 09 May 2022 15:32:25 -0700 (PDT)
-Subject: [PATCH v5 2/7] asm-generic: qspinlock: Indicate the use of mixed-size atomics
-Date:   Mon,  9 May 2022 15:29:51 -0700
-Message-Id: <20220509222956.2886-3-palmer@rivosinc.com>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20220509222956.2886-1-palmer@rivosinc.com>
-References: <20220509222956.2886-1-palmer@rivosinc.com>
+        with ESMTP id S234178AbiEJBbh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2022 21:31:37 -0400
+Received: from out199-14.us.a.mail.aliyun.com (out199-14.us.a.mail.aliyun.com [47.90.199.14])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1C8F9154B0C;
+        Mon,  9 May 2022 18:27:38 -0700 (PDT)
+X-Alimail-AntiSpam: AC=PASS;BC=-1|-1;BR=01201311R231e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=alimailimapcm10staff010182156082;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=32;SR=0;TI=SMTPD_---0VCo8GaE_1652146048;
+Received: from 30.15.214.13(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0VCo8GaE_1652146048)
+          by smtp.aliyun-inc.com(127.0.0.1);
+          Tue, 10 May 2022 09:27:31 +0800
+Message-ID: <86671cb8-51e7-0e8e-430a-a325887391b3@linux.alibaba.com>
+Date:   Tue, 10 May 2022 09:28:08 +0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Cc:     guoren@kernel.org, peterz@infradead.org, mingo@redhat.com,
-        Will Deacon <will@kernel.org>, longman@redhat.com,
-        boqun.feng@gmail.com, jonas@southpole.se,
-        stefan.kristiansson@saunalahti.fi, shorne@gmail.com,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>, aou@eecs.berkeley.edu,
-        Arnd Bergmann <arnd@arndb.de>, macro@orcam.me.uk,
-        Greg KH <gregkh@linuxfoundation.org>,
-        sudipm.mukherjee@gmail.com, jszhang@kernel.org,
-        linux-csky@vger.kernel.org, linux-kernel@vger.kernel.org,
-        openrisc@lists.librecores.org, linux-riscv@lists.infradead.org,
-        linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
-        linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer@rivosinc.com>
-From:   Palmer Dabbelt <palmer@rivosinc.com>
-To:     Arnd Bergmann <arnd@arndb.de>
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101
+ Thunderbird/91.8.1
+Subject: Re: [PATCH 3/3] mm: rmap: Fix CONT-PTE/PMD size hugetlb issue when
+ unmapping
+To:     Peter Xu <peterx@redhat.com>,
+        Mike Kravetz <mike.kravetz@oracle.com>
+Cc:     Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+        akpm@linux-foundation.org, catalin.marinas@arm.com,
+        will@kernel.org, tsbogend@alpha.franken.de,
+        James.Bottomley@HansenPartnership.com, deller@gmx.de,
+        mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org,
+        hca@linux.ibm.com, gor@linux.ibm.com, agordeev@linux.ibm.com,
+        borntraeger@linux.ibm.com, svens@linux.ibm.com,
+        ysato@users.sourceforge.jp, dalias@libc.org, davem@davemloft.net,
+        arnd@arndb.de, linux-arm-kernel@lists.infradead.org,
+        linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org
+References: <cover.1651216964.git.baolin.wang@linux.alibaba.com>
+ <c91e04ebb792ef7b72966edea8bd6fa2dfa5bfa7.1651216964.git.baolin.wang@linux.alibaba.com>
+ <20220429220214.4cfc5539@thinkpad>
+ <bcb4a3b0-4fcd-af3a-2a2c-fd662d9eaba9@linux.alibaba.com>
+ <20220502160232.589a6111@thinkpad>
+ <48a05075-a323-e7f1-9e99-6c0d106eb2cb@linux.alibaba.com>
+ <20220503120343.6264e126@thinkpad>
+ <927dfbf4-c899-b88a-4d58-36a637d611f9@oracle.com>
+ <YnlEQvipCM6hnIYT@xz-m1.local>
+From:   Baolin Wang <baolin.wang@linux.alibaba.com>
+In-Reply-To: <YnlEQvipCM6hnIYT@xz-m1.local>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
 
-The qspinlock implementation depends on having well behaved mixed-size
-atomics.  This is true on the more widely-used platforms, but these
-requirements are somewhat subtle and may not be satisfied by all the
-platforms that qspinlock is used on.
 
-Document these requirements, so ports that use qspinlock can more easily
-determine if they meet these requirements.
+On 5/10/2022 12:41 AM, Peter Xu wrote:
+> On Fri, May 06, 2022 at 12:07:13PM -0700, Mike Kravetz wrote:
+>> On 5/3/22 03:03, Gerald Schaefer wrote:
+>>> On Tue, 3 May 2022 10:19:46 +0800
+>>> Baolin Wang <baolin.wang@linux.alibaba.com> wrote:
+>>>> On 5/2/2022 10:02 PM, Gerald Schaefer wrote:
+> 
+> [...]
+> 
+>>>> Please see previous code, we'll use the original pte value to check if
+>>>> it is uffd-wp armed, and if need to mark it dirty though the hugetlbfs
+>>>> is set noop_dirty_folio().
+>>>>
+>>>> pte_install_uffd_wp_if_needed(vma, address, pvmw.pte, pteval);
+>>>
+>>> Uh, ok, that wouldn't work on s390, but we also don't have
+>>> CONFIG_PTE_MARKER_UFFD_WP / HAVE_ARCH_USERFAULTFD_WP set, so
+>>> I guess we will be fine (for now).
+>>>
+>>> Still, I find it a bit unsettling that pte_install_uffd_wp_if_needed()
+>>> would work on a potential hugetlb *pte, directly de-referencing it
+>>> instead of using huge_ptep_get().
+>>>
+>>> The !pte_none(*pte) check at the beginning would be broken in the
+>>> hugetlb case for s390 (not sure about other archs, but I think s390
+>>> might be the only exception strictly requiring huge_ptep_get()
+>>> for de-referencing hugetlb *pte pointers).
+> 
+> We could have used is_vm_hugetlb_page(vma) within the helper so as to
+> properly use either generic pte or hugetlb version of pte fetching.  We may
+> want to conditionally do set_[huge_]pte_at() too at the end.
+> 
+> I could prepare a patch for that even if it's not really anything urgently
+> needed. I assume that won't need to block this patchset since we need the
+> pteval for pte_dirty() check anyway and uffd-wp definitely needs it too.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Acked-by: Waiman Long <longman@redhat.com>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de
-Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
----
- include/asm-generic/qspinlock.h | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
-
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index d74b13825501..995513fa2690 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -2,6 +2,35 @@
- /*
-  * Queued spinlock
-  *
-+ * A 'generic' spinlock implementation that is based on MCS locks. For an
-+ * architecture that's looking for a 'generic' spinlock, please first consider
-+ * ticket-lock.h and only come looking here when you've considered all the
-+ * constraints below and can show your hardware does actually perform better
-+ * with qspinlock.
-+ *
-+ * qspinlock relies on atomic_*_release()/atomic_*_acquire() to be RCsc (or no
-+ * weaker than RCtso if you're power), where regular code only expects atomic_t
-+ * to be RCpc.
-+ *
-+ * qspinlock relies on a far greater (compared to asm-generic/spinlock.h) set
-+ * of atomic operations to behave well together, please audit them carefully to
-+ * ensure they all have forward progress. Many atomic operations may default to
-+ * cmpxchg() loops which will not have good forward progress properties on
-+ * LL/SC architectures.
-+ *
-+ * One notable example is atomic_fetch_or_acquire(), which x86 cannot (cheaply)
-+ * do. Carefully read the patches that introduced
-+ * queued_fetch_set_pending_acquire().
-+ *
-+ * qspinlock also heavily relies on mixed size atomic operations, in specific
-+ * it requires architectures to have xchg16; something which many LL/SC
-+ * architectures need to implement as a 32bit and+or in order to satisfy the
-+ * forward progress guarantees mentioned above.
-+ *
-+ * Further reading on mixed size atomics that might be relevant:
-+ *
-+ *   http://www.cl.cam.ac.uk/~pes20/popl17/mixed-size.pdf
-+ *
-  * (C) Copyright 2013-2015 Hewlett-Packard Development Company, L.P.
-  * (C) Copyright 2015 Hewlett-Packard Enterprise Development LP
-  *
--- 
-2.34.1
-
+OK. Thanks Peter.
