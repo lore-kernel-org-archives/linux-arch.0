@@ -2,101 +2,97 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 50D6CC433EF
-	for <linux-arch@archiver.kernel.org>; Wed, 11 May 2022 07:12:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5FB40C4332F
+	for <linux-arch@archiver.kernel.org>; Wed, 11 May 2022 12:04:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S242671AbiEKHMU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 11 May 2022 03:12:20 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59858 "EHLO
+        id S238908AbiEKMEm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 11 May 2022 08:04:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59774 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241146AbiEKHMT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2022 03:12:19 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.133])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CE1A937BF4;
-        Wed, 11 May 2022 00:12:16 -0700 (PDT)
-Received: from mail-yw1-f173.google.com ([209.85.128.173]) by
- mrelayeu.kundenserver.de (mreue009 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1MQ5nE-1nSdOY4ADY-00M1t3; Wed, 11 May 2022 09:12:15 +0200
-Received: by mail-yw1-f173.google.com with SMTP id 00721157ae682-2ec42eae76bso10110447b3.10;
-        Wed, 11 May 2022 00:12:14 -0700 (PDT)
-X-Gm-Message-State: AOAM531Yn5XBTNE76A/FAw858em/l1XxmWfE5s7uVKGn+RmOjT0HQ1iQ
-        3Pj/Ok9Yspvw1GvHCwtCfUJzPtUgKpAvDf54JM0=
-X-Google-Smtp-Source: ABdhPJwX01FoB2ZgXBUIcOIxtA7Ea99HJs3NHFXbjQPgP93qP8mFm4KZw803sVc8TjQKsX7r+vkKlUYg6sohAwed5NE=
-X-Received: by 2002:a81:1697:0:b0:2fa:32f9:78c8 with SMTP id
- 145-20020a811697000000b002fa32f978c8mr23526553yww.135.1652253133436; Wed, 11
- May 2022 00:12:13 -0700 (PDT)
-MIME-Version: 1.0
-References: <20220430090518.3127980-1-chenhuacai@loongson.cn>
- <20220430090518.3127980-14-chenhuacai@loongson.cn> <CAK8P3a0A9dW4mwJ6JHDiJxizL7vWfr4r4c5KhbjtAY0sWbZJVA@mail.gmail.com>
- <CAAhV-H4te_+AS69viO4eBz=abBUm5oQ6AfoY1Cb+nOCZyyeMdA@mail.gmail.com>
- <CAK8P3a0DqQcApv8aa2dgBS5At=tEkN7cnaskoUeXDi2-Bu9Rnw@mail.gmail.com>
- <20220507121104.7soocpgoqkvwv3gc@wittgenstein> <20220509100058.vmrgn5fkk3ayt63v@wittgenstein>
-In-Reply-To: <20220509100058.vmrgn5fkk3ayt63v@wittgenstein>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Wed, 11 May 2022 09:11:56 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a0zmPbMNsS11aUGiAADyjOEueNUXQ8QZtVxr48M3pwAkQ@mail.gmail.com>
-Message-ID: <CAK8P3a0zmPbMNsS11aUGiAADyjOEueNUXQ8QZtVxr48M3pwAkQ@mail.gmail.com>
-Subject: Re: [PATCH V9 13/24] LoongArch: Add system call support
-To:     Christian Brauner <brauner@kernel.org>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Huacai Chen <chenhuacai@gmail.com>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        David Airlie <airlied@linux.ie>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Yanteng Si <siyanteng@loongson.cn>,
-        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Linux API <linux-api@vger.kernel.org>,
-        GNU C Library <libc-alpha@sourceware.org>,
-        musl@lists.openwall.com
-Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:yxwXvBeurszM3x+5iTkoGSd4Qxz4mpEWhesN486kJBN+frXxvrQ
- mO+187/GlEbR/dArx11jPA06OyFudERdbWlPkc80hs3Rc9nTNKdl/dmhxceP57YKY9k7bA8
- rQbUDhxIsA1SIB+q0iGzpuQC9TNxNlkaELdcCZJu9W+hKSpLNFU/qbm4tErTlEswh8mpSO6
- 3MrqZbgc6/PYFGOYWaGgA==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:sHKp8A96in0=:tGBsVkUkcIot84lHAsJyee
- K3a1+e7tgwdaZR7rYmO9kvpvfzui14t9Bi/37YDUGMHR1JnGQqEYkTlT12ZYZ+etwb2ufrmnD
- wTRyVkJtD4Ff1dvrj24M21W6huvEyn7zrVG1qOtKbdsz6Bb3iI1oEu03LMr6dUDd6Uj1P/UVR
- 7CWmS5SvJUB4eF39OvgNITThNuCZ8r5V1FSBhqBmD5S5BQJ4jrCDX0QBah6xxtMoR0LtouCln
- Uz6vXON60kQn/MY18EChsZzEd1J8ApnFKhaz3PTSXHoaI45TSaVDLUvLObzPmt+bMkQ1EAlaq
- kvSkMoWgpTIngZsNOYsgBlrunIjsf39uDpH8FFtWCODPGJAfnRZSadc4U1R5N2xCyQ+4ZZZMf
- UjsO7yXWsQcIIVSfalYAXTwsjF8glIONDlTX2C6ZF6aYT+cWW7v/CzPyx/FnJbyjbMawGpAVA
- v4cJvZg+wmNJlvQw5RG/n9PfK9gCMdrwLcT7OKvXuwGAQbP3Nbb6pTsLhFu6o4heNbtPXCIlF
- +h1dkrMqEx0WxuVzgjhhEHSlVKspPbiHhVD9TNvHwDfiT3sb2Vmev6viQ1pkVPfPxg79/KX7u
- JQ3poUxYPRzYBR3fjqg7f49EQ+HOJ22+kelBT2fTJZl1f6kXreud2iexbtwTqG6Zrzwe2JRHX
- JuE2eVNTvHvx8/q3GAXGFyThcXmFOx37m00IolpiuURHeSVEqCn0UOgh7FABeIt+TO4WMBzgL
- abLWrs4OJQOo6Nqglhb83F+Wof371VbWMryjaIbuff4Uck1FuOTmoFCqdWCXaCCz0lMQ+A0Da
- u87erz+MObZcLjfIwTIKXn+q+fAO5jiQ4s1qgNWJKUxpiFhCyirT0bYNPkf8tGezETgN1ahfd
- VjWAdQomAmy98W14T4yg==
+        with ESMTP id S233223AbiEKMEl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2022 08:04:41 -0400
+Received: from out30-56.freemail.mail.aliyun.com (out30-56.freemail.mail.aliyun.com [115.124.30.56])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7E8A592318;
+        Wed, 11 May 2022 05:04:38 -0700 (PDT)
+X-Alimail-AntiSpam: AC=PASS;BC=-1|-1;BR=01201311R191e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=e01e01424;MF=baolin.wang@linux.alibaba.com;NM=1;PH=DS;RN=32;SR=0;TI=SMTPD_---0VCw.G9V_1652270670;
+Received: from localhost(mailfrom:baolin.wang@linux.alibaba.com fp:SMTPD_---0VCw.G9V_1652270670)
+          by smtp.aliyun-inc.com(127.0.0.1);
+          Wed, 11 May 2022 20:04:31 +0800
+From:   Baolin Wang <baolin.wang@linux.alibaba.com>
+To:     akpm@linux-foundation.org, mike.kravetz@oracle.com
+Cc:     catalin.marinas@arm.com, will@kernel.org, songmuchun@bytedance.com,
+        tsbogend@alpha.franken.de, James.Bottomley@HansenPartnership.com,
+        deller@gmx.de, mpe@ellerman.id.au, benh@kernel.crashing.org,
+        paulus@samba.org, hca@linux.ibm.com, gor@linux.ibm.com,
+        agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
+        svens@linux.ibm.com, ysato@users.sourceforge.jp, dalias@libc.org,
+        davem@davemloft.net, arnd@arndb.de, baolin.wang@linux.alibaba.com,
+        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-ia64@vger.kernel.org, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org
+Subject: [PATCH v4 0/3] Fix CONT-PTE/PMD size hugetlb issue when unmapping or migrating
+Date:   Wed, 11 May 2022 20:04:16 +0800
+Message-Id: <cover.1652270205.git.baolin.wang@linux.alibaba.com>
+X-Mailer: git-send-email 1.8.3.1
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, May 9, 2022 at 12:00 PM Christian Brauner <brauner@kernel.org> wrote:
-....
-> I can try and move a poc for this up the todo list.
->
-> Without an approach like this certain sandboxes will fallback to
-> ENOSYSing system calls they can't filter. This is a generic problem
-> though with clone3() being one promiment example.
+Hi,
 
-Thank you for the detailed reply. It sounds to me like this will eventually have
-to get solved anyway, so we could move ahead without clone() on loongarch,
-and just not have support for Chrome until this is fully solved.
+Now migrating a hugetlb page or unmapping a poisoned hugetlb page, we'll
+use ptep_clear_flush() and set_pte_at() to nuke the page table entry
+and remap it, and this is incorrect for CONT-PTE or CONT-PMD size hugetlb
+page, which will cause potential data consistent issue. This patch set
+will change to use hugetlb related APIs to fix this issue, please find
+details in each patch. Thanks.
 
-As both the glibc and musl ports are being proposed for inclusion right
-now, we should try to come to a decision so the libc ports can adjust if
-necessary. Adding both mailing lists to Cc here, the discussion is archived
-at [1].
+Note: Mike pointed out the huge_ptep_get() will only return the one specific
+value, and it would not take into account the dirty or young bits of CONT-PTE/PMDs
+like the huge_ptep_get_and_clear() [1]. This inconsistent issue is not introduced
+by this patch set, and will address this issue in another thread [2]. Meanwhile
+the uffd for hugetlb case [3] pointed by Gerald also need another patch to address.
 
-         Arnd
+[1] https://lore.kernel.org/linux-mm/85bd80b4-b4fd-0d3f-a2e5-149559f2f387@oracle.com/
+[2] https://lore.kernel.org/all/cover.1651998586.git.baolin.wang@linux.alibaba.com/
+[3] https://lore.kernel.org/linux-mm/20220503120343.6264e126@thinkpad/
 
-[1] https://lore.kernel.org/linux-arch/20220509100058.vmrgn5fkk3ayt63v@wittgenstein/
+Changes from v3:
+ - Fix building errors for !CONFIG_MMU.
+
+Changes from v2:
+ - Collect reviewed tags from Muchun and Mike.
+ - Drop the unnecessary casting in hugetlb.c.
+ - Fix building errors with adding dummy functions for !CONFIG_HUGETLB_PAGE.
+
+Changes from v1:
+ - Add acked tag from Mike.
+ - Update some commit message.
+ - Add VM_BUG_ON in try_to_unmap() for hugetlb case.
+ - Add an explict void casting for huge_ptep_clear_flush() in hugetlb.c.
+
+Baolin Wang (3):
+  mm: change huge_ptep_clear_flush() to return the original pte
+  mm: rmap: Fix CONT-PTE/PMD size hugetlb issue when migration
+  mm: rmap: Fix CONT-PTE/PMD size hugetlb issue when unmapping
+
+ arch/arm64/include/asm/hugetlb.h   |  4 +--
+ arch/arm64/mm/hugetlbpage.c        | 12 +++-----
+ arch/ia64/include/asm/hugetlb.h    |  5 +--
+ arch/mips/include/asm/hugetlb.h    |  9 ++++--
+ arch/parisc/include/asm/hugetlb.h  |  5 +--
+ arch/powerpc/include/asm/hugetlb.h |  9 ++++--
+ arch/s390/include/asm/hugetlb.h    |  6 ++--
+ arch/sh/include/asm/hugetlb.h      |  5 +--
+ arch/sparc/include/asm/hugetlb.h   |  5 +--
+ include/asm-generic/hugetlb.h      |  4 +--
+ include/linux/hugetlb.h            | 11 +++++++
+ mm/rmap.c                          | 63 ++++++++++++++++++++++++--------------
+ 12 files changed, 87 insertions(+), 51 deletions(-)
+
+-- 
+1.8.3.1
+
