@@ -2,196 +2,66 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4560BC433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 12 May 2022 16:48:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C088C433FE
+	for <linux-arch@archiver.kernel.org>; Fri, 13 May 2022 08:06:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1356680AbiELQsm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 12 May 2022 12:48:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40232 "EHLO
+        id S1378040AbiEMIGM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 May 2022 04:06:12 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37888 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1349749AbiELQsl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 May 2022 12:48:41 -0400
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4CB612685FE;
-        Thu, 12 May 2022 09:48:40 -0700 (PDT)
-From:   Thomas Gleixner <tglx@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020; t=1652374118;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=hSX9OFf5tzvIcNgVCMLyCC6NV4cYH+8sLce95997SMQ=;
-        b=dNG6zwNhF9OUuVyKVZ3nmgj1iI9P+NOQjZMoo+ixnf6np32nRm7iOb/snaa6Yh6q4H7zJ+
-        u/uVMdw2BaGy43kBjD4QXWRY/2owMXR0MTVD3dqUi+eXHeHc34KgqYLGnl3/QxFyOGYTle
-        HZYrCTB6AUYKRjzbRCNyEBs7omeeNxAPg9KnUpMODqWp9/+eMR4fQRIj1zXWD1g8VE74BM
-        5Vbq6Dqdd77zoaSWNBz4yMLNOrkWENhnz8Ajr60VtTgGavBnrDJ/CTm1rDV875uc13LI1x
-        oNnZAD7v9H07fYlGuxRNjNdBhutYsoILILZnN07UAFUmT4BHYP+fTF1VVMY4Dg==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020e; t=1652374118;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=hSX9OFf5tzvIcNgVCMLyCC6NV4cYH+8sLce95997SMQ=;
-        b=GgB2jaA6SJpjjCA9C/bYLMwCZArP4xDXp8WFAObc2KO4QJQw2QMoX/09cNKaYH97nQRf1w
-        FOGCByOo9GPjzdBg==
-To:     Alexander Potapenko <glider@google.com>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        kasan-dev <kasan-dev@googlegroups.com>,
-        Linux Memory Management List <linux-mm@kvack.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>
-Subject: Re: [PATCH v3 28/46] kmsan: entry: handle register passing from
- uninstrumented code
-In-Reply-To: <87h75uvi7s.ffs@tglx>
-References: <20220426164315.625149-1-glider@google.com>
- <20220426164315.625149-29-glider@google.com> <87a6c6y7mg.ffs@tglx>
- <CAG_fn=U7PPBmmkgxFcWFQUCqZitzMizr1e69D9f26sGGzeitLQ@mail.gmail.com>
- <87y1zjlhmj.ffs@tglx>
- <CAG_fn=XxAhBEBP2KJvahinbaxLAd1xvqTfRJdAu1Tk5r8=01jw@mail.gmail.com>
- <878rrfiqyr.ffs@tglx>
- <CAG_fn=XVchXCcOhFt+rP=vinRhkyrXJSP46cyvcZeHJWaDquGg@mail.gmail.com>
- <87k0ayhc43.ffs@tglx>
- <CAG_fn=UpcXMqJiZvho6_G3rjvjQA-3Ax6X8ONVO0D+4Pttc9dA@mail.gmail.com>
- <87h762h5c2.ffs@tglx>
- <CAG_fn=UroTgp0jt77X_E-b1DPJ+32Cye6dRL4DOZ8MRf+XSokg@mail.gmail.com>
- <871qx2r09k.ffs@tglx>
- <CAG_fn=VtQw1gL_UVONHi=OJakOuMa3wKfkzP0jWcuvGQEmV9Vw@mail.gmail.com>
- <87h75uvi7s.ffs@tglx>
-Date:   Thu, 12 May 2022 18:48:38 +0200
-Message-ID: <87ee0yvgrd.ffs@tglx>
+        with ESMTP id S1378042AbiEMIGL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 May 2022 04:06:11 -0400
+Received: from mail.coredeal.pl (mail.coredeal.pl [51.75.73.133])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BD5643E5F5
+        for <linux-arch@vger.kernel.org>; Fri, 13 May 2022 01:06:10 -0700 (PDT)
+Received: by mail.coredeal.pl (Postfix, from userid 1002)
+        id 63CC6A50A2; Fri, 13 May 2022 08:06:00 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=coredeal.pl; s=mail;
+        t=1652429169; bh=9KGuIG62LgzC9aYmjKxzocuYLRCVghXg6v9Q1q2LHec=;
+        h=Date:From:To:Subject:From;
+        b=Uet03Ya2fTKDU+zIDQWH1LuhVbIHQuFSucdqC+wdE7dnVQEav9mprYas4LA+wG7av
+         odXUWoFwqlVPyY4uHd8qVrrxbMe8lx5pIXDhPlf611g8AqVwB8Rk3IR3W341NLpzng
+         ShfDo1k7CB713UK5YbxLagntnSy9MGRmeSnydlseJT8G0RSPMFvZ32ynqYDH2QQFDg
+         Xd54IJdrW5lJHPcKPFQpUYelzZriylu7K4h3j45/g6zgrPVbvTXhRMlGBht+CytCP8
+         Qqgspw2pXce9EEk6oiArSIelDIJLDsGZixcJx835DgIVk406JHmXfjXTxtRVWcPKDK
+         dJY8xhkRlvkkg==
+Received: by mail.coredeal.pl for <linux-arch@vger.kernel.org>; Fri, 13 May 2022 08:05:55 GMT
+Message-ID: <20220513064500-0.1.33.nzsy.0.62cl5j6c3l@coredeal.pl>
+Date:   Fri, 13 May 2022 08:05:55 GMT
+From:   "Krzysztof Maj" <krzysztof.maj@coredeal.pl>
+To:     <linux-arch@vger.kernel.org>
+Subject: Biznesowy angielski
+X-Mailer: mail.coredeal.pl
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, May 12 2022 at 18:17, Thomas Gleixner wrote:
-> On Thu, May 12 2022 at 14:24, Alexander Potapenko wrote:
->> We could try to figure out the places in idtentry code where normal
->> kmsan_unpoison_memory() can be called in IRQ context, but as far as I
->> can see it will depend on the type of the entry point.
->
-> NMI is covered as it increments before it invokes the unpoison().
->
-> Let me figure out why we increment the preempt count late for
-> interrupts. IIRC it's for symmetry reasons related to softirq processing
-> on return, but let me double check.
+Dzie=C5=84 dobry,=20
 
-It's even documented:
+czy rozwa=C5=BCali Pa=C5=84stwo rozw=C3=B3j kwalifikacji j=C4=99zykowych =
+swoich pracownik=C3=B3w?
 
- https://www.kernel.org/doc/html/latest/core-api/entry.html#interrupts-and-regular-exceptions
+Opracowali=C5=9Bmy kursy j=C4=99zykowe dla r=C3=B3=C5=BCnych bran=C5=BC, =
+w kt=C3=B3rych koncentrujemy si=C4=99 na podniesieniu poziomu s=C5=82owni=
+ctwa i jako=C5=9Bci komunikacji wykorzystuj=C4=85c autorsk=C4=85 metod=C4=
+=99, stworzon=C4=85 specjalnie dla wymagaj=C4=85cego biznesu.=20
 
-But who reads documentation? :)
+Niestandardowy kurs on-line, dopasowany do profilu firmy i obszar=C3=B3w =
+=C5=9Bwiadczonych us=C5=82ug, w szybkim czasie przyniesie efekty, kt=C3=B3=
+re zwi=C4=99ksz=C4=85 komfort i jako=C5=9B=C4=87 pracy, rozwijaj=C4=85c m=
+o=C5=BCliwo=C5=9Bci biznesowe.=20
 
-So, I think the simplest and least intrusive solution is to have special
-purpose unpoison functions. See the patch below for illustration.
+Zdalne szkolenie j=C4=99zykowe to m.in. zaj=C4=99cia z native speakerami,=
+ kt=C3=B3re w szybkim czasie naucz=C4=85 pracownik=C3=B3w rozmawia=C4=87 =
+za pomoc=C4=85 jasnego i zwi=C4=99z=C5=82ego j=C4=99zyka Business English=
+=2E
 
-The reasons why I used specific ones:
+Czy m=C3=B3g=C5=82bym przedstawi=C4=87 wi=C4=99cej szczeg=C3=B3=C5=82=C3=B3=
+w i opowiedzie=C4=87 jak dzia=C5=82amy?=20
 
-  1) User entry
 
-     Whether that's a syscall or interrupt/exception does not
-     matter. It's always on the task stack and your machinery cannot be
-     running at that point because it came from user space.
-
-  2) Interrupt/exception/NMI entry kernel
-  
-     Those can nest into an already active context, so you really want
-     to unpoison @regs.
-
-     Also while regular interrupts cannot nest because of interrupts
-     staying disabled, exceptions triggered in the interrupt handler and
-     NMIs can nest.
-
-     -> device interrupt()
-           irqentry_enter(regs)
-
-        -> NMI()
-           irqentry_nmi_enter(regs)
-
-           -> fault()
-              irqentry_enter(regs)
-          
-              --> debug_exception()
-                  irqentry_nmi_enter(regs)
-
-     Soft interrupt processing on return from interrupt makes it more
-     interesting:
-
-     interrupt()
-       handler()
-       do_softirq()
-         local_irq_enable()
-            interrupt()
-              NMI
-                ....
-
-     And everytime you get a new @regs pointer to deal with.
-
-Wonderful, isn't it?
-
-Thanks,
-
-        tglx
-
----
---- a/kernel/entry/common.c
-+++ b/kernel/entry/common.c
-@@ -24,6 +24,7 @@ static __always_inline void __enter_from
- 	user_exit_irqoff();
- 
- 	instrumentation_begin();
-+	unpoison_user(regs);
- 	trace_hardirqs_off_finish();
- 	instrumentation_end();
- }
-@@ -352,6 +353,7 @@ noinstr irqentry_state_t irqentry_enter(
- 		lockdep_hardirqs_off(CALLER_ADDR0);
- 		rcu_irq_enter();
- 		instrumentation_begin();
-+		unpoison_irq(regs);
- 		trace_hardirqs_off_finish();
- 		instrumentation_end();
- 
-@@ -367,6 +369,7 @@ noinstr irqentry_state_t irqentry_enter(
- 	 */
- 	lockdep_hardirqs_off(CALLER_ADDR0);
- 	instrumentation_begin();
-+	unpoison_irq(regs);
- 	rcu_irq_enter_check_tick();
- 	trace_hardirqs_off_finish();
- 	instrumentation_end();
-@@ -452,6 +455,7 @@ irqentry_state_t noinstr irqentry_nmi_en
- 	rcu_nmi_enter();
- 
- 	instrumentation_begin();
-+	unpoison_irq(regs);
- 	trace_hardirqs_off_finish();
- 	ftrace_nmi_enter();
- 	instrumentation_end();
+Pozdrawiam
+Krzysztof Maj
