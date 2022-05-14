@@ -2,25 +2,25 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E5E13C4332F
-	for <linux-arch@archiver.kernel.org>; Sat, 14 May 2022 08:06:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 48C0AC433FE
+	for <linux-arch@archiver.kernel.org>; Sat, 14 May 2022 08:07:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230173AbiENIGl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 14 May 2022 04:06:41 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41494 "EHLO
+        id S229786AbiENIHz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 14 May 2022 04:07:55 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40312 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230042AbiENIFa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 14 May 2022 04:05:30 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1452C3BBF9;
-        Sat, 14 May 2022 01:05:14 -0700 (PDT)
+        with ESMTP id S229781AbiENIGa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 14 May 2022 04:06:30 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 74FFB3B3F1;
+        Sat, 14 May 2022 01:05:32 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 69038B82CD8;
-        Sat, 14 May 2022 08:05:12 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id ABCAAC34115;
-        Sat, 14 May 2022 08:05:04 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id C204960B66;
+        Sat, 14 May 2022 08:05:31 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C06AEC340EE;
+        Sat, 14 May 2022 08:05:25 +0000 (UTC)
 From:   Huacai Chen <chenhuacai@loongson.cn>
 To:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -36,11 +36,10 @@ Cc:     linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
         Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
         Stephen Rothwell <sfr@canb.auug.org.au>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        linux-efi@vger.kernel.org, Ard Biesheuvel <ardb@kernel.org>
-Subject: [PATCH V10 09/22] LoongArch: Add boot and setup routines
-Date:   Sat, 14 May 2022 16:03:49 +0800
-Message-Id: <20220514080402.2650181-10-chenhuacai@loongson.cn>
+        Huacai Chen <chenhuacai@loongson.cn>
+Subject: [PATCH V10 12/22] LoongArch: Add memory management
+Date:   Sat, 14 May 2022 16:03:52 +0800
+Message-Id: <20220514080402.2650181-13-chenhuacai@loongson.cn>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20220514080402.2650181-1-chenhuacai@loongson.cn>
 References: <20220514080402.2650181-1-chenhuacai@loongson.cn>
@@ -50,2603 +49,3422 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add basic boot, setup and reset routines for LoongArchi support.
-LoongArch uses UEFI-based firmware. The firmware uses ACPI and DMI/
-SMBIOS to pass configuration information to the Linux kernel.
+Add memory management support for LoongArch, including: cache and tlb
+management, page fault handling and ioremap/mmap support.
 
-Now the boot information passed to kernel is like this:
-1, kernel get 2 register values (a0 and a1) from bootloader.
-2, a0 is a "efi boot flag" to distinguish UEFI BIOS and non-UEFI BIOS.
-3, a1 is a "fdt pointer", including systable, memmap, cmdline and initrd
-   information.
-
-The above interface is an internal interface between bootloader (grub,
-efistub, etc.) and the raw kernel. You can use this method to boot the
-Linux kernel in raw elf format, but it is recommend to use the standard
-UEFI boot protocol (efistub).
-
-ECR for adding LoongArch support in ACPI:
-https://mantis.uefi.org/mantis/view.php?id=2203
-
-ECR for adding LoongArch support in ACPI (version update):
-https://mantis.uefi.org/mantis/view.php?id=2268
-
-ECR for adding LoongArch support in UEFI:
-https://mantis.uefi.org/mantis/view.php?id=2313
-
-ACPI changes of LoongArch have been approved in the last year, but the
-new version of ACPI SPEC hasn't been made public yet. And UEFI changes
-of LoongArch are under review now.
-
-Cc: linux-efi@vger.kernel.org
-Cc: Ard Biesheuvel <ardb@kernel.org>
 Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
 ---
- arch/loongarch/include/asm/acenv.h            |  17 +
- arch/loongarch/include/asm/acpi.h             |  38 ++
- arch/loongarch/include/asm/bootinfo.h         |  41 +++
- arch/loongarch/include/asm/dmi.h              |  24 ++
- arch/loongarch/include/asm/efi.h              |  41 +++
- arch/loongarch/include/asm/reboot.h           |  10 +
- arch/loongarch/include/asm/setup.h            |  21 ++
- arch/loongarch/kernel/acpi.c                  | 338 +++++++++++++++++
- arch/loongarch/kernel/cacheinfo.c             | 122 ++++++
- arch/loongarch/kernel/cpu-probe.c             | 292 +++++++++++++++
- arch/loongarch/kernel/efi-header.S            | 100 +++++
- arch/loongarch/kernel/efi.c                   | 229 ++++++++++++
- arch/loongarch/kernel/env.c                   |  70 ++++
- arch/loongarch/kernel/head.S                  |  97 +++++
- arch/loongarch/kernel/image-vars.h            |  29 ++
- arch/loongarch/kernel/mem.c                   |  64 ++++
- arch/loongarch/kernel/reset.c                 |  90 +++++
- arch/loongarch/kernel/setup.c                 | 348 ++++++++++++++++++
- arch/loongarch/kernel/time.c                  | 220 +++++++++++
- arch/loongarch/kernel/topology.c              |  13 +
- drivers/firmware/efi/Kconfig                  |   2 +-
- drivers/firmware/efi/libstub/Makefile         |  10 +
- .../firmware/efi/libstub/efi-stub-helper.c    |   2 +-
- drivers/firmware/efi/libstub/efi-stub.c       |   2 +-
- drivers/firmware/efi/libstub/loongarch-stub.c |  87 +++++
- include/linux/efi.h                           |   1 +
- include/linux/pe.h                            |   1 +
- 27 files changed, 2306 insertions(+), 3 deletions(-)
- create mode 100644 arch/loongarch/include/asm/acenv.h
- create mode 100644 arch/loongarch/include/asm/acpi.h
- create mode 100644 arch/loongarch/include/asm/bootinfo.h
- create mode 100644 arch/loongarch/include/asm/dmi.h
- create mode 100644 arch/loongarch/include/asm/efi.h
- create mode 100644 arch/loongarch/include/asm/reboot.h
- create mode 100644 arch/loongarch/include/asm/setup.h
- create mode 100644 arch/loongarch/kernel/acpi.c
- create mode 100644 arch/loongarch/kernel/cacheinfo.c
- create mode 100644 arch/loongarch/kernel/cpu-probe.c
- create mode 100644 arch/loongarch/kernel/efi-header.S
- create mode 100644 arch/loongarch/kernel/efi.c
- create mode 100644 arch/loongarch/kernel/env.c
- create mode 100644 arch/loongarch/kernel/head.S
- create mode 100644 arch/loongarch/kernel/image-vars.h
- create mode 100644 arch/loongarch/kernel/mem.c
- create mode 100644 arch/loongarch/kernel/reset.c
- create mode 100644 arch/loongarch/kernel/setup.c
- create mode 100644 arch/loongarch/kernel/time.c
- create mode 100644 arch/loongarch/kernel/topology.c
- create mode 100644 drivers/firmware/efi/libstub/loongarch-stub.c
+ arch/loongarch/include/asm/cache.h        |  13 +
+ arch/loongarch/include/asm/cacheflush.h   |  80 ++++
+ arch/loongarch/include/asm/cacheops.h     |  37 ++
+ arch/loongarch/include/asm/fixmap.h       |  13 +
+ arch/loongarch/include/asm/hugetlb.h      |  79 ++++
+ arch/loongarch/include/asm/page.h         | 113 +++++
+ arch/loongarch/include/asm/pgalloc.h      | 103 +++++
+ arch/loongarch/include/asm/pgtable-bits.h | 131 ++++++
+ arch/loongarch/include/asm/pgtable.h      | 532 ++++++++++++++++++++++
+ arch/loongarch/include/asm/shmparam.h     |  12 +
+ arch/loongarch/include/asm/sparsemem.h    |  23 +
+ arch/loongarch/include/asm/tlb.h          | 216 +++++++++
+ arch/loongarch/include/asm/tlbflush.h     |  35 ++
+ arch/loongarch/include/asm/vmalloc.h      |   4 +
+ arch/loongarch/mm/cache.c                 | 140 ++++++
+ arch/loongarch/mm/extable.c               |  22 +
+ arch/loongarch/mm/fault.c                 | 261 +++++++++++
+ arch/loongarch/mm/hugetlbpage.c           |  87 ++++
+ arch/loongarch/mm/init.c                  | 165 +++++++
+ arch/loongarch/mm/ioremap.c               |  27 ++
+ arch/loongarch/mm/maccess.c               |  10 +
+ arch/loongarch/mm/mmap.c                  | 125 +++++
+ arch/loongarch/mm/page.S                  |  84 ++++
+ arch/loongarch/mm/pgtable.c               | 130 ++++++
+ arch/loongarch/mm/tlb.c                   | 282 ++++++++++++
+ arch/loongarch/mm/tlbex.S                 | 477 +++++++++++++++++++
+ 26 files changed, 3201 insertions(+)
+ create mode 100644 arch/loongarch/include/asm/cache.h
+ create mode 100644 arch/loongarch/include/asm/cacheflush.h
+ create mode 100644 arch/loongarch/include/asm/cacheops.h
+ create mode 100644 arch/loongarch/include/asm/fixmap.h
+ create mode 100644 arch/loongarch/include/asm/hugetlb.h
+ create mode 100644 arch/loongarch/include/asm/page.h
+ create mode 100644 arch/loongarch/include/asm/pgalloc.h
+ create mode 100644 arch/loongarch/include/asm/pgtable-bits.h
+ create mode 100644 arch/loongarch/include/asm/pgtable.h
+ create mode 100644 arch/loongarch/include/asm/shmparam.h
+ create mode 100644 arch/loongarch/include/asm/sparsemem.h
+ create mode 100644 arch/loongarch/include/asm/tlb.h
+ create mode 100644 arch/loongarch/include/asm/tlbflush.h
+ create mode 100644 arch/loongarch/include/asm/vmalloc.h
+ create mode 100644 arch/loongarch/mm/cache.c
+ create mode 100644 arch/loongarch/mm/extable.c
+ create mode 100644 arch/loongarch/mm/fault.c
+ create mode 100644 arch/loongarch/mm/hugetlbpage.c
+ create mode 100644 arch/loongarch/mm/init.c
+ create mode 100644 arch/loongarch/mm/ioremap.c
+ create mode 100644 arch/loongarch/mm/maccess.c
+ create mode 100644 arch/loongarch/mm/mmap.c
+ create mode 100644 arch/loongarch/mm/page.S
+ create mode 100644 arch/loongarch/mm/pgtable.c
+ create mode 100644 arch/loongarch/mm/tlb.c
+ create mode 100644 arch/loongarch/mm/tlbex.S
 
-diff --git a/arch/loongarch/include/asm/acenv.h b/arch/loongarch/include/asm/acenv.h
+diff --git a/arch/loongarch/include/asm/cache.h b/arch/loongarch/include/asm/cache.h
 new file mode 100644
-index 000000000000..290a15a41258
+index 000000000000..1b6d09617199
 --- /dev/null
-+++ b/arch/loongarch/include/asm/acenv.h
-@@ -0,0 +1,17 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * LoongArch specific ACPICA environments and implementation
-+ *
-+ * Author: Jianmin Lv <lvjianmin@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+
-+#ifndef _ASM_LOONGARCH_ACENV_H
-+#define _ASM_LOONGARCH_ACENV_H
-+
-+/* The head file is required by ACPI core, but we have nothing to fill
-+ * it now, update it later when needed.
-+ */
-+
-+#endif /* _ASM_LOONGARCH_ACENV_H */
-diff --git a/arch/loongarch/include/asm/acpi.h b/arch/loongarch/include/asm/acpi.h
-new file mode 100644
-index 000000000000..62044cd5b7bc
---- /dev/null
-+++ b/arch/loongarch/include/asm/acpi.h
-@@ -0,0 +1,38 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Author: Jianmin Lv <lvjianmin@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+
-+#ifndef _ASM_LOONGARCH_ACPI_H
-+#define _ASM_LOONGARCH_ACPI_H
-+
-+#ifdef CONFIG_ACPI
-+extern int acpi_strict;
-+extern int acpi_disabled;
-+extern int acpi_pci_disabled;
-+extern int acpi_noirq;
-+
-+#define acpi_os_ioremap acpi_os_ioremap
-+void __init __iomem *acpi_os_ioremap(acpi_physical_address phys, acpi_size size);
-+
-+static inline void disable_acpi(void)
-+{
-+	acpi_disabled = 1;
-+	acpi_pci_disabled = 1;
-+	acpi_noirq = 1;
-+}
-+
-+static inline bool acpi_has_cpu_in_madt(void)
-+{
-+	return true;
-+}
-+
-+extern struct list_head acpi_wakeup_device_list;
-+
-+#endif /* !CONFIG_ACPI */
-+
-+#define ACPI_TABLE_UPGRADE_MAX_PHYS ARCH_LOW_ADDRESS_LIMIT
-+
-+#endif /* _ASM_LOONGARCH_ACPI_H */
-diff --git a/arch/loongarch/include/asm/bootinfo.h b/arch/loongarch/include/asm/bootinfo.h
-new file mode 100644
-index 000000000000..0076a9e1a817
---- /dev/null
-+++ b/arch/loongarch/include/asm/bootinfo.h
-@@ -0,0 +1,41 @@
++++ b/arch/loongarch/include/asm/cache.h
+@@ -0,0 +1,13 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#ifndef _ASM_BOOTINFO_H
-+#define _ASM_BOOTINFO_H
++#ifndef _ASM_CACHE_H
++#define _ASM_CACHE_H
 +
-+#include <linux/types.h>
-+#include <asm/setup.h>
++#define L1_CACHE_SHIFT		CONFIG_L1_CACHE_SHIFT
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
 +
-+const char *get_system_type(void);
++#define __read_mostly __section(".data..read_mostly")
 +
-+extern void init_environ(void);
-+extern void memblock_init(void);
-+extern void platform_init(void);
-+
-+struct loongson_board_info {
-+	int bios_size;
-+	char *bios_vendor;
-+	char *bios_version;
-+	char *bios_release_date;
-+	char *board_name;
-+	char *board_vendor;
-+};
-+
-+struct loongson_system_configuration {
-+	int nr_cpus;
-+	int nr_nodes;
-+	int nr_io_pics;
-+	int boot_cpu_id;
-+	int cores_per_node;
-+	int cores_per_package;
-+	char *cpuname;
-+};
-+
-+extern u64 efi_system_table;
-+extern struct loongson_board_info b_info;
-+extern struct loongson_system_configuration loongson_sysconf;
-+extern unsigned long fw_arg0, fw_arg1, fw_arg2;
-+
-+#endif /* _ASM_BOOTINFO_H */
-diff --git a/arch/loongarch/include/asm/dmi.h b/arch/loongarch/include/asm/dmi.h
++#endif /* _ASM_CACHE_H */
+diff --git a/arch/loongarch/include/asm/cacheflush.h b/arch/loongarch/include/asm/cacheflush.h
 new file mode 100644
-index 000000000000..605493417753
+index 000000000000..670900141b7c
 --- /dev/null
-+++ b/arch/loongarch/include/asm/dmi.h
-@@ -0,0 +1,24 @@
++++ b/arch/loongarch/include/asm/cacheflush.h
+@@ -0,0 +1,80 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#ifndef _ASM_DMI_H
-+#define _ASM_DMI_H
++#ifndef _ASM_CACHEFLUSH_H
++#define _ASM_CACHEFLUSH_H
 +
-+#include <linux/io.h>
-+#include <linux/memblock.h>
++#include <linux/mm.h>
++#include <asm/cpu-features.h>
++#include <asm/cacheops.h>
 +
-+#define dmi_early_remap(x, l)	dmi_remap(x, l)
-+#define dmi_early_unmap(x, l)	dmi_unmap(x)
-+#define dmi_alloc(l)		memblock_alloc(l, PAGE_SIZE)
++extern void local_flush_icache_range(unsigned long start, unsigned long end);
 +
-+static inline void *dmi_remap(u64 phys_addr, unsigned long size)
++#define flush_icache_range	local_flush_icache_range
++#define flush_icache_user_range	local_flush_icache_range
++
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
++
++#define flush_cache_all()				do { } while (0)
++#define flush_cache_mm(mm)				do { } while (0)
++#define flush_cache_dup_mm(mm)				do { } while (0)
++#define flush_cache_range(vma, start, end)		do { } while (0)
++#define flush_cache_page(vma, vmaddr, pfn)		do { } while (0)
++#define flush_cache_vmap(start, end)			do { } while (0)
++#define flush_cache_vunmap(start, end)			do { } while (0)
++#define flush_icache_page(vma, page)			do { } while (0)
++#define flush_icache_user_page(vma, page, addr, len)	do { } while (0)
++#define flush_dcache_page(page)				do { } while (0)
++#define flush_dcache_mmap_lock(mapping)			do { } while (0)
++#define flush_dcache_mmap_unlock(mapping)		do { } while (0)
++
++#define cache_op(op, addr)						\
++	__asm__ __volatile__(						\
++	"	cacop	%0, %1					\n"	\
++	:								\
++	: "i" (op), "ZC" (*(unsigned char *)(addr)))
++
++static inline void flush_icache_line_indexed(unsigned long addr)
 +{
-+	return ((void *)TO_CACHE(phys_addr));
++	cache_op(Index_Invalidate_I, addr);
 +}
 +
-+static inline void dmi_unmap(void *addr)
++static inline void flush_dcache_line_indexed(unsigned long addr)
 +{
++	cache_op(Index_Writeback_Inv_D, addr);
 +}
 +
-+#endif /* _ASM_DMI_H */
-diff --git a/arch/loongarch/include/asm/efi.h b/arch/loongarch/include/asm/efi.h
++static inline void flush_vcache_line_indexed(unsigned long addr)
++{
++	cache_op(Index_Writeback_Inv_V, addr);
++}
++
++static inline void flush_scache_line_indexed(unsigned long addr)
++{
++	cache_op(Index_Writeback_Inv_S, addr);
++}
++
++static inline void flush_icache_line(unsigned long addr)
++{
++	cache_op(Hit_Invalidate_I, addr);
++}
++
++static inline void flush_dcache_line(unsigned long addr)
++{
++	cache_op(Hit_Writeback_Inv_D, addr);
++}
++
++static inline void flush_vcache_line(unsigned long addr)
++{
++	cache_op(Hit_Writeback_Inv_V, addr);
++}
++
++static inline void flush_scache_line(unsigned long addr)
++{
++	cache_op(Hit_Writeback_Inv_S, addr);
++}
++
++#include <asm-generic/cacheflush.h>
++
++#endif /* _ASM_CACHEFLUSH_H */
+diff --git a/arch/loongarch/include/asm/cacheops.h b/arch/loongarch/include/asm/cacheops.h
 new file mode 100644
-index 000000000000..319c50ac8b33
+index 000000000000..dc280efecebd
 --- /dev/null
-+++ b/arch/loongarch/include/asm/efi.h
-@@ -0,0 +1,41 @@
++++ b/arch/loongarch/include/asm/cacheops.h
+@@ -0,0 +1,37 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#ifndef _ASM_LOONGARCH_EFI_H
-+#define _ASM_LOONGARCH_EFI_H
-+
-+#include <linux/efi.h>
-+
-+void __init efi_init(void);
-+void __init efi_runtime_init(void);
-+void efifb_setup_from_dmi(struct screen_info *si, const char *opt);
-+
-+#define ARCH_EFI_IRQ_FLAGS_MASK  0x00000001  /*bit0: CP0 Status.IE*/
-+
-+#define arch_efi_call_virt_setup()               \
-+({                                               \
-+})
-+
-+#define arch_efi_call_virt(p, f, args...)        \
-+({                                               \
-+	efi_##f##_t * __f;                       \
-+	__f = p->f;                              \
-+	__f(args);                               \
-+})
-+
-+#define arch_efi_call_virt_teardown()            \
-+({                                               \
-+})
-+
-+#define EFI_ALLOC_ALIGN		SZ_64K
-+
-+struct screen_info *alloc_screen_info(void);
-+void free_screen_info(struct screen_info *si);
-+
-+static inline unsigned long efi_get_max_initrd_addr(unsigned long image_addr)
-+{
-+	return ULONG_MAX;
-+}
-+
-+#endif /* _ASM_LOONGARCH_EFI_H */
-diff --git a/arch/loongarch/include/asm/reboot.h b/arch/loongarch/include/asm/reboot.h
-new file mode 100644
-index 000000000000..51151749d8f0
---- /dev/null
-+++ b/arch/loongarch/include/asm/reboot.h
-@@ -0,0 +1,10 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#ifndef _ASM_REBOOT_H
-+#define _ASM_REBOOT_H
-+
-+extern void (*pm_restart)(void);
-+
-+#endif /* _ASM_REBOOT_H */
-diff --git a/arch/loongarch/include/asm/setup.h b/arch/loongarch/include/asm/setup.h
-new file mode 100644
-index 000000000000..6d7d2a3e23dd
---- /dev/null
-+++ b/arch/loongarch/include/asm/setup.h
-@@ -0,0 +1,21 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+
-+#ifndef _LOONGARCH_SETUP_H
-+#define _LOONGARCH_SETUP_H
-+
-+#include <linux/types.h>
-+#include <uapi/asm/setup.h>
-+
-+#define VECSIZE 0x200
-+
-+extern unsigned long eentry;
-+extern unsigned long tlbrentry;
-+extern void cpu_cache_init(void);
-+extern void per_cpu_trap_init(int cpu);
-+extern void set_handler(unsigned long offset, void *addr, unsigned long len);
-+extern void set_merr_handler(unsigned long offset, void *addr, unsigned long len);
-+
-+#endif /* __SETUP_H */
-diff --git a/arch/loongarch/kernel/acpi.c b/arch/loongarch/kernel/acpi.c
-new file mode 100644
-index 000000000000..506ab9912c51
---- /dev/null
-+++ b/arch/loongarch/kernel/acpi.c
-@@ -0,0 +1,338 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * acpi.c - Architecture-Specific Low-Level ACPI Boot Support
-+ *
-+ * Author: Jianmin Lv <lvjianmin@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/acpi.h>
-+#include <linux/irq.h>
-+#include <linux/irqdomain.h>
-+#include <linux/memblock.h>
-+#include <linux/serial_core.h>
-+#include <asm/io.h>
-+#include <asm/loongson.h>
-+
-+int acpi_disabled;
-+EXPORT_SYMBOL(acpi_disabled);
-+int acpi_noirq;
-+int acpi_pci_disabled;
-+EXPORT_SYMBOL(acpi_pci_disabled);
-+int acpi_strict = 1; /* We have no workarounds on LoongArch */
-+int num_processors;
-+int disabled_cpus;
-+enum acpi_irq_model_id acpi_irq_model = ACPI_IRQ_MODEL_PLATFORM;
-+
-+u64 acpi_saved_sp;
-+
-+#define MAX_CORE_PIC 256
-+
-+#define PREFIX			"ACPI: "
-+
-+int acpi_gsi_to_irq(u32 gsi, unsigned int *irqp)
-+{
-+	if (irqp != NULL)
-+		*irqp = acpi_register_gsi(NULL, gsi, -1, -1);
-+	return (*irqp >= 0) ? 0 : -EINVAL;
-+}
-+EXPORT_SYMBOL_GPL(acpi_gsi_to_irq);
-+
-+int acpi_isa_irq_to_gsi(unsigned int isa_irq, u32 *gsi)
-+{
-+	if (gsi)
-+		*gsi = isa_irq;
-+	return 0;
-+}
-+
-+/*
-+ * success: return IRQ number (>=0)
-+ * failure: return < 0
-+ */
-+int acpi_register_gsi(struct device *dev, u32 gsi, int trigger, int polarity)
-+{
-+	int id;
-+	struct irq_fwspec fwspec;
-+
-+	switch (gsi) {
-+	case GSI_MIN_CPU_IRQ ... GSI_MAX_CPU_IRQ:
-+		fwspec.fwnode = liointc_domain->fwnode;
-+		fwspec.param[0] = gsi - GSI_MIN_CPU_IRQ;
-+		fwspec.param_count = 1;
-+
-+		return irq_create_fwspec_mapping(&fwspec);
-+
-+	case GSI_MIN_LPC_IRQ ... GSI_MAX_LPC_IRQ:
-+		if (!pch_lpc_domain)
-+			return -EINVAL;
-+
-+		fwspec.fwnode = pch_lpc_domain->fwnode;
-+		fwspec.param[0] = gsi - GSI_MIN_LPC_IRQ;
-+		fwspec.param[1] = acpi_dev_get_irq_type(trigger, polarity);
-+		fwspec.param_count = 2;
-+
-+		return irq_create_fwspec_mapping(&fwspec);
-+
-+	case GSI_MIN_PCH_IRQ ... GSI_MAX_PCH_IRQ:
-+		id = find_pch_pic(gsi);
-+		if (id < 0)
-+			return -EINVAL;
-+
-+		fwspec.fwnode = pch_pic_domain[id]->fwnode;
-+		fwspec.param[0] = gsi - acpi_pchpic[id]->gsi_base;
-+		fwspec.param[1] = IRQ_TYPE_LEVEL_HIGH;
-+		fwspec.param_count = 2;
-+
-+		return irq_create_fwspec_mapping(&fwspec);
-+	}
-+
-+	return -EINVAL;
-+}
-+EXPORT_SYMBOL_GPL(acpi_register_gsi);
-+
-+void acpi_unregister_gsi(u32 gsi)
-+{
-+
-+}
-+EXPORT_SYMBOL_GPL(acpi_unregister_gsi);
-+
-+void __init __iomem * __acpi_map_table(unsigned long phys, unsigned long size)
-+{
-+
-+	if (!phys || !size)
-+		return NULL;
-+
-+	return early_memremap(phys, size);
-+}
-+void __init __acpi_unmap_table(void __iomem *map, unsigned long size)
-+{
-+	if (!map || !size)
-+		return;
-+
-+	early_memunmap(map, size);
-+}
-+
-+void __init __iomem *acpi_os_ioremap(acpi_physical_address phys, acpi_size size)
-+{
-+	if (!memblock_is_memory(phys))
-+		return ioremap(phys, size);
-+	else
-+		return ioremap_cache(phys, size);
-+}
-+
-+void __init acpi_boot_table_init(void)
-+{
-+	/*
-+	 * If acpi_disabled, bail out
-+	 */
-+	if (acpi_disabled)
-+		return;
-+
-+	/*
-+	 * Initialize the ACPI boot-time table parser.
-+	 */
-+	if (acpi_table_init()) {
-+		disable_acpi();
-+		return;
-+	}
-+}
-+
-+static int __init
-+acpi_parse_cpuintc(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	struct acpi_madt_core_pic *processor = NULL;
-+
-+	processor = (struct acpi_madt_core_pic *)header;
-+	if (BAD_MADT_ENTRY(processor, end))
-+		return -EINVAL;
-+
-+	acpi_table_print_madt_entry(&header->common);
-+
-+	return 0;
-+}
-+
-+static int __init
-+acpi_parse_liointc(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	struct acpi_madt_lio_pic *liointc = NULL;
-+
-+	liointc = (struct acpi_madt_lio_pic *)header;
-+
-+	if (BAD_MADT_ENTRY(liointc, end))
-+		return -EINVAL;
-+
-+	acpi_liointc = liointc;
-+
-+	return 0;
-+}
-+
-+static int __init
-+acpi_parse_eiointc(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	static int id = 0;
-+	struct acpi_madt_eio_pic *eiointc = NULL;
-+
-+	eiointc = (struct acpi_madt_eio_pic *)header;
-+
-+	if (BAD_MADT_ENTRY(eiointc, end))
-+		return -EINVAL;
-+
-+	acpi_eiointc[id++] = eiointc;
-+	loongson_sysconf.nr_io_pics = id;
-+
-+	return 0;
-+}
-+
-+static int __init
-+acpi_parse_htintc(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	struct acpi_madt_ht_pic *htintc = NULL;
-+
-+	htintc = (struct acpi_madt_ht_pic *)header;
-+
-+	if (BAD_MADT_ENTRY(htintc, end))
-+		return -EINVAL;
-+
-+	acpi_htintc = htintc;
-+	loongson_sysconf.nr_io_pics = 1;
-+
-+	return 0;
-+}
-+
-+static int __init
-+acpi_parse_pch_pic(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	static int id = 0;
-+	struct acpi_madt_bio_pic *pchpic = NULL;
-+
-+	pchpic = (struct acpi_madt_bio_pic *)header;
-+
-+	if (BAD_MADT_ENTRY(pchpic, end))
-+		return -EINVAL;
-+
-+	acpi_pchpic[id++] = pchpic;
-+
-+	return 0;
-+}
-+
-+static int __init
-+acpi_parse_pch_msi(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	static int id = 0;
-+	struct acpi_madt_msi_pic *pchmsi = NULL;
-+
-+	pchmsi = (struct acpi_madt_msi_pic *)header;
-+
-+	if (BAD_MADT_ENTRY(pchmsi, end))
-+		return -EINVAL;
-+
-+	acpi_pchmsi[id++] = pchmsi;
-+
-+	return 0;
-+}
-+
-+static int __init
-+acpi_parse_pch_lpc(union acpi_subtable_headers *header, const unsigned long end)
-+{
-+	struct acpi_madt_lpc_pic *pchlpc = NULL;
-+
-+	pchlpc = (struct acpi_madt_lpc_pic *)header;
-+
-+	if (BAD_MADT_ENTRY(pchlpc, end))
-+		return -EINVAL;
-+
-+	acpi_pchlpc = pchlpc;
-+
-+	return 0;
-+}
-+
-+static void __init acpi_process_madt(void)
-+{
-+	int error;
-+
-+	/* Parse MADT CPUINTC entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_CORE_PIC, acpi_parse_cpuintc, MAX_CORE_PIC);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (CPUINTC entries), ACPI disabled\n");
-+		return;
-+	}
-+
-+	loongson_sysconf.nr_cpus = num_processors;
-+
-+	/* Parse MADT LIOINTC entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_LIO_PIC, acpi_parse_liointc, 1);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (LIOINTC entries), ACPI disabled\n");
-+		return;
-+	}
-+
-+	/* Parse MADT EIOINTC entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_EIO_PIC, acpi_parse_eiointc, MAX_IO_PICS);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (EIOINTC entries), ACPI disabled\n");
-+		return;
-+	}
-+
-+	/* Parse MADT HTVEC entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_HT_PIC, acpi_parse_htintc, 1);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (HTVEC entries), ACPI disabled\n");
-+		return;
-+	}
-+
-+	/* Parse MADT PCHPIC entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_BIO_PIC, acpi_parse_pch_pic, MAX_IO_PICS);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (PCHPIC entries), ACPI disabled\n");
-+		return;
-+	}
-+
-+	/* Parse MADT PCHMSI entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_MSI_PIC, acpi_parse_pch_msi, MAX_IO_PICS);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (PCHMSI entries), ACPI disabled\n");
-+		return;
-+	}
-+
-+	/* Parse MADT PCHLPC entries */
-+	error = acpi_table_parse_madt(ACPI_MADT_TYPE_LPC_PIC, acpi_parse_pch_lpc, 1);
-+	if (error < 0) {
-+		disable_acpi();
-+		pr_err(PREFIX "Invalid BIOS MADT (PCHLPC entries), ACPI disabled\n");
-+		return;
-+	}
-+}
-+
-+int __init acpi_boot_init(void)
-+{
-+	/*
-+	 * If acpi_disabled, bail out
-+	 */
-+	if (acpi_disabled)
-+		return -1;
-+
-+	loongson_sysconf.boot_cpu_id = read_csr_cpuid();
-+
-+	/*
-+	 * Process the Multiple APIC Description Table (MADT), if present
-+	 */
-+	acpi_process_madt();
-+
-+	/* Do not enable ACPI SPCR console by default */
-+	acpi_parse_spcr(earlycon_acpi_spcr_enable, false);
-+
-+	return 0;
-+}
-+
-+void __init arch_reserve_mem_area(acpi_physical_address addr, size_t size)
-+{
-+	memblock_reserve(addr, size);
-+}
-diff --git a/arch/loongarch/kernel/cacheinfo.c b/arch/loongarch/kernel/cacheinfo.c
-new file mode 100644
-index 000000000000..8c9fe29e98f0
---- /dev/null
-+++ b/arch/loongarch/kernel/cacheinfo.c
-@@ -0,0 +1,122 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * LoongArch cacheinfo support
++ * Cache operations for the cache instruction.
 + *
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#include <linux/cacheinfo.h>
++#ifndef __ASM_CACHEOPS_H
++#define __ASM_CACHEOPS_H
 +
-+/* Populates leaf and increments to next leaf */
-+#define populate_cache(cache, leaf, c_level, c_type)		\
-+do {								\
-+	leaf->type = c_type;					\
-+	leaf->level = c_level;					\
-+	leaf->coherency_line_size = c->cache.linesz;		\
-+	leaf->number_of_sets = c->cache.sets;			\
-+	leaf->ways_of_associativity = c->cache.ways;		\
-+	leaf->size = c->cache.linesz * c->cache.sets *		\
-+		c->cache.ways;					\
-+	leaf++;							\
++/*
++ * Most cache ops are split into a 2 bit field identifying the cache, and a 3
++ * bit field identifying the cache operation.
++ */
++#define CacheOp_Cache			0x03
++#define CacheOp_Op			0x1c
++
++#define Cache_I				0x00
++#define Cache_D				0x01
++#define Cache_V				0x02
++#define Cache_S				0x03
++
++#define Index_Invalidate		0x08
++#define Index_Writeback_Inv		0x08
++#define Hit_Invalidate			0x10
++#define Hit_Writeback_Inv		0x10
++#define CacheOp_User_Defined		0x18
++
++#define Index_Invalidate_I		(Cache_I | Index_Invalidate)
++#define Index_Writeback_Inv_D		(Cache_D | Index_Writeback_Inv)
++#define Index_Writeback_Inv_V		(Cache_V | Index_Writeback_Inv)
++#define Index_Writeback_Inv_S		(Cache_S | Index_Writeback_Inv)
++#define Hit_Invalidate_I		(Cache_I | Hit_Invalidate)
++#define Hit_Writeback_Inv_D		(Cache_D | Hit_Writeback_Inv)
++#define Hit_Writeback_Inv_V		(Cache_V | Hit_Writeback_Inv)
++#define Hit_Writeback_Inv_S		(Cache_S | Hit_Writeback_Inv)
++
++#endif	/* __ASM_CACHEOPS_H */
+diff --git a/arch/loongarch/include/asm/fixmap.h b/arch/loongarch/include/asm/fixmap.h
+new file mode 100644
+index 000000000000..b3541dfa2013
+--- /dev/null
++++ b/arch/loongarch/include/asm/fixmap.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * fixmap.h: compile-time virtual memory allocation
++ *
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#ifndef _ASM_FIXMAP_H
++#define _ASM_FIXMAP_H
++
++#define NR_FIX_BTMAPS 64
++
++#endif
+diff --git a/arch/loongarch/include/asm/hugetlb.h b/arch/loongarch/include/asm/hugetlb.h
+new file mode 100644
+index 000000000000..960ee06d7ffd
+--- /dev/null
++++ b/arch/loongarch/include/asm/hugetlb.h
+@@ -0,0 +1,79 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#ifndef __ASM_HUGETLB_H
++#define __ASM_HUGETLB_H
++
++#include <asm/page.h>
++
++uint64_t pmd_to_entrylo(unsigned long pmd_val);
++
++#define __HAVE_ARCH_PREPARE_HUGEPAGE_RANGE
++static inline int prepare_hugepage_range(struct file *file,
++					 unsigned long addr,
++					 unsigned long len)
++{
++	unsigned long task_size = STACK_TOP;
++	struct hstate *h = hstate_file(file);
++
++	if (len & ~huge_page_mask(h))
++		return -EINVAL;
++	if (addr & ~huge_page_mask(h))
++		return -EINVAL;
++	if (len > task_size)
++		return -ENOMEM;
++	if (task_size - len < addr)
++		return -EINVAL;
++	return 0;
++}
++
++#define __HAVE_ARCH_HUGE_PTEP_GET_AND_CLEAR
++static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
++					    unsigned long addr, pte_t *ptep)
++{
++	pte_t clear;
++	pte_t pte = *ptep;
++
++	pte_val(clear) = (unsigned long)invalid_pte_table;
++	set_pte_at(mm, addr, ptep, clear);
++	return pte;
++}
++
++#define __HAVE_ARCH_HUGE_PTEP_CLEAR_FLUSH
++static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
++					 unsigned long addr, pte_t *ptep)
++{
++	flush_tlb_page(vma, addr & huge_page_mask(hstate_vma(vma)));
++}
++
++#define __HAVE_ARCH_HUGE_PTE_NONE
++static inline int huge_pte_none(pte_t pte)
++{
++	unsigned long val = pte_val(pte) & ~_PAGE_GLOBAL;
++	return !val || (val == (unsigned long)invalid_pte_table);
++}
++
++#define __HAVE_ARCH_HUGE_PTEP_SET_ACCESS_FLAGS
++static inline int huge_ptep_set_access_flags(struct vm_area_struct *vma,
++					     unsigned long addr,
++					     pte_t *ptep, pte_t pte,
++					     int dirty)
++{
++	int changed = !pte_same(*ptep, pte);
++
++	if (changed) {
++		set_pte_at(vma->vm_mm, addr, ptep, pte);
++		/*
++		 * There could be some standard sized pages in there,
++		 * get them all.
++		 */
++		flush_tlb_range(vma, addr, addr + HPAGE_SIZE);
++	}
++	return changed;
++}
++
++#include <asm-generic/hugetlb.h>
++
++#endif /* __ASM_HUGETLB_H */
+diff --git a/arch/loongarch/include/asm/page.h b/arch/loongarch/include/asm/page.h
+new file mode 100644
+index 000000000000..5bd2330d9576
+--- /dev/null
++++ b/arch/loongarch/include/asm/page.h
+@@ -0,0 +1,113 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_PAGE_H
++#define _ASM_PAGE_H
++
++#include <linux/const.h>
++
++/*
++ * PAGE_SHIFT determines the page size
++ */
++#ifdef CONFIG_PAGE_SIZE_4KB
++#define PAGE_SHIFT	12
++#endif
++#ifdef CONFIG_PAGE_SIZE_16KB
++#define PAGE_SHIFT	14
++#endif
++#ifdef CONFIG_PAGE_SIZE_64KB
++#define PAGE_SHIFT	16
++#endif
++#define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
++#define PAGE_MASK	(~(PAGE_SIZE - 1))
++
++#define HPAGE_SHIFT	(PAGE_SHIFT + PAGE_SHIFT - 3)
++#define HPAGE_SIZE	(_AC(1, UL) << HPAGE_SHIFT)
++#define HPAGE_MASK	(~(HPAGE_SIZE - 1))
++#define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)
++
++#ifndef __ASSEMBLY__
++
++#include <linux/kernel.h>
++#include <linux/pfn.h>
++
++/*
++ * It's normally defined only for FLATMEM config but it's
++ * used in our early mem init code for all memory models.
++ * So always define it.
++ */
++#define ARCH_PFN_OFFSET	PFN_UP(PHYS_OFFSET)
++
++extern void clear_page(void *page);
++extern void copy_page(void *to, void *from);
++
++#define clear_user_page(page, vaddr, pg)	clear_page(page)
++#define copy_user_page(to, from, vaddr, pg)	copy_page(to, from)
++
++extern unsigned long shm_align_mask;
++
++struct page;
++struct vm_area_struct;
++void copy_user_highpage(struct page *to, struct page *from,
++	      unsigned long vaddr, struct vm_area_struct *vma);
++
++#define __HAVE_ARCH_COPY_USER_HIGHPAGE
++
++typedef struct { unsigned long pte; } pte_t;
++#define pte_val(x)	((x).pte)
++#define __pte(x)	((pte_t) { (x) })
++typedef struct page *pgtable_t;
++
++typedef struct { unsigned long pgd; } pgd_t;
++#define pgd_val(x)	((x).pgd)
++#define __pgd(x)	((pgd_t) { (x) })
++
++/*
++ * Manipulate page protection bits
++ */
++typedef struct { unsigned long pgprot; } pgprot_t;
++#define pgprot_val(x)	((x).pgprot)
++#define __pgprot(x)	((pgprot_t) { (x) })
++#define pte_pgprot(x)	__pgprot(pte_val(x) & ~_PFN_MASK)
++
++#define ptep_buddy(x)	((pte_t *)((unsigned long)(x) ^ sizeof(pte_t)))
++
++/*
++ * __pa()/__va() should be used only during mem init.
++ */
++#define __pa(x)		PHYSADDR(x)
++#define __va(x)		((void *)((unsigned long)(x) + PAGE_OFFSET - PHYS_OFFSET))
++
++#define pfn_to_kaddr(pfn)	__va((pfn) << PAGE_SHIFT)
++
++#ifdef CONFIG_FLATMEM
++
++static inline int pfn_valid(unsigned long pfn)
++{
++	/* avoid <linux/mm.h> include hell */
++	extern unsigned long max_mapnr;
++	unsigned long pfn_offset = ARCH_PFN_OFFSET;
++
++	return pfn >= pfn_offset && pfn < max_mapnr;
++}
++
++#endif
++
++#define virt_to_pfn(kaddr)	PFN_DOWN(virt_to_phys((void *)(kaddr)))
++#define virt_to_page(kaddr)	pfn_to_page(virt_to_pfn(kaddr))
++
++extern int __virt_addr_valid(volatile void *kaddr);
++#define virt_addr_valid(kaddr)	__virt_addr_valid((volatile void *)(kaddr))
++
++#define VM_DATA_DEFAULT_FLAGS \
++	(VM_READ | VM_WRITE | \
++	 ((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
++	 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++
++#include <asm-generic/memory_model.h>
++#include <asm-generic/getorder.h>
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* _ASM_PAGE_H */
+diff --git a/arch/loongarch/include/asm/pgalloc.h b/arch/loongarch/include/asm/pgalloc.h
+new file mode 100644
+index 000000000000..b0a57b25c131
+--- /dev/null
++++ b/arch/loongarch/include/asm/pgalloc.h
+@@ -0,0 +1,103 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_PGALLOC_H
++#define _ASM_PGALLOC_H
++
++#include <linux/mm.h>
++#include <linux/sched.h>
++
++#define __HAVE_ARCH_PMD_ALLOC_ONE
++#define __HAVE_ARCH_PUD_ALLOC_ONE
++#include <asm-generic/pgalloc.h>
++
++static inline void pmd_populate_kernel(struct mm_struct *mm,
++				       pmd_t *pmd, pte_t *pte)
++{
++	set_pmd(pmd, __pmd((unsigned long)pte));
++}
++
++static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t pte)
++{
++	set_pmd(pmd, __pmd((unsigned long)page_address(pte)));
++}
++
++#ifndef __PAGETABLE_PMD_FOLDED
++
++static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
++{
++	set_pud(pud, __pud((unsigned long)pmd));
++}
++#endif
++
++#ifndef __PAGETABLE_PUD_FOLDED
++
++static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
++{
++	set_p4d(p4d, __p4d((unsigned long)pud));
++}
++
++#endif /* __PAGETABLE_PUD_FOLDED */
++
++extern void pagetable_init(void);
++
++/*
++ * Initialize a new pmd table with invalid pointers.
++ */
++extern void pmd_init(unsigned long page, unsigned long pagetable);
++
++/*
++ * Initialize a new pgd / pmd table with invalid pointers.
++ */
++extern void pgd_init(unsigned long page);
++extern pgd_t *pgd_alloc(struct mm_struct *mm);
++
++#define __pte_free_tlb(tlb, pte, address)			\
++do {							\
++	pgtable_pte_page_dtor(pte);			\
++	tlb_remove_page((tlb), pte);			\
 +} while (0)
 +
-+int init_cache_level(unsigned int cpu)
++#ifndef __PAGETABLE_PMD_FOLDED
++
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
 +{
-+	struct cpuinfo_loongarch *c = &current_cpu_data;
-+	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-+	int levels = 0, leaves = 0;
++	pmd_t *pmd;
++	struct page *pg;
 +
-+	/*
-+	 * If Dcache is not set, we assume the cache structures
-+	 * are not properly initialized.
-+	 */
-+	if (c->dcache.waysize)
-+		levels += 1;
-+	else
-+		return -ENOENT;
++	pg = alloc_pages(GFP_KERNEL_ACCOUNT, PMD_ORDER);
++	if (!pg)
++		return NULL;
 +
-+
-+	leaves += (c->icache.waysize) ? 2 : 1;
-+
-+	if (c->vcache.waysize) {
-+		levels++;
-+		leaves++;
++	if (!pgtable_pmd_page_ctor(pg)) {
++		__free_pages(pg, PMD_ORDER);
++		return NULL;
 +	}
 +
-+	if (c->scache.waysize) {
-+		levels++;
-+		leaves++;
-+	}
-+
-+	if (c->tcache.waysize) {
-+		levels++;
-+		leaves++;
-+	}
-+
-+	this_cpu_ci->num_levels = levels;
-+	this_cpu_ci->num_leaves = leaves;
-+	return 0;
++	pmd = (pmd_t *)page_address(pg);
++	pmd_init((unsigned long)pmd, (unsigned long)invalid_pte_table);
++	return pmd;
 +}
 +
-+static inline bool cache_leaves_are_shared(struct cacheinfo *this_leaf,
-+					   struct cacheinfo *sib_leaf)
++#define __pmd_free_tlb(tlb, x, addr)	pmd_free((tlb)->mm, x)
++
++#endif
++
++#ifndef __PAGETABLE_PUD_FOLDED
++
++static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long address)
 +{
-+	return !((this_leaf->level == 1) || (this_leaf->level == 2));
++	pud_t *pud;
++
++	pud = (pud_t *) __get_free_pages(GFP_KERNEL, PUD_ORDER);
++	if (pud)
++		pud_init((unsigned long)pud, (unsigned long)invalid_pmd_table);
++	return pud;
 +}
 +
-+static void cache_cpumap_setup(unsigned int cpu)
-+{
-+	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-+	struct cacheinfo *this_leaf, *sib_leaf;
-+	unsigned int index;
++#define __pud_free_tlb(tlb, x, addr)	pud_free((tlb)->mm, x)
 +
-+	for (index = 0; index < this_cpu_ci->num_leaves; index++) {
-+		unsigned int i;
++#endif /* __PAGETABLE_PUD_FOLDED */
 +
-+		this_leaf = this_cpu_ci->info_list + index;
-+		/* skip if shared_cpu_map is already populated */
-+		if (!cpumask_empty(&this_leaf->shared_cpu_map))
-+			continue;
-+
-+		cpumask_set_cpu(cpu, &this_leaf->shared_cpu_map);
-+		for_each_online_cpu(i) {
-+			struct cpu_cacheinfo *sib_cpu_ci = get_cpu_cacheinfo(i);
-+
-+			if (i == cpu || !sib_cpu_ci->info_list)
-+				continue;/* skip if itself or no cacheinfo */
-+			sib_leaf = sib_cpu_ci->info_list + index;
-+			if (cache_leaves_are_shared(this_leaf, sib_leaf)) {
-+				cpumask_set_cpu(cpu, &sib_leaf->shared_cpu_map);
-+				cpumask_set_cpu(i, &this_leaf->shared_cpu_map);
-+			}
-+		}
-+	}
-+}
-+
-+int populate_cache_leaves(unsigned int cpu)
-+{
-+	int level = 1;
-+	struct cpuinfo_loongarch *c = &current_cpu_data;
-+	struct cpu_cacheinfo *this_cpu_ci = get_cpu_cacheinfo(cpu);
-+	struct cacheinfo *this_leaf = this_cpu_ci->info_list;
-+
-+	if (c->icache.waysize) {
-+		populate_cache(dcache, this_leaf, level, CACHE_TYPE_DATA);
-+		populate_cache(icache, this_leaf, level++, CACHE_TYPE_INST);
-+	} else {
-+		populate_cache(dcache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-+	}
-+
-+	if (c->vcache.waysize)
-+		populate_cache(vcache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-+
-+	if (c->scache.waysize)
-+		populate_cache(scache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-+
-+	if (c->tcache.waysize)
-+		populate_cache(tcache, this_leaf, level++, CACHE_TYPE_UNIFIED);
-+
-+	cache_cpumap_setup(cpu);
-+	this_cpu_ci->cpu_map_populated = true;
-+
-+	return 0;
-+}
-diff --git a/arch/loongarch/kernel/cpu-probe.c b/arch/loongarch/kernel/cpu-probe.c
++#endif /* _ASM_PGALLOC_H */
+diff --git a/arch/loongarch/include/asm/pgtable-bits.h b/arch/loongarch/include/asm/pgtable-bits.h
 new file mode 100644
-index 000000000000..ad1c4cde0dd6
+index 000000000000..3badd112d9ab
 --- /dev/null
-+++ b/arch/loongarch/kernel/cpu-probe.c
-@@ -0,0 +1,292 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Processor capabilities determination functions.
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/ptrace.h>
-+#include <linux/smp.h>
-+#include <linux/stddef.h>
-+#include <linux/export.h>
-+#include <linux/printk.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/cpu-features.h>
-+#include <asm/elf.h>
-+#include <asm/fpu.h>
-+#include <asm/loongarch.h>
-+#include <asm/pgtable-bits.h>
-+#include <asm/setup.h>
-+
-+/* Hardware capabilities */
-+unsigned int elf_hwcap __read_mostly;
-+EXPORT_SYMBOL_GPL(elf_hwcap);
-+
-+/*
-+ * Determine the FCSR mask for FPU hardware.
-+ */
-+static inline void cpu_set_fpu_fcsr_mask(struct cpuinfo_loongarch *c)
-+{
-+	unsigned long sr, mask, fcsr, fcsr0, fcsr1;
-+
-+	fcsr = c->fpu_csr0;
-+	mask = FPU_CSR_ALL_X | FPU_CSR_ALL_E | FPU_CSR_ALL_S | FPU_CSR_RM;
-+
-+	sr = read_csr_euen();
-+	enable_fpu();
-+
-+	fcsr0 = fcsr & mask;
-+	write_fcsr(LOONGARCH_FCSR0, fcsr0);
-+	fcsr0 = read_fcsr(LOONGARCH_FCSR0);
-+
-+	fcsr1 = fcsr | ~mask;
-+	write_fcsr(LOONGARCH_FCSR0, fcsr1);
-+	fcsr1 = read_fcsr(LOONGARCH_FCSR0);
-+
-+	write_fcsr(LOONGARCH_FCSR0, fcsr);
-+
-+	write_csr_euen(sr);
-+
-+	c->fpu_mask = ~(fcsr0 ^ fcsr1) & ~mask;
-+}
-+
-+static inline void set_elf_platform(int cpu, const char *plat)
-+{
-+	if (cpu == 0)
-+		__elf_platform = plat;
-+}
-+
-+/* MAP BASE */
-+unsigned long vm_map_base;
-+EXPORT_SYMBOL_GPL(vm_map_base);
-+
-+static void cpu_probe_addrbits(struct cpuinfo_loongarch *c)
-+{
-+#ifdef __NEED_ADDRBITS_PROBE
-+	c->pabits = (read_cpucfg(LOONGARCH_CPUCFG1) & CPUCFG1_PABITS) >> 4;
-+	c->vabits = (read_cpucfg(LOONGARCH_CPUCFG1) & CPUCFG1_VABITS) >> 12;
-+	vm_map_base = 0UL - (1UL << c->vabits);
-+#endif
-+}
-+
-+static void set_isa(struct cpuinfo_loongarch *c, unsigned int isa)
-+{
-+	switch (isa) {
-+	case LOONGARCH_CPU_ISA_LA64:
-+		c->isa_level |= LOONGARCH_CPU_ISA_LA64;
-+		fallthrough;
-+	case LOONGARCH_CPU_ISA_LA32S:
-+		c->isa_level |= LOONGARCH_CPU_ISA_LA32S;
-+		fallthrough;
-+	case LOONGARCH_CPU_ISA_LA32R:
-+		c->isa_level |= LOONGARCH_CPU_ISA_LA32R;
-+		break;
-+	}
-+}
-+
-+static void cpu_probe_common(struct cpuinfo_loongarch *c)
-+{
-+	unsigned int config;
-+	unsigned long asid_mask;
-+
-+	c->options = LOONGARCH_CPU_CPUCFG | LOONGARCH_CPU_CSR |
-+		     LOONGARCH_CPU_TLB | LOONGARCH_CPU_VINT | LOONGARCH_CPU_WATCH;
-+
-+	elf_hwcap |= HWCAP_LOONGARCH_CRC32;
-+
-+	config = read_cpucfg(LOONGARCH_CPUCFG1);
-+	if (config & CPUCFG1_UAL) {
-+		c->options |= LOONGARCH_CPU_UAL;
-+		elf_hwcap |= HWCAP_LOONGARCH_UAL;
-+	}
-+
-+	config = read_cpucfg(LOONGARCH_CPUCFG2);
-+	if (config & CPUCFG2_LAM) {
-+		c->options |= LOONGARCH_CPU_LAM;
-+		elf_hwcap |= HWCAP_LOONGARCH_LAM;
-+	}
-+	if (config & CPUCFG2_FP) {
-+		c->options |= LOONGARCH_CPU_FPU;
-+		elf_hwcap |= HWCAP_LOONGARCH_FPU;
-+	}
-+	if (config & CPUCFG2_COMPLEX) {
-+		c->options |= LOONGARCH_CPU_COMPLEX;
-+		elf_hwcap |= HWCAP_LOONGARCH_COMPLEX;
-+	}
-+	if (config & CPUCFG2_CRYPTO) {
-+		c->options |= LOONGARCH_CPU_CRYPTO;
-+		elf_hwcap |= HWCAP_LOONGARCH_CRYPTO;
-+	}
-+	if (config & CPUCFG2_LVZP) {
-+		c->options |= LOONGARCH_CPU_LVZ;
-+		elf_hwcap |= HWCAP_LOONGARCH_LVZ;
-+	}
-+
-+	config = read_cpucfg(LOONGARCH_CPUCFG6);
-+	if (config & CPUCFG6_PMP)
-+		c->options |= LOONGARCH_CPU_PMP;
-+
-+	config = iocsr_readl(LOONGARCH_IOCSR_FEATURES);
-+	if (config & IOCSRF_CSRIPI)
-+		c->options |= LOONGARCH_CPU_CSRIPI;
-+	if (config & IOCSRF_EXTIOI)
-+		c->options |= LOONGARCH_CPU_EXTIOI;
-+	if (config & IOCSRF_FREQSCALE)
-+		c->options |= LOONGARCH_CPU_SCALEFREQ;
-+	if (config & IOCSRF_FLATMODE)
-+		c->options |= LOONGARCH_CPU_FLATMODE;
-+	if (config & IOCSRF_EIODECODE)
-+		c->options |= LOONGARCH_CPU_EIODECODE;
-+	if (config & IOCSRF_VM)
-+		c->options |= LOONGARCH_CPU_HYPERVISOR;
-+
-+	config = csr_readl(LOONGARCH_CSR_ASID);
-+	config = (config & CSR_ASID_BIT) >> CSR_ASID_BIT_SHIFT;
-+	asid_mask = GENMASK(config - 1, 0);
-+	set_cpu_asid_mask(c, asid_mask);
-+
-+	config = read_csr_prcfg1();
-+	c->kscratch_mask = GENMASK((config & CSR_CONF1_KSNUM) - 1, 0);
-+	c->kscratch_mask &= ~(EXC_KSCRATCH_MASK | PERCPU_KSCRATCH_MASK | KVM_KSCRATCH_MASK);
-+
-+	config = read_csr_prcfg3();
-+	switch (config & CSR_CONF3_TLBTYPE) {
-+	case 0:
-+		c->tlbsizemtlb = 0;
-+		c->tlbsizestlbsets = 0;
-+		c->tlbsizestlbways = 0;
-+		c->tlbsize = 0;
-+		break;
-+	case 1:
-+		c->tlbsizemtlb = ((config & CSR_CONF3_MTLBSIZE) >> CSR_CONF3_MTLBSIZE_SHIFT) + 1;
-+		c->tlbsizestlbsets = 0;
-+		c->tlbsizestlbways = 0;
-+		c->tlbsize = c->tlbsizemtlb + c->tlbsizestlbsets * c->tlbsizestlbways;
-+		break;
-+	case 2:
-+		c->tlbsizemtlb = ((config & CSR_CONF3_MTLBSIZE) >> CSR_CONF3_MTLBSIZE_SHIFT) + 1;
-+		c->tlbsizestlbsets = 1 << ((config & CSR_CONF3_STLBIDX) >> CSR_CONF3_STLBIDX_SHIFT);
-+		c->tlbsizestlbways = ((config & CSR_CONF3_STLBWAYS) >> CSR_CONF3_STLBWAYS_SHIFT) + 1;
-+		c->tlbsize = c->tlbsizemtlb + c->tlbsizestlbsets * c->tlbsizestlbways;
-+		break;
-+	default:
-+		pr_warn("Warning: unimplemented tlb type\n");
-+	}
-+}
-+
-+#define MAX_NAME_LEN	32
-+#define VENDOR_OFFSET	0
-+#define CPUNAME_OFFSET	9
-+
-+static char cpu_full_name[MAX_NAME_LEN] = "        -        ";
-+
-+static inline void cpu_probe_loongson(struct cpuinfo_loongarch *c, unsigned int cpu)
-+{
-+	uint64_t *vendor = (void *)(&cpu_full_name[VENDOR_OFFSET]);
-+	uint64_t *cpuname = (void *)(&cpu_full_name[CPUNAME_OFFSET]);
-+
-+	__cpu_full_name[cpu] = cpu_full_name;
-+	*vendor = iocsr_readq(LOONGARCH_IOCSR_VENDOR);
-+	*cpuname = iocsr_readq(LOONGARCH_IOCSR_CPUNAME);
-+
-+	switch (c->processor_id & PRID_SERIES_MASK) {
-+	case PRID_SERIES_LA132:
-+		c->cputype = CPU_LOONGSON32;
-+		set_isa(c, LOONGARCH_CPU_ISA_LA32S);
-+		__cpu_family[cpu] = "Loongson-32bit";
-+		pr_info("32-bit Loongson Processor probed (LA132 Core)\n");
-+		break;
-+	case PRID_SERIES_LA264:
-+		c->cputype = CPU_LOONGSON64;
-+		set_isa(c, LOONGARCH_CPU_ISA_LA64);
-+		__cpu_family[cpu] = "Loongson-64bit";
-+		pr_info("64-bit Loongson Processor probed (LA264 Core)\n");
-+		break;
-+	case PRID_SERIES_LA364:
-+		c->cputype = CPU_LOONGSON64;
-+		set_isa(c, LOONGARCH_CPU_ISA_LA64);
-+		__cpu_family[cpu] = "Loongson-64bit";
-+		pr_info("64-bit Loongson Processor probed (LA364 Core)\n");
-+		break;
-+	case PRID_SERIES_LA464:
-+		c->cputype = CPU_LOONGSON64;
-+		set_isa(c, LOONGARCH_CPU_ISA_LA64);
-+		__cpu_family[cpu] = "Loongson-64bit";
-+		pr_info("64-bit Loongson Processor probed (LA464 Core)\n");
-+		break;
-+	case PRID_SERIES_LA664:
-+		c->cputype = CPU_LOONGSON64;
-+		set_isa(c, LOONGARCH_CPU_ISA_LA64);
-+		__cpu_family[cpu] = "Loongson-64bit";
-+		pr_info("64-bit Loongson Processor probed (LA664 Core)\n");
-+		break;
-+	default: /* Default to 64 bit */
-+		c->cputype = CPU_LOONGSON64;
-+		set_isa(c, LOONGARCH_CPU_ISA_LA64);
-+		__cpu_family[cpu] = "Loongson-64bit";
-+		pr_info("64-bit Loongson Processor probed (Unknown Core)\n");
-+	}
-+}
-+
-+#ifdef CONFIG_64BIT
-+/* For use by uaccess.h */
-+u64 __ua_limit;
-+EXPORT_SYMBOL(__ua_limit);
-+#endif
-+
-+const char *__cpu_family[NR_CPUS];
-+const char *__cpu_full_name[NR_CPUS];
-+const char *__elf_platform;
-+
-+static void cpu_report(void)
-+{
-+	struct cpuinfo_loongarch *c = &current_cpu_data;
-+
-+	pr_info("CPU%d revision is: %08x (%s)\n",
-+		smp_processor_id(), c->processor_id, cpu_family_string());
-+	if (c->options & LOONGARCH_CPU_FPU)
-+		pr_info("FPU%d revision is: %08x\n", smp_processor_id(), c->fpu_vers);
-+}
-+
-+void cpu_probe(void)
-+{
-+	unsigned int cpu = smp_processor_id();
-+	struct cpuinfo_loongarch *c = &current_cpu_data;
-+
-+	/*
-+	 * Set a default elf platform, cpu probe may later
-+	 * overwrite it with a more precise value
-+	 */
-+	set_elf_platform(cpu, "loongarch");
-+
-+	c->cputype	= CPU_UNKNOWN;
-+	c->processor_id = read_cpucfg(LOONGARCH_CPUCFG0);
-+	c->fpu_vers	= (read_cpucfg(LOONGARCH_CPUCFG2) >> 3) & 0x3;
-+
-+	c->fpu_csr0	= FPU_CSR_RN;
-+	c->fpu_mask	= FPU_CSR_RSVD;
-+
-+	cpu_probe_common(c);
-+
-+	per_cpu_trap_init(cpu);
-+
-+	switch (c->processor_id & PRID_COMP_MASK) {
-+	case PRID_COMP_LOONGSON:
-+		cpu_probe_loongson(c, cpu);
-+		break;
-+	}
-+
-+	BUG_ON(!__cpu_family[cpu]);
-+	BUG_ON(c->cputype == CPU_UNKNOWN);
-+
-+	cpu_probe_addrbits(c);
-+
-+#ifdef CONFIG_64BIT
-+	if (cpu == 0)
-+		__ua_limit = ~((1ull << cpu_vabits) - 1);
-+#endif
-+
-+	cpu_report();
-+}
-diff --git a/arch/loongarch/kernel/efi-header.S b/arch/loongarch/kernel/efi-header.S
-new file mode 100644
-index 000000000000..d299cac4e691
---- /dev/null
-+++ b/arch/loongarch/kernel/efi-header.S
-@@ -0,0 +1,100 @@
++++ b/arch/loongarch/include/asm/pgtable-bits.h
+@@ -0,0 +1,131 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
++#ifndef _ASM_PGTABLE_BITS_H
++#define _ASM_PGTABLE_BITS_H
 +
-+#include <linux/pe.h>
-+#include <linux/sizes.h>
++/* Page table bits */
++#define	_PAGE_VALID_SHIFT	0
++#define	_PAGE_ACCESSED_SHIFT	0  /* Reuse Valid for Accessed */
++#define	_PAGE_DIRTY_SHIFT	1
++#define	_PAGE_PLV_SHIFT		2  /* 2~3, two bits */
++#define	_CACHE_SHIFT		4  /* 4~5, two bits */
++#define	_PAGE_GLOBAL_SHIFT	6
++#define	_PAGE_HUGE_SHIFT	6  /* HUGE is a PMD bit */
++#define	_PAGE_PRESENT_SHIFT	7
++#define	_PAGE_WRITE_SHIFT	8
++#define	_PAGE_MODIFIED_SHIFT	9
++#define	_PAGE_PROTNONE_SHIFT	10
++#define	_PAGE_SPECIAL_SHIFT	11
++#define	_PAGE_HGLOBAL_SHIFT	12 /* HGlobal is a PMD bit */
++#define	_PAGE_PFN_SHIFT		12
++#define	_PAGE_PFN_END_SHIFT	48
++#define	_PAGE_NO_READ_SHIFT	61
++#define	_PAGE_NO_EXEC_SHIFT	62
++#define	_PAGE_RPLV_SHIFT	63
 +
-+	.macro	__EFI_PE_HEADER
-+	.long	PE_MAGIC
-+.Lcoff_header:
-+	.short	IMAGE_FILE_MACHINE_LOONGARCH		/* Machine */
-+	.short	.Lsection_count				/* NumberOfSections */
-+	.long	0 					/* TimeDateStamp */
-+	.long	0					/* PointerToSymbolTable */
-+	.long	0					/* NumberOfSymbols */
-+	.short	.Lsection_table - .Loptional_header	/* SizeOfOptionalHeader */
-+	.short	IMAGE_FILE_DEBUG_STRIPPED | \
-+		IMAGE_FILE_EXECUTABLE_IMAGE | \
-+		IMAGE_FILE_LINE_NUMS_STRIPPED		/* Characteristics */
++/* Used by software */
++#define _PAGE_PRESENT		(_ULCAST_(1) << _PAGE_PRESENT_SHIFT)
++#define _PAGE_WRITE		(_ULCAST_(1) << _PAGE_WRITE_SHIFT)
++#define _PAGE_ACCESSED		(_ULCAST_(1) << _PAGE_ACCESSED_SHIFT)
++#define _PAGE_MODIFIED		(_ULCAST_(1) << _PAGE_MODIFIED_SHIFT)
++#define _PAGE_PROTNONE		(_ULCAST_(1) << _PAGE_PROTNONE_SHIFT)
++#define _PAGE_SPECIAL		(_ULCAST_(1) << _PAGE_SPECIAL_SHIFT)
 +
-+.Loptional_header:
-+	.short	PE_OPT_MAGIC_PE32PLUS			/* PE32+ format */
-+	.byte	0x02					/* MajorLinkerVersion */
-+	.byte	0x14					/* MinorLinkerVersion */
-+	.long	__inittext_end - .Lefi_header_end	/* SizeOfCode */
-+	.long	_end - __initdata_begin			/* SizeOfInitializedData */
-+	.long	0					/* SizeOfUninitializedData */
-+	.long	__efistub_efi_pe_entry - _head		/* AddressOfEntryPoint */
-+	.long	.Lefi_header_end - _head		/* BaseOfCode */
++/* Used by TLB hardware (placed in EntryLo*) */
++#define _PAGE_VALID		(_ULCAST_(1) << _PAGE_VALID_SHIFT)
++#define _PAGE_DIRTY		(_ULCAST_(1) << _PAGE_DIRTY_SHIFT)
++#define _PAGE_PLV		(_ULCAST_(3) << _PAGE_PLV_SHIFT)
++#define _PAGE_GLOBAL		(_ULCAST_(1) << _PAGE_GLOBAL_SHIFT)
++#define _PAGE_HUGE		(_ULCAST_(1) << _PAGE_HUGE_SHIFT)
++#define _PAGE_HGLOBAL		(_ULCAST_(1) << _PAGE_HGLOBAL_SHIFT)
++#define _PAGE_NO_READ		(_ULCAST_(1) << _PAGE_NO_READ_SHIFT)
++#define _PAGE_NO_EXEC		(_ULCAST_(1) << _PAGE_NO_EXEC_SHIFT)
++#define _PAGE_RPLV		(_ULCAST_(1) << _PAGE_RPLV_SHIFT)
++#define _CACHE_MASK		(_ULCAST_(3) << _CACHE_SHIFT)
++#define _PFN_SHIFT		(PAGE_SHIFT - 12 + _PAGE_PFN_SHIFT)
 +
-+.Lextra_header_fields:
-+	.quad	0					/* ImageBase */
-+	.long	PECOFF_SEGMENT_ALIGN			/* SectionAlignment */
-+	.long	PECOFF_FILE_ALIGN			/* FileAlignment */
-+	.short	0					/* MajorOperatingSystemVersion */
-+	.short	0					/* MinorOperatingSystemVersion */
-+	.short	LINUX_EFISTUB_MAJOR_VERSION		/* MajorImageVersion */
-+	.short	LINUX_EFISTUB_MINOR_VERSION		/* MinorImageVersion */
-+	.short	0					/* MajorSubsystemVersion */
-+	.short	0					/* MinorSubsystemVersion */
-+	.long	0					/* Win32VersionValue */
++#define _PAGE_USER	(PLV_USER << _PAGE_PLV_SHIFT)
++#define _PAGE_KERN	(PLV_KERN << _PAGE_PLV_SHIFT)
 +
-+	.long	_end - _head				/* SizeOfImage */
++#define _PFN_MASK (~((_ULCAST_(1) << (_PFN_SHIFT)) - 1) & \
++		  ((_ULCAST_(1) << (_PAGE_PFN_END_SHIFT)) - 1))
 +
-+	/* Everything before the kernel image is considered part of the header */
-+	.long	.Lefi_header_end - _head		/* SizeOfHeaders */
-+	.long	0					/* CheckSum */
-+	.short	IMAGE_SUBSYSTEM_EFI_APPLICATION		/* Subsystem */
-+	.short	0					/* DllCharacteristics */
-+	.quad	0					/* SizeOfStackReserve */
-+	.quad	0					/* SizeOfStackCommit */
-+	.quad	0					/* SizeOfHeapReserve */
-+	.quad	0					/* SizeOfHeapCommit */
-+	.long	0					/* LoaderFlags */
-+	.long	(.Lsection_table - .) / 8		/* NumberOfRvaAndSizes */
-+
-+	.quad	0					/* ExportTable */
-+	.quad	0					/* ImportTable */
-+	.quad	0					/* ResourceTable */
-+	.quad	0					/* ExceptionTable */
-+	.quad	0					/* CertificationTable */
-+	.quad	0					/* BaseRelocationTable */
-+
-+	/* Section table */
-+.Lsection_table:
-+	.ascii	".text\0\0\0"
-+	.long	__inittext_end - .Lefi_header_end	/* VirtualSize */
-+	.long	.Lefi_header_end - _head		/* VirtualAddress */
-+	.long	__inittext_end - .Lefi_header_end	/* SizeOfRawData */
-+	.long	.Lefi_header_end - _head		/* PointerToRawData */
-+
-+	.long	0					/* PointerToRelocations */
-+	.long	0					/* PointerToLineNumbers */
-+	.short	0					/* NumberOfRelocations */
-+	.short	0					/* NumberOfLineNumbers */
-+	.long	IMAGE_SCN_CNT_CODE | \
-+		IMAGE_SCN_MEM_READ | \
-+		IMAGE_SCN_MEM_EXECUTE			/* Characteristics */
-+
-+	.ascii	".data\0\0\0"
-+	.long	_end - __initdata_begin			/* VirtualSize */
-+	.long	__initdata_begin - _head		/* VirtualAddress */
-+	.long	_edata - __initdata_begin		/* SizeOfRawData */
-+	.long	__initdata_begin - _head		/* PointerToRawData */
-+
-+	.long	0					/* PointerToRelocations */
-+	.long	0					/* PointerToLineNumbers */
-+	.short	0					/* NumberOfRelocations */
-+	.short	0					/* NumberOfLineNumbers */
-+	.long	IMAGE_SCN_CNT_INITIALIZED_DATA | \
-+		IMAGE_SCN_MEM_READ | \
-+		IMAGE_SCN_MEM_WRITE			/* Characteristics */
-+
-+	.org 0x20e
-+	.word kernel_version - 512 -  _head
-+
-+	.set	.Lsection_count, (. - .Lsection_table) / 40
-+.Lefi_header_end:
-+	.endm
-diff --git a/arch/loongarch/kernel/efi.c b/arch/loongarch/kernel/efi.c
-new file mode 100644
-index 000000000000..69ebdd4220ec
---- /dev/null
-+++ b/arch/loongarch/kernel/efi.c
-@@ -0,0 +1,229 @@
-+// SPDX-License-Identifier: GPL-2.0
 +/*
-+ * EFI initialization
-+ *
-+ * Author: Jianmin Lv <lvjianmin@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ *
++ * Cache attributes
++ */
++#ifndef _CACHE_SUC
++#define _CACHE_SUC			(0<<_CACHE_SHIFT) /* Strong-ordered UnCached */
++#endif
++#ifndef _CACHE_CC
++#define _CACHE_CC			(1<<_CACHE_SHIFT) /* Coherent Cached */
++#endif
++#ifndef _CACHE_WUC
++#define _CACHE_WUC			(2<<_CACHE_SHIFT) /* Weak-ordered UnCached */
++#endif
++
++#define __READABLE	(_PAGE_VALID)
++#define __WRITEABLE	(_PAGE_DIRTY | _PAGE_WRITE)
++
++#define _PAGE_CHG_MASK	(_PAGE_MODIFIED | _PAGE_SPECIAL | _PFN_MASK | _CACHE_MASK | _PAGE_PLV)
++#define _HPAGE_CHG_MASK	(_PAGE_MODIFIED | _PAGE_SPECIAL | _PFN_MASK | _CACHE_MASK | _PAGE_PLV | _PAGE_HUGE)
++
++#define PAGE_NONE	__pgprot(_PAGE_PROTNONE | _PAGE_NO_READ | \
++				 _PAGE_USER | _CACHE_CC)
++#define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_WRITE | \
++				 _PAGE_USER | _CACHE_CC)
++#define PAGE_READONLY	__pgprot(_PAGE_PRESENT | _PAGE_USER | _CACHE_CC)
++
++#define PAGE_KERNEL	__pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE | \
++				 _PAGE_GLOBAL | _PAGE_KERN | _CACHE_CC)
++#define PAGE_KERNEL_SUC __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE | \
++				 _PAGE_GLOBAL | _PAGE_KERN |  _CACHE_SUC)
++#define PAGE_KERNEL_WUC __pgprot(_PAGE_PRESENT | __READABLE | __WRITEABLE | \
++				 _PAGE_GLOBAL | _PAGE_KERN |  _CACHE_WUC)
++
++#define __P000 __pgprot(_CACHE_CC | _PAGE_USER | _PAGE_PROTNONE | _PAGE_NO_EXEC | _PAGE_NO_READ)
++#define __P001 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_NO_EXEC)
++#define __P010 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_NO_EXEC)
++#define __P011 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_NO_EXEC)
++#define __P100 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT)
++#define __P101 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT)
++#define __P110 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT)
++#define __P111 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT)
++
++#define __S000 __pgprot(_CACHE_CC | _PAGE_USER | _PAGE_PROTNONE | _PAGE_NO_EXEC | _PAGE_NO_READ)
++#define __S001 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_NO_EXEC)
++#define __S010 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE)
++#define __S011 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_NO_EXEC | _PAGE_WRITE)
++#define __S100 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT)
++#define __S101 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT)
++#define __S110 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_WRITE)
++#define __S111 __pgprot(_CACHE_CC | _PAGE_VALID | _PAGE_USER | _PAGE_PRESENT | _PAGE_WRITE)
++
++#ifndef __ASSEMBLY__
++
++#define pgprot_noncached pgprot_noncached
++
++static inline pgprot_t pgprot_noncached(pgprot_t _prot)
++{
++	unsigned long prot = pgprot_val(_prot);
++
++	prot = (prot & ~_CACHE_MASK) | _CACHE_SUC;
++
++	return __pgprot(prot);
++}
++
++#define pgprot_writecombine pgprot_writecombine
++
++static inline pgprot_t pgprot_writecombine(pgprot_t _prot)
++{
++	unsigned long prot = pgprot_val(_prot);
++
++	prot = (prot & ~_CACHE_MASK) | _CACHE_WUC;
++
++	return __pgprot(prot);
++}
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* _ASM_PGTABLE_BITS_H */
+diff --git a/arch/loongarch/include/asm/pgtable.h b/arch/loongarch/include/asm/pgtable.h
+new file mode 100644
+index 000000000000..8920dd8b297b
+--- /dev/null
++++ b/arch/loongarch/include/asm/pgtable.h
+@@ -0,0 +1,532 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ *
++ * Derived from MIPS:
++ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000, 2003 Ralf Baechle
++ * Copyright (C) 1999, 2000, 2001 Silicon Graphics, Inc.
++ */
++#ifndef _ASM_PGTABLE_H
++#define _ASM_PGTABLE_H
++
++#include <linux/compiler.h>
++#include <asm/addrspace.h>
++#include <asm/pgtable-bits.h>
++
++#if CONFIG_PGTABLE_LEVELS == 2
++#include <asm-generic/pgtable-nopmd.h>
++#elif CONFIG_PGTABLE_LEVELS == 3
++#include <asm-generic/pgtable-nopud.h>
++#else
++#include <asm-generic/pgtable-nop4d.h>
++#endif
++
++#define PGD_ORDER		0
++#define PUD_ORDER		0
++#define PMD_ORDER		0
++#define PTE_ORDER		0
++
++#if CONFIG_PGTABLE_LEVELS == 2
++#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT + PTE_ORDER - 3))
++#elif CONFIG_PGTABLE_LEVELS == 3
++#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT + PTE_ORDER - 3))
++#define PMD_SIZE	(1UL << PMD_SHIFT)
++#define PMD_MASK	(~(PMD_SIZE-1))
++#define PGDIR_SHIFT	(PMD_SHIFT + (PAGE_SHIFT + PMD_ORDER - 3))
++#elif CONFIG_PGTABLE_LEVELS == 4
++#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT + PTE_ORDER - 3))
++#define PMD_SIZE	(1UL << PMD_SHIFT)
++#define PMD_MASK	(~(PMD_SIZE-1))
++#define PUD_SHIFT	(PMD_SHIFT + (PAGE_SHIFT + PMD_ORDER - 3))
++#define PUD_SIZE	(1UL << PUD_SHIFT)
++#define PUD_MASK	(~(PUD_SIZE-1))
++#define PGDIR_SHIFT	(PUD_SHIFT + (PAGE_SHIFT + PUD_ORDER - 3))
++#endif
++
++#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)
++#define PGDIR_MASK	(~(PGDIR_SIZE-1))
++
++#define VA_BITS		(PGDIR_SHIFT + (PAGE_SHIFT + PGD_ORDER - 3))
++
++#define PTRS_PER_PGD	((PAGE_SIZE << PGD_ORDER) >> 3)
++#if CONFIG_PGTABLE_LEVELS > 3
++#define PTRS_PER_PUD	((PAGE_SIZE << PUD_ORDER) >> 3)
++#endif
++#if CONFIG_PGTABLE_LEVELS > 2
++#define PTRS_PER_PMD	((PAGE_SIZE << PMD_ORDER) >> 3)
++#endif
++#define PTRS_PER_PTE	((PAGE_SIZE << PTE_ORDER) >> 3)
++
++#define USER_PTRS_PER_PGD       ((TASK_SIZE64 / PGDIR_SIZE)?(TASK_SIZE64 / PGDIR_SIZE):1)
++
++#ifndef __ASSEMBLY__
++
++#include <linux/mm_types.h>
++#include <linux/mmzone.h>
++#include <asm/fixmap.h>
++#include <asm/io.h>
++
++struct mm_struct;
++struct vm_area_struct;
++
++/*
++ * ZERO_PAGE is a global shared page that is always zero; used
++ * for zero-mapped memory areas etc..
 + */
 +
-+#include <linux/acpi.h>
-+#include <linux/efi.h>
-+#include <linux/efi-bgrt.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/export.h>
-+#include <linux/io.h>
-+#include <linux/kobject.h>
-+#include <linux/memblock.h>
-+#include <linux/reboot.h>
-+#include <linux/uaccess.h>
++extern unsigned long empty_zero_page;
++extern unsigned long zero_page_mask;
 +
-+#include <asm/early_ioremap.h>
-+#include <asm/efi.h>
-+#include <asm/tlb.h>
-+#include <asm/loongson.h>
++#define ZERO_PAGE(vaddr) \
++	(virt_to_page((void *)(empty_zero_page + (((unsigned long)(vaddr)) & zero_page_mask))))
++#define __HAVE_COLOR_ZERO_PAGE
 +
-+static unsigned long efi_nr_tables;
-+static unsigned long efi_config_table;
-+static unsigned long screen_info_table __initdata = EFI_INVALID_TABLE_ADDR;
++/*
++ * TLB refill handlers may also map the vmalloc area into xkvrange.
++ * Avoid the first couple of pages so NULL pointer dereferences will
++ * still reliably trap.
++ */
++#define MODULES_VADDR	(vm_map_base + PCI_IOSIZE + (2 * PAGE_SIZE))
++#define MODULES_END	(MODULES_VADDR + SZ_256M)
 +
-+static efi_system_table_t *efi_systab;
-+static efi_config_table_type_t arch_tables[] __initdata = {
-+	{LINUX_EFI_LARCH_SCREEN_INFO_TABLE_GUID, &screen_info_table, "SINFO"},
-+	{},
++#define VMALLOC_START	MODULES_END
++#define VMALLOC_END	\
++	(vm_map_base +	\
++	 min(PTRS_PER_PGD * PTRS_PER_PUD * PTRS_PER_PMD * PTRS_PER_PTE * PAGE_SIZE, (1UL << cpu_vabits)) - PMD_SIZE)
++
++#define pte_ERROR(e) \
++	pr_err("%s:%d: bad pte %016lx.\n", __FILE__, __LINE__, pte_val(e))
++#ifndef __PAGETABLE_PMD_FOLDED
++#define pmd_ERROR(e) \
++	pr_err("%s:%d: bad pmd %016lx.\n", __FILE__, __LINE__, pmd_val(e))
++#endif
++#ifndef __PAGETABLE_PUD_FOLDED
++#define pud_ERROR(e) \
++	pr_err("%s:%d: bad pud %016lx.\n", __FILE__, __LINE__, pud_val(e))
++#endif
++#define pgd_ERROR(e) \
++	pr_err("%s:%d: bad pgd %016lx.\n", __FILE__, __LINE__, pgd_val(e))
++
++extern pte_t invalid_pte_table[PTRS_PER_PTE];
++
++#ifndef __PAGETABLE_PUD_FOLDED
++
++typedef struct { unsigned long pud; } pud_t;
++#define pud_val(x)	((x).pud)
++#define __pud(x)	((pud_t) { (x) })
++
++extern pud_t invalid_pud_table[PTRS_PER_PUD];
++
++/*
++ * Empty pgd/p4d entries point to the invalid_pud_table.
++ */
++static inline int p4d_none(p4d_t p4d)
++{
++	return p4d_val(p4d) == (unsigned long)invalid_pud_table;
++}
++
++static inline int p4d_bad(p4d_t p4d)
++{
++	return p4d_val(p4d) & ~PAGE_MASK;
++}
++
++static inline int p4d_present(p4d_t p4d)
++{
++	return p4d_val(p4d) != (unsigned long)invalid_pud_table;
++}
++
++static inline void p4d_clear(p4d_t *p4dp)
++{
++	p4d_val(*p4dp) = (unsigned long)invalid_pud_table;
++}
++
++static inline pud_t *p4d_pgtable(p4d_t p4d)
++{
++	return (pud_t *)p4d_val(p4d);
++}
++
++static inline void set_p4d(p4d_t *p4d, p4d_t p4dval)
++{
++	*p4d = p4dval;
++}
++
++#define p4d_phys(p4d)		virt_to_phys((void *)p4d_val(p4d))
++#define p4d_page(p4d)		(pfn_to_page(p4d_phys(p4d) >> PAGE_SHIFT))
++
++#endif
++
++#ifndef __PAGETABLE_PMD_FOLDED
++
++typedef struct { unsigned long pmd; } pmd_t;
++#define pmd_val(x)	((x).pmd)
++#define __pmd(x)	((pmd_t) { (x) })
++
++extern pmd_t invalid_pmd_table[PTRS_PER_PMD];
++
++/*
++ * Empty pud entries point to the invalid_pmd_table.
++ */
++static inline int pud_none(pud_t pud)
++{
++	return pud_val(pud) == (unsigned long)invalid_pmd_table;
++}
++
++static inline int pud_bad(pud_t pud)
++{
++	return pud_val(pud) & ~PAGE_MASK;
++}
++
++static inline int pud_present(pud_t pud)
++{
++	return pud_val(pud) != (unsigned long)invalid_pmd_table;
++}
++
++static inline void pud_clear(pud_t *pudp)
++{
++	pud_val(*pudp) = ((unsigned long)invalid_pmd_table);
++}
++
++static inline pmd_t *pud_pgtable(pud_t pud)
++{
++	return (pmd_t *)pud_val(pud);
++}
++
++#define set_pud(pudptr, pudval) do { *(pudptr) = (pudval); } while (0)
++
++#define pud_phys(pud)		virt_to_phys((void *)pud_val(pud))
++#define pud_page(pud)		(pfn_to_page(pud_phys(pud) >> PAGE_SHIFT))
++
++#endif
++
++/*
++ * Empty pmd entries point to the invalid_pte_table.
++ */
++static inline int pmd_none(pmd_t pmd)
++{
++	return pmd_val(pmd) == (unsigned long)invalid_pte_table;
++}
++
++static inline int pmd_bad(pmd_t pmd)
++{
++	return (pmd_val(pmd) & ~PAGE_MASK);
++}
++
++static inline int pmd_present(pmd_t pmd)
++{
++	if (unlikely(pmd_val(pmd) & _PAGE_HUGE))
++		return !!(pmd_val(pmd) & (_PAGE_PRESENT | _PAGE_PROTNONE));
++
++	return pmd_val(pmd) != (unsigned long)invalid_pte_table;
++}
++
++static inline void pmd_clear(pmd_t *pmdp)
++{
++	pmd_val(*pmdp) = ((unsigned long)invalid_pte_table);
++}
++
++#define set_pmd(pmdptr, pmdval) do { *(pmdptr) = (pmdval); } while (0)
++
++#define pmd_phys(pmd)		virt_to_phys((void *)pmd_val(pmd))
++
++#ifndef CONFIG_TRANSPARENT_HUGEPAGE
++#define pmd_page(pmd)		(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE  */
++
++#define pmd_page_vaddr(pmd)	pmd_val(pmd)
++
++extern pmd_t mk_pmd(struct page *page, pgprot_t prot);
++extern void set_pmd_at(struct mm_struct *mm, unsigned long addr, pmd_t *pmdp, pmd_t pmd);
++
++#define pte_page(x)		pfn_to_page(pte_pfn(x))
++#define pte_pfn(x)		((unsigned long)(((x).pte & _PFN_MASK) >> _PFN_SHIFT))
++#define pfn_pte(pfn, prot)	__pte(((pfn) << _PFN_SHIFT) | pgprot_val(prot))
++#define pfn_pmd(pfn, prot)	__pmd(((pfn) << _PFN_SHIFT) | pgprot_val(prot))
++
++/*
++ * Initialize a new pgd / pmd table with invalid pointers.
++ */
++extern void pgd_init(unsigned long page);
++extern void pud_init(unsigned long page, unsigned long pagetable);
++extern void pmd_init(unsigned long page, unsigned long pagetable);
++
++/*
++ * Non-present pages:  high 40 bits are offset, next 8 bits type,
++ * low 16 bits zero.
++ */
++static inline pte_t mk_swap_pte(unsigned long type, unsigned long offset)
++{ pte_t pte; pte_val(pte) = (type << 16) | (offset << 24); return pte; }
++
++#define __swp_type(x)		(((x).val >> 16) & 0xff)
++#define __swp_offset(x)		((x).val >> 24)
++#define __swp_entry(type, offset) ((swp_entry_t) { pte_val(mk_swap_pte((type), (offset))) })
++#define __pte_to_swp_entry(pte) ((swp_entry_t) { pte_val(pte) })
++#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++#define __pmd_to_swp_entry(pmd) ((swp_entry_t) { pmd_val(pmd) })
++#define __swp_entry_to_pmd(x)	((pmd_t) { (x).val | _PAGE_HUGE })
++
++extern void paging_init(void);
++
++#define pte_none(pte)		(!(pte_val(pte) & ~_PAGE_GLOBAL))
++#define pte_present(pte)	(pte_val(pte) & (_PAGE_PRESENT | _PAGE_PROTNONE))
++#define pte_no_exec(pte)	(pte_val(pte) & _PAGE_NO_EXEC)
++
++static inline void set_pte(pte_t *ptep, pte_t pteval)
++{
++	*ptep = pteval;
++	if (pte_val(pteval) & _PAGE_GLOBAL) {
++		pte_t *buddy = ptep_buddy(ptep);
++		/*
++		 * Make sure the buddy is global too (if it's !none,
++		 * it better already be global)
++		 */
++		if (pte_none(*buddy))
++			pte_val(*buddy) = pte_val(*buddy) | _PAGE_GLOBAL;
++	}
++}
++
++static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
++			      pte_t *ptep, pte_t pteval)
++{
++	set_pte(ptep, pteval);
++}
++
++static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
++{
++	/* Preserve global status for the pair */
++	if (pte_val(*ptep_buddy(ptep)) & _PAGE_GLOBAL)
++		set_pte_at(mm, addr, ptep, __pte(_PAGE_GLOBAL));
++	else
++		set_pte_at(mm, addr, ptep, __pte(0));
++}
++
++#define PGD_T_LOG2	(__builtin_ffs(sizeof(pgd_t)) - 1)
++#define PMD_T_LOG2	(__builtin_ffs(sizeof(pmd_t)) - 1)
++#define PTE_T_LOG2	(__builtin_ffs(sizeof(pte_t)) - 1)
++
++extern pgd_t swapper_pg_dir[];
++extern pgd_t invalid_pg_dir[];
++
++/*
++ * The following only work if pte_present() is true.
++ * Undefined behaviour if not..
++ */
++static inline int pte_write(pte_t pte)	{ return pte_val(pte) & _PAGE_WRITE; }
++static inline int pte_young(pte_t pte)	{ return pte_val(pte) & _PAGE_ACCESSED; }
++static inline int pte_dirty(pte_t pte)	{ return pte_val(pte) & _PAGE_MODIFIED; }
++
++static inline pte_t pte_mkold(pte_t pte)
++{
++	pte_val(pte) &= ~_PAGE_ACCESSED;
++	return pte;
++}
++
++static inline pte_t pte_mkyoung(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_ACCESSED;
++	return pte;
++}
++
++static inline pte_t pte_mkclean(pte_t pte)
++{
++	pte_val(pte) &= ~(_PAGE_DIRTY | _PAGE_MODIFIED);
++	return pte;
++}
++
++static inline pte_t pte_mkdirty(pte_t pte)
++{
++	pte_val(pte) |= (_PAGE_DIRTY | _PAGE_MODIFIED);
++	return pte;
++}
++
++static inline pte_t pte_mkwrite(pte_t pte)
++{
++	pte_val(pte) |= (_PAGE_WRITE | _PAGE_DIRTY);
++	return pte;
++}
++
++static inline pte_t pte_wrprotect(pte_t pte)
++{
++	pte_val(pte) &= ~(_PAGE_WRITE | _PAGE_DIRTY);
++	return pte;
++}
++
++static inline int pte_huge(pte_t pte)	{ return pte_val(pte) & _PAGE_HUGE; }
++
++static inline pte_t pte_mkhuge(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_HUGE;
++	return pte;
++}
++
++#if defined(CONFIG_ARCH_HAS_PTE_SPECIAL)
++static inline int pte_special(pte_t pte)	{ return pte_val(pte) & _PAGE_SPECIAL; }
++static inline pte_t pte_mkspecial(pte_t pte)	{ pte_val(pte) |= _PAGE_SPECIAL; return pte; }
++#endif /* CONFIG_ARCH_HAS_PTE_SPECIAL */
++
++#define pte_accessible pte_accessible
++static inline unsigned long pte_accessible(struct mm_struct *mm, pte_t a)
++{
++	if (pte_val(a) & _PAGE_PRESENT)
++		return true;
++
++	if ((pte_val(a) & _PAGE_PROTNONE) &&
++			atomic_read(&mm->tlb_flush_pending))
++		return true;
++
++	return false;
++}
++
++/*
++ * Conversion functions: convert a page and protection to a page entry,
++ * and a page entry and page directory to the page they refer to.
++ */
++#define mk_pte(page, pgprot)	pfn_pte(page_to_pfn(page), (pgprot))
++
++static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
++{
++	return __pte((pte_val(pte) & _PAGE_CHG_MASK) |
++		     (pgprot_val(newprot) & ~_PAGE_CHG_MASK));
++}
++
++extern void __update_tlb(struct vm_area_struct *vma,
++			unsigned long address, pte_t *ptep);
++
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++			unsigned long address, pte_t *ptep)
++{
++	__update_tlb(vma, address, ptep);
++}
++
++static inline void update_mmu_cache_pmd(struct vm_area_struct *vma,
++			unsigned long address, pmd_t *pmdp)
++{
++	__update_tlb(vma, address, (pte_t *)pmdp);
++}
++
++#define kern_addr_valid(addr)	(1)
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++
++/* We don't have hardware dirty/accessed bits, generic_pmdp_establish is fine.*/
++#define pmdp_establish generic_pmdp_establish
++
++static inline int pmd_trans_huge(pmd_t pmd)
++{
++	return !!(pmd_val(pmd) & _PAGE_HUGE) && pmd_present(pmd);
++}
++
++static inline pmd_t pmd_mkhuge(pmd_t pmd)
++{
++	pmd_val(pmd) = (pmd_val(pmd) & ~(_PAGE_GLOBAL)) |
++		((pmd_val(pmd) & _PAGE_GLOBAL) << (_PAGE_HGLOBAL_SHIFT - _PAGE_GLOBAL_SHIFT));
++	pmd_val(pmd) |= _PAGE_HUGE;
++
++	return pmd;
++}
++
++#define pmd_write pmd_write
++static inline int pmd_write(pmd_t pmd)
++{
++	return !!(pmd_val(pmd) & _PAGE_WRITE);
++}
++
++static inline pmd_t pmd_mkwrite(pmd_t pmd)
++{
++	pmd_val(pmd) |= (_PAGE_WRITE | _PAGE_DIRTY);
++	return pmd;
++}
++
++static inline pmd_t pmd_wrprotect(pmd_t pmd)
++{
++	pmd_val(pmd) &= ~(_PAGE_WRITE | _PAGE_DIRTY);
++	return pmd;
++}
++
++static inline int pmd_dirty(pmd_t pmd)
++{
++	return !!(pmd_val(pmd) & _PAGE_MODIFIED);
++}
++
++static inline pmd_t pmd_mkclean(pmd_t pmd)
++{
++	pmd_val(pmd) &= ~(_PAGE_DIRTY | _PAGE_MODIFIED);
++	return pmd;
++}
++
++static inline pmd_t pmd_mkdirty(pmd_t pmd)
++{
++	pmd_val(pmd) |= (_PAGE_DIRTY | _PAGE_MODIFIED);
++	return pmd;
++}
++
++static inline int pmd_young(pmd_t pmd)
++{
++	return !!(pmd_val(pmd) & _PAGE_ACCESSED);
++}
++
++static inline pmd_t pmd_mkold(pmd_t pmd)
++{
++	pmd_val(pmd) &= ~_PAGE_ACCESSED;
++	return pmd;
++}
++
++static inline pmd_t pmd_mkyoung(pmd_t pmd)
++{
++	pmd_val(pmd) |= _PAGE_ACCESSED;
++	return pmd;
++}
++
++static inline unsigned long pmd_pfn(pmd_t pmd)
++{
++	return (pmd_val(pmd) & _PFN_MASK) >> _PFN_SHIFT;
++}
++
++static inline struct page *pmd_page(pmd_t pmd)
++{
++	if (pmd_trans_huge(pmd))
++		return pfn_to_page(pmd_pfn(pmd));
++
++	return pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT);
++}
++
++static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
++{
++	pmd_val(pmd) = (pmd_val(pmd) & _HPAGE_CHG_MASK) |
++				(pgprot_val(newprot) & ~_HPAGE_CHG_MASK);
++	return pmd;
++}
++
++static inline pmd_t pmd_mkinvalid(pmd_t pmd)
++{
++	pmd_val(pmd) &= ~(_PAGE_PRESENT | _PAGE_VALID | _PAGE_DIRTY | _PAGE_PROTNONE);
++
++	return pmd;
++}
++
++/*
++ * The generic version pmdp_huge_get_and_clear uses a version of pmd_clear() with a
++ * different prototype.
++ */
++#define __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR
++static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
++					    unsigned long address, pmd_t *pmdp)
++{
++	pmd_t old = *pmdp;
++
++	pmd_clear(pmdp);
++
++	return old;
++}
++
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++/*
++ * We provide our own get_unmapped area to cope with the virtual aliasing
++ * constraints placed on us by the cache architecture.
++ */
++#define HAVE_ARCH_UNMAPPED_AREA
++#define HAVE_ARCH_UNMAPPED_AREA_TOPDOWN
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* _ASM_PGTABLE_H */
+diff --git a/arch/loongarch/include/asm/shmparam.h b/arch/loongarch/include/asm/shmparam.h
+new file mode 100644
+index 000000000000..c9554f48d2df
+--- /dev/null
++++ b/arch/loongarch/include/asm/shmparam.h
+@@ -0,0 +1,12 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef _ASM_SHMPARAM_H
++#define _ASM_SHMPARAM_H
++
++#define __ARCH_FORCE_SHMLBA	1
++
++#define	SHMLBA	SZ_64K		 /* attach addr a multiple of this */
++
++#endif /* _ASM_SHMPARAM_H */
+diff --git a/arch/loongarch/include/asm/sparsemem.h b/arch/loongarch/include/asm/sparsemem.h
+new file mode 100644
+index 000000000000..3d18cdf1b069
+--- /dev/null
++++ b/arch/loongarch/include/asm/sparsemem.h
+@@ -0,0 +1,23 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LOONGARCH_SPARSEMEM_H
++#define _LOONGARCH_SPARSEMEM_H
++
++#ifdef CONFIG_SPARSEMEM
++
++/*
++ * SECTION_SIZE_BITS		2^N: how big each section will be
++ * MAX_PHYSMEM_BITS		2^N: how much memory we can have in that space
++ */
++#define SECTION_SIZE_BITS	29 /* 2^29 = Largest Huge Page Size */
++#define MAX_PHYSMEM_BITS	48
++
++#endif /* CONFIG_SPARSEMEM */
++
++#ifdef CONFIG_MEMORY_HOTPLUG
++int memory_add_physaddr_to_nid(u64 addr);
++#define memory_add_physaddr_to_nid memory_add_physaddr_to_nid
++#endif
++
++#define INIT_MEMBLOCK_RESERVED_REGIONS	(INIT_MEMBLOCK_REGIONS + NR_CPUS)
++
++#endif /* _LOONGARCH_SPARSEMEM_H */
+diff --git a/arch/loongarch/include/asm/tlb.h b/arch/loongarch/include/asm/tlb.h
+new file mode 100644
+index 000000000000..a9dda11c494b
+--- /dev/null
++++ b/arch/loongarch/include/asm/tlb.h
+@@ -0,0 +1,216 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef __ASM_TLB_H
++#define __ASM_TLB_H
++
++#include <linux/mm_types.h>
++#include <asm/cpu-features.h>
++#include <asm/loongarch.h>
++
++/*
++ * TLB Invalidate Flush
++ */
++static inline void tlbclr(void)
++{
++	__asm__ __volatile__("tlbclr");
++}
++
++static inline void tlbflush(void)
++{
++	__asm__ __volatile__("tlbflush");
++}
++
++/*
++ * TLB R/W operations.
++ */
++static inline void tlb_probe(void)
++{
++	__asm__ __volatile__("tlbsrch");
++}
++
++static inline void tlb_read(void)
++{
++	__asm__ __volatile__("tlbrd");
++}
++
++static inline void tlb_write_indexed(void)
++{
++	__asm__ __volatile__("tlbwr");
++}
++
++static inline void tlb_write_random(void)
++{
++	__asm__ __volatile__("tlbfill");
++}
++
++/*
++ * Guest TLB Invalidate Flush
++ */
++static inline void guest_tlbflush(void)
++{
++	__asm__ __volatile__(
++		".word 0x6482401\n\t");
++}
++
++/*
++ * Guest TLB R/W operations.
++ */
++static inline void guest_tlb_probe(void)
++{
++	__asm__ __volatile__(
++		".word 0x6482801\n\t");
++}
++
++static inline void guest_tlb_read(void)
++{
++	__asm__ __volatile__(
++		".word 0x6482c01\n\t");
++}
++
++static inline void guest_tlb_write_indexed(void)
++{
++	__asm__ __volatile__(
++		".word 0x6483001\n\t");
++}
++
++static inline void guest_tlb_write_random(void)
++{
++	__asm__ __volatile__(
++		".word 0x6483401\n\t");
++}
++
++enum invtlb_ops {
++	/* Invalid all tlb */
++	INVTLB_ALL = 0x0,
++	/* Invalid current tlb */
++	INVTLB_CURRENT_ALL = 0x1,
++	/* Invalid all global=1 lines in current tlb */
++	INVTLB_CURRENT_GTRUE = 0x2,
++	/* Invalid all global=0 lines in current tlb */
++	INVTLB_CURRENT_GFALSE = 0x3,
++	/* Invalid global=0 and matched asid lines in current tlb */
++	INVTLB_GFALSE_AND_ASID = 0x4,
++	/* Invalid addr with global=0 and matched asid in current tlb */
++	INVTLB_ADDR_GFALSE_AND_ASID = 0x5,
++	/* Invalid addr with global=1 or matched asid in current tlb */
++	INVTLB_ADDR_GTRUE_OR_ASID = 0x6,
++	/* Invalid matched gid in guest tlb */
++	INVGTLB_GID = 0x9,
++	/* Invalid global=1, matched gid in guest tlb */
++	INVGTLB_GID_GTRUE = 0xa,
++	/* Invalid global=0, matched gid in guest tlb */
++	INVGTLB_GID_GFALSE = 0xb,
++	/* Invalid global=0, matched gid and asid in guest tlb */
++	INVGTLB_GID_GFALSE_ASID = 0xc,
++	/* Invalid global=0 , matched gid, asid and addr in guest tlb */
++	INVGTLB_GID_GFALSE_ASID_ADDR = 0xd,
++	/* Invalid global=1 , matched gid, asid and addr in guest tlb */
++	INVGTLB_GID_GTRUE_ASID_ADDR = 0xe,
++	/* Invalid all gid gva-->gpa guest tlb */
++	INVGTLB_ALLGID_GVA_TO_GPA = 0x10,
++	/* Invalid all gid gpa-->hpa tlb */
++	INVTLB_ALLGID_GPA_TO_HPA = 0x11,
++	/* Invalid all gid tlb, including  gva-->gpa and gpa-->hpa */
++	INVTLB_ALLGID = 0x12,
++	/* Invalid matched gid gva-->gpa guest tlb */
++	INVGTLB_GID_GVA_TO_GPA = 0x13,
++	/* Invalid matched gid gpa-->hpa tlb */
++	INVTLB_GID_GPA_TO_HPA = 0x14,
++	/* Invalid matched gid tlb,including gva-->gpa and gpa-->hpa */
++	INVTLB_GID_ALL = 0x15,
++	/* Invalid matched gid and addr gpa-->hpa tlb */
++	INVTLB_GID_ADDR = 0x16,
 +};
 +
-+static void __init init_screen_info(void)
++/*
++ * invtlb op info addr
++ * (0x1 << 26) | (0x24 << 20) | (0x13 << 15) |
++ * (addr << 10) | (info << 5) | op
++ */
++static inline void invtlb(u32 op, u32 info, u64 addr)
 +{
-+	struct screen_info *si;
-+
-+	if (screen_info_table == EFI_INVALID_TABLE_ADDR)
-+		return;
-+
-+	si = early_memremap_ro(screen_info_table, sizeof(*si));
-+	if (!si) {
-+		pr_err("Could not map screen_info config table\n");
-+		return;
-+	}
-+	screen_info = *si;
-+	early_memunmap(si, sizeof(*si));
-+
-+	if (screen_info.orig_video_isVGA == VIDEO_TYPE_EFI)
-+		memblock_reserve(screen_info.lfb_base, screen_info.lfb_size);
++	__asm__ __volatile__(
++		"parse_r addr,%0\n\t"
++		"parse_r info,%1\n\t"
++		".word ((0x6498000) | (addr << 10) | (info << 5) | %2)\n\t"
++		:
++		: "r"(addr), "r"(info), "i"(op)
++		:
++		);
 +}
 +
-+static void __init create_tlb(u32 index, u64 vppn, u32 ps, u32 mat)
++static inline void invtlb_addr(u32 op, u32 info, u64 addr)
 +{
-+	unsigned long tlblo0, tlblo1;
-+
-+	write_csr_pagesize(ps);
-+
-+	tlblo0 = vppn | CSR_TLBLO0_V | CSR_TLBLO0_WE |
-+		CSR_TLBLO0_GLOBAL | (mat << CSR_TLBLO0_CCA_SHIFT);
-+	tlblo1 = tlblo0 + (1 << ps);
-+
-+	csr_writeq(vppn, LOONGARCH_CSR_TLBEHI);
-+	csr_writeq(tlblo0, LOONGARCH_CSR_TLBELO0);
-+	csr_writeq(tlblo1, LOONGARCH_CSR_TLBELO1);
-+	csr_xchgl(0, CSR_TLBIDX_EHINV, LOONGARCH_CSR_TLBIDX);
-+	csr_xchgl(index, CSR_TLBIDX_IDX, LOONGARCH_CSR_TLBIDX);
-+
-+	tlb_write_indexed();
++	__asm__ __volatile__(
++		"parse_r addr,%0\n\t"
++		".word ((0x6498000) | (addr << 10) | (0 << 5) | %1)\n\t"
++		:
++		: "r"(addr), "i"(op)
++		:
++		);
 +}
 +
-+#define MTLB_ENTRY_INDEX	0x800
-+
-+/* Create VA == PA mapping as UEFI */
-+static void __init fix_efi_mapping(void)
++static inline void invtlb_info(u32 op, u32 info, u64 addr)
 +{
-+	unsigned int index = MTLB_ENTRY_INDEX;
-+	unsigned int tlbnr = boot_cpu_data.tlbsizemtlb - 2;
-+	unsigned long i, vppn;
++	__asm__ __volatile__(
++		"parse_r info,%0\n\t"
++		".word ((0x6498000) | (0 << 10) | (info << 5) | %1)\n\t"
++		:
++		: "r"(info), "i"(op)
++		:
++		);
++}
 +
-+	/* Low Memory, Cached */
-+	create_tlb(index++, 0x00000000, PS_128M, 1);
-+	/* MMIO Registers, Uncached */
-+	create_tlb(index++, 0x10000000, PS_128M, 0);
-+
-+	/* High Memory, Cached */
-+	for (i = 0; i < tlbnr; i++) {
-+		vppn = 0x80000000ULL + (i * SZ_2G);
-+		create_tlb(index++, vppn, PS_1G, 1);
-+	}
++static inline void invtlb_all(u32 op, u32 info, u64 addr)
++{
++	__asm__ __volatile__(
++		".word ((0x6498000) | (0 << 10) | (0 << 5) | %0)\n\t"
++		:
++		: "i"(op)
++		:
++		);
 +}
 +
 +/*
-+ * set_virtual_map() - create a virtual mapping for the EFI memory map and call
-+ * efi_set_virtual_address_map enter virtual for runtime service
-+ *
-+ * This function populates the virt_addr fields of all memory region descriptors
-+ * in @memory_map whose EFI_MEMORY_RUNTIME attribute is set. Those descriptors
-+ * are also copied to @runtime_map, and their total count is returned in @count.
++ * LoongArch doesn't need any special per-pte or per-vma handling, except
++ * we need to flush cache for area to be unmapped.
 + */
-+static unsigned int __init set_virtual_map(void)
++#define tlb_start_vma(tlb, vma)					\
++	do {							\
++		if (!(tlb)->fullmm)				\
++			flush_cache_range(vma, vma->vm_start, vma->vm_end); \
++	}  while (0)
++#define tlb_end_vma(tlb, vma) do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
++
++static void tlb_flush(struct mmu_gather *tlb);
++
++#define tlb_flush tlb_flush
++#include <asm-generic/tlb.h>
++
++static inline void tlb_flush(struct mmu_gather *tlb)
 +{
-+	int count = 0;
-+	unsigned int size;
-+	unsigned long attr;
-+	efi_status_t status;
-+	efi_runtime_services_t *rt;
-+	efi_set_virtual_address_map_t *svam;
-+	efi_memory_desc_t *in, runtime_map[32];
++	struct vm_area_struct vma;
 +
-+	size = sizeof(efi_memory_desc_t);
-+
-+	for_each_efi_memory_desc(in) {
-+		attr = in->attribute;
-+		if (!(attr & EFI_MEMORY_RUNTIME))
-+			continue;
-+
-+		if (attr & (EFI_MEMORY_WB | EFI_MEMORY_WT))
-+			in->virt_addr = TO_CACHE(in->phys_addr);
-+		else
-+			in->virt_addr = TO_UNCACHE(in->phys_addr);
-+
-+		memcpy(&runtime_map[count++], in, size);
-+	}
-+
-+	rt = early_memremap_ro((unsigned long)efi_systab->runtime, sizeof(*rt));
-+
-+	/* Install the new virtual address map */
-+	svam = rt->set_virtual_address_map;
-+
-+	fix_efi_mapping();
-+
-+	status = svam(size * count, size, efi.memmap.desc_version,
-+			(efi_memory_desc_t *)TO_PHYS((unsigned long)runtime_map));
-+
-+	local_flush_tlb_all();
-+	write_csr_pagesize(PS_DEFAULT_SIZE);
-+
-+	if (status != EFI_SUCCESS)
-+		return -1;
-+
-+	return 0;
-+}
-+
-+void __init efi_runtime_init(void)
-+{
-+	efi_status_t status;
-+
-+	if (!efi_enabled(EFI_BOOT))
-+		return;
-+
-+	if (!efi_systab->runtime)
-+		return;
-+
-+	status = set_virtual_map();
-+	if (status < 0)
-+		return;
-+
-+	if (efi_runtime_disabled()) {
-+		pr_info("EFI runtime services will be disabled.\n");
++	vma.vm_mm = tlb->mm;
++	vma.vm_flags = 0;
++	if (tlb->fullmm) {
++		flush_tlb_mm(tlb->mm);
 +		return;
 +	}
 +
-+	efi.runtime = (efi_runtime_services_t *)efi_systab->runtime;
-+	efi.runtime_version = (unsigned int)efi.runtime->hdr.revision;
-+
-+	efi_native_runtime_setup();
-+	set_bit(EFI_RUNTIME_SERVICES, &efi.flags);
++	flush_tlb_range(&vma, tlb->start, tlb->end);
 +}
 +
-+void __init efi_init(void)
-+{
-+	int size;
-+	void *config_tables;
++extern void handle_tlb_load(void);
++extern void handle_tlb_store(void);
++extern void handle_tlb_modify(void);
++extern void handle_tlb_refill(void);
++extern void handle_tlb_protect(void);
 +
-+	if (!efi_system_table)
-+		return;
++extern void dump_tlb_all(void);
++extern void dump_tlb_regs(void);
 +
-+	efi_systab = (efi_system_table_t *)early_memremap_ro(efi_system_table, sizeof(efi_systab));
-+	if (!efi_systab) {
-+		pr_err("Can't find EFI system table.\n");
-+		return;
-+	}
-+
-+	set_bit(EFI_64BIT, &efi.flags);
-+	efi_nr_tables	 = efi_systab->nr_tables;
-+	efi_config_table = (unsigned long)efi_systab->tables;
-+
-+	size = sizeof(efi_config_table_t);
-+	config_tables = early_memremap(efi_config_table, efi_nr_tables * size);
-+	efi_config_parse_tables(config_tables, efi_systab->nr_tables, arch_tables);
-+	early_memunmap(config_tables, efi_nr_tables * size);
-+
-+	init_screen_info();
-+}
-+
-+static ssize_t boardinfo_show(struct kobject *kobj,
-+			      struct kobj_attribute *attr, char *buf)
-+{
-+	return sprintf(buf,
-+		"BIOS Information\n"
-+		"Vendor\t\t\t: %s\n"
-+		"Version\t\t\t: %s\n"
-+		"ROM Size\t\t: %d KB\n"
-+		"Release Date\t\t: %s\n\n"
-+		"Board Information\n"
-+		"Manufacturer\t\t: %s\n"
-+		"Board Name\t\t: %s\n"
-+		"Family\t\t\t: LOONGSON64\n\n",
-+		b_info.bios_vendor, b_info.bios_version,
-+		b_info.bios_size, b_info.bios_release_date,
-+		b_info.board_vendor, b_info.board_name);
-+}
-+
-+static struct kobj_attribute boardinfo_attr = __ATTR(boardinfo, 0444,
-+						     boardinfo_show, NULL);
-+
-+static int __init boardinfo_init(void)
-+{
-+	if (!efi_kobj)
-+		return -EINVAL;
-+
-+	return sysfs_create_file(efi_kobj, &boardinfo_attr.attr);
-+}
-+late_initcall(boardinfo_init);
-diff --git a/arch/loongarch/kernel/env.c b/arch/loongarch/kernel/env.c
++#endif /* __ASM_TLB_H */
+diff --git a/arch/loongarch/include/asm/tlbflush.h b/arch/loongarch/include/asm/tlbflush.h
 new file mode 100644
-index 000000000000..bf2593f1e536
+index 000000000000..36bd6d11dc2d
 --- /dev/null
-+++ b/arch/loongarch/kernel/env.c
-@@ -0,0 +1,70 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Author: Huacai Chen <chenhuacai@loongson.cn>
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/acpi.h>
-+#include <linux/efi.h>
-+#include <linux/export.h>
-+#include <linux/memblock.h>
-+#include <linux/of_fdt.h>
-+#include <asm/early_ioremap.h>
-+#include <asm/bootinfo.h>
-+#include <asm/loongson.h>
-+
-+u64 efi_system_table;
-+struct loongson_system_configuration loongson_sysconf;
-+EXPORT_SYMBOL(loongson_sysconf);
-+
-+u64 loongson_chipcfg[MAX_PACKAGES];
-+u64 loongson_chiptemp[MAX_PACKAGES];
-+u64 loongson_freqctrl[MAX_PACKAGES];
-+unsigned long long smp_group[MAX_PACKAGES];
-+
-+static void __init register_addrs_set(u64 *registers, const u64 addr, int num)
-+{
-+	u64 i;
-+
-+	for (i = 0; i < num; i++) {
-+		*registers = (i << 44) | addr;
-+		registers++;
-+	}
-+}
-+
-+void __init init_environ(void)
-+{
-+	int efi_boot = fw_arg0;
-+	struct efi_memory_map_data data;
-+	void *fdt_ptr = early_memremap_ro(fw_arg1, SZ_64K);
-+
-+	if (efi_boot)
-+		set_bit(EFI_BOOT, &efi.flags);
-+	else
-+		clear_bit(EFI_BOOT, &efi.flags);
-+
-+	early_init_dt_scan(fdt_ptr);
-+	early_init_fdt_reserve_self();
-+	efi_system_table = efi_get_fdt_params(&data);
-+
-+	efi_memmap_init_early(&data);
-+	memblock_reserve(data.phys_map & PAGE_MASK,
-+			 PAGE_ALIGN(data.size + (data.phys_map & ~PAGE_MASK)));
-+
-+	register_addrs_set(smp_group, TO_UNCACHE(0x1fe01000), 16);
-+	register_addrs_set(loongson_chipcfg, TO_UNCACHE(0x1fe00180), 16);
-+	register_addrs_set(loongson_chiptemp, TO_UNCACHE(0x1fe0019c), 16);
-+	register_addrs_set(loongson_freqctrl, TO_UNCACHE(0x1fe001d0), 16);
-+}
-+
-+static int __init init_cpu_fullname(void)
-+{
-+	int cpu;
-+
-+	if (loongson_sysconf.cpuname && !strncmp(loongson_sysconf.cpuname, "Loongson", 8)) {
-+		for (cpu = 0; cpu < NR_CPUS; cpu++)
-+			__cpu_full_name[cpu] = loongson_sysconf.cpuname;
-+	}
-+	return 0;
-+}
-+arch_initcall(init_cpu_fullname);
-diff --git a/arch/loongarch/kernel/head.S b/arch/loongarch/kernel/head.S
-new file mode 100644
-index 000000000000..f0b3e76bb762
---- /dev/null
-+++ b/arch/loongarch/kernel/head.S
-@@ -0,0 +1,97 @@
++++ b/arch/loongarch/include/asm/tlbflush.h
+@@ -0,0 +1,35 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
-+#include <linux/init.h>
-+#include <linux/threads.h>
++#ifndef __ASM_TLBFLUSH_H
++#define __ASM_TLBFLUSH_H
 +
-+#include <asm/addrspace.h>
-+#include <asm/asm.h>
-+#include <asm/asmmacro.h>
-+#include <asm/regdef.h>
-+#include <asm/loongarch.h>
-+#include <asm/stackframe.h>
-+#include <generated/compile.h>
-+#include <generated/utsrelease.h>
++#include <linux/mm.h>
 +
-+#ifdef CONFIG_EFI_STUB
-+
-+#include "efi-header.S"
-+
-+	__HEAD
-+
-+_head:
-+	.word	MZ_MAGIC		/* "MZ", MS-DOS header */
-+	.org	0x28
-+	.ascii	"Loongson\0"		/* Magic number for BootLoader */
-+	.org	0x3c
-+	.long	pe_header - _head	/* Offset to the PE header */
-+
-+pe_header:
-+	__EFI_PE_HEADER
-+
-+SYM_DATA(kernel_asize, .long _end - _text);
-+SYM_DATA(kernel_fsize, .long _edata - _text);
-+SYM_DATA(kernel_offset, .long kernel_offset - _text);
-+
-+kernel_version:
-+	.ascii  UTS_RELEASE " (" LINUX_COMPILE_BY "@" LINUX_COMPILE_HOST ") " UTS_VERSION "\0"
-+
-+#endif
-+
-+	__REF
-+
-+SYM_ENTRY(_stext, SYM_L_GLOBAL, SYM_A_NONE)
-+
-+SYM_CODE_START(kernel_entry)			# kernel entry point
-+
-+	/* Config direct window and set PG */
-+	li.d		t0, CSR_DMW0_INIT	# UC, PLV0, 0x8000 xxxx xxxx xxxx
-+	csrwr		t0, LOONGARCH_CSR_DMWIN0
-+	li.d		t0, CSR_DMW1_INIT	# CA, PLV0, 0x9000 xxxx xxxx xxxx
-+	csrwr		t0, LOONGARCH_CSR_DMWIN1
-+	/* Enable PG */
-+	li.w		t0, 0xb0		# PLV=0, IE=0, PG=1
-+	csrwr		t0, LOONGARCH_CSR_CRMD
-+	li.w		t0, 0x04		# PLV=0, PIE=1, PWE=0
-+	csrwr		t0, LOONGARCH_CSR_PRMD
-+	li.w		t0, 0x00		# FPE=0, SXE=0, ASXE=0, BTE=0
-+	csrwr		t0, LOONGARCH_CSR_EUEN
-+
-+	/* We might not get launched at the address the kernel is linked to,
-+	   so we jump there.  */
-+	la.abs		t0, 0f
-+	jirl		zero, t0, 0
-+0:
-+	la		t0, __bss_start		# clear .bss
-+	st.d		zero, t0, 0
-+	la		t1, __bss_stop - LONGSIZE
-+1:
-+	addi.d		t0, t0, LONGSIZE
-+	st.d		zero, t0, 0
-+	bne		t0, t1, 1b
-+
-+	la		t0, fw_arg0
-+	st.d		a0, t0, 0		# firmware arguments
-+	la		t0, fw_arg1
-+	st.d		a1, t0, 0
-+	la		t0, fw_arg2
-+	st.d		a2, t0, 0
-+
-+	/* KScratch3 used for percpu base, initialized as 0 */
-+	csrwr		zero, PERCPU_BASE_KS
-+	/* GPR21 used for percpu base (runtime), initialized as 0 */
-+	or		u0, zero, zero
-+
-+	la		tp, init_thread_union
-+	/* Set the SP after an empty pt_regs.  */
-+	PTR_LI		sp, (_THREAD_SIZE - 32 - PT_SIZE)
-+	PTR_ADD		sp, sp, tp
-+	set_saved_sp	sp, t0, t1
-+	PTR_ADDI	sp, sp, -4 * SZREG	# init stack pointer
-+
-+	bl		start_kernel
-+
-+SYM_CODE_END(kernel_entry)
-+
-+SYM_ENTRY(kernel_entry_end, SYM_L_GLOBAL, SYM_A_NONE)
-diff --git a/arch/loongarch/kernel/image-vars.h b/arch/loongarch/kernel/image-vars.h
-new file mode 100644
-index 000000000000..104e9f0e97fe
---- /dev/null
-+++ b/arch/loongarch/kernel/image-vars.h
-@@ -0,0 +1,29 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ * TLB flushing:
++ *
++ *  - flush_tlb_all() flushes all processes TLB entries
++ *  - flush_tlb_mm(mm) flushes the specified mm context TLB entries
++ *  - flush_tlb_page(vma, vmaddr) flushes one page
++ *  - flush_tlb_range(vma, start, end) flushes a range of pages
++ *  - flush_tlb_kernel_range(start, end) flushes a range of kernel pages
 + */
-+#ifndef __LOONGARCH_KERNEL_IMAGE_VARS_H
-+#define __LOONGARCH_KERNEL_IMAGE_VARS_H
++extern void local_flush_tlb_all(void);
++extern void local_flush_tlb_user(void);
++extern void local_flush_tlb_kernel(void);
++extern void local_flush_tlb_mm(struct mm_struct *mm);
++extern void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start, unsigned long end);
++extern void local_flush_tlb_kernel_range(unsigned long start, unsigned long end);
++extern void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page);
++extern void local_flush_tlb_one(unsigned long vaddr);
 +
-+#ifdef CONFIG_EFI_STUB
++#define flush_tlb_all()			local_flush_tlb_all()
++#define flush_tlb_mm(mm)		local_flush_tlb_mm(mm)
++#define flush_tlb_range(vma, vmaddr, end)	local_flush_tlb_range(vma, vmaddr, end)
++#define flush_tlb_kernel_range(vmaddr, end)	local_flush_tlb_kernel_range(vmaddr, end)
++#define flush_tlb_page(vma, page)	local_flush_tlb_page(vma, page)
++#define flush_tlb_one(vaddr)		local_flush_tlb_one(vaddr)
 +
-+__efistub_memcmp		= memcmp;
-+__efistub_memchr		= memchr;
-+__efistub_memcpy		= memcpy;
-+__efistub_memmove		= memmove;
-+__efistub_memset		= memset;
-+__efistub_strcat		= strcat;
-+__efistub_strcmp		= strcmp;
-+__efistub_strlen		= strlen;
-+__efistub_strncat		= strncat;
-+__efistub_strnstr		= strnstr;
-+__efistub_strnlen		= strnlen;
-+__efistub_strrchr		= strrchr;
-+__efistub_kernel_entry		= kernel_entry;
-+__efistub_kernel_asize		= kernel_asize;
-+__efistub_kernel_fsize		= kernel_fsize;
-+__efistub_kernel_offset		= kernel_offset;
-+
-+#endif
-+
-+#endif /* __LOONGARCH_KERNEL_IMAGE_VARS_H */
-diff --git a/arch/loongarch/kernel/mem.c b/arch/loongarch/kernel/mem.c
++#endif /* __ASM_TLBFLUSH_H */
+diff --git a/arch/loongarch/include/asm/vmalloc.h b/arch/loongarch/include/asm/vmalloc.h
 new file mode 100644
-index 000000000000..7423361b0ebc
+index 000000000000..965a0d41ac2d
 --- /dev/null
-+++ b/arch/loongarch/kernel/mem.c
-@@ -0,0 +1,64 @@
-+// SPDX-License-Identifier: GPL-2.0-or-later
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/efi.h>
-+#include <linux/initrd.h>
-+#include <linux/memblock.h>
++++ b/arch/loongarch/include/asm/vmalloc.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_LOONGARCH_VMALLOC_H
++#define _ASM_LOONGARCH_VMALLOC_H
 +
-+#include <asm/bootinfo.h>
-+#include <asm/loongson.h>
-+#include <asm/sections.h>
-+
-+void __init memblock_init(void)
-+{
-+	u32 mem_type;
-+	u64 mem_start, mem_end, mem_size;
-+	efi_memory_desc_t *md;
-+
-+	/* Parse memory information */
-+	for_each_efi_memory_desc(md) {
-+		mem_type = md->type;
-+		mem_start = md->phys_addr;
-+		mem_size = md->num_pages << EFI_PAGE_SHIFT;
-+		mem_end = mem_start + mem_size;
-+
-+		switch (mem_type) {
-+		case EFI_LOADER_CODE:
-+		case EFI_LOADER_DATA:
-+		case EFI_BOOT_SERVICES_CODE:
-+		case EFI_BOOT_SERVICES_DATA:
-+		case EFI_PERSISTENT_MEMORY:
-+		case EFI_CONVENTIONAL_MEMORY:
-+			memblock_add(mem_start, mem_size);
-+			if (max_low_pfn < (mem_end >> PAGE_SHIFT))
-+				max_low_pfn = mem_end >> PAGE_SHIFT;
-+			break;
-+		case EFI_PAL_CODE:
-+		case EFI_UNUSABLE_MEMORY:
-+		case EFI_ACPI_RECLAIM_MEMORY:
-+			memblock_add(mem_start, mem_size);
-+			fallthrough;
-+		case EFI_RESERVED_TYPE:
-+		case EFI_RUNTIME_SERVICES_CODE:
-+		case EFI_RUNTIME_SERVICES_DATA:
-+		case EFI_MEMORY_MAPPED_IO:
-+		case EFI_MEMORY_MAPPED_IO_PORT_SPACE:
-+			memblock_reserve(mem_start, mem_size);
-+			break;
-+		}
-+	}
-+
-+	memblock_set_current_limit(PFN_PHYS(max_low_pfn));
-+	memblock_set_node(0, PHYS_ADDR_MAX, &memblock.memory, 0);
-+
-+	/* Reserve the first 2MB */
-+	memblock_reserve(PHYS_OFFSET, 0x200000);
-+
-+	/* Reserve the kernel text/data/bss */
-+	memblock_reserve(__pa_symbol(&_text),
-+			 __pa_symbol(&_end) - __pa_symbol(&_text));
-+
-+	/* Reserve the initrd */
-+	reserve_initrd_mem();
-+}
-diff --git a/arch/loongarch/kernel/reset.c b/arch/loongarch/kernel/reset.c
++#endif /* _ASM_LOONGARCH_VMALLOC_H */
+diff --git a/arch/loongarch/mm/cache.c b/arch/loongarch/mm/cache.c
 new file mode 100644
-index 000000000000..ef484ce43c5c
+index 000000000000..7f65f750c776
 --- /dev/null
-+++ b/arch/loongarch/kernel/reset.c
-@@ -0,0 +1,90 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/kernel.h>
-+#include <linux/acpi.h>
-+#include <linux/efi.h>
-+#include <linux/export.h>
-+#include <linux/pm.h>
-+#include <linux/types.h>
-+#include <linux/reboot.h>
-+#include <linux/delay.h>
-+#include <linux/console.h>
-+
-+#include <acpi/reboot.h>
-+#include <asm/compiler.h>
-+#include <asm/idle.h>
-+#include <asm/loongarch.h>
-+#include <asm/reboot.h>
-+
-+static void default_halt(void)
-+{
-+	local_irq_disable();
-+	clear_csr_ecfg(ECFG0_IM);
-+
-+	pr_notice("\n\n** You can safely turn off the power now **\n\n");
-+	console_flush_on_panic(CONSOLE_FLUSH_PENDING);
-+
-+	while (true) {
-+		__arch_cpu_idle();
-+	}
-+}
-+
-+static void default_poweroff(void)
-+{
-+#ifdef CONFIG_EFI
-+	efi.reset_system(EFI_RESET_SHUTDOWN, EFI_SUCCESS, 0, NULL);
-+#endif
-+	while (true) {
-+		__arch_cpu_idle();
-+	}
-+}
-+
-+static void default_restart(void)
-+{
-+#ifdef CONFIG_EFI
-+	if (efi_capsule_pending(NULL))
-+		efi_reboot(REBOOT_WARM, NULL);
-+	else
-+		efi_reboot(REBOOT_COLD, NULL);
-+#endif
-+	if (!acpi_disabled)
-+		acpi_reboot();
-+
-+	while (true) {
-+		__arch_cpu_idle();
-+	}
-+}
-+
-+void (*pm_restart)(void);
-+EXPORT_SYMBOL(pm_restart);
-+
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void machine_halt(void)
-+{
-+	default_halt();
-+}
-+
-+void machine_power_off(void)
-+{
-+	pm_power_off();
-+}
-+
-+void machine_restart(char *command)
-+{
-+	do_kernel_restart(command);
-+	pm_restart();
-+}
-+
-+static int __init loongarch_reboot_setup(void)
-+{
-+	pm_restart = default_restart;
-+	pm_power_off = default_poweroff;
-+
-+	return 0;
-+}
-+
-+arch_initcall(loongarch_reboot_setup);
-diff --git a/arch/loongarch/kernel/setup.c b/arch/loongarch/kernel/setup.c
-new file mode 100644
-index 000000000000..827d07204e62
---- /dev/null
-+++ b/arch/loongarch/kernel/setup.c
-@@ -0,0 +1,348 @@
++++ b/arch/loongarch/mm/cache.c
+@@ -0,0 +1,140 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + *
 + * Derived from MIPS:
-+ * Copyright (C) 1995 Linus Torvalds
-+ * Copyright (C) 1995 Waldorf Electronics
-+ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2000, 01, 02, 03  Ralf Baechle
-+ * Copyright (C) 1996 Stoned Elipot
-+ * Copyright (C) 1999 Silicon Graphics, Inc.
-+ * Copyright (C) 2000, 2001, 2002, 2007	 Maciej W. Rozycki
++ * Copyright (C) 1994 - 2003, 06, 07 by Ralf Baechle (ralf@linux-mips.org)
++ * Copyright (C) 2007 MIPS Technologies, Inc.
 + */
-+#include <linux/init.h>
-+#include <linux/acpi.h>
-+#include <linux/dmi.h>
-+#include <linux/efi.h>
 +#include <linux/export.h>
-+#include <linux/screen_info.h>
-+#include <linux/memblock.h>
-+#include <linux/initrd.h>
-+#include <linux/ioport.h>
-+#include <linux/root_dev.h>
-+#include <linux/console.h>
-+#include <linux/pfn.h>
-+#include <linux/platform_device.h>
-+#include <linux/sizes.h>
-+#include <linux/device.h>
-+#include <linux/dma-map-ops.h>
-+#include <linux/swiotlb.h>
-+
-+#include <asm/addrspace.h>
-+#include <asm/bootinfo.h>
-+#include <asm/cache.h>
-+#include <asm/cpu.h>
-+#include <asm/dma.h>
-+#include <asm/efi.h>
-+#include <asm/loongson.h>
-+#include <asm/pgalloc.h>
-+#include <asm/sections.h>
-+#include <asm/setup.h>
-+#include <asm/time.h>
-+
-+#define SMBIOS_BIOSSIZE_OFFSET		0x09
-+#define SMBIOS_BIOSEXTERN_OFFSET	0x13
-+#define SMBIOS_FREQLOW_OFFSET		0x16
-+#define SMBIOS_FREQHIGH_OFFSET		0x17
-+#define SMBIOS_FREQLOW_MASK		0xFF
-+#define SMBIOS_CORE_PACKAGE_OFFSET	0x23
-+#define LOONGSON_EFI_ENABLE		(1 << 3)
-+
-+#ifdef CONFIG_VT
-+struct screen_info screen_info;
-+#endif
-+
-+DEFINE_PER_CPU(unsigned long, kernelsp);
-+unsigned long fw_arg0, fw_arg1, fw_arg2;
-+struct cpuinfo_loongarch cpu_data[NR_CPUS] __read_mostly;
-+
-+EXPORT_SYMBOL(cpu_data);
-+
-+struct loongson_board_info b_info;
-+static const char dmi_empty_string[] = "        ";
-+
-+/*
-+ * Setup information
-+ *
-+ * These are initialized so they are in the .data section
-+ */
-+
-+static int num_standard_resources;
-+static struct resource *standard_resources;
-+
-+static struct resource code_resource = { .name = "Kernel code", };
-+static struct resource data_resource = { .name = "Kernel data", };
-+static struct resource bss_resource  = { .name = "Kernel bss", };
-+
-+const char *get_system_type(void)
-+{
-+	return "generic-loongson-machine";
-+}
-+
-+static const char *dmi_string_parse(const struct dmi_header *dm, u8 s)
-+{
-+	const u8 *bp = ((u8 *) dm) + dm->length;
-+
-+	if (s) {
-+		s--;
-+		while (s > 0 && *bp) {
-+			bp += strlen(bp) + 1;
-+			s--;
-+		}
-+
-+		if (*bp != 0) {
-+			size_t len = strlen(bp)+1;
-+			size_t cmp_len = len > 8 ? 8 : len;
-+
-+			if (!memcmp(bp, dmi_empty_string, cmp_len))
-+				return dmi_empty_string;
-+
-+			return bp;
-+		}
-+	}
-+
-+	return "";
-+}
-+
-+static void __init parse_cpu_table(const struct dmi_header *dm)
-+{
-+	long freq_temp = 0;
-+	char *dmi_data = (char *)dm;
-+
-+	freq_temp = ((*(dmi_data + SMBIOS_FREQHIGH_OFFSET) << 8) +
-+			((*(dmi_data + SMBIOS_FREQLOW_OFFSET)) & SMBIOS_FREQLOW_MASK));
-+	cpu_clock_freq = freq_temp * 1000000;
-+
-+	loongson_sysconf.cpuname = (void *)dmi_string_parse(dm, dmi_data[16]);
-+	loongson_sysconf.cores_per_package = *(dmi_data + SMBIOS_CORE_PACKAGE_OFFSET);
-+
-+	pr_info("CpuClock = %llu\n", cpu_clock_freq);
-+}
-+
-+static void __init parse_bios_table(const struct dmi_header *dm)
-+{
-+	int bios_extern;
-+	char *dmi_data = (char *)dm;
-+
-+	bios_extern = *(dmi_data + SMBIOS_BIOSEXTERN_OFFSET);
-+	b_info.bios_size = *(dmi_data + SMBIOS_BIOSSIZE_OFFSET);
-+
-+	if (bios_extern & LOONGSON_EFI_ENABLE)
-+		set_bit(EFI_BOOT, &efi.flags);
-+	else
-+		clear_bit(EFI_BOOT, &efi.flags);
-+}
-+
-+static void __init find_tokens(const struct dmi_header *dm, void *dummy)
-+{
-+	switch (dm->type) {
-+	case 0x0: /* Extern BIOS */
-+		parse_bios_table(dm);
-+		break;
-+	case 0x4: /* Calling interface */
-+		parse_cpu_table(dm);
-+		break;
-+	}
-+}
-+static void __init smbios_parse(void)
-+{
-+	b_info.bios_vendor = (void *)dmi_get_system_info(DMI_BIOS_VENDOR);
-+	b_info.bios_version = (void *)dmi_get_system_info(DMI_BIOS_VERSION);
-+	b_info.bios_release_date = (void *)dmi_get_system_info(DMI_BIOS_DATE);
-+	b_info.board_vendor = (void *)dmi_get_system_info(DMI_BOARD_VENDOR);
-+	b_info.board_name = (void *)dmi_get_system_info(DMI_BOARD_NAME);
-+	dmi_walk(find_tokens, NULL);
-+}
-+
-+static int usermem __initdata;
-+
-+static int __init early_parse_mem(char *p)
-+{
-+	phys_addr_t start, size;
-+
-+	/*
-+	 * If a user specifies memory size, we
-+	 * blow away any automatically generated
-+	 * size.
-+	 */
-+	if (usermem == 0) {
-+		usermem = 1;
-+		memblock_remove(memblock_start_of_DRAM(),
-+			memblock_end_of_DRAM() - memblock_start_of_DRAM());
-+	}
-+	start = 0;
-+	size = memparse(p, &p);
-+	if (*p == '@')
-+		start = memparse(p + 1, &p);
-+	else {
-+		pr_err("Invalid format!\n");
-+		return -EINVAL;
-+	}
-+
-+	memblock_add(start, size);
-+
-+	return 0;
-+}
-+early_param("mem", early_parse_mem);
-+
-+void __init platform_init(void)
-+{
-+	efi_init();
-+#ifdef CONFIG_ACPI_TABLE_UPGRADE
-+	acpi_table_upgrade();
-+#endif
-+#ifdef CONFIG_ACPI
-+	acpi_gbl_use_default_register_widths = false;
-+	acpi_boot_table_init();
-+	acpi_boot_init();
-+#endif
-+
-+	dmi_setup();
-+	smbios_parse();
-+	pr_info("The BIOS Version: %s\n", b_info.bios_version);
-+
-+	efi_runtime_init();
-+}
-+
-+static void __init check_kernel_sections_mem(void)
-+{
-+	phys_addr_t start = __pa_symbol(&_text);
-+	phys_addr_t size = __pa_symbol(&_end) - start;
-+
-+	if (!memblock_is_region_memory(start, size)) {
-+		pr_info("Kernel sections are not in the memory maps\n");
-+		memblock_add(start, size);
-+	}
-+}
-+
-+/*
-+ * arch_mem_init - initialize memory management subsystem
-+ */
-+static void __init arch_mem_init(char **cmdline_p)
-+{
-+	if (usermem)
-+		pr_info("User-defined physical RAM map overwrite\n");
-+
-+	check_kernel_sections_mem();
-+
-+	/*
-+	 * In order to reduce the possibility of kernel panic when failed to
-+	 * get IO TLB memory under CONFIG_SWIOTLB, it is better to allocate
-+	 * low memory as small as possible before plat_swiotlb_setup(), so
-+	 * make sparse_init() using top-down allocation.
-+	 */
-+	memblock_set_bottom_up(false);
-+	sparse_init();
-+	memblock_set_bottom_up(true);
-+
-+	swiotlb_init(1);
-+
-+	dma_contiguous_reserve(PFN_PHYS(max_low_pfn));
-+
-+	memblock_dump_all();
-+
-+	early_memtest(PFN_PHYS(ARCH_PFN_OFFSET), PFN_PHYS(max_low_pfn));
-+}
-+
-+static void __init resource_init(void)
-+{
-+	long i = 0;
-+	size_t res_size;
-+	struct resource *res;
-+	struct memblock_region *region;
-+
-+	code_resource.start = __pa_symbol(&_text);
-+	code_resource.end = __pa_symbol(&_etext) - 1;
-+	data_resource.start = __pa_symbol(&_etext);
-+	data_resource.end = __pa_symbol(&_edata) - 1;
-+	bss_resource.start = __pa_symbol(&__bss_start);
-+	bss_resource.end = __pa_symbol(&__bss_stop) - 1;
-+
-+	num_standard_resources = memblock.memory.cnt;
-+	res_size = num_standard_resources * sizeof(*standard_resources);
-+	standard_resources = memblock_alloc(res_size, SMP_CACHE_BYTES);
-+
-+	for_each_mem_region(region) {
-+		res = &standard_resources[i++];
-+		if (!memblock_is_nomap(region)) {
-+			res->name  = "System RAM";
-+			res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
-+			res->start = __pfn_to_phys(memblock_region_memory_base_pfn(region));
-+			res->end = __pfn_to_phys(memblock_region_memory_end_pfn(region)) - 1;
-+		} else {
-+			res->name  = "Reserved";
-+			res->flags = IORESOURCE_MEM;
-+			res->start = __pfn_to_phys(memblock_region_reserved_base_pfn(region));
-+			res->end = __pfn_to_phys(memblock_region_reserved_end_pfn(region)) - 1;
-+		}
-+
-+		request_resource(&iomem_resource, res);
-+
-+		/*
-+		 *  We don't know which RAM region contains kernel data,
-+		 *  so we try it repeatedly and let the resource manager
-+		 *  test it.
-+		 */
-+		request_resource(res, &code_resource);
-+		request_resource(res, &data_resource);
-+		request_resource(res, &bss_resource);
-+	}
-+}
-+
-+static int __init reserve_memblock_reserved_regions(void)
-+{
-+	u64 i, j;
-+
-+	for (i = 0; i < num_standard_resources; ++i) {
-+		struct resource *mem = &standard_resources[i];
-+		phys_addr_t r_start, r_end, mem_size = resource_size(mem);
-+
-+		if (!memblock_is_region_reserved(mem->start, mem_size))
-+			continue;
-+
-+		for_each_reserved_mem_range(j, &r_start, &r_end) {
-+			resource_size_t start, end;
-+
-+			start = max(PFN_PHYS(PFN_DOWN(r_start)), mem->start);
-+			end = min(PFN_PHYS(PFN_UP(r_end)) - 1, mem->end);
-+
-+			if (start > mem->end || end < mem->start)
-+				continue;
-+
-+			reserve_region_with_split(mem, start, end, "Reserved");
-+		}
-+	}
-+
-+	return 0;
-+}
-+arch_initcall(reserve_memblock_reserved_regions);
-+
-+void __init setup_arch(char **cmdline_p)
-+{
-+	cpu_probe();
-+	*cmdline_p = boot_command_line;
-+
-+	init_environ();
-+	memblock_init();
-+	parse_early_param();
-+
-+	platform_init();
-+	pagetable_init();
-+	arch_mem_init(cmdline_p);
-+
-+	resource_init();
-+
-+	paging_init();
-+}
-+
-+static int __init register_gop_device(void)
-+{
-+	void *pd;
-+
-+	if (screen_info.orig_video_isVGA != VIDEO_TYPE_EFI)
-+		return 0;
-+	pd = platform_device_register_data(NULL, "efi-framebuffer", 0,
-+			&screen_info, sizeof(screen_info));
-+	return PTR_ERR_OR_ZERO(pd);
-+}
-+subsys_initcall(register_gop_device);
-diff --git a/arch/loongarch/kernel/time.c b/arch/loongarch/kernel/time.c
-new file mode 100644
-index 000000000000..5d2b2c6712bc
---- /dev/null
-+++ b/arch/loongarch/kernel/time.c
-@@ -0,0 +1,220 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Common time service routines for LoongArch machines.
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/clockchips.h>
-+#include <linux/delay.h>
-+#include <linux/export.h>
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
++#include <linux/fcntl.h>
++#include <linux/fs.h>
++#include <linux/highmem.h>
 +#include <linux/kernel.h>
-+#include <linux/sched_clock.h>
-+#include <linux/spinlock.h>
++#include <linux/linkage.h>
++#include <linux/mm.h>
++#include <linux/sched.h>
++#include <linux/syscalls.h>
 +
++#include <asm/cacheflush.h>
++#include <asm/cpu.h>
 +#include <asm/cpu-features.h>
++#include <asm/dma.h>
 +#include <asm/loongarch.h>
-+#include <asm/time.h>
++#include <asm/processor.h>
++#include <asm/setup.h>
 +
-+u64 cpu_clock_freq;
-+EXPORT_SYMBOL(cpu_clock_freq);
-+u64 const_clock_freq;
-+EXPORT_SYMBOL(const_clock_freq);
-+
-+static DEFINE_RAW_SPINLOCK(state_lock);
-+static DEFINE_PER_CPU(struct clock_event_device, constant_clockevent_device);
-+
-+static void constant_event_handler(struct clock_event_device *dev)
++/*
++ * LoongArch maintains ICache/DCache coherency by hardware,
++ * we just need "ibar" to avoid instruction hazard here.
++ */
++void local_flush_icache_range(unsigned long start, unsigned long end)
 +{
++	asm volatile ("\tibar 0\n"::);
 +}
 +
-+irqreturn_t constant_timer_interrupt(int irq, void *data)
++void cache_error_setup(void)
 +{
-+	int cpu = smp_processor_id();
-+	struct clock_event_device *cd;
-+
-+	/* Clear Timer Interrupt */
-+	write_csr_tintclear(CSR_TINTCLR_TI);
-+	cd = &per_cpu(constant_clockevent_device, cpu);
-+	cd->event_handler(cd);
-+
-+	return IRQ_HANDLED;
++	extern char __weak except_vec_cex;
++	set_merr_handler(0x0, &except_vec_cex, 0x80);
 +}
 +
-+static int constant_set_state_oneshot(struct clock_event_device *evt)
-+{
-+	unsigned long timer_config;
++static unsigned long icache_size __read_mostly;
++static unsigned long dcache_size __read_mostly;
++static unsigned long vcache_size __read_mostly;
++static unsigned long scache_size __read_mostly;
 +
-+	raw_spin_lock(&state_lock);
-+
-+	timer_config = csr_readq(LOONGARCH_CSR_TCFG);
-+	timer_config |= CSR_TCFG_EN;
-+	timer_config &= ~CSR_TCFG_PERIOD;
-+	csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-+
-+	raw_spin_unlock(&state_lock);
-+
-+	return 0;
-+}
-+
-+static int constant_set_state_oneshot_stopped(struct clock_event_device *evt)
-+{
-+	unsigned long timer_config;
-+
-+	raw_spin_lock(&state_lock);
-+
-+	timer_config = csr_readq(LOONGARCH_CSR_TCFG);
-+	timer_config &= ~CSR_TCFG_EN;
-+	csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-+
-+	raw_spin_unlock(&state_lock);
-+
-+	return 0;
-+}
-+
-+static int constant_set_state_periodic(struct clock_event_device *evt)
-+{
-+	unsigned long period;
-+	unsigned long timer_config;
-+
-+	raw_spin_lock(&state_lock);
-+
-+	period = const_clock_freq / HZ;
-+	timer_config = period & CSR_TCFG_VAL;
-+	timer_config |= (CSR_TCFG_PERIOD | CSR_TCFG_EN);
-+	csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-+
-+	raw_spin_unlock(&state_lock);
-+
-+	return 0;
-+}
-+
-+static int constant_set_state_shutdown(struct clock_event_device *evt)
-+{
-+	return 0;
-+}
-+
-+static int constant_timer_next_event(unsigned long delta, struct clock_event_device *evt)
-+{
-+	unsigned long timer_config;
-+
-+	delta &= CSR_TCFG_VAL;
-+	timer_config = delta | CSR_TCFG_EN;
-+	csr_writeq(timer_config, LOONGARCH_CSR_TCFG);
-+
-+	return 0;
-+}
-+
-+static unsigned long __init get_loops_per_jiffy(void)
-+{
-+	unsigned long lpj = (unsigned long)const_clock_freq;
-+
-+	do_div(lpj, HZ);
-+
-+	return lpj;
-+}
-+
-+static long init_timeval;
-+
-+void sync_counter(void)
-+{
-+	/* Ensure counter begin at 0 */
-+	csr_writeq(-init_timeval, LOONGARCH_CSR_CNTC);
-+}
-+
-+int constant_clockevent_init(void)
-+{
-+	unsigned int irq;
-+	unsigned int cpu = smp_processor_id();
-+	unsigned long min_delta = 0x600;
-+	unsigned long max_delta = (1UL << 48) - 1;
-+	struct clock_event_device *cd;
-+	static int timer_irq_installed = 0;
-+
-+	irq = get_timer_irq();
-+
-+	cd = &per_cpu(constant_clockevent_device, cpu);
-+
-+	cd->name = "Constant";
-+	cd->features = CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_PERCPU;
-+
-+	cd->irq = irq;
-+	cd->rating = 320;
-+	cd->cpumask = cpumask_of(cpu);
-+	cd->set_state_oneshot = constant_set_state_oneshot;
-+	cd->set_state_oneshot_stopped = constant_set_state_oneshot_stopped;
-+	cd->set_state_periodic = constant_set_state_periodic;
-+	cd->set_state_shutdown = constant_set_state_shutdown;
-+	cd->set_next_event = constant_timer_next_event;
-+	cd->event_handler = constant_event_handler;
-+
-+	clockevents_config_and_register(cd, const_clock_freq, min_delta, max_delta);
-+
-+	if (timer_irq_installed)
-+		return 0;
-+
-+	timer_irq_installed = 1;
-+
-+	sync_counter();
-+
-+	if (request_irq(irq, constant_timer_interrupt, IRQF_PERCPU | IRQF_TIMER, "timer", NULL))
-+		pr_err("Failed to request irq %d (timer)\n", irq);
-+
-+	lpj_fine = get_loops_per_jiffy();
-+	pr_info("Constant clock event device register\n");
-+
-+	return 0;
-+}
-+
-+static u64 read_const_counter(struct clocksource *clk)
-+{
-+	return drdtime();
-+}
-+
-+static u64 native_sched_clock(void)
-+{
-+	return read_const_counter(NULL);
-+}
-+
-+static struct clocksource clocksource_const = {
-+	.name = "Constant",
-+	.rating = 400,
-+	.read = read_const_counter,
-+	.mask = CLOCKSOURCE_MASK(64),
-+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-+	.mult = 0,
-+	.shift = 10,
++static char *way_string[] = { NULL, "direct mapped", "2-way",
++	"3-way", "4-way", "5-way", "6-way", "7-way", "8-way",
++	"9-way", "10-way", "11-way", "12-way",
++	"13-way", "14-way", "15-way", "16-way",
 +};
 +
-+int __init constant_clocksource_init(void)
++static void probe_pcache(void)
 +{
-+	int res;
-+	unsigned long freq;
++	struct cpuinfo_loongarch *c = &current_cpu_data;
++	unsigned int lsize, sets, ways;
++	unsigned int config;
 +
-+	freq = const_clock_freq;
++	config = read_cpucfg(LOONGARCH_CPUCFG17);
++	lsize = 1 << ((config & CPUCFG17_L1I_SIZE_M) >> CPUCFG17_L1I_SIZE);
++	sets  = 1 << ((config & CPUCFG17_L1I_SETS_M) >> CPUCFG17_L1I_SETS);
++	ways  = ((config & CPUCFG17_L1I_WAYS_M) >> CPUCFG17_L1I_WAYS) + 1;
 +
-+	clocksource_const.mult =
-+		clocksource_hz2mult(freq, clocksource_const.shift);
++	c->icache.linesz = lsize;
++	c->icache.sets = sets;
++	c->icache.ways = ways;
++	icache_size = sets * ways * lsize;
++	c->icache.waysize = icache_size / c->icache.ways;
 +
-+	res = clocksource_register_hz(&clocksource_const, freq);
++	config = read_cpucfg(LOONGARCH_CPUCFG18);
++	lsize = 1 << ((config & CPUCFG18_L1D_SIZE_M) >> CPUCFG18_L1D_SIZE);
++	sets  = 1 << ((config & CPUCFG18_L1D_SETS_M) >> CPUCFG18_L1D_SETS);
++	ways  = ((config & CPUCFG18_L1D_WAYS_M) >> CPUCFG18_L1D_WAYS) + 1;
 +
-+	sched_clock_register(native_sched_clock, 64, freq);
++	c->dcache.linesz = lsize;
++	c->dcache.sets = sets;
++	c->dcache.ways = ways;
++	dcache_size = sets * ways * lsize;
++	c->dcache.waysize = dcache_size / c->dcache.ways;
 +
-+	pr_info("Constant clock source device register\n");
++	c->options |= LOONGARCH_CPU_PREFETCH;
 +
-+	return res;
++	pr_info("Primary instruction cache %ldkB, %s, %s, linesize %d bytes.\n",
++		icache_size >> 10, way_string[c->icache.ways], "VIPT", c->icache.linesz);
++
++	pr_info("Primary data cache %ldkB, %s, %s, %s, linesize %d bytes\n",
++		dcache_size >> 10, way_string[c->dcache.ways], "VIPT", "no aliases", c->dcache.linesz);
 +}
 +
-+void __init time_init(void)
++static void probe_vcache(void)
 +{
-+	if (!cpu_has_cpucfg)
-+		const_clock_freq = cpu_clock_freq;
-+	else
-+		const_clock_freq = calc_const_freq();
++	struct cpuinfo_loongarch *c = &current_cpu_data;
++	unsigned int lsize, sets, ways;
++	unsigned int config;
 +
-+	init_timeval = drdtime() - csr_readq(LOONGARCH_CSR_CNTC);
++	config = read_cpucfg(LOONGARCH_CPUCFG19);
++	lsize = 1 << ((config & CPUCFG19_L2_SIZE_M) >> CPUCFG19_L2_SIZE);
++	sets  = 1 << ((config & CPUCFG19_L2_SETS_M) >> CPUCFG19_L2_SETS);
++	ways  = ((config & CPUCFG19_L2_WAYS_M) >> CPUCFG19_L2_WAYS) + 1;
 +
-+	constant_clockevent_init();
-+	constant_clocksource_init();
++	c->vcache.linesz = lsize;
++	c->vcache.sets = sets;
++	c->vcache.ways = ways;
++	vcache_size = lsize * sets * ways;
++	c->vcache.waysize = vcache_size / c->vcache.ways;
++
++	pr_info("Unified victim cache %ldkB %s, linesize %d bytes.\n",
++		vcache_size >> 10, way_string[c->vcache.ways], c->vcache.linesz);
 +}
-diff --git a/arch/loongarch/kernel/topology.c b/arch/loongarch/kernel/topology.c
++
++static void probe_scache(void)
++{
++	struct cpuinfo_loongarch *c = &current_cpu_data;
++	unsigned int lsize, sets, ways;
++	unsigned int config;
++
++	config = read_cpucfg(LOONGARCH_CPUCFG20);
++	lsize = 1 << ((config & CPUCFG20_L3_SIZE_M) >> CPUCFG20_L3_SIZE);
++	sets  = 1 << ((config & CPUCFG20_L3_SETS_M) >> CPUCFG20_L3_SETS);
++	ways  = ((config & CPUCFG20_L3_WAYS_M) >> CPUCFG20_L3_WAYS) + 1;
++
++	c->scache.linesz = lsize;
++	c->scache.sets = sets;
++	c->scache.ways = ways;
++	/* 4 cores. scaches are shared */
++	scache_size = lsize * sets * ways;
++	c->scache.waysize = scache_size / c->scache.ways;
++
++	pr_info("Unified secondary cache %ldkB %s, linesize %d bytes.\n",
++		scache_size >> 10, way_string[c->scache.ways], c->scache.linesz);
++}
++
++void cpu_cache_init(void)
++{
++	probe_pcache();
++	probe_vcache();
++	probe_scache();
++
++	shm_align_mask = PAGE_SIZE - 1;
++}
+diff --git a/arch/loongarch/mm/extable.c b/arch/loongarch/mm/extable.c
 new file mode 100644
-index 000000000000..3b2cbb95875b
+index 000000000000..bc20988f2b87
 --- /dev/null
-+++ b/arch/loongarch/kernel/topology.c
-@@ -0,0 +1,13 @@
++++ b/arch/loongarch/mm/extable.c
+@@ -0,0 +1,22 @@
 +// SPDX-License-Identifier: GPL-2.0
-+#include <linux/cpu.h>
-+#include <linux/init.h>
-+#include <linux/percpu.h>
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/extable.h>
++#include <linux/spinlock.h>
++#include <asm/branch.h>
++#include <linux/uaccess.h>
 +
-+static struct cpu cpu_device;
-+
-+static int __init topology_init(void)
++int fixup_exception(struct pt_regs *regs)
 +{
-+	return register_cpu(&cpu_device, 0);
++	const struct exception_table_entry *fixup;
++
++	fixup = search_exception_tables(exception_era(regs));
++	if (fixup) {
++		regs->csr_era = fixup->fixup;
++
++		return 1;
++	}
++
++	return 0;
++}
+diff --git a/arch/loongarch/mm/fault.c b/arch/loongarch/mm/fault.c
+new file mode 100644
+index 000000000000..605579b19a00
+--- /dev/null
++++ b/arch/loongarch/mm/fault.c
+@@ -0,0 +1,261 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ *
++ * Derived from MIPS:
++ * Copyright (C) 1995 - 2000 by Ralf Baechle
++ */
++#include <linux/context_tracking.h>
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/entry-common.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/ratelimit.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/kdebug.h>
++#include <linux/kprobes.h>
++#include <linux/perf_event.h>
++#include <linux/uaccess.h>
++
++#include <asm/branch.h>
++#include <asm/mmu_context.h>
++#include <asm/ptrace.h>
++
++int show_unhandled_signals = 1;
++
++static void __kprobes no_context(struct pt_regs *regs, unsigned long address)
++{
++	const int field = sizeof(unsigned long) * 2;
++
++	/* Are we prepared to handle this kernel fault?	 */
++	if (fixup_exception(regs))
++		return;
++
++	/*
++	 * Oops. The kernel tried to access some bad page. We'll have to
++	 * terminate things with extreme prejudice.
++	 */
++	bust_spinlocks(1);
++
++	pr_alert("CPU %d Unable to handle kernel paging request at "
++	       "virtual address %0*lx, era == %0*lx, ra == %0*lx\n",
++	       raw_smp_processor_id(), field, address, field, regs->csr_era,
++	       field,  regs->regs[1]);
++	die("Oops", regs);
 +}
 +
-+subsys_initcall(topology_init);
-diff --git a/drivers/firmware/efi/Kconfig b/drivers/firmware/efi/Kconfig
-index 2c3dac5ecb36..c47fa1ef9387 100644
---- a/drivers/firmware/efi/Kconfig
-+++ b/drivers/firmware/efi/Kconfig
-@@ -106,7 +106,7 @@ config EFI_GENERIC_STUB
- 
- config EFI_ARMSTUB_DTB_LOADER
- 	bool "Enable the DTB loader"
--	depends on EFI_GENERIC_STUB && !RISCV
-+	depends on EFI_GENERIC_STUB && !RISCV && !LOONGARCH
- 	default y
- 	help
- 	  Select this config option to add support for the dtb= command
-diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
-index d0537573501e..1588c61939e7 100644
---- a/drivers/firmware/efi/libstub/Makefile
-+++ b/drivers/firmware/efi/libstub/Makefile
-@@ -26,6 +26,8 @@ cflags-$(CONFIG_ARM)		:= $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
- 				   $(call cc-option,-mno-single-pic-base)
- cflags-$(CONFIG_RISCV)		:= $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
- 				   -fpic
-+cflags-$(CONFIG_LOONGARCH)	:= $(subst $(CC_FLAGS_FTRACE),,$(KBUILD_CFLAGS)) \
-+				   -fpic
- 
- cflags-$(CONFIG_EFI_GENERIC_STUB) += -I$(srctree)/scripts/dtc/libfdt
- 
-@@ -70,6 +72,8 @@ lib-$(CONFIG_ARM)		+= arm32-stub.o
- lib-$(CONFIG_ARM64)		+= arm64-stub.o
- lib-$(CONFIG_X86)		+= x86-stub.o
- lib-$(CONFIG_RISCV)		+= riscv-stub.o
-+lib-$(CONFIG_LOONGARCH)		+= loongarch-stub.o
++static void __kprobes do_out_of_memory(struct pt_regs *regs, unsigned long address)
++{
++	/*
++	 * We ran out of memory, call the OOM killer, and return the userspace
++	 * (which will retry the fault, or kill us if we got oom-killed).
++	 */
++	if (!user_mode(regs)) {
++		no_context(regs, address);
++		return;
++	}
++	pagefault_out_of_memory();
++}
 +
- CFLAGS_arm32-stub.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
- 
- # Even when -mbranch-protection=none is set, Clang will generate a
-@@ -125,6 +129,12 @@ STUBCOPY_FLAGS-$(CONFIG_RISCV)	+= --prefix-alloc-sections=.init \
- 				   --prefix-symbols=__efistub_
- STUBCOPY_RELOC-$(CONFIG_RISCV)	:= R_RISCV_HI20
- 
-+# For LoongArch, keep all the symbols in .init section and make sure that no
-+# absolute symbols references doesn't exist.
-+STUBCOPY_FLAGS-$(CONFIG_LOONGARCH)	+= --prefix-alloc-sections=.init \
-+					   --prefix-symbols=__efistub_
-+STUBCOPY_RELOC-$(CONFIG_LOONGARCH)	:= R_LARCH_MARK_LA
++static void __kprobes do_sigbus(struct pt_regs *regs,
++		unsigned long write, unsigned long address, int si_code)
++{
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs)) {
++		no_context(regs, address);
++		return;
++	}
 +
- $(obj)/%.stub.o: $(obj)/%.o FORCE
- 	$(call if_changed,stubcopy)
- 
-diff --git a/drivers/firmware/efi/libstub/efi-stub-helper.c b/drivers/firmware/efi/libstub/efi-stub-helper.c
-index 3d972061c1b0..f612cfceda22 100644
---- a/drivers/firmware/efi/libstub/efi-stub-helper.c
-+++ b/drivers/firmware/efi/libstub/efi-stub-helper.c
-@@ -21,7 +21,7 @@
- bool efi_nochunk;
- bool efi_nokaslr = !IS_ENABLED(CONFIG_RANDOMIZE_BASE);
- int efi_loglevel = CONSOLE_LOGLEVEL_DEFAULT;
--bool efi_novamap;
-+bool efi_novamap = IS_ENABLED(CONFIG_LOONGARCH); /* LoongArch call svam() in kernel */
- 
- static bool efi_noinitrd;
- static bool efi_nosoftreserve;
-diff --git a/drivers/firmware/efi/libstub/efi-stub.c b/drivers/firmware/efi/libstub/efi-stub.c
-index da93864d7abc..ffc02880a344 100644
---- a/drivers/firmware/efi/libstub/efi-stub.c
-+++ b/drivers/firmware/efi/libstub/efi-stub.c
-@@ -40,7 +40,7 @@
- 
- #ifdef CONFIG_ARM64
- # define EFI_RT_VIRTUAL_LIMIT	DEFAULT_MAP_WINDOW_64
--#elif defined(CONFIG_RISCV)
-+#elif defined(CONFIG_RISCV) || defined(CONFIG_LOONGARCH)
- # define EFI_RT_VIRTUAL_LIMIT	TASK_SIZE_MIN
- #else
- # define EFI_RT_VIRTUAL_LIMIT	TASK_SIZE
-diff --git a/drivers/firmware/efi/libstub/loongarch-stub.c b/drivers/firmware/efi/libstub/loongarch-stub.c
++	/*
++	 * Send a sigbus, regardless of whether we were in kernel
++	 * or user mode.
++	 */
++	current->thread.csr_badvaddr = address;
++	current->thread.trap_nr = read_csr_excode();
++	force_sig_fault(SIGBUS, BUS_ADRERR, (void __user *)address);
++}
++
++static void __kprobes do_sigsegv(struct pt_regs *regs,
++		unsigned long write, unsigned long address, int si_code)
++{
++	const int field = sizeof(unsigned long) * 2;
++	static DEFINE_RATELIMIT_STATE(ratelimit_state, 5 * HZ, 10);
++
++	/* Kernel mode? Handle exceptions or die */
++	if (!user_mode(regs)) {
++		no_context(regs, address);
++		return;
++	}
++
++	/* User mode accesses just cause a SIGSEGV */
++	current->thread.csr_badvaddr = address;
++	if (!write)
++		current->thread.error_code = 1;
++	else
++		current->thread.error_code = 2;
++	current->thread.trap_nr = read_csr_excode();
++
++	if (show_unhandled_signals &&
++	    unhandled_signal(current, SIGSEGV) && __ratelimit(&ratelimit_state)) {
++		pr_info("do_page_fault(): sending SIGSEGV to %s for invalid %s %0*lx\n",
++			current->comm,
++			write ? "write access to" : "read access from",
++			field, address);
++		pr_info("era = %0*lx in", field,
++			(unsigned long) regs->csr_era);
++		print_vma_addr(KERN_CONT " ", regs->csr_era);
++		pr_cont("\n");
++		pr_info("ra  = %0*lx in", field,
++			(unsigned long) regs->regs[1]);
++		print_vma_addr(KERN_CONT " ", regs->regs[1]);
++		pr_cont("\n");
++	}
++	force_sig_fault(SIGSEGV, si_code, (void __user *)address);
++}
++
++/*
++ * This routine handles page faults.  It determines the address,
++ * and the problem, and then passes it off to one of the appropriate
++ * routines.
++ */
++static void __kprobes __do_page_fault(struct pt_regs *regs,
++			unsigned long write, unsigned long address)
++{
++	int si_code = SEGV_MAPERR;
++	unsigned int flags = FAULT_FLAG_DEFAULT;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	struct vm_area_struct *vma = NULL;
++	vm_fault_t fault;
++
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (address & __UA_LIMIT) {
++		if (!user_mode(regs))
++			no_context(regs, address);
++		else
++			do_sigsegv(regs, write, address, si_code);
++		return;
++	}
++
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (faulthandler_disabled() || !mm) {
++		do_sigsegv(regs, write, address, si_code);
++		return;
++	}
++
++	if (user_mode(regs))
++		flags |= FAULT_FLAG_USER;
++
++	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
++retry:
++	mmap_read_lock(mm);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (!expand_stack(vma, address))
++		goto good_area;
++/*
++ * Something tried to access memory that isn't in our memory map..
++ * Fix it, but check if it's kernel or user first..
++ */
++bad_area:
++	mmap_read_unlock(mm);
++	do_sigsegv(regs, write, address, si_code);
++	return;
++
++/*
++ * Ok, we have a good vm_area for this memory access, so
++ * we can handle it..
++ */
++good_area:
++	si_code = SEGV_ACCERR;
++
++	if (write) {
++		flags |= FAULT_FLAG_WRITE;
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++	} else {
++		if (!(vma->vm_flags & VM_READ) && address != exception_era(regs))
++			goto bad_area;
++		if (!(vma->vm_flags & VM_EXEC) && address == exception_era(regs))
++			goto bad_area;
++	}
++
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(vma, address, flags, regs);
++
++	if (fault_signal_pending(fault, regs)) {
++		if (!user_mode(regs))
++			no_context(regs, address);
++		return;
++	}
++
++	if (unlikely(fault & VM_FAULT_RETRY)) {
++		flags |= FAULT_FLAG_TRIED;
++
++		/*
++		 * No need to mmap_read_unlock(mm) as we would
++		 * have already released it in __lock_page_or_retry
++		 * in mm/filemap.c.
++		 */
++		goto retry;
++	}
++	if (unlikely(fault & VM_FAULT_ERROR)) {
++		mmap_read_unlock(mm);
++		if (fault & VM_FAULT_OOM) {
++			do_out_of_memory(regs, address);
++			return;
++		} else if (fault & VM_FAULT_SIGSEGV) {
++			do_sigsegv(regs, write, address, si_code);
++			return;
++		} else if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|VM_FAULT_HWPOISON_LARGE)) {
++			do_sigbus(regs, write, address, si_code);
++			return;
++		}
++		BUG();
++	}
++
++	mmap_read_unlock(mm);
++}
++
++asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
++			unsigned long write, unsigned long address)
++{
++	irqentry_state_t state = irqentry_enter(regs);
++
++	/* Enable interrupt if enabled in parent context */
++	if (likely(regs->csr_prmd & CSR_PRMD_PIE))
++		local_irq_enable();
++
++	__do_page_fault(regs, write, address);
++
++	local_irq_disable();
++
++	irqentry_exit(regs, state);
++}
+diff --git a/arch/loongarch/mm/hugetlbpage.c b/arch/loongarch/mm/hugetlbpage.c
 new file mode 100644
-index 000000000000..25bf7f8ff00c
+index 000000000000..ba138117b124
 --- /dev/null
-+++ b/drivers/firmware/efi/libstub/loongarch-stub.c
++++ b/arch/loongarch/mm/hugetlbpage.c
 @@ -0,0 +1,87 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
-+ * Author: Yun Liu <liuyun@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
 +
-+#include <linux/efi.h>
-+#include <asm/efi.h>
-+#include <asm/addrspace.h>
-+#include "efistub.h"
++#include <linux/fs.h>
++#include <linux/mm.h>
++#include <linux/hugetlb.h>
++#include <linux/pagemap.h>
++#include <linux/err.h>
++#include <linux/sysctl.h>
++#include <asm/mman.h>
++#include <asm/tlb.h>
++#include <asm/tlbflush.h>
 +
-+typedef void __noreturn (*kernel_entry_t)(bool efi, unsigned long fdt);
-+
-+extern int kernel_asize;
-+extern int kernel_fsize;
-+extern int kernel_offset;
-+extern kernel_entry_t kernel_entry;
-+
-+static efi_guid_t screen_info_guid = LINUX_EFI_LARCH_SCREEN_INFO_TABLE_GUID;
-+
-+struct screen_info *alloc_screen_info(void)
++pte_t *huge_pte_alloc(struct mm_struct *mm, struct vm_area_struct *vma,
++		      unsigned long addr, unsigned long sz)
 +{
-+	efi_status_t status;
-+	struct screen_info *si;
++	pgd_t *pgd;
++	p4d_t *p4d;
++	pud_t *pud;
++	pte_t *pte = NULL;
 +
-+	status = efi_bs_call(allocate_pool,
-+			EFI_RUNTIME_SERVICES_DATA, sizeof(*si), (void **)&si);
-+	if (status != EFI_SUCCESS)
-+		return NULL;
++	pgd = pgd_offset(mm, addr);
++	p4d = p4d_alloc(mm, pgd, addr);
++	pud = pud_alloc(mm, p4d, addr);
++	if (pud)
++		pte = (pte_t *)pmd_alloc(mm, pud, addr);
 +
-+	status = efi_bs_call(install_configuration_table, &screen_info_guid, si);
-+	if (status == EFI_SUCCESS)
-+		return si;
-+
-+	efi_bs_call(free_pool, si);
-+
-+	return NULL;
++	return pte;
 +}
 +
-+void free_screen_info(struct screen_info *si)
++pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr,
++		       unsigned long sz)
 +{
-+	if (!si)
++	pgd_t *pgd;
++	p4d_t *p4d;
++	pud_t *pud;
++	pmd_t *pmd = NULL;
++
++	pgd = pgd_offset(mm, addr);
++	if (pgd_present(*pgd)) {
++		p4d = p4d_offset(pgd, addr);
++		if (p4d_present(*p4d)) {
++			pud = pud_offset(p4d, addr);
++			if (pud_present(*pud))
++				pmd = pmd_offset(pud, addr);
++		}
++	}
++	return (pte_t *) pmd;
++}
++
++/*
++ * This function checks for proper alignment of input addr and len parameters.
++ */
++int is_aligned_hugepage_range(unsigned long addr, unsigned long len)
++{
++	if (len & ~HPAGE_MASK)
++		return -EINVAL;
++	if (addr & ~HPAGE_MASK)
++		return -EINVAL;
++	return 0;
++}
++
++int pmd_huge(pmd_t pmd)
++{
++	return (pmd_val(pmd) & _PAGE_HUGE) != 0;
++}
++
++int pud_huge(pud_t pud)
++{
++	return (pud_val(pud) & _PAGE_HUGE) != 0;
++}
++
++uint64_t pmd_to_entrylo(unsigned long pmd_val)
++{
++	uint64_t val;
++	/* PMD as PTE. Must be huge page */
++	if (!pmd_huge(__pmd(pmd_val)))
++		panic("%s", __func__);
++
++	val = pmd_val ^ _PAGE_HUGE;
++	val |= ((val & _PAGE_HGLOBAL) >>
++		(_PAGE_HGLOBAL_SHIFT - _PAGE_GLOBAL_SHIFT));
++
++	return val;
++}
+diff --git a/arch/loongarch/mm/init.c b/arch/loongarch/mm/init.c
+new file mode 100644
+index 000000000000..afd6634ce171
+--- /dev/null
++++ b/arch/loongarch/mm/init.c
+@@ -0,0 +1,165 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/init.h>
++#include <linux/export.h>
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/smp.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/pagemap.h>
++#include <linux/memblock.h>
++#include <linux/memremap.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/highmem.h>
++#include <linux/swap.h>
++#include <linux/proc_fs.h>
++#include <linux/pfn.h>
++#include <linux/hardirq.h>
++#include <linux/gfp.h>
++#include <linux/initrd.h>
++#include <linux/mmzone.h>
++
++#include <asm/asm-offsets.h>
++#include <asm/bootinfo.h>
++#include <asm/cpu.h>
++#include <asm/dma.h>
++#include <asm/mmu_context.h>
++#include <asm/sections.h>
++#include <asm/pgtable.h>
++#include <asm/pgalloc.h>
++#include <asm/tlb.h>
++
++/*
++ * We have up to 8 empty zeroed pages so we can map one of the right colour
++ * when needed.	 Since page is never written to after the initialization we
++ * don't have to care about aliases on other CPUs.
++ */
++unsigned long empty_zero_page, zero_page_mask;
++EXPORT_SYMBOL_GPL(empty_zero_page);
++EXPORT_SYMBOL(zero_page_mask);
++
++void setup_zero_pages(void)
++{
++	unsigned int order, i;
++	struct page *page;
++
++	order = 0;
++
++	empty_zero_page = __get_free_pages(GFP_KERNEL | __GFP_ZERO, order);
++	if (!empty_zero_page)
++		panic("Oh boy, that early out of memory?");
++
++	page = virt_to_page((void *)empty_zero_page);
++	split_page(page, order);
++	for (i = 0; i < (1 << order); i++, page++)
++		mark_page_reserved(page);
++
++	zero_page_mask = ((PAGE_SIZE << order) - 1) & PAGE_MASK;
++}
++
++void copy_user_highpage(struct page *to, struct page *from,
++	unsigned long vaddr, struct vm_area_struct *vma)
++{
++	void *vfrom, *vto;
++
++	vto = kmap_atomic(to);
++	vfrom = kmap_atomic(from);
++	copy_page(vto, vfrom);
++	kunmap_atomic(vfrom);
++	kunmap_atomic(vto);
++	/* Make sure this page is cleared on other CPU's too before using it */
++	smp_wmb();
++}
++
++int __ref page_is_ram(unsigned long pfn)
++{
++	unsigned long addr = PFN_PHYS(pfn);
++
++	return memblock_is_memory(addr) && !memblock_is_reserved(addr);
++}
++
++void __init paging_init(void)
++{
++	unsigned long max_zone_pfns[MAX_NR_ZONES];
++
++#ifdef CONFIG_ZONE_DMA
++	max_zone_pfns[ZONE_DMA] = MAX_DMA_PFN;
++#endif
++#ifdef CONFIG_ZONE_DMA32
++	max_zone_pfns[ZONE_DMA32] = MAX_DMA32_PFN;
++#endif
++	max_zone_pfns[ZONE_NORMAL] = max_low_pfn;
++
++	free_area_init(max_zone_pfns);
++}
++
++void __init mem_init(void)
++{
++	max_mapnr = max_low_pfn;
++	high_memory = (void *) __va(max_low_pfn << PAGE_SHIFT);
++
++	memblock_free_all();
++	setup_zero_pages();	/* Setup zeroed pages.  */
++}
++
++void __ref free_initmem(void)
++{
++	free_initmem_default(POISON_FREE_INITMEM);
++}
++
++#ifdef CONFIG_MEMORY_HOTPLUG
++int arch_add_memory(int nid, u64 start, u64 size, struct mhp_params *params)
++{
++	unsigned long start_pfn = start >> PAGE_SHIFT;
++	unsigned long nr_pages = size >> PAGE_SHIFT;
++	int ret;
++
++	ret = __add_pages(nid, start_pfn, nr_pages, params);
++
++	if (ret)
++		pr_warn("%s: Problem encountered in __add_pages() as ret=%d\n",
++				__func__,  ret);
++
++	return ret;
++}
++
++#ifdef CONFIG_MEMORY_HOTREMOVE
++void arch_remove_memory(u64 start, u64 size, struct vmem_altmap *altmap)
++{
++	unsigned long start_pfn = start >> PAGE_SHIFT;
++	unsigned long nr_pages = size >> PAGE_SHIFT;
++	struct page *page = pfn_to_page(start_pfn);
++
++	/* With altmap the first mapped page is offset from @start */
++	if (altmap)
++		page += vmem_altmap_offset(altmap);
++	__remove_pages(start_pfn, nr_pages, altmap);
++}
++#endif
++#endif
++
++/*
++ * Align swapper_pg_dir in to 64K, allows its address to be loaded
++ * with a single LUI instruction in the TLB handlers.  If we used
++ * __aligned(64K), its size would get rounded up to the alignment
++ * size, and waste space.  So we place it in its own section and align
++ * it in the linker script.
++ */
++pgd_t swapper_pg_dir[_PTRS_PER_PGD] __section(".bss..swapper_pg_dir");
++
++pgd_t invalid_pg_dir[_PTRS_PER_PGD] __page_aligned_bss;
++#ifndef __PAGETABLE_PUD_FOLDED
++pud_t invalid_pud_table[PTRS_PER_PUD] __page_aligned_bss;
++#endif
++#ifndef __PAGETABLE_PMD_FOLDED
++pmd_t invalid_pmd_table[PTRS_PER_PMD] __page_aligned_bss;
++EXPORT_SYMBOL_GPL(invalid_pmd_table);
++#endif
++pte_t invalid_pte_table[PTRS_PER_PTE] __page_aligned_bss;
++EXPORT_SYMBOL(invalid_pte_table);
+diff --git a/arch/loongarch/mm/ioremap.c b/arch/loongarch/mm/ioremap.c
+new file mode 100644
+index 000000000000..73b0980ab6f5
+--- /dev/null
++++ b/arch/loongarch/mm/ioremap.c
+@@ -0,0 +1,27 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#include <asm/io.h>
++
++void __init __iomem *early_ioremap(u64 phys_addr, unsigned long size)
++{
++	return ((void __iomem *)TO_CACHE(phys_addr));
++}
++
++void __init early_iounmap(void __iomem *addr, unsigned long size)
++{
++
++}
++
++void *early_memremap_ro(resource_size_t phys_addr, unsigned long size)
++{
++	return early_memremap(phys_addr, size);
++}
++
++void *early_memremap_prot(resource_size_t phys_addr, unsigned long size,
++		    unsigned long prot_val)
++{
++	return early_memremap(phys_addr, size);
++}
+diff --git a/arch/loongarch/mm/maccess.c b/arch/loongarch/mm/maccess.c
+new file mode 100644
+index 000000000000..58173842c6be
+--- /dev/null
++++ b/arch/loongarch/mm/maccess.c
+@@ -0,0 +1,10 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <linux/uaccess.h>
++#include <linux/kernel.h>
++
++bool copy_from_kernel_nofault_allowed(const void *unsafe_src, size_t size)
++{
++	/* highest bit set means kernel space */
++	return (unsigned long)unsafe_src >> (BITS_PER_LONG - 1);
++}
+diff --git a/arch/loongarch/mm/mmap.c b/arch/loongarch/mm/mmap.c
+new file mode 100644
+index 000000000000..52e40f0ba732
+--- /dev/null
++++ b/arch/loongarch/mm/mmap.c
+@@ -0,0 +1,125 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/compiler.h>
++#include <linux/elf-randomize.h>
++#include <linux/errno.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/export.h>
++#include <linux/personality.h>
++#include <linux/random.h>
++#include <linux/sched/signal.h>
++#include <linux/sched/mm.h>
++
++unsigned long shm_align_mask = PAGE_SIZE - 1;	/* Sane caches */
++EXPORT_SYMBOL(shm_align_mask);
++
++#define COLOUR_ALIGN(addr, pgoff)				\
++	((((addr) + shm_align_mask) & ~shm_align_mask) +	\
++	 (((pgoff) << PAGE_SHIFT) & shm_align_mask))
++
++enum mmap_allocation_direction {UP, DOWN};
++
++static unsigned long arch_get_unmapped_area_common(struct file *filp,
++	unsigned long addr0, unsigned long len, unsigned long pgoff,
++	unsigned long flags, enum mmap_allocation_direction dir)
++{
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma;
++	unsigned long addr = addr0;
++	int do_color_align;
++	struct vm_unmapped_area_info info;
++
++	if (unlikely(len > TASK_SIZE))
++		return -ENOMEM;
++
++	if (flags & MAP_FIXED) {
++		/* Even MAP_FIXED mappings must reside within TASK_SIZE */
++		if (TASK_SIZE - len < addr)
++			return -EINVAL;
++
++		/*
++		 * We do not accept a shared mapping if it would violate
++		 * cache aliasing constraints.
++		 */
++		if ((flags & MAP_SHARED) &&
++		    ((addr - (pgoff << PAGE_SHIFT)) & shm_align_mask))
++			return -EINVAL;
++		return addr;
++	}
++
++	do_color_align = 0;
++	if (filp || (flags & MAP_SHARED))
++		do_color_align = 1;
++
++	/* requesting a specific address */
++	if (addr) {
++		if (do_color_align)
++			addr = COLOUR_ALIGN(addr, pgoff);
++		else
++			addr = PAGE_ALIGN(addr);
++
++		vma = find_vma(mm, addr);
++		if (TASK_SIZE - len >= addr &&
++		    (!vma || addr + len <= vm_start_gap(vma)))
++			return addr;
++	}
++
++	info.length = len;
++	info.align_mask = do_color_align ? (PAGE_MASK & shm_align_mask) : 0;
++	info.align_offset = pgoff << PAGE_SHIFT;
++
++	if (dir == DOWN) {
++		info.flags = VM_UNMAPPED_AREA_TOPDOWN;
++		info.low_limit = PAGE_SIZE;
++		info.high_limit = mm->mmap_base;
++		addr = vm_unmapped_area(&info);
++
++		if (!(addr & ~PAGE_MASK))
++			return addr;
++
++		/*
++		 * A failed mmap() very likely causes application failure,
++		 * so fall back to the bottom-up function here. This scenario
++		 * can happen with large stack limits and large mmap()
++		 * allocations.
++		 */
++	}
++
++	info.flags = 0;
++	info.low_limit = mm->mmap_base;
++	info.high_limit = TASK_SIZE;
++	return vm_unmapped_area(&info);
++}
++
++unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr0,
++	unsigned long len, unsigned long pgoff, unsigned long flags)
++{
++	return arch_get_unmapped_area_common(filp,
++			addr0, len, pgoff, flags, UP);
++}
++
++/*
++ * There is no need to export this but sched.h declares the function as
++ * extern so making it static here results in an error.
++ */
++unsigned long arch_get_unmapped_area_topdown(struct file *filp,
++	unsigned long addr0, unsigned long len, unsigned long pgoff,
++	unsigned long flags)
++{
++	return arch_get_unmapped_area_common(filp,
++			addr0, len, pgoff, flags, DOWN);
++}
++
++int __virt_addr_valid(volatile void *kaddr)
++{
++	unsigned long vaddr = (unsigned long)kaddr;
++
++	if ((vaddr < PAGE_OFFSET) || (vaddr >= vm_map_base))
++		return 0;
++
++	return pfn_valid(PFN_DOWN(virt_to_phys(kaddr)));
++}
++EXPORT_SYMBOL_GPL(__virt_addr_valid);
+diff --git a/arch/loongarch/mm/page.S b/arch/loongarch/mm/page.S
+new file mode 100644
+index 000000000000..ddc78ab33c7b
+--- /dev/null
++++ b/arch/loongarch/mm/page.S
+@@ -0,0 +1,84 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/linkage.h>
++#include <asm/asm.h>
++#include <asm/export.h>
++#include <asm/page.h>
++#include <asm/regdef.h>
++
++	.align 5
++SYM_FUNC_START(clear_page)
++	lu12i.w  t0, 1 << (PAGE_SHIFT - 12)
++	add.d    t0, t0, a0
++1:
++	st.d     zero, a0, 0
++	st.d     zero, a0, 8
++	st.d     zero, a0, 16
++	st.d     zero, a0, 24
++	st.d     zero, a0, 32
++	st.d     zero, a0, 40
++	st.d     zero, a0, 48
++	st.d     zero, a0, 56
++	addi.d   a0,   a0, 128
++	st.d     zero, a0, -64
++	st.d     zero, a0, -56
++	st.d     zero, a0, -48
++	st.d     zero, a0, -40
++	st.d     zero, a0, -32
++	st.d     zero, a0, -24
++	st.d     zero, a0, -16
++	st.d     zero, a0, -8
++	bne      t0,   a0, 1b
++
++	jirl     $r0, ra, 0
++SYM_FUNC_END(clear_page)
++EXPORT_SYMBOL(clear_page)
++
++.align 5
++SYM_FUNC_START(copy_page)
++	lu12i.w  t8, 1 << (PAGE_SHIFT - 12)
++	add.d    t8, t8, a0
++1:
++	ld.d     t0, a1,  0
++	ld.d     t1, a1,  8
++	ld.d     t2, a1,  16
++	ld.d     t3, a1,  24
++	ld.d     t4, a1,  32
++	ld.d     t5, a1,  40
++	ld.d     t6, a1,  48
++	ld.d     t7, a1,  56
++
++	st.d     t0, a0,  0
++	st.d     t1, a0,  8
++	ld.d     t0, a1,  64
++	ld.d     t1, a1,  72
++	st.d     t2, a0,  16
++	st.d     t3, a0,  24
++	ld.d     t2, a1,  80
++	ld.d     t3, a1,  88
++	st.d     t4, a0,  32
++	st.d     t5, a0,  40
++	ld.d     t4, a1,  96
++	ld.d     t5, a1,  104
++	st.d     t6, a0,  48
++	st.d     t7, a0,  56
++	ld.d     t6, a1,  112
++	ld.d     t7, a1,  120
++	addi.d   a0, a0,  128
++	addi.d   a1, a1,  128
++
++	st.d     t0, a0,  -64
++	st.d     t1, a0,  -56
++	st.d     t2, a0,  -48
++	st.d     t3, a0,  -40
++	st.d     t4, a0,  -32
++	st.d     t5, a0,  -24
++	st.d     t6, a0,  -16
++	st.d     t7, a0,  -8
++
++	bne      t8, a0, 1b
++	jirl     $r0, ra, 0
++SYM_FUNC_END(copy_page)
++EXPORT_SYMBOL(copy_page)
+diff --git a/arch/loongarch/mm/pgtable.c b/arch/loongarch/mm/pgtable.c
+new file mode 100644
+index 000000000000..0569647152e9
+--- /dev/null
++++ b/arch/loongarch/mm/pgtable.c
+@@ -0,0 +1,130 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/init.h>
++#include <linux/export.h>
++#include <linux/mm.h>
++#include <asm/pgalloc.h>
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
++
++pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++	pgd_t *ret, *init;
++
++	ret = (pgd_t *) __get_free_pages(GFP_KERNEL, PGD_ORDER);
++	if (ret) {
++		init = pgd_offset(&init_mm, 0UL);
++		pgd_init((unsigned long)ret);
++		memcpy(ret + USER_PTRS_PER_PGD, init + USER_PTRS_PER_PGD,
++		       (PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
++	}
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(pgd_alloc);
++
++void pgd_init(unsigned long page)
++{
++	unsigned long *p, *end;
++	unsigned long entry;
++
++#if !defined(__PAGETABLE_PUD_FOLDED)
++	entry = (unsigned long)invalid_pud_table;
++#elif !defined(__PAGETABLE_PMD_FOLDED)
++	entry = (unsigned long)invalid_pmd_table;
++#else
++	entry = (unsigned long)invalid_pte_table;
++#endif
++
++	p = (unsigned long *) page;
++	end = p + PTRS_PER_PGD;
++
++	do {
++		p[0] = entry;
++		p[1] = entry;
++		p[2] = entry;
++		p[3] = entry;
++		p[4] = entry;
++		p += 8;
++		p[-3] = entry;
++		p[-2] = entry;
++		p[-1] = entry;
++	} while (p != end);
++}
++EXPORT_SYMBOL_GPL(pgd_init);
++
++#ifndef __PAGETABLE_PMD_FOLDED
++void pmd_init(unsigned long addr, unsigned long pagetable)
++{
++	unsigned long *p, *end;
++
++	p = (unsigned long *) addr;
++	end = p + PTRS_PER_PMD;
++
++	do {
++		p[0] = pagetable;
++		p[1] = pagetable;
++		p[2] = pagetable;
++		p[3] = pagetable;
++		p[4] = pagetable;
++		p += 8;
++		p[-3] = pagetable;
++		p[-2] = pagetable;
++		p[-1] = pagetable;
++	} while (p != end);
++}
++EXPORT_SYMBOL_GPL(pmd_init);
++#endif
++
++#ifndef __PAGETABLE_PUD_FOLDED
++void pud_init(unsigned long addr, unsigned long pagetable)
++{
++	unsigned long *p, *end;
++
++	p = (unsigned long *)addr;
++	end = p + PTRS_PER_PUD;
++
++	do {
++		p[0] = pagetable;
++		p[1] = pagetable;
++		p[2] = pagetable;
++		p[3] = pagetable;
++		p[4] = pagetable;
++		p += 8;
++		p[-3] = pagetable;
++		p[-2] = pagetable;
++		p[-1] = pagetable;
++	} while (p != end);
++}
++#endif
++
++pmd_t mk_pmd(struct page *page, pgprot_t prot)
++{
++	pmd_t pmd;
++
++	pmd_val(pmd) = (page_to_pfn(page) << _PFN_SHIFT) | pgprot_val(prot);
++
++	return pmd;
++}
++
++void set_pmd_at(struct mm_struct *mm, unsigned long addr,
++		pmd_t *pmdp, pmd_t pmd)
++{
++	*pmdp = pmd;
++	flush_tlb_all();
++}
++
++void __init pagetable_init(void)
++{
++	/* Initialize the entire pgd.  */
++	pgd_init((unsigned long)swapper_pg_dir);
++	pgd_init((unsigned long)invalid_pg_dir);
++#ifndef __PAGETABLE_PUD_FOLDED
++	pud_init((unsigned long)invalid_pud_table, (unsigned long)invalid_pmd_table);
++#endif
++#ifndef __PAGETABLE_PMD_FOLDED
++	pmd_init((unsigned long)invalid_pmd_table, (unsigned long)invalid_pte_table);
++#endif
++}
+diff --git a/arch/loongarch/mm/tlb.c b/arch/loongarch/mm/tlb.c
+new file mode 100644
+index 000000000000..5201a87937fe
+--- /dev/null
++++ b/arch/loongarch/mm/tlb.c
+@@ -0,0 +1,282 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/smp.h>
++#include <linux/mm.h>
++#include <linux/hugetlb.h>
++#include <linux/export.h>
++
++#include <asm/cpu.h>
++#include <asm/bootinfo.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/tlb.h>
++
++void local_flush_tlb_all(void)
++{
++	invtlb_all(INVTLB_CURRENT_ALL, 0, 0);
++}
++EXPORT_SYMBOL(local_flush_tlb_all);
++
++void local_flush_tlb_user(void)
++{
++	invtlb_all(INVTLB_CURRENT_GFALSE, 0, 0);
++}
++EXPORT_SYMBOL(local_flush_tlb_user);
++
++void local_flush_tlb_kernel(void)
++{
++	invtlb_all(INVTLB_CURRENT_GTRUE, 0, 0);
++}
++EXPORT_SYMBOL(local_flush_tlb_kernel);
++
++/*
++ * All entries common to a mm share an asid. To effectively flush
++ * these entries, we just bump the asid.
++ */
++void local_flush_tlb_mm(struct mm_struct *mm)
++{
++	int cpu;
++
++	preempt_disable();
++
++	cpu = smp_processor_id();
++
++	if (asid_valid(mm, cpu))
++		drop_mmu_context(mm, cpu);
++	else
++		cpumask_clear_cpu(cpu, mm_cpumask(mm));
++
++	preempt_enable();
++}
++
++void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++	unsigned long end)
++{
++	struct mm_struct *mm = vma->vm_mm;
++	int cpu = smp_processor_id();
++
++	if (asid_valid(mm, cpu)) {
++		unsigned long size, flags;
++
++		local_irq_save(flags);
++		start = round_down(start, PAGE_SIZE << 1);
++		end = round_up(end, PAGE_SIZE << 1);
++		size = (end - start) >> (PAGE_SHIFT + 1);
++		if (size <= (current_cpu_data.tlbsizestlbsets ?
++			     current_cpu_data.tlbsize / 8 :
++			     current_cpu_data.tlbsize / 2)) {
++			int asid = cpu_asid(cpu, mm);
++
++			while (start < end) {
++				invtlb(INVTLB_ADDR_GFALSE_AND_ASID, asid, start);
++				start += (PAGE_SIZE << 1);
++			}
++		} else {
++			drop_mmu_context(mm, cpu);
++		}
++		local_irq_restore(flags);
++	} else {
++		cpumask_clear_cpu(cpu, mm_cpumask(mm));
++	}
++}
++
++void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
++{
++	unsigned long size, flags;
++
++	local_irq_save(flags);
++	size = (end - start + (PAGE_SIZE - 1)) >> PAGE_SHIFT;
++	size = (size + 1) >> 1;
++	if (size <= (current_cpu_data.tlbsizestlbsets ?
++		     current_cpu_data.tlbsize / 8 :
++		     current_cpu_data.tlbsize / 2)) {
++
++		start &= (PAGE_MASK << 1);
++		end += ((PAGE_SIZE << 1) - 1);
++		end &= (PAGE_MASK << 1);
++
++		while (start < end) {
++			invtlb_addr(INVTLB_ADDR_GTRUE_OR_ASID, 0, start);
++			start += (PAGE_SIZE << 1);
++		}
++	} else {
++		local_flush_tlb_kernel();
++	}
++	local_irq_restore(flags);
++}
++
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
++{
++	int cpu = smp_processor_id();
++
++	if (asid_valid(vma->vm_mm, cpu)) {
++		int newpid;
++
++		newpid = cpu_asid(cpu, vma->vm_mm);
++		page &= (PAGE_MASK << 1);
++		invtlb(INVTLB_ADDR_GFALSE_AND_ASID, newpid, page);
++	} else {
++		cpumask_clear_cpu(cpu, mm_cpumask(vma->vm_mm));
++	}
++}
++
++/*
++ * This one is only used for pages with the global bit set so we don't care
++ * much about the ASID.
++ */
++void local_flush_tlb_one(unsigned long page)
++{
++	page &= (PAGE_MASK << 1);
++	invtlb_addr(INVTLB_ADDR_GTRUE_OR_ASID, 0, page);
++}
++
++static void __update_hugetlb(struct vm_area_struct *vma, unsigned long address, pte_t *ptep)
++{
++#ifdef CONFIG_HUGETLB_PAGE
++	int idx;
++	unsigned long lo;
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	address &= (PAGE_MASK << 1);
++	write_csr_entryhi(address);
++	tlb_probe();
++	idx = read_csr_tlbidx();
++	write_csr_pagesize(PS_HUGE_SIZE);
++	lo = pmd_to_entrylo(pte_val(*ptep));
++	write_csr_entrylo0(lo);
++	write_csr_entrylo1(lo + (HPAGE_SIZE >> 1));
++
++	if (idx < 0)
++		tlb_write_random();
++	else
++		tlb_write_indexed();
++	write_csr_pagesize(PS_DEFAULT_SIZE);
++
++	local_irq_restore(flags);
++#endif
++}
++
++void __update_tlb(struct vm_area_struct *vma, unsigned long address, pte_t *ptep)
++{
++	int idx;
++	unsigned long flags;
++
++	/*
++	 * Handle debugger faulting in for debugee.
++	 */
++	if (current->active_mm != vma->vm_mm)
 +		return;
 +
-+	efi_bs_call(install_configuration_table, &screen_info_guid, NULL);
-+	efi_bs_call(free_pool, si);
++	if (pte_val(*ptep) & _PAGE_HUGE) {
++		__update_hugetlb(vma, address, ptep);
++		return;
++	}
++
++	local_irq_save(flags);
++
++	if ((unsigned long)ptep & sizeof(pte_t))
++		ptep--;
++
++	address &= (PAGE_MASK << 1);
++	write_csr_entryhi(address);
++	tlb_probe();
++	idx = read_csr_tlbidx();
++	write_csr_pagesize(PS_DEFAULT_SIZE);
++	write_csr_entrylo0(pte_val(*ptep++));
++	write_csr_entrylo1(pte_val(*ptep));
++	if (idx < 0)
++		tlb_write_random();
++	else
++		tlb_write_indexed();
++
++	local_irq_restore(flags);
 +}
 +
-+efi_status_t check_platform_features(void)
++static void setup_ptwalker(void)
 +{
-+	/* Config Direct Mapping */
-+	csr_writeq(CSR_DMW0_INIT, LOONGARCH_CSR_DMWIN0);
-+	csr_writeq(CSR_DMW1_INIT, LOONGARCH_CSR_DMWIN1);
++	unsigned long pwctl0, pwctl1;
++	unsigned long pgd_i = 0, pgd_w = 0;
++	unsigned long pud_i = 0, pud_w = 0;
++	unsigned long pmd_i = 0, pmd_w = 0;
++	unsigned long pte_i = 0, pte_w = 0;
 +
-+	return EFI_SUCCESS;
++	pgd_i = PGDIR_SHIFT;
++	pgd_w = PAGE_SHIFT - 3;
++#if CONFIG_PGTABLE_LEVELS > 3
++	pud_i = PUD_SHIFT;
++	pud_w = PAGE_SHIFT - 3;
++#endif
++#if CONFIG_PGTABLE_LEVELS > 2
++	pmd_i = PMD_SHIFT;
++	pmd_w = PAGE_SHIFT - 3;
++#endif
++	pte_i = PAGE_SHIFT;
++	pte_w = PAGE_SHIFT - 3;
++
++	pwctl0 = pte_i | pte_w << 5 | pmd_i << 10 | pmd_w << 15 | pud_i << 20 | pud_w << 25;
++	pwctl1 = pgd_i | pgd_w << 6;
++
++	csr_writeq(pwctl0, LOONGARCH_CSR_PWCTL0);
++	csr_writeq(pwctl1, LOONGARCH_CSR_PWCTL1);
++	csr_writeq((long)swapper_pg_dir, LOONGARCH_CSR_PGDH);
++	csr_writeq((long)invalid_pg_dir, LOONGARCH_CSR_PGDL);
++	csr_writeq((long)smp_processor_id(), LOONGARCH_CSR_TMID);
 +}
 +
-+efi_status_t handle_kernel_image(unsigned long *image_addr,
-+				 unsigned long *image_size,
-+				 unsigned long *reserve_addr,
-+				 unsigned long *reserve_size,
-+				 efi_loaded_image_t *image)
++static void output_pgtable_bits_defines(void)
 +{
-+	efi_status_t status;
-+	unsigned long kernel_addr = 0;
++#define pr_define(fmt, ...)					\
++	pr_debug("#define " fmt, ##__VA_ARGS__)
 +
-+	kernel_addr = (unsigned long)&kernel_offset - kernel_offset;
++	pr_debug("#include <asm/asm.h>\n");
++	pr_debug("#include <asm/regdef.h>\n");
++	pr_debug("\n");
 +
-+	status = efi_relocate_kernel(&kernel_addr, kernel_fsize, kernel_asize,
-+				     PHYSADDR(VMLINUX_LOAD_ADDRESS), SZ_2M, 0x0);
-+
-+	*image_addr = kernel_addr;
-+	*image_size = kernel_asize;
-+
-+	return status;
++	pr_define("_PAGE_VALID_SHIFT %d\n", _PAGE_VALID_SHIFT);
++	pr_define("_PAGE_DIRTY_SHIFT %d\n", _PAGE_DIRTY_SHIFT);
++	pr_define("_PAGE_HUGE_SHIFT %d\n", _PAGE_HUGE_SHIFT);
++	pr_define("_PAGE_GLOBAL_SHIFT %d\n", _PAGE_GLOBAL_SHIFT);
++	pr_define("_PAGE_PRESENT_SHIFT %d\n", _PAGE_PRESENT_SHIFT);
++	pr_define("_PAGE_WRITE_SHIFT %d\n", _PAGE_WRITE_SHIFT);
++	pr_define("_PAGE_NO_READ_SHIFT %d\n", _PAGE_NO_READ_SHIFT);
++	pr_define("_PAGE_NO_EXEC_SHIFT %d\n", _PAGE_NO_EXEC_SHIFT);
++	pr_define("_PFN_SHIFT %d\n", _PFN_SHIFT);
++	pr_debug("\n");
 +}
 +
-+void __noreturn efi_enter_kernel(unsigned long entrypoint, unsigned long fdt, unsigned long fdt_size)
++void setup_tlb_handler(void)
 +{
-+	kernel_entry_t real_kernel_entry;
++	static int run_once = 0;
 +
-+	real_kernel_entry = (kernel_entry_t)
-+		((unsigned long)&kernel_entry - entrypoint + VMLINUX_LOAD_ADDRESS);
++	setup_ptwalker();
++	output_pgtable_bits_defines();
 +
-+	real_kernel_entry(true, fdt);
++	/* The tlb handlers are generated only once */
++	if (!run_once) {
++		memcpy((void *)tlbrentry, handle_tlb_refill, 0x80);
++		local_flush_icache_range(tlbrentry, tlbrentry + 0x80);
++		set_handler(EXCCODE_TLBI * VECSIZE, handle_tlb_load, VECSIZE);
++		set_handler(EXCCODE_TLBL * VECSIZE, handle_tlb_load, VECSIZE);
++		set_handler(EXCCODE_TLBS * VECSIZE, handle_tlb_store, VECSIZE);
++		set_handler(EXCCODE_TLBM * VECSIZE, handle_tlb_modify, VECSIZE);
++		set_handler(EXCCODE_TLBNR * VECSIZE, handle_tlb_protect, VECSIZE);
++		set_handler(EXCCODE_TLBNX * VECSIZE, handle_tlb_protect, VECSIZE);
++		set_handler(EXCCODE_TLBPE * VECSIZE, handle_tlb_protect, VECSIZE);
++		run_once++;
++	}
 +}
-diff --git a/include/linux/efi.h b/include/linux/efi.h
-index ccd4d3f91c98..559fabdb6b7d 100644
---- a/include/linux/efi.h
-+++ b/include/linux/efi.h
-@@ -397,6 +397,7 @@ void efi_native_runtime_setup(void);
-  * associated with ConOut
-  */
- #define LINUX_EFI_ARM_SCREEN_INFO_TABLE_GUID	EFI_GUID(0xe03fc20a, 0x85dc, 0x406e,  0xb9, 0x0e, 0x4a, 0xb5, 0x02, 0x37, 0x1d, 0x95)
-+#define LINUX_EFI_LARCH_SCREEN_INFO_TABLE_GUID	EFI_GUID(0x07fd51a6, 0x9532, 0x926f,  0x51, 0xdc, 0x6a, 0x63, 0x60, 0x2f, 0x84, 0xb4)
- #define LINUX_EFI_ARM_CPU_STATE_TABLE_GUID	EFI_GUID(0xef79e4aa, 0x3c3d, 0x4989,  0xb9, 0x02, 0x07, 0xa9, 0x43, 0xe5, 0x50, 0xd2)
- #define LINUX_EFI_LOADER_ENTRY_GUID		EFI_GUID(0x4a67b082, 0x0a4c, 0x41cf,  0xb6, 0xc7, 0x44, 0x0b, 0x29, 0xbb, 0x8c, 0x4f)
- #define LINUX_EFI_RANDOM_SEED_TABLE_GUID	EFI_GUID(0x1ce1e5bc, 0x7ceb, 0x42f2,  0x81, 0xe5, 0x8a, 0xad, 0xf1, 0x80, 0xf5, 0x7b)
-diff --git a/include/linux/pe.h b/include/linux/pe.h
-index daf09ffffe38..f4bb0b6a416d 100644
---- a/include/linux/pe.h
-+++ b/include/linux/pe.h
-@@ -65,6 +65,7 @@
- #define	IMAGE_FILE_MACHINE_SH5		0x01a8
- #define	IMAGE_FILE_MACHINE_THUMB	0x01c2
- #define	IMAGE_FILE_MACHINE_WCEMIPSV2	0x0169
-+#define	IMAGE_FILE_MACHINE_LOONGARCH	0x6264
- 
- /* flags */
- #define IMAGE_FILE_RELOCS_STRIPPED           0x0001
++
++void tlb_init(void)
++{
++	write_csr_pagesize(PS_DEFAULT_SIZE);
++	write_csr_stlbpgsize(PS_DEFAULT_SIZE);
++	write_csr_tlbrefill_pagesize(PS_DEFAULT_SIZE);
++	setup_tlb_handler();
++	local_flush_tlb_all();
++}
+diff --git a/arch/loongarch/mm/tlbex.S b/arch/loongarch/mm/tlbex.S
+new file mode 100644
+index 000000000000..a4ca4e507ee8
+--- /dev/null
++++ b/arch/loongarch/mm/tlbex.S
+@@ -0,0 +1,477 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <asm/asm.h>
++#include <asm/export.h>
++#include <asm/loongarch.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/regdef.h>
++#include <asm/stackframe.h>
++
++	.macro tlb_do_page_fault, write
++	SYM_FUNC_START(tlb_do_page_fault_\write)
++	SAVE_ALL
++	csrrd	a2, LOONGARCH_CSR_BADV
++	move	a0, sp
++	REG_S	a2, sp, PT_BVADDR
++	li.w	a1, \write
++	la.abs	t0, do_page_fault
++	jirl    ra, t0, 0
++	RESTORE_ALL_AND_RET
++	SYM_FUNC_END(tlb_do_page_fault_\write)
++	.endm
++
++	tlb_do_page_fault 0
++	tlb_do_page_fault 1
++
++SYM_FUNC_START(handle_tlb_protect)
++	BACKUP_T0T1
++	SAVE_ALL
++	move	a0, sp
++	move	a1, zero
++	csrrd	a2, LOONGARCH_CSR_BADV
++	REG_S	a2, sp, PT_BVADDR
++	la.abs	t0, do_page_fault
++	jirl    ra, t0, 0
++	RESTORE_ALL_AND_RET
++SYM_FUNC_END(handle_tlb_protect)
++
++SYM_FUNC_START(handle_tlb_load)
++	csrwr	t0, EXCEPTION_KS0
++	csrwr	t1, EXCEPTION_KS1
++	csrwr	ra, EXCEPTION_KS2
++
++	/*
++	 * The vmalloc handling is not in the hotpath.
++	 */
++	csrrd	t0, LOONGARCH_CSR_BADV
++	blt	t0, $r0, vmalloc_load
++	csrrd	t1, LOONGARCH_CSR_PGDL
++
++vmalloc_done_load:
++	/* Get PGD offset in bytes */
++	srli.d	t0, t0, PGDIR_SHIFT
++	andi	t0, t0, (PTRS_PER_PGD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#if CONFIG_PGTABLE_LEVELS > 3
++	csrrd	t0, LOONGARCH_CSR_BADV
++	ld.d	t1, t1, 0
++	srli.d	t0, t0, PUD_SHIFT
++	andi	t0, t0, (PTRS_PER_PUD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#endif
++#if CONFIG_PGTABLE_LEVELS > 2
++	csrrd	t0, LOONGARCH_CSR_BADV
++	ld.d	t1, t1, 0
++	srli.d	t0, t0, PMD_SHIFT
++	andi	t0, t0, (PTRS_PER_PMD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#endif
++	ld.d	ra, t1, 0
++
++	/*
++	 * For huge tlb entries, pmde doesn't contain an address but
++	 * instead contains the tlb pte. Check the PAGE_HUGE bit and
++	 * see if we need to jump to huge tlb processing.
++	 */
++	andi	t0, ra, _PAGE_HUGE
++	bne	t0, $r0, tlb_huge_update_load
++
++	csrrd	t0, LOONGARCH_CSR_BADV
++	srli.d	t0, t0, (PAGE_SHIFT + PTE_ORDER)
++	andi	t0, t0, (PTRS_PER_PTE - 1)
++	slli.d	t0, t0, _PTE_T_LOG2
++	add.d	t1, ra, t0
++
++	ld.d	t0, t1, 0
++	tlbsrch
++
++	srli.d	ra, t0, _PAGE_PRESENT_SHIFT
++	andi	ra, ra, 1
++	beq	ra, $r0, nopage_tlb_load
++
++	ori	t0, t0, _PAGE_VALID
++	st.d	t0, t1, 0
++	ori	t1, t1, 8
++	xori	t1, t1, 8
++	ld.d	t0, t1, 0
++	ld.d	t1, t1, 8
++	csrwr	t0, LOONGARCH_CSR_TLBELO0
++	csrwr	t1, LOONGARCH_CSR_TLBELO1
++	tlbwr
++leave_load:
++	csrrd	t0, EXCEPTION_KS0
++	csrrd	t1, EXCEPTION_KS1
++	csrrd	ra, EXCEPTION_KS2
++	ertn
++#ifdef CONFIG_64BIT
++vmalloc_load:
++	la.abs	t1, swapper_pg_dir
++	b	vmalloc_done_load
++#endif
++
++	/*
++	 * This is the entry point when build_tlbchange_handler_head
++	 * spots a huge page.
++	 */
++tlb_huge_update_load:
++	ld.d	t0, t1, 0
++	srli.d	ra, t0, _PAGE_PRESENT_SHIFT
++	andi	ra, ra, 1
++	beq	ra, $r0, nopage_tlb_load
++	tlbsrch
++
++	ori	t0, t0, _PAGE_VALID
++	st.d	t0, t1, 0
++	addu16i.d	t1, $r0, -(CSR_TLBIDX_EHINV >> 16)
++	addi.d	ra, t1, 0
++	csrxchg	ra, t1, LOONGARCH_CSR_TLBIDX
++	tlbwr
++
++	csrxchg	$r0, t1, LOONGARCH_CSR_TLBIDX
++
++	/*
++	 * A huge PTE describes an area the size of the
++	 * configured huge page size. This is twice the
++	 * of the large TLB entry size we intend to use.
++	 * A TLB entry half the size of the configured
++	 * huge page size is configured into entrylo0
++	 * and entrylo1 to cover the contiguous huge PTE
++	 * address space.
++	 */
++	/* Huge page: Move Global bit */
++	xori	t0, t0, _PAGE_HUGE
++	lu12i.w	t1, _PAGE_HGLOBAL >> 12
++	and	t1, t0, t1
++	srli.d	t1, t1, (_PAGE_HGLOBAL_SHIFT - _PAGE_GLOBAL_SHIFT)
++	or	t0, t0, t1
++
++	addi.d	ra, t0, 0
++	csrwr	t0, LOONGARCH_CSR_TLBELO0
++	addi.d	t0, ra, 0
++
++	/* Convert to entrylo1 */
++	addi.d	t1, $r0, 1
++	slli.d	t1, t1, (HPAGE_SHIFT - 1)
++	add.d	t0, t0, t1
++	csrwr	t0, LOONGARCH_CSR_TLBELO1
++
++	/* Set huge page tlb entry size */
++	addu16i.d	t0, $r0, (PS_MASK >> 16)
++	addu16i.d	t1, $r0, (PS_HUGE_SIZE << (PS_SHIFT - 16))
++	csrxchg		t1, t0, LOONGARCH_CSR_TLBIDX
++
++	tlbfill
++
++	addu16i.d	t0, $r0, (PS_MASK >> 16)
++	addu16i.d	t1, $r0, (PS_DEFAULT_SIZE << (PS_SHIFT - 16))
++	csrxchg		t1, t0, LOONGARCH_CSR_TLBIDX
++
++nopage_tlb_load:
++	csrrd	ra, EXCEPTION_KS2
++	la.abs	t0, tlb_do_page_fault_0
++	jirl	$r0, t0, 0
++SYM_FUNC_END(handle_tlb_load)
++
++SYM_FUNC_START(handle_tlb_store)
++	csrwr	t0, EXCEPTION_KS0
++	csrwr	t1, EXCEPTION_KS1
++	csrwr	ra, EXCEPTION_KS2
++
++	/*
++	 * The vmalloc handling is not in the hotpath.
++	 */
++	csrrd	t0, LOONGARCH_CSR_BADV
++	blt	t0, $r0, vmalloc_store
++	csrrd	t1, LOONGARCH_CSR_PGDL
++
++vmalloc_done_store:
++	/* Get PGD offset in bytes */
++	srli.d	t0, t0, PGDIR_SHIFT
++	andi	t0, t0, (PTRS_PER_PGD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++
++#if CONFIG_PGTABLE_LEVELS > 3
++	csrrd	t0, LOONGARCH_CSR_BADV
++	ld.d	t1, t1, 0
++	srli.d	t0, t0, PUD_SHIFT
++	andi	t0, t0, (PTRS_PER_PUD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#endif
++#if CONFIG_PGTABLE_LEVELS > 2
++	csrrd	t0, LOONGARCH_CSR_BADV
++	ld.d	t1, t1, 0
++	srli.d	t0, t0, PMD_SHIFT
++	andi	t0, t0, (PTRS_PER_PMD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#endif
++	ld.d	ra, t1, 0
++
++	/*
++	 * For huge tlb entries, pmde doesn't contain an address but
++	 * instead contains the tlb pte. Check the PAGE_HUGE bit and
++	 * see if we need to jump to huge tlb processing.
++	 */
++	andi	t0, ra, _PAGE_HUGE
++	bne	t0, $r0, tlb_huge_update_store
++
++	csrrd	t0, LOONGARCH_CSR_BADV
++	srli.d	t0, t0, (PAGE_SHIFT + PTE_ORDER)
++	andi	t0, t0, (PTRS_PER_PTE - 1)
++	slli.d	t0, t0, _PTE_T_LOG2
++	add.d	t1, ra, t0
++
++	ld.d	t0, t1, 0
++	tlbsrch
++
++	srli.d	ra, t0, _PAGE_PRESENT_SHIFT
++	andi	ra, ra, ((_PAGE_PRESENT | _PAGE_WRITE) >> _PAGE_PRESENT_SHIFT)
++	xori	ra, ra, ((_PAGE_PRESENT | _PAGE_WRITE) >> _PAGE_PRESENT_SHIFT)
++	bne	ra, $r0, nopage_tlb_store
++
++	ori	t0, t0, (_PAGE_VALID | _PAGE_DIRTY | _PAGE_MODIFIED)
++	st.d	t0, t1, 0
++
++	ori	t1, t1, 8
++	xori	t1, t1, 8
++	ld.d	t0, t1, 0
++	ld.d	t1, t1, 8
++	csrwr	t0, LOONGARCH_CSR_TLBELO0
++	csrwr	t1, LOONGARCH_CSR_TLBELO1
++	tlbwr
++leave_store:
++	csrrd	t0, EXCEPTION_KS0
++	csrrd	t1, EXCEPTION_KS1
++	csrrd	ra, EXCEPTION_KS2
++	ertn
++#ifdef CONFIG_64BIT
++vmalloc_store:
++	la.abs	t1, swapper_pg_dir
++	b	vmalloc_done_store
++#endif
++
++	/*
++	 * This is the entry point when build_tlbchange_handler_head
++	 * spots a huge page.
++	 */
++tlb_huge_update_store:
++	ld.d	t0, t1, 0
++	srli.d	ra, t0, _PAGE_PRESENT_SHIFT
++	andi	ra, ra, ((_PAGE_PRESENT | _PAGE_WRITE) >> _PAGE_PRESENT_SHIFT)
++	xori	ra, ra, ((_PAGE_PRESENT | _PAGE_WRITE) >> _PAGE_PRESENT_SHIFT)
++	bne	ra, $r0, nopage_tlb_store
++
++	tlbsrch
++	ori	t0, t0, (_PAGE_VALID | _PAGE_DIRTY | _PAGE_MODIFIED)
++
++	st.d	t0, t1, 0
++	addu16i.d	t1, $r0, -(CSR_TLBIDX_EHINV >> 16)
++	addi.d	ra, t1, 0
++	csrxchg	ra, t1, LOONGARCH_CSR_TLBIDX
++	tlbwr
++
++	csrxchg	$r0, t1, LOONGARCH_CSR_TLBIDX
++	/*
++	 * A huge PTE describes an area the size of the
++	 * configured huge page size. This is twice the
++	 * of the large TLB entry size we intend to use.
++	 * A TLB entry half the size of the configured
++	 * huge page size is configured into entrylo0
++	 * and entrylo1 to cover the contiguous huge PTE
++	 * address space.
++	 */
++	/* Huge page: Move Global bit */
++	xori	t0, t0, _PAGE_HUGE
++	lu12i.w	t1, _PAGE_HGLOBAL >> 12
++	and	t1, t0, t1
++	srli.d	t1, t1, (_PAGE_HGLOBAL_SHIFT - _PAGE_GLOBAL_SHIFT)
++	or	t0, t0, t1
++
++	addi.d	ra, t0, 0
++	csrwr	t0, LOONGARCH_CSR_TLBELO0
++	addi.d	t0, ra, 0
++
++	/* Convert to entrylo1 */
++	addi.d	t1, $r0, 1
++	slli.d	t1, t1, (HPAGE_SHIFT - 1)
++	add.d	t0, t0, t1
++	csrwr	t0, LOONGARCH_CSR_TLBELO1
++
++	/* Set huge page tlb entry size */
++	addu16i.d	t0, $r0, (PS_MASK >> 16)
++	addu16i.d	t1, $r0, (PS_HUGE_SIZE << (PS_SHIFT - 16))
++	csrxchg		t1, t0, LOONGARCH_CSR_TLBIDX
++
++	tlbfill
++
++	/* Reset default page size */
++	addu16i.d	t0, $r0, (PS_MASK >> 16)
++	addu16i.d	t1, $r0, (PS_DEFAULT_SIZE << (PS_SHIFT - 16))
++	csrxchg		t1, t0, LOONGARCH_CSR_TLBIDX
++
++nopage_tlb_store:
++	csrrd	ra, EXCEPTION_KS2
++	la.abs	t0, tlb_do_page_fault_1
++	jirl	$r0, t0, 0
++SYM_FUNC_END(handle_tlb_store)
++
++SYM_FUNC_START(handle_tlb_modify)
++	csrwr	t0, EXCEPTION_KS0
++	csrwr	t1, EXCEPTION_KS1
++	csrwr	ra, EXCEPTION_KS2
++
++	/*
++	 * The vmalloc handling is not in the hotpath.
++	 */
++	csrrd	t0, LOONGARCH_CSR_BADV
++	blt	t0, $r0, vmalloc_modify
++	csrrd	t1, LOONGARCH_CSR_PGDL
++
++vmalloc_done_modify:
++	/* Get PGD offset in bytes */
++	srli.d	t0, t0, PGDIR_SHIFT
++	andi	t0, t0, (PTRS_PER_PGD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#if CONFIG_PGTABLE_LEVELS > 3
++	csrrd	t0, LOONGARCH_CSR_BADV
++	ld.d	t1, t1, 0
++	srli.d	t0, t0, PUD_SHIFT
++	andi	t0, t0, (PTRS_PER_PUD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#endif
++#if CONFIG_PGTABLE_LEVELS > 2
++	csrrd	t0, LOONGARCH_CSR_BADV
++	ld.d	t1, t1, 0
++	srli.d	t0, t0, PMD_SHIFT
++	andi	t0, t0, (PTRS_PER_PMD - 1)
++	slli.d	t0, t0, 3
++	add.d	t1, t1, t0
++#endif
++	ld.d	ra, t1, 0
++
++	/*
++	 * For huge tlb entries, pmde doesn't contain an address but
++	 * instead contains the tlb pte. Check the PAGE_HUGE bit and
++	 * see if we need to jump to huge tlb processing.
++	 */
++	andi	t0, ra, _PAGE_HUGE
++	bne	t0, $r0, tlb_huge_update_modify
++
++	csrrd	t0, LOONGARCH_CSR_BADV
++	srli.d	t0, t0, (PAGE_SHIFT + PTE_ORDER)
++	andi	t0, t0, (PTRS_PER_PTE - 1)
++	slli.d	t0, t0, _PTE_T_LOG2
++	add.d	t1, ra, t0
++
++	ld.d	t0, t1, 0
++	tlbsrch
++
++	srli.d	ra, t0, _PAGE_WRITE_SHIFT
++	andi	ra, ra, 1
++	beq	ra, $r0, nopage_tlb_modify
++
++	ori	t0, t0, (_PAGE_VALID | _PAGE_DIRTY | _PAGE_MODIFIED)
++	st.d	t0, t1, 0
++	ori	t1, t1, 8
++	xori	t1, t1, 8
++	ld.d	t0, t1, 0
++	ld.d	t1, t1, 8
++	csrwr	t0, LOONGARCH_CSR_TLBELO0
++	csrwr	t1, LOONGARCH_CSR_TLBELO1
++	tlbwr
++leave_modify:
++	csrrd	t0, EXCEPTION_KS0
++	csrrd	t1, EXCEPTION_KS1
++	csrrd	ra, EXCEPTION_KS2
++	ertn
++#ifdef CONFIG_64BIT
++vmalloc_modify:
++	la.abs  t1, swapper_pg_dir
++	b	vmalloc_done_modify
++#endif
++
++	/*
++	 * This is the entry point when
++	 * build_tlbchange_handler_head spots a huge page.
++	 */
++tlb_huge_update_modify:
++	ld.d	t0, t1, 0
++
++	srli.d	ra, t0, _PAGE_WRITE_SHIFT
++	andi	ra, ra, 1
++	beq	ra, $r0, nopage_tlb_modify
++
++	tlbsrch
++	ori	t0, t0, (_PAGE_VALID | _PAGE_DIRTY | _PAGE_MODIFIED)
++
++	st.d	t0, t1, 0
++	/*
++	 * A huge PTE describes an area the size of the
++	 * configured huge page size. This is twice the
++	 * of the large TLB entry size we intend to use.
++	 * A TLB entry half the size of the configured
++	 * huge page size is configured into entrylo0
++	 * and entrylo1 to cover the contiguous huge PTE
++	 * address space.
++	 */
++	/* Huge page: Move Global bit */
++	xori	t0, t0, _PAGE_HUGE
++	lu12i.w	t1, _PAGE_HGLOBAL >> 12
++	and	t1, t0, t1
++	srli.d	t1, t1, (_PAGE_HGLOBAL_SHIFT - _PAGE_GLOBAL_SHIFT)
++	or	t0, t0, t1
++
++	addi.d	ra, t0, 0
++	csrwr	t0, LOONGARCH_CSR_TLBELO0
++	addi.d	t0, ra, 0
++
++	/* Convert to entrylo1 */
++	addi.d	t1, $r0, 1
++	slli.d	t1, t1, (HPAGE_SHIFT - 1)
++	add.d	t0, t0, t1
++	csrwr	t0, LOONGARCH_CSR_TLBELO1
++
++	/* Set huge page tlb entry size */
++	addu16i.d	t0, $r0, (PS_MASK >> 16)
++	addu16i.d	t1, $r0, (PS_HUGE_SIZE << (PS_SHIFT - 16))
++	csrxchg	t1, t0, LOONGARCH_CSR_TLBIDX
++
++	tlbwr
++
++	/* Reset default page size */
++	addu16i.d	t0, $r0, (PS_MASK >> 16)
++	addu16i.d	t1, $r0, (PS_DEFAULT_SIZE << (PS_SHIFT - 16))
++	csrxchg	t1, t0, LOONGARCH_CSR_TLBIDX
++
++nopage_tlb_modify:
++	csrrd	ra, EXCEPTION_KS2
++	la.abs	t0, tlb_do_page_fault_1
++	jirl	$r0, t0, 0
++SYM_FUNC_END(handle_tlb_modify)
++
++SYM_FUNC_START(handle_tlb_refill)
++	csrwr	t0, LOONGARCH_CSR_TLBRSAVE
++	csrrd	t0, LOONGARCH_CSR_PGD
++	lddir	t0, t0, 3
++#if CONFIG_PGTABLE_LEVELS > 3
++	lddir	t0, t0, 2
++#endif
++#if CONFIG_PGTABLE_LEVELS > 2
++	lddir	t0, t0, 1
++#endif
++	ldpte	t0, 0
++	ldpte	t0, 1
++	tlbfill
++	csrrd	t0, LOONGARCH_CSR_TLBRSAVE
++	ertn
++SYM_FUNC_END(handle_tlb_refill)
 -- 
 2.27.0
 
