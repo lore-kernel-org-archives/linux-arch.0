@@ -2,25 +2,25 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 10DA7C4332F
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D938C4321E
 	for <linux-arch@archiver.kernel.org>; Wed,  1 Jun 2022 10:05:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1350687AbiFAKFg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 1 Jun 2022 06:05:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40614 "EHLO
+        id S1351684AbiFAKFi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 1 Jun 2022 06:05:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45210 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1351914AbiFAKFA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jun 2022 06:05:00 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1E1C950E2B;
-        Wed,  1 Jun 2022 03:03:54 -0700 (PDT)
+        with ESMTP id S1352006AbiFAKFT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jun 2022 06:05:19 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 343A3101FD;
+        Wed,  1 Jun 2022 03:05:17 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 9C08460C64;
-        Wed,  1 Jun 2022 10:03:53 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 32B07C385A5;
-        Wed,  1 Jun 2022 10:03:47 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id AF979B81747;
+        Wed,  1 Jun 2022 10:05:15 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 46D0CC385A5;
+        Wed,  1 Jun 2022 10:05:09 +0000 (UTC)
 From:   Huacai Chen <chenhuacai@loongson.cn>
 To:     Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@kernel.org>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -38,9 +38,9 @@ Cc:     linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
         Stephen Rothwell <sfr@canb.auug.org.au>,
         Huacai Chen <chenhuacai@loongson.cn>,
         WANG Xuerui <git@xen0n.name>
-Subject: [PATCH V12 15/24] LoongArch: Add system call support
-Date:   Wed,  1 Jun 2022 17:59:56 +0800
-Message-Id: <20220601100005.2989022-16-chenhuacai@loongson.cn>
+Subject: [PATCH V12 20/24] LoongArch: Add VDSO and VSYSCALL support
+Date:   Wed,  1 Jun 2022 18:00:01 +0800
+Message-Id: <20220601100005.2989022-21-chenhuacai@loongson.cn>
 X-Mailer: git-send-email 2.27.0
 In-Reply-To: <20220601100005.2989022-1-chenhuacai@loongson.cn>
 References: <20220601100005.2989022-1-chenhuacai@loongson.cn>
@@ -50,609 +50,759 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add system call support and related uaccess.h for LoongArch.
-
-Q: Why keep _ARCH_WANT_SYS_CLONE definition while there is clone3:
-A: The latest glibc release has some basic support for clone3 but it is
-   not complete. E.g., pthread_create() and spawni() have converted to
-   use clone3 but fork() will still use clone. Moreover, some seccomp
-   related applications can still not work perfectly with clone3. E.g.,
-   Chromium sandbox cannot work at all and there is no solution for it,
-   which is more terrible than the fork() story [1].
-
-[1] https://chromium-review.googlesource.com/c/chromium/src/+/2936184
+Add VDSO and VSYSCALL support (sigreturn, gettimeofday and its friends)
+for LoongArch.
 
 Reviewed-by: WANG Xuerui <git@xen0n.name>
 Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
 ---
- arch/loongarch/include/asm/seccomp.h     |  20 ++
- arch/loongarch/include/asm/syscall.h     |  74 +++++++
- arch/loongarch/include/asm/uaccess.h     | 269 +++++++++++++++++++++++
- arch/loongarch/include/asm/unistd.h      |  11 +
- arch/loongarch/include/uapi/asm/unistd.h |   5 +
- arch/loongarch/kernel/entry.S            |  89 ++++++++
- arch/loongarch/kernel/syscall.c          |  63 ++++++
- 7 files changed, 531 insertions(+)
- create mode 100644 arch/loongarch/include/asm/seccomp.h
- create mode 100644 arch/loongarch/include/asm/syscall.h
- create mode 100644 arch/loongarch/include/asm/uaccess.h
- create mode 100644 arch/loongarch/include/asm/unistd.h
- create mode 100644 arch/loongarch/include/uapi/asm/unistd.h
- create mode 100644 arch/loongarch/kernel/entry.S
- create mode 100644 arch/loongarch/kernel/syscall.c
+ arch/loongarch/include/asm/vdso.h             |  38 +++++
+ arch/loongarch/include/asm/vdso/clocksource.h |   8 +
+ .../loongarch/include/asm/vdso/gettimeofday.h |  99 +++++++++++++
+ arch/loongarch/include/asm/vdso/processor.h   |  14 ++
+ arch/loongarch/include/asm/vdso/vdso.h        |  30 ++++
+ arch/loongarch/include/asm/vdso/vsyscall.h    |  27 ++++
+ arch/loongarch/kernel/time.c                  |   1 +
+ arch/loongarch/kernel/vdso.c                  | 138 ++++++++++++++++++
+ arch/loongarch/vdso/Makefile                  |  96 ++++++++++++
+ arch/loongarch/vdso/elf.S                     |  15 ++
+ arch/loongarch/vdso/gen_vdso_offsets.sh       |  13 ++
+ arch/loongarch/vdso/sigreturn.S               |  24 +++
+ arch/loongarch/vdso/vdso.S                    |  22 +++
+ arch/loongarch/vdso/vdso.lds.S                |  72 +++++++++
+ arch/loongarch/vdso/vgettimeofday.c           |  25 ++++
+ 15 files changed, 622 insertions(+)
+ create mode 100644 arch/loongarch/include/asm/vdso.h
+ create mode 100644 arch/loongarch/include/asm/vdso/clocksource.h
+ create mode 100644 arch/loongarch/include/asm/vdso/gettimeofday.h
+ create mode 100644 arch/loongarch/include/asm/vdso/processor.h
+ create mode 100644 arch/loongarch/include/asm/vdso/vdso.h
+ create mode 100644 arch/loongarch/include/asm/vdso/vsyscall.h
+ create mode 100644 arch/loongarch/kernel/vdso.c
+ create mode 100644 arch/loongarch/vdso/Makefile
+ create mode 100644 arch/loongarch/vdso/elf.S
+ create mode 100755 arch/loongarch/vdso/gen_vdso_offsets.sh
+ create mode 100644 arch/loongarch/vdso/sigreturn.S
+ create mode 100644 arch/loongarch/vdso/vdso.S
+ create mode 100644 arch/loongarch/vdso/vdso.lds.S
+ create mode 100644 arch/loongarch/vdso/vgettimeofday.c
 
-diff --git a/arch/loongarch/include/asm/seccomp.h b/arch/loongarch/include/asm/seccomp.h
+diff --git a/arch/loongarch/include/asm/vdso.h b/arch/loongarch/include/asm/vdso.h
 new file mode 100644
-index 000000000000..31d6ab42e43e
+index 000000000000..8f8a0f9a4953
 --- /dev/null
-+++ b/arch/loongarch/include/asm/seccomp.h
-@@ -0,0 +1,20 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef _ASM_SECCOMP_H
-+#define _ASM_SECCOMP_H
-+
-+#include <asm/unistd.h>
-+
-+#include <asm-generic/seccomp.h>
-+
-+#ifdef CONFIG_32BIT
-+# define SECCOMP_ARCH_NATIVE		AUDIT_ARCH_LOONGARCH32
-+# define SECCOMP_ARCH_NATIVE_NR		NR_syscalls
-+# define SECCOMP_ARCH_NATIVE_NAME	"loongarch32"
-+#else
-+# define SECCOMP_ARCH_NATIVE		AUDIT_ARCH_LOONGARCH64
-+# define SECCOMP_ARCH_NATIVE_NR		NR_syscalls
-+# define SECCOMP_ARCH_NATIVE_NAME	"loongarch64"
-+#endif
-+
-+#endif /* _ASM_SECCOMP_H */
-diff --git a/arch/loongarch/include/asm/syscall.h b/arch/loongarch/include/asm/syscall.h
-new file mode 100644
-index 000000000000..e286dc58476e
---- /dev/null
-+++ b/arch/loongarch/include/asm/syscall.h
-@@ -0,0 +1,74 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
-+/*
-+ * Author: Hanlu Li <lihanlu@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+
-+#ifndef __ASM_LOONGARCH_SYSCALL_H
-+#define __ASM_LOONGARCH_SYSCALL_H
-+
-+#include <linux/compiler.h>
-+#include <uapi/linux/audit.h>
-+#include <linux/elf-em.h>
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/uaccess.h>
-+#include <asm/ptrace.h>
-+#include <asm/unistd.h>
-+
-+extern void *sys_call_table[];
-+
-+static inline long syscall_get_nr(struct task_struct *task,
-+				  struct pt_regs *regs)
-+{
-+	return regs->regs[11];
-+}
-+
-+static inline void syscall_rollback(struct task_struct *task,
-+				    struct pt_regs *regs)
-+{
-+        regs->regs[4] = regs->orig_a0;
-+}
-+
-+static inline long syscall_get_error(struct task_struct *task,
-+				     struct pt_regs *regs)
-+{
-+	unsigned long error = regs->regs[4];
-+
-+	return IS_ERR_VALUE(error) ? error : 0;
-+}
-+
-+static inline long syscall_get_return_value(struct task_struct *task,
-+					    struct pt_regs *regs)
-+{
-+	return regs->regs[4];
-+}
-+
-+static inline void syscall_set_return_value(struct task_struct *task,
-+					    struct pt_regs *regs,
-+					    int error, long val)
-+{
-+	regs->regs[4] = (long) error ? error : val;
-+}
-+
-+static inline void syscall_get_arguments(struct task_struct *task,
-+					 struct pt_regs *regs,
-+					 unsigned long *args)
-+{
-+	args[0] = regs->orig_a0;
-+	memcpy(&args[1], &regs->regs[5], 5 * sizeof(long));
-+}
-+
-+static inline int syscall_get_arch(struct task_struct *task)
-+{
-+	return AUDIT_ARCH_LOONGARCH64;
-+}
-+
-+static inline bool arch_syscall_is_vdso_sigreturn(struct pt_regs *regs)
-+{
-+	return false;
-+}
-+
-+#endif	/* __ASM_LOONGARCH_SYSCALL_H */
-diff --git a/arch/loongarch/include/asm/uaccess.h b/arch/loongarch/include/asm/uaccess.h
-new file mode 100644
-index 000000000000..217c6a3727b1
---- /dev/null
-+++ b/arch/loongarch/include/asm/uaccess.h
-@@ -0,0 +1,269 @@
++++ b/arch/loongarch/include/asm/vdso.h
+@@ -0,0 +1,38 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ *
-+ * Derived from MIPS:
-+ * Copyright (C) 1996, 1997, 1998, 1999, 2000, 03, 04 by Ralf Baechle
-+ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
-+ * Copyright (C) 2007  Maciej W. Rozycki
-+ * Copyright (C) 2014, Imagination Technologies Ltd.
-+ */
-+#ifndef _ASM_UACCESS_H
-+#define _ASM_UACCESS_H
-+
-+#include <linux/kernel.h>
-+#include <linux/string.h>
-+#include <linux/extable.h>
-+#include <asm/pgtable.h>
-+#include <asm-generic/extable.h>
-+#include <asm-generic/access_ok.h>
-+
-+extern u64 __ua_limit;
-+
-+#define __UA_ADDR	".dword"
-+#define __UA_LA		"la.abs"
-+#define __UA_LIMIT	__ua_limit
-+
-+/*
-+ * get_user: - Get a simple variable from user space.
-+ * @x:	 Variable to store result.
-+ * @ptr: Source address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple variable from user space to kernel
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and the result of
-+ * dereferencing @ptr must be assignable to @x without a cast.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ * On error, the variable @x is set to zero.
-+ */
-+#define get_user(x, ptr) \
-+({									\
-+	const __typeof__(*(ptr)) __user *__p = (ptr);			\
-+									\
-+	might_fault();							\
-+	access_ok(__p, sizeof(*__p)) ? __get_user((x), __p) :		\
-+				       ((x) = 0, -EFAULT);		\
-+})
-+
-+/*
-+ * put_user: - Write a simple value into user space.
-+ * @x:	 Value to copy to user space.
-+ * @ptr: Destination address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple value from kernel space to user
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and @x must be assignable
-+ * to the result of dereferencing @ptr.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ */
-+#define put_user(x, ptr) \
-+({									\
-+	__typeof__(*(ptr)) __user *__p = (ptr);				\
-+									\
-+	might_fault();							\
-+	access_ok(__p, sizeof(*__p)) ? __put_user((x), __p) : -EFAULT;	\
-+})
-+
-+/*
-+ * __get_user: - Get a simple variable from user space, with less checking.
-+ * @x:	 Variable to store result.
-+ * @ptr: Source address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple variable from user space to kernel
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and the result of
-+ * dereferencing @ptr must be assignable to @x without a cast.
-+ *
-+ * Caller must check the pointer with access_ok() before calling this
-+ * function.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ * On error, the variable @x is set to zero.
-+ */
-+#define __get_user(x, ptr) \
-+({									\
-+	int __gu_err = 0;						\
-+									\
-+	__chk_user_ptr(ptr);						\
-+	__get_user_common((x), sizeof(*(ptr)), ptr);			\
-+	__gu_err;							\
-+})
-+
-+/*
-+ * __put_user: - Write a simple value into user space, with less checking.
-+ * @x:	 Value to copy to user space.
-+ * @ptr: Destination address, in user space.
-+ *
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-+ *
-+ * This macro copies a single simple value from kernel space to user
-+ * space.  It supports simple types like char and int, but not larger
-+ * data types like structures or arrays.
-+ *
-+ * @ptr must have pointer-to-simple-variable type, and @x must be assignable
-+ * to the result of dereferencing @ptr.
-+ *
-+ * Caller must check the pointer with access_ok() before calling this
-+ * function.
-+ *
-+ * Returns zero on success, or -EFAULT on error.
-+ */
-+#define __put_user(x, ptr) \
-+({									\
-+	int __pu_err = 0;						\
-+	__typeof__(*(ptr)) __pu_val;					\
-+									\
-+	__pu_val = (x);							\
-+	__chk_user_ptr(ptr);						\
-+	__put_user_common(ptr, sizeof(*(ptr)));				\
-+	__pu_err;							\
-+})
-+
-+struct __large_struct { unsigned long buf[100]; };
-+#define __m(x) (*(struct __large_struct __user *)(x))
-+
-+#define __get_user_common(val, size, ptr)				\
-+do {									\
-+	switch (size) {							\
-+	case 1: __get_data_asm(val, "ld.b", ptr); break;		\
-+	case 2: __get_data_asm(val, "ld.h", ptr); break;		\
-+	case 4: __get_data_asm(val, "ld.w", ptr); break;		\
-+	case 8: __get_data_asm(val, "ld.d", ptr); break;		\
-+	default: BUILD_BUG(); break;					\
-+	}								\
-+} while (0)
-+
-+#define __get_kernel_common(val, size, ptr) __get_user_common(val, size, ptr)
-+
-+#define __get_data_asm(val, insn, ptr)					\
-+{									\
-+	long __gu_tmp;							\
-+									\
-+	__asm__ __volatile__(						\
-+	"1:	" insn "	%1, %2				\n"	\
-+	"2:							\n"	\
-+	"	.section .fixup,\"ax\"				\n"	\
-+	"3:	li.w	%0, %3					\n"	\
-+	"	or	%1, $r0, $r0				\n"	\
-+	"	b	2b					\n"	\
-+	"	.previous					\n"	\
-+	"	.section __ex_table,\"a\"			\n"	\
-+	"	"__UA_ADDR "\t1b, 3b				\n"	\
-+	"	.previous					\n"	\
-+	: "+r" (__gu_err), "=r" (__gu_tmp)				\
-+	: "m" (__m(ptr)), "i" (-EFAULT));				\
-+									\
-+	(val) = (__typeof__(*(ptr))) __gu_tmp;				\
-+}
-+
-+#define __put_user_common(ptr, size)					\
-+do {									\
-+	switch (size) {							\
-+	case 1: __put_data_asm("st.b", ptr); break;			\
-+	case 2: __put_data_asm("st.h", ptr); break;			\
-+	case 4: __put_data_asm("st.w", ptr); break;			\
-+	case 8: __put_data_asm("st.d", ptr); break;			\
-+	default: BUILD_BUG(); break;					\
-+	}								\
-+} while (0)
-+
-+#define __put_kernel_common(ptr, size) __put_user_common(ptr, size)
-+
-+#define __put_data_asm(insn, ptr)					\
-+{									\
-+	__asm__ __volatile__(						\
-+	"1:	" insn "	%z2, %1		# __put_user_asm\n"	\
-+	"2:							\n"	\
-+	"	.section	.fixup,\"ax\"			\n"	\
-+	"3:	li.w	%0, %3					\n"	\
-+	"	b	2b					\n"	\
-+	"	.previous					\n"	\
-+	"	.section	__ex_table,\"a\"		\n"	\
-+	"	" __UA_ADDR "	1b, 3b				\n"	\
-+	"	.previous					\n"	\
-+	: "+r" (__pu_err), "=m" (__m(ptr))				\
-+	: "Jr" (__pu_val), "i" (-EFAULT));				\
-+}
-+
-+#define __get_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	int __gu_err = 0;						\
-+									\
-+	__get_kernel_common(*((type *)(dst)), sizeof(type),		\
-+			    (__force type *)(src));			\
-+	if (unlikely(__gu_err))						\
-+		goto err_label;						\
-+} while (0)
-+
-+#define __put_kernel_nofault(dst, src, type, err_label)			\
-+do {									\
-+	type __pu_val;							\
-+	int __pu_err = 0;						\
-+									\
-+	__pu_val = *(__force type *)(src);				\
-+	__put_kernel_common(((type *)(dst)), sizeof(type));		\
-+	if (unlikely(__pu_err))						\
-+		goto err_label;						\
-+} while (0)
-+
-+extern unsigned long __copy_user(void *to, const void *from, __kernel_size_t n);
-+
-+static inline unsigned long __must_check
-+raw_copy_from_user(void *to, const void __user *from, unsigned long n)
-+{
-+	return __copy_user(to, from, n);
-+}
-+
-+static inline unsigned long __must_check
-+raw_copy_to_user(void __user *to, const void *from, unsigned long n)
-+{
-+	return __copy_user(to, from, n);
-+}
-+
-+#define INLINE_COPY_FROM_USER
-+#define INLINE_COPY_TO_USER
-+
-+/*
-+ * __clear_user: - Zero a block of memory in user space, with less checking.
-+ * @addr: Destination address, in user space.
-+ * @size: Number of bytes to zero.
-+ *
-+ * Zero a block of memory in user space.  Caller must check
-+ * the specified block with access_ok() before calling this function.
-+ *
-+ * Returns number of bytes that could not be cleared.
-+ * On success, this will be zero.
-+ */
-+extern unsigned long __clear_user(void __user *addr, __kernel_size_t size);
-+
-+#define clear_user(addr, n)						\
-+({									\
-+	void __user *__cl_addr = (addr);				\
-+	unsigned long __cl_size = (n);					\
-+	if (__cl_size && access_ok(__cl_addr, __cl_size))		\
-+		__cl_size = __clear_user(__cl_addr, __cl_size);		\
-+	__cl_size;							\
-+})
-+
-+extern long strncpy_from_user(char *to, const char __user *from, long n);
-+extern long strnlen_user(const char __user *str, long n);
-+
-+#endif /* _ASM_UACCESS_H */
-diff --git a/arch/loongarch/include/asm/unistd.h b/arch/loongarch/include/asm/unistd.h
-new file mode 100644
-index 000000000000..cfddb0116a8c
---- /dev/null
-+++ b/arch/loongarch/include/asm/unistd.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0+ */
-+/*
-+ * Author: Hanlu Li <lihanlu@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ *
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
 + * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
 + */
 +
-+#include <uapi/asm/unistd.h>
++#ifndef __ASM_VDSO_H
++#define __ASM_VDSO_H
 +
-+#define NR_syscalls (__NR_syscalls)
-diff --git a/arch/loongarch/include/uapi/asm/unistd.h b/arch/loongarch/include/uapi/asm/unistd.h
-new file mode 100644
-index 000000000000..fcb668984f03
---- /dev/null
-+++ b/arch/loongarch/include/uapi/asm/unistd.h
-@@ -0,0 +1,5 @@
-+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-+#define __ARCH_WANT_SYS_CLONE
-+#define __ARCH_WANT_SYS_CLONE3
++#include <linux/mm_types.h>
++#include <vdso/datapage.h>
 +
-+#include <asm-generic/unistd.h>
-diff --git a/arch/loongarch/kernel/entry.S b/arch/loongarch/kernel/entry.S
-new file mode 100644
-index 000000000000..d5b3dbcf5425
---- /dev/null
-+++ b/arch/loongarch/kernel/entry.S
-@@ -0,0 +1,89 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++#include <asm/barrier.h>
++
 +/*
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ * struct loongarch_vdso_info - Details of a VDSO image.
++ * @vdso: Pointer to VDSO image (page-aligned).
++ * @size: Size of the VDSO image (page-aligned).
++ * @off_rt_sigreturn: Offset of the rt_sigreturn() trampoline.
++ * @code_mapping: Special mapping structure for vdso code.
++ * @code_mapping: Special mapping structure for vdso data.
 + *
-+ * Derived from MIPS:
-+ * Copyright (C) 1994 - 2000, 2001, 2003 Ralf Baechle
-+ * Copyright (C) 1999, 2000 Silicon Graphics, Inc.
-+ * Copyright (C) 2001 MIPS Technologies, Inc.
++ * This structure contains details of a VDSO image, including the image data
++ * and offsets of certain symbols required by the kernel. It is generated as
++ * part of the VDSO build process, aside from the mapping page array, which is
++ * populated at runtime.
 + */
-+
-+#include <asm/asm.h>
-+#include <asm/asmmacro.h>
-+#include <asm/loongarch.h>
-+#include <asm/regdef.h>
-+#include <asm/stackframe.h>
-+#include <asm/thread_info.h>
-+
-+	.text
-+	.cfi_sections	.debug_frame
-+	.align	5
-+SYM_FUNC_START(handle_syscall)
-+	csrrd	t0, PERCPU_BASE_KS
-+	la.abs	t1, kernelsp
-+	add.d	t1, t1, t0
-+	move	t2, sp
-+	ld.d	sp, t1, 0
-+
-+	addi.d	sp, sp, -PT_SIZE
-+	cfi_st	t2, PT_R3
-+	cfi_rel_offset  sp, PT_R3
-+	st.d	zero, sp, PT_R0
-+	csrrd	t2, LOONGARCH_CSR_PRMD
-+	st.d	t2, sp, PT_PRMD
-+	csrrd	t2, LOONGARCH_CSR_CRMD
-+	st.d	t2, sp, PT_CRMD
-+	csrrd	t2, LOONGARCH_CSR_EUEN
-+	st.d	t2, sp, PT_EUEN
-+	csrrd	t2, LOONGARCH_CSR_ECFG
-+	st.d	t2, sp, PT_ECFG
-+	csrrd	t2, LOONGARCH_CSR_ESTAT
-+	st.d	t2, sp, PT_ESTAT
-+	cfi_st	ra, PT_R1
-+	cfi_st	a0, PT_R4
-+	cfi_st	a1, PT_R5
-+	cfi_st	a2, PT_R6
-+	cfi_st	a3, PT_R7
-+	cfi_st	a4, PT_R8
-+	cfi_st	a5, PT_R9
-+	cfi_st	a6, PT_R10
-+	cfi_st	a7, PT_R11
-+	csrrd	ra, LOONGARCH_CSR_ERA
-+	st.d	ra, sp, PT_ERA
-+	cfi_rel_offset ra, PT_ERA
-+
-+	cfi_st	tp, PT_R2
-+	cfi_st	u0, PT_R21
-+	cfi_st	fp, PT_R22
-+
-+	SAVE_STATIC
-+
-+	move	u0, t0
-+	li.d	tp, ~_THREAD_MASK
-+	and	tp, tp, sp
-+
-+	move	a0, sp
-+	bl	do_syscall
-+
-+	RESTORE_ALL_AND_RET
-+SYM_FUNC_END(handle_syscall)
-+
-+SYM_CODE_START(ret_from_fork)
-+	bl	schedule_tail		# a0 = struct task_struct *prev
-+	move	a0, sp
-+	bl 	syscall_exit_to_user_mode
-+	RESTORE_STATIC
-+	RESTORE_SOME
-+	RESTORE_SP_AND_RET
-+SYM_CODE_END(ret_from_fork)
-+
-+SYM_CODE_START(ret_from_kernel_thread)
-+	bl	schedule_tail		# a0 = struct task_struct *prev
-+	move	a0, s1
-+	jirl	ra, s0, 0
-+	move	a0, sp
-+	bl	syscall_exit_to_user_mode
-+	RESTORE_STATIC
-+	RESTORE_SOME
-+	RESTORE_SP_AND_RET
-+SYM_CODE_END(ret_from_kernel_thread)
-diff --git a/arch/loongarch/kernel/syscall.c b/arch/loongarch/kernel/syscall.c
-new file mode 100644
-index 000000000000..3fc4211db989
---- /dev/null
-+++ b/arch/loongarch/kernel/syscall.c
-@@ -0,0 +1,63 @@
-+// SPDX-License-Identifier: GPL-2.0+
-+/*
-+ * Author: Hanlu Li <lihanlu@loongson.cn>
-+ *         Huacai Chen <chenhuacai@loongson.cn>
-+ *
-+ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
-+ */
-+#include <linux/capability.h>
-+#include <linux/entry-common.h>
-+#include <linux/errno.h>
-+#include <linux/linkage.h>
-+#include <linux/syscalls.h>
-+#include <linux/unistd.h>
-+
-+#include <asm/asm.h>
-+#include <asm/signal.h>
-+#include <asm/switch_to.h>
-+#include <asm-generic/syscalls.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call)	[nr] = (call),
-+
-+SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len, unsigned long,
-+		prot, unsigned long, flags, unsigned long, fd, off_t, offset)
-+{
-+	if (offset & ~PAGE_MASK)
-+		return -EINVAL;
-+
-+	return ksys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
-+}
-+
-+void *sys_call_table[__NR_syscalls] = {
-+	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-+#include <asm/unistd.h>
++struct loongarch_vdso_info {
++	void *vdso;
++	unsigned long size;
++	unsigned long offset_sigreturn;
++	struct vm_special_mapping code_mapping;
++	struct vm_special_mapping data_mapping;
 +};
 +
-+typedef long (*sys_call_fn)(unsigned long, unsigned long,
-+	unsigned long, unsigned long, unsigned long, unsigned long);
++extern struct loongarch_vdso_info vdso_info;
 +
-+void noinstr do_syscall(struct pt_regs *regs)
++#endif /* __ASM_VDSO_H */
+diff --git a/arch/loongarch/include/asm/vdso/clocksource.h b/arch/loongarch/include/asm/vdso/clocksource.h
+new file mode 100644
+index 000000000000..13cd580d406d
+--- /dev/null
++++ b/arch/loongarch/include/asm/vdso/clocksource.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++#ifndef __ASM_VDSOCLOCKSOURCE_H
++#define __ASM_VDSOCLOCKSOURCE_H
++
++#define VDSO_ARCH_CLOCKMODES	\
++	VDSO_CLOCKMODE_CPU
++
++#endif /* __ASM_VDSOCLOCKSOURCE_H */
+diff --git a/arch/loongarch/include/asm/vdso/gettimeofday.h b/arch/loongarch/include/asm/vdso/gettimeofday.h
+new file mode 100644
+index 000000000000..7b2cd37641e2
+--- /dev/null
++++ b/arch/loongarch/include/asm/vdso/gettimeofday.h
+@@ -0,0 +1,99 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ *
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef __ASM_VDSO_GETTIMEOFDAY_H
++#define __ASM_VDSO_GETTIMEOFDAY_H
++
++#ifndef __ASSEMBLY__
++
++#include <asm/unistd.h>
++#include <asm/vdso/vdso.h>
++
++#define VDSO_HAS_CLOCK_GETRES		1
++
++static __always_inline long gettimeofday_fallback(
++				struct __kernel_old_timeval *_tv,
++				struct timezone *_tz)
 +{
-+	unsigned long nr;
-+	sys_call_fn syscall_fn;
++	register struct __kernel_old_timeval *tv asm("a0") = _tv;
++	register struct timezone *tz asm("a1") = _tz;
++	register long nr asm("a7") = __NR_gettimeofday;
++	register long ret asm("a0");
 +
-+	nr = regs->regs[11];
-+	/* Set for syscall restarting */
-+	if (nr < NR_syscalls)
-+		regs->regs[0] = nr + 1;
++	asm volatile(
++	"       syscall 0\n"
++	: "+r" (ret)
++	: "r" (nr), "r" (tv), "r" (tz)
++	: "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
++	  "$t8", "memory");
 +
-+	regs->csr_era += 4;
-+	regs->orig_a0 = regs->regs[4];
-+	regs->regs[4] = -ENOSYS;
++	return ret;
++}
 +
-+	nr = syscall_enter_from_user_mode(regs, nr);
++static __always_inline long clock_gettime_fallback(
++					clockid_t _clkid,
++					struct __kernel_timespec *_ts)
++{
++	register clockid_t clkid asm("a0") = _clkid;
++	register struct __kernel_timespec *ts asm("a1") = _ts;
++	register long nr asm("a7") = __NR_clock_gettime;
++	register long ret asm("a0");
 +
-+	if (nr < NR_syscalls) {
-+		syscall_fn = sys_call_table[nr];
-+		regs->regs[4] = syscall_fn(regs->orig_a0, regs->regs[5], regs->regs[6],
-+					   regs->regs[7], regs->regs[8], regs->regs[9]);
++	asm volatile(
++	"       syscall 0\n"
++	: "+r" (ret)
++	: "r" (nr), "r" (clkid), "r" (ts)
++	: "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
++	  "$t8", "memory");
++
++	return ret;
++}
++
++static __always_inline int clock_getres_fallback(
++					clockid_t _clkid,
++					struct __kernel_timespec *_ts)
++{
++	register clockid_t clkid asm("a0") = _clkid;
++	register struct __kernel_timespec *ts asm("a1") = _ts;
++	register long nr asm("a7") = __NR_clock_getres;
++	register long ret asm("a0");
++
++	asm volatile(
++	"       syscall 0\n"
++	: "+r" (ret)
++	: "r" (nr), "r" (clkid), "r" (ts)
++	: "$t0", "$t1", "$t2", "$t3", "$t4", "$t5", "$t6", "$t7",
++	  "$t8", "memory");
++
++	return ret;
++}
++
++static __always_inline u64 __arch_get_hw_counter(s32 clock_mode,
++						 const struct vdso_data *vd)
++{
++	uint64_t count;
++
++	__asm__ __volatile__(
++	"	rdtime.d %0, $zero\n"
++	: "=r" (count));
++
++	return count;
++}
++
++static inline bool loongarch_vdso_hres_capable(void)
++{
++	return true;
++}
++#define __arch_vdso_hres_capable loongarch_vdso_hres_capable
++
++static __always_inline const struct vdso_data *__arch_get_vdso_data(void)
++{
++	return get_vdso_data();
++}
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_GETTIMEOFDAY_H */
+diff --git a/arch/loongarch/include/asm/vdso/processor.h b/arch/loongarch/include/asm/vdso/processor.h
+new file mode 100644
+index 000000000000..ef5770b343a0
+--- /dev/null
++++ b/arch/loongarch/include/asm/vdso/processor.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#ifndef __ASM_VDSO_PROCESSOR_H
++#define __ASM_VDSO_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#define cpu_relax()	barrier()
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_PROCESSOR_H */
+diff --git a/arch/loongarch/include/asm/vdso/vdso.h b/arch/loongarch/include/asm/vdso/vdso.h
+new file mode 100644
+index 000000000000..5a01643a65b3
+--- /dev/null
++++ b/arch/loongarch/include/asm/vdso/vdso.h
+@@ -0,0 +1,30 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#ifndef __ASSEMBLY__
++
++#include <asm/asm.h>
++#include <asm/page.h>
++
++static inline unsigned long get_vdso_base(void)
++{
++	unsigned long addr;
++
++	__asm__(
++	" la.pcrel %0, _start\n"
++	: "=r" (addr)
++	:
++	:);
++
++	return addr;
++}
++
++static inline const struct vdso_data *get_vdso_data(void)
++{
++	return (const struct vdso_data *)(get_vdso_base() - PAGE_SIZE);
++}
++
++#endif /* __ASSEMBLY__ */
+diff --git a/arch/loongarch/include/asm/vdso/vsyscall.h b/arch/loongarch/include/asm/vdso/vsyscall.h
+new file mode 100644
+index 000000000000..5de615383a22
+--- /dev/null
++++ b/arch/loongarch/include/asm/vdso/vsyscall.h
+@@ -0,0 +1,27 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_VDSO_VSYSCALL_H
++#define __ASM_VDSO_VSYSCALL_H
++
++#ifndef __ASSEMBLY__
++
++#include <linux/timekeeper_internal.h>
++#include <vdso/datapage.h>
++
++extern struct vdso_data *vdso_data;
++
++/*
++ * Update the vDSO data page to keep in sync with kernel timekeeping.
++ */
++static __always_inline
++struct vdso_data *__loongarch_get_k_vdso_data(void)
++{
++	return vdso_data;
++}
++#define __arch_get_k_vdso_data __loongarch_get_k_vdso_data
++
++/* The asm-generic header needs to be included after the definitions above */
++#include <asm-generic/vdso/vsyscall.h>
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __ASM_VDSO_VSYSCALL_H */
+diff --git a/arch/loongarch/kernel/time.c b/arch/loongarch/kernel/time.c
+index b2bb14844f01..fe6823875895 100644
+--- a/arch/loongarch/kernel/time.c
++++ b/arch/loongarch/kernel/time.c
+@@ -183,6 +183,7 @@ static struct clocksource clocksource_const = {
+ 	.read = read_const_counter,
+ 	.mask = CLOCKSOURCE_MASK(64),
+ 	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
++	.vdso_clock_mode = VDSO_CLOCKMODE_CPU,
+ };
+ 
+ int __init constant_clocksource_init(void)
+diff --git a/arch/loongarch/kernel/vdso.c b/arch/loongarch/kernel/vdso.c
+new file mode 100644
+index 000000000000..e20c8ca87473
+--- /dev/null
++++ b/arch/loongarch/kernel/vdso.c
+@@ -0,0 +1,138 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#include <linux/binfmts.h>
++#include <linux/elf.h>
++#include <linux/err.h>
++#include <linux/init.h>
++#include <linux/ioport.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/random.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/timekeeper_internal.h>
++
++#include <asm/page.h>
++#include <asm/vdso.h>
++#include <vdso/helpers.h>
++#include <vdso/vsyscall.h>
++#include <generated/vdso-offsets.h>
++
++extern char vdso_start[], vdso_end[];
++
++/* Kernel-provided data used by the VDSO. */
++static union loongarch_vdso_data {
++	u8 page[PAGE_SIZE];
++	struct vdso_data data[CS_BASES];
++} loongarch_vdso_data __page_aligned_data;
++struct vdso_data *vdso_data = loongarch_vdso_data.data;
++static struct page *vdso_pages[] = { NULL };
++
++static int vdso_mremap(const struct vm_special_mapping *sm, struct vm_area_struct *new_vma)
++{
++	current->mm->context.vdso = (void *)(new_vma->vm_start);
++
++	return 0;
++}
++
++struct loongarch_vdso_info vdso_info = {
++	.vdso = vdso_start,
++	.size = PAGE_SIZE,
++	.code_mapping = {
++		.name = "[vdso]",
++		.pages = vdso_pages,
++		.mremap = vdso_mremap,
++	},
++	.data_mapping = {
++		.name = "[vvar]",
++	},
++	.offset_sigreturn = vdso_offset_sigreturn,
++};
++
++static int __init init_vdso(void)
++{
++	unsigned long i, pfn;
++
++	BUG_ON(!PAGE_ALIGNED(vdso_info.vdso));
++	BUG_ON(!PAGE_ALIGNED(vdso_info.size));
++
++	pfn = __phys_to_pfn(__pa_symbol(vdso_info.vdso));
++	for (i = 0; i < vdso_info.size / PAGE_SIZE; i++)
++		vdso_info.code_mapping.pages[i] = pfn_to_page(pfn + i);
++
++	return 0;
++}
++subsys_initcall(init_vdso);
++
++static unsigned long vdso_base(void)
++{
++	unsigned long base = STACK_TOP;
++
++	if (current->flags & PF_RANDOMIZE) {
++		base += get_random_int() & (VDSO_RANDOMIZE_SIZE - 1);
++		base = PAGE_ALIGN(base);
 +	}
 +
-+	syscall_exit_to_user_mode(regs);
++	return base;
++}
++
++int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++{
++	int ret;
++	unsigned long vvar_size, size, data_addr, vdso_addr;
++	struct mm_struct *mm = current->mm;
++	struct vm_area_struct *vma;
++	struct loongarch_vdso_info *info = current->thread.vdso;
++
++	if (mmap_write_lock_killable(mm))
++		return -EINTR;
++
++	/*
++	 * Determine total area size. This includes the VDSO data itself
++	 * and the data page.
++	 */
++	vvar_size = PAGE_SIZE;
++	size = vvar_size + info->size;
++
++	data_addr = get_unmapped_area(NULL, vdso_base(), size, 0, 0);
++	if (IS_ERR_VALUE(data_addr)) {
++		ret = data_addr;
++		goto out;
++	}
++	vdso_addr = data_addr + PAGE_SIZE;
++
++	vma = _install_special_mapping(mm, data_addr, vvar_size,
++				       VM_READ | VM_MAYREAD,
++				       &info->data_mapping);
++	if (IS_ERR(vma)) {
++		ret = PTR_ERR(vma);
++		goto out;
++	}
++
++	/* Map VDSO data page. */
++	ret = remap_pfn_range(vma, data_addr,
++			      virt_to_phys(vdso_data) >> PAGE_SHIFT,
++			      PAGE_SIZE, PAGE_READONLY);
++	if (ret)
++		goto out;
++
++	/* Map VDSO code page. */
++	vma = _install_special_mapping(mm, vdso_addr, info->size,
++				       VM_READ | VM_EXEC | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC,
++				       &info->code_mapping);
++	if (IS_ERR(vma)) {
++		ret = PTR_ERR(vma);
++		goto out;
++	}
++
++	mm->context.vdso = (void *)vdso_addr;
++	ret = 0;
++
++out:
++	mmap_write_unlock(mm);
++	return ret;
++}
+diff --git a/arch/loongarch/vdso/Makefile b/arch/loongarch/vdso/Makefile
+new file mode 100644
+index 000000000000..6b6e16732c60
+--- /dev/null
++++ b/arch/loongarch/vdso/Makefile
+@@ -0,0 +1,96 @@
++# SPDX-License-Identifier: GPL-2.0
++# Objects to go into the VDSO.
++
++# Absolute relocation type $(ARCH_REL_TYPE_ABS) needs to be defined before
++# the inclusion of generic Makefile.
++ARCH_REL_TYPE_ABS := R_LARCH_32|R_LARCH_64|R_LARCH_MARK_LA|R_LARCH_JUMP_SLOT
++include $(srctree)/lib/vdso/Makefile
++
++obj-vdso-y := elf.o vgettimeofday.o sigreturn.o
++
++# Common compiler flags between ABIs.
++ccflags-vdso := \
++	$(filter -I%,$(KBUILD_CFLAGS)) \
++	$(filter -E%,$(KBUILD_CFLAGS)) \
++	$(filter -march=%,$(KBUILD_CFLAGS)) \
++	$(filter -m%-float,$(KBUILD_CFLAGS)) \
++	-D__VDSO__
++
++ifeq ($(cc-name),clang)
++ccflags-vdso += $(filter --target=%,$(KBUILD_CFLAGS))
++endif
++
++cflags-vdso := $(ccflags-vdso) \
++	$(filter -W%,$(filter-out -Wa$(comma)%,$(KBUILD_CFLAGS))) \
++	-O2 -g -fno-strict-aliasing -fno-common -fno-builtin -G0 \
++	-fno-stack-protector -fno-jump-tables -DDISABLE_BRANCH_PROFILING \
++	$(call cc-option, -fno-asynchronous-unwind-tables) \
++	$(call cc-option, -fno-stack-protector)
++aflags-vdso := $(ccflags-vdso) \
++	-D__ASSEMBLY__ -Wa,-gdwarf-2
++
++ifneq ($(c-gettimeofday-y),)
++  CFLAGS_vgettimeofday.o += -include $(c-gettimeofday-y)
++endif
++
++# VDSO linker flags.
++ldflags-y := -Bsymbolic --no-undefined -soname=linux-vdso.so.1 \
++	$(filter -E%,$(KBUILD_CFLAGS)) -nostdlib -shared \
++	--hash-style=sysv --build-id -T
++
++GCOV_PROFILE := n
++
++#
++# Shared build commands.
++#
++
++quiet_cmd_vdsold_and_vdso_check = LD      $@
++      cmd_vdsold_and_vdso_check = $(cmd_ld); $(cmd_vdso_check)
++
++quiet_cmd_vdsoas_o_S = AS       $@
++      cmd_vdsoas_o_S = $(CC) $(a_flags) -c -o $@ $<
++
++# Generate VDSO offsets using helper script
++gen-vdsosym := $(srctree)/$(src)/gen_vdso_offsets.sh
++quiet_cmd_vdsosym = VDSOSYM $@
++      cmd_vdsosym = $(NM) $< | $(gen-vdsosym) | LC_ALL=C sort > $@
++
++include/generated/vdso-offsets.h: $(obj)/vdso.so.dbg FORCE
++	$(call if_changed,vdsosym)
++
++#
++# Build native VDSO.
++#
++
++native-abi := $(filter -mabi=%,$(KBUILD_CFLAGS))
++
++targets += $(obj-vdso-y)
++targets += vdso.lds vdso.so.dbg vdso.so
++
++obj-vdso := $(obj-vdso-y:%.o=$(obj)/%.o)
++
++$(obj-vdso): KBUILD_CFLAGS := $(cflags-vdso) $(native-abi)
++$(obj-vdso): KBUILD_AFLAGS := $(aflags-vdso) $(native-abi)
++
++$(obj)/vdso.lds: KBUILD_CPPFLAGS := $(ccflags-vdso) $(native-abi)
++
++$(obj)/vdso.so.dbg: $(obj)/vdso.lds $(obj-vdso) FORCE
++	$(call if_changed,vdsold_and_vdso_check)
++
++$(obj)/vdso.so: OBJCOPYFLAGS := -S
++$(obj)/vdso.so: $(obj)/vdso.so.dbg FORCE
++	$(call if_changed,objcopy)
++
++obj-y += vdso.o
++
++$(obj)/vdso.o : $(obj)/vdso.so
++
++# install commands for the unstripped file
++quiet_cmd_vdso_install = INSTALL $@
++      cmd_vdso_install = cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
++
++vdso.so: $(obj)/vdso.so.dbg
++	@mkdir -p $(MODLIB)/vdso
++	$(call cmd,vdso_install)
++
++vdso_install: vdso.so
+diff --git a/arch/loongarch/vdso/elf.S b/arch/loongarch/vdso/elf.S
+new file mode 100644
+index 000000000000..9bb21b9f9583
+--- /dev/null
++++ b/arch/loongarch/vdso/elf.S
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ *
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#include <asm/vdso/vdso.h>
++
++#include <linux/elfnote.h>
++#include <linux/version.h>
++
++ELFNOTE_START(Linux, 0, "a")
++	.long LINUX_VERSION_CODE
++ELFNOTE_END
+diff --git a/arch/loongarch/vdso/gen_vdso_offsets.sh b/arch/loongarch/vdso/gen_vdso_offsets.sh
+new file mode 100755
+index 000000000000..1bb4e12642ff
+--- /dev/null
++++ b/arch/loongarch/vdso/gen_vdso_offsets.sh
+@@ -0,0 +1,13 @@
++#!/bin/sh
++# SPDX-License-Identifier: GPL-2.0
++
++#
++# Derived from RISC-V and ARM64:
++# Author: Will Deacon <will.deacon@arm.com>
++#
++# Match symbols in the DSO that look like VDSO_*; produce a header file
++# of constant offsets into the shared object.
++#
++
++LC_ALL=C sed -n -e 's/^00*/0/' -e \
++'s/^\([0-9a-fA-F]*\) . VDSO_\([a-zA-Z0-9_]*\)$/\#define vdso_offset_\2\t0x\1/p'
+diff --git a/arch/loongarch/vdso/sigreturn.S b/arch/loongarch/vdso/sigreturn.S
+new file mode 100644
+index 000000000000..9cb3c58fad03
+--- /dev/null
++++ b/arch/loongarch/vdso/sigreturn.S
+@@ -0,0 +1,24 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ *
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++#include <asm/vdso/vdso.h>
++
++#include <linux/linkage.h>
++#include <uapi/asm/unistd.h>
++
++#include <asm/regdef.h>
++#include <asm/asm.h>
++
++	.section	.text
++	.cfi_sections	.debug_frame
++
++SYM_FUNC_START(__vdso_rt_sigreturn)
++
++	li.w	a7, __NR_rt_sigreturn
++	syscall	0
++
++SYM_FUNC_END(__vdso_rt_sigreturn)
+diff --git a/arch/loongarch/vdso/vdso.S b/arch/loongarch/vdso/vdso.S
+new file mode 100644
+index 000000000000..46789bade6ff
+--- /dev/null
++++ b/arch/loongarch/vdso/vdso.S
+@@ -0,0 +1,22 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ *
++ * Derived from RISC-V:
++ * Copyright (C) 2014 Regents of the University of California
++ */
++
++#include <linux/init.h>
++#include <linux/linkage.h>
++#include <asm/page.h>
++
++	__PAGE_ALIGNED_DATA
++
++	.globl vdso_start, vdso_end
++	.balign PAGE_SIZE
++vdso_start:
++	.incbin "arch/loongarch/vdso/vdso.so"
++	.balign PAGE_SIZE
++vdso_end:
++
++	.previous
+diff --git a/arch/loongarch/vdso/vdso.lds.S b/arch/loongarch/vdso/vdso.lds.S
+new file mode 100644
+index 000000000000..955f02de4a2d
+--- /dev/null
++++ b/arch/loongarch/vdso/vdso.lds.S
+@@ -0,0 +1,72 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Author: Huacai Chen <chenhuacai@loongson.cn>
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++
++OUTPUT_FORMAT("elf64-loongarch", "elf64-loongarch", "elf64-loongarch")
++
++OUTPUT_ARCH(loongarch)
++
++SECTIONS
++{
++	PROVIDE(_start = .);
++	. = SIZEOF_HEADERS;
++
++	.hash		: { *(.hash) }			:text
++	.gnu.hash	: { *(.gnu.hash) }
++	.dynsym		: { *(.dynsym) }
++	.dynstr		: { *(.dynstr) }
++	.gnu.version	: { *(.gnu.version) }
++	.gnu.version_d	: { *(.gnu.version_d) }
++	.gnu.version_r	: { *(.gnu.version_r) }
++
++	.note		: { *(.note.*) }		:text :note
++
++	.text		: { *(.text*) }			:text
++	PROVIDE (__etext = .);
++	PROVIDE (_etext = .);
++	PROVIDE (etext = .);
++
++	.eh_frame_hdr	: { *(.eh_frame_hdr) }		:text :eh_frame_hdr
++	.eh_frame	: { KEEP (*(.eh_frame)) }	:text
++
++	.dynamic	: { *(.dynamic) }		:text :dynamic
++
++	.rodata		: { *(.rodata*) }		:text
++
++	_end = .;
++	PROVIDE(end = .);
++
++	/DISCARD/	: {
++		*(.gnu.attributes)
++		*(.note.GNU-stack)
++		*(.data .data.* .gnu.linkonce.d.* .sdata*)
++		*(.bss .sbss .dynbss .dynsbss)
++	}
++}
++
++PHDRS
++{
++	text		PT_LOAD		FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
++	dynamic		PT_DYNAMIC	FLAGS(4);		/* PF_R */
++	note		PT_NOTE		FLAGS(4);		/* PF_R */
++	eh_frame_hdr	PT_GNU_EH_FRAME;
++}
++
++VERSION
++{
++	LINUX_5.10 {
++	global:
++		__vdso_clock_getres;
++		__vdso_clock_gettime;
++		__vdso_gettimeofday;
++		__vdso_rt_sigreturn;
++	local: *;
++	};
++}
++
++/*
++ * Make the sigreturn code visible to the kernel.
++ */
++VDSO_sigreturn		= __vdso_rt_sigreturn;
+diff --git a/arch/loongarch/vdso/vgettimeofday.c b/arch/loongarch/vdso/vgettimeofday.c
+new file mode 100644
+index 000000000000..b1f4548dae92
+--- /dev/null
++++ b/arch/loongarch/vdso/vgettimeofday.c
+@@ -0,0 +1,25 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * LoongArch userspace implementations of gettimeofday() and similar.
++ *
++ * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
++ */
++#include <linux/types.h>
++
++int __vdso_clock_gettime(clockid_t clock,
++			 struct __kernel_timespec *ts)
++{
++	return __cvdso_clock_gettime(clock, ts);
++}
++
++int __vdso_gettimeofday(struct __kernel_old_timeval *tv,
++			struct timezone *tz)
++{
++	return __cvdso_gettimeofday(tv, tz);
++}
++
++int __vdso_clock_getres(clockid_t clock_id,
++			struct __kernel_timespec *res)
++{
++	return __cvdso_clock_getres(clock_id, res);
 +}
 -- 
 2.27.0
