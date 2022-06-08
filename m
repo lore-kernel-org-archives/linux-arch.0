@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3710ECCA487
-	for <linux-arch@archiver.kernel.org>; Wed,  8 Jun 2022 14:51:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 43054CCA485
+	for <linux-arch@archiver.kernel.org>; Wed,  8 Jun 2022 14:51:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S242791AbiFHOvI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 8 Jun 2022 10:51:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57934 "EHLO
+        id S242692AbiFHOvG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 8 Jun 2022 10:51:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56890 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242403AbiFHOrJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2022 10:47:09 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9D3F41E04AF;
-        Wed,  8 Jun 2022 07:46:56 -0700 (PDT)
+        with ESMTP id S242144AbiFHOq5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2022 10:46:57 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B96BE1E8E95;
+        Wed,  8 Jun 2022 07:46:48 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=72Sb3LM19KDQn37emviwOKsQWcEROOYn6vEWI6g4O0g=; b=EIStTNEvIWCOhCtVS6i/K7y72k
-        Z2/y8QVivxbrQMzv70rV/xYI1TqoeKXswIk5VnUpw0+4RhgOORQAEqSaWWFcpGN/Ozze52Ug5i0sI
-        TleRT/9YHz6wiGFbGNdRNWgltUsVvJQ/VjZwME/1FoaZpc7a2ndwOU/eD8GtMnigWvtYOtoQbNZbT
-        YAEGoBE1YPDvgKLkfYqGdKYI7530FqsneWIVYclJ5CEXvPE38a9eC2TbKb0SOYjj+vs7v40/yoQE7
-        k4NN68jbT7q4/PIwEPV2vzemhXOOO98Uy9H+Lq6ErhVJIdH1jDJG5a7zOOPhARBO9XvArNFyyMFwC
-        hXw9kkBw==;
+        bh=9yd1uW/Ha4lFVJl9g3NG8xPj6tkgCPp8FbdRM3bEBHk=; b=fc+lbbvKwwN4ZJ7iUz0gOd6Kw1
+        bWZHe3UXTKQ37VnD0JIa/nKeK2NWAC5dW50BJVMiH1O0g/NAQki27BvHuVbo9/MbJioA+l8bQlAeg
+        l4w6/u19HStC/e7hYn9qn64X+GhFM03qFAT/CAxcvj/R6DIolTBBDV6RBWD9rGeBRWsCeD6c+DPTN
+        hfdniSGhPewVHFKY3H9c5xdzdll1zcPQGSamYV1TPyhmdCITIhSKQrv2bNMKa90Crt7jnx4M6v4J0
+        gzF0aqTx0qtLc4aL7xQtl8DpGTt8VZizoHoOYrXPnJORVcj1rNrY3g+XpMSApiCVfrx62z+2ZhBaT
+        W5Yf5pVQ==;
 Received: from dhcp-077-249-017-003.chello.nl ([77.249.17.3] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1nywx6-00ChZo-GT; Wed, 08 Jun 2022 14:46:32 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1nywwz-0066Bc-BE; Wed, 08 Jun 2022 14:46:26 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id EDD48302F4D;
-        Wed,  8 Jun 2022 16:46:23 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id C8428302E11;
+        Wed,  8 Jun 2022 16:46:22 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id C09F920C119B6; Wed,  8 Jun 2022 16:46:18 +0200 (CEST)
-Message-ID: <20220608144518.010587032@infradead.org>
+        id 6647820C10EA3; Wed,  8 Jun 2022 16:46:18 +0200 (CEST)
+Message-ID: <20220608144516.614797628@infradead.org>
 User-Agent: quilt/0.66
-Date:   Wed, 08 Jun 2022 16:27:56 +0200
+Date:   Wed, 08 Jun 2022 16:27:34 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com,
@@ -98,7 +98,7 @@ Cc:     rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com,
         linux-clk@vger.kernel.org, linux-arm-msm@vger.kernel.org,
         linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org,
         rcu@vger.kernel.org
-Subject: [PATCH 33/36] cpuidle,omap3: Use WFI for omap3_pm_idle()
+Subject: [PATCH 11/36] cpuidle,armada: Push RCU-idle into driver
 References: <20220608142723.103523089@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -106,29 +106,58 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-arch_cpu_idle() is a very simple idle interface and exposes only a
-single idle state and is expected to not require RCU and not do any
-tracing/instrumentation.
-
-As such, omap_sram_idle() is not a valid implementation. Replace it
-with the simple (shallow) omap3_do_wfi() call. Leaving the more
-complicated idle states for the cpuidle driver.
+Doing RCU-idle outside the driver, only to then temporarily enable it
+again before going idle is daft.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/arm/mach-omap2/pm34xx.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/cpuidle/cpuidle-mvebu-v7.c |    7 +++++++
+ 1 file changed, 7 insertions(+)
 
---- a/arch/arm/mach-omap2/pm34xx.c
-+++ b/arch/arm/mach-omap2/pm34xx.c
-@@ -294,7 +294,7 @@ static void omap3_pm_idle(void)
- 	if (omap_irq_pending())
- 		return;
+--- a/drivers/cpuidle/cpuidle-mvebu-v7.c
++++ b/drivers/cpuidle/cpuidle-mvebu-v7.c
+@@ -36,7 +36,10 @@ static int mvebu_v7_enter_idle(struct cp
+ 	if (drv->states[index].flags & MVEBU_V7_FLAG_DEEP_IDLE)
+ 		deepidle = true;
  
--	omap_sram_idle();
-+	omap3_do_wfi();
- }
++	rcu_idle_enter();
+ 	ret = mvebu_v7_cpu_suspend(deepidle);
++	rcu_idle_exit();
++
+ 	cpu_pm_exit();
  
- #ifdef CONFIG_SUSPEND
+ 	if (ret)
+@@ -49,6 +52,7 @@ static struct cpuidle_driver armadaxp_id
+ 	.name			= "armada_xp_idle",
+ 	.states[0]		= ARM_CPUIDLE_WFI_STATE,
+ 	.states[1]		= {
++		.flags			= CPUIDLE_FLAG_RCU_IDLE,
+ 		.enter			= mvebu_v7_enter_idle,
+ 		.exit_latency		= 100,
+ 		.power_usage		= 50,
+@@ -57,6 +61,7 @@ static struct cpuidle_driver armadaxp_id
+ 		.desc			= "CPU power down",
+ 	},
+ 	.states[2]		= {
++		.flags			= CPUIDLE_FLAG_RCU_IDLE,
+ 		.enter			= mvebu_v7_enter_idle,
+ 		.exit_latency		= 1000,
+ 		.power_usage		= 5,
+@@ -72,6 +77,7 @@ static struct cpuidle_driver armada370_i
+ 	.name			= "armada_370_idle",
+ 	.states[0]		= ARM_CPUIDLE_WFI_STATE,
+ 	.states[1]		= {
++		.flags			= CPUIDLE_FLAG_RCU_IDLE,
+ 		.enter			= mvebu_v7_enter_idle,
+ 		.exit_latency		= 100,
+ 		.power_usage		= 5,
+@@ -87,6 +93,7 @@ static struct cpuidle_driver armada38x_i
+ 	.name			= "armada_38x_idle",
+ 	.states[0]		= ARM_CPUIDLE_WFI_STATE,
+ 	.states[1]		= {
++		.flags			= CPUIDLE_FLAG_RCU_IDLE,
+ 		.enter			= mvebu_v7_enter_idle,
+ 		.exit_latency		= 10,
+ 		.power_usage		= 5,
 
 
