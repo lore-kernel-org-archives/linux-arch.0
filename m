@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BE3AFCCA486
-	for <linux-arch@archiver.kernel.org>; Wed,  8 Jun 2022 14:47:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5888BCCA48C
+	for <linux-arch@archiver.kernel.org>; Wed,  8 Jun 2022 14:47:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S242463AbiFHOrO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 8 Jun 2022 10:47:14 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57930 "EHLO
+        id S242476AbiFHOrP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 8 Jun 2022 10:47:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57932 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242319AbiFHOrG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2022 10:47:06 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 45114253FE4;
-        Wed,  8 Jun 2022 07:46:53 -0700 (PDT)
+        with ESMTP id S242338AbiFHOrH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2022 10:47:07 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB9F9253306;
+        Wed,  8 Jun 2022 07:46:51 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=OtG2eksypqTPnibPh4fnaffiD2hY+EVznlbJ2kHLrow=; b=s4lrDypR2PUIwq5DKCGjh+oz4W
-        NuxeruzrXNHTK2BcKEnwkioprVWjfJLPkgfJl49NvBc1ScRGAbi6IHwVe76KIbMnxjdkcpmvn5wet
-        3eYWI/FImC55FL2x6Yx/qYueheCP2qt3qSdNl9P9N0LlknHKQ0jWpiRgO/bj5oEcu6Hwa7YVQSbPC
-        22GQFhLji5K7+xrCckZ3sZixDyB/oZzz1dgkIdvOicqFDdspFZ3U79bMwNdWP31xZZ5aSXr9UzD8S
-        K41BG1cgoZT9kf1wqRrFYYr6FX1r+dLgPTuXf4ixipRFDyavYNPibE598o+3OGh6R5+E+6ZEIgdiB
-        GOcGvWHQ==;
+        bh=RgIlqtYjjJdUiI+7wCmxTrS6x1kOK6pzGpl8Q80bmr4=; b=bQitAo3/bhX/7hzGI4T3yibna4
+        0mQZeyH26/9uEQoQ3a1aX3sWfKMfQ781vDvBiZrQN/0MSfReYdabg0FWrYVzcM/S2rUEv6t6LGksa
+        2BQ/eFu8BDIKfzmcsKUyYvSei/0kIkIiswTsPUZTWuqJ9hrWBbHm9564E7DCbUTazE3QYRIUcrjOI
+        aJk5EhnlwCnKYq27DXu1QA/DW1E8sCiSYr9HyBmEjLdFA0HQokSNPY9mowQlBRNW8L1t9Mv4j9GoO
+        6NWPHqFFtnihkP9nxLcUiaNc5tX0iEfigOT06QdTK6KDKX5Ebp0k3LNleCw9IlDGN1ZUtCQIxVuOF
+        W43+1Cjg==;
 Received: from dhcp-077-249-017-003.chello.nl ([77.249.17.3] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1nywwy-00ChW3-Vf; Wed, 08 Jun 2022 14:46:25 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1nywx2-0066CI-F0; Wed, 08 Jun 2022 14:46:30 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id AAD6C302D99;
-        Wed,  8 Jun 2022 16:46:22 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id A3C6C302EF4;
+        Wed,  8 Jun 2022 16:46:23 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 5313720C0F9B9; Wed,  8 Jun 2022 16:46:18 +0200 (CEST)
-Message-ID: <20220608144516.362668063@infradead.org>
+        id 9441920C10EDA; Wed,  8 Jun 2022 16:46:18 +0200 (CEST)
+Message-ID: <20220608144517.380962958@infradead.org>
 User-Agent: quilt/0.66
-Date:   Wed, 08 Jun 2022 16:27:30 +0200
+Date:   Wed, 08 Jun 2022 16:27:46 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com,
@@ -98,7 +98,7 @@ Cc:     rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com,
         linux-clk@vger.kernel.org, linux-arm-msm@vger.kernel.org,
         linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org,
         rcu@vger.kernel.org
-Subject: [PATCH 07/36] cpuidle,tegra: Push RCU-idle into driver
+Subject: [PATCH 23/36] arm64,smp: Remove trace_.*_rcuidle() usage
 References: <20220608142723.103523089@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -106,82 +106,33 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Doing RCU-idle outside the driver, only to then temporarily enable it
-again, at least twice, before going idle is daft.
+Ever since commit d3afc7f12987 ("arm64: Allow IPIs to be handled as
+normal interrupts") this function is called in regular IRQ context.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- drivers/cpuidle/cpuidle-tegra.c |   21 ++++++++++++++++-----
- 1 file changed, 16 insertions(+), 5 deletions(-)
+ arch/arm64/kernel/smp.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
---- a/drivers/cpuidle/cpuidle-tegra.c
-+++ b/drivers/cpuidle/cpuidle-tegra.c
-@@ -180,9 +180,11 @@ static int tegra_cpuidle_state_enter(str
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -865,7 +865,7 @@ static void do_handle_IPI(int ipinr)
+ 	unsigned int cpu = smp_processor_id();
+ 
+ 	if ((unsigned)ipinr < NR_IPI)
+-		trace_ipi_entry_rcuidle(ipi_types[ipinr]);
++		trace_ipi_entry(ipi_types[ipinr]);
+ 
+ 	switch (ipinr) {
+ 	case IPI_RESCHEDULE:
+@@ -914,7 +914,7 @@ static void do_handle_IPI(int ipinr)
  	}
  
- 	local_fiq_disable();
--	RCU_NONIDLE(tegra_pm_set_cpu_in_lp2());
-+	tegra_pm_set_cpu_in_lp2();
- 	cpu_pm_enter();
+ 	if ((unsigned)ipinr < NR_IPI)
+-		trace_ipi_exit_rcuidle(ipi_types[ipinr]);
++		trace_ipi_exit(ipi_types[ipinr]);
+ }
  
-+	rcu_idle_enter();
-+
- 	switch (index) {
- 	case TEGRA_C7:
- 		err = tegra_cpuidle_c7_enter();
-@@ -197,8 +199,10 @@ static int tegra_cpuidle_state_enter(str
- 		break;
- 	}
- 
-+	rcu_idle_exit();
-+
- 	cpu_pm_exit();
--	RCU_NONIDLE(tegra_pm_clear_cpu_in_lp2());
-+	tegra_pm_clear_cpu_in_lp2();
- 	local_fiq_enable();
- 
- 	return err ?: index;
-@@ -226,6 +230,7 @@ static int tegra_cpuidle_enter(struct cp
- 			       struct cpuidle_driver *drv,
- 			       int index)
- {
-+	bool do_rcu = drv->states[index].flags & CPUIDLE_FLAG_RCU_IDLE;
- 	unsigned int cpu = cpu_logical_map(dev->cpu);
- 	int ret;
- 
-@@ -233,9 +238,13 @@ static int tegra_cpuidle_enter(struct cp
- 	if (dev->states_usage[index].disable)
- 		return -1;
- 
--	if (index == TEGRA_C1)
-+	if (index == TEGRA_C1) {
-+		if (do_rcu)
-+			rcu_idle_enter();
- 		ret = arm_cpuidle_simple_enter(dev, drv, index);
--	else
-+		if (do_rcu)
-+			rcu_idle_exit();
-+	} else
- 		ret = tegra_cpuidle_state_enter(dev, index, cpu);
- 
- 	if (ret < 0) {
-@@ -285,7 +294,8 @@ static struct cpuidle_driver tegra_idle_
- 			.exit_latency		= 2000,
- 			.target_residency	= 2200,
- 			.power_usage		= 100,
--			.flags			= CPUIDLE_FLAG_TIMER_STOP,
-+			.flags			= CPUIDLE_FLAG_TIMER_STOP |
-+						  CPUIDLE_FLAG_RCU_IDLE,
- 			.name			= "C7",
- 			.desc			= "CPU core powered off",
- 		},
-@@ -295,6 +305,7 @@ static struct cpuidle_driver tegra_idle_
- 			.target_residency	= 10000,
- 			.power_usage		= 0,
- 			.flags			= CPUIDLE_FLAG_TIMER_STOP |
-+						  CPUIDLE_FLAG_RCU_IDLE   |
- 						  CPUIDLE_FLAG_COUPLED,
- 			.name			= "CC6",
- 			.desc			= "CPU cluster powered off",
+ static irqreturn_t ipi_handler(int irq, void *data)
 
 
