@@ -2,124 +2,105 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D3D15CCA47C
-	for <linux-arch@archiver.kernel.org>; Fri, 10 Jun 2022 16:33:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D825CCA47B
+	for <linux-arch@archiver.kernel.org>; Fri, 10 Jun 2022 18:33:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1349644AbiFJQdy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 10 Jun 2022 12:33:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55816 "EHLO
+        id S1346538AbiFJSdw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 10 Jun 2022 14:33:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38842 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1349688AbiFJQde (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jun 2022 12:33:34 -0400
-Received: from mail-yb1-xb2e.google.com (mail-yb1-xb2e.google.com [IPv6:2607:f8b0:4864:20::b2e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3838257109
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jun 2022 09:33:15 -0700 (PDT)
-Received: by mail-yb1-xb2e.google.com with SMTP id s48so1581454ybi.0
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jun 2022 09:33:15 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=bhv02q67MOioDvIeN4y+a/ybeIh94RUFpBdk0EW721Q=;
-        b=gTSqAdTJjftykkKV3LvI3BgIEdnFPO1tIX2Ja3yrYtQNH7qkYO5md+ofkXUFp0r5AW
-         G6gcWOkM0lg+gYk1xVlJLK69IVjiD2uEY/paaLVpsJSAUJr3ix3CnTM3jTjnVHIGrITZ
-         8qOTeStSyYFo4Xt1uIWq/JcAZJafn7HdU8yhoSTqaMMSwSE/odkOqaPLeyUKWL5sO4fY
-         YvCEOzFgGYsioj0kFMpYKr9Y6KDxyzq/x30hfjgDctRhz4XpICUW+ZTe11KlQpTSKF0Q
-         MmwpTmp6Vj4zz6mr/A1YZvGF2iMEYWObj9GWEHshf9njpmcmcbzr60kAblJRSOIE1DnE
-         +7SA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=bhv02q67MOioDvIeN4y+a/ybeIh94RUFpBdk0EW721Q=;
-        b=eBf2gBNoO7uNvH9rLcoTuF1Mk2fjnhUxPhzjc+n137COhcdncx3MoEOIlnpZ+csIqV
-         GjMlm1NQQKPfyqTKe75anflb9/4PG+ehQkNNlAbgbpcCq+5wMe0a82e2zPXcZhBUaFZL
-         VfMSLovJotWcy358lwEErcgq3NSDRYEAP24bRNdJXAjtl99RT3EqeDPUed7EdGaZxKx5
-         ejQXfctLP0SdNbVmB/RLd6MJm+ZDhGgDmvt9MMdTOECryjHRfRvuWtUVIHUF/12LSR5p
-         aGceXhaEHYhitmfO6iytd0ij5coUvY231XrMXVZ7i0i8mHrjmTI857SoWkpAqT8xMlb9
-         AJDw==
-X-Gm-Message-State: AOAM533iXZcvVy80qIQ9aTMM420q8xVGoYZKoIN9ipQr81Oxca5/talf
-        Ey3i4KUxyWvaico0E3Sz9MhNOuCDux75/HuwYhJjCQ==
-X-Google-Smtp-Source: ABdhPJyJqY4ELta1f6MtdpBF9FmmN+1Swnl8abwrpU7Envy5QN/0+FxiY8CXqHJVU09kzIn9KX5saZ7waQDwoeJx/U8=
-X-Received: by 2002:a05:6902:102c:b0:663:32b8:4b24 with SMTP id
- x12-20020a056902102c00b0066332b84b24mr37019234ybt.1.1654878793763; Fri, 10
- Jun 2022 09:33:13 -0700 (PDT)
+        with ESMTP id S1346477AbiFJSdv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jun 2022 14:33:51 -0400
+Received: from conuserg-12.nifty.com (conuserg-12.nifty.com [210.131.2.79])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 57ACD39141;
+        Fri, 10 Jun 2022 11:33:48 -0700 (PDT)
+Received: from grover.sesame (133-32-177-133.west.xps.vectant.ne.jp [133.32.177.133]) (authenticated)
+        by conuserg-12.nifty.com with ESMTP id 25AIX5TP020882;
+        Sat, 11 Jun 2022 03:33:09 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-12.nifty.com 25AIX5TP020882
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
+        s=dec2015msa; t=1654885990;
+        bh=ebV4+gRnFFeyUFcz5wz1eB/flTewuR25JCfy/TcRt2U=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=lg+lHyyBfli8Rd6bqhWTKnNmE1mIhzuyPRYKkjtgHHTLnFwO0jzJL3wggaX8iu0t5
+         rFhUYu9IfjG0mmDQl1SPIleRHAAAlqWiziwvhRg7GMGApx+DjsGNhOlJCcyYhrSdii
+         5o9RJT7YK0E0Vp+BtKQ8ocHJYr8FXy8Q97zIin/xHK1CyF57hoEfJi5UmvBfZC0pI4
+         CNyfwPAiV2dztxbYqq5ohhm79uIIZfGaA6JCLj/BLrgf7mWuOaB8Ey0F7COoVJd8gw
+         6YdMudxvmCwisssEIbxpM/AjxfQpDnes5smSSKPZplDvlrIrO8up/gpJdl6H4PwN1r
+         +WzkKXrVjBW9Q==
+X-Nifty-SrcIP: [133.32.177.133]
+From:   Masahiro Yamada <masahiroy@kernel.org>
+To:     linux-kbuild@vger.kernel.org
+Cc:     Al Viro <viro@zeniv.linux.org.uk>,
+        Nicolas Pitre <npitre@baylibre.com>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        linux-modules@vger.kernel.org, Ard Biesheuvel <ardb@kernel.org>,
+        Masahiro Yamada <masahiroy@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [PATCH 4/7] ia64,export.h: replace EXPORT_DATA_SYMBOL* with EXPORT_SYMBOL*
+Date:   Sat, 11 Jun 2022 03:32:33 +0900
+Message-Id: <20220610183236.1272216-5-masahiroy@kernel.org>
+X-Mailer: git-send-email 2.32.0
+In-Reply-To: <20220610183236.1272216-1-masahiroy@kernel.org>
+References: <20220610183236.1272216-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-References: <20220610113427.908751-1-alexandr.lobakin@intel.com>
- <20220610113427.908751-3-alexandr.lobakin@intel.com> <YqNMO0ioGzJ1IkoA@smile.fi.intel.com>
- <22042c14bc6a437d9c6b235fbfa32c8a@intel.com>
-In-Reply-To: <22042c14bc6a437d9c6b235fbfa32c8a@intel.com>
-From:   Marco Elver <elver@google.com>
-Date:   Fri, 10 Jun 2022 18:32:36 +0200
-Message-ID: <CANpmjNNZAeMQjzNyXLeKY4cp_m-xJBU1vs7PgT+7_sJwxtEEAg@mail.gmail.com>
-Subject: Re: [PATCH v2 2/6] bitops: always define asm-generic non-atomic bitops
-To:     "Luck, Tony" <tony.luck@intel.com>
-Cc:     Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        "Lobakin, Alexandr" <alexandr.lobakin@intel.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Yury Norov <yury.norov@gmail.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matt Turner <mattst88@gmail.com>,
-        Brian Cain <bcain@quicinc.com>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        Kees Cook <keescook@chromium.org>,
-        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
-        Borislav Petkov <bp@suse.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>,
-        "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>,
-        "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>,
-        "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>,
-        "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>,
-        "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, 10 Jun 2022 at 18:02, Luck, Tony <tony.luck@intel.com> wrote:
->
-> > > +/**
-> > > + * generic_test_bit - Determine whether a bit is set
-> > > + * @nr: bit number to test
-> > > + * @addr: Address to start counting from
-> > > + */
-> >
-> > Shouldn't we add in this or in separate patch a big NOTE to explain that this
-> > is actually atomic and must be kept as a such?
->
-> "atomic" isn't really the right word. The volatile access makes sure that the
-> compiler does the test at the point that the source code asked, and doesn't
-> move it before/after other operations.
+With the previous refactoring, you no longer need to know whether the
+exported symbol is a function or a data.
 
-It's listed in Documentation/atomic_bitops.txt.
+Replace two instances in ia64, then remove EXPORT_DATA_SYMBOL*.
 
-It is as "atomic" as READ_ONCE() or atomic_read() is. Though you are
-right that the "atomicity" of reading one bit is almost a given,
-because we can't really read half a bit.
-The main thing is that the compiler keeps it "atomic" and e.g. doesn't
-fuse the load with another or elide it completely, and then transforms
-the code in concurrency-unfriendly ways.
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
 
-Like READ_ONCE() and friends, test_bit(), unlike non-atomic bitops,
-may also be used to dependency-order some subsequent marked (viz.
-atomic) operations.
+ arch/ia64/kernel/head.S      | 2 +-
+ arch/ia64/kernel/ivt.S       | 2 +-
+ include/asm-generic/export.h | 3 ---
+ 3 files changed, 2 insertions(+), 5 deletions(-)
 
-> But there is no such thing as an atomic test_bit() operation:
->
->         if (test_bit(5, addr)) {
->                 /* some other CPU nukes bit 5 */
->
->                 /* I know it was set when I looked, but now, could be anything */
+diff --git a/arch/ia64/kernel/head.S b/arch/ia64/kernel/head.S
+index f22469f1c1fc..c096500590e9 100644
+--- a/arch/ia64/kernel/head.S
++++ b/arch/ia64/kernel/head.S
+@@ -170,7 +170,7 @@ RestRR:											\
+ 	__PAGE_ALIGNED_DATA
+ 
+ 	.global empty_zero_page
+-EXPORT_DATA_SYMBOL_GPL(empty_zero_page)
++EXPORT_SYMBOL_GPL(empty_zero_page)
+ empty_zero_page:
+ 	.skip PAGE_SIZE
+ 
+diff --git a/arch/ia64/kernel/ivt.S b/arch/ia64/kernel/ivt.S
+index d6d4229b28db..7a418e324d30 100644
+--- a/arch/ia64/kernel/ivt.S
++++ b/arch/ia64/kernel/ivt.S
+@@ -87,7 +87,7 @@
+ 
+ 	.align 32768	// align on 32KB boundary
+ 	.global ia64_ivt
+-	EXPORT_DATA_SYMBOL(ia64_ivt)
++	EXPORT_SYMBOL(ia64_ivt)
+ ia64_ivt:
+ /////////////////////////////////////////////////////////////////////////////////////////
+ // 0x0000 Entry 0 (size 64 bundles) VHPT Translation (8,20,47)
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 0ae9f38a904c..570cd4da7210 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -8,7 +8,4 @@
+  */
+ #include <linux/export.h>
+ 
+-#define EXPORT_DATA_SYMBOL(name)	EXPORT_SYMBOL(name)
+-#define EXPORT_DATA_SYMBOL_GPL(name)	EXPORT_SYMBOL_GPL(name)
+-
+ #endif
+-- 
+2.32.0
 
-The operation itself is atomic, because reading half a bit is
-impossible. Whether or not that bit is modified concurrently is a
-different problem.
-
-Thanks,
--- Marco
