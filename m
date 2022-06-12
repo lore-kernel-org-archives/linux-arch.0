@@ -2,73 +2,83 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DC208C43334
-	for <linux-arch@archiver.kernel.org>; Sat, 11 Jun 2022 19:41:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E136C43334
+	for <linux-arch@archiver.kernel.org>; Sun, 12 Jun 2022 14:47:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231352AbiFKTli (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 11 Jun 2022 15:41:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37784 "EHLO
+        id S233017AbiFLOrw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 12 Jun 2022 10:47:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51752 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231235AbiFKTli (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 11 Jun 2022 15:41:38 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7E1994707D;
-        Sat, 11 Jun 2022 12:41:37 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 3ABF7B80B36;
-        Sat, 11 Jun 2022 19:41:36 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPS id ED202C3411F;
-        Sat, 11 Jun 2022 19:41:34 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1654976495;
-        bh=CYTk1cVGHJo8vEuDKx78gbrU9zxUXMZ9qWdlYssoeOA=;
-        h=Subject:From:In-Reply-To:References:Date:To:Cc:From;
-        b=XBq9omBsiXRkXs7eRsP0GKzGcGoOawc+1uv78G6tf0A7snpB2vIZDVYYsnq1F8vQm
-         +gQWAbLnrBVgLa/hqIFjMiwLmq+k4MLPrPHBSPPREz/nyOE7R/G+nZCwEsTRlE7Yyt
-         ItA2l2T/jIj5RwM3mTJU04RUNz+GeFexrgrJwbmxFhAPL8z47dW+Fl4tZ53X2YtiDm
-         3XZqWmAjKtFZEwcR1Uwh5kY2v5s02FiE7Yw5PEzkPxH+AusDVYriBqXh0WRJa5nrBT
-         rPwuY0wvG0l0srPe03NBOXO3QXpxvmY2ovFcK6GChgcvkJ1oWNZM7iFBY3OeGYLkVl
-         ODMuXBMRB1y9w==
-Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
-        by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id D7680E737F0;
-        Sat, 11 Jun 2022 19:41:34 +0000 (UTC)
+        with ESMTP id S232395AbiFLOrv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jun 2022 10:47:51 -0400
+Received: from mail-lj1-x22f.google.com (mail-lj1-x22f.google.com [IPv6:2a00:1450:4864:20::22f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 81896C08;
+        Sun, 12 Jun 2022 07:47:50 -0700 (PDT)
+Received: by mail-lj1-x22f.google.com with SMTP id b7so3763773ljr.6;
+        Sun, 12 Jun 2022 07:47:50 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
+         :cc;
+        bh=stes9yCmLmnvhemwfBRoM/2A/BSzIcMjiRIJCZR/ru4=;
+        b=A9vLTVwKCgmOsrnnfPm1sR6ZpB9BFoWzwAnoIqUCxBKl+dnilCTqAg9Ezps9OHFCbl
+         9s/K/jr9gvROMAnogdVOGExNyBHF1H0b5LF7g9HXi4GXLEEptTgUZorGKG3nLWjOReP6
+         4ok7ULEoYeH1qvLaPdJ6tJLIfqYvyCBxcJEnv5xwOBUR3jEDeXvo+j5Hc0aLgMTwTxYJ
+         FhnGrDh3FZ1HMUl+sLMRg/nFPHqrBAuXXlGiG4OvmKBu2oC2MzlVpk10SxEMP7fq7+fB
+         7dLFQ5fKRWbipG4koXImxRHxO5byQdxinddEWr5o75JUp44GpkeZScv2YGX5Zh/j8Mse
+         N9nw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
+         :message-id:subject:to:cc;
+        bh=stes9yCmLmnvhemwfBRoM/2A/BSzIcMjiRIJCZR/ru4=;
+        b=AiMKFletnO2xWvo/ZhsDiq14zG5mnStx8ZVoVbO5ymvGXhwO7xlUoBNnCvqVn7bHd+
+         i+UaNDZ/wczl/H6k9/XDHJfnqGGOb3Bo4eIl4V0F2a0fzBQhBDGpLOpro8W9itN0s97F
+         GOCUkNAeAvBf3nQUBZrEc3qIt4moHY/kfUh1kd0K60Wik9S1kCMCqhvSD6ovKcTQ6apS
+         YOderHIPTHB3mSEVirP7Ef9ECa4RYSl9gaS+s4Jg4bZLtl5f5jwfj9qRIqnRE2V7gJvD
+         TDRphjXso3vsB1vi2mDbQt3q+sJDRW/GM/Wg08u4ffvjY5Rp/polija3myDTT3SiV8iQ
+         uMZg==
+X-Gm-Message-State: AOAM530ZfhShc1fyj16Swi9Z4qyxXP8CXBcQrjEBrW9zgTyza2ZQuyMz
+        /oc/k+Iy6xF03xipq3NV2t03XO9Ut/6Cl/zm4hxaqcZmW1WQdA==
+X-Google-Smtp-Source: ABdhPJxhxHcJTCiKVcoZLjWkOkx50wlOn1a/CLNHy8PxEygY0uZv7MV8uZTVUS1bB91/3urU48C1MkSuy9CSP+20/yQ=
+X-Received: by 2002:a2e:888b:0:b0:255:71aa:494e with SMTP id
+ k11-20020a2e888b000000b0025571aa494emr27518804lji.179.1655045268479; Sun, 12
+ Jun 2022 07:47:48 -0700 (PDT)
+MIME-Version: 1.0
+References: <20220611101714.2623823-1-chenhuacai@loongson.cn> <CAHk-=wj9K=wHATkEVWyqZWzP_BP1bXDVtyEJacP6Da66HsVV2A@mail.gmail.com>
+In-Reply-To: <CAHk-=wj9K=wHATkEVWyqZWzP_BP1bXDVtyEJacP6Da66HsVV2A@mail.gmail.com>
+From:   Huacai Chen <chenhuacai@gmail.com>
+Date:   Sun, 12 Jun 2022 22:47:36 +0800
+Message-ID: <CAAhV-H69Hoe+e0VW--sLa7gZeVZuAz4yedPMG508XEGMrgK0wA@mail.gmail.com>
 Subject: Re: [GIT PULL] LoongArch fixes for v5.19-rc2
-From:   pr-tracker-bot@kernel.org
-In-Reply-To: <20220611101714.2623823-1-chenhuacai@loongson.cn>
-References: <20220611101714.2623823-1-chenhuacai@loongson.cn>
-X-PR-Tracked-List-Id: <linux-kernel.vger.kernel.org>
-X-PR-Tracked-Message-Id: <20220611101714.2623823-1-chenhuacai@loongson.cn>
-X-PR-Tracked-Remote: git://git.kernel.org/pub/scm/linux/kernel/git/chenhuacai/linux-loongson.git tags/loongarch-fixes-5.19-1
-X-PR-Tracked-Commit-Id: 5c95fe8b02011c3b69173e0d86aff6d4c2798601
-X-PR-Merge-Tree: torvalds/linux.git
-X-PR-Merge-Refname: refs/heads/master
-X-PR-Merge-Commit-Id: 0678afa6055d14799c1dc1eee47c8025eba56cab
-Message-Id: <165497649487.5229.5344689535046075507.pr-tracker-bot@kernel.org>
-Date:   Sat, 11 Jun 2022 19:41:34 +0000
-To:     Huacai Chen <chenhuacai@loongson.cn>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     Huacai Chen <chenhuacai@loongson.cn>,
         Arnd Bergmann <arnd@arndb.de>,
         Andrew Morton <akpm@linux-foundation.org>,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Huacai Chen <chenhuacai@gmail.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Huacai Chen <chenhuacai@loongson.cn>
+        Jiaxun Yang <jiaxun.yang@flygoat.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The pull request you sent on Sat, 11 Jun 2022 18:17:14 +0800:
+Hi, Linus,
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/chenhuacai/linux-loongson.git tags/loongarch-fixes-5.19-1
+On Sun, Jun 12, 2022 at 3:41 AM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> On Sat, Jun 11, 2022 at 3:15 AM Huacai Chen <chenhuacai@loongson.cn> wrote:
+> >
+> > LoongArch fixes for v5.19-rc2
+>
+> I've pulled this, but please next time add an actual note on what the fixes are.
+>
+> Even if it's something simple like "Fix build errors and a stale
+> comment", which is what I made my merge commit say.
+Thank you for your comments, I will do this in future.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/0678afa6055d14799c1dc1eee47c8025eba56cab
-
-Thank you!
-
--- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/prtracker.html
+Huacai
+>
+>                Linus
