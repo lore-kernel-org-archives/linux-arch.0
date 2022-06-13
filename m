@@ -2,165 +2,120 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6E5A0CCA47B
-	for <linux-arch@archiver.kernel.org>; Mon, 13 Jun 2022 18:49:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5454CCCA47B
+	for <linux-arch@archiver.kernel.org>; Mon, 13 Jun 2022 19:01:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239076AbiFMStB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 13 Jun 2022 14:49:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51986 "EHLO
+        id S1346930AbiFMTBl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 13 Jun 2022 15:01:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48448 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345595AbiFMSsc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jun 2022 14:48:32 -0400
-Received: from netrider.rowland.org (netrider.rowland.org [192.131.102.5])
-        by lindbergh.monkeyblade.net (Postfix) with SMTP id A87926B64F
-        for <linux-arch@vger.kernel.org>; Mon, 13 Jun 2022 08:46:37 -0700 (PDT)
-Received: (qmail 603976 invoked by uid 1000); 13 Jun 2022 11:46:36 -0400
-Date:   Mon, 13 Jun 2022 11:46:36 -0400
-From:   Alan Stern <stern@rowland.harvard.edu>
-To:     Paul =?iso-8859-1?Q?Heidekr=FCger?= <paul.heidekrueger@in.tum.de>
-Cc:     Andrea Parri <parri.andrea@gmail.com>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Marco Elver <elver@google.com>,
-        Charalampos Mainas <charalampos.mainas@gmail.com>,
-        Pramod Bhatotia <pramod.bhatotia@in.tum.de>,
-        Soham Chakraborty <s.s.chakraborty@tudelft.nl>,
-        Martin Fink <martin.fink@in.tum.de>
-Subject: Re: [PATCH] tools/memory-model: Clarify LKMM's limitations in
- litmus-tests.txt
-Message-ID: <Yqdb3CZ8bKtbWZ+z@rowland.harvard.edu>
-References: <20220613122744.373516-1-paul.heidekrueger@in.tum.de>
+        with ESMTP id S1346540AbiFMTAy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jun 2022 15:00:54 -0400
+Received: from mga01.intel.com (mga01.intel.com [192.55.52.88])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 588794D9C1;
+        Mon, 13 Jun 2022 09:26:51 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1655137612; x=1686673612;
+  h=from:to:cc:subject:date:message-id:references:
+   in-reply-to:content-transfer-encoding:mime-version;
+  bh=XxsfHurYfgtl5B8eDXs3NdPaSjArXVczaB+F2Bn9Ek4=;
+  b=HkYwqi5rbxVLCa9DjzarYkrq7QLAZ9qJ+s2gNJJwnWp97qJXWFbwlbvj
+   IgCLX29aH7yIYuWMl01dpUNPIDxsoDHK4/eQASqiKWGDvI7LVFYFOfpoZ
+   g8qKp7GTjIwLLvVwojxp+7wVKL0jJf3q5LYQL07wmecV23KQqc7jHX9mj
+   FEcLj7QyRIoInFaPDChRUQRrILOt9Vq3z6+jiYvoFTjl2qp74Svl0d3kW
+   qsR2JrznwCwY6XBuyr1iQ89ASkG0udTU0SoUX6lbIM6ZwLEMi1NB0RSz8
+   uZYyXaT9sqqRa1ZQkBo7IDws7JCuI55fqO+uj+L+shaJqgZTeOOenbFo3
+   A==;
+X-IronPort-AV: E=McAfee;i="6400,9594,10377"; a="303733996"
+X-IronPort-AV: E=Sophos;i="5.91,297,1647327600"; 
+   d="scan'208";a="303733996"
+Received: from orsmga008.jf.intel.com ([10.7.209.65])
+  by fmsmga101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 13 Jun 2022 09:26:50 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.91,297,1647327600"; 
+   d="scan'208";a="611858233"
+Received: from fmsmsx601.amr.corp.intel.com ([10.18.126.81])
+  by orsmga008.jf.intel.com with ESMTP; 13 Jun 2022 09:26:50 -0700
+Received: from fmsmsx612.amr.corp.intel.com (10.18.126.92) by
+ fmsmsx601.amr.corp.intel.com (10.18.126.81) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2308.27; Mon, 13 Jun 2022 09:26:49 -0700
+Received: from fmsmsx610.amr.corp.intel.com (10.18.126.90) by
+ fmsmsx612.amr.corp.intel.com (10.18.126.92) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2308.27; Mon, 13 Jun 2022 09:26:49 -0700
+Received: from fmsmsx610.amr.corp.intel.com ([10.18.126.90]) by
+ fmsmsx610.amr.corp.intel.com ([10.18.126.90]) with mapi id 15.01.2308.027;
+ Mon, 13 Jun 2022 09:26:49 -0700
+From:   "Luck, Tony" <tony.luck@intel.com>
+To:     "Lobakin, Alexandr" <alexandr.lobakin@intel.com>,
+        Marco Elver <elver@google.com>
+CC:     Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Yury Norov <yury.norov@gmail.com>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Matt Turner <mattst88@gmail.com>,
+        Brian Cain <bcain@quicinc.com>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        "Yoshinori Sato" <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        Kees Cook <keescook@chromium.org>,
+        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
+        Borislav Petkov <bp@suse.de>,
+        "Greg Kroah-Hartman" <gregkh@linuxfoundation.org>,
+        "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>,
+        "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>,
+        "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>,
+        "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>,
+        "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>,
+        "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Subject: RE: [PATCH v2 2/6] bitops: always define asm-generic non-atomic
+ bitops
+Thread-Topic: [PATCH v2 2/6] bitops: always define asm-generic non-atomic
+ bitops
+Thread-Index: AQHYfL4xWJEoq3eTcEeKREBjFjjrHK1JHg2A//+t5kCAAH9LAIAEkeOA//+tDzA=
+Date:   Mon, 13 Jun 2022 16:26:49 +0000
+Message-ID: <c82877aa7cc244f2bf0f65dfb2b617e7@intel.com>
+References: <20220610113427.908751-1-alexandr.lobakin@intel.com>
+ <20220610113427.908751-3-alexandr.lobakin@intel.com>
+ <YqNMO0ioGzJ1IkoA@smile.fi.intel.com>
+ <22042c14bc6a437d9c6b235fbfa32c8a@intel.com>
+ <CANpmjNNZAeMQjzNyXLeKY4cp_m-xJBU1vs7PgT+7_sJwxtEEAg@mail.gmail.com>
+ <20220613141947.1176100-1-alexandr.lobakin@intel.com>
+In-Reply-To: <20220613141947.1176100-1-alexandr.lobakin@intel.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+dlp-product: dlpe-windows
+dlp-reaction: no-action
+dlp-version: 11.6.500.17
+x-originating-ip: [10.1.200.100]
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20220613122744.373516-1-paul.heidekrueger@in.tum.de>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jun 13, 2022 at 12:27:44PM +0000, Paul Heidekrüger wrote:
-> As discussed, clarify LKMM not recognizing certain kinds of orderings.
-> In particular, highlight the fact that LKMM might deliberately make
-> weaker guarantees than compilers and architectures.
-> 
-> Link: https://lore.kernel.org/all/YpoW1deb%2FQeeszO1@ethstick13.dse.in.tum.de/T/#u
-> Signed-off-by: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
-> Cc: Marco Elver <elver@google.com>
-> Cc: Charalampos Mainas <charalampos.mainas@gmail.com>
-> Cc: Pramod Bhatotia <pramod.bhatotia@in.tum.de>
-> Cc: Soham Chakraborty <s.s.chakraborty@tudelft.nl>
-> Cc: Martin Fink <martin.fink@in.tum.de>
-> ---
->  .../Documentation/litmus-tests.txt            | 29 ++++++++++++-------
->  1 file changed, 19 insertions(+), 10 deletions(-)
-> 
-> diff --git a/tools/memory-model/Documentation/litmus-tests.txt b/tools/memory-model/Documentation/litmus-tests.txt
-> index 8a9d5d2787f9..623059eff84e 100644
-> --- a/tools/memory-model/Documentation/litmus-tests.txt
-> +++ b/tools/memory-model/Documentation/litmus-tests.txt
-> @@ -946,22 +946,31 @@ Limitations of the Linux-kernel memory model (LKMM) include:
->  	carrying a dependency, then the compiler can break that dependency
->  	by substituting a constant of that value.
->  
-> -	Conversely, LKMM sometimes doesn't recognize that a particular
-> -	optimization is not allowed, and as a result, thinks that a
-> -	dependency is not present (because the optimization would break it).
-> -	The memory model misses some pretty obvious control dependencies
-> -	because of this limitation.  A simple example is:
-> +	Conversely, LKMM will sometimes overstate the amount of reordering
-> +	done by architectures and compilers, leading it to missing some
-> +	pretty obvious orderings.  A simple example is:
+>> It's listed in Documentation/atomic_bitops.txt.
+>
+> Oh, so my memory was actually correct that I saw it in the docs
+> somewhere.
+> WDYT, should I mention this here in the code (block comment) as well
+> that it's atomic and must not lose `volatile` as Andy suggested or
+> it's sufficient to have it in the docs (+ it's not underscored)?
 
-I don't like the word "overstate" here.  How about instead:
+I think a comment that the "volatile" is required to prevent re-ordering
+is enough.
 
-	LKMM will sometimes overestimate the amount of reordering
-	CPUs and compilers can carry out, leading it to miss some
-	pretty obvious cases of ordering.
+But maybe others are sufficiently clear on the meaning? I once wasted
+time looking for the non-atomic __test_bit() version (to use in some code
+that was already protected by a spin lock, so didn't need the overhead
+of an "atomic" version) before realizing there wasn't a non-atomic one.
 
->  
->  		r1 = READ_ONCE(x);
->  		if (r1 == 0)
->  			smp_mb();
->  		WRITE_ONCE(y, 1);
->  
-> -	There is a control dependency from the READ_ONCE to the WRITE_ONCE,
-> -	even when r1 is nonzero, but LKMM doesn't realize this and thinks
-> -	that the write may execute before the read if r1 != 0.  (Yes, that
-> -	doesn't make sense if you think about it, but the memory model's
-> -	intelligence is limited.)
-> +	There is no dependency from the WRITE_ONCE() to the READ_ONCE(),
-
-You mean "from the READ_ONCE() to the WRITE_ONCE()".
-
-> +	and as a result, LKMM does not assume ordering.  However, the
-
-... does not claim that the load is ordered before the store.
-
-> +	smp_mb() in the if branch will prevent architectures from
-> +	reordering the WRITE_ONCE() ahead of the READ_ONCE() but only if r1
-
-Architectures don't do reordering; CPUs do.  In any case this sentence 
-is wrong; the presence of the "if" statement is what prevents the 
-reordering.  CPUs will never reorder a store before a conditional 
-branch, even if the store gets executed on both branches of the 
-conditional.
-
-By contrast, the smp_mb() in one of the branches prevents _compilers_ 
-from moving the store before the conditional.
-
-> +	is 0.  This, by definition, is not a control dependency, yet
-> +	ordering is guaranteed in some cases, depending on the READ_ONCE(),
-> +	which LKMM doesn't recognize.
-
-Say instead:
-
-	However, even though no dependency is present, the WRITE_ONCE() 
-	will not be executed before the READ_ONCE().  There are two
-	reasons for this:
-
-		The presence of the smp_mb() in one of the branches
-		prevents the compiler from moving the WRITE_ONCE()
-		up before the "if" statement, since the compiler has
-		to assume that r1 will sometimes be 0 (but see the
-		comment below);
-
-		CPUs do not execute stores before po-earlier conditional
-		branches, even in cases where the store occurs after the
-		two arms of the branch have recombined.
-
-> +
-> +	It is clear that it is not dangerous in the slightest for LKMM to
-> +	make weaker guarantees than architectures.  In fact, it is
-> +	desirable, as it gives compilers room for making optimizations.
-> +	For instance, because a value of 0 triggers undefined behavior
-
-"because a value of 0 triggers undefined behavior" implies that 
-undefined behavior will always occur.  Instead say:
-
-	For instance, suppose that a 0 value in r1 would trigger
-	undefined behavior later on.  Then a clever compiler...
-
-> +	elsewhere, a clever compiler might deduce that r1 can never be 0 in
-> +	the if condition.  As a result, said clever compiler might deem it
-> +	safe to optimize away the smp_mb(), eliminating the branch and
-> +	any ordering an architecture would guarantee otherwise.
-
-Alan
-
->  
->  2.	Multiple access sizes for a single variable are not supported,
->  	and neither are misaligned or partially overlapping accesses.
-> -- 
-> 2.35.1
-> 
+-Tony
