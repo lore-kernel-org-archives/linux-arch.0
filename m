@@ -2,62 +2,127 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 91C1DC433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 20 Jun 2022 11:39:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CAE86CCA47C
+	for <linux-arch@archiver.kernel.org>; Mon, 20 Jun 2022 11:48:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241955AbiFTLjS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Jun 2022 07:39:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56928 "EHLO
+        id S232170AbiFTLsl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Jun 2022 07:48:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37230 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241711AbiFTLjR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2022 07:39:17 -0400
-X-Greylist: delayed 1855 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 20 Jun 2022 04:39:16 PDT
-Received: from imablier.rawalpindihotel.com (imablier.rawalpindihotel.com [45.130.138.4])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8ED9716591
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 04:39:16 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; s=dkim; d=rawalpindihotel.com;
- h=Reply-To:From:To:Subject:Date:Message-ID:MIME-Version:Content-Type:Content-Transfer-Encoding; i=cor.car@rawalpindihotel.com;
- bh=Nyf5OaNLvLP6QtC9iHPCmZ9OukM=;
- b=slKAY0H2NRxCrR613bVBiiA0MhZRNjbYcu7J2Ee45Yuk5UJElOMPKaLR57QtGrGyBgzXXY9IXfSU
-   HRuNQpmmmzrMfSKUDcKu+vTiKWtJ94xpdJnMV/Ev68Rt7ZezgdMi0stCCfHd6B11JjGADUA9gT/P
-   Yn551mYNeK4e1Kx7h8Rfya6NrTRohg4w7K4pviHlQzb2I8P36poehxdk3fk25P+zCZoXl6Prun4H
-   OCv2SJWzLD3R10oz5I7qVi3DRelQgIM31rpBUhSIBuQoPM12kUycGVxkF1S7QKV1l1kd6lKtKu/K
-   827GvZ1c4dVB4n1ayD9aZDdSQS67l/mxsrIW1g==
-DomainKey-Signature: a=rsa-sha1; c=nofws; q=dns; s=dkim; d=rawalpindihotel.com;
- b=Ly1Q2cZkLS568yjAuGzTB2CXjNK0A8j+mHcXkzuJFql3Jr2KXv8pT/O57Tj7ScS4vf0hztuE9BWI
-   nmjlHAqdfAIZrJ3rDHuFOUEeQuBPdVRToIMUdUJH9XX0e8/tWIVgd3TT73+nUZD1+gjgced8qb+m
-   GlI43IVA3jJDOPkJq6iYzyEPkR76KXVpYJYrMZxMlsTo6+KO6EtH7JbJL2tC1Fplvg8DVG+RycbL
-   VnKJAWMcS7DfL6jdDLyLcNnMCO6BywjAPfqDHfJeRPT/LbNKxqSsufC5CykfAmLrmIJolwmC9O2L
-   7wxyrH9danSOqZq4UPiFohCu+MZLYz4vvn/zuw==;
-Reply-To: lloydhoffman@dr.com
-From:   Lloyd <cor.car@rawalpindihotel.com>
-To:     linux-arch@vger.kernel.org
-Subject: Business Capital Funding.
-Date:   20 Jun 2022 04:08:19 -0700
-Message-ID: <20220620040819.0B6940F726BC2C36@rawalpindihotel.com>
+        with ESMTP id S242052AbiFTLsi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2022 07:48:38 -0400
+Received: from mga09.intel.com (mga09.intel.com [134.134.136.24])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9E9DE17057;
+        Mon, 20 Jun 2022 04:48:37 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1655725717; x=1687261717;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:content-transfer-encoding:in-reply-to;
+  bh=Fg8wToUgzOMv1MBkkI+JlUdgqqTH6ag3Hnfhb3mXbJs=;
+  b=H0dXDi4NhcfC1Ih6+wo1mI+6tHgKG2fNeHFvK8slsiYvMgmVP2VlYiED
+   p0ex7U7XyLtaufSc8mT2Lcoe3yJTW8ANH6EJf9TiKAeZvbdrJLc85XR4d
+   qcTPdpt5g53Y0R6oJBXFCp9N3KYwJxf7SAV30/MAxazvOaLhOPTsX+JiH
+   Lq5+Xx3u3pOGVUoZSLWlimVT1QBV1uM5HrhoQk8ac27PcqvvMyfUqwJxb
+   FfWER7Xf+FNnUZg8+QT4FfeSbVPEZSO8TcHgMk+dHi+ZmTCkQr/jfTWT1
+   +Hvl5sISBEZ+E8nAjlCGib/TcMvPlzSrmtvpkyQ21Xl/pX88WINg7FASL
+   g==;
+X-IronPort-AV: E=McAfee;i="6400,9594,10380"; a="280605064"
+X-IronPort-AV: E=Sophos;i="5.92,306,1650956400"; 
+   d="scan'208";a="280605064"
+Received: from fmsmga006.fm.intel.com ([10.253.24.20])
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jun 2022 04:48:37 -0700
+X-IronPort-AV: E=Sophos;i="5.92,306,1650956400"; 
+   d="scan'208";a="833079546"
+Received: from smile.fi.intel.com ([10.237.72.54])
+  by fmsmga006-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jun 2022 04:48:33 -0700
+Received: from andy by smile.fi.intel.com with local (Exim 4.95)
+        (envelope-from <andriy.shevchenko@linux.intel.com>)
+        id 1o3FtO-000kLC-P2;
+        Mon, 20 Jun 2022 14:48:30 +0300
+Date:   Mon, 20 Jun 2022 14:48:30 +0300
+From:   Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+To:     Ilpo =?iso-8859-1?Q?J=E4rvinen?= <ilpo.jarvinen@linux.intel.com>
+Cc:     linux-serial <linux-serial@vger.kernel.org>,
+        Greg KH <gregkh@linuxfoundation.org>,
+        Jiri Slaby <jirislaby@kernel.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org,
+        LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org,
+        Lukas Wunner <lukas@wunner.de>,
+        Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= 
+        <u.kleine-koenig@pengutronix.de>,
+        Lino Sanfilippo <LinoSanfilippo@gmx.de>,
+        linux-api@vger.kernel.org
+Subject: Re: [PATCH v8 5/6] serial: Support for RS-485 multipoint addresses
+Message-ID: <YrBejkxeZfpQ35iG@smile.fi.intel.com>
+References: <20220620064030.7938-1-ilpo.jarvinen@linux.intel.com>
+ <20220620064030.7938-6-ilpo.jarvinen@linux.intel.com>
+ <YrBS03ymAWVajy7e@smile.fi.intel.com>
+ <a9b8ec3a-4f40-c0f5-e1a-bb577d5937ff@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-        charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <a9b8ec3a-4f40-c0f5-e1a-bb577d5937ff@linux.intel.com>
+Organization: Intel Finland Oy - BIC 0357606-4 - Westendinkatu 7, 02160 Espoo
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hello,
- 
+On Mon, Jun 20, 2022 at 02:26:17PM +0300, Ilpo Järvinen wrote:
+> On Mon, 20 Jun 2022, Andy Shevchenko wrote:
+> > On Mon, Jun 20, 2022 at 09:40:29AM +0300, Ilpo Järvinen wrote:
 
-We are expanding our global presence by investing in viable=20
-projects across the globe.
-=20
-We will be willing to inject upto $5 Billion and more into a=20
-viable project(s) We grant our funding at a 3.95% ROI per annum=20
-for 10 years and 12 months moratorium.
-=20
-If you have a viable project that needs funding, kindly revert=20
-with your business plan and executive summary for our review and=20
-possible funding.
-=20
-In Anticipation of your reply
-Lloyd Hoffman .
-Client Executive.
+...
+
+> > > The changes to serial_rs485 struct were test built with a few traps to
+> > > detect mislayouting on archs lkp/0day builts for (all went fine):
+> > >   BUILD_BUG_ON(((&rs485.delay_rts_after_send) + 1) != &rs485.padding[0]);
+> > >   BUILD_BUG_ON(&rs485.padding[1] != &rs485.padding1[0]);
+> > >   BUILD_BUG_ON(sizeof(rs485) != ((u8 *)(&rs485.padding[4]) -
+> > > 				 ((u8 *)&rs485.flags) + sizeof(__u32)));
+> > 
+> > You may add static_asserts() for the above mentioned cases.
+> 
+> I'll add into the end of serial_core.h but in a cleaned up form
+> using offsetof(). Those above look rather ugly :-).
+
+Agree!
+
+...
+
+> > > -	__u32	padding[5];		/* Memory is cheap, new structs
+> > > -					   are a royal PITA .. */
+> > > +	union {
+> > > +		/* v1 */
+> > > +		__u32	padding[5];		/* Memory is cheap, new structs are a pain */
+> > > +
+> > > +		/* v2 (adds addressing mode fields) */
+> > 
+> > How user space will inform a kernel that it's trying v2?
+> >
+> > Usually when we have a union, it should be accompanied with the enum or version
+> > or something to tell which part of it is in use. I can imagine that in this case
+> > it's implied by the IOCTL parameters that never should be used on a garbage.
+> > 
+> > Either add a commit message / UAPI comment or add a version field or ...?
+> > 
+> > > +		struct {
+> > > +			__u8	addr_recv;
+> > > +			__u8	addr_dest;
+> 
+> The flags in .flags indicate when these two new fields are in use. Do you 
+> think I need something beyond that. Maybe I should remove those comments 
+> so they don't mislead you to think it's a "version" for real?
+
+Yes, either drop this versioning, or replace with a comment on top of a union
+like:
+
+	/* The fields are defined by flags */
+
+-- 
+With Best Regards,
+Andy Shevchenko
+
 
