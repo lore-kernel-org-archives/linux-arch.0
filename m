@@ -2,374 +2,140 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9FC7FC433EF
-	for <linux-arch@archiver.kernel.org>; Mon, 20 Jun 2022 09:50:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CF173C433EF
+	for <linux-arch@archiver.kernel.org>; Mon, 20 Jun 2022 09:50:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238525AbiFTJuH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Jun 2022 05:50:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52426 "EHLO
+        id S239701AbiFTJuR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Jun 2022 05:50:17 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52562 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233824AbiFTJtt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2022 05:49:49 -0400
-Received: from mail-yb1-xb36.google.com (mail-yb1-xb36.google.com [IPv6:2607:f8b0:4864:20::b36])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 823F813E01
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 02:49:47 -0700 (PDT)
-Received: by mail-yb1-xb36.google.com with SMTP id u9so7845338ybq.3
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 02:49:47 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=InWhdMf1/1em6G6O59SWmdHx+HjozBGTG/fUpLSL4zs=;
-        b=L8P3UDB0r+kAWE8ATh497BZTGQg81XYY0qj0SbphWTu5GommNgfmi9tnHEGwhe2ecS
-         UsCbkZ8Rn8SpfKxA4li41PVrwHH4gH7IOZAm4EizS/AOv5qTHrOozfVoWa0Tf4ge3ytO
-         b4tHyimm4DVyec3OSdbeITsYTvzITBkxCXTCiwJSzIGVi9V248iEt1owGPupRTb9fx94
-         WOTdxRWqtzf77IJWFApiDAt8U1P/RLa6aG5CmxmmTS281Oo288QRiFKr5FjTlSD4NFzI
-         u0wfm8eV8DtoAK1YYJlreAQK2NKHP/VH1Bx2dH7j4QDbz1MpNP14DRsDhp8zdyrbfNu/
-         Tymg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=InWhdMf1/1em6G6O59SWmdHx+HjozBGTG/fUpLSL4zs=;
-        b=zgsycM4k8a5GB0iA+aZTJ/D9wo7kZ1NJcokHs7GU/FNiYWFv5xhWnFFr73+iaLiM9v
-         gKWLT5XrnzjqD5WuzEmXyeJktr/m+NfoehLmuoRq/s2KQmFso+ZeS4IXBvEgwvmyF6b0
-         QNhcc+IMrk6YuVoJXR3RRBTPumdWgpQbHiZpoXK7gGy5Z1EJzM/1Q8H3L9hPTy5a9sfi
-         n1iumAS1gis3dpK2fXyMgS5uWM+azXDXQXVGRAx3bXlXlULfkCOy9DjBELvPplPCxPmn
-         VpDXc8ty70+UNrl7Xb4Th0IlvCJSZodELi7eBw+RYk/YD2k5qDoXt2HZQeyUeuabqvHi
-         0PGg==
-X-Gm-Message-State: AJIora9kBM1XdvFUsdoYXsvy76dLNYrsxqfASD45Y0Z5IY717a9mfnX5
-        fZw/y2DlNil8l5OMl0C25SYHasjqvjLEv0UOGcLEsQ==
-X-Google-Smtp-Source: AGRyM1tvbAo9S4uHlP+A69f2j4SA6cJ/Xh/ZyowhsHkksgYqo5tQeU+Y/t9sprsxLv9Zx30mZP53j+np0Uo/GIDn0Ss=
-X-Received: by 2002:a25:3242:0:b0:668:ce6d:b820 with SMTP id
- y63-20020a253242000000b00668ce6db820mr12388945yby.87.1655718586439; Mon, 20
- Jun 2022 02:49:46 -0700 (PDT)
+        with ESMTP id S239109AbiFTJuO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2022 05:50:14 -0400
+Received: from sin.source.kernel.org (sin.source.kernel.org [IPv6:2604:1380:40e1:4800::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6A03513E00
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 02:50:13 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by sin.source.kernel.org (Postfix) with ESMTPS id 9D687CE1153
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 09:50:11 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D89DBC3411C
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 09:50:09 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1655718609;
+        bh=Fr0ix5EjKeIi2iLMs/BddEnbNzT+Ffa1oytTOGedzwE=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=ZtLWQaCGxyDeiyzSl067qaTebE7hO3c0CA4rZhDm7N/Jqe6N3Ife2IY5iOTBzNA5B
+         T/K85aWEKSMFg2VirBOMTh416Y53TnyQNEesyYktxFIks1njwqhbfbo4JjzH4aeYXD
+         69bRlEREj53fp80p76Q0IDl5dn6Gc3wu7E3DMY663Dntt22Hwzh7f7qH800TGcGYjO
+         molJfiwtXmNxs1t40w9OYbxPHYqxdbhKyLcTVqM9FBi8DwxEs2qfxuQjKPWN7d60G0
+         RIkdQF4VSAiSCaJCu8iubZE4eS6cOM6UEypZ+lURdj3LcMaChNLCm07vlnUDmxN9Xf
+         xUT89mDoje6zg==
+Received: by mail-lj1-f173.google.com with SMTP id a11so2493276ljb.5
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 02:50:09 -0700 (PDT)
+X-Gm-Message-State: AJIora/oojyj+c3xGHhH/AbSfX1Ie4ODoeLmFjsaS9GHkRh2nwWNs8Zb
+        ewzCG5rSa5iejGdYLYlLKIQEjUdZ9CXSRZD1p7c=
+X-Google-Smtp-Source: AGRyM1u26ZTxYYwp6BW03Vv9IYXi2WFR5VcYdjY22Y8n/MuB9XsnBOuNlJp6bjGBF2txoIIO2DXn7JbMPW1np5BsB8g=
+X-Received: by 2002:a05:651c:506:b0:257:c12:b941 with SMTP id
+ o6-20020a05651c050600b002570c12b941mr11442398ljp.429.1655718607867; Mon, 20
+ Jun 2022 02:50:07 -0700 (PDT)
 MIME-Version: 1.0
-References: <20220617144031.2549432-1-alexandr.lobakin@intel.com> <20220617144031.2549432-3-alexandr.lobakin@intel.com>
-In-Reply-To: <20220617144031.2549432-3-alexandr.lobakin@intel.com>
-From:   Marco Elver <elver@google.com>
-Date:   Mon, 20 Jun 2022 11:49:10 +0200
-Message-ID: <CANpmjNMoM1K1GhWpiHu+WvEeOqOW1NMw0ii7Npup2PD-y+Ratw@mail.gmail.com>
-Subject: Re: [PATCH v3 2/7] bitops: always define asm-generic non-atomic bitops
-To:     Alexander Lobakin <alexandr.lobakin@intel.com>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Yury Norov <yury.norov@gmail.com>,
-        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matt Turner <mattst88@gmail.com>,
-        Brian Cain <bcain@quicinc.com>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>,
-        "David S. Miller" <davem@davemloft.net>,
-        Kees Cook <keescook@chromium.org>,
-        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
-        Borislav Petkov <bp@suse.de>, Tony Luck <tony.luck@intel.com>,
-        Maciej Fijalkowski <maciej.fijalkowski@intel.com>,
-        Jesse Brandeburg <jesse.brandeburg@intel.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        linux-alpha@vger.kernel.org, linux-hexagon@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+References: <20220617145705.581985-1-chenhuacai@loongson.cn>
+ <CAK8P3a2nD_Zxv5X_LB7AbO=kxHQyk3vz09fQZ-TTX4PL0b3g1g@mail.gmail.com>
+ <CAJF2gTT_etFg7-N4f=A4LMOYvd3+H505e0xt8NyxK4uPtkuEXg@mail.gmail.com>
+ <CAK8P3a078r6zkZYYeV7Qg3AEOvFxgG+eRN9bFE_3DNwHq=_1ZA@mail.gmail.com>
+ <CAJF2gTQL+ysc+juQfNVxz1QtXgrLAYe=CyA9L_c3fzd4F8aFxQ@mail.gmail.com>
+ <CAK8P3a3wRqLAvywX2zbD0kdt19m2pKazqA2Y6_sNL1L=_4N3vQ@mail.gmail.com>
+ <CAJF2gTQG0SBninPg7MsCFP=60p8u5KT+HaLNBzgjxM_fTMr+Dg@mail.gmail.com> <CAK8P3a1LgmZDssQoCciZ0YRy3UHWV3yK99UHTCdvahCFBG+u+Q@mail.gmail.com>
+In-Reply-To: <CAK8P3a1LgmZDssQoCciZ0YRy3UHWV3yK99UHTCdvahCFBG+u+Q@mail.gmail.com>
+From:   Huacai Chen <chenhuacai@kernel.org>
+Date:   Mon, 20 Jun 2022 17:49:56 +0800
+X-Gmail-Original-Message-ID: <CAAhV-H6-K_mHSm9CWRB+v2a_Zqy-Z9x3XmQPuF7XT3yiTB=rbw@mail.gmail.com>
+Message-ID: <CAAhV-H6-K_mHSm9CWRB+v2a_Zqy-Z9x3XmQPuF7XT3yiTB=rbw@mail.gmail.com>
+Subject: Re: [PATCH] LoongArch: Add qspinlock support
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Guo Ren <guoren@kernel.org>, Huacai Chen <chenhuacai@loongson.cn>,
+        loongarch@lists.linux.dev, linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Will Deacon <will@kernel.org>, Ingo Molnar <mingo@redhat.com>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, 17 Jun 2022 at 19:19, Alexander Lobakin
-<alexandr.lobakin@intel.com> wrote:
->
-> Move generic non-atomic bitops from the asm-generic header which
-> gets included only when there are no architecture-specific
-> alternatives, to a separate independent file to make them always
-> available.
-> Almost no actual code changes, only one comment added to
-> generic_test_bit() saying that it's an atomic operation itself
-> and thus `volatile` must always stay there with no cast-aways.
->
-> Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com> # comment
-> Suggested-by: Marco Elver <elver@google.com> # reference to kernel-doc
-> Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
-> Reviewed-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Hi,
 
-Reviewed-by: Marco Elver <elver@google.com>
+On Mon, Jun 20, 2022 at 12:11 AM Arnd Bergmann <arnd@arndb.de> wrote:
+>
+> On Sun, Jun 19, 2022 at 5:48 PM Guo Ren <guoren@kernel.org> wrote:
+> >
+> > On Sat, Jun 18, 2022 at 1:40 PM Arnd Bergmann <arnd@arndb.de> wrote:
+> > >
+> > > On Sat, Jun 18, 2022 at 1:19 AM Guo Ren <guoren@kernel.org> wrote:
+> > > >
+> > > > > static inline u32 arch_xchg32(u32 *ptr, u32 x) {...}
+> > > > > static inline u64 arch_xchg64(u64 *ptr, u64 x) {...}
+> > > > >
+> > > > > #ifdef CONFIG_64BIT
+> > > > > #define xchg(ptr, x) (sizeof(*ptr) == 8) ? \
+> > > > >             arch_xchg64((u64*)ptr, (uintptr_t)x)  \
+> > > > >             arch_xchg32((u32*)ptr, x)
+> > > > > #else
+> > > > > #define xchg(ptr, x) arch_xchg32((u32*)ptr, (uintptr_t)x)
+> > > > > #endif
+> > > >
+> > > > The above primitive implies only long & int type args are permitted, right?
+> > >
+> > > The idea is to allow any scalar or pointer type, but not structures or
+> > > unions. If we need to deal with those as well, the macro could be extended
+> > > accordingly, but I would prefer to limit it as much as possible.
+> > >
+> > > There is already cmpxchg64(), which is used for types that are fixed to
+> > > 64 bit integers even on 32-bit architectures, but it is rarely used except
+> > > to implement the atomic64_t helpers.
+> > A lot of 32bit arches couldn't provide cmpxchg64 (like arm's ldrexd/strexd).
+>
+> Most 32-bit architectures also lack SMP support, so they can fall back to
+> the generic version from include/asm-generic/cmpxchg-local.h
+>
+> > Another question: Do you know why arm32 didn't implement
+> > HAVE_CMPXCHG_DOUBLE with ldrexd/strexd?
+>
+> I think it's just fairly obscure, the slub code appears to be the only
+> code that would use it.
+>
+> > >
+> > > 80% of the uses of cmpxchg() and xchg() deal with word-sized
+> > > quantities like 'unsigned long', or 'void *', but the others are almost
+> > > all fixed 32-bit quantities. We could change those to use cmpxchg32()
+> > > directly and simplify the cmpxchg() function further to only deal
+> > > with word-sized arguments, but I would not do that in the first step.
+> > Don't forget cmpxchg_double for this cleanup, when do you want to
+> > restart the work?
+>
+> I have no specific plans at the moment. If you or someone else likes
+> to look into it, I can dig out my old patch though.
+>
+> The cmpxchg_double() call seems to already fit in, since it is an
+> inline function and does not expect arbitrary argument types.
+Thank all of you. :)
 
-> ---
->  .../asm-generic/bitops/generic-non-atomic.h   | 130 ++++++++++++++++++
->  include/asm-generic/bitops/non-atomic.h       | 110 ++-------------
->  2 files changed, 138 insertions(+), 102 deletions(-)
->  create mode 100644 include/asm-generic/bitops/generic-non-atomic.h
+As Rui and Xuerui said, ll and sc in LoongArch both have implicit full
+barriers, so there is no "relaxed" version.
+
+The __WEAK_LLSC_MB in __cmpxchg_small() have nothing to do with ll and
+ sc themselves, we need a barrier at the branch target just because
+Loongson-3A5000 has a hardware flaw (and will be fixed in
+Loongson-3A6000).
+
+qspinlock just needs xchg_small(), but cmpxchg_small() is also useful
+for percpu operations. So I plan to split this patch to two: the first
+add xchg_small() and cmpxchg_small(), the second enable qspinlock.
+
+Huacai
+
 >
-> diff --git a/include/asm-generic/bitops/generic-non-atomic.h b/include/asm-generic/bitops/generic-non-atomic.h
-> new file mode 100644
-> index 000000000000..7226488810e5
-> --- /dev/null
-> +++ b/include/asm-generic/bitops/generic-non-atomic.h
-> @@ -0,0 +1,130 @@
-> +/* SPDX-License-Identifier: GPL-2.0-only */
-> +
-> +#ifndef __ASM_GENERIC_BITOPS_GENERIC_NON_ATOMIC_H
-> +#define __ASM_GENERIC_BITOPS_GENERIC_NON_ATOMIC_H
-> +
-> +#include <linux/bits.h>
-> +
-> +#ifndef _LINUX_BITOPS_H
-> +#error only <linux/bitops.h> can be included directly
-> +#endif
-> +
-> +/*
-> + * Generic definitions for bit operations, should not be used in regular code
-> + * directly.
-> + */
-> +
-> +/**
-> + * generic___set_bit - Set a bit in memory
-> + * @nr: the bit to set
-> + * @addr: the address to start counting from
-> + *
-> + * Unlike set_bit(), this function is non-atomic and may be reordered.
-> + * If it's called on the same region of memory simultaneously, the effect
-> + * may be that only one operation succeeds.
-> + */
-> +static __always_inline void
-> +generic___set_bit(unsigned int nr, volatile unsigned long *addr)
-> +{
-> +       unsigned long mask = BIT_MASK(nr);
-> +       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> +
-> +       *p  |= mask;
-> +}
-> +
-> +static __always_inline void
-> +generic___clear_bit(unsigned int nr, volatile unsigned long *addr)
-> +{
-> +       unsigned long mask = BIT_MASK(nr);
-> +       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> +
-> +       *p &= ~mask;
-> +}
-> +
-> +/**
-> + * generic___change_bit - Toggle a bit in memory
-> + * @nr: the bit to change
-> + * @addr: the address to start counting from
-> + *
-> + * Unlike change_bit(), this function is non-atomic and may be reordered.
-> + * If it's called on the same region of memory simultaneously, the effect
-> + * may be that only one operation succeeds.
-> + */
-> +static __always_inline
-> +void generic___change_bit(unsigned int nr, volatile unsigned long *addr)
-> +{
-> +       unsigned long mask = BIT_MASK(nr);
-> +       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> +
-> +       *p ^= mask;
-> +}
-> +
-> +/**
-> + * generic___test_and_set_bit - Set a bit and return its old value
-> + * @nr: Bit to set
-> + * @addr: Address to count from
-> + *
-> + * This operation is non-atomic and can be reordered.
-> + * If two examples of this operation race, one can appear to succeed
-> + * but actually fail.  You must protect multiple accesses with a lock.
-> + */
-> +static __always_inline int
-> +generic___test_and_set_bit(unsigned int nr, volatile unsigned long *addr)
-> +{
-> +       unsigned long mask = BIT_MASK(nr);
-> +       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> +       unsigned long old = *p;
-> +
-> +       *p = old | mask;
-> +       return (old & mask) != 0;
-> +}
-> +
-> +/**
-> + * generic___test_and_clear_bit - Clear a bit and return its old value
-> + * @nr: Bit to clear
-> + * @addr: Address to count from
-> + *
-> + * This operation is non-atomic and can be reordered.
-> + * If two examples of this operation race, one can appear to succeed
-> + * but actually fail.  You must protect multiple accesses with a lock.
-> + */
-> +static __always_inline int
-> +generic___test_and_clear_bit(unsigned int nr, volatile unsigned long *addr)
-> +{
-> +       unsigned long mask = BIT_MASK(nr);
-> +       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> +       unsigned long old = *p;
-> +
-> +       *p = old & ~mask;
-> +       return (old & mask) != 0;
-> +}
-> +
-> +/* WARNING: non atomic and it can be reordered! */
-> +static __always_inline int
-> +generic___test_and_change_bit(unsigned int nr, volatile unsigned long *addr)
-> +{
-> +       unsigned long mask = BIT_MASK(nr);
-> +       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> +       unsigned long old = *p;
-> +
-> +       *p = old ^ mask;
-> +       return (old & mask) != 0;
-> +}
-> +
-> +/**
-> + * generic_test_bit - Determine whether a bit is set
-> + * @nr: bit number to test
-> + * @addr: Address to start counting from
-> + */
-> +static __always_inline int
-> +generic_test_bit(unsigned int nr, const volatile unsigned long *addr)
-> +{
-> +       /*
-> +        * Unlike the bitops with the '__' prefix above, this one *is* atomic,
-> +        * so `volatile` must always stay here with no cast-aways. See
-> +        * `Documentation/atomic_bitops.txt` for the details.
-> +        */
-> +       return 1UL & (addr[BIT_WORD(nr)] >> (nr & (BITS_PER_LONG-1)));
-> +}
-> +
-> +#endif /* __ASM_GENERIC_BITOPS_GENERIC_NON_ATOMIC_H */
-> diff --git a/include/asm-generic/bitops/non-atomic.h b/include/asm-generic/bitops/non-atomic.h
-> index 078cc68be2f1..23d3abc1e10d 100644
-> --- a/include/asm-generic/bitops/non-atomic.h
-> +++ b/include/asm-generic/bitops/non-atomic.h
-> @@ -2,121 +2,27 @@
->  #ifndef _ASM_GENERIC_BITOPS_NON_ATOMIC_H_
->  #define _ASM_GENERIC_BITOPS_NON_ATOMIC_H_
->
-> -#include <asm/types.h>
-> +#include <asm-generic/bitops/generic-non-atomic.h>
->
-> -/**
-> - * arch___set_bit - Set a bit in memory
-> - * @nr: the bit to set
-> - * @addr: the address to start counting from
-> - *
-> - * Unlike set_bit(), this function is non-atomic and may be reordered.
-> - * If it's called on the same region of memory simultaneously, the effect
-> - * may be that only one operation succeeds.
-> - */
-> -static __always_inline void
-> -arch___set_bit(unsigned int nr, volatile unsigned long *addr)
-> -{
-> -       unsigned long mask = BIT_MASK(nr);
-> -       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> -
-> -       *p  |= mask;
-> -}
-> +#define arch___set_bit generic___set_bit
->  #define __set_bit arch___set_bit
->
-> -static __always_inline void
-> -arch___clear_bit(unsigned int nr, volatile unsigned long *addr)
-> -{
-> -       unsigned long mask = BIT_MASK(nr);
-> -       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> -
-> -       *p &= ~mask;
-> -}
-> +#define arch___clear_bit generic___clear_bit
->  #define __clear_bit arch___clear_bit
->
-> -/**
-> - * arch___change_bit - Toggle a bit in memory
-> - * @nr: the bit to change
-> - * @addr: the address to start counting from
-> - *
-> - * Unlike change_bit(), this function is non-atomic and may be reordered.
-> - * If it's called on the same region of memory simultaneously, the effect
-> - * may be that only one operation succeeds.
-> - */
-> -static __always_inline
-> -void arch___change_bit(unsigned int nr, volatile unsigned long *addr)
-> -{
-> -       unsigned long mask = BIT_MASK(nr);
-> -       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> -
-> -       *p ^= mask;
-> -}
-> +#define arch___change_bit generic___change_bit
->  #define __change_bit arch___change_bit
->
-> -/**
-> - * arch___test_and_set_bit - Set a bit and return its old value
-> - * @nr: Bit to set
-> - * @addr: Address to count from
-> - *
-> - * This operation is non-atomic and can be reordered.
-> - * If two examples of this operation race, one can appear to succeed
-> - * but actually fail.  You must protect multiple accesses with a lock.
-> - */
-> -static __always_inline int
-> -arch___test_and_set_bit(unsigned int nr, volatile unsigned long *addr)
-> -{
-> -       unsigned long mask = BIT_MASK(nr);
-> -       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> -       unsigned long old = *p;
-> -
-> -       *p = old | mask;
-> -       return (old & mask) != 0;
-> -}
-> +#define arch___test_and_set_bit generic___test_and_set_bit
->  #define __test_and_set_bit arch___test_and_set_bit
->
-> -/**
-> - * arch___test_and_clear_bit - Clear a bit and return its old value
-> - * @nr: Bit to clear
-> - * @addr: Address to count from
-> - *
-> - * This operation is non-atomic and can be reordered.
-> - * If two examples of this operation race, one can appear to succeed
-> - * but actually fail.  You must protect multiple accesses with a lock.
-> - */
-> -static __always_inline int
-> -arch___test_and_clear_bit(unsigned int nr, volatile unsigned long *addr)
-> -{
-> -       unsigned long mask = BIT_MASK(nr);
-> -       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> -       unsigned long old = *p;
-> -
-> -       *p = old & ~mask;
-> -       return (old & mask) != 0;
-> -}
-> +#define arch___test_and_clear_bit generic___test_and_clear_bit
->  #define __test_and_clear_bit arch___test_and_clear_bit
->
-> -/* WARNING: non atomic and it can be reordered! */
-> -static __always_inline int
-> -arch___test_and_change_bit(unsigned int nr, volatile unsigned long *addr)
-> -{
-> -       unsigned long mask = BIT_MASK(nr);
-> -       unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
-> -       unsigned long old = *p;
-> -
-> -       *p = old ^ mask;
-> -       return (old & mask) != 0;
-> -}
-> +#define arch___test_and_change_bit generic___test_and_change_bit
->  #define __test_and_change_bit arch___test_and_change_bit
->
-> -/**
-> - * arch_test_bit - Determine whether a bit is set
-> - * @nr: bit number to test
-> - * @addr: Address to start counting from
-> - */
-> -static __always_inline int
-> -arch_test_bit(unsigned int nr, const volatile unsigned long *addr)
-> -{
-> -       return 1UL & (addr[BIT_WORD(nr)] >> (nr & (BITS_PER_LONG-1)));
-> -}
-> +#define arch_test_bit generic_test_bit
->  #define test_bit arch_test_bit
->
->  #endif /* _ASM_GENERIC_BITOPS_NON_ATOMIC_H_ */
-> --
-> 2.36.1
->
+>        Arnd
