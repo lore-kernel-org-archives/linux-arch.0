@@ -2,102 +2,163 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 913EDC433EF
-	for <linux-arch@archiver.kernel.org>; Tue, 21 Jun 2022 06:36:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D219FCCA473
+	for <linux-arch@archiver.kernel.org>; Tue, 21 Jun 2022 08:43:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345706AbiFUGgA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 21 Jun 2022 02:36:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50846 "EHLO
+        id S1348021AbiFUInJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 21 Jun 2022 04:43:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58766 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345379AbiFUGgA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2022 02:36:00 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5D67D15FFF
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 23:35:58 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        with ESMTP id S1347709AbiFUInI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2022 04:43:08 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8E799248C6;
+        Tue, 21 Jun 2022 01:43:06 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 06017B8169A
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2022 06:35:57 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AD5ABC341CA
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2022 06:35:55 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1655793355;
-        bh=JMKqhOBxXrawPUykfqx8Oj6WlbWJ2UBiXKkbqFUY/2Q=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=YNZ1BvzH/JV3KRB/pcCYfdia99mSD8myaVMIPanEMRhUV+uCAA3jD6BAw1J0x6sRE
-         QUADNPx1WTiCErefSzEhpZtMw4iEawWbQXV8deeBrHqtJvLkUumD1S1sNb6Ikb5b3L
-         O/QEimttGnmv/SS4XetUp8zCr41zfyrY3XqFSyh1wPUg+cOnd/EaG+609hKm0uD5D+
-         MK7EHQ2FDTEV4mYbvoGfbgk+ljN+sZ4G3kUdjKny0HZ4ABkVB+N53Fe3RR1H0VCXkZ
-         WfZep/HnUrP/AsPfv+cgCwlbTjAs7juqH3QBiYSYXy9GZDdn+Ape+zXWG3kxK85Edu
-         re262lm7BG22g==
-Received: by mail-lj1-f181.google.com with SMTP id a11so5470026ljb.5
-        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2022 23:35:55 -0700 (PDT)
-X-Gm-Message-State: AJIora9u5vwfiwXdTT3tRZk9Hu2Alg386bQp6E8f1Ncu2WRi3CAekZzg
-        zWhAcx1bndmaednI4qW8HWEvyCIq1VlZndf2XnU=
-X-Google-Smtp-Source: AGRyM1u8F7ekZm6P3bDtbQ3fBC4j9z9rBNp8ZDBt+lKEqlDTGIM4Z9uLIBnSKBHWFZROilPTeGS0oi70rueSET/SqB4=
-X-Received: by 2002:a05:651c:506:b0:257:c12:b941 with SMTP id
- o6-20020a05651c050600b002570c12b941mr13701498ljp.429.1655793353606; Mon, 20
- Jun 2022 23:35:53 -0700 (PDT)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id 3BCAA1F8DE;
+        Tue, 21 Jun 2022 08:43:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+        t=1655800985; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=RrjsV6j2GxgikRLfvlQrNeSRen6nfTOp6oxrH6LHqfA=;
+        b=K0/rxxRxD+aiJWdzNoDa+0SoXPF1IC6BQYG8KRz+uLlaLWZurLtKhY6UYOEfPLCmqSRC/w
+        Y1D5KwymXhBqhBR9crYjVykXd3bn4B3i3+h43/ukFTQ8zjpwPQ13XzqCAo01A3ELViJzf6
+        uSLq81TeqOgtKl81+nNvuE01bTKb9wU=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+        s=susede2_ed25519; t=1655800985;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=RrjsV6j2GxgikRLfvlQrNeSRen6nfTOp6oxrH6LHqfA=;
+        b=4sGC2ZpcdwRXnQXA0/sC53dBVT8LwJN6GZh0t4vK8khlBh7SaMpQztL5XFMRTpAKtvDoDF
+        +22dtf7sd6JD1TDA==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id DB47813A88;
+        Tue, 21 Jun 2022 08:43:04 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id A00dM5iEsWLADgAAMHmgww
+        (envelope-from <hare@suse.de>); Tue, 21 Jun 2022 08:43:04 +0000
+Message-ID: <361336a6-f3be-c7d9-7bdb-20c30c9a72df@suse.de>
+Date:   Tue, 21 Jun 2022 10:43:04 +0200
 MIME-Version: 1.0
-References: <20220617145859.582176-1-chenhuacai@loongson.cn>
- <CAK8P3a1L40=P8GnuyK--K7URyrdAb4XcPJ-+HxwY4_+siA25oQ@mail.gmail.com>
- <CAAhV-H4AO3friSYrpAN_VM6aLO7yfV2svKg=7w_3F3HpV7Dq4Q@mail.gmail.com> <CAK8P3a3Wu7vCzxgjAWugiaBonARqU88NYuQj4JyqATmTDrPEaw@mail.gmail.com>
-In-Reply-To: <CAK8P3a3Wu7vCzxgjAWugiaBonARqU88NYuQj4JyqATmTDrPEaw@mail.gmail.com>
-From:   Huacai Chen <chenhuacai@kernel.org>
-Date:   Tue, 21 Jun 2022 14:35:41 +0800
-X-Gmail-Original-Message-ID: <CAAhV-H4YiixeMW=3Bi-nqhchp2cvQWWKkfADBrFCkVxpfqxocg@mail.gmail.com>
-Message-ID: <CAAhV-H4YiixeMW=3Bi-nqhchp2cvQWWKkfADBrFCkVxpfqxocg@mail.gmail.com>
-Subject: Re: [PATCH] LoongArch: Add sparse memory vmemmap support
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Huacai Chen <chenhuacai@loongson.cn>, loongarch@lists.linux.dev,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Linux-MM <linux-mm@kvack.org>, Min Zhou <zhoumin@loongson.cn>
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.4.0
+Content-Language: en-US
+To:     Arnd Bergmann <arnd@kernel.org>, linux-scsi@vger.kernel.org,
+        linux-kernel@vger.kernel.org
+Cc:     Arnd Bergmann <arnd@arndb.de>, Jakub Kicinski <kuba@kernel.org>,
+        Christoph Hellwig <hch@infradead.org>,
+        Marek Szyprowski <m.szyprowski@samsung.com>,
+        Robin Murphy <robin.murphy@arm.com>,
+        iommu@lists.linux-foundation.org,
+        Khalid Aziz <khalid@gonehiking.org>,
+        "Maciej W . Rozycki" <macro@orcam.me.uk>,
+        Matt Wang <wwentao@vmware.com>,
+        Miquel van Smoorenburg <mikevs@xs4all.net>,
+        Mark Salyzyn <salyzyn@android.com>,
+        linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org,
+        linux-alpha@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-parisc@vger.kernel.org, Denis Efremov <efremov@linux.com>
+References: <20220617125750.728590-1-arnd@kernel.org>
+ <20220617125750.728590-2-arnd@kernel.org>
+From:   Hannes Reinecke <hare@suse.de>
+Subject: Re: [PATCH v2 1/3] scsi: dpt_i2o: drop stale VIRT_TO_BUS dependency
+In-Reply-To: <20220617125750.728590-2-arnd@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi, Arnd,
+On 6/17/22 14:57, Arnd Bergmann wrote:
+> From: Arnd Bergmann <arnd@arndb.de>
+> 
+> The dpt_i2o driver was fixed to stop using virt_to_bus() in 2008, but
+> it still has a stale reference in an error handling code path that could
+> never work.
+> 
+> Fix it up to build without VIRT_TO_BUS and remove the Kconfig dependency.
+> 
+> The alternative to this would be to just remove the driver, as it is
+> clearly obsolete. The i2o driver layer was removed in 2015 with commit
+> 4a72a7af462d ("staging: remove i2o subsystem"), but the even older
+> dpt_i2o scsi driver stayed around.
+> 
+> The last non-cleanup patches I could find were from Miquel van Smoorenburg
+> and Mark Salyzyn back in 2008, they might know if there is any chance
+> of the hardware still being used anywhere.
+> 
+> Fixes: 67af2b060e02 ("[SCSI] dpt_i2o: move from virt_to_bus/bus_to_virt to dma_alloc_coherent")
+> Cc: Miquel van Smoorenburg <mikevs@xs4all.net>
+> Cc: Mark Salyzyn <salyzyn@android.com>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>   drivers/scsi/Kconfig   | 2 +-
+>   drivers/scsi/dpt_i2o.c | 4 ++--
+>   2 files changed, 3 insertions(+), 3 deletions(-)
+> 
+> diff --git a/drivers/scsi/Kconfig b/drivers/scsi/Kconfig
+> index a9fe5152addd..cf75588a2587 100644
+> --- a/drivers/scsi/Kconfig
+> +++ b/drivers/scsi/Kconfig
+> @@ -460,7 +460,7 @@ config SCSI_MVUMI
+>   
+>   config SCSI_DPT_I2O
+>   	tristate "Adaptec I2O RAID support "
+> -	depends on SCSI && PCI && VIRT_TO_BUS
+> +	depends on SCSI && PCI
+>   	help
+>   	  This driver supports all of Adaptec's I2O based RAID controllers as
+>   	  well as the DPT SmartRaid V cards.  This is an Adaptec maintained
+> diff --git a/drivers/scsi/dpt_i2o.c b/drivers/scsi/dpt_i2o.c
+> index 2e9155ba7408..55dfe7011912 100644
+> --- a/drivers/scsi/dpt_i2o.c
+> +++ b/drivers/scsi/dpt_i2o.c
+> @@ -52,11 +52,11 @@ MODULE_DESCRIPTION("Adaptec I2O RAID Driver");
+>   
+>   #include <linux/timer.h>
+>   #include <linux/string.h>
+> +#include <linux/io.h>
+>   #include <linux/ioport.h>
+>   #include <linux/mutex.h>
+>   
+>   #include <asm/processor.h>	/* for boot_cpu_data */
+> -#include <asm/io.h>		/* for virt_to_bus, etc. */
+>   
+>   #include <scsi/scsi.h>
+>   #include <scsi/scsi_cmnd.h>
+> @@ -2112,7 +2112,7 @@ static irqreturn_t adpt_isr(int irq, void *dev_id)
+>   		} else {
+>   			/* Ick, we should *never* be here */
+>   			printk(KERN_ERR "dpti: reply frame not from pool\n");
+> -			reply = (u8 *)bus_to_virt(m);
+> +			goto out;
+>   		}
+>   
+>   		if (readl(reply) & MSG_FAIL) {
 
-On Mon, Jun 20, 2022 at 7:27 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Mon, Jun 20, 2022 at 12:24 PM Huacai Chen <chenhuacai@kernel.org> wrote:
-> > On Fri, Jun 17, 2022 at 11:42 PM Arnd Bergmann <arnd@arndb.de> wrote:
-> > >
-> > > On Fri, Jun 17, 2022 at 4:58 PM Huacai Chen <chenhuacai@loongson.cn> wrote:
-> > > >
-> > > > Add sparse memory vmemmap support for LoongArch. SPARSEMEM_VMEMMAP
-> > > > uses a virtually mapped memmap to optimise pfn_to_page and page_to_pfn
-> > > > operations. This is the most efficient option when sufficient kernel
-> > > > resources are available.
-> > >
-> > > I have not looked at this in detail, but from a high-level perspective, it
-> > > seems very similar to the corresponding code in arch/arm64 and arch/x86.
-> > >
-> > > Can you try to merge the three copies into a generic helper and add that
-> > > to mm/sparse-vmemmap.c? If this does not work, can you describe in the
-> > > changelog text why these have to be architecture specific?
-> >
-> > It is difficult to merge, because LoongArch needs to call pud_init(),
-> > pmd_init() and other similar things which are unnecessary on ARM64 and
-> > X86.
->
->  I can see that this part of the code is the same as mips. What is the
-> initialization
->  for? Can it be encapsulated in an architecture specific inline
-> function (for mips
-> and loongarch), with a generic version like this?
->
-> #ifndef pud_init_invalid
-> static inline void pud_init_invalid(void *) {}
-> #endif
-OK, let's have a try.
+Reviewed-by: Hannes Reinecke <hare@suse.de>
 
-Huacai
->
->        Arnd
+Personally I wouldn't mind to see this driver gone, as it's being built 
+upon the (long-defunct) I2O specification. We already deleted the i2o 
+subsystem years ago, so maybe it's time to consign this driver to 
+history, too.
+
+Cheers,
+
+Hannes
+-- 
+Dr. Hannes Reinecke		           Kernel Storage Architect
+hare@suse.de			                  +49 911 74053 688
+SUSE Software Solutions Germany GmbH, Maxfeldstr. 5, 90409 Nürnberg
+HRB 36809 (AG Nürnberg), GF: Felix Imendörffer
