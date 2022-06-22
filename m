@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5F870CCA485
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A29F7CCA486
 	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 15:52:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1357941AbiFVPwy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 11:52:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52358 "EHLO
+        id S1359164AbiFVPw4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 11:52:56 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52366 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1359503AbiFVPws (ORCPT
+        with ESMTP id S1359627AbiFVPws (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 11:52:48 -0400
-Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 684702701;
-        Wed, 22 Jun 2022 08:52:45 -0700 (PDT)
-Received: from dggpemm500022.china.huawei.com (unknown [172.30.72.53])
-        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4LSnvD2wrwzDqqv;
-        Wed, 22 Jun 2022 23:52:08 +0800 (CST)
+Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6856955A2;
+        Wed, 22 Jun 2022 08:52:46 -0700 (PDT)
+Received: from dggpemm500024.china.huawei.com (unknown [172.30.72.55])
+        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4LSntW4dPDzkWZl;
+        Wed, 22 Jun 2022 23:51:31 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500022.china.huawei.com (7.185.36.162) with Microsoft SMTP Server
+ dggpemm500024.china.huawei.com (7.185.36.203) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 22 Jun 2022 23:52:41 +0800
+ 15.1.2375.24; Wed, 22 Jun 2022 23:52:44 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 22 Jun 2022 23:52:41 +0800
+ 15.1.2375.24; Wed, 22 Jun 2022 23:52:44 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
         <linuxppc-dev@lists.ozlabs.org>,
@@ -37,10 +37,12 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <pasha.tatashin@soleen.com>, <broonie@kernel.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>
-Subject: [PATCH v5 00/33] objtool: add base support for arm64
-Date:   Wed, 22 Jun 2022 23:48:47 +0800
-Message-ID: <20220622154920.95075-1-chenzhongjin@huawei.com>
+Subject: [PATCH v5 13/33] objtool: arm64: Enable ORC for arm64
+Date:   Wed, 22 Jun 2022 23:49:00 +0800
+Message-ID: <20220622154920.95075-14-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220622154920.95075-1-chenzhongjin@huawei.com>
+References: <20220622154920.95075-1-chenzhongjin@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 X-Originating-IP: [10.67.175.36]
@@ -51,217 +53,403 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This series enables objtool to start doing stack validation and orc
-generation on arm64 kernel builds.
+Add orc_type, orc build and ld options for arm64.
 
-Based on Julien's previous work(1)(2), Now I have finished most of work
-for objtool enable on arm64. This series includes objtool part [1-13]
-and arm64 support part [14-33], the second part is to make objtool run
-correctly with no warning on arm64 so if necessary it can be taken apart
-as two series.
-
-ORC generation feature is implemented but not used because we don't have
-an unwinder_orc on arm64, now it only be used to check whether objtool
-has correct validation.
-
-This series depends on (https://lkml.org/lkml/2022/6/22/463)
-I moved some changes which work for all architectures to that series
-because this one becomes too big now.
-And it is rebased to tip/objtool/core branch.
-
-I think the series is complete enough so I removed the RFC.
-However now there are still (maybe only) two unsolved problems:
-
-1. the switch optimization and dynamic jump
-Although this problem has been troubling us for a long time and
-temporarily resolved by -no-jump-table. Hopefully we have chance
-to fix it. I'm trying for that and it will be updated in next version.
-
-2. alternative_cb
-alternative_cb in arm64 is an dynamic patch mechanism on arm64 which is
-similiar to alternative instruction but doesn't give instructions explicitly.
-It cause trouble when there is a jump instructions inside it and causes some
-branch that objtool can't reach.
-I have solved some of them by adding UNWIND_HINT one macro
-"mitigate_spectre_bhb_loop" can't be fixed because it is used in
-different assembly files.
-
-(1) https://lkml.org/lkml/2021/3/3/1135
-(2) https://github.com/julien-thierry/linux.git
+Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
-v5 Changes:
-Compare to last RFC v4 series, this series does a lot of changes, including
-code rebase, refactoring and solution for several warning in last series.
-After refactoring and moving some patches out, the number of lines in this
-series decrease a thousand.
-
-Here are changes for each patch.
-
-[1] Removed unnecessary part from insn.h and insn.c to avoid extra
-dependencies and wired hack. So the patch to add head files also be removed.
-
-[2] Rebase Makefile, clear sync-check for insn.h/c and add arm64 elf
-relocation types in elf.h.
-Remove other callee saved registers tracking except FP and LR. Beacause
-in arm64 there are lots of branches store these CSRs in different order
-or positions, tracking them will cause some false stack state mismatch
-warnings.
-
-[3-6] Refactor code. Add some macros to make code more clean.
-For instructions load/store on stack, Simplifies the logic of moving SP
-and accessing data because the order of ops makes no differences.
-
-[7-8] Remove delete in record_invalid_insn because now we don't need to
-handle special undecoded instructions.
-
-[13] New patch to enable ORC generation.
-
-[12, 14, 17] Rebase to current branch.
-
-[19-21] Add annotations for trans_pgd-asm.S and some unreachable
-branches.
-
-[29] Moves kuser32.S and sigreturn32.S to rodata because they are VDSO.
-
-[31] Remove ignores for hibernate.c.
-
-[33] New patch to fix a fallthrough problem.
-
----
-v4 Changes:
-- fix EX_ENTRY_SIZE from 8 to 12.
-- modify arm64 for supporting objtool, including annotation,
-	asm code modification, ignoring some validation, to make objtool
-	be enable to pass arm64 builds.
-
-v3 Changes:
-- rebase Julien's version to mainstream and solve conflicts.
-- Merge dumplicate "*type = INSN_OTHER".
-- When meeting unrecognized instructions such as datas
-	in .text code or 0x0 padding insns, last version used
-	"loc->ignorable" to mark and remove them from objtool insn list.
-
-	However there are two problems to do so:
-	1. when meeting insns can't be decoded or excluded, objtool will
-	just stop.
-	
-	2. deleting every insn can cause problems in fellow procedure.
-
-	So I changed "record_invalid_insn" that we can delete one insn or
-	just set it ignored. Now check will throw an error and going on when
-	meeting undecodable instructions.
-
-	Also, to prevent the confusion between "loc->ignorable" and
-	"insn->ignore" I changed "ignore" to "delete".
-
-v2 Changes:
-	- Drop gcc plugin in favor of -fno-jump-tables
-	- miscelaneous fixes and cleanups
-___
-Chen Zhongjin (33):
-  tools: arm64: Make aarch64 instruction decoder available to tools
-  objtool: arm64: Add base definition for arm64 backend
-  objtool: arm64: Decode add/sub instructions
-  objtool: arm64: Decode jump and call related instructions
-  objtool: arm64: Decode other system instructions
-  objtool: arm64: Decode load/store instructions
-  objtool: arm64: Decode LDR instructions
-  objtool: arm64: Accept non-instruction data in code sections
-  objtool: check: Support data in text section
-  objtool: arm64: Handle supported relocations in alternatives
-  objtool: arm64: Ignore replacement section for alternative callback
-  objtool: arm64: Enable stack validation for arm64
-  objtool: arm64: Enable ORC for arm64
-  objtool: arm64: Add annotate_reachable() for objtools
-  arm64: bug: Add reachable annotation to warning macros
-  arm64: kgdb: Add reachable annotation after kgdb brk
-  objtool: arm64: Add unwind_hint support
-  arm64: Change symbol type annotations
-  arm64: Annotate unwind_hint for symbols with empty stack
-  arm64: entry: Annotate unwind_hint for entry
-  arm64: kvm: Annotate unwind_hint for hyp entry
-  arm64: efi-header: Mark efi header as data
-  arm64: head: Mark constants as data
-  arm64: proc: Mark constant as data
-  arm64: crypto: Mark constant as data
-  arm64: crypto: Remove unnecessary stackframe
-  arm64: Set intra-function call annotations
-  arm64: sleep: Properly set frame pointer before call
-  arm64: compat: Move VDSO code to .rodata section
-  arm64: entry: Align stack size for alternative
-  arm64: kernel: Skip validation of proton-pack.c
-  arm64: irq-gic: Replace unreachable() with -EINVAL
-  objtool: revert c_file fallthrough detection for arm64
-
- arch/arm64/Kconfig                            |   2 +
- arch/arm64/Kconfig.debug                      |  31 ++
- arch/arm64/Makefile                           |   4 +
- arch/arm64/crypto/aes-neonbs-core.S           |  14 +-
- arch/arm64/crypto/crct10dif-ce-core.S         |   5 +
- arch/arm64/crypto/poly1305-armv8.pl           |   4 +
- arch/arm64/crypto/sha512-armv8.pl             |  29 +-
- arch/arm64/include/asm/assembler.h            |   2 +
- arch/arm64/include/asm/bug.h                  |   6 +-
- arch/arm64/include/asm/kgdb.h                 |   1 +
- arch/arm64/include/asm/module.h               |   7 +
- arch/arm64/include/asm/orc_types.h            |  68 +++
- arch/arm64/include/asm/unwind_hints.h         |  26 +
- arch/arm64/kernel/cpu-reset.S                 |   2 +
- arch/arm64/kernel/efi-entry.S                 |   2 +
- arch/arm64/kernel/efi-header.S                |   2 +
- arch/arm64/kernel/entry.S                     |  30 +-
- arch/arm64/kernel/head.S                      |  76 +--
- arch/arm64/kernel/hibernate-asm.S             |   2 +
- arch/arm64/kernel/kuser32.S                   |   1 +
- arch/arm64/kernel/proton-pack.c               |   2 +
- arch/arm64/kernel/relocate_kernel.S           |   2 +
- arch/arm64/kernel/sigreturn32.S               |   1 +
- arch/arm64/kernel/sleep.S                     |   8 +-
- arch/arm64/kernel/vmlinux.lds.S               |   3 +
- arch/arm64/kvm/hyp/entry.S                    |   9 +-
- arch/arm64/kvm/hyp/hyp-entry.S                |   4 +
- arch/arm64/kvm/hyp/vgic-v3-sr.c               |   7 +-
- arch/arm64/mm/proc.S                          |   4 +-
- arch/arm64/mm/trans_pgd-asm.S                 |   3 +
- drivers/irqchip/irq-gic-v3.c                  |   2 +-
- include/linux/compiler.h                      |   9 +
- scripts/Makefile                              |   6 +-
- tools/arch/arm64/include/asm/insn.h           | 458 +++++++++++++++++
- tools/arch/arm64/include/asm/orc_types.h      |  68 +++
- tools/arch/arm64/include/asm/unwind_hints.h   |  26 +
- tools/arch/arm64/lib/insn.c                   | 335 +++++++++++++
- tools/objtool/Makefile                        |   5 +
- tools/objtool/arch/arm64/Build                |   9 +
- tools/objtool/arch/arm64/decode.c             | 466 ++++++++++++++++++
- .../arch/arm64/include/arch/cfi_regs.h        |  14 +
- tools/objtool/arch/arm64/include/arch/elf.h   |  12 +
- .../arch/arm64/include/arch/endianness.h      |   9 +
- .../objtool/arch/arm64/include/arch/special.h |  22 +
- tools/objtool/arch/arm64/orc.c                | 117 +++++
- tools/objtool/arch/arm64/special.c            |  36 ++
- tools/objtool/arch/x86/decode.c               |   5 +
- tools/objtool/check.c                         |  22 +-
- tools/objtool/elf.c                           |  14 +
- tools/objtool/include/objtool/arch.h          |   2 +
- tools/objtool/include/objtool/elf.h           |   1 +
- tools/objtool/include/objtool/objtool.h       |   2 +-
- tools/objtool/objtool.c                       |   1 +
- 53 files changed, 1925 insertions(+), 73 deletions(-)
+ arch/arm64/Kconfig.debug                 |  10 ++
+ arch/arm64/include/asm/module.h          |   7 ++
+ arch/arm64/include/asm/orc_types.h       |  68 +++++++++++++
+ arch/arm64/kernel/vmlinux.lds.S          |   3 +
+ scripts/Makefile                         |   6 +-
+ tools/arch/arm64/include/asm/orc_types.h |  68 +++++++++++++
+ tools/objtool/Makefile                   |   1 +
+ tools/objtool/arch/arm64/Build           |   1 +
+ tools/objtool/arch/arm64/orc.c           | 117 +++++++++++++++++++++++
+ 9 files changed, 280 insertions(+), 1 deletion(-)
  create mode 100644 arch/arm64/include/asm/orc_types.h
- create mode 100644 arch/arm64/include/asm/unwind_hints.h
- create mode 100644 tools/arch/arm64/include/asm/insn.h
  create mode 100644 tools/arch/arm64/include/asm/orc_types.h
- create mode 100644 tools/arch/arm64/include/asm/unwind_hints.h
- create mode 100644 tools/arch/arm64/lib/insn.c
- create mode 100644 tools/objtool/arch/arm64/Build
- create mode 100644 tools/objtool/arch/arm64/decode.c
- create mode 100644 tools/objtool/arch/arm64/include/arch/cfi_regs.h
- create mode 100644 tools/objtool/arch/arm64/include/arch/elf.h
- create mode 100644 tools/objtool/arch/arm64/include/arch/endianness.h
- create mode 100644 tools/objtool/arch/arm64/include/arch/special.h
  create mode 100644 tools/objtool/arch/arm64/orc.c
- create mode 100644 tools/objtool/arch/arm64/special.c
 
+diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
+index c2c68c6f7557..ec804a21c753 100644
+--- a/arch/arm64/Kconfig.debug
++++ b/arch/arm64/Kconfig.debug
+@@ -39,6 +39,16 @@ config UNWINDER_FRAME_POINTER
+       unwinder, but the kernel text size will grow by ~3% and the kernel's
+       overall performance will degrade by roughly 5-10%.
+ 
++config UNWINDER_ORC
++	bool "ORC unwinder"
++	select OBJTOOL
++	help
++	  This option enables the ORC (Oops Rewind Capability) unwinder for
++	  unwinding kernel stack traces.  It uses a custom data format which is
++	  a simplified version of the DWARF Call Frame Information standard.
++
++	  The orc unwinder is not implemented on arm64 now, this option is only
++	  used for testing orc data generation.
+ endchoice
+ 
+ source "drivers/hwtracing/coresight/Kconfig"
+diff --git a/arch/arm64/include/asm/module.h b/arch/arm64/include/asm/module.h
+index 4e7fa2623896..782ac8e120dd 100644
+--- a/arch/arm64/include/asm/module.h
++++ b/arch/arm64/include/asm/module.h
+@@ -6,6 +6,7 @@
+ #define __ASM_MODULE_H
+ 
+ #include <asm-generic/module.h>
++#include <asm/orc_types.h>
+ 
+ #ifdef CONFIG_ARM64_MODULE_PLTS
+ struct mod_plt_sec {
+@@ -20,6 +21,12 @@ struct mod_arch_specific {
+ 
+ 	/* for CONFIG_DYNAMIC_FTRACE */
+ 	struct plt_entry	*ftrace_trampolines;
++
++#ifdef CONFIG_UNWINDER_ORC
++	unsigned int num_orcs;
++	int *orc_unwind_ip;
++	struct orc_entry *orc_unwind;
++#endif
+ };
+ #endif
+ 
+diff --git a/arch/arm64/include/asm/orc_types.h b/arch/arm64/include/asm/orc_types.h
+new file mode 100644
+index 000000000000..9c06e7a6ed55
+--- /dev/null
++++ b/arch/arm64/include/asm/orc_types.h
+@@ -0,0 +1,68 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Copyright (C) 2017 Josh Poimboeuf <jpoimboe@redhat.com>
++ */
++
++#ifndef _ORC_TYPES_H
++#define _ORC_TYPES_H
++
++#include <linux/types.h>
++#include <linux/compiler.h>
++
++/*
++ * The ORC_REG_* registers are base registers which are used to find other
++ * registers on the stack.
++ *
++ * ORC_REG_PREV_SP, also known as DWARF Call Frame Address (CFA), is the
++ * address of the previous frame: the caller's SP before it called the current
++ * function.
++ *
++ * ORC_REG_UNDEFINED means the corresponding register's value didn't change in
++ * the current frame.
++ *
++ * The most commonly used base registers are SP and BP -- which the previous SP
++ * is usually based on -- and PREV_SP and UNDEFINED -- which the previous BP is
++ * usually based on.
++ *
++ * The rest of the base registers are needed for special cases like entry code
++ * and GCC realigned stacks.
++ */
++#define ORC_REG_UNDEFINED		0
++#define ORC_REG_PREV_SP			1
++#define ORC_REG_BP			2
++#define ORC_REG_SP			3
++#define ORC_REG_BP_INDIRECT		4
++#define ORC_REG_SP_INDIRECT		5
++#define ORC_REG_MAX			6
++
++#ifndef __ASSEMBLY__
++#include <asm/byteorder.h>
++
++/*
++ * This struct is more or less a vastly simplified version of the DWARF Call
++ * Frame Information standard.  It contains only the necessary parts of DWARF
++ * CFI, simplified for ease of access by the in-kernel unwinder.  It tells the
++ * unwinder how to find the previous SP and BP (and sometimes entry regs) on
++ * the stack for a given code address.  Each instance of the struct corresponds
++ * to one or more code locations.
++ */
++struct orc_entry {
++	s16		sp_offset;
++	s16		bp_offset;
++#if defined(__LITTLE_ENDIAN_BITFIELD)
++	unsigned	sp_reg:4;
++	unsigned	bp_reg:4;
++	unsigned	type:2;
++	unsigned	end:1;
++#elif defined(__BIG_ENDIAN_BITFIELD)
++	unsigned	bp_reg:4;
++	unsigned	sp_reg:4;
++	unsigned	unused:5;
++	unsigned	end:1;
++	unsigned	type:2;
++#endif
++} __packed;
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ORC_TYPES_H */
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index edaf0faf766f..339cf3bf5ce2 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -61,6 +61,7 @@
+ #define RUNTIME_DISCARD_EXIT
+ 
+ #include <asm-generic/vmlinux.lds.h>
++#include <asm-generic/orc_lookup.h>
+ #include <asm/cache.h>
+ #include <asm/kernel-pgtable.h>
+ #include <asm/kexec.h>
+@@ -306,6 +307,8 @@ SECTIONS
+ 	__pecoff_data_size = ABSOLUTE(. - __initdata_begin);
+ 	_end = .;
+ 
++	ORC_UNWIND_TABLE
++
+ 	STABS_DEBUG
+ 	DWARF_DEBUG
+ 	ELF_DETAILS
+diff --git a/scripts/Makefile b/scripts/Makefile
+index ce5aa9030b74..5be2552e4d02 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -20,8 +20,12 @@ HOSTLDLIBS_sign-file = $(shell pkg-config --libs libcrypto 2> /dev/null || echo
+ ifdef CONFIG_UNWINDER_ORC
+ ifeq ($(ARCH),x86_64)
+ ARCH := x86
+-endif
+ HOSTCFLAGS_sorttable.o += -I$(srctree)/tools/arch/x86/include
++endif
++ifeq ($(ARCH),arm64)
++HOSTCFLAGS_sorttable.o += -I$(srctree)/tools/arch/arm64/include
++endif
++
+ HOSTCFLAGS_sorttable.o += -DUNWINDER_ORC_ENABLED
+ endif
+ 
+diff --git a/tools/arch/arm64/include/asm/orc_types.h b/tools/arch/arm64/include/asm/orc_types.h
+new file mode 100644
+index 000000000000..9c06e7a6ed55
+--- /dev/null
++++ b/tools/arch/arm64/include/asm/orc_types.h
+@@ -0,0 +1,68 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Copyright (C) 2017 Josh Poimboeuf <jpoimboe@redhat.com>
++ */
++
++#ifndef _ORC_TYPES_H
++#define _ORC_TYPES_H
++
++#include <linux/types.h>
++#include <linux/compiler.h>
++
++/*
++ * The ORC_REG_* registers are base registers which are used to find other
++ * registers on the stack.
++ *
++ * ORC_REG_PREV_SP, also known as DWARF Call Frame Address (CFA), is the
++ * address of the previous frame: the caller's SP before it called the current
++ * function.
++ *
++ * ORC_REG_UNDEFINED means the corresponding register's value didn't change in
++ * the current frame.
++ *
++ * The most commonly used base registers are SP and BP -- which the previous SP
++ * is usually based on -- and PREV_SP and UNDEFINED -- which the previous BP is
++ * usually based on.
++ *
++ * The rest of the base registers are needed for special cases like entry code
++ * and GCC realigned stacks.
++ */
++#define ORC_REG_UNDEFINED		0
++#define ORC_REG_PREV_SP			1
++#define ORC_REG_BP			2
++#define ORC_REG_SP			3
++#define ORC_REG_BP_INDIRECT		4
++#define ORC_REG_SP_INDIRECT		5
++#define ORC_REG_MAX			6
++
++#ifndef __ASSEMBLY__
++#include <asm/byteorder.h>
++
++/*
++ * This struct is more or less a vastly simplified version of the DWARF Call
++ * Frame Information standard.  It contains only the necessary parts of DWARF
++ * CFI, simplified for ease of access by the in-kernel unwinder.  It tells the
++ * unwinder how to find the previous SP and BP (and sometimes entry regs) on
++ * the stack for a given code address.  Each instance of the struct corresponds
++ * to one or more code locations.
++ */
++struct orc_entry {
++	s16		sp_offset;
++	s16		bp_offset;
++#if defined(__LITTLE_ENDIAN_BITFIELD)
++	unsigned	sp_reg:4;
++	unsigned	bp_reg:4;
++	unsigned	type:2;
++	unsigned	end:1;
++#elif defined(__BIG_ENDIAN_BITFIELD)
++	unsigned	bp_reg:4;
++	unsigned	sp_reg:4;
++	unsigned	unused:5;
++	unsigned	end:1;
++	unsigned	type:2;
++#endif
++} __packed;
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _ORC_TYPES_H */
+diff --git a/tools/objtool/Makefile b/tools/objtool/Makefile
+index 3f7c7b54c741..e17c1fd90982 100644
+--- a/tools/objtool/Makefile
++++ b/tools/objtool/Makefile
+@@ -46,6 +46,7 @@ ifeq ($(SRCARCH),x86)
+ endif
+ 
+ ifeq ($(SRCARCH),arm64)
++	BUILD_ORC := y
+ 	CFLAGS  += -Wno-nested-externs
+ endif
+ 
+diff --git a/tools/objtool/arch/arm64/Build b/tools/objtool/arch/arm64/Build
+index f3de3a50d541..00221087eefe 100644
+--- a/tools/objtool/arch/arm64/Build
++++ b/tools/objtool/arch/arm64/Build
+@@ -1,5 +1,6 @@
+ objtool-y += special.o
+ objtool-y += decode.o
++objtool-y += orc.o
+ 
+ objtool-y += libhweight.o
+ 
+diff --git a/tools/objtool/arch/arm64/orc.c b/tools/objtool/arch/arm64/orc.c
+new file mode 100644
+index 000000000000..aa8404c482b6
+--- /dev/null
++++ b/tools/objtool/arch/arm64/orc.c
+@@ -0,0 +1,117 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * Copyright (C) 2017 Josh Poimboeuf <jpoimboe@redhat.com>
++ */
++
++#include <stdlib.h>
++
++#include <linux/objtool.h>
++
++#include <objtool/orc.h>
++#include <objtool/warn.h>
++
++int init_orc_entry(struct orc_entry *orc, struct cfi_state *cfi,
++		   struct instruction *insn)
++{
++	struct cfi_reg *bp = &cfi->regs[CFI_BP];
++
++	memset(orc, 0, sizeof(*orc));
++
++	if (!cfi) {
++		orc->end = 0;
++		orc->sp_reg = ORC_REG_UNDEFINED;
++		return 0;
++	}
++
++	orc->end = cfi->end;
++
++	if (cfi->cfa.base == CFI_UNDEFINED) {
++		orc->sp_reg = ORC_REG_UNDEFINED;
++		return 0;
++	}
++
++	switch (cfi->cfa.base) {
++	case CFI_SP:
++		orc->sp_reg = ORC_REG_SP;
++		break;
++	case CFI_SP_INDIRECT:
++		orc->sp_reg = ORC_REG_SP_INDIRECT;
++		break;
++	case CFI_BP:
++		orc->sp_reg = ORC_REG_BP;
++		break;
++	case CFI_BP_INDIRECT:
++		orc->sp_reg = ORC_REG_BP_INDIRECT;
++		break;
++	default:
++		WARN_FUNC("unknown CFA base reg %d",
++			  insn->sec, insn->offset, cfi->cfa.base);
++		return -1;
++	}
++
++	switch (bp->base) {
++	case CFI_UNDEFINED:
++		orc->bp_reg = ORC_REG_UNDEFINED;
++		break;
++	case CFI_CFA:
++		orc->bp_reg = ORC_REG_PREV_SP;
++		break;
++	case CFI_BP:
++		orc->bp_reg = ORC_REG_BP;
++		break;
++	default:
++		WARN_FUNC("unknown BP base reg %d",
++			  insn->sec, insn->offset, bp->base);
++		return -1;
++	}
++
++	orc->sp_offset = cfi->cfa.offset;
++	orc->bp_offset = bp->offset;
++	orc->type = cfi->type;
++
++	return 0;
++}
++
++static const char *reg_name(unsigned int reg)
++{
++	switch (reg) {
++	case ORC_REG_PREV_SP:
++		return "prevsp";
++	case ORC_REG_BP:
++		return "fp";
++	case ORC_REG_SP:
++		return "sp";
++	case ORC_REG_BP_INDIRECT:
++		return "fp(ind)";
++	case ORC_REG_SP_INDIRECT:
++		return "sp(ind)";
++	default:
++		return "?";
++	}
++}
++
++const char *orc_type_name(unsigned int type)
++{
++	switch (type) {
++	case UNWIND_HINT_TYPE_CALL:
++		return "call";
++	case UNWIND_HINT_TYPE_REGS:
++		return "regs";
++	case UNWIND_HINT_TYPE_REGS_PARTIAL:
++		return "regs (partial)";
++	default:
++		return "?";
++	}
++}
++
++void orc_print_reg(unsigned int reg, int offset)
++{
++	if (reg == ORC_REG_BP_INDIRECT)
++		printf("(fp%+d)", offset);
++	else if (reg == ORC_REG_SP_INDIRECT)
++		printf("(sp%+d)", offset);
++	else if (reg == ORC_REG_UNDEFINED)
++		printf("(und)");
++	else
++		printf("%s%+d", reg_name(reg), offset);
++}
 -- 
 2.17.1
 
