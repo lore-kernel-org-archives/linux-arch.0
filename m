@@ -2,25 +2,25 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0E1FFCCA482
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B4462CCA485
 	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 15:54:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1358163AbiFVPyP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 11:54:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52740 "EHLO
+        id S1359649AbiFVPyQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 11:54:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52720 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1359665AbiFVPxC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 11:53:02 -0400
-Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B0F4E2F385;
-        Wed, 22 Jun 2022 08:52:49 -0700 (PDT)
-Received: from dggpemm500020.china.huawei.com (unknown [172.30.72.55])
-        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4LSnvK21rJzDs3V;
-        Wed, 22 Jun 2022 23:52:13 +0800 (CST)
+        with ESMTP id S1358909AbiFVPxF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 11:53:05 -0400
+Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5484A32EEC;
+        Wed, 22 Jun 2022 08:52:50 -0700 (PDT)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.56])
+        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4LSnsW3LfnzhYdM;
+        Wed, 22 Jun 2022 23:50:39 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500020.china.huawei.com (7.185.36.49) with Microsoft SMTP Server
+ dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 22 Jun 2022 23:52:46 +0800
+ 15.1.2375.24; Wed, 22 Jun 2022 23:52:47 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
@@ -37,9 +37,9 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <pasha.tatashin@soleen.com>, <broonie@kernel.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>
-Subject: [PATCH v5 25/33] arm64: crypto: Mark constant as data
-Date:   Wed, 22 Jun 2022 23:49:12 +0800
-Message-ID: <20220622154920.95075-26-chenzhongjin@huawei.com>
+Subject: [PATCH v5 27/33] arm64: Set intra-function call annotations
+Date:   Wed, 22 Jun 2022 23:49:14 +0800
+Message-ID: <20220622154920.95075-28-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220622154920.95075-1-chenzhongjin@huawei.com>
 References: <20220622154920.95075-1-chenzhongjin@huawei.com>
@@ -53,161 +53,79 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use SYM_DATA_* macros to annotate data bytes in the middle of .text
-sections.
+Stack validation requires BL instructions to an address,
+within the symbol containing the BL should be annotated as intra-function
+calls.
 
-For local symbols, ".L" prefix needs to be dropped as the assembler
-exclude the symbols from the .o symbol table, making objtool unable
-to see them.
+Make __pmull_p8_core normally set frame because there's a intra-function
+call destinating middle of it and the caller have set the frame. When
+analyzing the insns there will be a cfi state mismatch between normal-call
+and intra-call.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- arch/arm64/crypto/aes-neonbs-core.S | 14 +++++++-------
- arch/arm64/crypto/poly1305-armv8.pl |  4 ++++
- arch/arm64/crypto/sha512-armv8.pl   | 24 ++++++++++++++----------
- 3 files changed, 25 insertions(+), 17 deletions(-)
+ arch/arm64/crypto/crct10dif-ce-core.S | 5 +++++
+ arch/arm64/kernel/entry.S             | 2 ++
+ 2 files changed, 7 insertions(+)
 
-diff --git a/arch/arm64/crypto/aes-neonbs-core.S b/arch/arm64/crypto/aes-neonbs-core.S
-index d427f4556b6e..fa161d1bf264 100644
---- a/arch/arm64/crypto/aes-neonbs-core.S
-+++ b/arch/arm64/crypto/aes-neonbs-core.S
-@@ -367,15 +367,15 @@
+diff --git a/arch/arm64/crypto/crct10dif-ce-core.S b/arch/arm64/crypto/crct10dif-ce-core.S
+index dce6dcebfca1..b3b8e56cb87d 100644
+--- a/arch/arm64/crypto/crct10dif-ce-core.S
++++ b/arch/arm64/crypto/crct10dif-ce-core.S
+@@ -63,6 +63,7 @@
+ //
  
+ #include <linux/linkage.h>
++#include <linux/objtool.h>
+ #include <asm/assembler.h>
  
- 	.align		6
--M0:	.octa		0x0004080c0105090d02060a0e03070b0f
-+SYM_DATA_LOCAL(M0,	.octa		0x0004080c0105090d02060a0e03070b0f)
+ 	.text
+@@ -132,6 +133,8 @@
+ 	.endm
  
--M0SR:	.octa		0x0004080c05090d010a0e02060f03070b
--SR:	.octa		0x0f0e0d0c0a09080b0504070600030201
--SRM0:	.octa		0x01060b0c0207080d0304090e00050a0f
-+SYM_DATA_LOCAL(M0SR,	.octa		0x0004080c05090d010a0e02060f03070b)
-+SYM_DATA_LOCAL(SR,	.octa		0x0f0e0d0c0a09080b0504070600030201)
-+SYM_DATA_LOCAL(SRM0,	.octa		0x01060b0c0207080d0304090e00050a0f)
+ SYM_FUNC_START_LOCAL(__pmull_p8_core)
++	stp		x29, x30, [sp, #-16]!
++	mov		x29, sp
+ .L__pmull_p8_core:
+ 	ext		t4.8b, ad.8b, ad.8b, #1			// A1
+ 	ext		t5.8b, ad.8b, ad.8b, #2			// A2
+@@ -193,6 +196,7 @@ SYM_FUNC_START_LOCAL(__pmull_p8_core)
  
--M0ISR:	.octa		0x0004080c0d0105090a0e0206070b0f03
--ISR:	.octa		0x0f0e0d0c080b0a090504070602010003
--ISRM0:	.octa		0x0306090c00070a0d01040b0e0205080f
-+SYM_DATA_LOCAL(M0ISR,	.octa		0x0004080c0d0105090a0e0206070b0f03)
-+SYM_DATA_LOCAL(ISR,	.octa		0x0f0e0d0c080b0a090504070602010003)
-+SYM_DATA_LOCAL(ISRM0,	.octa		0x0306090c00070a0d01040b0e0205080f)
+ 	eor		t4.16b, t4.16b, t5.16b
+ 	eor		t6.16b, t6.16b, t3.16b
++	ldp		x29, x30, [sp], #16
+ 	ret
+ SYM_FUNC_END(__pmull_p8_core)
  
- 	/*
- 	 * void aesbs_convert_key(u8 out[], u32 const rk[], int rounds)
-diff --git a/arch/arm64/crypto/poly1305-armv8.pl b/arch/arm64/crypto/poly1305-armv8.pl
-index cbc980fb02e3..f460f33c127a 100644
---- a/arch/arm64/crypto/poly1305-armv8.pl
-+++ b/arch/arm64/crypto/poly1305-armv8.pl
-@@ -47,6 +47,8 @@ my ($mac,$nonce)=($inp,$len);
- my ($h0,$h1,$h2,$r0,$r1,$s1,$t0,$t1,$d0,$d1,$d2) = map("x$_",(4..14));
+@@ -207,6 +211,7 @@ SYM_FUNC_END(__pmull_p8_core)
+ 	pmull2		\rq\().8h, \ad\().16b, \bd\().16b	// D = A*B
+ 	.endif
  
- $code.=<<___;
-+#include <linux/linkage.h>
-+
- #ifndef __KERNEL__
- # include "arm_arch.h"
- .extern	OPENSSL_armcap_P
-@@ -888,8 +890,10 @@ poly1305_blocks_neon:
- .align	5
- .Lzeros:
- .long	0,0,0,0,0,0,0,0
-+SYM_DATA_START_LOCAL(POLY1305_str)
- .asciz	"Poly1305 for ARMv8, CRYPTOGAMS by \@dot-asm"
- .align	2
-+SYM_DATA_END(POLY1305_str)
- #if !defined(__KERNEL__) && !defined(_WIN64)
- .comm	OPENSSL_armcap_P,4,4
- .hidden	OPENSSL_armcap_P
-diff --git a/arch/arm64/crypto/sha512-armv8.pl b/arch/arm64/crypto/sha512-armv8.pl
-index 35ec9ae99fe1..1882c4110026 100644
---- a/arch/arm64/crypto/sha512-armv8.pl
-+++ b/arch/arm64/crypto/sha512-armv8.pl
-@@ -193,6 +193,8 @@ ___
- }
++	ANNOTATE_INTRA_FUNCTION_CALL
+ 	bl		.L__pmull_p8_core\i
  
- $code.=<<___;
-+#include <linux/linkage.h>
-+
- #ifndef	__KERNEL__
- # include "arm_arch.h"
- #endif
-@@ -208,11 +210,11 @@ ___
- $code.=<<___	if ($SZ==4);
- #ifndef	__KERNEL__
- # ifdef	__ILP32__
--	ldrsw	x16,.LOPENSSL_armcap_P
-+	ldrsw	x16,OPENSSL_armcap_P_rel
- # else
--	ldr	x16,.LOPENSSL_armcap_P
-+	ldr	x16,OPENSSL_armcap_P_rel
- # endif
--	adr	x17,.LOPENSSL_armcap_P
-+	adr	x17,OPENSSL_armcap_P_rel
- 	add	x16,x16,x17
- 	ldr	w16,[x16]
- 	tst	w16,#ARMV8_SHA256
-@@ -237,7 +239,7 @@ $code.=<<___;
- 	ldp	$E,$F,[$ctx,#4*$SZ]
- 	add	$num,$inp,$num,lsl#`log(16*$SZ)/log(2)`	// end of input
- 	ldp	$G,$H,[$ctx,#6*$SZ]
--	adr	$Ktbl,.LK$BITS
-+	adr	$Ktbl,K$BITS
- 	stp	$ctx,$num,[x29,#96]
+ 	eor		\rq\().16b, \rq\().16b, t4.16b
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index bbc440379304..d49bfbe81a0d 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -10,6 +10,7 @@
+ #include <linux/arm-smccc.h>
+ #include <linux/init.h>
+ #include <linux/linkage.h>
++#include <linux/objtool.h>
  
- .Loop:
-@@ -287,8 +289,7 @@ $code.=<<___;
- .size	$func,.-$func
- 
- .align	6
--.type	.LK$BITS,%object
--.LK$BITS:
-+SYM_DATA_START_LOCAL(K$BITS)
- ___
- $code.=<<___ if ($SZ==8);
- 	.quad	0x428a2f98d728ae22,0x7137449123ef65cd
-@@ -353,18 +354,21 @@ $code.=<<___ if ($SZ==4);
- 	.long	0	//terminator
- ___
- $code.=<<___;
--.size	.LK$BITS,.-.LK$BITS
-+SYM_DATA_END(K$BITS)
- #ifndef	__KERNEL__
- .align	3
--.LOPENSSL_armcap_P:
-+SYM_DATA_START_LOCAL(OPENSSL_armcap_P_rel)
- # ifdef	__ILP32__
- 	.long	OPENSSL_armcap_P-.
- # else
- 	.quad	OPENSSL_armcap_P-.
- # endif
-+SYM_DATA_END(OPENSSL_armcap_P_rel)
- #endif
-+SYM_DATA_START_LOCAL(OPENSSL_str)
- .asciz	"SHA$BITS block transform for ARMv8, CRYPTOGAMS by <appro\@openssl.org>"
- .align	2
-+SYM_DATA_END(OPENSSL_str)
- ___
- 
- if ($SZ==4) {
-@@ -385,7 +389,7 @@ sha256_block_armv8:
- 	add		x29,sp,#0
- 
- 	ld1.32		{$ABCD,$EFGH},[$ctx]
--	adr		$Ktbl,.LK256
-+	adr		$Ktbl,K256
- 
- .Loop_hw:
- 	ld1		{@MSG[0]-@MSG[3]},[$inp],#64
-@@ -648,7 +652,7 @@ sha256_block_neon:
- 	mov	x29, sp
- 	sub	sp,sp,#16*4
- 
--	adr	$Ktbl,.LK256
-+	adr	$Ktbl,K256
- 	add	$num,$inp,$num,lsl#6	// len to point at the end of inp
- 
- 	ld1.8	{@X[0]},[$inp], #16
+ #include <asm/alternative.h>
+ #include <asm/assembler.h>
+@@ -694,6 +695,7 @@ alternative_else_nop_endif
+ 	 * entry onto the return stack and using a RET instruction to
+ 	 * enter the full-fat kernel vectors.
+ 	 */
++	ANNOTATE_INTRA_FUNCTION_CALL
+ 	bl	2f
+ 	UNWIND_HINT_EMPTY
+ 	b	.
 -- 
 2.17.1
 
