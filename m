@@ -2,97 +2,115 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2C6E9C433EF
-	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 01:51:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6818BCCA47E
+	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 06:38:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237065AbiFVBvu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 21 Jun 2022 21:51:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54710 "EHLO
+        id S1350684AbiFVGiq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 02:38:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51008 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229832AbiFVBvt (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2022 21:51:49 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D4FB621256;
-        Tue, 21 Jun 2022 18:51:48 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        with ESMTP id S1349773AbiFVGip (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 02:38:45 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 381933137C;
+        Tue, 21 Jun 2022 23:38:44 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 73D6961826;
-        Wed, 22 Jun 2022 01:51:48 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D486DC385A2;
-        Wed, 22 Jun 2022 01:51:47 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1655862707;
-        bh=yAoKxvq/RDbFoDjWadpyfGoPvsAe+GvtjboXMAJrB8U=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=WP2uA5+yhzxAiocs6TllYglw5Ney2lvFwuVS5SuF0ppeNQ7msSMo4PXnlYTThFAZO
-         YRGmSuDuMFw6ndaXYOjX8PNgUMYls9HqiZawFwuYtkWg84/SdwXkTbbefygZCYPHNn
-         hKYS3ttp+RikGG5yPSKGkdB3pjlN8kS/8u1Eu8vdOQ0Zyu9tS0sxlBcfkCdn4DLnoS
-         SiXSN91uqHfjT8NG2YxB3aTVlSozwP5oTltY3J9Y1W8CL8B5jwZaZAZf70QVUqcJFR
-         P4A/qi1fV80eWXT2k9g8VWLiHAr+i/epDObiHViCE1nKzp9oca6ru6y6VRVyv/E2sH
-         j+nifdccyjbzQ==
-Received: by mail-vs1-f41.google.com with SMTP id j6so7373224vsi.0;
-        Tue, 21 Jun 2022 18:51:47 -0700 (PDT)
-X-Gm-Message-State: AJIora/RraxxzCplyV5NnCEzBZMXcGG7U1gz7PgI1fitHqB+8NnISEj7
-        nIbYE3t6hGQ4u6Q5pR5ae4BTEISBK2o2vpjQSt4=
-X-Google-Smtp-Source: AGRyM1utZR//1y9issFD2tF2ldIncQQvR5Nc0+J0YOMi+6mLMJ2YHmHXaBKMVlzbI2nwm0FGLrq3VBDF3kYog1PA9kU=
-X-Received: by 2002:a05:6102:f8b:b0:354:57e8:4c1b with SMTP id
- e11-20020a0561020f8b00b0035457e84c1bmr970617vsv.8.1655862706699; Tue, 21 Jun
- 2022 18:51:46 -0700 (PDT)
-MIME-Version: 1.0
-References: <20220621144920.2945595-1-guoren@kernel.org> <7adc9e19-7ffc-4b11-3e18-6e3a5225638f@redhat.com>
-In-Reply-To: <7adc9e19-7ffc-4b11-3e18-6e3a5225638f@redhat.com>
-From:   Guo Ren <guoren@kernel.org>
-Date:   Wed, 22 Jun 2022 09:51:35 +0800
-X-Gmail-Original-Message-ID: <CAJF2gTT4Q3HLabXPgACOmd-Z58LsD-77ga74pzgUT2scr+ydRA@mail.gmail.com>
-Message-ID: <CAJF2gTT4Q3HLabXPgACOmd-Z58LsD-77ga74pzgUT2scr+ydRA@mail.gmail.com>
-Subject: Re: [PATCH V6 0/2] riscv: Support qspinlock with generic headers
-To:     Waiman Long <longman@redhat.com>
-Cc:     Palmer Dabbelt <palmer@rivosinc.com>,
-        Arnd Bergmann <arnd@arndb.de>,
+        by smtp-out2.suse.de (Postfix) with ESMTPS id E416D1FA12;
+        Wed, 22 Jun 2022 06:38:42 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+        t=1655879922; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
+        bh=QMRrUcaW7noQ1pULOfC6DTDxjpRydqT5qx5KdCmqN2s=;
+        b=F2GAX4tgcaaJK09IKfBFeDbtHvOq+IkDEU7l7PrA3RhoibYo+uttdFz2t+qPZAaQOwDw3A
+        fHEDcSKePj6ww5nUqqNiqcxwleIRpxn45rgsUtNEvK5o15XMISBUcJfW8fMTMeto1TiYz1
+        6avqbbonITmQT2qBICWookqie0msOhY=
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 31A45134A9;
+        Wed, 22 Jun 2022 06:38:42 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id gMq2CvK4smKNUAAAMHmgww
+        (envelope-from <jgross@suse.com>); Wed, 22 Jun 2022 06:38:42 +0000
+From:   Juergen Gross <jgross@suse.com>
+To:     xen-devel@lists.xenproject.org, x86@kernel.org,
+        linux-s390@vger.kernel.org, linux-kernel@vger.kernel.org,
+        virtualization@lists.linux-foundation.org,
+        linux-arch@vger.kernel.org
+Cc:     Juergen Gross <jgross@suse.com>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>, Conor.Dooley@microchip.com,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Xuerui Wang <kernel@xen0n.name>, hev <r@hev.cc>,
-        Stafford Horne <shorne@gmail.com>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Guo Ren <guoren@linux.alibaba.com>
-Content-Type: text/plain; charset="UTF-8"
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        "Michael S. Tsirkin" <mst@redhat.com>,
+        Jason Wang <jasowang@redhat.com>,
+        Stefano Stabellini <sstabellini@kernel.org>,
+        Oleksandr Tyshchenko <oleksandr_tyshchenko@epam.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Russell King <linux@armlinux.org.uk>,
+        Boris Ostrovsky <boris.ostrovsky@oracle.com>,
+        linux-arm-kernel@lists.infradead.org
+Subject: [PATCH v3 0/3] virtio: support requiring restricted access per device
+Date:   Wed, 22 Jun 2022 08:38:35 +0200
+Message-Id: <20220622063838.8854-1-jgross@suse.com>
+X-Mailer: git-send-email 2.35.3
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Jun 21, 2022 at 11:08 PM Waiman Long <longman@redhat.com> wrote:
->
-> On 6/21/22 10:49, guoren@kernel.org wrote:
-> > From: Guo Ren <guoren@linux.alibaba.com>
-> >
-> > Enable qspinlock and meet the requirements mentioned in a8ad07e5240c9
-> > ("asm-generic: qspinlock: Indicate the use of mixed-size atomics").
-> >
-> > RISC-V LR/SC pairs could provide a strong/weak forward guarantee that
-> > depends on micro-architecture. And RISC-V ISA spec has given out
-> > several limitations to let hardware support strict forward guarantee
-> > (RISC-V User ISA - 8.3 Eventual Success of Store-Conditional
-> > Instructions):
-> > We restricted the length of LR/SC loops to fit within 64 contiguous
-> > instruction bytes in the base ISA to avoid undue restrictions on
-> > instruction cache and TLB size and associativity. Similarly, we
->
-> Does the 64 contiguous bytes need to be cacheline aligned?
-No, they are instructions, and the IFU & issue units would guarantee
-that. The programmer needn't worry about that.
+Instead of an all or nothing approach add support for requiring
+restricted memory access per device.
 
->
-> Regards,
-> Longman
->
+Changes in V3:
+- new patches 1 + 2
+- basically complete rework of patch 3
 
+Juergen Gross (3):
+  virtio: replace restricted mem access flag with callback
+  kernel: remove platform_has() infrastructure
+  xen: don't require virtio with grants for non-PV guests
+
+ MAINTAINERS                            |  8 --------
+ arch/arm/xen/enlighten.c               |  4 +++-
+ arch/s390/mm/init.c                    |  4 ++--
+ arch/x86/mm/mem_encrypt_amd.c          |  4 ++--
+ arch/x86/xen/enlighten_hvm.c           |  4 +++-
+ arch/x86/xen/enlighten_pv.c            |  5 ++++-
+ drivers/virtio/Kconfig                 |  4 ++++
+ drivers/virtio/Makefile                |  1 +
+ drivers/virtio/virtio.c                |  4 ++--
+ drivers/virtio/virtio_anchor.c         | 18 +++++++++++++++++
+ drivers/xen/Kconfig                    |  9 +++++++++
+ drivers/xen/grant-dma-ops.c            | 10 ++++++++++
+ include/asm-generic/Kbuild             |  1 -
+ include/asm-generic/platform-feature.h |  8 --------
+ include/linux/platform-feature.h       | 19 ------------------
+ include/linux/virtio_anchor.h          | 19 ++++++++++++++++++
+ include/xen/xen-ops.h                  |  6 ++++++
+ include/xen/xen.h                      |  8 --------
+ kernel/Makefile                        |  2 +-
+ kernel/platform-feature.c              | 27 --------------------------
+ 20 files changed, 84 insertions(+), 81 deletions(-)
+ create mode 100644 drivers/virtio/virtio_anchor.c
+ delete mode 100644 include/asm-generic/platform-feature.h
+ delete mode 100644 include/linux/platform-feature.h
+ create mode 100644 include/linux/virtio_anchor.h
+ delete mode 100644 kernel/platform-feature.c
 
 -- 
-Best Regards
- Guo Ren
+2.35.3
 
-ML: https://lore.kernel.org/linux-csky/
