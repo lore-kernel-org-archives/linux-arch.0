@@ -2,25 +2,25 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 336DAC433EF
-	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 10:16:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AADCEC43334
+	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 10:16:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236729AbiFVKQ1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 06:16:27 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36178 "EHLO
+        id S1352374AbiFVKQq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 06:16:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36544 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234833AbiFVKQI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 06:16:08 -0400
+        with ESMTP id S244791AbiFVKQL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 06:16:11 -0400
 Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 787C53B3C3;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C142C3AA4C;
         Wed, 22 Jun 2022 03:16:04 -0700 (PDT)
 Received: from dggpemm500022.china.huawei.com (unknown [172.30.72.53])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4LSfMV2w5KzSh96;
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4LSfMV4mZMzShB9;
         Wed, 22 Jun 2022 18:12:38 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
  dggpemm500022.china.huawei.com (7.185.36.162) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 22 Jun 2022 18:15:56 +0800
+ 15.1.2375.24; Wed, 22 Jun 2022 18:15:57 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
@@ -33,10 +33,12 @@ To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
 CC:     <tglx@linutronix.de>, <mingo@redhat.com>,
         <dave.hansen@linux.intel.com>, <x86@kernel.org>, <hpa@zytor.com>,
         <arnd@arndb.de>
-Subject: [PATCH v2 0/5] objtool: Reorganize x86 arch-specific code
-Date:   Wed, 22 Jun 2022 18:13:39 +0800
-Message-ID: <20220622101344.38002-1-chenzhongjin@huawei.com>
+Subject: [PATCH v2 5/5] objtool: use arch_jump_destination in read_intra_function_calls
+Date:   Wed, 22 Jun 2022 18:13:44 +0800
+Message-ID: <20220622101344.38002-6-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220622101344.38002-1-chenzhongjin@huawei.com>
+References: <20220622101344.38002-1-chenzhongjin@huawei.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 X-Originating-IP: [10.67.175.36]
@@ -47,50 +49,28 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch set reorganize current x86 related code in objtool, [1-3] move
-arch-specific to arch files and extract some common codes, [4] fixes a
-cross-compile problem and [5] fixes a call destination search bug.
+Now we use arch_jump_destination() instead of offset + len + immediate
+for jump destination.
+But in read_intra_function_calls it didn't get changed. Fix it.
 
-It make objtool more arch-generic, which makes other patches on different
-architectures easier to be reviewed and merged.
-
-Tested on x86 with unwind on kernel and module context.
-
+Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
-v2 Change:
-[5/5] objtool: use arch_jump_destination in read_intra_function_calls
----
-Chen Zhongjin (3):
-  objtool: Add generic symbol for relocation type
-  objtool: Specify host-arch for making LIBSUBCMD
-  objtool: use arch_jump_destination in read_intra_function_calls
+ tools/objtool/check.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Madhavan T. Venkataraman (2):
-  objtool: Make ORC type code arch-specific
-  objtool: Make ORC init and lookup code arch-generic
-
- arch/x86/include/asm/unwind.h                 |   5 -
- arch/x86/kernel/module.c                      |   7 +-
- arch/x86/kernel/unwind_orc.c                  | 256 +----------------
- arch/x86/kernel/vmlinux.lds.S                 |   2 +-
- .../asm => include/asm-generic}/orc_lookup.h  |  42 +++
- kernel/Makefile                               |   2 +
- kernel/orc_lookup.c                           | 261 ++++++++++++++++++
- tools/objtool/Makefile                        |   2 +-
- tools/objtool/arch/x86/Build                  |   1 +
- tools/objtool/arch/x86/include/arch/elf.h     |   5 +-
- tools/objtool/arch/x86/orc.c                  | 137 +++++++++
- tools/objtool/arch/x86/special.c              |   5 +-
- tools/objtool/check.c                         |  14 +-
- tools/objtool/include/objtool/orc.h           |  17 ++
- tools/objtool/orc_dump.c                      |  59 +---
- tools/objtool/orc_gen.c                       |  79 +-----
- 16 files changed, 492 insertions(+), 402 deletions(-)
- rename {arch/x86/include/asm => include/asm-generic}/orc_lookup.h (51%)
- create mode 100644 kernel/orc_lookup.c
- create mode 100644 tools/objtool/arch/x86/orc.c
- create mode 100644 tools/objtool/include/objtool/orc.h
-
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index 11ab13fd99fd..35d0a1bc4279 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -2127,7 +2127,7 @@ static int read_intra_function_calls(struct objtool_file *file)
+ 		 */
+ 		insn->type = INSN_JUMP_UNCONDITIONAL;
+ 
+-		dest_off = insn->offset + insn->len + insn->immediate;
++		dest_off = arch_jump_destination(insn);
+ 		insn->jump_dest = find_insn(file, insn->sec, dest_off);
+ 		if (!insn->jump_dest) {
+ 			WARN_FUNC("can't find call dest at %s+0x%lx",
 -- 
 2.17.1
 
