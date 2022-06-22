@@ -2,23 +2,23 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 46398CCA47D
-	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 15:53:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id ABB1ACCA488
+	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 15:53:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1358820AbiFVPxL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 11:53:11 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52722 "EHLO
+        id S1358339AbiFVPxN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 11:53:13 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52726 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1358532AbiFVPxC (ORCPT
+        with ESMTP id S1359268AbiFVPxC (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 11:53:02 -0400
-Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 31C7F2EA12;
+Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ABF6410C0;
         Wed, 22 Jun 2022 08:52:48 -0700 (PDT)
-Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.56])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4LSnsz5tRnzkWPF;
-        Wed, 22 Jun 2022 23:51:03 +0800 (CST)
+Received: from dggpemm500022.china.huawei.com (unknown [172.30.72.54])
+        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4LSnvH50j1zDsKj;
+        Wed, 22 Jun 2022 23:52:11 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
+ dggpemm500022.china.huawei.com (7.185.36.162) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
  15.1.2375.24; Wed, 22 Jun 2022 23:52:45 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
@@ -37,9 +37,9 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <pasha.tatashin@soleen.com>, <broonie@kernel.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>
-Subject: [PATCH v5 17/33] objtool: arm64: Add unwind_hint support
-Date:   Wed, 22 Jun 2022 23:49:04 +0800
-Message-ID: <20220622154920.95075-18-chenzhongjin@huawei.com>
+Subject: [PATCH v5 16/33] arm64: kgdb: Add reachable annotation after kgdb brk
+Date:   Wed, 22 Jun 2022 23:49:03 +0800
+Message-ID: <20220622154920.95075-17-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220622154920.95075-1-chenzhongjin@huawei.com>
 References: <20220622154920.95075-1-chenzhongjin@huawei.com>
@@ -53,114 +53,27 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Provide unwind hint defines for arm64 and objtool hint decoding.
+In the general use case, KGDB breakpoint handler should return normally
+to the instruction following the brk.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- arch/arm64/include/asm/unwind_hints.h       | 26 +++++++++++++++++++++
- tools/arch/arm64/include/asm/unwind_hints.h | 26 +++++++++++++++++++++
- tools/objtool/arch/arm64/decode.c           | 14 ++++++++++-
- 3 files changed, 65 insertions(+), 1 deletion(-)
- create mode 100644 arch/arm64/include/asm/unwind_hints.h
- create mode 100644 tools/arch/arm64/include/asm/unwind_hints.h
+ arch/arm64/include/asm/kgdb.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/arm64/include/asm/unwind_hints.h b/arch/arm64/include/asm/unwind_hints.h
-new file mode 100644
-index 000000000000..ffee9472b30d
---- /dev/null
-+++ b/arch/arm64/include/asm/unwind_hints.h
-@@ -0,0 +1,26 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+
-+#ifndef __ASM_UNWIND_HINTS_H
-+#define __ASM_UNWIND_HINTS_H
-+
-+#include <linux/objtool.h>
-+
-+#include "orc_types.h"
-+
-+#ifdef __ASSEMBLY__
-+
-+.macro UNWIND_HINT_EMPTY
-+	UNWIND_HINT sp_reg=ORC_REG_UNDEFINED type=UNWIND_HINT_TYPE_CALL end=1
-+.endm
-+
-+.macro UNWIND_HINT_FUNC sp_offset=0
-+	UNWIND_HINT sp_reg=ORC_REG_SP sp_offset=\sp_offset type=UNWIND_HINT_TYPE_CALL
-+.endm
-+
-+.macro UNWIND_HINT_REGS base=ORC_REG_SP offset=0
-+	UNWIND_HINT sp_reg=\base sp_offset=\offset type=UNWIND_HINT_TYPE_REGS
-+.endm
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_UNWIND_HINTS_H */
-diff --git a/tools/arch/arm64/include/asm/unwind_hints.h b/tools/arch/arm64/include/asm/unwind_hints.h
-new file mode 100644
-index 000000000000..ffee9472b30d
---- /dev/null
-+++ b/tools/arch/arm64/include/asm/unwind_hints.h
-@@ -0,0 +1,26 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+
-+#ifndef __ASM_UNWIND_HINTS_H
-+#define __ASM_UNWIND_HINTS_H
-+
-+#include <linux/objtool.h>
-+
-+#include "orc_types.h"
-+
-+#ifdef __ASSEMBLY__
-+
-+.macro UNWIND_HINT_EMPTY
-+	UNWIND_HINT sp_reg=ORC_REG_UNDEFINED type=UNWIND_HINT_TYPE_CALL end=1
-+.endm
-+
-+.macro UNWIND_HINT_FUNC sp_offset=0
-+	UNWIND_HINT sp_reg=ORC_REG_SP sp_offset=\sp_offset type=UNWIND_HINT_TYPE_CALL
-+.endm
-+
-+.macro UNWIND_HINT_REGS base=ORC_REG_SP offset=0
-+	UNWIND_HINT sp_reg=\base sp_offset=\offset type=UNWIND_HINT_TYPE_REGS
-+.endm
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_UNWIND_HINTS_H */
-diff --git a/tools/objtool/arch/arm64/decode.c b/tools/objtool/arch/arm64/decode.c
-index 37e42148dbe0..aa8d27c2bac9 100644
---- a/tools/objtool/arch/arm64/decode.c
-+++ b/tools/objtool/arch/arm64/decode.c
-@@ -5,6 +5,7 @@
- #include <stdint.h>
- 
- #include <asm/insn.h>
-+#include <asm/unwind_hints.h>
- 
- #include <objtool/check.h>
- #include <objtool/arch.h>
-@@ -176,7 +177,18 @@ static int is_arm64(const struct elf *elf)
- 
- int arch_decode_hint_reg(u8 sp_reg, int *base)
+diff --git a/arch/arm64/include/asm/kgdb.h b/arch/arm64/include/asm/kgdb.h
+index 21fc85e9d2be..a8cb91d8d59b 100644
+--- a/arch/arm64/include/asm/kgdb.h
++++ b/arch/arm64/include/asm/kgdb.h
+@@ -19,6 +19,7 @@
+ static inline void arch_kgdb_breakpoint(void)
  {
--	return -1;
-+	switch (sp_reg) {
-+	case ORC_REG_UNDEFINED:
-+		*base = CFI_UNDEFINED;
-+		break;
-+	case ORC_REG_SP:
-+		*base = CFI_SP;
-+		break;
-+	default:
-+		return -1;
-+	}
-+
-+	return 0;
+ 	asm ("brk %0" : : "I" (KGDB_COMPILED_DBG_BRK_IMM));
++	annotate_reachable();
  }
  
- static inline void make_add_op(enum aarch64_insn_register dest,
+ extern void kgdb_handle_bus_error(void);
 -- 
 2.17.1
 
