@@ -2,23 +2,23 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 11785C433EF
-	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 10:16:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B27C5C43334
+	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 10:16:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1349994AbiFVKQP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1350659AbiFVKQP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Wed, 22 Jun 2022 06:16:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36152 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36440 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1350246AbiFVKQG (ORCPT
+        with ESMTP id S1350362AbiFVKQG (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 06:16:06 -0400
-Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9A31C3B290;
+Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B2383B287;
         Wed, 22 Jun 2022 03:15:58 -0700 (PDT)
-Received: from dggpemm500021.china.huawei.com (unknown [172.30.72.56])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4LSfNs2DBVzhXZY;
-        Wed, 22 Jun 2022 18:13:49 +0800 (CST)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.53])
+        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4LSfQg17f4zDsL4;
+        Wed, 22 Jun 2022 18:15:23 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500021.china.huawei.com (7.185.36.109) with Microsoft SMTP Server
+ dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
  15.1.2375.24; Wed, 22 Jun 2022 18:15:56 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
@@ -33,9 +33,9 @@ To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
 CC:     <tglx@linutronix.de>, <mingo@redhat.com>,
         <dave.hansen@linux.intel.com>, <x86@kernel.org>, <hpa@zytor.com>,
         <arnd@arndb.de>
-Subject: [PATCH v2 3/5] objtool: Add generic symbol for relocation type
-Date:   Wed, 22 Jun 2022 18:13:42 +0800
-Message-ID: <20220622101344.38002-4-chenzhongjin@huawei.com>
+Subject: [PATCH v2 1/5] objtool: Make ORC type code arch-specific
+Date:   Wed, 22 Jun 2022 18:13:40 +0800
+Message-ID: <20220622101344.38002-2-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220622101344.38002-1-chenzhongjin@huawei.com>
 References: <20220622101344.38002-1-chenzhongjin@huawei.com>
@@ -49,141 +49,392 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-objtool uses R_X86_64_X as relocation type. Add abstraction
-for them so that other architectures can use its own reloc enums.
+From: "Madhavan T. Venkataraman" <madvenka@linux.microsoft.com>
 
+The ORC code needs to be reorganized into arch-specific and generic
+parts so that architectures other than X86 can use the generic parts
+in orc_dump and orc_gen.
+
+Create the following two files:
+
+	- tools/objtool/include/objtool/orc.h
+	- tools/objtool/arch/x86/orc.c
+
+Make the following function arch-specific:
+
+	- init_orc_entry()
+	- reg_name()
+	- orc_type_name()
+
+Then the orc_gen and orc_dump don't involve any x86 specific content.
+
+Signed-off-by: Madhavan T. Venkataraman <madvenka@linux.microsoft.com>
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- tools/objtool/arch/x86/include/arch/elf.h |  5 ++++-
- tools/objtool/arch/x86/special.c          |  5 +++--
- tools/objtool/check.c                     | 12 ++++++------
- tools/objtool/orc_gen.c                   |  3 ++-
- 4 files changed, 15 insertions(+), 10 deletions(-)
+ tools/objtool/arch/x86/Build        |   1 +
+ tools/objtool/arch/x86/orc.c        | 137 ++++++++++++++++++++++++++++
+ tools/objtool/include/objtool/orc.h |  17 ++++
+ tools/objtool/orc_dump.c            |  59 +-----------
+ tools/objtool/orc_gen.c             |  76 +--------------
+ 5 files changed, 159 insertions(+), 131 deletions(-)
+ create mode 100644 tools/objtool/arch/x86/orc.c
+ create mode 100644 tools/objtool/include/objtool/orc.h
 
-diff --git a/tools/objtool/arch/x86/include/arch/elf.h b/tools/objtool/arch/x86/include/arch/elf.h
-index 69cc4264b28a..7b737fcfcb9c 100644
---- a/tools/objtool/arch/x86/include/arch/elf.h
-+++ b/tools/objtool/arch/x86/include/arch/elf.h
-@@ -1,6 +1,9 @@
- #ifndef _OBJTOOL_ARCH_ELF
- #define _OBJTOOL_ARCH_ELF
+diff --git a/tools/objtool/arch/x86/Build b/tools/objtool/arch/x86/Build
+index 9f7869b5c5e0..3dedb2fd8f3a 100644
+--- a/tools/objtool/arch/x86/Build
++++ b/tools/objtool/arch/x86/Build
+@@ -1,5 +1,6 @@
+ objtool-y += special.o
+ objtool-y += decode.o
++objtool-y += orc.o
  
--#define R_NONE R_X86_64_NONE
-+#define R_NONE	R_X86_64_NONE
-+#define R_ABS64	R_X86_64_64
-+#define R_REL32	R_X86_64_PC32
-+#define R_PLT32	R_X86_64_PLT32
+ inat_tables_script = ../arch/x86/tools/gen-insn-attr-x86.awk
+ inat_tables_maps = ../arch/x86/lib/x86-opcode-map.txt
+diff --git a/tools/objtool/arch/x86/orc.c b/tools/objtool/arch/x86/orc.c
+new file mode 100644
+index 000000000000..8543074d0b9e
+--- /dev/null
++++ b/tools/objtool/arch/x86/orc.c
+@@ -0,0 +1,137 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++/*
++ * Copyright (C) 2017 Josh Poimboeuf <jpoimboe@redhat.com>
++ */
++
++#include <stdlib.h>
++
++#include <linux/objtool.h>
++
++#include <objtool/orc.h>
++#include <objtool/warn.h>
++
++int init_orc_entry(struct orc_entry *orc, struct cfi_state *cfi,
++		   struct instruction *insn)
++{
++	struct cfi_reg *bp = &cfi->regs[CFI_BP];
++
++	memset(orc, 0, sizeof(*orc));
++
++	if (!cfi) {
++		orc->end = 0;
++		orc->sp_reg = ORC_REG_UNDEFINED;
++		return 0;
++	}
++
++	orc->end = cfi->end;
++
++	if (cfi->cfa.base == CFI_UNDEFINED) {
++		orc->sp_reg = ORC_REG_UNDEFINED;
++		return 0;
++	}
++
++	switch (cfi->cfa.base) {
++	case CFI_SP:
++		orc->sp_reg = ORC_REG_SP;
++		break;
++	case CFI_SP_INDIRECT:
++		orc->sp_reg = ORC_REG_SP_INDIRECT;
++		break;
++	case CFI_BP:
++		orc->sp_reg = ORC_REG_BP;
++		break;
++	case CFI_BP_INDIRECT:
++		orc->sp_reg = ORC_REG_BP_INDIRECT;
++		break;
++	case CFI_R10:
++		orc->sp_reg = ORC_REG_R10;
++		break;
++	case CFI_R13:
++		orc->sp_reg = ORC_REG_R13;
++		break;
++	case CFI_DI:
++		orc->sp_reg = ORC_REG_DI;
++		break;
++	case CFI_DX:
++		orc->sp_reg = ORC_REG_DX;
++		break;
++	default:
++		WARN_FUNC("unknown CFA base reg %d",
++			  insn->sec, insn->offset, cfi->cfa.base);
++		return -1;
++	}
++
++	switch (bp->base) {
++	case CFI_UNDEFINED:
++		orc->bp_reg = ORC_REG_UNDEFINED;
++		break;
++	case CFI_CFA:
++		orc->bp_reg = ORC_REG_PREV_SP;
++		break;
++	case CFI_BP:
++		orc->bp_reg = ORC_REG_BP;
++		break;
++	default:
++		WARN_FUNC("unknown BP base reg %d",
++			  insn->sec, insn->offset, bp->base);
++		return -1;
++	}
++
++	orc->sp_offset = cfi->cfa.offset;
++	orc->bp_offset = bp->offset;
++	orc->type = cfi->type;
++
++	return 0;
++}
++
++static const char *reg_name(unsigned int reg)
++{
++	switch (reg) {
++	case ORC_REG_PREV_SP:
++		return "prevsp";
++	case ORC_REG_DX:
++		return "dx";
++	case ORC_REG_DI:
++		return "di";
++	case ORC_REG_BP:
++		return "bp";
++	case ORC_REG_SP:
++		return "sp";
++	case ORC_REG_R10:
++		return "r10";
++	case ORC_REG_R13:
++		return "r13";
++	case ORC_REG_BP_INDIRECT:
++		return "bp(ind)";
++	case ORC_REG_SP_INDIRECT:
++		return "sp(ind)";
++	default:
++		return "?";
++	}
++}
++
++const char *orc_type_name(unsigned int type)
++{
++	switch (type) {
++	case UNWIND_HINT_TYPE_CALL:
++		return "call";
++	case UNWIND_HINT_TYPE_REGS:
++		return "regs";
++	case UNWIND_HINT_TYPE_REGS_PARTIAL:
++		return "regs (partial)";
++	default:
++		return "?";
++	}
++}
++
++void orc_print_reg(unsigned int reg, int offset)
++{
++	if (reg == ORC_REG_BP_INDIRECT)
++		printf("(bp%+d)", offset);
++	else if (reg == ORC_REG_SP_INDIRECT)
++		printf("(sp)%+d", offset);
++	else if (reg == ORC_REG_UNDEFINED)
++		printf("(und)");
++	else
++		printf("%s%+d", reg_name(reg), offset);
++}
+diff --git a/tools/objtool/include/objtool/orc.h b/tools/objtool/include/objtool/orc.h
+new file mode 100644
+index 000000000000..4604c15ba07b
+--- /dev/null
++++ b/tools/objtool/include/objtool/orc.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Copyright (C) 2015-2017 Josh Poimboeuf <jpoimboe@redhat.com>
++ */
++
++#ifndef _OBJTOOL_ORC_H
++#define _OBJTOOL_ORC_H
++
++#include <asm/orc_types.h>
++#include <objtool/check.h>
++
++int init_orc_entry(struct orc_entry *orc, struct cfi_state *cfi,
++		   struct instruction *insn);
++const char *orc_type_name(unsigned int type);
++void orc_print_reg(unsigned int reg, int offset);
++
++#endif /* _OBJTOOL_ORC_H */
+diff --git a/tools/objtool/orc_dump.c b/tools/objtool/orc_dump.c
+index f5a8508c42d6..9bdda23f33c3 100644
+--- a/tools/objtool/orc_dump.c
++++ b/tools/objtool/orc_dump.c
+@@ -5,63 +5,11 @@
  
- #endif /* _OBJTOOL_ARCH_ELF */
-diff --git a/tools/objtool/arch/x86/special.c b/tools/objtool/arch/x86/special.c
-index 7c97b7391279..fbe0745a9ed7 100644
---- a/tools/objtool/arch/x86/special.c
-+++ b/tools/objtool/arch/x86/special.c
-@@ -1,6 +1,7 @@
- // SPDX-License-Identifier: GPL-2.0-or-later
- #include <string.h>
+ #include <unistd.h>
+ #include <linux/objtool.h>
+-#include <asm/orc_types.h>
+ #include <objtool/objtool.h>
++#include <objtool/orc.h>
+ #include <objtool/warn.h>
+ #include <objtool/endianness.h>
  
-+#include <arch/elf.h>
- #include <objtool/special.h>
- #include <objtool/builtin.h>
+-static const char *reg_name(unsigned int reg)
+-{
+-	switch (reg) {
+-	case ORC_REG_PREV_SP:
+-		return "prevsp";
+-	case ORC_REG_DX:
+-		return "dx";
+-	case ORC_REG_DI:
+-		return "di";
+-	case ORC_REG_BP:
+-		return "bp";
+-	case ORC_REG_SP:
+-		return "sp";
+-	case ORC_REG_R10:
+-		return "r10";
+-	case ORC_REG_R13:
+-		return "r13";
+-	case ORC_REG_BP_INDIRECT:
+-		return "bp(ind)";
+-	case ORC_REG_SP_INDIRECT:
+-		return "sp(ind)";
+-	default:
+-		return "?";
+-	}
+-}
+-
+-static const char *orc_type_name(unsigned int type)
+-{
+-	switch (type) {
+-	case UNWIND_HINT_TYPE_CALL:
+-		return "call";
+-	case UNWIND_HINT_TYPE_REGS:
+-		return "regs";
+-	case UNWIND_HINT_TYPE_REGS_PARTIAL:
+-		return "regs (partial)";
+-	default:
+-		return "?";
+-	}
+-}
+-
+-static void print_reg(unsigned int reg, int offset)
+-{
+-	if (reg == ORC_REG_BP_INDIRECT)
+-		printf("(bp%+d)", offset);
+-	else if (reg == ORC_REG_SP_INDIRECT)
+-		printf("(sp)%+d", offset);
+-	else if (reg == ORC_REG_UNDEFINED)
+-		printf("(und)");
+-	else
+-		printf("%s%+d", reg_name(reg), offset);
+-}
+-
+ int orc_dump(const char *_objname)
+ {
+ 	int fd, nr_entries, i, *orc_ip = NULL, orc_size = 0;
+@@ -195,14 +143,13 @@ int orc_dump(const char *_objname)
+ 			printf("%llx:", (unsigned long long)(orc_ip_addr + (i * sizeof(int)) + orc_ip[i]));
+ 		}
  
-@@ -108,7 +109,7 @@ struct reloc *arch_find_switch_table(struct objtool_file *file,
- 	table_offset = text_reloc->addend;
- 	table_sec = text_reloc->sym->sec;
+-
+ 		printf(" sp:");
  
--	if (text_reloc->type == R_X86_64_PC32)
-+	if (text_reloc->type == R_REL32)
- 		table_offset += 4;
+-		print_reg(orc[i].sp_reg, bswap_if_needed(orc[i].sp_offset));
++		orc_print_reg(orc[i].sp_reg, bswap_if_needed(orc[i].sp_offset));
  
- 	/*
-@@ -138,7 +139,7 @@ struct reloc *arch_find_switch_table(struct objtool_file *file,
- 	 * indicates a rare GCC quirk/bug which can leave dead
- 	 * code behind.
- 	 */
--	if (text_reloc->type == R_X86_64_PC32)
-+	if (text_reloc->type == R_REL32)
- 		file->ignore_unreachables = true;
+ 		printf(" bp:");
  
- 	return rodata_reloc;
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index 190b2f6e360a..11ab13fd99fd 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -650,7 +650,7 @@ static int create_static_call_sections(struct objtool_file *file)
- 		/* populate reloc for 'addr' */
- 		if (elf_add_reloc_to_insn(file->elf, sec,
- 					  idx * sizeof(struct static_call_site),
--					  R_X86_64_PC32,
-+					  R_REL32,
- 					  insn->sec, insn->offset))
- 			return -1;
+-		print_reg(orc[i].bp_reg, bswap_if_needed(orc[i].bp_offset));
++		orc_print_reg(orc[i].bp_reg, bswap_if_needed(orc[i].bp_offset));
  
-@@ -691,7 +691,7 @@ static int create_static_call_sections(struct objtool_file *file)
- 		/* populate reloc for 'key' */
- 		if (elf_add_reloc(file->elf, sec,
- 				  idx * sizeof(struct static_call_site) + 4,
--				  R_X86_64_PC32, key_sym,
-+				  R_REL32, key_sym,
- 				  is_sibling_call(insn) * STATIC_CALL_SITE_TAIL))
- 			return -1;
- 
-@@ -735,7 +735,7 @@ static int create_retpoline_sites_sections(struct objtool_file *file)
- 
- 		if (elf_add_reloc_to_insn(file->elf, sec,
- 					  idx * sizeof(int),
--					  R_X86_64_PC32,
-+					  R_REL32,
- 					  insn->sec, insn->offset)) {
- 			WARN("elf_add_reloc_to_insn: .retpoline_sites");
- 			return -1;
-@@ -787,7 +787,7 @@ static int create_ibt_endbr_seal_sections(struct objtool_file *file)
- 
- 		if (elf_add_reloc_to_insn(file->elf, sec,
- 					  idx * sizeof(int),
--					  R_X86_64_PC32,
-+					  R_REL32,
- 					  insn->sec, insn->offset)) {
- 			WARN("elf_add_reloc_to_insn: .ibt_endbr_seal");
- 			return -1;
-@@ -832,7 +832,7 @@ static int create_mcount_loc_sections(struct objtool_file *file)
- 
- 		if (elf_add_reloc_to_insn(file->elf, sec,
- 					  idx * sizeof(unsigned long),
--					  R_X86_64_64,
-+					  R_ABS64,
- 					  insn->sec, insn->offset))
- 			return -1;
- 
-@@ -3711,7 +3711,7 @@ static int validate_ibt_insn(struct objtool_file *file, struct instruction *insn
- 			continue;
- 
- 		off = reloc->sym->offset;
--		if (reloc->type == R_X86_64_PC32 || reloc->type == R_X86_64_PLT32)
-+		if (reloc->type == R_REL32 || reloc->type == R_PLT32)
- 			off += arch_dest_reloc_offset(reloc->addend);
- 		else
- 			off += reloc->addend;
+ 		printf(" type:%s end:%d\n",
+ 		       orc_type_name(orc[i].type), orc[i].end);
 diff --git a/tools/objtool/orc_gen.c b/tools/objtool/orc_gen.c
-index a7d060ba14d0..ab4dbfa52b1e 100644
+index dd3c64af9db2..a7d060ba14d0 100644
 --- a/tools/objtool/orc_gen.c
 +++ b/tools/objtool/orc_gen.c
-@@ -8,6 +8,7 @@
+@@ -7,86 +7,12 @@
+ #include <string.h>
  
  #include <linux/objtool.h>
+-#include <asm/orc_types.h>
  
-+#include <arch/elf.h>
  #include <objtool/check.h>
- #include <objtool/orc.h>
++#include <objtool/orc.h>
  #include <objtool/warn.h>
-@@ -27,7 +28,7 @@ static int write_orc_entry(struct elf *elf, struct section *orc_sec,
- 	orc->bp_offset = bswap_if_needed(orc->bp_offset);
+ #include <objtool/endianness.h>
  
- 	/* populate reloc for ip */
--	if (elf_add_reloc_to_insn(elf, ip_sec, idx * sizeof(int), R_X86_64_PC32,
-+	if (elf_add_reloc_to_insn(elf, ip_sec, idx * sizeof(int), R_REL32,
- 				  insn_sec, insn_off))
- 		return -1;
- 
+-static int init_orc_entry(struct orc_entry *orc, struct cfi_state *cfi,
+-			  struct instruction *insn)
+-{
+-	struct cfi_reg *bp = &cfi->regs[CFI_BP];
+-
+-	memset(orc, 0, sizeof(*orc));
+-
+-	if (!cfi) {
+-		orc->end = 0;
+-		orc->sp_reg = ORC_REG_UNDEFINED;
+-		return 0;
+-	}
+-
+-	orc->end = cfi->end;
+-
+-	if (cfi->cfa.base == CFI_UNDEFINED) {
+-		orc->sp_reg = ORC_REG_UNDEFINED;
+-		return 0;
+-	}
+-
+-	switch (cfi->cfa.base) {
+-	case CFI_SP:
+-		orc->sp_reg = ORC_REG_SP;
+-		break;
+-	case CFI_SP_INDIRECT:
+-		orc->sp_reg = ORC_REG_SP_INDIRECT;
+-		break;
+-	case CFI_BP:
+-		orc->sp_reg = ORC_REG_BP;
+-		break;
+-	case CFI_BP_INDIRECT:
+-		orc->sp_reg = ORC_REG_BP_INDIRECT;
+-		break;
+-	case CFI_R10:
+-		orc->sp_reg = ORC_REG_R10;
+-		break;
+-	case CFI_R13:
+-		orc->sp_reg = ORC_REG_R13;
+-		break;
+-	case CFI_DI:
+-		orc->sp_reg = ORC_REG_DI;
+-		break;
+-	case CFI_DX:
+-		orc->sp_reg = ORC_REG_DX;
+-		break;
+-	default:
+-		WARN_FUNC("unknown CFA base reg %d",
+-			  insn->sec, insn->offset, cfi->cfa.base);
+-		return -1;
+-	}
+-
+-	switch (bp->base) {
+-	case CFI_UNDEFINED:
+-		orc->bp_reg = ORC_REG_UNDEFINED;
+-		break;
+-	case CFI_CFA:
+-		orc->bp_reg = ORC_REG_PREV_SP;
+-		break;
+-	case CFI_BP:
+-		orc->bp_reg = ORC_REG_BP;
+-		break;
+-	default:
+-		WARN_FUNC("unknown BP base reg %d",
+-			  insn->sec, insn->offset, bp->base);
+-		return -1;
+-	}
+-
+-	orc->sp_offset = cfi->cfa.offset;
+-	orc->bp_offset = bp->offset;
+-	orc->type = cfi->type;
+-
+-	return 0;
+-}
+-
+ static int write_orc_entry(struct elf *elf, struct section *orc_sec,
+ 			   struct section *ip_sec, unsigned int idx,
+ 			   struct section *insn_sec, unsigned long insn_off,
 -- 
 2.17.1
 
