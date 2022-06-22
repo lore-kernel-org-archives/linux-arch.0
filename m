@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C2F7AC43334
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 713A5CCA48E
 	for <linux-arch@archiver.kernel.org>; Wed, 22 Jun 2022 15:54:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1359022AbiFVPyR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S1376464AbiFVPyR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Wed, 22 Jun 2022 11:54:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52726 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52870 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1359684AbiFVPxG (ORCPT
+        with ESMTP id S1359681AbiFVPxG (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 11:53:06 -0400
-Received: from szxga08-in.huawei.com (szxga08-in.huawei.com [45.249.212.255])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5A9DC32EFB;
-        Wed, 22 Jun 2022 08:52:50 -0700 (PDT)
-Received: from dggpemm500020.china.huawei.com (unknown [172.30.72.54])
-        by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4LSnsV3B2Zz1KC5l;
-        Wed, 22 Jun 2022 23:50:38 +0800 (CST)
+Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEF5B23F;
+        Wed, 22 Jun 2022 08:52:51 -0700 (PDT)
+Received: from dggpemm500023.china.huawei.com (unknown [172.30.72.54])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4LSnr363QWzSh6d;
+        Wed, 22 Jun 2022 23:49:23 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500020.china.huawei.com (7.185.36.49) with Microsoft SMTP Server
+ dggpemm500023.china.huawei.com (7.185.36.83) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 22 Jun 2022 23:52:45 +0800
+ 15.1.2375.24; Wed, 22 Jun 2022 23:52:48 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 22 Jun 2022 23:52:45 +0800
+ 15.1.2375.24; Wed, 22 Jun 2022 23:52:47 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
         <linuxppc-dev@lists.ozlabs.org>,
@@ -37,9 +37,9 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <pasha.tatashin@soleen.com>, <broonie@kernel.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>
-Subject: [PATCH v5 20/33] arm64: entry: Annotate unwind_hint for entry
-Date:   Wed, 22 Jun 2022 23:49:07 +0800
-Message-ID: <20220622154920.95075-21-chenzhongjin@huawei.com>
+Subject: [PATCH v5 32/33] arm64: irq-gic: Replace unreachable() with -EINVAL
+Date:   Wed, 22 Jun 2022 23:49:19 +0800
+Message-ID: <20220622154920.95075-33-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220622154920.95075-1-chenzhongjin@huawei.com>
 References: <20220622154920.95075-1-chenzhongjin@huawei.com>
@@ -53,54 +53,74 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When taking an exception/interrupt, add UNWIND_HINT_REGS to indicate
-from which point the pt_regs is on stack.
+Using unreachable() at default of switch generates an extra branch at
+end of the function, and compiler won't generate a ret to close this
+branch because it knows it's unreachable.
 
-Whether returning to userland or creating a new task, sp is
-pointing to a pt_regs frame, add UNWIND_HINT_REGS after that.
+If there's no instruction in this branch, compiler will generate a NOP,
+And it will confuse objtool to warn this NOP as a fall through branch.
 
-Signed-off-by: Julien Thierry <jthierry@redhat.com>
+In fact these branches are actually unreachable, so we can replace
+unreachable() with returning a -EINVAL value.
+
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- arch/arm64/kernel/entry.S | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/arm64/kvm/hyp/vgic-v3-sr.c | 7 +++----
+ drivers/irqchip/irq-gic-v3.c    | 2 +-
+ 2 files changed, 4 insertions(+), 5 deletions(-)
 
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index 3bd11101e79d..bbc440379304 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -120,6 +120,7 @@
- alternative_cb	spectre_v4_patch_fw_mitigation_enable
- 	b	.L__asm_ssbd_skip\@		// Patched to NOP
- alternative_cb_end
-+	UNWIND_HINT_REGS
- 	ldr_this_cpu	\tmp2, arm64_ssbd_callback_required, \tmp1
- 	cbz	\tmp2,	.L__asm_ssbd_skip\@
- 	ldr	\tmp2, [tsk, #TSK_TI_FLAGS]
-@@ -218,6 +219,7 @@ alternative_cb_end
- 	stp	x24, x25, [sp, #16 * 12]
- 	stp	x26, x27, [sp, #16 * 13]
- 	stp	x28, x29, [sp, #16 * 14]
-+	UNWIND_HINT_REGS
+diff --git a/arch/arm64/kvm/hyp/vgic-v3-sr.c b/arch/arm64/kvm/hyp/vgic-v3-sr.c
+index 4fb419f7b8b6..f3cee92c3038 100644
+--- a/arch/arm64/kvm/hyp/vgic-v3-sr.c
++++ b/arch/arm64/kvm/hyp/vgic-v3-sr.c
+@@ -6,7 +6,6 @@
  
- 	.if	\el == 0
- 	clear_gp_regs
-@@ -601,6 +603,7 @@ SYM_CODE_START_LOCAL(ret_to_kernel)
- SYM_CODE_END(ret_to_kernel)
+ #include <hyp/adjust_pc.h>
  
- SYM_CODE_START_LOCAL(ret_to_user)
-+	UNWIND_HINT_REGS
- 	ldr	x19, [tsk, #TSK_TI_FLAGS]	// re-check for single-step
- 	enable_step_tsk x19, x2
- #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
-@@ -872,6 +875,7 @@ NOKPROBE(cpu_switch_to)
-  * This is how we return from a fork.
-  */
- SYM_CODE_START(ret_from_fork)
-+	UNWIND_HINT_REGS
- 	bl	schedule_tail
- 	cbz	x19, 1f				// not a kernel thread
- 	mov	x0, x20
+-#include <linux/compiler.h>
+ #include <linux/irqchip/arm-gic-v3.h>
+ #include <linux/kvm_host.h>
+ 
+@@ -55,7 +54,7 @@ static u64 __gic_v3_get_lr(unsigned int lr)
+ 		return read_gicreg(ICH_LR15_EL2);
+ 	}
+ 
+-	unreachable();
++	return -EINVAL;
+ }
+ 
+ static void __gic_v3_set_lr(u64 val, int lr)
+@@ -166,7 +165,7 @@ static u32 __vgic_v3_read_ap0rn(int n)
+ 		val = read_gicreg(ICH_AP0R3_EL2);
+ 		break;
+ 	default:
+-		unreachable();
++		val = -EINVAL;
+ 	}
+ 
+ 	return val;
+@@ -190,7 +189,7 @@ static u32 __vgic_v3_read_ap1rn(int n)
+ 		val = read_gicreg(ICH_AP1R3_EL2);
+ 		break;
+ 	default:
+-		unreachable();
++		val = -EINVAL;
+ 	}
+ 
+ 	return val;
+diff --git a/drivers/irqchip/irq-gic-v3.c b/drivers/irqchip/irq-gic-v3.c
+index b252d5534547..2ef98e32d257 100644
+--- a/drivers/irqchip/irq-gic-v3.c
++++ b/drivers/irqchip/irq-gic-v3.c
+@@ -475,7 +475,7 @@ static u32 __gic_get_ppi_index(irq_hw_number_t hwirq)
+ 	case EPPI_RANGE:
+ 		return hwirq - EPPI_BASE_INTID + 16;
+ 	default:
+-		unreachable();
++		return -EINVAL;
+ 	}
+ }
+ 
 -- 
 2.17.1
 
