@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B33FCCA486
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4451BCCA48A
 	for <linux-arch@archiver.kernel.org>; Thu, 23 Jun 2022 01:53:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1378008AbiFWBxN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 21:53:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37254 "EHLO
+        id S1378026AbiFWBxO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 21:53:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37792 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237557AbiFWBwW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 21:52:22 -0400
-Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4B99043AEF;
+        with ESMTP id S1377467AbiFWBwI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 21:52:08 -0400
+Received: from szxga08-in.huawei.com (szxga08-in.huawei.com [45.249.212.255])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2299C43AED;
         Wed, 22 Jun 2022 18:51:52 -0700 (PDT)
-Received: from dggpemm500024.china.huawei.com (unknown [172.30.72.55])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4LT39n2rKHzkWjn;
-        Thu, 23 Jun 2022 09:50:37 +0800 (CST)
+Received: from dggpemm500022.china.huawei.com (unknown [172.30.72.55])
+        by szxga08-in.huawei.com (SkyGuard) with ESMTP id 4LT38k20bzz1KC8s;
+        Thu, 23 Jun 2022 09:49:42 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500024.china.huawei.com (7.185.36.203) with Microsoft SMTP Server
+ dggpemm500022.china.huawei.com (7.185.36.162) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
  15.1.2375.24; Thu, 23 Jun 2022 09:51:50 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Thu, 23 Jun 2022 09:51:50 +0800
+ 15.1.2375.24; Thu, 23 Jun 2022 09:51:49 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
         <linuxppc-dev@lists.ozlabs.org>,
@@ -38,9 +38,9 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>,
         <daniel.thompson@linaro.org>
-Subject: [PATCH v6 23/33] arm64: head: Mark constants as data
-Date:   Thu, 23 Jun 2022 09:49:07 +0800
-Message-ID: <20220623014917.199563-24-chenzhongjin@huawei.com>
+Subject: [PATCH v6 21/33] arm64: kvm: Annotate unwind_hint for hyp entry
+Date:   Thu, 23 Jun 2022 09:49:05 +0800
+Message-ID: <20220623014917.199563-22-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220623014917.199563-1-chenzhongjin@huawei.com>
 References: <20220623014917.199563-1-chenzhongjin@huawei.com>
@@ -54,40 +54,92 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add data annotations to constants part of the image header.
+Symbol __guest_enter and kvm_hyp_vector saved x0, x1 on stack.
+
+Symbol __guest_exit and __guest_exit_panic is reached when resuming
+EL2 execution, and the previous stack pointer gets restored.
+
+Add adequate unwind hints.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- arch/arm64/kernel/head.S | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
+ arch/arm64/kvm/hyp/entry.S     | 5 +++++
+ arch/arm64/kvm/hyp/hyp-entry.S | 3 +++
+ 2 files changed, 8 insertions(+)
 
-diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
-index 2a66d18091eb..71580eb1fd51 100644
---- a/arch/arm64/kernel/head.S
-+++ b/arch/arm64/kernel/head.S
-@@ -63,10 +63,11 @@
- 	/*
- 	 * DO NOT MODIFY. Image header expected by Linux boot-loaders.
- 	 */
--	efi_signature_nop			// special NOP to identity as PE/COFF executable
-+SYM_DATA_LOCAL(efi_nop, efi_signature_nop)	// special NOP to identity as PE/COFF executable
- 	UNWIND_HINT_EMPTY
- 	b	primary_entry			// branch to kernel start, magic
--	.quad	0				// Image load offset from start of RAM, little-endian
-+SYM_DATA_LOCAL(_zero_reserved, .quad	0)	// Image load offset from start of RAM, little-endian
-+SYM_DATA_START_LOCAL(_arm64_common_header)
- 	le64sym	_kernel_size_le			// Effective size of kernel image, little-endian
- 	le64sym	_kernel_flags_le		// Informative flags, little-endian
- 	.quad	0				// reserved
-@@ -74,6 +75,7 @@
- 	.quad	0				// reserved
- 	.ascii	ARM64_IMAGE_MAGIC		// Magic number
- 	.long	.Lpe_header_offset		// Offset to the PE header.
-+SYM_DATA_END(_arm64_common_header)
+diff --git a/arch/arm64/kvm/hyp/entry.S b/arch/arm64/kvm/hyp/entry.S
+index 045d4481c820..81e30d56bf28 100644
+--- a/arch/arm64/kvm/hyp/entry.S
++++ b/arch/arm64/kvm/hyp/entry.S
+@@ -15,6 +15,7 @@
+ #include <asm/kvm_mmu.h>
+ #include <asm/kvm_mte.h>
+ #include <asm/kvm_ptrauth.h>
++#include <asm/unwind_hints.h>
  
- 	__EFI_PE_HEADER
+ 	.text
  
+@@ -22,6 +23,7 @@
+  * u64 __guest_enter(struct kvm_vcpu *vcpu);
+  */
+ SYM_CODE_START(__guest_enter)
++	UNWIND_HINT_FUNC
+ 	// x0: vcpu
+ 	// x1-x17: clobbered by macros
+ 	// x29: guest context
+@@ -88,6 +90,7 @@ SYM_INNER_LABEL(__guest_exit_panic, SYM_L_GLOBAL)
+ 	// vcpu x0-x1 on the stack
+ 
+ 	// If the hyp context is loaded, go straight to hyp_panic
++	UNWIND_HINT_FUNC
+ 	get_loaded_vcpu x0, x1
+ 	cbnz	x0, 1f
+ 	b	hyp_panic
+@@ -110,6 +113,7 @@ SYM_INNER_LABEL(__guest_exit, SYM_L_GLOBAL)
+ 	// x1: vcpu
+ 	// x2-x29,lr: vcpu regs
+ 	// vcpu x0-x1 on the stack
++	UNWIND_HINT_FUNC sp_offset=16
+ 
+ 	add	x1, x1, #VCPU_CONTEXT
+ 
+@@ -199,6 +203,7 @@ abort_guest_exit_end:
+ 	msr	daifset, #4	// Mask aborts
+ 	ret
+ 
++	UNWIND_HINT_FUNC
+ 	_kvm_extable	abort_guest_exit_start, 9997f
+ 	_kvm_extable	abort_guest_exit_end, 9997f
+ 9997:
+diff --git a/arch/arm64/kvm/hyp/hyp-entry.S b/arch/arm64/kvm/hyp/hyp-entry.S
+index 4a65262a4f3a..d72143c59707 100644
+--- a/arch/arm64/kvm/hyp/hyp-entry.S
++++ b/arch/arm64/kvm/hyp/hyp-entry.S
+@@ -151,6 +151,7 @@ SYM_CODE_END(\label)
+ 
+ .macro valid_vect target
+ 	.align 7
++	UNWIND_HINT_FUNC
+ 661:
+ 	esb
+ 	stp	x0, x1, [sp, #-16]!
+@@ -162,6 +163,7 @@ check_preamble_length 661b, 662b
+ 
+ .macro invalid_vect target
+ 	.align 7
++	UNWIND_HINT_FUNC
+ 661:
+ 	nop
+ 	stp	x0, x1, [sp, #-16]!
+@@ -209,6 +211,7 @@ SYM_CODE_END(__kvm_hyp_vector)
+ .macro hyp_ventry	indirect, spectrev2
+ 	.align	7
+ 1:	esb
++	UNWIND_HINT_FUNC
+ 	.if \spectrev2 != 0
+ 	spectrev2_smccc_wa1_smc
+ 	.else
 -- 
 2.17.1
 
