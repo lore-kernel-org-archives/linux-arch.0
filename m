@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 054E4CCA47E
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Jun 2022 01:52:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 694C0C433EF
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Jun 2022 01:52:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1377456AbiFWBwH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 21:52:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37240 "EHLO
+        id S1377471AbiFWBwI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 21:52:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37236 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1377265AbiFWBvu (ORCPT
+        with ESMTP id S1377269AbiFWBvu (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 21:51:50 -0400
-Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2230743AE0;
-        Wed, 22 Jun 2022 18:51:49 -0700 (PDT)
-Received: from dggpemm500024.china.huawei.com (unknown [172.30.72.53])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4LT37B3vwjzSh5T;
-        Thu, 23 Jun 2022 09:48:22 +0800 (CST)
+Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4E4CF43ACD;
+        Wed, 22 Jun 2022 18:51:48 -0700 (PDT)
+Received: from dggpemm500020.china.huawei.com (unknown [172.30.72.54])
+        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4LT39j36XkzkWb1;
+        Thu, 23 Jun 2022 09:50:33 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500024.china.huawei.com (7.185.36.203) with Microsoft SMTP Server
+ dggpemm500020.china.huawei.com (7.185.36.49) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Thu, 23 Jun 2022 09:51:47 +0800
+ 15.1.2375.24; Thu, 23 Jun 2022 09:51:46 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Thu, 23 Jun 2022 09:51:47 +0800
+ 15.1.2375.24; Thu, 23 Jun 2022 09:51:46 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
         <linuxppc-dev@lists.ozlabs.org>,
@@ -38,9 +38,9 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>,
         <daniel.thompson@linaro.org>
-Subject: [PATCH v6 07/33] objtool: arm64: Decode LDR instructions
-Date:   Thu, 23 Jun 2022 09:48:51 +0800
-Message-ID: <20220623014917.199563-8-chenzhongjin@huawei.com>
+Subject: [PATCH v6 04/33] objtool: arm64: Decode jump and call related instructions
+Date:   Thu, 23 Jun 2022 09:48:48 +0800
+Message-ID: <20220623014917.199563-5-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220623014917.199563-1-chenzhongjin@huawei.com>
 References: <20220623014917.199563-1-chenzhongjin@huawei.com>
@@ -54,168 +54,46 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Load literal instructions can generate constants inside code sections.
-Record the locations of the constants in order to be able to remove
-their corresponding "struct instruction".
+Decode branch, branch and link (aarch64's call) and return instructions.
 
 Signed-off-by: Julien Thierry <jthierry@redhat.com>
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- tools/objtool/arch/arm64/decode.c    | 88 +++++++++++++++++++++++++++-
- tools/objtool/arch/x86/decode.c      |  5 ++
- tools/objtool/check.c                |  3 +
- tools/objtool/include/objtool/arch.h |  2 +
- 4 files changed, 97 insertions(+), 1 deletion(-)
+ tools/objtool/arch/arm64/decode.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
 diff --git a/tools/objtool/arch/arm64/decode.c b/tools/objtool/arch/arm64/decode.c
-index 8ce9d91ff0db..30300d05c8f3 100644
+index d8c32703874d..40ada17d0842 100644
 --- a/tools/objtool/arch/arm64/decode.c
 +++ b/tools/objtool/arch/arm64/decode.c
-@@ -31,6 +31,64 @@ static unsigned long sign_extend(unsigned long x, int nbits)
- 	return ((~0UL + (sign_bit ^ 1)) << nbits) | x;
- }
- 
-+struct insn_loc {
-+	const struct section *sec;
-+	unsigned long offset;
-+	struct hlist_node hnode;
-+};
-+
-+DEFINE_HASHTABLE(invalid_insns, 16);
-+
-+static int record_invalid_insn(const struct section *sec,
-+			       unsigned long offset)
-+{
-+	struct insn_loc *loc;
-+	struct hlist_head *l;
-+
-+	l = &invalid_insns[hash_min(offset, HASH_BITS(invalid_insns))];
-+	if (!hlist_empty(l)) {
-+		loc = hlist_entry(l->first, struct insn_loc, hnode);
-+		return 0;
-+	}
-+
-+	loc = malloc(sizeof(*loc));
-+	if (!loc) {
-+		WARN("malloc failed");
-+		return -1;
-+	}
-+
-+	loc->sec = sec;
-+	loc->offset = offset;
-+
-+	hash_add(invalid_insns, &loc->hnode, loc->offset);
-+
-+	return 0;
-+}
-+
-+int arch_post_process_instructions(struct objtool_file *file)
-+{
-+	struct hlist_node *tmp;
-+	struct insn_loc *loc;
-+	unsigned int bkt;
-+	int res = 0;
-+
-+	hash_for_each_safe(invalid_insns, bkt, tmp, loc, hnode) {
-+		struct instruction *insn;
-+
-+		insn = find_insn(file, (struct section *) loc->sec, loc->offset);
-+		if (insn) {
-+			list_del(&insn->list);
-+			hash_del(&insn->hash);
-+			free(insn);
-+		}
-+
-+		hash_del(&loc->hnode);
-+		free(loc);
-+	}
-+
-+	return res;
-+}
-+
- bool arch_callee_saved_reg(unsigned char reg)
- {
- 	switch (reg) {
-@@ -351,7 +409,35 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
+@@ -212,6 +212,27 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
+ 			}
+ 		}
  		break;
- 	case AARCH64_INSN_CLS_LDST:
- 	{
--		return decode_load_store(insn, immediate, ops_list);
-+		int ret;
-+
-+		ret = decode_load_store(insn, immediate, ops_list);
-+		if (ret <= 0)
-+			return ret;
-+
-+		/*
-+		 * For LDR ops, assembler can generate the data to be
-+		 * loaded in the code section
-+		 * Record and remove these data because they
-+		 * are never excuted
-+		 */
-+		if (aarch64_insn_is_ldr_lit(insn)) {
-+			long pc_offset;
-+
-+			pc_offset = insn & GENMASK(23, 5);
-+			/* Sign extend and multiply by 4 */
-+			pc_offset = (pc_offset << (64 - 23));
-+			pc_offset = ((pc_offset >> (64 - 23)) >> 5) << 2;
-+
-+			ret = record_invalid_insn(sec, offset + pc_offset);
-+
-+			/* 64-bit literal */
-+			if (insn & BIT(30))
-+				ret = record_invalid_insn(sec, offset + pc_offset + 4);
-+
-+			return ret;
++	case AARCH64_INSN_CLS_BR_SYS:
++		if (aarch64_insn_is_ret(insn) &&
++		    aarch64_insn_decode_register(AARCH64_INSN_REGTYPE_RN, insn)
++			== AARCH64_INSN_REG_LR) {
++			*type = INSN_RETURN;
++		} else if (aarch64_insn_is_bl(insn)) {
++			*type = INSN_CALL;
++			*immediate = aarch64_get_branch_offset(insn);
++		} else if (aarch64_insn_is_blr(insn)) {
++			*type = INSN_CALL_DYNAMIC;
++		} else if (aarch64_insn_is_b(insn)) {
++			*type = INSN_JUMP_UNCONDITIONAL;
++			*immediate = aarch64_get_branch_offset(insn);
++		} else if (aarch64_insn_is_br(insn)) {
++			*type = INSN_JUMP_DYNAMIC;
++		} else if (aarch64_insn_is_branch_imm(insn)) {
++			/* Remaining branch opcodes are conditional */
++			*type = INSN_JUMP_CONDITIONAL;
++			*immediate = aarch64_get_branch_offset(insn);
 +		}
 +		break;
- 	}
  	default:
  		break;
-diff --git a/tools/objtool/arch/x86/decode.c b/tools/objtool/arch/x86/decode.c
-index 8b990a52aada..081b5e72f8df 100644
---- a/tools/objtool/arch/x86/decode.c
-+++ b/tools/objtool/arch/x86/decode.c
-@@ -693,6 +693,11 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
- 	return 0;
- }
- 
-+int arch_post_process_instructions(struct objtool_file *file)
-+{
-+	return 0;
-+}
-+
- void arch_initial_func_cfi_state(struct cfi_init_state *state)
- {
- 	int i;
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index 35d0a1bc4279..c0feb6db7c6d 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -439,6 +439,9 @@ static int decode_instructions(struct objtool_file *file)
- 	if (opts.stats)
- 		printf("nr_insns: %lu\n", nr_insns);
- 
-+	if (arch_post_process_instructions(file))
-+		return -1;
-+
- 	return 0;
- 
- err:
-diff --git a/tools/objtool/include/objtool/arch.h b/tools/objtool/include/objtool/arch.h
-index 9b19cc304195..651262af2655 100644
---- a/tools/objtool/include/objtool/arch.h
-+++ b/tools/objtool/include/objtool/arch.h
-@@ -77,6 +77,8 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
- 			    unsigned long *immediate,
- 			    struct list_head *ops_list);
- 
-+int arch_post_process_instructions(struct objtool_file *file);
-+
- bool arch_callee_saved_reg(unsigned char reg);
- 
- unsigned long arch_jump_destination(struct instruction *insn);
+ 	}
 -- 
 2.17.1
 
