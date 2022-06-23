@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 694C0C433EF
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Jun 2022 01:52:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 28318CCA483
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Jun 2022 01:52:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1377471AbiFWBwI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 22 Jun 2022 21:52:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37236 "EHLO
+        id S1377504AbiFWBwJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 22 Jun 2022 21:52:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37248 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1377269AbiFWBvu (ORCPT
+        with ESMTP id S1377277AbiFWBvu (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2022 21:51:50 -0400
-Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4E4CF43ACD;
-        Wed, 22 Jun 2022 18:51:48 -0700 (PDT)
-Received: from dggpemm500020.china.huawei.com (unknown [172.30.72.54])
-        by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4LT39j36XkzkWb1;
-        Thu, 23 Jun 2022 09:50:33 +0800 (CST)
+Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 421F843AE1;
+        Wed, 22 Jun 2022 18:51:49 -0700 (PDT)
+Received: from dggpemm500021.china.huawei.com (unknown [172.30.72.54])
+        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4LT37B5LbvzShBp;
+        Thu, 23 Jun 2022 09:48:22 +0800 (CST)
 Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500020.china.huawei.com (7.185.36.49) with Microsoft SMTP Server
+ dggpemm500021.china.huawei.com (7.185.36.109) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Thu, 23 Jun 2022 09:51:46 +0800
+ 15.1.2375.24; Thu, 23 Jun 2022 09:51:47 +0800
 Received: from ubuntu1804.huawei.com (10.67.175.36) by
  dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Thu, 23 Jun 2022 09:51:46 +0800
+ 15.1.2375.24; Thu, 23 Jun 2022 09:51:47 +0800
 From:   Chen Zhongjin <chenzhongjin@huawei.com>
 To:     <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
         <linuxppc-dev@lists.ozlabs.org>,
@@ -38,9 +38,9 @@ CC:     <jpoimboe@kernel.org>, <peterz@infradead.org>,
         <chenzhongjin@huawei.com>, <rmk+kernel@armlinux.org.uk>,
         <madvenka@linux.microsoft.com>, <christophe.leroy@csgroup.eu>,
         <daniel.thompson@linaro.org>
-Subject: [PATCH v6 04/33] objtool: arm64: Decode jump and call related instructions
-Date:   Thu, 23 Jun 2022 09:48:48 +0800
-Message-ID: <20220623014917.199563-5-chenzhongjin@huawei.com>
+Subject: [PATCH v6 08/33] objtool: arm64: Accept non-instruction data in code sections
+Date:   Thu, 23 Jun 2022 09:48:52 +0800
+Message-ID: <20220623014917.199563-9-chenzhongjin@huawei.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20220623014917.199563-1-chenzhongjin@huawei.com>
 References: <20220623014917.199563-1-chenzhongjin@huawei.com>
@@ -54,46 +54,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Decode branch, branch and link (aarch64's call) and return instructions.
+The compiler can generate some '0x0' words in code sections to pad the
+end of functions. Also some pesudo-instructions can generate data in
+code sections. Mark them as INSN_NOP.
 
-Signed-off-by: Julien Thierry <jthierry@redhat.com>
+If there are other undecoded instructions, just record and remove them
+from validation list.
+
+These doesn't influence check and orc generation because these undecoded
+instructions also won't be excuted.
+
 Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
 ---
- tools/objtool/arch/arm64/decode.c | 21 +++++++++++++++++++++
- 1 file changed, 21 insertions(+)
+ tools/objtool/arch/arm64/decode.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/tools/objtool/arch/arm64/decode.c b/tools/objtool/arch/arm64/decode.c
-index d8c32703874d..40ada17d0842 100644
+index 30300d05c8f3..771d37d872c8 100644
 --- a/tools/objtool/arch/arm64/decode.c
 +++ b/tools/objtool/arch/arm64/decode.c
-@@ -212,6 +212,27 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
- 			}
- 		}
- 		break;
-+	case AARCH64_INSN_CLS_BR_SYS:
-+		if (aarch64_insn_is_ret(insn) &&
-+		    aarch64_insn_decode_register(AARCH64_INSN_REGTYPE_RN, insn)
-+			== AARCH64_INSN_REG_LR) {
-+			*type = INSN_RETURN;
-+		} else if (aarch64_insn_is_bl(insn)) {
-+			*type = INSN_CALL;
-+			*immediate = aarch64_get_branch_offset(insn);
-+		} else if (aarch64_insn_is_blr(insn)) {
-+			*type = INSN_CALL_DYNAMIC;
-+		} else if (aarch64_insn_is_b(insn)) {
-+			*type = INSN_JUMP_UNCONDITIONAL;
-+			*immediate = aarch64_get_branch_offset(insn);
-+		} else if (aarch64_insn_is_br(insn)) {
-+			*type = INSN_JUMP_DYNAMIC;
-+		} else if (aarch64_insn_is_branch_imm(insn)) {
-+			/* Remaining branch opcodes are conditional */
-+			*type = INSN_JUMP_CONDITIONAL;
-+			*immediate = aarch64_get_branch_offset(insn);
+@@ -347,8 +347,14 @@ int arch_decode_instruction(struct objtool_file *file, const struct section *sec
+ 
+ 	switch (aarch64_get_insn_class(insn)) {
+ 	case AARCH64_INSN_CLS_UNKNOWN:
+-		WARN("can't decode instruction at %s:0x%lx", sec->name, offset);
+-		return -1;
++		if (insn == 0x0) {
++			*type = INSN_NOP;
++		} else {
++			WARN("undecoded insn at %s:0x%lx", sec->name, offset);
++			return record_invalid_insn(sec, offset);
 +		}
++
 +		break;
- 	default:
- 		break;
- 	}
+ 	case AARCH64_INSN_CLS_DP_IMM:
+ 		/* Mov register to and from SP are aliases of add_imm */
+ 		if (aarch64_insn_is_add_imm(insn) ||
 -- 
 2.17.1
 
