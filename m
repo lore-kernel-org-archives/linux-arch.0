@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7EE51CCA481
-	for <linux-arch@archiver.kernel.org>; Tue, 28 Jun 2022 08:19:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0EF0ACCA482
+	for <linux-arch@archiver.kernel.org>; Tue, 28 Jun 2022 08:19:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S242607AbiF1ITQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Jun 2022 04:19:16 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43594 "EHLO
+        id S244080AbiF1IT3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Jun 2022 04:19:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43662 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243895AbiF1IS5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2022 04:18:57 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 17B3727FE5;
-        Tue, 28 Jun 2022 01:17:28 -0700 (PDT)
+        with ESMTP id S244100AbiF1ITB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2022 04:19:01 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A39212CE21;
+        Tue, 28 Jun 2022 01:17:40 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id C7E51B81C0F;
-        Tue, 28 Jun 2022 08:17:26 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 532B8C341CB;
-        Tue, 28 Jun 2022 08:17:23 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 25D3DB81C0F;
+        Tue, 28 Jun 2022 08:17:39 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5CA11C341D2;
+        Tue, 28 Jun 2022 08:17:35 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1656404245;
-        bh=wuMCLxNzxYSmxOh5v/SBPcUTtvTDqjGgAdULUenQIXg=;
+        s=k20201202; t=1656404257;
+        bh=JqFV7DDNcb2WtTvmttuWFUJZ9dF8mrvDgNDPOvXP7pA=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=pPb+/fENqMFaNUkZi6ql3d0fdSuDA7WTP/Lpo5BBmMl376GJTJ5wk6oq5bjBKJujt
-         AUAkSyTrMojK8B6lta+rMW/hVbpHJ4EbCDBZ3s1u2HDX6r9aytN5JiiJVFIfKbSUVJ
-         MDsa4DdyVpOAxrwZre4pbBxEtJENcdfdbbsl9zJETI27O4EeiRcHd5ox2nguiOMi57
-         7swCaCeIbQK/SbiHBmRrq/8mj7XWoj0oMDQfLt/ldfv4beWX37ef27Zq27Hh9ugOtg
-         9n1Ut6VjS0R+FmzLF8AhoEfAsSOtt/Dcz0LJCEAhgal1ah9yWzcfIo1IDAIzhgeCFi
-         KH3mqQj9ea+aw==
+        b=rZR/udrPjDgzmkasgazVKW71Q9L1U5Yjlg/JVDM6SdzaSlvUopcYpr9dc6xSEc31P
+         C+mks00E0l3UgLpbDgIPLOqcai4O+QxWFAQhWcTMiJP1t5fBVEwa3GWgtGhr9YRbPd
+         CRjt6CzzDbbB4bkTasOiEYyZWLNaneAphwHtNdfWOKlyR0sOvvNXOyyII5V6htUsQs
+         iKEq/BOVfrVj3oH7BfrqV0KM9XBNcte8NY4F5VaabAgy+SE9rhyOijzfCwgFHTRFnk
+         PWUUHOoFQsIY2lr2ZJVmVBp8bFroMD684CF9QeAIwOkizmECbLgbu4tne9RR52zoBR
+         t5f2o0RaYkDng==
 From:   guoren@kernel.org
 To:     palmer@rivosinc.com, arnd@arndb.de, mingo@redhat.com,
         will@kernel.org, longman@redhat.com, boqun.feng@gmail.com
@@ -38,9 +38,9 @@ Cc:     linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>,
         Guo Ren <guoren@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH V7 1/5] asm-generic: ticket-lock: Remove unnecessary atomic_read
-Date:   Tue, 28 Jun 2022 04:17:03 -0400
-Message-Id: <20220628081707.1997728-2-guoren@kernel.org>
+Subject: [PATCH V7 5/5] riscv: Add qspinlock support
+Date:   Tue, 28 Jun 2022 04:17:07 -0400
+Message-Id: <20220628081707.1997728-6-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
 In-Reply-To: <20220628081707.1997728-1-guoren@kernel.org>
 References: <20220628081707.1997728-1-guoren@kernel.org>
@@ -52,34 +52,116 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Remove unnecessary atomic_read in arch_spin_value_unlocked(lock),
-because the value has been in lock. This patch could prevent
-arch_spin_value_unlocked contend spin_lock data again.
+Enable qspinlock by the requirements mentioned in a8ad07e5240c9
+("asm-generic: qspinlock: Indicate the use of mixed-size atomics").
+
+ - RISC-V atomic_*_release()/atomic_*_acquire() are implemented with
+   own relaxed version plus acquire/release_fence for RCsc
+   synchronization.
+
+ - RISC-V LR/SC pairs could provide a strong/weak forward guarantee
+   that depends on micro-architecture. And RISC-V ISA spec has given
+   out several limitations to let hardware support strict forward
+   guarantee (RISC-V User ISA - 8.3 Eventual Success of
+   Store-Conditional Instructions). Some riscv cores such as BOOMv3
+   & XiangShan could provide strict & strong forward guarantee (The
+   cache line would be kept in an exclusive state for Backoff cycles,
+   and only this core's interrupt could break the LR/SC pair).
+
+ - RISC-V provides cheap atomic_fetch_or_acquire() with RCsc.
+
+ - RISC-V only provides relaxed xchg16 to support qspinlock.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
 Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: Waiman Long <longman@redhat.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Palmer Dabbelt <palmer@rivosinc.com>
 ---
- include/asm-generic/spinlock.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/riscv/Kconfig               |  9 +++++++++
+ arch/riscv/include/asm/Kbuild    |  2 ++
+ arch/riscv/include/asm/cmpxchg.h | 17 +++++++++++++++++
+ arch/riscv/kernel/setup.c        |  4 ++++
+ 4 files changed, 32 insertions(+)
 
-diff --git a/include/asm-generic/spinlock.h b/include/asm-generic/spinlock.h
-index fdfebcb050f4..f1e4fa100f5a 100644
---- a/include/asm-generic/spinlock.h
-+++ b/include/asm-generic/spinlock.h
-@@ -84,7 +84,9 @@ static __always_inline int arch_spin_is_contended(arch_spinlock_t *lock)
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 32ffef9f6e5b..47e12ab9c822 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -333,6 +333,15 @@ config NODES_SHIFT
+ 	  Specify the maximum number of NUMA Nodes available on the target
+ 	  system.  Increases memory reserved to accommodate various tables.
  
- static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
- {
--	return !arch_spin_is_locked(&lock);
-+	u32 val = lock.counter;
++config RISCV_USE_QUEUED_SPINLOCKS
++	bool "Using queued spinlock instead of ticket-lock"
++	depends on SMP && MMU
++	select ARCH_USE_QUEUED_SPINLOCKS
++	default y
++	help
++	  Make sure your micro arch LL/SC has a strong forward progress guarantee.
++	  Otherwise, stay at ticket-lock.
 +
-+	return ((val >> 16) == (val & 0xffff));
- }
+ config RISCV_ALTERNATIVE
+ 	bool
+ 	depends on !XIP_KERNEL
+diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
+index 504f8b7e72d4..2cce98c7b653 100644
+--- a/arch/riscv/include/asm/Kbuild
++++ b/arch/riscv/include/asm/Kbuild
+@@ -2,7 +2,9 @@
+ generic-y += early_ioremap.h
+ generic-y += flat.h
+ generic-y += kvm_para.h
++generic-y += mcs_spinlock.h
+ generic-y += parport.h
++generic-y += qspinlock.h
+ generic-y += spinlock.h
+ generic-y += spinlock_types.h
+ generic-y += qrwlock.h
+diff --git a/arch/riscv/include/asm/cmpxchg.h b/arch/riscv/include/asm/cmpxchg.h
+index 12debce235e5..492104d45a23 100644
+--- a/arch/riscv/include/asm/cmpxchg.h
++++ b/arch/riscv/include/asm/cmpxchg.h
+@@ -17,6 +17,23 @@
+ 	__typeof__(new) __new = (new);					\
+ 	__typeof__(*(ptr)) __ret;					\
+ 	switch (size) {							\
++	case 2: { 							\
++		u32 temp;						\
++		u32 shif = ((ulong)__ptr & 2) ? 16 : 0;			\
++		u32 mask = 0xffff << shif;				\
++		__ptr = (__typeof__(ptr))((ulong)__ptr & ~(ulong)2);	\
++		__asm__ __volatile__ (					\
++			"0:	lr.w %0, %2\n"				\
++			"	and  %1, %0, %z3\n"			\
++			"	or   %1, %1, %z4\n"			\
++			"	sc.w %1, %1, %2\n"			\
++			"	bnez %1, 0b\n"				\
++			: "=&r" (__ret), "=&r" (temp), "+A" (*__ptr)	\
++			: "rJ" (~mask), "rJ" (__new << shif)		\
++			: "memory");					\
++		__ret = (__ret & mask) >> shif;				\
++		break;							\
++	}								\
+ 	case 4:								\
+ 		__asm__ __volatile__ (					\
+ 			"	amoswap.w %0, %2, %1\n"			\
+diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
+index f0f36a4a0e9b..b9b234157a66 100644
+--- a/arch/riscv/kernel/setup.c
++++ b/arch/riscv/kernel/setup.c
+@@ -295,6 +295,10 @@ void __init setup_arch(char **cmdline_p)
+ 	setup_smp();
+ #endif
  
- #include <asm/qrwlock.h>
++#if !defined(CONFIG_NUMA) && defined(CONFIG_QUEUED_SPINLOCKS)
++	static_branch_disable(&use_qspinlock_key);
++#endif
++
+ 	riscv_fill_hwcap();
+ 	apply_boot_alternatives();
+ }
 -- 
 2.36.1
 
