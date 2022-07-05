@@ -2,158 +2,105 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C1585C43334
-	for <linux-arch@archiver.kernel.org>; Tue,  5 Jul 2022 03:49:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A749CCA47C
+	for <linux-arch@archiver.kernel.org>; Tue,  5 Jul 2022 06:22:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231394AbiGEDt4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 4 Jul 2022 23:49:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60846 "EHLO
+        id S229598AbiGEGWK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 5 Jul 2022 02:22:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40582 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234235AbiGEDtz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jul 2022 23:49:55 -0400
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ED7C012AB7;
-        Mon,  4 Jul 2022 20:49:52 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-        MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=WiklvS9k0el8XhEQTp2AsFsJfZTmp2j5g87JdjG5LuY=; b=A6t/lG34n3OcVFs5zHW4rDAgZU
-        dB25v6MxiCdWY7bmdH/wWMwaUIjPEoO1NWhXrC7y6CSmgLDL6bimS/XngJ2GfM7RDrgo98UN/Hj5w
-        phxCr6dVDxHMO5OyImVJNe+pBY/kpdH+uHILtmM5FEJN5dminDlfCj7TB7tUgjynMeYgPLR9ZJLg6
-        5iq4kIYJ9iFtlCfW/XX9hM6JjSG8RfvMehgbWUy1/mO7jhrbxMHwv6wuVdX66t8kIJebaxLKtFSpY
-        JUWGP8LidNDDQzx7AI81vdD7vBuNViIZtGOuVxRemJ+Jh/b9pHi+7NtjZp1cROsoB+T5lnwoKjDFA
-        yiZQuu/A==;
-Received: from viro by zeniv.linux.org.uk with local (Exim 4.95 #2 (Red Hat Linux))
-        id 1o8ZYY-008EUH-Gz;
-        Tue, 05 Jul 2022 03:48:58 +0000
-Date:   Tue, 5 Jul 2022 04:48:58 +0100
-From:   Al Viro <viro@zeniv.linux.org.uk>
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Alexander Potapenko <glider@google.com>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        kasan-dev <kasan-dev@googlegroups.com>,
-        Linux-MM <linux-mm@kvack.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Evgenii Stepanov <eugenis@google.com>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Segher Boessenkool <segher@kernel.crashing.org>,
-        Vitaly Buka <vitalybuka@google.com>,
-        linux-toolchains <linux-toolchains@vger.kernel.org>
-Subject: Re: [PATCH 1/7] __follow_mount_rcu(): verify that mount_lock remains
- unchanged
-Message-ID: <YsO0qu97PYZos2G1@ZenIV>
-References: <YsM5XHy4RZUDF8cR@ZenIV>
- <CAHk-=wjeEre7eeWSwCRy2+ZFH8js4u22+3JTm6n+pY-QHdhbYw@mail.gmail.com>
- <YsNFoH0+N+KCt5kg@ZenIV>
- <CAHk-=whp8Npc+vMcgbpM9mrPEXkhV4YnhsPxbPXSu9gfEhKWmA@mail.gmail.com>
- <YsNRsgOl04r/RCNe@ZenIV>
- <CAHk-=wih_JHVPvp1qyW4KNK0ctTc6e+bDj4wdTgNkyND6tuFoQ@mail.gmail.com>
- <YsNVyLxrNRFpufn8@ZenIV>
- <YsN0GURKuaAqXB/e@ZenIV>
- <YsN1kfBsfMdH+eiU@ZenIV>
- <CAHk-=wjmD7BgykuZYDOH-fmvfE3VMXm3qSoRjGShjKKdiiPDtA@mail.gmail.com>
+        with ESMTP id S229448AbiGEGWJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jul 2022 02:22:09 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0EB52BCA5;
+        Mon,  4 Jul 2022 23:22:09 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 9FAAD61426;
+        Tue,  5 Jul 2022 06:22:08 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0E04EC341D7;
+        Tue,  5 Jul 2022 06:22:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1657002128;
+        bh=Zaf7DjhcD3ZxfJHUz1tOGgDGa4JYJfrWSDwsbtdTNwI=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=a6923plIqslsbqyEgJGkAr8COlwhQHlzqDOMUImf0zNEq9HfBY7kyJ31P00pKVrG7
+         y7sOCX7KFkZaKbXr1TBsB4bdPWDPbdUss/s+YWLl5peIIfTQnNr2M9MJNM8bwnRZW4
+         pBP1mWfqbYSTfbLQr0IfiTFeIF0vLC+jWt2IFvckuj94X5lLXreY0OPKMdqj4JP0Ql
+         smnsWL54j9bAu/0Q6bfOaMqEB5kKVAhMB4U0bMIbAk2LT3svlb0Axbi55/JXgywmOj
+         gLpT9G8YpXf0KUjDyEO/m/I2r9HiqXWMGXjvdGjetJDbeHeFEekkqecyZHbQLOGFi+
+         XCBAa5kvP21lg==
+Received: by mail-vs1-f54.google.com with SMTP id h184so8559vsc.3;
+        Mon, 04 Jul 2022 23:22:08 -0700 (PDT)
+X-Gm-Message-State: AJIora8X3yQoioVtRiEwhFu6BMNxFuI66FFq4PuuPsdJy+YonYSJ3S7w
+        3MJnwATXj1IvnxZrPwXOwTEwgenwzm+1qlsaZjM=
+X-Google-Smtp-Source: AGRyM1uR3kDpQ/MbyXcNWqnHFpFRoA+f7XpzR2mn61Kf/oGLc1bqoMRFlPTGI0x9k49ir5CWsNuWr5PQo6T9BiLh8ww=
+X-Received: by 2002:a67:6fc3:0:b0:356:18:32ba with SMTP id k186-20020a676fc3000000b00356001832bamr18421067vsc.43.1657002126922;
+ Mon, 04 Jul 2022 23:22:06 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAHk-=wjmD7BgykuZYDOH-fmvfE3VMXm3qSoRjGShjKKdiiPDtA@mail.gmail.com>
-Sender: Al Viro <viro@ftp.linux.org.uk>
+References: <20220704112526.2492342-1-chenhuacai@loongson.cn>
+ <20220704112526.2492342-5-chenhuacai@loongson.cn> <CAK8P3a2XBGtJMB=Z-W56MLREAr3sAYKqDHo3yg=4hJ4T6x+QdQ@mail.gmail.com>
+In-Reply-To: <CAK8P3a2XBGtJMB=Z-W56MLREAr3sAYKqDHo3yg=4hJ4T6x+QdQ@mail.gmail.com>
+From:   Huacai Chen <chenhuacai@kernel.org>
+Date:   Tue, 5 Jul 2022 14:21:56 +0800
+X-Gmail-Original-Message-ID: <CAAhV-H5djQOzRsW-JaRPzaAnh64WgHiGvHxc1UdAUV43tirukg@mail.gmail.com>
+Message-ID: <CAAhV-H5djQOzRsW-JaRPzaAnh64WgHiGvHxc1UdAUV43tirukg@mail.gmail.com>
+Subject: Re: [PATCH V4 4/4] LoongArch: Enable ARCH_WANT_HUGETLB_PAGE_OPTIMIZE_VMEMMAP
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Huacai Chen <chenhuacai@loongson.cn>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, loongarch@lists.linux.dev,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Feiyang Chen <chenfeiyang@loongson.cn>,
+        Muchun Song <songmuchun@bytedance.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jul 04, 2022 at 05:06:17PM -0700, Linus Torvalds wrote:
+Hi, Arnd,
 
-> I wonder if the solution might not be to create a new structure like
-> 
->         struct rcu_dentry {
->                 struct dentry *dentry;
->                 unsigned seq;
->         };
-> 
-> and in fact then we could make __d_lookup_rcu() return one of these
-> things (we already rely on that "returning a two-word structure is
-> efficient" elsewhere).
+On Mon, Jul 4, 2022 at 8:18 PM Arnd Bergmann <arnd@arndb.de> wrote:
 >
-> That would then make that "this dentry goes with this sequence number"
-> be a very clear thing, and I actually thjink that it would make
-> __d_lookup_rcu() have a cleaner calling convention too, ie we'd go
-> from
-> 
->         dentry = __d_lookup_rcu(parent, &nd->last, &nd->next_seq);
-> 
-> rto
-> 
->        dseq = __d_lookup_rcu(parent, &nd->last);
-> 
-> and it would even improve code generation because it now returns the
-> dentry and the sequence number in registers, instead of returning one
-> in a register and one in memory.
-> 
-> I did *not* look at how it would change some of the other places, but
-> I do like the notion of "keep the dentry and the sequence number that
-> goes with it together".
-> 
-> That "keep dentry as a local, keep the sequence number that goes with
-> it as a field in the 'nd'" really does seem an odd thing. So I'm
-> throwing the above out as a "maybe we could do this instead..".
+> On Mon, Jul 4, 2022 at 1:25 PM Huacai Chen <chenhuacai@loongson.cn> wrote:
+> > To avoid the following build error on LoongArch we should include linux/
+> > static_key.h in page-flags.h.
+> >
+> > In file included from ./include/linux/mmzone.h:22,
+> > from ./include/linux/gfp.h:6,
+> > from ./include/linux/mm.h:7,
+> > from arch/loongarch/kernel/asm-offsets.c:9:
+> > ./include/linux/page-flags.h:208:1: warning: data definition has no
+> > type or storage class
+> > 208 | DECLARE_STATIC_KEY_MAYBE(CONFIG_HUGETLB_PAGE_OPTIMIZE_VMEMMAP_DEFAULT_ON,
+> > | ^~~~~~~~~~~~~~~~~~~~~~~~
+> > ./include/linux/page-flags.h:208:1: error: type defaults to 'int' in
+> > declaration of 'DECLARE_STATIC_KEY_MAYBE' [-Werror=implicit-int]
+> > ./include/linux/page-flags.h:209:26: warning: parameter names (without
+> > types) in function declaration
+>
+> I wonder if page_fixed_fake_head() should be moved out of line to avoid
+> this, it's already nontrivial here, and that would avoid the static key
+> in a central header.
+I have some consideration here. I think both inline function and
+static key are instruments to make things faster, in other words,
+page_fixed_fake_head() is a performance critical function. If so, it
+is not suitable to move it out of line.
 
-I looked into that; turns out to be quite messy, unfortunately.  For one
-thing, the distance between the places where we get the seq count and
-the place where we consume it is large; worse, there's a bunch of paths
-where we are in non-RCU mode converging to the same consumer and those
-need a 0/1/-1/whatever paired with dentry.  Gets very clumsy...
-
-There might be a clever way to deal with pairs cleanly, but I don't see it
-at the moment.  I'll look into that some more, but...
-
-BTW, how good gcc and clang are at figuring out that e.g.
-
-static int foo(int n)
-{
-	if (likely(n >= 0))
-		return 0;
-	....
-}
-
-....
-	if (foo(n))
-		whatever();
-
-should be treated as
-	if (unlikely(foo(n)))
-		whatever();
-
-They certainly do it just fine if the damn thing is inlined (e.g.
-all those unlikely(read_seqcount_retry(....)) can and should lose
-unlikely), but do they manage that for non-inlined functions in
-the same compilation unit?  Relatively recent gcc seems to...
+Huacai
+>
+>        Arnd
+>
