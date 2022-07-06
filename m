@@ -2,134 +2,125 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 90B2DCCA480
-	for <linux-arch@archiver.kernel.org>; Wed,  6 Jul 2022 09:55:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D997CCA47C
+	for <linux-arch@archiver.kernel.org>; Wed,  6 Jul 2022 10:10:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231979AbiGFJzM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 6 Jul 2022 05:55:12 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35484 "EHLO
+        id S231965AbiGFKKE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 6 Jul 2022 06:10:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46468 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232034AbiGFJyN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2022 05:54:13 -0400
-Received: from mail-oa1-f52.google.com (mail-oa1-f52.google.com [209.85.160.52])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4CA6725281;
-        Wed,  6 Jul 2022 02:54:10 -0700 (PDT)
-Received: by mail-oa1-f52.google.com with SMTP id 586e51a60fabf-10bf634bc50so11683649fac.3;
-        Wed, 06 Jul 2022 02:54:10 -0700 (PDT)
+        with ESMTP id S232532AbiGFKJu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jul 2022 06:09:50 -0400
+Received: from mail-qt1-f176.google.com (mail-qt1-f176.google.com [209.85.160.176])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ED099A467;
+        Wed,  6 Jul 2022 03:09:46 -0700 (PDT)
+Received: by mail-qt1-f176.google.com with SMTP id c13so17480565qtq.10;
+        Wed, 06 Jul 2022 03:09:46 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:mime-version:references:in-reply-to:from:date
          :message-id:subject:to:cc;
-        bh=o8jOPstF035V3JBIGTjyEra8xnCZ4RAIho4NrHeIzoU=;
-        b=ifKui5S5rFjVMq/DNxGGiZYtnihyrIPz+XgGy+287htk2qPkSPTBDT6zU/bqaW0IAj
-         eEIcUuZm8zNyVqggg0vPkfq5SvWboTygMYut/vI30ZWm7OI6knykq5A50cyUN7yxHwbt
-         x3OJkAQz3rS3Y9MtqJ6NwJrgnwi7+6R6OQArw7NoCvrdzt2fl1u+Op6Sk71Eo0mnk7Kf
-         K4jGzZJ9jl69cTwc5fCZkxMTOGQj3eJLQiDqOz0u70kr/hzsHNPD58iNGRUJ3Qra3PtG
-         IF6KKSoTvxIaCco+8PSMr8pK01Kl4c2wWlCyc/+gJQOyWRzB04t4vTh7uCb3o8arKg4q
-         uq5Q==
-X-Gm-Message-State: AJIora8bNvFpKnAMxBIwdfj9hdkzH+LUCtZi660XXnMILcmdqPyTufKv
-        uEDKcQWoKlpivWccpTeeGBiDcGrSKa967ox8
-X-Google-Smtp-Source: AGRyM1uAKY8ZoN6KGv4/toshO1qHFCf+QFQjTKFAVF+YPn4y9ij2Yrnm8jj6CEE8H4m9dwU7r8nybw==
-X-Received: by 2002:a05:6870:b3a7:b0:10c:224c:a0b6 with SMTP id w39-20020a056870b3a700b0010c224ca0b6mr2265078oap.248.1657101249503;
-        Wed, 06 Jul 2022 02:54:09 -0700 (PDT)
-Received: from mail-oo1-f46.google.com (mail-oo1-f46.google.com. [209.85.161.46])
-        by smtp.gmail.com with ESMTPSA id r81-20020acaf354000000b003359fb6609asm8613210oih.22.2022.07.06.02.54.09
+        bh=kx69JRXRHaP9bPHWeCJjLQ/KjVRjWJF5OqT3P9q0cBs=;
+        b=lAzdRd1By0sHsBk/HkiVBJYiSBscgl0i1ZLAsUpFAIe8qAFmd4kDffUF8y1jY0FzOQ
+         vVQfqo0DLW7HANISepVttWLbihN1jcWLZBXtujKa69KSjCNBQbl+XqnRi2/a+OCql/Tc
+         G8X6soaObeyIiRaLHtBaDSvM4cEzvyuPysp+OQZs4wHtBIWH/haIhn4mW1FvFW+t+ti0
+         qBHP0Vmz2rWXotho0cLXnoEcZVjtPVWLkVQDIOQaZYE5+Ub0Ua9c2gW8CKiGhkL+io3k
+         qVkdq0txxNz1x/GETY20MSUDfZmIuHQf2qN1c1YuF5B4VJ9m9c4sskMn3wC6HuqqW6ET
+         4sEA==
+X-Gm-Message-State: AJIora+fQVLRC2JPBJguYfUYsik9hV+zeKmHAXEqN5WBunFzox/ZpMxo
+        yPE6Majlkyis7OxP4gCWrdsz3ayypng1TNvl
+X-Google-Smtp-Source: AGRyM1uRi24Ome6ymG0bopZ8WaKaGL4MX+ul7f2gDeb/y4XMxl60luZgTxp4X64UGyjAH5lS0Ja8GQ==
+X-Received: by 2002:a05:622a:4cc:b0:31d:26a1:2538 with SMTP id q12-20020a05622a04cc00b0031d26a12538mr31085549qtx.498.1657102185760;
+        Wed, 06 Jul 2022 03:09:45 -0700 (PDT)
+Received: from mail-yw1-f169.google.com (mail-yw1-f169.google.com. [209.85.128.169])
+        by smtp.gmail.com with ESMTPSA id d71-20020a379b4a000000b006a6a1e4aec2sm28819484qke.49.2022.07.06.03.09.44
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 06 Jul 2022 02:54:09 -0700 (PDT)
-Received: by mail-oo1-f46.google.com with SMTP id m26-20020a4abc9a000000b00425cd321033so2843821oop.10;
-        Wed, 06 Jul 2022 02:54:09 -0700 (PDT)
-X-Received: by 2002:a05:6902:50e:b0:66e:7f55:7a66 with SMTP id
- x14-20020a056902050e00b0066e7f557a66mr6648581ybs.365.1657100796735; Wed, 06
- Jul 2022 02:46:36 -0700 (PDT)
+        Wed, 06 Jul 2022 03:09:44 -0700 (PDT)
+Received: by mail-yw1-f169.google.com with SMTP id 00721157ae682-31c86fe1dddso87249647b3.1;
+        Wed, 06 Jul 2022 03:09:44 -0700 (PDT)
+X-Received: by 2002:a81:5404:0:b0:31c:c24d:94b0 with SMTP id
+ i4-20020a815404000000b0031cc24d94b0mr10209449ywb.502.1657102184115; Wed, 06
+ Jul 2022 03:09:44 -0700 (PDT)
 MIME-Version: 1.0
-References: <20220608142723.103523089@infradead.org> <20220608144517.124597382@infradead.org>
-In-Reply-To: <20220608144517.124597382@infradead.org>
+References: <20220624121313.2382500-1-alexandr.lobakin@intel.com> <20220624121313.2382500-4-alexandr.lobakin@intel.com>
+In-Reply-To: <20220624121313.2382500-4-alexandr.lobakin@intel.com>
 From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Wed, 6 Jul 2022 11:46:25 +0200
-X-Gmail-Original-Message-ID: <CAMuHMdW4pT+YQfLzLTegFu1M3v9-9vaFDFAama7mc82=x6R__w@mail.gmail.com>
-Message-ID: <CAMuHMdW4pT+YQfLzLTegFu1M3v9-9vaFDFAama7mc82=x6R__w@mail.gmail.com>
-Subject: Re: [PATCH 19/36] objtool/idle: Validate __cpuidle code as noinstr
-To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     Richard Henderson <rth@twiddle.net>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+Date:   Wed, 6 Jul 2022 12:09:33 +0200
+X-Gmail-Original-Message-ID: <CAMuHMdWB8CjbOarttKSaY2=kASbqU2UBCe9bpU17=MdZP_rGUA@mail.gmail.com>
+Message-ID: <CAMuHMdWB8CjbOarttKSaY2=kASbqU2UBCe9bpU17=MdZP_rGUA@mail.gmail.com>
+Subject: Re: [PATCH v5 3/9] bitops: unify non-atomic bitops prototypes across architectures
+To:     Alexander Lobakin <alexandr.lobakin@intel.com>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Yury Norov <yury.norov@gmail.com>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Mark Rutland <mark.rutland@arm.com>,
         Matt Turner <mattst88@gmail.com>,
-        Vineet Gupta <vgupta@kernel.org>,
-        Russell King <linux@armlinux.org.uk>,
-        Hans Ulli Kroll <ulli.kroll@googlemail.com>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        Shawn Guo <shawnguo@kernel.org>,
-        Sascha Hauer <s.hauer@pengutronix.de>,
-        Sascha Hauer <kernel@pengutronix.de>,
-        Fabio Estevam <festevam@gmail.com>,
-        NXP Linux Team <linux-imx@nxp.com>, tony@atomide.com,
-        khilman@kernel.org, catalin.marinas@arm.com, will@kernel.org,
-        guoren@kernel.org, bcain@quicinc.com, chenhuacai@kernel.org,
-        kernel@xen0n.name, sammy@sammy.net, monstr@monstr.eu,
-        tsbogend@alpha.franken.de, dinguyen@kernel.org, jonas@southpole.se,
-        stefan.kristiansson@saunalahti.fi, shorne@gmail.com,
-        James.Bottomley@hansenpartnership.com, deller@gmx.de,
-        mpe@ellerman.id.au, benh@kernel.crashing.org, paulus@samba.org,
-        paul.walmsley@sifive.com, palmer@dabbelt.com,
-        aou@eecs.berkeley.edu, hca@linux.ibm.com, gor@linux.ibm.com,
-        agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
-        svens@linux.ibm.com, ysato@users.sourceforge.jp, dalias@libc.org,
-        davem@davemloft.net, richard@nod.at,
-        anton.ivanov@cambridgegreys.com, johannes@sipsolutions.net,
-        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-        dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
-        acme@kernel.org, mark.rutland@arm.com,
-        alexander.shishkin@linux.intel.com, jolsa@kernel.org,
-        namhyung@kernel.org, jgross@suse.com, srivatsa@csail.mit.edu,
-        amakhalov@vmware.com, pv-drivers@vmware.com,
-        boris.ostrovsky@oracle.com, chris@zankel.net, jcmvbkbc@gmail.com,
-        rafael@kernel.org, lenb@kernel.org, pavel@ucw.cz,
-        gregkh@linuxfoundation.org, mturquette@baylibre.com,
-        sboyd@kernel.org, daniel.lezcano@linaro.org, lpieralisi@kernel.org,
-        sudeep.holla@arm.com, agross@kernel.org,
-        bjorn.andersson@linaro.org, anup@brainfault.org,
-        thierry.reding@gmail.com, jonathanh@nvidia.com,
-        jacob.jun.pan@linux.intel.com, Arnd Bergmann <arnd@arndb.de>,
-        yury.norov@gmail.com, andriy.shevchenko@linux.intel.com,
-        linux@rasmusvillemoes.dk, rostedt@goodmis.org, pmladek@suse.com,
-        senozhatsky@chromium.org, john.ogness@linutronix.de,
-        paulmck@kernel.org, frederic@kernel.org, quic_neeraju@quicinc.com,
-        josh@joshtriplett.org, mathieu.desnoyers@efficios.com,
-        jiangshanlai@gmail.com, joel@joelfernandes.org,
-        juri.lelli@redhat.com, vincent.guittot@linaro.org,
-        dietmar.eggemann@arm.com, bsegall@google.com, mgorman@suse.de,
-        bristot@redhat.com, vschneid@redhat.com, jpoimboe@kernel.org,
-        linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-snps-arc@lists.infradead.org,
-        linux-arm-kernel@lists.infradead.org, linux-omap@vger.kernel.org,
-        linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, openrisc@lists.librecores.org,
-        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
-        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-um@lists.infradead.org, linux-perf-users@vger.kernel.org,
-        virtualization@lists.linux-foundation.org,
-        xen-devel@lists.xenproject.org, linux-xtensa@linux-xtensa.org,
-        linux-acpi@vger.kernel.org, linux-pm@vger.kernel.org,
-        linux-clk@vger.kernel.org, linux-arm-msm@vger.kernel.org,
-        linux-tegra@vger.kernel.org, linux-arch@vger.kernel.org,
-        rcu@vger.kernel.org
+        Brian Cain <bcain@quicinc.com>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>,
+        "David S. Miller" <davem@davemloft.net>,
+        Kees Cook <keescook@chromium.org>,
+        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
+        Marco Elver <elver@google.com>, Borislav Petkov <bp@suse.de>,
+        Tony Luck <tony.luck@intel.com>,
+        Maciej Fijalkowski <maciej.fijalkowski@intel.com>,
+        Jesse Brandeburg <jesse.brandeburg@intel.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Nathan Chancellor <nathan@kernel.org>,
+        Nick Desaulniers <ndesaulniers@google.com>,
+        Tom Rix <trix@redhat.com>, kernel test robot <lkp@intel.com>,
+        alpha <linux-alpha@vger.kernel.org>,
+        "open list:QUALCOMM HEXAGON..." <linux-hexagon@vger.kernel.org>,
+        "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>,
+        linux-m68k <linux-m68k@lists.linux-m68k.org>,
+        Linux-sh list <linux-sh@vger.kernel.org>,
+        sparclinux <sparclinux@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>, llvm@lists.linux.dev,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Jun 8, 2022 at 4:46 PM Peter Zijlstra <peterz@infradead.org> wrote:
-> Idle code is very like entry code in that RCU isn't available. As
-> such, add a little validation.
+On Fri, Jun 24, 2022 at 2:13 PM Alexander Lobakin
+<alexandr.lobakin@intel.com> wrote:
+> Currently, there is a mess with the prototypes of the non-atomic
+> bitops across the different architectures:
 >
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ret     bool, int, unsigned long
+> nr      int, long, unsigned int, unsigned long
+> addr    volatile unsigned long *, volatile void *
+>
+> Thankfully, it doesn't provoke any bugs, but can sometimes make
+> the compiler angry when it's not handy at all.
+> Adjust all the prototypes to the following standard:
+>
+> ret     bool                            retval can be only 0 or 1
+> nr      unsigned long                   native; signed makes no sense
+> addr    volatile unsigned long *        bitmaps are arrays of ulongs
+>
+> Next, some architectures don't define 'arch_' versions as they don't
+> support instrumentation, others do. To make sure there is always the
+> same set of callables present and to ease any potential future
+> changes, make them all follow the rule:
+>  * architecture-specific files define only 'arch_' versions;
+>  * non-prefixed versions can be defined only in asm-generic files;
+> and place the non-prefixed definitions into a new file in
+> asm-generic to be included by non-instrumented architectures.
+>
+> Finally, add some static assertions in order to prevent people from
+> making a mess in this room again.
+> I also used the %__always_inline attribute consistently, so that
+> they always get resolved to the actual operations.
+>
+> Suggested-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+> Signed-off-by: Alexander Lobakin <alexandr.lobakin@intel.com>
+> Acked-by: Mark Rutland <mark.rutland@arm.com>
+> Reviewed-by: Yury Norov <yury.norov@gmail.com>
+> Reviewed-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
 
->  arch/m68k/kernel/vmlinux-nommu.lds   |    1 -
->  arch/m68k/kernel/vmlinux-std.lds     |    1 -
->  arch/m68k/kernel/vmlinux-sun3.lds    |    1 -
+>  arch/m68k/include/asm/bitops.h                | 49 ++++++++++-----
 
-FWIW
+Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
 Gr{oetje,eeting}s,
