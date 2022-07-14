@@ -2,112 +2,100 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CE129CCA482
-	for <linux-arch@archiver.kernel.org>; Thu, 14 Jul 2022 07:39:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0CFDBC43334
+	for <linux-arch@archiver.kernel.org>; Thu, 14 Jul 2022 08:41:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237211AbiGNHj3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 14 Jul 2022 03:39:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38816 "EHLO
+        id S235849AbiGNIlc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 14 Jul 2022 04:41:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37738 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232072AbiGNHj2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2022 03:39:28 -0400
-Received: from mail-vk1-xa36.google.com (mail-vk1-xa36.google.com [IPv6:2607:f8b0:4864:20::a36])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 360E11D0EE;
-        Thu, 14 Jul 2022 00:39:27 -0700 (PDT)
-Received: by mail-vk1-xa36.google.com with SMTP id y129so444386vkg.5;
-        Thu, 14 Jul 2022 00:39:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=mime-version:references:in-reply-to:from:date:message-id:subject:to
-         :cc;
-        bh=uGTKzeprnwSXnbqHhlClhWNOVWDQWwVH82y8HTb0lvE=;
-        b=cgUr0qoPFsYBx9z1B5gVXD5cyyb9a3Pzt3fzi4Uq8BT65Hz9RmzgG4qEHO/VpAeFpb
-         BTGRaPlN5jMqUj9XSkP01TM2zhSDii5r5Z1mXIls5ho6yE059/wGZ57dDqRI9LFz8P2q
-         SFZRhw+JHOVjXf/rYgGMjw1lZyJoLdwjq8jAi2xXmD8NDQu1thff1XIeE5VqlX6uzpLt
-         Ss4YvsF+MjSMQ5f0Ym7qnDmuNNEBvowm5wN5zJrp+zkUvvpKtVb2ttLFuqne5xfHxR1B
-         vEsGvJ8Gnc/9eggFbEz0Pa1QkioINAHtFen2cObZqaDgzIuNpoVYcPv+XkkfuNwIjsb/
-         wV9A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=x-gm-message-state:mime-version:references:in-reply-to:from:date
-         :message-id:subject:to:cc;
-        bh=uGTKzeprnwSXnbqHhlClhWNOVWDQWwVH82y8HTb0lvE=;
-        b=3tmnJkg99izIDNv5y0uFned3gXfJS1zqljIzCVYDNOlD64sP/Do6qlqJKAxQ1lGLTN
-         OriZv4TSWKKK1qLMkj3AH/ZCZKIgK2MbxRpkIAYE2B77ZphQk9V/Ebcj3B31/d+zyVBc
-         hcWJlEPlY6xGXdmvRflvyX8xfVQgmPbYasT6Rx5HyqmlcLcSHP9IUNdXzHngGebInl1G
-         kA9pm6/uG6OpQ+DuJjVDTC4c+mjCimj2Xd5VGlRCo5oQm+Q/q4hvlYP+Kjoe3Kj6OO4A
-         0jTxYJXdkcIG4OyG1PyOj/YMvZ0qYJBlq/TYlJLaEtoLwtBqX8mgDqXIDeo0aEUT75gw
-         7vSA==
-X-Gm-Message-State: AJIora9NvEHBL0SSoxpjckmxeUOdmFLsrp/6nNGJNeuC2Bpw5ZOQrtiq
-        IO08KJ3vZ3v09TXeqZHes2khk4IEVLBDvioFgvc=
-X-Google-Smtp-Source: AGRyM1u8HgMpLBGFlzWUoYrgyz3sUFJPCzXmEfT1RMJWmGvdyIwnC2L2iEpEVAs/u389/0VMLd9tL1nfwpyTee6Wm+8=
-X-Received: by 2002:a1f:a887:0:b0:36c:8458:b061 with SMTP id
- r129-20020a1fa887000000b0036c8458b061mr2831184vke.19.1657784365859; Thu, 14
- Jul 2022 00:39:25 -0700 (PDT)
-MIME-Version: 1.0
-References: <20220712075255.1345991-1-chenhuacai@loongson.cn>
- <20220712075255.1345991-3-chenhuacai@loongson.cn> <CAMuHMdUazqHLbc80vpZ+Msg9A3j5aPJ3fx+CdCG3kuWDSf8WSw@mail.gmail.com>
- <CAAhV-H775jXMbcR9j=oLBuHo1PfFziZSUQWttJAEw20sUt+GAA@mail.gmail.com>
- <CAMuHMdUHbepd974u5iox3BcOyo_Q2ZgT-znruk+WCt+HMQ_Lgw@mail.gmail.com>
- <CAAhV-H78Fi0aE-h5MOgRa5L+Jt7D0wG0nLcYzx45jVney8T1BQ@mail.gmail.com>
- <CAMuHMdVXFmKR4LuXHYRrSk3Q0VRqATGbsM512DxayWCPCE-wvg@mail.gmail.com>
- <c8c959fa-f17d-f0dd-6a8d-e0b0ce622f3a@xen0n.name> <CAAhV-H6g5nLGJMz0ZsZqC5-73VSGffVdc6r0=3HHBo3Z8PQOBg@mail.gmail.com>
- <CAK8P3a0GUPSYBai3Z9vzw0wrXGLFiik6hdY3zc6nQ6mQs7yHvQ@mail.gmail.com>
-In-Reply-To: <CAK8P3a0GUPSYBai3Z9vzw0wrXGLFiik6hdY3zc6nQ6mQs7yHvQ@mail.gmail.com>
-From:   Huacai Chen <chenhuacai@gmail.com>
-Date:   Thu, 14 Jul 2022 15:39:13 +0800
-Message-ID: <CAAhV-H43QWXdaQuKvk+=BXA7LA6_p1aJb0qyXdhPhR_so_S0dA@mail.gmail.com>
-Subject: Re: [PATCH 3/6] M68K: cpuinfo: Fix a warning for CONFIG_CPUMASK_OFFSTACK
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     WANG Xuerui <kernel@xen0n.name>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Huacai Chen <chenhuacai@loongson.cn>,
+        with ESMTP id S231264AbiGNIla (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2022 04:41:30 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2B5E13EA2;
+        Thu, 14 Jul 2022 01:41:29 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 6A53DB823E0;
+        Thu, 14 Jul 2022 08:41:28 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 06660C34114;
+        Thu, 14 Jul 2022 08:41:22 +0000 (UTC)
+From:   Huacai Chen <chenhuacai@loongson.cn>
+To:     Arnd Bergmann <arnd@arndb.de>,
         Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Michal Simek <monstr@monstr.eu>,
         Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, Jeff Dike <jdike@addtoit.com>,
-        Richard Weinberger <richard@nod.at>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        loongarch@lists.linux.dev, Linux-Arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Guo Ren <guoren@kernel.org>,
+        Rich Felker <dalias@libc.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, Huacai Chen <chenhuacai@gmail.com>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
-        linux-m68k <linux-m68k@lists.linux-m68k.org>,
-        Linux-sh list <linux-sh@vger.kernel.org>,
-        linux-um <linux-um@lists.infradead.org>,
-        stable <stable@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+        linux-mips@vger.kernel.org, linux-sh@vger.kernel.org,
+        Huacai Chen <chenhuacai@loongson.cn>, stable@vger.kernel.org
+Subject: [PATCH V2 1/3] MIPS: cpuinfo: Fix a warning for CONFIG_CPUMASK_OFFSTACK
+Date:   Thu, 14 Jul 2022 16:41:34 +0800
+Message-Id: <20220714084136.570176-1-chenhuacai@loongson.cn>
+X-Mailer: git-send-email 2.31.1
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi, Arnd,
+When CONFIG_CPUMASK_OFFSTACK and CONFIG_DEBUG_PER_CPU_MAPS is selected,
+cpu_max_bits_warn() generates a runtime warning similar as below while
+we show /proc/cpuinfo. Fix this by using nr_cpu_ids (the runtime limit)
+instead of NR_CPUS to iterate CPUs.
 
-On Thu, Jul 14, 2022 at 2:59 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Thu, Jul 14, 2022 at 4:07 AM Huacai Chen <chenhuacai@gmail.com> wrote:
-> > On Tue, Jul 12, 2022 at 6:15 PM WANG Xuerui <kernel@xen0n.name> wrote:
-> > > On 2022/7/12 17:13, Geert Uytterhoeven wrote:
-> > >
-> > > But judging from the intent of this patch series (fixing WARNs on
-> > > certain configs), and that the triggering condition is currently
-> > > impossible on m68k (and other non-SMP) platforms, I think cleanups for
-> > > such arches could come as a separate patch series later. I think the
-> > > m68k refactoring is reasonable after all, due to my observation above,
-> > > but for the other non-SMP arches we may want to wait for the respective
-> > > maintainers' opinions.
-> >
-> > It seems that the best solution is only fix architectures with SMP
-> > support and leave others (m68k, microblaze, um) as is. :)
->
-> I think it probably makes sense to do this as a combined cleanup patch,
-> which I can merge through the asm-generic tree, for all architectures
-> whose maintainer does not pick it up directly. For SMP architectures,
-> it's a bugfix that we probably want backported into stable kernels, while
-> for non-SMP targets it is just a minor cleanup for consistency.
-OK, I will send V2 later.
+[    3.052463] ------------[ cut here ]------------
+[    3.059679] WARNING: CPU: 3 PID: 1 at include/linux/cpumask.h:108 show_cpuinfo+0x5e8/0x5f0
+[    3.070072] Modules linked in: efivarfs autofs4
+[    3.076257] CPU: 0 PID: 1 Comm: systemd Not tainted 5.19-rc5+ #1052
+[    3.084034] Hardware name: Loongson Loongson-3A4000-7A1000-1w-V0.1-CRB/Loongson-LS3A4000-7A1000-1w-EVB-V1.21, BIOS Loongson-UDK2018-V2.0.04082-beta7 04/27
+[    3.099465] Stack : 9000000100157b08 9000000000f18530 9000000000cf846c 9000000100154000
+[    3.109127]         9000000100157a50 0000000000000000 9000000100157a58 9000000000ef7430
+[    3.118774]         90000001001578e8 0000000000000040 0000000000000020 ffffffffffffffff
+[    3.128412]         0000000000aaaaaa 1ab25f00eec96a37 900000010021de80 900000000101c890
+[    3.138056]         0000000000000000 0000000000000000 0000000000000000 0000000000aaaaaa
+[    3.147711]         ffff8000339dc220 0000000000000001 0000000006ab4000 0000000000000000
+[    3.157364]         900000000101c998 0000000000000004 9000000000ef7430 0000000000000000
+[    3.167012]         0000000000000009 000000000000006c 0000000000000000 0000000000000000
+[    3.176641]         9000000000d3de08 9000000001639390 90000000002086d8 00007ffff0080286
+[    3.186260]         00000000000000b0 0000000000000004 0000000000000000 0000000000071c1c
+[    3.195868]         ...
+[    3.199917] Call Trace:
+[    3.203941] [<98000000002086d8>] show_stack+0x38/0x14c
+[    3.210666] [<9800000000cf846c>] dump_stack_lvl+0x60/0x88
+[    3.217625] [<980000000023d268>] __warn+0xd0/0x100
+[    3.223958] [<9800000000cf3c90>] warn_slowpath_fmt+0x7c/0xcc
+[    3.231150] [<9800000000210220>] show_cpuinfo+0x5e8/0x5f0
+[    3.238080] [<98000000004f578c>] seq_read_iter+0x354/0x4b4
+[    3.245098] [<98000000004c2e90>] new_sync_read+0x17c/0x1c4
+[    3.252114] [<98000000004c5174>] vfs_read+0x138/0x1d0
+[    3.258694] [<98000000004c55f8>] ksys_read+0x70/0x100
+[    3.265265] [<9800000000cfde9c>] do_syscall+0x7c/0x94
+[    3.271820] [<9800000000202fe4>] handle_syscall+0xc4/0x160
+[    3.281824] ---[ end trace 8b484262b4b8c24c ]---
 
-Huacai
->
->         Arnd
+Cc: stable@vger.kernel.org
+Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+---
+ arch/mips/kernel/proc.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/mips/kernel/proc.c b/arch/mips/kernel/proc.c
+index 4184d641f05e..33a02f3814f5 100644
+--- a/arch/mips/kernel/proc.c
++++ b/arch/mips/kernel/proc.c
+@@ -172,7 +172,7 @@ static void *c_start(struct seq_file *m, loff_t *pos)
+ {
+ 	unsigned long i = *pos;
+ 
+-	return i < NR_CPUS ? (void *) (i + 1) : NULL;
++	return i < nr_cpu_ids ? (void *) (i + 1) : NULL;
+ }
+ 
+ static void *c_next(struct seq_file *m, void *v, loff_t *pos)
+-- 
+2.31.1
+
