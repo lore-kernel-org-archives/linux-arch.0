@@ -2,153 +2,116 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 26422CCA479
-	for <linux-arch@archiver.kernel.org>; Mon, 18 Jul 2022 09:04:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AC25EC43334
+	for <linux-arch@archiver.kernel.org>; Tue, 19 Jul 2022 00:17:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234033AbiGRJEc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 18 Jul 2022 05:04:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38114 "EHLO
+        id S236727AbiGSARg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 18 Jul 2022 20:17:36 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55670 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234056AbiGRJE3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jul 2022 05:04:29 -0400
-Received: from mail-ej1-x630.google.com (mail-ej1-x630.google.com [IPv6:2a00:1450:4864:20::630])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 54C971A396
-        for <linux-arch@vger.kernel.org>; Mon, 18 Jul 2022 02:04:24 -0700 (PDT)
-Received: by mail-ej1-x630.google.com with SMTP id l23so20027430ejr.5
-        for <linux-arch@vger.kernel.org>; Mon, 18 Jul 2022 02:04:24 -0700 (PDT)
+        with ESMTP id S233926AbiGSARf (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jul 2022 20:17:35 -0400
+Received: from mail-pl1-x635.google.com (mail-pl1-x635.google.com [IPv6:2607:f8b0:4864:20::635])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A372F6349;
+        Mon, 18 Jul 2022 17:17:33 -0700 (PDT)
+Received: by mail-pl1-x635.google.com with SMTP id 5so10495006plk.9;
+        Mon, 18 Jul 2022 17:17:33 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=monstr-eu.20210112.gappssmtp.com; s=20210112;
-        h=message-id:date:mime-version:user-agent:subject:content-language:to
-         :cc:references:from:in-reply-to:content-transfer-encoding;
-        bh=3y6mB0hrnaV46VnRdVCEKqtLVV2m+vYW81yoBr+fw0w=;
-        b=lazb5AJju1MIZiojh4ugOqp3SpUeeN4m9pS4gWOOnJbgrHukSBCMpnqykr4R6rEOKM
-         po8QLW0Y+VzxM3g1dOM7i/6BAjT9Q9BlTiTVmrac89YvdKky0kmYJSAp/0HX4drLUcFc
-         L41YTwau745fy7DAYoCjPMWpCEEOgB5YsZnp05gpatqBMCwI1wZeO9eylWprvWs6OY00
-         cqoSUOmPUNMqhMS1tjqK0Ax6pFAhDGVEAVwrgkC1jZ9cXJo9Yxzy3mi/WgjQ8ny0z9Ii
-         BHOPafrZBMcQWqNHyW1SIPdatfxNXyzNbBUOiCILDiq+iys5YIJoEne7lul8CoZkG7Qp
-         1dLQ==
+        d=gmail.com; s=20210112;
+        h=message-id:date:mime-version:user-agent:subject:content-language
+         :from:to:cc:references:in-reply-to:content-transfer-encoding;
+        bh=7Voy8x4hq/Io3/fC7rr8/pnXiYjGneXM+CTyZShqxH0=;
+        b=hg/ZsqiKtd+dN+FrNe3IqgScPtci1LI9Q3LC+WpsP2UaYsfKeWKF1FIuGT/ZRrR0V7
+         wEg4GyZAqCsju630oexwPaR6TQ+mtCZsWDjNkfKY8GDy+NysH3WpwodEWrcjkrJjmWB7
+         KSF+N1alVcbh4uE9cvuPrBZvVgmXxJIak4SN9bBAP1Ya6am3dZBBntBL0XebRr7aMwOE
+         h9xLUk4Rdpg2YxFhD+D23KLlRPmVimufYmQdZp4JYZVKJqLXstRGxLW7KkH09VZtmbHs
+         VrfDs4M/JoR2IoWivnXyK3RYeZ/hUjHYXtYf0MvVt6Anm9g4o/hNXT4LYf0O/Md+zbz3
+         umFg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:message-id:date:mime-version:user-agent:subject
-         :content-language:to:cc:references:from:in-reply-to
+         :content-language:from:to:cc:references:in-reply-to
          :content-transfer-encoding;
-        bh=3y6mB0hrnaV46VnRdVCEKqtLVV2m+vYW81yoBr+fw0w=;
-        b=SCF09yx/Q0RQd4glPR5KO3wZvnI7PFPisKqR4ZB4o1PP5sbNM2Jc/3sykrgeKZEwS5
-         02rmF7dkMDmXDx8zT3Lt3ED7JeGiOS0P62Dhy5TWJk5BOccivtnahEdZAaknlRK+kcmH
-         rsFJFV76s97A1+nyV4c/wH31qGqJjQ4Dbk8YW6xsA/lFbjFpv/jDmZEYXwGO2tEHztxA
-         etzXlSKL9svCgwjeL+EjYpl8rRBmYjTxvxRrwzEYqwVSnQ5gxvLMQeI99XXLoy2/ycV8
-         9nNjBvWV3qhplpGP8b1Q7/0jsJu+LJ1KgHIeP5j7VDhPFGv2G0T5yJXHuIqVWyLp9uAE
-         +51Q==
-X-Gm-Message-State: AJIora8qcs4fcNTKN4njq5T3eWyQRqmOiGICji8TODwyJRUOUdoli6ni
-        THiVEMUx+cAlNQj0KHu/jyG1Fg==
-X-Google-Smtp-Source: AGRyM1shiX+UWsxgu56aWSxDBQiM5H9sYKjZglHKR9uDIypb1Ru+e71R8EEH25Apr7Yq430Wp4Nzhg==
-X-Received: by 2002:a17:907:2d2b:b0:72b:546a:bd03 with SMTP id gs43-20020a1709072d2b00b0072b546abd03mr25807330ejc.149.1658135062709;
-        Mon, 18 Jul 2022 02:04:22 -0700 (PDT)
-Received: from ?IPV6:2a02:768:2307:40d6::f9e? ([2a02:768:2307:40d6::f9e])
-        by smtp.gmail.com with ESMTPSA id u15-20020a056402064f00b0043a6c538047sm8259072edx.70.2022.07.18.02.04.20
+        bh=7Voy8x4hq/Io3/fC7rr8/pnXiYjGneXM+CTyZShqxH0=;
+        b=UM4yMMwJjgUX5EObkzMLh5FMDLFPawD016q1An2o/OemGuQMtp+Wukc6aNXrzdda/K
+         qM9LO38/XSyBeNc2EA58lGfU8Y6SljdFnIXoL7sPAU9DZeLhftoIaDCo6n0CxCJpuGAv
+         2DJdWmZv6+5AdJqTINIWVr/YEufergb3cYT1XVoeXpJXCc58KpAio+BYl7tzNfy/O/DQ
+         wcjlkr+qeE2fuFZ79hcgjoEkmMqmbpEEcCq5+Sqwshg41aye0C76hWSqaUs5fecBrmXn
+         3Dth6XaS3F/AkhJrD8TQAQVRzvOLxJrmWf7iIutl0olejK4pdz8SB0o/Y4JwGhGVeRpF
+         KBdw==
+X-Gm-Message-State: AJIora9lthf3LYES+tqtrCWmIOhuE9OBISZd1AxyJkcTL3mLHZ80ijXz
+        3oQJeWR2A6RMI+yfIzCRZcsW/Ml4JE0=
+X-Google-Smtp-Source: AGRyM1tfLsy5d8QCz/p9MQZe8MQUjPHkRe2mGXMkYgff5fn2Li3xTmOK5b1B+yQ9mo3Kfy5LMCmAIg==
+X-Received: by 2002:a17:90b:4c86:b0:1f0:3255:542e with SMTP id my6-20020a17090b4c8600b001f03255542emr35116557pjb.119.1658189852793;
+        Mon, 18 Jul 2022 17:17:32 -0700 (PDT)
+Received: from [192.168.1.3] (ip72-194-116-95.oc.oc.cox.net. [72.194.116.95])
+        by smtp.gmail.com with ESMTPSA id a8-20020a1709027e4800b0016cbb46806asm9073697pln.278.2022.07.18.17.17.31
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 18 Jul 2022 02:04:21 -0700 (PDT)
-Message-ID: <9cc11fd0-28c7-fd0d-fe55-cce0bb5e92a7@monstr.eu>
-Date:   Mon, 18 Jul 2022 11:04:19 +0200
+        Mon, 18 Jul 2022 17:17:32 -0700 (PDT)
+Message-ID: <643cdbc4-b539-f99f-6f3b-d3c5895d6038@gmail.com>
+Date:   Mon, 18 Jul 2022 17:17:31 -0700
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.11.0
-Subject: Re: [PATCH 4/6] MicroBlaze: cpuinfo: Fix a warning for
- CONFIG_CPUMASK_OFFSTACK
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
+ Thunderbird/102.0.2
+Subject: Re: [PATCH] tools: Fixed MIPS builds due to struct flock
+ re-definition
 Content-Language: en-US
-To:     Huacai Chen <chenhuacai@loongson.cn>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, Jeff Dike <jdike@addtoit.com>,
-        Richard Weinberger <richard@nod.at>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>
-Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, Huacai Chen <chenhuacai@gmail.com>,
-        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-mips@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-sh@vger.kernel.org, linux-um@lists.infradead.org,
-        stable@vger.kernel.org
-References: <20220712075255.1345991-1-chenhuacai@loongson.cn>
- <20220712075255.1345991-4-chenhuacai@loongson.cn>
-From:   Michal Simek <monstr@monstr.eu>
-In-Reply-To: <20220712075255.1345991-4-chenhuacai@loongson.cn>
+From:   Florian Fainelli <f.fainelli@gmail.com>
+To:     linux-kernel@vger.kernel.org, hch@lst.de,
+        Arnd Bergmann <arnd@arndb.de>, linux-mips@vger.kernel.org,
+        "open list:GENERIC INCLUDE/ASM HEADER FILES" 
+        <linux-arch@vger.kernel.org>
+Cc:     nathan@kernel.org, naresh.kamboju@linaro.org, heiko@sntech.de,
+        Palmer Dabbelt <palmer@rivosinc.com>,
+        Guo Ren <guoren@kernel.org>
+References: <20220715185551.3951955-1-f.fainelli@gmail.com>
+ <846d3845-1536-3306-b68d-d0097a2ff8ff@gmail.com>
+In-Reply-To: <846d3845-1536-3306-b68d-d0097a2ff8ff@gmail.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
 
-On 7/12/22 09:52, Huacai Chen wrote:
-> When CONFIG_CPUMASK_OFFSTACK and CONFIG_DEBUG_PER_CPU_MAPS is selected,
-> cpu_max_bits_warn() generates a runtime warning similar as below while
-> we show /proc/cpuinfo. Fix this by using nr_cpu_ids (the runtime limit)
-> instead of NR_CPUS to iterate CPUs.
+On 7/16/2022 4:21 PM, Florian Fainelli wrote:
+> Le 15/07/2022 à 11:55, Florian Fainelli a écrit :
+>> Building perf for MIPS failed after 9f79b8b72339 ("uapi: simplify
+>> __ARCH_FLOCK{,64}_PAD a little") with the following error:
+>>
+>>    CC
+>> /home/fainelli/work/buildroot/output/bmips/build/linux-custom/tools/perf/trace/beauty/fcntl.o
+>> In file included from
+>> ../../../../host/mipsel-buildroot-linux-gnu/sysroot/usr/include/asm/fcntl.h:77,
+>>                   from ../include/uapi/linux/fcntl.h:5,
+>>                   from trace/beauty/fcntl.c:10:
+>> ../include/uapi/asm-generic/fcntl.h:188:8: error: redefinition of
+>> 'struct flock'
+>>   struct flock {
+>>          ^~~~~
+>> In file included from ../include/uapi/linux/fcntl.h:5,
+>>                   from trace/beauty/fcntl.c:10:
+>> ../../../../host/mipsel-buildroot-linux-gnu/sysroot/usr/include/asm/fcntl.h:63:8:
+>> note: originally defined here
+>>   struct flock {
+>>          ^~~~~
+>>
+>> This is due to the local copy under
+>> tools/include/uapi/asm-generic/fcntl.h including the toolchain's kernel
+>> headers which already define 'struct flock' and define
+>> HAVE_ARCH_STRUCT_FLOCK to future inclusions make a decision as to
+>> whether re-defining 'struct flock' is appropriate or not.
+>>
+>> Make sure what do not re-define 'struct flock'
+>> when HAVE_ARCH_STRUCT_FLOCK is already defined.
+>>
+>> Fixes: 9f79b8b72339 ("uapi: simplify __ARCH_FLOCK{,64}_PAD a little")
+>> Signed-off-by: Florian Fainelli <f.fainelli@gmail.com>
+>> ---
 > 
-> [    3.052463] ------------[ cut here ]------------
-> [    3.059679] WARNING: CPU: 3 PID: 1 at include/linux/cpumask.h:108 show_cpuinfo+0x5e8/0x5f0
-> [    3.070072] Modules linked in: efivarfs autofs4
-> [    3.076257] CPU: 0 PID: 1 Comm: systemd Not tainted 5.19-rc5+ #1052
-> [    3.099465] Stack : 9000000100157b08 9000000000f18530 9000000000cf846c 9000000100154000
-> [    3.109127]         9000000100157a50 0000000000000000 9000000100157a58 9000000000ef7430
-> [    3.118774]         90000001001578e8 0000000000000040 0000000000000020 ffffffffffffffff
-> [    3.128412]         0000000000aaaaaa 1ab25f00eec96a37 900000010021de80 900000000101c890
-> [    3.138056]         0000000000000000 0000000000000000 0000000000000000 0000000000aaaaaa
-> [    3.147711]         ffff8000339dc220 0000000000000001 0000000006ab4000 0000000000000000
-> [    3.157364]         900000000101c998 0000000000000004 9000000000ef7430 0000000000000000
-> [    3.167012]         0000000000000009 000000000000006c 0000000000000000 0000000000000000
-> [    3.176641]         9000000000d3de08 9000000001639390 90000000002086d8 00007ffff0080286
-> [    3.186260]         00000000000000b0 0000000000000004 0000000000000000 0000000000071c1c
-> [    3.195868]         ...
-> [    3.199917] Call Trace:
-> [    3.203941] [<90000000002086d8>] show_stack+0x38/0x14c
-> [    3.210666] [<9000000000cf846c>] dump_stack_lvl+0x60/0x88
-> [    3.217625] [<900000000023d268>] __warn+0xd0/0x100
-> [    3.223958] [<9000000000cf3c90>] warn_slowpath_fmt+0x7c/0xcc
-> [    3.231150] [<9000000000210220>] show_cpuinfo+0x5e8/0x5f0
-> [    3.238080] [<90000000004f578c>] seq_read_iter+0x354/0x4b4
-> [    3.245098] [<90000000004c2e90>] new_sync_read+0x17c/0x1c4
-> [    3.252114] [<90000000004c5174>] vfs_read+0x138/0x1d0
-> [    3.258694] [<90000000004c55f8>] ksys_read+0x70/0x100
-> [    3.265265] [<9000000000cfde9c>] do_syscall+0x7c/0x94
-> [    3.271820] [<9000000000202fe4>] handle_syscall+0xc4/0x160
-> [    3.281824] ---[ end trace 8b484262b4b8c24c ]---
-> 
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
-> ---
->   arch/microblaze/kernel/cpu/mb.c | 2 +-
->   1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/arch/microblaze/kernel/cpu/mb.c b/arch/microblaze/kernel/cpu/mb.c
-> index 9581d194d9e4..689de7f75614 100644
-> --- a/arch/microblaze/kernel/cpu/mb.c
-> +++ b/arch/microblaze/kernel/cpu/mb.c
-> @@ -137,7 +137,7 @@ static void *c_start(struct seq_file *m, loff_t *pos)
->   {
->   	int i = *pos;
->   
-> -	return i < NR_CPUS ? (void *) (i + 1) : NULL;
-> +	return i < nr_cpu_ids ? (void *) (i + 1) : NULL;
->   }
->   
->   static void *c_next(struct seq_file *m, void *v, loff_t *pos)
+> Any chance to apply this patch prior to v5.19 being final? Thanks!
 
-As was said in m68k thread commit message should be fixed. MB upstream in not 
-SMP. We have SMP configuration in soc vendor tree but upstream we can't enable 
-DEBUG_PER_CPU_MAPS which depends on SMP. But definitely worth to fix it.
-
-Thanks,
-Michal
-
+Ping?
 -- 
-Michal Simek, Ing. (M.Eng), OpenPGP -> KeyID: FE3D1F91
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Xilinx Microblaze
-Maintainer of Linux kernel - Xilinx Zynq ARM and ZynqMP ARM64 SoCs
-U-Boot custodian - Xilinx Microblaze/Zynq/ZynqMP/Versal SoCs
-
+Florian
