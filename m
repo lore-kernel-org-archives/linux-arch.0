@@ -2,114 +2,202 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6602FCCA47F
-	for <linux-arch@archiver.kernel.org>; Tue, 19 Jul 2022 21:17:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5B84FC433EF
+	for <linux-arch@archiver.kernel.org>; Wed, 20 Jul 2022 09:34:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236376AbiGSVRx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 19 Jul 2022 17:17:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59340 "EHLO
+        id S229909AbiGTJer (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 20 Jul 2022 05:34:47 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34748 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234669AbiGSVRw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jul 2022 17:17:52 -0400
-Received: from mail-pj1-x1036.google.com (mail-pj1-x1036.google.com [IPv6:2607:f8b0:4864:20::1036])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 30EC15E831;
-        Tue, 19 Jul 2022 14:17:51 -0700 (PDT)
-Received: by mail-pj1-x1036.google.com with SMTP id z12-20020a17090a7b8c00b001ef84000b8bso204211pjc.1;
-        Tue, 19 Jul 2022 14:17:51 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=message-id:date:mime-version:user-agent:subject:content-language:to
-         :cc:references:from:in-reply-to:content-transfer-encoding;
-        bh=t8zVqsxAh6PCRXieEJpi3l5hMbcl20okCByenmGuHWI=;
-        b=UUP6D56+h2cKFc6QdtHcf9FTK+iDXbTS9hwa7O+E4kOnuP/KjlsqG8DSaHQPfTdZHU
-         rnOdRthpThvEu8Jmhez1bAwaePFVcPqUjNUCQO2PNeY2+U1uTJfgXYp+vV6EQc7N9lMu
-         adxox/MRXhrotXd8HQGxaEXZ2uyeDFMKNkjlXdRtVEUqVdRpT/edltSSk5i8km3n61J0
-         vCQKQKogZr0W4GBKKP1fshbzSgUlWTbrd2zlK79F/GRPrYoPVi+tF8DudvoZrtnYEhp9
-         pjmtemAkqpwpcHRn0JWH6ksRVaMu37vBnJPgfEB1wGzSJiDUWwOvDLpEM/AS6NsZfGoz
-         yiJg==
+        with ESMTP id S229686AbiGTJeq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2022 05:34:46 -0400
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 27A8A13F75
+        for <linux-arch@vger.kernel.org>; Wed, 20 Jul 2022 02:34:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1658309684;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=dZJQXt6doKuqhqmCeIdZMEV0KmUXZoYN8P0BVRcFtdM=;
+        b=UJTlWW1wXFjspHs3DAtPLwQB/mCEFIZ+AH1q1i66e7tYbp2IsVuCMPLfaIJQDPzfFwwZgE
+        fYH5gkno+B2CQ5/9Oe/k+51zDC8rHtUD/7/GRLZwlwfWea/7iMWfdB1wvgRabndT920vbT
+        Q2d5O6LzuOCet+Of60jnBy51crNvS0M=
+Received: from mail-wm1-f70.google.com (mail-wm1-f70.google.com
+ [209.85.128.70]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-613-s29zSpxkNpKgU_NpPUn9kg-1; Wed, 20 Jul 2022 05:34:43 -0400
+X-MC-Unique: s29zSpxkNpKgU_NpPUn9kg-1
+Received: by mail-wm1-f70.google.com with SMTP id z20-20020a1c4c14000000b003a3020da654so524675wmf.5
+        for <linux-arch@vger.kernel.org>; Wed, 20 Jul 2022 02:34:42 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=x-gm-message-state:message-id:date:mime-version:user-agent:subject
-         :content-language:to:cc:references:from:in-reply-to
+         :content-language:to:cc:references:from:organization:in-reply-to
          :content-transfer-encoding;
-        bh=t8zVqsxAh6PCRXieEJpi3l5hMbcl20okCByenmGuHWI=;
-        b=09G7r/Ptog+BflN8ncsjWfy2yECANcPnLCA/vtr5oMf9dIWhNOiEySzaFVM8kg8LDL
-         HVDMXDRbhWWrwB3aX8ECevdFElZQFGljf+mnPVKeso1WtG4dL1V/3z9vBe3z5p/m6mP8
-         YYEkvZS6j3uqxQ43CkDG7bmANm7bnbMzLrFtjIUVsMG6i4SdTBMtFUG4aNA0BFz/+aQL
-         pNlJ6C+7bOAL4oLN0BArIOl8L6B3/OnHEwVrPqOQiCSqtpnyDL0VhMrNwl7TitMhm5sX
-         IgTFGQr7SE/L07W3D90AzXwlK+voLqAog8QBUFXBH5iQX8uaXX1oYbjAQ0mqR6yTOap6
-         oZ6Q==
-X-Gm-Message-State: AJIora/O1CFwpfyz07WSx/rHSaWT4mAInb/v4Q86YgNmwEkAILoA47xD
-        R+nRmpEUKTKPEIhZEspcLSY=
-X-Google-Smtp-Source: AGRyM1t9d5EKKKQwZ65RaxzCplS05DEpUzR8MtNVBcQEoUzTSrVGJHJGXOUmFe1RfjO6mFQsF4sXVg==
-X-Received: by 2002:a17:90b:4c10:b0:1ef:eb4a:fbb with SMTP id na16-20020a17090b4c1000b001efeb4a0fbbmr1426728pjb.121.1658265470437;
-        Tue, 19 Jul 2022 14:17:50 -0700 (PDT)
-Received: from [192.168.1.3] (ip72-194-116-95.oc.oc.cox.net. [72.194.116.95])
-        by smtp.gmail.com with ESMTPSA id gi12-20020a17090b110c00b001e29ddf9f4fsm60022pjb.3.2022.07.19.14.17.49
+        bh=dZJQXt6doKuqhqmCeIdZMEV0KmUXZoYN8P0BVRcFtdM=;
+        b=ee0tR70uUiAJ8I0zRohdFTCWCm1qzJtw40nbuzug521XCKK9eq/8EXsbl8uzKK6vl+
+         ho7BHG6iBIUAg3B2Dc6m1fBZFQLYC6IBhJXJkKTZ9moxu15dygWdCQV8VWbVO5TKq5bQ
+         PGifZetvwRfDqvgibLGm+OGuzNTxGEFkIU4tfGWAe4Vo1ClnDZo3lbv/PSiZgaxMXLkP
+         hcePgaAKE1CPWmDq894YGyaW4inTIgLWODeRWQjjI2x1GAE5EnQqv2AjCDg8ztbF43um
+         cGqgEzJr0CkxPosfk9IEDO80phKkXfPjDhCSf6wN8QODgMNg0D+v+XdgjrVuv9Llhx3Q
+         csuw==
+X-Gm-Message-State: AJIora8N+CqUPmCLwH2edZFT1ssta5CXXe1YsWQ2D4zXyW9/FIFSIdCu
+        iC5UCrNdYFxNGpn8+jimlR4iAeMDo7PgA5ImstQoMZB6NJ/7H2f3LbEmWXJCI2xGP0n/+PYydbW
+        Q2KUOrAvfF5O1fplgtMJVrA==
+X-Received: by 2002:adf:e889:0:b0:21d:6510:b750 with SMTP id d9-20020adfe889000000b0021d6510b750mr31445078wrm.498.1658309681810;
+        Wed, 20 Jul 2022 02:34:41 -0700 (PDT)
+X-Google-Smtp-Source: AGRyM1ulf8qkNkDcp6dk1vwhLiwrg1+3SyvqKhWJWE97+JCOnPrgU25PgHyyorDQgXr5DMo4WjCfFQ==
+X-Received: by 2002:adf:e889:0:b0:21d:6510:b750 with SMTP id d9-20020adfe889000000b0021d6510b750mr31445053wrm.498.1658309681533;
+        Wed, 20 Jul 2022 02:34:41 -0700 (PDT)
+Received: from ?IPV6:2003:cb:c706:e00:8d96:5dba:6bc4:6e89? (p200300cbc7060e008d965dba6bc46e89.dip0.t-ipconnect.de. [2003:cb:c706:e00:8d96:5dba:6bc4:6e89])
+        by smtp.gmail.com with ESMTPSA id n21-20020a05600c4f9500b003a2f2bb72d5sm2347014wmq.45.2022.07.20.02.34.37
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 19 Jul 2022 14:17:49 -0700 (PDT)
-Message-ID: <e790fbe4-aa9c-a5a4-d445-1c4cad8e93e2@gmail.com>
-Date:   Tue, 19 Jul 2022 14:17:47 -0700
+        Wed, 20 Jul 2022 02:34:41 -0700 (PDT)
+Message-ID: <4216f48f-fdf1-ec1e-b963-6f7fe6ba0f63@redhat.com>
+Date:   Wed, 20 Jul 2022 11:34:37 +0200
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.0.2
-Subject: Re: [PATCH] tools: Fixed MIPS builds due to struct flock
- re-definition
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.11.0
+Subject: Re: [PATCH V4 3/4] mm/sparse-vmemmap: Generalise
+ vmemmap_populate_hugepages()
 Content-Language: en-US
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        Christoph Hellwig <hch@lst.de>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Naresh Kamboju <naresh.kamboju@linaro.org>,
-        "open list:BROADCOM NVRAM DRIVER" <linux-mips@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Heiko Stuebner <heiko@sntech.de>,
-        Palmer Dabbelt <palmer@rivosinc.com>,
-        Guo Ren <guoren@kernel.org>
-References: <20220715185551.3951955-1-f.fainelli@gmail.com>
- <CAK8P3a3cuTknZaLZCFGwZtMfbd1qAFWEtXMcvVHsXoJn8EUCOg@mail.gmail.com>
- <2656551b-2c6f-9f0d-93a6-ef6177ec265e@gmail.com>
- <CAK8P3a1LnCz32DixQ2VuBh+c64+CNqNJ8v2Nk0X6P8kYA4=-gQ@mail.gmail.com>
-From:   Florian Fainelli <f.fainelli@gmail.com>
-In-Reply-To: <CAK8P3a1LnCz32DixQ2VuBh+c64+CNqNJ8v2Nk0X6P8kYA4=-gQ@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+To:     Huacai Chen <chenhuacai@kernel.org>, Will Deacon <will@kernel.org>,
+        Dan Williams <dan.j.williams@intel.com>,
+        Sudarshan Rajagopalan <quic_sudaraja@quicinc.com>
+Cc:     Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        loongarch@lists.linux.dev, linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Linux-MM <linux-mm@kvack.org>,
+        "open list:MIPS" <linux-mips@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>,
+        linux-arm-kernel <linux-arm-kernel@lists.infradead.org>,
+        Feiyang Chen <chenfeiyang@loongson.cn>
+References: <20220704112526.2492342-1-chenhuacai@loongson.cn>
+ <20220704112526.2492342-4-chenhuacai@loongson.cn>
+ <20220705092937.GA552@willie-the-truck>
+ <CAAhV-H5r8HDaxt8fkO97in5-eH8X9gokVNervmUWn6km4S0e-w@mail.gmail.com>
+ <20220706161736.GC3204@willie-the-truck>
+ <CAAhV-H7uY_KiLJRRjj4+8mewcWbuhvC=zDp5VAs03=BLdSMKLw@mail.gmail.com>
+ <CAAhV-H6EziBQ=3SveRvaPxHfbsGpmYrhVHfuBkpLJXn-t-uTZA@mail.gmail.com>
+From:   David Hildenbrand <david@redhat.com>
+Organization: Red Hat
+In-Reply-To: <CAAhV-H6EziBQ=3SveRvaPxHfbsGpmYrhVHfuBkpLJXn-t-uTZA@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-
-
-On 7/19/2022 2:15 PM, Arnd Bergmann wrote:
-> On Tue, Jul 19, 2022 at 9:05 PM Florian Fainelli <f.fainelli@gmail.com> wrote:
->> On 7/19/2022 12:42 AM, Arnd Bergmann wrote:
+On 14.07.22 14:34, Huacai Chen wrote:
+> Oh, Sudarshan Rajagopalan's Email has changed, Let's update.
 > 
->>> I applied this to the asm-generic tree, but now I'm having second thoughts, as
->>> this only changes the tools/include/ version but not the version we ship to user
->>> space. Normally these are meant to be kept in sync.
+> Huacai
+> 
+> On Fri, Jul 8, 2022 at 5:47 PM Huacai Chen <chenhuacai@kernel.org> wrote:
 >>
->> Thanks! Just to be clear, applying just your patch is not enough as the
->> original build issue is still present, so we would need my change plus
->> yours, I think that is what you intended but just wanted to double
->> confirm.
-> 
-> Yes, this was just the diff on top of your patch, I've folded it into a single
-> commit now.
-> 
->> On a side note your tree at:
+>> +Dan Williams
+>> +Sudarshan Rajagopalan
 >>
->> https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git/refs/heads
+>> On Thu, Jul 7, 2022 at 12:17 AM Will Deacon <will@kernel.org> wrote:
+>>>
+>>> On Tue, Jul 05, 2022 at 09:07:59PM +0800, Huacai Chen wrote:
+>>>> On Tue, Jul 5, 2022 at 5:29 PM Will Deacon <will@kernel.org> wrote:
+>>>>> On Mon, Jul 04, 2022 at 07:25:25PM +0800, Huacai Chen wrote:
+>>>>>> diff --git a/mm/sparse-vmemmap.c b/mm/sparse-vmemmap.c
+>>>>>> index 33e2a1ceee72..6f2e40bb695d 100644
+>>>>>> --- a/mm/sparse-vmemmap.c
+>>>>>> +++ b/mm/sparse-vmemmap.c
+>>>>>> @@ -686,6 +686,60 @@ int __meminit vmemmap_populate_basepages(unsigned long start, unsigned long end,
+>>>>>>       return vmemmap_populate_range(start, end, node, altmap, NULL);
+>>>>>>  }
+>>>>>>
+>>>>>> +void __weak __meminit vmemmap_set_pmd(pmd_t *pmd, void *p, int node,
+>>>>>> +                                   unsigned long addr, unsigned long next)
+>>>>>> +{
+>>>>>> +}
+>>>>>> +
+>>>>>> +int __weak __meminit vmemmap_check_pmd(pmd_t *pmd, int node, unsigned long addr,
+>>>>>> +                                    unsigned long next)
+>>>>>> +{
+>>>>>> +     return 0;
+>>>>>> +}
+>>>>>> +
+>>>>>> +int __meminit vmemmap_populate_hugepages(unsigned long start, unsigned long end,
+>>>>>> +                                      int node, struct vmem_altmap *altmap)
+>>>>>> +{
+>>>>>> +     unsigned long addr;
+>>>>>> +     unsigned long next;
+>>>>>> +     pgd_t *pgd;
+>>>>>> +     p4d_t *p4d;
+>>>>>> +     pud_t *pud;
+>>>>>> +     pmd_t *pmd;
+>>>>>> +
+>>>>>> +     for (addr = start; addr < end; addr = next) {
+>>>>>> +             next = pmd_addr_end(addr, end);
+>>>>>> +
+>>>>>> +             pgd = vmemmap_pgd_populate(addr, node);
+>>>>>> +             if (!pgd)
+>>>>>> +                     return -ENOMEM;
+>>>>>> +
+>>>>>> +             p4d = vmemmap_p4d_populate(pgd, addr, node);
+>>>>>> +             if (!p4d)
+>>>>>> +                     return -ENOMEM;
+>>>>>> +
+>>>>>> +             pud = vmemmap_pud_populate(p4d, addr, node);
+>>>>>> +             if (!pud)
+>>>>>> +                     return -ENOMEM;
+>>>>>> +
+>>>>>> +             pmd = pmd_offset(pud, addr);
+>>>>>> +             if (pmd_none(READ_ONCE(*pmd))) {
+>>>>>> +                     void *p;
+>>>>>> +
+>>>>>> +                     p = vmemmap_alloc_block_buf(PMD_SIZE, node, altmap);
+>>>>>> +                     if (p) {
+>>>>>> +                             vmemmap_set_pmd(pmd, p, node, addr, next);
+>>>>>> +                             continue;
+>>>>>> +                     } else if (altmap)
+>>>>>> +                             return -ENOMEM; /* no fallback */
+>>>>>
+>>>>> Why do you return -ENOMEM if 'altmap' here? That seems to be different to
+>>>>> what we currently have on arm64 and it's not clear to me why we're happy
+>>>>> with an altmap for the pmd case, but not for the pte case.
+>>>> The generic version is the same as X86. It seems that ARM64 always
+>>>> fallback whether there is an altmap, but X86 only fallback in the no
+>>>> altmap case. I don't know the reason of X86, can Dan Williams give
+>>>> some explaination?
+>>>
+>>> Right, I think we need to understand the new behaviour here before we adopt
+>>> it on arm64.
+>> Hi, Dan,
+>> Could you please tell us the reason? Thanks.
 >>
->> does not appear to have it included/pushed out yet, should I be looking
->> at another git tree?
-> 
-> Pushed it out now. There is the main asm-generic branch that is in
-> linux-next, and the asm-generic-fixes branch that I should send after
-> the build bots report success.
-> 
-> I've merged the fixes branch into the main branch for testing for the
-> moment, but will undo the merge when I forward the contents.
+>> And Sudarshan,
+>> You are the author of adding a fallback mechanism to ARM64,  do you
+>> know why ARM64 is different from X86 (only fallback in no altmap
+>> case)?
 
-All good, thanks a lot!
+I think that's a purely theoretical issue: I assume that in any case we
+care about, the altmap should be reasonably sized and aligned such that
+this will always succeed.
+
+To me it even sounds like the best idea to *consistently* fail if there
+is no more space in the altmap, even if we'd have to fallback to PTE
+(again, highly unlikely that this is relevant in practice). Could
+indicate an altmap-size configuration issue.
+
 -- 
-Florian
+Thanks,
+
+David / dhildenb
+
