@@ -2,188 +2,92 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6EA60C00140
-	for <linux-arch@archiver.kernel.org>; Tue, 26 Jul 2022 16:23:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60530C19F29
+	for <linux-arch@archiver.kernel.org>; Tue, 26 Jul 2022 22:01:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239399AbiGZQXC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jul 2022 12:23:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36234 "EHLO
+        id S229603AbiGZWBV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 26 Jul 2022 18:01:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54218 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239395AbiGZQVT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2022 12:21:19 -0400
-Received: from madras.collabora.co.uk (madras.collabora.co.uk [46.235.227.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 085D127164;
-        Tue, 26 Jul 2022 09:21:18 -0700 (PDT)
-Received: from localhost.localdomain (unknown [203.135.47.243])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        with ESMTP id S229550AbiGZWBU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2022 18:01:20 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 179B732DAF;
+        Tue, 26 Jul 2022 15:01:19 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        (Authenticated sender: usama.anjum)
-        by madras.collabora.co.uk (Postfix) with ESMTPSA id 9DE8C6601B11;
-        Tue, 26 Jul 2022 17:21:06 +0100 (BST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=collabora.com;
-        s=mail; t=1658852476;
-        bh=YSZMWQRUF0OddQkVSeNEz2FybOLoLuH7kG5PHiHYpXM=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=VYdF24VsfkRAH0MPDnmat/nZqLHLpelG6HOTA6a8B5WawqZUKpJ1AMNaRWIIHyWxC
-         Rpd4d5c/YyEuiSHkvnHB+jGyGduuf7tYosM9g0r3heiaOA/0vFDtJ6WmeEEPrfZFe4
-         BRgUFmAUcvLpFCbteXmVMcFdaMrLUipwyMBlWmNoYgR4KMUHdaGdVch7sqWYqS0ilA
-         fr0+D/GjydldqOJLLgD+tlifyqlL2xIhxpeccXU91mfryWIMMVKTNlf1JcvtUTBFNt
-         MrTYqp7FS3hHiPXiutyAfbpuc/PER6JCkJ/TKT24g9Ytlf4fCkEn8lZE/z2iquccSN
-         YZqJN1NxAR2Gg==
-From:   Muhammad Usama Anjum <usama.anjum@collabora.com>
-To:     Jonathan Corbet <corbet@lwn.net>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
-        Jiri Olsa <jolsa@kernel.org>,
-        Namhyung Kim <namhyung@kernel.org>,
-        Shuah Khan <shuah@kernel.org>,
-        linux-doc@vger.kernel.org (open list:DOCUMENTATION),
-        linux-kernel@vger.kernel.org (open list),
-        linux-fsdevel@vger.kernel.org (open list:PROC FILESYSTEM),
-        linux-api@vger.kernel.org (open list:ABI/API),
-        linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES),
-        linux-mm@kvack.org (open list:MEMORY MANAGEMENT),
-        linux-perf-users@vger.kernel.org (open list:PERFORMANCE EVENTS
-        SUBSYSTEM),
-        linux-kselftest@vger.kernel.org (open list:KERNEL SELFTEST FRAMEWORK),
-        krisman@collabora.com
-Cc:     Muhammad Usama Anjum <usama.anjum@collabora.com>,
-        kernel@collabora.com
-Subject: [PATCH 3/5] mm: wire up process_memwatch syscall for x86
-Date:   Tue, 26 Jul 2022 21:18:52 +0500
-Message-Id: <20220726161854.276359-4-usama.anjum@collabora.com>
-X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20220726161854.276359-1-usama.anjum@collabora.com>
-References: <20220726161854.276359-1-usama.anjum@collabora.com>
+        by dfw.source.kernel.org (Postfix) with ESMTPS id AAD24616E1;
+        Tue, 26 Jul 2022 22:01:18 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5B814C433C1;
+        Tue, 26 Jul 2022 22:01:17 +0000 (UTC)
+Date:   Tue, 26 Jul 2022 18:01:15 -0400
+From:   Steven Rostedt <rostedt@goodmis.org>
+To:     Beau Belgrave <beaub@linux.microsoft.com>
+Cc:     mhiramat@kernel.org, mathieu.desnoyers@efficios.com,
+        linux-trace-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Subject: Re: [PATCH v2 6/7] tracing/user_events: Use bits vs bytes for
+ enabled status page data
+Message-ID: <20220726180115.69320865@gandalf.local.home>
+In-Reply-To: <20220425184631.2068-7-beaub@linux.microsoft.com>
+References: <20220425184631.2068-1-beaub@linux.microsoft.com>
+        <20220425184631.2068-7-beaub@linux.microsoft.com>
+X-Mailer: Claws Mail 3.17.8 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Wire up syscall entry point for both i386 and x86_64 architectures.
+On Mon, 25 Apr 2022 11:46:30 -0700
+Beau Belgrave <beaub@linux.microsoft.com> wrote:
 
-Signed-off-by: Muhammad Usama Anjum <usama.anjum@collabora.com>
----
- arch/x86/entry/syscalls/syscall_32.tbl            | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl            | 1 +
- include/linux/syscalls.h                          | 3 ++-
- include/uapi/asm-generic/unistd.h                 | 5 ++++-
- kernel/sys_ni.c                                   | 1 +
- tools/include/uapi/asm-generic/unistd.h           | 5 ++++-
- tools/perf/arch/x86/entry/syscalls/syscall_64.tbl | 1 +
- 7 files changed, 14 insertions(+), 3 deletions(-)
+> diff --git a/kernel/trace/trace_events_user.c b/kernel/trace/trace_events_user.c
+> index 2bcae7abfa81..4afc41e321ac 100644
+> --- a/kernel/trace/trace_events_user.c
+> +++ b/kernel/trace/trace_events_user.c
+> @@ -40,17 +40,26 @@
+>   */
+>  #define MAX_PAGE_ORDER 0
+>  #define MAX_PAGES (1 << MAX_PAGE_ORDER)
+> -#define MAX_EVENTS (MAX_PAGES * PAGE_SIZE)
+> +#define MAX_BYTES (MAX_PAGES * PAGE_SIZE)
+> +#define MAX_EVENTS (MAX_BYTES * 8)
+>  
+>  /* Limit how long of an event name plus args within the subsystem. */
+>  #define MAX_EVENT_DESC 512
+>  #define EVENT_NAME(user_event) ((user_event)->tracepoint.name)
+>  #define MAX_FIELD_ARRAY_SIZE 1024
+>  
+> +#define STATUS_BYTE(bit) ((bit) >> 3)
+> +#define STATUS_MASK(bit) (1 << ((bit) & 7))
+> +
+> +/* Internal bits to keep track of connected probes */
+> +#define EVENT_STATUS_FTRACE (1 << 0)
+> +#define EVENT_STATUS_PERF (1 << 1)
+> +#define EVENT_STATUS_OTHER (1 << 7)
 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index 320480a8db4f..601d33909880 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -455,3 +455,4 @@
- 448	i386	process_mrelease	sys_process_mrelease
- 449	i386	futex_waitv		sys_futex_waitv
- 450	i386	set_mempolicy_home_node		sys_set_mempolicy_home_node
-+451	i386	process_memwatch	sys_process_memwatch
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index c84d12608cd2..3bddea588ce7 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -372,6 +372,7 @@
- 448	common	process_mrelease	sys_process_mrelease
- 449	common	futex_waitv		sys_futex_waitv
- 450	common	set_mempolicy_home_node	sys_set_mempolicy_home_node
-+451	common	process_memwatch	sys_process_memwatch
- 
- #
- # Due to a historical design error, certain syscalls are numbered differently
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index a34b0f9a9972..efa240510e4c 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -939,7 +939,6 @@ asmlinkage long sys_move_pages(pid_t pid, unsigned long nr_pages,
- 				const int __user *nodes,
- 				int __user *status,
- 				int flags);
--
- asmlinkage long sys_rt_tgsigqueueinfo(pid_t tgid, pid_t  pid, int sig,
- 		siginfo_t __user *uinfo);
- asmlinkage long sys_perf_event_open(
-@@ -1056,6 +1055,8 @@ asmlinkage long sys_memfd_secret(unsigned int flags);
- asmlinkage long sys_set_mempolicy_home_node(unsigned long start, unsigned long len,
- 					    unsigned long home_node,
- 					    unsigned long flags);
-+asmlinkage long sys_process_memwatch(int pidfd, void __user *addr, int len,
-+				     unsigned int flags, loff_t __user *vec, int vec_len);
- 
- /*
-  * Architecture-specific system calls
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 45fa180cc56a..805a8d5cf0c4 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -886,8 +886,11 @@ __SYSCALL(__NR_futex_waitv, sys_futex_waitv)
- #define __NR_set_mempolicy_home_node 450
- __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
- 
-+#define __NR_process_memwatch 451
-+__SC_COMP(__NR_process_memwatch, sys_process_memwatch, compat_sys_process_memwatch)
-+
- #undef __NR_syscalls
--#define __NR_syscalls 451
-+#define __NR_syscalls 452
- 
- /*
-  * 32 bit systems traditionally used different
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index a492f159624f..74f31317481a 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -298,6 +298,7 @@ COND_SYSCALL(set_mempolicy);
- COND_SYSCALL(migrate_pages);
- COND_SYSCALL(move_pages);
- COND_SYSCALL(set_mempolicy_home_node);
-+COND_SYSCALL(process_memwatch);
- 
- COND_SYSCALL(perf_event_open);
- COND_SYSCALL(accept4);
-diff --git a/tools/include/uapi/asm-generic/unistd.h b/tools/include/uapi/asm-generic/unistd.h
-index 45fa180cc56a..805a8d5cf0c4 100644
---- a/tools/include/uapi/asm-generic/unistd.h
-+++ b/tools/include/uapi/asm-generic/unistd.h
-@@ -886,8 +886,11 @@ __SYSCALL(__NR_futex_waitv, sys_futex_waitv)
- #define __NR_set_mempolicy_home_node 450
- __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
- 
-+#define __NR_process_memwatch 451
-+__SC_COMP(__NR_process_memwatch, sys_process_memwatch, compat_sys_process_memwatch)
-+
- #undef __NR_syscalls
--#define __NR_syscalls 451
-+#define __NR_syscalls 452
- 
- /*
-  * 32 bit systems traditionally used different
-diff --git a/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl b/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
-index c84d12608cd2..3bddea588ce7 100644
---- a/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -372,6 +372,7 @@
- 448	common	process_mrelease	sys_process_mrelease
- 449	common	futex_waitv		sys_futex_waitv
- 450	common	set_mempolicy_home_node	sys_set_mempolicy_home_node
-+451	common	process_memwatch	sys_process_memwatch
- 
- #
- # Due to a historical design error, certain syscalls are numbered differently
--- 
-2.30.2
+Did you mean to shift STATUS_OTHER by 7?
 
+Is EVENT_STATUS_OTHER suppose to be one of the flags within the 3 bits of
+the 7 in STATUS_MASK?
+
+-- Steve
+
+> +
+>  static char *register_page_data;
+>  
+>  static DEFINE_MUTEX(reg_mutex);
+> -static DEFINE_HASHTABLE(register_table, 4);
+> +static DEFINE_HASHTABLE(register_table, 8);
+>  static DECLARE_BITMAP(page_bitmap, MAX_EVENTS);
+>  
+>  /*
+> @@ -72,6 +81,7 @@ struct user_event {
+>  	int index;
+>  	int flags;
+>  	int min_size;
+> +	char status;
+>  };
