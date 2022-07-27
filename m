@@ -2,38 +2,37 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B23BC19F29
-	for <linux-arch@archiver.kernel.org>; Wed, 27 Jul 2022 07:05:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B5A13C04A68
+	for <linux-arch@archiver.kernel.org>; Wed, 27 Jul 2022 07:05:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229592AbiG0HFK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 27 Jul 2022 03:05:10 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43916 "EHLO
+        id S229447AbiG0HFV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 27 Jul 2022 03:05:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44320 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229447AbiG0HFJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jul 2022 03:05:09 -0400
-Received: from mailbox.box.xen0n.name (mail.xen0n.name [115.28.160.31])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CFD5521A
-        for <linux-arch@vger.kernel.org>; Wed, 27 Jul 2022 00:05:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xen0n.name; s=mail;
-        t=1658905504; bh=UT8bWIMZYd2/hRcgWb7BU9Sbsu2ImVUasxeDJLxN/TM=;
-        h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-        b=EvDSrylctg96lCOmdGJhQdcc1hL5XVmb3I+uI6zSm4ISPph+oNGYQ6KWAqDAJ6kHy
-         uZRY8ZKyPPTZ0NtHdiRZoaEyUDmyc0jofnLkHq7gs7Em4Iup0Rqnzsfb+ytWn9ZReK
-         r6v9bg3Q5j0SK8HsrO7r/ZgBlZZ7wZSnVfkZBBMU=
-Received: from [100.100.57.219] (unknown [220.248.53.61])
-        (using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-        (No client certificate requested)
-        by mailbox.box.xen0n.name (Postfix) with ESMTPSA id 4E6926061B;
-        Wed, 27 Jul 2022 15:05:04 +0800 (CST)
-Message-ID: <4457577a-64b8-4f17-c071-b23af1fe2aa5@xen0n.name>
-Date:   Wed, 27 Jul 2022 15:05:03 +0800
-MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:105.0)
- Gecko/20100101 Thunderbird/105.0a1
+        with ESMTP id S229606AbiG0HFU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jul 2022 03:05:20 -0400
+X-Greylist: delayed 332 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Wed, 27 Jul 2022 00:05:19 PDT
+Received: from xry111.site (xry111.site [89.208.246.23])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D1BF6B1D4
+        for <linux-arch@vger.kernel.org>; Wed, 27 Jul 2022 00:05:19 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xry111.site;
+        s=default; t=1658905183;
+        bh=LUb7IaUmkPxUtf7zK+C9AQwLgqePZGGBUxeRPAmvHjE=;
+        h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
+        b=O6EdaYemcI9C8hjUGHbHxBdnoVJ13AMudulaz4am2tqsz5lpWUCQyQkVy+h3bmW1y
+         maheLpyuQaV+eB5sUU0HryVgfLGLHThPtwuzIVuOF0dvPpJuaN9Y2oEcfUdcOU59Pp
+         WALomcJsfBfK1KmGqL6QVK/TRc4FMheoW8d9iNVY=
+Received: from [IPv6:240e:358:1119:7700:dc73:854d:832e:3] (unknown [IPv6:240e:358:1119:7700:dc73:854d:832e:3])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange ECDHE (P-256) server-signature ECDSA (P-384))
+        (Client did not present a certificate)
+        (Authenticated sender: xry111@xry111.site)
+        by xry111.site (Postfix) with ESMTPSA id AC535667AD;
+        Wed, 27 Jul 2022 02:59:37 -0400 (EDT)
+Message-ID: <221507a09870312d86193b96f680cdf4fa5742fc.camel@xry111.site>
 Subject: Re: [PATCH] LoongArch: Disable executable stack by default
-Content-Language: en-US
-To:     Xi Ruoyao <xry111@xry111.site>,
+From:   Xi Ruoyao <xry111@xry111.site>
+To:     WANG Xuerui <kernel@xen0n.name>,
         Huacai Chen <chenhuacai@loongson.cn>,
         Arnd Bergmann <arnd@arndb.de>,
         Huacai Chen <chenhuacai@kernel.org>
@@ -41,59 +40,52 @@ Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
         Xuefeng Li <lixuefeng@loongson.cn>,
         Guo Ren <guoren@kernel.org>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>
+Date:   Wed, 27 Jul 2022 14:59:29 +0800
+In-Reply-To: <c873f358-628a-72d9-42e3-5f40354745b1@xen0n.name>
 References: <20220726130224.3987623-1-chenhuacai@loongson.cn>
- <c873f358-628a-72d9-42e3-5f40354745b1@xen0n.name>
- <221507a09870312d86193b96f680cdf4fa5742fc.camel@xry111.site>
-From:   WANG Xuerui <kernel@xen0n.name>
-In-Reply-To: <221507a09870312d86193b96f680cdf4fa5742fc.camel@xry111.site>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+         <c873f358-628a-72d9-42e3-5f40354745b1@xen0n.name>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.44.3 
+MIME-Version: 1.0
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 2022/7/27 14:59, Xi Ruoyao wrote:
-> On Tue, 2022-07-26 at 21:10 +0800, WANG Xuerui wrote:
->> On 2022/7/26 21:02, Huacai Chen wrote:
->>> Disable executable stack for LoongArch by default, as all modern
->>> architectures do.
->>
->> I don't know why this slipped in under everyone's eyes... Struggling
->> to
->> recall some of my mental activities during the initial review, I may
->> be
->> not too familiar with the code at that time (maybe still the case
->> now),
->> and didn't check what exactly "read_implies_exec" means in this
->> particular context. That could be just the reason for my part.
->>
->> But better mention the discussion leading to the discovery of this
->> bug:
->> "The problematic behavior was initially discovered by Andreas Schwab
->> in
->> a binutils discussion [1], fix suggested by WANG Xuerui" or something
->> along the line.
->>
->> [1]: https://sourceware.org/pipermail/binutils/2022-July/121992.html
-> 
-> I think we already have a "standard" format for this:
-> 
-> "Reported-by: Andreas Schwab <...>"
-> "Suggested-by: Wang Xuerui <...>"
-> "Url: https://sourceware.org/pipermail/binutils/2022-July/121992.html"
+On Tue, 2022-07-26 at 21:10 +0800, WANG Xuerui wrote:
+> On 2022/7/26 21:02, Huacai Chen wrote:
+> > Disable executable stack for LoongArch by default, as all modern
+> > architectures do.
+>=20
+> I don't know why this slipped in under everyone's eyes... Struggling
+> to=20
+> recall some of my mental activities during the initial review, I may
+> be=20
+> not too familiar with the code at that time (maybe still the case
+> now),=20
+> and didn't check what exactly "read_implies_exec" means in this=20
+> particular context. That could be just the reason for my part.
+>=20
+> But better mention the discussion leading to the discovery of this
+> bug:=20
+> "The problematic behavior was initially discovered by Andreas Schwab
+> in=20
+> a binutils discussion [1], fix suggested by WANG Xuerui" or something=20
+> along the line.
+>=20
+> [1]: https://sourceware.org/pipermail/binutils/2022-July/121992.html
 
-Hmm, I didn't find any occurrence of "Url:" but plenty of "Link:" in the 
-kernel's commit history, so I agree the tag trio should sound even better...
+I think we already have a "standard" format for this:
 
-> 
-> Tested on my A2101 board and nothing is broken so far.
-> 
-> Tested-by: Xi Ruoyao <xry111@xry111.site>
-> 
-> 
+"Reported-by: Andreas Schwab <...>"
+"Suggested-by: Wang Xuerui <...>"
+"Url:=C2=A0https://sourceware.org/pipermail/binutils/2022-July/121992.html"
 
--- 
-WANG "xen0n" Xuerui
+Tested on my A2101 board and nothing is broken so far.
 
-Linux/LoongArch mailing list: https://lore.kernel.org/loongarch/
+Tested-by: Xi Ruoyao <xry111@xry111.site>
 
+
+--=20
+Xi Ruoyao <xry111@xry111.site>
+School of Aerospace Science and Technology, Xidian University
