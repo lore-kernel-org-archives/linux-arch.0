@@ -2,119 +2,98 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A170FC19F21
-	for <linux-arch@archiver.kernel.org>; Wed, 27 Jul 2022 03:23:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B23BC19F29
+	for <linux-arch@archiver.kernel.org>; Wed, 27 Jul 2022 07:05:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231548AbiG0DXq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 26 Jul 2022 23:23:46 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51740 "EHLO
+        id S229592AbiG0HFK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 27 Jul 2022 03:05:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43916 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231315AbiG0DXq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2022 23:23:46 -0400
-Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D9D222FA;
-        Tue, 26 Jul 2022 20:23:44 -0700 (PDT)
-Received: from dggpemm500024.china.huawei.com (unknown [172.30.72.55])
-        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4Lszc901VYz9ssr;
-        Wed, 27 Jul 2022 11:22:33 +0800 (CST)
-Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500024.china.huawei.com (7.185.36.203) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 27 Jul 2022 11:23:42 +0800
-Received: from ubuntu1804.huawei.com (10.67.175.36) by
- dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Wed, 27 Jul 2022 11:23:42 +0800
-From:   Chen Zhongjin <chenzhongjin@huawei.com>
-To:     <linux-arm-kernel@lists.infradead.org>,
-        <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>
-CC:     <naveen.n.rao@linux.ibm.com>, <anil.s.keshavamurthy@intel.com>,
-        <davem@davemloft.net>, <mhiramat@kernel.org>,
-        <chenzhongjin@huawei.com>
-Subject: [PATCH] kprobes: Forbid probing on kprobe_insn_slot
-Date:   Wed, 27 Jul 2022 11:20:58 +0800
-Message-ID: <20220727032058.60444-1-chenzhongjin@huawei.com>
-X-Mailer: git-send-email 2.17.1
+        with ESMTP id S229447AbiG0HFJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jul 2022 03:05:09 -0400
+Received: from mailbox.box.xen0n.name (mail.xen0n.name [115.28.160.31])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CFD5521A
+        for <linux-arch@vger.kernel.org>; Wed, 27 Jul 2022 00:05:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xen0n.name; s=mail;
+        t=1658905504; bh=UT8bWIMZYd2/hRcgWb7BU9Sbsu2ImVUasxeDJLxN/TM=;
+        h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+        b=EvDSrylctg96lCOmdGJhQdcc1hL5XVmb3I+uI6zSm4ISPph+oNGYQ6KWAqDAJ6kHy
+         uZRY8ZKyPPTZ0NtHdiRZoaEyUDmyc0jofnLkHq7gs7Em4Iup0Rqnzsfb+ytWn9ZReK
+         r6v9bg3Q5j0SK8HsrO7r/ZgBlZZ7wZSnVfkZBBMU=
+Received: from [100.100.57.219] (unknown [220.248.53.61])
+        (using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+        (No client certificate requested)
+        by mailbox.box.xen0n.name (Postfix) with ESMTPSA id 4E6926061B;
+        Wed, 27 Jul 2022 15:05:04 +0800 (CST)
+Message-ID: <4457577a-64b8-4f17-c071-b23af1fe2aa5@xen0n.name>
+Date:   Wed, 27 Jul 2022 15:05:03 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:105.0)
+ Gecko/20100101 Thunderbird/105.0a1
+Subject: Re: [PATCH] LoongArch: Disable executable stack by default
+Content-Language: en-US
+To:     Xi Ruoyao <xry111@xry111.site>,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Huacai Chen <chenhuacai@kernel.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>
+References: <20220726130224.3987623-1-chenhuacai@loongson.cn>
+ <c873f358-628a-72d9-42e3-5f40354745b1@xen0n.name>
+ <221507a09870312d86193b96f680cdf4fa5742fc.camel@xry111.site>
+From:   WANG Xuerui <kernel@xen0n.name>
+In-Reply-To: <221507a09870312d86193b96f680cdf4fa5742fc.camel@xry111.site>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
-X-Originating-IP: [10.67.175.36]
-X-ClientProxiedBy: dggems703-chm.china.huawei.com (10.3.19.180) To
- dggpemm500013.china.huawei.com (7.185.36.172)
-X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Syzkaller reported a BUG on arm64:
-Unrecoverable kprobe detected.
-Dumping kprobe:
-Name: (null)
-Offset: 0
-Address: 0xffffa00010019000
-------------[ cut here ]------------
-kernel BUG at arch/arm64/kernel/probes/kprobes.c:235!
-Internal error: Oops - BUG: 0 [#1] SMP
-Modules linked in:
-CPU: 1 PID: 31060 Comm: syz-executor.6 Not tainted 5.10.0 #11
-...
-Call trace:
- reenter_kprobe arch/arm64/kernel/probes/kprobes.c:234 [inline]
- kprobe_handler+0x23c/0x26c arch/arm64/kernel/probes/kprobes.c:339
- kprobe_breakpoint_handler+0x24/0x34 arch/arm64/kernel/probes/kprobes.c:406
- call_break_hook+0xf4/0x13c arch/arm64/kernel/debug-monitors.c:322
- brk_handler+0x2c/0xa0 arch/arm64/kernel/debug-monitors.c:329
- do_debug_exception+0x140/0x230 arch/arm64/mm/fault.c:867
- el1_dbg+0x38/0x50 arch/arm64/kernel/entry-common.c:182
- el1_sync_handler+0xf4/0x150 arch/arm64/kernel/entry-common.c:219
- el1_sync+0x74/0x100 arch/arm64/kernel/entry.S:665
- 0xffffa00010019000
- do_futex+0x2f4/0x370 kernel/futex.c:3735
- __do_sys_futex kernel/futex.c:3798 [inline]
- __se_sys_futex kernel/futex.c:3764 [inline]
- __arm64_sys_futex+0x168/0x3a0 kernel/futex.c:3764
- __invoke_syscall arch/arm64/kernel/syscall.c:36 [inline]
- invoke_syscall arch/arm64/kernel/syscall.c:48 [inline]
- el0_svc_common.constprop.0+0xf4/0x414 arch/arm64/kernel/syscall.c:155
- do_el0_svc+0x50/0x11c arch/arm64/kernel/syscall.c:217
- el0_svc+0x20/0x30 arch/arm64/kernel/entry-common.c:353
- el0_sync_handler+0xe4/0x1e0 arch/arm64/kernel/entry-common.c:369
- el0_sync+0x148/0x180 arch/arm64/kernel/entry.S:683
-Code: 91018360 97ff1838 aa1703e0 97ff1fdf (d4210000)
----[ end trace 767503e946e01b15 ]---
+On 2022/7/27 14:59, Xi Ruoyao wrote:
+> On Tue, 2022-07-26 at 21:10 +0800, WANG Xuerui wrote:
+>> On 2022/7/26 21:02, Huacai Chen wrote:
+>>> Disable executable stack for LoongArch by default, as all modern
+>>> architectures do.
+>>
+>> I don't know why this slipped in under everyone's eyes... Struggling
+>> to
+>> recall some of my mental activities during the initial review, I may
+>> be
+>> not too familiar with the code at that time (maybe still the case
+>> now),
+>> and didn't check what exactly "read_implies_exec" means in this
+>> particular context. That could be just the reason for my part.
+>>
+>> But better mention the discussion leading to the discovery of this
+>> bug:
+>> "The problematic behavior was initially discovered by Andreas Schwab
+>> in
+>> a binutils discussion [1], fix suggested by WANG Xuerui" or something
+>> along the line.
+>>
+>> [1]: https://sourceware.org/pipermail/binutils/2022-July/121992.html
+> 
+> I think we already have a "standard" format for this:
+> 
+> "Reported-by: Andreas Schwab <...>"
+> "Suggested-by: Wang Xuerui <...>"
+> "Url: https://sourceware.org/pipermail/binutils/2022-July/121992.html"
 
-Syzbot tried to porbe on a kprobe_insn_slot.
+Hmm, I didn't find any occurrence of "Url:" but plenty of "Link:" in the 
+kernel's commit history, so I agree the tag trio should sound even better...
 
-kprobe will replace instruciton with a break and store the origin one
-on kprobe_insn_slot. However these slots are not in .kprobes.text and
-exported by perf_event_ksymbol so can be probed by perf interface.
+> 
+> Tested on my A2101 board and nothing is broken so far.
+> 
+> Tested-by: Xi Ruoyao <xry111@xry111.site>
+> 
+> 
 
-Probing these slots will triggers kprobe handler inside single step
-process and for some architectures such as arm64 this will causes a
-bug().
-
-These slots are kprobe process so they should not be probed anyway.
-Add kprobe_insn_slot check when register_kprobe to forbid probing on
-these slots.
-
-Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
----
- kernel/kprobes.c | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/kernel/kprobes.c b/kernel/kprobes.c
-index f214f8c088ed..3e798b62db70 100644
---- a/kernel/kprobes.c
-+++ b/kernel/kprobes.c
-@@ -1562,6 +1562,8 @@ static int check_kprobe_address_safe(struct kprobe *p,
- 	/* Ensure it is not in reserved area nor out of text */
- 	if (!kernel_text_address((unsigned long) p->addr) ||
- 	    within_kprobe_blacklist((unsigned long) p->addr) ||
-+	    is_kprobe_insn_slot((unsigned long) p->addr) ||
-+	    is_kprobe_optinsn_slot((unsigned long) p->addr) ||
- 	    jump_label_text_reserved(p->addr, p->addr) ||
- 	    static_call_text_reserved(p->addr, p->addr) ||
- 	    find_bug((unsigned long)p->addr)) {
 -- 
-2.17.1
+WANG "xen0n" Xuerui
+
+Linux/LoongArch mailing list: https://lore.kernel.org/loongarch/
 
