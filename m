@@ -2,84 +2,111 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A3C16C3F6B0
-	for <linux-arch@archiver.kernel.org>; Thu, 28 Jul 2022 23:33:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2B79BC19F2B
+	for <linux-arch@archiver.kernel.org>; Thu, 28 Jul 2022 23:33:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233595AbiG1XdO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 28 Jul 2022 19:33:14 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52184 "EHLO
+        id S233608AbiG1XdP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 28 Jul 2022 19:33:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52182 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229944AbiG1XdO (ORCPT
+        with ESMTP id S232341AbiG1XdO (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jul 2022 19:33:14 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 93C1D785BC;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 6F676785B4;
         Thu, 28 Jul 2022 16:33:13 -0700 (PDT)
 Received: from localhost.localdomain (unknown [76.135.27.191])
-        by linux.microsoft.com (Postfix) with ESMTPSA id 43A8120FE9A8;
-        Thu, 28 Jul 2022 16:33:13 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 43A8120FE9A8
+        by linux.microsoft.com (Postfix) with ESMTPSA id 04EBF20FE89F;
+        Thu, 28 Jul 2022 16:33:12 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 04EBF20FE89F
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
         s=default; t=1659051193;
-        bh=Oh80tgumXtzVzhggUEiO+Gt+FYTYz042ycLpTb3589E=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=VCnDRmLKxxH/Ic6i7hAMaN2xL7R9BWkV5Ijcs9YxXbW9OR+yCtZTjN0BMiItOzXmo
-         peCIQndhTbiP27oRpl5l4I7YrOa4zKuEiyvQ1pUDan/Bil8M1i27geo+zb9dEybSvc
-         irePdCUmgTcNYeCiuq2VKl2sTZTfncQQzHwxge70=
+        bh=OshzEQjcp6ojnzn5LYBE1eu+Sux/uhH/cej6HEpEacI=;
+        h=From:To:Cc:Subject:Date:From;
+        b=duK7k3kdRNu8EiO0bF/fGZpcVmVhaBthPG6vfHLTgpg1eGtKUD1B3YpYqa0MQGits
+         ilsdQlFOYPSnY79642iiV0V7fYWc9gzZsNxz5RjVqrNEuXRSGBNVKD9t6WdAySb8+X
+         xcU+y9fupa22/4MmtYju1MXKsvCjWehgRkyIb+T0=
 From:   Beau Belgrave <beaub@linux.microsoft.com>
 To:     rostedt@goodmis.org, mhiramat@kernel.org,
         mathieu.desnoyers@efficios.com
 Cc:     linux-trace-devel@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, beaub@linux.microsoft.com
-Subject: [PATCH v3 1/6] tracing/user_events: Use NULL for strstr checks
-Date:   Thu, 28 Jul 2022 16:33:04 -0700
-Message-Id: <20220728233309.1896-2-beaub@linux.microsoft.com>
+Subject: [PATCH v3 0/6] tracing/user_events: Update user_events ABI from
+Date:   Thu, 28 Jul 2022 16:33:03 -0700
+Message-Id: <20220728233309.1896-1-beaub@linux.microsoft.com>
 X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20220728233309.1896-1-beaub@linux.microsoft.com>
-References: <20220728233309.1896-1-beaub@linux.microsoft.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Trivial fix to ensure strstr checks use NULL instead of 0.
+This series covers the changes that were brought up once user_events went into
+5.18. The largest change is moving away from byte index to a bit index, as
+first suggested by Mathieu Desnoyers.
 
-Signed-off-by: Beau Belgrave <beaub@linux.microsoft.com>
----
- kernel/trace/trace_events_user.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+The other changes are either fixes that have accumulated or found by Mathieu.
 
-diff --git a/kernel/trace/trace_events_user.c b/kernel/trace/trace_events_user.c
-index a6621c52ce45..075d694d20e3 100644
---- a/kernel/trace/trace_events_user.c
-+++ b/kernel/trace/trace_events_user.c
-@@ -277,7 +277,7 @@ static int user_event_add_field(struct user_event *user, const char *type,
- 	goto add_field;
- 
- add_validator:
--	if (strstr(type, "char") != 0)
-+	if (strstr(type, "char") != NULL)
- 		validator_flags |= VALIDATOR_ENSURE_NULL;
- 
- 	validator = kmalloc(sizeof(*validator), GFP_KERNEL);
-@@ -458,7 +458,7 @@ static const char *user_field_format(const char *type)
- 		return "%d";
- 	if (strcmp(type, "unsigned char") == 0)
- 		return "%u";
--	if (strstr(type, "char[") != 0)
-+	if (strstr(type, "char[") != NULL)
- 		return "%s";
- 
- 	/* Unknown, likely struct, allowed treat as 64-bit */
-@@ -479,7 +479,7 @@ static bool user_field_is_dyn_string(const char *type, const char **str_func)
- 
- 	return false;
- check:
--	return strstr(type, "char") != 0;
-+	return strstr(type, "char") != NULL;
- }
- 
- #define LEN_OR_ZERO (len ? len - pos : 0)
+NOTE: The sample and self-tests do not build unless you manually install
+user_events.h into usr/include/linux.
+
+Link: https://lore.kernel.org/all/2059213643.196683.1648499088753.JavaMail.zimbra@efficios.com/
+
+Psuedo code example of typical usage with the new ABI:
+struct user_reg reg;
+
+int page_fd = open("user_events_status", O_RDWR);
+char *page_data = mmap(NULL, PAGE_SIZE, PROT_READ, MAP_SHARED, page_fd, 0);
+close(page_fd);
+
+int data_fd = open("user_events_data", O_RDWR);
+
+reg.size = sizeof(reg);
+reg.name_args = (__u64)"test";
+
+ioctl(data_fd, DIAG_IOCSREG, &reg);
+int status_id = reg.status_bit / 8;
+int status_mask = 1 << (reg.status_bit % 8);
+int write_id = reg.write_index;
+
+struct iovec io[2];
+io[0].iov_base = &write_id;
+io[0].iov_len = sizeof(write_id);
+io[1].iov_base = payload;
+io[1].iov_len = sizeof(payload);
+
+if (page_data[status_id] & status_mask)
+	writev(data_fd, io, 2);
+
+V2 Updates:
+Changed from status_index and status_mask on user_reg to just status_bit.
+Updated and added byte-wise and long-wise indexing pattern into docs.
+Updated tests to use byte-wise index pattern.
+Updated sample to show long-wise index pattern.
+
+V3 Updates:
+Rebase to recent ftrace/core head.
+Updated comments to show how index/bit to byte is calculated.
+Changed to BIT() macro vs 1 << X.
+
+Beau Belgrave (6):
+  tracing/user_events: Use NULL for strstr checks
+  tracing/user_events: Use WRITE instead of READ for io vector import
+  tracing/user_events: Ensure user provided strings are safely formatted
+  tracing/user_events: Use refcount instead of atomic for ref tracking
+  tracing/user_events: Use bits vs bytes for enabled status page data
+  tracing/user_events: Update ABI documentation to align to bits vs
+    bytes
+
+ Documentation/trace/user_events.rst           |  86 ++++---
+ include/linux/user_events.h                   |  15 +-
+ kernel/trace/trace_events_user.c              | 228 ++++++++++++------
+ samples/user_events/example.c                 |  25 +-
+ .../selftests/user_events/ftrace_test.c       |  47 +++-
+ .../testing/selftests/user_events/perf_test.c |  11 +-
+ 6 files changed, 281 insertions(+), 131 deletions(-)
+
+
+base-commit: 26b2da5fc0b41a9a6a5e30b858da28572a6f4cbc
 -- 
 2.25.1
 
