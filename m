@@ -2,70 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 837AEC00140
-	for <linux-arch@archiver.kernel.org>; Sun, 31 Jul 2022 20:57:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A494C00140
+	for <linux-arch@archiver.kernel.org>; Sun, 31 Jul 2022 22:14:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238443AbiGaU5r (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 31 Jul 2022 16:57:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53760 "EHLO
+        id S232019AbiGaWOw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 31 Jul 2022 18:14:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52830 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231264AbiGaU5n (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 16:57:43 -0400
-Received: from mail-ed1-x52e.google.com (mail-ed1-x52e.google.com [IPv6:2a00:1450:4864:20::52e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A7F97DEA6
-        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:57:42 -0700 (PDT)
-Received: by mail-ed1-x52e.google.com with SMTP id r4so3779168edi.8
-        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:57:42 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc;
-        bh=D1fnuTWJXlc2dukCsRsC5YQz2zD6ofMDDxPYK2SWWv4=;
-        b=d4o7e56v6jaT/H39UmhsDACmb3MPAMvJJPhLDSCiN2LHVwivDQ648MIwKHekYwgCeK
-         yNYv4J6/pOe8JmTVWy1w2wnXmQagkxahHOq+/eIYdSbqC1T6I7bBJiwyd+hqGrvUgq4Q
-         pLQG2n9c3fDKVgK0znE3hVIfiq3PTKLVMybfI=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc;
-        bh=D1fnuTWJXlc2dukCsRsC5YQz2zD6ofMDDxPYK2SWWv4=;
-        b=MymoyxKr9UMwSjg7gaZOLtVZiAK1r8eJYubGq9bfZiq2uwBX0dZ3Ugp48GD7JWlbC4
-         GOadn6U20wabJ5NeYMv8hytJpQroDzOkkDBB67EET1+1mjz7asNp/UmX/wYXOa4Y21dE
-         enFWbrAaZpZxUGNy3+i0T7tpcTPModoOJuWEXdROow0ADXRpTqwvr0R5r+v4FGn8W8HK
-         T09fXjkV9oHiLalgAVRTs/hbpC820duDyxXLGOYxZmmKOb9Y6RYDp8hSRs9euAtGaOcJ
-         WXtkNzDJWPp9gftbdRU+A2zkpFpK6ozIwyXugBs6UiSv0V3UR+4G+NANHdbiFnJA0xBZ
-         mYmA==
-X-Gm-Message-State: ACgBeo1PkmXMbPP04x51VcX8KtkFD1l6MdwF6UBNDklmdLVwJsTlTWxX
-        mervG+/C4qPsb94cYLgB0Out1hDD59L52dVQ4bE=
-X-Google-Smtp-Source: AA6agR64Ri4WWlezqKIdNm0J7Rv2rM1SDUBO7lAu4d9o5+Sdic8kLX28JGiwMixobTF84Q4wus1G+A==
-X-Received: by 2002:a05:6402:438d:b0:43d:b383:660f with SMTP id o13-20020a056402438d00b0043db383660fmr515222edc.283.1659301061124;
-        Sun, 31 Jul 2022 13:57:41 -0700 (PDT)
-Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com. [209.85.128.41])
-        by smtp.gmail.com with ESMTPSA id c10-20020a17090618aa00b00704fa2748ffsm2648509ejf.99.2022.07.31.13.57.40
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 31 Jul 2022 13:57:40 -0700 (PDT)
-Received: by mail-wm1-f41.google.com with SMTP id r1-20020a05600c35c100b003a326685e7cso5494268wmq.1
-        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:57:40 -0700 (PDT)
-X-Received: by 2002:a05:600c:4ed0:b0:3a3:3ef3:c8d1 with SMTP id
- g16-20020a05600c4ed000b003a33ef3c8d1mr9272114wmq.154.1659300698214; Sun, 31
- Jul 2022 13:51:38 -0700 (PDT)
-MIME-Version: 1.0
-References: <alpine.LRH.2.02.2207310703170.14394@file01.intranet.prod.int.rdu2.redhat.com>
- <CAMj1kXFYRNrP2k8yppgfdKg+CxWeYfHTbzLBuyBqJ9UVAR_vaQ@mail.gmail.com>
- <alpine.LRH.2.02.2207310920390.6506@file01.intranet.prod.int.rdu2.redhat.com>
- <alpine.LRH.2.02.2207311104020.16444@file01.intranet.prod.int.rdu2.redhat.com>
- <CAHk-=wiC_oidYZeMD7p0E-=TAuLgrNQ86-sB99=hRqFM8fVLDQ@mail.gmail.com>
- <alpine.LRH.2.02.2207311542280.21273@file01.intranet.prod.int.rdu2.redhat.com>
- <alpine.LRH.2.02.2207311641060.21350@file01.intranet.prod.int.rdu2.redhat.com>
-In-Reply-To: <alpine.LRH.2.02.2207311641060.21350@file01.intranet.prod.int.rdu2.redhat.com>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Sun, 31 Jul 2022 13:51:21 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wjmO0aWk_X5nKWEmquQ9VDzauKRW4oK4++0HNFgGo9Rvw@mail.gmail.com>
-Message-ID: <CAHk-=wjmO0aWk_X5nKWEmquQ9VDzauKRW4oK4++0HNFgGo9Rvw@mail.gmail.com>
-Subject: Re: [PATCH v3 2/2] make buffer_locked provide an acquire semantics
+        with ESMTP id S229710AbiGaWOv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 18:14:51 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A7A69DEFE;
+        Sun, 31 Jul 2022 15:14:47 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=+qm1vAmgi6sjZNEi6Z0fSdbuq7XPAQLGXeiD0XxIuOY=; b=HbUcOri3IfM8aEODm6uq0lPTlX
+        Td1B9C+jQvJNZeArAg9FQVsunSHEatuIuq2N4hLFVV56R06dLus5sIcgladiW9a/3h0XyQL6H7iNo
+        L0LOfaiVQYfU/O+lx0d7lkuOjE7JFd0Ax3x3qT5tMjObgECHRgA46V9Sz3IYsq5et9n6lzd3PcAJ4
+        /vrcYhhisOBYKQrwbs/mLmV8I43ORiM+qeBmov5NH857ExVaiQQ8SRxstAMTqsYx/WT8FDsbiCu9C
+        fdJoXt4jmHaH+VK2/NFg80oN4v84Ixb3zxlkmEwW9zVKtyo2T4QXjc9zucLWm09Ajl0MRzFHjhQ0a
+        5bWQXYvg==;
+Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1oIHCW-006bWs-A2; Sun, 31 Jul 2022 22:14:20 +0000
+Date:   Sun, 31 Jul 2022 23:14:20 +0100
+From:   Matthew Wilcox <willy@infradead.org>
 To:     Mikulas Patocka <mpatocka@redhat.com>
-Cc:     Will Deacon <will@kernel.org>,
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Will Deacon <will@kernel.org>,
         "Paul E. McKenney" <paulmck@kernel.org>,
         Ard Biesheuvel <ardb@kernel.org>,
         Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -83,30 +48,65 @@ Cc:     Will Deacon <will@kernel.org>,
         Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
         linux-fsdevel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Subject: Re: [PATCH v3 2/2] make buffer_locked provide an acquire semantics
+Message-ID: <Yub+vPb53zt6dDpn@casper.infradead.org>
+References: <alpine.LRH.2.02.2207310703170.14394@file01.intranet.prod.int.rdu2.redhat.com>
+ <CAMj1kXFYRNrP2k8yppgfdKg+CxWeYfHTbzLBuyBqJ9UVAR_vaQ@mail.gmail.com>
+ <alpine.LRH.2.02.2207310920390.6506@file01.intranet.prod.int.rdu2.redhat.com>
+ <alpine.LRH.2.02.2207311104020.16444@file01.intranet.prod.int.rdu2.redhat.com>
+ <CAHk-=wiC_oidYZeMD7p0E-=TAuLgrNQ86-sB99=hRqFM8fVLDQ@mail.gmail.com>
+ <alpine.LRH.2.02.2207311542280.21273@file01.intranet.prod.int.rdu2.redhat.com>
+ <alpine.LRH.2.02.2207311641060.21350@file01.intranet.prod.int.rdu2.redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <alpine.LRH.2.02.2207311641060.21350@file01.intranet.prod.int.rdu2.redhat.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jul 31, 2022 at 1:43 PM Mikulas Patocka <mpatocka@redhat.com> wrote:
->
-> +
-> +static __always_inline int buffer_locked(const struct buffer_head *bh)
-> +{
-> +       unsigned long state = smp_load_acquire(&bh->b_state);
-> +       return test_bit(BH_Lock, &state);
+On Sun, Jul 31, 2022 at 04:43:08PM -0400, Mikulas Patocka wrote:
+> Let's have a look at this piece of code in __bread_slow:
+> 	get_bh(bh);
+> 	bh->b_end_io = end_buffer_read_sync;
+> 	submit_bh(REQ_OP_READ, 0, bh);
+> 	wait_on_buffer(bh);
+> 	if (buffer_uptodate(bh))
+> 		return bh;
+> Neither wait_on_buffer nor buffer_uptodate contain a memory barrier.
+> Consequently, if someone calls sb_bread and then reads the buffer data,
+> the read of buffer data may be executed before wait_on_buffer(bh) on
+> architectures with weak memory ordering and it may return invalid data.
 
-This should not use 'test_bit()'. I suspect that generates horrendous
-code, because it's a volatile access, so now you'll load it into a
-register, and I suspect it will generate s pointless spill just to do
-a volatile load.
+I think we should be consistent between PageUptodate() and
+buffer_uptodate().  Here's how it's done for pages currently:
 
-I didn't check.
+static inline bool folio_test_uptodate(struct folio *folio)
+        bool ret = test_bit(PG_uptodate, folio_flags(folio, 0));
+        /*
+         * Must ensure that the data we read out of the folio is loaded
+         * _after_ we've loaded folio->flags to check the uptodate bit.
+         * We can skip the barrier if the folio is not uptodate, because
+         * we wouldn't be reading anything from it.
+         *
+         * See folio_mark_uptodate() for the other side of the story.
+         */
+        if (ret)
+                smp_rmb();
 
-So once you've loaded b_state, just test the bit directly with
+        return ret;
 
-    return (state & (1u << BH_Lock)) != 0;
+...
 
-or whatever.
+static __always_inline void folio_mark_uptodate(struct folio *folio)
+        /*
+         * Memory barrier must be issued before setting the PG_uptodate bit,
+         * so that all previous stores issued in order to bring the folio
+         * uptodate are actually visible before folio_test_uptodate becomes true.
+         */
+        smp_wmb();
+        set_bit(PG_uptodate, folio_flags(folio, 0));
 
-              Linus
+I'm happy for these to also be changed to use acquire/release; no
+attachment to the current code.  But bufferheads & pages should have the
+same semantics, or we'll be awfully confused.
