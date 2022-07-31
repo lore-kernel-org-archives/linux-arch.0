@@ -2,66 +2,68 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 638FAC00140
-	for <linux-arch@archiver.kernel.org>; Sun, 31 Jul 2022 20:52:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A602C00140
+	for <linux-arch@archiver.kernel.org>; Sun, 31 Jul 2022 20:57:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238021AbiGaUwj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 31 Jul 2022 16:52:39 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51032 "EHLO
+        id S238321AbiGaU5h (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 31 Jul 2022 16:57:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53670 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231264AbiGaUwi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 16:52:38 -0400
-Received: from mail-ej1-x62d.google.com (mail-ej1-x62d.google.com [IPv6:2a00:1450:4864:20::62d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2F25120BA
-        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:52:35 -0700 (PDT)
-Received: by mail-ej1-x62d.google.com with SMTP id a7so4077793ejp.2
-        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:52:35 -0700 (PDT)
+        with ESMTP id S238135AbiGaU5g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 16:57:36 -0400
+Received: from mail-ej1-x632.google.com (mail-ej1-x632.google.com [IPv6:2a00:1450:4864:20::632])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E8C1BDEA6
+        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:57:35 -0700 (PDT)
+Received: by mail-ej1-x632.google.com with SMTP id ss3so17012162ejc.11
+        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:57:35 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=linux-foundation.org; s=google;
         h=cc:to:subject:message-id:date:from:in-reply-to:references
          :mime-version:from:to:cc;
-        bh=8udE8uoB93uvyZlPSO/At6OnaISC9AjkEA/Lil/8ZIc=;
-        b=RXdA/hhOuYtjtLsjICxxWIPOCtIg9FAGmddkvsILWsPwpb2CImUOlXGktmIH0KWcUU
-         Oi+dPDgXdKM3kJUXZa130UlR6HcKO/DW117bkUjTs7cpTnrtBvPipCqXDXhEufsyyWPE
-         KMS5LcZVx0m9S0gYoEn1AX8EQhQAb2kyFXfX8=
+        bh=zHs5DigNbmFfl4ihweOFjtJBnI+LejnSW9zgoAc00WA=;
+        b=grBcAk81NHh6FjeHlS8R3QpHWx7ucYh4v1m/OXvCC8U7iTniplzdCcxOs0x/e14jiL
+         xeMflycY8QiWP7C8N/JDKeNRpyoi5hnaSrSRbYm7nGI/ojO3nfDPmmzYeNKm2TVagBaO
+         xElrzy3VYeqvTBcPCBiYL9ZqykMuqvJwZstMY=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:subject:message-id:date:from:in-reply-to:references
          :mime-version:x-gm-message-state:from:to:cc;
-        bh=8udE8uoB93uvyZlPSO/At6OnaISC9AjkEA/Lil/8ZIc=;
-        b=AifQ7dzP2d0LqU8xIFMUw5+jql7As9ZsB0t7QGkDYsw/vtbwoR3pwEqIRKP4iOVJ+N
-         J9zyg+ON3olp4RNT/APxgv5c4w5EtmJl+tfDS1EQ5dQVSraF+E3gEfwfeb+JjhUgsX7s
-         HAXyuxaAJlfzVl4j0A05cmCf6pVULtKwHwktOKaYXoS+5szaMX0uYL+GHXd3SudIXYgF
-         cyx7CWO3lk4SHxXOlON2vvmyKXa/zJzPPfvHbd1ELabQtbxMkLrc3ppZ4jZJHdPl7PqR
-         EKS5H7c8TifLRaJ64HgisCgFtAyAyXPRCNzpgWxj3vMVF1i/sRyzLkISTxTZSAtrOTrw
-         a13Q==
-X-Gm-Message-State: AJIora+oIOV6jXGvk/QLapLoSptcS66NdA6msZLyHtGV2MTH4Ydbj9i5
-        COpR3scWyGzBPDWhWo4lyCopOM78MXyViuk+RTU=
-X-Google-Smtp-Source: AGRyM1vSeVyMJLLTLepbxJhgNc2Jh6WTt2XdU5rC4FKRSOGEDPrNt/zIU36V01Ep+jD8UeMxVFoIvw==
-X-Received: by 2002:a17:907:6090:b0:72f:3dc3:f0c8 with SMTP id ht16-20020a170907609000b0072f3dc3f0c8mr9581795ejc.539.1659300754128;
-        Sun, 31 Jul 2022 13:52:34 -0700 (PDT)
-Received: from mail-ej1-f42.google.com (mail-ej1-f42.google.com. [209.85.218.42])
-        by smtp.gmail.com with ESMTPSA id s10-20020aa7c54a000000b0043d1eff72b3sm4358004edr.74.2022.07.31.13.52.33
+        bh=zHs5DigNbmFfl4ihweOFjtJBnI+LejnSW9zgoAc00WA=;
+        b=wKVSwndyzVu9sAyKkTzZCoKZJjMG2Pf+iuGg46QT+Qes+fqtMe+YU5U6e750A7EbaG
+         w6CPF9SImqkBd8opdAvq4kTTFmbbk3KYvR40vyFB2BfwwKUsB3caXtN3dL7XH8G+vUki
+         jY4LsU1td/EEUzp8x2MbbytA7mcTsdQcFe9nRyCWlcEbiE3B/JWhQYCDG8w+3pptc0e2
+         Tqbda4notO614EyoBIsJVVD+Xo5WgvsQ3WIb/yfo/yIm7uBGWSYnoah6R7+PTj6tfZVR
+         xNcnfBOYBUekx9DtFWnfySdlGtrRFci8aZu8tp8TlKgK3BTNRi4tNXx0Ut48zmYD+AvX
+         ohAw==
+X-Gm-Message-State: AJIora87PqLDsEjOJQrorJioSODNlV6OFGN4q4MQmOU+JJvMnSrm8Yvu
+        SXtsLF8apUnW0lm+ELQJleX/dhjCQJu/gGM56rE=
+X-Google-Smtp-Source: AGRyM1v0Hjro1ucmZf1+VeKgWUwKr9a2Hayas/pKhZfNkunForP+1vNx3E9t3XFjtEPCa0+N1Pmb2Q==
+X-Received: by 2002:a17:906:fd56:b0:72b:47b0:6bfa with SMTP id wi22-20020a170906fd5600b0072b47b06bfamr9963371ejb.62.1659301054221;
+        Sun, 31 Jul 2022 13:57:34 -0700 (PDT)
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com. [209.85.128.42])
+        by smtp.gmail.com with ESMTPSA id 26-20020a170906301a00b006fec56c57f3sm4488690ejz.178.2022.07.31.13.57.33
         for <linux-arch@vger.kernel.org>
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 31 Jul 2022 13:52:33 -0700 (PDT)
-Received: by mail-ej1-f42.google.com with SMTP id tk8so17039143ejc.7
-        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:52:33 -0700 (PDT)
-X-Received: by 2002:adf:fc02:0:b0:21f:c94:8bda with SMTP id
- i2-20020adffc02000000b0021f0c948bdamr8351235wrr.193.1659300392079; Sun, 31
- Jul 2022 13:46:32 -0700 (PDT)
+        Sun, 31 Jul 2022 13:57:33 -0700 (PDT)
+Received: by mail-wm1-f42.google.com with SMTP id v131-20020a1cac89000000b003a4bb3f786bso804356wme.0
+        for <linux-arch@vger.kernel.org>; Sun, 31 Jul 2022 13:57:33 -0700 (PDT)
+X-Received: by 2002:a05:600c:3553:b0:3a3:2b65:299e with SMTP id
+ i19-20020a05600c355300b003a32b65299emr9035672wmq.145.1659301052865; Sun, 31
+ Jul 2022 13:57:32 -0700 (PDT)
 MIME-Version: 1.0
 References: <alpine.LRH.2.02.2207310703170.14394@file01.intranet.prod.int.rdu2.redhat.com>
  <CAMj1kXFYRNrP2k8yppgfdKg+CxWeYfHTbzLBuyBqJ9UVAR_vaQ@mail.gmail.com>
  <alpine.LRH.2.02.2207310920390.6506@file01.intranet.prod.int.rdu2.redhat.com>
  <alpine.LRH.2.02.2207311104020.16444@file01.intranet.prod.int.rdu2.redhat.com>
- <CAHk-=wiC_oidYZeMD7p0E-=TAuLgrNQ86-sB99=hRqFM8fVLDQ@mail.gmail.com> <alpine.LRH.2.02.2207311542280.21273@file01.intranet.prod.int.rdu2.redhat.com>
-In-Reply-To: <alpine.LRH.2.02.2207311542280.21273@file01.intranet.prod.int.rdu2.redhat.com>
+ <CAHk-=wiC_oidYZeMD7p0E-=TAuLgrNQ86-sB99=hRqFM8fVLDQ@mail.gmail.com>
+ <alpine.LRH.2.02.2207311542280.21273@file01.intranet.prod.int.rdu2.redhat.com>
+ <alpine.LRH.2.02.2207311639360.21350@file01.intranet.prod.int.rdu2.redhat.com>
+In-Reply-To: <alpine.LRH.2.02.2207311639360.21350@file01.intranet.prod.int.rdu2.redhat.com>
 From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Sun, 31 Jul 2022 13:46:15 -0700
-X-Gmail-Original-Message-ID: <CAHk-=wjY8Lfem5JvyUYMFwZVvE40=9fzDba_44au0w-hgaozJQ@mail.gmail.com>
-Message-ID: <CAHk-=wjY8Lfem5JvyUYMFwZVvE40=9fzDba_44au0w-hgaozJQ@mail.gmail.com>
-Subject: Re: [PATCH v2] make buffer_locked provide an acquire semantics
+Date:   Sun, 31 Jul 2022 13:57:16 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wjA8HBrVqAqAetUvwNr=hcvhfnO7oMrOAd4V8bbSqokNA@mail.gmail.com>
+Message-ID: <CAHk-=wjA8HBrVqAqAetUvwNr=hcvhfnO7oMrOAd4V8bbSqokNA@mail.gmail.com>
+Subject: Re: [PATCH v3 1/2] wait_bit: do read barrier after testing a bit
 To:     Mikulas Patocka <mpatocka@redhat.com>
 Cc:     Will Deacon <will@kernel.org>,
         "Paul E. McKenney" <paulmck@kernel.org>,
@@ -86,25 +88,30 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jul 31, 2022 at 1:39 PM Mikulas Patocka <mpatocka@redhat.com> wrote:
+On Sun, Jul 31, 2022 at 1:41 PM Mikulas Patocka <mpatocka@redhat.com> wrote:
 >
-> Do you think that wait_event also needs a read memory barrier?
+> -       if (!test_bit(bit, word))
+> +       if (!test_bit(bit, word)) {
+> +               smp_rmb();
 
-Not really, no.
+Logically, I don't think that makes sense.
 
-__wait_event() uses prepare_to_wait(), and it uses set_current_state()
-very much so that the process state setting is serialized with the
-test afterwards.
+Maybe you're checking the buffer being up-to-date before you *write* to it?
 
-And the only race wait_event should worry about is exactly the "go to
-sleep" vs "make the event true and then wake up" race, so that it
-doesn't wait forever.
+So smp_rmb() seems entirely wrong.
 
-There is no guarantee of memory ordering wrt anything else, and I
-don't think there is any need for such a guarantee.
+I think it should consistently aim for just doing
 
-If somebody wants that guarantee, they should probably make the
-condition for wait_event() to be a "load_acquire()" or similar. Those
-cases do exist.
+        unsigned long state = smp_read_acquire(word);
+        if (!(state & (1 << bit)))
+                return 0;
 
-                       Linus
+or whatever.
+
+We should strive to *not* add new uses of the legacy memory barriers.
+They are garbage from last century when people didn't know better.
+
+Then people learnt to use acquire and release, and things improved.
+Let's live in that improved world.
+
+                 Linus
