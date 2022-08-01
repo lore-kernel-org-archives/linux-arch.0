@@ -2,43 +2,46 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E9738C3F6B0
-	for <linux-arch@archiver.kernel.org>; Mon,  1 Aug 2022 02:42:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7DD0CC19F2A
+	for <linux-arch@archiver.kernel.org>; Mon,  1 Aug 2022 02:42:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239280AbiHACmn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 31 Jul 2022 22:42:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58038 "EHLO
+        id S239361AbiHACmx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 31 Jul 2022 22:42:53 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58132 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239273AbiHACmm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 22:42:42 -0400
-Received: from sin.source.kernel.org (sin.source.kernel.org [IPv6:2604:1380:40e1:4800::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0423913D09;
-        Sun, 31 Jul 2022 19:42:42 -0700 (PDT)
+        with ESMTP id S239316AbiHACms (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 22:42:48 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E565A13D2D;
+        Sun, 31 Jul 2022 19:42:46 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by sin.source.kernel.org (Postfix) with ESMTPS id 6C64DCE10EA;
-        Mon,  1 Aug 2022 02:42:40 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9041DC433D7;
-        Mon,  1 Aug 2022 02:42:36 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 791E6B80DCC;
+        Mon,  1 Aug 2022 02:42:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F03BBC433D7;
+        Mon,  1 Aug 2022 02:42:41 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1659321758;
-        bh=9ke7wuBcM5VhyQdFVxfwibQmfudWIzLnjDOb14h6Ja4=;
-        h=From:To:Cc:Subject:Date:From;
-        b=PmHhtgUFj4Z3IeaU4vw1EHJwF3Gpxf/QQGtvUhCIKqruAY75UTPw6qlS7cQihi5fC
-         NocxhB05+QrPmKOe5E4NUQ2a5eKRiUsnFzyDF2J6gEvuRvt+EFYh/E6Nfg7Vd4uUhO
-         RW/YuiAMLzpm039vsy+RvBqMaB6/lrg0UdyBFt3XBoufLf+hL1ctN1iIgNc3S1B2Lg
-         PAfHWk7GCyX1Gpv/7BSpQGBeC2W9ydImq1LuvAYR+u+NvD8aaYXAzz2WBOe69V4RK1
-         wVGGHA6oCsPsws5aoxnTYZKQDKbm4TQV1jxKoMKCCa6iKrE3iULLs3NiHuo3cMTmfG
-         agtyWvlq0VagQ==
+        s=k20201202; t=1659321764;
+        bh=Jgmay4Wp8fySBQ0xkLEHDoGHR4fdNJxu7+B9UiG4oaU=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=nfyTwg3NjIeYyCPXBgJ5BwOJ5/w+uUN/llI5m0HgbVwuWNr1MzKRo0kZipx5dyZLx
+         eNq55CIfq8YrntsPldAaV8InUntvko66Dhmw61capP2X97kliqUX2/FW/PhUwEbj9j
+         J6RtUqPHYLaM7gfgkNCvHes6ADZjJRW1jwVkjD8gxlATnQ9cQDwNyPS1KeO6PB9V8j
+         1CnLXZad1p+KyY2ui5vqtoNq39Jst/Scx28h9nnv7LbRtRD8/OaKJKAZhNCiizSwqr
+         koDRr6OK0z9+6HhAxaVJD5D0Lnk1yAJBE6DjES/MOmvhTHyFVfWj80YOlSuiyOXW5u
+         0+xzgKXT1BvgA==
 From:   guoren@kernel.org
 To:     guoren@kernel.org, arnd@arndb.de
 Cc:     linux-csky@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH 0/2] Fixup and coding convention
-Date:   Sun, 31 Jul 2022 22:42:27 -0400
-Message-Id: <20220801024229.567397-1-guoren@kernel.org>
+        linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>,
+        stable@vger.kernel.org
+Subject: [PATCH 2/2] csky: abiv1: Fixup compile error
+Date:   Sun, 31 Jul 2022 22:42:29 -0400
+Message-Id: <20220801024229.567397-3-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
+In-Reply-To: <20220801024229.567397-1-guoren@kernel.org>
+References: <20220801024229.567397-1-guoren@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
@@ -47,16 +50,39 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Two small modifications for fixup abiv1 compile and coding convention. 
+  LD      vmlinux.o
+arch/csky/lib/string.o: In function `memmove':
+string.c:(.text+0x108): multiple definition of `memmove'
+lib/string.o:string.c:(.text+0x7e8): first defined here
+arch/csky/lib/string.o: In function `memset':
+string.c:(.text+0x148): multiple definition of `memset'
+lib/string.o:string.c:(.text+0x2ac): first defined here
+scripts/Makefile.vmlinux_o:68: recipe for target 'vmlinux.o' failed
+make[4]: *** [vmlinux.o] Error 1
 
-Guo Ren (2):
-  csky: cmpxchg: Coding convention for BUILD_BUG()
-  csky: abiv1: Fixup compile error
+Fixes: e4df2d5e852a ("csky: Add C based string functions")
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@kernel.org>
+Cc: <stable@vger.kernel.org>
+---
+ arch/csky/abiv1/inc/abi/string.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
- arch/csky/abiv1/inc/abi/string.h |  6 ++++++
- arch/csky/include/asm/cmpxchg.h  | 11 +++++------
- 2 files changed, 11 insertions(+), 6 deletions(-)
-
+diff --git a/arch/csky/abiv1/inc/abi/string.h b/arch/csky/abiv1/inc/abi/string.h
+index 9d95594b0feb..de50117b904d 100644
+--- a/arch/csky/abiv1/inc/abi/string.h
++++ b/arch/csky/abiv1/inc/abi/string.h
+@@ -6,4 +6,10 @@
+ #define __HAVE_ARCH_MEMCPY
+ extern void *memcpy(void *, const void *, __kernel_size_t);
+ 
++#define __HAVE_ARCH_MEMMOVE
++extern void *memmove(void *, const void *, __kernel_size_t);
++
++#define __HAVE_ARCH_MEMSET
++extern void *memset(void *, int,  __kernel_size_t);
++
+ #endif /* __ABI_CSKY_STRING_H */
 -- 
 2.36.1
 
