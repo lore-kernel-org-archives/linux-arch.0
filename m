@@ -2,143 +2,97 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D9E1AC00144
-	for <linux-arch@archiver.kernel.org>; Mon,  1 Aug 2022 15:20:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 77078C19F2B
+	for <linux-arch@archiver.kernel.org>; Mon,  1 Aug 2022 15:20:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233245AbiHAPU1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 Aug 2022 11:20:27 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54680 "EHLO
+        id S233425AbiHAPU2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 Aug 2022 11:20:28 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54672 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233436AbiHAPUW (ORCPT
+        with ESMTP id S233448AbiHAPUW (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 1 Aug 2022 11:20:22 -0400
-Received: from mout.gmx.net (mout.gmx.net [212.227.15.19])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5166564C7;
+Received: from mout.gmx.net (mout.gmx.net [212.227.15.15])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 51D7A6541;
         Mon,  1 Aug 2022 08:20:18 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=gmx.net;
         s=badeba3b8450; t=1659367217;
-        bh=pmPjh/lA87Z5W2nyaW7ihvFXNYv9bkrPbRGc5PPQH8A=;
-        h=X-UI-Sender-Class:From:To:Subject:Date;
-        b=lE549N2gSiLnnfNA1wunzQTZ+ah4tpEP5Bky62c5DTnXldiU1lPMBHJrBwe3+9Qnu
-         J5RxSVvWxIULnM47pbVjyQ5x7+9wS4ZGdM31tFENgA3SCUZ3OFBhf4EfpqK84u9ISp
-         RF+X9JScAdU/5u1cu9wPuwY0+39At0MaOJZFm5AI=
+        bh=UovwDaLyuTgPejCzTK254N9IC9/vqRLIfV2J6pi3cos=;
+        h=X-UI-Sender-Class:From:To:Subject:Date:In-Reply-To:References;
+        b=gDZ6ap1GhRW3wDRPzYWXITLNEYJSxGMUzAMNiH8T/AbLtQzF38Zrcifu+D92uD+FE
+         N60nsyQ6KS0v++CMaVCslO6pEopN1sk0ii7QufidIA8s8KN8kdbPEvq1NiroP27YV2
+         zPQl1cI6nEyzl70MD/jSjzS6rWhZ/+QqdKFHXr6I=
 X-UI-Sender-Class: 01bb95c1-4bf8-414a-932a-4f6e2808ef9c
 Received: from p100.fritz.box ([92.116.150.19]) by mail.gmx.net (mrgmx004
- [212.227.17.190]) with ESMTPSA (Nemesis) id 1McYCl-1nk0kP3d8P-00d1GX; Mon, 01
- Aug 2022 17:20:16 +0200
+ [212.227.17.190]) with ESMTPSA (Nemesis) id 1MuUj2-1nQyrD17Zq-00rWmA; Mon, 01
+ Aug 2022 17:20:17 +0200
 From:   Helge Deller <deller@gmx.de>
 To:     linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 0/3] Dump command line of faulting process to syslog
-Date:   Mon,  1 Aug 2022 17:20:13 +0200
-Message-Id: <20220801152016.36498-1-deller@gmx.de>
+Subject: [PATCH 3/3] x86/fault: Dump command line of faulting process to syslog
+Date:   Mon,  1 Aug 2022 17:20:16 +0200
+Message-Id: <20220801152016.36498-4-deller@gmx.de>
 X-Mailer: git-send-email 2.37.1
-Content-Type: text/plain; charset="utf-8"
+In-Reply-To: <20220801152016.36498-1-deller@gmx.de>
+References: <20220801152016.36498-1-deller@gmx.de>
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
-X-Provags-ID: V03:K1:W8hcioovE+Z+4+5r9LvNT3xnxYPDcNyVIT36mxBOBAsVYnianR1
- Fk0uyBo+lIsSbJ/nZIXitqJA1/uzvLwohmND4IIR7ZWkVtOugqDY0npB7Dnkx+e/nAS0Fp8
- k1Hfd6gXQglgB2oTxS83+hzgwJEHFCC+fOLLODfL84+hBXHNLAtD5moH83E/9ukNtflxtjF
- bphXKtzcRjuE9otnQSFWw==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:1Oq5XVvyQtI=:QCeDmdf+soI5wZ/NjoG3tL
- OEWeTxDe5F0McjEZSPiLyG2dbFOr/wIeNlbJpB24bAi4kPMl1jqhnEWALm48vaYp1Q7t7NvIw
- nd8zS4fO7GYDTWSEbx/pligOafIk+tcGJ4Kwx5eRlkO4VwqK6OttsfzOrD7ZHpMvteGCcvaAd
- bdf35qmgowe0LpIPpfsVolhHl0AspewS6RBAY0R38GmVe9xhJ/L4Vv5FyY/hYTwv7S0LcIJ3N
- x673oHs1Cr0y/oSrC/+zS5DLzo3qztivG40vur3UHxTN7rCSrV8f+iVaNmGXyRt4p/F3K9Qlp
- I1n5/s+rs5vSbWXc0k7twGmtoflnud5YhO7PF2eA2OldYpMus6LH8xa2wYPLzMATZI9sQmX1k
- 8/RSGTzLv2Q2HOrG4gAdWL4O/iUqHuNz5btRBa11rzU3pd1rLfROt0RdZ9+JESZdI5/tbh6aJ
- woB/lYFsAzZWpgvT3Kft19m8amaNLWoa7Hy5s+IZ7kRLSMwgwI2y0oK1A1RHHnrM/USl9n3bP
- 1hHvAZFpJbh95ytPkzpZFOMrPg+g5XlTfUvHBVBn7796m8lHELmDy8S9MtY1UiyCj+KaHr2LC
- cwGC5HbpDbW823pjTv9uooQ6sOO70J9W06SqSQS4P08Mllq52Pg78rMxdxf3wSPEALNgD76jt
- Z2OnIKsyT92n4eStQSgpIgOdAzWXnl6m5q3/IDm1v2qiT4rj6To4EFqjnYs4kuelMaSISNhNu
- YlP8yf3DQ+nYNdb4RfWK5N5RVir/EvsJ1uZMIHjy+HHIAlf1NjeT6wNgAI/Uw6YZb3HTdm4t1
- 2NYtLBGhH2jRA8vChuUxmnrpyqj4GbNmbzUjzTa3iDhzqQtg1piHjjqrFc63maGdKMJa31pxH
- pKhZZGyihhCnYBVKuGu7kQt8D6iNLyOKNi/8bIWWE5/IwjJtLQJCvRf2nfi8l5yKRkMMtSRUL
- 3Vv+WyLKDZ2iFFf6WisdHeAN48jPPbzIJDMWd7Ya/OoXDxkCdfY1prFycUxLNp+F/7BngSeZp
- uQRr7JidIoxduuLgNmwPrp6DV88i+33vY0sZbHZkE7VWkJKEJSK+chpf/alnwAn73VwK+tq9j
- Q/JF/neJOyTw1m2WGCgDHzYR9v29Cpd56toBn5g5ayRE6VlcXXlD9RD6g==
+X-Provags-ID: V03:K1:KxWWu6d4Mf/HNZfb1iWzcFG+92jgDSJNUGRPzZjgSQlUKy2+Tkm
+ BjxgNCup3o7EzTK7JqLhVfq4Sgenz2XfBiGqB6kKOHAgDJ7dkSfUVDWhXcJ59ogtQVDLxXe
+ giv3v+nVJB6hw1OWd9TurCZK3OEUUW4kMzAke+wax9s4dZN7+WX1VTiHzqUFL0XWg7sYG0v
+ d47uwu4Ar5S0FjSFZmWpg==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:e6dDOJQOd/E=:ae8KEjXxSSY8z7qEgqLoRT
+ 9Oy2SV3hu8ax6rhtx6rqY9L7/Xd/gnUXV+n76xOskY6c+RzHFw/jVm9AxVZ7d8mEPHornlUYb
+ +v7b1p/MH9pPNVRs+T/t4NRR7brQy9mBMpYs8nKzmJIj/2gldv7eYw7urPxQJilWTTwsLyA26
+ 15mgvYsmTMEmIYWXbizskHtDNlGclsV/qgVLjp6OdT9jcCU3bzgg42PI5huC6uDgYGWyoGDB7
+ kJBAYGInO6igzVfF1VN95K6p5pZiERslxpQxA+x9XQ1IrUVqBkCybdM2cwMleR1pPZm93OAan
+ 5Zi07HzQa1r8qab5AIwDg2+dxtHhzUtA6m7qXdzgxdXt3Gh1sdktHzsFp5pFWRNNsFTqMryIL
+ xtF0apeRQXn6X+/2hYO+//FTbFZSFiZoN3LXAYCPQ9cZwH7NshZWbaftWA3E9th/e13RlCgZ2
+ D5mK9t3cxIT1lFVH2HDoQtr2U9w5lfDAsGz2M3MBatiHQ9h5eostzwsarBapZsTL8JCCydbFw
+ 4qKhqqQqnP4PeW7B5a/TctuEvvYLpQbr+1PGV/m3RC026MTC0ZG7B65PdKwUPqy+nHwkU2twg
+ 4j3d/G75e/Qg17DGNCKh3woIdkIz91MhTwma08hHjC66t2+IW+iKQYMeHqmJRHOKa4yfzlGEW
+ yC7VJVhbzPqEXOo4qM5XLWOApLu07oDYyxeBjopY7bJLR9b52PsA4evrRq8SvWS5ic7ByzgFU
+ 942EZgn6tZrmsGg/jxZs7n/sNV2Ob/jmm/V64WWdiISheNFqK9dXwVS9wN8DdWs2ChsXn4Jxk
+ vkP5J3b4ZkfBKmUAfX8nrdUuYOXPtqDGCLgCY5BI1JpAJ9vL965TGxfnTbWFSftqpTIHPHPfh
+ BwpAF4P9y6A7MNtsmz6/wAXPpZ9/FFcyuI+IbmvSiBQhCJzMYZWeK8safXiSVDmuFTv0Nh+Gj
+ 6T+CAVea0kodv1I2hQmk/AAHfGlkqERRTB+1XrErpLXLHfHvfaA/eYToJ4eetZ5Uspl/XfEfR
+ bL7lxciRIK4V1uzdtfkGTyGqZNmtkzjcpVyiu6Ucbhu3AqtzEYEmBjjrMNWrf5dENlCjFZvkp
+ EKFfMI98Ru/W6uO47qC6L/w3kLEhugldjNtJRcfg2OA2Rj4a7DZM+wzHQ==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch series allows the arch-specific kernel fault handlers to dump
-in addition to the typical info (IP address, fault type, backtrace and so =
-on)
-the command line of the faulting process.
+If a process segfaults, include the command line of the faulting process
+in the syslog.
 
-The motivation for this patch is that it's sometimes quite hard to find ou=
-t and
-annoying to not know which program *exactly* faulted when looking at the s=
-yslog.
+In the example below, the "crash" program (which simply writes zero to add=
+ress 0)
+was called with the parameters "this is a test":
 
-Some examples from the syslog are:
+ crash[2326]: segfault at 0 ip 0000561a7969c12e sp 00007ffe97a05630 error =
+6 in crash[561a7969c000+1000]
+ crash[2326] cmdline: ./crash this is a test
+ Code: 68 ff ff ff c6 05 19 2f 00 00 01 5d c3 0f 1f 80 00 00 00 00 c3 0f 1=
+f 80 00 00 00 00 e9 7b ff ff ff 55 48 89 e5 b8 00 00 00 00 <c7> 00 01 00 0=
+0 00 b8 00 00 00 00 5d c3 0f 1f 44 00 00 41 57 4c 8d
 
-On parisc:
-   do_page_fault() command=3D'cc1' type=3D15 address=3D0x00000000 in libc-=
-2.33.so[f6abb000+184000]
-   CPU: 1 PID: 13472 Comm: cc1 Tainted: G            E     5.10.133+ #45
-   Hardware name: 9000/785/C8000
+Signed-off-by: Helge Deller <deller@gmx.de>
+=2D--
+ arch/x86/mm/fault.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
--> We see the "cc1" compiler crashed, but it would be useful to know which=
- file was compiled.
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index fad8faa29d04..d4e21c402e29 100644
+=2D-- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -784,6 +784,8 @@ show_signal_msg(struct pt_regs *regs, unsigned long er=
+ror_code,
 
-With this patch series, the kernel now prints in addition:
-   cc1[13472] cmdline: /usr/lib/gcc/hppa-linux-gnu/12/cc1 -quiet @/tmp/ccR=
-kFSfY -imultilib . -imultiarch hppa-linux-gnu -D USE_MINIINTERPRETER -D NO=
-_REGS -D _HPUX_SOURCE -D NOSMP -D THREADED_RTS -include /build/ghc/ghc-9.0=
-.2/includes/dist-install/build/ghcversion.h -iquote compiler/GHC/Iface -qu=
-iet -dumpdir /tmp/ghc13413_0/ -dumpbase ghc_5.hc -dumpbase-ext .hc -O -Wim=
-plicit -fno-PIC -fwrapv -fno-builtin -fno-strict-aliasing -o /tmp/ghc13413=
-_0/ghc_5.s
+ 	printk(KERN_CONT "\n");
 
--> now we know that cc1 crashed while compiling some haskell code.
-
-Another parisc example:
-   do_page_fault() command=3D'ld.so.1' type=3D15 address=3D0x565921d8 in l=
-ibc.so[f7339000+1bb000]
-   CPU: 1 PID: 1151 Comm: cc1 Tainted: G            E     5.10.133+ #45
-   Hardware name: 9000/785/C8000
-
--> apparently here a program from the glibc testsuite segfaulted.
-
-With this patch we now additionally get:
-   ld.so.1[1151] cmdline: /home/gnu/glibc/objdir/elf/ld.so.1 --library-pat=
-h /home/gnu/glibc/objdir:/home/gnu/glibc/objdir/math:/home/gnu/
-        /home/gnu/glibc/objdir/malloc/tst-safe-linking-malloc-hugetlb1
-
--> it was the tst-safe-linking-malloc-hugetlb1 testcase which faulted.
-
-An example of a typical x86 fault shows up as:
-   crash[2326]: segfault at 0 ip 0000561a7969c12e sp 00007ffe97a05630 erro=
-r 6 in crash[561a7969c000+1000]
-   Code: 68 ff ff ff c6 05 19 2f 00 00 01 5d c3 0f 1f 80 00 00 00 00 c3 0f=
- 1f 80 00 00 00 00 e9 7b ff ff ff 55 48 89 e5 b8 00 00 00 00 <c7> 00 01 00=
- 00 00 b8 00 00 00 00 5d c3 0f 1f 44 00 00 41 57 4c 8d
-
--> with this patch we now will see the whole command line:
-   crash[2326] cmdline: ./crash test_write_to_page_0
-
-The patches are relatively small, and reuses functions which are used
-to create the output for the /proc/<pid>/cmdline files.
-
-This is the version 1 of the patch series.
-I'm interested if people find this useful too, and if so, I'm
-happy for any feedback on those patches.
-
-Thanks!
-Helge
-
-Helge Deller (3):
-  proc: Add get_task_cmdline_kernel() function
-  lib/dump_stack: Add dump_stack_print_cmdline() and wire up in
-    dump_stack_print_info()
-  x86/fault: Dump command line of faulting process to syslog
-
- arch/x86/mm/fault.c     |  2 ++
- fs/proc/base.c          | 68 +++++++++++++++++++++++++++--------------
- include/linux/printk.h  |  5 +++
- include/linux/proc_fs.h |  5 +++
- lib/dump_stack.c        | 17 +++++++++++
- 5 files changed, 74 insertions(+), 23 deletions(-)
++	dump_stack_print_cmdline(loglvl);
++
+ 	show_opcodes(regs, loglvl);
+ }
 
 =2D-
 2.37.1
