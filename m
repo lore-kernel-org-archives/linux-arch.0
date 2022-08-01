@@ -2,44 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C20C3C3F6B0
-	for <linux-arch@archiver.kernel.org>; Mon,  1 Aug 2022 00:42:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D05CC19F2C
+	for <linux-arch@archiver.kernel.org>; Mon,  1 Aug 2022 02:42:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238616AbiHAAm0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 31 Jul 2022 20:42:26 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53718 "EHLO
+        id S239278AbiHACmn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 31 Jul 2022 22:42:43 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58040 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238580AbiHAAmY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 20:42:24 -0400
+        with ESMTP id S238902AbiHACmm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 31 Jul 2022 22:42:42 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C35CD11477;
-        Sun, 31 Jul 2022 17:42:22 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4F82113D0E;
+        Sun, 31 Jul 2022 19:42:42 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 0E00E60ED8;
-        Mon,  1 Aug 2022 00:42:22 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 11D42C433B5;
-        Mon,  1 Aug 2022 00:42:17 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id DFA346123C;
+        Mon,  1 Aug 2022 02:42:41 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 47B19C433B5;
+        Mon,  1 Aug 2022 02:42:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1659314541;
-        bh=5okHnQMfvZWc3wOETu3ldFm+Nzm+AT7xSTHmaNUs9eA=;
-        h=From:To:Cc:Subject:Date:From;
-        b=qWM6zKAHOQqxiYCR6V/OhCl6X2zPMQSmr6iGzDy31162AMl0NDIwzFn77A03AtInn
-         WuYlysOVFoioVBOB7XeArxY3faaLjiBtJ+svgvbt/TJunx0SLNRWP6OuPZqkR2xWom
-         VRhOgoLFOYdXzyBAkj7wguXFN2CIfmzTPwRjUISyczGROPoUeli/0DPiaAdldJSvIr
-         Ikg69KcmNejxIAyctXQYfhmlQHhowyAh5wQCOpgd0kr6igEFeuJojq20Wsbrh4NqeZ
-         ooDqz6Ffuy07UxlklVAq6dNwYZXYEN7VG38WgBasIX8H9hf0rIaLCgmzDyjcyUYXhU
-         AS4TV4bcQbLoQ==
+        s=k20201202; t=1659321761;
+        bh=aUkod9ap6lals+as1v1yhEx9/EywmGgaYtecOunYJFw=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=Kn+8Aa0tETYarA5fdBTcXyltNRjWoMCGGJ//yFNIEtIdOpiloybQLuL7STnP36M3T
+         fRGxLjEgqlmTH0HJOEFGFVhc46mxJcrP2JHs6DA4aL4v3tOEmDJfU64ofUl/pSIJpE
+         yc9WVSJ/zGTR19QuN4pg+Qnz6deqG9icYccdEJdxjRTkYfS6A9f6Z3qS9dm7nCcz/k
+         Wxl5dZbtT0zGgtdWkiqT1S1pIQFwr7awb6v24yz67LhrpbOd9VfoFgjGewZJ/WyHIW
+         PrhtdHKUdQXv/5xzNBdzgQS+QqmtH/Y7IkJBx0wnjcGaJmFH6e79hPPzn8kH+acpLZ
+         qEAtQ1SOWHSaw==
 From:   guoren@kernel.org
-To:     guoren@kernel.org, arnd@arndb.de, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, mark.rutland@arm.com
+To:     guoren@kernel.org, arnd@arndb.de
 Cc:     linux-csky@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH] csky: Enable ARCH_INLINE_READ*/WRITE*/SPIN*
-Date:   Sun, 31 Jul 2022 20:42:12 -0400
-Message-Id: <20220801004212.3854362-1-guoren@kernel.org>
+Subject: [PATCH 1/2] csky: cmpxchg: Coding convention for BUILD_BUG()
+Date:   Sun, 31 Jul 2022 22:42:28 -0400
+Message-Id: <20220801024229.567397-2-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
+In-Reply-To: <20220801024229.567397-1-guoren@kernel.org>
+References: <20220801024229.567397-1-guoren@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
@@ -48,53 +49,66 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Enable ARCH_INLINE_READ*/WRITE*/SPIN* when !PREEMPTION, it is copied
-from arch/arm64. It could reduce procedure calls and improves
-performance.
+Use BUILD_BUG() instead of the custom bad_xchg.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
 ---
- arch/csky/Kconfig | 26 ++++++++++++++++++++++++++
- 1 file changed, 26 insertions(+)
+ arch/csky/include/asm/cmpxchg.h | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/arch/csky/Kconfig b/arch/csky/Kconfig
-index 333def12faef..b23458b5c74f 100644
---- a/arch/csky/Kconfig
-+++ b/arch/csky/Kconfig
-@@ -9,6 +9,32 @@ config CSKY
- 	select ARCH_USE_BUILTIN_BSWAP
- 	select ARCH_USE_QUEUED_RWLOCKS
- 	select ARCH_USE_QUEUED_SPINLOCKS
-+	select ARCH_INLINE_READ_LOCK if !PREEMPTION
-+	select ARCH_INLINE_READ_LOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_READ_LOCK_IRQ if !PREEMPTION
-+	select ARCH_INLINE_READ_LOCK_IRQSAVE if !PREEMPTION
-+	select ARCH_INLINE_READ_UNLOCK if !PREEMPTION
-+	select ARCH_INLINE_READ_UNLOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_READ_UNLOCK_IRQ if !PREEMPTION
-+	select ARCH_INLINE_READ_UNLOCK_IRQRESTORE if !PREEMPTION
-+	select ARCH_INLINE_WRITE_LOCK if !PREEMPTION
-+	select ARCH_INLINE_WRITE_LOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_WRITE_LOCK_IRQ if !PREEMPTION
-+	select ARCH_INLINE_WRITE_LOCK_IRQSAVE if !PREEMPTION
-+	select ARCH_INLINE_WRITE_UNLOCK if !PREEMPTION
-+	select ARCH_INLINE_WRITE_UNLOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_WRITE_UNLOCK_IRQ if !PREEMPTION
-+	select ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE if !PREEMPTION
-+	select ARCH_INLINE_SPIN_TRYLOCK if !PREEMPTION
-+	select ARCH_INLINE_SPIN_TRYLOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_SPIN_LOCK if !PREEMPTION
-+	select ARCH_INLINE_SPIN_LOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_SPIN_LOCK_IRQ if !PREEMPTION
-+	select ARCH_INLINE_SPIN_LOCK_IRQSAVE if !PREEMPTION
-+	select ARCH_INLINE_SPIN_UNLOCK if !PREEMPTION
-+	select ARCH_INLINE_SPIN_UNLOCK_BH if !PREEMPTION
-+	select ARCH_INLINE_SPIN_UNLOCK_IRQ if !PREEMPTION
-+	select ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE if !PREEMPTION
- 	select ARCH_WANT_FRAME_POINTERS if !CPU_CK610 && $(cc-option,-mbacktrace)
- 	select ARCH_WANT_DEFAULT_TOPDOWN_MMAP_LAYOUT
- 	select COMMON_CLK
+diff --git a/arch/csky/include/asm/cmpxchg.h b/arch/csky/include/asm/cmpxchg.h
+index 5f693fadb56c..916043b845f1 100644
+--- a/arch/csky/include/asm/cmpxchg.h
++++ b/arch/csky/include/asm/cmpxchg.h
+@@ -4,10 +4,9 @@
+ #define __ASM_CSKY_CMPXCHG_H
+ 
+ #ifdef CONFIG_SMP
++#include <linux/bug.h>
+ #include <asm/barrier.h>
+ 
+-extern void __bad_xchg(void);
+-
+ #define __xchg_relaxed(new, ptr, size)				\
+ ({								\
+ 	__typeof__(ptr) __ptr = (ptr);				\
+@@ -46,7 +45,7 @@ extern void __bad_xchg(void);
+ 			:);					\
+ 		break;						\
+ 	default:						\
+-		__bad_xchg();					\
++		BUILD_BUG();					\
+ 	}							\
+ 	__ret;							\
+ })
+@@ -76,7 +75,7 @@ extern void __bad_xchg(void);
+ 			:);					\
+ 		break;						\
+ 	default:						\
+-		__bad_xchg();					\
++		BUILD_BUG();					\
+ 	}							\
+ 	__ret;							\
+ })
+@@ -107,7 +106,7 @@ extern void __bad_xchg(void);
+ 			:);					\
+ 		break;						\
+ 	default:						\
+-		__bad_xchg();					\
++		BUILD_BUG();					\
+ 	}							\
+ 	__ret;							\
+ })
+@@ -139,7 +138,7 @@ extern void __bad_xchg(void);
+ 			:);					\
+ 		break;						\
+ 	default:						\
+-		__bad_xchg();					\
++		BUILD_BUG();					\
+ 	}							\
+ 	__ret;							\
+ })
 -- 
 2.36.1
 
