@@ -2,21 +2,21 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1E05BC25B06
-	for <linux-arch@archiver.kernel.org>; Sat,  6 Aug 2022 08:10:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 937C5C25B06
+	for <linux-arch@archiver.kernel.org>; Sat,  6 Aug 2022 08:10:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240425AbiHFIKS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 6 Aug 2022 04:10:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57604 "EHLO
+        id S241430AbiHFIKV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 6 Aug 2022 04:10:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57606 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238561AbiHFIKR (ORCPT
+        with ESMTP id S238543AbiHFIKR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Aug 2022 04:10:17 -0400
 Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id CB21325E3;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 5C86F5FD1;
         Sat,  6 Aug 2022 01:10:14 -0700 (PDT)
 Received: from localhost.localdomain (unknown [113.200.148.30])
-        by mail.loongson.cn (Coremail) with SMTP id AQAAf9DxbyPdIe5ixooIAA--.1165S6;
-        Sat, 06 Aug 2022 16:10:08 +0800 (CST)
+        by mail.loongson.cn (Coremail) with SMTP id AQAAf9DxbyPdIe5ixooIAA--.1165S2;
+        Sat, 06 Aug 2022 16:10:06 +0800 (CST)
 From:   Qing Zhang <zhangqing@loongson.cn>
 To:     Huacai Chen <chenhuacai@kernel.org>
 Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
@@ -24,143 +24,99 @@ Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
         Arnd Bergmann <arnd@arndb.de>, hejinyang@loongson.cn,
         tangyouling@loongson.cn, zhangqing@loongson.cn
-Subject: [PATCH v4 4/4] LoongArch: Add USER_STACKTRACE support
-Date:   Sat,  6 Aug 2022 16:10:05 +0800
-Message-Id: <20220806081005.332-5-zhangqing@loongson.cn>
+Subject: [PATCH v4 0/4] Add unwinder support
+Date:   Sat,  6 Aug 2022 16:10:01 +0800
+Message-Id: <20220806081005.332-1-zhangqing@loongson.cn>
 X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20220806081005.332-1-zhangqing@loongson.cn>
-References: <20220806081005.332-1-zhangqing@loongson.cn>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: AQAAf9DxbyPdIe5ixooIAA--.1165S6
-X-Coremail-Antispam: 1UD129KBjvJXoWxCryUZw1rCF1DtrW5KFWxWFg_yoW5ZF4fpF
-        nFy3ZxtrWUWw4Skr9xZrykXr98Xw4kG3y2gFZxta45Zr17Xry8WFs7tFyvqFyUJ393Ja4S
-        ga43Krn0qF4DZa7anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUmY14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_JF0E3s1l82xGYI
-        kIc2x26xkF7I0E14v26ryj6s0DM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2
-        z4x0Y4vE2Ix0cI8IcVAFwI0_Gr0_Xr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Cr0_Gr
-        1UM28EF7xvwVC2z280aVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_Cr1j
-        6rxdM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj6x
-        IIjxv20xvE14v26r106r15McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr0_
-        Gr1lF7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E8c
-        xan2IY04v7MxkIecxEwVAFwVW8ZwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbVWU
-        JVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF67
-        kF1VAFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUCVW8JwCI42IY
-        6xIIjxv20xvEc7CjxVAFwI0_Cr0_Gr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42
-        IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIev
-        Ja73UjIFyTuYvjfUYyxRDUUUU
+X-CM-TRANSID: AQAAf9DxbyPdIe5ixooIAA--.1165S2
+X-Coremail-Antispam: 1UD129KBjvJXoWxXF4UJFWkCw4rZw1DWrWUXFb_yoW5XryrpF
+        ZrCrnxGr4DGrySvFnxtw18urn5Jr4kGrW2qa9FyryrCF4aqa47ZrnYvF1DZ3WDJ3yrJry0
+        qFn5G3s0ga1UtaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUU9014x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+        1l84ACjcxK6xIIjxv20xvE14v26r4j6ryUM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
+        6F4UM28EF7xvwVC2z280aVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_Cr
+        1j6rxdM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj
+        6xIIjxv20xvE14v26r106r15McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr
+        0_Gr1lF7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E
+        8cxan2IY04v7MxkIecxEwVAFwVW8ZwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbV
+        WUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF
+        67kF1VAFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUCVW8JwCI42
+        IY6xIIjxv20xvEc7CjxVAFwI0_Gr0_Cr1lIxAIcVCF04k26cxKx2IYs7xG6rWUJVWrZr1U
+        MIIF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr0_Gr1UYxBIda
+        VFxhVjvjDU0xZFpf9x0JUP-B_UUUUU=
 X-CM-SenderInfo: x2kd0wptlqwqxorr0wxvrqhubq/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To get the best output you can compile your userspace programs with
-frame pointers (at least glibc + the app you are tracing export "CC
-=gcc -fno-omit-frame-pointer".
+This series in order to add stacktrace support, Some upcoming features require
+these changes, like trace, divide unwinder into guess unwinder and prologue
+unwinder is to add new unwinders in the future.
+eg:unwinder_frame, unwinder_orc .etc.
 
-...
-     echo 'p:malloc /usr/lib64/libc.so.6:0x0a4704 size=%r4:u64'
-                                                > uprobe_events
-     echo 'p:free /usr/lib64/libc.so.6:0x0a4d50 ptr=%r4:x64'
-                                               >> uprobe_events
-     echo 'comm == "demo"' > ./events/uprobes/malloc/filter
-     echo 'comm == "demo"' > ./events/uprobes/free/filter
-     echo 1 > ./options/userstacktrace
-     echo 1 > ./options/sym-userobj
- ...
+Three stages when we do unwind,
+  1) unwind_start(), the prapare of unwinding, fill unwind_state.
+  2) unwind_done(), judge whether the unwind process is finished or not.
+  3) unwind_next_frame(), unwind the next frame.
 
-Signed-off-by: Qing Zhang <zhangqing@loongson.cn>
----
- arch/loongarch/Kconfig                  |  1 +
- arch/loongarch/include/asm/stacktrace.h |  5 +++
- arch/loongarch/kernel/stacktrace.c      | 41 +++++++++++++++++++++++++
- 3 files changed, 47 insertions(+)
+you can test them by:
+  1) echo t > /proc/sysrq-trigger
+  2) cat /proc/*/stack
+  3) ftrace: function graph
+  4) uprobe: echo 1 > ./options/userstacktrace
 
-diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
-index 8143774f99cb..9842fd023bcc 100644
---- a/arch/loongarch/Kconfig
-+++ b/arch/loongarch/Kconfig
-@@ -108,6 +108,7 @@ config LOONGARCH
- 	select SWIOTLB
- 	select TRACE_IRQFLAGS_SUPPORT
- 	select USE_PERCPU_NUMA_NODE_ID
-+	select USER_STACKTRACE_SUPPORT
- 	select ZONE_DMA32
- 	select MMU_GATHER_MERGE_VMAS if MMU
- 
-diff --git a/arch/loongarch/include/asm/stacktrace.h b/arch/loongarch/include/asm/stacktrace.h
-index 49cb89213aeb..77fdb8ad662d 100644
---- a/arch/loongarch/include/asm/stacktrace.h
-+++ b/arch/loongarch/include/asm/stacktrace.h
-@@ -21,6 +21,11 @@ struct stack_info {
- 	unsigned long begin, end, next_sp;
- };
- 
-+struct stack_frame {
-+	unsigned long	fp;
-+	unsigned long	ra;
-+};
-+
- bool in_task_stack(unsigned long stack, struct task_struct *task,
- 			struct stack_info *info);
- bool in_irq_stack(unsigned long stack, struct stack_info *info);
-diff --git a/arch/loongarch/kernel/stacktrace.c b/arch/loongarch/kernel/stacktrace.c
-index f4f4b8ad3917..cba1b6ab8a1a 100644
---- a/arch/loongarch/kernel/stacktrace.c
-+++ b/arch/loongarch/kernel/stacktrace.c
-@@ -6,6 +6,7 @@
-  */
- #include <linux/sched.h>
- #include <linux/stacktrace.h>
-+#include <linux/uaccess.h>
- 
- #include <asm/stacktrace.h>
- #include <asm/unwind.h>
-@@ -35,3 +36,43 @@ void arch_stack_walk(stack_trace_consume_fn consume_entry, void *cookie,
- 			break;
- 	}
- }
-+
-+static int
-+copy_stack_frame(unsigned long fp, struct stack_frame *frame)
-+{
-+	int ret = 1;
-+	unsigned long err;
-+	unsigned long __user *user_frame_tail;
-+
-+	user_frame_tail = (unsigned long *)(fp - sizeof(struct stack_frame));
-+	if (!access_ok(user_frame_tail, sizeof(*frame)))
-+		return 0;
-+
-+	pagefault_disable();
-+	err = (__copy_from_user_inatomic(frame, user_frame_tail, sizeof(*frame)));
-+	if (err || (unsigned long)user_frame_tail >= frame->fp)
-+		ret = 0;
-+	pagefault_enable();
-+
-+	return ret;
-+}
-+
-+void arch_stack_walk_user(stack_trace_consume_fn consume_entry, void *cookie,
-+			  const struct pt_regs *regs)
-+{
-+	unsigned long fp = regs->regs[22];
-+
-+	while (fp && !((unsigned long)fp & 0xf)) {
-+		struct stack_frame frame;
-+
-+		frame.fp = 0;
-+		frame.ra = 0;
-+		if (!copy_stack_frame(fp, &frame))
-+			break;
-+		if (!frame.ra)
-+			break;
-+		if (!consume_entry(cookie, frame.ra))
-+			break;
-+		fp = frame.fp;
-+	}
-+}
+Changes from v1 to v2:
+
+- Add the judgment of the offset value of ra in the prologue.
+  (Suggested by Youling).
+- Create an inline function to check the sign bit, which is convenient
+  for extending other types of immediates.  (Suggested by Jinyang).
+- Fix sparse warning :
+    arch/loongarch/include/asm/uaccess.h:232:32: sparse: sparse: incorrect
+    type in argument 2 (different address spaces) @@     expected void const
+    *from @@     got void const [noderef] __user *from @@
+- Add USER_STACKTRACE support as a series.
+
+Changes from v2 to v3:
+
+- Move unwind_start definition and use location, remove #ifdef in unwind_state
+  and use type instead of enable. (Suggested by Huacai).
+- Separated fixes for uaccess.h. (Suggested by Huacai).
+
+Changes from v3 to v4:
+
+- Add get wchan implement. (Suggested by Huacai).
+
+Qing Zhang (4):
+  LoongArch: Add guess unwinder support
+  LoongArch: Add prologue unwinder support
+  LoongArch: Add stacktrace and get_wchan support
+  LoongArch: Add USER_STACKTRACE support
+
+ arch/loongarch/Kconfig                  |   6 +
+ arch/loongarch/Kconfig.debug            |  28 ++++
+ arch/loongarch/include/asm/inst.h       |  52 +++++++
+ arch/loongarch/include/asm/processor.h  |   9 ++
+ arch/loongarch/include/asm/stacktrace.h |  22 +++
+ arch/loongarch/include/asm/switch_to.h  |  14 +-
+ arch/loongarch/include/asm/unwind.h     |  47 +++++++
+ arch/loongarch/kernel/Makefile          |   4 +
+ arch/loongarch/kernel/asm-offsets.c     |   2 +
+ arch/loongarch/kernel/process.c         |  91 ++++++++++++-
+ arch/loongarch/kernel/stacktrace.c      |  78 +++++++++++
+ arch/loongarch/kernel/switch.S          |   2 +
+ arch/loongarch/kernel/traps.c           |  24 ++--
+ arch/loongarch/kernel/unwind_guess.c    |  67 +++++++++
+ arch/loongarch/kernel/unwind_prologue.c | 173 ++++++++++++++++++++++++
+ 15 files changed, 602 insertions(+), 17 deletions(-)
+ create mode 100644 arch/loongarch/include/asm/unwind.h
+ create mode 100644 arch/loongarch/kernel/stacktrace.c
+ create mode 100644 arch/loongarch/kernel/unwind_guess.c
+ create mode 100644 arch/loongarch/kernel/unwind_prologue.c
+
 -- 
 2.20.1
 
