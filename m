@@ -2,135 +2,211 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D2623C19F2D
-	for <linux-arch@archiver.kernel.org>; Sat,  6 Aug 2022 10:44:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C7CFFC19F2A
+	for <linux-arch@archiver.kernel.org>; Sun,  7 Aug 2022 11:37:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229972AbiHFKoC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 6 Aug 2022 06:44:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50180 "EHLO
+        id S233227AbiHGLhe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 7 Aug 2022 07:37:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57702 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229671AbiHFKoC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 6 Aug 2022 06:44:02 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A35B213F85;
-        Sat,  6 Aug 2022 03:44:00 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        with ESMTP id S231958AbiHGLhd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 7 Aug 2022 07:37:33 -0400
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id BF17964CB
+        for <linux-arch@vger.kernel.org>; Sun,  7 Aug 2022 04:37:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1659872251;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=o1EMRzMlY6/eJQLdXyI2BRTqKZiVN5D0fmDyLdtZOXU=;
+        b=P4I9YvCELila31csKEyclRcTazUVTc3sKKiT0kc0/+rFJjtHohNNV5WFMNtQtj20PD+mkp
+        U1JyE35Fv7gWN1PIdgcZrdhdS4GU3uzZnK7G7hgzQGRoHUnSGDuPXUZaGNAdaGKA3mARy8
+        coKp+1g7AKpC4S/+Yv8Am2k6nwHJoQ4=
+Received: from mimecast-mx02.redhat.com (mx3-rdu2.redhat.com
+ [66.187.233.73]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-653-BMw6k7YDOjC-6Vds6LUy8g-1; Sun, 07 Aug 2022 07:37:27 -0400
+X-MC-Unique: BMw6k7YDOjC-6Vds6LUy8g-1
+Received: from smtp.corp.redhat.com (int-mx02.intmail.prod.int.rdu2.redhat.com [10.11.54.2])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 09EAFB80522;
-        Sat,  6 Aug 2022 10:43:59 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 855F7C4347C;
-        Sat,  6 Aug 2022 10:43:57 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1659782637;
-        bh=x21kK6AqekRaMQvAZCd0dX5zUj5OkDS6YythMycasWI=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=e9dsJuYFIf5g2eRjNiMDUt4K/TuSlMUxAhU4oIW6QJDB2EJAGUnFpIS/AFs/KDTQW
-         4aqhotZqSISCyvzD/fqY3b3MR3UmYnDiKdxzzRwx2aelVgN1ajFA9sW2am68SpBW/B
-         CIMBFuy3ikZRS5VgPebzbw9Bg1e2cu1L2/tI/19TkfCioeLWFsLsp+i9D2/CSoWkTW
-         CBdWMtt3QjhL5yOj3Jd6GpOrJ2D2Ch5Zd59/7G/l2L5JOZ8IyOjZGzDsoRtkDblPqv
-         819abIRUp/G6nqBvUqM/mr8LO83HCDUjRAwQiP4wcd44l/u5nosDNtgpty9Ksq07GK
-         0btDm6MwoD3Cg==
-Received: by mail-vs1-f49.google.com with SMTP id 129so4680070vsq.8;
-        Sat, 06 Aug 2022 03:43:57 -0700 (PDT)
-X-Gm-Message-State: ACgBeo04PyytMay2Ax+6wI2yKXozzNBh0WPBESZ84tB0rNkCI11qXc4H
-        5ykbcBcCEnF+8SIxdByvTvYmN122+3/RcKz4MAI=
-X-Google-Smtp-Source: AA6agR4QNCp1y2aVFCbrFa/6CdS2PkEc+oLgNWnDop4v+Vr4w5W2737BevBF5J5RzajBWFfnKQ407aZF3su4cI3gPQE=
-X-Received: by 2002:a67:d595:0:b0:388:4392:e067 with SMTP id
- m21-20020a67d595000000b003884392e067mr5060201vsj.78.1659782636384; Sat, 06
- Aug 2022 03:43:56 -0700 (PDT)
-MIME-Version: 1.0
-References: <20220806081005.332-1-zhangqing@loongson.cn>
-In-Reply-To: <20220806081005.332-1-zhangqing@loongson.cn>
-From:   Huacai Chen <chenhuacai@kernel.org>
-Date:   Sat, 6 Aug 2022 18:43:41 +0800
-X-Gmail-Original-Message-ID: <CAAhV-H7pNE5Aab1xfxQcLubT_wJtk-f4Mxu6r0uQrKHXZiLEaQ@mail.gmail.com>
-Message-ID: <CAAhV-H7pNE5Aab1xfxQcLubT_wJtk-f4Mxu6r0uQrKHXZiLEaQ@mail.gmail.com>
-Subject: Re: [PATCH v4 0/4] Add unwinder support
-To:     Qing Zhang <zhangqing@loongson.cn>
-Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
-        LKML <linux-kernel@vger.kernel.org>,
+        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 1588F3C021AD;
+        Sun,  7 Aug 2022 11:37:26 +0000 (UTC)
+Received: from file01.intranet.prod.int.rdu2.redhat.com (file01.intranet.prod.int.rdu2.redhat.com [10.11.5.7])
+        by smtp.corp.redhat.com (Postfix) with ESMTPS id E3AFB403D0E2;
+        Sun,  7 Aug 2022 11:37:24 +0000 (UTC)
+Received: from file01.intranet.prod.int.rdu2.redhat.com (localhost [127.0.0.1])
+        by file01.intranet.prod.int.rdu2.redhat.com (8.14.4/8.14.4) with ESMTP id 277BbOAm030983;
+        Sun, 7 Aug 2022 07:37:24 -0400
+Received: from localhost (mpatocka@localhost)
+        by file01.intranet.prod.int.rdu2.redhat.com (8.14.4/8.14.4/Submit) with ESMTP id 277BbMZf030978;
+        Sun, 7 Aug 2022 07:37:23 -0400
+X-Authentication-Warning: file01.intranet.prod.int.rdu2.redhat.com: mpatocka owned process doing -bs
+Date:   Sun, 7 Aug 2022 07:37:22 -0400 (EDT)
+From:   Mikulas Patocka <mpatocka@redhat.com>
+X-X-Sender: mpatocka@file01.intranet.prod.int.rdu2.redhat.com
+To:     Matthew Wilcox <willy@infradead.org>
+cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Will Deacon <will@kernel.org>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        David Howells <dhowells@redhat.com>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        Akira Yokosawa <akiyks@gmail.com>,
+        Daniel Lustig <dlustig@nvidia.com>,
+        Joel Fernandes <joel@joelfernandes.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
         linux-arch <linux-arch@vger.kernel.org>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Jinyang He <hejinyang@loongson.cn>,
-        Youling Tang <tangyouling@loongson.cn>
-Content-Type: text/plain; charset="UTF-8"
+        linux-fsdevel@vger.kernel.org
+Subject: [PATCH v5] add barriers to buffer functions
+In-Reply-To: <YuyNE5c06WStxQ2z@casper.infradead.org>
+Message-ID: <alpine.LRH.2.02.2208070732160.30857@file01.intranet.prod.int.rdu2.redhat.com>
+References: <alpine.LRH.2.02.2207310920390.6506@file01.intranet.prod.int.rdu2.redhat.com> <alpine.LRH.2.02.2207311104020.16444@file01.intranet.prod.int.rdu2.redhat.com> <CAHk-=wiC_oidYZeMD7p0E-=TAuLgrNQ86-sB99=hRqFM8fVLDQ@mail.gmail.com>
+ <alpine.LRH.2.02.2207311542280.21273@file01.intranet.prod.int.rdu2.redhat.com> <alpine.LRH.2.02.2207311639360.21350@file01.intranet.prod.int.rdu2.redhat.com> <CAHk-=wjA8HBrVqAqAetUvwNr=hcvhfnO7oMrOAd4V8bbSqokNA@mail.gmail.com>
+ <alpine.LRH.2.02.2208010628510.22006@file01.intranet.prod.int.rdu2.redhat.com> <alpine.LRH.2.02.2208010642220.22006@file01.intranet.prod.int.rdu2.redhat.com> <YuflGG60pHiXp2z/@casper.infradead.org> <alpine.LRH.2.02.2208011040190.27101@file01.intranet.prod.int.rdu2.redhat.com>
+ <YuyNE5c06WStxQ2z@casper.infradead.org>
+User-Agent: Alpine 2.02 (LRH 1266 2009-07-14)
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+X-Scanned-By: MIMEDefang 2.84 on 10.11.54.2
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Queued for 5.20,thanks.
 
-Huacai
 
-On Sat, Aug 6, 2022 at 4:10 PM Qing Zhang <zhangqing@loongson.cn> wrote:
->
-> This series in order to add stacktrace support, Some upcoming features require
-> these changes, like trace, divide unwinder into guess unwinder and prologue
-> unwinder is to add new unwinders in the future.
-> eg:unwinder_frame, unwinder_orc .etc.
->
-> Three stages when we do unwind,
->   1) unwind_start(), the prapare of unwinding, fill unwind_state.
->   2) unwind_done(), judge whether the unwind process is finished or not.
->   3) unwind_next_frame(), unwind the next frame.
->
-> you can test them by:
->   1) echo t > /proc/sysrq-trigger
->   2) cat /proc/*/stack
->   3) ftrace: function graph
->   4) uprobe: echo 1 > ./options/userstacktrace
->
-> Changes from v1 to v2:
->
-> - Add the judgment of the offset value of ra in the prologue.
->   (Suggested by Youling).
-> - Create an inline function to check the sign bit, which is convenient
->   for extending other types of immediates.  (Suggested by Jinyang).
-> - Fix sparse warning :
->     arch/loongarch/include/asm/uaccess.h:232:32: sparse: sparse: incorrect
->     type in argument 2 (different address spaces) @@     expected void const
->     *from @@     got void const [noderef] __user *from @@
-> - Add USER_STACKTRACE support as a series.
->
-> Changes from v2 to v3:
->
-> - Move unwind_start definition and use location, remove #ifdef in unwind_state
->   and use type instead of enable. (Suggested by Huacai).
-> - Separated fixes for uaccess.h. (Suggested by Huacai).
->
-> Changes from v3 to v4:
->
-> - Add get wchan implement. (Suggested by Huacai).
->
-> Qing Zhang (4):
->   LoongArch: Add guess unwinder support
->   LoongArch: Add prologue unwinder support
->   LoongArch: Add stacktrace and get_wchan support
->   LoongArch: Add USER_STACKTRACE support
->
->  arch/loongarch/Kconfig                  |   6 +
->  arch/loongarch/Kconfig.debug            |  28 ++++
->  arch/loongarch/include/asm/inst.h       |  52 +++++++
->  arch/loongarch/include/asm/processor.h  |   9 ++
->  arch/loongarch/include/asm/stacktrace.h |  22 +++
->  arch/loongarch/include/asm/switch_to.h  |  14 +-
->  arch/loongarch/include/asm/unwind.h     |  47 +++++++
->  arch/loongarch/kernel/Makefile          |   4 +
->  arch/loongarch/kernel/asm-offsets.c     |   2 +
->  arch/loongarch/kernel/process.c         |  91 ++++++++++++-
->  arch/loongarch/kernel/stacktrace.c      |  78 +++++++++++
->  arch/loongarch/kernel/switch.S          |   2 +
->  arch/loongarch/kernel/traps.c           |  24 ++--
->  arch/loongarch/kernel/unwind_guess.c    |  67 +++++++++
->  arch/loongarch/kernel/unwind_prologue.c | 173 ++++++++++++++++++++++++
->  15 files changed, 602 insertions(+), 17 deletions(-)
->  create mode 100644 arch/loongarch/include/asm/unwind.h
->  create mode 100644 arch/loongarch/kernel/stacktrace.c
->  create mode 100644 arch/loongarch/kernel/unwind_guess.c
->  create mode 100644 arch/loongarch/kernel/unwind_prologue.c
->
-> --
-> 2.20.1
->
+On Fri, 5 Aug 2022, Matthew Wilcox wrote:
+
+> On Mon, Aug 01, 2022 at 11:01:40AM -0400, Mikulas Patocka wrote:
+> > 
+> > In most cases, the buffer is set uptodate while it is locked, so that 
+> > there is no race on the uptodate flag (the race exists on the locked 
+> > flag). Are there any cases where the uptodate flag is modified on unlocked 
+> > buffer, so that it needs special treatment too?
+> 
+> I think you misunderstand the purpose of locked/uptodate.  At least
+> for pages, the lock flag does not order access to the data in the page.
+> Indeed, the contents of the page can be changed while you hold the lock.
+> But the uptodate flag does order access to the data.  At the point where
+> you can observe the uptodate flag set, you know the contents of the page
+> have been completely read from storage.  And you don't need to hold the
+> lock to check the uptodate flag.  So this is wrong:
+> 
+> 	buffer_lock()
+> 	*data = 0x12345678;
+> 	buffer_set_uptodate_not_ordered()
+> 	buffer_unlock_ordered()
+> 
+> because a reader can do:
+> 
+> 	while (!buffer_test_uptodate()) {
+> 		buffer_lock();
+> 		buffer_unlock();
+> 	}
+> 	x = *data;
+> 
+> and get x != 0x12345678 because the compiler can move the
+> buffer_set_uptodate_not_ordered() before the store to *data.
+
+Thanks for explanation. Would you like this patch?
+
+
+
+From: Mikulas Patocka <mpatocks@redhat.com>
+
+Let's have a look at this piece of code in __bread_slow:
+	get_bh(bh);
+	bh->b_end_io = end_buffer_read_sync;
+	submit_bh(REQ_OP_READ, 0, bh);
+	wait_on_buffer(bh);
+	if (buffer_uptodate(bh))
+		return bh;
+Neither wait_on_buffer nor buffer_uptodate contain any memory barrier.
+Consequently, if someone calls sb_bread and then reads the buffer data,
+the read of buffer data may be executed before wait_on_buffer(bh) on
+architectures with weak memory ordering and it may return invalid data.
+
+Fix this bug by adding a write memory barrier to set_buffer_uptodate and a
+read memory barrier to buffer_uptodate (in the same way as
+folio_test_uptodate and folio_mark_uptodate).
+
+We also add a barrier to buffer_locked - it pairs with a barrier in
+unlock_buffer.
+
+Signed-off-by: Mikulas Patocka <mpatocka@redhat.com>
+Cc: stable@vger.kernel.org
+
+Index: linux-2.6/include/linux/buffer_head.h
+===================================================================
+--- linux-2.6.orig/include/linux/buffer_head.h
++++ linux-2.6/include/linux/buffer_head.h
+@@ -117,10 +117,8 @@ static __always_inline int test_clear_bu
+  * of the form "mark_buffer_foo()".  These are higher-level functions which
+  * do something in addition to setting a b_state bit.
+  */
+-BUFFER_FNS(Uptodate, uptodate)
+ BUFFER_FNS(Dirty, dirty)
+ TAS_BUFFER_FNS(Dirty, dirty)
+-BUFFER_FNS(Lock, locked)
+ BUFFER_FNS(Req, req)
+ TAS_BUFFER_FNS(Req, req)
+ BUFFER_FNS(Mapped, mapped)
+@@ -135,6 +133,49 @@ BUFFER_FNS(Meta, meta)
+ BUFFER_FNS(Prio, prio)
+ BUFFER_FNS(Defer_Completion, defer_completion)
+ 
++static __always_inline void set_buffer_uptodate(struct buffer_head *bh)
++{
++	/*
++	 * make it consistent with folio_mark_uptodate
++	 * pairs with smp_acquire__after_ctrl_dep in buffer_uptodate
++	 */
++	smp_wmb();
++	set_bit(BH_Uptodate, &bh->b_state);
++}
++
++static __always_inline void clear_buffer_uptodate(struct buffer_head *bh)
++{
++	clear_bit(BH_Uptodate, &bh->b_state);
++}
++
++static __always_inline int buffer_uptodate(const struct buffer_head *bh)
++{
++	bool ret = test_bit(BH_Uptodate, &bh->b_state);
++	/*
++	 * make it consistent with folio_test_uptodate
++	 * pairs with smp_wmb in set_buffer_uptodate
++	 */
++	if (ret)
++		smp_acquire__after_ctrl_dep();
++	return ret;
++}
++
++static __always_inline void set_buffer_locked(struct buffer_head *bh)
++{
++	set_bit(BH_Lock, &bh->b_state);
++}
++
++static __always_inline int buffer_locked(const struct buffer_head *bh)
++{
++	bool ret = test_bit(BH_Lock, &bh->b_state);
++	/*
++	 * pairs with smp_mb__after_atomic in unlock_buffer
++	 */
++	if (!ret)
++		smp_acquire__after_ctrl_dep();
++	return ret;
++}
++
+ #define bh_offset(bh)		((unsigned long)(bh)->b_data & ~PAGE_MASK)
+ 
+ /* If we *know* page->private refers to buffer_heads */
+
