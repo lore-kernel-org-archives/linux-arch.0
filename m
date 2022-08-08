@@ -2,181 +2,104 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 43F6FC3F6B0
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Aug 2022 08:06:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4DA24C00140
+	for <linux-arch@archiver.kernel.org>; Mon,  8 Aug 2022 08:06:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241874AbiHHIGo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 8 Aug 2022 04:06:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37932 "EHLO
+        id S242216AbiHHIGs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 8 Aug 2022 04:06:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37896 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242100AbiHHIGf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2022 04:06:35 -0400
-Received: from sin.source.kernel.org (sin.source.kernel.org [145.40.73.55])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C93D313DD0;
-        Mon,  8 Aug 2022 01:06:30 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by sin.source.kernel.org (Postfix) with ESMTPS id 31CD7CE0F72;
-        Mon,  8 Aug 2022 08:06:29 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C072DC433C1;
-        Mon,  8 Aug 2022 08:06:23 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1659945987;
-        bh=O8oJK7US06ctrbwrFK6AhnyYDVDe+qcc6oGaVuVbZgk=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=ucjfa6QfVZzSkAjPgs+tH771FrLQURJA+lcfQx6r7YbD4/+oWwzq9VqbkDhxMtwpK
-         M4PQGbG9i9IrK4C4ChmTS4G1RxftMkmtv+4DPkPXeyMRy6mGr0g9hTpi9pVm4oPLBF
-         2VBprduojP+o/X10wgiUPiiGuTuRr5E0du2iCpuUnjFCKhFMAxAZp9E95f0X7OMEld
-         UDMFlZGorX/8I81qppDNYpfJnEVKmX2T9U7Rg4KI0L7QxH8n6SSsc85degeud2H7xx
-         NPxf9DwuyYqcgXaP2tca9Gm+PAByQH5Jlt6ZZaiKfUCOSUsXpOEk0SCiumE8caJhVy
-         L8mCL/mnosJuw==
-From:   guoren@kernel.org
-To:     tj@kernel.org, cl@linux.com, palmer@dabbelt.com, will@kernel.org,
-        catalin.marinas@arm.com, peterz@infradead.org, arnd@arndb.de
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org,
-        Guo Ren <guoren@linux.alibaba.com>, Guo Ren <guoren@kernel.org>
-Subject: [RFC PATCH 3/4] riscv: percpu: Implement this_cpu operations
-Date:   Mon,  8 Aug 2022 04:05:59 -0400
-Message-Id: <20220808080600.3346843-4-guoren@kernel.org>
-X-Mailer: git-send-email 2.36.1
-In-Reply-To: <20220808080600.3346843-1-guoren@kernel.org>
-References: <20220808080600.3346843-1-guoren@kernel.org>
+        with ESMTP id S242127AbiHHIGh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2022 04:06:37 -0400
+Received: from mout.kundenserver.de (mout.kundenserver.de [217.72.192.74])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 44A1513E31;
+        Mon,  8 Aug 2022 01:06:32 -0700 (PDT)
+Received: from mail-ej1-f44.google.com ([209.85.218.44]) by
+ mrelayeu.kundenserver.de (mreue108 [213.165.67.113]) with ESMTPSA (Nemesis)
+ id 1MhDAi-1nhnXw2dfO-00eMfS; Mon, 08 Aug 2022 10:06:30 +0200
+Received: by mail-ej1-f44.google.com with SMTP id i14so15135687ejg.6;
+        Mon, 08 Aug 2022 01:06:30 -0700 (PDT)
+X-Gm-Message-State: ACgBeo3UGsnb/Cf1u8vbQV80/jTX1Ci2F1wdjEwgUbXDxlFpJr2bVtV0
+        ZteI2hmDi/5e4u4zePRVGDNxv/iiC//lW++2/Fk=
+X-Google-Smtp-Source: AA6agR4GgGd8n+xBtHZRIIZDSb3raNbv0NcwwkrbkWgSf6AjnZq/RmNzizI0Ihs+/xXm5AI+HvVE+1WgmC6BUZ+FEN4=
+X-Received: by 2002:a17:906:9b08:b0:730:5d3c:4b1b with SMTP id
+ eo8-20020a1709069b0800b007305d3c4b1bmr13057897ejc.606.1659945990183; Mon, 08
+ Aug 2022 01:06:30 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20220807172854.12971-1-rdunlap@infradead.org> <CAK8P3a0FR2ySLXAMGR1ZmaAQMbVwB4MFBPvBw4py_pbgtQSfgA@mail.gmail.com>
+ <3a4dad85-1102-1bab-c0af-a2c6827663b1@infradead.org>
+In-Reply-To: <3a4dad85-1102-1bab-c0af-a2c6827663b1@infradead.org>
+From:   Arnd Bergmann <arnd@arndb.de>
+Date:   Mon, 8 Aug 2022 10:06:14 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a140FFhCvrOXbCtYKCW6BR6tEz6uy8Wqd0aG3DdHiZSXg@mail.gmail.com>
+Message-ID: <CAK8P3a140FFhCvrOXbCtYKCW6BR6tEz6uy8Wqd0aG3DdHiZSXg@mail.gmail.com>
+Subject: Re: [PATCH] asm-generic: unistd.h: make 'compat_sys_fadvise64_64' conditional
+To:     Randy Dunlap <rdunlap@infradead.org>
+Cc:     Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
+        Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org
+Content-Type: text/plain; charset="UTF-8"
+X-Provags-ID: V03:K1:SGFtsLq8mQqaxrYQ4ycxf177BwA7aQP8CEn1L9f7FQvcOijnEq4
+ HfrsKAOzmxmbR5MC9oyM87M7eGM/SAAspq8glgbZiHqUDRk5pm34bFgEuBiMhoE+R8OxDJf
+ fS9InY7VFDSTsVMh5jD5FcKAFdLcgfMGrgM8ojlP9Y/yLoH6VVXhMWKvyjA7cA7vhdALiMx
+ 12qWk7VnVUTUU102ltPJQ==
+X-UI-Out-Filterresults: notjunk:1;V03:K0:REE8JLPm/rU=:waUH4FsaX+ZreVMH/o9cqG
+ 4xX546mhgANnfQjSTRqaXa5tX4Nu0wRKWDk5KMr7P0XHjJiXFQvrGgX7wtpgpQIpw7aHDkaAN
+ QX7HGd50e9P+tJnn4QYrEke6cqMgjpSK1Ei57vXmenSGiwouGh2hojdjU9gxRRVnYktBRekd4
+ GM+Q1SPTKpv9iYacH/Ba46Pzi1C82TikSKHHv+dUW2FagYI9Q8eo6HZQlqGVXu1T/e6c5YW5L
+ LYEzJzYUKoPaCSOyG0Ev1zIdFHodLdV3kSljrhHMhiASNHp+IVro5RrG7GrU+C+Saf4+vRyTQ
+ +552O/BbGtT/s/uHNBld4heQ9WBROMEd3aPvqYSFdTo3GydMzE3ZcCPFsEMljHpQB0Vx6iM7q
+ voqOvW5Sge8l2xrFQYzB3CjR65YNnP8jH2xlkzRo9BbuETAihdWxlxGgBINeKMj9O1Px6rDwK
+ SknTkzd21wzFaoNJHPGHnBH6dB8y7PaaknQ9/rGKGsOq/XeryczhSeU8PpQcXis5oXCOLGBgC
+ BBgvFXAjB0xMnkH7D3O1Dxfm30fc7BXrIpHTeG0L6X7HQ01QIvs96kM4DmXs9XLjpSRtbk4eb
+ 42PUpc9LxPnEdlYLzqqUYoZJg3aB7yYoJejtexHCmHrTcdG6LomnAnq57n7XQC7hX4M7BXG6j
+ k2atACizrau8d8bJw2OaTIAp2pvJRTuN2VLRKLLQ/b5v68YLjBzR8Mhs0hdYOm/UFBMzUjLQM
+ ms1TbrZ8DbRI+7el5UWXCwY9uRW7mFumeVUjDTLnUnH2sxqqrR/IlLaqFYMxP07P0/LPfTAfb
+ ub+asjAL0ncxz/2ugAtpzkgrMU+4eCLkOXItvGytus3zOMlgcuGtY3H+VwQ8Vc+XVIZ+fS5V0
+ fdRGoixc14txamgpLsMg==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On Mon, Aug 8, 2022 at 12:39 AM Randy Dunlap <rdunlap@infradead.org> wrote:
+> On 8/7/22 12:44, Arnd Bergmann wrote:
+> > On Sun, Aug 7, 2022 at 7:28 PM Randy Dunlap <rdunlap@infradead.org> wrote:
+> >>
+> >
+> > This does not work: __ARCH_WANT_COMPAT_FADVISE64_64 is defined in
+> > arch/riscv/include/asm/unistd.h, which is not a UAPI header. By making the line
+> > conditional on this, user space no longer sees the macro definition.
+> >
+> > It looks like you also drop the native definition on all architectures other
+> > than riscv here. What we probably want is to just make all the
+> > declarations in include/linux/compat.h unconditional and not have them
+> > depend on architecture specific macros. Some of these may have
+> > incompatible prototypes depending on the architecture, but if we run
+> > into those, I would suggest we just give them unique names.
+>
+> Thanks for the comments.
+>
+> With the other patch to kernel/sys_ni.c, this one is no longer needed,
 
-This patch provides riscv specific implementations for the this_cpu
-operations. We use atomic operations as appropriate (32 & 64 width).
+Ok.
 
-Use AMO instructions listed below for percpu, others are generic:
- - amoadd.w/d
- - amoand.w/d
- - amoor.w/d
- - amoswap.w/d
+> although I can look into making more entries in <linux/compat.h>
+> unconditional.
 
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@kernel.org>
----
- arch/riscv/include/asm/percpu.h | 104 ++++++++++++++++++++++++++++++++
- 1 file changed, 104 insertions(+)
- create mode 100644 arch/riscv/include/asm/percpu.h
+This would be a nice cleanup, but it does involve making sure that
+all prototypes are compatible with the implementation on each
+architecture. I think we should definitely do this, it's just not as
+simple as removing each #ifdef in linux/compat.h and linux/syscall.h
 
-diff --git a/arch/riscv/include/asm/percpu.h b/arch/riscv/include/asm/percpu.h
-new file mode 100644
-index 000000000000..f41d339c41f3
---- /dev/null
-+++ b/arch/riscv/include/asm/percpu.h
-@@ -0,0 +1,104 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+
-+#ifndef _ASM_RISCV_PERCPU_H
-+#define _ASM_RISCV_PERCPU_H
-+
-+#include <asm/cmpxchg.h>
-+
-+#define __PERCPU_OP_CASE(asm_type, name, sz, asm_op)			\
-+static inline void							\
-+__percpu_##name##_case_##sz(void *ptr, ulong val)			\
-+{									\
-+	__asm__ __volatile__ (						\
-+		"	amo" #asm_op "." #asm_type " zero, %1, (%0)"	\
-+		:							\
-+		: "r" (ptr), "r" (val)					\
-+		: "memory");						\
-+}
-+
-+#define __PERCPU_RET_OP_CASE(asm_type, name, sz, asm_op, c_op)		\
-+static inline u##sz							\
-+__percpu_##name##_return_case_##sz(void *ptr, ulong val)		\
-+{									\
-+	u##sz ret;							\
-+	__asm__ __volatile__ (						\
-+		"	amo" #asm_op "." #asm_type " %0, %2, (%1)"	\
-+		: "=r" (ret)						\
-+		: "r" (ptr), "r" (val)					\
-+		: "memory");						\
-+									\
-+	return ret c_op val;						\
-+}
-+
-+#ifdef CONFIG_64BIT
-+#define PERCPU_OP(name, asm_op)						\
-+	__PERCPU_OP_CASE(w, name, 32, asm_op)				\
-+	__PERCPU_OP_CASE(d, name, 64, asm_op)
-+
-+#define PERCPU_RET_OP(name, asm_op, c_op)				\
-+	__PERCPU_RET_OP_CASE(w, name, 32, asm_op, c_op)			\
-+	__PERCPU_RET_OP_CASE(d, name, 64, asm_op, c_op)
-+#else  /* CONFIG_32BIT */
-+#define PERCPU_OP(name, asm_op)						\
-+	__PERCPU_OP_CASE(w, name, 32, asm_op)
-+
-+#define PERCPU_RET_OP(name, asm_op, c_op)				\
-+	__PERCPU_RET_OP_CASE(w, name, 32, asm_op, c_op)
-+#endif /* CONFIG_64BIT */
-+
-+PERCPU_OP(add, add)
-+PERCPU_OP(and, and)
-+PERCPU_OP(or, or)
-+PERCPU_RET_OP(add, add, +)
-+
-+#undef __PERCPU_OP_CASE
-+#undef __PERCPU_RET_OP_CASE
-+#undef PERCPU_OP
-+#undef PERCPU_RET_OP
-+
-+#define _pcp_protect(op, pcp, ...)					\
-+({									\
-+	preempt_disable_notrace();					\
-+	op(raw_cpu_ptr(&(pcp)), __VA_ARGS__);				\
-+	preempt_enable_notrace();					\
-+})
-+
-+#define _pcp_protect_return(op, pcp, args...)				\
-+({									\
-+	typeof(pcp) __retval;						\
-+	preempt_disable_notrace();					\
-+	if (__native_word(pcp)) 					\
-+		__retval = (typeof(pcp))op(raw_cpu_ptr(&(pcp)), ##args);\
-+	else								\
-+		BUILD_BUG();						\
-+	preempt_enable_notrace();					\
-+	__retval;							\
-+})
-+
-+#define this_cpu_add_4(pcp, val)	\
-+	_pcp_protect(__percpu_add_case_32, pcp, val)
-+#define this_cpu_add_return_4(pcp, val)	\
-+	_pcp_protect_return(__percpu_add_return_case_32, pcp, val)
-+#define this_cpu_and_4(pcp, val)	\
-+	_pcp_protect(__percpu_and_case_32, pcp, val)
-+#define this_cpu_or_4(pcp, val)		\
-+	_pcp_protect(__percpu_or_case_32, pcp, val)
-+#define this_cpu_xchg_4(pcp, val)	\
-+	_pcp_protect_return(xchg_relaxed, pcp, val)
-+
-+#ifdef CONFIG_64BIT
-+#define this_cpu_add_8(pcp, val)	\
-+	_pcp_protect(__percpu_add_case_64, pcp, val)
-+#define this_cpu_add_return_8(pcp, val)	\
-+	_pcp_protect_return(__percpu_add_return_case_64, pcp, val)
-+#define this_cpu_and_8(pcp, val)	\
-+	_pcp_protect(__percpu_and_case_64, pcp, val)
-+#define this_cpu_or_8(pcp, val)		\
-+	_pcp_protect(__percpu_or_case_64, pcp, val)
-+#define this_cpu_xchg_8(pcp, val)	\
-+	_pcp_protect_return(xchg_relaxed, pcp, val)
-+#endif /* CONFIG_64BIT */
-+
-+#include <asm-generic/percpu.h>
-+
-+#endif /* _ASM_RISCV_PERCPU_H */
--- 
-2.36.1
+> That would also mean adding them to kernel/sys_ni.c, right?
+> (if not already there)
 
+That part should be completely independent. If the entry in
+kernel/sys_ni.c is missing, that causes a link failure, while an
+incorrect #ifdef would cause a compile-time error for the missing
+prototype.
+
+         Arnd
