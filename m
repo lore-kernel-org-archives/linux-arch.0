@@ -2,114 +2,109 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D94BC00140
-	for <linux-arch@archiver.kernel.org>; Mon,  8 Aug 2022 16:38:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 14A40C00140
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Aug 2022 02:58:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S244074AbiHHQif (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 8 Aug 2022 12:38:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34440 "EHLO
+        id S229869AbiHIC6a (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 8 Aug 2022 22:58:30 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50784 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S244070AbiHHQib (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2022 12:38:31 -0400
-Received: from mail-yw1-x112c.google.com (mail-yw1-x112c.google.com [IPv6:2607:f8b0:4864:20::112c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C3EE7165BE
-        for <linux-arch@vger.kernel.org>; Mon,  8 Aug 2022 09:38:30 -0700 (PDT)
-Received: by mail-yw1-x112c.google.com with SMTP id 00721157ae682-32868f43dd6so86729277b3.8
-        for <linux-arch@vger.kernel.org>; Mon, 08 Aug 2022 09:38:30 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc;
-        bh=XquYmP+vX0zNQXcxrD0gfmPbv/22szoR0PAdjI6c6FQ=;
-        b=RBd6EjHhe971WD13rB9QwkHAT4JUbLr8pEwdWhmPMPYpucCEhUe0Fdxu7UVnbr9qpP
-         hZWuzatpB+IqP6uU510l0sQTdjybSMTSw0lHTUAtbi7VRxP2+VL05RnJSC9tm4F4F9bv
-         03IZzjd3BMx5tcDns/TvMijdidvLv9/X2frigVbrc5lBTVZIT8xVWMui/Av+CCl2HQ+g
-         QeAwQ4P2RQXrRRxSJ9VYRfWwU8zBUJvN0TSOG9Egg5vBxghw1SEtI2yzQD4i2Egfj5MJ
-         HUwil0l04LL4/UtY+kLAu1nwLKCUhG43pHEAAs+sHgqewUIscMdcTdTZ4xxjKOjwkI6L
-         2CXQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc;
-        bh=XquYmP+vX0zNQXcxrD0gfmPbv/22szoR0PAdjI6c6FQ=;
-        b=REWtrosn+goExVrpsRC4IAXbDGlNmfA0cNhMO7B4p94nAaRP/KncBXNH70ObW886UI
-         uUYiWW6R9Z03XByr1/yCDaAWER89+eMz7fKaqAkV3HN7r15BUQOJJ34e8TG01MEHCayg
-         OdWFKPmHwupMXPrkw9nG49Nqv4RLwISVRp1gHsI4DAOt2sFF2Im4wr/8IGOAFfeuxlEA
-         cZjyQA/DbaDZZqEVKETj9GeCPzt8rsN4HurCynHq+CzNlV3+/m93tDh2zcXxWuLmXz/f
-         nxLfa/dkhtFbDq4aSQKYZWVZMvGlzDp50J50AzN4MFV7W6Tbo39/KsNrfLRNaDNzYDw3
-         bNbQ==
-X-Gm-Message-State: ACgBeo06zfgW5paFqrVScN0Err7uiKAbIj+zA47R47RHzYq3SKDMGIb1
-        UYdcz1UAkvmfFzjguWJCUhzeHmXl/R7i1KowFeq50g==
-X-Google-Smtp-Source: AA6agR7qwVhhNLdxkz/r+4OMSs/UhsdFghsuBlEsQGkMrD95nZ9mCd4coeYCE332Xk5fz/fL87h9vbS2cVX9CTEt9Jg=
-X-Received: by 2002:a81:7586:0:b0:31f:658e:1ac7 with SMTP id
- q128-20020a817586000000b0031f658e1ac7mr19730600ywc.295.1659976709754; Mon, 08
- Aug 2022 09:38:29 -0700 (PDT)
+        with ESMTP id S229801AbiHIC63 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2022 22:58:29 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D3DC615D;
+        Mon,  8 Aug 2022 19:58:29 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id D8A0FB81148;
+        Tue,  9 Aug 2022 02:58:27 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 92357C4347C;
+        Tue,  9 Aug 2022 02:58:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1660013906;
+        bh=vY5ylUkzROKwy6ry3674cLxiF3l1xgYFwsMymQ3/CTQ=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=R8BvOq/2UB9nvzN0NTUl0Ua9w1FdnAGpPjzhHZajA4xbD3NrKkwByj3aeAQ37TVrX
+         stsuOdxBc6zfiTAVYLi+5we5azJSs55v0zRZALYRKQttF5/P44aEBZvT1NpykBDCcT
+         OCDcFnx3hFLOHtZwNokPc84wgz1lhYH1rTMXlYpbe0v25AfC589E/2LqB/eLEAp5IC
+         o66iwu2s++KkUVIpL47K+iX/WyMJ2+GZPfJlYwTUmVfS0HsPeSrn8zKqi7VLWJhwzd
+         Kq4LDTOvA08REc/NqzmcRGcxaL+S4DWwJaEDExZZlukJNb4ZHwSfEHqYJpT854i3x2
+         qK0DFeZlO8ouw==
+Received: by mail-ot1-f43.google.com with SMTP id a14-20020a0568300b8e00b0061c4e3eb52aso7729782otv.3;
+        Mon, 08 Aug 2022 19:58:26 -0700 (PDT)
+X-Gm-Message-State: ACgBeo2+4nnoJmtGJ1KsNqwZ3j9jIPIiAT7AtkQgWJWf3JZb7eWU37bc
+        tjQTCB/DP79cSaATE1sZgxBzAYo6rR9i6YD25no=
+X-Google-Smtp-Source: AA6agR5lND1hBBqkzDW8S6KaZCUwopF2Nn6/QDh4BK6hrBv+XTSLq99vu0sFJBLe9j6l/fXE+mioK2Jp5R7Gv07KeoQ=
+X-Received: by 2002:a9d:b95:0:b0:637:9c9:864a with SMTP id 21-20020a9d0b95000000b0063709c9864amr606716oth.140.1660013905660;
+ Mon, 08 Aug 2022 19:58:25 -0700 (PDT)
 MIME-Version: 1.0
-References: <20220701142310.2188015-1-glider@google.com> <20220701142310.2188015-44-glider@google.com>
-In-Reply-To: <20220701142310.2188015-44-glider@google.com>
-From:   Alexander Potapenko <glider@google.com>
-Date:   Mon, 8 Aug 2022 18:37:52 +0200
-Message-ID: <CAG_fn=UF0+0EAJLx=tW=RDoFxuY8qd=bHcH362-kxMhOhKVFmg@mail.gmail.com>
-Subject: Re: [PATCH v4 43/45] namei: initialize parameters passed to step_into()
-To:     Alexander Potapenko <glider@google.com>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        kasan-dev <kasan-dev@googlegroups.com>,
-        Linux Memory Management List <linux-mm@kvack.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        LKML <linux-kernel@vger.kernel.org>,
-        Evgenii Stepanov <eugenis@google.com>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Segher Boessenkool <segher@kernel.crashing.org>,
-        Vitaly Buka <vitalybuka@google.com>,
-        linux-toolchains <linux-toolchains@vger.kernel.org>
+References: <20220808080600.3346843-1-guoren@kernel.org> <20220808080600.3346843-2-guoren@kernel.org>
+ <alpine.DEB.2.22.394.2208081119230.411952@gentwo.de>
+In-Reply-To: <alpine.DEB.2.22.394.2208081119230.411952@gentwo.de>
+From:   Guo Ren <guoren@kernel.org>
+Date:   Tue, 9 Aug 2022 10:58:13 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTQhLYCtuLwjXREPG5ibL+biGEgFQaE6x+9MXRG_8F_+WA@mail.gmail.com>
+Message-ID: <CAJF2gTQhLYCtuLwjXREPG5ibL+biGEgFQaE6x+9MXRG_8F_+WA@mail.gmail.com>
+Subject: Re: [RFC PATCH 1/4] vmstat: percpu: Rename HAVE_CMPXCHG_LOCAL to HAVE_CMPXCHG_PERCPU_BYTE
+To:     Christoph Lameter <cl@gentwo.de>
+Cc:     tj@kernel.org, palmer@dabbelt.com, will@kernel.org,
+        catalin.marinas@arm.com, peterz@infradead.org, arnd@arndb.de,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jul 1, 2022 at 4:25 PM Alexander Potapenko <glider@google.com> wrote:
+On Mon, Aug 8, 2022 at 5:31 PM Christoph Lameter <cl@gentwo.de> wrote:
 >
-> Under certain circumstances initialization of `unsigned seq` and
-> `struct inode *inode` passed into step_into() may be skipped.
-> In particular, if the call to lookup_fast() in walk_component()
-> returns NULL, and lookup_slow() returns a valid dentry, then the
-> `seq` and `inode` will remain uninitialized until the call to
-> step_into() (see [1] for more info).
+> On Mon, 8 Aug 2022, guoren@kernel.org wrote:
 >
-> Right now step_into() does not use these uninitialized values,
-> yet passing uninitialized values to functions is considered undefined
-> behavior (see [2]). To fix that, we initialize `seq` and `inode` at
-> definition.
+> > The name HAVE_CMPXCHG_LOCAL is confused with using cmpxchg_local, but
+> > vmstat needs this_cpu_cmpxchg_1. Rename would clarify the meaning, and
+> > maybe we could remove cmpxchg(64)_local API (Only drivers/iommu/intel
+> > used) in the future.
+>
+> HAVE_CMPXCHG_LOCAL indicates that cmpxchg_local() is available.
+>
+> The term LOCAL is important because that has traditionally signified an
+> operation that has an atomic nature that only works on the local core.
+>
+> cmpxchg local is used in slub too in the form of this_cpu_cmpxchg_double.
+1. raw_cpu_generic_cmpxchg_double don't use cmpxchg(64)_local.
+2. x86 and s390 implement this_cpu_cmpxchg_double with direct asm
+code, no relationship to cmpxchg local.
+3. Only arm64 using cmpxchg_double_local internal, but we could remove
+the relationship from generic cmpxchg_double_local. It's a fake usage.
+So maybe it's time to remove cmpxchg(64)_local in Linux and replace
+them by this_cpu_cmpxchg & cmpxchg_relaxed.
 
-Given that Al Viro has a patch series in flight to address the
-problem, I am going to drop this patch from KMSAN v5 series.
+>
+> But there is the other naming using this_cpu.....
+>
+> Maybe rename to
+>
+>         HAVE_THIS_CPU_CMPXCHG ?
+I think we should keep 1/BYTE as a suffix because riscv only
+implements 4bytes & 8bytes size cmpxchg. But vmstat needs 1Byte.
+
+>
+> and clean up all the other mentions of "local" in the source too?
+Good point, I would try. How we deal with drivers/iommu/intel/iommu.c:
+tmp = cmpxchg64_local(&pte->val, 0ULL, pteval);
+
+Change "cmpxchg64_local -> cmpxchg64_relaxed" would make them happy? I
+think they are cmpxchg_local & cmpxchg_sync users.
+
+
+>
+> There is also a local.h header around somewhere
+Yes, thx for mentioning, I missed that. The alpha, loongarch, MIPS,
+PowerPC and x86 make local_cmpxchg -> cmpxchg_local. Most of them are
+copy-paste guys, not real users.
+
+
+--
+Best Regards
+ Guo Ren
