@@ -2,272 +2,135 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 36D32C19F2D
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Aug 2022 08:56:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4FE6EC19F2D
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Aug 2022 08:57:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236411AbiHIIz5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Aug 2022 04:55:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56732 "EHLO
+        id S241979AbiHII5P (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 9 Aug 2022 04:57:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58062 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241438AbiHIIzw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2022 04:55:52 -0400
+        with ESMTP id S241485AbiHII4t (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2022 04:56:49 -0400
 Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A6D8C22286;
-        Tue,  9 Aug 2022 01:55:51 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2ADEF2252D;
+        Tue,  9 Aug 2022 01:56:47 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 3CE5AB810A7;
-        Tue,  9 Aug 2022 08:55:50 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D1019C433C1;
-        Tue,  9 Aug 2022 08:55:43 +0000 (UTC)
-From:   Huacai Chen <chenhuacai@loongson.cn>
-To:     Arnd Bergmann <arnd@arndb.de>, Huacai Chen <chenhuacai@kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Dinh Nguyen <dinguyen@kernel.org>
-Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        by ams.source.kernel.org (Postfix) with ESMTPS id D55C5B80E11;
+        Tue,  9 Aug 2022 08:56:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 85606C433C1;
+        Tue,  9 Aug 2022 08:56:44 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1660035404;
+        bh=5UfhFW8R3mc4/i0CbqCEm7Z2hfhkjOqWFTVdTW1KEos=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=iE2wEKtr2NR09x9UoLHFPRZGUQ08Lt79ntrYBu+nF9VtEnjnlbD7/TyeQoDquiKxF
+         DAn79ymhs0TCZDQ68KrMb3y9TVi34kaFMYHp5AzZOwVdoB9HQm6alFSVbGzRIHY1Bl
+         f/5B7zPdEDvqhExncNQq7Te++/PyKJEMtlBF3KpAk5H7vH1jEY0kvTZV7MxGKf9a8Y
+         f9UoR+ixdDTDQ6dK+i9Gsv/CN0P3kmdCOWak1wtLNKnZascfRnXJnhOD4RY+jj4bbI
+         kOPUKl6p3s5vauLsZ3fUroFxVXROtCTv2vWPKvdFgPNc9PAjOhKrqJp0KJKljUkbdG
+         1hci70Fl1x9Og==
+Received: from sofa.misterjones.org ([185.219.108.64] helo=why.misterjones.org)
+        by disco-boy.misterjones.org with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.95)
+        (envelope-from <maz@kernel.org>)
+        id 1oLL2Y-001sCa-C4;
+        Tue, 09 Aug 2022 09:56:42 +0100
+Date:   Tue, 09 Aug 2022 09:56:42 +0100
+Message-ID: <874jylx0ad.wl-maz@kernel.org>
+From:   Marc Zyngier <maz@kernel.org>
+To:     Huacai Chen <chenhuacai@loongson.cn>
+Cc:     Huacai Chen <chenhuacai@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Xuerui Wang <kernel@xen0n.name>,
         Xuefeng Li <lixuefeng@loongson.cn>,
-        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org,
-        linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        Feiyang Chen <chenfeiyang@loongson.cn>,
-        Min Zhou <zhoumin@loongson.cn>,
-        Huacai Chen <chenhuacai@loongson.cn>
-Subject: [PATCH V9 2/4] LoongArch: Add sparse memory vmemmap support
-Date:   Tue,  9 Aug 2022 16:52:51 +0800
-Message-Id: <20220809085253.2916982-3-chenhuacai@loongson.cn>
-X-Mailer: git-send-email 2.31.1
-In-Reply-To: <20220809085253.2916982-1-chenhuacai@loongson.cn>
-References: <20220809085253.2916982-1-chenhuacai@loongson.cn>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        Jiaxun Yang <jiaxun.yang@flygoat.com>
+Subject: Re: [PATCH] LoongArch: Don't disable EIOINTC master core
+In-Reply-To: <20220809074522.2444672-1-chenhuacai@loongson.cn>
+References: <20220809074522.2444672-1-chenhuacai@loongson.cn>
+User-Agent: Wanderlust/2.15.9 (Almost Unreal) SEMI-EPG/1.14.7 (Harue)
+ FLIM-LB/1.14.9 (=?UTF-8?B?R29qxY0=?=) APEL-LB/10.8 EasyPG/1.0.0 Emacs/27.1
+ (x86_64-pc-linux-gnu) MULE/6.0 (HANACHIRUSATO)
+MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
+Content-Type: text/plain; charset=US-ASCII
+X-SA-Exim-Connect-IP: 185.219.108.64
+X-SA-Exim-Rcpt-To: chenhuacai@loongson.cn, chenhuacai@kernel.org, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, kernel@xen0n.name, lixuefeng@loongson.cn, jiaxun.yang@flygoat.com
+X-SA-Exim-Mail-From: maz@kernel.org
+X-SA-Exim-Scanned: No (on disco-boy.misterjones.org); SAEximRunCond expanded to false
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Feiyang Chen <chenfeiyang@loongson.cn>
+On Tue, 09 Aug 2022 08:45:22 +0100,
+Huacai Chen <chenhuacai@loongson.cn> wrote:
+> 
+> This patch fix a CPU hotplug issue. The EIOINTC master core (the first
+> core of an EIOINTC node) should not be disabled at runtime, since it has
+> the responsibility of dispatching I/O interrupts.
+> 
+> Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+> ---
+>  arch/loongarch/kernel/smp.c            | 9 +++++++++
+>  drivers/irqchip/irq-loongson-eiointc.c | 5 +++++
+>  2 files changed, 14 insertions(+)
+> 
+> diff --git a/arch/loongarch/kernel/smp.c b/arch/loongarch/kernel/smp.c
+> index 09743103d9b3..54901716f8de 100644
+> --- a/arch/loongarch/kernel/smp.c
+> +++ b/arch/loongarch/kernel/smp.c
+> @@ -242,9 +242,18 @@ void loongson3_smp_finish(void)
+>  
+>  static bool io_master(int cpu)
+>  {
+> +	int i, node, master;
+> +
+>  	if (cpu == 0)
+>  		return true;
+>  
+> +	for (i = 1; i < loongson_sysconf.nr_io_pics; i++) {
+> +		node = eiointc_get_node(i);
+> +		master = cpu_number_map(node * CORES_PER_EIO_NODE);
+> +		if (cpu == master)
+> +			return true;
+> +	}
+> +
+>  	return false;
+>  }
+>  
+> diff --git a/drivers/irqchip/irq-loongson-eiointc.c b/drivers/irqchip/irq-loongson-eiointc.c
+> index 170dbc96c7d3..6c99a2ff95f5 100644
+> --- a/drivers/irqchip/irq-loongson-eiointc.c
+> +++ b/drivers/irqchip/irq-loongson-eiointc.c
+> @@ -56,6 +56,11 @@ static void eiointc_enable(void)
+>  	iocsr_write64(misc, LOONGARCH_IOCSR_MISC_FUNC);
+>  }
+>  
+> +int eiointc_get_node(int id)
+> +{
+> +	return eiointc_priv[id]->node;
+> +}
+> +
+>  static int cpu_to_eio_node(int cpu)
+>  {
+>  	return cpu_logical_map(cpu) / CORES_PER_EIO_NODE;
 
-Add sparse memory vmemmap support for LoongArch. SPARSEMEM_VMEMMAP
-uses a virtually mapped memmap to optimise pfn_to_page and page_to_pfn
-operations. This is the most efficient option when sufficient kernel
-resources are available.
 
-Signed-off-by: Min Zhou <zhoumin@loongson.cn>
-Signed-off-by: Feiyang Chen <chenfeiyang@loongson.cn>
-Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
----
- arch/loongarch/Kconfig                 |  1 +
- arch/loongarch/include/asm/pgtable.h   |  6 ++-
- arch/loongarch/include/asm/sparsemem.h |  6 +++
- arch/loongarch/mm/init.c               | 73 +++++++++++++++++++++++++-
- include/linux/mm.h                     |  2 +
- mm/sparse-vmemmap.c                    | 10 ++++
- 6 files changed, 96 insertions(+), 2 deletions(-)
+I don't understand why it has to be this complex and make any use of
+the node number.
 
-diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
-index 1281128d9fce..cff781d92c81 100644
---- a/arch/loongarch/Kconfig
-+++ b/arch/loongarch/Kconfig
-@@ -418,6 +418,7 @@ config ARCH_FLATMEM_ENABLE
- 
- config ARCH_SPARSEMEM_ENABLE
- 	def_bool y
-+	select SPARSEMEM_VMEMMAP_ENABLE
- 	help
- 	  Say Y to support efficient handling of sparse physical memory,
- 	  for architectures which are either NUMA (Non-Uniform Memory Access)
-diff --git a/arch/loongarch/include/asm/pgtable.h b/arch/loongarch/include/asm/pgtable.h
-index 9c811c3f7572..adb5a3d2ed4f 100644
---- a/arch/loongarch/include/asm/pgtable.h
-+++ b/arch/loongarch/include/asm/pgtable.h
-@@ -65,6 +65,7 @@
- #include <linux/mmzone.h>
- #include <asm/fixmap.h>
- #include <asm/io.h>
-+#include <asm/sparsemem.h>
- 
- struct mm_struct;
- struct vm_area_struct;
-@@ -92,7 +93,10 @@ extern unsigned long zero_page_mask;
- #define VMALLOC_START	MODULES_END
- #define VMALLOC_END	\
- 	(vm_map_base +	\
--	 min(PTRS_PER_PGD * PTRS_PER_PUD * PTRS_PER_PMD * PTRS_PER_PTE * PAGE_SIZE, (1UL << cpu_vabits)) - PMD_SIZE)
-+	 min(PTRS_PER_PGD * PTRS_PER_PUD * PTRS_PER_PMD * PTRS_PER_PTE * PAGE_SIZE, (1UL << cpu_vabits)) - PMD_SIZE - VMEMMAP_SIZE)
-+
-+#define vmemmap		((struct page *)((VMALLOC_END + PMD_SIZE) & PMD_MASK))
-+#define VMEMMAP_END	((unsigned long)vmemmap + VMEMMAP_SIZE - 1)
- 
- #define pte_ERROR(e) \
- 	pr_err("%s:%d: bad pte %016lx.\n", __FILE__, __LINE__, pte_val(e))
-diff --git a/arch/loongarch/include/asm/sparsemem.h b/arch/loongarch/include/asm/sparsemem.h
-index 3d18cdf1b069..ee55cdf933c6 100644
---- a/arch/loongarch/include/asm/sparsemem.h
-+++ b/arch/loongarch/include/asm/sparsemem.h
-@@ -11,6 +11,12 @@
- #define SECTION_SIZE_BITS	29 /* 2^29 = Largest Huge Page Size */
- #define MAX_PHYSMEM_BITS	48
- 
-+#ifndef CONFIG_SPARSEMEM_VMEMMAP
-+#define VMEMMAP_SIZE	0
-+#else
-+#define VMEMMAP_SIZE	(sizeof(struct page) * (1UL << (cpu_pabits + 1 - PAGE_SHIFT)))
-+#endif
-+
- #endif /* CONFIG_SPARSEMEM */
- 
- #ifdef CONFIG_MEMORY_HOTPLUG
-diff --git a/arch/loongarch/mm/init.c b/arch/loongarch/mm/init.c
-index 7094a68c9b83..78f71f9bf295 100644
---- a/arch/loongarch/mm/init.c
-+++ b/arch/loongarch/mm/init.c
-@@ -22,7 +22,7 @@
- #include <linux/pfn.h>
- #include <linux/hardirq.h>
- #include <linux/gfp.h>
--#include <linux/initrd.h>
-+#include <linux/hugetlb.h>
- #include <linux/mmzone.h>
- 
- #include <asm/asm-offsets.h>
-@@ -157,6 +157,77 @@ void arch_remove_memory(u64 start, u64 size, struct vmem_altmap *altmap)
- #endif
- #endif
- 
-+#ifdef CONFIG_SPARSEMEM_VMEMMAP
-+static int __meminit vmemmap_populate_hugepages(unsigned long start, unsigned long end,
-+						int node, struct vmem_altmap *altmap)
-+{
-+	unsigned long addr = start;
-+	unsigned long next;
-+	pgd_t *pgd;
-+	p4d_t *p4d;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+
-+	for (addr = start; addr < end; addr = next) {
-+		next = pmd_addr_end(addr, end);
-+
-+		pgd = vmemmap_pgd_populate(addr, node);
-+		if (!pgd)
-+			return -ENOMEM;
-+		p4d = vmemmap_p4d_populate(pgd, addr, node);
-+		if (!p4d)
-+			return -ENOMEM;
-+		pud = vmemmap_pud_populate(p4d, addr, node);
-+		if (!pud)
-+			return -ENOMEM;
-+
-+		pmd = pmd_offset(pud, addr);
-+		if (pmd_none(*pmd)) {
-+			void *p = NULL;
-+
-+			p = vmemmap_alloc_block_buf(PMD_SIZE, node, NULL);
-+			if (p) {
-+				pmd_t entry;
-+
-+				entry = pfn_pmd(virt_to_pfn(p), PAGE_KERNEL);
-+				pmd_val(entry) |= _PAGE_HUGE | _PAGE_HGLOBAL;
-+				set_pmd_at(&init_mm, addr, pmd, entry);
-+
-+				continue;
-+			}
-+		} else if (pmd_val(*pmd) & _PAGE_HUGE) {
-+			vmemmap_verify((pte_t *)pmd, node, addr, next);
-+			continue;
-+		}
-+		if (vmemmap_populate_basepages(addr, next, node, NULL))
-+			return -ENOMEM;
-+	}
-+
-+	return 0;
-+}
-+
-+#if CONFIG_PGTABLE_LEVELS == 2
-+int __meminit vmemmap_populate(unsigned long start, unsigned long end,
-+			int node, struct vmem_altmap *altmap)
-+{
-+	return vmemmap_populate_basepages(start, end, node, NULL);
-+}
-+#else
-+int __meminit vmemmap_populate(unsigned long start, unsigned long end,
-+			int node, struct vmem_altmap *altmap)
-+{
-+	return vmemmap_populate_hugepages(start, end, node, NULL);
-+}
-+#endif
-+
-+#ifdef CONFIG_MEMORY_HOTPLUG
-+void vmemmap_free(unsigned long start, unsigned long end,
-+			struct vmem_altmap *altmap)
-+{
-+}
-+#endif
-+#endif
-+
- /*
-  * Align swapper_pg_dir in to 64K, allows its address to be loaded
-  * with a single LUI instruction in the TLB handlers.  If we used
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 7898e29bcfb5..16bee6513f1a 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -3207,6 +3207,8 @@ void *sparse_buffer_alloc(unsigned long size);
- struct page * __populate_section_memmap(unsigned long pfn,
- 		unsigned long nr_pages, int nid, struct vmem_altmap *altmap,
- 		struct dev_pagemap *pgmap);
-+void pmd_init(void *addr);
-+void pud_init(void *addr);
- pgd_t *vmemmap_pgd_populate(unsigned long addr, int node);
- p4d_t *vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node);
- pud_t *vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node);
-diff --git a/mm/sparse-vmemmap.c b/mm/sparse-vmemmap.c
-index dbbd1a7e65f3..0abcb0a5f1b5 100644
---- a/mm/sparse-vmemmap.c
-+++ b/mm/sparse-vmemmap.c
-@@ -595,6 +595,10 @@ pmd_t * __meminit vmemmap_pmd_populate(pud_t *pud, unsigned long addr, int node)
- 	return pmd;
- }
- 
-+void __weak __meminit pmd_init(void *addr)
-+{
-+}
-+
- pud_t * __meminit vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node)
- {
- 	pud_t *pud = pud_offset(p4d, addr);
-@@ -602,11 +606,16 @@ pud_t * __meminit vmemmap_pud_populate(p4d_t *p4d, unsigned long addr, int node)
- 		void *p = vmemmap_alloc_block_zero(PAGE_SIZE, node);
- 		if (!p)
- 			return NULL;
-+		pmd_init(p);
- 		pud_populate(&init_mm, pud, p);
- 	}
- 	return pud;
- }
- 
-+void __weak __meminit pud_init(void *addr)
-+{
-+}
-+
- p4d_t * __meminit vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node)
- {
- 	p4d_t *p4d = p4d_offset(pgd, addr);
-@@ -614,6 +623,7 @@ p4d_t * __meminit vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node)
- 		void *p = vmemmap_alloc_block_zero(PAGE_SIZE, node);
- 		if (!p)
- 			return NULL;
-+		pud_init(p);
- 		p4d_populate(&init_mm, p4d, p);
- 	}
- 	return p4d;
+As I understand it, CPU-0 in any EIOINTC block is a master. So all you
+need to find out is whether the CPU number is a multiple of
+CORES_PER_EIO_NODE.
+
+Something like:
+
+	return (cpu_logical_map(cpu) % CORES_PER_EIO_NODE) == 0;
+
+which doesn't require exporting anything from anywhere?
+
+	M.
+
 -- 
-2.31.1
-
+Without deviation from the norm, progress is not possible.
