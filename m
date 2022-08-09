@@ -2,139 +2,91 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 58296C19F2D
-	for <linux-arch@archiver.kernel.org>; Tue,  9 Aug 2022 19:45:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 97EA6C19F2D
+	for <linux-arch@archiver.kernel.org>; Tue,  9 Aug 2022 21:43:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345324AbiHITpA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 Aug 2022 15:45:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45094 "EHLO
+        id S229512AbiHIVm4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 9 Aug 2022 17:42:56 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51284 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345036AbiHITot (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2022 15:44:49 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DCCD826553;
-        Tue,  9 Aug 2022 12:44:46 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=X6ZKr7fgxCrOJ9tv9cKzUL964WC7Pz5KIRmzI2W7soA=; b=O7rcApswccVM2TyEVknqdGGO8v
-        hl1R92hKtdyVfwS5opk3FiajnAwrUrdev/h941H+VQ+LsR4yCjsgEbwpZJbQImEGH6YghH2ToRv5z
-        o/Pn1jy4xsjDYLdHmVBd+HQ7UCw/bMue4cXeoNS5QcpsZgMd0sZWgrCVMyDqQwbxcUKx60VR9o7FD
-        cuY7b1b4Rin/nWyZYgOcaGumrYqPERJSnnizVPVjw2uPB/6SZgeXsfkB6jtPoMpzN/pQ1VH5k0tNO
-        UEBpX4m+FaXkSY10KQ/7rgFkkzGiUbgKeZFOKRq+PN27QNvMCfMk2LRwbjx6plW7cz0OluexognRQ
-        7kprafMg==;
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1oLV9T-00Fn8c-Ka; Tue, 09 Aug 2022 19:44:31 +0000
-Date:   Tue, 9 Aug 2022 20:44:31 +0100
-From:   Matthew Wilcox <willy@infradead.org>
-To:     Mikulas Patocka <mpatocka@redhat.com>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Will Deacon <will@kernel.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        linux-fsdevel@vger.kernel.org
-Subject: Re: [PATCH v6] add barriers to buffer_uptodate and
- set_buffer_uptodate
-Message-ID: <YvK5H+LVm3Bnb78+@casper.infradead.org>
-References: <YuflGG60pHiXp2z/@casper.infradead.org>
- <alpine.LRH.2.02.2208011040190.27101@file01.intranet.prod.int.rdu2.redhat.com>
- <YuyNE5c06WStxQ2z@casper.infradead.org>
- <alpine.LRH.2.02.2208070732160.30857@file01.intranet.prod.int.rdu2.redhat.com>
- <Yu/RJtoJPhkWXIdP@casper.infradead.org>
- <alpine.LRH.2.02.2208080928580.8160@file01.intranet.prod.int.rdu2.redhat.com>
- <YvEgZuSdv8XHtkJg@casper.infradead.org>
- <alpine.LRH.2.02.2208081050330.8160@file01.intranet.prod.int.rdu2.redhat.com>
- <YvEuIg3669UeSwjD@casper.infradead.org>
- <alpine.LRH.2.02.2208091359220.5899@file01.intranet.prod.int.rdu2.redhat.com>
+        with ESMTP id S229838AbiHIVmv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2022 17:42:51 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D4DD46AA13;
+        Tue,  9 Aug 2022 14:42:50 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id A5682B8136E;
+        Tue,  9 Aug 2022 21:42:49 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 75BBEC433C1;
+        Tue,  9 Aug 2022 21:42:48 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1660081368;
+        bh=LWQCSC8FfjD55HWw0CaXRB1hieerDY6z05vJfxpHEHg=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=eyZONta/AY5NtbKKWqKeonHKFZeLmxIazytRuQI+Am+sNzdG/wHdAvER4mdnvk2/z
+         nj0myWJfmcgwLwZyaP+ZAVFFoNHljht/kTGTAZj+5MxOxKMfwbmHWGEqzZ7gofaKNn
+         x+fLNSNPwuhuVt7/8GrrNieBPiIKHmkTZ2UMjG8bijFA7idZsvgUG7g6B1192pwsTW
+         gCjHi4o+63/2JlkI+/pN5pyc/b502yiSLbIwbmhgERytcc95geCoqAERexkZu7vmw3
+         axguioooj2XkvGSVfSrNRQi+qtBjgXzHrkDaPOGhcOzNvOeYoLv8Ako8+6vuR+j3RM
+         UjN8N+P6FZXUw==
+Received: by mail-wm1-f43.google.com with SMTP id 186-20020a1c02c3000000b003a34ac64bdfso106999wmc.1;
+        Tue, 09 Aug 2022 14:42:48 -0700 (PDT)
+X-Gm-Message-State: ACgBeo054Z5fiZSBfy9qlzoWuoXb63NBi/mEaAOS5az0WcO1Vi4PlLrk
+        7FdSv9G7SBXRHESNS94LVkbzfEqFM9n5h0eAuhA=
+X-Google-Smtp-Source: AA6agR46znHPnjXuMF0ESE8yshyOz9FwMBs5CzrB/1w3Ltrdqh36cdhHWvBCtR8W2w5FTqLo7Im4fOVR23KjCUL7o+g=
+X-Received: by 2002:a05:600c:1e8f:b0:3a4:e0f0:4bad with SMTP id
+ be15-20020a05600c1e8f00b003a4e0f04badmr224990wmb.133.1660081366742; Tue, 09
+ Aug 2022 14:42:46 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.LRH.2.02.2208091359220.5899@file01.intranet.prod.int.rdu2.redhat.com>
+References: <CAK8P3a2jgQcLaDXX6eOTNrU0RJ2O625e75LBMy6v2ABP0cdoww@mail.gmail.com>
+ <CAHk-=wgZSD3W2y6yczad2Am=EfHYyiPzTn3CfXxrriJf9i5W5w@mail.gmail.com> <YvKD4hkZ3erf54DG@linutronix.de>
+In-Reply-To: <YvKD4hkZ3erf54DG@linutronix.de>
+From:   Arnd Bergmann <arnd@kernel.org>
+Date:   Tue, 9 Aug 2022 23:42:29 +0200
+X-Gmail-Original-Message-ID: <CAK8P3a1pvWK0GUikVG7H=AByOfS4x=JjXezorjF66Hv8FH8uBA@mail.gmail.com>
+Message-ID: <CAK8P3a1pvWK0GUikVG7H=AByOfS4x=JjXezorjF66Hv8FH8uBA@mail.gmail.com>
+Subject: Re: [PATCH] asm-generic: Conditionally enable do_softirq_own_stack()
+ via Kconfig.
+To:     Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        Sai Prakash Ranjan <saiprakash.ranjan@codeaurora.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Aug 09, 2022 at 02:32:13PM -0400, Mikulas Patocka wrote:
-> From: Mikulas Patocka <mpatocka@redhat.com>
-> 
-> Let's have a look at this piece of code in __bread_slow:
-> 	get_bh(bh);
-> 	bh->b_end_io = end_buffer_read_sync;
-> 	submit_bh(REQ_OP_READ, 0, bh);
-> 	wait_on_buffer(bh);
-> 	if (buffer_uptodate(bh))
-> 		return bh;
-> Neither wait_on_buffer nor buffer_uptodate contain any memory barrier.
-> Consequently, if someone calls sb_bread and then reads the buffer data,
-> the read of buffer data may be executed before wait_on_buffer(bh) on
-> architectures with weak memory ordering and it may return invalid data.
-> 
-> Fix this bug by adding a memory barrier to set_buffer_uptodate and an
-> acquire barrier to buffer_uptodate (in a similar way as
-> folio_test_uptodate and folio_mark_uptodate).
-> 
-> Signed-off-by: Mikulas Patocka <mpatocka@redhat.com>
+On Tue, Aug 9, 2022 at 5:57 PM Sebastian Andrzej Siewior
+<bigeasy@linutronix.de> wrote:
+>
+> Remove the CONFIG_PREEMPT_RT symbol from the ifdef around
+> do_softirq_own_stack() and move it to Kconfig instead.
+>
+> Enable softirq stacks based on SOFTIRQ_ON_OWN_STACK which depends on
+> HAVE_SOFTIRQ_ON_OWN_STACK and its default value is set to !PREEMPT_RT.
+> This ensures that softirq stacks are not used on PREEMPT_RT and avoids
+> a 'select' statement on an option which has a 'depends' statement.
+>
+> Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+> ---
+>  arch/Kconfig                          | 4 ++++
+>  arch/arm/kernel/irq.c                 | 2 +-
+>  arch/parisc/kernel/irq.c              | 2 +-
+>  arch/powerpc/kernel/irq.c             | 4 ++--
+>  arch/s390/include/asm/softirq_stack.h | 2 +-
+>  arch/sh/kernel/irq.c                  | 2 +-
+>  arch/sparc/kernel/irq_64.c            | 2 +-
+>  arch/x86/include/asm/irq_stack.h      | 2 +-
+>  arch/x86/kernel/irq_32.c              | 2 +-
+>  include/asm-generic/softirq_stack.h   | 2 +-
 
-Reviewed-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Thanks for the patch, I assume Linus will want to pick this up himself.
+Let me know if I should give it a spin in the asm-generic tree first for
+additional build testing.
 
-> Cc: stable@vger.kernel.org
-> 
-> Index: linux-2.6/include/linux/buffer_head.h
-> ===================================================================
-> --- linux-2.6.orig/include/linux/buffer_head.h
-> +++ linux-2.6/include/linux/buffer_head.h
-> @@ -117,7 +117,6 @@ static __always_inline int test_clear_bu
->   * of the form "mark_buffer_foo()".  These are higher-level functions which
->   * do something in addition to setting a b_state bit.
->   */
-> -BUFFER_FNS(Uptodate, uptodate)
->  BUFFER_FNS(Dirty, dirty)
->  TAS_BUFFER_FNS(Dirty, dirty)
->  BUFFER_FNS(Lock, locked)
-> @@ -135,6 +134,30 @@ BUFFER_FNS(Meta, meta)
->  BUFFER_FNS(Prio, prio)
->  BUFFER_FNS(Defer_Completion, defer_completion)
->  
-> +static __always_inline void set_buffer_uptodate(struct buffer_head *bh)
-> +{
-> +	/*
-> +	 * make it consistent with folio_mark_uptodate
-> +	 * pairs with smp_load_acquire in buffer_uptodate
-> +	 */
-> +	smp_mb__before_atomic();
-> +	set_bit(BH_Uptodate, &bh->b_state);
-> +}
-> +
-> +static __always_inline void clear_buffer_uptodate(struct buffer_head *bh)
-> +{
-> +	clear_bit(BH_Uptodate, &bh->b_state);
-> +}
-> +
-> +static __always_inline int buffer_uptodate(const struct buffer_head *bh)
-> +{
-> +	/*
-> +	 * make it consistent with folio_test_uptodate
-> +	 * pairs with smp_mb__before_atomic in set_buffer_uptodate
-> +	 */
-> +	return (smp_load_acquire(&bh->b_state) & (1UL << BH_Uptodate)) != 0;
-> +}
-> +
->  #define bh_offset(bh)		((unsigned long)(bh)->b_data & ~PAGE_MASK)
->  
->  /* If we *know* page->private refers to buffer_heads */
-> 
+Acked-by: Arnd Bergmann <arnd@arndb.de>
