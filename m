@@ -2,182 +2,120 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2ACA4C00140
-	for <linux-arch@archiver.kernel.org>; Mon, 15 Aug 2022 11:06:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71B10C282E7
+	for <linux-arch@archiver.kernel.org>; Mon, 15 Aug 2022 12:36:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233450AbiHOLGn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 15 Aug 2022 07:06:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48834 "EHLO
+        id S230431AbiHOMgl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 15 Aug 2022 08:36:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47528 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S241716AbiHOLG3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Aug 2022 07:06:29 -0400
-Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4761425291;
-        Mon, 15 Aug 2022 04:05:50 -0700 (PDT)
-Received: from dggpemm500024.china.huawei.com (unknown [172.30.72.57])
-        by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4M5rwQ6lyszlVn7;
-        Mon, 15 Aug 2022 19:02:46 +0800 (CST)
-Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
- dggpemm500024.china.huawei.com (7.185.36.203) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Mon, 15 Aug 2022 19:05:47 +0800
-Received: from ubuntu1804.huawei.com (10.67.175.36) by
- dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2375.24; Mon, 15 Aug 2022 19:05:47 +0800
-From:   Chen Zhongjin <chenzhongjin@huawei.com>
-To:     <linux-arm-kernel@lists.infradead.org>,
-        <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>
-CC:     <linux@armlinux.org.uk>, <arnd@arndb.de>,
-        <linus.walleij@linaro.org>, <ardb@kernel.org>,
-        <rmk+kernel@armlinux.org.uk>, <rostedt@goodmis.org>,
-        <nick.hawkins@hpe.com>, <john@phrozen.org>, <mhiramat@kernel.org>,
-        <chenzhongjin@huawei.com>
-Subject: [RESEND PATCH] ARM: Recover kretprobes return address for EABI stack unwinder
-Date:   Mon, 15 Aug 2022 19:02:40 +0800
-Message-ID: <20220815110240.18293-1-chenzhongjin@huawei.com>
-X-Mailer: git-send-email 2.17.1
+        with ESMTP id S229623AbiHOMgj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Aug 2022 08:36:39 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 130711A3BC;
+        Mon, 15 Aug 2022 05:36:38 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id A1F0B611C6;
+        Mon, 15 Aug 2022 12:36:37 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1637DC433C1;
+        Mon, 15 Aug 2022 12:36:31 +0000 (UTC)
+From:   Huacai Chen <chenhuacai@loongson.cn>
+To:     Arnd Bergmann <arnd@arndb.de>, Huacai Chen <chenhuacai@kernel.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Dinh Nguyen <dinguyen@kernel.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org,
+        linux-mips@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Feiyang Chen <chenfeiyang@loongson.cn>
+Subject: [PATCH V10 0/4] mm/sparse-vmemmap: Generalise helpers and enable for LoongArch
+Date:   Mon, 15 Aug 2022 20:36:09 +0800
+Message-Id: <20220815123613.3291770-1-chenhuacai@loongson.cn>
+X-Mailer: git-send-email 2.31.1
 MIME-Version: 1.0
-Content-Type: text/plain
-X-Originating-IP: [10.67.175.36]
-X-ClientProxiedBy: dggems703-chm.china.huawei.com (10.3.19.180) To
- dggpemm500013.china.huawei.com (7.185.36.172)
-X-CFilter-Loop: Reflected
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-'fed240d9c974 ("ARM: Recover kretprobe modified return address in stacktrace")'
-has implemented kretprobes return address recovery for FP
-unwinder, this patch makes it works for EABI unwinder.
+This series is in order to enable sparse-vmemmap for LoongArch. But
+LoongArch cannot use generic helpers directly because MIPS&LoongArch
+need to call pgd_init()/pud_init()/pmd_init() when populating page
+tables. So we adjust the prototypes of p?d_init() to make generic
+helpers can call them, then enable sparse-vmemmap with generic helpers,
+and to be further, generalise vmemmap_populate_hugepages() for ARM64,
+X86 and LoongArch.
 
-It saves __kretprobe_trampoline address in LR on stack to identify
-and recover the correct return address in EABI unwinder.
+V1 -> V2:
+Split ARCH_WANT_HUGETLB_PAGE_OPTIMIZE_VMEMMAP to a separate patch.
 
-Since EABI doesn't use r11 as frame pointer, we need to use SP to
-identify different kretprobes addresses. Here the value of SP has fixed
-distance to conventional FP position so it's fine to use it.
+V2 -> V3:
+1, Change the Signed-off-by order of author and committer;
+2, Update commit message about the build error on LoongArch.
 
-Passed kunit kprobes_test on QEMU.
+V3 -> V4:
+Change pmd to pmdp for ARM64 for consistency.
 
-Signed-off-by: Chen Zhongjin <chenzhongjin@huawei.com>
+V4 -> V5:
+Add a detailed comment for no-fallback in the altmap case.
+
+V5 -> V6:
+1, Fix build error for NIOS2;
+2, Fix build error for allnoconfig;
+3, Update comment for no-fallback in the altmap case.
+
+V6 -> V7:
+Fix build warnings of "no previous prototype".
+
+V7 -> V8:
+Fix build error for MIPS pud_init().
+
+V8 -> V9:
+Remove redundant #include to avoid build error with latest upstream
+kernel.
+
+V9 -> V10:
+Fix build error due to VMEMMAP changes in 6.0-rc1.
+
+Huacai Chen and Feiyang Chen(4):
+ MIPS&LoongArch&NIOS2: Adjust prototypes of p?d_init().
+ LoongArch: Add sparse memory vmemmap support.
+ mm/sparse-vmemmap: Generalise vmemmap_populate_hugepages().
+ LoongArch: Enable ARCH_WANT_HUGETLB_PAGE_OPTIMIZE_VMEMMAP.
+
+Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+Signed-off-by: Feiyang Chen <chenfeiyang@loongson.cn> 
 ---
- arch/arm/Kconfig               |  2 +-
- arch/arm/kernel/unwind.c       | 12 ++++++++++++
- arch/arm/probes/kprobes/core.c | 20 +++++++++++++++++---
- 3 files changed, 30 insertions(+), 4 deletions(-)
-
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 87badeae3181..7165e314c0de 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -3,7 +3,7 @@ config ARM
- 	bool
- 	default y
- 	select ARCH_32BIT_OFF_T
--	select ARCH_CORRECT_STACKTRACE_ON_KRETPROBE if HAVE_KRETPROBES && FRAME_POINTER && !ARM_UNWIND
-+	select ARCH_CORRECT_STACKTRACE_ON_KRETPROBE if HAVE_KRETPROBES
- 	select ARCH_HAS_BINFMT_FLAT
- 	select ARCH_HAS_CURRENT_STACK_POINTER
- 	select ARCH_HAS_DEBUG_VIRTUAL if MMU
-diff --git a/arch/arm/kernel/unwind.c b/arch/arm/kernel/unwind.c
-index a37ea6c772cd..51e34fa4a4b3 100644
---- a/arch/arm/kernel/unwind.c
-+++ b/arch/arm/kernel/unwind.c
-@@ -28,6 +28,7 @@
- #include <linux/slab.h>
- #include <linux/spinlock.h>
- #include <linux/list.h>
-+#include <linux/kprobes.h>
- 
- #include <asm/stacktrace.h>
- #include <asm/traps.h>
-@@ -482,6 +483,12 @@ int unwind_frame(struct stackframe *frame)
- 	frame->pc = ctrl.vrs[PC];
- 	frame->lr_addr = ctrl.lr_addr;
- 
-+#ifdef CONFIG_KRETPROBES
-+	if (is_kretprobe_trampoline(frame->pc))
-+		frame->pc = kretprobe_find_ret_addr(frame->tsk,
-+					(void *)frame->sp, &frame->kr_cur);
-+#endif
-+
- 	return URC_OK;
- }
- 
-@@ -522,6 +529,11 @@ void unwind_backtrace(struct pt_regs *regs, struct task_struct *tsk,
- 		frame.pc = thread_saved_pc(tsk);
- 	}
- 
-+#ifdef CONFIG_KRETPROBES
-+	frame.kr_cur = NULL;
-+	frame.tsk = tsk;
-+#endif
-+
- 	while (1) {
- 		int urc;
- 		unsigned long where = frame.pc;
-diff --git a/arch/arm/probes/kprobes/core.c b/arch/arm/probes/kprobes/core.c
-index 9090c3a74dcc..1435b508aa36 100644
---- a/arch/arm/probes/kprobes/core.c
-+++ b/arch/arm/probes/kprobes/core.c
-@@ -41,6 +41,16 @@
- 			   (unsigned long)(addr) +	\
- 			   (size))
- 
-+/*
-+ * Since EABI unwinder doesn't use ARM_fp as conventional fp
-+ * use ARM_sp as hint register for kretprobes.
-+ */
-+#ifdef CONFIG_ARM_UNWIND
-+#define TRAMP_FP ARM_sp
-+#else /* CONFIG_FRAME_POINTER */
-+#define TRAMP_FP ARM_fp
-+#endif
-+
- DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
- DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
- 
-@@ -376,8 +386,8 @@ int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
- void __naked __kprobes __kretprobe_trampoline(void)
- {
- 	__asm__ __volatile__ (
--#ifdef CONFIG_FRAME_POINTER
- 		"ldr	lr, =__kretprobe_trampoline	\n\t"
-+#ifdef CONFIG_FRAME_POINTER
- 	/* __kretprobe_trampoline makes a framepointer on pt_regs. */
- #ifdef CONFIG_CC_IS_CLANG
- 		"stmdb	sp, {sp, lr, pc}	\n\t"
-@@ -395,8 +405,12 @@ void __naked __kprobes __kretprobe_trampoline(void)
- 		"add	fp, sp, #60		\n\t"
- #endif /* CONFIG_CC_IS_CLANG */
- #else /* !CONFIG_FRAME_POINTER */
-+		/* store SP, LR on stack and add EABI unwind hint */
-+		"stmdb  sp, {sp, lr, pc}	\n\t"
-+		".save	{sp, lr, pc}	\n\t"
- 		"sub	sp, sp, #16		\n\t"
- 		"stmdb	sp!, {r0 - r11}		\n\t"
-+		".pad	#52				\n\t"
- #endif /* CONFIG_FRAME_POINTER */
- 		"mov	r0, sp			\n\t"
- 		"bl	trampoline_handler	\n\t"
-@@ -414,14 +428,14 @@ void __naked __kprobes __kretprobe_trampoline(void)
- /* Called from __kretprobe_trampoline */
- static __used __kprobes void *trampoline_handler(struct pt_regs *regs)
- {
--	return (void *)kretprobe_trampoline_handler(regs, (void *)regs->ARM_fp);
-+	return (void *)kretprobe_trampoline_handler(regs, (void *)regs->TRAMP_FP);
- }
- 
- void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
- 				      struct pt_regs *regs)
- {
- 	ri->ret_addr = (kprobe_opcode_t *)regs->ARM_lr;
--	ri->fp = (void *)regs->ARM_fp;
-+	ri->fp = (void *)regs->TRAMP_FP;
- 
- 	/* Replace the return addr with trampoline addr. */
- 	regs->ARM_lr = (unsigned long)&__kretprobe_trampoline;
--- 
-2.17.1
+ arch/arm64/mm/mmu.c                    | 53 ++++++--------------
+ arch/loongarch/Kconfig                 |  2 +
+ arch/loongarch/include/asm/pgalloc.h   | 13 +----
+ arch/loongarch/include/asm/pgtable.h   | 13 +++--
+ arch/loongarch/include/asm/sparsemem.h |  8 +++
+ arch/loongarch/kernel/numa.c           |  4 +-
+ arch/loongarch/mm/init.c               | 44 +++++++++++++++-
+ arch/loongarch/mm/pgtable.c            | 23 +++++----
+ arch/mips/include/asm/pgalloc.h        |  8 +--
+ arch/mips/include/asm/pgtable-64.h     |  8 +--
+ arch/mips/kvm/mmu.c                    |  3 +-
+ arch/mips/mm/pgtable-32.c              | 10 ++--
+ arch/mips/mm/pgtable-64.c              | 18 ++++---
+ arch/mips/mm/pgtable.c                 |  2 +-
+ arch/x86/mm/init_64.c                  | 92 ++++++++++++----------------------
+ include/linux/mm.h                     |  8 +++
+ include/linux/page-flags.h             |  1 +
+ mm/sparse-vmemmap.c                    | 64 +++++++++++++++++++++++
+ 18 files changed, 222 insertions(+), 152 deletions(-)
+--
+2.27.0
 
