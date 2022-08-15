@@ -2,140 +2,148 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5EA85C19F2D
-	for <linux-arch@archiver.kernel.org>; Sat, 13 Aug 2022 10:21:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 72094C25B0E
+	for <linux-arch@archiver.kernel.org>; Mon, 15 Aug 2022 11:01:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S239208AbiHMKV6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 13 Aug 2022 06:21:58 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39668 "EHLO
+        id S231821AbiHOLBU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 15 Aug 2022 07:01:20 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46790 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229507AbiHMKV4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 13 Aug 2022 06:21:56 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7C9EC13E13;
-        Sat, 13 Aug 2022 03:21:55 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 11C8760CEC;
-        Sat, 13 Aug 2022 10:21:55 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 73D1FC43142;
-        Sat, 13 Aug 2022 10:21:54 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1660386114;
-        bh=8Mk3RJjjnai4xEyfOPqUx8aeaeCw+jfczPmniW6YVEk=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=G2FcdVmTNxJw6HPn+2yTz+T90K8KtXGHsZGeDviC8yFLrUw+IGuamj5h7xCzHsJwg
-         zzLNjxrJowYoRF+0R+uHW02CsNgO9oMwLNGnHvTJbOurmtkPvxgb2pzo8UR3HVqRy1
-         lWSIAbLlycpiC2Mm1PA6tOS+e5LExZVUhpZEkjFLacLqTK5HFtTTDb1eClfx/kLxjE
-         /YY3P31U4f9l+MJkDfT6ww1MUT6r0lGXFXHHPcYlfG5zJ0chENsTPXG3FSxdoN+AnK
-         NDGzWUPCI4N1MR+IG1r67qP43J6ZX2dcrnNPehAiH2s86VanCeAvnYBOSsriC2lz7W
-         nQ1c+7Zea1/ow==
-Received: by mail-oo1-f47.google.com with SMTP id z23-20020a4ad1b7000000b0044931ffdcafso546086oor.4;
-        Sat, 13 Aug 2022 03:21:54 -0700 (PDT)
-X-Gm-Message-State: ACgBeo1LxwppvwlKOOlCOnn5qxPCFIQTpNG1vksK1VACLXHmnPlvx/Ct
-        ESWmQ3MrOmbjysHzKAfOLhJ2mB6B5TdtSm9b46I=
-X-Google-Smtp-Source: AA6agR7DUluguBPJMq34KI5ruUq1/ZCwetUZsAXeP9n6UFtG2hCguSEVgMQvRB7a937yJ4+SvWPauygFkFWYNNnhVdQ=
-X-Received: by 2002:a4a:3c7:0:b0:440:aef9:639d with SMTP id
- 190-20020a4a03c7000000b00440aef9639dmr2403950ooi.48.1660386113546; Sat, 13
- Aug 2022 03:21:53 -0700 (PDT)
+        with ESMTP id S233539AbiHOLBS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 Aug 2022 07:01:18 -0400
+Received: from szxga03-in.huawei.com (szxga03-in.huawei.com [45.249.212.189])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF5CD23160;
+        Mon, 15 Aug 2022 04:01:15 -0700 (PDT)
+Received: from dggpemm500020.china.huawei.com (unknown [172.30.72.54])
+        by szxga03-in.huawei.com (SkyGuard) with ESMTP id 4M5rrt59fJzGpJF;
+        Mon, 15 Aug 2022 18:59:42 +0800 (CST)
+Received: from dggpemm500013.china.huawei.com (7.185.36.172) by
+ dggpemm500020.china.huawei.com (7.185.36.49) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2375.24; Mon, 15 Aug 2022 19:01:13 +0800
+Received: from ubuntu1804.huawei.com (10.67.175.36) by
+ dggpemm500013.china.huawei.com (7.185.36.172) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
+ 15.1.2375.24; Mon, 15 Aug 2022 19:01:12 +0800
+From:   Chen Zhongjin <chenzhongjin@huawei.com>
+To:     <linux-arm-kernel@lists.infradead.org>,
+        <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>
+CC:     <linux@armlinux.org.uk>, <arnd@arndb.de>,
+        <linus.walleij@linaro.org>, <ardb@kernel.org>,
+        <rmk+kernel@armlinux.org.uk>, <rostedt@goodmis.org>,
+        <nick.hawkins@hpe.com>, <john@phrozen.org>, <mhiramat@kernel.org>,
+        <chenzhongjin@huawei.com>
+Subject: [PATCH] x86/unwind/orc: Add 'unwind_debug' cmdline option
+Date:   Mon, 15 Aug 2022 18:58:08 +0800
+Message-ID: <20220815105808.17385-2-chenzhongjin@huawei.com>
+X-Mailer: git-send-email 2.17.1
+In-Reply-To: <20220815105808.17385-1-chenzhongjin@huawei.com>
+References: <20220815105808.17385-1-chenzhongjin@huawei.com>
 MIME-Version: 1.0
-References: <20220813085839.58414-1-guoren@kernel.org> <CAJF2gTR61ojv4wmZUxZ_Kv+uKN+FjnKjBrwWL_sFVzH_Fe+W8g@mail.gmail.com>
-In-Reply-To: <CAJF2gTR61ojv4wmZUxZ_Kv+uKN+FjnKjBrwWL_sFVzH_Fe+W8g@mail.gmail.com>
-From:   Guo Ren <guoren@kernel.org>
-Date:   Sat, 13 Aug 2022 18:21:40 +0800
-X-Gmail-Original-Message-ID: <CAJF2gTT5n=YdNVHfgr3JqW_pyNJ+4-5uw0i9AMT0DLU2CzBjtg@mail.gmail.com>
-Message-ID: <CAJF2gTT5n=YdNVHfgr3JqW_pyNJ+4-5uw0i9AMT0DLU2CzBjtg@mail.gmail.com>
-Subject: Re: [PATCH] loongarch: irq: Move to generic_handle_arch_irq
-To:     chenhuacai@kernel.org, kernel@xen0n.name, zhangqing@loongson.cn,
-        arnd@arndb.de, linux-arch@vger.kernel.org, mark.rutland@arm.com,
-        frederic@kernel.org
-Cc:     loongarch@lists.linux.dev, linux-kernel@vger.kernel.org,
-        jiaxun.yang@flygoat.com, yangtiezhu@loongson.cn,
-        Guo Ren <guoren@linux.alibaba.com>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain
+X-Originating-IP: [10.67.175.36]
+X-ClientProxiedBy: dggems702-chm.china.huawei.com (10.3.19.179) To
+ dggpemm500013.china.huawei.com (7.185.36.172)
+X-CFilter-Loop: Reflected
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Sorry for the noise, loongarch selects GENERIC_ENTRY, and it has
-called irqentry_enter(). So calling generic_handle_arch_irq would
-cause duplicate ct_irq_enter calling.
+From: Josh Poimboeuf <jpoimboe@redhat.com>
 
-All abandoned, and I would have a look at generic_handle_arch_irq.
+Sometimes the one-line ORC unwinder warnings aren't very helpful.  Add a
+new 'unwind_debug' cmdline option which will dump the full stack
+contents of the current task when an error condition is encountered.
 
-On Sat, Aug 13, 2022 at 5:06 PM Guo Ren <guoren@kernel.org> wrote:
->
-> Abandon this patch because of the wrong commit log. Please see
-> "[RESEND PATCH] loongarch: irq: Move to generic_handle_arch_irq".
->
-> On Sat, Aug 13, 2022 at 4:58 PM <guoren@kernel.org> wrote:
-> >
-> > From: Guo Ren <guoren@linux.alibaba.com>
-> >
-> > No reason to keep custom handle_loongarch_irq, and move to the generic
-> > one. No reason to keep custom handle_loongarch_irq, and move to the
-> > generic one. The patch also the fixup HAVE_CONTEXT_TRACKING_USER
-> > feature, because handle_loongarch_irq missed ct_irq_enter/exit.
-> >
-> > Fixes: 0603839b18f4 ("LoongArch: Add exception/interrupt handling")
-> > Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-> > Signed-off-by: Guo Ren <guoren@kernel.org>
-> > ---
-> >  arch/loongarch/kernel/traps.c | 15 ++-------------
-> >  1 file changed, 2 insertions(+), 13 deletions(-)
-> >
-> > diff --git a/arch/loongarch/kernel/traps.c b/arch/loongarch/kernel/traps.c
-> > index aa1c95aaf595..06211640ba1f 100644
-> > --- a/arch/loongarch/kernel/traps.c
-> > +++ b/arch/loongarch/kernel/traps.c
-> > @@ -588,17 +588,6 @@ asmlinkage void cache_parity_error(void)
-> >         panic("Can't handle the cache error!");
-> >  }
-> >
-> > -asmlinkage void noinstr handle_loongarch_irq(struct pt_regs *regs)
-> > -{
-> > -       struct pt_regs *old_regs;
-> > -
-> > -       irq_enter_rcu();
-> > -       old_regs = set_irq_regs(regs);
-> > -       handle_arch_irq(regs);
-> > -       set_irq_regs(old_regs);
-> > -       irq_exit_rcu();
-> > -}
-> > -
-> >  asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
-> >  {
-> >         register int cpu;
-> > @@ -608,7 +597,7 @@ asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
-> >         cpu = smp_processor_id();
-> >
-> >         if (on_irq_stack(cpu, sp))
-> > -               handle_loongarch_irq(regs);
-> > +               generic_handle_arch_irq(regs);
-> >         else {
-> >                 stack = per_cpu(irq_stack, cpu) + IRQ_STACK_START;
-> >
-> > @@ -619,7 +608,7 @@ asmlinkage void noinstr do_vint(struct pt_regs *regs, unsigned long sp)
-> >                 "move   $s0, $sp                \n" /* Preserve sp */
-> >                 "move   $sp, %[stk]             \n" /* Switch stack */
-> >                 "move   $a0, %[regs]            \n"
-> > -               "bl     handle_loongarch_irq    \n"
-> > +               "bl     generic_handle_arch_irq \n"
-> >                 "move   $sp, $s0                \n" /* Restore sp */
-> >                 : /* No outputs */
-> >                 : [stk] "r" (stack), [regs] "r" (regs)
-> > --
-> > 2.36.1
-> >
->
->
-> --
-> Best Regards
->  Guo Ren
+Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+Reviewed-by: Miroslav Benes <mbenes@suse.cz>
+---
+ .../admin-guide/kernel-parameters.txt         |  6 +++
+ arch/x86/kernel/unwind_orc.c                  | 46 +++++++++++++++++++
+ 2 files changed, 52 insertions(+)
 
-
-
--- 
-Best Regards
- Guo Ren
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index cc3ea8febc62..85d48f6052fd 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -6317,6 +6317,12 @@
+ 	unknown_nmi_panic
+ 			[X86] Cause panic on unknown NMI.
+ 
++	unwind_debug	[X86-64]
++			Enable unwinder debug output.  This can be
++			useful for debugging certain unwinder error
++			conditions, including corrupt stacks and
++			bad/missing unwinder metadata.
++
+ 	usbcore.authorized_default=
+ 			[USB] Default USB device authorization:
+ 			(default -1 = authorized except for wireless USB,
+diff --git a/arch/x86/kernel/unwind_orc.c b/arch/x86/kernel/unwind_orc.c
+index 38185aedf7d1..c539ca39e9f4 100644
+--- a/arch/x86/kernel/unwind_orc.c
++++ b/arch/x86/kernel/unwind_orc.c
+@@ -13,8 +13,13 @@
+ 
+ #define orc_warn_current(args...)					\
+ ({									\
++	static bool dumped_before;
+ 	if (state->task == current && !state->error)			\
+ 		orc_warn(args);						\
++		if (unwind_debug && !dumped_before)			\
++			unwind_dump(state);				\
++		dumped_before = true;					\
++	}								\
+ })
+ 
+ extern int __start_orc_unwind_ip[];
+@@ -23,8 +28,49 @@ extern struct orc_entry __start_orc_unwind[];
+ extern struct orc_entry __stop_orc_unwind[];
+ 
+ static bool orc_init __ro_after_init;
++static bool unwind_debug __ro_after_init;
+ static unsigned int lookup_num_blocks __ro_after_init;
+ 
++static int __init unwind_debug_cmdline(char *str)
++{
++	unwind_debug = true;
++
++	return 0;
++}
++early_param("unwind_debug", unwind_debug_cmdline);
++
++static void unwind_dump(struct unwind_state *state)
++{
++	static bool dumped_before;
++	unsigned long word, *sp;
++	struct stack_info stack_info = {0};
++	unsigned long visit_mask = 0;
++
++	if (dumped_before)
++		return;
++
++	dumped_before = true;
++
++	printk_deferred("unwind stack type:%d next_sp:%p mask:0x%lx graph_idx:%d\n",
++			state->stack_info.type, state->stack_info.next_sp,
++			state->stack_mask, state->graph_idx);
++
++	for (sp = __builtin_frame_address(0); sp;
++	     sp = PTR_ALIGN(stack_info.next_sp, sizeof(long))) {
++		if (get_stack_info(sp, state->task, &stack_info, &visit_mask))
++			break;
++
++		for (; sp < stack_info.end; sp++) {
++
++			word = READ_ONCE_NOCHECK(*sp);
++
++			printk_deferred("%0*lx: %0*lx (%pB)\n", BITS_PER_LONG/4,
++					(unsigned long)sp, BITS_PER_LONG/4,
++					word, (void *)word);
++		}
++	}
++}
++
+ static inline unsigned long orc_ip(const int *ip)
+ {
+ 	return (unsigned long)ip + *ip;
