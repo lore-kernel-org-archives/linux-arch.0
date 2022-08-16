@@ -2,155 +2,107 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 80F0EC3F6B0
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Aug 2022 18:11:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D840C32772
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Aug 2022 18:14:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236945AbiHPSLb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 16 Aug 2022 14:11:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38332 "EHLO
+        id S236977AbiHPSOs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 16 Aug 2022 14:14:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53572 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236980AbiHPSLP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Aug 2022 14:11:15 -0400
-Received: from bee.birch.relay.mailchannels.net (bee.birch.relay.mailchannels.net [23.83.209.14])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D9DB24940;
-        Tue, 16 Aug 2022 11:10:43 -0700 (PDT)
-X-Sender-Id: dreamhost|x-authsender|dave@stgolabs.net
-Received: from relay.mailchannels.net (localhost [127.0.0.1])
-        by relay.mailchannels.net (Postfix) with ESMTP id DC55D4C134E;
-        Tue, 16 Aug 2022 18:10:41 +0000 (UTC)
-Received: from pdx1-sub0-mail-a314.dreamhost.com (unknown [127.0.0.6])
-        (Authenticated sender: dreamhost)
-        by relay.mailchannels.net (Postfix) with ESMTPA id E08AA4C25AB;
-        Tue, 16 Aug 2022 18:10:40 +0000 (UTC)
-ARC-Seal: i=1; s=arc-2022; d=mailchannels.net; t=1660673441; a=rsa-sha256;
-        cv=none;
-        b=M0b2IKzrAAOPQITbh7iytw6ce/vPhrfa7pp5GRBFWU1T1NeZPvBtMvvKEXWBMc7Vb+2St6
-        QnPLQGnf9zq2LVX8ZE+qD/JEHcnmVPAA7E1KETEt99Hkfg16k3ZR6VBfasEnPH3wly14RS
-        FJyPuDfUmT/hauLOkzj6ufT0gRP0lfHYi5umz0ruqO5GmHlnoK//1u9eR/+AJotMyIYcXR
-        1nFzL4ghI80JhF/+rg1z9lmuibmuXAhD16Rx6O2AfVfjwuoIm5GqHIOV+2PTOv+Hz53Y08
-        sLHJP2qdeuBrepPN1ibi2qRi698CNgWvNn5q13B/1aZcPuxEQMxdhWfMwusTBA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed;
- d=mailchannels.net;
-        s=arc-2022; t=1660673441;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references:dkim-signature;
-        bh=I06/ecHUnT7zHJJuTwo7ZmgJud65PxCU9WXUPwrIBaQ=;
-        b=Jc5cJzdkgjrR8AA1cBgaJ7s60oN4UNv0gLEySENW4creNrvZKWfzYlkEtkri7idtY4kS2F
-        w/Uep2hurOZRzFTituEadVbugDDfxrI7d6cqBNv9tBKzgm/alOEw8aPOEYMHUM0ldT3cyD
-        Eprs8Kh5N7TWe0I6IvIQ798b/trPu8YznwHGhUXwU6nK3bWdkepYDcEaojIcOl0I06ZYGL
-        8BDgp0yA+EeeXQo5aXtLIDpT9SYDNvw4G+833jtFJY/XgcKuPqRYEHB07u54sHJjqF1Mml
-        Vk2iBGwPTTCf3L0JclrSy1XAW8GBFa0kLGBgqyiUQr4H22awZpkGwDJKxnGGng==
-ARC-Authentication-Results: i=1;
-        rspamd-7697cc766f-9rx62;
-        auth=pass smtp.auth=dreamhost smtp.mailfrom=dave@stgolabs.net
-X-Sender-Id: dreamhost|x-authsender|dave@stgolabs.net
-X-MC-Relay: Neutral
-X-MailChannels-SenderId: dreamhost|x-authsender|dave@stgolabs.net
-X-MailChannels-Auth-Id: dreamhost
-X-White-Rock: 02ee42c1152eaacb_1660673441497_3181699394
-X-MC-Loop-Signature: 1660673441497:3222038149
-X-MC-Ingress-Time: 1660673441497
-Received: from pdx1-sub0-mail-a314.dreamhost.com (pop.dreamhost.com
- [64.90.62.162])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384)
-        by 100.110.28.254 (trex/6.7.1);
-        Tue, 16 Aug 2022 18:10:41 +0000
-Received: from offworld (unknown [104.36.25.245])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange ECDHE (P-256) server-signature RSA-PSS (2048 bits) server-digest SHA256)
-        (No client certificate requested)
-        (Authenticated sender: dave@stgolabs.net)
-        by pdx1-sub0-mail-a314.dreamhost.com (Postfix) with ESMTPSA id 4M6fMg1vT2zF1;
-        Tue, 16 Aug 2022 11:10:39 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=stgolabs.net;
-        s=dreamhost; t=1660673440;
-        bh=I06/ecHUnT7zHJJuTwo7ZmgJud65PxCU9WXUPwrIBaQ=;
-        h=Date:From:To:Cc:Subject:Content-Type;
-        b=VbXvJHvNVTgML/Vi2Xzn9FVbgGkc7dXYyKl1bUJv0Ja4nIaHHN3gzyVfyhk+zwJ5B
-         TD/Q49GkQIumI6/TXj6i85nLbJipITDDOitrbVF5YvIDO7C+z1hhfdBLYW1ilhIZUO
-         +HtNsN4hBOgoagNOtsGaDOp5pVqv66Y2g6wMILpTY04oC+R9Plh6JfdTPgiE/pgJSW
-         1Ly6s88hI95jSQ2gb/NMM9w5vqJCgFfk37lKd7meKs430vKwr50QrTnf8IgJCl4GZL
-         mEl5SjC0Zcg7ZhW1FTbirTL+KPuc2CLssRW1LCk9qstOU5Zpan3DfkE8vrvl5llHXO
-         k+s6laKDg1ZcQ==
-Date:   Tue, 16 Aug 2022 10:52:59 -0700
-From:   Davidlohr Bueso <dave@stgolabs.net>
-To:     Dan Williams <dan.j.williams@intel.com>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
+        with ESMTP id S233076AbiHPSOp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Aug 2022 14:14:45 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DC0AD7AC02;
+        Tue, 16 Aug 2022 11:14:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=MySzvGXqRSaBBJhmsw3ulDhggVAysoOKEMJnaszkKsU=; b=YPrEDcLvKjIb0xNBG+Jk/CGOJ6
+        kW006eJ0NtmQgEuIfrtpv18W/AT3E6P4tU5tApVpU7iXAmUuqgW37qBLQwW2Knu5FTIuqME+NNPyp
+        YadFUKbPi+Tq8trcm0xs6iZy0i2DBc3igLK50MYONBYKHxtUkGtlV31WJyX2fPAFh1cO7W3lL6vBo
+        rNXj8n/uobl/HADOp+sc3StKPN9OlbxVN+x6YSldP1qDn+vr9g7EePepooP8GXvGf41FpHgOg9w5Q
+        eUbNbWIvPg7EMgqcJ9XQFTfQntotK8qMPpjXTNgqVHkWILVngJ8OwCDNX5OV/DmArUSafNpj+lANo
+        lPG7MazQ==;
+Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1oO153-007DVO-MT; Tue, 16 Aug 2022 18:14:21 +0000
+Date:   Tue, 16 Aug 2022 19:14:21 +0100
+From:   Matthew Wilcox <willy@infradead.org>
+To:     Will Deacon <will@kernel.org>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Hector Martin <marcan@marcan.st>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Ingo Molnar <mingo@kernel.org>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        David Howells <dhowells@redhat.com>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Akira Yokosawa <akiyks@gmail.com>,
+        Daniel Lustig <dlustig@nvidia.com>,
+        Joel Fernandes <joel@joelfernandes.org>,
         Mark Rutland <mark.rutland@arm.com>,
-        Dave Jiang <dave.jiang@intel.com>,
-        Jonathan Cameron <Jonathan.Cameron@huawei.com>,
-        linux-cxl@vger.kernel.org, nvdimm@lists.linux.dev,
-        bwidawsk@kernel.org, ira.weiny@intel.com, vishal.l.verma@intel.com,
-        alison.schofield@intel.com, a.manzanares@samsung.com,
-        linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
-        linux-arm-kernel@lists.infradead.org, bp@alien8.de, x86@kernel.org,
-        linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] arch/cacheflush: Introduce flush_all_caches()
-Message-ID: <20220816175259.o5h5wv23rs2bvcu6@offworld>
-References: <4bedc81d-62fa-7091-029e-a2e56b4f8f7a@intel.com>
- <20220803183729.00002183@huawei.com>
- <9f3705e1-de21-0f3c-12af-fd011b6d613d@intel.com>
- <YvO8pP7NUOdH17MM@FVFF77S0Q05N>
- <62f40fba338af_3ce6829466@dwillia2-xfh.jf.intel.com.notmuch>
- <20220815160706.tqd42dv24tgb7x7y@offworld>
- <Yvtc2u1J/qip8za9@worktop.programming.kicks-ass.net>
- <62fbcae511ec1_dfbc129453@dwillia2-xfh.jf.intel.com.notmuch>
- <20220816165301.4m4w6zsse62z4hxz@offworld>
- <CAA9_cmfBubQe6EGk5+wjotvofZavfjFud-JMPW13Au0gpAcWog@mail.gmail.com>
+        Jonathan Corbet <corbet@lwn.net>, Tejun Heo <tj@kernel.org>,
+        jirislaby@kernel.org, Marc Zyngier <maz@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Oliver Neukum <oneukum@suse.com>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        Asahi Linux <asahi@lists.linux.dev>, stable@vger.kernel.org
+Subject: Re: [PATCH] locking/atomic: Make test_and_*_bit() ordered on failure
+Message-ID: <Yvveff1aW/zeYzBo@casper.infradead.org>
+References: <20220816070311.89186-1-marcan@marcan.st>
+ <CAK8P3a03pfrPzjnx1tB5z0HcKnY=JL=y+F8PMQDpc=Bavs3UCA@mail.gmail.com>
+ <20220816140640.GD11202@willie-the-truck>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAA9_cmfBubQe6EGk5+wjotvofZavfjFud-JMPW13Au0gpAcWog@mail.gmail.com>
-User-Agent: NeoMutt/20220429
+In-Reply-To: <20220816140640.GD11202@willie-the-truck>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, 16 Aug 2022, Dan Williams wrote:
+On Tue, Aug 16, 2022 at 03:06:41PM +0100, Will Deacon wrote:
+> On Tue, Aug 16, 2022 at 10:16:04AM +0200, Arnd Bergmann wrote:
+> > On Tue, Aug 16, 2022 at 9:03 AM Hector Martin <marcan@marcan.st> wrote:
+> > >
+> > > These operations are documented as always ordered in
+> > > include/asm-generic/bitops/instrumented-atomic.h, and producer-consumer
+> > > type use cases where one side needs to ensure a flag is left pending
+> > > after some shared data was updated rely on this ordering, even in the
+> > > failure case.
+> > >
+> > > This is the case with the workqueue code, which currently suffers from a
+> > > reproducible ordering violation on Apple M1 platforms (which are
+> > > notoriously out-of-order) that ends up causing the TTY layer to fail to
+> > > deliver data to userspace properly under the right conditions. This
+> > > change fixes that bug.
+> > >
+> > > Change the documentation to restrict the "no order on failure" story to
+> > > the _lock() variant (for which it makes sense), and remove the
+> > > early-exit from the generic implementation, which is what causes the
+> > > missing barrier semantics in that case. Without this, the remaining
+> > > atomic op is fully ordered (including on ARM64 LSE, as of recent
+> > > versions of the architecture spec).
+> > >
+> > > Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
+> > > Cc: stable@vger.kernel.org
+> > > Fixes: e986a0d6cb36 ("locking/atomics, asm-generic/bitops/atomic.h: Rewrite using atomic_*() APIs")
+> > > Fixes: 61e02392d3c7 ("locking/atomic/bitops: Document and clarify ordering semantics for failed test_and_{}_bit()")
+> > > Signed-off-by: Hector Martin <marcan@marcan.st>
+> > > ---
+> > >  Documentation/atomic_bitops.txt     | 2 +-
+> > >  include/asm-generic/bitops/atomic.h | 6 ------
+> > 
+> > I double-checked all the architecture specific implementations to ensure
+> > that the asm-generic one is the only one that needs the fix.
+> 
+> I couldn't figure out parisc -- do you know what ordering their spinlocks
+> provide? They have a comment talking about a release, but I don't know what
+> the ordering guarantees of an "ldcw" are.
 
->On Tue, Aug 16, 2022 at 10:30 AM Davidlohr Bueso <dave@stgolabs.net> wrote:
->>
->> On Tue, 16 Aug 2022, Dan Williams wrote:
->>
->> >Peter Zijlstra wrote:
->> >> On Mon, Aug 15, 2022 at 09:07:06AM -0700, Davidlohr Bueso wrote:
->> >> > diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
->> >> > index b192d917a6d0..ce2ec9556093 100644
->> >> > --- a/arch/x86/include/asm/cacheflush.h
->> >> > +++ b/arch/x86/include/asm/cacheflush.h
->> >> > @@ -10,4 +10,7 @@
->> >> >
->> >> >  void clflush_cache_range(void *addr, unsigned int size);
->> >> >
->> >> > +#define flush_all_caches() \
->> >> > +  do { wbinvd_on_all_cpus(); } while(0)
->> >> > +
->> >>
->> >> This is horrific... we've done our utmost best to remove all WBINVD
->> >> usage and here you're adding it back in the most horrible form possible
->> >> ?!?
->> >>
->> >> Please don't do this, do *NOT* use WBINVD.
->> >
->> >Unfortunately there are a few good options here, and the changelog did
->> >not make clear that this is continuing legacy [1], not adding new wbinvd
->> >usage.
->>
->> While I was hoping that it was obvious from the intel.c changes that this
->> was not a new wbinvd, I can certainly improve the changelog with the below.
->
->I also think this cache_flush_region() API wants a prominent comment
->clarifying the limited applicability of this API. I.e. that it is not
->for general purpose usage, not for VMs, and only for select bare metal
->scenarios that instantaneously invalidate wide swaths of memory.
->Otherwise, I can now see how this looks like a potentially scary
->expansion of the usage of wbinvd.
-
-Sure.
-
-Also, in the future we might be able to bypass this hammer in the presence
-of persistent cpu caches.
-
-Thanks,
-Davidlohr
+"The semaphore operation is strongly ordered" (that's from the
+description of the LDCW instruction)
