@@ -2,116 +2,158 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5F4C1C2BB41
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Aug 2022 10:30:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A8139C32771
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Aug 2022 10:36:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234447AbiHPKa5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 16 Aug 2022 06:30:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47014 "EHLO
+        id S234883AbiHPKgm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 16 Aug 2022 06:36:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41388 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234698AbiHPKa0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Aug 2022 06:30:26 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.126.135])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E20D984EF6;
-        Tue, 16 Aug 2022 01:16:22 -0700 (PDT)
-Received: from mail-ej1-f41.google.com ([209.85.218.41]) by
- mrelayeu.kundenserver.de (mreue009 [213.165.67.97]) with ESMTPSA (Nemesis) id
- 1MuDPh-1nVmG00fXh-00ucal; Tue, 16 Aug 2022 10:16:21 +0200
-Received: by mail-ej1-f41.google.com with SMTP id a7so17567241ejp.2;
-        Tue, 16 Aug 2022 01:16:21 -0700 (PDT)
-X-Gm-Message-State: ACgBeo33ceRETs9/Jye2QbXxzU5AEAna2/4O5cDeSTf88pRW+k587zJF
-        RQYlmByLPR1eD1q8YbKGd7/q3DHxJT/QjiHV0e0=
-X-Google-Smtp-Source: AA6agR6iJ0nwhhROioKsW3KiCcnkE21PLtVwi8+SbpiQ4ZkczWhJ8i5DpkLee3nWEvIKF41nGXZNZm3jeBE6JuFII7g=
-X-Received: by 2002:a17:906:8a67:b0:738:7bcd:dca1 with SMTP id
- hy7-20020a1709068a6700b007387bcddca1mr1923189ejc.547.1660637780770; Tue, 16
- Aug 2022 01:16:20 -0700 (PDT)
-MIME-Version: 1.0
-References: <20220816070311.89186-1-marcan@marcan.st>
-In-Reply-To: <20220816070311.89186-1-marcan@marcan.st>
-From:   Arnd Bergmann <arnd@arndb.de>
-Date:   Tue, 16 Aug 2022 10:16:04 +0200
-X-Gmail-Original-Message-ID: <CAK8P3a03pfrPzjnx1tB5z0HcKnY=JL=y+F8PMQDpc=Bavs3UCA@mail.gmail.com>
-Message-ID: <CAK8P3a03pfrPzjnx1tB5z0HcKnY=JL=y+F8PMQDpc=Bavs3UCA@mail.gmail.com>
-Subject: Re: [PATCH] locking/atomic: Make test_and_*_bit() ordered on failure
-To:     Hector Martin <marcan@marcan.st>
-Cc:     Will Deacon <will@kernel.org>,
+        with ESMTP id S234816AbiHPKgY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Aug 2022 06:36:24 -0400
+Received: from mga14.intel.com (mga14.intel.com [192.55.52.115])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1948E5B79A;
+        Tue, 16 Aug 2022 01:59:57 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1660640398; x=1692176398;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=Fsbw9VD64WNebEA9SmUmkH3lTdV9uckYpcgbPhxuwEE=;
+  b=cbXdimhMXhSdqUijOstcJb6n+4pQ9EPwcVRvjT7YR0ShuLOcI+lfMflJ
+   rslMlXVtIQS9VJ4MaKRTIFC98J9Yg9iZZKsCT56qJmrUc6GdHfRtGvoGn
+   DVXaKX6YxAoSfnEQVz0TLq5qZ8rPkc/KaSoeorQrAQ8jhEOknW+FsFn/2
+   rF+0nbDGlcG7V03qEXG78T41J7Xfw2MryiJ5Lo4Q7JaKMjLoXxU0V0p81
+   6uj1q9g64CVt1OV7g9prBctfj0A0Qtt2I0wpcIjk8H2w1oJrN47XDgYax
+   fDOX+Or27oDXN7CGVmYobQUTFBckcA9fRZcuSQm+o/ae0LqjmKY72gyVd
+   g==;
+X-IronPort-AV: E=McAfee;i="6400,9594,10440"; a="292164224"
+X-IronPort-AV: E=Sophos;i="5.93,240,1654585200"; 
+   d="scan'208";a="292164224"
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by fmsmga103.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 16 Aug 2022 01:59:56 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="5.93,240,1654585200"; 
+   d="scan'208";a="733222124"
+Received: from lkp-server02.sh.intel.com (HELO 3d2a4d02a2a9) ([10.239.97.151])
+  by orsmga004.jf.intel.com with ESMTP; 16 Aug 2022 01:59:51 -0700
+Received: from kbuild by 3d2a4d02a2a9 with local (Exim 4.96)
+        (envelope-from <lkp@intel.com>)
+        id 1oNsQR-0001f6-0Z;
+        Tue, 16 Aug 2022 08:59:51 +0000
+Date:   Tue, 16 Aug 2022 16:59:37 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Huacai Chen <chenhuacai@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>,
-        Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Arnaldo Carvalho de Melo <acme@kernel.org>,
         Mark Rutland <mark.rutland@arm.com>,
-        Jonathan Corbet <corbet@lwn.net>, Tejun Heo <tj@kernel.org>,
-        jirislaby@kernel.org, Marc Zyngier <maz@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Oliver Neukum <oneukum@suse.com>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        Asahi Linux <asahi@lists.linux.dev>, stable@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-X-Provags-ID: V03:K1:Jg5mkr7l+zrNyfFzBvs5i1+/l2UlfgBGsjuyilNfjoCAl7e0vIK
- TicO0qiEDijREu19FTd6lsJ/xG/qL+EIpVuiumbZd62aIFx2OXh1gQ+2geNFdBVwvelIaws
- U/qaLsKuC7aXaYHFXRmlVqfYYgxXkdSQJQ1VV3jTdwC81L27G6FvdY7TSzor0+xh/J7PEDb
- qG4zsEw7nQqMDQnoYIF+Q==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:0YAPTbXMD6Q=:Cpy3XZMvFH2GhcX0VVyvOx
- 0YzlCxR6gGq9Pz3C5g7UZVwFHunn/VyMHkyx8i8pVxdcNhLTiZhcOSq/VKk3uS69cn8rThieC
- 191ZejESr8C3yo26hkMLJcrOk6z9Vo7EeTMVzPT1SrhFNJeg029pH9llcmlNznfIfSq2l/yIi
- n70ffHRZBUVLLcRASCGyf6Ht2a1xAvBCw+wtxUjILb324Hqr1BY9nDl2Xhb4YcnD4rhHUmnvd
- CBPw8M17qfmdxtn7bSaRbZ2gXnGca/UQLP9Arj4y0Rc4Yq1ZCdEsOum560JZuBd4IH5HWkw2d
- aPrVpwDiOYHnxK2tKkQOIf6N1TeXIP/RuU3RGT2B6itpK1tCO1VFRa4r/75bQYTtPGLPsY5wE
- 9BC2YTZVmza2ADitrSTrAO6yCOE7sAepV6ZIg+KmGB+v5uJhhicb7OoTQ9/AWTW/vPCO6qvjS
- Gc8VBh9rDEoGHZF0SBxY5w+AEPmdykpWxbn1iYKASCGStVasZHrKR/JpV7ldQ1gRmImc0yNYw
- Ch51lpl7AeGzkZwYOZrXSR4OWKc5bPxjw/tliWPkeHuyhdZH59NvYSqE9ZJ7/JRazAOgMS5HN
- j5ohyglFYFGM5PB7pLegV6Ze4tuhGTmZp5/WCMLXciq8C6sSZQqLEjYC63qBIQ6OagxNpPDed
- a1kSkcKSdgzGaBKyW/yTu32BNgyFTKIsdH4C8Jj8TzyD5WZoU/astR6yZN6UyZw8WfXyFt0rl
- gNh0wPeo7rDK6GMzLvZt8KlWzdZLv/GwAUZCJw==
+        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
+        Jiri Olsa <jolsa@kernel.org>,
+        Namhyung Kim <namhyung@kernel.org>
+Cc:     kbuild-all@lists.01.org, loongarch@lists.linux.dev,
+        linux-arch@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        linux-perf-users@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] LoongArch: Add perf events support
+Message-ID: <202208161648.zq48ilEV-lkp@intel.com>
+References: <20220815124702.3330803-1-chenhuacai@loongson.cn>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20220815124702.3330803-1-chenhuacai@loongson.cn>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Aug 16, 2022 at 9:03 AM Hector Martin <marcan@marcan.st> wrote:
->
-> These operations are documented as always ordered in
-> include/asm-generic/bitops/instrumented-atomic.h, and producer-consumer
-> type use cases where one side needs to ensure a flag is left pending
-> after some shared data was updated rely on this ordering, even in the
-> failure case.
->
-> This is the case with the workqueue code, which currently suffers from a
-> reproducible ordering violation on Apple M1 platforms (which are
-> notoriously out-of-order) that ends up causing the TTY layer to fail to
-> deliver data to userspace properly under the right conditions. This
-> change fixes that bug.
->
-> Change the documentation to restrict the "no order on failure" story to
-> the _lock() variant (for which it makes sense), and remove the
-> early-exit from the generic implementation, which is what causes the
-> missing barrier semantics in that case. Without this, the remaining
-> atomic op is fully ordered (including on ARM64 LSE, as of recent
-> versions of the architecture spec).
->
-> Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
-> Cc: stable@vger.kernel.org
-> Fixes: e986a0d6cb36 ("locking/atomics, asm-generic/bitops/atomic.h: Rewrite using atomic_*() APIs")
-> Fixes: 61e02392d3c7 ("locking/atomic/bitops: Document and clarify ordering semantics for failed test_and_{}_bit()")
-> Signed-off-by: Hector Martin <marcan@marcan.st>
-> ---
->  Documentation/atomic_bitops.txt     | 2 +-
->  include/asm-generic/bitops/atomic.h | 6 ------
+Hi Huacai,
 
-I double-checked all the architecture specific implementations to ensure
-that the asm-generic one is the only one that needs the fix.
+I love your patch! Perhaps something to improve:
 
-I assume this gets merged through the locking tree or that Linus picks it up
-directly, not through my asm-generic tree.
+[auto build test WARNING on linus/master]
+[also build test WARNING on v6.0-rc1 next-20220816]
+[cannot apply to soc/for-next]
+[If your patch is applied to the wrong git tree, kindly drop us a note.
+And when submitting patch, we suggest to use '--base' as documented in
+https://git-scm.com/docs/git-format-patch#_base_tree_information]
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+url:    https://github.com/intel-lab-lkp/linux/commits/Huacai-Chen/LoongArch-Add-perf-events-support/20220815-204852
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git 568035b01cfb107af8d2e4bd2fb9aea22cf5b868
+config: loongarch-randconfig-s051-20220815 (https://download.01.org/0day-ci/archive/20220816/202208161648.zq48ilEV-lkp@intel.com/config)
+compiler: loongarch64-linux-gcc (GCC) 12.1.0
+reproduce:
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # apt-get install sparse
+        # sparse version: v0.6.4-39-gce1a6720-dirty
+        # https://github.com/intel-lab-lkp/linux/commit/0e6d9490ff3f6129799675b9288135022a0908e2
+        git remote add linux-review https://github.com/intel-lab-lkp/linux
+        git fetch --no-tags linux-review Huacai-Chen/LoongArch-Add-perf-events-support/20220815-204852
+        git checkout 0e6d9490ff3f6129799675b9288135022a0908e2
+        # save the config file
+        COMPILER_INSTALL_PATH=$HOME/0day COMPILER=gcc-12.1.0 make.cross C=1 CF='-fdiagnostic-prefix -D__CHECK_ENDIAN__' ARCH=loongarch 
+
+If you fix the issue, kindly add following tag where applicable
+Reported-by: kernel test robot <lkp@intel.com>
+
+sparse warnings: (new ones prefixed by >>)
+>> arch/loongarch/kernel/perf_event.c:30:50: sparse: sparse: incorrect type in initializer (different address spaces) @@     expected unsigned long [noderef] __user *user_frame_tail @@     got unsigned long * @@
+   arch/loongarch/kernel/perf_event.c:30:50: sparse:     expected unsigned long [noderef] __user *user_frame_tail
+   arch/loongarch/kernel/perf_event.c:30:50: sparse:     got unsigned long *
+   arch/loongarch/kernel/perf_event.c: note: in included file (through arch/loongarch/include/asm/cpu-info.h, arch/loongarch/include/asm/processor.h, ...):
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: undefined identifier '__builtin_loongarch_csrrd_d'
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: undefined identifier '__builtin_loongarch_csrwr_d'
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:237:16: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+   arch/loongarch/include/asm/loongarch.h:247:9: sparse: sparse: cast from unknown type
+
+vim +30 arch/loongarch/kernel/perf_event.c
+
+    20	
+    21	/*
+    22	 * Get the return address for a single stackframe and return a pointer to the
+    23	 * next frame tail.
+    24	 */
+    25	static unsigned long
+    26	user_backtrace(struct perf_callchain_entry_ctx *entry, unsigned long fp)
+    27	{
+    28		struct stack_frame buftail;
+    29		unsigned long err;
+  > 30		unsigned long __user *user_frame_tail = (unsigned long *)(fp - sizeof(struct stack_frame));
+    31	
+    32		/* Also check accessibility of one struct frame_tail beyond */
+    33		if (!access_ok(user_frame_tail, sizeof(buftail)))
+    34			return 0;
+    35	
+    36		pagefault_disable();
+    37		err = __copy_from_user_inatomic(&buftail, user_frame_tail, sizeof(buftail));
+    38		pagefault_enable();
+    39	
+    40		if (err || (unsigned long)user_frame_tail >= buftail.fp)
+    41			return 0;
+    42	
+    43		perf_callchain_store(entry, buftail.ra);
+    44	
+    45		return buftail.fp;
+    46	}
+    47	
+
+-- 
+0-DAY CI Kernel Test Service
+https://01.org/lkp
