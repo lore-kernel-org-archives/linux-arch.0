@@ -2,472 +2,1193 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 68E4DC3F6B0
-	for <linux-arch@archiver.kernel.org>; Tue, 16 Aug 2022 08:57:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AB88C2BB41
+	for <linux-arch@archiver.kernel.org>; Tue, 16 Aug 2022 09:44:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230461AbiHPI5n (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 16 Aug 2022 04:57:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50880 "EHLO
+        id S233576AbiHPJom (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 16 Aug 2022 05:44:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54952 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230428AbiHPI5G (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Aug 2022 04:57:06 -0400
-X-Greylist: delayed 452 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 16 Aug 2022 00:07:07 PDT
-Received: from xry111.site (xry111.site [89.208.246.23])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C17C43ED54;
-        Tue, 16 Aug 2022 00:07:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xry111.site;
-        s=default; t=1660633174;
-        bh=+uMSy/SoA1MfT4WakY3FJamPrADELYGH3M17SmvsLGY=;
-        h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-        b=bW/0KQpn5a1aV23rLhFOWkshDLyLnLPQ7BJ0r7Lwo4atIzRYOFevz1RYo4hv5tUti
-         U6atovDlQTOcUx1h4FX+jk6l+7ApiON6KEKoCUO+QKTrAYj9Xxvxb+aZ/0t/q81paU
-         PeQVgv/juObay5D1zoyqphpQTf4AmlIc+1sa4SnI=
-Received: from localhost.localdomain (xry111.site [IPv6:2001:470:683e::1])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange ECDHE (P-256) server-signature ECDSA (P-384))
-        (Client did not present a certificate)
-        (Authenticated sender: xry111@xry111.site)
-        by xry111.site (Postfix) with ESMTPSA id F0150667FD;
-        Tue, 16 Aug 2022 02:59:31 -0400 (EDT)
-Message-ID: <df43f3fc133099d446b422003393814f78ac49c4.camel@xry111.site>
-Subject: Re: [PATCH 1/2] LoongArch: Add CPU HWMon platform driver
-From:   Xi Ruoyao <xry111@xry111.site>
-To:     Huacai Chen <chenhuacai@loongson.cn>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        "Rafael J . Wysocki" <rjw@rjwysocki.net>,
-        Len Brown <lenb@kernel.org>,
-        Robert Moore <robert.moore@intel.com>,
-        Erik Kaneda <erik.kaneda@intel.com>
-Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
-        linux-acpi@vger.kernel.org, Xuefeng Li <lixuefeng@loongson.cn>,
-        Jianmin Lv <lvjianmin@loongson.cn>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>
-Date:   Tue, 16 Aug 2022 14:59:30 +0800
-In-Reply-To: <20220815124803.3332991-1-chenhuacai@loongson.cn>
-References: <20220815124803.3332991-1-chenhuacai@loongson.cn>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.45.2 
+        with ESMTP id S233844AbiHPJoF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 16 Aug 2022 05:44:05 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83A5EC2B;
+        Tue, 16 Aug 2022 01:18:36 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 5B940B81648;
+        Tue, 16 Aug 2022 08:18:34 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D7808C43142;
+        Tue, 16 Aug 2022 08:18:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1660637913;
+        bh=ERmpgzji6MKsSwKVjmaCsq8ZjXf/1s2JmoqNHsxowlA=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=quRcB6dLScvglsVmbI/Sug70iUFm4vsKRH5fd57BV4p3gkbr/wGdnC59SLGGu8xB9
+         TFIk7WaLIjPX99Zzbfb4iV6FVDFAXw7aK4KuQIBcF1myIihsK6k5Med7br2jF2oS/s
+         nyMZRh/eapLOsfJcS36dLI6IUT3VAh1dAM8nWVDhpJihzllh4xhtQ+RtO14MFNZN2f
+         2+yu1PA8yHwdM9qLOViQ+p6GiWP+5APUZlwG16rdg8BxqJOPsbbRRmLOsuQ1ilGI51
+         MmuEAy+0JUkePJZ6m8qle30lV/O30ftJdy90qX0qdtACcYPTzoHRb3H2i2ahHkOMLI
+         CR62GO8WCVAtA==
+Received: by mail-vs1-f43.google.com with SMTP id v128so9403508vsb.10;
+        Tue, 16 Aug 2022 01:18:32 -0700 (PDT)
+X-Gm-Message-State: ACgBeo1FihJ5pQ6ikDpq9+YS7OTmInW9iJaTHuHJ4jfhDhsCA2V40tDo
+        sxheBpIdcBrSqBkuMiEpdeDZ+pLkNC6UebdAnkc=
+X-Google-Smtp-Source: AA6agR483I3z6qVhNirGZ0c8tCoXS6ifCU+CAcHqtKdwME2j1SO8Z3chkMnWs6OpNbOUCf4yl4eyX5qv6OmQpV313Rs=
+X-Received: by 2002:a67:d59e:0:b0:38a:a3c2:9ee with SMTP id
+ m30-20020a67d59e000000b0038aa3c209eemr8442630vsj.78.1660637911364; Tue, 16
+ Aug 2022 01:18:31 -0700 (PDT)
 MIME-Version: 1.0
+References: <20220815124702.3330803-1-chenhuacai@loongson.cn> <53074d4d-b895-0afa-696e-c9358a07e109@xen0n.name>
+In-Reply-To: <53074d4d-b895-0afa-696e-c9358a07e109@xen0n.name>
+From:   Huacai Chen <chenhuacai@kernel.org>
+Date:   Tue, 16 Aug 2022 16:18:17 +0800
+X-Gmail-Original-Message-ID: <CAAhV-H6WzUWs1944=71aduQ1Whz6kcSAF0XWbPuDin6mx0T5hA@mail.gmail.com>
+Message-ID: <CAAhV-H6WzUWs1944=71aduQ1Whz6kcSAF0XWbPuDin6mx0T5hA@mail.gmail.com>
+Subject: Re: [PATCH] LoongArch: Add perf events support
+To:     WANG Xuerui <kernel@xen0n.name>
+Cc:     Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Arnaldo Carvalho de Melo <acme@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
+        Jiri Olsa <jolsa@kernel.org>,
+        Namhyung Kim <namhyung@kernel.org>, loongarch@lists.linux.dev,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        linux-perf-users@vger.kernel.org,
+        LKML <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-It shows my CPU temperature is floating between 48 and 50 Celsius.=20
-Higher than I expected but I guess it's because we've not implemented
-CPUFreq yet.
+ Hi, Xuerui,
 
-Tested-by: Xi Ruoyao <xry111@xry111.site>
+On Tue, Aug 16, 2022 at 1:46 PM WANG Xuerui <kernel@xen0n.name> wrote:
+>
+> On 2022/8/15 20:47, Huacai Chen wrote:
+> > Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+> > ---
+> >   arch/loongarch/Kconfig                      |   2 +
+> >   arch/loongarch/include/uapi/asm/perf_regs.h |  40 +
+> >   arch/loongarch/kernel/Makefile              |   2 +
+> >   arch/loongarch/kernel/perf_event.c          | 909 ++++++++++++++++++++
+> >   arch/loongarch/kernel/perf_regs.c           |  50 ++
+> >   5 files changed, 1003 insertions(+)
+> >   create mode 100644 arch/loongarch/include/uapi/asm/perf_regs.h
+> >   create mode 100644 arch/loongarch/kernel/perf_event.c
+> >   create mode 100644 arch/loongarch/kernel/perf_regs.c
+>
+> The code seems mostly ripped from arch/mips/kernel/perf_event_mipsxx.c.
+> I reviewed about half of the code then suddenly realized I might be
+> looking at MIPS code, given some of the English strings there seemed way
+> too "natural"...
+>
+> But unfortunately, at least for 3A5000 whose micro-architecture is
+> largely shared with the MIPS-implementing 3A4000, it seems inevitable to
+> involve some of the more MIPS-looking logic. The 1st-generation LA
+> privileged architecture is way too much MIPS-like after all, so if we
+> want any support for the 3A5000 we'd have to include this.
+>
+> >
+> > diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
+> > index 24665808cf3d..9478f9646fa5 100644
+> > --- a/arch/loongarch/Kconfig
+> > +++ b/arch/loongarch/Kconfig
+> > @@ -93,6 +93,8 @@ config LOONGARCH
+> >       select HAVE_NMI
+> >       select HAVE_PCI
+> >       select HAVE_PERF_EVENTS
+> > +     select HAVE_PERF_REGS
+> > +     select HAVE_PERF_USER_STACK_DUMP
+> >       select HAVE_REGS_AND_STACK_ACCESS_API
+> >       select HAVE_RSEQ
+> >       select HAVE_SETUP_PER_CPU_AREA if NUMA
+> > diff --git a/arch/loongarch/include/uapi/asm/perf_regs.h b/arch/loongarch/include/uapi/asm/perf_regs.h
+> > new file mode 100644
+> > index 000000000000..9943d418e01d
+> > --- /dev/null
+> > +++ b/arch/loongarch/include/uapi/asm/perf_regs.h
+> > @@ -0,0 +1,40 @@
+> > +/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+> > +#ifndef _ASM_LOONGARCH_PERF_REGS_H
+> > +#define _ASM_LOONGARCH_PERF_REGS_H
+> > +
+> > +enum perf_event_loongarch_regs {
+> > +     PERF_REG_LOONGARCH_PC,
+> > +     PERF_REG_LOONGARCH_R1,
+> > +     PERF_REG_LOONGARCH_R2,
+> > +     PERF_REG_LOONGARCH_R3,
+> > +     PERF_REG_LOONGARCH_R4,
+> > +     PERF_REG_LOONGARCH_R5,
+> > +     PERF_REG_LOONGARCH_R6,
+> > +     PERF_REG_LOONGARCH_R7,
+> > +     PERF_REG_LOONGARCH_R8,
+> > +     PERF_REG_LOONGARCH_R9,
+> > +     PERF_REG_LOONGARCH_R10,
+> > +     PERF_REG_LOONGARCH_R11,
+> > +     PERF_REG_LOONGARCH_R12,
+> > +     PERF_REG_LOONGARCH_R13,
+> > +     PERF_REG_LOONGARCH_R14,
+> > +     PERF_REG_LOONGARCH_R15,
+> > +     PERF_REG_LOONGARCH_R16,
+> > +     PERF_REG_LOONGARCH_R17,
+> > +     PERF_REG_LOONGARCH_R18,
+> > +     PERF_REG_LOONGARCH_R19,
+> > +     PERF_REG_LOONGARCH_R20,
+> > +     PERF_REG_LOONGARCH_R21,
+> > +     PERF_REG_LOONGARCH_R22,
+> > +     PERF_REG_LOONGARCH_R23,
+> > +     PERF_REG_LOONGARCH_R24,
+> > +     PERF_REG_LOONGARCH_R25,
+> > +     PERF_REG_LOONGARCH_R26,
+> > +     PERF_REG_LOONGARCH_R27,
+> > +     PERF_REG_LOONGARCH_R28,
+> > +     PERF_REG_LOONGARCH_R29,
+> > +     PERF_REG_LOONGARCH_R30,
+> > +     PERF_REG_LOONGARCH_R31,
+> > +     PERF_REG_LOONGARCH_MAX = PERF_REG_LOONGARCH_R31 + 1,
+>
+> No need for this "PERF_REG_LOONGARCH_R31 + 1" because it's what happens
+> without the assignment anyway?
+PERF_REG_LOONGARCH_MAX is used in perf_events.c
 
-On Mon, 2022-08-15 at 20:48 +0800, Huacai Chen wrote:
-> This add CPU HWMon (temperature sensor) platform driver for Loongson-
-> 3.
->=20
-> Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
-> ---
-> =C2=A0drivers/platform/Kconfig=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 |=C2=A0=C2=A0 3 +
-> =C2=A0drivers/platform/Makefile=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 |=C2=A0=C2=A0 1 +
-> =C2=A0drivers/platform/loongarch/Kconfig=C2=A0=C2=A0=C2=A0=C2=A0 |=C2=A0 =
-26 ++++
-> =C2=A0drivers/platform/loongarch/Makefile=C2=A0=C2=A0=C2=A0 |=C2=A0=C2=A0=
- 1 +
-> =C2=A0drivers/platform/loongarch/cpu_hwmon.c | 195
-> +++++++++++++++++++++++++
-> =C2=A05 files changed, 226 insertions(+)
-> =C2=A0create mode 100644 drivers/platform/loongarch/Kconfig
-> =C2=A0create mode 100644 drivers/platform/loongarch/Makefile
-> =C2=A0create mode 100644 drivers/platform/loongarch/cpu_hwmon.c
->=20
-> diff --git a/drivers/platform/Kconfig b/drivers/platform/Kconfig
-> index b437847b6237..9c68e2def2cb 100644
-> --- a/drivers/platform/Kconfig
-> +++ b/drivers/platform/Kconfig
-> @@ -2,6 +2,9 @@
-> =C2=A0if MIPS
-> =C2=A0source "drivers/platform/mips/Kconfig"
-> =C2=A0endif
-> +if LOONGARCH
-> +source "drivers/platform/loongarch/Kconfig"
-> +endif
-> =C2=A0
-> =C2=A0source "drivers/platform/goldfish/Kconfig"
-> =C2=A0
-> diff --git a/drivers/platform/Makefile b/drivers/platform/Makefile
-> index 4de08ef4ec9d..41640172975a 100644
-> --- a/drivers/platform/Makefile
-> +++ b/drivers/platform/Makefile
-> @@ -4,6 +4,7 @@
-> =C2=A0#
-> =C2=A0
-> =C2=A0obj-$(CONFIG_X86)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0+=3D x86/
-> +obj-$(CONFIG_LOONGARCH)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0+=3D loongarch/
-> =C2=A0obj-$(CONFIG_MELLANOX_PLATFORM)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0+=3D mellanox/
-> =C2=A0obj-$(CONFIG_MIPS)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0+=3D mips/
-> =C2=A0obj-$(CONFIG_OLPC_EC)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0+=3D olpc/
-> diff --git a/drivers/platform/loongarch/Kconfig
-> b/drivers/platform/loongarch/Kconfig
-> new file mode 100644
-> index 000000000000..a1542843b0ad
-> --- /dev/null
-> +++ b/drivers/platform/loongarch/Kconfig
-> @@ -0,0 +1,26 @@
-> +#
-> +# LoongArch Platform Specific Drivers
-> +#
-> +
-> +menuconfig LOONGARCH_PLATFORM_DEVICES
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0bool "LoongArch Platform Speci=
-fic Device Drivers"
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0default LOONGARCH
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0help
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 Say Y here to get to se=
-e options for device drivers of
-> various
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 LoongArch platforms, in=
-cluding vendor-specific
-> laptop/desktop
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 extension and hardware =
-monitor drivers. This option itself
-> does
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 not add any kernel code=
-.
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 If you say N, all optio=
-ns in this submenu will be skipped
-> and disabled.
-> +
-> +if LOONGARCH_PLATFORM_DEVICES
-> +
-> +config CPU_HWMON
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0bool "Loongson CPU HWMon Drive=
-r"
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0depends on MACH_LOONGSON64
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0select HWMON
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0default y
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0help
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 Loongson-3A/3B/3C CPU H=
-WMon (temperature sensor) driver.
-> +
-> +endif # LOONGARCH_PLATFORM_DEVICES
-> diff --git a/drivers/platform/loongarch/Makefile
-> b/drivers/platform/loongarch/Makefile
-> new file mode 100644
-> index 000000000000..8dfd03924c37
-> --- /dev/null
-> +++ b/drivers/platform/loongarch/Makefile
-> @@ -0,0 +1 @@
-> +obj-$(CONFIG_CPU_HWMON) +=3D cpu_hwmon.o
-> diff --git a/drivers/platform/loongarch/cpu_hwmon.c
-> b/drivers/platform/loongarch/cpu_hwmon.c
-> new file mode 100644
-> index 000000000000..3673c850f66c
-> --- /dev/null
-> +++ b/drivers/platform/loongarch/cpu_hwmon.c
-> @@ -0,0 +1,195 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Copyright (C) 2022 Loongson Technology Corporation Limited
-> + */
-> +#include <linux/module.h>
-> +#include <linux/reboot.h>
-> +#include <linux/jiffies.h>
-> +#include <linux/hwmon.h>
-> +#include <linux/hwmon-sysfs.h>
-> +
-> +#include <asm/loongson.h>
-> +
-> +int loongson3_cpu_temp(int cpu)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0u32 reg;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0reg =3D iocsr_read32(LOONGARCH=
-_IOCSR_CPUTEMP) & 0xff;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0return (int)((s8)reg) * 1000;
-> +}
-> +EXPORT_SYMBOL(loongson3_cpu_temp);
-> +
-> +static int nr_packages;
-> +static struct device *cpu_hwmon_dev;
-> +
-> +static ssize_t cpu_temp_label(struct device *dev,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0struct de=
-vice_attribute *attr, char *buf)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0int id =3D (to_sensor_dev_attr=
-(attr))->index - 1;
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0return sprintf(buf, "CPU %d Te=
-mperature\n", id);
-> +}
-> +
-> +static ssize_t get_cpu_temp(struct device *dev,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0struct de=
-vice_attribute *attr, char *buf)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0int id =3D (to_sensor_dev_attr=
-(attr))->index - 1;
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0int value =3D loongson3_cpu_te=
-mp(id);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0return sprintf(buf, "%d\n", va=
-lue);
-> +}
-> +
-> +static SENSOR_DEVICE_ATTR(temp1_input, 0444, get_cpu_temp, NULL, 1);
-> +static SENSOR_DEVICE_ATTR(temp1_label, 0444, cpu_temp_label, NULL,
-> 1);
-> +static SENSOR_DEVICE_ATTR(temp2_input, 0444, get_cpu_temp, NULL, 2);
-> +static SENSOR_DEVICE_ATTR(temp2_label, 0444, cpu_temp_label, NULL,
-> 2);
-> +static SENSOR_DEVICE_ATTR(temp3_input, 0444, get_cpu_temp, NULL, 3);
-> +static SENSOR_DEVICE_ATTR(temp3_label, 0444, cpu_temp_label, NULL,
-> 3);
-> +static SENSOR_DEVICE_ATTR(temp4_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp4_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp5_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp5_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp6_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp6_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp7_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp7_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp8_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp8_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp9_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp9_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp10_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp10_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp11_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp11_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp12_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp12_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp13_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp13_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp14_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp14_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp15_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp15_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +static SENSOR_DEVICE_ATTR(temp16_input, 0444, get_cpu_temp, NULL, 4);
-> +static SENSOR_DEVICE_ATTR(temp16_label, 0444, cpu_temp_label, NULL,
-> 4);
-> +
-> +static struct attribute *cpu_hwmon_attributes[] =3D {
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp1_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp1_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp2_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp2_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp3_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp3_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp4_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp4_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp5_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp5_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp6_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp6_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp7_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp7_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp8_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp8_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp9_input.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp9_label.d=
-ev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp10_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp10_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp11_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp11_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp12_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp12_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp13_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp13_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp14_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp14_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp15_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp15_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp16_input.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&sensor_dev_attr_temp16_label.=
-dev_attr.attr,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0NULL
-> +};
-> +static umode_t cpu_hwmon_is_visible(struct kobject *kobj,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 struct attribute =
-*attr, int i)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0int id =3D i / 2;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0if (id < nr_packages)
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0return attr->mode;
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0return 0;
-> +}
-> +
-> +static struct attribute_group cpu_hwmon_group =3D {
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0.attrs =3D cpu_hwmon_attribute=
-s,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0.is_visible =3D cpu_hwmon_is_v=
-isible,
-> +};
-> +
-> +static const struct attribute_group *cpu_hwmon_groups[] =3D {
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0&cpu_hwmon_group,
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0NULL
-> +};
-> +
-> +static int cpu_initial_threshold =3D 72000;
-> +static int cpu_thermal_threshold =3D 96000;
-> +module_param(cpu_thermal_threshold, int, 0644);
-> +MODULE_PARM_DESC(cpu_thermal_threshold, "cpu thermal threshold (96000
-> (default))");
-> +
-> +static struct delayed_work thermal_work;
-> +
-> +static void do_thermal_timer(struct work_struct *work)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0int i, value, temp_max =3D 0;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0for (i=3D0; i<nr_packages; i++=
-) {
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0value =3D loongson3_cpu_temp(i);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0if (value > temp_max)
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0temp_max =
-=3D value;
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0}
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0if (temp_max <=3D cpu_thermal_=
-threshold)
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0schedule_delayed_work(&thermal_work,
-> msecs_to_jiffies(5000));
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0else
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0orderly_poweroff(true);
-> +}
-> +
-> +static int __init loongson_hwmon_init(void)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0int i, value, temp_max =3D 0;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0pr_info("Loongson Hwmon Enter.=
-..\n");
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0nr_packages =3D loongson_sysco=
-nf.nr_cpus /
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0loongson_sysconf.cores_per_package;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0cpu_hwmon_dev =3D hwmon_device=
-_register_with_groups(NULL,
-> "cpu_hwmon",
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 NULL,
-> cpu_hwmon_groups);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0if (IS_ERR(cpu_hwmon_dev)) {
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0pr_err("hwmon_device_register fail!\n");
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0return PTR_ERR(cpu_hwmon_dev);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0}
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0for (i =3D 0; i < nr_packages;=
- i++) {
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0value =3D loongson3_cpu_temp(i);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0if (value > temp_max)
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0temp_max =
-=3D value;
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0}
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0pr_info("Initial CPU temperatu=
-re is %d (highest).\n",
-> temp_max);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0if (temp_max > cpu_initial_thr=
-eshold)
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=
-=C2=A0=C2=A0=C2=A0cpu_thermal_threshold +=3D temp_max -
-> cpu_initial_threshold;
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0INIT_DEFERRABLE_WORK(&thermal_=
-work, do_thermal_timer);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0schedule_delayed_work(&thermal=
-_work, msecs_to_jiffies(20000));
-> +
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0return 0;
-> +}
-> +
-> +static void __exit loongson_hwmon_exit(void)
-> +{
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0cancel_delayed_work_sync(&ther=
-mal_work);
-> +=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0hwmon_device_unregister(cpu_hw=
-mon_dev);
-> +}
-> +
-> +module_init(loongson_hwmon_init);
-> +module_exit(loongson_hwmon_exit);
-> +
-> +MODULE_AUTHOR("Huacai Chen <chenhuacai@loongson.cn>");
-> +MODULE_DESCRIPTION("Loongson CPU Hwmon driver");
-> +MODULE_LICENSE("GPL");
+>
+> > +};
+> > +#endif /* _ASM_LOONGARCH_PERF_REGS_H */
+> > diff --git a/arch/loongarch/kernel/Makefile b/arch/loongarch/kernel/Makefile
+> > index e5be17009fe8..a213e994db68 100644
+> > --- a/arch/loongarch/kernel/Makefile
+> > +++ b/arch/loongarch/kernel/Makefile
+> > @@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)          += numa.o
+> >   obj-$(CONFIG_UNWINDER_GUESS)        += unwind_guess.o
+> >   obj-$(CONFIG_UNWINDER_PROLOGUE) += unwind_prologue.o
+> >
+> > +obj-$(CONFIG_PERF_EVENTS)    += perf_event.o perf_regs.o
+> > +
+> >   CPPFLAGS_vmlinux.lds                := $(KBUILD_CFLAGS)
+> > diff --git a/arch/loongarch/kernel/perf_event.c b/arch/loongarch/kernel/perf_event.c
+> > new file mode 100644
+> > index 000000000000..00cdbcebaf80
+> > --- /dev/null
+> > +++ b/arch/loongarch/kernel/perf_event.c
+> > @@ -0,0 +1,909 @@
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +/*
+> > + * Linux performance counter support for LoongArch.
+>
+> Please indicate its MIPS origin and copyright info ;-)
+OK, thanks.
 
---=20
-Xi Ruoyao <xry111@xry111.site>
-School of Aerospace Science and Technology, Xidian University
+>
+> > + *
+> > + * Copyright (C) 2022 Loongson Technology Corporation Limited
+> > + */
+> > +
+> > +#include <linux/cpumask.h>
+> > +#include <linux/interrupt.h>
+> > +#include <linux/smp.h>
+> > +#include <linux/kernel.h>
+> > +#include <linux/perf_event.h>
+> > +#include <linux/uaccess.h>
+> > +#include <linux/sched/task_stack.h>
+> > +
+> > +#include <asm/irq.h>
+> > +#include <asm/irq_regs.h>
+> > +#include <asm/stacktrace.h>
+> > +#include <asm/unwind.h>
+> > +
+> > +/*
+> > + * Get the return address for a single stackframe and return a pointer to the
+> > + * next frame tail.
+> > + */
+> > +static unsigned long
+> > +user_backtrace(struct perf_callchain_entry_ctx *entry, unsigned long fp)
+> > +{
+> > +     struct stack_frame buftail;
+> > +     unsigned long err;
+> > +     unsigned long __user *user_frame_tail = (unsigned long *)(fp - sizeof(struct stack_frame));
+> > +
+> > +     /* Also check accessibility of one struct frame_tail beyond */
+> > +     if (!access_ok(user_frame_tail, sizeof(buftail)))
+> > +             return 0;
+> > +
+> > +     pagefault_disable();
+> > +     err = __copy_from_user_inatomic(&buftail, user_frame_tail, sizeof(buftail));
+> > +     pagefault_enable();
+> > +
+> > +     if (err || (unsigned long)user_frame_tail >= buftail.fp)
+> > +             return 0;
+> > +
+> > +     perf_callchain_store(entry, buftail.ra);
+> > +
+> > +     return buftail.fp;
+> > +}
+> > +
+> > +void perf_callchain_user(struct perf_callchain_entry_ctx *entry,
+> > +                      struct pt_regs *regs)
+> > +{
+> > +     unsigned long fp;
+> > +
+> > +     if (perf_guest_state()) {
+> > +             /* We don't support guest os callchain now */
+> > +             return;
+> > +     }
+> > +
+> > +     perf_callchain_store(entry, regs->csr_era);
+> > +
+> > +     fp = regs->regs[22];
+> > +
+> > +     while (entry->nr < entry->max_stack && fp && !((unsigned long)fp & 0xf))
+> > +             fp = user_backtrace(entry, fp);
+> > +}
+> > +
+> > +void perf_callchain_kernel(struct perf_callchain_entry_ctx *entry,
+> > +                        struct pt_regs *regs)
+> > +{
+> > +     struct unwind_state state;
+> > +     unsigned long addr;
+> > +
+> > +     for (unwind_start(&state, current, regs);
+> > +           !unwind_done(&state); unwind_next_frame(&state)) {
+> > +             addr = unwind_get_return_address(&state);
+> > +             if (!addr || perf_callchain_store(entry, addr))
+> > +                     return;
+> > +     }
+> > +}
+> > +
+> > +#define LOONGARCH_MAX_HWEVENTS 4
+> > +
+> > +struct cpu_hw_events {
+> > +     /* Array of events on this cpu. */
+> > +     struct perf_event       *events[LOONGARCH_MAX_HWEVENTS];
+> > +
+> > +     /*
+> > +      * Set the bit (indexed by the counter number) when the counter
+> > +      * is used for an event.
+> > +      */
+> > +     unsigned long           used_mask[BITS_TO_LONGS(LOONGARCH_MAX_HWEVENTS)];
+> > +
+> > +     /*
+> > +      * Software copy of the control register for each performance counter.
+> > +      * LoongArch CPUs vary in performance counters. They use this differently,
+> > +      * and even may not use it.
+>
+> I can't easily make sense of the paragraph. "Software copy" could mean
+> "Saved copy", but how do "use differently" and "even may not use it"
+> mean? For the latter I can't deduce if it's originally "some even may
+> not exist" in someone's head, and for the former I can't imagine what's
+> the possible cases and why we would care.
+>
+> Maybe explain a little bit more?
+I think we should remove those useless lines.
+
+>
+> > +      */
+> > +     unsigned int            saved_ctrl[LOONGARCH_MAX_HWEVENTS];
+> > +};
+> > +static DEFINE_PER_CPU(struct cpu_hw_events, cpu_hw_events) = {
+> > +     .saved_ctrl = {0},
+> > +};
+> > +
+> > +/* The description of LoongArch performance events. */
+> > +struct loongarch_perf_event {
+> > +     unsigned int event_id;
+> > +};
+> > +
+> > +static struct loongarch_perf_event raw_event;
+> > +static DEFINE_MUTEX(raw_event_mutex);
+> > +
+> > +#define C(x) PERF_COUNT_HW_CACHE_##x
+> > +#define HW_OP_UNSUPPORTED            0xffffffff
+> > +#define CACHE_OP_UNSUPPORTED         0xffffffff
+> > +
+> > +#define PERF_MAP_ALL_UNSUPPORTED                                     \
+> > +     [0 ... PERF_COUNT_HW_MAX - 1] = {HW_OP_UNSUPPORTED}
+> > +
+> > +#define PERF_CACHE_MAP_ALL_UNSUPPORTED                                       \
+> > +[0 ... C(MAX) - 1] = {                                                       \
+> > +     [0 ... C(OP_MAX) - 1] = {                                       \
+> > +             [0 ... C(RESULT_MAX) - 1] = {CACHE_OP_UNSUPPORTED},     \
+> > +     },                                                              \
+> > +}
+> > +
+> > +struct loongarch_pmu {
+> > +     u64             max_period;
+> > +     u64             valid_count;
+> > +     u64             overflow;
+> > +     const char      *name;
+> > +     u64             (*read_counter)(unsigned int idx);
+> > +     void            (*write_counter)(unsigned int idx, u64 val);
+> > +     const struct loongarch_perf_event *(*map_raw_event)(u64 config);
+> > +     const struct loongarch_perf_event (*general_event_map)[PERF_COUNT_HW_MAX];
+> > +     const struct loongarch_perf_event (*cache_event_map)
+> > +                             [PERF_COUNT_HW_CACHE_MAX]
+> > +                             [PERF_COUNT_HW_CACHE_OP_MAX]
+> > +                             [PERF_COUNT_HW_CACHE_RESULT_MAX];
+>
+> Apparently general_event_map and cache_event_map are not function
+> pointers? So the parens around the field name should be removed.
+They are not function pointers, but "array pointers", but we shouldn't
+change them to "array to pointers"..
+
+>
+> > +     unsigned int    num_counters;
+> > +};
+> > +
+> > +static struct loongarch_pmu loongarch_pmu;
+> > +
+> > +#define M_PERFCTL_EVENT(event)       (event & CSR_PERFCTRL_EVENT)
+> > +
+> > +#define M_PERFCTL_COUNT_EVENT_WHENEVER       (CSR_PERFCTRL_PLV0 |    \
+> > +                                     CSR_PERFCTRL_PLV1 |     \
+> > +                                     CSR_PERFCTRL_PLV2 |     \
+> > +                                     CSR_PERFCTRL_PLV3 |     \
+> > +                                     CSR_PERFCTRL_IE)
+> > +
+> > +#define M_PERFCTL_CONFIG_MASK                0x1f0000
+> > +
+> > +#define CNTR_BIT_MASK(n)     (((n) == 64) ? ~0ULL : ((1ULL<<(n))-1))
+>
+> Isn't this just GENMASK(n - 1, 0)?
+Yes, you are right.
+
+>
+> > +
+> > +static void resume_local_counters(void);
+> > +static void pause_local_counters(void);
+> > +
+> > +static u64 loongarch_pmu_read_counter(unsigned int idx)
+> > +{
+> > +     u64 val = -1;
+> > +
+> > +     switch (idx) {
+> > +     case 0:
+> > +             val = read_csr_perfcntr0();
+> > +             break;
+> > +     case 1:
+> > +             val = read_csr_perfcntr1();
+> > +             break;
+> > +     case 2:
+> > +             val = read_csr_perfcntr2();
+> > +             break;
+> > +     case 3:
+> > +             val = read_csr_perfcntr3();
+> > +             break;
+> > +     default:
+> > +             WARN_ONCE(1, "Invalid performance counter number (%d)\n", idx);
+> > +             return 0;
+> > +     }
+> > +
+> > +     return val;
+> > +}
+> > +
+> > +static void loongarch_pmu_write_counter(unsigned int idx, u64 val)
+> > +{
+> > +     switch (idx) {
+> > +     case 0:
+> > +             write_csr_perfcntr0(val);
+> > +             return;
+> > +     case 1:
+> > +             write_csr_perfcntr1(val);
+> > +             return;
+> > +     case 2:
+> > +             write_csr_perfcntr2(val);
+> > +             return;
+> > +     case 3:
+> > +             write_csr_perfcntr3(val);
+> > +             return;
+>
+> Want a default branch for this function, similar to the read case?
+Yes, that is needed.
+
+>
+> > +     }
+> > +}
+> > +
+> > +static unsigned int loongarch_pmu_read_control(unsigned int idx)
+> > +{
+> > +     unsigned int val = -1;
+> > +
+> > +     switch (idx) {
+> > +     case 0:
+> > +             val = read_csr_perfctrl0();
+> > +             break;
+> > +     case 1:
+> > +             val = read_csr_perfctrl1();
+> > +             break;
+> > +     case 2:
+> > +             val = read_csr_perfctrl2();
+> > +             break;
+> > +     case 3:
+> > +             val = read_csr_perfctrl3();
+> > +             break;
+> > +     default:
+> > +             WARN_ONCE(1, "Invalid performance counter number (%d)\n", idx);
+> > +             return 0;
+> > +     }
+> > +
+> > +     return val;
+> > +}
+> > +
+> > +static void loongarch_pmu_write_control(unsigned int idx, unsigned int val)
+> > +{
+> > +     switch (idx) {
+> > +     case 0:
+> > +             write_csr_perfctrl0(val);
+> > +             return;
+> > +     case 1:
+> > +             write_csr_perfctrl1(val);
+> > +             return;
+> > +     case 2:
+> > +             write_csr_perfctrl2(val);
+> > +             return;
+> > +     case 3:
+> > +             write_csr_perfctrl3(val);
+> > +             return;
+>
+> Similarly here.
+>
+> > +     }
+> > +}
+> > +
+> > +static int loongarch_pmu_alloc_counter(struct cpu_hw_events *cpuc,
+> > +                                 struct hw_perf_event *hwc)
+> > +{
+> > +     int i;
+> > +
+> > +     for (i = loongarch_pmu.num_counters - 1; i >= 0; i--) {
+> > +             if (!test_and_set_bit(i, cpuc->used_mask))
+> > +                     return i;
+> > +     }
+> > +
+> > +     return -EAGAIN;
+> > +}
+> > +
+> > +static void loongarch_pmu_enable_event(struct hw_perf_event *evt, int idx)
+> > +{
+> > +     struct perf_event *event = container_of(evt, struct perf_event, hw);
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +     unsigned int cpu;
+> > +
+> > +     WARN_ON(idx < 0 || idx >= loongarch_pmu.num_counters);
+> > +
+> > +     cpuc->saved_ctrl[idx] = M_PERFCTL_EVENT(evt->event_base & 0xff) |
+> > +             (evt->config_base & M_PERFCTL_CONFIG_MASK) |
+> > +             /* Make sure interrupt enabled. */
+> > +             CSR_PERFCTRL_IE;
+> > +
+> > +     cpu = (event->cpu >= 0) ? event->cpu : smp_processor_id();
+> > +
+> > +     pr_debug("Enabling perf counter for CPU%d\n", cpu);
+> > +     /*
+> > +      * We do not actually let the counter run. Leave it until start().
+> > +      */
+> > +}
+> > +
+> > +static void loongarch_pmu_disable_event(int idx)
+> > +{
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +     unsigned long flags;
+> > +
+> > +     WARN_ON(idx < 0 || idx >= loongarch_pmu.num_counters);
+> > +
+> > +     local_irq_save(flags);
+> > +     cpuc->saved_ctrl[idx] = loongarch_pmu_read_control(idx) &
+> > +             ~M_PERFCTL_COUNT_EVENT_WHENEVER;
+> > +     loongarch_pmu_write_control(idx, cpuc->saved_ctrl[idx]);
+> > +     local_irq_restore(flags);
+> > +}
+> > +
+> > +static int loongarch_pmu_event_set_period(struct perf_event *event,
+> > +                                 struct hw_perf_event *hwc,
+> > +                                 int idx)
+> > +{
+> > +     u64 left = local64_read(&hwc->period_left);
+> > +     u64 period = hwc->sample_period;
+> > +     int ret = 0;
+> > +
+> > +     if (unlikely((left + period) & (1ULL << 63))) {
+> > +             /* left underflowed by more than period. */
+> > +             left = period;
+> > +             local64_set(&hwc->period_left, left);
+> > +             hwc->last_period = period;
+> > +             ret = 1;
+> > +     } else  if (unlikely((left + period) <= period)) {
+> > +             /* left underflowed by less than period. */
+> > +             left += period;
+> > +             local64_set(&hwc->period_left, left);
+> > +             hwc->last_period = period;
+> > +             ret = 1;
+> > +     }
+> > +
+> > +     if (left > loongarch_pmu.max_period) {
+> > +             left = loongarch_pmu.max_period;
+> > +             local64_set(&hwc->period_left, left);
+> > +     }
+> > +
+> > +     local64_set(&hwc->prev_count, loongarch_pmu.overflow - left);
+> > +
+> > +     loongarch_pmu.write_counter(idx, loongarch_pmu.overflow - left);
+> > +
+> > +     perf_event_update_userpage(event);
+> > +
+> > +     return ret;
+> > +}
+> > +
+> > +static void loongarch_pmu_event_update(struct perf_event *event,
+> > +                              struct hw_perf_event *hwc,
+> > +                              int idx)
+> > +{
+> > +     u64 delta;
+> > +     u64 prev_raw_count, new_raw_count;
+> > +
+> > +again:
+> > +     prev_raw_count = local64_read(&hwc->prev_count);
+> > +     new_raw_count = loongarch_pmu.read_counter(idx);
+> > +
+> > +     if (local64_cmpxchg(&hwc->prev_count, prev_raw_count,
+> > +                             new_raw_count) != prev_raw_count)
+> > +             goto again;
+> > +
+> > +     delta = new_raw_count - prev_raw_count;
+> > +
+> > +     local64_add(delta, &event->count);
+> > +     local64_sub(delta, &hwc->period_left);
+> > +}
+> > +
+> > +static void loongarch_pmu_start(struct perf_event *event, int flags)
+> > +{
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +
+> > +     if (flags & PERF_EF_RELOAD)
+> > +             WARN_ON_ONCE(!(hwc->state & PERF_HES_UPTODATE));
+> > +
+> > +     hwc->state = 0;
+> > +
+> > +     /* Set the period for the event. */
+> > +     loongarch_pmu_event_set_period(event, hwc, hwc->idx);
+> > +
+> > +     /* Enable the event. */
+> > +     loongarch_pmu_enable_event(hwc, hwc->idx);
+> > +}
+> > +
+> > +static void loongarch_pmu_stop(struct perf_event *event, int flags)
+> > +{
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +
+> > +     if (!(hwc->state & PERF_HES_STOPPED)) {
+> > +             /* We are working on a local event. */
+> > +             loongarch_pmu_disable_event(hwc->idx);
+> > +             barrier();
+> > +             loongarch_pmu_event_update(event, hwc, hwc->idx);
+> > +             hwc->state |= PERF_HES_STOPPED | PERF_HES_UPTODATE;
+> > +     }
+> > +}
+> > +
+> > +static int loongarch_pmu_add(struct perf_event *event, int flags)
+> > +{
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +     int idx;
+> > +     int err = 0;
+> > +
+> > +     perf_pmu_disable(event->pmu);
+> > +
+> > +     /* To look for a free counter for this event. */
+> > +     idx = loongarch_pmu_alloc_counter(cpuc, hwc);
+> > +     if (idx < 0) {
+> > +             err = idx;
+> > +             goto out;
+> > +     }
+> > +
+> > +     /*
+> > +      * If there is an event in the counter we are going to use then
+> > +      * make sure it is disabled.
+> > +      */
+> > +     event->hw.idx = idx;
+> > +     loongarch_pmu_disable_event(idx);
+> > +     cpuc->events[idx] = event;
+> > +
+> > +     hwc->state = PERF_HES_STOPPED | PERF_HES_UPTODATE;
+> > +     if (flags & PERF_EF_START)
+> > +             loongarch_pmu_start(event, PERF_EF_RELOAD);
+> > +
+> > +     /* Propagate our changes to the userspace mapping. */
+> > +     perf_event_update_userpage(event);
+> > +
+> > +out:
+> > +     perf_pmu_enable(event->pmu);
+> > +     return err;
+> > +}
+> > +
+> > +static void loongarch_pmu_del(struct perf_event *event, int flags)
+> > +{
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +     int idx = hwc->idx;
+> > +
+> > +     WARN_ON(idx < 0 || idx >= loongarch_pmu.num_counters);
+> > +
+> > +     loongarch_pmu_stop(event, PERF_EF_UPDATE);
+> > +     cpuc->events[idx] = NULL;
+> > +     clear_bit(idx, cpuc->used_mask);
+> > +
+> > +     perf_event_update_userpage(event);
+> > +}
+> > +
+> > +static void loongarch_pmu_read(struct perf_event *event)
+> > +{
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +
+> > +     /* Don't read disabled counters! */
+> > +     if (hwc->idx < 0)
+> > +             return;
+> > +
+> > +     loongarch_pmu_event_update(event, hwc, hwc->idx);
+> > +}
+> > +
+> > +static void loongarch_pmu_enable(struct pmu *pmu)
+> > +{
+> > +     resume_local_counters();
+> > +}
+> > +
+> > +static void loongarch_pmu_disable(struct pmu *pmu)
+> > +{
+> > +     pause_local_counters();
+> > +}
+> > +
+> > +static atomic_t active_events = ATOMIC_INIT(0);
+> > +static DEFINE_MUTEX(pmu_reserve_mutex);
+> > +
+> > +static void reset_counters(void *arg);
+> > +static int __hw_perf_event_init(struct perf_event *event);
+> > +
+> > +static void hw_perf_event_destroy(struct perf_event *event)
+> > +{
+> > +     if (atomic_dec_and_mutex_lock(&active_events,
+> > +                             &pmu_reserve_mutex)) {
+> > +             /*
+> > +              * We must not call the destroy function with interrupts
+> > +              * disabled.
+> > +              */
+> > +             on_each_cpu(reset_counters,
+> > +                     (void *)(long)loongarch_pmu.num_counters, 1);
+> > +             mutex_unlock(&pmu_reserve_mutex);
+> > +     }
+> > +}
+> > +
+> > +/* This is needed by specific irq handlers in perf_event_*.c */
+> > +static void handle_associated_event(struct cpu_hw_events *cpuc,
+> > +                                 int idx, struct perf_sample_data *data,
+> > +                                 struct pt_regs *regs)
+> > +{
+> > +     struct perf_event *event = cpuc->events[idx];
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +
+> > +     loongarch_pmu_event_update(event, hwc, idx);
+> > +     data->period = event->hw.last_period;
+> > +     if (!loongarch_pmu_event_set_period(event, hwc, idx))
+> > +             return;
+> > +
+> > +     if (perf_event_overflow(event, data, regs))
+> > +             loongarch_pmu_disable_event(idx);
+> > +}
+> > +
+> > +static irqreturn_t pmu_handle_irq(int irq, void *dev)
+> > +{
+> > +     int handled = IRQ_NONE;
+> > +     unsigned int counters = loongarch_pmu.num_counters;
+> > +     u64 counter;
+> > +     struct pt_regs *regs;
+> > +     struct perf_sample_data data;
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +
+> > +     /*
+> > +      * First we pause the local counters, so that when we are locked
+> > +      * here, the counters are all paused. When it gets locked due to
+> > +      * perf_disable(), the timer interrupt handler will be delayed.
+> > +      *
+> > +      * See also loongarch_pmu_start().
+> > +      */
+> > +     pause_local_counters();
+> > +
+> > +     regs = get_irq_regs();
+> > +
+> > +     perf_sample_data_init(&data, 0, 0);
+> > +
+> > +     switch (counters) {
+> > +#define HANDLE_COUNTER(n)                                            \
+> > +     case n + 1:                                                     \
+> > +             if (test_bit(n, cpuc->used_mask)) {                     \
+> > +                     counter = loongarch_pmu.read_counter(n);        \
+> > +                     if (counter & loongarch_pmu.overflow) {         \
+> > +                             handle_associated_event(cpuc, n, &data, regs); \
+> > +                             handled = IRQ_HANDLED;                  \
+> > +                     }                                               \
+> > +             }
+> > +     HANDLE_COUNTER(3)
+> > +             fallthrough;
+> > +     HANDLE_COUNTER(2)
+> > +             fallthrough;
+> > +     HANDLE_COUNTER(1)
+> > +             fallthrough;
+> > +     HANDLE_COUNTER(0)
+> > +     }
+> > +
+> > +     resume_local_counters();
+> > +
+> > +     /*
+> > +      * Do all the work for the pending perf events. We can do this
+> > +      * in here because the performance counter interrupt is a regular
+> > +      * interrupt, not NMI.
+> > +      */
+> > +     if (handled == IRQ_HANDLED)
+> > +             irq_work_run();
+> > +
+> > +     return handled;
+> > +}
+> > +
+> > +static int get_pmc_irq(void)
+> > +{
+> > +     struct irq_domain *d = irq_find_matching_fwnode(cpuintc_handle, DOMAIN_BUS_ANY);
+> > +
+> > +     if (d)
+> > +             return irq_create_mapping(d, EXCCODE_PMC - EXCCODE_INT_START);
+> > +
+> > +     return -EINVAL;
+> > +}
+> > +
+> > +static int loongarch_pmu_event_init(struct perf_event *event)
+> > +{
+> > +     int r, irq;
+> > +     unsigned long flags;
+> > +
+> > +     /* does not support taken branch sampling */
+> > +     if (has_branch_stack(event))
+> > +             return -EOPNOTSUPP;
+> > +
+> > +     switch (event->attr.type) {
+> > +     case PERF_TYPE_RAW:
+> > +     case PERF_TYPE_HARDWARE:
+> > +     case PERF_TYPE_HW_CACHE:
+> > +             break;
+> > +
+> > +     default:
+> > +             /* Init it to avoid false validate_group */
+> > +             event->hw.event_base = 0xffffffff;
+> > +             return -ENOENT;
+> > +     }
+> > +
+> > +     if (event->cpu >= 0 && !cpu_online(event->cpu))
+> > +             return -ENODEV;
+> > +
+> > +     irq = get_pmc_irq();
+> > +     flags = IRQF_PERCPU | IRQF_NOBALANCING | IRQF_NO_THREAD | IRQF_NO_SUSPEND | IRQF_SHARED;
+> > +     if (!atomic_inc_not_zero(&active_events)) {
+> > +             mutex_lock(&pmu_reserve_mutex);
+> > +             if (atomic_read(&active_events) == 0) {
+> > +                     r = request_irq(irq, pmu_handle_irq,
+> > +                                     flags, "Perf_PMU", &loongarch_pmu);
+> > +                     if (r < 0) {
+> > +                             pr_warn("PMU IRQ request failed\n");
+> > +                             return -ENODEV;
+> > +                     }
+> > +             }
+> > +             atomic_inc(&active_events);
+> > +             mutex_unlock(&pmu_reserve_mutex);
+> > +     }
+> > +
+> > +     return __hw_perf_event_init(event);
+> > +}
+> > +
+> > +static struct pmu pmu = {
+> > +     .pmu_enable     = loongarch_pmu_enable,
+> > +     .pmu_disable    = loongarch_pmu_disable,
+> > +     .event_init     = loongarch_pmu_event_init,
+> > +     .add            = loongarch_pmu_add,
+> > +     .del            = loongarch_pmu_del,
+> > +     .start          = loongarch_pmu_start,
+> > +     .stop           = loongarch_pmu_stop,
+> > +     .read           = loongarch_pmu_read,
+> > +};
+> > +
+> > +static unsigned int loongarch_pmu_perf_event_encode(const struct loongarch_perf_event *pev)
+> > +{
+> > +     return (pev->event_id & 0xff);
+> > +}
+> > +
+> > +static const struct loongarch_perf_event *loongarch_pmu_map_general_event(int idx)
+> > +{
+> > +     const struct loongarch_perf_event *pev;
+> > +
+> > +     pev = &(*loongarch_pmu.general_event_map)[idx];
+> > +
+> > +     if (pev->event_id == HW_OP_UNSUPPORTED)
+> > +             return ERR_PTR(-ENOENT);
+> > +
+> > +     return pev;
+> > +}
+> > +
+> > +static const struct loongarch_perf_event *loongarch_pmu_map_cache_event(u64 config)
+> > +{
+> > +     unsigned int cache_type, cache_op, cache_result;
+> > +     const struct loongarch_perf_event *pev;
+> > +
+> > +     cache_type = (config >> 0) & 0xff;
+> > +     if (cache_type >= PERF_COUNT_HW_CACHE_MAX)
+> > +             return ERR_PTR(-EINVAL);
+> > +
+> > +     cache_op = (config >> 8) & 0xff;
+> > +     if (cache_op >= PERF_COUNT_HW_CACHE_OP_MAX)
+> > +             return ERR_PTR(-EINVAL);
+> > +
+> > +     cache_result = (config >> 16) & 0xff;
+> > +     if (cache_result >= PERF_COUNT_HW_CACHE_RESULT_MAX)
+> > +             return ERR_PTR(-EINVAL);
+> > +
+> > +     pev = &((*loongarch_pmu.cache_event_map)
+> > +                                     [cache_type]
+> > +                                     [cache_op]
+> > +                                     [cache_result]);
+> > +
+> > +     if (pev->event_id == CACHE_OP_UNSUPPORTED)
+> > +             return ERR_PTR(-ENOENT);
+> > +
+> > +     return pev;
+> > +}
+> > +
+> > +static int validate_group(struct perf_event *event)
+> > +{
+> > +     struct perf_event *sibling, *leader = event->group_leader;
+> > +     struct cpu_hw_events fake_cpuc;
+> > +
+> > +     memset(&fake_cpuc, 0, sizeof(fake_cpuc));
+> > +
+> > +     if (loongarch_pmu_alloc_counter(&fake_cpuc, &leader->hw) < 0)
+> > +             return -EINVAL;
+> > +
+> > +     for_each_sibling_event(sibling, leader) {
+> > +             if (loongarch_pmu_alloc_counter(&fake_cpuc, &sibling->hw) < 0)
+> > +                     return -EINVAL;
+> > +     }
+> > +
+> > +     if (loongarch_pmu_alloc_counter(&fake_cpuc, &event->hw) < 0)
+> > +             return -EINVAL;
+> > +
+> > +     return 0;
+> > +}
+> > +
+> > +static void reset_counters(void *arg)
+> > +{
+> > +     int counters = (int)(long)arg;
+> > +
+> > +     switch (counters) {
+> > +     case 4:
+> > +             loongarch_pmu_write_control(3, 0);
+> > +             loongarch_pmu.write_counter(3, 0);
+> > +             fallthrough;
+> > +     case 3:
+> > +             loongarch_pmu_write_control(2, 0);
+> > +             loongarch_pmu.write_counter(2, 0);
+> > +             fallthrough;
+> > +     case 2:
+> > +             loongarch_pmu_write_control(1, 0);
+> > +             loongarch_pmu.write_counter(1, 0);
+> > +             fallthrough;
+> > +     case 1:
+> > +             loongarch_pmu_write_control(0, 0);
+> > +             loongarch_pmu.write_counter(0, 0);
+> > +     }
+> > +}
+> > +
+> > +static const struct loongarch_perf_event loongson_new_event_map[PERF_COUNT_HW_MAX] = {
+> > +     PERF_MAP_ALL_UNSUPPORTED,
+> > +     [PERF_COUNT_HW_CPU_CYCLES] = { 0x00 },
+> > +     [PERF_COUNT_HW_INSTRUCTIONS] = { 0x01 },
+> > +     [PERF_COUNT_HW_CACHE_REFERENCES] = { 0x08 },
+> > +     [PERF_COUNT_HW_CACHE_MISSES] = { 0x09 },
+> > +     [PERF_COUNT_HW_BRANCH_INSTRUCTIONS] = { 0x02 },
+> > +     [PERF_COUNT_HW_BRANCH_MISSES] = { 0x03 },
+> > +};
+> > +
+> > +static const struct loongarch_perf_event loongson_new_cache_map
+> > +                             [PERF_COUNT_HW_CACHE_MAX]
+> > +                             [PERF_COUNT_HW_CACHE_OP_MAX]
+> > +                             [PERF_COUNT_HW_CACHE_RESULT_MAX] = {
+> > +PERF_CACHE_MAP_ALL_UNSUPPORTED,
+> > +[C(L1D)] = {
+> > +     /*
+> > +      * Like some other architectures (e.g. ARM), the performance
+> > +      * counters don't differentiate between read and write
+> > +      * accesses/misses, so this isn't strictly correct, but it's the
+> > +      * best we can do. Writes and reads get combined.
+> > +      */
+> > +     [C(OP_READ)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0x8 },
+> > +             [C(RESULT_MISS)]        = { 0x9 },
+> > +     },
+> > +     [C(OP_WRITE)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0x8 },
+> > +             [C(RESULT_MISS)]        = { 0x9 },
+> > +     },
+> > +     [C(OP_PREFETCH)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0xaa },
+> > +             [C(RESULT_MISS)]        = { 0xa9 },
+> > +     },
+> > +},
+> > +[C(L1I)] = {
+> > +     [C(OP_READ)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0x6 },
+> > +             [C(RESULT_MISS)]        = { 0x7 },
+> > +     },
+> > +},
+> > +[C(LL)] = {
+> > +     [C(OP_READ)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0xc },
+> > +             [C(RESULT_MISS)]        = { 0xd },
+> > +     },
+> > +     [C(OP_WRITE)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0xc },
+> > +             [C(RESULT_MISS)]        = { 0xd },
+> > +     },
+> > +},
+> > +[C(ITLB)] = {
+> > +     [C(OP_READ)] = {
+> > +             [C(RESULT_MISS)]    = { 0x3b },
+> > +     },
+> > +},
+> > +[C(DTLB)] = {
+> > +     [C(OP_READ)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0x4 },
+> > +             [C(RESULT_MISS)]        = { 0x3c },
+> > +     },
+> > +     [C(OP_WRITE)] = {
+> > +             [C(RESULT_ACCESS)]      = { 0x4 },
+> > +             [C(RESULT_MISS)]        = { 0x3c },
+> > +     },
+> > +},
+> > +[C(BPU)] = {
+> > +     /* Using the same code for *HW_BRANCH* */
+> > +     [C(OP_READ)] = {
+> > +             [C(RESULT_ACCESS)]  = { 0x02 },
+> > +             [C(RESULT_MISS)]    = { 0x03 },
+> > +     },
+> > +},
+> > +};
+> > +
+> > +static int __hw_perf_event_init(struct perf_event *event)
+> > +{
+> > +     struct perf_event_attr *attr = &event->attr;
+> > +     struct hw_perf_event *hwc = &event->hw;
+> > +     const struct loongarch_perf_event *pev;
+> > +     int err;
+> > +
+> > +     /* Returning LoongArch event descriptor for generic perf event. */
+> > +     if (PERF_TYPE_HARDWARE == event->attr.type) {
+> > +             if (event->attr.config >= PERF_COUNT_HW_MAX)
+> > +                     return -EINVAL;
+> > +             pev = loongarch_pmu_map_general_event(event->attr.config);
+> > +     } else if (PERF_TYPE_HW_CACHE == event->attr.type) {
+> > +             pev = loongarch_pmu_map_cache_event(event->attr.config);
+> > +     } else if (PERF_TYPE_RAW == event->attr.type) {
+> > +             /* We are working on the global raw event. */
+> > +             mutex_lock(&raw_event_mutex);
+> > +             pev = loongarch_pmu.map_raw_event(event->attr.config);
+> > +     } else {
+> > +             /* The event type is not (yet) supported. */
+> > +             return -EOPNOTSUPP;
+> > +     }
+> > +
+> > +     if (IS_ERR(pev)) {
+> > +             if (PERF_TYPE_RAW == event->attr.type)
+> > +                     mutex_unlock(&raw_event_mutex);
+> > +             return PTR_ERR(pev);
+> > +     }
+> > +
+> > +     /*
+> > +      * We allow max flexibility on how each individual counter shared
+> > +      * by the single CPU operates (the mode exclusion and the range).
+> > +      */
+> > +     hwc->config_base = CSR_PERFCTRL_IE;
+> > +
+> > +     hwc->event_base = loongarch_pmu_perf_event_encode(pev);
+> > +     if (PERF_TYPE_RAW == event->attr.type)
+> > +             mutex_unlock(&raw_event_mutex);
+> > +
+> > +     if (!attr->exclude_user) {
+> > +             hwc->config_base |= CSR_PERFCTRL_PLV3;
+> > +             hwc->config_base |= CSR_PERFCTRL_PLV2;
+> > +     }
+> > +     if (!attr->exclude_kernel) {
+> > +             hwc->config_base |= CSR_PERFCTRL_PLV0;
+> > +     }
+> > +     if (!attr->exclude_hv) {
+> > +             hwc->config_base |= CSR_PERFCTRL_PLV1;
+> > +     }
+> > +
+> > +     hwc->config_base &= M_PERFCTL_CONFIG_MASK;
+> > +     /*
+> > +      * The event can belong to another cpu. We do not assign a local
+> > +      * counter for it for now.
+> > +      */
+> > +     hwc->idx = -1;
+> > +     hwc->config = 0;
+> > +
+> > +     if (!hwc->sample_period) {
+> > +             hwc->sample_period  = loongarch_pmu.max_period;
+> > +             hwc->last_period    = hwc->sample_period;
+> > +             local64_set(&hwc->period_left, hwc->sample_period);
+> > +     }
+> > +
+> > +     err = 0;
+> > +     if (event->group_leader != event)
+> > +             err = validate_group(event);
+> > +
+> > +     event->destroy = hw_perf_event_destroy;
+> > +
+> > +     if (err)
+> > +             event->destroy(event);
+> > +
+> > +     return err;
+> > +}
+> > +
+> > +static void pause_local_counters(void)
+> > +{
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +     int ctr = loongarch_pmu.num_counters;
+> > +     unsigned long flags;
+> > +
+> > +     local_irq_save(flags);
+> > +     do {
+> > +             ctr--;
+> > +             cpuc->saved_ctrl[ctr] = loongarch_pmu_read_control(ctr);
+> > +             loongarch_pmu_write_control(ctr, cpuc->saved_ctrl[ctr] &
+> > +                                      ~M_PERFCTL_COUNT_EVENT_WHENEVER);
+> > +     } while (ctr > 0);
+> > +     local_irq_restore(flags);
+> > +}
+> > +
+> > +static void resume_local_counters(void)
+> > +{
+> > +     struct cpu_hw_events *cpuc = this_cpu_ptr(&cpu_hw_events);
+> > +     int ctr = loongarch_pmu.num_counters;
+> > +
+> > +     do {
+> > +             ctr--;
+> > +             loongarch_pmu_write_control(ctr, cpuc->saved_ctrl[ctr]);
+> > +     } while (ctr > 0);
+> > +}
+> > +
+> > +static const struct loongarch_perf_event *loongarch_pmu_map_raw_event(u64 config)
+> > +{
+> > +     raw_event.event_id = config & 0xff;
+> > +
+> > +     return &raw_event;
+> > +}
+> > +
+> > +static int __init
+> > +init_hw_perf_events(void)
+> > +{
+> > +     int counters = 4;
+> > +
+> > +     if (!cpu_has_pmp)
+> > +             return -ENODEV;
+> > +
+> > +     pr_info("Performance counters: ");
+> > +
+> > +     loongarch_pmu.num_counters = counters;
+> > +     loongarch_pmu.max_period = (1ULL << 63) - 1;
+> > +     loongarch_pmu.valid_count = (1ULL << 63) - 1;
+> > +     loongarch_pmu.overflow = 1ULL << 63;
+> > +     loongarch_pmu.name = "loongarch/loongson64";
+> > +     loongarch_pmu.read_counter = loongarch_pmu_read_counter;
+> > +     loongarch_pmu.write_counter = loongarch_pmu_write_counter;
+> > +     loongarch_pmu.map_raw_event = loongarch_pmu_map_raw_event;
+> > +     loongarch_pmu.general_event_map = &loongson_new_event_map;
+> > +     loongarch_pmu.cache_event_map = &loongson_new_cache_map;
+> > +
+> > +     on_each_cpu(reset_counters, (void *)(long)counters, 1);
+> > +
+> > +     pr_cont("%s PMU enabled, %d %d-bit counters available to each "
+> > +             "CPU.\n", loongarch_pmu.name, counters, 64);
+> > +
+> > +     perf_pmu_register(&pmu, "cpu", PERF_TYPE_RAW);
+> > +
+> > +     return 0;
+> > +}
+> > +early_initcall(init_hw_perf_events);
+> > diff --git a/arch/loongarch/kernel/perf_regs.c b/arch/loongarch/kernel/perf_regs.c
+> > new file mode 100644
+> > index 000000000000..a5e9768e8414
+> > --- /dev/null
+> > +++ b/arch/loongarch/kernel/perf_regs.c
+> > @@ -0,0 +1,50 @@
+> > +// SPDX-License-Identifier: GPL-2.0
+> > +/*
+> > + * Copyright (C) 2022 Loongson Technology Corporation Limited
+>
+> And this file.
+OK, thanks.
+
+Huacai
+>
+> > + */
+> > +
+> > +#include <linux/perf_event.h>
+> > +
+> > +#include <asm/ptrace.h>
+> > +
+> > +#ifdef CONFIG_32BIT
+> > +u64 perf_reg_abi(struct task_struct *tsk)
+> > +{
+> > +     return PERF_SAMPLE_REGS_ABI_32;
+> > +}
+> > +#else /* Must be CONFIG_64BIT */
+> > +u64 perf_reg_abi(struct task_struct *tsk)
+> > +{
+> > +     if (test_tsk_thread_flag(tsk, TIF_32BIT_REGS))
+> > +             return PERF_SAMPLE_REGS_ABI_32;
+> > +     else
+> > +             return PERF_SAMPLE_REGS_ABI_64;
+> > +}
+> > +#endif /* CONFIG_32BIT */
+> > +
+> > +int perf_reg_validate(u64 mask)
+> > +{
+> > +     if (!mask)
+> > +             return -EINVAL;
+> > +     if (mask & ~((1ull << PERF_REG_LOONGARCH_MAX) - 1))
+> > +             return -EINVAL;
+> > +     return 0;
+> > +}
+> > +
+> > +u64 perf_reg_value(struct pt_regs *regs, int idx)
+> > +{
+> > +     if (WARN_ON_ONCE((u32)idx >= PERF_REG_LOONGARCH_MAX))
+> > +             return 0;
+> > +
+> > +     if ((u32)idx == PERF_REG_LOONGARCH_PC)
+> > +             return regs->csr_era;
+> > +
+> > +     return regs->regs[idx];
+> > +}
+> > +
+> > +void perf_get_regs_user(struct perf_regs *regs_user,
+> > +                     struct pt_regs *regs)
+> > +{
+> > +     regs_user->regs = task_pt_regs(current);
+> > +     regs_user->abi = perf_reg_abi(current);
+> > +}
+>
+> --
+> WANG "xen0n" Xuerui
+>
+> Linux/LoongArch mailing list: https://lore.kernel.org/loongarch/
+>
