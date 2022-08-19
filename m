@@ -2,21 +2,21 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BBFAC32773
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:14:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5580DC25B0E
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:14:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1347549AbiHSIO1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 Aug 2022 04:14:27 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47190 "EHLO
+        id S1347123AbiHSIO3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 Aug 2022 04:14:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47250 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1347530AbiHSIOX (ORCPT
+        with ESMTP id S1347540AbiHSIOX (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:14:23 -0400
 Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id B27B348C9A;
-        Fri, 19 Aug 2022 01:14:16 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 9FAD15FAE2;
+        Fri, 19 Aug 2022 01:14:17 -0700 (PDT)
 Received: from localhost.localdomain (unknown [113.200.148.30])
-        by localhost.localdomain (Coremail) with SMTP id AQAAf8CxT+BLRv9i9I0EAA--.22658S4;
-        Fri, 19 Aug 2022 16:14:08 +0800 (CST)
+        by localhost.localdomain (Coremail) with SMTP id AQAAf8CxT+BLRv9i9I0EAA--.22658S7;
+        Fri, 19 Aug 2022 16:14:10 +0800 (CST)
 From:   Qing Zhang <zhangqing@loongson.cn>
 To:     Huacai Chen <chenhuacai@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>,
@@ -25,125 +25,168 @@ Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Jiaxun Yang <jiaxun.yang@flygoat.com>, hejinyang@loongson.cn,
         zhangqing@loongson.cn
-Subject: [PATCH 2/9] LoongArch/ftrace: Add recordmcount support
-Date:   Fri, 19 Aug 2022 16:13:56 +0800
-Message-Id: <20220819081403.7143-3-zhangqing@loongson.cn>
+Subject: [PATCH 5/9] Loongarch/ftrace: Add DYNAMIC_FTRACE_WITH_REGS support
+Date:   Fri, 19 Aug 2022 16:13:59 +0800
+Message-Id: <20220819081403.7143-6-zhangqing@loongson.cn>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20220819081403.7143-1-zhangqing@loongson.cn>
 References: <20220819081403.7143-1-zhangqing@loongson.cn>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: AQAAf8CxT+BLRv9i9I0EAA--.22658S4
-X-Coremail-Antispam: 1UD129KBjvJXoWxGr4UXFWrZr4xAFy8ury8Zrb_yoW5Cr4kpr
-        ZF9FWrJFs2qryfG3ZIy348ur15Zas2kr4fZryfta1FyFyDXrZ5GrsrJrnrWFyUCrykJ34x
-        WF4F9ry8ua1UJw7anT9S1TB71UUUUUDqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUPC14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jryl82xGYIkIc2
-        x26xkF7I0E14v26r4j6ryUM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
-        Y4vE2Ix0cI8IcVAFwI0_Ar0_tr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F4UJw
-        A2z4x0Y4vEx4A2jsIE14v26F4UJVW0owA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE3s1l
-        e2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI
-        8IcVAFwI0_Jrv_JF1lYx0Ex4A2jsIE14v26r4j6F4UMcvjeVCFs4IE7xkEbVWUJVW8JwAC
-        jcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka0x
-        kIwI1lc2xSY4AK67AK6r43MxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j6r4U
-        MI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF67
-        AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r4j6ryUMIIF0xvE2Ix0
-        cI8IcVCY1x0267AKxVW8JVWxJwCI42IY6xAIw20EY4v20xvaj40_Jr0_JF4lIxAIcVC2z2
-        80aVAFwI0_Gr0_Cr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcSsGvfC2KfnxnUUI
-        43ZEXa7sRRD73JUUUUU==
+X-CM-TRANSID: AQAAf8CxT+BLRv9i9I0EAA--.22658S7
+X-Coremail-Antispam: 1UD129KBjvJXoWxCF43Gry5Zr1ktr17ZF48Crg_yoWrWw4xpr
+        92yrn8GFWj9Fsag3yfKrykWrs8XrWvg34avay7CFyrJr4qq3W5ArW0kr1DZFyxt3yxG3yx
+        XF1fCr4Yya17XwUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUm014x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_JF0E3s1l82xGYI
+        kIc2x26xkF7I0E14v26ryj6s0DM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2
+        z4x0Y4vE2Ix0cI8IcVAFwI0_Ar0_tr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F
+        4UJwA2z4x0Y4vEx4A2jsIE14v26F4UJVW0owA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE
+        3s1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2I
+        x0cI8IcVAFwI0_Jrv_JF1lYx0Ex4A2jsIE14v26r4j6F4UMcvjeVCFs4IE7xkEbVWUJVW8
+        JwACjcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2
+        ka0xkIwI1lc2xSY4AK67AK6r43MxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j
+        6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7
+        AF67AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r4j6ryUMIIF0xvE
+        2Ix0cI8IcVCY1x0267AKxVWxJVW8Jr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1xMIIF0x
+        vEx4A2jsIE14v26r4j6F4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr0_Gr1UYxBIdaVFxhVj
+        vjDU0xZFpf9x0JUxUUUUUUUU=
 X-CM-SenderInfo: x2kd0wptlqwqxorr0wxvrqhubq/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Recordmcount utility under scripts is run, after compiling each object,
-to find out all the locations of calling _mcount() and put them into
-specific seciton named __mcount_loc.
-Then linker collects all such information into a table in the kernel image
-(between __start_mcount_loc and __stop_mcount_loc) for later use by ftrace.
+This patch implements DYNAMIC_FTRACE_WITH_REGS on LoongArch, which allows
+a traced function's arguments (and some other registers) to be captured
+into a struct pt_regs, allowing these to be inspected and modified.
 
-This patch adds loongarch specific definitions to identify such locations.
-On loongarch, only C version is used to build the kernel now that
-CONFIG_HAVE_C_RECORDMCOUNT is on.
-
+Co-developed-by: Jinyang He <hejinyang@loongson.cn>
+Signed-off-by: Jinyang He <hejinyang@loongson.cn>
 Signed-off-by: Qing Zhang <zhangqing@loongson.cn>
 ---
- arch/loongarch/Kconfig |  2 ++
- scripts/recordmcount.c | 23 +++++++++++++++++++++++
- 2 files changed, 25 insertions(+)
+ arch/loongarch/Kconfig              |  1 +
+ arch/loongarch/include/asm/ftrace.h |  3 +++
+ arch/loongarch/kernel/entry_dyn.S   | 36 +++++++++++++++++++++++++++--
+ arch/loongarch/kernel/ftrace_dyn.c  | 17 ++++++++++++++
+ 4 files changed, 55 insertions(+), 2 deletions(-)
 
 diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
-index 703a2c3a8e0d..4d13bac368ed 100644
+index f2d4899b1a0e..22eb3d6f8537 100644
 --- a/arch/loongarch/Kconfig
 +++ b/arch/loongarch/Kconfig
-@@ -80,10 +80,12 @@ config LOONGARCH
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select HAVE_ASM_MODVERSIONS
- 	select HAVE_CONTEXT_TRACKING_USER
-+	select HAVE_C_RECORDMCOUNT
+@@ -84,6 +84,7 @@ config LOONGARCH
  	select HAVE_DEBUG_STACKOVERFLOW
  	select HAVE_DMA_CONTIGUOUS
+         select HAVE_DYNAMIC_FTRACE
++        select HAVE_DYNAMIC_FTRACE_WITH_REGS
  	select HAVE_EXIT_THREAD
  	select HAVE_FAST_GUP
-+	select HAVE_FTRACE_MCOUNT_RECORD
-         select HAVE_FUNCTION_GRAPH_TRACER
-         select HAVE_FUNCTION_TRACER
- 	select HAVE_GENERIC_VDSO
-diff --git a/scripts/recordmcount.c b/scripts/recordmcount.c
-index cce12e1971d8..ae42f9c5dc42 100644
---- a/scripts/recordmcount.c
-+++ b/scripts/recordmcount.c
-@@ -38,6 +38,13 @@
- #define R_AARCH64_ABS64	257
- #endif
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+diff --git a/arch/loongarch/include/asm/ftrace.h b/arch/loongarch/include/asm/ftrace.h
+index 76ca58767f4d..a3f974a7a5ce 100644
+--- a/arch/loongarch/include/asm/ftrace.h
++++ b/arch/loongarch/include/asm/ftrace.h
+@@ -28,6 +28,9 @@ struct dyn_ftrace;
+ int ftrace_init_nop(struct module *mod, struct dyn_ftrace *rec);
+ #define ftrace_init_nop ftrace_init_nop
  
-+#ifndef EM_LOONGARCH
-+#define EM_LOONGARCH		258
-+#define R_LARCH_64		2
-+#define R_LARCH_MARK_LA			20
-+#define R_LARCH_SOP_PUSH_PLT_PCREL	29
++#ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
++#define ARCH_SUPPORTS_FTRACE_OPS 1
++#endif
+ #endif /* CONFIG_DYNAMIC_FTRACE */
+ #endif /* __ASSEMBLY__ */
+ #endif /* CONFIG_FUNCTION_TRACER */
+diff --git a/arch/loongarch/kernel/entry_dyn.S b/arch/loongarch/kernel/entry_dyn.S
+index 4e3fb0c9a48f..38f616c1b4db 100644
+--- a/arch/loongarch/kernel/entry_dyn.S
++++ b/arch/loongarch/kernel/entry_dyn.S
+@@ -27,7 +27,7 @@
+  * follows the LoongArch psABI well.
+  */
+ 
+-	.macro  ftrace_regs_entry
++	.macro  ftrace_regs_entry allregs=0
+ 	PTR_ADDI sp, sp, -PT_SIZE
+ 	/* Save trace function ra at PT_ERA */
+ 	PTR_S	ra, sp, PT_ERA
+@@ -43,16 +43,48 @@
+ 	PTR_S	a7, sp, PT_R11
+ 	PTR_S	fp, sp, PT_R22
+ 
++	.if \allregs
++	PTR_S	t0, sp, PT_R12
++	PTR_S	t1, sp, PT_R13
++	PTR_S	t2, sp, PT_R14
++	PTR_S	t3, sp, PT_R15
++	PTR_S	t4, sp, PT_R16
++	PTR_S	t5, sp, PT_R17
++	PTR_S	t6, sp, PT_R18
++	PTR_S	t7, sp, PT_R19
++	PTR_S	t8, sp, PT_R20
++	PTR_S	s0, sp, PT_R23
++	PTR_S	s1, sp, PT_R24
++	PTR_S	s2, sp, PT_R25
++	PTR_S	s3, sp, PT_R26
++	PTR_S	s4, sp, PT_R27
++	PTR_S	s5, sp, PT_R28
++	PTR_S	s6, sp, PT_R29
++	PTR_S	s7, sp, PT_R30
++	PTR_S	s8, sp, PT_R31
++	PTR_S	tp, sp, PT_R2
++	/* Clear it for later use as a flag sometimes. */
++	PTR_S	zero, sp, PT_R0
++	PTR_S	$r21, sp, PT_R21
++	.endif
++
+ 	PTR_ADDI t8, sp, PT_SIZE
+ 	PTR_S   t8, sp, PT_R3
+ 
+ 	.endm
+ 
+ SYM_CODE_START(ftrace_caller)
+-	ftrace_regs_entry
++	ftrace_regs_entry allregs=0
+ 	b	ftrace_common
+ SYM_CODE_END(ftrace_caller)
+ 
++#ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
++SYM_CODE_START(ftrace_regs_caller)
++	ftrace_regs_entry allregs=1
++	b	ftrace_common
++SYM_CODE_END(ftrace_regs_caller)
 +#endif
 +
- #define R_ARM_PC24		1
- #define R_ARM_THM_CALL		10
- #define R_ARM_CALL		28
-@@ -441,6 +448,17 @@ static int arm64_is_fake_mcount(Elf64_Rel const *rp)
- 	return ELF64_R_TYPE(w8(rp->r_info)) != R_AARCH64_CALL26;
+ SYM_CODE_START(ftrace_common)
+ 	PTR_ADDI	a0, ra, -8	/* arg0: ip */
+ 	move		a1, t0		/* arg1: parent_ip */
+diff --git a/arch/loongarch/kernel/ftrace_dyn.c b/arch/loongarch/kernel/ftrace_dyn.c
+index 3fe791b6783e..ec3d951be50c 100644
+--- a/arch/loongarch/kernel/ftrace_dyn.c
++++ b/arch/loongarch/kernel/ftrace_dyn.c
+@@ -99,6 +99,23 @@ int ftrace_make_nop(struct module *mod, struct dyn_ftrace *rec,
+ 	return ftrace_modify_code(pc, old, new, true);
  }
  
-+static int LARCH64_is_fake_mcount(Elf64_Rel const *rp)
++#ifdef CONFIG_DYNAMIC_FTRACE_WITH_REGS
++int ftrace_modify_call(struct dyn_ftrace *rec, unsigned long old_addr,
++			unsigned long addr)
 +{
-+	switch (ELF64_R_TYPE(w(rp->r_info))) {
-+	case R_LARCH_MARK_LA:
-+	case R_LARCH_SOP_PUSH_PLT_PCREL:
-+		return 0;
-+	}
++	unsigned long pc;
++	long offset;
++	u32 old, new;
 +
-+	return 1;
++	pc = rec->ip + LOONGARCH_INSN_SIZE;
++
++	old = larch_insn_gen_bl(pc, old_addr);
++	new = larch_insn_gen_bl(pc, addr);
++
++	return ftrace_modify_code(pc, old, new, true);
 +}
++#endif /* CONFIG_DYNAMIC_FTRACE_WITH_REGS */
 +
- /* 64-bit EM_MIPS has weird ELF64_Rela.r_info.
-  * http://techpubs.sgi.com/library/manuals/4000/007-4658-001/pdf/007-4658-001.pdf
-  * We interpret Table 29 Relocation Operation (Elf64_Rel, Elf64_Rela) [p.40]
-@@ -558,6 +576,7 @@ static int do_file(char const *const fname)
- 		break;
- 	case EM_IA_64:	reltype = R_IA64_IMM64; break;
- 	case EM_MIPS:	/* reltype: e_class    */ break;
-+	case EM_LOONGARCH:	/* reltype: e_class    */ break;
- 	case EM_PPC:	reltype = R_PPC_ADDR32; break;
- 	case EM_PPC64:	reltype = R_PPC64_ADDR64; break;
- 	case EM_S390:	/* reltype: e_class    */ break;
-@@ -610,6 +629,10 @@ static int do_file(char const *const fname)
- 			Elf64_r_info = MIPS64_r_info;
- 			is_fake_mcount64 = MIPS64_is_fake_mcount;
- 		}
-+		if (w2(ghdr->e_machine) == EM_LOONGARCH) {
-+			reltype = R_LARCH_64;
-+			is_fake_mcount64 = LARCH64_is_fake_mcount;
-+		}
- 		if (do64(ghdr, fname, reltype) < 0)
- 			goto out;
- 		break;
+ void arch_ftrace_update_code(int command)
+ {
+ 	command |= FTRACE_MAY_SLEEP;
 -- 
 2.36.1
 
