@@ -2,21 +2,21 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2CDF2C25B0E
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:17:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0B545C28B2B
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:17:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1347231AbiHSIRd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 Aug 2022 04:17:33 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51962 "EHLO
+        id S1347296AbiHSIRf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 Aug 2022 04:17:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51974 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1347581AbiHSIRH (ORCPT
+        with ESMTP id S1347582AbiHSIRH (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:17:07 -0400
 Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id F24B9E1177;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 109E5E190D;
         Fri, 19 Aug 2022 01:17:03 -0700 (PDT)
 Received: from localhost.localdomain (unknown [113.200.148.30])
-        by localhost.localdomain (Coremail) with SMTP id AQAAf8Bx32v5Rv9isI4EAA--.18159S5;
-        Fri, 19 Aug 2022 16:16:59 +0800 (CST)
+        by localhost.localdomain (Coremail) with SMTP id AQAAf8Bx32v5Rv9isI4EAA--.18159S2;
+        Fri, 19 Aug 2022 16:16:57 +0800 (CST)
 From:   Qing Zhang <zhangqing@loongson.cn>
 To:     Huacai Chen <chenhuacai@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>,
@@ -25,282 +25,398 @@ Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Jiaxun Yang <jiaxun.yang@flygoat.com>, hejinyang@loongson.cn,
         zhangqing@loongson.cn
-Subject: [PATCH 9/9] LoongArch: Enable CONFIG_KALLSYMS_ALL and CONFIG_DEBUG_FS
-Date:   Fri, 19 Aug 2022 16:16:57 +0800
-Message-Id: <20220819081657.7254-4-zhangqing@loongson.cn>
+Subject: [PATCH 6/9] LoongArch: modules/ftrace: Initialize PLT at load time
+Date:   Fri, 19 Aug 2022 16:16:54 +0800
+Message-Id: <20220819081657.7254-1-zhangqing@loongson.cn>
 X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20220819081657.7254-1-zhangqing@loongson.cn>
-References: <20220819081657.7254-1-zhangqing@loongson.cn>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: AQAAf8Bx32v5Rv9isI4EAA--.18159S5
-X-Coremail-Antispam: 1UD129KBjvJXoWxtF4kZF4fJw1DAFyrZFWfAFb_yoWxKF47pF
-        n3GrWxJa18Ar1jyrW2kr4DGrZ5tF1DJa47Cr17Ar1Duw18Jw4UXrnFgr1UGr4DXa9rXr4r
-        XFn3Kw1fZay5J37anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUmj14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_JrWl82xGYIkIc2
-        x26xkF7I0E14v26ryj6s0DM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
-        Y4vE2Ix0cI8IcVAFwI0_Ar0_tr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F4UJw
-        A2z4x0Y4vEx4A2jsIE14v26F4UJVW0owA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE3s1l
-        e2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI
-        8IcVAFwI0_Jrv_JF1lYx0Ex4A2jsIE14v26r4j6F4UMcvjeVCFs4IE7xkEbVWUJVW8JwAC
-        jcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka0x
-        kIwI1lc2xSY4AK67AK6r43MxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j6r4U
-        MI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF67
-        AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26ryj6F1UMIIF0xvE2Ix0
-        cI8IcVCY1x0267AKxVW8Jr0_Cr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I
-        8E87Iv67AKxVW8JVWxJwCI42IY6I8E87Iv6xkF7I0E14v26r4UJVWxJrUvcSsGvfC2Kfnx
-        nUUI43ZEXa7VUjsa93UUUUU==
+X-CM-TRANSID: AQAAf8Bx32v5Rv9isI4EAA--.18159S2
+X-Coremail-Antispam: 1UD129KBjvJXoWfGF47Jr13WF1UJFW8ZF17GFg_yoWkXrWkpF
+        9Fyrn5GrWUGrn3WFW09wn8ur1UWFZ7W342gFW7G34akr42qry5ZF10kr1qvFyFqw4DWFWS
+        gayfur4UuFWUXw7anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUvE14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+        1l84ACjcxK6xIIjxv20xvE14v26F1j6w1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4U
+        JVWxJr1l84ACjcxK6I8E87Iv67AKxVWxJr0_GcWl84ACjcxK6I8E87Iv6xkF7I0E14v26r
+        xl6s0DM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj
+        6xIIjxv20xvE14v26r1Y6r17McIj6I8E87Iv67AKxVW8JVWxJwAm72CE4IkC6x0Yz7v_Jr
+        0_Gr1lF7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E
+        8cxan2IY04v7MxkIecxEwVAFwVW8ZwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbV
+        WUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF
+        67kF1VAFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVW8JVW5JwCI42
+        IY6xIIjxv20xvEc7CjxVAFwI0_Cr0_Gr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI
+        42IY6I8E87Iv67AKxVW8JVWxJwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWI
+        evJa73UjIFyTuYvjfU0yxRDUUUU
 X-CM-SenderInfo: x2kd0wptlqwqxorr0wxvrqhubq/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Defaults enable CONFIG_KALLSYMS_ALL and CONFIG_DEBUG_FS to convenient
-ftrace tests.
+To Implement ftrace trampiones through plt entry.
+
+Tested by forcing ftrace_make_call() to use the module PLT, and then
+loading up a module after setting up ftrace with:
+
+| echo ":mod:<module-name>" > set_ftrace_filter;
+| echo function > current_tracer;
+| modprobe <module-name>
+
+Since FTRACE_ADDR/FTRACE_REGS_ADDR is only defined when CONFIG_DYNAMIC_FTRACE
+is selected, we wrap its use along with most of module_init_ftrace_plt() with
+ifdeffery rather than using IS_ENABLED().
 
 Signed-off-by: Qing Zhang <zhangqing@loongson.cn>
 ---
- arch/loongarch/configs/loongson3_defconfig | 60 +++++-----------------
- 1 file changed, 13 insertions(+), 47 deletions(-)
+ arch/loongarch/include/asm/ftrace.h     |  4 ++
+ arch/loongarch/include/asm/inst.h       |  2 +
+ arch/loongarch/include/asm/module.h     | 14 +++--
+ arch/loongarch/include/asm/module.lds.h |  1 +
+ arch/loongarch/kernel/ftrace_dyn.c      | 79 +++++++++++++++++++++++++
+ arch/loongarch/kernel/inst.c            | 12 ++++
+ arch/loongarch/kernel/module-sections.c | 11 ++++
+ arch/loongarch/kernel/module.c          | 48 +++++++++++++++
+ 8 files changed, 166 insertions(+), 5 deletions(-)
 
-diff --git a/arch/loongarch/configs/loongson3_defconfig b/arch/loongarch/configs/loongson3_defconfig
-index 3712552e18d3..c48c31a7286a 100644
---- a/arch/loongarch/configs/loongson3_defconfig
-+++ b/arch/loongarch/configs/loongson3_defconfig
-@@ -33,29 +33,15 @@ CONFIG_SYSFS_DEPRECATED=y
- CONFIG_RELAY=y
- CONFIG_BLK_DEV_INITRD=y
- CONFIG_EXPERT=y
--CONFIG_USERFAULTFD=y
-+CONFIG_KALLSYMS_ALL=y
- CONFIG_PERF_EVENTS=y
--# CONFIG_COMPAT_BRK is not set
--CONFIG_LOONGARCH=y
--CONFIG_64BIT=y
--CONFIG_MACH_LOONGSON64=y
--CONFIG_DMI=y
--CONFIG_EFI=y
--CONFIG_SMP=y
- CONFIG_HOTPLUG_CPU=y
--CONFIG_NR_CPUS=64
- CONFIG_NUMA=y
--CONFIG_PAGE_SIZE_16KB=y
--CONFIG_HZ_250=y
--CONFIG_ACPI=y
- CONFIG_ACPI_SPCR_TABLE=y
--CONFIG_ACPI_HOTPLUG_CPU=y
--CONFIG_ACPI_TAD=y
- CONFIG_ACPI_DOCK=y
- CONFIG_ACPI_IPMI=m
- CONFIG_ACPI_PCI_SLOT=y
- CONFIG_ACPI_HOTPLUG_MEMORY=y
--CONFIG_EFI_GENERIC_STUB_INITRD_CMDLINE_LOADER=y
- CONFIG_EFI_CAPSULE_LOADER=m
- CONFIG_EFI_TEST=m
- CONFIG_MODULES=y
-@@ -68,17 +54,16 @@ CONFIG_PARTITION_ADVANCED=y
- CONFIG_IOSCHED_BFQ=y
- CONFIG_BFQ_GROUP_IOSCHED=y
- CONFIG_BINFMT_MISC=m
-+CONFIG_ZSWAP=y
-+CONFIG_ZSWAP_COMPRESSOR_DEFAULT_ZSTD=y
-+CONFIG_Z3FOLD=y
-+# CONFIG_COMPAT_BRK is not set
- CONFIG_MEMORY_HOTPLUG=y
- CONFIG_MEMORY_HOTPLUG_DEFAULT_ONLINE=y
- CONFIG_MEMORY_HOTREMOVE=y
- CONFIG_KSM=y
- CONFIG_TRANSPARENT_HUGEPAGE=y
--CONFIG_ZSWAP=y
--CONFIG_ZSWAP_COMPRESSOR_DEFAULT_ZSTD=y
--CONFIG_ZPOOL=y
--CONFIG_ZBUD=y
--CONFIG_Z3FOLD=y
--CONFIG_ZSMALLOC=m
-+CONFIG_USERFAULTFD=y
- CONFIG_NET=y
- CONFIG_PACKET=y
- CONFIG_UNIX=y
-@@ -108,14 +93,12 @@ CONFIG_NETFILTER=y
- CONFIG_BRIDGE_NETFILTER=m
- CONFIG_NETFILTER_NETLINK_LOG=m
- CONFIG_NF_CONNTRACK=m
--CONFIG_NF_LOG_NETDEV=m
- CONFIG_NF_CONNTRACK_AMANDA=m
- CONFIG_NF_CONNTRACK_FTP=m
- CONFIG_NF_CONNTRACK_NETBIOS_NS=m
- CONFIG_NF_CONNTRACK_TFTP=m
- CONFIG_NF_CT_NETLINK=m
- CONFIG_NF_TABLES=m
--CONFIG_NFT_COUNTER=m
- CONFIG_NFT_CONNLIMIT=m
- CONFIG_NFT_LOG=m
- CONFIG_NFT_LIMIT=m
-@@ -292,7 +275,6 @@ CONFIG_RFKILL=m
- CONFIG_RFKILL_INPUT=y
- CONFIG_NET_9P=y
- CONFIG_NET_9P_VIRTIO=y
--CONFIG_CEPH_LIB=m
- CONFIG_PCIEPORTBUS=y
- CONFIG_HOTPLUG_PCI_PCIE=y
- CONFIG_PCIEAER=y
-@@ -329,7 +311,6 @@ CONFIG_PARPORT_PC_FIFO=y
- CONFIG_ZRAM=m
- CONFIG_ZRAM_DEF_COMP_ZSTD=y
- CONFIG_BLK_DEV_LOOP=y
--CONFIG_BLK_DEV_CRYPTOLOOP=y
- CONFIG_BLK_DEV_NBD=m
- CONFIG_BLK_DEV_RAM=y
- CONFIG_BLK_DEV_RAM_SIZE=8192
-@@ -374,7 +355,6 @@ CONFIG_SCSI_QLOGIC_1280=m
- CONFIG_SCSI_QLA_FC=m
- CONFIG_TCM_QLA2XXX=m
- CONFIG_SCSI_QLA_ISCSI=m
--CONFIG_SCSI_LPFC=m
- CONFIG_SCSI_VIRTIO=m
- CONFIG_ATA=y
- CONFIG_SATA_AHCI=y
-@@ -382,12 +362,7 @@ CONFIG_SATA_AHCI_PLATFORM=y
- CONFIG_PATA_ATIIXP=y
- CONFIG_PATA_PCMCIA=m
- CONFIG_MD=y
--CONFIG_BLK_DEV_MD=m
- CONFIG_MD_LINEAR=m
--CONFIG_MD_RAID0=m
--CONFIG_MD_RAID1=m
--CONFIG_MD_RAID10=m
--CONFIG_MD_RAID456=m
- CONFIG_MD_MULTIPATH=m
- CONFIG_BCACHE=m
- CONFIG_BLK_DEV_DM=y
-@@ -432,13 +407,11 @@ CONFIG_VIRTIO_NET=m
- # CONFIG_NET_VENDOR_ARC is not set
- # CONFIG_NET_VENDOR_ATHEROS is not set
- CONFIG_BNX2=y
--# CONFIG_NET_VENDOR_BROCADE is not set
- # CONFIG_NET_VENDOR_CAVIUM is not set
- CONFIG_CHELSIO_T1=m
- CONFIG_CHELSIO_T1_1G=y
- CONFIG_CHELSIO_T3=m
- CONFIG_CHELSIO_T4=m
--# CONFIG_NET_VENDOR_CIRRUS is not set
- # CONFIG_NET_VENDOR_CISCO is not set
- # CONFIG_NET_VENDOR_DEC is not set
- # CONFIG_NET_VENDOR_DLINK is not set
-@@ -459,6 +432,7 @@ CONFIG_IXGBE=y
- # CONFIG_NET_VENDOR_NVIDIA is not set
- # CONFIG_NET_VENDOR_OKI is not set
- # CONFIG_NET_VENDOR_QLOGIC is not set
-+# CONFIG_NET_VENDOR_BROCADE is not set
- # CONFIG_NET_VENDOR_QUALCOMM is not set
- # CONFIG_NET_VENDOR_RDC is not set
- CONFIG_8139CP=m
-@@ -468,9 +442,9 @@ CONFIG_R8169=y
- # CONFIG_NET_VENDOR_ROCKER is not set
- # CONFIG_NET_VENDOR_SAMSUNG is not set
- # CONFIG_NET_VENDOR_SEEQ is not set
--# CONFIG_NET_VENDOR_SOLARFLARE is not set
- # CONFIG_NET_VENDOR_SILAN is not set
- # CONFIG_NET_VENDOR_SIS is not set
-+# CONFIG_NET_VENDOR_SOLARFLARE is not set
- # CONFIG_NET_VENDOR_SMSC is not set
- CONFIG_STMMAC_ETH=y
- # CONFIG_NET_VENDOR_SUN is not set
-@@ -505,7 +479,6 @@ CONFIG_ATH9K_HTC=m
- CONFIG_IWLWIFI=m
- CONFIG_IWLDVM=m
- CONFIG_IWLMVM=m
--CONFIG_IWLWIFI_BCAST_FILTERING=y
- CONFIG_HOSTAP=m
- CONFIG_MT7601U=m
- CONFIG_RT2X00=m
-@@ -556,7 +529,6 @@ CONFIG_I2C_PIIX4=y
- CONFIG_I2C_GPIO=y
- CONFIG_SPI=y
- CONFIG_GPIO_SYSFS=y
--CONFIG_GPIO_LOONGSON=y
- CONFIG_SENSORS_LM75=m
- CONFIG_SENSORS_LM93=m
- CONFIG_SENSORS_W83795=m
-@@ -564,16 +536,16 @@ CONFIG_SENSORS_W83627HF=m
- CONFIG_RC_CORE=m
- CONFIG_LIRC=y
- CONFIG_RC_DECODERS=y
-+CONFIG_IR_IMON_DECODER=m
-+CONFIG_IR_JVC_DECODER=m
-+CONFIG_IR_MCE_KBD_DECODER=m
- CONFIG_IR_NEC_DECODER=m
- CONFIG_IR_RC5_DECODER=m
- CONFIG_IR_RC6_DECODER=m
--CONFIG_IR_JVC_DECODER=m
--CONFIG_IR_SONY_DECODER=m
- CONFIG_IR_SANYO_DECODER=m
- CONFIG_IR_SHARP_DECODER=m
--CONFIG_IR_MCE_KBD_DECODER=m
-+CONFIG_IR_SONY_DECODER=m
- CONFIG_IR_XMP_DECODER=m
--CONFIG_IR_IMON_DECODER=m
- CONFIG_MEDIA_SUPPORT=m
- CONFIG_MEDIA_USB_SUPPORT=y
- CONFIG_USB_VIDEO_CLASS=m
-@@ -593,7 +565,6 @@ CONFIG_DRM_VIRTIO_GPU=m
- CONFIG_FB=y
- CONFIG_FB_EFI=y
- CONFIG_FB_RADEON=y
--CONFIG_LCD_PLATFORM=m
- # CONFIG_VGA_CONSOLE is not set
- CONFIG_FRAMEBUFFER_CONSOLE=y
- CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
-@@ -602,7 +573,6 @@ CONFIG_SOUND=y
- CONFIG_SND=y
- CONFIG_SND_SEQUENCER=m
- CONFIG_SND_SEQ_DUMMY=m
--# CONFIG_SND_ISA is not set
- CONFIG_SND_BT87X=m
- CONFIG_SND_BT87X_OVERCLOCK=y
- CONFIG_SND_HDA_INTEL=y
-@@ -628,7 +598,6 @@ CONFIG_HID_MULTITOUCH=m
- CONFIG_HID_SUNPLUS=m
- CONFIG_USB_HIDDEV=y
- CONFIG_USB=y
--CONFIG_USB_OTG=y
- CONFIG_USB_MON=y
- CONFIG_USB_XHCI_HCD=y
- CONFIG_USB_EHCI_HCD=y
-@@ -688,7 +657,6 @@ CONFIG_COMEDI_NI_PCIDIO=m
- CONFIG_COMEDI_NI_PCIMIO=m
- CONFIG_STAGING=y
- CONFIG_R8188EU=m
--# CONFIG_88EU_AP_MODE is not set
- CONFIG_PM_DEVFREQ=y
- CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
- CONFIG_DEVFREQ_GOV_PERFORMANCE=y
-@@ -770,16 +738,13 @@ CONFIG_CRYPTO_USER=m
- CONFIG_CRYPTO_PCRYPT=m
- CONFIG_CRYPTO_CRYPTD=m
- CONFIG_CRYPTO_CHACHA20POLY1305=m
--CONFIG_CRYPTO_HMAC=y
- CONFIG_CRYPTO_VMAC=m
--CONFIG_CRYPTO_TGR192=m
- CONFIG_CRYPTO_WP512=m
- CONFIG_CRYPTO_ANUBIS=m
- CONFIG_CRYPTO_BLOWFISH=m
- CONFIG_CRYPTO_CAST5=m
- CONFIG_CRYPTO_CAST6=m
- CONFIG_CRYPTO_KHAZAD=m
--CONFIG_CRYPTO_SALSA20=m
- CONFIG_CRYPTO_SEED=m
- CONFIG_CRYPTO_SERPENT=m
- CONFIG_CRYPTO_TEA=m
-@@ -797,6 +762,7 @@ CONFIG_CRYPTO_DEV_VIRTIO=m
- CONFIG_PRINTK_TIME=y
- CONFIG_STRIP_ASM_SYMS=y
- CONFIG_MAGIC_SYSRQ=y
-+CONFIG_DEBUG_FS=y
- # CONFIG_SCHED_DEBUG is not set
- CONFIG_SCHEDSTATS=y
- # CONFIG_DEBUG_PREEMPT is not set
+diff --git a/arch/loongarch/include/asm/ftrace.h b/arch/loongarch/include/asm/ftrace.h
+index a3f974a7a5ce..0ed3d649c1ba 100644
+--- a/arch/loongarch/include/asm/ftrace.h
++++ b/arch/loongarch/include/asm/ftrace.h
+@@ -6,6 +6,10 @@
+ #ifndef _ASM_LOONGARCH_FTRACE_H
+ #define _ASM_LOONGARCH_FTRACE_H
+ 
++#define FTRACE_PLT_IDX		0
++#define FTRACE_REGS_PLT_IDX	1
++#define NR_FTRACE_PLTS		2
++
+ #ifdef CONFIG_FUNCTION_TRACER
+ #define MCOUNT_INSN_SIZE 4		/* sizeof mcount call */
+ 
+diff --git a/arch/loongarch/include/asm/inst.h b/arch/loongarch/include/asm/inst.h
+index 713b4996bfac..41cb15c4c475 100644
+--- a/arch/loongarch/include/asm/inst.h
++++ b/arch/loongarch/include/asm/inst.h
+@@ -52,6 +52,7 @@ enum reg2i12_op {
+ };
+ 
+ enum reg2i16_op {
++	addu16id_op     = 0x04,
+ 	jirl_op		= 0x13,
+ 	beq_op		= 0x16,
+ 	bne_op		= 0x17,
+@@ -191,6 +192,7 @@ u32 larch_insn_gen_nop(void);
+ u32 larch_insn_gen_b(unsigned long pc, unsigned long dest);
+ u32 larch_insn_gen_bl(unsigned long pc, unsigned long dest);
+ 
++u32 larch_insn_gen_addu16id(enum loongarch_gpr rd, enum loongarch_gpr rj, int imm);
+ u32 larch_insn_gen_or(enum loongarch_gpr rd, enum loongarch_gpr rj,
+ 			enum loongarch_gpr rk);
+ u32 larch_insn_gen_move(enum loongarch_gpr rd, enum loongarch_gpr rj);
+diff --git a/arch/loongarch/include/asm/module.h b/arch/loongarch/include/asm/module.h
+index 9f6718df1854..1aac156cd187 100644
+--- a/arch/loongarch/include/asm/module.h
++++ b/arch/loongarch/include/asm/module.h
+@@ -19,10 +19,13 @@ struct mod_section {
+ struct mod_arch_specific {
+ 	struct mod_section plt;
+ 	struct mod_section plt_idx;
++
++	/* for CONFIG_DYNAMIC_FTRACE */
++	struct plt_entry *ftrace_trampolines;
+ };
+ 
+ struct plt_entry {
+-	u32 inst_lu12iw;
++	u32 inst_addu16id;
+ 	u32 inst_lu32id;
+ 	u32 inst_lu52id;
+ 	u32 inst_jirl;
+@@ -36,14 +39,15 @@ Elf_Addr module_emit_plt_entry(struct module *mod, unsigned long val);
+ 
+ static inline struct plt_entry emit_plt_entry(unsigned long val)
+ {
+-	u32 lu12iw, lu32id, lu52id, jirl;
++	u32 addu16id, lu32id, lu52id, jirl;
+ 
+-	lu12iw = (lu12iw_op << 25 | (((val >> 12) & 0xfffff) << 5) | LOONGARCH_GPR_T1);
++	addu16id = larch_insn_gen_addu16id(LOONGARCH_GPR_T1, LOONGARCH_GPR_ZERO,
++		ADDR_IMM(val, ADDU16ID));
+ 	lu32id = larch_insn_gen_lu32id(LOONGARCH_GPR_T1, ADDR_IMM(val, LU32ID));
+ 	lu52id = larch_insn_gen_lu52id(LOONGARCH_GPR_T1, LOONGARCH_GPR_T1, ADDR_IMM(val, LU52ID));
+-	jirl = larch_insn_gen_jirl(0, LOONGARCH_GPR_T1, 0, (val & 0xfff));
++	jirl = larch_insn_gen_jirl(0, LOONGARCH_GPR_T1, 0, (val & 0xffff));
+ 
+-	return (struct plt_entry) { lu12iw, lu32id, lu52id, jirl };
++	return (struct plt_entry) { addu16id, lu32id, lu52id, jirl };
+ }
+ 
+ static inline struct plt_idx_entry emit_plt_idx_entry(unsigned long val)
+diff --git a/arch/loongarch/include/asm/module.lds.h b/arch/loongarch/include/asm/module.lds.h
+index 31c1c0db11a3..ecff54b81754 100644
+--- a/arch/loongarch/include/asm/module.lds.h
++++ b/arch/loongarch/include/asm/module.lds.h
+@@ -4,4 +4,5 @@ SECTIONS {
+ 	. = ALIGN(4);
+ 	.plt : { BYTE(0) }
+ 	.plt.idx : { BYTE(0) }
++	.ftrace_trampoline : { BYTE(0) }
+ }
+diff --git a/arch/loongarch/kernel/ftrace_dyn.c b/arch/loongarch/kernel/ftrace_dyn.c
+index ec3d951be50c..a7c36b92e558 100644
+--- a/arch/loongarch/kernel/ftrace_dyn.c
++++ b/arch/loongarch/kernel/ftrace_dyn.c
+@@ -9,6 +9,7 @@
+ #include <linux/uaccess.h>
+ 
+ #include <asm/inst.h>
++#include <asm/module.h>
+ 
+ static int ftrace_modify_code(unsigned long pc, u32 old, u32 new,
+ 			      bool validate)
+@@ -72,12 +73,63 @@ int ftrace_init_nop(struct module *mod, struct dyn_ftrace *rec)
+ 	return ftrace_modify_code(pc, old, new, true);
+ }
+ 
++static inline int __get_mod(struct module **mod, unsigned long addr)
++{
++	preempt_disable();
++	*mod = __module_text_address(addr);
++	preempt_enable();
++
++	if (WARN_ON(!(*mod)))
++		return -EINVAL;
++
++	return 0;
++}
++
++static struct plt_entry *get_ftrace_plt(struct module *mod, unsigned long addr)
++{
++	struct plt_entry *plt = mod->arch.ftrace_trampolines;
++
++	if (addr == FTRACE_ADDR)
++		return &plt[FTRACE_PLT_IDX];
++	if (addr == FTRACE_REGS_ADDR &&
++			IS_ENABLED(CONFIG_DYNAMIC_FTRACE_WITH_REGS))
++		return &plt[FTRACE_REGS_PLT_IDX];
++
++	return NULL;
++}
++
++static unsigned long get_plt_addr(struct module *mod, unsigned long addr)
++{
++	struct plt_entry *plt;
++
++	plt = get_ftrace_plt(mod, addr);
++	if (!plt) {
++		pr_err("ftrace: no module PLT for %ps\n", (void *)addr);
++		return -EINVAL;
++	}
++
++	return (unsigned long)plt;
++}
++
+ int ftrace_make_call(struct dyn_ftrace *rec, unsigned long addr)
+ {
+ 	unsigned long pc;
++	long offset;
+ 	u32 old, new;
+ 
+ 	pc = rec->ip + LOONGARCH_INSN_SIZE;
++	offset = (long)pc - (long)addr;
++
++	if (offset < -SZ_128M || offset >= SZ_128M) {
++		int ret;
++		struct module *mod;
++
++		ret = __get_mod(&mod, pc);
++		if (ret)
++			return ret;
++
++		addr = get_plt_addr(mod, addr);
++	}
+ 
+ 	old = larch_insn_gen_nop();
+ 	new = larch_insn_gen_bl(pc, addr);
+@@ -89,9 +141,22 @@ int ftrace_make_nop(struct module *mod, struct dyn_ftrace *rec,
+ 		    unsigned long addr)
+ {
+ 	unsigned long pc;
++	long offset;
+ 	u32 old, new;
+ 
+ 	pc = rec->ip + LOONGARCH_INSN_SIZE;
++	offset = (long)pc - (long)addr;
++
++	if (offset < -SZ_128M || offset >= SZ_128M) {
++		int ret;
++		struct module *mod;
++
++		ret = __get_mod(&mod, pc);
++		if (ret)
++			return ret;
++
++		addr = get_plt_addr(mod, addr);
++	}
+ 
+ 	new = larch_insn_gen_nop();
+ 	old = larch_insn_gen_bl(pc, addr);
+@@ -108,6 +173,20 @@ int ftrace_modify_call(struct dyn_ftrace *rec, unsigned long old_addr,
+ 	u32 old, new;
+ 
+ 	pc = rec->ip + LOONGARCH_INSN_SIZE;
++	offset = (long)pc - (long)addr;
++
++	if (offset < -SZ_128M || offset >= SZ_128M) {
++		int ret;
++		struct module *mod;
++
++		ret = __get_mod(&mod, pc);
++		if (ret)
++			return ret;
++
++		addr = get_plt_addr(mod, addr);
++
++		old_addr = get_plt_addr(mod, old_addr);
++	}
+ 
+ 	old = larch_insn_gen_bl(pc, old_addr);
+ 	new = larch_insn_gen_bl(pc, addr);
+diff --git a/arch/loongarch/kernel/inst.c b/arch/loongarch/kernel/inst.c
+index 4f7a62ddf210..9a1769620b25 100644
+--- a/arch/loongarch/kernel/inst.c
++++ b/arch/loongarch/kernel/inst.c
+@@ -103,6 +103,18 @@ u32 larch_insn_gen_bl(unsigned long pc, unsigned long dest)
+ 	return insn.word;
+ }
+ 
++u32 larch_insn_gen_addu16id(enum loongarch_gpr rd, enum loongarch_gpr rj, int imm)
++{
++	union loongarch_instruction insn;
++
++	insn.reg2i16_format.opcode = addu16id_op;
++	insn.reg2i16_format.rd = rd;
++	insn.reg2i16_format.rj = rj;
++	insn.reg2i16_format.immediate = imm;
++
++	return insn.word;
++}
++
+ u32 larch_insn_gen_lu32id(enum loongarch_gpr rd, int imm)
+ {
+ 	union loongarch_instruction insn;
+diff --git a/arch/loongarch/kernel/module-sections.c b/arch/loongarch/kernel/module-sections.c
+index 6d498288977d..b75fc711f144 100644
+--- a/arch/loongarch/kernel/module-sections.c
++++ b/arch/loongarch/kernel/module-sections.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include <linux/elf.h>
++#include <linux/ftrace.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ 
+@@ -67,6 +68,7 @@ int module_frob_arch_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs,
+ 			      char *secstrings, struct module *mod)
+ {
+ 	unsigned int i, num_plts = 0;
++	Elf_Shdr *tramp = NULL;
+ 
+ 	/*
+ 	 * Find the empty .plt sections.
+@@ -76,6 +78,8 @@ int module_frob_arch_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs,
+ 			mod->arch.plt.shdr = sechdrs + i;
+ 		else if (!strcmp(secstrings + sechdrs[i].sh_name, ".plt.idx"))
+ 			mod->arch.plt_idx.shdr = sechdrs + i;
++		else if (!strcmp(secstrings + sechdrs[i].sh_name, ".ftrace_trampoline"))
++			tramp = sechdrs + i;
+ 	}
+ 
+ 	if (!mod->arch.plt.shdr) {
+@@ -117,5 +121,12 @@ int module_frob_arch_sections(Elf_Ehdr *ehdr, Elf_Shdr *sechdrs,
+ 	mod->arch.plt_idx.num_entries = 0;
+ 	mod->arch.plt_idx.max_entries = num_plts;
+ 
++	if (tramp) {
++		tramp->sh_type = SHT_NOBITS;
++		tramp->sh_flags = SHF_EXECINSTR | SHF_ALLOC;
++		tramp->sh_addralign = __alignof__(struct plt_entry);
++		tramp->sh_size = NR_FTRACE_PLTS * sizeof(struct plt_entry);
++	}
++
+ 	return 0;
+ }
+diff --git a/arch/loongarch/kernel/module.c b/arch/loongarch/kernel/module.c
+index 638427ff0d51..acb75bccb6c5 100644
+--- a/arch/loongarch/kernel/module.c
++++ b/arch/loongarch/kernel/module.c
+@@ -10,6 +10,7 @@
+ 
+ #include <linux/moduleloader.h>
+ #include <linux/elf.h>
++#include <linux/ftrace.h>
+ #include <linux/mm.h>
+ #include <linux/numa.h>
+ #include <linux/vmalloc.h>
+@@ -17,6 +18,7 @@
+ #include <linux/fs.h>
+ #include <linux/string.h>
+ #include <linux/kernel.h>
++#include <asm/inst.h>
+ 
+ static inline bool signed_imm_check(long val, unsigned int bit)
+ {
+@@ -373,3 +375,49 @@ void *module_alloc(unsigned long size)
+ 	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
+ 			GFP_KERNEL, PAGE_KERNEL, 0, NUMA_NO_NODE, __builtin_return_address(0));
+ }
++
++#ifdef CONFIG_DYNAMIC_FTRACE
++static const Elf_Shdr *find_section(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
++				    const char *name)
++{
++	const Elf_Shdr *s, *se;
++	const char *secstrs = (void *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
++
++	for (s = sechdrs, se = sechdrs + hdr->e_shnum; s < se; s++) {
++		if (strcmp(name, secstrs + s->sh_name) == 0)
++			return s;
++	}
++
++	return NULL;
++}
++#endif
++
++static int module_init_ftrace_plt(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
++				  struct module *mod)
++{
++#ifdef CONFIG_DYNAMIC_FTRACE
++	const Elf_Shdr *s;
++	struct plt_entry *ftrace_plts;
++
++	s = find_section(hdr, sechdrs, ".ftrace_trampoline");
++	if (!s)
++		return -ENOEXEC;
++
++	ftrace_plts = (void *)s->sh_addr;
++
++	ftrace_plts[FTRACE_PLT_IDX] = emit_plt_entry(FTRACE_ADDR);
++
++	if (IS_ENABLED(CONFIG_DYNAMIC_FTRACE_WITH_REGS))
++		ftrace_plts[FTRACE_REGS_PLT_IDX] = emit_plt_entry(FTRACE_REGS_ADDR);
++
++	mod->arch.ftrace_trampolines = ftrace_plts;
++#endif
++	return 0;
++}
++
++int module_finalize(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs, struct module *mod)
++{
++	module_init_ftrace_plt(hdr, sechdrs, mod);
++
++	return 0;
++}
 -- 
 2.36.1
 
