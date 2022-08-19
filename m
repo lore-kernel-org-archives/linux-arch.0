@@ -2,21 +2,21 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7B316C28B2B
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:17:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2CDF2C25B0E
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:17:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346678AbiHSIRc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 Aug 2022 04:17:32 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49152 "EHLO
+        id S1347231AbiHSIRd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 Aug 2022 04:17:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51962 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1347579AbiHSIRH (ORCPT
+        with ESMTP id S1347581AbiHSIRH (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:17:07 -0400
 Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 3FA97C6CE8;
-        Fri, 19 Aug 2022 01:17:04 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id F24B9E1177;
+        Fri, 19 Aug 2022 01:17:03 -0700 (PDT)
 Received: from localhost.localdomain (unknown [113.200.148.30])
-        by localhost.localdomain (Coremail) with SMTP id AQAAf8Bx32v5Rv9isI4EAA--.18159S3;
-        Fri, 19 Aug 2022 16:16:58 +0800 (CST)
+        by localhost.localdomain (Coremail) with SMTP id AQAAf8Bx32v5Rv9isI4EAA--.18159S5;
+        Fri, 19 Aug 2022 16:16:59 +0800 (CST)
 From:   Qing Zhang <zhangqing@loongson.cn>
 To:     Huacai Chen <chenhuacai@kernel.org>,
         Steven Rostedt <rostedt@goodmis.org>,
@@ -25,21 +25,21 @@ Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Jiaxun Yang <jiaxun.yang@flygoat.com>, hejinyang@loongson.cn,
         zhangqing@loongson.cn
-Subject: [PATCH 7/9] Loongarch/ftrace: Add HAVE_FUNCTION_GRAPH_RET_ADDR_PTR support
-Date:   Fri, 19 Aug 2022 16:16:55 +0800
-Message-Id: <20220819081657.7254-2-zhangqing@loongson.cn>
+Subject: [PATCH 9/9] LoongArch: Enable CONFIG_KALLSYMS_ALL and CONFIG_DEBUG_FS
+Date:   Fri, 19 Aug 2022 16:16:57 +0800
+Message-Id: <20220819081657.7254-4-zhangqing@loongson.cn>
 X-Mailer: git-send-email 2.20.1
 In-Reply-To: <20220819081657.7254-1-zhangqing@loongson.cn>
 References: <20220819081657.7254-1-zhangqing@loongson.cn>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: AQAAf8Bx32v5Rv9isI4EAA--.18159S3
-X-Coremail-Antispam: 1UD129KBjvJXoWxAr43CF45Zr4xCr1fZr4ktFb_yoWrtF1xpF
-        9xAas5GrWxWF9agrnFqr1Uur4kGrnrCw1agFWqyryFkFsFqF13WrnFvryDXFWkt3ykWrWI
-        qas5GrWYkF4UXwUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUPK14x267AKxVW5JVWrJwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jr4l82xGYIkIc2
-        x26xkF7I0E14v26r1I6r4UM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
+X-CM-TRANSID: AQAAf8Bx32v5Rv9isI4EAA--.18159S5
+X-Coremail-Antispam: 1UD129KBjvJXoWxtF4kZF4fJw1DAFyrZFWfAFb_yoWxKF47pF
+        n3GrWxJa18Ar1jyrW2kr4DGrZ5tF1DJa47Cr17Ar1Duw18Jw4UXrnFgr1UGr4DXa9rXr4r
+        XFn3Kw1fZay5J37anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+        9KBjDU0xBIdaVrnRJUUUmj14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_JrWl82xGYIkIc2
+        x26xkF7I0E14v26ryj6s0DM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
         Y4vE2Ix0cI8IcVAFwI0_Ar0_tr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F4UJw
         A2z4x0Y4vEx4A2jsIE14v26F4UJVW0owA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE3s1l
         e2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI
@@ -48,139 +48,259 @@ X-Coremail-Antispam: 1UD129KBjvJXoWxAr43CF45Zr4xCr1fZr4ktFb_yoWrtF1xpF
         kIwI1lc2xSY4AK67AK6r43MxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j6r4U
         MI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF67
         AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26ryj6F1UMIIF0xvE2Ix0
-        cI8IcVCY1x0267AKxVWxJVW8Jr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1xMIIF0xvEx4
-        A2jsIE14v26r4j6F4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr0_Gr1UYxBIdaVFxhVjvjDU
-        0xZFpf9x0JUoVb9UUUUU=
+        cI8IcVCY1x0267AKxVW8Jr0_Cr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I
+        8E87Iv67AKxVW8JVWxJwCI42IY6I8E87Iv6xkF7I0E14v26r4UJVWxJrUvcSsGvfC2Kfnx
+        nUUI43ZEXa7VUjsa93UUUUU==
 X-CM-SenderInfo: x2kd0wptlqwqxorr0wxvrqhubq/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Ftrace_graph_ret_addr can be called by stack unwinding code to convert
-a found stack return address ('ret') to its original value, in case the
-function graph tracer has modified it to be 'return_to_handler',If the
-hasn't been modified, the unchanged value of 'ret' is returned.
+Defaults enable CONFIG_KALLSYMS_ALL and CONFIG_DEBUG_FS to convenient
+ftrace tests.
 
 Signed-off-by: Qing Zhang <zhangqing@loongson.cn>
 ---
- arch/loongarch/include/asm/ftrace.h     |  3 +++
- arch/loongarch/include/asm/unwind.h     |  1 +
- arch/loongarch/kernel/ftrace_dyn.c      |  2 +-
- arch/loongarch/kernel/unwind_guess.c    |  4 +++-
- arch/loongarch/kernel/unwind_prologue.c | 10 +++++++++-
- 5 files changed, 17 insertions(+), 3 deletions(-)
+ arch/loongarch/configs/loongson3_defconfig | 60 +++++-----------------
+ 1 file changed, 13 insertions(+), 47 deletions(-)
 
-diff --git a/arch/loongarch/include/asm/ftrace.h b/arch/loongarch/include/asm/ftrace.h
-index 0ed3d649c1ba..f96adef0e4a5 100644
---- a/arch/loongarch/include/asm/ftrace.h
-+++ b/arch/loongarch/include/asm/ftrace.h
-@@ -10,6 +10,8 @@
- #define FTRACE_REGS_PLT_IDX	1
- #define NR_FTRACE_PLTS		2
- 
-+#define GRAPH_FAKE_OFFSET (sizeof(struct pt_regs) - offsetof(struct pt_regs, regs[1]))
-+
- #ifdef CONFIG_FUNCTION_TRACER
- #define MCOUNT_INSN_SIZE 4		/* sizeof mcount call */
- 
-@@ -20,6 +22,7 @@ extern void _mcount(void);
- #endif
- 
- #ifdef CONFIG_DYNAMIC_FTRACE
-+#define HAVE_FUNCTION_GRAPH_RET_ADDR_PTR
- static inline unsigned long ftrace_call_adjust(unsigned long addr)
- {
- 	return addr;
-diff --git a/arch/loongarch/include/asm/unwind.h b/arch/loongarch/include/asm/unwind.h
-index 6af4718bdf01..f66b07c3e6a1 100644
---- a/arch/loongarch/include/asm/unwind.h
-+++ b/arch/loongarch/include/asm/unwind.h
-@@ -21,6 +21,7 @@ struct unwind_state {
- 	struct stack_info stack_info;
- 	struct task_struct *task;
- 	bool first, error;
-+	int graph_idx;
- 	unsigned long sp, pc, ra;
- };
- 
-diff --git a/arch/loongarch/kernel/ftrace_dyn.c b/arch/loongarch/kernel/ftrace_dyn.c
-index a7c36b92e558..53961e5890fd 100644
---- a/arch/loongarch/kernel/ftrace_dyn.c
-+++ b/arch/loongarch/kernel/ftrace_dyn.c
-@@ -219,7 +219,7 @@ void prepare_ftrace_return(unsigned long self_addr, unsigned long *parent)
- 
- 	old = *parent;
- 
--	if (!function_graph_enter(old, self_addr, 0, NULL))
-+	if (!function_graph_enter(old, self_addr, 0, parent))
- 		*parent = return_hooker;
- }
- 
-diff --git a/arch/loongarch/kernel/unwind_guess.c b/arch/loongarch/kernel/unwind_guess.c
-index 5afa6064d73e..229ba014cea0 100644
---- a/arch/loongarch/kernel/unwind_guess.c
-+++ b/arch/loongarch/kernel/unwind_guess.c
-@@ -2,6 +2,7 @@
- /*
-  * Copyright (C) 2022 Loongson Technology Corporation Limited
-  */
-+#include <linux/ftrace.h>
- #include <linux/kernel.h>
- 
- #include <asm/unwind.h>
-@@ -53,7 +54,8 @@ bool unwind_next_frame(struct unwind_state *state)
- 		     state->sp < info->end;
- 		     state->sp += sizeof(unsigned long)) {
- 			addr = *(unsigned long *)(state->sp);
--
-+			state->pc = ftrace_graph_ret_addr(state->task, &state->graph_idx,
-+				addr, (unsigned long *)(state->sp - GRAPH_FAKE_OFFSET));
- 			if (__kernel_text_address(addr))
- 				return true;
- 		}
-diff --git a/arch/loongarch/kernel/unwind_prologue.c b/arch/loongarch/kernel/unwind_prologue.c
-index b206d9159205..03f8b31a90cc 100644
---- a/arch/loongarch/kernel/unwind_prologue.c
-+++ b/arch/loongarch/kernel/unwind_prologue.c
-@@ -2,6 +2,7 @@
- /*
-  * Copyright (C) 2022 Loongson Technology Corporation Limited
-  */
-+#include <linux/ftrace.h>
- #include <linux/kallsyms.h>
- 
- #include <asm/inst.h>
-@@ -32,6 +33,8 @@ static bool unwind_by_guess(struct unwind_state *state)
- 	     state->sp < info->end;
- 	     state->sp += sizeof(unsigned long)) {
- 		addr = *(unsigned long *)(state->sp);
-+		state->pc = ftrace_graph_ret_addr(state->task, &state->graph_idx,
-+			addr, (unsigned long *)(state->sp - GRAPH_FAKE_OFFSET));
- 		if (__kernel_text_address(addr))
- 			return true;
- 	}
-@@ -146,8 +149,11 @@ bool unwind_next_frame(struct unwind_state *state)
- 			break;
- 
- 		case UNWINDER_PROLOGUE:
--			if (unwind_by_prologue(state))
-+			if (unwind_by_prologue(state)) {
-+				state->pc = ftrace_graph_ret_addr(state->task, &state->graph_idx,
-+					state->pc, (unsigned long *)(state->sp - GRAPH_FAKE_OFFSET));
- 				return true;
-+			}
- 
- 			if (info->type == STACK_TYPE_IRQ &&
- 				info->end == state->sp) {
-@@ -159,6 +165,8 @@ bool unwind_next_frame(struct unwind_state *state)
- 
- 				state->pc = pc;
- 				state->sp = regs->regs[3];
-+				state->pc = ftrace_graph_ret_addr(state->task, &state->graph_idx,
-+					pc, (unsigned long *)(state->sp - GRAPH_FAKE_OFFSET));
- 				state->ra = regs->regs[1];
- 				state->first = true;
- 				get_stack_info(state->sp, state->task, info);
+diff --git a/arch/loongarch/configs/loongson3_defconfig b/arch/loongarch/configs/loongson3_defconfig
+index 3712552e18d3..c48c31a7286a 100644
+--- a/arch/loongarch/configs/loongson3_defconfig
++++ b/arch/loongarch/configs/loongson3_defconfig
+@@ -33,29 +33,15 @@ CONFIG_SYSFS_DEPRECATED=y
+ CONFIG_RELAY=y
+ CONFIG_BLK_DEV_INITRD=y
+ CONFIG_EXPERT=y
+-CONFIG_USERFAULTFD=y
++CONFIG_KALLSYMS_ALL=y
+ CONFIG_PERF_EVENTS=y
+-# CONFIG_COMPAT_BRK is not set
+-CONFIG_LOONGARCH=y
+-CONFIG_64BIT=y
+-CONFIG_MACH_LOONGSON64=y
+-CONFIG_DMI=y
+-CONFIG_EFI=y
+-CONFIG_SMP=y
+ CONFIG_HOTPLUG_CPU=y
+-CONFIG_NR_CPUS=64
+ CONFIG_NUMA=y
+-CONFIG_PAGE_SIZE_16KB=y
+-CONFIG_HZ_250=y
+-CONFIG_ACPI=y
+ CONFIG_ACPI_SPCR_TABLE=y
+-CONFIG_ACPI_HOTPLUG_CPU=y
+-CONFIG_ACPI_TAD=y
+ CONFIG_ACPI_DOCK=y
+ CONFIG_ACPI_IPMI=m
+ CONFIG_ACPI_PCI_SLOT=y
+ CONFIG_ACPI_HOTPLUG_MEMORY=y
+-CONFIG_EFI_GENERIC_STUB_INITRD_CMDLINE_LOADER=y
+ CONFIG_EFI_CAPSULE_LOADER=m
+ CONFIG_EFI_TEST=m
+ CONFIG_MODULES=y
+@@ -68,17 +54,16 @@ CONFIG_PARTITION_ADVANCED=y
+ CONFIG_IOSCHED_BFQ=y
+ CONFIG_BFQ_GROUP_IOSCHED=y
+ CONFIG_BINFMT_MISC=m
++CONFIG_ZSWAP=y
++CONFIG_ZSWAP_COMPRESSOR_DEFAULT_ZSTD=y
++CONFIG_Z3FOLD=y
++# CONFIG_COMPAT_BRK is not set
+ CONFIG_MEMORY_HOTPLUG=y
+ CONFIG_MEMORY_HOTPLUG_DEFAULT_ONLINE=y
+ CONFIG_MEMORY_HOTREMOVE=y
+ CONFIG_KSM=y
+ CONFIG_TRANSPARENT_HUGEPAGE=y
+-CONFIG_ZSWAP=y
+-CONFIG_ZSWAP_COMPRESSOR_DEFAULT_ZSTD=y
+-CONFIG_ZPOOL=y
+-CONFIG_ZBUD=y
+-CONFIG_Z3FOLD=y
+-CONFIG_ZSMALLOC=m
++CONFIG_USERFAULTFD=y
+ CONFIG_NET=y
+ CONFIG_PACKET=y
+ CONFIG_UNIX=y
+@@ -108,14 +93,12 @@ CONFIG_NETFILTER=y
+ CONFIG_BRIDGE_NETFILTER=m
+ CONFIG_NETFILTER_NETLINK_LOG=m
+ CONFIG_NF_CONNTRACK=m
+-CONFIG_NF_LOG_NETDEV=m
+ CONFIG_NF_CONNTRACK_AMANDA=m
+ CONFIG_NF_CONNTRACK_FTP=m
+ CONFIG_NF_CONNTRACK_NETBIOS_NS=m
+ CONFIG_NF_CONNTRACK_TFTP=m
+ CONFIG_NF_CT_NETLINK=m
+ CONFIG_NF_TABLES=m
+-CONFIG_NFT_COUNTER=m
+ CONFIG_NFT_CONNLIMIT=m
+ CONFIG_NFT_LOG=m
+ CONFIG_NFT_LIMIT=m
+@@ -292,7 +275,6 @@ CONFIG_RFKILL=m
+ CONFIG_RFKILL_INPUT=y
+ CONFIG_NET_9P=y
+ CONFIG_NET_9P_VIRTIO=y
+-CONFIG_CEPH_LIB=m
+ CONFIG_PCIEPORTBUS=y
+ CONFIG_HOTPLUG_PCI_PCIE=y
+ CONFIG_PCIEAER=y
+@@ -329,7 +311,6 @@ CONFIG_PARPORT_PC_FIFO=y
+ CONFIG_ZRAM=m
+ CONFIG_ZRAM_DEF_COMP_ZSTD=y
+ CONFIG_BLK_DEV_LOOP=y
+-CONFIG_BLK_DEV_CRYPTOLOOP=y
+ CONFIG_BLK_DEV_NBD=m
+ CONFIG_BLK_DEV_RAM=y
+ CONFIG_BLK_DEV_RAM_SIZE=8192
+@@ -374,7 +355,6 @@ CONFIG_SCSI_QLOGIC_1280=m
+ CONFIG_SCSI_QLA_FC=m
+ CONFIG_TCM_QLA2XXX=m
+ CONFIG_SCSI_QLA_ISCSI=m
+-CONFIG_SCSI_LPFC=m
+ CONFIG_SCSI_VIRTIO=m
+ CONFIG_ATA=y
+ CONFIG_SATA_AHCI=y
+@@ -382,12 +362,7 @@ CONFIG_SATA_AHCI_PLATFORM=y
+ CONFIG_PATA_ATIIXP=y
+ CONFIG_PATA_PCMCIA=m
+ CONFIG_MD=y
+-CONFIG_BLK_DEV_MD=m
+ CONFIG_MD_LINEAR=m
+-CONFIG_MD_RAID0=m
+-CONFIG_MD_RAID1=m
+-CONFIG_MD_RAID10=m
+-CONFIG_MD_RAID456=m
+ CONFIG_MD_MULTIPATH=m
+ CONFIG_BCACHE=m
+ CONFIG_BLK_DEV_DM=y
+@@ -432,13 +407,11 @@ CONFIG_VIRTIO_NET=m
+ # CONFIG_NET_VENDOR_ARC is not set
+ # CONFIG_NET_VENDOR_ATHEROS is not set
+ CONFIG_BNX2=y
+-# CONFIG_NET_VENDOR_BROCADE is not set
+ # CONFIG_NET_VENDOR_CAVIUM is not set
+ CONFIG_CHELSIO_T1=m
+ CONFIG_CHELSIO_T1_1G=y
+ CONFIG_CHELSIO_T3=m
+ CONFIG_CHELSIO_T4=m
+-# CONFIG_NET_VENDOR_CIRRUS is not set
+ # CONFIG_NET_VENDOR_CISCO is not set
+ # CONFIG_NET_VENDOR_DEC is not set
+ # CONFIG_NET_VENDOR_DLINK is not set
+@@ -459,6 +432,7 @@ CONFIG_IXGBE=y
+ # CONFIG_NET_VENDOR_NVIDIA is not set
+ # CONFIG_NET_VENDOR_OKI is not set
+ # CONFIG_NET_VENDOR_QLOGIC is not set
++# CONFIG_NET_VENDOR_BROCADE is not set
+ # CONFIG_NET_VENDOR_QUALCOMM is not set
+ # CONFIG_NET_VENDOR_RDC is not set
+ CONFIG_8139CP=m
+@@ -468,9 +442,9 @@ CONFIG_R8169=y
+ # CONFIG_NET_VENDOR_ROCKER is not set
+ # CONFIG_NET_VENDOR_SAMSUNG is not set
+ # CONFIG_NET_VENDOR_SEEQ is not set
+-# CONFIG_NET_VENDOR_SOLARFLARE is not set
+ # CONFIG_NET_VENDOR_SILAN is not set
+ # CONFIG_NET_VENDOR_SIS is not set
++# CONFIG_NET_VENDOR_SOLARFLARE is not set
+ # CONFIG_NET_VENDOR_SMSC is not set
+ CONFIG_STMMAC_ETH=y
+ # CONFIG_NET_VENDOR_SUN is not set
+@@ -505,7 +479,6 @@ CONFIG_ATH9K_HTC=m
+ CONFIG_IWLWIFI=m
+ CONFIG_IWLDVM=m
+ CONFIG_IWLMVM=m
+-CONFIG_IWLWIFI_BCAST_FILTERING=y
+ CONFIG_HOSTAP=m
+ CONFIG_MT7601U=m
+ CONFIG_RT2X00=m
+@@ -556,7 +529,6 @@ CONFIG_I2C_PIIX4=y
+ CONFIG_I2C_GPIO=y
+ CONFIG_SPI=y
+ CONFIG_GPIO_SYSFS=y
+-CONFIG_GPIO_LOONGSON=y
+ CONFIG_SENSORS_LM75=m
+ CONFIG_SENSORS_LM93=m
+ CONFIG_SENSORS_W83795=m
+@@ -564,16 +536,16 @@ CONFIG_SENSORS_W83627HF=m
+ CONFIG_RC_CORE=m
+ CONFIG_LIRC=y
+ CONFIG_RC_DECODERS=y
++CONFIG_IR_IMON_DECODER=m
++CONFIG_IR_JVC_DECODER=m
++CONFIG_IR_MCE_KBD_DECODER=m
+ CONFIG_IR_NEC_DECODER=m
+ CONFIG_IR_RC5_DECODER=m
+ CONFIG_IR_RC6_DECODER=m
+-CONFIG_IR_JVC_DECODER=m
+-CONFIG_IR_SONY_DECODER=m
+ CONFIG_IR_SANYO_DECODER=m
+ CONFIG_IR_SHARP_DECODER=m
+-CONFIG_IR_MCE_KBD_DECODER=m
++CONFIG_IR_SONY_DECODER=m
+ CONFIG_IR_XMP_DECODER=m
+-CONFIG_IR_IMON_DECODER=m
+ CONFIG_MEDIA_SUPPORT=m
+ CONFIG_MEDIA_USB_SUPPORT=y
+ CONFIG_USB_VIDEO_CLASS=m
+@@ -593,7 +565,6 @@ CONFIG_DRM_VIRTIO_GPU=m
+ CONFIG_FB=y
+ CONFIG_FB_EFI=y
+ CONFIG_FB_RADEON=y
+-CONFIG_LCD_PLATFORM=m
+ # CONFIG_VGA_CONSOLE is not set
+ CONFIG_FRAMEBUFFER_CONSOLE=y
+ CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+@@ -602,7 +573,6 @@ CONFIG_SOUND=y
+ CONFIG_SND=y
+ CONFIG_SND_SEQUENCER=m
+ CONFIG_SND_SEQ_DUMMY=m
+-# CONFIG_SND_ISA is not set
+ CONFIG_SND_BT87X=m
+ CONFIG_SND_BT87X_OVERCLOCK=y
+ CONFIG_SND_HDA_INTEL=y
+@@ -628,7 +598,6 @@ CONFIG_HID_MULTITOUCH=m
+ CONFIG_HID_SUNPLUS=m
+ CONFIG_USB_HIDDEV=y
+ CONFIG_USB=y
+-CONFIG_USB_OTG=y
+ CONFIG_USB_MON=y
+ CONFIG_USB_XHCI_HCD=y
+ CONFIG_USB_EHCI_HCD=y
+@@ -688,7 +657,6 @@ CONFIG_COMEDI_NI_PCIDIO=m
+ CONFIG_COMEDI_NI_PCIMIO=m
+ CONFIG_STAGING=y
+ CONFIG_R8188EU=m
+-# CONFIG_88EU_AP_MODE is not set
+ CONFIG_PM_DEVFREQ=y
+ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND=y
+ CONFIG_DEVFREQ_GOV_PERFORMANCE=y
+@@ -770,16 +738,13 @@ CONFIG_CRYPTO_USER=m
+ CONFIG_CRYPTO_PCRYPT=m
+ CONFIG_CRYPTO_CRYPTD=m
+ CONFIG_CRYPTO_CHACHA20POLY1305=m
+-CONFIG_CRYPTO_HMAC=y
+ CONFIG_CRYPTO_VMAC=m
+-CONFIG_CRYPTO_TGR192=m
+ CONFIG_CRYPTO_WP512=m
+ CONFIG_CRYPTO_ANUBIS=m
+ CONFIG_CRYPTO_BLOWFISH=m
+ CONFIG_CRYPTO_CAST5=m
+ CONFIG_CRYPTO_CAST6=m
+ CONFIG_CRYPTO_KHAZAD=m
+-CONFIG_CRYPTO_SALSA20=m
+ CONFIG_CRYPTO_SEED=m
+ CONFIG_CRYPTO_SERPENT=m
+ CONFIG_CRYPTO_TEA=m
+@@ -797,6 +762,7 @@ CONFIG_CRYPTO_DEV_VIRTIO=m
+ CONFIG_PRINTK_TIME=y
+ CONFIG_STRIP_ASM_SYMS=y
+ CONFIG_MAGIC_SYSRQ=y
++CONFIG_DEBUG_FS=y
+ # CONFIG_SCHED_DEBUG is not set
+ CONFIG_SCHEDSTATS=y
+ # CONFIG_DEBUG_PREEMPT is not set
 -- 
 2.36.1
 
