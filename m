@@ -2,198 +2,573 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 64F24C25B0E
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:12:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2FF13C25B0E
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:14:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1347495AbiHSIMh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 Aug 2022 04:12:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41926 "EHLO
+        id S1343639AbiHSIOX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 Aug 2022 04:14:23 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47076 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1347520AbiHSIM1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:12:27 -0400
-Received: from mx0b-0064b401.pphosted.com (mx0b-0064b401.pphosted.com [205.220.178.238])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0F92CE0947;
-        Fri, 19 Aug 2022 01:12:23 -0700 (PDT)
-Received: from pps.filterd (m0250812.ppops.net [127.0.0.1])
-        by mx0a-0064b401.pphosted.com (8.17.1.5/8.17.1.5) with ESMTP id 27J81R3w032256;
-        Fri, 19 Aug 2022 08:12:08 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=windriver.com; h=from : to : cc :
- subject : date : message-id : content-transfer-encoding : content-type :
- mime-version; s=PPS06212021;
- bh=GzlxUwlsHAuvzE/c5csI2DGwgf3xC3y+wvayafrJCn0=;
- b=Cs6LdLXkPNT8jeRfSXWHKifq+r5PqFKXJWSWQhhX6c5Dei6Ib92+KgPn/kYQjZdKfN4K
- kxHV0CTM6UZg9xXxwObUX1eaS5aOAViN7nzopzHmaOsu60DnrOHeBfAFEByhnaF4YoBC
- xVMcPhjwby5vlfZaLHZnqhI2Tqc6A8+oxY6v7iZ3xQNn17aJdnbNUVB1Cep6V8FbuB+6
- P0rejgWSeQXAiSA384MuytkjAp5bMT3tKVBQ87qwszFKwnlCQgKUMhrmtfgvOKLG0+OG
- fsJ9olT+jrcpcrdNz8hRScPHw4hrol3+N65e/sXhc6w0TZF6INVM64mKGx5Hw1yej+nd 2g== 
-Received: from nam04-mw2-obe.outbound.protection.outlook.com (mail-mw2nam04lp2173.outbound.protection.outlook.com [104.47.73.173])
-        by mx0a-0064b401.pphosted.com (PPS) with ESMTPS id 3hx2x8n5xq-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Fri, 19 Aug 2022 08:12:08 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=L5sQtZ+qDiBtJHM/3bBhNuH+TgMgIshw+U0TgzpMRvIVeik/y7qYUuoyCPa08grgXn4zmIBBm145i4x+exD3H3r1xE21/dfKSxoDPbUhJ0KMa/Oj9xDukVQxr5l0cudGRUnA7KNoNZN6GaQoLxJMJHRN55yx1QQZKW0e9pOQIVAsW4fBqEKCa7C296vFg2+WThaOeBQ6k6X/PVkwwP97WnoXfM/1OdYQ4cXkJzoL0x9JfMZA/P3RJbsz5ngExBaiqh+BgJO9OD7YKBNrz8CwllKo95RTx1SFfIZa7RQrnWUq/OvvHnqPKBwxC95rgsIUCl9d5U9WWrAmwTqpu6wlfg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=GzlxUwlsHAuvzE/c5csI2DGwgf3xC3y+wvayafrJCn0=;
- b=XRv8+aLJy80Yyh5i2nlZJhtBlTma9HI0UmBzqRceHQKo6ZE0m4PO4zuZTjRn4ttxqeFE8ijkYRL/6dIC9Lhte0ynuip9XFBpCaQOAAtrHaJ5EA5o9vaOS7ELO7p6/ayvuiz43vRJ7c5Oq7OaDOCIGkpMtGjvu5JZdVk2hhzmNTa+fpNAsSDWo5FcjZLD2DyUdPpl36E62SU8SONlA70C/p24ayb4fGihEKIBJdOWy/q8wfABo0w0JZ9PQwAkBD8Ip+ptdVHtZgnd0OI2ElzML6P9tapI9EZIkN5m0o5Yoz0cb7UOeEtRi84hDphGlHn89vnPP++9jf6/IkgIzKtn9Q==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=windriver.com; dmarc=pass action=none
- header.from=windriver.com; dkim=pass header.d=windriver.com; arc=none
-Received: from SJ0PR11MB5630.namprd11.prod.outlook.com (2603:10b6:a03:3bb::6)
- by MN2PR11MB4318.namprd11.prod.outlook.com (2603:10b6:208:17a::22) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5546.18; Fri, 19 Aug
- 2022 08:12:04 +0000
-Received: from SJ0PR11MB5630.namprd11.prod.outlook.com
- ([fe80::4057:7eb4:511b:e131]) by SJ0PR11MB5630.namprd11.prod.outlook.com
- ([fe80::4057:7eb4:511b:e131%9]) with mapi id 15.20.5546.016; Fri, 19 Aug 2022
- 08:12:04 +0000
-From:   quanyang.wang@windriver.com
-To:     Arnd Bergmann <arnd@arndb.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Thierry Reding <treding@nvidia.com>,
-        Ard Biesheuvel <ardb@kernel.org>
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Quanyang Wang <quanyang.wang@windriver.com>
-Subject: [V2][PATCH] asm-generic: sections: refactor memory_intersects
-Date:   Fri, 19 Aug 2022 16:11:45 +0800
-Message-Id: <20220819081145.948016-1-quanyang.wang@windriver.com>
-X-Mailer: git-send-email 2.36.1
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: SL2P216CA0164.KORP216.PROD.OUTLOOK.COM
- (2603:1096:101:1b::8) To SJ0PR11MB5630.namprd11.prod.outlook.com
- (2603:10b6:a03:3bb::6)
+        with ESMTP id S1347150AbiHSIOV (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:14:21 -0400
+Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 07F4758DFB;
+        Fri, 19 Aug 2022 01:14:15 -0700 (PDT)
+Received: from localhost.localdomain (unknown [113.200.148.30])
+        by localhost.localdomain (Coremail) with SMTP id AQAAf8CxT+BLRv9i9I0EAA--.22658S5;
+        Fri, 19 Aug 2022 16:14:08 +0800 (CST)
+From:   Qing Zhang <zhangqing@loongson.cn>
+To:     Huacai Chen <chenhuacai@kernel.org>,
+        Steven Rostedt <rostedt@goodmis.org>,
+        Ingo Molnar <mingo@redhat.com>
+Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>, hejinyang@loongson.cn,
+        zhangqing@loongson.cn
+Subject: [PATCH 3/9] LoongArch/ftrace: Add dynamic function tracer support
+Date:   Fri, 19 Aug 2022 16:13:57 +0800
+Message-Id: <20220819081403.7143-4-zhangqing@loongson.cn>
+X-Mailer: git-send-email 2.20.1
+In-Reply-To: <20220819081403.7143-1-zhangqing@loongson.cn>
+References: <20220819081403.7143-1-zhangqing@loongson.cn>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id: 28504438-c29f-420f-daac-08da81ba7ff9
-X-MS-TrafficTypeDiagnostic: MN2PR11MB4318:EE_
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: m000Rir95KyUbaUcUUUzWDd70/qhB1Hj7NsL8ZdogZmWcfXZJZFHXACxjYlrjzEL2pt7lUOLW2BStwgYYUP259TIF82CnsnfDEPiz0qpBTVOr7cdD4v1pCiUXkff9GrnHS28jCTsBUB4ea/2p3yFZJ+VPjcagHld9SCpuVJahdXlBVcYSPsK3vcPuvW3XpaOKDgiuyl49tD33YmKKIEaAyXc70sIO/OfBAuix0jhXwAv+CJ4Iu2UvPIUYzh9DyBn6KZa4fZ6Bclf8a9u+7cgbXaFu5JHyBZpnKTaEuNYKHuqGFbv1wzn9O0X8lu6cITt+HNyBG/Y2N95AYbpxWB4xF5tylXfiDjsLg2UcVBrjoPyMxIzo9FhD1IUnoFWF+083SpOnI+YlmO72CXDuTmVZwnMccjZ8p346lsM+9HJq276/DHGesmBwmyky5UpUPukAjBEeRQPMVdy3fhA3Xroy1eRAxwubKXEmlgo+67nngQf2MM3Kkn2QhvNltBfhZbuWrAw06zYZ5LX3w2cN273rTGetmMcU8xCKJTlX0iBf5hdxHhuI84PQsTHZuzyHwB9tEcRXrpTGK1MQvnPPSqGeBfNk5TFMVImlji7ycc3xJXnb5TRO1VExdqfZ5v3XaEyKVeS6ayITMoZgp3ynV7YBFLMslkv3+r3h/W6x11/bUADyzACBL72n3wZueLXckoTP48YB3DQWEbJbq4uBGaQssCDsGqZ019cp5pNoF1B2crcJDdrn/lwVch+Xz36volbYx1taV1dIG12DuPPTtvStfMXRbDgzmPIcsurE3f//Gc=
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SJ0PR11MB5630.namprd11.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230016)(4636009)(366004)(136003)(39850400004)(396003)(346002)(376002)(2906002)(6666004)(107886003)(6506007)(52116002)(5660300002)(110136005)(1076003)(186003)(2616005)(66556008)(66476007)(4326008)(36756003)(86362001)(66946007)(26005)(6512007)(9686003)(8676002)(83380400001)(6486002)(41300700001)(8936002)(45080400002)(478600001)(316002)(38100700002)(38350700002)(41533002);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?fPmDmwoFcS2XYSl1z57tvaeDC3jK189DGQOIVBRKIuA4bqvr3C8YkvUqEZol?=
- =?us-ascii?Q?B947zjCS3KnwgdfPKCm3Q8hIxaUToPM1KzcOTJk4h+CqUk8CXsWiHLscgR6A?=
- =?us-ascii?Q?uk2uylQmxEga++SbfdMB8c+qZNT0qwhNAUarHLrW1C1XxjeSbhbwWfcT81Za?=
- =?us-ascii?Q?ADQRQArQ+k2U2yDW13zh1whPN7N8P1niPtTA4j1HiTo79Os2OBPFSOEUGvAt?=
- =?us-ascii?Q?Exv0gANprKWhsPVwHLu+H4R6bpvjSTqSBkPhJjYSoXbJr06xu3CSjDgUp6p8?=
- =?us-ascii?Q?D75ScNzxVdVPEHZOs59AFlnCp260aCxSodVH73Gqviqtjto8iLV0uz0WDy+V?=
- =?us-ascii?Q?hp7gW3YQdWy04vw/dPXSNlGQ2nhJHQEmOoxa7WUyujL09jDLil4CYjPhEPj9?=
- =?us-ascii?Q?0ftS789DTAWn4mQGSY2bDz9WgT/4KKB12Raj0PQbKfJ2Z5Utbed7z8BkxFl+?=
- =?us-ascii?Q?/CZZJrH3V/GFWXj1/cYAucdKbAea7vhVtdcLGjaSMFzr54CE1BK7klEuV2yp?=
- =?us-ascii?Q?Gi6mDHeAJEFq4qLVMcpB96H8beCqIeR0nDXwKfrWAYpRIghSrTL+/uOHqep+?=
- =?us-ascii?Q?jRVimJBSOb+lL+MEATjGZYMHx20DCLdq8NmS/5Lk7fP8fRbiUIncKyNxyNw8?=
- =?us-ascii?Q?f2qwenCC0kx3Am6bvFh5QXdDh6M6WxrUQ/IE8ldMQxFHX4iOaZ8XtqLXBZaW?=
- =?us-ascii?Q?0luH48mqtYv4mZSMsuzDfq0Z13GkZck24uXURdHYhYuVShIF2uV+urvzrzpb?=
- =?us-ascii?Q?8/VFn1iM7UptCV0abGLeNtdJU4pIhqVdpYyEm+xzWZy4UadJk0ReDCFVGkSp?=
- =?us-ascii?Q?QJPyn8QdcJzHRczOzRkGJ6Er2bMHySIsQLz/I8Vul2GQfVb9LEagvnOMzdws?=
- =?us-ascii?Q?jZflBj7xTlTgfGI9dNDWJzdtCD2hE9VP6MSxISG1tMJ1izvRMhBIjJTJu/2x?=
- =?us-ascii?Q?r/T2OtynZ9E5P2CnTmAkujstqCU8ddJhVmC/CoF0c5XhC3yIvaS6bsCFe3N1?=
- =?us-ascii?Q?+/KHtBNsEMerUX09QVlOcYVT5vbWjUbjmIMnE6fw0UQ0PAReDu2IFMcowvEK?=
- =?us-ascii?Q?/CSgWrnC4jtYxP2+k/5CU34uMLSCi/2qgj7UQXHL2NE5q4gO8VwMaGl0JIHK?=
- =?us-ascii?Q?eJrOZ1q0obCCqQn+a1MfpltK1QyF4/iWgsX8f659+IEuIeyuiI2w1FN1tF5h?=
- =?us-ascii?Q?jRLydHbKIdcZ1vfVP3BFGszFjyLLEgh+09Pt/g0JlwjphaP5fK4MsWHnC56/?=
- =?us-ascii?Q?zCxqpphZL+xj5GRZkMcuAuJsw0s/1qMC9vxLs6TcG4owM6I7jrT2ULHx/PJW?=
- =?us-ascii?Q?iiykh8x4Y8SiYy8ApxxF7ia+tg1yjLafC/9HWsPFiWNHA9wuw2ON/L2HXizO?=
- =?us-ascii?Q?F0oKCBZ+qrIqa3iuxJ4/xyjGyNBgCZA9PpJxZGHf7xaAY+tQaDIQk41ff+Z9?=
- =?us-ascii?Q?t/icb6Di7CdztyJlrnh/UM8ZhSPkNEIPfJDKpF8jhzkQ0Ips1wmQ4kpw8VMd?=
- =?us-ascii?Q?ryN0FzK+sphQFJ5VJhymv08LiVFr+033fQq4SPOIDGDxu4IkIMNtTOUW0Kf0?=
- =?us-ascii?Q?KumA+i+HbM5COH+D5zxjstuImqi6yiQP6f3PdOb9fiDw3BTd05ikU9+1Vugy?=
- =?us-ascii?Q?oA=3D=3D?=
-X-OriginatorOrg: windriver.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 28504438-c29f-420f-daac-08da81ba7ff9
-X-MS-Exchange-CrossTenant-AuthSource: SJ0PR11MB5630.namprd11.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 19 Aug 2022 08:12:04.1088
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 8ddb2873-a1ad-4a18-ae4e-4644631433be
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: s3+euS5tY+pB6VxWY4iLMT/4uHQmpx0sWVQ5DvPoiw18/F2Y5QqjlZv6dE2TgKmOqx8sSr+jfQHOVM2evEYfdBUes16+8tUqniVmG94zAxQ=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR11MB4318
-X-Proofpoint-ORIG-GUID: hHjhWDhSPKvGp1G9XOXcVfHPER4MRuVw
-X-Proofpoint-GUID: hHjhWDhSPKvGp1G9XOXcVfHPER4MRuVw
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.205,Aquarius:18.0.895,Hydra:6.0.517,FMLib:17.11.122.1
- definitions=2022-08-19_04,2022-08-18_01,2022-06-22_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 priorityscore=1501
- phishscore=0 malwarescore=0 bulkscore=0 clxscore=1015 mlxscore=0
- lowpriorityscore=0 spamscore=0 mlxlogscore=999 adultscore=0
- impostorscore=0 suspectscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2207270000 definitions=main-2208190033
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID: AQAAf8CxT+BLRv9i9I0EAA--.22658S5
+X-Coremail-Antispam: 1UD129KBjvAXoW3Kr4DKr1rKryDZry3KryDZFb_yoW8Gw4xuo
+        WY93Wjvr4rGFWI9w4Yk3y5WFWUXry0krZ0y34Syr45uF40yry3Xr13Ca15Ka43Jr95Jr4f
+        CF93uF48Aa47Xr97n29KB7ZKAUJUUUU8529EdanIXcx71UUUUU7v73VFW2AGmfu7bjvjm3
+        AaLaJ3UjIYCTnIWjp_UUUOw7AC8VAFwI0_Wr0E3s1l1xkIjI8I6I8E6xAIw20EY4v20xva
+        j40_Wr0E3s1l1IIY67AEw4v_Jr0_Jr4l82xGYIkIc2x26280x7IE14v26r1rM28IrcIa0x
+        kI8VCY1x0267AKxVW5JVCq3wA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK021l84AC
+        jcxK6xIIjxv20xvE14v26F1j6w1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4UJVWxJr
+        1l84ACjcxK6I8E87Iv67AKxVWxJr0_GcWl84ACjcxK6I8E87Iv6xkF7I0E14v26rxl6s0D
+        M2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj6xIIjx
+        v20xvE14v26r1Y6r17McIj6I8E87Iv67AKxVW8JVWxJwAm72CE4IkC6x0Yz7v_Jr0_Gr1l
+        F7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAGYxC7M4IIrI8v6xkF7I0E8cxan2
+        IY04v7MxkIecxEwVAFwVW8ZwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7xkEbVWUJVW8
+        JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF67kF1V
+        AFwI0_Jw0_GFylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVW8JVW5JwCI42IY6xII
+        jxv20xvEc7CjxVAFwI0_Cr0_Gr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I
+        8E87Iv67AKxVW8JVWxJwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73
+        UjIFyTuYvjfU0a9aDUUUU
+X-CM-SenderInfo: x2kd0wptlqwqxorr0wxvrqhubq/
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Quanyang Wang <quanyang.wang@windriver.com>
+The compiler has inserted 2 NOPs before the regular function prologue.
+T series registers are available and safe because of LoongArch psABI.
 
-There are two problems with the current code of memory_intersects:
+At runtime, replace nop with bl to enable ftrace call and replace bl with
+nop to disable ftrace call. The bl requires us to save the original RA value,
+so here it saves RA at t0.
+details are:
 
-First, it doesn't check whether the region (begin, end) falls inside
-the region (virt, vend), that is (virt < begin && vend > end).
+| Compiled   |       Disabled         |        Enabled         |
++------------+------------------------+------------------------+
+| nop        | move     t0, ra        | move     t0, ra        |
+| nop        | nop                    | bl      ftrace_caller  |
+| func_body  | func_body              | func_body              |
 
-The second problem is if vend is equal to begin, it will return true
-but this is wrong since vend (virt + size) is not the last address of
-the memory region but (virt + size -1) is. The wrong determination will
-trigger the misreporting when the function check_for_illegal_area calls
-memory_intersects to check if the dma region intersects with stext region.
+The RA value will be recovered by ftrace_regs_entry, and restored into RA
+before returning to the regular function prologue. When a function is not
+being traced, the move t0, ra is not harmful.
 
-The misreporting is as below (stext is at 0x80100000):
- WARNING: CPU: 0 PID: 77 at kernel/dma/debug.c:1073 check_for_illegal_area+0x130/0x168
- DMA-API: chipidea-usb2 e0002000.usb: device driver maps memory from kernel text or rodata [addr=800f0000] [len=65536]
- Modules linked in:
- CPU: 1 PID: 77 Comm: usb-storage Not tainted 5.19.0-yocto-standard #5
- Hardware name: Xilinx Zynq Platform
-  unwind_backtrace from show_stack+0x18/0x1c
-  show_stack from dump_stack_lvl+0x58/0x70
-  dump_stack_lvl from __warn+0xb0/0x198
-  __warn from warn_slowpath_fmt+0x80/0xb4
-  warn_slowpath_fmt from check_for_illegal_area+0x130/0x168
-  check_for_illegal_area from debug_dma_map_sg+0x94/0x368
-  debug_dma_map_sg from __dma_map_sg_attrs+0x114/0x128
-  __dma_map_sg_attrs from dma_map_sg_attrs+0x18/0x24
-  dma_map_sg_attrs from usb_hcd_map_urb_for_dma+0x250/0x3b4
-  usb_hcd_map_urb_for_dma from usb_hcd_submit_urb+0x194/0x214
-  usb_hcd_submit_urb from usb_sg_wait+0xa4/0x118
-  usb_sg_wait from usb_stor_bulk_transfer_sglist+0xa0/0xec
-  usb_stor_bulk_transfer_sglist from usb_stor_bulk_srb+0x38/0x70
-  usb_stor_bulk_srb from usb_stor_Bulk_transport+0x150/0x360
-  usb_stor_Bulk_transport from usb_stor_invoke_transport+0x38/0x440
-  usb_stor_invoke_transport from usb_stor_control_thread+0x1e0/0x238
-  usb_stor_control_thread from kthread+0xf8/0x104
-  kthread from ret_from_fork+0x14/0x2c
+1) ftrace_make_call, ftrace_make_nop (in kernel/ftrace.c)
+   The two functions turn each recorded call site of filtered functions
+   into a call to ftrace_caller or nops.
 
-Refactor memory_intersects to fix the two problems above.
+2) ftracce_update_ftrace_func (in kernel/ftrace.c)
+   turns the nops at ftrace_call into a call to a generic entry for
+   function tracers.
 
-Fixes: 979559362516 ("asm/sections: add helpers to check for section data")
-Signed-off-by: Quanyang Wang <quanyang.wang@windriver.com>
+3) ftrace_caller (in kernel/mcount-dyn.S)
+   The entry where each _mcount call sites calls to once they are
+   filtered to be traced.
+
+Co-developed-by: Jinyang He <hejinyang@loongson.cn>
+Signed-off-by: Jinyang He <hejinyang@loongson.cn>
+Signed-off-by: Qing Zhang <zhangqing@loongson.cn>
 ---
-V1 ---> V2:
-Add the consideration of the condition that one falls inside another
-which is noticed by Ard. 
----
- include/asm-generic/sections.h | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ arch/loongarch/Kconfig              |   1 +
+ arch/loongarch/include/asm/ftrace.h |  16 ++++
+ arch/loongarch/include/asm/inst.h   |  33 +++++++++
+ arch/loongarch/kernel/Makefile      |   5 ++
+ arch/loongarch/kernel/entry_dyn.S   |  89 ++++++++++++++++++++++
+ arch/loongarch/kernel/ftrace_dyn.c  | 111 ++++++++++++++++++++++++++++
+ arch/loongarch/kernel/inst.c        |  93 +++++++++++++++++++++++
+ 7 files changed, 348 insertions(+)
+ create mode 100644 arch/loongarch/kernel/entry_dyn.S
+ create mode 100644 arch/loongarch/kernel/ftrace_dyn.c
 
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index d0f7bdd2fdf23..c51b3e7925cdf 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -110,7 +110,10 @@ static inline bool memory_intersects(void *begin, void *end, void *virt,
- {
- 	void *vend = virt + size;
+diff --git a/arch/loongarch/Kconfig b/arch/loongarch/Kconfig
+index 4d13bac368ed..f2d4899b1a0e 100644
+--- a/arch/loongarch/Kconfig
++++ b/arch/loongarch/Kconfig
+@@ -83,6 +83,7 @@ config LOONGARCH
+ 	select HAVE_C_RECORDMCOUNT
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select HAVE_DMA_CONTIGUOUS
++        select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_EXIT_THREAD
+ 	select HAVE_FAST_GUP
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+diff --git a/arch/loongarch/include/asm/ftrace.h b/arch/loongarch/include/asm/ftrace.h
+index 6a3e76234618..76ca58767f4d 100644
+--- a/arch/loongarch/include/asm/ftrace.h
++++ b/arch/loongarch/include/asm/ftrace.h
+@@ -10,9 +10,25 @@
+ #define MCOUNT_INSN_SIZE 4		/* sizeof mcount call */
  
--	return (virt >= begin && virt < end) || (vend >= begin && vend < end);
-+	if (virt < end && vend > begin)
-+		return true;
+ #ifndef __ASSEMBLY__
++#ifndef CONFIG_DYNAMIC_FTRACE
+ extern void _mcount(void);
+ #define mcount _mcount
++#endif
+ 
++#ifdef CONFIG_DYNAMIC_FTRACE
++static inline unsigned long ftrace_call_adjust(unsigned long addr)
++{
++	return addr;
++}
 +
-+	return false;
++struct dyn_arch_ftrace {
++};
++
++struct dyn_ftrace;
++int ftrace_init_nop(struct module *mod, struct dyn_ftrace *rec);
++#define ftrace_init_nop ftrace_init_nop
++
++#endif /* CONFIG_DYNAMIC_FTRACE */
+ #endif /* __ASSEMBLY__ */
+ #endif /* CONFIG_FUNCTION_TRACER */
+ #endif /* _ASM_LOONGARCH_FTRACE_H */
+diff --git a/arch/loongarch/include/asm/inst.h b/arch/loongarch/include/asm/inst.h
+index 7b07cbb3188c..713b4996bfac 100644
+--- a/arch/loongarch/include/asm/inst.h
++++ b/arch/loongarch/include/asm/inst.h
+@@ -8,6 +8,9 @@
+ #include <linux/types.h>
+ #include <asm/asm.h>
+ 
++#define INSN_NOP 0x03400000
++#define INSN_BREAK 0x002a0000
++
+ #define ADDR_IMMMASK_LU52ID	0xFFF0000000000000
+ #define ADDR_IMMMASK_LU32ID	0x000FFFFF00000000
+ #define ADDR_IMMMASK_ADDU16ID	0x00000000FFFF0000
+@@ -18,6 +21,11 @@
+ 
+ #define ADDR_IMM(addr, INSN)	((addr & ADDR_IMMMASK_##INSN) >> ADDR_IMMSHIFT_##INSN)
+ 
++enum reg0i26_op {
++	b_op		= 0x14,
++	bl_op		= 0x15,
++};
++
+ enum reg1i20_op {
+ 	lu12iw_op	= 0x0a,
+ 	lu32id_op	= 0x0b,
+@@ -32,6 +40,7 @@ enum reg2i12_op {
+ 	addiw_op	= 0x0a,
+ 	addid_op	= 0x0b,
+ 	lu52id_op	= 0x0c,
++	ori_op          = 0x0e,
+ 	ldb_op		= 0xa0,
+ 	ldh_op		= 0xa1,
+ 	ldw_op		= 0xa2,
+@@ -52,6 +61,10 @@ enum reg2i16_op {
+ 	bgeu_op		= 0x1b,
+ };
+ 
++enum reg3_op {
++	or_op		= 0x2a,
++};
++
+ struct reg0i26_format {
+ 	unsigned int immediate_h : 10;
+ 	unsigned int immediate_l : 16;
+@@ -85,6 +98,13 @@ struct reg2i16_format {
+ 	unsigned int opcode : 6;
+ };
+ 
++struct reg3_format {
++	unsigned int rd : 5;
++	unsigned int rj : 5;
++	unsigned int rk : 5;
++	unsigned int opcode : 17;
++};
++
+ union loongarch_instruction {
+ 	unsigned int word;
+ 	struct reg0i26_format reg0i26_format;
+@@ -92,6 +112,7 @@ union loongarch_instruction {
+ 	struct reg1i21_format reg1i21_format;
+ 	struct reg2i12_format reg2i12_format;
+ 	struct reg2i16_format reg2i16_format;
++	struct reg3_format    reg3_format;
+ };
+ 
+ #define LOONGARCH_INSN_SIZE	sizeof(union loongarch_instruction)
+@@ -162,6 +183,18 @@ static inline bool is_stack_alloc_ins(union loongarch_instruction *ip)
+ 		is_imm12_negative(ip->reg2i12_format.immediate);
  }
  
- /**
++int larch_insn_read(void *addr, u32 *insnp);
++int larch_insn_write(void *addr, u32 insn);
++int larch_insn_patch_text(void *addr, u32 insn);
++
++u32 larch_insn_gen_nop(void);
++u32 larch_insn_gen_b(unsigned long pc, unsigned long dest);
++u32 larch_insn_gen_bl(unsigned long pc, unsigned long dest);
++
++u32 larch_insn_gen_or(enum loongarch_gpr rd, enum loongarch_gpr rj,
++			enum loongarch_gpr rk);
++u32 larch_insn_gen_move(enum loongarch_gpr rd, enum loongarch_gpr rj);
++
+ u32 larch_insn_gen_lu32id(enum loongarch_gpr rd, int imm);
+ u32 larch_insn_gen_lu52id(enum loongarch_gpr rd, enum loongarch_gpr rj, int imm);
+ u32 larch_insn_gen_jirl(enum loongarch_gpr rd, enum loongarch_gpr rj, unsigned long pc, unsigned long dest);
+diff --git a/arch/loongarch/kernel/Makefile b/arch/loongarch/kernel/Makefile
+index 0a745d24d3e5..a73599619466 100644
+--- a/arch/loongarch/kernel/Makefile
++++ b/arch/loongarch/kernel/Makefile
+@@ -15,8 +15,13 @@ obj-$(CONFIG_EFI) 		+= efi.o
+ obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o
+ 
+ ifdef CONFIG_FUNCTION_TRACER
++  ifndef CONFIG_DYNAMIC_FTRACE
+     obj-y += mcount.o ftrace.o
+     CFLAGS_REMOVE_ftrace.o = $(CC_FLAGS_FTRACE)
++  else
++    obj-y += entry_dyn.o ftrace_dyn.o
++    CFLAGS_REMOVE_ftrace_dyn.o = $(CC_FLAGS_FTRACE)
++  endif
+   CFLAGS_REMOVE_inst.o = $(CC_FLAGS_FTRACE)
+   CFLAGS_REMOVE_time.o = $(CC_FLAGS_FTRACE)
+   CFLAGS_REMOVE_perf_event.o = $(CC_FLAGS_FTRACE)
+diff --git a/arch/loongarch/kernel/entry_dyn.S b/arch/loongarch/kernel/entry_dyn.S
+new file mode 100644
+index 000000000000..e4686e67f049
+--- /dev/null
++++ b/arch/loongarch/kernel/entry_dyn.S
+@@ -0,0 +1,89 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (C) 2022 Loongson Technology Corporation Limited
++ */
++
++#include <asm/export.h>
++#include <asm/regdef.h>
++#include <asm/stackframe.h>
++#include <asm/ftrace.h>
++
++	.text
++/*
++ * Due to -fpatchable-function-entry=2: the compiler inserted 2 NOPs before the
++ * regular C function prologue. When PC arrived here, the last 2 instructions
++ * as follows,
++ * 	move		t0, ra
++ * 	bl		callsite (for modules, callsite is a tramplione)
++ *
++ * modules tramplione as follows,
++ * 	addu16i.d	t1, zero, callsite[31:16]
++ * 	lu32i.d		t1, callsite[51:32]
++ * 	lu52i.d		t1, t1, callsite[63:52]
++ * 	jirl		zero, t1, callsite[15:0] >> 2
++ *
++ * See arch/loongarch/kernel/ftrace_dyn.c for details. Here, pay attention to
++ * that the T series regs are available and safe because each C functions
++ * follows the LoongArch psABI well.
++ */
++
++	.macro  ftrace_regs_entry
++	PTR_ADDI sp, sp, -PT_SIZE
++	/* Save trace function ra at PT_ERA */
++	PTR_S	ra, sp, PT_ERA
++	/* Save parent ra at PT_R1(RA) */
++	PTR_S	t0, sp, PT_R1
++	PTR_S	a0, sp, PT_R4
++	PTR_S	a1, sp, PT_R5
++	PTR_S	a2, sp, PT_R6
++	PTR_S	a3, sp, PT_R7
++	PTR_S	a4, sp, PT_R8
++	PTR_S	a5, sp, PT_R9
++	PTR_S	a6, sp, PT_R10
++	PTR_S	a7, sp, PT_R11
++	PTR_S	fp, sp, PT_R22
++
++	PTR_ADDI t8, sp, PT_SIZE
++	PTR_S   t8, sp, PT_R3
++
++	.endm
++
++SYM_CODE_START(ftrace_caller)
++	ftrace_regs_entry
++	b	ftrace_common
++SYM_CODE_END(ftrace_caller)
++
++SYM_CODE_START(ftrace_common)
++	PTR_ADDI	a0, ra, -8	/* arg0: ip */
++	move		a1, t0		/* arg1: parent_ip */
++	la.pcrel	t1, function_trace_op
++	PTR_L		a2, t1, 0	/* arg2: op */
++	move		a3, sp		/* arg3: regs */
++	.globl ftrace_call
++ftrace_call:
++	bl		ftrace_stub
++/*
++ * As we didn't use S series regs in this assmembly code and all calls
++ * are C function which will save S series regs by themselves, there is
++ * no need to restore S series regs. The T series is available and safe
++ * at the callsite, so there is no need to restore the T series regs.
++ */
++ftrace_common_return:
++	PTR_L	a0, sp, PT_R4
++	PTR_L	a1, sp, PT_R5
++	PTR_L	a2, sp, PT_R6
++	PTR_L	a3, sp, PT_R7
++	PTR_L	a4, sp, PT_R8
++	PTR_L	a5, sp, PT_R9
++	PTR_L	a6, sp, PT_R10
++	PTR_L	a7, sp, PT_R11
++	PTR_L	fp, sp, PT_R22
++	PTR_L	ra, sp, PT_R1
++	PTR_L	t0, sp, PT_ERA
++	PTR_ADDI sp, sp, PT_SIZE
++	jirl	zero, t0, 0
++SYM_CODE_END(ftrace_common)
++
++SYM_FUNC_START(ftrace_stub)
++	jirl	zero, ra, 0
++SYM_FUNC_END(ftrace_stub)
+diff --git a/arch/loongarch/kernel/ftrace_dyn.c b/arch/loongarch/kernel/ftrace_dyn.c
+new file mode 100644
+index 000000000000..1f8955be8b64
+--- /dev/null
++++ b/arch/loongarch/kernel/ftrace_dyn.c
+@@ -0,0 +1,111 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Based on arch/arm64/kernel/ftrace.c
++ *
++ * Copyright (C) 2022 Loongson Technology Corporation Limited
++ */
++
++#include <linux/ftrace.h>
++#include <linux/uaccess.h>
++
++#include <asm/inst.h>
++
++static int ftrace_modify_code(unsigned long pc, u32 old, u32 new,
++			      bool validate)
++{
++	u32 replaced;
++
++	if (validate) {
++		if (larch_insn_read((void *)pc, &replaced))
++			return -EFAULT;
++
++		if (replaced != old)
++			return -EINVAL;
++	}
++
++	if (larch_insn_patch_text((void *)pc, new))
++		return -EPERM;
++
++	return 0;
++}
++
++int ftrace_update_ftrace_func(ftrace_func_t func)
++{
++	unsigned long pc;
++	u32 new;
++
++	pc = (unsigned long)&ftrace_call;
++	new = larch_insn_gen_bl(pc, (unsigned long)func);
++
++	return ftrace_modify_code(pc, 0, new, false);
++}
++
++/*
++ * The compiler has inserted 2 NOPs before the regular function prologue.
++ * T series registers are available and safe because of LoongArch psABI.
++ *
++ * At runtime, replace nop with bl to enable ftrace call and replace bl with
++ * nop to disable ftrace call. The bl requires us to save the original RA value,
++ * so here it saves RA at t0.
++ * details are:
++ *
++ * | Compiled   |       Disabled         |        Enabled         |
++ * +------------+------------------------+------------------------+
++ * | nop        | move     t0, ra        | move     t0, ra        |
++ * | nop        | nop                    | bl      ftrace_caller  |
++ * | func_body  | func_body              | func_body              |
++ *
++ * The RA value will be recovered by ftrace_regs_entry, and restored into RA
++ * before returning to the regular function prologue. When a function is not
++ * being traced, the move t0, ra is not harmful.
++ */
++
++int ftrace_init_nop(struct module *mod, struct dyn_ftrace *rec)
++{
++	unsigned long pc;
++	u32 old, new;
++
++	pc = rec->ip;
++	old = larch_insn_gen_nop();
++	new = larch_insn_gen_move(LOONGARCH_GPR_T0, LOONGARCH_GPR_RA);
++
++	return ftrace_modify_code(pc, old, new, true);
++}
++
++int ftrace_make_call(struct dyn_ftrace *rec, unsigned long addr)
++{
++	unsigned long pc;
++	u32 old, new;
++
++	pc = rec->ip + LOONGARCH_INSN_SIZE;
++
++	old = larch_insn_gen_nop();
++	new = larch_insn_gen_bl(pc, addr);
++
++	return ftrace_modify_code(pc, old, new, true);
++}
++
++int ftrace_make_nop(struct module *mod, struct dyn_ftrace *rec,
++		    unsigned long addr)
++{
++	unsigned long pc;
++	u32 old, new;
++
++	pc = rec->ip + LOONGARCH_INSN_SIZE;
++
++	new = larch_insn_gen_nop();
++	old = larch_insn_gen_bl(pc, addr);
++
++	return ftrace_modify_code(pc, old, new, true);
++}
++
++void arch_ftrace_update_code(int command)
++{
++	command |= FTRACE_MAY_SLEEP;
++	ftrace_modify_all_code(command);
++}
++
++int __init ftrace_dyn_arch_init(void)
++{
++	return 0;
++}
+diff --git a/arch/loongarch/kernel/inst.c b/arch/loongarch/kernel/inst.c
+index b1df0ec34bd1..f2759ae9a8bd 100644
+--- a/arch/loongarch/kernel/inst.c
++++ b/arch/loongarch/kernel/inst.c
+@@ -2,8 +2,83 @@
+ /*
+  * Copyright (C) 2020-2022 Loongson Technology Corporation Limited
+  */
++#include <linux/sizes.h>
++#include <linux/uaccess.h>
++
++#include <asm/cacheflush.h>
+ #include <asm/inst.h>
+ 
++static DEFINE_RAW_SPINLOCK(patch_lock);
++
++int larch_insn_read(void *addr, u32 *insnp)
++{
++	int ret;
++	u32 val;
++
++	ret = copy_from_kernel_nofault(&val, addr, LOONGARCH_INSN_SIZE);
++	if (!ret)
++		*insnp = val;
++
++	return ret;
++}
++
++int larch_insn_write(void *addr, u32 insn)
++{
++	int ret;
++	unsigned long flags = 0;
++
++	raw_spin_lock_irqsave(&patch_lock, flags);
++	ret = copy_to_kernel_nofault(addr, &insn, LOONGARCH_INSN_SIZE);
++	raw_spin_unlock_irqrestore(&patch_lock, flags);
++
++	return ret;
++}
++
++int larch_insn_patch_text(void *addr, u32 insn)
++{
++	int ret;
++	u32 *tp = addr;
++
++	if ((unsigned long)tp & 3)
++		return -EINVAL;
++
++	ret = larch_insn_write(tp, insn);
++	if (!ret)
++		flush_icache_range((unsigned long)tp,
++				   (unsigned long)tp + LOONGARCH_INSN_SIZE);
++
++	return ret;
++}
++
++u32 larch_insn_gen_nop(void)
++{
++	return INSN_NOP;
++}
++
++u32 larch_insn_gen_bl(unsigned long pc, unsigned long dest)
++{
++	unsigned int immediate_l, immediate_h;
++	union loongarch_instruction insn;
++	long offset = dest - pc;
++
++	if ((offset & 3) || offset < -SZ_128M || offset >= SZ_128M) {
++		pr_warn("The generated bl instruction is out of range.\n");
++		return INSN_BREAK;
++	}
++
++	offset >>= 2;
++
++	immediate_l = offset & 0xffff;
++	offset >>= 16;
++	immediate_h = offset & 0x3ff;
++
++	insn.reg0i26_format.opcode = bl_op;
++	insn.reg0i26_format.immediate_l = immediate_l;
++	insn.reg0i26_format.immediate_h = immediate_h;
++
++	return insn.word;
++}
++
+ u32 larch_insn_gen_lu32id(enum loongarch_gpr rd, int imm)
+ {
+ 	union loongarch_instruction insn;
+@@ -38,3 +113,21 @@ u32 larch_insn_gen_jirl(enum loongarch_gpr rd, enum loongarch_gpr rj, unsigned l
+ 
+ 	return insn.word;
+ }
++
++u32 larch_insn_gen_or(enum loongarch_gpr rd, enum loongarch_gpr rj, enum loongarch_gpr rk)
++{
++	union loongarch_instruction insn;
++
++	insn.reg3_format.opcode = or_op;
++	insn.reg3_format.rd = rd;
++	insn.reg3_format.rj = rj;
++	insn.reg3_format.rk = rk;
++
++	return insn.word;
++}
++
++u32 larch_insn_gen_move(enum loongarch_gpr rd, enum loongarch_gpr rj)
++{
++	return larch_insn_gen_or(rd, rj, 0);
++}
++
 -- 
 2.36.1
 
