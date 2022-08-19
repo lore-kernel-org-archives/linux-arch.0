@@ -2,169 +2,127 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D3558C25B0E
-	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:17:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 45B07C25B0E
+	for <linux-arch@archiver.kernel.org>; Fri, 19 Aug 2022 08:26:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346566AbiHSIRg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 Aug 2022 04:17:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52138 "EHLO
+        id S1347724AbiHSI0i (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 Aug 2022 04:26:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42258 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346622AbiHSIRI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:17:08 -0400
-Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id BE69EB274B;
-        Fri, 19 Aug 2022 01:17:06 -0700 (PDT)
-Received: from localhost.localdomain (unknown [113.200.148.30])
-        by localhost.localdomain (Coremail) with SMTP id AQAAf8Bx32v5Rv9isI4EAA--.18159S4;
-        Fri, 19 Aug 2022 16:16:58 +0800 (CST)
-From:   Qing Zhang <zhangqing@loongson.cn>
-To:     Huacai Chen <chenhuacai@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Ingo Molnar <mingo@redhat.com>
-Cc:     WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>, hejinyang@loongson.cn,
-        zhangqing@loongson.cn
-Subject: [PATCH 8/9] LoongArch: ftrace: Add CALLER_ADDRx macros
-Date:   Fri, 19 Aug 2022 16:16:56 +0800
-Message-Id: <20220819081657.7254-3-zhangqing@loongson.cn>
-X-Mailer: git-send-email 2.20.1
-In-Reply-To: <20220819081657.7254-1-zhangqing@loongson.cn>
-References: <20220819081657.7254-1-zhangqing@loongson.cn>
+        with ESMTP id S1347591AbiHSI0g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 Aug 2022 04:26:36 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4CA8BE2C50;
+        Fri, 19 Aug 2022 01:26:36 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id DC33361720;
+        Fri, 19 Aug 2022 08:26:35 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 41B64C433B5;
+        Fri, 19 Aug 2022 08:26:35 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1660897595;
+        bh=RYj2grvMG9j2SUGz8E/c2XrUD5h+FZEHF8YqnB+FTAk=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=fIdFU/7ZgYJbONIhoQmqexHzedb9Bpj7zZoHo57Ay4NsEXTsXSB8skHujQR9G/8KZ
+         6hm9oNI3t8wFIUS/Xb6OH7Kqm+TeVjXap8q03EUA1Jl0dd7F2xZAkl5Nh8OaD/D0mC
+         i0QSP7gPTz/27V6D1zeeLmUfv6zf6U0JxZu4dDHecVndbI6rP0EhWTP1lCqgh8rlgu
+         txt5TnruH489GkE8Af76LTHh0yzpw0P6+O20IIWgtWR7LKiS94mrodCMYjVKMZkdQe
+         +3ZQkbXbmV+lGyMgyyupScClEYjUhG9sJfc9wnrX89HOdMzkLgBZojDg4tfj86eNoT
+         /uHpKXCIdN4vg==
+Received: by mail-wr1-f48.google.com with SMTP id u14so4316669wrq.9;
+        Fri, 19 Aug 2022 01:26:35 -0700 (PDT)
+X-Gm-Message-State: ACgBeo2IiAOQ8blkDLCJuv9w4Q5IPJwI8jkhL+6thvPX1IWKnSbCaGC0
+        eEU9xk+PGJJNc4ZIWGWT0Ge5yB5tqtm5pZuWwjw=
+X-Google-Smtp-Source: AA6agR7pEY5ldzvjKu98k8qf/5NTMXshYKyJ8n2/LsNzZw3Db43jkXvlCVhaBACaSxkWHn+HNsRgpa4ZR4Q1q2auq/4=
+X-Received: by 2002:adf:ebd2:0:b0:222:cd3f:cf9 with SMTP id
+ v18-20020adfebd2000000b00222cd3f0cf9mr3548689wrn.598.1660897593447; Fri, 19
+ Aug 2022 01:26:33 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: AQAAf8Bx32v5Rv9isI4EAA--.18159S4
-X-Coremail-Antispam: 1UD129KBjvJXoWxWFW8Cr4DZF18JrWftFy7KFg_yoWrJryxpF
-        97ArZ3GrW0kwn7trZrXr15ur15AFn7Gw12ga129a45Ar12qr17uw1kZ34qqFn5tayxG3yI
-        qFWrCrWayF4DJaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUUmj14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2048vs2IY020E87I2jVAFwI0_Jryl82xGYIkIc2
-        x26xkF7I0E14v26r4j6ryUM28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48ve4kI8wA2z4x0
-        Y4vE2Ix0cI8IcVAFwI0_Ar0_tr1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI0_Gr1j6F4UJw
-        A2z4x0Y4vEx4A2jsIE14v26F4UJVW0owA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_GcCE3s1l
-        e2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI
-        8IcVAFwI0_Jrv_JF1lYx0Ex4A2jsIE14v26r4j6F4UMcvjeVCFs4IE7xkEbVWUJVW8JwAC
-        jcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka0x
-        kIwI1lc2xSY4AK67AK6r43MxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r1j6r4U
-        MI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF67
-        AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26ryj6F1UMIIF0xvE2Ix0
-        cI8IcVCY1x0267AKxVW8Jr0_Cr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I
-        8E87Iv67AKxVW8JVWxJwCI42IY6I8E87Iv6xkF7I0E14v26r4UJVWxJrUvcSsGvfC2Kfnx
-        nUUI43ZEXa7sRRD73JUUUUU==
-X-CM-SenderInfo: x2kd0wptlqwqxorr0wxvrqhubq/
+References: <20220819081145.948016-1-quanyang.wang@windriver.com>
+In-Reply-To: <20220819081145.948016-1-quanyang.wang@windriver.com>
+From:   Ard Biesheuvel <ardb@kernel.org>
+Date:   Fri, 19 Aug 2022 10:26:22 +0200
+X-Gmail-Original-Message-ID: <CAMj1kXGA7O5g4PgO7jm32ZpaV3V=Hcx17DhcAHuBd_2KZbrPRQ@mail.gmail.com>
+Message-ID: <CAMj1kXGA7O5g4PgO7jm32ZpaV3V=Hcx17DhcAHuBd_2KZbrPRQ@mail.gmail.com>
+Subject: Re: [V2][PATCH] asm-generic: sections: refactor memory_intersects
+To:     quanyang.wang@windriver.com
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Thierry Reding <treding@nvidia.com>,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-CALLER_ADDRx returns caller's address at specified level in call stacks.
-They are used for several tracers like irqsoff and preemptoff.
+On Fri, 19 Aug 2022 at 10:12, <quanyang.wang@windriver.com> wrote:
+>
+> From: Quanyang Wang <quanyang.wang@windriver.com>
+>
+> There are two problems with the current code of memory_intersects:
+>
+> First, it doesn't check whether the region (begin, end) falls inside
+> the region (virt, vend), that is (virt < begin && vend > end).
+>
+> The second problem is if vend is equal to begin, it will return true
+> but this is wrong since vend (virt + size) is not the last address of
+> the memory region but (virt + size -1) is. The wrong determination will
+> trigger the misreporting when the function check_for_illegal_area calls
+> memory_intersects to check if the dma region intersects with stext region.
+>
+> The misreporting is as below (stext is at 0x80100000):
+>  WARNING: CPU: 0 PID: 77 at kernel/dma/debug.c:1073 check_for_illegal_area+0x130/0x168
+>  DMA-API: chipidea-usb2 e0002000.usb: device driver maps memory from kernel text or rodata [addr=800f0000] [len=65536]
+>  Modules linked in:
+>  CPU: 1 PID: 77 Comm: usb-storage Not tainted 5.19.0-yocto-standard #5
+>  Hardware name: Xilinx Zynq Platform
+>   unwind_backtrace from show_stack+0x18/0x1c
+>   show_stack from dump_stack_lvl+0x58/0x70
+>   dump_stack_lvl from __warn+0xb0/0x198
+>   __warn from warn_slowpath_fmt+0x80/0xb4
+>   warn_slowpath_fmt from check_for_illegal_area+0x130/0x168
+>   check_for_illegal_area from debug_dma_map_sg+0x94/0x368
+>   debug_dma_map_sg from __dma_map_sg_attrs+0x114/0x128
+>   __dma_map_sg_attrs from dma_map_sg_attrs+0x18/0x24
+>   dma_map_sg_attrs from usb_hcd_map_urb_for_dma+0x250/0x3b4
+>   usb_hcd_map_urb_for_dma from usb_hcd_submit_urb+0x194/0x214
+>   usb_hcd_submit_urb from usb_sg_wait+0xa4/0x118
+>   usb_sg_wait from usb_stor_bulk_transfer_sglist+0xa0/0xec
+>   usb_stor_bulk_transfer_sglist from usb_stor_bulk_srb+0x38/0x70
+>   usb_stor_bulk_srb from usb_stor_Bulk_transport+0x150/0x360
+>   usb_stor_Bulk_transport from usb_stor_invoke_transport+0x38/0x440
+>   usb_stor_invoke_transport from usb_stor_control_thread+0x1e0/0x238
+>   usb_stor_control_thread from kthread+0xf8/0x104
+>   kthread from ret_from_fork+0x14/0x2c
+>
+> Refactor memory_intersects to fix the two problems above.
+>
+> Fixes: 979559362516 ("asm/sections: add helpers to check for section data")
+> Signed-off-by: Quanyang Wang <quanyang.wang@windriver.com>
+> ---
+> V1 ---> V2:
+> Add the consideration of the condition that one falls inside another
+> which is noticed by Ard.
+> ---
+>  include/asm-generic/sections.h | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+> index d0f7bdd2fdf23..c51b3e7925cdf 100644
+> --- a/include/asm-generic/sections.h
+> +++ b/include/asm-generic/sections.h
+> @@ -110,7 +110,10 @@ static inline bool memory_intersects(void *begin, void *end, void *virt,
+>  {
+>         void *vend = virt + size;
+>
+> -       return (virt >= begin && virt < end) || (vend >= begin && vend < end);
+> +       if (virt < end && vend > begin)
+> +               return true;
+> +
+> +       return false;
+>  }
+>
 
-do_vint
-  irqentry_exit
-    trace_hardirqs_on
-      tracer_hardirqs_on(CALLER_ADDR0, CALLER_ADDR1)
-
-Signed-off-by: Qing Zhang <zhangqing@loongson.cn>
----
- arch/loongarch/include/asm/ftrace.h    |  2 ++
- arch/loongarch/include/asm/processor.h |  2 --
- arch/loongarch/kernel/Makefile         |  4 +--
- arch/loongarch/kernel/return_address.c | 45 ++++++++++++++++++++++++++
- 4 files changed, 49 insertions(+), 4 deletions(-)
- create mode 100644 arch/loongarch/kernel/return_address.c
-
-diff --git a/arch/loongarch/include/asm/ftrace.h b/arch/loongarch/include/asm/ftrace.h
-index f96adef0e4a5..6afc9fc712f4 100644
---- a/arch/loongarch/include/asm/ftrace.h
-+++ b/arch/loongarch/include/asm/ftrace.h
-@@ -16,6 +16,8 @@
- #define MCOUNT_INSN_SIZE 4		/* sizeof mcount call */
- 
- #ifndef __ASSEMBLY__
-+extern void *return_address(unsigned int);
-+#define ftrace_return_address(n) return_address(n)
- #ifndef CONFIG_DYNAMIC_FTRACE
- extern void _mcount(void);
- #define mcount _mcount
-diff --git a/arch/loongarch/include/asm/processor.h b/arch/loongarch/include/asm/processor.h
-index 1c4b4308378d..5eb45e55f3c7 100644
---- a/arch/loongarch/include/asm/processor.h
-+++ b/arch/loongarch/include/asm/processor.h
-@@ -201,8 +201,6 @@ unsigned long __get_wchan(struct task_struct *p);
- #define KSTK_EUEN(tsk) (task_pt_regs(tsk)->csr_euen)
- #define KSTK_ECFG(tsk) (task_pt_regs(tsk)->csr_ecfg)
- 
--#define return_address() ({__asm__ __volatile__("":::"$1"); __builtin_return_address(0);})
--
- #ifdef CONFIG_CPU_HAS_PREFETCH
- 
- #define ARCH_HAS_PREFETCH
-diff --git a/arch/loongarch/kernel/Makefile b/arch/loongarch/kernel/Makefile
-index a73599619466..9a3df7c1f6e8 100644
---- a/arch/loongarch/kernel/Makefile
-+++ b/arch/loongarch/kernel/Makefile
-@@ -6,8 +6,8 @@
- extra-y		:= head.o vmlinux.lds
- 
- obj-y		+= cpu-probe.o cacheinfo.o env.o setup.o entry.o genex.o \
--		   traps.o irq.o idle.o process.o dma.o mem.o io.o reset.o switch.o \
--		   elf.o syscall.o signal.o time.o topology.o inst.o ptrace.o vdso.o
-+		   traps.o irq.o idle.o process.o dma.o mem.o io.o reset.o return_address.o \
-+		   switch.o elf.o syscall.o signal.o time.o topology.o inst.o ptrace.o vdso.o
- 
- obj-$(CONFIG_ACPI)		+= acpi.o
- obj-$(CONFIG_EFI) 		+= efi.o
-diff --git a/arch/loongarch/kernel/return_address.c b/arch/loongarch/kernel/return_address.c
-new file mode 100644
-index 000000000000..ed8121dd2b0f
---- /dev/null
-+++ b/arch/loongarch/kernel/return_address.c
-@@ -0,0 +1,45 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2022 Loongson Technology Corporation Limited
-+ */
-+
-+#include <linux/export.h>
-+#include <linux/ftrace.h>
-+#include <linux/kprobes.h>
-+#include <linux/stacktrace.h>
-+
-+struct return_address_data {
-+	unsigned int level;
-+	void *addr;
-+};
-+
-+static bool save_return_addr(void *d, unsigned long pc)
-+{
-+	struct return_address_data *data = d;
-+
-+	if (!data->level) {
-+		data->addr = (void *)pc;
-+		return false;
-+	} else {
-+		--data->level;
-+		return true;
-+	}
-+}
-+NOKPROBE_SYMBOL(save_return_addr);
-+
-+void *return_address(unsigned int level)
-+{
-+	struct return_address_data data;
-+
-+	data.level = level + 2;
-+	data.addr = NULL;
-+
-+	arch_stack_walk(save_return_addr, &data, current, NULL);
-+
-+	if (!data.level)
-+		return data.addr;
-+	else
-+		return NULL;
-+}
-+EXPORT_SYMBOL_GPL(return_address);
-+NOKPROBE_SYMBOL(return_address);
--- 
-2.36.1
-
+Reviewed-by: Ard Biesheuvel <ardb@kernel.org>
