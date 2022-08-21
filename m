@@ -2,51 +2,51 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 40FA9C32772
-	for <linux-arch@archiver.kernel.org>; Sun, 21 Aug 2022 11:36:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E594C32772
+	for <linux-arch@archiver.kernel.org>; Sun, 21 Aug 2022 11:36:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230338AbiHULgs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 21 Aug 2022 07:36:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57658 "EHLO
+        id S230354AbiHULgv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 21 Aug 2022 07:36:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57646 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230116AbiHULgZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Aug 2022 07:36:25 -0400
-Received: from mail-wr1-x42a.google.com (mail-wr1-x42a.google.com [IPv6:2a00:1450:4864:20::42a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BB1D218386
-        for <linux-arch@vger.kernel.org>; Sun, 21 Aug 2022 04:36:23 -0700 (PDT)
-Received: by mail-wr1-x42a.google.com with SMTP id bq11so3482443wrb.12
-        for <linux-arch@vger.kernel.org>; Sun, 21 Aug 2022 04:36:23 -0700 (PDT)
+        with ESMTP id S230070AbiHULgd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 21 Aug 2022 07:36:33 -0400
+Received: from mail-wm1-x329.google.com (mail-wm1-x329.google.com [IPv6:2a00:1450:4864:20::329])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1B1ED26ACE
+        for <linux-arch@vger.kernel.org>; Sun, 21 Aug 2022 04:36:27 -0700 (PDT)
+Received: by mail-wm1-x329.google.com with SMTP id ay12so4272704wmb.1
+        for <linux-arch@vger.kernel.org>; Sun, 21 Aug 2022 04:36:26 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=conchuod.ie; s=google;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc;
-        bh=ktqp5nP81udpM1MG+l3gnY1pzvY8/PrjfTARX1xGZ74=;
-        b=AW0FWHnYgwNCmESZ2n9ygpoNMqROFdVrXmoyjs1i/V3e6l8BazQwWJHi9XMO+O637d
-         Df4riE6PC/V/IgPUH8moc0EAfx7R5nCWwvG8iSYiE51RO1IzaDNMxbVkluZz63D/jFsp
-         sQfEu3LXgHPhM16VTmczW97sJwY69CLLTXVNAY8pZeDKe4dB8m3oCjol2mhGPp1ahO2V
-         ComPKJXyP3hAynPugfvZ3yXbmXZ7FkJXWMP8Y43x82GZahVFA7F1jqsxQLkrc9fWCoJf
-         P8nByGfCjdrtXVcb5dZ+jg18p6ejOPnoJLMHJlkjhG/J8lyAObKocbWp1a2AGk+RECcD
-         /M2g==
+        bh=JBm3JbYzVZyjjb4o90s9QqDUxEn4h4q/mRrSSGBV0DA=;
+        b=Ndo3cUOFcvU9vobg4ECMxbbBto0GCzZXLsi58Tc0a+aRUV5xaiUrQ1WE7WGMGonuyM
+         pWjbfzMTxC3WZgc7Kd0dzvv55RE+rugIoVU2gm2JxNlyXxX9JvbfPqO3Wty5HComkoNy
+         z/FrSVdRGmSxD9J/eeQS+gl4LKuNcnIyYhmaQk9x7zmNI/cHYJ6Crrta8wcLAAZP0Vvm
+         849bGJo2CDf1HG1GvbOSuL5QodydxN1S9/JynQLmjaY6zPYxKiVXg8b4sMMwqt3psm61
+         gyMTlAo4Cdjc4j6KyvB94c1XgT2tVCzfF/EiZnUD3iXReG81rvWzDLu4vp4rZTEsjGL4
+         ygbw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc;
-        bh=ktqp5nP81udpM1MG+l3gnY1pzvY8/PrjfTARX1xGZ74=;
-        b=MRuqg+3Smf9Zb3lLeqUtiGiBmnaMV/Guag4f4ccqpNbbGV/M2/DiuKXUg7nAQ/iCNi
-         kVu2GlznNIEX+Zpd/Gd0TFNVEP+jD12//z2tqLBPrfz2U+1pkljvpeF3U36onafNmKt4
-         eFLQngCkAR5I35yEDHy9dKvkfx1tfZNyTNhE95m1aBoMDlBVsSHe1euInxLXP2uMqtZ3
-         QeunEFbVhmO5sDVWnLFCSqzteZ98Tpu7GiUVkt+W/ya6x0n2BiHXbQvqbhcZ8shBl660
-         EXcqB2h22WcnSkOO1298N0IDnZSgH+qIaYTmV6Nj2Zl1LCxxhf5PQkL/vlU6F4moKkge
-         cmvA==
-X-Gm-Message-State: ACgBeo24LpZz2ZGcC088V+YN0matORUkEZ6f5rOhHZS4fgSJf4OLNxcv
-        czknpGvDy6oJHSR3+iNcVYRrnQ==
-X-Google-Smtp-Source: AA6agR6iyTE2UwdrwXTf+0eiBHvZb7pU8qO0Gz7AlF1LBKoiF+3yUIHGhx0/IDeGH85WpPOkmWdetw==
-X-Received: by 2002:a05:6000:184c:b0:223:2c8b:c43c with SMTP id c12-20020a056000184c00b002232c8bc43cmr8659598wri.16.1661081782206;
-        Sun, 21 Aug 2022 04:36:22 -0700 (PDT)
+        bh=JBm3JbYzVZyjjb4o90s9QqDUxEn4h4q/mRrSSGBV0DA=;
+        b=sMBL7CR82Mgf9zW8TV7zPinleSahpP5TCVu/ppqqKfgWI5gPBCgINoRI016n2npS8R
+         vCtRYih4qMt3vFC749FOsPwsnl4BOcL/QCldxrjiKxjap2RpXUna+9v13jCK5RLrxHD6
+         SN/j1rgl1GCB4QE30psEauA4Df6gvz+wFzqd38a47orujvvBYvKtaDDgo6JRmli+xXit
+         m3cDI9bdLqVjvL8ZFy3iiXgt/Z49TkXdmUrxSY7CptYGG0AFGvk3D3wxN60No1uDuYnK
+         FOpn7OeJNVLRQVmwvlFfoQLPF4P+8e8e0SR7eGSEgEO9icY5QQrsWKgqafxOHt9a45y3
+         9QeA==
+X-Gm-Message-State: ACgBeo3x9hhB7zIvyc8rqKWpKnjMhIOKQo5L95ChVoE8opNhWY9RQ8AL
+        x9plrQRWWYTgWPJQtV1W4nqq3A==
+X-Google-Smtp-Source: AA6agR7fUuguxyVoajzO5r2IzhUFn/jBjXj29sCwHWGo+An40pD5GMxu5Abtd+UzorNvMppKEiQWPQ==
+X-Received: by 2002:a05:600c:3ba0:b0:3a5:b73a:8773 with SMTP id n32-20020a05600c3ba000b003a5b73a8773mr12497956wms.64.1661081785402;
+        Sun, 21 Aug 2022 04:36:25 -0700 (PDT)
 Received: from henark71.. ([51.37.149.245])
-        by smtp.gmail.com with ESMTPSA id m9-20020a7bce09000000b003a3442f1229sm14071361wmc.29.2022.08.21.04.36.20
+        by smtp.gmail.com with ESMTPSA id m9-20020a7bce09000000b003a3442f1229sm14071361wmc.29.2022.08.21.04.36.23
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 21 Aug 2022 04:36:21 -0700 (PDT)
+        Sun, 21 Aug 2022 04:36:24 -0700 (PDT)
 From:   Conor Dooley <mail@conchuod.ie>
 To:     Michal Simek <monstr@monstr.eu>,
         Paul Walmsley <paul.walmsley@sifive.com>,
@@ -71,9 +71,9 @@ Cc:     Geert Uytterhoeven <geert@linux-m68k.org>,
         linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org,
         linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
         sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH 3/6] s390: use the asm-generic version of cpuinfo_op
-Date:   Sun, 21 Aug 2022 12:35:10 +0100
-Message-Id: <20220821113512.2056409-4-mail@conchuod.ie>
+Subject: [PATCH 5/6] sparc: use the asm-generic version of cpuinfo_op
+Date:   Sun, 21 Aug 2022 12:35:12 +0100
+Message-Id: <20220821113512.2056409-6-mail@conchuod.ie>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20220821113512.2056409-1-mail@conchuod.ie>
 References: <20220821113512.2056409-1-mail@conchuod.ie>
@@ -91,29 +91,23 @@ header.
 
 Signed-off-by: Conor Dooley <conor.dooley@microchip.com>
 ---
- arch/s390/include/asm/processor.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/sparc/include/asm/cpudata.h | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
-index bd66f8e34949..48d2332a5899 100644
---- a/arch/s390/include/asm/processor.h
-+++ b/arch/s390/include/asm/processor.h
-@@ -41,6 +41,7 @@
- #include <asm/fpu/types.h>
- #include <asm/fpu/internal.h>
- #include <asm/irqflags.h>
+diff --git a/arch/sparc/include/asm/cpudata.h b/arch/sparc/include/asm/cpudata.h
+index d213165ee713..af6ef3c028a9 100644
+--- a/arch/sparc/include/asm/cpudata.h
++++ b/arch/sparc/include/asm/cpudata.h
+@@ -6,8 +6,7 @@
+ 
+ #include <linux/threads.h>
+ #include <linux/percpu.h>
+-
+-extern const struct seq_operations cpuinfo_op;
 +#include <asm-generic/processor.h>
  
- typedef long (*sys_call_ptr_t)(struct pt_regs *regs);
+ #endif /* !(__ASSEMBLY__) */
  
-@@ -80,7 +81,6 @@ void s390_adjust_jiffies(void);
- void s390_update_cpu_mhz(void);
- void cpu_detect_mhz_feature(void);
- 
--extern const struct seq_operations cpuinfo_op;
- extern void execve_tail(void);
- extern void __bpon(void);
- unsigned long vdso_size(void);
 -- 
 2.37.1
 
