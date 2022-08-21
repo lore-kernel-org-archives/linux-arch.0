@@ -2,42 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A9AC4C3F6B0
-	for <linux-arch@archiver.kernel.org>; Sun, 21 Aug 2022 01:02:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D2C46C32774
+	for <linux-arch@archiver.kernel.org>; Sun, 21 Aug 2022 01:02:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236323AbiHUBCn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 20 Aug 2022 21:02:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34400 "EHLO
+        id S234597AbiHUBCo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 20 Aug 2022 21:02:44 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34410 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229512AbiHUBCm (ORCPT
+        with ESMTP id S235390AbiHUBCm (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 20 Aug 2022 21:02:42 -0400
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 271411F2F3;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D9E6422B2D;
         Sat, 20 Aug 2022 18:02:41 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
         MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
         Reply-To:Content-Type:Content-ID:Content-Description;
-        bh=xJYcXOv+CgsRN4P+QAHAq58LVmv61HTA+fEPni+K8TI=; b=qzNqzIgSDzXp90+sbsulPF91ro
-        yyY7zIfy2/bFwJ/poRpNq4oKPVnGKejz+F1j70oUWHl43RPAXRg+81b3c9pC/061ZwkAP+q0rhrvm
-        Nreyium+KFIPOejJ1ESH+KFb2cldN5LF5LN7UmTgwfuPAuLy+Wdt9gaMaH6XuHrofin3v4Q5+gbvI
-        VDdOtZdWqxhTFG6/Q+4QFfX928Yj9ZzEk+FBA1NGCLijYS7JkXKkMTCQFcbvDNXgzHNanMJnZRZA3
-        zmuqFRoYOrXyxeMpTvYnfOWplcPKj6mLrZSVU8z29lxgy8Qegg5TXQWCfXD2pqw0wpwDuKl25g3c4
-        /Bj2F6Og==;
+        bh=IleKUHG9mpoSqd8lMHIHd7V2lYfYBNr2M+M88IbC77s=; b=pMJVFs9laDHnT1nxvHPbYkZubh
+        t1togvT5FLl9B74ul3Dz7GBbRiTeeExlzAMcfoEGM9pYrZhmc08mCNVTGLT5HVuFaRVVGciLr4F4/
+        /7w1lK9usXYudjg4NzEWJMtsP55Uk2TBL9dbv8DJ2Y27xBATDtZ48HyF/7Z1f7jEWTtm6TydccGnW
+        cUCun9/ki+Qf5lAJDpnQM+laZvhacOxP33bjCfhTph4kSzFcjcfInkkDQaidui1jkxcsONgCr1utC
+        bXwVcNUoyj2S9yK6iBz7RKYpvNS5Uy/tRaH2GDi7Us/vEcA3W3wIvnt1JHLpf+mhskhDV9aeTNBfL
+        ++kiFbyA==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.95 #2 (Red Hat Linux))
-        id 1oPZMN-006WIl-6C;
-        Sun, 21 Aug 2022 01:02:39 +0000
+        id 1oPZMO-006WJ8-FX;
+        Sun, 21 Aug 2022 01:02:40 +0000
 From:   Al Viro <viro@zeniv.linux.org.uk>
 To:     linux-arch@vger.kernel.org
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         linux-kernel@vger.kernel.org,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH v2 1/8] loongarch: remove generic-y += termios.h
-Date:   Sun, 21 Aug 2022 02:02:32 +0100
-Message-Id: <20220821010239.1554132-1-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 7/8] termios: convert the last (sparc) INIT_C_CC to array
+Date:   Sun, 21 Aug 2022 02:02:38 +0100
+Message-Id: <20220821010239.1554132-7-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.37.2
-In-Reply-To: <YwF8vibZ2/Xz7a/g@ZenIV>
+In-Reply-To: <20220821010239.1554132-1-viro@zeniv.linux.org.uk>
 References: <YwF8vibZ2/Xz7a/g@ZenIV>
+ <20220821010239.1554132-1-viro@zeniv.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
@@ -45,25 +46,65 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-not really needed - UAPI mandatory-y += termios.h is sufficient...
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/loongarch/include/asm/Kbuild | 1 -
- 1 file changed, 1 deletion(-)
+ arch/sparc/include/asm/termios.h |  9 ---------
+ include/linux/termios_internal.h | 10 ++++++++--
+ 2 files changed, 8 insertions(+), 11 deletions(-)
 
-diff --git a/arch/loongarch/include/asm/Kbuild b/arch/loongarch/include/asm/Kbuild
-index 83bc0681e72b..f2bcfcb4e311 100644
---- a/arch/loongarch/include/asm/Kbuild
-+++ b/arch/loongarch/include/asm/Kbuild
-@@ -21,7 +21,6 @@ generic-y += shmbuf.h
- generic-y += statfs.h
- generic-y += socket.h
- generic-y += sockios.h
--generic-y += termios.h
- generic-y += termbits.h
- generic-y += poll.h
- generic-y += param.h
+diff --git a/arch/sparc/include/asm/termios.h b/arch/sparc/include/asm/termios.h
+index 60f90465fc12..1b85721f4e6b 100644
+--- a/arch/sparc/include/asm/termios.h
++++ b/arch/sparc/include/asm/termios.h
+@@ -5,13 +5,4 @@
+ #include <uapi/asm/termios.h>
+ #include <linux/uaccess.h>
+ 
+-
+-/*	intr=^C		quit=^\		erase=del	kill=^U
+-	eof=^D		eol=\0		eol2=\0		sxtc=\0
+-	start=^Q	stop=^S		susp=^Z		dsusp=^Y
+-	reprint=^R	discard=^O	werase=^W	lnext=^V
+-	vmin=\1         vtime=\0
+-*/
+-#define INIT_C_CC "\003\034\177\025\004\000\000\000\021\023\032\031\022\017\027\026\001"
+-
+ #endif /* _SPARC_TERMIOS_H */
+diff --git a/include/linux/termios_internal.h b/include/linux/termios_internal.h
+index 8a53141ab44a..d77f29e5e2b7 100644
+--- a/include/linux/termios_internal.h
++++ b/include/linux/termios_internal.h
+@@ -5,13 +5,19 @@
+ #include <linux/uaccess.h>
+ #include <asm/termios.h>
+ 
+-#ifndef INIT_C_CC
+ /*	intr=^C		quit=^\		erase=del	kill=^U
+ 	eof=^D		vtime=\0	vmin=\1		sxtc=\0
+ 	start=^Q	stop=^S		susp=^Z		eol=\0
+ 	reprint=^R	discard=^O	werase=^W	lnext=^V
+ 	eol2=\0
+ */
++
++#ifdef VDSUSP
++#define INIT_C_CC_VDSUSP_EXTRA [VDSUSP] = 'Y'-0x40,
++#else
++#define INIT_C_CC_VDSUSP_EXTRA
++#endif
++
+ #define INIT_C_CC {		\
+ 	[VINTR] = 'C'-0x40,	\
+ 	[VQUIT] = '\\'-0x40,	\
+@@ -25,8 +31,8 @@
+ 	[VDISCARD] = 'O'-0x40,	\
+ 	[VWERASE] = 'W'-0x40,	\
+ 	[VLNEXT] = 'V'-0x40,	\
++	INIT_C_CC_VDSUSP_EXTRA	\
+ 	[VMIN] = 1 }
+-#endif
+ 
+ int user_termio_to_kernel_termios(struct ktermios *, struct termio __user *);
+ int kernel_termios_to_user_termio(struct termio __user *, struct ktermios *);
 -- 
 2.30.2
 
