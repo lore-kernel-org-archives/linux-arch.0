@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2F674ECAAA3
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Aug 2022 15:10:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8E39DECAAD4
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Aug 2022 15:10:28 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S244060AbiHZPKR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 Aug 2022 11:10:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35070 "EHLO
+        id S244045AbiHZPK0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 26 Aug 2022 11:10:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35158 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S244056AbiHZPJU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Aug 2022 11:09:20 -0400
-Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BE1F4DC09B
-        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:08:39 -0700 (PDT)
-Received: by mail-ed1-x54a.google.com with SMTP id z20-20020a05640235d400b0043e1e74a495so1247033edc.11
-        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:08:39 -0700 (PDT)
+        with ESMTP id S244764AbiHZPJW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Aug 2022 11:09:22 -0400
+Received: from mail-yw1-x114a.google.com (mail-yw1-x114a.google.com [IPv6:2607:f8b0:4864:20::114a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EF3CFDD75A
+        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:08:46 -0700 (PDT)
+Received: by mail-yw1-x114a.google.com with SMTP id 00721157ae682-33dd097f993so29897827b3.10
+        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:08:46 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc;
-        bh=lZyR+/TbY71+6irDHrQVY8i8lV0LAE0DR0x5Sx//ziQ=;
-        b=Ofrs8PCMHX+W0ceEYWnDzVx1uzp/bWz8GLaWKdo+wAqOx3sPZu6pI92iq0IULzGOQ8
-         VJ09OsHIUk+49s1paxcvdc/dQgoZURGCS4X6UxVQKGmyCn/fzomHAQt3pDibyyvopGw+
-         A204SQq3udS4olps/yoQNs/HdBDLMH/XYtFo5t7S3WbS0/Mi6jEQiCtdTGIheelU/NKQ
-         ODyynPxQ+JC42TN6qhou33wAGXEzHzmJj/qEXAgKq4QXYccBrT+Ih7NpvsAuafykD+5Y
-         +aYVMqZk7TNUIRRwqC7Wdqslm1Z8gXmVvziP4uuhA49TmwX3KTg2b8vw2WCFS2T1Wo1D
-         S3QQ==
+        bh=mLlFYFB/rgc9qqJnOoWYqSqEWYlWfzhxjk78c+cLuAA=;
+        b=XiFqi+HvFYWVKfCkxZSEvaLp4dj6PJCrtRX+y89NfMTPZ6+goUHOrJlaygaqkuIGBr
+         cdc5TBzN75bo5l86pnTnW79iKtt96Ou0SDdJM2YIL9g3uoi3Job0DZK7q/nIm6l/tWpV
+         UNDqvTKx+/6Oadm/ZjmMPEuU3raZ5GAff/rF0sMmJtdeCbxKEsKayU6Bd3s50LCPKUcZ
+         oMZ+RIGrr0zlDQke70b2ZaiBxuU5QGWCP+5v5NfPFB1kpt3JEHHNKAiGV5LkFVztHN6G
+         +Uh7pGeyKXy0VtS5AtzRj9P6HtYc37b8quRD9x2XVb1xZapp20z/LcMX0wNNYJelokgN
+         IPMA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc;
-        bh=lZyR+/TbY71+6irDHrQVY8i8lV0LAE0DR0x5Sx//ziQ=;
-        b=XURsEcfFc2VdhcVGgZPmntASGeMdaZsJgCwdkCNyDlVk5/h+1vp/STF+NvMvib4kYU
-         +65i/H6Vvr96/4xd8qhWkO4le0NnbG9qzre9XaQyOrA39gPeg/MTyKZhqQOxgulKIJMY
-         jOX3oTTvLj4QZNc593sqWZiVB930LLnOuDTTiECPNIELyfFqhECqB/A1DvDdZRrCHtDz
-         bxCz9rYh+2xvP3BRzg0UBAKbp9DzuB3JuUlwPZVxgJJ7d+s+MMKev5FDDxbjlpX1YEZe
-         Enghr29fgaO0GbvvD4/p9C4/whmtkDvWSuskAzeQGjWWxh3x1das84wMA3cknXIqMNOw
-         XLJg==
-X-Gm-Message-State: ACgBeo17QZSZq74aZD+pqcwmoStVHYS4fvbroGSY2AoQg7Dk/VfZkX8z
-        45nO6PDaaDnxfmBW7Bmgpfxj+Qu/Q6A=
-X-Google-Smtp-Source: AA6agR6DZmZvABSNd8NirMJa2iJguxZBNB8hGvX5VWCga9N1u2wq6DvLGXRRSlQxms71XTCN2etlpU9v9zU=
+        bh=mLlFYFB/rgc9qqJnOoWYqSqEWYlWfzhxjk78c+cLuAA=;
+        b=fOTYzMBnfNdKH5ZEvdacTU7BEEYHyuCWnSgTqmnP882EoILTfRYrQ+YodE4H/n3W+l
+         83f6NrvXITjj1FZuS/wkGLudvlTy4Am+yFWdwcbhktEfRzCmV/PfaetVyBfDTe4je3qY
+         re8o7vK9ZkcUGPTkJxDl/7Qflomw1kNKD0C145YHJzZi/jM4tNEu0+0HHFKP86qw2hMd
+         c/G3YhhckNrDcqgQe7cEdDB9nkzw74my8PMomGjuFbxqHVCnzEvB1OiIMoaHQXxcS5Nu
+         zrjjhhIUXOm4LTCLi7WGRWjLdrOBmTfkq20cj4Cz8GqgmDxJ3ebVeu0VIsrQfpNDx2Sb
+         /suQ==
+X-Gm-Message-State: ACgBeo3SG4EBLSSwMZjY655kqB96sHm0c4ZcTBIpcXws2UwBowVvSlph
+        bQ7V/NvZ3igmtwWUWRgfnrmZFY9NAXM=
+X-Google-Smtp-Source: AA6agR57RONmOxoyPLmSyjKKyC9XY3IjUGI1gX8npn/cM8EWP8iDs6QDrjkGDieykAPqCJaWURQiX5dgMQY=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:5207:ac36:fdd3:502d])
- (user=glider job=sendgmr) by 2002:a17:906:f88f:b0:731:463d:4b15 with SMTP id
- lg15-20020a170906f88f00b00731463d4b15mr5703796ejb.299.1661526518263; Fri, 26
- Aug 2022 08:08:38 -0700 (PDT)
-Date:   Fri, 26 Aug 2022 17:07:32 +0200
+ (user=glider job=sendgmr) by 2002:a0d:f144:0:b0:33d:a554:b9b6 with SMTP id
+ a65-20020a0df144000000b0033da554b9b6mr135036ywf.172.1661526526267; Fri, 26
+ Aug 2022 08:08:46 -0700 (PDT)
+Date:   Fri, 26 Aug 2022 17:07:35 +0200
 In-Reply-To: <20220826150807.723137-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220826150807.723137-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.672.g94769d06f0-goog
-Message-ID: <20220826150807.723137-10-glider@google.com>
-Subject: [PATCH v5 09/44] x86: kmsan: pgtable: reduce vmalloc space
+Message-ID: <20220826150807.723137-13-glider@google.com>
+Subject: [PATCH v5 12/44] kmsan: disable instrumentation of unsupported common
+ kernel code
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,95 +91,84 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN is going to use 3/4 of existing vmalloc space to hold the
-metadata, therefore we lower VMALLOC_END to make sure vmalloc() doesn't
-allocate past the first 1/4.
+EFI stub cannot be linked with KMSAN runtime, so we disable
+instrumentation for it.
+
+Instrumenting kcov, stackdepot or lockdep leads to infinite recursion
+caused by instrumentation hooks calling instrumented code again.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
+Reviewed-by: Marco Elver <elver@google.com>
 ---
-v2:
- -- added x86: to the title
+v4:
+ -- This patch was previously part of "kmsan: disable KMSAN
+    instrumentation for certain kernel parts", but was split away per
+    Mark Rutland's request.
 
 v5:
- -- add comment for VMEMORY_END
+ -- remove unnecessary comment belonging to another patch
 
-Link: https://linux-review.googlesource.com/id/I9d8b7f0a88a639f1263bc693cbd5c136626f7efd
+Link: https://linux-review.googlesource.com/id/I41ae706bd3474f074f6a870bfc3f0f90e9c720f7
 ---
- arch/x86/include/asm/pgtable_64_types.h | 47 ++++++++++++++++++++++++-
- arch/x86/mm/init_64.c                   |  2 +-
- 2 files changed, 47 insertions(+), 2 deletions(-)
+ drivers/firmware/efi/libstub/Makefile | 1 +
+ kernel/Makefile                       | 1 +
+ kernel/locking/Makefile               | 3 ++-
+ lib/Makefile                          | 3 +++
+ 4 files changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
-index 70e360a2e5fb7..04f36063ad546 100644
---- a/arch/x86/include/asm/pgtable_64_types.h
-+++ b/arch/x86/include/asm/pgtable_64_types.h
-@@ -139,7 +139,52 @@ extern unsigned int ptrs_per_p4d;
- # define VMEMMAP_START		__VMEMMAP_BASE_L4
- #endif /* CONFIG_DYNAMIC_MEMORY_LAYOUT */
+diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+index d0537573501e9..81432d0c904b1 100644
+--- a/drivers/firmware/efi/libstub/Makefile
++++ b/drivers/firmware/efi/libstub/Makefile
+@@ -46,6 +46,7 @@ GCOV_PROFILE			:= n
+ # Sanitizer runtimes are unavailable and cannot be linked here.
+ KASAN_SANITIZE			:= n
+ KCSAN_SANITIZE			:= n
++KMSAN_SANITIZE			:= n
+ UBSAN_SANITIZE			:= n
+ OBJECT_FILES_NON_STANDARD	:= y
  
--#define VMALLOC_END		(VMALLOC_START + (VMALLOC_SIZE_TB << 40) - 1)
-+/*
-+ * End of the region for which vmalloc page tables are pre-allocated.
-+ * For non-KMSAN builds, this is the same as VMALLOC_END.
-+ * For KMSAN builds, VMALLOC_START..VMEMORY_END is 4 times bigger than
-+ * VMALLOC_START..VMALLOC_END (see below).
-+ */
-+#define VMEMORY_END		(VMALLOC_START + (VMALLOC_SIZE_TB << 40) - 1)
-+
-+#ifndef CONFIG_KMSAN
-+#define VMALLOC_END		VMEMORY_END
-+#else
-+/*
-+ * In KMSAN builds vmalloc area is four times smaller, and the remaining 3/4
-+ * are used to keep the metadata for virtual pages. The memory formerly
-+ * belonging to vmalloc area is now laid out as follows:
-+ *
-+ * 1st quarter: VMALLOC_START to VMALLOC_END - new vmalloc area
-+ * 2nd quarter: KMSAN_VMALLOC_SHADOW_START to
-+ *              VMALLOC_END+KMSAN_VMALLOC_SHADOW_OFFSET - vmalloc area shadow
-+ * 3rd quarter: KMSAN_VMALLOC_ORIGIN_START to
-+ *              VMALLOC_END+KMSAN_VMALLOC_ORIGIN_OFFSET - vmalloc area origins
-+ * 4th quarter: KMSAN_MODULES_SHADOW_START to KMSAN_MODULES_ORIGIN_START
-+ *              - shadow for modules,
-+ *              KMSAN_MODULES_ORIGIN_START to
-+ *              KMSAN_MODULES_ORIGIN_START + MODULES_LEN - origins for modules.
-+ */
-+#define VMALLOC_QUARTER_SIZE	((VMALLOC_SIZE_TB << 40) >> 2)
-+#define VMALLOC_END		(VMALLOC_START + VMALLOC_QUARTER_SIZE - 1)
-+
-+/*
-+ * vmalloc metadata addresses are calculated by adding shadow/origin offsets
-+ * to vmalloc address.
-+ */
-+#define KMSAN_VMALLOC_SHADOW_OFFSET	VMALLOC_QUARTER_SIZE
-+#define KMSAN_VMALLOC_ORIGIN_OFFSET	(VMALLOC_QUARTER_SIZE << 1)
-+
-+#define KMSAN_VMALLOC_SHADOW_START	(VMALLOC_START + KMSAN_VMALLOC_SHADOW_OFFSET)
-+#define KMSAN_VMALLOC_ORIGIN_START	(VMALLOC_START + KMSAN_VMALLOC_ORIGIN_OFFSET)
-+
-+/*
-+ * The shadow/origin for modules are placed one by one in the last 1/4 of
-+ * vmalloc space.
-+ */
-+#define KMSAN_MODULES_SHADOW_START	(VMALLOC_END + KMSAN_VMALLOC_ORIGIN_OFFSET + 1)
-+#define KMSAN_MODULES_ORIGIN_START	(KMSAN_MODULES_SHADOW_START + MODULES_LEN)
-+#endif /* CONFIG_KMSAN */
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 318789c728d32..d754e0be1176d 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -38,6 +38,7 @@ KCOV_INSTRUMENT_kcov.o := n
+ KASAN_SANITIZE_kcov.o := n
+ KCSAN_SANITIZE_kcov.o := n
+ UBSAN_SANITIZE_kcov.o := n
++KMSAN_SANITIZE_kcov.o := n
+ CFLAGS_kcov.o := $(call cc-option, -fno-conserve-stack) -fno-stack-protector
  
- #define MODULES_VADDR		(__START_KERNEL_map + KERNEL_IMAGE_SIZE)
- /* The module sections ends with the start of the fixmap */
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 0fe690ebc269b..39b6bfcaa0ed4 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -1287,7 +1287,7 @@ static void __init preallocate_vmalloc_pages(void)
- 	unsigned long addr;
- 	const char *lvl;
+ # Don't instrument error handlers
+diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
+index d51cabf28f382..ea925731fa40f 100644
+--- a/kernel/locking/Makefile
++++ b/kernel/locking/Makefile
+@@ -5,8 +5,9 @@ KCOV_INSTRUMENT		:= n
  
--	for (addr = VMALLOC_START; addr <= VMALLOC_END; addr = ALIGN(addr + 1, PGDIR_SIZE)) {
-+	for (addr = VMALLOC_START; addr <= VMEMORY_END; addr = ALIGN(addr + 1, PGDIR_SIZE)) {
- 		pgd_t *pgd = pgd_offset_k(addr);
- 		p4d_t *p4d;
- 		pud_t *pud;
+ obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o
+ 
+-# Avoid recursion lockdep -> KCSAN -> ... -> lockdep.
++# Avoid recursion lockdep -> sanitizer -> ... -> lockdep.
+ KCSAN_SANITIZE_lockdep.o := n
++KMSAN_SANITIZE_lockdep.o := n
+ 
+ ifdef CONFIG_FUNCTION_TRACER
+ CFLAGS_REMOVE_lockdep.o = $(CC_FLAGS_FTRACE)
+diff --git a/lib/Makefile b/lib/Makefile
+index 5927d7fa08063..22c064b61b3be 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -275,6 +275,9 @@ obj-$(CONFIG_POLYNOMIAL) += polynomial.o
+ CFLAGS_stackdepot.o += -fno-builtin
+ obj-$(CONFIG_STACKDEPOT) += stackdepot.o
+ KASAN_SANITIZE_stackdepot.o := n
++# In particular, instrumenting stackdepot.c with KMSAN will result in infinite
++# recursion.
++KMSAN_SANITIZE_stackdepot.o := n
+ KCOV_INSTRUMENT_stackdepot.o := n
+ 
+ obj-$(CONFIG_REF_TRACKER) += ref_tracker.o
 -- 
 2.37.2.672.g94769d06f0-goog
 
