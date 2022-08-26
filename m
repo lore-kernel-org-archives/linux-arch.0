@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 44FE1ECAAA3
-	for <linux-arch@archiver.kernel.org>; Fri, 26 Aug 2022 15:12:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 41789ECAAA3
+	for <linux-arch@archiver.kernel.org>; Fri, 26 Aug 2022 15:13:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243786AbiHZPMf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 Aug 2022 11:12:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33936 "EHLO
+        id S1343496AbiHZPNA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 26 Aug 2022 11:13:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34560 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S245736AbiHZPLZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Aug 2022 11:11:25 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A1141DEA7D
-        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:09:11 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id qw34-20020a1709066a2200b00730ca5a94bfso721587ejc.3
-        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:09:11 -0700 (PDT)
+        with ESMTP id S245753AbiHZPMB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 Aug 2022 11:12:01 -0400
+Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8C7FADEB61
+        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:09:17 -0700 (PDT)
+Received: by mail-ed1-x54a.google.com with SMTP id f20-20020a05640214d400b004470930f180so1242402edx.10
+        for <linux-arch@vger.kernel.org>; Fri, 26 Aug 2022 08:09:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc;
-        bh=9AAV0khTKYQgqo5/UGS2nmhcIjrHMBeghL7l+ejLApU=;
-        b=sDB5PJpJBZJ8zJUYHqSaroGLwunSs5Rwaz9QmpK5RO8+mlf1nYQAGNhjMXl1m0oFZH
-         vzMQVlJHXNGU9aieZuBV0ihX2Xs7GeZCanFYLMBLdccTjtufIvPj0/C/g25QTIwI6/Qp
-         sReL0ZmVrFu7c6GRkrze5jnIbC0eHcDyF/YHGMdyIlE3tPtruebYgAGRN7/qwGwqWIG0
-         d7O6U7dzRkmvp5N9Pl4k3vT+ZH5Z9JXhcKEWunCg7MMWVXl8aGl5D3s28uVHexHgHJDm
-         JLeAgRz2XBzUtSevuOYUNl/dsbWhlT4VB5dIjKptqOcveXztv31OO3ARcYOVZyimZv3m
-         XuFg==
+        bh=7FFI4T9ldWmH+mtJkkuNX0Iy/L7lZFULsA12RNz3xXM=;
+        b=QeYGUAhX5R1EbSsJKxcsBcPRZBVW1PHkAvLdrlFwdXozptYGSnAUgNLSENVZNbs/pm
+         K7DsUzuQ3O+CgsIf/IsEjZ9LO6DDEbJ/9UkwQ3NFfO5E9GyCNzZ0bQPXg5zln9YU9onl
+         g042XVM8aCr5IqAR958NCkCsQWdTGI4OQtHiGm/rgicIY9qzg4V73Kb90uYceut/3UVw
+         nFA6k+3xgurgpKXQPV00WyHGYNj3CUHxYWE3tNF2YhTlAM4LRfiVradwPFKvsYBl8Bzt
+         CIjpkvmBr/QmH0E2CwFFacPDaEu6Y7HjWsctPdxYCvSgU8zQkP/JHmVv1mOQDs6l/MdM
+         WRRw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc;
-        bh=9AAV0khTKYQgqo5/UGS2nmhcIjrHMBeghL7l+ejLApU=;
-        b=pvCtWrDPnqBXFiux/t0/uUslf907ogotDYOSdrBOLyC0welcI1dlAlif9i0Nql9QxY
-         6bas68zphSywBLxQsAxPSseABEpjrqt+6ECQP/NI+2U/M2yaqq81bM1wfqOMiuX3NZ/G
-         nfa8gsKuX01j1ecoQLmEcSQv8cA/IooGuQAJeZ3Wl7e5Cb6WDEKS6JHg/eEfIII1fcrJ
-         YofJPTSh3/2Mh8xMiVsL0JZf0D+USlGW6I7Sp9Da+ppzub1wzCUdo0UFL/7JKpuTsxXY
-         AFX6iYf4tvvUZvjroR9Sk/m9jnrUxAAWK+fJT8dkNYGciLPwvLCR4ON6M8PvZHZd9IDq
-         gxQA==
-X-Gm-Message-State: ACgBeo2xjsoUkFfZ9blQrIuVVVYBhTDIZsxU5M+p84FZqKtA/a+3O0ok
-        6WKMV8/kgBvI8nifoFEOILBGIyixduo=
-X-Google-Smtp-Source: AA6agR7OB7JfBU0FR/Gx7VVFS0BYXkDkX/D+5e1f7tZDKGDtu48HBg9ANVBecrhroNJG7bsthdjAB8Rc34M=
+        bh=7FFI4T9ldWmH+mtJkkuNX0Iy/L7lZFULsA12RNz3xXM=;
+        b=Qp9OCpObSrLndYkf9j4UBm9j/rviFn6htt/Oy8a1K5yFSzzGvx7JuYCC8lwzcyBLfu
+         /xzyZvYaYyyFHUJd/LGN9romQ8F52AwfmBoz55uGEX+vZxaaXqhQnfAbzO16jFTUih1K
+         1GRmWQfvvkOHBXXssTN9BkQpWxF4E9tLMrIZ3e31pXDtBWn+DAhDGp17NpZGJLuHmqna
+         vOmksZ69wrTp7kMtL4BWHvOEYUSEmXs4dpVDaGczyUkFq5nMmfdHofosCAy+9oL5QJ9x
+         GfNXj1Y7cFPFv+Vk3haO0BQ3JvrikgIABsmGbeJFGImZ+vOeHGxaG4JRN2ftOFbC0nXa
+         EYvg==
+X-Gm-Message-State: ACgBeo3NsECX6LW0bqkMyPaZTgm2wx30cG/tMGPqA7uCQtWZ/n9wAqoT
+        vqqBTBUTolnH81HWiukEGwiv4TzzqGk=
+X-Google-Smtp-Source: AA6agR4fgqA+dojvdGvqhLNd5rEasz16MWjupX7avc3NFMUfZTqvlMHxZx6remvRJmIFi8mix2S1kZP+8vA=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:5207:ac36:fdd3:502d])
- (user=glider job=sendgmr) by 2002:a17:906:8a77:b0:73d:deef:8f76 with SMTP id
- hy23-20020a1709068a7700b0073ddeef8f76mr3332086ejc.765.1661526545890; Fri, 26
- Aug 2022 08:09:05 -0700 (PDT)
-Date:   Fri, 26 Aug 2022 17:07:42 +0200
+ (user=glider job=sendgmr) by 2002:a17:907:6d9b:b0:731:1135:dc2d with SMTP id
+ sb27-20020a1709076d9b00b007311135dc2dmr5939518ejc.76.1661526551609; Fri, 26
+ Aug 2022 08:09:11 -0700 (PDT)
+Date:   Fri, 26 Aug 2022 17:07:44 +0200
 In-Reply-To: <20220826150807.723137-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220826150807.723137-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.672.g94769d06f0-goog
-Message-ID: <20220826150807.723137-20-glider@google.com>
-Subject: [PATCH v5 19/44] kmsan: unpoison @tlb in arch_tlb_gather_mmu()
+Message-ID: <20220826150807.723137-22-glider@google.com>
+Subject: [PATCH v5 21/44] Input: libps2: mark data received in __ps2_command()
+ as initialized
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,56 +91,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is an optimization to reduce stackdepot pressure.
-
-struct mmu_gather contains 7 1-bit fields packed into a 32-bit unsigned
-int value. The remaining 25 bits remain uninitialized and are never used,
-but KMSAN updates the origin for them in zap_pXX_range() in mm/memory.c,
-thus creating very long origin chains. This is technically correct, but
-consumes too much memory.
-
-Unpoisoning the whole structure will prevent creating such chains.
+KMSAN does not know that the device initializes certain bytes in
+ps2dev->cmdbuf. Call kmsan_unpoison_memory() to explicitly mark them as
+initialized.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
-Acked-by: Marco Elver <elver@google.com>
-
 ---
-v5:
- -- updated description as suggested by Marco Elver
-
-Link: https://linux-review.googlesource.com/id/I76abee411b8323acfdbc29bc3a60dca8cff2de77
+Link: https://linux-review.googlesource.com/id/I2d26f6baa45271d37320d3f4a528c39cb7e545f0
 ---
- mm/mmu_gather.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ drivers/input/serio/libps2.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index a71924bd38c0d..add4244e5790d 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -1,6 +1,7 @@
- #include <linux/gfp.h>
- #include <linux/highmem.h>
- #include <linux/kernel.h>
+diff --git a/drivers/input/serio/libps2.c b/drivers/input/serio/libps2.c
+index 250e213cc80c6..3e19344eda93c 100644
+--- a/drivers/input/serio/libps2.c
++++ b/drivers/input/serio/libps2.c
+@@ -12,6 +12,7 @@
+ #include <linux/sched.h>
+ #include <linux/interrupt.h>
+ #include <linux/input.h>
 +#include <linux/kmsan-checks.h>
- #include <linux/mmdebug.h>
- #include <linux/mm_types.h>
- #include <linux/mm_inline.h>
-@@ -265,6 +266,15 @@ void tlb_flush_mmu(struct mmu_gather *tlb)
- static void __tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
- 			     bool fullmm)
- {
-+	/*
-+	 * struct mmu_gather contains 7 1-bit fields packed into a 32-bit
-+	 * unsigned int value. The remaining 25 bits remain uninitialized
-+	 * and are never used, but KMSAN updates the origin for them in
-+	 * zap_pXX_range() in mm/memory.c, thus creating very long origin
-+	 * chains. This is technically correct, but consumes too much memory.
-+	 * Unpoisoning the whole structure will prevent creating such chains.
-+	 */
-+	kmsan_unpoison_memory(tlb, sizeof(*tlb));
- 	tlb->mm = mm;
- 	tlb->fullmm = fullmm;
+ #include <linux/serio.h>
+ #include <linux/i8042.h>
+ #include <linux/libps2.h>
+@@ -294,9 +295,11 @@ int __ps2_command(struct ps2dev *ps2dev, u8 *param, unsigned int command)
  
+ 	serio_pause_rx(ps2dev->serio);
+ 
+-	if (param)
++	if (param) {
+ 		for (i = 0; i < receive; i++)
+ 			param[i] = ps2dev->cmdbuf[(receive - 1) - i];
++		kmsan_unpoison_memory(param, receive);
++	}
+ 
+ 	if (ps2dev->cmdcnt &&
+ 	    (command != PS2_CMD_RESET_BAT || ps2dev->cmdcnt != 1)) {
 -- 
 2.37.2.672.g94769d06f0-goog
 
