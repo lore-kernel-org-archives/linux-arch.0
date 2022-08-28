@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 78236C3DA6B
-	for <linux-arch@archiver.kernel.org>; Sun, 28 Aug 2022 02:43:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DE6B7C0502E
+	for <linux-arch@archiver.kernel.org>; Sun, 28 Aug 2022 02:43:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231397AbiH1Cny (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 27 Aug 2022 22:43:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53812 "EHLO
+        id S231210AbiH1Cnx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 27 Aug 2022 22:43:53 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53614 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232558AbiH1Cnk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Aug 2022 22:43:40 -0400
-Received: from condef-10.nifty.com (condef-10.nifty.com [202.248.20.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3AC4E2A43A
-        for <linux-arch@vger.kernel.org>; Sat, 27 Aug 2022 19:43:28 -0700 (PDT)
-Received: from conuserg-11.nifty.com ([10.126.8.74])by condef-10.nifty.com with ESMTP id 27S2egmA025496
-        for <linux-arch@vger.kernel.org>; Sun, 28 Aug 2022 11:40:42 +0900
+        with ESMTP id S232541AbiH1Cnj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Aug 2022 22:43:39 -0400
+Received: from condef-08.nifty.com (condef-08.nifty.com [202.248.20.73])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2C9AD2983A
+        for <linux-arch@vger.kernel.org>; Sat, 27 Aug 2022 19:43:26 -0700 (PDT)
+Received: from conuserg-11.nifty.com ([10.126.8.74])by condef-08.nifty.com with ESMTP id 27S2ejr7010401
+        for <linux-arch@vger.kernel.org>; Sun, 28 Aug 2022 11:40:45 +0900
 Received: from localhost.localdomain (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-11.nifty.com with ESMTP id 27S2e6Go030639;
-        Sun, 28 Aug 2022 11:40:09 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 27S2e6Go030639
+        by conuserg-11.nifty.com with ESMTP id 27S2e6Gs030639;
+        Sun, 28 Aug 2022 11:40:11 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 27S2e6Gs030639
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1661654410;
-        bh=Ojdr7OFV9j1YbpIO3D6oC+XaFmz7/7hOYyO9OvHgWLU=;
+        s=dec2015msa; t=1661654412;
+        bh=YoDXYuJyQEKSSPipp1AABHrm2l3TTVvkj1W/FZ+r+1M=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=OtnOEL7NYfqPML6WGIODFpxvrHhE1Vb5thmq2pIjeo6n6TyyzterPeYzP8wcNWqjR
-         2AxpqlcLBSkWH4k3WVPmjjlpu83dto74nipV1UdPm4QNRqsKQj0oaOItt3pMTeC69K
-         a37QwTQgL72zcJvu1Jv7yfHAMDCXVqj2F+2izOIQS6TbzBniwlZB8DCXe6uKAAraoq
-         eUuVPYIqI7adLqgh6TCo68V2lWLf+9CLZpr16Mzina2VSZk4XTCzFLX553SUT/+vXK
-         oXHCIYssoBKDCqDK6WXi7K+qvYk2Uxp/PEJvNPAeodiln5aNZ7+/gQJAuE7VymDaAZ
-         vVRUuWOhNGwCA==
+        b=f3Hhe1f/JGKAXXcLN36k02+aDrB9yooKVZ0j8s48Bu4w+kg3yZZK3gj4zw5vA9xpv
+         Y1GSMyarZfIbtazosGmzyZMdNGYV7zhzN/gG2kRjh+LJg28hqY6OaA+ppXAuRVkd3k
+         zSI9ozagTGS0ODlqMhk9PDuqsfk61pg+HFJYjqHDdZLZz163GSKaN3l0Y+YdsFgIxe
+         GZYS8v3z0Ye8rMnHKUvoi2uxQGScm8GJhU+ee0VR7ZrBhL29OAUv12x7+3IPUkHRIf
+         10YyzsNS0wlxYo4soBfOBAk7FQgJFDubiqWkZMv/eMTnqdvNudJ3eQBzkVGku6x9vw
+         qlF/UVt7gWLUA==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 06/15] kbuild: generate include/generated/compile.h in top Makefile
-Date:   Sun, 28 Aug 2022 11:39:54 +0900
-Message-Id: <20220828024003.28873-7-masahiroy@kernel.org>
+Subject: [PATCH 10/15] kbuild: move core-y in top Makefile to ./Kbuild
+Date:   Sun, 28 Aug 2022 11:39:58 +0900
+Message-Id: <20220828024003.28873-11-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220828024003.28873-1-masahiroy@kernel.org>
 References: <20220828024003.28873-1-masahiroy@kernel.org>
@@ -47,64 +47,101 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Now that UTS_VERSION was separated out, this header can be generated
-much earlier, and probably the top Makefile is a better place to do it
-than init/Makefile.
+Use the ordinary obj-y to list subdirectories.
+
+There are some core-y entries remaining in arch/*/Makefile.
+They will be moved after io_uring/built-in.a.
+
+Note:
+GNU Make seems to transform './.modules.order' to '.modules.order'
+before matching it against the target pattern. Split ./.modules.order
+to a dedicated rule to avoid "doesn't match the target pattern"
+warning. [1]
+
+[1]: https://lists.gnu.org/archive/html/bug-make/2022-08/msg00059.html
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- Makefile      | 8 +++++++-
- init/Makefile | 8 +-------
- 2 files changed, 8 insertions(+), 8 deletions(-)
+ Kbuild                 | 16 ++++++++++++++++
+ Makefile               | 10 +++++-----
+ scripts/Makefile.build |  4 ++--
+ 3 files changed, 23 insertions(+), 7 deletions(-)
 
+diff --git a/Kbuild b/Kbuild
+index 0b9e8a16a621..c8661cfc49a3 100644
+--- a/Kbuild
++++ b/Kbuild
+@@ -72,3 +72,19 @@ $(atomic-checks): $(obj)/.checked-%: include/linux/atomic/%  FORCE
+ PHONY += prepare
+ prepare: $(offsets-file) missing-syscalls $(atomic-checks)
+ 	@:
++
++# Ordinary directory descending
++# ---------------------------------------------------------------------------
++
++obj-y			+= init/
++obj-y			+= usr/
++obj-y			+= arch/$(SRCARCH)/
++obj-y			+= kernel/
++obj-y			+= certs/
++obj-y			+= mm/
++obj-y			+= fs/
++obj-y			+= ipc/
++obj-y			+= security/
++obj-y			+= crypto/
++obj-$(CONFIG_BLOCK)	+= block/
++obj-$(CONFIG_IO_URING)	+= io_uring/
 diff --git a/Makefile b/Makefile
-index 54e481162608..d933c0acab12 100644
+index 89aba2c69be8..1bc44bb4be1f 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1198,7 +1198,7 @@ PHONY += prepare archprepare
+@@ -676,7 +676,7 @@ endif
  
- archprepare: outputmakefile archheaders archscripts scripts include/config/kernel.release \
- 	asm-generic $(version_h) $(autoksyms_h) include/generated/utsrelease.h \
--	include/generated/autoconf.h remove-stale-files
-+	include/generated/compile.h include/generated/autoconf.h remove-stale-files
+ ifeq ($(KBUILD_EXTMOD),)
+ # Objects we will link into vmlinux / subdirs we need to visit
+-core-y		:= init/ usr/ arch/$(SRCARCH)/
++core-y		:= ./
+ drivers-y	:= drivers/ sound/
+ drivers-$(CONFIG_SAMPLES) += samples/
+ drivers-$(CONFIG_NET) += net/
+@@ -1101,9 +1101,6 @@ export MODORDER := $(extmod_prefix)modules.order
+ export MODULES_NSDEPS := $(extmod_prefix)modules.nsdeps
  
- prepare0: archprepare
- 	$(Q)$(MAKE) $(build)=scripts/mod
-@@ -1260,6 +1260,12 @@ $(version_h): FORCE
- include/generated/utsrelease.h: include/config/kernel.release FORCE
- 	$(call filechk,utsrelease.h)
+ ifeq ($(KBUILD_EXTMOD),)
+-core-y			+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/
+-core-$(CONFIG_BLOCK)	+= block/
+-core-$(CONFIG_IO_URING)	+= io_uring/
  
-+filechk_compile.h = $(srctree)/scripts/mkcompile_h \
-+	"$(UTS_MACHINE)" "$(CONFIG_CC_VERSION_TEXT)" "$(LD)"
-+
-+include/generated/compile.h: FORCE
-+	$(call filechk,compile.h)
-+
- PHONY += headerdep
- headerdep:
- 	$(Q)find $(srctree)/include/ -name '*.h' | xargs --max-args 1 \
-diff --git a/init/Makefile b/init/Makefile
-index 63f53d210cad..31c17a8e314b 100644
---- a/init/Makefile
-+++ b/init/Makefile
-@@ -43,15 +43,9 @@ filechk_uts_version = \
- $(obj)/utsversion-tmp.h: FORCE
- 	$(call filechk,uts_version)
+ vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, \
+ 		     $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
+@@ -1752,7 +1749,10 @@ ifdef CONFIG_MODULES
  
--$(obj)/version.o: include/generated/compile.h $(obj)/utsversion-tmp.h
-+$(obj)/version.o: $(obj)/utsversion-tmp.h
- CFLAGS_version.o := -include $(obj)/utsversion-tmp.h
+ subdir-modorder := $(addsuffix /.modules.order, $(build-dirs))
  
--filechk_compile.h = $(srctree)/scripts/mkcompile_h \
--	"$(UTS_MACHINE)" "$(CONFIG_CC_VERSION_TEXT)" "$(LD)"
--
--include/generated/compile.h: FORCE
--	$(call filechk,compile.h)
--
- #
- # Build version-timestamp.c with final UTS_VERSION
- #
+-$(sort $(subdir-modorder)): %/.modules.order: % ;
++# Split ./.modules.order into a dedicate target to avoid
++# "doesn't match the target pattern" warning
++./.modules.order: . ;
++$(sort $(filter-out ./.modules.order, $(subdir-modorder))): %/.modules.order: % ;
+ 
+ cmd_modules_order = cat $(real-prereqs) > $@
+ 
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index c96c3c0ab228..098c811667d3 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -464,8 +464,8 @@ PHONY += $(subdir-ym)
+ $(subdir-ym):
+ 	$(Q)$(MAKE) $(build)=$@ \
+ 	$(if $(filter $@/, $(KBUILD_SINGLE_TARGETS)),single-build=) \
+-	need-builtin=$(if $(filter $@/built-in.a, $(subdir-builtin)),1) \
+-	need-modorder=$(if $(filter $@/.modules.order, $(subdir-modorder)),1)
++	need-builtin=$(if $(filter $@/built-in.a, $(subdir-builtin:./%=%)),1) \
++	need-modorder=$(if $(filter $@/.modules.order, $(subdir-modorder:./%=%)),1)
+ 
+ # Add FORCE to the prequisites of a target to force it to be always rebuilt.
+ # ---------------------------------------------------------------------------
 -- 
 2.34.1
 
