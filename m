@@ -2,43 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0C957C0502A
-	for <linux-arch@archiver.kernel.org>; Sun, 28 Aug 2022 02:43:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 78236C3DA6B
+	for <linux-arch@archiver.kernel.org>; Sun, 28 Aug 2022 02:43:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230421AbiH1Cnx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 27 Aug 2022 22:43:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51918 "EHLO
+        id S231397AbiH1Cny (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 27 Aug 2022 22:43:54 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53812 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232520AbiH1Cnj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Aug 2022 22:43:39 -0400
-X-Greylist: delayed 60 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Sat, 27 Aug 2022 19:43:23 PDT
-Received: from condef-06.nifty.com (condef-06.nifty.com [202.248.20.71])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E94222982D
-        for <linux-arch@vger.kernel.org>; Sat, 27 Aug 2022 19:43:23 -0700 (PDT)
-Received: from conuserg-11.nifty.com ([10.126.8.74])by condef-06.nifty.com with ESMTP id 27S2ek70012168
-        for <linux-arch@vger.kernel.org>; Sun, 28 Aug 2022 11:40:46 +0900
+        with ESMTP id S232558AbiH1Cnk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 27 Aug 2022 22:43:40 -0400
+Received: from condef-10.nifty.com (condef-10.nifty.com [202.248.20.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3AC4E2A43A
+        for <linux-arch@vger.kernel.org>; Sat, 27 Aug 2022 19:43:28 -0700 (PDT)
+Received: from conuserg-11.nifty.com ([10.126.8.74])by condef-10.nifty.com with ESMTP id 27S2egmA025496
+        for <linux-arch@vger.kernel.org>; Sun, 28 Aug 2022 11:40:42 +0900
 Received: from localhost.localdomain (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-11.nifty.com with ESMTP id 27S2e6Gt030639;
-        Sun, 28 Aug 2022 11:40:12 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 27S2e6Gt030639
+        by conuserg-11.nifty.com with ESMTP id 27S2e6Go030639;
+        Sun, 28 Aug 2022 11:40:09 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 27S2e6Go030639
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1661654412;
-        bh=nXICWQfG+jfSFnL44++ZviI0zdn5/yoV/XN9eUiVH8w=;
+        s=dec2015msa; t=1661654410;
+        bh=Ojdr7OFV9j1YbpIO3D6oC+XaFmz7/7hOYyO9OvHgWLU=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=0/YZ3YcABhWASbdoqlnAW+waVDqyRBCpu4iccRgmUhymhwrrf4nGiyI3i3ueVEhwY
-         nf0YAaHn5L/V2KCYtUNeC0fvF+1brsOgO9lc50hs9Y2Q6CV4rj3KllQojm8LCLv12V
-         5BKmHW3WVpb3eUJsEYyteOO+wWOvGPv819GiRisrQCkkMD+xLjJZAVKGuOkbqQOAYC
-         HZ47KG3aNiBZ6LESBkRLQPo2P2adRiGcT4I1MHE+TjGxipgZ3tJtc3E4tNfk5f+8Ur
-         tqWoYR2C9VF85EuvABDCQdNkJ26ye0ZKHFIjQixg2TkbBha/wQqxjn7pgsEtFhlWHe
-         Mlu0pLBmGSYTg==
+        b=OtnOEL7NYfqPML6WGIODFpxvrHhE1Vb5thmq2pIjeo6n6TyyzterPeYzP8wcNWqjR
+         2AxpqlcLBSkWH4k3WVPmjjlpu83dto74nipV1UdPm4QNRqsKQj0oaOItt3pMTeC69K
+         a37QwTQgL72zcJvu1Jv7yfHAMDCXVqj2F+2izOIQS6TbzBniwlZB8DCXe6uKAAraoq
+         eUuVPYIqI7adLqgh6TCo68V2lWLf+9CLZpr16Mzina2VSZk4XTCzFLX553SUT/+vXK
+         oXHCIYssoBKDCqDK6WXi7K+qvYk2Uxp/PEJvNPAeodiln5aNZ7+/gQJAuE7VymDaAZ
+         vVRUuWOhNGwCA==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 11/15] kbuild: move .vmlinux.objs rule to Makefile.modpost
-Date:   Sun, 28 Aug 2022 11:39:59 +0900
-Message-Id: <20220828024003.28873-12-masahiroy@kernel.org>
+Subject: [PATCH 06/15] kbuild: generate include/generated/compile.h in top Makefile
+Date:   Sun, 28 Aug 2022 11:39:54 +0900
+Message-Id: <20220828024003.28873-7-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220828024003.28873-1-masahiroy@kernel.org>
 References: <20220828024003.28873-1-masahiroy@kernel.org>
@@ -48,122 +47,64 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-.vmlinux.objs is used by modpost, so scripts/Makefile.modpost is
-a better place to generate it.
-
-It is used only when CONFIG_MODVERSIONS=y. It should be guarded
-by "ifdef CONFIG_MODVERSIONS".
+Now that UTS_VERSION was separated out, this header can be generated
+much earlier, and probably the top Makefile is a better place to do it
+than init/Makefile.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- Makefile                 |  2 +-
- scripts/Makefile.modpost | 30 ++++++++++++++++++++++++++++--
- scripts/link-vmlinux.sh  | 18 ------------------
- 3 files changed, 29 insertions(+), 21 deletions(-)
+ Makefile      | 8 +++++++-
+ init/Makefile | 8 +-------
+ 2 files changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index 1bc44bb4be1f..02724bcf8fdc 100644
+index 54e481162608..d933c0acab12 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -1489,7 +1489,7 @@ endif # CONFIG_MODULES
- # Directories & files removed with 'make clean'
- CLEAN_FILES += include/ksym vmlinux.symvers modules-only.symvers \
- 	       modules.builtin modules.builtin.modinfo modules.nsdeps \
--	       compile_commands.json .thinlto-cache
-+	       compile_commands.json .thinlto-cache .vmlinux.objs
+@@ -1198,7 +1198,7 @@ PHONY += prepare archprepare
  
- # Directories & files removed with 'make mrproper'
- MRPROPER_FILES += include/config include/generated          \
-diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
-index 911606496341..04ad00917b2f 100644
---- a/scripts/Makefile.modpost
-+++ b/scripts/Makefile.modpost
-@@ -57,6 +57,32 @@ vmlinux.symvers: vmlinux.o
+ archprepare: outputmakefile archheaders archscripts scripts include/config/kernel.release \
+ 	asm-generic $(version_h) $(autoksyms_h) include/generated/utsrelease.h \
+-	include/generated/autoconf.h remove-stale-files
++	include/generated/compile.h include/generated/autoconf.h remove-stale-files
  
- __modpost: vmlinux.symvers
+ prepare0: archprepare
+ 	$(Q)$(MAKE) $(build)=scripts/mod
+@@ -1260,6 +1260,12 @@ $(version_h): FORCE
+ include/generated/utsrelease.h: include/config/kernel.release FORCE
+ 	$(call filechk,utsrelease.h)
  
-+# Generate the list of in-tree objects in vmlinux
-+# ---------------------------------------------------------------------------
++filechk_compile.h = $(srctree)/scripts/mkcompile_h \
++	"$(UTS_MACHINE)" "$(CONFIG_CC_VERSION_TEXT)" "$(LD)"
 +
-+# This is used to retrieve symbol versions generated by genksyms.
-+ifdef CONFIG_MODVERSIONS
-+vmlinux.symvers: .vmlinux.objs
-+endif
++include/generated/compile.h: FORCE
++	$(call filechk,compile.h)
 +
-+# Ignore libgcc.a
-+# Some architectures do '$(CC) --print-libgcc-file-name' to borrow libgcc.a
-+# from the toolchain, but there is no EXPORT_SYMBOL in it.
-+
-+quiet_cmd_vmlinux_objs = GEN     $@
-+      cmd_vmlinux_objs =		\
-+	for f in $(real-prereqs); do	\
-+		case $${f} in		\
-+		*libgcc.a) ;;		\
-+		*.a) $(AR) t $${f} ;;	\
-+		*) echo $${f} ;;	\
-+		esac			\
-+	done > $@
-+
-+targets += .vmlinux.objs
-+.vmlinux.objs: $(KBUILD_VMLINUX_OBJS) $(KBUILD_VMLINUX_LIBS) FORCE
-+	$(call if_changed,vmlinux_objs)
-+
- else
+ PHONY += headerdep
+ headerdep:
+ 	$(Q)find $(srctree)/include/ -name '*.h' | xargs --max-args 1 \
+diff --git a/init/Makefile b/init/Makefile
+index 63f53d210cad..31c17a8e314b 100644
+--- a/init/Makefile
++++ b/init/Makefile
+@@ -43,15 +43,9 @@ filechk_uts_version = \
+ $(obj)/utsversion-tmp.h: FORCE
+ 	$(call filechk,uts_version)
  
- ifeq ($(KBUILD_EXTMOD),)
-@@ -134,6 +160,8 @@ ifneq ($(KBUILD_MODPOST_NOFINAL),1)
- 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modfinal
- endif
+-$(obj)/version.o: include/generated/compile.h $(obj)/utsversion-tmp.h
++$(obj)/version.o: $(obj)/utsversion-tmp.h
+ CFLAGS_version.o := -include $(obj)/utsversion-tmp.h
  
-+endif
-+
- PHONY += FORCE
- FORCE:
- 
-@@ -141,6 +169,4 @@ existing-targets := $(wildcard $(sort $(targets)))
- 
- -include $(foreach f,$(existing-targets),$(dir $(f)).$(notdir $(f)).cmd)
- 
--endif
+-filechk_compile.h = $(srctree)/scripts/mkcompile_h \
+-	"$(UTS_MACHINE)" "$(CONFIG_CC_VERSION_TEXT)" "$(LD)"
 -
- .PHONY: $(PHONY)
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 8d982574145a..161bca64e8aa 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -199,7 +199,6 @@ cleanup()
- 	rm -f System.map
- 	rm -f vmlinux
- 	rm -f vmlinux.map
--	rm -f .vmlinux.objs
- 	rm -f .vmlinux.export.c
- }
- 
-@@ -218,23 +217,6 @@ fi
- #link vmlinux.o
- ${MAKE} -f "${srctree}/scripts/Makefile.vmlinux_o"
- 
--# Generate the list of in-tree objects in vmlinux
--#
--# This is used to retrieve symbol versions generated by genksyms.
--for f in ${KBUILD_VMLINUX_OBJS} ${KBUILD_VMLINUX_LIBS}; do
--	case ${f} in
--	*libgcc.a)
--		# Some architectures do '$(CC) --print-libgcc-file-name' to
--		# borrow libgcc.a from the toolchain.
--		# There is no EXPORT_SYMBOL in external objects. Ignore this.
--		;;
--	*.a)
--		${AR} t ${f} ;;
--	*)
--		echo ${f} ;;
--	esac
--done > .vmlinux.objs
+-include/generated/compile.h: FORCE
+-	$(call filechk,compile.h)
 -
- # modpost vmlinux.o to check for section mismatches
- ${MAKE} -f "${srctree}/scripts/Makefile.modpost" MODPOST_VMLINUX=1
- 
+ #
+ # Build version-timestamp.c with final UTS_VERSION
+ #
 -- 
 2.34.1
 
