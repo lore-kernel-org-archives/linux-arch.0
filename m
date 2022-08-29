@@ -2,246 +2,143 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4A1ADECAAD5
-	for <linux-arch@archiver.kernel.org>; Mon, 29 Aug 2022 16:17:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 437F3ECAAD5
+	for <linux-arch@archiver.kernel.org>; Mon, 29 Aug 2022 19:25:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230436AbiH2QRk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 29 Aug 2022 12:17:40 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40176 "EHLO
+        id S229547AbiH2TZA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 29 Aug 2022 15:25:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47666 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230438AbiH2QRM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2022 12:17:12 -0400
-Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E2D9797D78;
-        Mon, 29 Aug 2022 09:16:36 -0700 (PDT)
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4MGbCP3krNz9spT;
-        Mon, 29 Aug 2022 18:16:01 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id Sox_aFksUpdu; Mon, 29 Aug 2022 18:16:01 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4MGbCK3z1Xz9spW;
-        Mon, 29 Aug 2022 18:15:57 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 6D98C8B76E;
-        Mon, 29 Aug 2022 18:15:52 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id O2_wUIjkDxum; Mon, 29 Aug 2022 18:15:52 +0200 (CEST)
-Received: from PO20335.IDSI0.si.c-s.fr (unknown [172.25.230.108])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 08D578B763;
-        Mon, 29 Aug 2022 18:15:52 +0200 (CEST)
-Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 27TGFmR6988630
-        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Mon, 29 Aug 2022 18:15:48 +0200
-Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 27TGFi0Z988595;
-        Mon, 29 Aug 2022 18:15:44 +0200
-X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-To:     Linus Walleij <linus.walleij@linaro.org>,
-        Bartosz Golaszewski <brgl@bgdev.pl>,
-        Geert Uytterhoeven <geert+renesas@glider.be>,
-        Keerthy <j-keerthy@ti.com>, Russell King <linux@armlinux.org.uk>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Jonathan Corbet <corbet@lwn.net>,
+        with ESMTP id S229486AbiH2TY7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2022 15:24:59 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 32F091F2F1;
+        Mon, 29 Aug 2022 12:24:56 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 6F17EB811E9;
+        Mon, 29 Aug 2022 19:24:55 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C5E72C433D6;
+        Mon, 29 Aug 2022 19:24:52 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+        s=korg; t=1661801094;
+        bh=bvJk1oFFNYzt8e4h6wKH6kqiTtNdEy8t/HVURp2TtOU=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=e6GuB5/Z8vBgiihEDvt2dTWer1Mz4W1uoXySfQkHPdYVggcEMqrXENRWvhytKJ68N
+         rOi3UokczdAHOoeSYIYDF+3pjSiCZjQZcIHCJEAM2IXlp4WL8aTnQ3QyeQD6GvYEeV
+         LNm9hPATckMyEfH8R7ZRYofxbCOEfH2WK+fF02jo=
+Date:   Mon, 29 Aug 2022 12:24:52 -0700
+From:   Andrew Morton <akpm@linux-foundation.org>
+To:     Alexander Potapenko <glider@google.com>
+Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
+        Alexei Starovoitov <ast@kernel.org>,
+        Andrey Konovalov <andreyknvl@google.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+        Christoph Hellwig <hch@lst.de>,
+        Christoph Lameter <cl@linux.com>,
+        David Rientjes <rientjes@google.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Eric Dumazet <edumazet@google.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        Ilya Leoshkevich <iii@linux.ibm.com>,
+        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
+        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
+        Kees Cook <keescook@chromium.org>,
+        Marco Elver <elver@google.com>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Matthew Wilcox <willy@infradead.org>,
+        "Michael S. Tsirkin" <mst@redhat.com>,
+        Pekka Enberg <penberg@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Petr Mladek <pmladek@suse.com>,
+        Steven Rostedt <rostedt@goodmis.org>,
         Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
-        linux-kernel@vger.kernel.org, linux-gpio@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-        linux-doc@vger.kernel.org, x86@kernel.org
-Subject: [PATCH v1 4/8] gpiolib: Get rid of ARCH_NR_GPIOS
-Date:   Mon, 29 Aug 2022 18:15:06 +0200
-Message-Id: <abb46a587b76d379ad32d53817d837d8a5fea8bd.1661789204.git.christophe.leroy@csgroup.eu>
-X-Mailer: git-send-email 2.37.1
-In-Reply-To: <cover.1661789204.git.christophe.leroy@csgroup.eu>
-References: <cover.1661789204.git.christophe.leroy@csgroup.eu>
-MIME-Version: 1.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1661789704; l=6100; s=20211009; h=from:subject:message-id; bh=Ta2Pu/Qf4J6ChITmfOcHBo5517enEuJJorlGzlvfgSM=; b=2ZFOCtWImyObv3vCgBcuqdQoRwGN8P/W3cElsKDg4wf94shsQdpSkifr4UXUacspbr1UNu1vJZiO RlUG7PHfBEZkuHCl96nWG62llmy0z+sZMXPKyDDY8Opt7ZSwe/ho
-X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
+        Vasily Gorbik <gor@linux.ibm.com>,
+        Vegard Nossum <vegard.nossum@oracle.com>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        kasan-dev <kasan-dev@googlegroups.com>,
+        Linux Memory Management List <linux-mm@kvack.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        LKML <linux-kernel@vger.kernel.org>
+Subject: Re: [PATCH v5 04/44] x86: asm: instrument usercopy in get_user()
+ and put_user()
+Message-Id: <20220829122452.cce41f2754c4e063f3ae8b75@linux-foundation.org>
+In-Reply-To: <CAG_fn=Xpva_yx8oG-xi7jqJyM2YLcjNda+8ZyQPGBMV411XgMQ@mail.gmail.com>
+References: <20220826150807.723137-1-glider@google.com>
+        <20220826150807.723137-5-glider@google.com>
+        <20220826211729.e65d52e7919fee5c34d22efc@linux-foundation.org>
+        <CAG_fn=Xpva_yx8oG-xi7jqJyM2YLcjNda+8ZyQPGBMV411XgMQ@mail.gmail.com>
+X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-redhat-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since commit 14e85c0e69d5 ("gpio: remove gpio_descs global array")
-there is no limitation on the number of GPIOs that can be allocated
-in the system since the allocation is fully dynamic.
+On Mon, 29 Aug 2022 16:57:31 +0200 Alexander Potapenko <glider@google.com> wrote:
 
-ARCH_NR_GPIOS is today only used in order to provide downwards
-gpiobase allocation from that value, while static allocation is
-performed upwards from 0. However that has the disadvantage of
-limiting the number of GPIOs that can be registered in the system.
+> On Sat, Aug 27, 2022 at 6:17 AM Andrew Morton <akpm@linux-foundation.org> wrote:
+> >
+> > On Fri, 26 Aug 2022 17:07:27 +0200 Alexander Potapenko <glider@google.com> wrote:
+> >
+> > > Use hooks from instrumented.h to notify bug detection tools about
+> > > usercopy events in variations of get_user() and put_user().
+> >
+> > And this one blows up x86_64 allmodconfig builds.
+> 
+> How do I reproduce this?
+> I tried running `make mrproper; make allmodconfig; make -j64` (or
+> allyesconfig, allnoconfig) on both KMSAN tree
+> (https://github.com/google/kmsan/commit/ac3859c02d7f40f59992737d63afcacda0a972ec,
+> which is Linux v6.0-rc2 plus the 44 KMSAN patches) and
+> linux-mm/mm-stable @ec6624452e36158d0813758d837f7a2263a4109d with
+> KMSAN patches applied on top of it.
+> All builds were successful.
+> 
+> I then tried to cherry-pick just the first 4 commits to mm-stable and
+> see if allmodconfig works - it resulted in numerous "implicit
+> declaration of function ‘instrument_get_user’" errors (quite silly of
+> me), but nothing looking like the errors you posted.
+> I'll try to build-test every patch in the series after fixing the
+> missing declarations, but so far I don't see other problems.
+> 
+> Could you share the mmotm commit id which resulted in the failures?
 
-To overcome this limitation without requiring each and every
-platform to provide its 'best-guess' maximum number, rework the
-allocation to allocate upwards, allowing approx 2 millions of
-GPIOs.
+I just pushed out a tree which exhibits this with gcc-12.1.1 and with
+gcc-11.1.0.  Tag is mm-everything-2022-08-29-19-17.
 
-In order to still allow static allocation for legacy drivers, define
-GPIO_DYNAMIC_BASE with the value 256 as the start for dynamic
-allocation.
+The problem is introduced by d0d9a44d2210 ("kmsan: add KMSAN runtime core")
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- arch/arm/include/asm/gpio.h |  1 -
- drivers/gpio/gpio-sta2x11.c |  5 ++--
- drivers/gpio/gpiolib.c      | 10 +++----
- include/asm-generic/gpio.h  | 55 ++++++++++++++-----------------------
- 4 files changed, 28 insertions(+), 43 deletions(-)
+make mrproper
+make allmodconfig
+make init/do_mounts.o
 
-diff --git a/arch/arm/include/asm/gpio.h b/arch/arm/include/asm/gpio.h
-index f3bb8a2bf788..4ebbb58f06ea 100644
---- a/arch/arm/include/asm/gpio.h
-+++ b/arch/arm/include/asm/gpio.h
-@@ -2,7 +2,6 @@
- #ifndef _ARCH_ARM_GPIO_H
- #define _ARCH_ARM_GPIO_H
- 
--/* Note: this may rely upon the value of ARCH_NR_GPIOS set in mach/gpio.h */
- #include <asm-generic/gpio.h>
- 
- /* The trivial gpiolib dispatchers */
-diff --git a/drivers/gpio/gpio-sta2x11.c b/drivers/gpio/gpio-sta2x11.c
-index e07cca0f8d35..1206b2877caa 100644
---- a/drivers/gpio/gpio-sta2x11.c
-+++ b/drivers/gpio/gpio-sta2x11.c
-@@ -108,8 +108,8 @@ static void gsta_gpio_setup(struct gsta_gpio *chip) /* called from probe */
- 	struct gpio_chip *gpio = &chip->gpio;
- 
- 	/*
--	 * ARCH_NR_GPIOS is currently 256 and dynamic allocation starts
--	 * from the end. However, for compatibility, we need the first
-+	 * Dynamic allocation starts at GPIO_DYNAMIC_BASE.
-+	 * However, for compatibility, we need the first
- 	 * ConneXt device to start from gpio 0: it's the main chipset
- 	 * on most boards so documents and drivers assume gpio0..gpio127
- 	 */
-@@ -129,7 +129,6 @@ static void gsta_gpio_setup(struct gsta_gpio *chip) /* called from probe */
- 
- 	/*
- 	 * After the first device, turn to dynamic gpio numbers.
--	 * For example, with ARCH_NR_GPIOS = 256 we can fit two cards
- 	 */
- 	if (!gpio_base)
- 		gpio_base = -1;
-diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-index 3a6f29eeb72d..40ebc3d42a78 100644
---- a/drivers/gpio/gpiolib.c
-+++ b/drivers/gpio/gpiolib.c
-@@ -183,14 +183,14 @@ EXPORT_SYMBOL_GPL(gpiod_to_chip);
- static int gpiochip_find_base(int ngpio)
- {
- 	struct gpio_device *gdev;
--	int base = ARCH_NR_GPIOS - ngpio;
-+	int base = GPIO_DYNAMIC_BASE;
- 
--	list_for_each_entry_reverse(gdev, &gpio_devices, list) {
-+	list_for_each_entry(gdev, &gpio_devices, list) {
- 		/* found a free space? */
--		if (gdev->base + gdev->ngpio <= base)
-+		if (gdev->base >= base + ngpio)
- 			break;
--		/* nope, check the space right before the chip */
--		base = gdev->base - ngpio;
-+		/* nope, check the space right after the chip */
-+		base = gdev->base + gdev->ngpio;
- 	}
- 
- 	if (gpio_is_valid(base)) {
-diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-index aea9aee1f3e9..06a817d9de79 100644
---- a/include/asm-generic/gpio.h
-+++ b/include/asm-generic/gpio.h
-@@ -11,40 +11,18 @@
- #include <linux/gpio/driver.h>
- #include <linux/gpio/consumer.h>
- 
--/* Platforms may implement their GPIO interface with library code,
-+/*
-+ * Platforms may implement their GPIO interface with library code,
-  * at a small performance cost for non-inlined operations and some
-  * extra memory (for code and for per-GPIO table entries).
-- *
-- * While the GPIO programming interface defines valid GPIO numbers
-- * to be in the range 0..MAX_INT, this library restricts them to the
-- * smaller range 0..ARCH_NR_GPIOS-1.
-- *
-- * ARCH_NR_GPIOS is somewhat arbitrary; it usually reflects the sum of
-- * builtin/SoC GPIOs plus a number of GPIOs on expanders; the latter is
-- * actually an estimate of a board-specific value.
-  */
- 
--#ifndef ARCH_NR_GPIOS
--#if defined(CONFIG_ARCH_NR_GPIO) && CONFIG_ARCH_NR_GPIO > 0
--#define ARCH_NR_GPIOS CONFIG_ARCH_NR_GPIO
--#else
--#define ARCH_NR_GPIOS		512
--#endif
--#endif
--
- /*
-- * "valid" GPIO numbers are nonnegative and may be passed to
-- * setup routines like gpio_request().  only some valid numbers
-- * can successfully be requested and used.
-- *
-- * Invalid GPIO numbers are useful for indicating no-such-GPIO in
-- * platform data and other tables.
-+ * At the end we want all GPIOs to be dynamically allocated from 0.
-+ * However, some legacy drivers still perform fixed allocation.
-+ * Until they are all fixed, leave 0-256 space for them.
-  */
--
--static inline bool gpio_is_valid(int number)
--{
--	return number >= 0 && number < ARCH_NR_GPIOS;
--}
-+#define GPIO_DYNAMIC_BASE	256
- 
- struct device;
- struct gpio;
-@@ -140,12 +118,6 @@ static inline void gpio_unexport(unsigned gpio)
- 
- #include <linux/kernel.h>
- 
--static inline bool gpio_is_valid(int number)
--{
--	/* only non-negative numbers are valid */
--	return number >= 0;
--}
--
- /* platforms that don't directly support access to GPIOs through I2C, SPI,
-  * or other blocking infrastructure can use these wrappers.
-  */
-@@ -169,4 +141,19 @@ static inline void gpio_set_value_cansleep(unsigned gpio, int value)
- 
- #endif /* !CONFIG_GPIOLIB */
- 
-+/*
-+ * "valid" GPIO numbers are nonnegative and may be passed to
-+ * setup routines like gpio_request().  only some valid numbers
-+ * can successfully be requested and used.
-+ *
-+ * Invalid GPIO numbers are useful for indicating no-such-GPIO in
-+ * platform data and other tables.
-+ */
-+
-+static inline bool gpio_is_valid(int number)
-+{
-+	/* only non-negative numbers are valid */
-+	return number >= 0;
-+}
-+
- #endif /* _ASM_GENERIC_GPIO_H */
--- 
-2.37.1
-
+In file included from ./include/linux/kernel.h:22,
+                 from ./arch/x86/include/asm/percpu.h:27,
+                 from ./arch/x86/include/asm/nospec-branch.h:14,
+                 from ./arch/x86/include/asm/paravirt_types.h:40,
+                 from ./arch/x86/include/asm/ptrace.h:97,
+                 from ./arch/x86/include/asm/math_emu.h:5,
+                 from ./arch/x86/include/asm/processor.h:13,
+                 from ./arch/x86/include/asm/timex.h:5,
+                 from ./include/linux/timex.h:67,
+                 from ./include/linux/time32.h:13,
+                 from ./include/linux/time.h:60,
+                 from ./include/linux/stat.h:19,
+                 from ./include/linux/module.h:13,
+                 from init/do_mounts.c:2:
+./include/linux/page-flags.h: In function ‘page_fixed_fake_head’:
+./include/linux/page-flags.h:226:36: error: invalid use of undefined type ‘const struct page’
+  226 |             test_bit(PG_head, &page->flags)) {
+      |                                    ^~
+./include/linux/bitops.h:50:44: note: in definition of macro ‘bitop’
+   50 |           __builtin_constant_p((uintptr_t)(addr) != (uintptr_t)NULL) && \
+      |                                            ^~~~
+./include/linux/page-flags.h:226:13: note: in expansion of macro ‘test_bit’
+  226 |             test_bit(PG_head, &page->flags)) {
+      |             ^~~~~~~~
+...
