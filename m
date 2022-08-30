@@ -2,72 +2,70 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DBF41C0502A
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 09:17:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 127F7ECAAA1
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 09:22:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231296AbiH3JRx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Aug 2022 05:17:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48924 "EHLO
+        id S231807AbiH3JWE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Aug 2022 05:22:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52366 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229747AbiH3JRw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 05:17:52 -0400
-X-Greylist: delayed 2655 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 30 Aug 2022 02:17:49 PDT
-Received: from mail.gnudd.com (mail.gnudd.com [93.91.132.248])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D217CD2E95;
-        Tue, 30 Aug 2022 02:17:49 -0700 (PDT)
-Received: from rubini by mail.gnudd.com with local (Exim 4.94.2)
-        (envelope-from <rubini@arcana.gnudd.com>)
-        id 1oSwgE-0003Bx-Nf; Tue, 30 Aug 2022 10:33:06 +0200
-Date:   Tue, 30 Aug 2022 10:33:06 +0200
-From:   Alessandro Rubini <rubini@gnudd.com>
-To:     ciminaghi@gnudd.com
-Cc:     arnd@arndb.de, christophe.leroy@csgroup.eu,
-        linus.walleij@linaro.org, gnurou@gmail.com, acourbot@nvidia.com,
-        brgl@bgdev.pl, corbet@lwn.net, linux@armlinux.org.uk,
-        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-        dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
-        linux-gpio@vger.kernel.org, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-arch@vger.kernel.org
-Subject: Re: [PATCH] gpio: Allow user to customise maximum number of GPIOs
-Message-ID: <Yw3LQjhZWmZaU2N1@arcana.i.gnudd.com>
+        with ESMTP id S231758AbiH3JVS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 05:21:18 -0400
+X-Greylist: delayed 4800 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 30 Aug 2022 02:20:54 PDT
+Received: from forward503o.mail.yandex.net (forward503o.mail.yandex.net [IPv6:2a02:6b8:0:1a2d::613])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DDD07DB7F4
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 02:20:53 -0700 (PDT)
+Received: from vla1-ef285479e348.qloud-c.yandex.net (vla1-ef285479e348.qloud-c.yandex.net [IPv6:2a02:6b8:c0d:35a1:0:640:ef28:5479])
+        by forward503o.mail.yandex.net (Yandex) with ESMTP id A91CD5C485C;
+        Tue, 30 Aug 2022 12:20:50 +0300 (MSK)
+Received: by vla1-ef285479e348.qloud-c.yandex.net (smtp/Yandex) with ESMTPSA id DEImCeimEC-KnhO3vEJ;
+        Tue, 30 Aug 2022 12:20:49 +0300
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
+        (Client certificate not present)
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=syntacore.com; s=mail; t=1661851249;
+        bh=ySfz/LY99LFzaToppHOlG1ynyDBOH7D7JAMHAIQZI1I=;
+        h=In-Reply-To:From:Date:References:To:Subject:Message-ID;
+        b=b+JiionGVRrdT+/2QLu+NMGmwqM1bQo7yVVFoEBNF+YNobos7Uc3v6r5SUEKk0/DP
+         gtjSrAcwCl9Ycl0dnLEjya1Y/gB56aS2f1jCO9D1F5OQLoFZi3tH/yX93Af3lbYbDf
+         okX3/akvLqu1DfHIkoDa3IyBVJLYwSPJC+ua608E=
+Authentication-Results: vla1-ef285479e348.qloud-c.yandex.net; dkim=pass header.i=@syntacore.com
+Message-ID: <adde706e-1d75-8241-fe2d-955035f88f2f@syntacore.com>
+Date:   Tue, 30 Aug 2022 12:20:49 +0300
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Organization: GnuDD, Device Drivers, Embedded Systems, Courses
-Sender: rubini@gnudd.com
-In-Reply-To: <Yw3DKCuDoPkCaqxE@arcana.i.gnudd.com>
-References: <Yw3DKCuDoPkCaqxE@arcana.i.gnudd.com>
-  <CAK8P3a0j-54_OkXC7x3NSNaHhwJ+9umNgbpsrPxUB4dwewK63A@mail.gmail.com>
-  <CACRpkda0+iy8H0YmyowSDn8RbYgnVbC1k+o5F67inXg4Qb934Q@mail.gmail.com>
-  <CAK8P3a0uuJ_z8wmNmQTW_qPNqzz7XoxZdHgqbzmK+ydtjraeHg@mail.gmail.com>
-  <CACRpkdb5ow4hD3td6agCuKWvuxptm5AV4rsCrcxNStNdXnBzrA@mail.gmail.com>
-  <87f2ff4c-3426-201c-df86-2d06d3587a20@csgroup.eu>
-  <CACRpkdYizQhiJXzXNHg7TXUVHzhkwXHFN5+e58kH4udGm1ziEA@mail.gmail.com>
-  <f76dbc49-526f-6dc7-2ef1-558baea5848b@csgroup.eu>
-  <CACRpkdZpwdP+1VitohznqRfhFGcLT2f+sQnmsRWwMBB3bobwAw@mail.gmail.com>
-  <515364a9-33a1-fafa-fdce-dc7dbd5bb7fb@csgroup.eu>
-  <CAK8P3a36qbRW8hd+1Uhi88kh+-KTjDMT-Zr8Jq9h_G3zQLfzgw@mail.gmail.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.2.0
+Subject: Re: [PATCH] riscv: Fix permissions for all mm's during mm init
+Content-Language: ru-RU, en-US
+To:     Conor.Dooley@microchip.com, linux-arch@vger.kernel.org,
+        linux-riscv@lists.infradead.org
+References: <20220830075900.510105-1-vladimir.isaev@syntacore.com>
+ <26ec07d5-14ac-f77c-00a7-23ea77ebeef6@microchip.com>
+ <6e0aee65-37f4-ffa5-9adc-039ff3085b07@microchip.com>
+From:   Vladimir Isaev <vladimir.isaev@syntacore.com>
+In-Reply-To: <6e0aee65-37f4-ffa5-9adc-039ff3085b07@microchip.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Thanks davide for the good explanation
-(and the link the the old email I forgot about)
+Hi Conor,
 
-> tl;dr: sta2x11 support can be removed.
+30.08.2022 11:31, Conor.Dooley@microchip.com wrote:
+> On 30/08/2022 09:21, Conor.Dooley@microchip.com wrote:
 
-Confirmed.
+>> What is the appropriate fixes tag for this patch?
+> 
+> Also, you should run scripts/{checkpatch,get_maintainer}.pl before sending
+> your patch - many of the lines in your commit are too long & you did not CC
+> any of the maintainers :/
+> 
+> Hope that helps,
+> Conor.
+> 
 
-The point here is that we talked with the vendor. They are still using
-the device (with some extra internal patches), but new development at
-kernel level is stopped.
+Thanks for the fixes! Sent v2.
 
-Since the device is not currently available to the general public,
-it's ok to save the maintaining efforts.
-
-I can submit patch[es] next week or ack removal if somebody submits
-them earlier.
-
-thanks
-/alessandro
+Thank you,
+Vladimir Isaev
