@@ -2,57 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C480EC0502A
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 21:52:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A38FECAAD4
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 21:52:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232053AbiH3VwH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Aug 2022 17:52:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57318 "EHLO
+        id S232133AbiH3VwX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Aug 2022 17:52:23 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60964 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231990AbiH3VvX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 17:51:23 -0400
-Received: from mail-yw1-x114a.google.com (mail-yw1-x114a.google.com [IPv6:2607:f8b0:4864:20::114a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9ACDD1EACC
-        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:02 -0700 (PDT)
-Received: by mail-yw1-x114a.google.com with SMTP id 00721157ae682-33ef3e5faeeso183140857b3.0
-        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:02 -0700 (PDT)
+        with ESMTP id S231911AbiH3Vv2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 17:51:28 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BAA93356DD
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:09 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id o144-20020a25d796000000b0069b523a4234so717465ybg.17
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:09 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc;
-        bh=gY+PdoFf3bNnEB0W9Vd0woPoFdt9hhtegjhiPtTj+AE=;
-        b=pP4c3oP+YdesowZgNPs4eE1Xp1hWxAr9Ov2IDGBfglQ7uK9BWLrmzhDJ/utRpkPDJK
-         tLMoERW1+3/smlLhO5G46VfqVywVDMABKHAv9jnhzz9ZshpBvX9ODCL7lsQaaZS0MLOk
-         moKmQwwsOGjNod+M4t/tjA/+LNyP1VXOc5752+/a3Um/WwaPBzNEpe5l2cE7BDo787CF
-         /PWmu6igP2xWBoiVtEHlimVT5AWdWMQxPlHvsqYO1szpGDqcGUPThIrLg/hGXqOCKmhM
-         XRoOlsQx66oUshjUnxZWYY0qi/lYffvprIXZMUGryr7KjlXRCtsueZ1FZIWTKefulhTk
-         stEQ==
+        bh=PaZc/ErQmIz9CmZWuOwZKmMvFAFDhrfR0u4+oqULyqs=;
+        b=hebs9Ab4jQ13PLVsrCINOWSpgoH5EATUTa9Cks3Eg1nmkxH7qE2oRwCx7AF5BNZXTH
+         AHzIFQ24Or2oJnVcja+AOnCs2XgXBCldmNcsagLkjdyOLpIpceU0bsUf62DWg4fCi92e
+         s30PWdmXxABwFMNU1JgUL6Fp0h2PBQ5hgdc0oQExPZeqJt/0xfqCgMF0cTxAmuBThoZJ
+         frR4uwNwpRrRdJWEew4t7LzoFroWP+hLZBEH0mT+P1Yv4GgQEDG37uiXZMEF+0m6Voke
+         PgoPiZ8qXrLB1DY6fUVv3gddg9c6Rea7O2e0xIyCiy2p7GROj3EzsKBaYmh74I5z0+5s
+         1/pA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc;
-        bh=gY+PdoFf3bNnEB0W9Vd0woPoFdt9hhtegjhiPtTj+AE=;
-        b=ICW43XX7u0dEZ4UEJ3Md+0MDN7kP4oxiopZwwpJoLafEpCCRgcefWwlnmm13bLW5Qh
-         ZpQ7KNhtBZ5z7Lo9Io3tZHRoR4p0n+PqARrtAej489unUGnt01DKGLPFunA+qpXTdpy+
-         XiH6H2Add9D1Qu7WMztil/Ivx4gXixIWJWLUrAD0W/P3m+4YLcwYz1YpODh3HiL92OAZ
-         aaI8t2MDYQHQZa6cJzBIQeOL0KfAFGnSwstTz8Fm2RfO7x7JeLKWccJA0V11XJcp9Mwj
-         jqHgZp3DYbC4FhlfGaEbE390CRTiAFFfvphFz26vWU2WASJNOKfUsal6jsWy6bbZOGOG
-         Nt0A==
-X-Gm-Message-State: ACgBeo1P2K+IIKPFGHTgpeB0A+8p/NY4RND/jFtaj203Ka1Y/NnNQRuE
-        zdb9jEV1Jc799ekzg5Ud9DUqNZdj070=
-X-Google-Smtp-Source: AA6agR7WLdIMrAR0FWfuROzkHWzqEUxzLPyMUzXzjD/46yfJpgch8NK3VM+VyOZeNwYsSnGIQ5TrqCRxJvQ=
+        bh=PaZc/ErQmIz9CmZWuOwZKmMvFAFDhrfR0u4+oqULyqs=;
+        b=wmEg5esy5l6iB8NuNrCEyyC5iumtkqRXRuMHwUv3oMYwH8tttC1K6iZ17qOe7UBz6X
+         z+YnwG/sOwFEs7iYdDQBChUckPPPTCRr79vipcIZ70RyhVBMqGXIfyreDdxe5rn0yJ1U
+         /2rEJvhkmGFdnjFvOAz8ciflKFJTl4UH8c4+WSZHL3N8LwdR8WAO+wqJIBHtJf4Opr9K
+         mtAqkQLYeQNSJP3NCJs/+7GUjCAqGd5xshAUnwwfyiZsdnxae6BYQRIbz3JKQQZXoJZa
+         UC4a3zgM75p8Y3W6Zd7r69HgzzKEWTresT1/kDTccR4lV+QiwQWARkMuxd+rgvcIj4ra
+         DPwQ==
+X-Gm-Message-State: ACgBeo2XURxHQCh7pkqQN3x+2YnvWIpnrTHg9Git4lxVuYLAPLdVHMh4
+        tA0kum8cacbCR7BqamDicmZ4KSUGF/g=
+X-Google-Smtp-Source: AA6agR60bKzipuEg+9xXy+Pee21QZvBbTBPOhKhJO0fVzuHKtaTXE6dCUM7Zh4tN5bptU+EiRysnFAQW6po=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:200:a005:55b3:6c26:b3e4])
- (user=surenb job=sendgmr) by 2002:a25:ba91:0:b0:683:ebc2:7114 with SMTP id
- s17-20020a25ba91000000b00683ebc27114mr13866830ybg.319.1661896200808; Tue, 30
- Aug 2022 14:50:00 -0700 (PDT)
-Date:   Tue, 30 Aug 2022 14:49:03 -0700
+ (user=surenb job=sendgmr) by 2002:a25:31d5:0:b0:677:28b:1451 with SMTP id
+ x204-20020a2531d5000000b00677028b1451mr13217805ybx.437.1661896208990; Tue, 30
+ Aug 2022 14:50:08 -0700 (PDT)
+Date:   Tue, 30 Aug 2022 14:49:06 -0700
 In-Reply-To: <20220830214919.53220-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20220830214919.53220-1-surenb@google.com>
 X-Mailer: git-send-email 2.37.2.672.g94769d06f0-goog
-Message-ID: <20220830214919.53220-15-surenb@google.com>
-Subject: [RFC PATCH 14/30] mm: prevent slabobj_ext allocations for slabobj_ext
- and kmem_cache objects
+Message-ID: <20220830214919.53220-18-surenb@google.com>
+Subject: [RFC PATCH 17/30] lib/string.c: strsep_no_empty()
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -79,45 +78,59 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Use __GFP_NO_OBJ_EXT to prevent recursions when allocating slabobj_ext
-objects. Also prevent slabobj_ext allocations for kmem_cache objects.
+From: Kent Overstreet <kent.overstreet@linux.dev>
 
-Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+This adds a new helper which is like strsep, except that it skips empty
+tokens.
+
+Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 ---
- mm/memcontrol.c | 2 ++
- mm/slab.h       | 6 ++++++
- 2 files changed, 8 insertions(+)
+ include/linux/string.h |  1 +
+ lib/string.c           | 19 +++++++++++++++++++
+ 2 files changed, 20 insertions(+)
 
-diff --git a/mm/memcontrol.c b/mm/memcontrol.c
-index 3f407ef2f3f1..dabb451dc364 100644
---- a/mm/memcontrol.c
-+++ b/mm/memcontrol.c
-@@ -2809,6 +2809,8 @@ int alloc_slab_obj_exts(struct slab *slab, struct kmem_cache *s,
- 	void *vec;
+diff --git a/include/linux/string.h b/include/linux/string.h
+index 61ec7e4f6311..b950ac9cfa56 100644
+--- a/include/linux/string.h
++++ b/include/linux/string.h
+@@ -96,6 +96,7 @@ extern char * strpbrk(const char *,const char *);
+ #ifndef __HAVE_ARCH_STRSEP
+ extern char * strsep(char **,const char *);
+ #endif
++extern char *strsep_no_empty(char **, const char *);
+ #ifndef __HAVE_ARCH_STRSPN
+ extern __kernel_size_t strspn(const char *,const char *);
+ #endif
+diff --git a/lib/string.c b/lib/string.c
+index 6f334420f687..6939f5b751f2 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -596,6 +596,25 @@ char *strsep(char **s, const char *ct)
+ EXPORT_SYMBOL(strsep);
+ #endif
  
- 	gfp &= ~OBJCGS_CLEAR_MASK;
-+	/* Prevent recursive extension vector allocation */
-+	gfp |= __GFP_NO_OBJ_EXT;
- 	vec = kcalloc_node(objects, sizeof(struct slabobj_ext), gfp,
- 			   slab_nid(slab));
- 	if (!vec)
-diff --git a/mm/slab.h b/mm/slab.h
-index c767ce3f0fe2..d93b22b8bbe2 100644
---- a/mm/slab.h
-+++ b/mm/slab.h
-@@ -475,6 +475,12 @@ static inline void prepare_slab_obj_exts_hook(struct kmem_cache *s, gfp_t flags,
- 	if (is_kmem_only_obj_ext())
- 		return;
- 
-+	if (s->flags & SLAB_NO_OBJ_EXT)
-+		return;
++/**
++ * strsep_no_empt - Split a string into tokens, but don't return empty tokens
++ * @s: The string to be searched
++ * @ct: The characters to search for
++ *
++ * strsep() updates @s to point after the token, ready for the next call.
++ */
++char *strsep_no_empty(char **s, const char *ct)
++{
++	char *ret;
 +
-+	if (flags & __GFP_NO_OBJ_EXT)
-+		return;
++	do {
++		ret = strsep(s, ct);
++	} while (ret && !*ret);
 +
- 	slab = virt_to_slab(p);
- 	if (!slab_obj_exts(slab))
- 		WARN(alloc_slab_obj_exts(slab, s, flags, false),
++	return ret;
++}
++EXPORT_SYMBOL_GPL(strsep_no_empty);
++
+ #ifndef __HAVE_ARCH_MEMSET
+ /**
+  * memset - Fill a region of memory with the given value
 -- 
 2.37.2.672.g94769d06f0-goog
 
