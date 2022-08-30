@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6FBA7ECAAD4
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 21:52:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1FB58C3DA6B
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 21:53:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231767AbiH3Vw4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Aug 2022 17:52:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60410 "EHLO
+        id S232137AbiH3Vx2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Aug 2022 17:53:28 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57424 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231990AbiH3VwI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 17:52:08 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 11DC4901A4
-        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:18 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id d135-20020a25688d000000b0069578d248abso726871ybc.21
-        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:17 -0700 (PDT)
+        with ESMTP id S232139AbiH3VwY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 17:52:24 -0400
+Received: from mail-yw1-x1149.google.com (mail-yw1-x1149.google.com [IPv6:2607:f8b0:4864:20::1149])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB50F91D20
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:23 -0700 (PDT)
+Received: by mail-yw1-x1149.google.com with SMTP id 00721157ae682-336c3b72da5so187507537b3.6
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc;
-        bh=k1RBq3yq4U5V/3OJ4fp4kBxfnryZ2+wdIlpTdmkxoTI=;
-        b=VhiQWzTMcrdH+FaQQULhGR8WSlxfBOTth6dlvIbrF9tNsikpCPNZSCsVVNQzwya0+m
-         inYdBoaJMW2SV4VMQbG9aeBgJRps+ez+XWS5k3Rur9K2IIy7JqKGimhHZpLDadEOC8jn
-         mlaKyF5VrtiZ0WWLgSmcUKau4UWKqCVgLA42otcSHORATS4YZtKue2vIEn7FwP4yHe6S
-         ZPXLk6/7AXcHQ83MkQ3/jShGMz5S5LOyBhJVZrkJyLThC9PcUD9ldyCOL0uzdDG1sb5M
-         06MkPGxPeBa0aM/Evc6sFSslW/GhAWnvZBA8+PZrxcvSTvVlK9z1clRYSNWpN2i8rC4H
-         SSiA==
+        bh=OQ1/DMahF4uWAfLYh5vc64TkQSOW6G8gA0sp/Oew5U4=;
+        b=E6n8RLBDvVdKTt99wS7gonDHgXGyFD48wANdOMf152JDQ5KdmSOWFLIpRW6kDDjotY
+         x+AW587u5EK6tbc6fvifCLn56BbbsozOj5hKUEn6M41P4UEgc9OABsv5SIiQi/8oKY8R
+         SnWivvj44LyiP0dXPWoI7mNyRDo/YzIUrD8I5hoMt+oKP1+hGTBP83QKTjsDABUbkjlp
+         2WTgmE2oNacaN0/b3glSakcpEMlPWkX8Cq7584LeI9wCjV+07nZN/bVKQwFVm5Mw8GwD
+         nmAvgbFTWQSM9f9o0sF35PvZg/TjRD7dQ6ibTq+wNYKM6OcUMOKofnZUPQGzw4DuByNO
+         8QdA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc;
-        bh=k1RBq3yq4U5V/3OJ4fp4kBxfnryZ2+wdIlpTdmkxoTI=;
-        b=InJLqfOhc953c5Pqb+/KlO6T88Mx2LF9J7G/lhaWdqOUrgqfQc1cndlj2FvVJVJjdj
-         quIUTXqcLb54hVxTw2QbMatMzWVrE31Zujd4QBrRFiU7iEiLtqAi9Fbx9zBHvAEpDhJa
-         e6qHe4jrYG2z7ApDAbMxHmnSyMV73P5FXUFrg+sQshyiWf1m3P0qF8xkIm0NxcfHXp5Z
-         1ylrO0wWSFK0GDHDeSmHAOKgT7rOduxzKQXNFnsAserQ29hSGrP5HSii5p0JfDu9bJWk
-         c4nK8NO2gwkIBAcbDG9TSh1I1Vj34QHqJP+RW3Kboi25pgPoK/hd/B8ETjY/z8GuCv4+
-         LFog==
-X-Gm-Message-State: ACgBeo1PSD0AnxrmxhEJHy4Yb1MSnqWVPtcr40EnROa2t5qkKtbylPCI
-        2eUM4U3/QM6N5E6a2XZnqVE72+k6Jv8=
-X-Google-Smtp-Source: AA6agR4708nF24x7XI3k0Gx9DyNo/OwdO20Vx8Uo0n79f6qJIllny6st9xxE+KwycAbaAtlsqzU8pt5cOBU=
+        bh=OQ1/DMahF4uWAfLYh5vc64TkQSOW6G8gA0sp/Oew5U4=;
+        b=OQI/tVhglGMn93XjFh4UI3DayyNE/Zj4aBOmhEXoXPRQaChpiNMz3VVJuT+ao2Bawk
+         5x5/22AAzihZp4z4q9VWMQNpuwndGSUeF3RcSZK1cGIUaT6JtO/R3DI9d5qqU9Lu3+Vz
+         LQDOR5Sd/pHCmENXB9Vwqs3f03y802bq27TxXEPsJwVnNEuwVUuKb/v4fk/RVwAW7YGR
+         vIi3pmOxIvuEVrz3ExX7W07pravdJGSiX/XJBk281KWkJIm9PT/uJnUD/ZfY8p+liMTZ
+         pxAwVuELpwIsVeQlI17CcETDA/kLfb6du4V/h+YltmK4mmAVOx380OVPRGlTUA/e2jJF
+         eQnQ==
+X-Gm-Message-State: ACgBeo0jlj6JDNBfZpb8Aqx1F2j4TzTtJXXWkO+E6TPIk/XXVymlSpNb
+        LnTtshwGgIBsK3GupjflYbRaHrPzPHQ=
+X-Google-Smtp-Source: AA6agR6JKAe3T4R70KWhBqCZIGWOR7vlkyzPVmWfqRUYHsRdrPe/NdFlMgKrQ6XnjzPBCyOacXIPh+/j+IY=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:200:a005:55b3:6c26:b3e4])
- (user=surenb job=sendgmr) by 2002:a25:ef45:0:b0:696:45b0:7b5d with SMTP id
- w5-20020a25ef45000000b0069645b07b5dmr12075882ybm.368.1661896216803; Tue, 30
- Aug 2022 14:50:16 -0700 (PDT)
-Date:   Tue, 30 Aug 2022 14:49:09 -0700
+ (user=surenb job=sendgmr) by 2002:a25:6985:0:b0:695:8355:f894 with SMTP id
+ e127-20020a256985000000b006958355f894mr13667557ybc.648.1661896221989; Tue, 30
+ Aug 2022 14:50:21 -0700 (PDT)
+Date:   Tue, 30 Aug 2022 14:49:11 -0700
 In-Reply-To: <20220830214919.53220-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20220830214919.53220-1-surenb@google.com>
 X-Mailer: git-send-email 2.37.2.672.g94769d06f0-goog
-Message-ID: <20220830214919.53220-21-surenb@google.com>
-Subject: [RFC PATCH 20/30] lib: introduce support for storing code tag context
+Message-ID: <20220830214919.53220-23-surenb@google.com>
+Subject: [RFC PATCH 22/30] Code tagging based fault injection
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -78,331 +78,565 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add support for code tag context capture when registering a new code tag
-type. When context capture for a specific code tag is enabled,
-codetag_ref will point to a codetag_ctx object which can be attached
-to an application-specific object storing code invocation context.
-codetag_ctx has a pointer to its codetag_with_ctx object with embedded
-codetag object in it. All context objects of the same code tag are placed
-into codetag_with_ctx.ctx_head linked list. codetag.flag is used to
-indicate when a context capture for the associated code tag is
-initialized and enabled.
+From: Kent Overstreet <kent.overstreet@linux.dev>
 
-Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+This adds a new fault injection capability, based on code tagging.
+
+To use, simply insert somewhere in your code
+
+  dynamic_fault("fault_class_name")
+
+and check whether it returns true - if so, inject the error.
+For example
+
+  if (dynamic_fault("init"))
+      return -EINVAL;
+
+There's no need to define faults elsewhere, as with
+include/linux/fault-injection.h. Faults show up in debugfs, under
+/sys/kernel/debug/dynamic_faults, and can be selected based on
+file/module/function/line number/class, and enabled permanently, or in
+oneshot mode, or with a specified frequency.
+
+Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 ---
- include/linux/codetag.h     |  50 +++++++++++++-
- include/linux/codetag_ctx.h |  48 +++++++++++++
- lib/codetag.c               | 134 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 231 insertions(+), 1 deletion(-)
- create mode 100644 include/linux/codetag_ctx.h
+ include/asm-generic/codetag.lds.h |   3 +-
+ include/linux/dynamic_fault.h     |  79 +++++++
+ include/linux/slab.h              |   3 +-
+ lib/Kconfig.debug                 |   6 +
+ lib/Makefile                      |   2 +
+ lib/dynamic_fault.c               | 372 ++++++++++++++++++++++++++++++
+ 6 files changed, 463 insertions(+), 2 deletions(-)
+ create mode 100644 include/linux/dynamic_fault.h
+ create mode 100644 lib/dynamic_fault.c
 
-diff --git a/include/linux/codetag.h b/include/linux/codetag.h
-index 0c605417ebbe..57736ec77b45 100644
---- a/include/linux/codetag.h
-+++ b/include/linux/codetag.h
-@@ -5,8 +5,12 @@
- #ifndef _LINUX_CODETAG_H
- #define _LINUX_CODETAG_H
+diff --git a/include/asm-generic/codetag.lds.h b/include/asm-generic/codetag.lds.h
+index 64f536b80380..16fbf74edc3d 100644
+--- a/include/asm-generic/codetag.lds.h
++++ b/include/asm-generic/codetag.lds.h
+@@ -9,6 +9,7 @@
+ 	__stop_##_name = .;
  
-+#include <linux/container_of.h>
-+#include <linux/spinlock.h>
- #include <linux/types.h>
+ #define CODETAG_SECTIONS()		\
+-	SECTION_WITH_BOUNDARIES(alloc_tags)
++	SECTION_WITH_BOUNDARIES(alloc_tags)		\
++	SECTION_WITH_BOUNDARIES(dynamic_fault_tags)
  
-+struct kref;
-+struct codetag_ctx;
- struct codetag_iterator;
- struct codetag_type;
- struct seq_buf;
-@@ -18,15 +22,38 @@ struct module;
-  * an array of these.
-  */
- struct codetag {
--	unsigned int flags; /* used in later patches */
-+	unsigned int flags; /* has to be the first member shared with codetag_ctx */
- 	unsigned int lineno;
- 	const char *modname;
- 	const char *function;
- 	const char *filename;
- } __aligned(8);
- 
-+/* codetag_with_ctx flags */
-+#define CTC_FLAG_CTX_PTR	(1 << 0)
-+#define CTC_FLAG_CTX_READY	(1 << 1)
-+#define CTC_FLAG_CTX_ENABLED	(1 << 2)
-+
-+/*
-+ * Code tag with context capture support. Contains a list to store context for
-+ * each tag hit, a lock protecting the list and a flag to indicate whether
-+ * context capture is enabled for the tag.
-+ */
-+struct codetag_with_ctx {
-+	struct codetag ct;
-+	struct list_head ctx_head;
-+	spinlock_t ctx_lock;
-+} __aligned(8);
-+
-+/*
-+ * Tag reference can point to codetag directly or indirectly via codetag_ctx.
-+ * Direct codetag pointer is used when context capture is disabled or not
-+ * supported. When context capture for the tag is used, the reference points
-+ * to the codetag_ctx through which the codetag can be reached.
-+ */
- union codetag_ref {
- 	struct codetag *ct;
-+	struct codetag_ctx *ctx;
- };
- 
- struct codetag_range {
-@@ -46,6 +73,7 @@ struct codetag_type_desc {
- 			    struct codetag_module *cmod);
- 	void (*module_unload)(struct codetag_type *cttype,
- 			      struct codetag_module *cmod);
-+	void (*free_ctx)(struct kref *ref);
- };
- 
- struct codetag_iterator {
-@@ -53,6 +81,7 @@ struct codetag_iterator {
- 	struct codetag_module *cmod;
- 	unsigned long mod_id;
- 	struct codetag *ct;
-+	struct codetag_ctx *ctx;
- };
- 
- #define CODE_TAG_INIT {					\
-@@ -63,9 +92,28 @@ struct codetag_iterator {
- 	.flags		= 0,				\
- }
- 
-+static inline bool is_codetag_ctx_ref(union codetag_ref *ref)
-+{
-+	return !!(ref->ct->flags & CTC_FLAG_CTX_PTR);
-+}
-+
-+static inline
-+struct codetag_with_ctx *ct_to_ctc(struct codetag *ct)
-+{
-+	return container_of(ct, struct codetag_with_ctx, ct);
-+}
-+
- void codetag_lock_module_list(struct codetag_type *cttype, bool lock);
- struct codetag_iterator codetag_get_ct_iter(struct codetag_type *cttype);
- struct codetag *codetag_next_ct(struct codetag_iterator *iter);
-+struct codetag_ctx *codetag_next_ctx(struct codetag_iterator *iter);
-+
-+bool codetag_enable_ctx(struct codetag_with_ctx *ctc, bool enable);
-+static inline bool codetag_ctx_enabled(struct codetag_with_ctx *ctc)
-+{
-+	return !!(ctc->ct.flags & CTC_FLAG_CTX_ENABLED);
-+}
-+bool codetag_has_ctx(struct codetag_with_ctx *ctc);
- 
- void codetag_to_text(struct seq_buf *out, struct codetag *ct);
- 
-diff --git a/include/linux/codetag_ctx.h b/include/linux/codetag_ctx.h
+ #endif /* __ASM_GENERIC_CODETAG_LDS_H */
+diff --git a/include/linux/dynamic_fault.h b/include/linux/dynamic_fault.h
 new file mode 100644
-index 000000000000..e741484f0e08
+index 000000000000..526a33209e94
 --- /dev/null
-+++ b/include/linux/codetag_ctx.h
-@@ -0,0 +1,48 @@
++++ b/include/linux/dynamic_fault.h
+@@ -0,0 +1,79 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef _LINUX_DYNAMIC_FAULT_H
++#define _LINUX_DYNAMIC_FAULT_H
++
 +/*
-+ * code tag context
++ * Dynamic/code tagging fault injection:
++ *
++ * Originally based on the dynamic debug trick of putting types in a special elf
++ * section, then rewritten using code tagging:
++ *
++ * To use, simply insert a call to dynamic_fault("fault_class"), which will
++ * return true if an error should be injected.
++ *
++ * Fault injection sites may be listed and enabled via debugfs, under
++ * /sys/kernel/debug/dynamic_faults.
 + */
-+#ifndef _LINUX_CODETAG_CTX_H
-+#define _LINUX_CODETAG_CTX_H
++
++#ifdef CONFIG_CODETAG_FAULT_INJECTION
 +
 +#include <linux/codetag.h>
-+#include <linux/kref.h>
++#include <linux/jump_label.h>
 +
-+/* Code tag hit context. */
-+struct codetag_ctx {
-+	unsigned int flags; /* has to be the first member shared with codetag */
-+	struct codetag_with_ctx *ctc;
-+	struct list_head node;
-+	struct kref refcount;
-+} __aligned(8);
++#define DFAULT_STATES()		\
++	x(disabled)		\
++	x(enabled)		\
++	x(oneshot)
 +
-+static inline struct codetag_ctx *kref_to_ctx(struct kref *refcount)
-+{
-+	return container_of(refcount, struct codetag_ctx, refcount);
-+}
++enum dfault_enabled {
++#define x(n)	DFAULT_##n,
++	DFAULT_STATES()
++#undef x
++};
 +
-+static inline void add_ctx(struct codetag_ctx *ctx,
-+			   struct codetag_with_ctx *ctc)
-+{
-+	kref_init(&ctx->refcount);
-+	spin_lock(&ctc->ctx_lock);
-+	ctx->flags = CTC_FLAG_CTX_PTR;
-+	ctx->ctc = ctc;
-+	list_add_tail(&ctx->node, &ctc->ctx_head);
-+	spin_unlock(&ctc->ctx_lock);
-+}
++union dfault_state {
++	struct {
++		unsigned int		enabled:2;
++		unsigned int		count:30;
++	};
 +
-+static inline void rem_ctx(struct codetag_ctx *ctx,
-+			   void (*free_ctx)(struct kref *refcount))
-+{
-+	struct codetag_with_ctx *ctc = ctx->ctc;
++	struct {
++		unsigned int		v;
++	};
++};
 +
-+	spin_lock(&ctc->ctx_lock);
-+	/* ctx might have been removed while we were using it */
-+	if (!list_empty(&ctx->node))
-+		list_del_init(&ctx->node);
-+	spin_unlock(&ctc->ctx_lock);
-+	kref_put(&ctx->refcount, free_ctx);
-+}
++struct dfault {
++	struct codetag		tag;
++	const char		*class;
++	unsigned int		frequency;
++	union dfault_state	state;
++	struct static_key_false	enabled;
++};
 +
-+#endif /* _LINUX_CODETAG_CTX_H */
-diff --git a/lib/codetag.c b/lib/codetag.c
-index 288ccfd5cbd0..2762fda5c016 100644
---- a/lib/codetag.c
-+++ b/lib/codetag.c
-@@ -1,5 +1,6 @@
- // SPDX-License-Identifier: GPL-2.0-only
- #include <linux/codetag.h>
-+#include <linux/codetag_ctx.h>
- #include <linux/idr.h>
- #include <linux/kallsyms.h>
- #include <linux/module.h>
-@@ -91,6 +92,139 @@ struct codetag *codetag_next_ct(struct codetag_iterator *iter)
- 	return ct;
- }
++bool __dynamic_fault_enabled(struct dfault *df);
++
++#define dynamic_fault(_class)				\
++({							\
++	static struct dfault				\
++	__used						\
++	__section("dynamic_fault_tags")			\
++	__aligned(8) df = {				\
++		.tag	= CODE_TAG_INIT,		\
++		.class	= _class,			\
++		.enabled = STATIC_KEY_FALSE_INIT,	\
++	};						\
++							\
++	static_key_false(&df.enabled.key) &&		\
++		__dynamic_fault_enabled(&df);		\
++})
++
++#else
++
++#define dynamic_fault(_class)	false
++
++#endif /* CODETAG_FAULT_INJECTION */
++
++#define memory_fault()		dynamic_fault("memory")
++
++#endif /* _LINUX_DYNAMIC_FAULT_H */
+diff --git a/include/linux/slab.h b/include/linux/slab.h
+index 89273be35743..4be5a93ed15a 100644
+--- a/include/linux/slab.h
++++ b/include/linux/slab.h
+@@ -17,6 +17,7 @@
+ #include <linux/types.h>
+ #include <linux/workqueue.h>
+ #include <linux/percpu-refcount.h>
++#include <linux/dynamic_fault.h>
  
-+static struct codetag_ctx *next_ctx_from_ct(struct codetag_iterator *iter)
+ 
+ /*
+@@ -468,7 +469,7 @@ static inline void slab_tag_dec(const void *ptr) {}
+ 
+ #define krealloc_hooks(_p, _do_alloc)					\
+ ({									\
+-	void *_res = _do_alloc;						\
++	void *_res = !memory_fault() ? _do_alloc : NULL;		\
+ 	slab_tag_add(_p, _res);						\
+ 	_res;								\
+ })
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 2790848464f1..b7d03afbc808 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1982,6 +1982,12 @@ config FAULT_INJECTION_STACKTRACE_FILTER
+ 	help
+ 	  Provide stacktrace filter for fault-injection capabilities
+ 
++config CODETAG_FAULT_INJECTION
++	bool "Code tagging based fault injection"
++	select CODE_TAGGING
++	help
++	  Dynamic fault injection based on code tagging
++
+ config ARCH_HAS_KCOV
+ 	bool
+ 	help
+diff --git a/lib/Makefile b/lib/Makefile
+index 99f732156673..489ea000c528 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -231,6 +231,8 @@ obj-$(CONFIG_CODE_TAGGING) += codetag.o
+ obj-$(CONFIG_ALLOC_TAGGING) += alloc_tag.o
+ obj-$(CONFIG_PAGE_ALLOC_TAGGING) += pgalloc_tag.o
+ 
++obj-$(CONFIG_CODETAG_FAULT_INJECTION) += dynamic_fault.o
++
+ lib-$(CONFIG_GENERIC_BUG) += bug.o
+ 
+ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
+diff --git a/lib/dynamic_fault.c b/lib/dynamic_fault.c
+new file mode 100644
+index 000000000000..4c9cd18686be
+--- /dev/null
++++ b/lib/dynamic_fault.c
+@@ -0,0 +1,372 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <linux/ctype.h>
++#include <linux/debugfs.h>
++#include <linux/dynamic_fault.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/seq_buf.h>
++
++static struct codetag_type *cttype;
++
++bool __dynamic_fault_enabled(struct dfault *df)
 +{
-+	struct codetag_with_ctx *ctc;
-+	struct codetag_ctx *ctx = NULL;
-+	struct codetag *ct = iter->ct;
++	union dfault_state old, new;
++	unsigned int v = df->state.v;
++	bool ret;
 +
-+	while (ct) {
-+		if (!(ct->flags & CTC_FLAG_CTX_READY))
-+			goto next;
++	do {
++		old.v = new.v = v;
 +
-+		ctc = ct_to_ctc(ct);
-+		spin_lock(&ctc->ctx_lock);
-+		if (!list_empty(&ctc->ctx_head)) {
-+			ctx = list_first_entry(&ctc->ctx_head,
-+					       struct codetag_ctx, node);
-+			kref_get(&ctx->refcount);
++		if (new.enabled == DFAULT_disabled)
++			return false;
++
++		ret = df->frequency
++			? ++new.count >= df->frequency
++			: true;
++		if (ret)
++			new.count = 0;
++		if (ret && new.enabled == DFAULT_oneshot)
++			new.enabled = DFAULT_disabled;
++	} while ((v = cmpxchg(&df->state.v, old.v, new.v)) != old.v);
++
++	if (ret)
++		pr_debug("returned true for %s:%u", df->tag.filename, df->tag.lineno);
++
++	return ret;
++}
++EXPORT_SYMBOL(__dynamic_fault_enabled);
++
++static const char * const dfault_state_strs[] = {
++#define x(n)	#n,
++	DFAULT_STATES()
++#undef x
++	NULL
++};
++
++static void dynamic_fault_to_text(struct seq_buf *out, struct dfault *df)
++{
++	codetag_to_text(out, &df->tag);
++	seq_buf_printf(out, "class:%s %s \"", df->class,
++		       dfault_state_strs[df->state.enabled]);
++}
++
++struct dfault_query {
++	struct codetag_query q;
++
++	bool		set_enabled:1;
++	unsigned int	enabled:2;
++
++	bool		set_frequency:1;
++	unsigned int	frequency;
++};
++
++/*
++ * Search the tables for _dfault's which match the given
++ * `query' and apply the `flags' and `mask' to them.  Tells
++ * the user which dfault's were changed, or whether none
++ * were matched.
++ */
++static int dfault_change(struct dfault_query *query)
++{
++	struct codetag_iterator ct_iter;
++	struct codetag *ct;
++	unsigned int nfound = 0;
++
++	codetag_lock_module_list(cttype, true);
++	codetag_init_iter(&ct_iter, cttype);
++
++	while ((ct = codetag_next_ct(&ct_iter))) {
++		struct dfault *df = container_of(ct, struct dfault, tag);
++
++		if (!codetag_matches_query(&query->q, ct, ct_iter.cmod, df->class))
++			continue;
++
++		if (query->set_enabled &&
++		    query->enabled != df->state.enabled) {
++			if (query->enabled != DFAULT_disabled)
++				static_key_slow_inc(&df->enabled.key);
++			else if (df->state.enabled != DFAULT_disabled)
++				static_key_slow_dec(&df->enabled.key);
++
++			df->state.enabled = query->enabled;
 +		}
-+		spin_unlock(&ctc->ctx_lock);
-+		if (ctx)
++
++		if (query->set_frequency)
++			df->frequency = query->frequency;
++
++		pr_debug("changed %s:%d [%s]%s #%d %s",
++			 df->tag.filename, df->tag.lineno, df->tag.modname,
++			 df->tag.function, query->q.cur_index,
++			 dfault_state_strs[df->state.enabled]);
++
++		nfound++;
++	}
++
++	pr_debug("dfault: %u matches", nfound);
++
++	codetag_lock_module_list(cttype, false);
++
++	return nfound ? 0 : -ENOENT;
++}
++
++#define DFAULT_TOKENS()		\
++	x(disable,	0)	\
++	x(enable,	0)	\
++	x(oneshot,	0)	\
++	x(frequency,	1)
++
++enum dfault_token {
++#define x(name, nr_args)	TOK_##name,
++	DFAULT_TOKENS()
++#undef x
++};
++
++static const char * const dfault_token_strs[] = {
++#define x(name, nr_args)	#name,
++	DFAULT_TOKENS()
++#undef x
++	NULL
++};
++
++static unsigned int dfault_token_nr_args[] = {
++#define x(name, nr_args)	nr_args,
++	DFAULT_TOKENS()
++#undef x
++};
++
++static enum dfault_token str_to_token(const char *word, unsigned int nr_words)
++{
++	int tok = match_string(dfault_token_strs, ARRAY_SIZE(dfault_token_strs), word);
++
++	if (tok < 0) {
++		pr_debug("unknown keyword \"%s\"", word);
++		return tok;
++	}
++
++	if (nr_words < dfault_token_nr_args[tok]) {
++		pr_debug("insufficient arguments to \"%s\"", word);
++		return -EINVAL;
++	}
++
++	return tok;
++}
++
++static int dfault_parse_command(struct dfault_query *query,
++				enum dfault_token tok,
++				char *words[], size_t nr_words)
++{
++	unsigned int i = 0;
++	int ret;
++
++	switch (tok) {
++	case TOK_disable:
++		query->set_enabled = true;
++		query->enabled = DFAULT_disabled;
++		break;
++	case TOK_enable:
++		query->set_enabled = true;
++		query->enabled = DFAULT_enabled;
++		break;
++	case TOK_oneshot:
++		query->set_enabled = true;
++		query->enabled = DFAULT_oneshot;
++		break;
++	case TOK_frequency:
++		query->set_frequency = 1;
++		ret = kstrtouint(words[i++], 10, &query->frequency);
++		if (ret)
++			return ret;
++
++		if (!query->set_enabled) {
++			query->set_enabled = 1;
++			query->enabled = DFAULT_enabled;
++		}
++		break;
++	}
++
++	return i;
++}
++
++static int dynamic_fault_store(char *buf)
++{
++	struct dfault_query query = { NULL };
++#define MAXWORDS 9
++	char *tok, *words[MAXWORDS];
++	int ret, nr_words, i = 0;
++
++	buf = codetag_query_parse(&query.q, buf);
++	if (IS_ERR(buf))
++		return PTR_ERR(buf);
++
++	while ((tok = strsep_no_empty(&buf, " \t\r\n"))) {
++		if (nr_words == ARRAY_SIZE(words))
++			return -EINVAL;	/* ran out of words[] before bytes */
++		words[nr_words++] = tok;
++	}
++
++	while (i < nr_words) {
++		const char *tok_str = words[i++];
++		enum dfault_token tok = str_to_token(tok_str, nr_words - i);
++
++		if (tok < 0)
++			return tok;
++
++		ret = dfault_parse_command(&query, tok, words + i, nr_words - i);
++		if (ret < 0)
++			return ret;
++
++		i += ret;
++		BUG_ON(i > nr_words);
++	}
++
++	pr_debug("q->function=\"%s\" q->filename=\"%s\" "
++		 "q->module=\"%s\" q->line=%u-%u\n q->index=%u-%u",
++		 query.q.function, query.q.filename, query.q.module,
++		 query.q.first_line, query.q.last_line,
++		 query.q.first_index, query.q.last_index);
++
++	ret = dfault_change(&query);
++	if (ret < 0)
++		return ret;
++
++	return 0;
++}
++
++struct dfault_iter {
++	struct codetag_iterator ct_iter;
++
++	struct seq_buf		buf;
++	char			rawbuf[4096];
++};
++
++static int dfault_open(struct inode *inode, struct file *file)
++{
++	struct dfault_iter *iter;
++
++	iter = kzalloc(sizeof(*iter), GFP_KERNEL);
++	if (!iter)
++		return -ENOMEM;
++
++	codetag_lock_module_list(cttype, true);
++	codetag_init_iter(&iter->ct_iter, cttype);
++	codetag_lock_module_list(cttype, false);
++
++	file->private_data = iter;
++	seq_buf_init(&iter->buf, iter->rawbuf, sizeof(iter->rawbuf));
++	return 0;
++}
++
++static int dfault_release(struct inode *inode, struct file *file)
++{
++	struct dfault_iter *iter = file->private_data;
++
++	kfree(iter);
++	return 0;
++}
++
++struct user_buf {
++	char __user		*buf;	/* destination user buffer */
++	size_t			size;	/* size of requested read */
++	ssize_t			ret;	/* bytes read so far */
++};
++
++static int flush_ubuf(struct user_buf *dst, struct seq_buf *src)
++{
++	if (src->len) {
++		size_t bytes = min_t(size_t, src->len, dst->size);
++		int err = copy_to_user(dst->buf, src->buffer, bytes);
++
++		if (err)
++			return err;
++
++		dst->ret	+= bytes;
++		dst->buf	+= bytes;
++		dst->size	-= bytes;
++		src->len	-= bytes;
++		memmove(src->buffer, src->buffer + bytes, src->len);
++	}
++
++	return 0;
++}
++
++static ssize_t dfault_read(struct file *file, char __user *ubuf,
++			   size_t size, loff_t *ppos)
++{
++	struct dfault_iter *iter = file->private_data;
++	struct user_buf	buf = { .buf = ubuf, .size = size };
++	struct codetag *ct;
++	struct dfault *df;
++	int err;
++
++	codetag_lock_module_list(iter->ct_iter.cttype, true);
++	while (1) {
++		err = flush_ubuf(&buf, &iter->buf);
++		if (err || !buf.size)
 +			break;
-+next:
-+		ct = codetag_next_ct(iter);
++
++		ct = codetag_next_ct(&iter->ct_iter);
++		if (!ct)
++			break;
++
++		df = container_of(ct, struct dfault, tag);
++		dynamic_fault_to_text(&iter->buf, df);
++		seq_buf_putc(&iter->buf, '\n');
 +	}
++	codetag_lock_module_list(iter->ct_iter.cttype, false);
 +
-+	iter->ctx = ctx;
-+	return ctx;
++	return err ?: buf.ret;
 +}
 +
-+struct codetag_ctx *codetag_next_ctx(struct codetag_iterator *iter)
++/*
++ * File_ops->write method for <debugfs>/dynamic_fault/conrol.  Gathers the
++ * command text from userspace, parses and executes it.
++ */
++static ssize_t dfault_write(struct file *file, const char __user *ubuf,
++			    size_t len, loff_t *offp)
 +{
-+	struct codetag_ctx *ctx = iter->ctx;
-+	struct codetag_ctx *found = NULL;
++	char tmpbuf[256];
 +
-+	lockdep_assert_held(&iter->cttype->mod_lock);
++	if (len == 0)
++		return 0;
++	/* we don't check *offp -- multiple writes() are allowed */
++	if (len > sizeof(tmpbuf)-1)
++		return -E2BIG;
++	if (copy_from_user(tmpbuf, ubuf, len))
++		return -EFAULT;
++	tmpbuf[len] = '\0';
++	pr_debug("read %zu bytes from userspace", len);
 +
-+	if (!ctx)
-+		return next_ctx_from_ct(iter);
++	dynamic_fault_store(tmpbuf);
 +
-+	spin_lock(&ctx->ctc->ctx_lock);
-+	/*
-+	 * Do not advance if the object was isolated, restart at the same tag.
-+	 */
-+	if (!list_empty(&ctx->node)) {
-+		if (list_is_last(&ctx->node, &ctx->ctc->ctx_head)) {
-+			/* Finished with this tag, advance to the next */
-+			codetag_next_ct(iter);
-+		} else {
-+			found = list_next_entry(ctx, node);
-+			kref_get(&found->refcount);
-+		}
-+	}
-+	spin_unlock(&ctx->ctc->ctx_lock);
-+	kref_put(&ctx->refcount, iter->cttype->desc.free_ctx);
-+
-+	if (!found)
-+		return next_ctx_from_ct(iter);
-+
-+	iter->ctx = found;
-+	return found;
++	*offp += len;
++	return len;
 +}
 +
-+static struct codetag_type *find_cttype(struct codetag *ct)
++static const struct file_operations dfault_ops = {
++	.owner	= THIS_MODULE,
++	.open	= dfault_open,
++	.release = dfault_release,
++	.read	= dfault_read,
++	.write	= dfault_write
++};
++
++static int __init dynamic_fault_init(void)
 +{
-+	struct codetag_module *cmod;
-+	struct codetag_type *cttype;
-+	unsigned long mod_id;
-+	unsigned long tmp;
++	const struct codetag_type_desc desc = {
++		.section = "dynamic_fault_tags",
++		.tag_size = sizeof(struct dfault),
++	};
++	struct dentry *debugfs_file;
 +
-+	mutex_lock(&codetag_lock);
-+	list_for_each_entry(cttype, &codetag_types, link) {
-+		down_read(&cttype->mod_lock);
-+		idr_for_each_entry_ul(&cttype->mod_idr, cmod, tmp, mod_id) {
-+			if (ct >= cmod->range.start && ct < cmod->range.stop) {
-+				up_read(&cttype->mod_lock);
-+				goto found;
-+			}
-+		}
-+		up_read(&cttype->mod_lock);
-+	}
-+	cttype = NULL;
-+found:
-+	mutex_unlock(&codetag_lock);
++	cttype = codetag_register_type(&desc);
++	if (IS_ERR_OR_NULL(cttype))
++		return PTR_ERR(cttype);
 +
-+	return cttype;
++	debugfs_file = debugfs_create_file("dynamic_faults", 0666, NULL, NULL, &dfault_ops);
++	if (IS_ERR(debugfs_file))
++		return PTR_ERR(debugfs_file);
++
++	return 0;
 +}
-+
-+bool codetag_enable_ctx(struct codetag_with_ctx *ctc, bool enable)
-+{
-+	struct codetag_type *cttype = find_cttype(&ctc->ct);
-+
-+	if (!cttype || !cttype->desc.free_ctx)
-+		return false;
-+
-+	lockdep_assert_held(&cttype->mod_lock);
-+	BUG_ON(!rwsem_is_locked(&cttype->mod_lock));
-+
-+	if (codetag_ctx_enabled(ctc) == enable)
-+		return false;
-+
-+	if (enable) {
-+		/* Initialize context capture fields only once */
-+		if (!(ctc->ct.flags & CTC_FLAG_CTX_READY)) {
-+			spin_lock_init(&ctc->ctx_lock);
-+			INIT_LIST_HEAD(&ctc->ctx_head);
-+			ctc->ct.flags |= CTC_FLAG_CTX_READY;
-+		}
-+		ctc->ct.flags |= CTC_FLAG_CTX_ENABLED;
-+	} else {
-+		/*
-+		 * The list of context objects is intentionally left untouched.
-+		 * It can be read back and if context capture is re-enablied it
-+		 * will append new objects.
-+		 */
-+		ctc->ct.flags &= ~CTC_FLAG_CTX_ENABLED;
-+	}
-+
-+	return true;
-+}
-+
-+bool codetag_has_ctx(struct codetag_with_ctx *ctc)
-+{
-+	bool no_ctx;
-+
-+	if (!(ctc->ct.flags & CTC_FLAG_CTX_READY))
-+		return false;
-+
-+	spin_lock(&ctc->ctx_lock);
-+	no_ctx = list_empty(&ctc->ctx_head);
-+	spin_unlock(&ctc->ctx_lock);
-+
-+	return !no_ctx;
-+}
-+
- void codetag_to_text(struct seq_buf *out, struct codetag *ct)
- {
- 	seq_buf_printf(out, "%s:%u module:%s func:%s",
++module_init(dynamic_fault_init);
 -- 
 2.37.2.672.g94769d06f0-goog
 
