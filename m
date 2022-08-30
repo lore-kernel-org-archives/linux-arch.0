@@ -2,119 +2,294 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BAB20C0502A
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 07:51:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 181F6ECAAD4
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 08:07:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229579AbiH3Hv2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Aug 2022 03:51:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54700 "EHLO
+        id S229550AbiH3IHH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Aug 2022 04:07:07 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54650 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230071AbiH3Hv1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 03:51:27 -0400
-Received: from mail-qt1-f174.google.com (mail-qt1-f174.google.com [209.85.160.174])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 82473C875E;
-        Tue, 30 Aug 2022 00:51:25 -0700 (PDT)
-Received: by mail-qt1-f174.google.com with SMTP id cb8so7969339qtb.0;
-        Tue, 30 Aug 2022 00:51:25 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc;
-        bh=ZkiMUlokxu0ZjwJhIo5t8XhexBqN5FwsjKKznRVGZ34=;
-        b=axQ9vdhYx5urMZeQd6VwcPt1Ffm82QfTn6+rGRKmql3B8ptOLQcuarfClxWP45+/de
-         G5pQX+OySyHKLO54/I3mgqnKywVnsmeuASbNuRsowaBX/I8A7TtivF1qnYcozsd+6Wl5
-         gmMHi9gZSAqNJqLUrnu5uP4iKh7h0/yT/w/NQh3I1DV5/CwVyoCoB/wRFwOTNckEhPzw
-         zNim08/aTmhh4NzWwnky+lnTsIPexx6WSHTPbUFMyPUs2C6rKw9L0xOK/Q1o2IqyAKVT
-         ekcAMcsijDST1YfOTcNOj96V3FKk7sRnf5bgoS7WJkikgXqLxvievu8tqH3el6jcD7LY
-         JK7w==
-X-Gm-Message-State: ACgBeo0yk2vMfc0WDs5GHAG/GfHydR9FVnRcBoSyAGHW0/cG72hKbaCa
-        wEs1wySwpvSo4OsSWHJsx3vmE+ejiLb+jA==
-X-Google-Smtp-Source: AA6agR4T+HVEpLKyj8/eaZ4NCF32af2XmOqgREgWnT0IoGqV6+X2JtCi/XH3K5qIJ2XIQ6EyiYhzGQ==
-X-Received: by 2002:ac8:5fd6:0:b0:343:4b4:1022 with SMTP id k22-20020ac85fd6000000b0034304b41022mr13554515qta.616.1661845883989;
-        Tue, 30 Aug 2022 00:51:23 -0700 (PDT)
-Received: from mail-yw1-f181.google.com (mail-yw1-f181.google.com. [209.85.128.181])
-        by smtp.gmail.com with ESMTPSA id c7-20020ac80547000000b0031ee918e9f9sm6370689qth.39.2022.08.30.00.51.23
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 30 Aug 2022 00:51:23 -0700 (PDT)
-Received: by mail-yw1-f181.google.com with SMTP id 00721157ae682-32a09b909f6so254064777b3.0;
-        Tue, 30 Aug 2022 00:51:23 -0700 (PDT)
-X-Received: by 2002:a25:d80b:0:b0:696:6d79:4891 with SMTP id
- p11-20020a25d80b000000b006966d794891mr11379827ybg.89.1661845882749; Tue, 30
- Aug 2022 00:51:22 -0700 (PDT)
+        with ESMTP id S229543AbiH3IHG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 04:07:06 -0400
+X-Greylist: delayed 375 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 30 Aug 2022 01:07:04 PDT
+Received: from forward101o.mail.yandex.net (forward101o.mail.yandex.net [37.140.190.181])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4E4AF564E2
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 01:07:04 -0700 (PDT)
+Received: from myt6-654ec0a0ab93.qloud-c.yandex.net (myt6-654ec0a0ab93.qloud-c.yandex.net [IPv6:2a02:6b8:c12:1d80:0:640:654e:c0a0])
+        by forward101o.mail.yandex.net (Yandex) with ESMTP id 8888B369F1C7;
+        Tue, 30 Aug 2022 10:59:21 +0300 (MSK)
+Received: by myt6-654ec0a0ab93.qloud-c.yandex.net (smtp/Yandex) with ESMTPSA id ZnRIFBzOVH-xKierR5b;
+        Tue, 30 Aug 2022 10:59:21 +0300
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits))
+        (Client certificate not present)
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=syntacore.com; s=mail; t=1661846361;
+        bh=suwIPIwhwykLHy7PBaeGZiwsLDJTUE38xFBbycEQO0o=;
+        h=Message-Id:Date:Cc:Subject:To:From;
+        b=rrkvYlci/OnWJftjNnSM38I21699Qk7tiDzftZtVciCHsMBo3e0TORgL7GwLfNFvA
+         d+k5Euhh5s3gZYY6sfKqAf6voA3ckCZSsck0SsQZMBVyE920mKFw0D3LH+4aKTGJgh
+         cISSC8KLAVWvVjv+IMRtC1VkoJzfpx5Q1Ul9gkL8=
+Authentication-Results: myt6-654ec0a0ab93.qloud-c.yandex.net; dkim=pass header.i=@syntacore.com
+From:   Vladimir Isaev <vladimir.isaev@syntacore.com>
+To:     linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org
+Cc:     Vladimir Isaev <vladimir.isaev@syntacore.com>
+Subject: [PATCH] riscv: Fix permissions for all mm's during mm init
+Date:   Tue, 30 Aug 2022 10:59:00 +0300
+Message-Id: <20220830075900.510105-1-vladimir.isaev@syntacore.com>
+X-Mailer: git-send-email 2.37.2
 MIME-Version: 1.0
-References: <cover.1661789204.git.christophe.leroy@csgroup.eu> <621cf12492b03bb251d30078ae1594788d74529f.1661789204.git.christophe.leroy@csgroup.eu>
-In-Reply-To: <621cf12492b03bb251d30078ae1594788d74529f.1661789204.git.christophe.leroy@csgroup.eu>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Tue, 30 Aug 2022 09:51:11 +0200
-X-Gmail-Original-Message-ID: <CAMuHMdVjkqpPqtmpHOfZsxappRf42x+V+Ze7qFAaMWPE6wzrOQ@mail.gmail.com>
-Message-ID: <CAMuHMdVjkqpPqtmpHOfZsxappRf42x+V+Ze7qFAaMWPE6wzrOQ@mail.gmail.com>
-Subject: Re: [PATCH v1 1/8] gpio: aggregator: Stop using ARCH_NR_GPIOS
-To:     Christophe Leroy <christophe.leroy@csgroup.eu>
-Cc:     Linus Walleij <linus.walleij@linaro.org>,
-        Bartosz Golaszewski <brgl@bgdev.pl>,
-        Keerthy <j-keerthy@ti.com>, Russell King <linux@armlinux.org.uk>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        "open list:GPIO SUBSYSTEM" <linux-gpio@vger.kernel.org>,
-        Linux ARM <linux-arm-kernel@lists.infradead.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        "open list:DOCUMENTATION" <linux-doc@vger.kernel.org>,
-        "the arch/x86 maintainers" <x86@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Christophe,
+It is possible to have more than one mm (init_mm) during memory
+permission fixes. In my case it was caused by request_module
+from drivers/net/phy/phy_device.c and leads to following Oops
+during free_initmem() on RV32 platform:
+     Unable to handle kernel paging request at virtual address c0800000
+     Oops [#1]
+     Modules linked in:
+     CPU: 0 PID: 1 Comm: swapper Not tainted 5.15.45
+     Hardware name: Syntacore SCR5 SDK board (DT)
+     epc : __memset+0x58/0xf4
+      ra : free_reserved_area+0xfa/0x15a
+     epc : c02b26ac ra : c00eb588 sp : c1c1fed0
+      gp : c1898690 tp : c1c98000 t0 : c0800000
+      t1 : ffffffff t2 : 00000000 s0 : c1c1ff20
+      s1 : c189a000 a0 : c0800000 a1 : cccccccc
+      a2 : 00001000 a3 : c0801000 a4 : 00000000
+      a5 : 00800000 a6 : fef09000 a7 : 00000000
+      s2 : c0e57000 s3 : c10edcf8 s4 : 000000cc
+      s5 : ffffefff s6 : c188a9f4 s7 : 00000001
+      s8 : c0800000 s9 : fef1b000 s10: c10ee000
+      s11: c189a000 t3 : 00000000 t4 : 00000000
+      t5 : 00000000 t6 : 00000001
+     status: 00000120 badaddr: c0800000 cause: 0000000f
+     [<c0488658>] free_initmem+0x204/0x222
+     [<c048d05a>] kernel_init+0x32/0xfc
+     [<c0002f76>] ret_from_exception+0x0/0xc
+     ---[ end trace 7a5e2b002350b528 ]---
 
-On Mon, Aug 29, 2022 at 6:15 PM Christophe Leroy
-<christophe.leroy@csgroup.eu> wrote:
-> ARCH_NR_GPIOS is used locally in aggr_parse() as the maximum number
-> of GPIOs to be aggregated together by the driver since
-> commit ec75039d5550 ("gpio: aggregator: Use bitmap_parselist() for
-> parsing GPIO offsets").
->
-> Don't rely on the total possible number of GPIOs in the system but
-> define a local arbitrary macro for that, set to 512 which should be
-> large enough as it is also the default value for ARCH_NR_GPIOS.
->
-> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+This is because request_module attempted to modprobe module, so it created
+new mm with the copy of kernel's page table. And this copy won't be updated
+in case of 4M pages and RV32 (pgd is the leaf).
 
-Thanks for your patch!
+To fix this we can update protection bits for all of existing mm-s, the same as
+ARM does, see 08925c2f124f1 ('ARM: 8464/1: Update all mm structures with section adjustments').
 
-> --- a/drivers/gpio/gpio-aggregator.c
-> +++ b/drivers/gpio/gpio-aggregator.c
-> @@ -56,6 +56,8 @@ static int aggr_add_gpio(struct gpio_aggregator *aggr, const char *key,
->         return 0;
->  }
->
-> +#define AGGREGATOR_MAX_GPIOS 512
+Signed-off-by: Vladimir Isaev <vladimir.isaev@syntacore.com>
+---
+ arch/riscv/include/asm/set_memory.h | 20 +++--------
+ arch/riscv/kernel/setup.c           | 11 ------
+ arch/riscv/mm/init.c                | 29 ++++++++++++---
+ arch/riscv/mm/pageattr.c            | 55 ++++++++++++++++++++++++-----
+ 4 files changed, 75 insertions(+), 40 deletions(-)
 
-I would insert this definition at the top, so it is not buried inside the code,
-and easier to spot.
+diff --git a/arch/riscv/include/asm/set_memory.h b/arch/riscv/include/asm/set_memory.h
+index a2c14d4b3993..bb0f6b4ed86b 100644
+--- a/arch/riscv/include/asm/set_memory.h
++++ b/arch/riscv/include/asm/set_memory.h
+@@ -16,28 +16,16 @@ int set_memory_rw(unsigned long addr, int numpages);
+ int set_memory_x(unsigned long addr, int numpages);
+ int set_memory_nx(unsigned long addr, int numpages);
+ int set_memory_rw_nx(unsigned long addr, int numpages);
+-static __always_inline int set_kernel_memory(char *startp, char *endp,
+-					     int (*set_memory)(unsigned long start,
+-							       int num_pages))
+-{
+-	unsigned long start = (unsigned long)startp;
+-	unsigned long end = (unsigned long)endp;
+-	int num_pages = PAGE_ALIGN(end - start) >> PAGE_SHIFT;
+-
+-	return set_memory(start, num_pages);
+-}
++void fix_kernel_mem_early(char *startp, char *endp, pgprot_t set_mask,
++			  pgprot_t clear_mask);
+ #else
+ static inline int set_memory_ro(unsigned long addr, int numpages) { return 0; }
+ static inline int set_memory_rw(unsigned long addr, int numpages) { return 0; }
+ static inline int set_memory_x(unsigned long addr, int numpages) { return 0; }
+ static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
+ static inline int set_memory_rw_nx(unsigned long addr, int numpages) { return 0; }
+-static inline int set_kernel_memory(char *startp, char *endp,
+-				    int (*set_memory)(unsigned long start,
+-						      int num_pages))
+-{
+-	return 0;
+-}
++static inline void fix_kernel_mem_early(char *startp, char *endp,
++					pgprot_t set_mask, pgprot_t clear_mask) { }
+ #endif
+ 
+ int set_direct_map_invalid_noflush(struct page *page);
+diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
+index 95ef6e2bf45c..17eae1406092 100644
+--- a/arch/riscv/kernel/setup.c
++++ b/arch/riscv/kernel/setup.c
+@@ -27,7 +27,6 @@
+ #include <asm/early_ioremap.h>
+ #include <asm/pgtable.h>
+ #include <asm/setup.h>
+-#include <asm/set_memory.h>
+ #include <asm/sections.h>
+ #include <asm/sbi.h>
+ #include <asm/tlbflush.h>
+@@ -318,13 +317,3 @@ static int __init topology_init(void)
+ 	return 0;
+ }
+ subsys_initcall(topology_init);
+-
+-void free_initmem(void)
+-{
+-	if (IS_ENABLED(CONFIG_STRICT_KERNEL_RWX))
+-		set_kernel_memory(lm_alias(__init_begin), lm_alias(__init_end),
+-				  IS_ENABLED(CONFIG_64BIT) ?
+-					set_memory_rw : set_memory_rw_nx);
+-
+-	free_initmem_default(POISON_FREE_INITMEM);
+-}
+diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
+index b56a0a75533f..978202712535 100644
+--- a/arch/riscv/mm/init.c
++++ b/arch/riscv/mm/init.c
+@@ -16,7 +16,6 @@
+ #include <linux/of_fdt.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/libfdt.h>
+-#include <linux/set_memory.h>
+ #include <linux/dma-map-ops.h>
+ #include <linux/crash_dump.h>
+ #include <linux/hugetlb.h>
+@@ -28,6 +27,7 @@
+ #include <asm/io.h>
+ #include <asm/ptdump.h>
+ #include <asm/numa.h>
++#include <asm/set_memory.h>
+ 
+ #include "../kernel/head.h"
+ 
+@@ -714,10 +714,14 @@ static __init pgprot_t pgprot_from_va(uintptr_t va)
+ 
+ void mark_rodata_ro(void)
+ {
+-	set_kernel_memory(__start_rodata, _data, set_memory_ro);
+-	if (IS_ENABLED(CONFIG_64BIT))
+-		set_kernel_memory(lm_alias(__start_rodata), lm_alias(_data),
+-				  set_memory_ro);
++	pgprot_t set_mask = __pgprot(_PAGE_READ);
++	pgprot_t clear_mask = __pgprot(_PAGE_WRITE);
++
++	fix_kernel_mem_early(__start_rodata, _data, set_mask, clear_mask);
++	if (IS_ENABLED(CONFIG_64BIT)) {
++		fix_kernel_mem_early(lm_alias(__start_rodata), lm_alias(_data),
++				     set_mask, clear_mask);
++	}
+ 
+ 	debug_checkwx();
+ }
+@@ -1243,3 +1247,18 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node,
+ 	return vmemmap_populate_basepages(start, end, node, NULL);
+ }
+ #endif
++
++void free_initmem(void)
++{
++	pgprot_t set_mask = __pgprot(_PAGE_READ | _PAGE_WRITE);
++	pgprot_t clear_mask = IS_ENABLED(CONFIG_64BIT) ?
++			      __pgprot(0) : __pgprot(_PAGE_EXEC);
++
++	if (IS_ENABLED(CONFIG_STRICT_KERNEL_RWX)) {
++		fix_kernel_mem_early(lm_alias(__init_begin),
++				     lm_alias(__init_end),
++				     set_mask, clear_mask);
++	}
++
++	free_initmem_default(POISON_FREE_INITMEM);
++}
+diff --git a/arch/riscv/mm/pageattr.c b/arch/riscv/mm/pageattr.c
+index 5e49e4b4a4cc..10a4ee313083 100644
+--- a/arch/riscv/mm/pageattr.c
++++ b/arch/riscv/mm/pageattr.c
+@@ -5,6 +5,7 @@
+ 
+ #include <linux/pagewalk.h>
+ #include <linux/pgtable.h>
++#include <linux/sched.h>
+ #include <asm/tlbflush.h>
+ #include <asm/bitops.h>
+ #include <asm/set_memory.h>
+@@ -104,24 +105,62 @@ static const struct mm_walk_ops pageattr_ops = {
+ 	.pte_hole = pageattr_pte_hole,
+ };
+ 
+-static int __set_memory(unsigned long addr, int numpages, pgprot_t set_mask,
+-			pgprot_t clear_mask)
++static int __set_memory_mm(struct mm_struct  *mm, unsigned long start,
++			   unsigned long end, pgprot_t set_mask,
++			   pgprot_t clear_mask)
+ {
+ 	int ret;
+-	unsigned long start = addr;
+-	unsigned long end = start + PAGE_SIZE * numpages;
+ 	struct pageattr_masks masks = {
+ 		.set_mask = set_mask,
+ 		.clear_mask = clear_mask
+ 	};
+ 
++	mmap_read_lock(mm);
++	ret = walk_page_range_novma(mm, start, end, &pageattr_ops, NULL,
++				    &masks);
++	mmap_read_unlock(mm);
++
++	return ret;
++}
++
++void fix_kernel_mem_early(char *startp, char *endp, pgprot_t set_mask,
++			  pgprot_t clear_mask)
++{
++	struct task_struct *t, *s;
++
++	unsigned long start = (unsigned long)startp;
++	unsigned long end = PAGE_ALIGN((unsigned long)endp);
++
++	__set_memory_mm(current->active_mm, start, end, set_mask, clear_mask);
++	__set_memory_mm(&init_mm, start, end, set_mask, clear_mask);
++
++	rcu_read_lock();
++	for_each_process(t) {
++		if (t->flags & PF_KTHREAD)
++			continue;
++		for_each_thread(t, s) {
++			if (s->mm) {
++				__set_memory_mm(s->mm, start, end, set_mask,
++						clear_mask);
++			}
++		}
++	}
++	rcu_read_unlock();
++
++	flush_tlb_kernel_range(start, end);
++}
++
++static int __set_memory(unsigned long addr, int numpages, pgprot_t set_mask,
++			pgprot_t clear_mask)
++{
++	int ret;
++	unsigned long start = addr;
++	unsigned long end = start + PAGE_SIZE * numpages;
++
+ 	if (!numpages)
+ 		return 0;
+ 
+-	mmap_read_lock(&init_mm);
+-	ret =  walk_page_range_novma(&init_mm, start, end, &pageattr_ops, NULL,
+-				     &masks);
+-	mmap_read_unlock(&init_mm);
++	ret = __set_memory_mm(&init_mm, start, end, set_mask, clear_mask);
+ 
+ 	flush_tlb_kernel_range(start, end);
+ 
+-- 
+2.37.2
 
-> +
->  static int aggr_parse(struct gpio_aggregator *aggr)
->  {
->         char *args = skip_spaces(aggr->args);
-
-The rest LGTM, so
-Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
