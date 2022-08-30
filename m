@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C8A2C3DA6B
-	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 21:52:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2DEF3C3DA6B
+	for <linux-arch@archiver.kernel.org>; Tue, 30 Aug 2022 21:52:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232089AbiH3Vw2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 30 Aug 2022 17:52:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60040 "EHLO
+        id S232043AbiH3Vwv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 30 Aug 2022 17:52:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55732 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231901AbiH3Vvm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 17:51:42 -0400
+        with ESMTP id S231960AbiH3VwF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 30 Aug 2022 17:52:05 -0400
 Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 159122656F
-        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:04 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id i194-20020a253bcb000000b00676d86fc5d7so708985yba.9
-        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:04 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 062237C193
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:14 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id k126-20020a253d84000000b0068bb342010dso713216yba.1
+        for <linux-arch@vger.kernel.org>; Tue, 30 Aug 2022 14:50:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc;
-        bh=w9gVcgQRdZitDZxjqrDoJq6Gs/0aEjUQjbVWDU06BvI=;
-        b=Q1PzL2bThBJ4iiSWL0d7IheB5VfLNxWH1gqUohex8OE2QSiGR/fpg9gqy0yixW+Isb
-         pxJFdeTMvRwdBwAcg7flVNtX1j9eJ9C9tS/tDg05AImXSgWHVN2GUlakKwYKuvgZhIEZ
-         53DiKTHKeM16TZHvnMmCYNdJyP0y2AnTT97Oi3Zv6WKFja6rmmzzL6Teq1ArHTNPI2TC
-         NVjO3wFAVKlA4rp9aDdNwzT8IVNC+AXM7IGd6mywh1LPpaNIM2cA8K+l/DF+pItxSR+n
-         jG8tcEuC2nhcd/7nioVG87S+Xo+Y8ZaGYAgx8HTdNWhJ4JbCh9BURQy523rvt+lhf5xu
-         HCDw==
+        bh=vjjGk6pymrjMSyrfbdxQ3/p6O8Kus1ISFMk96O5o39I=;
+        b=OXRgptnZ7i+ICNigJkBWT2cSYFZtaNbBth28h0zoZMO0yy1KlhLJWbOL/agYd17Ge+
+         H8eygOzvmZZ/skvQrD81gmRZiypc2lcG0QHZKUmUE/ni+JmGucTrUU1yExVGKLt9MJij
+         ftmKNsJcjdyi4dhaD13stFQzNJ1xbGRin4GkFtVHsn7nMBn5wS02jls3bfzzV07WlYsq
+         mi9CGSRXCSnkh+sEnyExpA/okvKqytcPBHSo0PnRH7aCU5Q1xfzVqiAqvHEkIxcqVnHs
+         2oBNbQXE+ro549f5zm45uHNrO1sona3NzY/FqJ45DQDnvKS22ifnzF7B5XwlNd/5xlfX
+         M9KQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc;
-        bh=w9gVcgQRdZitDZxjqrDoJq6Gs/0aEjUQjbVWDU06BvI=;
-        b=NkQF9dShuXlBgyVqXyb23A21xJLYTVZQefGoZXM++cyjNGERFGkypHb4UNGeMva/+T
-         hbWT+zda4gVST0yiRauIxNye7HkyEh2kEhxMqQ3vBMgoi1Bt98YlvdR/W4dBlePBJonN
-         yPB+aatv2TJcUBqln2LVfAuRIdi6D2IXQm3C09dPG9D/GUoC5VO+qnu5Ek1mtjvs7x49
-         vpwyN+4KjekRkfBtiaoj3KSE2TsgQegZ3pAWVlHhJiMwi6IaD5gPO03WpXuOMF5M6qMv
-         p9bKpUt5tR36Cd5xU1q2GXK1XQcdq/xzezLbVzXWM2kG9iIzA+XQGRVK84r8l9nEALdF
-         kUCw==
-X-Gm-Message-State: ACgBeo1hnTglGtWvrnnjL/HA729hyupNRNzGbEXzPTUG07a50CORrZWh
-        vTgpoGQDc9yuTZ/1TXoKjGN0UJPQkU8=
-X-Google-Smtp-Source: AA6agR4vG82TMLNZbe9b42TzeXUrvZHL0ChO+lv1LMjTJEyr7xCSEiF1DQ2YaYAniXhteJjohj+5Rf5pvb8=
+        bh=vjjGk6pymrjMSyrfbdxQ3/p6O8Kus1ISFMk96O5o39I=;
+        b=50kFWpilNj1MFRHqqJUX1i/ZYrByQXwyrJQFyhIWt+PPi91l0LyVgO2wGu5nvZ0lWV
+         azia7tVZlyKigARKNGsMCSelFmOen8a32r+WvjAeDmGlOrvzMKBV5cz2YbXriunUs9Tw
+         loYXLoPtzozJEi2jnyjBG+zZf0HrPV+5eT2N7LCWJxfcbda4PXRXQmRu8CD78JZE9ggY
+         CQ9SUJLAA035BXzJ01M5E7UL6OL6yDgWtCSaXhQjrVCRPRliKPuTitbMjfnFqPspeAOr
+         piOwfhFvqjDIvz24WwUQT1lpEErTsFhxc6MRhkHQLDrn9XpCUsMyhHZIKXmFJebzsiMN
+         vhLA==
+X-Gm-Message-State: ACgBeo2HvN/hiO9PmGSe7Px4XQ0/CC9F/UbiPdbWSxvzV6tuwFOMR5x0
+        zth9SQD7zqpZkPIn0385QBnXUzDr8TQ=
+X-Google-Smtp-Source: AA6agR4vIoEARtwRV51vchZbtFRCbo5XPnJmQ5jWl1WbEyyresfSAVBl15tPztqHAfgzavikcDXhMgmO3BY=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:200:a005:55b3:6c26:b3e4])
- (user=surenb job=sendgmr) by 2002:a25:e6c6:0:b0:695:f4dc:8c4f with SMTP id
- d189-20020a25e6c6000000b00695f4dc8c4fmr13235724ybh.329.1661896203524; Tue, 30
- Aug 2022 14:50:03 -0700 (PDT)
-Date:   Tue, 30 Aug 2022 14:49:04 -0700
+ (user=surenb job=sendgmr) by 2002:a81:f47:0:b0:31f:434b:5ee with SMTP id
+ 68-20020a810f47000000b0031f434b05eemr15734874ywp.383.1661896214287; Tue, 30
+ Aug 2022 14:50:14 -0700 (PDT)
+Date:   Tue, 30 Aug 2022 14:49:08 -0700
 In-Reply-To: <20220830214919.53220-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20220830214919.53220-1-surenb@google.com>
 X-Mailer: git-send-email 2.37.2.672.g94769d06f0-goog
-Message-ID: <20220830214919.53220-16-surenb@google.com>
-Subject: [RFC PATCH 15/30] lib: introduce slab allocation tagging
+Message-ID: <20220830214919.53220-20-surenb@google.com>
+Subject: [RFC PATCH 19/30] move stack capture functionality into a separate
+ function for reuse
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -78,176 +79,228 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Introduce CONFIG_SLAB_ALLOC_TAGGING which provides helper functions
-to easily instrument slab allocators and adds a codetag_ref field into
-slabobj_ext to store a pointer to the allocation tag associated with
-the code that allocated the slab object.
+Make save_stack() function part of stackdepot API to be used outside of
+page_owner. Also rename task_struct's in_page_owner to in_capture_stack
+flag to better convey the wider use of this flag.
 
 Signed-off-by: Suren Baghdasaryan <surenb@google.com>
-Co-developed-by: Kent Overstreet <kent.overstreet@linux.dev>
-Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 ---
- include/linux/memcontrol.h |  5 +++++
- include/linux/slab.h       | 25 +++++++++++++++++++++++++
- include/linux/slab_def.h   |  2 +-
- include/linux/slub_def.h   |  4 ++--
- lib/Kconfig.debug          | 11 +++++++++++
- mm/slab_common.c           | 33 +++++++++++++++++++++++++++++++++
- 6 files changed, 77 insertions(+), 3 deletions(-)
+ include/linux/sched.h      |  6 ++--
+ include/linux/stackdepot.h |  3 ++
+ lib/stackdepot.c           | 68 ++++++++++++++++++++++++++++++++++++++
+ mm/page_owner.c            | 52 ++---------------------------
+ 4 files changed, 77 insertions(+), 52 deletions(-)
 
-diff --git a/include/linux/memcontrol.h b/include/linux/memcontrol.h
-index 315399f77173..97c0153f0247 100644
---- a/include/linux/memcontrol.h
-+++ b/include/linux/memcontrol.h
-@@ -232,7 +232,12 @@ struct obj_cgroup {
-  * if MEMCG_DATA_OBJEXTS is set.
-  */
- struct slabobj_ext {
-+#ifdef CONFIG_MEMCG_KMEM
- 	struct obj_cgroup *objcg;
-+#endif
-+#ifdef CONFIG_SLAB_ALLOC_TAGGING
-+	union codetag_ref ref;
-+#endif
- } __aligned(8);
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index e7b2f8a5c711..d06cad6c14bd 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -930,9 +930,9 @@ struct task_struct {
+ 	/* Stalled due to lack of memory */
+ 	unsigned			in_memstall:1;
+ #endif
+-#ifdef CONFIG_PAGE_OWNER
+-	/* Used by page_owner=on to detect recursion in page tracking. */
+-	unsigned			in_page_owner:1;
++#ifdef CONFIG_STACKDEPOT
++	/* Used by stack_depot_capture_stack to detect recursion. */
++	unsigned			in_capture_stack:1;
+ #endif
+ #ifdef CONFIG_EVENTFD
+ 	/* Recursion prevention for eventfd_signal() */
+diff --git a/include/linux/stackdepot.h b/include/linux/stackdepot.h
+index bc2797955de9..8dc9fdb2c4dd 100644
+--- a/include/linux/stackdepot.h
++++ b/include/linux/stackdepot.h
+@@ -64,4 +64,7 @@ int stack_depot_snprint(depot_stack_handle_t handle, char *buf, size_t size,
  
- /*
-diff --git a/include/linux/slab.h b/include/linux/slab.h
-index 55ae3ea864a4..5a198aa02a08 100644
---- a/include/linux/slab.h
-+++ b/include/linux/slab.h
-@@ -438,6 +438,31 @@ static __always_inline unsigned int __kmalloc_index(size_t size,
- #define kmalloc_index(s) __kmalloc_index(s, true)
- #endif /* !CONFIG_SLOB */
+ void stack_depot_print(depot_stack_handle_t stack);
  
-+#ifdef CONFIG_SLAB_ALLOC_TAGGING
++bool stack_depot_capture_init(void);
++depot_stack_handle_t stack_depot_capture_stack(gfp_t flags);
 +
-+#include <linux/alloc_tag.h>
+ #endif
+diff --git a/lib/stackdepot.c b/lib/stackdepot.c
+index e73fda23388d..c8615bd6dc25 100644
+--- a/lib/stackdepot.c
++++ b/lib/stackdepot.c
+@@ -514,3 +514,71 @@ depot_stack_handle_t stack_depot_save(unsigned long *entries,
+ 	return __stack_depot_save(entries, nr_entries, alloc_flags, true);
+ }
+ EXPORT_SYMBOL_GPL(stack_depot_save);
 +
-+union codetag_ref *get_slab_tag_ref(const void *objp);
++static depot_stack_handle_t recursion_handle;
++static depot_stack_handle_t failure_handle;
 +
-+#define slab_tag_add(_old, _new)					\
-+do {									\
-+	if (!ZERO_OR_NULL_PTR(_new) && _old != _new)			\
-+		alloc_tag_add(get_slab_tag_ref(_new), __ksize(_new));	\
-+} while (0)
-+
-+static inline void slab_tag_dec(const void *ptr)
++static __always_inline depot_stack_handle_t create_custom_stack(void)
 +{
-+	if (!ZERO_OR_NULL_PTR(ptr))
-+		alloc_tag_sub(get_slab_tag_ref(ptr), __ksize(ptr));
++	unsigned long entries[4];
++	unsigned int nr_entries;
++
++	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 0);
++	return stack_depot_save(entries, nr_entries, GFP_KERNEL);
 +}
 +
-+#else
-+
-+#define slab_tag_add(_old, _new) do {} while (0)
-+static inline void slab_tag_dec(const void *ptr) {}
-+
-+#endif
-+
- void *__kmalloc(size_t size, gfp_t flags) __assume_kmalloc_alignment __alloc_size(1);
- void *kmem_cache_alloc(struct kmem_cache *s, gfp_t flags) __assume_slab_alignment __malloc;
- void *kmem_cache_alloc_lru(struct kmem_cache *s, struct list_lru *lru,
-diff --git a/include/linux/slab_def.h b/include/linux/slab_def.h
-index e24c9aff6fed..25feb5f7dc32 100644
---- a/include/linux/slab_def.h
-+++ b/include/linux/slab_def.h
-@@ -106,7 +106,7 @@ static inline void *nearest_obj(struct kmem_cache *cache, const struct slab *sla
-  *   reciprocal_divide(offset, cache->reciprocal_buffer_size)
-  */
- static inline unsigned int obj_to_index(const struct kmem_cache *cache,
--					const struct slab *slab, void *obj)
-+					const struct slab *slab, const void *obj)
- {
- 	u32 offset = (obj - slab->s_mem);
- 	return reciprocal_divide(offset, cache->reciprocal_buffer_size);
-diff --git a/include/linux/slub_def.h b/include/linux/slub_def.h
-index f9c68a9dac04..940c146768d4 100644
---- a/include/linux/slub_def.h
-+++ b/include/linux/slub_def.h
-@@ -170,14 +170,14 @@ static inline void *nearest_obj(struct kmem_cache *cache, const struct slab *sla
- 
- /* Determine object index from a given position */
- static inline unsigned int __obj_to_index(const struct kmem_cache *cache,
--					  void *addr, void *obj)
-+					  void *addr, const void *obj)
- {
- 	return reciprocal_divide(kasan_reset_tag(obj) - addr,
- 				 cache->reciprocal_size);
- }
- 
- static inline unsigned int obj_to_index(const struct kmem_cache *cache,
--					const struct slab *slab, void *obj)
-+					const struct slab *slab, const void *obj)
- {
- 	if (is_kfence_address(obj))
- 		return 0;
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 6686648843b3..08c97a978906 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -989,6 +989,17 @@ config PAGE_ALLOC_TAGGING
- 	  initiated at that code location. The mechanism can be used to track
- 	  memory leaks with a low performance impact.
- 
-+config SLAB_ALLOC_TAGGING
-+	bool "Enable slab allocation tagging"
-+	default n
-+	select ALLOC_TAGGING
-+	select SLAB_OBJ_EXT
-+	help
-+	  Instrument slab allocators to track allocation source code and
-+	  collect statistics on the number of allocations and their total size
-+	  initiated at that code location. The mechanism can be used to track
-+	  memory leaks with a low performance impact.
-+
- source "lib/Kconfig.kasan"
- source "lib/Kconfig.kfence"
- 
-diff --git a/mm/slab_common.c b/mm/slab_common.c
-index 17996649cfe3..272eda62ecaa 100644
---- a/mm/slab_common.c
-+++ b/mm/slab_common.c
-@@ -202,6 +202,39 @@ struct kmem_cache *find_mergeable(unsigned int size, unsigned int align,
- 	return NULL;
- }
- 
-+#ifdef CONFIG_SLAB_ALLOC_TAGGING
-+
-+union codetag_ref *get_slab_tag_ref(const void *objp)
++static noinline void register_recursion_stack(void)
 +{
-+	struct slabobj_ext *obj_exts;
-+	union codetag_ref *res = NULL;
-+	struct slab *slab;
-+	unsigned int off;
++	recursion_handle = create_custom_stack();
++}
 +
-+	slab = virt_to_slab(objp);
++static noinline void register_failure_stack(void)
++{
++	failure_handle = create_custom_stack();
++}
++
++bool stack_depot_capture_init(void)
++{
++	static DEFINE_MUTEX(stack_depot_capture_init_mutex);
++	static bool utility_stacks_ready;
++
++	mutex_lock(&stack_depot_capture_init_mutex);
++	if (!utility_stacks_ready) {
++		register_recursion_stack();
++		register_failure_stack();
++		utility_stacks_ready = true;
++	}
++	mutex_unlock(&stack_depot_capture_init_mutex);
++
++	return utility_stacks_ready;
++}
++
++/* TODO: teach stack_depot_capture_stack to use off stack temporal storage */
++#define CAPTURE_STACK_DEPTH (16)
++
++depot_stack_handle_t stack_depot_capture_stack(gfp_t flags)
++{
++	unsigned long entries[CAPTURE_STACK_DEPTH];
++	depot_stack_handle_t handle;
++	unsigned int nr_entries;
++
 +	/*
-+	 * We could be given a kmalloc_large() object, skip those. They use
-+	 * alloc_pages and can be tracked by page allocation tracking.
++	 * Avoid recursion.
++	 *
++	 * Sometimes page metadata allocation tracking requires more
++	 * memory to be allocated:
++	 * - when new stack trace is saved to stack depot
++	 * - when backtrace itself is calculated (ia64)
 +	 */
-+	if (!slab)
-+		goto out;
++	if (current->in_capture_stack)
++		return recursion_handle;
++	current->in_capture_stack = 1;
 +
-+	obj_exts = slab_obj_exts(slab);
-+	if (!obj_exts)
-+		goto out;
++	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 2);
++	handle = stack_depot_save(entries, nr_entries, flags);
++	if (!handle)
++		handle = failure_handle;
 +
-+	if (!slab->slab_cache)
-+		goto out;
-+
-+	off = obj_to_index(slab->slab_cache, slab, objp);
-+	res = &obj_exts[off].ref;
-+out:
-+	return res;
++	current->in_capture_stack = 0;
++	return handle;
 +}
-+EXPORT_SYMBOL(get_slab_tag_ref);
-+
-+#endif /* CONFIG_SLAB_ALLOC_TAGGING */
-+
- static struct kmem_cache *create_cache(const char *name,
- 		unsigned int object_size, unsigned int align,
- 		slab_flags_t flags, unsigned int useroffset,
+diff --git a/mm/page_owner.c b/mm/page_owner.c
+index fd4af1ad34b8..c3173e34a779 100644
+--- a/mm/page_owner.c
++++ b/mm/page_owner.c
+@@ -15,12 +15,6 @@
+ 
+ #include "internal.h"
+ 
+-/*
+- * TODO: teach PAGE_OWNER_STACK_DEPTH (__dump_page_owner and save_stack)
+- * to use off stack temporal storage
+- */
+-#define PAGE_OWNER_STACK_DEPTH (16)
+-
+ struct page_owner {
+ 	unsigned short order;
+ 	short last_migrate_reason;
+@@ -37,8 +31,6 @@ struct page_owner {
+ static bool page_owner_enabled __initdata;
+ DEFINE_STATIC_KEY_FALSE(page_owner_inited);
+ 
+-static depot_stack_handle_t dummy_handle;
+-static depot_stack_handle_t failure_handle;
+ static depot_stack_handle_t early_handle;
+ 
+ static void init_early_allocated_pages(void);
+@@ -68,16 +60,6 @@ static __always_inline depot_stack_handle_t create_dummy_stack(void)
+ 	return stack_depot_save(entries, nr_entries, GFP_KERNEL);
+ }
+ 
+-static noinline void register_dummy_stack(void)
+-{
+-	dummy_handle = create_dummy_stack();
+-}
+-
+-static noinline void register_failure_stack(void)
+-{
+-	failure_handle = create_dummy_stack();
+-}
+-
+ static noinline void register_early_stack(void)
+ {
+ 	early_handle = create_dummy_stack();
+@@ -88,8 +70,7 @@ static __init void init_page_owner(void)
+ 	if (!page_owner_enabled)
+ 		return;
+ 
+-	register_dummy_stack();
+-	register_failure_stack();
++	stack_depot_capture_init();
+ 	register_early_stack();
+ 	static_branch_enable(&page_owner_inited);
+ 	init_early_allocated_pages();
+@@ -106,33 +87,6 @@ static inline struct page_owner *get_page_owner(struct page_ext *page_ext)
+ 	return (void *)page_ext + page_owner_ops.offset;
+ }
+ 
+-static noinline depot_stack_handle_t save_stack(gfp_t flags)
+-{
+-	unsigned long entries[PAGE_OWNER_STACK_DEPTH];
+-	depot_stack_handle_t handle;
+-	unsigned int nr_entries;
+-
+-	/*
+-	 * Avoid recursion.
+-	 *
+-	 * Sometimes page metadata allocation tracking requires more
+-	 * memory to be allocated:
+-	 * - when new stack trace is saved to stack depot
+-	 * - when backtrace itself is calculated (ia64)
+-	 */
+-	if (current->in_page_owner)
+-		return dummy_handle;
+-	current->in_page_owner = 1;
+-
+-	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 2);
+-	handle = stack_depot_save(entries, nr_entries, flags);
+-	if (!handle)
+-		handle = failure_handle;
+-
+-	current->in_page_owner = 0;
+-	return handle;
+-}
+-
+ void __reset_page_owner(struct page *page, unsigned short order)
+ {
+ 	int i;
+@@ -145,7 +99,7 @@ void __reset_page_owner(struct page *page, unsigned short order)
+ 	if (unlikely(!page_ext))
+ 		return;
+ 
+-	handle = save_stack(GFP_NOWAIT | __GFP_NOWARN);
++	handle = stack_depot_capture_stack(GFP_NOWAIT | __GFP_NOWARN);
+ 	for (i = 0; i < (1 << order); i++) {
+ 		__clear_bit(PAGE_EXT_OWNER_ALLOCATED, &page_ext->flags);
+ 		page_owner = get_page_owner(page_ext);
+@@ -189,7 +143,7 @@ noinline void __set_page_owner(struct page *page, unsigned short order,
+ 	if (unlikely(!page_ext))
+ 		return;
+ 
+-	handle = save_stack(gfp_mask);
++	handle = stack_depot_capture_stack(gfp_mask);
+ 	__set_page_owner_handle(page_ext, handle, order, gfp_mask);
+ }
+ 
 -- 
 2.37.2.672.g94769d06f0-goog
 
