@@ -2,285 +2,227 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B30C3C54EE9
-	for <linux-arch@archiver.kernel.org>; Wed, 31 Aug 2022 18:28:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 98240ECAAD3
+	for <linux-arch@archiver.kernel.org>; Wed, 31 Aug 2022 18:32:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230151AbiHaS2y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Aug 2022 14:28:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58122 "EHLO
+        id S229555AbiHaScc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Aug 2022 14:32:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44120 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232866AbiHaS2P (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Aug 2022 14:28:15 -0400
+        with ESMTP id S232816AbiHaScP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Aug 2022 14:32:15 -0400
 Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CB8856478;
-        Wed, 31 Aug 2022 11:23:58 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6909E11B3CA;
+        Wed, 31 Aug 2022 11:27:44 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 35FC3B82274;
-        Wed, 31 Aug 2022 18:23:57 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CF846C433C1;
-        Wed, 31 Aug 2022 18:23:55 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id EFA5DB82276;
+        Wed, 31 Aug 2022 18:27:24 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 96713C433C1;
+        Wed, 31 Aug 2022 18:27:23 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1661970235;
-        bh=xN5D2ShxxNPlDuwNTCWUnmxwkBxFPNBZHBLxsbMlkKI=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=UEawr4TxzETNjqYk/WUPrJi36MXKNnvLL4s+Rf2+OXVHuaAgJf8FofJuf2Jpgx1iR
-         XXvOA5futmG6pFxYWtEFZdHLX+tGy6ZjFncK7j6vu88a5WxSH+fPN4zil28FK/Srew
-         hRx2Dq+2xY3oqjSTpuFZ91aYm0N+DToaEuPAbjrlS7A1/2vA11Cxa+EbIGKq0Vzomy
-         fqnushRgVMBphTxbfJbAtkuqJOWY12ouI+0Uy8MU3ZGpbqeqLTZ3M8DGQngsyDrUQ+
-         yVueg5RIqm/aj1gwgXmfRMRkYN6dR1I/UBoh6+AckiNWJyM191e5H2nFekj2ogcHYH
-         08ce80hd5VfLQ==
+        s=k20201202; t=1661970443;
+        bh=oEHypOLBHy6WPhJaawTtdgVBGVSPkKMoNZ/Oavk7OLs=;
+        h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
+        b=IT+XEBuox1oVQ9wF5uoF1KW3YETq3IrGjd6OjgqiKtwdgK+yhkIaYsm3p0Wuh0k6Q
+         65IR3kFEVnM/phw4px+XbMr/5gEuBp2AdSJMmqFU/mJ/26UMRuT50cKZoWL7t9VEvt
+         kgIiyxeY8uIbSFNMlAFSlv/ZTpOi9HxbomS6kVdDDpg3qagfV0glTFZcDMCb4s0CGV
+         tCV3dvbRXEG7CnwHb+Ux0EKhGZObFgrdb71oEo3AJGna1NDZybAY+7AXmpIDkNXaMu
+         n7oJ3vwiI3ssCclreEa8WfbZ09aqc4SJACYRmIobP9770Jv0UgXH1mtELVLkDn50cI
+         y8NdqKyZJ1Opg==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id 800355C019C; Wed, 31 Aug 2022 11:23:55 -0700 (PDT)
+        id 402D35C015D; Wed, 31 Aug 2022 11:27:23 -0700 (PDT)
+Date:   Wed, 31 Aug 2022 11:27:23 -0700
 From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org
-Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>,
-        Daniel Lustig <dlustig@nvidia.com>,
+To:     Alan Stern <stern@rowland.harvard.edu>
+Cc:     Paul =?iso-8859-1?Q?Heidekr=FCger?= <Paul.Heidekrueger@in.tum.de>,
         Joel Fernandes <joel@joelfernandes.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Jonathan Corbet <corbet@lwn.net>
-Subject: [PATCH memory-model 2/3] docs/memory-barriers.txt: Fixup long lines
-Date:   Wed, 31 Aug 2022 11:23:52 -0700
-Message-Id: <20220831182353.2699262-2-paulmck@kernel.org>
-X-Mailer: git-send-email 2.31.1.189.g2e36527f23
-In-Reply-To: <20220831182350.GA2698943@paulmck-ThinkPad-P17-Gen-1>
-References: <20220831182350.GA2698943@paulmck-ThinkPad-P17-Gen-1>
+        Andrea Parri <parri.andrea@gmail.com>,
+        Will Deacon <will@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        David Howells <dhowells@redhat.com>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        Akira Yokosawa <akiyks@gmail.com>,
+        Daniel Lustig <dlustig@nvidia.com>,
+        LKML <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Marco Elver <elver@google.com>,
+        Charalampos Mainas <charalampos.mainas@gmail.com>,
+        Pramod Bhatotia <pramod.bhatotia@in.tum.de>,
+        Soham Chakraborty <s.s.chakraborty@tudelft.nl>,
+        Martin Fink <martin.fink@in.tum.de>
+Subject: Re: [PATCH] tools/memory-model: Weaken ctrl dependency definition in
+ explanation.txt
+Message-ID: <20220831182723.GM6159@paulmck-ThinkPad-P17-Gen-1>
+Reply-To: paulmck@kernel.org
+References: <20220830204446.3590197-1-paul.heidekrueger@in.tum.de>
+ <663d568d-a343-d44b-d33d-29998bff8f70@joelfernandes.org>
+ <98f2b194-1fe6-3cd8-36cf-da017c35198f@joelfernandes.org>
+ <Yw7AEx1w6oWn86cm@rowland.harvard.edu>
+ <935D3930-C369-4B0E-ACDC-5BFDFA85AA72@in.tum.de>
+ <Yw+cm+awhfi6IUHr@rowland.harvard.edu>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <Yw+cm+awhfi6IUHr@rowland.harvard.edu>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Akira Yokosawa <akiyks@gmail.com>
+On Wed, Aug 31, 2022 at 01:38:35PM -0400, Alan Stern wrote:
+> On Wed, Aug 31, 2022 at 06:42:05PM +0200, Paul Heidekrüger wrote:
+> > On 31. Aug 2022, at 03:57, Alan Stern <stern@rowland.harvard.edu> wrote:
+> > 
+> > > On Tue, Aug 30, 2022 at 05:12:33PM -0400, Joel Fernandes wrote:
+> > >> On 8/30/2022 5:08 PM, Joel Fernandes wrote:
+> > >>> On 8/30/2022 4:44 PM, Paul Heidekrüger wrote:
+> > >>>> The current informal control dependency definition in explanation.txt is
+> > >>>> too broad and, as dicsussed, needs to be updated.
+> > >>>> 
+> > >>>> Consider the following example:
+> > >>>> 
+> > >>>>> if(READ_ONCE(x))
+> > >>>>> 	return 42;
+> > >>>>> 
+> > >>>>> 	WRITE_ONCE(y, 42);
+> > >>>>> 
+> > >>>>> 	return 21;
+> > >>>> 
+> > >>>> The read event determines whether the write event will be executed "at
+> > >>>> all" - as per the current definition - but the formal LKMM does not
+> > >>>> recognize this as a control dependency.
+> > >>>> 
+> > >>>> Introduce a new defintion which includes the requirement for the second
+> > >>>> memory access event to syntactically lie within the arm of a non-loop
+> > >>>> conditional.
+> > >>>> 
+> > >>>> Link: https://lore.kernel.org/all/20220615114330.2573952-1-paul.heidekrueger@in.tum.de/
+> > >>>> Cc: Marco Elver <elver@google.com>
+> > >>>> Cc: Charalampos Mainas <charalampos.mainas@gmail.com>
+> > >>>> Cc: Pramod Bhatotia <pramod.bhatotia@in.tum.de>
+> > >>>> Cc: Soham Chakraborty <s.s.chakraborty@tudelft.nl>
+> > >>>> Cc: Martin Fink <martin.fink@in.tum.de>
+> > >>>> Signed-off-by: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
+> > >>>> Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
+> > >>>> ---
+> > >>>> 
+> > >>>> @Alan:
+> > >>>> 
+> > >>>> Since I got it wrong the last time, I'm adding you as a co-developer after my
+> > >>>> SOB. I'm sorry if this creates extra work on your side due to you having to
+> > >>>> resubmit the patch now with your SOB if I understand correctly, but since it's
+> > >>>> based on your wording from the other thread, I definitely wanted to give you
+> > >>>> credit.
+> > >>>> 
+> > >>>> tools/memory-model/Documentation/explanation.txt | 7 ++++---
+> > >>>> 1 file changed, 4 insertions(+), 3 deletions(-)
+> > >>>> 
+> > >>>> diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
+> > >>>> index ee819a402b69..0bca50cac5f4 100644
+> > >>>> --- a/tools/memory-model/Documentation/explanation.txt
+> > >>>> +++ b/tools/memory-model/Documentation/explanation.txt
+> > >>>> @@ -464,9 +464,10 @@ to address dependencies, since the address of a location accessed
+> > >>>> through a pointer will depend on the value read earlier from that
+> > >>>> pointer.
+> > >>>> 
+> > >>>> -Finally, a read event and another memory access event are linked by a
+> > >>>> -control dependency if the value obtained by the read affects whether
+> > >>>> -the second event is executed at all.  Simple example:
+> > >>>> +Finally, a read event X and another memory access event Y are linked by
+> > >>>> +a control dependency if Y syntactically lies within an arm of an if,
+> > >>>> +else or switch statement and the condition guarding Y is either data or
+> > >>>> +address-dependent on X.  Simple example:
+> > 
+> > Thank you both for commenting!
+> > 
+> > > "if, else or switch" should be just "if or switch".  In C there is no 
+> > > such thing as an "else" statement; an "else" clause is merely part of 
+> > > an "if" statement.  In fact, maybe "body" would be more appropriate than 
+> > > "arm", because "switch" statements don't have arms -- they have cases.
+> > 
+> > Right. What do you think of "branch"? "Body" to me suggests that there's
+> > only one and therefore that the else clause isn't included.
+> > 
+> > Would it be fair to say that switch statements have branches? I guess
+> > because switch statements are a convenient way of writing goto's, i.e.
+> > jumps, it's a stretch and basically the same as saying "arm"?
+> > 
+> > Maybe we can avoid the arm / case clash by just having a definition for if
+> > statements and appending something like "similarly for switch statements"?
+> 
+> That sounds good.
+> 
+> > >>> 'conditioning guarding Y' sounds confusing to me as it implies to me that the
+> > >>> condition's evaluation depends on Y. I much prefer Alan's wording from the
+> > >>> linked post saying something like 'the branch condition is data or address
+> > >>> dependent on X, and Y lies in one of the arms'.
+> > >>> 
+> > >>> I have to ask though, why doesn't this imply that the second instruction never
+> > >>> executes at all? I believe that would break the MP-pattern if it were not true.
+> > >> 
+> > >> About my last statement, I believe your patch does not disagree with the
+> > >> correctness of the earlier text but just wants to improve it. If that's case
+> > >> then that's fine.
+> > > 
+> > > The biggest difference between the original text and Paul's suggested 
+> > > update is that the new text makes clear that Y has to lie within the 
+> > > body of the "if" or "switch" statement.  If Y follows the end of the 
+> > > if/else, as in the example at the top of this email, then it does have 
+> > > not a control dependency on X (at least, not via that if/else), even 
+> > > though the value read by X does determine whether or not Y will execute.
+> > > 
+> > > [It has to be said that this illustrates a big weakness of the LKMM: It 
+> > > isn't cognizant of "goto"s or "return"s.  This naturally derives from 
+> > > limitations of the herd tool, but the situation could be improved.  So 
+> > > for instance, I don't think it would cause trouble to say that in:
+> > > 
+> > > 	if (READ_ONCE(x) == 0)
+> > > 		return;
+> > > 	WRITE_ONCE(y, 5);
+> > > 
+> > > there really is a control dependence from x to y, even though the 
+> > > WRITE_ONCE is outside the body of the "if" statement.  Certainly the 
+> > > compiler can't reorder the write before the read.  But AFAIK there's no 
+> > > way to include a "return" statement in a litmus test for herd.  Or a 
+> > > subroutine definition, for that matter.]
+> > > 
+> > > I agree that "condition guarding Y" is somewhat awkward.  "the 
+> > > condition of the if (or the expression of the switch)" might be better, 
+> > > even though it is somewhat awkward as well.  At least it's more 
+> > > explicit.
+> > 
+> > Maybe we can reuse the wording from the data and address dependency
+> > definition here and say "affects"?
+> > 
+> > Putting it all together:
+> > 
+> > > Finally, a read event X and another memory access event Y are linked by a
+> > > control dependency if Y syntactically lies within a branch of an if or
+> > > switch statement and X affects the evaluation of that statement's
+> > > condition via a data or address dependency.
+> > 
+> > Alternatively without the arm / case clash:
+> > 
+> > > Finally, a read event X and another memory access event Y are linked by a
+> > > control dependency if Y syntactically lies within an arm of an if
+> > > statement and X affects the evaluation of the if condition via a data or
+> > > address dependency.  Similarly for switch statements.
+> > 
+> > What do you think?
+> 
+> I like the second one.  How about combining the last two sentences?  
+> 
+> 	... via a data or address dependency (or similarly for a switch 
+> 	statement).
+> 
+> Now I suppose someone will pipe up and ask about the conditional 
+> expressions in "for", "while" and "do" statements...  :-)
 
-Substitution of "data dependency barrier" with "address-dependency
-barrier" left quite a lot of lines exceeding 80 columns.
+What?  You don't like setjmp() and longjmp()?  ;-)
 
-Reflow those lines as well as a few short ones not related to
-the substitution.
-
-No changes in documentation text.
-
-Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
-Cc: Joel Fernandes <joel@joelfernandes.org>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- Documentation/memory-barriers.txt | 93 ++++++++++++++++---------------
- 1 file changed, 47 insertions(+), 46 deletions(-)
-
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index b16767cb6d31d..06f80e3785c5d 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -187,9 +187,9 @@ As a further example, consider this sequence of events:
- 	B = 4;		Q = P;
- 	P = &B;		D = *Q;
- 
--There is an obvious address dependency here, as the value loaded into D depends on
--the address retrieved from P by CPU 2.  At the end of the sequence, any of the
--following results are possible:
-+There is an obvious address dependency here, as the value loaded into D depends
-+on the address retrieved from P by CPU 2.  At the end of the sequence, any of
-+the following results are possible:
- 
- 	(Q == &A) and (D == 1)
- 	(Q == &B) and (D == 2)
-@@ -397,25 +397,25 @@ Memory barriers come in four basic varieties:
- 
-  (2) Address-dependency barriers (historical).
- 
--     An address-dependency barrier is a weaker form of read barrier.  In the case
--     where two loads are performed such that the second depends on the result
--     of the first (eg: the first load retrieves the address to which the second
--     load will be directed), an address-dependency barrier would be required to
--     make sure that the target of the second load is updated after the address
--     obtained by the first load is accessed.
-+     An address-dependency barrier is a weaker form of read barrier.  In the
-+     case where two loads are performed such that the second depends on the
-+     result of the first (eg: the first load retrieves the address to which
-+     the second load will be directed), an address-dependency barrier would
-+     be required to make sure that the target of the second load is updated
-+     after the address obtained by the first load is accessed.
- 
--     An address-dependency barrier is a partial ordering on interdependent loads
--     only; it is not required to have any effect on stores, independent loads
--     or overlapping loads.
-+     An address-dependency barrier is a partial ordering on interdependent
-+     loads only; it is not required to have any effect on stores, independent
-+     loads or overlapping loads.
- 
-      As mentioned in (1), the other CPUs in the system can be viewed as
-      committing sequences of stores to the memory system that the CPU being
--     considered can then perceive.  An address-dependency barrier issued by the CPU
--     under consideration guarantees that for any load preceding it, if that
--     load touches one of a sequence of stores from another CPU, then by the
--     time the barrier completes, the effects of all the stores prior to that
--     touched by the load will be perceptible to any loads issued after the address-
--     dependency barrier.
-+     considered can then perceive.  An address-dependency barrier issued by
-+     the CPU under consideration guarantees that for any load preceding it,
-+     if that load touches one of a sequence of stores from another CPU, then
-+     by the time the barrier completes, the effects of all the stores prior to
-+     that touched by the load will be perceptible to any loads issued after
-+     the address-dependency barrier.
- 
-      See the "Examples of memory barrier sequences" subsection for diagrams
-      showing the ordering constraints.
-@@ -437,16 +437,16 @@ Memory barriers come in four basic varieties:
- 
-  (3) Read (or load) memory barriers.
- 
--     A read barrier is an address-dependency barrier plus a guarantee that all the
--     LOAD operations specified before the barrier will appear to happen before
--     all the LOAD operations specified after the barrier with respect to the
--     other components of the system.
-+     A read barrier is an address-dependency barrier plus a guarantee that all
-+     the LOAD operations specified before the barrier will appear to happen
-+     before all the LOAD operations specified after the barrier with respect to
-+     the other components of the system.
- 
-      A read barrier is a partial ordering on loads only; it is not required to
-      have any effect on stores.
- 
--     Read memory barriers imply address-dependency barriers, and so can substitute
--     for them.
-+     Read memory barriers imply address-dependency barriers, and so can
-+     substitute for them.
- 
-      [!] Note that read barriers should normally be paired with write barriers;
-      see the "SMP barrier pairing" subsection.
-@@ -584,8 +584,8 @@ following sequence of events:
- [!] READ_ONCE_OLD() corresponds to READ_ONCE() of pre-4.15 kernel, which
- doesn't imply an address-dependency barrier.
- 
--There's a clear address dependency here, and it would seem that by the end of the
--sequence, Q must be either &A or &B, and that:
-+There's a clear address dependency here, and it would seem that by the end of
-+the sequence, Q must be either &A or &B, and that:
- 
- 	(Q == &A) implies (D == 1)
- 	(Q == &B) implies (D == 4)
-@@ -599,8 +599,8 @@ While this may seem like a failure of coherency or causality maintenance, it
- isn't, and this behaviour can be observed on certain real CPUs (such as the DEC
- Alpha).
- 
--To deal with this, READ_ONCE() provides an implicit address-dependency
--barrier since kernel release v4.15:
-+To deal with this, READ_ONCE() provides an implicit address-dependency barrier
-+since kernel release v4.15:
- 
- 	CPU 1		      CPU 2
- 	===============	      ===============
-@@ -627,12 +627,12 @@ but the old value of the variable B (2).
- 
- 
- An address-dependency barrier is not required to order dependent writes
--because the CPUs that the Linux kernel supports don't do writes
--until they are certain (1) that the write will actually happen, (2)
--of the location of the write, and (3) of the value to be written.
-+because the CPUs that the Linux kernel supports don't do writes until they
-+are certain (1) that the write will actually happen, (2) of the location of
-+the write, and (3) of the value to be written.
- But please carefully read the "CONTROL DEPENDENCIES" section and the
--Documentation/RCU/rcu_dereference.rst file:  The compiler can and does
--break dependencies in a great many highly creative ways.
-+Documentation/RCU/rcu_dereference.rst file:  The compiler can and does break
-+dependencies in a great many highly creative ways.
- 
- 	CPU 1		      CPU 2
- 	===============	      ===============
-@@ -678,8 +678,8 @@ not understand them.  The purpose of this section is to help you prevent
- the compiler's ignorance from breaking your code.
- 
- A load-load control dependency requires a full read memory barrier, not
--simply an (implicit) address-dependency barrier to make it work correctly.  Consider the
--following bit of code:
-+simply an (implicit) address-dependency barrier to make it work correctly.
-+Consider the following bit of code:
- 
- 	q = READ_ONCE(a);
- 	<implicit address-dependency barrier>
-@@ -691,8 +691,8 @@ following bit of code:
- This will not have the desired effect because there is no actual address
- dependency, but rather a control dependency that the CPU may short-circuit
- by attempting to predict the outcome in advance, so that other CPUs see
--the load from b as having happened before the load from a.  In such a
--case what's actually required is:
-+the load from b as having happened before the load from a.  In such a case
-+what's actually required is:
- 
- 	q = READ_ONCE(a);
- 	if (q) {
-@@ -980,8 +980,8 @@ Basically, the read barrier always has to be there, even though it can be of
- the "weaker" type.
- 
- [!] Note that the stores before the write barrier would normally be expected to
--match the loads after the read barrier or the address-dependency barrier, and vice
--versa:
-+match the loads after the read barrier or the address-dependency barrier, and
-+vice versa:
- 
- 	CPU 1                               CPU 2
- 	===================                 ===================
-@@ -1033,8 +1033,8 @@ STORE B, STORE C } all occurring before the unordered set of { STORE D, STORE E
- 	                   V
- 
- 
--Secondly, address-dependency barriers act as partial orderings on address-dependent
--loads.  Consider the following sequence of events:
-+Secondly, address-dependency barriers act as partial orderings on address-
-+dependent loads.  Consider the following sequence of events:
- 
- 	CPU 1			CPU 2
- 	=======================	=======================
-@@ -1079,8 +1079,8 @@ effectively random order, despite the write barrier issued by CPU 1:
- In the above example, CPU 2 perceives that B is 7, despite the load of *C
- (which would be B) coming after the LOAD of C.
- 
--If, however, an address-dependency barrier were to be placed between the load of C
--and the load of *C (ie: B) on CPU 2:
-+If, however, an address-dependency barrier were to be placed between the load
-+of C and the load of *C (ie: B) on CPU 2:
- 
- 	CPU 1			CPU 2
- 	=======================	=======================
-@@ -2761,7 +2761,8 @@ is discarded from the CPU's cache and reloaded.  To deal with this, the
- appropriate part of the kernel must invalidate the overlapping bits of the
- cache on each CPU.
- 
--See Documentation/core-api/cachetlb.rst for more information on cache management.
-+See Documentation/core-api/cachetlb.rst for more information on cache
-+management.
- 
- 
- CACHE COHERENCY VS MMIO
-@@ -2901,8 +2902,8 @@ AND THEN THERE'S THE ALPHA
- The DEC Alpha CPU is one of the most relaxed CPUs there is.  Not only that,
- some versions of the Alpha CPU have a split data cache, permitting them to have
- two semantically-related cache lines updated at separate times.  This is where
--the address-dependency barrier really becomes necessary as this synchronises both
--caches with the memory coherence system, thus making it seem like pointer
-+the address-dependency barrier really becomes necessary as this synchronises
-+both caches with the memory coherence system, thus making it seem like pointer
- changes vs new data occur in the right order.
- 
- The Alpha defines the Linux kernel's memory model, although as of v4.15
--- 
-2.31.1.189.g2e36527f23
-
+							Thanx, Paul
