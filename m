@@ -2,73 +2,142 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 96C40ECAAD3
-	for <linux-arch@archiver.kernel.org>; Wed, 31 Aug 2022 18:28:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7D7DBECAAD3
+	for <linux-arch@archiver.kernel.org>; Wed, 31 Aug 2022 18:28:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232526AbiHaS2f (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 Aug 2022 14:28:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57418 "EHLO
+        id S233025AbiHaS2h (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 Aug 2022 14:28:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57120 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232838AbiHaS2N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Aug 2022 14:28:13 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4571898CA2;
-        Wed, 31 Aug 2022 11:23:53 -0700 (PDT)
+        with ESMTP id S231775AbiHaS2O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 Aug 2022 14:28:14 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D1421E9279;
+        Wed, 31 Aug 2022 11:23:56 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id D51F7B82221;
-        Wed, 31 Aug 2022 18:23:51 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7F301C433D7;
-        Wed, 31 Aug 2022 18:23:50 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 6C65861CD5;
+        Wed, 31 Aug 2022 18:23:56 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C3FF0C433D6;
+        Wed, 31 Aug 2022 18:23:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1661970230;
-        bh=fYCQfnEwpOVlVfS6btj2u1SLUquTKDlCgujlhLw9hfw=;
-        h=Date:From:To:Cc:Subject:Reply-To:From;
-        b=qSMznd5Gn4hO+P4O38SY7qplTUw2JZT81sSR78p2mP2AjcJVXdxIEyfDiSTc+5SjK
-         SNxYnM4bjQx53UhoDIXMrUV3zVDZ91R1RzC5p7Vom5QWQ/JL6M7KucXPXsrQkiMMEt
-         v1dkbbglno7CplMM/QvQ4hBXTwLTQZ63D16TbMmGV9YNPIpL0S9uDwr7eEyIsARj47
-         IiCLsU1mTKqHyaZIbAH9u/mk/ZgyutiDO9kF/VtxGiyZrYRKaq6x8r34VAM94z8c+k
-         aqGnE2Gh7xGXGA73Kbyq28qNCrPc0QSTH0SQipO0Hxo/QWyGCACKmEE30st4Vb8bOn
-         MSvulrQWIG1vA==
+        s=k20201202; t=1661970235;
+        bh=RH117eB+xIPb+d+OTRKvRd6566cj7SbPEdnpE0kcJI4=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=rKzzifM2IzFzPoYqwuHyb7KUze9j1tsaAPHuoTM5xD6cjWD15Br+PtwVZfQc6ByxH
+         4PtHUKu4Y3zj4gv587QhE1thcigp4sir8uM6jxn2Bwg2blw63ns2OIbwDoaqfY5Te7
+         MdKx3BgKVNqihDrZeSwNjRbVJ/O/h7SqqjtJknUpVOyK+WEb5F2VE0A1g/cW09Nj0p
+         sqrX5r1sbZ7GN/0HlqJe60P/lsCCCF7Ml+l2GmvHnmUiu+953wEApZN6r1EW0iD9rI
+         VGlTWuQFtvHR4WFhNTre7ElWAJdTdT1em6coaOTilIn0BeMHfrMDEWegNT1JWlET2S
+         m6vKv/RVFfnfw==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id 2491F5C015D; Wed, 31 Aug 2022 11:23:50 -0700 (PDT)
-Date:   Wed, 31 Aug 2022 11:23:50 -0700
+        id 822DC5C02A9; Wed, 31 Aug 2022 11:23:55 -0700 (PDT)
 From:   "Paul E. McKenney" <paulmck@kernel.org>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@fb.com, mingo@kernel.org
 Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com
-Subject: [PATCH memory-model 0/3] Linux-kernel memory model updates for v6.1
-Message-ID: <20220831182350.GA2698943@paulmck-ThinkPad-P17-Gen-1>
-Reply-To: paulmck@kernel.org
+        akiyks@gmail.com,
+        =?UTF-8?q?Paul=20Heidekr=C3=BCger?= <paul.heidekrueger@in.tum.de>,
+        Marco Elver <elver@google.com>,
+        Joel Fernandes <joel@joelfernandes.org>,
+        Charalampos Mainas <charalampos.mainas@gmail.com>,
+        Pramod Bhatotia <pramod.bhatotia@in.tum.de>,
+        Soham Chakraborty <s.s.chakraborty@tudelft.nl>,
+        Martin Fink <martin.fink@in.tum.de>,
+        "Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 3/3] tools/memory-model: Clarify LKMM's limitations in litmus-tests.txt
+Date:   Wed, 31 Aug 2022 11:23:53 -0700
+Message-Id: <20220831182353.2699262-3-paulmck@kernel.org>
+X-Mailer: git-send-email 2.31.1.189.g2e36527f23
+In-Reply-To: <20220831182350.GA2698943@paulmck-ThinkPad-P17-Gen-1>
+References: <20220831182350.GA2698943@paulmck-ThinkPad-P17-Gen-1>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hello!
+From: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
 
-This series provides a few updates and fixes for LKMM documentation:
+As discussed, clarify LKMM not recognizing certain kinds of orderings.
+In particular, highlight the fact that LKMM might deliberately make
+weaker guarantees than compilers and architectures.
 
-1.	docs/memory-barriers.txt: Fix confusing name of 'data dependency
-	barrier', courtesy of Akira Yokosawa.
+[ paulmck: Fix whitespace issue noted by checkpatch.pl. ]
 
-2.	docs/memory-barriers.txt: Fixup long lines, courtesy of Akira
-	Yokosawa.
+Link: https://lore.kernel.org/all/YpoW1deb%2FQeeszO1@ethstick13.dse.in.tum.de/T/#u
+Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
+Reviewed-by: Marco Elver <elver@google.com>
+Reviewed-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Cc: Charalampos Mainas <charalampos.mainas@gmail.com>
+Cc: Pramod Bhatotia <pramod.bhatotia@in.tum.de>
+Cc: Soham Chakraborty <s.s.chakraborty@tudelft.nl>
+Cc: Martin Fink <martin.fink@in.tum.de>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ .../Documentation/litmus-tests.txt            | 37 ++++++++++++++-----
+ 1 file changed, 27 insertions(+), 10 deletions(-)
 
-3.	tools/memory-model: Clarify LKMM's limitations in
-	litmus-tests.txt, courtesy of =?UTF-8?q?Paul=20Heidekr=C3=BCger?=.
+diff --git a/tools/memory-model/Documentation/litmus-tests.txt b/tools/memory-model/Documentation/litmus-tests.txt
+index 8a9d5d2787f9e..26554b1c5575e 100644
+--- a/tools/memory-model/Documentation/litmus-tests.txt
++++ b/tools/memory-model/Documentation/litmus-tests.txt
+@@ -946,22 +946,39 @@ Limitations of the Linux-kernel memory model (LKMM) include:
+ 	carrying a dependency, then the compiler can break that dependency
+ 	by substituting a constant of that value.
+ 
+-	Conversely, LKMM sometimes doesn't recognize that a particular
+-	optimization is not allowed, and as a result, thinks that a
+-	dependency is not present (because the optimization would break it).
+-	The memory model misses some pretty obvious control dependencies
+-	because of this limitation.  A simple example is:
++	Conversely, LKMM will sometimes overestimate the amount of
++	reordering compilers and CPUs can carry out, leading it to miss
++	some pretty obvious cases of ordering.  A simple example is:
+ 
+ 		r1 = READ_ONCE(x);
+ 		if (r1 == 0)
+ 			smp_mb();
+ 		WRITE_ONCE(y, 1);
+ 
+-	There is a control dependency from the READ_ONCE to the WRITE_ONCE,
+-	even when r1 is nonzero, but LKMM doesn't realize this and thinks
+-	that the write may execute before the read if r1 != 0.  (Yes, that
+-	doesn't make sense if you think about it, but the memory model's
+-	intelligence is limited.)
++	The WRITE_ONCE() does not depend on the READ_ONCE(), and as a
++	result, LKMM does not claim ordering.  However, even though no
++	dependency is present, the WRITE_ONCE() will not be executed before
++	the READ_ONCE().  There are two reasons for this:
++
++                The presence of the smp_mb() in one of the branches
++                prevents the compiler from moving the WRITE_ONCE()
++                up before the "if" statement, since the compiler has
++                to assume that r1 will sometimes be 0 (but see the
++                comment below);
++
++                CPUs do not execute stores before po-earlier conditional
++                branches, even in cases where the store occurs after the
++                two arms of the branch have recombined.
++
++	It is clear that it is not dangerous in the slightest for LKMM to
++	make weaker guarantees than architectures.  In fact, it is
++	desirable, as it gives compilers room for making optimizations.
++	For instance, suppose that a 0 value in r1 would trigger undefined
++	behavior elsewhere.  Then a clever compiler might deduce that r1
++	can never be 0 in the if condition.  As a result, said clever
++	compiler might deem it safe to optimize away the smp_mb(),
++	eliminating the branch and any ordering an architecture would
++	guarantee otherwise.
+ 
+ 2.	Multiple access sizes for a single variable are not supported,
+ 	and neither are misaligned or partially overlapping accesses.
+-- 
+2.31.1.189.g2e36527f23
 
-						Thanx, Paul
-
-------------------------------------------------------------------------
-
- Documentation/memory-barriers.txt                   |   93 ++++++++--------
- b/Documentation/memory-barriers.txt                 |  116 +++++++++++---------
- b/tools/memory-model/Documentation/litmus-tests.txt |   37 ++++--
- 3 files changed, 138 insertions(+), 108 deletions(-)
