@@ -2,90 +2,127 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AFC44ECAAD5
-	for <linux-arch@archiver.kernel.org>; Fri,  2 Sep 2022 14:54:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0ACFEC54EE9
+	for <linux-arch@archiver.kernel.org>; Fri,  2 Sep 2022 14:55:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236579AbiIBOy2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 2 Sep 2022 10:54:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43820 "EHLO
+        id S236513AbiIBOzp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 2 Sep 2022 10:55:45 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51654 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237131AbiIBOyD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Sep 2022 10:54:03 -0400
-Received: from netrider.rowland.org (netrider.rowland.org [192.131.102.5])
-        by lindbergh.monkeyblade.net (Postfix) with SMTP id 682CC25292
-        for <linux-arch@vger.kernel.org>; Fri,  2 Sep 2022 07:18:22 -0700 (PDT)
-Received: (qmail 272737 invoked by uid 1000); 2 Sep 2022 10:18:21 -0400
-Date:   Fri, 2 Sep 2022 10:18:21 -0400
-From:   Alan Stern <stern@rowland.harvard.edu>
-To:     Paul =?iso-8859-1?Q?Heidekr=FCger?= <Paul.Heidekrueger@in.tum.de>
-Cc:     Joel Fernandes <joel@joelfernandes.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
+        with ESMTP id S236547AbiIBOzU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Sep 2022 10:55:20 -0400
+Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64A103B6;
+        Fri,  2 Sep 2022 07:20:11 -0700 (PDT)
+Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
+        by localhost (Postfix) with ESMTP id 4MJyHV10X2z9slJ;
+        Fri,  2 Sep 2022 14:42:46 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase2.c-s.fr ([172.26.127.65])
+        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+        with ESMTP id uJ9sQ1iosXZi; Fri,  2 Sep 2022 14:42:46 +0200 (CEST)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4MJyHS08Mhz9slX;
+        Fri,  2 Sep 2022 14:42:44 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id E5B4F8B764;
+        Fri,  2 Sep 2022 14:42:43 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+        with ESMTP id VkoA-ZwenvJq; Fri,  2 Sep 2022 14:42:43 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.232.39])
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id C63938B788;
+        Fri,  2 Sep 2022 14:42:42 +0200 (CEST)
+Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
+        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 282CgQAm2141483
+        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
+        Fri, 2 Sep 2022 14:42:26 +0200
+Received: (from chleroy@localhost)
+        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 282CgJFl2141476;
+        Fri, 2 Sep 2022 14:42:19 +0200
+X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
+From:   Christophe Leroy <christophe.leroy@csgroup.eu>
+To:     Linus Walleij <linus.walleij@linaro.org>,
+        Bartosz Golaszewski <brgl@bgdev.pl>,
+        Geert Uytterhoeven <geert+renesas@glider.be>,
+        Keerthy <j-keerthy@ti.com>, Russell King <linux@armlinux.org.uk>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        LKML <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Marco Elver <elver@google.com>,
-        Charalampos Mainas <charalampos.mainas@gmail.com>,
-        Pramod Bhatotia <pramod.bhatotia@in.tum.de>,
-        Soham Chakraborty <s.s.chakraborty@tudelft.nl>,
-        Martin Fink <martin.fink@in.tum.de>
-Subject: Re: [PATCH] tools/memory-model: Weaken ctrl dependency definition in
- explanation.txt
-Message-ID: <YxIQrT+jFteFd8+e@rowland.harvard.edu>
-References: <20220830204446.3590197-1-paul.heidekrueger@in.tum.de>
- <663d568d-a343-d44b-d33d-29998bff8f70@joelfernandes.org>
- <98f2b194-1fe6-3cd8-36cf-da017c35198f@joelfernandes.org>
- <Yw7AEx1w6oWn86cm@rowland.harvard.edu>
- <935D3930-C369-4B0E-ACDC-5BFDFA85AA72@in.tum.de>
- <Yw+cm+awhfi6IUHr@rowland.harvard.edu>
- <EE1FA3DC-5A38-45EC-97AB-44B19C1C7707@in.tum.de>
+        Davide Ciminaghi <ciminaghi@gnudd.com>
+Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
+        linux-kernel@vger.kernel.org, linux-gpio@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
+        linux-doc@vger.kernel.org, x86@kernel.org
+Subject: [PATCH v2 0/9] gpio: Get rid of ARCH_NR_GPIOS (v2)
+Date:   Fri,  2 Sep 2022 14:42:00 +0200
+Message-Id: <cover.1662116601.git.christophe.leroy@csgroup.eu>
+X-Mailer: git-send-email 2.37.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1662122526; l=2276; s=20211009; h=from:subject:message-id; bh=uF2ugppKcNYhBb40cETiJzZZ4ufilgv7zNMG29uEExY=; b=33bzuRtpXfVzr2aEXMap91dqdq8rFoHVXSNQn/SkOKB1ryRlNRxHqt8Yx5t2n1U1ccy/P1lg70vi YjCIe8m+D5IxW+CS8NJZzd16LvzBRget8pyV9mh8S+ybvKNGluT4
+X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <EE1FA3DC-5A38-45EC-97AB-44B19C1C7707@in.tum.de>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Sep 02, 2022 at 10:40:34AM +0200, Paul Heidekrüger wrote:
-> On 31. Aug 2022, at 19:38, Alan Stern <stern@rowland.harvard.edu> wrote:
-> >>> Finally, a read event X and another memory access event Y are linked by a
-> >>> control dependency if Y syntactically lies within an arm of an if
-> >>> statement and X affects the evaluation of the if condition via a data or
-> >>> address dependency.  Similarly for switch statements.
-> >> 
-> >> What do you think?
-> > 
-> > I like the second one.  How about combining the last two sentences?  
-> > 
-> > 	... via a data or address dependency (or similarly for a switch 
-> > 	statement).
-> 
-> Yes, sounds good!
-> 
-> > Now I suppose someone will pipe up and ask about the conditional 
-> > expressions in "for", "while" and "do" statements...  :-)
-> 
-> Happy to have obliged :-)
-> https://lore.kernel.org/all/20F4C097-24B4-416B-95EE-AC11F5952B44@in.tum.de/
-> 
-> Do you think the text should explicitly address control dependencies in the
-> context of loops as well? If yes, would it be a separate patch, or would it
-> make sense to combine it with this one?
+Since commit 14e85c0e69d5 ("gpio: remove gpio_descs global array")
+there is no limitation on the number of GPIOs that can be allocated
+in the system since the allocation is fully dynamic.
 
-Anything else should be a separate patch.
+ARCH_NR_GPIOS is today only used in order to provide downwards
+gpiobase allocation from that value, while static allocation is
+performed upwards from 0. However that has the disadvantage of
+limiting the number of GPIOs that can be registered in the system.
 
-For the time being, I'm happy not to worry about loops.  In the end
-we'll probably have to describe them as though they were unrolled,
-with all the complications that entails.
+To overcome this limitation without requiring each and every
+platform to provide its 'best-guess' maximum number, rework the
+allocation to allocate from 512 upwards, allowing approx 2 millions
+of GPIOs.
 
-Alan
+In the meantime, add a warning for drivers how are still doing
+static allocation, so that in the future the static allocation gets
+removed completely and dynamic allocation can start at base 0.
+
+Main changes in v2:
+- Adding a patch to remove sta2x11 GPIO driver instead of modifying it
+- Moving the base of dynamic allocation from 256 to 512 because there
+are drivers allocating gpios as high as 400.
+
+Christophe Leroy (8):
+  gpio: aggregator: Stop using ARCH_NR_GPIOS
+  gpio: davinci: Stop using ARCH_NR_GPIOS
+  gpiolib: Warn on drivers still using static gpiobase allocation
+  gpiolib: Get rid of ARCH_NR_GPIOS
+  Documentation: gpio: Remove text about ARCH_NR_GPIOS
+  x86: Remove CONFIG_ARCH_NR_GPIO
+  arm: Remove CONFIG_ARCH_NR_GPIO
+  arm64: Remove CONFIG_ARCH_NR_GPIO
+
+Davide Ciminaghi (1):
+  gpio: Remove sta2x11 GPIO driver
+
+ Documentation/driver-api/gpio/legacy.rst |   5 -
+ arch/arm/Kconfig                         |  21 --
+ arch/arm/include/asm/gpio.h              |   1 -
+ arch/arm64/Kconfig                       |  12 -
+ arch/x86/Kconfig                         |   5 -
+ drivers/gpio/Kconfig                     |   8 -
+ drivers/gpio/Makefile                    |   1 -
+ drivers/gpio/gpio-aggregator.c           |   7 +-
+ drivers/gpio/gpio-davinci.c              |   3 -
+ drivers/gpio/gpio-sta2x11.c              | 411 -----------------------
+ drivers/gpio/gpiolib.c                   |  13 +-
+ include/asm-generic/gpio.h               |  55 ++-
+ 12 files changed, 33 insertions(+), 509 deletions(-)
+ delete mode 100644 drivers/gpio/gpio-sta2x11.c
+
+-- 
+2.37.1
+
