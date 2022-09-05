@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C79C3ECAAD3
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:26:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F34E6ECAAD5
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:26:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237772AbiIEM0m (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:26:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58466 "EHLO
+        id S236780AbiIEM0w (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:26:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57542 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237449AbiIEMZw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:25:52 -0400
-Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 942501DA7F
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:25:26 -0700 (PDT)
-Received: by mail-ed1-x54a.google.com with SMTP id m18-20020a056402511200b0044862412596so5714453edd.3
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:25:26 -0700 (PDT)
+        with ESMTP id S236058AbiIEM0j (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:26:39 -0400
+Received: from mail-wr1-x449.google.com (mail-wr1-x449.google.com [IPv6:2a00:1450:4864:20::449])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 07E4D32DB0
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:25:32 -0700 (PDT)
+Received: by mail-wr1-x449.google.com with SMTP id r17-20020adfbb11000000b00228663f217fso603655wrg.20
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:25:31 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=vmKBMF2McNFVJqtG6TmpI3MAJxV0RMGeKyj0ZsE0Fyg=;
-        b=O96bjuI/kcNtVyq3944Z7ueCIaa9yuEsYJRsRqgSlHKcEXxmakhKDnaYm8bTJp/2Ie
-         Y8UpnSRc1QETrs4Y8CaN2D+hdalbChXjb/iF/mgeJ2k74SyqLXaXBPgwOkNVKFXuAPnY
-         ObphBlLVgrXRSkLKMQJGEtkwN+0KhcNeyBefvXOuILKIWJt/BEXyYI12bQA0Tlj44WO5
-         jxvyzRsqVQanRBcQxBYdjMDiO9F+YgLL1c8yza+3/ejeeXcU2k1NELaQsYeqOb0rYH3V
-         N0CpyqXMVX3sGSh37mJH/qGJ8lKdXml50RvZ8I9e4hWM3iSgRSretp8awq1gK/fuIu3m
-         Y1Qg==
+        bh=XCZJZVAa3O+3/P+XN9/lo0y8HYORhozGNxqdXHsrUsA=;
+        b=bQ+/47cKrqBhbRe4ywkTJqHqYWgP77hUTtmp1dcohb/ioQoSgzm//3xKCe3uoAMMIy
+         MIMVg2G/g8T78zcnHSkaI5X3P+BrN+bNPCX3ZLhni4takFJJ6fWScY0RGeODmt0niiqp
+         tYnyXm7BiAmG0XaHSSRaGB9+V8Exq4Q0sJr5bGZioEQR0ThC50Q+1do4JCnRBMYWmRAt
+         dGpCQy8T+4cRttEORqBm7pd7KzCiFBnpmjsLacLdH//1jnZX0x/HgtbzNK8FLIheW8qW
+         FWlPXyugoRaG8F7ixiCZy+ohdSGvFlnQl/gYpweG6P7kfVbuYXlJ7XmgadF2PQnFmSDg
+         A2tw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=vmKBMF2McNFVJqtG6TmpI3MAJxV0RMGeKyj0ZsE0Fyg=;
-        b=0yXYFVfxEZKFgvTHT+yn+i4mXA7MSlz8jWk9/a5DYDA89aCwSGfZk+RYiCHvZfxX5P
-         Dr8NgiYh0O8f25+YZYvTn6MkPVh92SXSTk5PFzSYJHraHSevob0HZalMbcABp/zkhDob
-         DijKyK9o+we+JjUAC0WIGyYgFVeWkO1xsSJ9njMxHQqRwasSTDqNTVMIlsZchbOfkvAH
-         9QStmgGJh3uXSI9QVywOmJ/2oBUfgZl0vY5VRAIg+Uib82CQCCItsk1eYr90UdeN4Abz
-         Br9AD7zW0CptsXGRmMAFVrfmhOqVKf5pQrcdDADhPpMcrwIwW8NjyH+2hbZC/LwEq6ZL
-         ituw==
-X-Gm-Message-State: ACgBeo0hYTuqv0NZ1nds1voNlqb2MjFIvniBBTHzYZ+CAJk3sSdNL01Y
-        E6TGbnOXyBP1p7uabXG0AfjO5/d+QOs=
-X-Google-Smtp-Source: AA6agR66RFT7ULInIZdaLxzEB+W3njrb9ZsrwOKlCCrjmsBFRCEDn3xMmeOMxizX3qE5C/AOVlfkrTghefs=
+        bh=XCZJZVAa3O+3/P+XN9/lo0y8HYORhozGNxqdXHsrUsA=;
+        b=JW8AdNMWQtPxEHZma5fzjUBxdtS9RZQtiGw+GJep/w2KQUnno0kT22BlqC4wrifNbW
+         rzTstLU+xzUlAX6hKO5C4myNIeDvguyH4z53OWRvF0MIGQLyK5Y+ir801Uoi6P5JJtFs
+         H0vyiUVO2FG+QresJ3qTbuo7JRLMF1jc0igB9hFaC2FT4v4WlSYQg+kELb7wh35apPAz
+         aFZfx5xCtb0iwYdVdAg+3HBjuPZtBvwsOkpdPtnzfFG81KSNVWX36aZ0CYpt9mTpkQTH
+         +nY7eajYjqxFnkt/TgkLjoNS+uPPkgqSsI+sNU/88K3OPXjm5CMMJyOkKYqxNNdxbgIS
+         KcoQ==
+X-Gm-Message-State: ACgBeo0mgAQ+yEEJm2rBqH8N56pPyTrnSJq00/12/alaWVkDcXCs6Prb
+        xi5YTUnCQFBSKtyKBGy1IcKyLShMLdU=
+X-Google-Smtp-Source: AA6agR5ePi+xwp2kWxLXVgdRtOkhFxB2Ee5h9v0DMSNgo8fLmjBOh8J9ueb16LrVhja/ymCHyUA/Jo9hmTc=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a17:907:b13:b0:73f:d86a:6e3c with SMTP id
- h19-20020a1709070b1300b0073fd86a6e3cmr31127618ejl.132.1662380725053; Mon, 05
- Sep 2022 05:25:25 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:18 +0200
+ (user=glider job=sendgmr) by 2002:a5d:598f:0:b0:220:8005:7def with SMTP id
+ n15-20020a5d598f000000b0022080057defmr25144707wri.435.1662380730400; Mon, 05
+ Sep 2022 05:25:30 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:20 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-11-glider@google.com>
-Subject: [PATCH v6 10/44] libnvdimm/pfn_dev: increase MAX_STRUCT_PAGE_SIZE
+Message-ID: <20220905122452.2258262-13-glider@google.com>
+Subject: [PATCH v6 12/44] kmsan: disable instrumentation of unsupported common
+ kernel code
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,47 +91,84 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN adds extra metadata fields to struct page, so it does not fit into
-64 bytes anymore.
+EFI stub cannot be linked with KMSAN runtime, so we disable
+instrumentation for it.
 
-This change leads to increased memory consumption of the nvdimm driver,
-regardless of whether the kernel is built with KMSAN or not.
+Instrumenting kcov, stackdepot or lockdep leads to infinite recursion
+caused by instrumentation hooks calling instrumented code again.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 Reviewed-by: Marco Elver <elver@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/I353796acc6a850bfd7bb342aa1b63e616fc614f1
----
- drivers/nvdimm/nd.h       | 2 +-
- drivers/nvdimm/pfn_devs.c | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+v4:
+ -- This patch was previously part of "kmsan: disable KMSAN
+    instrumentation for certain kernel parts", but was split away per
+    Mark Rutland's request.
 
-diff --git a/drivers/nvdimm/nd.h b/drivers/nvdimm/nd.h
-index ec5219680092d..85ca5b4da3cf3 100644
---- a/drivers/nvdimm/nd.h
-+++ b/drivers/nvdimm/nd.h
-@@ -652,7 +652,7 @@ void devm_namespace_disable(struct device *dev,
- 		struct nd_namespace_common *ndns);
- #if IS_ENABLED(CONFIG_ND_CLAIM)
- /* max struct page size independent of kernel config */
--#define MAX_STRUCT_PAGE_SIZE 64
-+#define MAX_STRUCT_PAGE_SIZE 128
- int nvdimm_setup_pfn(struct nd_pfn *nd_pfn, struct dev_pagemap *pgmap);
- #else
- static inline int nvdimm_setup_pfn(struct nd_pfn *nd_pfn,
-diff --git a/drivers/nvdimm/pfn_devs.c b/drivers/nvdimm/pfn_devs.c
-index 0e92ab4b32833..61af072ac98f9 100644
---- a/drivers/nvdimm/pfn_devs.c
-+++ b/drivers/nvdimm/pfn_devs.c
-@@ -787,7 +787,7 @@ static int nd_pfn_init(struct nd_pfn *nd_pfn)
- 		 * when populating the vmemmap. This *should* be equal to
- 		 * PMD_SIZE for most architectures.
- 		 *
--		 * Also make sure size of struct page is less than 64. We
-+		 * Also make sure size of struct page is less than 128. We
- 		 * want to make sure we use large enough size here so that
- 		 * we don't have a dynamic reserve space depending on
- 		 * struct page size. But we also want to make sure we notice
+v5:
+ -- remove unnecessary comment belonging to another patch
+
+Link: https://linux-review.googlesource.com/id/I41ae706bd3474f074f6a870bfc3f0f90e9c720f7
+---
+ drivers/firmware/efi/libstub/Makefile | 1 +
+ kernel/Makefile                       | 1 +
+ kernel/locking/Makefile               | 3 ++-
+ lib/Makefile                          | 3 +++
+ 4 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/firmware/efi/libstub/Makefile b/drivers/firmware/efi/libstub/Makefile
+index d0537573501e9..81432d0c904b1 100644
+--- a/drivers/firmware/efi/libstub/Makefile
++++ b/drivers/firmware/efi/libstub/Makefile
+@@ -46,6 +46,7 @@ GCOV_PROFILE			:= n
+ # Sanitizer runtimes are unavailable and cannot be linked here.
+ KASAN_SANITIZE			:= n
+ KCSAN_SANITIZE			:= n
++KMSAN_SANITIZE			:= n
+ UBSAN_SANITIZE			:= n
+ OBJECT_FILES_NON_STANDARD	:= y
+ 
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 318789c728d32..d754e0be1176d 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -38,6 +38,7 @@ KCOV_INSTRUMENT_kcov.o := n
+ KASAN_SANITIZE_kcov.o := n
+ KCSAN_SANITIZE_kcov.o := n
+ UBSAN_SANITIZE_kcov.o := n
++KMSAN_SANITIZE_kcov.o := n
+ CFLAGS_kcov.o := $(call cc-option, -fno-conserve-stack) -fno-stack-protector
+ 
+ # Don't instrument error handlers
+diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
+index d51cabf28f382..ea925731fa40f 100644
+--- a/kernel/locking/Makefile
++++ b/kernel/locking/Makefile
+@@ -5,8 +5,9 @@ KCOV_INSTRUMENT		:= n
+ 
+ obj-y += mutex.o semaphore.o rwsem.o percpu-rwsem.o
+ 
+-# Avoid recursion lockdep -> KCSAN -> ... -> lockdep.
++# Avoid recursion lockdep -> sanitizer -> ... -> lockdep.
+ KCSAN_SANITIZE_lockdep.o := n
++KMSAN_SANITIZE_lockdep.o := n
+ 
+ ifdef CONFIG_FUNCTION_TRACER
+ CFLAGS_REMOVE_lockdep.o = $(CC_FLAGS_FTRACE)
+diff --git a/lib/Makefile b/lib/Makefile
+index ffabc30a27d4e..fcebece0f5b6f 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -275,6 +275,9 @@ obj-$(CONFIG_POLYNOMIAL) += polynomial.o
+ CFLAGS_stackdepot.o += -fno-builtin
+ obj-$(CONFIG_STACKDEPOT) += stackdepot.o
+ KASAN_SANITIZE_stackdepot.o := n
++# In particular, instrumenting stackdepot.c with KMSAN will result in infinite
++# recursion.
++KMSAN_SANITIZE_stackdepot.o := n
+ KCOV_INSTRUMENT_stackdepot.o := n
+ 
+ obj-$(CONFIG_REF_TRACKER) += ref_tracker.o
 -- 
 2.37.2.789.g6183377224-goog
 
