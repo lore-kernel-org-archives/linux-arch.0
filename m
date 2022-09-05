@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 64FC4ECAAD5
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:30:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D5C84ECAAD3
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:30:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237440AbiIEMab (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:30:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57550 "EHLO
+        id S237921AbiIEMam (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:30:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60252 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237188AbiIEM37 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:29:59 -0400
-Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3C97C60538
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:25 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id f12-20020a25b6cc000000b0069a9e36de26so6608056ybm.16
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:25 -0700 (PDT)
+        with ESMTP id S237283AbiIEMaG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:06 -0400
+Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 336BC60681
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:26 -0700 (PDT)
+Received: by mail-ej1-x64a.google.com with SMTP id gs35-20020a1709072d2300b00730e14fd76eso2277117ejc.15
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:26 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=2KqHkwy5ct3iw6Sq4tv6KYhLxwZCRI8E9SKEfBphS/w=;
-        b=qNMo5+TEtHEFzd8X93C0KJLOfuW+bl/+NTRUdie3mml96pmEn+N4vH73TD76K9APOw
-         x7lr9Ow00o8rBQaSj9JRLCw662OfSNPqEe7f0LMhZDSdpqWcmum4NxKT+HVgyu3RyfBD
-         dIjUpK8ttDmqfrKCMUsqSsU8IJsy5EHQp/h4UYlDNXZbXTIcCguHSUJEjjrD3MIdBnjM
-         ew66vj+qOTIITQCyAZ7Jxljq9KU96gFXJ0ue/bUGJurejXqSQnhg1ok6o1QRgjbXNuIp
-         lffKoMG7G7gn7zuofcQknS310KI34IZsJjruVPp2PdPve0UziuK5oNrmj/4uXS8iYknC
-         7H6Q==
+        bh=mxKrKakNES2O6WNVUjUiVAG/aqg8NEyyXmfzwvDy3M8=;
+        b=Hll0XPDmwrA/wkE0+inHBLREQNrLcoBNQOLJv6vlBIuGAkWI+xpzOnwpEHVMNRdEFq
+         LadRtvkYKT0rBaCGIQh+SpcYQSYJ6+D3urzxB4a+suX0OZKqBBYIRUGR9X7fE50HgxBz
+         B2g0i4X6vQks1KpTx5jgpjFZyeuT89E6vIhppFNHjDfbX+1QPnLtmUz9mtN+7ySfB+bR
+         PFoDRy3NBTPBWZ7NAt+/xQb5yB7Y9UmTQE95ZWJNyoXXzQAFuUS4huF8Aevejgh3HJgS
+         M1OLT91cEQYlIRh7PZL9bQgnExoipMKZwEt+JNxRwLYODVp7nciM3moyVQjv2BbTAuZX
+         Rk6w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=2KqHkwy5ct3iw6Sq4tv6KYhLxwZCRI8E9SKEfBphS/w=;
-        b=RphfwjKBgiYDIFnl8Gmf2E4nEdahROgWtMdKaD/sAaMlhKlHpzz3nj/lLnRTcGgdlH
-         PSnGsd9aOeQoT7f4lxwlKTQf5P1Vci/zBhEZS3JTubE5W9KoC2Eg3sQ7UwBOGMrFgVD8
-         IVufLyMrAMSLHPkISyAwy0+RxrjHHOC1J1W2AdxnbYdkm07GBL491wGaWSuXI0LFPIoy
-         X3HLu8aNZxUGeKl+NDDTT51cyx/9wsnjZjrYkMvcMFzvjb0LNL8ainhBBmugvG/oNjsP
-         t9UDk2132iw4sySCmoJBmDMyWP+7z/B0cOufALPfz3lQrCVEXr9m4L7vAmsAyJGYJ/3I
-         cRhA==
-X-Gm-Message-State: ACgBeo0W3DSP7yiN+wvMMZqY8KM/cdRMi48D4qzZq3k/LCDVNMuIfWjD
-        CoEIrW6U3Gr0kvCnYqnN/Xik8K+2rhw=
-X-Google-Smtp-Source: AA6agR51nX2bLBt0cmW3C7LjTsMe0MSSnl7E/OhkmGQFZLdUXmzJbRciuD6fyHf0emq6ppsHqPpy+bgoLPI=
+        bh=mxKrKakNES2O6WNVUjUiVAG/aqg8NEyyXmfzwvDy3M8=;
+        b=Q35oJftBzCRAW73rSL6eykCEANKczsY4xgqCFoRvg5QSGt4Ufkp621pEnJmrsy4IUO
+         0ltQlx307poevWJc0FswKalkzDXyZPavh2BlmqEzS1CMVPSGlfxubf0j5sWm8hJi4vpm
+         shFSNkGN9o27BQgDJB/Uczo9RtYM9IIj1YAFgHz6otXv2Ka0GO8XYx6zRR4+D0QJbVAW
+         O4Y0vi+4gMhrgSlTF6m4KV+KMmLFMN1bGM/OtwMETTJ4Eo0wShO11S9DZBa6wMiYVXcD
+         IA7zL9mczqCTp82ljoofLbKqYB6SKXsWIQHCgJh7s5l13/EyynMNwilMc3WHpyxcBUZI
+         E93w==
+X-Gm-Message-State: ACgBeo2E0NBDmV+nSmg5KxnIACTbtxcGL7EcT4Z1SJ8GLyK1REx0+VJy
+        2dTuXPNBErbGLz2yvdie3xYYFeaKV7c=
+X-Google-Smtp-Source: AA6agR4pZP+Qf1sER/Bcc0sCrTDiYtuFvoFMz4Z9eHlW4ZWYhhtKJNa6WbLDpJSuTZ9T3g+moO7a0PvtFbY=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a5b:549:0:b0:677:768b:2784 with SMTP id
- r9-20020a5b0549000000b00677768b2784mr34118519ybp.296.1662380763627; Mon, 05
- Sep 2022 05:26:03 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:32 +0200
+ (user=glider job=sendgmr) by 2002:a17:906:845c:b0:730:bbf1:196a with SMTP id
+ e28-20020a170906845c00b00730bbf1196amr36512046ejy.13.1662380785638; Mon, 05
+ Sep 2022 05:26:25 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:40 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-25-glider@google.com>
-Subject: [PATCH v6 24/44] kmsan: handle memory sent to/from USB
+Message-ID: <20220905122452.2258262-33-glider@google.com>
+Subject: [PATCH v6 32/44] objtool: kmsan: list KMSAN API functions as uaccess-safe
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,123 +90,71 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Depending on the value of is_out kmsan_handle_urb() KMSAN either
-marks the data copied to the kernel from a USB device as initialized,
-or checks the data sent to the device for being initialized.
+KMSAN inserts API function calls in a lot of places (function entries
+and exits, local variables, memory accesses), so they may get called
+from the uaccess regions as well.
+
+KMSAN API functions are used to update the metadata (shadow/origin pages)
+for kernel memory accesses. The metadata pages for kernel pointers are
+also located in the kernel memory, so touching them is not a problem.
+For userspace pointers, no metadata is allocated.
+
+If an API function is supposed to read or modify the metadata, it does so
+for kernel pointers and ignores userspace pointers.
+If an API function is supposed to return a pair of metadata pointers for
+the instrumentation to use (like all __msan_metadata_ptr_for_TYPE_SIZE()
+functions do), it returns the allocated metadata for kernel pointers and
+special dummy buffers residing in the kernel memory for userspace
+pointers.
+
+As a result, none of KMSAN API functions perform userspace accesses, but
+since they might be called from UACCESS regions they use
+user_access_save/restore().
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
-
 ---
-v2:
- -- move kmsan_handle_urb() implementation to this patch
+v3:
+ -- updated the patch description
 
-v5:
- -- do not export KMSAN hooks that are not called from modules
+v4:
+ -- add kmsan_unpoison_entry_regs()
 
-v6:
- -- use <linux/kmsan.h> instead of <linux/kmsan-checks.h>
-
-Link: https://linux-review.googlesource.com/id/Ifa67fb72015d4de14c30e971556f99fc8b2ee506
+Link: https://linux-review.googlesource.com/id/I242bc9816273fecad4ea3d977393784396bb3c35
 ---
- drivers/usb/core/urb.c |  2 ++
- include/linux/kmsan.h  | 15 +++++++++++++++
- mm/kmsan/hooks.c       | 16 ++++++++++++++++
- 3 files changed, 33 insertions(+)
+ tools/objtool/check.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
 
-diff --git a/drivers/usb/core/urb.c b/drivers/usb/core/urb.c
-index 33d62d7e3929f..9f3c54032556e 100644
---- a/drivers/usb/core/urb.c
-+++ b/drivers/usb/core/urb.c
-@@ -8,6 +8,7 @@
- #include <linux/bitops.h>
- #include <linux/slab.h>
- #include <linux/log2.h>
-+#include <linux/kmsan.h>
- #include <linux/usb.h>
- #include <linux/wait.h>
- #include <linux/usb/hcd.h>
-@@ -426,6 +427,7 @@ int usb_submit_urb(struct urb *urb, gfp_t mem_flags)
- 			URB_SETUP_MAP_SINGLE | URB_SETUP_MAP_LOCAL |
- 			URB_DMA_SG_COMBINED);
- 	urb->transfer_flags |= (is_out ? URB_DIR_OUT : URB_DIR_IN);
-+	kmsan_handle_urb(urb, is_out);
- 
- 	if (xfertype != USB_ENDPOINT_XFER_CONTROL &&
- 			dev->state < USB_STATE_CONFIGURED)
-diff --git a/include/linux/kmsan.h b/include/linux/kmsan.h
-index dac296da45c55..c473e0e21683c 100644
---- a/include/linux/kmsan.h
-+++ b/include/linux/kmsan.h
-@@ -18,6 +18,7 @@ struct page;
- struct kmem_cache;
- struct task_struct;
- struct scatterlist;
-+struct urb;
- 
- #ifdef CONFIG_KMSAN
- 
-@@ -203,6 +204,16 @@ void kmsan_handle_dma(struct page *page, size_t offset, size_t size,
- void kmsan_handle_dma_sg(struct scatterlist *sg, int nents,
- 			 enum dma_data_direction dir);
- 
-+/**
-+ * kmsan_handle_urb() - Handle a USB data transfer.
-+ * @urb:    struct urb pointer.
-+ * @is_out: data transfer direction (true means output to hardware).
-+ *
-+ * If @is_out is true, KMSAN checks the transfer buffer of @urb. Otherwise,
-+ * KMSAN initializes the transfer buffer.
-+ */
-+void kmsan_handle_urb(const struct urb *urb, bool is_out);
-+
- #else
- 
- static inline void kmsan_init_shadow(void)
-@@ -295,6 +306,10 @@ static inline void kmsan_handle_dma_sg(struct scatterlist *sg, int nents,
- {
- }
- 
-+static inline void kmsan_handle_urb(const struct urb *urb, bool is_out)
-+{
-+}
-+
- #endif
- 
- #endif /* _LINUX_KMSAN_H */
-diff --git a/mm/kmsan/hooks.c b/mm/kmsan/hooks.c
-index 563c09443a37a..79d7e73e2cfd8 100644
---- a/mm/kmsan/hooks.c
-+++ b/mm/kmsan/hooks.c
-@@ -18,6 +18,7 @@
- #include <linux/scatterlist.h>
- #include <linux/slab.h>
- #include <linux/uaccess.h>
-+#include <linux/usb.h>
- 
- #include "../internal.h"
- #include "../slab.h"
-@@ -245,6 +246,21 @@ void kmsan_copy_to_user(void __user *to, const void *from, size_t to_copy,
- }
- EXPORT_SYMBOL(kmsan_copy_to_user);
- 
-+/* Helper function to check an URB. */
-+void kmsan_handle_urb(const struct urb *urb, bool is_out)
-+{
-+	if (!urb)
-+		return;
-+	if (is_out)
-+		kmsan_internal_check_memory(urb->transfer_buffer,
-+					    urb->transfer_buffer_length,
-+					    /*user_addr*/ 0, REASON_SUBMIT_URB);
-+	else
-+		kmsan_internal_unpoison_memory(urb->transfer_buffer,
-+					       urb->transfer_buffer_length,
-+					       /*checked*/ false);
-+}
-+
- static void kmsan_handle_dma_page(const void *addr, size_t size,
- 				  enum dma_data_direction dir)
- {
+diff --git a/tools/objtool/check.c b/tools/objtool/check.c
+index e55fdf952a3a1..7c048c11ce7da 100644
+--- a/tools/objtool/check.c
++++ b/tools/objtool/check.c
+@@ -1062,6 +1062,26 @@ static const char *uaccess_safe_builtin[] = {
+ 	"__sanitizer_cov_trace_cmp4",
+ 	"__sanitizer_cov_trace_cmp8",
+ 	"__sanitizer_cov_trace_switch",
++	/* KMSAN */
++	"kmsan_copy_to_user",
++	"kmsan_report",
++	"kmsan_unpoison_entry_regs",
++	"kmsan_unpoison_memory",
++	"__msan_chain_origin",
++	"__msan_get_context_state",
++	"__msan_instrument_asm_store",
++	"__msan_metadata_ptr_for_load_1",
++	"__msan_metadata_ptr_for_load_2",
++	"__msan_metadata_ptr_for_load_4",
++	"__msan_metadata_ptr_for_load_8",
++	"__msan_metadata_ptr_for_load_n",
++	"__msan_metadata_ptr_for_store_1",
++	"__msan_metadata_ptr_for_store_2",
++	"__msan_metadata_ptr_for_store_4",
++	"__msan_metadata_ptr_for_store_8",
++	"__msan_metadata_ptr_for_store_n",
++	"__msan_poison_alloca",
++	"__msan_warning",
+ 	/* UBSAN */
+ 	"ubsan_type_mismatch_common",
+ 	"__ubsan_handle_type_mismatch",
 -- 
 2.37.2.789.g6183377224-goog
 
