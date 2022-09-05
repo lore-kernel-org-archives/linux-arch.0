@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D5C84ECAAD3
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:30:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 424D1ECAAD3
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:30:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237921AbiIEMam (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:30:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60252 "EHLO
+        id S237992AbiIEMaq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:30:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57506 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237283AbiIEMaG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:06 -0400
-Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 336BC60681
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:26 -0700 (PDT)
-Received: by mail-ej1-x64a.google.com with SMTP id gs35-20020a1709072d2300b00730e14fd76eso2277117ejc.15
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:26 -0700 (PDT)
+        with ESMTP id S237597AbiIEMaQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:16 -0400
+Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E612C60698
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:28 -0700 (PDT)
+Received: by mail-ed1-x549.google.com with SMTP id w17-20020a056402269100b0043da2189b71so5641103edd.6
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=mxKrKakNES2O6WNVUjUiVAG/aqg8NEyyXmfzwvDy3M8=;
-        b=Hll0XPDmwrA/wkE0+inHBLREQNrLcoBNQOLJv6vlBIuGAkWI+xpzOnwpEHVMNRdEFq
-         LadRtvkYKT0rBaCGIQh+SpcYQSYJ6+D3urzxB4a+suX0OZKqBBYIRUGR9X7fE50HgxBz
-         B2g0i4X6vQks1KpTx5jgpjFZyeuT89E6vIhppFNHjDfbX+1QPnLtmUz9mtN+7ySfB+bR
-         PFoDRy3NBTPBWZ7NAt+/xQb5yB7Y9UmTQE95ZWJNyoXXzQAFuUS4huF8Aevejgh3HJgS
-         M1OLT91cEQYlIRh7PZL9bQgnExoipMKZwEt+JNxRwLYODVp7nciM3moyVQjv2BbTAuZX
-         Rk6w==
+        bh=PRETZsLeKtd8er/vGZIvwJ67UbRQnpYPS7VnNd6iitc=;
+        b=Rw0JSo2mfA53wv1KbqcCFIJoJCKgB38eiEtze1NtffAs06/flW4T57bbg2dVgmm7vN
+         Qgo1uiqbKJaHLIYDDiLsbIbsnOBwXkyph/jL1jJt7c88fQk6BTFd9sFusdBxHhx6dDYE
+         u5T3ewW3kKrqDUiYOfyUWYtYPe4wTLLwz6YktJHkCggWgZlXMaXpy8DUIH24zJx2XEu5
+         /2ZJizHYM8tdojTqRxVSOKMfWIBfh4BQZl9kEZRZrxqDuXDq6LhgmA36ysx4Fnd4wn/z
+         RXSYyqOZGt5AmWmyGx3znX+g0JifZp9ZClGm7haZUkqafRea3A16fYJTpOu+ONa6qpWB
+         P9rQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=mxKrKakNES2O6WNVUjUiVAG/aqg8NEyyXmfzwvDy3M8=;
-        b=Q35oJftBzCRAW73rSL6eykCEANKczsY4xgqCFoRvg5QSGt4Ufkp621pEnJmrsy4IUO
-         0ltQlx307poevWJc0FswKalkzDXyZPavh2BlmqEzS1CMVPSGlfxubf0j5sWm8hJi4vpm
-         shFSNkGN9o27BQgDJB/Uczo9RtYM9IIj1YAFgHz6otXv2Ka0GO8XYx6zRR4+D0QJbVAW
-         O4Y0vi+4gMhrgSlTF6m4KV+KMmLFMN1bGM/OtwMETTJ4Eo0wShO11S9DZBa6wMiYVXcD
-         IA7zL9mczqCTp82ljoofLbKqYB6SKXsWIQHCgJh7s5l13/EyynMNwilMc3WHpyxcBUZI
-         E93w==
-X-Gm-Message-State: ACgBeo2E0NBDmV+nSmg5KxnIACTbtxcGL7EcT4Z1SJ8GLyK1REx0+VJy
-        2dTuXPNBErbGLz2yvdie3xYYFeaKV7c=
-X-Google-Smtp-Source: AA6agR4pZP+Qf1sER/Bcc0sCrTDiYtuFvoFMz4Z9eHlW4ZWYhhtKJNa6WbLDpJSuTZ9T3g+moO7a0PvtFbY=
+        bh=PRETZsLeKtd8er/vGZIvwJ67UbRQnpYPS7VnNd6iitc=;
+        b=k1NdlSAfmUZSlkdc0HGXqleftpQtkluxwfy6f1y6p1eQWSaQQmpqeIGUNTG0zB/hA4
+         ZCZUZUVP8KSsOm8J41R/iGiWU5s5oqE6zc1Kr0v5nWCLxtKR3jHM1sDhfJ6zia5eEu6f
+         xE9fClKkmx/2yajTAUUDv1d+1LzngniUE7tXGb7QpYfFCDFNBG+6CpSwADv0FU10t4sw
+         WBWR8zxS7ahiFU5uApeY3wnkjT2Xp9c+/B2Slsu0x03k+7mtGAKS4Lkzh2Gfz5lNcp+3
+         Yk7dUL3VGJFpoIQrsXEfKbBXGEafHYk5fc96Zr1jhW0oKZGf+Rtlq4pZ349IGTbR62pt
+         5EvA==
+X-Gm-Message-State: ACgBeo0QlCbJoH26ng771rHVEN8fcAT9HwSZtJdU774XM30ZG7Qs87Px
+        qnX0NJTFtt1CBz5nZcPBLsgiY71Sb1w=
+X-Google-Smtp-Source: AA6agR6H7t7tR3hDwMYsSl5f8ymL7keGAQBGQoCYb8T9aH1rg12oi88mnhysrWMbCn39pKzombeP5qdOg3Y=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a17:906:845c:b0:730:bbf1:196a with SMTP id
- e28-20020a170906845c00b00730bbf1196amr36512046ejy.13.1662380785638; Mon, 05
- Sep 2022 05:26:25 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:40 +0200
+ (user=glider job=sendgmr) by 2002:a05:6402:4515:b0:443:7833:3d7b with SMTP id
+ ez21-20020a056402451500b0044378333d7bmr18008265edb.151.1662380769211; Mon, 05
+ Sep 2022 05:26:09 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:34 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-33-glider@google.com>
-Subject: [PATCH v6 32/44] objtool: kmsan: list KMSAN API functions as uaccess-safe
+Message-ID: <20220905122452.2258262-27-glider@google.com>
+Subject: [PATCH v6 26/44] kmsan: disable strscpy() optimization under KMSAN
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,71 +90,36 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN inserts API function calls in a lot of places (function entries
-and exits, local variables, memory accesses), so they may get called
-from the uaccess regions as well.
-
-KMSAN API functions are used to update the metadata (shadow/origin pages)
-for kernel memory accesses. The metadata pages for kernel pointers are
-also located in the kernel memory, so touching them is not a problem.
-For userspace pointers, no metadata is allocated.
-
-If an API function is supposed to read or modify the metadata, it does so
-for kernel pointers and ignores userspace pointers.
-If an API function is supposed to return a pair of metadata pointers for
-the instrumentation to use (like all __msan_metadata_ptr_for_TYPE_SIZE()
-functions do), it returns the allocated metadata for kernel pointers and
-special dummy buffers residing in the kernel memory for userspace
-pointers.
-
-As a result, none of KMSAN API functions perform userspace accesses, but
-since they might be called from UACCESS regions they use
-user_access_save/restore().
+Disable the efficient 8-byte reading under KMSAN to avoid false positives.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
+
 ---
-v3:
- -- updated the patch description
 
-v4:
- -- add kmsan_unpoison_entry_regs()
-
-Link: https://linux-review.googlesource.com/id/I242bc9816273fecad4ea3d977393784396bb3c35
+Link: https://linux-review.googlesource.com/id/Iffd8336965e88fce915db2e6a9d6524422975f69
 ---
- tools/objtool/check.c | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
+ lib/string.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/tools/objtool/check.c b/tools/objtool/check.c
-index e55fdf952a3a1..7c048c11ce7da 100644
---- a/tools/objtool/check.c
-+++ b/tools/objtool/check.c
-@@ -1062,6 +1062,26 @@ static const char *uaccess_safe_builtin[] = {
- 	"__sanitizer_cov_trace_cmp4",
- 	"__sanitizer_cov_trace_cmp8",
- 	"__sanitizer_cov_trace_switch",
-+	/* KMSAN */
-+	"kmsan_copy_to_user",
-+	"kmsan_report",
-+	"kmsan_unpoison_entry_regs",
-+	"kmsan_unpoison_memory",
-+	"__msan_chain_origin",
-+	"__msan_get_context_state",
-+	"__msan_instrument_asm_store",
-+	"__msan_metadata_ptr_for_load_1",
-+	"__msan_metadata_ptr_for_load_2",
-+	"__msan_metadata_ptr_for_load_4",
-+	"__msan_metadata_ptr_for_load_8",
-+	"__msan_metadata_ptr_for_load_n",
-+	"__msan_metadata_ptr_for_store_1",
-+	"__msan_metadata_ptr_for_store_2",
-+	"__msan_metadata_ptr_for_store_4",
-+	"__msan_metadata_ptr_for_store_8",
-+	"__msan_metadata_ptr_for_store_n",
-+	"__msan_poison_alloca",
-+	"__msan_warning",
- 	/* UBSAN */
- 	"ubsan_type_mismatch_common",
- 	"__ubsan_handle_type_mismatch",
+diff --git a/lib/string.c b/lib/string.c
+index 6f334420f6871..3371d26a0e390 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -197,6 +197,14 @@ ssize_t strscpy(char *dest, const char *src, size_t count)
+ 		max = 0;
+ #endif
+ 
++	/*
++	 * read_word_at_a_time() below may read uninitialized bytes after the
++	 * trailing zero and use them in comparisons. Disable this optimization
++	 * under KMSAN to prevent false positive reports.
++	 */
++	if (IS_ENABLED(CONFIG_KMSAN))
++		max = 0;
++
+ 	while (max >= sizeof(unsigned long)) {
+ 		unsigned long c, data;
+ 
 -- 
 2.37.2.789.g6183377224-goog
 
