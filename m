@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BE04BC6FA83
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:34:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B6AB0C54EE9
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:34:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237654AbiIEMeE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:34:04 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33462 "EHLO
+        id S237734AbiIEMeF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:34:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45748 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237909AbiIEMc0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:32:26 -0400
+        with ESMTP id S238019AbiIEMdH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:33:07 -0400
 Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5D85A61727
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:54 -0700 (PDT)
-Received: by mail-ed1-x54a.google.com with SMTP id r11-20020a05640251cb00b004484ec7e3a4so5725778edd.8
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:54 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CB7F261B0A
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:27:00 -0700 (PDT)
+Received: by mail-ed1-x54a.google.com with SMTP id i6-20020a05640242c600b00447c00a776aso5852914edc.20
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:27:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=63Lbiss0mCSaP/JatuEwb7Qda7JVHXONR7b7gS/f0zw=;
-        b=UDsvJYgtTXPZF5a9agPh2mXyrYJrhXMTAzXPZNghSJw5ee3mNMwXIwpKa+RKY0zuMd
-         0oketLAQ8tAqBq9H1OztfYXsFZLC3/GjPvaRGV4Tf5cx5pY09RUcAdfIPub4N1YomTRe
-         qN17vYLlykWW3fcYQY5yUk9fGBNhlorODfdAFeJeB/phj1xFUAdvMGDkePvsaAAnNZDZ
-         QNcHmgGjaBYlCKkJsPpqD7vIZwk92kcg49ObV7TTQ+SLXpAZ9pO/JJZcCHGzK92euOmB
-         wKHTk01woRx7PzSGgjyowKFGJYseYwyRla1r4RWjs1ovT7LskcrPtqUZWACg7jNiOAET
-         dJPQ==
+        bh=qWMR0SPZO0jqHHxoNfMsk5w/9uuaYeqiCUk8OeqbWGY=;
+        b=MCXD5lbAQVcPgT/EOdvK/WVt9NS7Tehk6H0aVaS8GX3ikViotqPCRrmdoTTCXIhr5J
+         N8bepvbPPvSbhZ8S0DmGK9sFHZlcXZ31hLA7G3xuzIyLsP7X5LFnKWatBqYu/WyuYeav
+         k7/a9IJ5CxBv/ClbXm8jzN0Wty3J801Voam2e3glQZTv/b9+9CyLW+e+qo77yLiBc3q4
+         tLOthnqhOsLvn/SWDpHT5+mmNbEUNHIB8pgYXGWJNleqraHhVXBzpssmWKCcJwIEj3HJ
+         SW6L9kIN8TBi8B5aJM7ga9767Q3PcHiJ21sor8antmuKraDCJSwCtpgLZh65GuT8gSnh
+         9ivg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=63Lbiss0mCSaP/JatuEwb7Qda7JVHXONR7b7gS/f0zw=;
-        b=c8tVpJvnOWe44AXlDfOyYnrzcuJv787EvugyfEbMXDVYvHwJ1WYbbMMwpaHrXvYJqX
-         6sii3H5t9W1RMbg6nnRsZaOC+vvMVW0bjSjF5NM9qpmJIjlL1ZaEzQ2O4uHJdAx56WgW
-         vr3/8FiBWiZ1Lj+ZybxEdjn95n7tjP0xqElfr8RYuv8qowbUeHagbrjKjt/E7DXKvLV6
-         FZnM+K2ulNvC779ehJpXLLQuz08LzhSjLYjmuhiD8YvdGmjuFw67Tp7zgLY/KJICkG+k
-         r8FNjYLh8EkHIPZevckvvOgaf0teIFDv4UqX5+VGSbe61pQYZQyZD4HaN7QE3meEktsa
-         yxXA==
-X-Gm-Message-State: ACgBeo2BXfspig/e9Iml3tzGYLgh4wNxeYCNVYnDXKva3Ryu9PZ4xC0s
-        wuVULbybbgPq7sFytxERjOwUtDgRbqA=
-X-Google-Smtp-Source: AA6agR5LBRpdlR606D8rNDqY5QJ3OBC/wbbIgC3X8Ct4s02WNlqHsbJo9IxNX+CTnN40NsuDZAMm2jER36E=
+        bh=qWMR0SPZO0jqHHxoNfMsk5w/9uuaYeqiCUk8OeqbWGY=;
+        b=mZxKFdleG/yvUW0ISBt977acyXuq1J2hx55lxreXx28JrUSB42G9wHUrhekUXsjEw+
+         ybus2Qji/EeMvZdm+nKSSzmq2+OAiPb6FtPLqwydWYJEqJxxYjtVHL2uhQH9b4Se7vll
+         RJ+DzSeCHXucLZTChe5rVe2yRKbWNDQiz6c039Cy3g5y4CwxVwV0tkEOtsmP3qeuFJNf
+         L4ShUVnAsCkZS2hfcRQkKeLDcyqgG4IMSaBw8H9S3/+QvZ98FasWX8kgzct8+e9Ta+Ut
+         ZLwVaKPASgNEUJUhCbRUWq1Lxx3mbH6wvMZpoaKDQ/u2PJbyRskUM1Xm79gDCkeobHXd
+         poIw==
+X-Gm-Message-State: ACgBeo2tIr436KOeRQVsB1JYTKwqJlPGebwNcQk6Bdzy+XZc+90F57yn
+        UKK4FkEXrnbSST9jnp/ypSAOERgaIWI=
+X-Google-Smtp-Source: AA6agR5SRqMCINjkMuIrD7WXHVNS75SNahzGJoh0jVbnVtc6SNEh0M27/BA2cqVS6mxm7vNN9nbOSPJjvGE=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a17:907:2c41:b0:741:4906:482b with SMTP id
- hf1-20020a1709072c4100b007414906482bmr28414813ejc.239.1662380813588; Mon, 05
- Sep 2022 05:26:53 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:50 +0200
+ (user=glider job=sendgmr) by 2002:a17:907:2c74:b0:741:657a:89de with SMTP id
+ ib20-20020a1709072c7400b00741657a89demr26824523ejc.58.1662380819269; Mon, 05
+ Sep 2022 05:26:59 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:52 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-43-glider@google.com>
-Subject: [PATCH v6 42/44] bpf: kmsan: initialize BPF registers with zeroes
+Message-ID: <20220905122452.2258262-45-glider@google.com>
+Subject: [PATCH v6 44/44] x86: kmsan: enable KMSAN builds for x86
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,35 +90,97 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When executing BPF programs, certain registers may get passed
-uninitialized to helper functions. E.g. when performing a JMP_CALL,
-registers BPF_R1-BPF_R5 are always passed to the helper, no matter how
-many of them are actually used.
+Make KMSAN usable by adding the necessary Kconfig bits.
 
-Passing uninitialized values as function parameters is technically
-undefined behavior, so we work around it by always initializing the
-registers.
+Also declare x86-specific functions checking address validity
+in arch/x86/include/asm/kmsan.h.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/I8ef9dbe94724cee5ad1e3a162f2b805345bc0586
----
- kernel/bpf/core.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+v4:
+ -- per Marco Elver's request, create arch/x86/include/asm/kmsan.h
+    and move arch-specific inline functions there.
 
-diff --git a/kernel/bpf/core.c b/kernel/bpf/core.c
-index 3d9eb3ae334ce..21c74fac5131c 100644
---- a/kernel/bpf/core.c
-+++ b/kernel/bpf/core.c
-@@ -2002,7 +2002,7 @@ static u64 ___bpf_prog_run(u64 *regs, const struct bpf_insn *insn)
- static unsigned int PROG_NAME(stack_size)(const void *ctx, const struct bpf_insn *insn) \
- { \
- 	u64 stack[stack_size / sizeof(u64)]; \
--	u64 regs[MAX_BPF_EXT_REG]; \
-+	u64 regs[MAX_BPF_EXT_REG] = {}; \
- \
- 	FP = (u64) (unsigned long) &stack[ARRAY_SIZE(stack)]; \
- 	ARG1 = (u64) (unsigned long) ctx; \
+Link: https://linux-review.googlesource.com/id/I1d295ce8159ce15faa496d20089d953a919c125e
+---
+ arch/x86/Kconfig             |  1 +
+ arch/x86/include/asm/kmsan.h | 55 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 56 insertions(+)
+ create mode 100644 arch/x86/include/asm/kmsan.h
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 697da8dae1418..bd9436cd0f29b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -168,6 +168,7 @@ config X86
+ 	select HAVE_ARCH_KASAN			if X86_64
+ 	select HAVE_ARCH_KASAN_VMALLOC		if X86_64
+ 	select HAVE_ARCH_KFENCE
++	select HAVE_ARCH_KMSAN			if X86_64
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_MMAP_RND_BITS		if MMU
+ 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS	if MMU && COMPAT
+diff --git a/arch/x86/include/asm/kmsan.h b/arch/x86/include/asm/kmsan.h
+new file mode 100644
+index 0000000000000..a790b865d0a68
+--- /dev/null
++++ b/arch/x86/include/asm/kmsan.h
+@@ -0,0 +1,55 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * x86 KMSAN support.
++ *
++ * Copyright (C) 2022, Google LLC
++ * Author: Alexander Potapenko <glider@google.com>
++ */
++
++#ifndef _ASM_X86_KMSAN_H
++#define _ASM_X86_KMSAN_H
++
++#ifndef MODULE
++
++#include <asm/processor.h>
++#include <linux/mmzone.h>
++
++/*
++ * Taken from arch/x86/mm/physaddr.h to avoid using an instrumented version.
++ */
++static inline bool kmsan_phys_addr_valid(unsigned long addr)
++{
++	if (IS_ENABLED(CONFIG_PHYS_ADDR_T_64BIT))
++		return !(addr >> boot_cpu_data.x86_phys_bits);
++	else
++		return true;
++}
++
++/*
++ * Taken from arch/x86/mm/physaddr.c to avoid using an instrumented version.
++ */
++static inline bool kmsan_virt_addr_valid(void *addr)
++{
++	unsigned long x = (unsigned long)addr;
++	unsigned long y = x - __START_KERNEL_map;
++
++	/* use the carry flag to determine if x was < __START_KERNEL_map */
++	if (unlikely(x > y)) {
++		x = y + phys_base;
++
++		if (y >= KERNEL_IMAGE_SIZE)
++			return false;
++	} else {
++		x = y + (__START_KERNEL_map - PAGE_OFFSET);
++
++		/* carry flag will be set if starting x was >= PAGE_OFFSET */
++		if ((x > y) || !kmsan_phys_addr_valid(x))
++			return false;
++	}
++
++	return pfn_valid(x >> PAGE_SHIFT);
++}
++
++#endif /* !MODULE */
++
++#endif /* _ASM_X86_KMSAN_H */
 -- 
 2.37.2.789.g6183377224-goog
 
