@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D1F67ECAAD5
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:32:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7C271ECAAD3
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:32:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236207AbiIEMcE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:32:04 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57970 "EHLO
+        id S238144AbiIEMcZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:32:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60680 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237123AbiIEMaZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:25 -0400
-Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48CC16111B
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:36 -0700 (PDT)
-Received: by mail-ej1-x64a.google.com with SMTP id ds17-20020a170907725100b007419bfb5fd4so2255067ejc.4
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:36 -0700 (PDT)
+        with ESMTP id S237796AbiIEMa0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:26 -0400
+Received: from mail-wm1-x349.google.com (mail-wm1-x349.google.com [IPv6:2a00:1450:4864:20::349])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2FB5C61120
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:37 -0700 (PDT)
+Received: by mail-wm1-x349.google.com with SMTP id r83-20020a1c4456000000b003a7b679981cso7391718wma.6
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:37 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=s0jAEbnxevXU2w5QvhShkO+su70yEEyH0HIO5IJWDY4=;
-        b=bu0u5tzWys3aoNNOSqWMbs79DbrrHmKiGn+hL4KDlErPP+Lo7FLkHfELO/k6xRlYBe
-         ykglug1+rXGdRt18mk9So62vJrQC5Nfam0G4xfUqu81YGX39bYWi9cdlEP/AR0hQIjI7
-         LhjuHlxdatOiIm2BvL1TtIwiRB+pmYK3d/lMv6E7IX7kgbpmXV2Qldgf6t5Q4tpDmTLr
-         DC+ByxODcULZ/qsffD26Dqt/CBcxjCxhVYakt20QopL7GW2eWqNO8oWE31QVN4vRZjXt
-         uf7C6E5ZyZl5/fMLW/+EpL6LgwqZxpJLp+xPVqll692XKyHC3OVtZcvx/SkX3nvjqXpq
-         FF9w==
+        bh=VswCSWA+rV4PC5eDv8SsttMbBbTb1fmAEKvfw1RwEtM=;
+        b=FaysfHPUHEI9xDQ+DizkafuJSz2Euxr4w8pch7JyeIF7w+mm9SpixN7VAttRnhIcf1
+         iHLsEV9jw/pLNwUY4C8KGw1A06689EYkbOQFe18iHyK1OO4vYcFXMfZ5ltlCGAVJ5Riu
+         XG1siZwi0o/mlCR+V64/HPoH407x/VrsCnkDyjBQzBqc2hGL0yRU8s5mEz8P1N59BhTg
+         hzG3VGefRSfd/eN++lt3E3Gg+z8Tl5riHtwzfLnKb+uWX3YCISAS21Fwh0ERlJq81TyF
+         KZxD8W4yBHXpc4Lq6Y1MBvt4ESwZqiGITUw1+GV0SilDaebvQNF1YZTejeneVonkFaZs
+         QPng==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=s0jAEbnxevXU2w5QvhShkO+su70yEEyH0HIO5IJWDY4=;
-        b=HQgJUeXcdz/LeKEP/k4rcMzld2y0gg0m6ya5jLPYyQsdCkJ4bVLO7D05UNeYA5Lccx
-         9L6D6TyPtIyZWdyxyh82JjFv/AY0dOPLqq9GhgUQdaH9UmCnle0k+mTRYfQgWaptgMJa
-         amtwruUOA1dcSF1KZewaiEtCnorWBaefqlHFl8PMXTKMHK8Q+BxzMa+DId9RD6xqOSVx
-         d7ibzHG0wrepmv/GAcHmLZzXhD8OakMrKloesWHc9Qno6XecjGQuF6xtbA9YIwaDdTGX
-         F6LCHV6ivY5DiSa505Jlv5vB68qKGttEVSvSZTsNUlRLnZN8XbHJnIvfIOLPZRZw3AJQ
-         +x/g==
-X-Gm-Message-State: ACgBeo16XRrw2qKIY/ZmIwjan5r9NlTthAVSHJ/XcfIENgZ5rsrgw8OX
-        uN6LIceGaEwflLXC9fiNh440XkWT8To=
-X-Google-Smtp-Source: AA6agR5260F+3gOSRJyoSXQw3pfFItb9FgNqwZTy7bpqxdCSRtFwmoz1gIihp3WzCC0P247/3anfhhixqLQ=
+        bh=VswCSWA+rV4PC5eDv8SsttMbBbTb1fmAEKvfw1RwEtM=;
+        b=YJUMN/Dauj+0PVE4LHSNF9T++0tAE0/BS60nfRNJdyAV5pm+GBc1ITTymaVb3/ckQF
+         aMMNZgiXGupSdhPhSCXEU1qnvI5NpozCzKQi4qGgU+y/P51BsBm4ruQO5jfs4YUqliUx
+         djFPj7FEBynN825GdtNoTjDF1+MVehieQe1Yd0sfgitK93WBChk2Cnwe+SIg+yocf/L4
+         pxqlwpPT24taXpGuSrF41ZGjT4McA77v1Td3b5tUQ2PxiJ1d34BJyvKLfHxu/Sdrr3A7
+         u79+2mVgNzai2qcfxHvl9+ab82wi5CJRAxY1JJ1oc0u2ceeepsaNGGDC9bYQ1I19RsQp
+         esbQ==
+X-Gm-Message-State: ACgBeo3P2QKR7h4a23zl5/LmcpkW8U97yGSlPxg6uJn0YAux1bSYfFzF
+        IDZyyCxVfXN59rd219cuhmxO7deGDxI=
+X-Google-Smtp-Source: AA6agR4gbeELzWeJ61Je42r5xKh3pLfxGhHrG+p/6kCfXsLn7Q35sPMS2Mz+9NAgIsEblPfRPD+7AHIMdIQ=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a17:906:8a5c:b0:73d:7f4a:b951 with SMTP id
- gx28-20020a1709068a5c00b0073d7f4ab951mr35092641ejc.481.1662380796421; Mon, 05
- Sep 2022 05:26:36 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:44 +0200
+ (user=glider job=sendgmr) by 2002:a5d:4448:0:b0:226:82ff:f3e6 with SMTP id
+ x8-20020a5d4448000000b0022682fff3e6mr25180706wrr.115.1662380790918; Mon, 05
+ Sep 2022 05:26:30 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:42 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-37-glider@google.com>
-Subject: [PATCH v6 36/44] x86: kmsan: use __msan_ string functions where possible.
+Message-ID: <20220905122452.2258262-35-glider@google.com>
+Subject: [PATCH v6 34/44] x86: kmsan: skip shadow checks in __switch_to()
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,99 +90,56 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Unless stated otherwise (by explicitly calling __memcpy(), __memset() or
-__memmove()) we want all string functions to call their __msan_ versions
-(e.g. __msan_memcpy() instead of memcpy()), so that shadow and origin
-values are updated accordingly.
+When instrumenting functions, KMSAN obtains the per-task state (mostly
+pointers to metadata for function arguments and return values) once per
+function at its beginning, using the `current` pointer.
 
-Bootloader must still use the default string functions to avoid crashes.
+Every time the instrumented function calls another function, this state
+(`struct kmsan_context_state`) is updated with shadow/origin data of the
+passed and returned values.
 
+When `current` changes in the low-level arch code, instrumented code can
+not notice that, and will still refer to the old state, possibly corrupting
+it or using stale data. This may result in false positive reports.
+
+To deal with that, we need to apply __no_kmsan_checks to the functions
+performing context switching - this will result in skipping all KMSAN
+shadow checks and marking newly created values as initialized,
+preventing all false positive reports in those functions. False negatives
+are still possible, but we expect them to be rare and impersistent.
+
+Suggested-by: Marco Elver <elver@google.com>
 Signed-off-by: Alexander Potapenko <glider@google.com>
----
 
-Link: https://linux-review.googlesource.com/id/I7ca9bd6b4f5c9b9816404862ae87ca7984395f33
 ---
- arch/x86/include/asm/string_64.h | 23 +++++++++++++++++++++--
- include/linux/fortify-string.h   |  2 ++
- 2 files changed, 23 insertions(+), 2 deletions(-)
+v2:
+ -- This patch was previously called "kmsan: skip shadow checks in files
+    doing context switches". Per Mark Rutland's suggestion, we now only
+    skip checks in low-level arch-specific code, as context switches in
+    common code should be invisible to KMSAN. We also apply the checks
+    to precisely the functions performing the context switch instead of
+    the whole file.
 
-diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
-index 6e450827f677a..3b87d889b6e16 100644
---- a/arch/x86/include/asm/string_64.h
-+++ b/arch/x86/include/asm/string_64.h
-@@ -11,11 +11,23 @@
-    function. */
- 
- #define __HAVE_ARCH_MEMCPY 1
-+#if defined(__SANITIZE_MEMORY__)
-+#undef memcpy
-+void *__msan_memcpy(void *dst, const void *src, size_t size);
-+#define memcpy __msan_memcpy
-+#else
- extern void *memcpy(void *to, const void *from, size_t len);
-+#endif
- extern void *__memcpy(void *to, const void *from, size_t len);
- 
- #define __HAVE_ARCH_MEMSET
-+#if defined(__SANITIZE_MEMORY__)
-+extern void *__msan_memset(void *s, int c, size_t n);
-+#undef memset
-+#define memset __msan_memset
-+#else
- void *memset(void *s, int c, size_t n);
-+#endif
- void *__memset(void *s, int c, size_t n);
- 
- #define __HAVE_ARCH_MEMSET16
-@@ -55,7 +67,13 @@ static inline void *memset64(uint64_t *s, uint64_t v, size_t n)
- }
- 
- #define __HAVE_ARCH_MEMMOVE
-+#if defined(__SANITIZE_MEMORY__)
-+#undef memmove
-+void *__msan_memmove(void *dest, const void *src, size_t len);
-+#define memmove __msan_memmove
-+#else
- void *memmove(void *dest, const void *src, size_t count);
-+#endif
- void *__memmove(void *dest, const void *src, size_t count);
- 
- int memcmp(const void *cs, const void *ct, size_t count);
-@@ -64,8 +82,7 @@ char *strcpy(char *dest, const char *src);
- char *strcat(char *dest, const char *src);
- int strcmp(const char *cs, const char *ct);
- 
--#if defined(CONFIG_KASAN) && !defined(__SANITIZE_ADDRESS__)
--
-+#if (defined(CONFIG_KASAN) && !defined(__SANITIZE_ADDRESS__))
- /*
-  * For files that not instrumented (e.g. mm/slub.c) we
-  * should use not instrumented version of mem* functions.
-@@ -73,7 +90,9 @@ int strcmp(const char *cs, const char *ct);
- 
- #undef memcpy
- #define memcpy(dst, src, len) __memcpy(dst, src, len)
-+#undef memmove
- #define memmove(dst, src, len) __memmove(dst, src, len)
-+#undef memset
- #define memset(s, c, n) __memset(s, c, n)
- 
- #ifndef __NO_FORTIFY
-diff --git a/include/linux/fortify-string.h b/include/linux/fortify-string.h
-index 3b401fa0f3746..6c8a1a29d0b63 100644
---- a/include/linux/fortify-string.h
-+++ b/include/linux/fortify-string.h
-@@ -285,8 +285,10 @@ __FORTIFY_INLINE void fortify_memset_chk(__kernel_size_t size,
-  * __builtin_object_size() must be captured here to avoid evaluating argument
-  * side-effects further into the macro layers.
+v5:
+ -- Replace KMSAN_ENABLE_CHECKS_process_64.o with __no_kmsan_checks
+
+Link: https://linux-review.googlesource.com/id/I45e3ed9c5f66ee79b0409d1673d66ae419029bcb
+---
+ arch/x86/kernel/process_64.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 1962008fe7437..6b3418bff3261 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -553,6 +553,7 @@ void compat_start_thread(struct pt_regs *regs, u32 new_ip, u32 new_sp, bool x32)
+  * Kprobes not supported here. Set the probe on schedule instead.
+  * Function graph tracer not supported too.
   */
-+#ifndef CONFIG_KMSAN
- #define memset(p, c, s) __fortify_memset_chk(p, c, s,			\
- 		__builtin_object_size(p, 0), __builtin_object_size(p, 1))
-+#endif
- 
- /*
-  * To make sure the compiler can enforce protection against buffer overflows,
++__no_kmsan_checks
+ __visible __notrace_funcgraph struct task_struct *
+ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
+ {
 -- 
 2.37.2.789.g6183377224-goog
 
