@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A9CBEECAAD3
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:32:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D1F67ECAAD5
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:32:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238091AbiIEMcB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:32:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36612 "EHLO
+        id S236207AbiIEMcE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:32:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57970 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237883AbiIEMaX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:23 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4B67061101
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:34 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id ga33-20020a1709070c2100b0074084f48b12so2253281ejc.7
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:33 -0700 (PDT)
+        with ESMTP id S237123AbiIEMaZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:30:25 -0400
+Received: from mail-ej1-x64a.google.com (mail-ej1-x64a.google.com [IPv6:2a00:1450:4864:20::64a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48CC16111B
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:26:36 -0700 (PDT)
+Received: by mail-ej1-x64a.google.com with SMTP id ds17-20020a170907725100b007419bfb5fd4so2255067ejc.4
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:26:36 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=gorYk6QZYQqsbqX3c5FquLgSIgOkVhkBb0FBAlBlnNE=;
-        b=Mky7siHZEB3fEVWYjmYZB5975h3eFuJUOPRaVsIHhDdbe8vWODOkKOcTcIOtvRs3dA
-         Gqdv8LYPv590UyUqvpPeLNRnb58b8H6+CChTPnchb+nHnIy2NVsJiB3QFAsSiBgH+0cz
-         /0fdR0cMX4AUUhYwf7g2N0mru/fhRKm9K8tn96seGrdmb5AbOpnmECrbM5beMI8FHRK4
-         T81Be6OsaGk3aPk/fjPKtMjltQDKdpeirQzbsGa8Q+gsbhfG4G5DaFhBPL7glFIpPA+l
-         cOWrmQXoJXMdDSc8atI0e+LRoBQH9bVK28k5xmQ5Q8ncHiBZj9Gk5lda2kVWvaRrngdm
-         I5xw==
+        bh=s0jAEbnxevXU2w5QvhShkO+su70yEEyH0HIO5IJWDY4=;
+        b=bu0u5tzWys3aoNNOSqWMbs79DbrrHmKiGn+hL4KDlErPP+Lo7FLkHfELO/k6xRlYBe
+         ykglug1+rXGdRt18mk9So62vJrQC5Nfam0G4xfUqu81YGX39bYWi9cdlEP/AR0hQIjI7
+         LhjuHlxdatOiIm2BvL1TtIwiRB+pmYK3d/lMv6E7IX7kgbpmXV2Qldgf6t5Q4tpDmTLr
+         DC+ByxODcULZ/qsffD26Dqt/CBcxjCxhVYakt20QopL7GW2eWqNO8oWE31QVN4vRZjXt
+         uf7C6E5ZyZl5/fMLW/+EpL6LgwqZxpJLp+xPVqll692XKyHC3OVtZcvx/SkX3nvjqXpq
+         FF9w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=gorYk6QZYQqsbqX3c5FquLgSIgOkVhkBb0FBAlBlnNE=;
-        b=2EYuJA0ZYcKyYgyFytae+pYSzawPxqaj6h1eKtGMTvYuh5HQOzk3edqbmfxeiM6nYN
-         QUPL29tLPLXKJI4U06xAr8SXo3ib9bRvyY/KjDPJpHNfaC4hHGGx1a+Q28lbkHmajZ5p
-         A3yzPvuJ1Q5MvNt5nZBNm3FxMVD0P/c/li8ZI1dK7JjDe1NZUEvfv698Ik0QDlTuQXYF
-         jvO7QGqctLR14T79o6P9ggaa75u21LJ4bcGikdoOZsAnxfE/nDL/i3iSjq+UjxsFaRa6
-         s4LsuavU/zoMIazDI1gaWFl4Z+WP+WU6SEaRJbKUs8lZgxrOrnLrknDR1WVLQNfQCZ6m
-         NtNw==
-X-Gm-Message-State: ACgBeo03h13OwOQMeXss5Mr7A6s5tAAXVK8a/9wc2wgD4BfCtsi8OJle
-        7Enn1BYUYMlk0wSuWydLHEnFdtalOAo=
-X-Google-Smtp-Source: AA6agR6VMfYGvTl8597KztYX92eWUsjds97DFXhCN+pqdpQR7nCQFTv/cdSNJsVV5FjbT2j+Bij2pc3hsmw=
+        bh=s0jAEbnxevXU2w5QvhShkO+su70yEEyH0HIO5IJWDY4=;
+        b=HQgJUeXcdz/LeKEP/k4rcMzld2y0gg0m6ya5jLPYyQsdCkJ4bVLO7D05UNeYA5Lccx
+         9L6D6TyPtIyZWdyxyh82JjFv/AY0dOPLqq9GhgUQdaH9UmCnle0k+mTRYfQgWaptgMJa
+         amtwruUOA1dcSF1KZewaiEtCnorWBaefqlHFl8PMXTKMHK8Q+BxzMa+DId9RD6xqOSVx
+         d7ibzHG0wrepmv/GAcHmLZzXhD8OakMrKloesWHc9Qno6XecjGQuF6xtbA9YIwaDdTGX
+         F6LCHV6ivY5DiSa505Jlv5vB68qKGttEVSvSZTsNUlRLnZN8XbHJnIvfIOLPZRZw3AJQ
+         +x/g==
+X-Gm-Message-State: ACgBeo16XRrw2qKIY/ZmIwjan5r9NlTthAVSHJ/XcfIENgZ5rsrgw8OX
+        uN6LIceGaEwflLXC9fiNh440XkWT8To=
+X-Google-Smtp-Source: AA6agR5260F+3gOSRJyoSXQw3pfFItb9FgNqwZTy7bpqxdCSRtFwmoz1gIihp3WzCC0P247/3anfhhixqLQ=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a05:6402:17d7:b0:44e:95b0:3741 with SMTP id
- s23-20020a05640217d700b0044e95b03741mr2597122edy.281.1662380782901; Mon, 05
- Sep 2022 05:26:22 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:39 +0200
+ (user=glider job=sendgmr) by 2002:a17:906:8a5c:b0:73d:7f4a:b951 with SMTP id
+ gx28-20020a1709068a5c00b0073d7f4ab951mr35092641ejc.481.1662380796421; Mon, 05
+ Sep 2022 05:26:36 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:44 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-32-glider@google.com>
-Subject: [PATCH v6 31/44] security: kmsan: fix interoperability with auto-initialization
+Message-ID: <20220905122452.2258262-37-glider@google.com>
+Subject: [PATCH v6 36/44] x86: kmsan: use __msan_ string functions where possible.
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,80 +90,99 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Heap and stack initialization is great, but not when we are trying
-uses of uninitialized memory. When the kernel is built with KMSAN,
-having kernel memory initialization enabled may introduce false
-negatives.
+Unless stated otherwise (by explicitly calling __memcpy(), __memset() or
+__memmove()) we want all string functions to call their __msan_ versions
+(e.g. __msan_memcpy() instead of memcpy()), so that shadow and origin
+values are updated accordingly.
 
-We disable CONFIG_INIT_STACK_ALL_PATTERN and CONFIG_INIT_STACK_ALL_ZERO
-under CONFIG_KMSAN, making it impossible to auto-initialize stack
-variables in KMSAN builds. We also disable CONFIG_INIT_ON_ALLOC_DEFAULT_ON
-and CONFIG_INIT_ON_FREE_DEFAULT_ON to prevent accidental use of heap
-auto-initialization.
-
-We however still let the users enable heap auto-initialization at
-boot-time (by setting init_on_alloc=1 or init_on_free=1), in which case
-a warning is printed.
+Bootloader must still use the default string functions to avoid crashes.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
 ---
-Link: https://linux-review.googlesource.com/id/I86608dd867018683a14ae1870f1928ad925f42e9
----
- mm/page_alloc.c            | 4 ++++
- security/Kconfig.hardening | 4 ++++
- 2 files changed, 8 insertions(+)
 
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index b28093e3bb42a..e5eed276ee41d 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -936,6 +936,10 @@ void init_mem_debugging_and_hardening(void)
- 	else
- 		static_branch_disable(&init_on_free);
+Link: https://linux-review.googlesource.com/id/I7ca9bd6b4f5c9b9816404862ae87ca7984395f33
+---
+ arch/x86/include/asm/string_64.h | 23 +++++++++++++++++++++--
+ include/linux/fortify-string.h   |  2 ++
+ 2 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/include/asm/string_64.h b/arch/x86/include/asm/string_64.h
+index 6e450827f677a..3b87d889b6e16 100644
+--- a/arch/x86/include/asm/string_64.h
++++ b/arch/x86/include/asm/string_64.h
+@@ -11,11 +11,23 @@
+    function. */
  
-+	if (IS_ENABLED(CONFIG_KMSAN) &&
-+	    (_init_on_alloc_enabled_early || _init_on_free_enabled_early))
-+		pr_info("mem auto-init: please make sure init_on_alloc and init_on_free are disabled when running KMSAN\n");
-+
- #ifdef CONFIG_DEBUG_PAGEALLOC
- 	if (!debug_pagealloc_enabled())
- 		return;
-diff --git a/security/Kconfig.hardening b/security/Kconfig.hardening
-index bd2aabb2c60f9..2739a6776454e 100644
---- a/security/Kconfig.hardening
-+++ b/security/Kconfig.hardening
-@@ -106,6 +106,7 @@ choice
- 	config INIT_STACK_ALL_PATTERN
- 		bool "pattern-init everything (strongest)"
- 		depends on CC_HAS_AUTO_VAR_INIT_PATTERN
-+		depends on !KMSAN
- 		help
- 		  Initializes everything on the stack (including padding)
- 		  with a specific debug value. This is intended to eliminate
-@@ -124,6 +125,7 @@ choice
- 	config INIT_STACK_ALL_ZERO
- 		bool "zero-init everything (strongest and safest)"
- 		depends on CC_HAS_AUTO_VAR_INIT_ZERO
-+		depends on !KMSAN
- 		help
- 		  Initializes everything on the stack (including padding)
- 		  with a zero value. This is intended to eliminate all
-@@ -218,6 +220,7 @@ config STACKLEAK_RUNTIME_DISABLE
+ #define __HAVE_ARCH_MEMCPY 1
++#if defined(__SANITIZE_MEMORY__)
++#undef memcpy
++void *__msan_memcpy(void *dst, const void *src, size_t size);
++#define memcpy __msan_memcpy
++#else
+ extern void *memcpy(void *to, const void *from, size_t len);
++#endif
+ extern void *__memcpy(void *to, const void *from, size_t len);
  
- config INIT_ON_ALLOC_DEFAULT_ON
- 	bool "Enable heap memory zeroing on allocation by default"
-+	depends on !KMSAN
- 	help
- 	  This has the effect of setting "init_on_alloc=1" on the kernel
- 	  command line. This can be disabled with "init_on_alloc=0".
-@@ -230,6 +233,7 @@ config INIT_ON_ALLOC_DEFAULT_ON
+ #define __HAVE_ARCH_MEMSET
++#if defined(__SANITIZE_MEMORY__)
++extern void *__msan_memset(void *s, int c, size_t n);
++#undef memset
++#define memset __msan_memset
++#else
+ void *memset(void *s, int c, size_t n);
++#endif
+ void *__memset(void *s, int c, size_t n);
  
- config INIT_ON_FREE_DEFAULT_ON
- 	bool "Enable heap memory zeroing on free by default"
-+	depends on !KMSAN
- 	help
- 	  This has the effect of setting "init_on_free=1" on the kernel
- 	  command line. This can be disabled with "init_on_free=0".
+ #define __HAVE_ARCH_MEMSET16
+@@ -55,7 +67,13 @@ static inline void *memset64(uint64_t *s, uint64_t v, size_t n)
+ }
+ 
+ #define __HAVE_ARCH_MEMMOVE
++#if defined(__SANITIZE_MEMORY__)
++#undef memmove
++void *__msan_memmove(void *dest, const void *src, size_t len);
++#define memmove __msan_memmove
++#else
+ void *memmove(void *dest, const void *src, size_t count);
++#endif
+ void *__memmove(void *dest, const void *src, size_t count);
+ 
+ int memcmp(const void *cs, const void *ct, size_t count);
+@@ -64,8 +82,7 @@ char *strcpy(char *dest, const char *src);
+ char *strcat(char *dest, const char *src);
+ int strcmp(const char *cs, const char *ct);
+ 
+-#if defined(CONFIG_KASAN) && !defined(__SANITIZE_ADDRESS__)
+-
++#if (defined(CONFIG_KASAN) && !defined(__SANITIZE_ADDRESS__))
+ /*
+  * For files that not instrumented (e.g. mm/slub.c) we
+  * should use not instrumented version of mem* functions.
+@@ -73,7 +90,9 @@ int strcmp(const char *cs, const char *ct);
+ 
+ #undef memcpy
+ #define memcpy(dst, src, len) __memcpy(dst, src, len)
++#undef memmove
+ #define memmove(dst, src, len) __memmove(dst, src, len)
++#undef memset
+ #define memset(s, c, n) __memset(s, c, n)
+ 
+ #ifndef __NO_FORTIFY
+diff --git a/include/linux/fortify-string.h b/include/linux/fortify-string.h
+index 3b401fa0f3746..6c8a1a29d0b63 100644
+--- a/include/linux/fortify-string.h
++++ b/include/linux/fortify-string.h
+@@ -285,8 +285,10 @@ __FORTIFY_INLINE void fortify_memset_chk(__kernel_size_t size,
+  * __builtin_object_size() must be captured here to avoid evaluating argument
+  * side-effects further into the macro layers.
+  */
++#ifndef CONFIG_KMSAN
+ #define memset(p, c, s) __fortify_memset_chk(p, c, s,			\
+ 		__builtin_object_size(p, 0), __builtin_object_size(p, 1))
++#endif
+ 
+ /*
+  * To make sure the compiler can enforce protection against buffer overflows,
 -- 
 2.37.2.789.g6183377224-goog
 
