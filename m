@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D6B0ECAAD3
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:29:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BC696C54EE9
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Sep 2022 12:29:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237502AbiIEM3G (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Sep 2022 08:29:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60292 "EHLO
+        id S237697AbiIEM3X (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Sep 2022 08:29:23 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60606 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237567AbiIEM1r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:27:47 -0400
-Received: from mail-ed1-x549.google.com (mail-ed1-x549.google.com [IPv6:2a00:1450:4864:20::549])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF5545F215
-        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:25:49 -0700 (PDT)
-Received: by mail-ed1-x549.google.com with SMTP id h6-20020aa7de06000000b004483647900fso5814058edv.21
-        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:25:49 -0700 (PDT)
+        with ESMTP id S237727AbiIEM16 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Sep 2022 08:27:58 -0400
+Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B80B85F232
+        for <linux-arch@vger.kernel.org>; Mon,  5 Sep 2022 05:25:55 -0700 (PDT)
+Received: by mail-ed1-x54a.google.com with SMTP id c14-20020a05640227ce00b0043e5df12e2cso5751986ede.15
+        for <linux-arch@vger.kernel.org>; Mon, 05 Sep 2022 05:25:55 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=78o9fcmZe1rakLyEcoaxPY9Q3UwZCgWFE2+savdbFCc=;
-        b=AsRZmg4FcaRnkB2xKxGrm6iL2iDGcXmhS0tj+V1yFF2aDqOfpFXiHIRCT6zqVsW0aD
-         N5h5Pb+5EyE1FTqgt8cLBFPdqtvKIDtXWqRbvYO/ATFWFWd2HAeTUbRSL9GKhNVVG3UR
-         +Cz38urRZj9ZruT9hAA3LKKRoer80w2xrOai37ChA1Od6371h/dioMQgPIKGmaf+yNq2
-         ppD8ItTWVHSMEd1mMuPT2G7k7EIkowWAHt4nuZyfb6OsxakVTglc/JRDQZk9/I+LgGq5
-         2tgG5D4XNS/pj0QT5fzRb+TJYhHEDdcxlyJc0krsiHxzHfX0aka2JbETQ+vXADss1MTT
-         Brbw==
+        bh=ZKRhstpgJFHnwQb7wa4PSp1fP2zpnAEklrA/+6U+C6A=;
+        b=Xc6WWErxpVXx0dCndHy1SI9nJ2RkUM6KWSlEnHkZMNXjYMj3eWyaFlYc5HV6uVWOSB
+         E83ahvzmgbb6ZUoBwYvIRsiXbOFt2hZ4fjxwXWmDqsk+RsSu6VyKEnzpdKQoVAg3Pqq0
+         0CxCR4RVmo8KuqoAF4wGXJy4Xn+lesRq/0h9FAPZBz35/v9WUgk/GXkMNXrt1nuA+y/O
+         IEkkGPOOeNrH3Y57s/Cr5M6o3FEDG8QCVpwR8LkyrdXQzfpKPiEHtVDv3ICpVu9P0YS7
+         QddzXczkcNwySoyi832F6DuKvJMX2sDo+04A5YYlbMaf1CZbSK6nIYaRflozv//mECLU
+         eOrQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=78o9fcmZe1rakLyEcoaxPY9Q3UwZCgWFE2+savdbFCc=;
-        b=e6z0cJB95Ci9PPRBI8f6lOKhEfsthQvdMNuM74roOtQ/7SSGO4E95n4NHSCt6C6UxT
-         bLdstmczo25NKZqDVwt/xOb6BP8xyfMSgbzKi/kDEyGzwEzCirvpS33nB/EB1U9hKCV/
-         Bfp8VC6IE+vJQ2gSd9I/GE7kkld3WlIzQYLnkYGqEYM/dgVWrNUbO7odjuY2rmiQV2Ic
-         T195JKydsxaSSAaF2UH8TAINKe0/N58oIXAborZnjVHAVjP3m58YgmxftmBJSZnFuLFb
-         +7UrdPixm1ayDYHlsS0MzUyZPthenlSWFKu8durcT0n0RdgpdDqHXmCPQu8q5BicrIIz
-         /jRw==
-X-Gm-Message-State: ACgBeo3ypL9jFenPgf8vzb3InPRESQTwfkc/jUnDoRsg88TF+eWBr7o3
-        dlUa4Ds7bVnjeP60eW4c3jRTeuiA50Y=
-X-Google-Smtp-Source: AA6agR6O+LsZ4k4byGii1HsmWG4VXEYNBtCLaymsFKv9VXP42ACoLM9ggDG8gs81G7Gmde8sHdwK3hc4QxA=
+        bh=ZKRhstpgJFHnwQb7wa4PSp1fP2zpnAEklrA/+6U+C6A=;
+        b=Um4dtnk5six8+5Cbz0LLVv+NgAZCJWz+cibyELJN/bblEnm+Xcbw5z3IKwHyvwKVy7
+         ZPOixU2UXn7QzymbHAcSub2ZGYZiQAjUerSxxoWO/PZVRLZoA/OZmbdqakQ6u2Y9Tzhq
+         EPhOeAmrxjMjgQteB5HAQCIvWwHKKqSmPIHRv8Z/j/nY91du3ybFCct/8etMhxaJz8Fq
+         FE9Rz1aD2pVJY4p0Jn9ywuqfrrfr3zh/RtCnYlV9tFMqG18frgWuKWEeze8sIIPvDdgS
+         YYZVolAnJ28SJQuKpmibCyd079ka2UpH3nLwYjdjF3iAKUe0ctI6GRStpWvhB7yTnlpU
+         oxtw==
+X-Gm-Message-State: ACgBeo1j21GBAbzTHjqLLteDTHZTOmOtzP5ZdcXzQBIcZkmiRtgfgCqY
+        hQQJayxVlisKODLvDCdpwvzsntDAa9I=
+X-Google-Smtp-Source: AA6agR5TErPcIF0hILDHYnMq9LaM3xtffYaYn+vk0P64I6LKeQp+A0rabHx9IAlhRIbYZD3eWmQ7V5DKx/g=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:b808:8d07:ab4a:554c])
- (user=glider job=sendgmr) by 2002:a17:906:9bd9:b0:73d:da74:120c with SMTP id
- de25-20020a1709069bd900b0073dda74120cmr32752711ejc.412.1662380746896; Mon, 05
- Sep 2022 05:25:46 -0700 (PDT)
-Date:   Mon,  5 Sep 2022 14:24:26 +0200
+ (user=glider job=sendgmr) by 2002:a17:907:b15:b0:741:8ae4:f79d with SMTP id
+ h21-20020a1709070b1500b007418ae4f79dmr25370696ejl.247.1662380755352; Mon, 05
+ Sep 2022 05:25:55 -0700 (PDT)
+Date:   Mon,  5 Sep 2022 14:24:29 +0200
 In-Reply-To: <20220905122452.2258262-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220905122452.2258262-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220905122452.2258262-19-glider@google.com>
-Subject: [PATCH v6 18/44] instrumented.h: add KMSAN support
+Message-ID: <20220905122452.2258262-22-glider@google.com>
+Subject: [PATCH v6 21/44] Input: libps2: mark data received in __ps2_command()
+ as initialized
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -90,184 +91,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To avoid false positives, KMSAN needs to unpoison the data copied from
-the userspace. To detect infoleaks - check the memory buffer passed to
-copy_to_user().
+KMSAN does not know that the device initializes certain bytes in
+ps2dev->cmdbuf. Call kmsan_unpoison_memory() to explicitly mark them as
+initialized.
 
 Signed-off-by: Alexander Potapenko <glider@google.com>
-Reviewed-by: Marco Elver <elver@google.com>
-
 ---
-v2:
- -- move implementation of kmsan_copy_to_user() here
-
-v5:
- -- simplify kmsan_copy_to_user()
- -- provide instrument_get_user() and instrument_put_user()
-
-v6:
- -- rebase after changing "x86: asm: instrument usercopy in get_user()
-    and put_user()"
-
-Link: https://linux-review.googlesource.com/id/I43e93b9c02709e6be8d222342f1b044ac8bdbaaf
+Link: https://linux-review.googlesource.com/id/I2d26f6baa45271d37320d3f4a528c39cb7e545f0
 ---
- include/linux/instrumented.h | 18 ++++++++++++-----
- include/linux/kmsan-checks.h | 19 ++++++++++++++++++
- mm/kmsan/hooks.c             | 38 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 70 insertions(+), 5 deletions(-)
+ drivers/input/serio/libps2.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-index 9f1dba8f717b0..501fa84867494 100644
---- a/include/linux/instrumented.h
-+++ b/include/linux/instrumented.h
-@@ -2,7 +2,7 @@
- 
- /*
-  * This header provides generic wrappers for memory access instrumentation that
-- * the compiler cannot emit for: KASAN, KCSAN.
-+ * the compiler cannot emit for: KASAN, KCSAN, KMSAN.
-  */
- #ifndef _LINUX_INSTRUMENTED_H
- #define _LINUX_INSTRUMENTED_H
-@@ -10,6 +10,7 @@
- #include <linux/compiler.h>
- #include <linux/kasan-checks.h>
- #include <linux/kcsan-checks.h>
+diff --git a/drivers/input/serio/libps2.c b/drivers/input/serio/libps2.c
+index 250e213cc80c6..3e19344eda93c 100644
+--- a/drivers/input/serio/libps2.c
++++ b/drivers/input/serio/libps2.c
+@@ -12,6 +12,7 @@
+ #include <linux/sched.h>
+ #include <linux/interrupt.h>
+ #include <linux/input.h>
 +#include <linux/kmsan-checks.h>
- #include <linux/types.h>
+ #include <linux/serio.h>
+ #include <linux/i8042.h>
+ #include <linux/libps2.h>
+@@ -294,9 +295,11 @@ int __ps2_command(struct ps2dev *ps2dev, u8 *param, unsigned int command)
  
- /**
-@@ -117,6 +118,7 @@ instrument_copy_to_user(void __user *to, const void *from, unsigned long n)
- {
- 	kasan_check_read(from, n);
- 	kcsan_check_read(from, n);
-+	kmsan_copy_to_user(to, from, n, 0);
- }
+ 	serio_pause_rx(ps2dev->serio);
  
- /**
-@@ -151,6 +153,7 @@ static __always_inline void
- instrument_copy_from_user_after(const void *to, const void __user *from,
- 				unsigned long n, unsigned long left)
- {
-+	kmsan_unpoison_memory(to, n - left);
- }
- 
- /**
-@@ -162,10 +165,14 @@ instrument_copy_from_user_after(const void *to, const void __user *from,
-  *
-  * @to destination variable, may not be address-taken
-  */
--#define instrument_get_user(to)                         \
--({                                                      \
-+#define instrument_get_user(to)				\
-+({							\
-+	u64 __tmp = (u64)(to);				\
-+	kmsan_unpoison_memory(&__tmp, sizeof(__tmp));	\
-+	to = __tmp;					\
- })
- 
-+
- /**
-  * instrument_put_user() - add instrumentation to put_user()-like macros
-  *
-@@ -177,8 +184,9 @@ instrument_copy_from_user_after(const void *to, const void __user *from,
-  * @ptr userspace pointer to copy to
-  * @size number of bytes to copy
-  */
--#define instrument_put_user(from, ptr, size)                    \
--({                                                              \
-+#define instrument_put_user(from, ptr, size)			\
-+({								\
-+	kmsan_copy_to_user(ptr, &from, sizeof(from), 0);	\
- })
- 
- #endif /* _LINUX_INSTRUMENTED_H */
-diff --git a/include/linux/kmsan-checks.h b/include/linux/kmsan-checks.h
-index a6522a0c28df9..c4cae333deec5 100644
---- a/include/linux/kmsan-checks.h
-+++ b/include/linux/kmsan-checks.h
-@@ -46,6 +46,21 @@ void kmsan_unpoison_memory(const void *address, size_t size);
-  */
- void kmsan_check_memory(const void *address, size_t size);
- 
-+/**
-+ * kmsan_copy_to_user() - Notify KMSAN about a data transfer to userspace.
-+ * @to:      destination address in the userspace.
-+ * @from:    source address in the kernel.
-+ * @to_copy: number of bytes to copy.
-+ * @left:    number of bytes not copied.
-+ *
-+ * If this is a real userspace data transfer, KMSAN checks the bytes that were
-+ * actually copied to ensure there was no information leak. If @to belongs to
-+ * the kernel space (which is possible for compat syscalls), KMSAN just copies
-+ * the metadata.
-+ */
-+void kmsan_copy_to_user(void __user *to, const void *from, size_t to_copy,
-+			size_t left);
-+
- #else
- 
- static inline void kmsan_poison_memory(const void *address, size_t size,
-@@ -58,6 +73,10 @@ static inline void kmsan_unpoison_memory(const void *address, size_t size)
- static inline void kmsan_check_memory(const void *address, size_t size)
- {
- }
-+static inline void kmsan_copy_to_user(void __user *to, const void *from,
-+				      size_t to_copy, size_t left)
-+{
-+}
- 
- #endif
- 
-diff --git a/mm/kmsan/hooks.c b/mm/kmsan/hooks.c
-index 6f3e64b0b61f8..5c0eb25d984d7 100644
---- a/mm/kmsan/hooks.c
-+++ b/mm/kmsan/hooks.c
-@@ -205,6 +205,44 @@ void kmsan_iounmap_page_range(unsigned long start, unsigned long end)
- 	kmsan_leave_runtime();
- }
- 
-+void kmsan_copy_to_user(void __user *to, const void *from, size_t to_copy,
-+			size_t left)
-+{
-+	unsigned long ua_flags;
-+
-+	if (!kmsan_enabled || kmsan_in_runtime())
-+		return;
-+	/*
-+	 * At this point we've copied the memory already. It's hard to check it
-+	 * before copying, as the size of actually copied buffer is unknown.
-+	 */
-+
-+	/* copy_to_user() may copy zero bytes. No need to check. */
-+	if (!to_copy)
-+		return;
-+	/* Or maybe copy_to_user() failed to copy anything. */
-+	if (to_copy <= left)
-+		return;
-+
-+	ua_flags = user_access_save();
-+	if ((u64)to < TASK_SIZE) {
-+		/* This is a user memory access, check it. */
-+		kmsan_internal_check_memory((void *)from, to_copy - left, to,
-+					    REASON_COPY_TO_USER);
-+	} else {
-+		/* Otherwise this is a kernel memory access. This happens when a
-+		 * compat syscall passes an argument allocated on the kernel
-+		 * stack to a real syscall.
-+		 * Don't check anything, just copy the shadow of the copied
-+		 * bytes.
-+		 */
-+		kmsan_internal_memmove_metadata((void *)to, (void *)from,
-+						to_copy - left);
+-	if (param)
++	if (param) {
+ 		for (i = 0; i < receive; i++)
+ 			param[i] = ps2dev->cmdbuf[(receive - 1) - i];
++		kmsan_unpoison_memory(param, receive);
 +	}
-+	user_access_restore(ua_flags);
-+}
-+EXPORT_SYMBOL(kmsan_copy_to_user);
-+
- /* Functions from kmsan-checks.h follow. */
- void kmsan_poison_memory(const void *address, size_t size, gfp_t flags)
- {
+ 
+ 	if (ps2dev->cmdcnt &&
+ 	    (command != PS2_CMD_RESET_BAT || ps2dev->cmdcnt != 1)) {
 -- 
 2.37.2.789.g6183377224-goog
 
