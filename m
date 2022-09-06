@@ -2,173 +2,229 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1C1B1C38145
-	for <linux-arch@archiver.kernel.org>; Tue,  6 Sep 2022 05:38:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3C0B4C38145
+	for <linux-arch@archiver.kernel.org>; Tue,  6 Sep 2022 06:14:14 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231947AbiIFFi5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 6 Sep 2022 01:38:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40522 "EHLO
+        id S237471AbiIFGOM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 6 Sep 2022 02:14:12 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54354 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230060AbiIFFi4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Sep 2022 01:38:56 -0400
-Received: from conssluserg-04.nifty.com (conssluserg-04.nifty.com [210.131.2.83])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8EDE543316;
-        Mon,  5 Sep 2022 22:38:54 -0700 (PDT)
-Received: from mail-oa1-f41.google.com (mail-oa1-f41.google.com [209.85.160.41]) (authenticated)
-        by conssluserg-04.nifty.com with ESMTP id 2865cQbG025453;
-        Tue, 6 Sep 2022 14:38:26 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conssluserg-04.nifty.com 2865cQbG025453
+        with ESMTP id S232045AbiIFGOG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 6 Sep 2022 02:14:06 -0400
+Received: from conuserg-11.nifty.com (conuserg-11.nifty.com [210.131.2.78])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D79446F27D;
+        Mon,  5 Sep 2022 23:14:04 -0700 (PDT)
+Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
+        by conuserg-11.nifty.com with ESMTP id 2866DVI7023845;
+        Tue, 6 Sep 2022 15:13:32 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 2866DVI7023845
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1662442707;
-        bh=xDCM2ELtfWbaxIghoVdhy/grpBGllqEuV+LeUEWP1Ds=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=zTF21be2xWgdhSjv2TwodKVjuJGi0Wtzia5qTmbRXgAZiY1NJgXaqumwLiQWGOvTs
-         qK5OXstgKtY3Kjbn3LhNap4WDeuK0XzG6PY+prV/fZYHlWBbNvj8G2sgZudazw+mIF
-         0sBQ2ALD5TwCz4zOWBf6pVFV4N3M/6xp/OjbPJd2HlbeN2H/eCgAVeNi0Rzs5l6r9v
-         rKZ/+oUT9qX0f0PcJvSqlnQet7+eZzDLjlY6X9CVe/oy3TtkI00bCo8gCrRqx+f326
-         a+Dlwj9QZ92KHr6J/0AM5Ncu90Mpku8Mp9HiZ5dMPiB7wYU/iHfBwHJEuE+dOzIcMq
-         TgNkHpGHajx7g==
-X-Nifty-SrcIP: [209.85.160.41]
-Received: by mail-oa1-f41.google.com with SMTP id 586e51a60fabf-11f34610d4aso25719977fac.9;
-        Mon, 05 Sep 2022 22:38:26 -0700 (PDT)
-X-Gm-Message-State: ACgBeo3JWKYv4ai0i/5RWYv7aDXtu/mOTAuGre4inY7oZwO0wvwBHi28
-        6GDW6ym2hUz+yAniXkh3Lx3gjfNIU53AlB/qldw=
-X-Google-Smtp-Source: AA6agR67ml6xVcQPsgWC4IEh9NlgKqQkUD+yzlEWC3f8vVi+rYODcebxIPaYwAMPI4GuNHLB0RRnghEbe5QkXQxURhM=
-X-Received: by 2002:a05:6870:c58b:b0:10b:d21d:ad5e with SMTP id
- ba11-20020a056870c58b00b0010bd21dad5emr10425730oab.287.1662442705835; Mon, 05
- Sep 2022 22:38:25 -0700 (PDT)
-MIME-Version: 1.0
-References: <20220828024003.28873-1-masahiroy@kernel.org>
-In-Reply-To: <20220828024003.28873-1-masahiroy@kernel.org>
+        s=dec2015msa; t=1662444812;
+        bh=A0TAOcTfi2uZJQ5sEtMq2Cvx5AMNE3xo9Mwd6ECs1v8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=SmuELPOQ7fU0Eq/1FVlgnLdP2I3YnxWc5Bcn6Y9X2IE4dbDb/y9sGcZyLedhkMGPo
+         NNFeAZ8Hv5/VzJ1FpTucJsGDH8Ju3AeER9wGY9jekyhPlGVPK5TtK4xf5Y8R8YiLYj
+         NuPW8iACEusufTJO0fn37dJsZU4yNT97XTnfMAJl5cM6C8BrYQCTS249YsEA+vNTqA
+         75vHX3WanVytNMNLpwGa+TBJtHlN3nJyUsTnNH/xn4Syg1JD7NK5AJaE8iOUYnzgFu
+         0QbosTsog6sYOMgzluk3Z55+pf4vvvhqsODkZyrV/CHjVGTQA9guHAiodtdu+tzCem
+         NKh6ZrhyQJYpA==
+X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
-Date:   Tue, 6 Sep 2022 14:37:49 +0900
-X-Gmail-Original-Message-ID: <CAK7LNAQNVA0eVEZ_BEKVaVNq0J2iQnyPVJRCPwsXepnm_4UcfQ@mail.gmail.com>
-Message-ID: <CAK7LNAQNVA0eVEZ_BEKVaVNq0J2iQnyPVJRCPwsXepnm_4UcfQ@mail.gmail.com>
-Subject: Re: [PATCH 00/15] kbuild: various cleanups
-To:     Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>
-Cc:     Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+To:     linux-kbuild@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Masahiro Yamada <masahiroy@kernel.org>
+Subject: [PATCH v2 1/8] kbuild: fix and refactor single target build
+Date:   Tue,  6 Sep 2022 15:13:06 +0900
+Message-Id: <20220906061313.1445810-2-masahiroy@kernel.org>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20220906061313.1445810-1-masahiroy@kernel.org>
+References: <20220906061313.1445810-1-masahiroy@kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Aug 28, 2022 at 11:40 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
->
->   - Avoid updating init/built-in.a twice
->   - Run modpost just once instead of twice
->   - Link vmlinux and modules in parallel
->   - Remove head-y syntax
->
-> These are ground works to make the further refactoring possible.
->
-> This patch set is applicable after the following series:
->   https://patchwork.kernel.org/project/linux-kbuild/list/?series=669437
->
->
-> Masahiro Yamada (15):
->   kbuild: remove duplicated dependency between modules and modules_check
->   kbuild: refactor single builds of *.ko
->   kbuild: move 'PHONY += modules_prepare' to the common part
->   init/version.c: remove #include <linux/version.h>
->   kbuild: build init/built-in.a just once
->   kbuild: generate include/generated/compile.h in top Makefile
->   scripts/mkcompile_h: move LC_ALL=C to '$LD -v'
->   Revert "kbuild: Make scripts/compile.h when sh != bash"
->   kbuild: rename modules.order in sub-directories to .modules.order
->   kbuild: move core-y in top Makefile to ./Kbuild
->   kbuild: move .vmlinux.objs rule to Makefile.modpost
->   kbuild: move vmlinux.o rule to the top Makefile
->   kbuild: unify two modpost invocations
->   kbuild: use obj-y instead extra-y for objects placed at the head
->   kbuild: remove head-y syntax
+The single target build has a subtle bug for the combination for
+an individual file and a subdirectory.
 
+[1] 'make kernel/fork.i' builds only kernel/fork.i
 
+  $ make kernel/fork.i
+    CALL    scripts/checksyscalls.sh
+    DESCEND objtool
+    CPP     kernel/fork.i
 
-I moved 01-08 to for-next.
+[2] 'make kernel/' builds only under the kernel/ directory.
 
-10 broke single target builds.
+  $ make kernel/
+    CALL    scripts/checksyscalls.sh
+    DESCEND objtool
+    CC      kernel/fork.o
+    CC      kernel/exec_domain.o
+       [snip]
+    CC      kernel/rseq.o
+    AR      kernel/built-in.a
 
-I will send v2 for the rest.
+But, if you try to do [1] and [2] in a single command, you will get
+only [1] with a weird log:
 
+  $ make kernel/fork.i kernel/
+    CALL    scripts/checksyscalls.sh
+    DESCEND objtool
+    CPP     kernel/fork.i
+  make[2]: Nothing to be done for 'kernel/'.
 
+With 'make kernel/fork.i kernel/', you should get both [1] and [2].
 
+Rewrite the single target build.
 
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
 
+Changes in v2:
+ - New
 
->  Documentation/kbuild/makefiles.rst          |  27 +----
->  Kbuild                                      |  16 +++
->  Makefile                                    | 120 ++++++++++++--------
->  arch/alpha/Makefile                         |   2 -
->  arch/alpha/kernel/Makefile                  |   4 +-
->  arch/arc/Makefile                           |   2 -
->  arch/arc/kernel/Makefile                    |   4 +-
->  arch/arm/Makefile                           |   3 -
->  arch/arm/kernel/Makefile                    |   4 +-
->  arch/arm64/Makefile                         |   3 -
->  arch/arm64/kernel/Makefile                  |   4 +-
->  arch/csky/Makefile                          |   2 -
->  arch/csky/kernel/Makefile                   |   4 +-
->  arch/hexagon/Makefile                       |   2 -
->  arch/hexagon/kernel/Makefile                |   3 +-
->  arch/ia64/Makefile                          |   1 -
->  arch/ia64/kernel/Makefile                   |   4 +-
->  arch/loongarch/Makefile                     |   2 -
->  arch/loongarch/kernel/Makefile              |   4 +-
->  arch/m68k/68000/Makefile                    |   2 +-
->  arch/m68k/Makefile                          |   9 --
->  arch/m68k/coldfire/Makefile                 |   2 +-
->  arch/m68k/kernel/Makefile                   |  21 ++--
->  arch/microblaze/Makefile                    |   1 -
->  arch/microblaze/kernel/Makefile             |   4 +-
->  arch/mips/Makefile                          |   2 -
->  arch/mips/kernel/Makefile                   |   4 +-
->  arch/nios2/Makefile                         |   1 -
->  arch/nios2/kernel/Makefile                  |   2 +-
->  arch/openrisc/Makefile                      |   2 -
->  arch/openrisc/kernel/Makefile               |   4 +-
->  arch/parisc/Makefile                        |   2 -
->  arch/parisc/kernel/Makefile                 |   4 +-
->  arch/powerpc/Makefile                       |  12 --
->  arch/powerpc/kernel/Makefile                |  22 ++--
->  arch/riscv/Makefile                         |   2 -
->  arch/riscv/kernel/Makefile                  |   2 +-
->  arch/s390/Makefile                          |   2 -
->  arch/s390/boot/version.c                    |   1 +
->  arch/s390/kernel/Makefile                   |   4 +-
->  arch/sh/Makefile                            |   2 -
->  arch/sh/kernel/Makefile                     |   4 +-
->  arch/sparc/Makefile                         |   2 -
->  arch/sparc/kernel/Makefile                  |   3 +-
->  arch/x86/Makefile                           |   5 -
->  arch/x86/boot/compressed/kaslr.c            |   1 +
->  arch/x86/boot/version.c                     |   1 +
->  arch/x86/kernel/Makefile                    |  10 +-
->  arch/xtensa/Makefile                        |   2 -
->  arch/xtensa/kernel/Makefile                 |   4 +-
->  init/Makefile                               |  55 ++++++---
->  init/build-version                          |  10 ++
->  init/version-timestamp.c                    |  31 +++++
->  init/version.c                              |  37 +++---
->  scripts/Makefile.build                      |  20 ++--
->  scripts/Makefile.lib                        |   8 +-
->  scripts/Makefile.modfinal                   |   2 +-
->  scripts/Makefile.modpost                    | 112 ++++++++----------
->  scripts/Makefile.vmlinux_o                  |   6 +-
->  scripts/clang-tools/gen_compile_commands.py |  19 +---
->  scripts/head-object-list.txt                |  53 +++++++++
->  scripts/link-vmlinux.sh                     |  51 ++-------
->  scripts/mkcompile_h                         |  96 ++--------------
->  63 files changed, 393 insertions(+), 457 deletions(-)
->  create mode 100755 init/build-version
->  create mode 100644 init/version-timestamp.c
->  create mode 100644 scripts/head-object-list.txt
->
-> --
-> 2.34.1
->
+ Makefile               |  9 ++++---
+ scripts/Makefile.build | 54 +++++++++++++-----------------------------
+ 2 files changed, 20 insertions(+), 43 deletions(-)
 
-
+diff --git a/Makefile b/Makefile
+index 0af9dd405fb1..373cd2f0f49e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1824,11 +1824,11 @@ single_modpost: $(single-no-ko) modules_prepare
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.modpost
+ 	$(Q)rm -f $(MODORDER)
+ 
+-export KBUILD_SINGLE_TARGETS := $(addprefix $(extmod_prefix), $(single-no-ko))
++single-goals := $(addprefix $(extmod_prefix), $(single-no-ko))
+ 
+ # trim unrelated directories
+ build-dirs := $(foreach d, $(build-dirs), \
+-			$(if $(filter $(d)/%, $(KBUILD_SINGLE_TARGETS)), $(d)))
++			$(if $(filter $d/%, $(single-goals)), $d))
+ 
+ endif
+ 
+@@ -1840,9 +1840,8 @@ endif
+ PHONY += descend $(build-dirs)
+ descend: $(build-dirs)
+ $(build-dirs): prepare
+-	$(Q)$(MAKE) $(build)=$@ \
+-	single-build=$(if $(filter-out $@/, $(filter $@/%, $(KBUILD_SINGLE_TARGETS))),1) \
+-	need-builtin=1 need-modorder=1
++	$(Q)$(MAKE) $(build)=$@ need-builtin=1 need-modorder=1 \
++	$(filter $@/%, $(single-goals))
+ 
+ clean-dirs := $(addprefix _clean_, $(clean-dirs))
+ PHONY += $(clean-dirs) clean
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 0df488d0bbb0..91d2e5461a3e 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -5,8 +5,8 @@
+ 
+ src := $(obj)
+ 
+-PHONY := __build
+-__build:
++PHONY := $(obj)/
++$(obj)/:
+ 
+ # Init all relevant variables used in kbuild files so
+ # 1) they have correct type
+@@ -323,7 +323,7 @@ $(obj)/%.o: $(src)/%.S FORCE
+ 
+ targets += $(filter-out $(subdir-builtin), $(real-obj-y))
+ targets += $(filter-out $(subdir-modorder), $(real-obj-m))
+-targets += $(real-dtb-y) $(lib-y) $(always-y) $(MAKECMDGOALS)
++targets += $(real-dtb-y) $(lib-y) $(always-y)
+ 
+ # Linker scripts preprocessor (.lds.S -> .lds)
+ # ---------------------------------------------------------------------------
+@@ -400,8 +400,6 @@ $(multi-obj-m): %.o: %.mod FORCE
+ 	$(call if_changed_rule,ld_multi_m)
+ $(call multi_depend, $(multi-obj-m), .o, -objs -y -m)
+ 
+-targets := $(filter-out $(PHONY), $(targets))
+-
+ # Add intermediate targets:
+ # When building objects with specific suffix patterns, add intermediate
+ # targets that the final targets are derived from.
+@@ -420,52 +418,29 @@ targets += $(call intermediate_targets, .asn1.o, .asn1.c .asn1.h) \
+ # Build
+ # ---------------------------------------------------------------------------
+ 
+-ifdef single-build
+-
+-KBUILD_SINGLE_TARGETS := $(filter $(obj)/%, $(KBUILD_SINGLE_TARGETS))
+-
+-curdir-single := $(sort $(foreach x, $(KBUILD_SINGLE_TARGETS), \
+-			$(if $(filter $(x) $(basename $(x)).o, $(targets)), $(x))))
+-
+-# Handle single targets without any rule: show "Nothing to be done for ..." or
+-# "No rule to make target ..." depending on whether the target exists.
+-unknown-single := $(filter-out $(addsuffix /%, $(subdir-ym)), \
+-			$(filter-out $(curdir-single), $(KBUILD_SINGLE_TARGETS)))
+-
+-single-subdirs := $(foreach d, $(subdir-ym), \
+-			$(if $(filter $(d)/%, $(KBUILD_SINGLE_TARGETS)), $(d)))
+-
+-__build: $(curdir-single) $(single-subdirs)
+-ifneq ($(unknown-single),)
+-	$(Q)$(MAKE) -f /dev/null $(unknown-single)
+-endif
++$(obj)/: $(if $(KBUILD_BUILTIN), $(targets-for-builtin)) \
++	 $(if $(KBUILD_MODULES), $(targets-for-modules)) \
++	 $(subdir-ym) $(always-y)
+ 	@:
+ 
+-ifeq ($(curdir-single),)
+-# Nothing to do in this directory. Do not include any .*.cmd file for speed-up
+-targets :=
+-else
+-targets += $(curdir-single)
+-endif
++# Single targets
++# ---------------------------------------------------------------------------
+ 
+-else
++single-subdirs := $(foreach d, $(subdir-ym), $(if $(filter $d/%, $(MAKECMDGOALS)), $d))
++single-subdir-goals := $(filter $(addsuffix /%, $(single-subdirs)), $(MAKECMDGOALS))
+ 
+-__build: $(if $(KBUILD_BUILTIN), $(targets-for-builtin)) \
+-	 $(if $(KBUILD_MODULES), $(targets-for-modules)) \
+-	 $(subdir-ym) $(always-y)
++$(single-subdir-goals): $(single-subdirs)
+ 	@:
+ 
+-endif
+-
+ # Descending
+ # ---------------------------------------------------------------------------
+ 
+ PHONY += $(subdir-ym)
+ $(subdir-ym):
+ 	$(Q)$(MAKE) $(build)=$@ \
+-	$(if $(filter $@/, $(KBUILD_SINGLE_TARGETS)),single-build=) \
+ 	need-builtin=$(if $(filter $@/built-in.a, $(subdir-builtin)),1) \
+-	need-modorder=$(if $(filter $@/modules.order, $(subdir-modorder)),1)
++	need-modorder=$(if $(filter $@/modules.order, $(subdir-modorder)),1) \
++	$(filter $@/%, $(single-subdir-goals))
+ 
+ # Add FORCE to the prequisites of a target to force it to be always rebuilt.
+ # ---------------------------------------------------------------------------
+@@ -474,6 +449,9 @@ PHONY += FORCE
+ 
+ FORCE:
+ 
++targets += $(filter-out $(single-subdir-goals), $(MAKECMDGOALS))
++targets := $(filter-out $(PHONY), $(targets))
++
+ # Read all saved command lines and dependencies for the $(targets) we
+ # may be building above, using $(if_changed{,_dep}). As an
+ # optimization, we don't need to read them if the target does not
 -- 
-Best Regards
-Masahiro Yamada
+2.34.1
+
