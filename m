@@ -2,89 +2,110 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C5C4AC38145
-	for <linux-arch@archiver.kernel.org>; Thu,  8 Sep 2022 09:12:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C9B41C38145
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Sep 2022 14:45:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229648AbiIHJMo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 8 Sep 2022 05:12:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51058 "EHLO
+        id S232714AbiIHOpr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 8 Sep 2022 10:45:47 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47308 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229776AbiIHJMm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2022 05:12:42 -0400
-Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AEE5DFF51D;
-        Thu,  8 Sep 2022 02:12:40 -0700 (PDT)
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4MNYLH0xqqz9shd;
-        Thu,  8 Sep 2022 11:12:39 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-        by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id bNmDkRzPd5BG; Thu,  8 Sep 2022 11:12:39 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4MNYLH0FX3z9sdv;
-        Thu,  8 Sep 2022 11:12:39 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id EE50F8B78B;
-        Thu,  8 Sep 2022 11:12:38 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-        by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id 8zvbr9TFHVXO; Thu,  8 Sep 2022 11:12:38 +0200 (CEST)
-Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.232.247])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id C787B8B763;
-        Thu,  8 Sep 2022 11:12:38 +0200 (CEST)
-Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 2889CSZY3385832
-        (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Thu, 8 Sep 2022 11:12:28 +0200
-Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 2889CSWr3385831;
-        Thu, 8 Sep 2022 11:12:28 +0200
-X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
-From:   Christophe Leroy <christophe.leroy@csgroup.eu>
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH] asm-generic: Remove empty #ifdef SA_RESTORER
-Date:   Thu,  8 Sep 2022 11:12:24 +0200
-Message-Id: <3bdb5323c465daa81682ebd7f8594962320680e6.1662625281.git.christophe.leroy@csgroup.eu>
-X-Mailer: git-send-email 2.37.1
-MIME-Version: 1.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1662628343; l=784; s=20211009; h=from:subject:message-id; bh=ykXUeGo2/hSVOS0mFaOfBkKZAcFLp/8VgLy16PSY8Ko=; b=x5Nf6tVlNphVIDKk9GeBdoUcHVSYx7SnDh707OQpmlebkowpvrNR+F7v+lqQPTcF4ilh1WbooENO UbBNUCTcAE+uWuiPo6B5PFA0d20YGYzuQksMojvSCSGzkE7bVt1E
-X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S231590AbiIHOpi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2022 10:45:38 -0400
+Received: from new2-smtp.messagingengine.com (new2-smtp.messagingengine.com [66.111.4.224])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1F79E5F7CE;
+        Thu,  8 Sep 2022 07:45:32 -0700 (PDT)
+Received: from compute3.internal (compute3.nyi.internal [10.202.2.43])
+        by mailnew.nyi.internal (Postfix) with ESMTP id E13A4580AF9;
+        Thu,  8 Sep 2022 10:45:28 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute3.internal (MEProxy); Thu, 08 Sep 2022 10:45:28 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :cc:content-type:date:date:from:from:in-reply-to:message-id
+        :mime-version:reply-to:sender:subject:subject:to:to; s=fm1; t=
+        1662648328; x=1662651928; bh=SPGeHN3LN2nB2HRb9TjiHHXV8F5bbIF+9zw
+        vQ8/QAmk=; b=a4AZUOTQfrf9eYAEhx7fvxawPNOycWbjQv+0SVtsIZSVJUv8eXH
+        m7G2XiAXtLZpAoXfS25o3x6Z/tIToKvS48hRGuyH/DZqf5hJZFkkB8SsfbT1sR43
+        0T6Vlw7sorJevCpZlc9cIgJ1rk07U0U5op6mZh2bibaL0RroG8amXDEuT7W6QpwX
+        M3z6T1b0pgUNMLXOmYSxv4ntOvTCTG/joJ8jF7lSI6npthhm5UEPJvucwZKyDSkP
+        P+I35hwGJJBqskSAyfkLu6tta5h1NA2H23SbL8YMWBxd9gQ7j7NzFzUngESLAsU7
+        LuHuKR/NQbVlLURPCJd7Yt3yOD0iKair+mA==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
+        :feedback-id:from:from:in-reply-to:message-id:mime-version
+        :reply-to:sender:subject:subject:to:to:x-me-proxy:x-me-proxy
+        :x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1662648328; x=
+        1662651928; bh=SPGeHN3LN2nB2HRb9TjiHHXV8F5bbIF+9zwvQ8/QAmk=; b=m
+        KD0AvHMzH10BAdpwtcrbiKa7ehS3AodA1dNMOzP18aJU1fUVQdXAEW6cUj6uO0Vu
+        TJMs/ZkLwlQrildepm4bBybjcOGt35ziGfcC4sGiTtFipgjD39eaCL0RKqq0eYe9
+        Zs+gCkMMXky1BXilt2hXOAW/2TH95Ry3pOoLnwMoBt0V90CfRouIxo1kIeZPsoPK
+        gtclndlHe8l+dZ5huX/vuKCo+H2NQGDBDmsS/i/l2C2uI5yby/DCHNSLYW/vKMgI
+        bPLKY5M96DUcdRY5Pc5m+Fy1Fr27DYXjYhoNTJUbctBBwHEnbz1f2rq9yAcaiWZI
+        X2QQp+CRXmTuekNFoIopA==
+X-ME-Sender: <xms:CAAaY-wN57JOxo-d-aoF_CWZGlpVZLz81l_ZnX3KBQE9JVbLqmeU_Q>
+    <xme:CAAaY6QRaYggFq0V1-yw7yUm27v-6Z-l6nY8SCShVzF5STEPzizOGf0-_aNpfXK9A
+    GUi_jP7n076Z9tIC18>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvfedrfedtfedgvdduucetufdoteggodetrfdotf
+    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
+    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
+    cujfgurhepofgfggfkfffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehrnhgu
+    uceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrthhtvg
+    hrnhepfeefuefhkeejvedtvddtleeltddttdejgedvhfdtuddvhfeukeduiefhjeetgfei
+    necuffhomhgrihhnpehkvghrnhgvlhdrohhrghenucevlhhushhtvghrufhiiigvpedtne
+    curfgrrhgrmhepmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggv
+X-ME-Proxy: <xmx:CAAaYwUzJu3JTcRmbTb8kuJOMZVtqf0FQfZF1es-6rpYE1AvxEKWzw>
+    <xmx:CAAaY0ijme5QnmjK2Ih3rXMQhT03R3LQN4wI8ov7cUNEN6PoLYeQkQ>
+    <xmx:CAAaYwD6wNLusk8rw_reuSHRq2yEwaTsup0yCViqkPyex7V1QEpCzg>
+    <xmx:CAAaY57P9prGQj2l8vECB_CfE06GTjvtopUc5p049L0vXberM65arg>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id 7DFC8B60083; Thu,  8 Sep 2022 10:45:28 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.7.0-alpha0-927-gf4c98c8499-fm-20220826.002-gf4c98c84
+Mime-Version: 1.0
+Message-Id: <6ba5a3a9-93b0-49a9-ab49-7b6006e23067@www.fastmail.com>
+Date:   Thu, 08 Sep 2022 16:44:34 +0200
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     "Linus Torvalds" <torvalds@linux-foundation.org>
+Cc:     "Sebastian Andrzej Siewior" <bigeasy@linutronix.de>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-kernel@vger.kernel.org
+Subject: [GIT PULL] asm-generic: SOFTIRQ_ON_OWN_STACK rework
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There was a #ifdef SA_RESTORER to guard the sa_restorer field
-in struct sigaction.
+The following changes since commit b90cb1053190353cc30f0fef0ef1f378ccc063c5:
 
-Commit 8a1ab3155c2a ("UAPI: (Scripted) Disintegrate
-include/asm-generic") moved that struct into
-uapi/asm-generic/signal.h but the #ifdef SA_RESTORER remained.
+  Linux 6.0-rc3 (2022-08-28 15:05:29 -0700)
 
-Remove it.
+are available in the Git repository at:
 
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
----
- include/asm-generic/signal.h | 2 --
- 1 file changed, 2 deletions(-)
+  https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-fixes-6.0-rc4
 
-diff --git a/include/asm-generic/signal.h b/include/asm-generic/signal.h
-index c53984fa9761..663dd6d0795d 100644
---- a/include/asm-generic/signal.h
-+++ b/include/asm-generic/signal.h
-@@ -5,8 +5,6 @@
- #include <uapi/asm-generic/signal.h>
- 
- #ifndef __ASSEMBLY__
--#ifdef SA_RESTORER
--#endif
- 
- #include <asm/sigcontext.h>
- #undef __HAVE_ARCH_SIG_BITOPS
--- 
-2.37.1
+for you to fetch changes up to 8cbb2b50ee2dcb082675237eaaa48fe8479f8aa5:
 
+  asm-generic: Conditionally enable do_softirq_own_stack() via Kconfig. (2022-09-05 17:20:55 +0200)
+
+----------------------------------------------------------------
+asm-generic: SOFTIRQ_ON_OWN_STACK rework
+
+Just one fixup patch, reworking the softirq_on_own_stack logic for
+preempt-rt kernels as discussed in
+https://lore.kernel.org/all/CAHk-=wgZSD3W2y6yczad2Am=EfHYyiPzTn3CfXxrriJf9i5W5w@mail.gmail.com/
+
+----------------------------------------------------------------
+Sebastian Andrzej Siewior (1):
+      asm-generic: Conditionally enable do_softirq_own_stack() via Kconfig.
+
+ arch/Kconfig                          | 3 +++
+ arch/arm/kernel/irq.c                 | 2 +-
+ arch/parisc/kernel/irq.c              | 2 +-
+ arch/powerpc/kernel/irq.c             | 4 ++--
+ arch/s390/include/asm/softirq_stack.h | 2 +-
+ arch/sh/kernel/irq.c                  | 2 +-
+ arch/sparc/kernel/irq_64.c            | 2 +-
+ arch/x86/include/asm/irq_stack.h      | 2 +-
+ arch/x86/kernel/irq_32.c              | 2 +-
+ include/asm-generic/softirq_stack.h   | 2 +-
+ 10 files changed, 13 insertions(+), 10 deletions(-)
