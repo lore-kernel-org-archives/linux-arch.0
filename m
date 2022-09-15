@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B3920C6FA89
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Sep 2022 15:10:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A970C6FA89
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Sep 2022 15:10:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230135AbiIOPKQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Sep 2022 11:10:16 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46686 "EHLO
+        id S230446AbiIOPKZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Sep 2022 11:10:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46004 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229665AbiIOPIi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Sep 2022 11:08:38 -0400
-Received: from mail-ej1-x649.google.com (mail-ej1-x649.google.com [IPv6:2a00:1450:4864:20::649])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1AA0C5A81F
-        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2022 08:05:56 -0700 (PDT)
-Received: by mail-ej1-x649.google.com with SMTP id qb30-20020a1709077e9e00b0077d1271283eso5523466ejc.2
-        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2022 08:05:56 -0700 (PDT)
+        with ESMTP id S231133AbiIOPIk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Sep 2022 11:08:40 -0400
+Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8555998D02
+        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2022 08:06:00 -0700 (PDT)
+Received: by mail-ed1-x54a.google.com with SMTP id q32-20020a05640224a000b004462f105fa9so13077193eda.4
+        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2022 08:06:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=google.com; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date;
-        bh=r3HZXk/BEn65kcaybENH+gdA6j04yycM3f96/pfDo3Y=;
-        b=aQq72eadbZwq/GT1Z6Tvw/xmOlMUZLlJTyI0TzrhiZrves5ntWwvh+3uFDLBYpLZrJ
-         h1ikkP9rXSVFWTA7ciUJFF1f9AUJxqJ97pqMJydqQcXAEzGr5ROFVuNaZF31wV1P7g8M
-         nPgn0UmEt2qu/qdoDASndOpnDkzYfrDFlTkTXR1TZFGxdGAy2NWU1EHXUoqxbAKmtWHq
-         Drjc0QS6zlbEIhSvlyonau7djr6wX8/b9A42B31BEiQEkTzvbOq7cf836X8Y6zwp4Xt2
-         5z7af56B6lhbyz2HnKF7iuuVKYQhx5EEMxMssHo7LL1JYSTlA627gSdeqm8QJnNMhwiu
-         c8cg==
+        bh=gorYk6QZYQqsbqX3c5FquLgSIgOkVhkBb0FBAlBlnNE=;
+        b=kplPwV+LYMSeUsnP2/9jWw9wErn1H9lcBvU6cYlfR9a9Dsgm+kvLhjsgtxH1cQy28i
+         BqtFI2VWtQT0leDmXz7ejpScV23UNEpG7mJUJp3p94fZxjT3BON080bQ5cWYXRzOCLrz
+         ZUxUFyu1gz8AEgRa3BvmhVwvPqSacmkXDWPaVsqzafrIjNY67epDctUiPvU7vq5tB49w
+         88DUeT8ArehnGDKGPcuQSCCI6keHi8snBjlyia1r1w4gojNAEwRsQ3FJChQoxpuNNwb6
+         M511hTfOPRRHM1hCwd5bgSAMfa1aQqdBSl1zmfrvkVXFvA8JeL076IxXdfuOF0rLR0Cs
+         o2vA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=r3HZXk/BEn65kcaybENH+gdA6j04yycM3f96/pfDo3Y=;
-        b=MS4XGJHMVrzWgHLtRHCM+J5hLxAYsV3WhN+1ikr4mPr3IK6fE8q+bwG28dSyNfhg07
-         0dAtb1cjganGW3DeSM1v2FHQbDbv+EriuhUs/13M8Xn4BXhhUazq2DVge402MRm/9L4B
-         COkggwa5RK8sRAJde6pwxNvQJkjmqzuYl0NbXFgzFJbD1bgdX5Aak4dFD0kiLD1J5UEf
-         ZznEKpXO67UAfAXzvEUkCTwDKVVTewl/K+oBlI/QvL8sZsror98v2SbIGbsRTUrnFQbe
-         QJXUMApQ04vIjTn7ZUsyBVSNx4FoFRS8+rmxuRiqIKqch/zna1W+NDwG9xEw/xivwGV2
-         LGyQ==
-X-Gm-Message-State: ACrzQf1O6tEgTL9HIkY1x7taG+dgeO4qWM4axQHlK/CkxNwBphdkIDzQ
-        XQlPYZovbtbbCdDZo5Et6d2W14IONi8=
-X-Google-Smtp-Source: AMsMyM6uBsA7z2khpa50VHXjQ1OsQRpz1YZswt7+7yb6nCMBvzQUnbwuUJjr2s0ZO22E81AmTxMrGHgbB8I=
+        bh=gorYk6QZYQqsbqX3c5FquLgSIgOkVhkBb0FBAlBlnNE=;
+        b=vtjfp1GnMyWMGZS1z0g1zEiXVGk70RoYVcd+gdmIMnr4hMicZUWBIfEn+4XMxeGAsr
+         N2s+Gj6ywKiSktt84f7uC3YWKGUOUxUfINmKj26CPRlhxikItwzPN32eLG6Rx0YWWoW5
+         nFT+RWMY/suVuD+ldNgO005+o0NDQGYJ/WrQjSPlEQSYivkanEdrTZsNoRziNvLVl0uA
+         ZczE0iRxPibDdXgBlNVaTbVCRGAWvcw//Xr+5BhfegKv3RifJ4cWPhQ+6igHdYdIB8bj
+         bY7AgqU/ZD3JOMLG0l6C5m2Mdgyi1t4fUARwkvtvQAC82nayq85WBFKp1PRsD+nvwagx
+         kvNA==
+X-Gm-Message-State: ACrzQf0wXQ+ONiWiBM2HX9BEcDks9lwafYKl5nRVy6AAwtjEkfCBU1Xa
+        R6P2usRvOxNG9Kdg4V8TC5rPe6mlRWo=
+X-Google-Smtp-Source: AMsMyM7Ej6tr71uaPSqPY+N0inRBDQ4LmutJrp7lfFBWMCSzFwVfOzeQ+hQiLlB1cPu959xMS4EWDWvMK6U=
 X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:686d:27b5:495:85b7])
- (user=glider job=sendgmr) by 2002:a17:907:b0e:b0:77a:d97d:9afc with SMTP id
- h14-20020a1709070b0e00b0077ad97d9afcmr287936ejl.199.1663254354566; Thu, 15
- Sep 2022 08:05:54 -0700 (PDT)
-Date:   Thu, 15 Sep 2022 17:04:02 +0200
+ (user=glider job=sendgmr) by 2002:a05:6402:2201:b0:44f:443e:2a78 with SMTP id
+ cq1-20020a056402220100b0044f443e2a78mr293434edb.76.1663254359888; Thu, 15 Sep
+ 2022 08:05:59 -0700 (PDT)
+Date:   Thu, 15 Sep 2022 17:04:04 +0200
 In-Reply-To: <20220915150417.722975-1-glider@google.com>
 Mime-Version: 1.0
 References: <20220915150417.722975-1-glider@google.com>
 X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220915150417.722975-29-glider@google.com>
-Subject: [PATCH v7 28/43] block: kmsan: skip bio block merging logic for KMSAN
+Message-ID: <20220915150417.722975-31-glider@google.com>
+Subject: [PATCH v7 30/43] security: kmsan: fix interoperability with auto-initialization
 From:   Alexander Potapenko <glider@google.com>
 To:     glider@google.com
 Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
@@ -86,47 +86,86 @@ Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
         Vegard Nossum <vegard.nossum@oracle.com>,
         Vlastimil Babka <vbabka@suse.cz>, kasan-dev@googlegroups.com,
         linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, Eric Biggers <ebiggers@google.com>
+        linux-kernel@vger.kernel.org
 Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-KMSAN doesn't allow treating adjacent memory pages as such, if they were
-allocated by different alloc_pages() calls.
-The block layer however does so: adjacent pages end up being used
-together. To prevent this, make page_is_mergeable() return false under
-KMSAN.
+Heap and stack initialization is great, but not when we are trying
+uses of uninitialized memory. When the kernel is built with KMSAN,
+having kernel memory initialization enabled may introduce false
+negatives.
 
-Suggested-by: Eric Biggers <ebiggers@google.com>
+We disable CONFIG_INIT_STACK_ALL_PATTERN and CONFIG_INIT_STACK_ALL_ZERO
+under CONFIG_KMSAN, making it impossible to auto-initialize stack
+variables in KMSAN builds. We also disable CONFIG_INIT_ON_ALLOC_DEFAULT_ON
+and CONFIG_INIT_ON_FREE_DEFAULT_ON to prevent accidental use of heap
+auto-initialization.
+
+We however still let the users enable heap auto-initialization at
+boot-time (by setting init_on_alloc=1 or init_on_free=1), in which case
+a warning is printed.
+
 Signed-off-by: Alexander Potapenko <glider@google.com>
-
 ---
-
-v4:
- -- swap block: and kmsan: in the subject
-
-v5:
- -- address Marco Elver's comments
-
-Link: https://linux-review.googlesource.com/id/Ie29cc2464c70032347c32ab2a22e1e7a0b37b905
+Link: https://linux-review.googlesource.com/id/I86608dd867018683a14ae1870f1928ad925f42e9
 ---
- block/bio.c | 2 ++
- 1 file changed, 2 insertions(+)
+ mm/page_alloc.c            | 4 ++++
+ security/Kconfig.hardening | 4 ++++
+ 2 files changed, 8 insertions(+)
 
-diff --git a/block/bio.c b/block/bio.c
-index 3d3a2678fea25..106ef14f28c2a 100644
---- a/block/bio.c
-+++ b/block/bio.c
-@@ -869,6 +869,8 @@ static inline bool page_is_mergeable(const struct bio_vec *bv,
- 	*same_page = ((vec_end_addr & PAGE_MASK) == page_addr);
- 	if (*same_page)
- 		return true;
-+	else if (IS_ENABLED(CONFIG_KMSAN))
-+		return false;
- 	return (bv->bv_page + bv_end / PAGE_SIZE) == (page + off / PAGE_SIZE);
- }
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index b28093e3bb42a..e5eed276ee41d 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -936,6 +936,10 @@ void init_mem_debugging_and_hardening(void)
+ 	else
+ 		static_branch_disable(&init_on_free);
  
++	if (IS_ENABLED(CONFIG_KMSAN) &&
++	    (_init_on_alloc_enabled_early || _init_on_free_enabled_early))
++		pr_info("mem auto-init: please make sure init_on_alloc and init_on_free are disabled when running KMSAN\n");
++
+ #ifdef CONFIG_DEBUG_PAGEALLOC
+ 	if (!debug_pagealloc_enabled())
+ 		return;
+diff --git a/security/Kconfig.hardening b/security/Kconfig.hardening
+index bd2aabb2c60f9..2739a6776454e 100644
+--- a/security/Kconfig.hardening
++++ b/security/Kconfig.hardening
+@@ -106,6 +106,7 @@ choice
+ 	config INIT_STACK_ALL_PATTERN
+ 		bool "pattern-init everything (strongest)"
+ 		depends on CC_HAS_AUTO_VAR_INIT_PATTERN
++		depends on !KMSAN
+ 		help
+ 		  Initializes everything on the stack (including padding)
+ 		  with a specific debug value. This is intended to eliminate
+@@ -124,6 +125,7 @@ choice
+ 	config INIT_STACK_ALL_ZERO
+ 		bool "zero-init everything (strongest and safest)"
+ 		depends on CC_HAS_AUTO_VAR_INIT_ZERO
++		depends on !KMSAN
+ 		help
+ 		  Initializes everything on the stack (including padding)
+ 		  with a zero value. This is intended to eliminate all
+@@ -218,6 +220,7 @@ config STACKLEAK_RUNTIME_DISABLE
+ 
+ config INIT_ON_ALLOC_DEFAULT_ON
+ 	bool "Enable heap memory zeroing on allocation by default"
++	depends on !KMSAN
+ 	help
+ 	  This has the effect of setting "init_on_alloc=1" on the kernel
+ 	  command line. This can be disabled with "init_on_alloc=0".
+@@ -230,6 +233,7 @@ config INIT_ON_ALLOC_DEFAULT_ON
+ 
+ config INIT_ON_FREE_DEFAULT_ON
+ 	bool "Enable heap memory zeroing on free by default"
++	depends on !KMSAN
+ 	help
+ 	  This has the effect of setting "init_on_free=1" on the kernel
+ 	  command line. This can be disabled with "init_on_free=0".
 -- 
 2.37.2.789.g6183377224-goog
 
