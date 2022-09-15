@@ -2,175 +2,141 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 701F7ECAAA1
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Sep 2022 15:12:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D86D9C6FA89
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Sep 2022 15:21:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230496AbiIOPMg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Sep 2022 11:12:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59250 "EHLO
+        id S231243AbiIOPVs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Sep 2022 11:21:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44776 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231131AbiIOPKe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Sep 2022 11:10:34 -0400
-Received: from mail-ed1-x54a.google.com (mail-ed1-x54a.google.com [IPv6:2a00:1450:4864:20::54a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EDE159353A
-        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2022 08:06:34 -0700 (PDT)
-Received: by mail-ed1-x54a.google.com with SMTP id c6-20020a05640227c600b004521382116dso8170394ede.22
-        for <linux-arch@vger.kernel.org>; Thu, 15 Sep 2022 08:06:34 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:from:to:cc:subject:date;
-        bh=RV5QTvMygwcM31S/hyrs6MnTkve28DlweGTrQchhxXo=;
-        b=iXaNCvcxi4+6qBN7tuBlJCkmsRSEsjGSfB3SfZeymm0XXHHMDLmZS5purDypcnvs9C
-         VSctdYvWkvSVdi7VcQVA/jXEY/asOBe0sjr7IHcePpfoj8cjbpyxzwMKoub6Mbfbj/u3
-         hdcX9KTPHnInN6LBhE2giGnIHgk4ArxBm8oNZQjrxTqj6l10QwAzi4OrPQG/dmLjnKeM
-         uG5cIFQDMadCU8TrBcbzjSQl+YJOZv/uTPg3+I9KzZbdQlENHqwWW95ACZVZT9BbHfi5
-         bSJ9Yx8C2yAe2rvI5sDbQK6kyk//DTTYryP9Ky1nwr9gD2c+Xh/G4lERiS/g/gDCekau
-         srrQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:x-gm-message-state:from:to:cc:subject:date;
-        bh=RV5QTvMygwcM31S/hyrs6MnTkve28DlweGTrQchhxXo=;
-        b=ne289HEFBQVub6/h70MCD0U+8SrE5muhZpdQ9hU2rFnBCSc9xLsppjjYOXho+U4xyB
-         GSCwobl0n65KgE0OWku+RgqyUhSKkG14r90/PqlJlMIdzxi7zI03TuA2Se53W1iQ11db
-         czNR3rjrKS5yBYCw6WG+4+6OwIowomNMzlraXX6OjOq24Mu2e/cEdrmsMuLOahlboRze
-         d04vVTrH0wEvuKPYrM9G9c8N3l2I4LGv2Nh7ffTISLR/zwP8nZpoXi7M2U+kGO2TaCkK
-         6HyWoGcH5IWqVFdsGGIp94crsr1kOBrzOd6d6bjyYIugvWEXTODQ6+OV6kK81WgUhfqZ
-         hsdQ==
-X-Gm-Message-State: ACrzQf3t6wuvvfdERU/BpS3H0TeB9WcHMsIn4Q4hsuJOuzbZyeyuG0x7
-        wc6pyUgaiHEAZOoO2Opfbgm6Ywd1Qqc=
-X-Google-Smtp-Source: AMsMyM7bqtOZHqD5TLNiPJxrMbK30CsOC2CMkBTDAk4Y4jRe7EslTuJmgx6bYvgk5Yw3mmLO7YowFoN6c2M=
-X-Received: from glider.muc.corp.google.com ([2a00:79e0:9c:201:686d:27b5:495:85b7])
- (user=glider job=sendgmr) by 2002:a05:6402:4306:b0:451:8034:bcb6 with SMTP id
- m6-20020a056402430600b004518034bcb6mr291044edc.198.1663254393224; Thu, 15 Sep
- 2022 08:06:33 -0700 (PDT)
-Date:   Thu, 15 Sep 2022 17:04:16 +0200
-In-Reply-To: <20220915150417.722975-1-glider@google.com>
+        with ESMTP id S231181AbiIOPVK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Sep 2022 11:21:10 -0400
+Received: from new1-smtp.messagingengine.com (new1-smtp.messagingengine.com [66.111.4.221])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 58A1A9F8F5;
+        Thu, 15 Sep 2022 08:16:49 -0700 (PDT)
+Received: from compute3.internal (compute3.nyi.internal [10.202.2.43])
+        by mailnew.nyi.internal (Postfix) with ESMTP id A87445802F7;
+        Thu, 15 Sep 2022 11:16:46 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute3.internal (MEProxy); Thu, 15 Sep 2022 11:16:46 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :content-type:date:date:from:from:in-reply-to:in-reply-to
+        :message-id:mime-version:references:reply-to:sender:subject
+        :subject:to:to; s=fm1; t=1663255006; x=1663258606; bh=iyfcgLT49L
+        WSRff5Kts3C38d2554ZyUqP/64q59S5es=; b=W4TR4q+Dd0PqyZ/30nmu36Fr7i
+        TSksvzLjmVIjZ+CSNgQdnADbEKSPqivzfMvKx6Bod07yFXxuIJVr2oz7v02ed130
+        8znPURVzseoVO3T/aUfoRUcV6M6x8VXtVG84PvMfX25FxRDv94nw9VdLu1U3tJLp
+        UGKIA0TIidS5y1QxDVjpTP2bzsMnz/ElL+N9QT0dWnvrZUoYw8u0aceIjKvuXVUF
+        ZTzJeCuiv+BbF0j9uhkK0UcZeVRoCUP89Wl6xcqbfXq6sCcZNpvFoKUjEMkcUxW0
+        ebz+nEmLHkObmKDmG/cfXcdPA8Q8z5h/TFBEnwDQ3zUWyFDS4lgHqOC1YGOA==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:content-type:date:date:feedback-id
+        :feedback-id:from:from:in-reply-to:in-reply-to:message-id
+        :mime-version:references:reply-to:sender:subject:subject:to:to
+        :x-me-proxy:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+        fm2; t=1663255006; x=1663258606; bh=iyfcgLT49LWSRff5Kts3C38d2554
+        ZyUqP/64q59S5es=; b=DXOEfnQrCvp+dWZ0aS1+kLO+aXvqp4oHRwqiR0UJJsbu
+        WRyMDwQHtJrMvHpObfPrH6rWG2+mawyUyQiLS2PVYGZgB9VM8f51Zj89U96w6jFt
+        IfK23yDXab185lAGsbSZc8yeAohlhNk9jhUqLkQNPeOVRnOBSjmQJtYspfiPsEmr
+        DdDte64EyF8l98PljFHTKn/NcgM863PfO0VACcWybNQ4Vl+wHJfV1Qen8XOPQC6X
+        XDZDKX5Qs2f4wg6QH1YUAZdvhYDkB6TSOjH23pYoevULaLPr9waNuSA9O34Vd2pR
+        CEQH3L0uN6fNpir/k7x1r5vRKq3zjPRxwZAqsgaFJA==
+X-ME-Sender: <xms:3UEjY09qQYbq2GKMLRt7VQKM6kdkLzSrgY6lrcp4POVR68WGZRX5wQ>
+    <xme:3UEjY8tZJ7rpdhsu7Q_zlAhEABhEzexTXM5ZH7d0sYEredBiBBGiI8Agk7ySdreys
+    yc-0KMmIwFKk7G9wOk>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvfedrfedukedgkeekucetufdoteggodetrfdotf
+    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
+    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
+    cujfgurhepofgfggfkjghffffhvffutgesthdtredtreertdenucfhrhhomhepfdetrhhn
+    ugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrghtth
+    gvrhhnpeffgeffuddtvdehffefleethfejjeegvdelffejieegueetledvtedtudelgfdu
+    gfenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrh
+    hnugesrghrnhgusgdruggv
+X-ME-Proxy: <xmx:3UEjY6D18WUTQxnHEpy3Lbd6vBH6lKBQJANfA0EBFD21gaJlfPHvSQ>
+    <xmx:3UEjY0fBFj8fliwQPArf20JI9bQ-a9c9_AdV7SyiA4TbN-eiwNCKcA>
+    <xmx:3UEjY5PZDUo3q16ogJEDGuALwDQnK7E5lTllcoBOA2e6hp8xgx431A>
+    <xmx:3kEjY6sqpQ6DgGZds5TQPZPEA4soUV9HpsQXsLzBUFoqyZUIqc8gAA>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id 1CE8CB60086; Thu, 15 Sep 2022 11:16:45 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.7.0-alpha0-935-ge4ccd4c47b-fm-20220914.001-ge4ccd4c4
 Mime-Version: 1.0
-References: <20220915150417.722975-1-glider@google.com>
-X-Mailer: git-send-email 2.37.2.789.g6183377224-goog
-Message-ID: <20220915150417.722975-43-glider@google.com>
-Subject: [PATCH v7 42/43] mm: fs: initialize fsdata passed to
- write_begin/write_end interface
-From:   Alexander Potapenko <glider@google.com>
-To:     glider@google.com
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Biggers <ebiggers@kernel.org>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Kees Cook <keescook@chromium.org>,
-        Marco Elver <elver@google.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Stephen Rothwell <sfr@canb.auug.org.au>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>, kasan-dev@googlegroups.com,
-        linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Message-Id: <a8ee97f5-b92f-47a6-9b50-197974738ff7@www.fastmail.com>
+In-Reply-To: <PH0PR12MB5481192DB7B5C6E19683D514DC499@PH0PR12MB5481.namprd12.prod.outlook.com>
+References: <20220915050106.650813-1-parav@nvidia.com>
+ <96457b14-e196-4f29-be9a-7fa25ac805d9@www.fastmail.com>
+ <PH0PR12MB5481192DB7B5C6E19683D514DC499@PH0PR12MB5481.namprd12.prod.outlook.com>
+Date:   Thu, 15 Sep 2022 17:16:24 +0200
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     "Parav Pandit" <parav@nvidia.com>,
+        "stern@rowland.harvard.edu" <stern@rowland.harvard.edu>,
+        "parri.andrea@gmail.com" <parri.andrea@gmail.com>,
+        "Will Deacon" <will@kernel.org>,
+        "Peter Zijlstra" <peterz@infradead.org>,
+        "boqun.feng@gmail.com" <boqun.feng@gmail.com>,
+        "Nicholas Piggin" <npiggin@gmail.com>,
+        "dhowells@redhat.com" <dhowells@redhat.com>,
+        "j.alglave@ucl.ac.uk" <j.alglave@ucl.ac.uk>,
+        "luc.maranget@inria.fr" <luc.maranget@inria.fr>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        "akiyks@gmail.com" <akiyks@gmail.com>,
+        "Dan Lustig" <dlustig@nvidia.com>,
+        "joel@joelfernandes.org" <joel@joelfernandes.org>,
+        "Jonathan Corbet" <corbet@lwn.net>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
+Subject: Re: [PATCH] locking/memory-barriers.txt: Improve documentation for writel()
+ usage
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Functions implementing the a_ops->write_end() interface accept the
-`void *fsdata` parameter that is supposed to be initialized by the
-corresponding a_ops->write_begin() (which accepts `void **fsdata`).
+On Thu, Sep 15, 2022, at 4:18 PM, Parav Pandit wrote:
+>> From: Arnd Bergmann <arnd@arndb.de>
+>> Sent: Thursday, September 15, 2022 8:38 AM
+>> 
+>> On Thu, Sep 15, 2022, at 7:01 AM, Parav Pandit wrote:
+>> > The cited commit [1] describes that when using writel(), explcit wmb()
+>> > is not needed. However, it should have said that dma_wmb() is not
+>> > needed.
+>> 
+>> Are you sure? As I understand it, the dma_wmb() only serializes a set of
+>> memory accesses, but does not serialized against an MMIO access, which
+>> depending on the CPU architecture may require a different type of barrier.
+>> 
+>> E.g. on arm, writel() uses __iowmb(), which like wmb() is defined as "dsb(x);
+>> arm_heavy_mb();", while dma_wmb() is a "dmb(oshst)".
+>
+> You are right, on arm heavy barrier dsb() is needed, while on arm64, 
+> dmb(oshst) is sufficient.
+>
+> So more accurate documentation is to say that 
+> 'when using writel() a prior IO barrier is not needed ...'
+>
+> How about that?
 
-However not all a_ops->write_begin() implementations initialize `fsdata`
-unconditionally, so it may get passed uninitialized to a_ops->write_end(),
-resulting in undefined behavior.
+That's probably fine, not sure if it's worth changing.
 
-Fix this by initializing fsdata with NULL before the call to
-write_begin(), rather than doing so in all possible a_ops
-implementations.
+> It started with my cleanup efforts to two drivers [1] and [2] that had 
+> difficulty in using writel() on 32-bit system, and it ended up open 
+> coding writel() as wmb() + mlx5_write64().
+>
+> I am cleaning up the repetitive pattern of, 
+> wmb();
+> mlx5_write64()
+>
+> Before I fix drivers, I thought to improve the documentation that I can 
+> follow. :)
 
-This patch covers only the following cases found by running x86 KMSAN
-under syzkaller:
+Right, that is definitely a good idea.
 
- - generic_perform_write()
- - cont_expand_zero() and generic_cont_expand_simple()
- - page_symlink()
+I see that there is more going on with that function, at least
+the loop in post_send_nop() probably just wants to use
+__iowrite64_copy(), but that also has no barrier in it, while
+changing mlx5_write64() to use iowrite64be() or similar would
+of course add excessive barriers inside of the loop.
 
-Other cases of passing uninitialized fsdata may persist in the codebase.
-
-Signed-off-by: Alexander Potapenko <glider@google.com>
----
-Link: https://linux-review.googlesource.com/id/Ie300c21bbe9dea69a730745bd3c6d2720953bf41
----
- fs/buffer.c  | 4 ++--
- fs/namei.c   | 2 +-
- mm/filemap.c | 2 +-
- 3 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/fs/buffer.c b/fs/buffer.c
-index 55e762a58eb65..e1198f4b28c8f 100644
---- a/fs/buffer.c
-+++ b/fs/buffer.c
-@@ -2352,7 +2352,7 @@ int generic_cont_expand_simple(struct inode *inode, loff_t size)
- 	struct address_space *mapping = inode->i_mapping;
- 	const struct address_space_operations *aops = mapping->a_ops;
- 	struct page *page;
--	void *fsdata;
-+	void *fsdata = NULL;
- 	int err;
- 
- 	err = inode_newsize_ok(inode, size);
-@@ -2378,7 +2378,7 @@ static int cont_expand_zero(struct file *file, struct address_space *mapping,
- 	const struct address_space_operations *aops = mapping->a_ops;
- 	unsigned int blocksize = i_blocksize(inode);
- 	struct page *page;
--	void *fsdata;
-+	void *fsdata = NULL;
- 	pgoff_t index, curidx;
- 	loff_t curpos;
- 	unsigned zerofrom, offset, len;
-diff --git a/fs/namei.c b/fs/namei.c
-index 53b4bc094db23..076ae96ca0b14 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -5088,7 +5088,7 @@ int page_symlink(struct inode *inode, const char *symname, int len)
- 	const struct address_space_operations *aops = mapping->a_ops;
- 	bool nofs = !mapping_gfp_constraint(mapping, __GFP_FS);
- 	struct page *page;
--	void *fsdata;
-+	void *fsdata = NULL;
- 	int err;
- 	unsigned int flags;
- 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 15800334147b3..ada25b9f45ad1 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -3712,7 +3712,7 @@ ssize_t generic_perform_write(struct kiocb *iocb, struct iov_iter *i)
- 		unsigned long offset;	/* Offset into pagecache page */
- 		unsigned long bytes;	/* Bytes to write to page */
- 		size_t copied;		/* Bytes copied from user */
--		void *fsdata;
-+		void *fsdata = NULL;
- 
- 		offset = (pos & (PAGE_SIZE - 1));
- 		bytes = min_t(unsigned long, PAGE_SIZE - offset,
--- 
-2.37.2.789.g6183377224-goog
-
+       Arnd
