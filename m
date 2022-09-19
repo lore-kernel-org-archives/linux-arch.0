@@ -2,136 +2,224 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5F279C54EE9
-	for <linux-arch@archiver.kernel.org>; Mon, 19 Sep 2022 08:38:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 84674C54EE9
+	for <linux-arch@archiver.kernel.org>; Mon, 19 Sep 2022 10:17:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229963AbiISIiV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 19 Sep 2022 04:38:21 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58428 "EHLO
+        id S230006AbiISKRG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 19 Sep 2022 06:17:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49316 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229999AbiISIiS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 04:38:18 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BD02A1E3FB;
-        Mon, 19 Sep 2022 01:38:16 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 59A3761519;
-        Mon, 19 Sep 2022 08:38:16 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B4C5FC433D6;
-        Mon, 19 Sep 2022 08:38:15 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1663576695;
-        bh=heo7YO9Z/Mn7auLgacdl566kMb7P9+5y2s1cnvWWhNs=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=uTRUGIbB/a+yr6sQn5wS+gyN3Xv7qSHcczusIx9S/VcHwA5TeOBrrF+FMvoksUBR3
-         Meu+wDm+BNyFMTCU0sJjW+FF6K/137aKqFQzjILAgO1SKBofcOQK7rigqkcBYbSmzS
-         AjA3QmvYiO+ivlH1Fzjcqq8IgyXMaX+zMwxuFKsUrmFpiWGit83q41mSrjZzZc73g0
-         d2jtyoNBgZXoHOH7M3qSD263CD4BfK4y1I/oRek25g1Ern3INBBBr+qyZFnrm/9awY
-         Ix3dRl55JGnY6Zd7RpsPK7Lhk17DY1GNoc+G+PovFICRqooNDJVq+sDjzQblFcAgYs
-         cDQnrzv3JgQog==
-Received: by mail-oa1-f54.google.com with SMTP id 586e51a60fabf-1274ec87ad5so60954978fac.0;
-        Mon, 19 Sep 2022 01:38:15 -0700 (PDT)
-X-Gm-Message-State: ACrzQf0OKfinoTzx6oQMwDLwUJCJWEeC6k9Q66nb/jajpI0iB7KpALE5
-        qxpoS64nLXMcdQF5IOESVs+1YG2Raux8A2FPzMw=
-X-Google-Smtp-Source: AMsMyM7ABtP0qSS4TeNjY3/uJch3CvccZb+T2Wqml4QNq4ZCaawYjQENTRVHMje/Mc+dM1SGFVjGsCi0SpAccjiDCdc=
-X-Received: by 2002:a05:6870:5803:b0:12c:c3e0:99dc with SMTP id
- r3-20020a056870580300b0012cc3e099dcmr4442166oap.19.1663576694922; Mon, 19 Sep
- 2022 01:38:14 -0700 (PDT)
+        with ESMTP id S229553AbiISKRF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 06:17:05 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 55D7D220D3;
+        Mon, 19 Sep 2022 03:17:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=WVCZz4VCnGePSihfWXfUVWek2uxL69eYF/NrdeQus6U=; b=ivBskP0aWQgi9l0mKK9jTzFXqc
+        ZaruQT1GQRrgEFzxRyDZun0oUQSETW6STOVGluWDi3qyaP4sssJsMWlDUZ3GA9Pz0X87ahb90byEQ
+        bhOXfPvW2zvD6yBkUDxk8BE+7zJhSnLWDPFkAW6QGLcPYNbWGozjqGe7xhepdJzb53dFBO7ECLGwt
+        QO1KrbQvccpeuYnZb9ZuwYEgH2WsFobCaskTraK3wrmMGpyKyUxInAVIxF2jY4xcbgzeGmq/omTnx
+        ORL3apzPH+JFJPdVDrr6iVZccffw6jLJlq1Lm1Hgq/35itx04lz+am6dEV+G+6PLGd2kSPpHIcEpd
+        Ptxwcg6w==;
+Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1oaDpH-004aiJ-81; Mon, 19 Sep 2022 10:16:31 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits))
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id DD4D7302EAA;
+        Mon, 19 Sep 2022 12:16:24 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
+        id 002B62BA49041; Mon, 19 Sep 2022 12:16:21 +0200 (CEST)
+Message-ID: <20220919101521.072508494@infradead.org>
+User-Agent: quilt/0.66
+Date:   Mon, 19 Sep 2022 11:59:50 +0200
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     peterz@infradead.org
+Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
+        mattst88@gmail.com, vgupta@kernel.org, linux@armlinux.org.uk,
+        ulli.kroll@googlemail.com, linus.walleij@linaro.org,
+        shawnguo@kernel.org, Sascha Hauer <s.hauer@pengutronix.de>,
+        kernel@pengutronix.de, festevam@gmail.com, linux-imx@nxp.com,
+        tony@atomide.com, khilman@kernel.org, catalin.marinas@arm.com,
+        will@kernel.org, guoren@kernel.org, bcain@quicinc.com,
+        chenhuacai@kernel.org, kernel@xen0n.name, geert@linux-m68k.org,
+        sammy@sammy.net, monstr@monstr.eu, tsbogend@alpha.franken.de,
+        dinguyen@kernel.org, jonas@southpole.se,
+        stefan.kristiansson@saunalahti.fi, shorne@gmail.com,
+        James.Bottomley@HansenPartnership.com, deller@gmx.de,
+        mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
+        paul.walmsley@sifive.com, palmer@dabbelt.com,
+        aou@eecs.berkeley.edu, hca@linux.ibm.com, gor@linux.ibm.com,
+        agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
+        svens@linux.ibm.com, ysato@users.sourceforge.jp, dalias@libc.org,
+        davem@davemloft.net, richard@nod.at,
+        anton.ivanov@cambridgegreys.com, johannes@sipsolutions.net,
+        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
+        dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+        acme@kernel.org, mark.rutland@arm.com,
+        alexander.shishkin@linux.intel.com, jolsa@kernel.org,
+        namhyung@kernel.org, jgross@suse.com, srivatsa@csail.mit.edu,
+        amakhalov@vmware.com, pv-drivers@vmware.com,
+        boris.ostrovsky@oracle.com, chris@zankel.net, jcmvbkbc@gmail.com,
+        rafael@kernel.org, lenb@kernel.org, pavel@ucw.cz,
+        gregkh@linuxfoundation.org, mturquette@baylibre.com,
+        sboyd@kernel.org, daniel.lezcano@linaro.org, lpieralisi@kernel.org,
+        sudeep.holla@arm.com, agross@kernel.org,
+        bjorn.andersson@linaro.org, konrad.dybcio@somainline.org,
+        anup@brainfault.org, thierry.reding@gmail.com,
+        jonathanh@nvidia.com, jacob.jun.pan@linux.intel.com,
+        atishp@atishpatra.org, Arnd Bergmann <arnd@arndb.de>,
+        yury.norov@gmail.com, andriy.shevchenko@linux.intel.com,
+        linux@rasmusvillemoes.dk, dennis@kernel.org, tj@kernel.org,
+        cl@linux.com, rostedt@goodmis.org, pmladek@suse.com,
+        senozhatsky@chromium.org, john.ogness@linutronix.de,
+        juri.lelli@redhat.com, vincent.guittot@linaro.org,
+        dietmar.eggemann@arm.com, bsegall@google.com, mgorman@suse.de,
+        bristot@redhat.com, vschneid@redhat.com, fweisbec@gmail.com,
+        ryabinin.a.a@gmail.com, glider@google.com, andreyknvl@gmail.com,
+        dvyukov@google.com, vincenzo.frascino@arm.com,
+        Andrew Morton <akpm@linux-foundation.org>, jpoimboe@kernel.org,
+        linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-snps-arc@lists.infradead.org, linux-omap@vger.kernel.org,
+        linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
+        linux-ia64@vger.kernel.org, loongarch@lists.linux.dev,
+        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
+        openrisc@lists.librecores.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+        linux-perf-users@vger.kernel.org,
+        virtualization@lists.linux-foundation.org,
+        linux-xtensa@linux-xtensa.org, linux-acpi@vger.kernel.org,
+        linux-pm@vger.kernel.org, linux-clk@vger.kernel.org,
+        linux-arm-msm@vger.kernel.org, linux-tegra@vger.kernel.org,
+        linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
+Subject: [PATCH v2 11/44] cpuidle,omap4: Push RCU-idle into driver
+References: <20220919095939.761690562@infradead.org>
 MIME-Version: 1.0
-References: <20220908022506.1275799-1-guoren@kernel.org> <20220908022506.1275799-9-guoren@kernel.org>
- <4babce64-e96d-454c-aa35-243b3f2dc315@www.fastmail.com> <CAJF2gTQAMCjNyqrSOvqDAKR5Z-PZiTVxmoK9cvNAVQs+k2fZBg@mail.gmail.com>
- <8817af55-de0d-4e8f-a41b-25d01d5fa968@www.fastmail.com> <CAJF2gTRnY+vc2nKbqubTZvv+FWVgO3yCK4LcwpeNgx51JuETzw@mail.gmail.com>
- <7409c92a-68df-4406-bd86-835d9a959ef5@www.fastmail.com> <CAJF2gTRxt_b2TswE6YJgmFZeRyVzV7fQdMX+7Ptrfa_k=auSjg@mail.gmail.com>
- <2b06f28d-a13d-4c86-af04-39e383aaf07b@www.fastmail.com>
-In-Reply-To: <2b06f28d-a13d-4c86-af04-39e383aaf07b@www.fastmail.com>
-From:   Guo Ren <guoren@kernel.org>
-Date:   Mon, 19 Sep 2022 16:38:02 +0800
-X-Gmail-Original-Message-ID: <CAJF2gTRzC9ES1EK3X4tHchTZMfbGJk2QLbD8VG=5x5bWD7Er0w@mail.gmail.com>
-Message-ID: <CAJF2gTRzC9ES1EK3X4tHchTZMfbGJk2QLbD8VG=5x5bWD7Er0w@mail.gmail.com>
-Subject: Re: [PATCH V4 8/8] riscv: Add config of thread stack size
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Palmer Dabbelt <palmer@rivosinc.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Andy Lutomirski <luto@kernel.org>,
-        "Conor.Dooley" <conor.dooley@microchip.com>,
-        =?UTF-8?Q?Heiko_St=C3=BCbner?= <heiko@sntech.de>,
-        Jisheng Zhang <jszhang@kernel.org>, lazyparser@gmail.com,
-        falcon@tinylab.org, Huacai Chen <chenhuacai@kernel.org>,
-        Anup Patel <apatel@ventanamicro.com>,
-        Atish Patra <atishp@atishpatra.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org,
-        Guo Ren <guoren@linux.alibaba.com>,
-        Andreas Schwab <schwab@suse.de>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Sep 12, 2022 at 4:25 PM Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Mon, Sep 12, 2022, at 6:14 AM, Guo Ren wrote:
-> > On Mon, Sep 12, 2022 at 2:40 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> >> On Sun, Sep 11, 2022, at 1:35 AM, Guo Ren wrote:
-> >> > On Sun, Sep 11, 2022 at 12:07 AM Arnd Bergmann <arnd@arndb.de> wrote:
-> >> >>
-> >> >> That sounds like a really bad idea, why would you want to risk
-> >> >> using such a small stack without CONFIG_VMAP_STACK?
-> >> >>
-> >> >> Are you worried about increased memory usage or something else?
-> >> > The requirement is from [1], and I think disabling CONFIG_VMAP_STACK
-> >> > would be the last step after serious testing.
-> >>
-> >> I still don't see why you need to turn off VMAP_STACK at all
-> >> if it works. The only downside I can see with using VMAP_STACK
-> >> on a 64-bit system is that it may expose bugs with device
-> >> drivers that do DMA to stack data. Once you have tested the
-> >> system successfully, you can also assume that you have no such
-> >> drivers.
-> > 1st, VMAP_STACK could be enabled&disabled in arch/Kconfig. If we don't
-> > force users to enable VMAP_STACK, why couldn't user adjust
-> > THREAD_SIZE?
->
-> Turning off VMAP_STACK is harmless and may help debug issues
-> with VMAP_STACK itself. It's also required on architectures
-> that don't have KASAN_VMALLOC or something else that conflicts
-> with it.
->
-> Changing THREAD_SIZE is also fine, as long as VMAP_STACK catches
-> the inevitable overflows. I would not object to having an
-> option that allows setting the stack size larger than the
-> default without VMAP_STACK, as long as setting it lower requires
-> using VMAP_STACK. That would however add a lot more complexity
-> and probably doesn't do what you want either.
-Thx for the detailed clarification, I agree with the point. I've put
-an EXPERT on config.
+Doing RCU-idle outside the driver, only to then temporarily enable it
+again, some *four* times, before going idle is daft.
 
->
-> > 2nd, VMAP_STACK is not free, we still need 1KB shadow_stack.
-> > The EXPERT is enough for your concern.
->
-> It's actually more than the 1KB: you need both 1KB of shadow
-> stack and 4KB per CPU for the actual overflow_stack. If you
-> are micro-optimizing at this level, then a possible option
-> may be to change the handle_kernel_stack_overflow() function
-> to not preserve the task stack and just panic() without
-> showing the backtrace. That way you don't see which code
-> caused the issue, but at least you avoid corrupting random
-> data.
-Thx for the detailed explanation, the handle_kernel_stack_overflow()
-is a novel idea, which I will consider later.
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Tony Lindgren <tony@atomide.com>
+Tested-by: Tony Lindgren <tony@atomide.com>
+---
+ arch/arm/mach-omap2/cpuidle44xx.c |   29 ++++++++++++++++++-----------
+ 1 file changed, 18 insertions(+), 11 deletions(-)
 
->
->      Arnd
+--- a/arch/arm/mach-omap2/cpuidle44xx.c
++++ b/arch/arm/mach-omap2/cpuidle44xx.c
+@@ -105,7 +105,9 @@ static int omap_enter_idle_smp(struct cp
+ 	}
+ 	raw_spin_unlock_irqrestore(&mpu_lock, flag);
+ 
++	ct_idle_enter();
+ 	omap4_enter_lowpower(dev->cpu, cx->cpu_state);
++	ct_idle_exit();
+ 
+ 	raw_spin_lock_irqsave(&mpu_lock, flag);
+ 	if (cx->mpu_state_vote == num_online_cpus())
+@@ -151,10 +153,10 @@ static int omap_enter_idle_coupled(struc
+ 				 (cx->mpu_logic_state == PWRDM_POWER_OFF);
+ 
+ 	/* Enter broadcast mode for periodic timers */
+-	RCU_NONIDLE(tick_broadcast_enable());
++	tick_broadcast_enable();
+ 
+ 	/* Enter broadcast mode for one-shot timers */
+-	RCU_NONIDLE(tick_broadcast_enter());
++	tick_broadcast_enter();
+ 
+ 	/*
+ 	 * Call idle CPU PM enter notifier chain so that
+@@ -166,7 +168,7 @@ static int omap_enter_idle_coupled(struc
+ 
+ 	if (dev->cpu == 0) {
+ 		pwrdm_set_logic_retst(mpu_pd, cx->mpu_logic_state);
+-		RCU_NONIDLE(omap_set_pwrdm_state(mpu_pd, cx->mpu_state));
++		omap_set_pwrdm_state(mpu_pd, cx->mpu_state);
+ 
+ 		/*
+ 		 * Call idle CPU cluster PM enter notifier chain
+@@ -178,14 +180,16 @@ static int omap_enter_idle_coupled(struc
+ 				index = 0;
+ 				cx = state_ptr + index;
+ 				pwrdm_set_logic_retst(mpu_pd, cx->mpu_logic_state);
+-				RCU_NONIDLE(omap_set_pwrdm_state(mpu_pd, cx->mpu_state));
++				omap_set_pwrdm_state(mpu_pd, cx->mpu_state);
+ 				mpuss_can_lose_context = 0;
+ 			}
+ 		}
+ 	}
+ 
++	ct_idle_enter();
+ 	omap4_enter_lowpower(dev->cpu, cx->cpu_state);
+ 	cpu_done[dev->cpu] = true;
++	ct_idle_exit();
+ 
+ 	/* Wakeup CPU1 only if it is not offlined */
+ 	if (dev->cpu == 0 && cpumask_test_cpu(1, cpu_online_mask)) {
+@@ -194,9 +198,9 @@ static int omap_enter_idle_coupled(struc
+ 		    mpuss_can_lose_context)
+ 			gic_dist_disable();
+ 
+-		RCU_NONIDLE(clkdm_deny_idle(cpu_clkdm[1]));
+-		RCU_NONIDLE(omap_set_pwrdm_state(cpu_pd[1], PWRDM_POWER_ON));
+-		RCU_NONIDLE(clkdm_allow_idle(cpu_clkdm[1]));
++		clkdm_deny_idle(cpu_clkdm[1]);
++		omap_set_pwrdm_state(cpu_pd[1], PWRDM_POWER_ON);
++		clkdm_allow_idle(cpu_clkdm[1]);
+ 
+ 		if (IS_PM44XX_ERRATUM(PM_OMAP4_ROM_SMP_BOOT_ERRATUM_GICD) &&
+ 		    mpuss_can_lose_context) {
+@@ -222,7 +226,7 @@ static int omap_enter_idle_coupled(struc
+ 	cpu_pm_exit();
+ 
+ cpu_pm_out:
+-	RCU_NONIDLE(tick_broadcast_exit());
++	tick_broadcast_exit();
+ 
+ fail:
+ 	cpuidle_coupled_parallel_barrier(dev, &abort_barrier);
+@@ -247,7 +251,8 @@ static struct cpuidle_driver omap4_idle_
+ 			/* C2 - CPU0 OFF + CPU1 OFF + MPU CSWR */
+ 			.exit_latency = 328 + 440,
+ 			.target_residency = 960,
+-			.flags = CPUIDLE_FLAG_COUPLED,
++			.flags = CPUIDLE_FLAG_COUPLED |
++				 CPUIDLE_FLAG_RCU_IDLE,
+ 			.enter = omap_enter_idle_coupled,
+ 			.name = "C2",
+ 			.desc = "CPUx OFF, MPUSS CSWR",
+@@ -256,7 +261,8 @@ static struct cpuidle_driver omap4_idle_
+ 			/* C3 - CPU0 OFF + CPU1 OFF + MPU OSWR */
+ 			.exit_latency = 460 + 518,
+ 			.target_residency = 1100,
+-			.flags = CPUIDLE_FLAG_COUPLED,
++			.flags = CPUIDLE_FLAG_COUPLED |
++				 CPUIDLE_FLAG_RCU_IDLE,
+ 			.enter = omap_enter_idle_coupled,
+ 			.name = "C3",
+ 			.desc = "CPUx OFF, MPUSS OSWR",
+@@ -282,7 +288,8 @@ static struct cpuidle_driver omap5_idle_
+ 			/* C2 - CPU0 RET + CPU1 RET + MPU CSWR */
+ 			.exit_latency = 48 + 60,
+ 			.target_residency = 100,
+-			.flags = CPUIDLE_FLAG_TIMER_STOP,
++			.flags = CPUIDLE_FLAG_TIMER_STOP |
++				 CPUIDLE_FLAG_RCU_IDLE,
+ 			.enter = omap_enter_idle_smp,
+ 			.name = "C2",
+ 			.desc = "CPUx CSWR, MPUSS CSWR",
 
 
-
---
-Best Regards
- Guo Ren
