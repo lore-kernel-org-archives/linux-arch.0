@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 21DECC6FA92
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C50AC6FA96
 	for <linux-arch@archiver.kernel.org>; Mon, 19 Sep 2022 10:22:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231704AbiISKVt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 19 Sep 2022 06:21:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52462 "EHLO
+        id S231712AbiISKVv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 19 Sep 2022 06:21:51 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52106 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231190AbiISKTL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 06:19:11 -0400
+        with ESMTP id S231150AbiISKSz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 06:18:55 -0400
 Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 748CA2408B;
-        Mon, 19 Sep 2022 03:17:56 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8E162248D7;
+        Mon, 19 Sep 2022 03:18:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
-        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
-        Content-ID:Content-Description:In-Reply-To;
-        bh=/I1E7kMyDvpkyM4o9FUteLnfSJJBslYUHIxNSMQuhnw=; b=M5fXrpQMm74qN+ZxFtzbh1Nxuj
-        gxW6Jsl3eXTWjImW7L9CNnsIoeU5+5RheU0dcFsG4vTcX/t5SP6E6kfeSLiE7hP20/uLiAHZZSH4H
-        xUhX69A69T27XUaMRj1IBP9kx2do31XzYREzRBrxcU4aiK9DqEjwWt8loCRv204w+AGxcnkOVUHsS
-        NIHGHmNUNbj6+tYTokI3bjDGNSORFpNvzwp3qAJ8t4y2mmty2xJB0/W6eb+UuP84dH1hJ+zHKHWlz
-        p6pwwVbLTvMMLzMPNVYW9tWm8CiRnjdhqNBGDXpuFktmvXMautyHxOBsJ1IuaDgb3AlrYOldZSzS3
-        OtEatbew==;
+        d=infradead.org; s=desiato.20200630; h=Subject:Cc:To:From:Date:Message-ID:
+        Sender:Reply-To:MIME-Version:Content-Type:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To:References;
+        bh=D+MsKiHRvmSvqyjrleqvhdKjdXvjkJhvT05d1tF3TYc=; b=UQsvU8nlB76xZeTRu6KbAZ5g4A
+        v21ezpBG4aDzfKkxxCb9GpmlADJppCf+KVyodO/TEoyudKbqBLCyLdtwrbFAxb0aJ5fwHbEPQQ1N5
+        EmuvzVJrRo7TykFnlJ+oN15NWd2VLfXjixEytfV45kWCvhMnssNkUfZVmK3eHsT83TmhrkAy+1rWL
+        dSaGj0mA5cA9DiUGq8Uf3dsk4uEicB4ZuKl7D0T57Yf0eK8IdpHZoEAhNRMLiW4K3HehEHlB8w53i
+        worbn3yXyIb3FqjM/nTkOkRImrnF50v+k8ux+BswwsADI0NLv4ntoM+CNvwAF6XnPH12b3dM+N70J
+        YkBwTAqw==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
         by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1oaDq3-00E2Ao-GJ; Mon, 19 Sep 2022 10:17:20 +0000
+        id 1oaDpA-00E28k-Qz; Mon, 19 Sep 2022 10:17:17 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits))
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 1F224302F15;
-        Mon, 19 Sep 2022 12:16:25 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id F300C30068D;
+        Mon, 19 Sep 2022 12:16:21 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 3E8432BABB0C8; Mon, 19 Sep 2022 12:16:22 +0200 (CEST)
-Message-ID: <20220919101521.813876881@infradead.org>
+        id BF8DF2BA49033; Mon, 19 Sep 2022 12:16:21 +0200 (CEST)
+Message-ID: <20220919095939.761690562@infradead.org>
 User-Agent: quilt/0.66
-Date:   Mon, 19 Sep 2022 12:00:01 +0200
+Date:   Mon, 19 Sep 2022 11:59:39 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -99,116 +99,170 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-pm@vger.kernel.org, linux-clk@vger.kernel.org,
         linux-arm-msm@vger.kernel.org, linux-tegra@vger.kernel.org,
         linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
-Subject: [PATCH v2 22/44] x86/tdx: Remove TDX_HCALL_ISSUE_STI
-References: <20220919095939.761690562@infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH v2 00/44] cpuidle,rcu: Clean up the mess
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Now that arch_cpu_idle() is expected to return with IRQs disabled,
-avoid the useless STI/CLI dance.
+Hi All!
 
-Per the specs this is supposed to work, but nobody has yet relied up
-this behaviour so broken implementations are possible.
+At long last, a respin of the cpuidle vs rcu cleanup patches.
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+v1: https://lkml.kernel.org/r/20220608142723.103523089@infradead.org
+
+These here patches clean up the mess that is cpuidle vs rcuidle.
+
+At the end of the ride there's only on RCU_NONIDLE user left:
+
+  arch/arm64/kernel/suspend.c:            RCU_NONIDLE(__cpu_suspend_exit());
+
+and 'one' trace_*_rcuidle() user:
+
+  kernel/trace/trace_preemptirq.c:                        trace_irq_enable_rcuidle(CALLER_ADDR0, CALLER_ADDR1);
+  kernel/trace/trace_preemptirq.c:                        trace_irq_disable_rcuidle(CALLER_ADDR0, CALLER_ADDR1);
+  kernel/trace/trace_preemptirq.c:                        trace_irq_enable_rcuidle(CALLER_ADDR0, caller_addr);
+  kernel/trace/trace_preemptirq.c:                        trace_irq_disable_rcuidle(CALLER_ADDR0, caller_addr);
+  kernel/trace/trace_preemptirq.c:                trace_preempt_enable_rcuidle(a0, a1);
+  kernel/trace/trace_preemptirq.c:                trace_preempt_disable_rcuidle(a0, a1);
+
+However this last is all in deprecated code that should be unused for GENERIC_ENTRY.
+
+I've touched a lot of code that I can't test and I might've broken something by
+accident. In particular the whole ARM cpuidle stuff was quite involved.
+
+Please all; have a look where you haven't already.
+
+
+New since v1:
+
+ - rebase on top of Frederic's rcu-context-tracking rename fest
+ - more omap goodness as per the last discusion (thanks Tony!)
+ - removed one more RCU_NONIDLE() from arm64/risc-v perf code
+ - ubsan/kasan fixes
+ - intel_idle module-param for testing
+ - a bunch of extra __always_inline, because compilers are silly.
+
 ---
- arch/x86/coco/tdx/tdcall.S        |   13 -------------
- arch/x86/coco/tdx/tdx.c           |   23 ++++-------------------
- arch/x86/include/asm/shared/tdx.h |    1 -
- 3 files changed, 4 insertions(+), 33 deletions(-)
-
---- a/arch/x86/coco/tdx/tdcall.S
-+++ b/arch/x86/coco/tdx/tdcall.S
-@@ -139,19 +139,6 @@ SYM_FUNC_START(__tdx_hypercall)
- 
- 	movl $TDVMCALL_EXPOSE_REGS_MASK, %ecx
- 
--	/*
--	 * For the idle loop STI needs to be called directly before the TDCALL
--	 * that enters idle (EXIT_REASON_HLT case). STI instruction enables
--	 * interrupts only one instruction later. If there is a window between
--	 * STI and the instruction that emulates the HALT state, there is a
--	 * chance for interrupts to happen in this window, which can delay the
--	 * HLT operation indefinitely. Since this is the not the desired
--	 * result, conditionally call STI before TDCALL.
--	 */
--	testq $TDX_HCALL_ISSUE_STI, %rsi
--	jz .Lskip_sti
--	sti
--.Lskip_sti:
- 	tdcall
- 
- 	/*
---- a/arch/x86/coco/tdx/tdx.c
-+++ b/arch/x86/coco/tdx/tdx.c
-@@ -169,7 +169,7 @@ static int ve_instr_len(struct ve_info *
- 	}
- }
- 
--static u64 __cpuidle __halt(const bool irq_disabled, const bool do_sti)
-+static u64 __cpuidle __halt(const bool irq_disabled)
- {
- 	struct tdx_hypercall_args args = {
- 		.r10 = TDX_HYPERCALL_STANDARD,
-@@ -189,20 +189,14 @@ static u64 __cpuidle __halt(const bool i
- 	 * can keep the vCPU in virtual HLT, even if an IRQ is
- 	 * pending, without hanging/breaking the guest.
- 	 */
--	return __tdx_hypercall(&args, do_sti ? TDX_HCALL_ISSUE_STI : 0);
-+	return __tdx_hypercall(&args, 0);
- }
- 
- static int handle_halt(struct ve_info *ve)
- {
--	/*
--	 * Since non safe halt is mainly used in CPU offlining
--	 * and the guest will always stay in the halt state, don't
--	 * call the STI instruction (set do_sti as false).
--	 */
- 	const bool irq_disabled = irqs_disabled();
--	const bool do_sti = false;
- 
--	if (__halt(irq_disabled, do_sti))
-+	if (__halt(irq_disabled))
- 		return -EIO;
- 
- 	return ve_instr_len(ve);
-@@ -210,22 +204,13 @@ static int handle_halt(struct ve_info *v
- 
- void __cpuidle tdx_safe_halt(void)
- {
--	 /*
--	  * For do_sti=true case, __tdx_hypercall() function enables
--	  * interrupts using the STI instruction before the TDCALL. So
--	  * set irq_disabled as false.
--	  */
- 	const bool irq_disabled = false;
--	const bool do_sti = true;
- 
- 	/*
- 	 * Use WARN_ONCE() to report the failure.
- 	 */
--	if (__halt(irq_disabled, do_sti))
-+	if (__halt(irq_disabled))
- 		WARN_ONCE(1, "HLT instruction emulation failed\n");
--
--	/* XXX I can't make sense of what @do_sti actually does */
--	raw_local_irq_disable();
- }
- 
- static int read_msr(struct pt_regs *regs, struct ve_info *ve)
---- a/arch/x86/include/asm/shared/tdx.h
-+++ b/arch/x86/include/asm/shared/tdx.h
-@@ -8,7 +8,6 @@
- #define TDX_HYPERCALL_STANDARD  0
- 
- #define TDX_HCALL_HAS_OUTPUT	BIT(0)
--#define TDX_HCALL_ISSUE_STI	BIT(1)
- 
- #define TDX_CPUID_LEAF_ID	0x21
- #define TDX_IDENT		"IntelTDX    "
-
+ arch/alpha/kernel/process.c               |  1 -
+ arch/alpha/kernel/vmlinux.lds.S           |  1 -
+ arch/arc/kernel/process.c                 |  3 ++
+ arch/arc/kernel/vmlinux.lds.S             |  1 -
+ arch/arm/include/asm/vmlinux.lds.h        |  1 -
+ arch/arm/kernel/process.c                 |  1 -
+ arch/arm/kernel/smp.c                     |  6 +--
+ arch/arm/mach-gemini/board-dt.c           |  3 +-
+ arch/arm/mach-imx/cpuidle-imx6q.c         |  4 +-
+ arch/arm/mach-imx/cpuidle-imx6sx.c        |  5 ++-
+ arch/arm/mach-omap2/common.h              |  6 ++-
+ arch/arm/mach-omap2/cpuidle34xx.c         | 16 +++++++-
+ arch/arm/mach-omap2/cpuidle44xx.c         | 29 +++++++-------
+ arch/arm/mach-omap2/omap-mpuss-lowpower.c | 12 +++++-
+ arch/arm/mach-omap2/pm.h                  |  2 +-
+ arch/arm/mach-omap2/pm24xx.c              | 51 +-----------------------
+ arch/arm/mach-omap2/pm34xx.c              | 14 +++++--
+ arch/arm/mach-omap2/pm44xx.c              |  2 +-
+ arch/arm/mach-omap2/powerdomain.c         | 10 ++---
+ arch/arm64/kernel/idle.c                  |  1 -
+ arch/arm64/kernel/smp.c                   |  4 +-
+ arch/arm64/kernel/vmlinux.lds.S           |  1 -
+ arch/csky/kernel/process.c                |  1 -
+ arch/csky/kernel/smp.c                    |  2 +-
+ arch/csky/kernel/vmlinux.lds.S            |  1 -
+ arch/hexagon/kernel/process.c             |  1 -
+ arch/hexagon/kernel/vmlinux.lds.S         |  1 -
+ arch/ia64/kernel/process.c                |  1 +
+ arch/ia64/kernel/vmlinux.lds.S            |  1 -
+ arch/loongarch/kernel/idle.c              |  1 +
+ arch/loongarch/kernel/vmlinux.lds.S       |  1 -
+ arch/m68k/kernel/vmlinux-nommu.lds        |  1 -
+ arch/m68k/kernel/vmlinux-std.lds          |  1 -
+ arch/m68k/kernel/vmlinux-sun3.lds         |  1 -
+ arch/microblaze/kernel/process.c          |  1 -
+ arch/microblaze/kernel/vmlinux.lds.S      |  1 -
+ arch/mips/kernel/idle.c                   |  8 ++--
+ arch/mips/kernel/vmlinux.lds.S            |  1 -
+ arch/nios2/kernel/process.c               |  1 -
+ arch/nios2/kernel/vmlinux.lds.S           |  1 -
+ arch/openrisc/kernel/process.c            |  1 +
+ arch/openrisc/kernel/vmlinux.lds.S        |  1 -
+ arch/parisc/kernel/process.c              |  2 -
+ arch/parisc/kernel/vmlinux.lds.S          |  1 -
+ arch/powerpc/kernel/idle.c                |  5 +--
+ arch/powerpc/kernel/vmlinux.lds.S         |  1 -
+ arch/riscv/kernel/process.c               |  1 -
+ arch/riscv/kernel/vmlinux-xip.lds.S       |  1 -
+ arch/riscv/kernel/vmlinux.lds.S           |  1 -
+ arch/s390/kernel/idle.c                   |  1 -
+ arch/s390/kernel/vmlinux.lds.S            |  1 -
+ arch/sh/kernel/idle.c                     |  1 +
+ arch/sh/kernel/vmlinux.lds.S              |  1 -
+ arch/sparc/kernel/leon_pmc.c              |  4 ++
+ arch/sparc/kernel/process_32.c            |  1 -
+ arch/sparc/kernel/process_64.c            |  3 +-
+ arch/sparc/kernel/vmlinux.lds.S           |  1 -
+ arch/um/kernel/dyn.lds.S                  |  1 -
+ arch/um/kernel/process.c                  |  1 -
+ arch/um/kernel/uml.lds.S                  |  1 -
+ arch/x86/boot/compressed/vmlinux.lds.S    |  1 +
+ arch/x86/coco/tdx/tdcall.S                | 15 +------
+ arch/x86/coco/tdx/tdx.c                   | 25 ++++--------
+ arch/x86/events/amd/brs.c                 | 13 +++----
+ arch/x86/include/asm/fpu/xcr.h            |  4 +-
+ arch/x86/include/asm/irqflags.h           | 11 ++----
+ arch/x86/include/asm/mwait.h              | 14 +++----
+ arch/x86/include/asm/nospec-branch.h      |  2 +-
+ arch/x86/include/asm/paravirt.h           |  6 ++-
+ arch/x86/include/asm/perf_event.h         |  2 +-
+ arch/x86/include/asm/shared/io.h          |  4 +-
+ arch/x86/include/asm/shared/tdx.h         |  1 -
+ arch/x86/include/asm/special_insns.h      |  8 ++--
+ arch/x86/include/asm/xen/hypercall.h      |  2 +-
+ arch/x86/kernel/cpu/bugs.c                |  2 +-
+ arch/x86/kernel/fpu/core.c                |  4 +-
+ arch/x86/kernel/paravirt.c                | 14 ++++++-
+ arch/x86/kernel/process.c                 | 65 +++++++++++++++----------------
+ arch/x86/kernel/vmlinux.lds.S             |  1 -
+ arch/x86/lib/memcpy_64.S                  |  5 +--
+ arch/x86/lib/memmove_64.S                 |  4 +-
+ arch/x86/lib/memset_64.S                  |  4 +-
+ arch/x86/xen/enlighten_pv.c               |  2 +-
+ arch/x86/xen/irq.c                        |  2 +-
+ arch/xtensa/kernel/process.c              |  1 +
+ arch/xtensa/kernel/vmlinux.lds.S          |  1 -
+ drivers/acpi/processor_idle.c             | 36 ++++++++++-------
+ drivers/base/power/runtime.c              | 24 ++++++------
+ drivers/clk/clk.c                         |  8 ++--
+ drivers/cpuidle/cpuidle-arm.c             |  1 +
+ drivers/cpuidle/cpuidle-big_little.c      |  8 +++-
+ drivers/cpuidle/cpuidle-mvebu-v7.c        |  7 ++++
+ drivers/cpuidle/cpuidle-psci.c            | 10 +++--
+ drivers/cpuidle/cpuidle-qcom-spm.c        |  1 +
+ drivers/cpuidle/cpuidle-riscv-sbi.c       | 10 +++--
+ drivers/cpuidle/cpuidle-tegra.c           | 21 +++++++---
+ drivers/cpuidle/cpuidle.c                 | 21 +++++-----
+ drivers/cpuidle/dt_idle_states.c          |  2 +-
+ drivers/cpuidle/poll_state.c              | 10 ++++-
+ drivers/idle/intel_idle.c                 | 19 +++++----
+ drivers/perf/arm_pmu.c                    | 11 +-----
+ drivers/perf/riscv_pmu_sbi.c              |  8 +---
+ include/asm-generic/vmlinux.lds.h         |  9 ++---
+ include/linux/compiler_types.h            |  8 +++-
+ include/linux/cpu.h                       |  3 --
+ include/linux/cpuidle.h                   | 34 ++++++++++++++++
+ include/linux/cpumask.h                   |  4 +-
+ include/linux/percpu-defs.h               |  2 +-
+ include/linux/sched/idle.h                | 40 ++++++++++++++-----
+ include/linux/thread_info.h               | 18 ++++++++-
+ include/linux/tracepoint.h                | 13 ++++++-
+ kernel/cpu_pm.c                           |  9 -----
+ kernel/printk/printk.c                    |  2 +-
+ kernel/sched/idle.c                       | 47 +++++++---------------
+ kernel/time/tick-broadcast-hrtimer.c      | 29 ++++++--------
+ kernel/time/tick-broadcast.c              |  6 ++-
+ kernel/trace/trace.c                      |  3 ++
+ lib/ubsan.c                               |  5 ++-
+ mm/kasan/kasan.h                          |  4 ++
+ mm/kasan/shadow.c                         | 38 ++++++++++++++++++
+ tools/objtool/check.c                     | 17 ++++++++
+ 121 files changed, 511 insertions(+), 420 deletions(-)
 
