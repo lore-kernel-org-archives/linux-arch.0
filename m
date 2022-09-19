@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 48636C6FD18
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C6CCC6FD1C
 	for <linux-arch@archiver.kernel.org>; Mon, 19 Sep 2022 10:22:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231742AbiISKV7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 19 Sep 2022 06:21:59 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50310 "EHLO
+        id S231756AbiISKWD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 19 Sep 2022 06:22:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50070 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230457AbiISKR4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 06:17:56 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C30F522BEB;
-        Mon, 19 Sep 2022 03:17:47 -0700 (PDT)
+        with ESMTP id S230463AbiISKSK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 06:18:10 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8B34823BC7;
+        Mon, 19 Sep 2022 03:17:52 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=qeP5TW9pPwNmun+WKlC/DjHHSTDp0gQF0cfrlfUPbu0=; b=GUjNE5F0Y2PTZQyBjYcZZQyfIY
-        o10NohuUOmP0Se3tuwt+mZXT1hGRNK5CGZStjItvyMGkJrGiclWBhtSkJb0QLL0eaPJ8M9M25L5S3
-        h8RuPus74/eSIerE4a1LP/Lqij4WU3nZxoMfY3eqapRQTeR49iDMFDMMZwZKd+WpEnH2S8i8pu2aR
-        LQ0/Ju4u3Q7GytTGjg74VG0Rmm7JMkh5rxZo5vhHGU43eY4281Nvjq9JFzRqioj1iIiLdgpt599dA
-        lic7Z9caX4wSpoMwY+baJQksUBkbg5+ASXDjzrmhQlGn4NSzA5AZxQaFGoM87rxjLSi8dh5ZwC3J6
-        +/tHjSyQ==;
+        bh=rkOK81skpZJ6vGDiywjg6par8UEvxeO3DasZhSxIJok=; b=cAtb8qUkHNlc5NRJ9JhqfpYpkn
+        vuGqBiBbBfBDjT2LpWfT687vM9h60iKW1aFAzXLhiA55bEnFFazjOCOZ2LysiecNhReuLF7QGNGpm
+        bzlj5HhCACK1SPU9CGBmX0kVTQxmSOgA2VEHrUS5Zw0AWdTeCjOVaZgBAFczN3aAogfzhug/dGmAa
+        TuYKGdlO4Bb9tZNMzEoEouJaWwKcP8yxVH/TIXCLPgfyPJnI9nMLJwB6LaKCKaliv9Au2vUMIrdV6
+        XeVwgwhuo6jK3GAqFqvfOIumRDVFnEjf6RD+aYYchbD6DtuvbFxNOd3LvzzaJc4svxhha3MC/xoUW
+        Q9y4Oczg==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1oaDq8-004bA4-CU; Mon, 19 Sep 2022 10:17:24 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1oaDq6-00E2Bj-NA; Mon, 19 Sep 2022 10:17:23 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 4E3E7302F46;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 75FA0302F5E;
         Mon, 19 Sep 2022 12:16:25 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 690642BAC75A9; Mon, 19 Sep 2022 12:16:22 +0200 (CEST)
-Message-ID: <20220919101522.358582588@infradead.org>
+        id 822FD2BAC75B3; Mon, 19 Sep 2022 12:16:22 +0200 (CEST)
+Message-ID: <20220919101522.707997632@infradead.org>
 User-Agent: quilt/0.66
-Date:   Mon, 19 Sep 2022 12:00:09 +0200
+Date:   Mon, 19 Sep 2022 12:00:14 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -99,7 +99,7 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-pm@vger.kernel.org, linux-clk@vger.kernel.org,
         linux-arm-msm@vger.kernel.org, linux-tegra@vger.kernel.org,
         linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
-Subject: [PATCH v2 30/44] cpuidle,xenpv: Make more PARAVIRT_XXL noinstr clean
+Subject: [PATCH v2 35/44] cpuidle,omap3: Push RCU-idle into omap_sram_idle()
 References: <20220919095939.761690562@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -107,139 +107,91 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-vmlinux.o: warning: objtool: acpi_idle_enter_s2idle+0xde: call to wbinvd() leaves .noinstr.text section
-vmlinux.o: warning: objtool: default_idle+0x4: call to arch_safe_halt() leaves .noinstr.text section
-vmlinux.o: warning: objtool: xen_safe_halt+0xa: call to HYPERVISOR_sched_op.constprop.0() leaves .noinstr.text section
+OMAP3 uses full SoC suspend modes as idle states, as such it needs the
+whole power-domain and clock-domain code from the idle path.
+
+All that code is not suitable to run with RCU disabled, as such push
+RCU-idle deeper still.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Srivatsa S. Bhat (VMware) <srivatsa@csail.mit.edu>
+Reviewed-by: Tony Lindgren <tony@atomide.com>
+Tested-by: Tony Lindgren <tony@atomide.com>
 ---
- arch/x86/include/asm/paravirt.h      |    6 ++++--
- arch/x86/include/asm/special_insns.h |    4 ++--
- arch/x86/include/asm/xen/hypercall.h |    2 +-
- arch/x86/kernel/paravirt.c           |   14 ++++++++++++--
- arch/x86/xen/enlighten_pv.c          |    2 +-
- arch/x86/xen/irq.c                   |    2 +-
- 6 files changed, 21 insertions(+), 9 deletions(-)
+ arch/arm/mach-omap2/cpuidle34xx.c |    4 +---
+ arch/arm/mach-omap2/pm.h          |    2 +-
+ arch/arm/mach-omap2/pm34xx.c      |   12 ++++++++++--
+ 3 files changed, 12 insertions(+), 6 deletions(-)
 
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -168,7 +168,7 @@ static inline void __write_cr4(unsigned
- 	PVOP_VCALL1(cpu.write_cr4, x);
+--- a/arch/arm/mach-omap2/cpuidle34xx.c
++++ b/arch/arm/mach-omap2/cpuidle34xx.c
+@@ -133,9 +133,7 @@ static int omap3_enter_idle(struct cpuid
+ 	}
+ 
+ 	/* Execute ARM wfi */
+-	ct_cpuidle_enter();
+-	omap_sram_idle();
+-	ct_cpuidle_exit();
++	omap_sram_idle(true);
+ 
+ 	/*
+ 	 * Call idle CPU PM enter notifier chain to restore
+--- a/arch/arm/mach-omap2/pm.h
++++ b/arch/arm/mach-omap2/pm.h
+@@ -29,7 +29,7 @@ static inline int omap4_idle_init(void)
+ 
+ extern void *omap3_secure_ram_storage;
+ extern void omap3_pm_off_mode_enable(int);
+-extern void omap_sram_idle(void);
++extern void omap_sram_idle(bool rcuidle);
+ extern int omap_pm_clkdms_setup(struct clockdomain *clkdm, void *unused);
+ 
+ #if defined(CONFIG_PM_OPP)
+--- a/arch/arm/mach-omap2/pm34xx.c
++++ b/arch/arm/mach-omap2/pm34xx.c
+@@ -26,6 +26,7 @@
+ #include <linux/delay.h>
+ #include <linux/slab.h>
+ #include <linux/of.h>
++#include <linux/cpuidle.h>
+ 
+ #include <trace/events/power.h>
+ 
+@@ -174,7 +175,7 @@ static int omap34xx_do_sram_idle(unsigne
+ 	return 0;
  }
  
--static inline void arch_safe_halt(void)
-+static __always_inline void arch_safe_halt(void)
+-void omap_sram_idle(void)
++void omap_sram_idle(bool rcuidle)
  {
- 	PVOP_VCALL0(irq.safe_halt);
- }
-@@ -178,7 +178,9 @@ static inline void halt(void)
- 	PVOP_VCALL0(irq.halt);
- }
- 
--static inline void wbinvd(void)
-+extern noinstr void pv_native_wbinvd(void);
+ 	/* Variable to tell what needs to be saved and restored
+ 	 * in omap_sram_idle*/
+@@ -254,11 +255,18 @@ void omap_sram_idle(void)
+ 	 */
+ 	if (save_state)
+ 		omap34xx_save_context(omap3_arm_context);
 +
-+static __always_inline void wbinvd(void)
- {
- 	PVOP_ALT_VCALL0(cpu.wbinvd, "wbinvd", ALT_NOT(X86_FEATURE_XENPV));
- }
---- a/arch/x86/include/asm/special_insns.h
-+++ b/arch/x86/include/asm/special_insns.h
-@@ -115,7 +115,7 @@ static inline void wrpkru(u32 pkru)
- }
- #endif
- 
--static inline void native_wbinvd(void)
-+static __always_inline void native_wbinvd(void)
- {
- 	asm volatile("wbinvd": : :"memory");
- }
-@@ -179,7 +179,7 @@ static inline void __write_cr4(unsigned
- 	native_write_cr4(x);
- }
- 
--static inline void wbinvd(void)
-+static __always_inline void wbinvd(void)
- {
- 	native_wbinvd();
- }
---- a/arch/x86/include/asm/xen/hypercall.h
-+++ b/arch/x86/include/asm/xen/hypercall.h
-@@ -382,7 +382,7 @@ MULTI_stack_switch(struct multicall_entr
- }
- #endif
- 
--static inline int
-+static __always_inline int
- HYPERVISOR_sched_op(int cmd, void *arg)
- {
- 	return _hypercall2(int, sched_op, cmd, arg);
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -233,6 +233,11 @@ static noinstr void pv_native_set_debugr
- 	native_set_debugreg(regno, val);
- }
- 
-+noinstr void pv_native_wbinvd(void)
-+{
-+	native_wbinvd();
-+}
++	if (rcuidle)
++		ct_cpuidle_enter();
 +
- static noinstr void pv_native_irq_enable(void)
- {
- 	native_irq_enable();
-@@ -242,6 +247,11 @@ static noinstr void pv_native_irq_disabl
- {
- 	native_irq_disable();
- }
+ 	if (save_state == 1 || save_state == 3)
+ 		cpu_suspend(save_state, omap34xx_do_sram_idle);
+ 	else
+ 		omap34xx_do_sram_idle(save_state);
+ 
++	if (rcuidle)
++		ct_cpuidle_exit();
 +
-+static noinstr void pv_native_safe_halt(void)
-+{
-+	native_safe_halt();
-+}
- #endif
+ 	/* Restore normal SDRC POWER settings */
+ 	if (cpu_is_omap3430() && omap_rev() >= OMAP3430_REV_ES3_0 &&
+ 	    (omap_type() == OMAP2_DEVICE_TYPE_EMU ||
+@@ -316,7 +324,7 @@ static int omap3_pm_suspend(void)
  
- enum paravirt_lazy_mode paravirt_get_lazy_mode(void)
-@@ -273,7 +283,7 @@ struct paravirt_patch_template pv_ops =
- 	.cpu.read_cr0		= native_read_cr0,
- 	.cpu.write_cr0		= native_write_cr0,
- 	.cpu.write_cr4		= native_write_cr4,
--	.cpu.wbinvd		= native_wbinvd,
-+	.cpu.wbinvd		= pv_native_wbinvd,
- 	.cpu.read_msr		= native_read_msr,
- 	.cpu.write_msr		= native_write_msr,
- 	.cpu.read_msr_safe	= native_read_msr_safe,
-@@ -307,7 +317,7 @@ struct paravirt_patch_template pv_ops =
- 	.irq.save_fl		= __PV_IS_CALLEE_SAVE(native_save_fl),
- 	.irq.irq_disable	= __PV_IS_CALLEE_SAVE(pv_native_irq_disable),
- 	.irq.irq_enable		= __PV_IS_CALLEE_SAVE(pv_native_irq_enable),
--	.irq.safe_halt		= native_safe_halt,
-+	.irq.safe_halt		= pv_native_safe_halt,
- 	.irq.halt		= native_halt,
- #endif /* CONFIG_PARAVIRT_XXL */
+ 	omap3_intc_suspend();
  
---- a/arch/x86/xen/enlighten_pv.c
-+++ b/arch/x86/xen/enlighten_pv.c
-@@ -1019,7 +1019,7 @@ static const typeof(pv_ops) xen_cpu_ops
+-	omap_sram_idle();
++	omap_sram_idle(false);
  
- 		.write_cr4 = xen_write_cr4,
- 
--		.wbinvd = native_wbinvd,
-+		.wbinvd = pv_native_wbinvd,
- 
- 		.read_msr = xen_read_msr,
- 		.write_msr = xen_write_msr,
---- a/arch/x86/xen/irq.c
-+++ b/arch/x86/xen/irq.c
-@@ -24,7 +24,7 @@ noinstr void xen_force_evtchn_callback(v
- 	(void)HYPERVISOR_xen_version(0, NULL);
- }
- 
--static void xen_safe_halt(void)
-+static noinstr void xen_safe_halt(void)
- {
- 	/* Blocking includes an implicit local_irq_enable(). */
- 	if (HYPERVISOR_sched_op(SCHEDOP_block, NULL) != 0)
+ restore:
+ 	/* Restore next_pwrsts */
 
 
