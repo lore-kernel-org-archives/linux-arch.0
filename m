@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 168FBC6FA91
-	for <linux-arch@archiver.kernel.org>; Mon, 19 Sep 2022 10:21:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C9BF8C54EE9
+	for <linux-arch@archiver.kernel.org>; Mon, 19 Sep 2022 10:22:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231688AbiISKVn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 19 Sep 2022 06:21:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50000 "EHLO
+        id S231695AbiISKVp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 19 Sep 2022 06:21:45 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50312 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230464AbiISKSK (ORCPT
+        with ESMTP id S229548AbiISKSK (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2022 06:18:10 -0400
 Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EAC8F237C0;
-        Mon, 19 Sep 2022 03:17:51 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6432512771;
+        Mon, 19 Sep 2022 03:17:54 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=nefRY1zld6SB6gly/BgzrvcXEKwr/pOkUZl11QGpgL8=; b=Xd8EiaTsS7o5BZ8X5/O0m/fwRs
-        qKjZJcpEI4THHPTWSrbVBcJMysEDtIsbmnzBFGeOQse9wcpk4h4FYRHKGuFZ2xMFqMJvXOxBYscj4
-        uV33lvE7mAPQeo08mWfTWuLoeQQDcuPWfjgAPBCFy3U0Sfzp8/1k8Vrp9HE+sTKR0J7fLc8MLYBVi
-        /rUp0ys1N9pIg0S+fWwlw3ooeLNCtqQFqvsYVKws0Va2i9bYhy3cCnMYC9EEqnglEYFshJmWPJ5Qt
-        XvkGWIN+O83z1NgYKZ+YxNRtwb41x3EUndvYBaE4V7BTa9OHXR630BTfUsWS3dvH+Rk05FQqXgdUF
-        GOrnrpMw==;
+        bh=eYoUngVW9N27gIhULqYrRlt6uLJ7xBInAkMSAu6ULjk=; b=de8Ma0kUSLlpu9C7wjE0bKPqy1
+        XqEba5xqAdofgaCeD0EFCPxSUEaRkRAgjFRoMbIx4M+0V7wELbCLKeeVFFR0wNlrjHcnZLWYJm55P
+        uRlK2Rz4vnFy1/0aTyn+FOGPA/EXvq6yKYe+ohaePZigZebYiKMThVgpdgc1+u2ub8r4dPxRVK1EA
+        5Ok1zD5hXm3rRTBSE5/gkRLvygHpwJU/wMSK1zI3fqkjUwc9f5XPvzXZPztAW13/NBa8Gn7dLmhTK
+        q3ZFBBXJe9nl7eLEaYOqUMINiavDDs9axbwozKmP3uMv4s17DeRlgnYwLmlsISEW7FTsgverVouPZ
+        qawYKoxw==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
         by desiato.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1oaDpD-00E28s-IX; Mon, 19 Sep 2022 10:17:17 +0000
+        id 1oaDq8-00E2C6-MU; Mon, 19 Sep 2022 10:17:25 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id BE4BE302DE2;
-        Mon, 19 Sep 2022 12:16:24 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id A4D7A302F8B;
+        Mon, 19 Sep 2022 12:16:25 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id E23492BA4903C; Mon, 19 Sep 2022 12:16:21 +0200 (CEST)
-Message-ID: <20220919101520.802976773@infradead.org>
+        id ABA4E2BAC75B6; Mon, 19 Sep 2022 12:16:22 +0200 (CEST)
+Message-ID: <20220919101523.244550344@infradead.org>
 User-Agent: quilt/0.66
-Date:   Mon, 19 Sep 2022 11:59:46 +0200
+Date:   Mon, 19 Sep 2022 12:00:22 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -99,7 +99,7 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-pm@vger.kernel.org, linux-clk@vger.kernel.org,
         linux-arm-msm@vger.kernel.org, linux-tegra@vger.kernel.org,
         linux-arch@vger.kernel.org, kasan-dev@googlegroups.com
-Subject: [PATCH v2 07/44] cpuidle,psci: Push RCU-idle into driver
+Subject: [PATCH v2 43/44] sched: Always inline __this_cpu_preempt_check()
 References: <20220919095939.761690562@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -107,53 +107,33 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Doing RCU-idle outside the driver, only to then temporarily enable it
-again, at least twice, before going idle is daft.
+vmlinux.o: warning: objtool: in_entry_stack+0x9: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: default_do_nmi+0x10: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: fpu_idle_fpregs+0x41: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: kvm_read_and_reset_apf_flags+0x1: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: lockdep_hardirqs_on+0xb0: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: lockdep_hardirqs_off+0xae: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: irqentry_nmi_enter+0x69: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: irqentry_nmi_exit+0x32: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: acpi_processor_ffh_cstate_enter+0x9: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: acpi_idle_enter+0x43: call to __this_cpu_preempt_check() leaves .noinstr.text section
+vmlinux.o: warning: objtool: acpi_idle_enter_s2idle+0x45: call to __this_cpu_preempt_check() leaves .noinstr.text section
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- drivers/cpuidle/cpuidle-psci.c |    9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ include/linux/percpu-defs.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---- a/drivers/cpuidle/cpuidle-psci.c
-+++ b/drivers/cpuidle/cpuidle-psci.c
-@@ -69,12 +69,12 @@ static int __psci_enter_domain_idle_stat
- 		return -1;
+--- a/include/linux/percpu-defs.h
++++ b/include/linux/percpu-defs.h
+@@ -310,7 +310,7 @@ extern void __bad_size_call_parameter(vo
+ #ifdef CONFIG_DEBUG_PREEMPT
+ extern void __this_cpu_preempt_check(const char *op);
+ #else
+-static inline void __this_cpu_preempt_check(const char *op) { }
++static __always_inline void __this_cpu_preempt_check(const char *op) { }
+ #endif
  
- 	/* Do runtime PM to manage a hierarchical CPU toplogy. */
--	ct_irq_enter_irqson();
- 	if (s2idle)
- 		dev_pm_genpd_suspend(pd_dev);
- 	else
- 		pm_runtime_put_sync_suspend(pd_dev);
--	ct_irq_exit_irqson();
-+
-+	ct_idle_enter();
- 
- 	state = psci_get_domain_state();
- 	if (!state)
-@@ -82,12 +82,12 @@ static int __psci_enter_domain_idle_stat
- 
- 	ret = psci_cpu_suspend_enter(state) ? -1 : idx;
- 
--	ct_irq_enter_irqson();
-+	ct_idle_exit();
-+
- 	if (s2idle)
- 		dev_pm_genpd_resume(pd_dev);
- 	else
- 		pm_runtime_get_sync(pd_dev);
--	ct_irq_exit_irqson();
- 
- 	cpu_pm_exit();
- 
-@@ -240,6 +240,7 @@ static int psci_dt_cpu_init_topology(str
- 	 * of a shared state for the domain, assumes the domain states are all
- 	 * deeper states.
- 	 */
-+	drv->states[state_count - 1].flags |= CPUIDLE_FLAG_RCU_IDLE;
- 	drv->states[state_count - 1].enter = psci_enter_domain_idle_state;
- 	drv->states[state_count - 1].enter_s2idle = psci_enter_s2idle_domain_idle_state;
- 	psci_cpuidle_use_cpuhp = true;
+ #define __pcpu_size_call_return(stem, variable)				\
 
 
