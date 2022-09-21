@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 223BDC6FA91
-	for <linux-arch@archiver.kernel.org>; Wed, 21 Sep 2022 03:35:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 38474C6FA93
+	for <linux-arch@archiver.kernel.org>; Wed, 21 Sep 2022 03:35:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231346AbiIUDfG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 20 Sep 2022 23:35:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43620 "EHLO
+        id S231401AbiIUDfI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 20 Sep 2022 23:35:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43550 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231725AbiIUDd6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2022 23:33:58 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E5042631D;
-        Tue, 20 Sep 2022 20:31:57 -0700 (PDT)
+        with ESMTP id S231757AbiIUDeF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2022 23:34:05 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7ECCD1147F;
+        Tue, 20 Sep 2022 20:32:06 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 52E2CB81D05;
-        Wed, 21 Sep 2022 03:31:54 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DFBF0C433C1;
-        Wed, 21 Sep 2022 03:31:49 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 195AA62F2B;
+        Wed, 21 Sep 2022 03:32:06 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B9C1FC43470;
+        Wed, 21 Sep 2022 03:32:01 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1663731113;
-        bh=L86JnuAVDjwV91egGrglApUiZIzU+Mu/qe9sCYqDgWM=;
-        h=From:To:Cc:Subject:Date:From;
-        b=e9O4oZsEDvFJZ7tY+/tb3bYBz7fd04JUedr8USCPhjsB0NBVfG1ApVlve/CntD5i9
-         VZSnYPnkRaUKTYNpwEuywjnLtOV2A0dNc6Blto0Ctmg/vI7Ps0QRT2Tf97bJvtimtW
-         Xqsfol0cY4sQmKgfg4eiDyx+MXz1kgpCe/2cPWKu1A5229It89GrCmH93svxyDNLKq
-         13Sk5DhTVzGTlqzL19tTEwKWDtfy6iO/yvE+uunLajQfaNHKYTO8VbKaVYVKWD9Bpj
-         AVYrcu65tCejmheajxcXRVz35zYP9RaG/SBJ5PW3A7+quaPkPJngBfGwKvfYsM8Pcu
-         amwxs3N7G2Jtg==
+        s=k20201202; t=1663731125;
+        bh=MxNuze7CJb1Pmp8L25+DA/brD4eP/MM76a60K8U4Mcs=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=FRxeTfpE+CmJ/UHg18U/YEKM1cdw9Nd3/ZrMO+2WFlPQcIVZmG+oLxSeOIhiqj56m
+         30PUkA8R4skrh/squVPaUW2yj1m6I8Fo5mLX3/pyuNyIY0OMQbhrQluBMmcoKAjmu2
+         Zp9XtC37CjSARm5j/qE2CdK2w6c/YsSL57SNs8KPW0ZFXTLDliXZx30woV5Knoc4aO
+         Y4fy+5wVX9wUM83y8byyhaKmtUaLVvmFLCg4E3MWPFgbYzy8ihHsV+AxJ4PVnE7ja0
+         e/nLwc2DtA6WcmfvtE/jt0kHwDO9FPdhe6hUBQ+s/2HzV96A/6IIm2nnsA3rIs9ogo
+         gnPzMokyo8yAA==
 From:   guoren@kernel.org
 To:     xianting.tian@linux.alibaba.com, palmer@dabbelt.com,
         palmer@rivosinc.com, heiko@sntech.de, liaochang1@huawei.com,
@@ -38,11 +38,16 @@ To:     xianting.tian@linux.alibaba.com, palmer@dabbelt.com,
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, x86@kernel.org,
         linux-arm-kernel@lists.infradead.org,
-        Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V4 0/3] riscv: kexec: Fxiup crash_save percpu and machine_kexec_mask_interrupts
-Date:   Tue, 20 Sep 2022 23:31:31 -0400
-Message-Id: <20220921033134.3133319-1-guoren@kernel.org>
+        Guo Ren <guoren@linux.alibaba.com>,
+        Guo Ren <guoren@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Thomas Gleixner <tglx@linutronix.de>
+Subject: [PATCH V4 3/3] arch: crash: Remove duplicate declaration in smp.h
+Date:   Tue, 20 Sep 2022 23:31:34 -0400
+Message-Id: <20220921033134.3133319-4-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
+In-Reply-To: <20220921033134.3133319-1-guoren@kernel.org>
+References: <20220921033134.3133319-1-guoren@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
@@ -51,43 +56,42 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Current riscv kexec can't crash_save percpu states and disable
-interrupts properly. The patch series fix them, make kexec work correct.
+Remove crash_smp_send_stop declarations in arm64, x86 asm/smp.h which
+has been done in include/linux/smp.h.
 
-Also cleanup arm64, x86 declarations in asm/smp.h.
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@kernel.org>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/arm64/include/asm/smp.h | 1 -
+ arch/x86/include/asm/crash.h | 1 -
+ 2 files changed, 2 deletions(-)
 
-Changlogs:
-
-v4:
- - Add cpu_ops[cpu]->cpu_stop() in ipi_cpu_crash_stop
- - Wording optimization in comments
-
-V3:
-https://lore.kernel.org/linux-riscv/20220819025444.2121315-1-guoren@kernel.org/
- - Fixup compile problem with !SMP, which reported by lkp@intel.com
- - Cleanup declarations in asm/smp.h
- - Add reviewed-by
-
-V2:
-https://lore.kernel.org/linux-riscv/20220817161258.748836-1-guoren@kernel.org/ 
- - Add Fixes tags
- - Remove extern from bool smp_crash_stop_failed(void)
-
-V1:
-https://lore.kernel.org/linux-riscv/20220816012701.561435-1-guoren@kernel.org/
-
-Guo Ren (3):
-  riscv: kexec: Fixup irq controller broken in kexec crash path
-  riscv: kexec: Fixup crash_smp_send_stop without multi cores
-  arch: crash: Remove duplicate declaration in smp.h
-
- arch/arm64/include/asm/smp.h      |  1 -
- arch/riscv/include/asm/smp.h      |  3 +
- arch/riscv/kernel/machine_kexec.c | 46 +++++++++++----
- arch/riscv/kernel/smp.c           | 97 ++++++++++++++++++++++++++++++-
- arch/x86/include/asm/crash.h      |  1 -
- 5 files changed, 133 insertions(+), 15 deletions(-)
-
+diff --git a/arch/arm64/include/asm/smp.h b/arch/arm64/include/asm/smp.h
+index fc55f5a57a06..a108ac93fd8f 100644
+--- a/arch/arm64/include/asm/smp.h
++++ b/arch/arm64/include/asm/smp.h
+@@ -141,7 +141,6 @@ static inline void cpu_panic_kernel(void)
+  */
+ bool cpus_are_stuck_in_kernel(void);
+ 
+-extern void crash_smp_send_stop(void);
+ extern bool smp_crash_stop_failed(void);
+ extern void panic_smp_self_stop(void);
+ 
+diff --git a/arch/x86/include/asm/crash.h b/arch/x86/include/asm/crash.h
+index 8b6bd63530dc..6a9be4907c82 100644
+--- a/arch/x86/include/asm/crash.h
++++ b/arch/x86/include/asm/crash.h
+@@ -7,6 +7,5 @@ struct kimage;
+ int crash_load_segments(struct kimage *image);
+ int crash_setup_memmap_entries(struct kimage *image,
+ 		struct boot_params *params);
+-void crash_smp_send_stop(void);
+ 
+ #endif /* _ASM_X86_CRASH_H */
 -- 
 2.36.1
 
