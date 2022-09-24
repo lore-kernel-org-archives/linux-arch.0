@@ -2,32 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 60EB1C6FA86
-	for <linux-arch@archiver.kernel.org>; Sat, 24 Sep 2022 18:20:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CB609C6FA92
+	for <linux-arch@archiver.kernel.org>; Sat, 24 Sep 2022 18:20:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230505AbiIXSU2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 24 Sep 2022 14:20:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34618 "EHLO
+        id S230401AbiIXSUc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 24 Sep 2022 14:20:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34628 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229558AbiIXSU1 (ORCPT
+        with ESMTP id S230201AbiIXSU1 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 24 Sep 2022 14:20:27 -0400
 Received: from conuserg-11.nifty.com (conuserg-11.nifty.com [210.131.2.78])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D36C2E9FA;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4D7F12E9FF;
         Sat, 24 Sep 2022 11:20:24 -0700 (PDT)
 Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-11.nifty.com with ESMTP id 28OIJItU005682;
-        Sun, 25 Sep 2022 03:19:21 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 28OIJItU005682
+        by conuserg-11.nifty.com with ESMTP id 28OIJItQ005682;
+        Sun, 25 Sep 2022 03:19:18 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-11.nifty.com 28OIJItQ005682
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664043561;
-        bh=uiG7rI5DI3x1bTZk8cALn27xRy6QbKgQoq+BLvGkH2s=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Pvy6y1BulYgKIDuZM3hDfrrBZe8phtpI+YIfhSAjjGscVPpC9/p2FR+UCzfus/hkS
-         9qBsxudXZ4yw3QCe69bysx+uor2Xq8oWxE1qwo0B7bs9UoqFiEileS5glNBFnxSd8I
-         mUjIbwmrwvJRi5w0VbePnXpBJxjQjCcu/mprxeWVcRMwxN30c25+PdTbA6SJ/1MOQT
-         PLsEqROlM03icMC0umbuwKq2eY1PVnS6AFcjpb3L/TC0Ob7VG1uHXC3Hfcb4hlDnFE
-         emcnNaYxJJrvsrREVB5snjrcBDrIB5nJuumwBWCg21gZT4qIT061Xgbgrv47c4mUlE
-         odBqlqxTUvMwA==
+        s=dec2015msa; t=1664043559;
+        bh=7O1zNbb37gHsk88UbIF8BQdtRIn/7u/0EkM8udldGLc=;
+        h=From:To:Cc:Subject:Date:From;
+        b=T5lXEuxxEAdJ0dawvvQQL6k52NKk5pH803QUMqgdiKNNMOlZ/WOWDZvk9PUdH8G45
+         DJUMxltvyDQSY3tRZ7b85R0fuzgTcIOIJrKcyY3Vdn6Dst5+dtjSLPT6hiJsftBH9l
+         lk26V2+Xtc48J0A5DX3y6v457glP+RCSfJc0Y+3nTcLT9f8QwxmUgUAFsVdoXsSVeL
+         pKdz4yXDPxxHjwcruWIduLbYNyVdJCD3ohQDdf1/YkyOFb863x26/kyD62ts9ylvlT
+         2v9UHneXR/uO/+FlPHszmKyqi4ljShEbRu4ILS648qll3EHiTgz+Y3Cd4fRYp7v5xP
+         9BB3LkXzvfFWQ==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -35,68 +35,87 @@ Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Nick Desaulniers <ndesaulniers@google.com>,
         Nathan Chancellor <nathan@kernel.org>,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH v3 4/7] kbuild: move vmlinux.o rule to the top Makefile
-Date:   Sun, 25 Sep 2022 03:19:12 +0900
-Message-Id: <20220924181915.3251186-5-masahiroy@kernel.org>
+Subject: [PATCH v3 0/7] kbuild: various cleanups
+Date:   Sun, 25 Sep 2022 03:19:08 +0900
+Message-Id: <20220924181915.3251186-1-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20220924181915.3251186-1-masahiroy@kernel.org>
-References: <20220924181915.3251186-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Move the build rules of vmlinux.o out of scripts/link-vmlinux.sh to
-clearly separate 1) pre-modpost, 2) modpost, 3) post-modpost stages.
-This will make furture refactoring possible.
+ - Link vmlinux and modules in parallel
+ - Remove head-y syntax
 
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
----
 
-(no changes since v1)
+Masahiro Yamada (7):
+  kbuild: hard-code KBUILD_ALLDIRS in scripts/Makefile.package
+  kbuild: list sub-directories in ./Kbuild
+  kbuild: move .vmlinux.objs rule to Makefile.modpost
+  kbuild: move vmlinux.o rule to the top Makefile
+  kbuild: unify two modpost invocations
+  kbuild: use obj-y instead extra-y for objects placed at the head
+  kbuild: remove head-y syntax
 
- Makefile                | 5 ++++-
- scripts/link-vmlinux.sh | 3 ---
- 2 files changed, 4 insertions(+), 4 deletions(-)
+ Documentation/kbuild/makefiles.rst          |  27 +----
+ Kbuild                                      |  24 ++++
+ Makefile                                    | 119 +++++++++++---------
+ arch/alpha/Makefile                         |   2 -
+ arch/alpha/kernel/Makefile                  |   4 +-
+ arch/arc/Makefile                           |   2 -
+ arch/arc/kernel/Makefile                    |   4 +-
+ arch/arm/Makefile                           |   3 -
+ arch/arm/kernel/Makefile                    |   4 +-
+ arch/arm64/Makefile                         |   3 -
+ arch/arm64/kernel/Makefile                  |   4 +-
+ arch/csky/Makefile                          |   2 -
+ arch/csky/kernel/Makefile                   |   4 +-
+ arch/hexagon/Makefile                       |   2 -
+ arch/hexagon/kernel/Makefile                |   3 +-
+ arch/ia64/Makefile                          |   1 -
+ arch/ia64/kernel/Makefile                   |   4 +-
+ arch/loongarch/Makefile                     |   2 -
+ arch/loongarch/kernel/Makefile              |   4 +-
+ arch/m68k/68000/Makefile                    |   2 +-
+ arch/m68k/Makefile                          |   9 --
+ arch/m68k/coldfire/Makefile                 |   2 +-
+ arch/m68k/kernel/Makefile                   |  23 ++--
+ arch/microblaze/Makefile                    |   1 -
+ arch/microblaze/kernel/Makefile             |   4 +-
+ arch/mips/Makefile                          |   2 -
+ arch/mips/kernel/Makefile                   |   4 +-
+ arch/nios2/Makefile                         |   1 -
+ arch/nios2/kernel/Makefile                  |   2 +-
+ arch/openrisc/Makefile                      |   2 -
+ arch/openrisc/kernel/Makefile               |   4 +-
+ arch/parisc/Makefile                        |   2 -
+ arch/parisc/kernel/Makefile                 |   4 +-
+ arch/powerpc/Makefile                       |  12 --
+ arch/powerpc/kernel/Makefile                |  20 ++--
+ arch/riscv/Makefile                         |   2 -
+ arch/riscv/kernel/Makefile                  |   2 +-
+ arch/s390/Makefile                          |   2 -
+ arch/s390/kernel/Makefile                   |   4 +-
+ arch/sh/Makefile                            |   2 -
+ arch/sh/kernel/Makefile                     |   4 +-
+ arch/sparc/Makefile                         |   2 -
+ arch/sparc/kernel/Makefile                  |   3 +-
+ arch/x86/Makefile                           |   5 -
+ arch/x86/kernel/Makefile                    |  10 +-
+ arch/xtensa/Makefile                        |   2 -
+ arch/xtensa/kernel/Makefile                 |   4 +-
+ scripts/Makefile.lib                        |   2 +
+ scripts/Makefile.modfinal                   |   2 +-
+ scripts/Makefile.modpost                    | 112 ++++++++----------
+ scripts/Makefile.package                    |   5 +-
+ scripts/Makefile.vmlinux_o                  |   6 +-
+ scripts/clang-tools/gen_compile_commands.py |  19 +---
+ scripts/head-object-list.txt                |  53 +++++++++
+ scripts/link-vmlinux.sh                     |  34 +-----
+ 55 files changed, 273 insertions(+), 314 deletions(-)
+ create mode 100644 scripts/head-object-list.txt
 
-diff --git a/Makefile b/Makefile
-index 92413b6de451..b5dfb54b1993 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1142,6 +1142,9 @@ quiet_cmd_autoksyms_h = GEN     $@
- $(autoksyms_h):
- 	$(call cmd,autoksyms_h)
- 
-+vmlinux.o: autoksyms_recursive $(KBUILD_VMLINUX_OBJS) $(KBUILD_VMLINUX_LIBS) FORCE
-+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux_o
-+
- ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
- 
- # Final link of vmlinux with optional arch pass after final link
-@@ -1149,7 +1152,7 @@ cmd_link-vmlinux =                                                 \
- 	$(CONFIG_SHELL) $< "$(LD)" "$(KBUILD_LDFLAGS)" "$(LDFLAGS_vmlinux)";    \
- 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
- 
--vmlinux: scripts/link-vmlinux.sh autoksyms_recursive $(vmlinux-deps) FORCE
-+vmlinux: scripts/link-vmlinux.sh vmlinux.o $(KBUILD_LDS) FORCE
- 	+$(call if_changed_dep,link-vmlinux)
- 
- targets := vmlinux
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 161bca64e8aa..07486f90d5e2 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -214,9 +214,6 @@ if [ "$1" = "clean" ]; then
- 	exit 0
- fi
- 
--#link vmlinux.o
--${MAKE} -f "${srctree}/scripts/Makefile.vmlinux_o"
--
- # modpost vmlinux.o to check for section mismatches
- ${MAKE} -f "${srctree}/scripts/Makefile.modpost" MODPOST_VMLINUX=1
- 
 -- 
 2.34.1
 
