@@ -2,112 +2,151 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6963C32771
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 20:45:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71C01C32771
+	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 21:06:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229523AbiIZUpF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 26 Sep 2022 16:45:05 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53846 "EHLO
+        id S231321AbiIZVGz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 26 Sep 2022 17:06:55 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38204 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229458AbiIZUpD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 16:45:03 -0400
-Received: from condef-03.nifty.com (condef-03.nifty.com [202.248.20.68])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 322546052F;
-        Mon, 26 Sep 2022 13:44:58 -0700 (PDT)
-Received: from conuserg-10.nifty.com ([10.126.8.73])by condef-03.nifty.com with ESMTP id 28QKbh0O030098;
-        Tue, 27 Sep 2022 05:38:02 +0900
-Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-10.nifty.com with ESMTP id 28QKaWu0018737;
-        Tue, 27 Sep 2022 05:36:32 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28QKaWu0018737
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664224593;
-        bh=lb3a5drEKLdeXLqemWkYG7kTPErJKgT8MUmB5b6StBw=;
-        h=From:To:Cc:Subject:Date:From;
-        b=a0YahL0BCSGVdAPKTAvRLbUz1CEmuSqTisgJkZhpPdf5aOB/6N3O7lfN8i6WkILYH
-         /tMFaRU/7p5oMro4eu7J3wmU/ugb8CldXDvypeUz8UwVQQzTotVmzHrejPOpnd8coZ
-         weoiQBHgYWpZuSAIsxGidIM6A0+mD1hPpTcRdEx4Lsd+AiLcuDayy6f1AdWh/qKve7
-         HSO3sHYh67nj4r+EIC1g7lookLFpd/TILUGwwzUxMLy0q+nCDMz84bv7Jd/XXVpai8
-         jDQhhALoBKsisEs8gB/2qRd6VSdDcA/ItUPryjxJNBtZHDeBJj18XQajVT4ZPZEJAn
-         lkX62AmoE/DfA==
-X-Nifty-SrcIP: [133.32.182.133]
-From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     linux-kbuild@vger.kernel.org
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-ia64@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Nicolas Pitre <npitre@baylibre.com>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Luis Chamberlain <mcgrof@kernel.org>,
-        Michal Marek <michal.lkml@markovi.net>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Tom Rix <trix@redhat.com>, linux-modules@vger.kernel.org,
-        llvm@lists.linux.dev
-Subject: [PATCH v2 0/7] Unify <linux/export.h> and <asm/export.h>, remove EXPORT_DATA_SYMBOL(), faster TRIM_UNUSED_KSYMS
-Date:   Tue, 27 Sep 2022 05:36:18 +0900
-Message-Id: <20220926203625.1117261-1-masahiroy@kernel.org>
-X-Mailer: git-send-email 2.34.1
+        with ESMTP id S231322AbiIZVGv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 17:06:51 -0400
+Received: from mail-pf1-x430.google.com (mail-pf1-x430.google.com [IPv6:2607:f8b0:4864:20::430])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9A9DF72B7D
+        for <linux-arch@vger.kernel.org>; Mon, 26 Sep 2022 14:06:49 -0700 (PDT)
+Received: by mail-pf1-x430.google.com with SMTP id l65so7900286pfl.8
+        for <linux-arch@vger.kernel.org>; Mon, 26 Sep 2022 14:06:49 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date;
+        bh=f5W2CsBm3S6047cP35+5+U3RG7E+g2lqROx7Y2z+RnU=;
+        b=QyIhzfJH/p72mmYsDPGf5YMDPNfawpJF3huuyB3vtu+3GThn997ccN3tfTd69vbZG7
+         7opuSMoPy9EcR+YCvXL8xjR9h0JoQopCktFWaP/kxgGB6JWQb7qHuDbDtJzfI58Vng8U
+         YBDLEDm61bbMsMMKqVYKogyLSM/Fsj9G6oow7YlShifRlauVMY41ibCbzD1obJjcxag4
+         SJc/vFRAsgywRNMBm7vHRPKixfiA9wafe1946GAfpqcYHAtOtsyvrAhm9qLZWqjXM3u6
+         qlP9zk67EpPmCM4U4gx1FdwEuTlv0WxOCQ5n33C6mdeWU4Kh5a4Xb7Sm21ju0M38NyfN
+         Nylg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date;
+        bh=f5W2CsBm3S6047cP35+5+U3RG7E+g2lqROx7Y2z+RnU=;
+        b=cYPEaEKDM9M6Nz0m3BP4JeR4sUvbnC7+fErItNCjCOAaiEj+VMEF39Tp+TmPFBw1aC
+         DQ0t3sWbh3Iy/CbYVTcgRbHgx+39EFauw3RrK0BIOetEvUIb6wyDa9jE6dStC7mTQD/O
+         1cAeJ7NKHcFJgeJqXAwj/lGH+qUxYNLaoUDxMa/pm1NFTCzbAmTnkLqQilRcDesTloJ7
+         dBdHWqcXTUz57jPcMHNdz2TDy+JR8U50oGh0csZ9eKbjXiR2jrjvUam/bdKfdBCKxYp3
+         etaPcTGLe4eixqGY+qP94PXZ8kG/4AoYRADjSiOA+1rCSN8TCxeF5HcZSsvjb8PZSkDN
+         LLgA==
+X-Gm-Message-State: ACrzQf2M2p3mf37rWln74SGtX4OSMz3FRL6xViQC1S+tQbwUAKb8oIZy
+        oDyEIDkXdmgbhgIdUcOQ2InZeY5astu3uzOMSjfRgQ==
+X-Google-Smtp-Source: AMsMyM4tyzY3LpyEMB3UjBYicGHTIwsU+zykq3O+yRvv6jt50eX1TIcBzVvzNXei2JjjzYj0NBcCj7J9d5vW0ASmqIk=
+X-Received: by 2002:a05:6a00:4c11:b0:53e:4f07:fce9 with SMTP id
+ ea17-20020a056a004c1100b0053e4f07fce9mr26299896pfb.66.1664226407869; Mon, 26
+ Sep 2022 14:06:47 -0700 (PDT)
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20220924181915.3251186-3-masahiroy@kernel.org>
+ <202209250350.jJ8vDPnH-lkp@intel.com> <CAK7LNAT9rrSZ2NfTB2G_YZUwE48NbDHPJbM4NbjtwSGWA1YR4Q@mail.gmail.com>
+In-Reply-To: <CAK7LNAT9rrSZ2NfTB2G_YZUwE48NbDHPJbM4NbjtwSGWA1YR4Q@mail.gmail.com>
+From:   Nick Desaulniers <ndesaulniers@google.com>
+Date:   Mon, 26 Sep 2022 14:06:36 -0700
+Message-ID: <CAKwvOdk8s5y_QQ7Gvp9E=LdxBtNnn4zkCzu40sHexxEZwwfO5w@mail.gmail.com>
+Subject: Re: [PATCH v3 2/7] kbuild: list sub-directories in ./Kbuild
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     kernel test robot <lkp@intel.com>,
+        Linux Kbuild mailing list <linux-kbuild@vger.kernel.org>,
+        kbuild-all@lists.01.org,
+        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Nathan Chancellor <nathan@kernel.org>,
+        David Gow <davidgow@google.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patch set refactors EXPORT_SYMBOL, <linux/export.h> and <asm/export.h>.
-Also, re-implement TRIM_UNUSED_KSYMS in one-pass.
+On Sat, Sep 24, 2022 at 5:29 PM Masahiro Yamada <masahiroy@kernel.org> wrote:
+>
+> On Sun, Sep 25, 2022 at 5:28 AM kernel test robot <lkp@intel.com> wrote:
+> >
+> > Hi Masahiro,
+> >
+> > I love your patch! Perhaps something to improve:
+> >
+> > [auto build test WARNING on masahiroy-kbuild/for-next]
+> > [cannot apply to arm64/for-next/core gerg-m68knommu/for-next geert-m68k/for-next deller-parisc/for-next powerpc/next s390/features tip/x86/core linus/master v6.0-rc6 next-20220923]
+> > [If your patch is applied to the wrong git tree, kindly drop us a note.
+> > And when submitting patch, we suggest to use '--base' as documented in
+> > https://git-scm.com/docs/git-format-patch#_base_tree_information]
+> >
+> > url:    https://github.com/intel-lab-lkp/linux/commits/Masahiro-Yamada/kbuild-various-cleanups/20220925-022150
+> > base:   https://git.kernel.org/pub/scm/linux/kernel/git/masahiroy/linux-kbuild.git for-next
+> > config: um-x86_64_defconfig
+> > compiler: gcc-11 (Debian 11.3.0-5) 11.3.0
+> > reproduce (this is a W=1 build):
+> >         # https://github.com/intel-lab-lkp/linux/commit/d721cc5614aaa17b2965db04e9319d4ef5f7eaf7
+> >         git remote add linux-review https://github.com/intel-lab-lkp/linux
+> >         git fetch --no-tags linux-review Masahiro-Yamada/kbuild-various-cleanups/20220925-022150
+> >         git checkout d721cc5614aaa17b2965db04e9319d4ef5f7eaf7
+> >         # save the config file
+> >         mkdir build_dir && cp config build_dir/.config
+> >         make W=1 O=build_dir ARCH=um SUBARCH=x86_64 SHELL=/bin/bash
+> >
+> > If you fix the issue, kindly add following tag where applicable
+> > | Reported-by: kernel test robot <lkp@intel.com>
+> >
+> > All warnings (new ones prefixed by >>):
+> >
+> > >> /usr/bin/ld: warning: ./arch/x86/um/vdso/vdso.o: missing .note.GNU-stack section implies executable stack
+> >    /usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+> >    /usr/bin/ld: warning: .tmp_vmlinux.kallsyms1 has a LOAD segment with RWX permissions
+> >    /usr/bin/ld: warning: .tmp_vmlinux.kallsyms1.o: missing .note.GNU-stack section implies executable stack
+> >    /usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+> >    /usr/bin/ld: warning: .tmp_vmlinux.kallsyms2 has a LOAD segment with RWX permissions
+> >    /usr/bin/ld: warning: .tmp_vmlinux.kallsyms2.o: missing .note.GNU-stack section implies executable stack
+> >    /usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+> >    /usr/bin/ld: warning: vmlinux has a LOAD segment with RWX permissions
 
-You can still put EXPORT_SYMBOL() in *.S file, very close to the definition,
-but you do not need to care about whether it is a function or a data.
-Remove EXPORT_DATA_SYMBOL().
+See also:
+https://lore.kernel.org/lkml/20220921064855.2841607-1-davidgow@google.com/
 
-In v1, I broke ia64 because of missing distinction between functions and data.
+> >
+> > --
+> > 0-DAY CI Kernel Test Service
+> > https://01.org/lkp
+>
+>
+>
+>
+>
+>
+>
+>
+> My compiler is slightly different
+> (gcc (Ubuntu 11.2.0-19ubuntu1) 11.2.0), but
+> I cannot reproduce it.
+>
+>
+>
+> Perhaps, 0day thought this is a new warning
+> due to a slightly different path?
+>
+>
+> [before]
+> warning: arch/x86/um/vdso/vdso.o
+>
+> [after]
+> warning: ./arch/x86/um/vdso/vdso.o
+>
+>
+>
+>
+> --
+> Best Regards
+> Masahiro Yamada
 
-V2 handles it correctly.
-If the exported symbols is a function, KSYMTAB_FUNC is output.
-Otherwise, KSYMTAB_DATA is output.
 
-
-
-Masahiro Yamada (7):
-  kbuild: generate KSYMTAB entries by modpost
-  ia64,export.h: replace EXPORT_DATA_SYMBOL* with EXPORT_SYMBOL*
-  modpost: merge sym_update_namespace() into sym_add_exported()
-  modpost: use null string instead of NULL pointer for default namespace
-  modpost: squash report_sec_mismatch() and remove enum mismatch
-  kbuild: implement CONFIG_TRIM_UNUSED_KSYMS without recursion
-  kbuild: move modules.builtin(.modinfo) rules to Makefile.vmlinux_o
-
- .gitignore                      |   1 -
- Makefile                        |  24 +---
- arch/ia64/include/asm/Kbuild    |   1 +
- arch/ia64/include/asm/export.h  |   3 -
- arch/ia64/kernel/head.S         |   2 +-
- arch/ia64/kernel/ivt.S          |   2 +-
- include/asm-generic/export.h    |  83 +-----------
- include/linux/export-internal.h |  67 +++++++++-
- include/linux/export.h          | 114 +++-------------
- kernel/module/internal.h        |   1 +
- kernel/module/main.c            |   1 -
- scripts/Makefile.build          |  15 +--
- scripts/Makefile.modpost        |   8 +-
- scripts/Makefile.vmlinux_o      |  26 +++-
- scripts/adjust_autoksyms.sh     |  73 ----------
- scripts/basic/fixdep.c          |   3 +-
- scripts/check-local-export      |   4 +-
- scripts/gen_autoksyms.sh        |  62 ---------
- scripts/gen_ksymdeps.sh         |  30 -----
- scripts/link-vmlinux.sh         |  12 +-
- scripts/mod/modpost.c           | 228 ++++++++++++++++----------------
- scripts/mod/modpost.h           |   1 +
- scripts/remove-stale-files      |   2 +
- 23 files changed, 258 insertions(+), 505 deletions(-)
- delete mode 100644 arch/ia64/include/asm/export.h
- delete mode 100755 scripts/adjust_autoksyms.sh
- delete mode 100755 scripts/gen_autoksyms.sh
- delete mode 100755 scripts/gen_ksymdeps.sh
 
 -- 
-2.34.1
-
+Thanks,
+~Nick Desaulniers
