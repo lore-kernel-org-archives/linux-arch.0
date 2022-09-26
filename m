@@ -2,32 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B35F6C6FA93
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 09:03:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 893E1C6FA94
+	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 09:03:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234483AbiIZJD5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 26 Sep 2022 05:03:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33776 "EHLO
+        id S234547AbiIZJD6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 26 Sep 2022 05:03:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33774 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234821AbiIZJDx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 05:03:53 -0400
+        with ESMTP id S234819AbiIZJDw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 05:03:52 -0400
 Received: from conuserg-10.nifty.com (conuserg-10.nifty.com [210.131.2.77])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B86CA3DF28;
-        Mon, 26 Sep 2022 02:03:49 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1FCF63DF1F;
+        Mon, 26 Sep 2022 02:03:48 -0700 (PDT)
 Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-10.nifty.com with ESMTP id 28Q92Yo2010468;
-        Mon, 26 Sep 2022 18:02:37 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28Q92Yo2010468
+        by conuserg-10.nifty.com with ESMTP id 28Q92Ynx010468;
+        Mon, 26 Sep 2022 18:02:35 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28Q92Ynx010468
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664182957;
-        bh=A9rjJTx/1HLx31R8GgAjlfENvJtf39g+fxcn+LvStLM=;
+        s=dec2015msa; t=1664182955;
+        bh=bWNxIkYeKhJ+jjZFjH5QZ0u9UbaVyBZ+HfmYzagXKlg=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=GFBrPIGue3lq/+yk97SX0hd/1VanvBTKluhi+zk11JTgVnn8mbi9GDr4IkAlIcezO
-         G0pCLT13UDNceCJzOicyOBcmTqXMKoANTtyfD2vJaSk4IY3KV3oIiXc1SHm+iHBMkA
-         mLeuni+198HJ9I/6ijmdONog1/SzYJnpR2IDjQmfXbP8frLTmMnMlWjWg/foWnjkKK
-         hFZ+idGqgH+rI3myVYbpZzN/LLu3zhL/qWlkLbzMshFFs1KEDHhRKu6fbYhQ079Efc
-         /PAxD+PGrSAlgKaxYPa5jVfRR7HND7YqZN33H2uIpc/KpSzBALSLznvlQGA/mlcvra
-         oabTs/wYtgkJA==
+        b=B1wDi8GFZx33CELt2BDYTIIdGOyg6chwDAks8pKR15NM+t36nSohLvufmi0wAu5z0
+         sO94spo729lp7xtdESGzQa6q5PH10TeroaBaPshbMP/mpfFo+9wgZIfMQWTmTMJ/EZ
+         VjHhxNVkauL6okzM/zRw9Q855QiGKfzY0UnX8D8H1tiMuIpw2Jb/E8gECL7WFHZxRm
+         Jmz7wSPzl/9qP9knmNxuZmEooc5PbCUb4pfB44Q9UQUvN1ruY4YkYRM9qrKpQJJS2J
+         jknXy64QsxuA0s4irZcvpEU3/ipn6BA4YBG4xyxzLADzdXRYvIOrPXXrw6cbTP9RaA
+         JzzcL0IpNTBHw==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -35,9 +35,9 @@ Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>,
         Michal Marek <michal.lkml@markovi.net>,
         Nick Desaulniers <ndesaulniers@google.com>
-Subject: [PATCH 5/5] kallsyms: ignore __kstrtab_* and __kstrtabns_* symbols
-Date:   Mon, 26 Sep 2022 18:02:29 +0900
-Message-Id: <20220926090229.643134-5-masahiroy@kernel.org>
+Subject: [PATCH 2/5] kbuild: reuse mksysmap output for kallsyms
+Date:   Mon, 26 Sep 2022 18:02:26 +0900
+Message-Id: <20220926090229.643134-2-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220926090229.643134-1-masahiroy@kernel.org>
 References: <20220926090229.643134-1-masahiroy@kernel.org>
@@ -47,53 +47,72 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Every EXPORT_SYMBOL creates __kstrtab_* and __kstrtabns_*, which
-consumes 15-20% of the kallsyms entries.
+scripts/mksysmap internally runs ${NM} (dropping some symbols).
 
-For x86_64 defconfig,
+When CONFIG_KALLSYMS=y, mksysmap creates .tmp_System.map, but it is
+almost the same as the output from the ${NM} invocation in kallsyms().
+It is true scripts/mksysmap drops some symbols, but scripts/kallsyms.c
+ignores more anyway.
 
-  $ cat /proc/kallsyms | wc
-     129527    388581   5685465
-  $ cat /proc/kallsyms | grep __kstrtab | wc
-      23489     70467   1187932
-
-We already ignore __crc_* symbols populated by EXPORT_SYMBOL, so it
-should be fine to ignore __kstrtab_* and __kstrtabns_* as well.
-
-This makes vmlinux a bit smaller.
-
-  $ size vmlinux.before vmlinux.after
-     text    data     bss     dec     hex filename
-  22785374        8559694 1413328 32758396        1f3da7c vmlinux.before
-  22785374        8137806 1413328 32336508        1ed6a7c vmlinux.after
+Keep the mksysmap output as *.syms, and reuse it for kallsyms and
+'cmp -s'. It saves one ${NM} invocation.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- scripts/mksysmap | 4 ++++
- 1 file changed, 4 insertions(+)
+ scripts/link-vmlinux.sh | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
 
-diff --git a/scripts/mksysmap b/scripts/mksysmap
-index 75f3dfd1c156..16a08b8ef2f8 100755
---- a/scripts/mksysmap
-+++ b/scripts/mksysmap
-@@ -43,6 +43,8 @@
- #  $                    - local symbols for ARM, MIPS, etc.
- #  .L                   - local labels, .LBB,.Ltmpxxx,.L__unnamed_xx,.LASANPC, etc.
- #  __crc_               - modversions
-+#  __kstrtab_           - EXPORT_SYMBOL (symbol name)
-+#  __kstrtabns_         - EXPORT_SYMBOL (namespace)
- #
- # Ignored symbols:
- #  L0                   - for LoongArch?
-@@ -52,5 +54,7 @@ $NM -n $1 | grep -v		\
- 	-e ' \$'		\
- 	-e ' \.L'		\
- 	-e ' __crc_'		\
-+	-e ' __kstrtab_'	\
-+	-e ' __kstrtabns_'	\
- 	-e ' L0$'		\
- > $2
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 23ac13fd9d89..6492c0862657 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -157,7 +157,7 @@ kallsyms()
+ 	fi
+ 
+ 	info KSYMS ${2}
+-	${NM} -n ${1} | scripts/kallsyms ${kallsymopt} > ${2}
++	cat ${1} | scripts/kallsyms ${kallsymopt} > ${2}
+ }
+ 
+ # Perform one step in kallsyms generation, including temporary linking of
+@@ -170,7 +170,8 @@ kallsyms_step()
+ 	kallsyms_S=${kallsyms_vmlinux}.S
+ 
+ 	vmlinux_link ${kallsyms_vmlinux} "${kallsymso_prev}" ${btf_vmlinux_bin_o}
+-	kallsyms ${kallsyms_vmlinux} ${kallsyms_S}
++	mksysmap ${kallsyms_vmlinux} ${kallsyms_vmlinux}.syms
++	kallsyms ${kallsyms_vmlinux}.syms ${kallsyms_S}
+ 
+ 	info AS ${kallsyms_S}
+ 	${CC} ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS} \
+@@ -182,6 +183,7 @@ kallsyms_step()
+ # See mksymap for additional details
+ mksysmap()
+ {
++	info NM ${2}
+ 	${CONFIG_SHELL} "${srctree}/scripts/mksysmap" ${1} ${2}
+ }
+ 
+@@ -283,7 +285,6 @@ if is_enabled CONFIG_DEBUG_INFO_BTF && is_enabled CONFIG_BPF; then
+ 	${RESOLVE_BTFIDS} vmlinux
+ fi
+ 
+-info SYSMAP System.map
+ mksysmap vmlinux System.map
+ 
+ if is_enabled CONFIG_BUILDTIME_TABLE_SORT; then
+@@ -296,9 +297,7 @@ fi
+ 
+ # step a (see comment above)
+ if is_enabled CONFIG_KALLSYMS; then
+-	mksysmap ${kallsyms_vmlinux} .tmp_System.map
+-
+-	if ! cmp -s System.map .tmp_System.map; then
++	if ! cmp -s System.map ${kallsyms_vmlinux}.syms; then
+ 		echo >&2 Inconsistent kallsyms data
+ 		echo >&2 Try "make KALLSYMS_EXTRA_PASS=1" as a workaround
+ 		exit 1
 -- 
 2.34.1
 
