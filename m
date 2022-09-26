@@ -2,32 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C6E31C6FA8E
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 09:03:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B35F6C6FA93
+	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 09:03:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234077AbiIZJD4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 26 Sep 2022 05:03:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33772 "EHLO
+        id S234483AbiIZJD5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 26 Sep 2022 05:03:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33776 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234818AbiIZJDw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 05:03:52 -0400
+        with ESMTP id S234821AbiIZJDx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 05:03:53 -0400
 Received: from conuserg-10.nifty.com (conuserg-10.nifty.com [210.131.2.77])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1FCB815FEC;
-        Mon, 26 Sep 2022 02:03:48 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B86CA3DF28;
+        Mon, 26 Sep 2022 02:03:49 -0700 (PDT)
 Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-10.nifty.com with ESMTP id 28Q92Ynw010468;
-        Mon, 26 Sep 2022 18:02:34 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28Q92Ynw010468
+        by conuserg-10.nifty.com with ESMTP id 28Q92Yo2010468;
+        Mon, 26 Sep 2022 18:02:37 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28Q92Yo2010468
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664182954;
-        bh=vOokxY9/Q6O2CIQTX++Z+fzHzOEujKRRSlPjeQx37qg=;
-        h=From:To:Cc:Subject:Date:From;
-        b=wwLob6sUK239m5mQ0sWVhJHJAhy3WxF24el+zPJgSRgzaFMkJwiu58h8vq3dwwk2O
-         R+iuxR2l9iIcxYGYHOEXjqp7mnLEQbbi5+Ug9E7mBzjowrfd35qT87vH28hbKwTl/P
-         tKDIq0/yERc0zblCb7mzU5qf3a7SirrUovVAC926H2OylEF9Rq7Q2IQw84tdlwcSxp
-         6SFtKkTMsWV3xh9ZzQMnrpPwcV//22NDOH+xCiaX34togfjr00Ftz6NzSmARg0YdC+
-         BDBln12UViv4ctwivTvcnSO2kn/BlVTE3MHNDk4xqSXjKOQrSdBBFJUM7SCKG8k32O
-         UHabeh425CJ5A==
+        s=dec2015msa; t=1664182957;
+        bh=A9rjJTx/1HLx31R8GgAjlfENvJtf39g+fxcn+LvStLM=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=GFBrPIGue3lq/+yk97SX0hd/1VanvBTKluhi+zk11JTgVnn8mbi9GDr4IkAlIcezO
+         G0pCLT13UDNceCJzOicyOBcmTqXMKoANTtyfD2vJaSk4IY3KV3oIiXc1SHm+iHBMkA
+         mLeuni+198HJ9I/6ijmdONog1/SzYJnpR2IDjQmfXbP8frLTmMnMlWjWg/foWnjkKK
+         hFZ+idGqgH+rI3myVYbpZzN/LLu3zhL/qWlkLbzMshFFs1KEDHhRKu6fbYhQ079Efc
+         /PAxD+PGrSAlgKaxYPa5jVfRR7HND7YqZN33H2uIpc/KpSzBALSLznvlQGA/mlcvra
+         oabTs/wYtgkJA==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -35,45 +35,65 @@ Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>,
         Michal Marek <michal.lkml@markovi.net>,
         Nick Desaulniers <ndesaulniers@google.com>
-Subject: [PATCH 1/5] mksysmap: update comment about __crc_*
-Date:   Mon, 26 Sep 2022 18:02:25 +0900
-Message-Id: <20220926090229.643134-1-masahiroy@kernel.org>
+Subject: [PATCH 5/5] kallsyms: ignore __kstrtab_* and __kstrtabns_* symbols
+Date:   Mon, 26 Sep 2022 18:02:29 +0900
+Message-Id: <20220926090229.643134-5-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20220926090229.643134-1-masahiroy@kernel.org>
+References: <20220926090229.643134-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since commit 7b4537199a4a ("kbuild: link symbol CRCs at final link,
-removing CONFIG_MODULE_REL_CRCS"), __crc_* symbols never become
-absolute.
+Every EXPORT_SYMBOL creates __kstrtab_* and __kstrtabns_*, which
+consumes 15-20% of the kallsyms entries.
 
-Keep ignoring __crc_*, but update the comment.
+For x86_64 defconfig,
+
+  $ cat /proc/kallsyms | wc
+     129527    388581   5685465
+  $ cat /proc/kallsyms | grep __kstrtab | wc
+      23489     70467   1187932
+
+We already ignore __crc_* symbols populated by EXPORT_SYMBOL, so it
+should be fine to ignore __kstrtab_* and __kstrtabns_* as well.
+
+This makes vmlinux a bit smaller.
+
+  $ size vmlinux.before vmlinux.after
+     text    data     bss     dec     hex filename
+  22785374        8559694 1413328 32758396        1f3da7c vmlinux.before
+  22785374        8137806 1413328 32336508        1ed6a7c vmlinux.after
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- scripts/mksysmap | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ scripts/mksysmap | 4 ++++
+ 1 file changed, 4 insertions(+)
 
 diff --git a/scripts/mksysmap b/scripts/mksysmap
-index ad8bbc52267d..bc5396e255d8 100755
+index 75f3dfd1c156..16a08b8ef2f8 100755
 --- a/scripts/mksysmap
 +++ b/scripts/mksysmap
-@@ -37,8 +37,8 @@
- 
- # readprofile starts reading symbols when _stext is found, and
- # continue until it finds a symbol which is not either of 'T', 't',
--# 'W' or 'w'. __crc_ are 'A' and placed in the middle
--# so we just ignore them to let readprofile continue to work.
--# (At least sparc64 has __crc_ in the middle).
--
-+# 'W' or 'w'.
-+#
-+# Ignored prefixes:
-+#  __crc_               - modversions
- $NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)\|\( \.L\)\|\( L0\)' > $2
+@@ -43,6 +43,8 @@
+ #  $                    - local symbols for ARM, MIPS, etc.
+ #  .L                   - local labels, .LBB,.Ltmpxxx,.L__unnamed_xx,.LASANPC, etc.
+ #  __crc_               - modversions
++#  __kstrtab_           - EXPORT_SYMBOL (symbol name)
++#  __kstrtabns_         - EXPORT_SYMBOL (namespace)
+ #
+ # Ignored symbols:
+ #  L0                   - for LoongArch?
+@@ -52,5 +54,7 @@ $NM -n $1 | grep -v		\
+ 	-e ' \$'		\
+ 	-e ' \.L'		\
+ 	-e ' __crc_'		\
++	-e ' __kstrtab_'	\
++	-e ' __kstrtabns_'	\
+ 	-e ' L0$'		\
+ > $2
 -- 
 2.34.1
 
