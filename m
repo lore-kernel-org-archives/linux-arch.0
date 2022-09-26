@@ -2,32 +2,35 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9050C6FA8E
-	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 20:38:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0903FC6FA82
+	for <linux-arch@archiver.kernel.org>; Mon, 26 Sep 2022 20:40:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230164AbiIZUh6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 26 Sep 2022 16:37:58 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35836 "EHLO
+        id S230002AbiIZUka (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 26 Sep 2022 16:40:30 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42756 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230057AbiIZUhx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 16:37:53 -0400
-Received: from conuserg-10.nifty.com (conuserg-10.nifty.com [210.131.2.77])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 904909E882;
-        Mon, 26 Sep 2022 13:37:51 -0700 (PDT)
+        with ESMTP id S230476AbiIZUkY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 26 Sep 2022 16:40:24 -0400
+X-Greylist: delayed 78 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 26 Sep 2022 13:40:15 PDT
+Received: from condef-09.nifty.com (condef-09.nifty.com [202.248.20.74])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 86378A6ADE;
+        Mon, 26 Sep 2022 13:40:14 -0700 (PDT)
+Received: from conuserg-10.nifty.com ([10.126.8.73])by condef-09.nifty.com with ESMTP id 28QKbcA2013809;
+        Tue, 27 Sep 2022 05:37:57 +0900
 Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-10.nifty.com with ESMTP id 28QKaWu1018737;
-        Tue, 27 Sep 2022 05:36:34 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28QKaWu1018737
+        by conuserg-10.nifty.com with ESMTP id 28QKaWu6018737;
+        Tue, 27 Sep 2022 05:36:40 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-10.nifty.com 28QKaWu6018737
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664224594;
-        bh=yCb6Dol7u5zeqemMeSYfgpDFkRAmK+1W2KSFszpgWOc=;
+        s=dec2015msa; t=1664224601;
+        bh=P5dF9TpsmnzehTX7jhWq4e/43M6Ionp+mydBWcrgrQM=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Ag6L+QrdRfmi4HvEHJPPp0QbeYgv65pZBGhwWayIPsH6kzuQiXpdg/BbAPvheYQRF
-         IWR8buPedfzstaSN1PWiHBH2O3hEwmITIIJ4Xd3AnWmYWUpKFEGCe2/GeTinBPy6+o
-         FEOrGIJSjX7GluaBfnNxurL140wBKdeQkdAO4HGYvtkRkSUMV1ln0XlRSHJk6Cif3Y
-         zZB85xG6gfEijLacEdBztyqsc8SkrrCCCZN8XX1QaTy2v/akdodlzyW69koJ/BRETX
-         hKR1SoXxI2h2vA+bof4SNcU4quXAgfFpTqg09GnFbT326fc/7KTvGfXy4R+6Gnpcd3
-         JMpCMjw7rmHFQ==
+        b=MGuiHbfsWYLsm4kJ6WX18v6LajU3d2arhUIUArFNS+lG2D3X5Lwkvf9ZmRkfJRTyk
+         Wr9Ur4Cuj15xKeLftoWhZ2uBF3bytuqxEjZQrKyzw7P+ktD6lERV37rsaizqmL9A9G
+         SPRqtwDeKsp7jkAGekcz9TqNfD1+0oy9i1kJmMAOcmsDDnK7hRI2KjkJS/Lyo6RRv+
+         k5e2GKc6uymSR+3HDpWxWIPgI+9ZGTndGu+hCAs/Wl2iJi99ggy8GkrueS3EECcaBl
+         lTDevZ+lHoZOTt36A5O6mAmB9meATYB2r7O9nbW308977LJswYKK0cjzNHxSSC4zf/
+         TyXeUy2oNBTAw==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -36,14 +39,13 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Ard Biesheuvel <ardb@kernel.org>,
         Nicolas Pitre <npitre@baylibre.com>,
         Masahiro Yamada <masahiroy@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Luis Chamberlain <mcgrof@kernel.org>,
         Michal Marek <michal.lkml@markovi.net>,
+        Nathan Chancellor <nathan@kernel.org>,
         Nick Desaulniers <ndesaulniers@google.com>,
-        linux-modules@vger.kernel.org
-Subject: [PATCH v2 1/7] kbuild: generate KSYMTAB entries by modpost
-Date:   Tue, 27 Sep 2022 05:36:19 +0900
-Message-Id: <20220926203625.1117261-2-masahiroy@kernel.org>
+        Tom Rix <trix@redhat.com>, llvm@lists.linux.dev
+Subject: [PATCH v2 6/7] kbuild: implement CONFIG_TRIM_UNUSED_KSYMS without recursion
+Date:   Tue, 27 Sep 2022 05:36:24 +0900
+Message-Id: <20220926203625.1117261-7-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220926203625.1117261-1-masahiroy@kernel.org>
 References: <20220926203625.1117261-1-masahiroy@kernel.org>
@@ -53,710 +55,601 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit 7b4537199a4a ("kbuild: link symbol CRCs at final link, removing
-CONFIG_MODULE_REL_CRCS") made modpost output CRCs in the same way
-whether the EXPORT_SYMBOL() is placed in *.c or *.S.
-
-This commit applies a similar approach to the entire data structure of
-EXPORT_SYMBOL() for further cleanups. The EXPORT_SYMBOL() compilation
-is split into two stages.
-
-When a source file is compiled, EXPORT_SYMBOL() is converted into a
-dummy symbol in the .discard.export_symbol section.
-
-For example,
-
-    EXPORT_SYMBOL(foo);
-    EXPORT_SYMBOL_NS_GPL(bar, BAR_NAMESPACE);
-
-will be encoded into the following assembly code:
-
-    .section .discard.export_symbol
-    __export_symbol.foo:
-            .asciz ""
-    .previous
-
-    .section .discard.export_symbol
-    __export_symbol_gpl.bar:
-            .asciz "BAR_NAMESPACE"
-    .previous
-
-They are just markers to tell modpost the name, license, and namespace
-of the symbols. They will be dropped from the final vmlinux and modules
-because the section name starts with ".discard.".
-
-Then, modpost extracts all the information about EXPORT_SYMBOL() from the
-.discard.export_symbol section, then generates C code:
-
-    KSYMTAB_FUNC(foo, "", "");
-    KSYMTAB_FUNC(bar, "_gpl", "BAR_NAMESPACE");
-
-KSYMTAB_FUNC() (or KSYMTAB_DATA() if it is data) is expanded to struct
-kernel_symbol that will be linked to the vmlinux or a module.
-
-With this change, EXPORT_SYMBOL() works in the same way for *.c and *.S
-files, providing the following benefits.
-
-[1] Deprecate EXPORT_DATA_SYMBOL()
-
-In the old days, EXPORT_SYMBOL() was only available in C files. To export
-a symbol in *.S, EXPORT_SYMBOL() was placed in a separate *.c file.
-arch/arm/kernel/armksyms.c is one example written in the classic manner.
-
-Commit 22823ab419d8 ("EXPORT_SYMBOL() for asm") removed this limitation.
-Since then, EXPORT_SYMBOL() can be placed close to the symbol definition
-in *.S files. It was a nice improvement.
-
-However, as that commit mentioned, you need to use EXPORT_DATA_SYMBOL()
-for data objects on some architectures.
-
-In the new approach, modpost checks symbol's type (STT_FUNC or not),
-and outputs KSYMTAB_FUNC() or KSYMTAB_DATA() accordingly.
-
-There are only two users of EXPORT_DATA_SYMBOL:
-
-  EXPORT_DATA_SYMBOL_GPL(empty_zero_page)    (arch/ia64/kernel/head.S)
-  EXPORT_DATA_SYMBOL(ia64_ivt)               (arch/ia64/kernel/ivt.S)
-
-They are transformed as follows and output into .vmlinux.export.c
-
-  KSYMTAB_DATA(empty_zero_page, "_gpl", "");
-  KSYMTAB_DATA(ia64_ivt, "", "");
-
-The other EXPORT_SYMBOL users in ia64 assembly are output as
-KSYMTAB_FUNC().
-
-EXPORT_DATA_SYMBOL() is now deprecated.
-
-[2] merge <linux/export.h> and <asm-generic/export.h>
-
-There are two similar header implementations:
-
-  include/linux/export.h        for .c files
-  include/asm-generic/export.h  for .S files
-
-Ideally, the functionality should be consistent between them, but they
-tend to diverge.
-
-Commit 8651ec01daed ("module: add support for symbol namespaces.") did
-not support the namespace for *.S files.
-
-This commit shifts the essential implementation part to C, which supports
-EXPORT_SYMBOL_NS() for *.S files.
-
-<asm/export.h> and <asm-generic/export.h> will remain as a wrapper of
-<linux/export.h> for a while.
-
-They will be removed after #include <asm/export.h> directives are all
-replaced with #include <linux/export.h>.
-
-[3] Implement CONFIG_TRIM_UNUSED_KSYMS in one-pass algorithm
-
 When CONFIG_TRIM_UNUSED_KSYMS is enabled, Kbuild recursively traverses
 the directory tree to determine which EXPORT_SYMBOL to trim. If an
 EXPORT_SYMBOL turns out to be unused by anyone, Kbuild begins the
 second traverse, where some source files are recompiled with their
 EXPORT_SYMBOL() tuned into a no-op.
 
-We can do this better now; modpost can selectively emit KSYMTAB entries
-that are really referenced by modules.
+Linus stated a negative opinion about this slowness in commits:
+
+ - 5cf0fd591f2e ("Kbuild: disable TRIM_UNUSED_KSYMS option")
+ - a555bdd0c58c ("Kbuild: enable TRIM_UNUSED_KSYMS again, with some guarding")
+
+We can do this better now. The final data structures of EXPORT_SYMBOL
+are generated by the modpost stage, so modpost can selectively emit
+KSYMTAB entries that are really referenced by modules.
+
+modpost needs to know all defined symbols in all modules (that is,
+EXPORT_SYMBOL's that have users). Commit 8da79d44fd2e ("kbuild:
+unify two modpost invocations") is a ground-work to do this in
+one-pass.
+
+Nicolas explained why the trimming was implemented with recursion:
+
+  https://lore.kernel.org/all/2o2rpn97-79nq-p7s2-nq5-8p83391473r@syhkavp.arg/
+
+Actually, we never achieved that level of optimization where the chain
+reaction of trimming comes into play because:
+
+ - CONFIG_LTO_CLANG cannot remove any unused symbols
+ - CONFIG_LD_DEAD_CODE_DATA_ELIMINATION is enabled only for vmlinux,
+   but not modules
+
+If deeper trimming is required, we need to revisit this, but that is
+unlikely to happen.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
 Changes in v2:
-  - Use KSYMTAB_FUNC and KSYMTAB_DATA for functions and data, respectively
-    This distinction is needed for ia64.
+  - New patch
 
- arch/ia64/include/asm/Kbuild    |  1 +
- arch/ia64/include/asm/export.h  |  3 -
- include/asm-generic/export.h    | 84 ++--------------------------
- include/linux/export-internal.h | 67 ++++++++++++++++++++++-
- include/linux/export.h          | 97 +++++++++++----------------------
- kernel/module/internal.h        |  1 +
- kernel/module/main.c            |  1 -
- scripts/Makefile.build          |  8 +--
- scripts/check-local-export      |  4 +-
- scripts/mod/modpost.c           | 81 +++++++++++++++++----------
- scripts/mod/modpost.h           |  1 +
- 11 files changed, 164 insertions(+), 184 deletions(-)
- delete mode 100644 arch/ia64/include/asm/export.h
+ .gitignore                  |  1 -
+ Makefile                    | 24 ++++--------
+ include/linux/export.h      | 41 ---------------------
+ scripts/Makefile.build      |  7 ----
+ scripts/Makefile.modpost    |  8 +++-
+ scripts/adjust_autoksyms.sh | 73 -------------------------------------
+ scripts/basic/fixdep.c      |  3 +-
+ scripts/gen_autoksyms.sh    | 62 -------------------------------
+ scripts/gen_ksymdeps.sh     | 30 ---------------
+ scripts/link-vmlinux.sh     |  5 ++-
+ scripts/mod/modpost.c       | 54 ++++++++++++++++++++++++---
+ scripts/remove-stale-files  |  2 +
+ 12 files changed, 70 insertions(+), 240 deletions(-)
+ delete mode 100755 scripts/adjust_autoksyms.sh
+ delete mode 100755 scripts/gen_autoksyms.sh
+ delete mode 100755 scripts/gen_ksymdeps.sh
 
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index f994c1daf9d4..fc998339c405 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -1,5 +1,6 @@
- # SPDX-License-Identifier: GPL-2.0
- generated-y += syscall_table.h
-+generic-y += export.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += vtime.h
-diff --git a/arch/ia64/include/asm/export.h b/arch/ia64/include/asm/export.h
-deleted file mode 100644
-index ad18c6583252..000000000000
---- a/arch/ia64/include/asm/export.h
-+++ /dev/null
-@@ -1,3 +0,0 @@
--/* EXPORT_DATA_SYMBOL != EXPORT_SYMBOL here */
--#define KSYM_FUNC(name) @fptr(name)
--#include <asm-generic/export.h>
-diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-index 5e4b1f2369d2..0ae9f38a904c 100644
---- a/include/asm-generic/export.h
-+++ b/include/asm-generic/export.h
-@@ -3,86 +3,12 @@
- #define __ASM_GENERIC_EXPORT_H
+diff --git a/.gitignore b/.gitignore
+index 265959544978..a9b44cd36066 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -103,7 +103,6 @@ modules.order
+ #
+ /include/config/
+ /include/generated/
+-/include/ksym/
+ /arch/*/include/generated/
  
- /*
-- * This comment block is used by fixdep. Please do not remove.
-- *
-- * When CONFIG_MODVERSIONS is changed from n to y, all source files having
-- * EXPORT_SYMBOL variants must be re-compiled because genksyms is run as a
-- * side effect of the *.o build rule.
-+ * <asm/export.h> and <asm-generic/export.h> are deprecated.
-+ * Please include <linux/export.h> directly.
-  */
-+#include <linux/export.h>
+ # stgit generated dirs
+diff --git a/Makefile b/Makefile
+index 2b4980490ecb..36ae888c37b3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1120,28 +1120,13 @@ endif
+ export KBUILD_VMLINUX_LIBS
+ export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
  
--#ifndef KSYM_FUNC
--#define KSYM_FUNC(x) x
--#endif
--#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
--#define KSYM_ALIGN 4
--#elif defined(CONFIG_64BIT)
--#define KSYM_ALIGN 8
--#else
--#define KSYM_ALIGN 4
--#endif
+-# Recurse until adjust_autoksyms.sh is satisfied
+-PHONY += autoksyms_recursive
+ ifdef CONFIG_TRIM_UNUSED_KSYMS
+ # For the kernel to actually contain only the needed exported symbols,
+ # we have to build modules as well to determine what those symbols are.
+ # (this can be evaluated only once include/config/auto.conf has been included)
+ KBUILD_MODULES := 1
 -
--.macro __put, val, name
--#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
--	.long	\val - ., \name - ., 0
--#elif defined(CONFIG_64BIT)
--	.quad	\val, \name, 0
--#else
--	.long	\val, \name, 0
--#endif
--.endm
--
--/*
-- * note on .section use: we specify progbits since usage of the "M" (SHF_MERGE)
-- * section flag requires it. Use '%progbits' instead of '@progbits' since the
-- * former apparently works on all arches according to the binutils source.
-- */
--
--.macro ___EXPORT_SYMBOL name,val,sec
--#if defined(CONFIG_MODULES) && !defined(__DISABLE_EXPORTS)
--	.section ___ksymtab\sec+\name,"a"
--	.balign KSYM_ALIGN
--__ksymtab_\name:
--	__put \val, __kstrtab_\name
--	.previous
--	.section __ksymtab_strings,"aMS",%progbits,1
--__kstrtab_\name:
--	.asciz "\name"
--	.previous
--#endif
--.endm
--
--#if defined(CONFIG_TRIM_UNUSED_KSYMS)
--
--#include <linux/kconfig.h>
--#include <generated/autoksyms.h>
--
--.macro __ksym_marker sym
--	.section ".discard.ksym","a"
--__ksym_marker_\sym:
--	 .previous
--.endm
--
--#define __EXPORT_SYMBOL(sym, val, sec)				\
--	__ksym_marker sym;					\
--	__cond_export_sym(sym, val, sec, __is_defined(__KSYM_##sym))
--#define __cond_export_sym(sym, val, sec, conf)			\
--	___cond_export_sym(sym, val, sec, conf)
--#define ___cond_export_sym(sym, val, sec, enabled)		\
--	__cond_export_sym_##enabled(sym, val, sec)
--#define __cond_export_sym_1(sym, val, sec) ___EXPORT_SYMBOL sym, val, sec
--#define __cond_export_sym_0(sym, val, sec) /* nothing */
--
--#else
--#define __EXPORT_SYMBOL(sym, val, sec) ___EXPORT_SYMBOL sym, val, sec
--#endif
--
--#define EXPORT_SYMBOL(name)					\
--	__EXPORT_SYMBOL(name, KSYM_FUNC(name),)
--#define EXPORT_SYMBOL_GPL(name) 				\
--	__EXPORT_SYMBOL(name, KSYM_FUNC(name), _gpl)
--#define EXPORT_DATA_SYMBOL(name)				\
--	__EXPORT_SYMBOL(name, name,)
--#define EXPORT_DATA_SYMBOL_GPL(name)				\
--	__EXPORT_SYMBOL(name, name,_gpl)
-+#define EXPORT_DATA_SYMBOL(name)	EXPORT_SYMBOL(name)
-+#define EXPORT_DATA_SYMBOL_GPL(name)	EXPORT_SYMBOL_GPL(name)
+-autoksyms_recursive: $(build-dir) modules.order
+-	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/adjust_autoksyms.sh \
+-	  "$(MAKE) -f $(srctree)/Makefile autoksyms_recursive"
+ endif
  
- #endif
-diff --git a/include/linux/export-internal.h b/include/linux/export-internal.h
-index fe7e6ba918f1..8d921cde1b33 100644
---- a/include/linux/export-internal.h
-+++ b/include/linux/export-internal.h
-@@ -1,6 +1,6 @@
- /* SPDX-License-Identifier: GPL-2.0-only */
- /*
-- * Please do not include this explicitly.
-+ * Please do not include this except from kernel/module/.
-  * This is used by C files generated by modpost.
-  */
+-autoksyms_h := $(if $(CONFIG_TRIM_UNUSED_KSYMS), include/generated/autoksyms.h)
+-
+-quiet_cmd_autoksyms_h = GEN     $@
+-      cmd_autoksyms_h = mkdir -p $(dir $@); \
+-			$(CONFIG_SHELL) $(srctree)/scripts/gen_autoksyms.sh $@
+-
+-$(autoksyms_h):
+-	$(call cmd,autoksyms_h)
+-
+ # '$(AR) mPi' needs 'T' to workaround the bug of llvm-ar <= 14
+ quiet_cmd_ar_vmlinux.a = AR      $@
+       cmd_ar_vmlinux.a = \
+@@ -1153,7 +1138,7 @@ targets += vmlinux.a
+ vmlinux.a: $(KBUILD_VMLINUX_OBJS) scripts/head-object-list.txt FORCE
+ 	$(call if_changed,ar_vmlinux.a)
  
-@@ -10,6 +10,71 @@
- #include <linux/compiler.h>
- #include <linux/types.h>
+-vmlinux.o: autoksyms_recursive vmlinux.a $(KBUILD_VMLINUX_LIBS) FORCE
++vmlinux.o: vmlinux.a $(KBUILD_VMLINUX_LIBS) FORCE
+ 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux_o
  
-+/*
-+ * This struct is used in kernel/module/, but placed in this header
-+ * to force rebuilding vmlinux when this header is updated.
-+ */
-+struct kernel_symbol {
-+#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
-+	int value_offset;
-+	int name_offset;
-+	int namespace_offset;
-+#else
-+	unsigned long value;
-+	const char *name;
-+	const char *namespace;
-+#endif
-+};
+ ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
+@@ -1168,6 +1153,11 @@ vmlinux: scripts/link-vmlinux.sh vmlinux.o $(KBUILD_LDS) modpost FORCE
+ 
+ targets += vmlinux
+ 
++# When .vmlinux.export.c is updated, vmlinux must be relinked.
++# (REVISIT for refactoring)
++.vmlinux.export.c: modpost
++	@:
 +
-+#if defined(CONFIG_HAVE_ARCH_PREL32_RELOCATIONS)
-+/*
-+ * relative reference: this reduces the size by half on 64-bit architectures,
-+ * and eliminates the need for absolute relocations that require runtime
-+ * processing on relocatable kernels.
-+ */
-+#define __KSYM_REF(sym)		".long " #sym "- ."
-+#elif defined(CONFIG_64BIT)
-+#define __KSYM_REF(sym)		".quad " #sym
-+#else
-+#define __KSYM_REF(sym)		".long " #sym
-+#endif
-+
-+/*
-+ * For every exported symbol, do the following:
-+ *
-+ * - Put the name of the symbol and namespace (empty string "" for none) in
-+ *   __ksymtab_strings.
-+ * - Place a struct kernel_symbol entry in the __ksymtab section.
-+ *
-+ * Note on .section use: we specify progbits since usage of the "M" (SHF_MERGE)
-+ * section flag requires it. Use '%progbits' instead of '@progbits' since the
-+ * former apparently works on all arches according to the binutils source.
-+ */
-+#define __KSYMTAB(name, sym, sec, ns)						\
-+	asm("	.section \"__ksymtab_strings\",\"aMS\",%progbits,1"	"\n"	\
-+	    "__kstrtab_" #name ":"					"\n"	\
-+	    "	.asciz \"" #name "\""					"\n"	\
-+	    "__kstrtabns_" #name ":"					"\n"	\
-+	    "	.asciz \"" ns "\""					"\n"	\
-+	    "	.previous"						"\n"	\
-+	    "	.section \"___ksymtab" sec "+" #name "\", \"a\""	"\n"	\
-+	    "	.balign	4"						"\n"	\
-+	    "__ksymtab_" #name ":"					"\n"	\
-+		__KSYM_REF(sym)						"\n"	\
-+		__KSYM_REF(__kstrtab_ ##name)				"\n"	\
-+		__KSYM_REF(__kstrtabns_ ##name)				"\n"	\
-+	    "	.previous"						"\n"	\
-+	)
-+
-+#ifdef CONFIG_IA64
-+#define KSYM_FUNC(name)		@fptr(name)
-+#else
-+#define KSYM_FUNC(name)		name
-+#endif
-+
-+#define KSYMTAB_FUNC(name, sec, ns)	__KSYMTAB(name, KSYM_FUNC(name), sec, ns)
-+#define KSYMTAB_DATA(name, sec, ns)	__KSYMTAB(name, name, sec, ns)
-+
- #define SYMBOL_CRC(sym, crc, sec)   \
- 	asm(".section \"___kcrctab" sec "+" #sym "\",\"a\""	"\n" \
- 	    "__crc_" #sym ":"					"\n" \
+ # The actual objects are generated when descending,
+ # make sure no implicit rule kicks in
+ $(sort $(KBUILD_LDS) $(KBUILD_VMLINUX_OBJS) $(KBUILD_VMLINUX_LIBS)): . ;
+@@ -1195,7 +1185,7 @@ scripts: scripts_basic scripts_dtc
+ PHONY += prepare archprepare
+ 
+ archprepare: outputmakefile archheaders archscripts scripts include/config/kernel.release \
+-	asm-generic $(version_h) $(autoksyms_h) include/generated/utsrelease.h \
++	asm-generic $(version_h) include/generated/utsrelease.h \
+ 	include/generated/compile.h include/generated/autoconf.h remove-stale-files
+ 
+ prepare0: archprepare
 diff --git a/include/linux/export.h b/include/linux/export.h
-index 3f31ced0d977..0c71577cf8bb 100644
+index 0c71577cf8bb..d9fb1ebb535c 100644
 --- a/include/linux/export.h
 +++ b/include/linux/export.h
-@@ -2,6 +2,7 @@
- #ifndef _LINUX_EXPORT_H
- #define _LINUX_EXPORT_H
- 
-+#include <linux/compiler.h>
- #include <linux/stringify.h>
- 
- /*
-@@ -28,72 +29,28 @@ extern struct module __this_module;
- #else
- #define THIS_MODULE ((struct module *)0)
- #endif
--
--#ifdef CONFIG_HAVE_ARCH_PREL32_RELOCATIONS
--#include <linux/compiler.h>
--/*
-- * Emit the ksymtab entry as a pair of relative references: this reduces
-- * the size by half on 64-bit architectures, and eliminates the need for
-- * absolute relocations that require runtime processing on relocatable
-- * kernels.
-- */
--#define __KSYMTAB_ENTRY(sym, sec)					\
--	__ADDRESSABLE(sym)						\
--	asm("	.section \"___ksymtab" sec "+" #sym "\", \"a\"	\n"	\
--	    "	.balign	4					\n"	\
--	    "__ksymtab_" #sym ":				\n"	\
--	    "	.long	" #sym "- .				\n"	\
--	    "	.long	__kstrtab_" #sym "- .			\n"	\
--	    "	.long	__kstrtabns_" #sym "- .			\n"	\
--	    "	.previous					\n")
--
--struct kernel_symbol {
--	int value_offset;
--	int name_offset;
--	int namespace_offset;
--};
--#else
--#define __KSYMTAB_ENTRY(sym, sec)					\
--	static const struct kernel_symbol __ksymtab_##sym		\
--	__attribute__((section("___ksymtab" sec "+" #sym), used))	\
--	__aligned(sizeof(void *))					\
--	= { (unsigned long)&sym, __kstrtab_##sym, __kstrtabns_##sym }
--
--struct kernel_symbol {
--	unsigned long value;
--	const char *name;
--	const char *namespace;
--};
--#endif
-+#endif /* __ASSEMBLY__ */
- 
- #ifdef __GENKSYMS__
- 
- #define ___EXPORT_SYMBOL(sym, sec, ns)	__GENKSYMS_EXPORT_SYMBOL(sym)
- 
-+#elif defined(__ASSEMBLY__)
-+
-+#define ___EXPORT_SYMBOL(sym, sec, ns)				\
-+	.section .discard.export_symbol ;			\
-+	__export_symbol##sec##.sym: ;				\
-+	.asciz ns ;						\
-+	.previous
-+
- #else
- 
--/*
-- * For every exported symbol, do the following:
-- *
-- * - Put the name of the symbol and namespace (empty string "" for none) in
-- *   __ksymtab_strings.
-- * - Place a struct kernel_symbol entry in the __ksymtab section.
-- *
-- * note on .section use: we specify progbits since usage of the "M" (SHF_MERGE)
-- * section flag requires it. Use '%progbits' instead of '@progbits' since the
-- * former apparently works on all arches according to the binutils source.
-- */
--#define ___EXPORT_SYMBOL(sym, sec, ns)						\
--	extern typeof(sym) sym;							\
--	extern const char __kstrtab_##sym[];					\
--	extern const char __kstrtabns_##sym[];					\
--	asm("	.section \"__ksymtab_strings\",\"aMS\",%progbits,1	\n"	\
--	    "__kstrtab_" #sym ":					\n"	\
--	    "	.asciz 	\"" #sym "\"					\n"	\
--	    "__kstrtabns_" #sym ":					\n"	\
--	    "	.asciz 	\"" ns "\"					\n"	\
--	    "	.previous						\n");	\
--	__KSYMTAB_ENTRY(sym, sec)
-+#define ___EXPORT_SYMBOL(sym, sec, ns)				\
-+	__ADDRESSABLE(sym)					\
-+	asm(".section .discard.export_symbol		\n"	\
-+	    "__export_symbol" #sec "." #sym ":		\n"	\
-+	    ".asciz " "\"" ns "\"" "			\n"	\
-+	    ".previous					\n")
- 
- #endif
- 
-@@ -117,9 +74,21 @@ struct kernel_symbol {
-  * from the $(NM) output (see scripts/gen_ksymdeps.sh). These symbols are
-  * discarded in the final link stage.
+@@ -63,47 +63,6 @@ extern struct module __this_module;
   */
-+
-+#ifdef __ASSEMBLY__
-+
-+#define __ksym_marker(sym)					\
-+	.section ".discard.ksym","a" ;				\
-+__ksym_marker_##sym: ;						\
-+	.previous
-+
-+#else
-+
- #define __ksym_marker(sym)	\
- 	static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
+ #define __EXPORT_SYMBOL(sym, sec, ns)
  
-+#endif
-+
- #define __EXPORT_SYMBOL(sym, sec, ns)					\
- 	__ksym_marker(sym);						\
- 	__cond_export_sym(sym, sec, ns, __is_defined(__KSYM_##sym))
-@@ -147,11 +116,9 @@ struct kernel_symbol {
- #define _EXPORT_SYMBOL(sym, sec)	__EXPORT_SYMBOL(sym, sec, "")
- #endif
- 
--#define EXPORT_SYMBOL(sym)		_EXPORT_SYMBOL(sym, "")
--#define EXPORT_SYMBOL_GPL(sym)		_EXPORT_SYMBOL(sym, "_gpl")
--#define EXPORT_SYMBOL_NS(sym, ns)	__EXPORT_SYMBOL(sym, "", __stringify(ns))
--#define EXPORT_SYMBOL_NS_GPL(sym, ns)	__EXPORT_SYMBOL(sym, "_gpl", __stringify(ns))
+-#elif defined(CONFIG_TRIM_UNUSED_KSYMS)
 -
--#endif /* !__ASSEMBLY__ */
-+#define EXPORT_SYMBOL(sym)		_EXPORT_SYMBOL(sym,)
-+#define EXPORT_SYMBOL_GPL(sym)		_EXPORT_SYMBOL(sym,_gpl)
-+#define EXPORT_SYMBOL_NS(sym, ns)	__EXPORT_SYMBOL(sym,, __stringify(ns))
-+#define EXPORT_SYMBOL_NS_GPL(sym, ns)	__EXPORT_SYMBOL(sym,_gpl, __stringify(ns))
+-#include <generated/autoksyms.h>
+-
+-/*
+- * For fine grained build dependencies, we want to tell the build system
+- * about each possible exported symbol even if they're not actually exported.
+- * We use a symbol pattern __ksym_marker_<symbol> that the build system filters
+- * from the $(NM) output (see scripts/gen_ksymdeps.sh). These symbols are
+- * discarded in the final link stage.
+- */
+-
+-#ifdef __ASSEMBLY__
+-
+-#define __ksym_marker(sym)					\
+-	.section ".discard.ksym","a" ;				\
+-__ksym_marker_##sym: ;						\
+-	.previous
+-
+-#else
+-
+-#define __ksym_marker(sym)	\
+-	static int __ksym_marker_##sym[0] __section(".discard.ksym") __used
+-
+-#endif
+-
+-#define __EXPORT_SYMBOL(sym, sec, ns)					\
+-	__ksym_marker(sym);						\
+-	__cond_export_sym(sym, sec, ns, __is_defined(__KSYM_##sym))
+-#define __cond_export_sym(sym, sec, ns, conf)				\
+-	___cond_export_sym(sym, sec, ns, conf)
+-#define ___cond_export_sym(sym, sec, ns, enabled)			\
+-	__cond_export_sym_##enabled(sym, sec, ns)
+-#define __cond_export_sym_1(sym, sec, ns) ___EXPORT_SYMBOL(sym, sec, ns)
+-
+-#ifdef __GENKSYMS__
+-#define __cond_export_sym_0(sym, sec, ns) __GENKSYMS_EXPORT_SYMBOL(sym)
+-#else
+-#define __cond_export_sym_0(sym, sec, ns) /* nothing */
+-#endif
+-
+ #else
  
- #endif /* _LINUX_EXPORT_H */
-diff --git a/kernel/module/internal.h b/kernel/module/internal.h
-index 680d980a4fb2..fc2bf6c6ba05 100644
---- a/kernel/module/internal.h
-+++ b/kernel/module/internal.h
-@@ -7,6 +7,7 @@
- 
- #include <linux/elf.h>
- #include <linux/compiler.h>
-+#include <linux/export-internal.h>
- #include <linux/module.h>
- #include <linux/mutex.h>
- #include <linux/rculist.h>
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index a4e4d84b6f4e..776aad90b3c6 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -6,7 +6,6 @@
- 
- #define INCLUDE_VERMAGIC
- 
--#include <linux/export.h>
- #include <linux/extable.h>
- #include <linux/moduleloader.h>
- #include <linux/module_signature.h>
+ #define __EXPORT_SYMBOL(sym, sec, ns)	___EXPORT_SYMBOL(sym, sec, ns)
 diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 91d2e5461a3e..4c1d0bd1bc03 100644
+index 4c1d0bd1bc03..64f652b03d29 100644
 --- a/scripts/Makefile.build
 +++ b/scripts/Makefile.build
-@@ -164,7 +164,7 @@ quiet_cmd_cc_o_c = CC $(quiet_modtag)  $@
- ifdef CONFIG_MODVERSIONS
- # When module versioning is enabled the following steps are executed:
- # o compile a <file>.o from <file>.c
--# o if <file>.o doesn't contain a __ksymtab version, i.e. does
-+# o if <file>.o doesn't contain a __export_symbol*, i.e. does
- #   not export symbols, it's done.
- # o otherwise, we calculate symbol versions using the good old
- #   genksyms on the preprocessed source and dump them into the .cmd file.
-@@ -172,7 +172,7 @@ ifdef CONFIG_MODVERSIONS
- #   be compiled and linked to the kernel and/or modules.
+@@ -218,16 +218,10 @@ is-standard-object = $(if $(filter-out y%, $(OBJECT_FILES_NON_STANDARD_$(basetar
  
- gen_symversions =								\
--	if $(NM) $@ 2>/dev/null | grep -q __ksymtab; then			\
-+	if $(NM) $@ 2>/dev/null | grep -q '__export_symbol.*\.'; then		\
- 		$(call cmd_gensymtypes_$(1),$(KBUILD_SYMTYPES),$(@:.o=.symtypes)) \
- 			>> $(dot-target).cmd;					\
- 	fi
-@@ -288,9 +288,7 @@ $(obj)/%.lst: $(src)/%.c FORCE
- cmd_gensymtypes_S =                                                         \
-    { echo "\#include <linux/kernel.h>" ;                                    \
-      echo "\#include <asm/asm-prototypes.h>" ;                              \
--    $(CPP) $(a_flags) $< |                                                  \
--     grep "\<___EXPORT_SYMBOL\>" |                                          \
--     sed 's/.*___EXPORT_SYMBOL[[:space:]]*\([a-zA-Z0-9_]*\)[[:space:]]*,.*/EXPORT_SYMBOL(\1);/' ; } | \
-+     $(NM) $@ | sed -n 's/.*__export_symbol.*\.\(.*\)/EXPORT_SYMBOL(\1);/p' ; } | \
-     $(CPP) -D__GENKSYMS__ $(c_flags) -xc - | $(genksyms)
+ $(obj)/%.o: objtool-enabled = $(if $(is-standard-object),$(if $(delay-objtool),$(is-single-obj-m),y))
  
- quiet_cmd_cc_symtypes_S = SYM $(quiet_modtag) $@
-diff --git a/scripts/check-local-export b/scripts/check-local-export
-index 0c049ff44aca..e07534880fbf 100755
---- a/scripts/check-local-export
-+++ b/scripts/check-local-export
-@@ -45,9 +45,9 @@ BEGIN {
- { symbol_types[$3]=$2 }
+-ifdef CONFIG_TRIM_UNUSED_KSYMS
+-cmd_gen_ksymdeps = \
+-	$(CONFIG_SHELL) $(srctree)/scripts/gen_ksymdeps.sh $@ >> $(dot-target).cmd
+-endif
+-
+ cmd_check_local_export = $(srctree)/scripts/check-local-export $@
  
- # append the exported symbol to the array
--($3 ~ /^__ksymtab_/) {
-+($3 ~ /^__export_symbol.*\..*/) {
- 	export_symbols[i] = $3
--	sub(/^__ksymtab_/, "", export_symbols[i])
-+	sub(/^__export_symbol.*\./, "", export_symbols[i])
- 	i++
+ define rule_cc_o_c
+ 	$(call cmd_and_fixdep,cc_o_c)
+-	$(call cmd,gen_ksymdeps)
+ 	$(call cmd,check_local_export)
+ 	$(call cmd,checksrc)
+ 	$(call cmd,checkdoc)
+@@ -238,7 +232,6 @@ endef
+ 
+ define rule_as_o_S
+ 	$(call cmd_and_fixdep,as_o_S)
+-	$(call cmd,gen_ksymdeps)
+ 	$(call cmd,check_local_export)
+ 	$(call cmd,gen_objtooldep)
+ 	$(call cmd,gen_symversions_S)
+diff --git a/scripts/Makefile.modpost b/scripts/Makefile.modpost
+index 7740ce3b29e8..555b9e741a01 100644
+--- a/scripts/Makefile.modpost
++++ b/scripts/Makefile.modpost
+@@ -86,6 +86,12 @@ output-symdump := $(if $(vmlinux.o-if-present), Module.symvers, modules-only.sym
+ missing-input := $(filter-out $(vmlinux.o-if-present),vmlinux.o)
+ endif
+ 
++ifdef CONFIG_TRIM_UNUSED_KSYMS
++ksym-wl := $(CONFIG_UNUSED_KSYMS_WHITELIST)
++ksym-wl := $(if $(filter-out /%, $(ksym-wl)),$(srctree)/)$(ksym-wl)
++modpost-args += -t $(addprefix -W, $(ksym-wl))
++endif
++
+ else
+ 
+ # set src + obj - they may be used in the modules's Makefile
+@@ -122,7 +128,7 @@ quiet_cmd_modpost = MODPOST $@
+ 	sed 's/ko$$/o/' $(or $(modorder-if-needed), /dev/null) | $(MODPOST) $(modpost-args) $(vmlinux.o-if-present) -T -
+ 
+ targets += $(output-symdump)
+-$(output-symdump): $(modorder-if-needed) $(vmlinux.o-if-present) $(moudle.symvers-if-present) $(MODPOST) FORCE
++$(output-symdump): $(modorder-if-needed) $(vmlinux.o-if-present) $(moudle.symvers-if-present) $(MODPOST) $(ksym-wl) FORCE
+ 	$(call if_changed,modpost)
+ 
+ __modpost: $(output-symdump)
+diff --git a/scripts/adjust_autoksyms.sh b/scripts/adjust_autoksyms.sh
+deleted file mode 100755
+index f1b5ac818411..000000000000
+--- a/scripts/adjust_autoksyms.sh
++++ /dev/null
+@@ -1,73 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0-only
+-
+-# Script to update include/generated/autoksyms.h and dependency files
+-#
+-# Copyright:	(C) 2016  Linaro Limited
+-# Created by:	Nicolas Pitre, January 2016
+-#
+-
+-# Update the include/generated/autoksyms.h file.
+-#
+-# For each symbol being added or removed, the corresponding dependency
+-# file's timestamp is updated to force a rebuild of the affected source
+-# file. All arguments passed to this script are assumed to be a command
+-# to be exec'd to trigger a rebuild of those files.
+-
+-set -e
+-
+-cur_ksyms_file="include/generated/autoksyms.h"
+-new_ksyms_file="include/generated/autoksyms.h.tmpnew"
+-
+-info() {
+-	if [ "$quiet" != "silent_" ]; then
+-		printf "  %-7s %s\n" "$1" "$2"
+-	fi
+-}
+-
+-info "CHK" "$cur_ksyms_file"
+-
+-# Use "make V=1" to debug this script.
+-case "$KBUILD_VERBOSE" in
+-*1*)
+-	set -x
+-	;;
+-esac
+-
+-# Generate a new symbol list file
+-$CONFIG_SHELL $srctree/scripts/gen_autoksyms.sh --modorder "$new_ksyms_file"
+-
+-# Extract changes between old and new list and touch corresponding
+-# dependency files.
+-changed=$(
+-count=0
+-sort "$cur_ksyms_file" "$new_ksyms_file" | uniq -u |
+-sed -n 's/^#define __KSYM_\(.*\) 1/\1/p' |
+-while read sympath; do
+-	if [ -z "$sympath" ]; then continue; fi
+-	depfile="include/ksym/${sympath}"
+-	mkdir -p "$(dirname "$depfile")"
+-	touch "$depfile"
+-	# Filesystems with coarse time precision may create timestamps
+-	# equal to the one from a file that was very recently built and that
+-	# needs to be rebuild. Let's guard against that by making sure our
+-	# dep files are always newer than the first file we created here.
+-	while [ ! "$depfile" -nt "$new_ksyms_file" ]; do
+-		touch "$depfile"
+-	done
+-	echo $((count += 1))
+-done | tail -1 )
+-changed=${changed:-0}
+-
+-if [ $changed -gt 0 ]; then
+-	# Replace the old list with tne new one
+-	old=$(grep -c "^#define __KSYM_" "$cur_ksyms_file" || true)
+-	new=$(grep -c "^#define __KSYM_" "$new_ksyms_file" || true)
+-	info "KSYMS" "symbols: before=$old, after=$new, changed=$changed"
+-	info "UPD" "$cur_ksyms_file"
+-	mv -f "$new_ksyms_file" "$cur_ksyms_file"
+-	# Then trigger a rebuild of affected source files
+-	exec $@
+-else
+-	rm -f "$new_ksyms_file"
+-fi
+diff --git a/scripts/basic/fixdep.c b/scripts/basic/fixdep.c
+index 2328f9a641da..e7db12140d87 100644
+--- a/scripts/basic/fixdep.c
++++ b/scripts/basic/fixdep.c
+@@ -243,8 +243,7 @@ static void *read_file(const char *filename)
+ /* Ignore certain dependencies */
+ static int is_ignored_file(const char *s, int len)
+ {
+-	return str_ends_with(s, len, "include/generated/autoconf.h") ||
+-	       str_ends_with(s, len, "include/generated/autoksyms.h");
++	return str_ends_with(s, len, "include/generated/autoconf.h");
  }
  
+ /*
+diff --git a/scripts/gen_autoksyms.sh b/scripts/gen_autoksyms.sh
+deleted file mode 100755
+index 653fadbad302..000000000000
+--- a/scripts/gen_autoksyms.sh
++++ /dev/null
+@@ -1,62 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0-only
+-
+-# Create an autoksyms.h header file from the list of all module's needed symbols
+-# as recorded in *.usyms files and the user-provided symbol whitelist.
+-
+-set -e
+-
+-# Use "make V=1" to debug this script.
+-case "$KBUILD_VERBOSE" in
+-*1*)
+-	set -x
+-	;;
+-esac
+-
+-read_modorder=
+-
+-if [ "$1" = --modorder ]; then
+-	shift
+-	read_modorder=1
+-fi
+-
+-output_file="$1"
+-
+-needed_symbols=
+-
+-# Special case for modversions (see modpost.c)
+-if grep -q "^CONFIG_MODVERSIONS=y$" include/config/auto.conf; then
+-	needed_symbols="$needed_symbols module_layout"
+-fi
+-
+-ksym_wl=$(sed -n 's/^CONFIG_UNUSED_KSYMS_WHITELIST=\(.*\)$/\1/p' include/config/auto.conf)
+-if [ -n "$ksym_wl" ]; then
+-	[ "${ksym_wl}" != "${ksym_wl#/}" ] || ksym_wl="$abs_srctree/$ksym_wl"
+-	if [ ! -f "$ksym_wl" ] || [ ! -r "$ksym_wl" ]; then
+-		echo "ERROR: '$ksym_wl' whitelist file not found" >&2
+-		exit 1
+-	fi
+-fi
+-
+-# Generate a new ksym list file with symbols needed by the current
+-# set of modules.
+-cat > "$output_file" << EOT
+-/*
+- * Automatically generated file; DO NOT EDIT.
+- */
+-
+-EOT
+-
+-{
+-	[ -n "${read_modorder}" ] && sed 's/ko$/usyms/' modules.order | xargs cat
+-	echo "$needed_symbols"
+-	[ -n "$ksym_wl" ] && cat "$ksym_wl"
+-} | sed -e 's/ /\n/g' | sed -n -e '/^$/!p' |
+-# Remove the dot prefix for ppc64; symbol names with a dot (.) hold entry
+-# point addresses.
+-sed -e 's/^\.//' |
+-sort -u |
+-# Ignore __this_module. It's not an exported symbol, and will be resolved
+-# when the final .ko's are linked.
+-grep -v '^__this_module$' |
+-sed -e 's/\(.*\)/#define __KSYM_\1 1/' >> "$output_file"
+diff --git a/scripts/gen_ksymdeps.sh b/scripts/gen_ksymdeps.sh
+deleted file mode 100755
+index 8ee533f33659..000000000000
+--- a/scripts/gen_ksymdeps.sh
++++ /dev/null
+@@ -1,30 +0,0 @@
+-#!/bin/sh
+-# SPDX-License-Identifier: GPL-2.0
+-
+-set -e
+-
+-# List of exported symbols
+-#
+-# If the object has no symbol, $NM warns 'no symbols'.
+-# Suppress the stderr.
+-# TODO:
+-#   Use -q instead of 2>/dev/null when we upgrade the minimum version of
+-#   binutils to 2.37, llvm to 13.0.0.
+-ksyms=$($NM $1 2>/dev/null | sed -n 's/.*__ksym_marker_\(.*\)/\1/p')
+-
+-if [ -z "$ksyms" ]; then
+-	exit 0
+-fi
+-
+-echo
+-echo "ksymdeps_$1 := \\"
+-
+-for s in $ksyms
+-do
+-	printf '    $(wildcard include/ksym/%s) \\\n' "$s"
+-done
+-
+-echo
+-echo "$1: \$(ksymdeps_$1)"
+-echo
+-echo "\$(ksymdeps_$1):"
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 2782c5d1518b..9c3140d33ccd 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -305,4 +305,7 @@ if is_enabled CONFIG_KALLSYMS; then
+ fi
+ 
+ # For fixdep
+-echo "vmlinux: $0" > .vmlinux.d
++echo "vmlinux: $0 \\" > .vmlinux.d
++if is_enabled CONFIG_MODULES; then
++	echo .vmlinux.export.c >> .vmlinux.d
++fi
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 2c80da0220c3..13fff6e92aef 100644
+index 90733664a602..1e9eba0a6cec 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
-@@ -214,6 +214,7 @@ struct symbol {
- 	unsigned int crc;
- 	bool crc_valid;
+@@ -34,6 +34,9 @@ static bool warn_unresolved;
+ 
+ static int sec_mismatch_count;
+ static bool sec_mismatch_warn_only = true;
++/* Trim EXPORT_SYMBOLs that are unused by in-tree modules */
++static bool trim_unused_exports;
++
+ /* ignore missing files */
+ static bool ignore_missing_files;
+ /* If set to 1, only warn (instead of error) about missing ns imports */
+@@ -216,6 +219,7 @@ struct symbol {
  	bool weak;
-+	bool is_func;
+ 	bool is_func;
  	bool is_gpl_only;	/* exported by EXPORT_SYMBOL_GPL */
++	bool used;		/* there exists a user of this symbol */
  	char name[];
  };
-@@ -531,6 +532,8 @@ static int parse_elf(struct elf_info *info, const char *filename)
- 				fatal("%s has NOBITS .modinfo\n", filename);
- 			info->modinfo = (void *)hdr + sechdrs[i].sh_offset;
- 			info->modinfo_len = sechdrs[i].sh_size;
-+		} else if (!strcmp(secname, ".discard.export_symbol")) {
-+			info->export_symbol_sec = i;
+ 
+@@ -1872,6 +1876,7 @@ static void check_exports(struct module *mod)
+ 			continue;
  		}
  
- 		if (sechdrs[i].sh_type == SHT_SYMTAB) {
-@@ -653,17 +656,20 @@ static void handle_symbol(struct module *mod, struct elf_info *info,
- 				   ELF_ST_BIND(sym->st_info) == STB_WEAK);
- 		break;
- 	default:
--		/* All exported symbols */
--		if (strstarts(symname, "__ksymtab_")) {
--			const char *name, *secname;
-+		if (sym->st_shndx == info->export_symbol_sec) {
-+			const char *name;
- 
--			name = symname + strlen("__ksymtab_");
--			secname = sec_name(info, get_secindex(info, sym));
--
--			if (strstarts(secname, "___ksymtab_gpl+"))
-+			if (strstarts(symname, "__export_symbol_gpl.")) {
-+				name = symname + strlen("__export_symbol_gpl.");
- 				sym_add_exported(name, mod, true);
--			else if (strstarts(secname, "___ksymtab+"))
-+				sym_update_namespace(name, sym_get_data(info, sym));
-+			} else if (strstarts(symname, "__export_symbol.")) {
-+				name = symname + strlen("__export_symbol.");
- 				sym_add_exported(name, mod, false);
-+				sym_update_namespace(name, sym_get_data(info, sym));
-+			}
-+
-+			break;
- 		}
- 		if (strcmp(symname, "init_module") == 0)
- 			mod->has_init = true;
-@@ -865,7 +871,6 @@ enum mismatch {
- 	XXXEXIT_TO_SOME_EXIT,
- 	ANY_INIT_TO_ANY_EXIT,
- 	ANY_EXIT_TO_ANY_INIT,
--	EXPORT_TO_INIT_EXIT,
- 	EXTABLE_TO_NON_TEXT,
- };
- 
-@@ -960,12 +965,6 @@ static const struct sectioncheck sectioncheck[] = {
- 	.bad_tosec = { INIT_SECTIONS, NULL },
- 	.mismatch = ANY_INIT_TO_ANY_EXIT,
- },
--/* Do not export init/exit functions or data */
--{
--	.fromsec = { "___ksymtab*", NULL },
--	.bad_tosec = { INIT_SECTIONS, EXIT_SECTIONS, NULL },
--	.mismatch = EXPORT_TO_INIT_EXIT,
--},
- {
- 	.fromsec = { "__ex_table", NULL },
- 	/* If you're adding any new black-listed sections in here, consider
-@@ -1256,10 +1255,6 @@ static void report_sec_mismatch(const char *modname,
- 		warn("%s: section mismatch in reference: %s (section: %s) -> %s (section: %s)\n",
- 		     modname, fromsym, fromsec, tosym, tosec);
- 		break;
--	case EXPORT_TO_INIT_EXIT:
--		warn("%s: EXPORT_SYMBOL used for init/exit symbol: %s (section: %s)\n",
--		     modname, tosym, tosec);
--		break;
- 	case EXTABLE_TO_NON_TEXT:
- 		fatal("There's a special handler for this mismatch type, we should never get here.\n");
- 		break;
-@@ -1634,6 +1629,36 @@ static void section_rel(const char *modname, struct elf_info *elf,
++		exp->used = true;
+ 		s->module = exp->module;
+ 		s->crc_valid = exp->crc_valid;
+ 		s->crc = exp->crc;
+@@ -1895,6 +1900,23 @@ static void check_exports(struct module *mod)
  	}
  }
  
-+static void check_export_symbols(struct module *mod, struct elf_info *elf)
++static void handle_white_list_exports(const char *white_list)
 +{
-+	Elf_Sym *sym;
++	char *buf, *p, *name;
 +
-+	for (sym = elf->symtab_start; sym < elf->symtab_stop; sym++) {
-+		const char *symname = sym_name(elf, sym);
-+		const char *secname;
-+		struct symbol *s;
++	buf = read_text_file(white_list);
++	p = buf;
 +
-+		s = sym_find_with_module(symname, mod);
-+		if (!s)
-+			continue;	/* This is not an exported symbol */
++	while ((name = strsep(&p, "\n"))) {
++		struct symbol *sym = find_symbol(name);
 +
-+		/*
-+		 * We need to be aware whether we are exporting a function or
-+		 * a data on some architectures.
-+		 */
-+		s->is_func = (ELF_ST_TYPE(sym->st_info) == STT_FUNC);
-+
-+		secname = sec_name(elf, get_secindex(elf, sym));
-+
-+		if (match(secname, PATTERNS(INIT_SECTIONS)))
-+			error("%s: EXPORT_SYMBOL used for init symbol. Remove __init or EXPORT_SYMBOL.\n",
-+			      symname);
-+		else if (match(secname, PATTERNS(EXIT_SECTIONS)))
-+			error("%s: EXPORT_SYMBOL used for exit symbol. Remove __exit or EXPORT_SYMBOL.\n",
-+			      symname);
++		if (sym)
++			sym->used = true;
 +	}
++
++	free(buf);
 +}
 +
- /**
-  * A module includes a number of sections that are discarded
-  * either when loaded or when used as built-in.
-@@ -1820,16 +1845,8 @@ static void read_symbols(const char *modname)
- 		handle_moddevtable(mod, &info, sym, symname);
- 	}
- 
--	for (sym = info.symtab_start; sym < info.symtab_stop; sym++) {
--		symname = remove_dot(info.strtab + sym->st_name);
--
--		/* Apply symbol namespaces from __kstrtabns_<symbol> entries. */
--		if (strstarts(symname, "__kstrtabns_"))
--			sym_update_namespace(symname + strlen("__kstrtabns_"),
--					     sym_get_data(&info, sym));
--	}
--
- 	check_sec_ref(modname, &info);
-+	check_export_symbols(mod, &info);
- 
- 	if (!mod->is_vmlinux) {
- 		version = get_modinfo(&info, "version");
-@@ -2015,6 +2032,14 @@ static void add_exported_symbols(struct buffer *buf, struct module *mod)
+ static void check_modname_len(struct module *mod)
  {
- 	struct symbol *sym;
+ 	const char *mod_name;
+@@ -1965,10 +1987,14 @@ static void add_exported_symbols(struct buffer *buf, struct module *mod)
  
-+	/* generate struct for exported symbols */
-+	buf_printf(buf, "\n");
-+	list_for_each_entry(sym, &mod->exported_symbols, list)
-+		buf_printf(buf, "KSYMTAB_%s(%s, \"%s\", \"%s\");\n",
-+			   sym->is_func ? "FUNC" : "DATA", sym->name,
-+			   sym->is_gpl_only ? "_gpl" : "",
-+			   sym->namespace ?: "");
+ 	/* generate struct for exported symbols */
+ 	buf_printf(buf, "\n");
+-	list_for_each_entry(sym, &mod->exported_symbols, list)
++	list_for_each_entry(sym, &mod->exported_symbols, list) {
++		if (trim_unused_exports && !sym->used)
++			continue;
 +
+ 		buf_printf(buf, "KSYMTAB_%s(%s, \"%s\", \"%s\");\n",
+ 			   sym->is_func ? "FUNC" : "DATA", sym->name,
+ 			   sym->is_gpl_only ? "_gpl" : "", sym->namespace);
++	}
+ 
  	if (!modversions)
  		return;
+@@ -1976,6 +2002,9 @@ static void add_exported_symbols(struct buffer *buf, struct module *mod)
+ 	/* record CRCs for exported symbols */
+ 	buf_printf(buf, "\n");
+ 	list_for_each_entry(sym, &mod->exported_symbols, list) {
++		if (trim_unused_exports && !sym->used)
++			continue;
++
+ 		if (!sym->crc_valid)
+ 			warn("EXPORT symbol \"%s\" [%s%s] version generation failed, symbol will not be versioned.\n"
+ 			     "Is \"%s\" prototyped in <asm/asm-prototypes.h>?\n",
+@@ -2139,9 +2168,6 @@ static void write_mod_c_file(struct module *mod)
+ 	char fname[PATH_MAX];
+ 	int ret;
  
-diff --git a/scripts/mod/modpost.h b/scripts/mod/modpost.h
-index 1178f40a73f3..6f7a5c2d37b9 100644
---- a/scripts/mod/modpost.h
-+++ b/scripts/mod/modpost.h
-@@ -137,6 +137,7 @@ struct elf_info {
- 	Elf_Shdr     *sechdrs;
- 	Elf_Sym      *symtab_start;
- 	Elf_Sym      *symtab_stop;
-+	unsigned int export_symbol_sec;	/* .discard.export_symbol section */
- 	char         *strtab;
- 	char	     *modinfo;
- 	unsigned int modinfo_len;
+-	check_modname_len(mod);
+-	check_exports(mod);
+-
+ 	add_header(&buf, mod);
+ 	add_exported_symbols(&buf, mod);
+ 	add_versions(&buf, mod);
+@@ -2275,12 +2301,13 @@ int main(int argc, char **argv)
+ {
+ 	struct module *mod;
+ 	char *missing_namespace_deps = NULL;
++	char *unused_exports_white_list = NULL;
+ 	char *dump_write = NULL, *files_source = NULL;
+ 	int opt;
+ 	LIST_HEAD(dump_lists);
+ 	struct dump_list *dl, *dl2;
+ 
+-	while ((opt = getopt(argc, argv, "ei:mnT:o:awENd:")) != -1) {
++	while ((opt = getopt(argc, argv, "ei:mntT:tW:o:awENd:")) != -1) {
+ 		switch (opt) {
+ 		case 'e':
+ 			external_module = true;
+@@ -2305,6 +2332,12 @@ int main(int argc, char **argv)
+ 		case 'T':
+ 			files_source = optarg;
+ 			break;
++		case 't':
++			trim_unused_exports = true;
++			break;
++		case 'W':
++			unused_exports_white_list = optarg;
++			break;
+ 		case 'w':
+ 			warn_unresolved = true;
+ 			break;
+@@ -2334,6 +2367,17 @@ int main(int argc, char **argv)
+ 	if (files_source)
+ 		read_symbols_from_files(files_source);
+ 
++	list_for_each_entry(mod, &modules, list) {
++		if (mod->from_dump || mod->is_vmlinux)
++			continue;
++
++		check_modname_len(mod);
++		check_exports(mod);
++	}
++
++	if (unused_exports_white_list)
++		handle_white_list_exports(unused_exports_white_list);
++
+ 	list_for_each_entry(mod, &modules, list) {
+ 		if (mod->from_dump)
+ 			continue;
+diff --git a/scripts/remove-stale-files b/scripts/remove-stale-files
+index ccadfa3afb2b..d2009eda270a 100755
+--- a/scripts/remove-stale-files
++++ b/scripts/remove-stale-files
+@@ -47,3 +47,5 @@ rm -f arch/riscv/purgatory/kexec-purgatory.c
+ rm -f scripts/extract-cert
+ 
+ rm -f arch/x86/purgatory/kexec-purgatory.c
++
++rm -rf include/ksym
 -- 
 2.34.1
 
