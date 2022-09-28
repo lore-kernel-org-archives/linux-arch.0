@@ -2,84 +2,106 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2BD70C07E9D
-	for <linux-arch@archiver.kernel.org>; Tue, 27 Sep 2022 22:36:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 08177C32771
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Sep 2022 06:42:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230118AbiI0WgT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 27 Sep 2022 18:36:19 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44418 "EHLO
+        id S233210AbiI1GmI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Sep 2022 02:42:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58066 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229951AbiI0WgS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 27 Sep 2022 18:36:18 -0400
-Received: from pandora.armlinux.org.uk (pandora.armlinux.org.uk [IPv6:2001:4d48:ad52:32c8:5054:ff:fe00:142])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 27FD4F162A;
-        Tue, 27 Sep 2022 15:36:15 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=armlinux.org.uk; s=pandora-2019; h=Sender:In-Reply-To:Content-Type:
-        MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:
-        Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:
-        List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-        bh=Wu+E2LhsDDERWJZNkF58udNtKGBkLwAE+je5LgTqdPs=; b=PK/BYKGI+kq/0L1NDEc/bdr+fN
-        eJH/k+9MCCmeLqU/c2xbDnUJeUafwg57l6xljtfLqXBp4JavmUijspCA7/xxsck04LS/nAuKxNHi0
-        1uExtJhEhUleW8mlBykQe9AiMLCby62bJjIiDii5+oAHpvv6RmArPNAVoTtwBbl9VNFjejmTrvzqn
-        T82k/BeAUMlLGnMI9bnfFvAywxI6qnRpanBZHzI8CcVeRu129o/KZ4VEMHV9pdl3n8afTklcyk/GR
-        cUCIKLVe6DDH2kvdRrx2hn1wWa7WjgA+6Q6c/kOUL4a5LQ4F9qKzWKyEG7Izz54p0C7LuQL5C2Ut7
-        BcpLbUYw==;
-Received: from shell.armlinux.org.uk ([fd8f:7570:feb6:1:5054:ff:fe00:4ec]:34516)
-        by pandora.armlinux.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.94.2)
-        (envelope-from <linux@armlinux.org.uk>)
-        id 1odJAq-0002Cc-Ct; Tue, 27 Sep 2022 23:35:32 +0100
-Received: from linux by shell.armlinux.org.uk with local (Exim 4.94.2)
-        (envelope-from <linux@shell.armlinux.org.uk>)
-        id 1odJAi-0006RI-KM; Tue, 27 Sep 2022 23:35:24 +0100
-Date:   Tue, 27 Sep 2022 23:35:24 +0100
-From:   "Russell King (Oracle)" <linux@armlinux.org.uk>
-To:     Nick Desaulniers <ndesaulniers@google.com>
-Cc:     Masami Hiramatsu <mhiramat@kernel.org>,
-        "Naveen N . Rao" <naveen.n.rao@linux.ibm.com>,
-        Anil S Keshavamurthy <anil.s.keshavamurthy@intel.com>,
-        "David S . Miller" <davem@davemloft.net>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Tom Rix <trix@redhat.com>,
-        sparkhuang <huangshaobo6@huawei.com>,
+        with ESMTP id S233225AbiI1Glp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Sep 2022 02:41:45 -0400
+X-Greylist: delayed 122606 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 27 Sep 2022 23:40:44 PDT
+Received: from conuserg-08.nifty.com (conuserg-08.nifty.com [210.131.2.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 77FAF1F1EBD;
+        Tue, 27 Sep 2022 23:40:44 -0700 (PDT)
+Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
+        by conuserg-08.nifty.com with ESMTP id 28S6e0G5004120;
+        Wed, 28 Sep 2022 15:40:05 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 28S6e0G5004120
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
+        s=dec2015msa; t=1664347205;
+        bh=mbThpvrninpaCK/CTWbzGhqDF8eGttC+bocdQ0Ww/r4=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=a5KVFzadmJLoVQ3EoHPPAvO1dQebgfZ3ZPSK5pObwncMHmumMrx14iWM1X6acvn2T
+         fi5jXigzaWXsrDQGkyPdXUrz4V1HgNErU2iswaWQ0WWI5iryEKt2EXSVKfurBL/vBa
+         93cFDr88Tf7585+MH/w2/dxI+X1mWTTzwFPLfTjv6aiPTTAaMM9fUIdRzaakoRhRom
+         +EJXKVgjWrTNsjvRfX4BMi4NOx+eQJixFIxu1PUDzxNBjwQQNwfL3eUvVIgbguvvAe
+         lB7OgYMMqL8rrWClQxY2AqjBlXCYWpP7nPOW+TobvbpFr9cWcU5yMIj5FlUdZc06d/
+         jswcKjaQtC7HA==
+X-Nifty-SrcIP: [133.32.182.133]
+From:   Masahiro Yamada <masahiroy@kernel.org>
+To:     linux-kbuild@vger.kernel.org
+Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-ia64@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>,
         Ard Biesheuvel <ardb@kernel.org>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        Chen Zhongjin <chenzhongjin@huawei.com>,
-        linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, llvm@lists.linux.dev,
-        Naresh Kamboju <naresh.kamboju@linaro.org>,
-        regressions@lists.linux.dev, lkft-triage@lists.linaro.org,
-        Linux Kernel Functional Testing <lkft@linaro.org>,
-        Logan Chien <loganchien@google.com>
-Subject: Re: [PATCH v2] ARM: kprobes: move __kretprobe_trampoline to out of
- line assembler
-Message-ID: <YzN6rH6wOiC8a8sN@shell.armlinux.org.uk>
-References: <CAKwvOdnQ4tb7auWqUoF_Mm-F9hiJotaQnP75ZDd6oPJ_1Z4qXg@mail.gmail.com>
- <20220927222851.37550-1-ndesaulniers@google.com>
+        Nicolas Pitre <npitre@baylibre.com>,
+        Masahiro Yamada <masahiroy@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v3 4/8] ia64,export.h: replace EXPORT_DATA_SYMBOL* with EXPORT_SYMBOL*
+Date:   Wed, 28 Sep 2022 15:39:43 +0900
+Message-Id: <20220928063947.299333-5-masahiroy@kernel.org>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20220928063947.299333-1-masahiroy@kernel.org>
+References: <20220928063947.299333-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20220927222851.37550-1-ndesaulniers@google.com>
-Sender: Russell King (Oracle) <linux@armlinux.org.uk>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Sep 27, 2022 at 03:28:51PM -0700, Nick Desaulniers wrote:
-> commit 1069c1dd20a3 ("ARM: 9231/1: Recover kretprobes return address for
-> EABI stack unwinder")
-> tickled a bug in clang's integrated assembler where the .save and .pad
-> directives must have corresponding .fnstart directives. The integrated
-> assembler is unaware that the compiler will be generating the .fnstart
-> directive.
+With the previous refactoring, you can always use EXPORT_SYMBOL*.
 
-Has it been confirmed that gcc does generate a .fnstart for naked
-functions?
+Replace two instances in ia64, then remove EXPORT_DATA_SYMBOL*.
 
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
+
+(no changes since v1)
+
+ arch/ia64/kernel/head.S      | 2 +-
+ arch/ia64/kernel/ivt.S       | 2 +-
+ include/asm-generic/export.h | 3 ---
+ 3 files changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/arch/ia64/kernel/head.S b/arch/ia64/kernel/head.S
+index f22469f1c1fc..c096500590e9 100644
+--- a/arch/ia64/kernel/head.S
++++ b/arch/ia64/kernel/head.S
+@@ -170,7 +170,7 @@ RestRR:											\
+ 	__PAGE_ALIGNED_DATA
+ 
+ 	.global empty_zero_page
+-EXPORT_DATA_SYMBOL_GPL(empty_zero_page)
++EXPORT_SYMBOL_GPL(empty_zero_page)
+ empty_zero_page:
+ 	.skip PAGE_SIZE
+ 
+diff --git a/arch/ia64/kernel/ivt.S b/arch/ia64/kernel/ivt.S
+index d6d4229b28db..7a418e324d30 100644
+--- a/arch/ia64/kernel/ivt.S
++++ b/arch/ia64/kernel/ivt.S
+@@ -87,7 +87,7 @@
+ 
+ 	.align 32768	// align on 32KB boundary
+ 	.global ia64_ivt
+-	EXPORT_DATA_SYMBOL(ia64_ivt)
++	EXPORT_SYMBOL(ia64_ivt)
+ ia64_ivt:
+ /////////////////////////////////////////////////////////////////////////////////////////
+ // 0x0000 Entry 0 (size 64 bundles) VHPT Translation (8,20,47)
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 0ae9f38a904c..570cd4da7210 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -8,7 +8,4 @@
+  */
+ #include <linux/export.h>
+ 
+-#define EXPORT_DATA_SYMBOL(name)	EXPORT_SYMBOL(name)
+-#define EXPORT_DATA_SYMBOL_GPL(name)	EXPORT_SYMBOL_GPL(name)
+-
+ #endif
 -- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTP is here! 40Mbps down 10Mbps up. Decent connectivity at last!
+2.34.1
+
