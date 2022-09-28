@@ -2,32 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 70BD3C04A95
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Sep 2022 06:42:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B5EAEC6FA97
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Sep 2022 06:42:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233236AbiI1Gmf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Sep 2022 02:42:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57414 "EHLO
+        id S233288AbiI1Gmk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Sep 2022 02:42:40 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57502 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233262AbiI1Glz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Sep 2022 02:41:55 -0400
+        with ESMTP id S233196AbiI1Gl4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Sep 2022 02:41:56 -0400
 Received: from conuserg-08.nifty.com (conuserg-08.nifty.com [210.131.2.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 550F6115F58;
-        Tue, 27 Sep 2022 23:41:18 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9C9789FCF;
+        Tue, 27 Sep 2022 23:41:33 -0700 (PDT)
 Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-08.nifty.com with ESMTP id 28S6e0G6004120;
-        Wed, 28 Sep 2022 15:40:05 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 28S6e0G6004120
+        by conuserg-08.nifty.com with ESMTP id 28S6e0G1004120;
+        Wed, 28 Sep 2022 15:40:01 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 28S6e0G1004120
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664347206;
-        bh=YuiSaa5TunTalSUSMGyvPMuKWQEyEfJw4GcU2AlJPTE=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=K+Ss4BadPpG9mhokH76NFCXwNpyJQQk2U8LJ4BwzVCdlAJ5XNmrwWT8k75kv1tce4
-         nIw0Uo7jpa6ovFT2ARJiPPjYY7eVBw7fMJLiYxkfY37DTPqeXOHzW1fx+Vx22LmijS
-         K7jlW/hi1z3ybhJ/Xkcw5kTMWrWdm69YtsgfLZliWrAuZrtmj5Fv6VXW8SL1ZcXgg/
-         bLFjtJJBwJQviSosJMYW4KgcT5SBuYiCVjR19kLRj4P/RelMJEpqSyhorZPrpPAy93
-         uJ48CCjueLhOp19nNgI+0Bnv7oqtxm6rgoir/M7SQKcsmK6PxHsgUGaNCeHkCs+y78
-         BYGyrmHRhgCUA==
+        s=dec2015msa; t=1664347202;
+        bh=bMCdFStQWZxbQk1gnDYL3CYDG5GATkG7hQ6PvF/Ni/8=;
+        h=From:To:Cc:Subject:Date:From;
+        b=zf8famM/zizOFxIt3oYqdutBJGCGMDtkJOGKUlSLT9VRrbo9zHExkpzA1iVxSLOh/
+         Oyt8iYIg532sXu1vuU1NUJy+TmrspHKQa50z7G1Jl7qjk/pem8zJB3O1/lPEzKI4SS
+         L8GwUNl26Vqk3PNauHk2YIv19nEf2yJJRCKrzqT6qxewU16Ddn4ZbpsSY+DxbguJF7
+         yEAuEbH1vrMESkNhAnrfQdF33O0/BrtmuH07MPMaeIm4uwvLrPybNhgVvtYX274aPD
+         rghIvbMv6VoszIUPOuddyty09b8Q3pHnJd95hTqhbWTgO520iTtQrI3oUlDbQBptbq
+         yf0pYtaWX6FGw==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -36,108 +36,90 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Ard Biesheuvel <ardb@kernel.org>,
         Nicolas Pitre <npitre@baylibre.com>,
         Masahiro Yamada <masahiroy@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Luis Chamberlain <mcgrof@kernel.org>,
+        Michal Marek <michal.lkml@markovi.net>,
+        Nathan Chancellor <nathan@kernel.org>,
         Nick Desaulniers <ndesaulniers@google.com>,
-        Michal Marek <michal.lkml@markovi.net>
-Subject: [PATCH v3 5/8] modpost: squash sym_update_namespace() into sym_add_exported()
-Date:   Wed, 28 Sep 2022 15:39:44 +0900
-Message-Id: <20220928063947.299333-6-masahiroy@kernel.org>
+        Tom Rix <trix@redhat.com>, linux-modules@vger.kernel.org,
+        llvm@lists.linux.dev
+Subject: [PATCH v3 0/8] Unify <linux/export.h> and <asm/export.h>, remove EXPORT_DATA_SYMBOL(), faster TRIM_UNUSED_KSYMS
+Date:   Wed, 28 Sep 2022 15:39:39 +0900
+Message-Id: <20220928063947.299333-1-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20220928063947.299333-1-masahiroy@kernel.org>
-References: <20220928063947.299333-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Pass a set of the name, license, and namespace to sym_add_exported().
 
-sym_update_namespace() is unneeded.
+This patch set refactors EXPORT_SYMBOL, <linux/export.h> and <asm/export.h>.
+Also, re-implement TRIM_UNUSED_KSYMS in one-pass.
 
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
----
+You can still put EXPORT_SYMBOL() in *.S file, very close to the definition,
+but you do not need to care about whether it is a function or a data.
+Remove EXPORT_DATA_SYMBOL().
 
-(no changes since v1)
+In v1, I broke ia64 because of missing distinction between functions and data.
 
- scripts/mod/modpost.c | 41 +++++++++--------------------------------
- 1 file changed, 9 insertions(+), 32 deletions(-)
+V2 handles it correctly.
+If the exported symbols is a function, KSYMTAB_FUNC is output.
+Otherwise, KSYMTAB_DATA is output.
 
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 13fff6e92aef..0bb5bbd176b4 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -352,26 +352,8 @@ static const char *sec_name(const struct elf_info *info, unsigned int secindex)
- 
- #define strstarts(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
- 
--static void sym_update_namespace(const char *symname, const char *namespace)
--{
--	struct symbol *s = find_symbol(symname);
--
--	/*
--	 * That symbol should have been created earlier and thus this is
--	 * actually an assertion.
--	 */
--	if (!s) {
--		error("Could not update namespace(%s) for symbol %s\n",
--		      namespace, symname);
--		return;
--	}
--
--	free(s->namespace);
--	s->namespace = namespace[0] ? NOFAIL(strdup(namespace)) : NULL;
--}
--
- static struct symbol *sym_add_exported(const char *name, struct module *mod,
--				       bool gpl_only)
-+				       bool gpl_only, const char *namespace)
- {
- 	struct symbol *s = find_symbol(name);
- 
-@@ -384,6 +366,7 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
- 	s = alloc_symbol(name);
- 	s->module = mod;
- 	s->is_gpl_only = gpl_only;
-+	s->namespace = namespace[0] ? NOFAIL(strdup(namespace)) : NULL;
- 	list_add_tail(&s->list, &mod->exported_symbols);
- 	hash_add_symbol(s);
- 
-@@ -657,17 +640,12 @@ static void handle_symbol(struct module *mod, struct elf_info *info,
- 		break;
- 	default:
- 		if (sym->st_shndx == info->export_symbol_sec) {
--			const char *name;
--
--			if (strstarts(symname, "__export_symbol_gpl.")) {
--				name = symname + strlen("__export_symbol_gpl.");
--				sym_add_exported(name, mod, true);
--				sym_update_namespace(name, sym_get_data(info, sym));
--			} else if (strstarts(symname, "__export_symbol.")) {
--				name = symname + strlen("__export_symbol.");
--				sym_add_exported(name, mod, false);
--				sym_update_namespace(name, sym_get_data(info, sym));
--			}
-+			if (strstarts(symname, "__export_symbol_gpl."))
-+				sym_add_exported(symname + strlen("__export_symbol_gpl."),
-+						 mod, true, sym_get_data(info, sym));
-+			else if (strstarts(symname, "__export_symbol."))
-+				sym_add_exported(symname + strlen("__export_symbol."),
-+						 mod, false, sym_get_data(info, sym));
- 
- 			break;
- 		}
-@@ -2283,9 +2261,8 @@ static void read_dump(const char *fname)
- 			mod = new_module(modname, strlen(modname));
- 			mod->from_dump = true;
- 		}
--		s = sym_add_exported(symname, mod, gpl_only);
-+		s = sym_add_exported(symname, mod, gpl_only, namespace);
- 		sym_set_crc(s, crc);
--		sym_update_namespace(symname, namespace);
- 	}
- 	free(buf);
- 	return;
+
+Changes in v3:
+  - Move to the head of the series
+  - New patch
+  - Move struct kernel_symbol to kernel/module/internal.h
+  - Some cleanups
+
+Changes in v2:
+  - New patch
+  - Use KSYMTAB_FUNC and KSYMTAB_DATA for functions and data, respectively
+    This distinction is needed for ia64.
+  - New patch
+  - New patch
+
+Masahiro Yamada (8):
+  kbuild: move modules.builtin(.modinfo) rules to Makefile.vmlinux_o
+  kbuild: rebuild .vmlinux.export.o when its prerequisite is updated
+  kbuild: generate KSYMTAB entries by modpost
+  ia64,export.h: replace EXPORT_DATA_SYMBOL* with EXPORT_SYMBOL*
+  modpost: squash sym_update_namespace() into sym_add_exported()
+  modpost: use null string instead of NULL pointer for default namespace
+  modpost: squash report_sec_mismatch() and remove enum mismatch
+  kbuild: implement CONFIG_TRIM_UNUSED_KSYMS without recursion
+
+ .gitignore                      |   1 -
+ Makefile                        |  37 ++----
+ arch/ia64/include/asm/Kbuild    |   1 +
+ arch/ia64/include/asm/export.h  |   3 -
+ arch/ia64/kernel/head.S         |   2 +-
+ arch/ia64/kernel/ivt.S          |   2 +-
+ include/asm-generic/export.h    |  83 +-----------
+ include/linux/export-internal.h |  49 +++++++
+ include/linux/export.h          | 114 +++-------------
+ kernel/module/internal.h        |  12 ++
+ scripts/Makefile.build          |  15 +--
+ scripts/Makefile.modpost        |   8 +-
+ scripts/Makefile.vmlinux        |  21 ++-
+ scripts/Makefile.vmlinux_o      |  26 +++-
+ scripts/adjust_autoksyms.sh     |  73 ----------
+ scripts/basic/fixdep.c          |   3 +-
+ scripts/check-local-export      |   4 +-
+ scripts/gen_autoksyms.sh        |  62 ---------
+ scripts/gen_ksymdeps.sh         |  30 -----
+ scripts/link-vmlinux.sh         |  12 --
+ scripts/mod/modpost.c           | 228 ++++++++++++++++----------------
+ scripts/mod/modpost.h           |   1 +
+ scripts/remove-stale-files      |   2 +
+ 23 files changed, 270 insertions(+), 519 deletions(-)
+ delete mode 100644 arch/ia64/include/asm/export.h
+ delete mode 100755 scripts/adjust_autoksyms.sh
+ delete mode 100755 scripts/gen_autoksyms.sh
+ delete mode 100755 scripts/gen_ksymdeps.sh
+
 -- 
 2.34.1
 
