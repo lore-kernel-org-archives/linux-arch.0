@@ -2,32 +2,32 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BE2CFC6FA94
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Sep 2022 06:42:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 70BD3C04A95
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Sep 2022 06:42:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233223AbiI1Gmi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Sep 2022 02:42:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57434 "EHLO
+        id S233236AbiI1Gmf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Sep 2022 02:42:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57414 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233263AbiI1Glz (ORCPT
+        with ESMTP id S233262AbiI1Glz (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Sep 2022 02:41:55 -0400
 Received: from conuserg-08.nifty.com (conuserg-08.nifty.com [210.131.2.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AA7C736789;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 550F6115F58;
         Tue, 27 Sep 2022 23:41:18 -0700 (PDT)
 Received: from zoe.. (133-32-182-133.west.xps.vectant.ne.jp [133.32.182.133]) (authenticated)
-        by conuserg-08.nifty.com with ESMTP id 28S6e0G2004120;
-        Wed, 28 Sep 2022 15:40:02 +0900
-DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 28S6e0G2004120
+        by conuserg-08.nifty.com with ESMTP id 28S6e0G6004120;
+        Wed, 28 Sep 2022 15:40:05 +0900
+DKIM-Filter: OpenDKIM Filter v2.10.3 conuserg-08.nifty.com 28S6e0G6004120
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=nifty.com;
-        s=dec2015msa; t=1664347202;
-        bh=cvsLCNDwjBFU5nq7DjNhdSJyG++SPqw0M0fKpYcoIIQ=;
+        s=dec2015msa; t=1664347206;
+        bh=YuiSaa5TunTalSUSMGyvPMuKWQEyEfJw4GcU2AlJPTE=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=XfO0Pp0oPAMch+QY5Ic0JiViCsExdy9FJDvDhjzoNXddtErOYu5MZqzCHH0cEEE0R
-         PObhfwksw/Es9GK3aFShbhKE0TlijtJWel/zD3tTbTODcZGNB+qcV2UNW8xAaOLap2
-         neqZChGRFbyweblO0Q3xtvjsjEUJ4o8dHNle/Vt7Cs/l/7LyZ6AxQMCjI9gtaG1Ou1
-         xCqvzBCFtyCtWxXxIyEM54ua77jBDIvr2jzCkCE0gUtGhwpCjAfIlqclXWhY98BJ/+
-         /wufui0A2GPNiMQP8VNnhRHorTeAhwaYspnovnnOf5u9inup5nf8bR+ClvAqC295gl
-         a4Yo2F8ycHSgg==
+        b=K+Ss4BadPpG9mhokH76NFCXwNpyJQQk2U8LJ4BwzVCdlAJ5XNmrwWT8k75kv1tce4
+         nIw0Uo7jpa6ovFT2ARJiPPjYY7eVBw7fMJLiYxkfY37DTPqeXOHzW1fx+Vx22LmijS
+         K7jlW/hi1z3ybhJ/Xkcw5kTMWrWdm69YtsgfLZliWrAuZrtmj5Fv6VXW8SL1ZcXgg/
+         bLFjtJJBwJQviSosJMYW4KgcT5SBuYiCVjR19kLRj4P/RelMJEpqSyhorZPrpPAy93
+         uJ48CCjueLhOp19nNgI+0Bnv7oqtxm6rgoir/M7SQKcsmK6PxHsgUGaNCeHkCs+y78
+         BYGyrmHRhgCUA==
 X-Nifty-SrcIP: [133.32.182.133]
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     linux-kbuild@vger.kernel.org
@@ -36,11 +36,11 @@ Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Ard Biesheuvel <ardb@kernel.org>,
         Nicolas Pitre <npitre@baylibre.com>,
         Masahiro Yamada <masahiroy@kernel.org>,
-        Michal Marek <michal.lkml@markovi.net>,
-        Nick Desaulniers <ndesaulniers@google.com>
-Subject: [PATCH v3 1/8] kbuild: move modules.builtin(.modinfo) rules to Makefile.vmlinux_o
-Date:   Wed, 28 Sep 2022 15:39:40 +0900
-Message-Id: <20220928063947.299333-2-masahiroy@kernel.org>
+        Nick Desaulniers <ndesaulniers@google.com>,
+        Michal Marek <michal.lkml@markovi.net>
+Subject: [PATCH v3 5/8] modpost: squash sym_update_namespace() into sym_add_exported()
+Date:   Wed, 28 Sep 2022 15:39:44 +0900
+Message-Id: <20220928063947.299333-6-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20220928063947.299333-1-masahiroy@kernel.org>
 References: <20220928063947.299333-1-masahiroy@kernel.org>
@@ -50,106 +50,94 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Do not build modules.builtin(.modinfo) as a side-effect of vmlinux.
+Pass a set of the name, license, and namespace to sym_add_exported().
 
-There are no good reason to rebuild them just because any of vmlinux's
-prerequistes (vmlinux.lds, .vmlinux.export.c, etc.) has been updated.
+sym_update_namespace() is unneeded.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
 ---
 
-Changes in v3:
-  - Move to the head of the series
+(no changes since v1)
 
-Changes in v2:
-  - New patch
+ scripts/mod/modpost.c | 41 +++++++++--------------------------------
+ 1 file changed, 9 insertions(+), 32 deletions(-)
 
- Makefile                   |  6 +++++-
- scripts/Makefile.vmlinux_o | 26 +++++++++++++++++++++++++-
- scripts/link-vmlinux.sh    |  7 -------
- 3 files changed, 30 insertions(+), 9 deletions(-)
-
-diff --git a/Makefile b/Makefile
-index 2b4980490ecb..83d8ff1d521a 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1153,9 +1153,13 @@ targets += vmlinux.a
- vmlinux.a: $(KBUILD_VMLINUX_OBJS) scripts/head-object-list.txt FORCE
- 	$(call if_changed,ar_vmlinux.a)
+diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
+index 13fff6e92aef..0bb5bbd176b4 100644
+--- a/scripts/mod/modpost.c
++++ b/scripts/mod/modpost.c
+@@ -352,26 +352,8 @@ static const char *sec_name(const struct elf_info *info, unsigned int secindex)
  
--vmlinux.o: autoksyms_recursive vmlinux.a $(KBUILD_VMLINUX_LIBS) FORCE
-+PHONY += vmlinux_o
-+vmlinux_o: autoksyms_recursive vmlinux.a $(KBUILD_VMLINUX_LIBS)
- 	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux_o
+ #define strstarts(str, prefix) (strncmp(str, prefix, strlen(prefix)) == 0)
  
-+vmlinux.o modules.builtin.modinfo modules.builtin: vmlinux_o
-+	@:
-+
- ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
- 
- # Final link of vmlinux with optional arch pass after final link
-diff --git a/scripts/Makefile.vmlinux_o b/scripts/Makefile.vmlinux_o
-index 68c22879bade..0edfdb40364b 100644
---- a/scripts/Makefile.vmlinux_o
-+++ b/scripts/Makefile.vmlinux_o
-@@ -1,7 +1,7 @@
- # SPDX-License-Identifier: GPL-2.0-only
- 
- PHONY := __default
--__default: vmlinux.o
-+__default: vmlinux.o modules.builtin.modinfo modules.builtin
- 
- include include/config/auto.conf
- include $(srctree)/scripts/Kbuild.include
-@@ -62,6 +62,30 @@ vmlinux.o: $(initcalls-lds) vmlinux.a $(KBUILD_VMLINUX_LIBS) FORCE
- 
- targets += vmlinux.o
- 
-+# module.builtin.modinfo
-+# ---------------------------------------------------------------------------
-+
-+OBJCOPYFLAGS_modules.builtin.modinfo := -j .modinfo -O binary
-+
-+targets += modules.builtin.modinfo
-+modules.builtin.modinfo: vmlinux.o FORCE
-+	$(call if_changed,objcopy)
-+
-+# module.builtin
-+# ---------------------------------------------------------------------------
-+
-+# The second line aids cases where multiple modules share the same object.
-+
-+quiet_cmd_modules_builtin = GEN     $@
-+      cmd_modules_builtin = \
-+	tr '\0' '\n' < $< | \
-+	sed -n 's/^[[:alnum:]:_]*\.file=//p' | \
-+	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$$/.ko/' > $@
-+
-+targets += modules.builtin
-+modules.builtin: modules.builtin.modinfo FORCE
-+	$(call if_changed,modules_builtin)
-+
- # Add FORCE to the prequisites of a target to force it to be always rebuilt.
- # ---------------------------------------------------------------------------
- 
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 2782c5d1518b..e3d42202e54c 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -214,13 +214,6 @@ if [ "$1" = "clean" ]; then
- 	exit 0
- fi
- 
--info MODINFO modules.builtin.modinfo
--${OBJCOPY} -j .modinfo -O binary vmlinux.o modules.builtin.modinfo
--info GEN modules.builtin
--# The second line aids cases where multiple modules share the same object.
--tr '\0' '\n' < modules.builtin.modinfo | sed -n 's/^[[:alnum:]:_]*\.file=//p' |
--	tr ' ' '\n' | uniq | sed -e 's:^:kernel/:' -e 's/$/.ko/' > modules.builtin
+-static void sym_update_namespace(const char *symname, const char *namespace)
+-{
+-	struct symbol *s = find_symbol(symname);
 -
- if is_enabled CONFIG_MODULES; then
- 	${MAKE} -f "${srctree}/scripts/Makefile.vmlinux" .vmlinux.export.o
- fi
+-	/*
+-	 * That symbol should have been created earlier and thus this is
+-	 * actually an assertion.
+-	 */
+-	if (!s) {
+-		error("Could not update namespace(%s) for symbol %s\n",
+-		      namespace, symname);
+-		return;
+-	}
+-
+-	free(s->namespace);
+-	s->namespace = namespace[0] ? NOFAIL(strdup(namespace)) : NULL;
+-}
+-
+ static struct symbol *sym_add_exported(const char *name, struct module *mod,
+-				       bool gpl_only)
++				       bool gpl_only, const char *namespace)
+ {
+ 	struct symbol *s = find_symbol(name);
+ 
+@@ -384,6 +366,7 @@ static struct symbol *sym_add_exported(const char *name, struct module *mod,
+ 	s = alloc_symbol(name);
+ 	s->module = mod;
+ 	s->is_gpl_only = gpl_only;
++	s->namespace = namespace[0] ? NOFAIL(strdup(namespace)) : NULL;
+ 	list_add_tail(&s->list, &mod->exported_symbols);
+ 	hash_add_symbol(s);
+ 
+@@ -657,17 +640,12 @@ static void handle_symbol(struct module *mod, struct elf_info *info,
+ 		break;
+ 	default:
+ 		if (sym->st_shndx == info->export_symbol_sec) {
+-			const char *name;
+-
+-			if (strstarts(symname, "__export_symbol_gpl.")) {
+-				name = symname + strlen("__export_symbol_gpl.");
+-				sym_add_exported(name, mod, true);
+-				sym_update_namespace(name, sym_get_data(info, sym));
+-			} else if (strstarts(symname, "__export_symbol.")) {
+-				name = symname + strlen("__export_symbol.");
+-				sym_add_exported(name, mod, false);
+-				sym_update_namespace(name, sym_get_data(info, sym));
+-			}
++			if (strstarts(symname, "__export_symbol_gpl."))
++				sym_add_exported(symname + strlen("__export_symbol_gpl."),
++						 mod, true, sym_get_data(info, sym));
++			else if (strstarts(symname, "__export_symbol."))
++				sym_add_exported(symname + strlen("__export_symbol."),
++						 mod, false, sym_get_data(info, sym));
+ 
+ 			break;
+ 		}
+@@ -2283,9 +2261,8 @@ static void read_dump(const char *fname)
+ 			mod = new_module(modname, strlen(modname));
+ 			mod->from_dump = true;
+ 		}
+-		s = sym_add_exported(symname, mod, gpl_only);
++		s = sym_add_exported(symname, mod, gpl_only, namespace);
+ 		sym_set_crc(s, crc);
+-		sym_update_namespace(symname, namespace);
+ 	}
+ 	free(buf);
+ 	return;
 -- 
 2.34.1
 
