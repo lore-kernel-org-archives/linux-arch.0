@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CFD27C3A589
-	for <linux-arch@archiver.kernel.org>; Mon,  3 Oct 2022 22:22:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A37F0C3A5A7
+	for <linux-arch@archiver.kernel.org>; Mon,  3 Oct 2022 22:22:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230103AbiJCWWI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 3 Oct 2022 18:22:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34086 "EHLO
+        id S230117AbiJCWWK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 3 Oct 2022 18:22:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34212 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230024AbiJCWWE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Oct 2022 18:22:04 -0400
-Received: from NAM12-DM6-obe.outbound.protection.outlook.com (mail-dm6nam12on20719.outbound.protection.outlook.com [IPv6:2a01:111:f400:fe59::719])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 61AAE5509E;
-        Mon,  3 Oct 2022 15:22:03 -0700 (PDT)
+        with ESMTP id S230110AbiJCWWI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Oct 2022 18:22:08 -0400
+Received: from NAM12-MW2-obe.outbound.protection.outlook.com (mail-mw2nam12on2137.outbound.protection.outlook.com [40.107.244.137])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0F361550A8;
+        Mon,  3 Oct 2022 15:22:07 -0700 (PDT)
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=H5JvXvyGZ1Wts3f4VV7VUtPuN3+hD7KTqZEPTeE+UpyZ3w1OJcidLibLewUNGwM2NlohIwvXdxGY6aKuY3IRjU5+3mTDu7Zw8ikVryi/C9Pc6kf+mWO373A6sJBIvrkF46hAnn4MyaEpBt7+/rWt8c3RDEz/t0vY7+f98myhVhESQzdsVPOPiPLPA5DRqmxpq9pVn3b3bM7zB+6uqfZ+GAa/ds+EnK6mp47IxfZSabT9v44Vnd1IwQ8ZNkpvDPDosdBf2CblIWH7JBz1xsJ4r/hXjRR9O+oe9GVl0JSlVL8c1iI2flGFe05KFFRttQeZS+7L7yepADj0w9WV+iQWAA==
+ b=AvWC7dP+nAyz/Tur0QvGr9zBQxLung8farDkz9PpqwQBxhrr4Soqq5i18Z5mgYnj/1z+Ej9HiM8pQKpvMcijbi+QYm7nzM7xiOIQ3pIqstLsbJnfec/uFdY3twJ6vkZpPjKg7BaiU7RYPUWxQStaHQGgML9ByoyoPuwx0RK1laS8WlSHwB6CO777uzZmXFyRwTq0nE6MpFk7DmkxXLJq+No49DDI5hgCiOAlL/HBQ3cX4mHTVhtDmxo/DE/zAZMrB9J7Oc3ZofRhkavL2CwGXvdGXRjzaHW+oQYNBXBEouUKjfdA60Iv1oomUMwELa+RMficC61Bno36qo4lMJ923w==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=OoLludXIvj9/dFEss6wXJs6a1houVrS1o/ZDErKipS4=;
- b=kuavkvcT7OsyeSPDmED8U+xgJfipFHg3mCN+La/CguiwtWnllUwCuX59JdJ0rb3yPE6PBC+T6kaQPjSQ1eUz/u/VSthTlzik1ZDFhlL13j6+20H7ZB5GYuGOQTCdvMZPFgDEaJOzWcpXGqGo5YVOoqJvoKGI3+2B490b93/NBXSQIvFiv6UKL48V4X68BofsmC64GQ+psPLZVscpTa/+K4t7MIQ5iNQSdpPWdp/cA+u4dF16jPTIksdtVatkWvKArbYj6E4fMdLV8FToVbymDm0vccx9hOdUNfgcJMmV6PQHYOxna1w4pZwkSksQO6cd+po9emBo1ZRVQUIjTQaPlQ==
+ bh=jaq7NPEdmF6sLDvhdoNRQ7kvkb7UJg1hsFjyRbdXRlc=;
+ b=T0K/XUuj8MfHtuq8eHoUtAwv5kXwpsfWzYiuGOy69hvuTZDhSOUYAf4635q7N9MAMp/F6QZnbqnVFP1xcW7fkq9SAig8eLpUkCrpr2PHFAf15ilJm8HLd26hUXsT84Y7PAGUS64h1rjRk2OhSJHYfoVfDtbVQSDn+esa2bPAkv3DOyG49yFdLLd6+dE+214LFw7c4TbGSy9QlsRfOHnKYkGdhLuz5RlHb48fXptGAxkWmllnnVgb+1mimVtIbPH6rwxSkPK/z4MdWOAL/gBXEUuckZvIKT8AXzHmRdyX2jP0EmxElpG+0rNwlynGfHlxS9TaQHlj6iplReosXECZ0A==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=bu.edu; dmarc=pass action=none header.from=bu.edu; dkim=pass
  header.d=bu.edu; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=bu.edu; s=selector2;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=OoLludXIvj9/dFEss6wXJs6a1houVrS1o/ZDErKipS4=;
- b=TPByCr6ijpqhvzviE7nHWyUiBODOk/W5byNNKbOskpmcCHswYR9Jbnw5QllNce+M8Nkr4PGgXIBeBfstfLvOsuRCJesJbBRT7ecS7UZP6B2lW1Aj1M+yKjDiQoXJCwXwiCKmQ04GcGWT7UzOoK8e4g4kNQ7FNmqepkBIK4Sh7kKCT8s0LnBEYKq8nAprOGjbzkDA29wh+DNsOrYi2i40BxuZ3dppD0vfsZghoahAh4C5skQIGY4ljYoLuHzY5EJnfgWu3JT4duFMEFZEXcLE5gCYO6prnexBjO2Y1QxxHJRdz0HTcDWhtCu3q536LfGfg2G+e0G8IL2LE+oQpSOuRg==
+ bh=jaq7NPEdmF6sLDvhdoNRQ7kvkb7UJg1hsFjyRbdXRlc=;
+ b=PEr3BSinX07KUs1LnIyoUQm+izp5N/7swMN9v5j/fWdOOwulg9bTmN5v8qWGylFVDy8GjRsqbur+ldEm3vGwtzx+9ciK/0gqIiTV195Bp6HwOBi5zGfsYtoidojidQwbIklfndzr88t0BkeeZAvjceTAh5nmebBSnJN6E5V82SPP0vV7Z2uwbrl9lPIM5nTUqK85z22MTAbhFaplQu+kNulaDrYUZlPenrJYDCK4/974W59OhNDIcjRwHK/BHGo+G9C9jRaGZ/xKgSNZJiiKb0WNocxGxN2aeaiosVcN/2P8XCHWUOtvXsQg4iE5uLpWYOWcNmItviuYhsVy9QawGQ==
 Authentication-Results: dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=bu.edu;
 Received: from BL0PR03MB4129.namprd03.prod.outlook.com (2603:10b6:208:65::33)
- by MN2PR03MB4928.namprd03.prod.outlook.com (2603:10b6:208:1a7::12) with
+ by SJ0PR03MB6270.namprd03.prod.outlook.com (2603:10b6:a03:3ba::18) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5676.24; Mon, 3 Oct
- 2022 22:22:01 +0000
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5676.23; Mon, 3 Oct
+ 2022 22:22:03 +0000
 Received: from BL0PR03MB4129.namprd03.prod.outlook.com
  ([fe80::9e2b:bf05:79ec:581]) by BL0PR03MB4129.namprd03.prod.outlook.com
  ([fe80::9e2b:bf05:79ec:581%4]) with mapi id 15.20.5676.030; Mon, 3 Oct 2022
- 22:22:00 +0000
+ 22:22:02 +0000
 From:   Ali Raza <aliraza@bu.edu>
 To:     linux-kernel@vger.kernel.org
 Cc:     corbet@lwn.net, masahiroy@kernel.org, michal.lkml@markovi.net,
@@ -56,9 +56,9 @@ Cc:     corbet@lwn.net, masahiroy@kernel.org, michal.lkml@markovi.net,
         munsoner@bu.edu, tommyu@bu.edu, drepper@redhat.com,
         lwoodman@redhat.com, mboydmcse@gmail.com, okrieg@bu.edu,
         rmancuso@bu.edu, Ali Raza <aliraza@bu.edu>
-Subject: [RFC UKL 06/10] x86/fault: Skip checking kernel mode access to user address space for UKL
-Date:   Mon,  3 Oct 2022 18:21:29 -0400
-Message-Id: <20221003222133.20948-7-aliraza@bu.edu>
+Subject: [RFC UKL 08/10] exec: Make exec path for starting UKL application
+Date:   Mon,  3 Oct 2022 18:21:31 -0400
+Message-Id: <20221003222133.20948-9-aliraza@bu.edu>
 X-Mailer: git-send-email 2.37.3
 In-Reply-To: <20221003222133.20948-1-aliraza@bu.edu>
 References: <20221003222133.20948-1-aliraza@bu.edu>
@@ -69,62 +69,67 @@ X-ClientProxiedBy: MN2PR04CA0031.namprd04.prod.outlook.com
  (2603:10b6:208:65::33)
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: BL0PR03MB4129:EE_|MN2PR03MB4928:EE_
-X-MS-Office365-Filtering-Correlation-Id: 9a87b478-7197-4113-10eb-08daa58db112
+X-MS-TrafficTypeDiagnostic: BL0PR03MB4129:EE_|SJ0PR03MB6270:EE_
+X-MS-Office365-Filtering-Correlation-Id: 89f3e219-0efe-4349-9aba-08daa58db245
 X-LD-Processed: d57d32cc-c121-488f-b07b-dfe705680c71,ExtAddr
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: 8f/R1ivFOIpe61oGnzjp4VZk4MizdUuTPVPUtJuu0Ndi2TnrOOLddTPrOKMG45NNew1PS57VJkN2wcIMzpoMG+vNuTN1nTAZzSBXB4XzxLRgDjlmS4ysAuhqzhbevExw8xJ1d+JbPYcAMjwwCL2fTjyMjZxY0rvMr6FfhlRI6XslE5V1b0yS5l2bCNWVQfNdSiDuqZfoKNHaaRyqmx4aPFCxChX7T6KWjwbcOrGQ3L4YZL8KOojnCy5r4eAqR+J0CWzMx/4wsmRNrPzdM3TJa0gWd3Kkq9tGdtzKkaQDkNxrOGwzzS6Ed0I7B1bC5DM3OaoVsIGJPrT6EwUxl63YCb7lIPSZ2iLoBuZRPTOFZCtA36r9oIWJwEnxHJajirplHr5dS5wp4L3VYYGEe++6v0TjlybXYocA/IjcS9rMEQMdW1hQ+1L2aaaAnu6nbQiYAWBhIEkZY7OPsfhtkK+8yw7VQ9+paB6Ok5HNvi8+Isn78eR3NePwrCqrPI2+zv5ShkTK9UWcvCQHNx0A/Hm2WWC9StzT53Ia0KgPYcoGrcso3Aos0yaszCV5VzIxq5gZbdS3XoQV4r6VPms/SIZm+jjXheOcmZ4soyzB7LC33YTu0mXb+M3bRHd82Z8s0Bp1I7nTVX0EWrxeE+F21knKnBiJW9U9wHCkdaA5d0AV6YgQmqfmDKXEhH0k4XH6x1ZSyZ4IwJ8IwTHR33DEurI5d3AMlgt1s8Jx4PlFV6gMlP9xgbodAweauS/a7m+VfR2CQNlgFUyljMj9axls4Tc0VA==
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BL0PR03MB4129.namprd03.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230022)(4636009)(376002)(136003)(346002)(366004)(396003)(39860400002)(451199015)(8936002)(7406005)(41300700001)(6666004)(38350700002)(75432002)(66556008)(66476007)(4326008)(8676002)(1076003)(186003)(6512007)(2906002)(2616005)(66946007)(83380400001)(52116002)(6506007)(36756003)(5660300002)(7416002)(26005)(86362001)(41320700001)(6916009)(38100700002)(316002)(6486002)(478600001)(786003);DIR:OUT;SFP:1102;
+X-Microsoft-Antispam-Message-Info: AgkXhGH2TTBnkNVk3OscN+0gupR9Ul1vdv4Y+Q1Nod6jNGQxGj+1LnnvzpxU58W9TshqWcWZ+9+Ddy7xu19ZTGsQILwx6trRkJB3b3QrgKLfY5q6aHsQNduVT7MfEmp7ZVUT3fKDgK/fIge1Uj3ZvutUh5txf5j733+kqNVJT1HognLDTgVUHgyIERLdK/FqRBciqAIQC+ox7dW9nDTQ685RC9L48ipYuoBOMBsF/huKdyodoAReHqMeEZbhB7538dJQDiLRj6wVf6iYf47ZPucqShWUMn1K6tzCHIwM8Of78QVYPbvDzzetqIf/ngtAn86IIKRYCU8MuAOInbiaYTU7y3jxmVTfZGWGI5B9AI9wTznul2PRDVoGgWzxg5J7S0JKUzAIyAiR3CuLQlMVaCtbwVZF13/+BaBuR4G1rpjdiahaPAZXnsvG524V9dYXdoAaEYB+x2+AAZpAJxaui853L8NwcTs9m9h7BphltDWXwybALThElcIAKPOZdWe9DJzvsSZf6LTD2FV1u0SNa9u0dWx7rULKf9FCFyBY+1LCbMbxu55tbfd+Z+6hantAdLq8zb1FcmQkyVtG7jpgWjjY6aJIFU3iv8m/jN+g3xoqbEZnIqhvMjC38jEUksqAD2rAMUAt3ztnunjSp1igAUpmQgbcX7z2xEZMl4yTUf/HRjdlL0pTxjgTcL6Ukr0WDzsqKWdmCQvSMgQLSaXOzhoE1Z1vTBXWuC6P89NXn1I4P826pmQml1Hzqf3Qzj23RBtiyATmJGqA9obHJY5DjvuCBcZWMY6iZ1LBfcMRcmE=
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BL0PR03MB4129.namprd03.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230022)(4636009)(396003)(39860400002)(346002)(366004)(136003)(376002)(451199015)(52116002)(186003)(41320700001)(38100700002)(38350700002)(8676002)(4326008)(66476007)(66556008)(316002)(786003)(6916009)(2906002)(7406005)(41300700001)(8936002)(5660300002)(7416002)(2616005)(1076003)(6486002)(478600001)(26005)(6512007)(6666004)(83380400001)(6506007)(66946007)(86362001)(36756003)(75432002)(309714004);DIR:OUT;SFP:1102;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?YWYUYFyfxDihmPhu5mscnvN2afmKzFQlS/UU9QaMC4VWsNNxRxDY3sYLthJ4?=
- =?us-ascii?Q?LHDRcLw2BQ3Fk50FYXTH3BUQS4YSZCo/aJv0lhajficycah79ceunot1LhoN?=
- =?us-ascii?Q?NhlnmDGyidzNx9quHyGKVkLRDEwPAEApgrl/jmVGva0n6xdKZGeD5DUvBDjY?=
- =?us-ascii?Q?z+RE3GjvuE/dgnMLxoH3uwSwzbyG1Jlxz7KSkwtXafjLxst2fLOLvpQ7rG+Z?=
- =?us-ascii?Q?Xu5F6VkC6JVmczwLAcaaJqv7Zx2TsA2ogBP9unnvhqE9lG+FaSeJ8yvZWog/?=
- =?us-ascii?Q?SlAsru7BbjxGcIz2YLGserV6UVIBpPB7ATQrXXfzFqtw3uiQvEZzRehbl+pl?=
- =?us-ascii?Q?iyolRzqF7KGkeVKxXVKU9uNNt0dmwES4+rhSc/RPFkGgtYLEkL1ziKi84ocy?=
- =?us-ascii?Q?0KN6DwqOgEKex6h6pO2vwN5q+aQqCST/GxlYXP726bF2yDR2SLk+2SH29yEo?=
- =?us-ascii?Q?U3d7xhKXaoqCy8oy5F7G/UYOZg/C5oi9nqAJps3eVPA1LS5uSwnlaWrsSnWh?=
- =?us-ascii?Q?S3D+JvSkyPO7srdHpNCsEkvBpXASljXrMlp2zPChxDJYb55ffM4wnYNPEVbE?=
- =?us-ascii?Q?84I7pjag6wyrodnT4wLgHBq66JkCYWAhHeW0g0AsaK+5xqGsSj5S2fxhcAN7?=
- =?us-ascii?Q?czq6OjHLsdlmMo0BTZ8RjvTnPmLvdtqpK8SgQ0L0e8roD50p46/z+2ESBzAW?=
- =?us-ascii?Q?QUOUfjtW4XvBP8Kt7uO6SUcsPx8QqfiYIKnJKN/oWdHofU1PsiODn1QTMmD2?=
- =?us-ascii?Q?uJzTe/MroHEF+emNl+rU7Y32c7QAeZ4DWO4/DggEb3Kipr5CZmPgzMedSm9z?=
- =?us-ascii?Q?tr+2L7TlvkaAV8oGcLW0q0inhgzxkHzMjQm9/VvxbTdlygb10yYCHRksen79?=
- =?us-ascii?Q?DetWp7o+jw551SvI3GMCMgiJxsz1L7A8QDCV157lUzjthi98+FIHhBRhhpZ/?=
- =?us-ascii?Q?SabO1qlzyXmRT60wNMqy55ez1hF6wXwurPvtlBvOUfeZlrRjUCMPBmEIQZEy?=
- =?us-ascii?Q?LE7fy/9gtZmfZLuduxPQq/l/c/AxCSrrQwR5J/FL9A8lt5V5lRIiCgGT8o6u?=
- =?us-ascii?Q?/dk4RZ5eztpGY5h4nPbTo/TJfz10mSmkCYh+enmK5oy7ooSXo+r+UF0UYZ8r?=
- =?us-ascii?Q?YE5vki2ReMt4xCbrkxP6VXByscVieAfAKn/uS3vSSA4ikcG1O02GXRNsLg3Z?=
- =?us-ascii?Q?s0sfYt9KSniNCkC08TDACwQmuYz+yS+O7zvqRBw+vW5xvqAfu4y7+Rha65Wj?=
- =?us-ascii?Q?T23b/92cB6nPsEJR733OjzRT9axGgNkq60WV0lkOK0tzgnz43SSN8Dg2usRi?=
- =?us-ascii?Q?3OLjEvGs2gI7zQOmg0AlFMWOAER4ztjOr8+0XkQRD41ckvq3Tb9I1XmK/3bA?=
- =?us-ascii?Q?EYb07crA8dhx3U1vrVhQ4A7/X45pBlX5UGa+v4FV66qcguPehCCJKwikwLRS?=
- =?us-ascii?Q?RqgklS9zo1ZIYpGkLTdWl01oLan0rHovjGyhNf36Dby0myT+8dHbm/67izTP?=
- =?us-ascii?Q?NW8zbTRV+0a2aDvNm62YRZRT14FnraSWhdnpFDBrVyppF8BCLhISpNaT9gW4?=
- =?us-ascii?Q?Op1f9rsg+SRuTxLsMV/Sw7sZpkjiYmN3AaILMtJS?=
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?SoyTFAUWmyBX8nLOyZk8fOluaidxwziaalGQmGJ3nADrYqDl6I3MJtcojpht?=
+ =?us-ascii?Q?ZwIMUvkeN9wD4M181BEOw4OGYCw+e6YCdDBp7+IsfcZdgEBTiYDEjxHOoHNX?=
+ =?us-ascii?Q?ebnyX7vAHWIHkH2n2rwLx8ZK6jKKs63BoxGPBhyGSevPGH3JH9oTexldsBTc?=
+ =?us-ascii?Q?Qm+hm9KVYparlbTPMh19590U5EcoGF/qpRrJw3xYHJfhfwy+62qusqT5iURv?=
+ =?us-ascii?Q?uhBBq46KPt2HbV6za9XLIM14ZWhGqrA0TAmLmNFtXsSgG2Sncr7T8cB4t+R2?=
+ =?us-ascii?Q?ubIknggG6gKVoum+P4EUyCQaYTIRX42B8TuxesL+/QE77tAUMLOAqus4hMii?=
+ =?us-ascii?Q?JZgqkxyZuBxK1whuGbeZvBnJDraGkD2Ioueg2FWgpRoMAIuqf4TBwb4GK4Z7?=
+ =?us-ascii?Q?VYXTqIDX9rGabOWNDHAhznoNcQFB78lg1k6i2rP8ZmukvHWikUqYcL6JD5LZ?=
+ =?us-ascii?Q?yIJhFftI8FWy5WaXxBxS88UCDathzUJl5oJ6IBSUR1CZOcU0dQ88AZkMN/Ew?=
+ =?us-ascii?Q?fNyG9Y7uAkHw+NLc2c7XwwDHkcYUGjaYyHZTUuv3CzM2G+nqr5Zpn7siyIBL?=
+ =?us-ascii?Q?xBfWXRLkob+j8dj5EO3rMdR0RMcsW9hBJ729hHU6R+a48f6eyamfnuSSOeMf?=
+ =?us-ascii?Q?fj0DehXJqgxxcDqvdJlPEXdf+wR0MT/4fI61ymW1vbcpfz7dJdDuLzB+nR6g?=
+ =?us-ascii?Q?uKtoqfaYbVFOg43gciLIPMqTMLVdReax1ivSXgl9gI4E577G5kn4/q8p/u5m?=
+ =?us-ascii?Q?QwXsx56IuaZN8GmBeNKVZx9+iaqnOxc/oEaxlj1eZrD9fnD3URZNAWQSt9XK?=
+ =?us-ascii?Q?kN8btPHRofVC5/1J8NM5xtUTts6EAPoIs9ypIBHrextaoOqDszSykhagFLjn?=
+ =?us-ascii?Q?UP8nNXoMNoketFmoo/DGhXALnchmAHJxKobpKVRrvJD9TcZZ3Urn5X7RjaD3?=
+ =?us-ascii?Q?6ktbIAp/3gd8MgZpgRN+1hPp31JfXygfk5X6RnJ6M196ZbEsYdeDabj1wiln?=
+ =?us-ascii?Q?AuVsuDMvBBrt21oAZ51PHSmb4kkeabp5Rxg6GicXBkXHquM3wRlz4J/BRI3m?=
+ =?us-ascii?Q?qZ/a6h2lF+ZbqBQpDTQMMvENM09Ze0geEUw/7GhmDzr1tPOXOKtF9NMLKtq/?=
+ =?us-ascii?Q?Wb5DBoZuzsG67y4SZkxPt+zMhNKBtk7tXAj++ppcjiXbdpWvPUphHUAzphUp?=
+ =?us-ascii?Q?3mCS0Dvi0MSH2whh5QdY73dzQtSAjTTFPL6VyvITfAXY8UyM+YczFX4SMKVL?=
+ =?us-ascii?Q?CCbQTittpgu+4pIs2lV65dkIvQaKL86yRiAGQkO/BoyrqmmGMCr1jMUn3Xt+?=
+ =?us-ascii?Q?JP59VYJMiiNWzuxDN73FksK09lIbA5ZbLNOOQz4rxW9In66FhSQszX6cAb6s?=
+ =?us-ascii?Q?+tg8xh+5lsaZrwNfqKSh9JMfWdavciV65UwAqJHkFNCtmbqeZ58sq05CPF0o?=
+ =?us-ascii?Q?/h36flxTDaXHWVNGP5pIOqVaHe6ecM5gJWl12Ljz1jTOC4lk7mCOVt/Monfx?=
+ =?us-ascii?Q?jfbeH5TK9BpV1JzVbIT9qwijalJJuarjfaA45UOtx6g4Kj1/tYjsYDM62eCN?=
+ =?us-ascii?Q?+/EdDIeoBho9tvunJyE4vK0Ie5O3Rb6he6RS/lYU?=
 X-OriginatorOrg: bu.edu
-X-MS-Exchange-CrossTenant-Network-Message-Id: 9a87b478-7197-4113-10eb-08daa58db112
+X-MS-Exchange-CrossTenant-Network-Message-Id: 89f3e219-0efe-4349-9aba-08daa58db245
 X-MS-Exchange-CrossTenant-AuthSource: BL0PR03MB4129.namprd03.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 03 Oct 2022 22:22:00.8256
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 03 Oct 2022 22:22:02.8567
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: d57d32cc-c121-488f-b07b-dfe705680c71
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: TjjzY3rg8+0uhjkvOXopfRWUFP8B0XitVouupzt97577gDU2uCc6T/9kT+bPnFwq
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR03MB4928
+X-MS-Exchange-CrossTenant-UserPrincipalName: nJv+t/rrDRpzdFQGYgw42fDv2c0LLZCoCrpgDlpqQtrKLJfU1RwslyRN+jLdaBFQ
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ0PR03MB6270
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Normally, this check ensures that a kernel task has not ended up somehow
-raising a page fault in the user part of address space. This is done by
-checking if the CS value on stack. UKL always has the kernel value so this
-check will always fail. This change makes sure that this check is only done
-for non-UKL tasks by checking the in_user flag.
+The UKL application still relies on much of the setup done to start a
+standard user space process, so we still need to use much of that path.
+There are several areas that the UKL application doesn't need or want so we
+bypass them in the case of UKL. These are: ELF loading, because it is part
+of the kernel image; and segments register value initialization.  We need
+to record a starting location for the application heap, this normally is
+the end of the ELF binary, once loaded. We choose an arbitrary low address
+because there is no binary to load. We also hardcode the entry point for
+the application to ukl__start which is the entry point for glibc plus the
+'ukl_' prefix.
 
 Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Masahiro Yamada <masahiroy@kernel.org>
@@ -152,36 +157,312 @@ Cc: Valentin Schneider <vschneid@redhat.com>
 Cc: Paolo Bonzini <pbonzini@redhat.com>
 Cc: Josh Poimboeuf <jpoimboe@kernel.org>
 
+Suggested-by: Thomas Unger <tommyu@bu.edu>
 Signed-off-by: Ali Raza <aliraza@bu.edu>
 ---
- arch/x86/mm/fault.c | 7 +++++--
- 1 file changed, 5 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/elf.h   |  9 ++++--
+ arch/x86/kernel/process.c    | 13 +++++++++
+ arch/x86/kernel/process_64.c | 27 ++++++++++--------
+ fs/binfmt_elf.c              | 28 ++++++++++++++++++
+ fs/exec.c                    | 55 ++++++++++++++++++++++++++----------
+ 5 files changed, 103 insertions(+), 29 deletions(-)
 
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index fa71a5d12e87..26de3556ca2c 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -1328,7 +1328,9 @@ void do_user_addr_fault(struct pt_regs *regs,
- 	 * on well-defined single instructions listed in the exception
- 	 * tables.  But, an erroneous kernel fault occurring outside one of
- 	 * those areas which also holds mmap_lock might deadlock attempting
--	 * to validate the fault against the address space.
-+	 * to validate the fault against the address space. However, if we
-+	 * are configured as a unikernel and the fauling thread is the UKL
-+	 * application code we can proceed as normal.
- 	 *
- 	 * Only do the expensive exception table search when we might be at
- 	 * risk of a deadlock.  This happens if we
-@@ -1336,7 +1338,8 @@ void do_user_addr_fault(struct pt_regs *regs,
- 	 * 2. The access did not originate in userspace.
- 	 */
- 	if (unlikely(!mmap_read_trylock(mm))) {
--		if (!user_mode(regs) && !search_exception_tables(regs->ip)) {
-+		if (!user_mode(regs) &&	!search_exception_tables(regs->ip) &&
-+				!is_ukl_thread()) {
- 			/*
- 			 * Fault from code in kernel from
- 			 * which we do not expect faults.
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index cb0ff1055ab1..91b6efafb46f 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -6,6 +6,7 @@
+  * ELF register definitions..
+  */
+ #include <linux/thread_info.h>
++#include <linux/sched.h>
+ 
+ #include <asm/ptrace.h>
+ #include <asm/user.h>
+@@ -164,9 +165,11 @@ static inline void elf_common_init(struct thread_struct *t,
+ 	regs->si = regs->di = regs->bp = 0;
+ 	regs->r8 = regs->r9 = regs->r10 = regs->r11 = 0;
+ 	regs->r12 = regs->r13 = regs->r14 = regs->r15 = 0;
+-	t->fsbase = t->gsbase = 0;
+-	t->fsindex = t->gsindex = 0;
+-	t->ds = t->es = ds;
++	if (!is_ukl_thread()) {
++		t->fsbase = t->gsbase = 0;
++		t->fsindex = t->gsindex = 0;
++		t->ds = t->es = ds;
++	}
+ }
+ 
+ #define ELF_PLAT_INIT(_r, load_addr)			\
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 58a6ea472db9..8395fc0c3398 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -192,6 +192,19 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+ 	frame->bx = 0;
+ 	*childregs = *current_pt_regs();
+ 	childregs->ax = 0;
++
++#ifdef CONFIG_UNIKERNEL_LINUX
++	/*
++	 * UKL leaves return address and flags on user stack. This works
++	 * fine for clone (i.e., VM shared) but not for 'fork' style
++	 * clone (i.e., VM not shared). This is where we clean those extra
++	 * elements from user stack.
++	 */
++	if (is_ukl_thread() & !(clone_flags & CLONE_VM)) {
++		childregs->sp += 2*(sizeof(long));
++	}
++#endif
++
+ 	if (sp)
+ 		childregs->sp = sp;
+ 
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index e9e4a2946452..cf007b95d684 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -530,21 +530,26 @@ start_thread_common(struct pt_regs *regs, unsigned long new_ip,
+ {
+ 	WARN_ON_ONCE(regs != current_pt_regs());
+ 
+-	if (static_cpu_has(X86_BUG_NULL_SEG)) {
+-		/* Loading zero below won't clear the base. */
+-		loadsegment(fs, __USER_DS);
+-		load_gs_index(__USER_DS);
+-	}
++	if (!is_ukl_thread()) {
++		if (static_cpu_has(X86_BUG_NULL_SEG)) {
++			/* Loading zero below won't clear the base. */
++			loadsegment(fs, __USER_DS);
++			load_gs_index(__USER_DS);
++		}
+ 
+-	loadsegment(fs, 0);
+-	loadsegment(es, _ds);
+-	loadsegment(ds, _ds);
+-	load_gs_index(0);
++		loadsegment(fs, 0);
++		loadsegment(es, _ds);
++		loadsegment(ds, _ds);
++		load_gs_index(0);
+ 
++		regs->cs		= _cs;
++		regs->ss		= _ss;
++	} else {
++		regs->cs		= __KERNEL_CS;
++		regs->ss		= __KERNEL_DS;
++	}
+ 	regs->ip		= new_ip;
+ 	regs->sp		= new_sp;
+-	regs->cs		= _cs;
+-	regs->ss		= _ss;
+ 	regs->flags		= X86_EFLAGS_IF;
+ }
+ 
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 63c7ebb0da89..1c91f1179398 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -845,6 +845,10 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	struct pt_regs *regs;
+ 
+ 	retval = -ENOEXEC;
++
++	if (is_ukl_thread())
++		goto UKL_SKIP_READING_ELF;
++
+ 	/* First of all, some simple consistency checks */
+ 	if (memcmp(elf_ex->e_ident, ELFMAG, SELFMAG) != 0)
+ 		goto out;
+@@ -998,6 +1002,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	if (retval)
+ 		goto out_free_dentry;
+ 
++UKL_SKIP_READING_ELF:
+ 	/* Flush all traces of the currently running executable */
+ 	retval = begin_new_exec(bprm);
+ 	if (retval)
+@@ -1029,6 +1034,17 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 	start_data = 0;
+ 	end_data = 0;
+ 
++	if (is_ukl_thread()) {
++		/*
++		 * load_bias needs to ensure that we push the heap start
++		 * past the end of the executable, but in this case, it is
++		 * already mapped with the kernel text.  So we select an
++		 * address that is "high enough"
++		 */
++		load_bias = 0x405000;
++		goto UKL_SKIP_LOADING_ELF;
++	}
++
+ 	/* Now we do a little grungy work by mmapping the ELF image into
+ 	   the correct location in memory. */
+ 	for(i = 0, elf_ppnt = elf_phdata;
+@@ -1224,6 +1240,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 		}
+ 	}
+ 
++UKL_SKIP_LOADING_ELF:
+ 	e_entry = elf_ex->e_entry + load_bias;
+ 	phdr_addr += load_bias;
+ 	elf_bss += load_bias;
+@@ -1246,6 +1263,16 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 		goto out_free_dentry;
+ 	}
+ 
++	if (is_ukl_thread()) {
++		/*
++		 * We know that this symbol exists and that it is the entry
++		 * point for the linked application.
++		 */
++		extern void ukl__start(void);
++		elf_entry = (unsigned long) ukl__start;
++		goto UKL_SKIP_FINDING_ELF_ENTRY;
++	}
++
+ 	if (interpreter) {
+ 		elf_entry = load_elf_interp(interp_elf_ex,
+ 					    interpreter,
+@@ -1283,6 +1310,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
+ 
+ 	set_binfmt(&elf_format);
+ 
++UKL_SKIP_FINDING_ELF_ENTRY:
+ #ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
+ 	retval = ARCH_SETUP_ADDITIONAL_PAGES(bprm, elf_ex, !!interpreter);
+ 	if (retval < 0)
+diff --git a/fs/exec.c b/fs/exec.c
+index d046dbb9cbd0..4ae06fcf7436 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1246,9 +1246,11 @@ int begin_new_exec(struct linux_binprm * bprm)
+ 	int retval;
+ 
+ 	/* Once we are committed compute the creds */
+-	retval = bprm_creds_from_file(bprm);
+-	if (retval)
+-		return retval;
++	if (!is_ukl_thread()) {
++		retval = bprm_creds_from_file(bprm);
++		if (retval)
++			return retval;
++	}
+ 
+ 	/*
+ 	 * Ensure all future errors are fatal.
+@@ -1282,9 +1284,11 @@ int begin_new_exec(struct linux_binprm * bprm)
+ 		goto out;
+ 
+ 	/* If the binary is not readable then enforce mm->dumpable=0 */
+-	would_dump(bprm, bprm->file);
+-	if (bprm->have_execfd)
+-		would_dump(bprm, bprm->executable);
++	if (!is_ukl_thread()) {
++		would_dump(bprm, bprm->file);
++		if (bprm->have_execfd)
++			would_dump(bprm, bprm->executable);
++	}
+ 
+ 	/*
+ 	 * Release all of the old mmap stuff
+@@ -1509,6 +1513,11 @@ static struct linux_binprm *alloc_bprm(int fd, struct filename *filename)
+ 	if (!bprm)
+ 		goto out;
+ 
++	if (is_ukl_thread()) {
++		bprm->filename = "UKL";
++		goto out_ukl;
++	}
++
+ 	if (fd == AT_FDCWD || filename->name[0] == '/') {
+ 		bprm->filename = filename->name;
+ 	} else {
+@@ -1522,6 +1531,8 @@ static struct linux_binprm *alloc_bprm(int fd, struct filename *filename)
+ 
+ 		bprm->filename = bprm->fdpath;
+ 	}
++
++out_ukl:
+ 	bprm->interp = bprm->filename;
+ 
+ 	retval = bprm_mm_init(bprm);
+@@ -1708,6 +1719,15 @@ static int search_binary_handler(struct linux_binprm *bprm)
+ 	struct linux_binfmt *fmt;
+ 	int retval;
+ 
++	if (is_ukl_thread()) {
++		list_for_each_entry(fmt, &formats, lh) {
++			retval = fmt->load_binary(bprm);
++			if (retval == 0)
++				return retval;
++		}
++		goto out_ukl;
++	}
++
+ 	retval = prepare_binprm(bprm);
+ 	if (retval < 0)
+ 		return retval;
+@@ -1717,7 +1737,7 @@ static int search_binary_handler(struct linux_binprm *bprm)
+ 		return retval;
+ 
+ 	retval = -ENOENT;
+- retry:
++retry:
+ 	read_lock(&binfmt_lock);
+ 	list_for_each_entry(fmt, &formats, lh) {
+ 		if (!try_module_get(fmt->module))
+@@ -1745,6 +1765,7 @@ static int search_binary_handler(struct linux_binprm *bprm)
+ 		goto retry;
+ 	}
+ 
++out_ukl:
+ 	return retval;
+ }
+ 
+@@ -1799,7 +1820,7 @@ static int exec_binprm(struct linux_binprm *bprm)
+ static int bprm_execve(struct linux_binprm *bprm,
+ 		       int fd, struct filename *filename, int flags)
+ {
+-	struct file *file;
++	struct file *file = NULL;
+ 	int retval;
+ 
+ 	retval = prepare_bprm_creds(bprm);
+@@ -1809,10 +1830,12 @@ static int bprm_execve(struct linux_binprm *bprm,
+ 	check_unsafe_exec(bprm);
+ 	current->in_execve = 1;
+ 
+-	file = do_open_execat(fd, filename, flags);
+-	retval = PTR_ERR(file);
+-	if (IS_ERR(file))
+-		goto out_unmark;
++	if (!is_ukl_thread()) {
++		file = do_open_execat(fd, filename, flags);
++		retval = PTR_ERR(file);
++		if (IS_ERR(file))
++			goto out_unmark;
++	}
+ 
+ 	sched_exec();
+ 
+@@ -1830,9 +1853,11 @@ static int bprm_execve(struct linux_binprm *bprm,
+ 		bprm->interp_flags |= BINPRM_FLAGS_PATH_INACCESSIBLE;
+ 
+ 	/* Set the unchanging part of bprm->cred */
+-	retval = security_bprm_creds_for_exec(bprm);
+-	if (retval)
+-		goto out;
++	if (!is_ukl_thread()) {
++		retval = security_bprm_creds_for_exec(bprm);
++		if (retval)
++			goto out;
++	}
+ 
+ 	retval = exec_binprm(bprm);
+ 	if (retval < 0)
 -- 
 2.21.3
 
