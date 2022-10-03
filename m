@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C8BEC4167B
-	for <linux-arch@archiver.kernel.org>; Mon,  3 Oct 2022 22:22:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CA0B9C47081
+	for <linux-arch@archiver.kernel.org>; Mon,  3 Oct 2022 22:22:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230088AbiJCWWH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 3 Oct 2022 18:22:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34058 "EHLO
+        id S229648AbiJCWWJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 3 Oct 2022 18:22:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34130 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229994AbiJCWWD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Oct 2022 18:22:03 -0400
-Received: from NAM12-DM6-obe.outbound.protection.outlook.com (mail-dm6nam12on20719.outbound.protection.outlook.com [IPv6:2a01:111:f400:fe59::719])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5354855084;
-        Mon,  3 Oct 2022 15:22:02 -0700 (PDT)
+        with ESMTP id S230084AbiJCWWG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 3 Oct 2022 18:22:06 -0400
+Received: from NAM12-MW2-obe.outbound.protection.outlook.com (mail-mw2nam12on2137.outbound.protection.outlook.com [40.107.244.137])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4C787550A8;
+        Mon,  3 Oct 2022 15:22:04 -0700 (PDT)
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=H8/c2bggFW592cOpszPOSDZTqgmXrgBfdgnpgbBoIPx3PYHEODsd4KWl57caIlnST5i0+SSCPPvaniAdLj1ho9aYYcicoKLqL+QFj3VE0hTU+0XIJ2WuYfM2WMvRDVMLPRnUnkz/HzHNCGWoGL59AaiJpAUn+l4/6oMEpMuc2HqIOISjQg4YsScyJySOYc57HZJlEERLsJ0hXOa45GfjFg6bLJpNk3h1oCMmOP0d9dciqeIX+3j0z6fZQmDvUFGyFT9KuFo0BNbtILkdjcUOQmVNZqO8r4hphruSHlJa+N5pPX1UDM6RYW5slYKpy4WS3xW8UZKis/68AXJPa2hONA==
+ b=Iz4BRlalncUCjNQmN1JsYs36emAhRY3y1S5R5X6k3YgOfUHQ6pX5qlRpm2m1alrR/6sLMxBMjB/sXY/mnKjs+afUcnmRq4L1+d24uOBFKlYo44a4IOmf6oXnAQ9taMk8m/Ks+l4Hs8lnZovx7E9fx7bkpISNB4pp95cm5Cmf/coiBaU+VEwvC4OlyHvAUgrK6KteTvHFQ8sduwYd0It93WzB0Ks1adeG9SJL8iYADMcMU/htJJduQ7gl77exGZryc0qgGMX0o0tv0DA/DUkEU3PlUAjpjg4DucHV/SroV8RZqnZALfIOIjGLShtDBN4MTFlOOlMB7Zio3kPQwRm6CQ==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=Z14fAtkfPrOamaE/1DyoemSLSS4pvPqgduyW0IzSLBE=;
- b=MtqzAww3N9kpeBk3DJAtoib0BNsPZztqp0Sch7bC4/IyoD/uigo1pHSOfIWJQ7tdntuNGTGxrteobMNCltgNmsjwqNu2xqFQrl0NtrYP8LWeuZeX0jx672SLFTGnwanRfJ8QOZPqheU79X6CBcy/3haRy0vEPB/nNNUlXQkFhqEpxGd+dfT9UDewLGb57YeY7EYQvxdBKWyB8LtiP2euIxc0+KPdkK6/bJ3FgYiHShZ+B1ImwYHM65xBWHYAA3DMwx/oiAfHxHbMwBFVgOEs17LhFfat7wRlb2l8wbuxD2r0xOL/u4zxvbvTgqPx2ZWuaTYnp5CpAqfxaBugmDjt6w==
+ bh=BjPFCrEB1SGmj5J5Ix6tTabj4drSc36AnHk3HRtrIsg=;
+ b=WUlYEhRo3eJmnIolAhif+oIKDerGhxZWBBX8kBcDJJp4VaXzB3tcUzskl3AzytC5uD6Yjs/Ac9EbCxl96KlF71GUYNAURKW51qa08B8nmgFIr+FHB6s/dcFJ0dDjOC0/M7K1U8T7UrS+EP71Z8fewv+V2T6yBbcpFR0389riIl7UnffgMPs5hfLET++uXmTqYyPQe+52PYqlsoRGibeGAoxUPxZmqT8Dev2dKxbQeNhFMrRwniITmID2BGo3IqTg4QhSyhx83E0nMbatEwknA5GicpTX7Ftt5E3T8fs02c9jRmeUcxy/QvQnnXzvHxNsy87jg2zhib7Xk1REFUir8A==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=bu.edu; dmarc=pass action=none header.from=bu.edu; dkim=pass
  header.d=bu.edu; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=bu.edu; s=selector2;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=Z14fAtkfPrOamaE/1DyoemSLSS4pvPqgduyW0IzSLBE=;
- b=YZIiCvuG4gwt7W+kRyw3GDvf0gsStwDx140Cf3mrP/xIBB529tu21wycV1QeJ5FH+v5K556TR+Scj19JbBDBApxcSyNacTj7OLSarGT+owtpLU1CvC5pMHlyMpkJ+mPM9gxKSZr8VxaCJBRhvoqN+FCynMqjArpiYUwxm+RtU8nqvN8sRPYfgj7e90mVoS48vCYBJIS9DZ4M0ZnaK58/RZJrqB6S/8CBaoqKBqEdMpmS5LcHOwTS/5wgQxi/1DZs0COQBGSP8GPePnls6w1TBK2aai3yao5Ws+HtDazuo2nXd7FGWs5iJvbF9pkOzu0e91IadvDXvyTeyO+nZSuCfw==
+ bh=BjPFCrEB1SGmj5J5Ix6tTabj4drSc36AnHk3HRtrIsg=;
+ b=dUu0nlXgMxEcknq+5p78Xm0UPyhpsbidoPjjHFFYNwPx+hQJqssqKTsmsF8nI2wtzQ3LZxJO69QNfIm/4ScBf0G4oRTp7cMkrv+MQfZQlI9hZOYZMtblUyBdqvmEXH+GUUm7KCJet/8rU2tAuv/Zi6qnbvYwJMBfY/8okzzFiepX/7AjDCEaa8r6da7rg+HH6NvFpjKg8GwtuHpr0q30BlM3qHdDgcoF4rONHhpXm7+UXcbKcQi/zeIFzUnzHpbuWPVwHPggTLl2UOH0XM1PyvMj9WovhKGEJ2ykySJ48SMSqo8KqAFuPSBDghj1E+Tbc5RGhs6AhiVasHRWMTQfHQ==
 Authentication-Results: dkim=none (message not signed)
  header.d=none;dmarc=none action=none header.from=bu.edu;
 Received: from BL0PR03MB4129.namprd03.prod.outlook.com (2603:10b6:208:65::33)
- by MN2PR03MB4928.namprd03.prod.outlook.com (2603:10b6:208:1a7::12) with
+ by SJ0PR03MB6270.namprd03.prod.outlook.com (2603:10b6:a03:3ba::18) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5676.24; Mon, 3 Oct
- 2022 22:22:00 +0000
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5676.23; Mon, 3 Oct
+ 2022 22:22:02 +0000
 Received: from BL0PR03MB4129.namprd03.prod.outlook.com
  ([fe80::9e2b:bf05:79ec:581]) by BL0PR03MB4129.namprd03.prod.outlook.com
  ([fe80::9e2b:bf05:79ec:581%4]) with mapi id 15.20.5676.030; Mon, 3 Oct 2022
- 22:21:59 +0000
+ 22:22:02 +0000
 From:   Ali Raza <aliraza@bu.edu>
 To:     linux-kernel@vger.kernel.org
 Cc:     corbet@lwn.net, masahiroy@kernel.org, michal.lkml@markovi.net,
@@ -56,9 +56,9 @@ Cc:     corbet@lwn.net, masahiroy@kernel.org, michal.lkml@markovi.net,
         munsoner@bu.edu, tommyu@bu.edu, drepper@redhat.com,
         lwoodman@redhat.com, mboydmcse@gmail.com, okrieg@bu.edu,
         rmancuso@bu.edu, Ali Raza <aliraza@bu.edu>
-Subject: [RFC UKL 05/10] x86/uaccess: Make access_ok UKL aware
-Date:   Mon,  3 Oct 2022 18:21:28 -0400
-Message-Id: <20221003222133.20948-6-aliraza@bu.edu>
+Subject: [RFC UKL 07/10] x86/signal: Adjust signal handler register values and return frame
+Date:   Mon,  3 Oct 2022 18:21:30 -0400
+Message-Id: <20221003222133.20948-8-aliraza@bu.edu>
 X-Mailer: git-send-email 2.37.3
 In-Reply-To: <20221003222133.20948-1-aliraza@bu.edu>
 References: <20221003222133.20948-1-aliraza@bu.edu>
@@ -69,63 +69,64 @@ X-ClientProxiedBy: MN2PR04CA0031.namprd04.prod.outlook.com
  (2603:10b6:208:65::33)
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: BL0PR03MB4129:EE_|MN2PR03MB4928:EE_
-X-MS-Office365-Filtering-Correlation-Id: 484be881-c558-4b48-41b5-08daa58db07e
+X-MS-TrafficTypeDiagnostic: BL0PR03MB4129:EE_|SJ0PR03MB6270:EE_
+X-MS-Office365-Filtering-Correlation-Id: 94929797-b5d6-4e87-a4ac-08daa58db1aa
 X-LD-Processed: d57d32cc-c121-488f-b07b-dfe705680c71,ExtAddr
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: RTg+Uoix2B5fSTCKIlfm+3zSWdww2Q4SsF7Hhbv5jA312gjd3005gDrgqAlE0wnhN2YnB+frQkmgXnUQMTiI92kQ7XnbJWDqAPL6bBVvUDUYhsr9yaqaCoxkZqZgcMBjtxVQYCVdptW3+VrdOEbWo5XJ/0B8x/8NMD/SZdHb6//p2mlhUIWRCsfPQTGEa9D7fNq6SbwvIg+wLwMBXpnX+rJlIkEsbJOsC6+1k8Xgtqsefl+AUckKuDQ/lr+SQoFr3XYb0PU7F0MYMY71M6Euhxe4HKvtmkkZeECi8ZDkq/cbSX/pUmVIOJHrjqZvohBwv+USHqmV3EUQd1dbphunhoQeCRJGUVVkAZ0pAJLlxh0m8XVIpPFHE6K8cBv9mjoLhkOpBGh6HPwHfEHmNZRZtrk/XCEQLn+1txCWa+DKAcL/K6WJ38tTEk8kS7pLL76+kKlP0w4ilaS6cxp0EvA0MbfcPjMuM0BRMzYIylsXlBChnTiuOCclgR0/scrZtPZ5FEjhxVIxYdCCyNMfw4YPSAibboy1aEsXmCE2Q1w6Ye6kQZ4gm9vVY8UtkJx+vlthGyTDrM/kxoYky6a2ralKNw/9kHc9Ccxc5qTmGsuh1vxW/OhFNryrx0wekymKRjyBt5GHNBrexUozNvBN1+EQV0fx/RAuYEGhwd7vNLv0zX8NU1I3KjBnVW+hn6oB+4htZC5MV3FRqtPoTAksYf4U6sw4sAP8uwZ8vnQLltxch4jd+Kump6I1LerAj6U9r/Csk1EGRlTF4srtx/TMux4m7A==
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BL0PR03MB4129.namprd03.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230022)(4636009)(376002)(136003)(346002)(366004)(396003)(39860400002)(451199015)(8936002)(7406005)(41300700001)(6666004)(38350700002)(75432002)(66556008)(66476007)(4326008)(8676002)(1076003)(186003)(6512007)(2906002)(2616005)(66946007)(83380400001)(52116002)(6506007)(36756003)(5660300002)(7416002)(26005)(86362001)(41320700001)(6916009)(38100700002)(316002)(6486002)(478600001)(786003);DIR:OUT;SFP:1102;
+X-Microsoft-Antispam-Message-Info: bSpd4QtLjnrXfe7PfRk3eMM/9PorsNWWJuH2cAoPmbVP/Mw1tRt6/cjzU42FAlIyhUP0Qb1Z5fvT6Yx+DbR11ypc/jJ9/hQyE9F3X4RIqNIMTpeRBJUynDoHg4y5ANq3FlDD8+Vnce/FrrTKhHbBuYSjnj3AQhZ2s0iCM/L/61wM7dO5ydCzsNXXWneczmfZGpMY8/3gxkWI2GdBClqtiM62Wkg5KDJbvXU5DnJw7J2BR7uUSh805mls9atf+1WNr5O+N75X6vh5aJDSqNMSaTe4qfqp/WY15adZ/GO7ZKhgaYr0/Tnd+4DFgUHvzdof6AqBtaDeDRDasXBfHbxarKsSCCxLCSvE8YiHkRNpPNFp9DI403+4fgIf+PcIanAUoA+Bx/Iy1h7cs2Bokl6YeH+VqL3CAwQdo+DzEQwrzyt+lAkX5AOC6bSkkVhCYsDDPF/2bxW6oaFO+bOBifGF7BJyS3hew81FgJjjj13ER82tWNy8dJAR6APwvpBr6FSovKmjA91K/80cHm92vBKGfAAwtcAnonyCw6sxpZMEyc6ulQkwwHF5G5fQqsfoBPe+cpLeLZtpZUKlj5E7R3eo3yrcEOaTjPtDq8oFFu3xaW+5PzeOZ5CPVedZ3EKekIipEr8FuCiPTsMnAWMDWJksifnwOFHktPTQkRadWIO3iM+UKan/PbYtVRgMBvE0KJQyY59HBLs324M/3CnTmJ5JkgtFpWS7VGc/GTgwMk3X8dZEyC1voZ/mp8xGezYRtf5soW5ZRKjiwgk8HggQs3qt9g==
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BL0PR03MB4129.namprd03.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230022)(4636009)(396003)(39860400002)(346002)(366004)(136003)(376002)(451199015)(52116002)(186003)(41320700001)(38100700002)(38350700002)(8676002)(4326008)(66476007)(66556008)(316002)(786003)(6916009)(2906002)(7406005)(41300700001)(8936002)(5660300002)(7416002)(2616005)(1076003)(6486002)(478600001)(26005)(6512007)(6666004)(83380400001)(6506007)(66946007)(86362001)(36756003)(75432002);DIR:OUT;SFP:1102;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?yMVUkIQVjLTMlW/7DtvFo6XvDzF6cVW0jWybUzfL67VrCG5x3TQSKwDajKaE?=
- =?us-ascii?Q?jj/7nBbmlYH3EIPcIDgy/XSaxZss1xed8JLlJrrATMD0Kz/ojy+fUQVO+BU5?=
- =?us-ascii?Q?os+8nArLW+09LqxeRp4Sa8LvvuAhEByXx56md5dYXcKVLUyhREk0Y573zf9p?=
- =?us-ascii?Q?iOfkBIEzcEiwFCRIVFohDUuUP8FuVYWXxjUosIR+dEnfdtAx1QtDLRtz50gy?=
- =?us-ascii?Q?T4NBbQkf1kGNqLeq7wItyR/C3fsi/dG8YZEKCv+Gr6l0UgibkuUIC8RHTkbs?=
- =?us-ascii?Q?KvpjEmSyi431xxRNPV4IugJzh8diz+kgtb+VZJd3dCNPNDpYAPkpQnAlvkNS?=
- =?us-ascii?Q?Tm7qbZUXoV96KXBYSXbYc0YJwiasRQkLre3ZCqO8B4Ye5iR562AyYpkjM/0J?=
- =?us-ascii?Q?y5b0UiHWphTbOXGBz9TsPCvWz4TI4YpUpDZIhQxQ/P4XR+q41if9H9GZLKQZ?=
- =?us-ascii?Q?O91z2VjFAQ+7xERyfapx1j0NXtF5ZtIDJKAnntlS/7GYZ5LU85a+ToaI5Uuk?=
- =?us-ascii?Q?bnX5xcMMdZg1swAtyQcr2NL9fv0iPfvxP4C5sx5BPaKJfXPvkfIrnMF1xjVK?=
- =?us-ascii?Q?B6X1be4NATRW79r0S9u8wdRj6pIfuGmSJld6Prjk263rFa1c52suSRHRGS4E?=
- =?us-ascii?Q?cDA1N453cFgIc2Hi0A+JXlzklfISLV8PZTdq5OnF1ppdfLkyGD4ylpp+kmoK?=
- =?us-ascii?Q?HE//FcO98U5IfRQ004uzHwuvBFVZkIo4T9hIRwAt7z1F05OtYPqLaJgSVJCv?=
- =?us-ascii?Q?69TruagLZypqCAw4Sj9dQQV0/mnSRrRgzfZtrj+IXZpkLL3DQFr2VdbgaoMx?=
- =?us-ascii?Q?GO9Y6mUyidECvIEvcR8exTKHhlOKn/XwgEOo9muo8pvRm6j7U+CGlPAziwHE?=
- =?us-ascii?Q?rEGddHdOeWY8HAqKOhAW14TwEk1ps8bcdlkhJdeWsKX6CXYxho2/LhYM+IF9?=
- =?us-ascii?Q?xlEiYfieTRaIKKhqycSPAYWNx4xDkvfOLD6AIeP5xHdKDtXY3WtJ5anBtqBY?=
- =?us-ascii?Q?w5AEBcT2DkoEJgwdqLVNbpeOgz8lRnu5V4/R1qiOj3CbQTB9oayE4S0aLwjF?=
- =?us-ascii?Q?OZvGuhWsMJ4j2Npap9KUoXz0tN93NL5uLSpq5QwxioEiEVl42O/AtVBIgl9N?=
- =?us-ascii?Q?5vii7rmMjLBVFFW8ahQmk2RudqKalvWmlHtIPTF0f2IEBvWdAXkvJqAdCQ4v?=
- =?us-ascii?Q?apkDvvrybxrtkt4j0grrAH5cT2Us/D8GNOYJgCyiFGmvutok8MLkEopdvuLJ?=
- =?us-ascii?Q?REfsdubUp4Gkjil4yAVK8CqDs8dkPoWhDDXoOTW56oRwKXjKds8NE4AhKVpQ?=
- =?us-ascii?Q?Q+6ppL7Iyax+9UYHjSsOzPo7/TvL83uG6aHuQm5W6/fpbxI45yAcpuxKlk5T?=
- =?us-ascii?Q?rlfC0yb4YjaQ8Rm5/spemOn2VRgEAoPJPp8y21sA4+U9JGyEw6ME5Lnx5P0+?=
- =?us-ascii?Q?35Zstoiz/uJdP3j6BX445RqF+i0ch7aWZPiDwATq38XX8G0jIYbwufLqyh7t?=
- =?us-ascii?Q?wXaGe/3XoTzD1dbhBjsItdpRI7rzwqAoEbtrRWn8qmjeuudOY8HApPUVmOeV?=
- =?us-ascii?Q?aRt/ANoig9XnySlxZ59eddo5laROzPTEsUELEcgh?=
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?7mguedHQm3C0aa0NIYcVIo4ihqwwvd5ISDazngCK2quctDCgT23db9Cntoji?=
+ =?us-ascii?Q?AbrJYtwco/zgnBWxRTFT4g+tNtEyvMmNWdlh4H1IgCAaEBtySs3MhV25MuoJ?=
+ =?us-ascii?Q?kHKRlheQkiPhlAparE1NrllPVuPe4QDVuBh+Gi5WhDEJbxk0Uh6n4k+9b+d1?=
+ =?us-ascii?Q?5gVz2fSQBJ04XTpiTerUOCWm5mlNdap8n8Vn9CsiMvEktR5ynNO6YJ0YkOMk?=
+ =?us-ascii?Q?pS5eFq+GCLwuJjlqcKG6K1I9wVGZfMGFXKQ7grl0KS3Z2YvTEIaGq0GXOPdM?=
+ =?us-ascii?Q?PhTeS5CAuikjTyyQav8piZ2HDX7OIqXeud790ujLRuWz3082jrYkgR1F23yl?=
+ =?us-ascii?Q?hrB/p7R/D1sURI6Upgg8r1K2MbCjuDdbUlJrlM3H9xNGsx1NK42W6vxBUuJX?=
+ =?us-ascii?Q?eZBrjOcsYcXWJt0UsEoJb6htjS+it5I1bx2a9Sr0DMYPAEWYSDcT1nXwaBsz?=
+ =?us-ascii?Q?7iikBnGvBsQOEjcGqWeaExrTVG6k0muWSn42cyicZbGqQnhowHKAvJpn9VRX?=
+ =?us-ascii?Q?4dt1Hvgu/iauqyrw+HvSIaVU09jMItNWS6W1MzKhX/JBjpEXtnTi7FDkAHFs?=
+ =?us-ascii?Q?0mpxM3xXWv2oLsLO1/XdQeIRKK/p0U7PR7QNdS5brUUKcP+gFmmV8qJi01vX?=
+ =?us-ascii?Q?q/YuWeWZbbcBNNbGpYCLDamz1uoPGYQ3899f1BkQLDRPVAFwyth+6/zkRDUw?=
+ =?us-ascii?Q?e4ZfUx3wty97n6fg3pzfDGKJKvZ2v3hrF81f6soTrtral7QXWCWxkjurzEnU?=
+ =?us-ascii?Q?1SwOR8f9TROh3Izw4BiuLiDePJ6lGCa5sVLc/eQosOIsND1dVTWSqdnqIXiH?=
+ =?us-ascii?Q?7/nt23quK1EH409N8PBRl1mds7e/wnq6PqOuyBwdD5diIgG+vnFMIY5U16ri?=
+ =?us-ascii?Q?DMOr31QLfOMuob3pwUugKGJjQCVWTjFWMwBn4yv24wrimWBo7YgqG6vJCP0z?=
+ =?us-ascii?Q?Z4tdJmudba05CZZVp3Esqpy64bBi8AiqUTytlzI3mDqSvsrckMRJ5yKkLIBd?=
+ =?us-ascii?Q?Qri0D2PdnFnCPuLz31BibHZWrI2cVW+LEdWRwWeOHJcZZKYXV3Ke56vCzf1f?=
+ =?us-ascii?Q?SUEu5zHuyWvGZ0M+iBVvJZKlYCuHcD7LW2yxyGzFjdhnLiniaOCNQkvjvBai?=
+ =?us-ascii?Q?5cOeIFLaqQob3AM+noz2BFsxw7eMgoPrDckILArik08wvyfFDC5gC3SmODpm?=
+ =?us-ascii?Q?qE6FJdL6rRBm3DdciVz9bZ9Phk8C14KTodUwNKLw+J5ki/+WfwezLAWaT4Cv?=
+ =?us-ascii?Q?6u0woFXVoSl8sB250STJy2ZiIuPgdpZByZpwn6aHI+j7P+Y96ItXss8Ke9SJ?=
+ =?us-ascii?Q?MKdKjrIJjaXtceP1+B88VcvuKnFr35+VEiv6oDrMWN8lU2HJ6xOIpoq+w7OC?=
+ =?us-ascii?Q?0syJRzm/JZfFZvJFBUOT+oPXs9HX3kwyhZ4y87aP4F0TyGjBkr6PmZP//poD?=
+ =?us-ascii?Q?HM+r5bAVDqUCfATusBp6Z40D7pplzIxJa1BNFhxEeFobkiopyGZbgOmMReJ5?=
+ =?us-ascii?Q?ZDY1buZgm1y4/wbch4U+Xc4oY+m7l53AAUdT1JlMufUWf8BCru+YULTrmAhI?=
+ =?us-ascii?Q?YKGRF6zEkQf1hA4HhtNIzCs4abWtim8mL4LoK5sS?=
 X-OriginatorOrg: bu.edu
-X-MS-Exchange-CrossTenant-Network-Message-Id: 484be881-c558-4b48-41b5-08daa58db07e
+X-MS-Exchange-CrossTenant-Network-Message-Id: 94929797-b5d6-4e87-a4ac-08daa58db1aa
 X-MS-Exchange-CrossTenant-AuthSource: BL0PR03MB4129.namprd03.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 03 Oct 2022 22:21:59.8569
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 03 Oct 2022 22:22:01.8724
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: d57d32cc-c121-488f-b07b-dfe705680c71
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: 0BvbyvWu9cfqSMWbOj4598Ci4AQ30aqpBh9YIiwb+3nOGLA4icfHnHmgQPFZXIft
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR03MB4928
+X-MS-Exchange-CrossTenant-UserPrincipalName: oUQ3oNim42MNhsplV4odpA95OswXRkC0rN47swyUyfgW4SdQbh9jg568lBtxPC2c
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ0PR03MB6270
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When configured for UKL, access_ok needs to account for the unified address
-space that is used by the kernel and the process being run. To do this,
-they need to check the task struct field added earlier to determine where
-the execution that is making the check is running. For a zero value, the
-normal boundary definitions apply, but non-zero value indicates a UKL
-thread and a shared address space should be assumed.
+For a UKL thread, returning to a signal handler is not done with iret or
+sysret.  This means we need to adjust the way the return stack frame is
+handled for these threads.  When constructing the signal frame, we leave
+the previous frame in place because we will return to it from the signal
+handler.  We also leave space for pushing eflags and the return address.
+UKL threads will only use the __KERNEL_DS value in the ss register and 0xC3
+in the cs register.
 
 Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Masahiro Yamada <masahiroy@kernel.org>
@@ -153,35 +154,62 @@ Cc: Valentin Schneider <vschneid@redhat.com>
 Cc: Paolo Bonzini <pbonzini@redhat.com>
 Cc: Josh Poimboeuf <jpoimboe@kernel.org>
 
+Co-developed-by: Eric B Munson <munsoner@bu.edu>
+Signed-off-by: Eric B Munson <munsoner@bu.edu>
+Co-developed-by: Ali Raza <aliraza@bu.edu>
 Signed-off-by: Ali Raza <aliraza@bu.edu>
 ---
- arch/x86/include/asm/uaccess.h | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ arch/x86/kernel/signal.c | 22 ++++++++++++++++------
+ 1 file changed, 16 insertions(+), 6 deletions(-)
 
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index 913e593a3b45..adef521b2e59 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -37,11 +37,19 @@ static inline bool pagefault_disabled(void);
-  * Return: true (nonzero) if the memory block may be valid, false (zero)
-  * if it is definitely invalid.
-  */
-+#ifdef CONFIG_UNIKERNEL_LINUX
-+#define access_ok(addr, size)					\
-+({									\
-+	WARN_ON_IN_IRQ();						\
-+	(is_ukl_thread() ? 1 : likely(__access_ok(addr, size)));	\
-+})
-+#else
- #define access_ok(addr, size)					\
- ({									\
- 	WARN_ON_IN_IRQ();						\
- 	likely(__access_ok(addr, size));				\
- })
-+#endif
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 9c7265b524c7..a95c12f6dac6 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -121,8 +121,10 @@ static bool restore_sigcontext(struct pt_regs *regs,
+ #endif /* CONFIG_X86_64 */
  
- #include <asm-generic/access_ok.h>
+ 	/* Get CS/SS and force CPL3 */
+-	regs->cs = sc.cs | 0x03;
+-	regs->ss = sc.ss | 0x03;
++	if (!is_ukl_thread()) {
++		regs->cs = sc.cs | 0x03;
++		regs->ss = sc.ss | 0x03;
++	}
  
+ 	regs->flags = (regs->flags & ~FIX_EFLAGS) | (sc.flags & FIX_EFLAGS);
+ 	/* disable syscall checks */
+@@ -522,10 +524,15 @@ static int __setup_rt_frame(int sig, struct ksignal *ksig,
+ 	 * a trampoline.)  So we do our best: if the old SS was valid,
+ 	 * we keep it.  Otherwise we replace it.
+ 	 */
+-	regs->cs = __USER_CS;
++	if (!is_ukl_thread()) {
++		regs->cs = __USER_CS;
+ 
+-	if (unlikely(regs->ss != __USER_DS))
+-		force_valid_ss(regs);
++		if (unlikely(regs->ss != __USER_DS))
++			force_valid_ss(regs);
++	} else {
++		regs->cs = 0xC3;
++		regs->ss = __KERNEL_DS;
++	}
+ 
+ 	return 0;
+ 
+@@ -662,7 +669,10 @@ SYSCALL_DEFINE0(rt_sigreturn)
+ 	sigset_t set;
+ 	unsigned long uc_flags;
+ 
+-	frame = (struct rt_sigframe __user *)(regs->sp - sizeof(long));
++	if (is_ukl_thread())
++		frame = (struct rt_sigframe __user *)(regs->sp + sizeof(long));
++	else
++		frame = (struct rt_sigframe __user *)(regs->sp - sizeof(long));
+ 	if (!access_ok(frame, sizeof(*frame)))
+ 		goto badframe;
+ 	if (__get_user(*(__u64 *)&set, (__u64 __user *)&frame->uc.uc_sigmask))
 -- 
 2.21.3
 
