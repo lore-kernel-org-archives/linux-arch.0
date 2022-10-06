@@ -2,166 +2,220 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9354AC43217
-	for <linux-arch@archiver.kernel.org>; Thu,  6 Oct 2022 21:29:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 96153C433F5
+	for <linux-arch@archiver.kernel.org>; Thu,  6 Oct 2022 22:05:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231712AbiJFV3B (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 6 Oct 2022 17:29:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36264 "EHLO
+        id S231693AbiJFWFe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 6 Oct 2022 18:05:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52366 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230284AbiJFV27 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Oct 2022 17:28:59 -0400
-Received: from NAM12-MW2-obe.outbound.protection.outlook.com (mail-mw2nam12on2106.outbound.protection.outlook.com [40.107.244.106])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EFD2BBA244;
-        Thu,  6 Oct 2022 14:28:58 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=Glpg9NaMNBwVZ47EAqJhmoQy5Ovde5grQOUSu1P8ddEhHHUCpi5l3DeNn6AvMl2iPdz6+1fR1ug0ETcNCypoU/IHCnjqBVratqTF3ArxuGKS7QUDTPsIr14f05mD8wZaCJTMXOK75eEfib44k48aJ0InehR/m3qs9QTki+bljnb1htE/InkjGwh56fQxJHCHLo+pkSXIjjYgecBqFIcNBxvg9C2v7F9h0rwQQqqh5epGNe/TWp+1cVzy5TXoXE8Rx+JSXwmE1yW0VGMWVehpPQy/0CtNYsm4ze0RGPbAOZRc0MCUaqBAqghdZsAck47DyMwHs788nTE/E53Q1OsIKQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=rH+4zZeyHoHjTmvRfvMSJcdsMjs4MLvjwFEQuPd9oco=;
- b=FGgZ7Lv90mQPPkWoptvjSXWtId/IAj1PS9aBk0IcLmbBEmpvmjlH1pcEeKD6iX9yOqqgW5/AMbgXDV6J97hk7wVgwTscdT4SflpTRDFERb4ijAd+YlLxpLaDFR/G9G9wQKL4IwICBkPVRSB0V2EaKs5UOZ+XLT6QDTQTllJv1ctkDCOEmvPD2jFu6vGZ/Fj44GBQHwK873vNaN0/dHh5dOyzcXOrUu6iI3bddOEAJ4Hiikm2E6/5FnXdtNvV5pUvpKTQIKXgiaWvno5xo6DkSNReYDvoIKvWteeh1BXxkxLvvCs3S7Oo/yXaVx8G6/L5VESw4PihbTXWKp3QO3u/CQ==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=bu.edu; dmarc=pass action=none header.from=bu.edu; dkim=pass
- header.d=bu.edu; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=bu.edu; s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=rH+4zZeyHoHjTmvRfvMSJcdsMjs4MLvjwFEQuPd9oco=;
- b=KwL8SqcLI04TLj1iRqs3LU4hMDG8i0DpmxGxrqNr85l+hVievaUzy+oO53tAinLsJJ+Y+k+dmmXzQM4iNhbgP8AuIS76vua69B7GL5GQdELpE8U3RaIq1aBh0sFg5FapbEnbFPQZvxGS9bNTf2ZPac+BLNpGUtJUqpdvd7q5nxSFo/jUFYv11yPQgBrnLn+YzvwRqeTcP7W8U4gTPJ8171n31FvgsICGImxaC3fd2r/IPAcKMgvff+29JSU+vXS5ox9WzkAurjM5mh1oLa0uEnYKUZDFJoEZ/xNbBEfceRxMltcncGTZcdohIWm8mKhYQabnJ029TcpliI/kojVJTA==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=bu.edu;
-Received: from BL0PR03MB4129.namprd03.prod.outlook.com (2603:10b6:208:65::33)
- by MN2PR03MB5007.namprd03.prod.outlook.com (2603:10b6:208:1b1::11) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5676.24; Thu, 6 Oct
- 2022 21:28:55 +0000
-Received: from BL0PR03MB4129.namprd03.prod.outlook.com
- ([fe80::9e2b:bf05:79ec:581]) by BL0PR03MB4129.namprd03.prod.outlook.com
- ([fe80::9e2b:bf05:79ec:581%4]) with mapi id 15.20.5676.034; Thu, 6 Oct 2022
- 21:28:55 +0000
-Message-ID: <53c84c25-31ff-29d5-c6fb-85cb307f1704@bu.edu>
-Date:   Thu, 6 Oct 2022 17:28:53 -0400
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.2.1
-Subject: Re: [RFC UKL 10/10] Kconfig: Add config option for enabling and
- sample for testing UKL
-Content-Language: en-US
-To:     Bagas Sanjaya <bagasdotme@gmail.com>, linux-kernel@vger.kernel.org
-Cc:     corbet@lwn.net, masahiroy@kernel.org, michal.lkml@markovi.net,
-        ndesaulniers@google.com, tglx@linutronix.de, mingo@redhat.com,
-        bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
-        luto@kernel.org, ebiederm@xmission.com, keescook@chromium.org,
-        peterz@infradead.org, viro@zeniv.linux.org.uk, arnd@arndb.de,
-        juri.lelli@redhat.com, vincent.guittot@linaro.org,
-        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
-        mgorman@suse.de, bristot@redhat.com, vschneid@redhat.com,
-        pbonzini@redhat.com, jpoimboe@kernel.org,
-        linux-doc@vger.kernel.org, linux-kbuild@vger.kernel.org,
-        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, x86@kernel.org, rjones@redhat.com,
-        munsoner@bu.edu, tommyu@bu.edu, drepper@redhat.com,
-        lwoodman@redhat.com, mboydmcse@gmail.com, okrieg@bu.edu,
-        rmancuso@bu.edu
-References: <20221003222133.20948-1-aliraza@bu.edu>
- <20221003222133.20948-11-aliraza@bu.edu>
- <d2089a89-21a9-1e05-5d58-91b8411f7141@gmail.com>
-From:   Ali Raza <aliraza@bu.edu>
-In-Reply-To: <d2089a89-21a9-1e05-5d58-91b8411f7141@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: MN2PR16CA0018.namprd16.prod.outlook.com
- (2603:10b6:208:134::31) To BL0PR03MB4129.namprd03.prod.outlook.com
- (2603:10b6:208:65::33)
+        with ESMTP id S232057AbiJFWFK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Oct 2022 18:05:10 -0400
+Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 23E591AD8F
+        for <linux-arch@vger.kernel.org>; Thu,  6 Oct 2022 15:04:51 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1665093891; x=1696629891;
+  h=date:from:to:cc:subject:message-id:mime-version:
+   content-transfer-encoding;
+  bh=oILdn99IiSLJZQ0xtX1dFxkdF04AYRHeXJ1RsWZuzlM=;
+  b=cXRjil7L4bD2ujtJlW3/L2wlh2/tBEt2KWSyR2xr3Nug7klP6BCK33zh
+   1HBxOwtCEpTpg7uIWyifwFNdcdqHjubprklNY6B6dhe7qS9x98eSumm35
+   jndRE/L8SPLCn2qXQ0xGzKGxhINyVPYQzfMJAB/+rMBco0yznWaBJmE84
+   WCi3xPhuWcj7Nrm36SUgvHISv/ybgCwX2AUINHF+OAvtn4SbuTo550l1d
+   k2iPHhTKEmx0Grf0U6th3jrVoS/bvkvqCghoeAf0dV4+joUpHB47z3fJ+
+   +V7eiRZVftQpdsB3jHcWw4GXraunNP9NZcB7Ec4qVP13pdRn1rwVpwNvq
+   g==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10492"; a="305166027"
+X-IronPort-AV: E=Sophos;i="5.95,164,1661842800"; 
+   d="scan'208";a="305166027"
+Received: from fmsmga004.fm.intel.com ([10.253.24.48])
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 06 Oct 2022 15:04:50 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6500,9779,10492"; a="693537387"
+X-IronPort-AV: E=Sophos;i="5.95,164,1661842800"; 
+   d="scan'208";a="693537387"
+Received: from lkp-server01.sh.intel.com (HELO 3c15167049b7) ([10.239.97.150])
+  by fmsmga004.fm.intel.com with ESMTP; 06 Oct 2022 15:04:49 -0700
+Received: from kbuild by 3c15167049b7 with local (Exim 4.96)
+        (envelope-from <lkp@intel.com>)
+        id 1ogYz2-0000Wt-2O;
+        Thu, 06 Oct 2022 22:04:48 +0000
+Date:   Fri, 07 Oct 2022 06:03:57 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arch@vger.kernel.org
+Subject: [arnd-asm-generic:asm-generic] BUILD REGRESSION
+ e19d4ebc536dadb607fe305fdaf48218d3e32d7c
+Message-ID: <633f50cd.f8YCVB8cGH9bOVWW%lkp@intel.com>
+User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: BL0PR03MB4129:EE_|MN2PR03MB5007:EE_
-X-MS-Office365-Filtering-Correlation-Id: 2de5ff61-d8c8-452c-0728-08daa7e1c59e
-X-LD-Processed: d57d32cc-c121-488f-b07b-dfe705680c71,ExtAddr
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: 0GKCxcmd5oR5bMTnGakK2qc7W8s1WnHUKKXfnYAtifdVmjjKoS2MTfqIR80bR3oo+wUxyNecTP+xVX08ZP/ZU+YeYMV75jKfifhzO/zMUczwhapHBZ/i3n84oTrGfBMfUw/rJ/ydXqubF2RMUQfGMvV7IATltwGv+Cjzx0IYmryTEDvX9L4Vj4XMG3i7UVlZrQaljNsr+TMN4XolBcjNuy8FQQF0jIDfbLYK6ldHm5WO9u3rDIE9bna6+YFSsedYSgomzPD14pTJJpWvDD70sPlu95+q4qioURct4vfovwMCv421m0NzznhSAU1RVzfp2Wgpf207cPrQsgu0AjoDBHx5+szCMCnjoUVwi5BiyS/fyUUJpVPmUcj3E06g35u+T88aNSMUECrS0ewLrK570URVf6HeCBa0Rrxr5W33sI1eOBg7x5mgOmgl4ogo4eW1BdBd/WFHRGgJjlelyier/NZz7EIkTmujuYABTg6/fC4oxUM77UiN3WHUQRmSBel8C1dxR5RJh6V7f/Q98VWdmkz6amQq6D7ynwXCuJ38ZzJR+sYtsUc8lCF6F5lK6rS8izd6e8ZoLYZULCSLVD+K5py6Vk4pR68RA63DiOQwwNshL5n3lldlXIV9m3+W6ND7KDZVZcJeevZt4YvsXrNIoumKn+IFsHM0RPbnlPf68Q2V6qppUxswc8kEDY36IvkDAQR9XeDhq06EhJ3qequyfy46F1NCPTkNpcHIL8Rx3DXyNGNZynWSipXepSLaSFrtprclz+VlMyACx2zP/OdWQvVZ9dxsrwTt6+qQdVfzsLo=
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BL0PR03MB4129.namprd03.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230022)(4636009)(39860400002)(346002)(396003)(366004)(136003)(376002)(451199015)(186003)(6512007)(5660300002)(2616005)(38100700002)(786003)(7406005)(7416002)(2906002)(8936002)(75432002)(41300700001)(41320700001)(478600001)(53546011)(6486002)(26005)(6506007)(4326008)(66556008)(8676002)(316002)(66476007)(66946007)(31696002)(36756003)(31686004)(86362001)(43740500002)(45980500001);DIR:OUT;SFP:1102;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?utf-8?B?dWdaR2dHVElsZEF1NjZSbUZlY0xkMzgxL01pbllGbnIrZ3YyNlFWZmpWd0VB?=
- =?utf-8?B?VVhDNjVhMUR2alFRUkpTbWxYSXRRS2JLZTQ2cEdJalhHN3ZSVXpDY2RKUFVw?=
- =?utf-8?B?TVJZbU9OL3Rxb2YwVlRjaWVOMXVHZjR2OFhrdmRmQTFTS0RiTnN4RUNScDZP?=
- =?utf-8?B?YjRTcFpWd3ozTlJpVFFldm1WQjAvM1pZMnRiaWMvc3JJbnIvekR5VmlNUjRh?=
- =?utf-8?B?N2tkOVlEYmZOdG9iRlMwSkxhYzgvdWxRV3NFbVYzaGE0Yk54cjZmeEkyYnIz?=
- =?utf-8?B?R0RQQUI0T0lvYUZzWXlEUytycnZmcEpadTJpYS9kUTNvQTIvVFBxcUEyaXNZ?=
- =?utf-8?B?VU9QcWFhTmNxSVFVY01UZTliTHM5dWUrSVpUdWQ1Qi9CanBLMStpTUFTQ0JP?=
- =?utf-8?B?K0hJc0tKcVdIQXlpbUpvWVBCZUovMjJvRzF4R3JhRWl0L1B4amxMT0tqK1Bt?=
- =?utf-8?B?ME9xT1hYbFBYUWNCa2hRSVdrRytnMVYwRkttNlJkdWNIb2Q0bHo2dG4wUVVh?=
- =?utf-8?B?cDF4a3c3M2FlWUgzdUJ6dk9obW56c0gxNDNJMzNIaXp4blJOV05pamFBcnFx?=
- =?utf-8?B?eDhxREZEMi84WXRRaHhLYW1kY1l4UmdMY2xRTFNZUDBaV0FrWmdLSTRET3Bq?=
- =?utf-8?B?dWlyMUlxRlcycHhOQWpHakZnRVd1RFU5UUNRMHhUUjE4YXF3MjhOd0x0SzhP?=
- =?utf-8?B?K3BDRWpDTitPNGRkMXFsRldrVEVwSFk1YnQwcUxWRnAxM0I3Ny92TFVITDJP?=
- =?utf-8?B?YkV4OGNMSTl1MDBrNFo1RjdyZ1dFdk1CTENuTzR2OVBzSWtaZmJ4UDIvRlRS?=
- =?utf-8?B?bFVXWWVSUm5jY3pIeGpXQlN2blVuaGd3bStwSDNLQ3lGcDJGZ1k4WHdlNFNp?=
- =?utf-8?B?RHR6S0NiZHIwWmNJKy9haG9qOEtPRUgzT2ZMMWhmQnovbDFQNkJydXBtckFR?=
- =?utf-8?B?MjN6c0FVOGZZU2JiM241b0llSFBtckExMEFUT2ZsVmsvN2d2WUZKS1BVbDRw?=
- =?utf-8?B?ZTJ2d1Z2aEY3SWlxSURIdFU4Rmp6Nko2cStRMHdzVXlKcGJwMXdZZWJyMUlY?=
- =?utf-8?B?MHh4S1dCUllaV0RmeUhZaWtreG1VaTVmd2JQQmpRU2ZYbkFvd2tJK2hSMW16?=
- =?utf-8?B?N05NbmZkYkduVUR4UlBKc0tUdmxnbXk1OUlGb2NJTU1Eb1Rva2oxWnpUSzV6?=
- =?utf-8?B?UUtHV3hWTGc5ajZ6Z05OZTJ6c3VxcERkR0ZCTVBzVDkrQjNuaUpwYTZRNkRs?=
- =?utf-8?B?Tnl4QUpkdjFXaFpGZCsra2pNRm8rWEdtTFVpc2x4UEU5Mi82M3pNaVI2a2hq?=
- =?utf-8?B?WDIvSzhPY1NVc3lMRThac1g0VTFDMWh0OGw1c1lmTS9IRzBJSkxYWitTTEpz?=
- =?utf-8?B?TVhONE1HMjlaZTFLWkZWdXRPU3kyOEpUcFVMREQ3T0RGZ3VXalcvcS9BaUpB?=
- =?utf-8?B?eThGeUJpbWRCSUVLOE4vanhUNmxZblp3Z0JSWWlsQWlLMzlBdzJTcm5mSjVL?=
- =?utf-8?B?VWx4M0FKUFh4L0ZvcCttaTYxWTBhQVJ0aHRNSFQ3VHRwZG5GODFzdDVpaEN5?=
- =?utf-8?B?SXI4VytIQUI4eDFMbnM3VU1Ob0h0a1I3dzEzSFUvN29zNHMyUm8ySHlRZUF1?=
- =?utf-8?B?aE93UHduOEZrcElFS3NMekpIdlZlWnkrK0dRazQyQlBCZER5MlJxTWdRbGdF?=
- =?utf-8?B?NTFSRU4zeE9VVE15bnN0WWpZZTlZMmVNNFY4N0pNWCtITzRFRE1mZ1RrOUph?=
- =?utf-8?B?YnJHQzl1N0trSnltU00yU2pXTjZSZ2VhZXY1YmZHL0RwLytnWHhFVmFleHJG?=
- =?utf-8?B?dmdXNUZzTHhTRG9UVDJGR0VjOHBsY1VKVVpMQXN0amR2ZWtINWNHcFZIQzcz?=
- =?utf-8?B?dFNXdWp0bXcyUisvd01zZHJlaHdnYWs4M1VyOWNsdW5uaDl3MFFFa0FPbk4v?=
- =?utf-8?B?NU5lK3k3Yncvb2FRcnBRa3pvanZkT2hPWTlyRWpHdTQzMWpCRFZucG1CTjg1?=
- =?utf-8?B?U2M2NmVTaU82WHBSY1J1eE44QjFPK01UbzBnZUtsUjNReStGVHBGT1k4c0t3?=
- =?utf-8?B?THpjNVNDdm9MTDNYd3JvTlEvNmszSC9rNTlDMHNlT0VvejZ1QUcrVmsrRHMz?=
- =?utf-8?Q?2I9gfV3p/zj0nXZdLRq4+Op/Y?=
-X-OriginatorOrg: bu.edu
-X-MS-Exchange-CrossTenant-Network-Message-Id: 2de5ff61-d8c8-452c-0728-08daa7e1c59e
-X-MS-Exchange-CrossTenant-AuthSource: BL0PR03MB4129.namprd03.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 Oct 2022 21:28:55.3950
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: d57d32cc-c121-488f-b07b-dfe705680c71
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: kleVeVS18y3QLTJpbYaFnYbAcYgznyCbvL6cTSD/8DzUBIzORvlSeSIWq5gxsepF
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR03MB5007
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 10/3/22 22:11, Bagas Sanjaya wrote:
-> On 10/4/22 05:21, Ali Raza wrote:
->> Add the KConfig file that will enable building UKL. Documentation
->> introduces the technical details for how UKL works and the motivations
->> behind why it is useful. Sample provides a simple program that still uses
->> the standard system call interface, but does not require a modified C
->> library.
->>
-> <snipped>
->>  Documentation/index.rst   |   1 +
->>  Documentation/ukl/ukl.rst | 104 ++++++++++++++++++++++++++++++++++++++
->>  Kconfig                   |   2 +
->>  kernel/Kconfig.ukl        |  41 +++++++++++++++
->>  samples/ukl/Makefile      |  16 ++++++
->>  samples/ukl/README        |  17 +++++++
->>  samples/ukl/syscall.S     |  28 ++++++++++
->>  samples/ukl/tcp_server.c  |  99 ++++++++++++++++++++++++++++++++++++
->>  8 files changed, 308 insertions(+)
->>  create mode 100644 Documentation/ukl/ukl.rst
->>  create mode 100644 kernel/Kconfig.ukl
->>  create mode 100644 samples/ukl/Makefile
->>  create mode 100644 samples/ukl/README
->>  create mode 100644 samples/ukl/syscall.S
->>  create mode 100644 samples/ukl/tcp_server.c
-> 
-> Shouldn't the documentation be split into its own patch?
-> 
-Thanks for pointing that out.
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
+branch HEAD: e19d4ebc536dadb607fe305fdaf48218d3e32d7c  alpha: add full ioread64/iowrite64 implementation
 
---Ali
+Error/Warning reports:
 
+https://lore.kernel.org/linux-arch/202210040004.JSEtm9uf-lkp@intel.com
+https://lore.kernel.org/linux-arch/202210062117.wJypzBWL-lkp@intel.com
+
+Error/Warning: (recently discovered and may have been fixed)
+
+arch/alpha/include/asm/core_t2.h:587:23: warning: no previous prototype for 't2_ioread64' [-Wmissing-prototypes]
+arch/alpha/include/asm/core_t2.h:594:22: warning: no previous prototype for 't2_iowrite64' [-Wmissing-prototypes]
+arch/alpha/include/asm/jensen.h:187:21: warning: no previous prototype for 'jensen_inq' [-Wmissing-prototypes]
+arch/alpha/include/asm/jensen.h:207:22: warning: no previous prototype for 'jensen_outq' [-Wmissing-prototypes]
+arch/alpha/include/asm/jensen.h:322:23: warning: no previous prototype for 'jensen_ioread64' [-Wmissing-prototypes]
+arch/alpha/include/asm/jensen.h:329:22: warning: no previous prototype for 'jensen_iowrite64' [-Wmissing-prototypes]
+arch/alpha/kernel/core_marvel.c:807:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before 'marvel_ioread8'
+
+Error/Warning ids grouped by kconfigs:
+
+gcc_recent_errors
+|-- alpha-allnoconfig
+|   `-- arch-alpha-kernel-core_marvel.c:error:expected-asm-or-__attribute__-before-marvel_ioread8
+|-- alpha-allyesconfig
+|   |-- arch-alpha-include-asm-core_t2.h:warning:no-previous-prototype-for-t2_ioread64
+|   |-- arch-alpha-include-asm-core_t2.h:warning:no-previous-prototype-for-t2_iowrite64
+|   |-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_inq
+|   |-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_ioread64
+|   |-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_iowrite64
+|   `-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_outq
+`-- alpha-defconfig
+    |-- arch-alpha-include-asm-core_t2.h:warning:no-previous-prototype-for-t2_ioread64
+    |-- arch-alpha-include-asm-core_t2.h:warning:no-previous-prototype-for-t2_iowrite64
+    |-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_inq
+    |-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_ioread64
+    |-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_iowrite64
+    `-- arch-alpha-include-asm-jensen.h:warning:no-previous-prototype-for-jensen_outq
+
+elapsed time: 720m
+
+configs tested: 111
+configs skipped: 14
+
+gcc tested configs:
+um                             i386_defconfig
+um                           x86_64_defconfig
+arc                                 defconfig
+alpha                               defconfig
+x86_64                              defconfig
+x86_64                           rhel-8.3-syz
+x86_64                         rhel-8.3-kunit
+i386                                defconfig
+x86_64                           rhel-8.3-kvm
+i386                 randconfig-a011-20221003
+i386                 randconfig-a012-20221003
+arm                                 defconfig
+x86_64                               rhel-8.3
+s390                             allmodconfig
+i386                 randconfig-a013-20221003
+x86_64                          rhel-8.3-func
+x86_64                    rhel-8.3-kselftests
+riscv                randconfig-r042-20221003
+i386                 randconfig-a015-20221003
+x86_64                           allyesconfig
+x86_64               randconfig-a015-20221003
+i386                 randconfig-a016-20221003
+x86_64               randconfig-a016-20221003
+s390                             allyesconfig
+s390                 randconfig-r044-20221003
+i386                             allyesconfig
+powerpc                           allnoconfig
+arc                  randconfig-r043-20221003
+i386                 randconfig-a014-20221003
+arm64                            allyesconfig
+arc                  randconfig-r043-20221002
+arm                              allyesconfig
+csky                              allnoconfig
+alpha                             allnoconfig
+arc                               allnoconfig
+riscv                             allnoconfig
+powerpc                          allmodconfig
+sh                               allmodconfig
+x86_64               randconfig-a011-20221003
+mips                             allyesconfig
+x86_64               randconfig-a013-20221003
+x86_64               randconfig-a012-20221003
+m68k                             allmodconfig
+x86_64               randconfig-a014-20221003
+arc                              allyesconfig
+ia64                             allmodconfig
+alpha                            allyesconfig
+i386                          randconfig-c001
+m68k                             allyesconfig
+arm                     eseries_pxa_defconfig
+mips                         cobalt_defconfig
+openrisc                            defconfig
+nios2                            alldefconfig
+mips                        bcm47xx_defconfig
+arm                          simpad_defconfig
+powerpc                      cm5200_defconfig
+arm                           viper_defconfig
+s390                                defconfig
+arc                        nsim_700_defconfig
+sh                          r7780mp_defconfig
+xtensa                              defconfig
+x86_64                        randconfig-a011
+x86_64                        randconfig-a013
+x86_64                        randconfig-a015
+m68k                            q40_defconfig
+mips                  decstation_64_defconfig
+powerpc                     tqm8548_defconfig
+mips                      loongson3_defconfig
+xtensa                  nommu_kc705_defconfig
+m68k                            mac_defconfig
+powerpc                     taishan_defconfig
+powerpc                       eiger_defconfig
+loongarch                        alldefconfig
+powerpc                 mpc85xx_cds_defconfig
+parisc                generic-64bit_defconfig
+arm                  randconfig-c002-20221002
+x86_64                        randconfig-c001
+i386                          debian-10.3-kvm
+i386                        debian-10.3-kunit
+i386                         debian-10.3-func
+powerpc                     tqm8555_defconfig
+sh                           se7619_defconfig
+riscv                            allyesconfig
+loongarch                           defconfig
+loongarch                         allnoconfig
+loongarch                        allmodconfig
+
+clang tested configs:
+x86_64               randconfig-a003-20221003
+x86_64               randconfig-a002-20221003
+x86_64               randconfig-a001-20221003
+hexagon              randconfig-r045-20221003
+x86_64               randconfig-a005-20221003
+hexagon              randconfig-r041-20221003
+hexagon              randconfig-r041-20221002
+x86_64               randconfig-a004-20221003
+i386                 randconfig-a003-20221003
+i386                 randconfig-a002-20221003
+i386                 randconfig-a001-20221003
+hexagon              randconfig-r045-20221002
+i386                 randconfig-a005-20221003
+x86_64               randconfig-a006-20221003
+i386                 randconfig-a006-20221003
+i386                 randconfig-a004-20221003
+riscv                randconfig-r042-20221002
+powerpc                    mvme5100_defconfig
+powerpc                     ppa8548_defconfig
+s390                 randconfig-r044-20221002
+x86_64                        randconfig-k001
+riscv                randconfig-r042-20221006
+hexagon              randconfig-r041-20221006
+s390                 randconfig-r044-20221006
+hexagon              randconfig-r045-20221006
+i386                             allyesconfig
+
+-- 
+0-DAY CI Kernel Test Service
+https://01.org/lkp
