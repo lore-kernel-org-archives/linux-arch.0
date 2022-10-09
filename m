@@ -2,80 +2,81 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3D6E6C4321E
-	for <linux-arch@archiver.kernel.org>; Sat,  8 Oct 2022 17:50:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 711A1C433FE
+	for <linux-arch@archiver.kernel.org>; Sun,  9 Oct 2022 02:04:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230460AbiJHRuD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 8 Oct 2022 13:50:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46196 "EHLO
+        id S229711AbiJICEb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 8 Oct 2022 22:04:31 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48094 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230421AbiJHRtz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Oct 2022 13:49:55 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B49DC1B9F7;
-        Sat,  8 Oct 2022 10:49:54 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 22F39B80B9D;
-        Sat,  8 Oct 2022 17:49:53 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B2F6AC4347C;
-        Sat,  8 Oct 2022 17:49:51 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1665251391;
-        bh=FMeXNJfI0IoqbHMQGj/sXCrRP6kNujAnRvsPJGkuog0=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=HKP8dPbRUUzUHnIbZzcnldygWmOoQrcsorn98a9fZc+gqodYR81BY8ZX9S9SdQ04o
-         f+/4Itpj2UMW+vJy4KPDKx063ahiT6dIbG6Atqz80GDHRBdmLfbku4grxydqUo0z/W
-         AiSTdeDczlM7b3FJ6DeJ9NsQCFGokqzRfbzjLRtiCWxB25DTZvfnkB3WQ6okYTvcwr
-         pVQDd0Ugc4LIY5zkSkvaV1F74XY+bjFp9UZ1dW9+tRL3ot80xzbkBBFJagjzvsYHCK
-         FgFh/cCP0+Cl4p0s/xPklAQFo++xVvxgMJ4Q8sbxxWErmcQlolu/o6kXthcWAfg3+e
-         jWeqlvGAJW4Vw==
-From:   SeongJae Park <sj@kernel.org>
-To:     paulmck@kernel.org, corbet@lwn.net
-Cc:     linux-doc@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, SeongJae Park <sj@kernel.org>
-Subject: [PATCH 2/4] docs/memory-barriers.txt/kokr: introduce io_stop_wc() and add implementation for ARM64
-Date:   Sat,  8 Oct 2022 10:49:26 -0700
-Message-Id: <20221008174928.13479-3-sj@kernel.org>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20221008174928.13479-1-sj@kernel.org>
-References: <20221008174928.13479-1-sj@kernel.org>
+        with ESMTP id S229806AbiJICEa (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 8 Oct 2022 22:04:30 -0400
+Received: from mail-pf1-x42b.google.com (mail-pf1-x42b.google.com [IPv6:2607:f8b0:4864:20::42b])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1E4D5357DE;
+        Sat,  8 Oct 2022 19:04:30 -0700 (PDT)
+Received: by mail-pf1-x42b.google.com with SMTP id f140so8069753pfa.1;
+        Sat, 08 Oct 2022 19:04:30 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=6mZNcIuxVWg8kZ0UqoxvnWnvMCMySE4yCtjVKlUiuDk=;
+        b=UdiA9qs/nNYzNtP0OZjAa8HtOJktFx2yvyv70tPgV6wAuELOPU6+3Cy0igaZqqlNTt
+         CGUVA5BF+zfs400Va79BZYdJkWg1yyktQLIW0VyhYfe9S0duA5s6lxUy63c5bvkqDRxX
+         PAUULStdUr3hSdJngUMmsjKAiRUjKC4INM62+sel9oRlLFLHrMS0ZIpdP0phahOCHdlj
+         WhVlfrr1FiiE134sC7S9WDpIus2/WoXTKKmiv3ee06xEeqKxdMz8Tr48WJmv0hMvKnLa
+         qRHUM9n+k0HL/jkn2j4PRgAQ7w51r9nbUjI+gvzvmayPpQXEnHwTmAPoAmgKCfmCaD7R
+         9c0A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=6mZNcIuxVWg8kZ0UqoxvnWnvMCMySE4yCtjVKlUiuDk=;
+        b=2BNpIk+588I6wzhRVjfTiV5FKJI+dMzmvspO+5ldj3DG1M6JfbY6eUGoM/goKXP2SJ
+         Niyo3FQvR5InZfX0hMeeDAE5OurJDYbItuy+I42PWmS1sPat092N+q67pPmP6DX0avVN
+         KTxUartdSEnkqhs0Ov//clfvtPkbKbIFRDpB8J/1AHXDOIOzC5sKVpgB4SUDU85UB/Ty
+         sdQj8TbKClvcpK8JqrTHK8eK6TxAl8jYmP0G1JUuicYLRlpVPiMeJ5fBWRvUdtkPoVjl
+         vJm8fnoMBrGbvEMPAuoDUoNSGvq6hJ1S2uZ/nofh5DbMQFm/bJhRSSNXtYCZreTuy56U
+         iWlg==
+X-Gm-Message-State: ACrzQf020cbD4RDxvpNG6N7jqipG/ydvXA/akRWwRoBdVK4HL7LuIDMn
+        Fpd1AHbzbLKBd4lzqBzoslFDoWlPq+Y=
+X-Google-Smtp-Source: AMsMyM7vvTSDrWOwIC1OjgI0NtjoJChNVuTtmjvZSFCWM/Z7GP7WSh+qQVuCIZAr12JnHka6lq8JBA==
+X-Received: by 2002:a63:491b:0:b0:461:7362:e8b7 with SMTP id w27-20020a63491b000000b004617362e8b7mr1332577pga.30.1665281069644;
+        Sat, 08 Oct 2022 19:04:29 -0700 (PDT)
+Received: from [192.168.43.80] (subs09b-223-255-225-235.three.co.id. [223.255.225.235])
+        by smtp.gmail.com with ESMTPSA id g12-20020a170902868c00b0017f7f8bb718sm3906464plo.232.2022.10.08.19.04.27
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 08 Oct 2022 19:04:29 -0700 (PDT)
+Message-ID: <10204e9e-3118-730a-823b-1f5959a429b8@gmail.com>
+Date:   Sun, 9 Oct 2022 09:04:26 +0700
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH 1/4] docs/memory-barriers.txt: Add a missed closing
+ parenthesis
+Content-Language: en-US
+To:     SeongJae Park <sj@kernel.org>, paulmck@kernel.org, corbet@lwn.net
+Cc:     linux-doc@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org
+References: <20221008174928.13479-1-sj@kernel.org>
+ <20221008174928.13479-2-sj@kernel.org>
+From:   Bagas Sanjaya <bagasdotme@gmail.com>
+In-Reply-To: <20221008174928.13479-2-sj@kernel.org>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Translate this commit to Korean:
+On 10/9/22 00:49, SeongJae Park wrote:
+> Description of io_stop_wc(), which added by commit d5624bb29f49
+> ("asm-generic: introduce io_stop_wc() and add implementation for
+> ARM64"), have unclosed parenthesis.  This commit closes it.
+> 
 
-    d5624bb29f49 ("asm-generic: introduce io_stop_wc() and add implementation for ARM64")
+s/This commit closes it/Close the outer parenthesis/
 
-Signed-off-by: SeongJae Park <sj@kernel.org>
----
- Documentation/translations/ko_KR/memory-barriers.txt | 8 ++++++++
- 1 file changed, 8 insertions(+)
-
-diff --git a/Documentation/translations/ko_KR/memory-barriers.txt b/Documentation/translations/ko_KR/memory-barriers.txt
-index 75aa5531cc7d..1c811b96e8e0 100644
---- a/Documentation/translations/ko_KR/memory-barriers.txt
-+++ b/Documentation/translations/ko_KR/memory-barriers.txt
-@@ -1918,6 +1918,14 @@ Mandatory 배리어들은 SMP 시스템에서도 UP 시스템에서도 SMP 효
-      Persistent memory 에서의 로드를 위해선 현재의 읽기 메모리 배리어로도 읽기
-      순서를 보장하는데 충분합니다.
- 
-+  (*) io_stop_wc();
-+
-+     쓰기와 결합된 특성을 갖는 메모리 액세스의 경우 (예: ioremap_wc() 에 의해
-+     리턴되는 것들), CPU 는 앞의 액세스들이 뒤따르는 것들과 병합되게끔 기다릴
-+     수 있습니다.  io_stop_wc() 는 그런 기다림이 성능에 영향을 끼칠 수 있을 때,
-+     이 매크로 앞의 쓰기-결합된 메모리 액세스가 그 뒤의 것들과 병합되는 것을
-+     방지하기 위해 사용될 수 있습니다.
-+
- =========================
- 암묵적 커널 메모리 배리어
- =========================
 -- 
-2.17.1
-
+An old man doll... just what I always wanted! - Clara
