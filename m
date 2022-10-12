@@ -2,45 +2,45 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 54D9BC433FE
-	for <linux-arch@archiver.kernel.org>; Wed, 12 Oct 2022 10:10:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7E026C433FE
+	for <linux-arch@archiver.kernel.org>; Wed, 12 Oct 2022 10:11:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229825AbiJLKKz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 12 Oct 2022 06:10:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51908 "EHLO
+        id S229526AbiJLKLI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 12 Oct 2022 06:11:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52716 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229827AbiJLKKY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Oct 2022 06:10:24 -0400
+        with ESMTP id S229875AbiJLKKi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 12 Oct 2022 06:10:38 -0400
 Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D9C84C62A;
-        Wed, 12 Oct 2022 03:10:22 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8886CA2201;
+        Wed, 12 Oct 2022 03:10:26 -0700 (PDT)
 Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-        by localhost (Postfix) with ESMTP id 4MnT0x0qw5z9sn3;
-        Wed, 12 Oct 2022 12:10:09 +0200 (CEST)
+        by localhost (Postfix) with ESMTP id 4MnT0y36Nhz9sml;
+        Wed, 12 Oct 2022 12:10:10 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from pegase2.c-s.fr ([172.26.127.65])
         by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-        with ESMTP id TIVUJqBKGH_A; Wed, 12 Oct 2022 12:10:09 +0200 (CEST)
+        with ESMTP id YNbwy0pJcXy2; Wed, 12 Oct 2022 12:10:10 +0200 (CEST)
 Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-        by pegase2.c-s.fr (Postfix) with ESMTP id 4MnT0w5hBVz9sml;
+        by pegase2.c-s.fr (Postfix) with ESMTP id 4MnT0w5v3Sz9sn4;
         Wed, 12 Oct 2022 12:10:08 +0200 (CEST)
 Received: from localhost (localhost [127.0.0.1])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id A7A768B779;
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id B12248B77B;
         Wed, 12 Oct 2022 12:10:08 +0200 (CEST)
 X-Virus-Scanned: amavisd-new at c-s.fr
 Received: from messagerie.si.c-s.fr ([127.0.0.1])
         by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-        with ESMTP id sQdoCYhcG0-i; Wed, 12 Oct 2022 12:10:08 +0200 (CEST)
+        with ESMTP id xrrLdeQbkJz9; Wed, 12 Oct 2022 12:10:08 +0200 (CEST)
 Received: from PO20335.IDSI0.si.c-s.fr (unknown [192.168.232.127])
-        by messagerie.si.c-s.fr (Postfix) with ESMTP id 063CD8B776;
+        by messagerie.si.c-s.fr (Postfix) with ESMTP id EE2178B763;
         Wed, 12 Oct 2022 12:10:07 +0200 (CEST)
 Received: from PO20335.IDSI0.si.c-s.fr (localhost [127.0.0.1])
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 29CA9wIl1165783
+        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.16.1) with ESMTPS id 29CA9xsV1165795
         (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384 bits=256 verify=NOT);
-        Wed, 12 Oct 2022 12:09:58 +0200
+        Wed, 12 Oct 2022 12:09:59 +0200
 Received: (from chleroy@localhost)
-        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 29CA9vLE1165772;
-        Wed, 12 Oct 2022 12:09:57 +0200
+        by PO20335.IDSI0.si.c-s.fr (8.17.1/8.17.1/Submit) id 29CA9xQ31165794;
+        Wed, 12 Oct 2022 12:09:59 +0200
 X-Authentication-Warning: PO20335.IDSI0.si.c-s.fr: chleroy set sender to christophe.leroy@csgroup.eu using -f
 From:   Christophe Leroy <christophe.leroy@csgroup.eu>
 To:     Baoquan He <bhe@redhat.com>
@@ -49,17 +49,16 @@ Cc:     Christophe Leroy <christophe.leroy@csgroup.eu>, linux-mm@kvack.org,
         akpm@linux-foundation.org, hch@infradead.org,
         agordeev@linux.ibm.com, wangkefeng.wang@huawei.com,
         schnelle@linux.ibm.com, David.Laight@ACULAB.COM, shorne@gmail.com,
-        Jonas Bonn <jonas@southpole.se>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        openrisc@lists.librecores.org
-Subject: [RFC PATCH 2/8] openrisc: mm: remove unneeded early ioremap code
-Date:   Wed, 12 Oct 2022 12:09:38 +0200
-Message-Id: <9010e8719949cce376dc3f75a97b8bfb2ff98442.1665568707.git.christophe.leroy@csgroup.eu>
+        Vineet Gupta <vgupta@kernel.org>,
+        linux-snps-arc@lists.infradead.org
+Subject: [RFC PATCH 5/8] arc: mm: Convert to GENERIC_IOREMAP
+Date:   Wed, 12 Oct 2022 12:09:41 +0200
+Message-Id: <75718e9104633bad3c71e0c7a9e931864f59dee0.1665568707.git.christophe.leroy@csgroup.eu>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <cover.1665568707.git.christophe.leroy@csgroup.eu>
 References: <cover.1665568707.git.christophe.leroy@csgroup.eu>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1665569381; l=1888; i=christophe.leroy@csgroup.eu; s=20211009; h=from:subject:message-id; bh=f2w0I54eSGQxmIhNTUEqBybhfAm8ExZ/ChMo0/3T1RI=; b=qbXIm933JmWHxLgvIWJg+km9cyZtWnimWkpDXCVrpdc35YeAbAefnQpKJSleXGv1VMLtwp3js5TH 9nHo40RYD5qpu7L+OWpHdhUaePk9M1QASy6k+82L4lUQSggT0bCb
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1665569382; l=4421; i=christophe.leroy@csgroup.eu; s=20211009; h=from:subject:message-id; bh=I9YpOCQ8Zh4nRQnIk0k/uARdifFzSigtDi071xtQNOY=; b=fTxFGL4T5gFnKWBLwOouOC5OXfC/s0hbcSCg9/Nk032xr85dN+aJ6fKtMjsMmH2dJ6K15+lAaO0S +hIjyilZA3MP8yPD0CexQfIM6+HNo7k4X+ivB6QE/Hm7Kow6qsMc
 X-Developer-Key: i=christophe.leroy@csgroup.eu; a=ed25519; pk=HIzTzUj91asvincQGOFx6+ZF5AoUuP9GdOtQChs7Mm0=
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
@@ -68,63 +67,140 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Baoquan He <bhe@redhat.com>
 
-Under arch/openrisc, there isn't any place where ioremap() is called.
-It means that there isn't early ioremap handling needed in openrisc,
-So the early ioremap handling code in ioremap() of
-arch/openrisc/mm/ioremap.c is unnecessary and can be removed.
+By taking GENERIC_IOREMAP method, the generic ioremap_prot() and
+iounmap() are visible and available to arch. Arch only needs to
+provide implementation of arch_ioremap() or arch_iounmap() if there's
+arch specific handling needed in its ioremap() or iounmap(). This
+change will simplify implementation by removing duplicated codes with
+generic ioremap() and iounmap(), and has the equivalent functioality
+as before.
+
+Here, add hooks arch_ioremap() and arch_iounmap() for arc's special
+operation when ioremap_prot() and iounmap(). Meanwhile define and
+implement arc's own ioremap() because arc has some special handling
+in ioremap() than standard ioremap().
 
 Signed-off-by: Baoquan He <bhe@redhat.com>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: openrisc@lists.librecores.org
+Cc: Vineet Gupta <vgupta@kernel.org>
+Cc: linux-snps-arc@lists.infradead.org
+Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 ---
- arch/openrisc/mm/ioremap.c | 22 +++++-----------------
- 1 file changed, 5 insertions(+), 17 deletions(-)
+ arch/arc/Kconfig          |  1 +
+ arch/arc/include/asm/io.h |  7 +++---
+ arch/arc/mm/ioremap.c     | 46 +++------------------------------------
+ 3 files changed, 8 insertions(+), 46 deletions(-)
 
-diff --git a/arch/openrisc/mm/ioremap.c b/arch/openrisc/mm/ioremap.c
-index 8ec0dafecf25..90b59bc53c8c 100644
---- a/arch/openrisc/mm/ioremap.c
-+++ b/arch/openrisc/mm/ioremap.c
-@@ -22,8 +22,6 @@
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 9e3653253ef2..a08d2abfaf61 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -26,6 +26,7 @@ config ARC
+ 	select GENERIC_PENDING_IRQ if SMP
+ 	select GENERIC_SCHED_CLOCK
+ 	select GENERIC_SMP_IDLE_THREAD
++	select GENERIC_IOREMAP
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE if ARC_MMU_V4
+diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
+index 8f777d6441a5..53b0f1e4f276 100644
+--- a/arch/arc/include/asm/io.h
++++ b/arch/arc/include/asm/io.h
+@@ -21,8 +21,8 @@
+ #endif
  
- extern int mem_init_done;
+ extern void __iomem *ioremap(phys_addr_t paddr, unsigned long size);
+-extern void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
+-				  unsigned long flags);
++#define ioremap ioremap
++#define ioremap_prot ioremap_prot
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
+ 	return (void __iomem *)port;
+@@ -32,7 +32,8 @@ static inline void ioport_unmap(void __iomem *addr)
+ {
+ }
  
--static unsigned int fixmaps_used __initdata;
--
+-extern void iounmap(const void __iomem *addr);
++bool iounmap_allowed(void *addr);
++#define iounmap_allowed iounmap_allowed
+ 
  /*
-  * Remap an arbitrary physical address space into the kernel virtual
-  * address space. Needed when the kernel wants to access high addresses
-@@ -52,24 +50,14 @@ void __iomem *__ref ioremap(phys_addr_t addr, unsigned long size)
- 	p = addr & PAGE_MASK;
- 	size = PAGE_ALIGN(last_addr + 1) - p;
+  * io{read,write}{16,32}be() macros
+diff --git a/arch/arc/mm/ioremap.c b/arch/arc/mm/ioremap.c
+index 0ee75aca6e10..02b750abccee 100644
+--- a/arch/arc/mm/ioremap.c
++++ b/arch/arc/mm/ioremap.c
+@@ -25,13 +25,6 @@ static inline bool arc_uncached_addr_space(phys_addr_t paddr)
  
--	if (likely(mem_init_done)) {
--		area = get_vm_area(size, VM_IOREMAP);
--		if (!area)
--			return NULL;
--		v = (unsigned long)area->addr;
--	} else {
--		if ((fixmaps_used + (size >> PAGE_SHIFT)) > FIX_N_IOREMAPS)
--			return NULL;
--		v = fix_to_virt(FIX_IOREMAP_BEGIN + fixmaps_used);
--		fixmaps_used += (size >> PAGE_SHIFT);
--	}
-+	area = get_vm_area(size, VM_IOREMAP);
-+	if (!area)
-+		return NULL;
-+	v = (unsigned long)area->addr;
+ void __iomem *ioremap(phys_addr_t paddr, unsigned long size)
+ {
+-	phys_addr_t end;
+-
+-	/* Don't allow wraparound or zero size */
+-	end = paddr + size - 1;
+-	if (!size || (end < paddr))
+-		return NULL;
+-
+ 	/*
+ 	 * If the region is h/w uncached, MMU mapping can be elided as optim
+ 	 * The cast to u32 is fine as this region can only be inside 4GB
+@@ -54,52 +47,19 @@ EXPORT_SYMBOL(ioremap);
+ void __iomem *ioremap_prot(phys_addr_t paddr, unsigned long size,
+ 			   unsigned long flags)
+ {
+-	unsigned int off;
+-	unsigned long vaddr;
+-	struct vm_struct *area;
+-	phys_addr_t end;
+ 	pgprot_t prot = __pgprot(flags);
  
- 	if (ioremap_page_range(v, v + size, p,
- 			__pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_CI))) {
--		if (likely(mem_init_done))
--			vfree(area->addr);
--		else
--			fixmaps_used -= (size >> PAGE_SHIFT);
-+		vfree(area->addr);
+-	/* Don't allow wraparound, zero size */
+-	end = paddr + size - 1;
+-	if ((!size) || (end < paddr))
+-		return NULL;
+-
+ 	/* An early platform driver might end up here */
+ 	if (!slab_is_available())
  		return NULL;
- 	}
  
+ 	/* force uncached */
+-	prot = pgprot_noncached(prot);
+-
+-	/* Mappings have to be page-aligned */
+-	off = paddr & ~PAGE_MASK;
+-	paddr &= PAGE_MASK_PHYS;
+-	size = PAGE_ALIGN(end + 1) - paddr;
+-
+-	/*
+-	 * Ok, go for it..
+-	 */
+-	area = get_vm_area(size, VM_IOREMAP);
+-	if (!area)
+-		return NULL;
+-	area->phys_addr = paddr;
+-	vaddr = (unsigned long)area->addr;
+-	if (ioremap_page_range(vaddr, vaddr + size, paddr, prot)) {
+-		vunmap((void __force *)vaddr);
+-		return NULL;
+-	}
+-	return (void __iomem *)(off + (char __iomem *)vaddr);
++	return generic_ioremap_prot(paddr, size, pgprot_noncached(prot));
+ }
+ EXPORT_SYMBOL(ioremap_prot);
+ 
+-
+-void iounmap(const void __iomem *addr)
++bool iounmap_allowed(void *addr)
+ {
+ 	/* weird double cast to handle phys_addr_t > 32 bits */
+-	if (arc_uncached_addr_space((phys_addr_t)(u32)addr))
+-		return;
+-
+-	vfree((void *)(PAGE_MASK & (unsigned long __force)addr));
++	return !arc_uncached_addr_space((phys_addr_t)(u32)addr);
+ }
+-EXPORT_SYMBOL(iounmap);
 -- 
 2.37.1
 
