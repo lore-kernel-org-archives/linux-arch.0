@@ -2,113 +2,135 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B822DC433FE
-	for <linux-arch@archiver.kernel.org>; Thu, 13 Oct 2022 17:10:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A8093C4332F
+	for <linux-arch@archiver.kernel.org>; Thu, 13 Oct 2022 17:45:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229526AbiJMRKw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 13 Oct 2022 13:10:52 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44994 "EHLO
+        id S229600AbiJMRpX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 13 Oct 2022 13:45:23 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33178 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229436AbiJMRKw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Oct 2022 13:10:52 -0400
-Received: from mout.kundenserver.de (mout.kundenserver.de [212.227.17.10])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8FDD71900E;
-        Thu, 13 Oct 2022 10:10:42 -0700 (PDT)
-Received: from leknes.fjasle.eu ([46.142.97.193]) by mrelayeu.kundenserver.de
- (mreue109 [212.227.15.183]) with ESMTPSA (Nemesis) id
- 1N7zJl-1pElmK1yvz-014zSo; Thu, 13 Oct 2022 19:07:47 +0200
-Received: by leknes.fjasle.eu (Postfix, from userid 1000)
-        id B53E93C186; Thu, 13 Oct 2022 19:07:45 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=fjasle.eu; s=mail;
-        t=1665680865; bh=nYzni+L9VyrG5x0Rm0GekVqt+5sAuaP0Uw0wWRtznbs=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=YybbEip1ziptyerFZW5x4mHETsrpJ3v3H7/cNimPA9plNumzlqdDT+4GgSMkIrxrI
-         YiSjrA7SbDK6Co+Ar4RZP8WqwKv9LSa6jpUtfcvlB/KnUGlPC8UMg7XYEGNLrvOo7W
-         mFbducFtcLs8gz7GPbuFq9KttC/1RQYe6LLySJGg=
-Date:   Thu, 13 Oct 2022 19:07:45 +0200
-From:   Nicolas Schier <nicolas@fjasle.eu>
-To:     Masahiro Yamada <masahiroy@kernel.org>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-        Ard Biesheuvel <ardb@kernel.org>, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] arm64: remove special treatment for the link order of
- head.o
-Message-ID: <Y0hF4XfsgKxevNzj@fjasle.eu>
-References: <20221012233500.156764-1-masahiroy@kernel.org>
+        with ESMTP id S229491AbiJMRpW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Oct 2022 13:45:22 -0400
+Received: from mail-pj1-x102c.google.com (mail-pj1-x102c.google.com [IPv6:2607:f8b0:4864:20::102c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3335963366
+        for <linux-arch@vger.kernel.org>; Thu, 13 Oct 2022 10:45:21 -0700 (PDT)
+Received: by mail-pj1-x102c.google.com with SMTP id x1-20020a17090ab00100b001fda21bbc90so5574008pjq.3
+        for <linux-arch@vger.kernel.org>; Thu, 13 Oct 2022 10:45:21 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=9ZkeUyFWIjLvxMFg7brz1pr43wrdZfuQ/bNA+wt0kz0=;
+        b=Oyl3aTOEOtogOBtfUuv1T7whUHgFt3/b5KjJ+KNujD3CVmO9CECkcsWeNZqm2l79Pj
+         7c/GDjpcT7G8wiRhUBB7V0tkoB3v2eQ6bbAAcm3iRIBIivASknKeDN49CgJ1Cw2lmfdJ
+         rLjngG7sy8WYzMgRqA1dphHW+q1jBqkQ1r67mZxIxu/0CZitoIpbTNM0nC/89yxK3S0a
+         Ak+B7SszYIlKZFueImPugmAh1C3IuuKJuqWv/HpWMaQy3faF6gcaexP1r/s7u/xYm7ky
+         VkVt57MuK1ONXSu/dh8cxswOhunxB1Yjz/u17N501OnLF71QurkyfGssa9XBijY5WUW+
+         2FMA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=9ZkeUyFWIjLvxMFg7brz1pr43wrdZfuQ/bNA+wt0kz0=;
+        b=urNWNVvSarzSFBejP2R9mrrZ6HtosIyrQo/QQd+v4/VhKZwGMrSBFYMPH8tY75lCID
+         vT6qeYk8h3dQWreqZmeRtwO6ZuYseu5W/jKYS8V3j2zj17HCWgi1TH6wNOrRiFclEg/s
+         zcGgUCF97EKM95bBGoW6Z6KHeAsD0/vpWvHhT0E1PVqesxPkF+NbKFvG991IUde4ehYU
+         QSbBWWSCohlMmnbMYAv/VPzH8XwOIh8Q3dX8Wm7KnngXTxHDok7cQlSqDj9Eb2tAELcR
+         ZF/95AB7H7ow54734ofFr7TUIOJrPA1/Z9Fx2qG4p7YILFz+cs0eKEG7QMmsk1PFYPUd
+         vXzQ==
+X-Gm-Message-State: ACrzQf1Xc7Y1nxBptmNfUyJexhDuTljq7ICF3GjLj+KSlXkp1mbiGS5z
+        /dPodN05NY3zw2IcNtoydKj722QZUD6UcVZSdZCuuw==
+X-Google-Smtp-Source: AMsMyM48uQktZ+YTsNROG9cNsn/6MzYVYWhM8oCuC4mWFtmHh5UhmPWtU9OkeE0rTLc4j03w7LrjDZpeEoLncjJHAKc=
+X-Received: by 2002:a17:90b:3a88:b0:209:f35d:ad53 with SMTP id
+ om8-20020a17090b3a8800b00209f35dad53mr12593187pjb.102.1665683120401; Thu, 13
+ Oct 2022 10:45:20 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20221012233500.156764-1-masahiroy@kernel.org>
-X-Provags-ID: V03:K1:nNax0N1B61G4QZH1bsIn90CO6far/9fS9B2aw4JVF3yySGv09F8
- htH/J6uXUBR/KxIOEg++8HQ/B7UxLWVhLs/LtTXBEUpNIj413gwcD6jauODM82IybtVrC8a
- B6+D6kxAVA6xOlngSyPWaL/9YeChjJm7xZ13aeoANMDFqRrs6mQR7hKOX6+7mnebE1Q1RwA
- w1s5qCIrJ1+xko0c0wGFg==
-X-UI-Out-Filterresults: notjunk:1;V03:K0:62mvNxEj8YQ=:l8rqU7jgDxoy/CFAQjc5Gc
- OU8VTF5vkXhHKJQ5iXYvU1F80n7vU96GDUQ3cXHJfHCnpFzNzJoRtz18EICY+CpsghJ7qoghU
- R46AF6zlBWqe6AXkzEo3qKApUqsdkZTJhX14Ao51hv5UPnrsjh5WXMTmi+/rcK+3wpUPXmf51
- Ara0DAXguWqUIZyCmm5KfSdRciw01FyKeoClJxAjTDZegJL937KqQTkt3fbcWWflSkcKNS86e
- 7bKgWDTLm5FJ8GT83pA2wZTz8+EvkpSxhm3tvrbS2NI4ITtDTCUIMMNZcmoh+1jkaBh/PYy0P
- rmyduLA87e4f0sFwY1Z3VAspcFJb4wwCi30SoHGqqSnOun5H+yowP474wBWj6RAJpoqYla4Vw
- +oYg3r8vi0Q10uJmTq4Y2J14fw1DaVF5JPJkUNpNESATSgiaEsyF5vMGA+PqfF6cDs0s3+9/T
- SvJHps014cUh2OUmGlgy39CqHHkegpxLQKjWlQymbxBBRpz7o+UBShlQDIelCPECiNtiY1MiA
- DPPnOLWgxJWc8e/Qt8JTULMhw2aSijtdxWnpKikCdaVO6goAxWQGPia4CXoDCnCki3sEflNVW
- 1t/KAZEhQKVZ4DJX+vZZg+Q0iwnKO8fUbveQPhxtBMRLa+VtLrKLYLdC/B4l28xAuD6qZaN42
- OZ7thCbeCa1B/MIr8UcEtVABekioyb3XNfdm5ov6q0WhLEpM7YD/ZbDo/Li1Syyt+9T0RSOU6
- 5Urh+G+k9qpYXp+vY1ASa3csUNz3ZkaEar2J8EIquDcSoe7G4CWgwOZaZB3D6TTVq4D+HZH3o
- hz3zoAb
+References: <20221012181841.333325-1-masahiroy@kernel.org>
+In-Reply-To: <20221012181841.333325-1-masahiroy@kernel.org>
+From:   Nick Desaulniers <ndesaulniers@google.com>
+Date:   Thu, 13 Oct 2022 10:45:09 -0700
+Message-ID: <CAKwvOdn-0rp6NCVOrQM9Xe0zcTshKbyorpkx5WzQSTu1o45AcA@mail.gmail.com>
+Subject: Re: [PATCH] Documentation: raise minimum supported version of
+ binutils to 2.25
+To:     Masahiro Yamada <masahiroy@kernel.org>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>,
+        Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Oct 13, 2022 at 08:35:00AM +0900, Masahiro Yamada wrote:
-> Date: Thu, 13 Oct 2022 08:35:00 +0900
-> From: Masahiro Yamada <masahiroy@kernel.org>
-> To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon
->  <will@kernel.org>, linux-arm-kernel@lists.infradead.org
-> Cc: linux-arch@vger.kernel.org, Ard Biesheuvel <ardb@kernel.org>, Masahiro
->  Yamada <masahiroy@kernel.org>, Nicolas Schier <nicolas@fjasle.eu>,
->  linux-kernel@vger.kernel.org
-> Subject: [PATCH] arm64: remove special treatment for the link order of
->  head.o
-> Message-Id: <20221012233500.156764-1-masahiroy@kernel.org>
-> X-Mailer: git-send-email 2.34.1
-> 
-> In the previous discussion (see the Link tag), Ard pointed out that
-> arm/arm64/kernel/head.o does not need any special treatment - the only
-> piece that must appear right at the start of the binary image is the
-> image header which is emitted into .head.text.
-> 
-> The linker script does the right thing to do. The build system does
-> not need to manipulate the link order of head.o.
-> 
-> Link: https://lore.kernel.org/lkml/CAMj1kXH77Ja8bSsq2Qj8Ck9iSZKw=1F8Uy-uAWGVDm4-CG=EuA@mail.gmail.com/
-> Suggested-by: Ard Biesheuvel <ardb@kernel.org>
+On Wed, Oct 12, 2022 at 11:19 AM Masahiro Yamada <masahiroy@kernel.org> wrote:
+>
+> Binutils 2.23 was released in 2012. Almost 10 years old.
+>
+> We already require GCC 5.1, released in 2015.
+>
+> Bump the binutils version to 2.25, which was released one year before
+> GCC 5.1.
+>
+> With this applied, some subsystems can start to clean up code.
+> Examples:
+>   arch/arm/Kconfig.assembler
+>   arch/mips/vdso/Kconfig
+>   arch/powerpc/Makefile
+>   arch/x86/Kconfig.assembler
+
+Thanks for the patch! Indeed, it looks like 2.25 is from 2014.
+https://ftp.gnu.org/gnu/binutils/
+Reviewed-by: Nick Desaulniers <ndesaulniers@google.com>
+
+>
 > Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 > ---
-
-Reviewed-by: Nicolas Schier <nicolas@fjasle.eu>
-
->  scripts/head-object-list.txt | 1 -
->  1 file changed, 1 deletion(-)
-> 
-> diff --git a/scripts/head-object-list.txt b/scripts/head-object-list.txt
-> index b16326a92c45..f226e45e3b7b 100644
-> --- a/scripts/head-object-list.txt
-> +++ b/scripts/head-object-list.txt
-> @@ -15,7 +15,6 @@ arch/alpha/kernel/head.o
->  arch/arc/kernel/head.o
->  arch/arm/kernel/head-nommu.o
->  arch/arm/kernel/head.o
-> -arch/arm64/kernel/head.o
->  arch/csky/kernel/head.o
->  arch/hexagon/kernel/head.o
->  arch/ia64/kernel/head.o
-> -- 
+>
+>  Documentation/process/changes.rst | 4 ++--
+>  scripts/min-tool-version.sh       | 2 +-
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/Documentation/process/changes.rst b/Documentation/process/changes.rst
+> index 9844ca3a71a6..ef540865ad22 100644
+> --- a/Documentation/process/changes.rst
+> +++ b/Documentation/process/changes.rst
+> @@ -35,7 +35,7 @@ Rust (optional)        1.62.0           rustc --version
+>  bindgen (optional)     0.56.0           bindgen --version
+>  GNU make               3.82             make --version
+>  bash                   4.2              bash --version
+> -binutils               2.23             ld -v
+> +binutils               2.25             ld -v
+>  flex                   2.5.35           flex --version
+>  bison                  2.0              bison --version
+>  pahole                 1.16             pahole --version
+> @@ -119,7 +119,7 @@ Bash 4.2 or newer is needed.
+>  Binutils
+>  --------
+>
+> -Binutils 2.23 or newer is needed to build the kernel.
+> +Binutils 2.25 or newer is needed to build the kernel.
+>
+>  pkg-config
+>  ----------
+> diff --git a/scripts/min-tool-version.sh b/scripts/min-tool-version.sh
+> index 8766e248ffbb..4e5b45d9b526 100755
+> --- a/scripts/min-tool-version.sh
+> +++ b/scripts/min-tool-version.sh
+> @@ -14,7 +14,7 @@ fi
+>
+>  case "$1" in
+>  binutils)
+> -       echo 2.23.0
+> +       echo 2.25.0
+>         ;;
+>  gcc)
+>         echo 5.1.0
+> --
 > 2.34.1
+>
+
 
 -- 
-epost|xmpp: nicolas@fjasle.eu          irc://oftc.net/nsc
-↳ gpg: 18ed 52db e34f 860e e9fb  c82b 7d97 0932 55a0 ce7f
-     -- frykten for herren er opphav til kunnskap --
+Thanks,
+~Nick Desaulniers
