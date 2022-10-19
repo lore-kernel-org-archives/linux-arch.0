@@ -2,118 +2,102 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 095BCC4332F
-	for <linux-arch@archiver.kernel.org>; Wed, 19 Oct 2022 23:07:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 28827C4332F
+	for <linux-arch@archiver.kernel.org>; Wed, 19 Oct 2022 23:56:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231783AbiJSXHW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 19 Oct 2022 19:07:22 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52324 "EHLO
+        id S229970AbiJSX4Z (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 19 Oct 2022 19:56:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47748 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231686AbiJSXHH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2022 19:07:07 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 84CFB1B2BB9;
-        Wed, 19 Oct 2022 16:06:56 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 82754B8261B;
-        Wed, 19 Oct 2022 23:06:54 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3C9D6C433C1;
-        Wed, 19 Oct 2022 23:06:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1666220813;
-        bh=wirS8AQfcl3lz2i46diN/RWkNI9yLfEaD2Y4Z3N2uHU=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=MHItS7s6ZV5PK2XmaDQmmecxnoS4mqBzyvNXFe2LC4vUFE9BKQjxWL+pkn8Pr5IDd
-         mFkyN9rI+LVFa8L533gXv18Dj/lxWBK+PULufa+S5XsQXA98HmBAz/WshBabylJN5v
-         wnRU4EEhq6pLKacISc/S86gPSCjr/Q+tIqYb7l9XaRv0J5uk3JgMQmk3dijIb/QGnv
-         SveE5AC4CTXGr7v4+Ai82qYzV54ohRyFL5ei6OF59zFHlaYHLE1ixgp3dPm48YMFm5
-         rwxpC4WYYUed1oudhyFqCgoOaxw+QVfLS6qd2Lsmgc4MCUiCjkPDI/j84hbmHVEBOO
-         OfVLYDUEMIqAQ==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-        id F188D5C06B4; Wed, 19 Oct 2022 16:06:52 -0700 (PDT)
-From:   "Paul E. McKenney" <paulmck@kernel.org>
-To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        kernel-team@fb.com, mingo@kernel.org
-Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com,
-        =?UTF-8?q?Paul=20Heidekr=C3=BCger?= <paul.heidekrueger@in.tum.de>,
-        Marco Elver <elver@google.com>,
-        Charalampos Mainas <charalampos.mainas@gmail.com>,
-        Pramod Bhatotia <pramod.bhatotia@in.tum.de>,
-        Soham Chakraborty <s.s.chakraborty@tudelft.nl>,
-        Martin Fink <martin.fink@in.tum.de>,
-        "Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 1/5] tools/memory-model: Weaken ctrl dependency definition in explanation.txt
-Date:   Wed, 19 Oct 2022 16:06:47 -0700
-Message-Id: <20221019230651.2502538-1-paulmck@kernel.org>
-X-Mailer: git-send-email 2.31.1.189.g2e36527f23
-In-Reply-To: <20221019230640.GA2502305@paulmck-ThinkPad-P17-Gen-1>
-References: <20221019230640.GA2502305@paulmck-ThinkPad-P17-Gen-1>
+        with ESMTP id S229828AbiJSX4Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2022 19:56:24 -0400
+Received: from mail-oa1-x32.google.com (mail-oa1-x32.google.com [IPv6:2001:4860:4864:20::32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E086F17A970
+        for <linux-arch@vger.kernel.org>; Wed, 19 Oct 2022 16:56:21 -0700 (PDT)
+Received: by mail-oa1-x32.google.com with SMTP id 586e51a60fabf-1326637be6eso22614471fac.13
+        for <linux-arch@vger.kernel.org>; Wed, 19 Oct 2022 16:56:21 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=VigXITkVLYj2H0N/7H5h8chIQ6OrSCW4jyaDySBHArA=;
+        b=dVipe01F0+/PKATXxNO5MrvQYydwK3wDKFHJJPYZu33TRsdQlwODeaeTcxofz+TcBy
+         i9QkXwhJMph9EfoGPMbJeRd2V3zcRj3Q1p7Ywf3RVXRl5yNd3cPt/0QbtxIPuhrUznxB
+         QKXH8CkolwUIi7/w8E0M06X2b4SfFZEteQSOA=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=VigXITkVLYj2H0N/7H5h8chIQ6OrSCW4jyaDySBHArA=;
+        b=72q3UVcvDzPdeFI0kV/l/a6QV3U3y/zyLl800HGlbkrb0sr6eUZWw6DYJx8rCD0qk7
+         U9a+mGRYWWBe2L/s7E4652mJQoB1XpbroMmaN2RWgMqD5espkbdNkWuUuygMZ6ZmwFcJ
+         H0rXYo37sdPAVk6Fr3DiL8AwxQf4ipLUHvXI1FYcHUj0I6/YjZcqqp6A8jQ05KIG76hu
+         pwEnknaaoD7iGW0qqIOMDlle59eVnsAL2zol7kDVOCVfYkJQBkai/cGBc3cvl9LCuA2N
+         7lgAqXCxdk7NQFk9k+kOUUO+UAAyfU0KjoQFGpM1pHEGQK6KHD5+8DdKb2hKiufwskRK
+         BRWQ==
+X-Gm-Message-State: ACrzQf0m9c+nI6zhnf6FHJWtTcrDBtYHv7mmNX+WdJ+16RYNIEjdS9BJ
+        Trd+vY+MrkVgg71JyxFP/nw0hZXAQMtpwg==
+X-Google-Smtp-Source: AMsMyM5eCWKlvK4u3PKP8evjwl5fjmpipaBz+U+rVIT//AYkXNPqlY39/EhjyjAnalYZ6VFxV3l9fA==
+X-Received: by 2002:a05:6870:609a:b0:136:6a3f:a838 with SMTP id t26-20020a056870609a00b001366a3fa838mr22745451oae.43.1666223780805;
+        Wed, 19 Oct 2022 16:56:20 -0700 (PDT)
+Received: from mail-ot1-f54.google.com (mail-ot1-f54.google.com. [209.85.210.54])
+        by smtp.gmail.com with ESMTPSA id k1-20020a056870d0c100b001366f6e1d9fsm8148059oaa.32.2022.10.19.16.56.19
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 19 Oct 2022 16:56:20 -0700 (PDT)
+Received: by mail-ot1-f54.google.com with SMTP id d18-20020a05683025d200b00661c6f1b6a4so10453752otu.1
+        for <linux-arch@vger.kernel.org>; Wed, 19 Oct 2022 16:56:19 -0700 (PDT)
+X-Received: by 2002:a9d:7745:0:b0:661:a3c9:3cff with SMTP id
+ t5-20020a9d7745000000b00661a3c93cffmr5595353otl.176.1666223779433; Wed, 19
+ Oct 2022 16:56:19 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+References: <Y1BcpXAjR4tmV6RQ@zx2c4.com> <20221019203034.3795710-1-Jason@zx2c4.com>
+In-Reply-To: <20221019203034.3795710-1-Jason@zx2c4.com>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed, 19 Oct 2022 16:56:03 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wit-67VU=kt-8Ojtx04m6wxfqypKLzW7CuSeEH_9MYZvw@mail.gmail.com>
+Message-ID: <CAHk-=wit-67VU=kt-8Ojtx04m6wxfqypKLzW7CuSeEH_9MYZvw@mail.gmail.com>
+Subject: Re: [PATCH v2] kbuild: treat char as always unsigned
+To:     "Jason A. Donenfeld" <Jason@zx2c4.com>
+Cc:     linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-toolchains@vger.kernel.org,
+        Masahiro Yamada <masahiroy@kernel.org>,
+        Kees Cook <keescook@chromium.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
-
-The current informal control dependency definition in explanation.txt is
-too broad and, as discussed, needs to be updated.
-
-Consider the following example:
-
-> if(READ_ONCE(x))
->   return 42;
+On Wed, Oct 19, 2022 at 1:30 PM Jason A. Donenfeld <Jason@zx2c4.com> wrote:
 >
-> WRITE_ONCE(y, 42);
+> So let's just eliminate this particular variety of heisensign bugs
+> entirely. Set `-funsigned-char` globally, so that gcc makes the type
+> unsigned on all architectures.
 >
-> return 21;
+> This will break things in some places and fix things in others, so this
+> will likely cause a bit of churn while reconciling the type misuse.
 
-The read event determines whether the write event will be executed "at all"
-- as per the current definition - but the formal LKMM does not recognize
-this as a control dependency.
+Yeah, if we were still in the merge window, I'd probably apply this,
+but as things stand, I think it should go into linux-next and cook
+there for the next merge window.
 
-Introduce a new definition which includes the requirement for the second
-memory access event to syntactically lie within the arm of a non-loop
-conditional.
+Anybody willing to put this in their -next trees?
 
-Link: https://lore.kernel.org/all/20220615114330.2573952-1-paul.heidekrueger@in.tum.de/
-Cc: Marco Elver <elver@google.com>
-Cc: Charalampos Mainas <charalampos.mainas@gmail.com>
-Cc: Pramod Bhatotia <pramod.bhatotia@in.tum.de>
-Cc: Soham Chakraborty <s.s.chakraborty@tudelft.nl>
-Cc: Martin Fink <martin.fink@in.tum.de>
-Co-developed-by: Alan Stern <stern@rowland.harvard.edu>
-Signed-off-by: Alan Stern <stern@rowland.harvard.edu>
-Signed-off-by: Paul Heidekrüger <paul.heidekrueger@in.tum.de>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
----
- tools/memory-model/Documentation/explanation.txt | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+Any breakage it causes is likely going to be fairly subtle, and in
+some random driver that isn't used on architectures that already have
+an unsigned 'char' type.
 
-diff --git a/tools/memory-model/Documentation/explanation.txt b/tools/memory-model/Documentation/explanation.txt
-index ee819a402b698..11a1d2d4f681c 100644
---- a/tools/memory-model/Documentation/explanation.txt
-+++ b/tools/memory-model/Documentation/explanation.txt
-@@ -464,9 +464,10 @@ to address dependencies, since the address of a location accessed
- through a pointer will depend on the value read earlier from that
- pointer.
- 
--Finally, a read event and another memory access event are linked by a
--control dependency if the value obtained by the read affects whether
--the second event is executed at all.  Simple example:
-+Finally, a read event X and a write event Y are linked by a control
-+dependency if Y syntactically lies within an arm of an if statement and
-+X affects the evaluation of the if condition via a data or address
-+dependency (or similarly for a switch statement).  Simple example:
- 
- 	int x, y;
- 
--- 
-2.31.1.189.g2e36527f23
+I think the architectures with an unsigned 'char' are arm, powerpc and
+s390, in all their variations (ie both 32- and 64-bit).
 
+So all *core* code should be fine with this, but that still leaves a
+lot of drivers that have likely never been tested on anything but x86,
+and could just stop working.
+
+I don't think breakage is very *likely*, but I suspect it exists.
+
+                       Linus
