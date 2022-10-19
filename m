@@ -2,90 +2,105 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B0C54C43219
-	for <linux-arch@archiver.kernel.org>; Wed, 19 Oct 2022 20:23:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 29ED3C433FE
+	for <linux-arch@archiver.kernel.org>; Wed, 19 Oct 2022 20:31:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231209AbiJSUXY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 19 Oct 2022 16:23:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57578 "EHLO
+        id S231409AbiJSUbD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 19 Oct 2022 16:31:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49278 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231324AbiJSUXT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2022 16:23:19 -0400
-Received: from gate.crashing.org (gate.crashing.org [63.228.1.57])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 67D0D1C25FF;
-        Wed, 19 Oct 2022 13:23:16 -0700 (PDT)
-Received: from gate.crashing.org (localhost.localdomain [127.0.0.1])
-        by gate.crashing.org (8.14.1/8.14.1) with ESMTP id 29JKFhWg016370;
-        Wed, 19 Oct 2022 15:15:43 -0500
-Received: (from segher@localhost)
-        by gate.crashing.org (8.14.1/8.14.1/Submit) id 29JKFgLV016366;
-        Wed, 19 Oct 2022 15:15:42 -0500
-X-Authentication-Warning: gate.crashing.org: segher set sender to segher@kernel.crashing.org using -f
-Date:   Wed, 19 Oct 2022 15:15:42 -0500
-From:   Segher Boessenkool <segher@kernel.crashing.org>
-To:     Linus Torvalds <torvalds@linux-foundation.org>
-Cc:     Nick Desaulniers <ndesaulniers@google.com>,
-        "Jason A. Donenfeld" <Jason@zx2c4.com>,
-        linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-toolchains@vger.kernel.org,
+        with ESMTP id S231394AbiJSUa4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2022 16:30:56 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 31FFD16E292;
+        Wed, 19 Oct 2022 13:30:54 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id DCB97B825E4;
+        Wed, 19 Oct 2022 20:30:52 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C92CBC433C1;
+        Wed, 19 Oct 2022 20:30:50 +0000 (UTC)
+Authentication-Results: smtp.kernel.org;
+        dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="m3pCQfIb"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zx2c4.com; s=20210105;
+        t=1666211448;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=D096jznuqlRQwJxMQwcMaa14sQx4bVWfoMm54xn0QwQ=;
+        b=m3pCQfIbed7QAmhdX5Jk66SkwkOn91IQAhAZCloMrDcuwuFU7hOeOzneYWAUG5sSS6MVh9
+        CpjbVwJu51bpOf06LYjFWzNjorxwsYs+Gh4OelaonRbAP4tuih3CtfS2Bz8UE4icXCx4/N
+        YZsg/nNHc64iJoQTjaZiMFXW5qE/yN4=
+Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id 8a12f077 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
+        Wed, 19 Oct 2022 20:30:47 +0000 (UTC)
+From:   "Jason A. Donenfeld" <Jason@zx2c4.com>
+To:     linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-toolchains@vger.kernel.org
+Cc:     "Jason A. Donenfeld" <Jason@zx2c4.com>,
         Masahiro Yamada <masahiroy@kernel.org>,
         Kees Cook <keescook@chromium.org>,
         Andrew Morton <akpm@linux-foundation.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
         Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH] kbuild: treat char as always signed
-Message-ID: <20221019201542.GN25951@gate.crashing.org>
-References: <20221019162648.3557490-1-Jason@zx2c4.com> <20221019165455.GL25951@gate.crashing.org> <CAHk-=wiMWk2t8FHn0iqVVe1mn62OTAD6ffL5rn9Eeu021H9d1Q@mail.gmail.com> <20221019174345.GM25951@gate.crashing.org> <CAHk-=wiNNKLFfa0d+Hk=Wm5caiKjLY4V9wwu9DhcSSwPuMbxrg@mail.gmail.com> <CAKwvOdn4iocWHY_-sXMqE7F1XrV669QsyQDzh7vPFg6+7368Cg@mail.gmail.com> <CAHk-=wiD90ZphsbTzSetHsK3_kQzhgyiYYS0msboVsJ3jbNALQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
+Subject: [PATCH v2] kbuild: treat char as always unsigned
+Date:   Wed, 19 Oct 2022 14:30:34 -0600
+Message-Id: <20221019203034.3795710-1-Jason@zx2c4.com>
+In-Reply-To: <Y1BcpXAjR4tmV6RQ@zx2c4.com>
+References: <Y1BcpXAjR4tmV6RQ@zx2c4.com>
+MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAHk-=wiD90ZphsbTzSetHsK3_kQzhgyiYYS0msboVsJ3jbNALQ@mail.gmail.com>
-User-Agent: Mutt/1.4.2.3i
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Oct 19, 2022 at 11:56:00AM -0700, Linus Torvalds wrote:
-> After fixing fortify-string.h to not complain (which was indeed about
-> strlen() signedness), it turns out a lot were still about 'char', but
-> not necessarily the <string,h> functions.
-> 
-> We use 'unsigned char *' for our dentry data, for example, and then you get
-> 
->      warning: pointer targets in initialization of ‘const unsigned
-> char *’ from ‘char *’ differ in signedness
-> 
-> when you do something like
-> 
->     QSTR_INIT(NULL_FILE_NAME,
-> 
-> which is simply doing a regular initializer assignment, and wants to
-> assign a constant string (in this case the constant string "null") to
-> that "const unsigned char *name".
+Recently, some compile-time checking I added to the clamp_t family of
+functions triggered a build error when a poorly written driver was
+compiled on ARM, because the driver assumed that the naked `char` type
+is signed, but ARM treats it as unsigned, and the C standard says it's
+architecture-dependent.
 
-It cannot see that all users of this are okay with ignoring the
-difference.
+I doubt this particular driver is the only instance in which
+unsuspecting authors make assumptions about `char` with no `signed` or
+`unsigned` specifier. We were lucky enough this time that that driver
+used `clamp_t(char, negative_value, positive_value)`, so the new
+checking code found it, and I've sent a patch to fix it, but there are
+likely other places lurking that won't be so easily unearthed.
 
-> That's certainly another example of "why the heck did the compiler
-> warn about that thing".
+So let's just eliminate this particular variety of heisensign bugs
+entirely. Set `-funsigned-char` globally, so that gcc makes the type
+unsigned on all architectures.
 
-Because this is a simple warning.  It did exactly what it is supposed
-to -- you are mixing "char" and "unsigned char" here, and in some cases
-that matters hugely.
+This will break things in some places and fix things in others, so this
+will likely cause a bit of churn while reconciling the type misuse.
 
-> You can literally try to compile this one-liner with gcc:
-> 
->      const unsigned char *c = "p";
-> 
-> and it will complain. What a hugely pointless warning.
+Cc: Masahiro Yamada <masahiroy@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Link: https://lore.kernel.org/lkml/202210190108.ESC3pc3D-lkp@intel.com/
+Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Yes, there are corner cases like this.  Please open a PR if you want
-this fixed.
+diff --git a/Makefile b/Makefile
+index f41ec8c8426b..bbf376931899 100644
+--- a/Makefile
++++ b/Makefile
+@@ -562,7 +562,7 @@ KBUILD_AFLAGS   := -D__ASSEMBLY__ -fno-PIE
+ KBUILD_CFLAGS   := -Wall -Wundef -Werror=strict-prototypes -Wno-trigraphs \
+ 		   -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE \
+ 		   -Werror=implicit-function-declaration -Werror=implicit-int \
+-		   -Werror=return-type -Wno-format-security \
++		   -Werror=return-type -Wno-format-security -funsigned-char \
+ 		   -std=gnu11
+ KBUILD_CPPFLAGS := -D__KERNEL__
+ KBUILD_RUSTFLAGS := $(rust_common_flags) \
+-- 
+2.38.1
 
-It is UB to (try to) modify string literals (since they can be shared
-for example), but still they have type "array of (plain) char".  This is
-historical :-/
-
-
-Segher
