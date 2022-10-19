@@ -2,142 +2,83 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 19C95C4332F
-	for <linux-arch@archiver.kernel.org>; Wed, 19 Oct 2022 20:07:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5BA35C433FE
+	for <linux-arch@archiver.kernel.org>; Wed, 19 Oct 2022 20:23:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229731AbiJSUHP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 19 Oct 2022 16:07:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50630 "EHLO
+        id S231308AbiJSUXR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 19 Oct 2022 16:23:17 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57496 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230133AbiJSUHO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2022 16:07:14 -0400
-Received: from mail-lj1-x22e.google.com (mail-lj1-x22e.google.com [IPv6:2a00:1450:4864:20::22e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2737E190E68;
-        Wed, 19 Oct 2022 13:07:13 -0700 (PDT)
-Received: by mail-lj1-x22e.google.com with SMTP id c20so23606822ljj.7;
-        Wed, 19 Oct 2022 13:07:13 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :references:in-reply-to:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=b7CNOQx77jxJkr8fo3A8KqRmFLYVGew+7knPtLNO80g=;
-        b=awEFpEhcqOyuVVRGI60VVcsY5M+7n3ldfd1Do6gZB1LMVB3KIviAIQVoo0kYWTOHT8
-         XM1MHj97CJzRipIruN5JqNCyKjUeAGAXbhnVmtZadyZlm7K0obdKSz1nbZdSRur3DoiH
-         WpM0+oRZ17FZSFdsb0BHFWIRMTSgulfz/o0MFuuo3sKFZvdXVpgc1Z4QW6TK+DhHBE9/
-         8VNXsPpSviKl/qU0YqAEakVFHyvMzyztSAOEde/r0NLVMzhuD+Ni1F2qG/zPZruDeEFL
-         m5TGE/5ApV7g8brCcqclP/YXzChpw8AOm4ewYdXBFs/i/pe8Uw/3y84IWfdoPmZ3poQ0
-         480Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :references:in-reply-to:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=b7CNOQx77jxJkr8fo3A8KqRmFLYVGew+7knPtLNO80g=;
-        b=PayZpNq2ycENY9bUxVfSVAwasNJQt0K4LjohFgKzsZjim0lFoEeQN1sKiZ8ZodkdRR
-         UNlxzEK+W9Mp/ZFiiJ5b/RNnBASaD/TvM3+dhp0F4/zY5GkuHkvk215/tEYAJ8LvojuA
-         CHuofo5ZuT1PJv8Eeq2wdOglOYz6NrLjM+v+0IjiZZhtHDLRMeI6+vCYxqg+2VNlz/uT
-         wzAUSqvL7rNMVUwuk6/3W2Af2ZFgJwFQbUWhz9eASsI8ozfDVRghI9Yy5acns+ivjjx9
-         pkSg0gFib5ETT2bWCISqVYElm4ZSnjK5TnKXpdxOr4KXo9GkymwH07bI7YndEWr1uB30
-         Q15g==
-X-Gm-Message-State: ACrzQf0AiqgujliC3byscTf3l7TSQvx/KVPSApIli4r/9OC6mo05mlyv
-        7kcj6eMcwOA92dSvNp4kqDsDIz6DlDA6uCkAa9w=
-X-Google-Smtp-Source: AMsMyM6sYCtQ57vM1AQbbV3fxrVxnMWB0NyC+Rv9m+1OQN0e2gDL0yS2/jvhhkzrg5lQMHkx2CWA73bYz/FN+wz9pwU=
-X-Received: by 2002:a2e:2a03:0:b0:26d:ff37:f731 with SMTP id
- q3-20020a2e2a03000000b0026dff37f731mr3316534ljq.25.1666210031367; Wed, 19 Oct
- 2022 13:07:11 -0700 (PDT)
-MIME-Version: 1.0
-Received: by 2002:ab3:5411:0:b0:1f6:575a:5fb7 with HTTP; Wed, 19 Oct 2022
- 13:07:10 -0700 (PDT)
-In-Reply-To: <Y1BXQlu+JOoJi6Yk@elver.google.com>
-References: <20220915150417.722975-19-glider@google.com> <20221019173620.10167-1-youling257@gmail.com>
- <CAOzgRda_CToTVicwxx86E7YcuhDTcayJR=iQtWQ3jECLLhHzcg@mail.gmail.com>
- <CANpmjNMPKokoJVFr9==-0-+O1ypXmaZnQT3hs4Ys0Y4+o86OVA@mail.gmail.com>
- <CAOzgRdbbVWTWR0r4y8u5nLUeANA7bU-o5JxGCHQ3r7Ht+TCg1Q@mail.gmail.com> <Y1BXQlu+JOoJi6Yk@elver.google.com>
-From:   youling 257 <youling257@gmail.com>
-Date:   Thu, 20 Oct 2022 04:07:10 +0800
-Message-ID: <CAOzgRdY6KSxDMRJ+q2BWHs4hRQc5y-PZ2NYG++-AMcUrO8YOgA@mail.gmail.com>
-Subject: Re: [PATCH v7 18/43] instrumented.h: add KMSAN support
-To:     Marco Elver <elver@google.com>
-Cc:     Alexander Viro <viro@zeniv.linux.org.uk>,
-        Alexei Starovoitov <ast@kernel.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andrey Konovalov <andreyknvl@google.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
-        Christoph Hellwig <hch@lst.de>,
-        Christoph Lameter <cl@linux.com>,
-        David Rientjes <rientjes@google.com>,
-        Dmitry Vyukov <dvyukov@google.com>,
-        Eric Biggers <ebiggers@kernel.org>,
-        Eric Dumazet <edumazet@google.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        Ilya Leoshkevich <iii@linux.ibm.com>,
-        Ingo Molnar <mingo@redhat.com>, Jens Axboe <axboe@kernel.dk>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
+        with ESMTP id S229731AbiJSUXO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2022 16:23:14 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6B9FC1C7134;
+        Wed, 19 Oct 2022 13:23:13 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 13EE1B822EB;
+        Wed, 19 Oct 2022 20:23:12 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D5818C433D6;
+        Wed, 19 Oct 2022 20:23:09 +0000 (UTC)
+Authentication-Results: smtp.kernel.org;
+        dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="lqPZ2kwy"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zx2c4.com; s=20210105;
+        t=1666210988;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=6TSG2vrF4L7U0TmIuYTMcX432T1AzPyXPqLh8FCHzYM=;
+        b=lqPZ2kwyeB5qBygjZyi5SR7/J0j5oEwteqw5LXX4ixsXcBUi4I/WVv6IXWL4k2UxEVHj+E
+        WaXtd5/5DlP8yuvKLqjg+tQ+YWXoFMnUKOYEXPQOc+aUfnxpvhaHFxhvvANWnGMDg2lu2p
+        dJauqgiam8nth1lXao18VDlv8Jkt1+k=
+Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id 8bccd0b3 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
+        Wed, 19 Oct 2022 20:23:08 +0000 (UTC)
+Date:   Wed, 19 Oct 2022 14:23:01 -0600
+From:   "Jason A. Donenfeld" <Jason@zx2c4.com>
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-toolchains@vger.kernel.org,
+        Masahiro Yamada <masahiroy@kernel.org>,
         Kees Cook <keescook@chromium.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        "Michael S. Tsirkin" <mst@redhat.com>,
-        Pekka Enberg <penberg@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Petr Mladek <pmladek@suse.com>,
-        Stephen Rothwell <sfr@canb.auug.org.au>,
-        Steven Rostedt <rostedt@goodmis.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Vegard Nossum <vegard.nossum@oracle.com>,
-        Vlastimil Babka <vbabka@suse.cz>, kasan-dev@googlegroups.com,
-        linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+        Andrew Morton <akpm@linux-foundation.org>,
+        Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH] kbuild: treat char as always signed
+Message-ID: <Y1BcpXAjR4tmV6RQ@zx2c4.com>
+References: <20221019162648.3557490-1-Jason@zx2c4.com>
+ <CAHk-=whT+xyge9UjH+r6dt0FG-eUdrzu5hDMce_vC+n8uLam2A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <CAHk-=whT+xyge9UjH+r6dt0FG-eUdrzu5hDMce_vC+n8uLam2A@mail.gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-That is i did,i already test, remove "u64 __tmp=E2=80=A6kmsan_unpoison_memo=
-ry", no help.
-i only remove kmsan_copy_to_user, fix my issue.
+Hi Linus,
 
-2022-10-20 4:00 GMT+08:00, Marco Elver <elver@google.com>:
-> On Thu, Oct 20, 2022 at 03:29AM +0800, youling 257 wrote:
-> [...]
->> > What arch?
->> > If x86, can you try to revert only the change to
->> > instrument_get_user()? (I wonder if the u64 conversion is causing
->> > issues.)
->> >
->> arch x86, this's my revert,
->> https://github.com/youling257/android-mainline/commit/401cbfa61cbfc20c87=
-a5be8e2dda68ac5702389f
->> i tried different revert, have to remove kmsan_copy_to_user.
->
-> There you reverted only instrument_put_user() - does it fix the issue?
->
-> If not, can you try only something like this (only revert
-> instrument_get_user()):
->
-> diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-> index 501fa8486749..dbe3ec38d0e6 100644
-> --- a/include/linux/instrumented.h
-> +++ b/include/linux/instrumented.h
-> @@ -167,9 +167,6 @@ instrument_copy_from_user_after(const void *to, const
-> void __user *from,
->   */
->  #define instrument_get_user(to)				\
->  ({							\
-> -	u64 __tmp =3D (u64)(to);				\
-> -	kmsan_unpoison_memory(&__tmp, sizeof(__tmp));	\
-> -	to =3D __tmp;					\
->  })
->
->
-> Once we know which one of these is the issue, we can figure out a proper
-> fix.
->
-> Thanks,
->
-> -- Marco
->
+On Wed, Oct 19, 2022 at 12:54:06PM -0700, Linus Torvalds wrote:
+> On Wed, Oct 19, 2022 at 9:27 AM Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+> >
+> > So let's just eliminate this particular variety of heisensigned bugs
+> > entirely. Set `-fsigned-char` globally, so that gcc makes the type
+> > signed on all architectures.
+> 
+> Btw, I do wonder if we might actually be better off doing this - but
+> doing it the other way around.
+
+That could work. The argument here would be that most people indeed
+treat char as a byte. I'll send a v2 doing this.
+
+This will probably break some things, though, on drivers that are
+already broken on e.g. ARM. For example, the wifi driver I fixed that
+started this whole thing would now be broken on x86 too. But also, we're
+barely past rc1, so maybe this is something to do now, and then we'll
+spend the rest of the 6.1 cycle fixing issues as the pop up? Sounds fine
+to me if you think that's doable.
+
+Either way, I'll send a patch and you can do with it what you think is
+best.
+
+Jason
