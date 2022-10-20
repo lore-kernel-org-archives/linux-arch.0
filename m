@@ -2,149 +2,182 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6CE70C4332F
-	for <linux-arch@archiver.kernel.org>; Thu, 20 Oct 2022 17:53:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 97335C433FE
+	for <linux-arch@archiver.kernel.org>; Thu, 20 Oct 2022 17:58:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229732AbiJTRxz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 20 Oct 2022 13:53:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40100 "EHLO
+        id S229604AbiJTR6b (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 20 Oct 2022 13:58:31 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53562 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229484AbiJTRxy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2022 13:53:54 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9D2B31E7446;
-        Thu, 20 Oct 2022 10:53:53 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 38BC761B4B;
-        Thu, 20 Oct 2022 17:53:53 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2ADCCC433D6;
-        Thu, 20 Oct 2022 17:53:52 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1666288432;
-        bh=ENyBHTU+PlCOFSNauBVolLBO7eB6Z+yD7cAHq5oAFfc=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=itsqb22tDrJn/TaivCWnwHoR/9a1Q/K3QjttRaDQ6N0wPGbj3sGv4KhTbdN4/5Nxy
-         qe9lpYkzAHrw8iXhNx+gUH/eJBvgfpinLFdJht+aIV7B43iS5L474MXiI9lVQER+YZ
-         YTk7aj6vm6U8rTbfb7xKZUYPy+pGcWR7F8pJu2zwTF87vqlR9Ehr4jsb3uNftkF6wX
-         W433vYi8ytZV2h2vgJcXNFub79eBqffDd5s+X9Ii4M3CXEkxnezmYYWH1bZSoXfnhK
-         /DRZwynNDXEwrQwvO3QTUtZeYnREpKChG+YqGe2lhRXJ0yI7Xzeaa98a9j5d59l671
-         vlXEDoBoA2chA==
-Date:   Thu, 20 Oct 2022 10:53:50 -0700
-From:   Nathan Chancellor <nathan@kernel.org>
-To:     "Li, Xin3" <xin3.li@intel.com>
-Cc:     Kees Cook <keescook@chromium.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "H.Peter Anvin" <hpa@zytor.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        "llvm@lists.linux.dev" <llvm@lists.linux.dev>,
-        "linux-kbuild@vger.kernel.org" <linux-kbuild@vger.kernel.org>
-Subject: Re: upgrade the orphan section warning to a hard link error
-Message-ID: <Y1GLLnYsEC8lYTdp@dev-arch.thelio-3990X>
-References: <BN6PR1101MB216105D169D482FC8C539059A8269@BN6PR1101MB2161.namprd11.prod.outlook.com>
- <Y02eZ6A/vlj8+B/c@dev-arch.thelio-3990X>
- <202210171230.CC40461C@keescook>
- <Y02zWFxC92VDSpdZ@dev-arch.thelio-3990X>
- <BN6PR1101MB216126260E3A9AFEE3F9CFB8A82A9@BN6PR1101MB2161.namprd11.prod.outlook.com>
+        with ESMTP id S229456AbiJTR6a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 20 Oct 2022 13:58:30 -0400
+Received: from na01-obe.outbound.protection.outlook.com (mail-westcentralusazon11022023.outbound.protection.outlook.com [40.93.200.23])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0405A199F4A;
+        Thu, 20 Oct 2022 10:58:29 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=lmvhNkBCc/lnveXm898BUcfxzo+nODD77nqIR1IjeQofUMNxf3VaCsakcfoqyxf7DxTXZ+n5yQJAS6O6zHiZAI/8dW3478Q1nuNFiYbo4Bv1S8hNPIBKGN6NRSDl5/9B13TKq2aJ9yHs4Ssp+KH+ZoCCBsZtCuk6ohMQE7S74RLVstqPOPxDXFzcMzbQREAZfzFt5lm5GC1fE6i003ypH4tsD19wSnT3XRtaZBvuvxsDzCw4Pt057tQULP+os0WTU9x9gVufFSrjwKAibri1XinMO9/IsMq1XBATrPMG18+0mwyoks0AMqn4CsCQXC7hTmsGf5tL3ffcS3YW7aI8ag==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=qPFQFBJ2cy3ptAG94AF8myzZ+oHcLnbdNyGAmv7MIzY=;
+ b=d7FcQtP9aXY5P9ZOOxHyeTUJVV+ZD+Dfu469/M9/HmnMfxRQH2sZ48+5aCfuHkXt8P7IsC7bkWhZKGcOkyYDjZy92fTdV+RF1VcYhk5n+DqJTCrrF5UAxhCF2GW/P40hb7OL12TqJka7gRI9FEk0Y0FBE+zPKZkzuBraGqcEPJ24tqfNQhm2/an1lNIVfZbeTEypquIfw6JgAij75LFcfguuYQL0R6V9bVa8YtlIzQO2kSNFH4FBIsRmMOKQYKyHD3oob/z1/rf4bPPIqrMsKFBIHrI+5XP9ssKqAJuOzbZVXqptp/yd/9Tsn1Cqyy+YkQ5ZXNgXr/rkrcn9T1MVcA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=microsoft.com; dmarc=pass action=none
+ header.from=microsoft.com; dkim=pass header.d=microsoft.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=qPFQFBJ2cy3ptAG94AF8myzZ+oHcLnbdNyGAmv7MIzY=;
+ b=IK1LYIczikzzumQ5UAp4NLuHNcIil/+RFAS/mN1XXqZVSHjrCf1MswMZUzjlS8eriEyuCkPQgcIzSds7XrwCttER7rgGIuKJiItP5EMjAGuzvqKOz6WEWpDcXECt9npN5kALyppnaTeA5tEpyAeofe1SH3Hqa7SDLWsFQUPcbV0=
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=microsoft.com;
+Received: from DM6PR21MB1370.namprd21.prod.outlook.com (2603:10b6:5:16b::28)
+ by MW4PR21MB1857.namprd21.prod.outlook.com (2603:10b6:303:74::12) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.5746.17; Thu, 20 Oct
+ 2022 17:58:25 +0000
+Received: from DM6PR21MB1370.namprd21.prod.outlook.com
+ ([fe80::be79:e2dc:1dba:44fa]) by DM6PR21MB1370.namprd21.prod.outlook.com
+ ([fe80::be79:e2dc:1dba:44fa%3]) with mapi id 15.20.5723.019; Thu, 20 Oct 2022
+ 17:58:25 +0000
+From:   Michael Kelley <mikelley@microsoft.com>
+To:     hpa@zytor.com, kys@microsoft.com, haiyangz@microsoft.com,
+        sthemmin@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
+        luto@kernel.org, peterz@infradead.org, davem@davemloft.net,
+        edumazet@google.com, kuba@kernel.org, pabeni@redhat.com,
+        lpieralisi@kernel.org, robh@kernel.org, kw@linux.com,
+        bhelgaas@google.com, arnd@arndb.de, hch@infradead.org,
+        m.szyprowski@samsung.com, robin.murphy@arm.com,
+        thomas.lendacky@amd.com, brijesh.singh@amd.com, tglx@linutronix.de,
+        mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
+        Tianyu.Lan@microsoft.com, kirill.shutemov@linux.intel.com,
+        sathyanarayanan.kuppuswamy@linux.intel.com, ak@linux.intel.com,
+        isaku.yamahata@intel.com, dan.j.williams@intel.com,
+        jane.chu@oracle.com, seanjc@google.com, tony.luck@intel.com,
+        x86@kernel.org, linux-kernel@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, netdev@vger.kernel.org,
+        linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+        iommu@lists.linux.dev
+Cc:     mikelley@microsoft.com
+Subject: [PATCH 02/12] x86/ioapic: Gate decrypted mapping on cc_platform_has() attribute
+Date:   Thu, 20 Oct 2022 10:57:05 -0700
+Message-Id: <1666288635-72591-3-git-send-email-mikelley@microsoft.com>
+X-Mailer: git-send-email 1.8.3.1
+In-Reply-To: <1666288635-72591-1-git-send-email-mikelley@microsoft.com>
+References: <1666288635-72591-1-git-send-email-mikelley@microsoft.com>
+Content-Type: text/plain
+X-ClientProxiedBy: MW4PR02CA0021.namprd02.prod.outlook.com
+ (2603:10b6:303:16d::31) To DM6PR21MB1370.namprd21.prod.outlook.com
+ (2603:10b6:5:16b::28)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <BN6PR1101MB216126260E3A9AFEE3F9CFB8A82A9@BN6PR1101MB2161.namprd11.prod.outlook.com>
+X-MS-Exchange-MessageSentRepresentingType: 1
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: DM6PR21MB1370:EE_|MW4PR21MB1857:EE_
+X-MS-Office365-Filtering-Correlation-Id: 9db358de-a263-4117-ea11-08dab2c4af91
+X-LD-Processed: 72f988bf-86f1-41af-91ab-2d7cd011db47,ExtAddr
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: zrSbdrQ7y7RyiqAaqk7qcG1PKbmWmmf2gZiH9JgPp7x9L/b+dHabbn7UhxIvsSGy+Kf3pqUalakPxrpRSwnFtYps5H2J1BK+gXzKZCJNODkLrN6H5SjLoZcd0fvMJq7o3V+3pcRdo8NKAf31d9bL14Dt4WwiuOX8ttRYAqXeAMkkYDrnxCxfdJnBFdhaVf2Q3/5v54nr4dBf0H65yM8l//QhFOE08AVijosBg8UbT0cxu7axDkxi7bvUUB8GaUUIUPc/jPfxhEZbD9Ny+3rmM94xAJTTCObfk6XuvhD3Uj2UTalI9VCK0tYMF0af7ZFVmFFaRGir0XLNpSnXVHojhnbykxvsgs0vU8ifExrDh59pHnV5qSOhNPwwMxjklY7VZENe9lMzx6wPKM3BTMDA0Ea6P8CELyHjH5quDsncIquy7j4LGKnXz3nXDvaxoVeKUlb5Dqxh+mZKJ0622z4Cj4eVSbAi/E/yRu+veVFnRvpUq47T1vQbuj1XPUiDTEvoVaPdvIMnfwLbQ1il4ZS3b/x2bH3V4KHqZNcVLtdsz7aNlKPBSB7X7dSZUdalKf2VDe9TOAlbtFoofXFHUqFWvojf7msiLNFx3b9Fby9XIsncAgawYrPf90SORi6k8EQGxPMtDeRjve94PY8LryFiYQdzZKt+949YwzF5NtszmsBJVFZ2ODyf9YszZfUBRQdeObHwb0oXYQ3Y1kDJjmXh8e6PYrdu2YHvalgrOheKUq0jvWfSrbXcPi54k62LsgZmHGf+iKdxMcbURDW7qoePEC88/i5n7Xb77nJ1+z/HPGy5z7aj1o0zBDq765pTQU/FIrU3J4zBldhak9vZrSqYJw==
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DM6PR21MB1370.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230022)(4636009)(366004)(136003)(346002)(376002)(396003)(39860400002)(451199015)(186003)(6512007)(6666004)(107886003)(83380400001)(7416002)(52116002)(26005)(2906002)(5660300002)(6506007)(66556008)(41300700001)(8676002)(478600001)(8936002)(316002)(4326008)(66476007)(66946007)(6486002)(10290500003)(82950400001)(36756003)(86362001)(2616005)(7406005)(82960400001)(38100700002)(38350700002)(921005);DIR:OUT;SFP:1102;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?wgQ0kXLr14ZHtrrea7b2Cq2FNSjWvg+I/OxrgKVpkgb16N+qyurJ2oAXXeN+?=
+ =?us-ascii?Q?Y/wrjSN1f5sJmzBLYcQX8Qvx2azYJ58Xytqf2Yz7Ci+uw8LSHafFNgtZjifF?=
+ =?us-ascii?Q?SVTzPDlaL1bX1yIv0Ibx5W9RlzY74JRo/1pyrwTwZQ67XpnlkiIJ15suPCzA?=
+ =?us-ascii?Q?2kxU6Yv0n4ttumiQxstUo8pxzPnJJBXfntYwKYybspl+0IuVZaryVXHhWjV6?=
+ =?us-ascii?Q?9wkX2eQMwk3anlDXDHNmzsh5f00x6GMXQhVzFs0qtT6sGJHJfuIdcnenZAfF?=
+ =?us-ascii?Q?/qBXV6VJrvyeIe2cOvXBUcqWXZCTICoSzMMTKszQkTw32cpS8UIL7395LGRm?=
+ =?us-ascii?Q?C3FkQ7YgDqgsH9rLokwYnLQ7+3bZPz0PIJt1IJCaswAeyDlHR7sJNMqL9bmG?=
+ =?us-ascii?Q?88mTaEUpcEPRZy/E/0RPAc/CR/VwEdzNMOSPHFaxlCmi6X61gncc84LEbs8w?=
+ =?us-ascii?Q?QxRzBlJXDHVGaLY/QILGKK29ORa+EnuQZ4f1RPRPU+pc91ro9Hw7HfQFXwM3?=
+ =?us-ascii?Q?Wwd7+yPzLiXLQ7tcARrWrUBrfsI0aS3+4GhNm64GHmLdq1CxuITNAKG8q+oE?=
+ =?us-ascii?Q?okVDVshlz2JmEdoy9yA5+Y1PlDUjXf+pjKW/SreGJx8IQg+LaEEFxRkaBqoq?=
+ =?us-ascii?Q?gTNrFWqCGM3KIWfGbatlzMyPLaGJRLtWPdXUIsNj1jTyp0D8dJuOiUBZJk/6?=
+ =?us-ascii?Q?XExAkOIe+rGMK5Bmh2loguFAya3HyrLFTXxMD6T1/NZ3sK2iqXMuu6eA+5Qk?=
+ =?us-ascii?Q?0EVNTwMz2Fr4cnSEgXwRPzCnGixHCdQHR6zcHJOJt1AW1VgOyDN4zCcctaOS?=
+ =?us-ascii?Q?zcEH46N5LwMu11F+xvr56HTuYfisHsL3NpRSA6qh6vGqiLaM6W+oYZ+AkQcz?=
+ =?us-ascii?Q?s2nNvW3TuZviZLIBe+5vVTrl3R2cVuEEyb25Xc0Zc8XUUhLBmcN96KkZPTBu?=
+ =?us-ascii?Q?y9Jchdw4iAAaVzEjMKwQxrywBNiqOEN3n9sOqps6PoTGL8ylRDbvRtdSbwZv?=
+ =?us-ascii?Q?BGmJSHcHzFLV50Wl/akk10xxLe5lCkL4sNNq9gZq0X3HTOsf26SHKFrYVN0X?=
+ =?us-ascii?Q?SPWKXoP2Fu+k3Yg0UnKVyUecwYtoe8XuyeIgrK6Nv2+drhwLpaAVkv3+20Uf?=
+ =?us-ascii?Q?HJoiXIMkWnw6YvDOx2Yi6FdXxcFazX3NgHBWHDckRcejWpxwb/8XLjpsX0mR?=
+ =?us-ascii?Q?1OSY2/ZH8lPsqxQmFGxh5GxvHQp6d54RT6P4Kzgy5wFMNZnz3UBENRa/K37S?=
+ =?us-ascii?Q?VGdJzXx3LDtpP1+jYcoBBqSYMthVHpx80EjGjygYAzzyGM2kh7OkHAm+u6Zu?=
+ =?us-ascii?Q?hnRw8fm3rHhPSoe8/F7yHmtG0WPD9ZM3Lqg3W+DF0MsnrfaNfifCENlnsBC6?=
+ =?us-ascii?Q?q35lwXKODoS8Dt5xOI6yFZHAymG8IgB2nRoGhHImNopHug9V78gI/hQCujUd?=
+ =?us-ascii?Q?Dljqnqaf+wrE4aYdmB0wX0wGFiujaPkIWsGuocfHr9mTJLzdljwxEeCRcsn6?=
+ =?us-ascii?Q?0Sw7zGAtWViCc8j2eKCIgjjAZNqUpmq6NKSWX2WTvrpol1NDbe2CwgimOPgu?=
+ =?us-ascii?Q?/ZuEvz2VDy2t/gtobOkUdU6Zug8zkR//JUMenBIi?=
+X-OriginatorOrg: microsoft.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 9db358de-a263-4117-ea11-08dab2c4af91
+X-MS-Exchange-CrossTenant-AuthSource: DM6PR21MB1370.namprd21.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 20 Oct 2022 17:58:25.7455
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 72f988bf-86f1-41af-91ab-2d7cd011db47
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: 8Y1g9Un+cEQ2h7ORI9rfj8GXvsXH6+d/F+/QNpbKmVZbuEbrqvIrhWjQENud+dfpZjAUosbWwKGLL7e180FzAQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MW4PR21MB1857
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Oct 20, 2022 at 05:17:35AM +0000, Li, Xin3 wrote:
-> Hi Nathan,
-> 
-> > On Mon, Oct 17, 2022 at 12:32:39PM -0700, Kees Cook wrote:
-> > > On Mon, Oct 17, 2022 at 11:26:47AM -0700, Nathan Chancellor wrote:
-> > > > It might be interesting to turn orphan sections into an error if
-> > > > CONFIG_WERROR is set. Perhaps something like the following (FYI, not
-> > > > even compile tested)?
-> > > >
-> > > > diff --git a/Makefile b/Makefile
-> > > > index 0837445110fc..485f47fc2c07 100644
-> > > > --- a/Makefile
-> > > > +++ b/Makefile
-> > > > @@ -1119,7 +1119,7 @@ endif
-> > > >  # We never want expected sections to be placed heuristically by the
-> > > > # linker. All sections should be explicitly named in the linker script.
-> > > >  ifdef CONFIG_LD_ORPHAN_WARN
-> > > > -LDFLAGS_vmlinux += --orphan-handling=warn
-> > > > +LDFLAGS_vmlinux += --orphan-handling=$(if
-> > > > +$(CONFIG_WERROR),error,warn)
-> > > >  endif
-> > >
-> > > Yes, this is much preferred.
-> > >
-> > > > Outright turning the warning into an error with no escape hatch
-> > > > might be too aggressive, as we have had these warnings triggered by
-> > > > new compiler generated sections, such as in commit 848378812e40
-> > ("vmlinux.lds.h:
-> > > > Handle clang's module.{c,d}tor sections"). Unconditionally breaking
-> > > > the build in these situations is unfortunate but the warnings do
-> > > > need to be dealt with so I think having it error by default with the
-> > > > ability to opt-out is probably worth doing. I do not have a strong opinion
-> > though.
-> > >
-> > > Correct; the mandate from Linus (disregarding his addition of
-> > > CONFIG_WERROR for all*config builds), is that we should avoid breaking
-> > > builds. It wrecks bisection, it causes problems across compiler
-> > > versions, etc.
-> > >
-> > > So, yes, only on CONFIG_WERROR=y.
-> > 
-> > We would probably want to alter the text of CONFIG_WERROR in some manner
-> > to convey this, perhaps like so:
-> > 
-> > diff --git a/init/Kconfig b/init/Kconfig index a19314933e54..1fc03e4b2af2
-> > 100644
-> > --- a/init/Kconfig
-> > +++ b/init/Kconfig
-> > @@ -165,10 +165,12 @@ config WERROR
-> >  	help
-> >  	  A kernel build should not cause any compiler warnings, and this
-> >  	  enables the '-Werror' (for C) and '-Dwarnings' (for Rust) flags
-> > -	  to enforce that rule by default.
-> > +	  to enforce that rule by default. Certain warnings from other tools
-> > +	  such as the linker may be upgraded to errors with this option as
-> > +	  well.
-> > 
-> > -	  However, if you have a new (or very old) compiler with odd and
-> > -	  unusual warnings, or you have some architecture with problems,
-> > +	  However, if you have a new (or very old) compiler or linker with odd
-> > +	  and unusual warnings, or you have some architecture with problems,
-> >  	  you may need to disable this config option in order to
-> >  	  successfully build the kernel.
-> 
-> Thanks a lot for making this crystal clear.
-> 
-> Do you want me to continue?  Or maybe it's easier for you to complete it?
+Current code always maps the IOAPIC as shared (decrypted) in a
+confidential VM. But Hyper-V guest VMs on AMD SEV-SNP with vTOM
+enabled use a paravisor running in VMPL0 to emulate the IOAPIC.
+In such a case, the IOAPIC must be accessed as private (encrypted).
 
-Sure, I think it is reasonable for you to continue with this as you
-brought up the idea initially! Feel free to just take those diffs
-wholesale if they work and stick a
+Fix this by gating the IOAPIC decrypted mapping on a new
+cc_platform_has() attribute that a subsequent patch in the series
+will set only for Hyper-V guests. The new attribute is named
+somewhat generically because similar paravisor emulation cases
+may arise in the future.
 
-    Suggested-by: Nathan Chancellor <nathan@kernel.org>
+Signed-off-by: Michael Kelley <mikelley@microsoft.com>
+---
+ arch/x86/kernel/apic/io_apic.c |  3 ++-
+ include/linux/cc_platform.h    | 13 +++++++++++++
+ 2 files changed, 15 insertions(+), 1 deletion(-)
 
-or
+diff --git a/arch/x86/kernel/apic/io_apic.c b/arch/x86/kernel/apic/io_apic.c
+index a868b76..d2c1bf7 100644
+--- a/arch/x86/kernel/apic/io_apic.c
++++ b/arch/x86/kernel/apic/io_apic.c
+@@ -2686,7 +2686,8 @@ static void io_apic_set_fixmap(enum fixed_addresses idx, phys_addr_t phys)
+ 	 * Ensure fixmaps for IOAPIC MMIO respect memory encryption pgprot
+ 	 * bits, just like normal ioremap():
+ 	 */
+-	flags = pgprot_decrypted(flags);
++	if (!cc_platform_has(CC_ATTR_HAS_PARAVISOR))
++		flags = pgprot_decrypted(flags);
+ 
+ 	__set_fixmap(idx, phys, flags);
+ }
+diff --git a/include/linux/cc_platform.h b/include/linux/cc_platform.h
+index cb0d6cd..b6c4a79 100644
+--- a/include/linux/cc_platform.h
++++ b/include/linux/cc_platform.h
+@@ -90,6 +90,19 @@ enum cc_attr {
+ 	 * Examples include TDX Guest.
+ 	 */
+ 	CC_ATTR_HOTPLUG_DISABLED,
++
++	/**
++	 * @CC_ATTR_HAS_PARAVISOR: Guest VM is running with a paravisor
++	 *
++	 * The platform/OS is running as a guest/virtual machine with
++	 * a paravisor in VMPL0. Having a paravisor affects things
++	 * like whether the I/O APIC is emulated and operates in the
++	 * encrypted or decrypted portion of the guest physical address
++	 * space.
++	 *
++	 * Examples include Hyper-V SEV-SNP guests using vTOM.
++	 */
++	CC_ATTR_HAS_PARAVISOR,
+ };
+ 
+ #ifdef CONFIG_ARCH_HAS_CC_PLATFORM
+-- 
+1.8.3.1
 
-    Co-developed-by: Nathan Chancellor <nathan@kernel.org>
-    Signed-off-by: Nathan Chancellor <nathan@kernel.org>
-
-on the patch if you are so inclined or rework them in a way you see fit,
-I do not have a strong opinion.
-
-> I will need to find resources to test the patch on other platforms besides x86.
-
-In theory, we should have already cleaned up all these warnings when we
-enabled CONFIG_LD_ORPHAN_WARN for all these architectures, so that
-change should be a no-op. More testing is never a bad idea though :)
-
-I can throw it into my LLVM testing matrix as well.
-
-Cheers,
-Nathan
