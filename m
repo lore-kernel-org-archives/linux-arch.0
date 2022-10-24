@@ -2,111 +2,109 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E15E6ECAAA1
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Oct 2022 16:33:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8D2ADFA3740
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Oct 2022 18:53:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232263AbiJXQdv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Oct 2022 12:33:51 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43876 "EHLO
+        id S232889AbiJXSxE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Oct 2022 14:53:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52082 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234106AbiJXQde (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Oct 2022 12:33:34 -0400
+        with ESMTP id S232727AbiJXSwh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Oct 2022 14:52:37 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9DD2C90818;
-        Mon, 24 Oct 2022 08:20:25 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CDC20224A90;
+        Mon, 24 Oct 2022 10:34:00 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id D29706127C;
-        Mon, 24 Oct 2022 15:18:00 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DDC62C433D6;
-        Mon, 24 Oct 2022 15:17:58 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 28E5661500;
+        Mon, 24 Oct 2022 17:17:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C2964C433B5;
+        Mon, 24 Oct 2022 17:17:43 +0000 (UTC)
 Authentication-Results: smtp.kernel.org;
-        dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="cFJ+mhbo"
+        dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="W4OnCup5"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zx2c4.com; s=20210105;
-        t=1666624677;
+        t=1666631860;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          in-reply-to:in-reply-to:references:references;
-        bh=jPAvpBt3yY8Z9PqgoksFeUYOcrWPh6V+NDz6Rlmm6uM=;
-        b=cFJ+mhbohWONrNgXJLUNiJdSBZBRnW9h2rwN9Z5QjPYXn0kw2OD+lXIJObhhN2tYDI6lNg
-        R0eHsEH1NE5i93LpPODDj9Q6wR5+MCjPpk+WtN2TSRYH0rBT560h+VirLsPoPLcUIo9VrN
-        M8fu1T0UJZ8DlBVWVA1bZM8rvyQT2Oc=
-Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id 5025459f (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
-        Mon, 24 Oct 2022 15:17:56 +0000 (UTC)
-Date:   Mon, 24 Oct 2022 17:17:47 +0200
+        bh=0joR9m5MfF36iKnJOfK3TU4JQ6XnOTGKpE1xroKpqN0=;
+        b=W4OnCup5gOPU0F9sVbRAhDz1YfbDgcVtsT5zZm8fxkWFH8QlP4LKuTC6ARb/4ATDp8w/1W
+        CCDuos+lBAaTbcSwhdf/q9N8iqY1xl/kWWbeSWwm/vEu50CwFDzYa1ofruMc1cxK9QzNmf
+        t+vcDeOf7nOyQGTvT2VGAme4/SxiP2I=
+Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id a8144f99 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
+        Mon, 24 Oct 2022 17:17:39 +0000 (UTC)
+Received: by mail-vk1-f173.google.com with SMTP id h16so2250291vkn.4;
+        Mon, 24 Oct 2022 10:17:38 -0700 (PDT)
+X-Gm-Message-State: ACrzQf0qLIXypCUMqGeOiOukf248s+qYN28YnkOm4IFEsYD0QnGvPn0i
+        3ownY4C99S5qa4SB4MrJ07YjDagFH3QeUSOKPik=
+X-Google-Smtp-Source: AMsMyM7gGYX+0RDafH1G0b5Of2Pu4zvYtbj8eQ2m/vAdjPgpIYTB6R/Y9WoDz6ojgWA81toPxKKw5ZiS4OOZZEag660=
+X-Received: by 2002:a1f:ecc6:0:b0:3aa:a785:5e2f with SMTP id
+ k189-20020a1fecc6000000b003aaa7855e2fmr18797456vkh.6.1666631857723; Mon, 24
+ Oct 2022 10:17:37 -0700 (PDT)
+MIME-Version: 1.0
+References: <Y1BcpXAjR4tmV6RQ@zx2c4.com> <20221019203034.3795710-1-Jason@zx2c4.com>
+ <Y1ZZyP4ZRBIbv+Kg@kili> <Y1ZbI4IzAOaNwhoD@kadam> <Y1a+cHkFt54gJv54@zx2c4.com> <CAHk-=wgK3Vs+7Kor-SisRHJYzV1tXD+=D4+W1XkfHOV2KN_OGw@mail.gmail.com>
+In-Reply-To: <CAHk-=wgK3Vs+7Kor-SisRHJYzV1tXD+=D4+W1XkfHOV2KN_OGw@mail.gmail.com>
 From:   "Jason A. Donenfeld" <Jason@zx2c4.com>
-To:     Dan Carpenter <dan.carpenter@oracle.com>
-Cc:     linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+Date:   Mon, 24 Oct 2022 19:17:25 +0200
+X-Gmail-Original-Message-ID: <CAHmME9ox7JNqOOZHEHCgaS95rsn-dVr4QOnN1mfmFEn=i9_jvw@mail.gmail.com>
+Message-ID: <CAHmME9ox7JNqOOZHEHCgaS95rsn-dVr4QOnN1mfmFEn=i9_jvw@mail.gmail.com>
+Subject: Re: [PATCH v2] kbuild: treat char as always unsigned
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     Dan Carpenter <dan.carpenter@oracle.com>,
+        linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-toolchains@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>,
         Kees Cook <keescook@chromium.org>,
         Andrew Morton <akpm@linux-foundation.org>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
         Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH v2] kbuild: treat char as always unsigned
-Message-ID: <Y1asm2GnqgXirEIy@zx2c4.com>
-References: <Y1BcpXAjR4tmV6RQ@zx2c4.com>
- <20221019203034.3795710-1-Jason@zx2c4.com>
- <Y1ZZyP4ZRBIbv+Kg@kili>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <Y1ZZyP4ZRBIbv+Kg@kili>
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Kalle Valo <kvalo@kernel.org>,
+        linux-wireless <linux-wireless@vger.kernel.org>,
+        Larry Finger <Larry.Finger@lwfinger.net>, mikem@ring3k.org,
+        wlanfae@realtek.com
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Oct 24, 2022 at 12:24:24PM +0300, Dan Carpenter wrote:
-> On Wed, Oct 19, 2022 at 02:30:34PM -0600, Jason A. Donenfeld wrote:
-> > Recently, some compile-time checking I added to the clamp_t family of
-> > functions triggered a build error when a poorly written driver was
-> > compiled on ARM, because the driver assumed that the naked `char` type
-> > is signed, but ARM treats it as unsigned, and the C standard says it's
-> > architecture-dependent.
-> > 
-> > I doubt this particular driver is the only instance in which
-> > unsuspecting authors make assumptions about `char` with no `signed` or
-> > `unsigned` specifier. We were lucky enough this time that that driver
-> > used `clamp_t(char, negative_value, positive_value)`, so the new
-> > checking code found it, and I've sent a patch to fix it, but there are
-> > likely other places lurking that won't be so easily unearthed.
-> > 
-> > So let's just eliminate this particular variety of heisensign bugs
-> > entirely. Set `-funsigned-char` globally, so that gcc makes the type
-> > unsigned on all architectures.
-> > 
-> > This will break things in some places and fix things in others, so this
-> > will likely cause a bit of churn while reconciling the type misuse.
-> > 
-> 
-> This is a very daring change and obviously is going to introduce bugs.
-> It might be better to create a static checker rule that says "char"
-> without explicit signedness can only be used for strings.
+Hi Linus,
 
-Indeed this would be great.
+On Mon, Oct 24, 2022 at 7:11 PM Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> IOW, I don't think these are 6.1 material as some kind of obvious
+> fixes, at least not without driver author acks.
 
-> 
-> arch/parisc/kernel/drivers.c:337 print_hwpath() warn: impossible condition '(path->bc[i] == -1) => (0-255 == (-1))'
-> arch/parisc/kernel/drivers.c:410 setup_bus_id() warn: impossible condition '(path.bc[i] == -1) => (0-255 == (-1))'
-> arch/parisc/kernel/drivers.c:486 create_parisc_device() warn: impossible condition '(modpath->bc[i] == -1) => (0-255 == (-1))'
-> arch/parisc/kernel/drivers.c:759 hwpath_to_device() warn: impossible condition '(modpath->bc[i] == -1) => (0-255 == (-1))'
-> drivers/media/dvb-frontends/stv0288.c:471 stv0288_set_frontend() warn: assigning (-9) to unsigned variable 'tm'
-> drivers/media/dvb-frontends/stv0288.c:471 stv0288_set_frontend() warn: we never enter this loop
-> drivers/misc/sgi-gru/grumain.c:711 gru_check_chiplet_assignment() warn: 'gts->ts_user_chiplet_id' is unsigned
-> drivers/net/wireless/cisco/airo.c:5316 proc_wepkey_on_close() warn: assigning (-16) to unsigned variable 'key[i / 3]'
-> drivers/net/wireless/ralink/rt2x00/rt2800lib.c:9415 rt2800_iq_search() warn: assigning (-32) to unsigned variable 'idx0'
-> drivers/net/wireless/ralink/rt2x00/rt2800lib.c:9470 rt2800_iq_search() warn: assigning (-32) to unsigned variable 'perr'
-> drivers/video/fbdev/sis/init301.c:3549 SiS_GetCRT2Data301() warn: 'SiS_Pr->SiS_EModeIDTable[ModeIdIndex]->ROMMODEIDX661' is unsigned
-> sound/pci/au88x0/au88x0_core.c:2029 vortex_adb_checkinout() warn: signedness bug returning '(-22)'
-> sound/pci/au88x0/au88x0_core.c:2046 vortex_adb_checkinout() warn: signedness bug returning '(-12)'
-> sound/pci/au88x0/au88x0_core.c:2125 vortex_adb_allocroute() warn: 'vortex_adb_checkinout(vortex, (0), en, 0)' is unsigned
-> sound/pci/au88x0/au88x0_core.c:2170 vortex_adb_allocroute() warn: 'vortex_adb_checkinout(vortex, stream->resources, en, 4)' is unsigned
-> sound/pci/rme9652/hdsp.c:3953 hdsp_channel_buffer_location() warn: 'hdsp->channel_map[channel]' is unsigned
-> sound/pci/rme9652/rme9652.c:1833 rme9652_channel_buffer_location() warn: 'rme9652->channel_map[channel]' is unsigned
+Right, these are posted to the authors and maintainers to look at.
+Maybe they punt them until 6.2 which would be fine too.
 
+> On Mon, Oct 24, 2022 at 9:34 AM Jason A. Donenfeld <Jason@zx2c4.com> wrote:
+> Some of those may need more thought. For example, that first one:
+>
+> > https://lore.kernel.org/all/20221024163005.536097-1-Jason@zx2c4.com
+>
+> looks just *strange*. As far as I can tell, no other wireless drivers
+> do any sign checks at all.
+>
+> Now, I didn't really look around a lot, but looking at a few other
+> SIOCSIWESSID users, most don't even seem to treat it as a string at
+> all, but as just a byte dump (so memcpy() instead of strncpy())
+>
+> As far as I know, there are no actual rules for SSID character sets,
+> and while using utf-8 or something else might cause interoperability
+> problems, this driver seems to be just confused. If you want to check
+> for "printable characters", that check is still wrong.
+>
+> So I don't think this is a "assume char is signed" issue. I think this
+> is a "driver is confused" issue.
 
-Thanks. I'll fix these up.
+Yea I had a few versions of this. In one of them, I changed `char
+*extra` throughout the wireless stack into `s8 *extra` and in another
+`u8 *extra`, after realizing they're mostly just bags of bits. But
+that seemed pretty invasive when, indeed, this staging driver is just
+a little screwy.
+
+So perhaps the right fix is to just kill that whole snippet? Kalle - opinions?
 
 Jason
