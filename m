@@ -2,41 +2,42 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 560EAC38A02
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EBF22C433FE
 	for <linux-arch@archiver.kernel.org>; Sat, 29 Oct 2022 23:18:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229779AbiJ2XSy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S229795AbiJ2XSy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Sat, 29 Oct 2022 19:18:54 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37712 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37720 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229441AbiJ2XSx (ORCPT
+        with ESMTP id S229752AbiJ2XSx (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 29 Oct 2022 19:18:53 -0400
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 84A5B2F007;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C5BEA2F009;
         Sat, 29 Oct 2022 16:18:52 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
         MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
         Reply-To:Content-Type:Content-ID:Content-Description;
-        bh=72jtzsfdBJvTgzNVU9mb5qNZZ75BLtKRZFZfbeGDBNg=; b=v8sMHHOMqaV+I7Og/bqdh3MjKC
-        yJj9+SjgCHJGUS3+VwuR2Arofn5pLFRdNIH1hQWb1TihodaHKsqGaab0tIZLpGzTOEUvWXfXDSPtP
-        dQPIydfpCRYbiVK131Z0N+yloDx83EK4YQIGLxF63KUhPSgJQK6z4zSHxpesShjTZ0oB+2nwP7Pfp
-        7Bm6YBXQX9GYvPGHYW3r7aiFai+kxtB23bZcEcztkpLPiEqPN/7XpljTGkYVDHcpmfg7nbhd0W5kG
-        ofnmJZEv/yaOHzRYZOOgN3DmjVLSIor8PJmGrPUBEz4HSTpattmDyNkD40ThLPC0jwX2KbxIw74wn
-        whjJ8mQw==;
+        bh=LtCMl0coz3ZXBwuQZGamm/+d4rImPuW8bqG03cn45bs=; b=FCouf6HOx24I4JqBvfnQr3QcdO
+        tD+iJyXjEnDyb508Tw9isA32KpLCv0WOb+ufmsE5oIMaf+c+WS8relTu3PVcqkcjo2X5F1EZ49SJp
+        ebTIw/jYNxMy9v6VcAagQDXdvghQ5sYhnwVlamNZef1OvUqO2YObwFIOL6WqV36P7FarOhHWM5aYu
+        6zaXidyY2Lz3BvtwM4ryo/QC962yJlh843x9RkmPKok63TbJvF1R9cOEOuKtVjPYmvuy2OxECfagu
+        SoBw720NBnY00CR5sMJvfLwXH+FY7rPtbetQQwUgGLkVf8z+dPZ54MsHiLiMPxvUwP20Dec5/syPU
+        qK+nOT+g==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-        id 1oov6I-00FOKS-3D;
+        id 1oov6J-00FOKa-1G;
         Sat, 29 Oct 2022 23:18:51 +0000
 From:   Al Viro <viro@zeniv.linux.org.uk>
 To:     linux-arch@vger.kernel.org
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 01/10] kill signal_pt_regs()
-Date:   Sun, 30 Oct 2022 00:18:41 +0100
-Message-Id: <20221029231850.3668437-1-viro@zeniv.linux.org.uk>
+Subject: [PATCH 03/10] kill extern of vsyscall32_sysctl
+Date:   Sun, 30 Oct 2022 00:18:43 +0100
+Message-Id: <20221029231850.3668437-3-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.37.3
-In-Reply-To: <Y120X8dWqe15FPPG@ZenIV>
+In-Reply-To: <20221029231850.3668437-1-viro@zeniv.linux.org.uk>
 References: <Y120X8dWqe15FPPG@ZenIV>
+ <20221029231850.3668437-1-viro@zeniv.linux.org.uk>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
@@ -44,77 +45,25 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Once upon at it was used on hot paths, but that had not been
-true since 2013.  IOW, there's no point for arch-optimized
-equivalent of task_pt_regs(current) - remaining two users are
-not worth bothering with.
+it's been dead for years.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/alpha/include/asm/ptrace.h | 1 -
- fs/coredump.c                   | 2 +-
- include/linux/ptrace.h          | 9 ---------
- kernel/signal.c                 | 2 +-
- 4 files changed, 2 insertions(+), 12 deletions(-)
+ arch/x86/include/asm/elf.h | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/alpha/include/asm/ptrace.h b/arch/alpha/include/asm/ptrace.h
-index df5f317ab3fc..3557ce64ed21 100644
---- a/arch/alpha/include/asm/ptrace.h
-+++ b/arch/alpha/include/asm/ptrace.h
-@@ -16,7 +16,6 @@
+diff --git a/arch/x86/include/asm/elf.h b/arch/x86/include/asm/elf.h
+index cb0ff1055ab1..289aa3ca4a05 100644
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -226,7 +226,6 @@ do {								\
+ /* I'm not sure if we can use '-' here */
+ #define ELF_PLATFORM       ("x86_64")
+ extern void set_personality_64bit(void);
+-extern unsigned int sysctl_vsyscall32;
+ extern int force_personality32;
  
- #define current_pt_regs() \
-   ((struct pt_regs *) ((char *)current_thread_info() + 2*PAGE_SIZE) - 1)
--#define signal_pt_regs current_pt_regs
- 
- #define force_successful_syscall_return() (current_pt_regs()->r0 = 0)
- 
-diff --git a/fs/coredump.c b/fs/coredump.c
-index 7bad7785e8e6..b4ec1bf889f9 100644
---- a/fs/coredump.c
-+++ b/fs/coredump.c
-@@ -525,7 +525,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
- 	static atomic_t core_dump_count = ATOMIC_INIT(0);
- 	struct coredump_params cprm = {
- 		.siginfo = siginfo,
--		.regs = signal_pt_regs(),
-+		.regs = task_pt_regs(current),
- 		.limit = rlimit(RLIMIT_CORE),
- 		/*
- 		 * We must use the same mm->flags while dumping core to avoid
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index c952c5ba8fab..eaaef3ffec22 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -389,15 +389,6 @@ static inline void user_single_step_report(struct pt_regs *regs)
- #define current_pt_regs() task_pt_regs(current)
- #endif
- 
--/*
-- * unlike current_pt_regs(), this one is equal to task_pt_regs(current)
-- * on *all* architectures; the only reason to have a per-arch definition
-- * is optimisation.
-- */
--#ifndef signal_pt_regs
--#define signal_pt_regs() task_pt_regs(current)
--#endif
--
- #ifndef current_user_stack_pointer
- #define current_user_stack_pointer() user_stack_pointer(current_pt_regs())
- #endif
-diff --git a/kernel/signal.c b/kernel/signal.c
-index d140672185a4..848d5c282d35 100644
---- a/kernel/signal.c
-+++ b/kernel/signal.c
-@@ -1255,7 +1255,7 @@ int send_signal_locked(int sig, struct kernel_siginfo *info,
- 
- static void print_fatal_signal(int signr)
- {
--	struct pt_regs *regs = signal_pt_regs();
-+	struct pt_regs *regs = task_pt_regs(current);
- 	pr_info("potentially unexpected fatal signal %d.\n", signr);
- 
- #if defined(__i386__) && !defined(__arch_um__)
+ #endif /* !CONFIG_X86_32 */
 -- 
 2.30.2
 
