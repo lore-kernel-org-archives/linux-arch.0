@@ -2,38 +2,38 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7975BC433FE
-	for <linux-arch@archiver.kernel.org>; Sat, 29 Oct 2022 23:18:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9D8F9C38A02
+	for <linux-arch@archiver.kernel.org>; Sat, 29 Oct 2022 23:19:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229823AbiJ2XS6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 29 Oct 2022 19:18:58 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37750 "EHLO
+        id S229515AbiJ2XS7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 29 Oct 2022 19:18:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37752 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229783AbiJ2XSy (ORCPT
+        with ESMTP id S229787AbiJ2XSy (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Sat, 29 Oct 2022 19:18:54 -0400
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BA9B12F01F;
-        Sat, 29 Oct 2022 16:18:53 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2EE572F007;
+        Sat, 29 Oct 2022 16:18:54 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
         MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
         Reply-To:Content-Type:Content-ID:Content-Description;
-        bh=klpACccFtoarUhZmGjA/78+30p+ai2lgnRxPOatV6uo=; b=rZhwOnmMLug/lcPeuhHrVrEYmp
-        50zfxE7UVHGkpfocNwlK7CjfvaoUP4jeHuwuWOcGyNT40TNVNf4pJ6nw31a4Yt8Kaj28U7GG+z5Dy
-        56zhCCvjMDKjq9JgOyM8Znfoj358ljkrBoK9JyDobOH5okIEruLMVUQtXrwHRCG2cxYBspdRFF+70
-        P4P3tT7HDvjtZx9kBDGQq4AiI+TxN0TTe5mG41APl+pY7WXF3TV4wq3pTpKt6exHsFWK9fzvXfnlc
-        IYt+wx0L3zPhECGW+l+WOpJDFrmrU8egD7eVlxyhRYZCcf6N59klzXvOSTVTzMJSU0gbRbX8V9xCv
-        cAYwHAkw==;
+        bh=WhbUv9HBxQIPXWwFYMtnUUjJ/kZ/8c6XmqS5a0sNtkc=; b=rQCFH1SCYQTChP+jdlWCMmd6Jm
+        YH+4xQ4FeuldtfDjL2HIdNvtPTyRdo1XiVCFq1gNbQLKk1T4n9NyhPrGXaOKI6NmqOs56ggr/Ew5M
+        vUCugji4OPCXfpKVd8efw36D+akpEiseI5l0DV+ixe/R7cCDenDVHX9LVa+1hzLtIlQout2DCSIgN
+        yA2Qn7Wcjyoze3YtV+5VzBBFUBiwrQNcgZEPsmKpcMaAULPDzH/u2a09Lgf/MOqC4r5ij1qNQQH6e
+        cVdwLBh/sxmd0B2rsbEJo/fSItkPq7GYIQ+fgBRvlid2kbFPfGarfxWKceOVrOB69HtzCVicw+SUC
+        L3j1NgKA==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-        id 1oov6K-00FOKz-0i;
+        id 1oov6K-00FOLB-2F;
         Sat, 29 Oct 2022 23:18:52 +0000
 From:   Al Viro <viro@zeniv.linux.org.uk>
 To:     linux-arch@vger.kernel.org
 Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
         linux-kernel@vger.kernel.org
-Subject: [PATCH 08/10] [elf][non-regset] use elf_core_copy_task_regs() for dumper as well
-Date:   Sun, 30 Oct 2022 00:18:48 +0100
-Message-Id: <20221029231850.3668437-8-viro@zeniv.linux.org.uk>
+Subject: [PATCH 10/10] [elf] get rid of get_note_info_size()
+Date:   Sun, 30 Oct 2022 00:18:50 +0100
+Message-Id: <20221029231850.3668437-10-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.37.3
 In-Reply-To: <20221029231850.3668437-1-viro@zeniv.linux.org.uk>
 References: <Y120X8dWqe15FPPG@ZenIV>
@@ -45,27 +45,38 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-elf_core_copy_regs() is equivalent to elf_core_copy_task_regs() of
-current on all architectures.
+it's trivial now...
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/binfmt_elf.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/binfmt_elf.c | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
 
 diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index c3c5bd48361e..cb95e842c50f 100644
+index 3758a617c9d8..65d2d2ba4d9e 100644
 --- a/fs/binfmt_elf.c
 +++ b/fs/binfmt_elf.c
-@@ -2072,7 +2072,7 @@ static int fill_note_info(struct elfhdr *elf, int phdrs,
- 	/* now collect the dump for the current */
- 	memset(info->prstatus, 0, sizeof(*info->prstatus));
- 	fill_prstatus(&info->prstatus->common, current, cprm->siginfo->si_signo);
--	elf_core_copy_regs(&info->prstatus->pr_reg, task_pt_regs(current));
-+	elf_core_copy_task_regs(current, &info->prstatus->pr_reg);
+@@ -1946,11 +1946,6 @@ static int fill_note_info(struct elfhdr *elf, int phdrs,
+ 	return 1;
+ }
  
- 	/* Set up header */
- 	fill_elf_header(elf, phdrs, ELF_ARCH, ELF_CORE_EFLAGS);
+-static size_t get_note_info_size(struct elf_note_info *info)
+-{
+-	return info->size;
+-}
+-
+ /*
+  * Write all the notes for each thread.  When writing the first thread, the
+  * process-wide notes are interleaved after the first thread-specific note.
+@@ -2068,7 +2063,7 @@ static int elf_core_dump(struct coredump_params *cprm)
+ 
+ 	/* Write notes phdr entry */
+ 	{
+-		size_t sz = get_note_info_size(&info);
++		size_t sz = info.size;
+ 
+ 		/* For cell spufs */
+ 		sz += elf_coredump_extra_notes_size();
 -- 
 2.30.2
 
