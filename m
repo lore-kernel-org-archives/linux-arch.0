@@ -2,74 +2,219 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9C5EC4321E
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Nov 2022 16:42:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AB7FAC43219
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Nov 2022 17:17:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231994AbiKBQmG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 2 Nov 2022 12:42:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36506 "EHLO
+        id S230189AbiKBRRK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 2 Nov 2022 13:17:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43766 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231944AbiKBQlU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Nov 2022 12:41:20 -0400
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id D24082EF47;
-        Wed,  2 Nov 2022 09:36:25 -0700 (PDT)
-Received: from jinankjain-dranzer.zrrkmle5drku1h0apvxbr2u2ee.ix.internal.cloudapp.net (unknown [20.188.121.5])
-        by linux.microsoft.com (Postfix) with ESMTPSA id AD76720C333D;
-        Wed,  2 Nov 2022 09:36:21 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com AD76720C333D
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1667406985;
-        bh=1B9p6pFN0yHl6pLuVEuKSNR9XxSBhvzkr5T1mlusw7Q=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=bEfUmfGAOBS5gITdkhShpUgdIYz8e+w/nnho/XxjusjA2Kkf5dnpHM4P8CHymhhL8
-         8HCaxw248anAGvGRKkFoo8Qmn43xKnKtKQfY9wCv17wcfD2JfZKky368V8dGvXvmkG
-         ak3Witv1f52bZtBBpaQGXphevowOygPlmqzZFDeg=
-From:   Jinank Jain <jinankjain@linux.microsoft.com>
-To:     jinankjain@microsoft.com
-Cc:     kys@microsoft.com, haiyangz@microsoft.com, sthemmin@microsoft.com,
-        wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
-        mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
-        x86@kernel.org, hpa@zytor.com, arnd@arndb.de, peterz@infradead.org,
-        jpoimboe@kernel.org, jinankjain@linux.microsoft.com,
-        seanjc@google.com, kirill.shutemov@linux.intel.com,
-        ak@linux.intel.com, sathyanarayanan.kuppuswamy@linux.intel.com,
-        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org
-Subject: [PATCH v2 4/5] hv: Enable vmbus driver for nested root partition
-Date:   Wed,  2 Nov 2022 16:36:01 +0000
-Message-Id: <b5ea40f7e84e17a4338a313ab74292a293b1efa4.1667406350.git.jinankjain@linux.microsoft.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <cover.1667406350.git.jinankjain@linux.microsoft.com>
-References: <cover.1667406350.git.jinankjain@linux.microsoft.com>
+        with ESMTP id S230006AbiKBRRJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Nov 2022 13:17:09 -0400
+Received: from mga06.intel.com (mga06b.intel.com [134.134.136.31])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 75F9618382
+        for <linux-arch@vger.kernel.org>; Wed,  2 Nov 2022 10:17:08 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1667409428; x=1698945428;
+  h=date:from:to:cc:subject:message-id:mime-version:
+   content-transfer-encoding;
+  bh=UMK2NX/oBDmrooKrh4Wg18WimdWEOzDYIRbKgmkpVdI=;
+  b=jBTQqAF7Hwwhwv2/C86OahXv+AWxIj4hyuPtz0S+M/xXagZqCROqpy0z
+   X9Cn7SZfrG+Mb6+Ug4Jqv+ir6RXqQRuJTvJpgbLOkP+Iryv1HEA1Bio0b
+   RW+c+9xQnJDtScRdDMB8ZfgjWKHXBEuizIceWsnAbLJg7LsqkDgaHR8yY
+   pq2r1j6MrjkFMYTL9Hhn7gcKcOK3UCClRDOkafbL8oPaVVBSa10KNtUBE
+   Z7IADdncWpjOpbDzavTs9CWu7FFSa2Dp/Kk/4oHtdIJ/x8p6WqMPT2DW2
+   o++I124ccZcZ06M+MBGaUSCgSN2/qjChqZNAFVBIHDsgoBIxyP2GI6hZs
+   g==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10519"; a="371566070"
+X-IronPort-AV: E=Sophos;i="5.95,234,1661842800"; 
+   d="scan'208";a="371566070"
+Received: from orsmga002.jf.intel.com ([10.7.209.21])
+  by orsmga104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Nov 2022 10:17:08 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6500,9779,10519"; a="634346989"
+X-IronPort-AV: E=Sophos;i="5.95,234,1661842800"; 
+   d="scan'208";a="634346989"
+Received: from lkp-server02.sh.intel.com (HELO b6d29c1a0365) ([10.239.97.151])
+  by orsmga002.jf.intel.com with ESMTP; 02 Nov 2022 10:17:06 -0700
+Received: from kbuild by b6d29c1a0365 with local (Exim 4.96)
+        (envelope-from <lkp@intel.com>)
+        id 1oqHMP-000Exx-2I;
+        Wed, 02 Nov 2022 17:17:05 +0000
+Date:   Thu, 03 Nov 2022 01:16:37 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
+        amd-gfx@lists.freedesktop.org,
+        Linux Memory Management List <linux-mm@kvack.org>
+Subject: [linux-next:master] BUILD REGRESSION
+ 61c3426aca2c71052ddcd06c32e29d92304990fd
+Message-ID: <6362a5f5.jxTLVW2fkVq53fOt%lkp@intel.com>
+User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Currently VMBus driver is not initialized for root partition but we need
-to enable the VMBus driver for nested root partition. This is required
-to expose VMBus devices to the L2 guest in the nested setup.
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git master
+branch HEAD: 61c3426aca2c71052ddcd06c32e29d92304990fd  Add linux-next specific files for 20221102
 
-Signed-off-by: Jinank Jain <jinankjain@linux.microsoft.com>
----
- drivers/hv/vmbus_drv.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Error/Warning reports:
 
-diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 8b2e413bf19c..2f0cf75e811b 100644
---- a/drivers/hv/vmbus_drv.c
-+++ b/drivers/hv/vmbus_drv.c
-@@ -2723,7 +2723,7 @@ static int __init hv_acpi_init(void)
- 	if (!hv_is_hyperv_initialized())
- 		return -ENODEV;
- 
--	if (hv_root_partition)
-+	if (hv_root_partition && !hv_nested)
- 		return 0;
- 
- 	/*
+https://lore.kernel.org/oe-kbuild-all/202210271517.snUEnhD0-lkp@intel.com
+https://lore.kernel.org/oe-kbuild-all/202211021422.8UpycNNp-lkp@intel.com
+
+Error/Warning: (recently discovered and may have been fixed)
+
+drivers/gpu/drm/amd/amdgpu/../display/dc/core/dc.c:4878: warning: This comment starts with '/**', but isn't a kernel-doc comment. Refer Documentation/doc-guide/kernel-doc.rst
+drivers/gpu/drm/amd/amdgpu/../display/dc/core/dc_link_dp.c:5044:24: warning: implicit conversion from 'enum <anonymous>' to 'enum dc_status' [-Wenum-conversion]
+include/asm-generic/div64.h:222:35: warning: comparison of distinct pointer types lacks a cast
+include/asm-generic/div64.h:234:32: warning: right shift count >= width of type [-Wshift-count-overflow]
+lib/test_maple_tree.c:453:12: warning: result of comparison of constant 4398046511104 with expression of type 'unsigned long' is always false [-Wtautological-constant-out-of-range-compare]
+vmlinux.o: warning: objtool: select_reloc_root+0x3a3: unreachable instruction
+
+Unverified Error/Warning (likely false positive, please contact us if interested):
+
+lib/zstd/compress/huf_compress.c:460 HUF_getIndex() warn: the 'RANK_POSITION_LOG_BUCKETS_BEGIN' macro might need parens
+lib/zstd/decompress/zstd_decompress_block.c:1009 ZSTD_execSequence() warn: inconsistent indenting
+lib/zstd/decompress/zstd_decompress_block.c:894 ZSTD_execSequenceEnd() warn: inconsistent indenting
+lib/zstd/decompress/zstd_decompress_block.c:942 ZSTD_execSequenceEndSplitLitBuffer() warn: inconsistent indenting
+lib/zstd/decompress/zstd_decompress_internal.h:206 ZSTD_DCtx_get_bmi2() warn: inconsistent indenting
+
+Error/Warning ids grouped by kconfigs:
+
+gcc_recent_errors
+|-- alpha-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|-- arc-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|   |-- include-asm-generic-div64.h:warning:comparison-of-distinct-pointer-types-lacks-a-cast
+|   `-- include-asm-generic-div64.h:warning:right-shift-count-width-of-type
+|-- arc-randconfig-r024-20221031
+|   |-- include-asm-generic-div64.h:warning:comparison-of-distinct-pointer-types-lacks-a-cast
+|   `-- include-asm-generic-div64.h:warning:right-shift-count-width-of-type
+|-- arc-randconfig-r043-20221101
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|-- arm-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|   |-- include-asm-generic-div64.h:warning:comparison-of-distinct-pointer-types-lacks-a-cast
+|   `-- include-asm-generic-div64.h:warning:right-shift-count-width-of-type
+|-- arm64-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|-- i386-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|-- ia64-allmodconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|-- m68k-randconfig-m041-20221102
+|   |-- lib-zstd-compress-huf_compress.c-HUF_getIndex()-warn:the-RANK_POSITION_LOG_BUCKETS_BEGIN-macro-might-need-parens
+|   |-- lib-zstd-decompress-zstd_decompress_block.c-ZSTD_execSequence()-warn:inconsistent-indenting
+|   |-- lib-zstd-decompress-zstd_decompress_block.c-ZSTD_execSequenceEnd()-warn:inconsistent-indenting
+|   |-- lib-zstd-decompress-zstd_decompress_block.c-ZSTD_execSequenceEndSplitLitBuffer()-warn:inconsistent-indenting
+|   `-- lib-zstd-decompress-zstd_decompress_internal.h-ZSTD_DCtx_get_bmi2()-warn:inconsistent-indenting
+|-- mips-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|   |-- include-asm-generic-div64.h:warning:comparison-of-distinct-pointer-types-lacks-a-cast
+|   `-- include-asm-generic-div64.h:warning:right-shift-count-width-of-type
+|-- powerpc-allmodconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|   |-- include-asm-generic-div64.h:warning:comparison-of-distinct-pointer-types-lacks-a-cast
+|   `-- include-asm-generic-div64.h:warning:right-shift-count-width-of-type
+|-- s390-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+|-- sparc-allyesconfig
+|   |-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc.c:warning:This-comment-starts-with-but-isn-t-a-kernel-doc-comment.-Refer-Documentation-doc-guide-kernel-doc.rst
+|   `-- drivers-gpu-drm-amd-amdgpu-..-display-dc-core-dc_link_dp.c:warning:implicit-conversion-from-enum-anonymous-to-enum-dc_status
+clang_recent_errors
+`-- mips-randconfig-r031-20221101
+    `-- lib-test_maple_tree.c:warning:result-of-comparison-of-constant-with-expression-of-type-unsigned-long-is-always-false
+
+elapsed time: 722m
+
+configs tested: 65
+configs skipped: 2
+
+gcc tested configs:
+um                             i386_defconfig
+arc                                 defconfig
+um                           x86_64_defconfig
+s390                             allmodconfig
+arc                  randconfig-r043-20221101
+alpha                               defconfig
+s390                                defconfig
+x86_64                        randconfig-a013
+x86_64                        randconfig-a004
+x86_64                        randconfig-a011
+x86_64                        randconfig-a002
+s390                             allyesconfig
+x86_64                        randconfig-a015
+powerpc                           allnoconfig
+x86_64                        randconfig-a006
+x86_64                           rhel-8.3-syz
+powerpc                          allmodconfig
+x86_64                          rhel-8.3-func
+arm                                 defconfig
+x86_64                    rhel-8.3-kselftests
+mips                             allyesconfig
+sh                               allmodconfig
+x86_64                              defconfig
+arm                              allyesconfig
+i386                                defconfig
+x86_64                           rhel-8.3-kvm
+x86_64                         rhel-8.3-kunit
+i386                          randconfig-a001
+arm64                            allyesconfig
+ia64                             allmodconfig
+i386                          randconfig-a003
+x86_64                               rhel-8.3
+i386                          randconfig-a014
+m68k                             allmodconfig
+arc                              allyesconfig
+x86_64                           allyesconfig
+alpha                            allyesconfig
+i386                          randconfig-a012
+m68k                             allyesconfig
+i386                          randconfig-a016
+i386                          randconfig-a005
+i386                             allyesconfig
+
+clang tested configs:
+hexagon              randconfig-r041-20221101
+hexagon              randconfig-r045-20221101
+riscv                randconfig-r042-20221101
+s390                 randconfig-r044-20221101
+x86_64                        randconfig-a016
+x86_64                        randconfig-a012
+x86_64                        randconfig-a005
+x86_64                        randconfig-a001
+x86_64                        randconfig-a014
+x86_64                        randconfig-a003
+i386                          randconfig-a002
+i386                          randconfig-a011
+x86_64                          rhel-8.3-rust
+i386                          randconfig-a013
+i386                          randconfig-a004
+i386                          randconfig-a015
+i386                          randconfig-a006
+x86_64               randconfig-a003-20221031
+x86_64               randconfig-a002-20221031
+x86_64               randconfig-a001-20221031
+x86_64               randconfig-a005-20221031
+x86_64               randconfig-a006-20221031
+x86_64               randconfig-a004-20221031
+
 -- 
-2.25.1
-
+0-DAY CI Kernel Test Service
+https://01.org/lkp
