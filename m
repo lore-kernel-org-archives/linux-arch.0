@@ -2,95 +2,115 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A45CC433FE
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Nov 2022 09:13:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D45BC433FE
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Nov 2022 11:24:52 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231656AbiKGJNR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Nov 2022 04:13:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41458 "EHLO
+        id S231154AbiKGLYv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Nov 2022 06:24:51 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43010 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231709AbiKGJNI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Nov 2022 04:13:08 -0500
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2C73B167EA;
-        Mon,  7 Nov 2022 01:13:04 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=TgT6Bm94xIkPz5pM0AMFJI2S+82t6ITBnJ8g+cjlZvo=; b=mjJXpuwX59z8cofVj+vGaf4g8O
-        VUQ0UnZxsjLE0Db1Xz3wYD7Cc48MdqZBGF2Clo5+dqhpX6DX06wYZR6ulXJ49qgGqU3JZmkqZQYDd
-        qQkKDFMYho2wLPMBKPP0Y1rckdxdm7owPO+KjMkL8znHBb1tSBpWwgPtrw8LD3Y+eDV5yXrDfDYPU
-        Ufo/4v99LUWKrjwUOpKe8b5SmrRZ0byPSR5uKs/a9WuVRCbIH5haTf/e6MHt0biacG8zTy/1z13wO
-        l5bwrLUcyBhB/VP5x8RJ/89vO2AMj7ANjsm5M5xYnVyOe/lBWh4RkD662/6ronS6+blm7VjXVzhT8
-        Sclm3FtA==;
-Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1oryB5-009FLW-3D; Mon, 07 Nov 2022 09:12:23 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 9CAD330026A;
-        Mon,  7 Nov 2022 10:12:10 +0100 (CET)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id 84A6F200F8FC4; Mon,  7 Nov 2022 10:12:07 +0100 (CET)
-Date:   Mon, 7 Nov 2022 10:12:07 +0100
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Hugh Dickins <hughd@google.com>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Johannes Weiner <hannes@cmpxchg.org>,
-        Stephen Rothwell <sfr@canb.auug.org.au>,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        Will Deacon <will@kernel.org>,
-        Aneesh Kumar <aneesh.kumar@linux.ibm.com>,
-        Nick Piggin <npiggin@gmail.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        Sven Schnelle <svens@linux.ibm.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Jann Horn <jannh@google.com>,
-        John Hubbard <jhubbard@nvidia.com>, X86 ML <x86@kernel.org>,
-        Matthew Wilcox <willy@infradead.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        kernel list <linux-kernel@vger.kernel.org>,
-        Linux-MM <linux-mm@kvack.org>,
-        Andrea Arcangeli <aarcange@redhat.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        Joerg Roedel <jroedel@suse.de>,
-        Uros Bizjak <ubizjak@gmail.com>,
-        Alistair Popple <apopple@nvidia.com>,
-        linux-arch <linux-arch@vger.kernel.org>
-Subject: Re: mm: delay rmap removal until after TLB flush
-Message-ID: <Y2jL5+4bC2fxpG8N@hirez.programming.kicks-ass.net>
-References: <CAHk-=wjX_P78xoNcGDTjhkgffs-Bhzcwp-mdsE1maeF57Sh0MA@mail.gmail.com>
- <CAHk-=wio=UKK9fX4z+0CnyuZG7L+U9OB7t7Dcrg4FuFHpdSsfw@mail.gmail.com>
- <CAHk-=wgz0QQd6KaRYQ8viwkZBt4xDGuZTFiTB8ifg7E3F2FxHg@mail.gmail.com>
- <CAHk-=wiwt4LC-VmqvYrphraF0=yQV=CQimDCb0XhtXwk8oKCCA@mail.gmail.com>
- <Y1+XCALog8bW7Hgl@hirez.programming.kicks-ass.net>
- <CAHk-=wjnvPA7mi-E3jVEfCWXCNJNZEUjm6XODbbzGOh9c8mhgw@mail.gmail.com>
- <CAHk-=wjjXQP7PTEXO4R76WPy1zfQad_DLKw1GKU_4yWW1N4n7w@mail.gmail.com>
- <Y2SyJuohLFLqIhlZ@li-4a3a4a4c-28e5-11b2-a85c-a8d192c6f089.ibm.com>
- <CAHk-=wjzp65=-QE1dg8KfqG-tVHiT+yAfHXGx9sro=8yOceELg@mail.gmail.com>
- <8a1e97c9-bd5-7473-6da8-2aa75198fbe8@google.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8a1e97c9-bd5-7473-6da8-2aa75198fbe8@google.com>
+        with ESMTP id S229778AbiKGLYu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Nov 2022 06:24:50 -0500
+Received: from mail-pl1-x62a.google.com (mail-pl1-x62a.google.com [IPv6:2607:f8b0:4864:20::62a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CD2AF1789B
+        for <linux-arch@vger.kernel.org>; Mon,  7 Nov 2022 03:24:48 -0800 (PST)
+Received: by mail-pl1-x62a.google.com with SMTP id io19so10767615plb.8
+        for <linux-arch@vger.kernel.org>; Mon, 07 Nov 2022 03:24:48 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=in-reply-to:references:from:subject:cc:to:message-id:date
+         :content-transfer-encoding:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=bkXHaDGtvuVhiN69GarlKgDdz00NM6Kt+0lKI4zsZLs=;
+        b=P3SUE17FIdMrZVLaiOZj5XVS/b5P9DJZJufnSMg25v9pjcIDMZIQZ4ZR1H0Iz2XFGP
+         370EBWXfcGso+1RQsk2HIwlD7yktCzn9piMj2JlEncapGvtB2/WTec7vNx4mjHmtzeWa
+         OxoUk9/CEYAm55OESegTyYEG07BFgZka0y6MTFLLA6N0WLTIwRFg6bWdM0sFIBSdIMlF
+         Ds0Gvz0G5k3zenG48gpAB51CRzNUzlJZ9qENz4ONaUuJ/1QlUi4/8aDzxE1mVVoUhIOR
+         yd54smgQVa+DC4rFbqOEfIpJyRZzfGZcDVcAZj3SOfNtpkx2Xxl2Lo3g0Vl00d1UtejU
+         lm4g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=in-reply-to:references:from:subject:cc:to:message-id:date
+         :content-transfer-encoding:mime-version:x-gm-message-state:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=bkXHaDGtvuVhiN69GarlKgDdz00NM6Kt+0lKI4zsZLs=;
+        b=7XbIMyPYVBm5vpPOcfOUdcon2s+Io9t7D1JX5RFzk2/+iy69p0irbsANXpPytwdt5Q
+         AmjfTMqIMElxxkW3aqHOjG4VfH/RmPlCuTtzqi4tYpSleeLaICeIR1RKNBgvkYG3K6t2
+         IfUiBy2fcslpN7mdKdVb9321FstDkp84g1h76nTFUPA6hAp1hkn4tf8LytiIrr9O1lv1
+         5dwa+7XSJpR/EmOjfsPwub/QvQB19l2BXZvkrLDkIC+g4u12D+8j0l3i0YbNswDAwfJ2
+         2iCAX7x7porGUrvwPFkaFkbhcNsK8dnvPVw8FU6hU4KCo+ahdLSLK8L3r7fnxbFastkB
+         sG7Q==
+X-Gm-Message-State: ACrzQf1kICjKfcipIlr1aoQkGB7+LgyDFoScOdT7OlT6M4rYaHAAAoBR
+        /hw6D/dwaZKuTlQCJ0cwfP9TQEyNBWs=
+X-Google-Smtp-Source: AMsMyM7KjokBcg5L0y/OxERq4lN5FFXKLnb6DW/ZfRn6ab/4EpD+J3ir8DKPrYMhPNVnSPTvm6iT4A==
+X-Received: by 2002:a17:903:22c9:b0:187:29fe:bda8 with SMTP id y9-20020a17090322c900b0018729febda8mr39108409plg.40.1667820288365;
+        Mon, 07 Nov 2022 03:24:48 -0800 (PST)
+Received: from localhost (203-221-202-134.tpgi.com.au. [203.221.202.134])
+        by smtp.gmail.com with ESMTPSA id z17-20020aa79e51000000b0053e62b6fd22sm4218231pfq.126.2022.11.07.03.24.44
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 07 Nov 2022 03:24:47 -0800 (PST)
+Mime-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=UTF-8
+Date:   Mon, 07 Nov 2022 21:24:42 +1000
+Message-Id: <CO60Y4MBO8W7.1OSJEIWNIBAHH@bobo>
+To:     "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>,
+        "Michael Ellerman" <mpe@ellerman.id.au>
+Cc:     <linuxppc-dev@lists.ozlabs.org>,
+        "Masami Hiramatsu" <mhiramat@kernel.org>,
+        "Jordan Niethe" <jniethe5@gmail.com>,
+        "Christophe Leroy" <christophe.leroy@csgroup.eu>,
+        <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH 0/5] powerpc/kprobes: preempt related changes and
+ cleanups
+From:   "Nicholas Piggin" <npiggin@gmail.com>
+X-Mailer: aerc 0.11.0
+References: <cover.1666262278.git.naveen.n.rao@linux.vnet.ibm.com>
+In-Reply-To: <cover.1666262278.git.naveen.n.rao@linux.vnet.ibm.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
++linux-arch
 
-Hi Hugh!
+FYI most preempt_enable_no_resched() calls outside of core scheduler
+code come from kprobes copy-and-paste, and can possibly be fixed in
+similar ways as this series. It's a bit of a footgun API that should
+be banished from outside kernel/sched/, at least without an explicit
+comment for each case that explains the need and how the missed
+resched is resolved or not applicable.
 
-On Sun, Nov 06, 2022 at 01:06:19PM -0800, Hugh Dickins wrote:
-> See folio_lock_anon_vma_read(): folio_mapped() plays a key role in
-> establishing the continued validity of an anon_vma.  See comments
-> above folio_get_anon_vma(), some by me but most by PeterZ IIRC.
+Thanks,
+Nick
 
-Ohhh, you're quite right. Unfortunately I seem to have completely
-forgotten about that :-(
-
+On Fri Oct 21, 2022 at 3:28 AM AEST, Naveen N. Rao wrote:
+> This series attempts to address some of the concerns raised in=20
+> https://github.com/linuxppc/issues/issues/440
+>
+> The last two patches are minor cleanups in related kprobes code.
+>
+> - Naveen
+>
+>
+> Naveen N. Rao (5):
+>   powerpc/kprobes: Remove preempt disable around call to get_kprobe() in
+>     arch_prepare_kprobe()
+>   powerpc/kprobes: Have optimized_callback() use preempt_enable()
+>   powerpc/kprobes: Use preempt_enable() rather than the no_resched
+>     variant
+>   powerpc/kprobes: Setup consistent pt_regs across kprobes, optprobes
+>     and KPROBES_ON_FTRACE
+>   powerpc/kprobes: Remove unnecessary headers from kprobes
+>
+>  arch/powerpc/kernel/kprobes-ftrace.c        |  4 ----
+>  arch/powerpc/kernel/kprobes.c               | 16 ++++++----------
+>  arch/powerpc/kernel/optprobes.c             |  2 +-
+>  arch/powerpc/kernel/optprobes_head.S        |  5 +----
+>  arch/powerpc/kernel/trace/ftrace_mprofile.S |  6 ++++++
+>  5 files changed, 14 insertions(+), 19 deletions(-)
+>
+>
+> base-commit: 7dc2a00fdd44a4d0c3bac9fd10558b3933586a0c
+> --=20
+> 2.38.0
 
