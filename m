@@ -2,122 +2,83 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6770BC433FE
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Nov 2022 09:15:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 33FA2C4332F
+	for <linux-arch@archiver.kernel.org>; Tue,  8 Nov 2022 09:42:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233651AbiKHJPU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Nov 2022 04:15:20 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36072 "EHLO
+        id S233863AbiKHJmX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Nov 2022 04:42:23 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55102 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233339AbiKHJPT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Nov 2022 04:15:19 -0500
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6DD702F646
-        for <linux-arch@vger.kernel.org>; Tue,  8 Nov 2022 01:14:29 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1667898868;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=KP+tiCnk9vCKqrx4wl6vmjk9CSIgAcrzK2YQ6PLAxpU=;
-        b=ilaXudgg1dHX/dLJEUorxDWt+w1Vovosv0p5Y1Pvj2aMBYXERvzWKpeiUrXSki2IXA4uBK
-        6YclGFKMekoBMQUd2TtwcROJRR2TuoED8UEANh+9+h3LRkn0MUNPem5cIsKvY6TSum2O1J
-        EVoiUTdyOELSRHEiVI4tKXIQoB6MFXY=
-Received: from mimecast-mx02.redhat.com (mx3-rdu2.redhat.com
- [66.187.233.73]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-178-Ut-AJcnsP0m_xLQD9tcXTQ-1; Tue, 08 Nov 2022 04:14:23 -0500
-X-MC-Unique: Ut-AJcnsP0m_xLQD9tcXTQ-1
-Received: from smtp.corp.redhat.com (int-mx09.intmail.prod.int.rdu2.redhat.com [10.11.54.9])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 1C9E41C06EE9;
-        Tue,  8 Nov 2022 09:14:22 +0000 (UTC)
-Received: from oldenburg.str.redhat.com (unknown [10.2.16.65])
-        by smtp.corp.redhat.com (Postfix) with ESMTPS id B29FC4B3FC6;
-        Tue,  8 Nov 2022 09:14:14 +0000 (UTC)
-From:   Florian Weimer <fweimer@redhat.com>
-To:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
-Cc:     "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
-        "bsingharora@gmail.com" <bsingharora@gmail.com>,
-        "hpa@zytor.com" <hpa@zytor.com>,
-        "Syromiatnikov, Eugene" <esyr@redhat.com>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "rdunlap@infradead.org" <rdunlap@infradead.org>,
-        "keescook@chromium.org" <keescook@chromium.org>,
-        "Yu, Yu-cheng" <yu-cheng.yu@intel.com>,
-        "Eranian, Stephane" <eranian@google.com>,
-        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "linux-mm@kvack.org" <linux-mm@kvack.org>,
-        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
-        "jannh@google.com" <jannh@google.com>,
-        "dethoma@microsoft.com" <dethoma@microsoft.com>,
-        "kcc@google.com" <kcc@google.com>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "bp@alien8.de" <bp@alien8.de>, "oleg@redhat.com" <oleg@redhat.com>,
-        "Yang, Weijiang" <weijiang.yang@intel.com>,
-        "Lutomirski, Andy" <luto@kernel.org>,
-        "jamorris@linux.microsoft.com" <jamorris@linux.microsoft.com>,
-        "arnd@arndb.de" <arnd@arndb.de>,
-        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
-        "pavel@ucw.cz" <pavel@ucw.cz>,
-        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
-        "x86@kernel.org" <x86@kernel.org>,
-        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "john.allen@amd.com" <john.allen@amd.com>,
-        "rppt@kernel.org" <rppt@kernel.org>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "Shankar, Ravi V" <ravi.v.shankar@intel.com>,
-        "corbet@lwn.net" <corbet@lwn.net>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
-        "gorcunov@gmail.com" <gorcunov@gmail.com>
-Subject: Re: [RFC 37/37] fs/binfmt_elf: Block old shstk elf bit
-References: <20221104223604.29615-1-rick.p.edgecombe@intel.com>
-        <20221104223604.29615-38-rick.p.edgecombe@intel.com>
-        <CAMe9rOpfSccXVWmgK6E0Y0DXC=VX3PpdxXookN1Ty8soeAxrKw@mail.gmail.com>
-        <87iljs4ecp.fsf@oldenburg.str.redhat.com>
-        <ca106fe1b5005f54525e7a644684108f6a823e14.camel@intel.com>
-        <87h6zaiu05.fsf@oldenburg.str.redhat.com>
-        <f60f1138813f850d52dd92bc6b3df067c021a197.camel@intel.com>
-        <CAMe9rOpVUwCccRb5DAyraEKO48rix+Xfiamfp_Vc_aHhjp7=LQ@mail.gmail.com>
-        <73b8f726c424db1af1c10a48e101bf74703a186a.camel@intel.com>
-Date:   Tue, 08 Nov 2022 10:14:12 +0100
-In-Reply-To: <73b8f726c424db1af1c10a48e101bf74703a186a.camel@intel.com> (Rick
-        P. Edgecombe's message of "Mon, 7 Nov 2022 21:10:52 +0000")
-Message-ID: <87leolkduj.fsf@oldenburg.str.redhat.com>
-User-Agent: Gnus/5.13 (Gnus v5.13) Emacs/27.2 (gnu/linux)
+        with ESMTP id S233902AbiKHJl7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Nov 2022 04:41:59 -0500
+Received: from mail-qt1-f171.google.com (mail-qt1-f171.google.com [209.85.160.171])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C93CD27176;
+        Tue,  8 Nov 2022 01:41:56 -0800 (PST)
+Received: by mail-qt1-f171.google.com with SMTP id hh9so8319034qtb.13;
+        Tue, 08 Nov 2022 01:41:56 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=B0xAJLxS4jYE+47ZWAmS8AWJyvD2QxuXvjLK3DII+Ys=;
+        b=yKsxjt4zmALu9n8wxgnDPE8jybXjoVlsJkLD9sD6eDOOrubRDnp17vx1K1o87qS5q7
+         faSqWlRwMSoCSoaafaL0lLX1QCDaX2FcU4wzHaBHqDqIKzs79AIf7l0xaJuGX72iXGq6
+         A9ZvtPvIRZpndJwLflV+D0pXh26XORfySNfcDjHGycAOB4sxf5+5SLxTghmjHdYM2bFW
+         VKTgsCZKasQfgqK39HuLkbVP2wNpXwezm4eZc0ziWRePHfptemsKfOKMlDnbrDJFqTq0
+         85IXvbHfOj8q5QQfDOCG67UkkQoiLYS2AnBCi+0pqgKiRIpDc87S4zw3573IwzyBhQr0
+         0FDA==
+X-Gm-Message-State: ACrzQf3RZ8Kp2HkpbYvOvt/VWSGLjHooSELXXUM3jWmX/eqKjCrn2oWT
+        hhBt8dh+wyxmkIc+f9cOVRBt8E+vk9BBxQ==
+X-Google-Smtp-Source: AMsMyM5HZAPaJZVamqxiZOYz8th/Oulr55msK790pV9yVVcIHYx+8mz5n0WgCdX6Txas7njtsD9SEQ==
+X-Received: by 2002:ac8:5a16:0:b0:39c:efc6:b370 with SMTP id n22-20020ac85a16000000b0039cefc6b370mr42168014qta.374.1667900515787;
+        Tue, 08 Nov 2022 01:41:55 -0800 (PST)
+Received: from mail-yw1-f179.google.com (mail-yw1-f179.google.com. [209.85.128.179])
+        by smtp.gmail.com with ESMTPSA id q22-20020a05620a0d9600b006fafaac72a6sm2364272qkl.84.2022.11.08.01.41.55
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 08 Nov 2022 01:41:55 -0800 (PST)
+Received: by mail-yw1-f179.google.com with SMTP id 00721157ae682-36cbcda2157so128441707b3.11;
+        Tue, 08 Nov 2022 01:41:55 -0800 (PST)
+X-Received: by 2002:a81:9c49:0:b0:34a:de:97b8 with SMTP id n9-20020a819c49000000b0034a00de97b8mr51653454ywa.384.1667900514891;
+ Tue, 08 Nov 2022 01:41:54 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.9
+References: <Y120X8dWqe15FPPG@ZenIV> <20221029231850.3668437-1-viro@zeniv.linux.org.uk>
+ <20221029231850.3668437-7-viro@zeniv.linux.org.uk>
+In-Reply-To: <20221029231850.3668437-7-viro@zeniv.linux.org.uk>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Tue, 8 Nov 2022 10:41:43 +0100
+X-Gmail-Original-Message-ID: <CAMuHMdX010izuMLJ8me2WMLOHZ52FxyaGfA31oCekkwjriyBvA@mail.gmail.com>
+Message-ID: <CAMuHMdX010izuMLJ8me2WMLOHZ52FxyaGfA31oCekkwjriyBvA@mail.gmail.com>
+Subject: Re: [PATCH 07/10] [elf][non-regset] uninline elf_core_copy_task_fpregs()
+ (and lose pt_regs argument)
+To:     Al Viro <viro@zeniv.linux.org.uk>
+Cc:     linux-arch@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-* Rick P. Edgecombe:
+On Sun, Oct 30, 2022 at 1:20 AM Al Viro <viro@zeniv.linux.org.uk> wrote:
+> Don't bother with pointless macros - we are not sharing it with aout coredumps
+> anymore.  Just convert the underlying functions to the same arguments (nobody
+> uses regs, actually) and call them elf_core_copy_task_fpregs().  And unexport
+> the entire bunch, while we are at it.
+>
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
-> When we have everything in place, the problems would be much more
-> obvious when distros started turning it on. But we can't turn it on as
-> planned without breaking things for existing binaries. We can have both
-> by:
-> 1. Choosing a new bit, adding it to the tools, and never supporting the
-> old bit in glibc.
-> 2. Providing the option to have the kernel block the old bit, so
-> upgraded users can decide what experience they would like. Then distros
-> can find the problems and adjust their packages. I'm starting to think
-> a default off sysctl toggle might be better than a Kconfig.
-> 3. Any other ideas?
+>  arch/m68k/kernel/process.c       |  3 +--
 
-This problem is fairly common nowadays for new system calls.  Before
-glibc can use them internally, we need to port userspace first,
-otherwise key applications fail to work.  Yet we do not require ELF
-markup to make the new system call available to glibc.
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org> # m68k
 
-The situation here seems similar: before deploying a new glibc, we need
-to upgrade parts of userspace.
+Gr{oetje,eeting}s,
 
-Thanks,
-Florian
+                        Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
