@@ -2,111 +2,123 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EEB33C43217
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Nov 2022 19:54:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C11F8C4332F
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Nov 2022 20:09:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234375AbiKVTyt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Nov 2022 14:54:49 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40752 "EHLO
+        id S234338AbiKVUJi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Nov 2022 15:09:38 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51320 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234739AbiKVTyW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2022 14:54:22 -0500
-Received: from mail-pl1-x633.google.com (mail-pl1-x633.google.com [IPv6:2607:f8b0:4864:20::633])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D7C81A3403;
-        Tue, 22 Nov 2022 11:54:20 -0800 (PST)
-Received: by mail-pl1-x633.google.com with SMTP id y10so13489262plp.3;
-        Tue, 22 Nov 2022 11:54:20 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=2RI1x4addaxeSG0Ueh/t7m47u+roOJv2baaQ7rL2Moo=;
-        b=kc07iCXUBXT3CNeUNFgib2mQbobrmSlPnkO4hN7UDBjXdC593YuLhpAL+DvPmXFPHb
-         ffu3DQ6vyxfbPxVHXCSQm2IAXJFMQuRCUahdFTR9xRFILUYT373IjzHdYc2+AP+YbxU5
-         fX607CPAdRphk1/UEff3UfGp1v/Madb3BUV1xh+t8qys49zCgEOqZe3PbbBZRXXGyv+j
-         2dLRm6aPOlxoXIBXIGtJXS8/G2hOqqmL57XCoCY5hZ8Zv6LLflyp7vIMbXfNBD93QMi4
-         8eWzyhXMrbTTXHUV60Q9/OxTaQJOi+iEV1mFypFCLCZT89646tZ6q3b3DkpmRQ8LoYFx
-         2JwQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=2RI1x4addaxeSG0Ueh/t7m47u+roOJv2baaQ7rL2Moo=;
-        b=a7g46kqkT5MnL2FfaNziZQR7ZgMTQILt/9dNvJJSxmmS4jMdDbUiYhEHju9NmjW7cx
-         Z+LXeawuFEEMW3ucDrLvmXEcuGYCsJe2FJCzzqsWBEE7F1uhD2Vvd9mbl7r1YQYM0ren
-         ady/s7lL883wJgSZmA1hkIJJ1FEdxMl/YdWiVFWu7F0N6Ua6F+udEipK9m7WeUZCA0EO
-         ljbrYChu4/mCrE2QJHUgWkVjmEt1iBEpn1oM7AxhR+2gkTfoVshIB6OYOtUDXdgAlek+
-         DE8Bb04SqwG2HO7BaxFWxm92yZcSxfyfL2UmRU0pWAhYT5OulIYXuwVpnoLveZ66pB89
-         kAKw==
-X-Gm-Message-State: ANoB5pnX2oVQbTE3T5FIIPUzu4n3qE0lVO94VT+g2wSkR7oP1PAZDVbx
-        YT8cBn5DHFqkyIeeMOQD1sY=
-X-Google-Smtp-Source: AA0mqf64VILhA5gP/coNKXRf4/fdbaKs5HD5f2gWeXuO6VasjLJvoWakA+MEzWWgzt/ZUovXPCAy/w==
-X-Received: by 2002:a17:902:ab4b:b0:186:7b95:f773 with SMTP id ij11-20020a170902ab4b00b001867b95f773mr6266579plb.152.1669146860203;
-        Tue, 22 Nov 2022 11:54:20 -0800 (PST)
-Received: from sc2-haas01-esx0118.eng.vmware.com ([66.170.99.1])
-        by smtp.gmail.com with ESMTPSA id a8-20020a63d408000000b00460fbe0d75esm9699252pgh.31.2022.11.22.11.54.18
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 22 Nov 2022 11:54:19 -0800 (PST)
-From:   Nadav Amit <nadav.amit@gmail.com>
-X-Google-Original-From: Nadav Amit
-To:     Thomas Gleixner <tglx@linutronix.de>
+        with ESMTP id S234126AbiKVUJh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2022 15:09:37 -0500
+Received: from out2-smtp.messagingengine.com (out2-smtp.messagingengine.com [66.111.4.26])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C0676A84E6;
+        Tue, 22 Nov 2022 12:09:33 -0800 (PST)
+Received: from compute3.internal (compute3.nyi.internal [10.202.2.43])
+        by mailout.nyi.internal (Postfix) with ESMTP id 8C3965C01B2;
+        Tue, 22 Nov 2022 15:09:30 -0500 (EST)
+Received: from imap51 ([10.202.2.101])
+  by compute3.internal (MEProxy); Tue, 22 Nov 2022 15:09:30 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :cc:content-type:date:date:from:from:in-reply-to:in-reply-to
+        :message-id:mime-version:references:reply-to:sender:subject
+        :subject:to:to; s=fm3; t=1669147770; x=1669234170; bh=/1t1FbCpWI
+        u7ruZovKPeTw7zgstj/KkekNCrdfNU2Qg=; b=dKwiV6MGSuXUGuu3+/eqSyaq/N
+        TnBEHF7lk5aEKtPFZnM1IUwlO2vzaszZgYQr7vGhxmk9dNqbIuasW5Ols4OvQicN
+        qmjyc6y+LZ2XkqU6HpkzZLIhYyREolU2psHWpKwZZ9pQIN2FSdRIjNwrVa4jRU+h
+        uZWVP3VH2CfH0cNpsKTjVuQ3WenRHtVGgYKpAfZjFYar2KwfwMpNtBgfbnbdWm8W
+        S3AU83d10lOty+Zas0Dc1Cn9Ya+5ACybYXEJhSpCcb1JMi2E3fCqJIVrHLfX1JyK
+        Ccb6uouUP0sEEZk3FK3wsxi+S5knLOgtI+3RG/f5rGRyg8PWax1wZAHEwSzg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
+        :feedback-id:from:from:in-reply-to:in-reply-to:message-id
+        :mime-version:references:reply-to:sender:subject:subject:to:to
+        :x-me-proxy:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+        fm1; t=1669147770; x=1669234170; bh=/1t1FbCpWIu7ruZovKPeTw7zgstj
+        /KkekNCrdfNU2Qg=; b=v35EiftiHAMlAFtRxDqT/mOrnk2ldnDdvDsx1t/r2mak
+        kDWIDbqPSNYloEo+a7Aa0KkkIhExsHLL9i4InRzsidDHB0kDH+4IYpNisIG0SRon
+        HjSXik1hEsUGmSuC1FBt74hlHbKQgNE1kG5KC+s6XIauew/cYnmVww4kJYfkaqNb
+        1eY+x0ib4mEsAWVO2lYLdy4IwSCFHI3IRfP8sYh3Rx+IM/8cR4tnXEzg666/xuyN
+        pUSgPF8AjRHc7E6Gip9+OGzkv7N8Bk6iVLeMTPjVV/et8oPgvsqwR/z+Cvenw+hp
+        VO8dBLAVHkRTEakTxSsiRJ9O/qnQErv3D1C/qESiVQ==
+X-ME-Sender: <xms:eCx9Y-uDSeyPd7_zGhf3DTX9NuTz_Ijg0U1y-HM8ByeztS-75jVadA>
+    <xme:eCx9YzdpbFaM3fPctf936fhL_tgo-dAMgu5mC8WngwQf7jwoqRd3IIvZPlqhsr4Eo
+    8_wQjwVxuaKjmGJAKU>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvgedrheelgddutdegucetufdoteggodetrfdotf
+    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
+    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
+    cujfgurhepofgfggfkjghffffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehr
+    nhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrth
+    htvghrnhepffehueegteeihfegtefhjefgtdeugfegjeelheejueethfefgeeghfektdek
+    teffnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprg
+    hrnhgusegrrhhnuggsrdguvg
+X-ME-Proxy: <xmx:eSx9Y5yOxNqC27LUyxV2iBXVUZoyGfAvORuF7S_eH6xQM9WgmwNuUw>
+    <xmx:eSx9Y5NMhMI0h2Pdv1A9Q2vs_snNWaNRJNtWzhvM3elmiy4uCzDeTA>
+    <xmx:eSx9Y-9w6PykeLLh1lQLOU0gU78twQJhHiWC5ALOOPgzTwbAQON4yQ>
+    <xmx:eix9Y-PgSVoJtb1F7TnqqvQ7J9em_h0G__VdIQSyzqHSDz2TXGSaTw>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id E551CB60089; Tue, 22 Nov 2022 15:09:28 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.7.0-alpha0-1115-g8b801eadce-fm-20221102.001-g8b801ead
+Mime-Version: 1.0
+Message-Id: <de999ab8-78ff-44f7-aacc-68561897c6e2@app.fastmail.com>
+In-Reply-To: <20221122195329.252654-4-namit@vmware.com>
+References: <20221122195329.252654-1-namit@vmware.com>
+ <20221122195329.252654-4-namit@vmware.com>
+Date:   Tue, 22 Nov 2022 21:09:08 +0100
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     "Nadav Amit" <nadav.amit@gmail.com>,
+        "Thomas Gleixner" <tglx@linutronix.de>
 Cc:     linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
         linux-ia64@vger.kernel.org, linux-um@lists.infradead.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        Andy Lutomirski <luto@kernel.org>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        Richard Weinberger <richard@nod.at>,
-        Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-        Johannes Berg <johannes@sipsolutions.net>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Nadav Amit <namit@vmware.com>
-Subject: [PATCH 2/3] lib/usercopy: Allow traceing of usercopy, xarray, iov_iter
-Date:   Tue, 22 Nov 2022 11:53:28 -0800
-Message-Id: <20221122195329.252654-3-namit@vmware.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20221122195329.252654-1-namit@vmware.com>
-References: <20221122195329.252654-1-namit@vmware.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org,
+        "Andy Lutomirski" <luto@kernel.org>,
+        "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
+        "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
+        "Richard Weinberger" <richard@nod.at>,
+        "Anton Ivanov" <anton.ivanov@cambridgegreys.com>,
+        "Johannes Berg" <johannes@sipsolutions.net>,
+        "Andrew Morton" <akpm@linux-foundation.org>,
+        "Nadav Amit" <namit@vmware.com>,
+        "Steven Rostedt" <rostedt@goodmis.org>
+Subject: Re: [PATCH 3/3] compiler: inline does not imply notrace
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Nadav Amit <namit@vmware.com>
+On Tue, Nov 22, 2022, at 20:53, Nadav Amit wrote:
+> From: Nadav Amit <namit@vmware.com>
+>
+> Functions that are marked as "inline" are currently also not tracable.
+> Apparently, this has been done to prevent differences between different
+> configs that caused different functions to be tracable on different
+> platforms.
+>
+> Anyhow, this consideration is not very strong, and tying "inline" and
+> "notrace" does not seem very beneficial. The "inline" keyword is just a
+> hint, and many functions are currently not tracable due to this reason.
 
-There is no reason not to allow the use of ftrace for usercopy, xarray
-and iov_iter.  Enable tracing for these compilation unit.
+The original reason was listed in 93b3cca1ccd3 ("ftrace: Make all
+inline tags also include notrace"), which describes
 
-Signed-off-by: Nadav Amit <namit@vmware.com>
----
- lib/Makefile | 3 +++
- 1 file changed, 3 insertions(+)
+    Commit 5963e317b1e9d2a ("ftrace/x86: Do not change stacks in DEBUG when
+    calling lockdep") prevented lockdep calls from the int3 breakpoint handler
+    from reseting the stack if a function that was called was in the process
+    of being converted for tracing and had a breakpoint on it. The idea is,
+    before calling the lockdep code, do a load_idt() to the special IDT that
+    kept the breakpoint stack from reseting. This worked well as a quick fix
+    for this kernel release, until a certain config caused a lockup in the
+    function tracer start up tests.
+    
+    Investigating it, I found that the load_idt that was used to prevent
+    the int3 from changing stacks was itself being traced!
 
-diff --git a/lib/Makefile b/lib/Makefile
-index 59bd7c2f793a..32766aa26670 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -27,6 +27,8 @@ KASAN_SANITIZE_string.o := n
- CFLAGS_string.o += -fno-stack-protector
- endif
- 
-+CFLAGS_xarray.o += $(CC_FLAGS_FTRACE)
-+CFLAGS_iov_iter.o += $(CC_FLAGS_FTRACE)
- lib-y := ctype.o string.o vsprintf.o cmdline.o \
- 	 rbtree.o radix-tree.o timerqueue.o xarray.o \
- 	 maple_tree.o idr.o extable.o irq_regs.o argv_split.o \
-@@ -42,6 +44,7 @@ lib-$(CONFIG_SMP) += cpumask.o
- lib-y	+= kobject.o klist.o
- obj-y	+= lockref.o
- 
-+CFLAGS_usercopy.o += $(CC_FLAGS_FTRACE)
- obj-y += bcd.o sort.o parser.o debug_locks.o random32.o \
- 	 bust_spinlocks.o kasprintf.o bitmap.o scatterlist.o \
- 	 list_sort.o uuid.o iov_iter.o clz_ctz.o \
--- 
-2.25.1
+and this sounds like a much stronger reason than what you describe,
+and I would expect your change to cause regressions in similar places.
 
+It's possible that the right answer is that the affected functions
+should be marked as __always_inline. 
+
+      Arnd
