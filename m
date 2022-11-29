@@ -2,147 +2,192 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 609E1C46467
-	for <linux-arch@archiver.kernel.org>; Tue, 29 Nov 2022 14:08:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 44647C46467
+	for <linux-arch@archiver.kernel.org>; Tue, 29 Nov 2022 14:11:14 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234728AbiK2OIi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 29 Nov 2022 09:08:38 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42154 "EHLO
+        id S235291AbiK2OLM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 29 Nov 2022 09:11:12 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46300 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234493AbiK2OIa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Nov 2022 09:08:30 -0500
-Received: from mail-ej1-x636.google.com (mail-ej1-x636.google.com [IPv6:2a00:1450:4864:20::636])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B4DBA59FF9;
-        Tue, 29 Nov 2022 06:08:29 -0800 (PST)
-Received: by mail-ej1-x636.google.com with SMTP id bj12so33990305ejb.13;
-        Tue, 29 Nov 2022 06:08:29 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=1kqCc7yU1YkarXWZbMyGs9nckGPiC+C/WANzHraoYew=;
-        b=L66GG3cxZiSHXPmfY77KORxMTN1uCF6q3lbtM9pAaMe+veBDm7pHAq8kd3mnoierSQ
-         RgzFwPPoHnbd8LmV7OO7DtUDXBcL4tiyEv2u6O2wJuGmpqZhu8+aYdXRw3Xl0G2ZznhC
-         /ymb2knTVCb+Dtu772Hn/LHymQgc31ywaCPXRcxPEUpCmeXBfBKIbov9VWn3j5Jkw2EQ
-         KpOMff6u0/wyDak6fp30xxL4DdQ/5t439H/5Kxy9wriGC/yhmAKalgWVEncwGRAU0GQI
-         1xFEtZU1ZslzqWLTlNMRM7rbMMP7HE6VyLppjBXdrMe3ODLXQl7J1XwtvG6OvUwAheDA
-         WHQA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=1kqCc7yU1YkarXWZbMyGs9nckGPiC+C/WANzHraoYew=;
-        b=uCVt6YUWkGD7xEeYOhq3F26Lf+ExJq8AsX2wH4W21ahKiwCzAwOWbl8FnnORECdSSS
-         8AZ2xpeomoPOihzlWe9Pa3dIyO33pIGlkIrYwh/8JDx6IcFFS+xfVqxCnnRXvwpp5q1s
-         BIg/FBcRW1T0Y0jfIHwVvFcTynZ50uev8ZRNMJHsEAFI/l3VeGZvlbqzU5qi0v6j5Jxx
-         3dHZsMuvF3b4uHxuAjcSjOhUvUAJlqWeiOw7hMUgWzLScLrm1FvPy1024g7jp21/77V9
-         03Ev50adG6dzLmaaEmpgtIFP6VAJ1FOG/hlqFidXX4Tagh4OXDxaOIEmCRFM/10TUqMY
-         NeHQ==
-X-Gm-Message-State: ANoB5pnqlReyXr8W6XyPyXa+rnUNbtvaP9fX8P1FJZMev8+cwJ4fmtCA
-        AOMHXsNRi1en9IyWZxtjuIxGhHL4sAyRCDG/NOvmxQkKc7U=
-X-Google-Smtp-Source: AA0mqf5socxeRVchDmD7ZKtmihUqV4WcGcBPOuTgcMmdtKmCPPnyt2pjxU4UV7a3cLG5SsszYuYfPi4zUfnj6j/dY28=
-X-Received: by 2002:a17:906:298c:b0:7c0:7d08:bfc with SMTP id
- x12-20020a170906298c00b007c07d080bfcmr6512317eje.72.1669730908013; Tue, 29
- Nov 2022 06:08:28 -0800 (PST)
+        with ESMTP id S235190AbiK2OKu (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 29 Nov 2022 09:10:50 -0500
+Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B74BB5E9C8;
+        Tue, 29 Nov 2022 06:10:48 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1669731048; x=1701267048;
+  h=date:from:to:cc:subject:message-id:reply-to:references:
+   mime-version:in-reply-to;
+  bh=kCh+qqjMcaQj1b5b/Ai4VtSeoBos0JWTLvFP/zM/hG0=;
+  b=QJW1alFgIMednKYKb4BGTSaZt2rGXAxcfyDipr3PuLZt2nqCmmGEMrMZ
+   7ki7F/1X6ARBI8SFSxr04eS1PKeJIRC/zxjo/FwoRXdhpkb+7bddWKrSi
+   vP4QRCSqW7knFd8mSBDYVWb3S0hutNFq01fdXJKMkuxqnwvMByavbGrwy
+   hO62JAJ91GS0860Zop58A2Ohx+GhmuI+hD+d+S1bmCrt1FzJoVswO3Urf
+   B1lP32lUod1UGAEqyXeXJ2+Aj8U+kPnej242APiGxQ4MZr/7bzyxN8oXl
+   Md206TL25XHQQ4R9VCGbw179F8JBbUBJCTfagvbO/MEYt4srHwh+K82+9
+   A==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10546"; a="316950711"
+X-IronPort-AV: E=Sophos;i="5.96,203,1665471600"; 
+   d="scan'208";a="316950711"
+Received: from fmsmga008.fm.intel.com ([10.253.24.58])
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Nov 2022 06:10:47 -0800
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6500,9779,10546"; a="707224365"
+X-IronPort-AV: E=Sophos;i="5.96,203,1665471600"; 
+   d="scan'208";a="707224365"
+Received: from chaop.bj.intel.com (HELO localhost) ([10.240.193.75])
+  by fmsmga008.fm.intel.com with ESMTP; 29 Nov 2022 06:10:37 -0800
+Date:   Tue, 29 Nov 2022 22:06:15 +0800
+From:   Chao Peng <chao.p.peng@linux.intel.com>
+To:     Michael Roth <michael.roth@amd.com>
+Cc:     kvm@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        linux-doc@vger.kernel.org, qemu-devel@nongnu.org,
+        Paolo Bonzini <pbonzini@redhat.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Sean Christopherson <seanjc@google.com>,
+        Vitaly Kuznetsov <vkuznets@redhat.com>,
+        Wanpeng Li <wanpengli@tencent.com>,
+        Jim Mattson <jmattson@google.com>,
+        Joerg Roedel <joro@8bytes.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
+        Hugh Dickins <hughd@google.com>,
+        Jeff Layton <jlayton@kernel.org>,
+        "J . Bruce Fields" <bfields@fieldses.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Shuah Khan <shuah@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+        Steven Price <steven.price@arm.com>,
+        "Maciej S . Szmigiero" <mail@maciej.szmigiero.name>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        Vishal Annapurve <vannapurve@google.com>,
+        Yu Zhang <yu.c.zhang@linux.intel.com>,
+        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
+        luto@kernel.org, jun.nakajima@intel.com, dave.hansen@intel.com,
+        ak@linux.intel.com, david@redhat.com, aarcange@redhat.com,
+        ddutile@redhat.com, dhildenb@redhat.com,
+        Quentin Perret <qperret@google.com>, tabba@google.com,
+        mhocko@suse.com, Muchun Song <songmuchun@bytedance.com>,
+        wei.w.wang@intel.com
+Subject: Re: [PATCH v9 1/8] mm: Introduce memfd_restricted system call to
+ create restricted user memory
+Message-ID: <20221129140615.GC902164@chaop.bj.intel.com>
+Reply-To: Chao Peng <chao.p.peng@linux.intel.com>
+References: <20221025151344.3784230-1-chao.p.peng@linux.intel.com>
+ <20221025151344.3784230-2-chao.p.peng@linux.intel.com>
+ <20221129003725.l34qhx6n44mq2gtl@amd.com>
 MIME-Version: 1.0
-References: <20220714084136.570176-1-chenhuacai@loongson.cn>
- <20220714084136.570176-3-chenhuacai@loongson.cn> <CAAhV-H7uF85UHfbS+-sMcXbB=q3UO0Z8rO=poNQbEtaipi4PHQ@mail.gmail.com>
- <CAJF2gTT82uNmjfDcMrSodssZWsMSrN_476s03QCv__kmQH-6GQ@mail.gmail.com>
-In-Reply-To: <CAJF2gTT82uNmjfDcMrSodssZWsMSrN_476s03QCv__kmQH-6GQ@mail.gmail.com>
-From:   Huacai Chen <chenhuacai@gmail.com>
-Date:   Tue, 29 Nov 2022 22:08:16 +0800
-Message-ID: <CAAhV-H6siOtVkZpkS4aABejgZCqTwp3TihA0+0HGZ1+mU3XAVA@mail.gmail.com>
-Subject: Re: [PATCH V2 3/3] SH: cpuinfo: Fix a warning for CONFIG_CPUMASK_OFFSTACK
-To:     Guo Ren <guoren@kernel.org>,
-        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Cc:     Huacai Chen <chenhuacai@loongson.cn>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, loongarch@lists.linux.dev,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Xuerui Wang <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-mips@vger.kernel.org, linux-sh@vger.kernel.org,
-        stable@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20221129003725.l34qhx6n44mq2gtl@amd.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Nov 28, 2022 at 4:18 PM Guo Ren <guoren@kernel.org> wrote:
->
-> On Mon, Nov 28, 2022 at 2:25 PM Huacai Chen <chenhuacai@gmail.com> wrote:
-> >
-> > ping?
-> Who can test?
-John said he can test. :)
+On Mon, Nov 28, 2022 at 06:37:25PM -0600, Michael Roth wrote:
+> On Tue, Oct 25, 2022 at 11:13:37PM +0800, Chao Peng wrote:
+...
+> > +static long restrictedmem_fallocate(struct file *file, int mode,
+> > +				    loff_t offset, loff_t len)
+> > +{
+> > +	struct restrictedmem_data *data = file->f_mapping->private_data;
+> > +	struct file *memfd = data->memfd;
+> > +	int ret;
+> > +
+> > +	if (mode & FALLOC_FL_PUNCH_HOLE) {
+> > +		if (!PAGE_ALIGNED(offset) || !PAGE_ALIGNED(len))
+> > +			return -EINVAL;
+> > +	}
+> > +
+> > +	restrictedmem_notifier_invalidate(data, offset, offset + len, true);
+> 
+> The KVM restrictedmem ops seem to expect pgoff_t, but here we pass
+> loff_t. For SNP we've made this strange as part of the following patch
+> and it seems to produce the expected behavior:
 
-Huacai
->
-> >
-> > On Thu, Jul 14, 2022 at 4:42 PM Huacai Chen <chenhuacai@loongson.cn> wrote:
-> > >
-> > > When CONFIG_CPUMASK_OFFSTACK and CONFIG_DEBUG_PER_CPU_MAPS is selected,
-> > > cpu_max_bits_warn() generates a runtime warning similar as below while
-> > > we show /proc/cpuinfo. Fix this by using nr_cpu_ids (the runtime limit)
-> > > instead of NR_CPUS to iterate CPUs.
-> > >
-> > > [    3.052463] ------------[ cut here ]------------
-> > > [    3.059679] WARNING: CPU: 3 PID: 1 at include/linux/cpumask.h:108 show_cpuinfo+0x5e8/0x5f0
-> > > [    3.070072] Modules linked in: efivarfs autofs4
-> > > [    3.076257] CPU: 0 PID: 1 Comm: systemd Not tainted 5.19-rc5+ #1052
-> > > [    3.099465] Stack : 9000000100157b08 9000000000f18530 9000000000cf846c 9000000100154000
-> > > [    3.109127]         9000000100157a50 0000000000000000 9000000100157a58 9000000000ef7430
-> > > [    3.118774]         90000001001578e8 0000000000000040 0000000000000020 ffffffffffffffff
-> > > [    3.128412]         0000000000aaaaaa 1ab25f00eec96a37 900000010021de80 900000000101c890
-> > > [    3.138056]         0000000000000000 0000000000000000 0000000000000000 0000000000aaaaaa
-> > > [    3.147711]         ffff8000339dc220 0000000000000001 0000000006ab4000 0000000000000000
-> > > [    3.157364]         900000000101c998 0000000000000004 9000000000ef7430 0000000000000000
-> > > [    3.167012]         0000000000000009 000000000000006c 0000000000000000 0000000000000000
-> > > [    3.176641]         9000000000d3de08 9000000001639390 90000000002086d8 00007ffff0080286
-> > > [    3.186260]         00000000000000b0 0000000000000004 0000000000000000 0000000000071c1c
-> > > [    3.195868]         ...
-> > > [    3.199917] Call Trace:
-> > > [    3.203941] [<90000000002086d8>] show_stack+0x38/0x14c
-> > > [    3.210666] [<9000000000cf846c>] dump_stack_lvl+0x60/0x88
-> > > [    3.217625] [<900000000023d268>] __warn+0xd0/0x100
-> > > [    3.223958] [<9000000000cf3c90>] warn_slowpath_fmt+0x7c/0xcc
-> > > [    3.231150] [<9000000000210220>] show_cpuinfo+0x5e8/0x5f0
-> > > [    3.238080] [<90000000004f578c>] seq_read_iter+0x354/0x4b4
-> > > [    3.245098] [<90000000004c2e90>] new_sync_read+0x17c/0x1c4
-> > > [    3.252114] [<90000000004c5174>] vfs_read+0x138/0x1d0
-> > > [    3.258694] [<90000000004c55f8>] ksys_read+0x70/0x100
-> > > [    3.265265] [<9000000000cfde9c>] do_syscall+0x7c/0x94
-> > > [    3.271820] [<9000000000202fe4>] handle_syscall+0xc4/0x160
-> > > [    3.281824] ---[ end trace 8b484262b4b8c24c ]---
-> > >
-> > > Cc: stable@vger.kernel.org
-> > > Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
-> > > ---
-> > >  arch/sh/kernel/cpu/proc.c | 2 +-
-> > >  1 file changed, 1 insertion(+), 1 deletion(-)
-> > >
-> > > diff --git a/arch/sh/kernel/cpu/proc.c b/arch/sh/kernel/cpu/proc.c
-> > > index a306bcd6b341..5f6d0e827bae 100644
-> > > --- a/arch/sh/kernel/cpu/proc.c
-> > > +++ b/arch/sh/kernel/cpu/proc.c
-> > > @@ -132,7 +132,7 @@ static int show_cpuinfo(struct seq_file *m, void *v)
-> > >
-> > >  static void *c_start(struct seq_file *m, loff_t *pos)
-> > >  {
-> > > -       return *pos < NR_CPUS ? cpu_data + *pos : NULL;
-> > > +       return *pos < nr_cpu_ids ? cpu_data + *pos : NULL;
-> > >  }
-> > >  static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-> > >  {
-> > > --
-> > > 2.31.1
-> > >
->
->
->
-> --
-> Best Regards
->  Guo Ren
+That's correct. Thanks.
+
+> 
+>   https://github.com/mdroth/linux/commit/d669c7d3003ff7a7a47e73e8c3b4eeadbd2c4eb6
+> 
+> > +	ret = memfd->f_op->fallocate(memfd, mode, offset, len);
+> > +	restrictedmem_notifier_invalidate(data, offset, offset + len, false);
+> > +	return ret;
+> > +}
+> > +
+> 
+> <snip>
+> 
+> > +int restrictedmem_get_page(struct file *file, pgoff_t offset,
+> > +			   struct page **pagep, int *order)
+> > +{
+> > +	struct restrictedmem_data *data = file->f_mapping->private_data;
+> > +	struct file *memfd = data->memfd;
+> > +	struct page *page;
+> > +	int ret;
+> > +
+> > +	ret = shmem_getpage(file_inode(memfd), offset, &page, SGP_WRITE);
+> 
+> This will result in KVM allocating pages that userspace hasn't necessary
+> fallocate()'d. In the case of SNP we need to get the PFN so we can clean
+> up the RMP entries when restrictedmem invalidations are issued for a GFN
+> range.
+
+Yes fallocate() is unnecessary unless someone wants to reserve some
+space (e.g. for determination or performance purpose), this matches its
+semantics perfectly at:
+https://www.man7.org/linux/man-pages/man2/fallocate.2.html
+
+> 
+> If the guest supports lazy-acceptance however, these pages may not have
+> been faulted in yet, and if the VMM defers actually fallocate()'ing space
+> until the guest actually tries to issue a shared->private for that GFN
+> (to support lazy-pinning), then there may never be a need to allocate
+> pages for these backends.
+> 
+> However, the restrictedmem invalidations are for GFN ranges so there's
+> no way to know inadvance whether it's been allocated yet or not. The
+> xarray is one option but currently it defaults to 'private' so that
+> doesn't help us here. It might if we introduced a 'uninitialized' state
+> or something along that line instead of just the binary
+> 'shared'/'private' though...
+
+How about if we change the default to 'shared' as we discussed at
+https://lore.kernel.org/all/Y35gI0L8GMt9+OkK@google.com/?
+> 
+> But for now we added a restrictedmem_get_page_noalloc() that uses
+> SGP_NONE instead of SGP_WRITE to avoid accidentally allocating a bunch
+> of memory as part of guest shutdown, and a
+> kvm_restrictedmem_get_pfn_noalloc() variant to go along with that. But
+> maybe a boolean param is better? Or maybe SGP_NOALLOC is the better
+> default, and we just propagate an error to userspace if they didn't
+> fallocate() in advance?
+
+This (making fallocate() a hard requirement) not only complicates the
+userspace but also forces the lazy-faulting going through a long path of
+exiting to userspace. Unless we don't have other options I would not go
+this way.
+
+Chao
+> 
+> -Mike
+> 
+> > +	if (ret)
+> > +		return ret;
+> > +
+> > +	*pagep = page;
+> > +	if (order)
+> > +		*order = thp_order(compound_head(page));
+> > +
+> > +	SetPageUptodate(page);
+> > +	unlock_page(page);
+> > +
+> > +	return 0;
+> > +}
+> > +EXPORT_SYMBOL_GPL(restrictedmem_get_page);
+> > -- 
+> > 2.25.1
+> > 
