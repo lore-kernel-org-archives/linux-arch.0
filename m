@@ -2,43 +2,53 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4501BC63704
-	for <linux-arch@archiver.kernel.org>; Sat,  3 Dec 2022 00:44:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E40B3C4708E
+	for <linux-arch@archiver.kernel.org>; Sat,  3 Dec 2022 02:20:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235345AbiLCAn6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 2 Dec 2022 19:43:58 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43048 "EHLO
+        id S234697AbiLCCUS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 2 Dec 2022 21:20:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35662 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235037AbiLCAmI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2022 19:42:08 -0500
-Received: from mga11.intel.com (mga11.intel.com [192.55.52.93])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9EA54FA45E;
-        Fri,  2 Dec 2022 16:38:35 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1670027915; x=1701563915;
-  h=from:to:cc:subject:date:message-id:in-reply-to:
-   references;
-  bh=itoYo5wz6A01y1aA288M7ulOG+VVmtemkgoBfCLG4/Q=;
-  b=l6Xe6GgowySAErGkAsv2AIeihi5cmdvpR/ZX3wO9sur+LOSOlWQUYHmO
-   RagR47LFB7ajMvndbZzmMCNULYIcUZqC6BZ1Jey2i2+oEU69Lwq11D3Mv
-   8cmHN6QPMdabqVehQLCilsBDpFFFO4ET83FkKq2IlN7p7yD4wiPG7Dfft
-   JSgBHw635rif34Rt5ESmN4gLMmDzaOVNQ6sDD37MFot3CqQER0M53CmYc
-   dMtR7F3w1Ed9ing4ttMdDNlZY7mTJnfHnx/HEu5+Zzmon6Es0KQYNQrZN
-   ejGj6N5dLQ+rbTXx5sJIKz2L6QrTjbWNMYW9PlJjF5ZC1QKlKyIrV+F8R
-   g==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10549"; a="313711629"
-X-IronPort-AV: E=Sophos;i="5.96,213,1665471600"; 
-   d="scan'208";a="313711629"
-Received: from fmsmga001.fm.intel.com ([10.253.24.23])
-  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Dec 2022 16:37:52 -0800
-X-IronPort-AV: E=McAfee;i="6500,9779,10549"; a="787480058"
-X-IronPort-AV: E=Sophos;i="5.96,213,1665471600"; 
-   d="scan'208";a="787480058"
-Received: from bgordon1-mobl1.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.212.211.211])
-  by fmsmga001-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Dec 2022 16:37:50 -0800
-From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
-To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
+        with ESMTP id S234851AbiLCCUQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2022 21:20:16 -0500
+Received: from mail-pl1-x629.google.com (mail-pl1-x629.google.com [IPv6:2607:f8b0:4864:20::629])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D67F0B2751
+        for <linux-arch@vger.kernel.org>; Fri,  2 Dec 2022 18:20:13 -0800 (PST)
+Received: by mail-pl1-x629.google.com with SMTP id jl24so6225163plb.8
+        for <linux-arch@vger.kernel.org>; Fri, 02 Dec 2022 18:20:13 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=chromium.org; s=google;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=uWTcrQs76OXnN9lbgVOglSiDBLgPYobcjd4cqmFFNh0=;
+        b=br0isiwIge4UTmUJvBAJu/hBvPA1Lr+Q6aU07D4VkWEjqVthAO51+vJImZ1FrZHRdD
+         VwddOLnbJ/XU9t7ILuN1HA+G47+zvC5AQpnHVRuGKqkY67gReiKKFP9GgZqMko0YcNtw
+         ClxdvdHcude27V4L/cMq4ecvT54mwZxIkLN4M=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=uWTcrQs76OXnN9lbgVOglSiDBLgPYobcjd4cqmFFNh0=;
+        b=17l5/ks5zaP03arWN6sY010GHSTp9mEA5iKod/ATLMVI3cKfjRhncBvcGmffSqZMH9
+         Q8mE4nrsCiDFkLjYv3l0n3koWPg4OhzByURQmmleT04XGBOKtEhtZ1Y/la+V0jKMgyBZ
+         EOMhPf/Kn5YmQlG2ctaizJ/Y/3xVNkriovm48N1UYLZbXEzOX0Tu02cPYXh/5rk0F/to
+         SYKS1Tlo/0zfcOtZFk5JiVzFIoITS1UETZjnuGC0pNZOEVMDgjoq/G0cf9UfiAa7sCIS
+         H2SY4ppN7ayQeX2q3JqyG5zk2pSXqauc4+LfzE8WIWFwtxE3snM/Rec6A3xnZn72o1Ib
+         m45w==
+X-Gm-Message-State: ANoB5pkZsAIeUH/+OBh9DylovgmezXurKsnJD74rwUCRmNtRRvTHippz
+        CN6vgpPYxKu9h3e8jdFbtFcf6Q==
+X-Google-Smtp-Source: AA0mqf5I/xkYCiW+AL4KD543i0yq8zicOFbYEE9zrRwPsqNnGgfsCRnMQokLFlIn+NMdh7ZPPB+0Rg==
+X-Received: by 2002:a17:902:ef44:b0:185:40ca:68b8 with SMTP id e4-20020a170902ef4400b0018540ca68b8mr56029977plx.16.1670034013379;
+        Fri, 02 Dec 2022 18:20:13 -0800 (PST)
+Received: from www.outflux.net (smtp.outflux.net. [198.145.64.163])
+        by smtp.gmail.com with ESMTPSA id p2-20020a622902000000b0056e8eb09d58sm5891712pfp.170.2022.12.02.18.20.12
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 02 Dec 2022 18:20:12 -0800 (PST)
+Date:   Fri, 2 Dec 2022 18:20:12 -0800
+From:   Kees Cook <keescook@chromium.org>
+To:     Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
         Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
         linux-doc@vger.kernel.org, linux-mm@kvack.org,
@@ -53,7 +63,6 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Florian Weimer <fweimer@redhat.com>,
         "H . J . Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
         Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
         Mike Kravetz <mike.kravetz@oracle.com>,
         Nadav Amit <nadav.amit@gmail.com>,
         Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
@@ -64,261 +73,31 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         John Allen <john.allen@amd.com>, kcc@google.com,
         eranian@google.com, rppt@kernel.org, jamorris@linux.microsoft.com,
         dethoma@microsoft.com, akpm@linux-foundation.org,
-        Andrew.Cooper3@citrix.com, christina.schimpe@intel.com
-Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v4 37/39] x86: Add PTRACE interface for shadow stack
-Date:   Fri,  2 Dec 2022 16:36:04 -0800
-Message-Id: <20221203003606.6838-38-rick.p.edgecombe@intel.com>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20221203003606.6838-1-rick.p.edgecombe@intel.com>
+        Andrew.Cooper3@citrix.com, christina.schimpe@intel.com,
+        Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: Re: [PATCH v4 01/39] Documentation/x86: Add CET shadow stack
+ description
+Message-ID: <202212021820.AD41327@keescook>
 References: <20221203003606.6838-1-rick.p.edgecombe@intel.com>
+ <20221203003606.6838-2-rick.p.edgecombe@intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20221203003606.6838-2-rick.p.edgecombe@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+On Fri, Dec 02, 2022 at 04:35:28PM -0800, Rick Edgecombe wrote:
+> From: Yu-cheng Yu <yu-cheng.yu@intel.com>
+> 
+> Introduce a new document on Control-flow Enforcement Technology (CET).
+> 
+> Tested-by: Pengfei Xu <pengfei.xu@intel.com>
+> Tested-by: John Allen <john.allen@amd.com>
+> Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-Some applications (like GDB) would like to tweak shadow stack state via
-ptrace. This allows for existing functionality to continue to work for
-seized shadow stack applications. Provide an regset interface for
-manipulating the shadow stack pointer (SSP).
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-There is already ptrace functionality for accessing xstate, but this
-does not include supervisor xfeatures. So there is not a completely
-clear place for where to put the shadow stack state. Adding it to the
-user xfeatures regset would complicate that code, as it currently shares
-logic with signals which should not have supervisor features.
-
-Don't add a general supervisor xfeature regset like the user one,
-because it is better to maintain flexibility for other supervisor
-xfeatures to define their own interface. For example, an xfeature may
-decide not to expose all of it's state to userspace, as is actually the
-case for  shadow stack ptrace functionality. A lot of enum values remain
-to be used, so just put it in dedicated shadow stack regset.
-
-The only downside to not having a generic supervisor xfeature regset,
-is that apps need to be enlightened of any new supervisor xfeature
-exposed this way (i.e. they can't try to have generic save/restore
-logic). But maybe that is a good thing, because they have to think
-through each new xfeature instead of encountering issues when new a new
-supervisor xfeature was added.
-
-By adding a shadow stack regset, it also has the effect of including the
-shadow stack state in a core dump, which could be useful for debugging.
-
-The shadow stack specific xstate includes the SSP, and the shadow stack
-and WRSS enablement status. Enabling shadow stack or wrss in the kernel
-involves more than just flipping the bit. The kernel is made aware that
-it has to do extra things when cloning or handling signals. That logic
-is triggered off of separate feature enablement state kept in the task
-struct. So the flipping on HW shadow stack enforcement without notifying
-the kernel to change its behavior would severely limit what an application
-could do without crashing, and the results would depend on kernel
-internal implementation details. There is also no known use for controlling
-this state via prtace today. So only expose the SSP, which is something
-that userspace already has indirect control over.
-
-Tested-by: Pengfei Xu <pengfei.xu@intel.com>
-Tested-by: John Allen <john.allen@amd.com>
-Co-developed-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
----
-
-v4:
- - Make shadow stack only. Reduce to only supporting SSP register, and
-   remove CET references (peterz)
- - Add comment to not use 0x203, becuase binutils already looks for it in
-   coredumps. (Christina Schimpe)
-
-v3:
- - Drop dependence on thread.shstk.size, and use thread.features bits
- - Drop 32 bit support
-
-v2:
- - Check alignment on ssp.
- - Block IBT bits.
- - Handle init states instead of returning error.
- - Add verbose commit log justifying the design.
-
-Yu-Cheng v12:
- - Return -ENODEV when CET registers are in INIT state.
- - Check reserved/non-support bits from user input.
-
- arch/x86/include/asm/fpu/regset.h |  7 +--
- arch/x86/kernel/fpu/regset.c      | 87 +++++++++++++++++++++++++++++++
- arch/x86/kernel/ptrace.c          | 12 +++++
- include/uapi/linux/elf.h          |  2 +
- 4 files changed, 105 insertions(+), 3 deletions(-)
-
-diff --git a/arch/x86/include/asm/fpu/regset.h b/arch/x86/include/asm/fpu/regset.h
-index 4f928d6a367b..697b77e96025 100644
---- a/arch/x86/include/asm/fpu/regset.h
-+++ b/arch/x86/include/asm/fpu/regset.h
-@@ -7,11 +7,12 @@
- 
- #include <linux/regset.h>
- 
--extern user_regset_active_fn regset_fpregs_active, regset_xregset_fpregs_active;
-+extern user_regset_active_fn regset_fpregs_active, regset_xregset_fpregs_active,
-+				ssp_active;
- extern user_regset_get2_fn fpregs_get, xfpregs_get, fpregs_soft_get,
--				 xstateregs_get;
-+				 xstateregs_get, ssp_get;
- extern user_regset_set_fn fpregs_set, xfpregs_set, fpregs_soft_set,
--				 xstateregs_set;
-+				 xstateregs_set, ssp_set;
- 
- /*
-  * xstateregs_active == regset_fpregs_active. Please refer to the comment
-diff --git a/arch/x86/kernel/fpu/regset.c b/arch/x86/kernel/fpu/regset.c
-index 6d056b68f4ed..00f3d5c9b682 100644
---- a/arch/x86/kernel/fpu/regset.c
-+++ b/arch/x86/kernel/fpu/regset.c
-@@ -8,6 +8,7 @@
- #include <asm/fpu/api.h>
- #include <asm/fpu/signal.h>
- #include <asm/fpu/regset.h>
-+#include <asm/prctl.h>
- 
- #include "context.h"
- #include "internal.h"
-@@ -174,6 +175,92 @@ int xstateregs_set(struct task_struct *target, const struct user_regset *regset,
- 	return ret;
- }
- 
-+
-+#ifdef CONFIG_X86_USER_SHADOW_STACK
-+int ssp_active(struct task_struct *target, const struct user_regset *regset)
-+{
-+	if (shstk_enabled())
-+		return regset->n;
-+
-+	return 0;
-+}
-+
-+int ssp_get(struct task_struct *target, const struct user_regset *regset,
-+		struct membuf to)
-+{
-+	struct fpu *fpu = &target->thread.fpu;
-+	struct cet_user_state *cetregs;
-+
-+	if (!boot_cpu_has(X86_FEATURE_USER_SHSTK))
-+		return -ENODEV;
-+
-+	sync_fpstate(fpu);
-+	cetregs = get_xsave_addr(&fpu->fpstate->regs.xsave, XFEATURE_CET_USER);
-+	if (!cetregs) {
-+		/*
-+		 * The registers are the in the init state. The init values for
-+		 * these regs are zero, so just zero the output buffer.
-+		 */
-+		membuf_zero(&to, sizeof(cetregs->user_ssp));
-+		return 0;
-+	}
-+
-+	return membuf_write(&to, (unsigned long *)&cetregs->user_ssp,
-+			    sizeof(cetregs->user_ssp));
-+}
-+
-+int ssp_set(struct task_struct *target, const struct user_regset *regset,
-+		  unsigned int pos, unsigned int count,
-+		  const void *kbuf, const void __user *ubuf)
-+{
-+	struct fpu *fpu = &target->thread.fpu;
-+	struct xregs_state *xsave = &fpu->fpstate->regs.xsave;
-+	struct cet_user_state *cetregs;
-+	unsigned long user_ssp;
-+	int r;
-+
-+	if (!boot_cpu_has(X86_FEATURE_USER_SHSTK) ||
-+	    !ssp_active(target, regset))
-+		return -ENODEV;
-+
-+	r = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &user_ssp, 0, -1);
-+	if (r)
-+		return r;
-+
-+	/*
-+	 * Some kernel instructions (IRET, etc) can cause exceptions in the case
-+	 * of disallowed CET register values. Just prevent invalid values.
-+	 */
-+	if ((user_ssp >= TASK_SIZE_MAX) || !IS_ALIGNED(user_ssp, 8))
-+		return -EINVAL;
-+
-+	fpu_force_restore(fpu);
-+
-+	/*
-+	 * Don't want to init the xfeature until the kernel will definetely
-+	 * overwrite it, otherwise if it inits and then fails out, it would
-+	 * end up initing it to random data.
-+	 */
-+	if (!xfeature_saved(xsave, XFEATURE_CET_USER) &&
-+	    WARN_ON(init_xfeature(xsave, XFEATURE_CET_USER)))
-+		return -ENODEV;
-+
-+	cetregs = get_xsave_addr(xsave, XFEATURE_CET_USER);
-+	if (WARN_ON(!cetregs)) {
-+		/*
-+		 * This shouldn't ever be NULL because it was successfully
-+		 * inited above if needed. The only scenario would be if an
-+		 * xfeature was somehow saved in a buffer, but not enabled in
-+		 * xsave.
-+		 */
-+		return -ENODEV;
-+	}
-+
-+	cetregs->user_ssp = user_ssp;
-+	return 0;
-+}
-+#endif /* CONFIG_X86_USER_SHADOW_STACK */
-+
- #if defined CONFIG_X86_32 || defined CONFIG_IA32_EMULATION
- 
- /*
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index dfaa270a7cc9..095f04bdabdc 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -58,6 +58,7 @@ enum x86_regset_64 {
- 	REGSET64_FP,
- 	REGSET64_IOPERM,
- 	REGSET64_XSTATE,
-+	REGSET64_SSP,
- };
- 
- #define REGSET_GENERAL \
-@@ -1267,6 +1268,17 @@ static struct user_regset x86_64_regsets[] __ro_after_init = {
- 		.active		= ioperm_active,
- 		.regset_get	= ioperm_get
- 	},
-+#ifdef CONFIG_X86_USER_SHADOW_STACK
-+	[REGSET64_SSP] = {
-+		.core_note_type	= NT_X86_SHSTK,
-+		.n		= 1,
-+		.size		= sizeof(u64),
-+		.align		= sizeof(u64),
-+		.active		= ssp_active,
-+		.regset_get	= ssp_get,
-+		.set		= ssp_set
-+	},
-+#endif
- };
- 
- static const struct user_regset_view user_x86_64_view = {
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index c7b056af9ef0..e9283f0641c4 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -406,6 +406,8 @@ typedef struct elf64_shdr {
- #define NT_386_TLS	0x200		/* i386 TLS slots (struct user_desc) */
- #define NT_386_IOPERM	0x201		/* x86 io permission bitmap (1=deny) */
- #define NT_X86_XSTATE	0x202		/* x86 extended state using xsave */
-+/* Old binutils treats 0x203 as a CET state */
-+#define NT_X86_SHSTK	0x204		/* x86 SHSTK state */
- #define NT_S390_HIGH_GPRS	0x300	/* s390 upper register halves */
- #define NT_S390_TIMER	0x301		/* s390 timer register */
- #define NT_S390_TODCMP	0x302		/* s390 TOD clock comparator register */
 -- 
-2.17.1
-
+Kees Cook
