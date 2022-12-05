@@ -2,135 +2,315 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D8A4C4321E
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Dec 2022 10:49:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DEC07C4332F
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Dec 2022 18:01:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230035AbiLEKtR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Dec 2022 05:49:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47508 "EHLO
+        id S229999AbiLESBE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Dec 2022 13:01:04 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51502 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230006AbiLEKtQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2022 05:49:16 -0500
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2F1E12AEC;
-        Mon,  5 Dec 2022 02:49:15 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 6AA23B80E9B;
-        Mon,  5 Dec 2022 10:49:14 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B6BCCC433D6;
-        Mon,  5 Dec 2022 10:49:12 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1670237353;
-        bh=TM/r0k5u2Pt27z45OlKDLTYpA4Gk6ZH5Ef+T3t89ykk=;
-        h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
-        b=Ti/4YSEDFaEqaGcI7l/+n+Qk5FdH8M8W/Jj6RMEljTcdEmrrWR98uFpjDzg0Xcu1U
-         BW5UgAChKM6rXv1Quq6kw/hbl+y5f4GF1D9h63WlOeMtiavJFNeBEJJYiLGH5RGokn
-         uzEcYDaVp/Z6xFP7BDs7MyTwZmuSrhyoKZ0Fn0JnRMeAo8XiKzFRPuWAiGSJF+RuUC
-         NH4ddmq1MdWbIbGwQHH6nLB0ZF6O3QN0nk/HUaZn0Pa4691idOiWwAUIzGYUnHnLvc
-         u3B94j9Bb7mOIVZQ6MtdNfy3kxOPkEDH8QrbAi/CAXeTEFC82GrYasvC2QgdOIym6H
-         ngMl6Uk0GYpbA==
-From:   =?utf-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@kernel.org>
-To:     guoren@kernel.org, arnd@arndb.de, guoren@kernel.org,
-        palmer@rivosinc.com, tglx@linutronix.de, peterz@infradead.org,
-        luto@kernel.org, conor.dooley@microchip.com, heiko@sntech.de,
-        jszhang@kernel.org, lazyparser@gmail.com, falcon@tinylab.org,
-        chenhuacai@kernel.org, apatel@ventanamicro.com,
-        atishp@atishpatra.org, palmer@dabbelt.com,
-        paul.walmsley@sifive.com, mark.rutland@arm.com,
-        zouyipeng@huawei.com, bigeasy@linutronix.de,
-        David.Laight@aculab.com, chenzhongjin@huawei.com,
-        greentime.hu@sifive.com, andy.chiu@sifive.com
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: Re: [PATCH -next V8 06/14] riscv: convert to generic entry
-In-Reply-To: <20221103075047.1634923-7-guoren@kernel.org>
-References: <20221103075047.1634923-1-guoren@kernel.org>
- <20221103075047.1634923-7-guoren@kernel.org>
-Date:   Mon, 05 Dec 2022 11:49:10 +0100
-Message-ID: <874jua9lcp.fsf@all.your.base.are.belong.to.us>
+        with ESMTP id S231307AbiLESAj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2022 13:00:39 -0500
+Received: from mail-ej1-x636.google.com (mail-ej1-x636.google.com [IPv6:2a00:1450:4864:20::636])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B4F0A1B1C5
+        for <linux-arch@vger.kernel.org>; Mon,  5 Dec 2022 10:00:37 -0800 (PST)
+Received: by mail-ej1-x636.google.com with SMTP id x22so355531ejs.11
+        for <linux-arch@vger.kernel.org>; Mon, 05 Dec 2022 10:00:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=OTxU34tkj39G1aWSGFb5j48Mzj7TOWDGiuSjGzpbZz0=;
+        b=KG9AuH9GKNntYdmBy35gI24xW/mhiKXzpeCgjhzPh+kg1+HEuQXd0gX1AYLfLqY+o8
+         AdrD4JpDbfX8pSBGWzFRoOm+8vSpySjLhRXESACOwFbRm1EZkMH7kUaD6r+vRgW07Aj5
+         rhcenk+NMO+aajnw2DDG3e1sH+hgj23t5jrvIlMioyrUAji4QP31aobbnD+JKMUBX4XL
+         igKdTrY4/51bWd4Wzpts6lFfErmGXNkZk+ySRwCFr3pjQkgMAU7GIYNDGFosgZy9r85i
+         exsWJZn1Pa4LenAk0POacBKL0JPX9tdhuriUmLot9Ohlx9syLdnNuWIWz+cPHDhUg7JS
+         cboA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=OTxU34tkj39G1aWSGFb5j48Mzj7TOWDGiuSjGzpbZz0=;
+        b=KzK4pbNCwjV9jhG2A6hIj6ggxEfrp8Valbxj5RvQAv1hvzq8d/NCWBMx+mzS9axS7o
+         oD7B9/2M9noln/BqOq6y2yhN7lo7IXb2wKaAwdWxPd7Q+rGadNv5tB1EmTWstPK/WSEP
+         6gfq3h7cmXR9I0GQojPALM5m+UUGYHOCrStENkmXMNkFgkyZwP/iqwIpfzpWrJ4U4p+u
+         1NHavpYHKA2/QuO1Spg90DifHH4aYUOiA7So/pSHJ+cyB9zkVkOgx/7tAEOchZcoLGzE
+         28cuaUqzDJoWGQIpylyK/LDFthKQgKPjXT4fegxxe2wGBpI2eLSO/A1M4INs5LER/NF1
+         hqnQ==
+X-Gm-Message-State: ANoB5pmGZVaY6Av3iRbY0JTRYmOE9iXDcmWEFZYTnjF+Q+YMqWbRR7NS
+        3FAk/8f3jfihw1sjV+rri+vFcRPgLowMf4okXbhoVw==
+X-Google-Smtp-Source: AA0mqf6jGm6nEQQBAFFzNRAYYTbSbuaQ8l8GIB85YR3v2N0Tp1qS7z/vIkl1kDQBEnux2yayFRdRmfpV+/tg69zv6Gs=
+X-Received: by 2002:a17:906:6782:b0:7ad:7d50:dec2 with SMTP id
+ q2-20020a170906678200b007ad7d50dec2mr73437273ejp.37.1670263236237; Mon, 05
+ Dec 2022 10:00:36 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+References: <20221203215535.208948-1-geomatsi@gmail.com> <20221203215535.208948-4-geomatsi@gmail.com>
+In-Reply-To: <20221203215535.208948-4-geomatsi@gmail.com>
+From:   Andrew Bresticker <abrestic@rivosinc.com>
+Date:   Mon, 5 Dec 2022 13:00:25 -0500
+Message-ID: <CALE4mHrrxTJaQ5YYZamS9GmNhGopiUA3jk5+iw1XAn=8=XT=fg@mail.gmail.com>
+Subject: Re: [PATCH RFC v2 3/3] riscv: hw-breakpoints: add more trigger controls
+To:     Sergey Matyukevich <geomatsi@gmail.com>
+Cc:     linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
+        Anup Patel <anup@brainfault.org>,
+        Atish Patra <atishp@rivosinc.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Sergey Matyukevich <sergey.matyukevich@syntacore.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-guoren@kernel.org writes:
+Hi Sergey,
 
-> From: Guo Ren <guoren@linux.alibaba.com>
+On Sat, Dec 3, 2022 at 4:55 PM Sergey Matyukevich <geomatsi@gmail.com> wrote:
 >
-> This patch converts riscv to use the generic entry infrastructure from
-> kernel/entry/*. The generic entry makes maintainers' work easier and
-> codes more elegant. Here are the changes than before:
+> From: Sergey Matyukevich <sergey.matyukevich@syntacore.com>
 >
->  - More clear entry.S with handle_exception and ret_from_exception
->  - Get rid of complex custom signal implementation
->  - More readable syscall procedure
->  - Little modification on ret_from_fork & ret_from_kernel_thread
->  - Wrap with irqentry_enter/exit and syscall_enter/exit_from_user_mode
->  - Use the standard preemption code instead of custom
+> RISC-V SBI Debug Trigger extension proposal defines multiple functions
+> to control debug triggers. The pair of install/uninstall functions was
+> enough to implement ptrace interface for user-space debug. This patch
+> implements kernel wrappers for start/update/stop SBI functions. The
+> intended users of these control wrappers are kgdb and kernel modules
+> that make use of kernel-wide hardware breakpoints and watchpoints.
 >
-> Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-> Signed-off-by: Guo Ren <guoren@kernel.org>
-> Suggested-by: Huacai Chen <chenhuacai@kernel.org>
-> Tested-by: Yipeng Zou <zouyipeng@huawei.com>
-> ---
+> Signed-off-by: Sergey Matyukevich <sergey.matyukevich@syntacore.com>
 
-[...]
+<snip>
 
-> diff --git a/arch/riscv/kernel/sys_riscv.c b/arch/riscv/kernel/sys_riscv.c
-> index 5d3f2fbeb33c..c86d0eafdf6a 100644
-> --- a/arch/riscv/kernel/sys_riscv.c
-> +++ b/arch/riscv/kernel/sys_riscv.c
-> @@ -5,8 +5,10 @@
->   * Copyright (C) 2017 SiFive
->   */
->=20=20
-> +#include <linux/entry-common.h>
->  #include <linux/syscalls.h>
->  #include <asm/unistd.h>
-> +#include <asm/syscall.h>
->  #include <asm/cacheflush.h>
->  #include <asm-generic/mman-common.h>
->=20=20
-> @@ -69,3 +71,28 @@ SYSCALL_DEFINE3(riscv_flush_icache, uintptr_t, start, =
-uintptr_t, end,
->=20=20
->  	return 0;
+> diff --git a/arch/riscv/include/asm/hw_breakpoint.h b/arch/riscv/include/asm/hw_breakpoint.h
+> index 5bb3b55cd464..afc59f8e034e 100644
+> --- a/arch/riscv/include/asm/hw_breakpoint.h
+> +++ b/arch/riscv/include/asm/hw_breakpoint.h
+> @@ -137,6 +137,9 @@ int hw_breakpoint_arch_parse(struct perf_event *bp,
+>  int hw_breakpoint_exceptions_notify(struct notifier_block *unused,
+>                                     unsigned long val, void *data);
+>
+> +void arch_enable_hw_breakpoint(struct perf_event *bp);
+> +void arch_update_hw_breakpoint(struct perf_event *bp);
+> +void arch_disable_hw_breakpoint(struct perf_event *bp);
+>  int arch_install_hw_breakpoint(struct perf_event *bp);
+>  void arch_uninstall_hw_breakpoint(struct perf_event *bp);
+>  void hw_breakpoint_pmu_read(struct perf_event *bp);
+> @@ -153,5 +156,17 @@ static inline void clear_ptrace_hw_breakpoint(struct task_struct *tsk)
+>  {
 >  }
-> +
-> +typedef long (*syscall_t)(ulong, ulong, ulong, ulong, ulong, ulong, ulon=
-g);
-> +
-> +asmlinkage void do_sys_ecall_u(struct pt_regs *regs)
+>
+> +void arch_enable_hw_breakpoint(struct perf_event *bp)
 > +{
-> +	syscall_t syscall;
-> +	ulong nr =3D regs->a7;
+> +}
 > +
-> +	regs->epc +=3D 4;
-> +	regs->orig_a0 =3D regs->a0;
-> +	regs->a0 =3D -ENOSYS;
+> +void arch_update_hw_breakpoint(struct perf_event *bp)
+> +{
+> +}
 > +
-> +	nr =3D syscall_enter_from_user_mode(regs, nr);
-> +#ifdef CONFIG_COMPAT
-> +	if ((regs->status & SR_UXL) =3D=3D SR_UXL_32)
-> +		syscall =3D compat_sys_call_table[nr];
-> +	else
-> +#endif
-> +		syscall =3D sys_call_table[nr];
+> +void arch_disable_hw_breakpoint(struct perf_event *bp)
+> +{
+> +}
+
+I don't see any references to {enable,update,disable}_hw_breakpoint in
+common kernel code, nor do any other architectures define these
+functions. Who are the intended users? Do we even need them for kgdb
+on RISC-V?
+
+> diff --git a/arch/riscv/kernel/hw_breakpoint.c b/arch/riscv/kernel/hw_breakpoint.c
+> index 8eddf512cd03..ca7df02830c2 100644
+> --- a/arch/riscv/kernel/hw_breakpoint.c
+> +++ b/arch/riscv/kernel/hw_breakpoint.c
+> @@ -2,6 +2,7 @@
+>
+>  #include <linux/hw_breakpoint.h>
+>  #include <linux/perf_event.h>
+> +#include <linux/spinlock.h>
+>  #include <linux/percpu.h>
+>  #include <linux/kdebug.h>
+>
+> @@ -9,6 +10,8 @@
+>
+>  /* bps/wps currently set on each debug trigger for each cpu */
+>  static DEFINE_PER_CPU(struct perf_event *, bp_per_reg[HBP_NUM_MAX]);
+> +static DEFINE_PER_CPU(unsigned long, msg_lock_flags);
+> +static DEFINE_PER_CPU(raw_spinlock_t, msg_lock);
+
+I'm not sure I understand the point of this per-CPU spinlock. Just
+disable preemption (and interrupts, if necessary).
+
+Also, arch_{install,uninstall}_hw_breakpoint are already expected to
+be called from atomic context; is the intention here that they be
+callable from outside atomic context?
+
+-Andrew
+
+>
+>  static struct sbi_dbtr_data_msg __percpu *sbi_xmit;
+>  static struct sbi_dbtr_id_msg __percpu *sbi_recv;
+> @@ -318,6 +321,10 @@ int arch_install_hw_breakpoint(struct perf_event *bp)
+>         struct perf_event **slot;
+>         unsigned long idx;
+>         struct sbiret ret;
+> +       int err = 0;
 > +
-> +	if (nr < NR_syscalls)
-> +		regs->a0 =3D syscall(regs->orig_a0, regs->a1, regs->a2,
-> +				   regs->a3, regs->a4, regs->a5,
->  	regs->a6);
-
-Now that we're doing the "pt_regs to call" dance, it would make sense to
-introduce a syscall wrapper (like x86 and arm64) for riscv, so that we
-don't need to unwrap all regs for all syscalls (See __MAP() in
-include/linux/syscalls.h). That would be an optimization, so it could be
-done as a follow-up, and not part of the series.
-
-
-Bj=C3=B6rn
+> +       raw_spin_lock_irqsave(this_cpu_ptr(&msg_lock),
+> +                         *this_cpu_ptr(&msg_lock_flags));
+>
+>         xmit->tdata1 = cpu_to_lle(info->trig_data1.value);
+>         xmit->tdata2 = cpu_to_lle(info->trig_data2);
+> @@ -328,25 +335,31 @@ int arch_install_hw_breakpoint(struct perf_event *bp)
+>                         0, 0, 0);
+>         if (ret.error) {
+>                 pr_warn("%s: failed to install trigger\n", __func__);
+> -               return -EIO;
+> +               err = -EIO;
+> +               goto done;
+>         }
+>
+>         idx = lle_to_cpu(recv->idx);
+>
+>         if (idx >= dbtr_total_num) {
+>                 pr_warn("%s: invalid trigger index %lu\n", __func__, idx);
+> -               return -EINVAL;
+> +               err = -EINVAL;
+> +               goto done;
+>         }
+>
+>         slot = this_cpu_ptr(&bp_per_reg[idx]);
+>         if (*slot) {
+>                 pr_warn("%s: slot %lu is in use\n", __func__, idx);
+> -               return -EBUSY;
+> +               err = -EBUSY;
+> +               goto done;
+>         }
+>
+>         *slot = bp;
+>
+> -       return 0;
+> +done:
+> +       raw_spin_unlock_irqrestore(this_cpu_ptr(&msg_lock),
+> +                              *this_cpu_ptr(&msg_lock_flags));
+> +       return err;
+>  }
+>
+>  /* atomic: counter->ctx->lock is held */
+> @@ -375,6 +388,96 @@ void arch_uninstall_hw_breakpoint(struct perf_event *bp)
+>                 pr_warn("%s: failed to uninstall trigger %d\n", __func__, i);
+>  }
+>
+> +void arch_enable_hw_breakpoint(struct perf_event *bp)
+> +{
+> +       struct sbiret ret;
+> +       int i;
+> +
+> +       for (i = 0; i < dbtr_total_num; i++) {
+> +               struct perf_event **slot = this_cpu_ptr(&bp_per_reg[i]);
+> +
+> +               if (*slot == bp)
+> +                       break;
+> +       }
+> +
+> +       if (i == dbtr_total_num) {
+> +               pr_warn("%s: unknown breakpoint\n", __func__);
+> +               return;
+> +       }
+> +
+> +       ret = sbi_ecall(SBI_EXT_DBTR, SBI_EXT_DBTR_TRIGGER_ENABLE,
+> +                       i, 1, 0, 0, 0, 0);
+> +       if (ret.error) {
+> +               pr_warn("%s: failed to install trigger %d\n", __func__, i);
+> +               return;
+> +       }
+> +}
+> +EXPORT_SYMBOL_GPL(arch_enable_hw_breakpoint);
+> +
+> +void arch_update_hw_breakpoint(struct perf_event *bp)
+> +{
+> +       struct arch_hw_breakpoint *info = counter_arch_bp(bp);
+> +       struct sbi_dbtr_data_msg *xmit = this_cpu_ptr(sbi_xmit);
+> +       struct perf_event **slot;
+> +       struct sbiret ret;
+> +       int i;
+> +
+> +       for (i = 0; i < dbtr_total_num; i++) {
+> +               slot = this_cpu_ptr(&bp_per_reg[i]);
+> +
+> +               if (*slot == bp)
+> +                       break;
+> +       }
+> +
+> +       if (i == dbtr_total_num) {
+> +               pr_warn("%s: unknown breakpoint\n", __func__);
+> +               return;
+> +       }
+> +
+> +       raw_spin_lock_irqsave(this_cpu_ptr(&msg_lock),
+> +                         *this_cpu_ptr(&msg_lock_flags));
+> +
+> +       xmit->tdata1 = cpu_to_lle(info->trig_data1.value);
+> +       xmit->tdata2 = cpu_to_lle(info->trig_data2);
+> +       xmit->tdata3 = cpu_to_lle(info->trig_data3);
+> +
+> +       ret = sbi_ecall(SBI_EXT_DBTR, SBI_EXT_DBTR_TRIGGER_UPDATE,
+> +                       i, 1, __pa(xmit) >> 4,
+> +                       0, 0, 0);
+> +       if (ret.error)
+> +               pr_warn("%s: failed to update trigger %d\n", __func__, i);
+> +
+> +       raw_spin_unlock_irqrestore(this_cpu_ptr(&msg_lock),
+> +                              *this_cpu_ptr(&msg_lock_flags));
+> +}
+> +EXPORT_SYMBOL_GPL(arch_update_hw_breakpoint);
+> +
+> +void arch_disable_hw_breakpoint(struct perf_event *bp)
+> +{
+> +       struct sbiret ret;
+> +       int i;
+> +
+> +       for (i = 0; i < dbtr_total_num; i++) {
+> +               struct perf_event **slot = this_cpu_ptr(&bp_per_reg[i]);
+> +
+> +               if (*slot == bp)
+> +                       break;
+> +       }
+> +
+> +       if (i == dbtr_total_num) {
+> +               pr_warn("%s: unknown breakpoint\n", __func__);
+> +               return;
+> +       }
+> +
+> +       ret = sbi_ecall(SBI_EXT_DBTR, SBI_EXT_DBTR_TRIGGER_DISABLE,
+> +                       i, 1, 0, 0, 0, 0);
+> +       if (ret.error) {
+> +               pr_warn("%s: failed to uninstall trigger %d\n", __func__, i);
+> +               return;
+> +       }
+> +}
+> +EXPORT_SYMBOL_GPL(arch_disable_hw_breakpoint);
+> +
+>  void hw_breakpoint_pmu_read(struct perf_event *bp)
+>  {
+>  }
+> @@ -406,6 +509,8 @@ void flush_ptrace_hw_breakpoint(struct task_struct *tsk)
+>
+>  static int __init arch_hw_breakpoint_init(void)
+>  {
+> +       unsigned int cpu;
+> +
+>         sbi_xmit = __alloc_percpu(sizeof(*sbi_xmit), SZ_16);
+>         if (!sbi_xmit) {
+>                 pr_warn("failed to allocate SBI xmit message buffer\n");
+> @@ -418,6 +523,9 @@ static int __init arch_hw_breakpoint_init(void)
+>                 return -ENOMEM;
+>         }
+>
+> +       for_each_possible_cpu(cpu)
+> +               raw_spin_lock_init(&per_cpu(msg_lock, cpu));
+> +
+>         if (!dbtr_init)
+>                 arch_hw_breakpoint_init_sbi();
+>
+> --
+> 2.38.1
+>
