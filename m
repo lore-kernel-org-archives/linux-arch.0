@@ -2,104 +2,108 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C43EAC3A5A7
-	for <linux-arch@archiver.kernel.org>; Thu,  8 Dec 2022 13:07:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AC681C3A5A7
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Dec 2022 14:23:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229909AbiLHNH4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 8 Dec 2022 08:07:56 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33860 "EHLO
+        id S229601AbiLHOXc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 8 Dec 2022 09:23:32 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48786 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230253AbiLHNHw (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2022 08:07:52 -0500
-Received: from albert.telenet-ops.be (albert.telenet-ops.be [IPv6:2a02:1800:110:4::f00:1a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2098D2EF4B
-        for <linux-arch@vger.kernel.org>; Thu,  8 Dec 2022 05:07:45 -0800 (PST)
-Received: from ramsan.of.borg ([IPv6:2a02:1810:ac12:ed20:5574:4fdf:a801:888e])
-        by albert.telenet-ops.be with bizsmtp
-        id tp7d2800K2deJRf06p7dvV; Thu, 08 Dec 2022 14:07:43 +0100
-Received: from rox.of.borg ([192.168.97.57])
-        by ramsan.of.borg with esmtps  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.93)
-        (envelope-from <geert@linux-m68k.org>)
-        id 1p3GIF-002tBF-6Q; Thu, 08 Dec 2022 13:46:27 +0100
-Received: from geert by rox.of.borg with local (Exim 4.93)
-        (envelope-from <geert@linux-m68k.org>)
-        id 1p3EN6-003gqg-Pz; Thu, 08 Dec 2022 11:43:20 +0100
-From:   Geert Uytterhoeven <geert+renesas@glider.be>
-To:     Stephen Boyd <sboyd@kernel.org>,
-        Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>,
-        Tomasz Figa <tomasz.figa@gmail.com>,
-        Sylwester Nawrocki <s.nawrocki@samsung.com>,
-        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        Wolfram Sang <wsa+renesas@sang-engineering.com>,
-        Dejin Zheng <zhengdejin5@gmail.com>,
-        Kai-Heng Feng <kai.heng.feng@canonical.com>
-Cc:     linux-arm-kernel@lists.infradead.org,
-        linux-renesas-soc@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org,
-        Geert Uytterhoeven <geert+renesas@glider.be>
-Subject: [PATCH] iopoll: Call cpu_relax() in busy loops
-Date:   Thu,  8 Dec 2022 11:43:19 +0100
-Message-Id: <d25a332bbb792f4c8d74f7e54bf9ca1d706979d9.1670495642.git.geert+renesas@glider.be>
-X-Mailer: git-send-email 2.25.1
+        with ESMTP id S230071AbiLHOWt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 8 Dec 2022 09:22:49 -0500
+Received: from mail-pj1-x102c.google.com (mail-pj1-x102c.google.com [IPv6:2607:f8b0:4864:20::102c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8BFF887CBE;
+        Thu,  8 Dec 2022 06:21:45 -0800 (PST)
+Received: by mail-pj1-x102c.google.com with SMTP id o1-20020a17090a678100b00219cf69e5f0so4777284pjj.2;
+        Thu, 08 Dec 2022 06:21:45 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=LqtUGDeRhyIU0uvL6sB1iilGR2QZ+QgSxzpj3bG0/0w=;
+        b=XbzNLFQn2MkS6jKtKCqOuDgonun+mWLHs+6xOUJWR9JbHFWiwxJUIcyHlCqydnO1w0
+         raO/wFAEMQwlhYleVtmSMFLq/T1EL+n+FX3ZPasyKW8KlNyaceOFzUHCaLNgF4X3TRTD
+         ySOR+k+3O5bIdPFTcyM6yHwcDL6CUmRcFz9MxSo6695POP/0H/13HaLeiqgMtGVomMIr
+         EggUyaQcI6bfI3BYr42b2sBxh9H163oibE82E1udhNDJWwSVlRQ5TfycS6NdiOX3L82Z
+         W55jWqFZd0e5JWvKrghbGpG3WPwk5y2y/u2UCyIX8jRvnmcBQ+VIas5MsptNokxHLuGS
+         p8PQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=LqtUGDeRhyIU0uvL6sB1iilGR2QZ+QgSxzpj3bG0/0w=;
+        b=mIZNY0/TVMSANfW899puJVNyBUmjdMAO/xiNZfWmTq9QsVwrz1V++wazzKSJX0IvIs
+         wXsPuULJxav+Wj5K5Dhc2b3Ew1D9NJEvDc+x6PsePoW3fzlN+E6Vy1MkbsYG7YowXIE7
+         N6U2xjhfyxb20/vaZbU1Cm1tcH7H0OjkqMFh1M1LSJzCoXKrCSL/ljKqpFDusOqSVM19
+         HqVgU7fGdDrUhY96nyG/PDwtdZ1OFuHXJDE27Rd1fWZG+Tb5t/emoBcnaCJGKkGfCfkI
+         3n2oN+2c/sIOsOBftwihlDjC+FXWXwgvPmaST4QSlonjqjeorrx6W8bpoxtZorK/UePT
+         Atqg==
+X-Gm-Message-State: ANoB5pny6+KyAPfDZHQwAwttNZLO+N1CGnXxlxij8cj08cVJLA2/yJo8
+        purFbYSFj41IcqfbED/gLpY=
+X-Google-Smtp-Source: AA0mqf62yqWGX4NSoquH8/vJ6ywT+lO47rCgmhBS/AlPQYSxPcvr5USAYB11rckMDH3o8dzPiQWkdw==
+X-Received: by 2002:a17:903:32cb:b0:189:cca6:3966 with SMTP id i11-20020a17090332cb00b00189cca63966mr21750475plr.89.1670509305032;
+        Thu, 08 Dec 2022 06:21:45 -0800 (PST)
+Received: from ?IPV6:2404:f801:0:5:8000::75b? ([2404:f801:9000:1a:efea::75b])
+        by smtp.gmail.com with ESMTPSA id c129-20020a624e87000000b0057627521e82sm13398950pfb.195.2022.12.08.06.21.35
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 08 Dec 2022 06:21:44 -0800 (PST)
+Message-ID: <c3123488-1623-831e-783f-dae215b3f457@gmail.com>
+Date:   Thu, 8 Dec 2022 22:21:34 +0800
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
+ Thunderbird/102.5.1
+Subject: Re: [RFC PATCH V2 16/18] x86/sev: Initialize #HV doorbell and handle
+ interrupt requests
+Content-Language: en-US
+To:     "Gupta, Pankaj" <pankaj.gupta@amd.com>, luto@kernel.org,
+        tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
+        dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
+        seanjc@google.com, pbonzini@redhat.com, jgross@suse.com,
+        tiala@microsoft.com, kirill@shutemov.name,
+        jiangshan.ljs@antgroup.com, peterz@infradead.org,
+        ashish.kalra@amd.com, srutherford@google.com,
+        akpm@linux-foundation.org, anshuman.khandual@arm.com,
+        pawan.kumar.gupta@linux.intel.com, adrian.hunter@intel.com,
+        daniel.sneddon@linux.intel.com, alexander.shishkin@linux.intel.com,
+        sandipan.das@amd.com, ray.huang@amd.com, brijesh.singh@amd.com,
+        michael.roth@amd.com, thomas.lendacky@amd.com,
+        venu.busireddy@oracle.com, sterritt@google.com,
+        tony.luck@intel.com, samitolvanen@google.com, fenghua.yu@intel.com
+Cc:     linux-kernel@vger.kernel.org, kvm@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-arch@vger.kernel.org
+References: <20221119034633.1728632-1-ltykernel@gmail.com>
+ <20221119034633.1728632-17-ltykernel@gmail.com>
+ <ddb23472-3f8e-191d-fa5f-d18f1a9e4ad7@amd.com>
+From:   Tianyu Lan <ltykernel@gmail.com>
+In-Reply-To: <ddb23472-3f8e-191d-fa5f-d18f1a9e4ad7@amd.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-It is considered good practice to call cpu_relax() in busy loops, see
-Documentation/process/volatile-considered-harmful.rst.  This can not
-only lower CPU power consumption or yield to a hyperthreaded twin
-processor, but also allows an architecture to mitigate hardware issues
-(e.g. ARM Erratum 754327 for Cortex-A9 prior to r2p0) in the
-architecture-specific cpu_relax() implementation.
+On 12/7/2022 10:13 PM, Gupta, Pankaj wrote:
+>> +#endif
+>> +}
+>> +
+>>   static __always_inline void native_irq_disable(void)
+>>   {
+>>       asm volatile("cli": : :"memory");
+>> @@ -43,6 +59,9 @@ static __always_inline void native_irq_disable(void)
+>>   static __always_inline void native_irq_enable(void)
+>>   {
+>>       asm volatile("sti": : :"memory");
+>> +#ifdef CONFIG_AMD_MEM_ENCRYPT
+>> +    check_hv_pending(NULL);
+> 
+> Just trying to understand when regs will be NULL?
 
-As the iopoll helpers lack calls to cpu_relax(), people are sometimes
-reluctant to use them, and may fall back to open-coded polling loops
-(including cpu_relax() calls) instead.
+check_hv_pending() will be divided into two functions.
 
-Fix this by adding calls to cpu_relax() to the iopoll helpers:
-  - For the non-atomic case, it is sufficient to call cpu_relax() in
-    case of a zero sleep-between-reads value, as a call to
-    usleep_range() is a safe barrier otherwise.
-  - For the atomic case, cpu_relax() must be called regardless of the
-    sleep-between-reads value, as there is no guarantee all
-    architecture-specific implementations of udelay() handle this.
-
-Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
----
-This has been discussed before, but I am not aware of any patches moving
-forward:
-  - "Re: [PATCH 6/7] clk: renesas: rcar-gen3: Add custom clock for PLLs"
-    https://lore.kernel.org/all/CAMuHMdWUEhs=nwP+a0vO2jOzkq-7FEOqcJ+SsxAGNXX1PQ2KMA@mail.gmail.com/
-  - "Re: [PATCH v2] clk: samsung: Prevent potential endless loop in the PLL set_rate ops"
-    https://lore.kernel.org/all/20200811164628.GA7958@kozik-lap
----
- include/linux/iopoll.h | 3 +++
- 1 file changed, 3 insertions(+)
-
-diff --git a/include/linux/iopoll.h b/include/linux/iopoll.h
-index 2c8860e406bd8cae..73132721d1891a2e 100644
---- a/include/linux/iopoll.h
-+++ b/include/linux/iopoll.h
-@@ -53,6 +53,8 @@
- 		} \
- 		if (__sleep_us) \
- 			usleep_range((__sleep_us >> 2) + 1, __sleep_us); \
-+		else \
-+			cpu_relax(); \
- 	} \
- 	(cond) ? 0 : -ETIMEDOUT; \
- })
-@@ -95,6 +97,7 @@
- 		} \
- 		if (__delay_us) \
- 			udelay(__delay_us); \
-+		cpu_relax(); \
- 	} \
- 	(cond) ? 0 : -ETIMEDOUT; \
- })
--- 
-2.25.1
+The one handles #hv event in the #HV exception code path.
+The other one handles pending irq event in the irq re-enable
+code path。 In this version, the "regs = NULL" for check_hv_pending()
+is used in the irq re-enable code path.
 
