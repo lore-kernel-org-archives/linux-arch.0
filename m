@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B7C73C4332F
-	for <linux-arch@archiver.kernel.org>; Sun, 11 Dec 2022 06:17:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9EB40C25B04
+	for <linux-arch@archiver.kernel.org>; Sun, 11 Dec 2022 06:17:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229913AbiLKGRg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 11 Dec 2022 01:17:36 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54098 "EHLO
+        id S230083AbiLKGRj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 11 Dec 2022 01:17:39 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54130 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230013AbiLKGRb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2022 01:17:31 -0500
-Received: from mail-pl1-x62c.google.com (mail-pl1-x62c.google.com [IPv6:2607:f8b0:4864:20::62c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4995C12D39
-        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:31 -0800 (PST)
-Received: by mail-pl1-x62c.google.com with SMTP id a9so8947562pld.7
-        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:31 -0800 (PST)
+        with ESMTP id S229847AbiLKGRe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2022 01:17:34 -0500
+Received: from mail-pl1-x632.google.com (mail-pl1-x632.google.com [IPv6:2607:f8b0:4864:20::632])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8EC6313CC6
+        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:33 -0800 (PST)
+Received: by mail-pl1-x632.google.com with SMTP id 17so1515894pll.0
+        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:33 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
         h=to:from:cc:content-transfer-encoding:mime-version:references
          :in-reply-to:message-id:date:subject:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=Qw2lBl1FsFeMLJzVkNLD3m+gCDg30pmLyglZrYVzORA=;
-        b=fQa8J4z5O4qKsDtySodfbKPdNketzec2+60hqr/JE6LCw17SQOh1dTVr/Oza+7vir0
-         sZRhwPyI3ys25qRCLq6204ll/qDm+Jm74NNZDMVlr9zVIkhaucp+dRT0YwqyqUHupn7D
-         fsUz/Le7UyHidFZOIF8vJIK+lhgZpGdUxipUsh87u1NsuRJZd30zwJ4G7NJan6KymGhW
-         pulUjbd4BT8HtR4kDJFADZ5fUk+sPHVSD27ebZTHvty3YBCKHwM19+iTWyfEE5lfNrHs
-         /u4/fhicM7U0sYsdzvbW3jCAk3UU4P63qofT9jfOi5QfhU+SSb7/oZoxaIsZv8jmon2G
-         pnGQ==
+        bh=nR//y9PZ1dntNQ5jP8JSgcJW+jEOWFZxxe2Fy8nYAA0=;
+        b=snrBPyBlGY/kCleEd1Ck1RD95PHIuiY8cFm0R72xEkCr4+6olsksPCtxrNKE5+tFyV
+         2pqLh1r7KDQPWsRj8+YGYd9AepBWR30XnW093nHxZUyMSwxTkSE0faJCisRX91+XyZb8
+         kzU3ThS1J2yuXPH0iKFzMO6quAY+Tr+aF0ERMjBgCH377d1Rs119yPy+8nBJXR/DitcE
+         y4vgPsbJKIzHGRvrBR+beiRZiFrMgB4unlaVn/RM8NVZ4rNsEiqvAbWClZ8vAkMQEc0q
+         KTRJ1sKSsa5T2gVhmstQT7WiBI1eKW8vhRB1dRpVJ2dfJUpeGzdqaBF3zZ4lubB1ycOg
+         3BpA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=to:from:cc:content-transfer-encoding:mime-version:references
          :in-reply-to:message-id:date:subject:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=Qw2lBl1FsFeMLJzVkNLD3m+gCDg30pmLyglZrYVzORA=;
-        b=2H240GVqMYSYbPOWz/6ByKobUT22X4RcUYN1wK2fgXLBluxWO1UlFU1Yt4+YO11WE/
-         pCTwCR+IDpdfDUrCh7zyHVLP9GdBtJKfBE3fab0qNQxQksDJfWYXFPJAJ0FudONi/u/2
-         nm6Fv2S1QOmaxOsgiMSiNeX/3l0eJdoQx7N19HSHrXS2AVpBtKK0Z8ID1T3WzTlYZ4k3
-         +lER4jUffhYp4k3huRcz7NhcUnDvAxfnRZrOQLZRsp4usrYQd0pvjag8b66JbELpXtg0
-         wsKltIvZTJQmxml9mLIEE2EBSgxDCTevAayc4rJ+gHxIxvkUUxw8KEYZS1LIzHkTXYIy
-         sodQ==
-X-Gm-Message-State: ANoB5pnLG8QUF4idLBiP0lrnNI/FfKHqUjPltGidQaQm+bqvM6dM4NSN
-        gk5IGY6B/ctF57QOzYhvIz0zjQ==
-X-Google-Smtp-Source: AA0mqf64cRgQgYJbI6vw3lgox0Y0zQeJU9EfnSOUsxyj5zxvVuY57NisPBozGNZqVx95fXsJuwORJw==
-X-Received: by 2002:a17:903:41c5:b0:189:cec6:7ac5 with SMTP id u5-20020a17090341c500b00189cec67ac5mr16799226ple.44.1670739450625;
-        Sat, 10 Dec 2022 22:17:30 -0800 (PST)
+        bh=nR//y9PZ1dntNQ5jP8JSgcJW+jEOWFZxxe2Fy8nYAA0=;
+        b=ZQnsR61WDub2khPFXpf9a8/y4zNs5SajKKI+dR5J8fI3S9lG4MJdWP4Jk9viEC5Rdj
+         xDxa0xZUSC+rSCjksxpASvoWX5n59/QBItwGjfoKXMyNW1wsSkcSDETiAXUqVIPnHBwe
+         Nl+R+vO2BxeHqdKagIY7dQ6O1fCAicNubnokT/LrsX3VIsqv45D5wW1ch8knLH+tdrSK
+         w8p+rkxKjn/hjeyTMB/qGZz2Sypo50RdLYEAWd7LNelzkLjzOwhdl9LSFmsacYxAaZaP
+         4aqadJaRUsR9MkLEH1cD95LDOqanrZCHBT3UGQ/F1NU2X2RhalWm2OLvhjzjic5Y4cRs
+         eZ/Q==
+X-Gm-Message-State: ANoB5pn6FFNgXEvixz9D25rJ6NKLuZOObFsLuTnjluTkyxibN+E8f8sN
+        dhICqlssCt9St2Ej5hdgAhLpBvZllzSy4TUU
+X-Google-Smtp-Source: AA0mqf7WhMefvDP0t+eexqV7L7Cdprsa0v+iAFpVLd06mXseEtAFFdcermtmvNtqfm/gxwpPfuXBAg==
+X-Received: by 2002:a05:6a20:9f87:b0:9d:efbf:787d with SMTP id mm7-20020a056a209f8700b0009defbf787dmr13973336pzb.50.1670739453091;
+        Sat, 10 Dec 2022 22:17:33 -0800 (PST)
 Received: from localhost ([135.180.226.51])
-        by smtp.gmail.com with ESMTPSA id x22-20020a170902821600b00183e2a96414sm3782118pln.121.2022.12.10.22.17.30
+        by smtp.gmail.com with ESMTPSA id s3-20020a656443000000b00478b2d5d148sm3135453pgv.5.2022.12.10.22.17.32
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 10 Dec 2022 22:17:30 -0800 (PST)
-Subject: [PATCH v2 01/24] alpha: Remove COMMAND_LINE_SIZE from uapi
-Date:   Sat, 10 Dec 2022 22:13:35 -0800
-Message-Id: <20221211061358.28035-2-palmer@rivosinc.com>
+        Sat, 10 Dec 2022 22:17:32 -0800 (PST)
+Subject: [PATCH v2 03/24] arm64: Remove COMMAND_LINE_SIZE from uapi
+Date:   Sat, 10 Dec 2022 22:13:37 -0800
+Message-Id: <20221211061358.28035-4-palmer@rivosinc.com>
 X-Mailer: git-send-email 2.38.1
 In-Reply-To: <20221211061358.28035-1-palmer@rivosinc.com>
 References: <20221211061358.28035-1-palmer@rivosinc.com>
@@ -72,43 +72,36 @@ Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
 ---
 This leaves an empty <uapi/asm/setup.h>, which will soon be cleaned up.
 ---
- arch/alpha/include/asm/setup.h      | 4 ++--
- arch/alpha/include/uapi/asm/setup.h | 2 --
- 2 files changed, 2 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/setup.h      | 3 ++-
+ arch/arm64/include/uapi/asm/setup.h | 2 --
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/arch/alpha/include/asm/setup.h b/arch/alpha/include/asm/setup.h
-index 262aab99e391..ea08ca45efa8 100644
---- a/arch/alpha/include/asm/setup.h
-+++ b/arch/alpha/include/asm/setup.h
-@@ -2,8 +2,6 @@
- #ifndef __ALPHA_SETUP_H
- #define __ALPHA_SETUP_H
+diff --git a/arch/arm64/include/asm/setup.h b/arch/arm64/include/asm/setup.h
+index f4af547ef54c..7ca70f883cee 100644
+--- a/arch/arm64/include/asm/setup.h
++++ b/arch/arm64/include/asm/setup.h
+@@ -4,8 +4,9 @@
+ #define __ARM64_ASM_SETUP_H
+ 
+ #include <linux/string.h>
++#include <linux/types.h>
  
 -#include <uapi/asm/setup.h>
--
- /*
-  * We leave one page for the initial stack page, and one page for
-  * the initial process structure. Also, the console eats 3 MB for
-@@ -14,6 +12,8 @@
- /* Remove when official MILO sources have ELF support: */
- #define BOOT_SIZE	(16*1024)
++#define COMMAND_LINE_SIZE	2048
  
-+#define COMMAND_LINE_SIZE	256
-+
- #ifdef CONFIG_ALPHA_LEGACY_START_ADDRESS
- #define KERNEL_START_PHYS	0x300000 /* Old bootloaders hardcoded this.  */
- #else
-diff --git a/arch/alpha/include/uapi/asm/setup.h b/arch/alpha/include/uapi/asm/setup.h
-index f881ea5947cb..9b3b5ba39b1d 100644
---- a/arch/alpha/include/uapi/asm/setup.h
-+++ b/arch/alpha/include/uapi/asm/setup.h
-@@ -2,6 +2,4 @@
- #ifndef _UAPI__ALPHA_SETUP_H
- #define _UAPI__ALPHA_SETUP_H
+ void *get_early_fdt_ptr(void);
+ void early_fdt_map(u64 dt_phys);
+diff --git a/arch/arm64/include/uapi/asm/setup.h b/arch/arm64/include/uapi/asm/setup.h
+index 5d703888f351..f9f51e5925aa 100644
+--- a/arch/arm64/include/uapi/asm/setup.h
++++ b/arch/arm64/include/uapi/asm/setup.h
+@@ -22,6 +22,4 @@
  
--#define COMMAND_LINE_SIZE	256
+ #include <linux/types.h>
+ 
+-#define COMMAND_LINE_SIZE	2048
 -
- #endif /* _UAPI__ALPHA_SETUP_H */
+ #endif
 -- 
 2.38.1
 
