@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EE23DC10F1E
-	for <linux-arch@archiver.kernel.org>; Sun, 11 Dec 2022 06:20:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 425AAC001B2
+	for <linux-arch@archiver.kernel.org>; Sun, 11 Dec 2022 06:20:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230287AbiLKGUl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 11 Dec 2022 01:20:41 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55716 "EHLO
+        id S230178AbiLKGUn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 11 Dec 2022 01:20:43 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56340 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230165AbiLKGTn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2022 01:19:43 -0500
-Received: from mail-pg1-x535.google.com (mail-pg1-x535.google.com [IPv6:2607:f8b0:4864:20::535])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6DED313D72
-        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:18:01 -0800 (PST)
-Received: by mail-pg1-x535.google.com with SMTP id h193so6161297pgc.10
-        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:18:01 -0800 (PST)
+        with ESMTP id S230181AbiLKGTq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2022 01:19:46 -0500
+Received: from mail-pj1-x1036.google.com (mail-pj1-x1036.google.com [IPv6:2607:f8b0:4864:20::1036])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7443313F3E
+        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:18:04 -0800 (PST)
+Received: by mail-pj1-x1036.google.com with SMTP id o1-20020a17090a678100b00219cf69e5f0so12357297pjj.2
+        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:18:04 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
         h=to:from:cc:content-transfer-encoding:mime-version:references
          :in-reply-to:message-id:date:subject:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=qzjPiOUXUCGjDcLS1SPe25J0gPVaY+ytd1rLYHu4mKw=;
-        b=yt8hwRU4SHxTb7HBBdpIjzRBr8nYk40J5db87dPGMQiGbznKP9cRs4RxJnwbn20eDs
-         Rtj8WvS9y3iwOIGZd2ZpW92w0stU/Lne0rmD6EY2AxTHxlqipPI7652Ez/foRPgbU68z
-         RVE5uy71XAtrWrNMq3JaEq5cCuKI7MM4UXrN0+gefmZAoC4zXqgdWVpygDaYiiGHSyum
-         1rXwmNc1dFumygrpU6HEbHt5i6gL6NLMW9AeyzC+nc5ZdndhtGn3QZDD2ealOx7RlYIt
-         1vX+XDT8Vv1hMGNHrJ94E5RM4A/U649lXzOJC2If86B3n7Z+QUFkvR4unfIdQROAkrpB
-         UNig==
+        bh=I+f9WctUGtS0Wn5juoGP/KBKyu4tqsF4zRK1pVCOKmI=;
+        b=fP1yZkAYoudxl7GMCJTd+DfrkDqhnmvfpz6pb3pNuvTOJ8Wht7HeVhC6ZdnKJfwPDH
+         bLacrFsdCOdLMNwX1yTnOJ/B2Zg4uWeAyyUclC/GfO3JD6UsxszXOloXZTEGJbtWZAIg
+         cY34CUY6rBUOSbUS+vnZ8PYwPxP2LdJ0nW9xyyT1PXR0Xo1t5JuO3BtUB/Pi4W9VwAu+
+         xhIzCiuaX/1qs+kfqX+C8gTH+tGIf8D+e2Pu5422IXwrcu2ULhTW3Zl4IA6c23/0/MbN
+         T7Dv8AjpjhXn+9qKaWAfVcoZ51sGpOcKc4+hdEeJeREkcF76y2fZfZ2/OVcA/NWyqMmf
+         /ogw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=to:from:cc:content-transfer-encoding:mime-version:references
          :in-reply-to:message-id:date:subject:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=qzjPiOUXUCGjDcLS1SPe25J0gPVaY+ytd1rLYHu4mKw=;
-        b=ScAn940wLSTAFMu38qQM6zbd6AydvWPW2CZCCixp3WcwC0qDMCexKvGkFNfP2V4+sb
-         Dgbx0l8hPdDdr6D27yN3R1M7J7QCveWVbh8FzGeSao/L+KwDeGwBnWm0TMlccD9hRN5z
-         FiJ2ieCK32fwOzNda4XYFQ8QyUEkFd1aoBLlvMoB17IkMP2UHpFPqwgoQNNEaYLI7jgS
-         DxZlQf5OBZlp4Wqegt3UPnVwbhgZYuVfTTjZQe2SHeWDGjxjrXECwj8yeQfcb3tenP8G
-         XgZSvNURF8bfgPhfOi/PimEOV5d/CQGYBPDF1OtwFrsyoMkeZsnsN+11yXEyPx9fpZic
-         QzYw==
-X-Gm-Message-State: ANoB5pkzY1+eifUgtVXnIsymPqT+ddCCFW0dxcDL0GKde9pSRDU5+nqn
-        pra87zp0s8j0kf7Cp+vKlpF+0g==
-X-Google-Smtp-Source: AA0mqf6lkHfORa9RIyU8MAFKRk1wFqysRjn4m3TNLky5UntPRdRG1+j88tWgKw//B+WaQ3zoeGQj6A==
-X-Received: by 2002:aa7:8faa:0:b0:577:adb7:20dc with SMTP id t42-20020aa78faa000000b00577adb720dcmr12669094pfs.5.1670739474679;
-        Sat, 10 Dec 2022 22:17:54 -0800 (PST)
+        bh=I+f9WctUGtS0Wn5juoGP/KBKyu4tqsF4zRK1pVCOKmI=;
+        b=BCf+HDsf+tBvj0hi1NmETZXMLgIuuPjZtqC78Ut5eNsrWzh6bDolEhh0IKvDydAXg1
+         irWz8ywOUTqQQrEOjUXr8/XD1zJdvyvtQrhR8oxwNicoFCe+jAE8uQtt1/Ue2aeq+BO/
+         mrNEpRs+sSClxEcD5ZTzXlS8BVWfiXhZh2y+ywS3lDKrNWgKB+CYrYcFJqpPWGkujUJ0
+         ZFsoPwex5SSBJre2nKRLBIqpcKZOFHUvL/AHu9DtAY7tEsSy13iXXuoywCWLD1oJ/GuV
+         8M3zReJg5e/svuQp7jv13/6hzreF+58mz9PZf/8lWtZGE0mqgAaxPlyA9msUsvBCKBzo
+         pAPQ==
+X-Gm-Message-State: ANoB5pl6XSgeoJpL5Ovpn4bWJxwZF+sZjbWqJuWTn/egbIu5kltMp/Gy
+        xkPm7QffOUJiuM223qOEaCLPgZ3h+p0iHaqR
+X-Google-Smtp-Source: AA0mqf4hoFrPdbbFiHEph+/Rj1uV8tkPi5njfd6r42adzJUp4Nc8NrzDYKkM4jVuM8setw+jGEkBBA==
+X-Received: by 2002:a17:90b:4b4d:b0:213:393d:e69d with SMTP id mi13-20020a17090b4b4d00b00213393de69dmr11701488pjb.7.1670739477962;
+        Sat, 10 Dec 2022 22:17:57 -0800 (PST)
 Received: from localhost ([135.180.226.51])
-        by smtp.gmail.com with ESMTPSA id 7-20020a620607000000b0057709fce782sm3504373pfg.54.2022.12.10.22.17.54
+        by smtp.gmail.com with ESMTPSA id t6-20020a655546000000b00478fd9bb6c7sm3107307pgr.75.2022.12.10.22.17.57
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 10 Dec 2022 22:17:54 -0800 (PST)
-Subject: [PATCH v2 21/24] s390: Remove empty <uapi/asm/setup.h>
-Date:   Sat, 10 Dec 2022 22:13:55 -0800
-Message-Id: <20221211061358.28035-22-palmer@rivosinc.com>
+        Sat, 10 Dec 2022 22:17:57 -0800 (PST)
+Subject: [PATCH v2 24/24] xtensa: Remove empty <uapi/asm/setup.h>
+Date:   Sat, 10 Dec 2022 22:13:58 -0800
+Message-Id: <20221211061358.28035-25-palmer@rivosinc.com>
 X-Mailer: git-send-email 2.38.1
 In-Reply-To: <20221211061358.28035-1-palmer@rivosinc.com>
 References: <20221211061358.28035-1-palmer@rivosinc.com>
@@ -67,30 +67,31 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
 ---
- arch/s390/include/asm/setup.h      | 1 -
- arch/s390/include/uapi/asm/setup.h | 1 -
- 2 files changed, 2 deletions(-)
- delete mode 100644 arch/s390/include/uapi/asm/setup.h
+ arch/xtensa/include/uapi/asm/setup.h | 15 ---------------
+ 1 file changed, 15 deletions(-)
+ delete mode 100644 arch/xtensa/include/uapi/asm/setup.h
 
-diff --git a/arch/s390/include/asm/setup.h b/arch/s390/include/asm/setup.h
-index 77e6506898f5..e41611c98825 100644
---- a/arch/s390/include/asm/setup.h
-+++ b/arch/s390/include/asm/setup.h
-@@ -7,7 +7,6 @@
- #define _ASM_S390_SETUP_H
- 
- #include <linux/bits.h>
--#include <uapi/asm/setup.h>
- #include <linux/build_bug.h>
- 
- #define PARMAREA		0x10400
-diff --git a/arch/s390/include/uapi/asm/setup.h b/arch/s390/include/uapi/asm/setup.h
+diff --git a/arch/xtensa/include/uapi/asm/setup.h b/arch/xtensa/include/uapi/asm/setup.h
 deleted file mode 100644
-index 598d769e76df..000000000000
---- a/arch/s390/include/uapi/asm/setup.h
+index 6f982394684a..000000000000
+--- a/arch/xtensa/include/uapi/asm/setup.h
 +++ /dev/null
-@@ -1 +0,0 @@
+@@ -1,15 +0,0 @@
 -/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-/*
+- * include/asm-xtensa/setup.h
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
+- *
+- * Copyright (C) 2001 - 2005 Tensilica Inc.
+- */
+-
+-#ifndef _XTENSA_SETUP_H
+-#define _XTENSA_SETUP_H
+-
+-#endif
 -- 
 2.38.1
 
