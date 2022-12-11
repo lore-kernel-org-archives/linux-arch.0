@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 042C5C001B2
-	for <linux-arch@archiver.kernel.org>; Sun, 11 Dec 2022 06:20:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DF9C6C4167B
+	for <linux-arch@archiver.kernel.org>; Sun, 11 Dec 2022 06:20:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230281AbiLKGUh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 11 Dec 2022 01:20:37 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55546 "EHLO
+        id S230171AbiLKGUj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 11 Dec 2022 01:20:39 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55708 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230022AbiLKGT1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2022 01:19:27 -0500
-Received: from mail-pg1-x52f.google.com (mail-pg1-x52f.google.com [IPv6:2607:f8b0:4864:20::52f])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC1A013D4A
-        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:59 -0800 (PST)
-Received: by mail-pg1-x52f.google.com with SMTP id s196so6185095pgs.3
-        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:59 -0800 (PST)
+        with ESMTP id S230080AbiLKGTm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2022 01:19:42 -0500
+Received: from mail-pl1-x62f.google.com (mail-pl1-x62f.google.com [IPv6:2607:f8b0:4864:20::62f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43DEC13CDF
+        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:57 -0800 (PST)
+Received: by mail-pl1-x62f.google.com with SMTP id t2so5966576ply.2
+        for <linux-arch@vger.kernel.org>; Sat, 10 Dec 2022 22:17:57 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=rivosinc-com.20210112.gappssmtp.com; s=20210112;
         h=to:from:cc:content-transfer-encoding:mime-version:references
          :in-reply-to:message-id:date:subject:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=qD4L3LDicZTOzxJnDXtBbvdNu/zbVvqwzPUbFJq+3mk=;
-        b=DfXj82oQ+MvqrS0ZFdXMpYknFiNYMi5weeP7wE3AJ2GBnOAng+9aExOC71260PuMrX
-         vwK11iG/lMGfvV6W4Mv4u1r3DIvuuHMMaI2Q0HVcLEoDMpafmG+fY3s96XjNtkNAcMEC
-         87OPaQtoVBoN+afYhhB07HT14QjF3qwqa8xJKuVV1WPGUBfGeL1aLnnxpHMce/FcXdZG
-         0JeHf1UaRBzn1qgwZacemIgee6sKEP5Yu3Kn8jhbFTaIiTnlI9knDLEhDYLm5OVHaN27
-         eizAeA8BmugKtvx1WnZBp1DcrpYVWy3/Xmdj9TDyeb1+Fqx0EPM+LWb3C8Dsoms7lvRZ
-         +bAw==
+        bh=DIHqc0iqU86l/ddys5zrtTqIDUjH9EKt9xGg3rtkr0M=;
+        b=fRHx10v6REyRA8T1JueEb87Kb6oXMtD5G87vNS6fHLS5J8lheEMTWQk00du37ehGkT
+         AiJZC98LKsDJG/l10XEArBdl/WqAyaJacVUXway4zy+8GGqYszJkiVU0h4Vi54yPP1M9
+         Ab4Jit4AzkDUP1u42p4P11Lz6E4/mXASEF63Yu48/lyEWGpacQlOmher2SJFpXkoXTnM
+         4ZBEpsaWfOdj/e5J43qIkTVgbeYPRYv4OjibYXNDKNTwyhNh1eHxpoo7pKioOcCL5md1
+         ZNPY+Qa9oRcBuAJ/HWa00QgidLdiWwDzlHhGyxKtcPLcOyxJh+1OUPZLmKR5gEfIjVDr
+         JWVw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=to:from:cc:content-transfer-encoding:mime-version:references
          :in-reply-to:message-id:date:subject:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=qD4L3LDicZTOzxJnDXtBbvdNu/zbVvqwzPUbFJq+3mk=;
-        b=lrMbmxNBe+g9fNUL5rZqIrCmMbMqec9OUqZMIulh8gtpMsm+nkeQHhZ/gOQh/HthNQ
-         5E464bY836CrXRk/R4GoZwNktLcrrvYlcX2sPv+gKiigxnpvD0n4D207vdEXXjFqEDsq
-         DPHJ8xu6HAV4nDbnST3z3ZsoQrmyv0CvIW7juXb397S12jWWhTSwhb+RpnspkTu6YCh6
-         TkqaTXW9zo3t5nUih4EgOrF5sHijEXzgMLN9j8a+odnnwUf2c76aCqOiUi5kRxpNNN3u
-         6Oy+6ut6tK3g8x1KF6D+mhCNVjqqCjbgudI0lIThFUX0KDlnxxv7AOVNZFh0Jm9rFfWv
-         t6bQ==
-X-Gm-Message-State: ANoB5pnOgTCuJuY7uDRIws/7Z3st8no5O1GwcB/FL5nMm9xBHeJO1CLO
-        JltyAeIkbQoRlvAkbgGE2sxwM/U6OKdbrqLn
-X-Google-Smtp-Source: AA0mqf4HZYLNI/fZfR4Hs2tOKznu/BLWDbm+J9VoH6dj6erkss8EyiSewoCxlHBBjxEFcclp+JUcTQ==
-X-Received: by 2002:a62:cd0c:0:b0:577:2a9:96ef with SMTP id o12-20020a62cd0c000000b0057702a996efmr12892481pfg.28.1670739472058;
-        Sat, 10 Dec 2022 22:17:52 -0800 (PST)
+        bh=DIHqc0iqU86l/ddys5zrtTqIDUjH9EKt9xGg3rtkr0M=;
+        b=wwXeZ2OyHHuZiPwYNz1NhptrBNczIrWb59x7h1m8KZJYCnuYJ24FNCpizTVpStklma
+         HtbMC70F74MV2Rfv4RrnVsGigMWCENvEDko4AtWupSwQ0GVGyMmYk/IFmyQwzOpKuVGh
+         4YVEgh2nYfQRgy5tHVFLf2W0KozSI4OlCzG7XVGQJ4+H77v0/FTBznujSjAcCFeoc/m/
+         9R8gnwLGM3SvjIXNvM+YIEWIg8odZ1huBtr6Oam0tTwQSLMJzEGLFdxq9Vkwa0o+BWgI
+         ncBJydS/pJyskANq168wM72FCF7AtXEEYayIJqu3liUxGVXmr7T8u59EiAr+mJFjwpWa
+         kmNA==
+X-Gm-Message-State: ANoB5pmFqVKdc0DzHutj96scq08hv+gcJfNdz7ctt826HhejuAEx7qv8
+        xE/KZEGB/VTxbHNesv2aJ5Ozfw==
+X-Google-Smtp-Source: AA0mqf6ZXYhK8hyGCmV4B6f1iJi/S1sk5X/jaYcDz5V1ZDviKlFPs+T8yD+aP2Q68aTzmOE/N6WWTg==
+X-Received: by 2002:a05:6a21:788f:b0:a4:b885:78d4 with SMTP id bf15-20020a056a21788f00b000a4b88578d4mr18173531pzc.43.1670739476766;
+        Sat, 10 Dec 2022 22:17:56 -0800 (PST)
 Received: from localhost ([135.180.226.51])
-        by smtp.gmail.com with ESMTPSA id g204-20020a6252d5000000b00561d79f1064sm3513372pfb.57.2022.12.10.22.17.51
+        by smtp.gmail.com with ESMTPSA id g9-20020a17090a290900b00212daa68b7csm3320077pjd.44.2022.12.10.22.17.56
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 10 Dec 2022 22:17:51 -0800 (PST)
-Subject: [PATCH v2 19/24] parisc: Remove empty <uapi/asm/setup.h>
-Date:   Sat, 10 Dec 2022 22:13:53 -0800
-Message-Id: <20221211061358.28035-20-palmer@rivosinc.com>
+        Sat, 10 Dec 2022 22:17:56 -0800 (PST)
+Subject: [PATCH v2 23/24] x86: Remove empty <uapi/asm/setup.h>
+Date:   Sat, 10 Dec 2022 22:13:57 -0800
+Message-Id: <20221211061358.28035-24-palmer@rivosinc.com>
 X-Mailer: git-send-email 2.38.1
 In-Reply-To: <20221211061358.28035-1-palmer@rivosinc.com>
 References: <20221211061358.28035-1-palmer@rivosinc.com>
@@ -67,21 +67,31 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 Signed-off-by: Palmer Dabbelt <palmer@rivosinc.com>
 ---
- arch/parisc/include/uapi/asm/setup.h | 5 -----
- 1 file changed, 5 deletions(-)
- delete mode 100644 arch/parisc/include/uapi/asm/setup.h
+ arch/x86/include/asm/setup.h      | 2 --
+ arch/x86/include/uapi/asm/setup.h | 1 -
+ 2 files changed, 3 deletions(-)
+ delete mode 100644 arch/x86/include/uapi/asm/setup.h
 
-diff --git a/arch/parisc/include/uapi/asm/setup.h b/arch/parisc/include/uapi/asm/setup.h
-deleted file mode 100644
-index bfad89428e47..000000000000
---- a/arch/parisc/include/uapi/asm/setup.h
-+++ /dev/null
-@@ -1,5 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--#ifndef _PARISC_SETUP_H
--#define _PARISC_SETUP_H
+diff --git a/arch/x86/include/asm/setup.h b/arch/x86/include/asm/setup.h
+index f37cbff7354c..449b50a2f390 100644
+--- a/arch/x86/include/asm/setup.h
++++ b/arch/x86/include/asm/setup.h
+@@ -2,8 +2,6 @@
+ #ifndef _ASM_X86_SETUP_H
+ #define _ASM_X86_SETUP_H
+ 
+-#include <uapi/asm/setup.h>
 -
--#endif /* _PARISC_SETUP_H */
+ #define COMMAND_LINE_SIZE 2048
+ 
+ #include <linux/linkage.h>
+diff --git a/arch/x86/include/uapi/asm/setup.h b/arch/x86/include/uapi/asm/setup.h
+deleted file mode 100644
+index 79a9626b5500..000000000000
+--- a/arch/x86/include/uapi/asm/setup.h
++++ /dev/null
+@@ -1 +0,0 @@
+-/* */
 -- 
 2.38.1
 
