@@ -2,153 +2,68 @@ Return-Path: <linux-arch-owner@kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 26139C3DA71
-	for <linux-arch@archiver.kernel.org>; Fri, 16 Dec 2022 15:09:23 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EF140C4332F
+	for <linux-arch@archiver.kernel.org>; Sun, 18 Dec 2022 20:51:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231337AbiLPPJT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 16 Dec 2022 10:09:19 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41182 "EHLO
+        id S230216AbiLRUvx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 18 Dec 2022 15:51:53 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56930 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231324AbiLPPJS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2022 10:09:18 -0500
-Received: from mail.skyhub.de (mail.skyhub.de [IPv6:2a01:4f8:190:11c2::b:1457])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6BA9C26C1;
-        Fri, 16 Dec 2022 07:09:15 -0800 (PST)
-Received: from zn.tnic (p5de8e9fe.dip0.t-ipconnect.de [93.232.233.254])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 2B7FE1EC0531;
-        Fri, 16 Dec 2022 16:09:13 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=dkim;
-        t=1671203353;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:in-reply-to:in-reply-to:  references:references;
-        bh=UYUFaRAc3D5wjF6DgpP0Zv3fb8T3UMwaMYtFae36jGc=;
-        b=IVJeYsxJhJ+EljMkKQYYhHLmpc5TYxmee4QMzKYpJ87goENHZ6o/rEb7PJs7cY5ipeU8dK
-        v/Z239POYhUiSkqxCv0e27k5ZMdgC/ORng2oVzY7MT8hd12ggKG0P5nYl2qk23afy9Ga1D
-        aWIlv35enrQ3/XXQoTgx3VDLZaxpJ8A=
-Date:   Fri, 16 Dec 2022 16:09:06 +0100
-From:   Borislav Petkov <bp@alien8.de>
-To:     Chao Peng <chao.p.peng@linux.intel.com>
-Cc:     kvm@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-doc@vger.kernel.org, qemu-devel@nongnu.org,
-        Paolo Bonzini <pbonzini@redhat.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Sean Christopherson <seanjc@google.com>,
-        Vitaly Kuznetsov <vkuznets@redhat.com>,
-        Wanpeng Li <wanpengli@tencent.com>,
-        Jim Mattson <jmattson@google.com>,
-        Joerg Roedel <joro@8bytes.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>,
-        Naoya Horiguchi <naoya.horiguchi@nec.com>,
-        Miaohe Lin <linmiaohe@huawei.com>, x86@kernel.org,
-        "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>,
-        Jeff Layton <jlayton@kernel.org>,
-        "J . Bruce Fields" <bfields@fieldses.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Shuah Khan <shuah@kernel.org>, Mike Rapoport <rppt@kernel.org>,
-        Steven Price <steven.price@arm.com>,
-        "Maciej S . Szmigiero" <mail@maciej.szmigiero.name>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        Vishal Annapurve <vannapurve@google.com>,
-        Yu Zhang <yu.c.zhang@linux.intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        luto@kernel.org, jun.nakajima@intel.com, dave.hansen@intel.com,
-        ak@linux.intel.com, david@redhat.com, aarcange@redhat.com,
-        ddutile@redhat.com, dhildenb@redhat.com,
-        Quentin Perret <qperret@google.com>, tabba@google.com,
-        Michael Roth <michael.roth@amd.com>, mhocko@suse.com,
-        wei.w.wang@intel.com
-Subject: Re: [PATCH v10 2/9] KVM: Introduce per-page memory attributes
-Message-ID: <Y5yKEpwCzZpNoBrp@zn.tnic>
-References: <20221202061347.1070246-1-chao.p.peng@linux.intel.com>
- <20221202061347.1070246-3-chao.p.peng@linux.intel.com>
+        with ESMTP id S229865AbiLRUvw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 18 Dec 2022 15:51:52 -0500
+Received: from mail-qk1-x72f.google.com (mail-qk1-x72f.google.com [IPv6:2607:f8b0:4864:20::72f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4CF0CB1FF
+        for <linux-arch@vger.kernel.org>; Sun, 18 Dec 2022 12:51:50 -0800 (PST)
+Received: by mail-qk1-x72f.google.com with SMTP id e6so2983021qkl.4
+        for <linux-arch@vger.kernel.org>; Sun, 18 Dec 2022 12:51:50 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=ausil.us; s=google;
+        h=cc:to:subject:message-id:date:from:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=PK6Xhn1pRmUhw+cc6jr8M+nX0xE/ouv6dZZq3MtT0BY=;
+        b=FLdEIbHRmldWlRuXIFPmnjsvmxxYoIxVvFaOcVUuu9mg19Iswg3SShC4imPxLVoqbI
+         55v0UPj3apJs0MVcvSNBssdxIVVIElUn9ikuUIGGHSuFfUWjcPtP2TSjaDSu/gr1fM6M
+         Bput4lTgRe1XjL0NDjtG7/auo7W2hor/zDzlsCz7PgkgTNGQWlebsYYyvrjoa/PyyaSX
+         PmRngWKnjxkFuIoJTbv6DQm5Peo2kOSJPglC6hp4rERYcjDgtdZZT6dOWXzpdgeUnIlH
+         64OZck5PI82KlDkb2WSgc/4m1rQGvFZupjS1oUu2B8WMkk2W0Q5FxFedoCyb89C1DFdW
+         VTSQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=cc:to:subject:message-id:date:from:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=PK6Xhn1pRmUhw+cc6jr8M+nX0xE/ouv6dZZq3MtT0BY=;
+        b=QQOxhFXNxPEwS3mSuq1IZId9q61TRRzWXuo9k1z6mVy+DB2Csq0a8owYeUB6gFx4Aq
+         xNOmCrwx2ROYdtyGuh5HS5EIWI1hHImDzbO4BX0JYW7qFLocGbYM8i5/tTLV++LaAbiq
+         5qWMOS9LzAxzI9fMLVQD39hedmLzgNzpxOxcRBG2mPm2hJYonB0/71r6NRqx09OGrb0w
+         gRaIUOkyD9u4/IovnV/wyP2PCIlQOo52faWhCizvHej+Gjf910NQmDqYfcjr56eQxZbk
+         OLvD1n45y54PSe09r5n8MOPmOH8SUUEEUnynGZVkJy8a72JBsGwjxgE8EnFOiodf6BGm
+         pefw==
+X-Gm-Message-State: ANoB5pmLZAPbe89corACU3GIjMg45oSsOwLHZ+mmiMMrEolDTnbo5LbY
+        as39B6jHs597mC1ZTwYSmIu/nke4+/+FA9+QdfIZaSeju9Iqp0+j15IxAg==
+X-Google-Smtp-Source: AA0mqf7dZc2pJGg90cDpqPPxKmiYOBVUEtgZ64CO7v9uXueTqVLXJJVmbs9KWVKT+S0E6s+j646J2kuNHTeP9HhAtks=
+X-Received: by 2002:a05:620a:b03:b0:6ff:8ac7:ad53 with SMTP id
+ t3-20020a05620a0b0300b006ff8ac7ad53mr939105qkg.679.1671396708943; Sun, 18 Dec
+ 2022 12:51:48 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20221202061347.1070246-3-chao.p.peng@linux.intel.com>
+From:   Dennis Gilmore <dennis@ausil.us>
+Date:   Sun, 18 Dec 2022 14:51:38 -0600
+Message-ID: <CAABkxwuQoz1CTbyb57n0ZX65eSYiTonFCU8-LCQc=74D=xE=rA@mail.gmail.com>
+Subject: BUG: arm64: missing build-id from vmlinux
+To:     Masahiro Yamada <masahiroy@kernel.org>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        linux-arm-kernel@lists.infradead.org
+Cc:     linux-arch@vger.kernel.org, Nicolas Schier <nicolas@fjasle.eu>,
+        linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Dec 02, 2022 at 02:13:40PM +0800, Chao Peng wrote:
-> diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-> index 1782c4555d94..7f0f5e9f2406 100644
-> --- a/virt/kvm/kvm_main.c
-> +++ b/virt/kvm/kvm_main.c
-> @@ -1150,6 +1150,9 @@ static struct kvm *kvm_create_vm(unsigned long type, const char *fdname)
->  	spin_lock_init(&kvm->mn_invalidate_lock);
->  	rcuwait_init(&kvm->mn_memslots_update_rcuwait);
->  	xa_init(&kvm->vcpu_array);
-> +#ifdef CONFIG_HAVE_KVM_MEMORY_ATTRIBUTES
-> +	xa_init(&kvm->mem_attr_array);
-> +#endif
+The changes in https://lore.kernel.org/linux-arm-kernel/166783716442.32724.935158280857906499.b4-ty@kernel.org/T/
+result in vmlinux no longer having a build-id. At the least, this
+causes rpm builds to fail. Reverting the patch does bring back a
+build-id, but there may be a different way to fix the regression
 
-	if (IS_ENABLED(CONFIG_HAVE_KVM_MEMORY_ATTRIBUTES))
-		...
-
-would at least remove the ugly ifdeffery.
-
-Or you could create wrapper functions for that xa_init() and
-xa_destroy() and put the ifdeffery in there.
-
-> @@ -2323,6 +2329,49 @@ static int kvm_vm_ioctl_clear_dirty_log(struct kvm *kvm,
->  }
->  #endif /* CONFIG_KVM_GENERIC_DIRTYLOG_READ_PROTECT */
->  
-> +#ifdef CONFIG_HAVE_KVM_MEMORY_ATTRIBUTES
-> +static u64 kvm_supported_mem_attributes(struct kvm *kvm)
-
-I guess that function should have a verb in the name:
-
-kvm_get_supported_mem_attributes()
-
-> +static int kvm_vm_ioctl_set_mem_attributes(struct kvm *kvm,
-> +					   struct kvm_memory_attributes *attrs)
-> +{
-> +	gfn_t start, end;
-> +	unsigned long i;
-> +	void *entry;
-> +	u64 supported_attrs = kvm_supported_mem_attributes(kvm);
-> +
-> +	/* flags is currently not used. */
-> +	if (attrs->flags)
-> +		return -EINVAL;
-> +	if (attrs->attributes & ~supported_attrs)
-> +		return -EINVAL;
-> +	if (attrs->size == 0 || attrs->address + attrs->size < attrs->address)
-> +		return -EINVAL;
-> +	if (!PAGE_ALIGNED(attrs->address) || !PAGE_ALIGNED(attrs->size))
-> +		return -EINVAL;
-
-Dunno, shouldn't those issue some sort of an error message so that the
-caller knows where it failed? Or at least return different retvals which
-signal what the problem is?
-
-> +	start = attrs->address >> PAGE_SHIFT;
-> +	end = (attrs->address + attrs->size - 1 + PAGE_SIZE) >> PAGE_SHIFT;
-> +
-> +	entry = attrs->attributes ? xa_mk_value(attrs->attributes) : NULL;
-> +
-> +	mutex_lock(&kvm->lock);
-> +	for (i = start; i < end; i++)
-> +		if (xa_err(xa_store(&kvm->mem_attr_array, i, entry,
-> +				    GFP_KERNEL_ACCOUNT)))
-> +			break;
-> +	mutex_unlock(&kvm->lock);
-> +
-> +	attrs->address = i << PAGE_SHIFT;
-> +	attrs->size = (end - i) << PAGE_SHIFT;
-> +
-> +	return 0;
-> +}
-
--- 
-Regards/Gruss,
-    Boris.
-
-https://people.kernel.org/tglx/notes-about-netiquette
+Dennis
