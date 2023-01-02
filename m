@@ -2,110 +2,145 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 70D57C3DA7C
-	for <linux-arch@archiver.kernel.org>; Mon,  2 Jan 2023 07:08:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A920CC3DA7A
+	for <linux-arch@archiver.kernel.org>; Mon,  2 Jan 2023 07:13:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229453AbjABHIa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 2 Jan 2023 02:08:30 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60346 "EHLO
+        id S229946AbjABHNK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 2 Jan 2023 02:13:10 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:32852 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229447AbjABHI3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jan 2023 02:08:29 -0500
-Received: from wp530.webpack.hosteurope.de (wp530.webpack.hosteurope.de [80.237.130.52])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A1349E23;
-        Sun,  1 Jan 2023 23:08:26 -0800 (PST)
-Received: from [2a02:8108:963f:de38:eca4:7d19:f9a2:22c5]; authenticated
-        by wp530.webpack.hosteurope.de running ExIM with esmtpsa (TLS1.3:ECDHE_RSA_AES_128_GCM_SHA256:128)
-        id 1pCEvi-0003ql-G6; Mon, 02 Jan 2023 08:08:18 +0100
-Message-ID: <bb976dd2-490c-a2a0-6c46-65ab79a413b2@leemhuis.info>
-Date:   Mon, 2 Jan 2023 08:08:17 +0100
+        with ESMTP id S229894AbjABHNH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jan 2023 02:13:07 -0500
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 5E42621BA;
+        Sun,  1 Jan 2023 23:13:06 -0800 (PST)
+Received: from jinankjain-dranzer.zrrkmle5drku1h0apvxbr2u2ee.ix.internal.cloudapp.net (unknown [20.188.121.5])
+        by linux.microsoft.com (Postfix) with ESMTPSA id DAE2F20FB6C8;
+        Sun,  1 Jan 2023 23:13:01 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DAE2F20FB6C8
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+        s=default; t=1672643586;
+        bh=wqo8SKjqAvAPfB0JD2Zy4udGVJ0BdIhQjoIMI1f64Wg=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=FsZyOxeJok205w83YIqzUrSeI/Fh1lFUJ63ZBJS7WJ1BnsL2oynfRzMzvjvrRoawm
+         4vpNOZxvk6DY8q7uNCQ1Zqk/7lP17ZyWgNvPaTGS4Q8SWmiioP1L0yOX8SFcwo+Q59
+         s0SdY4lggfQ/C8FoDFQQxW5jRl0auIxSEQzE499k=
+From:   Jinank Jain <jinankjain@linux.microsoft.com>
+To:     jinankjain@microsoft.com
+Cc:     kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
+        decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+        hpa@zytor.com, arnd@arndb.de, peterz@infradead.org,
+        jpoimboe@kernel.org, jinankjain@linux.microsoft.com,
+        seanjc@google.com, kirill.shutemov@linux.intel.com,
+        ak@linux.intel.com, sathyanarayanan.kuppuswamy@linux.intel.com,
+        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, anrayabh@linux.microsoft.com,
+        mikelley@microsoft.com
+Subject: [PATCH v10 1/5] x86/hyperv: Add support for detecting nested hypervisor
+Date:   Mon,  2 Jan 2023 07:12:51 +0000
+Message-Id: <8e3e7112806e81d2292a66a56fe547162754ecea.1672639707.git.jinankjain@linux.microsoft.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <cover.1672639707.git.jinankjain@linux.microsoft.com>
+References: <cover.1672639707.git.jinankjain@linux.microsoft.com>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.6.0
-Subject: Re: [PATCH v2] arch: fix broken BuildID for arm64 and riscv
-Content-Language: en-US, de-DE
-To:     Nathan Chancellor <nathan@kernel.org>,
-        Masahiro Yamada <masahiroy@kernel.org>
-Cc:     linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org,
-        linux-kernel@vger.kernel.org, Ard Biesheuvel <ardb@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org,
-        linux-riscv@lists.infradead.org, Dennis Gilmore <dennis@ausil.us>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Jisheng Zhang <jszhang@kernel.org>,
-        Nicolas Schier <nicolas@fjasle.eu>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>, llvm@lists.linux.dev
-References: <20221226184537.744960-1-masahiroy@kernel.org>
- <Y7Jal56f6UBh1abE@dev-arch.thelio-3990X>
-From:   "Linux kernel regression tracking (#info)" 
-        <regressions@leemhuis.info>
-Reply-To: Thorsten Leemhuis <regressions@leemhuis.info>
-In-Reply-To: <Y7Jal56f6UBh1abE@dev-arch.thelio-3990X>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-bounce-key: webpack.hosteurope.de;regressions@leemhuis.info;1672643306;3df46b7c;
-X-HE-SMSGID: 1pCEvi-0003ql-G6
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-[TLDR: I'm adding this report to the list of tracked Linux kernel
-regressions; all text you find below is based on a few templates
-paragraphs you might have encountered already already in similar form.
-See link in footer if these mails annoy you.]
+Detect if Linux is running as a nested hypervisor in the root
+partition for Microsoft Hypervisor, using flags provided by MSHV.
+Expose a new variable hv_nested that is used later for decisions
+specific to the nested use case.
 
-On 02.01.23 05:16, Nathan Chancellor wrote:
-> On Tue, Dec 27, 2022 at 03:45:37AM +0900, Masahiro Yamada wrote:
->> Dennis Gilmore reports that the BuildID is missing in the arm64 vmlinux
->> since commit 994b7ac1697b ("arm64: remove special treatment for the
->> link order of head.o").
-> [...]
-> I just bisected this change as the cause of a few link failures that we
-> now see in CI with Debian's binutils (2.35.2):
-> 
-> https://storage.tuxsuite.com/public/clangbuiltlinux/continuous-integration2/builds/2Jjl88DXc3YRi2RtvXAzlS8NQ4p/build.log
-> 
-> This does not appear to be related to clang/LLVM because I can easily
-> reproduce it with Debian's s390x GCC and binutils building defconfig:
-> 
-> [...]
-> 
-> I ended up bisecting binutils for the fix, as I could not reproduce it
-> with 2.36+. My bisect landed on commit 21401fc7bf6 ("Duplicate output
-> sections in scripts"):
-> 
-> https://sourceware.org/git/?p=binutils-gdb.git;a=commit;h=21401fc7bf67dbf73f4a3eda4bcfc58fa4211584
-> 
-> Unfortunately, I cannot immediately grok why this commit cause the above
-> issue nor why the binutils commit resolves it so I figured I would
-> immediately report it for public investigation's sake and quicker
-> resolution.
+Signed-off-by: Jinank Jain <jinankjain@linux.microsoft.com>
+---
+ arch/x86/include/asm/hyperv-tlfs.h | 3 +++
+ arch/x86/kernel/cpu/mshyperv.c     | 7 +++++++
+ drivers/hv/hv_common.c             | 9 ++++++---
+ include/asm-generic/mshyperv.h     | 1 +
+ 4 files changed, 17 insertions(+), 3 deletions(-)
 
-Thanks for the report. To be sure the issue doesn't fall through the
-cracks unnoticed, I'm adding it to regzbot, the Linux kernel regression
-tracking bot:
-
-#regzbot ^introduced 99cb0d917ffa1ab628bb67364ca9b162c07699b1
-#regzbot title arch: link failures in CI with Debian's binutils
-#regzbot ignore-activity
-
-This isn't a regression? This issue or a fix for it are already
-discussed somewhere else? It was fixed already? You want to clarify when
-the regression started to happen? Or point out I got the title or
-something else totally wrong? Then just reply and tell me -- ideally
-while also telling regzbot about it, as explained by the page listed in
-the footer of this mail.
-
-Reminder for developers: When fixing the issue, add 'Link:' tags
-pointing to the report (see page linked in footer for details).
-
-Ciao, Thorsten
+diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
+index 6d9368ea3701..58c03d18c235 100644
+--- a/arch/x86/include/asm/hyperv-tlfs.h
++++ b/arch/x86/include/asm/hyperv-tlfs.h
+@@ -114,6 +114,9 @@
+ /* Recommend using the newer ExProcessorMasks interface */
+ #define HV_X64_EX_PROCESSOR_MASKS_RECOMMENDED		BIT(11)
+ 
++/* Indicates that the hypervisor is nested within a Hyper-V partition. */
++#define HV_X64_HYPERV_NESTED				BIT(12)
++
+ /* Recommend using enlightened VMCS */
+ #define HV_X64_ENLIGHTENED_VMCS_RECOMMENDED		BIT(14)
+ 
+diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+index 46668e255421..f9b78d4829e3 100644
+--- a/arch/x86/kernel/cpu/mshyperv.c
++++ b/arch/x86/kernel/cpu/mshyperv.c
+@@ -37,6 +37,8 @@
+ 
+ /* Is Linux running as the root partition? */
+ bool hv_root_partition;
++/* Is Linux running on nested Microsoft Hypervisor */
++bool hv_nested;
+ struct ms_hyperv_info ms_hyperv;
+ 
+ #if IS_ENABLED(CONFIG_HYPERV)
+@@ -301,6 +303,11 @@ static void __init ms_hyperv_init_platform(void)
+ 		pr_info("Hyper-V: running as root partition\n");
+ 	}
+ 
++	if (ms_hyperv.hints & HV_X64_HYPERV_NESTED) {
++		hv_nested = true;
++		pr_info("Hyper-V: running on a nested hypervisor\n");
++	}
++
+ 	/*
+ 	 * Extract host information.
+ 	 */
+diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+index ae68298c0dca..52a6f89ccdbd 100644
+--- a/drivers/hv/hv_common.c
++++ b/drivers/hv/hv_common.c
+@@ -25,17 +25,20 @@
+ #include <asm/mshyperv.h>
+ 
+ /*
+- * hv_root_partition and ms_hyperv are defined here with other Hyper-V
+- * specific globals so they are shared across all architectures and are
++ * hv_root_partition, ms_hyperv and hv_nested are defined here with other
++ * Hyper-V specific globals so they are shared across all architectures and are
+  * built only when CONFIG_HYPERV is defined.  But on x86,
+  * ms_hyperv_init_platform() is built even when CONFIG_HYPERV is not
+- * defined, and it uses these two variables.  So mark them as __weak
++ * defined, and it uses these three variables.  So mark them as __weak
+  * here, allowing for an overriding definition in the module containing
+  * ms_hyperv_init_platform().
+  */
+ bool __weak hv_root_partition;
+ EXPORT_SYMBOL_GPL(hv_root_partition);
+ 
++bool __weak hv_nested;
++EXPORT_SYMBOL_GPL(hv_nested);
++
+ struct ms_hyperv_info __weak ms_hyperv;
+ EXPORT_SYMBOL_GPL(ms_hyperv);
+ 
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index bfb9eb9d7215..f131027830c3 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -48,6 +48,7 @@ struct ms_hyperv_info {
+ 	u64 shared_gpa_boundary;
+ };
+ extern struct ms_hyperv_info ms_hyperv;
++extern bool hv_nested;
+ 
+ extern void * __percpu *hyperv_pcpu_input_arg;
+ extern void * __percpu *hyperv_pcpu_output_arg;
 -- 
-Everything you wanna know about Linux kernel regression tracking:
-https://linux-regtracking.leemhuis.info/about/#tldr
+2.25.1
 
-Annoyed by mails like this? Feel free to send them to /dev/null:
-https://linux-regtracking.leemhuis.info/about/#infomails
