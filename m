@@ -2,42 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 17F56C63797
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8133EC678DA
 	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 20:00:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240570AbjALUAA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S240583AbjALUAA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Thu, 12 Jan 2023 15:00:00 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44220 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44330 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238082AbjALT7U (ORCPT
+        with ESMTP id S238181AbjALT7U (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2023 14:59:20 -0500
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 112523880;
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 265403882;
         Thu, 12 Jan 2023 11:58:13 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=ljNIHChdlymEt0s4DtY+Ji5/5ZFr1jFKrzucPLjcAFA=; b=UFhO8sQycbOykP9WLmHLr8syH1
-        9tKpgf+RH4+2oIWu+p1NsZyG1ZQUQEWQKyB7rZeJqKLqT/EpPMTLJSHpi/eniYQI6kNhYX80bC7rp
-        v4DYtLIywV5PM3hyi+6d9VreCBIfyUq0bOE4EJwgP1PAPqwc5ULRKbQuNPzHKcYXFJ+bhA18Sk3BK
-        0SHi+ZzW5d72kp/7epWf2U0Zao67mw1W6KZFzu9PuzdtQCB/RZo73P/7KFSV/9Z+EgMtlu14sgzCt
-        LY3p+teRO7dsISyeJIOJS/fTB2tiC6ZycPsflBP3cBseh7aef5nb+O7jgwPbkvWsd95ol/bFuNb6B
-        77LSYyRg==;
+        bh=4aFpXbTN+2q/sQWoIhQXRuBIzQdX59WKAp/kjFjx5nI=; b=EXFl9MaMND0FkMicNKlfspElVB
+        huiMp2O7+Fvk4uwlSWk2b77yH7f4axNULDLOvrmgF2stY4NTNGRJ25ZSpXd9goBg/VkJdWWaXP+Gr
+        Of7rP+CRWQSMlE+dfMMiwNu6KPhGmNs+/4kt/1x2eSDBQGLkb7G0JxjG3bjP6egK+5K3BYl2NDXSI
+        EWmjrlA8t5XxbT818dX7+Vt3AqBBUhu093wyPACd2zLypjFT7H2JDrsNcfcD/XHM7W3wj7ZN5Nh6N
+        zG0q4ipZCd55Lg30zpCT0GHj8smeXMq8oSjlRgA598BxbO+Tnb+HSoRDuOLJvyhSzEi1pRgNhbbQw
+        1dyt/7Iw==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pG3hv-005P8k-EI; Thu, 12 Jan 2023 19:57:51 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+        id 1pG3hL-0045pn-36;
+        Thu, 12 Jan 2023 19:57:26 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 2E622303478;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 04574303466;
         Thu, 12 Jan 2023 20:57:14 +0100 (CET)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 68B912CD066DC; Thu, 12 Jan 2023 20:57:08 +0100 (CET)
-Message-ID: <20230112195542.151174682@infradead.org>
+        id 4EBB62CD066D0; Thu, 12 Jan 2023 20:57:08 +0100 (CET)
+Message-ID: <20230112195541.782536366@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 12 Jan 2023 20:44:00 +0100
+Date:   Thu, 12 Jan 2023 20:43:54 +0100
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -102,9 +103,9 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-arm-msm@vger.kernel.org, linux-tegra@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-trace-kernel@vger.kernel.org, kasan-dev@googlegroups.com,
-        "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>,
-        Ulf Hansson <ulf.hansson@linaro.org>
-Subject: [PATCH v3 46/51] arm64,riscv,perf: Remove RCU_NONIDLE() usage
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Subject: [PATCH v3 40/51] cpuidle,powerdomain: Remove trace_.*_rcuidle()
 References: <20230112194314.845371875@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -112,57 +113,154 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The PM notifiers should no longer be ran with RCU disabled (per the
-previous patches), as such this hack is no longer required either.
+OMAP was the one and only user.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Ulf Hansson <ulf.hansson@linaro.org>
 Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Acked-by: Frederic Weisbecker <frederic@kernel.org>
 Tested-by: Tony Lindgren <tony@atomide.com>
 Tested-by: Ulf Hansson <ulf.hansson@linaro.org>
 ---
- drivers/perf/arm_pmu.c       |   11 +----------
- drivers/perf/riscv_pmu_sbi.c |    8 +-------
- 2 files changed, 2 insertions(+), 17 deletions(-)
+ arch/arm/mach-omap2/powerdomain.c |   10 +++++-----
+ drivers/base/power/runtime.c      |   24 ++++++++++++------------
+ 2 files changed, 17 insertions(+), 17 deletions(-)
 
---- a/drivers/perf/arm_pmu.c
-+++ b/drivers/perf/arm_pmu.c
-@@ -762,17 +762,8 @@ static void cpu_pm_pmu_setup(struct arm_
- 		case CPU_PM_ENTER_FAILED:
- 			 /*
- 			  * Restore and enable the counter.
--			  * armpmu_start() indirectly calls
--			  *
--			  * perf_event_update_userpage()
--			  *
--			  * that requires RCU read locking to be functional,
--			  * wrap the call within RCU_NONIDLE to make the
--			  * RCU subsystem aware this cpu is not idle from
--			  * an RCU perspective for the armpmu_start() call
--			  * duration.
- 			  */
--			RCU_NONIDLE(armpmu_start(event, PERF_EF_RELOAD));
-+			armpmu_start(event, PERF_EF_RELOAD);
- 			break;
- 		default:
- 			break;
---- a/drivers/perf/riscv_pmu_sbi.c
-+++ b/drivers/perf/riscv_pmu_sbi.c
-@@ -747,14 +747,8 @@ static int riscv_pm_pmu_notify(struct no
- 		case CPU_PM_ENTER_FAILED:
- 			/*
- 			 * Restore and enable the counter.
--			 *
--			 * Requires RCU read locking to be functional,
--			 * wrap the call within RCU_NONIDLE to make the
--			 * RCU subsystem aware this cpu is not idle from
--			 * an RCU perspective for the riscv_pmu_start() call
--			 * duration.
- 			 */
--			RCU_NONIDLE(riscv_pmu_start(event, PERF_EF_RELOAD));
-+			riscv_pmu_start(event, PERF_EF_RELOAD);
- 			break;
- 		default:
- 			break;
+--- a/arch/arm/mach-omap2/powerdomain.c
++++ b/arch/arm/mach-omap2/powerdomain.c
+@@ -187,9 +187,9 @@ static int _pwrdm_state_switch(struct po
+ 			trace_state = (PWRDM_TRACE_STATES_FLAG |
+ 				       ((next & OMAP_POWERSTATE_MASK) << 8) |
+ 				       ((prev & OMAP_POWERSTATE_MASK) << 0));
+-			trace_power_domain_target_rcuidle(pwrdm->name,
+-							  trace_state,
+-							  raw_smp_processor_id());
++			trace_power_domain_target(pwrdm->name,
++						  trace_state,
++						  raw_smp_processor_id());
+ 		}
+ 		break;
+ 	default:
+@@ -541,8 +541,8 @@ int pwrdm_set_next_pwrst(struct powerdom
+ 
+ 	if (arch_pwrdm && arch_pwrdm->pwrdm_set_next_pwrst) {
+ 		/* Trace the pwrdm desired target state */
+-		trace_power_domain_target_rcuidle(pwrdm->name, pwrst,
+-						  raw_smp_processor_id());
++		trace_power_domain_target(pwrdm->name, pwrst,
++					  raw_smp_processor_id());
+ 		/* Program the pwrdm desired target state */
+ 		ret = arch_pwrdm->pwrdm_set_next_pwrst(pwrdm, pwrst);
+ 	}
+--- a/drivers/base/power/runtime.c
++++ b/drivers/base/power/runtime.c
+@@ -442,7 +442,7 @@ static int rpm_idle(struct device *dev,
+ 	int (*callback)(struct device *);
+ 	int retval;
+ 
+-	trace_rpm_idle_rcuidle(dev, rpmflags);
++	trace_rpm_idle(dev, rpmflags);
+ 	retval = rpm_check_suspend_allowed(dev);
+ 	if (retval < 0)
+ 		;	/* Conditions are wrong. */
+@@ -481,7 +481,7 @@ static int rpm_idle(struct device *dev,
+ 			dev->power.request_pending = true;
+ 			queue_work(pm_wq, &dev->power.work);
+ 		}
+-		trace_rpm_return_int_rcuidle(dev, _THIS_IP_, 0);
++		trace_rpm_return_int(dev, _THIS_IP_, 0);
+ 		return 0;
+ 	}
+ 
+@@ -493,7 +493,7 @@ static int rpm_idle(struct device *dev,
+ 	wake_up_all(&dev->power.wait_queue);
+ 
+  out:
+-	trace_rpm_return_int_rcuidle(dev, _THIS_IP_, retval);
++	trace_rpm_return_int(dev, _THIS_IP_, retval);
+ 	return retval ? retval : rpm_suspend(dev, rpmflags | RPM_AUTO);
+ }
+ 
+@@ -557,7 +557,7 @@ static int rpm_suspend(struct device *de
+ 	struct device *parent = NULL;
+ 	int retval;
+ 
+-	trace_rpm_suspend_rcuidle(dev, rpmflags);
++	trace_rpm_suspend(dev, rpmflags);
+ 
+  repeat:
+ 	retval = rpm_check_suspend_allowed(dev);
+@@ -708,7 +708,7 @@ static int rpm_suspend(struct device *de
+ 	}
+ 
+  out:
+-	trace_rpm_return_int_rcuidle(dev, _THIS_IP_, retval);
++	trace_rpm_return_int(dev, _THIS_IP_, retval);
+ 
+ 	return retval;
+ 
+@@ -760,7 +760,7 @@ static int rpm_resume(struct device *dev
+ 	struct device *parent = NULL;
+ 	int retval = 0;
+ 
+-	trace_rpm_resume_rcuidle(dev, rpmflags);
++	trace_rpm_resume(dev, rpmflags);
+ 
+  repeat:
+ 	if (dev->power.runtime_error) {
+@@ -925,7 +925,7 @@ static int rpm_resume(struct device *dev
+ 		spin_lock_irq(&dev->power.lock);
+ 	}
+ 
+-	trace_rpm_return_int_rcuidle(dev, _THIS_IP_, retval);
++	trace_rpm_return_int(dev, _THIS_IP_, retval);
+ 
+ 	return retval;
+ }
+@@ -1081,7 +1081,7 @@ int __pm_runtime_idle(struct device *dev
+ 		if (retval < 0) {
+ 			return retval;
+ 		} else if (retval > 0) {
+-			trace_rpm_usage_rcuidle(dev, rpmflags);
++			trace_rpm_usage(dev, rpmflags);
+ 			return 0;
+ 		}
+ 	}
+@@ -1119,7 +1119,7 @@ int __pm_runtime_suspend(struct device *
+ 		if (retval < 0) {
+ 			return retval;
+ 		} else if (retval > 0) {
+-			trace_rpm_usage_rcuidle(dev, rpmflags);
++			trace_rpm_usage(dev, rpmflags);
+ 			return 0;
+ 		}
+ 	}
+@@ -1202,7 +1202,7 @@ int pm_runtime_get_if_active(struct devi
+ 	} else {
+ 		retval = atomic_inc_not_zero(&dev->power.usage_count);
+ 	}
+-	trace_rpm_usage_rcuidle(dev, 0);
++	trace_rpm_usage(dev, 0);
+ 	spin_unlock_irqrestore(&dev->power.lock, flags);
+ 
+ 	return retval;
+@@ -1566,7 +1566,7 @@ void pm_runtime_allow(struct device *dev
+ 	if (ret == 0)
+ 		rpm_idle(dev, RPM_AUTO | RPM_ASYNC);
+ 	else if (ret > 0)
+-		trace_rpm_usage_rcuidle(dev, RPM_AUTO | RPM_ASYNC);
++		trace_rpm_usage(dev, RPM_AUTO | RPM_ASYNC);
+ 
+  out:
+ 	spin_unlock_irq(&dev->power.lock);
+@@ -1635,7 +1635,7 @@ static void update_autosuspend(struct de
+ 			atomic_inc(&dev->power.usage_count);
+ 			rpm_resume(dev, 0);
+ 		} else {
+-			trace_rpm_usage_rcuidle(dev, 0);
++			trace_rpm_usage(dev, 0);
+ 		}
+ 	}
+ 
 
 
