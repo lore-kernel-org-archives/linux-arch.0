@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 429FEC54EBE
-	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 19:59:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 91094C678D9
+	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 19:59:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240425AbjALT7t (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 12 Jan 2023 14:59:49 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44234 "EHLO
+        id S240476AbjALT7x (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 12 Jan 2023 14:59:53 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44308 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232194AbjALT7T (ORCPT
+        with ESMTP id S235408AbjALT7T (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2023 14:59:19 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6A3522623;
-        Thu, 12 Jan 2023 11:58:08 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 914CE2BEB;
+        Thu, 12 Jan 2023 11:58:09 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=xUXFMmNjQb3UrGtSZK0a2nhjQSuKqnZvrBUrV/kGZ/M=; b=azd0lEFhtyA7/aLM4gfZG1Cdp3
-        7NU3r969okzjxqcSyuA1vE+R2WnLvkbW43aMYTQl8A+OMQs4BGyVUe/mdDDkYK4sq5GuqaMDdK3nQ
-        mF4/8WjcxS6GyrdwizZfZHi98CgxEnfqDyYYUuh6dsDEfNM6pZY3bv79cj1EUtiafbAvbGi3Zoodv
-        q3oyyOIbvVtD0Z25JQmgF9Yy3twtU782/WTN1SiAuh8rW47DB3F8jKxk6GeMuzzcUytvUZ3k5qQN2
-        xwJHT13n8NNxGibRxm8fKw3yFq3ZFyd8yvfAHp0jp7adZU6B9GTx3x5QVwVeGWFHBoGHyIY8F3WG5
-        EkCNyHWg==;
+        bh=N/LoJ6QokuvkgqrdUyeUyAC9uk5r3NGpRlHTjN0UEk8=; b=T8OnHc73dEliAoWK/xch6i2J7U
+        UMPcH7C3wey9SZCz29M3TnVGeV/W9jC6hfvxLiKRMqnquFKPM6nid5EbmG5dczPvuD2DZ3rsJb8bh
+        1B5YEftBb1n98ERVSHO05+IatfdS4u87KvvQGiPoj8rifuEdsA4srZC4wIENwPRAVZsXaUzY4luW4
+        Zenh892eKzf2pgbhojQV6wJdtmIWgpRiTZY36OvBCfqI5tc8YiwERNFtaxcfar59LGMt3V5FwEWxd
+        1IYeXc/xNHpxnwh58Sqsesvu7xJ/zUZBM+XUWlSRPervhZPQ3w6Fk9QTn2mJpsRI+pQDUPSrD9z7J
+        4u6HFEyw==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
         by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pG3hg-005OjH-AW; Thu, 12 Jan 2023 19:57:36 +0000
+        id 1pG3hZ-005OdZ-8g; Thu, 12 Jan 2023 19:57:29 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id EDBC9303462;
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 3E001303416;
         Thu, 12 Jan 2023 20:57:13 +0100 (CET)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 49A802CD0121F; Thu, 12 Jan 2023 20:57:08 +0100 (CET)
-Message-ID: <20230112195541.721697850@infradead.org>
+        id D46292CCF1F75; Thu, 12 Jan 2023 20:57:07 +0100 (CET)
+Message-ID: <20230112195540.251666856@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 12 Jan 2023 20:43:53 +0100
+Date:   Thu, 12 Jan 2023 20:43:29 +0100
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -104,7 +104,7 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-trace-kernel@vger.kernel.org, kasan-dev@googlegroups.com,
         "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>,
         Ulf Hansson <ulf.hansson@linaro.org>
-Subject: [PATCH v3 39/51] arm,omap2: Use WFI for omap2_pm_idle()
+Subject: [PATCH v3 15/51] acpi_idle: Remove tracing
 References: <20230112194314.845371875@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -112,97 +112,66 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-arch_cpu_idle() is a very simple idle interface and exposes only a
-single idle state and is expected to not require RCU and not do any
-tracing/instrumentation.
+All the idle routines are called with RCU disabled, as such there must
+not be any tracing inside.
 
-As such, omap2_pm_idle() is not a valid implementation. Replace it
-with a simple (shallow) omap2_do_wfi() call.
+While there; clean-up the io-port idle thing.
 
-Omap2 doesn't have a cpuidle driver; but adding one would be the
-recourse to (re)gain the other idle states.
-
-Suggested-by: Tony Lindgren <tony@atomide.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Acked-by: Frederic Weisbecker <frederic@kernel.org>
 Tested-by: Tony Lindgren <tony@atomide.com>
 Tested-by: Ulf Hansson <ulf.hansson@linaro.org>
 ---
- arch/arm/mach-omap2/pm24xx.c |   51 +------------------------------------------
- 1 file changed, 2 insertions(+), 49 deletions(-)
+ drivers/acpi/processor_idle.c |   16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
---- a/arch/arm/mach-omap2/pm24xx.c
-+++ b/arch/arm/mach-omap2/pm24xx.c
-@@ -116,50 +116,12 @@ static int omap2_enter_full_retention(vo
- 
- static int sti_console_enabled;
- 
--static int omap2_allow_mpu_retention(void)
--{
--	if (!omap2xxx_cm_mpu_retention_allowed())
--		return 0;
--	if (sti_console_enabled)
--		return 0;
--
--	return 1;
--}
--
--static void omap2_enter_mpu_retention(void)
-+static void omap2_do_wfi(void)
+--- a/drivers/acpi/processor_idle.c
++++ b/drivers/acpi/processor_idle.c
+@@ -109,8 +109,8 @@ static const struct dmi_system_id proces
+ static void __cpuidle acpi_safe_halt(void)
  {
- 	const int zero = 0;
- 
--	/* The peripherals seem not to be able to wake up the MPU when
--	 * it is in retention mode. */
--	if (omap2_allow_mpu_retention()) {
--		/* REVISIT: These write to reserved bits? */
--		omap_prm_clear_mod_irqs(CORE_MOD, PM_WKST1, ~0);
--		omap_prm_clear_mod_irqs(CORE_MOD, OMAP24XX_PM_WKST2, ~0);
--		omap_prm_clear_mod_irqs(WKUP_MOD, PM_WKST, ~0);
--
--		/* Try to enter MPU retention */
--		pwrdm_set_next_pwrst(mpu_pwrdm, PWRDM_POWER_RET);
--
--	} else {
--		/* Block MPU retention */
--		pwrdm_set_next_pwrst(mpu_pwrdm, PWRDM_POWER_ON);
--	}
--
- 	/* WFI */
- 	asm("mcr p15, 0, %0, c7, c0, 4" : : "r" (zero) : "memory", "cc");
--
--	pwrdm_set_next_pwrst(mpu_pwrdm, PWRDM_POWER_ON);
--}
--
--static int omap2_can_sleep(void)
--{
--	if (omap2xxx_cm_fclks_active())
--		return 0;
--	if (__clk_is_enabled(osc_ck))
--		return 0;
--
--	return 1;
+ 	if (!tif_need_resched()) {
+-		safe_halt();
+-		local_irq_disable();
++		raw_safe_halt();
++		raw_local_irq_disable();
+ 	}
  }
  
- static void omap2_pm_idle(void)
-@@ -169,16 +131,7 @@ static void omap2_pm_idle(void)
- 	if (omap_irq_pending())
- 		return;
- 
--	error = cpu_cluster_pm_enter();
--	if (error || !omap2_can_sleep()) {
--		omap2_enter_mpu_retention();
--		goto out_cpu_cluster_pm;
--	}
--
--	omap2_enter_full_retention();
--
--out_cpu_cluster_pm:
--	cpu_cluster_pm_exit();
-+	omap2_do_wfi();
+@@ -525,8 +525,11 @@ static int acpi_idle_bm_check(void)
+ 	return bm_status;
  }
  
- static void __init prcm_setup_regs(void)
+-static void wait_for_freeze(void)
++static __cpuidle void io_idle(unsigned long addr)
+ {
++	/* IO port based C-state */
++	inb(addr);
++
+ #ifdef	CONFIG_X86
+ 	/* No delay is needed if we are in guest */
+ 	if (boot_cpu_has(X86_FEATURE_HYPERVISOR))
+@@ -571,9 +574,7 @@ static void __cpuidle acpi_idle_do_entry
+ 	} else if (cx->entry_method == ACPI_CSTATE_HALT) {
+ 		acpi_safe_halt();
+ 	} else {
+-		/* IO port based C-state */
+-		inb(cx->address);
+-		wait_for_freeze();
++		io_idle(cx->address);
+ 	}
+ 
+ 	perf_lopwr_cb(false);
+@@ -595,8 +596,7 @@ static int acpi_idle_play_dead(struct cp
+ 		if (cx->entry_method == ACPI_CSTATE_HALT)
+ 			safe_halt();
+ 		else if (cx->entry_method == ACPI_CSTATE_SYSTEMIO) {
+-			inb(cx->address);
+-			wait_for_freeze();
++			io_idle(cx->address);
+ 		} else
+ 			return -ENODEV;
+ 
 
 
