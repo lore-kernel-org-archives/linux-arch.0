@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2A22DC61DB3
-	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 19:59:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 429FEC54EBE
+	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 19:59:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240409AbjALT7s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 12 Jan 2023 14:59:48 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44164 "EHLO
+        id S240425AbjALT7t (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 12 Jan 2023 14:59:49 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44234 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235011AbjALT7T (ORCPT
+        with ESMTP id S232194AbjALT7T (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2023 14:59:19 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9D8932628;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6A3522623;
         Thu, 12 Jan 2023 11:58:08 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=uRuk42rt5J1sC1gDxlIXH9yiXjv0To5K12rtksbRl/w=; b=t/UiPYxuyWmQWx8O0dR9C23N3m
-        Mql6RINO7N/qRFk28GXmIaup0931S2z3tF2gEI6MdQoOij/5MpyDJ93PUuH63HNR9QrPHDhJ1A8Oe
-        r91ZkV6InpQFSdpdFg3os7aK02j12nsV24WSxmRJS0kKIVWjbMkU1+JaWypkF/gcgNI0Sb9wRM3lG
-        Y69ujB959knJ2g9LZcv0UARehKAkTXfDsgP2i97QLaacDdXSmeuMauSIsBiYlC/jtcpwExNGPGi8i
-        BrnpvX+u+TK0Yw2Bq1R5xaqa8UPNBlfJNWX8kZy4zpct/I/IMQgjZfiEDib73CDf0Fj9tlY/FPeci
-        GndVoLoA==;
+        bh=xUXFMmNjQb3UrGtSZK0a2nhjQSuKqnZvrBUrV/kGZ/M=; b=azd0lEFhtyA7/aLM4gfZG1Cdp3
+        7NU3r969okzjxqcSyuA1vE+R2WnLvkbW43aMYTQl8A+OMQs4BGyVUe/mdDDkYK4sq5GuqaMDdK3nQ
+        mF4/8WjcxS6GyrdwizZfZHi98CgxEnfqDyYYUuh6dsDEfNM6pZY3bv79cj1EUtiafbAvbGi3Zoodv
+        q3oyyOIbvVtD0Z25JQmgF9Yy3twtU782/WTN1SiAuh8rW47DB3F8jKxk6GeMuzzcUytvUZ3k5qQN2
+        xwJHT13n8NNxGibRxm8fKw3yFq3ZFyd8yvfAHp0jp7adZU6B9GTx3x5QVwVeGWFHBoGHyIY8F3WG5
+        EkCNyHWg==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
         by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pG3hh-005Ok6-0o; Thu, 12 Jan 2023 19:57:37 +0000
+        id 1pG3hg-005OjH-AW; Thu, 12 Jan 2023 19:57:36 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 0662A303469;
-        Thu, 12 Jan 2023 20:57:14 +0100 (CET)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id EDBC9303462;
+        Thu, 12 Jan 2023 20:57:13 +0100 (CET)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 520F42CD066C8; Thu, 12 Jan 2023 20:57:08 +0100 (CET)
-Message-ID: <20230112195541.844982902@infradead.org>
+        id 49A802CD0121F; Thu, 12 Jan 2023 20:57:08 +0100 (CET)
+Message-ID: <20230112195541.721697850@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 12 Jan 2023 20:43:55 +0100
+Date:   Thu, 12 Jan 2023 20:43:53 +0100
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -102,9 +102,9 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-arm-msm@vger.kernel.org, linux-tegra@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-trace-kernel@vger.kernel.org, kasan-dev@googlegroups.com,
-        Ulf Hansson <ulf.hansson@linaro.org>,
-        "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Subject: [PATCH v3 41/51] cpuidle,clk: Remove trace_.*_rcuidle()
+        "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>,
+        Ulf Hansson <ulf.hansson@linaro.org>
+Subject: [PATCH v3 39/51] arm,omap2: Use WFI for omap2_pm_idle()
 References: <20230112194314.845371875@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -112,49 +112,97 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-OMAP was the one and only user.
+arch_cpu_idle() is a very simple idle interface and exposes only a
+single idle state and is expected to not require RCU and not do any
+tracing/instrumentation.
 
+As such, omap2_pm_idle() is not a valid implementation. Replace it
+with a simple (shallow) omap2_do_wfi() call.
+
+Omap2 doesn't have a cpuidle driver; but adding one would be the
+recourse to (re)gain the other idle states.
+
+Suggested-by: Tony Lindgren <tony@atomide.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Ulf Hansson <ulf.hansson@linaro.org>
 Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Acked-by: Frederic Weisbecker <frederic@kernel.org>
 Tested-by: Tony Lindgren <tony@atomide.com>
 Tested-by: Ulf Hansson <ulf.hansson@linaro.org>
 ---
- drivers/clk/clk.c |    8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ arch/arm/mach-omap2/pm24xx.c |   51 +------------------------------------------
+ 1 file changed, 2 insertions(+), 49 deletions(-)
 
---- a/drivers/clk/clk.c
-+++ b/drivers/clk/clk.c
-@@ -978,12 +978,12 @@ static void clk_core_disable(struct clk_
- 	if (--core->enable_count > 0)
+--- a/arch/arm/mach-omap2/pm24xx.c
++++ b/arch/arm/mach-omap2/pm24xx.c
+@@ -116,50 +116,12 @@ static int omap2_enter_full_retention(vo
+ 
+ static int sti_console_enabled;
+ 
+-static int omap2_allow_mpu_retention(void)
+-{
+-	if (!omap2xxx_cm_mpu_retention_allowed())
+-		return 0;
+-	if (sti_console_enabled)
+-		return 0;
+-
+-	return 1;
+-}
+-
+-static void omap2_enter_mpu_retention(void)
++static void omap2_do_wfi(void)
+ {
+ 	const int zero = 0;
+ 
+-	/* The peripherals seem not to be able to wake up the MPU when
+-	 * it is in retention mode. */
+-	if (omap2_allow_mpu_retention()) {
+-		/* REVISIT: These write to reserved bits? */
+-		omap_prm_clear_mod_irqs(CORE_MOD, PM_WKST1, ~0);
+-		omap_prm_clear_mod_irqs(CORE_MOD, OMAP24XX_PM_WKST2, ~0);
+-		omap_prm_clear_mod_irqs(WKUP_MOD, PM_WKST, ~0);
+-
+-		/* Try to enter MPU retention */
+-		pwrdm_set_next_pwrst(mpu_pwrdm, PWRDM_POWER_RET);
+-
+-	} else {
+-		/* Block MPU retention */
+-		pwrdm_set_next_pwrst(mpu_pwrdm, PWRDM_POWER_ON);
+-	}
+-
+ 	/* WFI */
+ 	asm("mcr p15, 0, %0, c7, c0, 4" : : "r" (zero) : "memory", "cc");
+-
+-	pwrdm_set_next_pwrst(mpu_pwrdm, PWRDM_POWER_ON);
+-}
+-
+-static int omap2_can_sleep(void)
+-{
+-	if (omap2xxx_cm_fclks_active())
+-		return 0;
+-	if (__clk_is_enabled(osc_ck))
+-		return 0;
+-
+-	return 1;
+ }
+ 
+ static void omap2_pm_idle(void)
+@@ -169,16 +131,7 @@ static void omap2_pm_idle(void)
+ 	if (omap_irq_pending())
  		return;
  
--	trace_clk_disable_rcuidle(core);
-+	trace_clk_disable(core);
- 
- 	if (core->ops->disable)
- 		core->ops->disable(core->hw);
- 
--	trace_clk_disable_complete_rcuidle(core);
-+	trace_clk_disable_complete(core);
- 
- 	clk_core_disable(core->parent);
+-	error = cpu_cluster_pm_enter();
+-	if (error || !omap2_can_sleep()) {
+-		omap2_enter_mpu_retention();
+-		goto out_cpu_cluster_pm;
+-	}
+-
+-	omap2_enter_full_retention();
+-
+-out_cpu_cluster_pm:
+-	cpu_cluster_pm_exit();
++	omap2_do_wfi();
  }
-@@ -1037,12 +1037,12 @@ static int clk_core_enable(struct clk_co
- 		if (ret)
- 			return ret;
  
--		trace_clk_enable_rcuidle(core);
-+		trace_clk_enable(core);
- 
- 		if (core->ops->enable)
- 			ret = core->ops->enable(core->hw);
- 
--		trace_clk_enable_complete_rcuidle(core);
-+		trace_clk_enable_complete(core);
- 
- 		if (ret) {
- 			clk_core_disable(core->parent);
+ static void __init prcm_setup_regs(void)
 
 
