@@ -2,43 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 058CBC678DF
-	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 19:59:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 01707C63797
+	for <linux-arch@archiver.kernel.org>; Thu, 12 Jan 2023 19:59:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240026AbjALT7Y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 12 Jan 2023 14:59:24 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44162 "EHLO
+        id S240069AbjALT70 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 12 Jan 2023 14:59:26 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44244 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232583AbjALT7N (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2023 14:59:13 -0500
-Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 529DDE85;
+        with ESMTP id S232740AbjALT7O (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2023 14:59:14 -0500
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C9BF71080;
         Thu, 12 Jan 2023 11:58:06 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=Xy9+JvHHctWh2TNOLRKTbmGfpkTQoSEdFlJnj8l2Ws0=; b=H/JWwXj+fruT2n2ZggShyCiaCr
-        C0NO8NHqWgGdWdfhj47dyjkAOMyjOvS98/iJtTLXBjiZzyHX2eEymB/xPkkf4LWGqUonmm8rtzHQt
-        onCM6HJZ8sxPDUGvmqQPcy8e1XwIg6xOdxox8aOm71bfnN25uLQabCsLErFKiCQtQ2khpLz1Mk4s8
-        i5nZs4+e5gXEvI6IXuz+LSuYp8m8dgqmXGQysL0IhMZ9nc3NzV7/9PvpGGt//aarH3f/ZUWr9mvBX
-        1JW+DC86JnLlhRDgTFVQSBqPdoic2gviPxZdLhMOL6P5ea4+OLbYAOGIeiQ+hA3yTyP4gAJOMSOE1
-        02EZj2mw==;
+        bh=mHHfLn3ZXDs7+W84iYI4l64Hgzvzv2j66VWrzu7dGbw=; b=tDEYs9XtEVa5kDG9rCigwo5AS3
+        Gz/COrt0/F3lYrtSIri7b6KjIJmS99p9pvvpUsAydqHRFhYEDRBJzlr/eiNYGaYeLTRQ9poZgrWOv
+        pmenc0oJ2ycWCTjXZ1CvyT7StGi+x04havRxsL9cHHhpQoYlwPKCAEvmFNpFqyM70J4m4X0XryfDi
+        JnxYw4U/RQh/WHzqXFCvN2BED+581sgcXQcIWM0h+e82JbG0iLIn7+DPqqruTGc2nJF24caBV13O5
+        TV0LIyocKzR5phIlKMDEXQxtanjHETduuj9dYSbrun1OueVhu05M2tnW5LgroF5jmncSX8ZVy/9VE
+        ADpe4RjA==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
-        id 1pG3hC-0045nx-0Y;
-        Thu, 12 Jan 2023 19:57:06 +0000
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1pG3hb-005OeU-DV; Thu, 12 Jan 2023 19:57:31 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id E1A413033C0;
-        Thu, 12 Jan 2023 20:57:12 +0100 (CET)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 8913F303435;
+        Thu, 12 Jan 2023 20:57:13 +0100 (CET)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 996452CCF1F4C; Thu, 12 Jan 2023 20:57:07 +0100 (CET)
-Message-ID: <20230112195539.576412812@infradead.org>
+        id 11A262CCF62AB; Thu, 12 Jan 2023 20:57:08 +0100 (CET)
+Message-ID: <20230112195540.865735001@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 12 Jan 2023 20:43:18 +0100
+Date:   Thu, 12 Jan 2023 20:43:39 +0100
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     peterz@infradead.org
 Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
@@ -105,7 +104,7 @@ Cc:     richard.henderson@linaro.org, ink@jurassic.park.msu.ru,
         linux-trace-kernel@vger.kernel.org, kasan-dev@googlegroups.com,
         "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>,
         Ulf Hansson <ulf.hansson@linaro.org>
-Subject: [PATCH v3 04/51] cpuidle: Move IRQ state validation
+Subject: [PATCH v3 25/51] printk: Remove trace_.*_rcuidle() usage
 References: <20230112194314.845371875@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -113,45 +112,33 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Make cpuidle_enter_state() consistent with the s2idle variant and
-verify ->enter() always returns with interrupts disabled.
+The problem, per commit fc98c3c8c9dc ("printk: use rcuidle console
+tracepoint"), was printk usage from the cpuidle path where RCU was
+already disabled.
+
+Per the patches earlier in this series, this is no longer the case.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Sergey Senozhatsky <senozhatsky@chromium.org>
+Acked-by: Petr Mladek <pmladek@suse.com>
 Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Acked-by: Frederic Weisbecker <frederic@kernel.org>
 Tested-by: Tony Lindgren <tony@atomide.com>
 Tested-by: Ulf Hansson <ulf.hansson@linaro.org>
 ---
- drivers/cpuidle/cpuidle.c |   10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ kernel/printk/printk.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
---- a/drivers/cpuidle/cpuidle.c
-+++ b/drivers/cpuidle/cpuidle.c
-@@ -236,7 +236,11 @@ int cpuidle_enter_state(struct cpuidle_d
- 	stop_critical_timings();
- 	if (!(target_state->flags & CPUIDLE_FLAG_RCU_IDLE))
- 		ct_idle_enter();
-+
- 	entered_state = target_state->enter(dev, drv, index);
-+	if (WARN_ONCE(!irqs_disabled(), "%ps leaked IRQ state", target_state->enter))
-+		raw_local_irq_disable();
-+
- 	if (!(target_state->flags & CPUIDLE_FLAG_RCU_IDLE))
- 		ct_idle_exit();
- 	start_critical_timings();
-@@ -248,12 +252,8 @@ int cpuidle_enter_state(struct cpuidle_d
- 	/* The cpu is no longer idle or about to enter idle. */
- 	sched_idle_set_state(NULL);
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -2238,7 +2238,7 @@ static u16 printk_sprint(char *text, u16
+ 		}
+ 	}
  
--	if (broadcast) {
--		if (WARN_ON_ONCE(!irqs_disabled()))
--			local_irq_disable();
--
-+	if (broadcast)
- 		tick_broadcast_exit();
--	}
+-	trace_console_rcuidle(text, text_len);
++	trace_console(text, text_len);
  
- 	if (!cpuidle_state_is_coupled(drv, index))
- 		local_irq_enable();
+ 	return text_len;
+ }
 
 
