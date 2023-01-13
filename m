@@ -2,31 +2,31 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B1BB5C678DB
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 06:27:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 114FBC71130
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 06:27:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240877AbjAMG1W (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Jan 2023 01:27:22 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33438 "EHLO
+        id S239524AbjAMG11 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Jan 2023 01:27:27 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60798 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S240200AbjAMGZH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 01:25:07 -0500
+        with ESMTP id S240573AbjAMGZP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 01:25:15 -0500
 Received: from bombadil.infradead.org (bombadil.infradead.org [IPv6:2607:7c80:54:3::133])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 24F136ADB3;
-        Thu, 12 Jan 2023 22:24:29 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5BE1410073;
+        Thu, 12 Jan 2023 22:24:36 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
         MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
         :Reply-To:Content-Type:Content-ID:Content-Description;
-        bh=JbdvnYG1GWIlI+mjR040Fz2HmYek241Q0TguaG7+sfY=; b=tzfdnSJqgAUXBCbR9jbeCtdG+k
-        Wi2+ukoLPUYfwY4oRYG2G65CrLpHfCH7IZIGEmOBzuo2AOm57p4YVKhyyUSErQ/iIGMHRToCCfdf/
-        ktArnslU9c1GvDmR4UkceU2GUGqLzdTYlWtq3WsFqI46PrezV3almirhHOY1EgLXgwetLPHLE3dz4
-        2GoK8l9g2L+uO3MM192VOrBKVPmFiTXFEqVyPchcY6p43ebcOag5FCHnp6JVdvVjlJ96YLX/45Mi9
-        BCvOZVDckZcIaWRSsQl7roLaFbisbPzI3+C2vMQZUL7wC/PjrWG2okWzz8h9wGWMS/aXQsfNTjHUX
-        1o7HZ5UA==;
+        bh=yNX/9/e3mCL8Z9/A5TRWG0UKPW9ZyWcnD51C6LTuRVI=; b=Ylt8A4HngYHMxsdrT3HnhJDlSV
+        iJ170NFOhoE5/jm4B0r2iZEgG/7ENapsBN7EG3eTyLKpN5X9ZYXjsypPqcTfmEHfo+RwMWyPpP/3+
+        mjrTudLbbjWOokwEpDHR/SYDPQjEdYu2BrhFltpnBqms3qC6BjqFpSVzUExolaX5+7GIWz7XCFYWp
+        EnNcdwUy6QpwLO2RM/m2LT0BcRLf2dwVUO5JUTWY6khIjWo2kMDSALL69dwv9d7JksbiErk0cYjJy
+        F0GEfksn110Oud3Mh6LP7zQRl0CYW85Mx25oaHsuUudRug/Y9kNkATuSeuGsCBnzF27GOv603zDC4
+        VB09RLNw==;
 Received: from [2001:4bb8:181:656b:9509:7d20:8d39:f895] (helo=localhost)
         by bombadil.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pGDUB-000leH-Ap; Fri, 13 Jan 2023 06:24:19 +0000
+        id 1pGDUH-000ljq-PK; Fri, 13 Jan 2023 06:24:26 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Yoshinori Sato <ysato@users.sourceforge.jp>,
         Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
@@ -45,9 +45,9 @@ Cc:     Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
         linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
         linux-fbdev@vger.kernel.org, alsa-devel@alsa-project.org,
         linux-sh@vger.kernel.org
-Subject: [PATCH 10/22] input: remove sh_keysc
-Date:   Fri, 13 Jan 2023 07:23:27 +0100
-Message-Id: <20230113062339.1909087-11-hch@lst.de>
+Subject: [PATCH 12/22] net/ethernet/8390: remove stnic
+Date:   Fri, 13 Jan 2023 07:23:29 +0100
+Message-Id: <20230113062339.1909087-13-hch@lst.de>
 X-Mailer: git-send-email 2.39.0
 In-Reply-To: <20230113062339.1909087-1-hch@lst.de>
 References: <20230113062339.1909087-1-hch@lst.de>
@@ -62,384 +62,354 @@ Now that arch/sh is removed this driver is dead code.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/input/keyboard/Kconfig    |  10 -
- drivers/input/keyboard/Makefile   |   1 -
- drivers/input/keyboard/sh_keysc.c | 334 ------------------------------
- 3 files changed, 345 deletions(-)
- delete mode 100644 drivers/input/keyboard/sh_keysc.c
+ drivers/net/ethernet/8390/Kconfig  |  12 --
+ drivers/net/ethernet/8390/Makefile |   1 -
+ drivers/net/ethernet/8390/stnic.c  | 302 -----------------------------
+ 3 files changed, 315 deletions(-)
+ delete mode 100644 drivers/net/ethernet/8390/stnic.c
 
-diff --git a/drivers/input/keyboard/Kconfig b/drivers/input/keyboard/Kconfig
-index 84490915ae4d5a..882ec5fef214ac 100644
---- a/drivers/input/keyboard/Kconfig
-+++ b/drivers/input/keyboard/Kconfig
-@@ -625,16 +625,6 @@ config KEYBOARD_SUNKBD
- 	  To compile this driver as a module, choose M here: the
- 	  module will be called sunkbd.
+diff --git a/drivers/net/ethernet/8390/Kconfig b/drivers/net/ethernet/8390/Kconfig
+index eb90de04c88419..a7976743be9ee3 100644
+--- a/drivers/net/ethernet/8390/Kconfig
++++ b/drivers/net/ethernet/8390/Kconfig
+@@ -155,18 +155,6 @@ config PCMCIA_PCNET
+ 	  To compile this driver as a module, choose M here: the module will be
+ 	  called pcnet_cs.  If unsure, say N.
  
--config KEYBOARD_SH_KEYSC
--	tristate "SuperH KEYSC keypad support"
--	depends on ARCH_SHMOBILE || COMPILE_TEST
+-config STNIC
+-	tristate "National DP83902AV  support"
+-	depends on SUPERH
+-	select CRC32
 -	help
--	  Say Y here if you want to use a keypad attached to the KEYSC block
--	  on SuperH processors such as sh7722 and sh7343.
+-	  Support for cards based on the National Semiconductor DP83902AV
+-	  ST-NIC Serial Network Interface Controller for Twisted Pair.  This
+-	  is a 10Mbit/sec Ethernet controller.  Product overview and specs at
+-	  <http://www.national.com/pf/DP/DP83902A.html>.
 -
--	  To compile this driver as a module, choose M here: the
--	  module will be called sh_keysc.
+-	  If unsure, say N.
 -
- config KEYBOARD_STMPE
- 	tristate "STMPE keypad support"
- 	depends on MFD_STMPE
-diff --git a/drivers/input/keyboard/Makefile b/drivers/input/keyboard/Makefile
-index 5f67196bb2c1ea..8aba0b052b4504 100644
---- a/drivers/input/keyboard/Makefile
-+++ b/drivers/input/keyboard/Makefile
-@@ -60,7 +60,6 @@ obj-$(CONFIG_KEYBOARD_QT1050)           += qt1050.o
- obj-$(CONFIG_KEYBOARD_QT1070)           += qt1070.o
- obj-$(CONFIG_KEYBOARD_QT2160)		+= qt2160.o
- obj-$(CONFIG_KEYBOARD_SAMSUNG)		+= samsung-keypad.o
--obj-$(CONFIG_KEYBOARD_SH_KEYSC)		+= sh_keysc.o
- obj-$(CONFIG_KEYBOARD_SNVS_PWRKEY)	+= snvs_pwrkey.o
- obj-$(CONFIG_KEYBOARD_SPEAR)		+= spear-keyboard.o
- obj-$(CONFIG_KEYBOARD_STMPE)		+= stmpe-keypad.o
-diff --git a/drivers/input/keyboard/sh_keysc.c b/drivers/input/keyboard/sh_keysc.c
+ config ULTRA
+ 	tristate "SMC Ultra support"
+ 	depends on ISA
+diff --git a/drivers/net/ethernet/8390/Makefile b/drivers/net/ethernet/8390/Makefile
+index 85c83c566ec663..3819a3bb75a1c9 100644
+--- a/drivers/net/ethernet/8390/Makefile
++++ b/drivers/net/ethernet/8390/Makefile
+@@ -13,7 +13,6 @@ obj-$(CONFIG_NE2000) += ne.o 8390p.o
+ obj-$(CONFIG_NE2K_PCI) += ne2k-pci.o 8390.o
+ obj-$(CONFIG_PCMCIA_AXNET) += axnet_cs.o 8390.o
+ obj-$(CONFIG_PCMCIA_PCNET) += pcnet_cs.o 8390.o
+-obj-$(CONFIG_STNIC) += stnic.o 8390.o
+ obj-$(CONFIG_ULTRA) += smc-ultra.o 8390.o
+ obj-$(CONFIG_WD80x3) += wd.o 8390.o
+ obj-$(CONFIG_XSURF100) += xsurf100.o
+diff --git a/drivers/net/ethernet/8390/stnic.c b/drivers/net/ethernet/8390/stnic.c
 deleted file mode 100644
-index 2c00320f739fc1..00000000000000
---- a/drivers/input/keyboard/sh_keysc.c
+index bd89ca8a92dfbc..00000000000000
+--- a/drivers/net/ethernet/8390/stnic.c
 +++ /dev/null
-@@ -1,334 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0-only
--/*
-- * SuperH KEYSC Keypad Driver
+@@ -1,302 +0,0 @@
+-/* stnic.c : A SH7750 specific part of driver for NS DP83902A ST-NIC.
 - *
-- * Copyright (C) 2008 Magnus Damm
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
 - *
-- * Based on gpio_keys.c, Copyright 2005 Phil Blundell
+- * Copyright (C) 1999 kaz Kojima
 - */
 -
--#include <linux/kernel.h>
 -#include <linux/module.h>
+-#include <linux/kernel.h>
+-#include <linux/errno.h>
 -#include <linux/interrupt.h>
--#include <linux/irq.h>
+-#include <linux/ioport.h>
+-#include <linux/netdevice.h>
+-#include <linux/etherdevice.h>
+-#include <linux/init.h>
 -#include <linux/delay.h>
--#include <linux/platform_device.h>
--#include <linux/input.h>
--#include <linux/input/sh_keysc.h>
--#include <linux/bitmap.h>
--#include <linux/pm_runtime.h>
--#include <linux/io.h>
--#include <linux/slab.h>
 -
--static const struct {
--	unsigned char kymd, keyout, keyin;
--} sh_keysc_mode[] = {
--	[SH_KEYSC_MODE_1] = { 0, 6, 5 },
--	[SH_KEYSC_MODE_2] = { 1, 5, 6 },
--	[SH_KEYSC_MODE_3] = { 2, 4, 7 },
--	[SH_KEYSC_MODE_4] = { 3, 6, 6 },
--	[SH_KEYSC_MODE_5] = { 4, 6, 7 },
--	[SH_KEYSC_MODE_6] = { 5, 8, 8 },
--};
+-#include <asm/io.h>
+-#include <mach-se/mach/se.h>
+-#include <asm/machvec.h>
+-#ifdef CONFIG_SH_STANDARD_BIOS
+-#include <asm/sh_bios.h>
+-#endif
 -
--struct sh_keysc_priv {
--	void __iomem *iomem_base;
--	DECLARE_BITMAP(last_keys, SH_KEYSC_MAXKEYS);
--	struct input_dev *input;
--	struct sh_keysc_info pdata;
--};
+-#include "8390.h"
 -
--#define KYCR1 0
--#define KYCR2 1
--#define KYINDR 2
--#define KYOUTDR 3
+-#define DRV_NAME "stnic"
 -
--#define KYCR2_IRQ_LEVEL    0x10
--#define KYCR2_IRQ_DISABLED 0x00
+-#define byte	unsigned char
+-#define half	unsigned short
+-#define word	unsigned int
+-#define vbyte	volatile unsigned char
+-#define vhalf	volatile unsigned short
+-#define vword	volatile unsigned int
 -
--static unsigned long sh_keysc_read(struct sh_keysc_priv *p, int reg_nr)
+-#define STNIC_RUN	0x01	/* 1 == Run, 0 == reset. */
+-
+-#define START_PG	0	/* First page of TX buffer */
+-#define STOP_PG		128	/* Last page +1 of RX ring */
+-
+-/* Alias */
+-#define STNIC_CR	E8390_CMD
+-#define PG0_RSAR0	EN0_RSARLO
+-#define PG0_RSAR1	EN0_RSARHI
+-#define PG0_RBCR0	EN0_RCNTLO
+-#define PG0_RBCR1	EN0_RCNTHI
+-
+-#define CR_RRD		E8390_RREAD
+-#define CR_RWR		E8390_RWRITE
+-#define CR_PG0		E8390_PAGE0
+-#define CR_STA		E8390_START
+-#define CR_RDMA		E8390_NODMA
+-
+-/* FIXME! YOU MUST SET YOUR OWN ETHER ADDRESS.  */
+-static byte stnic_eadr[6] =
+-{0x00, 0xc0, 0x6e, 0x00, 0x00, 0x07};
+-
+-static struct net_device *stnic_dev;
+-
+-static void stnic_reset (struct net_device *dev);
+-static void stnic_get_hdr (struct net_device *dev, struct e8390_pkt_hdr *hdr,
+-			   int ring_page);
+-static void stnic_block_input (struct net_device *dev, int count,
+-			       struct sk_buff *skb , int ring_offset);
+-static void stnic_block_output (struct net_device *dev, int count,
+-				const unsigned char *buf, int start_page);
+-
+-static void stnic_init (struct net_device *dev);
+-
+-static u32 stnic_msg_enable;
+-
+-module_param_named(msg_enable, stnic_msg_enable, uint, 0444);
+-MODULE_PARM_DESC(msg_enable, "Debug message level (see linux/netdevice.h for bitmap)");
+-
+-/* SH7750 specific read/write io. */
+-static inline void
+-STNIC_DELAY (void)
 -{
--	return ioread16(p->iomem_base + (reg_nr << 2));
+-  vword trash;
+-  trash = *(vword *) 0xa0000000;
+-  trash = *(vword *) 0xa0000000;
+-  trash = *(vword *) 0xa0000000;
 -}
 -
--static void sh_keysc_write(struct sh_keysc_priv *p, int reg_nr,
--			   unsigned long value)
+-static inline byte
+-STNIC_READ (int reg)
 -{
--	iowrite16(value, p->iomem_base + (reg_nr << 2));
+-  byte val;
+-
+-  val = (*(vhalf *) (PA_83902 + ((reg) << 1)) >> 8) & 0xff;
+-  STNIC_DELAY ();
+-  return val;
 -}
 -
--static void sh_keysc_level_mode(struct sh_keysc_priv *p,
--				unsigned long keys_set)
+-static inline void
+-STNIC_WRITE (int reg, byte val)
 -{
--	struct sh_keysc_info *pdata = &p->pdata;
--
--	sh_keysc_write(p, KYOUTDR, 0);
--	sh_keysc_write(p, KYCR2, KYCR2_IRQ_LEVEL | (keys_set << 8));
--
--	if (pdata->kycr2_delay)
--		udelay(pdata->kycr2_delay);
+-  *(vhalf *) (PA_83902 + ((reg) << 1)) = ((half) (val) << 8);
+-  STNIC_DELAY ();
 -}
 -
--static void sh_keysc_map_dbg(struct device *dev, unsigned long *map,
--			     const char *str)
+-static int __init stnic_probe(void)
 -{
--	int k;
+-  struct net_device *dev;
+-  struct ei_device *ei_local;
+-  int err;
 -
--	for (k = 0; k < BITS_TO_LONGS(SH_KEYSC_MAXKEYS); k++)
--		dev_dbg(dev, "%s[%d] 0x%lx\n", str, k, map[k]);
+-  /* If we are not running on a SolutionEngine, give up now */
+-  if (! MACH_SE)
+-    return -ENODEV;
+-
+-  /* New style probing API */
+-  dev = alloc_ei_netdev();
+-  if (!dev)
+-	return -ENOMEM;
+-
+-#ifdef CONFIG_SH_STANDARD_BIOS
+-  sh_bios_get_node_addr (stnic_eadr);
+-#endif
+-  eth_hw_addr_set(dev, stnic_eadr);
+-
+-  /* Set the base address to point to the NIC, not the "real" base! */
+-  dev->base_addr = 0x1000;
+-  dev->irq = IRQ_STNIC;
+-  dev->netdev_ops = &ei_netdev_ops;
+-
+-  /* Snarf the interrupt now.  There's no point in waiting since we cannot
+-     share and the board will usually be enabled. */
+-  err = request_irq (dev->irq, ei_interrupt, 0, DRV_NAME, dev);
+-  if (err)  {
+-	netdev_emerg(dev, " unable to get IRQ %d.\n", dev->irq);
+-	free_netdev(dev);
+-	return err;
+-  }
+-
+-  ei_status.name = dev->name;
+-  ei_status.word16 = 1;
+-#ifdef __LITTLE_ENDIAN__
+-  ei_status.bigendian = 0;
+-#else
+-  ei_status.bigendian = 1;
+-#endif
+-  ei_status.tx_start_page = START_PG;
+-  ei_status.rx_start_page = START_PG + TX_PAGES;
+-  ei_status.stop_page = STOP_PG;
+-
+-  ei_status.reset_8390 = &stnic_reset;
+-  ei_status.get_8390_hdr = &stnic_get_hdr;
+-  ei_status.block_input = &stnic_block_input;
+-  ei_status.block_output = &stnic_block_output;
+-
+-  stnic_init (dev);
+-  ei_local = netdev_priv(dev);
+-  ei_local->msg_enable = stnic_msg_enable;
+-
+-  err = register_netdev(dev);
+-  if (err) {
+-    free_irq(dev->irq, dev);
+-    free_netdev(dev);
+-    return err;
+-  }
+-  stnic_dev = dev;
+-
+-  netdev_info(dev, "NS ST-NIC 83902A\n");
+-
+-  return 0;
 -}
 -
--static irqreturn_t sh_keysc_isr(int irq, void *dev_id)
+-static void
+-stnic_reset (struct net_device *dev)
 -{
--	struct platform_device *pdev = dev_id;
--	struct sh_keysc_priv *priv = platform_get_drvdata(pdev);
--	struct sh_keysc_info *pdata = &priv->pdata;
--	int keyout_nr = sh_keysc_mode[pdata->mode].keyout;
--	int keyin_nr = sh_keysc_mode[pdata->mode].keyin;
--	DECLARE_BITMAP(keys, SH_KEYSC_MAXKEYS);
--	DECLARE_BITMAP(keys0, SH_KEYSC_MAXKEYS);
--	DECLARE_BITMAP(keys1, SH_KEYSC_MAXKEYS);
--	unsigned char keyin_set, tmp;
--	int i, k, n;
+-  struct ei_device *ei_local = netdev_priv(dev);
 -
--	dev_dbg(&pdev->dev, "isr!\n");
--
--	bitmap_fill(keys1, SH_KEYSC_MAXKEYS);
--	bitmap_zero(keys0, SH_KEYSC_MAXKEYS);
--
--	do {
--		bitmap_zero(keys, SH_KEYSC_MAXKEYS);
--		keyin_set = 0;
--
--		sh_keysc_write(priv, KYCR2, KYCR2_IRQ_DISABLED);
--
--		for (i = 0; i < keyout_nr; i++) {
--			n = keyin_nr * i;
--
--			/* drive one KEYOUT pin low, read KEYIN pins */
--			sh_keysc_write(priv, KYOUTDR, 0xffff ^ (3 << (i * 2)));
--			udelay(pdata->delay);
--			tmp = sh_keysc_read(priv, KYINDR);
--
--			/* set bit if key press has been detected */
--			for (k = 0; k < keyin_nr; k++) {
--				if (tmp & (1 << k))
--					__set_bit(n + k, keys);
--			}
--
--			/* keep track of which KEYIN bits that have been set */
--			keyin_set |= tmp ^ ((1 << keyin_nr) - 1);
--		}
--
--		sh_keysc_level_mode(priv, keyin_set);
--
--		bitmap_complement(keys, keys, SH_KEYSC_MAXKEYS);
--		bitmap_and(keys1, keys1, keys, SH_KEYSC_MAXKEYS);
--		bitmap_or(keys0, keys0, keys, SH_KEYSC_MAXKEYS);
--
--		sh_keysc_map_dbg(&pdev->dev, keys, "keys");
--
--	} while (sh_keysc_read(priv, KYCR2) & 0x01);
--
--	sh_keysc_map_dbg(&pdev->dev, priv->last_keys, "last_keys");
--	sh_keysc_map_dbg(&pdev->dev, keys0, "keys0");
--	sh_keysc_map_dbg(&pdev->dev, keys1, "keys1");
--
--	for (i = 0; i < SH_KEYSC_MAXKEYS; i++) {
--		k = pdata->keycodes[i];
--		if (!k)
--			continue;
--
--		if (test_bit(i, keys0) == test_bit(i, priv->last_keys))
--			continue;
--
--		if (test_bit(i, keys1) || test_bit(i, keys0)) {
--			input_event(priv->input, EV_KEY, k, 1);
--			__set_bit(i, priv->last_keys);
--		}
--
--		if (!test_bit(i, keys1)) {
--			input_event(priv->input, EV_KEY, k, 0);
--			__clear_bit(i, priv->last_keys);
--		}
--
--	}
--	input_sync(priv->input);
--
--	return IRQ_HANDLED;
+-  *(vhalf *) PA_83902_RST = 0;
+-  udelay (5);
+-  netif_warn(ei_local, hw, dev, "8390 reset done (%ld).\n", jiffies);
+-  *(vhalf *) PA_83902_RST = ~0;
+-  udelay (5);
 -}
 -
--static int sh_keysc_probe(struct platform_device *pdev)
+-static void
+-stnic_get_hdr (struct net_device *dev, struct e8390_pkt_hdr *hdr,
+-	       int ring_page)
 -{
--	struct sh_keysc_priv *priv;
--	struct sh_keysc_info *pdata;
--	struct resource *res;
--	struct input_dev *input;
--	int i;
--	int irq, error;
+-  struct ei_device *ei_local = netdev_priv(dev);
 -
--	if (!dev_get_platdata(&pdev->dev)) {
--		dev_err(&pdev->dev, "no platform data defined\n");
--		error = -EINVAL;
--		goto err0;
--	}
+-  half buf[2];
 -
--	error = -ENXIO;
--	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
--	if (res == NULL) {
--		dev_err(&pdev->dev, "failed to get I/O memory\n");
--		goto err0;
--	}
+-  STNIC_WRITE (PG0_RSAR0, 0);
+-  STNIC_WRITE (PG0_RSAR1, ring_page);
+-  STNIC_WRITE (PG0_RBCR0, 4);
+-  STNIC_WRITE (PG0_RBCR1, 0);
+-  STNIC_WRITE (STNIC_CR, CR_RRD | CR_PG0 | CR_STA);
 -
--	irq = platform_get_irq(pdev, 0);
--	if (irq < 0)
--		goto err0;
+-  buf[0] = *(vhalf *) PA_83902_IF;
+-  STNIC_DELAY ();
+-  buf[1] = *(vhalf *) PA_83902_IF;
+-  STNIC_DELAY ();
+-  hdr->next = buf[0] >> 8;
+-  hdr->status = buf[0] & 0xff;
+-#ifdef __LITTLE_ENDIAN__
+-  hdr->count = buf[1];
+-#else
+-  hdr->count = ((buf[1] >> 8) & 0xff) | (buf[1] << 8);
+-#endif
 -
--	priv = kzalloc(sizeof(*priv), GFP_KERNEL);
--	if (priv == NULL) {
--		dev_err(&pdev->dev, "failed to allocate driver data\n");
--		error = -ENOMEM;
--		goto err0;
--	}
+-  netif_dbg(ei_local, probe, dev, "ring %x status %02x next %02x count %04x.\n",
+-	    ring_page, hdr->status, hdr->next, hdr->count);
 -
--	platform_set_drvdata(pdev, priv);
--	memcpy(&priv->pdata, dev_get_platdata(&pdev->dev), sizeof(priv->pdata));
--	pdata = &priv->pdata;
--
--	priv->iomem_base = ioremap(res->start, resource_size(res));
--	if (priv->iomem_base == NULL) {
--		dev_err(&pdev->dev, "failed to remap I/O memory\n");
--		error = -ENXIO;
--		goto err1;
--	}
--
--	priv->input = input_allocate_device();
--	if (!priv->input) {
--		dev_err(&pdev->dev, "failed to allocate input device\n");
--		error = -ENOMEM;
--		goto err2;
--	}
--
--	input = priv->input;
--	input->evbit[0] = BIT_MASK(EV_KEY);
--
--	input->name = pdev->name;
--	input->phys = "sh-keysc-keys/input0";
--	input->dev.parent = &pdev->dev;
--
--	input->id.bustype = BUS_HOST;
--	input->id.vendor = 0x0001;
--	input->id.product = 0x0001;
--	input->id.version = 0x0100;
--
--	input->keycode = pdata->keycodes;
--	input->keycodesize = sizeof(pdata->keycodes[0]);
--	input->keycodemax = ARRAY_SIZE(pdata->keycodes);
--
--	error = request_threaded_irq(irq, NULL, sh_keysc_isr, IRQF_ONESHOT,
--				     dev_name(&pdev->dev), pdev);
--	if (error) {
--		dev_err(&pdev->dev, "failed to request IRQ\n");
--		goto err3;
--	}
--
--	for (i = 0; i < SH_KEYSC_MAXKEYS; i++)
--		__set_bit(pdata->keycodes[i], input->keybit);
--	__clear_bit(KEY_RESERVED, input->keybit);
--
--	error = input_register_device(input);
--	if (error) {
--		dev_err(&pdev->dev, "failed to register input device\n");
--		goto err4;
--	}
--
--	pm_runtime_enable(&pdev->dev);
--	pm_runtime_get_sync(&pdev->dev);
--
--	sh_keysc_write(priv, KYCR1, (sh_keysc_mode[pdata->mode].kymd << 8) |
--		       pdata->scan_timing);
--	sh_keysc_level_mode(priv, 0);
--
--	device_init_wakeup(&pdev->dev, 1);
--
--	return 0;
--
-- err4:
--	free_irq(irq, pdev);
-- err3:
--	input_free_device(input);
-- err2:
--	iounmap(priv->iomem_base);
-- err1:
--	kfree(priv);
-- err0:
--	return error;
+-  STNIC_WRITE (STNIC_CR, CR_RDMA | CR_PG0 | CR_STA);
 -}
 -
--static int sh_keysc_remove(struct platform_device *pdev)
+-/* Block input and output, similar to the Crynwr packet driver. If you are
+-   porting to a new ethercard look at the packet driver source for hints.
+-   The HP LAN doesn't use shared memory -- we put the packet
+-   out through the "remote DMA" dataport. */
+-
+-static void
+-stnic_block_input (struct net_device *dev, int length, struct sk_buff *skb,
+-		   int offset)
 -{
--	struct sh_keysc_priv *priv = platform_get_drvdata(pdev);
+-  char *buf = skb->data;
+-  half val;
 -
--	sh_keysc_write(priv, KYCR2, KYCR2_IRQ_DISABLED);
+-  STNIC_WRITE (PG0_RSAR0, offset & 0xff);
+-  STNIC_WRITE (PG0_RSAR1, offset >> 8);
+-  STNIC_WRITE (PG0_RBCR0, length & 0xff);
+-  STNIC_WRITE (PG0_RBCR1, length >> 8);
+-  STNIC_WRITE (STNIC_CR, CR_RRD | CR_PG0 | CR_STA);
 -
--	input_unregister_device(priv->input);
--	free_irq(platform_get_irq(pdev, 0), pdev);
--	iounmap(priv->iomem_base);
+-  if (length & 1)
+-    length++;
 -
--	pm_runtime_put_sync(&pdev->dev);
--	pm_runtime_disable(&pdev->dev);
+-  while (length > 0)
+-    {
+-      val = *(vhalf *) PA_83902_IF;
+-#ifdef __LITTLE_ENDIAN__
+-      *buf++ = val & 0xff;
+-      *buf++ = val >> 8;
+-#else
+-      *buf++ = val >> 8;
+-      *buf++ = val & 0xff;
+-#endif
+-      STNIC_DELAY ();
+-      length -= sizeof (half);
+-    }
 -
--	kfree(priv);
--
--	return 0;
+-  STNIC_WRITE (STNIC_CR, CR_RDMA | CR_PG0 | CR_STA);
 -}
 -
--static int sh_keysc_suspend(struct device *dev)
+-static void
+-stnic_block_output (struct net_device *dev, int length,
+-		    const unsigned char *buf, int output_page)
 -{
--	struct platform_device *pdev = to_platform_device(dev);
--	struct sh_keysc_priv *priv = platform_get_drvdata(pdev);
--	int irq = platform_get_irq(pdev, 0);
--	unsigned short value;
+-  STNIC_WRITE (PG0_RBCR0, 1);	/* Write non-zero value */
+-  STNIC_WRITE (STNIC_CR, CR_RRD | CR_PG0 | CR_STA);
+-  STNIC_DELAY ();
 -
--	value = sh_keysc_read(priv, KYCR1);
+-  STNIC_WRITE (PG0_RBCR0, length & 0xff);
+-  STNIC_WRITE (PG0_RBCR1, length >> 8);
+-  STNIC_WRITE (PG0_RSAR0, 0);
+-  STNIC_WRITE (PG0_RSAR1, output_page);
+-  STNIC_WRITE (STNIC_CR, CR_RWR | CR_PG0 | CR_STA);
 -
--	if (device_may_wakeup(dev)) {
--		sh_keysc_write(priv, KYCR1, value | 0x80);
--		enable_irq_wake(irq);
--	} else {
--		sh_keysc_write(priv, KYCR1, value & ~0x80);
--		pm_runtime_put_sync(dev);
--	}
+-  if (length & 1)
+-    length++;
 -
--	return 0;
+-  while (length > 0)
+-    {
+-#ifdef __LITTLE_ENDIAN__
+-      *(vhalf *) PA_83902_IF = ((half) buf[1] << 8) | buf[0];
+-#else
+-      *(vhalf *) PA_83902_IF = ((half) buf[0] << 8) | buf[1];
+-#endif
+-      STNIC_DELAY ();
+-      buf += sizeof (half);
+-      length -= sizeof (half);
+-    }
+-
+-  STNIC_WRITE (STNIC_CR, CR_RDMA | CR_PG0 | CR_STA);
 -}
 -
--static int sh_keysc_resume(struct device *dev)
+-/* This function resets the STNIC if something screws up.  */
+-static void
+-stnic_init (struct net_device *dev)
 -{
--	struct platform_device *pdev = to_platform_device(dev);
--	int irq = platform_get_irq(pdev, 0);
--
--	if (device_may_wakeup(dev))
--		disable_irq_wake(irq);
--	else
--		pm_runtime_get_sync(dev);
--
--	return 0;
+-  stnic_reset (dev);
+-  NS8390_init (dev, 0);
 -}
 -
--static DEFINE_SIMPLE_DEV_PM_OPS(sh_keysc_dev_pm_ops,
--				sh_keysc_suspend, sh_keysc_resume);
+-static void __exit stnic_cleanup(void)
+-{
+-	unregister_netdev(stnic_dev);
+-	free_irq(stnic_dev->irq, stnic_dev);
+-	free_netdev(stnic_dev);
+-}
 -
--static struct platform_driver sh_keysc_device_driver = {
--	.probe		= sh_keysc_probe,
--	.remove		= sh_keysc_remove,
--	.driver		= {
--		.name	= "sh_keysc",
--		.pm	= pm_sleep_ptr(&sh_keysc_dev_pm_ops),
--	}
--};
--module_platform_driver(sh_keysc_device_driver);
--
--MODULE_AUTHOR("Magnus Damm");
--MODULE_DESCRIPTION("SuperH KEYSC Keypad Driver");
+-module_init(stnic_probe);
+-module_exit(stnic_cleanup);
 -MODULE_LICENSE("GPL");
 -- 
 2.39.0
