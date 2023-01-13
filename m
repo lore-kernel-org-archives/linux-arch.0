@@ -2,129 +2,130 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 38812C678D7
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 23:20:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E601C3DA78
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 23:25:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231322AbjAMXUW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Jan 2023 18:20:22 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34808 "EHLO
+        id S231386AbjAMXZq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Jan 2023 18:25:46 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37664 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231389AbjAMXUS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 18:20:18 -0500
-Received: from mail-oa1-x33.google.com (mail-oa1-x33.google.com [IPv6:2001:4860:4864:20::33])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64D6B8CBF9
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:20:12 -0800 (PST)
-Received: by mail-oa1-x33.google.com with SMTP id 586e51a60fabf-142b72a728fso23904438fac.9
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:20:12 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=landley-net.20210112.gappssmtp.com; s=20210112;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=TQ9PrP3iNHpghVpkywhiMHcSFTwXN8kLEUSP7zNfGWk=;
-        b=HEeiDnUeOlaMmzrHg6LtTWNe2KIF6Q5d6PASMOjvpBnFNwlXnpxtBoyLsjdUSiFic5
-         Zy4GrupmECG1CN3m99XRInimzLkAyFlnAC1yFwr9ZV5WqZ8Mxia0axE41+SyDlpGZHOF
-         b9/hPmk9ZzrDZTerjRuPw9aOBuwmuFZgGCgGCyi5DNv5BOgrp6hpzWbx8PiSSS3PCS6S
-         UoJjpLq7r0mXx6nv8CL2PCVxH6W+Fc0fSdqCoguiOJxRwovXLajxMhMVOFQITRvWQd2L
-         +x8hdq/wHJdMhQD25h3cEnBEwX4srdIbxyBywCRXQlXO+4KVbgaam+X20emmeoxJCckb
-         5wPw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=TQ9PrP3iNHpghVpkywhiMHcSFTwXN8kLEUSP7zNfGWk=;
-        b=2IORnM+m6eSS4ladKpPtX8iiQm0YtJ3WdRijy34LY0MeGNQGeSXc2fX55dHc/k72+b
-         Bf0Sx0QvM1lHjvIbZnlbfMOCKpJR6eWgn+ogD/I6tvgpOERrrNiomsis87pfTHrBz/VF
-         SRbtMYOfUW+aR2NggI3+SW1NT1LHlOcvNM+IyzFSj6LYrUMdxeUuXc6CA3NcXtHmyO2D
-         FfjBXMacXF43gc3psrFCYvyvCkqnf6QJPkfBMkFI+omPaT4Qq2wE56hJvR8NSTpeKSdv
-         OaOGZbXvy2FU7qDlprOcDkVRz2YiktgmueJ6JODIJ3bMj0j+ed0NhabZ5su/mUK7sjyA
-         djAQ==
-X-Gm-Message-State: AFqh2kowcPUD1fyEdiWHH6k4X52Zn2xvTcEdXAnNq9YByFwjSVjy0JQs
-        8DfTCChu0RYKQeLUO5KwDGjxrw==
-X-Google-Smtp-Source: AMrXdXu9HHEo/oiUtz2RMFCVU9bzsQZjZJ6cJq7QQE+EgrBS53y1RWYqF/4GpGuzhXIiUysKwMTRjQ==
-X-Received: by 2002:a05:6871:4090:b0:155:cb39:7325 with SMTP id kz16-20020a056871409000b00155cb397325mr16579350oab.6.1673652012126;
-        Fri, 13 Jan 2023 15:20:12 -0800 (PST)
-Received: from [192.168.86.224] ([136.62.38.22])
-        by smtp.gmail.com with ESMTPSA id z13-20020a056870738d00b0013ae39d0575sm11411907oam.15.2023.01.13.15.20.10
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 13 Jan 2023 15:20:11 -0800 (PST)
-Message-ID: <38200b53-c743-4396-6603-7274f4a29c86@landley.net>
-Date:   Fri, 13 Jan 2023 17:32:20 -0600
+        with ESMTP id S231184AbjAMXZm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 18:25:42 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A9D7C6719A;
+        Fri, 13 Jan 2023 15:25:41 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 62707B82278;
+        Fri, 13 Jan 2023 23:25:40 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DE949C43392;
+        Fri, 13 Jan 2023 23:25:38 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1673652338;
+        bh=qVbsd05KHLBi1A1+RbPFk566wcNZkDulba+8c+3hkj8=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=Lkqvn5tWFHlQ1g1zeASqiqPqpVLLfb7NI47LYm8e0HaA97hOuaTrQHMdecL65a5nu
+         kz/sbvYcMIUEDXHsSCpRRK8wnno16ARVe2DLHhidqVu0ScSl6AskyZaOYxj9ODjOwP
+         UyoK2ydCSoA8eUdS1/O7BT3GUQ3wGrc/9ptKJscR6XnE4tveeHwlpGO+XVD/8xVcjU
+         eeICahu97ChW949649TXRwc0WN7arLTxyEScTAABdzso9BUtaP7FrDOPArjqOu1srN
+         Bk9jw/n0tTz02C/X4+0KOv0LM0yyrOlZfu02uwbIFtUMw3G6gy6/Hq9YBVpkVrcGGS
+         WtG9wdpYuWZLA==
+Received: by mail-lf1-f42.google.com with SMTP id j17so35208817lfr.3;
+        Fri, 13 Jan 2023 15:25:38 -0800 (PST)
+X-Gm-Message-State: AFqh2krvOUYQ3n2xkLDv2aA44HacwH7cTCSqR9Mxe5673phNOAxri5KP
+        8DvwGn4OTb/0L3nhln3N7y2WL+A5XW363ILu+WA=
+X-Google-Smtp-Source: AMrXdXsiVcvp4M0sdC7uvlVrEchvlWch7gsiC5oLxJ7MUg+sdhbvU1pVuoSujQ7D12h8RonWIO1ypm2Vdq0KlsYUOC4=
+X-Received: by 2002:a05:6512:3d93:b0:4b8:9001:a694 with SMTP id
+ k19-20020a0565123d9300b004b89001a694mr3999732lfv.426.1673652336888; Fri, 13
+ Jan 2023 15:25:36 -0800 (PST)
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.5.0
-Subject: Re: remove arch/sh
-Content-Language: en-US
-To:     John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-        Geert Uytterhoeven <geert@linux-m68k.org>
-Cc:     Christoph Hellwig <hch@lst.de>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
-        Kieran Bingham <kieran.bingham+renesas@ideasonboard.com>,
-        Geert Uytterhoeven <geert+renesas@glider.be>,
-        linux-kernel@vger.kernel.org, linux-watchdog@vger.kernel.org,
-        devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
-        dmaengine@vger.kernel.org, dri-devel@lists.freedesktop.org,
-        linux-renesas-soc@vger.kernel.org, linux-i2c@vger.kernel.org,
-        linux-input@vger.kernel.org, linux-media@vger.kernel.org,
-        linux-mmc@vger.kernel.org, linux-mtd@lists.infradead.org,
-        netdev@vger.kernel.org, linux-gpio@vger.kernel.org,
-        linux-rtc@vger.kernel.org, linux-spi@vger.kernel.org,
-        linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
-        linux-fbdev@vger.kernel.org, alsa-devel@alsa-project.org,
-        linux-sh@vger.kernel.org
-References: <20230113062339.1909087-1-hch@lst.de>
- <11e2e0a8-eabe-2d8c-d612-9cdd4bcc3648@physik.fu-berlin.de>
- <CAMuHMdUcnP6a9Ch5=_CMPq-io-YWK5pshkOT2nZmP1hvNcwBAg@mail.gmail.com>
- <142532fb-5997-bdc1-0811-a80ae33f4ba4@physik.fu-berlin.de>
- <6891afb6-4190-6a52-0319-745b3f138d97@landley.net>
- <fe09d811-e290-821d-ec8b-75936b6583c2@physik.fu-berlin.de>
-From:   Rob Landley <rob@landley.net>
-In-Reply-To: <fe09d811-e290-821d-ec8b-75936b6583c2@physik.fu-berlin.de>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+References: <CAMj1kXEqbMEcrKYzz2-huLPMnotPoxFY8adyH=Xb4Ex8o98x-w@mail.gmail.com>
+ <db6937a1-e817-2d7b-0062-9aff012bb3e8@physik.fu-berlin.de>
+In-Reply-To: <db6937a1-e817-2d7b-0062-9aff012bb3e8@physik.fu-berlin.de>
+From:   Ard Biesheuvel <ardb@kernel.org>
+Date:   Sat, 14 Jan 2023 00:25:24 +0100
+X-Gmail-Original-Message-ID: <CAMj1kXEtTuaNFiKWn3cJngR0J2vr0G07HR6+5PBodtr1b7vNxg@mail.gmail.com>
+Message-ID: <CAMj1kXEtTuaNFiKWn3cJngR0J2vr0G07HR6+5PBodtr1b7vNxg@mail.gmail.com>
+Subject: Re: ia64 removal (was: Re: lockref scalability on x86-64 vs cpu_relax)
+To:     John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc:     "Luck, Tony" <tony.luck@intel.com>,
+        "Torvalds, Linus" <torvalds@linux-foundation.org>,
+        Mateusz Guzik <mjguzik@gmail.com>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+        "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>,
+        Jan Glauber <jan.glauber@gmail.com>,
+        Linux ARM <linux-arm-kernel@lists.infradead.org>,
+        linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 1/13/23 13:05, John Paul Adrian Glaubitz wrote:
-> Hi Rob!
-> 
-> On 1/13/23 20:11, Rob Landley wrote:
->> There is definitely interest in this architecture. I'm aware Rich hasn't been
->> the most responsive maintainer. (I'm told he's on vacation with his family at
->> the moment, according to the text I got about this issue from the J-core
->> hardware guys in Japan.)
-> 
-> Well, maybe we can just give it a try together ...
-
-Jeff Dionne said he'd make himself available to answer hardware questions. (He
-said he maintained some Linux ports 20 years ago, but isn't current with Linux
-plumbing. Last month he was digging through the guts of vxworks, and the project
-before that was some sort of BSD I think?)
-
-I _do_ maintain Linux patches, I just generally don't bother to repost them
-endlessly. Here's my "on top of 6.1" stack for example, each of which links to
-at least one time it was posted to linux-kernel:
-
-https://landley.net/toybox/downloads/binaries/mkroot/0.8.9/linux-patches/
-
->> The main reason we haven't converted everything to device tree is we only have
->> access to test hardware for a subset of the boards. Pruning the list of
->> supported boards and converting the rest to device tree might make sense. We can
->> always add/convert boards back later...
-> 
-> There is a patch by Yoshinori Sato which adds device tree support to SH. Maybe we
-> can revive it.
-
-The turtle board is device tree and has been since it was merged. The
-infrastructure is there, the question is converting over boards and testing
-them, or deciding to prune them. Did Sato-san convert many boards? (I'm not
-finding his patch via google...)
-
+On Fri, 13 Jan 2023 at 22:06, John Paul Adrian Glaubitz
+<glaubitz@physik.fu-berlin.de> wrote:
+>
+> Hello Ard!
+>
+> > Can I take that as an ack on [0]? The EFI subsystem has evolved
+> > substantially over the years, and there is really no way to do any
+> > IA64 testing beyond build testing, so from that perspective, dropping
+> > it entirely would be welcomed.
+>
+> ia64 is regularly tested in Debian and Gentoo [1][2].
+>
+> Debian's ia64 porterbox yttrium runs a recent kernel without issues:
+>
+> root@yttrium:~# uname -a
+> Linux yttrium 5.19.0-2-mckinley #1 SMP Debian 5.19.11-1 (2022-09-24) ia64 GNU/Linux
+> root@yttrium:~#
+>
+> root@yttrium:~# journalctl -b|head -n10
+> Nov 14 14:46:10 yttrium kernel: Linux version 5.19.0-2-mckinley (debian-kernel@lists.debian.org) (gcc-11 (Debian 11.3.0-6) 11.3.0, GNU ld (GNU Binutils for Debian) 2.39) #1 SMP Debian 5.19.11-1 (2022-09-24)
+> Nov 14 14:46:10 yttrium kernel: efi: EFI v2.10 by HP
+> Nov 14 14:46:10 yttrium kernel: efi: SALsystab=0xdfdd63a18 ESI=0xdfdd63f18 ACPI 2.0=0x3d3c4014 HCDP=0xdffff8798 SMBIOS=0x3d368000
+> Nov 14 14:46:10 yttrium kernel: PCDP: v3 at 0xdffff8798
+> Nov 14 14:46:10 yttrium kernel: earlycon: uart8250 at I/O port 0x4000 (options '115200n8')
+> Nov 14 14:46:10 yttrium kernel: printk: bootconsole [uart8250] enabled
+> Nov 14 14:46:10 yttrium kernel: ACPI: Early table checksum verification disabled
+> Nov 14 14:46:10 yttrium kernel: ACPI: RSDP 0x000000003D3C4014 000024 (v02 HP    )
+> Nov 14 14:46:10 yttrium kernel: ACPI: XSDT 0x000000003D3C4580 000124 (v01 HP     RX2800-2 00000001      01000013)
+> Nov 14 14:46:10 yttrium kernel: ACPI: FACP 0x000000003D3BE000 0000F4 (v03 HP     RX2800-2 00000001 HP   00000001)
+> root@yttrium:~#
+>
+> Same applies to the buildds:
+>
+> root@lifshitz:~# uname -a
+> Linux lifshitz 6.0.0-4-mckinley #1 SMP Debian 6.0.8-1 (2022-11-11) ia64 GNU/Linux
+> root@lifshitz:~#
+>
+> root@lenz:~# uname -a
+> Linux lenz 6.0.0-4-mckinley #1 SMP Debian 6.0.8-1 (2022-11-11) ia64 GNU/Linux
+> root@lenz:~#
+>
+> EFI works fine as well using the latest version of GRUB2.
+>
+> Thanks,
 > Adrian
+>
+> > [1] https://cdimage.debian.org/cdimage/ports/snapshots/
+> > [2] https://mirror.yandex.ru/gentoo-distfiles//releases/ia64/autobuilds/
 
-Rob
+Thanks for reporting back. I (mis)read the debian ports page [3],
+which mentions Debian 7 as the highest Debian version that supports
+IA64, and so I assumed that support had been dropped from Debian.
+
+However, if only a handful of people want to keep this port alive for
+reasons of nostalgia, it is obviously obsolete, and we should ask
+ourselves whether it is reasonable to expect Linux contributors to
+keep spending time on this.
+
+Does the Debian ia64 port have any users? Or is the system that builds
+the packages the only one that consumes them?
+
+
+[3] https://www.debian.org/ports/ia64/
