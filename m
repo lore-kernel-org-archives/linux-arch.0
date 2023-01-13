@@ -2,123 +2,129 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 24295C678D6
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 23:16:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 38812C678D7
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 23:20:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229953AbjAMXQm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Jan 2023 18:16:42 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60676 "EHLO
+        id S231322AbjAMXUW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Jan 2023 18:20:22 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34808 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230411AbjAMXQf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 18:16:35 -0500
-Received: from mail-pl1-x62a.google.com (mail-pl1-x62a.google.com [IPv6:2607:f8b0:4864:20::62a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1274F8A20E
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:16:33 -0800 (PST)
-Received: by mail-pl1-x62a.google.com with SMTP id d3so24896709plr.10
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:16:33 -0800 (PST)
+        with ESMTP id S231389AbjAMXUS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 18:20:18 -0500
+Received: from mail-oa1-x33.google.com (mail-oa1-x33.google.com [IPv6:2001:4860:4864:20::33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 64D6B8CBF9
+        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:20:12 -0800 (PST)
+Received: by mail-oa1-x33.google.com with SMTP id 586e51a60fabf-142b72a728fso23904438fac.9
+        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:20:12 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=aWow72s2ZHPfyutUF3LRtthWGyQvB6TRG4mGrzQPS+Y=;
-        b=E/wbWTkGCcwoXs6O8irB3PXyBwoRW4uEkWDuoU13XByhJzTvIiq4OfNzvKMYIxRBd8
-         N5dRvUnnXxuGkG1NqPLQ9NcLguZ/hQembSMTLovSWxd/eNEA47F4pw2VMvBTgCh83EhX
-         bKzfh13CLYQPbU31yNkCeE7nVtvWxeSrEzOQXXJn3Ra1e263z8sIZrm9ZwC48e/SEbDs
-         3aEzaEkItlDgZ56c4opqTh+L6mEGkhcrmVBFbTe1hFC/UfsbAkExmK+Dw6Q5zVDBQe5Z
-         vQO9KR1KEhsZRidc5t6FXrTt3AyPbDNocZckiEhBhgfdJEwaG1EcApBlL60GoZCzvH2P
-         EHwQ==
+        d=landley-net.20210112.gappssmtp.com; s=20210112;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=TQ9PrP3iNHpghVpkywhiMHcSFTwXN8kLEUSP7zNfGWk=;
+        b=HEeiDnUeOlaMmzrHg6LtTWNe2KIF6Q5d6PASMOjvpBnFNwlXnpxtBoyLsjdUSiFic5
+         Zy4GrupmECG1CN3m99XRInimzLkAyFlnAC1yFwr9ZV5WqZ8Mxia0axE41+SyDlpGZHOF
+         b9/hPmk9ZzrDZTerjRuPw9aOBuwmuFZgGCgGCyi5DNv5BOgrp6hpzWbx8PiSSS3PCS6S
+         UoJjpLq7r0mXx6nv8CL2PCVxH6W+Fc0fSdqCoguiOJxRwovXLajxMhMVOFQITRvWQd2L
+         +x8hdq/wHJdMhQD25h3cEnBEwX4srdIbxyBywCRXQlXO+4KVbgaam+X20emmeoxJCckb
+         5wPw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=aWow72s2ZHPfyutUF3LRtthWGyQvB6TRG4mGrzQPS+Y=;
-        b=IhIHFE5pDD/gjf5FMzOUqjb8YZ+idFt3AN5f6s0xL37be8DABC2SH/st+VPjDgO015
-         LS0yFdOfjxh1h3sTd63CessCnLv6P33a+5qDzdSYNKlJgf9zT5kWMrXvKvAe62ZzDxAC
-         Y4VwA472atMvWdtExgvRIZI0RzKZH1j3Thcbv6ub1YVE77ki+LbZ4xn1U3BkjpBHlcGG
-         PcTslRjlgKUJoAOMfgMP2rq6zVZeCCnyVt5sW5itETCpSsBbbxiTro8tHYWwLEh8r2vA
-         2sOySzjejEuXEy8OhDdRS25wedSG3VmSXgm0fwEsVaxoWnw+aGXznYHyja6Sn9qwnrj/
-         0Rqw==
-X-Gm-Message-State: AFqh2kqP7Kyf2QEawdpfWTFVcnDXzNlg0aioOrPTpdjmEQG/JwinOP6q
-        DqUhDWQprPjDh7uBYyJpibmmIA==
-X-Google-Smtp-Source: AMrXdXsw5eR35BhM0SQtUTPreOToQACUohVatv5rPzW7S1K5nzUfkKmIR6WQPAlOT0G0H1aK7d4JHA==
-X-Received: by 2002:a17:902:c409:b0:194:6d3c:38a5 with SMTP id k9-20020a170902c40900b001946d3c38a5mr502925plk.1.1673651792454;
-        Fri, 13 Jan 2023 15:16:32 -0800 (PST)
-Received: from google.com (7.104.168.34.bc.googleusercontent.com. [34.168.104.7])
-        by smtp.gmail.com with ESMTPSA id q3-20020a17090311c300b0018c990ce7fesm14720017plh.239.2023.01.13.15.16.31
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 13 Jan 2023 15:16:31 -0800 (PST)
-Date:   Fri, 13 Jan 2023 23:16:27 +0000
-From:   Sean Christopherson <seanjc@google.com>
-To:     Chao Peng <chao.p.peng@linux.intel.com>
-Cc:     kvm@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-doc@vger.kernel.org, qemu-devel@nongnu.org,
-        Paolo Bonzini <pbonzini@redhat.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Vitaly Kuznetsov <vkuznets@redhat.com>,
-        Wanpeng Li <wanpengli@tencent.com>,
-        Jim Mattson <jmattson@google.com>,
-        Joerg Roedel <joro@8bytes.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Naoya Horiguchi <naoya.horiguchi@nec.com>,
-        Miaohe Lin <linmiaohe@huawei.com>, x86@kernel.org,
-        "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>,
-        Jeff Layton <jlayton@kernel.org>,
-        "J . Bruce Fields" <bfields@fieldses.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Shuah Khan <shuah@kernel.org>, Mike Rapoport <rppt@kernel.org>,
-        Steven Price <steven.price@arm.com>,
-        "Maciej S . Szmigiero" <mail@maciej.szmigiero.name>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        Vishal Annapurve <vannapurve@google.com>,
-        Yu Zhang <yu.c.zhang@linux.intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        luto@kernel.org, jun.nakajima@intel.com, dave.hansen@intel.com,
-        ak@linux.intel.com, david@redhat.com, aarcange@redhat.com,
-        ddutile@redhat.com, dhildenb@redhat.com,
-        Quentin Perret <qperret@google.com>, tabba@google.com,
-        Michael Roth <michael.roth@amd.com>, mhocko@suse.com,
-        wei.w.wang@intel.com
-Subject: Re: [PATCH v10 7/9] KVM: Update lpage info when private/shared
- memory are mixed
-Message-ID: <Y8HmS2iE4u0Gfkrn@google.com>
-References: <20221202061347.1070246-1-chao.p.peng@linux.intel.com>
- <20221202061347.1070246-8-chao.p.peng@linux.intel.com>
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=TQ9PrP3iNHpghVpkywhiMHcSFTwXN8kLEUSP7zNfGWk=;
+        b=2IORnM+m6eSS4ladKpPtX8iiQm0YtJ3WdRijy34LY0MeGNQGeSXc2fX55dHc/k72+b
+         Bf0Sx0QvM1lHjvIbZnlbfMOCKpJR6eWgn+ogD/I6tvgpOERrrNiomsis87pfTHrBz/VF
+         SRbtMYOfUW+aR2NggI3+SW1NT1LHlOcvNM+IyzFSj6LYrUMdxeUuXc6CA3NcXtHmyO2D
+         FfjBXMacXF43gc3psrFCYvyvCkqnf6QJPkfBMkFI+omPaT4Qq2wE56hJvR8NSTpeKSdv
+         OaOGZbXvy2FU7qDlprOcDkVRz2YiktgmueJ6JODIJ3bMj0j+ed0NhabZ5su/mUK7sjyA
+         djAQ==
+X-Gm-Message-State: AFqh2kowcPUD1fyEdiWHH6k4X52Zn2xvTcEdXAnNq9YByFwjSVjy0JQs
+        8DfTCChu0RYKQeLUO5KwDGjxrw==
+X-Google-Smtp-Source: AMrXdXu9HHEo/oiUtz2RMFCVU9bzsQZjZJ6cJq7QQE+EgrBS53y1RWYqF/4GpGuzhXIiUysKwMTRjQ==
+X-Received: by 2002:a05:6871:4090:b0:155:cb39:7325 with SMTP id kz16-20020a056871409000b00155cb397325mr16579350oab.6.1673652012126;
+        Fri, 13 Jan 2023 15:20:12 -0800 (PST)
+Received: from [192.168.86.224] ([136.62.38.22])
+        by smtp.gmail.com with ESMTPSA id z13-20020a056870738d00b0013ae39d0575sm11411907oam.15.2023.01.13.15.20.10
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 13 Jan 2023 15:20:11 -0800 (PST)
+Message-ID: <38200b53-c743-4396-6603-7274f4a29c86@landley.net>
+Date:   Fri, 13 Jan 2023 17:32:20 -0600
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20221202061347.1070246-8-chao.p.peng@linux.intel.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.5.0
+Subject: Re: remove arch/sh
+Content-Language: en-US
+To:     John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+        Geert Uytterhoeven <geert@linux-m68k.org>
+Cc:     Christoph Hellwig <hch@lst.de>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
+        Kieran Bingham <kieran.bingham+renesas@ideasonboard.com>,
+        Geert Uytterhoeven <geert+renesas@glider.be>,
+        linux-kernel@vger.kernel.org, linux-watchdog@vger.kernel.org,
+        devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
+        dmaengine@vger.kernel.org, dri-devel@lists.freedesktop.org,
+        linux-renesas-soc@vger.kernel.org, linux-i2c@vger.kernel.org,
+        linux-input@vger.kernel.org, linux-media@vger.kernel.org,
+        linux-mmc@vger.kernel.org, linux-mtd@lists.infradead.org,
+        netdev@vger.kernel.org, linux-gpio@vger.kernel.org,
+        linux-rtc@vger.kernel.org, linux-spi@vger.kernel.org,
+        linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
+        linux-fbdev@vger.kernel.org, alsa-devel@alsa-project.org,
+        linux-sh@vger.kernel.org
+References: <20230113062339.1909087-1-hch@lst.de>
+ <11e2e0a8-eabe-2d8c-d612-9cdd4bcc3648@physik.fu-berlin.de>
+ <CAMuHMdUcnP6a9Ch5=_CMPq-io-YWK5pshkOT2nZmP1hvNcwBAg@mail.gmail.com>
+ <142532fb-5997-bdc1-0811-a80ae33f4ba4@physik.fu-berlin.de>
+ <6891afb6-4190-6a52-0319-745b3f138d97@landley.net>
+ <fe09d811-e290-821d-ec8b-75936b6583c2@physik.fu-berlin.de>
+From:   Rob Landley <rob@landley.net>
+In-Reply-To: <fe09d811-e290-821d-ec8b-75936b6583c2@physik.fu-berlin.de>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Dec 02, 2022, Chao Peng wrote:
-> diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-> index 9a07380f8d3c..5aefcff614d2 100644
-> --- a/arch/x86/kvm/x86.c
-> +++ b/arch/x86/kvm/x86.c
-> @@ -12362,6 +12362,8 @@ static int kvm_alloc_memslot_metadata(struct kvm *kvm,
->  		if ((slot->base_gfn + npages) & (KVM_PAGES_PER_HPAGE(level) - 1))
->  			linfo[lpages - 1].disallow_lpage = 1;
->  		ugfn = slot->userspace_addr >> PAGE_SHIFT;
-> +		if (kvm_slot_can_be_private(slot))
-> +			ugfn |= slot->restricted_offset >> PAGE_SHIFT;
->  		/*
->  		 * If the gfn and userspace address are not aligned wrt each
->  		 * other, disable large page support for this slot.
+On 1/13/23 13:05, John Paul Adrian Glaubitz wrote:
+> Hi Rob!
+> 
+> On 1/13/23 20:11, Rob Landley wrote:
+>> There is definitely interest in this architecture. I'm aware Rich hasn't been
+>> the most responsive maintainer. (I'm told he's on vacation with his family at
+>> the moment, according to the text I got about this issue from the J-core
+>> hardware guys in Japan.)
+> 
+> Well, maybe we can just give it a try together ...
 
-Forgot to talk about the bug.  This code needs to handle the scenario where a
-memslot is created with existing, non-uniform attributes.  It might be a bit ugly
-(I didn't even try to write the code), but it's definitely possible, and since
-memslot updates are already slow I think it's best to handle things here.
+Jeff Dionne said he'd make himself available to answer hardware questions. (He
+said he maintained some Linux ports 20 years ago, but isn't current with Linux
+plumbing. Last month he was digging through the guts of vxworks, and the project
+before that was some sort of BSD I think?)
 
-In the meantime, I added this so we don't forget to fix it before merging.
+I _do_ maintain Linux patches, I just generally don't bother to repost them
+endlessly. Here's my "on top of 6.1" stack for example, each of which links to
+at least one time it was posted to linux-kernel:
 
-#ifdef CONFIG_KVM_GENERIC_MEMORY_ATTRIBUTES
-	pr_crit_once("FIXME: Walk the memory attributes of the slot and set the mixed status appropriately");
-#endif
+https://landley.net/toybox/downloads/binaries/mkroot/0.8.9/linux-patches/
 
+>> The main reason we haven't converted everything to device tree is we only have
+>> access to test hardware for a subset of the boards. Pruning the list of
+>> supported boards and converting the rest to device tree might make sense. We can
+>> always add/convert boards back later...
+> 
+> There is a patch by Yoshinori Sato which adds device tree support to SH. Maybe we
+> can revive it.
+
+The turtle board is device tree and has been since it was merged. The
+infrastructure is there, the question is converting over boards and testing
+them, or deciding to prune them. Did Sato-san convert many boards? (I'm not
+finding his patch via google...)
+
+> Adrian
+
+Rob
