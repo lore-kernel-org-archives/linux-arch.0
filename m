@@ -2,31 +2,31 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E6B16C678D8
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 06:25:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C5941C54EBE
+	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 06:26:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236639AbjAMGZ3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Jan 2023 01:25:29 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33506 "EHLO
+        id S233122AbjAMGZ4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Jan 2023 01:25:56 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33408 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231345AbjAMGYV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 01:24:21 -0500
+        with ESMTP id S234761AbjAMGYg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 01:24:36 -0500
 Received: from bombadil.infradead.org (bombadil.infradead.org [IPv6:2607:7c80:54:3::133])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EDB1F5C1F3;
-        Thu, 12 Jan 2023 22:23:57 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 498495C1E9;
+        Thu, 12 Jan 2023 22:24:14 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
         MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender
         :Reply-To:Content-Type:Content-ID:Content-Description;
-        bh=ac+u1KmnA6x62YBZ9iTjcmD3FuUPV8lBO1ZPVqa0rj0=; b=nZ6HMmuRPN8kcNrlOz0w8CLN2m
-        2rSCbbadSwtWL6NoRw/ITTDGZypAgGb0FJRFALGG52nvTGYxofsmjPMxx9fYw7f/emo9nP3VgmMi1
-        5zLkaSMRb3QJEw23RkLS/GfvqhYREJSDZVHKhv3zU9QW5p/WH47sc8YOOcr203ghZzEs9bGTFUWo8
-        SAhUlBwNNV9ii/Q1UN3POf3qjtEYB/2dAqfZLh3xfThkEWRfgtfu6+h6+zN2Fj0wfSK6nTdRSY2qw
-        DZsk9hVWPtXeYjzIzoYBLjew1mQzgC6PTRY/0xVpv8KpCy/SSOrPPqWGV+UCO816pBf9Op7faA1Gw
-        wZmTeq9A==;
+        bh=erzrm4Ty5idHGyu1jH564OsyzlBO2Da+dsAYs2Uai6g=; b=PetC+G54fA2MHOPn5yey+DdmCl
+        R14MH27shd3orjHYKWEFGSdK5sHDVqWEit9ROBI9QtItF8PeoTYlNLc27qCKd4mBlGl8jANIltvc4
+        5uvf/bF6LMZMC3fRULQGtDiirUzaHq9DinFdafA4frKBNm+yAMh94U6OnJ7LGL0XptNiPpS5DsIWd
+        GO3TjAdGZQt0xM+O6jEYTtFY/OIcQA9dsgy6SBP+X4K3WFPlg8cv17nlZY99em0nT73cU9pNa99ua
+        b3uzExO4rYmov4NBJ22hBeTV6aNAU0ZwIK9zJ00YufRoOb+tROzO9aXzsvT/iQZ6VeSKM1biDvQti
+        x8bvB2Pg==;
 Received: from [2001:4bb8:181:656b:9509:7d20:8d39:f895] (helo=localhost)
         by bombadil.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pGDTc-000lMt-MQ; Fri, 13 Jan 2023 06:23:45 +0000
+        id 1pGDTu-000lTC-Dy; Fri, 13 Jan 2023 06:24:04 +0000
 From:   Christoph Hellwig <hch@lst.de>
 To:     Yoshinori Sato <ysato@users.sourceforge.jp>,
         Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
@@ -45,9 +45,9 @@ Cc:     Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
         linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
         linux-fbdev@vger.kernel.org, alsa-devel@alsa-project.org,
         linux-sh@vger.kernel.org
-Subject: [PATCH 01/22] gpu/drm: remove the shmobile drm driver
-Date:   Fri, 13 Jan 2023 07:23:18 +0100
-Message-Id: <20230113062339.1909087-2-hch@lst.de>
+Subject: [PATCH 05/22] sound: remove sh-specific sounds/soc/sh drivers
+Date:   Fri, 13 Jan 2023 07:23:22 +0100
+Message-Id: <20230113062339.1909087-6-hch@lst.de>
 X-Mailer: git-send-email 2.39.0
 In-Reply-To: <20230113062339.1909087-1-hch@lst.de>
 References: <20230113062339.1909087-1-hch@lst.de>
@@ -58,2118 +58,3095 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This driver depends on ARM && ARCH_SHMOBILE, but ARCH_SHMOBILE can only be
-set for each/sh, making the driver dead code except for the COMPILE_TEST
-case.
+Now that arch/sh is removed these drivers are dead code.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/gpu/drm/Kconfig                       |   2 -
- drivers/gpu/drm/Makefile                      |   1 -
- drivers/gpu/drm/shmobile/Kconfig              |  12 -
- drivers/gpu/drm/shmobile/Makefile             |   8 -
- .../gpu/drm/shmobile/shmob_drm_backlight.c    |  82 ---
- .../gpu/drm/shmobile/shmob_drm_backlight.h    |  19 -
- drivers/gpu/drm/shmobile/shmob_drm_crtc.c     | 683 ------------------
- drivers/gpu/drm/shmobile/shmob_drm_crtc.h     |  55 --
- drivers/gpu/drm/shmobile/shmob_drm_drv.c      | 303 --------
- drivers/gpu/drm/shmobile/shmob_drm_drv.h      |  42 --
- drivers/gpu/drm/shmobile/shmob_drm_kms.c      | 150 ----
- drivers/gpu/drm/shmobile/shmob_drm_kms.h      |  29 -
- drivers/gpu/drm/shmobile/shmob_drm_plane.c    | 261 -------
- drivers/gpu/drm/shmobile/shmob_drm_plane.h    |  19 -
- drivers/gpu/drm/shmobile/shmob_drm_regs.h     | 310 --------
- 15 files changed, 1976 deletions(-)
- delete mode 100644 drivers/gpu/drm/shmobile/Kconfig
- delete mode 100644 drivers/gpu/drm/shmobile/Makefile
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_backlight.c
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_backlight.h
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_crtc.c
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_crtc.h
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_drv.c
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_drv.h
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_kms.c
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_kms.h
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_plane.c
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_plane.h
- delete mode 100644 drivers/gpu/drm/shmobile/shmob_drm_regs.h
+ sound/soc/sh/Kconfig       |  44 --
+ sound/soc/sh/Makefile      |  16 -
+ sound/soc/sh/dma-sh7760.c  | 334 ----------------
+ sound/soc/sh/fsi.c         |   9 -
+ sound/soc/sh/hac.c         | 345 ----------------
+ sound/soc/sh/migor.c       | 205 ----------
+ sound/soc/sh/sh7760-ac97.c |  72 ----
+ sound/soc/sh/siu.h         | 180 ---------
+ sound/soc/sh/siu_dai.c     | 799 -------------------------------------
+ sound/soc/sh/siu_pcm.c     | 553 -------------------------
+ sound/soc/sh/ssi.c         | 403 -------------------
+ 11 files changed, 2960 deletions(-)
+ delete mode 100644 sound/soc/sh/dma-sh7760.c
+ delete mode 100644 sound/soc/sh/hac.c
+ delete mode 100644 sound/soc/sh/migor.c
+ delete mode 100644 sound/soc/sh/sh7760-ac97.c
+ delete mode 100644 sound/soc/sh/siu.h
+ delete mode 100644 sound/soc/sh/siu_dai.c
+ delete mode 100644 sound/soc/sh/siu_pcm.c
+ delete mode 100644 sound/soc/sh/ssi.c
 
-diff --git a/drivers/gpu/drm/Kconfig b/drivers/gpu/drm/Kconfig
-index 315cbdf6197927..1cb4bcb0714c87 100644
---- a/drivers/gpu/drm/Kconfig
-+++ b/drivers/gpu/drm/Kconfig
-@@ -286,8 +286,6 @@ source "drivers/gpu/drm/atmel-hlcdc/Kconfig"
+diff --git a/sound/soc/sh/Kconfig b/sound/soc/sh/Kconfig
+index 793a0326f32b46..4367927b81df20 100644
+--- a/sound/soc/sh/Kconfig
++++ b/sound/soc/sh/Kconfig
+@@ -2,25 +2,10 @@
+ menu "SoC Audio support for Renesas SoCs"
+ 	depends on ARCH_RENESAS || COMPILE_TEST
  
- source "drivers/gpu/drm/rcar-du/Kconfig"
- 
--source "drivers/gpu/drm/shmobile/Kconfig"
--
- source "drivers/gpu/drm/sun4i/Kconfig"
- 
- source "drivers/gpu/drm/omapdrm/Kconfig"
-diff --git a/drivers/gpu/drm/Makefile b/drivers/gpu/drm/Makefile
-index cc637343d87b09..87709cf7db8145 100644
---- a/drivers/gpu/drm/Makefile
-+++ b/drivers/gpu/drm/Makefile
-@@ -160,7 +160,6 @@ obj-$(CONFIG_DRM_AST) += ast/
- obj-$(CONFIG_DRM_ARMADA) += armada/
- obj-$(CONFIG_DRM_ATMEL_HLCDC)	+= atmel-hlcdc/
- obj-y			+= rcar-du/
--obj-$(CONFIG_DRM_SHMOBILE) +=shmobile/
- obj-y			+= omapdrm/
- obj-$(CONFIG_DRM_SUN4I) += sun4i/
- obj-y			+= tilcdc/
-diff --git a/drivers/gpu/drm/shmobile/Kconfig b/drivers/gpu/drm/shmobile/Kconfig
-deleted file mode 100644
-index 4ec5dc74a6b0b8..00000000000000
---- a/drivers/gpu/drm/shmobile/Kconfig
-+++ /dev/null
-@@ -1,12 +0,0 @@
--# SPDX-License-Identifier: GPL-2.0
--config DRM_SHMOBILE
--	tristate "DRM Support for SH Mobile"
--	depends on DRM && ARM
--	depends on ARCH_SHMOBILE || COMPILE_TEST
--	select BACKLIGHT_CLASS_DEVICE
--	select DRM_KMS_HELPER
--	select DRM_GEM_DMA_HELPER
+-config SND_SOC_PCM_SH7760
+-	tristate "SoC Audio support for Renesas SH7760"
+-	depends on CPU_SUBTYPE_SH7760 && SH_DMABRG
 -	help
--	  Choose this option if you have an SH Mobile chipset.
--	  If M is selected the module will be called shmob-drm.
+-	  Enable this option for SH7760 AC97/I2S audio support.
 -
-diff --git a/drivers/gpu/drm/shmobile/Makefile b/drivers/gpu/drm/shmobile/Makefile
+-
+ ##
+ ## Audio unit modules
+ ##
+ 
+-config SND_SOC_SH4_HAC
+-	tristate
+-	select AC97_BUS
+-	select SND_SOC_AC97_BUS
+-
+-config SND_SOC_SH4_SSI
+-	tristate
+-
+ config SND_SOC_SH4_FSI
+ 	tristate "SH4 FSI support"
+ 	depends on COMMON_CLK
+@@ -28,14 +13,6 @@ config SND_SOC_SH4_FSI
+ 	help
+ 	  This option enables FSI sound support
+ 
+-config SND_SOC_SH4_SIU
+-	tristate
+-	depends on ARCH_SHMOBILE && HAVE_CLK
+-	depends on DMADEVICES
+-	select DMA_ENGINE
+-	select SH_DMAE
+-	select FW_LOADER
+-
+ config SND_SOC_RCAR
+ 	tristate "R-Car series SRU/SCU/SSIU/SSI support"
+ 	depends on COMMON_CLK
+@@ -51,25 +28,4 @@ config SND_SOC_RZ
+ 	help
+ 	  This option enables RZ/G2L SSIF-2 sound support.
+ 
+-##
+-## Boards
+-##
+-
+-config SND_SH7760_AC97
+-	tristate "SH7760 AC97 sound support"
+-	depends on CPU_SUBTYPE_SH7760 && SND_SOC_PCM_SH7760
+-	select SND_SOC_SH4_HAC
+-	select SND_SOC_AC97_CODEC
+-	help
+-	  This option enables generic sound support for the first
+-	  AC97 unit of the SH7760.
+-
+-config SND_SIU_MIGOR
+-	tristate "SIU sound support on Migo-R"
+-	depends on SH_MIGOR && I2C
+-	select SND_SOC_SH4_SIU
+-	select SND_SOC_WM8978
+-	help
+-	  This option enables sound support for the SH7722 Migo-R board
+-
+ endmenu
+diff --git a/sound/soc/sh/Makefile b/sound/soc/sh/Makefile
+index f6fd79948f6ae9..c308dda887e633 100644
+--- a/sound/soc/sh/Makefile
++++ b/sound/soc/sh/Makefile
+@@ -1,28 +1,12 @@
+ # SPDX-License-Identifier: GPL-2.0
+-## DMA engines
+-snd-soc-dma-sh7760-objs	:= dma-sh7760.o
+-obj-$(CONFIG_SND_SOC_PCM_SH7760)	+= snd-soc-dma-sh7760.o
+ 
+ ## audio units found on some SH-4
+-snd-soc-hac-objs	:= hac.o
+-snd-soc-ssi-objs	:= ssi.o
+ snd-soc-fsi-objs	:= fsi.o
+-snd-soc-siu-objs	:= siu_pcm.o siu_dai.o
+-obj-$(CONFIG_SND_SOC_SH4_HAC)	+= snd-soc-hac.o
+-obj-$(CONFIG_SND_SOC_SH4_SSI)	+= snd-soc-ssi.o
+ obj-$(CONFIG_SND_SOC_SH4_FSI)	+= snd-soc-fsi.o
+-obj-$(CONFIG_SND_SOC_SH4_SIU)	+= snd-soc-siu.o
+ 
+ ## audio units for R-Car
+ obj-$(CONFIG_SND_SOC_RCAR)	+= rcar/
+ 
+-## boards
+-snd-soc-sh7760-ac97-objs	:= sh7760-ac97.o
+-snd-soc-migor-objs		:= migor.o
+-
+-obj-$(CONFIG_SND_SH7760_AC97)	+= snd-soc-sh7760-ac97.o
+-obj-$(CONFIG_SND_SIU_MIGOR)	+= snd-soc-migor.o
+-
+ # RZ/G2L
+ snd-soc-rz-ssi-objs		:= rz-ssi.o
+ obj-$(CONFIG_SND_SOC_RZ)	+= snd-soc-rz-ssi.o
+diff --git a/sound/soc/sh/dma-sh7760.c b/sound/soc/sh/dma-sh7760.c
 deleted file mode 100644
-index 861edafed8562c..00000000000000
---- a/drivers/gpu/drm/shmobile/Makefile
+index 121e48f984c50c..00000000000000
+--- a/sound/soc/sh/dma-sh7760.c
 +++ /dev/null
-@@ -1,8 +0,0 @@
--# SPDX-License-Identifier: GPL-2.0
--shmob-drm-y := shmob_drm_backlight.o \
--	       shmob_drm_crtc.o \
--	       shmob_drm_drv.o \
--	       shmob_drm_kms.o \
--	       shmob_drm_plane.o
+@@ -1,334 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-//
+-// SH7760 ("camelot") DMABRG audio DMA unit support
+-//
+-// Copyright (C) 2007 Manuel Lauss <mano@roarinelk.homelinux.net>
+-//
+-// The SH7760 DMABRG provides 4 dma channels (2x rec, 2x play), which
+-// trigger an interrupt when one half of the programmed transfer size
+-// has been xmitted.
+-//
+-// FIXME: little-endian only for now
 -
--obj-$(CONFIG_DRM_SHMOBILE)	+= shmob-drm.o
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_backlight.c b/drivers/gpu/drm/shmobile/shmob_drm_backlight.c
-deleted file mode 100644
-index 794573badfe860..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_backlight.c
-+++ /dev/null
-@@ -1,82 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0+
--/*
-- * shmob_drm_backlight.c  --  SH Mobile DRM Backlight
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
+-#include <linux/module.h>
+-#include <linux/gfp.h>
+-#include <linux/init.h>
+-#include <linux/platform_device.h>
+-#include <linux/dma-mapping.h>
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/pcm_params.h>
+-#include <sound/soc.h>
+-#include <asm/dmabrg.h>
 -
--#include <linux/backlight.h>
 -
--#include "shmob_drm_backlight.h"
--#include "shmob_drm_crtc.h"
--#include "shmob_drm_drv.h"
+-/* registers and bits */
+-#define BRGATXSAR	0x00
+-#define BRGARXDAR	0x04
+-#define BRGATXTCR	0x08
+-#define BRGARXTCR	0x0C
+-#define BRGACR		0x10
+-#define BRGATXTCNT	0x14
+-#define BRGARXTCNT	0x18
 -
--static int shmob_drm_backlight_update(struct backlight_device *bdev)
--{
--	struct shmob_drm_connector *scon = bl_get_data(bdev);
--	struct shmob_drm_device *sdev = scon->connector.dev->dev_private;
--	const struct shmob_drm_backlight_data *bdata = &sdev->pdata->backlight;
--	int brightness = backlight_get_brightness(bdev);
+-#define ACR_RAR		(1 << 18)
+-#define ACR_RDS		(1 << 17)
+-#define ACR_RDE		(1 << 16)
+-#define ACR_TAR		(1 << 2)
+-#define ACR_TDS		(1 << 1)
+-#define ACR_TDE		(1 << 0)
 -
--	return bdata->set_brightness(brightness);
--}
+-/* receiver/transmitter data alignment */
+-#define ACR_RAM_NONE	(0 << 24)
+-#define ACR_RAM_4BYTE	(1 << 24)
+-#define ACR_RAM_2WORD	(2 << 24)
+-#define ACR_TAM_NONE	(0 << 8)
+-#define ACR_TAM_4BYTE	(1 << 8)
+-#define ACR_TAM_2WORD	(2 << 8)
 -
--static int shmob_drm_backlight_get_brightness(struct backlight_device *bdev)
--{
--	struct shmob_drm_connector *scon = bl_get_data(bdev);
--	struct shmob_drm_device *sdev = scon->connector.dev->dev_private;
--	const struct shmob_drm_backlight_data *bdata = &sdev->pdata->backlight;
 -
--	return bdata->get_brightness();
--}
+-struct camelot_pcm {
+-	unsigned long mmio;  /* DMABRG audio channel control reg MMIO */
+-	unsigned int txid;    /* ID of first DMABRG IRQ for this unit */
 -
--static const struct backlight_ops shmob_drm_backlight_ops = {
--	.options	= BL_CORE_SUSPENDRESUME,
--	.update_status	= shmob_drm_backlight_update,
--	.get_brightness	= shmob_drm_backlight_get_brightness,
+-	struct snd_pcm_substream *tx_ss;
+-	unsigned long tx_period_size;
+-	unsigned int  tx_period;
+-
+-	struct snd_pcm_substream *rx_ss;
+-	unsigned long rx_period_size;
+-	unsigned int  rx_period;
+-
+-} cam_pcm_data[2] = {
+-	{
+-		.mmio	=	0xFE3C0040,
+-		.txid	=	DMABRGIRQ_A0TXF,
+-	},
+-	{
+-		.mmio	=	0xFE3C0060,
+-		.txid	=	DMABRGIRQ_A1TXF,
+-	},
 -};
 -
--void shmob_drm_backlight_dpms(struct shmob_drm_connector *scon, int mode)
--{
--	if (scon->backlight == NULL)
--		return;
+-#define BRGREG(x)	(*(unsigned long *)(cam->mmio + (x)))
 -
--	scon->backlight->props.power = mode == DRM_MODE_DPMS_ON
--				     ? FB_BLANK_UNBLANK : FB_BLANK_POWERDOWN;
--	backlight_update_status(scon->backlight);
+-/*
+- * set a minimum of 16kb per period, to avoid interrupt-"storm" and
+- * resulting skipping. In general, the bigger the minimum size, the
+- * better for overall system performance. (The SH7760 is a puny CPU
+- * with a slow SDRAM interface and poor internal bus bandwidth,
+- * *especially* when the LCDC is active).  The minimum for the DMAC
+- * is 8 bytes; 16kbytes are enough to get skip-free playback of a
+- * 44kHz/16bit/stereo MP3 on a lightly loaded system, and maintain
+- * reasonable responsiveness in MPlayer.
+- */
+-#define DMABRG_PERIOD_MIN		16 * 1024
+-#define DMABRG_PERIOD_MAX		0x03fffffc
+-#define DMABRG_PREALLOC_BUFFER		32 * 1024
+-#define DMABRG_PREALLOC_BUFFER_MAX	32 * 1024
+-
+-static const struct snd_pcm_hardware camelot_pcm_hardware = {
+-	.info = (SNDRV_PCM_INFO_MMAP |
+-		SNDRV_PCM_INFO_INTERLEAVED |
+-		SNDRV_PCM_INFO_BLOCK_TRANSFER |
+-		SNDRV_PCM_INFO_MMAP_VALID |
+-		SNDRV_PCM_INFO_BATCH),
+-	.buffer_bytes_max =	DMABRG_PERIOD_MAX,
+-	.period_bytes_min =	DMABRG_PERIOD_MIN,
+-	.period_bytes_max =	DMABRG_PERIOD_MAX / 2,
+-	.periods_min =		2,
+-	.periods_max =		2,
+-	.fifo_size =		128,
+-};
+-
+-static void camelot_txdma(void *data)
+-{
+-	struct camelot_pcm *cam = data;
+-	cam->tx_period ^= 1;
+-	snd_pcm_period_elapsed(cam->tx_ss);
 -}
 -
--int shmob_drm_backlight_init(struct shmob_drm_connector *scon)
+-static void camelot_rxdma(void *data)
 -{
--	struct shmob_drm_device *sdev = scon->connector.dev->dev_private;
--	const struct shmob_drm_backlight_data *bdata = &sdev->pdata->backlight;
--	struct drm_connector *connector = &scon->connector;
--	struct drm_device *dev = connector->dev;
--	struct backlight_device *backlight;
+-	struct camelot_pcm *cam = data;
+-	cam->rx_period ^= 1;
+-	snd_pcm_period_elapsed(cam->rx_ss);
+-}
 -
--	if (!bdata->max_brightness)
--		return 0;
+-static int camelot_pcm_open(struct snd_soc_component *component,
+-			    struct snd_pcm_substream *substream)
+-{
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct camelot_pcm *cam = &cam_pcm_data[asoc_rtd_to_cpu(rtd, 0)->id];
+-	int recv = substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? 0:1;
+-	int ret, dmairq;
 -
--	backlight = backlight_device_register(bdata->name, dev->dev, scon,
--					      &shmob_drm_backlight_ops, NULL);
--	if (IS_ERR(backlight)) {
--		dev_err(dev->dev, "unable to register backlight device: %ld\n",
--			PTR_ERR(backlight));
--		return PTR_ERR(backlight);
+-	snd_soc_set_runtime_hwparams(substream, &camelot_pcm_hardware);
+-
+-	/* DMABRG buffer half/full events */
+-	dmairq = (recv) ? cam->txid + 2 : cam->txid;
+-	if (recv) {
+-		cam->rx_ss = substream;
+-		ret = dmabrg_request_irq(dmairq, camelot_rxdma, cam);
+-		if (unlikely(ret)) {
+-			pr_debug("audio unit %d irqs already taken!\n",
+-			     asoc_rtd_to_cpu(rtd, 0)->id);
+-			return -EBUSY;
+-		}
+-		(void)dmabrg_request_irq(dmairq + 1,camelot_rxdma, cam);
+-	} else {
+-		cam->tx_ss = substream;
+-		ret = dmabrg_request_irq(dmairq, camelot_txdma, cam);
+-		if (unlikely(ret)) {
+-			pr_debug("audio unit %d irqs already taken!\n",
+-			     asoc_rtd_to_cpu(rtd, 0)->id);
+-			return -EBUSY;
+-		}
+-		(void)dmabrg_request_irq(dmairq + 1, camelot_txdma, cam);
 -	}
--
--	backlight->props.max_brightness = bdata->max_brightness;
--	backlight->props.brightness = bdata->max_brightness;
--	backlight->props.power = FB_BLANK_POWERDOWN;
--	backlight_update_status(backlight);
--
--	scon->backlight = backlight;
 -	return 0;
 -}
 -
--void shmob_drm_backlight_exit(struct shmob_drm_connector *scon)
+-static int camelot_pcm_close(struct snd_soc_component *component,
+-			     struct snd_pcm_substream *substream)
 -{
--	backlight_device_unregister(scon->backlight);
--}
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_backlight.h b/drivers/gpu/drm/shmobile/shmob_drm_backlight.h
-deleted file mode 100644
-index d9abb7a60be5c4..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_backlight.h
-+++ /dev/null
-@@ -1,19 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--/*
-- * shmob_drm_backlight.h  --  SH Mobile DRM Backlight
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct camelot_pcm *cam = &cam_pcm_data[asoc_rtd_to_cpu(rtd, 0)->id];
+-	int recv = substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? 0:1;
+-	int dmairq;
 -
--#ifndef __SHMOB_DRM_BACKLIGHT_H__
--#define __SHMOB_DRM_BACKLIGHT_H__
+-	dmairq = (recv) ? cam->txid + 2 : cam->txid;
 -
--struct shmob_drm_connector;
--
--void shmob_drm_backlight_dpms(struct shmob_drm_connector *scon, int mode);
--int shmob_drm_backlight_init(struct shmob_drm_connector *scon);
--void shmob_drm_backlight_exit(struct shmob_drm_connector *scon);
--
--#endif /* __SHMOB_DRM_BACKLIGHT_H__ */
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_crtc.c b/drivers/gpu/drm/shmobile/shmob_drm_crtc.c
-deleted file mode 100644
-index 4624c0aff51ffa..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_crtc.c
-+++ /dev/null
-@@ -1,683 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0+
--/*
-- * shmob_drm_crtc.c  --  SH Mobile DRM CRTCs
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
--
--#include <linux/backlight.h>
--#include <linux/clk.h>
--
--#include <drm/drm_crtc.h>
--#include <drm/drm_crtc_helper.h>
--#include <drm/drm_fb_dma_helper.h>
--#include <drm/drm_fourcc.h>
--#include <drm/drm_framebuffer.h>
--#include <drm/drm_gem_dma_helper.h>
--#include <drm/drm_probe_helper.h>
--#include <drm/drm_simple_kms_helper.h>
--#include <drm/drm_vblank.h>
--
--#include "shmob_drm_backlight.h"
--#include "shmob_drm_crtc.h"
--#include "shmob_drm_drv.h"
--#include "shmob_drm_kms.h"
--#include "shmob_drm_plane.h"
--#include "shmob_drm_regs.h"
--
--/*
-- * TODO: panel support
-- */
--
--/* -----------------------------------------------------------------------------
-- * Clock management
-- */
--
--static int shmob_drm_clk_on(struct shmob_drm_device *sdev)
--{
--	int ret;
--
--	if (sdev->clock) {
--		ret = clk_prepare_enable(sdev->clock);
--		if (ret < 0)
--			return ret;
--	}
--
--	return 0;
--}
--
--static void shmob_drm_clk_off(struct shmob_drm_device *sdev)
--{
--	if (sdev->clock)
--		clk_disable_unprepare(sdev->clock);
--}
--
--/* -----------------------------------------------------------------------------
-- * CRTC
-- */
--
--static void shmob_drm_crtc_setup_geometry(struct shmob_drm_crtc *scrtc)
--{
--	struct drm_crtc *crtc = &scrtc->crtc;
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
--	const struct shmob_drm_interface_data *idata = &sdev->pdata->iface;
--	const struct drm_display_mode *mode = &crtc->mode;
--	u32 value;
--
--	value = sdev->ldmt1r
--	      | ((mode->flags & DRM_MODE_FLAG_PVSYNC) ? 0 : LDMT1R_VPOL)
--	      | ((mode->flags & DRM_MODE_FLAG_PHSYNC) ? 0 : LDMT1R_HPOL)
--	      | ((idata->flags & SHMOB_DRM_IFACE_FL_DWPOL) ? LDMT1R_DWPOL : 0)
--	      | ((idata->flags & SHMOB_DRM_IFACE_FL_DIPOL) ? LDMT1R_DIPOL : 0)
--	      | ((idata->flags & SHMOB_DRM_IFACE_FL_DAPOL) ? LDMT1R_DAPOL : 0)
--	      | ((idata->flags & SHMOB_DRM_IFACE_FL_HSCNT) ? LDMT1R_HSCNT : 0)
--	      | ((idata->flags & SHMOB_DRM_IFACE_FL_DWCNT) ? LDMT1R_DWCNT : 0);
--	lcdc_write(sdev, LDMT1R, value);
--
--	if (idata->interface >= SHMOB_DRM_IFACE_SYS8A &&
--	    idata->interface <= SHMOB_DRM_IFACE_SYS24) {
--		/* Setup SYS bus. */
--		value = (idata->sys.cs_setup << LDMT2R_CSUP_SHIFT)
--		      | (idata->sys.vsync_active_high ? LDMT2R_RSV : 0)
--		      | (idata->sys.vsync_dir_input ? LDMT2R_VSEL : 0)
--		      | (idata->sys.write_setup << LDMT2R_WCSC_SHIFT)
--		      | (idata->sys.write_cycle << LDMT2R_WCEC_SHIFT)
--		      | (idata->sys.write_strobe << LDMT2R_WCLW_SHIFT);
--		lcdc_write(sdev, LDMT2R, value);
--
--		value = (idata->sys.read_latch << LDMT3R_RDLC_SHIFT)
--		      | (idata->sys.read_setup << LDMT3R_RCSC_SHIFT)
--		      | (idata->sys.read_cycle << LDMT3R_RCEC_SHIFT)
--		      | (idata->sys.read_strobe << LDMT3R_RCLW_SHIFT);
--		lcdc_write(sdev, LDMT3R, value);
--	}
--
--	value = ((mode->hdisplay / 8) << 16)			/* HDCN */
--	      | (mode->htotal / 8);				/* HTCN */
--	lcdc_write(sdev, LDHCNR, value);
--
--	value = (((mode->hsync_end - mode->hsync_start) / 8) << 16) /* HSYNW */
--	      | (mode->hsync_start / 8);			/* HSYNP */
--	lcdc_write(sdev, LDHSYNR, value);
--
--	value = ((mode->hdisplay & 7) << 24) | ((mode->htotal & 7) << 16)
--	      | (((mode->hsync_end - mode->hsync_start) & 7) << 8)
--	      | (mode->hsync_start & 7);
--	lcdc_write(sdev, LDHAJR, value);
--
--	value = ((mode->vdisplay) << 16)			/* VDLN */
--	      | mode->vtotal;					/* VTLN */
--	lcdc_write(sdev, LDVLNR, value);
--
--	value = ((mode->vsync_end - mode->vsync_start) << 16)	/* VSYNW */
--	      | mode->vsync_start;				/* VSYNP */
--	lcdc_write(sdev, LDVSYNR, value);
--}
--
--static void shmob_drm_crtc_start_stop(struct shmob_drm_crtc *scrtc, bool start)
--{
--	struct shmob_drm_device *sdev = scrtc->crtc.dev->dev_private;
--	u32 value;
--
--	value = lcdc_read(sdev, LDCNT2R);
--	if (start)
--		lcdc_write(sdev, LDCNT2R, value | LDCNT2R_DO);
+-	if (recv)
+-		cam->rx_ss = NULL;
 -	else
--		lcdc_write(sdev, LDCNT2R, value & ~LDCNT2R_DO);
+-		cam->tx_ss = NULL;
 -
--	/* Wait until power is applied/stopped. */
--	while (1) {
--		value = lcdc_read(sdev, LDPMR) & LDPMR_LPS;
--		if ((start && value) || (!start && !value))
--			break;
+-	dmabrg_free_irq(dmairq + 1);
+-	dmabrg_free_irq(dmairq);
 -
--		cpu_relax();
--	}
--
--	if (!start) {
--		/* Stop the dot clock. */
--		lcdc_write(sdev, LDDCKSTPR, LDDCKSTPR_DCKSTP);
--	}
+-	return 0;
 -}
 -
--/*
-- * shmob_drm_crtc_start - Configure and start the LCDC
-- * @scrtc: the SH Mobile CRTC
-- *
-- * Configure and start the LCDC device. External devices (clocks, MERAM, panels,
-- * ...) are not touched by this function.
-- */
--static void shmob_drm_crtc_start(struct shmob_drm_crtc *scrtc)
+-static int camelot_hw_params(struct snd_soc_component *component,
+-			     struct snd_pcm_substream *substream,
+-			     struct snd_pcm_hw_params *hw_params)
 -{
--	struct drm_crtc *crtc = &scrtc->crtc;
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
--	const struct shmob_drm_interface_data *idata = &sdev->pdata->iface;
--	const struct shmob_drm_format_info *format;
--	struct drm_device *dev = sdev->ddev;
--	struct drm_plane *plane;
--	u32 value;
--	int ret;
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct camelot_pcm *cam = &cam_pcm_data[asoc_rtd_to_cpu(rtd, 0)->id];
+-	int recv = substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? 0:1;
 -
--	if (scrtc->started)
--		return;
+-	if (recv) {
+-		cam->rx_period_size = params_period_bytes(hw_params);
+-		cam->rx_period = 0;
+-	} else {
+-		cam->tx_period_size = params_period_bytes(hw_params);
+-		cam->tx_period = 0;
+-	}
+-	return 0;
+-}
 -
--	format = shmob_drm_format_info(crtc->primary->fb->format->format);
--	if (WARN_ON(format == NULL))
--		return;
+-static int camelot_prepare(struct snd_soc_component *component,
+-			   struct snd_pcm_substream *substream)
+-{
+-	struct snd_pcm_runtime *runtime = substream->runtime;
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct camelot_pcm *cam = &cam_pcm_data[asoc_rtd_to_cpu(rtd, 0)->id];
 -
--	/* Enable clocks before accessing the hardware. */
--	ret = shmob_drm_clk_on(sdev);
--	if (ret < 0)
--		return;
+-	pr_debug("PCM data: addr 0x%08lx len %d\n",
+-		 (u32)runtime->dma_addr, runtime->dma_bytes);
+- 
+-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+-		BRGREG(BRGATXSAR) = (unsigned long)runtime->dma_area;
+-		BRGREG(BRGATXTCR) = runtime->dma_bytes;
+-	} else {
+-		BRGREG(BRGARXDAR) = (unsigned long)runtime->dma_area;
+-		BRGREG(BRGARXTCR) = runtime->dma_bytes;
+-	}
 -
--	/* Reset and enable the LCDC. */
--	lcdc_write(sdev, LDCNT2R, lcdc_read(sdev, LDCNT2R) | LDCNT2R_BR);
--	lcdc_wait_bit(sdev, LDCNT2R, LDCNT2R_BR, 0);
--	lcdc_write(sdev, LDCNT2R, LDCNT2R_ME);
+-	return 0;
+-}
 -
--	/* Stop the LCDC first and disable all interrupts. */
--	shmob_drm_crtc_start_stop(scrtc, false);
--	lcdc_write(sdev, LDINTR, 0);
+-static inline void dmabrg_play_dma_start(struct camelot_pcm *cam)
+-{
+-	unsigned long acr = BRGREG(BRGACR) & ~(ACR_TDS | ACR_RDS);
+-	/* start DMABRG engine: XFER start, auto-addr-reload */
+-	BRGREG(BRGACR) = acr | ACR_TDE | ACR_TAR | ACR_TAM_2WORD;
+-}
 -
--	/* Configure power supply, dot clocks and start them. */
--	lcdc_write(sdev, LDPMR, 0);
+-static inline void dmabrg_play_dma_stop(struct camelot_pcm *cam)
+-{
+-	unsigned long acr = BRGREG(BRGACR) & ~(ACR_TDS | ACR_RDS);
+-	/* forcibly terminate data transmission */
+-	BRGREG(BRGACR) = acr | ACR_TDS;
+-}
 -
--	value = sdev->lddckr;
--	if (idata->clk_div) {
--		/* FIXME: sh7724 can only use 42, 48, 54 and 60 for the divider
--		 * denominator.
--		 */
--		lcdc_write(sdev, LDDCKPAT1R, 0);
--		lcdc_write(sdev, LDDCKPAT2R, (1 << (idata->clk_div / 2)) - 1);
+-static inline void dmabrg_rec_dma_start(struct camelot_pcm *cam)
+-{
+-	unsigned long acr = BRGREG(BRGACR) & ~(ACR_TDS | ACR_RDS);
+-	/* start DMABRG engine: recv start, auto-reload */
+-	BRGREG(BRGACR) = acr | ACR_RDE | ACR_RAR | ACR_RAM_2WORD;
+-}
 -
--		if (idata->clk_div == 1)
--			value |= LDDCKR_MOSEL;
+-static inline void dmabrg_rec_dma_stop(struct camelot_pcm *cam)
+-{
+-	unsigned long acr = BRGREG(BRGACR) & ~(ACR_TDS | ACR_RDS);
+-	/* forcibly terminate data receiver */
+-	BRGREG(BRGACR) = acr | ACR_RDS;
+-}
+-
+-static int camelot_trigger(struct snd_soc_component *component,
+-			   struct snd_pcm_substream *substream, int cmd)
+-{
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct camelot_pcm *cam = &cam_pcm_data[asoc_rtd_to_cpu(rtd, 0)->id];
+-	int recv = substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? 0:1;
+-
+-	switch (cmd) {
+-	case SNDRV_PCM_TRIGGER_START:
+-		if (recv)
+-			dmabrg_rec_dma_start(cam);
 -		else
--			value |= idata->clk_div;
--	}
--
--	lcdc_write(sdev, LDDCKR, value);
--	lcdc_write(sdev, LDDCKSTPR, 0);
--	lcdc_wait_bit(sdev, LDDCKSTPR, ~0, 0);
--
--	/* TODO: Setup SYS panel */
--
--	/* Setup geometry, format, frame buffer memory and operation mode. */
--	shmob_drm_crtc_setup_geometry(scrtc);
--
--	/* TODO: Handle YUV colorspaces. Hardcode REC709 for now. */
--	lcdc_write(sdev, LDDFR, format->lddfr | LDDFR_CF1);
--	lcdc_write(sdev, LDMLSR, scrtc->line_size);
--	lcdc_write(sdev, LDSA1R, scrtc->dma[0]);
--	if (format->yuv)
--		lcdc_write(sdev, LDSA2R, scrtc->dma[1]);
--	lcdc_write(sdev, LDSM1R, 0);
--
--	/* Word and long word swap. */
--	switch (format->fourcc) {
--	case DRM_FORMAT_RGB565:
--	case DRM_FORMAT_NV21:
--	case DRM_FORMAT_NV61:
--	case DRM_FORMAT_NV42:
--		value = LDDDSR_LS | LDDDSR_WS;
+-			dmabrg_play_dma_start(cam);
 -		break;
--	case DRM_FORMAT_RGB888:
--	case DRM_FORMAT_NV12:
--	case DRM_FORMAT_NV16:
--	case DRM_FORMAT_NV24:
--		value = LDDDSR_LS | LDDDSR_WS | LDDDSR_BS;
+-	case SNDRV_PCM_TRIGGER_STOP:
+-		if (recv)
+-			dmabrg_rec_dma_stop(cam);
+-		else
+-			dmabrg_play_dma_stop(cam);
 -		break;
--	case DRM_FORMAT_ARGB8888:
 -	default:
--		value = LDDDSR_LS;
--		break;
--	}
--	lcdc_write(sdev, LDDDSR, value);
--
--	/* Setup planes. */
--	drm_for_each_legacy_plane(plane, dev) {
--		if (plane->crtc == crtc)
--			shmob_drm_plane_setup(plane);
--	}
--
--	/* Enable the display output. */
--	lcdc_write(sdev, LDCNT1R, LDCNT1R_DE);
--
--	shmob_drm_crtc_start_stop(scrtc, true);
--
--	scrtc->started = true;
--}
--
--static void shmob_drm_crtc_stop(struct shmob_drm_crtc *scrtc)
--{
--	struct drm_crtc *crtc = &scrtc->crtc;
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
--
--	if (!scrtc->started)
--		return;
--
--	/* Stop the LCDC. */
--	shmob_drm_crtc_start_stop(scrtc, false);
--
--	/* Disable the display output. */
--	lcdc_write(sdev, LDCNT1R, 0);
--
--	/* Stop clocks. */
--	shmob_drm_clk_off(sdev);
--
--	scrtc->started = false;
--}
--
--void shmob_drm_crtc_suspend(struct shmob_drm_crtc *scrtc)
--{
--	shmob_drm_crtc_stop(scrtc);
--}
--
--void shmob_drm_crtc_resume(struct shmob_drm_crtc *scrtc)
--{
--	if (scrtc->dpms != DRM_MODE_DPMS_ON)
--		return;
--
--	shmob_drm_crtc_start(scrtc);
--}
--
--static void shmob_drm_crtc_compute_base(struct shmob_drm_crtc *scrtc,
--					int x, int y)
--{
--	struct drm_crtc *crtc = &scrtc->crtc;
--	struct drm_framebuffer *fb = crtc->primary->fb;
--	struct drm_gem_dma_object *gem;
--	unsigned int bpp;
--
--	bpp = scrtc->format->yuv ? 8 : scrtc->format->bpp;
--	gem = drm_fb_dma_get_gem_obj(fb, 0);
--	scrtc->dma[0] = gem->dma_addr + fb->offsets[0]
--		      + y * fb->pitches[0] + x * bpp / 8;
--
--	if (scrtc->format->yuv) {
--		bpp = scrtc->format->bpp - 8;
--		gem = drm_fb_dma_get_gem_obj(fb, 1);
--		scrtc->dma[1] = gem->dma_addr + fb->offsets[1]
--			      + y / (bpp == 4 ? 2 : 1) * fb->pitches[1]
--			      + x * (bpp == 16 ? 2 : 1);
--	}
--}
--
--static void shmob_drm_crtc_update_base(struct shmob_drm_crtc *scrtc)
--{
--	struct drm_crtc *crtc = &scrtc->crtc;
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
--
--	shmob_drm_crtc_compute_base(scrtc, crtc->x, crtc->y);
--
--	lcdc_write_mirror(sdev, LDSA1R, scrtc->dma[0]);
--	if (scrtc->format->yuv)
--		lcdc_write_mirror(sdev, LDSA2R, scrtc->dma[1]);
--
--	lcdc_write(sdev, LDRCNTR, lcdc_read(sdev, LDRCNTR) ^ LDRCNTR_MRS);
--}
--
--#define to_shmob_crtc(c)	container_of(c, struct shmob_drm_crtc, crtc)
--
--static void shmob_drm_crtc_dpms(struct drm_crtc *crtc, int mode)
--{
--	struct shmob_drm_crtc *scrtc = to_shmob_crtc(crtc);
--
--	if (scrtc->dpms == mode)
--		return;
--
--	if (mode == DRM_MODE_DPMS_ON)
--		shmob_drm_crtc_start(scrtc);
--	else
--		shmob_drm_crtc_stop(scrtc);
--
--	scrtc->dpms = mode;
--}
--
--static void shmob_drm_crtc_mode_prepare(struct drm_crtc *crtc)
--{
--	shmob_drm_crtc_dpms(crtc, DRM_MODE_DPMS_OFF);
--}
--
--static int shmob_drm_crtc_mode_set(struct drm_crtc *crtc,
--				   struct drm_display_mode *mode,
--				   struct drm_display_mode *adjusted_mode,
--				   int x, int y,
--				   struct drm_framebuffer *old_fb)
--{
--	struct shmob_drm_crtc *scrtc = to_shmob_crtc(crtc);
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
--	const struct shmob_drm_format_info *format;
--
--	format = shmob_drm_format_info(crtc->primary->fb->format->format);
--	if (format == NULL) {
--		dev_dbg(sdev->dev, "mode_set: unsupported format %08x\n",
--			crtc->primary->fb->format->format);
 -		return -EINVAL;
 -	}
 -
--	scrtc->format = format;
--	scrtc->line_size = crtc->primary->fb->pitches[0];
--
--	shmob_drm_crtc_compute_base(scrtc, x, y);
--
 -	return 0;
 -}
 -
--static void shmob_drm_crtc_mode_commit(struct drm_crtc *crtc)
+-static snd_pcm_uframes_t camelot_pos(struct snd_soc_component *component,
+-				     struct snd_pcm_substream *substream)
 -{
--	shmob_drm_crtc_dpms(crtc, DRM_MODE_DPMS_ON);
--}
+-	struct snd_pcm_runtime *runtime = substream->runtime;
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct camelot_pcm *cam = &cam_pcm_data[asoc_rtd_to_cpu(rtd, 0)->id];
+-	int recv = substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? 0:1;
+-	unsigned long pos;
 -
--static int shmob_drm_crtc_mode_set_base(struct drm_crtc *crtc, int x, int y,
--					struct drm_framebuffer *old_fb)
--{
--	shmob_drm_crtc_update_base(to_shmob_crtc(crtc));
--
--	return 0;
--}
--
--static const struct drm_crtc_helper_funcs crtc_helper_funcs = {
--	.dpms = shmob_drm_crtc_dpms,
--	.prepare = shmob_drm_crtc_mode_prepare,
--	.commit = shmob_drm_crtc_mode_commit,
--	.mode_set = shmob_drm_crtc_mode_set,
--	.mode_set_base = shmob_drm_crtc_mode_set_base,
--};
--
--void shmob_drm_crtc_finish_page_flip(struct shmob_drm_crtc *scrtc)
--{
--	struct drm_pending_vblank_event *event;
--	struct drm_device *dev = scrtc->crtc.dev;
--	unsigned long flags;
--
--	spin_lock_irqsave(&dev->event_lock, flags);
--	event = scrtc->event;
--	scrtc->event = NULL;
--	if (event) {
--		drm_crtc_send_vblank_event(&scrtc->crtc, event);
--		drm_crtc_vblank_put(&scrtc->crtc);
--	}
--	spin_unlock_irqrestore(&dev->event_lock, flags);
--}
--
--static int shmob_drm_crtc_page_flip(struct drm_crtc *crtc,
--				    struct drm_framebuffer *fb,
--				    struct drm_pending_vblank_event *event,
--				    uint32_t page_flip_flags,
--				    struct drm_modeset_acquire_ctx *ctx)
--{
--	struct shmob_drm_crtc *scrtc = to_shmob_crtc(crtc);
--	struct drm_device *dev = scrtc->crtc.dev;
--	unsigned long flags;
--
--	spin_lock_irqsave(&dev->event_lock, flags);
--	if (scrtc->event != NULL) {
--		spin_unlock_irqrestore(&dev->event_lock, flags);
--		return -EBUSY;
--	}
--	spin_unlock_irqrestore(&dev->event_lock, flags);
--
--	crtc->primary->fb = fb;
--	shmob_drm_crtc_update_base(scrtc);
--
--	if (event) {
--		event->pipe = 0;
--		drm_crtc_vblank_get(&scrtc->crtc);
--		spin_lock_irqsave(&dev->event_lock, flags);
--		scrtc->event = event;
--		spin_unlock_irqrestore(&dev->event_lock, flags);
--	}
--
--	return 0;
--}
--
--static void shmob_drm_crtc_enable_vblank(struct shmob_drm_device *sdev,
--					 bool enable)
--{
--	unsigned long flags;
--	u32 ldintr;
--
--	/* Be careful not to acknowledge any pending interrupt. */
--	spin_lock_irqsave(&sdev->irq_lock, flags);
--	ldintr = lcdc_read(sdev, LDINTR) | LDINTR_STATUS_MASK;
--	if (enable)
--		ldintr |= LDINTR_VEE;
+-	/* cannot use the DMABRG pointer register: under load, by the
+-	 * time ALSA comes around to read the register, it is already
+-	 * far ahead (or worse, already done with the fragment) of the
+-	 * position at the time the IRQ was triggered, which results in
+-	 * fast-playback sound in my test application (ScummVM)
+-	 */
+-	if (recv)
+-		pos = cam->rx_period ? cam->rx_period_size : 0;
 -	else
--		ldintr &= ~LDINTR_VEE;
--	lcdc_write(sdev, LDINTR, ldintr);
--	spin_unlock_irqrestore(&sdev->irq_lock, flags);
+-		pos = cam->tx_period ? cam->tx_period_size : 0;
+-
+-	return bytes_to_frames(runtime, pos);
 -}
 -
--static int shmob_drm_enable_vblank(struct drm_crtc *crtc)
+-static int camelot_pcm_new(struct snd_soc_component *component,
+-			   struct snd_soc_pcm_runtime *rtd)
 -{
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
+-	struct snd_pcm *pcm = rtd->pcm;
 -
--	shmob_drm_crtc_enable_vblank(sdev, true);
+-	/* dont use SNDRV_DMA_TYPE_DEV, since it will oops the SH kernel
+-	 * in MMAP mode (i.e. aplay -M)
+-	 */
+-	snd_pcm_set_managed_buffer_all(pcm,
+-		SNDRV_DMA_TYPE_CONTINUOUS,
+-		NULL,
+-		DMABRG_PREALLOC_BUFFER,	DMABRG_PREALLOC_BUFFER_MAX);
 -
 -	return 0;
 -}
 -
--static void shmob_drm_disable_vblank(struct drm_crtc *crtc)
--{
--	struct shmob_drm_device *sdev = crtc->dev->dev_private;
--
--	shmob_drm_crtc_enable_vblank(sdev, false);
--}
--
--static const struct drm_crtc_funcs crtc_funcs = {
--	.destroy = drm_crtc_cleanup,
--	.set_config = drm_crtc_helper_set_config,
--	.page_flip = shmob_drm_crtc_page_flip,
--	.enable_vblank = shmob_drm_enable_vblank,
--	.disable_vblank = shmob_drm_disable_vblank,
+-static const struct snd_soc_component_driver sh7760_soc_component = {
+-	.open		= camelot_pcm_open,
+-	.close		= camelot_pcm_close,
+-	.hw_params	= camelot_hw_params,
+-	.prepare	= camelot_prepare,
+-	.trigger	= camelot_trigger,
+-	.pointer	= camelot_pos,
+-	.pcm_construct	= camelot_pcm_new,
 -};
 -
--int shmob_drm_crtc_create(struct shmob_drm_device *sdev)
+-static int sh7760_soc_platform_probe(struct platform_device *pdev)
 -{
--	struct drm_crtc *crtc = &sdev->crtc.crtc;
--	int ret;
--
--	sdev->crtc.dpms = DRM_MODE_DPMS_OFF;
--
--	ret = drm_crtc_init(sdev->ddev, crtc, &crtc_funcs);
--	if (ret < 0)
--		return ret;
--
--	drm_crtc_helper_add(crtc, &crtc_helper_funcs);
--
--	return 0;
+-	return devm_snd_soc_register_component(&pdev->dev, &sh7760_soc_component,
+-					       NULL, 0);
 -}
 -
--/* -----------------------------------------------------------------------------
-- * Encoder
-- */
+-static struct platform_driver sh7760_pcm_driver = {
+-	.driver = {
+-			.name = "sh7760-pcm-audio",
+-	},
 -
--#define to_shmob_encoder(e) \
--	container_of(e, struct shmob_drm_encoder, encoder)
--
--static void shmob_drm_encoder_dpms(struct drm_encoder *encoder, int mode)
--{
--	struct shmob_drm_encoder *senc = to_shmob_encoder(encoder);
--	struct shmob_drm_device *sdev = encoder->dev->dev_private;
--	struct shmob_drm_connector *scon = &sdev->connector;
--
--	if (senc->dpms == mode)
--		return;
--
--	shmob_drm_backlight_dpms(scon, mode);
--
--	senc->dpms = mode;
--}
--
--static bool shmob_drm_encoder_mode_fixup(struct drm_encoder *encoder,
--					 const struct drm_display_mode *mode,
--					 struct drm_display_mode *adjusted_mode)
--{
--	struct drm_device *dev = encoder->dev;
--	struct shmob_drm_device *sdev = dev->dev_private;
--	struct drm_connector *connector = &sdev->connector.connector;
--	const struct drm_display_mode *panel_mode;
--
--	if (list_empty(&connector->modes)) {
--		dev_dbg(dev->dev, "mode_fixup: empty modes list\n");
--		return false;
--	}
--
--	/* The flat panel mode is fixed, just copy it to the adjusted mode. */
--	panel_mode = list_first_entry(&connector->modes,
--				      struct drm_display_mode, head);
--	drm_mode_copy(adjusted_mode, panel_mode);
--
--	return true;
--}
--
--static void shmob_drm_encoder_mode_prepare(struct drm_encoder *encoder)
--{
--	/* No-op, everything is handled in the CRTC code. */
--}
--
--static void shmob_drm_encoder_mode_set(struct drm_encoder *encoder,
--				       struct drm_display_mode *mode,
--				       struct drm_display_mode *adjusted_mode)
--{
--	/* No-op, everything is handled in the CRTC code. */
--}
--
--static void shmob_drm_encoder_mode_commit(struct drm_encoder *encoder)
--{
--	/* No-op, everything is handled in the CRTC code. */
--}
--
--static const struct drm_encoder_helper_funcs encoder_helper_funcs = {
--	.dpms = shmob_drm_encoder_dpms,
--	.mode_fixup = shmob_drm_encoder_mode_fixup,
--	.prepare = shmob_drm_encoder_mode_prepare,
--	.commit = shmob_drm_encoder_mode_commit,
--	.mode_set = shmob_drm_encoder_mode_set,
+-	.probe = sh7760_soc_platform_probe,
 -};
 -
--int shmob_drm_encoder_create(struct shmob_drm_device *sdev)
--{
--	struct drm_encoder *encoder = &sdev->encoder.encoder;
--	int ret;
+-module_platform_driver(sh7760_pcm_driver);
 -
--	sdev->encoder.dpms = DRM_MODE_DPMS_OFF;
+-MODULE_LICENSE("GPL v2");
+-MODULE_DESCRIPTION("SH7760 Audio DMA (DMABRG) driver");
+-MODULE_AUTHOR("Manuel Lauss <mano@roarinelk.homelinux.net>");
+diff --git a/sound/soc/sh/fsi.c b/sound/soc/sh/fsi.c
+index f3edc2e3d9d7c4..c599070f2210f4 100644
+--- a/sound/soc/sh/fsi.c
++++ b/sound/soc/sh/fsi.c
+@@ -1372,16 +1372,7 @@ static int fsi_dma_probe(struct fsi_priv *fsi, struct fsi_stream *io, struct dev
+ {
+ 	int is_play = fsi_stream_is_play(fsi, io);
+ 
+-#ifdef CONFIG_SUPERH
+-	dma_cap_mask_t mask;
+-	dma_cap_zero(mask);
+-	dma_cap_set(DMA_SLAVE, mask);
 -
--	encoder->possible_crtcs = 1;
--
--	ret = drm_simple_encoder_init(sdev->ddev, encoder,
--				      DRM_MODE_ENCODER_LVDS);
--	if (ret < 0)
--		return ret;
--
--	drm_encoder_helper_add(encoder, &encoder_helper_funcs);
--
--	return 0;
--}
--
--/* -----------------------------------------------------------------------------
-- * Connector
-- */
--
--#define to_shmob_connector(c) \
--	container_of(c, struct shmob_drm_connector, connector)
--
--static int shmob_drm_connector_get_modes(struct drm_connector *connector)
--{
--	struct shmob_drm_device *sdev = connector->dev->dev_private;
--	struct drm_display_mode *mode;
--
--	mode = drm_mode_create(connector->dev);
--	if (mode == NULL)
--		return 0;
--
--	mode->type = DRM_MODE_TYPE_PREFERRED | DRM_MODE_TYPE_DRIVER;
--	mode->clock = sdev->pdata->panel.mode.clock;
--	mode->hdisplay = sdev->pdata->panel.mode.hdisplay;
--	mode->hsync_start = sdev->pdata->panel.mode.hsync_start;
--	mode->hsync_end = sdev->pdata->panel.mode.hsync_end;
--	mode->htotal = sdev->pdata->panel.mode.htotal;
--	mode->vdisplay = sdev->pdata->panel.mode.vdisplay;
--	mode->vsync_start = sdev->pdata->panel.mode.vsync_start;
--	mode->vsync_end = sdev->pdata->panel.mode.vsync_end;
--	mode->vtotal = sdev->pdata->panel.mode.vtotal;
--	mode->flags = sdev->pdata->panel.mode.flags;
--
--	drm_mode_set_name(mode);
--	drm_mode_probed_add(connector, mode);
--
--	connector->display_info.width_mm = sdev->pdata->panel.width_mm;
--	connector->display_info.height_mm = sdev->pdata->panel.height_mm;
--
--	return 1;
--}
--
--static struct drm_encoder *
--shmob_drm_connector_best_encoder(struct drm_connector *connector)
--{
--	struct shmob_drm_connector *scon = to_shmob_connector(connector);
--
--	return scon->encoder;
--}
--
--static const struct drm_connector_helper_funcs connector_helper_funcs = {
--	.get_modes = shmob_drm_connector_get_modes,
--	.best_encoder = shmob_drm_connector_best_encoder,
--};
--
--static void shmob_drm_connector_destroy(struct drm_connector *connector)
--{
--	struct shmob_drm_connector *scon = to_shmob_connector(connector);
--
--	shmob_drm_backlight_exit(scon);
--	drm_connector_unregister(connector);
--	drm_connector_cleanup(connector);
--}
--
--static const struct drm_connector_funcs connector_funcs = {
--	.dpms = drm_helper_connector_dpms,
--	.fill_modes = drm_helper_probe_single_connector_modes,
--	.destroy = shmob_drm_connector_destroy,
--};
--
--int shmob_drm_connector_create(struct shmob_drm_device *sdev,
--			       struct drm_encoder *encoder)
--{
--	struct drm_connector *connector = &sdev->connector.connector;
--	int ret;
--
--	sdev->connector.encoder = encoder;
--
--	connector->display_info.width_mm = sdev->pdata->panel.width_mm;
--	connector->display_info.height_mm = sdev->pdata->panel.height_mm;
--
--	ret = drm_connector_init(sdev->ddev, connector, &connector_funcs,
--				 DRM_MODE_CONNECTOR_LVDS);
--	if (ret < 0)
--		return ret;
--
--	drm_connector_helper_add(connector, &connector_helper_funcs);
--
--	ret = shmob_drm_backlight_init(&sdev->connector);
--	if (ret < 0)
--		goto err_cleanup;
--
--	ret = drm_connector_attach_encoder(connector, encoder);
--	if (ret < 0)
--		goto err_backlight;
--
--	drm_helper_connector_dpms(connector, DRM_MODE_DPMS_OFF);
--	drm_object_property_set_value(&connector->base,
--		sdev->ddev->mode_config.dpms_property, DRM_MODE_DPMS_OFF);
--
--	return 0;
--
--err_backlight:
--	shmob_drm_backlight_exit(&sdev->connector);
--err_cleanup:
--	drm_connector_cleanup(connector);
--	return ret;
--}
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_crtc.h b/drivers/gpu/drm/shmobile/shmob_drm_crtc.h
+-	io->chan = dma_request_channel(mask, shdma_chan_filter,
+-				       (void *)io->dma_id);
+-#else
+ 	io->chan = dma_request_slave_channel(dev, is_play ? "tx" : "rx");
+-#endif
+ 	if (io->chan) {
+ 		struct dma_slave_config cfg = {};
+ 		int ret;
+diff --git a/sound/soc/sh/hac.c b/sound/soc/sh/hac.c
 deleted file mode 100644
-index 21718843f46d3d..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_crtc.h
+index 46d145cbaf2970..00000000000000
+--- a/sound/soc/sh/hac.c
 +++ /dev/null
-@@ -1,55 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--/*
-- * shmob_drm_crtc.h  --  SH Mobile DRM CRTCs
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
+@@ -1,345 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-//
+-// Hitachi Audio Controller (AC97) support for SH7760/SH7780
+-//
+-// Copyright (c) 2007 Manuel Lauss <mano@roarinelk.homelinux.net>
+-//
+-// dont forget to set IPSEL/OMSEL register bits (in your board code) to
+-// enable HAC output pins!
+-
+-/* BIG FAT FIXME: although the SH7760 has 2 independent AC97 units, only
+- * the FIRST can be used since ASoC does not pass any information to the
+- * ac97_read/write() functions regarding WHICH unit to use.  You'll have
+- * to edit the code a bit to use the other AC97 unit.		--mlau
 - */
 -
--#ifndef __SHMOB_DRM_CRTC_H__
--#define __SHMOB_DRM_CRTC_H__
--
--#include <drm/drm_crtc.h>
--#include <drm/drm_connector.h>
--#include <drm/drm_encoder.h>
--
--struct backlight_device;
--struct drm_pending_vblank_event;
--struct shmob_drm_device;
--struct shmob_drm_format_info;
--
--struct shmob_drm_crtc {
--	struct drm_crtc crtc;
--
--	struct drm_pending_vblank_event *event;
--	int dpms;
--
--	const struct shmob_drm_format_info *format;
--	unsigned long dma[2];
--	unsigned int line_size;
--	bool started;
--};
--
--struct shmob_drm_encoder {
--	struct drm_encoder encoder;
--	int dpms;
--};
--
--struct shmob_drm_connector {
--	struct drm_connector connector;
--	struct drm_encoder *encoder;
--
--	struct backlight_device *backlight;
--};
--
--int shmob_drm_crtc_create(struct shmob_drm_device *sdev);
--void shmob_drm_crtc_finish_page_flip(struct shmob_drm_crtc *scrtc);
--void shmob_drm_crtc_suspend(struct shmob_drm_crtc *scrtc);
--void shmob_drm_crtc_resume(struct shmob_drm_crtc *scrtc);
--
--int shmob_drm_encoder_create(struct shmob_drm_device *sdev);
--int shmob_drm_connector_create(struct shmob_drm_device *sdev,
--			       struct drm_encoder *encoder);
--
--#endif /* __SHMOB_DRM_CRTC_H__ */
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_drv.c b/drivers/gpu/drm/shmobile/shmob_drm_drv.c
-deleted file mode 100644
-index 3d511fa3891364..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_drv.c
-+++ /dev/null
-@@ -1,303 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0+
--/*
-- * shmob_drm_drv.c  --  SH Mobile DRM driver
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
--
--#include <linux/clk.h>
--#include <linux/io.h>
--#include <linux/mm.h>
+-#include <linux/init.h>
 -#include <linux/module.h>
 -#include <linux/platform_device.h>
--#include <linux/pm.h>
--#include <linux/slab.h>
+-#include <linux/interrupt.h>
+-#include <linux/wait.h>
+-#include <linux/delay.h>
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/ac97_codec.h>
+-#include <sound/initval.h>
+-#include <sound/soc.h>
 -
--#include <drm/drm_crtc_helper.h>
--#include <drm/drm_drv.h>
--#include <drm/drm_gem_dma_helper.h>
--#include <drm/drm_module.h>
--#include <drm/drm_probe_helper.h>
--#include <drm/drm_vblank.h>
+-/* regs and bits */
+-#define HACCR		0x08
+-#define HACCSAR		0x20
+-#define HACCSDR		0x24
+-#define HACPCML		0x28
+-#define HACPCMR		0x2C
+-#define HACTIER		0x50
+-#define	HACTSR		0x54
+-#define HACRIER		0x58
+-#define HACRSR		0x5C
+-#define HACACR		0x60
 -
--#include "shmob_drm_drv.h"
--#include "shmob_drm_kms.h"
--#include "shmob_drm_plane.h"
--#include "shmob_drm_regs.h"
+-#define CR_CR		(1 << 15)	/* "codec-ready" indicator */
+-#define CR_CDRT		(1 << 11)	/* cold reset */
+-#define CR_WMRT		(1 << 10)	/* warm reset */
+-#define CR_B9		(1 << 9)	/* the mysterious "bit 9" */
+-#define CR_ST		(1 << 5)	/* AC97 link start bit */
 -
--/* -----------------------------------------------------------------------------
-- * Hardware initialization
+-#define CSAR_RD		(1 << 19)	/* AC97 data read bit */
+-#define CSAR_WR		(0)
+-
+-#define TSR_CMDAMT	(1 << 31)
+-#define TSR_CMDDMT	(1 << 30)
+-
+-#define RSR_STARY	(1 << 22)
+-#define RSR_STDRY	(1 << 21)
+-
+-#define ACR_DMARX16	(1 << 30)
+-#define ACR_DMATX16	(1 << 29)
+-#define ACR_TX12ATOM	(1 << 26)
+-#define ACR_DMARX20	((1 << 24) | (1 << 22))
+-#define ACR_DMATX20	((1 << 23) | (1 << 21))
+-
+-#define CSDR_SHIFT	4
+-#define CSDR_MASK	(0xffff << CSDR_SHIFT)
+-#define CSAR_SHIFT	12
+-#define CSAR_MASK	(0x7f << CSAR_SHIFT)
+-
+-#define AC97_WRITE_RETRY	1
+-#define AC97_READ_RETRY		5
+-
+-/* manual-suggested AC97 codec access timeouts (us) */
+-#define TMO_E1	500	/* 21 < E1 < 1000 */
+-#define TMO_E2	13	/* 13 < E2 */
+-#define TMO_E3	21	/* 21 < E3 */
+-#define TMO_E4	500	/* 21 < E4 < 1000 */
+-
+-struct hac_priv {
+-	unsigned long mmio;	/* HAC base address */
+-} hac_cpu_data[] = {
+-#if defined(CONFIG_CPU_SUBTYPE_SH7760)
+-	{
+-		.mmio	= 0xFE240000,
+-	},
+-	{
+-		.mmio	= 0xFE250000,
+-	},
+-#elif defined(CONFIG_CPU_SUBTYPE_SH7780)
+-	{
+-		.mmio	= 0xFFE40000,
+-	},
+-#else
+-#error "Unsupported SuperH SoC"
+-#endif
+-};
+-
+-#define HACREG(reg)	(*(unsigned long *)(hac->mmio + (reg)))
+-
+-/*
+- * AC97 read/write flow as outlined in the SH7760 manual (pages 903-906)
 - */
--
--static int shmob_drm_init_interface(struct shmob_drm_device *sdev)
+-static int hac_get_codec_data(struct hac_priv *hac, unsigned short r,
+-			      unsigned short *v)
 -{
--	static const u32 ldmt1r[] = {
--		[SHMOB_DRM_IFACE_RGB8] = LDMT1R_MIFTYP_RGB8,
--		[SHMOB_DRM_IFACE_RGB9] = LDMT1R_MIFTYP_RGB9,
--		[SHMOB_DRM_IFACE_RGB12A] = LDMT1R_MIFTYP_RGB12A,
--		[SHMOB_DRM_IFACE_RGB12B] = LDMT1R_MIFTYP_RGB12B,
--		[SHMOB_DRM_IFACE_RGB16] = LDMT1R_MIFTYP_RGB16,
--		[SHMOB_DRM_IFACE_RGB18] = LDMT1R_MIFTYP_RGB18,
--		[SHMOB_DRM_IFACE_RGB24] = LDMT1R_MIFTYP_RGB24,
--		[SHMOB_DRM_IFACE_YUV422] = LDMT1R_MIFTYP_YCBCR,
--		[SHMOB_DRM_IFACE_SYS8A] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS8A,
--		[SHMOB_DRM_IFACE_SYS8B] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS8B,
--		[SHMOB_DRM_IFACE_SYS8C] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS8C,
--		[SHMOB_DRM_IFACE_SYS8D] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS8D,
--		[SHMOB_DRM_IFACE_SYS9] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS9,
--		[SHMOB_DRM_IFACE_SYS12] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS12,
--		[SHMOB_DRM_IFACE_SYS16A] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS16A,
--		[SHMOB_DRM_IFACE_SYS16B] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS16B,
--		[SHMOB_DRM_IFACE_SYS16C] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS16C,
--		[SHMOB_DRM_IFACE_SYS18] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS18,
--		[SHMOB_DRM_IFACE_SYS24] = LDMT1R_IFM | LDMT1R_MIFTYP_SYS24,
--	};
+-	unsigned int to1, to2, i;
+-	unsigned short adr;
 -
--	if (sdev->pdata->iface.interface >= ARRAY_SIZE(ldmt1r)) {
--		dev_err(sdev->dev, "invalid interface type %u\n",
--			sdev->pdata->iface.interface);
--		return -EINVAL;
+-	for (i = AC97_READ_RETRY; i; i--) {
+-		*v = 0;
+-		/* wait for HAC to receive something from the codec */
+-		for (to1 = TMO_E4;
+-		     to1 && !(HACREG(HACRSR) & RSR_STARY);
+-		     --to1)
+-			udelay(1);
+-		for (to2 = TMO_E4; 
+-		     to2 && !(HACREG(HACRSR) & RSR_STDRY);
+-		     --to2)
+-			udelay(1);
+-
+-		if (!to1 && !to2)
+-			return 0;	/* codec comm is down */
+-
+-		adr = ((HACREG(HACCSAR) & CSAR_MASK) >> CSAR_SHIFT);
+-		*v  = ((HACREG(HACCSDR) & CSDR_MASK) >> CSDR_SHIFT);
+-
+-		HACREG(HACRSR) &= ~(RSR_STDRY | RSR_STARY);
+-
+-		if (r == adr)
+-			break;
+-
+-		/* manual says: wait at least 21 usec before retrying */
+-		udelay(21);
 -	}
--
--	sdev->ldmt1r = ldmt1r[sdev->pdata->iface.interface];
--	return 0;
+-	HACREG(HACRSR) &= ~(RSR_STDRY | RSR_STARY);
+-	return i;
 -}
 -
--static int shmob_drm_setup_clocks(struct shmob_drm_device *sdev,
--					    enum shmob_drm_clk_source clksrc)
+-static unsigned short hac_read_codec_aux(struct hac_priv *hac,
+-					 unsigned short reg)
 -{
--	struct clk *clk;
--	char *clkname;
+-	unsigned short val;
+-	unsigned int i, to;
 -
--	switch (clksrc) {
--	case SHMOB_DRM_CLK_BUS:
--		clkname = "bus_clk";
--		sdev->lddckr = LDDCKR_ICKSEL_BUS;
+-	for (i = AC97_READ_RETRY; i; i--) {
+-		/* send_read_request */
+-		local_irq_disable();
+-		HACREG(HACTSR) &= ~(TSR_CMDAMT);
+-		HACREG(HACCSAR) = (reg << CSAR_SHIFT) | CSAR_RD;
+-		local_irq_enable();
+-
+-		for (to = TMO_E3;
+-		     to && !(HACREG(HACTSR) & TSR_CMDAMT);
+-		     --to)
+-			udelay(1);
+-
+-		HACREG(HACTSR) &= ~TSR_CMDAMT;
+-		val = 0;
+-		if (hac_get_codec_data(hac, reg, &val) != 0)
+-			break;
+-	}
+-
+-	return i ? val : ~0;
+-}
+-
+-static void hac_ac97_write(struct snd_ac97 *ac97, unsigned short reg,
+-			   unsigned short val)
+-{
+-	int unit_id = 0 /* ac97->private_data */;
+-	struct hac_priv *hac = &hac_cpu_data[unit_id];
+-	unsigned int i, to;
+-	/* write_codec_aux */
+-	for (i = AC97_WRITE_RETRY; i; i--) {
+-		/* send_write_request */
+-		local_irq_disable();
+-		HACREG(HACTSR) &= ~(TSR_CMDDMT | TSR_CMDAMT);
+-		HACREG(HACCSDR) = (val << CSDR_SHIFT);
+-		HACREG(HACCSAR) = (reg << CSAR_SHIFT) & (~CSAR_RD);
+-		local_irq_enable();
+-
+-		/* poll-wait for CMDAMT and CMDDMT */
+-		for (to = TMO_E1;
+-		     to && !(HACREG(HACTSR) & (TSR_CMDAMT|TSR_CMDDMT));
+-		     --to)
+-			udelay(1);
+-
+-		HACREG(HACTSR) &= ~(TSR_CMDAMT | TSR_CMDDMT);
+-		if (to)
+-			break;
+-		/* timeout, try again */
+-	}
+-}
+-
+-static unsigned short hac_ac97_read(struct snd_ac97 *ac97,
+-				    unsigned short reg)
+-{
+-	int unit_id = 0 /* ac97->private_data */;
+-	struct hac_priv *hac = &hac_cpu_data[unit_id];
+-	return hac_read_codec_aux(hac, reg);
+-}
+-
+-static void hac_ac97_warmrst(struct snd_ac97 *ac97)
+-{
+-	int unit_id = 0 /* ac97->private_data */;
+-	struct hac_priv *hac = &hac_cpu_data[unit_id];
+-	unsigned int tmo;
+-
+-	HACREG(HACCR) = CR_WMRT | CR_ST | CR_B9;
+-	msleep(10);
+-	HACREG(HACCR) = CR_ST | CR_B9;
+-	for (tmo = 1000; (tmo > 0) && !(HACREG(HACCR) & CR_CR); tmo--)
+-		udelay(1);
+-
+-	if (!tmo)
+-		printk(KERN_INFO "hac: reset: AC97 link down!\n");
+-	/* settings this bit lets us have a conversation with codec */
+-	HACREG(HACACR) |= ACR_TX12ATOM;
+-}
+-
+-static void hac_ac97_coldrst(struct snd_ac97 *ac97)
+-{
+-	int unit_id = 0 /* ac97->private_data */;
+-	struct hac_priv *hac;
+-	hac = &hac_cpu_data[unit_id];
+-
+-	HACREG(HACCR) = 0;
+-	HACREG(HACCR) = CR_CDRT | CR_ST | CR_B9;
+-	msleep(10);
+-	hac_ac97_warmrst(ac97);
+-}
+-
+-static struct snd_ac97_bus_ops hac_ac97_ops = {
+-	.read	= hac_ac97_read,
+-	.write	= hac_ac97_write,
+-	.reset	= hac_ac97_coldrst,
+-	.warm_reset = hac_ac97_warmrst,
+-};
+-
+-static int hac_hw_params(struct snd_pcm_substream *substream,
+-			 struct snd_pcm_hw_params *params,
+-			 struct snd_soc_dai *dai)
+-{
+-	struct hac_priv *hac = &hac_cpu_data[dai->id];
+-	int d = substream->stream == SNDRV_PCM_STREAM_PLAYBACK ? 0 : 1;
+-
+-	switch (params->msbits) {
+-	case 16:
+-		HACREG(HACACR) |= d ?  ACR_DMARX16 :  ACR_DMATX16;
+-		HACREG(HACACR) &= d ? ~ACR_DMARX20 : ~ACR_DMATX20;
 -		break;
--	case SHMOB_DRM_CLK_PERIPHERAL:
--		clkname = "peripheral_clk";
--		sdev->lddckr = LDDCKR_ICKSEL_MIPI;
--		break;
--	case SHMOB_DRM_CLK_EXTERNAL:
--		clkname = NULL;
--		sdev->lddckr = LDDCKR_ICKSEL_HDMI;
+-	case 20:
+-		HACREG(HACACR) &= d ? ~ACR_DMARX16 : ~ACR_DMATX16;
+-		HACREG(HACACR) |= d ?  ACR_DMARX20 :  ACR_DMATX20;
 -		break;
 -	default:
+-		pr_debug("hac: invalid depth %d bit\n", params->msbits);
 -		return -EINVAL;
+-		break;
 -	}
 -
--	clk = devm_clk_get(sdev->dev, clkname);
--	if (IS_ERR(clk)) {
--		dev_err(sdev->dev, "cannot get dot clock %s\n", clkname);
--		return PTR_ERR(clk);
--	}
--
--	sdev->clock = clk;
 -	return 0;
 -}
 -
--/* -----------------------------------------------------------------------------
-- * DRM operations
-- */
+-#define AC97_RATES	\
+-	SNDRV_PCM_RATE_8000_192000
 -
--static irqreturn_t shmob_drm_irq(int irq, void *arg)
--{
--	struct drm_device *dev = arg;
--	struct shmob_drm_device *sdev = dev->dev_private;
--	unsigned long flags;
--	u32 status;
+-#define AC97_FMTS	\
+-	SNDRV_PCM_FMTBIT_S16_LE
 -
--	/* Acknowledge interrupts. Putting interrupt enable and interrupt flag
--	 * bits in the same register is really brain-dead design and requires
--	 * taking a spinlock.
--	 */
--	spin_lock_irqsave(&sdev->irq_lock, flags);
--	status = lcdc_read(sdev, LDINTR);
--	lcdc_write(sdev, LDINTR, status ^ LDINTR_STATUS_MASK);
--	spin_unlock_irqrestore(&sdev->irq_lock, flags);
--
--	if (status & LDINTR_VES) {
--		drm_handle_vblank(dev, 0);
--		shmob_drm_crtc_finish_page_flip(&sdev->crtc);
--	}
--
--	return IRQ_HANDLED;
--}
--
--DEFINE_DRM_GEM_DMA_FOPS(shmob_drm_fops);
--
--static const struct drm_driver shmob_drm_driver = {
--	.driver_features	= DRIVER_GEM | DRIVER_MODESET,
--	DRM_GEM_DMA_DRIVER_OPS,
--	.fops			= &shmob_drm_fops,
--	.name			= "shmob-drm",
--	.desc			= "Renesas SH Mobile DRM",
--	.date			= "20120424",
--	.major			= 1,
--	.minor			= 0,
+-static const struct snd_soc_dai_ops hac_dai_ops = {
+-	.hw_params	= hac_hw_params,
 -};
 -
--/* -----------------------------------------------------------------------------
-- * Power management
-- */
--
--#ifdef CONFIG_PM_SLEEP
--static int shmob_drm_pm_suspend(struct device *dev)
+-static struct snd_soc_dai_driver sh4_hac_dai[] = {
 -{
--	struct shmob_drm_device *sdev = dev_get_drvdata(dev);
--
--	drm_kms_helper_poll_disable(sdev->ddev);
--	shmob_drm_crtc_suspend(&sdev->crtc);
--
--	return 0;
--}
--
--static int shmob_drm_pm_resume(struct device *dev)
+-	.name			= "hac-dai.0",
+-	.playback = {
+-		.rates		= AC97_RATES,
+-		.formats	= AC97_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 2,
+-	},
+-	.capture = {
+-		.rates		= AC97_RATES,
+-		.formats	= AC97_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 2,
+-	},
+-	.ops = &hac_dai_ops,
+-},
+-#ifdef CONFIG_CPU_SUBTYPE_SH7760
 -{
--	struct shmob_drm_device *sdev = dev_get_drvdata(dev);
+-	.name			= "hac-dai.1",
+-	.id			= 1,
+-	.playback = {
+-		.rates		= AC97_RATES,
+-		.formats	= AC97_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 2,
+-	},
+-	.capture = {
+-		.rates		= AC97_RATES,
+-		.formats	= AC97_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 2,
+-	},
+-	.ops = &hac_dai_ops,
 -
--	drm_modeset_lock_all(sdev->ddev);
--	shmob_drm_crtc_resume(&sdev->crtc);
--	drm_modeset_unlock_all(sdev->ddev);
--
--	drm_kms_helper_poll_enable(sdev->ddev);
--	return 0;
--}
+-},
 -#endif
--
--static const struct dev_pm_ops shmob_drm_pm_ops = {
--	SET_SYSTEM_SLEEP_PM_OPS(shmob_drm_pm_suspend, shmob_drm_pm_resume)
 -};
 -
--/* -----------------------------------------------------------------------------
-- * Platform driver
-- */
+-static const struct snd_soc_component_driver sh4_hac_component = {
+-	.name			= "sh4-hac",
+-	.legacy_dai_naming	= 1,
+-};
 -
--static int shmob_drm_remove(struct platform_device *pdev)
+-static int hac_soc_platform_probe(struct platform_device *pdev)
 -{
--	struct shmob_drm_device *sdev = platform_get_drvdata(pdev);
--	struct drm_device *ddev = sdev->ddev;
--
--	drm_dev_unregister(ddev);
--	drm_kms_helper_poll_fini(ddev);
--	free_irq(sdev->irq, ddev);
--	drm_dev_put(ddev);
--
--	return 0;
--}
--
--static int shmob_drm_probe(struct platform_device *pdev)
--{
--	struct shmob_drm_platform_data *pdata = pdev->dev.platform_data;
--	struct shmob_drm_device *sdev;
--	struct drm_device *ddev;
--	unsigned int i;
 -	int ret;
 -
--	if (pdata == NULL) {
--		dev_err(&pdev->dev, "no platform data\n");
--		return -EINVAL;
--	}
--
--	/*
--	 * Allocate and initialize the driver private data, I/O resources and
--	 * clocks.
--	 */
--	sdev = devm_kzalloc(&pdev->dev, sizeof(*sdev), GFP_KERNEL);
--	if (sdev == NULL)
--		return -ENOMEM;
--
--	sdev->dev = &pdev->dev;
--	sdev->pdata = pdata;
--	spin_lock_init(&sdev->irq_lock);
--
--	platform_set_drvdata(pdev, sdev);
--
--	sdev->mmio = devm_platform_ioremap_resource(pdev, 0);
--	if (IS_ERR(sdev->mmio))
--		return PTR_ERR(sdev->mmio);
--
--	ret = shmob_drm_setup_clocks(sdev, pdata->clk_source);
--	if (ret < 0)
+-	ret = snd_soc_set_ac97_ops(&hac_ac97_ops);
+-	if (ret != 0)
 -		return ret;
 -
--	ret = shmob_drm_init_interface(sdev);
--	if (ret < 0)
--		return ret;
+-	return devm_snd_soc_register_component(&pdev->dev, &sh4_hac_component,
+-					  sh4_hac_dai, ARRAY_SIZE(sh4_hac_dai));
+-}
 -
--	/* Allocate and initialize the DRM device. */
--	ddev = drm_dev_alloc(&shmob_drm_driver, &pdev->dev);
--	if (IS_ERR(ddev))
--		return PTR_ERR(ddev);
--
--	sdev->ddev = ddev;
--	ddev->dev_private = sdev;
--
--	ret = shmob_drm_modeset_init(sdev);
--	if (ret < 0) {
--		dev_err(&pdev->dev, "failed to initialize mode setting\n");
--		goto err_free_drm_dev;
--	}
--
--	for (i = 0; i < 4; ++i) {
--		ret = shmob_drm_plane_create(sdev, i);
--		if (ret < 0) {
--			dev_err(&pdev->dev, "failed to create plane %u\n", i);
--			goto err_modeset_cleanup;
--		}
--	}
--
--	ret = drm_vblank_init(ddev, 1);
--	if (ret < 0) {
--		dev_err(&pdev->dev, "failed to initialize vblank\n");
--		goto err_modeset_cleanup;
--	}
--
--	ret = platform_get_irq(pdev, 0);
--	if (ret < 0)
--		goto err_modeset_cleanup;
--	sdev->irq = ret;
--
--	ret = request_irq(sdev->irq, shmob_drm_irq, 0, ddev->driver->name,
--			  ddev);
--	if (ret < 0) {
--		dev_err(&pdev->dev, "failed to install IRQ handler\n");
--		goto err_modeset_cleanup;
--	}
--
--	/*
--	 * Register the DRM device with the core and the connectors with
--	 * sysfs.
--	 */
--	ret = drm_dev_register(ddev, 0);
--	if (ret < 0)
--		goto err_irq_uninstall;
--
+-static int hac_soc_platform_remove(struct platform_device *pdev)
+-{
+-	snd_soc_set_ac97_ops(NULL);
 -	return 0;
+-}
 -
--err_irq_uninstall:
--	free_irq(sdev->irq, ddev);
--err_modeset_cleanup:
--	drm_kms_helper_poll_fini(ddev);
--err_free_drm_dev:
--	drm_dev_put(ddev);
+-static struct platform_driver hac_pcm_driver = {
+-	.driver = {
+-			.name = "hac-pcm-audio",
+-	},
+-
+-	.probe = hac_soc_platform_probe,
+-	.remove = hac_soc_platform_remove,
+-};
+-
+-module_platform_driver(hac_pcm_driver);
+-
+-MODULE_LICENSE("GPL v2");
+-MODULE_DESCRIPTION("SuperH onchip HAC (AC97) audio driver");
+-MODULE_AUTHOR("Manuel Lauss <mano@roarinelk.homelinux.net>");
+diff --git a/sound/soc/sh/migor.c b/sound/soc/sh/migor.c
+deleted file mode 100644
+index 7082c12d3bf238..00000000000000
+--- a/sound/soc/sh/migor.c
++++ /dev/null
+@@ -1,205 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-//
+-// ALSA SoC driver for Migo-R
+-//
+-// Copyright (C) 2009-2010 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
+-
+-#include <linux/clkdev.h>
+-#include <linux/device.h>
+-#include <linux/firmware.h>
+-#include <linux/module.h>
+-
+-#include <asm/clock.h>
+-
+-#include <cpu/sh7722.h>
+-
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/soc.h>
+-
+-#include "../codecs/wm8978.h"
+-#include "siu.h"
+-
+-/* Default 8000Hz sampling frequency */
+-static unsigned long codec_freq = 8000 * 512;
+-
+-static unsigned int use_count;
+-
+-/* External clock, sourced from the codec at the SIUMCKB pin */
+-static unsigned long siumckb_recalc(struct clk *clk)
+-{
+-	return codec_freq;
+-}
+-
+-static struct sh_clk_ops siumckb_clk_ops = {
+-	.recalc = siumckb_recalc,
+-};
+-
+-static struct clk siumckb_clk = {
+-	.ops		= &siumckb_clk_ops,
+-	.rate		= 0, /* initialised at run-time */
+-};
+-
+-static struct clk_lookup *siumckb_lookup;
+-
+-static int migor_hw_params(struct snd_pcm_substream *substream,
+-			   struct snd_pcm_hw_params *params)
+-{
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct snd_soc_dai *codec_dai = asoc_rtd_to_codec(rtd, 0);
+-	int ret;
+-	unsigned int rate = params_rate(params);
+-
+-	ret = snd_soc_dai_set_sysclk(codec_dai, WM8978_PLL, 13000000,
+-				     SND_SOC_CLOCK_IN);
+-	if (ret < 0)
+-		return ret;
+-
+-	ret = snd_soc_dai_set_clkdiv(codec_dai, WM8978_OPCLKRATE, rate * 512);
+-	if (ret < 0)
+-		return ret;
+-
+-	codec_freq = rate * 512;
+-	/*
+-	 * This propagates the parent frequency change to children and
+-	 * recalculates the frequency table
+-	 */
+-	clk_set_rate(&siumckb_clk, codec_freq);
+-	dev_dbg(codec_dai->dev, "%s: configure %luHz\n", __func__, codec_freq);
+-
+-	ret = snd_soc_dai_set_sysclk(asoc_rtd_to_cpu(rtd, 0), SIU_CLKB_EXT,
+-				     codec_freq / 2, SND_SOC_CLOCK_IN);
+-
+-	if (!ret)
+-		use_count++;
 -
 -	return ret;
 -}
 -
--static struct platform_driver shmob_drm_platform_driver = {
--	.probe		= shmob_drm_probe,
--	.remove		= shmob_drm_remove,
--	.driver		= {
--		.name	= "shmob-drm",
--		.pm	= &shmob_drm_pm_ops,
--	},
--};
--
--drm_module_platform_driver(shmob_drm_platform_driver);
--
--MODULE_AUTHOR("Laurent Pinchart <laurent.pinchart@ideasonboard.com>");
--MODULE_DESCRIPTION("Renesas SH Mobile DRM Driver");
--MODULE_LICENSE("GPL");
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_drv.h b/drivers/gpu/drm/shmobile/shmob_drm_drv.h
-deleted file mode 100644
-index 4964ddd5ab7472..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_drv.h
-+++ /dev/null
-@@ -1,42 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--/*
-- * shmob_drm.h  --  SH Mobile DRM driver
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
--
--#ifndef __SHMOB_DRM_DRV_H__
--#define __SHMOB_DRM_DRV_H__
--
--#include <linux/kernel.h>
--#include <linux/platform_data/shmob_drm.h>
--#include <linux/spinlock.h>
--
--#include "shmob_drm_crtc.h"
--
--struct clk;
--struct device;
--struct drm_device;
--
--struct shmob_drm_device {
--	struct device *dev;
--	const struct shmob_drm_platform_data *pdata;
--
--	void __iomem *mmio;
--	struct clk *clock;
--	u32 lddckr;
--	u32 ldmt1r;
--
--	unsigned int irq;
--	spinlock_t irq_lock;		/* Protects hardware LDINTR register */
--
--	struct drm_device *ddev;
--
--	struct shmob_drm_crtc crtc;
--	struct shmob_drm_encoder encoder;
--	struct shmob_drm_connector connector;
--};
--
--#endif /* __SHMOB_DRM_DRV_H__ */
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_kms.c b/drivers/gpu/drm/shmobile/shmob_drm_kms.c
-deleted file mode 100644
-index 60a2c8d8a0d947..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_kms.c
-+++ /dev/null
-@@ -1,150 +0,0 @@
--// SPDX-License-Identifier: GPL-2.0+
--/*
-- * shmob_drm_kms.c  --  SH Mobile DRM Mode Setting
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
--
--#include <drm/drm_crtc.h>
--#include <drm/drm_crtc_helper.h>
--#include <drm/drm_fourcc.h>
--#include <drm/drm_gem_dma_helper.h>
--#include <drm/drm_gem_framebuffer_helper.h>
--#include <drm/drm_probe_helper.h>
--
--#include "shmob_drm_crtc.h"
--#include "shmob_drm_drv.h"
--#include "shmob_drm_kms.h"
--#include "shmob_drm_regs.h"
--
--/* -----------------------------------------------------------------------------
-- * Format helpers
-- */
--
--static const struct shmob_drm_format_info shmob_drm_format_infos[] = {
--	{
--		.fourcc = DRM_FORMAT_RGB565,
--		.bpp = 16,
--		.yuv = false,
--		.lddfr = LDDFR_PKF_RGB16,
--	}, {
--		.fourcc = DRM_FORMAT_RGB888,
--		.bpp = 24,
--		.yuv = false,
--		.lddfr = LDDFR_PKF_RGB24,
--	}, {
--		.fourcc = DRM_FORMAT_ARGB8888,
--		.bpp = 32,
--		.yuv = false,
--		.lddfr = LDDFR_PKF_ARGB32,
--	}, {
--		.fourcc = DRM_FORMAT_NV12,
--		.bpp = 12,
--		.yuv = true,
--		.lddfr = LDDFR_CC | LDDFR_YF_420,
--	}, {
--		.fourcc = DRM_FORMAT_NV21,
--		.bpp = 12,
--		.yuv = true,
--		.lddfr = LDDFR_CC | LDDFR_YF_420,
--	}, {
--		.fourcc = DRM_FORMAT_NV16,
--		.bpp = 16,
--		.yuv = true,
--		.lddfr = LDDFR_CC | LDDFR_YF_422,
--	}, {
--		.fourcc = DRM_FORMAT_NV61,
--		.bpp = 16,
--		.yuv = true,
--		.lddfr = LDDFR_CC | LDDFR_YF_422,
--	}, {
--		.fourcc = DRM_FORMAT_NV24,
--		.bpp = 24,
--		.yuv = true,
--		.lddfr = LDDFR_CC | LDDFR_YF_444,
--	}, {
--		.fourcc = DRM_FORMAT_NV42,
--		.bpp = 24,
--		.yuv = true,
--		.lddfr = LDDFR_CC | LDDFR_YF_444,
--	},
--};
--
--const struct shmob_drm_format_info *shmob_drm_format_info(u32 fourcc)
+-static int migor_hw_free(struct snd_pcm_substream *substream)
 -{
--	unsigned int i;
+-	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	struct snd_soc_dai *codec_dai = asoc_rtd_to_codec(rtd, 0);
 -
--	for (i = 0; i < ARRAY_SIZE(shmob_drm_format_infos); ++i) {
--		if (shmob_drm_format_infos[i].fourcc == fourcc)
--			return &shmob_drm_format_infos[i];
+-	if (use_count) {
+-		use_count--;
+-
+-		if (!use_count)
+-			snd_soc_dai_set_sysclk(codec_dai, WM8978_PLL, 0,
+-					       SND_SOC_CLOCK_IN);
+-	} else {
+-		dev_dbg(codec_dai->dev, "Unbalanced hw_free!\n");
 -	}
--
--	return NULL;
--}
--
--/* -----------------------------------------------------------------------------
-- * Frame buffer
-- */
--
--static struct drm_framebuffer *
--shmob_drm_fb_create(struct drm_device *dev, struct drm_file *file_priv,
--		    const struct drm_mode_fb_cmd2 *mode_cmd)
--{
--	const struct shmob_drm_format_info *format;
--
--	format = shmob_drm_format_info(mode_cmd->pixel_format);
--	if (format == NULL) {
--		dev_dbg(dev->dev, "unsupported pixel format %08x\n",
--			mode_cmd->pixel_format);
--		return ERR_PTR(-EINVAL);
--	}
--
--	if (mode_cmd->pitches[0] & 7 || mode_cmd->pitches[0] >= 65536) {
--		dev_dbg(dev->dev, "invalid pitch value %u\n",
--			mode_cmd->pitches[0]);
--		return ERR_PTR(-EINVAL);
--	}
--
--	if (format->yuv) {
--		unsigned int chroma_cpp = format->bpp == 24 ? 2 : 1;
--
--		if (mode_cmd->pitches[1] != mode_cmd->pitches[0] * chroma_cpp) {
--			dev_dbg(dev->dev,
--				"luma and chroma pitches do not match\n");
--			return ERR_PTR(-EINVAL);
--		}
--	}
--
--	return drm_gem_fb_create(dev, file_priv, mode_cmd);
--}
--
--static const struct drm_mode_config_funcs shmob_drm_mode_config_funcs = {
--	.fb_create = shmob_drm_fb_create,
--};
--
--int shmob_drm_modeset_init(struct shmob_drm_device *sdev)
--{
--	int ret;
--
--	ret = drmm_mode_config_init(sdev->ddev);
--	if (ret)
--		return ret;
--
--	shmob_drm_crtc_create(sdev);
--	shmob_drm_encoder_create(sdev);
--	shmob_drm_connector_create(sdev, &sdev->encoder.encoder);
--
--	drm_kms_helper_poll_init(sdev->ddev);
--
--	sdev->ddev->mode_config.min_width = 0;
--	sdev->ddev->mode_config.min_height = 0;
--	sdev->ddev->mode_config.max_width = 4095;
--	sdev->ddev->mode_config.max_height = 4095;
--	sdev->ddev->mode_config.funcs = &shmob_drm_mode_config_funcs;
--
--	drm_helper_disable_unused_functions(sdev->ddev);
 -
 -	return 0;
 -}
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_kms.h b/drivers/gpu/drm/shmobile/shmob_drm_kms.h
-deleted file mode 100644
-index 0347b1fd2338a8..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_kms.h
-+++ /dev/null
-@@ -1,29 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--/*
-- * shmob_drm_kms.h  --  SH Mobile DRM Mode Setting
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
 -
--#ifndef __SHMOB_DRM_KMS_H__
--#define __SHMOB_DRM_KMS_H__
+-static const struct snd_soc_ops migor_dai_ops = {
+-	.hw_params = migor_hw_params,
+-	.hw_free = migor_hw_free,
+-};
+-
+-static const struct snd_soc_dapm_widget migor_dapm_widgets[] = {
+-	SND_SOC_DAPM_HP("Headphone", NULL),
+-	SND_SOC_DAPM_MIC("Onboard Microphone", NULL),
+-	SND_SOC_DAPM_MIC("External Microphone", NULL),
+-};
+-
+-static const struct snd_soc_dapm_route audio_map[] = {
+-	/* Headphone output connected to LHP/RHP, enable OUT4 for VMID */
+-	{ "Headphone", NULL,  "OUT4 VMID" },
+-	{ "OUT4 VMID", NULL,  "LHP" },
+-	{ "OUT4 VMID", NULL,  "RHP" },
+-
+-	/* On-board microphone */
+-	{ "RMICN", NULL, "Mic Bias" },
+-	{ "RMICP", NULL, "Mic Bias" },
+-	{ "Mic Bias", NULL, "Onboard Microphone" },
+-
+-	/* External microphone */
+-	{ "LMICN", NULL, "Mic Bias" },
+-	{ "LMICP", NULL, "Mic Bias" },
+-	{ "Mic Bias", NULL, "External Microphone" },
+-};
+-
+-/* migor digital audio interface glue - connects codec <--> CPU */
+-SND_SOC_DAILINK_DEFS(wm8978,
+-	DAILINK_COMP_ARRAY(COMP_CPU("siu-pcm-audio")),
+-	DAILINK_COMP_ARRAY(COMP_CODEC("wm8978.0-001a", "wm8978-hifi")),
+-	DAILINK_COMP_ARRAY(COMP_PLATFORM("siu-pcm-audio")));
+-
+-static struct snd_soc_dai_link migor_dai = {
+-	.name = "wm8978",
+-	.stream_name = "WM8978",
+-	.dai_fmt = SND_SOC_DAIFMT_NB_IF | SND_SOC_DAIFMT_I2S |
+-		   SND_SOC_DAIFMT_CBS_CFS,
+-	.ops = &migor_dai_ops,
+-	SND_SOC_DAILINK_REG(wm8978),
+-};
+-
+-/* migor audio machine driver */
+-static struct snd_soc_card snd_soc_migor = {
+-	.name = "Migo-R",
+-	.owner = THIS_MODULE,
+-	.dai_link = &migor_dai,
+-	.num_links = 1,
+-
+-	.dapm_widgets = migor_dapm_widgets,
+-	.num_dapm_widgets = ARRAY_SIZE(migor_dapm_widgets),
+-	.dapm_routes = audio_map,
+-	.num_dapm_routes = ARRAY_SIZE(audio_map),
+-};
+-
+-static struct platform_device *migor_snd_device;
+-
+-static int __init migor_init(void)
+-{
+-	int ret;
+-
+-	ret = clk_register(&siumckb_clk);
+-	if (ret < 0)
+-		return ret;
+-
+-	siumckb_lookup = clkdev_create(&siumckb_clk, "siumckb_clk", NULL);
+-	if (!siumckb_lookup) {
+-		ret = -ENOMEM;
+-		goto eclkdevalloc;
+-	}
+-
+-	/* Port number used on this machine: port B */
+-	migor_snd_device = platform_device_alloc("soc-audio", 1);
+-	if (!migor_snd_device) {
+-		ret = -ENOMEM;
+-		goto epdevalloc;
+-	}
+-
+-	platform_set_drvdata(migor_snd_device, &snd_soc_migor);
+-
+-	ret = platform_device_add(migor_snd_device);
+-	if (ret)
+-		goto epdevadd;
+-
+-	return 0;
+-
+-epdevadd:
+-	platform_device_put(migor_snd_device);
+-epdevalloc:
+-	clkdev_drop(siumckb_lookup);
+-eclkdevalloc:
+-	clk_unregister(&siumckb_clk);
+-	return ret;
+-}
+-
+-static void __exit migor_exit(void)
+-{
+-	clkdev_drop(siumckb_lookup);
+-	clk_unregister(&siumckb_clk);
+-	platform_device_unregister(migor_snd_device);
+-}
+-
+-module_init(migor_init);
+-module_exit(migor_exit);
+-
+-MODULE_AUTHOR("Guennadi Liakhovetski <g.liakhovetski@gmx.de>");
+-MODULE_DESCRIPTION("ALSA SoC Migor");
+-MODULE_LICENSE("GPL v2");
+diff --git a/sound/soc/sh/sh7760-ac97.c b/sound/soc/sh/sh7760-ac97.c
+deleted file mode 100644
+index d267243a159ba6..00000000000000
+--- a/sound/soc/sh/sh7760-ac97.c
++++ /dev/null
+@@ -1,72 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-//
+-// Generic AC97 sound support for SH7760
+-//
+-// (c) 2007 Manuel Lauss
+-
+-#include <linux/module.h>
+-#include <linux/moduleparam.h>
+-#include <linux/platform_device.h>
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/soc.h>
+-#include <asm/io.h>
+-
+-#define IPSEL 0xFE400034
+-
+-SND_SOC_DAILINK_DEFS(ac97,
+-	DAILINK_COMP_ARRAY(COMP_CPU("hac-dai.0")),	/* HAC0 */
+-	DAILINK_COMP_ARRAY(COMP_CODEC("ac97-codec", "ac97-hifi")),
+-	DAILINK_COMP_ARRAY(COMP_PLATFORM("sh7760-pcm-audio")));
+-
+-static struct snd_soc_dai_link sh7760_ac97_dai = {
+-	.name = "AC97",
+-	.stream_name = "AC97 HiFi",
+-	SND_SOC_DAILINK_REG(ac97),
+-};
+-
+-static struct snd_soc_card sh7760_ac97_soc_machine  = {
+-	.name = "SH7760 AC97",
+-	.owner = THIS_MODULE,
+-	.dai_link = &sh7760_ac97_dai,
+-	.num_links = 1,
+-};
+-
+-static struct platform_device *sh7760_ac97_snd_device;
+-
+-static int __init sh7760_ac97_init(void)
+-{
+-	int ret;
+-	unsigned short ipsel;
+-
+-	/* enable both AC97 controllers in pinmux reg */
+-	ipsel = __raw_readw(IPSEL);
+-	__raw_writew(ipsel | (3 << 10), IPSEL);
+-
+-	ret = -ENOMEM;
+-	sh7760_ac97_snd_device = platform_device_alloc("soc-audio", -1);
+-	if (!sh7760_ac97_snd_device)
+-		goto out;
+-
+-	platform_set_drvdata(sh7760_ac97_snd_device,
+-			     &sh7760_ac97_soc_machine);
+-	ret = platform_device_add(sh7760_ac97_snd_device);
+-
+-	if (ret)
+-		platform_device_put(sh7760_ac97_snd_device);
+-
+-out:
+-	return ret;
+-}
+-
+-static void __exit sh7760_ac97_exit(void)
+-{
+-	platform_device_unregister(sh7760_ac97_snd_device);
+-}
+-
+-module_init(sh7760_ac97_init);
+-module_exit(sh7760_ac97_exit);
+-
+-MODULE_LICENSE("GPL v2");
+-MODULE_DESCRIPTION("Generic SH7760 AC97 sound machine");
+-MODULE_AUTHOR("Manuel Lauss <mano@roarinelk.homelinux.net>");
+diff --git a/sound/soc/sh/siu.h b/sound/soc/sh/siu.h
+deleted file mode 100644
+index a675c36fc9d956..00000000000000
+--- a/sound/soc/sh/siu.h
++++ /dev/null
+@@ -1,180 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
+-//
+-// siu.h - ALSA SoC driver for Renesas SH7343, SH7722 SIU peripheral.
+-//
+-// Copyright (C) 2009-2010 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
+-// Copyright (C) 2006 Carlos Munoz <carlos@kenati.com>
+-
+-#ifndef SIU_H
+-#define SIU_H
+-
+-/* Common kernel and user-space firmware-building defines and types */
+-
+-#define YRAM0_SIZE		(0x0040 / 4)		/* 16 */
+-#define YRAM1_SIZE		(0x0080 / 4)		/* 32 */
+-#define YRAM2_SIZE		(0x0040 / 4)		/* 16 */
+-#define YRAM3_SIZE		(0x0080 / 4)		/* 32 */
+-#define YRAM4_SIZE		(0x0080 / 4)		/* 32 */
+-#define YRAM_DEF_SIZE		(YRAM0_SIZE + YRAM1_SIZE + YRAM2_SIZE + \
+-				 YRAM3_SIZE + YRAM4_SIZE)
+-#define YRAM_FIR_SIZE		(0x0400 / 4)		/* 256 */
+-#define YRAM_IIR_SIZE		(0x0200 / 4)		/* 128 */
+-
+-#define XRAM0_SIZE		(0x0400 / 4)		/* 256 */
+-#define XRAM1_SIZE		(0x0200 / 4)		/* 128 */
+-#define XRAM2_SIZE		(0x0200 / 4)		/* 128 */
+-
+-/* PRAM program array size */
+-#define PRAM0_SIZE		(0x0100 / 4)		/* 64 */
+-#define PRAM1_SIZE		((0x2000 - 0x0100) / 4)	/* 1984 */
 -
 -#include <linux/types.h>
 -
--struct drm_gem_dma_object;
--struct shmob_drm_device;
--
--struct shmob_drm_format_info {
--	u32 fourcc;
--	unsigned int bpp;
--	bool yuv;
--	u32 lddfr;
+-struct siu_spb_param {
+-	__u32	ab1a;	/* input FIFO address */
+-	__u32	ab0a;	/* output FIFO address */
+-	__u32	dir;	/* 0=the ather except CPUOUTPUT, 1=CPUINPUT */
+-	__u32	event;	/* SPB program starting conditions */
+-	__u32	stfifo;	/* STFIFO register setting value */
+-	__u32	trdat;	/* TRDAT register setting value */
 -};
 -
--const struct shmob_drm_format_info *shmob_drm_format_info(u32 fourcc);
+-struct siu_firmware {
+-	__u32			yram_fir_coeff[YRAM_FIR_SIZE];
+-	__u32			pram0[PRAM0_SIZE];
+-	__u32			pram1[PRAM1_SIZE];
+-	__u32			yram0[YRAM0_SIZE];
+-	__u32			yram1[YRAM1_SIZE];
+-	__u32			yram2[YRAM2_SIZE];
+-	__u32			yram3[YRAM3_SIZE];
+-	__u32			yram4[YRAM4_SIZE];
+-	__u32			spbpar_num;
+-	struct siu_spb_param	spbpar[32];
+-};
 -
--int shmob_drm_modeset_init(struct shmob_drm_device *sdev);
+-#ifdef __KERNEL__
 -
--#endif /* __SHMOB_DRM_KMS_H__ */
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_plane.c b/drivers/gpu/drm/shmobile/shmob_drm_plane.c
+-#include <linux/dmaengine.h>
+-#include <linux/interrupt.h>
+-#include <linux/io.h>
+-#include <linux/sh_dma.h>
+-
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/soc.h>
+-
+-#define SIU_PERIOD_BYTES_MAX	8192		/* DMA transfer/period size */
+-#define SIU_PERIOD_BYTES_MIN	256		/* DMA transfer/period size */
+-#define SIU_PERIODS_MAX		64		/* Max periods in buffer */
+-#define SIU_PERIODS_MIN		4		/* Min periods in buffer */
+-#define SIU_BUFFER_BYTES_MAX	(SIU_PERIOD_BYTES_MAX * SIU_PERIODS_MAX)
+-
+-/* SIU ports: only one can be used at a time */
+-enum {
+-	SIU_PORT_A,
+-	SIU_PORT_B,
+-	SIU_PORT_NUM,
+-};
+-
+-/* SIU clock configuration */
+-enum {
+-	SIU_CLKA_PLL,
+-	SIU_CLKA_EXT,
+-	SIU_CLKB_PLL,
+-	SIU_CLKB_EXT
+-};
+-
+-struct device;
+-struct siu_info {
+-	struct device		*dev;
+-	int			port_id;
+-	u32 __iomem		*pram;
+-	u32 __iomem		*xram;
+-	u32 __iomem		*yram;
+-	u32 __iomem		*reg;
+-	struct siu_firmware	fw;
+-};
+-
+-struct siu_stream {
+-	struct work_struct		work;
+-	struct snd_pcm_substream	*substream;
+-	snd_pcm_format_t		format;
+-	size_t				buf_bytes;
+-	size_t				period_bytes;
+-	int				cur_period;	/* Period currently in dma */
+-	u32				volume;
+-	snd_pcm_sframes_t		xfer_cnt;	/* Number of frames */
+-	u8				rw_flg;		/* transfer status */
+-	/* DMA status */
+-	struct dma_chan			*chan;		/* DMA channel */
+-	struct dma_async_tx_descriptor	*tx_desc;
+-	dma_cookie_t			cookie;
+-	struct sh_dmae_slave		param;
+-};
+-
+-struct siu_port {
+-	unsigned long		play_cap;	/* Used to track full duplex */
+-	struct snd_pcm		*pcm;
+-	struct siu_stream	playback;
+-	struct siu_stream	capture;
+-	u32			stfifo;		/* STFIFO value from firmware */
+-	u32			trdat;		/* TRDAT value from firmware */
+-};
+-
+-extern struct siu_port *siu_ports[SIU_PORT_NUM];
+-
+-static inline struct siu_port *siu_port_info(struct snd_pcm_substream *substream)
+-{
+-	struct platform_device *pdev =
+-		to_platform_device(substream->pcm->card->dev);
+-	return siu_ports[pdev->id];
+-}
+-
+-/* Register access */
+-static inline void siu_write32(u32 __iomem *addr, u32 val)
+-{
+-	__raw_writel(val, addr);
+-}
+-
+-static inline u32 siu_read32(u32 __iomem *addr)
+-{
+-	return __raw_readl(addr);
+-}
+-
+-/* SIU registers */
+-#define SIU_IFCTL	(0x000 / sizeof(u32))
+-#define SIU_SRCTL	(0x004 / sizeof(u32))
+-#define SIU_SFORM	(0x008 / sizeof(u32))
+-#define SIU_CKCTL	(0x00c / sizeof(u32))
+-#define SIU_TRDAT	(0x010 / sizeof(u32))
+-#define SIU_STFIFO	(0x014 / sizeof(u32))
+-#define SIU_DPAK	(0x01c / sizeof(u32))
+-#define SIU_CKREV	(0x020 / sizeof(u32))
+-#define SIU_EVNTC	(0x028 / sizeof(u32))
+-#define SIU_SBCTL	(0x040 / sizeof(u32))
+-#define SIU_SBPSET	(0x044 / sizeof(u32))
+-#define SIU_SBFSTS	(0x068 / sizeof(u32))
+-#define SIU_SBDVCA	(0x06c / sizeof(u32))
+-#define SIU_SBDVCB	(0x070 / sizeof(u32))
+-#define SIU_SBACTIV	(0x074 / sizeof(u32))
+-#define SIU_DMAIA	(0x090 / sizeof(u32))
+-#define SIU_DMAIB	(0x094 / sizeof(u32))
+-#define SIU_DMAOA	(0x098 / sizeof(u32))
+-#define SIU_DMAOB	(0x09c / sizeof(u32))
+-#define SIU_DMAML	(0x0a0 / sizeof(u32))
+-#define SIU_SPSTS	(0x0cc / sizeof(u32))
+-#define SIU_SPCTL	(0x0d0 / sizeof(u32))
+-#define SIU_BRGASEL	(0x100 / sizeof(u32))
+-#define SIU_BRRA	(0x104 / sizeof(u32))
+-#define SIU_BRGBSEL	(0x108 / sizeof(u32))
+-#define SIU_BRRB	(0x10c / sizeof(u32))
+-
+-extern const struct snd_soc_component_driver siu_component;
+-extern struct siu_info *siu_i2s_data;
+-
+-int siu_init_port(int port, struct siu_port **port_info, struct snd_card *card);
+-void siu_free_port(struct siu_port *port_info);
+-
+-#endif
+-
+-#endif /* SIU_H */
+diff --git a/sound/soc/sh/siu_dai.c b/sound/soc/sh/siu_dai.c
 deleted file mode 100644
-index 6c5f0cbe7d95b9..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_plane.c
+index f2a386fcd92e4d..00000000000000
+--- a/sound/soc/sh/siu_dai.c
 +++ /dev/null
-@@ -1,261 +0,0 @@
+@@ -1,799 +0,0 @@
 -// SPDX-License-Identifier: GPL-2.0+
+-//
+-// siu_dai.c - ALSA SoC driver for Renesas SH7343, SH7722 SIU peripheral.
+-//
+-// Copyright (C) 2009-2010 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
+-// Copyright (C) 2006 Carlos Munoz <carlos@kenati.com>
+-
+-#include <linux/delay.h>
+-#include <linux/firmware.h>
+-#include <linux/pm_runtime.h>
+-#include <linux/slab.h>
+-#include <linux/module.h>
+-
+-#include <asm/clock.h>
+-#include <asm/siu.h>
+-
+-#include <sound/control.h>
+-#include <sound/soc.h>
+-
+-#include "siu.h"
+-
+-/* Board specifics */
+-#if defined(CONFIG_CPU_SUBTYPE_SH7722)
+-# define SIU_MAX_VOLUME		0x1000
+-#else
+-# define SIU_MAX_VOLUME		0x7fff
+-#endif
+-
+-#define PRAM_SIZE	0x2000
+-#define XRAM_SIZE	0x800
+-#define YRAM_SIZE	0x800
+-
+-#define XRAM_OFFSET	0x4000
+-#define YRAM_OFFSET	0x6000
+-#define REG_OFFSET	0xc000
+-
+-#define PLAYBACK_ENABLED	1
+-#define CAPTURE_ENABLED		2
+-
+-#define VOLUME_CAPTURE		0
+-#define VOLUME_PLAYBACK		1
+-#define DFLT_VOLUME_LEVEL	0x08000800
+-
 -/*
-- * shmob_drm_plane.c  --  SH Mobile DRM Planes
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
+- * SPDIF is only available on port A and on some SIU implementations it is only
+- * available for input. Due to the lack of hardware to test it, SPDIF is left
+- * disabled in this driver version
 - */
--
--#include <drm/drm_crtc.h>
--#include <drm/drm_crtc_helper.h>
--#include <drm/drm_fb_dma_helper.h>
--#include <drm/drm_fourcc.h>
--#include <drm/drm_framebuffer.h>
--#include <drm/drm_gem_dma_helper.h>
--
--#include "shmob_drm_drv.h"
--#include "shmob_drm_kms.h"
--#include "shmob_drm_plane.h"
--#include "shmob_drm_regs.h"
--
--struct shmob_drm_plane {
--	struct drm_plane plane;
--	unsigned int index;
--	unsigned int alpha;
--
--	const struct shmob_drm_format_info *format;
--	unsigned long dma[2];
--
--	unsigned int src_x;
--	unsigned int src_y;
--	unsigned int crtc_x;
--	unsigned int crtc_y;
--	unsigned int crtc_w;
--	unsigned int crtc_h;
+-struct format_flag {
+-	u32	i2s;
+-	u32	pcm;
+-	u32	spdif;
+-	u32	mask;
 -};
 -
--#define to_shmob_plane(p)	container_of(p, struct shmob_drm_plane, plane)
+-struct port_flag {
+-	struct format_flag	playback;
+-	struct format_flag	capture;
+-};
 -
--static void shmob_drm_plane_compute_base(struct shmob_drm_plane *splane,
--					 struct drm_framebuffer *fb,
--					 int x, int y)
+-struct siu_info *siu_i2s_data;
+-
+-static struct port_flag siu_flags[SIU_PORT_NUM] = {
+-	[SIU_PORT_A] = {
+-		.playback = {
+-			.i2s	= 0x50000000,
+-			.pcm	= 0x40000000,
+-			.spdif	= 0x80000000,	/* not on all SIU versions */
+-			.mask	= 0xd0000000,
+-		},
+-		.capture = {
+-			.i2s	= 0x05000000,
+-			.pcm	= 0x04000000,
+-			.spdif	= 0x08000000,
+-			.mask	= 0x0d000000,
+-		},
+-	},
+-	[SIU_PORT_B] = {
+-		.playback = {
+-			.i2s	= 0x00500000,
+-			.pcm	= 0x00400000,
+-			.spdif	= 0,		/* impossible - turn off */
+-			.mask	= 0x00500000,
+-		},
+-		.capture = {
+-			.i2s	= 0x00050000,
+-			.pcm	= 0x00040000,
+-			.spdif	= 0,		/* impossible - turn off */
+-			.mask	= 0x00050000,
+-		},
+-	},
+-};
+-
+-static void siu_dai_start(struct siu_port *port_info)
 -{
--	struct drm_gem_dma_object *gem;
--	unsigned int bpp;
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
 -
--	bpp = splane->format->yuv ? 8 : splane->format->bpp;
--	gem = drm_fb_dma_get_gem_obj(fb, 0);
--	splane->dma[0] = gem->dma_addr + fb->offsets[0]
--		       + y * fb->pitches[0] + x * bpp / 8;
+-	dev_dbg(port_info->pcm->card->dev, "%s\n", __func__);
 -
--	if (splane->format->yuv) {
--		bpp = splane->format->bpp - 8;
--		gem = drm_fb_dma_get_gem_obj(fb, 1);
--		splane->dma[1] = gem->dma_addr + fb->offsets[1]
--			       + y / (bpp == 4 ? 2 : 1) * fb->pitches[1]
--			       + x * (bpp == 16 ? 2 : 1);
--	}
+-	/* Issue software reset to siu */
+-	siu_write32(base + SIU_SRCTL, 0);
+-
+-	/* Wait for the reset to take effect */
+-	udelay(1);
+-
+-	port_info->stfifo = 0;
+-	port_info->trdat = 0;
+-
+-	/* portA, portB, SIU operate */
+-	siu_write32(base + SIU_SRCTL, 0x301);
+-
+-	/* portA=256fs, portB=256fs */
+-	siu_write32(base + SIU_CKCTL, 0x40400000);
+-
+-	/* portA's BRG does not divide SIUCKA */
+-	siu_write32(base + SIU_BRGASEL, 0);
+-	siu_write32(base + SIU_BRRA, 0);
+-
+-	/* portB's BRG divides SIUCKB by half */
+-	siu_write32(base + SIU_BRGBSEL, 1);
+-	siu_write32(base + SIU_BRRB, 0);
+-
+-	siu_write32(base + SIU_IFCTL, 0x44440000);
+-
+-	/* portA: 32 bit/fs, master; portB: 32 bit/fs, master */
+-	siu_write32(base + SIU_SFORM, 0x0c0c0000);
+-
+-	/*
+-	 * Volume levels: looks like the DSP firmware implements volume controls
+-	 * differently from what's described in the datasheet
+-	 */
+-	siu_write32(base + SIU_SBDVCA, port_info->playback.volume);
+-	siu_write32(base + SIU_SBDVCB, port_info->capture.volume);
 -}
 -
--static void __shmob_drm_plane_setup(struct shmob_drm_plane *splane,
--				    struct drm_framebuffer *fb)
+-static void siu_dai_stop(struct siu_port *port_info)
 -{
--	struct shmob_drm_device *sdev = splane->plane.dev->dev_private;
--	u32 format;
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
 -
--	/* TODO: Support ROP3 mode */
--	format = LDBBSIFR_EN | (splane->alpha << LDBBSIFR_LAY_SHIFT);
+-	/* SIU software reset */
+-	siu_write32(base + SIU_SRCTL, 0);
+-}
 -
--	switch (splane->format->fourcc) {
--	case DRM_FORMAT_RGB565:
--	case DRM_FORMAT_NV21:
--	case DRM_FORMAT_NV61:
--	case DRM_FORMAT_NV42:
--		format |= LDBBSIFR_SWPL | LDBBSIFR_SWPW;
+-static void siu_dai_spbAselect(struct siu_port *port_info)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	struct siu_firmware *fw = &info->fw;
+-	u32 *ydef = fw->yram0;
+-	u32 idx;
+-
+-	/* path A use */
+-	if (!info->port_id)
+-		idx = 1;		/* portA */
+-	else
+-		idx = 2;		/* portB */
+-
+-	ydef[0] = (fw->spbpar[idx].ab1a << 16) |
+-		(fw->spbpar[idx].ab0a << 8) |
+-		(fw->spbpar[idx].dir << 7) | 3;
+-	ydef[1] = fw->yram0[1];	/* 0x03000300 */
+-	ydef[2] = (16 / 2) << 24;
+-	ydef[3] = fw->yram0[3];	/* 0 */
+-	ydef[4] = fw->yram0[4];	/* 0 */
+-	ydef[7] = fw->spbpar[idx].event;
+-	port_info->stfifo |= fw->spbpar[idx].stfifo;
+-	port_info->trdat |= fw->spbpar[idx].trdat;
+-}
+-
+-static void siu_dai_spbBselect(struct siu_port *port_info)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	struct siu_firmware *fw = &info->fw;
+-	u32 *ydef = fw->yram0;
+-	u32 idx;
+-
+-	/* path B use */
+-	if (!info->port_id)
+-		idx = 7;		/* portA */
+-	else
+-		idx = 8;		/* portB */
+-
+-	ydef[5] = (fw->spbpar[idx].ab1a << 16) |
+-		(fw->spbpar[idx].ab0a << 8) | 1;
+-	ydef[6] = fw->spbpar[idx].event;
+-	port_info->stfifo |= fw->spbpar[idx].stfifo;
+-	port_info->trdat |= fw->spbpar[idx].trdat;
+-}
+-
+-static void siu_dai_open(struct siu_stream *siu_stream)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	u32 srctl, ifctl;
+-
+-	srctl = siu_read32(base + SIU_SRCTL);
+-	ifctl = siu_read32(base + SIU_IFCTL);
+-
+-	switch (info->port_id) {
+-	case SIU_PORT_A:
+-		/* portA operates */
+-		srctl |= 0x200;
+-		ifctl &= ~0xc2;
 -		break;
--	case DRM_FORMAT_RGB888:
--	case DRM_FORMAT_NV12:
--	case DRM_FORMAT_NV16:
--	case DRM_FORMAT_NV24:
--		format |= LDBBSIFR_SWPL | LDBBSIFR_SWPW | LDBBSIFR_SWPB;
+-	case SIU_PORT_B:
+-		/* portB operates */
+-		srctl |= 0x100;
+-		ifctl &= ~0x31;
 -		break;
--	case DRM_FORMAT_ARGB8888:
+-	}
+-
+-	siu_write32(base + SIU_SRCTL, srctl);
+-	/* Unmute and configure portA */
+-	siu_write32(base + SIU_IFCTL, ifctl);
+-}
+-
+-/*
+- * At the moment only fixed Left-upper, Left-lower, Right-upper, Right-lower
+- * packing is supported
+- */
+-static void siu_dai_pcmdatapack(struct siu_stream *siu_stream)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	u32 dpak;
+-
+-	dpak = siu_read32(base + SIU_DPAK);
+-
+-	switch (info->port_id) {
+-	case SIU_PORT_A:
+-		dpak &= ~0xc0000000;
+-		break;
+-	case SIU_PORT_B:
+-		dpak &= ~0x00c00000;
+-		break;
+-	}
+-
+-	siu_write32(base + SIU_DPAK, dpak);
+-}
+-
+-static int siu_dai_spbstart(struct siu_port *port_info)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	struct siu_firmware *fw = &info->fw;
+-	u32 *ydef = fw->yram0;
+-	int cnt;
+-	u32 __iomem *add;
+-	u32 *ptr;
+-
+-	/* Load SPB Program in PRAM */
+-	ptr = fw->pram0;
+-	add = info->pram;
+-	for (cnt = 0; cnt < PRAM0_SIZE; cnt++, add++, ptr++)
+-		siu_write32(add, *ptr);
+-
+-	ptr = fw->pram1;
+-	add = info->pram + (0x0100 / sizeof(u32));
+-	for (cnt = 0; cnt < PRAM1_SIZE; cnt++, add++, ptr++)
+-		siu_write32(add, *ptr);
+-
+-	/* XRAM initialization */
+-	add = info->xram;
+-	for (cnt = 0; cnt < XRAM0_SIZE + XRAM1_SIZE + XRAM2_SIZE; cnt++, add++)
+-		siu_write32(add, 0);
+-
+-	/* YRAM variable area initialization */
+-	add = info->yram;
+-	for (cnt = 0; cnt < YRAM_DEF_SIZE; cnt++, add++)
+-		siu_write32(add, ydef[cnt]);
+-
+-	/* YRAM FIR coefficient area initialization */
+-	add = info->yram + (0x0200 / sizeof(u32));
+-	for (cnt = 0; cnt < YRAM_FIR_SIZE; cnt++, add++)
+-		siu_write32(add, fw->yram_fir_coeff[cnt]);
+-
+-	/* YRAM IIR coefficient area initialization */
+-	add = info->yram + (0x0600 / sizeof(u32));
+-	for (cnt = 0; cnt < YRAM_IIR_SIZE; cnt++, add++)
+-		siu_write32(add, 0);
+-
+-	siu_write32(base + SIU_TRDAT, port_info->trdat);
+-	port_info->trdat = 0x0;
+-
+-
+-	/* SPB start condition: software */
+-	siu_write32(base + SIU_SBACTIV, 0);
+-	/* Start SPB */
+-	siu_write32(base + SIU_SBCTL, 0xc0000000);
+-	/* Wait for program to halt */
+-	cnt = 0x10000;
+-	while (--cnt && siu_read32(base + SIU_SBCTL) != 0x80000000)
+-		cpu_relax();
+-
+-	if (!cnt)
+-		return -EBUSY;
+-
+-	/* SPB program start address setting */
+-	siu_write32(base + SIU_SBPSET, 0x00400000);
+-	/* SPB hardware start(FIFOCTL source) */
+-	siu_write32(base + SIU_SBACTIV, 0xc0000000);
+-
+-	return 0;
+-}
+-
+-static void siu_dai_spbstop(struct siu_port *port_info)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-
+-	siu_write32(base + SIU_SBACTIV, 0);
+-	/* SPB stop */
+-	siu_write32(base + SIU_SBCTL, 0);
+-
+-	port_info->stfifo = 0;
+-}
+-
+-/*		API functions		*/
+-
+-/* Playback and capture hardware properties are identical */
+-static const struct snd_pcm_hardware siu_dai_pcm_hw = {
+-	.info			= SNDRV_PCM_INFO_INTERLEAVED,
+-	.formats		= SNDRV_PCM_FMTBIT_S16,
+-	.rates			= SNDRV_PCM_RATE_8000_48000,
+-	.rate_min		= 8000,
+-	.rate_max		= 48000,
+-	.channels_min		= 2,
+-	.channels_max		= 2,
+-	.buffer_bytes_max	= SIU_BUFFER_BYTES_MAX,
+-	.period_bytes_min	= SIU_PERIOD_BYTES_MIN,
+-	.period_bytes_max	= SIU_PERIOD_BYTES_MAX,
+-	.periods_min		= SIU_PERIODS_MIN,
+-	.periods_max		= SIU_PERIODS_MAX,
+-};
+-
+-static int siu_dai_info_volume(struct snd_kcontrol *kctrl,
+-			       struct snd_ctl_elem_info *uinfo)
+-{
+-	struct siu_port *port_info = snd_kcontrol_chip(kctrl);
+-
+-	dev_dbg(port_info->pcm->card->dev, "%s\n", __func__);
+-
+-	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+-	uinfo->count = 2;
+-	uinfo->value.integer.min = 0;
+-	uinfo->value.integer.max = SIU_MAX_VOLUME;
+-
+-	return 0;
+-}
+-
+-static int siu_dai_get_volume(struct snd_kcontrol *kctrl,
+-			      struct snd_ctl_elem_value *ucontrol)
+-{
+-	struct siu_port *port_info = snd_kcontrol_chip(kctrl);
+-	struct device *dev = port_info->pcm->card->dev;
+-	u32 vol;
+-
+-	dev_dbg(dev, "%s\n", __func__);
+-
+-	switch (kctrl->private_value) {
+-	case VOLUME_PLAYBACK:
+-		/* Playback is always on port 0 */
+-		vol = port_info->playback.volume;
+-		ucontrol->value.integer.value[0] = vol & 0xffff;
+-		ucontrol->value.integer.value[1] = vol >> 16 & 0xffff;
+-		break;
+-	case VOLUME_CAPTURE:
+-		/* Capture is always on port 1 */
+-		vol = port_info->capture.volume;
+-		ucontrol->value.integer.value[0] = vol & 0xffff;
+-		ucontrol->value.integer.value[1] = vol >> 16 & 0xffff;
+-		break;
 -	default:
--		format |= LDBBSIFR_SWPL;
--		break;
--	}
--
--	switch (splane->format->fourcc) {
--	case DRM_FORMAT_RGB565:
--		format |= LDBBSIFR_AL_1 | LDBBSIFR_RY | LDBBSIFR_RPKF_RGB16;
--		break;
--	case DRM_FORMAT_RGB888:
--		format |= LDBBSIFR_AL_1 | LDBBSIFR_RY | LDBBSIFR_RPKF_RGB24;
--		break;
--	case DRM_FORMAT_ARGB8888:
--		format |= LDBBSIFR_AL_PK | LDBBSIFR_RY | LDDFR_PKF_ARGB32;
--		break;
--	case DRM_FORMAT_NV12:
--	case DRM_FORMAT_NV21:
--		format |= LDBBSIFR_AL_1 | LDBBSIFR_CHRR_420;
--		break;
--	case DRM_FORMAT_NV16:
--	case DRM_FORMAT_NV61:
--		format |= LDBBSIFR_AL_1 | LDBBSIFR_CHRR_422;
--		break;
--	case DRM_FORMAT_NV24:
--	case DRM_FORMAT_NV42:
--		format |= LDBBSIFR_AL_1 | LDBBSIFR_CHRR_444;
--		break;
--	}
--
--#define plane_reg_dump(sdev, splane, reg) \
--	dev_dbg(sdev->ddev->dev, "%s(%u): %s 0x%08x 0x%08x\n", __func__, \
--		splane->index, #reg, \
--		lcdc_read(sdev, reg(splane->index)), \
--		lcdc_read(sdev, reg(splane->index) + LCDC_SIDE_B_OFFSET))
--
--	plane_reg_dump(sdev, splane, LDBnBSIFR);
--	plane_reg_dump(sdev, splane, LDBnBSSZR);
--	plane_reg_dump(sdev, splane, LDBnBLOCR);
--	plane_reg_dump(sdev, splane, LDBnBSMWR);
--	plane_reg_dump(sdev, splane, LDBnBSAYR);
--	plane_reg_dump(sdev, splane, LDBnBSACR);
--
--	lcdc_write(sdev, LDBCR, LDBCR_UPC(splane->index));
--	dev_dbg(sdev->ddev->dev, "%s(%u): %s 0x%08x\n", __func__, splane->index,
--		"LDBCR", lcdc_read(sdev, LDBCR));
--
--	lcdc_write(sdev, LDBnBSIFR(splane->index), format);
--
--	lcdc_write(sdev, LDBnBSSZR(splane->index),
--		   (splane->crtc_h << LDBBSSZR_BVSS_SHIFT) |
--		   (splane->crtc_w << LDBBSSZR_BHSS_SHIFT));
--	lcdc_write(sdev, LDBnBLOCR(splane->index),
--		   (splane->crtc_y << LDBBLOCR_CVLC_SHIFT) |
--		   (splane->crtc_x << LDBBLOCR_CHLC_SHIFT));
--	lcdc_write(sdev, LDBnBSMWR(splane->index),
--		   fb->pitches[0] << LDBBSMWR_BSMW_SHIFT);
--
--	shmob_drm_plane_compute_base(splane, fb, splane->src_x, splane->src_y);
--
--	lcdc_write(sdev, LDBnBSAYR(splane->index), splane->dma[0]);
--	if (splane->format->yuv)
--		lcdc_write(sdev, LDBnBSACR(splane->index), splane->dma[1]);
--
--	lcdc_write(sdev, LDBCR,
--		   LDBCR_UPF(splane->index) | LDBCR_UPD(splane->index));
--	dev_dbg(sdev->ddev->dev, "%s(%u): %s 0x%08x\n", __func__, splane->index,
--		"LDBCR", lcdc_read(sdev, LDBCR));
--
--	plane_reg_dump(sdev, splane, LDBnBSIFR);
--	plane_reg_dump(sdev, splane, LDBnBSSZR);
--	plane_reg_dump(sdev, splane, LDBnBLOCR);
--	plane_reg_dump(sdev, splane, LDBnBSMWR);
--	plane_reg_dump(sdev, splane, LDBnBSAYR);
--	plane_reg_dump(sdev, splane, LDBnBSACR);
--}
--
--void shmob_drm_plane_setup(struct drm_plane *plane)
--{
--	struct shmob_drm_plane *splane = to_shmob_plane(plane);
--
--	if (plane->fb == NULL)
--		return;
--
--	__shmob_drm_plane_setup(splane, plane->fb);
--}
--
--static int
--shmob_drm_plane_update(struct drm_plane *plane, struct drm_crtc *crtc,
--		       struct drm_framebuffer *fb, int crtc_x, int crtc_y,
--		       unsigned int crtc_w, unsigned int crtc_h,
--		       uint32_t src_x, uint32_t src_y,
--		       uint32_t src_w, uint32_t src_h,
--		       struct drm_modeset_acquire_ctx *ctx)
--{
--	struct shmob_drm_plane *splane = to_shmob_plane(plane);
--	struct shmob_drm_device *sdev = plane->dev->dev_private;
--	const struct shmob_drm_format_info *format;
--
--	format = shmob_drm_format_info(fb->format->format);
--	if (format == NULL) {
--		dev_dbg(sdev->dev, "update_plane: unsupported format %08x\n",
--			fb->format->format);
+-		dev_err(dev, "%s() invalid private_value=%ld\n",
+-			__func__, kctrl->private_value);
 -		return -EINVAL;
 -	}
 -
--	if (src_w >> 16 != crtc_w || src_h >> 16 != crtc_h) {
--		dev_dbg(sdev->dev, "%s: scaling not supported\n", __func__);
+-	return 0;
+-}
+-
+-static int siu_dai_put_volume(struct snd_kcontrol *kctrl,
+-			      struct snd_ctl_elem_value *ucontrol)
+-{
+-	struct siu_port *port_info = snd_kcontrol_chip(kctrl);
+-	struct device *dev = port_info->pcm->card->dev;
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	u32 new_vol;
+-	u32 cur_vol;
+-
+-	dev_dbg(dev, "%s\n", __func__);
+-
+-	if (ucontrol->value.integer.value[0] < 0 ||
+-	    ucontrol->value.integer.value[0] > SIU_MAX_VOLUME ||
+-	    ucontrol->value.integer.value[1] < 0 ||
+-	    ucontrol->value.integer.value[1] > SIU_MAX_VOLUME)
+-		return -EINVAL;
+-
+-	new_vol = ucontrol->value.integer.value[0] |
+-		ucontrol->value.integer.value[1] << 16;
+-
+-	/* See comment above - DSP firmware implementation */
+-	switch (kctrl->private_value) {
+-	case VOLUME_PLAYBACK:
+-		/* Playback is always on port 0 */
+-		cur_vol = port_info->playback.volume;
+-		siu_write32(base + SIU_SBDVCA, new_vol);
+-		port_info->playback.volume = new_vol;
+-		break;
+-	case VOLUME_CAPTURE:
+-		/* Capture is always on port 1 */
+-		cur_vol = port_info->capture.volume;
+-		siu_write32(base + SIU_SBDVCB, new_vol);
+-		port_info->capture.volume = new_vol;
+-		break;
+-	default:
+-		dev_err(dev, "%s() invalid private_value=%ld\n",
+-			__func__, kctrl->private_value);
 -		return -EINVAL;
 -	}
 -
--	splane->format = format;
+-	if (cur_vol != new_vol)
+-		return 1;
 -
--	splane->src_x = src_x >> 16;
--	splane->src_y = src_y >> 16;
--	splane->crtc_x = crtc_x;
--	splane->crtc_y = crtc_y;
--	splane->crtc_w = crtc_w;
--	splane->crtc_h = crtc_h;
--
--	__shmob_drm_plane_setup(splane, fb);
 -	return 0;
 -}
 -
--static int shmob_drm_plane_disable(struct drm_plane *plane,
--				   struct drm_modeset_acquire_ctx *ctx)
--{
--	struct shmob_drm_plane *splane = to_shmob_plane(plane);
--	struct shmob_drm_device *sdev = plane->dev->dev_private;
--
--	splane->format = NULL;
--
--	lcdc_write(sdev, LDBnBSIFR(splane->index), 0);
--	return 0;
--}
--
--static void shmob_drm_plane_destroy(struct drm_plane *plane)
--{
--	drm_plane_force_disable(plane);
--	drm_plane_cleanup(plane);
--}
--
--static const struct drm_plane_funcs shmob_drm_plane_funcs = {
--	.update_plane = shmob_drm_plane_update,
--	.disable_plane = shmob_drm_plane_disable,
--	.destroy = shmob_drm_plane_destroy,
+-static const struct snd_kcontrol_new playback_controls = {
+-	.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+-	.name		= "PCM Playback Volume",
+-	.index		= 0,
+-	.info		= siu_dai_info_volume,
+-	.get		= siu_dai_get_volume,
+-	.put		= siu_dai_put_volume,
+-	.private_value	= VOLUME_PLAYBACK,
 -};
 -
--static const uint32_t formats[] = {
--	DRM_FORMAT_RGB565,
--	DRM_FORMAT_RGB888,
--	DRM_FORMAT_ARGB8888,
--	DRM_FORMAT_NV12,
--	DRM_FORMAT_NV21,
--	DRM_FORMAT_NV16,
--	DRM_FORMAT_NV61,
--	DRM_FORMAT_NV24,
--	DRM_FORMAT_NV42,
+-static const struct snd_kcontrol_new capture_controls = {
+-	.iface		= SNDRV_CTL_ELEM_IFACE_MIXER,
+-	.name		= "PCM Capture Volume",
+-	.index		= 0,
+-	.info		= siu_dai_info_volume,
+-	.get		= siu_dai_get_volume,
+-	.put		= siu_dai_put_volume,
+-	.private_value	= VOLUME_CAPTURE,
 -};
 -
--int shmob_drm_plane_create(struct shmob_drm_device *sdev, unsigned int index)
+-int siu_init_port(int port, struct siu_port **port_info, struct snd_card *card)
 -{
--	struct shmob_drm_plane *splane;
+-	struct device *dev = card->dev;
+-	struct snd_kcontrol *kctrl;
 -	int ret;
 -
--	splane = devm_kzalloc(sdev->dev, sizeof(*splane), GFP_KERNEL);
--	if (splane == NULL)
+-	*port_info = kzalloc(sizeof(**port_info), GFP_KERNEL);
+-	if (!*port_info)
 -		return -ENOMEM;
 -
--	splane->index = index;
--	splane->alpha = 255;
+-	dev_dbg(dev, "%s: port #%d@%p\n", __func__, port, *port_info);
 -
--	ret = drm_universal_plane_init(sdev->ddev, &splane->plane, 1,
--				       &shmob_drm_plane_funcs,
--				       formats, ARRAY_SIZE(formats), NULL,
--				       DRM_PLANE_TYPE_OVERLAY, NULL);
+-	(*port_info)->playback.volume = DFLT_VOLUME_LEVEL;
+-	(*port_info)->capture.volume = DFLT_VOLUME_LEVEL;
+-
+-	/*
+-	 * Add mixer support. The SPB is used to change the volume. Both
+-	 * ports use the same SPB. Therefore, we only register one
+-	 * control instance since it will be used by both channels.
+-	 * In error case we continue without controls.
+-	 */
+-	kctrl = snd_ctl_new1(&playback_controls, *port_info);
+-	ret = snd_ctl_add(card, kctrl);
+-	if (ret < 0)
+-		dev_err(dev,
+-			"failed to add playback controls %p port=%d err=%d\n",
+-			kctrl, port, ret);
+-
+-	kctrl = snd_ctl_new1(&capture_controls, *port_info);
+-	ret = snd_ctl_add(card, kctrl);
+-	if (ret < 0)
+-		dev_err(dev,
+-			"failed to add capture controls %p port=%d err=%d\n",
+-			kctrl, port, ret);
+-
+-	return 0;
+-}
+-
+-void siu_free_port(struct siu_port *port_info)
+-{
+-	kfree(port_info);
+-}
+-
+-static int siu_dai_startup(struct snd_pcm_substream *substream,
+-			   struct snd_soc_dai *dai)
+-{
+-	struct siu_info *info = snd_soc_dai_get_drvdata(dai);
+-	struct snd_pcm_runtime *rt = substream->runtime;
+-	struct siu_port	*port_info = siu_port_info(substream);
+-	int ret;
+-
+-	dev_dbg(substream->pcm->card->dev, "%s: port=%d@%p\n", __func__,
+-		info->port_id, port_info);
+-
+-	snd_soc_set_runtime_hwparams(substream, &siu_dai_pcm_hw);
+-
+-	ret = snd_pcm_hw_constraint_integer(rt, SNDRV_PCM_HW_PARAM_PERIODS);
+-	if (unlikely(ret < 0))
+-		return ret;
+-
+-	siu_dai_start(port_info);
+-
+-	return 0;
+-}
+-
+-static void siu_dai_shutdown(struct snd_pcm_substream *substream,
+-			     struct snd_soc_dai *dai)
+-{
+-	struct siu_info *info = snd_soc_dai_get_drvdata(dai);
+-	struct siu_port	*port_info = siu_port_info(substream);
+-
+-	dev_dbg(substream->pcm->card->dev, "%s: port=%d@%p\n", __func__,
+-		info->port_id, port_info);
+-
+-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+-		port_info->play_cap &= ~PLAYBACK_ENABLED;
+-	else
+-		port_info->play_cap &= ~CAPTURE_ENABLED;
+-
+-	/* Stop the siu if the other stream is not using it */
+-	if (!port_info->play_cap) {
+-		/* during stmread or stmwrite ? */
+-		if (WARN_ON(port_info->playback.rw_flg || port_info->capture.rw_flg))
+-			return;
+-		siu_dai_spbstop(port_info);
+-		siu_dai_stop(port_info);
+-	}
+-}
+-
+-/* PCM part of siu_dai_playback_prepare() / siu_dai_capture_prepare() */
+-static int siu_dai_prepare(struct snd_pcm_substream *substream,
+-			   struct snd_soc_dai *dai)
+-{
+-	struct siu_info *info = snd_soc_dai_get_drvdata(dai);
+-	struct snd_pcm_runtime *rt = substream->runtime;
+-	struct siu_port *port_info = siu_port_info(substream);
+-	struct siu_stream *siu_stream;
+-	int self, ret;
+-
+-	dev_dbg(substream->pcm->card->dev,
+-		"%s: port %d, active streams %lx, %d channels\n",
+-		__func__, info->port_id, port_info->play_cap, rt->channels);
+-
+-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+-		self = PLAYBACK_ENABLED;
+-		siu_stream = &port_info->playback;
+-	} else {
+-		self = CAPTURE_ENABLED;
+-		siu_stream = &port_info->capture;
+-	}
+-
+-	/* Set up the siu if not already done */
+-	if (!port_info->play_cap) {
+-		siu_stream->rw_flg = 0;	/* stream-data transfer flag */
+-
+-		siu_dai_spbAselect(port_info);
+-		siu_dai_spbBselect(port_info);
+-
+-		siu_dai_open(siu_stream);
+-
+-		siu_dai_pcmdatapack(siu_stream);
+-
+-		ret = siu_dai_spbstart(port_info);
+-		if (ret < 0)
+-			goto fail;
+-	} else {
+-		ret = 0;
+-	}
+-
+-	port_info->play_cap |= self;
+-
+-fail:
+-	return ret;
+-}
+-
+-/*
+- * SIU can set bus format to I2S / PCM / SPDIF independently for playback and
+- * capture, however, the current API sets the bus format globally for a DAI.
+- */
+-static int siu_dai_set_fmt(struct snd_soc_dai *dai,
+-			   unsigned int fmt)
+-{
+-	struct siu_info *info = snd_soc_dai_get_drvdata(dai);
+-	u32 __iomem *base = info->reg;
+-	u32 ifctl;
+-
+-	dev_dbg(dai->dev, "%s: fmt 0x%x on port %d\n",
+-		__func__, fmt, info->port_id);
+-
+-	if (info->port_id < 0)
+-		return -ENODEV;
+-
+-	/* Here select between I2S / PCM / SPDIF */
+-	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+-	case SND_SOC_DAIFMT_I2S:
+-		ifctl = siu_flags[info->port_id].playback.i2s |
+-			siu_flags[info->port_id].capture.i2s;
+-		break;
+-	case SND_SOC_DAIFMT_LEFT_J:
+-		ifctl = siu_flags[info->port_id].playback.pcm |
+-			siu_flags[info->port_id].capture.pcm;
+-		break;
+-	/* SPDIF disabled - see comment at the top */
+-	default:
+-		return -EINVAL;
+-	}
+-
+-	ifctl |= ~(siu_flags[info->port_id].playback.mask |
+-		   siu_flags[info->port_id].capture.mask) &
+-		siu_read32(base + SIU_IFCTL);
+-	siu_write32(base + SIU_IFCTL, ifctl);
+-
+-	return 0;
+-}
+-
+-static int siu_dai_set_sysclk(struct snd_soc_dai *dai, int clk_id,
+-			      unsigned int freq, int dir)
+-{
+-	struct clk *siu_clk, *parent_clk;
+-	char *siu_name, *parent_name;
+-	int ret;
+-
+-	if (dir != SND_SOC_CLOCK_IN)
+-		return -EINVAL;
+-
+-	dev_dbg(dai->dev, "%s: using clock %d\n", __func__, clk_id);
+-
+-	switch (clk_id) {
+-	case SIU_CLKA_PLL:
+-		siu_name = "siua_clk";
+-		parent_name = "pll_clk";
+-		break;
+-	case SIU_CLKA_EXT:
+-		siu_name = "siua_clk";
+-		parent_name = "siumcka_clk";
+-		break;
+-	case SIU_CLKB_PLL:
+-		siu_name = "siub_clk";
+-		parent_name = "pll_clk";
+-		break;
+-	case SIU_CLKB_EXT:
+-		siu_name = "siub_clk";
+-		parent_name = "siumckb_clk";
+-		break;
+-	default:
+-		return -EINVAL;
+-	}
+-
+-	siu_clk = clk_get(dai->dev, siu_name);
+-	if (IS_ERR(siu_clk)) {
+-		dev_err(dai->dev, "%s: cannot get a SIU clock: %ld\n", __func__,
+-			PTR_ERR(siu_clk));
+-		return PTR_ERR(siu_clk);
+-	}
+-
+-	parent_clk = clk_get(dai->dev, parent_name);
+-	if (IS_ERR(parent_clk)) {
+-		ret = PTR_ERR(parent_clk);
+-		dev_err(dai->dev, "cannot get a SIU clock parent: %d\n", ret);
+-		goto epclkget;
+-	}
+-
+-	ret = clk_set_parent(siu_clk, parent_clk);
+-	if (ret < 0) {
+-		dev_err(dai->dev, "cannot reparent the SIU clock: %d\n", ret);
+-		goto eclksetp;
+-	}
+-
+-	ret = clk_set_rate(siu_clk, freq);
+-	if (ret < 0)
+-		dev_err(dai->dev, "cannot set SIU clock rate: %d\n", ret);
+-
+-	/* TODO: when clkdev gets reference counting we'll move these to siu_dai_shutdown() */
+-eclksetp:
+-	clk_put(parent_clk);
+-epclkget:
+-	clk_put(siu_clk);
 -
 -	return ret;
 -}
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_plane.h b/drivers/gpu/drm/shmobile/shmob_drm_plane.h
-deleted file mode 100644
-index e72b21a4288fc2..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_plane.h
-+++ /dev/null
-@@ -1,19 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--/*
-- * shmob_drm_plane.h  --  SH Mobile DRM Planes
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
 -
--#ifndef __SHMOB_DRM_PLANE_H__
--#define __SHMOB_DRM_PLANE_H__
+-static const struct snd_soc_dai_ops siu_dai_ops = {
+-	.startup	= siu_dai_startup,
+-	.shutdown	= siu_dai_shutdown,
+-	.prepare	= siu_dai_prepare,
+-	.set_sysclk	= siu_dai_set_sysclk,
+-	.set_fmt	= siu_dai_set_fmt,
+-};
 -
--struct drm_plane;
--struct shmob_drm_device;
+-static struct snd_soc_dai_driver siu_i2s_dai = {
+-	.name	= "siu-i2s-dai",
+-	.playback = {
+-		.channels_min = 2,
+-		.channels_max = 2,
+-		.formats = SNDRV_PCM_FMTBIT_S16,
+-		.rates = SNDRV_PCM_RATE_8000_48000,
+-	},
+-	.capture = {
+-		.channels_min = 2,
+-		.channels_max = 2,
+-		.formats = SNDRV_PCM_FMTBIT_S16,
+-		.rates = SNDRV_PCM_RATE_8000_48000,
+-	 },
+-	.ops = &siu_dai_ops,
+-};
 -
--int shmob_drm_plane_create(struct shmob_drm_device *sdev, unsigned int index);
--void shmob_drm_plane_setup(struct drm_plane *plane);
--
--#endif /* __SHMOB_DRM_PLANE_H__ */
-diff --git a/drivers/gpu/drm/shmobile/shmob_drm_regs.h b/drivers/gpu/drm/shmobile/shmob_drm_regs.h
-deleted file mode 100644
-index 058533685c4cd0..00000000000000
---- a/drivers/gpu/drm/shmobile/shmob_drm_regs.h
-+++ /dev/null
-@@ -1,310 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0+ */
--/*
-- * shmob_drm_regs.h  --  SH Mobile DRM registers
-- *
-- * Copyright (C) 2012 Renesas Electronics Corporation
-- *
-- * Laurent Pinchart (laurent.pinchart@ideasonboard.com)
-- */
--
--#ifndef __SHMOB_DRM_REGS_H__
--#define __SHMOB_DRM_REGS_H__
--
--#include <linux/io.h>
--#include <linux/jiffies.h>
--
--#include "shmob_drm_drv.h"
--
--/* Register definitions */
--#define LDDCKPAT1R		0x400
--#define LDDCKPAT2R		0x404
--#define LDDCKR			0x410
--#define LDDCKR_ICKSEL_BUS	(0 << 16)
--#define LDDCKR_ICKSEL_MIPI	(1 << 16)
--#define LDDCKR_ICKSEL_HDMI	(2 << 16)
--#define LDDCKR_ICKSEL_EXT	(3 << 16)
--#define LDDCKR_ICKSEL_MASK	(7 << 16)
--#define LDDCKR_MOSEL		(1 << 6)
--#define LDDCKSTPR		0x414
--#define LDDCKSTPR_DCKSTS	(1 << 16)
--#define LDDCKSTPR_DCKSTP	(1 << 0)
--#define LDMT1R			0x418
--#define LDMT1R_VPOL		(1 << 28)
--#define LDMT1R_HPOL		(1 << 27)
--#define LDMT1R_DWPOL		(1 << 26)
--#define LDMT1R_DIPOL		(1 << 25)
--#define LDMT1R_DAPOL		(1 << 24)
--#define LDMT1R_HSCNT		(1 << 17)
--#define LDMT1R_DWCNT		(1 << 16)
--#define LDMT1R_IFM		(1 << 12)
--#define LDMT1R_MIFTYP_RGB8	(0x0 << 0)
--#define LDMT1R_MIFTYP_RGB9	(0x4 << 0)
--#define LDMT1R_MIFTYP_RGB12A	(0x5 << 0)
--#define LDMT1R_MIFTYP_RGB12B	(0x6 << 0)
--#define LDMT1R_MIFTYP_RGB16	(0x7 << 0)
--#define LDMT1R_MIFTYP_RGB18	(0xa << 0)
--#define LDMT1R_MIFTYP_RGB24	(0xb << 0)
--#define LDMT1R_MIFTYP_YCBCR	(0xf << 0)
--#define LDMT1R_MIFTYP_SYS8A	(0x0 << 0)
--#define LDMT1R_MIFTYP_SYS8B	(0x1 << 0)
--#define LDMT1R_MIFTYP_SYS8C	(0x2 << 0)
--#define LDMT1R_MIFTYP_SYS8D	(0x3 << 0)
--#define LDMT1R_MIFTYP_SYS9	(0x4 << 0)
--#define LDMT1R_MIFTYP_SYS12	(0x5 << 0)
--#define LDMT1R_MIFTYP_SYS16A	(0x7 << 0)
--#define LDMT1R_MIFTYP_SYS16B	(0x8 << 0)
--#define LDMT1R_MIFTYP_SYS16C	(0x9 << 0)
--#define LDMT1R_MIFTYP_SYS18	(0xa << 0)
--#define LDMT1R_MIFTYP_SYS24	(0xb << 0)
--#define LDMT1R_MIFTYP_MASK	(0xf << 0)
--#define LDMT2R			0x41c
--#define LDMT2R_CSUP_MASK	(7 << 26)
--#define LDMT2R_CSUP_SHIFT	26
--#define LDMT2R_RSV		(1 << 25)
--#define LDMT2R_VSEL		(1 << 24)
--#define LDMT2R_WCSC_MASK	(0xff << 16)
--#define LDMT2R_WCSC_SHIFT	16
--#define LDMT2R_WCEC_MASK	(0xff << 8)
--#define LDMT2R_WCEC_SHIFT	8
--#define LDMT2R_WCLW_MASK	(0xff << 0)
--#define LDMT2R_WCLW_SHIFT	0
--#define LDMT3R			0x420
--#define LDMT3R_RDLC_MASK	(0x3f << 24)
--#define LDMT3R_RDLC_SHIFT	24
--#define LDMT3R_RCSC_MASK	(0xff << 16)
--#define LDMT3R_RCSC_SHIFT	16
--#define LDMT3R_RCEC_MASK	(0xff << 8)
--#define LDMT3R_RCEC_SHIFT	8
--#define LDMT3R_RCLW_MASK	(0xff << 0)
--#define LDMT3R_RCLW_SHIFT	0
--#define LDDFR			0x424
--#define LDDFR_CF1		(1 << 18)
--#define LDDFR_CF0		(1 << 17)
--#define LDDFR_CC		(1 << 16)
--#define LDDFR_YF_420		(0 << 8)
--#define LDDFR_YF_422		(1 << 8)
--#define LDDFR_YF_444		(2 << 8)
--#define LDDFR_YF_MASK		(3 << 8)
--#define LDDFR_PKF_ARGB32	(0x00 << 0)
--#define LDDFR_PKF_RGB16		(0x03 << 0)
--#define LDDFR_PKF_RGB24		(0x0b << 0)
--#define LDDFR_PKF_MASK		(0x1f << 0)
--#define LDSM1R			0x428
--#define LDSM1R_OS		(1 << 0)
--#define LDSM2R			0x42c
--#define LDSM2R_OSTRG		(1 << 0)
--#define LDSA1R			0x430
--#define LDSA2R			0x434
--#define LDMLSR			0x438
--#define LDWBFR			0x43c
--#define LDWBCNTR		0x440
--#define LDWBAR			0x444
--#define LDHCNR			0x448
--#define LDHSYNR			0x44c
--#define LDVLNR			0x450
--#define LDVSYNR			0x454
--#define LDHPDR			0x458
--#define LDVPDR			0x45c
--#define LDPMR			0x460
--#define LDPMR_LPS		(3 << 0)
--#define LDINTR			0x468
--#define LDINTR_FE		(1 << 10)
--#define LDINTR_VSE		(1 << 9)
--#define LDINTR_VEE		(1 << 8)
--#define LDINTR_FS		(1 << 2)
--#define LDINTR_VSS		(1 << 1)
--#define LDINTR_VES		(1 << 0)
--#define LDINTR_STATUS_MASK	(0xff << 0)
--#define LDSR			0x46c
--#define LDSR_MSS		(1 << 10)
--#define LDSR_MRS		(1 << 8)
--#define LDSR_AS			(1 << 1)
--#define LDCNT1R			0x470
--#define LDCNT1R_DE		(1 << 0)
--#define LDCNT2R			0x474
--#define LDCNT2R_BR		(1 << 8)
--#define LDCNT2R_MD		(1 << 3)
--#define LDCNT2R_SE		(1 << 2)
--#define LDCNT2R_ME		(1 << 1)
--#define LDCNT2R_DO		(1 << 0)
--#define LDRCNTR			0x478
--#define LDRCNTR_SRS		(1 << 17)
--#define LDRCNTR_SRC		(1 << 16)
--#define LDRCNTR_MRS		(1 << 1)
--#define LDRCNTR_MRC		(1 << 0)
--#define LDDDSR			0x47c
--#define LDDDSR_LS		(1 << 2)
--#define LDDDSR_WS		(1 << 1)
--#define LDDDSR_BS		(1 << 0)
--#define LDHAJR			0x4a0
--
--#define LDDWD0R			0x800
--#define LDDWDxR_WDACT		(1 << 28)
--#define LDDWDxR_RSW		(1 << 24)
--#define LDDRDR			0x840
--#define LDDRDR_RSR		(1 << 24)
--#define LDDRDR_DRD_MASK		(0x3ffff << 0)
--#define LDDWAR			0x900
--#define LDDWAR_WA		(1 << 0)
--#define LDDRAR			0x904
--#define LDDRAR_RA		(1 << 0)
--
--#define LDBCR			0xb00
--#define LDBCR_UPC(n)		(1 << ((n) + 16))
--#define LDBCR_UPF(n)		(1 << ((n) + 8))
--#define LDBCR_UPD(n)		(1 << ((n) + 0))
--#define LDBnBSIFR(n)		(0xb20 + (n) * 0x20 + 0x00)
--#define LDBBSIFR_EN		(1 << 31)
--#define LDBBSIFR_VS		(1 << 29)
--#define LDBBSIFR_BRSEL		(1 << 28)
--#define LDBBSIFR_MX		(1 << 27)
--#define LDBBSIFR_MY		(1 << 26)
--#define LDBBSIFR_CV3		(3 << 24)
--#define LDBBSIFR_CV2		(2 << 24)
--#define LDBBSIFR_CV1		(1 << 24)
--#define LDBBSIFR_CV0		(0 << 24)
--#define LDBBSIFR_CV_MASK	(3 << 24)
--#define LDBBSIFR_LAY_MASK	(0xff << 16)
--#define LDBBSIFR_LAY_SHIFT	16
--#define LDBBSIFR_ROP3_MASK	(0xff << 16)
--#define LDBBSIFR_ROP3_SHIFT	16
--#define LDBBSIFR_AL_PL8		(3 << 14)
--#define LDBBSIFR_AL_PL1		(2 << 14)
--#define LDBBSIFR_AL_PK		(1 << 14)
--#define LDBBSIFR_AL_1		(0 << 14)
--#define LDBBSIFR_AL_MASK	(3 << 14)
--#define LDBBSIFR_SWPL		(1 << 10)
--#define LDBBSIFR_SWPW		(1 << 9)
--#define LDBBSIFR_SWPB		(1 << 8)
--#define LDBBSIFR_RY		(1 << 7)
--#define LDBBSIFR_CHRR_420	(2 << 0)
--#define LDBBSIFR_CHRR_422	(1 << 0)
--#define LDBBSIFR_CHRR_444	(0 << 0)
--#define LDBBSIFR_RPKF_ARGB32	(0x00 << 0)
--#define LDBBSIFR_RPKF_RGB16	(0x03 << 0)
--#define LDBBSIFR_RPKF_RGB24	(0x0b << 0)
--#define LDBBSIFR_RPKF_MASK	(0x1f << 0)
--#define LDBnBSSZR(n)		(0xb20 + (n) * 0x20 + 0x04)
--#define LDBBSSZR_BVSS_MASK	(0xfff << 16)
--#define LDBBSSZR_BVSS_SHIFT	16
--#define LDBBSSZR_BHSS_MASK	(0xfff << 0)
--#define LDBBSSZR_BHSS_SHIFT	0
--#define LDBnBLOCR(n)		(0xb20 + (n) * 0x20 + 0x08)
--#define LDBBLOCR_CVLC_MASK	(0xfff << 16)
--#define LDBBLOCR_CVLC_SHIFT	16
--#define LDBBLOCR_CHLC_MASK	(0xfff << 0)
--#define LDBBLOCR_CHLC_SHIFT	0
--#define LDBnBSMWR(n)		(0xb20 + (n) * 0x20 + 0x0c)
--#define LDBBSMWR_BSMWA_MASK	(0xffff << 16)
--#define LDBBSMWR_BSMWA_SHIFT	16
--#define LDBBSMWR_BSMW_MASK	(0xffff << 0)
--#define LDBBSMWR_BSMW_SHIFT	0
--#define LDBnBSAYR(n)		(0xb20 + (n) * 0x20 + 0x10)
--#define LDBBSAYR_FG1A_MASK	(0xff << 24)
--#define LDBBSAYR_FG1A_SHIFT	24
--#define LDBBSAYR_FG1R_MASK	(0xff << 16)
--#define LDBBSAYR_FG1R_SHIFT	16
--#define LDBBSAYR_FG1G_MASK	(0xff << 8)
--#define LDBBSAYR_FG1G_SHIFT	8
--#define LDBBSAYR_FG1B_MASK	(0xff << 0)
--#define LDBBSAYR_FG1B_SHIFT	0
--#define LDBnBSACR(n)		(0xb20 + (n) * 0x20 + 0x14)
--#define LDBBSACR_FG2A_MASK	(0xff << 24)
--#define LDBBSACR_FG2A_SHIFT	24
--#define LDBBSACR_FG2R_MASK	(0xff << 16)
--#define LDBBSACR_FG2R_SHIFT	16
--#define LDBBSACR_FG2G_MASK	(0xff << 8)
--#define LDBBSACR_FG2G_SHIFT	8
--#define LDBBSACR_FG2B_MASK	(0xff << 0)
--#define LDBBSACR_FG2B_SHIFT	0
--#define LDBnBSAAR(n)		(0xb20 + (n) * 0x20 + 0x18)
--#define LDBBSAAR_AP_MASK	(0xff << 24)
--#define LDBBSAAR_AP_SHIFT	24
--#define LDBBSAAR_R_MASK		(0xff << 16)
--#define LDBBSAAR_R_SHIFT	16
--#define LDBBSAAR_GY_MASK	(0xff << 8)
--#define LDBBSAAR_GY_SHIFT	8
--#define LDBBSAAR_B_MASK		(0xff << 0)
--#define LDBBSAAR_B_SHIFT	0
--#define LDBnBPPCR(n)		(0xb20 + (n) * 0x20 + 0x1c)
--#define LDBBPPCR_AP_MASK	(0xff << 24)
--#define LDBBPPCR_AP_SHIFT	24
--#define LDBBPPCR_R_MASK		(0xff << 16)
--#define LDBBPPCR_R_SHIFT	16
--#define LDBBPPCR_GY_MASK	(0xff << 8)
--#define LDBBPPCR_GY_SHIFT	8
--#define LDBBPPCR_B_MASK		(0xff << 0)
--#define LDBBPPCR_B_SHIFT	0
--#define LDBnBBGCL(n)		(0xb10 + (n) * 0x04)
--#define LDBBBGCL_BGA_MASK	(0xff << 24)
--#define LDBBBGCL_BGA_SHIFT	24
--#define LDBBBGCL_BGR_MASK	(0xff << 16)
--#define LDBBBGCL_BGR_SHIFT	16
--#define LDBBBGCL_BGG_MASK	(0xff << 8)
--#define LDBBBGCL_BGG_SHIFT	8
--#define LDBBBGCL_BGB_MASK	(0xff << 0)
--#define LDBBBGCL_BGB_SHIFT	0
--
--#define LCDC_SIDE_B_OFFSET	0x1000
--#define LCDC_MIRROR_OFFSET	0x2000
--
--static inline bool lcdc_is_banked(u32 reg)
+-static int siu_probe(struct platform_device *pdev)
 -{
--	switch (reg) {
--	case LDMT1R:
--	case LDMT2R:
--	case LDMT3R:
--	case LDDFR:
--	case LDSM1R:
--	case LDSA1R:
--	case LDSA2R:
--	case LDMLSR:
--	case LDWBFR:
--	case LDWBCNTR:
--	case LDWBAR:
--	case LDHCNR:
--	case LDHSYNR:
--	case LDVLNR:
--	case LDVSYNR:
--	case LDHPDR:
--	case LDVPDR:
--	case LDHAJR:
--		return true;
--	default:
--		return reg >= LDBnBBGCL(0) && reg <= LDBnBPPCR(3);
+-	const struct firmware *fw_entry;
+-	struct resource *res, *region;
+-	struct siu_info *info;
+-	int ret;
+-
+-	info = devm_kmalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
+-	if (!info)
+-		return -ENOMEM;
+-	siu_i2s_data = info;
+-	info->dev = &pdev->dev;
+-
+-	ret = request_firmware(&fw_entry, "siu_spb.bin", &pdev->dev);
+-	if (ret)
+-		return ret;
+-
+-	/*
+-	 * Loaded firmware is "const" - read only, but we have to modify it in
+-	 * snd_siu_sh7343_spbAselect() and snd_siu_sh7343_spbBselect()
+-	 */
+-	memcpy(&info->fw, fw_entry->data, fw_entry->size);
+-
+-	release_firmware(fw_entry);
+-
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	if (!res)
+-		return -ENODEV;
+-
+-	region = devm_request_mem_region(&pdev->dev, res->start,
+-					 resource_size(res), pdev->name);
+-	if (!region) {
+-		dev_err(&pdev->dev, "SIU region already claimed\n");
+-		return -EBUSY;
+-	}
+-
+-	info->pram = devm_ioremap(&pdev->dev, res->start, PRAM_SIZE);
+-	if (!info->pram)
+-		return -ENOMEM;
+-	info->xram = devm_ioremap(&pdev->dev, res->start + XRAM_OFFSET,
+-				  XRAM_SIZE);
+-	if (!info->xram)
+-		return -ENOMEM;
+-	info->yram = devm_ioremap(&pdev->dev, res->start + YRAM_OFFSET,
+-				  YRAM_SIZE);
+-	if (!info->yram)
+-		return -ENOMEM;
+-	info->reg = devm_ioremap(&pdev->dev, res->start + REG_OFFSET,
+-			    resource_size(res) - REG_OFFSET);
+-	if (!info->reg)
+-		return -ENOMEM;
+-
+-	dev_set_drvdata(&pdev->dev, info);
+-
+-	/* register using ARRAY version so we can keep dai name */
+-	ret = devm_snd_soc_register_component(&pdev->dev, &siu_component,
+-					      &siu_i2s_dai, 1);
+-	if (ret < 0)
+-		return ret;
+-
+-	pm_runtime_enable(&pdev->dev);
+-
+-	return 0;
+-}
+-
+-static int siu_remove(struct platform_device *pdev)
+-{
+-	pm_runtime_disable(&pdev->dev);
+-	return 0;
+-}
+-
+-static struct platform_driver siu_driver = {
+-	.driver 	= {
+-		.name	= "siu-pcm-audio",
+-	},
+-	.probe		= siu_probe,
+-	.remove		= siu_remove,
+-};
+-
+-module_platform_driver(siu_driver);
+-
+-MODULE_AUTHOR("Carlos Munoz <carlos@kenati.com>");
+-MODULE_DESCRIPTION("ALSA SoC SH7722 SIU driver");
+-MODULE_LICENSE("GPL");
+diff --git a/sound/soc/sh/siu_pcm.c b/sound/soc/sh/siu_pcm.c
+deleted file mode 100644
+index f15ff36e793455..00000000000000
+--- a/sound/soc/sh/siu_pcm.c
++++ /dev/null
+@@ -1,553 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0+
+-//
+-// siu_pcm.c - ALSA driver for Renesas SH7343, SH7722 SIU peripheral.
+-//
+-// Copyright (C) 2009-2010 Guennadi Liakhovetski <g.liakhovetski@gmx.de>
+-// Copyright (C) 2006 Carlos Munoz <carlos@kenati.com>
+-
+-#include <linux/delay.h>
+-#include <linux/dma-mapping.h>
+-#include <linux/dmaengine.h>
+-#include <linux/interrupt.h>
+-#include <linux/module.h>
+-#include <linux/platform_device.h>
+-
+-#include <sound/control.h>
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/pcm_params.h>
+-#include <sound/soc.h>
+-
+-#include <asm/siu.h>
+-
+-#include "siu.h"
+-
+-#define DRV_NAME "siu-i2s"
+-#define GET_MAX_PERIODS(buf_bytes, period_bytes) \
+-				((buf_bytes) / (period_bytes))
+-#define PERIOD_OFFSET(buf_addr, period_num, period_bytes) \
+-				((buf_addr) + ((period_num) * (period_bytes)))
+-
+-#define RWF_STM_RD		0x01		/* Read in progress */
+-#define RWF_STM_WT		0x02		/* Write in progress */
+-
+-struct siu_port *siu_ports[SIU_PORT_NUM];
+-
+-/* transfersize is number of u32 dma transfers per period */
+-static int siu_pcm_stmwrite_stop(struct siu_port *port_info)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	struct siu_stream *siu_stream = &port_info->playback;
+-	u32 stfifo;
+-
+-	if (!siu_stream->rw_flg)
+-		return -EPERM;
+-
+-	/* output FIFO disable */
+-	stfifo = siu_read32(base + SIU_STFIFO);
+-	siu_write32(base + SIU_STFIFO, stfifo & ~0x0c180c18);
+-	pr_debug("%s: STFIFO %x -> %x\n", __func__,
+-		 stfifo, stfifo & ~0x0c180c18);
+-
+-	/* during stmwrite clear */
+-	siu_stream->rw_flg = 0;
+-
+-	return 0;
+-}
+-
+-static int siu_pcm_stmwrite_start(struct siu_port *port_info)
+-{
+-	struct siu_stream *siu_stream = &port_info->playback;
+-
+-	if (siu_stream->rw_flg)
+-		return -EPERM;
+-
+-	/* Current period in buffer */
+-	port_info->playback.cur_period = 0;
+-
+-	/* during stmwrite flag set */
+-	siu_stream->rw_flg = RWF_STM_WT;
+-
+-	/* DMA transfer start */
+-	queue_work(system_highpri_wq, &siu_stream->work);
+-
+-	return 0;
+-}
+-
+-static void siu_dma_tx_complete(void *arg)
+-{
+-	struct siu_stream *siu_stream = arg;
+-
+-	if (!siu_stream->rw_flg)
+-		return;
+-
+-	/* Update completed period count */
+-	if (++siu_stream->cur_period >=
+-	    GET_MAX_PERIODS(siu_stream->buf_bytes,
+-			    siu_stream->period_bytes))
+-		siu_stream->cur_period = 0;
+-
+-	pr_debug("%s: done period #%d (%u/%u bytes), cookie %d\n",
+-		__func__, siu_stream->cur_period,
+-		siu_stream->cur_period * siu_stream->period_bytes,
+-		siu_stream->buf_bytes, siu_stream->cookie);
+-
+-	queue_work(system_highpri_wq, &siu_stream->work);
+-
+-	/* Notify alsa: a period is done */
+-	snd_pcm_period_elapsed(siu_stream->substream);
+-}
+-
+-static int siu_pcm_wr_set(struct siu_port *port_info,
+-			  dma_addr_t buff, u32 size)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	struct siu_stream *siu_stream = &port_info->playback;
+-	struct snd_pcm_substream *substream = siu_stream->substream;
+-	struct device *dev = substream->pcm->card->dev;
+-	struct dma_async_tx_descriptor *desc;
+-	dma_cookie_t cookie;
+-	struct scatterlist sg;
+-	u32 stfifo;
+-
+-	sg_init_table(&sg, 1);
+-	sg_set_page(&sg, pfn_to_page(PFN_DOWN(buff)),
+-		    size, offset_in_page(buff));
+-	sg_dma_len(&sg) = size;
+-	sg_dma_address(&sg) = buff;
+-
+-	desc = dmaengine_prep_slave_sg(siu_stream->chan,
+-		&sg, 1, DMA_MEM_TO_DEV, DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+-	if (!desc) {
+-		dev_err(dev, "Failed to allocate a dma descriptor\n");
+-		return -ENOMEM;
+-	}
+-
+-	desc->callback = siu_dma_tx_complete;
+-	desc->callback_param = siu_stream;
+-	cookie = dmaengine_submit(desc);
+-	if (cookie < 0) {
+-		dev_err(dev, "Failed to submit a dma transfer\n");
+-		return cookie;
+-	}
+-
+-	siu_stream->tx_desc = desc;
+-	siu_stream->cookie = cookie;
+-
+-	dma_async_issue_pending(siu_stream->chan);
+-
+-	/* only output FIFO enable */
+-	stfifo = siu_read32(base + SIU_STFIFO);
+-	siu_write32(base + SIU_STFIFO, stfifo | (port_info->stfifo & 0x0c180c18));
+-	dev_dbg(dev, "%s: STFIFO %x -> %x\n", __func__,
+-		stfifo, stfifo | (port_info->stfifo & 0x0c180c18));
+-
+-	return 0;
+-}
+-
+-static int siu_pcm_rd_set(struct siu_port *port_info,
+-			  dma_addr_t buff, size_t size)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	struct siu_stream *siu_stream = &port_info->capture;
+-	struct snd_pcm_substream *substream = siu_stream->substream;
+-	struct device *dev = substream->pcm->card->dev;
+-	struct dma_async_tx_descriptor *desc;
+-	dma_cookie_t cookie;
+-	struct scatterlist sg;
+-	u32 stfifo;
+-
+-	dev_dbg(dev, "%s: %u@%llx\n", __func__, size, (unsigned long long)buff);
+-
+-	sg_init_table(&sg, 1);
+-	sg_set_page(&sg, pfn_to_page(PFN_DOWN(buff)),
+-		    size, offset_in_page(buff));
+-	sg_dma_len(&sg) = size;
+-	sg_dma_address(&sg) = buff;
+-
+-	desc = dmaengine_prep_slave_sg(siu_stream->chan,
+-		&sg, 1, DMA_DEV_TO_MEM, DMA_PREP_INTERRUPT | DMA_CTRL_ACK);
+-	if (!desc) {
+-		dev_err(dev, "Failed to allocate dma descriptor\n");
+-		return -ENOMEM;
+-	}
+-
+-	desc->callback = siu_dma_tx_complete;
+-	desc->callback_param = siu_stream;
+-	cookie = dmaengine_submit(desc);
+-	if (cookie < 0) {
+-		dev_err(dev, "Failed to submit dma descriptor\n");
+-		return cookie;
+-	}
+-
+-	siu_stream->tx_desc = desc;
+-	siu_stream->cookie = cookie;
+-
+-	dma_async_issue_pending(siu_stream->chan);
+-
+-	/* only input FIFO enable */
+-	stfifo = siu_read32(base + SIU_STFIFO);
+-	siu_write32(base + SIU_STFIFO, siu_read32(base + SIU_STFIFO) |
+-		    (port_info->stfifo & 0x13071307));
+-	dev_dbg(dev, "%s: STFIFO %x -> %x\n", __func__,
+-		stfifo, stfifo | (port_info->stfifo & 0x13071307));
+-
+-	return 0;
+-}
+-
+-static void siu_io_work(struct work_struct *work)
+-{
+-	struct siu_stream *siu_stream = container_of(work, struct siu_stream,
+-						     work);
+-	struct snd_pcm_substream *substream = siu_stream->substream;
+-	struct device *dev = substream->pcm->card->dev;
+-	struct snd_pcm_runtime *rt = substream->runtime;
+-	struct siu_port *port_info = siu_port_info(substream);
+-
+-	dev_dbg(dev, "%s: flags %x\n", __func__, siu_stream->rw_flg);
+-
+-	if (!siu_stream->rw_flg) {
+-		dev_dbg(dev, "%s: stream inactive\n", __func__);
+-		return;
+-	}
+-
+-	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+-		dma_addr_t buff;
+-		size_t count;
+-
+-		buff = (dma_addr_t)PERIOD_OFFSET(rt->dma_addr,
+-						siu_stream->cur_period,
+-						siu_stream->period_bytes);
+-		count = siu_stream->period_bytes;
+-
+-		/* DMA transfer start */
+-		siu_pcm_rd_set(port_info, buff, count);
+-	} else {
+-		siu_pcm_wr_set(port_info,
+-			       (dma_addr_t)PERIOD_OFFSET(rt->dma_addr,
+-						siu_stream->cur_period,
+-						siu_stream->period_bytes),
+-			       siu_stream->period_bytes);
 -	}
 -}
 -
--static inline void lcdc_write_mirror(struct shmob_drm_device *sdev, u32 reg,
--				     u32 data)
+-/* Capture */
+-static int siu_pcm_stmread_start(struct siu_port *port_info)
 -{
--	iowrite32(data, sdev->mmio + reg + LCDC_MIRROR_OFFSET);
+-	struct siu_stream *siu_stream = &port_info->capture;
+-
+-	if (siu_stream->xfer_cnt > 0x1000000)
+-		return -EINVAL;
+-	if (siu_stream->rw_flg)
+-		return -EPERM;
+-
+-	/* Current period in buffer */
+-	siu_stream->cur_period = 0;
+-
+-	/* during stmread flag set */
+-	siu_stream->rw_flg = RWF_STM_RD;
+-
+-	queue_work(system_highpri_wq, &siu_stream->work);
+-
+-	return 0;
 -}
 -
--static inline void lcdc_write(struct shmob_drm_device *sdev, u32 reg, u32 data)
+-static int siu_pcm_stmread_stop(struct siu_port *port_info)
 -{
--	iowrite32(data, sdev->mmio + reg);
--	if (lcdc_is_banked(reg))
--		iowrite32(data, sdev->mmio + reg + LCDC_SIDE_B_OFFSET);
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	struct siu_stream *siu_stream = &port_info->capture;
+-	struct device *dev = siu_stream->substream->pcm->card->dev;
+-	u32 stfifo;
+-
+-	if (!siu_stream->rw_flg)
+-		return -EPERM;
+-
+-	/* input FIFO disable */
+-	stfifo = siu_read32(base + SIU_STFIFO);
+-	siu_write32(base + SIU_STFIFO, stfifo & ~0x13071307);
+-	dev_dbg(dev, "%s: STFIFO %x -> %x\n", __func__,
+-		stfifo, stfifo & ~0x13071307);
+-
+-	/* during stmread flag clear */
+-	siu_stream->rw_flg = 0;
+-
+-	return 0;
 -}
 -
--static inline u32 lcdc_read(struct shmob_drm_device *sdev, u32 reg)
+-static bool filter(struct dma_chan *chan, void *secondary)
 -{
--	return ioread32(sdev->mmio + reg);
+-	struct sh_dmae_slave *param = secondary;
+-
+-	pr_debug("%s: secondary ID %d\n", __func__, param->shdma_slave.slave_id);
+-
+-	chan->private = &param->shdma_slave;
+-	return true;
 -}
 -
--static inline int lcdc_wait_bit(struct shmob_drm_device *sdev, u32 reg,
--				u32 mask, u32 until)
+-static int siu_pcm_open(struct snd_soc_component *component,
+-			struct snd_pcm_substream *ss)
 -{
--	unsigned long timeout = jiffies + msecs_to_jiffies(5);
+-	/* Playback / Capture */
+-	struct siu_platform *pdata = component->dev->platform_data;
+-	struct siu_info *info = siu_i2s_data;
+-	struct siu_port *port_info = siu_port_info(ss);
+-	struct siu_stream *siu_stream;
+-	u32 port = info->port_id;
+-	struct device *dev = ss->pcm->card->dev;
+-	dma_cap_mask_t mask;
+-	struct sh_dmae_slave *param;
 -
--	while ((lcdc_read(sdev, reg) & mask) != until) {
--		if (time_after(jiffies, timeout))
--			return -ETIMEDOUT;
--		cpu_relax();
+-	dma_cap_zero(mask);
+-	dma_cap_set(DMA_SLAVE, mask);
+-
+-	dev_dbg(dev, "%s, port=%d@%p\n", __func__, port, port_info);
+-
+-	if (ss->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+-		siu_stream = &port_info->playback;
+-		param = &siu_stream->param;
+-		param->shdma_slave.slave_id = port ? pdata->dma_slave_tx_b :
+-			pdata->dma_slave_tx_a;
+-	} else {
+-		siu_stream = &port_info->capture;
+-		param = &siu_stream->param;
+-		param->shdma_slave.slave_id = port ? pdata->dma_slave_rx_b :
+-			pdata->dma_slave_rx_a;
+-	}
+-
+-	/* Get DMA channel */
+-	siu_stream->chan = dma_request_channel(mask, filter, param);
+-	if (!siu_stream->chan) {
+-		dev_err(dev, "DMA channel allocation failed!\n");
+-		return -EBUSY;
+-	}
+-
+-	siu_stream->substream = ss;
+-
+-	return 0;
+-}
+-
+-static int siu_pcm_close(struct snd_soc_component *component,
+-			 struct snd_pcm_substream *ss)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	struct device *dev = ss->pcm->card->dev;
+-	struct siu_port *port_info = siu_port_info(ss);
+-	struct siu_stream *siu_stream;
+-
+-	dev_dbg(dev, "%s: port=%d\n", __func__, info->port_id);
+-
+-	if (ss->stream == SNDRV_PCM_STREAM_PLAYBACK)
+-		siu_stream = &port_info->playback;
+-	else
+-		siu_stream = &port_info->capture;
+-
+-	dma_release_channel(siu_stream->chan);
+-	siu_stream->chan = NULL;
+-
+-	siu_stream->substream = NULL;
+-
+-	return 0;
+-}
+-
+-static int siu_pcm_prepare(struct snd_soc_component *component,
+-			   struct snd_pcm_substream *ss)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	struct siu_port *port_info = siu_port_info(ss);
+-	struct device *dev = ss->pcm->card->dev;
+-	struct snd_pcm_runtime *rt;
+-	struct siu_stream *siu_stream;
+-	snd_pcm_sframes_t xfer_cnt;
+-
+-	if (ss->stream == SNDRV_PCM_STREAM_PLAYBACK)
+-		siu_stream = &port_info->playback;
+-	else
+-		siu_stream = &port_info->capture;
+-
+-	rt = siu_stream->substream->runtime;
+-
+-	siu_stream->buf_bytes = snd_pcm_lib_buffer_bytes(ss);
+-	siu_stream->period_bytes = snd_pcm_lib_period_bytes(ss);
+-
+-	dev_dbg(dev, "%s: port=%d, %d channels, period=%u bytes\n", __func__,
+-		info->port_id, rt->channels, siu_stream->period_bytes);
+-
+-	/* We only support buffers that are multiples of the period */
+-	if (siu_stream->buf_bytes % siu_stream->period_bytes) {
+-		dev_err(dev, "%s() - buffer=%d not multiple of period=%d\n",
+-		       __func__, siu_stream->buf_bytes,
+-		       siu_stream->period_bytes);
+-		return -EINVAL;
+-	}
+-
+-	xfer_cnt = bytes_to_frames(rt, siu_stream->period_bytes);
+-	if (!xfer_cnt || xfer_cnt > 0x1000000)
+-		return -EINVAL;
+-
+-	siu_stream->format = rt->format;
+-	siu_stream->xfer_cnt = xfer_cnt;
+-
+-	dev_dbg(dev, "port=%d buf=%lx buf_bytes=%d period_bytes=%d "
+-		"format=%d channels=%d xfer_cnt=%d\n", info->port_id,
+-		(unsigned long)rt->dma_addr, siu_stream->buf_bytes,
+-		siu_stream->period_bytes,
+-		siu_stream->format, rt->channels, (int)xfer_cnt);
+-
+-	return 0;
+-}
+-
+-static int siu_pcm_trigger(struct snd_soc_component *component,
+-			   struct snd_pcm_substream *ss, int cmd)
+-{
+-	struct siu_info *info = siu_i2s_data;
+-	struct device *dev = ss->pcm->card->dev;
+-	struct siu_port *port_info = siu_port_info(ss);
+-	int ret;
+-
+-	dev_dbg(dev, "%s: port=%d@%p, cmd=%d\n", __func__,
+-		info->port_id, port_info, cmd);
+-
+-	switch (cmd) {
+-	case SNDRV_PCM_TRIGGER_START:
+-		if (ss->stream == SNDRV_PCM_STREAM_PLAYBACK)
+-			ret = siu_pcm_stmwrite_start(port_info);
+-		else
+-			ret = siu_pcm_stmread_start(port_info);
+-
+-		if (ret < 0)
+-			dev_warn(dev, "%s: start failed on port=%d\n",
+-				 __func__, info->port_id);
+-
+-		break;
+-	case SNDRV_PCM_TRIGGER_STOP:
+-		if (ss->stream == SNDRV_PCM_STREAM_PLAYBACK)
+-			siu_pcm_stmwrite_stop(port_info);
+-		else
+-			siu_pcm_stmread_stop(port_info);
+-		ret = 0;
+-
+-		break;
+-	default:
+-		dev_err(dev, "%s() unsupported cmd=%d\n", __func__, cmd);
+-		ret = -EINVAL;
+-	}
+-
+-	return ret;
+-}
+-
+-/*
+- * So far only resolution of one period is supported, subject to extending the
+- * dmangine API
+- */
+-static snd_pcm_uframes_t
+-siu_pcm_pointer_dma(struct snd_soc_component *component,
+-		    struct snd_pcm_substream *ss)
+-{
+-	struct device *dev = ss->pcm->card->dev;
+-	struct siu_info *info = siu_i2s_data;
+-	u32 __iomem *base = info->reg;
+-	struct siu_port *port_info = siu_port_info(ss);
+-	struct snd_pcm_runtime *rt = ss->runtime;
+-	size_t ptr;
+-	struct siu_stream *siu_stream;
+-
+-	if (ss->stream == SNDRV_PCM_STREAM_PLAYBACK)
+-		siu_stream = &port_info->playback;
+-	else
+-		siu_stream = &port_info->capture;
+-
+-	/*
+-	 * ptr is the offset into the buffer where the dma is currently at. We
+-	 * check if the dma buffer has just wrapped.
+-	 */
+-	ptr = PERIOD_OFFSET(rt->dma_addr,
+-			    siu_stream->cur_period,
+-			    siu_stream->period_bytes) - rt->dma_addr;
+-
+-	dev_dbg(dev,
+-		"%s: port=%d, events %x, FSTS %x, xferred %u/%u, cookie %d\n",
+-		__func__, info->port_id, siu_read32(base + SIU_EVNTC),
+-		siu_read32(base + SIU_SBFSTS), ptr, siu_stream->buf_bytes,
+-		siu_stream->cookie);
+-
+-	if (ptr >= siu_stream->buf_bytes)
+-		ptr = 0;
+-
+-	return bytes_to_frames(ss->runtime, ptr);
+-}
+-
+-static int siu_pcm_new(struct snd_soc_component *component,
+-		       struct snd_soc_pcm_runtime *rtd)
+-{
+-	/* card->dev == socdev->dev, see snd_soc_new_pcms() */
+-	struct snd_card *card = rtd->card->snd_card;
+-	struct snd_pcm *pcm = rtd->pcm;
+-	struct siu_info *info = siu_i2s_data;
+-	struct platform_device *pdev = to_platform_device(card->dev);
+-	int ret;
+-	int i;
+-
+-	/* pdev->id selects between SIUA and SIUB */
+-	if (pdev->id < 0 || pdev->id >= SIU_PORT_NUM)
+-		return -EINVAL;
+-
+-	info->port_id = pdev->id;
+-
+-	/*
+-	 * While the siu has 2 ports, only one port can be on at a time (only 1
+-	 * SPB). So far all the boards using the siu had only one of the ports
+-	 * wired to a codec. To simplify things, we only register one port with
+-	 * alsa. In case both ports are needed, it should be changed here
+-	 */
+-	for (i = pdev->id; i < pdev->id + 1; i++) {
+-		struct siu_port **port_info = &siu_ports[i];
+-
+-		ret = siu_init_port(i, port_info, card);
+-		if (ret < 0)
+-			return ret;
+-
+-		snd_pcm_set_managed_buffer_all(pcm,
+-				SNDRV_DMA_TYPE_DEV, card->dev,
+-				SIU_BUFFER_BYTES_MAX, SIU_BUFFER_BYTES_MAX);
+-
+-		(*port_info)->pcm = pcm;
+-
+-		/* IO works */
+-		INIT_WORK(&(*port_info)->playback.work, siu_io_work);
+-		INIT_WORK(&(*port_info)->capture.work, siu_io_work);
+-	}
+-
+-	dev_info(card->dev, "SuperH SIU driver initialized.\n");
+-	return 0;
+-}
+-
+-static void siu_pcm_free(struct snd_soc_component *component,
+-			 struct snd_pcm *pcm)
+-{
+-	struct platform_device *pdev = to_platform_device(pcm->card->dev);
+-	struct siu_port *port_info = siu_ports[pdev->id];
+-
+-	cancel_work_sync(&port_info->capture.work);
+-	cancel_work_sync(&port_info->playback.work);
+-
+-	siu_free_port(port_info);
+-
+-	dev_dbg(pcm->card->dev, "%s\n", __func__);
+-}
+-
+-const struct snd_soc_component_driver siu_component = {
+-	.name			= DRV_NAME,
+-	.open			= siu_pcm_open,
+-	.close			= siu_pcm_close,
+-	.prepare		= siu_pcm_prepare,
+-	.trigger		= siu_pcm_trigger,
+-	.pointer		= siu_pcm_pointer_dma,
+-	.pcm_construct		= siu_pcm_new,
+-	.pcm_destruct		= siu_pcm_free,
+-	.legacy_dai_naming	= 1,
+-};
+-EXPORT_SYMBOL_GPL(siu_component);
+diff --git a/sound/soc/sh/ssi.c b/sound/soc/sh/ssi.c
+deleted file mode 100644
+index 96cf523c227343..00000000000000
+--- a/sound/soc/sh/ssi.c
++++ /dev/null
+@@ -1,403 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0
+-//
+-// Serial Sound Interface (I2S) support for SH7760/SH7780
+-//
+-// Copyright (c) 2007 Manuel Lauss <mano@roarinelk.homelinux.net>
+-//
+-// dont forget to set IPSEL/OMSEL register bits (in your board code) to
+-// enable SSI output pins!
+-
+-/*
+- * LIMITATIONS:
+- *	The SSI unit has only one physical data line, so full duplex is
+- *	impossible.  This can be remedied  on the  SH7760 by  using the
+- *	other SSI unit for recording; however the SH7780 has only 1 SSI
+- *	unit, and its pins are shared with the AC97 unit,  among others.
+- *
+- * FEATURES:
+- *	The SSI features "compressed mode": in this mode it continuously
+- *	streams PCM data over the I2S lines and uses LRCK as a handshake
+- *	signal.  Can be used to send compressed data (AC3/DTS) to a DSP.
+- *	The number of bits sent over the wire in a frame can be adjusted
+- *	and can be independent from the actual sample bit depth. This is
+- *	useful to support TDM mode codecs like the AD1939 which have a
+- *	fixed TDM slot size, regardless of sample resolution.
+- */
+-
+-#include <linux/init.h>
+-#include <linux/module.h>
+-#include <linux/platform_device.h>
+-#include <sound/core.h>
+-#include <sound/pcm.h>
+-#include <sound/initval.h>
+-#include <sound/soc.h>
+-#include <asm/io.h>
+-
+-#define SSICR	0x00
+-#define SSISR	0x04
+-
+-#define CR_DMAEN	(1 << 28)
+-#define CR_CHNL_SHIFT	22
+-#define CR_CHNL_MASK	(3 << CR_CHNL_SHIFT)
+-#define CR_DWL_SHIFT	19
+-#define CR_DWL_MASK	(7 << CR_DWL_SHIFT)
+-#define CR_SWL_SHIFT	16
+-#define CR_SWL_MASK	(7 << CR_SWL_SHIFT)
+-#define CR_SCK_MASTER	(1 << 15)	/* bitclock master bit */
+-#define CR_SWS_MASTER	(1 << 14)	/* wordselect master bit */
+-#define CR_SCKP		(1 << 13)	/* I2Sclock polarity */
+-#define CR_SWSP		(1 << 12)	/* LRCK polarity */
+-#define CR_SPDP		(1 << 11)
+-#define CR_SDTA		(1 << 10)	/* i2s alignment (msb/lsb) */
+-#define CR_PDTA		(1 << 9)	/* fifo data alignment */
+-#define CR_DEL		(1 << 8)	/* delay data by 1 i2sclk */
+-#define CR_BREN		(1 << 7)	/* clock gating in burst mode */
+-#define CR_CKDIV_SHIFT	4
+-#define CR_CKDIV_MASK	(7 << CR_CKDIV_SHIFT)	/* bitclock divider */
+-#define CR_MUTE		(1 << 3)	/* SSI mute */
+-#define CR_CPEN		(1 << 2)	/* compressed mode */
+-#define CR_TRMD		(1 << 1)	/* transmit/receive select */
+-#define CR_EN		(1 << 0)	/* enable SSI */
+-
+-#define SSIREG(reg)	(*(unsigned long *)(ssi->mmio + (reg)))
+-
+-struct ssi_priv {
+-	unsigned long mmio;
+-	unsigned long sysclk;
+-	int inuse;
+-} ssi_cpu_data[] = {
+-#if defined(CONFIG_CPU_SUBTYPE_SH7760)
+-	{
+-		.mmio	= 0xFE680000,
+-	},
+-	{
+-		.mmio	= 0xFE690000,
+-	},
+-#elif defined(CONFIG_CPU_SUBTYPE_SH7780)
+-	{
+-		.mmio	= 0xFFE70000,
+-	},
+-#else
+-#error "Unsupported SuperH SoC"
+-#endif
+-};
+-
+-/*
+- * track usage of the SSI; it is simplex-only so prevent attempts of
+- * concurrent playback + capture. FIXME: any locking required?
+- */
+-static int ssi_startup(struct snd_pcm_substream *substream,
+-		       struct snd_soc_dai *dai)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[dai->id];
+-	if (ssi->inuse) {
+-		pr_debug("ssi: already in use!\n");
+-		return -EBUSY;
+-	} else
+-		ssi->inuse = 1;
+-	return 0;
+-}
+-
+-static void ssi_shutdown(struct snd_pcm_substream *substream,
+-			 struct snd_soc_dai *dai)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[dai->id];
+-
+-	ssi->inuse = 0;
+-}
+-
+-static int ssi_trigger(struct snd_pcm_substream *substream, int cmd,
+-		       struct snd_soc_dai *dai)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[dai->id];
+-
+-	switch (cmd) {
+-	case SNDRV_PCM_TRIGGER_START:
+-		SSIREG(SSICR) |= CR_DMAEN | CR_EN;
+-		break;
+-	case SNDRV_PCM_TRIGGER_STOP:
+-		SSIREG(SSICR) &= ~(CR_DMAEN | CR_EN);
+-		break;
+-	default:
+-		return -EINVAL;
 -	}
 -
 -	return 0;
 -}
 -
--#endif /* __SHMOB_DRM_REGS_H__ */
+-static int ssi_hw_params(struct snd_pcm_substream *substream,
+-			 struct snd_pcm_hw_params *params,
+-			 struct snd_soc_dai *dai)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[dai->id];
+-	unsigned long ssicr = SSIREG(SSICR);
+-	unsigned int bits, channels, swl, recv, i;
+-
+-	channels = params_channels(params);
+-	bits = params->msbits;
+-	recv = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) ? 0 : 1;
+-
+-	pr_debug("ssi_hw_params() enter\nssicr was    %08lx\n", ssicr);
+-	pr_debug("bits: %u channels: %u\n", bits, channels);
+-
+-	ssicr &= ~(CR_TRMD | CR_CHNL_MASK | CR_DWL_MASK | CR_PDTA |
+-		   CR_SWL_MASK);
+-
+-	/* direction (send/receive) */
+-	if (!recv)
+-		ssicr |= CR_TRMD;	/* transmit */
+-
+-	/* channels */
+-	if ((channels < 2) || (channels > 8) || (channels & 1)) {
+-		pr_debug("ssi: invalid number of channels\n");
+-		return -EINVAL;
+-	}
+-	ssicr |= ((channels >> 1) - 1) << CR_CHNL_SHIFT;
+-
+-	/* DATA WORD LENGTH (DWL): databits in audio sample */
+-	i = 0;
+-	switch (bits) {
+-	case 32: ++i;
+-	case 24: ++i;
+-	case 22: ++i;
+-	case 20: ++i;
+-	case 18: ++i;
+-	case 16: ++i;
+-		 ssicr |= i << CR_DWL_SHIFT;
+-	case 8:	 break;
+-	default:
+-		pr_debug("ssi: invalid sample width\n");
+-		return -EINVAL;
+-	}
+-
+-	/*
+-	 * SYSTEM WORD LENGTH: size in bits of half a frame over the I2S
+-	 * wires. This is usually bits_per_sample x channels/2;  i.e. in
+-	 * Stereo mode  the SWL equals DWL.  SWL can  be bigger than the
+-	 * product of (channels_per_slot x samplebits), e.g.  for codecs
+-	 * like the AD1939 which  only accept 32bit wide TDM slots.  For
+-	 * "standard" I2S operation we set SWL = chans / 2 * DWL here.
+-	 * Waiting for ASoC to get TDM support ;-)
+-	 */
+-	if ((bits > 16) && (bits <= 24)) {
+-		bits = 24;	/* these are padded by the SSI */
+-		/*ssicr |= CR_PDTA;*/ /* cpu/data endianness ? */
+-	}
+-	i = 0;
+-	swl = (bits * channels) / 2;
+-	switch (swl) {
+-	case 256: ++i;
+-	case 128: ++i;
+-	case 64:  ++i;
+-	case 48:  ++i;
+-	case 32:  ++i;
+-	case 16:  ++i;
+-		  ssicr |= i << CR_SWL_SHIFT;
+-	case 8:   break;
+-	default:
+-		pr_debug("ssi: invalid system word length computed\n");
+-		return -EINVAL;
+-	}
+-
+-	SSIREG(SSICR) = ssicr;
+-
+-	pr_debug("ssi_hw_params() leave\nssicr is now %08lx\n", ssicr);
+-	return 0;
+-}
+-
+-static int ssi_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id,
+-			  unsigned int freq, int dir)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[cpu_dai->id];
+-
+-	ssi->sysclk = freq;
+-
+-	return 0;
+-}
+-
+-/*
+- * This divider is used to generate the SSI_SCK (I2S bitclock) from the
+- * clock at the HAC_BIT_CLK ("oversampling clock") pin.
+- */
+-static int ssi_set_clkdiv(struct snd_soc_dai *dai, int did, int div)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[dai->id];
+-	unsigned long ssicr;
+-	int i;
+-
+-	i = 0;
+-	ssicr = SSIREG(SSICR) & ~CR_CKDIV_MASK;
+-	switch (div) {
+-	case 16: ++i;
+-	case 8:  ++i;
+-	case 4:  ++i;
+-	case 2:  ++i;
+-		 SSIREG(SSICR) = ssicr | (i << CR_CKDIV_SHIFT);
+-	case 1:  break;
+-	default:
+-		pr_debug("ssi: invalid sck divider %d\n", div);
+-		return -EINVAL;
+-	}
+-
+-	return 0;
+-}
+-
+-static int ssi_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
+-{
+-	struct ssi_priv *ssi = &ssi_cpu_data[dai->id];
+-	unsigned long ssicr = SSIREG(SSICR);
+-
+-	pr_debug("ssi_set_fmt()\nssicr was    0x%08lx\n", ssicr);
+-
+-	ssicr &= ~(CR_DEL | CR_PDTA | CR_BREN | CR_SWSP | CR_SCKP |
+-		   CR_SWS_MASTER | CR_SCK_MASTER);
+-
+-	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
+-	case SND_SOC_DAIFMT_I2S:
+-		break;
+-	case SND_SOC_DAIFMT_RIGHT_J:
+-		ssicr |= CR_DEL | CR_PDTA;
+-		break;
+-	case SND_SOC_DAIFMT_LEFT_J:
+-		ssicr |= CR_DEL;
+-		break;
+-	default:
+-		pr_debug("ssi: unsupported format\n");
+-		return -EINVAL;
+-	}
+-
+-	switch (fmt & SND_SOC_DAIFMT_CLOCK_MASK) {
+-	case SND_SOC_DAIFMT_CONT:
+-		break;
+-	case SND_SOC_DAIFMT_GATED:
+-		ssicr |= CR_BREN;
+-		break;
+-	}
+-
+-	switch (fmt & SND_SOC_DAIFMT_INV_MASK) {
+-	case SND_SOC_DAIFMT_NB_NF:
+-		ssicr |= CR_SCKP;	/* sample data at low clkedge */
+-		break;
+-	case SND_SOC_DAIFMT_NB_IF:
+-		ssicr |= CR_SCKP | CR_SWSP;
+-		break;
+-	case SND_SOC_DAIFMT_IB_NF:
+-		break;
+-	case SND_SOC_DAIFMT_IB_IF:
+-		ssicr |= CR_SWSP;	/* word select starts low */
+-		break;
+-	default:
+-		pr_debug("ssi: invalid inversion\n");
+-		return -EINVAL;
+-	}
+-
+-	switch (fmt & SND_SOC_DAIFMT_CLOCK_PROVIDER_MASK) {
+-	case SND_SOC_DAIFMT_BC_FC:
+-		break;
+-	case SND_SOC_DAIFMT_BP_FC:
+-		ssicr |= CR_SCK_MASTER;
+-		break;
+-	case SND_SOC_DAIFMT_BC_FP:
+-		ssicr |= CR_SWS_MASTER;
+-		break;
+-	case SND_SOC_DAIFMT_BP_FP:
+-		ssicr |= CR_SWS_MASTER | CR_SCK_MASTER;
+-		break;
+-	default:
+-		pr_debug("ssi: invalid master/secondary configuration\n");
+-		return -EINVAL;
+-	}
+-
+-	SSIREG(SSICR) = ssicr;
+-	pr_debug("ssi_set_fmt() leave\nssicr is now 0x%08lx\n", ssicr);
+-
+-	return 0;
+-}
+-
+-/* the SSI depends on an external clocksource (at HAC_BIT_CLK) even in
+- * Master mode,  so really this is board specific;  the SSI can do any
+- * rate with the right bitclk and divider settings.
+- */
+-#define SSI_RATES	\
+-	SNDRV_PCM_RATE_8000_192000
+-
+-/* the SSI can do 8-32 bit samples, with 8 possible channels */
+-#define SSI_FMTS	\
+-	(SNDRV_PCM_FMTBIT_S8      | SNDRV_PCM_FMTBIT_U8      |	\
+-	 SNDRV_PCM_FMTBIT_S16_LE  | SNDRV_PCM_FMTBIT_U16_LE  |	\
+-	 SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_U20_3LE |	\
+-	 SNDRV_PCM_FMTBIT_S24_3LE | SNDRV_PCM_FMTBIT_U24_3LE |	\
+-	 SNDRV_PCM_FMTBIT_S32_LE  | SNDRV_PCM_FMTBIT_U32_LE)
+-
+-static const struct snd_soc_dai_ops ssi_dai_ops = {
+-	.startup	= ssi_startup,
+-	.shutdown	= ssi_shutdown,
+-	.trigger	= ssi_trigger,
+-	.hw_params	= ssi_hw_params,
+-	.set_sysclk	= ssi_set_sysclk,
+-	.set_clkdiv	= ssi_set_clkdiv,
+-	.set_fmt	= ssi_set_fmt,
+-};
+-
+-static struct snd_soc_dai_driver sh4_ssi_dai[] = {
+-{
+-	.name			= "ssi-dai.0",
+-	.playback = {
+-		.rates		= SSI_RATES,
+-		.formats	= SSI_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 8,
+-	},
+-	.capture = {
+-		.rates		= SSI_RATES,
+-		.formats	= SSI_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 8,
+-	},
+-	.ops = &ssi_dai_ops,
+-},
+-#ifdef CONFIG_CPU_SUBTYPE_SH7760
+-{
+-	.name			= "ssi-dai.1",
+-	.playback = {
+-		.rates		= SSI_RATES,
+-		.formats	= SSI_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 8,
+-	},
+-	.capture = {
+-		.rates		= SSI_RATES,
+-		.formats	= SSI_FMTS,
+-		.channels_min	= 2,
+-		.channels_max	= 8,
+-	},
+-	.ops = &ssi_dai_ops,
+-},
+-#endif
+-};
+-
+-static const struct snd_soc_component_driver sh4_ssi_component = {
+-	.name			= "sh4-ssi",
+-	.legacy_dai_naming	= 1,
+-};
+-
+-static int sh4_soc_dai_probe(struct platform_device *pdev)
+-{
+-	return devm_snd_soc_register_component(&pdev->dev, &sh4_ssi_component,
+-					       sh4_ssi_dai,
+-					       ARRAY_SIZE(sh4_ssi_dai));
+-}
+-
+-static struct platform_driver sh4_ssi_driver = {
+-	.driver = {
+-			.name = "sh4-ssi-dai",
+-	},
+-
+-	.probe = sh4_soc_dai_probe,
+-};
+-
+-module_platform_driver(sh4_ssi_driver);
+-
+-MODULE_LICENSE("GPL v2");
+-MODULE_DESCRIPTION("SuperH onchip SSI (I2S) audio driver");
+-MODULE_AUTHOR("Manuel Lauss <mano@roarinelk.homelinux.net>");
 -- 
 2.39.0
 
