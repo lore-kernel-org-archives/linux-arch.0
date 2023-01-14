@@ -2,93 +2,170 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3CA77C3DA78
-	for <linux-arch@archiver.kernel.org>; Fri, 13 Jan 2023 23:32:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 57313C677F1
+	for <linux-arch@archiver.kernel.org>; Sat, 14 Jan 2023 00:01:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231467AbjAMXcG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 13 Jan 2023 18:32:06 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41198 "EHLO
+        id S230038AbjANABJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 13 Jan 2023 19:01:09 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49942 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231319AbjAMXcA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 18:32:00 -0500
-Received: from mail-yw1-x112c.google.com (mail-yw1-x112c.google.com [IPv6:2607:f8b0:4864:20::112c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 10B738CD03
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:31:58 -0800 (PST)
-Received: by mail-yw1-x112c.google.com with SMTP id 00721157ae682-4a2f8ad29d5so305507557b3.8
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:31:58 -0800 (PST)
+        with ESMTP id S229854AbjANABH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2023 19:01:07 -0500
+Received: from mail-pj1-x1030.google.com (mail-pj1-x1030.google.com [IPv6:2607:f8b0:4864:20::1030])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1E4078CD2C
+        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 16:01:06 -0800 (PST)
+Received: by mail-pj1-x1030.google.com with SMTP id o18so2765936pji.1
+        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 16:01:06 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=FHJQSZN4Bz+51gS5J/dgy+JvIN/TZACnZnBolQHY7qg=;
-        b=ap6EJUwREOlU5i8xCoqE59xQpluVaQp4H3tZIiWw7hYEabyjR5uVqMXZ9Z/5fcK8QE
-         Z3f8Enc9PSFEd68x16B1jr3iTPdmgOfae8hFGFvidTcr6vuuJ/5gYGpYd+JjWFaB0wrn
-         aUwHfh+rascZKjkcvsQmsyHAiD6RBZYebLg8s=
+        d=google.com; s=20210112;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=pnZMr3msysr3F7hQXLH7AQBYvEUMLHsk9nNkCMpDY14=;
+        b=AKE7gl1eiHLqGoN0SnyVqNEPplEIwVO+riNAN02PwmozMjE2L10QCVf4rXYqWYXwrc
+         nM+dfsbEmjg4aU4wDbXk81gsNGcxDwcFMrhjKV0dxv5tgPv5HRD69rmvva17U2MwBylu
+         ox8qjH1cD99q2HmCdnSQ0OAN2PKSiP6XIZtUS7wpznd/WxqipSgn4SXTj5GoK28DsB/h
+         /h+/U8gm5nSazzO1cze9VAQXTqkUirpJW7NcMgscsM2IWWic/84oK1838Dl2K3mrzzcM
+         +5+ItvAPTnRvsTbhTQfUPMUE3qPaOrcvkhrQopsnh/lwNWCnC0CJndMiYCyxUMoXegK5
+         gjIw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=FHJQSZN4Bz+51gS5J/dgy+JvIN/TZACnZnBolQHY7qg=;
-        b=aC8K16MdM/ASkOPA8pPDjU+SNxCr/3T7RY7x8CqZeGDAoEnkzFVccM4c2R3xdsG6kv
-         mP66pDBE9npqAPQ7nPQEzCLbuYX5l76SxRg7VoUiqj/4yvYr/85Qnn20eusMYgb59kX5
-         nabtWdOkjc6Ywps9PtaoOwXaHoqmvUJ72uZ4OElfzoGg+cUDLweWK0ihUKixfLmE5GqY
-         X/grJwpdkRdBwgPs7IKYRpv7eLXQDrPq0G7RMS4haxBAMx474n8yiLNSSMie0lf+P6h5
-         Ca7TEUMt2Wptw3x8PHsnV9DeLg2kO1MILtWEGqeiPPmlueSPnc0/8CBVtaMbvJXdT7Y6
-         nMGA==
-X-Gm-Message-State: AFqh2koRtPYgtw8DxJ81bbyyh2bONLh+q6UdIpiHx2Y2aQo24Ka4/yDe
-        PVYbqj5dCKj+6B9Sp074HK17hHPoeDP/PecStDM=
-X-Google-Smtp-Source: AMrXdXs6V+jif4BZytC8sMJaXRRprK6gpQWFpZX9l+TpdtdwUZxeArxRCnAJCYR2PegRKuUA+JIc3Q==
-X-Received: by 2002:a81:7503:0:b0:3af:2118:fc34 with SMTP id q3-20020a817503000000b003af2118fc34mr27436102ywc.34.1673652717113;
-        Fri, 13 Jan 2023 15:31:57 -0800 (PST)
-Received: from mail-qk1-f172.google.com (mail-qk1-f172.google.com. [209.85.222.172])
-        by smtp.gmail.com with ESMTPSA id t5-20020a05620a450500b006fa8299b4d5sm13685098qkp.100.2023.01.13.15.31.56
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 13 Jan 2023 15:31:56 -0800 (PST)
-Received: by mail-qk1-f172.google.com with SMTP id e6so11607012qkl.4
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2023 15:31:56 -0800 (PST)
-X-Received: by 2002:a05:620a:4720:b0:6ff:cbda:a128 with SMTP id
- bs32-20020a05620a472000b006ffcbdaa128mr4443110qkb.697.1673652715770; Fri, 13
- Jan 2023 15:31:55 -0800 (PST)
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=pnZMr3msysr3F7hQXLH7AQBYvEUMLHsk9nNkCMpDY14=;
+        b=ILZ9rgLhpJyreUW/6AFIcVjukGimIpQ/TF39kPTfOE0dkye4s0V8szubQ0rMrd5HFf
+         d9BZ2f/BQAJxlYQA1wizB8dtWAa8FRhqufz9LHcd4BiQMuAGLHd4hagCCOYc6NDSipln
+         +5JuE8nGO2TzUbyYvuaERKAPMp567BvOI0Uq1atlBsmI70N+g0FEyQHHPGV4rSw3WKAk
+         l7rDF5L7gfjPzMbo0hDkY/kIZbReiDbaoVbqDB9FKhlI/qavnEvboPqYhSWNwIPrXtsA
+         G7CoqcQC4m0Ujp3Q3flcpn5aUU+s8ZDymJFVC1OmGzMkrTKkMb6GYjs1pvTWlD1WWzEo
+         nnBw==
+X-Gm-Message-State: AFqh2krMZ5rNLbVk3bVBUUOTdxv/GK8v7rZlcTLTTxVUORueJgd+vVFb
+        QFsiGckCDVM1duBNS1MHyPxPcg==
+X-Google-Smtp-Source: AMrXdXvNkNwg47euRwsow9ZzGgWEDAGEi69lwgz85sCYleqYo1kdNQOKNRaLha4U2UlUoVuWv9B/fQ==
+X-Received: by 2002:a17:902:c409:b0:194:6d3c:38a5 with SMTP id k9-20020a170902c40900b001946d3c38a5mr516748plk.1.1673654465280;
+        Fri, 13 Jan 2023 16:01:05 -0800 (PST)
+Received: from google.com (7.104.168.34.bc.googleusercontent.com. [34.168.104.7])
+        by smtp.gmail.com with ESMTPSA id k7-20020a170902760700b00192bf7eaf28sm14649057pll.286.2023.01.13.16.01.04
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 13 Jan 2023 16:01:04 -0800 (PST)
+Date:   Sat, 14 Jan 2023 00:01:01 +0000
+From:   Sean Christopherson <seanjc@google.com>
+To:     Chao Peng <chao.p.peng@linux.intel.com>
+Cc:     kvm@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+        linux-doc@vger.kernel.org, qemu-devel@nongnu.org,
+        Paolo Bonzini <pbonzini@redhat.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Vitaly Kuznetsov <vkuznets@redhat.com>,
+        Wanpeng Li <wanpengli@tencent.com>,
+        Jim Mattson <jmattson@google.com>,
+        Joerg Roedel <joro@8bytes.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Naoya Horiguchi <naoya.horiguchi@nec.com>,
+        Miaohe Lin <linmiaohe@huawei.com>, x86@kernel.org,
+        "H . Peter Anvin" <hpa@zytor.com>, Hugh Dickins <hughd@google.com>,
+        Jeff Layton <jlayton@kernel.org>,
+        "J . Bruce Fields" <bfields@fieldses.org>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Shuah Khan <shuah@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+        Steven Price <steven.price@arm.com>,
+        "Maciej S . Szmigiero" <mail@maciej.szmigiero.name>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        Vishal Annapurve <vannapurve@google.com>,
+        Yu Zhang <yu.c.zhang@linux.intel.com>,
+        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
+        luto@kernel.org, jun.nakajima@intel.com, dave.hansen@intel.com,
+        ak@linux.intel.com, david@redhat.com, aarcange@redhat.com,
+        ddutile@redhat.com, dhildenb@redhat.com,
+        Quentin Perret <qperret@google.com>, tabba@google.com,
+        Michael Roth <michael.roth@amd.com>, mhocko@suse.com,
+        wei.w.wang@intel.com
+Subject: Re: [PATCH v10 9/9] KVM: Enable and expose KVM_MEM_PRIVATE
+Message-ID: <Y8HwvTik/2avrCOU@google.com>
+References: <20221202061347.1070246-1-chao.p.peng@linux.intel.com>
+ <20221202061347.1070246-10-chao.p.peng@linux.intel.com>
 MIME-Version: 1.0
-References: <CAHk-=wjthxgrLEvgZBUwd35e_mk=dCWKMUEURC6YsX5nWom8kQ@mail.gmail.com>
- <20230113184447.1707316-1-mjguzik@gmail.com> <SJ1PR11MB6083B48A2B2114EF833D69E2FCC29@SJ1PR11MB6083.namprd11.prod.outlook.com>
-In-Reply-To: <SJ1PR11MB6083B48A2B2114EF833D69E2FCC29@SJ1PR11MB6083.namprd11.prod.outlook.com>
-From:   Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri, 13 Jan 2023 17:31:39 -0600
-X-Gmail-Original-Message-ID: <CAHk-=wgTsc5z3cPo7+t2kRO1uRQML1w_o72nefyHOh8VMhqu0A@mail.gmail.com>
-Message-ID: <CAHk-=wgTsc5z3cPo7+t2kRO1uRQML1w_o72nefyHOh8VMhqu0A@mail.gmail.com>
-Subject: Re: [PATCH] lockref: stop doing cpu_relax in the cmpxchg loop
-To:     "Luck, Tony" <tony.luck@intel.com>
-Cc:     Mateusz Guzik <mjguzik@gmail.com>,
-        "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
-        "jan.glauber@gmail.com" <jan.glauber@gmail.com>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux-arm-kernel@lists.infradead.org" 
-        <linux-arm-kernel@lists.infradead.org>,
-        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
-        "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>,
-        "mpe@ellerman.id.au" <mpe@ellerman.id.au>,
-        "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>,
-        "will@kernel.org" <will@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20221202061347.1070246-10-chao.p.peng@linux.intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jan 13, 2023 at 3:47 PM Luck, Tony <tony.luck@intel.com> wrote:
->
-> The computer necrophiliacs at Debian and Gentoo seem determined
-> to keep ia64 alive.
->
-> So perhaps this should s/cpu_relax/soemt_relax/ where soemt_relax
-> is a no-op everywhere except ia64, which can define it as cpu_relax.
+On Fri, Dec 02, 2022, Chao Peng wrote:
+> @@ -10357,6 +10364,12 @@ static int vcpu_enter_guest(struct kvm_vcpu *vcpu)
+>  
+>  		if (kvm_check_request(KVM_REQ_UPDATE_CPU_DIRTY_LOGGING, vcpu))
+>  			static_call(kvm_x86_update_cpu_dirty_logging)(vcpu);
+> +
+> +		if (kvm_check_request(KVM_REQ_MEMORY_MCE, vcpu)) {
+> +			vcpu->run->exit_reason = KVM_EXIT_SHUTDOWN;
 
-Heh. I already took your earlier "$ git rm -r arch/ia64" comment as an
-ack for not really caring about ia64.
+Synthesizing triple fault shutdown is not the right approach.  Even with TDX's
+MCE "architecture" (heavy sarcasm), it's possible that host userspace and the
+guest have a paravirt interface for handling memory errors without killing the
+host.
 
-I suspect nobody will notice, and if ia64 is the only reason to do
-this, I really don't think it would be worth it.
+> +			r = 0;
+> +			goto out;
+> +		}
+>  	}
 
-              Linus
+
+> @@ -1982,6 +2112,10 @@ int __kvm_set_memory_region(struct kvm *kvm,
+>  	     !access_ok((void __user *)(unsigned long)mem->userspace_addr,
+>  			mem->memory_size))
+>  		return -EINVAL;
+> +	if (mem->flags & KVM_MEM_PRIVATE &&
+> +		(mem->restricted_offset & (PAGE_SIZE - 1) ||
+
+Align indentation.
+
+> +		 mem->restricted_offset > U64_MAX - mem->memory_size))
+
+Strongly prefer to use similar logic to existing code that detects wraps:
+
+		mem->restricted_offset + mem->memory_size < mem->restricted_offset
+
+This is also where I'd like to add the "gfn is aligned to offset" check, though
+my brain is too fried to figure that out right now.
+
+> +		return -EINVAL;
+>  	if (as_id >= KVM_ADDRESS_SPACE_NUM || id >= KVM_MEM_SLOTS_NUM)
+>  		return -EINVAL;
+>  	if (mem->guest_phys_addr + mem->memory_size < mem->guest_phys_addr)
+> @@ -2020,6 +2154,9 @@ int __kvm_set_memory_region(struct kvm *kvm,
+>  		if ((kvm->nr_memslot_pages + npages) < kvm->nr_memslot_pages)
+>  			return -EINVAL;
+>  	} else { /* Modify an existing slot. */
+> +		/* Private memslots are immutable, they can only be deleted. */
+
+I'm 99% certain I suggested this, but if we're going to make these memslots
+immutable, then we should straight up disallow dirty logging, otherwise we'll
+end up with a bizarre uAPI.
+
+> +		if (mem->flags & KVM_MEM_PRIVATE)
+> +			return -EINVAL;
+>  		if ((mem->userspace_addr != old->userspace_addr) ||
+>  		    (npages != old->npages) ||
+>  		    ((mem->flags ^ old->flags) & KVM_MEM_READONLY))
+> @@ -2048,10 +2185,28 @@ int __kvm_set_memory_region(struct kvm *kvm,
+>  	new->npages = npages;
+>  	new->flags = mem->flags;
+>  	new->userspace_addr = mem->userspace_addr;
+> +	if (mem->flags & KVM_MEM_PRIVATE) {
+> +		new->restricted_file = fget(mem->restricted_fd);
+> +		if (!new->restricted_file ||
+> +		    !file_is_restrictedmem(new->restricted_file)) {
+> +			r = -EINVAL;
+> +			goto out;
+> +		}
+> +		new->restricted_offset = mem->restricted_offset;
+> +	}
+> +
+> +	new->kvm = kvm;
+
+Set this above, just so that the code flows better.
