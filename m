@@ -2,156 +2,322 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C0EEAC004D4
-	for <linux-arch@archiver.kernel.org>; Wed, 18 Jan 2023 08:27:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1F587C32793
+	for <linux-arch@archiver.kernel.org>; Wed, 18 Jan 2023 08:46:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230061AbjARI1F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 18 Jan 2023 03:27:05 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43526 "EHLO
+        id S229906AbjARIpz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 18 Jan 2023 03:45:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52126 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229650AbjARI0E (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jan 2023 03:26:04 -0500
-Received: from mail-oa1-f43.google.com (mail-oa1-f43.google.com [209.85.160.43])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 990695B44F;
-        Tue, 17 Jan 2023 23:53:12 -0800 (PST)
-Received: by mail-oa1-f43.google.com with SMTP id 586e51a60fabf-15085b8a2f7so34666426fac.2;
-        Tue, 17 Jan 2023 23:53:12 -0800 (PST)
+        with ESMTP id S230383AbjARIp3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jan 2023 03:45:29 -0500
+Received: from mail-pj1-x1031.google.com (mail-pj1-x1031.google.com [IPv6:2607:f8b0:4864:20::1031])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 992248F7FF
+        for <linux-arch@vger.kernel.org>; Wed, 18 Jan 2023 00:00:29 -0800 (PST)
+Received: by mail-pj1-x1031.google.com with SMTP id o13so31466925pjg.2
+        for <linux-arch@vger.kernel.org>; Wed, 18 Jan 2023 00:00:29 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=n6PuCTERzdY2d/gYc8R3maLl/fbctX4OPH6RObWuYyk=;
+        b=mLPAcj75durv64NidSKodcHmBhYym/DDM+iL8MW5HDxvzQ5mMgHhbdgrXMpJGbOi4Y
+         mVW9wBj5zIok1vK4Tj2bKVEe6bs1LBNMhZmZtD+n8mfhO8aNk1YcaysWuuWRHrSw6pFM
+         UHPaAcT1FbrZaF9vdXEgSY47DOHbKtLKA3Adq6HXuimKYkD6R1fgcTphKi5s0lO2eqH5
+         eupSgPjW+jy9HiX5ukWEqS2r+u8df35c62Wc5Sm3oOxka7ARVkbcVCZk+bOH3OlLVlH4
+         xJHj62JSP0Q0g1rP9oo+WXMSAJy8ojYfY/mTTWZkllr+1/fbmo7L0Y7+eK5PDWH5WUNO
+         0Yfw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=ckf5E8d0Cnw+micSJ5vxd9QO1KFnhxODfDAqVKF2Q0k=;
-        b=61XkuxeqbcHeN75KAIqN0uUIqXmdph5hqhUkIGSxuNJx5qSVY7Qe7agxlT1qiDrlxw
-         3kFFuSGU7Ttng175jPprkNzEj8Q31rAb/iKxlhsOuJm2rU94rdTGk7G9QabfsXqG/OmN
-         vdv/BnPWlZFAFFvbbuAcTnw3q6uwVKBQMkA8/tIS6GTpMvJ6Zui8/BjnIgOlOD1eAIUf
-         AnKxZF6pWIGReX8L5rf8vNToN1w0VnYFfBM8Ly+7EjvN3VgOJ6SzYiHtM3GhnsOu/4bA
-         1PB/3YuJ7+xQjZF5hpdLVaFg3aDYh1mVnzwq0DU4HqO02Xxb/ZIxlDIwGySTi7Sk8xnI
-         G+BQ==
-X-Gm-Message-State: AFqh2kpHI3jkAmTMFlBlHF71M7xU47YrSDzBu0sdApxrIOTb9DZDWDPb
-        vpcHzqLiV9kOxxWmg4iwt5u6+O+qXdkoYg==
-X-Google-Smtp-Source: AMrXdXv3HFvK0+bsQSmlhDxPYltMz33ZUPx1/VWAZsq50xvNYmaqoTLM2jLuhz36OLbrGzbjDA2hIQ==
-X-Received: by 2002:a05:6870:b4a5:b0:158:910:8956 with SMTP id y37-20020a056870b4a500b0015809108956mr3548325oap.54.1674028391734;
-        Tue, 17 Jan 2023 23:53:11 -0800 (PST)
-Received: from mail-ot1-f48.google.com (mail-ot1-f48.google.com. [209.85.210.48])
-        by smtp.gmail.com with ESMTPSA id v12-20020a056870b50c00b0014fc049fc0asm18147690oap.57.2023.01.17.23.53.11
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 17 Jan 2023 23:53:11 -0800 (PST)
-Received: by mail-ot1-f48.google.com with SMTP id k44-20020a9d19af000000b00683e176ab01so19217997otk.13;
-        Tue, 17 Jan 2023 23:53:11 -0800 (PST)
-X-Received: by 2002:a81:bd6:0:b0:48d:1334:6e38 with SMTP id
- 205-20020a810bd6000000b0048d13346e38mr726842ywl.316.1674028030903; Tue, 17
- Jan 2023 23:47:10 -0800 (PST)
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=n6PuCTERzdY2d/gYc8R3maLl/fbctX4OPH6RObWuYyk=;
+        b=RniK+qu/wu0jvpZqAQ/QxEPD/c4qOe/ev5NE3BO89/X7C6ipe6hS8IbprpB9zToX+p
+         79QF1pgvHT2pC0VOd0UeePMNvfAA2qDeJCxauAP5BgWEaOg0Lvs2KdsfnS2KqPY+k87x
+         UE+zdcn0OarwXb9aLNNAXJN/3d/fxQnGGuLYcjECVy+pEda4Vpv1cgaiieKUEygvoyeR
+         DSrTChRjlhwhzWrezuUEse6EY7gY8Eqx51RGEqvVTMCsP3GnH8KQzr8P9LF8Uo04qAWw
+         6sJAAOQGUMxWdZALY5NLyvJY3Qpfc/iESQkv9+CZr2tvqLmVOqty42/sH09LW7amwMhz
+         CZdQ==
+X-Gm-Message-State: AFqh2kpa+a1l2qr2vyahM72VjvI5t2BRtTA0YDmd/HPGA3aRF+esvIZh
+        GbPMxHbMA5yu/9E/L0XP6Cc=
+X-Google-Smtp-Source: AMrXdXtoyvjMvP0/AkXBEr4j6oVuizDW6dMWCoEY70bY2IPo7cXCt1CBRz4u1euS2CBCOAp/EY+llw==
+X-Received: by 2002:a17:90a:dd98:b0:229:8526:ba98 with SMTP id l24-20020a17090add9800b002298526ba98mr6450941pjv.12.1674028826410;
+        Wed, 18 Jan 2023 00:00:26 -0800 (PST)
+Received: from bobo.ibm.com (193-116-102-45.tpgi.com.au. [193.116.102.45])
+        by smtp.gmail.com with ESMTPSA id y2-20020a17090a16c200b002272616d3e1sm738462pje.40.2023.01.18.00.00.22
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 18 Jan 2023 00:00:25 -0800 (PST)
+From:   Nicholas Piggin <npiggin@gmail.com>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     Nicholas Piggin <npiggin@gmail.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        linux-mm <linux-mm@kvack.org>, linuxppc-dev@lists.ozlabs.org
+Subject: [PATCH v6 1/5] lazy tlb: introduce lazy tlb mm refcount helper functions
+Date:   Wed, 18 Jan 2023 18:00:07 +1000
+Message-Id: <20230118080011.2258375-2-npiggin@gmail.com>
+X-Mailer: git-send-email 2.37.2
+In-Reply-To: <20230118080011.2258375-1-npiggin@gmail.com>
+References: <20230118080011.2258375-1-npiggin@gmail.com>
 MIME-Version: 1.0
-References: <20230113062339.1909087-1-hch@lst.de> <11e2e0a8-eabe-2d8c-d612-9cdd4bcc3648@physik.fu-berlin.de>
- <20230116071306.GA15848@lst.de> <9325a949-8d19-435a-50bd-9ebe0a432012@landley.net>
- <CAMuHMdUJm5QvzH8hvqwvn9O6qSbzNOapabjw5nh9DJd0F55Zdg@mail.gmail.com> <7329212f-b1a0-41eb-99b3-a56eb1d23138@landley.net>
-In-Reply-To: <7329212f-b1a0-41eb-99b3-a56eb1d23138@landley.net>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Wed, 18 Jan 2023 08:46:58 +0100
-X-Gmail-Original-Message-ID: <CAMuHMdXo3iR2C=CAaXO5tBRCncnQAAMR6BMPLOm_nBpFAeVhrA@mail.gmail.com>
-Message-ID: <CAMuHMdXo3iR2C=CAaXO5tBRCncnQAAMR6BMPLOm_nBpFAeVhrA@mail.gmail.com>
-Subject: Re: remove arch/sh
-To:     Rob Landley <rob@landley.net>
-Cc:     Christoph Hellwig <hch@lst.de>,
-        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Laurent Pinchart <laurent.pinchart@ideasonboard.com>,
-        Kieran Bingham <kieran.bingham+renesas@ideasonboard.com>,
-        Geert Uytterhoeven <geert+renesas@glider.be>,
-        linux-kernel@vger.kernel.org, linux-watchdog@vger.kernel.org,
-        devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
-        dmaengine@vger.kernel.org, dri-devel@lists.freedesktop.org,
-        linux-renesas-soc@vger.kernel.org, linux-i2c@vger.kernel.org,
-        linux-input@vger.kernel.org, linux-media@vger.kernel.org,
-        linux-mmc@vger.kernel.org, linux-mtd@lists.infradead.org,
-        netdev@vger.kernel.org, linux-gpio@vger.kernel.org,
-        linux-rtc@vger.kernel.org, linux-spi@vger.kernel.org,
-        linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
-        linux-fbdev@vger.kernel.org, alsa-devel@alsa-project.org,
-        linux-sh@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Rob,
+Add explicit _lazy_tlb annotated functions for lazy tlb mm refcounting.
+This makes the lazy tlb mm references more obvious, and allows the
+refcounting scheme to be modified in later changes.
 
-On Wed, Jan 18, 2023 at 5:50 AM Rob Landley <rob@landley.net> wrote:
-> On 1/17/23 14:26, Geert Uytterhoeven wrote:
-> > On Tue, Jan 17, 2023 at 8:01 PM Rob Landley <rob@landley.net> wrote:
-> >> I'm lazy and mostly test each new sh4 build under qemu -M r2d because it's
-> >> really convenient: neither of my physical boards boot from SD card so replacing
-> >> the kernel requires reflashing soldered in flash. (They'll net mount userspace
-> >> but I haven't gotten either bootloader to net-boot a kernel.)
-> >
-> > On my landisk (with boots from CompactFLASH), I boot the original 2.6.22
-> > kernel, and use kexec to boot-test each and every renesas-drivers
-> > release.  Note that this requires both the original 2.6.22 kernel
-> > and matching kexec-tools.
->
-> I make it a point to run _current_ kernels in all my mkroot systems, including
-> sh4. What I shipped was 6.1 is:
->
-> # cat /proc/version
-> Linux version 6.1.0 (landley@driftwood) (sh4-linux-musl-cc (GCC) 9.4.0, GNU ld
-> (GNU Binutils) 2.33.1) #1 Tue Jan 10 16:32:07 CST 2023
+The only functional change is in kthread_use_mm/kthread_unuse_mm is
+because it is clever with refcounting: If it happens that the kthread's
+lazy tlb mm (active_mm) is the same as the mm to be used, the code
+doesn't touch the refcount but rather transfers the lazy refcount to
+used-mm refcount. If the lazy tlb mm refcount is no longer equivalent to
+the regular refcount, this trick can not be used. mmgrab a regular
+reference on mm to use, and mmdrop_lazy_tlb the previous active_mm.
 
-I think you misunderstood: renesas-drivers releases[1] are current
-kernels.
+Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+---
+ arch/arm/mach-rpc/ecard.c            |  2 +-
+ arch/powerpc/kernel/smp.c            |  2 +-
+ arch/powerpc/mm/book3s64/radix_tlb.c |  4 ++--
+ fs/exec.c                            |  2 +-
+ include/linux/sched/mm.h             | 16 ++++++++++++++++
+ kernel/cpu.c                         |  2 +-
+ kernel/exit.c                        |  2 +-
+ kernel/kthread.c                     | 21 +++++++++++++--------
+ kernel/sched/core.c                  | 15 ++++++++-------
+ 9 files changed, 44 insertions(+), 22 deletions(-)
 
-   Linux version 6.2.0-rc3-landisk-01864-g0c6453b3e5f6 (geert@rox)
-(sh4-linux-gnu-gcc (Ubuntu 11.3.0-1ubuntu1~22.04) 11.3.0, GNU ld (GNU
-Binutils for Ubuntu) 2.38) #125 Tue Jan 10 14:29:01 CET 2023
+diff --git a/arch/arm/mach-rpc/ecard.c b/arch/arm/mach-rpc/ecard.c
+index 53813f9464a2..c30df1097c52 100644
+--- a/arch/arm/mach-rpc/ecard.c
++++ b/arch/arm/mach-rpc/ecard.c
+@@ -253,7 +253,7 @@ static int ecard_init_mm(void)
+ 	current->mm = mm;
+ 	current->active_mm = mm;
+ 	activate_mm(active_mm, mm);
+-	mmdrop(active_mm);
++	mmdrop_lazy_tlb(active_mm);
+ 	ecard_init_pgtables(mm);
+ 	return 0;
+ }
+diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+index 6b90f10a6c81..7db6b3faea65 100644
+--- a/arch/powerpc/kernel/smp.c
++++ b/arch/powerpc/kernel/smp.c
+@@ -1611,7 +1611,7 @@ void start_secondary(void *unused)
+ 	if (IS_ENABLED(CONFIG_PPC32))
+ 		setup_kup();
+ 
+-	mmgrab(&init_mm);
++	mmgrab_lazy_tlb(&init_mm);
+ 	current->active_mm = &init_mm;
+ 
+ 	smp_store_cpu_info(cpu);
+diff --git a/arch/powerpc/mm/book3s64/radix_tlb.c b/arch/powerpc/mm/book3s64/radix_tlb.c
+index 4e29b619578c..282359ab525b 100644
+--- a/arch/powerpc/mm/book3s64/radix_tlb.c
++++ b/arch/powerpc/mm/book3s64/radix_tlb.c
+@@ -794,10 +794,10 @@ void exit_lazy_flush_tlb(struct mm_struct *mm, bool always_flush)
+ 	if (current->active_mm == mm) {
+ 		WARN_ON_ONCE(current->mm != NULL);
+ 		/* Is a kernel thread and is using mm as the lazy tlb */
+-		mmgrab(&init_mm);
++		mmgrab_lazy_tlb(&init_mm);
+ 		current->active_mm = &init_mm;
+ 		switch_mm_irqs_off(mm, &init_mm, current);
+-		mmdrop(mm);
++		mmdrop_lazy_tlb(mm);
+ 	}
+ 
+ 	/*
+diff --git a/fs/exec.c b/fs/exec.c
+index ab913243a367..1a32a88db173 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -1033,7 +1033,7 @@ static int exec_mmap(struct mm_struct *mm)
+ 		mmput(old_mm);
+ 		return 0;
+ 	}
+-	mmdrop(active_mm);
++	mmdrop_lazy_tlb(active_mm);
+ 	return 0;
+ }
+ 
+diff --git a/include/linux/sched/mm.h b/include/linux/sched/mm.h
+index 2a243616f222..5376caf6fcf3 100644
+--- a/include/linux/sched/mm.h
++++ b/include/linux/sched/mm.h
+@@ -79,6 +79,22 @@ static inline void mmdrop_sched(struct mm_struct *mm)
+ }
+ #endif
+ 
++/* Helpers for lazy TLB mm refcounting */
++static inline void mmgrab_lazy_tlb(struct mm_struct *mm)
++{
++	mmgrab(mm);
++}
++
++static inline void mmdrop_lazy_tlb(struct mm_struct *mm)
++{
++	mmdrop(mm);
++}
++
++static inline void mmdrop_lazy_tlb_sched(struct mm_struct *mm)
++{
++	mmdrop_sched(mm);
++}
++
+ /**
+  * mmget() - Pin the address space associated with a &struct mm_struct.
+  * @mm: The address space to pin.
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index 6c0a92ca6bb5..189895288d9d 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -623,7 +623,7 @@ static int finish_cpu(unsigned int cpu)
+ 	 */
+ 	if (mm != &init_mm)
+ 		idle->active_mm = &init_mm;
+-	mmdrop(mm);
++	mmdrop_lazy_tlb(mm);
+ 	return 0;
+ }
+ 
+diff --git a/kernel/exit.c b/kernel/exit.c
+index 15dc2ec80c46..1a4608d765e4 100644
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@ -537,7 +537,7 @@ static void exit_mm(void)
+ 		return;
+ 	sync_mm_rss(mm);
+ 	mmap_read_lock(mm);
+-	mmgrab(mm);
++	mmgrab_lazy_tlb(mm);
+ 	BUG_ON(mm != current->active_mm);
+ 	/* more a memory barrier than a real lock */
+ 	task_lock(current);
+diff --git a/kernel/kthread.c b/kernel/kthread.c
+index f97fd01a2932..691b213e578f 100644
+--- a/kernel/kthread.c
++++ b/kernel/kthread.c
+@@ -1410,14 +1410,19 @@ void kthread_use_mm(struct mm_struct *mm)
+ 	WARN_ON_ONCE(!(tsk->flags & PF_KTHREAD));
+ 	WARN_ON_ONCE(tsk->mm);
+ 
++	/*
++	 * It's possible that tsk->active_mm == mm here, but we must
++	 * still mmgrab(mm) and mmdrop_lazy_tlb(active_mm), because lazy
++	 * mm may not have its own refcount (see mmgrab/drop_lazy_tlb()).
++	 */
++	mmgrab(mm);
++
+ 	task_lock(tsk);
+ 	/* Hold off tlb flush IPIs while switching mm's */
+ 	local_irq_disable();
+ 	active_mm = tsk->active_mm;
+-	if (active_mm != mm) {
+-		mmgrab(mm);
++	if (active_mm != mm)
+ 		tsk->active_mm = mm;
+-	}
+ 	tsk->mm = mm;
+ 	membarrier_update_current_mm(mm);
+ 	switch_mm_irqs_off(active_mm, mm, tsk);
+@@ -1434,12 +1439,9 @@ void kthread_use_mm(struct mm_struct *mm)
+ 	 * memory barrier after storing to tsk->mm, before accessing
+ 	 * user-space memory. A full memory barrier for membarrier
+ 	 * {PRIVATE,GLOBAL}_EXPEDITED is implicitly provided by
+-	 * mmdrop(), or explicitly with smp_mb().
++	 * mmdrop_lazy_tlb().
+ 	 */
+-	if (active_mm != mm)
+-		mmdrop(active_mm);
+-	else
+-		smp_mb();
++	mmdrop_lazy_tlb(active_mm);
+ }
+ EXPORT_SYMBOL_GPL(kthread_use_mm);
+ 
+@@ -1467,10 +1469,13 @@ void kthread_unuse_mm(struct mm_struct *mm)
+ 	local_irq_disable();
+ 	tsk->mm = NULL;
+ 	membarrier_update_current_mm(NULL);
++	mmgrab_lazy_tlb(mm);
+ 	/* active_mm is still 'mm' */
+ 	enter_lazy_tlb(mm, tsk);
+ 	local_irq_enable();
+ 	task_unlock(tsk);
++
++	mmdrop(mm);
+ }
+ EXPORT_SYMBOL_GPL(kthread_unuse_mm);
+ 
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 25b582b6ee5f..26aaa974ee6d 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -5140,13 +5140,14 @@ static struct rq *finish_task_switch(struct task_struct *prev)
+ 	 * rq->curr, before returning to userspace, so provide them here:
+ 	 *
+ 	 * - a full memory barrier for {PRIVATE,GLOBAL}_EXPEDITED, implicitly
+-	 *   provided by mmdrop(),
++	 *   provided by mmdrop_lazy_tlb(),
+ 	 * - a sync_core for SYNC_CORE.
+ 	 */
+ 	if (mm) {
+ 		membarrier_mm_sync_core_before_usermode(mm);
+-		mmdrop_sched(mm);
++		mmdrop_lazy_tlb_sched(mm);
+ 	}
++
+ 	if (unlikely(prev_state == TASK_DEAD)) {
+ 		if (prev->sched_class->task_dead)
+ 			prev->sched_class->task_dead(prev);
+@@ -5203,9 +5204,9 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ 
+ 	/*
+ 	 * kernel -> kernel   lazy + transfer active
+-	 *   user -> kernel   lazy + mmgrab() active
++	 *   user -> kernel   lazy + mmgrab_lazy_tlb() active
+ 	 *
+-	 * kernel ->   user   switch + mmdrop() active
++	 * kernel ->   user   switch + mmdrop_lazy_tlb() active
+ 	 *   user ->   user   switch
+ 	 */
+ 	if (!next->mm) {                                // to kernel
+@@ -5213,7 +5214,7 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ 
+ 		next->active_mm = prev->active_mm;
+ 		if (prev->mm)                           // from user
+-			mmgrab(prev->active_mm);
++			mmgrab_lazy_tlb(prev->active_mm);
+ 		else
+ 			prev->active_mm = NULL;
+ 	} else {                                        // to user
+@@ -5230,7 +5231,7 @@ context_switch(struct rq *rq, struct task_struct *prev,
+ 		lru_gen_use_mm(next->mm);
+ 
+ 		if (!prev->mm) {                        // from kernel
+-			/* will mmdrop() in finish_task_switch(). */
++			/* will mmdrop_lazy_tlb() in finish_task_switch(). */
+ 			rq->prev_mm = prev->active_mm;
+ 			prev->active_mm = NULL;
+ 		}
+@@ -9859,7 +9860,7 @@ void __init sched_init(void)
+ 	/*
+ 	 * The boot idle thread does lazy MMU switching as well:
+ 	 */
+-	mmgrab(&init_mm);
++	mmgrab_lazy_tlb(&init_mm);
+ 	enter_lazy_tlb(&init_mm, current);
+ 
+ 	/*
+-- 
+2.37.2
 
-I use 2.6.22 and kexec as a boot loader for newer kernels, to avoid
-juggling CF cards.  I cannot install a newer base kernel on the CF,
-as kexec is broken upstream.
-
-> > Apparently both upstreamed kernel and
-> > kexec-tools support for SH are different, and incompatible with each
-> > other, so you cannot kexec from a contemporary kernel.
->
-> Sure you can. Using toybox's insmod and modprobe, anyway. (That's the target I
-> tested those on... :)
->
-> Haven't messed with signing or compression or anything yet, my insmod is just
-> doing syscall(SYS_finit_module) and then falling back to SYS_init_module if that
-> fails and either fd was 0 or errno was ENOSYS. (Don't ask me why
-> SYS_finit_module doesn't work on stdin...)
->
-> https://github.com/landley/toybox/blob/master/toys/other/insmod.c#L31
->
-> https://landley.net/toybox/downloads/binaries/0.8.9/toybox-sh4
-
-Again, I think you're talking about something different.
-Does kexec work for you?
-
-> > I tried working my way up from 2.6.22, but gave up around 2.6.29.
-> > Probably I should do this with r2d and qemu instead ;-)
->
-> I have current running there. I've had current running there for years. Config
-> attached...
->
-> > Both r2d and landisk are SH7751.
->
-> Cool. Shouldn't be hard to get landisk running current then.
-
-Current kernels work fine on landisk with an old Debian userspace
-on CF.  The 8139cp driver is a bit flaky: last time I tried nfsroot,
-that didn't work well.
-
-[1] https://git.kernel.org/pub/scm/linux/kernel/git/geert/renesas-drivers.git
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
