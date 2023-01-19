@@ -2,41 +2,41 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 97814C46467
-	for <linux-arch@archiver.kernel.org>; Thu, 19 Jan 2023 21:41:53 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7152FC004D4
+	for <linux-arch@archiver.kernel.org>; Thu, 19 Jan 2023 21:41:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230285AbjASVlt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 19 Jan 2023 16:41:49 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55266 "EHLO
+        id S230320AbjASVlw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 19 Jan 2023 16:41:52 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54132 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229788AbjASViy (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jan 2023 16:38:54 -0500
+        with ESMTP id S230500AbjASVhz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jan 2023 16:37:55 -0500
 Received: from mga11.intel.com (mga11.intel.com [192.55.52.93])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C85E459560;
-        Thu, 19 Jan 2023 13:27:59 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 996804616D;
+        Thu, 19 Jan 2023 13:27:46 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1674163679; x=1705699679;
+  t=1674163667; x=1705699667;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references;
-  bh=+geAUGtKJ5/tBElMoeiPJqxtmy5X7bBSU640+SHskXE=;
-  b=WT9uIDwUpxSLOucCcjFpBCp265W2lAcSVhnJkcLFhw3Vlofbr6l8ce5Z
-   LXoifkizqVaQQZRmrdXq9EklfRbhFrDv8sAY4KSRg7VbFYLL9dJ52cM5/
-   7ERVrK15ElY+HcIUoHd8STxsY+0m8WkPv4EwLERscM38CWBm4mRyk/PO4
-   QS0pOBuSIhLxHLvCWhyTmLiVN71Q3TK5dunc+W3HPKUVeOa20VIFYar8r
-   hAnTAZ4SlQSyt0c6xOZuOojJAW+/JTp/1yrmhpI1AmSFynf2NwVGtc4Af
-   HnHU/QzxoIWsVg+tLEPD4Sp9KoUei6117HGCLCNo3fViYIjD//ZjIiSMB
-   g==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10595"; a="323120020"
+  bh=sY0pQZGQdI/cNzp/wwjwE3pcURvBjqOaRcvBZzBOV/8=;
+  b=OHCpMTPWUmNj04Fp5VChAxn2AXun00RS8ZHkrzi26EnwqVZ4K22PGQVu
+   TfCB/4DJxatHln6urSoUDoSkK6MobjXOHzuAatNlPPQOMt80wNWWk4u6L
+   SPDvBcZxnuayHEuMQCuSD4tFOU80xndLSW9s7pcD+XL5PCSoorA8zkalc
+   uFu2kslB99HkZjhpc+KPoilaoYZcf8a8OHTe1aAefs9rK/dwXomNux8Xf
+   xaz8cezIh5UL0Ushs80Ki7CpiJYkniiZWdMUyVGB/QgZ58CvxEgkQy7sR
+   /uTLtWF/vkZ+TunLpUzXA2ujWVfmxe1o2iiYfgmsjBmNyO0T4GIp2U/uQ
+   Q==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10595"; a="323119861"
 X-IronPort-AV: E=Sophos;i="5.97,230,1669104000"; 
-   d="scan'208";a="323120020"
+   d="scan'208";a="323119861"
 Received: from fmsmga005.fm.intel.com ([10.253.24.32])
-  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Jan 2023 13:24:20 -0800
-X-IronPort-AV: E=McAfee;i="6500,9779,10595"; a="989139180"
+  by fmsmga102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Jan 2023 13:24:09 -0800
+X-IronPort-AV: E=McAfee;i="6500,9779,10595"; a="989139140"
 X-IronPort-AV: E=Sophos;i="5.97,230,1669104000"; 
-   d="scan'208";a="989139180"
+   d="scan'208";a="989139140"
 Received: from hossain3-mobl.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.252.128.187])
-  by fmsmga005-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Jan 2023 13:24:19 -0800
+  by fmsmga005-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Jan 2023 13:24:08 -0800
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -66,9 +66,9 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         dethoma@microsoft.com, akpm@linux-foundation.org,
         Andrew.Cooper3@citrix.com, christina.schimpe@intel.com
 Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: [PATCH v5 35/39] selftests/x86: Add shadow stack test
-Date:   Thu, 19 Jan 2023 13:23:13 -0800
-Message-Id: <20230119212317.8324-36-rick.p.edgecombe@intel.com>
+Subject: [PATCH v5 28/39] x86/shstk: Handle thread shadow stack
+Date:   Thu, 19 Jan 2023 13:23:06 -0800
+Message-Id: <20230119212317.8324-29-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20230119212317.8324-1-rick.p.edgecombe@intel.com>
 References: <20230119212317.8324-1-rick.p.edgecombe@intel.com>
@@ -76,746 +76,327 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add a simple selftest for exercising some shadow stack behavior:
- - map_shadow_stack syscall and pivot
- - Faulting in shadow stack memory
- - Handling shadow stack violations
- - GUP of shadow stack memory
- - mprotect() of shadow stack memory
- - Userfaultfd on shadow stack memory
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-Since this test exercises a recently added syscall manually, it needs
-to find the automatically created __NR_foo defines. Per the selftest
-documentation, KHDR_INCLUDES can be used to help the selftest Makefile's
-find the headers from the kernel source. This way the new selftest can
-be built inside the kernel source tree without installing the headers
-to the system. So also add KHDR_INCLUDES as described in the selftest
-docs, to facilitate this.
+When a process is duplicated, but the child shares the address space with
+the parent, there is potential for the threads sharing a single stack to
+cause conflicts for each other. In the normal non-cet case this is handled
+in two ways.
 
+With regular CLONE_VM a new stack is provided by userspace such that the
+parent and child have different stacks.
+
+For vfork, the parent is suspended until the child exits. So as long as
+the child doesn't return from the vfork()/CLONE_VFORK calling function and
+sticks to a limited set of operations, the parent and child can share the
+same stack.
+
+For shadow stack, these scenarios present similar sharing problems. For the
+CLONE_VM case, the child and the parent must have separate shadow stacks.
+Instead of changing clone to take a shadow stack, have the kernel just
+allocate one and switch to it.
+
+Use stack_size passed from clone3() syscall for thread shadow stack size. A
+compat-mode thread shadow stack size is further reduced to 1/4. This
+allows more threads to run in a 32-bit address space. The clone() does not
+pass stack_size, which was added to clone3(). In that case, use
+RLIMIT_STACK size and cap to 4 GB.
+
+For shadow stack enabled vfork(), the parent and child can share the same
+shadow stack, like they can share a normal stack. Since the parent is
+suspended until the child terminates, the child will not interfere with
+the parent while executing as long as it doesn't return from the vfork()
+and overwrite up the shadow stack. The child can safely overwrite down
+the shadow stack, as the parent can just overwrite this later. So CET does
+not add any additional limitations for vfork().
+
+Userspace implementing posix vfork() can actually prevent the child from
+returning from the vfork() calling function, using CET. Glibc does this
+by adjusting the shadow stack pointer in the child, so that the child
+receives a #CP if it tries to return from vfork() calling function.
+
+Free the shadow stack on thread exit by doing it in mm_release(). Skip
+this when exiting a vfork() child since the stack is shared in the
+parent.
+
+During this operation, the shadow stack pointer of the new thread needs
+to be updated to point to the newly allocated shadow stack. Since the
+ability to do this is confined to the FPU subsystem, change
+fpu_clone() to take the new shadow stack pointer, and update it
+internally inside the FPU subsystem. This part was suggested by Thomas
+Gleixner.
+
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Tested-by: Pengfei Xu <pengfei.xu@intel.com>
 Tested-by: John Allen <john.allen@amd.com>
-Co-developed-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Suggested-by: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Co-developed-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
 ---
 
-v5:
- - Update 32 bit signal test with new ABI and better asm
-
-v4:
- - Add test for 32 bit signal ABI blocking
-
 v3:
- - Change "+m" to "=m" in write_shstk() (Andrew Cooper)
- - Fix userfaultfd test with transparent huge pages by doing a
-   MADV_DONTNEED, since the token write faults in the while stack with
-   huge pages.
+ - Fix update_fpu_shstk() stub (Mike Rapoport)
+ - Fix chunks around alloc_shstk() in wrong patch (Kees)
+ - Fix stack_size/flags swap (Kees)
+ - Use centalized stack size logic (Kees)
 
 v2:
- - Change print statements to more align with other selftests
- - Add more tests
- - Add KHDR_INCLUDES to Makefile
+ - Have fpu_clone() take new shadow stack pointer and update SSP in
+   xsave buffer for new task. (tglx)
 
- tools/testing/selftests/x86/Makefile          |   4 +-
- .../testing/selftests/x86/test_shadow_stack.c | 667 ++++++++++++++++++
- 2 files changed, 669 insertions(+), 2 deletions(-)
- create mode 100644 tools/testing/selftests/x86/test_shadow_stack.c
+v1:
+ - Expand commit log.
+ - Add more comments.
+ - Switch to xsave helpers.
 
-diff --git a/tools/testing/selftests/x86/Makefile b/tools/testing/selftests/x86/Makefile
-index 0388c4d60af0..cfc8a26ad151 100644
---- a/tools/testing/selftests/x86/Makefile
-+++ b/tools/testing/selftests/x86/Makefile
-@@ -18,7 +18,7 @@ TARGETS_C_32BIT_ONLY := entry_from_vm86 test_syscall_vdso unwind_vdso \
- 			test_FCMOV test_FCOMI test_FISTTP \
- 			vdso_restorer
- TARGETS_C_64BIT_ONLY := fsgsbase sysret_rip syscall_numbering \
--			corrupt_xstate_header amx
-+			corrupt_xstate_header amx test_shadow_stack
- # Some selftests require 32bit support enabled also on 64bit systems
- TARGETS_C_32BIT_NEEDED := ldt_gdt ptrace_syscall
+Yu-cheng v30:
+ - Update comments about clone()/clone3(). (Borislav Petkov)
+
+ arch/x86/include/asm/fpu/sched.h   |  3 +-
+ arch/x86/include/asm/mmu_context.h |  2 ++
+ arch/x86/include/asm/shstk.h       |  7 +++++
+ arch/x86/kernel/fpu/core.c         | 41 +++++++++++++++++++++++++++-
+ arch/x86/kernel/process.c          | 18 +++++++++++-
+ arch/x86/kernel/shstk.c            | 44 ++++++++++++++++++++++++++++--
+ 6 files changed, 110 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/include/asm/fpu/sched.h b/arch/x86/include/asm/fpu/sched.h
+index b2486b2cbc6e..54c9c2fd1907 100644
+--- a/arch/x86/include/asm/fpu/sched.h
++++ b/arch/x86/include/asm/fpu/sched.h
+@@ -11,7 +11,8 @@
  
-@@ -34,7 +34,7 @@ BINARIES_64 := $(TARGETS_C_64BIT_ALL:%=%_64)
- BINARIES_32 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_32))
- BINARIES_64 := $(patsubst %,$(OUTPUT)/%,$(BINARIES_64))
+ extern void save_fpregs_to_fpstate(struct fpu *fpu);
+ extern void fpu__drop(struct fpu *fpu);
+-extern int  fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal);
++extern int  fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal,
++		      unsigned long shstk_addr);
+ extern void fpu_flush_thread(void);
  
--CFLAGS := -O2 -g -std=gnu99 -pthread -Wall
-+CFLAGS := -O2 -g -std=gnu99 -pthread -Wall $(KHDR_INCLUDES)
+ /*
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index e01aa74a6de7..9714f08d941b 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -147,6 +147,8 @@ do {						\
+ #else
+ #define deactivate_mm(tsk, mm)			\
+ do {						\
++	if (!tsk->vfork_done)			\
++		shstk_free(tsk);		\
+ 	load_gs_index(0);			\
+ 	loadsegment(fs, 0);			\
+ } while (0)
+diff --git a/arch/x86/include/asm/shstk.h b/arch/x86/include/asm/shstk.h
+index f40414a982e8..172a69052770 100644
+--- a/arch/x86/include/asm/shstk.h
++++ b/arch/x86/include/asm/shstk.h
+@@ -15,11 +15,18 @@ struct thread_shstk {
  
- # call32_from_64 in thunks.S uses absolute addresses.
- ifeq ($(CAN_BUILD_WITH_NOPIE),1)
-diff --git a/tools/testing/selftests/x86/test_shadow_stack.c b/tools/testing/selftests/x86/test_shadow_stack.c
-new file mode 100644
-index 000000000000..5a3b4f6d1a1d
---- /dev/null
-+++ b/tools/testing/selftests/x86/test_shadow_stack.c
-@@ -0,0 +1,667 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * This program test's basic kernel shadow stack support. It enables shadow
-+ * stack manual via the arch_prctl(), instead of relying on glibc. It's
-+ * Makefile doesn't compile with shadow stack support, so it doesn't rely on
-+ * any particular glibc. As a result it can't do any operations that require
-+ * special glibc shadow stack support (longjmp(), swapcontext(), etc). Just
-+ * stick to the basics and hope the compiler doesn't do anything strange.
-+ */
-+
-+#define _GNU_SOURCE
-+
-+#include <sys/syscall.h>
-+#include <asm/mman.h>
-+#include <sys/mman.h>
-+#include <sys/stat.h>
-+#include <sys/wait.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <fcntl.h>
-+#include <unistd.h>
-+#include <string.h>
-+#include <errno.h>
-+#include <stdbool.h>
-+#include <x86intrin.h>
-+#include <asm/prctl.h>
-+#include <sys/prctl.h>
-+#include <stdint.h>
-+#include <signal.h>
-+#include <pthread.h>
-+#include <sys/ioctl.h>
-+#include <linux/userfaultfd.h>
-+#include <setjmp.h>
-+
-+#define SS_SIZE 0x200000
-+
-+#if (__GNUC__ < 8) || (__GNUC__ == 8 && __GNUC_MINOR__ < 5)
-+int main(int argc, char *argv[])
+ long shstk_prctl(struct task_struct *task, int option, unsigned long features);
+ void reset_thread_features(void);
++int shstk_alloc_thread_stack(struct task_struct *p, unsigned long clone_flags,
++			     unsigned long stack_size,
++			     unsigned long *shstk_addr);
+ void shstk_free(struct task_struct *p);
+ #else
+ static inline long shstk_prctl(struct task_struct *task, int option,
+ 			     unsigned long features) { return -EINVAL; }
+ static inline void reset_thread_features(void) {}
++static inline int shstk_alloc_thread_stack(struct task_struct *p,
++					   unsigned long clone_flags,
++					   unsigned long stack_size,
++					   unsigned long *shstk_addr) { return 0; }
+ static inline void shstk_free(struct task_struct *p) {}
+ #endif /* CONFIG_X86_USER_SHADOW_STACK */
+ 
+diff --git a/arch/x86/kernel/fpu/core.c b/arch/x86/kernel/fpu/core.c
+index 7317bfd5ea36..c72262479f03 100644
+--- a/arch/x86/kernel/fpu/core.c
++++ b/arch/x86/kernel/fpu/core.c
+@@ -552,8 +552,41 @@ static inline void fpu_inherit_perms(struct fpu *dst_fpu)
+ 	}
+ }
+ 
++#ifdef CONFIG_X86_USER_SHADOW_STACK
++static int update_fpu_shstk(struct task_struct *dst, unsigned long ssp)
 +{
-+	printf("[SKIP]\tCompiler does not support CET.\n");
++	struct cet_user_state *xstate;
++
++	/* If ssp update is not needed. */
++	if (!ssp)
++		return 0;
++
++	xstate = get_xsave_addr(&dst->thread.fpu.fpstate->regs.xsave,
++				XFEATURE_CET_USER);
++
++	/*
++	 * If there is a non-zero ssp, then 'dst' must be configured with a shadow
++	 * stack and the fpu state should be up to date since it was just copied
++	 * from the parent in fpu_clone(). So there must be a valid non-init CET
++	 * state location in the buffer.
++	 */
++	if (WARN_ON_ONCE(!xstate))
++		return 1;
++
++	xstate->user_ssp = (u64)ssp;
++
 +	return 0;
 +}
 +#else
-+void write_shstk(unsigned long *addr, unsigned long val)
++static int update_fpu_shstk(struct task_struct *dst, unsigned long shstk_addr)
 +{
-+	asm volatile("wrssq %[val], (%[addr])\n"
-+		     : "=m" (addr)
-+		     : [addr] "r" (addr), [val] "r" (val));
-+}
-+
-+static inline unsigned long __attribute__((always_inline)) get_ssp(void)
-+{
-+	unsigned long ret = 0;
-+
-+	asm volatile("xor %0, %0; rdsspq %0" : "=r" (ret));
-+	return ret;
-+}
-+
-+/*
-+ * For use in inline enablement of shadow stack.
-+ *
-+ * The program can't return from the point where shadow stack gets enabled
-+ * because there will be no address on the shadow stack. So it can't use
-+ * syscall() for enablement, since it is a function.
-+ *
-+ * Based on code from nolibc.h. Keep a copy here because this can't pull in all
-+ * of nolibc.h.
-+ */
-+#define ARCH_PRCTL(arg1, arg2)					\
-+({								\
-+	long _ret;						\
-+	register long _num  asm("eax") = __NR_arch_prctl;	\
-+	register long _arg1 asm("rdi") = (long)(arg1);		\
-+	register long _arg2 asm("rsi") = (long)(arg2);		\
-+								\
-+	asm volatile (						\
-+		"syscall\n"					\
-+		: "=a"(_ret)					\
-+		: "r"(_arg1), "r"(_arg2),			\
-+		  "0"(_num)					\
-+		: "rcx", "r11", "memory", "cc"			\
-+	);							\
-+	_ret;							\
-+})
-+
-+void *create_shstk(void *addr)
-+{
-+	return (void *)syscall(__NR_map_shadow_stack, addr, SS_SIZE, SHADOW_STACK_SET_TOKEN);
-+}
-+
-+void *create_normal_mem(void *addr)
-+{
-+	return mmap(addr, SS_SIZE, PROT_READ | PROT_WRITE,
-+		    MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-+}
-+
-+void free_shstk(void *shstk)
-+{
-+	munmap(shstk, SS_SIZE);
-+}
-+
-+int reset_shstk(void *shstk)
-+{
-+	return madvise(shstk, SS_SIZE, MADV_DONTNEED);
-+}
-+
-+void try_shstk(unsigned long new_ssp)
-+{
-+	unsigned long ssp;
-+
-+	printf("[INFO]\tnew_ssp = %lx, *new_ssp = %lx\n",
-+		new_ssp, *((unsigned long *)new_ssp));
-+
-+	ssp = get_ssp();
-+	printf("[INFO]\tchanging ssp from %lx to %lx\n", ssp, new_ssp);
-+
-+	asm volatile("rstorssp (%0)\n":: "r" (new_ssp));
-+	asm volatile("saveprevssp");
-+	printf("[INFO]\tssp is now %lx\n", get_ssp());
-+
-+	/* Switch back to original shadow stack */
-+	ssp -= 8;
-+	asm volatile("rstorssp (%0)\n":: "r" (ssp));
-+	asm volatile("saveprevssp");
-+}
-+
-+int test_shstk_pivot(void)
-+{
-+	void *shstk = create_shstk(0);
-+
-+	if (shstk == MAP_FAILED) {
-+		printf("[FAIL]\tError creating shadow stack: %d\n", errno);
-+		return 1;
-+	}
-+	try_shstk((unsigned long)shstk + SS_SIZE - 8);
-+	free_shstk(shstk);
-+
-+	printf("[OK]\tShadow stack pivot\n");
 +	return 0;
-+}
-+
-+int test_shstk_faults(void)
-+{
-+	unsigned long *shstk = create_shstk(0);
-+
-+	/* Read shadow stack, test if it's zero to not get read optimized out */
-+	if (*shstk != 0)
-+		goto err;
-+
-+	/* Wrss memory that was already read. */
-+	write_shstk(shstk, 1);
-+	if (*shstk != 1)
-+		goto err;
-+
-+	/* Page out memory, so we can wrss it again. */
-+	if (reset_shstk((void *)shstk))
-+		goto err;
-+
-+	write_shstk(shstk, 1);
-+	if (*shstk != 1)
-+		goto err;
-+
-+	printf("[OK]\tShadow stack faults\n");
-+	return 0;
-+
-+err:
-+	return 1;
-+}
-+
-+unsigned long saved_ssp;
-+unsigned long saved_ssp_val;
-+volatile bool segv_triggered;
-+
-+void __attribute__((noinline)) violate_ss(void)
-+{
-+	saved_ssp = get_ssp();
-+	saved_ssp_val = *(unsigned long *)saved_ssp;
-+
-+	/* Corrupt shadow stack */
-+	printf("[INFO]\tCorrupting shadow stack\n");
-+	write_shstk((void *)saved_ssp, 0);
-+}
-+
-+void segv_handler(int signum, siginfo_t *si, void *uc)
-+{
-+	printf("[INFO]\tGenerated shadow stack violation successfully\n");
-+
-+	segv_triggered = true;
-+
-+	/* Fix shadow stack */
-+	write_shstk((void *)saved_ssp, saved_ssp_val);
-+}
-+
-+int test_shstk_violation(void)
-+{
-+	struct sigaction sa;
-+
-+	sa.sa_sigaction = segv_handler;
-+	if (sigaction(SIGSEGV, &sa, NULL))
-+		return 1;
-+	sa.sa_flags = SA_SIGINFO;
-+
-+	segv_triggered = false;
-+
-+	/* Make sure segv_triggered is set before violate_ss() */
-+	asm volatile("" : : : "memory");
-+
-+	violate_ss();
-+
-+	signal(SIGSEGV, SIG_DFL);
-+
-+	printf("[OK]\tShadow stack violation test\n");
-+
-+	return !segv_triggered;
-+}
-+
-+/* Gup test state */
-+#define MAGIC_VAL 0x12345678
-+bool is_shstk_access;
-+void *shstk_ptr;
-+int fd;
-+
-+void reset_test_shstk(void *addr)
-+{
-+	if (shstk_ptr != NULL)
-+		free_shstk(shstk_ptr);
-+	shstk_ptr = create_shstk(addr);
-+}
-+
-+void test_access_fix_handler(int signum, siginfo_t *si, void *uc)
-+{
-+	printf("[INFO]\tViolation from %s\n", is_shstk_access ? "shstk access" : "normal write");
-+
-+	segv_triggered = true;
-+
-+	/* Fix shadow stack */
-+	if (is_shstk_access) {
-+		reset_test_shstk(shstk_ptr);
-+		return;
-+	}
-+
-+	free_shstk(shstk_ptr);
-+	create_normal_mem(shstk_ptr);
-+}
-+
-+bool test_shstk_access(void *ptr)
-+{
-+	is_shstk_access = true;
-+	segv_triggered = false;
-+	write_shstk(ptr, MAGIC_VAL);
-+
-+	asm volatile("" : : : "memory");
-+
-+	return segv_triggered;
-+}
-+
-+bool test_write_access(void *ptr)
-+{
-+	is_shstk_access = false;
-+	segv_triggered = false;
-+	*(unsigned long *)ptr = MAGIC_VAL;
-+
-+	asm volatile("" : : : "memory");
-+
-+	return segv_triggered;
-+}
-+
-+bool gup_write(void *ptr)
-+{
-+	unsigned long val;
-+
-+	lseek(fd, (unsigned long)ptr, SEEK_SET);
-+	if (write(fd, &val, sizeof(val)) < 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+bool gup_read(void *ptr)
-+{
-+	unsigned long val;
-+
-+	lseek(fd, (unsigned long)ptr, SEEK_SET);
-+	if (read(fd, &val, sizeof(val)) < 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_gup(void)
-+{
-+	struct sigaction sa;
-+	int status;
-+	pid_t pid;
-+
-+	sa.sa_sigaction = test_access_fix_handler;
-+	if (sigaction(SIGSEGV, &sa, NULL))
-+		return 1;
-+	sa.sa_flags = SA_SIGINFO;
-+
-+	segv_triggered = false;
-+
-+	fd = open("/proc/self/mem", O_RDWR);
-+	if (fd == -1)
-+		return 1;
-+
-+	reset_test_shstk(0);
-+	if (gup_read(shstk_ptr))
-+		return 1;
-+	if (test_shstk_access(shstk_ptr))
-+		return 1;
-+	printf("[INFO]\tGup read -> shstk access success\n");
-+
-+	reset_test_shstk(0);
-+	if (gup_write(shstk_ptr))
-+		return 1;
-+	if (test_shstk_access(shstk_ptr))
-+		return 1;
-+	printf("[INFO]\tGup write -> shstk access success\n");
-+
-+	reset_test_shstk(0);
-+	if (gup_read(shstk_ptr))
-+		return 1;
-+	if (!test_write_access(shstk_ptr))
-+		return 1;
-+	printf("[INFO]\tGup read -> write access success\n");
-+
-+	reset_test_shstk(0);
-+	if (gup_write(shstk_ptr))
-+		return 1;
-+	if (!test_write_access(shstk_ptr))
-+		return 1;
-+	printf("[INFO]\tGup write -> write access success\n");
-+
-+	close(fd);
-+
-+	/* COW/gup test */
-+	reset_test_shstk(0);
-+	pid = fork();
-+	if (!pid) {
-+		fd = open("/proc/self/mem", O_RDWR);
-+		if (fd == -1)
-+			exit(1);
-+
-+		if (gup_write(shstk_ptr)) {
-+			close(fd);
-+			exit(1);
-+		}
-+		close(fd);
-+		exit(0);
-+	}
-+	waitpid(pid, &status, 0);
-+	if (WEXITSTATUS(status)) {
-+		printf("[FAIL]\tWrite in child failed\n");
-+		return 1;
-+	}
-+	if (*(unsigned long *)shstk_ptr == MAGIC_VAL) {
-+		printf("[FAIL]\tWrite in child wrote through to shared memory\n");
-+		return 1;
-+	}
-+
-+	printf("[INFO]\tCow gup write -> write access success\n");
-+
-+	free_shstk(shstk_ptr);
-+
-+	signal(SIGSEGV, SIG_DFL);
-+
-+	printf("[OK]\tShadow gup test\n");
-+
-+	return 0;
-+}
-+
-+int test_mprotect(void)
-+{
-+	struct sigaction sa;
-+
-+	sa.sa_sigaction = test_access_fix_handler;
-+	if (sigaction(SIGSEGV, &sa, NULL))
-+		return 1;
-+	sa.sa_flags = SA_SIGINFO;
-+
-+	segv_triggered = false;
-+
-+	/* mprotect a shadow stack as read only */
-+	reset_test_shstk(0);
-+	if (mprotect(shstk_ptr, SS_SIZE, PROT_READ) < 0) {
-+		printf("[FAIL]\tmprotect(PROT_READ) failed\n");
-+		return 1;
-+	}
-+
-+	/* try to wrss it and fail */
-+	if (!test_shstk_access(shstk_ptr)) {
-+		printf("[FAIL]\tShadow stack access to read-only memory succeeded\n");
-+		return 1;
-+	}
-+
-+	/* then back to writable */
-+	if (mprotect(shstk_ptr, SS_SIZE, PROT_WRITE | PROT_READ) < 0) {
-+		printf("[FAIL]\tmprotect(PROT_WRITE) failed\n");
-+		return 1;
-+	}
-+
-+	/* then pivot to it and succeed */
-+	if (test_shstk_access(shstk_ptr)) {
-+		printf("[FAIL]\tShadow stack access to mprotect() writable memory failed\n");
-+		return 1;
-+	}
-+
-+	free_shstk(shstk_ptr);
-+
-+	signal(SIGSEGV, SIG_DFL);
-+
-+	printf("[OK]\tmprotect() test\n");
-+
-+	return 0;
-+}
-+
-+char zero[4096];
-+
-+static void *uffd_thread(void *arg)
-+{
-+	struct uffdio_copy req;
-+	int uffd = *(int *)arg;
-+	struct uffd_msg msg;
-+
-+	if (read(uffd, &msg, sizeof(msg)) <= 0)
-+		return (void *)1;
-+
-+	req.dst = msg.arg.pagefault.address;
-+	req.src = (__u64)zero;
-+	req.len = 4096;
-+	req.mode = 0;
-+
-+	if (ioctl(uffd, UFFDIO_COPY, &req))
-+		return (void *)1;
-+
-+	return (void *)0;
-+}
-+
-+int test_userfaultfd(void)
-+{
-+	struct uffdio_register uffdio_register;
-+	struct uffdio_api uffdio_api;
-+	struct sigaction sa;
-+	pthread_t thread;
-+	void *res;
-+	int uffd;
-+
-+	sa.sa_sigaction = test_access_fix_handler;
-+	if (sigaction(SIGSEGV, &sa, NULL))
-+		return 1;
-+	sa.sa_flags = SA_SIGINFO;
-+
-+	uffd = syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK);
-+	if (uffd < 0) {
-+		printf("[SKIP]\tUserfaultfd unavailable.\n");
-+		return 0;
-+	}
-+
-+	reset_test_shstk(0);
-+
-+	uffdio_api.api = UFFD_API;
-+	uffdio_api.features = 0;
-+	if (ioctl(uffd, UFFDIO_API, &uffdio_api))
-+		goto err;
-+
-+	uffdio_register.range.start = (__u64)shstk_ptr;
-+	uffdio_register.range.len = 4096;
-+	uffdio_register.mode = UFFDIO_REGISTER_MODE_MISSING;
-+	if (ioctl(uffd, UFFDIO_REGISTER, &uffdio_register))
-+		goto err;
-+
-+	if (pthread_create(&thread, NULL, &uffd_thread, &uffd))
-+		goto err;
-+
-+	reset_shstk(shstk_ptr);
-+	test_shstk_access(shstk_ptr);
-+
-+	if (pthread_join(thread, &res))
-+		goto err;
-+
-+	if (test_shstk_access(shstk_ptr))
-+		goto err;
-+
-+	free_shstk(shstk_ptr);
-+
-+	signal(SIGSEGV, SIG_DFL);
-+
-+	if (!res)
-+		printf("[OK]\tUserfaultfd test\n");
-+	return !!res;
-+err:
-+	free_shstk(shstk_ptr);
-+	close(uffd);
-+	signal(SIGSEGV, SIG_DFL);
-+	return 1;
-+}
-+
-+/*
-+ * Too complicated to pull it out of the 32 bit header, but also get the
-+ * 64 bit one needed above. Just define a copy here.
-+ */
-+#define __NR_compat_sigaction 67
-+
-+/*
-+ * Call 32 bit signal handler to get 32 bit signals ABI. Make sure
-+ * to push the registers that will get clobbered.
-+ */
-+int sigaction32(int signum, const struct sigaction *restrict act,
-+		struct sigaction *restrict oldact)
-+{
-+	register long syscall_reg asm("eax") = __NR_compat_sigaction;
-+	register long signum_reg asm("ebx") = signum;
-+	register long act_reg asm("ecx") = (long)act;
-+	register long oldact_reg asm("edx") = (long)oldact;
-+	int ret = 0;
-+
-+	asm volatile ("int $0x80;"
-+		      : "=a"(ret), "=m"(oldact)
-+		      : "r"(syscall_reg), "r"(signum_reg), "r"(act_reg),
-+			"r"(oldact_reg)
-+		      : "r8", "r9", "r10", "r11"
-+		     );
-+
-+	return ret;
-+}
-+
-+sigjmp_buf jmp_buffer;
-+
-+void segv_gp_handler(int signum, siginfo_t *si, void *uc)
-+{
-+	segv_triggered = true;
-+
-+	/*
-+	 * To work with old glibc, this can't rely on siglongjmp working with
-+	 * shadow stack enabled, so disable shadow stack before siglongjmp().
-+	 */
-+	ARCH_PRCTL(ARCH_SHSTK_DISABLE, ARCH_SHSTK_SHSTK);
-+	siglongjmp(jmp_buffer, -1);
-+}
-+
-+/*
-+ * Transition to 32 bit mode and check that a #GP triggers a segfault.
-+ */
-+int test_32bit(void)
-+{
-+	struct sigaction sa;
-+	struct sigaction *sa32;
-+
-+	/* Create sigaction in 32 bit address range */
-+	sa32 = mmap(0, 4096, PROT_READ | PROT_WRITE,
-+		   MAP_32BIT | MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-+	sa32->sa_flags = SA_SIGINFO;
-+
-+	sa.sa_sigaction = segv_gp_handler;
-+	if (sigaction(SIGSEGV, &sa, NULL))
-+		return 1;
-+	sa.sa_flags = SA_SIGINFO;
-+
-+	segv_triggered = false;
-+
-+	/* Make sure segv_triggered is set before triggering the #GP */
-+	asm volatile("" : : : "memory");
-+
-+	/*
-+	 * Set handler to somewhere in 32 bit address space
-+	 */
-+	sa32->sa_handler = (void *)sa32;
-+	if (sigaction32(SIGUSR1, sa32, NULL))
-+		return 1;
-+
-+	if (!sigsetjmp(jmp_buffer, 1))
-+		raise(SIGUSR1);
-+
-+	if (segv_triggered)
-+		printf("[OK]\t32 bit test\n");
-+
-+	return !segv_triggered;
-+}
-+
-+int main(int argc, char *argv[])
-+{
-+	int ret = 0;
-+
-+	if (ARCH_PRCTL(ARCH_SHSTK_ENABLE, ARCH_SHSTK_SHSTK)) {
-+		printf("[SKIP]\tCould not enable Shadow stack\n");
-+		return 1;
-+	}
-+
-+	if (ARCH_PRCTL(ARCH_SHSTK_DISABLE, ARCH_SHSTK_SHSTK)) {
-+		ret = 1;
-+		printf("[FAIL]\tDisabling shadow stack failed\n");
-+	}
-+
-+	if (ARCH_PRCTL(ARCH_SHSTK_ENABLE, ARCH_SHSTK_SHSTK)) {
-+		printf("[SKIP]\tCould not re-enable Shadow stack\n");
-+		return 1;
-+	}
-+
-+	if (ARCH_PRCTL(ARCH_SHSTK_ENABLE, ARCH_SHSTK_WRSS)) {
-+		printf("[SKIP]\tCould not enable WRSS\n");
-+		ret = 1;
-+		goto out;
-+	}
-+
-+	/* Should have succeeded if here, but this is a test, so double check. */
-+	if (!get_ssp()) {
-+		printf("[FAIL]\tShadow stack disabled\n");
-+		return 1;
-+	}
-+
-+	if (test_shstk_pivot()) {
-+		ret = 1;
-+		printf("[FAIL]\tShadow stack pivot\n");
-+		goto out;
-+	}
-+
-+	if (test_shstk_faults()) {
-+		ret = 1;
-+		printf("[FAIL]\tShadow stack fault test\n");
-+		goto out;
-+	}
-+
-+	if (test_shstk_violation()) {
-+		ret = 1;
-+		printf("[FAIL]\tShadow stack violation test\n");
-+		goto out;
-+	}
-+
-+	if (test_gup()) {
-+		ret = 1;
-+		printf("[FAIL]\tShadow shadow stack gup\n");
-+		goto out;
-+	}
-+
-+	if (test_mprotect()) {
-+		ret = 1;
-+		printf("[FAIL]\tShadow shadow mprotect test\n");
-+		goto out;
-+	}
-+
-+	if (test_userfaultfd()) {
-+		ret = 1;
-+		printf("[FAIL]\tUserfaultfd test\n");
-+		goto out;
-+	}
-+
-+	if (test_32bit()) {
-+		ret = 1;
-+		printf("[FAIL]\t32 bit test\n");
-+	}
-+
-+	return ret;
-+
-+out:
-+	/*
-+	 * Disable shadow stack before the function returns, or there will be a
-+	 * shadow stack violation.
-+	 */
-+	if (ARCH_PRCTL(ARCH_SHSTK_DISABLE, ARCH_SHSTK_SHSTK)) {
-+		ret = 1;
-+		printf("[FAIL]\tDisabling shadow stack failed\n");
-+	}
-+
-+	return ret;
 +}
 +#endif
++
+ /* Clone current's FPU state on fork */
+-int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal)
++int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal,
++	      unsigned long ssp)
+ {
+ 	struct fpu *src_fpu = &current->thread.fpu;
+ 	struct fpu *dst_fpu = &dst->thread.fpu;
+@@ -613,6 +646,12 @@ int fpu_clone(struct task_struct *dst, unsigned long clone_flags, bool minimal)
+ 	if (use_xsave())
+ 		dst_fpu->fpstate->regs.xsave.header.xfeatures &= ~XFEATURE_MASK_PASID;
+ 
++	/*
++	 * Update shadow stack pointer, in case it changed during clone.
++	 */
++	if (update_fpu_shstk(dst, ssp))
++		return 1;
++
+ 	trace_x86_fpu_copy_src(src_fpu);
+ 	trace_x86_fpu_copy_dst(dst_fpu);
+ 
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index e57cd31bfec4..13a0a81d70b9 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -48,6 +48,7 @@
+ #include <asm/frame.h>
+ #include <asm/unwind.h>
+ #include <asm/tdx.h>
++#include <asm/shstk.h>
+ 
+ #include "process.h"
+ 
+@@ -119,6 +120,7 @@ void exit_thread(struct task_struct *tsk)
+ 
+ 	free_vm86(t);
+ 
++	shstk_free(tsk);
+ 	fpu__drop(fpu);
+ }
+ 
+@@ -140,6 +142,7 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+ 	struct inactive_task_frame *frame;
+ 	struct fork_frame *fork_frame;
+ 	struct pt_regs *childregs;
++	unsigned long shstk_addr = 0;
+ 	int ret = 0;
+ 
+ 	childregs = task_pt_regs(p);
+@@ -174,7 +177,13 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+ 	frame->flags = X86_EFLAGS_FIXED;
+ #endif
+ 
+-	fpu_clone(p, clone_flags, args->fn);
++	/* Allocate a new shadow stack for pthread if needed */
++	ret = shstk_alloc_thread_stack(p, clone_flags, args->stack_size,
++				       &shstk_addr);
++	if (ret)
++		return ret;
++
++	fpu_clone(p, clone_flags, args->fn, shstk_addr);
+ 
+ 	/* Kernel thread ? */
+ 	if (unlikely(p->flags & PF_KTHREAD)) {
+@@ -220,6 +229,13 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+ 	if (!ret && unlikely(test_tsk_thread_flag(current, TIF_IO_BITMAP)))
+ 		io_bitmap_share(p);
+ 
++	/*
++	 * If copy_thread() if failing, don't leak the shadow stack possibly
++	 * allocated in shstk_alloc_thread_stack() above.
++	 */
++	if (ret)
++		shstk_free(p);
++
+ 	return ret;
+ }
+ 
+diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
+index f39e5d3b9303..111ea56115d2 100644
+--- a/arch/x86/kernel/shstk.c
++++ b/arch/x86/kernel/shstk.c
+@@ -47,7 +47,7 @@ static unsigned long alloc_shstk(unsigned long size)
+ 	unsigned long addr, unused;
+ 
+ 	mmap_write_lock(mm);
+-	addr = do_mmap(NULL, addr, size, PROT_READ, flags,
++	addr = do_mmap(NULL, 0, size, PROT_READ, flags,
+ 		       VM_SHADOW_STACK | VM_WRITE, 0, &unused, NULL);
+ 
+ 	mmap_write_unlock(mm);
+@@ -126,6 +126,40 @@ void reset_thread_features(void)
+ 	current->thread.features_locked = 0;
+ }
+ 
++int shstk_alloc_thread_stack(struct task_struct *tsk, unsigned long clone_flags,
++			     unsigned long stack_size, unsigned long *shstk_addr)
++{
++	struct thread_shstk *shstk = &tsk->thread.shstk;
++	unsigned long addr, size;
++
++	/*
++	 * If shadow stack is not enabled on the new thread, skip any
++	 * switch to a new shadow stack.
++	 */
++	if (!features_enabled(ARCH_SHSTK_SHSTK))
++		return 0;
++
++	/*
++	 * For CLONE_VM, except vfork, the child needs a separate shadow
++	 * stack.
++	 */
++	if ((clone_flags & (CLONE_VFORK | CLONE_VM)) != CLONE_VM)
++		return 0;
++
++
++	size = adjust_shstk_size(stack_size);
++	addr = alloc_shstk(size);
++	if (IS_ERR_VALUE(addr))
++		return PTR_ERR((void *)addr);
++
++	shstk->base = addr;
++	shstk->size = size;
++
++	*shstk_addr = addr + size;
++
++	return 0;
++}
++
+ void shstk_free(struct task_struct *tsk)
+ {
+ 	struct thread_shstk *shstk = &tsk->thread.shstk;
+@@ -134,7 +168,13 @@ void shstk_free(struct task_struct *tsk)
+ 	    !features_enabled(ARCH_SHSTK_SHSTK))
+ 		return;
+ 
+-	if (!tsk->mm)
++	/*
++	 * When fork() with CLONE_VM fails, the child (tsk) already has a
++	 * shadow stack allocated, and exit_thread() calls this function to
++	 * free it.  In this case the parent (current) and the child share
++	 * the same mm struct.
++	 */
++	if (!tsk->mm || tsk->mm != current->mm)
+ 		return;
+ 
+ 	unmap_shadow_stack(shstk->base, shstk->size);
 -- 
 2.17.1
 
