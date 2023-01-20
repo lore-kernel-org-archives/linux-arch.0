@@ -2,88 +2,227 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EB23CC27C76
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 12:42:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8581DC52D11
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:10:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229653AbjATMmo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Jan 2023 07:42:44 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40752 "EHLO
+        id S230254AbjATOK6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Jan 2023 09:10:58 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37428 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229937AbjATMmi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 07:42:38 -0500
-Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 627AA7288;
-        Fri, 20 Jan 2023 04:42:34 -0800 (PST)
-Received: by mail-wm1-f41.google.com with SMTP id q8so3936096wmo.5;
-        Fri, 20 Jan 2023 04:42:34 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=mKZyysgUPNvqWFopfSE1dHJ7iNOImONyPzrcMggiuJc=;
-        b=tnOeJ2/ST7bc4RmpFTsgHhiIxq4RD3I6TypU7FzaMP2DV1gIg1hWiXqfkfNrSpFK4t
-         pF+BBVDEC6fEAiNNFaJRRFgaPsoccOt4gJhy2OEE9ONkf9yeN4sZww/jsLtRy+JxMWyD
-         vpi0c1MagYGkTBLg1tW+hi2IvgLWPrfk8I0YTCnpRLPhDrxR+5VJwOCpuV+AsJSb9WzP
-         mOvvH9OOuL8K65j7cr0EXStIRQBBZM/J++pJ+KV/obFr5ddmPYw8XbaEVT6nGGCCsqCe
-         lZyQDChxmKXz5NT90tPv3m4U5bvjA0kqOc771fD7Ahg3gqD+13kHgKhEHd2ZSmb5UAJf
-         dNmw==
-X-Gm-Message-State: AFqh2koWTs6RoQP8QFKZl2PSD6/aAZcgaTgozd5cmuvCD7lDrUlF4DSX
-        DMjguKwA5uzJsAq748CZwNo=
-X-Google-Smtp-Source: AMrXdXtpf1blAKy5JSCCwoqiLvsfdaYzkSWfJUxJBySB4u4LThpB6hdiWSZsrCuSgL8RYE2tZGj5Ww==
-X-Received: by 2002:a1c:f317:0:b0:3d0:480b:ac53 with SMTP id q23-20020a1cf317000000b003d0480bac53mr14349205wmq.12.1674218552698;
-        Fri, 20 Jan 2023 04:42:32 -0800 (PST)
-Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
-        by smtp.gmail.com with ESMTPSA id n16-20020a05600c181000b003d1de805de5sm2032908wmp.16.2023.01.20.04.42.31
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 20 Jan 2023 04:42:32 -0800 (PST)
-Date:   Fri, 20 Jan 2023 12:42:30 +0000
-From:   Wei Liu <wei.liu@kernel.org>
-To:     Borislav Petkov <bp@alien8.de>
-Cc:     Wei Liu <wei.liu@kernel.org>,
-        Michael Kelley <mikelley@microsoft.com>, hpa@zytor.com,
-        kys@microsoft.com, haiyangz@microsoft.com, decui@microsoft.com,
-        luto@kernel.org, peterz@infradead.org, davem@davemloft.net,
-        edumazet@google.com, kuba@kernel.org, pabeni@redhat.com,
-        lpieralisi@kernel.org, robh@kernel.org, kw@linux.com,
-        bhelgaas@google.com, arnd@arndb.de, hch@infradead.org,
-        m.szyprowski@samsung.com, robin.murphy@arm.com,
-        thomas.lendacky@amd.com, brijesh.singh@amd.com, tglx@linutronix.de,
-        mingo@redhat.com, dave.hansen@linux.intel.com,
-        Tianyu.Lan@microsoft.com, kirill.shutemov@linux.intel.com,
-        sathyanarayanan.kuppuswamy@linux.intel.com, ak@linux.intel.com,
-        isaku.yamahata@intel.com, dan.j.williams@intel.com,
-        jane.chu@oracle.com, seanjc@google.com, tony.luck@intel.com,
-        x86@kernel.org, linux-kernel@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, netdev@vger.kernel.org,
-        linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-        iommu@lists.linux.dev
-Subject: Re: [Patch v4 00/13] Add PCI pass-thru support to Hyper-V
- Confidential VMs
-Message-ID: <Y8qMNhrhfN1JX4uA@liuwe-devbox-debian-v2>
-References: <1669951831-4180-1-git-send-email-mikelley@microsoft.com>
- <Y7xhLCgCq0MOsqxH@zn.tnic>
- <Y8ATN9mPCx6P4vB6@liuwe-devbox-debian-v2>
- <Y8qB5ZN5Czj9lQVK@zn.tnic>
+        with ESMTP id S230207AbjATOKv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:10:51 -0500
+Received: from fx306.security-mail.net (smtpout30.security-mail.net [85.31.212.36])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3EAC2C79C2
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:10:28 -0800 (PST)
+Received: from localhost (fx306.security-mail.net [127.0.0.1])
+        by fx306.security-mail.net (Postfix) with ESMTP id BDFF535CF2D
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:10:27 +0100 (CET)
+Received: from fx306 (fx306.security-mail.net [127.0.0.1]) by
+ fx306.security-mail.net (Postfix) with ESMTP id 7FDA635CF24; Fri, 20 Jan
+ 2023 15:10:27 +0100 (CET)
+Received: from zimbra2.kalray.eu (unknown [217.181.231.53]) by
+ fx306.security-mail.net (Postfix) with ESMTPS id CF40835CE76; Fri, 20 Jan
+ 2023 15:10:26 +0100 (CET)
+Received: from zimbra2.kalray.eu (localhost [127.0.0.1]) by
+ zimbra2.kalray.eu (Postfix) with ESMTPS id 915E327E043E; Fri, 20 Jan 2023
+ 15:10:26 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1]) by zimbra2.kalray.eu
+ (Postfix) with ESMTP id 76ED427E043A; Fri, 20 Jan 2023 15:10:26 +0100 (CET)
+Received: from zimbra2.kalray.eu ([127.0.0.1]) by localhost
+ (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
+ bkqmCC_I0G-S; Fri, 20 Jan 2023 15:10:26 +0100 (CET)
+Received: from junon.lin.mbt.kalray.eu (unknown [192.168.37.161]) by
+ zimbra2.kalray.eu (Postfix) with ESMTPSA id E117627E0439; Fri, 20 Jan 2023
+ 15:10:25 +0100 (CET)
+X-Virus-Scanned: E-securemail
+Secumail-id: <1626f.63caa0d2.ce20a.0>
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 76ED427E043A
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
+ s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223826;
+ bh=WsdsMgF+9wdt2RCH1Xf3svKE0DGavKlRxJdrjiN4Uh8=;
+ h=From:To:Date:Message-Id:MIME-Version;
+ b=P23x+LKcvEP+IKZLbkuicGs3Pej5mBdo8yQYkaxT3SdD6c0GM19pKDj+ase6ViEKo
+ uPexGp9XpE0T3huFfEVD6e4MSK+6FZ4VooRCJ6oBEHDNAQPNIZeWLmd6d5qSRBL22D
+ of29euZL+icynxeO+ubhAeSadnZtlOlSeb48YA+Q=
+From:   Yann Sionneau <ysionneau@kalray.eu>
+To:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Marc Zyngier <maz@kernel.org>,
+        Rob Herring <robh+dt@kernel.org>,
+        Krzysztof Kozlowski <krzysztof.kozlowski+dt@linaro.org>,
+        Will Deacon <will@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Kees Cook <keescook@chromium.org>,
+        Oleg Nesterov <oleg@redhat.com>,
+        Ingo Molnar <mingo@redhat.com>,
+        Waiman Long <longman@redhat.com>,
+        "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Nick Piggin <npiggin@gmail.com>,
+        Paul Moore <paul@paul-moore.com>,
+        Eric Paris <eparis@redhat.com>,
+        Christian Brauner <brauner@kernel.org>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Jules Maselbas <jmaselbas@kalray.eu>,
+        Yann Sionneau <ysionneau@kalray.eu>,
+        Guillaume Thouvenin <gthouvenin@kalray.eu>,
+        Clement Leger <clement@clement-leger.fr>,
+        Vincent Chardon <vincent.chardon@elsys-design.com>,
+        Marc =?utf-8?b?UG91bGhpw6hz?= <dkm@kataplop.net>,
+        Julian Vetter <jvetter@kalray.eu>,
+        Samuel Jones <sjones@kalray.eu>,
+        Ashley Lesdalons <alesdalons@kalray.eu>,
+        Thomas Costis <tcostis@kalray.eu>,
+        Marius Gligor <mgligor@kalray.eu>,
+        Jonathan Borne <jborne@kalray.eu>,
+        Julien Villette <jvillette@kalray.eu>,
+        Luc Michel <lmichel@kalray.eu>,
+        Louis Morhet <lmorhet@kalray.eu>,
+        Julien Hascoet <jhascoet@kalray.eu>,
+        Jean-Christophe Pince <jcpince@gmail.com>,
+        Guillaume Missonnier <gmissonnier@kalray.eu>,
+        Alex Michon <amichon@kalray.eu>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        WANG Xuerui <git@xen0n.name>,
+        Shaokun Zhang <zhangshaokun@hisilicon.com>,
+        John Garry <john.garry@huawei.com>,
+        Guangbin Huang <huangguangbin2@huawei.com>,
+        Bharat Bhushan <bbhushan2@marvell.com>,
+        Bibo Mao <maobibo@loongson.cn>,
+        Atish Patra <atishp@atishpatra.org>,
+        "Jason A. Donenfeld" <Jason@zx2c4.com>,
+        Qi Liu <liuqi115@huawei.com>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Mark Brown <broonie@kernel.org>,
+        Janosch Frank <frankja@linux.ibm.com>,
+        Alexey Dobriyan <adobriyan@gmail.com>
+Cc:     Benjamin Mugnier <mugnier.benjamin@gmail.com>,
+        linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+        devicetree@vger.kernel.org, linux-mm@kvack.org,
+        linux-arch@vger.kernel.org, linux-audit@redhat.com,
+        linux-riscv@lists.infradead.org, bpf@vger.kernel.org
+Subject: [RFC PATCH v2 04/31] Documentation: Add binding for
+ kalray,kv3-1-apic-mailbox
+Date:   Fri, 20 Jan 2023 15:09:35 +0100
+Message-ID: <20230120141002.2442-5-ysionneau@kalray.eu>
+X-Mailer: git-send-email 2.37.2
+In-Reply-To: <20230120141002.2442-1-ysionneau@kalray.eu>
+References: <20230120141002.2442-1-ysionneau@kalray.eu>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Y8qB5ZN5Czj9lQVK@zn.tnic>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+X-ALTERMIMEV2_out: done
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Jan 20, 2023 at 12:58:29PM +0100, Borislav Petkov wrote:
-> On Thu, Jan 12, 2023 at 02:03:35PM +0000, Wei Liu wrote:
-> > I can take all the patches if that's easier for you. I don't think
-> > anyone else is depending on the x86 patches in this series.
-> 
-> But we have a bunch of changes in tip so I'd prefer if all were in one place.
-> 
-> > Giving me an immutable branch works too.
-> 
-> Yap, lemme do that after applying.
-> 
-Ack. Thanks!
+From: Jules Maselbas <jmaselbas@kalray.eu>
 
-Wei.
+Add documentation for `kalray,kv3-1-core-intc` binding.
+
+Co-developed-by: Jules Maselbas <jmaselbas@kalray.eu>
+Signed-off-by: Jules Maselbas <jmaselbas@kalray.eu>
+Signed-off-by: Yann Sionneau <ysionneau@kalray.eu>
+---
+
+Notes:
+    V1 -> V2: new patch
+
+ .../kalray,kv3-1-apic-mailbox.yaml            | 75 +++++++++++++++++++
+ 1 file changed, 75 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-apic-mailbox.yaml
+
+diff --git a/Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-apic-mailbox.yaml b/Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-apic-mailbox.yaml
+new file mode 100644
+index 000000000000..e1eb1c9fda0d
+--- /dev/null
++++ b/Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-apic-mailbox.yaml
+@@ -0,0 +1,75 @@
++# SPDX-License-Identifier: GPL-2.0
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/interrupt-controller/kalray,kv3-1-apic-mailbox#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Kalray kv3-1 APIC-Mailbox
++
++description: |
++  Each cluster in the Coolidge SoC includes an Advanced Programmable Interrupt
++  Controller (APIC) which is split in two part:
++    - a Generic Interrupt Controller (referred as APIC-GIC)
++    - a Mailbox Controller           (referred as APIC-Mailbox)
++  The APIC-Mailbox contains 128 mailboxes of 8 bytes (size of a word),
++  this hardware block is basically a 1 KB of smart memory space.
++  Each mailbox can be independently configured with a trigger condition
++  and an input mode function.
++
++  Input mode are:
++   - write
++   - bitwise OR
++   - add
++
++  Interrupts are generated on a write when the mailbox content value
++  match the configured trigger condition.
++  Available conditions are:
++   - doorbell: always raise interruption on write
++   - match: when the mailbox's value equal the configured trigger value
++   - barrier: same as match but the mailbox's value is cleared on trigger
++   - threshold: when the mailbox's value is greater than, or equal to, the
++     configured trigger value
++
++  Since this hardware block generates IRQs based on writes to some memory
++  locations, it is both an interrupt controller and an MSI controller.
++
++allOf:
++  - $ref: /schemas/interrupt-controller.yaml#
++
++properties:
++  compatible:
++    const: kalray,kv3-1-apic-mailbox
++  "#interrupt-cells":
++    const: 1
++    description:
++      The IRQ number.
++  interrupt-controller: true
++  interrupt-parent: true
++  interrupts:
++    maxItems: 128
++    description: |
++     Specifies the interrupt line(s) in the interrupt-parent controller node;
++     valid values depend on the type of parent interrupt controller
++  msi-controller: true
++
++required:
++  - compatible
++  - reg
++  - "#interrupt-cells"
++  - interrupt-controller
++  - interrupt-parent
++  - interrupts
++  - msi-controller
++
++examples:
++  - |
++    apic_mailbox: interrupt-controller@a00000 {
++        compatible = "kalray,kv3-1-apic-gic";
++        reg = <0 0xa00000 0 0x0f200>;
++        #interrupt-cells = <1>;
++        interrupt-controller;
++        interrupt-parent = <&apic_gic>;
++        interrups = <0 1 2 3 4 5 6 7 8 9>;
++    };
++
++...
+-- 
+2.37.2
+
+
+
+
+
