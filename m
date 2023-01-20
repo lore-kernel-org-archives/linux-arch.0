@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5BDE2C27C7C
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:35:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 242AEC52D11
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:35:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230353AbjATOfU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Jan 2023 09:35:20 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38098 "EHLO
+        id S230255AbjATOfT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Jan 2023 09:35:19 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38080 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230387AbjATOfS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:35:18 -0500
-Received: from fx405.security-mail.net (smtpout140.security-mail.net [85.31.212.145])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 42B097ED6C
+        with ESMTP id S230502AbjATOfR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:35:17 -0500
+Received: from fx601.security-mail.net (smtpout140.security-mail.net [85.31.212.146])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AC17479E9A
         for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:35:03 -0800 (PST)
-Received: from localhost (fx405.security-mail.net [127.0.0.1])
-        by fx405.security-mail.net (Postfix) with ESMTP id EAE63335DF0
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:10:34 +0100 (CET)
+Received: from localhost (fx601.security-mail.net [127.0.0.1])
+        by fx601.security-mail.net (Postfix) with ESMTP id BDC6F34991B
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:20:48 +0100 (CET)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kalray.eu;
-        s=sec-sig-email; t=1674223835;
-        bh=iujg4Ph3I/139elOqxsm2GEAdcANWZxNc2YUlfHOMPk=;
+        s=sec-sig-email; t=1674224449;
+        bh=fw6xXMajXNjhx0jPLjaTVFvl+I1RBxPH9f2FQVoTEPI=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References;
-        b=At427VLRx9KZBH1e/yv/uj8ny7ycEXrXirnyPoLQe2OWRM2ZUeLHSWZmMw3jsR+e+
-         5TnrsE+Tt+dXb5kUqnLTKpoVNbR2w6GYCO8DfGPEZ+MuE1VC8GypSNw5gkW4Jjtb83
-         /iMIeqyIZQOtZFhaycr2kz/efqq+PLlkVDCetw6Y=
-Received: from fx405 (fx405.security-mail.net [127.0.0.1]) by
- fx405.security-mail.net (Postfix) with ESMTP id 487B6335DF2; Fri, 20 Jan
- 2023 15:10:34 +0100 (CET)
+        b=CXg63U8cHU2subSM4SlqKRMbOw+fdUD1Tqo5PXK4ZogMF6452Gh9QVEInt4FG8qug
+         oZn+36xwinF+fAz2NoY7SzGTjjRYDmZBSKy8bnai9bmZcKG9edS1DxLgrWGckMpL4g
+         bfUbm+JKD+AM0Jk6ZM+RXY0QM619HvTBOIs21GTw=
+Received: from fx601 (fx601.security-mail.net [127.0.0.1]) by
+ fx601.security-mail.net (Postfix) with ESMTP id 2FC7D349967; Fri, 20 Jan
+ 2023 15:20:48 +0100 (CET)
 Received: from zimbra2.kalray.eu (unknown [217.181.231.53]) by
- fx405.security-mail.net (Postfix) with ESMTPS id 0EDD6335DF0; Fri, 20 Jan
- 2023 15:10:33 +0100 (CET)
+ fx601.security-mail.net (Postfix) with ESMTPS id 306C03497EB; Fri, 20 Jan
+ 2023 15:20:45 +0100 (CET)
 Received: from zimbra2.kalray.eu (localhost [127.0.0.1]) by
- zimbra2.kalray.eu (Postfix) with ESMTPS id B6A4527E0440; Fri, 20 Jan 2023
- 15:10:32 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPS id B864627E045F; Fri, 20 Jan 2023
+ 15:10:36 +0100 (CET)
 Received: from localhost (localhost [127.0.0.1]) by zimbra2.kalray.eu
- (Postfix) with ESMTP id 9294827E043D; Fri, 20 Jan 2023 15:10:32 +0100 (CET)
+ (Postfix) with ESMTP id 9CEA627E0454; Fri, 20 Jan 2023 15:10:36 +0100 (CET)
 Received: from zimbra2.kalray.eu ([127.0.0.1]) by localhost
  (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
- JVyjuwXZV6nO; Fri, 20 Jan 2023 15:10:32 +0100 (CET)
+ 7CE7-x7Qz5OQ; Fri, 20 Jan 2023 15:10:36 +0100 (CET)
 Received: from junon.lin.mbt.kalray.eu (unknown [192.168.37.161]) by
- zimbra2.kalray.eu (Postfix) with ESMTPSA id 0B0F627E0439; Fri, 20 Jan 2023
- 15:10:32 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPSA id 1B83627E044D; Fri, 20 Jan 2023
+ 15:10:36 +0100 (CET)
 X-Virus-Scanned: E-securemail
-Secumail-id: <16482.63caa0d9.d431.0>
-DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 9294827E043D
+Secumail-id: <13f7d.63caa33d.2a770.0>
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 9CEA627E0454
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
- s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223832;
- bh=j3u1+7jSeFlQ+R2vG1RMdQ6rymjVuATFjYu04HprmPk=;
+ s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223836;
+ bh=YnkI4+XhgeX78k8Q76ZoPcPy7yxNCCbWh8zxK5y9348=;
  h=From:To:Date:Message-Id:MIME-Version;
- b=bJCwUqYf1v/WbS/vZFq+PAILA35tNYon5tbMQndVY/zEuvJzRPP6XNc9TdSn69NRl
- r1nrOQyoJ8SkIAojICaqdqM9R42vB2lEIH2sPGEYNOtks6kAZhLSXC3cg4OkeS3YSZ
- pUnjQCtQdqnUilobABMuo4pUzCEtBqdHlf0tvWE0=
+ b=kXXFp1pZMzHhPKFRYroM8/+PkRoYHECkiE7VI0nI/pcainE5mFvWs5yGxLS/FH72I
+ QLBaLeM+ZIUYoh8/PgBah6cKyRj1t5TCW0flycsAXJljcKSjQjxt9DsZ0D4Hi0eSFd
+ nitw2XqnaM5PMEVqFZnjDe+DcM3WsGZcWMCBSfJs=
 From:   Yann Sionneau <ysionneau@kalray.eu>
 To:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -114,9 +114,9 @@ Cc:     Benjamin Mugnier <mugnier.benjamin@gmail.com>,
         devicetree@vger.kernel.org, linux-mm@kvack.org,
         linux-arch@vger.kernel.org, linux-audit@redhat.com,
         linux-riscv@lists.infradead.org, bpf@vger.kernel.org
-Subject: [RFC PATCH v2 17/31] irqchip: Add irq-kvx-apic-mailbox driver
-Date:   Fri, 20 Jan 2023 15:09:48 +0100
-Message-ID: <20230120141002.2442-18-ysionneau@kalray.eu>
+Subject: [RFC PATCH v2 25/31] kvx: Add some library functions
+Date:   Fri, 20 Jan 2023 15:09:56 +0100
+Message-ID: <20230120141002.2442-26-ysionneau@kalray.eu>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <20230120141002.2442-1-ysionneau@kalray.eu>
 References: <20230120141002.2442-1-ysionneau@kalray.eu>
@@ -128,18 +128,9 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Jules Maselbas <jmaselbas@kalray.eu>
-
-The APIC includes a mailbox controller, containing 128 mailboxes.
-Each mailbox is a word of 8 bytes in the controller internal memory.
-Each mailbox can be independently configured with a trigger condition
-and an input function.
-
-After a write to a mailbox if the mailbox's trigger condition is met
-then an interrupt will be generated.
-
-Since this hardware block generates IRQs based on writes at some memory
-locations, it is both an interrupt controller and an MSI controller.
+Add some library functions for kvx, including: delay, memset,
+memcpy, strlen, clear_page, copy_page, raw_copy_from/to_user,
+asm_clear_user.
 
 Co-developed-by: Clement Leger <clement@clement-leger.fr>
 Signed-off-by: Clement Leger <clement@clement-leger.fr>
@@ -147,539 +138,917 @@ Co-developed-by: Jules Maselbas <jmaselbas@kalray.eu>
 Signed-off-by: Jules Maselbas <jmaselbas@kalray.eu>
 Co-developed-by: Julian Vetter <jvetter@kalray.eu>
 Signed-off-by: Julian Vetter <jvetter@kalray.eu>
-Co-developed-by: Luc Michel <lmichel@kalray.eu>
-Signed-off-by: Luc Michel <lmichel@kalray.eu>
+Co-developed-by: Marius Gligor <mgligor@kalray.eu>
+Signed-off-by: Marius Gligor <mgligor@kalray.eu>
 Co-developed-by: Yann Sionneau <ysionneau@kalray.eu>
 Signed-off-by: Yann Sionneau <ysionneau@kalray.eu>
 ---
 
 Notes:
-    V1 -> V2: new patch
-     - removed print on probe success
+    V1 -> V2: no changes
 
- drivers/irqchip/Kconfig                |   8 +
- drivers/irqchip/Makefile               |   1 +
- drivers/irqchip/irq-kvx-apic-mailbox.c | 480 +++++++++++++++++++++++++
- 3 files changed, 489 insertions(+)
- create mode 100644 drivers/irqchip/irq-kvx-apic-mailbox.c
+ arch/kvx/include/asm/string.h |  20 ++
+ arch/kvx/kernel/kvx_ksyms.c   |   5 +
+ arch/kvx/lib/clear_page.S     |  40 ++++
+ arch/kvx/lib/copy_page.S      |  90 +++++++++
+ arch/kvx/lib/delay.c          |  39 ++++
+ arch/kvx/lib/memcpy.c         |  70 +++++++
+ arch/kvx/lib/memset.S         | 351 ++++++++++++++++++++++++++++++++++
+ arch/kvx/lib/strlen.S         | 122 ++++++++++++
+ arch/kvx/lib/usercopy.S       |  90 +++++++++
+ 9 files changed, 827 insertions(+)
+ create mode 100644 arch/kvx/include/asm/string.h
+ create mode 100644 arch/kvx/lib/clear_page.S
+ create mode 100644 arch/kvx/lib/copy_page.S
+ create mode 100644 arch/kvx/lib/delay.c
+ create mode 100644 arch/kvx/lib/memcpy.c
+ create mode 100644 arch/kvx/lib/memset.S
+ create mode 100644 arch/kvx/lib/strlen.S
+ create mode 100644 arch/kvx/lib/usercopy.S
 
-diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
-index 546bc611f3f3..806adbc7b2a4 100644
---- a/drivers/irqchip/Kconfig
-+++ b/drivers/irqchip/Kconfig
-@@ -348,6 +348,14 @@ config KVX_ITGEN
- 	select IRQ_DOMAIN
- 	select IRQ_DOMAIN_HIERARCHY
- 
-+config KVX_APIC_MAILBOX
-+       bool
-+       depends on KVX
-+       select GENERIC_IRQ_IPI if SMP
-+       select GENERIC_MSI_IRQ_DOMAIN
-+       select IRQ_DOMAIN
-+       select IRQ_DOMAIN_HIERARCHY
-+
- config INGENIC_IRQ
- 	bool
- 	depends on MACH_INGENIC
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index 6b8f459d8a21..7eaea87ca9ab 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -71,6 +71,7 @@ obj-$(CONFIG_KEYSTONE_IRQ)		+= irq-keystone.o
- obj-$(CONFIG_MIPS_GIC)			+= irq-mips-gic.o
- obj-$(CONFIG_KVX_APIC_GIC)		+= irq-kvx-apic-gic.o
- obj-$(CONFIG_KVX_ITGEN)			+= irq-kvx-itgen.o
-+obj-$(CONFIG_KVX_APIC_MAILBOX)		+= irq-kvx-apic-mailbox.o
- obj-$(CONFIG_ARCH_MEDIATEK)		+= irq-mtk-sysirq.o irq-mtk-cirq.o
- obj-$(CONFIG_ARCH_DIGICOLOR)		+= irq-digicolor.o
- obj-$(CONFIG_ARCH_SA1100)		+= irq-sa11x0.o
-diff --git a/drivers/irqchip/irq-kvx-apic-mailbox.c b/drivers/irqchip/irq-kvx-apic-mailbox.c
+diff --git a/arch/kvx/include/asm/string.h b/arch/kvx/include/asm/string.h
 new file mode 100644
-index 000000000000..33249df047b6
+index 000000000000..677c1393a5cd
 --- /dev/null
-+++ b/drivers/irqchip/irq-kvx-apic-mailbox.c
-@@ -0,0 +1,480 @@
-+// SPDX-License-Identifier: GPL-2.0-only
++++ b/arch/kvx/include/asm/string.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
-+ * Copyright (c) 2017-2023 Kalray Inc.
++ * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
 + *            Jules Maselbas
 + */
 +
-+#define pr_fmt(fmt)	"kvx_apic_mailbox: " fmt
++#ifndef _ASM_KVX_STRING_H
++#define _ASM_KVX_STRING_H
 +
-+#include <linux/irqchip/chained_irq.h>
-+#include <linux/of_address.h>
-+#include <linux/interrupt.h>
-+#include <linux/irqdomain.h>
-+#include <linux/iommu.h>
-+#include <linux/irqchip.h>
-+#include <linux/module.h>
-+#include <linux/of_irq.h>
-+#include <linux/init.h>
-+#include <linux/msi.h>
-+#include <linux/of.h>
++#define __HAVE_ARCH_MEMSET
++extern void *memset(void *s, int c, size_t n);
 +
-+#define KVX_MAILBOX_MODE_WRITE  0x0
-+#define KVX_MAILBOX_MODE_OR  0x1
-+#define KVX_MAILBOX_MODE_ADD  0x2
++#define __HAVE_ARCH_MEMCPY
++extern void *memcpy(void *dest, const void *src, size_t n);
 +
-+#define KVX_MAILBOX_TRIG_NO_TRIG 0x0
-+#define KVX_MAILBOX_TRIG_DOORBELL 0x1
-+#define KVX_MAILBOX_TRIG_MATCH 0x2
-+#define KVX_MAILBOX_TRIG_BARRIER 0x3
-+#define KVX_MAILBOX_TRIG_THRESHOLD 0x4
++#define __HAVE_ARCH_STRLEN
++extern size_t strlen(const char *s);
 +
-+#define KVX_MAILBOX_OFFSET 0x0
-+#define KVX_MAILBOX_ELEM_SIZE 0x200
-+#define KVX_MAILBOX_MASK_OFFSET     0x10
-+#define KVX_MAILBOX_FUNCT_OFFSET     0x18
-+#define KVX_MAILBOX_LAC_OFFSET     0x8
-+#define KVX_MAILBOX_VALUE_OFFSET     0x0
-+#define KVX_MAILBOX_FUNCT_MODE_SHIFT  0x0
-+#define KVX_MAILBOX_FUNCT_TRIG_SHIFT 0x8
++#endif	/* _ASM_KVX_STRING_H */
+diff --git a/arch/kvx/kernel/kvx_ksyms.c b/arch/kvx/kernel/kvx_ksyms.c
+index 18990aaf259f..678f81716dea 100644
+--- a/arch/kvx/kernel/kvx_ksyms.c
++++ b/arch/kvx/kernel/kvx_ksyms.c
+@@ -22,3 +22,8 @@ DECLARE_EXPORT(__umoddi3);
+ DECLARE_EXPORT(__divdi3);
+ DECLARE_EXPORT(__udivdi3);
+ DECLARE_EXPORT(__multi3);
 +
-+#define MAILBOXES_MAX_COUNT 128
-+
-+/* Mailboxes are 64 bits wide */
-+#define MAILBOXES_BIT_SIZE 64
-+
-+/* Maximum number of mailboxes available */
-+#define MAILBOXES_MAX_BIT_COUNT (MAILBOXES_MAX_COUNT * MAILBOXES_BIT_SIZE)
-+
-+/* Mailboxes are grouped by 8 in a single page */
-+#define MAILBOXES_BITS_PER_PAGE (8 * MAILBOXES_BIT_SIZE)
-+
-+/**
-+ * struct mb_data - per mailbox data
-+ * @cpu: CPU on which the mailbox is routed
-+ * @parent_irq: Parent IRQ on the GIC
++DECLARE_EXPORT(clear_page);
++DECLARE_EXPORT(copy_page);
++DECLARE_EXPORT(memset);
++DECLARE_EXPORT(asm_clear_user);
+diff --git a/arch/kvx/lib/clear_page.S b/arch/kvx/lib/clear_page.S
+new file mode 100644
+index 000000000000..364fe0663ca2
+--- /dev/null
++++ b/arch/kvx/lib/clear_page.S
+@@ -0,0 +1,40 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Marius Gligor
++ *            Clement Leger
 + */
-+struct mb_data {
-+	unsigned int cpu;
-+	unsigned int parent_irq;
-+};
 +
-+/**
-+ * struct kvx_apic_mailbox - kvx apic mailbox
-+ * @base: base address of the controller
-+ * @device_domain: IRQ device domain for mailboxes
-+ * @msi_domain: platform MSI domain for MSI interface
-+ * @domain_info: Domain information needed for the MSI domain
-+ * @mb_count: Count of mailboxes we are handling
-+ * @available: bitmap of availables bits in mailboxes
-+ * @mailboxes_lock: lock for irq migration
-+ * @mask_lock: lock for irq masking
-+ * @mb_data: data associated to each mailbox
++#include <linux/linkage.h>
++#include <linux/export.h>
++#include <linux/const.h>
++
++#include <asm/cache.h>
++#include <asm/page.h>
++
++#define CLEAR_PAGE_LOOP_COUNT	(PAGE_SIZE / 32)
++
++/*
++ * Clear page @dest.
++ *
++ * Parameters:
++ *	r0 - dest page
 + */
-+struct kvx_apic_mailbox {
-+	void __iomem *base;
-+	phys_addr_t phys_base;
-+	struct irq_domain *device_domain;
-+	struct irq_domain *msi_domain;
-+	struct msi_domain_info domain_info;
-+	/* Start and count of device mailboxes */
-+	unsigned int mb_count;
-+	/* Bitmap of allocated bits in mailboxes */
-+	DECLARE_BITMAP(available, MAILBOXES_MAX_BIT_COUNT);
-+	spinlock_t mailboxes_lock;
-+	raw_spinlock_t mask_lock;
-+	struct mb_data mb_data[MAILBOXES_MAX_COUNT];
-+};
++ENTRY(clear_page)
++	make $r1 = CLEAR_PAGE_LOOP_COUNT
++	;;
++	make $r4 = 0
++	make $r5 = 0
++	make $r6 = 0
++	make $r7 = 0
++	;;
 +
-+/**
-+ * struct kvx_irq_data - per irq data
-+ * @mb: Mailbox structure
++	loopdo $r1, clear_page_done
++		;;
++		so 0[$r0] = $r4r5r6r7
++		addd $r0 = $r0, 32
++		;;
++	clear_page_done:
++	ret
++	;;
++ENDPROC(clear_page)
+diff --git a/arch/kvx/lib/copy_page.S b/arch/kvx/lib/copy_page.S
+new file mode 100644
+index 000000000000..4bb82d1c964c
+--- /dev/null
++++ b/arch/kvx/lib/copy_page.S
+@@ -0,0 +1,90 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
 + */
-+struct kvx_irq_data {
-+	struct kvx_apic_mailbox *mb;
-+};
 +
-+static void kvx_mailbox_get_from_hwirq(unsigned int hw_irq,
-+				       unsigned int *mailbox_num,
-+				       unsigned int *mailbox_bit)
++#include <linux/linkage.h>
++#include <linux/const.h>
++
++#include <asm/page.h>
++
++/* We have 8 load/store octuple (32 bytes) per hardware loop */
++#define COPY_SIZE_PER_LOOP	(32 * 8)
++#define COPY_PAGE_LOOP_COUNT	(PAGE_SIZE / COPY_SIZE_PER_LOOP)
++
++/*
++ * Copy a page from src to dest (both are page aligned)
++ * In order to recover from smem latency, unroll the loop to trigger multiple
++ * onfly loads and avoid waiting too much for them to return.
++ * We use 8 * 32 load even though we could use more (up to 10 loads) to simplify
++ * the handling using a single hardware loop
++ *
++ * Parameters:
++ *	r0 - dest
++ *	r1 - src
++ */
++ENTRY(copy_page)
++	make $r2 = COPY_PAGE_LOOP_COUNT
++	make $r3 = 0
++	;;
++	loopdo $r2, copy_page_done
++		;;
++		/*
++		 * Load 8 * 32 bytes using uncached access to avoid hitting
++		 * the cache
++		 */
++		lo.xs $r32r33r34r35 = $r3[$r1]
++		/* Copy current copy index for store */
++		copyd $r2 = $r3
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r36r37r38r39 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r40r41r42r43 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r44r45r46r47 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r48r49r50r51 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r52r53r54r55 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r56r57r58r59 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		lo.xs $r60r61r62r63 = $r3[$r1]
++		addd $r3 = $r3, 1
++		;;
++		/* And then store all of them */
++		so.xs $r2[$r0] = $r32r33r34r35
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r36r37r38r39
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r40r41r42r43
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r44r45r46r47
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r48r49r50r51
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r52r53r54r55
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r56r57r58r59
++		addd $r2 = $r2, 1
++		;;
++		so.xs $r2[$r0] = $r60r61r62r63
++		;;
++	copy_page_done:
++	ret
++	;;
++ENDPROC(copy_page)
+diff --git a/arch/kvx/lib/delay.c b/arch/kvx/lib/delay.c
+new file mode 100644
+index 000000000000..11295eedc3f5
+--- /dev/null
++++ b/arch/kvx/lib/delay.c
+@@ -0,0 +1,39 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
++ */
++
++#include <linux/export.h>
++#include <linux/delay.h>
++
++#include <asm/param.h>
++#include <asm/timex.h>
++
++void __delay(unsigned long loops)
 +{
-+	*mailbox_num = hw_irq / MAILBOXES_BIT_SIZE;
-+	*mailbox_bit = hw_irq % MAILBOXES_BIT_SIZE;
++	cycles_t target_cycle = get_cycles() + loops;
++
++	while (get_cycles() < target_cycle);
 +}
++EXPORT_SYMBOL(__delay);
 +
-+static void __iomem *kvx_mailbox_get_addr(struct kvx_apic_mailbox *mb,
-+				   unsigned int num)
++inline void __const_udelay(unsigned long xloops)
 +{
-+	return mb->base + (num * KVX_MAILBOX_ELEM_SIZE);
++	u64 loops = (u64)xloops * (u64)loops_per_jiffy * HZ;
++
++	__delay(loops >> 32);
 +}
++EXPORT_SYMBOL(__const_udelay);
 +
-+static phys_addr_t kvx_mailbox_get_phys_addr(struct kvx_apic_mailbox *mb,
-+				   unsigned int num)
++void __udelay(unsigned long usecs)
 +{
-+	return mb->phys_base + (num * KVX_MAILBOX_ELEM_SIZE);
++	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
 +}
++EXPORT_SYMBOL(__udelay);
 +
-+static void kvx_mailbox_msi_compose_msg(struct irq_data *data,
-+					struct msi_msg *msg)
++void __ndelay(unsigned long nsecs)
 +{
-+	struct kvx_irq_data *kd = irq_data_get_irq_chip_data(data);
-+	struct kvx_apic_mailbox *mb = kd->mb;
-+	unsigned int mb_num, mb_bit;
-+	phys_addr_t mb_addr;
-+
-+	kvx_mailbox_get_from_hwirq(irqd_to_hwirq(data), &mb_num, &mb_bit);
-+	mb_addr = kvx_mailbox_get_phys_addr(mb, mb_num);
-+
-+	msg->address_hi = upper_32_bits(mb_addr);
-+	msg->address_lo = lower_32_bits(mb_addr);
-+	msg->data = mb_bit;
-+
-+	iommu_dma_compose_msi_msg(irq_data_get_msi_desc(data), msg);
++	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
 +}
++EXPORT_SYMBOL(__ndelay);
+diff --git a/arch/kvx/lib/memcpy.c b/arch/kvx/lib/memcpy.c
+new file mode 100644
+index 000000000000..b81f746a80ee
+--- /dev/null
++++ b/arch/kvx/lib/memcpy.c
+@@ -0,0 +1,70 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
++ *            Yann Sionneau
++ */
 +
-+static void kvx_mailbox_set_irq_enable(struct irq_data *data,
-+				     bool enabled)
++#include <linux/export.h>
++#include <linux/types.h>
++
++void *memcpy(void *dest, const void *src, size_t n)
 +{
-+	struct kvx_irq_data *kd = irq_data_get_irq_chip_data(data);
-+	struct kvx_apic_mailbox *mb = kd->mb;
-+	unsigned int mb_num, mb_bit;
-+	void __iomem *mb_addr;
-+	u64 mask_value, mb_value;
++	__uint128_t *tmp128_d = dest;
++	const __uint128_t *tmp128_s = src;
++	uint64_t *tmp64_d;
++	const uint64_t *tmp64_s;
++	uint32_t *tmp32_d;
++	const uint32_t *tmp32_s;
++	uint16_t *tmp16_d;
++	const uint16_t *tmp16_s;
++	uint8_t *tmp8_d;
++	const uint8_t *tmp8_s;
 +
-+	kvx_mailbox_get_from_hwirq(irqd_to_hwirq(data), &mb_num, &mb_bit);
-+	mb_addr = kvx_mailbox_get_addr(mb, mb_num);
-+
-+	raw_spin_lock(&mb->mask_lock);
-+	mask_value = readq(mb_addr + KVX_MAILBOX_MASK_OFFSET);
-+	if (enabled)
-+		mask_value |= BIT_ULL(mb_bit);
-+	else
-+		mask_value &= ~BIT_ULL(mb_bit);
-+
-+	writeq(mask_value, mb_addr + KVX_MAILBOX_MASK_OFFSET);
-+
-+	raw_spin_unlock(&mb->mask_lock);
-+
-+	/**
-+	 * Since interrupts on mailboxes are edge triggered and are only
-+	 * triggered when writing the value, we need to trigger it manually
-+	 * after updating the mask if enabled. If the interrupt was triggered by
-+	 * the device just after the mask write, we can trigger a spurious
-+	 * interrupt but that is still better than missing one...
-+	 * Moreover, the mailbox is configured in OR mode which means that even
-+	 * if we write a single bit, all other bits will be kept intact.
-+	 */
-+	if (enabled) {
-+		mb_value = readq(mb_addr + KVX_MAILBOX_VALUE_OFFSET);
-+		if (mb_value & BIT_ULL(mb_bit))
-+			writeq(BIT_ULL(mb_bit),
-+			       mb_addr + KVX_MAILBOX_VALUE_OFFSET);
++	while (n >= 16) {
++		*tmp128_d = *tmp128_s;
++		tmp128_d++;
++		tmp128_s++;
++		n -= 16;
 +	}
++
++	tmp64_d = (uint64_t *) tmp128_d;
++	tmp64_s = (uint64_t *) tmp128_s;
++	while (n >= 8) {
++		*tmp64_d = *tmp64_s;
++		tmp64_d++;
++		tmp64_s++;
++		n -= 8;
++	}
++
++	tmp32_d = (uint32_t *) tmp64_d;
++	tmp32_s = (uint32_t *) tmp64_s;
++	while (n >= 4) {
++		*tmp32_d = *tmp32_s;
++		tmp32_d++;
++		tmp32_s++;
++		n -= 4;
++	}
++
++	tmp16_d = (uint16_t *) tmp32_d;
++	tmp16_s = (uint16_t *) tmp32_s;
++	while (n >= 2) {
++		*tmp16_d = *tmp16_s;
++		tmp16_d++;
++		tmp16_s++;
++		n -= 2;
++	}
++
++	tmp8_d = (uint8_t *) tmp16_d;
++	tmp8_s = (uint8_t *) tmp16_s;
++	while (n >= 1) {
++		*tmp8_d = *tmp8_s;
++		tmp8_d++;
++		tmp8_s++;
++		n--;
++	}
++
++	return dest;
 +}
++EXPORT_SYMBOL(memcpy);
 +
-+static void kvx_mailbox_mask(struct irq_data *data)
-+{
-+	kvx_mailbox_set_irq_enable(data, false);
-+}
+diff --git a/arch/kvx/lib/memset.S b/arch/kvx/lib/memset.S
+new file mode 100644
+index 000000000000..9eebc28da2be
+--- /dev/null
++++ b/arch/kvx/lib/memset.S
+@@ -0,0 +1,351 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
++ *            Marius Gligor
++ */
 +
-+static void kvx_mailbox_unmask(struct irq_data *data)
-+{
-+	kvx_mailbox_set_irq_enable(data, true);
-+}
++#include <linux/linkage.h>
 +
-+static void kvx_mailbox_set_cpu(struct kvx_apic_mailbox *mb, int mb_id,
-+			       int new_cpu)
-+{
-+	irq_set_affinity(mb->mb_data[mb_id].parent_irq, cpumask_of(new_cpu));
-+	mb->mb_data[mb_id].cpu = new_cpu;
-+}
++#include <asm/cache.h>
 +
-+static void kvx_mailbox_free_bit(struct kvx_apic_mailbox *mb, int hw_irq)
-+{
-+	unsigned int mb_num, mb_bit;
++#define REPLICATE_BYTE_MASK	0x0101010101010101
++#define MIN_SIZE_FOR_ALIGN	128
 +
-+	kvx_mailbox_get_from_hwirq(hw_irq, &mb_num, &mb_bit);
-+	bitmap_clear(mb->available, hw_irq, 1);
++/*
++ * Optimized memset for kvx architecture
++ *
++ * In order to optimize memset on kvx, we can use various things:
++ * - conditionnal store which avoid branch penalty
++ * - store half/word/double/quad/octuple to store up to 16 bytes at a time
++ * - dzerol to zero a cacheline when the pattern is '0' (often the case)
++ * - hardware loop for steady cases.
++ *
++ * First, we assume that memset is mainly used for zeroing areas. In order
++ * to optimize this case, we consider it to be the fast path of the algorithm.
++ * In both cases (0 and non 0 pattern), we start by checking if the size is
++ * below a minimum size. If so, we skip the alignment part. Indeed, the kvx
++ * supports misalignment and the penalty for letting it do unaligned accesses is
++ * lower than trying to realigning us. So for small sizes, we don't even bother
++ * to realign. Minor difference is that in the memset with 0, we skip after the
++ * dzerol loop since dzerol must be cache-line aligned (no misalignment of
++ * course).
++ * Regarding the non 0 pattern memset, we use sbmm to replicate the pattern on
++ * all bits on a register in one call.
++ * Once alignment has been reached, we can do the hardware loop for both cases(
++ * store octuple/dzerol) in order to optimize throughput. Care must be taken to
++ * align hardware loops on at least 8 bytes for performances.
++ * Once the main loop has been done, we finish the copy by checking length to do
++ * the necessary calls to store remaining bytes.
++ *
++ * Pseudo code (applies for non 0 pattern):
++ *
++ * int memset(void *dest, char pattern, long length)
++ * {
++ * 	long dest_align = -((long) dest);
++ * 	long copy;
++ * 	long orig_dest = dest;
++ *
++ * 	uint64_t pattern = sbmm8(pattern, 0x0101010101010101);
++ * 	uint128_t pattern128 = pattern << 64 | pattern;
++ * 	uint256_t pattern128 = pattern128 << 128 | pattern128;
++ *
++ * 	// Keep only low bits
++ * 	dest_align &= 0x1F;
++ * 	length -= dest_align;
++ *
++ * 	// Byte align
++ * 	copy = align & (1 << 0);
++ * 	if (copy)
++ * 		*((u8 *) dest) = pattern;
++ * 	dest += copy;
++ * 	// Half align
++ * 	copy = align & (1 << 1);
++ * 	if (copy)
++ * 		*((u16 *) dest) = pattern;
++ * 	dest += copy;
++ * 	// Word align
++ * 	copy = align & (1 << 2);
++ * 	if (copy)
++ * 		*((u32 *) dest) = pattern;
++ * 	dest += copy;
++ * 	// Double align
++ * 	copy = align & (1 << 3);
++ * 	if (copy)
++ * 		*((u64 *) dest) = pattern;
++ * 	dest += copy;
++ * 	// Quad align
++ * 	copy = align & (1 << 4);
++ * 	if (copy)
++ * 		*((u128 *) dest) = pattern128;
++ * 	dest += copy;
++ *
++ * 	// We are now aligned on 256 bits
++ * 	loop_octuple_count = size >> 5;
++ * 	for (i = 0; i < loop_octuple_count; i++) {
++ * 		*((u256 *) dest) = pattern256;
++ * 		dest += 32;
++ * 	}
++ *
++ * 	if (length == 0)
++ * 		return orig_dest;
++ *
++ * 	// Copy remaining part
++ * 	remain = length & (1 << 4);
++ * 	if (copy)
++ * 		*((u128 *) dest) = pattern128;
++ * 	dest += remain;
++ * 	remain = length & (1 << 3);
++ * 	if (copy)
++ * 		*((u64 *) dest) = pattern;
++ * 	dest += remain;
++ * 	remain = length & (1 << 2);
++ * 	if (copy)
++ * 		*((u32 *) dest) = pattern;
++ * 	dest += remain;
++ * 	remain = length & (1 << 1);
++ * 	if (copy)
++ * 		*((u16 *) dest) = pattern;
++ * 	dest += remain;
++ * 	remain = length & (1 << 0);
++ * 	if (copy)
++ * 		*((u8 *) dest) = pattern;
++ * 	dest += remain;
++ *
++ * 	return orig_dest;
++ * }
++ */
 +
-+	/* If there is no more IRQ on this mailbox, reset it to CPU 0 */
-+	if (mb->available[mb_num] == 0)
-+		kvx_mailbox_set_cpu(mb, mb_num, 0);
-+}
-+
-+struct irq_chip kvx_apic_mailbox_irq_chip = {
-+	.name = "kvx apic mailbox",
-+	.irq_compose_msi_msg = kvx_mailbox_msi_compose_msg,
-+	.irq_mask = kvx_mailbox_mask,
-+	.irq_unmask = kvx_mailbox_unmask,
-+};
-+
-+static int kvx_mailbox_allocate_bits(struct kvx_apic_mailbox *mb, int num_req)
-+{
-+	int first, align_mask = 0;
-+
-+	/* This must be a power of 2 for bitmap_find_next_zero_area to work */
-+	BUILD_BUG_ON((MAILBOXES_BITS_PER_PAGE & (MAILBOXES_BITS_PER_PAGE - 1)));
-+
++.text
++.align 16
++ENTRY(memset):
++	make $r32 = 0
++	make $r33 = 0
++	/* Check if length < KVX_DCACHE_LINE_SIZE */
++	compd.ltu $r7 = $r2, KVX_DCACHE_LINE_SIZE
++	/* Jump to generic memset if pattern is != 0 */
++	cb.dnez $r1? memset_non_0_pattern
++	;;
++	/* Preserve return value */
++	copyd $r3 = $r0
++	/* Invert address to compute size to copy to be aligned on 32 bytes */
++	negd $r5 = $r0
++	/* Remaining bytes for 16 bytes store (for alignment on 64 bytes) */
++	andd $r8 = $r2, (1 << 5)
++	copyq $r34r35 = $r32, $r33
++	/* Skip loopdo with dzerol if length < KVX_DCACHE_LINE_SIZE */
++	cb.dnez $r7? .Ldzerol_done
++	;;
++	/* Compute the size that will be copied to align on 64 bytes boundary */
++	andw $r6 = $r5, 0x3F
++	/* Check if address is aligned on 64 bytes */
++	andw $r9 = $r0, 0x3F
++	/* Alignment */
++	nop
++	;;
++	/* If address already aligned on 64 bytes, jump to dzerol loop */
++	cb.deqz $r9? .Laligned_64
++	/* Remove unaligned part from length */
++	sbfd $r2 = $r6, $r2
++	/* Check if we need to copy 1 byte */
++	andw $r4 = $r5, (1 << 0)
++	;;
++	/* If we are not aligned, store byte */
++	sb.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 2 bytes */
++	andw $r4 = $r5, (1 << 1)
++	/* Add potentially copied part for next store offset */
++	addd $r0 = $r0, $r4
++	;;
++	sh.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 4 bytes */
++	andw $r4 = $r5, (1 << 2)
++	addd $r0 = $r0, $r4
++	;;
++	sw.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 8 bytes */
++	andw $r4 = $r5, (1 << 3)
++	addd $r0 = $r0, $r4
++	;;
++	sd.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 16 bytes */
++	andw $r4 = $r5, (1 << 4)
++	addd $r0 = $r0, $r4
++	;;
++	sq.dnez $r4? [$r0] = $r32r33
++	/* Check if we need to copy 32 bytes */
++	andw $r4 = $r5, (1 << 5)
++	addd $r0 = $r0, $r4
++	;;
++	so.dnez $r4? [$r0] = $r32r33r34r35
++	addd $r0 = $r0, $r4
++	;;
++.Laligned_64:
++	/* Prepare amount of data for dzerol */
++	srld $r10 = $r2, 6
++	/* Size to be handled in loopdo */
++	andd $r4 = $r2, ~0x3F
++	make $r11 = 64
++	cb.deqz $r2? .Lmemset_done
++	;;
++	/* Remaining bytes for 16 bytes store */
++	andw $r8 = $r2, (1 << 5)
++	/* Skip dzerol if there are not enough data for 64 bytes store */
++	cb.deqz $r10? .Ldzerol_done
++	/* Update length to copy */
++	sbfd $r2 = $r4, $r2
++	;;
++	loopdo $r10, .Ldzerol_done
++		;;
++		so 0[$r0], $r32r33r34r35
++		;;
++		so 32[$r0], $r32r33r34r35
++		addd $r0 = $r0, $r11
++		;;
++	.Ldzerol_done:
 +	/*
-+	 * If user requested more than 1 mailbox, we must make sure it will be
-+	 * aligned on a page size for iommu_dma_prepare_msi to be correctly
-+	 * mapped in a single page.
++	 * Now that we have handled every aligned bytes using 'dzerol', we can
++	 * handled the remainder of length using store by decrementing size
++	 * We also exploit the fact we are aligned to simply check remaining
++	 * size */
++	so.dnez $r8? [$r0] = $r32r33r34r35
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 16 bytes store */
++	andw $r8 = $r2, (1 << 4)
++	cb.deqz $r2? .Lmemset_done
++	;;
++	sq.dnez $r8? [$r0] = $r32r33
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 8 bytes store */
++	andw $r8 = $r2, (1 << 3)
++	;;
++	sd.dnez $r8? [$r0] = $r32
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 4 bytes store */
++	andw $r8 = $r2, (1 << 2)
++	;;
++	sw.dnez $r8? [$r0] = $r32
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 2 bytes store */
++	andw $r8 = $r2, (1 << 1)
++	;;
++	sh.dnez $r8? [$r0] = $r32
++	addd $r0 = $r0, $r8
++	;;
++	sb.odd $r2? [$r0] = $r32
++	/* Restore original value */
++	copyd $r0 = $r3
++	ret
++	;;
++
++.align 16
++memset_non_0_pattern:
++	/* Preserve return value */
++	copyd $r3 = $r0
++	/* Replicate the first pattern byte on all bytes */
++	sbmm8 $r32 = $r1, REPLICATE_BYTE_MASK
++	/* Check if length < MIN_SIZE_FOR_ALIGN */
++	compd.geu $r7 = $r2, MIN_SIZE_FOR_ALIGN
++	/* Invert address to compute size to copy to be aligned on 32 bytes */
++	negd $r5 = $r0
++	;;
++	/* Check if we are aligned on 32 bytes */
++	andw $r9 = $r0, 0x1F
++	/* Compute the size that will be copied to align on 32 bytes boundary */
++	andw $r6 = $r5, 0x1F
++	/*
++	 * If size < MIN_SIZE_FOR_ALIGN bits, directly go to so, it will be done
++	 * unaligned but that is still better that what we can do with sb
 +	 */
-+	if (num_req > 1)
-+		align_mask = (MAILBOXES_BITS_PER_PAGE - 1);
++	cb.deqz $r7? .Laligned_32
++	;;
++	/* Remove unaligned part from length */
++	sbfd $r2 = $r6, $r2
++	/* If we are already aligned on 32 bytes, jump to main "so" loop */
++	cb.deqz $r9? .Laligned_32
++	/* Check if we need to copy 1 byte */
++	andw $r4 = $r5, (1 << 0)
++	;;
++	/* If we are not aligned, store byte */
++	sb.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 2 bytes */
++	andw $r4 = $r5, (1 << 1)
++	/* Add potentially copied part for next store offset */
++	addd $r0 = $r0, $r4
++	;;
++	sh.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 4 bytes */
++	andw $r4 = $r5, (1 << 2)
++	addd $r0 = $r0, $r4
++	;;
++	sw.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 8 bytes */
++	andw $r4 = $r5, (1 << 3)
++	addd $r0 = $r0, $r4
++	/* Copy second part of pattern for sq */
++	copyd $r33 = $r32
++	;;
++	sd.dnez $r4? [$r0] = $r32
++	/* Check if we need to copy 16 bytes */
++	andw $r4 = $r5, (1 << 4)
++	addd $r0 = $r0, $r4
++	;;
++	sq.dnez $r4? [$r0] = $r32r33
++	addd $r0 = $r0, $r4
++	;;
++.Laligned_32:
++	/* Copy second part of pattern for sq */
++	copyd $r33 = $r32
++	/* Prepare amount of data for 32 bytes store */
++	srld $r10 = $r2, 5
++	nop
++	nop
++	;;
++	copyq $r34r35 = $r32, $r33
++	/* Remaining bytes for 16 bytes store */
++	andw $r8 = $r2, (1 << 4)
++	make $r11 = 32
++	/* Check if there are enough data for 32 bytes store */
++	cb.deqz $r10? .Laligned_32_done
++	;;
++	loopdo $r10, .Laligned_32_done
++		;;
++		so 0[$r0] = $r32r33r34r35
++		addd $r0 = $r0, $r11
++		;;
++	.Laligned_32_done:
++	/*
++	 * Now that we have handled every aligned bytes using 'so', we can
++	 * handled the remainder of length using store by decrementing size
++	 * We also exploit the fact we are aligned to simply check remaining
++	 * size */
++	sq.dnez $r8? [$r0] = $r32r33
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 8 bytes store */
++	andw $r8 = $r2, (1 << 3)
++	cb.deqz $r2? .Lmemset_done
++	;;
++	sd.dnez $r8? [$r0] = $r32
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 4 bytes store */
++	andw $r8 = $r2, (1 << 2)
++	;;
++	sw.dnez $r8? [$r0] = $r32
++	addd $r0 = $r0, $r8
++	/* Remaining bytes for 2 bytes store */
++	andw $r8 = $r2, (1 << 1)
++	;;
++	sh.dnez $r8? [$r0] = $r32
++	addd $r0 = $r0, $r8
++	;;
++	sb.odd $r2? [$r0] = $r32
++	/* Restore original value */
++	copyd $r0 = $r3
++	ret
++	;;
++.Lmemset_done:
++	/* Restore original value */
++	copyd $r0 = $r3
++	ret
++	;;
++ENDPROC(memset)
+diff --git a/arch/kvx/lib/strlen.S b/arch/kvx/lib/strlen.S
+new file mode 100644
+index 000000000000..8298402a7898
+--- /dev/null
++++ b/arch/kvx/lib/strlen.S
+@@ -0,0 +1,122 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Jules Maselbas
++ */
++#include <linux/linkage.h>
++#include <asm/export.h>
 +
-+	spin_lock(&mb->mailboxes_lock);
++/*
++ *	kvx optimized strlen
++ *
++ *	This implementation of strlen only does aligned memory accesses.
++ *	Since we don't know the total length the idea is to do double word
++ *	load and stop on the first null byte found. As it's always safe to
++ *	read more up to a lower 8-bytes boundary.
++ *
++ *	This implementation of strlen uses a trick to detect if a double
++ *	word contains a null byte [1]:
++ *
++ *	> #define haszero(v) (((v) - 0x01010101UL) & ~(v) & 0x80808080UL)
++ *	> The sub-expression (v - 0x01010101UL), evaluates to a high bit set
++ *	> in any byte whenever the corresponding byte in v is zero or greater
++ *	> than 0x80. The sub-expression ~v & 0x80808080UL evaluates to high
++ *	> bits set in bytes where the byte of v doesn't have its high bit set
++ *	> (so the byte was less than 0x80). Finally, by ANDing these two sub-
++ *	> expressions the result is the high bits set where the bytes in v
++ *	> were zero, since the high bits set due to a value greater than 0x80
++ *	> in the first sub-expression are masked off by the second.
++ *
++ *	[1] http://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
++ *
++ *	A second trick is used to get the exact number of characters before
++ *	the first null byte in a double word:
++ *
++ *		clz(sbmmt(zero, 0x0102040810204080))
++ *
++ *	This trick uses the haszero result which maps null byte to 0x80 and
++ *	others value to 0x00. The idea is to count the number of consecutive
++ *	null byte in the double word (counting from less significant byte
++ *	to most significant byte). To do so, using the bit matrix transpose
++ *	will "pack" all high bit (0x80) to the most significant byte (MSB).
++ *	It is not possible to count the trailing zeros in this MSB, however
++ *	if a byte swap is done before the bit matrix transpose we still have
++ *	all the information in the MSB but now we can count the leading zeros.
++ *	The instruction sbmmt with the matrix 0x0102040810204080 does exactly
++ *	what we need a byte swap followed by a bit transpose.
++ *
++ *	A last trick is used to handle the first double word misalignment.
++ *	This is done by masking off the N lower bytes (excess read) with N
++ *	between 0 and 7. The mask is applied on haszero results and will
++ *	force the N lower bytes to be considered not null.
++ *
++ *	This is a C implementation of the algorithm described above:
++ *
++ *	size_t strlen(char *s) {
++ *		uint64_t *p    = (uint64_t *)((uintptr_t)s) & ~0x7;
++ *		uint64_t rem   = ((uintptr_t)s) % 8;
++ *		uint64_t low   = -0x0101010101010101;
++ *		uint64_t high  =  0x8080808080808080;
++ *		uint64_t dword, zero;
++ *		uint64_t msk, len;
++ *
++ *		dword = *p++;
++ *		zero  = (dword + low) & ~dword & high;
++ *		msk   = 0xffffffffffffffff << (rem * 8);
++ *		zero &= msk;
++ *
++ *		while (!zero) {
++ *			dword = *p++;
++ *			zero  = (dword + low) & ~dword & high;
++ *		}
++ *
++ *		zero = __builtin_kvx_sbmmt8(zero, 0x0102040810204080);
++ *		len = ((void *)p - (void *)s) - 8;
++ *		len += __builtin_kvx_clzd(zero);
++ *
++ *		return len;
++ *	}
++ */
 +
-+	first = bitmap_find_next_zero_area(mb->available,
-+			mb->mb_count * MAILBOXES_BIT_SIZE, 0,
-+			num_req, align_mask);
-+	if (first >= MAILBOXES_MAX_BIT_COUNT) {
-+		spin_unlock(&mb->mailboxes_lock);
-+		return -ENOSPC;
-+	}
++.text
++.align 16
++ENTRY(strlen)
++	andd  $r1 = $r0, ~0x7
++	andd  $r2 = $r0,  0x7
++	make $r10 = -0x0101010101010101
++	make $r11 =  0x8080808080808080
++	;;
++	ld $r4 = 0[$r1]
++	sllw $r2 = $r2, 3
++	make $r3 = 0xffffffffffffffff
++	;;
++	slld $r2 = $r3, $r2
++	addd $r5 = $r4, $r10
++	andnd $r6 = $r4, $r11
++	;;
++	andd $r6 = $r6, $r2
++	make $r3 = 0
++	;;
++.loop:
++	andd $r4 = $r5, $r6
++	addd $r1 = $r1, 0x8
++	;;
++	cb.dnez $r4? .end
++	ld.deqz $r4? $r4 = [$r1]
++	;;
++	addd $r5 = $r4, $r10
++	andnd $r6 = $r4, $r11
++	goto .loop
++	;;
++.end:
++	addd $r1 = $r1, -0x8
++	sbmmt8 $r4 = $r4, 0x0102040810204080
++	;;
++	clzd $r4 = $r4
++	sbfd $r1 = $r0, $r1
++	;;
++	addd $r0 = $r4, $r1
++	ret
++	;;
++ENDPROC(strlen)
++EXPORT_SYMBOL(strlen)
+diff --git a/arch/kvx/lib/usercopy.S b/arch/kvx/lib/usercopy.S
+new file mode 100644
+index 000000000000..bc7e1a45e1c7
+--- /dev/null
++++ b/arch/kvx/lib/usercopy.S
+@@ -0,0 +1,90 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
++ */
++#include <linux/linkage.h>
 +
-+	bitmap_set(mb->available, first, num_req);
-+
-+	spin_unlock(&mb->mailboxes_lock);
-+
-+	return first;
-+}
-+
-+static int kvx_apic_mailbox_msi_alloc(struct irq_domain *domain,
-+				      unsigned int virq,
-+				      unsigned int nr_irqs, void *args)
-+{
-+	int i, err;
-+	int hwirq = 0;
-+	u64 mb_addr;
-+	struct irq_data *d;
-+	struct kvx_irq_data *kd;
-+	struct kvx_apic_mailbox *mb = domain->host_data;
-+	struct msi_alloc_info *msi_info = (struct msi_alloc_info *)args;
-+	struct msi_desc *desc = msi_info->desc;
-+	unsigned int mb_num, mb_bit;
-+
-+	/* We will not be able to guarantee page alignment ! */
-+	if (nr_irqs > MAILBOXES_BITS_PER_PAGE)
-+		return -EINVAL;
-+
-+	hwirq = kvx_mailbox_allocate_bits(mb, nr_irqs);
-+	if (hwirq < 0)
-+		return hwirq;
-+
-+	kvx_mailbox_get_from_hwirq(hwirq, &mb_num, &mb_bit);
-+	mb_addr = (u64) kvx_mailbox_get_phys_addr(mb, mb_num);
-+	err = iommu_dma_prepare_msi(desc, mb_addr);
-+	if (err)
-+		goto free_mb_bits;
-+
-+	for (i = 0; i < nr_irqs; i++) {
-+		kd = kmalloc(sizeof(*kd), GFP_KERNEL);
-+		if (!kd) {
-+			err = -ENOMEM;
-+			goto free_irq_data;
-+		}
-+
-+		kd->mb = mb;
-+		irq_domain_set_info(domain, virq + i, hwirq + i,
-+				    &kvx_apic_mailbox_irq_chip,
-+				    kd, handle_simple_irq,
-+				    NULL, NULL);
-+	}
-+
-+	return 0;
-+
-+free_irq_data:
-+	for (i--; i >= 0; i--) {
-+		d = irq_domain_get_irq_data(domain, virq + i);
-+		kd = irq_data_get_irq_chip_data(d);
-+		kfree(kd);
-+	}
-+
-+free_mb_bits:
-+	spin_lock(&mb->mailboxes_lock);
-+	bitmap_clear(mb->available, hwirq, nr_irqs);
-+	spin_unlock(&mb->mailboxes_lock);
-+
-+	return err;
-+}
-+
-+static void kvx_apic_mailbox_msi_free(struct irq_domain *domain,
-+				      unsigned int virq,
-+				      unsigned int nr_irqs)
-+{
-+	int i;
-+	struct irq_data *d;
-+	struct kvx_irq_data *kd;
-+	struct kvx_apic_mailbox *mb = domain->host_data;
-+
-+	spin_lock(&mb->mailboxes_lock);
-+
-+	for (i = 0; i < nr_irqs; i++) {
-+		d = irq_domain_get_irq_data(domain, virq + i);
-+		kd = irq_data_get_irq_chip_data(d);
-+		kfree(kd);
-+		kvx_mailbox_free_bit(mb, d->hwirq);
-+	}
-+
-+	spin_unlock(&mb->mailboxes_lock);
-+}
-+
-+static const struct irq_domain_ops kvx_apic_mailbox_domain_ops = {
-+	.alloc  = kvx_apic_mailbox_msi_alloc,
-+	.free	= kvx_apic_mailbox_msi_free
-+};
-+
-+static struct irq_chip kvx_msi_irq_chip = {
-+	.name	= "KVX MSI",
-+};
-+
-+static void kvx_apic_mailbox_handle_irq(struct irq_desc *desc)
-+{
-+	struct irq_data *data = irq_desc_get_irq_data(desc);
-+	struct kvx_apic_mailbox *mb = irq_desc_get_handler_data(desc);
-+	void __iomem *mb_addr = kvx_mailbox_get_addr(mb, irqd_to_hwirq(data));
-+	unsigned int irqn, cascade_irq, bit;
-+	u64 mask_value, masked_its;
-+	u64 mb_value;
-+	/* Since we allocate 64 interrupts for each mailbox, the scheme
-+	 * to find the hwirq associated to a mailbox irq is the
-+	 * following:
-+	 * hw_irq = mb_num * MAILBOXES_BIT_SIZE + bit
-+	 */
-+	unsigned int mb_hwirq = irqd_to_hwirq(data) * MAILBOXES_BIT_SIZE;
-+
-+	mb_value = readq(mb_addr + KVX_MAILBOX_LAC_OFFSET);
-+	mask_value = readq(mb_addr + KVX_MAILBOX_MASK_OFFSET);
-+	/* Mask any disabled interrupts */
-+	mb_value &= mask_value;
-+
++/**
++ * Copy from/to a user buffer
++ * r0 = to buffer
++ * r1 = from buffer
++ * r2 = size to copy
++ * This function can trapped when hitting a non-mapped page.
++ * It will trigger a trap NOMAPPING and the trap handler will interpret
++ * it and check if instruction pointer is inside __ex_table.
++ * The next step are described later !
++ */
++.text
++ENTRY(raw_copy_from_user)
++ENTRY(raw_copy_to_user)
 +	/**
-+	 * Write all pending ITs that are masked to process them later
-+	 * Since the mailbox is in OR mode, these bits will be merged with any
-+	 * already set bits and thus avoid losing any interrupts.
++	 * naive implementation byte per byte
 +	 */
-+	masked_its = (~mask_value) & mb_value;
-+	if (masked_its)
-+		writeq(masked_its, mb_addr + KVX_MAILBOX_LAC_OFFSET);
++	make $r33 = 0x0;
++	/* If size == 0, exit directly */
++	cb.deqz $r2? copy_exit
++	;;
++	loopdo $r2, copy_exit
++		;;
++0:		lbz $r34 = $r33[$r1]
++		;;
++1:		sb $r33[$r0] = $r34
++		addd $r33 = $r33, 1 /* Ptr increment */
++		addd $r2 = $r2, -1 /* Remaining bytes to copy */
++		;;
++	copy_exit:
++	copyd $r0 = $r2
++	ret
++	;;
++ENDPROC(raw_copy_to_user)
++ENDPROC(raw_copy_from_user)
 +
-+	for_each_set_bit(bit, (unsigned long *) &mb_value, BITS_PER_LONG) {
-+		irqn = bit + mb_hwirq;
-+		cascade_irq = irq_find_mapping(mb->device_domain, irqn);
-+		generic_handle_irq(cascade_irq);
-+	}
-+}
++/**
++ * Exception table
++ * each entry correspond to the following:
++ * .dword trapping_addr, restore_addr
++ *
++ * On trap, the handler will try to locate if $spc is matching a
++ * trapping address in the exception table. If so, the restore addr
++ * will  be put in the return address of the trap handler, allowing
++ * to properly finish the copy and return only the bytes copied/cleared
++ */
++.pushsection __ex_table,"a"
++.balign 8
++.dword 0b, copy_exit
++.dword 1b, copy_exit
++.popsection
 +
-+static void __init
-+apic_mailbox_reset(struct kvx_apic_mailbox *mb)
-+{
-+	unsigned int i;
-+	unsigned int mb_end = mb->mb_count;
-+	void __iomem *mb_addr;
-+	u64 funct_val = (KVX_MAILBOX_MODE_OR << KVX_MAILBOX_FUNCT_MODE_SHIFT) |
-+		(KVX_MAILBOX_TRIG_DOORBELL << KVX_MAILBOX_FUNCT_TRIG_SHIFT);
++/**
++ * Clear a user buffer
++ * r0 = buffer to clear
++ * r1 = size to clear
++ */
++.text
++ENTRY(asm_clear_user)
++	/**
++	 * naive implementation byte per byte
++	 */
++	make $r33 = 0x0;
++	make $r34 = 0x0;
++	/* If size == 0, exit directly */
++	cb.deqz $r1? clear_exit
++	;;
++	loopdo $r1, clear_exit
++		;;
++40:		sb $r33[$r0] = $r34
++		addd $r33 = $r33, 1 /* Ptr increment */
++		addd $r1 = $r1, -1 /* Remaining bytes to copy */
++		;;
++	clear_exit:
++	copyd $r0 = $r1
++	ret
++	;;
++ENDPROC(asm_clear_user)
 +
-+	for (i = 0; i < mb_end; i++) {
-+		mb_addr = kvx_mailbox_get_addr(mb, i);
-+		/* Disable all interrupts */
-+		writeq(0ULL, mb_addr + KVX_MAILBOX_MASK_OFFSET);
-+		/* Set mailbox to OR mode + trigger */
-+		writeq(funct_val, mb_addr + KVX_MAILBOX_FUNCT_OFFSET);
-+		/* Load & Clear mailbox value */
-+		readq(mb_addr + KVX_MAILBOX_LAC_OFFSET);
-+	}
-+}
++.pushsection __ex_table,"a"
++.balign 8
++.dword 40b, clear_exit
++.popsection
 +
-+static struct msi_domain_ops kvx_msi_domain_ops = {
-+};
-+
-+static struct msi_domain_info kvx_msi_domain_info = {
-+	.flags	= (MSI_FLAG_USE_DEF_DOM_OPS | MSI_FLAG_USE_DEF_CHIP_OPS),
-+	.ops	= &kvx_msi_domain_ops,
-+	.chip	= &kvx_msi_irq_chip,
-+};
-+
-+static int __init
-+kvx_init_apic_mailbox(struct device_node *node,
-+		      struct device_node *parent)
-+{
-+	struct kvx_apic_mailbox *mb;
-+	unsigned int parent_irq, irq_count;
-+	struct resource res;
-+	int ret, i;
-+
-+	mb = kzalloc(sizeof(*mb), GFP_KERNEL);
-+	if (!mb)
-+		return -ENOMEM;
-+
-+	ret = of_address_to_resource(node, 0, &res);
-+	if (ret)
-+		return -EINVAL;
-+
-+	mb->phys_base = res.start;
-+	mb->base = of_io_request_and_map(node, 0, node->name);
-+	if (!mb->base) {
-+		ret = -EINVAL;
-+		goto err_kfree;
-+	}
-+
-+	spin_lock_init(&mb->mailboxes_lock);
-+	raw_spin_lock_init(&mb->mask_lock);
-+
-+	irq_count = of_irq_count(node);
-+	if (irq_count == 0 || irq_count > MAILBOXES_MAX_COUNT) {
-+		ret = -EINVAL;
-+		goto err_kfree;
-+	}
-+	mb->mb_count = irq_count;
-+
-+	apic_mailbox_reset(mb);
-+
-+	mb->device_domain = irq_domain_add_tree(node,
-+						&kvx_apic_mailbox_domain_ops,
-+						mb);
-+	if (!mb->device_domain) {
-+		pr_err("Failed to setup device domain\n");
-+		ret = -EINVAL;
-+		goto err_iounmap;
-+	}
-+
-+	mb->msi_domain = platform_msi_create_irq_domain(of_node_to_fwnode(node),
-+						     &kvx_msi_domain_info,
-+						     mb->device_domain);
-+	if (!mb->msi_domain) {
-+		ret = -EINVAL;
-+		goto err_irq_domain_add_tree;
-+	}
-+
-+	/* Chain all interrupts from gic to mailbox */
-+	for (i = 0; i < irq_count; i++) {
-+		parent_irq = irq_of_parse_and_map(node, i);
-+		if (parent_irq == 0) {
-+			pr_err("unable to parse irq\n");
-+			ret = -EINVAL;
-+			goto err_irq_domain_msi_create;
-+		}
-+		mb->mb_data[i].parent_irq = parent_irq;
-+
-+		irq_set_chained_handler_and_data(parent_irq,
-+						 kvx_apic_mailbox_handle_irq,
-+						 mb);
-+	}
-+
-+	return 0;
-+
-+err_irq_domain_msi_create:
-+	irq_domain_remove(mb->msi_domain);
-+err_irq_domain_add_tree:
-+	irq_domain_remove(mb->device_domain);
-+err_iounmap:
-+	iounmap(mb->base);
-+err_kfree:
-+	kfree(mb);
-+
-+	return ret;
-+}
-+
-+IRQCHIP_DECLARE(kvx_apic_mailbox, "kalray,kvx-apic-mailbox",
-+		kvx_init_apic_mailbox);
 -- 
 2.37.2
 
