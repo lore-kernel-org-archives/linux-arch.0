@@ -2,54 +2,48 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BB78C27C7C
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:12:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 414D4C27C7C
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:12:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231130AbjATOMZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Jan 2023 09:12:25 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38770 "EHLO
+        id S230471AbjATOM3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Jan 2023 09:12:29 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38748 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230402AbjATOLo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:11:44 -0500
-Received: from fx403.security-mail.net (smtpout140.security-mail.net [85.31.212.143])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D6F73C79E4
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:10:51 -0800 (PST)
-Received: from localhost (localhost [127.0.0.1])
-        by fx403.security-mail.net (Postfix) with ESMTP id AFC30464EF5
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:10:27 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kalray.eu;
-        s=sec-sig-email; t=1674223827;
-        bh=4aKV1M/EL8VkswXxboYvmLELXbn01a6LSiaOR7RanlU=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References;
-        b=AGJaQBDvOi776LK2rqgakPd/qioMiWy2q+y7NYpPYEMQlbrPg370D79tdz2TqUDhc
-         S56G4mPszOasqaHxq2HES5fIEmKcuxMtf2XMbd3Kyr+QKGUnwWUsudk6xvfxJpa0pz
-         0rkRpijvpwiPmz1L+M3/jqQ1Qk/6k2ZrdC1gCvJQ=
-Received: from fx403 (localhost [127.0.0.1]) by fx403.security-mail.net
- (Postfix) with ESMTP id 7210846581D; Fri, 20 Jan 2023 15:10:27 +0100 (CET)
+        with ESMTP id S230470AbjATOLq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:11:46 -0500
+Received: from fx306.security-mail.net (smtpout30.security-mail.net [85.31.212.36])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EC846C79D0
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:11:00 -0800 (PST)
+Received: from localhost (fx306.security-mail.net [127.0.0.1])
+        by fx306.security-mail.net (Postfix) with ESMTP id BB98A35CF57
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:10:28 +0100 (CET)
+Received: from fx306 (fx306.security-mail.net [127.0.0.1]) by
+ fx306.security-mail.net (Postfix) with ESMTP id 8144F35CEFC; Fri, 20 Jan
+ 2023 15:10:28 +0100 (CET)
 Received: from zimbra2.kalray.eu (unknown [217.181.231.53]) by
- fx403.security-mail.net (Postfix) with ESMTPS id BE917465A07; Fri, 20 Jan
- 2023 15:10:25 +0100 (CET)
+ fx306.security-mail.net (Postfix) with ESMTPS id D69B735CF42; Fri, 20 Jan
+ 2023 15:10:27 +0100 (CET)
 Received: from zimbra2.kalray.eu (localhost [127.0.0.1]) by
- zimbra2.kalray.eu (Postfix) with ESMTPS id 8630F27E0442; Fri, 20 Jan 2023
- 15:10:25 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPS id A1E9327E043D; Fri, 20 Jan 2023
+ 15:10:27 +0100 (CET)
 Received: from localhost (localhost [127.0.0.1]) by zimbra2.kalray.eu
- (Postfix) with ESMTP id 6823527E043E; Fri, 20 Jan 2023 15:10:25 +0100 (CET)
+ (Postfix) with ESMTP id 7762E27E0430; Fri, 20 Jan 2023 15:10:27 +0100 (CET)
 Received: from zimbra2.kalray.eu ([127.0.0.1]) by localhost
  (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
- huWm_inYEYG6; Fri, 20 Jan 2023 15:10:25 +0100 (CET)
+ JyeDd67fLWzC; Fri, 20 Jan 2023 15:10:27 +0100 (CET)
 Received: from junon.lin.mbt.kalray.eu (unknown [192.168.37.161]) by
- zimbra2.kalray.eu (Postfix) with ESMTPSA id E082F27E0430; Fri, 20 Jan 2023
- 15:10:24 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPSA id E4DF627E0439; Fri, 20 Jan 2023
+ 15:10:26 +0100 (CET)
 X-Virus-Scanned: E-securemail
-Secumail-id: <f081.63caa0d1.bc865.0>
-DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 6823527E043E
+Secumail-id: <ea9e.63caa0d3.d4f6b.0>
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 7762E27E0430
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
- s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223825;
- bh=hlMcSlbG2rCqvU+ECfcxotBg/9GcrvxSjAelxbRimRU=;
+ s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223827;
+ bh=pa4ScTG872xOzuRt8GX8Xf9/eL9W3gZxwoN/kQBQFss=;
  h=From:To:Date:Message-Id:MIME-Version;
- b=q18eV07c3WJmIMEDF7H3KwFnXpEamD137FAmmetmHTu/mgrGthaXokUF44+LeCpUp
- pJJFtVF7sOI7ZD2s+ZsEGDrm1rayzHMQTwcKThR7Iht6lL3o5jqjBUHHvgfAUfAkMP
- GplPjyCgRgqXTjYk1prY8ZSuYTjxlX17Xhdgw28s=
+ b=mCuKc4/UeROfSPy0qESb6bWw6haYw2yj/Thuaz88gp4Xo6fY7v11akHAnwnsq/SE/
+ l71YYm+MloYSX37ktexP6Ugc0NvI9sQziU77LnSg76PpXxXYDYmYnCLgz0FFptdvhN
+ uCVOH2np8u2uDy77i3yNVSUCOsRcLW4hLIHMTeNw=
 From:   Yann Sionneau <ysionneau@kalray.eu>
 To:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -113,10 +107,10 @@ Cc:     Benjamin Mugnier <mugnier.benjamin@gmail.com>,
         devicetree@vger.kernel.org, linux-mm@kvack.org,
         linux-arch@vger.kernel.org, linux-audit@redhat.com,
         linux-riscv@lists.infradead.org, bpf@vger.kernel.org
-Subject: [RFC PATCH v2 02/31] Documentation: Add binding for
- kalray,kv3-1-core-intc
-Date:   Fri, 20 Jan 2023 15:09:33 +0100
-Message-ID: <20230120141002.2442-3-ysionneau@kalray.eu>
+Subject: [RFC PATCH v2 06/31] Documentation: Add binding for
+ kalray,kv3-1-ipi-ctrl
+Date:   Fri, 20 Jan 2023 15:09:37 +0100
+Message-ID: <20230120141002.2442-7-ysionneau@kalray.eu>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <20230120141002.2442-1-ysionneau@kalray.eu>
 References: <20230120141002.2442-1-ysionneau@kalray.eu>
@@ -130,7 +124,7 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Jules Maselbas <jmaselbas@kalray.eu>
 
-Add documentation for `kalray,kv3-1-core-intc` binding.
+Add documentation for `kalray,kv3-1-ipi-ctrl` binding.
 
 Co-developed-by: Jules Maselbas <jmaselbas@kalray.eu>
 Signed-off-by: Jules Maselbas <jmaselbas@kalray.eu>
@@ -140,59 +134,57 @@ Signed-off-by: Yann Sionneau <ysionneau@kalray.eu>
 Notes:
     V1 -> V2: new patch
 
- .../kalray,kv3-1-core-intc.yaml               | 46 +++++++++++++++++++
- 1 file changed, 46 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-core-intc.yaml
+ .../kalray/kalray,kv3-1-ipi-ctrl.yaml         | 44 +++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/kalray/kalray,kv3-1-ipi-ctrl.yaml
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-core-intc.yaml b/Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-core-intc.yaml
+diff --git a/Documentation/devicetree/bindings/kalray/kalray,kv3-1-ipi-ctrl.yaml b/Documentation/devicetree/bindings/kalray/kalray,kv3-1-ipi-ctrl.yaml
 new file mode 100644
-index 000000000000..1e3d0593173a
+index 000000000000..dc8026b12905
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/kalray,kv3-1-core-intc.yaml
-@@ -0,0 +1,46 @@
++++ b/Documentation/devicetree/bindings/kalray/kalray,kv3-1-ipi-ctrl.yaml
+@@ -0,0 +1,44 @@
 +# SPDX-License-Identifier: GPL-2.0
 +%YAML 1.2
 +---
-+$id: http://devicetree.org/schemas/interrupt-controller/kalray,kv3-1-core-intc#
++$id: http://devicetree.org/schemas/kalray/kalray,kv3-1-ipi-ctrl#
 +$schema: http://devicetree.org/meta-schemas/core.yaml#
 +
-+title: Kalray kv3-1 Core Interrupt Controller
++title: Kalray kv3-1 Inter-Processor Interrupt Controller (IPI)
 +
 +description: |
-+  The Kalray Core Interrupt Controller is tightly integrated in each kv3 core
-+  present in the Coolidge SoC.
++  The Inter-Processor Interrupt Controller (IPI) provides a fast synchronization
++  mechanism to the software. It exposes eight independent set of registers that
++  can be use to notify each processor in the cluster.
++  A set of registers contains two 32-bit registers:
++    - 17-bit interrupt control, one bit per core, raise an interrupt on write
++    - 17-bit mask, one per core, to enable interrupts
 +
-+  It provides the following features:
-+  - 32 independent interrupt sources
-+  - 2-bit configurable priority level
-+  - 2-bit configurable ownership level
++  Bit at offsets 0 to 15 selects cores in the cluster, respectively PE0 to PE15,
++  while bit at offset 16 is for the cluster Resource Manager (RM) core.
 +
-+allOf:
-+  - $ref: /schemas/interrupt-controller.yaml#
++  The eight output interrupts are connected to each processor core interrupt
++  controller (intc).
 +
 +properties:
 +  compatible:
-+    const: kalray,kv3-1-core-intc
-+  "#interrupt-cells":
-+    const: 1
-+    description:
-+      The IRQ number.
++    const: kalray,kv3-1-ipi-ctrl
 +  reg:
-+    maxItems: 0
-+  "kalray,intc-nr-irqs":
-+    description: Number of irqs handled by the controller.
++    maxItems: 1
 +
 +required:
 +  - compatible
-+  - "#interrupt-cells"
-+  - interrupt-controller
++  - reg
++  - interrupt-parent
++  - interrupts
 +
 +examples:
 +  - |
-+    intc: interrupt-controller {
-+        compatible = "kalray,kv3-1-core-intc";
-+        #interrupt-cells = <1>;
-+        interrupt-controller;
++    ipi: inter-processor-interrupt@ad0000 {
++        compatible = "kalray,kv3-1-ipi-ctrl";
++        reg = <0x00 0xad0000 0x00 0x1000>;
++        interrupt-parent = <&intc>;
++        interrupts = <24>;
 +    };
 +
 +...
