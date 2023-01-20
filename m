@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9B42EC38A23
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:36:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C587CC25B4E
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:36:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229929AbjATOgF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Jan 2023 09:36:05 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39252 "EHLO
+        id S230171AbjATOgH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Jan 2023 09:36:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39302 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230087AbjATOf5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:35:57 -0500
+        with ESMTP id S231259AbjATOgB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:36:01 -0500
 Received: from fx601.security-mail.net (smtpout140.security-mail.net [85.31.212.146])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CE532A1016
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:35:14 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D1ADCCE88C
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:35:15 -0800 (PST)
 Received: from localhost (fx601.security-mail.net [127.0.0.1])
-        by fx601.security-mail.net (Postfix) with ESMTP id 8E7C13498E7
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:20:46 +0100 (CET)
+        by fx601.security-mail.net (Postfix) with ESMTP id CC9FB3498A6
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:20:45 +0100 (CET)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kalray.eu;
-        s=sec-sig-email; t=1674224447;
-        bh=bNmYslkbuquxKAj+Znp8eugUmqYemSNASVZgyAJPx68=;
+        s=sec-sig-email; t=1674224445;
+        bh=EHbGeTQPzFxRydvAjCAKTJptA7pNhkmTqYf6aPqpaxA=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References;
-        b=A+h3eu0UFyHNduTYB3NIv69sDB8fnzZ6N90iu5Dv+x2BBUTriSwjOVxpdmeKzeuJR
-         kNPsaF7l07CFLVRfnjhH4qCydeAmZVnwiF4ryulEXhqswmMSi0VP+goU3ppX+9zjUe
-         v+8Y+NRWEcqu5UFa9XwN0UInGcAL2sfSCu5M6lAo=
+        b=yWCwrwkzQCLQMcBRPseO+n4EUGXwVUuzwcsuLGwIe2DyGGzgC6Wbv9A6xYGwpajAU
+         Qlq5x30oSBZqvKVFNtFKp5PcU+P4fBLmI2ilZhrpztF6nkIBBTiub6KCCTFOitXLlb
+         crNVBEnRsafnrMh82aEPeNEtEH99xbkMliPQvBP8=
 Received: from fx601 (fx601.security-mail.net [127.0.0.1]) by
- fx601.security-mail.net (Postfix) with ESMTP id D814334988E; Fri, 20 Jan
+ fx601.security-mail.net (Postfix) with ESMTP id 429EC349859; Fri, 20 Jan
  2023 15:20:45 +0100 (CET)
 Received: from zimbra2.kalray.eu (unknown [217.181.231.53]) by
- fx601.security-mail.net (Postfix) with ESMTPS id A493E3497CD; Fri, 20 Jan
+ fx601.security-mail.net (Postfix) with ESMTPS id 1F87634967F; Fri, 20 Jan
  2023 15:20:44 +0100 (CET)
 Received: from zimbra2.kalray.eu (localhost [127.0.0.1]) by
- zimbra2.kalray.eu (Postfix) with ESMTPS id 3AAC327E0461; Fri, 20 Jan 2023
- 15:10:37 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPS id 7BC3F27E0481; Fri, 20 Jan 2023
+ 15:10:39 +0100 (CET)
 Received: from localhost (localhost [127.0.0.1]) by zimbra2.kalray.eu
- (Postfix) with ESMTP id 20DDD27E0456; Fri, 20 Jan 2023 15:10:37 +0100 (CET)
+ (Postfix) with ESMTP id 62F6427E047C; Fri, 20 Jan 2023 15:10:39 +0100 (CET)
 Received: from zimbra2.kalray.eu ([127.0.0.1]) by localhost
  (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
- O9iQteuEJcJb; Fri, 20 Jan 2023 15:10:37 +0100 (CET)
+ efK8YWmnYQbb; Fri, 20 Jan 2023 15:10:39 +0100 (CET)
 Received: from junon.lin.mbt.kalray.eu (unknown [192.168.37.161]) by
- zimbra2.kalray.eu (Postfix) with ESMTPSA id 9550C27E0457; Fri, 20 Jan 2023
- 15:10:36 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPSA id C9CA227E0474; Fri, 20 Jan 2023
+ 15:10:38 +0100 (CET)
 X-Virus-Scanned: E-securemail
-Secumail-id: <5c86.63caa33c.a2d74.0>
-DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 20DDD27E0456
+Secumail-id: <5b1f.63caa33c.1c743.0>
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 62F6427E047C
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
- s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223837;
- bh=3OWgg5n0jIy60CSKPsLXfDN5oeIG50h2WPbisKqx88I=;
+ s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223839;
+ bh=5C/8QjxVUf/DelpGCfD/Pp9BdUc2vZv56uJsfxSlXPA=;
  h=From:To:Date:Message-Id:MIME-Version;
- b=ha+njJPrX4jOZJ1/7CAya1KsiiCG+CEgarQekDqLqd2GgjUmheDnGnk7n4MPvjURn
- ZvRTniHv/MFR3PJRWqisBvTz8xd3DrHxIqcwqD8l4XW6bT/pQz3cSyEDB+1mKQh7op
- qOvusDQL3LvcPjBMP4WfmkcjLkmthT/TRFDXAjV0=
+ b=P6BtAyPM/IrloLG30cdWTPBhk6bnzZeuu0JK6hHT1AvSOjTEjV23l2HTVSkWp3YOM
+ JxhQxnIr6MpJR9Ve5OwsqaqYSpuYPPXnuoM+q+2xD3d01z+Z0ef6cKxQqGtJg6OcUa
+ Z5LRxJhk4HSsThMlK536n8tiuxt0/9UzyH8L0fvI=
 From:   Yann Sionneau <ysionneau@kalray.eu>
 To:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -114,9 +114,9 @@ Cc:     Benjamin Mugnier <mugnier.benjamin@gmail.com>,
         devicetree@vger.kernel.org, linux-mm@kvack.org,
         linux-arch@vger.kernel.org, linux-audit@redhat.com,
         linux-riscv@lists.infradead.org, bpf@vger.kernel.org
-Subject: [RFC PATCH v2 26/31] kvx: Add multi-processor (SMP) support
-Date:   Fri, 20 Jan 2023 15:09:57 +0100
-Message-ID: <20230120141002.2442-27-ysionneau@kalray.eu>
+Subject: [RFC PATCH v2 31/31] kvx: Add IPI driver
+Date:   Fri, 20 Jan 2023 15:10:02 +0100
+Message-ID: <20230120141002.2442-32-ysionneau@kalray.eu>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <20230120141002.2442-1-ysionneau@kalray.eu>
 References: <20230120141002.2442-1-ysionneau@kalray.eu>
@@ -128,361 +128,180 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Coolidge v1 SoC has 5 clusters of 17 kvx cores:
- - 16 application cores aka PE
- - 1 privileged core, the Resource Manager, aka RM.
+From: Jules Maselbas <jmaselbas@kalray.eu>
 
-Linux can run in SMP config on the 16 cores of a Cluster.
-
-Memory coherency between all cores is guarenteed by the L2 cache.
+The Inter-Processor Interrupt Controller (IPI) provides a fast
+synchronization mechanism to the software. It exposes eight independent
+set of registers that can be use to notify each processor in the cluster.
+test
 
 Co-developed-by: Clement Leger <clement@clement-leger.fr>
 Signed-off-by: Clement Leger <clement@clement-leger.fr>
+Co-developed-by: Guillaume Thouvenin <gthouvenin@kalray.eu>
+Signed-off-by: Guillaume Thouvenin <gthouvenin@kalray.eu>
 Co-developed-by: Julian Vetter <jvetter@kalray.eu>
 Signed-off-by: Julian Vetter <jvetter@kalray.eu>
-Co-developed-by: Julien Hascoet <jhascoet@kalray.eu>
-Signed-off-by: Julien Hascoet <jhascoet@kalray.eu>
-Co-developed-by: Louis Morhet <lmorhet@kalray.eu>
-Signed-off-by: Louis Morhet <lmorhet@kalray.eu>
 Co-developed-by: Luc Michel <lmichel@kalray.eu>
 Signed-off-by: Luc Michel <lmichel@kalray.eu>
-Co-developed-by: Marius Gligor <mgligor@kalray.eu>
-Signed-off-by: Marius Gligor <mgligor@kalray.eu>
-Co-developed-by: Yann Sionneau <ysionneau@kalray.eu>
+Signed-off-by: Jules Maselbas <jmaselbas@kalray.eu>
 Signed-off-by: Yann Sionneau <ysionneau@kalray.eu>
 ---
 
 Notes:
-    V1 -> V2:
-     - removed L2 cache driver
-     - removed ipi and pwr-ctrl driver (splitted in their own patch)
+    V1 -> V2: new patch
 
- arch/kvx/include/asm/smp.h |  42 ++++++++++++
- arch/kvx/kernel/smp.c      | 110 ++++++++++++++++++++++++++++++++
- arch/kvx/kernel/smpboot.c  | 127 +++++++++++++++++++++++++++++++++++++
- include/linux/cpuhotplug.h |   2 +
- 4 files changed, 281 insertions(+)
- create mode 100644 arch/kvx/include/asm/smp.h
- create mode 100644 arch/kvx/kernel/smp.c
- create mode 100644 arch/kvx/kernel/smpboot.c
+ arch/kvx/include/asm/ipi.h |  16 ++++++
+ arch/kvx/platform/Makefile |   1 +
+ arch/kvx/platform/ipi.c    | 108 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 125 insertions(+)
+ create mode 100644 arch/kvx/include/asm/ipi.h
+ create mode 100644 arch/kvx/platform/ipi.c
 
-diff --git a/arch/kvx/include/asm/smp.h b/arch/kvx/include/asm/smp.h
+diff --git a/arch/kvx/include/asm/ipi.h b/arch/kvx/include/asm/ipi.h
 new file mode 100644
-index 000000000000..e4fd4d001b2c
+index 000000000000..137407a075e6
 --- /dev/null
-+++ b/arch/kvx/include/asm/smp.h
-@@ -0,0 +1,42 @@
++++ b/arch/kvx/include/asm/ipi.h
+@@ -0,0 +1,16 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
 + */
 +
-+#ifndef _ASM_KVX_SMP_H
-+#define _ASM_KVX_SMP_H
++#ifndef _ASM_KVX_IPI_H
++#define _ASM_KVX_IPI_H
 +
-+#include <linux/cpumask.h>
 +#include <linux/irqreturn.h>
 +
-+#include <asm/sfr.h>
++int kvx_ipi_ctrl_probe(irqreturn_t (*ipi_irq_handler)(int, void *));
 +
-+#ifdef CONFIG_SMP
++void kvx_ipi_send(const struct cpumask *mask);
 +
-+/* Hook for the generic smp_call_function_many() routine. */
-+void arch_send_call_function_ipi_mask(struct cpumask *mask);
-+
-+/* Hook for the generic smp_call_function_single() routine. */
-+void arch_send_call_function_single_ipi(int cpu);
-+
-+void __init setup_processor(void);
-+
-+void smp_init_cpus(void);
-+
-+irqreturn_t ipi_call_interrupt(int irq, void *dev_id);
-+
-+#define raw_smp_processor_id() ((int) \
-+	((kvx_sfr_get(PCR) & KVX_SFR_PCR_PID_MASK) \
-+					>> KVX_SFR_PCR_PID_SHIFT))
-+
-+#define flush_cache_vmap(start, end)		do { } while (0)
-+#define flush_cache_vunmap(start, end)		do { } while (0)
-+
-+#else
-+
-+void smp_init_cpus(void) {}
-+
-+#endif /* CONFIG_SMP */
-+
-+#endif
-diff --git a/arch/kvx/kernel/smp.c b/arch/kvx/kernel/smp.c
++#endif /* _ASM_KVX_IPI_H */
+diff --git a/arch/kvx/platform/Makefile b/arch/kvx/platform/Makefile
+index c7d0abb15c27..27f0914e0de5 100644
+--- a/arch/kvx/platform/Makefile
++++ b/arch/kvx/platform/Makefile
+@@ -4,3 +4,4 @@
+ #
+ 
+ obj-$(CONFIG_SMP) += pwr_ctrl.o
++obj-$(CONFIG_SMP) += ipi.o
+diff --git a/arch/kvx/platform/ipi.c b/arch/kvx/platform/ipi.c
 new file mode 100644
-index 000000000000..ed4c35a8c4bc
+index 000000000000..a471039b1643
 --- /dev/null
-+++ b/arch/kvx/kernel/smp.c
-@@ -0,0 +1,110 @@
++++ b/arch/kvx/platform/ipi.c
+@@ -0,0 +1,108 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
-+ */
-+
-+#include <linux/smp.h>
-+#include <linux/cpu.h>
-+#include <linux/of_irq.h>
-+#include <linux/cpumask.h>
-+#include <linux/irq_work.h>
-+#include <linux/mm_types.h>
-+#include <linux/interrupt.h>
-+
-+#include <asm/ipi.h>
-+#include <asm/tlbflush.h>
-+
-+enum ipi_message_type {
-+	IPI_RESCHEDULE,
-+	IPI_CALL_FUNC,
-+	IPI_IRQ_WORK,
-+	IPI_MAX
-+};
-+
-+/* A collection of single bit ipi messages.  */
-+static struct {
-+	unsigned long bits ____cacheline_aligned;
-+} ipi_data[NR_CPUS] __cacheline_aligned;
-+
-+static void send_ipi_message(const struct cpumask *mask,
-+			     enum ipi_message_type operation)
-+{
-+	unsigned long flags;
-+	int cpu;
-+
-+	/* Set operation that must be done by receiver */
-+	for_each_cpu(cpu, mask)
-+		set_bit(operation, &ipi_data[cpu].bits);
-+
-+	/* Commit the write before sending IPI */
-+	smp_wmb();
-+
-+	local_irq_save(flags);
-+
-+	kvx_ipi_send(mask);
-+
-+	local_irq_restore(flags);
-+}
-+
-+void arch_send_call_function_ipi_mask(struct cpumask *mask)
-+{
-+	send_ipi_message(mask, IPI_CALL_FUNC);
-+}
-+
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC);
-+}
-+
-+#ifdef CONFIG_IRQ_WORK
-+void arch_irq_work_raise(void)
-+{
-+	send_ipi_message(cpumask_of(smp_processor_id()), IPI_IRQ_WORK);
-+}
-+#endif
-+
-+static void ipi_stop(void *unused)
-+{
-+	local_cpu_stop();
-+}
-+
-+void smp_send_stop(void)
-+{
-+	struct cpumask targets;
-+
-+	cpumask_copy(&targets, cpu_online_mask);
-+	cpumask_clear_cpu(smp_processor_id(), &targets);
-+
-+	smp_call_function_many(&targets, ipi_stop, NULL, 0);
-+}
-+
-+void smp_send_reschedule(int cpu)
-+{
-+	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
-+}
-+
-+irqreturn_t ipi_call_interrupt(int irq, void *dev_id)
-+{
-+	unsigned long *pending_ipis = &ipi_data[smp_processor_id()].bits;
-+
-+	while (true) {
-+		unsigned long ops = xchg(pending_ipis, 0);
-+
-+		if (ops == 0)
-+			return IRQ_HANDLED;
-+
-+		if (ops & (1 << IPI_RESCHEDULE))
-+			scheduler_ipi();
-+
-+		if (ops & (1 << IPI_CALL_FUNC))
-+			generic_smp_call_function_interrupt();
-+
-+		if (ops & (1 << IPI_IRQ_WORK))
-+			irq_work_run();
-+
-+		BUG_ON((ops >> IPI_MAX) != 0);
-+	}
-+
-+	return IRQ_HANDLED;
-+}
-diff --git a/arch/kvx/kernel/smpboot.c b/arch/kvx/kernel/smpboot.c
-new file mode 100644
-index 000000000000..987a6f014163
---- /dev/null
-+++ b/arch/kvx/kernel/smpboot.c
-@@ -0,0 +1,127 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Copyright (C) 2017-2023 Kalray Inc.
-+ * Author(s): Clement Leger
-+ *            Julian Vetter
++ *            Luc Michel
 + */
 +
 +#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 +
 +#include <linux/io.h>
-+#include <linux/of.h>
-+#include <linux/smp.h>
-+#include <linux/cpu.h>
-+#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/types.h>
++#include <linux/module.h>
++#include <linux/of_irq.h>
 +#include <linux/cpumask.h>
-+#include <linux/sched/mm.h>
-+#include <linux/mm_types.h>
++#include <linux/interrupt.h>
++#include <linux/cpuhotplug.h>
++#include <linux/of_address.h>
 +#include <linux/of_platform.h>
-+#include <linux/sched/task_stack.h>
 +
-+#include <asm/pwr_ctrl.h>
-+#include <asm/tlbflush.h>
-+#include <asm/ipi.h>
-+
-+void *__cpu_up_stack_pointer[NR_CPUS];
-+void *__cpu_up_task_pointer[NR_CPUS];
-+
-+void __init smp_prepare_boot_cpu(void)
-+{
-+}
-+
-+int __cpu_up(unsigned int cpu, struct task_struct *tidle)
-+{
-+	__cpu_up_stack_pointer[cpu] = task_stack_page(tidle) + THREAD_SIZE;
-+	__cpu_up_task_pointer[cpu] = tidle;
-+	/* We need to be sure writes are committed */
-+	smp_mb();
-+
-+	kvx_pwr_ctrl_cpu_poweron(cpu);
-+	while (!cpu_online(cpu))
-+		cpu_relax();
-+
-+	return 0;
-+}
-+
-+void __init smp_cpus_done(unsigned int max_cpus)
-+{
-+}
-+
-+void __init smp_init_cpus(void)
-+{
-+	struct cpumask cpumask;
-+	struct device_node *cpu;
-+	const __be32 *reg;
-+	u32 cpu_num;
-+	unsigned int nr_cpus = 0;
-+
-+	cpumask_clear(&cpumask);
-+
-+	for_each_of_cpu_node(cpu) {
-+		if (!of_device_is_available(cpu))
-+			continue;
-+
-+		reg = of_get_property(cpu, "reg", NULL);
-+		if (!reg)
-+			continue;
-+
-+		cpu_num = be32_to_cpup(reg);
-+		if (cpu_num >= nr_cpu_ids)
-+			continue;
-+
-+		nr_cpus++;
-+		cpumask_set_cpu(cpu_num, &cpumask);
-+	}
-+
-+	pr_info("%d possible cpus\n", nr_cpus);
-+	init_cpu_possible(&cpumask);
-+}
-+
-+void __init smp_prepare_cpus(unsigned int max_cpus)
-+{
-+	if (num_present_cpus() <= 1)
-+		init_cpu_present(cpu_possible_mask);
-+}
-+
-+int __init setup_smp(void)
-+{
-+	int ret;
-+
-+	ret = kvx_pwr_ctrl_probe();
-+	if (ret)
-+		panic("Failed to probe power controller !");
-+
-+	ret = kvx_ipi_ctrl_probe(ipi_call_interrupt);
-+	if (ret)
-+		panic("Failed to probe IPI controller !");
-+
-+	return 0;
-+}
-+
-+early_initcall(setup_smp);
++#define IPI_INTERRUPT_OFFSET	0x0
++#define IPI_MASK_OFFSET		0x20
 +
 +/*
-+ * C entry point for a secondary processor.
++ * IPI controller can signal RM and PE0 -> 15
++ * In order to restrict that to the PE, write the corresponding mask
 + */
-+void __init start_kernel_secondary(void)
++#define KVX_IPI_CPU_MASK	(~0xFFFF)
++
++struct kvx_ipi_ctrl {
++	void __iomem *regs;
++	unsigned int ipi_irq;
++};
++
++static struct kvx_ipi_ctrl kvx_ipi_controller;
++
++/**
++ * @kvx_pwr_ctrl_cpu_poweron Wakeup a cpu
++ *
++ * cpu: cpu to wakeup
++ */
++void kvx_ipi_send(const struct cpumask *mask)
 +{
-+	struct mm_struct *mm = &init_mm;
-+	unsigned int cpu = smp_processor_id();
++	const unsigned long *maskb = cpumask_bits(mask);
 +
-+	setup_processor();
-+	kvx_mmu_early_setup();
-+
-+	/* All kernel threads share the same mm context.  */
-+	mmgrab(mm);
-+	current->active_mm = mm;
-+	cpumask_set_cpu(cpu, mm_cpumask(mm));
-+
-+	notify_cpu_starting(cpu);
-+	set_cpu_online(cpu, true);
-+	trace_hardirqs_off();
-+
-+	local_flush_tlb_all();
-+
-+	local_irq_enable();
-+	cpu_startup_entry(CPUHP_AP_ONLINE_IDLE);
++	WARN_ON(*maskb & KVX_IPI_CPU_MASK);
++	writel(*maskb, kvx_ipi_controller.regs + IPI_INTERRUPT_OFFSET);
 +}
-diff --git a/include/linux/cpuhotplug.h b/include/linux/cpuhotplug.h
-index f61447913db9..f5a484547b15 100644
---- a/include/linux/cpuhotplug.h
-+++ b/include/linux/cpuhotplug.h
-@@ -152,6 +152,7 @@ enum cpuhp_state {
- 	CPUHP_AP_IRQ_RISCV_STARTING,
- 	CPUHP_AP_IRQ_LOONGARCH_STARTING,
- 	CPUHP_AP_IRQ_SIFIVE_PLIC_STARTING,
-+	CPUHP_AP_IRQ_KVX_STARTING,
- 	CPUHP_AP_ARM_MVEBU_COHERENCY,
- 	CPUHP_AP_MICROCODE_LOADER,
- 	CPUHP_AP_PERF_X86_AMD_UNCORE_STARTING,
-@@ -189,6 +190,7 @@ enum cpuhp_state {
- 	CPUHP_AP_KVM_ARM_VGIC_INIT_STARTING,
- 	CPUHP_AP_KVM_ARM_VGIC_STARTING,
- 	CPUHP_AP_KVM_ARM_TIMER_STARTING,
-+	CPUHP_AP_KVX_TIMER_STARTING,
- 	/* Must be the last timer callback */
- 	CPUHP_AP_DUMMY_TIMER_STARTING,
- 	CPUHP_AP_ARM_XEN_STARTING,
++
++static int kvx_ipi_starting_cpu(unsigned int cpu)
++{
++	enable_percpu_irq(kvx_ipi_controller.ipi_irq, IRQ_TYPE_NONE);
++
++	return 0;
++}
++
++static int kvx_ipi_dying_cpu(unsigned int cpu)
++{
++	disable_percpu_irq(kvx_ipi_controller.ipi_irq);
++
++	return 0;
++}
++
++int __init kvx_ipi_ctrl_probe(irqreturn_t (*ipi_irq_handler)(int, void *))
++{
++	struct device_node *np;
++	int ret;
++	unsigned int ipi_irq;
++	void __iomem *ipi_base;
++
++	np = of_find_compatible_node(NULL, NULL, "kalray,kvx-ipi-ctrl");
++	BUG_ON(!np);
++
++	ipi_base = of_iomap(np, 0);
++	BUG_ON(!ipi_base);
++
++	kvx_ipi_controller.regs = ipi_base;
++
++	/* Init mask for interrupts to PE0 -> PE15 */
++	writel(KVX_IPI_CPU_MASK, kvx_ipi_controller.regs + IPI_MASK_OFFSET);
++
++	ipi_irq = irq_of_parse_and_map(np, 0);
++	of_node_put(np);
++	if (!ipi_irq) {
++		pr_err("Failed to parse irq: %d\n", ipi_irq);
++		return -EINVAL;
++	}
++
++	ret = request_percpu_irq(ipi_irq, ipi_irq_handler,
++						"kvx_ipi", &kvx_ipi_controller);
++	if (ret) {
++		pr_err("can't register interrupt %d (%d)\n",
++						ipi_irq, ret);
++		return ret;
++	}
++	kvx_ipi_controller.ipi_irq = ipi_irq;
++
++	ret = cpuhp_setup_state(CPUHP_AP_IRQ_KVX_STARTING,
++				"kvx/ipi:online",
++				kvx_ipi_starting_cpu,
++				kvx_ipi_dying_cpu);
++	if (ret < 0) {
++		pr_err("Failed to setup hotplug state");
++		return ret;
++	}
++
++	return 0;
++}
 -- 
 2.37.2
 
