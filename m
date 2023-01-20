@@ -2,55 +2,55 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5B2E0C25B4E
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:17:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E8CABC25B4E
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:25:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230313AbjATORJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Jan 2023 09:17:09 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44042 "EHLO
+        id S230003AbjATOZj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Jan 2023 09:25:39 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55584 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230369AbjATORG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:17:06 -0500
-Received: from fx405.security-mail.net (smtpout140.security-mail.net [85.31.212.145])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C56E1C9260
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:16:19 -0800 (PST)
-Received: from localhost (fx405.security-mail.net [127.0.0.1])
-        by fx405.security-mail.net (Postfix) with ESMTP id 86E87335EE0
-        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:10:35 +0100 (CET)
+        with ESMTP id S229840AbjATOZh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:25:37 -0500
+Received: from fx303.security-mail.net (mxout.security-mail.net [85.31.212.46])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CF61D3B65C
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:25:14 -0800 (PST)
+Received: from localhost (fx303.security-mail.net [127.0.0.1])
+        by fx303.security-mail.net (Postfix) with ESMTP id 5A88D30F7A7
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:20:46 +0100 (CET)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kalray.eu;
-        s=sec-sig-email; t=1674223835;
-        bh=s0s3ZiOaChe4IspP/f0FkJ7Hvx4yiDNnsro9YJeTTzM=;
+        s=sec-sig-email; t=1674224446;
+        bh=pOkBOIfM3JMD67ygOoVKu1eQ66cv53r7ZKUe6yP7yBY=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References;
-        b=NYJxumxS5LYrv2pTdomRPl+OVVvqaBAo4kNGq82kihiJ/5wQ7SlfSX7xOgCn4eap3
-         znUNdtPG5/oTviicrKfq3onCFfDdKnu0k4btzE+wMjV2ydtEmcILjWCQaRGtTMrQO8
-         Wps+yMH/FjQAoJiHRgTcL2AxDIyH+bzK4T1KDcTI=
-Received: from fx405 (fx405.security-mail.net [127.0.0.1]) by
- fx405.security-mail.net (Postfix) with ESMTP id CA918335E9B; Fri, 20 Jan
- 2023 15:10:34 +0100 (CET)
+        b=QCZGQaIysX3VnwI0oLpXH0rg5WKYZkIc53LdJOnrKJmUsY2Ahi1V3e0CX95xiYv6W
+         Vy7d+FJsAPp1Tsu7VGvpPncstW9Kf8Np3nAfzeLBn96w1BvtLuelP+vbpbNcjeU6FH
+         pVd2VgAgtkBTukPPwGJhR4NKQKtXkZjepzX4umZM=
+Received: from fx303 (fx303.security-mail.net [127.0.0.1]) by
+ fx303.security-mail.net (Postfix) with ESMTP id 2142630F7C2; Fri, 20 Jan
+ 2023 15:20:46 +0100 (CET)
 Received: from zimbra2.kalray.eu (unknown [217.181.231.53]) by
- fx405.security-mail.net (Postfix) with ESMTPS id C95DC335B8A; Fri, 20 Jan
- 2023 15:10:33 +0100 (CET)
+ fx303.security-mail.net (Postfix) with ESMTPS id 259B630F7C0; Fri, 20 Jan
+ 2023 15:20:44 +0100 (CET)
 Received: from zimbra2.kalray.eu (localhost [127.0.0.1]) by
- zimbra2.kalray.eu (Postfix) with ESMTPS id 884B127E0444; Fri, 20 Jan 2023
- 15:10:33 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPS id 05DAE27E046C; Fri, 20 Jan 2023
+ 15:10:38 +0100 (CET)
 Received: from localhost (localhost [127.0.0.1]) by zimbra2.kalray.eu
- (Postfix) with ESMTP id 7018427E043D; Fri, 20 Jan 2023 15:10:33 +0100 (CET)
+ (Postfix) with ESMTP id E1B3627E0457; Fri, 20 Jan 2023 15:10:37 +0100 (CET)
 Received: from zimbra2.kalray.eu ([127.0.0.1]) by localhost
  (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
- qVvk-rOi_LrW; Fri, 20 Jan 2023 15:10:33 +0100 (CET)
+ IvWjvNbLtKjb; Fri, 20 Jan 2023 15:10:37 +0100 (CET)
 Received: from junon.lin.mbt.kalray.eu (unknown [192.168.37.161]) by
- zimbra2.kalray.eu (Postfix) with ESMTPSA id 0003627E0439; Fri, 20 Jan 2023
- 15:10:32 +0100 (CET)
+ zimbra2.kalray.eu (Postfix) with ESMTPSA id 7A7EF27E045E; Fri, 20 Jan 2023
+ 15:10:37 +0100 (CET)
 X-Virus-Scanned: E-securemail
-Secumail-id: <113d2.63caa0d9.c7c9d.0>
-DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 7018427E043D
+Secumail-id: <168e6.63caa33c.bea66.0>
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu E1B3627E0457
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
- s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223833;
- bh=1jVxsLsovn3fhaiWW+YOhEGV9C0R95VwjQdE5el+poY=;
+ s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223837;
+ bh=MWFUeJSXqLDohlytQZd/iLpZT+G8twsG/8uQn0QCk30=;
  h=From:To:Date:Message-Id:MIME-Version;
- b=lAi9EcZrOVnADHSlLn0HzqUHXd/OoVYz+1r4Pur0oLkIW89a5cu55ZEBVKaE81NSr
- 33VCPt0tq/2HWar0ALkfU+wvbyjMTEbO3NJrHfMZKcPQcwPkZHrzHWoRLcRVOuqooS
- hVnD0bnQbK/OUm35vmHbIDQ8ijLOINjegpqpvtoI=
+ b=UuqinM2S2Qepgl5gcemf89cU/+xmR/I2NOCerz0NYOkRRoqf6tMhwh0YdjfOwNPhP
+ hbPwi7gXupTxq/rpKVzY6hyE2mFc74OosyuP0A+u0C+ldJGkF24OtxkYoTbCSVNxcn
+ 2u/tBn13StGHmMLWcwz/mTNrZBsYy2a8sijheQtQ=
 From:   Yann Sionneau <ysionneau@kalray.eu>
 To:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -114,9 +114,9 @@ Cc:     Benjamin Mugnier <mugnier.benjamin@gmail.com>,
         devicetree@vger.kernel.org, linux-mm@kvack.org,
         linux-arch@vger.kernel.org, linux-audit@redhat.com,
         linux-riscv@lists.infradead.org, bpf@vger.kernel.org
-Subject: [RFC PATCH v2 19/31] kvx: Add process management
-Date:   Fri, 20 Jan 2023 15:09:50 +0100
-Message-ID: <20230120141002.2442-20-ysionneau@kalray.eu>
+Subject: [RFC PATCH v2 28/31] kvx: Add debugging related support
+Date:   Fri, 20 Jan 2023 15:09:59 +0100
+Message-ID: <20230120141002.2442-29-ysionneau@kalray.eu>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <20230120141002.2442-1-ysionneau@kalray.eu>
 References: <20230120141002.2442-1-ysionneau@kalray.eu>
@@ -128,8 +128,7 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add process management support for kvx, including: thread info
-definition, context switch and process tracing.
+Add kvx support for debugging
 
 Co-developed-by: Clement Leger <clement@clement-leger.fr>
 Signed-off-by: Clement Leger <clement@clement-leger.fr>
@@ -139,317 +138,96 @@ Co-developed-by: Julian Vetter <jvetter@kalray.eu>
 Signed-off-by: Julian Vetter <jvetter@kalray.eu>
 Co-developed-by: Marius Gligor <mgligor@kalray.eu>
 Signed-off-by: Marius Gligor <mgligor@kalray.eu>
-Co-developed-by: Vincent Chardon <vincent.chardon@elsys-design.com>
-Signed-off-by: Vincent Chardon <vincent.chardon@elsys-design.com>
 Co-developed-by: Yann Sionneau <ysionneau@kalray.eu>
 Signed-off-by: Yann Sionneau <ysionneau@kalray.eu>
 ---
 
 Notes:
-    V1 -> V2: no change
+    V1 -> V2: no changes
 
- arch/kvx/include/asm/current.h     |  22 +++
- arch/kvx/include/asm/ptrace.h      | 217 +++++++++++++++++++++++
- arch/kvx/include/asm/switch_to.h   |  21 +++
- arch/kvx/include/asm/thread_info.h |  78 ++++++++
- arch/kvx/include/uapi/asm/ptrace.h | 114 ++++++++++++
- arch/kvx/kernel/process.c          | 203 +++++++++++++++++++++
- arch/kvx/kernel/ptrace.c           | 276 +++++++++++++++++++++++++++++
- arch/kvx/kernel/stacktrace.c       | 173 ++++++++++++++++++
- 8 files changed, 1104 insertions(+)
- create mode 100644 arch/kvx/include/asm/current.h
- create mode 100644 arch/kvx/include/asm/ptrace.h
- create mode 100644 arch/kvx/include/asm/switch_to.h
- create mode 100644 arch/kvx/include/asm/thread_info.h
- create mode 100644 arch/kvx/include/uapi/asm/ptrace.h
- create mode 100644 arch/kvx/kernel/process.c
- create mode 100644 arch/kvx/kernel/ptrace.c
- create mode 100644 arch/kvx/kernel/stacktrace.c
+ arch/kvx/include/asm/debug.h      |  35 ++++++
+ arch/kvx/include/asm/insns.h      |  16 +++
+ arch/kvx/include/asm/insns_defs.h | 197 ++++++++++++++++++++++++++++++
+ arch/kvx/kernel/break_hook.c      |  76 ++++++++++++
+ arch/kvx/kernel/debug.c           |  64 ++++++++++
+ arch/kvx/kernel/insns.c           | 144 ++++++++++++++++++++++
+ 6 files changed, 532 insertions(+)
+ create mode 100644 arch/kvx/include/asm/debug.h
+ create mode 100644 arch/kvx/include/asm/insns.h
+ create mode 100644 arch/kvx/include/asm/insns_defs.h
+ create mode 100644 arch/kvx/kernel/break_hook.c
+ create mode 100644 arch/kvx/kernel/debug.c
+ create mode 100644 arch/kvx/kernel/insns.c
 
-diff --git a/arch/kvx/include/asm/current.h b/arch/kvx/include/asm/current.h
+diff --git a/arch/kvx/include/asm/debug.h b/arch/kvx/include/asm/debug.h
 new file mode 100644
-index 000000000000..b5fd0f076ec9
+index 000000000000..f60c632e6697
 --- /dev/null
-+++ b/arch/kvx/include/asm/current.h
-@@ -0,0 +1,22 @@
++++ b/arch/kvx/include/asm/debug.h
+@@ -0,0 +1,35 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
 + */
 +
-+#ifndef _ASM_KVX_CURRENT_H
-+#define _ASM_KVX_CURRENT_H
-+
-+#include <asm/percpu.h>
-+#include <asm/sfr.h>
-+
-+struct task_struct;
-+
-+static __always_inline struct task_struct *get_current(void)
-+{
-+	return (struct task_struct *) kvx_sfr_get(SR);
-+}
-+
-+#define current get_current()
-+
-+#endif	/* _ASM_KVX_CURRENT_H */
-diff --git a/arch/kvx/include/asm/ptrace.h b/arch/kvx/include/asm/ptrace.h
-new file mode 100644
-index 000000000000..d1b1e0975d9e
---- /dev/null
-+++ b/arch/kvx/include/asm/ptrace.h
-@@ -0,0 +1,217 @@
-+/* SPDX-License-Identifier: GPL-2.0-only */
-+/*
-+ * Copyright (C) 2017-2023 Kalray Inc.
-+ * Author(s): Clement Leger
-+ *            Marius Gligor
-+ *            Yann Sionneau
-+ */
-+
-+#ifndef _ASM_KVX_PTRACE_H
-+#define _ASM_KVX_PTRACE_H
-+
-+#include <asm/types.h>
-+#include <asm/sfr.h>
-+#include <uapi/asm/ptrace.h>
-+
-+#define GPR_COUNT	64
-+#define SFR_COUNT	9
-+#define VIRT_COUNT	1
-+
-+#define ES_SYSCALL	0x3
-+
-+#define KVX_HW_BREAKPOINT_COUNT		2
-+#define KVX_HW_WATCHPOINT_COUNT		1
-+
-+#define REG_SIZE	sizeof(u64)
++#ifndef __ASM_KVX_DEBUG_HOOK_H_
++#define __ASM_KVX_DEBUG_HOOK_H_
 +
 +/**
-+ * When updating pt_regs structure, this size must be updated.
-+ * This is the expected size of the pt_regs struct.
-+ * It ensures the structure layout from gcc is the same as the one we
-+ * expect in order to do packed load (load/store octuple) in assembly.
-+ * Conclusion: never put sizeof(pt_regs) in here or we lose this check
-+ * (build time check done in asm-offsets.c via BUILD_BUG_ON)
++ * enum debug_ret - Break return value
++ * @DEBUG_HOOK_HANDLED: Hook handled successfully
++ * @DEBUG_HOOK_IGNORED: Hook call has been ignored
 + */
-+#define PT_REGS_STRUCT_EXPECTED_SIZE \
-+			((GPR_COUNT + SFR_COUNT + VIRT_COUNT) * REG_SIZE + \
-+			2 * REG_SIZE) /* Padding for stack alignment */
-+
-+/**
-+ * Saved register structure. Note that we should save only the necessary
-+ * registers.
-+ * When you modify it, please read carefully the comment above.
-+ * Moreover, you will need to modify user_pt_regs to match the beginning
-+ * of this struct 1:1
-+ */
-+struct pt_regs {
-+	union {
-+		struct user_pt_regs user_regs;
-+		struct {
-+			/* GPR */
-+			uint64_t r0;
-+			uint64_t r1;
-+			uint64_t r2;
-+			uint64_t r3;
-+			uint64_t r4;
-+			uint64_t r5;
-+			uint64_t r6;
-+			uint64_t r7;
-+			uint64_t r8;
-+			uint64_t r9;
-+			uint64_t r10;
-+			uint64_t r11;
-+			union {
-+				uint64_t r12;
-+				uint64_t sp;
-+			};
-+			union {
-+				uint64_t r13;
-+				uint64_t tp;
-+			};
-+			union {
-+				uint64_t r14;
-+				uint64_t fp;
-+			};
-+			uint64_t r15;
-+			uint64_t r16;
-+			uint64_t r17;
-+			uint64_t r18;
-+			uint64_t r19;
-+			uint64_t r20;
-+			uint64_t r21;
-+			uint64_t r22;
-+			uint64_t r23;
-+			uint64_t r24;
-+			uint64_t r25;
-+			uint64_t r26;
-+			uint64_t r27;
-+			uint64_t r28;
-+			uint64_t r29;
-+			uint64_t r30;
-+			uint64_t r31;
-+			uint64_t r32;
-+			uint64_t r33;
-+			uint64_t r34;
-+			uint64_t r35;
-+			uint64_t r36;
-+			uint64_t r37;
-+			uint64_t r38;
-+			uint64_t r39;
-+			uint64_t r40;
-+			uint64_t r41;
-+			uint64_t r42;
-+			uint64_t r43;
-+			uint64_t r44;
-+			uint64_t r45;
-+			uint64_t r46;
-+			uint64_t r47;
-+			uint64_t r48;
-+			uint64_t r49;
-+			uint64_t r50;
-+			uint64_t r51;
-+			uint64_t r52;
-+			uint64_t r53;
-+			uint64_t r54;
-+			uint64_t r55;
-+			uint64_t r56;
-+			uint64_t r57;
-+			uint64_t r58;
-+			uint64_t r59;
-+			uint64_t r60;
-+			uint64_t r61;
-+			uint64_t r62;
-+			uint64_t r63;
-+
-+			/* SFR */
-+			uint64_t lc;
-+			uint64_t le;
-+			uint64_t ls;
-+			uint64_t ra;
-+
-+			uint64_t cs;
-+			uint64_t spc;
-+		};
-+	};
-+	uint64_t sps;
-+	uint64_t es;
-+
-+	uint64_t ilr;
-+
-+	/* "Virtual" registers */
-+	uint64_t orig_r0;
-+
-+	/* Padding for stack alignment (see STACK_ALIGN) */
-+	uint64_t padding[2];
-+
-+	/**
-+	 * If you add some fields, please read carefully the comment for
-+	 * PT_REGS_STRUCT_EXPECTED_SIZE.
-+	 */
++enum debug_ret {
++	DEBUG_HOOK_HANDLED = 0,
++	DEBUG_HOOK_IGNORED = 1,
 +};
 +
-+#define pl(__reg) kvx_sfr_field_val(__reg, PS, PL)
++/**
++ * struct debug_hook - Debug hook description
++ * @node: List node
++ * @handler: handler called on debug entry
++ * @mode: Hook mode (user/kernel)
++ */
++struct debug_hook {
++	struct list_head node;
++	int (*handler)(u64 ea, struct pt_regs *regs);
++	u8 mode;
++};
 +
-+#define MODE_KERNEL	0
-+#define MODE_USER	1
++void debug_hook_register(struct debug_hook *dbg_hook);
++void debug_hook_unregister(struct debug_hook *dbg_hook);
 +
-+/* Privilege level is relative in $sps, so 1 indicates current PL + 1 */
-+#define user_mode(regs)	(pl((regs)->sps) == MODE_USER)
-+#define es_ec(regs) kvx_sfr_field_val(regs->es, ES, EC)
-+#define es_sysno(regs) kvx_sfr_field_val(regs->es, ES, SN)
-+
-+#define debug_dc(es) kvx_sfr_field_val((es), ES, DC)
-+
-+/* ptrace */
-+#define PTRACE_GET_HW_PT_REGS	20
-+#define PTRACE_SET_HW_PT_REGS	21
-+#define arch_has_single_step()	1
-+
-+#define DEBUG_CAUSE_BREAKPOINT	0
-+#define DEBUG_CAUSE_WATCHPOINT	1
-+#define DEBUG_CAUSE_STEPI	2
-+#define DEBUG_CAUSE_DSU_BREAK	3
-+
-+static inline void enable_single_step(struct pt_regs *regs)
-+{
-+	regs->sps |= KVX_SFR_PS_SME_MASK;
-+}
-+
-+static inline void disable_single_step(struct pt_regs *regs)
-+{
-+	regs->sps &= ~KVX_SFR_PS_SME_MASK;
-+}
-+
-+static inline bool in_syscall(struct pt_regs const *regs)
-+{
-+	return es_ec(regs) == ES_SYSCALL;
-+}
-+
-+int do_syscall_trace_enter(struct pt_regs *regs, unsigned long syscall);
-+void do_syscall_trace_exit(struct pt_regs *regs);
-+
-+static inline unsigned long get_current_sp(void)
-+{
-+	register const unsigned long current_sp __asm__ ("$r12");
-+
-+	return current_sp;
-+}
-+
-+extern char *user_scall_rt_sigreturn_end;
-+extern char *user_scall_rt_sigreturn;
-+
-+static inline unsigned long instruction_pointer(struct pt_regs *regs)
-+{
-+	return regs->spc;
-+}
-+
-+static inline long regs_return_value(struct pt_regs *regs)
-+{
-+	return regs->r0;
-+}
-+
-+static inline unsigned long user_stack_pointer(struct pt_regs *regs)
-+{
-+	return regs->sp;
-+}
-+
-+#endif	/* _ASM_KVX_PTRACE_H */
-diff --git a/arch/kvx/include/asm/switch_to.h b/arch/kvx/include/asm/switch_to.h
++#endif /* __ASM_KVX_DEBUG_HOOK_H_ */
+diff --git a/arch/kvx/include/asm/insns.h b/arch/kvx/include/asm/insns.h
 new file mode 100644
-index 000000000000..2b1fda06dea8
+index 000000000000..36a9e8335ce8
 --- /dev/null
-+++ b/arch/kvx/include/asm/switch_to.h
-@@ -0,0 +1,21 @@
++++ b/arch/kvx/include/asm/insns.h
+@@ -0,0 +1,16 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
 + */
 +
-+#ifndef _ASM_KVX_SWITCH_TO_H
-+#define _ASM_KVX_SWITCH_TO_H
++#ifndef _ASM_KVX_INSNS_H
++#define _ASM_KVX_INSNS_H
 +
-+struct task_struct;
++int kvx_insns_write_nostop(u32 *insns, u8 insns_len, u32 *insn_addr);
 +
-+/* context switching is now performed out-of-line in switch_to.S */
-+extern struct task_struct *__switch_to(struct task_struct *prev,
-+				       struct task_struct *next);
++int kvx_insns_write(u32 *insns, unsigned long insns_len, u32 *addr);
 +
-+#define switch_to(prev, next, last)					\
-+	do {								\
-+		((last) = __switch_to((prev), (next)));			\
-+	} while (0)
++int kvx_insns_read(u32 *insns, unsigned long insns_len, u32 *addr);
 +
-+#endif	/* _ASM_KVX_SWITCH_TO_H */
-diff --git a/arch/kvx/include/asm/thread_info.h b/arch/kvx/include/asm/thread_info.h
++#endif
+diff --git a/arch/kvx/include/asm/insns_defs.h b/arch/kvx/include/asm/insns_defs.h
 new file mode 100644
-index 000000000000..4ce0154813ef
+index 000000000000..ed8d9d6f0817
 --- /dev/null
-+++ b/arch/kvx/include/asm/thread_info.h
-@@ -0,0 +1,78 @@
++++ b/arch/kvx/include/asm/insns_defs.h
+@@ -0,0 +1,197 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
@@ -457,866 +235,497 @@ index 000000000000..4ce0154813ef
 + *            Guillaume Thouvenin
 + */
 +
-+#ifndef _ASM_KVX_THREAD_INFO_H
-+#define _ASM_KVX_THREAD_INFO_H
++#ifndef __ASM_KVX_INSNS_DEFS_H_
++#define __ASM_KVX_INSNS_DEFS_H_
 +
-+#include <asm/page.h>
-+
-+/*
-+ * Size of the kernel stack for each process.
-+ */
-+#define THREAD_SIZE_ORDER       2
-+#define THREAD_SIZE             (PAGE_SIZE << THREAD_SIZE_ORDER)
-+
-+/*
-+ * Thread information flags
-+ *   these are process state flags that various assembly files may need to
-+ *   access
-+ *   - pending work-to-be-done flags are in LSW
-+ *   - other flags in MSW
-+ */
-+#define TIF_SYSCALL_TRACE	0	/* syscall trace active */
-+#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
-+#define TIF_SIGPENDING		2	/* signal pending */
-+#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
-+#define TIF_SINGLESTEP		4	/* restore singlestep on return to user mode */
-+#define TIF_UPROBE		5
-+#define TIF_SYSCALL_TRACEPOINT  6	/* syscall tracepoint instrumentation */
-+#define TIF_SYSCALL_AUDIT	7	/* syscall auditing active */
-+#define TIF_RESTORE_SIGMASK     9
-+#define TIF_NOTIFY_SIGNAL	10	/* signal notifications exist */
-+#define TIF_POLLING_NRFLAG	16	/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_MEMDIE              17
-+
-+#define _TIF_SYSCALL_TRACE	(1 << TIF_SYSCALL_TRACE)
-+#define _TIF_SYSCALL_TRACEPOINT	(1 << TIF_SYSCALL_TRACEPOINT)
-+#define _TIF_SYSCALL_AUDIT	(1 << TIF_SYSCALL_AUDIT)
-+#define _TIF_POLLING_NRFLAG	(1 << TIF_POLLING_NRFLAG)
-+#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-+#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-+#define _TIF_NOTIFY_SIGNAL	(1 << TIF_NOTIFY_SIGNAL)
-+
-+#define _TIF_WORK_MASK \
-+	(_TIF_NOTIFY_RESUME | _TIF_SIGPENDING | _TIF_NEED_RESCHED)
-+
-+#define _TIF_SYSCALL_WORK \
-+	(_TIF_SYSCALL_TRACE | _TIF_SYSCALL_TRACEPOINT | _TIF_SYSCALL_AUDIT)
++#include <linux/bits.h>
 +
 +#ifndef __ASSEMBLY__
-+/*
-+ * We are using THREAD_INFO_IN_TASK so this struct is almost useless
-+ * please prefer adding fields in thread_struct (processor.h) rather
-+ * than here.
-+ * This struct is merely a remnant of distant times where it was placed
-+ * on the stack to avoid large task_struct.
-+ *
-+ * cf https://lwn.net/Articles/700615/
-+ */
-+struct thread_info {
-+	unsigned long flags;				/* low level flags */
-+	int preempt_count;
-+#ifdef CONFIG_SMP
-+	u32 cpu;					/* current CPU */
-+#endif
-+};
++static inline int check_signed_imm(long long imm, int bits)
++{
++	long long min, max;
 +
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.flags		= 0,			\
-+	.preempt_count  = INIT_PREEMPT_COUNT,	\
++	min = -BIT_ULL(bits - 1);
++	max = BIT_ULL(bits - 1) - 1;
++	if (imm < min || imm > max)
++		return 1;
++
++	return 0;
 +}
-+#endif /* __ASSEMBLY__*/
-+#endif /* _ASM_KVX_THREAD_INFO_H */
-diff --git a/arch/kvx/include/uapi/asm/ptrace.h b/arch/kvx/include/uapi/asm/ptrace.h
++#endif /* __ASSEMBLY__ */
++
++#define BITMASK(bits)		(BIT_ULL(bits) - 1)
++
++#define KVX_INSN_SYLLABLE_WIDTH 4
++
++#define IS_INSN(__insn, __mnemo) \
++	((__insn & KVX_INSN_ ## __mnemo ## _MASK_0) == \
++	 KVX_INSN_ ## __mnemo ## _OPCODE_0)
++
++#define INSN_SIZE(__insn) \
++	(KVX_INSN_ ## __insn ## _SIZE * KVX_INSN_SYLLABLE_WIDTH)
++
++/* Values for general registers */
++#define KVX_REG_R0	0
++#define KVX_REG_R1	1
++#define KVX_REG_R2	2
++#define KVX_REG_R3	3
++#define KVX_REG_R4	4
++#define KVX_REG_R5	5
++#define KVX_REG_R6	6
++#define KVX_REG_R7	7
++#define KVX_REG_R8	8
++#define KVX_REG_R9	9
++#define KVX_REG_R10	10
++#define KVX_REG_R11	11
++#define KVX_REG_R12	12
++#define KVX_REG_SP	12
++#define KVX_REG_R13	13
++#define KVX_REG_TP	13
++#define KVX_REG_R14	14
++#define KVX_REG_FP	14
++#define KVX_REG_R15	15
++#define KVX_REG_R16	16
++#define KVX_REG_R17	17
++#define KVX_REG_R18	18
++#define KVX_REG_R19	19
++#define KVX_REG_R20	20
++#define KVX_REG_R21	21
++#define KVX_REG_R22	22
++#define KVX_REG_R23	23
++#define KVX_REG_R24	24
++#define KVX_REG_R25	25
++#define KVX_REG_R26	26
++#define KVX_REG_R27	27
++#define KVX_REG_R28	28
++#define KVX_REG_R29	29
++#define KVX_REG_R30	30
++#define KVX_REG_R31	31
++#define KVX_REG_R32	32
++#define KVX_REG_R33	33
++#define KVX_REG_R34	34
++#define KVX_REG_R35	35
++#define KVX_REG_R36	36
++#define KVX_REG_R37	37
++#define KVX_REG_R38	38
++#define KVX_REG_R39	39
++#define KVX_REG_R40	40
++#define KVX_REG_R41	41
++#define KVX_REG_R42	42
++#define KVX_REG_R43	43
++#define KVX_REG_R44	44
++#define KVX_REG_R45	45
++#define KVX_REG_R46	46
++#define KVX_REG_R47	47
++#define KVX_REG_R48	48
++#define KVX_REG_R49	49
++#define KVX_REG_R50	50
++#define KVX_REG_R51	51
++#define KVX_REG_R52	52
++#define KVX_REG_R53	53
++#define KVX_REG_R54	54
++#define KVX_REG_R55	55
++#define KVX_REG_R56	56
++#define KVX_REG_R57	57
++#define KVX_REG_R58	58
++#define KVX_REG_R59	59
++#define KVX_REG_R60	60
++#define KVX_REG_R61	61
++#define KVX_REG_R62	62
++#define KVX_REG_R63	63
++
++/* Value for bitfield parallel */
++#define KVX_INSN_PARALLEL_EOB	0x0
++#define KVX_INSN_PARALLEL_NONE	0x1
++
++#define KVX_INSN_PARALLEL(__insn)       (((__insn) >> 31) & 0x1)
++
++#define KVX_INSN_MAKE_IMM64_SIZE 3
++#define KVX_INSN_MAKE_IMM64_W64_CHECK(__val) \
++	(check_signed_imm(__val, 64))
++#define KVX_INSN_MAKE_IMM64_MASK_0 0xff030000
++#define KVX_INSN_MAKE_IMM64_OPCODE_0 0xe0000000
++#define KVX_INSN_MAKE_IMM64_SYLLABLE_0(__rw, __w64) \
++	(KVX_INSN_MAKE_IMM64_OPCODE_0 | (((__rw) & 0x3f) << 18) | (((__w64) & 0x3ff) << 6))
++#define KVX_INSN_MAKE_IMM64_MASK_1 0xe0000000
++#define KVX_INSN_MAKE_IMM64_OPCODE_1 0x80000000
++#define KVX_INSN_MAKE_IMM64_SYLLABLE_1(__w64) \
++	(KVX_INSN_MAKE_IMM64_OPCODE_1 | (((__w64) >> 10) & 0x7ffffff))
++#define KVX_INSN_MAKE_IMM64_SYLLABLE_2(__p, __w64) \
++	(((__p) << 31) | (((__w64) >> 37) & 0x7ffffff))
++#define KVX_INSN_MAKE_IMM64(__buf, __p, __rw, __w64) \
++do { \
++	(__buf)[0] = KVX_INSN_MAKE_IMM64_SYLLABLE_0(__rw, __w64); \
++	(__buf)[1] = KVX_INSN_MAKE_IMM64_SYLLABLE_1(__w64); \
++	(__buf)[2] = KVX_INSN_MAKE_IMM64_SYLLABLE_2(__p, __w64); \
++} while (0)
++
++#define KVX_INSN_ICALL_SIZE 1
++#define KVX_INSN_ICALL_MASK_0 0x7ffc0000
++#define KVX_INSN_ICALL_OPCODE_0 0xfdc0000
++#define KVX_INSN_ICALL_SYLLABLE_0(__p, __rz) \
++	(KVX_INSN_ICALL_OPCODE_0 | ((__p) << 31) | ((__rz) & 0x3f))
++#define KVX_INSN_ICALL(__buf, __p, __rz) \
++do { \
++	(__buf)[0] = KVX_INSN_ICALL_SYLLABLE_0(__p, __rz); \
++} while (0)
++
++#define KVX_INSN_IGOTO_SIZE 1
++#define KVX_INSN_IGOTO_MASK_0 0x7ffc0000
++#define KVX_INSN_IGOTO_OPCODE_0 0xfd80000
++#define KVX_INSN_IGOTO_SYLLABLE_0(__p, __rz) \
++	(KVX_INSN_IGOTO_OPCODE_0 | ((__p) << 31) | ((__rz) & 0x3f))
++#define KVX_INSN_IGOTO(__buf, __p, __rz) \
++do { \
++	(__buf)[0] = KVX_INSN_IGOTO_SYLLABLE_0(__p, __rz); \
++} while (0)
++
++#define KVX_INSN_CALL_SIZE 1
++#define KVX_INSN_CALL_PCREL27_CHECK(__val) \
++	(((__val) & BITMASK(2)) || check_signed_imm((__val) >> 2, 27))
++#define KVX_INSN_CALL_MASK_0 0x78000000
++#define KVX_INSN_CALL_OPCODE_0 0x18000000
++#define KVX_INSN_CALL_SYLLABLE_0(__p, __pcrel27) \
++	(KVX_INSN_CALL_OPCODE_0 | ((__p) << 31) | (((__pcrel27) >> 2) & 0x7ffffff))
++#define KVX_INSN_CALL(__buf, __p, __pcrel27) \
++do { \
++	(__buf)[0] = KVX_INSN_CALL_SYLLABLE_0(__p, __pcrel27); \
++} while (0)
++
++#define KVX_INSN_GOTO_SIZE 1
++#define KVX_INSN_GOTO_PCREL27_CHECK(__val) \
++	(((__val) & BITMASK(2)) || check_signed_imm((__val) >> 2, 27))
++#define KVX_INSN_GOTO_MASK_0 0x78000000
++#define KVX_INSN_GOTO_OPCODE_0 0x10000000
++#define KVX_INSN_GOTO_SYLLABLE_0(__p, __pcrel27) \
++	(KVX_INSN_GOTO_OPCODE_0 | ((__p) << 31) | (((__pcrel27) >> 2) & 0x7ffffff))
++#define KVX_INSN_GOTO(__buf, __p, __pcrel27) \
++do { \
++	(__buf)[0] = KVX_INSN_GOTO_SYLLABLE_0(__p, __pcrel27); \
++} while (0)
++
++#define KVX_INSN_NOP_SIZE 1
++#define KVX_INSN_NOP_MASK_0 0x7f03f000
++#define KVX_INSN_NOP_OPCODE_0 0x7f03f000
++#define KVX_INSN_NOP_SYLLABLE_0(__p) \
++	(KVX_INSN_NOP_OPCODE_0 | ((__p) << 31))
++#define KVX_INSN_NOP(__buf, __p) \
++do { \
++	(__buf)[0] = KVX_INSN_NOP_SYLLABLE_0(__p); \
++} while (0)
++
++#define KVX_INSN_SET_SIZE 1
++#define KVX_INSN_SET_MASK_0 0x7ffc0000
++#define KVX_INSN_SET_OPCODE_0 0xfc00000
++#define KVX_INSN_SET_SYLLABLE_0(__p, __systemT3, __rz) \
++	(KVX_INSN_SET_OPCODE_0 | ((__p) << 31) | (((__systemT3) & 0x1ff) << 6) | ((__rz) & 0x3f))
++#define KVX_INSN_SET(__buf, __p, __systemT3, __rz) \
++do { \
++	(__buf)[0] = KVX_INSN_SET_SYLLABLE_0(__p, __systemT3, __rz); \
++} while (0)
++
++#endif /* __ASM_KVX_INSNS_DEFS_H_ */
+diff --git a/arch/kvx/kernel/break_hook.c b/arch/kvx/kernel/break_hook.c
 new file mode 100644
-index 000000000000..f5febe830526
+index 000000000000..da38910dab04
 --- /dev/null
-+++ b/arch/kvx/include/uapi/asm/ptrace.h
-@@ -0,0 +1,114 @@
-+/* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
-+/*
-+ * Copyright (C) 2017-2023 Kalray Inc.
-+ * Author(s): Clement Leger
-+ *            Yann Sionneau
-+ */
-+
-+#ifndef _UAPI_ASM_KVX_PTRACE_H
-+#define _UAPI_ASM_KVX_PTRACE_H
-+
-+#include <linux/types.h>
-+/*
-+ * User-mode register state for core dumps, ptrace, sigcontext
-+ *
-+ * This decouples struct pt_regs from the userspace ABI.
-+ * The struct pt_regs must start with the same layout as struct user_pt_regs.
-+ */
-+struct user_pt_regs {
-+	/* GPR */
-+	unsigned long r0;
-+	unsigned long r1;
-+	unsigned long r2;
-+	unsigned long r3;
-+	unsigned long r4;
-+	unsigned long r5;
-+	unsigned long r6;
-+	unsigned long r7;
-+	unsigned long r8;
-+	unsigned long r9;
-+	unsigned long r10;
-+	unsigned long r11;
-+	union {
-+		unsigned long r12;
-+		unsigned long sp;
-+	};
-+	union {
-+		unsigned long r13;
-+		unsigned long tp;
-+	};
-+	union {
-+		unsigned long r14;
-+		unsigned long fp;
-+	};
-+	unsigned long r15;
-+	unsigned long r16;
-+	unsigned long r17;
-+	unsigned long r18;
-+	unsigned long r19;
-+	unsigned long r20;
-+	unsigned long r21;
-+	unsigned long r22;
-+	unsigned long r23;
-+	unsigned long r24;
-+	unsigned long r25;
-+	unsigned long r26;
-+	unsigned long r27;
-+	unsigned long r28;
-+	unsigned long r29;
-+	unsigned long r30;
-+	unsigned long r31;
-+	unsigned long r32;
-+	unsigned long r33;
-+	unsigned long r34;
-+	unsigned long r35;
-+	unsigned long r36;
-+	unsigned long r37;
-+	unsigned long r38;
-+	unsigned long r39;
-+	unsigned long r40;
-+	unsigned long r41;
-+	unsigned long r42;
-+	unsigned long r43;
-+	unsigned long r44;
-+	unsigned long r45;
-+	unsigned long r46;
-+	unsigned long r47;
-+	unsigned long r48;
-+	unsigned long r49;
-+	unsigned long r50;
-+	unsigned long r51;
-+	unsigned long r52;
-+	unsigned long r53;
-+	unsigned long r54;
-+	unsigned long r55;
-+	unsigned long r56;
-+	unsigned long r57;
-+	unsigned long r58;
-+	unsigned long r59;
-+	unsigned long r60;
-+	unsigned long r61;
-+	unsigned long r62;
-+	unsigned long r63;
-+
-+	/* SFR */
-+	unsigned long lc;
-+	unsigned long le;
-+	unsigned long ls;
-+	unsigned long ra;
-+
-+	unsigned long cs;
-+	unsigned long spc;
-+};
-+
-+/* TCA registers structure exposed to user */
-+struct user_tca_regs {
-+	struct {
-+		__u64 x;
-+		__u64 y;
-+		__u64 z;
-+		__u64 t;
-+	} regs[48];
-+};
-+
-+#endif /* _UAPI_ASM_KVX_PTRACE_H */
-diff --git a/arch/kvx/kernel/process.c b/arch/kvx/kernel/process.c
-new file mode 100644
-index 000000000000..2a1cd0509604
---- /dev/null
-+++ b/arch/kvx/kernel/process.c
-@@ -0,0 +1,203 @@
++++ b/arch/kvx/kernel/break_hook.c
+@@ -0,0 +1,76 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
-+ *            Guillaume Thouvenin
-+ *            Marius Gligor
-+ *            Yann Sionneau
 + */
 +
-+#include <linux/elf.h>
-+#include <linux/sched.h>
-+#include <linux/ptrace.h>
-+#include <linux/printk.h>
-+#include <linux/sched/debug.h>
-+#include <linux/sched/task_stack.h>
++#include <linux/list.h>
++#include <linux/rculist.h>
++#include <linux/spinlock.h>
++#include <linux/rcupdate.h>
 +
-+#include <asm/ptrace.h>
++#include <asm/traps.h>
 +#include <asm/processor.h>
-+#include <asm/ptrace.h>
-+#include <asm/uaccess.h>
-+#include <asm/stacktrace.h>
-+
-+#if defined(CONFIG_STACKPROTECTOR)
-+#include <linux/stackprotector.h>
-+unsigned long __stack_chk_guard __read_mostly;
-+EXPORT_SYMBOL(__stack_chk_guard);
-+#endif
-+
-+#define SCALL_NUM_EXIT	"0xfff"
-+
-+void arch_cpu_idle(void)
-+{
-+	wait_for_interrupt();
-+	local_irq_enable();
-+}
-+
-+void show_regs(struct pt_regs *regs)
-+{
-+
-+	int in_kernel = 1;
-+	unsigned short i, reg_offset;
-+	void *ptr;
-+
-+	show_regs_print_info(KERN_DEFAULT);
-+
-+	if (user_mode(regs))
-+		in_kernel = 0;
-+
-+	pr_info("\nmode: %s\n"
-+	       "    PC: %016llx    PS: %016llx\n"
-+	       "    CS: %016llx    RA: %016llx\n"
-+	       "    LS: %016llx    LE: %016llx\n"
-+	       "    LC: %016llx\n\n",
-+	       in_kernel ? "kernel" : "user",
-+	       regs->spc, regs->sps,
-+	       regs->cs, regs->ra, regs->ls, regs->le, regs->lc);
-+
-+	/* GPR */
-+	ptr = regs;
-+	ptr += offsetof(struct pt_regs, r0);
-+	reg_offset = offsetof(struct pt_regs, r1) -
-+		     offsetof(struct pt_regs, r0);
-+
-+	/**
-+	 * Display all the 64 GPRs assuming they are ordered correctly
-+	 * in the pt_regs struct...
-+	 */
-+	for (i = 0; i < GPR_COUNT; i += 2) {
-+		pr_info("    R%d: %016llx    R%d: %016llx\n",
-+			 i, *(uint64_t *)ptr,
-+			 i + 1, *(uint64_t *)(ptr + reg_offset));
-+		ptr += reg_offset * 2;
-+	}
-+
-+	pr_info("\n\n");
-+}
-+
-+/**
-+ * Prepare a thread to return to userspace
-+ */
-+void start_thread(struct pt_regs *regs,
-+			unsigned long pc, unsigned long sp)
-+{
-+	/* Remove MMUP bit (user is not privilege in current virtual space) */
-+	u64 clear_bit = KVX_SFR_PS_MMUP_MASK | KVX_SFR_PS_SME_MASK |
-+			KVX_SFR_PS_SMR_MASK;
-+	regs->spc = pc;
-+	regs->sp = sp;
-+	regs->sps = kvx_sfr_get(PS);
-+
-+	regs->sps &= ~clear_bit;
-+
-+	/* Set privilege level to +1 (relative) */
-+	regs->sps &= ~KVX_SFR_PS_PL_MASK;
-+	regs->sps |= (1 << KVX_SFR_PS_PL_SHIFT);
-+}
-+
-+int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
-+{
-+	struct pt_regs *regs, *childregs = task_pt_regs(p);
-+	unsigned long clone_flags = args->flags;
-+	unsigned long usp = args->stack;
-+	unsigned long tls = args->tls;
-+
-+	/* p->thread holds context to be restored by __switch_to() */
-+	if (unlikely(args->fn)) {
-+		/* Kernel thread */
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+
-+		p->thread.ctx_switch.r20 = (uint64_t)args->fn; /* fn */
-+		p->thread.ctx_switch.r21 = (uint64_t)args->fn_arg;
-+		p->thread.ctx_switch.ra =
-+				(unsigned long) ret_from_kernel_thread;
-+	} else {
-+		regs = current_pt_regs();
-+
-+		/* Copy current process registers */
-+		*childregs = *regs;
-+
-+		/* Store tracing status in r20 to avoid computing it
-+		 * in assembly
-+		 */
-+		p->thread.ctx_switch.r20 =
-+			task_thread_info(p)->flags & _TIF_SYSCALL_WORK;
-+		p->thread.ctx_switch.ra = (unsigned long) ret_from_fork;
-+
-+		childregs->r0 = 0; /* Return value of fork() */
-+		/* Set stack pointer if any */
-+		if (usp)
-+			childregs->sp = usp;
-+
-+		/* Set a new TLS ?  */
-+		if (clone_flags & CLONE_SETTLS)
-+			childregs->r13 = tls;
-+	}
-+	p->thread.kernel_sp =
-+		(unsigned long) (task_stack_page(p) + THREAD_SIZE);
-+	p->thread.ctx_switch.sp = (unsigned long) childregs;
-+
-+	return 0;
-+}
-+
-+void release_thread(struct task_struct *dead_task)
-+{
-+}
-+
-+void flush_thread(void)
-+{
-+}
-+
-+/* Fill in the fpu structure for a core dump.  */
-+int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
-+{
-+	/*
-+	 * On kvx, FPU uses standard registers + $cs which is a common register
-+	 * also needed for non-fpu execution, so there is no additional
-+	 * register to dump.
-+	 */
-+	return 0;
-+}
-+
-+static bool find_wchan(unsigned long pc, void *arg)
-+{
-+	unsigned long *p = arg;
-+
-+	/*
-+	 * If the pc is in a scheduler function (waiting), then, this is the
-+	 * address where the process is currently stuck. Note that scheduler
-+	 * functions also include lock functions. This functions are
-+	 * materialized using annotation to put them is special text sections.
-+	 */
-+	if (!in_sched_functions(pc)) {
-+		*p = pc;
-+		return true;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * __get_wchan is called to obtain "schedule()" caller function address.
-+ */
-+unsigned long __get_wchan(struct task_struct *p)
-+{
-+	unsigned long pc = 0;
-+	struct stackframe frame;
-+
-+	/*
-+	 * We need to obtain the task stack since we don't want the stack to
-+	 * move under our feet.
-+	 */
-+	if (!try_get_task_stack(p))
-+		return 0;
-+
-+	start_stackframe(&frame, thread_saved_reg(p, fp),
-+			 thread_saved_reg(p, ra));
-+	walk_stackframe(p, &frame, find_wchan, &pc);
-+
-+	put_task_stack(p);
-+
-+	return pc;
-+}
-+
-diff --git a/arch/kvx/kernel/ptrace.c b/arch/kvx/kernel/ptrace.c
-new file mode 100644
-index 000000000000..aacae5883cb5
---- /dev/null
-+++ b/arch/kvx/kernel/ptrace.c
-@@ -0,0 +1,276 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * derived from arch/riscv/kernel/ptrace.c
-+ *
-+ * Copyright (C) 2017-2023 Kalray Inc.
-+ * Author(s): Marius Gligor
-+ *            Clement Leger
-+ */
-+
-+#include <linux/sched.h>
-+#include <linux/sched.h>
-+#include <linux/audit.h>
-+#include <linux/irqflags.h>
-+#include <linux/thread_info.h>
-+#include <linux/context_tracking.h>
-+#include <linux/uaccess.h>
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/regset.h>
-+#include <linux/hw_breakpoint.h>
-+
-+#include <asm/dame.h>
-+#include <asm/ptrace.h>
-+#include <asm/syscall.h>
 +#include <asm/break_hook.h>
-+#include <asm/debug.h>
-+#include <asm/cacheflush.h>
 +
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/syscalls.h>
++static DEFINE_SPINLOCK(debug_hook_lock);
++static LIST_HEAD(user_break_hook);
++static LIST_HEAD(kernel_break_hook);
 +
-+#define HW_PT_CMD_GET_CAPS	0
-+#define HW_PT_CMD_GET_PT	1
-+#define HW_PT_CMD_SET_RESERVE	0
-+#define HW_PT_CMD_SET_ENABLE	1
-+
-+#define FROM_GDB_CMD_MASK 3
-+#define FROM_GDB_HP_TYPE_SHIFT 2
-+#define FROM_GDB_HP_TYPE_MASK 4
-+#define FROM_GDB_WP_TYPE_SHIFT 3
-+#define FROM_GDB_WP_TYPE_MASK 0x18
-+#define FROM_GDB_HP_IDX_SHIFT 5
-+
-+#define hw_pt_cmd(addr) ((addr) & FROM_GDB_CMD_MASK)
-+#define hw_pt_is_bkp(addr) ((((addr) & FROM_GDB_HP_TYPE_MASK) >> \
-+			     FROM_GDB_HP_TYPE_SHIFT) == KVX_HW_BREAKPOINT_TYPE)
-+#define get_hw_pt_wp_type(addr) ((((addr) & FROM_GDB_WP_TYPE_MASK)) >> \
-+				 FROM_GDB_WP_TYPE_SHIFT)
-+#define get_hw_pt_idx(addr) ((addr) >> FROM_GDB_HP_IDX_SHIFT)
-+#define get_hw_pt_addr(data) ((data)[0])
-+#define get_hw_pt_len(data) ((data)[1] >> 1)
-+#define hw_pt_is_enabled(data) ((data)[1] & 1)
-+
-+enum kvx_regset {
-+	REGSET_GPR,
-+#ifdef CONFIG_ENABLE_TCA
-+	REGSET_TCA,
-+#endif
-+};
-+
-+void ptrace_disable(struct task_struct *child)
++void kvx_skip_break_insn(struct pt_regs *regs)
 +{
-+	/* nothing to do */
++	regs->spc += KVX_BREAK_INSN_SIZE;
 +}
 +
-+static int kvx_gpr_get(struct task_struct *target,
-+			 const struct user_regset *regset,
-+			 struct membuf to)
++int break_hook_handler(uint64_t es, struct pt_regs *regs)
 +{
-+	struct user_pt_regs *regs = &task_pt_regs(target)->user_regs;
++	int (*fn)(struct break_hook *brk_hook, struct pt_regs *regs) = NULL;
++	struct break_hook *tmp_hook, *hook = NULL;
++	struct list_head *list;
++	unsigned long flags;
++	u32 idx;
 +
-+	return membuf_write(&to, regs, sizeof(*regs));
-+}
-+
-+static int kvx_gpr_set(struct task_struct *target,
-+			 const struct user_regset *regset,
-+			 unsigned int pos, unsigned int count,
-+			 const void *kbuf, const void __user *ubuf)
-+{
-+	struct user_pt_regs *regs = &task_pt_regs(target)->user_regs;
-+
-+	return user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs, 0, -1);
-+}
-+
-+#ifdef CONFIG_ENABLE_TCA
-+static int kvx_tca_reg_get(struct task_struct *target,
-+			 const struct user_regset *regset,
-+			 struct membuf to)
-+{
-+	struct ctx_switch_regs *ctx_regs = &target->thread.ctx_switch;
-+	struct tca_reg *regs = ctx_regs->tca_regs;
-+	int ret;
-+
-+	if (!ctx_regs->tca_regs_saved)
-+		ret = membuf_zero(&to, sizeof(*regs));
-+	else
-+		ret = membuf_write(&to, regs, sizeof(*regs));
-+
-+	return ret;
-+}
-+
-+static int kvx_tca_reg_set(struct task_struct *target,
-+			 const struct user_regset *regset,
-+			 unsigned int pos, unsigned int count,
-+			 const void *kbuf, const void __user *ubuf)
-+{
-+	struct ctx_switch_regs *ctx_regs = &target->thread.ctx_switch;
-+	struct tca_reg *regs = ctx_regs->tca_regs;
-+	int ret;
-+
-+	if (!ctx_regs->tca_regs_saved)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+						0, -1);
-+	else
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, regs,
-+					 0, -1);
-+
-+	return ret;
-+}
-+#endif
-+
-+static const struct user_regset kvx_user_regset[] = {
-+	[REGSET_GPR] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = ELF_NGREG,
-+		.size = sizeof(elf_greg_t),
-+		.align = sizeof(elf_greg_t),
-+		.regset_get = &kvx_gpr_get,
-+		.set = &kvx_gpr_set,
-+	},
-+#ifdef CONFIG_ENABLE_TCA
-+	[REGSET_TCA] = {
-+		.core_note_type = NT_KVX_TCA,
-+		.n = TCA_REG_COUNT,
-+		.size = sizeof(struct tca_reg),
-+		.align = sizeof(struct tca_reg),
-+		.regset_get = &kvx_tca_reg_get,
-+		.set = &kvx_tca_reg_set,
-+	},
-+#endif
-+};
-+
-+static const struct user_regset_view user_kvx_view = {
-+	.name = "kvx",
-+	.e_machine = EM_KVX,
-+	.regsets = kvx_user_regset,
-+	.n = ARRAY_SIZE(kvx_user_regset)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_kvx_view;
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request,
-+		unsigned long addr, unsigned long data)
-+{
-+	return ptrace_request(child, request, addr, data);
-+}
-+
-+/*
-+ * Allows PTRACE_SYSCALL to work.  These are called from entry.S in
-+ * {handle,ret_from}_syscall.
-+ */
-+int do_syscall_trace_enter(struct pt_regs *regs, unsigned long syscall)
-+{
-+	int ret = 0;
-+
-+#ifdef CONFIG_CONTEXT_TRACKING_USER
-+	user_exit_callable();
-+#endif
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ret = ptrace_report_syscall_entry(regs);
-+
-+#ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
-+	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
-+		trace_sys_enter(regs, syscall_get_nr(current, regs));
-+#endif
-+
-+	audit_syscall_entry(syscall, regs->r0, regs->r1, regs->r2, regs->r3);
-+
-+	return ret;
-+}
-+
-+void do_syscall_trace_exit(struct pt_regs *regs)
-+{
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ptrace_report_syscall_exit(regs, 0);
-+
-+	audit_syscall_exit(regs);
-+
-+#ifdef CONFIG_HAVE_SYSCALL_TRACEPOINTS
-+	if (test_thread_flag(TIF_SYSCALL_TRACEPOINT))
-+		trace_sys_exit(regs, regs_return_value(regs));
-+#endif
-+
-+#ifdef CONFIG_CONTEXT_TRACKING_USER
-+	user_enter_callable();
-+#endif
-+}
-+
-+static int kvx_bkpt_handler(struct break_hook *brk_hook, struct pt_regs *regs)
-+{
-+	/* Unexpected breakpoint */
-+	if (!(current->ptrace & PT_PTRACED))
++	if (trap_sfri(es) != KVX_TRAP_SFRI_SET ||
++	    trap_sfrp(es) != KVX_SFR_VSFR0)
 +		return BREAK_HOOK_ERROR;
 +
-+	/* deliver the signal to userspace */
-+	force_sig_fault(SIGTRAP, TRAP_BRKPT, (void __user *) regs->spc);
++	idx = trap_gprp(es);
++	list = user_mode(regs) ? &user_break_hook : &kernel_break_hook;
 +
-+	return BREAK_HOOK_HANDLED;
++	local_irq_save(flags);
++	list_for_each_entry_rcu(tmp_hook, list, node) {
++		if (idx == tmp_hook->id) {
++			hook = tmp_hook;
++			break;
++		}
++	}
++	local_irq_restore(flags);
++
++	if (!hook)
++		return BREAK_HOOK_ERROR;
++
++	fn = hook->handler;
++	return fn(hook, regs);
 +}
 +
-+static void kvx_stepi(struct pt_regs *regs)
++void break_hook_register(struct break_hook *brk_hook)
 +{
-+	/* deliver the signal to userspace */
-+	force_sig_fault(SIGTRAP, TRAP_TRACE, (void __user *) regs->spc);
++	struct list_head *list;
++
++	if (brk_hook->mode == MODE_USER)
++		list = &user_break_hook;
++	else
++		list = &kernel_break_hook;
++
++	spin_lock(&debug_hook_lock);
++	list_add_rcu(&brk_hook->node, list);
++	spin_unlock(&debug_hook_lock);
 +}
 +
-+void user_enable_single_step(struct task_struct *child)
++void break_hook_unregister(struct break_hook *brk_hook)
 +{
-+	struct pt_regs *regs = task_pt_regs(child);
++	spin_lock(&debug_hook_lock);
++	list_del_rcu(&brk_hook->node);
++	spin_unlock(&debug_hook_lock);
++	synchronize_rcu();
++}
+diff --git a/arch/kvx/kernel/debug.c b/arch/kvx/kernel/debug.c
+new file mode 100644
+index 000000000000..d4cde403bca9
+--- /dev/null
++++ b/arch/kvx/kernel/debug.c
+@@ -0,0 +1,64 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
++ */
++#include <linux/list.h>
++#include <linux/rculist.h>
++#include <linux/spinlock.h>
++#include <linux/rcupdate.h>
 +
-+	enable_single_step(regs);
++#include <asm/dame.h>
++#include <asm/debug.h>
++
++static DEFINE_SPINLOCK(debug_hook_lock);
++static LIST_HEAD(user_debug_hook);
++static LIST_HEAD(kernel_debug_hook);
++
++static struct list_head *debug_hook_list(bool user_mode)
++{
++	return user_mode ? &user_debug_hook : &kernel_debug_hook;
 +}
 +
-+void user_disable_single_step(struct task_struct *child)
++static void call_debug_hook(u64 ea, struct pt_regs *regs)
 +{
-+	struct pt_regs *regs = task_pt_regs(child);
++	int ret;
++	struct debug_hook *hook;
++	struct list_head *list = debug_hook_list(user_mode(regs));
 +
-+	disable_single_step(regs);
++	list_for_each_entry_rcu(hook, list, node) {
++		ret = hook->handler(ea, regs);
++		if (ret == DEBUG_HOOK_HANDLED)
++			return;
++	}
++
++	panic("Entered debug but no requester !");
++}
++
++void debug_hook_register(struct debug_hook *dbg_hook)
++{
++	struct list_head *list = debug_hook_list(dbg_hook->mode == MODE_USER);
++
++	spin_lock(&debug_hook_lock);
++	list_add_rcu(&dbg_hook->node, list);
++	spin_unlock(&debug_hook_lock);
++}
++
++void debug_hook_unregister(struct debug_hook *dbg_hook)
++{
++	spin_lock(&debug_hook_lock);
++	list_del_rcu(&dbg_hook->node);
++	spin_unlock(&debug_hook_lock);
++	synchronize_rcu();
 +}
 +
 +/**
 + * Main debug handler called by the _debug_handler routine in entry.S
 + * This handler will perform the required action
-+ * @es: Exception Syndrome register value
-+ * @ea: Exception Address register
-+ * @regs: pointer to registers saved when enter debug
 + */
-+int ptrace_debug_handler(u64 ea, struct pt_regs *regs)
++void debug_handler(u64 ea, struct pt_regs *regs)
 +{
-+
-+	int debug_cause = debug_dc(regs->es);
-+
-+	switch (debug_cause) {
-+	case DEBUG_CAUSE_STEPI:
-+		kvx_stepi(regs);
-+		break;
-+	default:
-+		break;
-+	}
-+
-+	return DEBUG_HOOK_HANDLED;
++	trace_hardirqs_off();
++	call_debug_hook(ea, regs);
++	dame_irq_check(regs);
 +}
-+
-+static struct debug_hook ptrace_debug_hook = {
-+	.handler = ptrace_debug_handler,
-+	.mode = MODE_USER,
-+};
-+
-+static struct break_hook bkpt_break_hook = {
-+	.id = BREAK_CAUSE_BKPT,
-+	.handler = kvx_bkpt_handler,
-+	.mode = MODE_USER,
-+};
-+
-+static int __init arch_init_breakpoint(void)
-+{
-+	break_hook_register(&bkpt_break_hook);
-+	debug_hook_register(&ptrace_debug_hook);
-+
-+	return 0;
-+}
-+
-+postcore_initcall(arch_init_breakpoint);
-diff --git a/arch/kvx/kernel/stacktrace.c b/arch/kvx/kernel/stacktrace.c
+diff --git a/arch/kvx/kernel/insns.c b/arch/kvx/kernel/insns.c
 new file mode 100644
-index 000000000000..85d52ba2d082
+index 000000000000..361621552cd5
 --- /dev/null
-+++ b/arch/kvx/kernel/stacktrace.c
-@@ -0,0 +1,173 @@
++++ b/arch/kvx/kernel/insns.c
+@@ -0,0 +1,144 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Copyright (C) 2017-2023 Kalray Inc.
 + * Author(s): Clement Leger
-+ *            Vincent Chardon
++ *            Yann Sionneau
++ *            Marius Gligor
++ *            Guillaume Thouvenin
 + */
 +
-+#include <linux/context_tracking.h>
-+#include <linux/kallsyms.h>
-+#include <linux/printk.h>
-+#include <linux/init.h>
++#include <linux/types.h>
++#include <linux/string.h>
++#include <linux/atomic.h>
++#include <linux/cpumask.h>
++#include <linux/uaccess.h>
++#include <linux/stop_machine.h>
 +
-+#include <asm/stacktrace.h>
-+#include <asm/ptrace.h>
++#include <asm/cacheflush.h>
++#include <asm/insns_defs.h>
++#include <asm/fixmap.h>
 +
-+#define STACK_SLOT_PER_LINE		4
-+#define STACK_MAX_SLOT_PRINT		(STACK_SLOT_PER_LINE * 8)
++struct insns_patch {
++	atomic_t cpu_count;
++	u32 *addr;
++	u32 *insns;
++	unsigned long insns_len;
++};
 +
-+static int notrace unwind_frame(struct task_struct *task,
-+				struct stackframe *frame)
++static void *insn_patch_map(void *addr)
 +{
-+	unsigned long fp = frame->fp;
++	unsigned long uintaddr = (uintptr_t) addr;
++	bool module = !core_kernel_text(uintaddr);
++	struct page *page;
 +
-+	/* Frame pointer must be aligned on 8 bytes */
-+	if (fp & 0x7)
-+		return -EINVAL;
++	if (module && IS_ENABLED(CONFIG_STRICT_MODULE_RWX))
++		page = vmalloc_to_page(addr);
++	else
++		return addr;
 +
-+	if (!task)
-+		task = current;
++	BUG_ON(!page);
++	return (void *)set_fixmap_offset(FIX_TEXT_PATCH, page_to_phys(page) +
++			(uintaddr & ~PAGE_MASK));
++}
 +
-+	if (!on_task_stack(task, fp))
-+		return -EINVAL;
++static void insn_patch_unmap(void)
++{
++	clear_fixmap(FIX_TEXT_PATCH);
++}
 +
-+	frame->fp = READ_ONCE_NOCHECK(*(unsigned long *)(fp));
-+	frame->ra = READ_ONCE_NOCHECK(*(unsigned long *)(fp + 8));
++int kvx_insns_write_nostop(u32 *insns, u8 insns_len, u32 *insn_addr)
++{
++	unsigned long current_insn_addr = (unsigned long) insn_addr;
++	unsigned long len_remain = insns_len;
++	unsigned long next_insn_page, patch_len;
++	void *map_patch_addr;
++	int ret = 0;
++
++	do {
++		/* Compute next upper page boundary */
++		next_insn_page = (current_insn_addr + PAGE_SIZE) & PAGE_MASK;
++
++		patch_len = min(next_insn_page - current_insn_addr, len_remain);
++		len_remain -= patch_len;
++
++		/* Map & patch insns */
++		map_patch_addr = insn_patch_map((void *) current_insn_addr);
++		ret = copy_to_kernel_nofault(map_patch_addr, insns, patch_len);
++		if (ret)
++			break;
++
++		insns = (void *) insns + patch_len;
++		current_insn_addr = next_insn_page;
++
++	} while (len_remain);
++
++	insn_patch_unmap();
 +
 +	/*
-+	 * When starting, we set the frame pointer to 0, hence end of
-+	 * frame linked list is signal by that
++	 * Flush & invalidate L2 + L1 icache to reload instructions from memory
++	 * L2 wbinval is necessary because we write through DEVICE cache policy
++	 * mapping which is uncached therefore L2 is bypassed
 +	 */
-+	if (!frame->fp)
-+		return -EINVAL;
++	wbinval_icache_range(virt_to_phys(insn_addr), insns_len);
 +
++	return ret;
++}
++
++static int patch_insns_percpu(void *data)
++{
++	struct insns_patch *ip = data;
++	unsigned long insn_addr = (unsigned long) ip->addr;
++	int ret;
++
++	if (atomic_inc_return(&ip->cpu_count) == 1) {
++		ret = kvx_insns_write_nostop(ip->insns, ip->insns_len,
++					     ip->addr);
++		/* Additionnal up to release other processors */
++		atomic_inc(&ip->cpu_count);
++
++		return ret;
++	}
++
++	/* Wait for first processor to update instructions */
++	while (atomic_read(&ip->cpu_count) <= num_online_cpus())
++		cpu_relax();
++
++	/* Simply invalidate L1 I-cache to reload from L2 or memory */
++	l1_inval_icache_range(insn_addr, insn_addr + ip->insns_len);
 +	return 0;
 +}
 +
-+void notrace walk_stackframe(struct task_struct *task, struct stackframe *frame,
-+			     bool (*fn)(unsigned long, void *), void *arg)
-+{
-+	unsigned long addr;
-+	int ret;
-+
-+	while (1) {
-+		addr = frame->ra;
-+
-+		if (fn(addr, arg))
-+			break;
-+
-+		ret = unwind_frame(task, frame);
-+		if (ret)
-+			break;
-+	}
-+}
-+
-+#ifdef CONFIG_STACKTRACE
-+bool append_stack_addr(unsigned long pc, void *arg)
-+{
-+	struct stack_trace *trace;
-+
-+	trace = (struct stack_trace *)arg;
-+	if (trace->skip == 0) {
-+		trace->entries[trace->nr_entries++] = pc;
-+		if (trace->nr_entries == trace->max_entries)
-+			return true;
-+	} else {
-+		trace->skip--;
-+	}
-+
-+	return false;
-+}
-+
-+/*
-+ * Save stack-backtrace addresses into a stack_trace buffer.
++/**
++ * kvx_insns_write() Patch instructions at a specified address
++ * @insns: Instructions to be written at @addr
++ * @insns_len: Size of instructions to patch
++ * @addr: Address of the first instruction to patch
 + */
-+void save_stack_trace(struct stack_trace *trace)
++int kvx_insns_write(u32 *insns, unsigned long insns_len, u32 *addr)
 +{
-+	struct stackframe frame;
++	struct insns_patch ip = {
++		.cpu_count = ATOMIC_INIT(0),
++		.addr = addr,
++		.insns = insns,
++		.insns_len = insns_len
++	};
 +
-+	trace->nr_entries = 0;
-+	/* We want to skip this function and the caller */
-+	trace->skip += 2;
++	if (!insns_len)
++		return -EINVAL;
 +
-+	start_stackframe(&frame, (unsigned long) __builtin_frame_address(0),
-+			 (unsigned long) save_stack_trace);
-+	walk_stackframe(current, &frame, append_stack_addr, trace);
-+}
-+EXPORT_SYMBOL(save_stack_trace);
-+#endif /* CONFIG_STACKTRACE */
++	if (!IS_ALIGNED((unsigned long) addr, KVX_INSN_SYLLABLE_WIDTH))
++		return -EINVAL;
 +
-+static bool print_pc(unsigned long pc, void *arg)
-+{
-+	unsigned long *skip = arg;
-+
-+	if (*skip == 0)
-+		print_ip_sym(KERN_INFO, pc);
-+	else
-+		(*skip)--;
-+
-+	return false;
++	/*
++	 * Function name is a "bit" misleading. while being named
++	 * stop_machine, this function does not stop the machine per se
++	 * but execute the provided function on all CPU in a safe state.
++	 */
++	return stop_machine(patch_insns_percpu, &ip, cpu_online_mask);
 +}
 +
-+void show_stacktrace(struct task_struct *task, struct pt_regs *regs)
++int kvx_insns_read(u32 *insns, unsigned long insns_len, u32 *addr)
 +{
-+	struct stackframe frame;
-+	unsigned long skip = 0;
-+
-+	/* Obviously, we can't backtrace on usermode ! */
-+	if (regs && user_mode(regs))
-+		return;
-+
-+	if (!task)
-+		task = current;
-+
-+	if (!try_get_task_stack(task))
-+		return;
-+
-+	if (regs) {
-+		start_stackframe(&frame, regs->fp, regs->spc);
-+	} else if (task == current) {
-+		/* Skip current function and caller */
-+		skip = 2;
-+		start_stackframe(&frame,
-+				 (unsigned long) __builtin_frame_address(0),
-+				 (unsigned long) show_stacktrace);
-+	} else {
-+		/* task blocked in __switch_to */
-+		start_stackframe(&frame,
-+				 thread_saved_reg(task, fp),
-+				 thread_saved_reg(task, ra));
-+	}
-+
-+	pr_info("Call Trace:\n");
-+	walk_stackframe(task, &frame, print_pc, &skip);
-+
-+	put_task_stack(task);
-+}
-+
-+/*
-+ * If show_stack is called with a non-null task, then the task will have been
-+ * claimed with try_get_task_stack by the caller. If task is NULL or current
-+ * then there is no need to get task stack since it's our current stack...
-+ */
-+void show_stack(struct task_struct *task, unsigned long *sp)
-+{
-+	int i = 0;
-+
-+	if (!sp)
-+		sp = (unsigned long *) get_current_sp();
-+
-+	pr_info("Stack dump (@%p):\n", sp);
-+	for (i = 0; i < STACK_MAX_SLOT_PRINT; i++) {
-+		if (kstack_end(sp))
-+			break;
-+
-+		if (i && (i % STACK_SLOT_PER_LINE) == 0)
-+			pr_cont("\n\t");
-+
-+		pr_cont("%016lx ", *sp++);
-+	}
-+	pr_cont("\n");
-+
-+	show_stacktrace(task, NULL);
++	l1_inval_dcache_range((unsigned long)addr, insns_len);
++	return copy_from_kernel_nofault(insns, addr, insns_len);
 +}
 -- 
 2.37.2
