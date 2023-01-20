@@ -2,42 +2,57 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5B2C1C05027
-	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:30:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 55EBEC38141
+	for <linux-arch@archiver.kernel.org>; Fri, 20 Jan 2023 14:35:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230072AbjATOaT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 20 Jan 2023 09:30:19 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33130 "EHLO
+        id S230032AbjATOfR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 20 Jan 2023 09:35:17 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37920 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230022AbjATOaS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:30:18 -0500
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 772A979297;
-        Fri, 20 Jan 2023 06:29:51 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id A8C81B82853;
-        Fri, 20 Jan 2023 14:29:40 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 237E9C4339B;
-        Fri, 20 Jan 2023 14:29:33 +0000 (UTC)
-Authentication-Results: smtp.kernel.org;
-        dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="NTHbstKf"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zx2c4.com; s=20210105;
-        t=1674224971;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=F9kOqvxWdJiZ6o7rLV7rek2JVGrJsZXSaK0nvleVzCA=;
-        b=NTHbstKfPp3u89snVVs+oFRiOmLj7/9+v4hS84e1+clIoPhsJ2kSbFe1y7Ve3fpUvfhDFY
-        RBcamZ38ta96TPzy+pU4lTKfZ8wbvpW/izzz3c6W+tHXCN5ZL8y0SX+AqrocY7EgB2oo7F
-        1Nc0qLsaQSetYUtiIFFpE6YtUNUcr48=
-Received: by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id c179fd18 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
-        Fri, 20 Jan 2023 14:29:31 +0000 (UTC)
-Date:   Fri, 20 Jan 2023 15:29:14 +0100
-From:   "Jason A. Donenfeld" <Jason@zx2c4.com>
-To:     Yann Sionneau <ysionneau@kalray.eu>
-Cc:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
+        with ESMTP id S230293AbjATOfP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2023 09:35:15 -0500
+Received: from fx601.security-mail.net (smtpout140.security-mail.net [85.31.212.146])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AC58879EB6
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 06:35:03 -0800 (PST)
+Received: from localhost (fx601.security-mail.net [127.0.0.1])
+        by fx601.security-mail.net (Postfix) with ESMTP id BE4C7349867
+        for <linux-arch@vger.kernel.org>; Fri, 20 Jan 2023 15:20:45 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kalray.eu;
+        s=sec-sig-email; t=1674224445;
+        bh=ZFm4jn2qVc3XxQ8bbXqM98MO1bH7PPorSUVJmGe9zIQ=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References;
+        b=NRRvyDRZ5VwOwVQfZDqU+46NQRlyLDL0W3bsNHuZTtmWfvdYPbnL8A8JWp8oPd0br
+         xkajvWR64O8gXlZ1cyBHGFf5LFUuYo1EbpRau8jt+s5Y6qvQmdt2CzKHwmAwdyUODQ
+         QR27+dNxyo6iaIgN6wpI2ZaqsOcbK47b8FxkLvYg=
+Received: from fx601 (fx601.security-mail.net [127.0.0.1]) by
+ fx601.security-mail.net (Postfix) with ESMTP id 3138A3497F3; Fri, 20 Jan
+ 2023 15:20:45 +0100 (CET)
+Received: from zimbra2.kalray.eu (unknown [217.181.231.53]) by
+ fx601.security-mail.net (Postfix) with ESMTPS id 33F923496B9; Fri, 20 Jan
+ 2023 15:20:44 +0100 (CET)
+Received: from zimbra2.kalray.eu (localhost [127.0.0.1]) by
+ zimbra2.kalray.eu (Postfix) with ESMTPS id 74EE327E045E; Fri, 20 Jan 2023
+ 15:10:38 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1]) by zimbra2.kalray.eu
+ (Postfix) with ESMTP id 5882427E0463; Fri, 20 Jan 2023 15:10:38 +0100 (CET)
+Received: from zimbra2.kalray.eu ([127.0.0.1]) by localhost
+ (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026) with ESMTP id
+ D11lu3OG-umz; Fri, 20 Jan 2023 15:10:38 +0100 (CET)
+Received: from junon.lin.mbt.kalray.eu (unknown [192.168.37.161]) by
+ zimbra2.kalray.eu (Postfix) with ESMTPSA id DE5A427E0458; Fri, 20 Jan 2023
+ 15:10:37 +0100 (CET)
+X-Virus-Scanned: E-securemail
+Secumail-id: <62f4.63caa33c.3169e.0>
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu 5882427E0463
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
+ s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674223838;
+ bh=r0jAYvZMgDHNmtYPIBemAGb6cgybEgHcmW3NkzN/0Bc=;
+ h=From:To:Date:Message-Id:MIME-Version;
+ b=JKNRyzm7+8sxXJUhLzONaUXzidzmY7QHybfABV02MMeEolEK1l0P/zyCPivr0qi3X
+ cMk6eiWHc8wcM/3mwaZc92PFr6HmcHLhtp6SGUL9n/464kv1zJak07VGMurb1BFNSB
+ JEfwZjhbgtlfk55C9aauCac0b4/oyWiVvpTX7xMY=
+From:   Yann Sionneau <ysionneau@kalray.eu>
+To:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Thomas Gleixner <tglx@linutronix.de>,
         Marc Zyngier <maz@kernel.org>,
         Rob Herring <robh+dt@kernel.org>,
@@ -61,10 +76,11 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Palmer Dabbelt <palmer@dabbelt.com>,
         Albert Ou <aou@eecs.berkeley.edu>,
         Jules Maselbas <jmaselbas@kalray.eu>,
+        Yann Sionneau <ysionneau@kalray.eu>,
         Guillaume Thouvenin <gthouvenin@kalray.eu>,
         Clement Leger <clement@clement-leger.fr>,
         Vincent Chardon <vincent.chardon@elsys-design.com>,
-        Marc =?utf-8?B?UG91bGhpw6hz?= <dkm@kataplop.net>,
+        Marc =?utf-8?b?UG91bGhpw6hz?= <dkm@kataplop.net>,
         Julian Vetter <jvetter@kalray.eu>,
         Samuel Jones <sjones@kalray.eu>,
         Ashley Lesdalons <alesdalons@kalray.eu>,
@@ -86,79 +102,157 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
         Bharat Bhushan <bbhushan2@marvell.com>,
         Bibo Mao <maobibo@loongson.cn>,
         Atish Patra <atishp@atishpatra.org>,
+        "Jason A. Donenfeld" <Jason@zx2c4.com>,
         Qi Liu <liuqi115@huawei.com>,
         Jiaxun Yang <jiaxun.yang@flygoat.com>,
         Catalin Marinas <catalin.marinas@arm.com>,
         Mark Brown <broonie@kernel.org>,
         Janosch Frank <frankja@linux.ibm.com>,
-        Alexey Dobriyan <adobriyan@gmail.com>,
-        Benjamin Mugnier <mugnier.benjamin@gmail.com>,
+        Alexey Dobriyan <adobriyan@gmail.com>
+Cc:     Benjamin Mugnier <mugnier.benjamin@gmail.com>,
         linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
         devicetree@vger.kernel.org, linux-mm@kvack.org,
         linux-arch@vger.kernel.org, linux-audit@redhat.com,
         linux-riscv@lists.infradead.org, bpf@vger.kernel.org
-Subject: Re: [RFC PATCH v2 12/31] kvx: Add other common headers
-Message-ID: <Y8qlOpYgDefMPqWH@zx2c4.com>
+Subject: [RFC PATCH v2 29/31] kvx: Add support for cpuinfo
+Date:   Fri, 20 Jan 2023 15:10:00 +0100
+Message-ID: <20230120141002.2442-30-ysionneau@kalray.eu>
+X-Mailer: git-send-email 2.37.2
+In-Reply-To: <20230120141002.2442-1-ysionneau@kalray.eu>
 References: <20230120141002.2442-1-ysionneau@kalray.eu>
- <20230120141002.2442-13-ysionneau@kalray.eu>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20230120141002.2442-13-ysionneau@kalray.eu>
+X-ALTERMIMEV2_out: done
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Yann,
+Add support for cpuinfo on kvx arch.
 
-On Fri, Jan 20, 2023 at 03:09:43PM +0100, Yann Sionneau wrote:
-> +#include <linux/random.h>
-> +#include <linux/version.h>
-> +
-> +extern unsigned long __stack_chk_guard;
-> +
-> +/*
-> + * Initialize the stackprotector canary value.
-> + *
-> + * NOTE: this must only be called from functions that never return,
-> + * and it must always be inlined.
-> + */
-> +static __always_inline void boot_init_stack_canary(void)
-> +{
-> +	unsigned long canary;
-> +
-> +	/* Try to get a semi random initial value. */
-> +	get_random_bytes(&canary, sizeof(canary));
-> +	canary ^= LINUX_VERSION_CODE;
-> +	canary &= CANARY_MASK;
-> +
-> +	current->stack_canary = canary;
-> +	__stack_chk_guard = current->stack_canary;
-> +}
+Co-developed-by: Clement Leger <clement@clement-leger.fr>
+Signed-off-by: Clement Leger <clement@clement-leger.fr>
+Co-developed-by: Guillaume Thouvenin <gthouvenin@kalray.eu>
+Signed-off-by: Guillaume Thouvenin <gthouvenin@kalray.eu>
+Co-developed-by: Julian Vetter <jvetter@kalray.eu>
+Signed-off-by: Julian Vetter <jvetter@kalray.eu>
+Signed-off-by: Jules Maselbas <jmaselbas@kalray.eu>
+Signed-off-by: Yann Sionneau <ysionneau@kalray.eu>
+---
+
+Notes:
+    V1 -> V2: no changes
+
+ arch/kvx/kernel/cpuinfo.c | 96 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 96 insertions(+)
+ create mode 100644 arch/kvx/kernel/cpuinfo.c
+
+diff --git a/arch/kvx/kernel/cpuinfo.c b/arch/kvx/kernel/cpuinfo.c
+new file mode 100644
+index 000000000000..f44c46c1e4ba
+--- /dev/null
++++ b/arch/kvx/kernel/cpuinfo.c
+@@ -0,0 +1,96 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2017-2023 Kalray Inc.
++ * Author(s): Clement Leger
++ *            Guillaume Thouvenin
++ */
++
++#include <linux/seq_file.h>
++#include <linux/delay.h>
++#include <linux/clk.h>
++#include <linux/cpu.h>
++#include <linux/of.h>
++
++unsigned long elf_hwcap __read_mostly;
++
++static int show_cpuinfo(struct seq_file *m, void *v)
++{
++	int cpu_num = *(unsigned int *)v;
++	struct cpuinfo_kvx *n = per_cpu_ptr(&cpu_info, cpu_num);
++
++	seq_printf(m, "processor\t: %d\nvendor_id\t: Kalray\n", cpu_num);
++
++	seq_printf(m,
++		   "copro enabled\t: %s\n"
++		   "arch revision\t: %d\n"
++		   "uarch revision\t: %d\n",
++		   n->copro_enable ? "yes" : "no",
++		   n->arch_rev,
++		   n->uarch_rev);
++
++	seq_printf(m,
++		   "bogomips\t: %lu.%02lu\n"
++		   "cpu MHz\t\t: %llu.%03llu\n\n",
++		   (loops_per_jiffy * HZ) / 500000,
++		   ((loops_per_jiffy * HZ) / 5000) % 100,
++		   n->freq / 1000000, (n->freq / 10000) % 100);
++
++	return 0;
++}
++
++static void *c_start(struct seq_file *m, loff_t *pos)
++{
++	if (*pos == 0)
++		*pos = cpumask_first(cpu_online_mask);
++	if (*pos >= num_online_cpus())
++		return NULL;
++
++	return pos;
++}
++
++static void *c_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	*pos = cpumask_next(*pos, cpu_online_mask);
++
++	return c_start(m, pos);
++}
++
++static void c_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start = c_start,
++	.next = c_next,
++	.stop = c_stop,
++	.show = show_cpuinfo,
++};
++
++static int __init setup_cpuinfo(void)
++{
++	int cpu;
++	struct clk *clk;
++	unsigned long cpu_freq = 1000000000;
++	struct device_node *node = of_get_cpu_node(0, NULL);
++
++	clk = of_clk_get(node, 0);
++	if (IS_ERR(clk)) {
++		printk(KERN_WARNING
++		       "Device tree missing CPU 'clock' parameter. Assuming frequency is 1GHZ");
++		goto setup_cpu_freq;
++	}
++
++	cpu_freq = clk_get_rate(clk);
++
++	clk_put(clk);
++
++setup_cpu_freq:
++	of_node_put(node);
++
++	for_each_possible_cpu(cpu)
++		per_cpu_ptr(&cpu_info, cpu)->freq = cpu_freq;
++
++	return 0;
++}
++
++late_initcall(setup_cpuinfo);
+-- 
+2.37.2
 
 
-You should rewrite this as:
 
-    current->stack_canary = get_random_canary();
-    __stack_chk_guard = current->stack_canary;
 
-which is what the other archs all now do. (They didn't used to, and this
-looks like it's simply based on older code.)
 
-> +#define get_cycles get_cycles
-> +
-> +#include <asm/sfr.h>
-> +#include <asm-generic/timex.h>
-> +
-> +static inline cycles_t get_cycles(void)
-> +{
-> +	return kvx_sfr_get(PM0);
-> +}
-
-Glad to see this CPU has a cycle counter. Out of curiosity, what is
-its resolution?
-
-Also, related, does this CPU happen to have a "RDRAND"-like instruction?
-(I don't know anything about kvx or even what it is.)
-
-Jason
