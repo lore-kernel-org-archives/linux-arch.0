@@ -2,140 +2,204 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9EB09C25B50
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Jan 2023 03:16:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6F459C61D97
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Jan 2023 07:53:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231617AbjAXDQm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 23 Jan 2023 22:16:42 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50182 "EHLO
+        id S232547AbjAXHxl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Jan 2023 02:53:41 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33876 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229605AbjAXDQm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2023 22:16:42 -0500
-Received: from mail-pl1-x62a.google.com (mail-pl1-x62a.google.com [IPv6:2607:f8b0:4864:20::62a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5ADB633466
-        for <linux-arch@vger.kernel.org>; Mon, 23 Jan 2023 19:16:41 -0800 (PST)
-Received: by mail-pl1-x62a.google.com with SMTP id jl3so13447350plb.8
-        for <linux-arch@vger.kernel.org>; Mon, 23 Jan 2023 19:16:41 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112;
-        h=in-reply-to:references:to:from:subject:cc:message-id:date
-         :content-transfer-encoding:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=bGZG93eiXRk22TOPDmFZGXGIOl8nFjO4bOBcCBu5uW8=;
-        b=irnAgSykIWbmg9WdpxuRyMCuC9r6EUakDFGK2nhjUH6ns5CB7glOvHSr+w8WdAmM74
-         d4VSceT9xSlPEdFgWxtfyT4x81AG5eDXp8YSQSRMxmMvd+0gHAWp9hwb3v6K2I6O8LHx
-         +xS/v2NL+vLtzBZaF7XFRPnR598DoWxZIRk95P8lWODo91fsUYHmTkuEnx+mbpHZzRiX
-         RmFt/pZPihavSWUDUJvkUs2DVsuNAb7Ao7kog/4VqsKUo9i4zW/9NuCtEkr3W6gAJiIU
-         b226eHn4FvJCFMMMySsSGi6Enl3ZscnElE1NS9TjLXundxfkTXoNQsKAzsitrOMN6Q00
-         +e4g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=in-reply-to:references:to:from:subject:cc:message-id:date
-         :content-transfer-encoding:mime-version:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=bGZG93eiXRk22TOPDmFZGXGIOl8nFjO4bOBcCBu5uW8=;
-        b=g+q34uaCj8AlBr9TdIURZyWTWbyvQXCXBW3jS9Vo/S7zWsJhAQJ9fbOPcc9Xc8Nmqk
-         EEIbp9yIJD6TLKJOy7a4j2VfihrIFDHkWL5M084/Qg/s8NXLCkc2NozAO7rnJSEVY+u1
-         Y/8R/ciVmR2Ut8ViR7wixXGGn9gSpVZSl/NPdCwbNfjNp+x5xpQ0eJED5Na+mSc1vZs2
-         PfqSZXqkyVucB/MHv2qyAlO1+X/Ixcd1lT5OSbz0O0aJMGmUs5quLmSEDXtI1dfgVCxJ
-         FCJZmyEWdJBbkTzGhTydrz6GYM7gyzbK60Zqtk7LX6841aoGzxvWq+4+wlqpgz2yD74p
-         hvQQ==
-X-Gm-Message-State: AFqh2kr46RGq+glpFDHoeB3jjF3/nCqG0YYuuM7cvM4Ww8wq9OO8Dpg3
-        MJFZ8oPn2m9RPIHvAIT7DBQXeW9s1n58qA==
-X-Google-Smtp-Source: AMrXdXskD2W7zrNiaiZ6X+Pl5+Tp/VgiW0zZf5Jhb6BD28XXzBRcQy84AtLhiISjIw0wPIJMdQLWJA==
-X-Received: by 2002:a05:6a21:9101:b0:ad:db18:6d0d with SMTP id tn1-20020a056a21910100b000addb186d0dmr27460888pzb.59.1674530200792;
-        Mon, 23 Jan 2023 19:16:40 -0800 (PST)
-Received: from localhost (121-44-64-35.tpgi.com.au. [121.44.64.35])
-        by smtp.gmail.com with ESMTPSA id p5-20020a170903248500b00189a50d2a3esm419719plw.241.2023.01.23.19.16.37
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 23 Jan 2023 19:16:39 -0800 (PST)
-Mime-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
+        with ESMTP id S231749AbjAXHxk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jan 2023 02:53:40 -0500
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB23844A9;
+        Mon, 23 Jan 2023 23:53:38 -0800 (PST)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id E57DA1F889;
+        Tue, 24 Jan 2023 07:53:36 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+        t=1674546816; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=ruXNUJNdlgxTcKpGQIIryFyEkOXceoGZmlzFPRxeoas=;
+        b=KBZy/6rf1TQ67g44L7GTiJ8oSbfhPfVBczpwAWnzfsUxhfC2iuCIk6qk9LBZzqbdqHS9ij
+        Xo/ephBOmafeSayjs7c5/FPCJUSd2Msf8a1NMzxX8FC7m33OJCMAr4kwrcZhMcXrY5NeLZ
+        PTRszq6e6uAR3JoT+NAAk5grhZN/cnk=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+        s=susede2_ed25519; t=1674546816;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=ruXNUJNdlgxTcKpGQIIryFyEkOXceoGZmlzFPRxeoas=;
+        b=5qR8OroDRbnLzHCA3YaBwq02hXFJllZS99kT3/fzfEAfh1RBI9ipdG1fjVOHFRLXyqtRUK
+        okE5lPcauQAR8tCA==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id CA32C139FB;
+        Tue, 24 Jan 2023 07:53:35 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id E4c3MH+Oz2OlHgAAMHmgww
+        (envelope-from <vbabka@suse.cz>); Tue, 24 Jan 2023 07:53:35 +0000
+Message-ID: <8ac234a3-9dc3-3ebf-309a-b4a6bcb72d2d@suse.cz>
+Date:   Tue, 24 Jan 2023 08:51:43 +0100
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.6.1
+Subject: Re: [PATCH v10 1/9] mm: Introduce memfd_restricted system call to
+ create restricted user memory
+Content-Language: en-US
+To:     Sean Christopherson <seanjc@google.com>,
+        "Huang, Kai" <kai.huang@intel.com>
+Cc:     "chao.p.peng@linux.intel.com" <chao.p.peng@linux.intel.com>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "kvm@vger.kernel.org" <kvm@vger.kernel.org>,
+        "jmattson@google.com" <jmattson@google.com>,
+        "Lutomirski, Andy" <luto@kernel.org>,
+        "ak@linux.intel.com" <ak@linux.intel.com>,
+        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
+        "Hocko, Michal" <mhocko@suse.com>,
+        "tabba@google.com" <tabba@google.com>,
+        "qemu-devel@nongnu.org" <qemu-devel@nongnu.org>,
+        "david@redhat.com" <david@redhat.com>,
+        "michael.roth@amd.com" <michael.roth@amd.com>,
+        "corbet@lwn.net" <corbet@lwn.net>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "dhildenb@redhat.com" <dhildenb@redhat.com>,
+        "bfields@fieldses.org" <bfields@fieldses.org>,
+        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+        "x86@kernel.org" <x86@kernel.org>, "bp@alien8.de" <bp@alien8.de>,
+        "ddutile@redhat.com" <ddutile@redhat.com>,
+        "rppt@kernel.org" <rppt@kernel.org>,
+        "shuah@kernel.org" <shuah@kernel.org>,
+        "vkuznets@redhat.com" <vkuznets@redhat.com>,
+        "naoya.horiguchi@nec.com" <naoya.horiguchi@nec.com>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "qperret@google.com" <qperret@google.com>,
+        "arnd@arndb.de" <arnd@arndb.de>,
+        "pbonzini@redhat.com" <pbonzini@redhat.com>,
+        "Annapurve, Vishal" <vannapurve@google.com>,
+        "mail@maciej.szmigiero.name" <mail@maciej.szmigiero.name>,
+        "wanpengli@tencent.com" <wanpengli@tencent.com>,
+        "yu.c.zhang@linux.intel.com" <yu.c.zhang@linux.intel.com>,
+        "hughd@google.com" <hughd@google.com>,
+        "aarcange@redhat.com" <aarcange@redhat.com>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "hpa@zytor.com" <hpa@zytor.com>,
+        "Nakajima, Jun" <jun.nakajima@intel.com>,
+        "jlayton@kernel.org" <jlayton@kernel.org>,
+        "joro@8bytes.org" <joro@8bytes.org>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "Wang, Wei W" <wei.w.wang@intel.com>,
+        "steven.price@arm.com" <steven.price@arm.com>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+        "Hansen, Dave" <dave.hansen@intel.com>,
+        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
+        "linmiaohe@huawei.com" <linmiaohe@huawei.com>
+References: <20221202061347.1070246-2-chao.p.peng@linux.intel.com>
+ <5c6e2e516f19b0a030eae9bf073d555c57ca1f21.camel@intel.com>
+ <20221219075313.GB1691829@chaop.bj.intel.com>
+ <deba096c85e41c3a15d122f2159986a74b16770f.camel@intel.com>
+ <20221220072228.GA1724933@chaop.bj.intel.com>
+ <126046ce506df070d57e6fe5ab9c92cdaf4cf9b7.camel@intel.com>
+ <20221221133905.GA1766136@chaop.bj.intel.com>
+ <b898e28d7fd7182e5d069646f84b650c748d9ca2.camel@intel.com>
+ <010a330c-a4d5-9c1a-3212-f9107d1c5f4e@suse.cz>
+ <0959c72ec635688f4b6c1b516815f79f52543b31.camel@intel.com>
+ <Y88aX+MIZeteDQju@google.com>
+From:   Vlastimil Babka <vbabka@suse.cz>
+In-Reply-To: <Y88aX+MIZeteDQju@google.com>
 Content-Type: text/plain; charset=UTF-8
-Date:   Tue, 24 Jan 2023 13:16:34 +1000
-Message-Id: <CQ03EVK32Y3F.3QPL2RUNVGILM@bobo>
-Cc:     "Andrew Morton" <akpm@linux-foundation.org>,
-        "Andy Lutomirski" <luto@kernel.org>,
-        "Linus Torvalds" <torvalds@linux-foundation.org>,
-        "linux-arch" <linux-arch@vger.kernel.org>,
-        "linux-mm" <linux-mm@kvack.org>, <linuxppc-dev@lists.ozlabs.org>
-Subject: Re: [PATCH v6 3/5] lazy tlb: shoot lazies, non-refcounting lazy tlb
- mm reference handling scheme
-From:   "Nicholas Piggin" <npiggin@gmail.com>
-To:     "Nadav Amit" <nadav.amit@gmail.com>
-X-Mailer: aerc 0.13.0
-References: <20230118080011.2258375-1-npiggin@gmail.com>
- <20230118080011.2258375-4-npiggin@gmail.com>
- <5F3590B8-3F25-4EFB-BE3A-D32AAAC0B2F4@gmail.com>
- <CPVVOWQ6SE2S.NQ3R9R77MFKI@bobo>
- <e8fac6e0-487f-37c3-5be4-19518ffa845e@gmail.com>
-In-Reply-To: <e8fac6e0-487f-37c3-5be4-19518ffa845e@gmail.com>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon Jan 23, 2023 at 6:16 PM AEST, Nadav Amit wrote:
->
->
-> On 1/19/23 6:22 AM, Nicholas Piggin wrote:
-> > On Thu Jan 19, 2023 at 8:22 AM AEST, Nadav Amit wrote:
-> >>
-> >>
-> >>> On Jan 18, 2023, at 12:00 AM, Nicholas Piggin <npiggin@gmail.com> wro=
-te:
-> >>>
-> >>> +static void do_shoot_lazy_tlb(void *arg)
-> >>> +{
-> >>> +	struct mm_struct *mm =3D arg;
-> >>> +
-> >>> + 	if (current->active_mm =3D=3D mm) {
-> >>> + 		WARN_ON_ONCE(current->mm);
-> >>> + 		current->active_mm =3D &init_mm;
-> >>> + 		switch_mm(mm, &init_mm, current);
-> >>> + 	}
-> >>> +}
-> >>
-> >> I might be out of touch - doesn=E2=80=99t a flush already take place w=
-hen we free
-> >> the page-tables, at least on common cases on x86?
-> >>
-> >> IIUC exit_mmap() would free page-tables, and whenever page-tables are
-> >> freed, on x86, we do shootdown regardless to whether the target CPU TL=
-B state
-> >> marks is_lazy. Then, flush_tlb_func() should call switch_mm_irqs_off()=
- and
-> >> everything should be fine, no?
-> >>
-> >> [ I understand you care about powerpc, just wondering on the effect on=
- x86 ]
-> >=20
-> > Now I come to think of it, Rik had done this for x86 a while back.
-> >=20
-> > https://lore.kernel.org/all/20180728215357.3249-10-riel@surriel.com/
-> >=20
-> > I didn't know about it when I wrote this, so I never dug into why it
-> > didn't get merged. It might have missed the final __mmdrop races but
-> > I'm not not sure, x86 lazy tlb mode is too complicated to know at a
-> > glance. I would check with him though.
->
-> My point was that naturally (i.e., as done today), when exit_mmap() is=20
-> done, you release the page tables (not just the pages). On x86 it means=
-=20
-> that you also send shootdown IPI to all the *lazy* CPUs to perform a=20
-> flush, so they would exit the lazy mode.
->
-> [ this should be true for 99% of the cases, excluding cases where there
->    were not page-tables, for instance ]
->
-> So the patch of Rik, I think, does not help in the common cases,=20
-> although it may perhaps make implicit actions more explicit in the code.
+On 1/24/23 00:38, Sean Christopherson wrote:
+> On Mon, Jan 23, 2023, Huang, Kai wrote:
+>> On Mon, 2023-01-23 at 15:03 +0100, Vlastimil Babka wrote:
+>>> On 12/22/22 01:37, Huang, Kai wrote:
+>>>>>> I argue that this page pinning (or page migration prevention) is not
+>>>>>> tied to where the page comes from, instead related to how the page will
+>>>>>> be used. Whether the page is restrictedmem backed or GUP() backed, once
+>>>>>> it's used by current version of TDX then the page pinning is needed. So
+>>>>>> such page migration prevention is really TDX thing, even not KVM generic
+>>>>>> thing (that's why I think we don't need change the existing logic of
+>>>>>> kvm_release_pfn_clean()). 
+>>>>>>
+>>>> This essentially boils down to who "owns" page migration handling, and sadly,
+>>>> page migration is kinda "owned" by the core-kernel, i.e. KVM cannot handle page
+>>>> migration by itself -- it's just a passive receiver.
+>>>>
+>>>> For normal pages, page migration is totally done by the core-kernel (i.e. it
+>>>> unmaps page from VMA, allocates a new page, and uses migrate_pape() or a_ops-
+>>>>> migrate_page() to actually migrate the page).
+>>>> In the sense of TDX, conceptually it should be done in the same way. The more
+>>>> important thing is: yes KVM can use get_page() to prevent page migration, but
+>>>> when KVM wants to support it, KVM cannot just remove get_page(), as the core-
+>>>> kernel will still just do migrate_page() which won't work for TDX (given
+>>>> restricted_memfd doesn't have a_ops->migrate_page() implemented).
+>>>>
+>>>> So I think the restricted_memfd filesystem should own page migration handling,
+>>>> (i.e. by implementing a_ops->migrate_page() to either just reject page migration
+>>>> or somehow support it).
+>>>
+>>> While this thread seems to be settled on refcounts already, 
+>>>
+>>
+>> I am not sure but will let Sean/Paolo to decide.
+> 
+> My preference is whatever is most performant without being hideous :-)
+> 
+>>> just wanted
+>>> to point out that it wouldn't be ideal to prevent migrations by
+>>> a_ops->migrate_page() rejecting them. It would mean cputime wasted (i.e.
+>>> by memory compaction) by isolating the pages for migration and then
+>>> releasing them after the callback rejects it (at least we wouldn't waste
+>>> time creating and undoing migration entries in the userspace page tables
+>>> as there's no mmap). Elevated refcount on the other hand is detected
+>>> very early in compaction so no isolation is attempted, so from that
+>>> aspect it's optimal.
+>>
+>> I am probably missing something,
+> 
+> Heh, me too, I could have sworn that using refcounts was the least efficient way
+> to block migration.
 
-If that's what it does, then sure. IIRC x86 didn't used to work that way
-long ago, but you would know what it does today. You might find it
-doesn't need much arch change to work. OTOH Andy has major problems with
-active_mm and some other x86 use-after-free weirdness that that I wasn't
-able to comprehend. He'll be naking x86 implementation until that's all
-cleaned up so better try to understand what's going on with that first.
+Well I admit that due to my experience with it, I do mostly consider
+migration through memory compaction POV, which is a significant user of
+migration on random pages that's not requested by userspace actions on
+specific ranges.
 
-Thanks,
-Nick
+And compaction has in isolate_migratepages_block():
+
+/*
+ * Migration will fail if an anonymous page is pinned in memory,
+ * so avoid taking lru_lock and isolating it unnecessarily in an
+ * admittedly racy check.
+ */
+mapping = page_mapping(page);
+if (!mapping && page_count(page) > page_mapcount(page))
+        goto isolate_fail;
+
+so that prevents migration of pages with elevated refcount very early,
+before they are even isolated, so before migrate_pages() is called.
+
+But it's true there are other sources of "random pages migration" - numa
+balancing, demotion in lieu of reclaim... and I'm not sure if all have
+such early check too.
+
+Anyway, whatever is decided to be a better way than elevated refcounts,
+would ideally be checked before isolation as well, as that's the most
+efficient way.
+
+>> but IIUC the checking of refcount happens at very last stage of page migration too 
+
