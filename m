@@ -2,340 +2,184 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 39FB2C54E94
-	for <linux-arch@archiver.kernel.org>; Thu, 26 Jan 2023 17:27:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4123EC05027
+	for <linux-arch@archiver.kernel.org>; Thu, 26 Jan 2023 17:34:21 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229611AbjAZR1D (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 26 Jan 2023 12:27:03 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60026 "EHLO
+        id S231726AbjAZReU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 26 Jan 2023 12:34:20 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39938 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231866AbjAZR0r (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jan 2023 12:26:47 -0500
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 39C8673779;
-        Thu, 26 Jan 2023 09:26:25 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 84E7361904;
-        Thu, 26 Jan 2023 17:26:24 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A8547C433EF;
-        Thu, 26 Jan 2023 17:26:17 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1674753983;
-        bh=X8+1ulPrbBTkOXj0eZtT/GV+hgacPfPVoCaovmG94Lc=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=L9khQrEgoCmLdomiGu9YQ3UgFzHpCrI9vQ8sQzg9IUqyZuSjPxx/hp3v8kEwzFumJ
-         xcJg/Qht6jnryQPukRl8K0Wv5Zk7xLm5R4Zr8xsOZQe0n3evYfxPPHhYVxsvQpJR50
-         hiqtWrkngqnQVPpvHGtOOZ5PfTrNuplAAzTzNR+Pl+OH+vWLXGCQ+sBBSYbPswVsJK
-         mmKmZvve/a/jTR8w1BsZtZwBm35DNf2sHwlq3ffkWquEjCEUgiUKJ34DzYkCifA7Eu
-         PP0MX8ia+w2L4S7HJ7ljyKOsBdSG36ti2w8b1FZxp+jFTU3lmNOaONYifrzB3uU4dr
-         8X7rSLP5WIjQQ==
-From:   guoren@kernel.org
-To:     arnd@arndb.de, guoren@kernel.org, palmer@rivosinc.com,
-        tglx@linutronix.de, peterz@infradead.org, luto@kernel.org,
-        conor.dooley@microchip.com, heiko@sntech.de, jszhang@kernel.org,
-        lazyparser@gmail.com, falcon@tinylab.org, chenhuacai@kernel.org,
-        apatel@ventanamicro.com, atishp@atishpatra.org,
-        mark.rutland@arm.com, ben@decadent.org.uk, bjorn@kernel.org
+        with ESMTP id S231672AbjAZReS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jan 2023 12:34:18 -0500
+Received: from fx308.security-mail.net (smtpout30.security-mail.net [85.31.212.38])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7607A3D92A
+        for <linux-arch@vger.kernel.org>; Thu, 26 Jan 2023 09:34:12 -0800 (PST)
+Received: from localhost (localhost [127.0.0.1])
+        by fx308.security-mail.net (Postfix) with ESMTP id 8AD30457484
+        for <linux-arch@vger.kernel.org>; Thu, 26 Jan 2023 18:34:10 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kalray.eu;
+        s=sec-sig-email; t=1674754450;
+        bh=mGAe5MCFM5+e6dUpTYJXSSXGH2Bt68QabcQ78M+qQYQ=;
+        h=From:To:Cc:Subject:Date;
+        b=vTfMSvxoYa1Cg/D2X1TNRbe440M/3WCUm4P6C1MzxDUYVymZcwlBggjXaIAeSyPqi
+         r4/H1V2ON777iMEsZdkTYNzGvjRwWHWOPnJwHiVe3b9xytDDMrskvyxrVu9oLE4oZl
+         6p7eJijjXWlg2XlzvpFNtjLiXpkLTh8VQ6NO4xCM=
+Received: from fx308 (localhost [127.0.0.1])
+        by fx308.security-mail.net (Postfix) with ESMTP id 774A6456566;
+        Thu, 26 Jan 2023 18:34:10 +0100 (CET)
+X-Virus-Scanned: E-securemail
+Secumail-id: <32f4.63d2b992.2c2d.0>
+Received: from zimbra2.kalray.eu (unknown [217.181.231.53])
+        by fx308.security-mail.net (Postfix) with ESMTPS id 039CF456FAE;
+        Thu, 26 Jan 2023 18:34:10 +0100 (CET)
+Received: from zimbra2.kalray.eu (localhost [127.0.0.1])
+        by zimbra2.kalray.eu (Postfix) with ESMTPS id D205A27E0374;
+        Thu, 26 Jan 2023 18:34:09 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+        by zimbra2.kalray.eu (Postfix) with ESMTP id B77B627E0431;
+        Thu, 26 Jan 2023 18:34:09 +0100 (CET)
+DKIM-Filter: OpenDKIM Filter v2.10.3 zimbra2.kalray.eu B77B627E0431
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kalray.eu;
+        s=32AE1B44-9502-11E5-BA35-3734643DEF29; t=1674754449;
+        bh=6N8vM8DHSvacPzNZe/Rjhi7+TG2mJlRN/Z5xbOptOPI=;
+        h=From:To:Date:Message-Id;
+        b=P7Pi8SAGDJAi/Ins6G/QTtc9JUNlUeN/hfMI37CSoCTqbl0zOgfxkQj17//v6OMiw
+         CRN9/MGbOWM3is/WFOeCldnj2mG25dPTFECTM/yKVVGYKCGIDdNTxcBq6c11sLxHn1
+         z3qJh8iYBXaS92XcnTEd3bT832jQEqm69meGRPPU=
+Received: from zimbra2.kalray.eu ([127.0.0.1])
+        by localhost (zimbra2.kalray.eu [127.0.0.1]) (amavisd-new, port 10026)
+        with ESMTP id Oy0211sE8ER1; Thu, 26 Jan 2023 18:34:09 +0100 (CET)
+Received: from tellis.lin.mbt.kalray.eu (unknown [192.168.36.206])
+        by zimbra2.kalray.eu (Postfix) with ESMTPSA id 9469727E0374;
+        Thu, 26 Jan 2023 18:34:09 +0100 (CET)
+From:   Jules Maselbas <jmaselbas@kalray.eu>
+To:     Will Deacon <will@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Arnd Bergmann <arnd@arndb.de>
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org,
-        =?UTF-8?q?Bj=C3=B6rn=20T=C3=B6pel?= <bjorn@rivosinc.com>
-Subject: [PATCH -next V15 7/7] riscv: entry: Consolidate general regs saving/restoring
-Date:   Thu, 26 Jan 2023 12:25:16 -0500
-Message-Id: <20230126172516.1580058-8-guoren@kernel.org>
-X-Mailer: git-send-email 2.36.1
-In-Reply-To: <20230126172516.1580058-1-guoren@kernel.org>
-References: <20230126172516.1580058-1-guoren@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+        Jules Maselbas <jmaselbas@kalray.eu>
+Subject: [PATCH] locking/atomic: atomic: Use arch_atomic_{read,set} in generic atomic ops
+Date:   Thu, 26 Jan 2023 18:33:54 +0100
+Message-Id: <20230126173354.13250-1-jmaselbas@kalray.eu>
+X-Mailer: git-send-email 2.17.1
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Jisheng Zhang <jszhang@kernel.org>
+Reading and setting the atomic counter should be done through
+arch_atomic_{read,set} macros, which respectively uses {READ,WRITE}_ONCE
+macros.
 
-Consolidate the saving/restoring GPs(except zero, ra, sp, gp and
-tp) into save_from_x5_to_x31/restore_from_x5_to_x31 macros.
+This is to avoid the compiler from potentially replay the read access.
 
-No functional change intended.
-
-Signed-off-by: Jisheng Zhang <jszhang@kernel.org>
-Reviewed-by: Guo Ren <guoren@kernel.org>
-Reviewed-by: Björn Töpel <bjorn@rivosinc.com>
-Tested-by: Guo Ren <guoren@kernel.org>
-Signed-off-by: Guo Ren <guoren@kernel.org>
+Suggested-by: Mark Rutland <mark.rutland@arm.com>
+Signed-off-by: Jules Maselbas <jmaselbas@kalray.eu>
 ---
- arch/riscv/include/asm/asm.h   | 63 +++++++++++++++++++++++++
- arch/riscv/kernel/entry.S      | 84 ++--------------------------------
- arch/riscv/kernel/mcount-dyn.S | 56 +----------------------
- 3 files changed, 68 insertions(+), 135 deletions(-)
+ include/asm-generic/atomic.h | 31 +++++++++++++++++--------------
+ 1 file changed, 17 insertions(+), 14 deletions(-)
 
-diff --git a/arch/riscv/include/asm/asm.h b/arch/riscv/include/asm/asm.h
-index 816e753de636..b4f4e2bf69c8 100644
---- a/arch/riscv/include/asm/asm.h
-+++ b/arch/riscv/include/asm/asm.h
-@@ -69,6 +69,7 @@
- #endif
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+index 04b8be9f1a77..711e408af581 100644
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -12,6 +12,9 @@
+ #include <asm/cmpxchg.h>
+ #include <asm/barrier.h>
  
- #ifdef __ASSEMBLY__
-+#include <asm/asm-offsets.h>
- 
- /* Common assembly source macros */
- 
-@@ -81,6 +82,68 @@
- 	.endr
- .endm
- 
-+	/* save all GPs except zero, ra, sp, gp and tp */
-+	.macro save_from_x5_to_x31
-+	REG_S x5,  PT_T0(sp)
-+	REG_S x6,  PT_T1(sp)
-+	REG_S x7,  PT_T2(sp)
-+	REG_S x8,  PT_S0(sp)
-+	REG_S x9,  PT_S1(sp)
-+	REG_S x10, PT_A0(sp)
-+	REG_S x11, PT_A1(sp)
-+	REG_S x12, PT_A2(sp)
-+	REG_S x13, PT_A3(sp)
-+	REG_S x14, PT_A4(sp)
-+	REG_S x15, PT_A5(sp)
-+	REG_S x16, PT_A6(sp)
-+	REG_S x17, PT_A7(sp)
-+	REG_S x18, PT_S2(sp)
-+	REG_S x19, PT_S3(sp)
-+	REG_S x20, PT_S4(sp)
-+	REG_S x21, PT_S5(sp)
-+	REG_S x22, PT_S6(sp)
-+	REG_S x23, PT_S7(sp)
-+	REG_S x24, PT_S8(sp)
-+	REG_S x25, PT_S9(sp)
-+	REG_S x26, PT_S10(sp)
-+	REG_S x27, PT_S11(sp)
-+	REG_S x28, PT_T3(sp)
-+	REG_S x29, PT_T4(sp)
-+	REG_S x30, PT_T5(sp)
-+	REG_S x31, PT_T6(sp)
-+	.endm
++#define arch_atomic_read(v)			READ_ONCE((v)->counter)
++#define arch_atomic_set(v, i)			WRITE_ONCE(((v)->counter), (i))
 +
-+	/* restore all GPs except zero, ra, sp, gp and tp */
-+	.macro restore_from_x5_to_x31
-+	REG_L x5,  PT_T0(sp)
-+	REG_L x6,  PT_T1(sp)
-+	REG_L x7,  PT_T2(sp)
-+	REG_L x8,  PT_S0(sp)
-+	REG_L x9,  PT_S1(sp)
-+	REG_L x10, PT_A0(sp)
-+	REG_L x11, PT_A1(sp)
-+	REG_L x12, PT_A2(sp)
-+	REG_L x13, PT_A3(sp)
-+	REG_L x14, PT_A4(sp)
-+	REG_L x15, PT_A5(sp)
-+	REG_L x16, PT_A6(sp)
-+	REG_L x17, PT_A7(sp)
-+	REG_L x18, PT_S2(sp)
-+	REG_L x19, PT_S3(sp)
-+	REG_L x20, PT_S4(sp)
-+	REG_L x21, PT_S5(sp)
-+	REG_L x22, PT_S6(sp)
-+	REG_L x23, PT_S7(sp)
-+	REG_L x24, PT_S8(sp)
-+	REG_L x25, PT_S9(sp)
-+	REG_L x26, PT_S10(sp)
-+	REG_L x27, PT_S11(sp)
-+	REG_L x28, PT_T3(sp)
-+	REG_L x29, PT_T4(sp)
-+	REG_L x30, PT_T5(sp)
-+	REG_L x31, PT_T6(sp)
-+	.endm
-+
- #endif /* __ASSEMBLY__ */
+ #ifdef CONFIG_SMP
  
- #endif /* _ASM_RISCV_ASM_H */
-diff --git a/arch/riscv/kernel/entry.S b/arch/riscv/kernel/entry.S
-index 5ccef259498d..87d74c9aea12 100644
---- a/arch/riscv/kernel/entry.S
-+++ b/arch/riscv/kernel/entry.S
-@@ -41,33 +41,7 @@ _save_context:
- 	addi sp, sp, -(PT_SIZE_ON_STACK)
- 	REG_S x1,  PT_RA(sp)
- 	REG_S x3,  PT_GP(sp)
--	REG_S x5,  PT_T0(sp)
--	REG_S x6,  PT_T1(sp)
--	REG_S x7,  PT_T2(sp)
--	REG_S x8,  PT_S0(sp)
--	REG_S x9,  PT_S1(sp)
--	REG_S x10, PT_A0(sp)
--	REG_S x11, PT_A1(sp)
--	REG_S x12, PT_A2(sp)
--	REG_S x13, PT_A3(sp)
--	REG_S x14, PT_A4(sp)
--	REG_S x15, PT_A5(sp)
--	REG_S x16, PT_A6(sp)
--	REG_S x17, PT_A7(sp)
--	REG_S x18, PT_S2(sp)
--	REG_S x19, PT_S3(sp)
--	REG_S x20, PT_S4(sp)
--	REG_S x21, PT_S5(sp)
--	REG_S x22, PT_S6(sp)
--	REG_S x23, PT_S7(sp)
--	REG_S x24, PT_S8(sp)
--	REG_S x25, PT_S9(sp)
--	REG_S x26, PT_S10(sp)
--	REG_S x27, PT_S11(sp)
--	REG_S x28, PT_T3(sp)
--	REG_S x29, PT_T4(sp)
--	REG_S x30, PT_T5(sp)
--	REG_S x31, PT_T6(sp)
-+	save_from_x5_to_x31
+ /* we can build all atomic primitives from cmpxchg */
+@@ -21,7 +24,7 @@ static inline void generic_atomic_##op(int i, atomic_t *v)		\
+ {									\
+ 	int c, old;							\
+ 									\
+-	c = v->counter;							\
++	c = arch_atomic_read(v);					\
+ 	while ((old = arch_cmpxchg(&v->counter, c, c c_op i)) != c)	\
+ 		c = old;						\
+ }
+@@ -31,7 +34,7 @@ static inline int generic_atomic_##op##_return(int i, atomic_t *v)	\
+ {									\
+ 	int c, old;							\
+ 									\
+-	c = v->counter;							\
++	c = arch_atomic_read(v);					\
+ 	while ((old = arch_cmpxchg(&v->counter, c, c c_op i)) != c)	\
+ 		c = old;						\
+ 									\
+@@ -43,7 +46,7 @@ static inline int generic_atomic_fetch_##op(int i, atomic_t *v)		\
+ {									\
+ 	int c, old;							\
+ 									\
+-	c = v->counter;							\
++	c = arch_atomic_read(v);					\
+ 	while ((old = arch_cmpxchg(&v->counter, c, c c_op i)) != c)	\
+ 		c = old;						\
+ 									\
+@@ -58,9 +61,11 @@ static inline int generic_atomic_fetch_##op(int i, atomic_t *v)		\
+ static inline void generic_atomic_##op(int i, atomic_t *v)		\
+ {									\
+ 	unsigned long flags;						\
++	int c;								\
+ 									\
+ 	raw_local_irq_save(flags);					\
+-	v->counter = v->counter c_op i;					\
++	c = arch_atomic_read(v);					\
++	arch_atomic_set(v, c c_op i);					\
+ 	raw_local_irq_restore(flags);					\
+ }
  
- 	/*
- 	 * Disable user-mode memory access as it should only be set in the
-@@ -181,33 +155,7 @@ SYM_CODE_START_NOALIGN(ret_from_exception)
- 	REG_L x1,  PT_RA(sp)
- 	REG_L x3,  PT_GP(sp)
- 	REG_L x4,  PT_TP(sp)
--	REG_L x5,  PT_T0(sp)
--	REG_L x6,  PT_T1(sp)
--	REG_L x7,  PT_T2(sp)
--	REG_L x8,  PT_S0(sp)
--	REG_L x9,  PT_S1(sp)
--	REG_L x10, PT_A0(sp)
--	REG_L x11, PT_A1(sp)
--	REG_L x12, PT_A2(sp)
--	REG_L x13, PT_A3(sp)
--	REG_L x14, PT_A4(sp)
--	REG_L x15, PT_A5(sp)
--	REG_L x16, PT_A6(sp)
--	REG_L x17, PT_A7(sp)
--	REG_L x18, PT_S2(sp)
--	REG_L x19, PT_S3(sp)
--	REG_L x20, PT_S4(sp)
--	REG_L x21, PT_S5(sp)
--	REG_L x22, PT_S6(sp)
--	REG_L x23, PT_S7(sp)
--	REG_L x24, PT_S8(sp)
--	REG_L x25, PT_S9(sp)
--	REG_L x26, PT_S10(sp)
--	REG_L x27, PT_S11(sp)
--	REG_L x28, PT_T3(sp)
--	REG_L x29, PT_T4(sp)
--	REG_L x30, PT_T5(sp)
--	REG_L x31, PT_T6(sp)
-+	restore_from_x5_to_x31
+@@ -68,27 +73,28 @@ static inline void generic_atomic_##op(int i, atomic_t *v)		\
+ static inline int generic_atomic_##op##_return(int i, atomic_t *v)	\
+ {									\
+ 	unsigned long flags;						\
+-	int ret;							\
++	int c;								\
+ 									\
+ 	raw_local_irq_save(flags);					\
+-	ret = (v->counter = v->counter c_op i);				\
++	c = arch_atomic_read(v);					\
++	arch_atomic_set(v, c c_op i);					\
+ 	raw_local_irq_restore(flags);					\
+ 									\
+-	return ret;							\
++	return c c_op i;						\
+ }
  
- 	REG_L x2,  PT_SP(sp)
+ #define ATOMIC_FETCH_OP(op, c_op)					\
+ static inline int generic_atomic_fetch_##op(int i, atomic_t *v)		\
+ {									\
+ 	unsigned long flags;						\
+-	int ret;							\
++	int c;								\
+ 									\
+ 	raw_local_irq_save(flags);					\
+-	ret = v->counter;						\
+-	v->counter = v->counter c_op i;					\
++	c = arch_atomic_read(v);					\
++	arch_atomic_set(v, c c_op i);					\
+ 	raw_local_irq_restore(flags);					\
+ 									\
+-	return ret;							\
++	return c;							\
+ }
  
-@@ -286,33 +234,7 @@ restore_caller_reg:
- 	//save context to overflow stack
- 	REG_S x1,  PT_RA(sp)
- 	REG_S x3,  PT_GP(sp)
--	REG_S x5,  PT_T0(sp)
--	REG_S x6,  PT_T1(sp)
--	REG_S x7,  PT_T2(sp)
--	REG_S x8,  PT_S0(sp)
--	REG_S x9,  PT_S1(sp)
--	REG_S x10, PT_A0(sp)
--	REG_S x11, PT_A1(sp)
--	REG_S x12, PT_A2(sp)
--	REG_S x13, PT_A3(sp)
--	REG_S x14, PT_A4(sp)
--	REG_S x15, PT_A5(sp)
--	REG_S x16, PT_A6(sp)
--	REG_S x17, PT_A7(sp)
--	REG_S x18, PT_S2(sp)
--	REG_S x19, PT_S3(sp)
--	REG_S x20, PT_S4(sp)
--	REG_S x21, PT_S5(sp)
--	REG_S x22, PT_S6(sp)
--	REG_S x23, PT_S7(sp)
--	REG_S x24, PT_S8(sp)
--	REG_S x25, PT_S9(sp)
--	REG_S x26, PT_S10(sp)
--	REG_S x27, PT_S11(sp)
--	REG_S x28, PT_T3(sp)
--	REG_S x29, PT_T4(sp)
--	REG_S x30, PT_T5(sp)
--	REG_S x31, PT_T6(sp)
-+	save_from_x5_to_x31
+ #endif /* CONFIG_SMP */
+@@ -127,9 +133,6 @@ ATOMIC_OP(xor, ^)
+ #define arch_atomic_or				generic_atomic_or
+ #define arch_atomic_xor				generic_atomic_xor
  
- 	REG_L s0, TASK_TI_KERNEL_SP(tp)
- 	csrr s1, CSR_STATUS
-diff --git a/arch/riscv/kernel/mcount-dyn.S b/arch/riscv/kernel/mcount-dyn.S
-index d171eca623b6..040d098279a9 100644
---- a/arch/riscv/kernel/mcount-dyn.S
-+++ b/arch/riscv/kernel/mcount-dyn.S
-@@ -70,33 +70,7 @@
- 	REG_S x2,  PT_SP(sp)
- 	REG_S x3,  PT_GP(sp)
- 	REG_S x4,  PT_TP(sp)
--	REG_S x5,  PT_T0(sp)
--	REG_S x6,  PT_T1(sp)
--	REG_S x7,  PT_T2(sp)
--	REG_S x8,  PT_S0(sp)
--	REG_S x9,  PT_S1(sp)
--	REG_S x10, PT_A0(sp)
--	REG_S x11, PT_A1(sp)
--	REG_S x12, PT_A2(sp)
--	REG_S x13, PT_A3(sp)
--	REG_S x14, PT_A4(sp)
--	REG_S x15, PT_A5(sp)
--	REG_S x16, PT_A6(sp)
--	REG_S x17, PT_A7(sp)
--	REG_S x18, PT_S2(sp)
--	REG_S x19, PT_S3(sp)
--	REG_S x20, PT_S4(sp)
--	REG_S x21, PT_S5(sp)
--	REG_S x22, PT_S6(sp)
--	REG_S x23, PT_S7(sp)
--	REG_S x24, PT_S8(sp)
--	REG_S x25, PT_S9(sp)
--	REG_S x26, PT_S10(sp)
--	REG_S x27, PT_S11(sp)
--	REG_S x28, PT_T3(sp)
--	REG_S x29, PT_T4(sp)
--	REG_S x30, PT_T5(sp)
--	REG_S x31, PT_T6(sp)
-+	save_from_x5_to_x31
- 	.endm
+-#define arch_atomic_read(v)			READ_ONCE((v)->counter)
+-#define arch_atomic_set(v, i)			WRITE_ONCE(((v)->counter), (i))
+-
+ #define arch_atomic_xchg(ptr, v)		(arch_xchg(&(ptr)->counter, (v)))
+ #define arch_atomic_cmpxchg(v, old, new)	(arch_cmpxchg(&((v)->counter), (old), (new)))
  
- 	.macro RESTORE_ALL
-@@ -108,33 +82,7 @@
- 	REG_L x2,  PT_SP(sp)
- 	REG_L x3,  PT_GP(sp)
- 	REG_L x4,  PT_TP(sp)
--	REG_L x5,  PT_T0(sp)
--	REG_L x6,  PT_T1(sp)
--	REG_L x7,  PT_T2(sp)
--	REG_L x8,  PT_S0(sp)
--	REG_L x9,  PT_S1(sp)
--	REG_L x10, PT_A0(sp)
--	REG_L x11, PT_A1(sp)
--	REG_L x12, PT_A2(sp)
--	REG_L x13, PT_A3(sp)
--	REG_L x14, PT_A4(sp)
--	REG_L x15, PT_A5(sp)
--	REG_L x16, PT_A6(sp)
--	REG_L x17, PT_A7(sp)
--	REG_L x18, PT_S2(sp)
--	REG_L x19, PT_S3(sp)
--	REG_L x20, PT_S4(sp)
--	REG_L x21, PT_S5(sp)
--	REG_L x22, PT_S6(sp)
--	REG_L x23, PT_S7(sp)
--	REG_L x24, PT_S8(sp)
--	REG_L x25, PT_S9(sp)
--	REG_L x26, PT_S10(sp)
--	REG_L x27, PT_S11(sp)
--	REG_L x28, PT_T3(sp)
--	REG_L x29, PT_T4(sp)
--	REG_L x30, PT_T5(sp)
--	REG_L x31, PT_T6(sp)
-+	restore_from_x5_to_x31
- 
- 	addi	sp, sp, PT_SIZE_ON_STACK
- 	addi	sp, sp, SZREG
 -- 
-2.36.1
+2.17.1
 
