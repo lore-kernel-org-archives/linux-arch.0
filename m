@@ -2,223 +2,105 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BC881C636CC
-	for <linux-arch@archiver.kernel.org>; Tue, 31 Jan 2023 08:52:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 28537C636CC
+	for <linux-arch@archiver.kernel.org>; Tue, 31 Jan 2023 14:03:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232069AbjAaIwE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 31 Jan 2023 03:52:04 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39406 "EHLO
+        id S231617AbjAaODw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 31 Jan 2023 09:03:52 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40740 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231826AbjAaIvf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2023 03:51:35 -0500
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DE4634F874
-        for <linux-arch@vger.kernel.org>; Tue, 31 Jan 2023 00:46:52 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1675154794;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:
-         in-reply-to:in-reply-to:references:references;
-        bh=RT0be17qJU4YrT6BGLBw4plPJpfNOohspNBXSp02x6k=;
-        b=Zb0txdNmkI6msqnIx8u2aYCjm6uPrPp3ULYqd5d8xkpUFdqB1odtxJEmAb27yr1pD7vOti
-        ktF7k0FvtynPcvc55NSB80I/a01/25cuJ0IHTEWnt7Sd4MtZJU1Rrb+lDia1EI9M4bZJeE
-        Ev6h6gNHhYkGiC38Wm37xAZCLU+VJW4=
-Received: from mail-wm1-f72.google.com (mail-wm1-f72.google.com
- [209.85.128.72]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_128_GCM_SHA256) id
- us-mta-645-uQaxoZZ7M5OMQ_0DaXSCBw-1; Tue, 31 Jan 2023 03:46:31 -0500
-X-MC-Unique: uQaxoZZ7M5OMQ_0DaXSCBw-1
-Received: by mail-wm1-f72.google.com with SMTP id h9-20020a1ccc09000000b003db1c488826so10941670wmb.3
-        for <linux-arch@vger.kernel.org>; Tue, 31 Jan 2023 00:46:31 -0800 (PST)
+        with ESMTP id S231360AbjAaODv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2023 09:03:51 -0500
+Received: from mail-wm1-f43.google.com (mail-wm1-f43.google.com [209.85.128.43])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8AB0B61BD;
+        Tue, 31 Jan 2023 06:03:40 -0800 (PST)
+Received: by mail-wm1-f43.google.com with SMTP id k8-20020a05600c1c8800b003dc57ea0dfeso4552391wms.0;
+        Tue, 31 Jan 2023 06:03:40 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
-        h=content-transfer-encoding:in-reply-to:organization:from:references
-         :cc:to:content-language:subject:user-agent:mime-version:date
-         :message-id:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=RT0be17qJU4YrT6BGLBw4plPJpfNOohspNBXSp02x6k=;
-        b=DJZJJ7AZLjLSKui6P+vbb2ftpWaIFmpOZGGhxBwTDP1JG0QeBhpTT41y8DkKyMyaCv
-         KQAY5GtBo0CAuMLJg5297KSvFLHL+FtLLUR2iYphzgDRi7kvuOCX4Cuyu/3jTXpI2Q1u
-         Vdp0ZDhoc68FdEtDDxUMRZlYRbj+MsCntOz7UoBOsbeKIj8waTvRuoxExSht+rQSpY10
-         i+NvWyySYGOLNF1PYN/qFq8oZ8TXmbbv3bGxxVsVT4XFLTPfiM3j2AzMSh/n5ptwEojI
-         XAYPJtqj6K8dJNR+0sN1JQkcX0YiGh+eqdSJe6q6Acl3+MqTTFFA+StEFYyqMbZW0x6I
-         PEQg==
-X-Gm-Message-State: AO0yUKWce9/7QsEgViW0v9angsdBpB0ipWVU4xYipwd5ozRp8x+qqZB6
-        RQi1jJdzTb4Kfp4cdmm4njlSSYNhotj7yglCsBjl4L0gH2M5sICscxTuzZ9lApa0UqLcLw4VKXQ
-        nsMuhpELaAD0zaxC58ixQVQ==
-X-Received: by 2002:a05:600c:350a:b0:3dd:1c45:a36d with SMTP id h10-20020a05600c350a00b003dd1c45a36dmr2228067wmq.27.1675154790679;
-        Tue, 31 Jan 2023 00:46:30 -0800 (PST)
-X-Google-Smtp-Source: AK7set8QpCOBeSom0P3EMkkVT3iDxdmU57NVBunEGbit/G8Vzfu/HJ8buwXfm2TF7WWfzUVYQ1crOw==
-X-Received: by 2002:a05:600c:350a:b0:3dd:1c45:a36d with SMTP id h10-20020a05600c350a00b003dd1c45a36dmr2228038wmq.27.1675154790214;
-        Tue, 31 Jan 2023 00:46:30 -0800 (PST)
-Received: from ?IPV6:2003:d8:2f0a:ca00:f74f:2017:1617:3ec3? (p200300d82f0aca00f74f201716173ec3.dip0.t-ipconnect.de. [2003:d8:2f0a:ca00:f74f:2017:1617:3ec3])
-        by smtp.gmail.com with ESMTPSA id o16-20020a05600c379000b003dc49e0132asm9751166wmr.1.2023.01.31.00.46.28
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 31 Jan 2023 00:46:29 -0800 (PST)
-Message-ID: <0e29a2d0-08d8-bcd6-ff26-4bea0e4037b0@redhat.com>
-Date:   Tue, 31 Jan 2023 09:46:27 +0100
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=zP46eoHMy0QQYTCPonziWXrKVD1CtL7gNynXxWXBiio=;
+        b=6jQm+uCmIMmc/4gOCx3vkY/f3Z3oaCum6+M5Cu4QWThbPQHgMoMcYMx4V6CIqf+UCm
+         iQVfwa4xrX0x4csk5X3VMFvdzTwdK+vHNJ7pFgWMBTXEWlCsNtbqJ9lFWJNGJvDRIX2+
+         jdeHXdoXTRqVoOF6a11ViVqXANHs/90MnjofiwRRORdr5Fj8mRVPHvVvOcPOOVc47YlP
+         RpF8f9tcwn8PjujgeNUGoxxRlFUI9wIM8DBc6O+2fPSHjKFWLGu75uhquOvoc1USltSg
+         x3mcFXzpX6rplncll1wrowDGluRe7xjyanN/ghp+uvFgek45KX4mEPQV+2WY0MYSca2b
+         63yA==
+X-Gm-Message-State: AFqh2koCZmvKNF2KQvQn35S//idBJdR3yx3/EDq1Jdkiz+rWYSojqxZ5
+        pXfcALS1IjeByx4ttnSqGwo=
+X-Google-Smtp-Source: AMrXdXsiOeq0P18xWjlHlrkHIORAOC9Tm4WATFMzLHCkskZWUoYwpSM042wufE/gqI38lYzh8zU3Dg==
+X-Received: by 2002:a05:600c:4fc9:b0:3d9:f769:2115 with SMTP id o9-20020a05600c4fc900b003d9f7692115mr54372049wmq.26.1675173818996;
+        Tue, 31 Jan 2023 06:03:38 -0800 (PST)
+Received: from liuwe-devbox-debian-v2 ([51.145.34.42])
+        by smtp.gmail.com with ESMTPSA id w10-20020adfcd0a000000b002bff7caa1c2sm3834349wrm.0.2023.01.31.06.03.38
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 31 Jan 2023 06:03:38 -0800 (PST)
+Date:   Tue, 31 Jan 2023 14:03:36 +0000
+From:   Wei Liu <wei.liu@kernel.org>
+To:     Tianyu Lan <ltykernel@gmail.com>
+Cc:     luto@kernel.org, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+        hpa@zytor.com, seanjc@google.com, pbonzini@redhat.com,
+        jgross@suse.com, tiala@microsoft.com, kirill@shutemov.name,
+        jiangshan.ljs@antgroup.com, peterz@infradead.org,
+        ashish.kalra@amd.com, srutherford@google.com,
+        akpm@linux-foundation.org, anshuman.khandual@arm.com,
+        pawan.kumar.gupta@linux.intel.com, adrian.hunter@intel.com,
+        daniel.sneddon@linux.intel.com, alexander.shishkin@linux.intel.com,
+        sandipan.das@amd.com, ray.huang@amd.com, brijesh.singh@amd.com,
+        michael.roth@amd.com, thomas.lendacky@amd.com,
+        venu.busireddy@oracle.com, sterritt@google.com,
+        tony.luck@intel.com, samitolvanen@google.com, fenghua.yu@intel.com,
+        linux-kernel@vger.kernel.org, kvm@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, linux-arch@vger.kernel.org,
+        Wei Liu <wei.liu@kernel.org>
+Subject: Re: [RFC PATCH V3 09/16] x86/hyperv: SEV-SNP enlightened guest don't
+ support legacy rtc
+Message-ID: <Y9kfuFGVoIlOfnoK@liuwe-devbox-debian-v2>
+References: <20230122024607.788454-1-ltykernel@gmail.com>
+ <20230122024607.788454-10-ltykernel@gmail.com>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.6.0
-Subject: Re: [PATCH v5 18/39] mm: Handle faultless write upgrades for shstk
-Content-Language: en-US
-To:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>,
-        "bsingharora@gmail.com" <bsingharora@gmail.com>,
-        "hpa@zytor.com" <hpa@zytor.com>,
-        "Syromiatnikov, Eugene" <esyr@redhat.com>,
-        "peterz@infradead.org" <peterz@infradead.org>,
-        "rdunlap@infradead.org" <rdunlap@infradead.org>,
-        "keescook@chromium.org" <keescook@chromium.org>,
-        "Eranian, Stephane" <eranian@google.com>,
-        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "linux-mm@kvack.org" <linux-mm@kvack.org>,
-        "fweimer@redhat.com" <fweimer@redhat.com>,
-        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
-        "jannh@google.com" <jannh@google.com>,
-        "dethoma@microsoft.com" <dethoma@microsoft.com>,
-        "kcc@google.com" <kcc@google.com>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "pavel@ucw.cz" <pavel@ucw.cz>, "oleg@redhat.com" <oleg@redhat.com>,
-        "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
-        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
-        "Lutomirski, Andy" <luto@kernel.org>,
-        "bp@alien8.de" <bp@alien8.de>,
-        "jamorris@linux.microsoft.com" <jamorris@linux.microsoft.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "Schimpe, Christina" <christina.schimpe@intel.com>,
-        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
-        "arnd@arndb.de" <arnd@arndb.de>,
-        "Yang, Weijiang" <weijiang.yang@intel.com>,
-        "x86@kernel.org" <x86@kernel.org>,
-        "andrew.cooper3@citrix.com" <andrew.cooper3@citrix.com>,
-        "john.allen@amd.com" <john.allen@amd.com>,
-        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
-        "rppt@kernel.org" <rppt@kernel.org>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "corbet@lwn.net" <corbet@lwn.net>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
-        "gorcunov@gmail.com" <gorcunov@gmail.com>
-Cc:     "Yu, Yu-cheng" <yu-cheng.yu@intel.com>
-References: <20230119212317.8324-1-rick.p.edgecombe@intel.com>
- <20230119212317.8324-19-rick.p.edgecombe@intel.com>
- <7f63d13d-7940-afb6-8b25-26fdf3804e00@redhat.com>
- <50cf64932507ba60639eca28692e7df285bcc0a7.camel@intel.com>
- <1327c608-1473-af4f-d962-c24f04f3952c@redhat.com>
- <8c3820ae1448de4baffe7c476b4b5d9ba0a309ff.camel@intel.com>
- <4d224020-f26f-60a4-c7ab-721a024c7a6d@redhat.com>
- <dd06b54291ad5721da392a42f2d8e5636301ffef.camel@intel.com>
- <899d8f3baaf45b896cf335dec2143cd0969a2d8a.camel@intel.com>
- <ad7d94dd-f0aa-bf21-38c3-58ef1e9e46dc@redhat.com>
- <27b141c06c37da78afca7214ec7efeaf730162d9.camel@intel.com>
- <f4b62ed9-21a9-4b23-567e-51b339a643ac@redhat.com>
- <6a38779c1539c2bcfeb6bc8251ed04aa9b06802e.camel@intel.com>
-From:   David Hildenbrand <david@redhat.com>
-Organization: Red Hat
-In-Reply-To: <6a38779c1539c2bcfeb6bc8251ed04aa9b06802e.camel@intel.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20230122024607.788454-10-ltykernel@gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 28.01.23 01:51, Edgecombe, Rick P wrote:
-> On Fri, 2023-01-27 at 17:12 +0100, David Hildenbrand wrote:
->> On 26.01.23 21:19, Edgecombe, Rick P wrote:
->>> On Thu, 2023-01-26 at 09:46 +0100, David Hildenbrand wrote:
->>>> On 26.01.23 01:59, Edgecombe, Rick P wrote:
->>>>> On Wed, 2023-01-25 at 10:43 -0800, Rick Edgecombe wrote:
->>>>>> Thanks for your comments and ideas here, I'll give the:
->>>>>> pte_t pte_mkwrite(struct vm_area_struct *vma, pte_t pte)
->>>>>> ...solution a try.
->>>>>
->>>>> Well, it turns out there are some pte_mkwrite() callers in
->>>>> other
->>>>> arch's
->>>>> that operate on kernel memory and don't have a VMA. So it
->>>>> needed a
->>>>> new
->>>>
->>>> Why not pass in NULL as VMA then and document the semantics? The
->>>> less
->>>> similarly named but slightly different functions, the better :)
->>>
->>> Hmm. The x86 and generic versions should probably have the same
->>> semantics, so then if you pass a NULL, it would do a regular
->>> pte_mkwrite() I guess?
->>>
->>> I see another benefit of requiring the vma argument, such that raw
->>> pte_mkwrite()s are less likely to appear in core MM code. But I
->>> think
->>> the NULL is awkward because it's not obvious, to me at least, what
->>> the
->>> implications of that should be.
->>>
->>> So it will be confusing to read in the NULL cases for the other
->>> archs.
->>> We also have some warnings to catch miss cases in the PTE tear down
->>> code, so the scenario of new code accidentally marking shadow stack
->>> PTEs as writable is not totally unchecked.
->>>
->>> The three functions that do slightly different things are:
->>>
->>> pte_mkwrite():
->>> Makes a PTE conventionally writable, only takes a PTE. Very clear
->>> that
->>> it is a low level helper and what it does.
->>>
->>> maybe_mkwrite():
->>> Might make a PTE writable if the VMA allows it.
->>>
->>> pte_mkwrite_vma():
->>> Makes a PTE writable in a specific way depending on the VMA
->>>
->>> I wonder if the name pte_mkwrite_vma() is maybe just not clear
->>> enough.
->>> It takes a VMA, yes, but what does it do with it?
->>>
->>> What if it was called pte_mkwrite_type() instead? Some arch's have
->>> additional types of writable memory and this function creates them.
->>> Of
->>> course they also have the normal type of writable memory, and
->>> pte_mkwrite() creates that like usual. Doesn't it seem more
->>> readable?
->>
->> The issue is, the more variants we provide the easier it is to make
->> mistakes and introduce new buggy code.
->>
->> It's tempting to simply use pte_mkwrite() and call it a day, where
->> people actually should use pte_mkwrite_vma().
->>
->> Then, they at least have to investigate what to do about the second
->> VMA
->> parameter.
+On Sat, Jan 21, 2023 at 09:45:59PM -0500, Tianyu Lan wrote:
+> From: Tianyu Lan <tiala@microsoft.com>
 > 
-> Ok, I'll give it a spin. So far it looks ok. The downside is the giant
-> tree-wide pte_mkwrite() signature change, but once that is over with
-> there are other advantages. Like getting rid of maybe_mkwrite()'s
-> awareness of shadow stack so the logic is more centralized. Please let
-> me know if you don't feel comfortable with a suggested-by credit tag.
+> SEV-SNP enlightened guest doesn't support legacy rtc. Set
+> legacy.rtc, x86_platform.set_wallclock and get_wallclock to
+> 0 or noop(). Make get/set_rtc_noop() to be public and reuse
+> them in the ms_hyperv_init_platform().
+> 
+> Signed-off-by: Tianyu Lan <tiala@microsoft.com>
+> ---
+>  arch/x86/include/asm/mshyperv.h | 7 ++++++-
+>  arch/x86/include/asm/x86_init.h | 2 ++
+>  arch/x86/kernel/cpu/mshyperv.c  | 3 +++
+>  arch/x86/kernel/x86_init.c      | 4 ++--
+>  4 files changed, 13 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+> index 1a4af0a4f29a..7266d71d30d6 100644
+> --- a/arch/x86/include/asm/mshyperv.h
+> +++ b/arch/x86/include/asm/mshyperv.h
+> @@ -33,6 +33,12 @@ extern bool hv_isolation_type_en_snp(void);
+>  
+>  extern union hv_ghcb * __percpu *hv_ghcb_pg;
+>  
+> +/*
+> + * Hyper-V puts processor and memory layout info
+> + * to this address in SEV-SNP enlightened guest.
+> + */
+> +#define EN_SEV_SNP_PROCESSOR_INFO_ADDR	0x802000
 
-Sure ...
+This hunk should be moved to the previous patch. It is not needed in
+this patch.
 
-but I reconsidered :)
-
-Maybe there is a cleaner way to do it and avoid the "NULL" argument.
-
-What about having (while you're going over everything already):
-
-pte_mkwrite(pte, vma)
-pte_mkwrite_kernel(pte)
-
-The latter would only be used in that arch code where we're working on 
-kernel pgtables. We already have pte_offset_kernel() and 
-pte_alloc_kernel_track(), so it's not too weird.
-
--- 
 Thanks,
-
-David / dhildenb
-
+Wei.
