@@ -2,304 +2,272 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B224FC38142
-	for <linux-arch@archiver.kernel.org>; Tue, 31 Jan 2023 15:27:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9AE05C636CD
+	for <linux-arch@archiver.kernel.org>; Tue, 31 Jan 2023 17:35:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232139AbjAaP1K (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 31 Jan 2023 10:27:10 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39964 "EHLO
+        id S230268AbjAaRfZ convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 31 Jan 2023 12:35:25 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39636 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233083AbjAaP05 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2023 10:26:57 -0500
-Received: from frasgout13.his.huawei.com (frasgout13.his.huawei.com [14.137.139.46])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0A6E6118;
-        Tue, 31 Jan 2023 07:26:53 -0800 (PST)
-Received: from mail02.huawei.com (unknown [172.18.147.228])
-        by frasgout13.his.huawei.com (SkyGuard) with ESMTP id 4P5pCY4h1Vz9xFGX;
-        Tue, 31 Jan 2023 23:01:13 +0800 (CST)
-Received: from [10.45.157.21] (unknown [10.45.157.21])
-        by APP1 (Coremail) with SMTP id LxC2BwDHTgrwLtlj32nhAA--.28633S2;
-        Tue, 31 Jan 2023 16:08:46 +0100 (CET)
-Message-ID: <2f121e2d-8e4c-de99-5672-93350fbb52af@huaweicloud.com>
-Date:   Tue, 31 Jan 2023 16:08:29 +0100
+        with ESMTP id S231305AbjAaRfG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2023 12:35:06 -0500
+Received: from DM6FTOPR00CU001-vft-obe.outbound.protection.outlook.com (mail-cusazon11020026.outbound.protection.outlook.com [52.101.61.26])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5713945F43;
+        Tue, 31 Jan 2023 09:35:03 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=XdmNt5g8U2I5/rJ0NU2zTGcCspTUbfPQfhKtWsnY8XV9+KU/gLnWNO5xNJa0dxIbs6JmklQPxrZWQKt4YAuwiJfUA0H9LX/z3IDLOCHn1eQ7bcG876Rli4IqaUYQ1s/y8AAnoiJ1+p51NCthIH7K4RsCn+Ef6JhoHyNOwdU4i7BN7G4nnmKAfX84rSLOy4mmX+88uWpG3t6l9sdbIVQN5zIX5hkLqrqCRFGHMVrSjOFAwppn2USAPzO8PvBx+vf5e750byOgrgvw3lULcAblJRk/KJeB/nNlE+9LQrHvZ4w7s+8h7ZEvHy2WJKVdmp5c3T3dpTAurrnahmr+v6f74Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=EIU3FuCJmVpzAytxQmkh9z6+HlBN09yBDnXSsGO4V3Y=;
+ b=kvCTTNYJkrvf8isJ+FA05Ga6SxdJPSmp+Y1ZwTiFpqcjdmzcU6hGlNoSw3gyb0BOgi7MYA6Cb9G0T0o8JlzIlrri621SJ6u30zeqyv5hIQYgunJL8F5B4RcNq/gBZi35xQQ1Mz18caZw+mhr7x1cUsIQbdJtBWv96IVJ46LSVpJargyo08qDEgjjKcTE6L+4P7iTyrTLiDGzbjDbiF3DDs/XU3rEwoAc2JQURdUDfi9h85PqTN6XnkQGQXK632ERk1gZOjEi2hfL3YCVtFk2BbC25h2JSut5fd/Kj0GTc9suFq4Gls4PKHPKkN2fiW4Yhwn8LJEz187hm3M+AkJrqg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=microsoft.com; dmarc=pass action=none
+ header.from=microsoft.com; dkim=pass header.d=microsoft.com; arc=none
+Received: from BYAPR21MB1688.namprd21.prod.outlook.com (2603:10b6:a02:bf::26)
+ by MWH0PFEED04C944.namprd21.prod.outlook.com (2603:10b6:30f:fff1:0:3:0:15)
+ with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6043.1; Tue, 31 Jan
+ 2023 17:34:55 +0000
+Received: from BYAPR21MB1688.namprd21.prod.outlook.com
+ ([fe80::9a9e:c614:a89f:396e]) by BYAPR21MB1688.namprd21.prod.outlook.com
+ ([fe80::9a9e:c614:a89f:396e%8]) with mapi id 15.20.6086.005; Tue, 31 Jan 2023
+ 17:34:55 +0000
+From:   "Michael Kelley (LINUX)" <mikelley@microsoft.com>
+To:     Tianyu Lan <ltykernel@gmail.com>,
+        "luto@kernel.org" <luto@kernel.org>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "bp@alien8.de" <bp@alien8.de>,
+        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
+        "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>,
+        "seanjc@google.com" <seanjc@google.com>,
+        "pbonzini@redhat.com" <pbonzini@redhat.com>,
+        "jgross@suse.com" <jgross@suse.com>,
+        Tianyu Lan <Tianyu.Lan@microsoft.com>,
+        "kirill@shutemov.name" <kirill@shutemov.name>,
+        "jiangshan.ljs@antgroup.com" <jiangshan.ljs@antgroup.com>,
+        "peterz@infradead.org" <peterz@infradead.org>,
+        "ashish.kalra@amd.com" <ashish.kalra@amd.com>,
+        "srutherford@google.com" <srutherford@google.com>,
+        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
+        "anshuman.khandual@arm.com" <anshuman.khandual@arm.com>,
+        "pawan.kumar.gupta@linux.intel.com" 
+        <pawan.kumar.gupta@linux.intel.com>,
+        "adrian.hunter@intel.com" <adrian.hunter@intel.com>,
+        "daniel.sneddon@linux.intel.com" <daniel.sneddon@linux.intel.com>,
+        "alexander.shishkin@linux.intel.com" 
+        <alexander.shishkin@linux.intel.com>,
+        "sandipan.das@amd.com" <sandipan.das@amd.com>,
+        "ray.huang@amd.com" <ray.huang@amd.com>,
+        "brijesh.singh@amd.com" <brijesh.singh@amd.com>,
+        "michael.roth@amd.com" <michael.roth@amd.com>,
+        "thomas.lendacky@amd.com" <thomas.lendacky@amd.com>,
+        "venu.busireddy@oracle.com" <venu.busireddy@oracle.com>,
+        "sterritt@google.com" <sterritt@google.com>,
+        "tony.luck@intel.com" <tony.luck@intel.com>,
+        "samitolvanen@google.com" <samitolvanen@google.com>,
+        "fenghua.yu@intel.com" <fenghua.yu@intel.com>
+CC:     "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "kvm@vger.kernel.org" <kvm@vger.kernel.org>,
+        "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Subject: RE: [RFC PATCH V3 01/16] x86/hyperv: Add sev-snp enlightened guest
+ specific config
+Thread-Topic: [RFC PATCH V3 01/16] x86/hyperv: Add sev-snp enlightened guest
+ specific config
+Thread-Index: AQHZLgu1xuRybjP1Nk+ayf+k7xVXiq641Yyg
+Date:   Tue, 31 Jan 2023 17:34:55 +0000
+Message-ID: <BYAPR21MB1688C47E9B4BD0D1293E7D4DD7D09@BYAPR21MB1688.namprd21.prod.outlook.com>
+References: <20230122024607.788454-1-ltykernel@gmail.com>
+ <20230122024607.788454-2-ltykernel@gmail.com>
+In-Reply-To: <20230122024607.788454-2-ltykernel@gmail.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach: 
+X-MS-TNEF-Correlator: 
+msip_labels: MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ActionId=2c1ff116-ed1a-4609-81c6-bd7f9511e81c;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_ContentBits=0;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Enabled=true;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Method=Standard;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_Name=Internal;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SetDate=2023-01-31T17:24:05Z;MSIP_Label_f42aa342-8706-4288-bd11-ebb85995028c_SiteId=72f988bf-86f1-41af-91ab-2d7cd011db47;
+authentication-results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=microsoft.com;
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: BYAPR21MB1688:EE_|MWH0PFEED04C944:EE_
+x-ms-office365-filtering-correlation-id: d23d4d56-d0cc-4b60-1498-08db03b177e3
+x-ms-exchange-senderadcheck: 1
+x-ms-exchange-antispam-relay: 0
+x-microsoft-antispam: BCL:0;
+x-microsoft-antispam-message-info: 402isAz4GMRftF+nC0dHxjY7HW7g2sf7229URYvofs416Cx9EL0AlS6eRVMXaIlBSSKjFJCE1zjkVf+AOrYhyyvKxvauLWsPdwUgYmyN/hUR2Sf+7+LZ2LeQ6/fmAfiduYeY19zP2hehjc7SAFTXLuCP9TGRPbIXQVB6beWmIydVOBtl7Kccwzh+SWeHl3M8M2WCML1h/hHrg2SzAhKsSV/gPsbMs5CaI/QPnTAFTxan2ShBHYl7GkgiYS3zmA8c3Of1k2q2rZIOSXItzGD2ccvv/ScqK0M8opUlb39F8LvK1QC0IBF7+e8xfVKHm+WNwnFuKjUQgeRCcs6Hy10v1LV/ec3Sb0c4k5urIA/UWUv+ppMB0p8vSFl4k4+BB8WQpT86/Pni7NgGVyIiUIZlZr7ricQl5Tb+0DnydcAnPkNdGyEFosOLRFlhEMzM1yzL/HEujlOrVe8idWllCrPL4AI1oooTKZ7QcV6P6NO/1gmCF28M+oYaqoUW+dKaNzkeB7cPZlUKPfOoXzFf4xO21S6WRcsensGT9dzvrngSwUh89xPpm9U5bIkP9M1i4swITOsci9IuHylUxvSL6A2X2veEmKQTga75bcxaHx1tSlb/n5JmemX8pYEsboXM/MG7aG1k9+EtMcCkDS4btZr9L3QJ1lFMZZBYS3DkQqSFgz0k0Q+r2qX7jfqXXgkGRXxSFz2b5aBgW8nkoklDbt8AK0NyqRRt2YSCPmcU8psZOIRkkHUFmbaViM9wwFwIvOlOTkUcTczCwtyiojQmpTBjzw==
+x-forefront-antispam-report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BYAPR21MB1688.namprd21.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230025)(4636009)(366004)(136003)(346002)(39860400002)(376002)(396003)(451199018)(38100700002)(5660300002)(33656002)(66476007)(52536014)(186003)(8990500004)(6506007)(26005)(66446008)(82960400001)(7696005)(4326008)(316002)(66946007)(83380400001)(82950400001)(7406005)(71200400001)(478600001)(122000001)(2906002)(9686003)(8936002)(921005)(110136005)(41300700001)(66556008)(7416002)(55016003)(10290500003)(54906003)(38070700005)(8676002)(64756008)(86362001)(76116006)(66899018);DIR:OUT;SFP:1102;
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0: =?us-ascii?Q?+tx7pd+A4RZ3IaRX7V8yfILwryqKPk7me4DODGmp6k5GkrfB9ib42+9zeZv4?=
+ =?us-ascii?Q?oETakQyEkRbnbUeupdyKIupPNgwY9qh3xMSdoM9BlEOjeosAWqW7LH8Q+tr7?=
+ =?us-ascii?Q?4JGopPMBWDmAcfrlsESB941CN6HcmO23G8xDdFqV9Tc5LnfV7R3MIyLQiZ9s?=
+ =?us-ascii?Q?Qupu1ecNXzKW3NhQdGogMLNuT2giwb5bUftDlL0fKil7AXG9emboDuHhG5La?=
+ =?us-ascii?Q?9TTnluiNZEkZLo1+BSb6PGwNcsgb8EYatN9cDwlZD/IRSdPntCgLrEfNeTPz?=
+ =?us-ascii?Q?svvtFuLmhodN/DkbsSKeEWD9dad3jXSUu0CzN8Q4Au4T3P+NT5yG/q9sfQW6?=
+ =?us-ascii?Q?JG/xpKGgjHmfbUPFI23gHVwoeXwegmmp+kzhDE0mtHqlaehxxBSHWsiEzlAL?=
+ =?us-ascii?Q?RBYeZKC695LLLlPezPcA5aXNFa7iJj+TeelTKel0mdIyDUKsCDY0gpOeovVW?=
+ =?us-ascii?Q?fdMDfeg8aK4Azu3GPbITDOSqMRRqR6Jd579q1qj8mclUB33qg7kwuVUKTNIV?=
+ =?us-ascii?Q?oY2SARB0jRfUY/igmHDVGP3xmEwaNAaeeDJo28qw2qBSNWpBLK2YT5VjHoSb?=
+ =?us-ascii?Q?JohWvlKp7/kKbINNe2kOatEF2bfPgqcWDN1nA2v17E5obiLX7RLnUzYBFLy3?=
+ =?us-ascii?Q?J1gMcU5LoWg8m9AHyWMkf/VsSuTrWtANj9sQHqCqvGiDoK4bF6OWrfTFCMdR?=
+ =?us-ascii?Q?nlm/tAoYkXIaiUbkaDanD19yoQF7VPbbKvczHMWrd9jpPBHs62KuAQIXJ6gd?=
+ =?us-ascii?Q?2CJCkeVYFsSLTc4sNeo06lkFsnWeg/1iZ3uczWT+EHc3D5QhIDjtEpOslgVv?=
+ =?us-ascii?Q?z42Vhgz8mkbaPzxd5UHQX73XblQnEsWiD8Bz72egQRKgnx8OaKyhQn97zIrK?=
+ =?us-ascii?Q?zxidtlrdAnDXt/uRkf/m+VTkxEMdeUMIXGnyUckhyeKvkXfRWToiQ42JIswq?=
+ =?us-ascii?Q?3HGomJ6HKWm30s4AIpd1pvJJpQQgQCQCpI7B6HknJW/r1TJUBVwcDt4nRBP2?=
+ =?us-ascii?Q?c9km1MJ9l96k3ZYHayMFKnyEDvonRB2WhCMGkVT2kD924Sm0G50elOAJhcbG?=
+ =?us-ascii?Q?/ppq1DzGbjqljKh71ac8dZZjn/q31IpBan9O/NT89WSjgpyyiDYOkGyOv6Yl?=
+ =?us-ascii?Q?8ZuoZRd7xsDmYsDsm1yEV0o/fgFwujymYOZ1v5zu3imGFKpag2iGmLeg5uhC?=
+ =?us-ascii?Q?hadg5KucbZ1uWNvqETrSJQ21NJ3M/mb6MOScRcUHlkcjnewyWaAD7qroLvxF?=
+ =?us-ascii?Q?r4SF/vaIXTQYZeALOQBUzYNLchCRHcHPolXNZBRaJ9xDmUF7AXKgWB6j153n?=
+ =?us-ascii?Q?yzYHv3hUoECsKVvPXL/wsIwKPcCrkj9G3QWlkQ/jZZuLvW+aKIGVFIPz9pXK?=
+ =?us-ascii?Q?bjqNGCpeVuxqkm5eResdN6IDHqG/1Cgh+UoqAeLyzO5UJjn8k8akFOnYFVtt?=
+ =?us-ascii?Q?Zb6AgA93C7TBJ9yC6AEvbGQXwOPuXr7q+tIMKxO5QLQskQqmM/JCS73Mxtoh?=
+ =?us-ascii?Q?Lb9ncVYE+bOY+Igrz+YsbB01zsBC/ES7RuqSQdtFSITN/Dj7V35EaFcxW1+7?=
+ =?us-ascii?Q?E6WEuGvmRJmzTs1WAFbLzCTdrLucnQSkES/iNjH+8YXx4dScJrhXDbDCT4IK?=
+ =?us-ascii?Q?rA=3D=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.6.1
-Subject: Re: [PATCH] locking/atomic: atomic: Use arch_atomic_{read,set} in
- generic atomic ops
-To:     Boqun Feng <boqun.feng@gmail.com>
-Cc:     Peter Zijlstra <peterz@infradead.org>,
-        Jules Maselbas <jmaselbas@kalray.eu>,
-        Will Deacon <will@kernel.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>,
-        Hernan Ponce de Leon <hernan.poncedeleon@huaweicloud.com>,
-        =?UTF-8?Q?Paul_Heidekr=c3=bcger?= <paul.heidekrueger@in.tum.de>,
-        Marco Elver <elver@google.com>,
-        Miguel Ojeda <ojeda@kernel.org>,
-        Alex Gaynor <alex.gaynor@gmail.com>,
-        Wedson Almeida Filho <wedsonaf@gmail.com>,
-        Gary Guo <gary@garyguo.net>,
-        =?UTF-8?Q?Bj=c3=b6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>
-References: <20230126173354.13250-1-jmaselbas@kalray.eu>
- <Y9Oy9ZAj/DQ7O+6e@hirez.programming.kicks-ass.net>
- <20230127134946.GJ5952@tellis.lin.mbt.kalray.eu>
- <Y9Pg+aNM9f48SY5Z@hirez.programming.kicks-ass.net>
- <Y9RLpYGmzW1KPksE@boqun-archlinux>
- <2f4717b3-268f-8db3-e380-4af0a5479901@huaweicloud.com>
- <Y9gOjzGaWy2hIAmu@boqun-archlinux>
-From:   Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
-In-Reply-To: <Y9gOjzGaWy2hIAmu@boqun-archlinux>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID: LxC2BwDHTgrwLtlj32nhAA--.28633S2
-X-Coremail-Antispam: 1UD129KBjvJXoW3CFW7Xr4xJFW7KF4fuFWUXFb_yoWDWF1DpF
-        WxK3WfCF4DJrn2k34vyw4xWa4SkwsYyFy5Jr95Gw1kZ3s8WFyftF1fKa1Y9F98uw4xK34j
-        qr4j9a4Dua4DZaDanT9S1TB71UUUUUUqnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-        9KBjDU0xBIdaVrnRJUUU9F14x267AKxVWrJVCq3wAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-        rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
-        1l84ACjcxK6xIIjxv20xvE14v26r1j6r1xM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
-        6F4UM28EF7xvwVC2z280aVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv6xkF7I0E14v26r4UJV
-        WxJr1le2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E
-        2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7xkEbVWUJV
-        W8JwACjcxG0xvEwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2Y2ka
-        0xkIwI1lc7I2V7IY0VAS07AlzVAYIcxG8wCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7x
-        kEbVWUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E
-        67AF67kF1VAFwI0_GFv_WrylIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUJVWUCw
-        CI42IY6xIIjxv20xvEc7CjxVAFwI0_Gr0_Cr1lIxAIcVCF04k26cxKx2IYs7xG6rW3Jr0E
-        3s1lIxAIcVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcS
-        sGvfC2KfnxnUUI43ZEXa7VUbJ73DUUUUU==
-X-CM-SenderInfo: 5mrqt2oorev25kdx2v3u6k3tpzhluzxrxghudrp/
-X-CFilter-Loop: Reflected
+X-OriginatorOrg: microsoft.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: BYAPR21MB1688.namprd21.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: d23d4d56-d0cc-4b60-1498-08db03b177e3
+X-MS-Exchange-CrossTenant-originalarrivaltime: 31 Jan 2023 17:34:55.8366
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 72f988bf-86f1-41af-91ab-2d7cd011db47
+X-MS-Exchange-CrossTenant-mailboxtype: HOSTED
+X-MS-Exchange-CrossTenant-userprincipalname: TLtoNmUaY3Mw06OkOkGJQsHKDsvdNLHf5HUlhR+vqmL8PXuQn2E39P+6aSMIwgZeu4umVhAr15Thl6emiMbcrCuz1ES3JwmP0tuCOpcXAEk=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MWH0PFEED04C944
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+From: Tianyu Lan <ltykernel@gmail.com> Sent: Saturday, January 21, 2023 6:46 PM
+> 
+> Introduce static key isolation_type_en_snp for enlightened
+> guest check and add some specific options in ms_hyperv_init_
+> platform().
+> 
+> Signed-off-by: Tianyu Lan <tiala@microsoft.com>
+> ---
+>  arch/x86/hyperv/ivm.c           | 10 ++++++++++
+>  arch/x86/include/asm/mshyperv.h |  3 +++
+>  arch/x86/kernel/cpu/mshyperv.c  | 16 +++++++++++++++-
+>  drivers/hv/hv_common.c          |  6 ++++++
+>  4 files changed, 34 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/hyperv/ivm.c b/arch/x86/hyperv/ivm.c
+> index abca9431d068..8c5dd8e4eb1e 100644
+> --- a/arch/x86/hyperv/ivm.c
+> +++ b/arch/x86/hyperv/ivm.c
+> @@ -386,6 +386,16 @@ bool hv_is_isolation_supported(void)
+>  }
+> 
+>  DEFINE_STATIC_KEY_FALSE(isolation_type_snp);
+> +DEFINE_STATIC_KEY_FALSE(isolation_type_en_snp);
+> +
+> +/*
+> + * hv_isolation_type_en_snp - Check system runs in the AMD SEV-SNP based
+> + * isolation enlightened VM.
+> + */
+> +bool hv_isolation_type_en_snp(void)
+> +{
+> +	return static_branch_unlikely(&isolation_type_en_snp);
+> +}
+> 
+>  /*
+>   * hv_isolation_type_snp - Check system runs in the AMD SEV-SNP based
+> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+> index 010768d40155..285df71150e4 100644
+> --- a/arch/x86/include/asm/mshyperv.h
+> +++ b/arch/x86/include/asm/mshyperv.h
+> @@ -14,6 +14,7 @@
+>  union hv_ghcb;
+> 
+>  DECLARE_STATIC_KEY_FALSE(isolation_type_snp);
+> +DECLARE_STATIC_KEY_FALSE(isolation_type_en_snp);
+> 
+>  typedef int (*hyperv_fill_flush_list_func)(
+>  		struct hv_guest_mapping_flush_list *flush,
+> @@ -28,6 +29,8 @@ extern void *hv_hypercall_pg;
+> 
+>  extern u64 hv_current_partition_id;
+> 
+> +extern bool hv_isolation_type_en_snp(void);
+> +
+>  extern union hv_ghcb * __percpu *hv_ghcb_pg;
+> 
+>  int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
+> diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+> index 8f83ceec45dc..ace5901ba0fc 100644
+> --- a/arch/x86/kernel/cpu/mshyperv.c
+> +++ b/arch/x86/kernel/cpu/mshyperv.c
+> @@ -273,6 +273,18 @@ static void __init ms_hyperv_init_platform(void)
+> 
+>  	hv_max_functions_eax = cpuid_eax(HYPERV_CPUID_VENDOR_AND_MAX_FUNCTIONS);
+> 
+> +	/*
+> +	 * Add custom configuration for SEV-SNP Enlightened guest
+> +	 */
+> +	if (cc_platform_has(CC_ATTR_GUEST_SEV_SNP)) {
+> +		ms_hyperv.features |= HV_ACCESS_FREQUENCY_MSRS;
+> +		ms_hyperv.misc_features |= HV_FEATURE_FREQUENCY_MSRS_AVAILABLE;
+> +		ms_hyperv.misc_features &= ~HV_FEATURE_GUEST_CRASH_MSR_AVAILABLE;
+> +		ms_hyperv.hints |= HV_DEPRECATING_AEOI_RECOMMENDED;
+> +		ms_hyperv.hints |= HV_X64_APIC_ACCESS_RECOMMENDED;
+> +		ms_hyperv.hints |= HV_X64_CLUSTER_IPI_RECOMMENDED;
 
+Two different things are happening in changing the above flags:
 
-On 1/30/2023 7:38 PM, Boqun Feng wrote:
-> On Mon, Jan 30, 2023 at 01:23:28PM +0100, Jonas Oberhauser wrote:
->>
->> On 1/27/2023 11:09 PM, Boqun Feng wrote:
->>> On Fri, Jan 27, 2023 at 03:34:33PM +0100, Peter Zijlstra wrote:
->>>>> I also noticed that GCC has some builtin/extension to do such things,
->>>>> __atomic_OP_fetch and __atomic_fetch_OP, but I do not know if this
->>>>> can be used in the kernel.
->>>> On a per-architecture basis only, the C/C++ memory model does not match
->>>> the Linux Kernel memory model so using the compiler to generate the
->>>> atomic ops is somewhat tricky and needs architecture audits.
->>> Hijack this thread a little bit, but while we are at it, do you think it
->>> makes sense that we have a config option that allows archs to
->>> implement LKMM atomics via C11 (volatile) atomics? I know there are gaps
->>> between two memory models, but the option is only for fallback/generic
->>> implementation so we can put extra barriers/orderings to make things
->>> guaranteed to work.
->> Another is that the C11 model is more about atomic locations than atomic
->> accesses, and there are several places in the kernel where a location is
->> accessed both atomically and non-atomically. This API mismatch is more
->> severe than the semantic differences in my opinion, since you don't have
->> guarantees of what the layout of atomics is going to be.
->>
-> True, but the same problem for our asm implemented atomics, right? My
-> plan is to do (volatile atomic_int *) casts on these locations.
+1)  Disabling certain feature that Hyper-V might offer to a guest, such
+as the crash MSRs and Auto EOI.  (In some cases disabling the feature
+means removing the flag.  In other cases in means adding the flag.  But
+the net result is same -- other Hyper-V specific code will not use the
+feature.)  This category is OK.
 
-Do you? I think LKMM atomic types are always exactly as big as the 
-underlying types.
-With C you might get into a case where the atomic_int is actually [lock 
-; non-atomic int] and when you access the location in a mixed way, you 
-will non-atomically read the lock part but the atomic accesses modify 
-the int part (protected by the lock).
+2)  Forcing certain features to be treated as enabled.  This category
+is somewhat concerning.  Assuming that Hyper-V is accurately indicating
+which features are available, it seems better to check that the flags
+required by SNP are present, and refuse to boot in SNP mode if not.
+Or is this code handling a different problem, where Hyper-V is not
+indicating that the feature is available, even though it really is?
 
->
->> Perhaps you could instead rely on the compiler builtins? Note that this may
-> These are less formal/defined to me, and not much research on them I
-> assume, I'd rather not use them.
-
-I think that it's easy enough to define a formal model of these that is 
-a bit conservative, and then just add mb()s to make them safe.
-
->
->> invalidate some progress properties, e.g., ticket locks become unfair if the
->> increment (for taking a ticket) is implemented with a CAS loop (because a
->> thread can fail forever to get a ticket if the ticket counter is contended,
->> and thus starve). There may be some linux atomics that don't map to any
->> compiler builtins and need to implemented with such CAS loops, potentially
->> leading to such problems.
->>
->> I'm also curious whether link time optimization can resolve the inlining
->> issue?
->>
-> For Rust case, cross-language LTO is needed I think, and last time I
-> tried, it didn't work.
-
-In German we say "Was noch nicht ist kann ja noch werden", translated as 
-"what isn't can yet become", I don't feel like putting too much effort 
-into something that hardly affects performance and will hopefully become 
-obsolete at some point in the near future.
-
->
->> I think another big question for me is to which extent it makes sense
->> anyways to have shared memory concurrency between the Rust code and the C
->> code. It seems all the bad concurrency stuff from the C world would flow
->> into the Rust world, right?
-> What do you mean by "bad" ;-) ;-) ;-)
-
-Uh oh. Let's pretend I didn't say anything :D
-
->> If you can live without shared Rust & C concurrency, then perhaps you can
->> get away without using LKMM in Rust at all, and just rely on its (C11-like)
->> memory model internally and talk to the C code through synchronous, safer
->> ways.
->>
-> First I don't think I can avoid using LKMM in Rust, besides the
-> communication from two sides, what if kernel developers just want to
-> use the memory model they learn and understand (i.e. LKMM) in a new Rust
-> driver?
-
-I'd rather people think 10 times before relying on atomics to write Rust 
-code.
-There may be cases where it can't be avoided because of performance 
-reasons, but Rust has a much more convenient concurrency model to offer 
-than atomics.
-I think a lot more people understand Rust mutexes or channels compared 
-to atomics.
-Unfortunately I haven't written much driver code so I don't have 
-experience to what extent it's generally necessary to rely on atomics :(
-
-
-> They probably already have a working parallel algorithm based on
-> LKMM.
->
-> Further, let's say we make C and Rust talk without shared memory
-> concurrency, what would that be? Will it more defined/formal the LKMM?
-
-Normal FFI with sequential shared memory (passing a buffer sequentially 
-through FFI)?
-
-> How's the cost if we use synchronous ways? I personally think there are
-> places in core kernel where Rust can be tried, whatever the mechanism is
-> used, it cannot sarcrifed.
-
-Note that if you turn a C atomics-based implementation into a Rust 
-atomics-based implementation, you'll probably need some unsafe when you 
-"consume" the data synchronized through atomics (Sebastian Humenda and 
-Jonathan Schwender explained this to me recently), and any memory safety 
-bugs coming from that unsafe part can be due to incorrect use of the 
-atomics in the rest of the algorithm. So you don't really gain much 
-memory safety compared to the C implementation.
-
-Hopefully you can write a small safe Rust API around your mechanism, and 
-then constrain its possibly unsafe atomics use inside the library.
-But the motivation for porting that mechanism to Rust atomics rather 
-than relying on FFI is low for me.
-
->> I'm not against having a fallback builtin-based implementation of LKMM, and
->> I don't think that it really needs architecture audits. What it needs is
-> Fun fact, there exist some "optimizations" that don't generate the asm
-> code as you want:
->
-> 	https://github.com/llvm/llvm-project/issues/56450
->
-> Needless to say, they are bugs, and will be fixed, besides making atomic
-> volatile seems to avoid these "optimizations"
-
-
-Haha. Reminds me of a similar issue with failed CAS, which are usually 
-only reads but are considered to write back the same value in some 
-papers, leading to some incorrect results.
-
-
->> some additional compiler barriers and memory barriers, to ensure that the
->> arguments about dependencies and non-atomics still hold. E.g., a release
->> store may not just be "builtin release store" but may need to have a
->> compiler barrier to prevent the release store being moved in program order.
->> And a "full barrier" exchange may need an mb() infront of the operation to
->> avoid "roach motel ordering" (i.e.,  x=1 ; "full barrier exchange"; y = 1
->> allows y=1 to execute before x=1 in the compiler builtins as far as I
->> remember). And there may be some other cases like this.
->>
-> Agreed. And this is another reason I want to do it: I'm curious about
-> how far C11 memory model and LKMM are different, and whether there is a
-> way to implement one by another, what are the gaps (theorical and
-> pratical), whether the ordering we have in LKMM can be implemented by
-> compilers (mostly dependencies).
-
-
-I could imagine you'll find lots of differences, starting from SC 
-ordering, dependencies, local ordering of barriers, propagation...
-I generally categorize memory models in 4 tiers:
-- po | rfe | coe | fre is acyclic  (SC)
-- ppo | rfe | coe | fre is acyclic (Arm, x86)
-- ppo | rfe | pb is acyclic (LKMM, Power)
-- synchronize-with | po is acyclic (C11)
-
-Just structurally, C11 and LKMM are extremely different. Because C11 has 
-no notion of ppo, barriers have no local ordering effect. Only globally 
-when matched with another barrier on another thread.
-Bridging this gap will be hard!
-
-
-> More importantly, we could improve both
-> to get something better? With the ability to exactly express the
-> programmers' intention yet still allow optimization by the compilers.
-
-
-In my humble opinion, programmers shouldn't have the intention of 
-relying on dependency ordering :D
-I've had a few times people ask me if some barrier could be relaxed due 
-to dependency ordering, and I've said "I honestly don't care if it can 
-be relaxed until there's some evidence it improves performance".
-And I haven't yet seen any convincing evidence that relying on a 
-dependency rather than an acquire improves end-to-end performance, which 
-isn't surprising considering the hardware optimizations for acquire. 
-(But we also haven't measured on PowerPC, where perhaps the lwsync might 
-be a tad more expensive).
-
-Nevertheless, ruling out OOTA has some nice practical properties for 
-verification methodology.
-I think most of the potential improvement is in identifying the cases in 
-which compilers won't eliminate dependencies, and showing that this 
-covers all the ones that are necessary to rule out OOTA. Namely the ones 
-in which the store might be observed by other threads, and the values of 
-the read that lead to this store being produced can only come from 
-specific stores of other threads.
-And then C can follow Viktor's suggestion to just explicitly rule out 
-OOTA, without any concrete explanation of how (and without making 
-dependencies provide order beyond that).
-
-That said, for a huge code base like Linux where some code just *does* 
-rely on dependency ordering, you can't go and kick out that ordering 
-from the model. That's why I think it's important to keep it in LKMM, 
-but not necessarily add it to C.
-
-
->> But I currently don't see that this implementation would be noticeably
->> faster than paying the overhead of lack of inline.
->>
-> You are not wrong, surely we will need to real benchmark to know. But my
-> rationale is 1) in theory this is faster, 2) we also get a chance to try
-> out code based on LKMM with C11 atomics to see where it hurts. Therefore
-> I asked ;-)
-
-I think one beautiful thing about open source is that nobody can stop 
-you from trying it out yourself :D
-It's currently not something I would personally put resources into though.
-You could pick a DPDK or CK algorithm and port it to a version using FFI 
-instead of using atomics directly, and measure the impact on some 
-microbenchmarks.
-Then consider that the end-to-end impact on Linux will probably be at 
-least one or two orders of magnitude less.
-
-Have fun, jonas
+> +	}
+> +
+>  	pr_info("Hyper-V: privilege flags low 0x%x, high 0x%x, hints 0x%x, misc 0x%x\n",
+>  		ms_hyperv.features, ms_hyperv.priv_high, ms_hyperv.hints,
+>  		ms_hyperv.misc_features);
+> @@ -331,7 +343,9 @@ static void __init ms_hyperv_init_platform(void)
+>  		pr_info("Hyper-V: Isolation Config: Group A 0x%x, Group B 0x%x\n",
+>  			ms_hyperv.isolation_config_a, ms_hyperv.isolation_config_b);
+> 
+> -		if (hv_get_isolation_type() == HV_ISOLATION_TYPE_SNP)
+> +		if (cc_platform_has(CC_ATTR_GUEST_SEV_SNP))
+> +			static_branch_enable(&isolation_type_en_snp);
+> +		else if (hv_get_isolation_type() == HV_ISOLATION_TYPE_SNP)
+>  			static_branch_enable(&isolation_type_snp);
+>  	}
+> 
+> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+> index 566735f35c28..f788c64de0bd 100644
+> --- a/drivers/hv/hv_common.c
+> +++ b/drivers/hv/hv_common.c
+> @@ -268,6 +268,12 @@ bool __weak hv_isolation_type_snp(void)
+>  }
+>  EXPORT_SYMBOL_GPL(hv_isolation_type_snp);
+> 
+> +bool __weak hv_isolation_type_en_snp(void)
+> +{
+> +	return false;
+> +}
+> +EXPORT_SYMBOL_GPL(hv_isolation_type_en_snp);
+> +
+>  void __weak hv_setup_vmbus_handler(void (*handler)(void))
+>  {
+>  }
+> --
+> 2.25.1
 
