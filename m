@@ -2,42 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BC06AC636D6
-	for <linux-arch@archiver.kernel.org>; Thu,  2 Feb 2023 15:31:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B478BC64EC7
+	for <linux-arch@archiver.kernel.org>; Thu,  2 Feb 2023 15:31:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233126AbjBBPbZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 2 Feb 2023 10:31:25 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51088 "EHLO
+        id S233146AbjBBPb1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 2 Feb 2023 10:31:27 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51056 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232994AbjBBPbR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2023 10:31:17 -0500
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 396E03ABB;
-        Thu,  2 Feb 2023 07:30:40 -0800 (PST)
+        with ESMTP id S233099AbjBBPbY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2023 10:31:24 -0500
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F346C5B8A;
+        Thu,  2 Feb 2023 07:30:44 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=LNTskqo5roGsovH+JFQKAebOFNRW3Kky7MgwbIWmzaM=; b=SutQsn5HCDPd7RqYYJOqaRBAAw
-        ghza+gVMb7VvZ8S5mXEBYv9fP8q8Y9wXALUK5q0pzocuZuyXrPepuT1+wCOd/OzB+ntZth6DaMT6B
-        S8zOdGU0FmbWx9fMkVMCos7RUSpLps4sna/LO0IsKeshnyabCK7cNceYm4e+4Fmn11Z+jL+MTpNzN
-        I6xv1Uhkv4ss9oJhXYo64MzEkqJxVqSn1hWToVBJlsAr9MjKCkQ2hdLEGzmvnX+l4DLFC6cT1hP4d
-        2/1/3QPc9YolaFPwoZcHS+Sn+GoiEBzfYylecr9r98dtv7EMTfckM+5a0Ow5UAFEBYeCLaBAG2mQU
-        PcOP0H6w==;
+        bh=4C3XvlEzMOWDLYDQ8XunR/mwzv7K56/vPk2XJ/CM7ag=; b=ZUZ1EWs+4c6vvynJYe49Tmql6x
+        E9Hwyf28DeRTT6vZ+IaEtJqSkdzqvVmas2ZpgoVLuZkqPEKd3ve/jHYhAKkHBhSE1Vruzdjv9NFAg
+        sg0Ucbnq82V8ZGLKw74u4lh5Andr5WgxZ+l7vsftcEhZsa0tiiLRuIwKokYbHWpFDD3Z0bMsXQi5a
+        BiZifR9/6fYGl3k8uVPVTlhK5cuHqpARfsBWDyuaKd9ptgf8fyagi0kS64lLeh/PurgpcMdHjY7n7
+        mIXERrd2lrAuy5AeTjEMyW8XGqNrNKGWJEjt3SIwCVKjHIcXLjpiPYUY2tz2OrZsdsVzHgkt9cEsl
+        USOkEkfQ==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pNbW4-00DV2e-2G; Thu, 02 Feb 2023 15:28:48 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+        id 1pNbVT-005CFg-1p;
+        Thu, 02 Feb 2023 15:28:12 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits))
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 4121B302E1F;
-        Thu,  2 Feb 2023 16:28:45 +0100 (CET)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 0552A300ECD;
+        Thu,  2 Feb 2023 16:28:40 +0100 (CET)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id AB09623F326C1; Thu,  2 Feb 2023 16:28:40 +0100 (CET)
-Message-ID: <20230202152655.805747571@infradead.org>
+        id 8796E23F305BD; Thu,  2 Feb 2023 16:28:40 +0100 (CET)
+Message-ID: <20230202152655.313053173@infradead.org>
 User-Agent: quilt/0.66
-Date:   Thu, 02 Feb 2023 15:50:40 +0100
+Date:   Thu, 02 Feb 2023 15:50:32 +0100
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     torvalds@linux-foundation.org
 Cc:     corbet@lwn.net, will@kernel.org, peterz@infradead.org,
@@ -58,7 +59,7 @@ Cc:     corbet@lwn.net, will@kernel.org, peterz@infradead.org,
         linux-mm@kvack.org, linux-s390@vger.kernel.org,
         iommu@lists.linux.dev, linux-arch@vger.kernel.org,
         linux-crypto@vger.kernel.org
-Subject: [PATCH v2 10/10] s390/cpum_sf: Convert to cmpxchg128()
+Subject: [PATCH v2 02/10] types: Introduce [us]128
 References: <20230202145030.223740842@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -66,97 +67,66 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Now that there is a cross arch u128 and cmpxchg128(), use those
-instead of the custom CDSG helper.
+Introduce [us]128 (when available). Unlike [us]64, ensure they are
+always naturally aligned.
+
+This also enables 128bit wide atomics (which require natural
+alignment) such as cmpxchg128().
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/s390/include/asm/cpu_mf.h  |    2 +-
- arch/s390/kernel/perf_cpum_sf.c |   22 ++++++----------------
- 2 files changed, 7 insertions(+), 17 deletions(-)
+ include/linux/types.h      |    5 +++++
+ include/uapi/linux/types.h |    4 ++++
+ 2 files changed, 9 insertions(+)
 
---- a/arch/s390/include/asm/cpu_mf.h
-+++ b/arch/s390/include/asm/cpu_mf.h
-@@ -141,7 +141,7 @@ union hws_trailer_header {
- 		unsigned int dsdes:16;	/* 48-63: size of diagnostic SDE */
- 		unsigned long long overflow; /* 64 - Overflow Count   */
- 	};
--	__uint128_t val;
-+	u128 val;
- };
+--- a/include/linux/types.h
++++ b/include/linux/types.h
+@@ -10,6 +10,11 @@
+ #define DECLARE_BITMAP(name,bits) \
+ 	unsigned long name[BITS_TO_LONGS(bits)]
  
- struct hws_trailer_entry {
---- a/arch/s390/kernel/perf_cpum_sf.c
-+++ b/arch/s390/kernel/perf_cpum_sf.c
-@@ -1228,16 +1228,6 @@ static void hw_collect_samples(struct pe
- 	}
- }
++#ifdef __SIZEOF_INT128__
++typedef __s128 s128;
++typedef __u128 u128;
++#endif
++
+ typedef u32 __kernel_dev_t;
  
--static inline __uint128_t __cdsg(__uint128_t *ptr, __uint128_t old, __uint128_t new)
--{
--	asm volatile(
--		"	cdsg	%[old],%[new],%[ptr]\n"
--		: [old] "+d" (old), [ptr] "+QS" (*ptr)
--		: [new] "d" (new)
--		: "memory", "cc");
--	return old;
--}
+ typedef __kernel_fd_set		fd_set;
+--- a/include/uapi/linux/types.h
++++ b/include/uapi/linux/types.h
+@@ -13,6 +13,10 @@
+ 
+ #include <linux/posix_types.h>
+ 
++#ifdef __SIZEOF_INT128__
++typedef __signed__ __int128 __s128 __attribute__((aligned(16)));
++typedef unsigned __int128 __u128 __attribute__((aligned(16)));
++#endif
+ 
+ /*
+  * Below are truly Linux-specific types that should never collide with
+--- a/lib/crypto/curve25519-hacl64.c
++++ b/lib/crypto/curve25519-hacl64.c
+@@ -14,8 +14,6 @@
+ #include <crypto/curve25519.h>
+ #include <linux/string.h>
+ 
+-typedef __uint128_t u128;
 -
- /* hw_perf_event_update() - Process sampling buffer
-  * @event:	The perf event
-  * @flush_all:	Flag to also flush partially filled sample-data-blocks
-@@ -1307,14 +1297,14 @@ static void hw_perf_event_update(struct
+ static __always_inline u64 u64_eq_mask(u64 a, u64 b)
+ {
+ 	u64 x = a ^ b;
+--- a/lib/crypto/poly1305-donna64.c
++++ b/lib/crypto/poly1305-donna64.c
+@@ -10,8 +10,6 @@
+ #include <asm/unaligned.h>
+ #include <crypto/internal/poly1305.h>
  
- 		/* Reset trailer (using compare-double-and-swap) */
- 		/* READ_ONCE() 16 byte header */
--		prev.val = __cdsg(&te->header.val, 0, 0);
-+		prev.val = cmpxchg128(&te->header.val, 0, 0);
- 		do {
- 			old.val = prev.val;
- 			new.val = prev.val;
- 			new.f = 0;
- 			new.a = 1;
- 			new.overflow = 0;
--			prev.val = __cdsg(&te->header.val, old.val, new.val);
-+			prev.val = cmpxchg128(&te->header.val, old.val, new.val);
- 		} while (prev.val != old.val);
- 
- 		/* Advance to next sample-data-block */
-@@ -1496,7 +1486,7 @@ static bool aux_set_alert(struct aux_buf
- 
- 	te = aux_sdb_trailer(aux, alert_index);
- 	/* READ_ONCE() 16 byte header */
--	prev.val = __cdsg(&te->header.val, 0, 0);
-+	prev.val = cmpxchg128(&te->header.val, 0, 0);
- 	do {
- 		old.val = prev.val;
- 		new.val = prev.val;
-@@ -1511,7 +1501,7 @@ static bool aux_set_alert(struct aux_buf
- 		}
- 		new.a = 1;
- 		new.overflow = 0;
--		prev.val = __cdsg(&te->header.val, old.val, new.val);
-+		prev.val = cmpxchg128(&te->header.val, old.val, new.val);
- 	} while (prev.val != old.val);
- 	return true;
- }
-@@ -1575,7 +1565,7 @@ static bool aux_reset_buffer(struct aux_
- 	for (i = 0; i < range_scan; i++, idx++) {
- 		te = aux_sdb_trailer(aux, idx);
- 		/* READ_ONCE() 16 byte header */
--		prev.val = __cdsg(&te->header.val, 0, 0);
-+		prev.val = cmpxchg128(&te->header.val, 0, 0);
- 		do {
- 			old.val = prev.val;
- 			new.val = prev.val;
-@@ -1586,7 +1576,7 @@ static bool aux_reset_buffer(struct aux_
- 				new.a = 1;
- 			else
- 				new.a = 0;
--			prev.val = __cdsg(&te->header.val, old.val, new.val);
-+			prev.val = cmpxchg128(&te->header.val, old.val, new.val);
- 		} while (prev.val != old.val);
- 		*overflow += orig_overflow;
- 	}
+-typedef __uint128_t u128;
+-
+ void poly1305_core_setkey(struct poly1305_core_key *key,
+ 			  const u8 raw_key[POLY1305_BLOCK_SIZE])
+ {
 
 
