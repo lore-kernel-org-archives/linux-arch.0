@@ -2,66 +2,109 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 40E81C05027
-	for <linux-arch@archiver.kernel.org>; Thu,  2 Feb 2023 14:36:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E7ED0C61DA4
+	for <linux-arch@archiver.kernel.org>; Thu,  2 Feb 2023 15:20:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232394AbjBBOgg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 2 Feb 2023 09:36:36 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48446 "EHLO
+        id S231345AbjBBPUq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 2 Feb 2023 10:20:46 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37904 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230174AbjBBOgf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2023 09:36:35 -0500
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 27BDEB46F;
-        Thu,  2 Feb 2023 06:36:35 -0800 (PST)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id CC667B8265E;
-        Thu,  2 Feb 2023 14:36:33 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 04285C433D2;
-        Thu,  2 Feb 2023 14:36:31 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1675348592;
-        bh=PUTKwu61nx4E8yIO29kUBc+gTUgWoPwlBHwWaYyw/p4=;
-        h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
-        b=g2GblDkaciicIjaFVbzvKrsNEdniwR07xXkNTgWhLkHXVdbb1P9YCKIFJWEWlxwV4
-         diWLV0Xk3kK+cGrjoHFNySYUc1H5kO9KA58YVbjrcy8RglR76/M2gz+3ctU0QCxl31
-         YTO4rTJoiATsTRBe8C5AUFnkDI8x5n7RCDuHXlmoiaMgJ6x5Jr8UFUl144hdgTjsu8
-         idB5XuEoivdovE86aYffpwccZLWnTHbH4kxbZdBIq+A4VtlKquUlZvkSc4GRhJsfli
-         yoVA4MW2ggKd44WzR8GrL0bv8k7A33usqVREPWe/LaNEmMhW+jdcHgjBNtvAk9Ms7i
-         WS1njy1lUNw1A==
-From:   =?utf-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@kernel.org>
-To:     Jessica Clarke <jrtc27@jrtc27.com>
-Cc:     Guo Ren <guoren@kernel.org>, Palmer Dabbelt <palmer@rivosinc.com>,
-        Conor Dooley <conor.dooley@microchip.com>,
-        liaochang1@huawei.com, linux-arch <linux-arch@vger.kernel.org>,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-riscv <linux-riscv@lists.infradead.org>,
-        Guo Ren <guoren@linux.alibaba.com>,
-        Bjorn Topel <bjorn.topel@gmail.com>
-Subject: Re: [PATCH] riscv: kprobe: Fixup misaligned load text
-In-Reply-To: <5C373F4A-983E-4ACA-AAB0-54E629D5F501@jrtc27.com>
-References: <20230201064608.3486136-1-guoren@kernel.org>
- <87tu05pvur.fsf@all.your.base.are.belong.to.us>
- <CAJF2gTSj12E9+peMF0rNY_psGDyEG5BbMY6V-s4dK0FpkCC9Yw@mail.gmail.com>
- <87cz6s75ze.fsf@all.your.base.are.belong.to.us>
- <5C373F4A-983E-4ACA-AAB0-54E629D5F501@jrtc27.com>
-Date:   Thu, 02 Feb 2023 15:36:29 +0100
-Message-ID: <878rhgrv6a.fsf@all.your.base.are.belong.to.us>
+        with ESMTP id S230047AbjBBPUp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2023 10:20:45 -0500
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4A55CDE;
+        Thu,  2 Feb 2023 07:20:44 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
+        MIME-Version:References:Message-ID:Subject:To:From:Date:Reply-To:Cc:
+        Content-Transfer-Encoding:Content-ID:Content-Description;
+        bh=52m5mti20bb1OZLxO6wwYxyifJ4LEDbWkK8xz9+LlMw=; b=XOmXz3ouDmVQq9BlQe0AlJaMo2
+        A35itIkK0LoLUc1uaM0nEllwe6kNwQNQHnqgxGqCWNeOi1SvdbLmd9XeIAfgVUkTPsSjzQx/k1g2k
+        URAeeUBw7RmLahyN9cKwp2mt8QaBYUPjrU6uBTyl6J1yvqSC46ATRGwONG1hkHcb/2xugpNYdUlVY
+        mB2NyUAKt99aO4sl2zV51s4g6rdIk7YIYoct6u+k7LrRVViCFqVY50YSNtXjgezivb3/clg3/mSmM
+        9u2dkZkZrpJnxPO8Jw7gR0WpTvxI8b/s/505TV+rasykLJa712oLUXlQYyJKVjNRNkf8QKQvzy0aR
+        ESySNoYw==;
+Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
+        id 1pNbO9-005ilY-1z;
+        Thu, 02 Feb 2023 15:20:37 +0000
+Date:   Thu, 2 Feb 2023 15:20:37 +0000
+From:   Al Viro <viro@zeniv.linux.org.uk>
+To:     Michael Cree <mcree@orcon.net.nz>,
+        Linus Torvalds <torvalds@linux-foundation.org>,
+        Peter Xu <peterx@redhat.com>, linux-arch@vger.kernel.org,
+        linux-alpha@vger.kernel.org,
+        Richard Henderson <richard.henderson@linaro.org>
+Subject: Re: [RFC][PATCHSET] VM_FAULT_RETRY fixes
+Message-ID: <Y9vUxXEHRb07bh3J@ZenIV>
+References: <Y9lz6yk113LmC9SI@ZenIV>
+ <CAHk-=whf73Vm2U3jyTva95ihZzefQbThZZxqZuKAF-Xjwq=G4Q@mail.gmail.com>
+ <Y9mD1qp/6zm+jOME@ZenIV>
+ <CAHk-=wjiwFzEGd_60H3nbgVB=R_8KTcfUJmXy=hSXCvLrXQRFA@mail.gmail.com>
+ <Y9te+4n4ajSF++Ex@ZenIV>
+ <Y9t6Swqt+A9noVIf@creeky>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <Y9t6Swqt+A9noVIf@creeky>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Jessica Clarke <jrtc27@jrtc27.com> writes:
+On Thu, Feb 02, 2023 at 09:54:35PM +1300, Michael Cree wrote:
+> On Thu, Feb 02, 2023 at 06:58:03AM +0000, Al Viro wrote:
+> > Other bugs in the same area:
+> > 	* we ought to compare address with VMALLOC_START,
+> > not TASK_SIZE.
+> > 	* we ought to do that *before* checking for
+> > kernel threads/pagefault_disable() being in effect.
+> > 
+> > Wait a minute - pgd_present() on alpha has become constant 1
+> > since a73c948952cc "alpha: use pgtable-nopud instead of 4level-fixup"
+> > 
+> > So that thing had been completely broken for 3 years and nobody
+> > had noticed.  
+> 
+> I have never noticed because I haven't been able to run a 5.9 or
+> newer kernel on Alpha reliably so have been running a 5.8 kernel
+> for quite some time.
 
->> +	p->opcode = *insn++;
->> +	if (GET_INSN_LENGTH(p->opcode) == 4)
->> +		p->opcode |= *insn << 16;
->
-> *insn gets promoted to int not unsigned so this is UB if bit 15 is set.
+Er...  For one thing, commit in question went into 5.5; for another
+you would only have noticed if you had CONFIG_ALPHA_LARGE_VMALLOC
+in your .config, so I rather doubt it's the same problem.
 
-Ugh. Good catch! I guess we can't get rid of *that* explicit cast to
-kprobe_opcode_t here...
+Normally alpha has one PGDIR_SIZE worth of vmalloc space, and it's shared
+between all processes - that one slot in top-level table is filled before
+we spawn any threads so all of them end up sharing the reference to
+the same middle-level table, which is where vmalloc stuff gets mapped.
+
+So normally we have 8Gb of vmalloc space and, as usual for 64bit
+boxen, no need to play with vmalloc handling on page faults.  The trouble
+is with a kludge that tries to give more than 8Gb; it gives just under
+2Tb (2Tb-8Gb, actually - 255 slots out 1024 in top-level table).  That
+does need assistance from #PF handler, and that assistance (ifdefed
+under CONFIG_ALPHA_LARGE_VMALLOC) what I'd been refering to.
+
+To quote Kconfig,
+====
+# LARGE_VMALLOC is racy, if you *really* need it then fix it first
+config ALPHA_LARGE_VMALLOC
+        bool
+        help
+          Process creation and other aspects of virtual memory management can
+          be streamlined if we restrict the kernel to one PGD for all vmalloc
+          allocations.  This equates to about 8GB.
+
+          Under normal circumstances, this is so far and above what is needed
+          as to be laughable.  However, there are certain applications (such
+          as benchmark-grade in-kernel web serving) that can make use of as
+          much vmalloc space as is available.
+
+          Say N unless you know you need gobs and gobs of vmalloc space.
+====
+"Racy" probably had been about something along the lines of the scenario
+I'd mentioned just upthread, but in 5.5 that "racy" escalated to "does not
+work at all" - if you ever hit a vmalloc-related fault, you are going
+to get an oops.  You still get 8Gb, but beyond that it's broken.
+
+And it's almost certainly not the problem you are seeing...
