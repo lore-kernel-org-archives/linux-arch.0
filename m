@@ -2,67 +2,67 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0863CC636D6
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:33:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B7141C61DA4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:34:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233858AbjBCOdJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 09:33:09 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48636 "EHLO
+        id S232554AbjBCOei (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:34:38 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50960 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233670AbjBCOcz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:32:55 -0500
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D263EA2A49
-        for <linux-arch@vger.kernel.org>; Fri,  3 Feb 2023 06:31:38 -0800 (PST)
+        with ESMTP id S232477AbjBCOeh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:34:37 -0500
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A132B93C0
+        for <linux-arch@vger.kernel.org>; Fri,  3 Feb 2023 06:33:51 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1675434698;
+        s=mimecast20190719; t=1675434830;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=/decAsXzWzOr1Fn5getBDCGr7TKXQO+f4q0N0MxWErI=;
-        b=FN9TAsxOKcK+N/WrLynTxPqRzyZ7ZRNHuqft9mJ0O7QKTw0/sg1jI+oMEp3FpT9C12A0X/
-        tYDCgKP4uvL7po41MunDlFfim7JhA522dXj1HiRikdi43cH6obdzeIw9BP6nWINLN6U7xO
-        6FmAm7tVEOpVf9O4l7euWf+L1SjVvrU=
-Received: from mail-wr1-f72.google.com (mail-wr1-f72.google.com
- [209.85.221.72]) by relay.mimecast.com with ESMTP with STARTTLS
+        bh=QVQjsvvXC5vAa55XgbnpLQZ7ycccPtxDGUTVFYgFp7U=;
+        b=HFLzrleHVmbB/yMXmxu+7UXbc48chEGIyxGClGiXHVdXXZpxDw4AHy5naVJ/T1pZtlW98p
+        YQ7FZ5XL3lZ2dlqmTi+pGIFXWxOl6Q3vuFnAFgY9Gqz0Sk/DWlkqhaYdqjZpeq27WK6sjn
+        IMBSkvveM5MWX163BNj/Rm1LtkRTbSo=
+Received: from mail-wm1-f70.google.com (mail-wm1-f70.google.com
+ [209.85.128.70]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.3, cipher=TLS_AES_128_GCM_SHA256) id
- us-mta-601-N5jGnV0GOrS9KqcJXmj8vA-1; Fri, 03 Feb 2023 09:31:36 -0500
-X-MC-Unique: N5jGnV0GOrS9KqcJXmj8vA-1
-Received: by mail-wr1-f72.google.com with SMTP id u10-20020a5d6daa000000b002bfc2f61048so713828wrs.23
-        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2023 06:31:36 -0800 (PST)
+ us-mta-552-jNqcyGJ6MA2MffYsY6QrQA-1; Fri, 03 Feb 2023 09:33:49 -0500
+X-MC-Unique: jNqcyGJ6MA2MffYsY6QrQA-1
+Received: by mail-wm1-f70.google.com with SMTP id n4-20020a05600c3b8400b003dfe223de49so2080377wms.5
+        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2023 06:33:49 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
         d=1e100.net; s=20210112;
         h=content-transfer-encoding:in-reply-to:organization:from:references
          :cc:to:content-language:subject:user-agent:mime-version:date
          :message-id:x-gm-message-state:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=/decAsXzWzOr1Fn5getBDCGr7TKXQO+f4q0N0MxWErI=;
-        b=WLWFc/vUfciBCq8RcFCPOrordZlMDIl6mSB2MNeOGKXhUfZhMOklKQZ1ikZWuY9/NN
-         67SlPLDm9Z9Vz6mAd+BFofu/LBSuJ8YgScrk0B+/VhtwnB4oHXm2DnEs8iGoWgzaNoYk
-         thwvIKBn5gAA//cxpxouLamNnFJlQQ/vsITQaDghJiE5O3z4tmeYDPVsw+gjuyK3CAiI
-         t7GGOh7+UsWa3mlWlZNHrpj/kHM7xgQlUJLjlNEgimXcoac5XbbqsoimS7qKCh8ZbN93
-         0wgimlwg5ONaYcEZ1HRJEDgVdvrgihY+9RGc5+vpKkLGcr07PAp/TAfQLRc1eOoPFrmQ
-         vKaw==
-X-Gm-Message-State: AO0yUKXaiPmwP55USECE8iYchQpbepqStZE58g0i6M5JxJTdvzct/SzY
-        c2k4UkOrV/ccuZEGSvDFtvzx/830eUMcyfdvZ8q4+9K9uJLqHWF1h6+zC63PMPPIiw7Z1DFTsrQ
-        FlILpnNYVN6MMYCTvJXzmww==
-X-Received: by 2002:a05:600c:4747:b0:3df:e549:bd27 with SMTP id w7-20020a05600c474700b003dfe549bd27mr3635004wmo.6.1675434695227;
-        Fri, 03 Feb 2023 06:31:35 -0800 (PST)
-X-Google-Smtp-Source: AK7set/qkaMfF+TBCgvbwgP2CGu2sIJoLRpl09HLMUmy0eiiBTILy4lbS6cT+HBgr82lyryc+pIpNQ==
-X-Received: by 2002:a05:600c:4747:b0:3df:e549:bd27 with SMTP id w7-20020a05600c474700b003dfe549bd27mr3634941wmo.6.1675434694897;
-        Fri, 03 Feb 2023 06:31:34 -0800 (PST)
+        bh=QVQjsvvXC5vAa55XgbnpLQZ7ycccPtxDGUTVFYgFp7U=;
+        b=U+coODe4Qz82b6MHg4vTcvFwGQz1i/TkuY/xetJjZUUWG3TmUcVplylOyGVP0GQgLA
+         YUHE9KErx7H1UA5rvTqPGDJtR+NvQN45cKp1vnj72WM6MExd/1M8xlQhjhiBJrPgDM2C
+         QIK5EGm+dakWRWaUf0COnZGsdpMA85ny7qbDrHc2tya4e9JTt7haZoxdMW1NjjhFExoo
+         tod9UrEuf+U3jPemvKjp0qRA/YmkWJuODMXOHKhjfBf0I9XLuwTCZJ0Kc3s8Y6Khq3oN
+         kL8S51/LPvxbFQp2yIN8PT1aEVq5dArmL/v35tK654UfR8C2vm/zQCAIUV2aj8ViSRGD
+         xgEA==
+X-Gm-Message-State: AO0yUKWMVIPJ2s/5neljxhjJyPH8K2aqk0R62+5kaTIlaulIPZiTE812
+        +cM7GoA5HaEJmvx7pT3DB8G7JtWddHSQRfsVdMvMxMdVG0s8IVC1hlWy+LLxWWxhhCFWAXCSvYL
+        Dyu0He6wFjVKC+BRfko7rXg==
+X-Received: by 2002:a05:600c:3514:b0:3df:ead3:c6fc with SMTP id h20-20020a05600c351400b003dfead3c6fcmr1739788wmq.17.1675434828388;
+        Fri, 03 Feb 2023 06:33:48 -0800 (PST)
+X-Google-Smtp-Source: AK7set+nCaLsRgMPjXxFJ2S9nOzpB4vodjtO+Yac8mpKGPJpDWQMNBTnVH2IJfyVyYdKVED3TZv5Cg==
+X-Received: by 2002:a05:600c:3514:b0:3df:ead3:c6fc with SMTP id h20-20020a05600c351400b003dfead3c6fcmr1739731wmq.17.1675434828065;
+        Fri, 03 Feb 2023 06:33:48 -0800 (PST)
 Received: from [192.168.3.108] (p5b0c6376.dip0.t-ipconnect.de. [91.12.99.118])
-        by smtp.gmail.com with ESMTPSA id q9-20020a1ce909000000b003dc34edacf8sm7704293wmc.31.2023.02.03.06.31.32
+        by smtp.gmail.com with ESMTPSA id o35-20020a05600c512300b003cffd3c3d6csm3239260wms.12.2023.02.03.06.33.45
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 03 Feb 2023 06:31:34 -0800 (PST)
-Message-ID: <1d13abeb-ea4b-6314-2fd2-1b86b8f4d6c5@redhat.com>
-Date:   Fri, 3 Feb 2023 15:31:32 +0100
+        Fri, 03 Feb 2023 06:33:47 -0800 (PST)
+Message-ID: <de9cb029-b36e-efe9-9d0e-46a382e889b5@redhat.com>
+Date:   Fri, 3 Feb 2023 15:33:45 +0100
 MIME-Version: 1.0
 User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
  Thunderbird/102.6.0
-Subject: Re: [PATCH v2 3/4] mips: drop definition of pfn_valid() for
- DISCONTIGMEM
+Subject: Re: [PATCH v2 4/4] mm, arch: add generic implementation of
+ pfn_valid() for FLATMEM
 Content-Language: en-US
 To:     Mike Rapoport <rppt@kernel.org>,
         Andrew Morton <akpm@linux-foundation.org>
@@ -96,12 +96,12 @@ Cc:     Arnd Bergmann <arnd@arndb.de>, Brian Cain <bcain@quicinc.com>,
         linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org,
         linuxppc-dev@lists.ozlabs.org, loongarch@lists.linux.dev,
         openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
-        x86@kernel.org
+        x86@kernel.org, Huacai Chen <chenhuacai@loongson.cn>
 References: <20230129124235.209895-1-rppt@kernel.org>
- <20230129124235.209895-4-rppt@kernel.org>
+ <20230129124235.209895-5-rppt@kernel.org>
 From:   David Hildenbrand <david@redhat.com>
 Organization: Red Hat
-In-Reply-To: <20230129124235.209895-4-rppt@kernel.org>
+In-Reply-To: <20230129124235.209895-5-rppt@kernel.org>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Precedence: bulk
@@ -111,12 +111,20 @@ X-Mailing-List: linux-arch@vger.kernel.org
 On 29.01.23 13:42, Mike Rapoport wrote:
 > From: "Mike Rapoport (IBM)" <rppt@kernel.org>
 > 
-> There is stale definition of pfn_valid() for DISCONTINGMEM memory model
-> guarded !FLATMEM && !SPARSEMEM && NUMA ifdefery.
+> Every architecture that supports FLATMEM memory model defines its own
+> version of pfn_valid() that essentially compares a pfn to max_mapnr.
 > 
-> Remove everything but definition of pfn_valid() for FLATMEM.
+> Use mips/powerpc version implemented as static inline as a generic
+> implementation of pfn_valid() and drop its per-architecture definitions.
 > 
 > Signed-off-by: Mike Rapoport (IBM) <rppt@kernel.org>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Acked-by: Guo Ren <guoren@kernel.org>		# csky
+> Acked-by: Huacai Chen <chenhuacai@loongson.cn>	# LoongArch
+> Acked-by: Stafford Horne <shorne@gmail.com>	# OpenRISC
+> ---
+
+LGTM with the fixup
 
 Reviewed-by: David Hildenbrand <david@redhat.com>
 
