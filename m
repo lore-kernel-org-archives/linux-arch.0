@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DC9FAC61DA4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:08:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 91630C636D4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:08:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233780AbjBCOIj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 09:08:39 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54158 "EHLO
+        id S233814AbjBCOIk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:08:40 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54156 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233781AbjBCOI0 (ORCPT
+        with ESMTP id S233701AbjBCOI0 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:08:26 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 9FD82A87B4;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 4E129A87AC;
         Fri,  3 Feb 2023 06:06:05 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A19A11684;
-        Fri,  3 Feb 2023 05:54:16 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 43788175A;
+        Fri,  3 Feb 2023 05:54:29 -0800 (PST)
 Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D3EFB3F71E;
-        Fri,  3 Feb 2023 05:53:30 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 74A2E3F71E;
+        Fri,  3 Feb 2023 05:53:43 -0800 (PST)
 From:   James Morse <james.morse@arm.com>
 To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
         kvmarm@lists.linux.dev, kvm@vger.kernel.org,
@@ -45,9 +45,9 @@ Cc:     Marc Zyngier <maz@kernel.org>,
         Salil Mehta <salil.mehta@huawei.com>,
         Russell King <linux@armlinux.org.uk>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 23/32] ACPICA: Add new MADT GICC flags fields [code first?]
-Date:   Fri,  3 Feb 2023 13:50:34 +0000
-Message-Id: <20230203135043.409192-24-james.morse@arm.com>
+Subject: [RFC PATCH 26/32] irqchip/gic-v3: Add support for ACPI's disabled but 'online capable' CPUs
+Date:   Fri,  3 Feb 2023 13:50:37 +0000
+Message-Id: <20230203135043.409192-27-james.morse@arm.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
 References: <20230203135043.409192-1-james.morse@arm.com>
@@ -57,30 +57,85 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add the new flag field to the MADT's GICC structure.
+To support virtual CPU hotplug, ACPI has added an 'online capable' bit
+to the MADT GICC entries. This indicates a disabled CPU entry may not
+be possible to online via PSCI until firmware has set enabled bit in
+_STA.
 
-'Online Capable' indicates a disabled CPU can be enabled later.
+What about the redistributor in the GICC entry? ACPI doesn't want to say.
+Assume the worst: When a redistributor is described in the GICC entry,
+but the entry is marked as disabled at boot, assume the redistributor
+is inaccessible.
+
+The GICv3 driver doesn't support late online of redistributors, so this
+means the corresponding CPU can't be brought online either. Clear the
+possible and present bits.
+
+Systems that want CPU hotplug in a VM can ensure their redistributors
+are always-on, and describe them that way with a GICR entry in the MADT.
+
+When mapping redistributors found via GICC entries, handle the case
+where the arch code believes the CPU is present and possible, but it
+does not have an accessible redistributor. Print a warning and clear
+the present and possible bits.
 
 Signed-off-by: James Morse <james.morse@arm.com>
----
-This patch probably needs to go via the upstream acpica project,
-but is included here so the feature can be tested.
----
- include/acpi/actbl2.h | 1 +
- 1 file changed, 1 insertion(+)
+----
+Disabled but online-capable CPUs cause this message to be printed
+if their redistributors are described via GICC:
+| GICv3: CPU 3's redistributor is inaccessible: this CPU can't be brought online
 
-diff --git a/include/acpi/actbl2.h b/include/acpi/actbl2.h
-index b2973dbe37ee..9b1c15c56db3 100644
---- a/include/acpi/actbl2.h
-+++ b/include/acpi/actbl2.h
-@@ -1040,6 +1040,7 @@ struct acpi_madt_generic_interrupt {
- /* ACPI_MADT_ENABLED                    (1)      Processor is usable if set */
- #define ACPI_MADT_PERFORMANCE_IRQ_MODE  (1<<1)	/* 01: Performance Interrupt Mode */
- #define ACPI_MADT_VGIC_IRQ_MODE         (1<<2)	/* 02: VGIC Maintenance Interrupt mode */
-+#define ACPI_MADT_GICC_CPU_CAPABLE      (1<<3)	/* 03: CPU is online capable */
+If ACPI's _STA tries to make the cpu present later, this message is printed:
+| Changing CPU present bit is not supported
+---
+ drivers/irqchip/irq-gic-v3.c | 14 ++++++++++++++
+ include/linux/acpi.h         |  3 ++-
+ 2 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/irqchip/irq-gic-v3.c b/drivers/irqchip/irq-gic-v3.c
+index a8b969d652b6..8c1ea3df0094 100644
+--- a/drivers/irqchip/irq-gic-v3.c
++++ b/drivers/irqchip/irq-gic-v3.c
+@@ -2187,11 +2187,25 @@ gic_acpi_parse_madt_gicc(union acpi_subtable_headers *header,
+ 				(struct acpi_madt_generic_interrupt *)header;
+ 	u32 reg = readl_relaxed(acpi_data.dist_base + GICD_PIDR2) & GIC_PIDR2_ARCH_MASK;
+ 	u32 size = reg == GIC_PIDR2_ARCH_GICv4 ? SZ_64K * 4 : SZ_64K * 2;
++	int cpu = get_cpu_for_acpi_id(gicc->uid);
+ 	void __iomem *redist_base;
  
- /* 12: Generic Distributor (ACPI 5.0 + ACPI 6.0 changes) */
+ 	if (!acpi_gicc_is_usable(gicc))
+ 		return 0;
  
++	/*
++	 * Capable but disabled CPUs can be brought online later. What about
++	 * the redistributor? ACPI doesn't want to say!
++	 * Virtual hotplug systems can use the MADT's "always-on" GICR entries.
++	 * Otherwise, prevent such CPUs from being brought online.
++	 */
++	if (!(gicc->flags & ACPI_MADT_ENABLED)) {
++		pr_warn_once("CPU %u's redistributor is inaccessible: this CPU can't be brought online\n", cpu);
++		set_cpu_present(cpu, false);
++		set_cpu_possible(cpu, false);
++		return 0;
++	}
++
+ 	redist_base = ioremap(gicc->gicr_base_address, size);
+ 	if (!redist_base)
+ 		return -ENOMEM;
+diff --git a/include/linux/acpi.h b/include/linux/acpi.h
+index d8e59953a27f..c1b74ebd5774 100644
+--- a/include/linux/acpi.h
++++ b/include/linux/acpi.h
+@@ -269,7 +269,8 @@ void acpi_table_print_madt_entry (struct acpi_subtable_header *madt);
+ 
+ static inline bool acpi_gicc_is_usable(struct acpi_madt_generic_interrupt *gicc)
+ {
+-	return (gicc->flags & ACPI_MADT_ENABLED);
++	return ((gicc->flags & ACPI_MADT_ENABLED ||
++		 gicc->flags & ACPI_MADT_GICC_CPU_CAPABLE));
+ }
+ 
+ /* the following numa functions are architecture-dependent */
 -- 
 2.30.2
 
