@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4120FC636D4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:04:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 79AA4C61DA4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:05:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232835AbjBCOEg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 09:04:36 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48166 "EHLO
+        id S232448AbjBCOFW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:05:22 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48208 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233327AbjBCOEJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:04:09 -0500
+        with ESMTP id S233221AbjBCOEL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:04:11 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 1A733A58C2;
-        Fri,  3 Feb 2023 06:01:58 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 8940CA56CB;
+        Fri,  3 Feb 2023 06:01:59 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A7B731763;
-        Fri,  3 Feb 2023 05:54:37 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id B7B641650;
+        Fri,  3 Feb 2023 05:54:54 -0800 (PST)
 Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id DA7AA3F71E;
-        Fri,  3 Feb 2023 05:53:51 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E8CA33F71E;
+        Fri,  3 Feb 2023 05:54:08 -0800 (PST)
 From:   James Morse <james.morse@arm.com>
 To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
         kvmarm@lists.linux.dev, kvm@vger.kernel.org,
@@ -45,9 +45,9 @@ Cc:     Marc Zyngier <maz@kernel.org>,
         Salil Mehta <salil.mehta@huawei.com>,
         Russell King <linux@armlinux.org.uk>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 28/32] ACPI: add support to register CPUs based on the _STA enabled bit
-Date:   Fri,  3 Feb 2023 13:50:39 +0000
-Message-Id: <20230203135043.409192-29-james.morse@arm.com>
+Subject: [RFC PATCH 32/32] cpumask: Add enabled cpumask for present CPUs that can be brought online
+Date:   Fri,  3 Feb 2023 13:50:43 +0000
+Message-Id: <20230203135043.409192-33-james.morse@arm.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
 References: <20230203135043.409192-1-james.morse@arm.com>
@@ -57,87 +57,171 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-acpi_processor_get_info() registers all present CPUs. Registering a
-CPU is what creates the sysfs entries and triggers the udev
-notifications.
+The 'offline' file in sysfs shows all offline CPUs, including those
+that aren't present. User-space is expected to remove not-present CPUs
+from thie list to learn which CPUs could be brought online.
 
-arm64 virtual machines that support 'virtual cpu hotplug' use the
-enabled bit to indicate whether the CPU can be brought online, as
-the existing ACPI tables require all hardware to be described and
-present.
+CPUs can be present but not-enabled. These CPUs can't be brought online
+until the firmware policy changes, which comes with an ACPI notification
+that will register the CPUs.
 
-If firmware describes a CPU as present, but disabled, skip the
-registration. Such CPUs are present, but can't be brought online for
-whatever reason. (e.g. firmware/hypervisor policy).
-
-Once firmware sets the enabled bit, the CPU can be registered and
-brought online by user-space. Online CPUs, or CPUs that are missing
-an _STA method must always be registered.
+With only the offline and present files, user-space is unable to
+determine which CPUs it can try to bring online. Add a new CPU mask
+that shows this based on all the registered CPUs.
 
 Signed-off-by: James Morse <james.morse@arm.com>
 ---
- drivers/acpi/acpi_processor.c | 34 +++++++++++++++++++++++++++++++++-
- 1 file changed, 33 insertions(+), 1 deletion(-)
+ drivers/base/cpu.c      | 10 ++++++++++
+ include/linux/cpumask.h | 25 +++++++++++++++++++++++++
+ kernel/cpu.c            |  3 +++
+ 3 files changed, 38 insertions(+)
 
-diff --git a/drivers/acpi/acpi_processor.c b/drivers/acpi/acpi_processor.c
-index 572a12672c0e..20e810a066da 100644
---- a/drivers/acpi/acpi_processor.c
-+++ b/drivers/acpi/acpi_processor.c
-@@ -194,6 +194,35 @@ static int acpi_processor_make_present(struct acpi_processor *pr)
- 	return ret;
+diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
+index bc2ce8c7f383..3cc06f9fd230 100644
+--- a/drivers/base/cpu.c
++++ b/drivers/base/cpu.c
+@@ -76,6 +76,7 @@ void unregister_cpu(struct cpu *cpu)
+ {
+ 	int logical_cpu = cpu->dev.id;
+ 
++	set_cpu_enabled(logical_cpu, false);
+ 	unregister_cpu_under_node(logical_cpu, cpu_to_node(logical_cpu));
+ 
+ 	device_unregister(&cpu->dev);
+@@ -265,6 +266,13 @@ static ssize_t print_cpus_offline(struct device *dev,
+ }
+ static DEVICE_ATTR(offline, 0444, print_cpus_offline, NULL);
+ 
++static ssize_t print_cpus_enabled(struct device *dev,
++				  struct device_attribute *attr, char *buf)
++{
++	return sysfs_emit(buf, "%*pbl\n", cpumask_pr_args(cpu_enabled_mask));
++}
++static DEVICE_ATTR(enabled, 0444, print_cpus_enabled, NULL);
++
+ static ssize_t print_cpus_isolated(struct device *dev,
+ 				  struct device_attribute *attr, char *buf)
+ {
+@@ -384,6 +392,7 @@ int register_cpu(struct cpu *cpu, int num)
+ 	register_cpu_under_node(num, cpu_to_node(num));
+ 	dev_pm_qos_expose_latency_limit(&cpu->dev,
+ 					PM_QOS_RESUME_LATENCY_NO_CONSTRAINT);
++	set_cpu_enabled(num, true);
+ 
+ 	return 0;
+ }
+@@ -465,6 +474,7 @@ static struct attribute *cpu_root_attrs[] = {
+ 	&cpu_attrs[2].attr.attr,
+ 	&dev_attr_kernel_max.attr,
+ 	&dev_attr_offline.attr,
++	&dev_attr_enabled.attr,
+ 	&dev_attr_isolated.attr,
+ #ifdef CONFIG_NO_HZ_FULL
+ 	&dev_attr_nohz_full.attr,
+diff --git a/include/linux/cpumask.h b/include/linux/cpumask.h
+index c2aa0aa26b45..1513bb00dee4 100644
+--- a/include/linux/cpumask.h
++++ b/include/linux/cpumask.h
+@@ -59,6 +59,7 @@ static inline void set_nr_cpu_ids(unsigned int nr)
+  *
+  *     cpu_possible_mask- has bit 'cpu' set iff cpu is populatable
+  *     cpu_present_mask - has bit 'cpu' set iff cpu is populated
++ *     cpu_enabled_mask  - has bit 'cpu' set iff cpu can be brought online
+  *     cpu_online_mask  - has bit 'cpu' set iff cpu available to scheduler
+  *     cpu_active_mask  - has bit 'cpu' set iff cpu available to migration
+  *
+@@ -91,11 +92,13 @@ static inline void set_nr_cpu_ids(unsigned int nr)
+ 
+ extern struct cpumask __cpu_possible_mask;
+ extern struct cpumask __cpu_online_mask;
++extern struct cpumask __cpu_enabled_mask;
+ extern struct cpumask __cpu_present_mask;
+ extern struct cpumask __cpu_active_mask;
+ extern struct cpumask __cpu_dying_mask;
+ #define cpu_possible_mask ((const struct cpumask *)&__cpu_possible_mask)
+ #define cpu_online_mask   ((const struct cpumask *)&__cpu_online_mask)
++#define cpu_enabled_mask   ((const struct cpumask *)&__cpu_enabled_mask)
+ #define cpu_present_mask  ((const struct cpumask *)&__cpu_present_mask)
+ #define cpu_active_mask   ((const struct cpumask *)&__cpu_active_mask)
+ #define cpu_dying_mask    ((const struct cpumask *)&__cpu_dying_mask)
+@@ -921,6 +924,7 @@ extern const DECLARE_BITMAP(cpu_all_bits, NR_CPUS);
+ #else
+ #define for_each_possible_cpu(cpu) for_each_cpu((cpu), cpu_possible_mask)
+ #define for_each_online_cpu(cpu)   for_each_cpu((cpu), cpu_online_mask)
++#define for_each_enabled_cpu(cpu)   for_each_cpu((cpu), cpu_enabled_mask)
+ #define for_each_present_cpu(cpu)  for_each_cpu((cpu), cpu_present_mask)
+ #endif
+ 
+@@ -943,6 +947,15 @@ set_cpu_possible(unsigned int cpu, bool possible)
+ 		cpumask_clear_cpu(cpu, &__cpu_possible_mask);
  }
  
-+static int acpi_processor_make_enabled(struct acpi_processor *pr)
++static inline void
++set_cpu_enabled(unsigned int cpu, bool can_be_onlined)
 +{
-+	unsigned long long sta;
-+	acpi_status status;
-+	bool present, enabled;
-+
-+	if (!acpi_has_method(pr->handle, "_STA"))
-+		return arch_register_cpu(pr->id);
-+
-+	status = acpi_evaluate_integer(pr->handle, "_STA", NULL, &sta);
-+	if (ACPI_FAILURE(status))
-+		return -ENODEV;
-+
-+	present = sta & ACPI_STA_DEVICE_PRESENT;
-+	enabled = sta & ACPI_STA_DEVICE_ENABLED;
-+
-+	if (cpu_online(pr->id) && (!present || !enabled)) {
-+		pr_err_once(FW_BUG "CPU %u is online, but described as not present or disabled!\n", pr->id);
-+		add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
-+	} else if (!present || !enabled) {
-+		return -ENODEV;
-+	}
-+
-+	if (get_cpu_device(pr->id))
-+		return -EEXIST;
-+
-+	return arch_register_cpu(pr->id);
++	if (can_be_onlined)
++		cpumask_set_cpu(cpu, &__cpu_enabled_mask);
++	else
++		cpumask_clear_cpu(cpu, &__cpu_enabled_mask);
 +}
 +
- static int acpi_processor_get_info(struct acpi_device *device)
+ static inline void
+ set_cpu_present(unsigned int cpu, bool present)
  {
- 	union acpi_object object = { 0 };
-@@ -271,7 +300,7 @@ static int acpi_processor_get_info(struct acpi_device *device)
- 	}
+@@ -1022,6 +1035,7 @@ static inline unsigned int num_online_cpus(void)
+ 	return atomic_read(&__num_online_cpus);
+ }
+ #define num_possible_cpus()	cpumask_weight(cpu_possible_mask)
++#define num_enabled_cpus()	cpumask_weight(cpu_enabled_mask)
+ #define num_present_cpus()	cpumask_weight(cpu_present_mask)
+ #define num_active_cpus()	cpumask_weight(cpu_active_mask)
  
- 	if (!invalid_logical_cpuid(pr->id) && cpu_present(pr->id)) {
--		int ret = arch_register_cpu(pr->id);
-+		int ret = acpi_processor_make_enabled(pr);
- 		if (ret)
- 			return ret;
- 	}
-@@ -478,6 +507,9 @@ static void acpi_processor_post_eject(struct acpi_device *device)
- 		acpi_processor_make_not_present(device);
- 		return;
- 	}
-+
-+	if (cpu_present(pr->id) && !(sta & ACPI_STA_DEVICE_ENABLED))
-+		arch_unregister_cpu(pr->id);
+@@ -1030,6 +1044,11 @@ static inline bool cpu_online(unsigned int cpu)
+ 	return cpumask_test_cpu(cpu, cpu_online_mask);
  }
  
- #ifdef CONFIG_X86
++static inline bool cpu_enabled(unsigned int cpu)
++{
++	return cpumask_test_cpu(cpu, cpu_enabled_mask);
++}
++
+ static inline bool cpu_possible(unsigned int cpu)
+ {
+ 	return cpumask_test_cpu(cpu, cpu_possible_mask);
+@@ -1054,6 +1073,7 @@ static inline bool cpu_dying(unsigned int cpu)
+ 
+ #define num_online_cpus()	1U
+ #define num_possible_cpus()	1U
++#define num_enabled_cpus()	1U
+ #define num_present_cpus()	1U
+ #define num_active_cpus()	1U
+ 
+@@ -1067,6 +1087,11 @@ static inline bool cpu_possible(unsigned int cpu)
+ 	return cpu == 0;
+ }
+ 
++static inline bool cpu_enabled(unsigned int cpu)
++{
++	return cpu == 0;
++}
++
+ static inline bool cpu_present(unsigned int cpu)
+ {
+ 	return cpu == 0;
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index 6c0a92ca6bb5..6f4febf0142e 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -2639,6 +2639,9 @@ EXPORT_SYMBOL(__cpu_possible_mask);
+ struct cpumask __cpu_online_mask __read_mostly;
+ EXPORT_SYMBOL(__cpu_online_mask);
+ 
++struct cpumask __cpu_enabled_mask __read_mostly;
++EXPORT_SYMBOL(__cpu_enabled_mask);
++
+ struct cpumask __cpu_present_mask __read_mostly;
+ EXPORT_SYMBOL(__cpu_present_mask);
+ 
 -- 
 2.30.2
 
