@@ -2,140 +2,126 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 91630C636D4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:08:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3C209C61DA4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:32:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233814AbjBCOIk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 09:08:40 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54156 "EHLO
+        id S233315AbjBCOb7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:31:59 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47354 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233701AbjBCOI0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:08:26 -0500
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 4E129A87AC;
-        Fri,  3 Feb 2023 06:06:05 -0800 (PST)
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 43788175A;
-        Fri,  3 Feb 2023 05:54:29 -0800 (PST)
-Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 74A2E3F71E;
-        Fri,  3 Feb 2023 05:53:43 -0800 (PST)
-From:   James Morse <james.morse@arm.com>
-To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
-        kvmarm@lists.linux.dev, kvm@vger.kernel.org,
-        linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, x86@kernel.org
-Cc:     Marc Zyngier <maz@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Lorenzo Pieralisi <lpieralisi@kernel.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Sudeep Holla <sudeep.holla@arm.com>,
-        Borislav Petkov <bp@alien8.de>, H Peter Anvin <hpa@zytor.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        James Morse <james.morse@arm.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        Oliver Upton <oliver.upton@linux.dev>,
-        Len Brown <lenb@kernel.org>,
-        Rafael Wysocki <rafael@kernel.org>,
-        WANG Xuerui <kernel@xen0n.name>,
-        Salil Mehta <salil.mehta@huawei.com>,
-        Russell King <linux@armlinux.org.uk>,
-        Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 26/32] irqchip/gic-v3: Add support for ACPI's disabled but 'online capable' CPUs
-Date:   Fri,  3 Feb 2023 13:50:37 +0000
-Message-Id: <20230203135043.409192-27-james.morse@arm.com>
-X-Mailer: git-send-email 2.30.2
-In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
-References: <20230203135043.409192-1-james.morse@arm.com>
+        with ESMTP id S233670AbjBCObt (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:31:49 -0500
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8FB4F8F266
+        for <linux-arch@vger.kernel.org>; Fri,  3 Feb 2023 06:30:21 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1675434620;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=FGqA/t5BHooNtKKmgY/P/RvUeTIDhJpfv4X01I3UuzM=;
+        b=i0GTS4Wv009WgzRHujY2hTs3SFt/CS5bl6wzzo/7K/g9TMrc/gHCwxHutEn/AuXmv2Wuce
+        WelFsRCNVtdrmOlpTusE8WGRpyCeZjlljHrt6CmPDVhNBj+d36secvk4Jca26Nq9Zk/TqK
+        lFMOk5tWPCCIV2sEOxQr/IxXs+PuHrs=
+Received: from mail-wm1-f71.google.com (mail-wm1-f71.google.com
+ [209.85.128.71]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_128_GCM_SHA256) id
+ us-mta-31-zi4YmAvdOwmJOTytGQxtxg-1; Fri, 03 Feb 2023 09:30:17 -0500
+X-MC-Unique: zi4YmAvdOwmJOTytGQxtxg-1
+Received: by mail-wm1-f71.google.com with SMTP id l38-20020a05600c1d2600b003ddff4b9a40so2689918wms.9
+        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2023 06:30:17 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112;
+        h=content-transfer-encoding:in-reply-to:organization:from:references
+         :cc:to:content-language:subject:user-agent:mime-version:date
+         :message-id:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=FGqA/t5BHooNtKKmgY/P/RvUeTIDhJpfv4X01I3UuzM=;
+        b=6CU/QaxNEgkTB/NyKp8YO9FO966st9nrD+G73SaHvM32KAgN1I0pbyGYQv0xC3QcRI
+         KtCuMton7nCpEh6NmvpMEp9MY2XzpsBZlx3hBw7Gndxf3gvsYaEtDcMEQp+Psc5OaOAU
+         Mq0bUDz/ACE/dd0XU4uhbdz5aDwHsktu3VzivXH7Zr52e+s2fYcVgwXdydwX6S3IHMlU
+         JqwF4QE/wwW4V5+TWEPwRZC2quJjIUZOm7+D2qo6+9qSnqxhpuAe96fGVz80ID/SkJBh
+         TWNX5peO6okNaODOFgVADRXCFhDy5Ah5kBVJIhu7uA8KFiuVn+vT2sq/6a/2Qt/gX26z
+         KjVA==
+X-Gm-Message-State: AO0yUKXR1OHeV+EiG4ud3nXpQQenXUpJ+tTpeYsJNFSsdHRx/tfIE7Bq
+        tKD487qHAwLkYfXBkRzrmFvKwZAk3Ba3FiKa0tSYjE5F+R/JBI5f5Ahggv1SKQ6oR71scfVXpt2
+        FVZH0a/fxxzKu1N8kdCw3Pw==
+X-Received: by 2002:a05:600c:3588:b0:3df:e1e9:200e with SMTP id p8-20020a05600c358800b003dfe1e9200emr4472907wmq.39.1675434616189;
+        Fri, 03 Feb 2023 06:30:16 -0800 (PST)
+X-Google-Smtp-Source: AK7set+3Fxk3nALXFhpoXy/lSyMSFcdmxLuZvgb86YYfx4M4JIQvKCJs/tKTkc3VpDPsDt8toFavpA==
+X-Received: by 2002:a05:600c:3588:b0:3df:e1e9:200e with SMTP id p8-20020a05600c358800b003dfe1e9200emr4472869wmq.39.1675434615896;
+        Fri, 03 Feb 2023 06:30:15 -0800 (PST)
+Received: from [192.168.3.108] (p5b0c6376.dip0.t-ipconnect.de. [91.12.99.118])
+        by smtp.gmail.com with ESMTPSA id h27-20020a05600c2cbb00b003db12112fcfsm3203111wmc.4.2023.02.03.06.30.13
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 03 Feb 2023 06:30:15 -0800 (PST)
+Message-ID: <569308c6-558b-de6e-1e98-2f50c1c56755@redhat.com>
+Date:   Fri, 3 Feb 2023 15:30:12 +0100
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.6.0
+Subject: Re: [PATCH v2 1/4] arm: include asm-generic/memory_model.h from
+ page.h rather than memory.h
+Content-Language: en-US
+To:     Mike Rapoport <rppt@kernel.org>,
+        Andrew Morton <akpm@linux-foundation.org>
+Cc:     Arnd Bergmann <arnd@arndb.de>, Brian Cain <bcain@quicinc.com>,
+        "David S. Miller" <davem@davemloft.net>,
+        Dinh Nguyen <dinguyen@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Greg Ungerer <gerg@linux-m68k.org>,
+        Guo Ren <guoren@kernel.org>, Helge Deller <deller@gmx.de>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        Matt Turner <mattst88@gmail.com>,
+        Max Filippov <jcmvbkbc@gmail.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Michal Simek <monstr@monstr.eu>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Rich Felker <dalias@libc.org>,
+        Richard Weinberger <richard@nod.at>,
+        Russell King <linux@armlinux.org.uk>,
+        Stafford Horne <shorne@gmail.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Vineet Gupta <vgupta@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org,
+        linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, linux-mm@kvack.org,
+        linux-parisc@vger.kernel.org, linux-riscv@lists.infradead.org,
+        linux-sh@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+        linux-um@lists.infradead.org, linux-xtensa@linux-xtensa.org,
+        linuxppc-dev@lists.ozlabs.org, loongarch@lists.linux.dev,
+        openrisc@lists.librecores.org, sparclinux@vger.kernel.org,
+        x86@kernel.org
+References: <20230129124235.209895-1-rppt@kernel.org>
+ <20230129124235.209895-2-rppt@kernel.org>
+From:   David Hildenbrand <david@redhat.com>
+Organization: Red Hat
+In-Reply-To: <20230129124235.209895-2-rppt@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To support virtual CPU hotplug, ACPI has added an 'online capable' bit
-to the MADT GICC entries. This indicates a disabled CPU entry may not
-be possible to online via PSCI until firmware has set enabled bit in
-_STA.
+On 29.01.23 13:42, Mike Rapoport wrote:
+> From: "Mike Rapoport (IBM)" <rppt@kernel.org>
+> 
+> Makes it consistent with other architectures and allows for generic
+> definition of pfn_valid() in asm-generic/memory_model.h with clear override
+> in arch/arm/include/asm/page.h
+> 
+> Signed-off-by: Mike Rapoport (IBM) <rppt@kernel.org>
+> ---
 
-What about the redistributor in the GICC entry? ACPI doesn't want to say.
-Assume the worst: When a redistributor is described in the GICC entry,
-but the entry is marked as disabled at boot, assume the redistributor
-is inaccessible.
+Reviewed-by: David Hildenbrand <david@redhat.com>
 
-The GICv3 driver doesn't support late online of redistributors, so this
-means the corresponding CPU can't be brought online either. Clear the
-possible and present bits.
-
-Systems that want CPU hotplug in a VM can ensure their redistributors
-are always-on, and describe them that way with a GICR entry in the MADT.
-
-When mapping redistributors found via GICC entries, handle the case
-where the arch code believes the CPU is present and possible, but it
-does not have an accessible redistributor. Print a warning and clear
-the present and possible bits.
-
-Signed-off-by: James Morse <james.morse@arm.com>
-----
-Disabled but online-capable CPUs cause this message to be printed
-if their redistributors are described via GICC:
-| GICv3: CPU 3's redistributor is inaccessible: this CPU can't be brought online
-
-If ACPI's _STA tries to make the cpu present later, this message is printed:
-| Changing CPU present bit is not supported
----
- drivers/irqchip/irq-gic-v3.c | 14 ++++++++++++++
- include/linux/acpi.h         |  3 ++-
- 2 files changed, 16 insertions(+), 1 deletion(-)
-
-diff --git a/drivers/irqchip/irq-gic-v3.c b/drivers/irqchip/irq-gic-v3.c
-index a8b969d652b6..8c1ea3df0094 100644
---- a/drivers/irqchip/irq-gic-v3.c
-+++ b/drivers/irqchip/irq-gic-v3.c
-@@ -2187,11 +2187,25 @@ gic_acpi_parse_madt_gicc(union acpi_subtable_headers *header,
- 				(struct acpi_madt_generic_interrupt *)header;
- 	u32 reg = readl_relaxed(acpi_data.dist_base + GICD_PIDR2) & GIC_PIDR2_ARCH_MASK;
- 	u32 size = reg == GIC_PIDR2_ARCH_GICv4 ? SZ_64K * 4 : SZ_64K * 2;
-+	int cpu = get_cpu_for_acpi_id(gicc->uid);
- 	void __iomem *redist_base;
- 
- 	if (!acpi_gicc_is_usable(gicc))
- 		return 0;
- 
-+	/*
-+	 * Capable but disabled CPUs can be brought online later. What about
-+	 * the redistributor? ACPI doesn't want to say!
-+	 * Virtual hotplug systems can use the MADT's "always-on" GICR entries.
-+	 * Otherwise, prevent such CPUs from being brought online.
-+	 */
-+	if (!(gicc->flags & ACPI_MADT_ENABLED)) {
-+		pr_warn_once("CPU %u's redistributor is inaccessible: this CPU can't be brought online\n", cpu);
-+		set_cpu_present(cpu, false);
-+		set_cpu_possible(cpu, false);
-+		return 0;
-+	}
-+
- 	redist_base = ioremap(gicc->gicr_base_address, size);
- 	if (!redist_base)
- 		return -ENOMEM;
-diff --git a/include/linux/acpi.h b/include/linux/acpi.h
-index d8e59953a27f..c1b74ebd5774 100644
---- a/include/linux/acpi.h
-+++ b/include/linux/acpi.h
-@@ -269,7 +269,8 @@ void acpi_table_print_madt_entry (struct acpi_subtable_header *madt);
- 
- static inline bool acpi_gicc_is_usable(struct acpi_madt_generic_interrupt *gicc)
- {
--	return (gicc->flags & ACPI_MADT_ENABLED);
-+	return ((gicc->flags & ACPI_MADT_ENABLED ||
-+		 gicc->flags & ACPI_MADT_GICC_CPU_CAPABLE));
- }
- 
- /* the following numa functions are architecture-dependent */
 -- 
-2.30.2
+Thanks,
+
+David / dhildenb
 
