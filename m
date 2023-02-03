@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 301C5C61DA4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 13:56:41 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8723AC636D7
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 13:56:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233618AbjBCN4j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 08:56:39 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34812 "EHLO
+        id S233660AbjBCN4k (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 08:56:40 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34818 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233647AbjBCN4H (ORCPT
+        with ESMTP id S233272AbjBCN4H (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 08:56:07 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 1041EA77BC;
-        Fri,  3 Feb 2023 05:54:01 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id C4924A77AD;
+        Fri,  3 Feb 2023 05:54:00 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 789391682;
-        Fri,  3 Feb 2023 05:54:01 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 790DF175D;
+        Fri,  3 Feb 2023 05:54:33 -0800 (PST)
 Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id AA6F23F71E;
-        Fri,  3 Feb 2023 05:53:15 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id AB7923F71E;
+        Fri,  3 Feb 2023 05:53:47 -0800 (PST)
 From:   James Morse <james.morse@arm.com>
 To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
         kvmarm@lists.linux.dev, kvm@vger.kernel.org,
@@ -45,9 +45,9 @@ Cc:     Marc Zyngier <maz@kernel.org>,
         Salil Mehta <salil.mehta@huawei.com>,
         Russell King <linux@armlinux.org.uk>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 20/32] drivers: base: Implement weak arch_unregister_cpu()
-Date:   Fri,  3 Feb 2023 13:50:31 +0000
-Message-Id: <20230203135043.409192-21-james.morse@arm.com>
+Subject: [RFC PATCH 27/32] arm64: psci: Ignore DENIED CPUs
+Date:   Fri,  3 Feb 2023 13:50:38 +0000
+Message-Id: <20230203135043.409192-28-james.morse@arm.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
 References: <20230203135043.409192-1-james.morse@arm.com>
@@ -57,75 +57,65 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add arch_unregister_cpu() to allow the ACPI machinery to call
-unregister_cpu(). This is enough for arm64, but needs to be
-overridden by x86 and ia64 who need to do more work.
+From: Jean-Philippe Brucker <jean-philippe@linaro.org>
 
-CC: Jean-Philippe Brucker <jean-philippe@linaro.org>
+When a CPU is marked as disabled, but online capable in the MADT, PSCI
+applies some firmware policy to control when it can be brought online.
+PSCI returns DENIED to a CPU_ON request if this is not currently
+permitted. The OS can learn the current policy from the _STA enabled bit.
+
+Handle the PSCI DENIED return code gracefully instead of printing an
+error.
+
+Signed-off-by: Jean-Philippe Brucker <jean-philippe@linaro.org>
+[ morse: Rewrote commit message ]
 Signed-off-by: James Morse <james.morse@arm.com>
 ---
- arch/ia64/include/asm/cpu.h      | 4 ----
- arch/loongarch/include/asm/cpu.h | 6 ------
- arch/x86/include/asm/cpu.h       | 1 -
- drivers/base/cpu.c               | 5 +++++
- 4 files changed, 5 insertions(+), 11 deletions(-)
+ arch/arm64/kernel/psci.c     | 2 +-
+ arch/arm64/kernel/smp.c      | 3 ++-
+ drivers/firmware/psci/psci.c | 2 ++
+ 3 files changed, 5 insertions(+), 2 deletions(-)
 
-diff --git a/arch/ia64/include/asm/cpu.h b/arch/ia64/include/asm/cpu.h
-index 6e9786c6ec98..3b36c6a382bb 100644
---- a/arch/ia64/include/asm/cpu.h
-+++ b/arch/ia64/include/asm/cpu.h
-@@ -9,8 +9,4 @@
- 
- DECLARE_PER_CPU(int, cpu_state);
- 
--#ifdef CONFIG_HOTPLUG_CPU
--extern void arch_unregister_cpu(int);
--#endif
--
- #endif /* _ASM_IA64_CPU_H_ */
-diff --git a/arch/loongarch/include/asm/cpu.h b/arch/loongarch/include/asm/cpu.h
-index 1e2c7c61dbea..754f28506791 100644
---- a/arch/loongarch/include/asm/cpu.h
-+++ b/arch/loongarch/include/asm/cpu.h
-@@ -124,10 +124,4 @@ enum cpu_type_enum {
- #define LOONGARCH_CPU_GUESTID		BIT_ULL(CPU_FEATURE_GUESTID)
- #define LOONGARCH_CPU_HYPERVISOR	BIT_ULL(CPU_FEATURE_HYPERVISOR)
- 
--#if !defined(__ASSEMBLY__)
--#ifdef CONFIG_HOTPLUG_CPU
--extern void arch_unregister_cpu(int);
--#endif
--#endif /* ! __ASSEMBLY__ */
--
- #endif /* _ASM_CPU_H */
-diff --git a/arch/x86/include/asm/cpu.h b/arch/x86/include/asm/cpu.h
-index 2955541abebb..e5d820be3b72 100644
---- a/arch/x86/include/asm/cpu.h
-+++ b/arch/x86/include/asm/cpu.h
-@@ -24,7 +24,6 @@ static inline void prefill_possible_map(void) {}
- #endif /* CONFIG_SMP */
- 
- #ifdef CONFIG_HOTPLUG_CPU
--extern void arch_unregister_cpu(int);
- extern void start_cpu0(void);
- #ifdef CONFIG_DEBUG_HOTPLUG_CPU0
- extern int _debug_hotplug_cpu(int cpu, int action);
-diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
-index 0ba646022a5e..bc2ce8c7f383 100644
---- a/drivers/base/cpu.c
-+++ b/drivers/base/cpu.c
-@@ -498,6 +498,11 @@ int __weak arch_register_cpu(int cpu)
+diff --git a/arch/arm64/kernel/psci.c b/arch/arm64/kernel/psci.c
+index 29a8e444db83..4fcc0cdd757b 100644
+--- a/arch/arm64/kernel/psci.c
++++ b/arch/arm64/kernel/psci.c
+@@ -40,7 +40,7 @@ static int cpu_psci_cpu_boot(unsigned int cpu)
  {
- 	return register_cpu(&per_cpu(cpu_devices, cpu), cpu);
- }
-+
-+void __weak arch_unregister_cpu(int num)
-+{
-+	unregister_cpu(&per_cpu(cpu_devices, num));
-+}
- #endif
+ 	phys_addr_t pa_secondary_entry = __pa_symbol(secondary_entry);
+ 	int err = psci_ops.cpu_on(cpu_logical_map(cpu), pa_secondary_entry);
+-	if (err)
++	if (err && err != -EPROBE_DEFER)
+ 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
  
- static void __init cpu_dev_register_generic(void)
+ 	return err;
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index 5669b013c2b7..ea031641545d 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -125,7 +125,8 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 	/* Now bring the CPU into our world */
+ 	ret = boot_secondary(cpu, idle);
+ 	if (ret) {
+-		pr_err("CPU%u: failed to boot: %d\n", cpu, ret);
++		if (ret != -EPROBE_DEFER)
++			pr_err("CPU%u: failed to boot: %d\n", cpu, ret);
+ 		return ret;
+ 	}
+ 
+diff --git a/drivers/firmware/psci/psci.c b/drivers/firmware/psci/psci.c
+index e7bcfca4159f..3389c913b2ea 100644
+--- a/drivers/firmware/psci/psci.c
++++ b/drivers/firmware/psci/psci.c
+@@ -212,6 +212,8 @@ static int __psci_cpu_on(u32 fn, unsigned long cpuid, unsigned long entry_point)
+ 	int err;
+ 
+ 	err = invoke_psci_fn(fn, cpuid, entry_point, 0);
++	if (err == PSCI_RET_DENIED)
++		return -EPROBE_DEFER;
+ 	return psci_to_linux_errno(err);
+ }
+ 
 -- 
 2.30.2
 
