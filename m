@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1EDBEC05027
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 13:55:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F130FC05027
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 13:55:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233545AbjBCNzp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 08:55:45 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34306 "EHLO
+        id S233571AbjBCNzu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 08:55:50 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34534 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233252AbjBCNzA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 08:55:00 -0500
+        with ESMTP id S233098AbjBCNzE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 08:55:04 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 95487A147C;
-        Fri,  3 Feb 2023 05:53:28 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 64A37A7EEB;
+        Fri,  3 Feb 2023 05:53:31 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 0EB6B15A1;
-        Fri,  3 Feb 2023 05:53:30 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 610A615BF;
+        Fri,  3 Feb 2023 05:53:38 -0800 (PST)
 Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 4197A3F71E;
-        Fri,  3 Feb 2023 05:52:44 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 93F633F71E;
+        Fri,  3 Feb 2023 05:52:52 -0800 (PST)
 From:   James Morse <james.morse@arm.com>
 To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
         kvmarm@lists.linux.dev, kvm@vger.kernel.org,
@@ -45,9 +45,9 @@ Cc:     Marc Zyngier <maz@kernel.org>,
         Salil Mehta <salil.mehta@huawei.com>,
         Russell King <linux@armlinux.org.uk>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 13/32] ACPI: processor: Register all CPUs from acpi_processor_get_info()
-Date:   Fri,  3 Feb 2023 13:50:24 +0000
-Message-Id: <20230203135043.409192-14-james.morse@arm.com>
+Subject: [RFC PATCH 15/32] ACPI: Move acpi_bus_trim_one() before acpi_scan_hot_remove()
+Date:   Fri,  3 Feb 2023 13:50:26 +0000
+Message-Id: <20230203135043.409192-16-james.morse@arm.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
 References: <20230203135043.409192-1-james.morse@arm.com>
@@ -57,53 +57,112 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To allow ACPI to skip the call to arch_register_cpu() when the _STA
-value indicates the CPU can't be brought online right now, move the
-arch_register_cpu() call into acpi_processor_get_info().
+A subsequent patch will change acpi_scan_hot_remove() to call
+acpi_bus_trim_one() instead of acpi_bus_trim(), meaning it can no longer
+rely on the prototype in the header file.
 
-Systems can still be booted with 'acpi=off', or in the case of arm64,
-not include an ACPI description at all. For these, the CPUs are
-registered by cpu_dev_register_generic().
-
-This moves the CPU register logic back to a subsys_initcall(),
-while the memory nodes will have been registered earlier.
+Move these functions further up the file.
+No change in behaviour.
 
 Signed-off-by: James Morse <james.morse@arm.com>
 ---
- drivers/acpi/acpi_processor.c | 6 ++++++
- drivers/base/cpu.c            | 2 +-
- 2 files changed, 7 insertions(+), 1 deletion(-)
+ drivers/acpi/scan.c | 76 ++++++++++++++++++++++-----------------------
+ 1 file changed, 38 insertions(+), 38 deletions(-)
 
-diff --git a/drivers/acpi/acpi_processor.c b/drivers/acpi/acpi_processor.c
-index 967837b60453..a93a6c4115c4 100644
---- a/drivers/acpi/acpi_processor.c
-+++ b/drivers/acpi/acpi_processor.c
-@@ -272,6 +272,12 @@ static int acpi_processor_get_info(struct acpi_device *device)
- 			pr->id = 0;
- 	}
+diff --git a/drivers/acpi/scan.c b/drivers/acpi/scan.c
+index 274344434282..cecf94192771 100644
+--- a/drivers/acpi/scan.c
++++ b/drivers/acpi/scan.c
+@@ -245,6 +245,44 @@ static int acpi_scan_try_to_offline(struct acpi_device *device)
+ 	return 0;
+ }
  
-+	if (!invalid_logical_cpuid(pr->id) && cpu_present(pr->id)) {
-+		int ret = arch_register_cpu(pr->id);
-+		if (ret)
-+			return ret;
-+	}
++static int acpi_bus_trim_one(struct acpi_device *adev, void *not_used)
++{
++	struct acpi_scan_handler *handler = adev->handler;
 +
- 	/*
- 	 *  Extra Processor objects may be enumerated on MP systems with
- 	 *  less than the max # of CPUs. They should be ignored _iff
-diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
-index 178936533d87..0ba646022a5e 100644
---- a/drivers/base/cpu.c
-+++ b/drivers/base/cpu.c
-@@ -504,7 +504,7 @@ static void __init cpu_dev_register_generic(void)
++	acpi_dev_for_each_child_reverse(adev, acpi_bus_trim_one, NULL);
++
++	adev->flags.match_driver = false;
++	if (handler) {
++		if (handler->detach)
++			handler->detach(adev);
++
++		adev->handler = NULL;
++	} else {
++		device_release_driver(&adev->dev);
++	}
++	/*
++	 * Most likely, the device is going away, so put it into D3cold before
++	 * that.
++	 */
++	acpi_device_set_power(adev, ACPI_STATE_D3_COLD);
++	adev->flags.initialized = false;
++	acpi_device_clear_enumerated(adev);
++
++	return 0;
++}
++
++/**
++ * acpi_bus_trim - Detach scan handlers and drivers from ACPI device objects.
++ * @adev: Root of the ACPI namespace scope to walk.
++ *
++ * Must be called under acpi_scan_lock.
++ */
++void acpi_bus_trim(struct acpi_device *adev)
++{
++	acpi_bus_trim_one(adev, NULL);
++}
++EXPORT_SYMBOL_GPL(acpi_bus_trim);
++
+ static int acpi_scan_hot_remove(struct acpi_device *device)
  {
- 	int i;
+ 	acpi_handle handle = device->handle;
+@@ -2453,44 +2491,6 @@ int acpi_bus_scan(acpi_handle handle)
+ }
+ EXPORT_SYMBOL(acpi_bus_scan);
  
--	if (!IS_ENABLED(CONFIG_GENERIC_CPU_DEVICES))
-+	if (!IS_ENABLED(CONFIG_GENERIC_CPU_DEVICES) || !acpi_disabled)
- 		return;
- 
- 	for_each_present_cpu(i) {
+-static int acpi_bus_trim_one(struct acpi_device *adev, void *not_used)
+-{
+-	struct acpi_scan_handler *handler = adev->handler;
+-
+-	acpi_dev_for_each_child_reverse(adev, acpi_bus_trim_one, NULL);
+-
+-	adev->flags.match_driver = false;
+-	if (handler) {
+-		if (handler->detach)
+-			handler->detach(adev);
+-
+-		adev->handler = NULL;
+-	} else {
+-		device_release_driver(&adev->dev);
+-	}
+-	/*
+-	 * Most likely, the device is going away, so put it into D3cold before
+-	 * that.
+-	 */
+-	acpi_device_set_power(adev, ACPI_STATE_D3_COLD);
+-	adev->flags.initialized = false;
+-	acpi_device_clear_enumerated(adev);
+-
+-	return 0;
+-}
+-
+-/**
+- * acpi_bus_trim - Detach scan handlers and drivers from ACPI device objects.
+- * @adev: Root of the ACPI namespace scope to walk.
+- *
+- * Must be called under acpi_scan_lock.
+- */
+-void acpi_bus_trim(struct acpi_device *adev)
+-{
+-	acpi_bus_trim_one(adev, NULL);
+-}
+-EXPORT_SYMBOL_GPL(acpi_bus_trim);
+-
+ int acpi_bus_register_early_device(int type)
+ {
+ 	struct acpi_device *device = NULL;
 -- 
 2.30.2
 
