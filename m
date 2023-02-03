@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C118CC636D4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:06:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC9FAC61DA4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:08:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233536AbjBCOGC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 09:06:02 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48976 "EHLO
+        id S233780AbjBCOIj (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:08:39 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54158 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233948AbjBCOFP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:05:15 -0500
+        with ESMTP id S233781AbjBCOI0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:08:26 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 26B32A58FB;
-        Fri,  3 Feb 2023 06:02:41 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 9FD82A87B4;
+        Fri,  3 Feb 2023 06:06:05 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 10775165C;
-        Fri,  3 Feb 2023 05:53:56 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A19A11684;
+        Fri,  3 Feb 2023 05:54:16 -0800 (PST)
 Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 429563F71E;
-        Fri,  3 Feb 2023 05:53:10 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D3EFB3F71E;
+        Fri,  3 Feb 2023 05:53:30 -0800 (PST)
 From:   James Morse <james.morse@arm.com>
 To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
         kvmarm@lists.linux.dev, kvm@vger.kernel.org,
@@ -45,9 +45,9 @@ Cc:     Marc Zyngier <maz@kernel.org>,
         Salil Mehta <salil.mehta@huawei.com>,
         Russell King <linux@armlinux.org.uk>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 19/32] ACPI: Warn when the present bit changes but the feature is not enabled
-Date:   Fri,  3 Feb 2023 13:50:30 +0000
-Message-Id: <20230203135043.409192-20-james.morse@arm.com>
+Subject: [RFC PATCH 23/32] ACPICA: Add new MADT GICC flags fields [code first?]
+Date:   Fri,  3 Feb 2023 13:50:34 +0000
+Message-Id: <20230203135043.409192-24-james.morse@arm.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
 References: <20230203135043.409192-1-james.morse@arm.com>
@@ -57,48 +57,30 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-ACPI firmware can trigger the events to add and remove CPUs, but the
-OS may not support this.
+Add the new flag field to the MADT's GICC structure.
 
-Print a warning when this happens.
-
-This gives early warning on arm64 systems that don't support
-CONFIG_ACPI_HOTPLUG_PRESENT_CPU, as making CPUs not present has
-side effects for other parts of the system.
+'Online Capable' indicates a disabled CPU can be enabled later.
 
 Signed-off-by: James Morse <james.morse@arm.com>
 ---
- drivers/acpi/acpi_processor.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
+This patch probably needs to go via the upstream acpica project,
+but is included here so the feature can be tested.
+---
+ include/acpi/actbl2.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/drivers/acpi/acpi_processor.c b/drivers/acpi/acpi_processor.c
-index e6419b06cb37..572a12672c0e 100644
---- a/drivers/acpi/acpi_processor.c
-+++ b/drivers/acpi/acpi_processor.c
-@@ -155,8 +155,10 @@ static int acpi_processor_make_present(struct acpi_processor *pr)
- 	acpi_status status;
- 	int ret;
+diff --git a/include/acpi/actbl2.h b/include/acpi/actbl2.h
+index b2973dbe37ee..9b1c15c56db3 100644
+--- a/include/acpi/actbl2.h
++++ b/include/acpi/actbl2.h
+@@ -1040,6 +1040,7 @@ struct acpi_madt_generic_interrupt {
+ /* ACPI_MADT_ENABLED                    (1)      Processor is usable if set */
+ #define ACPI_MADT_PERFORMANCE_IRQ_MODE  (1<<1)	/* 01: Performance Interrupt Mode */
+ #define ACPI_MADT_VGIC_IRQ_MODE         (1<<2)	/* 02: VGIC Maintenance Interrupt mode */
++#define ACPI_MADT_GICC_CPU_CAPABLE      (1<<3)	/* 03: CPU is online capable */
  
--	if (!IS_ENABLED(CONFIG_ACPI_HOTPLUG_PRESENT_CPU))
-+	if (!IS_ENABLED(CONFIG_ACPI_HOTPLUG_PRESENT_CPU)) {
-+		pr_err_once("Changing CPU present bit is not supported\n");
- 		return -ENODEV;
-+	}
+ /* 12: Generic Distributor (ACPI 5.0 + ACPI 6.0 changes) */
  
- 	if (invalid_phys_cpuid(pr->phys_id))
- 		return -ENODEV;
-@@ -414,8 +416,10 @@ static void acpi_processor_make_not_present(struct acpi_device *device)
- {
- 	struct acpi_processor *pr;
- 
--	if (!IS_ENABLED(CONFIG_ACPI_HOTPLUG_PRESENT_CPU))
-+	if (!IS_ENABLED(CONFIG_ACPI_HOTPLUG_PRESENT_CPU)) {
-+		pr_err_once("Changing CPU present bit is not supported");
- 		return;
-+	}
- 
- 	pr = acpi_driver_data(device);
- 	if (pr->id >= nr_cpu_ids)
 -- 
 2.30.2
 
