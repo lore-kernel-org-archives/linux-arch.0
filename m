@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DE5A5C636D4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:04:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4120FC636D4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:04:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232942AbjBCOEd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 09:04:33 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49114 "EHLO
+        id S232835AbjBCOEg (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:04:36 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48166 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232835AbjBCOEE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:04:04 -0500
+        with ESMTP id S233327AbjBCOEJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:04:09 -0500
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id DCD48A56FC;
-        Fri,  3 Feb 2023 06:01:54 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 1A733A58C2;
+        Fri,  3 Feb 2023 06:01:58 -0800 (PST)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id B5CC61655;
-        Fri,  3 Feb 2023 05:53:51 -0800 (PST)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id A7B731763;
+        Fri,  3 Feb 2023 05:54:37 -0800 (PST)
 Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id E86E53F71E;
-        Fri,  3 Feb 2023 05:53:05 -0800 (PST)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id DA7AA3F71E;
+        Fri,  3 Feb 2023 05:53:51 -0800 (PST)
 From:   James Morse <james.morse@arm.com>
 To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
         kvmarm@lists.linux.dev, kvm@vger.kernel.org,
@@ -45,9 +45,9 @@ Cc:     Marc Zyngier <maz@kernel.org>,
         Salil Mehta <salil.mehta@huawei.com>,
         Russell King <linux@armlinux.org.uk>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: [RFC PATCH 18/32] ACPI: Check _STA present bit before making CPUs not present
-Date:   Fri,  3 Feb 2023 13:50:29 +0000
-Message-Id: <20230203135043.409192-19-james.morse@arm.com>
+Subject: [RFC PATCH 28/32] ACPI: add support to register CPUs based on the _STA enabled bit
+Date:   Fri,  3 Feb 2023 13:50:39 +0000
+Message-Id: <20230203135043.409192-29-james.morse@arm.com>
 X-Mailer: git-send-email 2.30.2
 In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
 References: <20230203135043.409192-1-james.morse@arm.com>
@@ -57,103 +57,87 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When called acpi_processor_post_eject() unconditionally make a CPU
-not-present and unregisters it.
+acpi_processor_get_info() registers all present CPUs. Registering a
+CPU is what creates the sysfs entries and triggers the udev
+notifications.
 
-To add support for AML events where the CPU has become disabled, but
-remains present, the _STA method should be checked before calling
-acpi_processor_remove().
+arm64 virtual machines that support 'virtual cpu hotplug' use the
+enabled bit to indicate whether the CPU can be brought online, as
+the existing ACPI tables require all hardware to be described and
+present.
 
-Rename acpi_processor_post_eject() acpi_processor_remove_possible(), and
-check the _STA before calling.
+If firmware describes a CPU as present, but disabled, skip the
+registration. Such CPUs are present, but can't be brought online for
+whatever reason. (e.g. firmware/hypervisor policy).
 
-Adding the function prototype for arch_unregister_cpu() allows the
-preprocessor guards to be removed.
-
-After this change CPUs will remain registered and visible to
-user-space as offline if buggy firmware triggers an eject-request,
-but doesn't clear the corresponding _STA bits after _EJ0 has been
-called.
+Once firmware sets the enabled bit, the CPU can be registered and
+brought online by user-space. Online CPUs, or CPUs that are missing
+an _STA method must always be registered.
 
 Signed-off-by: James Morse <james.morse@arm.com>
 ---
- drivers/acpi/acpi_processor.c | 31 +++++++++++++++++++++++++------
- include/linux/cpu.h           |  1 +
- 2 files changed, 26 insertions(+), 6 deletions(-)
+ drivers/acpi/acpi_processor.c | 34 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 33 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/acpi/acpi_processor.c b/drivers/acpi/acpi_processor.c
-index ab0f80b83773..e6419b06cb37 100644
+index 572a12672c0e..20e810a066da 100644
 --- a/drivers/acpi/acpi_processor.c
 +++ b/drivers/acpi/acpi_processor.c
-@@ -409,13 +409,12 @@ static int acpi_processor_add(struct acpi_device *device,
- 	return result;
+@@ -194,6 +194,35 @@ static int acpi_processor_make_present(struct acpi_processor *pr)
+ 	return ret;
  }
  
--#ifdef CONFIG_ACPI_HOTPLUG_PRESENT_CPU
- /* Removal */
--static void acpi_processor_post_eject(struct acpi_device *device)
-+static void acpi_processor_make_not_present(struct acpi_device *device)
- {
- 	struct acpi_processor *pr;
- 
--	if (!device || !acpi_driver_data(device))
-+	if (!IS_ENABLED(CONFIG_ACPI_HOTPLUG_PRESENT_CPU))
- 		return;
- 
- 	pr = acpi_driver_data(device);
-@@ -453,7 +452,29 @@ static void acpi_processor_post_eject(struct acpi_device *device)
- 	free_cpumask_var(pr->throttling.shared_cpu_map);
- 	kfree(pr);
- }
--#endif /* CONFIG_ACPI_HOTPLUG_PRESENT_CPU */
-+
-+static void acpi_processor_post_eject(struct acpi_device *device)
++static int acpi_processor_make_enabled(struct acpi_processor *pr)
 +{
-+	struct acpi_processor *pr;
 +	unsigned long long sta;
 +	acpi_status status;
++	bool present, enabled;
 +
-+	if (!device)
-+		return;
-+
-+	pr = acpi_driver_data(device);
-+	if (!pr || pr->id >= nr_cpu_ids || invalid_phys_cpuid(pr->phys_id))
-+		return;
++	if (!acpi_has_method(pr->handle, "_STA"))
++		return arch_register_cpu(pr->id);
 +
 +	status = acpi_evaluate_integer(pr->handle, "_STA", NULL, &sta);
 +	if (ACPI_FAILURE(status))
-+		return;
++		return -ENODEV;
 +
-+	if (cpu_present(pr->id) && !(sta & ACPI_STA_DEVICE_PRESENT)) {
-+		acpi_processor_make_not_present(device);
-+		return;
++	present = sta & ACPI_STA_DEVICE_PRESENT;
++	enabled = sta & ACPI_STA_DEVICE_ENABLED;
++
++	if (cpu_online(pr->id) && (!present || !enabled)) {
++		pr_err_once(FW_BUG "CPU %u is online, but described as not present or disabled!\n", pr->id);
++		add_taint(TAINT_FIRMWARE_WORKAROUND, LOCKDEP_STILL_OK);
++	} else if (!present || !enabled) {
++		return -ENODEV;
 +	}
++
++	if (get_cpu_device(pr->id))
++		return -EEXIST;
++
++	return arch_register_cpu(pr->id);
 +}
++
+ static int acpi_processor_get_info(struct acpi_device *device)
+ {
+ 	union acpi_object object = { 0 };
+@@ -271,7 +300,7 @@ static int acpi_processor_get_info(struct acpi_device *device)
+ 	}
+ 
+ 	if (!invalid_logical_cpuid(pr->id) && cpu_present(pr->id)) {
+-		int ret = arch_register_cpu(pr->id);
++		int ret = acpi_processor_make_enabled(pr);
+ 		if (ret)
+ 			return ret;
+ 	}
+@@ -478,6 +507,9 @@ static void acpi_processor_post_eject(struct acpi_device *device)
+ 		acpi_processor_make_not_present(device);
+ 		return;
+ 	}
++
++	if (cpu_present(pr->id) && !(sta & ACPI_STA_DEVICE_ENABLED))
++		arch_unregister_cpu(pr->id);
+ }
  
  #ifdef CONFIG_X86
- static bool acpi_hwp_native_thermal_lvt_set;
-@@ -522,9 +543,7 @@ static const struct acpi_device_id processor_device_ids[] = {
- static struct acpi_scan_handler processor_handler = {
- 	.ids = processor_device_ids,
- 	.attach = acpi_processor_add,
--#ifdef CONFIG_ACPI_HOTPLUG_PRESENT_CPU
- 	.post_eject = acpi_processor_post_eject,
--#endif
- 	.hotplug = {
- 		.enabled = true,
- 	},
-diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index 86e79e702325..f6f198a3972b 100644
---- a/include/linux/cpu.h
-+++ b/include/linux/cpu.h
-@@ -76,6 +76,7 @@ struct device *cpu_device_create(struct device *parent, void *drvdata,
- 				 const struct attribute_group **groups,
- 				 const char *fmt, ...);
- extern int arch_register_cpu(int cpu);
-+extern void arch_unregister_cpu(int cpu);
- #ifdef CONFIG_HOTPLUG_CPU
- extern void unregister_cpu(struct cpu *cpu);
- extern ssize_t arch_cpu_probe(const char *, size_t);
 -- 
 2.30.2
 
