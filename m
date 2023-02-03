@@ -2,100 +2,118 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 55059C61DA4
-	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 13:59:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 963B6C636D4
+	for <linux-arch@archiver.kernel.org>; Fri,  3 Feb 2023 14:04:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233752AbjBCN67 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 3 Feb 2023 08:58:59 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42022 "EHLO
+        id S232949AbjBCOEP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 3 Feb 2023 09:04:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49008 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233536AbjBCN6m (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 08:58:42 -0500
-Received: from mail-qt1-f176.google.com (mail-qt1-f176.google.com [209.85.160.176])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 37AE2A2A45;
-        Fri,  3 Feb 2023 05:55:47 -0800 (PST)
-Received: by mail-qt1-f176.google.com with SMTP id f10so5472656qtv.1;
-        Fri, 03 Feb 2023 05:55:47 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=nbKgXRRhHOsf8b2qFYqubarXiD/2JOI3CXyxQSetlOo=;
-        b=HlEDPXIokd/UDyTtc0FxQNaDH0ZU/iUhw74FrRW24qFU+x/UvHrM3GvgjU6XYoPfK4
-         2a2wgRqkfLi1xDl5PSBd5UkwLYsdlnwlmZvc5sMXnZVOKO0ld5QsKfMM4Xta/ms5CNxS
-         ppXL+O3ObR9qo8Vq45mIVyXo+YcXgreGnvBUUWGiX/vXsD14bkYewuWgtd2COS54VdSy
-         KUKU9eEw5Wp39brBfUJYMOM/S6kXT2FUwFn4y6EgyrZO/Pm8GUtPRNZ4nQee+mT+NH8Z
-         kX+5LCYAEVVGBYc2Zw2vGRC3e6C9SSXL77LKPQVWLKskZTa4XqQmh9orAtTSvVK3EXoP
-         CEEA==
-X-Gm-Message-State: AO0yUKVcLrFdcEncIeo8DCv1VeOvmBlSU4e1lgl6i+PjpTk7oXrN7eCy
-        /8MGYFvKOvbzHC1alr44Fi3raKccTgAn8Q==
-X-Google-Smtp-Source: AK7set/VrH2W/hF5htoK/wyjMPPVEuFk9wCswUkXu2hSgQiBOpjFpUlZY44JgVrrob1RrSq8KnXVeA==
-X-Received: by 2002:ac8:57d6:0:b0:3b8:4bb8:5aa5 with SMTP id w22-20020ac857d6000000b003b84bb85aa5mr20729191qta.54.1675432441314;
-        Fri, 03 Feb 2023 05:54:01 -0800 (PST)
-Received: from mail-yw1-f170.google.com (mail-yw1-f170.google.com. [209.85.128.170])
-        by smtp.gmail.com with ESMTPSA id n3-20020ac86743000000b003b80a69d353sm1577481qtp.49.2023.02.03.05.54.00
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 03 Feb 2023 05:54:00 -0800 (PST)
-Received: by mail-yw1-f170.google.com with SMTP id 00721157ae682-5254e8994e8so23778007b3.6;
-        Fri, 03 Feb 2023 05:54:00 -0800 (PST)
-X-Received: by 2002:a0d:c2c4:0:b0:514:a90f:10ea with SMTP id
- e187-20020a0dc2c4000000b00514a90f10eamr1025067ywd.316.1675432440139; Fri, 03
- Feb 2023 05:54:00 -0800 (PST)
+        with ESMTP id S233075AbjBCOD6 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2023 09:03:58 -0500
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 448D5A56E0;
+        Fri,  3 Feb 2023 06:01:46 -0800 (PST)
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 16D091688;
+        Fri,  3 Feb 2023 05:54:25 -0800 (PST)
+Received: from eglon.cambridge.arm.com (eglon.cambridge.arm.com [10.1.196.177])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 4979D3F71E;
+        Fri,  3 Feb 2023 05:53:39 -0800 (PST)
+From:   James Morse <james.morse@arm.com>
+To:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
+        kvmarm@lists.linux.dev, kvm@vger.kernel.org,
+        linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, x86@kernel.org
+Cc:     Marc Zyngier <maz@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Lorenzo Pieralisi <lpieralisi@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Sudeep Holla <sudeep.holla@arm.com>,
+        Borislav Petkov <bp@alien8.de>, H Peter Anvin <hpa@zytor.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        James Morse <james.morse@arm.com>,
+        Suzuki K Poulose <suzuki.poulose@arm.com>,
+        Oliver Upton <oliver.upton@linux.dev>,
+        Len Brown <lenb@kernel.org>,
+        Rafael Wysocki <rafael@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Salil Mehta <salil.mehta@huawei.com>,
+        Russell King <linux@armlinux.org.uk>,
+        Jean-Philippe Brucker <jean-philippe@linaro.org>
+Subject: [RFC PATCH 25/32] irqchip/gic-v3: Don't return errors from gic_acpi_match_gicc()
+Date:   Fri,  3 Feb 2023 13:50:36 +0000
+Message-Id: <20230203135043.409192-26-james.morse@arm.com>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20230203135043.409192-1-james.morse@arm.com>
+References: <20230203135043.409192-1-james.morse@arm.com>
 MIME-Version: 1.0
-References: <20230113062339.1909087-1-hch@lst.de> <20230113062339.1909087-2-hch@lst.de>
- <Y8EMZ0GI5rtor9xr@pendragon.ideasonboard.com> <20230203071506.GB24833@lst.de> <Y90Q73ykVEHRNII4@pendragon.ideasonboard.com>
-In-Reply-To: <Y90Q73ykVEHRNII4@pendragon.ideasonboard.com>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Fri, 3 Feb 2023 14:53:48 +0100
-X-Gmail-Original-Message-ID: <CAMuHMdVi1DPqYNbB5xWeG+1kK4x=8zQ0y57WSJ_j2xENCjQREQ@mail.gmail.com>
-Message-ID: <CAMuHMdVi1DPqYNbB5xWeG+1kK4x=8zQ0y57WSJ_j2xENCjQREQ@mail.gmail.com>
-Subject: Re: [PATCH 01/22] gpu/drm: remove the shmobile drm driver
-To:     Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Cc:     Christoph Hellwig <hch@lst.de>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>, Arnd Bergmann <arnd@arndb.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Kieran Bingham <kieran.bingham+renesas@ideasonboard.com>,
-        Geert Uytterhoeven <geert+renesas@glider.be>,
-        linux-kernel@vger.kernel.org, linux-watchdog@vger.kernel.org,
-        devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
-        dmaengine@vger.kernel.org, dri-devel@lists.freedesktop.org,
-        linux-renesas-soc@vger.kernel.org, linux-i2c@vger.kernel.org,
-        linux-input@vger.kernel.org, linux-media@vger.kernel.org,
-        linux-mmc@vger.kernel.org, linux-mtd@lists.infradead.org,
-        netdev@vger.kernel.org, linux-gpio@vger.kernel.org,
-        linux-rtc@vger.kernel.org, linux-spi@vger.kernel.org,
-        linux-serial@vger.kernel.org, linux-usb@vger.kernel.org,
-        linux-fbdev@vger.kernel.org, alsa-devel@alsa-project.org,
-        linux-sh@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Laurent,
+gic_acpi_match_gicc() is only called via gic_acpi_count_gicr_regions().
+It should only count the number of enabled redistributors, but it
+also tries to sanity check the GICC entry, currently returning an
+error if the Enabled bit is set, but the gicr_base_address is zero.
 
-On Fri, Feb 3, 2023 at 2:49 PM Laurent Pinchart
-<laurent.pinchart@ideasonboard.com> wrote:
-> On Fri, Feb 03, 2023 at 08:15:06AM +0100, Christoph Hellwig wrote:
-> > So given that the big series doesn't go in, can we get this removal
-> > picked up through the drm tree?
->
-> Geert has a board with an ARM-based SoC compatible with this driver, and
-> he expressed interest in taking over maintainership. Geert, could you
-> share your plans ? Should the shmobile_drm driver be dropped now, or
-> will you revive it in a relatively near future ?
+Adding support for the online-capable bit to the sanity check
+complictes it, for no benefit. The existing check implicitly
+depends on gic_acpi_count_gicr_regions() previous failing to find
+any GICR regions (as it is valid to have gicr_base_address of zero if
+the redistributors are described via a GICR entry).
 
-(Trying to) get it working on that board is on my list...
+Instead of complicating the check, remove it. Failures that happen
+at this point cause the irqchip not to register, meaning no irqs
+can be requested. The kernel grinds to a panic() pretty quickly.
 
-Gr{oetje,eeting}s,
+Without the check, MADT tables that exhibit this problem are still
+caught by gic_populate_rdist(), which helpfully also prints what
+went wrong:
+| CPU4: mpidr 100 has no re-distributor!
 
-                        Geert
+Signed-off-by: James Morse <james.morse@arm.com>
+---
+ drivers/irqchip/irq-gic-v3.c | 18 ++++++------------
+ 1 file changed, 6 insertions(+), 12 deletions(-)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+diff --git a/drivers/irqchip/irq-gic-v3.c b/drivers/irqchip/irq-gic-v3.c
+index d484cccfd612..a8b969d652b6 100644
+--- a/drivers/irqchip/irq-gic-v3.c
++++ b/drivers/irqchip/irq-gic-v3.c
+@@ -2237,21 +2237,15 @@ static int __init gic_acpi_match_gicc(union acpi_subtable_headers *header,
+ 
+ 	/*
+ 	 * If GICC is enabled and has valid gicr base address, then it means
+-	 * GICR base is presented via GICC
++	 * GICR base is presented via GICC. The redistributor is only known to
++	 * be accessible if the GICC is marked as enabled. If this bit is not
++	 * set, we'd need to add the redistributor at runtime, which isn't
++	 * supported.
+ 	 */
+-	if (acpi_gicc_is_usable(gicc) && gicc->gicr_base_address) {
++	if (gicc->flags & ACPI_MADT_ENABLED && gicc->gicr_base_address)
+ 		acpi_data.enabled_rdists++;
+-		return 0;
+-	}
+ 
+-	/*
+-	 * It's perfectly valid firmware can pass disabled GICC entry, driver
+-	 * should not treat as errors, skip the entry instead of probe fail.
+-	 */
+-	if (!acpi_gicc_is_usable(gicc))
+-		return 0;
+-
+-	return -ENODEV;
++	return 0;
+ }
+ 
+ static int __init gic_acpi_count_gicr_regions(void)
+-- 
+2.30.2
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
