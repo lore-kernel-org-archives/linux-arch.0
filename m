@@ -2,96 +2,117 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 23488C05027
-	for <linux-arch@archiver.kernel.org>; Mon,  6 Feb 2023 13:31:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5FA99C636D4
+	for <linux-arch@archiver.kernel.org>; Mon,  6 Feb 2023 16:58:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229590AbjBFNbP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 6 Feb 2023 08:31:15 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36448 "EHLO
+        id S229817AbjBFQ6T (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 6 Feb 2023 11:58:19 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36058 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229571AbjBFNbF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2023 08:31:05 -0500
-X-Greylist: delayed 7930 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 06 Feb 2023 05:31:02 PST
-Received: from xry111.site (xry111.site [89.208.246.23])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 630E8C17B;
-        Mon,  6 Feb 2023 05:31:02 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xry111.site;
-        s=default; t=1675690262;
-        bh=BcNBytG8LpyrimbJYLehCH+h5QW9ST/22z207Ized/Y=;
-        h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-        b=G/Bqfhy1zdS1uco+N2xY1SWkwHT7wFq3xB9lGtwxA0yLnLEipotKPEohs/i69CdTy
-         KuqD6gOcfKgwj8agrf2yo84irDWtJkrui48eYypecZWFCDrSW7v4xtLLULFNM6cPhj
-         O5RGNADqsH8g++daoimUkIyyWH+gvRw/xIZrGbek=
-Received: from localhost.localdomain (xry111.site [IPv6:2001:470:683e::1])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange ECDHE (P-256) server-signature ECDSA (P-384) server-digest SHA384)
-        (Client did not present a certificate)
-        (Authenticated sender: xry111@xry111.site)
-        by xry111.site (Postfix) with ESMTPSA id E102965EB0;
-        Mon,  6 Feb 2023 08:30:58 -0500 (EST)
-Message-ID: <74ffc2c05475c6af391b87a06df477ae390cc45c.camel@xry111.site>
-Subject: Re: [PATCH] LoongArch: Make -mstrict-align be configurable
-From:   Xi Ruoyao <xry111@xry111.site>
-To:     Jianmin Lv <lvjianmin@loongson.cn>,
-        WANG Xuerui <kernel@xen0n.name>,
-        Huacai Chen <chenhuacai@loongson.cn>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Huacai Chen <chenhuacai@kernel.org>
-Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
-        Xuefeng Li <lixuefeng@loongson.cn>,
-        Guo Ren <guoren@kernel.org>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-kernel@vger.kernel.org
-Date:   Mon, 06 Feb 2023 21:30:55 +0800
-In-Reply-To: <3b17d229-bad4-e6a0-9055-c585dd5a62e4@loongson.cn>
-References: <20230202084238.2408516-1-chenhuacai@loongson.cn>
-         <5fc85453-1e2c-1f00-7879-1b5fa318c78a@xen0n.name>
-         <5303aeda-5c66-ede6-b3ac-7d8ebd73ec70@loongson.cn>
-         <b1809500e4d55564a1084a3014fb9603ba3d1438.camel@xry111.site>
-         <3b17d229-bad4-e6a0-9055-c585dd5a62e4@loongson.cn>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.46.3 
+        with ESMTP id S229698AbjBFQ6S (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2023 11:58:18 -0500
+Received: from mout.gmx.net (mout.gmx.net [212.227.15.19])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 391C72279E;
+        Mon,  6 Feb 2023 08:58:16 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=gmx.de; s=s31663417;
+        t=1675702686; bh=oduEQSmX5w2TdFT5GxpWGp4vTr2PGe2Au2vMj0xJ5So=;
+        h=X-UI-Sender-Class:Date:To:Cc:References:From:Subject:In-Reply-To;
+        b=jGVdQH2lc02h1rgNqJc0l4Y80CfKI9LK6xHbRC2J/br744OD+MGmPrVF37cufr2hQ
+         yJTzjoueguDhAo2B1csqRngqA7zMIEytzGx96gsLLzcFNy08WUUaauSYVIZSSwT0ei
+         ulAPZQchwSxLJ/mmyJJ+mpKFFWIv2BxukpLPr6FAPI1LWZRtoUyP7edsMzlmeYjyC8
+         BAfhNgR8H3ENTDvsmLyMghQpQxNtBKb+jLGEikuIcuk3XCjgt2HVAM94Wd9LrGytCx
+         6woeiUzl20u8HfPpBliKla8sJt4T5fpDs9/9C/ypYfCrGsEmIeEQe3acQYL4Kw+grs
+         4HcLxDeOZiPug==
+X-UI-Sender-Class: 724b4f7f-cbec-4199-ad4e-598c01a50d3a
+Received: from [192.168.20.60] ([92.116.187.227]) by mail.gmx.net (mrgmx005
+ [212.227.17.190]) with ESMTPSA (Nemesis) id 1M8ykW-1pV7Dk22L8-006Au1; Mon, 06
+ Feb 2023 17:58:06 +0100
+Message-ID: <84b1c2e4-c096-ed19-9701-472b54a4890c@gmx.de>
+Date:   Mon, 6 Feb 2023 17:58:02 +0100
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.6.0
+Content-Language: en-US
+To:     Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org
+Cc:     linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org,
+        linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        Michal Simek <monstr@monstr.eu>,
+        Dinh Nguyen <dinguyen@kernel.org>,
+        openrisc@lists.librecores.org, linux-parisc@vger.kernel.org,
+        linux-riscv@lists.infradead.org, sparclinux@vger.kernel.org,
+        Linus Torvalds <torvalds@linux-foundation.org>
+References: <Y9lz6yk113LmC9SI@ZenIV> <Y9l0w4M91DwYLO3N@ZenIV>
+From:   Helge Deller <deller@gmx.de>
+Subject: Re: [PATCH 08/10] parisc: fix livelock in uaccess
+In-Reply-To: <Y9l0w4M91DwYLO3N@ZenIV>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: quoted-printable
+X-Provags-ID: V03:K1:VFAdDPOyDsZ+gDOfjL++mZzEtC+e2v/KCjg8uQsf0yjF1YAzaMS
+ oXW29IrTBTtPzkOTcXxudlWjrhGfO1ez3hBLeyfLw2/Z0WaXrXMv7w5zk4brciWkWNAVj/v
+ 2eu8fda/vTBeLfXmUNcSX1hbCAIv8EKxS//63b0kTRVmu0h5ndbdvcdcQ/q/cL7nrZwQpu6
+ Stb8GCjAJJ4AQa7UKcYFw==
+UI-OutboundReport: notjunk:1;M01:P0:KkzFdp2tKvc=;5EOddTxTxg9vhOdXmEOZP2I+Hdo
+ 8MYBzo3Bxhn6pstHx7hVY3z0DOk1/GKvEDMafgAHfPK87L6/JHxNfu2GbFOTnfvCOtfvt5S+J
+ OHmBby6u5bHxMD7BhvLQ6bewKauY86xpZ8/lngugRbSc1GwJFtyBaxBGTLWx596I1+yIDp75V
+ 1eftEsNOiAj1668aOJhkDOcNlgXNKMfc9xcfmTdXUpkd+m0zaI4C/YdFdQxgPn7NqaUHoDJ7a
+ oZGaqvwdsPUzlsLU4SeWCOmSeiKTHm0R3rcYSqHypUBzck+ubTNUY+HGIfmZitkNPgQUu5fxs
+ 1svaHATbHtklwgcs4LbUlmsGW6YrshS7doWAQffJU5NoW4DE9USmOO2aL1QWKD+SdZRJD3uKe
+ wgJdpLf9MoMixQqF1r/0ECY/lQUfRZZlqxsd+PVJLypTNfZ7NAgJ7437aFZmoZ4Rkm6x5ao1P
+ P31aCzGf78iKqX9BAgw1SO+fTo9z7V0ZSxJILNRpAuleT+HAp2+sPWGk+P1DGh+zgHUxeRxiB
+ AXoN1pJP+uNu3hQCpxpJ6Z8ol0AusGOFa0nudlLoZ1WIyk5d9qBtkBReX/P/3OmOT1kORr4ki
+ p1jONZSd2R/dTgC/HjSo+7XH6EBT7VytCg0JOgMich2CCEh6ppsrNnE9sJiFbVJhewjkC4cAH
+ ELy1bEvkQdy2XK6XwDq2OD3qJLes8G9yNBABM9DJjWaIjgpVKLYM+iN7r7zdGVECSm9Vhu/xq
+ FQl3HOIg5OSBUq7rJpzcC4vtT/iNp1HlzwnKnXc8Soz6pbQ6CfzvAKPlaJoBEpv909olkJCEF
+ NdfBleQ3ocnrQtCmruOPdxI8fYjSvrEYEsRW6cXaySAymu/vBbKd8FctXmANynq2NFRRnfQvM
+ MOnt5h21CVl51M3ex2UpkfwNXr8nIVabnB8w6CFJ92ViWscwWypuXCIJ4+NHu7Vxu7SOdHBhp
+ 0v82qITXH6SIFaNqh59zWNPc2ss=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, 2023-02-06 at 21:13 +0800, Jianmin Lv wrote:
-> > (1) Is the difference contributed by a bad code generation of GCC?=C2=
-=A0 If
-> > true, it's better to improve GCC before someone starts to build a distr=
-o
-> > for LA264 as it would benefit the user space as well.
-> >=20
-> AFAIK, GCC builds to produce unaligned-access-enabled target binary by
-> default (without -mstrict-align) for improving user space performance=20
-> (small size and runtime high performance), which is also based the fact=
-=20
-> that the vast majority of LoongArch CPUs support unaligned-access.
+Hi Al,
 
-I mean: if someone starts to build a distro for a less-capable LoongArch
-processor, (s)he will need an entire user space compiled with -mstrict-
-align.  So it would be better to start preparation now.
+On 1/31/23 21:06, Al Viro wrote:
+> parisc equivalent of 26178ec11ef3 "x86: mm: consolidate VM_FAULT_RETRY h=
+andling"
+> If e.g. get_user() triggers a page fault and a fatal signal is caught, w=
+e might
+> end up with handle_mm_fault() returning VM_FAULT_RETRY and not doing any=
+thing
+> to page tables.  In such case we must *not* return to the faulting insn =
+-
+> that would repeat the entire thing without making any progress; what we =
+need
+> instead is to treat that as failed (user) memory access.
+>
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+> ---
+>   arch/parisc/mm/fault.c | 5 ++++-
+>   1 file changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
+> index 869204e97ec9..bb30ff6a3e19 100644
+> --- a/arch/parisc/mm/fault.c
+> +++ b/arch/parisc/mm/fault.c
+> @@ -308,8 +308,11 @@ void do_page_fault(struct pt_regs *regs, unsigned l=
+ong code,
+>
+>   	fault =3D handle_mm_fault(vma, address, flags, regs);
+>
+> -	if (fault_signal_pending(fault, regs))
+> +	if (fault_signal_pending(fault, regs)) {
+> +		if (!user_mode(regs))
+> +			goto no_context;
+>   		return;
+> +	}
 
-And it's likely (s)he will either submit a GCC patch to make GCC
-enable/disable -mstrict-align based on the -march=3D (--with-arch at
-configure time) value, or hack GCC to enable -mstrict-align by default
-for the distro.  So I think we'll also need:
+The testcase in
+   https://lore.kernel.org/lkml/20170822102527.GA14671@leverpostej/
+   https://lore.kernel.org/linux-arch/20210121123140.GD48431@C02TD0UTHF1T.=
+local/
+does hang with and without above patch on parisc.
+It does not consume CPU in that state and can be killed with ^C.
 
-> +ifdef CONFIG_ARCH_STRICT_ALIGN may enable strict align by default.
->  # Don't emit unaligned accesses.
->  # Not all LoongArch cores support unaligned access, and as kernel we can=
-'t
->  # rely on others to provide emulation for these accesses.
->  KBUILD_CFLAGS +=3D $(call cc-option,-mstrict-align)
-  +else
-  +# Distros designed for running on both kind of processors may disable
-  +# strict align by default, but the user may want a no-strict-align=C2=A0
-  +# kernel for his/her specific hardware.
-   KBUILD_CFLAGS +=3D $(call cc-option,-mno-strict-align)
-> +endif
+Any idea?
 
---=20
-Xi Ruoyao <xry111@xry111.site>
-School of Aerospace Science and Technology, Xidian University
+Helge
