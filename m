@@ -2,144 +2,96 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C8BFAC6379F
-	for <linux-arch@archiver.kernel.org>; Mon,  6 Feb 2023 13:31:03 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 23488C05027
+	for <linux-arch@archiver.kernel.org>; Mon,  6 Feb 2023 13:31:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229614AbjBFNbC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 6 Feb 2023 08:31:02 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36332 "EHLO
+        id S229590AbjBFNbP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 6 Feb 2023 08:31:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36448 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229571AbjBFNa6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2023 08:30:58 -0500
-Received: from new4-smtp.messagingengine.com (new4-smtp.messagingengine.com [66.111.4.230])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 52120A5C5;
-        Mon,  6 Feb 2023 05:30:48 -0800 (PST)
-Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
-        by mailnew.nyi.internal (Postfix) with ESMTP id 47B8E581FCA;
-        Mon,  6 Feb 2023 08:20:27 -0500 (EST)
-Received: from imap51 ([10.202.2.101])
-  by compute6.internal (MEProxy); Mon, 06 Feb 2023 08:20:27 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-        :cc:content-type:date:date:from:from:in-reply-to:in-reply-to
-        :message-id:mime-version:references:reply-to:sender:subject
-        :subject:to:to; s=fm3; t=1675689627; x=1675696827; bh=YEEKxWvDaU
-        UtEFigpSanl+1o6NoqA2MTTLwchnDt7mc=; b=JJZuuSyMXi8+7dbMJeo+D5x90Q
-        QSbmGMLSv82Wox3Is7pYL6nhbEWJBfC0wbE6oSvPTHqWQlE4S2v1bVxYTpkKfNnK
-        y8m5HTeGnuwwsAD7ZZ/Q5cz/1UGExNYutXiIkce2Je9GS2BfYijaO1nPMpyEnLWr
-        e1MxJrchORh3tiGvi4noN95wywfSBXFN8OHGqnJ+ZaCd4RHMwutetH/6Sbd12cji
-        2SXSakWZMLrIogUEFOmJzEZa7IigmbvUSyaMF7rDnUNQDshLq7sV/QJTa+Bm/lbD
-        AYSybO0NjenKBsowbzxVsgQxpoJxGppz/CNhM9yfZz9cvm68/YozcNpmfl6A==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-        messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
-        :feedback-id:from:from:in-reply-to:in-reply-to:message-id
-        :mime-version:references:reply-to:sender:subject:subject:to:to
-        :x-me-proxy:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
-        fm3; t=1675689627; x=1675696827; bh=YEEKxWvDaUUtEFigpSanl+1o6Noq
-        A2MTTLwchnDt7mc=; b=KRQjthpW7gLPW560Bl7atCLRmIn2E7b44jydvggP3nts
-        V9EQyO1jI7xhj/PaB6Fw7rijYTBROEnM7JBkgAxTMlEK/nvofQ6gCC9o0toDI1mK
-        1e34kfAUyoBC8rCDYv4yKTzg3Rs83/ceaAksG7AaJcQ5CudvZhUJNzpFFGnNtFUs
-        oTmdC/2MFKSomfaBaN/1og55RxtXWQBUxpKWjd+g4OPFIO3Cy8cCm5T3mYnswIpa
-        +7jyNRgX0ExN4Wdu3h6A3lqGV4Hsikw4md/C7hMVJAALwT7aZZYlvy8sDNefeghT
-        P0bAjLowOlA3PmNDGQnzD87RWuAk2krAFZokgXES2Q==
-X-ME-Sender: <xms:mf7gY3foy0vdkEfg6nDAo-B7hqZwkLBctiTaAbFv7FRBT1mOsdtWCw>
-    <xme:mf7gY9MAV0AzwLHZ58z5Gsc5pDW1kC76uT6ALWEjNsFllcVehpPeP9y2OiWwGwrIL
-    B5dUScsbPfqBDdBtsc>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvhedrudegiedggeelucetufdoteggodetrfdotf
-    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
-    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhepofgfggfkjghffffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehr
-    nhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrth
-    htvghrnhepffehueegteeihfegtefhjefgtdeugfegjeelheejueethfefgeeghfektdek
-    teffnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprg
-    hrnhgusegrrhhnuggsrdguvg
-X-ME-Proxy: <xmx:mf7gYwhErUMLiE8ckBfrt1leyzv5fLxQUxR0yy-vfBSj3VPXrlrf_A>
-    <xmx:mf7gY4-TKGg2qSpA-Ql4Q76CcYHKsKWfJx2ltb6rViaRwX2xpB9wKA>
-    <xmx:mf7gYzsS8RMxI7v2oEYaAkRyWFamtuSzaJQEDtWi58FRx7SVZ_MvFA>
-    <xmx:m_7gY5vB_pxzNaeJp31Wk1pS-jfDAK-fntPE2o5v-Ht24Fv0S-HWQg>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-        id 35F87B60086; Mon,  6 Feb 2023 08:20:25 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.9.0-alpha0-108-ge995779fee-fm-20230203.001-ge995779f
-Mime-Version: 1.0
-Message-Id: <86c8ba70-2a2f-4c5b-8e74-20e3823e2db3@app.fastmail.com>
-In-Reply-To: <Y+D3F2pg7X4XFT4r@hirez.programming.kicks-ass.net>
-References: <20230202145030.223740842@infradead.org>
- <20230202152655.494373332@infradead.org>
- <24007667-1ff3-4c86-9c17-a361c3f9f072@app.fastmail.com>
- <Y+DjULnIxcPU/rtp@hirez.programming.kicks-ass.net>
- <Y+DvI7ai/wuovjER@hirez.programming.kicks-ass.net>
- <Y+D3F2pg7X4XFT4r@hirez.programming.kicks-ass.net>
-Date:   Mon, 06 Feb 2023 14:20:06 +0100
-From:   "Arnd Bergmann" <arnd@arndb.de>
-To:     "Peter Zijlstra" <peterz@infradead.org>
-Cc:     "Linus Torvalds" <torvalds@linux-foundation.org>,
-        "Jonathan Corbet" <corbet@lwn.net>,
-        "Will Deacon" <will@kernel.org>,
-        "Boqun Feng" <boqun.feng@gmail.com>,
-        "Mark Rutland" <mark.rutland@arm.com>,
-        "Catalin Marinas" <catalin.marinas@arm.com>, dennis@kernel.org,
-        "Tejun Heo" <tj@kernel.org>, "Christoph Lameter" <cl@linux.com>,
-        "Heiko Carstens" <hca@linux.ibm.com>, gor@linux.ibm.com,
-        "Alexander Gordeev" <agordeev@linux.ibm.com>,
-        borntraeger@linux.ibm.com, "Sven Schnelle" <svens@linux.ibm.com>,
-        "Thomas Gleixner" <tglx@linutronix.de>,
-        "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
-        "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
-        "H. Peter Anvin" <hpa@zytor.com>, "Joerg Roedel" <joro@8bytes.org>,
-        suravee.suthikulpanit@amd.com,
-        "Robin Murphy" <robin.murphy@arm.com>, dwmw2@infradead.org,
-        "Baolu Lu" <baolu.lu@linux.intel.com>,
-        "Herbert Xu" <herbert@gondor.apana.org.au>,
-        "David S . Miller" <davem@davemloft.net>,
-        "Pekka Enberg" <penberg@kernel.org>,
-        "David Rientjes" <rientjes@google.com>,
-        "Joonsoo Kim" <iamjoonsoo.kim@lge.com>,
-        "Andrew Morton" <akpm@linux-foundation.org>,
-        "Vlastimil Babka" <vbabka@suse.cz>,
-        "Roman Gushchin" <roman.gushchin@linux.dev>,
-        "Hyeonggon Yoo" <42.hyeyoo@gmail.com>, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        linux-s390@vger.kernel.org, iommu@lists.linux.dev,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        linux-crypto@vger.kernel.org
-Subject: Re: [PATCH v2 05/10] percpu: Wire up cmpxchg128
-Content-Type: text/plain
+        with ESMTP id S229571AbjBFNbF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Feb 2023 08:31:05 -0500
+X-Greylist: delayed 7930 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 06 Feb 2023 05:31:02 PST
+Received: from xry111.site (xry111.site [89.208.246.23])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 630E8C17B;
+        Mon,  6 Feb 2023 05:31:02 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xry111.site;
+        s=default; t=1675690262;
+        bh=BcNBytG8LpyrimbJYLehCH+h5QW9ST/22z207Ized/Y=;
+        h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
+        b=G/Bqfhy1zdS1uco+N2xY1SWkwHT7wFq3xB9lGtwxA0yLnLEipotKPEohs/i69CdTy
+         KuqD6gOcfKgwj8agrf2yo84irDWtJkrui48eYypecZWFCDrSW7v4xtLLULFNM6cPhj
+         O5RGNADqsH8g++daoimUkIyyWH+gvRw/xIZrGbek=
+Received: from localhost.localdomain (xry111.site [IPv6:2001:470:683e::1])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange ECDHE (P-256) server-signature ECDSA (P-384) server-digest SHA384)
+        (Client did not present a certificate)
+        (Authenticated sender: xry111@xry111.site)
+        by xry111.site (Postfix) with ESMTPSA id E102965EB0;
+        Mon,  6 Feb 2023 08:30:58 -0500 (EST)
+Message-ID: <74ffc2c05475c6af391b87a06df477ae390cc45c.camel@xry111.site>
+Subject: Re: [PATCH] LoongArch: Make -mstrict-align be configurable
+From:   Xi Ruoyao <xry111@xry111.site>
+To:     Jianmin Lv <lvjianmin@loongson.cn>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Huacai Chen <chenhuacai@kernel.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        linux-kernel@vger.kernel.org
+Date:   Mon, 06 Feb 2023 21:30:55 +0800
+In-Reply-To: <3b17d229-bad4-e6a0-9055-c585dd5a62e4@loongson.cn>
+References: <20230202084238.2408516-1-chenhuacai@loongson.cn>
+         <5fc85453-1e2c-1f00-7879-1b5fa318c78a@xen0n.name>
+         <5303aeda-5c66-ede6-b3ac-7d8ebd73ec70@loongson.cn>
+         <b1809500e4d55564a1084a3014fb9603ba3d1438.camel@xry111.site>
+         <3b17d229-bad4-e6a0-9055-c585dd5a62e4@loongson.cn>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.46.3 
+MIME-Version: 1.0
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 6, 2023, at 13:48, Peter Zijlstra wrote:
-> On Mon, Feb 06, 2023 at 01:14:28PM +0100, Peter Zijlstra wrote:
->> On Mon, Feb 06, 2023 at 12:24:00PM +0100, Peter Zijlstra wrote:
->> Basically, using 64bit percpu ops on 32bit is already somewhat dangerous
->> -- wiring up native cmpxchg64 support in that case seemed an
->> improvement.
->> 
->> Anyway... let me get on with doing explicit
->> {raw,this}_cpu_cmpxchg{64,128}() thingies.
->
-> I only converted x86 and didn't do the automagic downgrade...
->
-> Opinions?
+On Mon, 2023-02-06 at 21:13 +0800, Jianmin Lv wrote:
+> > (1) Is the difference contributed by a bad code generation of GCC?=C2=
+=A0 If
+> > true, it's better to improve GCC before someone starts to build a distr=
+o
+> > for LA264 as it would benefit the user space as well.
+> >=20
+> AFAIK, GCC builds to produce unaligned-access-enabled target binary by
+> default (without -mstrict-align) for improving user space performance=20
+> (small size and runtime high performance), which is also based the fact=
+=20
+> that the vast majority of LoongArch CPUs support unaligned-access.
 
-I think that's much better, it keeps the interface symmetric
-between cmpxchg and this_cpu_cmp_cmpxchg, and makes it harder
-to run into the subtle corner case on old x86 CPUs.
+I mean: if someone starts to build a distro for a less-capable LoongArch
+processor, (s)he will need an entire user space compiled with -mstrict-
+align.  So it would be better to start preparation now.
 
-For the M486/M586/MK8/MPSC/MATOM/MCORE2 configs, I would
-probably want to go with a compile-time check and have most
-distro kernels build with at least M586TSC for 32-bit or
-an upgraded CONFIG_GENERIC_CPU for x86_64 that assumes cmpxchg16b
-(nehalem, second-geneneration k8, silverthorne, ...) in
-order to turn system_has_cmpxchg* into a constant value on
-all architectures. That can be a separate discussion though
-and shouldn't block your series as you just keep the current
-state.
+And it's likely (s)he will either submit a GCC patch to make GCC
+enable/disable -mstrict-align based on the -march=3D (--with-arch at
+configure time) value, or hack GCC to enable -mstrict-align by default
+for the distro.  So I think we'll also need:
 
-> -#ifdef system_has_freelist_aba
-> +#ifdef syste_has_freelist_aba
+> +ifdef CONFIG_ARCH_STRICT_ALIGN may enable strict align by default.
+>  # Don't emit unaligned accesses.
+>  # Not all LoongArch cores support unaligned access, and as kernel we can=
+'t
+>  # rely on others to provide emulation for these accesses.
+>  KBUILD_CFLAGS +=3D $(call cc-option,-mstrict-align)
+  +else
+  +# Distros designed for running on both kind of processors may disable
+  +# strict align by default, but the user may want a no-strict-align=C2=A0
+  +# kernel for his/her specific hardware.
+   KBUILD_CFLAGS +=3D $(call cc-option,-mno-strict-align)
+> +endif
 
-Typo
-
-    Arnd
+--=20
+Xi Ruoyao <xry111@xry111.site>
+School of Aerospace Science and Technology, Xidian University
