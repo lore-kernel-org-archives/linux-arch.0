@@ -2,86 +2,108 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 83BEDC6379F
-	for <linux-arch@archiver.kernel.org>; Tue,  7 Feb 2023 16:12:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E8021C6379F
+	for <linux-arch@archiver.kernel.org>; Tue,  7 Feb 2023 17:51:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232136AbjBGQMY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 7 Feb 2023 11:12:24 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35184 "EHLO
+        id S232340AbjBGRv2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 7 Feb 2023 12:51:28 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53322 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232688AbjBGQMI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Feb 2023 11:12:08 -0500
-Received: from mail-qt1-f173.google.com (mail-qt1-f173.google.com [209.85.160.173])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B794E056;
-        Tue,  7 Feb 2023 08:11:55 -0800 (PST)
-Received: by mail-qt1-f173.google.com with SMTP id c2so17246490qtw.5;
-        Tue, 07 Feb 2023 08:11:55 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=IKpFmPELNxMbbdNEgrdFiGaCVQckx4xSvoILv5TiVp4=;
-        b=zUbLIzpwACjD4TI60pRcwCL0xg9USvn8eHQV371WhQdZhlZHWeo3WlShjLsF3tgud+
-         wqlouuAcEj34p/N65XAvWyhJ3KmXbU7B4A8sDgxORoHU2W7GEElG4IS1LHTJc+OG7E60
-         NTRSUt+ENcYpl60UjlkB9k8etiFUuuizxs6YgGn89IGlPRhAf7ZgWt3eMtnf7BeqO+zn
-         SdS9o+jrzb83yURgIk/LFymYM/KSKldkU8Aq+zkbxj+U+68WJ0tDw3/Osx7VdZ71Olfy
-         3b7ZFNBiOt6Vjj6NsePoByu/wxG9IUHXJkWv4YkpNjQev3RVhnQkzDpaG5stVWtDR5su
-         ZHMw==
-X-Gm-Message-State: AO0yUKWFvPh9HDhLtCqOy15jVHIhwY5LxAOYYvt/caNHiJp8F7WqQPCN
-        QfwDnYoT1RsZinqmDDTZ8FkegYFz49MDiQ==
-X-Google-Smtp-Source: AK7set8aKxLwZwlyl1iNj3yvD+11ovSLP8b1YJ8Dz8j785mko9MntkgmA+ZkfFrSwJrZz9vBkXhfGg==
-X-Received: by 2002:a05:622a:1804:b0:3b1:4a8:4665 with SMTP id t4-20020a05622a180400b003b104a84665mr6093586qtc.62.1675786314242;
-        Tue, 07 Feb 2023 08:11:54 -0800 (PST)
-Received: from mail-yw1-f169.google.com (mail-yw1-f169.google.com. [209.85.128.169])
-        by smtp.gmail.com with ESMTPSA id bi15-20020a05620a318f00b006e99290e83fsm9721333qkb.107.2023.02.07.08.11.53
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 07 Feb 2023 08:11:53 -0800 (PST)
-Received: by mail-yw1-f169.google.com with SMTP id 00721157ae682-4b718cab0e4so201604057b3.9;
-        Tue, 07 Feb 2023 08:11:53 -0800 (PST)
-X-Received: by 2002:a0d:f444:0:b0:526:78ad:bb15 with SMTP id
- d65-20020a0df444000000b0052678adbb15mr382260ywf.47.1675786312866; Tue, 07 Feb
- 2023 08:11:52 -0800 (PST)
+        with ESMTP id S232356AbjBGRvX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 7 Feb 2023 12:51:23 -0500
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id B73533E0B6;
+        Tue,  7 Feb 2023 09:51:12 -0800 (PST)
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 8343D1042;
+        Tue,  7 Feb 2023 09:51:54 -0800 (PST)
+Received: from [10.1.196.177] (eglon.cambridge.arm.com [10.1.196.177])
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 4574E3F71E;
+        Tue,  7 Feb 2023 09:51:08 -0800 (PST)
+Message-ID: <0621bf8e-06f2-70f2-6d2b-f311c5a4ffce@arm.com>
+Date:   Tue, 7 Feb 2023 17:50:59 +0000
 MIME-Version: 1.0
-References: <Y9lz6yk113LmC9SI@ZenIV> <Y9l02DvS6CYThTEG@ZenIV>
-In-Reply-To: <Y9l02DvS6CYThTEG@ZenIV>
-From:   Geert Uytterhoeven <geert@linux-m68k.org>
-Date:   Tue, 7 Feb 2023 17:11:40 +0100
-X-Gmail-Original-Message-ID: <CAMuHMdVQusKr_W4dnQzVSWbav7vooCHbiyOQHbnraJCL16bsDQ@mail.gmail.com>
-Message-ID: <CAMuHMdVQusKr_W4dnQzVSWbav7vooCHbiyOQHbnraJCL16bsDQ@mail.gmail.com>
-Subject: Re: [PATCH 09/10] riscv: fix livelock in uaccess
-To:     Al Viro <viro@zeniv.linux.org.uk>
-Cc:     linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-hexagon@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, Michal Simek <monstr@monstr.eu>,
-        Dinh Nguyen <dinguyen@kernel.org>,
-        openrisc@lists.librecores.org, linux-parisc@vger.kernel.org,
-        linux-riscv@lists.infradead.org, sparclinux@vger.kernel.org,
-        Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset="UTF-8"
+User-Agent: Mozilla/5.0 (X11; Linux aarch64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.0
+Subject: Re: [RFC PATCH 29/32] KVM: arm64: Pass hypercalls to userspace
+Content-Language: en-GB
+To:     Oliver Upton <oliver.upton@linux.dev>
+Cc:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
+        kvmarm@lists.linux.dev, kvm@vger.kernel.org,
+        linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, x86@kernel.org,
+        Marc Zyngier <maz@kernel.org>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Lorenzo Pieralisi <lpieralisi@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Sudeep Holla <sudeep.holla@arm.com>,
+        Borislav Petkov <bp@alien8.de>, H Peter Anvin <hpa@zytor.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        Suzuki K Poulose <suzuki.poulose@arm.com>,
+        Len Brown <lenb@kernel.org>,
+        Rafael Wysocki <rafael@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Salil Mehta <salil.mehta@huawei.com>,
+        Russell King <linux@armlinux.org.uk>,
+        Jean-Philippe Brucker <jean-philippe@linaro.org>
+References: <20230203135043.409192-1-james.morse@arm.com>
+ <20230203135043.409192-30-james.morse@arm.com> <Y913sIqWxmf4O5oG@google.com>
+From:   James Morse <james.morse@arm.com>
+In-Reply-To: <Y913sIqWxmf4O5oG@google.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Jan 31, 2023 at 9:07 PM Al Viro <viro@zeniv.linux.org.uk> wrote:
-> riscv equivalent of 26178ec11ef3 "x86: mm: consolidate VM_FAULT_RETRY handling"
-> If e.g. get_user() triggers a page fault and a fatal signal is caught, we might
-> end up with handle_mm_fault() returning VM_FAULT_RETRY and not doing anything
-> to page tables.  In such case we must *not* return to the faulting insn -
-> that would repeat the entire thing without making any progress; what we need
-> instead is to treat that as failed (user) memory access.
->
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Hi Oliver,
 
-Tested-by: Geert Uytterhoeven <geert+renesas@glider.be>
+On 03/02/2023 21:08, Oliver Upton wrote:
+> On Fri, Feb 03, 2023 at 01:50:40PM +0000, James Morse wrote:
+>> From: Jean-Philippe Brucker <jean-philippe@linaro.org>
+>>
+>> When capability KVM_CAP_ARM_HVC_TO_USER is available, userspace can
+>> request to handle all hypercalls that aren't handled by KVM.
 
-Gr{oetje,eeting}s,
+> I would very much prefer we not go down this route. This capability
+> effectively constructs an ABI out of what KVM presently does not
+> implement. What would happen if KVM decides to implement a new set
+> of hypercalls later down the road that were previously forwarded to
+> userspace?
 
-                        Geert
+The user-space support would never get called. If we have a wild-west allocation of IDs in
+this area we have bigger problems. I'd hope in this example it would be a VMM or an
+in-kernel implementation of the same feature.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+When I floated something like this before for supporting SDEI in guests, Christoffer
+didn't like tie-ing KVM to SMC-CC - hence the all or nothing.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Since then we've had things like Spectre, which I don't think the VMM should
+ever be allowed to handle, which makes the whole thing much murkier.
+
+
+> Instead of a catch-all I think we should take the approach of having
+> userspace explicitly request which hypercalls should be forwarded to
+> userspace. I proposed something similar [1], but never got around to
+> respinning it (oops).
+
+> Let me dust those patches off and align with Marc's suggestions.
+> 
+> [1]: https://lore.kernel.org/kvmarm/20221110015327.3389351-1-oliver.upton@linux.dev/
+
+I've no problem with doing it like this. This approach was based on Christoffer's previous
+feedback, but the world has changed since then.
+
+Let me know if you want me to re-spin that series - I need to get this into some
+shape next week for Salil to look at the Qemu changes, as I can't test the whole thing
+until that is done.
+
+
+
+Thanks,
+
+James
