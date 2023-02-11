@@ -2,36 +2,36 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 17241C636CC
-	for <linux-arch@archiver.kernel.org>; Sat, 11 Feb 2023 03:40:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8842FC636D4
+	for <linux-arch@archiver.kernel.org>; Sat, 11 Feb 2023 03:40:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229498AbjBKDkE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 10 Feb 2023 22:40:04 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50800 "EHLO
+        id S229460AbjBKDkI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 10 Feb 2023 22:40:08 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50834 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229460AbjBKDkD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2023 22:40:03 -0500
+        with ESMTP id S229580AbjBKDkG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2023 22:40:06 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C607D37555
-        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2023 19:40:02 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CBE633A085
+        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2023 19:40:05 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=aaXlbA2/BvRg6HHDAadnVZCwlkGxkg/4CEs3FrmdfUo=; b=WG+cCCwQUC/ZjIWR94a19/LBWU
-        lVGQ77hW0CWVTgjmxOD1LgDbemxdMo08QnirJDUmnVuyhvwWRkEM/syoO2RC6FQNRLMnghc1djwhM
-        rGHuc2XWxNjniFmcnC46So5vf5OEvRgFUfMsCWJOCiXP2T9+nSwg4lzGofnlY7KO9Uyk014+AfvZm
-        S/ryGW9ZnnIXXfIjqPC780Hz7uihlK9Fgyholr+fIj2ZFurhPmdccXibd3knmsPYfcy277UqvBrFo
-        /teaeBbhh1O/UpeW9R2vrL+Gd9WR5k/yNxJ2mA61TYWpOCNT2NfQrkpzXy46rRhv+jl65BXKqN6oC
-        r6OWn31w==;
+        bh=vX1YJXK+PcXOZWsWZ/UEYBTWr9HbSfOYWjKMlt98xdk=; b=Z1nfjIAwRo3cDyujGAD4AJQjA0
+        Yv90BtvR90Xy4tXm+pzXiH3CDMzSJFZ93Xh23khrcEMXVLWZ9Rs7rnRXZwDmlNtiazi63Pkj0Z2tc
+        jvXkfClpimFXCFQI3I8Jbstb+Cj2qSwIKySH8+oqwvdUP6Mam86IFiHrrcviTHj6dagmWJuVIylxy
+        JWo33myUaSf+M0Sm/jcR4c9d4iXJB1lkPZH8VU+aVmXGS3OebKaGjhL4YRugg95XtQoA1gIL+oOl9
+        vDkK4vEReaMgXlzqeo4x20QEb+ehq0xiD+LioJkuoJ9Jfooe5l8PIBjsBjvxfaSScJX4NsOHpu4HF
+        SV9zLBSg==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pQgjv-003k2k-9Y; Sat, 11 Feb 2023 03:39:51 +0000
+        id 1pQgjv-003k2o-Et; Sat, 11 Feb 2023 03:39:51 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 3/7] mm: Add folio_flush_mapping()
-Date:   Sat, 11 Feb 2023 03:39:44 +0000
-Message-Id: <20230211033948.891959-4-willy@infradead.org>
+Subject: [PATCH 5/7] alpha: Implement the new page table range API
+Date:   Sat, 11 Feb 2023 03:39:46 +0000
+Message-Id: <20230211033948.891959-6-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230211033948.891959-1-willy@infradead.org>
 References: <20230211033948.891959-1-willy@infradead.org>
@@ -41,61 +41,71 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is the folio equivalent of page_mapping_file(), but rename it
-to make it clear that it's very different from page_file_mapping().
-Theoretically, there's nothing flush-only about it, but there are no
-other users today, and I doubt there will be; it's almost always more
-useful to know the swapfile's mapping or the swapcache's mapping.
+Add set_ptes(), update_mmu_cache_range() and flush_icache_pages().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- include/linux/pagemap.h | 26 +++++++++++++++++++++-----
- 1 file changed, 21 insertions(+), 5 deletions(-)
+ arch/alpha/include/asm/cacheflush.h | 10 ++++++++++
+ arch/alpha/include/asm/pgtable.h    | 18 +++++++++++++++++-
+ 2 files changed, 27 insertions(+), 1 deletion(-)
 
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 51b75b89730e..647c5a036a97 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -369,6 +369,26 @@ static inline struct address_space *folio_file_mapping(struct folio *folio)
- 	return folio->mapping;
- }
+diff --git a/arch/alpha/include/asm/cacheflush.h b/arch/alpha/include/asm/cacheflush.h
+index 9945ff483eaf..3956460e69e2 100644
+--- a/arch/alpha/include/asm/cacheflush.h
++++ b/arch/alpha/include/asm/cacheflush.h
+@@ -57,6 +57,16 @@ extern void flush_icache_user_page(struct vm_area_struct *vma,
+ #define flush_icache_page(vma, page) \
+ 	flush_icache_user_page((vma), (page), 0, 0)
  
-+/**
-+ * folio_flush_mapping - Find the file mapping this folio belongs to.
-+ * @folio: The folio.
-+ *
-+ * For folios which are in the page cache, return the mapping that this
-+ * page belongs to.  Anonymous folios return NULL, even if they're in
-+ * the swap cache.  Other kinds of folio also return NULL.
-+ *
-+ * This is ONLY used by architecture cache flushing code.  If you aren't
-+ * writing cache flushing code, you want either folio_mapping() or
-+ * folio_file_mapping().
++/*
++ * Both implementations of flush_icache_user_page flush the entire
++ * address space, so one call, no matter how many pages.
 + */
-+static inline struct address_space *folio_flush_mapping(struct folio *folio)
++static inline void flush_icache_pages(struct vm_area_struct *vma,
++		struct page *page, unsigned int nr)
 +{
-+	if (unlikely(folio_test_swapcache(folio)))
-+		return swapcache_mapping(folio);
-+
-+	return folio->mapping;
++	flush_icache_user_page(vma, page, 0, 0);
 +}
 +
- static inline struct address_space *page_file_mapping(struct page *page)
- {
- 	return folio_file_mapping(page_folio(page));
-@@ -379,11 +399,7 @@ static inline struct address_space *page_file_mapping(struct page *page)
+ #include <asm-generic/cacheflush.h>
+ 
+ #endif /* _ALPHA_CACHEFLUSH_H */
+diff --git a/arch/alpha/include/asm/pgtable.h b/arch/alpha/include/asm/pgtable.h
+index ba43cb841d19..1e3354e9731b 100644
+--- a/arch/alpha/include/asm/pgtable.h
++++ b/arch/alpha/include/asm/pgtable.h
+@@ -26,7 +26,18 @@ struct vm_area_struct;
+  * hook is made available.
   */
- static inline struct address_space *page_mapping_file(struct page *page)
+ #define set_pte(pteptr, pteval) ((*(pteptr)) = (pteval))
+-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
++static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++		pte_t *ptep, pte_t pte, unsigned int nr)
++{
++	for (;;) {
++		set_pte(ptep, pte);
++		if (--nr == 0)
++			break;
++		ptep++;
++		pte_val(pte) += 1UL << 32;
++	}
++}
++#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
+ 
+ /* PMD_SHIFT determines the size of the area a second-level page table can map */
+ #define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3))
+@@ -303,6 +314,11 @@ extern inline void update_mmu_cache(struct vm_area_struct * vma,
  {
--	struct folio *folio = page_folio(page);
--
--	if (unlikely(folio_test_swapcache(folio)))
--		return NULL;
--	return folio_mapping(folio);
-+	return folio_flush_mapping(page_folio(page));
  }
  
- /**
++static inline void update_mmu_cache_range(struct vm_area_struct *vma,
++		unsigned long address, pte_t *ptep, unsigned int nr)
++{
++}
++
+ /*
+  * Encode/decode swap entries and swap PTEs. Swap PTEs are all PTEs that
+  * are !pte_none() && !pte_present().
 -- 
 2.39.1
 
