@@ -2,88 +2,75 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 51CBBC636D4
-	for <linux-arch@archiver.kernel.org>; Sat, 11 Feb 2023 03:40:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A445C636CC
+	for <linux-arch@archiver.kernel.org>; Sat, 11 Feb 2023 03:40:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229523AbjBKDkO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 10 Feb 2023 22:40:14 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50866 "EHLO
+        id S229576AbjBKDkP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 10 Feb 2023 22:40:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50872 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229580AbjBKDkL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2023 22:40:11 -0500
+        with ESMTP id S229642AbjBKDkM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2023 22:40:12 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D684B33452
-        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2023 19:40:08 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E97C73A082
+        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2023 19:40:11 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=dOGEtFuO96QcrcSdnYLDuLmKoSiMmwf8gSJprJSMjcI=; b=NlvNZfLzTeOAjqXaAHAOalOpg9
-        xPTswcHeY74qfz8i/Kp4jrtO20fu4ihQTkGos9V5Ugs8xp4BhPhqDY5BHEl5pHfjYGpcW+08YoLNv
-        8VQIM8bxixkBsollEQDOQAEPpRQoUkd90r7cBcXBM5FnBjfP0okzca8B83sLrIwXduU5PNAtO9O2T
-        8ndc1WmpGQVp5tJlkdP4BgXc6vp+MTj6d28eZHqnvCbLFXA1THxsh9mvvHz2vHZGAC24Wzb27lsew
-        z0PWLzLwmn0qSBnyvzvar6bxMMYgv+ZDR6AK4nP++1QrFxr3I8+ZQIkY5JZxBQws5nsHTCbxD7jha
-        WFuYOvOw==;
+        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
+        Content-Description:In-Reply-To:References;
+        bh=mGYnr+7F9YHS2rwmrBeTiiimw0fOz+T+mMJTaVQmdVY=; b=cwh9ReR5ImYsLhKU5tYL3oUTxH
+        LtmtzoMAWJduyc8a4N1RMjhKaG1rF01iX8sBv372DO0gNtPwyCfnDffHw1Z5ptJANAnzVx//4NRxb
+        IfdTd+QydQxTLFSgFENv/3qz1Ufn5vBdK+hmShglFsE8DKFq+rsxvHJA6ELgGk62+ajiwR4SlbdsV
+        gelc238/EWRvBDKu7NPlQbNrBZhuiOQ472jujEGOIJvpKgMFeuBnOI14QZh1LEGh8jHE8mrqcc643
+        A2A5KWSXNlU55Rm+oZAbs1kOYnBgntZ0b8nviiVGlI6exRBGDe4Mdl38bWIzdbqf1SgMYSbeDKhkG
+        mlRHKISg==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pQgjv-003k2m-C9; Sat, 11 Feb 2023 03:39:51 +0000
+        id 1pQgjv-003k2e-1V; Sat, 11 Feb 2023 03:39:51 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 4/7] mm: Remove ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO
-Date:   Sat, 11 Feb 2023 03:39:45 +0000
-Message-Id: <20230211033948.891959-5-willy@infradead.org>
+Subject: [PATCH 0/7] New arch interfaces for manipulating multiple pages
+Date:   Sat, 11 Feb 2023 03:39:41 +0000
+Message-Id: <20230211033948.891959-1-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
-In-Reply-To: <20230211033948.891959-1-willy@infradead.org>
-References: <20230211033948.891959-1-willy@infradead.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Current best practice is to reuse the name of the function as a define
-to indicate that the function is implemented by the architecture.
+Here's my latest draft of a new set of page table manipulation APIs.  I've
+only done alpha, arc and x86 (other than x86, I'm going alphabetically).
+Before I go much further, some feedback might be a good idea.  Or if
+someone wants to volunteer to do their architecture ;-)
 
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
----
- include/linux/cacheflush.h | 4 ++--
- mm/util.c                  | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+Matthew Wilcox (Oracle) (7):
+  mm: Convert page_table_check_pte_set() to page_table_check_ptes_set()
+  mm: Add generic flush_icache_pages() and documentation
+  mm: Add folio_flush_mapping()
+  mm: Remove ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO
+  alpha: Implement the new page table range API
+  arc: Implement the new page table range API
+  x86: Implement the new page table range API
 
-diff --git a/include/linux/cacheflush.h b/include/linux/cacheflush.h
-index a6189d21f2ba..82136f3fcf54 100644
---- a/include/linux/cacheflush.h
-+++ b/include/linux/cacheflush.h
-@@ -7,14 +7,14 @@
- struct folio;
- 
- #if ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE
--#ifndef ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO
-+#ifndef flush_dcache_folio
- void flush_dcache_folio(struct folio *folio);
- #endif
- #else
- static inline void flush_dcache_folio(struct folio *folio)
- {
- }
--#define ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO 0
-+#define flush_dcache_folio flush_dcache_folio
- #endif /* ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE */
- 
- #endif /* _LINUX_CACHEFLUSH_H */
-diff --git a/mm/util.c b/mm/util.c
-index cec9327b27b4..39ea7af8171c 100644
---- a/mm/util.c
-+++ b/mm/util.c
-@@ -1124,7 +1124,7 @@ void page_offline_end(void)
- }
- EXPORT_SYMBOL(page_offline_end);
- 
--#ifndef ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO
-+#ifndef flush_dcache_folio
- void flush_dcache_folio(struct folio *folio)
- {
- 	long i, nr = folio_nr_pages(folio);
+ Documentation/core-api/cachetlb.rst       | 35 ++++++-------
+ arch/alpha/include/asm/cacheflush.h       | 10 ++++
+ arch/alpha/include/asm/pgtable.h          | 18 ++++++-
+ arch/arc/include/asm/cacheflush.h         |  7 ++-
+ arch/arc/include/asm/pgtable-bits-arcv2.h | 20 ++++++--
+ arch/arc/mm/cache.c                       | 61 ++++++++++++++---------
+ arch/arc/mm/tlb.c                         | 18 ++++---
+ arch/arm64/include/asm/pgtable.h          |  2 +-
+ arch/riscv/include/asm/pgtable.h          |  2 +-
+ arch/x86/include/asm/pgtable.h            | 21 ++++++--
+ include/asm-generic/cacheflush.h          |  5 ++
+ include/linux/cacheflush.h                |  4 +-
+ include/linux/page_table_check.h          | 14 +++---
+ include/linux/pagemap.h                   | 26 ++++++++--
+ mm/page_table_check.c                     | 14 +++---
+ mm/util.c                                 |  2 +-
+ 16 files changed, 176 insertions(+), 83 deletions(-)
+
 -- 
 2.39.1
 
