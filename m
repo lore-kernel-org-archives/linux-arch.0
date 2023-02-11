@@ -2,75 +2,95 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A445C636CC
-	for <linux-arch@archiver.kernel.org>; Sat, 11 Feb 2023 03:40:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DC781C636D4
+	for <linux-arch@archiver.kernel.org>; Sat, 11 Feb 2023 03:40:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229576AbjBKDkP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 10 Feb 2023 22:40:15 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50872 "EHLO
+        id S229454AbjBKDkS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 10 Feb 2023 22:40:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50894 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229642AbjBKDkM (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2023 22:40:12 -0500
+        with ESMTP id S229646AbjBKDkQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2023 22:40:16 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E97C73A082
-        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2023 19:40:11 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 124D533452
+        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2023 19:40:15 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=mGYnr+7F9YHS2rwmrBeTiiimw0fOz+T+mMJTaVQmdVY=; b=cwh9ReR5ImYsLhKU5tYL3oUTxH
-        LtmtzoMAWJduyc8a4N1RMjhKaG1rF01iX8sBv372DO0gNtPwyCfnDffHw1Z5ptJANAnzVx//4NRxb
-        IfdTd+QydQxTLFSgFENv/3qz1Ufn5vBdK+hmShglFsE8DKFq+rsxvHJA6ELgGk62+ajiwR4SlbdsV
-        gelc238/EWRvBDKu7NPlQbNrBZhuiOQ472jujEGOIJvpKgMFeuBnOI14QZh1LEGh8jHE8mrqcc643
-        A2A5KWSXNlU55Rm+oZAbs1kOYnBgntZ0b8nviiVGlI6exRBGDe4Mdl38bWIzdbqf1SgMYSbeDKhkG
-        mlRHKISg==;
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=zTqNedUUD33pi+rIerI27ysOb8vsfwAvAS9c6mk3R14=; b=BR9p7odgz9gHarPmxgkLK3jSj7
+        eFkcUltTkdzxAb8fOSxNXZZrCFvVrGi/XbEuIRhfQ0aYsrfz7ABwHiFn/WS9exEgWNXMiybNKnL2S
+        HghW8Y1glDDZs9bEPjzJSUSW8IDFITn6PIspdKTIQiU8V4JFbKO0rIkzxSbTIkpdYtwODjGclkQEu
+        amzAhlgNOuvrp3nMx2O+r++nyERMmvRR52S9YGoRpPtIDexKp2lt+neagI+S42J0hNK41mE5nS+yz
+        eiq387rpVX6OKZNAlyNTnBK1f6tTH09ZGRJWXZ9UYt9MnNTXdybd9JcDQ4Me26dTEaGm0+RV8gjKF
+        oDDj1qjw==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pQgjv-003k2e-1V; Sat, 11 Feb 2023 03:39:51 +0000
+        id 1pQgjv-003k2s-K2; Sat, 11 Feb 2023 03:39:51 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 0/7] New arch interfaces for manipulating multiple pages
-Date:   Sat, 11 Feb 2023 03:39:41 +0000
-Message-Id: <20230211033948.891959-1-willy@infradead.org>
+Subject: [PATCH 7/7] x86: Implement the new page table range API
+Date:   Sat, 11 Feb 2023 03:39:48 +0000
+Message-Id: <20230211033948.891959-8-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20230211033948.891959-1-willy@infradead.org>
+References: <20230211033948.891959-1-willy@infradead.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Here's my latest draft of a new set of page table manipulation APIs.  I've
-only done alpha, arc and x86 (other than x86, I'm going alphabetically).
-Before I go much further, some feedback might be a good idea.  Or if
-someone wants to volunteer to do their architecture ;-)
+Convert set_pte_at() into set_ptes() and add a noop
+update_mmu_cache_range().
 
-Matthew Wilcox (Oracle) (7):
-  mm: Convert page_table_check_pte_set() to page_table_check_ptes_set()
-  mm: Add generic flush_icache_pages() and documentation
-  mm: Add folio_flush_mapping()
-  mm: Remove ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO
-  alpha: Implement the new page table range API
-  arc: Implement the new page table range API
-  x86: Implement the new page table range API
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ arch/x86/include/asm/pgtable.h | 21 +++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
 
- Documentation/core-api/cachetlb.rst       | 35 ++++++-------
- arch/alpha/include/asm/cacheflush.h       | 10 ++++
- arch/alpha/include/asm/pgtable.h          | 18 ++++++-
- arch/arc/include/asm/cacheflush.h         |  7 ++-
- arch/arc/include/asm/pgtable-bits-arcv2.h | 20 ++++++--
- arch/arc/mm/cache.c                       | 61 ++++++++++++++---------
- arch/arc/mm/tlb.c                         | 18 ++++---
- arch/arm64/include/asm/pgtable.h          |  2 +-
- arch/riscv/include/asm/pgtable.h          |  2 +-
- arch/x86/include/asm/pgtable.h            | 21 ++++++--
- include/asm-generic/cacheflush.h          |  5 ++
- include/linux/cacheflush.h                |  4 +-
- include/linux/page_table_check.h          | 14 +++---
- include/linux/pagemap.h                   | 26 ++++++++--
- mm/page_table_check.c                     | 14 +++---
- mm/util.c                                 |  2 +-
- 16 files changed, 176 insertions(+), 83 deletions(-)
-
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 84be3e07b112..f424371ea143 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1019,13 +1019,22 @@ static inline pud_t native_local_pudp_get_and_clear(pud_t *pudp)
+ 	return res;
+ }
+ 
+-static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+-			      pte_t *ptep, pte_t pte)
++static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++			      pte_t *ptep, pte_t pte, unsigned int nr)
+ {
+-	page_table_check_ptes_set(mm, addr, ptep, pte, 1);
+-	set_pte(ptep, pte);
++	page_table_check_ptes_set(mm, addr, ptep, pte, nr);
++
++	for (;;) {
++		set_pte(ptep, pte);
++		if (--nr == 0)
++			break;
++		ptep++;
++		pte = __pte(pte_val(pte) + PAGE_SIZE);
++	}
+ }
+ 
++#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
++
+ static inline void set_pmd_at(struct mm_struct *mm, unsigned long addr,
+ 			      pmd_t *pmdp, pmd_t pmd)
+ {
+@@ -1291,6 +1300,10 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
+ 		unsigned long addr, pte_t *ptep)
+ {
+ }
++static inline void update_mmu_cache_range(struct vm_area_struct *vma,
++		unsigned long addr, pte_t *ptep, unsigned int nr)
++{
++}
+ static inline void update_mmu_cache_pmd(struct vm_area_struct *vma,
+ 		unsigned long addr, pmd_t *pmd)
+ {
 -- 
 2.39.1
 
