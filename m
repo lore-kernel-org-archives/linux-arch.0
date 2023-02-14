@@ -2,69 +2,150 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4C1A7C05027
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Feb 2023 14:22:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A7271C05027
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Feb 2023 15:19:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233311AbjBNOW2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Feb 2023 09:22:28 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44180 "EHLO
+        id S232602AbjBNPT3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Feb 2023 10:19:29 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38902 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233408AbjBNOWS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Feb 2023 09:22:18 -0500
-Received: from verein.lst.de (verein.lst.de [213.95.11.211])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DACCC2B09E;
-        Tue, 14 Feb 2023 06:21:49 -0800 (PST)
-Received: by verein.lst.de (Postfix, from userid 2407)
-        id 1C13A68BFE; Tue, 14 Feb 2023 15:11:43 +0100 (CET)
-Date:   Tue, 14 Feb 2023 15:11:42 +0100
-From:   Christoph Hellwig <hch@lst.de>
-To:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc:     linux-kernel@vger.kernel.org,
-        Richard Henderson <richard.henderson@linaro.org>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        "David S. Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        "H. Peter Anvin" <hpa@zytor.com>, Christoph Hellwig <hch@lst.de>,
-        Marek Szyprowski <m.szyprowski@samsung.com>,
-        Robin Murphy <robin.murphy@arm.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>,
-        linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        sparclinux@vger.kernel.org, iommu@lists.linux.dev,
-        linux-arch@vger.kernel.org
-Subject: Re: [PATCH] dma-mapping: no need to pass a bus_type into
- get_arch_dma_ops()
-Message-ID: <20230214141142.GA14060@lst.de>
-References: <20230214140121.131859-1-gregkh@linuxfoundation.org>
+        with ESMTP id S230172AbjBNPT3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Feb 2023 10:19:29 -0500
+Received: from mga09.intel.com (mga09.intel.com [134.134.136.24])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4BEB826CEC
+        for <linux-arch@vger.kernel.org>; Tue, 14 Feb 2023 07:19:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1676387968; x=1707923968;
+  h=date:from:to:cc:subject:message-id:mime-version:
+   content-transfer-encoding;
+  bh=XKqfAQMI3x5kNfjXMY/btUxpzoRLHFs7pum4DrUXbyY=;
+  b=YKT7jnFMhElabCpq4tLs08sZX/dQ2xo3LKkbRb0uOqrNUguOohtwxeL/
+   xdt+3xXfOygy8MCeMJTvacyMpMCwEojOUh1/BjijuPGJhBUls2pyW/x93
+   BzRBC37cyMpYXwehYmutCY+TvB5xCBWz4cZ70dqKCccTVjuOKU78U9ypP
+   4pfk2LCdVozBJxbxRY2b9DfPfsfRHn4aJVKNrQxLfRWi+NDlIyP+u3chx
+   +xhKJMoLwk/UnIUqqEwmF1ZAZXlzXFZBJ7J/f3O3fSEuA2swmBZBJAURd
+   VG4zMqLi8TQsGiXvEuG+TM/LI8ok8Lnyvi/LvAb06DLoh2cu3wQ+3gOZ1
+   g==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10621"; a="332494107"
+X-IronPort-AV: E=Sophos;i="5.97,296,1669104000"; 
+   d="scan'208";a="332494107"
+Received: from fmsmga002.fm.intel.com ([10.253.24.26])
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Feb 2023 07:19:15 -0800
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6500,9779,10621"; a="778374220"
+X-IronPort-AV: E=Sophos;i="5.97,296,1669104000"; 
+   d="scan'208";a="778374220"
+Received: from lkp-server01.sh.intel.com (HELO 4455601a8d94) ([10.239.97.150])
+  by fmsmga002.fm.intel.com with ESMTP; 14 Feb 2023 07:19:14 -0800
+Received: from kbuild by 4455601a8d94 with local (Exim 4.96)
+        (envelope-from <lkp@intel.com>)
+        id 1pRx5N-0008af-0B;
+        Tue, 14 Feb 2023 15:19:13 +0000
+Date:   Tue, 14 Feb 2023 23:18:44 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arch@vger.kernel.org
+Subject: [arnd-asm-generic:asm-generic] BUILD SUCCESS
+ a13408c205260716e925a734ef399899d69182ba
+Message-ID: <63eba654.aRIbFyeSBVXu13g1%lkp@intel.com>
+User-Agent: Heirloom mailx 12.5 6/20/10
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230214140121.131859-1-gregkh@linuxfoundation.org>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Feb 14, 2023 at 03:01:21PM +0100, Greg Kroah-Hartman wrote:
-> The get_arch_dma_ops() arch-specific function never does anything with
-> the struct bus_type that is passed into it, so remove it entirely as it
-> is not needed.
+tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
+branch HEAD: a13408c205260716e925a734ef399899d69182ba  char/agp: introduce asm-generic/agp.h
 
-Yes.  (and eventually get_arch_dma_ops should go away entirely, but that's
-a separate story).
+elapsed time: 1083m
 
-> Note: Unless someone objects, I would like to take this through the
-> driver-core tree, as further bus_type cleanups depend on it, and it's
-> stand-alone from everyone else's tree at the moment from what I can
-> determine.
+configs tested: 73
+configs skipped: 3
 
-Please do!
+The following configs have been built successfully.
+More configs may be tested in the coming days.
 
-Acked-by: Christoph Hellwig <hch@lst.de>
+gcc tested configs:
+alpha                            allyesconfig
+alpha                               defconfig
+arc                               allnoconfig
+arc                              allyesconfig
+arc                                 defconfig
+arm                              allmodconfig
+arm                              allyesconfig
+arm                           corgi_defconfig
+arm                                 defconfig
+arm                        oxnas_v6_defconfig
+arm                            qcom_defconfig
+arm64                            allyesconfig
+arm64                               defconfig
+csky                                defconfig
+i386                             allyesconfig
+i386                              debian-10.3
+i386                                defconfig
+i386                          randconfig-c001
+ia64                             allmodconfig
+ia64                                defconfig
+loongarch                        allmodconfig
+loongarch                         allnoconfig
+loongarch                           defconfig
+m68k                             allmodconfig
+m68k                                defconfig
+mips                             allmodconfig
+mips                             allyesconfig
+mips                 randconfig-c004-20230212
+nios2                               defconfig
+parisc                              defconfig
+parisc64                            defconfig
+powerpc                          allmodconfig
+powerpc                           allnoconfig
+riscv                            allmodconfig
+riscv                             allnoconfig
+riscv                               defconfig
+riscv                          rv32_defconfig
+s390                             allmodconfig
+s390                             allyesconfig
+s390                                defconfig
+sh                               allmodconfig
+sh                             espt_defconfig
+sh                     sh7710voipgw_defconfig
+sparc                               defconfig
+um                             i386_defconfig
+um                           x86_64_defconfig
+x86_64                            allnoconfig
+x86_64                           allyesconfig
+x86_64                              defconfig
+x86_64                                  kexec
+x86_64                               rhel-8.3
+x86_64                           rhel-8.3-bpf
+x86_64                         rhel-8.3-kunit
+x86_64                           rhel-8.3-kvm
+x86_64                           rhel-8.3-syz
+
+clang tested configs:
+arm                  colibri_pxa300_defconfig
+arm                           spitz_defconfig
+i386                 randconfig-a001-20230213
+i386                 randconfig-a002-20230213
+i386                 randconfig-a003-20230213
+i386                 randconfig-a004-20230213
+i386                 randconfig-a005-20230213
+i386                 randconfig-a006-20230213
+mips                           mtx1_defconfig
+powerpc                     akebono_defconfig
+powerpc                     ksi8560_defconfig
+x86_64                           allyesconfig
+x86_64               randconfig-a001-20230213
+x86_64               randconfig-a002-20230213
+x86_64               randconfig-a003-20230213
+x86_64               randconfig-a004-20230213
+x86_64               randconfig-a005-20230213
+x86_64               randconfig-a006-20230213
+x86_64                        randconfig-k001
+
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests
