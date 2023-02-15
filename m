@@ -2,38 +2,40 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A54BFC05027
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Feb 2023 00:05:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A90DC6379F
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Feb 2023 00:05:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231948AbjBOAF1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Feb 2023 19:05:27 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48676 "EHLO
+        id S230182AbjBOAF2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Feb 2023 19:05:28 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48678 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230182AbjBOAFX (ORCPT
+        with ESMTP id S231881AbjBOAFX (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Feb 2023 19:05:23 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9D20DBB92
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D661C2412C
         for <linux-arch@vger.kernel.org>; Tue, 14 Feb 2023 16:05:22 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=14nHaJTTJLogPcUZuCEw0mL+Iya7jGOiXqjT0WfuZdM=; b=VMhl2MxgG1aA2Z9hNjtO5b58Vy
-        nv826ZYIllfa1zt9yg7SEuriSrs0ex4xZ6nV9Jc3kXc3hXJxnlAHpijGVB1kXI8TakpR1A2AedpKY
-        3cM+LeFUIKKLJ+8AF3Sapzini1bb49OfSQ8M1yW9pTqmgBmSnDQnbyiCa2Yl9Foc9H849xveo3KYS
-        dorlO+z+W5o9flgAIiPb662GdmEks3ScivOF35YJf2vehTnUhKZJeKCSXBx3Vd0m8pCj/oEbCe2A5
-        bf543Z+nuQbLbk6t+hlrliycPMkSFVoRDLia01T6ilwUZ+ki/WOy/2fh94XThA/g6n1oxY7fOiBuO
-        xawIPtMw==;
+        bh=v+YCB1fx4UPA9iEkgC9GqZSNjcLUQaLXo5P2YNuoVqs=; b=gulMP2V/waJdjiu05gvVHbNrv6
+        hgj16IWg8ovGkNxY3/qNWLG1GfEPbEdR7zfggUscuiwUOvFdgepGat8uqxdFP23N6aSQsJOg02vw5
+        0u3NieyYTCx3MaJr1Ro89AENDlpJwyFFxp93FwPxy5kC43eS41FIRuPu/2JS/ma342VVSivoAN5yo
+        iRQHVihKskj6YRpY4CGVg9yYs/rrJ+ALVCXlnLvMQ8JdenlQ8NHn6PkkUqVjWJDjCvgmeXfhx5eKr
+        DlRjiOwnh433a96MCrwGLUXJ5wYNYR4unNbEoKHd+oMrT3ViYiyCr9u3hscvF5Qjsic6ulV658bi1
+        ossiVp4g==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pS5IN-006wkr-1k; Wed, 15 Feb 2023 00:05:11 +0000
+        id 1pS5IM-006wkh-Nt; Wed, 15 Feb 2023 00:05:10 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To:     linux-mm@kvack.org, Huacai Chen <chenhuacai@kernel.org>,
-        WANG Xuerui <kernel@xen0n.name>, loongarch@lists.linux.dev,
-        linux-arch@vger.kernel.org
+To:     linux-mm@kvack.org, linux-riscv@lists.infradead.org,
+        Alexandre Ghiti <alex@ghiti.fr>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, linux-arch@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Subject: [PATCH 13/7] loongson: Implement the new page table range API
-Date:   Wed, 15 Feb 2023 00:04:46 +0000
-Message-Id: <20230215000446.1655635-5-willy@infradead.org>
+Subject: [PATCH 10/7] riscv: Implement the new page table range API
+Date:   Wed, 15 Feb 2023 00:04:43 +0000
+Message-Id: <20230215000446.1655635-2-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230215000446.1655635-1-willy@infradead.org>
 References: <20230211033948.891959-1-willy@infradead.org>
@@ -44,114 +46,128 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add set_ptes() and update_mmu_cache_range().
+Add set_ptes(), update_mmu_cache_range() and flush_dcache_folio().
 
-THIS PATCH IS INCOMPLETE.  I DO NOT KNOW WHAT TO DO IN __update_tlb()
+The PG_dcache_clear flag changes from being a per-page bit to being a
+per-folio bit.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- arch/loongarch/include/asm/cacheflush.h |  2 ++
- arch/loongarch/include/asm/pgtable.h    | 30 ++++++++++++++++---------
- arch/loongarch/mm/tlb.c                 |  4 +++-
- 3 files changed, 25 insertions(+), 11 deletions(-)
+ arch/riscv/include/asm/cacheflush.h | 19 +++++++++----------
+ arch/riscv/include/asm/pgtable.h    | 25 ++++++++++++++++++-------
+ arch/riscv/mm/cacheflush.c          | 11 ++---------
+ 3 files changed, 29 insertions(+), 26 deletions(-)
 
-diff --git a/arch/loongarch/include/asm/cacheflush.h b/arch/loongarch/include/asm/cacheflush.h
-index 0681788eb474..7907eb42bfbd 100644
---- a/arch/loongarch/include/asm/cacheflush.h
-+++ b/arch/loongarch/include/asm/cacheflush.h
-@@ -47,8 +47,10 @@ void local_flush_icache_range(unsigned long start, unsigned long end);
- #define flush_cache_vmap(start, end)			do { } while (0)
- #define flush_cache_vunmap(start, end)			do { } while (0)
- #define flush_icache_page(vma, page)			do { } while (0)
-+#define flush_icache_pages(vma, page)			do { } while (0)
- #define flush_icache_user_page(vma, page, addr, len)	do { } while (0)
- #define flush_dcache_page(page)				do { } while (0)
-+#define flush_dcache_folio(folio)			do { } while (0)
- #define flush_dcache_mmap_lock(mapping)			do { } while (0)
- #define flush_dcache_mmap_unlock(mapping)		do { } while (0)
+diff --git a/arch/riscv/include/asm/cacheflush.h b/arch/riscv/include/asm/cacheflush.h
+index 03e3b95ae6da..10e5e96f09b5 100644
+--- a/arch/riscv/include/asm/cacheflush.h
++++ b/arch/riscv/include/asm/cacheflush.h
+@@ -15,20 +15,19 @@ static inline void local_flush_icache_all(void)
  
-diff --git a/arch/loongarch/include/asm/pgtable.h b/arch/loongarch/include/asm/pgtable.h
-index d28fb9dbec59..0f5fa7c40c52 100644
---- a/arch/loongarch/include/asm/pgtable.h
-+++ b/arch/loongarch/include/asm/pgtable.h
-@@ -334,12 +334,20 @@ static inline void set_pte(pte_t *ptep, pte_t pteval)
- 	}
- }
+ #define PG_dcache_clean PG_arch_1
  
--static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
--			      pte_t *ptep, pte_t pteval)
--{
--	set_pte(ptep, pteval);
-+static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
-+		pte_t *ptep, pte_t pte, unsigned int nr)
-+{
-+	for (;;) {
-+		set_pte(ptep, pte);
-+		if (--nr == 0)
-+			break;
-+		ptep++;
-+		pte_val(pte) += 1 << _PFN_SHIFT;
-+	}
- }
- 
-+#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
-+
- static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
+-static inline void flush_dcache_page(struct page *page)
++static inline void flush_dcache_folio(struct folio *folio)
  {
- 	/* Preserve global status for the pair */
-@@ -442,14 +450,16 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
- 		     (pgprot_val(newprot) & ~_PAGE_CHG_MASK));
+-	/*
+-	 * HugeTLB pages are always fully mapped and only head page will be
+-	 * set PG_dcache_clean (see comments in flush_icache_pte()).
+-	 */
+-	if (PageHuge(page))
+-		page = compound_head(page);
+-
+-	if (test_bit(PG_dcache_clean, &page->flags))
+-		clear_bit(PG_dcache_clean, &page->flags);
++	if (test_bit(PG_dcache_clean, &folio->flags))
++		clear_bit(PG_dcache_clean, &folio->flags);
  }
++#define flush_dcache_folio flush_dcache_folio
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
  
--extern void __update_tlb(struct vm_area_struct *vma,
--			unsigned long address, pte_t *ptep);
-+extern void __update_tlb(struct vm_area_struct *vma, unsigned long address,
-+		pte_t *ptep, unsigned int nr);
++static inline void flush_dcache_page(struct page *page)
++{
++	flush_dcache_folio(page_folio(page));
++}
++
+ /*
+  * RISC-V doesn't have an instruction to flush parts of the instruction cache,
+  * so instead we just flush the whole thing.
+diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
+index 13222fd5c4b4..03706c833e70 100644
+--- a/arch/riscv/include/asm/pgtable.h
++++ b/arch/riscv/include/asm/pgtable.h
+@@ -405,8 +405,8 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
  
+ 
+ /* Commit new configuration to MMU hardware */
 -static inline void update_mmu_cache(struct vm_area_struct *vma,
--			unsigned long address, pte_t *ptep)
+-	unsigned long address, pte_t *ptep)
 +static inline void update_mmu_cache_range(struct vm_area_struct *vma,
 +		unsigned long address, pte_t *ptep, unsigned int nr)
  {
--	__update_tlb(vma, address, ptep);
-+	__update_tlb(vma, address, ptep, nr);
+ 	/*
+ 	 * The kernel assumes that TLBs don't cache invalid entries, but
+@@ -415,8 +415,10 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
+ 	 * Relying on flush_tlb_fix_spurious_fault would suffice, but
+ 	 * the extra traps reduce performance.  So, eagerly SFENCE.VMA.
+ 	 */
+-	flush_tlb_page(vma, address);
++	flush_tlb_range(vma, address, address + nr * PAGE_SIZE);
  }
 +#define update_mmu_cache(vma, addr, ptep) \
 +	update_mmu_cache_range(vma, addr, ptep, 1)
  
  #define __HAVE_ARCH_UPDATE_MMU_TLB
- #define update_mmu_tlb	update_mmu_cache
-@@ -457,7 +467,7 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
- static inline void update_mmu_cache_pmd(struct vm_area_struct *vma,
- 			unsigned long address, pmd_t *pmdp)
- {
--	__update_tlb(vma, address, (pte_t *)pmdp);
-+	__update_tlb(vma, address, (pte_t *)pmdp, 1);
+ #define update_mmu_tlb update_mmu_cache
+@@ -456,12 +458,21 @@ static inline void __set_pte_at(struct mm_struct *mm,
+ 	set_pte(ptep, pteval);
  }
  
- static inline unsigned long pmd_pfn(pmd_t pmd)
-diff --git a/arch/loongarch/mm/tlb.c b/arch/loongarch/mm/tlb.c
-index 8bad6b0cff59..ac0b19dbd1dc 100644
---- a/arch/loongarch/mm/tlb.c
-+++ b/arch/loongarch/mm/tlb.c
-@@ -162,7 +162,8 @@ static void __update_hugetlb(struct vm_area_struct *vma, unsigned long address,
- #endif
- }
- 
--void __update_tlb(struct vm_area_struct *vma, unsigned long address, pte_t *ptep)
-+void __update_tlb(struct vm_area_struct *vma, unsigned long address,
-+		pte_t *ptep, unsigned int nr)
+-static inline void set_pte_at(struct mm_struct *mm,
+-	unsigned long addr, pte_t *ptep, pte_t pteval)
++static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++		pte_t *ptep, pte_t pteval, unsigned int nr)
  {
- 	int idx;
- 	unsigned long flags;
-@@ -187,6 +188,7 @@ void __update_tlb(struct vm_area_struct *vma, unsigned long address, pte_t *ptep
- 	write_csr_entryhi(address);
- 	tlb_probe();
- 	idx = read_csr_tlbidx();
-+// I have no idea what to do here
- 	write_csr_pagesize(PS_DEFAULT_SIZE);
- 	write_csr_entrylo0(pte_val(*ptep++));
- 	write_csr_entrylo1(pte_val(*ptep));
+-	page_table_check_ptes_set(mm, addr, ptep, pteval, 1);
+-	__set_pte_at(mm, addr, ptep, pteval);
++	page_table_check_ptes_set(mm, addr, ptep, pteval, nr);
++
++	for (;;) {
++		__set_pte_at(mm, addr, ptep, pteval);
++		if (--nr == 0)
++			break;
++		ptep++;
++		addr += PAGE_SIZE;
++		pte_val(pteval) += 1 << _PAGE_PFN_SHIFT;
++	}
+ }
++#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
+ 
+ static inline void pte_clear(struct mm_struct *mm,
+ 	unsigned long addr, pte_t *ptep)
+diff --git a/arch/riscv/mm/cacheflush.c b/arch/riscv/mm/cacheflush.c
+index 3cc07ed45aeb..b725c3f6f57f 100644
+--- a/arch/riscv/mm/cacheflush.c
++++ b/arch/riscv/mm/cacheflush.c
+@@ -81,16 +81,9 @@ void flush_icache_mm(struct mm_struct *mm, bool local)
+ #ifdef CONFIG_MMU
+ void flush_icache_pte(pte_t pte)
+ {
+-	struct page *page = pte_page(pte);
++	struct folio *folio = page_folio(pte_page(pte));
+ 
+-	/*
+-	 * HugeTLB pages are always fully mapped, so only setting head page's
+-	 * PG_dcache_clean flag is enough.
+-	 */
+-	if (PageHuge(page))
+-		page = compound_head(page);
+-
+-	if (!test_and_set_bit(PG_dcache_clean, &page->flags))
++	if (!test_and_set_bit(PG_dcache_clean, &folio->flags))
+ 		flush_icache_all();
+ }
+ #endif /* CONFIG_MMU */
 -- 
 2.39.1
 
