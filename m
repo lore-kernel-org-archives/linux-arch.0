@@ -2,108 +2,152 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8C0ACC636D4
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Feb 2023 16:52:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F3A69C64ED8
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Feb 2023 20:09:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229836AbjBOQw6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Feb 2023 11:52:58 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34954 "EHLO
+        id S229505AbjBOUJf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Feb 2023 15:09:35 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36594 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229630AbjBOQw5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Feb 2023 11:52:57 -0500
-Received: from out3-smtp.messagingengine.com (out3-smtp.messagingengine.com [66.111.4.27])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 825D69EF6;
-        Wed, 15 Feb 2023 08:52:56 -0800 (PST)
-Received: from compute3.internal (compute3.nyi.internal [10.202.2.43])
-        by mailout.nyi.internal (Postfix) with ESMTP id C2FBD5C014E;
-        Wed, 15 Feb 2023 11:52:53 -0500 (EST)
-Received: from mailfrontend1 ([10.202.2.162])
-  by compute3.internal (MEProxy); Wed, 15 Feb 2023 11:52:53 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=shutemov.name;
-         h=cc:cc:content-type:date:date:from:from:in-reply-to
-        :in-reply-to:message-id:mime-version:references:reply-to:sender
-        :subject:subject:to:to; s=fm2; t=1676479973; x=1676566373; bh=MU
-        YJfLXfooeBFGGF3EXMWlWsGrKUUKTiU4nInOcEtlI=; b=ZwuPWG1oKFjOr//jVg
-        Fo6uuun9L2lzzHC5PZlF52vO9UID0jfPgkvAXaMhIXoDtsj5K9mDK5xQNEQ3U7uJ
-        x47S3W9e3TkoVIaL3hN8+1R6bFhO+XfCmDx5i41+anERXTWfMP5cC9OWqu/9ooY+
-        bdDwBRxgtMTf9akr3rgWtk1Ez1CUnDqcNr4I8GhwPcboCxcjEky4amztvrhPwcxV
-        jA26TdmAp8Xt4oZ9cqh7b6l2vrqgU3ZylipwV1TPXqSJv45XqFaXju5mACufMu1U
-        K0iSUQCNwTBfnN2sOHuhNIbelgFTWjzbmR+hiiAuGfW66WDH6twOiL7hBwmKoBA9
-        M50w==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-        messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
-        :feedback-id:from:from:in-reply-to:in-reply-to:message-id
-        :mime-version:references:reply-to:sender:subject:subject:to:to
-        :x-me-proxy:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
-        fm1; t=1676479973; x=1676566373; bh=MUYJfLXfooeBFGGF3EXMWlWsGrKU
-        UKTiU4nInOcEtlI=; b=aG7mWwluoArDkH7iaHltpfvufobwAFCwdYIT5EZYfxon
-        seWgh6tFdNjNtL9SfnZz9YqTcQQcvXQ4RJmppfJBcfAG+BbN75sKx/oRWsuVV4zH
-        QGJnm2JP4VD1/tkyeo/Y1HULAltKnfZGms3dWyzEN/DK2H8vHURG9QNNhZ57JhXy
-        GZZh2dVnxIbNg6PnyjDz8qzZD/edHtRTt9+d2COpjKSwMhscjokfjZj5hCoKiWkn
-        Phrcqg3i8f1lKdfZun2RukTH1muNO7KP4uYt77jcxNY2bbWhFpvKIrcUBzhvZO4z
-        hbXW+9DxRct0jjXXSnDVgOTwIReG2WgzEYV4bRGWUQ==
-X-ME-Sender: <xms:5A3tYyK4B4z3A28mEmPI9Gqhv13iJCzOAoiXrIucDQ42-flCCS8tQQ>
-    <xme:5A3tY6IOBhIBPg9RrMkq7ZTNxS0X_USmyxGIbYl6U3R8UF5m1fW6lA_hs8bDvPKxN
-    vT7UyNh3BROBBq2w4c>
-X-ME-Received: <xmr:5A3tYysfcg5_5AGUT7aDxnOY3rc7WG9ttZeZQpgMPAxX8-J15e7D9eJdAjPnzbXzfzAr8Q>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvhedrudeihedgkeejucetufdoteggodetrfdotf
-    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
-    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhepfffhvfevuffkfhggtggujgesthdttddttddtvdenucfhrhhomhepfdfmihhr
-    ihhllhcutedrucfuhhhuthgvmhhovhdfuceokhhirhhilhhlsehshhhuthgvmhhovhdrnh
-    grmhgvqeenucggtffrrghtthgvrhhnpefhieeghfdtfeehtdeftdehgfehuddtvdeuheet
-    tddtheejueekjeegueeivdektdenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
-    epmhgrihhlfhhrohhmpehkihhrihhllhesshhhuhhtvghmohhvrdhnrghmvg
-X-ME-Proxy: <xmx:5A3tY3ZTH_kaKus3X_goK-D52J5S-QOYeezXEMPI_g_s7_VrjdoW8Q>
-    <xmx:5A3tY5ZRXrimGRjIF7P0iPwHDXcYAA-XQcMpx84WjTuEBxDNag_6iA>
-    <xmx:5A3tYzAdpAiQ74xZIaDv_eBxjL5gSlgEB13baPN7M6DeDQ67WXd29w>
-    <xmx:5Q3tY2TM64l9gfijDlri1UtJJLXIWD_-qDIesLRRB8KhmErqG4rk3w>
-Feedback-ID: ie3994620:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Wed,
- 15 Feb 2023 11:52:52 -0500 (EST)
-Received: by box.shutemov.name (Postfix, from userid 1000)
-        id D4F3710CF03; Wed, 15 Feb 2023 19:52:48 +0300 (+03)
-Date:   Wed, 15 Feb 2023 19:52:48 +0300
-From:   "Kirill A. Shutemov" <kirill@shutemov.name>
-To:     Dexuan Cui <decui@microsoft.com>
-Cc:     ak@linux.intel.com, arnd@arndb.de, bp@alien8.de,
-        brijesh.singh@amd.com, dan.j.williams@intel.com,
-        dave.hansen@linux.intel.com, haiyangz@microsoft.com, hpa@zytor.com,
-        jane.chu@oracle.com, kirill.shutemov@linux.intel.com,
-        kys@microsoft.com, linux-arch@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, luto@kernel.org, mingo@redhat.com,
-        peterz@infradead.org, rostedt@goodmis.org,
-        sathyanarayanan.kuppuswamy@linux.intel.com, seanjc@google.com,
-        tglx@linutronix.de, tony.luck@intel.com, wei.liu@kernel.org,
-        x86@kernel.org, mikelley@microsoft.com,
-        linux-kernel@vger.kernel.org, Tianyu.Lan@microsoft.com
-Subject: Re: [PATCH v3 1/6] x86/tdx: Retry TDVMCALL_MAP_GPA() when needed
-Message-ID: <20230215165248.ivnmo77vfqzixtjm@box.shutemov.name>
-References: <20230206192419.24525-1-decui@microsoft.com>
- <20230206192419.24525-2-decui@microsoft.com>
+        with ESMTP id S229631AbjBOUJd (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Feb 2023 15:09:33 -0500
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 17270244AC;
+        Wed, 15 Feb 2023 12:09:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=WK7WV98DmqNoEol8pKIPxUYYZ9kR5i0EUBhp91OqSig=; b=i50W5RLoKp2u9dkh3sbtVQHYCW
+        y4vps7i5Zjb9gRIuKQkcVxkB2ZDAJibcvJZTosxgjyG3hUAKblPrrtsj9vVrGxMJYZ72zUaQQqJ4g
+        82FddwyDg7YViumA8bA3rznbcKchmb7M6R9D0M85AF7H1oJI2+FO5QeKbxtDFjDrDyQsxU11jnDtt
+        64SCigt+cFtVdBTeqE2xGyWT82tDeJXTKPIHugptpPVoCpe5spakHXlKVf8K/jEPOWv8M7bRUBA4k
+        ZEyndIZz9oMorsB32W9pFxCKwVpaXe+b/dXV6+hykrTOgSI0z5P26m7L9DqJm4/IO/S1d/sKWIXoH
+        /zTE9Kgw==;
+Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1pSO5m-007lAU-Rl; Wed, 15 Feb 2023 20:09:26 +0000
+From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To:     linux-mm@kvack.org, linux-m68k@lists.linux-m68k.org,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-arch@vger.kernel.org
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>
+Subject: [PATCH 15/17] m68k: Implement the new page table range API
+Date:   Wed, 15 Feb 2023 20:09:18 +0000
+Message-Id: <20230215200920.1849567-2-willy@infradead.org>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20230215200920.1849567-1-willy@infradead.org>
+References: <20230215000446.1655635-1-willy@infradead.org>
+ <20230215200920.1849567-1-willy@infradead.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230206192419.24525-2-decui@microsoft.com>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 06, 2023 at 11:24:14AM -0800, Dexuan Cui wrote:
-> GHCI spec for TDX 1.0 says that the MapGPA call may fail with the R10
-> error code = TDG.VP.VMCALL_RETRY (1), and the guest must retry this
-> operation for the pages in the region starting at the GPA specified
-> in R11.
-> 
-> When a TDX guest runs on Hyper-V, Hyper-V returns the retry error
-> when hyperv_init() -> swiotlb_update_mem_attributes() ->
-> set_memory_decrypted() decrypts up to 1GB of swiotlb bounce buffers.
-> 
-> Signed-off-by: Dexuan Cui <decui@microsoft.com>
+Add set_ptes(), update_mmu_cache_range(), flush_icache_pages() and
+flush_dcache_folio().  I'm not entirely certain that the 040/060 case
+in __flush_pages_to_ram() is correct.
 
-Looks good to me.
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ arch/m68k/include/asm/cacheflush_mm.h | 12 ++++++++----
+ arch/m68k/include/asm/pgtable_mm.h    | 21 ++++++++++++++++++---
+ arch/m68k/mm/motorola.c               |  2 +-
+ 3 files changed, 27 insertions(+), 8 deletions(-)
 
-Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-
+diff --git a/arch/m68k/include/asm/cacheflush_mm.h b/arch/m68k/include/asm/cacheflush_mm.h
+index 1ac55e7b47f0..2244c35178d0 100644
+--- a/arch/m68k/include/asm/cacheflush_mm.h
++++ b/arch/m68k/include/asm/cacheflush_mm.h
+@@ -220,13 +220,13 @@ static inline void flush_cache_page(struct vm_area_struct *vma, unsigned long vm
+ 
+ /* Push the page at kernel virtual address and clear the icache */
+ /* RZ: use cpush %bc instead of cpush %dc, cinv %ic */
+-static inline void __flush_page_to_ram(void *vaddr)
++static inline void __flush_pages_to_ram(void *vaddr, unsigned int nr)
+ {
+ 	if (CPU_IS_COLDFIRE) {
+ 		unsigned long addr, start, end;
+ 		addr = ((unsigned long) vaddr) & ~(PAGE_SIZE - 1);
+ 		start = addr & ICACHE_SET_MASK;
+-		end = (addr + PAGE_SIZE - 1) & ICACHE_SET_MASK;
++		end = (addr + nr * PAGE_SIZE - 1) & ICACHE_SET_MASK;
+ 		if (start > end) {
+ 			flush_cf_bcache(0, end);
+ 			end = ICACHE_MAX_ADDR;
+@@ -249,10 +249,14 @@ static inline void __flush_page_to_ram(void *vaddr)
+ }
+ 
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+-#define flush_dcache_page(page)		__flush_page_to_ram(page_address(page))
++#define flush_dcache_page(page)	__flush_pages_to_ram(page_address(page), 1)
++#define flush_dcache_folio(folio)		\
++	__flush_pages_to_ram(folio_address(folio), folio_nr_pages(folio))
+ #define flush_dcache_mmap_lock(mapping)		do { } while (0)
+ #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-#define flush_icache_page(vma, page)	__flush_page_to_ram(page_address(page))
++#define flush_icache_pages(vma, page, nr)	\
++	__flush_pages_to_ram(page_address(page), nr)
++#define flush_icache_page(vma, page) flush_icache_pages(vma, page, 1)
+ 
+ extern void flush_icache_user_page(struct vm_area_struct *vma, struct page *page,
+ 				    unsigned long addr, int len);
+diff --git a/arch/m68k/include/asm/pgtable_mm.h b/arch/m68k/include/asm/pgtable_mm.h
+index b93c41fe2067..400206c17c97 100644
+--- a/arch/m68k/include/asm/pgtable_mm.h
++++ b/arch/m68k/include/asm/pgtable_mm.h
+@@ -31,8 +31,20 @@
+ 	do{							\
+ 		*(pteptr) = (pteval);				\
+ 	} while(0)
+-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
+ 
++static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++		pte_t *ptep, pte_t pte, unsigned int nr)
++{
++	for (;;) {
++		set_pte(ptep, pte);
++		if (--nr == 0)
++			break;
++		ptep++;
++		pte_val(pte) += PAGE_SIZE;
++	}
++}
++
++#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
+ 
+ /* PMD_SHIFT determines the size of the area a second-level page table can map */
+ #if CONFIG_PGTABLE_LEVELS == 3
+@@ -138,11 +150,14 @@ extern void kernel_set_cachemode(void *addr, unsigned long size, int cmode);
+  * tables contain all the necessary information.  The Sun3 does, but
+  * they are updated on demand.
+  */
+-static inline void update_mmu_cache(struct vm_area_struct *vma,
+-				    unsigned long address, pte_t *ptep)
++static inline void update_mmu_cache_range(struct vm_area_struct *vma,
++		unsigned long address, pte_t *ptep, unsigned int nr)
+ {
+ }
+ 
++#define update_mmu_cache(vma, addr, ptep) \
++	update_mmu_cache_range(vma, addr, ptep, 1)
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ /* MMU-specific headers */
+diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
+index 2a375637e007..7784d0fcdf6e 100644
+--- a/arch/m68k/mm/motorola.c
++++ b/arch/m68k/mm/motorola.c
+@@ -81,7 +81,7 @@ static inline void cache_page(void *vaddr)
+ 
+ void mmu_page_ctor(void *page)
+ {
+-	__flush_page_to_ram(page);
++	__flush_pages_to_ram(page, 1);
+ 	flush_tlb_kernel_page(page);
+ 	nocache_page(page);
+ }
 -- 
-  Kiryl Shutsemau / Kirill A. Shutemov
+2.39.1
+
