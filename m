@@ -2,41 +2,41 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 586D6C636CC
-	for <linux-arch@archiver.kernel.org>; Sat, 18 Feb 2023 21:17:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5281EC61DA4
+	for <linux-arch@archiver.kernel.org>; Sat, 18 Feb 2023 21:17:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230007AbjBRVRn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 18 Feb 2023 16:17:43 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44416 "EHLO
+        id S230074AbjBRVRz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 18 Feb 2023 16:17:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42720 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229906AbjBRVRC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Feb 2023 16:17:02 -0500
+        with ESMTP id S229930AbjBRVR3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 18 Feb 2023 16:17:29 -0500
 Received: from mga05.intel.com (mga05.intel.com [192.55.52.43])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0E0871632B;
-        Sat, 18 Feb 2023 13:16:08 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D0CDF18A83;
+        Sat, 18 Feb 2023 13:16:13 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1676754969; x=1708290969;
+  t=1676754973; x=1708290973;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references;
-  bh=I2MatxMVauhJIHVRqc02oKKO+hrjMuY4waDrBBWGcyY=;
-  b=a744BWiVh7X9zWJictiASk82rIAWugzoKE17e/b+Eifb4PP0F+o2OSAf
-   jQP6QfcuNMDQcIKOJEOki6AFLx9Yunr9X3UNsrlBwrLCyGyl9e46cMnYF
-   i6yeHV+3ujiYmBbDqveFKGi/eCgK6lNuU1a6bmCpfizklQW0oTtfu8wY1
-   44MI90StuD+Nbe4tQFcehHbVqGfo8NBia75uLSRTQWOmVvKrFRgE9Uiso
-   dqWCW4SumSNLtvTNc8Ig6p9Blb6ylQCV5Jip1ir1kZfbYTT2w8tWLpDHO
-   8Gb5DH+yyKVigBtnW2If1Kq59IGafCAcT1avqovkZx9tbVBcJ2s0/Iiy/
-   w==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10625"; a="418427226"
+  bh=n3X6PvKLUTwSn8Fp1OjRbulohHVicRUFLge5hfismaI=;
+  b=iBLCjzguoBWt153lah2P4GbV74OruIMXukzHxlHsGJqXupuBECAuYCG4
+   dOxP6eUzWSTAGd5bvLLd805NwwsptdRM8wZaXvox2Bi9tENvyHEngVBV7
+   7h0ObPCaoX3lXSpyXIiy1uYJKK2Cc7lV2uV1MUOVyXZ6lcIi5XUucYwaI
+   ShQK3QaKDRAKD7gzksWwQNABJSQbVn3J42PYO8fAPKQXTji2xO6dt58io
+   CdkWlbRe44OhD9VApRvKiP7Ap1x1Y7y3kvWr0jQBbGBCnltWgmohv18Dl
+   ReFqJNrfsjhZ3W//uid23dz6dBS8dTTNi5hltDBI4/J4r4f5j2mxycCSO
+   A==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10625"; a="418427272"
 X-IronPort-AV: E=Sophos;i="5.97,309,1669104000"; 
-   d="scan'208";a="418427226"
+   d="scan'208";a="418427272"
 Received: from orsmga007.jf.intel.com ([10.7.209.58])
-  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Feb 2023 13:16:02 -0800
-X-IronPort-AV: E=McAfee;i="6500,9779,10625"; a="664241598"
+  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Feb 2023 13:16:04 -0800
+X-IronPort-AV: E=McAfee;i="6500,9779,10625"; a="664241611"
 X-IronPort-AV: E=Sophos;i="5.97,309,1669104000"; 
-   d="scan'208";a="664241598"
+   d="scan'208";a="664241611"
 Received: from adityava-mobl1.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.209.80.223])
-  by orsmga007-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Feb 2023 13:16:01 -0800
+  by orsmga007-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 18 Feb 2023 13:16:03 -0800
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -66,10 +66,11 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         dethoma@microsoft.com, akpm@linux-foundation.org,
         Andrew.Cooper3@citrix.com, christina.schimpe@intel.com,
         david@redhat.com, debug@rivosinc.com
-Cc:     rick.p.edgecombe@intel.com
-Subject: [PATCH v6 07/41] x86: Move control protection handler to separate file
-Date:   Sat, 18 Feb 2023 13:13:59 -0800
-Message-Id: <20230218211433.26859-8-rick.p.edgecombe@intel.com>
+Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>,
+        Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v6 09/41] x86/mm: Remove _PAGE_DIRTY from kernel RO pages
+Date:   Sat, 18 Feb 2023 13:14:01 -0800
+Message-Id: <20230218211433.26859-10-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20230218211433.26859-1-rick.p.edgecombe@intel.com>
 References: <20230218211433.26859-1-rick.p.edgecombe@intel.com>
@@ -77,209 +78,95 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Today the control protection handler is defined in traps.c and used only
-for the kernel IBT feature. To reduce ifdeffery, move it to it's own file.
-In future patches, functionality will be added to make this handler also
-handle user shadow stack faults. So name the file cet.c.
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-No functional change.
+New processors that support Shadow Stack regard Write=0,Dirty=1 PTEs as
+shadow stack pages.
+
+In normal cases, it can be helpful to create Write=1 PTEs as also Dirty=1
+if HW dirty tracking is not needed, because if the Dirty bit is not already
+set the CPU has to set Dirty=1 when the memory gets written to. This
+creates additional work for the CPU. So traditional wisdom was to simply
+set the Dirty bit whenever you didn't care about it. However, it was never
+really very helpful for read-only kernel memory.
+
+When CR4.CET=1 and IA32_S_CET.SH_STK_EN=1, some instructions can write to
+such supervisor memory. The kernel does not set IA32_S_CET.SH_STK_EN, so
+avoiding kernel Write=0,Dirty=1 memory is not strictly needed for any
+functional reason. But having Write=0,Dirty=1 kernel memory doesn't have
+any functional benefit either, so to reduce ambiguity between shadow stack
+and regular Write=0 pages, remove Dirty=1 from any kernel Write=0 PTEs.
 
 Tested-by: Pengfei Xu <pengfei.xu@intel.com>
+Tested-by: John Allen <john.allen@amd.com>
 Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Co-developed-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Christoph Hellwig <hch@lst.de>
+Cc: Andy Lutomirski <luto@kernel.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
 
 ---
 v6:
- - Split move to cet.c and shadow stack enhancements to fault handler to
-   separate files. (Kees)
----
- arch/x86/kernel/Makefile |  2 ++
- arch/x86/kernel/cet.c    | 76 ++++++++++++++++++++++++++++++++++++++++
- arch/x86/kernel/traps.c  | 75 ---------------------------------------
- 3 files changed, 78 insertions(+), 75 deletions(-)
- create mode 100644 arch/x86/kernel/cet.c
+ - Also remove dirty from newly added set_memory_rox()
 
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index dd61752f4c96..92446f1dedd7 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -144,6 +144,8 @@ obj-$(CONFIG_CFI_CLANG)			+= cfi.o
+v5:
+ - Spelling and grammer in commit log (Boris)
+
+v3:
+ - Update commit log (Andrew Cooper, Peterz)
+
+v2:
+ - Normalize PTE bit descriptions between patches
+---
+ arch/x86/include/asm/pgtable_types.h | 6 +++---
+ arch/x86/mm/pat/set_memory.c         | 4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index 447d4bee25c4..0646ad00178b 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -192,10 +192,10 @@ enum page_cache_mode {
+ #define _KERNPG_TABLE		 (__PP|__RW|   0|___A|   0|___D|   0|   0| _ENC)
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+-#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
++#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|   0|   0|___G)
++#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|   0|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __NC)
+-#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
++#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|   0|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+ #define __PAGE_KERNEL_LARGE_EXEC (__PP|__RW|   0|___A|   0|___D|_PSE|___G)
+ #define __PAGE_KERNEL_WP	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __WP)
+diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
+index 356758b7d4b4..1b5c0dc9f32b 100644
+--- a/arch/x86/mm/pat/set_memory.c
++++ b/arch/x86/mm/pat/set_memory.c
+@@ -2073,12 +2073,12 @@ int set_memory_nx(unsigned long addr, int numpages)
  
- obj-$(CONFIG_CALL_THUNKS)		+= callthunks.o
- 
-+obj-$(CONFIG_X86_CET)			+= cet.o
-+
- ###
- # 64 bit specific files
- ifeq ($(CONFIG_X86_64),y)
-diff --git a/arch/x86/kernel/cet.c b/arch/x86/kernel/cet.c
-new file mode 100644
-index 000000000000..7ad22b705b64
---- /dev/null
-+++ b/arch/x86/kernel/cet.c
-@@ -0,0 +1,76 @@
-+// SPDX-License-Identifier: GPL-2.0
-+
-+#include <linux/ptrace.h>
-+#include <asm/bugs.h>
-+#include <asm/traps.h>
-+
-+static __ro_after_init bool ibt_fatal = true;
-+
-+extern void ibt_selftest_ip(void); /* code label defined in asm below */
-+
-+enum cp_error_code {
-+	CP_EC        = (1 << 15) - 1,
-+
-+	CP_RET       = 1,
-+	CP_IRET      = 2,
-+	CP_ENDBR     = 3,
-+	CP_RSTRORSSP = 4,
-+	CP_SETSSBSY  = 5,
-+
-+	CP_ENCL	     = 1 << 15,
-+};
-+
-+DEFINE_IDTENTRY_ERRORCODE(exc_control_protection)
-+{
-+	if (!cpu_feature_enabled(X86_FEATURE_IBT)) {
-+		pr_err("Unexpected #CP\n");
-+		BUG();
-+	}
-+
-+	if (WARN_ON_ONCE(user_mode(regs) || (error_code & CP_EC) != CP_ENDBR))
-+		return;
-+
-+	if (unlikely(regs->ip == (unsigned long)&ibt_selftest_ip)) {
-+		regs->ax = 0;
-+		return;
-+	}
-+
-+	pr_err("Missing ENDBR: %pS\n", (void *)instruction_pointer(regs));
-+	if (!ibt_fatal) {
-+		printk(KERN_DEFAULT CUT_HERE);
-+		__warn(__FILE__, __LINE__, (void *)regs->ip, TAINT_WARN, regs, NULL);
-+		return;
-+	}
-+	BUG();
-+}
-+
-+/* Must be noinline to ensure uniqueness of ibt_selftest_ip. */
-+noinline bool ibt_selftest(void)
-+{
-+	unsigned long ret;
-+
-+	asm ("	lea ibt_selftest_ip(%%rip), %%rax\n\t"
-+	     ANNOTATE_RETPOLINE_SAFE
-+	     "	jmp *%%rax\n\t"
-+	     "ibt_selftest_ip:\n\t"
-+	     UNWIND_HINT_FUNC
-+	     ANNOTATE_NOENDBR
-+	     "	nop\n\t"
-+
-+	     : "=a" (ret) : : "memory");
-+
-+	return !ret;
-+}
-+
-+static int __init ibt_setup(char *str)
-+{
-+	if (!strcmp(str, "off"))
-+		setup_clear_cpu_cap(X86_FEATURE_IBT);
-+
-+	if (!strcmp(str, "warn"))
-+		ibt_fatal = false;
-+
-+	return 1;
-+}
-+
-+__setup("ibt=", ibt_setup);
-diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
-index d317dc3d06a3..cc223e60aba2 100644
---- a/arch/x86/kernel/traps.c
-+++ b/arch/x86/kernel/traps.c
-@@ -213,81 +213,6 @@ DEFINE_IDTENTRY(exc_overflow)
- 	do_error_trap(regs, 0, "overflow", X86_TRAP_OF, SIGSEGV, 0, NULL);
+ int set_memory_ro(unsigned long addr, int numpages)
+ {
+-	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW), 0);
++	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW | _PAGE_DIRTY), 0);
  }
  
--#ifdef CONFIG_X86_KERNEL_IBT
--
--static __ro_after_init bool ibt_fatal = true;
--
--extern void ibt_selftest_ip(void); /* code label defined in asm below */
--
--enum cp_error_code {
--	CP_EC        = (1 << 15) - 1,
--
--	CP_RET       = 1,
--	CP_IRET      = 2,
--	CP_ENDBR     = 3,
--	CP_RSTRORSSP = 4,
--	CP_SETSSBSY  = 5,
--
--	CP_ENCL	     = 1 << 15,
--};
--
--DEFINE_IDTENTRY_ERRORCODE(exc_control_protection)
--{
--	if (!cpu_feature_enabled(X86_FEATURE_IBT)) {
--		pr_err("Unexpected #CP\n");
--		BUG();
--	}
--
--	if (WARN_ON_ONCE(user_mode(regs) || (error_code & CP_EC) != CP_ENDBR))
--		return;
--
--	if (unlikely(regs->ip == (unsigned long)&ibt_selftest_ip)) {
--		regs->ax = 0;
--		return;
--	}
--
--	pr_err("Missing ENDBR: %pS\n", (void *)instruction_pointer(regs));
--	if (!ibt_fatal) {
--		printk(KERN_DEFAULT CUT_HERE);
--		__warn(__FILE__, __LINE__, (void *)regs->ip, TAINT_WARN, regs, NULL);
--		return;
--	}
--	BUG();
--}
--
--/* Must be noinline to ensure uniqueness of ibt_selftest_ip. */
--noinline bool ibt_selftest(void)
--{
--	unsigned long ret;
--
--	asm ("	lea ibt_selftest_ip(%%rip), %%rax\n\t"
--	     ANNOTATE_RETPOLINE_SAFE
--	     "	jmp *%%rax\n\t"
--	     "ibt_selftest_ip:\n\t"
--	     UNWIND_HINT_FUNC
--	     ANNOTATE_NOENDBR
--	     "	nop\n\t"
--
--	     : "=a" (ret) : : "memory");
--
--	return !ret;
--}
--
--static int __init ibt_setup(char *str)
--{
--	if (!strcmp(str, "off"))
--		setup_clear_cpu_cap(X86_FEATURE_IBT);
--
--	if (!strcmp(str, "warn"))
--		ibt_fatal = false;
--
--	return 1;
--}
--
--__setup("ibt=", ibt_setup);
--
--#endif /* CONFIG_X86_KERNEL_IBT */
--
- #ifdef CONFIG_X86_F00F_BUG
- void handle_invalid_op(struct pt_regs *regs)
- #else
+ int set_memory_rox(unsigned long addr, int numpages)
+ {
+-	pgprot_t clr = __pgprot(_PAGE_RW);
++	pgprot_t clr = __pgprot(_PAGE_RW | _PAGE_DIRTY);
+ 
+ 	if (__supported_pte_mask & _PAGE_NX)
+ 		clr.pgprot |= _PAGE_NX;
 -- 
 2.17.1
 
