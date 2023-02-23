@@ -2,33 +2,33 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9EB52C64ED8
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Feb 2023 09:51:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3DB05C6FA99
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Feb 2023 09:54:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234136AbjBWJvv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 23 Feb 2023 04:51:51 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52478 "EHLO
+        id S232770AbjBWJyv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 23 Feb 2023 04:54:51 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56280 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233354AbjBWJvu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2023 04:51:50 -0500
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33C964E5F5;
-        Thu, 23 Feb 2023 01:51:49 -0800 (PST)
+        with ESMTP id S234170AbjBWJyl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2023 04:54:41 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AA2934FAA3;
+        Thu, 23 Feb 2023 01:54:39 -0800 (PST)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id A7CD461629;
-        Thu, 23 Feb 2023 09:51:49 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AE07EC433EF;
-        Thu, 23 Feb 2023 09:51:47 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 6C919B81991;
+        Thu, 23 Feb 2023 09:54:38 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AA4C9C433EF;
+        Thu, 23 Feb 2023 09:54:36 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-        s=korg; t=1677145908;
-        bh=00vV012v5IGFYupEfY8cRFX6H7hj6D67NRk/FGmf4tA=;
+        s=korg; t=1677146077;
+        bh=tzlp0We19KInWirh8J/R3X53YBq02wyMg36MmcYZucg=;
         h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=YKN0HiTB8aCX3lOBp4YzZBOc2xpCFZlbfBq3sS4elxzCo2DgNpiZvRfAWw0EEZPsY
-         1Of0ObePM7oOGZSXHavj/fw/9VtCuHNTRtjKVOIOkZsnPDjlBnZOMH/qYnzeemOMYn
-         QCvYeMdiLvlizuKv6Sq3UBy1YChubHjmOCkJD0iI=
-Date:   Thu, 23 Feb 2023 10:51:45 +0100
+        b=rWHav/x5svyAQ2Kiupi0qIMdQsQIRNHbVu7V7cvhIG+FB2Ab9YOZbznomFKNVRU5c
+         dJGp13n1+5gUWl60lh8PHfPhiLUUzRx/jkZWhR2U0IJ4QwSkA71R1sHDBM1LDZoGSQ
+         K8nl4u6N+AgQlSy2sBaBWuu95IVveXkXHttSWa9s=
+Date:   Thu, 23 Feb 2023 10:54:34 +0100
 From:   Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 To:     Tom Saeger <tom.saeger@oracle.com>
 Cc:     Sasha Levin <sashal@kernel.org>,
@@ -45,52 +45,67 @@ Cc:     Sasha Levin <sashal@kernel.org>,
         stable@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
         linux-riscv@lists.infradead.org, linuxppc-dev@lists.ozlabs.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org
-Subject: Re: [PATCH 5.15 v2 1/5] arch: fix broken BuildID for arm64 and riscv
-Message-ID: <Y/c3MSvnN4DcvzSx@kroah.com>
-References: <20230210-tsaeger-upstream-linux-stable-5-15-v2-0-6c68622745e9@oracle.com>
- <20230210-tsaeger-upstream-linux-stable-5-15-v2-1-6c68622745e9@oracle.com>
+        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+        Jisheng Zhang <jszhang@kernel.org>,
+        Nicolas Schier <nicolas@fjasle.eu>,
+        Will Deacon <will@kernel.org>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Christoph Hellwig <hch@lst.de>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: Re: [PATCH 6.1 v2 0/7] Backport Build ID fixes
+Message-ID: <Y/c32nwwcfmqZqbc@kroah.com>
+References: <20230210-tsaeger-upstream-linux-6-1-y-v2-0-3689d04e29fc@oracle.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20230210-tsaeger-upstream-linux-stable-5-15-v2-1-6c68622745e9@oracle.com>
+In-Reply-To: <20230210-tsaeger-upstream-linux-6-1-y-v2-0-3689d04e29fc@oracle.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Feb 10, 2023 at 01:18:40PM -0700, Tom Saeger wrote:
-> From: Masahiro Yamada <masahiroy@kernel.org>
+On Fri, Feb 10, 2023 at 01:17:15PM -0700, Tom Saeger wrote:
+> Keep 6.1 in-sync with Build ID fixes.
 > 
-> commit 99cb0d917ffa1ab628bb67364ca9b162c07699b1 upstream.
+> I've build tested this on {x86_64, arm64, riscv, powerpc, s390, sh}.
 > 
-> Dennis Gilmore reports that the BuildID is missing in the arm64 vmlinux
-> since commit 994b7ac1697b ("arm64: remove special treatment for the
-> link order of head.o").
+> Changes for v2:
+> - include 1/7 2348e6bf4421 ("riscv: remove special treatment for the link order of head.o")
+> - include 2/7 994b7ac1697b ("arm64: remove special treatment for the link order of head.o")
+> - rebase  7/7 c1c551bebf92 ("sh: define RUNTIME_DISCARD_EXIT") from upstream
 > 
-> The issue is that the type of .notes section, which contains the BuildID,
-> changed from NOTES to PROGBITS.
+> Previous threads:
+> [1] https://lore.kernel.org/all/cover.1674876902.git.tom.saeger@oracle.com/
+> [2] https://lore.kernel.org/all/3df32572ec7016e783d37e185f88495831671f5d.1671143628.git.tom.saeger@oracle.com/
+> [3] https://lore.kernel.org/all/cover.1670358255.git.tom.saeger@oracle.com/
 > 
-> Ard Biesheuvel figured out that whichever object gets linked first gets
-> to decide the type of a section. The PROGBITS type is the result of the
-> compiler emitting .note.GNU-stack as PROGBITS rather than NOTE.
+> Signed-off-by: Tom Saeger <tom.saeger@oracle.com>
+> ---
+> Jisheng Zhang (1):
+>       riscv: remove special treatment for the link order of head.o
 > 
-> While Ard provided a fix for arm64, I want to fix this globally because
-> the same issue is happening on riscv since commit 2348e6bf4421 ("riscv:
-> remove special treatment for the link order of head.o"). This problem
-> will happen in general for other architectures if they start to drop
-> unneeded entries from scripts/head-object-list.txt.
+> Masahiro Yamada (3):
+>       arm64: remove special treatment for the link order of head.o
+>       arch: fix broken BuildID for arm64 and riscv
+>       s390: define RUNTIME_DISCARD_EXIT to fix link error with GNU ld < 2.36
 > 
-> Discard .note.GNU-stack in include/asm-generic/vmlinux.lds.h.
+> Michael Ellerman (2):
+>       powerpc/vmlinux.lds: Define RUNTIME_DISCARD_EXIT
+>       powerpc/vmlinux.lds: Don't discard .rela* for relocatable builds
 > 
-> Link: https://lore.kernel.org/lkml/CAABkxwuQoz1CTbyb57n0ZX65eSYiTonFCU8-LCQc=74D=xE=rA@mail.gmail.com/
-> Fixes: 994b7ac1697b ("arm64: remove special treatment for the link order of head.o")
-> Fixes: 2348e6bf4421 ("riscv: remove special treatment for the link order of head.o")
+> Tom Saeger (1):
+>       sh: define RUNTIME_DISCARD_EXIT
+> 
+>  arch/powerpc/kernel/vmlinux.lds.S | 6 +++++-
+>  arch/s390/kernel/vmlinux.lds.S    | 2 ++
+>  arch/sh/kernel/vmlinux.lds.S      | 1 +
+>  include/asm-generic/vmlinux.lds.h | 5 +++++
+>  scripts/head-object-list.txt      | 2 --
+>  5 files changed, 13 insertions(+), 3 deletions(-)
+> ---
+> base-commit: d60c95efffe84428e3611431bf688f50bfc13f4e
+> change-id: 20230210-tsaeger-upstream-linux-6-1-y-06c93fbe5bc8
 
-Why are we adding a commit to 5.15.y that fixes an issue that only
-showed up in 6.1.y?
-
-We need a good comment somewhere saying why this is needed...
-
-thanks,
+Now queued up, thanks.
 
 greg k-h
