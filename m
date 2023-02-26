@@ -2,218 +2,91 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B3AE6C64ED6
-	for <linux-arch@archiver.kernel.org>; Sun, 26 Feb 2023 16:44:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C9461C64ED6
+	for <linux-arch@archiver.kernel.org>; Sun, 26 Feb 2023 22:12:46 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229702AbjBZQos (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 26 Feb 2023 11:44:48 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57086 "EHLO
+        id S229568AbjBZWMp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 26 Feb 2023 17:12:45 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33244 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229562AbjBZQor (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Feb 2023 11:44:47 -0500
-Received: from mail-wm1-x32a.google.com (mail-wm1-x32a.google.com [IPv6:2a00:1450:4864:20::32a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E959CCA16
-        for <linux-arch@vger.kernel.org>; Sun, 26 Feb 2023 08:44:45 -0800 (PST)
-Received: by mail-wm1-x32a.google.com with SMTP id j19-20020a05600c191300b003eb3e1eb0caso940838wmq.1
-        for <linux-arch@vger.kernel.org>; Sun, 26 Feb 2023 08:44:45 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ventanamicro.com; s=google;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=Ocj2R23WDknAZNtiIVt3IW9MrBrM5xCTWqwgy1N+IqI=;
-        b=TMYvOa2MEdtxVrJma4tnZyGFUMCuBCIu3k7h9+WtXgzPzpbJ5z/YUgJpWMA/oZEo5N
-         mgFpcmPwCDagOB96K2BJxXbI5Qj29zVzCtlTIZk7SdkH3OF5I+dvSxPOULIz2P6BOrow
-         vG+P/b3jJ3TSwWpTyJw9ILd3eoBOquR+TCJw+L2J6Q05gR+4gonZS+lxCMFDjvfOHtsV
-         XtnNJr5KzncWJ0ZjaTRhM6pJAqbuaDbyMda4QhyUTD6XjzUD50zMRCqarZZzuAVjjVFr
-         ccIJ6qZRrqZx89W755bONFXWL7Ek9hMQGQRtUw8pjchlPi2j/krcTENFAlkdTzU29dNn
-         ZNeA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=Ocj2R23WDknAZNtiIVt3IW9MrBrM5xCTWqwgy1N+IqI=;
-        b=tIUVjD+I06PfLgb7eN+pSCdIi/WW9+OkspZHb0t9+gGOp6tC1GoULH37OLlo8lh9Yx
-         ou1XKCXciOIaoLkTrxW5GtrmzeFb6pB4pL/0prZCvEbrTgMPN0zAnmUmFQaGe8NOcOkx
-         EDhfmKDC6PYKXUMqTnu0npuMWV/0qGsV+I5Ijn/yIXmyH53RWwG8AbXEjHZiYBGmqZjr
-         PzQtyxfR6SgmxZTcZTndV0TKAXFZyyYS7aWcY7L17/Hb7IDxaNYR/AlfWjqcCoQJxmJE
-         cE1mD/t17p20NwYc2W9u92lJlM5XhwhxITikCzO9hauONNKfj8tamapdxzKgRp0NUDw9
-         0vmA==
-X-Gm-Message-State: AO0yUKXv+lXIeJShOi65V/hG8quHDewz3Ecbi5ZyyOiIGV23X2Wj8GHy
-        /t5zjgOYeg5i88DI9gX7rdattA==
-X-Google-Smtp-Source: AK7set85WMifA8RqMsuFmKb2O6ubbft7kyOg7T5hC17Bm/ZgEXzhLVpiF0wESGHsFa+iTUW5VOVqPQ==
-X-Received: by 2002:a05:600c:358f:b0:3eb:3300:1d13 with SMTP id p15-20020a05600c358f00b003eb33001d13mr4728730wmq.14.1677429884420;
-        Sun, 26 Feb 2023 08:44:44 -0800 (PST)
-Received: from localhost (cst2-173-16.cust.vodafone.cz. [31.30.173.16])
-        by smtp.gmail.com with ESMTPSA id p20-20020a05600c359400b003daf7721bb3sm10560323wmq.12.2023.02.26.08.44.43
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 26 Feb 2023 08:44:44 -0800 (PST)
-Date:   Sun, 26 Feb 2023 17:44:42 +0100
-From:   Andrew Jones <ajones@ventanamicro.com>
-To:     Sergey Matyukevich <geomatsi@gmail.com>
-Cc:     linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
-        Lad Prabhakar <prabhakar.mahadev-lad.rj@bp.renesas.com>,
-        Zong Li <zong.li@sifive.com>, Guo Ren <guoren@kernel.org>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Guo Ren <guoren@linux.alibaba.com>,
-        Sergey Matyukevich <sergey.matyukevich@syntacore.com>,
-        Anup Patel <apatel@ventanamicro.com>,
-        Palmer Dabbelt <palmer@rivosinc.com>, stable@vger.kernel.org
-Subject: Re: [PATCH 2/2] riscv: asid: Fixup stale TLB entry cause application
- crash
-Message-ID: <20230226164442.lqrmpkwsaqj3og7x@orel>
-References: <20230226150137.1919750-1-geomatsi@gmail.com>
- <20230226150137.1919750-3-geomatsi@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230226150137.1919750-3-geomatsi@gmail.com>
+        with ESMTP id S229530AbjBZWMo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Feb 2023 17:12:44 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4DC931041D
+        for <linux-arch@vger.kernel.org>; Sun, 26 Feb 2023 14:12:42 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id F3BDEB80C94
+        for <linux-arch@vger.kernel.org>; Sun, 26 Feb 2023 22:12:40 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 478B3C433EF;
+        Sun, 26 Feb 2023 22:12:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+        s=korg; t=1677449559;
+        bh=58rHNWziKG5F+1xvClRR26TGR/kzgtphh1+ss0F3o1k=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=UiT+0xxuBn3xEDjfKMhE+S6nA/FuZ+LuP5xkiXmr+Z26p7zBTGouYiQnhVvpMNQe4
+         72VgieV739lydXF/yzCq6+namJMMvgD8JJR9Z49ozGh6Bsy6ZoXgzNAL7cPtbQkAKe
+         Yw2Hdqhy91RjOwm5mv0YwB7I/7qyguOod5YPTNVs=
+Date:   Sun, 26 Feb 2023 14:12:38 -0800
+From:   Andrew Morton <akpm@linux-foundation.org>
+To:     Nicholas Piggin <npiggin@gmail.com>
+Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Nadav Amit <nadav.amit@gmail.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, Rik van Riel <riel@redhat.com>,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        linuxppc-dev@lists.ozlabs.org
+Subject: Re: [PATCH v7 5/5] powerpc/64s: enable MMU_LAZY_TLB_SHOOTDOWN
+Message-Id: <20230226141238.6ec5fdf7d75dcf2cd4c58ba0@linux-foundation.org>
+In-Reply-To: <20230203071837.1136453-6-npiggin@gmail.com>
+References: <20230203071837.1136453-1-npiggin@gmail.com>
+        <20230203071837.1136453-6-npiggin@gmail.com>
+X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Feb 26, 2023 at 06:01:37PM +0300, Sergey Matyukevich wrote:
-> From: Guo Ren <guoren@linux.alibaba.com>
+On Fri,  3 Feb 2023 17:18:37 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
+
+> On a 16-socket 192-core POWER8 system, the context_switch1_threads
+> benchmark from will-it-scale (see earlier changelog), upstream can
+> achieve a rate of about 1 million context switches per second, due to
+> contention on the mm refcount.
 > 
-> After use_asid_allocator is enabled, the userspace application will
-> crash by stale TLB entries. Because only using cpumask_clear_cpu without
-> local_flush_tlb_all couldn't guarantee CPU's TLB entries were fresh.
-> Then set_mm_asid would cause the user space application to get a stale
-> value by stale TLB entry, but set_mm_noasid is okay.
+> 64s meets the prerequisites for CONFIG_MMU_LAZY_TLB_SHOOTDOWN, so enable
+> the option. This increases the above benchmark to 118 million context
+> switches per second.
+
+Is that the best you can do ;)
+
+> This generates 314 additional IPI interrupts on a 144 CPU system doing
+> a kernel compile, which is in the noise in terms of kernel cycles.
 > 
-> Here is the symptom of the bug:
-> unhandled signal 11 code 0x1 (coredump)
->    0x0000003fd6d22524 <+4>:     auipc   s0,0x70
->    0x0000003fd6d22528 <+8>:     ld      s0,-148(s0) # 0x3fd6d92490
-> => 0x0000003fd6d2252c <+12>:    ld      a5,0(s0)
-> (gdb) i r s0
-> s0          0x8082ed1cc3198b21       0x8082ed1cc3198b21
-> (gdb) x /2x 0x3fd6d92490
-> 0x3fd6d92490:   0xd80ac8a8      0x0000003f
-> The core dump file shows that register s0 is wrong, but the value in
-> memory is correct. Because 'ld s0, -148(s0)' used a stale mapping entry
-> in TLB and got a wrong result from an incorrect physical address.
-> 
-> When the task ran on CPU0, which loaded/speculative-loaded the value of
-> address(0x3fd6d92490), then the first version of the mapping entry was
-> PTWed into CPU0's TLB.
-> When the task switched from CPU0 to CPU1 (No local_tlb_flush_all here by
-> asid), it happened to write a value on the address (0x3fd6d92490). It
-> caused do_page_fault -> wp_page_copy -> ptep_clear_flush ->
-> ptep_get_and_clear & flush_tlb_page.
-> The flush_tlb_page used mm_cpumask(mm) to determine which CPUs need TLB
-> flush, but CPU0 had cleared the CPU0's mm_cpumask in the previous
-> switch_mm. So we only flushed the CPU1 TLB and set the second version
-> mapping of the PTE. When the task switched from CPU1 to CPU0 again, CPU0
-> still used a stale TLB mapping entry which contained a wrong target
-> physical address. It raised a bug when the task happened to read that
-> value.
-> 
->    CPU0                               CPU1
->    - switch 'task' in
->    - read addr (Fill stale mapping
->      entry into TLB)
->    - switch 'task' out (no tlb_flush)
->                                       - switch 'task' in (no tlb_flush)
->                                       - write addr cause pagefault
->                                         do_page_fault() (change to
->                                         new addr mapping)
->                                           wp_page_copy()
->                                             ptep_clear_flush()
->                                               ptep_get_and_clear()
->                                               & flush_tlb_page()
->                                         write new value into addr
->                                       - switch 'task' out (no tlb_flush)
->    - switch 'task' in (no tlb_flush)
->    - read addr again (Use stale
->      mapping entry in TLB)
->      get wrong value from old phyical
->      addr, BUG!
-> 
-> The solution is to keep all CPUs' footmarks of cpumask(mm) in switch_mm,
-> which could guarantee to invalidate all stale TLB entries during TLB
-> flush.
-> 
-> Fixes: 65d4b9c53017 ("RISC-V: Implement ASID allocator")
-> Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-> Signed-off-by: Guo Ren <guoren@kernel.org>
-> Tested-by: Lad Prabhakar <prabhakar.mahadev-lad.rj@bp.renesas.com>
-> Tested-by: Zong Li <zong.li@sifive.com>
-> Tested-by: Sergey Matyukevich <sergey.matyukevich@syntacore.com>
-> Cc: Anup Patel <apatel@ventanamicro.com>
-> Cc: Palmer Dabbelt <palmer@rivosinc.com>
-> Cc: stable@vger.kernel.org
-> 
-> ---
->  arch/riscv/mm/context.c | 30 ++++++++++++++++++++----------
->  1 file changed, 20 insertions(+), 10 deletions(-)
-> 
-> diff --git a/arch/riscv/mm/context.c b/arch/riscv/mm/context.c
-> index 7acbfbd14557..0f784e3d307b 100644
-> --- a/arch/riscv/mm/context.c
-> +++ b/arch/riscv/mm/context.c
-> @@ -205,12 +205,24 @@ static void set_mm_noasid(struct mm_struct *mm)
->  	local_flush_tlb_all();
->  }
->  
-> -static inline void set_mm(struct mm_struct *mm, unsigned int cpu)
-> +static inline void set_mm(struct mm_struct *prev,
-> +			  struct mm_struct *next, unsigned int cpu)
->  {
-> -	if (static_branch_unlikely(&use_asid_allocator))
-> -		set_mm_asid(mm, cpu);
-> -	else
-> -		set_mm_noasid(mm);
-> +	/*
-> +	 * The mm_cpumask indicates which harts' TLBs contain the virtual
-> +	 * address mapping of the mm. Compared to noasid, using asid
-> +	 * can't guarantee that stale TLB entries are invalidated because
-> +	 * the asid mechanism wouldn't flush TLB for every switch_mm for
-> +	 * performance. So when using asid, keep all CPUs footmarks in
-> +	 * cpumask() until mm reset.
-> +	 */
-> +	cpumask_set_cpu(cpu, mm_cpumask(next));
-> +	if (static_branch_unlikely(&use_asid_allocator)) {
-> +		set_mm_asid(next, cpu);
-> +	} else {
-> +		cpumask_clear_cpu(cpu, mm_cpumask(prev));
-> +		set_mm_noasid(next);
-> +	}
->  }
->  
->  static int __init asids_init(void)
-> @@ -264,7 +276,8 @@ static int __init asids_init(void)
->  }
->  early_initcall(asids_init);
->  #else
-> -static inline void set_mm(struct mm_struct *mm, unsigned int cpu)
-> +static inline void set_mm(struct mm_struct *prev,
-> +			  struct mm_struct *next, unsigned int cpu)
->  {
->  	/* Nothing to do here when there is no MMU */
->  }
-> @@ -317,10 +330,7 @@ void switch_mm(struct mm_struct *prev, struct mm_struct *next,
->  	 */
->  	cpu = smp_processor_id();
->  
-> -	cpumask_clear_cpu(cpu, mm_cpumask(prev));
-> -	cpumask_set_cpu(cpu, mm_cpumask(next));
-> -
-> -	set_mm(next, cpu);
-> +	set_mm(prev, next, cpu);
->  
->  	flush_icache_deferred(next, cpu);
->  }
-> -- 
-> 2.39.2
+> ...
 >
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -265,6 +265,7 @@ config PPC
+>  	select MMU_GATHER_PAGE_SIZE
+>  	select MMU_GATHER_RCU_TABLE_FREE
+>  	select MMU_GATHER_MERGE_VMAS
+> +	select MMU_LAZY_TLB_SHOOTDOWN		if PPC_BOOK3S_64
+>  	select MODULES_USE_ELF_RELA
+>  	select NEED_DMA_MAP_STATE		if PPC64 || NOT_COHERENT_CACHE
+>  	select NEED_PER_CPU_EMBED_FIRST_CHUNK	if PPC64
 
-This is identical to what I reviewed before, so my r-b could have been
-kept, anyway here it is again
+Can we please have a summary of which other architectures might benefit
+from this, and what must they do?
 
-Reviewed-by: Andrew Jones <ajones@ventanamicro.com>
-
-Thanks,
-drew
+As this is powerpc-only, I expect it won't get a lot of testing in
+mm.git or in linux-next.  The powerpc maintainers might choose to merge
+in the mm-stable branch at
+git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm if this is a
+concern.
