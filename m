@@ -2,39 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6B706C64ED8
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:58:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 680DCC7EE30
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:58:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230244AbjB0R6M (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 27 Feb 2023 12:58:12 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47906 "EHLO
+        id S229917AbjB0R6O (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Feb 2023 12:58:14 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47908 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230123AbjB0R54 (ORCPT
+        with ESMTP id S230127AbjB0R54 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 12:57:56 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3184E241D4;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 658E42449B;
         Mon, 27 Feb 2023 09:57:48 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=RnM8KszZJiX+sNWI95I2pqTk92H44CKgzXj9Vqv/ocM=; b=e2kdPfSkBwto7dMcOp3qWzfFre
-        6ZzeOB5qWGHTpG16KQskkagJiE2sBldHr2fJsDXQxVT7+oemOn7ZNxBY02d8YZbamuCziWPXOvDxp
-        GZScJVAeHibEv0uGbwGUOiNi0Bj69a6EZtPl9FT1PjewLMY9rRmyhlP0ad5UgcGXLH0MLqn8ZJPA8
-        FNV8aS5YLIfkiChEwWfcPxtze2smOeP1f9+n+lNbpIqRv1NtHE/KmJMYJ6HJ2dYcRJxPdDmJPhF0D
-        f6sA9ThdkPd/tCx4holKfEBZz+qKkE94I2tCeG/wCvbl3KcpKsdRiSwRnkSspc/8GOJnaV5OBBbCS
-        1KEZmRDw==;
+        bh=FcAVSqRhOvKHjYDKfG+YKts/V6VftTlUNnoYvCjS+is=; b=oduE/873LY4TwSZyoAOMOKJOyP
+        xXxts9JED1MF554jNMWSsOvEsnO0EYuncvAN9hjmrTJayQ7UIXPyYXZZKT6a79DJGzELdLksphJDy
+        5W+dTaVULNh+n0yLtuQvxjwgSn7gdjgmj0Q1dgtw79FhvhrjJC9yanZ7AOlHIUwnAkl1C1xUDWAqp
+        C8nv7A4sS7Jx43txb8g3DOXFYnsd7dEhPX+y8Vu96gdfUu6Yd32TcgZ2nUR7DQ+u7Fp6rV/Z5zVjD
+        lImQ23LRH//blmVTQ0btFdu/WJMWymPs+f3H9BABVs/jMbMwtxdJHobktTIBKoL+BbMDepenzzCAr
+        CBDR2xng==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pWhku-000IXC-57; Mon, 27 Feb 2023 17:57:44 +0000
+        id 1pWhkw-000IYf-EB; Mon, 27 Feb 2023 17:57:46 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        linux-kernel@vger.kernel.org,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        linux-arm-kernel@lists.infradead.org
-Subject: [PATCH v2 07/30] arm64: Implement the new page table range API
-Date:   Mon, 27 Feb 2023 17:57:18 +0000
-Message-Id: <20230227175741.71216-8-willy@infradead.org>
+        linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>,
+        linux-xtensa@linux-xtensa.org
+Subject: [PATCH v2 26/30] xtensa: Implement the new page table range API
+Date:   Mon, 27 Feb 2023 17:57:37 +0000
+Message-Id: <20230227175741.71216-27-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230227175741.71216-1-willy@infradead.org>
 References: <20230227175741.71216-1-willy@infradead.org>
@@ -44,148 +43,239 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add set_ptes(), update_mmu_cache_range() and flush_dcache_folio().
-Change the PG_dcache_clean flag from being per-page to per-folio.
+Add set_ptes(), update_mmu_cache_range(), flush_dcache_folio() and
+flush_icache_pages().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-xtensa@linux-xtensa.org
 ---
- arch/arm64/include/asm/cacheflush.h |  4 +++-
- arch/arm64/include/asm/pgtable.h    | 25 ++++++++++++++------
- arch/arm64/mm/flush.c               | 36 +++++++++++------------------
- 3 files changed, 35 insertions(+), 30 deletions(-)
+ arch/xtensa/include/asm/cacheflush.h |  9 ++-
+ arch/xtensa/include/asm/pgtable.h    | 24 +++++---
+ arch/xtensa/mm/cache.c               | 83 ++++++++++++++++------------
+ 3 files changed, 72 insertions(+), 44 deletions(-)
 
-diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
-index 37185e978aeb..d115451ed263 100644
---- a/arch/arm64/include/asm/cacheflush.h
-+++ b/arch/arm64/include/asm/cacheflush.h
-@@ -114,7 +114,7 @@ extern void copy_to_user_page(struct vm_area_struct *, struct page *,
- #define copy_to_user_page copy_to_user_page
+diff --git a/arch/xtensa/include/asm/cacheflush.h b/arch/xtensa/include/asm/cacheflush.h
+index 7b4359312c25..35153f6725e4 100644
+--- a/arch/xtensa/include/asm/cacheflush.h
++++ b/arch/xtensa/include/asm/cacheflush.h
+@@ -119,8 +119,14 @@ void flush_cache_page(struct vm_area_struct*,
+ #define flush_cache_vmap(start,end)	flush_cache_all()
+ #define flush_cache_vunmap(start,end)	flush_cache_all()
  
- /*
-- * flush_dcache_page is used when the kernel has written to the page
-+ * flush_dcache_folio is used when the kernel has written to the page
-  * cache page at virtual address page->virtual.
-  *
-  * If this page isn't mapped (ie, page_mapping == NULL), or it might
-@@ -127,6 +127,8 @@ extern void copy_to_user_page(struct vm_area_struct *, struct page *,
-  */
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- extern void flush_dcache_page(struct page *);
-+void flush_dcache_folio(struct folio *);
++void flush_dcache_folio(struct folio *folio);
 +#define flush_dcache_folio flush_dcache_folio
++
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+-void flush_dcache_page(struct page *);
++static inline void flush_dcache_page(struct page *page)
++{
++	flush_dcache_folio(page_folio(page));
++}
  
- static __always_inline void icache_inval_all_pou(void)
+ void local_flush_cache_range(struct vm_area_struct *vma,
+ 		unsigned long start, unsigned long end);
+@@ -156,6 +162,7 @@ void local_flush_cache_page(struct vm_area_struct *vma,
+ 
+ /* This is not required, see Documentation/core-api/cachetlb.rst */
+ #define	flush_icache_page(vma,page)			do { } while (0)
++#define	flush_icache_pages(vma, page, nr)		do { } while (0)
+ 
+ #define flush_dcache_mmap_lock(mapping)			do { } while (0)
+ #define flush_dcache_mmap_unlock(mapping)		do { } while (0)
+diff --git a/arch/xtensa/include/asm/pgtable.h b/arch/xtensa/include/asm/pgtable.h
+index fc7a14884c6c..293101530541 100644
+--- a/arch/xtensa/include/asm/pgtable.h
++++ b/arch/xtensa/include/asm/pgtable.h
+@@ -301,17 +301,25 @@ static inline void update_pte(pte_t *ptep, pte_t pteval)
+ 
+ struct mm_struct;
+ 
+-static inline void
+-set_pte_at(struct mm_struct *mm, unsigned long addr, pte_t *ptep, pte_t pteval)
++static inline void set_pte(pte_t *ptep, pte_t pte)
  {
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index 69765dc697af..4d1b79dbff16 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -355,12 +355,21 @@ static inline void __set_pte_at(struct mm_struct *mm, unsigned long addr,
- 	set_pte(ptep, pte);
+-	update_pte(ptep, pteval);
++	update_pte(ptep, pte);
  }
  
--static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
--			      pte_t *ptep, pte_t pte)
--{
--	page_table_check_ptes_set(mm, addr, ptep, pte, 1);
--	return __set_pte_at(mm, addr, ptep, pte);
+-static inline void set_pte(pte_t *ptep, pte_t pteval)
 +static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
-+			      pte_t *ptep, pte_t pte, unsigned int nr)
-+{
-+	page_table_check_ptes_set(mm, addr, ptep, pte, nr);
-+
++		pte_t *ptep, pte_t pte, unsigned int nr)
+ {
+-	update_pte(ptep, pteval);
 +	for (;;) {
-+		__set_pte_at(mm, addr, ptep, pte);
++		set_pte(ptep, pte);
 +		if (--nr == 0)
 +			break;
 +		ptep++;
-+		addr += PAGE_SIZE;
 +		pte_val(pte) += PAGE_SIZE;
 +	}
  }
+ 
 +#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
- 
- /*
-  * Huge pte definitions.
-@@ -1059,8 +1068,8 @@ static inline void arch_swap_restore(swp_entry_t entry, struct folio *folio)
- /*
-  * On AArch64, the cache coherency is handled via the set_pte_at() function.
-  */
--static inline void update_mmu_cache(struct vm_area_struct *vma,
--				    unsigned long addr, pte_t *ptep)
-+static inline void update_mmu_cache_range(struct vm_area_struct *vma,
-+		unsigned long addr, pte_t *ptep, unsigned int nr)
++
+ static inline void
+ set_pmd(pmd_t *pmdp, pmd_t pmdval)
  {
- 	/*
- 	 * We don't do anything here, so there's a very small chance of
-@@ -1069,6 +1078,8 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
- 	 */
- }
+@@ -407,8 +415,10 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte)
  
-+#define update_mmu_cache(vma, addr, ptep) \
-+	update_mmu_cache_range(vma, addr, ptep, 1)
- #define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
+ #else
  
- #ifdef CONFIG_ARM64_PA_BITS_52
-diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-index 5f9379b3c8c8..deb781af0a3a 100644
---- a/arch/arm64/mm/flush.c
-+++ b/arch/arm64/mm/flush.c
-@@ -50,20 +50,13 @@ void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
+-extern  void update_mmu_cache(struct vm_area_struct * vma,
+-			      unsigned long address, pte_t *ptep);
++void update_mmu_cache_range(struct vm_area_struct *vma,
++		unsigned long address, pte_t *ptep, unsigned int nr);
++#define update_mmu_cache(vma, address, ptep) \
++	update_mmu_cache_range(vma, address, ptep, 1)
  
- void __sync_icache_dcache(pte_t pte)
- {
--	struct page *page = pte_page(pte);
-+	struct folio *folio = page_folio(pte_page(pte));
+ typedef pte_t *pte_addr_t;
  
--	/*
--	 * HugeTLB pages are always fully mapped, so only setting head page's
--	 * PG_dcache_clean flag is enough.
--	 */
--	if (PageHuge(page))
--		page = compound_head(page);
--
--	if (!test_bit(PG_dcache_clean, &page->flags)) {
--		sync_icache_aliases((unsigned long)page_address(page),
--				    (unsigned long)page_address(page) +
--					    page_size(page));
--		set_bit(PG_dcache_clean, &page->flags);
-+	if (!test_bit(PG_dcache_clean, &folio->flags)) {
-+		sync_icache_aliases((unsigned long)folio_address(folio),
-+				    (unsigned long)folio_address(folio) +
-+					    folio_size(folio));
-+		set_bit(PG_dcache_clean, &folio->flags);
- 	}
- }
- EXPORT_SYMBOL_GPL(__sync_icache_dcache);
-@@ -73,17 +66,16 @@ EXPORT_SYMBOL_GPL(__sync_icache_dcache);
-  * it as dirty for later flushing when mapped in user space (if executable,
-  * see __sync_icache_dcache).
+diff --git a/arch/xtensa/mm/cache.c b/arch/xtensa/mm/cache.c
+index 19e5a478a7e8..65c0d5298041 100644
+--- a/arch/xtensa/mm/cache.c
++++ b/arch/xtensa/mm/cache.c
+@@ -121,9 +121,9 @@ EXPORT_SYMBOL(copy_user_highpage);
+  *
   */
+ 
 -void flush_dcache_page(struct page *page)
 +void flush_dcache_folio(struct folio *folio)
  {
--	/*
--	 * HugeTLB pages are always fully mapped and only head page will be
--	 * set PG_dcache_clean (see comments in __sync_icache_dcache()).
--	 */
--	if (PageHuge(page))
--		page = compound_head(page);
-+	if (test_bit(PG_dcache_clean, &folio->flags))
-+		clear_bit(PG_dcache_clean, &folio->flags);
-+}
+-	struct address_space *mapping = page_mapping_file(page);
++	struct address_space *mapping = folio_flush_mapping(folio);
+ 
+ 	/*
+ 	 * If we have a mapping but the page is not mapped to user-space
+@@ -132,14 +132,14 @@ void flush_dcache_page(struct page *page)
+ 	 */
+ 
+ 	if (mapping && !mapping_mapped(mapping)) {
+-		if (!test_bit(PG_arch_1, &page->flags))
+-			set_bit(PG_arch_1, &page->flags);
++		if (!test_bit(PG_arch_1, &folio->flags))
++			set_bit(PG_arch_1, &folio->flags);
+ 		return;
+ 
+ 	} else {
+-
+-		unsigned long phys = page_to_phys(page);
+-		unsigned long temp = page->index << PAGE_SHIFT;
++		unsigned long phys = folio_pfn(folio) * PAGE_SIZE;
++		unsigned long temp = folio_pos(folio);
++		unsigned int i, nr = folio_nr_pages(folio);
+ 		unsigned long alias = !(DCACHE_ALIAS_EQ(temp, phys));
+ 		unsigned long virt;
+ 
+@@ -154,22 +154,26 @@ void flush_dcache_page(struct page *page)
+ 			return;
+ 
+ 		preempt_disable();
+-		virt = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
+-		__flush_invalidate_dcache_page_alias(virt, phys);
++		for (i = 0; i < nr; i++) {
++			virt = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
++			__flush_invalidate_dcache_page_alias(virt, phys);
+ 
+-		virt = TLBTEMP_BASE_1 + (temp & DCACHE_ALIAS_MASK);
++			virt = TLBTEMP_BASE_1 + (temp & DCACHE_ALIAS_MASK);
+ 
+-		if (alias)
+-			__flush_invalidate_dcache_page_alias(virt, phys);
++			if (alias)
++				__flush_invalidate_dcache_page_alias(virt, phys);
+ 
+-		if (mapping)
+-			__invalidate_icache_page_alias(virt, phys);
++			if (mapping)
++				__invalidate_icache_page_alias(virt, phys);
++			phys += PAGE_SIZE;
++			temp += PAGE_SIZE;
++		}
+ 		preempt_enable();
+ 	}
+ 
+ 	/* There shouldn't be an entry in the cache for this page anymore. */
+ }
+-EXPORT_SYMBOL(flush_dcache_page);
 +EXPORT_SYMBOL(flush_dcache_folio);
  
--	if (test_bit(PG_dcache_clean, &page->flags))
--		clear_bit(PG_dcache_clean, &page->flags);
-+void flush_dcache_page(struct page *page)
-+{
-+	flush_dcache_folio(page_folio(page));
- }
- EXPORT_SYMBOL(flush_dcache_page);
+ /*
+  * For now, flush the whole cache. FIXME??
+@@ -207,45 +211,52 @@ EXPORT_SYMBOL(local_flush_cache_page);
  
+ #endif /* DCACHE_WAY_SIZE > PAGE_SIZE */
+ 
+-void
+-update_mmu_cache(struct vm_area_struct * vma, unsigned long addr, pte_t *ptep)
++void update_mmu_cache_range(struct vm_area_struct *vma, unsigned long addr,
++		pte_t *ptep, unsigned int nr)
+ {
+ 	unsigned long pfn = pte_pfn(*ptep);
+-	struct page *page;
++	struct folio *folio;
++	unsigned int i;
+ 
+ 	if (!pfn_valid(pfn))
+ 		return;
+ 
+-	page = pfn_to_page(pfn);
++	folio = page_folio(pfn_to_page(pfn));
+ 
+-	/* Invalidate old entry in TLBs */
+-
+-	flush_tlb_page(vma, addr);
++	/* Invalidate old entries in TLBs */
++	for (i = 0; i < nr; i++)
++		flush_tlb_page(vma, addr + i * PAGE_SIZE);
++	nr = folio_nr_pages(folio);
+ 
+ #if (DCACHE_WAY_SIZE > PAGE_SIZE)
+ 
+-	if (!PageReserved(page) && test_bit(PG_arch_1, &page->flags)) {
+-		unsigned long phys = page_to_phys(page);
++	if (!folio_test_reserved(folio) && test_bit(PG_arch_1, &folio->flags)) {
++		unsigned long phys = folio_pfn(folio) * PAGE_SIZE;
+ 		unsigned long tmp;
+ 
+ 		preempt_disable();
+-		tmp = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
+-		__flush_invalidate_dcache_page_alias(tmp, phys);
+-		tmp = TLBTEMP_BASE_1 + (addr & DCACHE_ALIAS_MASK);
+-		__flush_invalidate_dcache_page_alias(tmp, phys);
+-		__invalidate_icache_page_alias(tmp, phys);
++		for (i = 0; i < nr; i++) {
++			tmp = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
++			__flush_invalidate_dcache_page_alias(tmp, phys);
++			tmp = TLBTEMP_BASE_1 + (addr & DCACHE_ALIAS_MASK);
++			__flush_invalidate_dcache_page_alias(tmp, phys);
++			__invalidate_icache_page_alias(tmp, phys);
++			phys += PAGE_SIZE;
++		}
+ 		preempt_enable();
+ 
+-		clear_bit(PG_arch_1, &page->flags);
++		clear_bit(PG_arch_1, &folio->flags);
+ 	}
+ #else
+-	if (!PageReserved(page) && !test_bit(PG_arch_1, &page->flags)
++	if (!folio_test_reserved(folio) && !test_bit(PG_arch_1, &folio->flags)
+ 	    && (vma->vm_flags & VM_EXEC) != 0) {
+-		unsigned long paddr = (unsigned long)kmap_atomic(page);
+-		__flush_dcache_page(paddr);
+-		__invalidate_icache_page(paddr);
+-		set_bit(PG_arch_1, &page->flags);
+-		kunmap_atomic((void *)paddr);
++		for (i = 0; i < nr; i++) {
++			void *paddr = kmap_local_folio(folio, i * PAGE_SIZE);
++			__flush_dcache_page((unsigned long)paddr);
++			__invalidate_icache_page((unsigned long)paddr);
++			kunmap_atomic(paddr);
++		}
++		set_bit(PG_arch_1, &folio->flags);
+ 	}
+ #endif
+ }
 -- 
 2.39.1
 
