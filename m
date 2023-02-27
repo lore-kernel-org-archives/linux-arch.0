@@ -2,91 +2,74 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9461C64ED6
-	for <linux-arch@archiver.kernel.org>; Sun, 26 Feb 2023 22:12:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 64D4FC7EE2E
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 07:01:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229568AbjBZWMp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 26 Feb 2023 17:12:45 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33244 "EHLO
+        id S229527AbjB0HBc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Feb 2023 02:01:32 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57278 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229530AbjBZWMo (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 26 Feb 2023 17:12:44 -0500
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4DC931041D
-        for <linux-arch@vger.kernel.org>; Sun, 26 Feb 2023 14:12:42 -0800 (PST)
+        with ESMTP id S229451AbjB0HBb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 02:01:31 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CC0621A495;
+        Sun, 26 Feb 2023 23:01:30 -0800 (PST)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id F3BDEB80C94
-        for <linux-arch@vger.kernel.org>; Sun, 26 Feb 2023 22:12:40 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 478B3C433EF;
-        Sun, 26 Feb 2023 22:12:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-        s=korg; t=1677449559;
-        bh=58rHNWziKG5F+1xvClRR26TGR/kzgtphh1+ss0F3o1k=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=UiT+0xxuBn3xEDjfKMhE+S6nA/FuZ+LuP5xkiXmr+Z26p7zBTGouYiQnhVvpMNQe4
-         72VgieV739lydXF/yzCq6+namJMMvgD8JJR9Z49ozGh6Bsy6ZoXgzNAL7cPtbQkAKe
-         Yw2Hdqhy91RjOwm5mv0YwB7I/7qyguOod5YPTNVs=
-Date:   Sun, 26 Feb 2023 14:12:38 -0800
-From:   Andrew Morton <akpm@linux-foundation.org>
-To:     Nicholas Piggin <npiggin@gmail.com>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Andy Lutomirski <luto@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>, Rik van Riel <riel@redhat.com>,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linuxppc-dev@lists.ozlabs.org
-Subject: Re: [PATCH v7 5/5] powerpc/64s: enable MMU_LAZY_TLB_SHOOTDOWN
-Message-Id: <20230226141238.6ec5fdf7d75dcf2cd4c58ba0@linux-foundation.org>
-In-Reply-To: <20230203071837.1136453-6-npiggin@gmail.com>
-References: <20230203071837.1136453-1-npiggin@gmail.com>
-        <20230203071837.1136453-6-npiggin@gmail.com>
-X-Mailer: Sylpheed 3.7.0 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+        by ams.source.kernel.org (Postfix) with ESMTPS id 30E1FB80C95;
+        Mon, 27 Feb 2023 07:01:29 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 17DC5C433EF;
+        Mon, 27 Feb 2023 07:01:25 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1677481287;
+        bh=yx/JP9DY2+Ns9YVFs9b7YUupR2IltXfb3fYeyIdlu7A=;
+        h=From:To:Cc:Subject:Date:From;
+        b=sQCMBnx+0V3Gmv7jt08xoll+puX2HcX25pJDjIQdeH3qCULUDhqB9/kyBelmHP9R7
+         eEeLzM1MszQi14iFaMSD4eVNHiwYRdbaB81zuZa89n0oLd6fO/xQrgCfqE1fmAhXu3
+         RAzh8DvKCSAqQ8ll20J7ubzHikTYMN4snlwrCTLMT5VuWCKC/KefYUbDCBFAfox53Z
+         ats5QoLwd50Wvi6VvJKRrOj/EfEGHY6Kj6cOULJSq58UDHkR+fiha7/f/tXbBHTkAL
+         Z8MtXFUwFbgXmQyP4bvCHwKI7a2F2CFQGDla762TKw9RLHNSIQ0PBpjCxY8pEKde+E
+         OQeFu1KJSXabQ==
+From:   guoren@kernel.org
+To:     torvalds@linux-foundation.org
+Cc:     arnd@arndb.de, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-csky@vger.kernel.org
+Subject: [GIT PULL] csky changes for v6.3
+Date:   Mon, 27 Feb 2023 02:01:22 -0500
+Message-Id: <20230227070122.1840809-1-guoren@kernel.org>
+X-Mailer: git-send-email 2.36.1
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri,  3 Feb 2023 17:18:37 +1000 Nicholas Piggin <npiggin@gmail.com> wrote:
+Hi Linus,
 
-> On a 16-socket 192-core POWER8 system, the context_switch1_threads
-> benchmark from will-it-scale (see earlier changelog), upstream can
-> achieve a rate of about 1 million context switches per second, due to
-> contention on the mm refcount.
-> 
-> 64s meets the prerequisites for CONFIG_MMU_LAZY_TLB_SHOOTDOWN, so enable
-> the option. This increases the above benchmark to 118 million context
-> switches per second.
+Please pull the latest csky changes from:
 
-Is that the best you can do ;)
+The following changes since commit 1b929c02afd37871d5afb9d498426f83432e71c2:
 
-> This generates 314 additional IPI interrupts on a 144 CPU system doing
-> a kernel compile, which is in the noise in terms of kernel cycles.
-> 
-> ...
->
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -265,6 +265,7 @@ config PPC
->  	select MMU_GATHER_PAGE_SIZE
->  	select MMU_GATHER_RCU_TABLE_FREE
->  	select MMU_GATHER_MERGE_VMAS
-> +	select MMU_LAZY_TLB_SHOOTDOWN		if PPC_BOOK3S_64
->  	select MODULES_USE_ELF_RELA
->  	select NEED_DMA_MAP_STATE		if PPC64 || NOT_COHERENT_CACHE
->  	select NEED_PER_CPU_EMBED_FIRST_CHUNK	if PPC64
+  Linux 6.2-rc1 (2022-12-25 13:41:39 -0800)
 
-Can we please have a summary of which other architectures might benefit
-from this, and what must they do?
+are available in the Git repository at:
 
-As this is powerpc-only, I expect it won't get a lot of testing in
-mm.git or in linux-next.  The powerpc maintainers might choose to merge
-in the mm-stable branch at
-git://git.kernel.org/pub/scm/linux/kernel/git/akpm/mm if this is a
-concern.
+  https://github.com/c-sky/csky-linux.git tags/csky-for-linus-6.3
+
+for you to fetch changes up to 4a3ec00957fdf182be705d46e77acacc430f7d65:
+
+  csky: delay: Add function alignment (2022-12-29 23:47:52 -0500)
+
+----------------------------------------------------------------
+rch/csky patches for 6.3
+
+The pull request we've done:
+ - Optimize delay accuracy
+
+----------------------------------------------------------------
+Jialu Xu (1):
+      csky: delay: Add function alignment
+
+ arch/csky/lib/delay.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
