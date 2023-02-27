@@ -2,39 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 97601C64ED6
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:59:07 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 14801C64ED6
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:59:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229868AbjB0R7F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 27 Feb 2023 12:59:05 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48868 "EHLO
+        id S230510AbjB0R7I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Feb 2023 12:59:08 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49268 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230123AbjB0R6W (ORCPT
+        with ESMTP id S230222AbjB0R6W (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 12:58:22 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CBCE440FB;
-        Mon, 27 Feb 2023 09:57:52 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AAEFA6A56;
+        Mon, 27 Feb 2023 09:57:55 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=u7mDkU53gCVgq34r9bUs2tkHplV8+tfY4mkfvunD0YE=; b=IPHv8AKZiqSONzlPafglSgXacK
-        Wc4fMenOBvLEZCczdgSLSCoZ5N9sQkaHmgYCTwgKPQvZtNPUN1wKyggomeSbyiAVIOKlFsjc4BNgu
-        e+Y/kZkh8uxCpXbgv+3LrlJhmTBQSC9obGnElWoOesJqWlHi0TXOGnpvuitSCMRTWMpi9Pvm0DFui
-        tJi2lPJ83YVqUXbpdazie10mQF1SLZrWSZCWXWutNWYziHmpa0jLLtWQej/sZ15TL+JIagp43EOmO
-        BtstxiXGDPIvhbT4s1ApwzPN8MU9v3zI7U5crLlpPAc1fdNzwuHAPgGjCfR56UEDP7DKIe7aRgnI7
-        sf1PcRPw==;
+        bh=GeBhKEWLK25eomw3eGszIimIpcpbCe83zHF885nubCM=; b=YZy5sGlbchptjVnsHDhmqDLamz
+        iI/XWDhaNjL1I5o/wDXF8+Hd1sJ8vPb8lgaxzq+nWjdl3NuQAQAWPBwkuxjzRpRK/tw4ulnjkHFS6
+        E6c4iQOW8FeTvq5rEdi7YJVS+lyJD++uqIZpwqazTMsTM7CVIda9T43KVS9Ddtju01TmM3hnMwLiP
+        17eln+GkT115lhsgM6I+hrlbBLyLineK4pv86jVfPh/n0wci7kfdtFC9L2p6P/pZvJknIp3vZZ3Ie
+        FOgcFZel3hHCfVxNRCENmCV1jTsYrw05DCKah8ESK/AWYCfPLoP8itHYwSCTm35eYY3OtZ75EQrEX
+        RFTWrSVA==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pWhku-000IXV-K2; Mon, 27 Feb 2023 17:57:44 +0000
+        id 1pWhkx-000IZG-2e; Mon, 27 Feb 2023 17:57:47 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        linux-kernel@vger.kernel.org,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        linux-m68k@lists.linux-m68k.org
-Subject: [PATCH v2 12/30] m68k: Implement the new page table range API
-Date:   Mon, 27 Feb 2023 17:57:23 +0000
-Message-Id: <20230227175741.71216-13-willy@infradead.org>
+Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-kernel@vger.kernel.org,
+        Matthew Wilcox <willy@infradead.org>
+Subject: [PATCH v2 30/30] filemap: Batch PTE mappings
+Date:   Mon, 27 Feb 2023 17:57:41 +0000
+Message-Id: <20230227175741.71216-31-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230227175741.71216-1-willy@infradead.org>
 References: <20230227175741.71216-1-willy@infradead.org>
@@ -44,131 +42,114 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add set_ptes(), update_mmu_cache_range(), flush_icache_pages() and
-flush_dcache_folio().
+From: Yin Fengwei <fengwei.yin@intel.com>
 
+Call set_pte_range() once per contiguous range of the folio instead
+of once per page.  This batches the updates to mm counters and the
+rmap.
+
+With a will-it-scale.page_fault3 like app (change file write
+fault testing to read fault testing. Trying to upstream it to
+will-it-scale at [1]) got 15% performance gain on a 48C/96T
+Cascade Lake test box with 96 processes running against xfs.
+
+Perf data collected before/after the change:
+  18.73%--page_add_file_rmap
+          |
+           --11.60%--__mod_lruvec_page_state
+                     |
+                     |--7.40%--__mod_memcg_lruvec_state
+                     |          |
+                     |           --5.58%--cgroup_rstat_updated
+                     |
+                      --2.53%--__mod_lruvec_state
+                                |
+                                 --1.48%--__mod_node_page_state
+
+  9.93%--page_add_file_rmap_range
+         |
+          --2.67%--__mod_lruvec_page_state
+                    |
+                    |--1.95%--__mod_memcg_lruvec_state
+                    |          |
+                    |           --1.57%--cgroup_rstat_updated
+                    |
+                     --0.61%--__mod_lruvec_state
+                               |
+                                --0.54%--__mod_node_page_state
+
+The running time of __mode_lruvec_page_state() is reduced about 9%.
+
+[1]: https://github.com/antonblanchard/will-it-scale/pull/37
+
+Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org
 ---
- arch/m68k/include/asm/cacheflush_mm.h | 26 +++++++++++++++++---------
- arch/m68k/include/asm/pgtable_mm.h    | 21 ++++++++++++++++++---
- arch/m68k/mm/motorola.c               |  2 +-
- 3 files changed, 36 insertions(+), 13 deletions(-)
+ mm/filemap.c | 36 +++++++++++++++++++++++++-----------
+ 1 file changed, 25 insertions(+), 11 deletions(-)
 
-diff --git a/arch/m68k/include/asm/cacheflush_mm.h b/arch/m68k/include/asm/cacheflush_mm.h
-index 1ac55e7b47f0..d43c8bce149b 100644
---- a/arch/m68k/include/asm/cacheflush_mm.h
-+++ b/arch/m68k/include/asm/cacheflush_mm.h
-@@ -220,24 +220,28 @@ static inline void flush_cache_page(struct vm_area_struct *vma, unsigned long vm
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 07ebd90967a3..40be33b5ee46 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -3486,11 +3486,12 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
+ 	struct file *file = vma->vm_file;
+ 	struct page *page = folio_page(folio, start);
+ 	unsigned int mmap_miss = READ_ONCE(file->f_ra.mmap_miss);
+-	unsigned int ref_count = 0, count = 0;
++	unsigned int count = 0;
++	pte_t *old_ptep = vmf->pte;
  
- /* Push the page at kernel virtual address and clear the icache */
- /* RZ: use cpush %bc instead of cpush %dc, cinv %ic */
--static inline void __flush_page_to_ram(void *vaddr)
-+static inline void __flush_pages_to_ram(void *vaddr, unsigned int nr)
- {
- 	if (CPU_IS_COLDFIRE) {
- 		unsigned long addr, start, end;
- 		addr = ((unsigned long) vaddr) & ~(PAGE_SIZE - 1);
- 		start = addr & ICACHE_SET_MASK;
--		end = (addr + PAGE_SIZE - 1) & ICACHE_SET_MASK;
-+		end = (addr + nr * PAGE_SIZE - 1) & ICACHE_SET_MASK;
- 		if (start > end) {
- 			flush_cf_bcache(0, end);
- 			end = ICACHE_MAX_ADDR;
- 		}
- 		flush_cf_bcache(start, end);
- 	} else if (CPU_IS_040_OR_060) {
--		__asm__ __volatile__("nop\n\t"
--				     ".chip 68040\n\t"
--				     "cpushp %%bc,(%0)\n\t"
--				     ".chip 68k"
--				     : : "a" (__pa(vaddr)));
-+		unsigned long paddr = __pa(vaddr);
-+
-+		while (nr--) {
-+			__asm__ __volatile__("nop\n\t"
-+					     ".chip 68040\n\t"
-+					     "cpushp %%bc,(%0)\n\t"
-+					     ".chip 68k"
-+					     : : "a" (paddr + nr * PAGE_SIZE));
+ 	do {
+-		if (PageHWPoison(page))
+-			continue;
++		if (PageHWPoison(page + count))
++			goto skip;
+ 
+ 		if (mmap_miss > 0)
+ 			mmap_miss--;
+@@ -3500,20 +3501,33 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
+ 		 * handled in the specific fault path, and it'll prohibit the
+ 		 * fault-around logic.
+ 		 */
+-		if (!pte_none(*vmf->pte))
+-			continue;
++		if (!pte_none(vmf->pte[count]))
++			goto skip;
+ 
+ 		if (vmf->address == addr)
+ 			ret = VM_FAULT_NOPAGE;
+ 
+-		ref_count++;
+-		set_pte_range(vmf, folio, page, 1, addr);
+-	} while (vmf->pte++, page++, addr += PAGE_SIZE, ++count < nr_pages);
++		count++;
++		continue;
++skip:
++		if (count) {
++			set_pte_range(vmf, folio, page, count, addr);
++			folio_ref_add(folio, count);
 +		}
- 	} else {
- 		unsigned long _tmp;
- 		__asm__ __volatile__("movec %%cacr,%0\n\t"
-@@ -249,10 +253,14 @@ static inline void __flush_page_to_ram(void *vaddr)
- }
  
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
--#define flush_dcache_page(page)		__flush_page_to_ram(page_address(page))
-+#define flush_dcache_page(page)	__flush_pages_to_ram(page_address(page), 1)
-+#define flush_dcache_folio(folio)		\
-+	__flush_pages_to_ram(folio_address(folio), folio_nr_pages(folio))
- #define flush_dcache_mmap_lock(mapping)		do { } while (0)
- #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
--#define flush_icache_page(vma, page)	__flush_page_to_ram(page_address(page))
-+#define flush_icache_pages(vma, page, nr)	\
-+	__flush_pages_to_ram(page_address(page), nr)
-+#define flush_icache_page(vma, page) flush_icache_pages(vma, page, 1)
- 
- extern void flush_icache_user_page(struct vm_area_struct *vma, struct page *page,
- 				    unsigned long addr, int len);
-diff --git a/arch/m68k/include/asm/pgtable_mm.h b/arch/m68k/include/asm/pgtable_mm.h
-index b93c41fe2067..400206c17c97 100644
---- a/arch/m68k/include/asm/pgtable_mm.h
-+++ b/arch/m68k/include/asm/pgtable_mm.h
-@@ -31,8 +31,20 @@
- 	do{							\
- 		*(pteptr) = (pteval);				\
- 	} while(0)
--#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
- 
-+static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
-+		pte_t *ptep, pte_t pte, unsigned int nr)
-+{
-+	for (;;) {
-+		set_pte(ptep, pte);
-+		if (--nr == 0)
-+			break;
-+		ptep++;
-+		pte_val(pte) += PAGE_SIZE;
+-	/* Restore the vmf->pte */
+-	vmf->pte -= nr_pages;
++		count++;
++		page += count;
++		vmf->pte += count;
++		addr += count * PAGE_SIZE;
++		count = 0;
++	} while (--nr_pages > 0);
++
++	if (count) {
++		set_pte_range(vmf, folio, page, count, addr);
++		folio_ref_add(folio, count);
 +	}
-+}
-+
-+#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
  
- /* PMD_SHIFT determines the size of the area a second-level page table can map */
- #if CONFIG_PGTABLE_LEVELS == 3
-@@ -138,11 +150,14 @@ extern void kernel_set_cachemode(void *addr, unsigned long size, int cmode);
-  * tables contain all the necessary information.  The Sun3 does, but
-  * they are updated on demand.
-  */
--static inline void update_mmu_cache(struct vm_area_struct *vma,
--				    unsigned long address, pte_t *ptep)
-+static inline void update_mmu_cache_range(struct vm_area_struct *vma,
-+		unsigned long address, pte_t *ptep, unsigned int nr)
- {
- }
+-	folio_ref_add(folio, ref_count);
++	vmf->pte = old_ptep;
+ 	WRITE_ONCE(file->f_ra.mmap_miss, mmap_miss);
  
-+#define update_mmu_cache(vma, addr, ptep) \
-+	update_mmu_cache_range(vma, addr, ptep, 1)
-+
- #endif /* !__ASSEMBLY__ */
- 
- /* MMU-specific headers */
-diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
-index 2a375637e007..7784d0fcdf6e 100644
---- a/arch/m68k/mm/motorola.c
-+++ b/arch/m68k/mm/motorola.c
-@@ -81,7 +81,7 @@ static inline void cache_page(void *vaddr)
- 
- void mmu_page_ctor(void *page)
- {
--	__flush_page_to_ram(page);
-+	__flush_pages_to_ram(page, 1);
- 	flush_tlb_kernel_page(page);
- 	nocache_page(page);
- }
+ 	return ret;
 -- 
 2.39.1
 
