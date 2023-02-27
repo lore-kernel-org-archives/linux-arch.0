@@ -2,41 +2,41 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CD61EC7EE2E
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 22:33:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A4D5C64ED6
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 22:33:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229510AbjB0Wca (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 27 Feb 2023 17:32:30 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37906 "EHLO
+        id S230088AbjB0WdC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Feb 2023 17:33:02 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38738 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230294AbjB0Wb6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 17:31:58 -0500
+        with ESMTP id S230102AbjB0WcU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 17:32:20 -0500
 Received: from mga12.intel.com (mga12.intel.com [192.55.52.136])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF12129E26;
-        Mon, 27 Feb 2023 14:31:53 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E4B6F2A142;
+        Mon, 27 Feb 2023 14:31:58 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1677537114; x=1709073114;
+  t=1677537118; x=1709073118;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references;
-  bh=FzRSuSkDyk6//OI0YkurvPKbmt+RZMfvZ31TH5a40rI=;
-  b=XpTQP1tv2cumrq8T4isXSp5lScCzSMsryarxoZQbCGFNao9Ax+N4vPaW
-   OV9JhbLWRhQ4ek79QJ2TltihTt72Onr78+dYkZ+5LPX3fD73S4NZeZ6PY
-   7WZZyZGYV1vHdLx9nGZLExu3sTsrrTQqEh1EAvoC+9ZEIUP7KtwrlNt1k
-   JqXDIsg6RfxeeiAcbPutzCAnlTe3n4nAuW95oPzz/2f92ztwzO9nUdog4
-   6VkzmSlPjFKn7F0DiTh1Jel+7U8qEJr3De/O+WKKQaoGWxemd+nMj4+cO
-   POmZ50GlsYniFCEAroy+8i+AjvHCplWDlyeT/Hxgsnt/HxrslY3UlbDee
-   g==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10634"; a="313657611"
+  bh=iMlXlUo1ewZh0k0SEbwJZr7uR8+MhW0vqvkBqCbDW78=;
+  b=dlAKKFixZ6m8KishZoaSRIKUcSCYPGxX+AzueYXxSD4+orilfYAdTA3g
+   AwD8eLhfqT82jLpG34mlyObPry8htrGq/Xnp0CSw2vLQp3ND40UMhvhae
+   zhOXTvZb3c+wfzcrOt8bgIHJQnxo4xbKe4hq5G7NmURSl7icfv+y6VKEq
+   v7cMHeDx0t7yfd6/Zkk2ZTYa9SdohoPpnUWq5lRjfJHaFbrmxkwbUBV2N
+   C9nXnU/KQteMkk/xA4DsyhdTHyHh5996KL7xYfU5Gx3pOp5p2du+j3mih
+   nRKmzhj7TPXa/uGStLxPJd8CVLZTQ87CygCf0SccQJ9/gYhukvcKeWgBr
+   w==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10634"; a="313657696"
 X-IronPort-AV: E=Sophos;i="5.98,220,1673942400"; 
-   d="scan'208";a="313657611"
+   d="scan'208";a="313657696"
 Received: from orsmga005.jf.intel.com ([10.7.209.41])
-  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Feb 2023 14:31:26 -0800
-X-IronPort-AV: E=McAfee;i="6500,9779,10634"; a="848024675"
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Feb 2023 14:31:29 -0800
+X-IronPort-AV: E=McAfee;i="6500,9779,10634"; a="848024714"
 X-IronPort-AV: E=Sophos;i="5.98,220,1673942400"; 
-   d="scan'208";a="848024675"
+   d="scan'208";a="848024714"
 Received: from leonqu-mobl1.amr.corp.intel.com (HELO rpedgeco-desk.amr.corp.intel.com) ([10.209.72.19])
-  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Feb 2023 14:31:25 -0800
+  by orsmga005-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 27 Feb 2023 14:31:28 -0800
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -66,10 +66,10 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         dethoma@microsoft.com, akpm@linux-foundation.org,
         Andrew.Cooper3@citrix.com, christina.schimpe@intel.com,
         david@redhat.com, debug@rivosinc.com
-Cc:     rick.p.edgecombe@intel.com
-Subject: [PATCH v7 25/41] x86/mm: Introduce MAP_ABOVE4G
-Date:   Mon, 27 Feb 2023 14:29:41 -0800
-Message-Id: <20230227222957.24501-26-rick.p.edgecombe@intel.com>
+Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>
+Subject: [PATCH v7 29/41] x86/shstk: Add user-mode shadow stack support
+Date:   Mon, 27 Feb 2023 14:29:45 -0800
+Message-Id: <20230227222957.24501-30-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20230227222957.24501-1-rick.p.edgecombe@intel.com>
 References: <20230227222957.24501-1-rick.p.edgecombe@intel.com>
@@ -77,121 +77,273 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The x86 Control-flow Enforcement Technology (CET) feature includes a new
-type of memory called shadow stack. This shadow stack memory has some
-unusual properties, which require some core mm changes to function
-properly.
+From: Yu-cheng Yu <yu-cheng.yu@intel.com>
 
-One of the properties is that the shadow stack pointer (SSP), which is a
-CPU register that points to the shadow stack like the stack pointer points
-to the stack, can't be pointing outside of the 32 bit address space when
-the CPU is executing in 32 bit mode. It is desirable to prevent executing
-in 32 bit mode when shadow stack is enabled because the kernel can't easily
-support 32 bit signals.
+Introduce basic shadow stack enabling/disabling/allocation routines.
+A task's shadow stack is allocated from memory with VM_SHADOW_STACK flag
+and has a fixed size of min(RLIMIT_STACK, 4GB).
 
-On x86 it is possible to transition to 32 bit mode without any special
-interaction with the kernel, by doing a "far call" to a 32 bit segment.
-So the shadow stack implementation can use this address space behavior
-as a feature, by enforcing that shadow stack memory is always crated
-outside of the 32 bit address space. This way userspace will trigger a
-general protection fault which will in turn trigger a segfault if it
-tries to transition to 32 bit mode with shadow stack enabled.
+Keep the task's shadow stack address and size in thread_struct. This will
+be copied when cloning new threads, but needs to be cleared during exec,
+so add a function to do this.
 
-This provides a clean error generating border for the user if they try
-attempt to do 32 bit mode shadow stack, rather than leave the kernel in a
-half working state for userspace to be surprised by.
-
-So to allow future shadow stack enabling patches to map shadow stacks
-out of the 32 bit address space, introduce MAP_ABOVE4G. The behavior
-is pretty much like MAP_32BIT, except that it has the opposite address
-range. The are a few differences though.
-
-If both MAP_32BIT and MAP_ABOVE4G are provided, the kernel will use the
-MAP_ABOVE4G behavior. Like MAP_32BIT, MAP_ABOVE4G is ignored in a 32 bit
-syscall.
-
-Since the default search behavior is top down, the normal kaslr base can
-be used for MAP_ABOVE4G. This is unlike MAP_32BIT which has to add it's
-own randomization in the bottom up case.
-
-For MAP_32BIT, only the bottom up search path is used. For MAP_ABOVE4G
-both are potentially valid, so both are used. In the bottomup search
-path, the default behavior is already consistent with MAP_ABOVE4G since
-mmap base should be above 4GB.
-
-Without MAP_ABOVE4G, the shadow stack will already normally be above 4GB.
-So without introducing MAP_ABOVE4G, trying to transition to 32 bit mode
-with shadow stack enabled would usually segfault anyway. This is already
-pretty decent guard rails. But the addition of MAP_ABOVE4G is some small
-complexity spent to make it make it more complete.
+32 bit shadow stack is not expected to have many users and it will
+complicate the signal implementation. So do not support IA32 emulation
+or x32.
 
 Tested-by: Pengfei Xu <pengfei.xu@intel.com>
 Tested-by: John Allen <john.allen@amd.com>
 Tested-by: Kees Cook <keescook@chromium.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
 Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
+Co-developed-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Cc: Kees Cook <keescook@chromium.org>
 
 ---
+v7:
+ - Add explanation for not supporting 32 bit in commit log (Boris)
+
 v5:
- - New patch
----
- arch/x86/include/uapi/asm/mman.h | 1 +
- arch/x86/kernel/sys_x86_64.c     | 6 +++++-
- include/linux/mman.h             | 4 ++++
- 3 files changed, 10 insertions(+), 1 deletion(-)
+ - Switch to EOPNOTSUPP
+ - Use MAP_ABOVE4G
+ - Move set_clr_bits_msrl() to patch where it is first used
 
-diff --git a/arch/x86/include/uapi/asm/mman.h b/arch/x86/include/uapi/asm/mman.h
-index 775dbd3aff73..5a0256e73f1e 100644
---- a/arch/x86/include/uapi/asm/mman.h
-+++ b/arch/x86/include/uapi/asm/mman.h
-@@ -3,6 +3,7 @@
- #define _ASM_X86_MMAN_H
- 
- #define MAP_32BIT	0x40		/* only give out 32bit addresses */
-+#define MAP_ABOVE4G	0x80		/* only map above 4GB */
- 
- #ifdef CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS
- #define arch_calc_vm_prot_bits(prot, key) (		\
-diff --git a/arch/x86/kernel/sys_x86_64.c b/arch/x86/kernel/sys_x86_64.c
-index 8cc653ffdccd..06378b5682c1 100644
---- a/arch/x86/kernel/sys_x86_64.c
-+++ b/arch/x86/kernel/sys_x86_64.c
-@@ -193,7 +193,11 @@ arch_get_unmapped_area_topdown(struct file *filp, const unsigned long addr0,
- 
- 	info.flags = VM_UNMAPPED_AREA_TOPDOWN;
- 	info.length = len;
--	info.low_limit = PAGE_SIZE;
-+	if (!in_32bit_syscall() && (flags & MAP_ABOVE4G))
-+		info.low_limit = 0x100000000;
-+	else
-+		info.low_limit = PAGE_SIZE;
+v4:
+ - Just set MSR_IA32_U_CET when disabling shadow stack, since we don't
+   have IBT yet. (Peterz)
+
+v3:
+ - Use define for set_clr_bits_msrl() (Kees)
+ - Make some functions static (Kees)
+ - Change feature_foo() to features_foo() (Kees)
+ - Centralize shadow stack size rlimit checks (Kees)
+ - Disable x32 support
+
+v2:
+ - Get rid of unnecessary shstk->base checks
+ - Don't support IA32 emulation
+---
+ arch/x86/include/asm/processor.h  |   2 +
+ arch/x86/include/asm/shstk.h      |   7 ++
+ arch/x86/include/uapi/asm/prctl.h |   3 +
+ arch/x86/kernel/shstk.c           | 145 ++++++++++++++++++++++++++++++
+ 4 files changed, 157 insertions(+)
+
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index bd16e012b3e9..ff98cd6d5af2 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -479,6 +479,8 @@ struct thread_struct {
+ #ifdef CONFIG_X86_USER_SHADOW_STACK
+ 	unsigned long		features;
+ 	unsigned long		features_locked;
 +
- 	info.high_limit = get_mmap_base(0);
- 
- 	/*
-diff --git a/include/linux/mman.h b/include/linux/mman.h
-index cee1e4b566d8..40d94411d492 100644
---- a/include/linux/mman.h
-+++ b/include/linux/mman.h
-@@ -15,6 +15,9 @@
- #ifndef MAP_32BIT
- #define MAP_32BIT 0
++	struct thread_shstk	shstk;
  #endif
-+#ifndef MAP_ABOVE4G
-+#define MAP_ABOVE4G 0
-+#endif
- #ifndef MAP_HUGE_2MB
- #define MAP_HUGE_2MB 0
- #endif
-@@ -50,6 +53,7 @@
- 		| MAP_STACK \
- 		| MAP_HUGETLB \
- 		| MAP_32BIT \
-+		| MAP_ABOVE4G \
- 		| MAP_HUGE_2MB \
- 		| MAP_HUGE_1GB)
  
+ 	/* Floating point and extended processor state */
+diff --git a/arch/x86/include/asm/shstk.h b/arch/x86/include/asm/shstk.h
+index ec753809f074..2b1f7c9b9995 100644
+--- a/arch/x86/include/asm/shstk.h
++++ b/arch/x86/include/asm/shstk.h
+@@ -8,12 +8,19 @@
+ struct task_struct;
+ 
+ #ifdef CONFIG_X86_USER_SHADOW_STACK
++struct thread_shstk {
++	u64	base;
++	u64	size;
++};
++
+ long shstk_prctl(struct task_struct *task, int option, unsigned long features);
+ void reset_thread_features(void);
++void shstk_free(struct task_struct *p);
+ #else
+ static inline long shstk_prctl(struct task_struct *task, int option,
+ 			       unsigned long arg2) { return -EINVAL; }
+ static inline void reset_thread_features(void) {}
++static inline void shstk_free(struct task_struct *p) {}
+ #endif /* CONFIG_X86_USER_SHADOW_STACK */
+ 
+ #endif /* __ASSEMBLY__ */
+diff --git a/arch/x86/include/uapi/asm/prctl.h b/arch/x86/include/uapi/asm/prctl.h
+index b2b3b7200b2d..7dfd9dc00509 100644
+--- a/arch/x86/include/uapi/asm/prctl.h
++++ b/arch/x86/include/uapi/asm/prctl.h
+@@ -26,4 +26,7 @@
+ #define ARCH_SHSTK_DISABLE		0x5002
+ #define ARCH_SHSTK_LOCK			0x5003
+ 
++/* ARCH_SHSTK_ features bits */
++#define ARCH_SHSTK_SHSTK		(1ULL <<  0)
++
+ #endif /* _ASM_X86_PRCTL_H */
+diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
+index 41ed6552e0a5..3cb85224d856 100644
+--- a/arch/x86/kernel/shstk.c
++++ b/arch/x86/kernel/shstk.c
+@@ -8,14 +8,159 @@
+ 
+ #include <linux/sched.h>
+ #include <linux/bitops.h>
++#include <linux/types.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/sched/signal.h>
++#include <linux/compat.h>
++#include <linux/sizes.h>
++#include <linux/user.h>
++#include <asm/msr.h>
++#include <asm/fpu/xstate.h>
++#include <asm/fpu/types.h>
++#include <asm/shstk.h>
++#include <asm/special_insns.h>
++#include <asm/fpu/api.h>
+ #include <asm/prctl.h>
+ 
++static bool features_enabled(unsigned long features)
++{
++	return current->thread.features & features;
++}
++
++static void features_set(unsigned long features)
++{
++	current->thread.features |= features;
++}
++
++static void features_clr(unsigned long features)
++{
++	current->thread.features &= ~features;
++}
++
++static unsigned long alloc_shstk(unsigned long size)
++{
++	int flags = MAP_ANONYMOUS | MAP_PRIVATE | MAP_ABOVE4G;
++	struct mm_struct *mm = current->mm;
++	unsigned long addr, unused;
++
++	mmap_write_lock(mm);
++	addr = do_mmap(NULL, addr, size, PROT_READ, flags,
++		       VM_SHADOW_STACK | VM_WRITE, 0, &unused, NULL);
++
++	mmap_write_unlock(mm);
++
++	return addr;
++}
++
++static unsigned long adjust_shstk_size(unsigned long size)
++{
++	if (size)
++		return PAGE_ALIGN(size);
++
++	return PAGE_ALIGN(min_t(unsigned long long, rlimit(RLIMIT_STACK), SZ_4G));
++}
++
++static void unmap_shadow_stack(u64 base, u64 size)
++{
++	while (1) {
++		int r;
++
++		r = vm_munmap(base, size);
++
++		/*
++		 * vm_munmap() returns -EINTR when mmap_lock is held by
++		 * something else, and that lock should not be held for a
++		 * long time.  Retry it for the case.
++		 */
++		if (r == -EINTR) {
++			cond_resched();
++			continue;
++		}
++
++		/*
++		 * For all other types of vm_munmap() failure, either the
++		 * system is out of memory or there is bug.
++		 */
++		WARN_ON_ONCE(r);
++		break;
++	}
++}
++
++static int shstk_setup(void)
++{
++	struct thread_shstk *shstk = &current->thread.shstk;
++	unsigned long addr, size;
++
++	/* Already enabled */
++	if (features_enabled(ARCH_SHSTK_SHSTK))
++		return 0;
++
++	/* Also not supported for 32 bit and x32 */
++	if (!cpu_feature_enabled(X86_FEATURE_USER_SHSTK) || in_32bit_syscall())
++		return -EOPNOTSUPP;
++
++	size = adjust_shstk_size(0);
++	addr = alloc_shstk(size);
++	if (IS_ERR_VALUE(addr))
++		return PTR_ERR((void *)addr);
++
++	fpregs_lock_and_load();
++	wrmsrl(MSR_IA32_PL3_SSP, addr + size);
++	wrmsrl(MSR_IA32_U_CET, CET_SHSTK_EN);
++	fpregs_unlock();
++
++	shstk->base = addr;
++	shstk->size = size;
++	features_set(ARCH_SHSTK_SHSTK);
++
++	return 0;
++}
++
+ void reset_thread_features(void)
+ {
++	memset(&current->thread.shstk, 0, sizeof(struct thread_shstk));
+ 	current->thread.features = 0;
+ 	current->thread.features_locked = 0;
+ }
+ 
++void shstk_free(struct task_struct *tsk)
++{
++	struct thread_shstk *shstk = &tsk->thread.shstk;
++
++	if (!cpu_feature_enabled(X86_FEATURE_USER_SHSTK) ||
++	    !features_enabled(ARCH_SHSTK_SHSTK))
++		return;
++
++	if (!tsk->mm)
++		return;
++
++	unmap_shadow_stack(shstk->base, shstk->size);
++}
++
++static int shstk_disable(void)
++{
++	if (!cpu_feature_enabled(X86_FEATURE_USER_SHSTK))
++		return -EOPNOTSUPP;
++
++	/* Already disabled? */
++	if (!features_enabled(ARCH_SHSTK_SHSTK))
++		return 0;
++
++	fpregs_lock_and_load();
++	/* Disable WRSS too when disabling shadow stack */
++	wrmsrl(MSR_IA32_U_CET, 0);
++	wrmsrl(MSR_IA32_PL3_SSP, 0);
++	fpregs_unlock();
++
++	shstk_free(current);
++	features_clr(ARCH_SHSTK_SHSTK);
++
++	return 0;
++}
++
+ long shstk_prctl(struct task_struct *task, int option, unsigned long features)
+ {
+ 	if (option == ARCH_SHSTK_LOCK) {
 -- 
 2.17.1
 
