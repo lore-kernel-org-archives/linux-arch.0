@@ -2,161 +2,68 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9C7A6C64ED8
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:59:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7EE4FC7EE23
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 18:18:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231132AbjB0R71 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 27 Feb 2023 12:59:27 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48850 "EHLO
+        id S230414AbjB0SSP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Feb 2023 13:18:15 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49760 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230339AbjB0R6Y (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 12:58:24 -0500
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C10F493E5;
-        Mon, 27 Feb 2023 09:57:58 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=y0P5OnBh3qG6d3noGaCIYdmYizhMJwO+EWfJPW8MG4E=; b=jwBU661fwhRTx2pgFu1JSo99dB
-        erx3YENzwwMH9d3DroGaXG1W3RItbbfo9N/DjwKcMsslZ1iA6/kEJdx+svqAVHunopbTc0MdNpb0S
-        MteRpNQE6UgvDKVAx1XMc6ulBgvJsz+MAWxgHoDDWFBdTxcsw+yg1D/7VIIyDKKMXMOEwc0IYLpjh
-        lPWUaQDHTUSju4AzIT8dPRw6m37hGC2S3p0Zl3MJRTZCL3YDPoE2LSA9gebfbdxhGX7Au2L83t6du
-        d87poBinrfCUnYaWN/yhrROEAEFY65qWz9g7vhEBHUv6K5uX5RzrKDPcQd9TWEtay0u2DbvEG8pfC
-        ScoXa+cg==;
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pWhkw-000IZ5-QH; Mon, 27 Feb 2023 17:57:46 +0000
-From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-kernel@vger.kernel.org,
-        Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v2 28/30] rmap: add folio_add_file_rmap_range()
-Date:   Mon, 27 Feb 2023 17:57:39 +0000
-Message-Id: <20230227175741.71216-29-willy@infradead.org>
-X-Mailer: git-send-email 2.37.1
-In-Reply-To: <20230227175741.71216-1-willy@infradead.org>
-References: <20230227175741.71216-1-willy@infradead.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S230239AbjB0SSO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 13:18:14 -0500
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9524661BE;
+        Mon, 27 Feb 2023 10:18:13 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 338E360EEB;
+        Mon, 27 Feb 2023 18:18:13 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 94BE3C433D2;
+        Mon, 27 Feb 2023 18:18:12 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1677521892;
+        bh=wifxpFg+9ozzKuhkGHECcIJvJjaWeKNAZ80glMB2Y04=;
+        h=Subject:From:In-Reply-To:References:Date:To:Cc:From;
+        b=TwtoF6PMT56ZIyIz3rLZWlSJ0TPIUEBK8o32VTTHRkD+lA4TOUOLtvWP/HbvTvIDc
+         lyHvffXCYlPolKy3OYYOoNAGT5duCVzegza/cYEcMSO2UbihUObrIZ8Pcys1RygsHz
+         yymg5cYnFshvVKhcq6VofXt8h6GUGxspwZMws7wI4Nt8XSNEYIPcGI2ck26x/ge+HP
+         wci4x5pHoRLTT1GCTJi8IA5p/+5AOcLA3sD+K8BmLEsB7CFdG8IjBrNRNhpyneHjaE
+         Btf6IKqZQQOXuAD0ui4BJ1s2xXCB9KQ4JJTkUWPn189QcvR2ppFuHUwkjdMCQeTEOd
+         0mbnsokC1A7pg==
+Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
+        by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id 8493AE68D2D;
+        Mon, 27 Feb 2023 18:18:12 +0000 (UTC)
+Subject: Re: [GIT PULL] csky changes for v6.3
+From:   pr-tracker-bot@kernel.org
+In-Reply-To: <20230227070122.1840809-1-guoren@kernel.org>
+References: <20230227070122.1840809-1-guoren@kernel.org>
+X-PR-Tracked-List-Id: <linux-csky.vger.kernel.org>
+X-PR-Tracked-Message-Id: <20230227070122.1840809-1-guoren@kernel.org>
+X-PR-Tracked-Remote: https://github.com/c-sky/csky-linux.git tags/csky-for-linus-6.3
+X-PR-Tracked-Commit-Id: 4a3ec00957fdf182be705d46e77acacc430f7d65
+X-PR-Merge-Tree: torvalds/linux.git
+X-PR-Merge-Refname: refs/heads/master
+X-PR-Merge-Commit-Id: b6cc7a0436906b18f51c3e6b1f41d648bf645bd7
+Message-Id: <167752189253.27343.6537069672314212266.pr-tracker-bot@kernel.org>
+Date:   Mon, 27 Feb 2023 18:18:12 +0000
+To:     guoren@kernel.org
+Cc:     torvalds@linux-foundation.org, arnd@arndb.de,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-csky@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Yin Fengwei <fengwei.yin@intel.com>
+The pull request you sent on Mon, 27 Feb 2023 02:01:22 -0500:
 
-folio_add_file_rmap_range() allows to add pte mapping to a specific
-range of file folio. Comparing to page_add_file_rmap(), it batched
-updates __lruvec_stat for large folio.
+> https://github.com/c-sky/csky-linux.git tags/csky-for-linus-6.3
 
-Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
----
- include/linux/rmap.h |  2 ++
- mm/rmap.c            | 60 +++++++++++++++++++++++++++++++++-----------
- 2 files changed, 48 insertions(+), 14 deletions(-)
+has been merged into torvalds/linux.git:
+https://git.kernel.org/torvalds/c/b6cc7a0436906b18f51c3e6b1f41d648bf645bd7
 
-diff --git a/include/linux/rmap.h b/include/linux/rmap.h
-index b87d01660412..a3825ce81102 100644
---- a/include/linux/rmap.h
-+++ b/include/linux/rmap.h
-@@ -198,6 +198,8 @@ void folio_add_new_anon_rmap(struct folio *, struct vm_area_struct *,
- 		unsigned long address);
- void page_add_file_rmap(struct page *, struct vm_area_struct *,
- 		bool compound);
-+void folio_add_file_rmap_range(struct folio *, struct page *, unsigned int nr,
-+		struct vm_area_struct *, bool compound);
- void page_remove_rmap(struct page *, struct vm_area_struct *,
- 		bool compound);
- 
-diff --git a/mm/rmap.c b/mm/rmap.c
-index bacdb795d5ee..fffdb85a3b3d 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1303,31 +1303,39 @@ void folio_add_new_anon_rmap(struct folio *folio, struct vm_area_struct *vma,
- }
- 
- /**
-- * page_add_file_rmap - add pte mapping to a file page
-- * @page:	the page to add the mapping to
-+ * folio_add_file_rmap_range - add pte mapping to page range of a folio
-+ * @folio:	The folio to add the mapping to
-+ * @page:	The first page to add
-+ * @nr_pages:	The number of pages which will be mapped
-  * @vma:	the vm area in which the mapping is added
-  * @compound:	charge the page as compound or small page
-  *
-+ * The page range of folio is defined by [first_page, first_page + nr_pages)
-+ *
-  * The caller needs to hold the pte lock.
-  */
--void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
--		bool compound)
-+void folio_add_file_rmap_range(struct folio *folio, struct page *page,
-+			unsigned int nr_pages, struct vm_area_struct *vma,
-+			bool compound)
- {
--	struct folio *folio = page_folio(page);
- 	atomic_t *mapped = &folio->_nr_pages_mapped;
--	int nr = 0, nr_pmdmapped = 0;
--	bool first;
-+	unsigned int nr_pmdmapped = 0, first;
-+	int nr = 0;
- 
--	VM_BUG_ON_PAGE(compound && !PageTransHuge(page), page);
-+	VM_WARN_ON_FOLIO(compound && !folio_test_pmd_mappable(folio), folio);
- 
- 	/* Is page being mapped by PTE? Is this its first map to be added? */
- 	if (likely(!compound)) {
--		first = atomic_inc_and_test(&page->_mapcount);
--		nr = first;
--		if (first && folio_test_large(folio)) {
--			nr = atomic_inc_return_relaxed(mapped);
--			nr = (nr < COMPOUND_MAPPED);
--		}
-+		do {
-+			first = atomic_inc_and_test(&page->_mapcount);
-+			if (first && folio_test_large(folio)) {
-+				first = atomic_inc_return_relaxed(mapped);
-+				first = (nr < COMPOUND_MAPPED);
-+			}
-+
-+			if (first)
-+				nr++;
-+		} while (page++, --nr_pages > 0);
- 	} else if (folio_test_pmd_mappable(folio)) {
- 		/* That test is redundant: it's for safety or to optimize out */
- 
-@@ -1356,6 +1364,30 @@ void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
- 	mlock_vma_folio(folio, vma, compound);
- }
- 
-+/**
-+ * page_add_file_rmap - add pte mapping to a file page
-+ * @page:	the page to add the mapping to
-+ * @vma:	the vm area in which the mapping is added
-+ * @compound:	charge the page as compound or small page
-+ *
-+ * The caller needs to hold the pte lock.
-+ */
-+void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
-+		bool compound)
-+{
-+	struct folio *folio = page_folio(page);
-+	unsigned int nr_pages;
-+
-+	VM_WARN_ON_ONCE_PAGE(compound && !PageTransHuge(page), page);
-+
-+	if (likely(!compound))
-+		nr_pages = 1;
-+	else
-+		nr_pages = folio_nr_pages(folio);
-+
-+	folio_add_file_rmap_range(folio, page, nr_pages, vma, compound);
-+}
-+
- /**
-  * page_remove_rmap - take down pte mapping from a page
-  * @page:	page to remove mapping from
+Thank you!
+
 -- 
-2.39.1
-
+Deet-doot-dot, I am a bot.
+https://korg.docs.kernel.org/prtracker.html
