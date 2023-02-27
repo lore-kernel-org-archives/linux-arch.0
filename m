@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 14801C64ED6
-	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:59:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D40FFC7EE2E
+	for <linux-arch@archiver.kernel.org>; Mon, 27 Feb 2023 17:59:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230510AbjB0R7I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 27 Feb 2023 12:59:08 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49268 "EHLO
+        id S230512AbjB0R7L (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 27 Feb 2023 12:59:11 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48904 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230222AbjB0R6W (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 12:58:22 -0500
+        with ESMTP id S230318AbjB0R6X (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2023 12:58:23 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AAEFA6A56;
-        Mon, 27 Feb 2023 09:57:55 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 138166EBB;
+        Mon, 27 Feb 2023 09:57:57 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=GeBhKEWLK25eomw3eGszIimIpcpbCe83zHF885nubCM=; b=YZy5sGlbchptjVnsHDhmqDLamz
-        iI/XWDhaNjL1I5o/wDXF8+Hd1sJ8vPb8lgaxzq+nWjdl3NuQAQAWPBwkuxjzRpRK/tw4ulnjkHFS6
-        E6c4iQOW8FeTvq5rEdi7YJVS+lyJD++uqIZpwqazTMsTM7CVIda9T43KVS9Ddtju01TmM3hnMwLiP
-        17eln+GkT115lhsgM6I+hrlbBLyLineK4pv86jVfPh/n0wci7kfdtFC9L2p6P/pZvJknIp3vZZ3Ie
-        FOgcFZel3hHCfVxNRCENmCV1jTsYrw05DCKah8ESK/AWYCfPLoP8itHYwSCTm35eYY3OtZ75EQrEX
-        RFTWrSVA==;
+        bh=goynt5niP0v9aEgqldbKfY9zrWSKLPIYoftetp9ETpc=; b=h9bwi+L4iRtZ37pWgqIDBoxtKK
+        pTb0mscbPk+KSfX6eWJRu62nCtpffCMdzZYfeziXT/kFRBuLmr/R0d9fcKcjo45DsxzJFwTwSn5ZF
+        +jG4YRFrGOvcwRV50TenIrRq5GOR2gBoyBF7vIEkn38QNcHBFr5DQuAtDCf9WLWskDNCxNBowtSp8
+        wfgQ3pqAJb4RVeWDlrZjPAXMJrSI7OwTZ810kAoSMsN0o3uoupKwo7O+TtaPYy8kK3E/YPbmv8/c8
+        fxQ3q7BfcUr/uq+z8Z+LF/HF38kOVHW2WhKCmA1EDrZXGimqjzk6Hra11Pxc41wRyG2iwhRW7wSr7
+        WMS3O3eA==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pWhkx-000IZG-2e; Mon, 27 Feb 2023 17:57:47 +0000
+        id 1pWhkt-000IWr-6F; Mon, 27 Feb 2023 17:57:43 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-kernel@vger.kernel.org,
-        Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v2 30/30] filemap: Batch PTE mappings
-Date:   Mon, 27 Feb 2023 17:57:41 +0000
-Message-Id: <20230227175741.71216-31-willy@infradead.org>
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH v2 02/30] mm: Add generic flush_icache_pages() and documentation
+Date:   Mon, 27 Feb 2023 17:57:13 +0000
+Message-Id: <20230227175741.71216-3-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230227175741.71216-1-willy@infradead.org>
 References: <20230227175741.71216-1-willy@infradead.org>
@@ -42,114 +42,94 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Yin Fengwei <fengwei.yin@intel.com>
+flush_icache_page() is deprecated but not yet removed, so add
+a range version of it.  Change the documentation to refer to
+update_mmu_cache_range() instead of update_mmu_cache().
 
-Call set_pte_range() once per contiguous range of the folio instead
-of once per page.  This batches the updates to mm counters and the
-rmap.
-
-With a will-it-scale.page_fault3 like app (change file write
-fault testing to read fault testing. Trying to upstream it to
-will-it-scale at [1]) got 15% performance gain on a 48C/96T
-Cascade Lake test box with 96 processes running against xfs.
-
-Perf data collected before/after the change:
-  18.73%--page_add_file_rmap
-          |
-           --11.60%--__mod_lruvec_page_state
-                     |
-                     |--7.40%--__mod_memcg_lruvec_state
-                     |          |
-                     |           --5.58%--cgroup_rstat_updated
-                     |
-                      --2.53%--__mod_lruvec_state
-                                |
-                                 --1.48%--__mod_node_page_state
-
-  9.93%--page_add_file_rmap_range
-         |
-          --2.67%--__mod_lruvec_page_state
-                    |
-                    |--1.95%--__mod_memcg_lruvec_state
-                    |          |
-                    |           --1.57%--cgroup_rstat_updated
-                    |
-                     --0.61%--__mod_lruvec_state
-                               |
-                                --0.54%--__mod_node_page_state
-
-The running time of __mode_lruvec_page_state() is reduced about 9%.
-
-[1]: https://github.com/antonblanchard/will-it-scale/pull/37
-
-Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- mm/filemap.c | 36 +++++++++++++++++++++++++-----------
- 1 file changed, 25 insertions(+), 11 deletions(-)
+ Documentation/core-api/cachetlb.rst | 35 +++++++++++++++--------------
+ include/asm-generic/cacheflush.h    |  5 +++++
+ 2 files changed, 23 insertions(+), 17 deletions(-)
 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 07ebd90967a3..40be33b5ee46 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -3486,11 +3486,12 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
- 	struct file *file = vma->vm_file;
- 	struct page *page = folio_page(folio, start);
- 	unsigned int mmap_miss = READ_ONCE(file->f_ra.mmap_miss);
--	unsigned int ref_count = 0, count = 0;
-+	unsigned int count = 0;
-+	pte_t *old_ptep = vmf->pte;
+diff --git a/Documentation/core-api/cachetlb.rst b/Documentation/core-api/cachetlb.rst
+index 5c0552e78c58..d4c9e2a28d36 100644
+--- a/Documentation/core-api/cachetlb.rst
++++ b/Documentation/core-api/cachetlb.rst
+@@ -88,13 +88,13 @@ changes occur:
  
- 	do {
--		if (PageHWPoison(page))
--			continue;
-+		if (PageHWPoison(page + count))
-+			goto skip;
+ 	This is used primarily during fault processing.
  
- 		if (mmap_miss > 0)
- 			mmap_miss--;
-@@ -3500,20 +3501,33 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
- 		 * handled in the specific fault path, and it'll prohibit the
- 		 * fault-around logic.
- 		 */
--		if (!pte_none(*vmf->pte))
--			continue;
-+		if (!pte_none(vmf->pte[count]))
-+			goto skip;
+-5) ``void update_mmu_cache(struct vm_area_struct *vma,
+-   unsigned long address, pte_t *ptep)``
++5) ``void update_mmu_cache_range(struct vm_area_struct *vma,
++   unsigned long address, pte_t *ptep, unsigned int nr)``
  
- 		if (vmf->address == addr)
- 			ret = VM_FAULT_NOPAGE;
+-	At the end of every page fault, this routine is invoked to
+-	tell the architecture specific code that a translation
+-	now exists at virtual address "address" for address space
+-	"vma->vm_mm", in the software page tables.
++	At the end of every page fault, this routine is invoked to tell
++	the architecture specific code that translations now exists
++	in the software page tables for address space "vma->vm_mm"
++	at virtual address "address" for "nr" consecutive pages.
  
--		ref_count++;
--		set_pte_range(vmf, folio, page, 1, addr);
--	} while (vmf->pte++, page++, addr += PAGE_SIZE, ++count < nr_pages);
-+		count++;
-+		continue;
-+skip:
-+		if (count) {
-+			set_pte_range(vmf, folio, page, count, addr);
-+			folio_ref_add(folio, count);
-+		}
+ 	A port may use this information in any way it so chooses.
+ 	For example, it could use this event to pre-load TLB
+@@ -306,17 +306,18 @@ maps this page at its virtual address.
+ 	private".  The kernel guarantees that, for pagecache pages, it will
+ 	clear this bit when such a page first enters the pagecache.
  
--	/* Restore the vmf->pte */
--	vmf->pte -= nr_pages;
-+		count++;
-+		page += count;
-+		vmf->pte += count;
-+		addr += count * PAGE_SIZE;
-+		count = 0;
-+	} while (--nr_pages > 0);
+-	This allows these interfaces to be implemented much more efficiently.
+-	It allows one to "defer" (perhaps indefinitely) the actual flush if
+-	there are currently no user processes mapping this page.  See sparc64's
+-	flush_dcache_page and update_mmu_cache implementations for an example
+-	of how to go about doing this.
++	This allows these interfaces to be implemented much more
++	efficiently.  It allows one to "defer" (perhaps indefinitely) the
++	actual flush if there are currently no user processes mapping this
++	page.  See sparc64's flush_dcache_page and update_mmu_cache_range
++	implementations for an example of how to go about doing this.
+ 
+-	The idea is, first at flush_dcache_page() time, if page_file_mapping()
+-	returns a mapping, and mapping_mapped on that mapping returns %false,
+-	just mark the architecture private page flag bit.  Later, in
+-	update_mmu_cache(), a check is made of this flag bit, and if set the
+-	flush is done and the flag bit is cleared.
++	The idea is, first at flush_dcache_page() time, if
++	page_file_mapping() returns a mapping, and mapping_mapped on that
++	mapping returns %false, just mark the architecture private page
++	flag bit.  Later, in update_mmu_cache_range(), a check is made
++	of this flag bit, and if set the flush is done and the flag bit
++	is cleared.
+ 
+ 	.. important::
+ 
+@@ -369,7 +370,7 @@ maps this page at its virtual address.
+   ``void flush_icache_page(struct vm_area_struct *vma, struct page *page)``
+ 
+ 	All the functionality of flush_icache_page can be implemented in
+-	flush_dcache_page and update_mmu_cache. In the future, the hope
++	flush_dcache_page and update_mmu_cache_range. In the future, the hope
+ 	is to remove this interface completely.
+ 
+ The final category of APIs is for I/O to deliberately aliased address
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
+index f46258d1a080..09d51a680765 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -78,6 +78,11 @@ static inline void flush_icache_range(unsigned long start, unsigned long end)
+ #endif
+ 
+ #ifndef flush_icache_page
++static inline void flush_icache_pages(struct vm_area_struct *vma,
++				     struct page *page, unsigned int nr)
++{
++}
 +
-+	if (count) {
-+		set_pte_range(vmf, folio, page, count, addr);
-+		folio_ref_add(folio, count);
-+	}
- 
--	folio_ref_add(folio, ref_count);
-+	vmf->pte = old_ptep;
- 	WRITE_ONCE(file->f_ra.mmap_miss, mmap_miss);
- 
- 	return ret;
+ static inline void flush_icache_page(struct vm_area_struct *vma,
+ 				     struct page *page)
+ {
 -- 
 2.39.1
 
