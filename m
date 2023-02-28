@@ -2,37 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 57337C7EE30
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B262BC7EE31
 	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:39:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230159AbjB1VjR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Feb 2023 16:39:17 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51742 "EHLO
+        id S230164AbjB1VjS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Feb 2023 16:39:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53878 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229977AbjB1Vif (ORCPT
+        with ESMTP id S229987AbjB1Vif (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:38:35 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A47A1A7;
-        Tue, 28 Feb 2023 13:37:51 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8B221360AA;
+        Tue, 28 Feb 2023 13:37:50 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=y0P5OnBh3qG6d3noGaCIYdmYizhMJwO+EWfJPW8MG4E=; b=LRdOtZ9ZFkTTxLpXQzhSaFBaCO
-        3LY1E0Ww6W7K84LoUvYzcxA8jYCxW/TlqQ6e5ETaKmaR6l27lmJAZCHy4QLqJdsCEmO7qZVip53ZF
-        aMwH9kSUjY9Bf+LrPeWlxlolBANWfD0tGcMm9aTgIpfam04BFwmZiBTytL1Aj4xW8plPpu1BStvS/
-        YAGcDVb0J/Z34yIZc3XS3bwtDdU70HZuxJiDVtxN9iyhe2H5z0vZJ/avHH5y5dPwdoz5Kv7iNHEzL
-        No0ijIELFIwUqqoIWgpdx38Wg9d+6zY92qOCl4JKw8mVTDyZvnl4BSbK8YBk4+101LB2HCYitNH6F
-        QnOg7n2Q==;
+        bh=ILwuDhxkxYADxt38igbE8Aj0Ns9nbUEIuqdImY95JZY=; b=VNWe56rIvK6ZQNhcT+rHJK9Rdy
+        skcBMuLILWbEoU7cjAt3BHNCVAm56AssVcRXA04yNLAzZmnmgfZfUwNaVIykjqj4hnPBKbxMPlpcx
+        T4RviyPQUrRJzhxs6A3AwdkphUaleY0IoN/RMWVWj14zZvLs0bUyfun08bwmayhgP8EVBtl4nii1W
+        5ocKcCzq9ZlNj1bZNhyr9tSB7h14TOzc5xG+rhr3HXfZPe1P5V1FS8ccJDcbP+k9ViiAWAoCkoFse
+        kp9yri9tUB3927/V55jcrIUlNInZr4q8BrD0kaAGViVdpJDT9mjm/aL66MtXF7MrzXcflmTH00q/C
+        u6D56hEQ==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pX7fL-0018r6-HG; Tue, 28 Feb 2023 21:37:43 +0000
+        id 1pX7fK-0018qE-1v; Tue, 28 Feb 2023 21:37:42 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-kernel@vger.kernel.org,
-        Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v3 32/34] rmap: add folio_add_file_rmap_range()
-Date:   Tue, 28 Feb 2023 21:37:35 +0000
-Message-Id: <20230228213738.272178-33-willy@infradead.org>
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        linux-kernel@vger.kernel.org,
+        "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Subject: [PATCH v3 24/34] sparc64: Implement the new page table range API
+Date:   Tue, 28 Feb 2023 21:37:27 +0000
+Message-Id: <20230228213738.272178-25-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230228213738.272178-1-willy@infradead.org>
 References: <20230228213738.272178-1-willy@infradead.org>
@@ -42,121 +43,457 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Yin Fengwei <fengwei.yin@intel.com>
+Add set_ptes(), update_mmu_cache_range(), flush_dcache_folio() and
+flush_icache_pages().  Convert the PG_dcache_dirty flag from being
+per-page to per-folio.
 
-folio_add_file_rmap_range() allows to add pte mapping to a specific
-range of file folio. Comparing to page_add_file_rmap(), it batched
-updates __lruvec_stat for large folio.
-
-Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 ---
- include/linux/rmap.h |  2 ++
- mm/rmap.c            | 60 +++++++++++++++++++++++++++++++++-----------
- 2 files changed, 48 insertions(+), 14 deletions(-)
+ arch/sparc/include/asm/cacheflush_64.h | 18 ++++--
+ arch/sparc/include/asm/pgtable_64.h    | 25 +++++++--
+ arch/sparc/kernel/smp_64.c             | 56 +++++++++++-------
+ arch/sparc/mm/init_64.c                | 78 +++++++++++++++-----------
+ arch/sparc/mm/tlb.c                    |  5 +-
+ 5 files changed, 117 insertions(+), 65 deletions(-)
 
-diff --git a/include/linux/rmap.h b/include/linux/rmap.h
-index b87d01660412..a3825ce81102 100644
---- a/include/linux/rmap.h
-+++ b/include/linux/rmap.h
-@@ -198,6 +198,8 @@ void folio_add_new_anon_rmap(struct folio *, struct vm_area_struct *,
- 		unsigned long address);
- void page_add_file_rmap(struct page *, struct vm_area_struct *,
- 		bool compound);
-+void folio_add_file_rmap_range(struct folio *, struct page *, unsigned int nr,
-+		struct vm_area_struct *, bool compound);
- void page_remove_rmap(struct page *, struct vm_area_struct *,
- 		bool compound);
+diff --git a/arch/sparc/include/asm/cacheflush_64.h b/arch/sparc/include/asm/cacheflush_64.h
+index b9341836597e..a9a719f04d06 100644
+--- a/arch/sparc/include/asm/cacheflush_64.h
++++ b/arch/sparc/include/asm/cacheflush_64.h
+@@ -35,20 +35,26 @@ void flush_icache_range(unsigned long start, unsigned long end);
+ void __flush_icache_page(unsigned long);
  
-diff --git a/mm/rmap.c b/mm/rmap.c
-index bacdb795d5ee..fffdb85a3b3d 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1303,31 +1303,39 @@ void folio_add_new_anon_rmap(struct folio *folio, struct vm_area_struct *vma,
- }
+ void __flush_dcache_page(void *addr, int flush_icache);
+-void flush_dcache_page_impl(struct page *page);
++void flush_dcache_folio_impl(struct folio *folio);
+ #ifdef CONFIG_SMP
+-void smp_flush_dcache_page_impl(struct page *page, int cpu);
+-void flush_dcache_page_all(struct mm_struct *mm, struct page *page);
++void smp_flush_dcache_folio_impl(struct folio *folio, int cpu);
++void flush_dcache_folio_all(struct mm_struct *mm, struct folio *folio);
+ #else
+-#define smp_flush_dcache_page_impl(page,cpu) flush_dcache_page_impl(page)
+-#define flush_dcache_page_all(mm,page) flush_dcache_page_impl(page)
++#define smp_flush_dcache_folio_impl(folio, cpu) flush_dcache_folio_impl(folio)
++#define flush_dcache_folio_all(mm, folio) flush_dcache_folio_impl(folio)
+ #endif
  
- /**
-- * page_add_file_rmap - add pte mapping to a file page
-- * @page:	the page to add the mapping to
-+ * folio_add_file_rmap_range - add pte mapping to page range of a folio
-+ * @folio:	The folio to add the mapping to
-+ * @page:	The first page to add
-+ * @nr_pages:	The number of pages which will be mapped
-  * @vma:	the vm area in which the mapping is added
-  * @compound:	charge the page as compound or small page
-  *
-+ * The page range of folio is defined by [first_page, first_page + nr_pages)
-+ *
-  * The caller needs to hold the pte lock.
-  */
--void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
--		bool compound)
-+void folio_add_file_rmap_range(struct folio *folio, struct page *page,
-+			unsigned int nr_pages, struct vm_area_struct *vma,
-+			bool compound)
- {
--	struct folio *folio = page_folio(page);
- 	atomic_t *mapped = &folio->_nr_pages_mapped;
--	int nr = 0, nr_pmdmapped = 0;
--	bool first;
-+	unsigned int nr_pmdmapped = 0, first;
-+	int nr = 0;
- 
--	VM_BUG_ON_PAGE(compound && !PageTransHuge(page), page);
-+	VM_WARN_ON_FOLIO(compound && !folio_test_pmd_mappable(folio), folio);
- 
- 	/* Is page being mapped by PTE? Is this its first map to be added? */
- 	if (likely(!compound)) {
--		first = atomic_inc_and_test(&page->_mapcount);
--		nr = first;
--		if (first && folio_test_large(folio)) {
--			nr = atomic_inc_return_relaxed(mapped);
--			nr = (nr < COMPOUND_MAPPED);
--		}
-+		do {
-+			first = atomic_inc_and_test(&page->_mapcount);
-+			if (first && folio_test_large(folio)) {
-+				first = atomic_inc_return_relaxed(mapped);
-+				first = (nr < COMPOUND_MAPPED);
-+			}
-+
-+			if (first)
-+				nr++;
-+		} while (page++, --nr_pages > 0);
- 	} else if (folio_test_pmd_mappable(folio)) {
- 		/* That test is redundant: it's for safety or to optimize out */
- 
-@@ -1356,6 +1364,30 @@ void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
- 	mlock_vma_folio(folio, vma, compound);
- }
- 
-+/**
-+ * page_add_file_rmap - add pte mapping to a file page
-+ * @page:	the page to add the mapping to
-+ * @vma:	the vm area in which the mapping is added
-+ * @compound:	charge the page as compound or small page
-+ *
-+ * The caller needs to hold the pte lock.
-+ */
-+void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
-+		bool compound)
+ void __flush_dcache_range(unsigned long start, unsigned long end);
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+-void flush_dcache_page(struct page *page);
++void flush_dcache_folio(struct folio *folio);
++#define flush_dcache_folio flush_dcache_folio
++static inline void flush_dcache_page(struct page *page)
 +{
-+	struct folio *folio = page_folio(page);
-+	unsigned int nr_pages;
-+
-+	VM_WARN_ON_ONCE_PAGE(compound && !PageTransHuge(page), page);
-+
-+	if (likely(!compound))
-+		nr_pages = 1;
-+	else
-+		nr_pages = folio_nr_pages(folio);
-+
-+	folio_add_file_rmap_range(folio, page, nr_pages, vma, compound);
++	flush_dcache_folio(page_folio(page));
++}
+ 
+ #define flush_icache_page(vma, pg)	do { } while(0)
++#define flush_icache_pages(vma, pg, nr)	do { } while(0)
+ 
+ void flush_ptrace_access(struct vm_area_struct *, struct page *,
+ 			 unsigned long uaddr, void *kaddr,
+diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
+index 2dc8d4641734..d5c0088e0c6a 100644
+--- a/arch/sparc/include/asm/pgtable_64.h
++++ b/arch/sparc/include/asm/pgtable_64.h
+@@ -911,8 +911,20 @@ static inline void __set_pte_at(struct mm_struct *mm, unsigned long addr,
+ 	maybe_tlb_batch_add(mm, addr, ptep, orig, fullmm, PAGE_SHIFT);
+ }
+ 
+-#define set_pte_at(mm,addr,ptep,pte)	\
+-	__set_pte_at((mm), (addr), (ptep), (pte), 0)
++static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
++		pte_t *ptep, pte_t pte, unsigned int nr)
++{
++	for (;;) {
++		__set_pte_at(mm, addr, ptep, pte, 0);
++		if (--nr == 0)
++			break;
++		ptep++;
++		pte_val(pte) += PAGE_SIZE;
++		addr += PAGE_SIZE;
++	}
 +}
 +
- /**
-  * page_remove_rmap - take down pte mapping from a page
-  * @page:	page to remove mapping from
++#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1);
+ 
+ #define pte_clear(mm,addr,ptep)		\
+ 	set_pte_at((mm), (addr), (ptep), __pte(0UL))
+@@ -931,8 +943,8 @@ static inline void __set_pte_at(struct mm_struct *mm, unsigned long addr,
+ 									\
+ 		if (pfn_valid(this_pfn) &&				\
+ 		    (((old_addr) ^ (new_addr)) & (1 << 13)))		\
+-			flush_dcache_page_all(current->mm,		\
+-					      pfn_to_page(this_pfn));	\
++			flush_dcache_folio_all(current->mm,		\
++				page_folio(pfn_to_page(this_pfn)));	\
+ 	}								\
+ 	newpte;								\
+ })
+@@ -947,7 +959,10 @@ struct seq_file;
+ void mmu_info(struct seq_file *);
+ 
+ struct vm_area_struct;
+-void update_mmu_cache(struct vm_area_struct *, unsigned long, pte_t *);
++void update_mmu_cache_range(struct vm_area_struct *, unsigned long addr,
++		pte_t *ptep, unsigned int nr);
++#define update_mmu_cache(vma, addr, ptep) \
++	update_mmu_cache_range(vma, addr, ptep, 1)
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ void update_mmu_cache_pmd(struct vm_area_struct *vma, unsigned long addr,
+ 			  pmd_t *pmd);
+diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
+index a55295d1b924..90ef8677ac89 100644
+--- a/arch/sparc/kernel/smp_64.c
++++ b/arch/sparc/kernel/smp_64.c
+@@ -921,20 +921,26 @@ extern unsigned long xcall_flush_dcache_page_cheetah;
+ #endif
+ extern unsigned long xcall_flush_dcache_page_spitfire;
+ 
+-static inline void __local_flush_dcache_page(struct page *page)
++static inline void __local_flush_dcache_folio(struct folio *folio)
+ {
++	unsigned int i, nr = folio_nr_pages(folio);
++
+ #ifdef DCACHE_ALIASING_POSSIBLE
+-	__flush_dcache_page(page_address(page),
++	for (i = 0; i < nr; i++)
++		__flush_dcache_page(folio_address(folio) + i * PAGE_SIZE,
+ 			    ((tlb_type == spitfire) &&
+-			     page_mapping_file(page) != NULL));
++			     folio_flush_mapping(folio) != NULL));
+ #else
+-	if (page_mapping_file(page) != NULL &&
+-	    tlb_type == spitfire)
+-		__flush_icache_page(__pa(page_address(page)));
++	if (folio_flush_mapping(folio) != NULL &&
++	    tlb_type == spitfire) {
++		unsigned long pfn = folio_pfn(folio)
++		for (i = 0; i < nr; i++)
++			__flush_icache_page((pfn + i) * PAGE_SIZE);
++	}
+ #endif
+ }
+ 
+-void smp_flush_dcache_page_impl(struct page *page, int cpu)
++void smp_flush_dcache_folio_impl(struct folio *folio, int cpu)
+ {
+ 	int this_cpu;
+ 
+@@ -948,14 +954,14 @@ void smp_flush_dcache_page_impl(struct page *page, int cpu)
+ 	this_cpu = get_cpu();
+ 
+ 	if (cpu == this_cpu) {
+-		__local_flush_dcache_page(page);
++		__local_flush_dcache_folio(folio);
+ 	} else if (cpu_online(cpu)) {
+-		void *pg_addr = page_address(page);
++		void *pg_addr = folio_address(folio);
+ 		u64 data0 = 0;
+ 
+ 		if (tlb_type == spitfire) {
+ 			data0 = ((u64)&xcall_flush_dcache_page_spitfire);
+-			if (page_mapping_file(page) != NULL)
++			if (folio_flush_mapping(folio) != NULL)
+ 				data0 |= ((u64)1 << 32);
+ 		} else if (tlb_type == cheetah || tlb_type == cheetah_plus) {
+ #ifdef DCACHE_ALIASING_POSSIBLE
+@@ -963,18 +969,23 @@ void smp_flush_dcache_page_impl(struct page *page, int cpu)
+ #endif
+ 		}
+ 		if (data0) {
+-			xcall_deliver(data0, __pa(pg_addr),
+-				      (u64) pg_addr, cpumask_of(cpu));
++			unsigned int i, nr = folio_nr_pages(folio);
++
++			for (i = 0; i < nr; i++) {
++				xcall_deliver(data0, __pa(pg_addr),
++					      (u64) pg_addr, cpumask_of(cpu));
+ #ifdef CONFIG_DEBUG_DCFLUSH
+-			atomic_inc(&dcpage_flushes_xcall);
++				atomic_inc(&dcpage_flushes_xcall);
+ #endif
++				pg_addr += PAGE_SIZE;
++			}
+ 		}
+ 	}
+ 
+ 	put_cpu();
+ }
+ 
+-void flush_dcache_page_all(struct mm_struct *mm, struct page *page)
++void flush_dcache_folio_all(struct mm_struct *mm, struct folio *folio)
+ {
+ 	void *pg_addr;
+ 	u64 data0;
+@@ -988,10 +999,10 @@ void flush_dcache_page_all(struct mm_struct *mm, struct page *page)
+ 	atomic_inc(&dcpage_flushes);
+ #endif
+ 	data0 = 0;
+-	pg_addr = page_address(page);
++	pg_addr = folio_address(folio);
+ 	if (tlb_type == spitfire) {
+ 		data0 = ((u64)&xcall_flush_dcache_page_spitfire);
+-		if (page_mapping_file(page) != NULL)
++		if (folio_flush_mapping(folio) != NULL)
+ 			data0 |= ((u64)1 << 32);
+ 	} else if (tlb_type == cheetah || tlb_type == cheetah_plus) {
+ #ifdef DCACHE_ALIASING_POSSIBLE
+@@ -999,13 +1010,18 @@ void flush_dcache_page_all(struct mm_struct *mm, struct page *page)
+ #endif
+ 	}
+ 	if (data0) {
+-		xcall_deliver(data0, __pa(pg_addr),
+-			      (u64) pg_addr, cpu_online_mask);
++		unsigned int i, nr = folio_nr_pages(folio);
++
++		for (i = 0; i < nr; i++) {
++			xcall_deliver(data0, __pa(pg_addr),
++				      (u64) pg_addr, cpu_online_mask);
+ #ifdef CONFIG_DEBUG_DCFLUSH
+-		atomic_inc(&dcpage_flushes_xcall);
++			atomic_inc(&dcpage_flushes_xcall);
+ #endif
++			pg_addr += PAGE_SIZE;
++		}
+ 	}
+-	__local_flush_dcache_page(page);
++	__local_flush_dcache_folio(folio);
+ 
+ 	preempt_enable();
+ }
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index 04f9db0c3111..ab9aacbaf43c 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -195,21 +195,26 @@ atomic_t dcpage_flushes_xcall = ATOMIC_INIT(0);
+ #endif
+ #endif
+ 
+-inline void flush_dcache_page_impl(struct page *page)
++inline void flush_dcache_folio_impl(struct folio *folio)
+ {
++	unsigned int i, nr = folio_nr_pages(folio);
++
+ 	BUG_ON(tlb_type == hypervisor);
+ #ifdef CONFIG_DEBUG_DCFLUSH
+ 	atomic_inc(&dcpage_flushes);
+ #endif
+ 
+ #ifdef DCACHE_ALIASING_POSSIBLE
+-	__flush_dcache_page(page_address(page),
+-			    ((tlb_type == spitfire) &&
+-			     page_mapping_file(page) != NULL));
++	for (i = 0; i < nr; i++)
++		__flush_dcache_page(folio_address(folio) + i * PAGE_SIZE,
++				    ((tlb_type == spitfire) &&
++				     folio_flush_mapping(folio) != NULL));
+ #else
+-	if (page_mapping_file(page) != NULL &&
+-	    tlb_type == spitfire)
+-		__flush_icache_page(__pa(page_address(page)));
++	if (folio_flush_mapping(folio) != NULL &&
++	    tlb_type == spitfire) {
++		for (i = 0; i < nr; i++)
++			__flush_icache_page((pfn + i) * PAGE_SIZE);
++	}
+ #endif
+ }
+ 
+@@ -218,10 +223,10 @@ inline void flush_dcache_page_impl(struct page *page)
+ #define PG_dcache_cpu_mask	\
+ 	((1UL<<ilog2(roundup_pow_of_two(NR_CPUS)))-1UL)
+ 
+-#define dcache_dirty_cpu(page) \
+-	(((page)->flags >> PG_dcache_cpu_shift) & PG_dcache_cpu_mask)
++#define dcache_dirty_cpu(folio) \
++	(((folio)->flags >> PG_dcache_cpu_shift) & PG_dcache_cpu_mask)
+ 
+-static inline void set_dcache_dirty(struct page *page, int this_cpu)
++static inline void set_dcache_dirty(struct folio *folio, int this_cpu)
+ {
+ 	unsigned long mask = this_cpu;
+ 	unsigned long non_cpu_bits;
+@@ -238,11 +243,11 @@ static inline void set_dcache_dirty(struct page *page, int this_cpu)
+ 			     "bne,pn	%%xcc, 1b\n\t"
+ 			     " nop"
+ 			     : /* no outputs */
+-			     : "r" (mask), "r" (non_cpu_bits), "r" (&page->flags)
++			     : "r" (mask), "r" (non_cpu_bits), "r" (&folio->flags)
+ 			     : "g1", "g7");
+ }
+ 
+-static inline void clear_dcache_dirty_cpu(struct page *page, unsigned long cpu)
++static inline void clear_dcache_dirty_cpu(struct folio *folio, unsigned long cpu)
+ {
+ 	unsigned long mask = (1UL << PG_dcache_dirty);
+ 
+@@ -260,7 +265,7 @@ static inline void clear_dcache_dirty_cpu(struct page *page, unsigned long cpu)
+ 			     " nop\n"
+ 			     "2:"
+ 			     : /* no outputs */
+-			     : "r" (cpu), "r" (mask), "r" (&page->flags),
++			     : "r" (cpu), "r" (mask), "r" (&folio->flags),
+ 			       "i" (PG_dcache_cpu_mask),
+ 			       "i" (PG_dcache_cpu_shift)
+ 			     : "g1", "g7");
+@@ -284,9 +289,10 @@ static void flush_dcache(unsigned long pfn)
+ 
+ 	page = pfn_to_page(pfn);
+ 	if (page) {
++		struct folio *folio = page_folio(page);
+ 		unsigned long pg_flags;
+ 
+-		pg_flags = page->flags;
++		pg_flags = folio->flags;
+ 		if (pg_flags & (1UL << PG_dcache_dirty)) {
+ 			int cpu = ((pg_flags >> PG_dcache_cpu_shift) &
+ 				   PG_dcache_cpu_mask);
+@@ -296,11 +302,11 @@ static void flush_dcache(unsigned long pfn)
+ 			 * in the SMP case.
+ 			 */
+ 			if (cpu == this_cpu)
+-				flush_dcache_page_impl(page);
++				flush_dcache_folio_impl(folio);
+ 			else
+-				smp_flush_dcache_page_impl(page, cpu);
++				smp_flush_dcache_folio_impl(folio, cpu);
+ 
+-			clear_dcache_dirty_cpu(page, cpu);
++			clear_dcache_dirty_cpu(folio, cpu);
+ 
+ 			put_cpu();
+ 		}
+@@ -388,12 +394,14 @@ bool __init arch_hugetlb_valid_size(unsigned long size)
+ }
+ #endif	/* CONFIG_HUGETLB_PAGE */
+ 
+-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *ptep)
++void update_mmu_cache_range(struct vm_area_struct *vma, unsigned long address,
++		pte_t *ptep, unsigned int nr)
+ {
+ 	struct mm_struct *mm;
+ 	unsigned long flags;
+ 	bool is_huge_tsb;
+ 	pte_t pte = *ptep;
++	unsigned int i;
+ 
+ 	if (tlb_type != hypervisor) {
+ 		unsigned long pfn = pte_pfn(pte);
+@@ -440,15 +448,21 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address, pte_t *
+ 		}
+ 	}
+ #endif
+-	if (!is_huge_tsb)
+-		__update_mmu_tsb_insert(mm, MM_TSB_BASE, PAGE_SHIFT,
+-					address, pte_val(pte));
++	if (!is_huge_tsb) {
++		for (i = 0; i < nr; i++) {
++			__update_mmu_tsb_insert(mm, MM_TSB_BASE, PAGE_SHIFT,
++						address, pte_val(pte));
++			address += PAGE_SIZE;
++			pte_val(pte) += PAGE_SIZE;
++		}
++	}
+ 
+ 	spin_unlock_irqrestore(&mm->context.lock, flags);
+ }
+ 
+-void flush_dcache_page(struct page *page)
++void flush_dcache_folio(struct folio *folio)
+ {
++	unsigned long pfn = folio_pfn(folio);
+ 	struct address_space *mapping;
+ 	int this_cpu;
+ 
+@@ -459,35 +473,35 @@ void flush_dcache_page(struct page *page)
+ 	 * is merely the zero page.  The 'bigcore' testcase in GDB
+ 	 * causes this case to run millions of times.
+ 	 */
+-	if (page == ZERO_PAGE(0))
++	if (is_zero_pfn(pfn))
+ 		return;
+ 
+ 	this_cpu = get_cpu();
+ 
+-	mapping = page_mapping_file(page);
++	mapping = folio_flush_mapping(folio);
+ 	if (mapping && !mapping_mapped(mapping)) {
+-		int dirty = test_bit(PG_dcache_dirty, &page->flags);
++		bool dirty = test_bit(PG_dcache_dirty, &folio->flags);
+ 		if (dirty) {
+-			int dirty_cpu = dcache_dirty_cpu(page);
++			int dirty_cpu = dcache_dirty_cpu(folio);
+ 
+ 			if (dirty_cpu == this_cpu)
+ 				goto out;
+-			smp_flush_dcache_page_impl(page, dirty_cpu);
++			smp_flush_dcache_folio_impl(folio, dirty_cpu);
+ 		}
+-		set_dcache_dirty(page, this_cpu);
++		set_dcache_dirty(folio, this_cpu);
+ 	} else {
+ 		/* We could delay the flush for the !page_mapping
+ 		 * case too.  But that case is for exec env/arg
+ 		 * pages and those are %99 certainly going to get
+ 		 * faulted into the tlb (and thus flushed) anyways.
+ 		 */
+-		flush_dcache_page_impl(page);
++		flush_dcache_folio_impl(folio);
+ 	}
+ 
+ out:
+ 	put_cpu();
+ }
+-EXPORT_SYMBOL(flush_dcache_page);
++EXPORT_SYMBOL(flush_dcache_folio);
+ 
+ void __kprobes flush_icache_range(unsigned long start, unsigned long end)
+ {
+@@ -2280,10 +2294,10 @@ void __init paging_init(void)
+ 	setup_page_offset();
+ 
+ 	/* These build time checkes make sure that the dcache_dirty_cpu()
+-	 * page->flags usage will work.
++	 * folio->flags usage will work.
+ 	 *
+ 	 * When a page gets marked as dcache-dirty, we store the
+-	 * cpu number starting at bit 32 in the page->flags.  Also,
++	 * cpu number starting at bit 32 in the folio->flags.  Also,
+ 	 * functions like clear_dcache_dirty_cpu use the cpu mask
+ 	 * in 13-bit signed-immediate instruction fields.
+ 	 */
+diff --git a/arch/sparc/mm/tlb.c b/arch/sparc/mm/tlb.c
+index 9a725547578e..3fa6a070912d 100644
+--- a/arch/sparc/mm/tlb.c
++++ b/arch/sparc/mm/tlb.c
+@@ -118,6 +118,7 @@ void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr,
+ 		unsigned long paddr, pfn = pte_pfn(orig);
+ 		struct address_space *mapping;
+ 		struct page *page;
++		struct folio *folio;
+ 
+ 		if (!pfn_valid(pfn))
+ 			goto no_cache_flush;
+@@ -127,13 +128,13 @@ void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr,
+ 			goto no_cache_flush;
+ 
+ 		/* A real file page? */
+-		mapping = page_mapping_file(page);
++		mapping = folio_flush_mapping(folio);
+ 		if (!mapping)
+ 			goto no_cache_flush;
+ 
+ 		paddr = (unsigned long) page_address(page);
+ 		if ((paddr ^ vaddr) & (1 << 13))
+-			flush_dcache_page_all(mm, page);
++			flush_dcache_folio_all(mm, folio);
+ 	}
+ 
+ no_cache_flush:
 -- 
 2.39.1
 
