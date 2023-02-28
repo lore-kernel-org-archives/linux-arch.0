@@ -2,168 +2,101 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 14C44C64ED6
-	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 20:23:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 65FFCC7EE33
+	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:37:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229520AbjB1UXc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Feb 2023 15:23:32 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45762 "EHLO
+        id S229894AbjB1Vhq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Feb 2023 16:37:46 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51706 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229544AbjB1UXb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 15:23:31 -0500
-Received: from mout.gmx.net (mout.gmx.net [212.227.15.15])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 72E6F30B22;
-        Tue, 28 Feb 2023 12:23:04 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=gmx.de; s=s31663417;
-        t=1677615752; i=deller@gmx.de;
-        bh=mMIeglln83RQh/7wRZEKK1o/NLvQ+p7BkhZ5ZuPVbIU=;
-        h=X-UI-Sender-Class:Date:Subject:From:To:Cc:References:In-Reply-To;
-        b=cBEe29uFuAf87w1SYnm3RouqwXZ52uB9EL4JqVmnVswWSfJz2ZBc3oVfiVXlOmsZf
-         yCpz8KatgjbzL8NnWbgIGTHHG3H1og6MZiGVR0HPExymd2MPKPv+v5ogfjm5TSspHG
-         QOzGDrJETybhARUAMnMsYTCfyUctOWPzv9ejLNHpENk1EKMnAsV9G0c+h7BWbFFW0R
-         5BLh08hzgNC71BfuNPxlBMIBtNzgyX5o1m5biho/jXMzrHkVVNw0bRABlA0PEqFlvM
-         v3QwiCfTkM2fnu0iJY/vr4amYfST/AiIgV994p9JF9I8eRuDq9lOM4llwju0hcv4bd
-         jnF8PiguJYevQ==
-X-UI-Sender-Class: 724b4f7f-cbec-4199-ad4e-598c01a50d3a
-Received: from [192.168.20.60] ([92.116.156.241]) by mail.gmx.net (mrgmx005
- [212.227.17.190]) with ESMTPSA (Nemesis) id 1N17Ye-1oUnZK153a-012aKI; Tue, 28
- Feb 2023 21:22:32 +0100
-Message-ID: <2646c13f-33b8-1047-7cfe-bf7e394344b6@gmx.de>
-Date:   Tue, 28 Feb 2023 21:22:31 +0100
+        with ESMTP id S229836AbjB1Vhp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:37:45 -0500
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BF8D73403E;
+        Tue, 28 Feb 2023 13:37:41 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=4/i61ZL50yz6ye25FSWBiGacTMwROTdk2fb5bLUdjZQ=; b=V7oeXdyWrSBQgRuryxvAjDdmK/
+        PmEA/0paMrtQ6HBE6tePsYJZz6k8Eh2IV/Cduw5PCatHygY5uf1HHh9QXAJPpxd+2Gt1XNNJ38oBs
+        7jgK2jLi0kEqTGbXcVMBwUjbU8B8InVRi5eVhNtY/7bIXj5PQ0pDmofSBVZsUlt31MoRZzGWn21xe
+        ShtzNNaoqjpLDJEoZAQx6SbSpLUGkzQUxHAln8/TjK2Ab5c/gDiu2+elc2SGxedi70Wnn4dR15nyK
+        UfY0ANK45Jvq1+6mUEFQF1tYFeZx/1od4+UoclrTdV+pqDp7Fq4FbeDqoDP2CwXIOnaiRJmBGcjTR
+        1cStI3qg==;
+Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1pX7fH-0018oY-P6; Tue, 28 Feb 2023 21:37:39 +0000
+From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        linux-kernel@vger.kernel.org
+Subject: [PATCH v3 03/34] mm: Add folio_flush_mapping()
+Date:   Tue, 28 Feb 2023 21:37:06 +0000
+Message-Id: <20230228213738.272178-4-willy@infradead.org>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20230228213738.272178-1-willy@infradead.org>
+References: <20230228213738.272178-1-willy@infradead.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.8.0
-Subject: Re: [PATCH 08/10] parisc: fix livelock in uaccess
-Content-Language: en-US
-From:   Helge Deller <deller@gmx.de>
-To:     Al Viro <viro@zeniv.linux.org.uk>
-Cc:     linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
-References: <Y9lz6yk113LmC9SI@ZenIV> <Y9l0w4M91DwYLO3N@ZenIV>
- <84b1c2e4-c096-ed19-9701-472b54a4890c@gmx.de> <Y/47PMmpLDX5lPWx@ZenIV>
- <e9972a0e-14e6-987c-fcee-005a50d28e46@gmx.de> <Y/5Sf3fXn0uOUXTw@ZenIV>
- <39436c4d-f5a2-edd5-24ba-19e4812ea364@gmx.de>
- <215b226f-7ffd-70d8-4e7b-85b37f288062@gmx.de>
-In-Reply-To: <215b226f-7ffd-70d8-4e7b-85b37f288062@gmx.de>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: quoted-printable
-X-Provags-ID: V03:K1:m27YsgZtZ8ksJeQxfq1aJIP7UA0lwVViGKacyAWC0goMIGYtCSA
- 5OzzU8FcEkdemFIi+VOK7Ux05yk7/kPo0hRMK+78g9H0hNiU1YyQeI9S96Q9lOJn37h/r0/
- WQPDJU2Is2XpH+E0hyjVpT5v3tax1+LMscAxqeijakONn0Nyw2q4q7v7HXWqKCozrFKo9E+
- 6zw2uS4d0TPcsTt+I8D8A==
-UI-OutboundReport: notjunk:1;M01:P0:UlbeYbijYU8=;47pdr1/iyn9bO5BN1seb4oDWNxl
- mAt0VW2p1/13tHe3OVYXTrE5kbw+euu2riKyf/+W6cFv9+P/c0qGD+w9a0dcS9yk1ZiGi4NBO
- /ajB5pWoqF6LsV1/HPmG2Rkhb9O04k5/IO8dKMLPGJNHbTGYyAWM/4ZgjD/1Moa9J776b3zM+
- ulr5vuE6Ehddxv2CoUrre45fUEQtytEJUTtX1lJ5KvGz848UnCZTtpIAVLVlfvnAdMfVCbEwh
- /loD+lBNF440gr+fhjgr1ZsA5ghGa1sZs5uN1c1vBjKv3U30G/dKaI89ZlWKD80AV8V4xw2sq
- wV95EOV8twE06gFPl0UmzKFNPv0w4x7eHK1guggfJmXrcV1e4s+8RbktJQ48ZHGnp3JERW5V9
- PL52Dq1SAhfmJG38V+Hatvuea6FkPBDkAp5LmqXhfUmWp+tMSFqNnJVCy4lW5g9hxwoWebX3H
- jPMk9VFSMXJaUYf/LtRPVwvv9b0HNkeg52sGFj1YDg7Ix8lgxOAScsYV3l/+iOsI/5+6y8Cnu
- WEFF5UGrNt7d4KB3gXL2UegSkwGzfZVbyWZVXL+UFJ1Qf6GJpVI27x2TKP+M2Q3HGPOs2NXr/
- Smh/gTVdQm2/nRXELGi1iKDmMX3J+y9u1nQzrtxPqdSP3GgPq0zZKDikfQrn+u0CXZrynIrto
- lx/eu4R9Z1yuER5Ewse8+DHjc+cIwJhgQrHjs4SRMj7UV6J3BaFcBp4A0Wzk9Al8QXgiKp4SU
- Syf7itOf+D1crfcU3ITnk5egKnzTKLAfIgh7/u4KgDr2czP/5GvED7O4KOA/phTA89lVS9/aq
- YhzEtguoNHerlGk2QZ+Bk1Z8T3KntotJtqfIRxupqVO81uj0Lu5f2xk/+g2J+vU9WLs3IaZ8O
- prYZKlHb2Dx3JGrzO1Q1vURngPB4kqEyGcmmcHVK0Ku878sKmC5ngA/jM4Gbjv6PaFxMBl+Ct
- 0iS9hOM4BxPZzg3s4yBuWTMUyPM=
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Al,
+This is the folio equivalent of page_mapping_file(), but rename it
+to make it clear that it's very different from page_file_mapping().
+Theoretically, there's nothing flush-only about it, but there are no
+other users today, and I doubt there will be; it's almost always more
+useful to know the swapfile's mapping or the swapcache's mapping.
 
-On 2/28/23 21:00, Helge Deller wrote:
-> On 2/28/23 20:32, Helge Deller wrote:
->> Hi Al,
->>
->> On 2/28/23 20:14, Al Viro wrote:
->>> On Tue, Feb 28, 2023 at 07:26:48PM +0100, Helge Deller wrote:
->>>
->>>> I can test both parisc32 and parisc64.
->>>>
->>>>> =C2=A0=C2=A0=C2=A0=C2=A0Just to confirm: your "can be killed with ^C=
-" had been on the
->>>>> mainline parisc kernel (with userfaultfd enable, of course, or it wo=
-uldn't
->>>>> hang up at all), right?
->>>>
->>>> It was a recent mainline kernel with your patch.
->>>
->>> Er...=C2=A0 Reproducer *is* supposed to block; the bug is that on the =
-kernel
->>> without this patch it would (AFAICS) be impossible to kill - not even
->>> with kill -9.=C2=A0 With bug fixed the behaviour should be "blocks and=
- is
->>> killable", i.e. what you've reported.
->>>
->>> What does it do on unpatched kernel?=C2=A0 *IF* the big is there, it w=
-ould
->>> block and be unkillable by any means.=C2=A0 Could you verify that?
->>
->> I just tried 32- and 64-bit kernels.
->> With and without your patch on top of kernel 6.2.
->> The result is always the same:
->> The process hangs, but does not consume CPU and can be killed with ^C o=
-r kill command.
->>
->> strace output is:
->>
->> userfaultfd(0)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0 =3D 3
->> ioctl(3, UFFDIO_API, {api=3D0xaa, features=3D0 =3D> features=3DUFFD_FEA=
-TURE_EVENT_FORK|UFFD_FEATURE_EVENT_REMAP|UFFD_FEATURE_EVENT_REMOVE|UFFD_FE=
-ATURE_MISSING_HUGETLBFS|UFFD_FEATURE_MISSING_SHMEM|UFFD_FEATURE_EVENT_UNMA=
-P|UFFD_FEATURE_SIGBUS|UFFD_FEATURE_THREAD_ID|0x800, ioctls=3D1<<_UFFDIO_RE=
-GISTER|1<<_UFFDIO_UNREGISTER|1<<_UFFDIO_API}) =3D 0
->> ioctl(3, UFFDIO_REGISTER, {range=3D{start=3D0xf7afa000, len=3D0x1000}, =
-mode=3DUFFDIO_REGISTER_MODE_MISSING, ioctls=3D1<<_UFFDIO_WAKE|1<<_UFFDIO_C=
-OPY|1<<_UFFDIO_ZEROPAGE}) =3D 0
->> fstatfs64(0, 88, {f_type=3DDEVPTS_SUPER_MAGIC, f_bsize=3D4096, f_blocks=
-=3D0, f_bfree=3D0, f_bavail=3D0, f_files=3D0, f_ffree=3D0, f_fsid=3D{val=
-=3D[0, 0]}, f_namelen=3D255, f_frsize=3D4096, f_flags=3DST_VALID|ST_NOSUID=
-|ST_NOEXEC|ST_RELATIME}) =3D 0
->
-> Ok, one step further...
->
-> We get fooled by glibc, which replaces this line in the testcase:
->  =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 ret =3D fstatfs(0, (struct s=
-tatfs *)mem);
-> and instead executes the 64-bit variant fstatfs64() inside a wrapper in =
-glibc on another address.
->
-> I replaced that line in the testcase to use the 32-bit syscall with the =
-right (userfault-specified) address by
->  =C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0 ret =3D syscall(__NR_fstatfs=
-, 0, mem);
-> and now I see:
-> userfaultfd(0)=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0=C2=
-=A0=C2=A0=C2=A0=C2=A0 =3D 3
-> ioctl(3, UFFDIO_API, {api=3D0xaa, features=3D0 =3D> features=3DUFFD_FEAT=
-URE_EVENT_FORK|UFFD_FEATURE_EVENT_REMAP|UFFD_FEATURE_EVENT_REMOVE|UFFD_FEA=
-TURE_MISSING_HUGETLBFS|UFFD_FEATURE_MISSING_SHMEM|UFFD_FEATURE_EVENT_UNMAP=
-|UFFD_FEATURE_SIGBUS|UFFD_FEATURE_THREAD_ID|0x800, ioctls=3D1<<_UFFDIO_REG=
-ISTER|1<<_UFFDIO_UNREGISTER|1<<_UFFDIO_API}) =3D 0
-> ioctl(3, UFFDIO_REGISTER, {range=3D{start=3D0xf7afa000, len=3D0x1000}, m=
-ode=3DUFFDIO_REGISTER_MODE_MISSING, ioctls=3D1<<_UFFDIO_WAKE|1<<_UFFDIO_CO=
-PY|1<<_UFFDIO_ZEROPAGE}) =3D 0
-> fstatfs(0,
-> <here it hangs now and is unkillable>
->
-> Needs further testing.
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ include/linux/pagemap.h | 26 +++++++++++++++++++++-----
+ 1 file changed, 21 insertions(+), 5 deletions(-)
 
-Now I can confirm (with the adjusted reproducer), that your patch
-allows to kill the process with SIGKILL, while without your patch
-it's not possibe to kill the process at all.
-I've tested with a 32- and 64-bit parisc kernel.
+diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
+index 51b75b89730e..1b1ba3d5100d 100644
+--- a/include/linux/pagemap.h
++++ b/include/linux/pagemap.h
+@@ -369,6 +369,26 @@ static inline struct address_space *folio_file_mapping(struct folio *folio)
+ 	return folio->mapping;
+ }
+ 
++/**
++ * folio_flush_mapping - Find the file mapping this folio belongs to.
++ * @folio: The folio.
++ *
++ * For folios which are in the page cache, return the mapping that this
++ * page belongs to.  Anonymous folios return NULL, even if they're in
++ * the swap cache.  Other kinds of folio also return NULL.
++ *
++ * This is ONLY used by architecture cache flushing code.  If you aren't
++ * writing cache flushing code, you want either folio_mapping() or
++ * folio_file_mapping().
++ */
++static inline struct address_space *folio_flush_mapping(struct folio *folio)
++{
++	if (unlikely(folio_test_swapcache(folio)))
++		return NULL;
++
++	return folio_mapping(folio);
++}
++
+ static inline struct address_space *page_file_mapping(struct page *page)
+ {
+ 	return folio_file_mapping(page_folio(page));
+@@ -379,11 +399,7 @@ static inline struct address_space *page_file_mapping(struct page *page)
+  */
+ static inline struct address_space *page_mapping_file(struct page *page)
+ {
+-	struct folio *folio = page_folio(page);
+-
+-	if (unlikely(folio_test_swapcache(folio)))
+-		return NULL;
+-	return folio_mapping(folio);
++	return folio_flush_mapping(page_folio(page));
+ }
+ 
+ /**
+-- 
+2.39.1
 
-You may add
-Tested-by: Helge Deller <deller@gmx.de> # parisc
-to the patch.
-
-If you want me to take the patch (with the warning regarding missing msg v=
-ariable fixed)
-through the parisc tree, please let me know.
-
-Thank you!
-Helge
