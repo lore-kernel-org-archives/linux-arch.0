@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 65E96C64EC7
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EE973C7EE30
 	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:38:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229700AbjB1Vih (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Feb 2023 16:38:37 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51742 "EHLO
+        id S230064AbjB1Vik (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Feb 2023 16:38:40 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51690 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229988AbjB1ViF (ORCPT
+        with ESMTP id S229990AbjB1ViF (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:38:05 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BEC8F3403B;
-        Tue, 28 Feb 2023 13:37:44 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1AE8C35274;
+        Tue, 28 Feb 2023 13:37:45 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=ohh0hBicoR9cEJC1f0QXvtIvk3E2NGoKfRsPDD6eKkI=; b=C4l9hofg4rXftyXEerYvPHhQWb
-        dfQB5LKm+FDa6C47uGBFnFC3zM3BryxXu8sj/gjDOY2O+D49YhfYWpVTZxEV/shabx37cO1Dva5zN
-        D3mCsa9NIAKTpB7OrGAFf8e+244BialSZcSfy1ocAy27AG1DniLnfMQPg8aRpFWr/OMM6UK1Mkpxv
-        W0As55hUkjr87Ho6l/vHOgFkeKR8CsjU1Un3j625SmEIZ3v+hTCZK+nvQnTAQOlaNV29QcYwvG8zF
-        YfTNGdH3SPPddEAtGGWqWC+fugeAGBF4tEhu7ueNcMRAbblnJOP5ra5PWDQ3HUsUpBnaOyHqPvSza
-        PlHdlyag==;
+        bh=Yzj6cO2/vJ4MfYZK59aIBqu3Kv7SFJ8gH5oZ5flVgEs=; b=OD1wQ9FRkxcghMLJg6Ce5C0ga2
+        cmeah8bBnDlnApT7w9eP4jLoOHWe5LOWJvaXjzySJToJ/ri5lFa/WPRrYlKCBfTnoTOy61IeVDPmi
+        68qgaO505JobxikfyskgY9xbNje+JqFPUysl0cnN+vEVR3pgREX8J89OLKMHl/TqyyAVjEpnol4zA
+        mWNvomzEhL2O9QcgO/0OOrJvu8ccybEFryAof/kx97tzFyUluCPOeKa3/0cjX3UTPkb/j9069P53J
+        +Cg4IG3uFwzyjrZHabcHWuf84tIb4VxnYUxvHW0kGOEgevnxc29eSy5Y6qNTUzaF2UnG761WUlGH0
+        nbiy8g/A==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pX7fH-0018oU-J8; Tue, 28 Feb 2023 21:37:39 +0000
+        id 1pX7fL-0018qr-6O; Tue, 28 Feb 2023 21:37:43 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-kernel@vger.kernel.org
-Subject: [PATCH v3 01/34] mm: Convert page_table_check_pte_set() to page_table_check_ptes_set()
-Date:   Tue, 28 Feb 2023 21:37:04 +0000
-Message-Id: <20230228213738.272178-2-willy@infradead.org>
+Subject: [PATCH v3 30/34] mm: Use flush_icache_pages() in do_set_pmd()
+Date:   Tue, 28 Feb 2023 21:37:33 +0000
+Message-Id: <20230228213738.272178-31-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230228213738.272178-1-willy@infradead.org>
 References: <20230228213738.272178-1-willy@infradead.org>
@@ -42,134 +42,28 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Tell the page table check how many PTEs & PFNs we want it to check.
+Push the iteration over each page down to the architectures (many
+can flush the entire THP without iteration).
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- arch/arm64/include/asm/pgtable.h |  2 +-
- arch/riscv/include/asm/pgtable.h |  2 +-
- arch/x86/include/asm/pgtable.h   |  2 +-
- include/linux/page_table_check.h | 14 +++++++-------
- mm/page_table_check.c            | 14 ++++++++------
- 5 files changed, 18 insertions(+), 16 deletions(-)
+ mm/memory.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
-index b6ba466e2e8a..69765dc697af 100644
---- a/arch/arm64/include/asm/pgtable.h
-+++ b/arch/arm64/include/asm/pgtable.h
-@@ -358,7 +358,7 @@ static inline void __set_pte_at(struct mm_struct *mm, unsigned long addr,
- static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- 			      pte_t *ptep, pte_t pte)
- {
--	page_table_check_pte_set(mm, addr, ptep, pte);
-+	page_table_check_ptes_set(mm, addr, ptep, pte, 1);
- 	return __set_pte_at(mm, addr, ptep, pte);
- }
+diff --git a/mm/memory.c b/mm/memory.c
+index bfa3100ec5a3..69e844d5f75c 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -4222,8 +4222,7 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
+ 	if (unlikely(!pmd_none(*vmf->pmd)))
+ 		goto out;
  
-diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index ab05f892d317..b516f3b59616 100644
---- a/arch/riscv/include/asm/pgtable.h
-+++ b/arch/riscv/include/asm/pgtable.h
-@@ -459,7 +459,7 @@ static inline void __set_pte_at(struct mm_struct *mm,
- static inline void set_pte_at(struct mm_struct *mm,
- 	unsigned long addr, pte_t *ptep, pte_t pteval)
- {
--	page_table_check_pte_set(mm, addr, ptep, pteval);
-+	page_table_check_ptes_set(mm, addr, ptep, pteval, 1);
- 	__set_pte_at(mm, addr, ptep, pteval);
- }
+-	for (i = 0; i < HPAGE_PMD_NR; i++)
+-		flush_icache_page(vma, page + i);
++	flush_icache_pages(vma, page, HPAGE_PMD_NR);
  
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 7425f32e5293..84be3e07b112 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1022,7 +1022,7 @@ static inline pud_t native_local_pudp_get_and_clear(pud_t *pudp)
- static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- 			      pte_t *ptep, pte_t pte)
- {
--	page_table_check_pte_set(mm, addr, ptep, pte);
-+	page_table_check_ptes_set(mm, addr, ptep, pte, 1);
- 	set_pte(ptep, pte);
- }
- 
-diff --git a/include/linux/page_table_check.h b/include/linux/page_table_check.h
-index 01e16c7696ec..ba269c7009e4 100644
---- a/include/linux/page_table_check.h
-+++ b/include/linux/page_table_check.h
-@@ -20,8 +20,8 @@ void __page_table_check_pmd_clear(struct mm_struct *mm, unsigned long addr,
- 				  pmd_t pmd);
- void __page_table_check_pud_clear(struct mm_struct *mm, unsigned long addr,
- 				  pud_t pud);
--void __page_table_check_pte_set(struct mm_struct *mm, unsigned long addr,
--				pte_t *ptep, pte_t pte);
-+void __page_table_check_ptes_set(struct mm_struct *mm, unsigned long addr,
-+				pte_t *ptep, pte_t pte, unsigned int nr);
- void __page_table_check_pmd_set(struct mm_struct *mm, unsigned long addr,
- 				pmd_t *pmdp, pmd_t pmd);
- void __page_table_check_pud_set(struct mm_struct *mm, unsigned long addr,
-@@ -73,14 +73,14 @@ static inline void page_table_check_pud_clear(struct mm_struct *mm,
- 	__page_table_check_pud_clear(mm, addr, pud);
- }
- 
--static inline void page_table_check_pte_set(struct mm_struct *mm,
-+static inline void page_table_check_ptes_set(struct mm_struct *mm,
- 					    unsigned long addr, pte_t *ptep,
--					    pte_t pte)
-+					    pte_t pte, unsigned int nr)
- {
- 	if (static_branch_likely(&page_table_check_disabled))
- 		return;
- 
--	__page_table_check_pte_set(mm, addr, ptep, pte);
-+	__page_table_check_ptes_set(mm, addr, ptep, pte, nr);
- }
- 
- static inline void page_table_check_pmd_set(struct mm_struct *mm,
-@@ -138,9 +138,9 @@ static inline void page_table_check_pud_clear(struct mm_struct *mm,
- {
- }
- 
--static inline void page_table_check_pte_set(struct mm_struct *mm,
-+static inline void page_table_check_ptes_set(struct mm_struct *mm,
- 					    unsigned long addr, pte_t *ptep,
--					    pte_t pte)
-+					    pte_t pte, unsigned int nr)
- {
- }
- 
-diff --git a/mm/page_table_check.c b/mm/page_table_check.c
-index 25d8610c0042..e6f4d40caaa2 100644
---- a/mm/page_table_check.c
-+++ b/mm/page_table_check.c
-@@ -184,20 +184,22 @@ void __page_table_check_pud_clear(struct mm_struct *mm, unsigned long addr,
- }
- EXPORT_SYMBOL(__page_table_check_pud_clear);
- 
--void __page_table_check_pte_set(struct mm_struct *mm, unsigned long addr,
--				pte_t *ptep, pte_t pte)
-+void __page_table_check_ptes_set(struct mm_struct *mm, unsigned long addr,
-+				pte_t *ptep, pte_t pte, unsigned int nr)
- {
-+	unsigned int i;
-+
- 	if (&init_mm == mm)
- 		return;
- 
--	__page_table_check_pte_clear(mm, addr, *ptep);
-+	for (i = 0; i < nr; i++)
-+		__page_table_check_pte_clear(mm, addr, ptep[i]);
- 	if (pte_user_accessible_page(pte)) {
--		page_table_check_set(mm, addr, pte_pfn(pte),
--				     PAGE_SIZE >> PAGE_SHIFT,
-+		page_table_check_set(mm, addr, pte_pfn(pte), nr,
- 				     pte_write(pte));
- 	}
- }
--EXPORT_SYMBOL(__page_table_check_pte_set);
-+EXPORT_SYMBOL(__page_table_check_ptes_set);
- 
- void __page_table_check_pmd_set(struct mm_struct *mm, unsigned long addr,
- 				pmd_t *pmdp, pmd_t pmd)
+ 	entry = mk_huge_pmd(page, vma->vm_page_prot);
+ 	if (write)
 -- 
 2.39.1
 
