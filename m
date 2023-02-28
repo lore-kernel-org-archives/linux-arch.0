@@ -2,235 +2,161 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 86F65C7EE31
-	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:39:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 57337C7EE30
+	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:39:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230143AbjB1VjM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Feb 2023 16:39:12 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51766 "EHLO
+        id S230159AbjB1VjR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Feb 2023 16:39:17 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51742 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229602AbjB1Vie (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:38:34 -0500
+        with ESMTP id S229977AbjB1Vif (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:38:35 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 95D6634332;
-        Tue, 28 Feb 2023 13:37:50 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A47A1A7;
+        Tue, 28 Feb 2023 13:37:51 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=fLtuHMMW/l3ffYaEEFZhV99ypxiXAgkmGjII9SpctF0=; b=Zs0bpvtHoywcNWJGY1rRPAt6Hi
-        1rvpGwYePXAiLphmGpiEbcxbj46IpCKIniNuOx6PHGKMLl7ZO49+J/ZjZ/KwcWY6Ko0bUgpPsz46O
-        bzBfRYtorcWPEmMdWs39oqWD6bxVaeCZJ0N6WZtnqI4LeBgX0UPDWBT/gHQhNnNQfn6fSQRsFPKlA
-        YkVY5R4//ic3TBIzyohEVBax9WW3C++qPsvZClhpiVuznmoGsoW24S78hqmLL7IErXrissVDQpt8X
-        Hh2wKxhKmteZIg2AOZ6ATy9ZwHkynMZOdV6CTiWBAtRFTJ1dJw2t0SZBFtLxRzrqQFRw4XNqaV1V8
-        WuIZiBow==;
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=y0P5OnBh3qG6d3noGaCIYdmYizhMJwO+EWfJPW8MG4E=; b=LRdOtZ9ZFkTTxLpXQzhSaFBaCO
+        3LY1E0Ww6W7K84LoUvYzcxA8jYCxW/TlqQ6e5ETaKmaR6l27lmJAZCHy4QLqJdsCEmO7qZVip53ZF
+        aMwH9kSUjY9Bf+LrPeWlxlolBANWfD0tGcMm9aTgIpfam04BFwmZiBTytL1Aj4xW8plPpu1BStvS/
+        YAGcDVb0J/Z34yIZc3XS3bwtDdU70HZuxJiDVtxN9iyhe2H5z0vZJ/avHH5y5dPwdoz5Kv7iNHEzL
+        No0ijIELFIwUqqoIWgpdx38Wg9d+6zY92qOCl4JKw8mVTDyZvnl4BSbK8YBk4+101LB2HCYitNH6F
+        QnOg7n2Q==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pX7fH-0018oS-Fe; Tue, 28 Feb 2023 21:37:39 +0000
+        id 1pX7fL-0018r6-HG; Tue, 28 Feb 2023 21:37:43 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        linux-kernel@vger.kernel.org
-Subject: [PATCH v3 00/34] New page table range API
-Date:   Tue, 28 Feb 2023 21:37:03 +0000
-Message-Id: <20230228213738.272178-1-willy@infradead.org>
+Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-kernel@vger.kernel.org,
+        Matthew Wilcox <willy@infradead.org>
+Subject: [PATCH v3 32/34] rmap: add folio_add_file_rmap_range()
+Date:   Tue, 28 Feb 2023 21:37:35 +0000
+Message-Id: <20230228213738.272178-33-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20230228213738.272178-1-willy@infradead.org>
+References: <20230228213738.272178-1-willy@infradead.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This patchset changes the API used by the MM to set up page table entries.
-The four APIs are:
-    set_ptes(mm, addr, ptep, pte, nr)
-    update_mmu_cache_range(vma, addr, ptep, nr)
-    flush_dcache_folio(folio)
-    flush_icache_pages(vma, page, nr)
+From: Yin Fengwei <fengwei.yin@intel.com>
 
-flush_dcache_folio() isn't technically new, but no architecture
-implemented it, so I've done that for you.  The old APIs remain around
-but are mostly implemented by calling the new interfaces.
+folio_add_file_rmap_range() allows to add pte mapping to a specific
+range of file folio. Comparing to page_add_file_rmap(), it batched
+updates __lruvec_stat for large folio.
 
-The new APIs are based around setting up N page table entries at once.
-The N entries belong to the same PMD, the same folio and the same VMA,
-so ptep++ is a legitimate operation, and locking is taken care of for
-you.  Some architectures can do a better job of it than just a loop,
-but I have hesitated to make too deep a change to architectures I don't
-understand well.
+Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ include/linux/rmap.h |  2 ++
+ mm/rmap.c            | 60 +++++++++++++++++++++++++++++++++-----------
+ 2 files changed, 48 insertions(+), 14 deletions(-)
 
-One thing I have changed in every architecture is that PG_arch_1 is now a
-per-folio bit instead of a per-page bit.  This was something that would
-have to happen eventually, and it makes sense to do it now rather than
-iterate over every page involved in a cache flush and figure out if it
-needs to happen.
-
-The point of all this is better performance, and Fengwei Yin has
-measured improvement on x86.  I suspect you'll see improvement on
-your architecture too.  Try the new will-it-scale test mentioned here:
-https://lore.kernel.org/linux-mm/20230206140639.538867-5-fengwei.yin@intel.com/
-You'll need to run it on an XFS filesystem and have
-CONFIG_TRANSPARENT_HUGEPAGE set.
-
-For testing, I've only run the code on x86.  If an x86->foo compiler
-exists in Debian, I've built defconfig.  I'm relying on the buildbots
-to tell me what I missed, and people who actually have the hardware to
-tell me if it actually works.
-
-I'd like to get this into the MM tree soon after the current merge window
-closes, so quick feedback would be appreciated.
-
-v3:
- - Reinstate flush_dcache_icache_phys() on PowerPC
- - Fix folio_flush_mapping().  The documentation was correct and the
-   implementation was completely wrong
- - Change the flush_dcache_page() documentation to describe
-   flush_dcache_folio() instead
- - Split ARM from ARC.  I messed up my git commands
- - Remove page_mapping_file()
- - Rationalise how flush_icache_pages() and flush_icache_page() are defined
- - Use flush_icache_pages() in do_set_pmd()
- - Pick up Guo Ren's Ack for csky
-
-Matthew Wilcox (Oracle) (30):
-  mm: Convert page_table_check_pte_set() to page_table_check_ptes_set()
-  mm: Add generic flush_icache_pages() and documentation
-  mm: Add folio_flush_mapping()
-  mm: Remove ARCH_IMPLEMENTS_FLUSH_DCACHE_FOLIO
-  alpha: Implement the new page table range API
-  arc: Implement the new page table range API
-  arm: Implement the new page table range API
-  arm64: Implement the new page table range API
-  csky: Implement the new page table range API
-  hexagon: Implement the new page table range API
-  ia64: Implement the new page table range API
-  loongarch: Implement the new page table range API
-  m68k: Implement the new page table range API
-  microblaze: Implement the new page table range API
-  mips: Implement the new page table range API
-  nios2: Implement the new page table range API
-  openrisc: Implement the new page table range API
-  parisc: Implement the new page table range API
-  powerpc: Implement the new page table range API
-  riscv: Implement the new page table range API
-  s390: Implement the new page table range API
-  superh: Implement the new page table range API
-  sparc32: Implement the new page table range API
-  sparc64: Implement the new page table range API
-  um: Implement the new page table range API
-  x86: Implement the new page table range API
-  xtensa: Implement the new page table range API
-  mm: Remove page_mapping_file()
-  mm: Rationalise flush_icache_pages() and flush_icache_page()
-  mm: Use flush_icache_pages() in do_set_pmd()
-
-Yin Fengwei (4):
-  filemap: Add filemap_map_folio_range()
-  rmap: add folio_add_file_rmap_range()
-  mm: Convert do_set_pte() to set_pte_range()
-  filemap: Batch PTE mappings
-
- Documentation/core-api/cachetlb.rst       |  51 +++++-----
- Documentation/filesystems/locking.rst     |   2 +-
- arch/alpha/include/asm/cacheflush.h       |  13 ++-
- arch/alpha/include/asm/pgtable.h          |  18 +++-
- arch/arc/include/asm/cacheflush.h         |  14 +--
- arch/arc/include/asm/pgtable-bits-arcv2.h |  20 +++-
- arch/arc/mm/cache.c                       |  61 +++++++-----
- arch/arc/mm/tlb.c                         |  18 ++--
- arch/arm/include/asm/cacheflush.h         |  29 +++---
- arch/arm/include/asm/pgtable.h            |   5 +-
- arch/arm/include/asm/tlbflush.h           |  13 ++-
- arch/arm/mm/copypage-v4mc.c               |   5 +-
- arch/arm/mm/copypage-v6.c                 |   5 +-
- arch/arm/mm/copypage-xscale.c             |   5 +-
- arch/arm/mm/dma-mapping.c                 |  24 ++---
- arch/arm/mm/fault-armv.c                  |  14 +--
- arch/arm/mm/flush.c                       |  99 +++++++++++--------
- arch/arm/mm/mm.h                          |   2 +-
- arch/arm/mm/mmu.c                         |  14 ++-
- arch/arm64/include/asm/cacheflush.h       |   4 +-
- arch/arm64/include/asm/pgtable.h          |  25 +++--
- arch/arm64/mm/flush.c                     |  36 +++----
- arch/csky/abiv1/cacheflush.c              |  32 ++++---
- arch/csky/abiv1/inc/abi/cacheflush.h      |   3 +-
- arch/csky/abiv2/cacheflush.c              |  30 +++---
- arch/csky/abiv2/inc/abi/cacheflush.h      |  11 ++-
- arch/csky/include/asm/pgtable.h           |  21 +++-
- arch/hexagon/include/asm/cacheflush.h     |   9 +-
- arch/hexagon/include/asm/pgtable.h        |  16 +++-
- arch/ia64/hp/common/sba_iommu.c           |  26 ++---
- arch/ia64/include/asm/cacheflush.h        |  14 ++-
- arch/ia64/include/asm/pgtable.h           |  14 ++-
- arch/ia64/mm/init.c                       |  29 ++++--
- arch/loongarch/include/asm/cacheflush.h   |   2 +-
- arch/loongarch/include/asm/pgtable.h      |  30 ++++--
- arch/m68k/include/asm/cacheflush_mm.h     |  25 +++--
- arch/m68k/include/asm/pgtable_mm.h        |  21 +++-
- arch/m68k/mm/motorola.c                   |   2 +-
- arch/microblaze/include/asm/cacheflush.h  |   8 ++
- arch/microblaze/include/asm/pgtable.h     |  17 +++-
- arch/microblaze/include/asm/tlbflush.h    |   4 +-
- arch/mips/include/asm/cacheflush.h        |  32 ++++---
- arch/mips/include/asm/pgtable.h           |  36 ++++---
- arch/mips/mm/c-r4k.c                      |   5 +-
- arch/mips/mm/cache.c                      |  56 +++++------
- arch/mips/mm/init.c                       |  17 ++--
- arch/nios2/include/asm/cacheflush.h       |   6 +-
- arch/nios2/include/asm/pgtable.h          |  27 ++++--
- arch/nios2/mm/cacheflush.c                |  62 ++++++------
- arch/openrisc/include/asm/cacheflush.h    |   8 +-
- arch/openrisc/include/asm/pgtable.h       |  27 +++++-
- arch/openrisc/mm/cache.c                  |  12 ++-
- arch/parisc/include/asm/cacheflush.h      |  14 ++-
- arch/parisc/include/asm/pgtable.h         |  28 ++++--
- arch/parisc/kernel/cache.c                | 101 ++++++++++++++------
- arch/powerpc/include/asm/book3s/pgtable.h |  10 +-
- arch/powerpc/include/asm/cacheflush.h     |  14 ++-
- arch/powerpc/include/asm/kvm_ppc.h        |  10 +-
- arch/powerpc/include/asm/nohash/pgtable.h |  13 +--
- arch/powerpc/include/asm/pgtable.h        |   6 ++
- arch/powerpc/mm/book3s64/hash_utils.c     |  11 ++-
- arch/powerpc/mm/cacheflush.c              |  40 +++-----
- arch/powerpc/mm/nohash/e500_hugetlbpage.c |   3 +-
- arch/powerpc/mm/pgtable.c                 |  51 +++++-----
- arch/riscv/include/asm/cacheflush.h       |  19 ++--
- arch/riscv/include/asm/pgtable.h          |  26 +++--
- arch/riscv/mm/cacheflush.c                |  11 +--
- arch/s390/include/asm/pgtable.h           |  34 +++++--
- arch/sh/include/asm/cacheflush.h          |  21 ++--
- arch/sh/include/asm/pgtable.h             |   6 +-
- arch/sh/include/asm/pgtable_32.h          |  16 +++-
- arch/sh/mm/cache-j2.c                     |   4 +-
- arch/sh/mm/cache-sh4.c                    |  26 +++--
- arch/sh/mm/cache-sh7705.c                 |  26 +++--
- arch/sh/mm/cache.c                        |  54 ++++++-----
- arch/sh/mm/kmap.c                         |   3 +-
- arch/sparc/include/asm/cacheflush_32.h    |   9 +-
- arch/sparc/include/asm/cacheflush_64.h    |  19 ++--
- arch/sparc/include/asm/pgtable_32.h       |  15 ++-
- arch/sparc/include/asm/pgtable_64.h       |  25 ++++-
- arch/sparc/kernel/smp_64.c                |  56 +++++++----
- arch/sparc/mm/init_32.c                   |  13 ++-
- arch/sparc/mm/init_64.c                   |  78 ++++++++-------
- arch/sparc/mm/tlb.c                       |   5 +-
- arch/um/include/asm/pgtable.h             |  15 ++-
- arch/x86/include/asm/pgtable.h            |  21 +++-
- arch/xtensa/include/asm/cacheflush.h      |  11 ++-
- arch/xtensa/include/asm/pgtable.h         |  24 +++--
- arch/xtensa/mm/cache.c                    |  83 +++++++++-------
- include/asm-generic/cacheflush.h          |   7 --
- include/linux/cacheflush.h                |  13 ++-
- include/linux/mm.h                        |   3 +-
- include/linux/page_table_check.h          |  14 +--
- include/linux/pagemap.h                   |  28 ++++--
- include/linux/rmap.h                      |   2 +
- mm/filemap.c                              | 111 +++++++++++++---------
- mm/memory.c                               |  30 +++---
- mm/page_table_check.c                     |  14 +--
- mm/rmap.c                                 |  60 +++++++++---
- mm/util.c                                 |   2 +-
- 100 files changed, 1436 insertions(+), 848 deletions(-)
-
+diff --git a/include/linux/rmap.h b/include/linux/rmap.h
+index b87d01660412..a3825ce81102 100644
+--- a/include/linux/rmap.h
++++ b/include/linux/rmap.h
+@@ -198,6 +198,8 @@ void folio_add_new_anon_rmap(struct folio *, struct vm_area_struct *,
+ 		unsigned long address);
+ void page_add_file_rmap(struct page *, struct vm_area_struct *,
+ 		bool compound);
++void folio_add_file_rmap_range(struct folio *, struct page *, unsigned int nr,
++		struct vm_area_struct *, bool compound);
+ void page_remove_rmap(struct page *, struct vm_area_struct *,
+ 		bool compound);
+ 
+diff --git a/mm/rmap.c b/mm/rmap.c
+index bacdb795d5ee..fffdb85a3b3d 100644
+--- a/mm/rmap.c
++++ b/mm/rmap.c
+@@ -1303,31 +1303,39 @@ void folio_add_new_anon_rmap(struct folio *folio, struct vm_area_struct *vma,
+ }
+ 
+ /**
+- * page_add_file_rmap - add pte mapping to a file page
+- * @page:	the page to add the mapping to
++ * folio_add_file_rmap_range - add pte mapping to page range of a folio
++ * @folio:	The folio to add the mapping to
++ * @page:	The first page to add
++ * @nr_pages:	The number of pages which will be mapped
+  * @vma:	the vm area in which the mapping is added
+  * @compound:	charge the page as compound or small page
+  *
++ * The page range of folio is defined by [first_page, first_page + nr_pages)
++ *
+  * The caller needs to hold the pte lock.
+  */
+-void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
+-		bool compound)
++void folio_add_file_rmap_range(struct folio *folio, struct page *page,
++			unsigned int nr_pages, struct vm_area_struct *vma,
++			bool compound)
+ {
+-	struct folio *folio = page_folio(page);
+ 	atomic_t *mapped = &folio->_nr_pages_mapped;
+-	int nr = 0, nr_pmdmapped = 0;
+-	bool first;
++	unsigned int nr_pmdmapped = 0, first;
++	int nr = 0;
+ 
+-	VM_BUG_ON_PAGE(compound && !PageTransHuge(page), page);
++	VM_WARN_ON_FOLIO(compound && !folio_test_pmd_mappable(folio), folio);
+ 
+ 	/* Is page being mapped by PTE? Is this its first map to be added? */
+ 	if (likely(!compound)) {
+-		first = atomic_inc_and_test(&page->_mapcount);
+-		nr = first;
+-		if (first && folio_test_large(folio)) {
+-			nr = atomic_inc_return_relaxed(mapped);
+-			nr = (nr < COMPOUND_MAPPED);
+-		}
++		do {
++			first = atomic_inc_and_test(&page->_mapcount);
++			if (first && folio_test_large(folio)) {
++				first = atomic_inc_return_relaxed(mapped);
++				first = (nr < COMPOUND_MAPPED);
++			}
++
++			if (first)
++				nr++;
++		} while (page++, --nr_pages > 0);
+ 	} else if (folio_test_pmd_mappable(folio)) {
+ 		/* That test is redundant: it's for safety or to optimize out */
+ 
+@@ -1356,6 +1364,30 @@ void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
+ 	mlock_vma_folio(folio, vma, compound);
+ }
+ 
++/**
++ * page_add_file_rmap - add pte mapping to a file page
++ * @page:	the page to add the mapping to
++ * @vma:	the vm area in which the mapping is added
++ * @compound:	charge the page as compound or small page
++ *
++ * The caller needs to hold the pte lock.
++ */
++void page_add_file_rmap(struct page *page, struct vm_area_struct *vma,
++		bool compound)
++{
++	struct folio *folio = page_folio(page);
++	unsigned int nr_pages;
++
++	VM_WARN_ON_ONCE_PAGE(compound && !PageTransHuge(page), page);
++
++	if (likely(!compound))
++		nr_pages = 1;
++	else
++		nr_pages = folio_nr_pages(folio);
++
++	folio_add_file_rmap_range(folio, page, nr_pages, vma, compound);
++}
++
+ /**
+  * page_remove_rmap - take down pte mapping from a page
+  * @page:	page to remove mapping from
 -- 
 2.39.1
 
