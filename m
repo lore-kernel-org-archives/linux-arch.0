@@ -2,40 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AC278C7EE39
-	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:39:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8D86BC64EC4
+	for <linux-arch@archiver.kernel.org>; Tue, 28 Feb 2023 21:39:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230099AbjB1VjC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Feb 2023 16:39:02 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51776 "EHLO
+        id S230113AbjB1VjH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Feb 2023 16:39:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51730 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229544AbjB1ViG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:38:06 -0500
+        with ESMTP id S230025AbjB1ViQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 16:38:16 -0500
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B3A2934323;
-        Tue, 28 Feb 2023 13:37:47 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 86F2934016;
+        Tue, 28 Feb 2023 13:37:45 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=Nqz7AKc3hPtY/ZHqOcsiEiY49KCNRExEKCVBLCnS/x4=; b=bhOA4QdZIDUyBWXUwB66ZVmlbr
-        92rE+G6ulRW8KUKHLmFDR8kXMC7/eBb2RCNg+w5ZtNI8ADvv85hR8wSba7m5N27fhtl12+ATq7y5t
-        uXcsSVxgCwaptDvWpzVPhKX/Wj/f3XVq8bz1OLP4YPeCMOAtSr73WmdSjQtQNuNryXQrAL63ETzKr
-        C7i7BvTiGxNROIu5JebX2Kq7sMDyBmgqQTr7m9UOOdbMsB7zUvyR01XeUTFME4hkKmN8NPMaLW2TM
-        w5hsEzQzeoW1yXcAvS79gvRQJClLwwWAnsSD6SdD6S8gqpYU1pYrazUsOYZ7ZrWAZGYnIyBy9kMxx
-        zyQX0MZw==;
+        bh=i9ts6rBAYolQ1/FBCYccIPnlyslRrUlDUNhaTG0F47Y=; b=Zu3izYdWiUUrWNlblTIecgxVap
+        vSbBWWBbGVf6F/mRhWkEatlIiQnHo0p87SmbzvwgHtTMhRqJ7iDgvDse5sB/S5t41WheVx2gII5C8
+        hBaIEcWUmNdss0vl3hGJmAep54TOAa3KmCoNQY+LnVxNkEkyaZnV/a4iADAxF7TcCPY5KSbsPG650
+        ADPBKhoPOPKcqaSgLW0NANyzDDwHvz3HXPOQJHU/aVC0a5QhSum4OYeiv1z77mW8yKu9D5p6/Lnrz
+        da6ZPtIqG4XkeLCjYg0m3VLc2wKopty+hJW2xnBDcerJxOZQ7S2BK0qfWcEU3t1/OMfJ4ovzu+LDK
+        8Nda2UwQ==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pX7fJ-0018pS-45; Tue, 28 Feb 2023 21:37:41 +0000
+        id 1pX7fL-0018r0-C5; Tue, 28 Feb 2023 21:37:43 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        linux-kernel@vger.kernel.org, Jonas Bonn <jonas@southpole.se>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        Stafford Horne <shorne@gmail.com>,
-        linux-openrisc@vger.kernel.org
-Subject: [PATCH v3 17/34] openrisc: Implement the new page table range API
-Date:   Tue, 28 Feb 2023 21:37:20 +0000
-Message-Id: <20230228213738.272178-18-willy@infradead.org>
+Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-kernel@vger.kernel.org,
+        Matthew Wilcox <willy@infradead.org>
+Subject: [PATCH v3 31/34] filemap: Add filemap_map_folio_range()
+Date:   Tue, 28 Feb 2023 21:37:34 +0000
+Message-Id: <20230228213738.272178-32-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230228213738.272178-1-willy@infradead.org>
 References: <20230228213738.272178-1-willy@infradead.org>
@@ -45,119 +42,163 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add set_ptes(), update_mmu_cache_range() and flush_dcache_folio().
-Change the PG_arch_1 (aka PG_dcache_dirty) flag from being per-page
-to per-folio.
+From: Yin Fengwei <fengwei.yin@intel.com>
 
+filemap_map_folio_range() maps partial/full folio. Comparing to original
+filemap_map_pages(), it updates refcount once per folio instead of per
+page and gets minor performance improvement for large folio.
+
+With a will-it-scale.page_fault3 like app (change file write
+fault testing to read fault testing. Trying to upstream it to
+will-it-scale at [1]), got 2% performance gain on a 48C/96T
+Cascade Lake test box with 96 processes running against xfs.
+
+[1]: https://github.com/antonblanchard/will-it-scale/pull/37
+
+Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: linux-openrisc@vger.kernel.org
 ---
- arch/openrisc/include/asm/cacheflush.h |  8 +++++++-
- arch/openrisc/include/asm/pgtable.h    | 27 +++++++++++++++++++++-----
- arch/openrisc/mm/cache.c               | 12 ++++++++----
- 3 files changed, 37 insertions(+), 10 deletions(-)
+ mm/filemap.c | 98 +++++++++++++++++++++++++++++-----------------------
+ 1 file changed, 54 insertions(+), 44 deletions(-)
 
-diff --git a/arch/openrisc/include/asm/cacheflush.h b/arch/openrisc/include/asm/cacheflush.h
-index eeac40d4a854..984c331ff5f4 100644
---- a/arch/openrisc/include/asm/cacheflush.h
-+++ b/arch/openrisc/include/asm/cacheflush.h
-@@ -56,10 +56,16 @@ static inline void sync_icache_dcache(struct page *page)
-  */
- #define PG_dc_clean                  PG_arch_1
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 2723104cc06a..db86e459dde6 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -2202,16 +2202,6 @@ unsigned filemap_get_folios(struct address_space *mapping, pgoff_t *start,
+ }
+ EXPORT_SYMBOL(filemap_get_folios);
  
-+static inline void flush_dcache_folio(struct folio *folio)
+-static inline
+-bool folio_more_pages(struct folio *folio, pgoff_t index, pgoff_t max)
+-{
+-	if (!folio_test_large(folio) || folio_test_hugetlb(folio))
+-		return false;
+-	if (index >= max)
+-		return false;
+-	return index < folio->index + folio_nr_pages(folio) - 1;
+-}
+-
+ /**
+  * filemap_get_folios_contig - Get a batch of contiguous folios
+  * @mapping:	The address_space to search
+@@ -3483,6 +3473,53 @@ static inline struct folio *next_map_page(struct address_space *mapping,
+ 				  mapping, xas, end_pgoff);
+ }
+ 
++/*
++ * Map page range [start_page, start_page + nr_pages) of folio.
++ * start_page is gotten from start by folio_page(folio, start)
++ */
++static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
++			struct folio *folio, unsigned long start,
++			unsigned long addr, unsigned int nr_pages)
 +{
-+	clear_bit(PG_dc_clean, &folio->flags);
++	vm_fault_t ret = 0;
++	struct vm_area_struct *vma = vmf->vma;
++	struct file *file = vma->vm_file;
++	struct page *page = folio_page(folio, start);
++	unsigned int mmap_miss = READ_ONCE(file->f_ra.mmap_miss);
++	unsigned int ref_count = 0, count = 0;
++
++	do {
++		if (PageHWPoison(page))
++			continue;
++
++		if (mmap_miss > 0)
++			mmap_miss--;
++
++		/*
++		 * NOTE: If there're PTE markers, we'll leave them to be
++		 * handled in the specific fault path, and it'll prohibit the
++		 * fault-around logic.
++		 */
++		if (!pte_none(*vmf->pte))
++			continue;
++
++		if (vmf->address == addr)
++			ret = VM_FAULT_NOPAGE;
++
++		ref_count++;
++		do_set_pte(vmf, page, addr);
++		update_mmu_cache(vma, addr, vmf->pte);
++	} while (vmf->pte++, page++, addr += PAGE_SIZE, ++count < nr_pages);
++
++	/* Restore the vmf->pte */
++	vmf->pte -= nr_pages;
++
++	folio_ref_add(folio, ref_count);
++	WRITE_ONCE(file->f_ra.mmap_miss, mmap_miss);
++
++	return ret;
 +}
-+#define flush_dcache_folio flush_dcache_folio
 +
- #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
- static inline void flush_dcache_page(struct page *page)
+ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
+ 			     pgoff_t start_pgoff, pgoff_t end_pgoff)
  {
--	clear_bit(PG_dc_clean, &page->flags);
-+	flush_dcache_folio(page_folio(page));
- }
+@@ -3493,9 +3530,9 @@ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
+ 	unsigned long addr;
+ 	XA_STATE(xas, &mapping->i_pages, start_pgoff);
+ 	struct folio *folio;
+-	struct page *page;
+ 	unsigned int mmap_miss = READ_ONCE(file->f_ra.mmap_miss);
+ 	vm_fault_t ret = 0;
++	int nr_pages = 0;
  
- #define flush_icache_user_page(vma, page, addr, len)	\
-diff --git a/arch/openrisc/include/asm/pgtable.h b/arch/openrisc/include/asm/pgtable.h
-index 3eb9b9555d0d..1a7077150d7b 100644
---- a/arch/openrisc/include/asm/pgtable.h
-+++ b/arch/openrisc/include/asm/pgtable.h
-@@ -46,7 +46,21 @@ extern void paging_init(void);
-  * hook is made available.
-  */
- #define set_pte(pteptr, pteval) ((*(pteptr)) = (pteval))
--#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
-+
-+static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
-+		pte_t *ptep, pte_t pte, unsigned int nr)
-+{
-+	for (;;) {
-+		set_pte(ptep, pte);
-+		if (--nr == 0)
-+			break;
-+		ptep++;
-+		pte_val(pte) += PAGE_SIZE;
-+	}
-+}
-+
-+#define set_pte_at(mm, addr, ptep, pte) set_ptes(mm, addr, ptep, pte, 1)
-+
- /*
-  * (pmds are folded into pgds so this doesn't get actually called,
-  * but the define is needed for a generic inline function.)
-@@ -379,13 +393,16 @@ static inline void update_tlb(struct vm_area_struct *vma,
- extern void update_cache(struct vm_area_struct *vma,
- 	unsigned long address, pte_t *pte);
+ 	rcu_read_lock();
+ 	folio = first_map_page(mapping, &xas, end_pgoff);
+@@ -3510,45 +3547,18 @@ vm_fault_t filemap_map_pages(struct vm_fault *vmf,
+ 	addr = vma->vm_start + ((start_pgoff - vma->vm_pgoff) << PAGE_SHIFT);
+ 	vmf->pte = pte_offset_map_lock(vma->vm_mm, vmf->pmd, addr, &vmf->ptl);
+ 	do {
+-again:
+-		page = folio_file_page(folio, xas.xa_index);
+-		if (PageHWPoison(page))
+-			goto unlock;
+-
+-		if (mmap_miss > 0)
+-			mmap_miss--;
++		unsigned long end;
  
--static inline void update_mmu_cache(struct vm_area_struct *vma,
--	unsigned long address, pte_t *pte)
-+static inline void update_mmu_cache_range(struct vm_area_struct *vma,
-+		unsigned long address, pte_t *ptep, unsigned int nr)
- {
--	update_tlb(vma, address, pte);
--	update_cache(vma, address, pte);
-+	update_tlb(vma, address, ptep);
-+	update_cache(vma, address, ptep);
- }
+ 		addr += (xas.xa_index - last_pgoff) << PAGE_SHIFT;
+ 		vmf->pte += xas.xa_index - last_pgoff;
+ 		last_pgoff = xas.xa_index;
++		end = folio->index + folio_nr_pages(folio) - 1;
++		nr_pages = min(end, end_pgoff) - xas.xa_index + 1;
  
-+#define update_mmu_cache(vma, addr, ptep) \
-+	update_mmu_cache_range(vma, addr, ptep, 1)
-+
- /* __PHX__ FIXME, SWAP, this probably doesn't work */
+-		/*
+-		 * NOTE: If there're PTE markers, we'll leave them to be
+-		 * handled in the specific fault path, and it'll prohibit the
+-		 * fault-around logic.
+-		 */
+-		if (!pte_none(*vmf->pte))
+-			goto unlock;
++		ret |= filemap_map_folio_range(vmf, folio,
++				xas.xa_index - folio->index, addr, nr_pages);
++		xas.xa_index += nr_pages;
  
- /*
-diff --git a/arch/openrisc/mm/cache.c b/arch/openrisc/mm/cache.c
-index 534a52ec5e66..eb43b73f3855 100644
---- a/arch/openrisc/mm/cache.c
-+++ b/arch/openrisc/mm/cache.c
-@@ -43,15 +43,19 @@ void update_cache(struct vm_area_struct *vma, unsigned long address,
- 	pte_t *pte)
- {
- 	unsigned long pfn = pte_val(*pte) >> PAGE_SHIFT;
--	struct page *page = pfn_to_page(pfn);
--	int dirty = !test_and_set_bit(PG_dc_clean, &page->flags);
-+	struct folio *folio = page_folio(pfn_to_page(pfn));
-+	int dirty = !test_and_set_bit(PG_dc_clean, &folio->flags);
- 
- 	/*
- 	 * Since icaches do not snoop for updated data on OpenRISC, we
- 	 * must write back and invalidate any dirty pages manually. We
- 	 * can skip data pages, since they will not end up in icaches.
- 	 */
--	if ((vma->vm_flags & VM_EXEC) && dirty)
--		sync_icache_dcache(page);
-+	if ((vma->vm_flags & VM_EXEC) && dirty) {
-+		unsigned int nr = folio_nr_pages(folio);
-+
-+		while (nr--)
-+			sync_icache_dcache(folio_page(folio, nr));
-+	}
- }
- 
+-		/* We're about to handle the fault */
+-		if (vmf->address == addr)
+-			ret = VM_FAULT_NOPAGE;
+-
+-		do_set_pte(vmf, page, addr);
+-		/* no need to invalidate: a not-present page won't be cached */
+-		update_mmu_cache(vma, addr, vmf->pte);
+-		if (folio_more_pages(folio, xas.xa_index, end_pgoff)) {
+-			xas.xa_index++;
+-			folio_ref_inc(folio);
+-			goto again;
+-		}
+-		folio_unlock(folio);
+-		continue;
+-unlock:
+-		if (folio_more_pages(folio, xas.xa_index, end_pgoff)) {
+-			xas.xa_index++;
+-			goto again;
+-		}
+ 		folio_unlock(folio);
+ 		folio_put(folio);
+ 	} while ((folio = next_map_page(mapping, &xas, end_pgoff)) != NULL);
 -- 
 2.39.1
 
