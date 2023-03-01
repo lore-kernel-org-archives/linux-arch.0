@@ -2,51 +2,54 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CED68C64EC7
-	for <linux-arch@archiver.kernel.org>; Wed,  1 Mar 2023 03:44:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1CFA3C7EE23
+	for <linux-arch@archiver.kernel.org>; Wed,  1 Mar 2023 03:45:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229944AbjCADox (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 28 Feb 2023 22:44:53 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44984 "EHLO
+        id S230039AbjCADpS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 28 Feb 2023 22:45:18 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45598 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229998AbjCADod (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 22:44:33 -0500
+        with ESMTP id S230042AbjCADou (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2023 22:44:50 -0500
 Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 96FD030E94
-        for <linux-arch@vger.kernel.org>; Tue, 28 Feb 2023 19:43:40 -0800 (PST)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0B3A1311C8
+        for <linux-arch@vger.kernel.org>; Tue, 28 Feb 2023 19:43:58 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1677642219;
+        s=mimecast20190719; t=1677642238;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=b04gx2CEsZva7MKdHssokOo8Q5KwYfP6QKwltziak5c=;
-        b=SAMlxEUx0eFel8TWVCwXfbB6792NleAganWiZ7Gj3/K1vE70/zn7dozuF5Cb+8b7MwKa2z
-        TonQm/JQY0HgCOPYOG4RzOybZoMt/mSWcki37ETukPjD/abvjRns0J/da3edyIXk8Yr5Po
-        6+hlPh4HNlIWLCFsmfvFLxn1ek2hxrE=
+        bh=K1VrnQks8P5H4lhuQHdk0PEcxF0GSibhsi/oBTknLWs=;
+        b=B95OLfIs5+CNnUa/OUxszebqAxI1XUe7AH+uLnhzHuKpOehwDduadQZyRtkjIaxTWgINNp
+        bkbpJMaY+B/ASXKM9rRmvYP/LvPoQ3mH1X9TdRYpLYlTGPN8qh2F56DoAE5Ltcq0SqzpCz
+        jFLMFH+HSrHHHRwZfO0v07cXA3dkx30=
 Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
  [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-434-8Y9zFz3EOyOEh-jq97Zmzw-1; Tue, 28 Feb 2023 22:43:34 -0500
-X-MC-Unique: 8Y9zFz3EOyOEh-jq97Zmzw-1
+ us-mta-170-EoxYF9wcOPaWWVVcEoz6SA-1; Tue, 28 Feb 2023 22:43:53 -0500
+X-MC-Unique: EoxYF9wcOPaWWVVcEoz6SA-1
 Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
         (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
         (No client certificate requested)
-        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 61920811E6E;
-        Wed,  1 Mar 2023 03:43:33 +0000 (UTC)
+        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 3E20B185A794;
+        Wed,  1 Mar 2023 03:43:52 +0000 (UTC)
 Received: from MiWiFi-R3L-srv.redhat.com (ovpn-13-180.pek2.redhat.com [10.72.13.180])
-        by smtp.corp.redhat.com (Postfix) with ESMTP id D76C3C15BAD;
-        Wed,  1 Mar 2023 03:43:28 +0000 (UTC)
+        by smtp.corp.redhat.com (Postfix) with ESMTP id 1E76AC15BAD;
+        Wed,  1 Mar 2023 03:43:45 +0000 (UTC)
 From:   Baoquan He <bhe@redhat.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     linux-arch@vger.kernel.org, linux-mm@kvack.org, arnd@arndb.de,
         christophe.leroy@csgroup.eu, hch@infradead.org,
         agordeev@linux.ibm.com, wangkefeng.wang@huawei.com,
         schnelle@linux.ibm.com, David.Laight@ACULAB.COM, shorne@gmail.com,
-        willy@infradead.org, Baoquan He <bhe@redhat.com>
-Subject: [PATCH v5 06/17] mm/ioremap: add slab availability checking in ioremap_prot
-Date:   Wed,  1 Mar 2023 11:42:36 +0800
-Message-Id: <20230301034247.136007-7-bhe@redhat.com>
+        willy@infradead.org, Baoquan He <bhe@redhat.com>,
+        Jonas Bonn <jonas@southpole.se>,
+        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+        openrisc@lists.librecores.org
+Subject: [PATCH v5 09/17] openrisc: mm: Convert to GENERIC_IOREMAP
+Date:   Wed,  1 Mar 2023 11:42:39 +0800
+Message-Id: <20230301034247.136007-10-bhe@redhat.com>
 In-Reply-To: <20230301034247.136007-1-bhe@redhat.com>
 References: <20230301034247.136007-1-bhe@redhat.com>
 MIME-Version: 1.0
@@ -57,34 +60,136 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Several architectures has done checking if slab if available in
-ioremap_prot(). In fact it should be done in generic ioremap_prot()
-since on any architecutre, slab allocator must be available before
-get_vm_area_caller() and vunmap() are used.
+By taking GENERIC_IOREMAP method, the generic generic_ioremap_prot(),
+generic_iounmap(), and their generic wrapper ioremap_prot(), ioremap()
+and iounmap() are all visible and available to arch. Arch needs to
+provide wrapper functions to override the generic versions if there's
+arch specific handling in its ioremap_prot(), ioremap() or iounmap().
+This change will simplify implementation by removing duplicated codes
+with generic_ioremap_prot() and generic_iounmap(), and has the equivalent
+functioality as before.
 
-Add the checking into generic_ioremap_prot().
+Here, add wrapper function iounmap() for openrisc's special operation
+when iounmap().
 
-Suggested-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 Signed-off-by: Baoquan He <bhe@redhat.com>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+Cc: openrisc@lists.librecores.org
 ---
- mm/ioremap.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ arch/openrisc/Kconfig          |  1 +
+ arch/openrisc/include/asm/io.h | 11 +++++---
+ arch/openrisc/mm/ioremap.c     | 46 +---------------------------------
+ 3 files changed, 9 insertions(+), 49 deletions(-)
 
-diff --git a/mm/ioremap.c b/mm/ioremap.c
-index 9f34a8f90b58..2fbe6b9bc50e 100644
---- a/mm/ioremap.c
-+++ b/mm/ioremap.c
-@@ -18,6 +18,10 @@ void __iomem *generic_ioremap_prot(phys_addr_t phys_addr, size_t size,
- 	phys_addr_t last_addr;
- 	struct vm_struct *area;
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index c7f282f60f64..fd9bb76a610b 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -21,6 +21,7 @@ config OPENRISC
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_PCI_IOMAP
++	select GENERIC_IOREMAP
+ 	select GENERIC_CPU_DEVICES
+ 	select HAVE_PCI
+ 	select HAVE_UID16
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index ee6043a03173..e640960c26c2 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -15,6 +15,8 @@
+ #define __ASM_OPENRISC_IO_H
  
-+	/* An early platform driver might end up here */
-+	if (!slab_is_available())
-+		return NULL;
+ #include <linux/types.h>
++#include <asm/pgalloc.h>
++#include <asm/pgtable.h>
+ 
+ /*
+  * PCI: We do not use IO ports in OpenRISC
+@@ -27,11 +29,12 @@
+ #define PIO_OFFSET		0
+ #define PIO_MASK		0
+ 
+-#define ioremap ioremap
+-void __iomem *ioremap(phys_addr_t offset, unsigned long size);
+-
++/*
++ * I/O memory mapping functions.
++ */
+ #define iounmap iounmap
+-extern void iounmap(volatile void __iomem *addr);
 +
- 	/* Disallow wrap-around or zero size */
- 	last_addr = phys_addr + size - 1;
- 	if (!size || last_addr < phys_addr)
++#define _PAGE_IOREMAP (pgprot_val(PAGE_KERNEL) | _PAGE_CI)
+ 
+ #include <asm-generic/io.h>
+ 
+diff --git a/arch/openrisc/mm/ioremap.c b/arch/openrisc/mm/ioremap.c
+index 90b59bc53c8c..9f9941df7d4c 100644
+--- a/arch/openrisc/mm/ioremap.c
++++ b/arch/openrisc/mm/ioremap.c
+@@ -22,49 +22,6 @@
+ 
+ extern int mem_init_done;
+ 
+-/*
+- * Remap an arbitrary physical address space into the kernel virtual
+- * address space. Needed when the kernel wants to access high addresses
+- * directly.
+- *
+- * NOTE! We need to allow non-page-aligned mappings too: we will obviously
+- * have to convert them into an offset in a page-aligned mapping, but the
+- * caller shouldn't need to know that small detail.
+- */
+-void __iomem *__ref ioremap(phys_addr_t addr, unsigned long size)
+-{
+-	phys_addr_t p;
+-	unsigned long v;
+-	unsigned long offset, last_addr;
+-	struct vm_struct *area = NULL;
+-
+-	/* Don't allow wraparound or zero size */
+-	last_addr = addr + size - 1;
+-	if (!size || last_addr < addr)
+-		return NULL;
+-
+-	/*
+-	 * Mappings have to be page-aligned
+-	 */
+-	offset = addr & ~PAGE_MASK;
+-	p = addr & PAGE_MASK;
+-	size = PAGE_ALIGN(last_addr + 1) - p;
+-
+-	area = get_vm_area(size, VM_IOREMAP);
+-	if (!area)
+-		return NULL;
+-	v = (unsigned long)area->addr;
+-
+-	if (ioremap_page_range(v, v + size, p,
+-			__pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_CI))) {
+-		vfree(area->addr);
+-		return NULL;
+-	}
+-
+-	return (void __iomem *)(offset + (char *)v);
+-}
+-EXPORT_SYMBOL(ioremap);
+-
+ void iounmap(volatile void __iomem *addr)
+ {
+ 	/* If the page is from the fixmap pool then we just clear out
+@@ -88,9 +45,8 @@ void iounmap(volatile void __iomem *addr)
+ 		return;
+ 	}
+ 
+-	return vfree((void *)(PAGE_MASK & (unsigned long)addr));
++	generic_iounmap(addr);
+ }
+-EXPORT_SYMBOL(iounmap);
+ 
+ /**
+  * OK, this one's a bit tricky... ioremap can get called before memory is
 -- 
 2.34.1
 
