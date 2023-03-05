@@ -2,66 +2,65 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D6BD4C6FA8E
-	for <linux-arch@archiver.kernel.org>; Sun,  5 Mar 2023 20:57:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1007FC6FD19
+	for <linux-arch@archiver.kernel.org>; Sun,  5 Mar 2023 20:57:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229771AbjCEU5F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 5 Mar 2023 15:57:05 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49868 "EHLO
+        id S229797AbjCEU5I (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 5 Mar 2023 15:57:08 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49860 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229807AbjCEU5D (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Mar 2023 15:57:03 -0500
-Received: from mail-ed1-x529.google.com (mail-ed1-x529.google.com [IPv6:2a00:1450:4864:20::529])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 47009126E0;
-        Sun,  5 Mar 2023 12:57:01 -0800 (PST)
-Received: by mail-ed1-x529.google.com with SMTP id x3so30677814edb.10;
-        Sun, 05 Mar 2023 12:57:01 -0800 (PST)
+        with ESMTP id S229837AbjCEU5E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 5 Mar 2023 15:57:04 -0500
+Received: from mail-ed1-x52e.google.com (mail-ed1-x52e.google.com [IPv6:2a00:1450:4864:20::52e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6085217CE4;
+        Sun,  5 Mar 2023 12:57:03 -0800 (PST)
+Received: by mail-ed1-x52e.google.com with SMTP id i34so30763259eda.7;
+        Sun, 05 Mar 2023 12:57:03 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112; t=1678049819;
+        d=gmail.com; s=20210112; t=1678049822;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=INU9jJ8LcpbE/5gpRgMDZ5idqPx3BDVeD3nCNohGOeo=;
-        b=XQpvMIoVY1hfPz50zOJm8ImET2/qnDz8SzbExbEMhUpoAodDU9gmRVk+gVHTjV41Qg
-         fsT4F1FRmF7A4S+XdrFIPtysZCRa/bTQR+mMVthHRql0ddWfAaVTRndhUu4LdjaH5a/h
-         8KlHG0B61wz2981K4TkkdR2V4hn2+MJRKkT7gP/CSVcvH9wb87scRgrWmAfF44CyLv0C
-         7KQ7gdJyK4GAYKjVQrHW+G411c1hcshd/R81Awwd24z4tDzJctUfj7n2uU8/Xl1RWLms
-         kVMS9xMW8nxmto2+YnnTqTHjSpJ0KGd7UBOnX+ozZ0yXsIGoN96WVnz3t7OZeXCDkIHx
-         zcpA==
+        bh=25TOpB6uAuDptlCHYXnw8K0sBZK8F7O48wtvqw46Fco=;
+        b=cNd8YqsFIPxe+JP9zRF39U9LVtgmwfXjcFbHH84MFejyyz+WXmA51xlzYADH9AC01W
+         lEszc02CudZI42k7pYdy16Vf4WI6WjE1DZx56EjyaZpyY7FvA1+pVY1RSyjgr+NlrGpr
+         yFwug2e2C37vzQDmuS5CJX+8dF3kzqMWXP62SO1BV9+XSfgAJAzZ1JEkQPQMUXgK2qm4
+         0hyBNzM1O3Kv/jPXAGYRtlnLBj1s1v9YygYUST1D+zx9Ey2ipnETSfTUq5UPh138ocjy
+         r6cJKI1TIKvZxYHHrTVVuJQaSsFt81JXXkjl01KWi2F25uQE45bvL71Q902loyxf7ehM
+         /C8Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112; t=1678049819;
+        d=1e100.net; s=20210112; t=1678049822;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=INU9jJ8LcpbE/5gpRgMDZ5idqPx3BDVeD3nCNohGOeo=;
-        b=fGo6l91d53QTU5toj1/JYLUNvRIDyMZMuZXyZK8CkdapZtfcU9M8qj1XDQV993JlLG
-         7bjM0zqgfTvf28EyrY+X1xPRPTPJsrmqey7XQBSon4nRSI9ZBMSAYiUXsPKrYp4aijJh
-         GtPJwZed7LsiYPMuRZu51WTIsW04wLwUsdVDzGsS5fqg7i8LKCKzpDvQeeJ8k+n00Sr8
-         RAdY9Ujt+i7zpdLgGDpi4euO9q8RYg1IPD9MpAfmhstmhl3kVamxaoRBNuxICoSDicn2
-         7BAhU5Aj0ku/QrVvlP48ORIYp+JTPhbGdr5d3NQK1XCNqdoQ2F7ofszR6F927tEbIysL
-         PiGw==
-X-Gm-Message-State: AO0yUKUvPjT4ntim7KWSWOgmr8SSY6FezAB9AbLNwfos+me3rGMbmCGf
-        WaAKBbrN7Bq5fjEmYpEeBkdqDcUk+DrFHlTB
-X-Google-Smtp-Source: AK7set8kiCd/dK0DxHq2OpPRZXV2eyPLGAkRkDs+9TZ48CcB6LDL0aHpg5qt4ZJLjrVLWS/LXgLw5A==
-X-Received: by 2002:a05:6402:184a:b0:4a2:588f:b3c5 with SMTP id v10-20020a056402184a00b004a2588fb3c5mr8020962edy.21.1678049819467;
-        Sun, 05 Mar 2023 12:56:59 -0800 (PST)
+        bh=25TOpB6uAuDptlCHYXnw8K0sBZK8F7O48wtvqw46Fco=;
+        b=7dKYci2a8/L5ceXnYJj2/Z0LHjvmnKrJ/Dgm/Iw6QIekMdA383B4JwpbVGfPYB/BiS
+         gpATTuYBiCP8WqeyyXgEPWI57AfNWJpcr8gKOElwhCFWMeDnM4AwKcjXmPXysJlBzMbZ
+         6BulcUNCqUYgteP6cjnAgvLI8+F2L3GZugcgsMjNstfs1eJBH4po5PpL/rxohfe/bV16
+         uFF88vMcf46Zd7+b6R2mho52i6E3U3wTpl5EWuozBt+ba5YzNVdfwmSjniR5m5Q0tcZG
+         HMfnE/3GRJOhGbMgJ0lkM7foCoRDEGlPTxGuuZ5DTEfFFMBDE/JrMvI0yBAXAEfdIIPL
+         uvMQ==
+X-Gm-Message-State: AO0yUKUFJssSCOAWFWh0VF0QDLO6PLYhAflQwr49ydodhfhVVT3N9GEg
+        prZLWKhssCnC18yc2iP0ItPgbYcFoWlZfz/L
+X-Google-Smtp-Source: AK7set9H+42xPHqyPW7jGUPzVIpjv1MvOVftLDcjvJIUsaEDkzaQZ+a/sQDSm0+Tof/iIVl2G2SuVg==
+X-Received: by 2002:a17:906:f18a:b0:887:8f6:c1d7 with SMTP id gs10-20020a170906f18a00b0088708f6c1d7mr8937367ejb.38.1678049822541;
+        Sun, 05 Mar 2023 12:57:02 -0800 (PST)
 Received: from localhost.localdomain ([46.248.82.114])
-        by smtp.gmail.com with ESMTPSA id ay24-20020a170906d29800b0090953b9da51sm3615436ejb.194.2023.03.05.12.56.58
+        by smtp.gmail.com with ESMTPSA id ay24-20020a170906d29800b0090953b9da51sm3615436ejb.194.2023.03.05.12.57.01
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 05 Mar 2023 12:56:59 -0800 (PST)
+        Sun, 05 Mar 2023 12:57:02 -0800 (PST)
 From:   Uros Bizjak <ubizjak@gmail.com>
 To:     linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org,
         loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
         linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org,
         linux-perf-users@vger.kernel.org
 Cc:     Uros Bizjak <ubizjak@gmail.com>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        WANG Xuerui <kernel@xen0n.name>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        Jun Yi <yijun@loongson.cn>
-Subject: [PATCH 04/10] locking/loongarch: Wire up local_try_cmpxchg
-Date:   Sun,  5 Mar 2023 21:56:22 +0100
-Message-Id: <20230305205628.27385-5-ubizjak@gmail.com>
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>
+Subject: [PATCH 06/10] locking/powerpc: Wire up local_try_cmpxchg
+Date:   Sun,  5 Mar 2023 21:56:24 +0100
+Message-Id: <20230305205628.27385-7-ubizjak@gmail.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230305205628.27385-1-ubizjak@gmail.com>
 References: <20230305205628.27385-1-ubizjak@gmail.com>
@@ -73,28 +72,37 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 Implement target specific support for local_try_cmpxchg.
 
-Cc: Huacai Chen <chenhuacai@kernel.org>
-Cc: WANG Xuerui <kernel@xen0n.name>
-Cc: Jiaxun Yang <jiaxun.yang@flygoat.com>
-Cc: Jun Yi <yijun@loongson.cn>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc: Signed-off-by: Uros Bizjak <ubizjak@gmail.com>
 Signed-off-by: Uros Bizjak <ubizjak@gmail.com>
 ---
- arch/loongarch/include/asm/local.h | 2 ++
- 1 file changed, 2 insertions(+)
+ arch/powerpc/include/asm/local.h | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/arch/loongarch/include/asm/local.h b/arch/loongarch/include/asm/local.h
-index 65fbbae9fc4d..dff6bcbe4821 100644
---- a/arch/loongarch/include/asm/local.h
-+++ b/arch/loongarch/include/asm/local.h
-@@ -58,6 +58,8 @@ static inline long local_sub_return(long i, local_t *l)
+diff --git a/arch/powerpc/include/asm/local.h b/arch/powerpc/include/asm/local.h
+index bc4bd19b7fc2..45492fb5bf22 100644
+--- a/arch/powerpc/include/asm/local.h
++++ b/arch/powerpc/include/asm/local.h
+@@ -90,6 +90,17 @@ static __inline__ long local_cmpxchg(local_t *l, long o, long n)
+ 	return t;
+ }
  
- #define local_cmpxchg(l, o, n) \
- 	((long)cmpxchg_local(&((l)->a.counter), (o), (n)))
-+#define local_try_cmpxchg(l, po, n) \
-+	(try_cmpxchg_local(&((l)->a.counter), (po), (n)))
- #define local_xchg(l, n) (atomic_long_xchg((&(l)->a), (n)))
- 
- /**
++static __inline__ bool local_try_cmpxchg(local_t *l, long *po, long n)
++{
++	long o = *po, r;
++
++	r = local_cmpxchg(l, o, n);
++	if (unlikely(r != o))
++		*po = r;
++
++	return likely(r == o);
++}
++
+ static __inline__ long local_xchg(local_t *l, long n)
+ {
+ 	long t;
 -- 
 2.39.2
 
