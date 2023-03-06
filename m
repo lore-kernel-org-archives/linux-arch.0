@@ -2,58 +2,134 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 197BFC678D4
-	for <linux-arch@archiver.kernel.org>; Mon,  6 Mar 2023 09:40:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1F689C678D4
+	for <linux-arch@archiver.kernel.org>; Mon,  6 Mar 2023 10:00:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230098AbjCFJkl (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 6 Mar 2023 04:40:41 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51944 "EHLO
+        id S229670AbjCFKAH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 6 Mar 2023 05:00:07 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48270 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230086AbjCFJkk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2023 04:40:40 -0500
-X-Greylist: delayed 1184 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 06 Mar 2023 01:40:38 PST
-Received: from mail.ettrick.pl (mail.ettrick.pl [141.94.21.111])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 23EF7211DE
-        for <linux-arch@vger.kernel.org>; Mon,  6 Mar 2023 01:40:38 -0800 (PST)
-Received: by mail.ettrick.pl (Postfix, from userid 1002)
-        id 44897A4E17; Mon,  6 Mar 2023 09:01:34 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=ettrick.pl; s=mail;
-        t=1678093404; bh=KHux3km3Civcx5ChslOYQZwQRBjoJa4kWJfGcMIuN6w=;
-        h=Date:From:To:Subject:From;
-        b=MYG+nIS2UYNLX6zOxzyfxirz2AOrf/nFvTs0jhn7s/1BALervWaFHPzZn8pR4zSSo
-         p0J4vgqAuMFpIwHhJnwYJPHCS8cy9SFx+y9vu7s6ONZJmZ6/qHwulG0dCqQSD9B2K6
-         9iOxAMJgfL/zvjGwLBYDX92OTQy4/m6IJWGU3KEEKSQ6Pw1k3KnTLrn6vYHVPlZkZ9
-         O5mDQ4vy1IrhMmpJagbXrXwzv/j/74m091o0pCfPnJigj3+oHsVaPSg4apCDyYlW+B
-         Dx4d6Y/TI0us12JuFemo/Jn2oJXJX0TAmJY7K5ZsK0uUsFZqsd/syhuQ3n8z7aEokM
-         zmJcbGF07AGzw==
-Received: by mail.ettrick.pl for <linux-arch@vger.kernel.org>; Mon,  6 Mar 2023 09:00:53 GMT
-Message-ID: <20230306074500-0.1.97.36zaa.0.jxxk9hmi27@ettrick.pl>
-Date:   Mon,  6 Mar 2023 09:00:53 GMT
-From:   "Norbert Karecki" <norbert.karecki@ettrick.pl>
-To:     <linux-arch@vger.kernel.org>
-Subject: Fotowoltaika - nowe warunki
-X-Mailer: mail.ettrick.pl
+        with ESMTP id S230206AbjCFJ7y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2023 04:59:54 -0500
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 224441C593;
+        Mon,  6 Mar 2023 01:59:46 -0800 (PST)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 84900B80D76;
+        Mon,  6 Mar 2023 09:59:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 91C72C433D2;
+        Mon,  6 Mar 2023 09:59:41 +0000 (UTC)
+From:   Huacai Chen <chenhuacai@loongson.cn>
+To:     Arnd Bergmann <arnd@arndb.de>, Huacai Chen <chenhuacai@kernel.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        linux-kernel@vger.kernel.org, loongson-kernel@lists.loongnix.cn,
+        Huacai Chen <chenhuacai@loongson.cn>
+Subject: [PATCH V3] LoongArch: Provide kernel fpu functions
+Date:   Mon,  6 Mar 2023 17:59:34 +0800
+Message-Id: <20230306095934.609589-1-chenhuacai@loongson.cn>
+X-Mailer: git-send-email 2.39.1
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Dzie=C5=84 dobry,
+Provide kernel_fpu_begin()/kernel_fpu_end() to allow the kernel itself
+to use fpu. They can be used by some other kernel components, e.g., the
+AMDGPU graphic driver for DCN.
 
-chcia=C5=82bym poinformowa=C4=87, i=C5=BC mog=C4=85 Pa=C5=84stwo uzyska=C4=
-=87 dofinansowanie na systemy fotowoltaiczne w ramach nowej edycji progra=
-mu M=C3=B3j Pr=C4=85d.
+Reported-by: WANG Xuerui <kernel@xen0n.name>
+Tested-by: WANG Xuerui <kernel@xen0n.name>
+Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+---
+V2: Use non-GPL exports and update commit messages.
+V3: Add spaces for coding style.
 
-Program zapewnia 6000 z=C5=82 dofinansowania na instalacj=C4=99 paneli i =
-16 000 z=C5=82 na magazyn energii, ni=C5=BCsze cen pr=C4=85du i mo=C5=BCl=
-iwo=C5=9B=C4=87 odliczenia koszt=C3=B3w zwi=C4=85zanych z instalacj=C4=85=
- fotowoltaiki w ramach rozliczenia PIT (tzw. ulga termomodernizacyjna).
+ arch/loongarch/include/asm/fpu.h |  3 +++
+ arch/loongarch/kernel/Makefile   |  2 +-
+ arch/loongarch/kernel/kfpu.c     | 41 ++++++++++++++++++++++++++++++++
+ 3 files changed, 45 insertions(+), 1 deletion(-)
+ create mode 100644 arch/loongarch/kernel/kfpu.c
 
-Czy s=C4=85 Pa=C5=84stwo otwarci na wst=C4=99pn=C4=85 rozmow=C4=99 w tym =
-temacie?
+diff --git a/arch/loongarch/include/asm/fpu.h b/arch/loongarch/include/asm/fpu.h
+index 358b254d9c1d..192f8e35d912 100644
+--- a/arch/loongarch/include/asm/fpu.h
++++ b/arch/loongarch/include/asm/fpu.h
+@@ -21,6 +21,9 @@
+ 
+ struct sigcontext;
+ 
++extern void kernel_fpu_begin(void);
++extern void kernel_fpu_end(void);
++
+ extern void _init_fpu(unsigned int);
+ extern void _save_fp(struct loongarch_fpu *);
+ extern void _restore_fp(struct loongarch_fpu *);
+diff --git a/arch/loongarch/kernel/Makefile b/arch/loongarch/kernel/Makefile
+index 78d4e3384305..9a72d91cd104 100644
+--- a/arch/loongarch/kernel/Makefile
++++ b/arch/loongarch/kernel/Makefile
+@@ -13,7 +13,7 @@ obj-y		+= head.o cpu-probe.o cacheinfo.o env.o setup.o entry.o genex.o \
+ obj-$(CONFIG_ACPI)		+= acpi.o
+ obj-$(CONFIG_EFI) 		+= efi.o
+ 
+-obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o
++obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o kfpu.o
+ 
+ obj-$(CONFIG_ARCH_STRICT_ALIGN)	+= unaligned.o
+ 
+diff --git a/arch/loongarch/kernel/kfpu.c b/arch/loongarch/kernel/kfpu.c
+new file mode 100644
+index 000000000000..cd2a18fecdcc
+--- /dev/null
++++ b/arch/loongarch/kernel/kfpu.c
+@@ -0,0 +1,41 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2023 Loongson Technology Corporation Limited
++ */
++
++#include <linux/cpu.h>
++#include <linux/init.h>
++#include <asm/fpu.h>
++#include <asm/smp.h>
++
++static DEFINE_PER_CPU(bool, in_kernel_fpu);
++
++void kernel_fpu_begin(void)
++{
++	if (this_cpu_read(in_kernel_fpu))
++		return;
++
++	preempt_disable();
++	this_cpu_write(in_kernel_fpu, true);
++
++	if (!is_fpu_owner())
++		enable_fpu();
++	else
++		_save_fp(&current->thread.fpu);
++}
++EXPORT_SYMBOL(kernel_fpu_begin);
++
++void kernel_fpu_end(void)
++{
++	if (!this_cpu_read(in_kernel_fpu))
++		return;
++
++	if (!is_fpu_owner())
++		disable_fpu();
++	else
++		_restore_fp(&current->thread.fpu);
++
++	this_cpu_write(in_kernel_fpu, false);
++	preempt_enable();
++}
++EXPORT_SYMBOL(kernel_fpu_end);
+-- 
+2.39.1
 
-
-Pozdrawiam,
-Norbert Karecki
