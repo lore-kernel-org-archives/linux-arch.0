@@ -2,130 +2,167 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C97D0C6FD1F
-	for <linux-arch@archiver.kernel.org>; Mon,  6 Mar 2023 10:33:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 860DCC678D4
+	for <linux-arch@archiver.kernel.org>; Mon,  6 Mar 2023 12:03:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231283AbjCFKdW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 6 Mar 2023 05:33:22 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39652 "EHLO
+        id S229486AbjCFMDf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 6 Mar 2023 07:03:35 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54694 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231284AbjCFKcs (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2023 05:32:48 -0500
-Received: from mail-wr1-x432.google.com (mail-wr1-x432.google.com [IPv6:2a00:1450:4864:20::432])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1167E27496
-        for <linux-arch@vger.kernel.org>; Mon,  6 Mar 2023 02:32:30 -0800 (PST)
-Received: by mail-wr1-x432.google.com with SMTP id f11so8246133wrv.8
-        for <linux-arch@vger.kernel.org>; Mon, 06 Mar 2023 02:32:29 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=rivosinc-com.20210112.gappssmtp.com; s=20210112; t=1678098748;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=2S29OAojjkQ3ph5THndb/5w5HMdqHkAEAaj92KxD7KY=;
-        b=xCSHcSRaD2g1+2DbiYWhwBVgmLp88kCObvoul8o22gAShWEWRsDyBUbrABXr5fv65x
-         IGnHDZLJd6mZoZ4c8bkw6btaQ552OPPkQaMMyBEUs4Bc9wvEuBuP3LVKslg1nEKUwpBX
-         lIVGb+vuDvhF0cDTuCVOpyZV5LaEa7T8m8jfkVFpaCwFvyN4Z00Y7x/hHmTHM+tY2ap5
-         RgDlCHiOuFZ5W2OonNpFKfcm5MsZoArntnS/kOhW3H0fDHSI6TVfGt6dIbQVxoFWUZLC
-         VaMyxBHz7iI91g7KCZulrkhxAWoD0odFmgisNlLZZFPdJeVIIAgA47RuWu1Yjzh0KCRf
-         0raw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112; t=1678098748;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=2S29OAojjkQ3ph5THndb/5w5HMdqHkAEAaj92KxD7KY=;
-        b=l4Mx1L66SWxmWl3WTz80vvfcectgBcmSouPfCwVhsmnVVKoiVw345/qJUQxsY/D5k0
-         phUpvbsB4M7QC4ugbtmyAXrWfM8kxcMoviTijEobrA7tMv+cjZtAPBd1pm58T/MTLy58
-         KdB3CBS8w0Z4TmHiPdeJHNG/bFEyl78o1oIimnSAqRWAb/U1m3PMEQwnWNWoOy7RUaeA
-         1Mt+HkJfO3uG7wM51pwR3+TbSmTdKXIJePqZABmT0LvcZoSIGqQtALmBZtHb/39v+XqM
-         IYlfAMAZfQguK9dv2TeUrJ6SucYZxvyBrJux0s+hP/UNTR/d3zsMwxvT0Q0KFpsDS2IG
-         +wIQ==
-X-Gm-Message-State: AO0yUKXv3JbJsAUR9utr2sUBP4ex74Qjst15dMJQr/bPsQCqtQVXMjHA
-        MLmhtnx4FG1D5B2jc1p2eQ9Xmw==
-X-Google-Smtp-Source: AK7set9Vv2uSkjazOq+f3rx/CCBKfCShLhiL1+01KwPuVcwWj2ucc2G1h2TzyZEz/iSKDj7DuGgpzw==
-X-Received: by 2002:adf:e70a:0:b0:2c9:e3d:88ca with SMTP id c10-20020adfe70a000000b002c90e3d88camr6289357wrm.67.1678098748535;
-        Mon, 06 Mar 2023 02:32:28 -0800 (PST)
-Received: from alex-rivos.ba.rivosinc.com (amontpellier-656-1-456-62.w92-145.abo.wanadoo.fr. [92.145.124.62])
-        by smtp.gmail.com with ESMTPSA id u18-20020a5d6ad2000000b002c5539171d1sm9217902wrw.41.2023.03.06.02.32.27
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 06 Mar 2023 02:32:28 -0800 (PST)
-From:   Alexandre Ghiti <alexghiti@rivosinc.com>
-To:     Greg KH <gregkh@linuxfoundation.org>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Richard Henderson <richard.henderson@linaro.org>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>,
-        Vineet Gupta <vgupta@kernel.org>,
-        Russell King <linux@armlinux.org.uk>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        WANG Xuerui <kernel@xen0n.name>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Michal Simek <monstr@monstr.eu>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E . J . Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        Sven Schnelle <svens@linux.ibm.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>,
-        "David S . Miller" <davem@davemloft.net>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        "H . Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org,
-        linux-snps-arc@lists.infradead.org,
-        linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org,
-        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org,
-        linux-arch@vger.kernel.org
-Cc:     Alexandre Ghiti <alexghiti@rivosinc.com>
-Subject: [PATCH v5 26/26] riscv: Remove empty <uapi/asm/setup.h>
-Date:   Mon,  6 Mar 2023 11:05:08 +0100
-Message-Id: <20230306100508.1171812-27-alexghiti@rivosinc.com>
-X-Mailer: git-send-email 2.37.2
-In-Reply-To: <20230306100508.1171812-1-alexghiti@rivosinc.com>
-References: <20230306100508.1171812-1-alexghiti@rivosinc.com>
+        with ESMTP id S229710AbjCFMDe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2023 07:03:34 -0500
+Received: from loongson.cn (mail.loongson.cn [114.242.206.163])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 7B6F91E5CD;
+        Mon,  6 Mar 2023 04:03:32 -0800 (PST)
+Received: from loongson.cn (unknown [10.20.42.170])
+        by gateway (Coremail) with SMTP id _____8DxWNmT1gVkA80IAA--.16689S3;
+        Mon, 06 Mar 2023 20:03:31 +0800 (CST)
+Received: from [10.20.42.170] (unknown [10.20.42.170])
+        by localhost.localdomain (Coremail) with SMTP id AQAAf8Bxyr2R1gVks5BMAA--.2932S3;
+        Mon, 06 Mar 2023 20:03:29 +0800 (CST)
+Message-ID: <029a5993-b993-ab73-0a14-0df9b0ddf3da@loongson.cn>
+Date:   Mon, 6 Mar 2023 20:03:29 +0800
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.6.0
+Subject: Re: [PATCH V3] LoongArch: Provide kernel fpu functions
+Content-Language: en-US
+To:     Huacai Chen <chenhuacai@loongson.cn>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Huacai Chen <chenhuacai@kernel.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        Xuefeng Li <lixuefeng@loongson.cn>,
+        Guo Ren <guoren@kernel.org>, Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        linux-kernel@vger.kernel.org, loongson-kernel@lists.loongnix.cn
+References: <20230306095934.609589-1-chenhuacai@loongson.cn>
+From:   maobibo <maobibo@loongson.cn>
+In-Reply-To: <20230306095934.609589-1-chenhuacai@loongson.cn>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
+X-CM-TRANSID: AQAAf8Bxyr2R1gVks5BMAA--.2932S3
+X-CM-SenderInfo: xpdruxter6z05rqj20fqof0/
+X-Coremail-Antispam: 1Uk129KBjvJXoWxAF1fCF1rKrWDCw4DWr1ftFb_yoW5Zry3pF
+        ZIkFs5GrZ5Cr92v3sxJa4j9r98Jw4kGw1ag3W3GFyrAF4jgF1DWr4vqr9rXFyjva18K3y0
+        qFn5K39xK3WDJwUanT9S1TB71UUUUjUqnTZGkaVYY2UrUUUUj1kv1TuYvTs0mT0YCTnIWj
+        qI5I8CrVACY4xI64kE6c02F40Ex7xfYxn0WfASr-VFAUDa7-sFnT9fnUUIcSsGvfJTRUUU
+        bDAYFVCjjxCrM7AC8VAFwI0_Jr0_Gr1l1xkIjI8I6I8E6xAIw20EY4v20xvaj40_Wr0E3s
+        1l1IIY67AEw4v_Jrv_JF1l8cAvFVAK0II2c7xJM28CjxkF64kEwVA0rcxSw2x7M28EF7xv
+        wVC0I7IYx2IY67AKxVW8JVW5JwA2z4x0Y4vE2Ix0cI8IcVCY1x0267AKxVW8JVWxJwA2z4
+        x0Y4vEx4A2jsIE14v26F4UJVW0owA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_Cr1j6rxdM2kK
+        e7AKxVWUXVWUAwAS0I0E0xvYzxvE52x082IY62kv0487Mc804VCY07AIYIkI8VC2zVCFFI
+        0UMc02F40EFcxC0VAKzVAqx4xG6I80ewAv7VC0I7IYx2IY67AKxVWUAVWUtwAv7VC2z280
+        aVAFwI0_Jr0_Gr1lOx8S6xCaFVCjc4AY6r1j6r4UM4x0Y48IcVAKI48JMxk0xIA0c2IEe2
+        xFo4CEbIxvr21lc7CjxVAaw2AFwI0_JF0_Jw1l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC
+        6x0Yz7v_Jr0_Gr1l4IxYO2xFxVAFwI0_Jrv_JF1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s
+        026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v26r1q6r43MIIYrxkI7VAKI48JMIIF
+        0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v26r1j6r4UMIIF0x
+        vE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv
+        6xkF7I0E14v26r1j6r4UYxBIdaVFxhVjvjDU0xZFpf9x07jOiSdUUUUU=
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Signed-off-by: Alexandre Ghiti <alexghiti@rivosinc.com>
----
- arch/riscv/include/uapi/asm/setup.h | 6 ------
- 1 file changed, 6 deletions(-)
- delete mode 100644 arch/riscv/include/uapi/asm/setup.h
 
-diff --git a/arch/riscv/include/uapi/asm/setup.h b/arch/riscv/include/uapi/asm/setup.h
-deleted file mode 100644
-index 17fcecd4a2f8..000000000000
---- a/arch/riscv/include/uapi/asm/setup.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
--
--#ifndef _UAPI_ASM_RISCV_SETUP_H
--#define _UAPI_ASM_RISCV_SETUP_H
--
--#endif /* _UAPI_ASM_RISCV_SETUP_H */
--- 
-2.37.2
+
+在 2023/3/6 17:59, Huacai Chen 写道:
+> Provide kernel_fpu_begin()/kernel_fpu_end() to allow the kernel itself
+> to use fpu. They can be used by some other kernel components, e.g., the
+> AMDGPU graphic driver for DCN.
+Since kernel is compiled with -msoft-float, I guess hw fpu will not be
+used in kernel by present:). However it is deserved to try.
+> 
+> Reported-by: WANG Xuerui <kernel@xen0n.name>
+> Tested-by: WANG Xuerui <kernel@xen0n.name>
+> Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
+> ---
+> V2: Use non-GPL exports and update commit messages.
+> V3: Add spaces for coding style.
+> 
+>  arch/loongarch/include/asm/fpu.h |  3 +++
+>  arch/loongarch/kernel/Makefile   |  2 +-
+>  arch/loongarch/kernel/kfpu.c     | 41 ++++++++++++++++++++++++++++++++
+>  3 files changed, 45 insertions(+), 1 deletion(-)
+>  create mode 100644 arch/loongarch/kernel/kfpu.c
+> 
+> diff --git a/arch/loongarch/include/asm/fpu.h b/arch/loongarch/include/asm/fpu.h
+> index 358b254d9c1d..192f8e35d912 100644
+> --- a/arch/loongarch/include/asm/fpu.h
+> +++ b/arch/loongarch/include/asm/fpu.h
+> @@ -21,6 +21,9 @@
+>  
+>  struct sigcontext;
+>  
+> +extern void kernel_fpu_begin(void);
+> +extern void kernel_fpu_end(void);
+> +
+>  extern void _init_fpu(unsigned int);
+>  extern void _save_fp(struct loongarch_fpu *);
+>  extern void _restore_fp(struct loongarch_fpu *);
+> diff --git a/arch/loongarch/kernel/Makefile b/arch/loongarch/kernel/Makefile
+> index 78d4e3384305..9a72d91cd104 100644
+> --- a/arch/loongarch/kernel/Makefile
+> +++ b/arch/loongarch/kernel/Makefile
+> @@ -13,7 +13,7 @@ obj-y		+= head.o cpu-probe.o cacheinfo.o env.o setup.o entry.o genex.o \
+>  obj-$(CONFIG_ACPI)		+= acpi.o
+>  obj-$(CONFIG_EFI) 		+= efi.o
+>  
+> -obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o
+> +obj-$(CONFIG_CPU_HAS_FPU)	+= fpu.o kfpu.o
+>  
+>  obj-$(CONFIG_ARCH_STRICT_ALIGN)	+= unaligned.o
+>  
+> diff --git a/arch/loongarch/kernel/kfpu.c b/arch/loongarch/kernel/kfpu.c
+> new file mode 100644
+> index 000000000000..cd2a18fecdcc
+> --- /dev/null
+> +++ b/arch/loongarch/kernel/kfpu.c
+> @@ -0,0 +1,41 @@
+> +// SPDX-License-Identifier: GPL-2.0-only
+> +/*
+> + * Copyright (C) 2023 Loongson Technology Corporation Limited
+> + */
+> +
+> +#include <linux/cpu.h>
+> +#include <linux/init.h>
+> +#include <asm/fpu.h>
+> +#include <asm/smp.h>
+> +
+> +static DEFINE_PER_CPU(bool, in_kernel_fpu);
+> +
+> +void kernel_fpu_begin(void)
+> +{
+> +	if (this_cpu_read(in_kernel_fpu))
+> +		return;
+> +
+> +	preempt_disable();
+> +	this_cpu_write(in_kernel_fpu, true);
+> +
+> +	if (!is_fpu_owner())
+> +		enable_fpu();
+> +	else
+> +		_save_fp(&current->thread.fpu);
+Do we need initialize fcsr rather than using random fcsr value
+of other processes? There may be fpu exception enabled by
+other tasks.
+
+Regards
+Bibo,mao
+> +}
+> +EXPORT_SYMBOL(kernel_fpu_begin);
+> +
+> +void kernel_fpu_end(void)
+> +{
+> +	if (!this_cpu_read(in_kernel_fpu))
+> +		return;
+> +
+> +	if (!is_fpu_owner())
+> +		disable_fpu();
+> +	else
+> +		_restore_fp(&current->thread.fpu);
+> +
+> +	this_cpu_write(in_kernel_fpu, false);
+> +	preempt_enable();
+> +}
+> +EXPORT_SYMBOL(kernel_fpu_end);
 
