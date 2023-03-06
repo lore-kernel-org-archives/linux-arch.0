@@ -2,148 +2,140 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 48BDDC61DA4
-	for <linux-arch@archiver.kernel.org>; Mon,  6 Mar 2023 08:47:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F1010C678D4
+	for <linux-arch@archiver.kernel.org>; Mon,  6 Mar 2023 09:35:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229649AbjCFIri (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 6 Mar 2023 03:47:38 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50456 "EHLO
+        id S230040AbjCFJfi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 6 Mar 2023 04:35:38 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45870 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229613AbjCFIrg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2023 03:47:36 -0500
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 90C522D48
-        for <linux-arch@vger.kernel.org>; Mon,  6 Mar 2023 00:46:49 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1678092408;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=vSd8hwHPbmWReXdvpQsZ0BwbyP6BUUMBochFuTwRaSI=;
-        b=KS/dRXNTcR1O9WPP1MoaqlVHfqMjLL8CqnLBvke9JZm1q8fnKotqXjrBZVd2kvIThh3yXx
-        hbvkDM7kfb9/G/eqHTbN4QInQFgXKj1Dg5Ork7fdmBqo5WmcswzdSYleA9va8Dvy2ZcWnt
-        rJcwrShBtciRtGgl4ZPC/3kdJsPxcpI=
-Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
- [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-100-LYVAfDgZPR-21MvuG0sNlw-1; Mon, 06 Mar 2023 03:46:44 -0500
-X-MC-Unique: LYVAfDgZPR-21MvuG0sNlw-1
-Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
-        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
-        (No client certificate requested)
-        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 2893E802C18;
-        Mon,  6 Mar 2023 08:46:43 +0000 (UTC)
-Received: from localhost (ovpn-12-63.pek2.redhat.com [10.72.12.63])
-        by smtp.corp.redhat.com (Postfix) with ESMTPS id 20EFAC16029;
-        Mon,  6 Mar 2023 08:46:41 +0000 (UTC)
-Date:   Mon, 6 Mar 2023 16:46:38 +0800
-From:   Baoquan He <bhe@redhat.com>
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     linux-kernel@vger.kernel.org,
-        Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Luis Chamberlain <mcgrof@kernel.org>,
-        Christoph Hellwig <hch@infradead.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        Helge Deller <deller@gmx.de>,
-        Serge Semin <fancer.lancer@gmail.com>,
-        Florian Fainelli <f.fainelli@gmail.com>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        Jiaxun Yang <jiaxun.yang@flygoat.com>,
-        linux-mips@vger.kernel.org
-Subject: Re: [PATCH v3 1/2] mips: add <asm-generic/io.h> including
-Message-ID: <ZAWobtBuBYBng6s+@MiWiFi-R3L-srv>
-References: <20230303102817.212148-1-bhe@redhat.com>
- <20230303102817.212148-2-bhe@redhat.com>
- <a845b6b3-9f5f-4328-8c69-bbd4dd17caee@app.fastmail.com>
+        with ESMTP id S229807AbjCFJfh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 6 Mar 2023 04:35:37 -0500
+Received: from relay3-d.mail.gandi.net (relay3-d.mail.gandi.net [IPv6:2001:4b98:dc4:8::223])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6D56CA275;
+        Mon,  6 Mar 2023 01:35:33 -0800 (PST)
+Received: (Authenticated sender: alex@ghiti.fr)
+        by mail.gandi.net (Postfix) with ESMTPSA id D7AAE60017;
+        Mon,  6 Mar 2023 09:35:17 +0000 (UTC)
+Message-ID: <caaed678-4a5a-70e5-2ee7-cb2c8042afc0@ghiti.fr>
+Date:   Mon, 6 Mar 2023 10:35:17 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <a845b6b3-9f5f-4328-8c69-bbd4dd17caee@app.fastmail.com>
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.7.1
+Subject: Re: [PATCH v3 00/24] Remove COMMAND_LINE_SIZE from uapi
+Content-Language: en-US
+To:     Arnd Bergmann <arnd@arndb.de>, "H. Peter Anvin" <hpa@zytor.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Heiko Carstens <hca@linux.ibm.com>
+Cc:     Geert Uytterhoeven <geert@linux-m68k.org>,
+        Alexandre Ghiti <alexghiti@rivosinc.com>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Vineet Gupta <vgupta@kernel.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Michal Simek <monstr@monstr.eu>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E . J . Bottomley" <James.Bottomley@hansenpartnership.com>,
+        Helge Deller <deller@gmx.de>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, gor@linux.ibm.com,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        borntraeger@linux.ibm.com, Sven Schnelle <svens@linux.ibm.com>,
+        ysato@users.osdn.me, Rich Felker <dalias@libc.org>,
+        "David S . Miller" <davem@davemloft.net>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+        chris@zankel.net, Max Filippov <jcmvbkbc@gmail.com>,
+        linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+        linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org,
+        loongarch@lists.linux.dev, linux-m68k@vger.kernel.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org,
+        Linux-Arch <linux-arch@vger.kernel.org>
+References: <mhng-e8b09772-24e5-4729-a0bf-01a9e4c76636@palmer-ri-x1c9a>
+ <21F95EC4-71EA-4154-A7DC-8A5BA54F174B@zytor.com>
+ <674bc31e-e4ed-988f-820d-54213d83f9c7@ghiti.fr>
+ <c500840b-b57d-47f2-a3d9-41465b10ffae@app.fastmail.com>
+From:   Alexandre Ghiti <alex@ghiti.fr>
+In-Reply-To: <c500840b-b57d-47f2-a3d9-41465b10ffae@app.fastmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 03/03/23 at 01:40pm, Arnd Bergmann wrote:
-> On Fri, Mar 3, 2023, at 11:28, Baoquan He wrote:
-> > With the adding, some default ioremap_xx methods defined in
-> > asm-generic/io.h can be used. E.g the default ioremap_uc() returning
-> > NULL.
-> >
-> > Signed-off-by: Baoquan He <bhe@redhat.com>
-> > Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-> > Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> > Cc: Helge Deller <deller@gmx.de>
-> > Cc: Serge Semin <fancer.lancer@gmail.com>
-> > Cc: Florian Fainelli <f.fainelli@gmail.com>
-> > Cc: Huacai Chen <chenhuacai@kernel.org>
-> > Cc: Jiaxun Yang <jiaxun.yang@flygoat.com>
-> > Cc: linux-mips@vger.kernel.org
-> 
-> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> I think this is all good. I had look at what cleanups we could do as
-> follow-ups:
 
-Thanks a lot for careful reviewing and great suggestions.
+On 3/3/23 17:40, Arnd Bergmann wrote:
+> On Fri, Mar 3, 2023, at 12:59, Alexandre Ghiti wrote:
+>> On 3/2/23 20:50, H. Peter Anvin wrote:
+>>> On March 1, 2023 7:17:18 PM PST, Palmer Dabbelt <palmer@dabbelt.com> wrote:
+>>>>>> Commit 622021cd6c560ce7 ("s390: make command line configurable"),
+>>>>>> I assume?
+>>>>> Yes, sorry for that. I got distracted while writing and used the wrong
+>>>>> branch to look this up.
+>>>> Alex: Probably worth adding that to the list in the cover letter as it looks like you were planning on a v4 anyway (which I guess you now have to do, given that I just added the issue to RISC-V).
+>>> The only use that is uapi is the *default* length of the command line if the kernel header doesn't include it (in the case of x86, it is in the bzImage header, but that is atchitecture- or even boot format-specific.)
+>> Is COMMAND_LINE_SIZE what you call the default length? Does that mean
+>> that to you the patchset is wrong?
+> On x86, the COMMAND_LINE_SIZE value is already not part of a uapi header,
+> but instead (since bzImage format version 2.06) is communicated from
+> the kernel to the boot loader, which then knows how much data the
+> kernel will read (at most) from the command line.
+>
+> Most x86 kernels these days are booted using UEFI, which I think has
+> no such interface, the firmware just passes the command line and a
+> length, but has no way of knowing if the kernel will truncate this.
+> I think that is the same as with any other architecture that passes
+> the command line through UEFI, DT or ATAGS, all of which use
+> length/value pairs.
+>
+> Russell argued on IRC that this can be considered an ABI since a
+> boot loader may use its knowledge of the kernel's command line size
+> limit to reject long command lines. On the other hand, I don't
+> think that any boot loader actually does, they just trust that it
+> fits and don't have a good way of rejecting invalid configuration
+> other than truncating and/or warning.
+>
+> One notable exception I found while looking through is the old
+> (pre-ATAGS) parameter structure on Arm, which uses COMMAND_LINE_SIZE
+> as part of the structure definition. Apparently this was deprecated
+> 22 years ago, so hopefully the remaining riscpc and footbridge
+> users have all upgraded their bootloaders.
+>
+> The only other case I could find that might go wrong is
+> m68knommu with a few files copying a COMMAND_LINE_SIZE sized
+> buffer from flash into a kernel buffer:
+>
+> arch/m68k/coldfire/m5206.c:void __init config_BSP(char *commandp, int size)
+> arch/m68k/coldfire/m5206.c-{
+> arch/m68k/coldfire/m5206.c-#if defined(CONFIG_NETtel)
+> arch/m68k/coldfire/m5206.c-     /* Copy command line from FLASH to local buffer... */
+> arch/m68k/coldfire/m5206.c-     memcpy(commandp, (char *) 0xf0004000, size);
+> arch/m68k/coldfire/m5206.c-     commandp[size-1] = 0;
+> arch/m68k/coldfire/m5206.c-#endif /* CONFIG_NETtel */
 
-> 
-> > +#define phys_to_virt phys_to_virt
-> >  static inline void * phys_to_virt(unsigned long address)
-> >  {
-> >  	return __va(address);
-> 
-> This is the same as the asm-generic version, so the mips definition
-> is no longer needed.
 
-Agree, I can clean this up with a followup patch.
+I see, thanks your thorough explanation: I don't see this m64k issue as 
+a blocker (unless Geert disagrees but he already reviewed the m64k 
+patches),  so I'll send the v5 now.
 
-> 
-> > @@ -359,6 +360,27 @@ __BUILD_MEMORY_PFX(__raw_, q, u64, 0)
-> >  __BUILD_MEMORY_PFX(__mem_, q, u64, 0)
-> >  #endif
-> > 
-> > +#define readb readb
-> > +#define readw readw
-> > +#define readl readl
-> > +#define writeb writeb
-> > +#define writew writew
-> > +#define writel writel
-> > +
-> > +#ifdef CONFIG_64BIT
-> > +#define readq readq
-> > +#define writeq writeq
-> > +#define __raw_readq __raw_readq
-> > +#define __raw_writeq __raw_writeq
-> > +#endif
-> > +
-> > +#define __raw_readb __raw_readb
-> > +#define __raw_readw __raw_readw
-> > +#define __raw_readl __raw_readl
-> > +#define __raw_writeb __raw_writeb
-> > +#define __raw_writew __raw_writew
-> > +#define __raw_writel __raw_writel
-> 
-> The mips code defines the __raw variants with slightly different
-> semantics on both barriers and byteswap, which makes it impractical
-> to share any of the above.				
-> 
-> > +#define memset_io memset_io
-> >  static inline void memset_io(volatile void __iomem *addr, unsigned 
-> > char val, int count)
-> >  {
-> >  	memset((void __force *) addr, val, count);
-> >  }
-> > +#define memcpy_fromio memcpy_fromio
-> >  static inline void memcpy_fromio(void *dst, const volatile void 
-> > __iomem *src, int count)
-> >  {
-> >  	memcpy(dst, (void __force *) src, count);
-> >  }
-> > +#define memcpy_toio memcpy_toio
-> 
-> These are again the same as the generic version
+Thanks again,
 
-OK, can remove this with the above change.
+Alex
 
+
+>
+>       Arnd
