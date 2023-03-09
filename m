@@ -2,151 +2,99 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 098E1C6FD19
-	for <linux-arch@archiver.kernel.org>; Thu,  9 Mar 2023 17:07:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1FC93C64EC4
+	for <linux-arch@archiver.kernel.org>; Thu,  9 Mar 2023 17:08:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229922AbjCIRG6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 9 Mar 2023 12:06:58 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34746 "EHLO
+        id S230463AbjCIRIb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 9 Mar 2023 12:08:31 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41310 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229900AbjCIRGl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2023 12:06:41 -0500
-Received: from mail.skyhub.de (mail.skyhub.de [IPv6:2a01:4f8:190:11c2::b:1457])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D0AE6F6927;
-        Thu,  9 Mar 2023 09:02:34 -0800 (PST)
+        with ESMTP id S231193AbjCIRIK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 9 Mar 2023 12:08:10 -0500
+Received: from mail.skyhub.de (mail.skyhub.de [5.9.137.197])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E9412E7EC4;
+        Thu,  9 Mar 2023 09:05:00 -0800 (PST)
 Received: from zn.tnic (p5de8e9fe.dip0.t-ipconnect.de [93.232.233.254])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 206C81EC0464;
-        Thu,  9 Mar 2023 18:02:32 +0100 (CET)
+        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 6E93B1EC0464;
+        Thu,  9 Mar 2023 18:04:59 +0100 (CET)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=dkim;
-        t=1678381352;
+        t=1678381499;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          content-transfer-encoding:in-reply-to:in-reply-to:  references:references;
-        bh=2EzHzmcCNV+hERnYGLmd7J3Hxny9vW/fCLbxwPiF+nY=;
-        b=UTIj0bjNQ8tGPkfWd7G2gwZV3Qvhn3M5rZhVEwIFvbwSC1ecnxrHBw99KYD7QFpw2tp7lp
-        LW+Cp843oRJRVtsLOq8At1/Ut0Pr+dpLc+U8aHStU+1wD8bWxDsjPoyJ5WsOmAcB4VvhDJ
-        qW9JffSymArXGmcDl7niUASKvz7y7wA=
-Date:   Thu, 9 Mar 2023 18:02:27 +0100
+        bh=HSgIsxTDQ4s8IseiaVBLQ3K8w1aWvzVhyrwDNvu0QZI=;
+        b=judloLDDDKAm5Py0vvIdKjzrxN1TJ7Pw6nLKBeazATLMz4s66nMghn84IniZDxefI67pbB
+        Yz9x5Pj/ivmAia1jOMbmjBtiAHwlDqmfTJK+pEBbRgzWg11olRKz91gz07dAnhOYmtz4cU
+        eGfUjxM87Zhd5XXATTPr9WuyvwtxmLI=
+Date:   Thu, 9 Mar 2023 18:04:59 +0100
 From:   Borislav Petkov <bp@alien8.de>
-To:     Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H . J . Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        John Allen <john.allen@amd.com>, kcc@google.com,
-        eranian@google.com, rppt@kernel.org, jamorris@linux.microsoft.com,
-        dethoma@microsoft.com, akpm@linux-foundation.org,
-        Andrew.Cooper3@citrix.com, christina.schimpe@intel.com,
-        david@redhat.com, debug@rivosinc.com,
-        Yu-cheng Yu <yu-cheng.yu@intel.com>
-Subject: Re: [PATCH v7 32/41] x86/shstk: Handle signals for shadow stack
-Message-ID: <ZAoRI8J9MjOf58+r@zn.tnic>
+To:     "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
+Cc:     "david@redhat.com" <david@redhat.com>,
+        "bsingharora@gmail.com" <bsingharora@gmail.com>,
+        "hpa@zytor.com" <hpa@zytor.com>,
+        "Syromiatnikov, Eugene" <esyr@redhat.com>,
+        "peterz@infradead.org" <peterz@infradead.org>,
+        "rdunlap@infradead.org" <rdunlap@infradead.org>,
+        "keescook@chromium.org" <keescook@chromium.org>,
+        "Yu, Yu-cheng" <yu-cheng.yu@intel.com>,
+        "Eranian, Stephane" <eranian@google.com>,
+        "kirill.shutemov@linux.intel.com" <kirill.shutemov@linux.intel.com>,
+        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
+        "linux-mm@kvack.org" <linux-mm@kvack.org>,
+        "fweimer@redhat.com" <fweimer@redhat.com>,
+        "nadav.amit@gmail.com" <nadav.amit@gmail.com>,
+        "jannh@google.com" <jannh@google.com>,
+        "dethoma@microsoft.com" <dethoma@microsoft.com>,
+        "kcc@google.com" <kcc@google.com>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "pavel@ucw.cz" <pavel@ucw.cz>, "oleg@redhat.com" <oleg@redhat.com>,
+        "hjl.tools@gmail.com" <hjl.tools@gmail.com>,
+        "akpm@linux-foundation.org" <akpm@linux-foundation.org>,
+        "Yang, Weijiang" <weijiang.yang@intel.com>,
+        "Lutomirski, Andy" <luto@kernel.org>,
+        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+        "arnd@arndb.de" <arnd@arndb.de>,
+        "tglx@linutronix.de" <tglx@linutronix.de>,
+        "Schimpe, Christina" <christina.schimpe@intel.com>,
+        "mike.kravetz@oracle.com" <mike.kravetz@oracle.com>,
+        "debug@rivosinc.com" <debug@rivosinc.com>,
+        "x86@kernel.org" <x86@kernel.org>,
+        "jamorris@linux.microsoft.com" <jamorris@linux.microsoft.com>,
+        "john.allen@amd.com" <john.allen@amd.com>,
+        "rppt@kernel.org" <rppt@kernel.org>,
+        "andrew.cooper3@citrix.com" <andrew.cooper3@citrix.com>,
+        "mingo@redhat.com" <mingo@redhat.com>,
+        "corbet@lwn.net" <corbet@lwn.net>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>,
+        "gorcunov@gmail.com" <gorcunov@gmail.com>
+Subject: Re: [PATCH v7 30/41] x86/shstk: Handle thread shadow stack
+Message-ID: <20230309170459.GGZAoRuxYy1zxwluev@fat_crate.local>
 References: <20230227222957.24501-1-rick.p.edgecombe@intel.com>
- <20230227222957.24501-33-rick.p.edgecombe@intel.com>
+ <20230227222957.24501-31-rick.p.edgecombe@intel.com>
+ <ZAipCNBCtPA2bcck@zn.tnic>
+ <d4d472e2e44787eccfbcc693bdf338370013f8a9.camel@intel.com>
+ <ZAnpTYV55gbdROxx@zn.tnic>
+ <5b0ce47840bf2f6747ebf722053f6b3c1f99bb64.camel@intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20230227222957.24501-33-rick.p.edgecombe@intel.com>
+In-Reply-To: <5b0ce47840bf2f6747ebf722053f6b3c1f99bb64.camel@intel.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 27, 2023 at 02:29:48PM -0800, Rick Edgecombe wrote:
-> From: Yu-cheng Yu <yu-cheng.yu@intel.com>
-> 
-> When a signal is handled normally the context is pushed to the stack
+On Thu, Mar 09, 2023 at 04:59:52PM +0000, Edgecombe, Rick P wrote:
+> Ah, I see what you were saying now. It looks like it will work to me if
+> you think it is better stylistically.
 
-s/normally //
+Yeah, having a function return an error *and* an I/O parameter at the
+same time is more complicated and error prone instead of when you have
+a single retval and only input parameters.
 
-> before handling it. For shadow stacks, since the shadow stack only track's
-
-"tracks"
-
-> return addresses, there isn't any state that needs to be pushed. However,
-> there are still a few things that need to be done. These things are
-> userspace visible and which will be kernel ABI for shadow stacks.
-
-"visible to userspace"
-
-s/which //
-
-> One is to make sure the restorer address is written to shadow stack, since
-> the signal handler (if not changing ucontext) returns to the restorer, and
-> the restorer calls sigreturn. So add the restorer on the shadow stack
-> before handling the signal, so there is not a conflict when the signal
-> handler returns to the restorer.
-> 
-> The other thing to do is to place some type of checkable token on the
-> thread's shadow stack before handling the signal and check it during
-> sigreturn. This is an extra layer of protection to hamper attackers
-> calling sigreturn manually as in SROP-like attacks.
-> 
-> For this token we can use the shadow stack data format defined earlier.
-		^^^
-
-Please use passive voice in your commit message: no "we" or "I", etc.
-
-> Have the data pushed be the previous SSP. In the future the sigreturn
-> might want to return back to a different stack. Storing the SSP (instead
-> of a restore offset or something) allows for future functionality that
-> may want to restore to a different stack.
-> 
-> So, when handling a signal push
->  - the SSP pointing in the shadow stack data format
->  - the restorer address below the restore token.
-> 
-> In sigreturn, verify SSP is stored in the data format and pop the shadow
-> stack.
-
-...
-
-> diff --git a/arch/x86/kernel/shstk.c b/arch/x86/kernel/shstk.c
-> index 13c02747386f..40f0a55762a9 100644
-> --- a/arch/x86/kernel/shstk.c
-> +++ b/arch/x86/kernel/shstk.c
-> @@ -232,6 +232,104 @@ static int get_shstk_data(unsigned long *data, unsigned long __user *addr)
->  	return 0;
->  }
->  
-> +static int shstk_push_sigframe(unsigned long *ssp)
-> +{
-> +	unsigned long target_ssp = *ssp;
-> +
-> +	/* Token must be aligned */
-> +	if (!IS_ALIGNED(*ssp, 8))
-> +		return -EINVAL;
-> +
-> +	if (!IS_ALIGNED(target_ssp, 8))
-> +		return -EINVAL;
-
-Those two statements are identical AFAICT.
-
-> +	*ssp -= SS_FRAME_SIZE;
-> +	if (put_shstk_data((void *__user)*ssp, target_ssp))
-> +		return -EFAULT;
-> +
-> +	return 0;
-> +}
+I'd say.
 
 -- 
 Regards/Gruss,
