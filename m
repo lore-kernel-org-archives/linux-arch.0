@@ -2,189 +2,135 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 19C22C6FA99
-	for <linux-arch@archiver.kernel.org>; Fri, 10 Mar 2023 16:16:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7E3B5C6FD1F
+	for <linux-arch@archiver.kernel.org>; Fri, 10 Mar 2023 16:18:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231710AbjCJQQr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 10 Mar 2023 11:16:47 -0500
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51236 "EHLO
+        id S230516AbjCJQSL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 10 Mar 2023 11:18:11 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50894 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234614AbjCJQQB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Mar 2023 11:16:01 -0500
-Received: from mail.skyhub.de (mail.skyhub.de [IPv6:2a01:4f8:190:11c2::b:1457])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7A65F66D0F;
-        Fri, 10 Mar 2023 08:11:28 -0800 (PST)
-Received: from zn.tnic (p5de8e9fe.dip0.t-ipconnect.de [93.232.233.254])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by mail.skyhub.de (SuperMail on ZX Spectrum 128k) with ESMTPSA id 32E441EC0554;
-        Fri, 10 Mar 2023 17:11:26 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=alien8.de; s=dkim;
-        t=1678464686;
+        with ESMTP id S229998AbjCJQRs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 10 Mar 2023 11:17:48 -0500
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 52FF010D76A
+        for <linux-arch@vger.kernel.org>; Fri, 10 Mar 2023 08:12:20 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1678464720;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:in-reply-to:in-reply-to:  references:references;
-        bh=SghMXOAoohlbIS9JDR4dT2QIcRHFiPilO4AsVNWRpQk=;
-        b=rDzJnDqN2QVo9NC5XgnbGL49tbfsrIRwB6KlCMgIVB/xJXpoymdJuRIbvDcTTKtDGPad8G
-        ZdjG8kjOEtJOoPnx9/z2HikmIFMBXy7Fb7SPLJStSCEbZ7Klr0zwVrX0cOhd8aH5s57Mfm
-        a6cmZ9TNb2I9zvzGH86qQpwh5rZqHo0=
-Date:   Fri, 10 Mar 2023 17:11:19 +0100
-From:   Borislav Petkov <bp@alien8.de>
-To:     Rick Edgecombe <rick.p.edgecombe@intel.com>
-Cc:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, linux-kernel@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
-        Arnd Bergmann <arnd@arndb.de>,
-        Andy Lutomirski <luto@kernel.org>,
-        Balbir Singh <bsingharora@gmail.com>,
-        Cyrill Gorcunov <gorcunov@gmail.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Eugene Syromiatnikov <esyr@redhat.com>,
-        Florian Weimer <fweimer@redhat.com>,
-        "H . J . Lu" <hjl.tools@gmail.com>, Jann Horn <jannh@google.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Kees Cook <keescook@chromium.org>,
-        Mike Kravetz <mike.kravetz@oracle.com>,
-        Nadav Amit <nadav.amit@gmail.com>,
-        Oleg Nesterov <oleg@redhat.com>, Pavel Machek <pavel@ucw.cz>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        Weijiang Yang <weijiang.yang@intel.com>,
-        "Kirill A . Shutemov" <kirill.shutemov@linux.intel.com>,
-        John Allen <john.allen@amd.com>, kcc@google.com,
-        eranian@google.com, rppt@kernel.org, jamorris@linux.microsoft.com,
-        dethoma@microsoft.com, akpm@linux-foundation.org,
-        Andrew.Cooper3@citrix.com, christina.schimpe@intel.com,
-        david@redhat.com, debug@rivosinc.com
-Subject: Re: [PATCH v7 33/41] x86/shstk: Introduce map_shadow_stack syscall
-Message-ID: <ZAtWp76svXxvQl94@zn.tnic>
-References: <20230227222957.24501-1-rick.p.edgecombe@intel.com>
- <20230227222957.24501-34-rick.p.edgecombe@intel.com>
+         to:to:cc:cc:mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=uORM3Xhzjyx5pSXtVFHzrrBAkab8IB4YL2yYQbG2PCU=;
+        b=fzn21fvQoe8ydVOq9nDNObRvelMm4kjnHXtA2UTel45OE+d5h2k5xS0+3dXWL5RthaPD/b
+        Meqibi8cF8x/J3wONYO4omR+5xzSWNQyHUgjwLV5oZL76Ax5lO9y+dTGtbr/lRHSmIxcEO
+        ipB0MstZG7u7mORaG4WHruSGN+AcD/M=
+Received: from mimecast-mx02.redhat.com (mx3-rdu2.redhat.com
+ [66.187.233.73]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-627-vhIr2a09NJ-Bi14QG2KogA-1; Fri, 10 Mar 2023 11:08:11 -0500
+X-MC-Unique: vhIr2a09NJ-Bi14QG2KogA-1
+Received: from smtp.corp.redhat.com (int-mx10.intmail.prod.int.rdu2.redhat.com [10.11.54.10])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 00B1938041DD;
+        Fri, 10 Mar 2023 16:08:11 +0000 (UTC)
+Received: from thuth.com (unknown [10.45.224.202])
+        by smtp.corp.redhat.com (Postfix) with ESMTP id DE54C492C3E;
+        Fri, 10 Mar 2023 16:08:08 +0000 (UTC)
+From:   Thomas Huth <thuth@redhat.com>
+To:     linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc:     linux-arch@vger.kernel.org, Chas Williams <3chas3@gmail.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        linux-block@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-atm-general@lists.sourceforge.net, netdev@vger.kernel.org,
+        Christoph Hellwig <hch@infradead.org>
+Subject: [PATCH v2 4/5] pktcdvd: Remove CONFIG_CDROM_PKTCDVD_WCACHE from uapi header
+Date:   Fri, 10 Mar 2023 17:07:56 +0100
+Message-Id: <20230310160757.199253-5-thuth@redhat.com>
+In-Reply-To: <20230310160757.199253-1-thuth@redhat.com>
+References: <20230310160757.199253-1-thuth@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20230227222957.24501-34-rick.p.edgecombe@intel.com>
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.10
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Feb 27, 2023 at 02:29:49PM -0800, Rick Edgecombe wrote:
-> When operating with shadow stacks enabled, the kernel will automatically
-> allocate shadow stacks for new threads, however in some cases userspace
-> will need additional shadow stacks. The main example of this is the
-> ucontext family of functions, which require userspace allocating and
-> pivoting to userspace managed stacks.
-> 
-> Unlike most other user memory permissions, shadow stacks need to be
-> provisioned with special data in order to be useful. They need to be setup
-> with a restore token so that userspace can pivot to them via the RSTORSSP
-> instruction. But, the security design of shadow stack's is that they
+CONFIG_* switches should not be exposed in uapi headers, thus let's get
+rid of the USE_WCACHING macro here (which was also named way to generic)
+and integrate the logic directly in the only function that needs it.
 
-"stacks"
+Suggested-by: Christoph Hellwig <hch@infradead.org>
+Signed-off-by: Thomas Huth <thuth@redhat.com>
+---
+ drivers/block/pktcdvd.c      | 13 +++++++++----
+ include/uapi/linux/pktcdvd.h | 11 -----------
+ 2 files changed, 9 insertions(+), 15 deletions(-)
 
-> should not be written to except in limited circumstances. This presents a
-> problem for userspace, as to how userspace can provision this special
-> data, without allowing for the shadow stack to be generally writable.
-> 
-> Previously, a new PROT_SHADOW_STACK was attempted, which could be
-> mprotect()ed from RW permissions after the data was provisioned. This was
-> found to not be secure enough, as other thread's could write to the
-
-"threads"
-
-> shadow stack during the writable window.
-> 
-> The kernel can use a special instruction, WRUSS, to write directly to
-> userspace shadow stacks. So the solution can be that memory can be mapped
-> as shadow stack permissions from the beginning (never generally writable
-> in userspace), and the kernel itself can write the restore token.
-> 
-> First, a new madvise() flag was explored, which could operate on the
-> PROT_SHADOW_STACK memory. This had a couple downsides:
-					     ^
-					     of
-
-
-> 1. Extra checks were needed in mprotect() to prevent writable memory from
->    ever becoming PROT_SHADOW_STACK.
-> 2. Extra checks/vma state were needed in the new madvise() to prevent
->    restore tokens being written into the middle of pre-used shadow stacks.
->    It is ideal to prevent restore tokens being added at arbitrary
->    locations, so the check was to make sure the shadow stack had never been
->    written to.
-> 3. It stood out from the rest of the madvise flags, as more of direct
->    action than a hint at future desired behavior.
-> 
-> So rather than repurpose two existing syscalls (mmap, madvise) that don't
-> quite fit, just implement a new map_shadow_stack syscall to allow
-> userspace to map and setup new shadow stacks in one step. While ucontext
-> is the primary motivator, userspace may have other unforeseen reasons to
-> setup it's own shadow stacks using the WRSS instruction. Towards this
-
-"its"
-
-> provide a flag so that stacks can be optionally setup securely for the
-> common case of ucontext without enabling WRSS. Or potentially have the
-> kernel set up the shadow stack in some new way.
-> 
-> The following example demonstrates how to create a new shadow stack with
-> map_shadow_stack:
-> void *shstk = map_shadow_stack(addr, stack_size, SHADOW_STACK_SET_TOKEN);
-
-...
-
-> diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-> index c84d12608cd2..f65c671ce3b1 100644
-> --- a/arch/x86/entry/syscalls/syscall_64.tbl
-> +++ b/arch/x86/entry/syscalls/syscall_64.tbl
-> @@ -372,6 +372,7 @@
->  448	common	process_mrelease	sys_process_mrelease
->  449	common	futex_waitv		sys_futex_waitv
->  450	common	set_mempolicy_home_node	sys_set_mempolicy_home_node
-> +451	64	map_shadow_stack	sys_map_shadow_stack
-
-Yeah, this'll need a manpage too, I presume. But later.
-
-> +SYSCALL_DEFINE3(map_shadow_stack, unsigned long, addr, unsigned long, size, unsigned int, flags)
-> +{
-> +	bool set_tok = flags & SHADOW_STACK_SET_TOKEN;
-> +	unsigned long aligned_size;
-> +
-> +	if (!cpu_feature_enabled(X86_FEATURE_USER_SHSTK))
-> +		return -EOPNOTSUPP;
-> +
-> +	if (flags & ~SHADOW_STACK_SET_TOKEN)
-> +		return -EINVAL;
-> +
-> +	/* If there isn't space for a token */
-> +	if (set_tok && size < 8)
-> +		return -EINVAL;
-> +
-> +	if (addr && addr <= 0xFFFFFFFF)
-
-			< SZ_4G
-
-> +		return -EINVAL;
-
-Can we use distinct negative retvals in each case so that it is clear to
-userspace where it fails, *if* it fails?
-
-> +	/*
-> +	 * An overflow would result in attempting to write the restore token
-> +	 * to the wrong location. Not catastrophic, but just return the right
-> +	 * error code and block it.
-> +	 */
-> +	aligned_size = PAGE_ALIGN(size);
-> +	if (aligned_size < size)
-> +		return -EOVERFLOW;
-> +
-> +	return alloc_shstk(addr, aligned_size, size, set_tok);
-> +}
-
+diff --git a/drivers/block/pktcdvd.c b/drivers/block/pktcdvd.c
+index 2f1a92509271..5ae2a80db2c3 100644
+--- a/drivers/block/pktcdvd.c
++++ b/drivers/block/pktcdvd.c
+@@ -1869,12 +1869,12 @@ static noinline_for_stack int pkt_probe_settings(struct pktcdvd_device *pd)
+ /*
+  * enable/disable write caching on drive
+  */
+-static noinline_for_stack int pkt_write_caching(struct pktcdvd_device *pd,
+-						int set)
++static noinline_for_stack int pkt_write_caching(struct pktcdvd_device *pd)
+ {
+ 	struct packet_command cgc;
+ 	struct scsi_sense_hdr sshdr;
+ 	unsigned char buf[64];
++	bool set = IS_ENABLED(CONFIG_CDROM_PKTCDVD_WCACHE);
+ 	int ret;
+ 
+ 	init_cdrom_command(&cgc, buf, sizeof(buf), CGC_DATA_READ);
+@@ -1890,7 +1890,12 @@ static noinline_for_stack int pkt_write_caching(struct pktcdvd_device *pd,
+ 	if (ret)
+ 		return ret;
+ 
+-	buf[pd->mode_offset + 10] |= (!!set << 2);
++	/*
++	 * use drive write caching -- we need deferred error handling to be
++	 * able to successfully recover with this option (drive will return good
++	 * status as soon as the cdb is validated).
++	 */
++	buf[pd->mode_offset + 10] |= (set << 2);
+ 
+ 	cgc.buflen = cgc.cmd[8] = 2 + ((buf[0] << 8) | (buf[1] & 0xff));
+ 	ret = pkt_mode_select(pd, &cgc);
+@@ -2085,7 +2090,7 @@ static int pkt_open_write(struct pktcdvd_device *pd)
+ 		return -EIO;
+ 	}
+ 
+-	pkt_write_caching(pd, USE_WCACHING);
++	pkt_write_caching(pd);
+ 
+ 	ret = pkt_get_max_speed(pd, &write_speed);
+ 	if (ret)
+diff --git a/include/uapi/linux/pktcdvd.h b/include/uapi/linux/pktcdvd.h
+index 9cbb55d21c94..6a5552dfd6af 100644
+--- a/include/uapi/linux/pktcdvd.h
++++ b/include/uapi/linux/pktcdvd.h
+@@ -29,17 +29,6 @@
+  */
+ #define PACKET_WAIT_TIME	(HZ * 5 / 1000)
+ 
+-/*
+- * use drive write caching -- we need deferred error handling to be
+- * able to successfully recover with this option (drive will return good
+- * status as soon as the cdb is validated).
+- */
+-#if defined(CONFIG_CDROM_PKTCDVD_WCACHE)
+-#define USE_WCACHING		1
+-#else
+-#define USE_WCACHING		0
+-#endif
+-
+ /*
+  * No user-servicable parts beyond this point ->
+  */
 -- 
-Regards/Gruss,
-    Boris.
+2.31.1
 
-https://people.kernel.org/tglx/notes-about-netiquette
