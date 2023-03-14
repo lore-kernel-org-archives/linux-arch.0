@@ -2,63 +2,64 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 25089C77B7E
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Mar 2023 12:15:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9515FC77B76
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Mar 2023 12:15:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231881AbjCNMPN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Mar 2023 08:15:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55508 "EHLO
+        id S231851AbjCNMPL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Mar 2023 08:15:11 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55838 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231853AbjCNMOk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2023 08:14:40 -0400
-Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BA8878480B;
-        Tue, 14 Mar 2023 05:13:18 -0700 (PDT)
-Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 32EAlCeI030805;
-        Tue, 14 Mar 2023 12:12:51 GMT
+        with ESMTP id S229801AbjCNMOO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2023 08:14:14 -0400
+Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6906C59FD;
+        Tue, 14 Mar 2023 05:13:13 -0700 (PDT)
+Received: from pps.filterd (m0098404.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 32EAaLGQ006993;
+        Tue, 14 Mar 2023 12:12:39 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
  : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=pp1;
- bh=JXq4Thrm3+N2YkkONgmv7Gb1Ah6ctBorW6vPUyhIY4o=;
- b=AQf+5zT2yPpPb4qSLEW8bkuAyJakyMeEh50tBU6I9cpSOxBA4GSmPuqnbQwoaeLuIGnw
- Xkfey9EJzi4iI7l9c3maXzB0nwiKfx6XmVmXiZmg2riUIX6kDN3hWZcvrZ0QuE057HzK
- YvfCL3TJS9Yp3p0ePiqlu3oeep8m8s4HHGoEk4ssbVkJZbE6nfuxTkGDR1ZW+ixjyCUs
- pdnqumIQ2FLVpVhrdBLqbej2B16eikTjDlz4DBzVDEuN5lmFWqzARzUJfBoWc2KPRSGJ
- IbNO5cLPhshGL9aWNTYZGMxQrxsfCr7q1P2aFoHC1RDW5NVvx5OjharLSh2CPjwnF+9g Xg== 
+ bh=PfD4c4PH+3TJqACOJC/3Xq+/Vg5zTqCDtNpSTLItBiw=;
+ b=MPBWVVr8r1GGVnw/vbZXPrN8B9a3POHYs+f0hejEK4xiuvz5jsDptWzeOe2oHgKAtSCD
+ qhQHhsehsphe8WgybJ3AA/rIKpkVZ3+9gx7rwn6FP5QtA0O0n3MKFxS6C+ZkrUP9qHvy
+ vx4V+Im0sFuJ89bTvh6pLDd/XK22En4f2gy1Hv0rg9tPNpfs5NQrDhfQlxzN8IbEVw9p
+ 2CSYC0s+ZNq6NL9WeIn1SVtoEc8zZ4VELX68uc3kZhgz9h+YboLPGLOilU6flaw6mT7v
+ rBN7pIgm1JmBfs3og0hCcsjFnT3XY/aOi5z14IYPCa5TnBMlhp8S5sU3gsiy4PMeX1WT 5g== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3paqftj5cj-1
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3papkwkk5r-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 14 Mar 2023 12:12:50 +0000
-Received: from m0098417.ppops.net (m0098417.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 32EAlHQp030901;
-        Tue, 14 Mar 2023 12:12:50 GMT
-Received: from ppma01fra.de.ibm.com (46.49.7a9f.ip4.static.sl-reverse.com [159.122.73.70])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3paqftj5b9-1
+        Tue, 14 Mar 2023 12:12:39 +0000
+Received: from m0098404.ppops.net (m0098404.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 32EC8AuG010624;
+        Tue, 14 Mar 2023 12:12:38 GMT
+Received: from ppma04fra.de.ibm.com (6a.4a.5195.ip4.static.sl-reverse.com [149.81.74.106])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3papkwkk4t-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 14 Mar 2023 12:12:49 +0000
-Received: from pps.filterd (ppma01fra.de.ibm.com [127.0.0.1])
-        by ppma01fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 32E8baS8017716;
-        Tue, 14 Mar 2023 12:12:47 GMT
-Received: from smtprelay02.fra02v.mail.ibm.com ([9.218.2.226])
-        by ppma01fra.de.ibm.com (PPS) with ESMTPS id 3p8h96ksft-1
+        Tue, 14 Mar 2023 12:12:38 +0000
+Received: from pps.filterd (ppma04fra.de.ibm.com [127.0.0.1])
+        by ppma04fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 32E8ibsS006605;
+        Tue, 14 Mar 2023 12:12:35 GMT
+Received: from smtprelay04.fra02v.mail.ibm.com ([9.218.2.228])
+        by ppma04fra.de.ibm.com (PPS) with ESMTPS id 3p8h96krsk-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 14 Mar 2023 12:12:47 +0000
+        Tue, 14 Mar 2023 12:12:35 +0000
 Received: from smtpav05.fra02v.mail.ibm.com (smtpav05.fra02v.mail.ibm.com [10.20.54.104])
-        by smtprelay02.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 32ECCj4c27525830
+        by smtprelay04.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 32ECCXWH30737014
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Tue, 14 Mar 2023 12:12:45 GMT
+        Tue, 14 Mar 2023 12:12:33 GMT
 Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 1FF712007C;
-        Tue, 14 Mar 2023 12:12:45 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id 284502007A;
+        Tue, 14 Mar 2023 12:12:33 +0000 (GMT)
 Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 9FBB02007A;
-        Tue, 14 Mar 2023 12:12:44 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id A22EE2007C;
+        Tue, 14 Mar 2023 12:12:32 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
         by smtpav05.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Tue, 14 Mar 2023 12:12:44 +0000 (GMT)
+        Tue, 14 Mar 2023 12:12:32 +0000 (GMT)
 From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>, Sebastian Reichel <sre@kernel.org>
+To:     Arnd Bergmann <arnd@arndb.de>, Pavel Machek <pavel@ucw.cz>,
+        Lee Jones <lee@kernel.org>
 Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Bjorn Helgaas <bhelgaas@google.com>,
         =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
@@ -72,26 +73,26 @@ Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Albert Ou <aou@eecs.berkeley.edu>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
-        linux-pm@vger.kernel.org
-Subject: [PATCH v3 27/38] power: add HAS_IOPORT dependencies
-Date:   Tue, 14 Mar 2023 13:12:05 +0100
-Message-Id: <20230314121216.413434-28-schnelle@linux.ibm.com>
+        linux-leds@vger.kernel.org
+Subject: [PATCH v3 15/38] leds: add HAS_IOPORT dependencies
+Date:   Tue, 14 Mar 2023 13:11:53 +0100
+Message-Id: <20230314121216.413434-16-schnelle@linux.ibm.com>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <20230314121216.413434-1-schnelle@linux.ibm.com>
 References: <20230314121216.413434-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-TM-AS-GCONF: 00
-X-Proofpoint-ORIG-GUID: F3knjOjisl1Im1t6udSJo-zBNxgBWEn1
-X-Proofpoint-GUID: nC_oXsNvFfZc4mYN2GFcYeMACwqVGOyk
+X-Proofpoint-GUID: 0RB3YBuUVZzui5n7_sVaDswk8SZsinOl
+X-Proofpoint-ORIG-GUID: S5XuEkeQhlIeR5u6F0A975Ay9p09ti__
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.942,Hydra:6.0.573,FMLib:17.11.170.22
- definitions=2023-03-14_04,2023-03-14_02,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxlogscore=999 spamscore=0
- malwarescore=0 mlxscore=0 lowpriorityscore=0 bulkscore=0 suspectscore=0
- adultscore=0 impostorscore=0 priorityscore=1501 clxscore=1011 phishscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2212070000
- definitions=main-2303140103
+ definitions=2023-03-14_06,2023-03-14_02,2023-02-09_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 malwarescore=0 adultscore=0
+ impostorscore=0 mlxscore=0 lowpriorityscore=0 mlxlogscore=774
+ suspectscore=0 priorityscore=1501 bulkscore=0 phishscore=0 clxscore=1011
+ spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2212070000 definitions=main-2303140103
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -100,24 +101,26 @@ In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
 not being declared. We thus need to add HAS_IOPORT as dependency for
 those drivers using them.
 
+Acked-by: Pavel Machek <pavel@ucw.cz>
 Co-developed-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 ---
- drivers/power/reset/Kconfig | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/leds/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/power/reset/Kconfig b/drivers/power/reset/Kconfig
-index 8c87eeda0fec..fff07b2bd77b 100644
---- a/drivers/power/reset/Kconfig
-+++ b/drivers/power/reset/Kconfig
-@@ -158,6 +158,7 @@ config POWER_RESET_OXNAS
- config POWER_RESET_PIIX4_POWEROFF
- 	tristate "Intel PIIX4 power-off driver"
- 	depends on PCI
-+	depends on HAS_IOPORT
- 	depends on MIPS || COMPILE_TEST
+diff --git a/drivers/leds/Kconfig b/drivers/leds/Kconfig
+index 9dbce09eabac..55b4a4de8f1a 100644
+--- a/drivers/leds/Kconfig
++++ b/drivers/leds/Kconfig
+@@ -662,7 +662,7 @@ config LEDS_LM355x
+ 
+ config LEDS_OT200
+ 	tristate "LED support for the Bachmann OT200"
+-	depends on LEDS_CLASS && HAS_IOMEM && (X86_32 || COMPILE_TEST)
++	depends on LEDS_CLASS && HAS_IOPORT && (X86_32 || COMPILE_TEST)
  	help
- 	  This driver supports powering off a system using the Intel PIIX4
+ 	  This option enables support for the LEDs on the Bachmann OT200.
+ 	  Say Y to enable LEDs on the Bachmann OT200.
 -- 
 2.37.2
 
