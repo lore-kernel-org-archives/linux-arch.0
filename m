@@ -2,129 +2,138 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E951C6FD1C
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Mar 2023 14:13:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 65FB0C6FD1D
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Mar 2023 14:22:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231316AbjCNONb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Mar 2023 10:13:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34042 "EHLO
+        id S230222AbjCNOWQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Mar 2023 10:22:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49884 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230449AbjCNON1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2023 10:13:27 -0400
-Received: from wout1-smtp.messagingengine.com (wout1-smtp.messagingengine.com [64.147.123.24])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BAB0CA729E;
-        Tue, 14 Mar 2023 07:13:00 -0700 (PDT)
-Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
-        by mailout.west.internal (Postfix) with ESMTP id D94543200941;
-        Tue, 14 Mar 2023 10:12:49 -0400 (EDT)
-Received: from imap51 ([10.202.2.101])
-  by compute6.internal (MEProxy); Tue, 14 Mar 2023 10:12:51 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-        :cc:content-type:content-type:date:date:from:from:in-reply-to
-        :in-reply-to:message-id:mime-version:references:reply-to:sender
-        :subject:subject:to:to; s=fm1; t=1678803169; x=1678889569; bh=iI
-        y9CiLa5l8silAFG/oWEvBfHn6PDmPHZgl7iOTs+qg=; b=X2B5Wl4bu9GOPGkddY
-        li31c/SfHn4jb6pJLJ/jqJ+tkYsVADp/ceVGMiluUvtGcOEouehVJYNkBJz2e5V4
-        iU88ZryJes4EoIPVz9Q8fQFryx5lJj5yUn6TQ6ulEEXE1nIl7WM9FMPYq6IkxULn
-        1XsDW/jQQRs6tFRu0M2A+oQQmCZOWslh74LzAMjhEvZkixbrPnNgNuCaxesFVPAX
-        7EgJfjSnKwgh/DV3SJm5629nSQbTe9wEz81piuubxJ9/zDa7hdliSg57j8DW4D3o
-        pzarHyf8vY8Nb+otNdGIkZw+oVQHaZ+H8XqTg/nkUewLvPgOyN4S1qW+EUCdwohk
-        G0EA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-        messagingengine.com; h=cc:cc:content-type:content-type:date:date
-        :feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
-        :message-id:mime-version:references:reply-to:sender:subject
-        :subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
-        :x-sasl-enc; s=fm2; t=1678803169; x=1678889569; bh=iIy9CiLa5l8si
-        lAFG/oWEvBfHn6PDmPHZgl7iOTs+qg=; b=EAHSkomvD9rBK8REvSHAZ6yLADrsR
-        oZs6/9eHLOGSmcrbJgkh9l8KbLxB3ta6BeE1AlmONBAdFaqrRyfEaPbKDPb1c4Ec
-        XiCyD1I51aPmpTpPIQzsEstJ4SgiGTh+S+KCZnIu+x/K/ywzHV4eeSi2B91YyABZ
-        Q6V2gmyDTPXtB9CtpZQOL/f0nmvXLxOR8DbsLEhXLpaRijcwd8cB7esgdOCeUZ0U
-        mVPevhwS/6tLhUnhncB1a51Jl2TGndxNiNBjNz5c3hG4dvJ06ho6F1Qaa2lFRKKI
-        zSgtA1zBHISKXHeIuk6IpSQNvRIrpUC79qGolFyra/sBCTbgMgNAXZ/Qg==
-X-ME-Sender: <xms:4IAQZOPsKJ0R2GPsgsBSQJFNMUcErJCAkUTLgdu7eQZ_yNhMziM6nQ>
-    <xme:4IAQZM_qejJSeO_gv_XfQRmjl25-dPYJDdSdIpMcnP_ItE-vA1FI04YP3FqL2HLft
-    vUJqUYvt4VldDuvZKs>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvhedrvddviedgieefucetufdoteggodetrfdotf
-    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
-    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhepofgfggfkjghffffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehr
-    nhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrth
-    htvghrnhepffehueegteeihfegtefhjefgtdeugfegjeelheejueethfefgeeghfektdek
-    teffnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprg
-    hrnhgusegrrhhnuggsrdguvg
-X-ME-Proxy: <xmx:4IAQZFRMgN06nGgsnp7PKgzi2kIRwj5CqHc1K48LXBkTbv8KTZgQ4Q>
-    <xmx:4IAQZOtjhw7cOdYQzyxAx7SYrMoZtIBKUxo7KUmNh0F8jzjtzHVemA>
-    <xmx:4IAQZGdxUvbSkOnatKqeXlhR5ndqfXGdQkdA2sZpi4xlb6ZBwJI2bA>
-    <xmx:4YAQZN8zwOSxqf7VUm8CUoSCQXQ9JyBcEd6V4YACtI8mBkLHu5Pyjw>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-        id 88E8BB60086; Tue, 14 Mar 2023 10:12:48 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.9.0-alpha0-221-gec32977366-fm-20230306.001-gec329773
-Mime-Version: 1.0
-Message-Id: <e2ce3f02-988c-423d-a1c1-2796ab95026c@app.fastmail.com>
-In-Reply-To: <20230314121216.413434-22-schnelle@linux.ibm.com>
+        with ESMTP id S229730AbjCNOWP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2023 10:22:15 -0400
+Received: from mail-il1-x12a.google.com (mail-il1-x12a.google.com [IPv6:2607:f8b0:4864:20::12a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2102D144AF;
+        Tue, 14 Mar 2023 07:21:44 -0700 (PDT)
+Received: by mail-il1-x12a.google.com with SMTP id h7so8712211ila.5;
+        Tue, 14 Mar 2023 07:21:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112; t=1678803702;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :sender:from:to:cc:subject:date:message-id:reply-to;
+        bh=TKW/XPJkv5oURqt7x2CDUN4OCZGjwah7XeLljlzahlM=;
+        b=BXb6vrp6VDXSx/8zVsqaZiTMWloQyQR07C6BmwaL5XEEHhrBvjmXa4sVgAMIRFcJMP
+         t84/XyXj4RlWhdTHC1L5qfIGSD7+gM+doj5KLMuhQv+/Kf5VF/QWJAjPwn/nqPRpWMmJ
+         yjH7f8Fzi9Clet/WAHMYlQ9z35b2G62Rxp/lkF9iLRowSoD5bBMgvwrAw73/jX3mJEWu
+         una7ToOcu0Vkh2RLyXCnrr6n3mcL2H3W7SpND7pvNGSphGB8g1KBgYI8ZcBb8Rg98tRC
+         GjmqbubdUqljgzspAbkEX/dy58+8Zq/GEtAnjDR5hdwwzrBLgJUkBCW4TPft1029HpKN
+         /PFA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1678803702;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :sender:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=TKW/XPJkv5oURqt7x2CDUN4OCZGjwah7XeLljlzahlM=;
+        b=YO9gA+Lo+N6loq96xXfWvhmSWC4rkHujOsqsXhraqCWpsaYcJ+K7FZDtfXAzoDLUO/
+         Qtq2DKU1WrjMuYcG5Z0gMACQYoJtgGtK9lWyUNHXwCnjaf3eHlHNPuNj/9cYYtdalPp/
+         /w3PG792CWiL079jgOAhFLDad70m8AhdIzw6A5Z9HSgxHFZQ+N3t5PHX44IJloHKuuRS
+         aZriOVKfTil5x7YSVz4NlRdmBy7xw+sFqjT0eGmCLu6IlzLAvAgYfWAVQIFW4rBO8qqy
+         GdzUPLiaS+fNLvXXqLDUzJVEb9EVVIQNvzqy+19hfcgKUSzPdWm/CAF8xMG8WakXrdEN
+         jodw==
+X-Gm-Message-State: AO0yUKXtXCYwDeB+ZAdg9voje/fXH3aOk7XImn6jqnJP8YV5qHXzCl+o
+        7sneR6CTetwcwoU/blbZkyA=
+X-Google-Smtp-Source: AK7set8nS4HCsoJe3EvRgRh6Rbgb7LduKLS2mLvbdzqK1Fs/7aZ00IntvJc3opJb8N9Imf2GOfhhSQ==
+X-Received: by 2002:a92:7f03:0:b0:316:fcbe:627b with SMTP id a3-20020a927f03000000b00316fcbe627bmr1974011ild.4.1678803702619;
+        Tue, 14 Mar 2023 07:21:42 -0700 (PDT)
+Received: from ?IPV6:2600:1700:e321:62f0:329c:23ff:fee3:9d7c? ([2600:1700:e321:62f0:329c:23ff:fee3:9d7c])
+        by smtp.gmail.com with ESMTPSA id f12-20020a926a0c000000b003231580e8e2sm847734ilc.6.2023.03.14.07.21.39
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 14 Mar 2023 07:21:41 -0700 (PDT)
+Sender: Guenter Roeck <groeck7@gmail.com>
+Message-ID: <0012f572-557c-b8fd-5426-3dd43c35b03b@roeck-us.net>
+Date:   Tue, 14 Mar 2023 07:21:38 -0700
+MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.7.1
+Subject: Re: [PATCH v3 36/38] watchdog: add HAS_IOPORT dependencies
+Content-Language: en-US
+To:     Niklas Schnelle <schnelle@linux.ibm.com>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Wim Van Sebroeck <wim@linux-watchdog.org>
+Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        =?UTF-8?Q?Uwe_Kleine-K=c3=b6nig?= <u.kleine-koenig@pengutronix.de>,
+        Mauro Carvalho Chehab <mchehab@kernel.org>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        "Rafael J. Wysocki" <rafael@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
+        linux-watchdog@vger.kernel.org
 References: <20230314121216.413434-1-schnelle@linux.ibm.com>
- <20230314121216.413434-22-schnelle@linux.ibm.com>
-Date:   Tue, 14 Mar 2023 15:12:27 +0100
-From:   "Arnd Bergmann" <arnd@arndb.de>
-To:     "Niklas Schnelle" <schnelle@linux.ibm.com>,
-        "Sudip Mukherjee" <sudipm.mukherjee@gmail.com>
-Cc:     "Greg Kroah-Hartman" <gregkh@linuxfoundation.org>,
-        "Bjorn Helgaas" <bhelgaas@google.com>,
-        =?UTF-8?Q?Uwe_Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>,
-        "Mauro Carvalho Chehab" <mchehab@kernel.org>,
-        "Alan Stern" <stern@rowland.harvard.edu>,
-        "Rafael J . Wysocki" <rafael@kernel.org>,
-        "Geert Uytterhoeven" <geert@linux-m68k.org>,
-        "Paul Walmsley" <paul.walmsley@sifive.com>,
-        "Palmer Dabbelt" <palmer@dabbelt.com>,
-        "Albert Ou" <aou@eecs.berkeley.edu>, linux-kernel@vger.kernel.org,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        linux-pci@vger.kernel.org, "Arnd Bergmann" <arnd@kernel.org>
-Subject: Re: [PATCH v3 21/38] parport: PC style parport depends on HAS_IOPORT
-Content-Type: text/plain
+ <20230314121216.413434-37-schnelle@linux.ibm.com>
+From:   Guenter Roeck <linux@roeck-us.net>
+In-Reply-To: <20230314121216.413434-37-schnelle@linux.ibm.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Mar 14, 2023, at 13:11, Niklas Schnelle wrote:
+On 3/14/23 05:12, Niklas Schnelle wrote:
 > In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
-> not being declared. As PC style parport uses these functions we need to
-> handle this dependency.
->
+> not being declared. We thus need to add HAS_IOPORT as dependency for
+> those drivers using them.
+> 
 > Co-developed-by: Arnd Bergmann <arnd@kernel.org>
 > Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 
-> 
->  menuconfig PARPORT
->  	tristate "Parallel port support"
-> -	depends on HAS_IOMEM
+Acked-by: Guenter Roeck <linux@roeck-us.net>
 
-I would leave this dependency, or maybe make it 'HAS_IOMEM || HAS_IOPORT'.
-at least the parport_atari driver uses MMIO instead of PIO.
-
->  	help
->  	  If you want to use devices connected to your machine's parallel port
->  	  (the connector at the computer with 25 holes), e.g. printer, ZIP
-> @@ -42,7 +41,8 @@ if PARPORT
+> ---
+>   drivers/watchdog/Kconfig | 6 ++++--
+>   1 file changed, 4 insertions(+), 2 deletions(-)
 > 
->  config PARPORT_PC
->  	tristate "PC-style hardware"
-> -	depends on ARCH_MIGHT_HAVE_PC_PARPORT || (PCI && !S390)
-> +	depends on ARCH_MIGHT_HAVE_PC_PARPORT
+> diff --git a/drivers/watchdog/Kconfig b/drivers/watchdog/Kconfig
+> index f0872970daf9..e5d6f886e25d 100644
+> --- a/drivers/watchdog/Kconfig
+> +++ b/drivers/watchdog/Kconfig
+> @@ -453,6 +453,7 @@ config 21285_WATCHDOG
+>   config 977_WATCHDOG
+>   	tristate "NetWinder WB83C977 watchdog"
+>   	depends on (FOOTBRIDGE && ARCH_NETWINDER) || (ARM && COMPILE_TEST)
 > +	depends on HAS_IOPORT
->  	help
->  	  You should say Y here if you have a PC-style parallel port. All
->  	  IBM PC compatible computers and some Alphas have PC-style
+>   	help
+>   	  Say Y here to include support for the WB977 watchdog included in
+>   	  NetWinder machines. Alternatively say M to compile the driver as
+> @@ -1271,6 +1272,7 @@ config ITCO_WDT
+>   	select WATCHDOG_CORE
+>   	depends on I2C || I2C=n
+>   	depends on MFD_INTEL_PMC_BXT || !MFD_INTEL_PMC_BXT
+> +	depends on HAS_IOPORT # for I2C_I801
+>   	select LPC_ICH if !EXPERT
+>   	select I2C_I801 if !EXPERT && I2C
+>   	help
+> @@ -2148,7 +2150,7 @@ comment "PCI-based Watchdog Cards"
+>   
+>   config PCIPCWATCHDOG
+>   	tristate "Berkshire Products PCI-PC Watchdog"
+> -	depends on PCI
+> +	depends on PCI && HAS_IOPORT
+>   	help
+>   	  This is the driver for the Berkshire Products PCI-PC Watchdog card.
+>   	  This card simply watches your kernel to make sure it doesn't freeze,
+> @@ -2163,7 +2165,7 @@ config PCIPCWATCHDOG
+>   
+>   config WDTPCI
+>   	tristate "PCI-WDT500/501 Watchdog timer"
+> -	depends on PCI
+> +	depends on PCI && HAS_IOPORT
+>   	help
+>   	  If you have a PCI-WDT500/501 watchdog board, say Y here, otherwise N.
+>   
 
-This would revert 66bcd06099bb ("parport_pc: Also enable driver for
-PCI systems"), so I think this is wrong. You can drop the !S390
-by adding HAS_IOPORT as a dependency, but the other line should still
-be 
-
-       depends on ARCH_MIGHT_HAVE_PC_PARPORT || PCI
-    
-
-    Arnd
