@@ -2,64 +2,63 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 85038C77B77
-	for <linux-arch@archiver.kernel.org>; Tue, 14 Mar 2023 12:15:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 25089C77B7E
+	for <linux-arch@archiver.kernel.org>; Tue, 14 Mar 2023 12:15:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231827AbjCNMPK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 14 Mar 2023 08:15:10 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55648 "EHLO
+        id S231881AbjCNMPN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 14 Mar 2023 08:15:13 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55508 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231839AbjCNMN6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2023 08:13:58 -0400
+        with ESMTP id S231853AbjCNMOk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 14 Mar 2023 08:14:40 -0400
 Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F2964A101C;
-        Tue, 14 Mar 2023 05:13:10 -0700 (PDT)
-Received: from pps.filterd (m0127361.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 32EC01Oi030125;
-        Tue, 14 Mar 2023 12:12:46 GMT
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BA8878480B;
+        Tue, 14 Mar 2023 05:13:18 -0700 (PDT)
+Received: from pps.filterd (m0098417.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 32EAlCeI030805;
+        Tue, 14 Mar 2023 12:12:51 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
  : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=pp1;
- bh=1SRNPJFzhIow93CAQqVptkS+4M3eQneQeH47X7pGUzw=;
- b=Alwdz69Zk4IcTj67OaM8FMtje+9YMoQkosu7UKQ4z6okxfFtx37FCY4dhNFMW+LCeYN6
- SAFrs34SVGIU/bm+dhuNFbnwYLCRZ4S4vN+wzfWUJaMq9dV9pC8yb8fiXkLWn6qhMHdB
- Ur099nvNJcuXK2ETESmxm//JLw6sjzSfjBv3ZXUKShoq6GqLFQFRWZMMUfoORPDUfrIW
- ZEf3Obhnqf1TlBFbbaoXGJy0w/mtj2YLEc4n35/XIjujQ0QlK4/O+msybuB4gNZBUwiA
- rOz5Gpkek5MH+EEQcgK0SaoBcSzCNnv9i89tswyDM+Y/7gv94bIjiY+2CxSa0p+b9vJu 0A== 
+ bh=JXq4Thrm3+N2YkkONgmv7Gb1Ah6ctBorW6vPUyhIY4o=;
+ b=AQf+5zT2yPpPb4qSLEW8bkuAyJakyMeEh50tBU6I9cpSOxBA4GSmPuqnbQwoaeLuIGnw
+ Xkfey9EJzi4iI7l9c3maXzB0nwiKfx6XmVmXiZmg2riUIX6kDN3hWZcvrZ0QuE057HzK
+ YvfCL3TJS9Yp3p0ePiqlu3oeep8m8s4HHGoEk4ssbVkJZbE6nfuxTkGDR1ZW+ixjyCUs
+ pdnqumIQ2FLVpVhrdBLqbej2B16eikTjDlz4DBzVDEuN5lmFWqzARzUJfBoWc2KPRSGJ
+ IbNO5cLPhshGL9aWNTYZGMxQrxsfCr7q1P2aFoHC1RDW5NVvx5OjharLSh2CPjwnF+9g Xg== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3pampuq6hb-1
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3paqftj5cj-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 14 Mar 2023 12:12:45 +0000
-Received: from m0127361.ppops.net (m0127361.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 32EB7c20020724;
-        Tue, 14 Mar 2023 12:12:44 GMT
-Received: from ppma03ams.nl.ibm.com (62.31.33a9.ip4.static.sl-reverse.com [169.51.49.98])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3pampuq6gk-1
+        Tue, 14 Mar 2023 12:12:50 +0000
+Received: from m0098417.ppops.net (m0098417.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 32EAlHQp030901;
+        Tue, 14 Mar 2023 12:12:50 GMT
+Received: from ppma01fra.de.ibm.com (46.49.7a9f.ip4.static.sl-reverse.com [159.122.73.70])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3paqftj5b9-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 14 Mar 2023 12:12:44 +0000
-Received: from pps.filterd (ppma03ams.nl.ibm.com [127.0.0.1])
-        by ppma03ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 32E7n3O0001030;
-        Tue, 14 Mar 2023 12:12:42 GMT
-Received: from smtprelay04.fra02v.mail.ibm.com ([9.218.2.228])
-        by ppma03ams.nl.ibm.com (PPS) with ESMTPS id 3p8h96mrw2-1
+        Tue, 14 Mar 2023 12:12:49 +0000
+Received: from pps.filterd (ppma01fra.de.ibm.com [127.0.0.1])
+        by ppma01fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 32E8baS8017716;
+        Tue, 14 Mar 2023 12:12:47 GMT
+Received: from smtprelay02.fra02v.mail.ibm.com ([9.218.2.226])
+        by ppma01fra.de.ibm.com (PPS) with ESMTPS id 3p8h96ksft-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Tue, 14 Mar 2023 12:12:42 +0000
+        Tue, 14 Mar 2023 12:12:47 +0000
 Received: from smtpav05.fra02v.mail.ibm.com (smtpav05.fra02v.mail.ibm.com [10.20.54.104])
-        by smtprelay04.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 32ECCe4n13369802
+        by smtprelay02.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 32ECCj4c27525830
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Tue, 14 Mar 2023 12:12:40 GMT
+        Tue, 14 Mar 2023 12:12:45 GMT
 Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 67C4A2007B;
-        Tue, 14 Mar 2023 12:12:40 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id 1FF712007C;
+        Tue, 14 Mar 2023 12:12:45 +0000 (GMT)
 Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 01E9D2007A;
-        Tue, 14 Mar 2023 12:12:40 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id 9FBB02007A;
+        Tue, 14 Mar 2023 12:12:44 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
         by smtpav05.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Tue, 14 Mar 2023 12:12:39 +0000 (GMT)
+        Tue, 14 Mar 2023 12:12:44 +0000 (GMT)
 From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>,
-        Sudip Mukherjee <sudipm.mukherjee@gmail.com>
+To:     Arnd Bergmann <arnd@arndb.de>, Sebastian Reichel <sre@kernel.org>
 Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Bjorn Helgaas <bhelgaas@google.com>,
         =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
@@ -72,76 +71,53 @@ Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Palmer Dabbelt <palmer@dabbelt.com>,
         Albert Ou <aou@eecs.berkeley.edu>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>
-Subject: [PATCH v3 21/38] parport: PC style parport depends on HAS_IOPORT
-Date:   Tue, 14 Mar 2023 13:11:59 +0100
-Message-Id: <20230314121216.413434-22-schnelle@linux.ibm.com>
+        linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
+        linux-pm@vger.kernel.org
+Subject: [PATCH v3 27/38] power: add HAS_IOPORT dependencies
+Date:   Tue, 14 Mar 2023 13:12:05 +0100
+Message-Id: <20230314121216.413434-28-schnelle@linux.ibm.com>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <20230314121216.413434-1-schnelle@linux.ibm.com>
 References: <20230314121216.413434-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-TM-AS-GCONF: 00
-X-Proofpoint-ORIG-GUID: cZDwY7A80dlURZVLhzvrXWsYQQQdAIaH
-X-Proofpoint-GUID: 086U9OiT888_7KzYR-_C3VXKZZhRL7KR
+X-Proofpoint-ORIG-GUID: F3knjOjisl1Im1t6udSJo-zBNxgBWEn1
+X-Proofpoint-GUID: nC_oXsNvFfZc4mYN2GFcYeMACwqVGOyk
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.942,Hydra:6.0.573,FMLib:17.11.170.22
  definitions=2023-03-14_04,2023-03-14_02,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 lowpriorityscore=0
- malwarescore=0 impostorscore=0 suspectscore=0 mlxscore=0 clxscore=1015
- priorityscore=1501 bulkscore=0 mlxlogscore=633 spamscore=0 adultscore=0
- phishscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2212070000 definitions=main-2303140103
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 mlxlogscore=999 spamscore=0
+ malwarescore=0 mlxscore=0 lowpriorityscore=0 bulkscore=0 suspectscore=0
+ adultscore=0 impostorscore=0 priorityscore=1501 clxscore=1011 phishscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2212070000
+ definitions=main-2303140103
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
-not being declared. As PC style parport uses these functions we need to
-handle this dependency.
+not being declared. We thus need to add HAS_IOPORT as dependency for
+those drivers using them.
 
 Co-developed-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 ---
- drivers/parport/Kconfig | 4 ++--
- include/linux/parport.h | 2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ drivers/power/reset/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/drivers/parport/Kconfig b/drivers/parport/Kconfig
-index 5561362224e2..5c471c73629f 100644
---- a/drivers/parport/Kconfig
-+++ b/drivers/parport/Kconfig
-@@ -14,7 +14,6 @@ config ARCH_MIGHT_HAVE_PC_PARPORT
- 
- menuconfig PARPORT
- 	tristate "Parallel port support"
--	depends on HAS_IOMEM
- 	help
- 	  If you want to use devices connected to your machine's parallel port
- 	  (the connector at the computer with 25 holes), e.g. printer, ZIP
-@@ -42,7 +41,8 @@ if PARPORT
- 
- config PARPORT_PC
- 	tristate "PC-style hardware"
--	depends on ARCH_MIGHT_HAVE_PC_PARPORT || (PCI && !S390)
-+	depends on ARCH_MIGHT_HAVE_PC_PARPORT
+diff --git a/drivers/power/reset/Kconfig b/drivers/power/reset/Kconfig
+index 8c87eeda0fec..fff07b2bd77b 100644
+--- a/drivers/power/reset/Kconfig
++++ b/drivers/power/reset/Kconfig
+@@ -158,6 +158,7 @@ config POWER_RESET_OXNAS
+ config POWER_RESET_PIIX4_POWEROFF
+ 	tristate "Intel PIIX4 power-off driver"
+ 	depends on PCI
 +	depends on HAS_IOPORT
+ 	depends on MIPS || COMPILE_TEST
  	help
- 	  You should say Y here if you have a PC-style parallel port. All
- 	  IBM PC compatible computers and some Alphas have PC-style
-diff --git a/include/linux/parport.h b/include/linux/parport.h
-index a0bc9e0267b7..fff39bc30629 100644
---- a/include/linux/parport.h
-+++ b/include/linux/parport.h
-@@ -514,7 +514,7 @@ extern int parport_device_proc_register(struct pardevice *device);
- extern int parport_device_proc_unregister(struct pardevice *device);
- 
- /* If PC hardware is the only type supported, we can optimise a bit.  */
--#if !defined(CONFIG_PARPORT_NOT_PC)
-+#if !defined(CONFIG_PARPORT_NOT_PC) && defined(CONFIG_PARPORT_PC)
- 
- #include <linux/parport_pc.h>
- #define parport_write_data(p,x)            parport_pc_write_data(p,x)
+ 	  This driver supports powering off a system using the Intel PIIX4
 -- 
 2.37.2
 
