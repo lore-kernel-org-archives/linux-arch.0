@@ -2,106 +2,100 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6EC82C6FD1D
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:20:51 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71B8AC6FD1D
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:31:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231564AbjCOLUu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Mar 2023 07:20:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35332 "EHLO
+        id S231329AbjCOLbo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Mar 2023 07:31:44 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59454 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231488AbjCOLU3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:20:29 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7B851DBDF;
-        Wed, 15 Mar 2023 04:19:59 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-        References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description;
-        bh=Y1qbaNmKGtblNVhdlxDCOnZuD6KOCPFbJF9ZFx/bdFM=; b=r9sY4aY3ZXCD0AcKFsKkZA5YuC
-        aIpytDEDMlZWSG0ayXCImdw3to0/+P8A12SOeeirCAWSzGf4HoEL6a09f8wVRmKh4wIgf4S+j0poD
-        aQa+zFKzEVKRJ+mrYP1x/RwdKl4Rdr6wUyavTo74ONgR2GLhGhS+ZtT8zV89SgDXvAcO8CEgHm3h7
-        jsdSYpqFO5InR0xfLRpm8f8ksdxjAIGDqyQWBeIYkcgthiKUFDuAj9J8FT6qgKVMsxbnxXPDKZTrh
-        IukN0ALe+uTYJT1fNTtje36S90BSYB6W7ATPK2uFsbyOuuKYS08IIXDKTaXM9jqNr7rENnFOBDIbN
-        GCNVi9cg==;
-Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1pcPAV-00Dmgc-Hw; Wed, 15 Mar 2023 11:19:44 +0000
-Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits))
-        (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id F2FFB300288;
-        Wed, 15 Mar 2023 12:19:41 +0100 (CET)
-Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
-        id DAF6920FF20AE; Wed, 15 Mar 2023 12:19:41 +0100 (CET)
-Date:   Wed, 15 Mar 2023 12:19:41 +0100
-From:   Peter Zijlstra <peterz@infradead.org>
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH v4 27/36] x86: Implement the new page table range API
-Message-ID: <20230315111941.GC2006103@hirez.programming.kicks-ass.net>
-References: <20230315051444.3229621-1-willy@infradead.org>
- <20230315051444.3229621-28-willy@infradead.org>
- <20230315103436.GA2006103@hirez.programming.kicks-ass.net>
- <ZBGpCC21vygomEkr@kernel.org>
+        with ESMTP id S230356AbjCOLbm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:42 -0400
+Received: from mga12.intel.com (mga12.intel.com [192.55.52.136])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1937864846;
+        Wed, 15 Mar 2023 04:31:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1678879902; x=1710415902;
+  h=from:to:cc:subject:date:message-id:in-reply-to:
+   references:mime-version:content-transfer-encoding;
+  bh=CbKC9In0sfgAFhGmEkzB7Bb+JmElN2MpqrLq/60tyc4=;
+  b=ElAxf5JwDWlsUz4WnDO0m9NyEmkAV2NOUUFD8qSfgU5WNco8iswrNDK/
+   JxrlzVeaTH3ohGiyvpG9OqH6PnQPETgTErrS1IJTHRipzvVjqHA4xHOsW
+   u/H3MKTPE9LFLn3n2T1ailbwqD5u7q+ecvpQ+bqdcnga9TtLOP/VbdSle
+   Bb7G7iE5RBCnXSmP02CHBt2U1dvgbFoRwkeIWjUVKffnx1tzEe9cug62j
+   b7Pn1tNrutSldOoKv2sOzMOfV2TpMRczu252huVVkppqOS/75UCXhcjDJ
+   WhVjNtEfeWuHmoXcUneeQHmxR6GVBLY4p3PHXzGI9xRzdGe1zURM6iKeQ
+   A==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="317330268"
+X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
+   d="scan'208";a="317330268"
+Received: from fmsmga006.fm.intel.com ([10.253.24.20])
+  by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:40 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="925310514"
+X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
+   d="scan'208";a="925310514"
+Received: from nopopovi-mobl1.ger.corp.intel.com (HELO box.shutemov.name) ([10.252.33.48])
+  by fmsmga006-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:38 -0700
+Received: by box.shutemov.name (Postfix, from userid 1000)
+        id BB81D10CC9F; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
+From:   "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+To:     Andrew Morton <akpm@linux-foundation.org>,
+        Mel Gorman <mgorman@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
+        David Hildenbrand <david@redhat.com>
+Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>,
+        Denis Efremov <efremov@linux.com>
+Subject: [PATCH 03/10] floppy: Fix MAX_ORDER usage
+Date:   Wed, 15 Mar 2023 14:31:26 +0300
+Message-Id: <20230315113133.11326-4-kirill.shutemov@linux.intel.com>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
+References: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ZBGpCC21vygomEkr@kernel.org>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Mar 15, 2023 at 01:16:24PM +0200, Mike Rapoport wrote:
-> On Wed, Mar 15, 2023 at 11:34:36AM +0100, Peter Zijlstra wrote:
-> > On Wed, Mar 15, 2023 at 05:14:35AM +0000, Matthew Wilcox (Oracle) wrote:
-> > > Add PFN_PTE_SHIFT and a noop update_mmu_cache_range().
-> > > 
-> > > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> > > Cc: Thomas Gleixner <tglx@linutronix.de>
-> > > Cc: Ingo Molnar <mingo@redhat.com>
-> > > Cc: Borislav Petkov <bp@alien8.de>
-> > > Cc: Dave Hansen <dave.hansen@linux.intel.com>
-> > > Cc: x86@kernel.org
-> > > Cc: "H. Peter Anvin" <hpa@zytor.com>
-> > > ---
-> > >  arch/x86/include/asm/pgtable.h | 13 ++++++-------
-> > >  1 file changed, 6 insertions(+), 7 deletions(-)
-> > > 
-> > > diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-> > > index 1031025730d0..b237878061c4 100644
-> > > --- a/arch/x86/include/asm/pgtable.h
-> > > +++ b/arch/x86/include/asm/pgtable.h
-> > > @@ -184,6 +184,8 @@ static inline int pte_special(pte_t pte)
-> > >  
-> > >  static inline u64 protnone_mask(u64 val);
-> > >  
-> > > +#define PFN_PTE_SHIFT	PAGE_SHIFT
-> > > +
-> > >  static inline unsigned long pte_pfn(pte_t pte)
-> > >  {
-> > >  	phys_addr_t pfn = pte_val(pte);
-> > > @@ -1019,13 +1021,6 @@ static inline pud_t native_local_pudp_get_and_clear(pud_t *pudp)
-> > >  	return res;
-> > >  }
-> > >  
-> > > -static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
-> > > -			      pte_t *ptep, pte_t pte)
-> > > -{
-> > > -	page_table_check_ptes_set(mm, addr, ptep, pte, 1);
-> > > -	set_pte(ptep, pte);
-> > > -}
-> > > -
-> > 
-> > And remove set_pte_at() apparently.. whut?!?
-> 
-> It's now in include/linux/pgtable.h
+MAX_ORDER is not inclusive: the maximum allocation order buddy allocator
+can deliver is MAX_ORDER-1.
 
-All I have is this one patch -- and the changelog doesn't mention this.
-HTF am I supposed to know that?
+Fix MAX_ORDER usage in floppy code.
+
+Also allocation buffer exactly PAGE_SIZE << MAX_ORDER bytes is okay. Fix
+MAX_LEN check.
+
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Denis Efremov <efremov@linux.com>
+---
+ drivers/block/floppy.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/block/floppy.c b/drivers/block/floppy.c
+index 487840e3564d..90d2dfb6448e 100644
+--- a/drivers/block/floppy.c
++++ b/drivers/block/floppy.c
+@@ -3079,7 +3079,7 @@ static void raw_cmd_free(struct floppy_raw_cmd **ptr)
+ 	}
+ }
+ 
+-#define MAX_LEN (1UL << MAX_ORDER << PAGE_SHIFT)
++#define MAX_LEN (1UL << (MAX_ORDER - 1) << PAGE_SHIFT)
+ 
+ static int raw_cmd_copyin(int cmd, void __user *param,
+ 				 struct floppy_raw_cmd **rcmd)
+@@ -3108,7 +3108,7 @@ static int raw_cmd_copyin(int cmd, void __user *param,
+ 	ptr->resultcode = 0;
+ 
+ 	if (ptr->flags & (FD_RAW_READ | FD_RAW_WRITE)) {
+-		if (ptr->length <= 0 || ptr->length >= MAX_LEN)
++		if (ptr->length <= 0 || ptr->length > MAX_LEN)
+ 			return -EINVAL;
+ 		ptr->kernel_data = (char *)fd_dma_mem_alloc(ptr->length);
+ 		fallback_on_nodma_alloc(&ptr->kernel_data, ptr->length);
+-- 
+2.39.2
+
