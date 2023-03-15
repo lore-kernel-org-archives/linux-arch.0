@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3FD1EC7618A
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:32:02 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0494FC76196
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:32:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231770AbjCOLcA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Mar 2023 07:32:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60012 "EHLO
+        id S231823AbjCOLcB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Mar 2023 07:32:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60030 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231506AbjCOLb4 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:56 -0400
+        with ESMTP id S231586AbjCOLb5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:57 -0400
 Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A7AAC65C7D;
-        Wed, 15 Mar 2023 04:31:46 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D178664D0;
+        Wed, 15 Mar 2023 04:31:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1678879906; x=1710415906;
+  t=1678879907; x=1710415907;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=wxXpVFa3aHUh2uZGVGV6zRauliwfaR2PzVjPmjMqjVA=;
-  b=TljsWKvVt86ufMoAeafYZk4YW/phJKKvSxtJ2QhpA/oxgfeY3UEFH6E0
-   D5THCmMYX5kcDqZ1YqNAswb4qv9mJQWKcoptMUvEUuOwTvB9x88J+4Vi2
-   GRk4KOUmQTQpbeeGQ4PJDB7PsvgZ8KQmkYnJ/qokpHnVebg8FNm/LQA9O
-   50E3tIlf+6mvOHVuUr8tILQGD5D5lcigw478nTz7IcjJVIlWPQMu+cl/R
-   lKSPnjqRhjinX8GoyWZxjY22DRv403DvjQnhYuek3LRbj5A8vegqy2/uS
-   lf7x/9byjXw/EJqStyqtR8tWcklNMyGd3JPkCoYHmNR+Xto3RH0IsFb3l
-   Q==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="340040134"
+  bh=KJJgxfSP5w2rtkaNO15MqwNgcC5YINyIgZH9vrQT2MQ=;
+  b=OFIJz5RTr0KulGvPwLtNejHHmww9sohvdM9pYVkC+2Zg1frCCbt/qopb
+   HC+JiS20rn63B+HquZdtaYJQLzFSMzbJOE4T1BNoae9nXWKCRz1RFhNDy
+   WDvy9cx47XCM/jmW1sPpN3+4aq0c3Sy+RVRj9d5wv0uDWhmd7xthuaJWy
+   TPlUmyprae0mLDXbG+p9jzPR4ZEuR6bhuGYYYjs6mD4KNh108vOpdM1Qr
+   msiAPTzAHx3hrBCMP/bXWktuTLV5xWMJIprNRxSvbxRscOJIVyQDLkFEM
+   zHHzEViP1kLLBW4m1EM2xDICjC1K+9WAvKhP//mswx/vq5ZfujXRrJkEU
+   w==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="340040142"
 X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
-   d="scan'208";a="340040134"
+   d="scan'208";a="340040142"
 Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:45 -0700
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:46 -0700
 X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="768456013"
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="768456024"
 X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
-   d="scan'208";a="768456013"
+   d="scan'208";a="768456024"
 Received: from nopopovi-mobl1.ger.corp.intel.com (HELO box.shutemov.name) ([10.252.33.48])
   by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:43 -0700
 Received: by box.shutemov.name (Postfix, from userid 1000)
-        id ED58B10D690; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
+        id D288A10CCA2; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
 From:   "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Mel Gorman <mgorman@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
@@ -47,11 +47,18 @@ To:     Andrew Morton <akpm@linux-foundation.org>,
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
         "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>,
-        Robin Murphy <robin.murphy@arm.com>,
-        Jacob Pan <jacob.jun.pan@linux.intel.com>
-Subject: [PATCH 09/10] iommu: Fix MAX_ORDER usage in __iommu_dma_alloc_pages()
-Date:   Wed, 15 Mar 2023 14:31:32 +0300
-Message-Id: <20230315113133.11326-10-kirill.shutemov@linux.intel.com>
+        Peter Zijlstra <peterz@infradead.org>,
+        Ingo Molnar <mingo@redhat.com>,
+        Arnaldo Carvalho de Melo <acme@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
+        Jiri Olsa <jolsa@kernel.org>,
+        Namhyung Kim <namhyung@kernel.org>,
+        Ian Rogers <irogers@google.com>,
+        Adrian Hunter <adrian.hunter@intel.com>
+Subject: [PATCH 06/10] perf/core: Fix MAX_ORDER usage in rb_alloc_aux_page()
+Date:   Wed, 15 Mar 2023 14:31:29 +0300
+Message-Id: <20230315113133.11326-7-kirill.shutemov@linux.intel.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
 References: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
@@ -64,39 +71,37 @@ X-Mailing-List: linux-arch@vger.kernel.org
 MAX_ORDER is not inclusive: the maximum allocation order buddy allocator
 can deliver is MAX_ORDER-1.
 
-Fix MAX_ORDER usage in __iommu_dma_alloc_pages().
-
-Also use GENMASK() instead of hard to read "(2U << order) - 1" magic.
+Fix MAX_ORDER usage in rb_alloc_aux_page().
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Robin Murphy <robin.murphy@arm.com>
-Cc: Jacob Pan <jacob.jun.pan@linux.intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Alexander Shishkin <alexander.shishkin@linux.intel.com>
+Cc: Jiri Olsa <jolsa@kernel.org>
+Cc: Namhyung Kim <namhyung@kernel.org>
+Cc: Ian Rogers <irogers@google.com>
+Cc: Adrian Hunter <adrian.hunter@intel.com>
 ---
- drivers/iommu/dma-iommu.c | 4 ++--
+ kernel/events/ring_buffer.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/iommu/dma-iommu.c b/drivers/iommu/dma-iommu.c
-index 99b2646cb5c7..ac996fd6bd9c 100644
---- a/drivers/iommu/dma-iommu.c
-+++ b/drivers/iommu/dma-iommu.c
-@@ -736,7 +736,7 @@ static struct page **__iommu_dma_alloc_pages(struct device *dev,
- 	struct page **pages;
- 	unsigned int i = 0, nid = dev_to_node(dev);
+diff --git a/kernel/events/ring_buffer.c b/kernel/events/ring_buffer.c
+index 273a0fe7910a..d6bbdb7830b2 100644
+--- a/kernel/events/ring_buffer.c
++++ b/kernel/events/ring_buffer.c
+@@ -609,8 +609,8 @@ static struct page *rb_alloc_aux_page(int node, int order)
+ {
+ 	struct page *page;
  
--	order_mask &= (2U << MAX_ORDER) - 1;
-+	order_mask &= GENMASK(MAX_ORDER - 1, 0);
- 	if (!order_mask)
- 		return NULL;
+-	if (order > MAX_ORDER)
+-		order = MAX_ORDER;
++	if (order >= MAX_ORDER)
++		order = MAX_ORDER - 1;
  
-@@ -756,7 +756,7 @@ static struct page **__iommu_dma_alloc_pages(struct device *dev,
- 		 * than a necessity, hence using __GFP_NORETRY until
- 		 * falling back to minimum-order allocations.
- 		 */
--		for (order_mask &= (2U << __fls(count)) - 1;
-+		for (order_mask &= GENMASK(__fls(count), 0);
- 		     order_mask; order_mask &= ~order_size) {
- 			unsigned int order = __fls(order_mask);
- 			gfp_t alloc_flags = gfp;
+ 	do {
+ 		page = alloc_pages_node(node, PERF_AUX_GFP, order);
 -- 
 2.39.2
 
