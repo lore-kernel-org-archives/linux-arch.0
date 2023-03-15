@@ -2,165 +2,94 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 60DD4C61DA4
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:31:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 13745C76195
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:31:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231657AbjCOLb5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Mar 2023 07:31:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59488 "EHLO
+        id S231720AbjCOLb6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Mar 2023 07:31:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59498 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231529AbjCOLbp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:45 -0400
+        with ESMTP id S231563AbjCOLbq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:46 -0400
 Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 53EAF64849;
-        Wed, 15 Mar 2023 04:31:44 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9C898637EB;
+        Wed, 15 Mar 2023 04:31:45 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1678879904; x=1710415904;
-  h=from:to:cc:subject:date:message-id:mime-version:
-   content-transfer-encoding;
-  bh=emKW1DsDd6J7BoaliTpiqaTlAsPQ1Xr/3FNEg+io6NQ=;
-  b=YBQo49A55PKeoUSU5BCFs2agz8PmUVtJt+YZOEMAV1NMkBxtToYRazVt
-   AjDCbSdgAmSN7D5bJ5pD2S6CIOUJiHmluUnsrXOzm5BA4RdYyuF0Bq1YX
-   nFJR3h6ZfsZQyXG6LFqv/Qo8C8SBqjHCfPIadtNiIUdQWHLtrXsRZqmoo
-   vl8+VtnTak+6fzh0WqvKVMahp1Obxqdcsvy5BrWjrbT88csIPqfYpTB5Q
-   1yOJ2CCVvjqMYd4ATlxJTyQhLOpqbU77U4u/om5trkG3oB0lK52VH7PLK
-   4zmsCy11YVDQ7iRTtFEL9o7ud4iDKpU8uedSSGuiPcnfyaBlM1ApDC3I2
-   g==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="340040093"
+  t=1678879905; x=1710415905;
+  h=from:to:cc:subject:date:message-id:in-reply-to:
+   references:mime-version:content-transfer-encoding;
+  bh=iwb00sFFSTPogcirxHway05JjoMe28eGhip2vpTL5qE=;
+  b=koXTKplPFP8v3n3Kd+PxTUwBvXmaAjfVoESvEmqtRU6xNetdFIQEfXyv
+   bK/oJtj9g3aN0R3lKi1YYcT40J0MZ1wt08AHFjGmu2aJP7PFUrpdJuqZP
+   66QcbOtDGLaJAMPLWjAWY7H9V4gxeZGjB9vuQ49HQsjSS0K/ughe85jcT
+   FwzUWmkY5/Qbr8CyP5pbAlnTCIexsH+h5ekLF+Vs2J17Ki1DpaVv4tq2s
+   Ur/DGd/5xvgZ3SoXX7xjnhC1GYFtNyTzmAC8G3KgGMqjNZRVWAO71zl0c
+   RExxRKGiQGxxWK7B+EWLiiiSpRY+efKI+JxfH6vS3MSUgE1jG5e7Ihrqd
+   A==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="340040105"
 X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
-   d="scan'208";a="340040093"
+   d="scan'208";a="340040105"
 Received: from fmsmga003.fm.intel.com ([10.253.24.29])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:41 -0700
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:42 -0700
 X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="768455999"
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="768456009"
 X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
-   d="scan'208";a="768455999"
+   d="scan'208";a="768456009"
 Received: from nopopovi-mobl1.ger.corp.intel.com (HELO box.shutemov.name) ([10.252.33.48])
   by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:38 -0700
 Received: by box.shutemov.name (Postfix, from userid 1000)
-        id A507B10CC9C; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
+        id C230110CCA0; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
 From:   "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Mel Gorman <mgorman@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
         David Hildenbrand <david@redhat.com>
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
-        "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 00/10] Fix confusion around MAX_ORDER
-Date:   Wed, 15 Mar 2023 14:31:23 +0300
-Message-Id: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
+        "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>,
+        Jani Nikula <jani.nikula@linux.intel.com>,
+        Joonas Lahtinen <joonas.lahtinen@linux.intel.com>,
+        Rodrigo Vivi <rodrigo.vivi@intel.com>,
+        Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com>
+Subject: [PATCH 04/10] drm/i915: Fix MAX_ORDER usage in i915_gem_object_get_pages_internal()
+Date:   Wed, 15 Mar 2023 14:31:27 +0300
+Message-Id: <20230315113133.11326-5-kirill.shutemov@linux.intel.com>
 X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
+References: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-MAX_ORDER currently defined as number of orders page allocator supports:
-user can ask buddy allocator for page order between 0 and MAX_ORDER-1.
+MAX_ORDER is not inclusive: the maximum allocation order buddy allocator
+can deliver is MAX_ORDER-1.
 
-This definition is counter-intuitive and lead to number of bugs all over
-the kernel.
+Fix MAX_ORDER usage in i915_gem_object_get_pages_internal().
 
-Fix the bugs and then change the definition of MAX_ORDER to be
-inclusive: the range of orders user can ask from buddy allocator is
-0..MAX_ORDER now.
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Cc: Jani Nikula <jani.nikula@linux.intel.com>
+Cc: Joonas Lahtinen <joonas.lahtinen@linux.intel.com>
+Cc: Rodrigo Vivi <rodrigo.vivi@intel.com>
+Cc: Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com>
+---
+ drivers/gpu/drm/i915/gem/i915_gem_internal.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Kirill A. Shutemov (10):
-  sparc/mm: Fix MAX_ORDER usage in tsb_grow()
-  um: Fix MAX_ORDER usage in linux_main()
-  floppy: Fix MAX_ORDER usage
-  drm/i915: Fix MAX_ORDER usage in i915_gem_object_get_pages_internal()
-  genwqe: Fix MAX_ORDER usage
-  perf/core: Fix MAX_ORDER usage in rb_alloc_aux_page()
-  mm/page_reporting: Fix MAX_ORDER usage in page_reporting_register()
-  mm/slub: Fix MAX_ORDER usage in calculate_order()
-  iommu: Fix MAX_ORDER usage in __iommu_dma_alloc_pages()
-  mm, treewide: Redefine MAX_ORDER sanely
-
- .../admin-guide/kdump/vmcoreinfo.rst          |  2 +-
- .../admin-guide/kernel-parameters.txt         |  2 +-
- arch/arc/Kconfig                              |  4 +-
- arch/arm/Kconfig                              |  9 ++---
- arch/arm/configs/imx_v6_v7_defconfig          |  2 +-
- arch/arm/configs/milbeaut_m10v_defconfig      |  2 +-
- arch/arm/configs/oxnas_v6_defconfig           |  2 +-
- arch/arm/configs/pxa_defconfig                |  2 +-
- arch/arm/configs/sama7_defconfig              |  2 +-
- arch/arm/configs/sp7021_defconfig             |  2 +-
- arch/arm64/Kconfig                            | 27 ++++++-------
- arch/arm64/include/asm/sparsemem.h            |  2 +-
- arch/arm64/kvm/hyp/include/nvhe/gfp.h         |  2 +-
- arch/arm64/kvm/hyp/nvhe/page_alloc.c          | 10 ++---
- arch/csky/Kconfig                             |  2 +-
- arch/ia64/Kconfig                             |  8 ++--
- arch/ia64/include/asm/sparsemem.h             |  4 +-
- arch/ia64/mm/hugetlbpage.c                    |  2 +-
- arch/loongarch/Kconfig                        | 15 +++-----
- arch/m68k/Kconfig.cpu                         |  5 +--
- arch/mips/Kconfig                             | 19 ++++------
- arch/nios2/Kconfig                            |  7 +---
- arch/powerpc/Kconfig                          | 27 ++++++-------
- arch/powerpc/configs/85xx/ge_imp3a_defconfig  |  2 +-
- arch/powerpc/configs/fsl-emb-nonhw.config     |  2 +-
- arch/powerpc/mm/book3s64/iommu_api.c          |  2 +-
- arch/powerpc/mm/hugetlbpage.c                 |  2 +-
- arch/powerpc/platforms/powernv/pci-ioda.c     |  2 +-
- arch/sh/configs/ecovec24_defconfig            |  2 +-
- arch/sh/mm/Kconfig                            | 17 ++++-----
- arch/sparc/Kconfig                            |  5 +--
- arch/sparc/kernel/pci_sun4v.c                 |  2 +-
- arch/sparc/kernel/traps_64.c                  |  2 +-
- arch/sparc/mm/tsb.c                           |  4 +-
- arch/xtensa/Kconfig                           |  5 +--
- drivers/base/regmap/regmap-debugfs.c          |  8 ++--
- drivers/block/floppy.c                        |  2 +-
- drivers/crypto/ccp/sev-dev.c                  |  2 +-
- drivers/crypto/hisilicon/sgl.c                |  6 +--
- .../gpu/drm/i915/gem/selftests/huge_pages.c   |  2 +-
- drivers/gpu/drm/ttm/ttm_pool.c                | 22 +++++------
- drivers/iommu/arm/arm-smmu-v3/arm-smmu-v3.h   |  2 +-
- drivers/iommu/dma-iommu.c                     |  4 +-
- drivers/irqchip/irq-gic-v3-its.c              |  4 +-
- drivers/md/dm-bufio.c                         |  2 +-
- drivers/misc/genwqe/card_utils.c              |  2 +-
- .../net/ethernet/hisilicon/hns3/hns3_enet.c   |  2 +-
- drivers/net/ethernet/ibm/ibmvnic.h            |  2 +-
- drivers/video/fbdev/hyperv_fb.c               |  4 +-
- drivers/video/fbdev/vermilion/vermilion.c     |  2 +-
- drivers/virtio/virtio_balloon.c               |  2 +-
- drivers/virtio/virtio_mem.c                   | 12 +++---
- fs/ramfs/file-nommu.c                         |  2 +-
- include/drm/ttm/ttm_pool.h                    |  2 +-
- include/linux/hugetlb.h                       |  2 +-
- include/linux/mmzone.h                        | 10 ++---
- include/linux/pageblock-flags.h               |  4 +-
- include/linux/slab.h                          |  6 +--
- kernel/crash_core.c                           |  2 +-
- kernel/dma/pool.c                             |  6 +--
- mm/Kconfig                                    |  6 +--
- mm/compaction.c                               |  8 ++--
- mm/debug_vm_pgtable.c                         |  4 +-
- mm/huge_memory.c                              |  2 +-
- mm/hugetlb.c                                  |  4 +-
- mm/kmsan/init.c                               |  6 +--
- mm/memblock.c                                 |  2 +-
- mm/memory_hotplug.c                           |  4 +-
- mm/page_alloc.c                               | 38 +++++++++----------
- mm/page_isolation.c                           | 12 +++---
- mm/page_owner.c                               |  6 +--
- mm/page_reporting.c                           |  4 +-
- mm/shuffle.h                                  |  2 +-
- mm/slab.c                                     |  2 +-
- mm/slub.c                                     |  4 +-
- mm/vmscan.c                                   |  2 +-
- mm/vmstat.c                                   | 14 +++----
- net/smc/smc_ib.c                              |  2 +-
- security/integrity/ima/ima_crypto.c           |  2 +-
- tools/testing/memblock/linux/mmzone.h         |  6 +--
- 80 files changed, 210 insertions(+), 240 deletions(-)
-
+diff --git a/drivers/gpu/drm/i915/gem/i915_gem_internal.c b/drivers/gpu/drm/i915/gem/i915_gem_internal.c
+index 6bc26b4b06b8..eae9e9f6d3bf 100644
+--- a/drivers/gpu/drm/i915/gem/i915_gem_internal.c
++++ b/drivers/gpu/drm/i915/gem/i915_gem_internal.c
+@@ -36,7 +36,7 @@ static int i915_gem_object_get_pages_internal(struct drm_i915_gem_object *obj)
+ 	struct sg_table *st;
+ 	struct scatterlist *sg;
+ 	unsigned int npages; /* restricted by sg_alloc_table */
+-	int max_order = MAX_ORDER;
++	int max_order = MAX_ORDER - 1;
+ 	unsigned int max_segment;
+ 	gfp_t gfp;
+ 
 -- 
 2.39.2
 
