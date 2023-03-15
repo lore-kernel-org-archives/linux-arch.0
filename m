@@ -2,55 +2,120 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4822BC6FD1D
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 10:57:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DF460C6FD1D
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:18:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231504AbjCOK5s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Mar 2023 06:57:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34196 "EHLO
+        id S231861AbjCOLSZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Mar 2023 07:18:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35052 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231635AbjCOK5c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 06:57:32 -0400
-Received: from elvis.franken.de (elvis.franken.de [193.175.24.41])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id EC77D78CAA;
-        Wed, 15 Mar 2023 03:57:26 -0700 (PDT)
-Received: from uucp (helo=alpha)
-        by elvis.franken.de with local-bsmtp (Exim 3.36 #1)
-        id 1pcOoq-00056L-00; Wed, 15 Mar 2023 11:57:20 +0100
-Received: by alpha.franken.de (Postfix, from userid 1000)
-        id 991A8C1A3D; Wed, 15 Mar 2023 11:50:22 +0100 (CET)
-Date:   Wed, 15 Mar 2023 11:50:22 +0100
-From:   Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-To:     "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Cc:     linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org
-Subject: Re: [PATCH v4 16/36] mips: Implement the new page table range API
-Message-ID: <20230315105022.GA9850@alpha.franken.de>
+        with ESMTP id S229542AbjCOLSH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:18:07 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7C06D12F1E;
+        Wed, 15 Mar 2023 04:17:12 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 90321B81DDA;
+        Wed, 15 Mar 2023 11:16:40 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1C3B5C433EF;
+        Wed, 15 Mar 2023 11:16:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1678878999;
+        bh=6qnXmLvpgW1dKuRejebdDAlmRA6DSSuhtauL3YzHJEc=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=P6SboyT9BZ+Khj+LLT3W2kU0ZHohELN+EMUyzCjU0HKSQ7x8CxQwxLS0LJU8qrBXx
+         u6T/qcL5a5lodS3bTdSUEk5rETDLxkPprF1wnmpCss4kf/lR4i3tq+QTCWDYwdUJwe
+         nA2xURtKRyPlr2rjCrBQX1QyUqW3le9UwYG169nQLbSJx5+MIys/i2qFK0qKKPPmvu
+         L9Lf9F0vnXAIu3zKCp7p3t34Chrp0zo7Z7eB23GJTm2lT3GJ7VXn5qZuL4Iyc6Z+kF
+         k//33TWF/xvl90OR3EyeOAIMvADhZCkkgMnCXaYCgPpyDSaVvvw05mHjDvLqnVnPxq
+         9yNhs6sjyPQkA==
+Date:   Wed, 15 Mar 2023 13:16:24 +0200
+From:   Mike Rapoport <rppt@kernel.org>
+To:     Peter Zijlstra <peterz@infradead.org>
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+        "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH v4 27/36] x86: Implement the new page table range API
+Message-ID: <ZBGpCC21vygomEkr@kernel.org>
 References: <20230315051444.3229621-1-willy@infradead.org>
- <20230315051444.3229621-17-willy@infradead.org>
+ <20230315051444.3229621-28-willy@infradead.org>
+ <20230315103436.GA2006103@hirez.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20230315051444.3229621-17-willy@infradead.org>
-User-Agent: Mutt/1.10.1 (2018-07-13)
+In-Reply-To: <20230315103436.GA2006103@hirez.programming.kicks-ass.net>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Mar 15, 2023 at 05:14:24AM +0000, Matthew Wilcox (Oracle) wrote:
-> Rename _PFN_SHIFT to PFN_PTE_SHIFT.  Convert a few places
-> to call set_pte() instead of set_pte_at().  Add set_ptes(),
-> update_mmu_cache_range(), flush_icache_pages() and flush_dcache_folio().
+On Wed, Mar 15, 2023 at 11:34:36AM +0100, Peter Zijlstra wrote:
+> On Wed, Mar 15, 2023 at 05:14:35AM +0000, Matthew Wilcox (Oracle) wrote:
+> > Add PFN_PTE_SHIFT and a noop update_mmu_cache_range().
+> > 
+> > Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> > Cc: Thomas Gleixner <tglx@linutronix.de>
+> > Cc: Ingo Molnar <mingo@redhat.com>
+> > Cc: Borislav Petkov <bp@alien8.de>
+> > Cc: Dave Hansen <dave.hansen@linux.intel.com>
+> > Cc: x86@kernel.org
+> > Cc: "H. Peter Anvin" <hpa@zytor.com>
+> > ---
+> >  arch/x86/include/asm/pgtable.h | 13 ++++++-------
+> >  1 file changed, 6 insertions(+), 7 deletions(-)
+> > 
+> > diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+> > index 1031025730d0..b237878061c4 100644
+> > --- a/arch/x86/include/asm/pgtable.h
+> > +++ b/arch/x86/include/asm/pgtable.h
+> > @@ -184,6 +184,8 @@ static inline int pte_special(pte_t pte)
+> >  
+> >  static inline u64 protnone_mask(u64 val);
+> >  
+> > +#define PFN_PTE_SHIFT	PAGE_SHIFT
+> > +
+> >  static inline unsigned long pte_pfn(pte_t pte)
+> >  {
+> >  	phys_addr_t pfn = pte_val(pte);
+> > @@ -1019,13 +1021,6 @@ static inline pud_t native_local_pudp_get_and_clear(pud_t *pudp)
+> >  	return res;
+> >  }
+> >  
+> > -static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+> > -			      pte_t *ptep, pte_t pte)
+> > -{
+> > -	page_table_check_ptes_set(mm, addr, ptep, pte, 1);
+> > -	set_pte(ptep, pte);
+> > -}
+> > -
+> 
+> And remove set_pte_at() apparently.. whut?!?
 
-/local/tbogendoerfer/korg/linux/mm/memory.c: In function ‘set_pte_range’:
-/local/tbogendoerfer/korg/linux/mm/memory.c:4290:2: error: implicit declaration of function ‘update_mmu_cache_range’ [-Werror=implicit-function-declaration]
-  update_mmu_cache_range(vma, addr, vmf->pte, nr);
-
-update_mmu_cache_range() is missing in this patch.
-
-Thomas.
+It's now in include/linux/pgtable.h
+ 
+> >  static inline void set_pmd_at(struct mm_struct *mm, unsigned long addr,
+> >  			      pmd_t *pmdp, pmd_t pmd)
+> >  {
+> > @@ -1291,6 +1286,10 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
+> >  		unsigned long addr, pte_t *ptep)
+> >  {
+> >  }
+> > +static inline void update_mmu_cache_range(struct vm_area_struct *vma,
+> > +		unsigned long addr, pte_t *ptep, unsigned int nr)
+> > +{
+> > +}
+> >  static inline void update_mmu_cache_pmd(struct vm_area_struct *vma,
+> >  		unsigned long addr, pmd_t *pmd)
+> >  {
+> > -- 
+> > 2.39.2
+> > 
+> 
 
 -- 
-Crap can work. Given enough thrust pigs will fly, but it's not necessarily a
-good idea.                                                [ RFC1925, 2.3 ]
+Sincerely yours,
+Mike.
