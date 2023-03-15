@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 71B8AC6FD1D
-	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:31:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CB3DCC76195
+	for <linux-arch@archiver.kernel.org>; Wed, 15 Mar 2023 11:31:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231329AbjCOLbo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Mar 2023 07:31:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59454 "EHLO
+        id S231564AbjCOLbq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Mar 2023 07:31:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59470 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230356AbjCOLbm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:42 -0400
+        with ESMTP id S231506AbjCOLbo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 07:31:44 -0400
 Received: from mga12.intel.com (mga12.intel.com [192.55.52.136])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1937864846;
-        Wed, 15 Mar 2023 04:31:42 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0D2E6637F7;
+        Wed, 15 Mar 2023 04:31:43 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1678879902; x=1710415902;
+  t=1678879903; x=1710415903;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=CbKC9In0sfgAFhGmEkzB7Bb+JmElN2MpqrLq/60tyc4=;
-  b=ElAxf5JwDWlsUz4WnDO0m9NyEmkAV2NOUUFD8qSfgU5WNco8iswrNDK/
-   JxrlzVeaTH3ohGiyvpG9OqH6PnQPETgTErrS1IJTHRipzvVjqHA4xHOsW
-   u/H3MKTPE9LFLn3n2T1ailbwqD5u7q+ecvpQ+bqdcnga9TtLOP/VbdSle
-   Bb7G7iE5RBCnXSmP02CHBt2U1dvgbFoRwkeIWjUVKffnx1tzEe9cug62j
-   b7Pn1tNrutSldOoKv2sOzMOfV2TpMRczu252huVVkppqOS/75UCXhcjDJ
-   WhVjNtEfeWuHmoXcUneeQHmxR6GVBLY4p3PHXzGI9xRzdGe1zURM6iKeQ
-   A==;
-X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="317330268"
+  bh=AX8fQ9JFCUx8sgKM3jU0DHxltPa90kVlWb8uT8+Z308=;
+  b=h/GNn2Qn4BExyno6TU2mepAnbByIuOLSFyB/0bB0ZJZXY8rNcci6lGee
+   mBcrT5lJ+BuenVwMzYJSbLsXLOpSX/lTpilqM6aGnfGxawNHe27izFw8o
+   fDsCobLXkoLTgIBqGokhTxI5Zy1YE5bIR/7adF2nqAz81p8Vb6DkpMpRs
+   ERjheg5H3U/O3Ukc4XKpl6msC1m132AWiaZYnFcGkFeuSNZGMS7h+z85/
+   Af2Eyj6NqusuyyxEH60gpbqo6xjmALSSne3/PSlaWLqiX4hTIizNmNY9X
+   d8wLI2Pttir7Q4yXOeZN5coAprh20WiWTJXDQRnRvV2D0Dl3Jvyv/bdjG
+   Q==;
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="317330278"
 X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
-   d="scan'208";a="317330268"
+   d="scan'208";a="317330278"
 Received: from fmsmga006.fm.intel.com ([10.253.24.20])
   by fmsmga106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:40 -0700
 X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="925310514"
+X-IronPort-AV: E=McAfee;i="6500,9779,10649"; a="925310513"
 X-IronPort-AV: E=Sophos;i="5.98,262,1673942400"; 
-   d="scan'208";a="925310514"
+   d="scan'208";a="925310513"
 Received: from nopopovi-mobl1.ger.corp.intel.com (HELO box.shutemov.name) ([10.252.33.48])
   by fmsmga006-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Mar 2023 04:31:38 -0700
 Received: by box.shutemov.name (Postfix, from userid 1000)
-        id BB81D10CC9F; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
+        id AB8FF10CC9D; Wed, 15 Mar 2023 14:31:35 +0300 (+03)
 From:   "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 To:     Andrew Morton <akpm@linux-foundation.org>,
         Mel Gorman <mgorman@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
@@ -47,10 +47,10 @@ To:     Andrew Morton <akpm@linux-foundation.org>,
 Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org,
         "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>,
-        Denis Efremov <efremov@linux.com>
-Subject: [PATCH 03/10] floppy: Fix MAX_ORDER usage
-Date:   Wed, 15 Mar 2023 14:31:26 +0300
-Message-Id: <20230315113133.11326-4-kirill.shutemov@linux.intel.com>
+        sparclinux@vger.kernel.org, David Miller <davem@davemloft.net>
+Subject: [PATCH 01/10] sparc/mm: Fix MAX_ORDER usage in tsb_grow()
+Date:   Wed, 15 Mar 2023 14:31:24 +0300
+Message-Id: <20230315113133.11326-2-kirill.shutemov@linux.intel.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
 References: <20230315113133.11326-1-kirill.shutemov@linux.intel.com>
@@ -63,39 +63,30 @@ X-Mailing-List: linux-arch@vger.kernel.org
 MAX_ORDER is not inclusive: the maximum allocation order buddy allocator
 can deliver is MAX_ORDER-1.
 
-Fix MAX_ORDER usage in floppy code.
-
-Also allocation buffer exactly PAGE_SIZE << MAX_ORDER bytes is okay. Fix
-MAX_LEN check.
+Fix MAX_ORDER usage in tsb_grow().
 
 Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Denis Efremov <efremov@linux.com>
+Cc: sparclinux@vger.kernel.org
+Cc: David Miller <davem@davemloft.net>
 ---
- drivers/block/floppy.c | 4 ++--
+ arch/sparc/mm/tsb.c | 4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/block/floppy.c b/drivers/block/floppy.c
-index 487840e3564d..90d2dfb6448e 100644
---- a/drivers/block/floppy.c
-+++ b/drivers/block/floppy.c
-@@ -3079,7 +3079,7 @@ static void raw_cmd_free(struct floppy_raw_cmd **ptr)
- 	}
- }
+diff --git a/arch/sparc/mm/tsb.c b/arch/sparc/mm/tsb.c
+index 912205787161..dba8dffe2113 100644
+--- a/arch/sparc/mm/tsb.c
++++ b/arch/sparc/mm/tsb.c
+@@ -402,8 +402,8 @@ void tsb_grow(struct mm_struct *mm, unsigned long tsb_index, unsigned long rss)
+ 	unsigned long new_rss_limit;
+ 	gfp_t gfp_flags;
  
--#define MAX_LEN (1UL << MAX_ORDER << PAGE_SHIFT)
-+#define MAX_LEN (1UL << (MAX_ORDER - 1) << PAGE_SHIFT)
+-	if (max_tsb_size > (PAGE_SIZE << MAX_ORDER))
+-		max_tsb_size = (PAGE_SIZE << MAX_ORDER);
++	if (max_tsb_size > (PAGE_SIZE << (MAX_ORDER - 1)))
++		max_tsb_size = (PAGE_SIZE << (MAX_ORDER - 1));
  
- static int raw_cmd_copyin(int cmd, void __user *param,
- 				 struct floppy_raw_cmd **rcmd)
-@@ -3108,7 +3108,7 @@ static int raw_cmd_copyin(int cmd, void __user *param,
- 	ptr->resultcode = 0;
- 
- 	if (ptr->flags & (FD_RAW_READ | FD_RAW_WRITE)) {
--		if (ptr->length <= 0 || ptr->length >= MAX_LEN)
-+		if (ptr->length <= 0 || ptr->length > MAX_LEN)
- 			return -EINVAL;
- 		ptr->kernel_data = (char *)fd_dma_mem_alloc(ptr->length);
- 		fallback_on_nodma_alloc(&ptr->kernel_data, ptr->length);
+ 	new_cache_index = 0;
+ 	for (new_size = 8192; new_size < max_tsb_size; new_size <<= 1UL) {
 -- 
 2.39.2
 
