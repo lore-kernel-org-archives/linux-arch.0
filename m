@@ -2,57 +2,57 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DD69FC7618B
-	for <linux-arch@archiver.kernel.org>; Thu, 16 Mar 2023 00:31:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 143E4C76196
+	for <linux-arch@archiver.kernel.org>; Thu, 16 Mar 2023 00:32:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233228AbjCPAbq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 15 Mar 2023 20:31:46 -0400
+        id S233318AbjCPAcE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 15 Mar 2023 20:32:04 -0400
 Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34530 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231167AbjCPAba (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 20:31:30 -0400
-Received: from mail-pj1-x104a.google.com (mail-pj1-x104a.google.com [IPv6:2607:f8b0:4864:20::104a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 24FFA9E52E
-        for <linux-arch@vger.kernel.org>; Wed, 15 Mar 2023 17:31:19 -0700 (PDT)
-Received: by mail-pj1-x104a.google.com with SMTP id m9-20020a17090a7f8900b0023769205928so1710459pjl.6
-        for <linux-arch@vger.kernel.org>; Wed, 15 Mar 2023 17:31:19 -0700 (PDT)
+        with ESMTP id S233214AbjCPAbq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 15 Mar 2023 20:31:46 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E950DA226C
+        for <linux-arch@vger.kernel.org>; Wed, 15 Mar 2023 17:31:23 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id j125-20020a25d283000000b008f257b16d71so97143ybg.15
+        for <linux-arch@vger.kernel.org>; Wed, 15 Mar 2023 17:31:23 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20210112; t=1678926678;
+        d=google.com; s=20210112; t=1678926682;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=vx2+K6b7VucsfYU5uvwShdem3MP0VCFQdKNh537WPsg=;
-        b=PAaXwSJqPjUc6R/biIaCW2VNIfg9P921yoYdsBglXW7n/3lysnZkeEeswRZxCHBdd2
-         vae46IBUMuPrhA/m6sIKIzqdGOnQo5Ax7q3XOoZhIMO7H4xC0VbFQ0N3vE+qhGQUMHzu
-         kPA+f6sp7rqp+TQqvoN2RVgjN8fnA/s8vq6Qc0ND26uA1J32QTIzKCh5QE6EZ2HKVyvQ
-         j5NA1EYtTCtaS4iuVqchmK8CE1Gi+C6RcXJmBHwvadsPdAFJPwZbs86of6yw4m2yRstH
-         qut3sHXQ3PqToSUKXfBRc1s9T+WqYiB5itYUbgh+khi4BVYb6F2EdusOJNoVl2aI0MUq
-         SNww==
+        bh=/WhAZz5TZYbz5eACM2xmX0O35zR+4WA+K6fPnqmTdp0=;
+        b=DFkZM4WxAkVVNIJBuBzB0nwyIoWMqXfdjlRk3WXV6Jxw5x54jqdNlx617tRGFPhNbf
+         FSFEhLgx9YrnXMD2N9F3ND0dGS2wEQLQ6W2DinnGY36gb1WqdxpuV00Tng2C80Dv85bd
+         GGCXZZnPgvalLdYHdJ5gJafblCxeiqDbyy5BB57SEGPtzpj8zUdhi4l6LoIgVVGg05nZ
+         6Mo31eLAizgeZ7625k2PZoVDucHfhEkPNcn7OmHS1vFJrTg1pI8T6QFyePo8eh9L2ANf
+         ioVmITbi3yeESUanrzgTRmSVNxGVFuNzX/w7x5gA4sylAMhIN1UM2xnxuIntZGawA78b
+         lh/Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112; t=1678926678;
+        d=1e100.net; s=20210112; t=1678926682;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=vx2+K6b7VucsfYU5uvwShdem3MP0VCFQdKNh537WPsg=;
-        b=3CKTkZSL49csTbKi1Lw2sMWooFNm2q/osYM7xP/4cU/G3SRqRFCycusanHDS6ssBxz
-         eTS1MYU3S6l8IzJ5bgozHsfecsDyvi/pHlirpDndPNw03uERAU2dLU6cX50Q1rXeepzG
-         tpaArmsB7gT2dlKLNJdgN6ZoIT69dWU6MESIEz+9rVyUHE0jFxQnwhx0rSgs7VpAMBbl
-         8SVcPykBaFbQHVW+XiXdxNuWN+XWdYX2bhe9ybGP0msvSHb7Qz8E1VZWC2AX3eYcizKg
-         S+qjpce4HtLyi/e2xOOgDHasSPAs337GuwGpdIxXtfcCgGZx/wb73g0hGs2wkiS0or8u
-         xxRg==
-X-Gm-Message-State: AO0yUKVJN0tdW519+RJBGqx9ScJ0qyfdj6EUz3aYWVbgf0MOH4whUC+m
-        u+XgoqDVj0/70ZG7M8P0hFeUMzFxEHuzC2Lmnw==
-X-Google-Smtp-Source: AK7set8pxVyKhYzeYJbLh/hwRd4Uu3vEs7a87hlm2FvbWgBf9tOHOVoa9Y6GzuIXe4LVFtgGHHuaVLgOE52DzxfEww==
+        bh=/WhAZz5TZYbz5eACM2xmX0O35zR+4WA+K6fPnqmTdp0=;
+        b=gw2rSJWsH6nkr6uzLKn4r/TxYl/uR4D28Qq4RYrNggxcd1fMShns58+0f6ZTQPGAAf
+         RyMhnSwzGqtcTnRk0e48ei9Sa7I80acFtMb+kuq/TB0kYdNbR/Ad85FMSEXWRsfDCcVN
+         kympnsXiDnGLh5TOLQpspr61tgMi0C7OpvkBZkZDr8NDK4JeE87wVAOCQh0iRw8z0790
+         1qD+w96xcNjHw0A4DIqX9Vbn7oWz8MPjH6nvEPod6J9qUE7GYHPb08tq7WR+h+ZmPTGM
+         mAe74HLxkTESZzouUkypdZFYr3PQAt5r6BNHUNhN6ElHRcjg2Yxt7ejwZtl8lct1MaxF
+         yRIg==
+X-Gm-Message-State: AO0yUKVJWXIshoTYo8LP71hKCU/bpSC3OgPVpPA6QIDvFkre3bVNI8K7
+        l3lDhLWckjIIJlo74Bpmtdj/QR8s7h8ueEkBfw==
+X-Google-Smtp-Source: AK7set9tsl6JIRx5mbMVZPA/DONTxMkHWtMyPLSYdDprwtuWdlOsvzYeVaLj2tQwnFWT9YsS5B+6yQbk5CSUogkZdg==
 X-Received: from ackerleytng-cloudtop.c.googlers.com ([fda3:e722:ac3:cc00:7f:e700:c0a8:1f5f])
- (user=ackerleytng job=sendgmr) by 2002:a05:6a00:23d6:b0:625:cf6d:b272 with
- SMTP id g22-20020a056a0023d600b00625cf6db272mr580538pfc.6.1678926678685; Wed,
- 15 Mar 2023 17:31:18 -0700 (PDT)
-Date:   Thu, 16 Mar 2023 00:30:55 +0000
+ (user=ackerleytng job=sendgmr) by 2002:a25:8b08:0:b0:b14:91e:4d19 with SMTP
+ id i8-20020a258b08000000b00b14091e4d19mr20688255ybl.7.1678926681818; Wed, 15
+ Mar 2023 17:31:21 -0700 (PDT)
+Date:   Thu, 16 Mar 2023 00:30:57 +0000
 In-Reply-To: <cover.1678926164.git.ackerleytng@google.com>
 Mime-Version: 1.0
 References: <cover.1678926164.git.ackerleytng@google.com>
 X-Mailer: git-send-email 2.40.0.rc2.332.ga46443480c-goog
-Message-ID: <75eba82a2666b0caa96ed0484a713037045ed114.1678926164.git.ackerleytng@google.com>
-Subject: [RFC PATCH 02/10] KVM: selftests: Test that ftruncate to
- non-page-aligned size on a restrictedmem fd should fail
+Message-ID: <a80f3bcce5b5612af9ddd42badbac57eb464f6b4.1678926164.git.ackerleytng@google.com>
+Subject: [RFC PATCH 04/10] KVM: selftests: Exercise restrictedmem allocation
+ and truncation code after KVM invalidation code has been unbound
 From:   Ackerley Tng <ackerleytng@google.com>
 To:     kvm@vger.kernel.org, linux-api@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
@@ -78,27 +78,66 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+The kernel interfaces restrictedmem_bind and restrictedmem_unbind are
+used by KVM to bind/unbind kvm functions to restrictedmem's
+invalidate_start and invalidate_end callbacks.
+
+After the KVM VM is freed, the KVM functions should have been unbound
+from the restrictedmem_fd's callbacks.
+
+In this test, we exercise fallocate to back and unback memory using
+the restrictedmem fd, and we expect no problems (crashes) after the
+KVM functions have been unbound.
+
 Signed-off-by: Ackerley Tng <ackerleytng@google.com>
 ---
- tools/testing/selftests/vm/memfd_restricted.c | 5 +++++
- 1 file changed, 5 insertions(+)
+ .../kvm/x86_64/private_mem_conversions_test.c | 26 ++++++++++++++++++-
+ 1 file changed, 25 insertions(+), 1 deletion(-)
 
-diff --git a/tools/testing/selftests/vm/memfd_restricted.c b/tools/testing/selftests/vm/memfd_restricted.c
-index 43a512f273f7..9c4e6a0becbc 100644
---- a/tools/testing/selftests/vm/memfd_restricted.c
-+++ b/tools/testing/selftests/vm/memfd_restricted.c
-@@ -38,6 +38,11 @@ static void test_file_size(int fd)
- {
- 	struct stat sb;
+diff --git a/tools/testing/selftests/kvm/x86_64/private_mem_conversions_test.c b/tools/testing/selftests/kvm/x86_64/private_mem_conversions_test.c
+index f2c1e4450b0e..7741916818db 100644
+--- a/tools/testing/selftests/kvm/x86_64/private_mem_conversions_test.c
++++ b/tools/testing/selftests/kvm/x86_64/private_mem_conversions_test.c
+@@ -203,6 +203,30 @@ static void handle_exit_hypercall(struct kvm_vcpu *vcpu)
+ 	run->hypercall.ret = 0;
+ }
  
-+	if (!ftruncate(fd, page_size + 1)) {
-+		fail("ftruncate to non page-aligned sizes should fail\n");
-+		return;
-+	}
++static void test_invalidation_code_unbound(struct kvm_vm *vm)
++{
++	uint32_t fd;
++	uint64_t offset;
++	struct userspace_mem_region *region;
 +
- 	if (ftruncate(fd, page_size)) {
- 		fail("ftruncate failed\n");
- 		return;
++	region = memslot2region(vm, DATA_SLOT);
++	fd = region->region.restrictedmem_fd;
++	offset = region->region.restrictedmem_offset;
++
++	kvm_vm_free(vm);
++
++	/*
++	 * At this point the KVM invalidation code should have been unbound from
++	 * the vm. We do allocation and truncation to exercise the restrictedmem
++	 * code. There should be no issues after the unbinding happens.
++	 */
++	if (fallocate(fd, 0, offset, DATA_SIZE))
++		TEST_FAIL("Unexpected error in fallocate");
++	if (fallocate(fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
++		      offset, DATA_SIZE))
++		TEST_FAIL("Unexpected error in fallocate");
++}
++
+ static void test_mem_conversions(enum vm_mem_backing_src_type src_type)
+ {
+ 	struct kvm_vcpu *vcpu;
+@@ -270,7 +294,7 @@ static void test_mem_conversions(enum vm_mem_backing_src_type src_type)
+ 	}
+ 
+ done:
+-	kvm_vm_free(vm);
++	test_invalidation_code_unbound(vm);
+ }
+ 
+ int main(int argc, char *argv[])
 -- 
 2.40.0.rc2.332.ga46443480c-goog
 
