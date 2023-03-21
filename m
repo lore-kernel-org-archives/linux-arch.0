@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E9989C6FD1C
-	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:10:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DFBE6C6FD1D
+	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:10:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230200AbjCUBKH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Mar 2023 21:10:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55604 "EHLO
+        id S230046AbjCUBKI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Mar 2023 21:10:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55614 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230203AbjCUBJU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:09:20 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C989238E9D;
-        Mon, 20 Mar 2023 18:07:52 -0700 (PDT)
+        with ESMTP id S230226AbjCUBJW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:09:22 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B35D83865D;
+        Mon, 20 Mar 2023 18:08:00 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 2D2746190B;
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 7399761920;
         Tue, 21 Mar 2023 01:05:52 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3FB69C433AE;
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AB15BC4331E;
         Tue, 21 Mar 2023 01:05:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
         s=k20201202; t=1679360751;
-        bh=X9XZ64eC274wgkQx6wWmhf2sQlJYCfwVsMTKahD9y60=;
+        bh=BsZuPX17U98phpF/nvSsC4AY78z3ydCcHiePtu2rdfM=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=AdxUIorZdsY+OeZI6H+I8yXTtMj/TVmvPGvUpK6enKYZ9pfnudoZuMfsjio1zdDQf
-         xcjzJbq6Ys8mGNQIa81pi3N97ZQl98IviTJDzzO/X4L+SRmgyBDcx6oQRqGTj2CxGM
-         +avZ69I273gPjo872PYRS4BJmVyPsRi5kdKT4A8ch2SgYcAXGLFxLzuRt6tkVYDc1I
-         IlJCoaDHbNaWw+dkzzFMbmGTved6o8ygsrkmGk2RjWWPB4ZqFsMTKt2z1SeERy3Wyu
-         4IpWMT8oT5D02dwQbT90bX1rsR+RehwJrL6ePx1e4KtF74M9TsS3gLGgIGQ+KFNoiG
-         +gGKz7Moanrmg==
+        b=Pyd2kCGJB7LohO6l3EwIBK/SMEZuG+1PDz7b8wcYTPeEtE9zyV/Z+qygzYmUZs3a5
+         /T3KBI4BUz8RhRSAp/Vw+cwrtUN6GnbqDNEuOkYNxRnb8+dR04hOtxLLN0JiLuNpS+
+         BvVUnaxZY/IrGDdcrdv4eaJgMg4a7oqmMZfiwkbLGGPqTInNXw391mGrdIVuyNAAM8
+         6KcapxiIgKmD8eSWgWruLPqbBMr+UwLb2o/eH+xI4xAOl8Lhqsg5KvDlfsScdTR1Rc
+         38ktbX08vcG4qWeGNEQp5NB1d3JIxoQv5FjGySSViNjWsPlCtDhtxGG77QYrDgVR1B
+         g86Nz9CgmwHxg==
 Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id 8E24315403AF; Mon, 20 Mar 2023 18:05:50 -0700 (PDT)
+        id CF231154039A; Mon, 20 Mar 2023 18:05:50 -0700 (PDT)
 From:   "Paul E. McKenney" <paulmck@kernel.org>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@meta.com, mingo@kernel.org
@@ -40,9 +40,9 @@ Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
         akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model scripts 12/31] tools/memory-model: Make judgelitmus.sh ransack .litmus.out files
-Date:   Mon, 20 Mar 2023 18:05:30 -0700
-Message-Id: <20230321010549.51296-12-paulmck@kernel.org>
+Subject: [PATCH memory-model scripts 25/31] tools/memory-model: Repair parseargs.sh header comment
+Date:   Mon, 20 Mar 2023 18:05:43 -0700
+Message-Id: <20230321010549.51296-25-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.0.rc2
 In-Reply-To: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
 References: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
@@ -52,56 +52,24 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The judgelitmus.sh script currently relies solely on the "Result:"
-comment in the .litmus file.  This is problematic when using the --hw
-argument, because it is necessary to check the hardware model against
-LKMM even in the absence of "Result:" comments.
-
-This commit therefore modifies judgelitmus.sh to check the observation
-in a .litmus.out file, in case one was generated by a previous LKMM run.
-
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- tools/memory-model/scripts/judgelitmus.sh | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ tools/memory-model/scripts/parseargs.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 6f3c60065c8b..fe9131f8eb96 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -8,7 +8,9 @@
- # is provided, this is assumed to be a hardware test, and the output is
- # assumed to be in file.HW.litmus.out, where "HW" is the --hw argument.
- # In addition, non-Sometimes verification results will be noted, but
--# forgiven.
-+# forgiven.  Furthermore, if there is no "Result:" comment but there is
-+# an LKMM .litmus.out file, the observation in that file will be used
-+# to judge the assembly-language verification.
+diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
+index 7aa58755adfc..08ded5909860 100755
+--- a/tools/memory-model/scripts/parseargs.sh
++++ b/tools/memory-model/scripts/parseargs.sh
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ # SPDX-License-Identifier: GPL-2.0+
  #
- # Usage:
- #	judgelitmus.sh file.litmus
-@@ -32,9 +34,11 @@ fi
- if test -z "$LKMM_HW_MAP_FILE"
- then
- 	litmusout=$litmus.out
-+	lkmmout=
- else
- 	litmusout="`echo $litmus |
- 		sed -e 's/\.litmus$/.'${LKMM_HW_MAP_FILE}'.litmus/'`.out"
-+	lkmmout=$litmus.out
- fi
- if test -f "$LKMM_DESTDIR/$litmusout" -a -r "$LKMM_DESTDIR/$litmusout"
- then
-@@ -46,6 +50,9 @@ fi
- if grep -q '^ \* Result: ' $litmus
- then
- 	outcome=`grep -m 1 '^ \* Result: ' $litmus | awk '{ print $3 }'`
-+elif test -n "$LKMM_HW_MAP_FILE" && grep -q '^Observation' $LKMM_DESTDIR/$lkmmout > /dev/null 2>&1
-+then
-+	outcome=`grep -m 1 '^Observation ' $LKMM_DESTDIR/$lkmmout | awk '{ print $3 }'`
- else
- 	outcome=specified
- fi
+-# the corresponding .litmus.out file, and does not judge the result.
++# Parse arguments common to the various scripts.
+ #
+ # . scripts/parseargs.sh
+ #
 -- 
 2.40.0.rc2
 
