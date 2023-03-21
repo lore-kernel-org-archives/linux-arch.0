@@ -2,49 +2,49 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CC282C761AF
-	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:03:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0F660C6FD1C
+	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:03:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229927AbjCUBDa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Mar 2023 21:03:30 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47600 "EHLO
+        id S229971AbjCUBDb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Mar 2023 21:03:31 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47748 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229928AbjCUBDZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:03:25 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7DD0230E9A;
-        Mon, 20 Mar 2023 18:02:51 -0700 (PDT)
+        with ESMTP id S229939AbjCUBD2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:03:28 -0400
+Received: from sin.source.kernel.org (sin.source.kernel.org [145.40.73.55])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D85A1303D4;
+        Mon, 20 Mar 2023 18:02:52 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 9F0D3B811BD;
-        Tue, 21 Mar 2023 01:02:49 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2F3E7C433A0;
+        by sin.source.kernel.org (Postfix) with ESMTPS id B1B11CE173F;
+        Tue, 21 Mar 2023 01:02:50 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22FEAC433A1;
         Tue, 21 Mar 2023 01:02:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
         s=k20201202; t=1679360568;
-        bh=Gt3XpPSB3ySvhPWXjtcOvUQMKgRg79fVOLRl2xXo2AM=;
+        bh=ogHftEPqZVMExF9RqMnqFfkQ5fyo9sZst3jS5BWNIUQ=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=WmMRp1zvPLOOAET9ARQLarM8Un0UWuP+RWngaMu+U9SIOvlrNfHi6JnrPrO8JX5d2
-         ir2brAZPqyWNdfzwMg9ReNIwr8Q9coxnpnYOB8PSWqqScVPaZTYeBQMfWTINy557fE
-         4lkA+0pjujw8ty3sSXuHGca15SKuzMn7JGXo5LcC/Sf/GD3GyFtXQRob/IOSfydSBe
-         JvL2ugmkqOhhcNJNPWKX3A1IgiPFQmVi8mfxu0Zd2b+7xl6LuvlHGqxpGVlmSwF89P
-         AYwWo2zhLjUMX3rwEvfAk+sWJVMimdqN85o+eq+dt0FBdfttc2IWtSQKN7nt11yr3w
-         WMI5v97sM5yqw==
+        b=aMaXhJS0JFHF6wWKE2hp7Jr8p6UBYPwpyxj7DYLWsP8Pr5H8ZWt9ptVZXtxDBO0up
+         7z0J+t0Px6k/B0I2wTsZpddu/FM+KMJi7YP8kSp2+24uHncdEzhj0DGO+VtixEJkeW
+         VQqHgSIXrasD1prXXHcICpipfPcChsHcAvO+GJORWmfd2JKzSnY9KLqci8soYJahYe
+         WRXjXmBXPMdkz05MTsFr9lJzU7b7MeAVpl60PAHvoxtMW2XHj99HPKyUudkGpZrEl8
+         zQQwi0xw5tVj2LNkjw7ZAjQ0HBG1rvYhwV1OXJ3dScGW7Z8JCdHFh1XDR9Y5u++ZQ/
+         ggw5x8LRRnWRw==
 Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id 89A0215403A7; Mon, 20 Mar 2023 18:02:47 -0700 (PDT)
+        id 80EC615403A3; Mon, 20 Mar 2023 18:02:47 -0700 (PDT)
 From:   "Paul E. McKenney" <paulmck@kernel.org>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@meta.com, mingo@kernel.org
 Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-        akiyks@gmail.com, Randy Dunlap <rdunlap@infradead.org>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
-Subject: [PATCH memory-model 8/8] Documentation: litmus-tests: Correct spelling
-Date:   Mon, 20 Mar 2023 18:02:46 -0700
-Message-Id: <20230321010246.50960-8-paulmck@kernel.org>
+        akiyks@gmail.com,
+        Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>,
+        "Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 6/8] tools/memory-model: Make ppo a subrelation of po
+Date:   Mon, 20 Mar 2023 18:02:44 -0700
+Message-Id: <20230321010246.50960-6-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.0.rc2
 In-Reply-To: <778147e4-ccab-40cf-b6ef-31abe4e3f6b7@paulmck-laptop>
 References: <778147e4-ccab-40cf-b6ef-31abe4e3f6b7@paulmck-laptop>
@@ -54,44 +54,61 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Randy Dunlap <rdunlap@infradead.org>
+From: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
 
-Correct spelling problems for Documentation/litmus-tests/ as reported
-by codespell.
+As stated in the documentation and implied by its name, the ppo
+(preserved program order) relation is intended to link po-earlier
+to po-later instructions under certain conditions.  However, a
+corner case currently allows instructions to be linked by ppo that
+are not executed by the same thread, i.e., instructions are being
+linked that have no po relation.
 
-Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Andrea Parri <parri.andrea@gmail.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: "Paul E. McKenney" <paulmck@kernel.org>
-Cc: linux-arch@vger.kernel.org
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: linux-doc@vger.kernel.org
-Reviewed-by: David Howells <dhowells@redhat.com>
+This happens due to the mb/strong-fence/fence relations, which (as
+one case) provide order when locks are passed between threads
+followed by an smp_mb__after_unlock_lock() fence.  This is
+illustrated in the following litmus test (as can be seen when using
+herd7 with `doshow ppo`):
+
+P0(spinlock_t *x, spinlock_t *y)
+{
+    spin_lock(x);
+    spin_unlock(x);
+}
+
+P1(spinlock_t *x, spinlock_t *y)
+{
+    spin_lock(x);
+    smp_mb__after_unlock_lock();
+    *y = 1;
+}
+
+The ppo relation will link P0's spin_lock(x) and P1's *y=1, because
+P0 passes a lock to P1 which then uses this fence.
+
+The patch makes ppo a subrelation of po by letting fence contribute
+to ppo only in case the fence links events of the same thread.
+
+Signed-off-by: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
+Acked-by: Alan Stern <stern@rowland.harvard.edu>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- Documentation/litmus-tests/README | 2 +-
+ tools/memory-model/linux-kernel.cat | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Documentation/litmus-tests/README b/Documentation/litmus-tests/README
-index 7f5c6c3ed6c3..658d37860d39 100644
---- a/Documentation/litmus-tests/README
-+++ b/Documentation/litmus-tests/README
-@@ -9,7 +9,7 @@ a kernel test module based on a litmus test, please see
- tools/memory-model/README.
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index cfc1b8fd46da..adf3c4f41229 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -82,7 +82,7 @@ let rwdep = (dep | ctrl) ; [W]
+ let overwrite = co | fr
+ let to-w = rwdep | (overwrite & int) | (addr ; [Plain] ; wmb)
+ let to-r = (addr ; [R]) | (dep ; [Marked] ; rfi)
+-let ppo = to-r | to-w | fence | (po-unlock-lock-po & int)
++let ppo = to-r | to-w | (fence & int) | (po-unlock-lock-po & int)
  
- 
--atomic (/atomic derectory)
-+atomic (/atomic directory)
- --------------------------
- 
- Atomic-RMW+mb__after_atomic-is-stronger-than-acquire.litmus
+ (* Propagation: Ordering from release operations and strong fences. *)
+ let A-cumul(r) = (rfe ; [Marked])? ; r
 -- 
 2.40.0.rc2
 
