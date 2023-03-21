@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DFBE6C6FD1D
-	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:10:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 79D3EC6FD1C
+	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:10:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230046AbjCUBKI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Mar 2023 21:10:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55614 "EHLO
+        id S230138AbjCUBKK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Mar 2023 21:10:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55380 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230226AbjCUBJW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:09:22 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B35D83865D;
-        Mon, 20 Mar 2023 18:08:00 -0700 (PDT)
+        with ESMTP id S230343AbjCUBJk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:09:40 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF9DE2449D;
+        Mon, 20 Mar 2023 18:08:20 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 7399761920;
+        by dfw.source.kernel.org (Postfix) with ESMTPS id BBC166192B;
         Tue, 21 Mar 2023 01:05:52 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AB15BC4331E;
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 86FA2C43443;
         Tue, 21 Mar 2023 01:05:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
         s=k20201202; t=1679360751;
-        bh=BsZuPX17U98phpF/nvSsC4AY78z3ydCcHiePtu2rdfM=;
+        bh=G5gsvOMCGVuXxuF//Mtvc8D8cBklGhECOvtTo807aJo=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Pyd2kCGJB7LohO6l3EwIBK/SMEZuG+1PDz7b8wcYTPeEtE9zyV/Z+qygzYmUZs3a5
-         /T3KBI4BUz8RhRSAp/Vw+cwrtUN6GnbqDNEuOkYNxRnb8+dR04hOtxLLN0JiLuNpS+
-         BvVUnaxZY/IrGDdcrdv4eaJgMg4a7oqmMZfiwkbLGGPqTInNXw391mGrdIVuyNAAM8
-         6KcapxiIgKmD8eSWgWruLPqbBMr+UwLb2o/eH+xI4xAOl8Lhqsg5KvDlfsScdTR1Rc
-         38ktbX08vcG4qWeGNEQp5NB1d3JIxoQv5FjGySSViNjWsPlCtDhtxGG77QYrDgVR1B
-         g86Nz9CgmwHxg==
+        b=RjpjlutZQtMRWY5am2ENMHDtQDNuAZHin83kBacsfyNBRyc8ONmG/pK+NEBczhKQD
+         uZgXdAetHUhCde3OjQ+I5dRg/bth7aogN+JbO+HIOTV1GiXHGGrvwS/Da1boPFr1si
+         rqsvZJa/kErgu3zQ7/+NP8BxlOwzjLM755rnP/vAI8mcBeJ6nMNqsjpxtaNgeT3EVb
+         wPXH8sEX/F/3kd6GQZHC9CRE/rCWmO6zendgk+Nwqq4zcE84sN2b2f4lRdKgsmKhqE
+         YgqAHlgLGr7oMJKb8F6fv4fiaeIe0gTS7yfGFR6sdiDzcB3xOWafLwCoUckCjyWsf/
+         qFSbbHEg/HVfQ==
 Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id CF231154039A; Mon, 20 Mar 2023 18:05:50 -0700 (PDT)
+        id B5BDC15403C1; Mon, 20 Mar 2023 18:05:50 -0700 (PDT)
 From:   "Paul E. McKenney" <paulmck@kernel.org>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@meta.com, mingo@kernel.org
@@ -40,9 +40,9 @@ Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
         akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model scripts 25/31] tools/memory-model: Repair parseargs.sh header comment
-Date:   Mon, 20 Mar 2023 18:05:43 -0700
-Message-Id: <20230321010549.51296-25-paulmck@kernel.org>
+Subject: [PATCH memory-model scripts 21/31] tools/memory-model: Fix scripting --jobs argument
+Date:   Mon, 20 Mar 2023 18:05:39 -0700
+Message-Id: <20230321010549.51296-21-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.0.rc2
 In-Reply-To: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
 References: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
@@ -52,24 +52,29 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+The parseargs.sh regular expression for the --jobs argument incorrectly
+requires that the number of jobs be at least 10, that is, have at least
+two digits.  This commit therefore adjusts this regular expression to
+allow single-digit numbers of jobs to be specified.
+
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
  tools/memory-model/scripts/parseargs.sh | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 7aa58755adfc..08ded5909860 100755
+index 5f016fc3f3af..25a81ac0dfdf 100755
 --- a/tools/memory-model/scripts/parseargs.sh
 +++ b/tools/memory-model/scripts/parseargs.sh
-@@ -1,7 +1,7 @@
- #!/bin/sh
- # SPDX-License-Identifier: GPL-2.0+
- #
--# the corresponding .litmus.out file, and does not judge the result.
-+# Parse arguments common to the various scripts.
- #
- # . scripts/parseargs.sh
- #
+@@ -113,7 +113,7 @@ do
+ 		LKMM_JOBS="`echo $njobs | sed -e 's/^\([0-9]\+\).*$/\1/'`"
+ 		;;
+ 	--jobs|--job|-j)
+-		checkarg --jobs "(number)" "$#" "$2" '^[1-9][0-9]\+$' '^--'
++		checkarg --jobs "(number)" "$#" "$2" '^[1-9][0-9]*$' '^--'
+ 		LKMM_JOBS="$2"
+ 		shift
+ 		;;
 -- 
 2.40.0.rc2
 
