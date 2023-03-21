@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 09777C761A6
-	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:06:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 31CFDC6FD1C
+	for <linux-arch@archiver.kernel.org>; Tue, 21 Mar 2023 01:07:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230013AbjCUBGr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 20 Mar 2023 21:06:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53906 "EHLO
+        id S230016AbjCUBHG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 20 Mar 2023 21:07:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53934 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230046AbjCUBGl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:06:41 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B0B2E14E8F;
-        Mon, 20 Mar 2023 18:06:06 -0700 (PDT)
+        with ESMTP id S229950AbjCUBGn (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 20 Mar 2023 21:06:43 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6092B2ED5E;
+        Mon, 20 Mar 2023 18:06:14 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 002B3618FF;
-        Tue, 21 Mar 2023 01:05:52 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 17D62C433A4;
+        by ams.source.kernel.org (Postfix) with ESMTPS id A4665B811C3;
+        Tue, 21 Mar 2023 01:05:53 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B7B91C43324;
         Tue, 21 Mar 2023 01:05:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
         s=k20201202; t=1679360751;
-        bh=7pEQrOhNcu3wqlvdXQU+oZMNW/oN3RZB/RgwhFCuORI=;
+        bh=wa5pYtC5SYWp9ZShIu2HSy2OIsdx39BjnrLPgX+Su3Y=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=hplD/jZ5c53bYUq+Va4ebP06sIodznegbn6PLGl5HL26jEwlEDqWqglx9cqVz49k+
-         TqpdW3oGBpzbWUKx7oiahcQBG2JUj3it3AEal/hn70yEOMhGM03adpx73dmyzr9gYz
-         PNZUmkyEN9YRiHedybItmM/dp96eJXO+igUexO9+hzuyzTCk3NJ9o5OdrmqjeItgzO
-         kYKDGbzChSqMlS6o/D2qugoVwYjE6DLIYsmOdaKxs9CcQ3jGb9Q9mQYWxvfiVUvH6U
-         Qhl1zt9Z1O2YoRNb/UebXo1cuwfmD1XalXUhzJ5AruQ2jKrgg32613Lu8JEj1yXqri
-         7g3DeeRNfifqw==
+        b=AtpyVMekd3m51PaRDe+rVxdlIheIptFu7ri+D5Cd5GUFhkPqtpQFpbmcVQwG6RDoI
+         Rlt7ea8SmHEvnoUJd2DxiIQeYgDPBC9OJFYHcP5bGIYoBnMCkJmMtVDpvZPNGdnDXb
+         ySFCxdWHpFMk9LNQSSNMpjLyJ1SxWyWYUXL1zCOI1749PoGTrleh/Bth5YMwmsnJlK
+         i/N9TwUD9itnAKnzFvz4CnjJ2YAFA3U+btHMNfoHDUsDRan8f2V5YlhtXTgXv8UMGi
+         C+S0ZFxz30e8fn4qPrKTpiYAr7+0M2RwzPWndU/2iinwYKJmm2SsHOYMOezYDOuHuM
+         J6T1yY1ZP6jaw==
 Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
-        id 7652E15403A3; Mon, 20 Mar 2023 18:05:50 -0700 (PDT)
+        id DF22315403CF; Mon, 20 Mar 2023 18:05:50 -0700 (PDT)
 From:   "Paul E. McKenney" <paulmck@kernel.org>
 To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         kernel-team@meta.com, mingo@kernel.org
@@ -40,9 +40,9 @@ Cc:     stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
         peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
         dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
         akiyks@gmail.com, "Paul E. McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model scripts 06/31] tools/memory-model: Fix paulmck email address on pre-existing scripts
-Date:   Mon, 20 Mar 2023 18:05:24 -0700
-Message-Id: <20230321010549.51296-6-paulmck@kernel.org>
+Subject: [PATCH memory-model scripts 29/31] tools/memory-model: Use "-unroll 0" to keep --hw runs finite
+Date:   Mon, 20 Mar 2023 18:05:47 -0700
+Message-Id: <20230321010549.51296-29-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.0.rc2
 In-Reply-To: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
 References: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
@@ -52,108 +52,35 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Litmus tests involving atomic operations produce LL/SC loops on a number
+of architectures, and unrolling these loops can result in excessive
+verification times or even stack overflows.  This commit therefore uses
+the "-unroll 0" herd7 argument to avoid unrolling, on the grounds that
+additional passes through an LL/SC loop should not change the verification.
+
+Note however, that certain bugs in the mapping of the LL/SC loop to
+machine instructions may go undetected.  On the other hand, herd7 might
+not be the best vehicle for finding such bugs in any case.  (You do
+stress-test your architecture-specific code, don't you?)
+
+Suggested-by: Luc Maranget <luc.maranget@inria.fr>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 ---
- tools/memory-model/scripts/checkalllitmus.sh  | 2 +-
- tools/memory-model/scripts/checklitmus.sh     | 2 +-
- tools/memory-model/scripts/checklitmushist.sh | 2 +-
- tools/memory-model/scripts/judgelitmus.sh     | 2 +-
- tools/memory-model/scripts/newlitmushist.sh   | 2 +-
- tools/memory-model/scripts/parseargs.sh       | 2 +-
- tools/memory-model/scripts/runlitmushist.sh   | 2 +-
- 7 files changed, 7 insertions(+), 7 deletions(-)
+ tools/memory-model/scripts/runlitmus.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/tools/memory-model/scripts/checkalllitmus.sh b/tools/memory-model/scripts/checkalllitmus.sh
-index 3c0c7fbbd223..10e14d94acee 100755
---- a/tools/memory-model/scripts/checkalllitmus.sh
-+++ b/tools/memory-model/scripts/checkalllitmus.sh
-@@ -17,7 +17,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
+diff --git a/tools/memory-model/scripts/runlitmus.sh b/tools/memory-model/scripts/runlitmus.sh
+index dfdb1f00fcc0..94608d4b6502 100755
+--- a/tools/memory-model/scripts/runlitmus.sh
++++ b/tools/memory-model/scripts/runlitmus.sh
+@@ -75,6 +75,6 @@ then
+ 	cp $T/$hwlitmusfile.jingle7.out $LKMM_DESTDIR/$hwlitmus.err
+ 	exit 253
+ fi
+-/usr/bin/time $LKMM_TIMEOUT_CMD herd7 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
++/usr/bin/time $LKMM_TIMEOUT_CMD herd7 -unroll 0 $LKMM_DESTDIR/$hwlitmus > $LKMM_DESTDIR/$hwlitmus.out 2>&1
  
- . scripts/parseargs.sh
- 
-diff --git a/tools/memory-model/scripts/checklitmus.sh b/tools/memory-model/scripts/checklitmus.sh
-index 11461ed40b5e..638b8c610894 100755
---- a/tools/memory-model/scripts/checklitmus.sh
-+++ b/tools/memory-model/scripts/checklitmus.sh
-@@ -15,7 +15,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- litmus=$1
- herdoptions=${LKMM_HERD_OPTIONS--conf linux-kernel.cfg}
-diff --git a/tools/memory-model/scripts/checklitmushist.sh b/tools/memory-model/scripts/checklitmushist.sh
-index 1d210ffb7c8a..406ecfc0aee4 100755
---- a/tools/memory-model/scripts/checklitmushist.sh
-+++ b/tools/memory-model/scripts/checklitmushist.sh
-@@ -12,7 +12,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- . scripts/parseargs.sh
- 
-diff --git a/tools/memory-model/scripts/judgelitmus.sh b/tools/memory-model/scripts/judgelitmus.sh
-index 84c62eee321b..d82133e75580 100755
---- a/tools/memory-model/scripts/judgelitmus.sh
-+++ b/tools/memory-model/scripts/judgelitmus.sh
-@@ -13,7 +13,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- litmus=$1
- 
-diff --git a/tools/memory-model/scripts/newlitmushist.sh b/tools/memory-model/scripts/newlitmushist.sh
-index 991f8f814881..3f4b06e29988 100755
---- a/tools/memory-model/scripts/newlitmushist.sh
-+++ b/tools/memory-model/scripts/newlitmushist.sh
-@@ -12,7 +12,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- . scripts/parseargs.sh
- 
-diff --git a/tools/memory-model/scripts/parseargs.sh b/tools/memory-model/scripts/parseargs.sh
-index 40f52080fdbd..afe7bd23de6b 100755
---- a/tools/memory-model/scripts/parseargs.sh
-+++ b/tools/memory-model/scripts/parseargs.sh
-@@ -9,7 +9,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- T=/tmp/parseargs.sh.$$
- mkdir $T
-diff --git a/tools/memory-model/scripts/runlitmushist.sh b/tools/memory-model/scripts/runlitmushist.sh
-index 6ed376f495bb..852786fef179 100755
---- a/tools/memory-model/scripts/runlitmushist.sh
-+++ b/tools/memory-model/scripts/runlitmushist.sh
-@@ -13,7 +13,7 @@
- #
- # Copyright IBM Corporation, 2018
- #
--# Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+# Author: Paul E. McKenney <paulmck@linux.ibm.com>
- 
- T=/tmp/runlitmushist.sh.$$
- trap 'rm -rf $T' 0
+ exit $?
 -- 
 2.40.0.rc2
 
