@@ -2,101 +2,101 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BD3E4C74A5B
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:16:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0DD6CC7619A
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:20:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231438AbjCWWQZ convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 23 Mar 2023 18:16:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42726 "EHLO
+        id S230335AbjCWWUG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 23 Mar 2023 18:20:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48250 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231491AbjCWWQV (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:16:21 -0400
-Received: from eu-smtp-delivery-151.mimecast.com (eu-smtp-delivery-151.mimecast.com [185.58.85.151])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E307C241CB
-        for <linux-arch@vger.kernel.org>; Thu, 23 Mar 2023 15:16:17 -0700 (PDT)
-Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) by
- relay.mimecast.com with ESMTP with both STARTTLS and AUTH (version=TLSv1.2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id
- uk-mta-304-j6IE1sL7Moe3xE5Tqe041Q-1; Thu, 23 Mar 2023 22:16:13 +0000
-X-MC-Unique: j6IE1sL7Moe3xE5Tqe041Q-1
-Received: from AcuMS.Aculab.com (10.202.163.4) by AcuMS.aculab.com
- (10.202.163.4) with Microsoft SMTP Server (TLS) id 15.0.1497.48; Thu, 23 Mar
- 2023 22:16:12 +0000
-Received: from AcuMS.Aculab.com ([::1]) by AcuMS.aculab.com ([::1]) with mapi
- id 15.00.1497.048; Thu, 23 Mar 2023 22:16:12 +0000
-From:   David Laight <David.Laight@ACULAB.COM>
-To:     'Mark Rutland' <mark.rutland@arm.com>,
-        Catalin Marinas <catalin.marinas@arm.com>
-CC:     "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "agordeev@linux.ibm.com" <agordeev@linux.ibm.com>,
-        "aou@eecs.berkeley.edu" <aou@eecs.berkeley.edu>,
-        "bp@alien8.de" <bp@alien8.de>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "davem@davemloft.net" <davem@davemloft.net>,
-        "gor@linux.ibm.com" <gor@linux.ibm.com>,
-        "hca@linux.ibm.com" <hca@linux.ibm.com>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux@armlinux.org.uk" <linux@armlinux.org.uk>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "palmer@dabbelt.com" <palmer@dabbelt.com>,
-        "paul.walmsley@sifive.com" <paul.walmsley@sifive.com>,
-        "robin.murphy@arm.com" <robin.murphy@arm.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>,
-        "viro@zeniv.linux.org.uk" <viro@zeniv.linux.org.uk>,
-        "will@kernel.org" <will@kernel.org>
-Subject: RE: [PATCH v2 1/4] lib: test copy_{to,from}_user()
-Thread-Topic: [PATCH v2 1/4] lib: test copy_{to,from}_user()
-Thread-Index: AQHZXMdjsqmkKsLMq0ilztF2kMGJDa8I7Ypw
-Date:   Thu, 23 Mar 2023 22:16:12 +0000
-Message-ID: <f4d24e8024e84ec5a20ab17b6c2d7f60@AcuMS.aculab.com>
-References: <20230321122514.1743889-1-mark.rutland@arm.com>
- <20230321122514.1743889-2-mark.rutland@arm.com> <ZBnk3O0QLs6+8KNN@arm.com>
- <ZBsLGTYjKoUTLrva@FVFF77S0Q05N>
-In-Reply-To: <ZBsLGTYjKoUTLrva@FVFF77S0Q05N>
-Accept-Language: en-GB, en-US
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-x-ms-exchange-transport-fromentityheader: Hosted
-x-originating-ip: [10.202.205.107]
+        with ESMTP id S231530AbjCWWUE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:20:04 -0400
+Received: from ms.lwn.net (ms.lwn.net [IPv6:2600:3c01:e000:3a1::42])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9B79723123;
+        Thu, 23 Mar 2023 15:20:03 -0700 (PDT)
+Received: from meer.lwn.net (unknown [IPv6:2601:281:8300:73::5f6])
+        by ms.lwn.net (Postfix) with ESMTPA id D93F644A;
+        Thu, 23 Mar 2023 22:20:02 +0000 (UTC)
+DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net D93F644A
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
+        t=1679610003; bh=exL/Eca8MAqKl5rksOHF32zvppjMakfM5mkmNOwiCVw=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=BGZdQmjRbCQl8eeBxVnQ2zmA6jU8HwLhzhH/pPI4QeD81eLeUD9mck7lJ8jkoaaiZ
+         slmrfV6R6GbwAvOI3D/S2ANdUJQv+HduycxwNrZGFEwJK3GnqQiu+uw0JmZfvZRNSq
+         iBbWa2MyQYNjPU5FvcddL1D3XK8MmEGc7Tw+0ST2BjPxyRY/WLjkAsNqFLfyXLiukp
+         AqRkfXuV5aYjqSyC2qTzhNK2RVJmwdD0rH6Nd0Dr3G+dcNt+n4CV0W2Jx8O3nu6rak
+         zJGrHNec6Tg3MjRyqa+zPpqOaYw2ZNem/5m/bJcjfKP7EhTjbHHvb72e5IQgOj7uO2
+         LXyyWYP4MDsIA==
+From:   Jonathan Corbet <corbet@lwn.net>
+To:     linux-doc@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Jonathan Corbet <corbet@lwn.net>, Alex Shi <alexs@kernel.org>,
+        Yanteng Si <siyanteng@loongson.cn>
+Subject: [PATCH 1/6] docs: zh_CN: create the architecture-specific top-level directory
+Date:   Thu, 23 Mar 2023 16:19:43 -0600
+Message-Id: <20230323221948.352154-2-corbet@lwn.net>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230323221948.352154-1-corbet@lwn.net>
+References: <20230323221948.352154-1-corbet@lwn.net>
 MIME-Version: 1.0
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: aculab.com
-Content-Language: en-US
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mark Rutland
-> Sent: 22 March 2023 14:05
-....
-> > IIUC, in such tests you only vary the destination offset. Our copy
-> > routines in general try to align the source and leave the destination
-> > unaligned for performance. It would be interesting to add some variation
-> > on the source offset as well to spot potential issues with that part of
-> > the memcpy routines.
-> 
-> I have that on my TODO list; I had intended to drop that into the
-> usercopy_params. The only problem is that the cross product of size,
-> src_offset, and dst_offset gets quite large.
+This mirrors commit 4f1bb0386dfc ("docs: create a top-level arch/
+directory"), creating a top-level directory to hold architecture-specific
+documentation.
 
-I thought that is was better to align the writes and do misaligned reads.
-Although maybe copy_to/from_user() would be best aligning the user address
-(to avoid page faults part way through a misaligned access).
+Cc: Alex Shi <alexs@kernel.org>
+Cc: Yanteng Si <siyanteng@loongson.cn>
+Signed-off-by: Jonathan Corbet <corbet@lwn.net>
+---
+ .../translations/zh_CN/{arch.rst => arch/index.rst}  | 12 ++++++------
+ Documentation/translations/zh_CN/index.rst           |  2 +-
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+ rename Documentation/translations/zh_CN/{arch.rst => arch/index.rst} (72%)
 
-OTOH, on x86, is it even worth bothering at all.
-I have measured a performance drop for misaligned reads, but it
-was less than 1 clock per cache line in a test that was doing
-2 misaligned reads in at least some of the clock cycles.
-I think the memory read path can do two AVX reads each clock.
-So doing two misaligned 64bit reads isn't stressing it.
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+diff --git a/Documentation/translations/zh_CN/arch.rst b/Documentation/translations/zh_CN/arch/index.rst
+similarity index 72%
+rename from Documentation/translations/zh_CN/arch.rst
+rename to Documentation/translations/zh_CN/arch/index.rst
+index 690e173d8b2a..aa53dcff268e 100644
+--- a/Documentation/translations/zh_CN/arch.rst
++++ b/Documentation/translations/zh_CN/arch/index.rst
+@@ -8,12 +8,12 @@
+ .. toctree::
+    :maxdepth: 2
+ 
+-   mips/index
+-   arm64/index
+-   riscv/index
+-   openrisc/index
+-   parisc/index
+-   loongarch/index
++   ../mips/index
++   ../arm64/index
++   ../riscv/index
++   ../openrisc/index
++   ../parisc/index
++   ../loongarch/index
+ 
+ TODOList:
+ 
+diff --git a/Documentation/translations/zh_CN/index.rst b/Documentation/translations/zh_CN/index.rst
+index 7c3216845b71..299704c0818d 100644
+--- a/Documentation/translations/zh_CN/index.rst
++++ b/Documentation/translations/zh_CN/index.rst
+@@ -120,7 +120,7 @@ TODOList:
+ .. toctree::
+    :maxdepth: 2
+ 
+-   arch
++   arch/index
+ 
+ 其他文档
+ --------
+-- 
+2.39.2
 
