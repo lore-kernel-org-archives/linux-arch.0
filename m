@@ -2,129 +2,115 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E8CAC77B62
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:20:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 05155C6FD1C
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:20:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231545AbjCWWUG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 23 Mar 2023 18:20:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48248 "EHLO
+        id S231562AbjCWWUH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 23 Mar 2023 18:20:07 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48270 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231531AbjCWWUE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:20:04 -0400
+        with ESMTP id S231483AbjCWWUF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:20:05 -0400
 Received: from ms.lwn.net (ms.lwn.net [IPv6:2600:3c01:e000:3a1::42])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF63320D3F;
-        Thu, 23 Mar 2023 15:20:02 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 20C522385A;
+        Thu, 23 Mar 2023 15:20:04 -0700 (PDT)
 Received: from meer.lwn.net (unknown [IPv6:2601:281:8300:73::5f6])
-        by ms.lwn.net (Postfix) with ESMTPA id 670CE60A;
-        Thu, 23 Mar 2023 22:20:02 +0000 (UTC)
-DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 670CE60A
+        by ms.lwn.net (Postfix) with ESMTPA id 6D2C9733;
+        Thu, 23 Mar 2023 22:20:03 +0000 (UTC)
+DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 6D2C9733
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
-        t=1679610002; bh=uJ3G9x9Oc+8gANJ7IStVIIXmDT9uCREH515n9V/IsQI=;
-        h=From:To:Cc:Subject:Date:From;
-        b=TFj34R/CSPOrMPhLbV673AOSIIXwpBK2m3pJWW7qh9ZjGUyUKvRF4BtECRPGm2+a1
-         q0v0AewLZfCa1qiPTA5N6DKG9aqtlfgAGKQJ6HMt8AfjymrYiyFS59SNzDaZsGQrDS
-         s/bIGI7tJinLprk0wJs+lAeuJZAvI5wadaVlmSbXYvQ8IAaNMNPYESd0TV7lYRwTNU
-         FVd2B/mV+WjpGHnk6xEoPlxCdHGW+oZ3cz8TORdVAkCbRiqphrfayy1waTunA2wviL
-         J22BYFJQhIzJ8EHHyfDUj24vs58HIrDWfodFNRQ3mTJ//cqhdTBqhQchBEjR3SaHZr
-         x+HcR5ammNF7A==
+        t=1679610003; bh=sKGqOrWJA71ARwk29FqcItJLbTRHc7B6f2O5jNNhG9A=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=iqW/q98zaAIcwV/xip11UzIEk6AyMj9kiVmHFYhQ2AtDWeBzaZSHtNmoYSTE8vLUN
+         4GbhRY1BN9oNtZutnrDbRacfzmhXhdMxXlS2hAfBMmRFfhZop58X67bn0UaJJzevqh
+         VtdLow9GEZBGBHleaE1ufbJn3G92OwjXT0k9CVczc6VsbtogCus8z/sYgIt+bNBwLQ
+         6u/yPulnrW5l6v2KddVCp+b85d0+5XuTdzNHULQY9PllSzHONrm9N7+wYeIN82BmJc
+         ZPCU62GVhDb29J6+Xe2q8lfQU8UXvBIKtaOr649tyU5QTg/aF/4bpj7dyfj4bW7aFY
+         xxXpmMYNCkWnA==
 From:   Jonathan Corbet <corbet@lwn.net>
 To:     linux-doc@vger.kernel.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Jonathan Corbet <corbet@lwn.net>
-Subject: [PATCH 0/6] Documentation: arch reorg (continued)
-Date:   Thu, 23 Mar 2023 16:19:42 -0600
-Message-Id: <20230323221948.352154-1-corbet@lwn.net>
+        Jonathan Corbet <corbet@lwn.net>,
+        Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH 2/6] docs: move xtensa documentation under Documentation/arch/
+Date:   Thu, 23 Mar 2023 16:19:44 -0600
+Message-Id: <20230323221948.352154-3-corbet@lwn.net>
 X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230323221948.352154-1-corbet@lwn.net>
+References: <20230323221948.352154-1-corbet@lwn.net>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This series builds on top of the documentation reorganization posted at
+Architecture-specific documentation is being moved into Documentation/arch/
+as a way of cleaning up the top-level documentation directory and making
+the docs hierarchy more closely match the source hierarchy.  Move
+Documentation/xtensa into arch/ and fix all in-tree references.
 
-    https://lore.kernel.org/lkml/20230315211523.108836-1-corbet@lwn.net/
-
-it adds several more architectures (the relatively inactive ones) to the
-new arch/ directory.  This series goes on top of the previous one.
-
-The cover letter from that series provides the motivation for this work:
-
-    The top-level Documentation/ directory, despite the efforts of the last
-    few years, is still a mess; there is too much stuff there, making it
-    harder to find anything.  We do not organize our source directories
-    that way, and for good reasons.
-
-Jonathan Corbet (6):
-  docs: zh_CN: create the architecture-specific top-level directory
-  docs: move xtensa documentation under Documentation/arch/
-  docs: move sparc documentation under Documentation/arch/
-  docs: move superh documentation under Documentation/arch/
-  docs: move openrisc documentation under Documentation/arch/
-  docs: move nios2 documentation under Documentation/arch/
-
- Documentation/arch/index.rst                           | 10 +++++-----
- Documentation/{ => arch}/nios2/features.rst            |  0
- Documentation/{ => arch}/nios2/index.rst               |  0
- Documentation/{ => arch}/nios2/nios2.rst               |  0
- Documentation/{ => arch}/openrisc/features.rst         |  0
- Documentation/{ => arch}/openrisc/index.rst            |  0
- Documentation/{ => arch}/openrisc/openrisc_port.rst    |  0
- Documentation/{ => arch}/openrisc/todo.rst             |  0
- Documentation/{ => arch}/sh/booting.rst                |  0
- Documentation/{ => arch}/sh/features.rst               |  0
- Documentation/{ => arch}/sh/index.rst                  |  0
- Documentation/{ => arch}/sh/new-machine.rst            |  0
- Documentation/{ => arch}/sh/register-banks.rst         |  0
- Documentation/{ => arch}/sparc/adi.rst                 |  0
- Documentation/{ => arch}/sparc/console.rst             |  0
- Documentation/{ => arch}/sparc/features.rst            |  0
- Documentation/{ => arch}/sparc/index.rst               |  0
- Documentation/{ => arch}/sparc/oradax/dax-hv-api.txt   |  0
- Documentation/{ => arch}/sparc/oradax/oracle-dax.rst   |  0
- Documentation/{ => arch}/xtensa/atomctl.rst            |  0
- Documentation/{ => arch}/xtensa/booting.rst            |  0
- Documentation/{ => arch}/xtensa/features.rst           |  0
- Documentation/{ => arch}/xtensa/index.rst              |  0
- Documentation/{ => arch}/xtensa/mmu.rst                |  0
- .../translations/zh_CN/{arch.rst => arch/index.rst}    | 10 +++++-----
- .../translations/zh_CN/{ => arch}/openrisc/index.rst   |  4 ++--
- .../zh_CN/{ => arch}/openrisc/openrisc_port.rst        |  4 ++--
- .../translations/zh_CN/{ => arch}/openrisc/todo.rst    |  4 ++--
- Documentation/translations/zh_CN/index.rst             |  2 +-
- MAINTAINERS                                            |  4 ++--
- arch/sh/Kconfig.cpu                                    |  2 +-
- arch/xtensa/include/asm/initialize_mmu.h               |  2 +-
- drivers/sbus/char/oradax.c                             |  2 +-
- 33 files changed, 22 insertions(+), 22 deletions(-)
- rename Documentation/{ => arch}/nios2/features.rst (100%)
- rename Documentation/{ => arch}/nios2/index.rst (100%)
- rename Documentation/{ => arch}/nios2/nios2.rst (100%)
- rename Documentation/{ => arch}/openrisc/features.rst (100%)
- rename Documentation/{ => arch}/openrisc/index.rst (100%)
- rename Documentation/{ => arch}/openrisc/openrisc_port.rst (100%)
- rename Documentation/{ => arch}/openrisc/todo.rst (100%)
- rename Documentation/{ => arch}/sh/booting.rst (100%)
- rename Documentation/{ => arch}/sh/features.rst (100%)
- rename Documentation/{ => arch}/sh/index.rst (100%)
- rename Documentation/{ => arch}/sh/new-machine.rst (100%)
- rename Documentation/{ => arch}/sh/register-banks.rst (100%)
- rename Documentation/{ => arch}/sparc/adi.rst (100%)
- rename Documentation/{ => arch}/sparc/console.rst (100%)
- rename Documentation/{ => arch}/sparc/features.rst (100%)
- rename Documentation/{ => arch}/sparc/index.rst (100%)
- rename Documentation/{ => arch}/sparc/oradax/dax-hv-api.txt (100%)
- rename Documentation/{ => arch}/sparc/oradax/oracle-dax.rst (100%)
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Signed-off-by: Jonathan Corbet <corbet@lwn.net>
+---
+ Documentation/arch/index.rst                 | 2 +-
+ Documentation/{ => arch}/xtensa/atomctl.rst  | 0
+ Documentation/{ => arch}/xtensa/booting.rst  | 0
+ Documentation/{ => arch}/xtensa/features.rst | 0
+ Documentation/{ => arch}/xtensa/index.rst    | 0
+ Documentation/{ => arch}/xtensa/mmu.rst      | 0
+ arch/xtensa/include/asm/initialize_mmu.h     | 2 +-
+ 7 files changed, 2 insertions(+), 2 deletions(-)
  rename Documentation/{ => arch}/xtensa/atomctl.rst (100%)
  rename Documentation/{ => arch}/xtensa/booting.rst (100%)
  rename Documentation/{ => arch}/xtensa/features.rst (100%)
  rename Documentation/{ => arch}/xtensa/index.rst (100%)
  rename Documentation/{ => arch}/xtensa/mmu.rst (100%)
- rename Documentation/translations/zh_CN/{arch.rst => arch/index.rst} (77%)
- rename Documentation/translations/zh_CN/{ => arch}/openrisc/index.rst (79%)
- rename Documentation/translations/zh_CN/{ => arch}/openrisc/openrisc_port.rst (97%)
- rename Documentation/translations/zh_CN/{ => arch}/openrisc/todo.rst (88%)
 
+diff --git a/Documentation/arch/index.rst b/Documentation/arch/index.rst
+index 64a5de81c425..208a8e67599c 100644
+--- a/Documentation/arch/index.rst
++++ b/Documentation/arch/index.rst
+@@ -25,4 +25,4 @@ implementation.
+    ../sh/index
+    ../sparc/index
+    x86/index
+-   ../xtensa/index
++   xtensa/index
+diff --git a/Documentation/xtensa/atomctl.rst b/Documentation/arch/xtensa/atomctl.rst
+similarity index 100%
+rename from Documentation/xtensa/atomctl.rst
+rename to Documentation/arch/xtensa/atomctl.rst
+diff --git a/Documentation/xtensa/booting.rst b/Documentation/arch/xtensa/booting.rst
+similarity index 100%
+rename from Documentation/xtensa/booting.rst
+rename to Documentation/arch/xtensa/booting.rst
+diff --git a/Documentation/xtensa/features.rst b/Documentation/arch/xtensa/features.rst
+similarity index 100%
+rename from Documentation/xtensa/features.rst
+rename to Documentation/arch/xtensa/features.rst
+diff --git a/Documentation/xtensa/index.rst b/Documentation/arch/xtensa/index.rst
+similarity index 100%
+rename from Documentation/xtensa/index.rst
+rename to Documentation/arch/xtensa/index.rst
+diff --git a/Documentation/xtensa/mmu.rst b/Documentation/arch/xtensa/mmu.rst
+similarity index 100%
+rename from Documentation/xtensa/mmu.rst
+rename to Documentation/arch/xtensa/mmu.rst
+diff --git a/arch/xtensa/include/asm/initialize_mmu.h b/arch/xtensa/include/asm/initialize_mmu.h
+index 9793b49fc641..574795a20d6f 100644
+--- a/arch/xtensa/include/asm/initialize_mmu.h
++++ b/arch/xtensa/include/asm/initialize_mmu.h
+@@ -43,7 +43,7 @@
+ #if XCHAL_HAVE_S32C1I && (XCHAL_HW_MIN_VERSION >= XTENSA_HWVERSION_RC_2009_0)
+ /*
+  * We Have Atomic Operation Control (ATOMCTL) Register; Initialize it.
+- * For details see Documentation/xtensa/atomctl.rst
++ * For details see Documentation/arch/xtensa/atomctl.rst
+  */
+ #if XCHAL_DCACHE_IS_COHERENT
+ 	movi	a3, 0x25	/* For SMP/MX -- internal for writeback,
 -- 
 2.39.2
 
