@@ -2,188 +2,121 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 80A34C77B62
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:20:13 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 669E6C6FD1C
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 23:30:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231596AbjCWWUL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 23 Mar 2023 18:20:11 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48374 "EHLO
+        id S229990AbjCWXaq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 23 Mar 2023 19:30:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57398 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231575AbjCWWUI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:20:08 -0400
-Received: from ms.lwn.net (ms.lwn.net [IPv6:2600:3c01:e000:3a1::42])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 07EDD23C4A;
-        Thu, 23 Mar 2023 15:20:05 -0700 (PDT)
-Received: from meer.lwn.net (unknown [IPv6:2601:281:8300:73::5f6])
-        by ms.lwn.net (Postfix) with ESMTPA id 284C560A;
-        Thu, 23 Mar 2023 22:20:05 +0000 (UTC)
-DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 284C560A
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
-        t=1679610005; bh=+0XuBNmYI/uTGGbCJlwRybw3b+1jSLhxWtJILEeD8QU=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=K6OULu4dZ1Avon0MHKeaDVtsj6srwkc+uDbGvLC9Kj+irkhwQ4wJvpGxgBdUeStXW
-         wwMpG3e+y+hHgAFzLK1uv0o1PDrk+cVWXw2x9acFUfbDrMeVv/1xASq6zUlse82tmL
-         LFCBrSLG2489DbJ1wGi3RraDtLds8d/wnr5CcTpLBRbHzPX1LOTOh4lVK5MKP5jVgy
-         07ZIe7efj0sKPs4807SPcQPho7pHExxecYNjPMjlGuKQwrHx3wFdjnJUI+RWObUjg9
-         lGa2JeAQTHLxZMMUNLOyjUcJC+P8snU+eNKoSPSWMGmKdnK4NGlaH1qd0wr1xbEWeb
-         casqSalBXY1KA==
-From:   Jonathan Corbet <corbet@lwn.net>
-To:     linux-doc@vger.kernel.org
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Jonathan Corbet <corbet@lwn.net>,
-        Jonas Bonn <jonas@southpole.se>,
-        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
-        Stafford Horne <shorne@gmail.com>, Alex Shi <alexs@kernel.org>,
-        Yanteng Si <siyanteng@loongson.cn>
-Subject: [PATCH 5/6] docs: move openrisc documentation under Documentation/arch/
-Date:   Thu, 23 Mar 2023 16:19:47 -0600
-Message-Id: <20230323221948.352154-6-corbet@lwn.net>
-X-Mailer: git-send-email 2.39.2
-In-Reply-To: <20230323221948.352154-1-corbet@lwn.net>
-References: <20230323221948.352154-1-corbet@lwn.net>
+        with ESMTP id S229576AbjCWXap (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 19:30:45 -0400
+Received: from mail-pf1-x435.google.com (mail-pf1-x435.google.com [IPv6:2607:f8b0:4864:20::435])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3BC0225BBF;
+        Thu, 23 Mar 2023 16:30:45 -0700 (PDT)
+Received: by mail-pf1-x435.google.com with SMTP id i15so226808pfo.8;
+        Thu, 23 Mar 2023 16:30:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20210112; t=1679614244;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=gGnK9kK6rwPE9Cig9j09DuEmiYA9Kj1n7jjctGAB9Ic=;
+        b=GJ9VeSHvJENNkSlhS1vvDkzUudpQA2ONvLrGRjvUl+P+nTPj111yCwQTUUY8z9+rZ2
+         +F10vAsuqJs5k5sA7jOkFPTzeu4eaZxDZAWOsnXmU0HnLD0kMuxoSPGBjkqAS5St/47P
+         EW34fnL1WzJ43qrq4NC4MKQfzXfBx1zKJNDLbxKbf5GF+FYwaUtKkNoAQCUawdn8SZEl
+         cGNZwdnf7DQeco3xpS9AjeCNr/IStf7BQGcQUjNBkVpmfrSoqMjaghqeECzdF2PIbCEe
+         QW5nO+e5EeQ2tL3TkVhTld07oFfa13mzRi1BAq9R9RXmZDUKNeyYzdjPe8pJR/TQ/kcd
+         LDwQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679614244;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=gGnK9kK6rwPE9Cig9j09DuEmiYA9Kj1n7jjctGAB9Ic=;
+        b=l7Ba6OCxuPhQ2q2SivKZCrUF3UZFANi+WIO7puKnCYAFweiOM6ghobwiVxxi8Agirh
+         Yc8Ro3BMK0f2W6mxjDpevCr4qyuMVMf1HK6Mnst6ejUUGVg5nF91WEDeznlfksba01X9
+         71uP/KHUZPMQqIKIGhmxTyW+Luvj75gXE0lmlvbVv1otMBYUWTjrHiETn/b7vJ1Q+Vye
+         kGkmgpQ8FR/fmn1ScZmADToLKkFpWqB7uQRRr+SmwtdanQ79JEpZZrsem2ZsJYIwFQb9
+         /hsISfa7cNBaerkG7qYZrq6C2mctvQdbnfzDYOEikRlOegpCByES6kILZF/SlIPVZ6pA
+         S/kg==
+X-Gm-Message-State: AAQBX9dmGDgQJvz6mSI7C/TGuHudS7v+DU4jslgVn7nUlri7wLHomA4J
+        PZpY3ZVTO7KSaanx9Tsc5GI=
+X-Google-Smtp-Source: AKy350arDXi1ErMT2avja0wJVTL1MaLBvhcDLtF6L3fuVg0w3KNh4LAvc+sBGxh+PzdedZWiyOuaJA==
+X-Received: by 2002:a62:1d95:0:b0:627:e577:4326 with SMTP id d143-20020a621d95000000b00627e5774326mr716072pfd.17.1679614244499;
+        Thu, 23 Mar 2023 16:30:44 -0700 (PDT)
+Received: from [192.168.11.9] (KD106167171201.ppp-bb.dion.ne.jp. [106.167.171.201])
+        by smtp.gmail.com with ESMTPSA id 22-20020aa79216000000b005fdf8c06320sm12874003pfo.175.2023.03.23.16.30.40
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 23 Mar 2023 16:30:44 -0700 (PDT)
+Message-ID: <2d26aad2-a1d5-649c-86ec-9457c577333f@gmail.com>
+Date:   Fri, 24 Mar 2023 08:30:38 +0900
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.8.0
+Subject: Re: [PATCH memory-model scripts 01/31] tools/memory-model: Document
+ locking corner cases
+To:     paulmck@kernel.org
+Cc:     parri.andrea@gmail.com, stern@rowland.harvard.edu, will@kernel.org,
+        peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
+        dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        kernel-team@meta.com, mingo@kernel.org,
+        Akira Yokosawa <akiyks@gmail.com>
+References: <4e5839bb-e980-4931-a550-3548d025a32a@paulmck-laptop>
+ <20230321010549.51296-1-paulmck@kernel.org>
+ <f940cb6c-4aa6-41a4-d9d7-330becd5427a@gmail.com>
+ <cd356db2-1643-4b01-bb13-16a7f92cf980@paulmck-laptop>
+Content-Language: en-US
+From:   Akira Yokosawa <akiyks@gmail.com>
+In-Reply-To: <cd356db2-1643-4b01-bb13-16a7f92cf980@paulmck-laptop>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Architecture-specific documentation is being moved into Documentation/arch/
-as a way of cleaning up the top-level documentation directory and making
-the docs hierarchy more closely match the source hierarchy.  Move
-Documentation/openrisc into arch/ and fix all in-tree references.
+On Thu, 23 Mar 2023 11:52:15 -0700, Paul E. McKenney wrote:
+> On Thu, Mar 23, 2023 at 11:52:57AM +0900, Akira Yokosawa wrote:
+>> Hi Paul,
+>>
+>> On Mon, 20 Mar 2023 18:05:19 -0700, Paul E. McKenney wrote:
+>>> Most Linux-kernel uses of locking are straightforward, but there are
+>>> corner-case uses that rely on less well-known aspects of the lock and
+>>> unlock primitives.  This commit therefore adds a locking.txt and litmus
+>>> tests in Documentation/litmus-tests/locking to explain these corner-case
+>>> uses.
+>>>
+>>> Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+>>> ---
+>>>  .../litmus-tests/locking/DCL-broken.litmus    |  55 +++
+>>>  .../litmus-tests/locking/DCL-fixed.litmus     |  56 +++
+>>>  .../litmus-tests/locking/RM-broken.litmus     |  42 +++
+>>>  .../litmus-tests/locking/RM-fixed.litmus      |  42 +++
+>>>  tools/memory-model/Documentation/locking.txt  | 320 ++++++++++++++++++
+>>
+>> I think the documentation needs adjustment to cope with Andrea's change
+>> of litmus tests.
+>>
+>> Also, coding style of code snippets taken from litmus tests look somewhat
+>> inconsistent with other snippets taken from MP+... litmus tests:
+>>
+>>   - Simple function signature such as "void CPU0(void)".
+>>   - No declaration of local variables.
+>>   - Indirection level of global variables.
+>>   - No "locations" clause
+>>
+>> How about applying the diff below?
+> 
+> Good eyes, thank you!  I will fold this in with attribution.
 
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
-Cc: Stafford Horne <shorne@gmail.com>
-Cc: Alex Shi <alexs@kernel.org>
-Cc: Yanteng Si <siyanteng@loongson.cn>
-Signed-off-by: Jonathan Corbet <corbet@lwn.net>
----
- Documentation/arch/index.rst                                  | 2 +-
- Documentation/{ => arch}/openrisc/features.rst                | 0
- Documentation/{ => arch}/openrisc/index.rst                   | 0
- Documentation/{ => arch}/openrisc/openrisc_port.rst           | 0
- Documentation/{ => arch}/openrisc/todo.rst                    | 0
- Documentation/translations/zh_CN/arch/index.rst               | 2 +-
- .../translations/zh_CN/{ => arch}/openrisc/index.rst          | 4 ++--
- .../translations/zh_CN/{ => arch}/openrisc/openrisc_port.rst  | 4 ++--
- Documentation/translations/zh_CN/{ => arch}/openrisc/todo.rst | 4 ++--
- MAINTAINERS                                                   | 2 +-
- 10 files changed, 9 insertions(+), 9 deletions(-)
- rename Documentation/{ => arch}/openrisc/features.rst (100%)
- rename Documentation/{ => arch}/openrisc/index.rst (100%)
- rename Documentation/{ => arch}/openrisc/openrisc_port.rst (100%)
- rename Documentation/{ => arch}/openrisc/todo.rst (100%)
- rename Documentation/translations/zh_CN/{ => arch}/openrisc/index.rst (79%)
- rename Documentation/translations/zh_CN/{ => arch}/openrisc/openrisc_port.rst (97%)
- rename Documentation/translations/zh_CN/{ => arch}/openrisc/todo.rst (88%)
+Feel free to add
 
-diff --git a/Documentation/arch/index.rst b/Documentation/arch/index.rst
-index 792f58e30f25..65945daa40fe 100644
---- a/Documentation/arch/index.rst
-+++ b/Documentation/arch/index.rst
-@@ -17,7 +17,7 @@ implementation.
-    ../m68k/index
-    ../mips/index
-    ../nios2/index
--   ../openrisc/index
-+   openrisc/index
-    ../parisc/index
-    ../powerpc/index
-    ../riscv/index
-diff --git a/Documentation/openrisc/features.rst b/Documentation/arch/openrisc/features.rst
-similarity index 100%
-rename from Documentation/openrisc/features.rst
-rename to Documentation/arch/openrisc/features.rst
-diff --git a/Documentation/openrisc/index.rst b/Documentation/arch/openrisc/index.rst
-similarity index 100%
-rename from Documentation/openrisc/index.rst
-rename to Documentation/arch/openrisc/index.rst
-diff --git a/Documentation/openrisc/openrisc_port.rst b/Documentation/arch/openrisc/openrisc_port.rst
-similarity index 100%
-rename from Documentation/openrisc/openrisc_port.rst
-rename to Documentation/arch/openrisc/openrisc_port.rst
-diff --git a/Documentation/openrisc/todo.rst b/Documentation/arch/openrisc/todo.rst
-similarity index 100%
-rename from Documentation/openrisc/todo.rst
-rename to Documentation/arch/openrisc/todo.rst
-diff --git a/Documentation/translations/zh_CN/arch/index.rst b/Documentation/translations/zh_CN/arch/index.rst
-index aa53dcff268e..7e59af567331 100644
---- a/Documentation/translations/zh_CN/arch/index.rst
-+++ b/Documentation/translations/zh_CN/arch/index.rst
-@@ -11,7 +11,7 @@
-    ../mips/index
-    ../arm64/index
-    ../riscv/index
--   ../openrisc/index
-+   openrisc/index
-    ../parisc/index
-    ../loongarch/index
- 
-diff --git a/Documentation/translations/zh_CN/openrisc/index.rst b/Documentation/translations/zh_CN/arch/openrisc/index.rst
-similarity index 79%
-rename from Documentation/translations/zh_CN/openrisc/index.rst
-rename to Documentation/translations/zh_CN/arch/openrisc/index.rst
-index 9ad6cc600884..da21f8ab894b 100644
---- a/Documentation/translations/zh_CN/openrisc/index.rst
-+++ b/Documentation/translations/zh_CN/arch/openrisc/index.rst
-@@ -1,8 +1,8 @@
- .. SPDX-License-Identifier: GPL-2.0
- 
--.. include:: ../disclaimer-zh_CN.rst
-+.. include:: ../../disclaimer-zh_CN.rst
- 
--:Original: Documentation/openrisc/index.rst
-+:Original: Documentation/arch/openrisc/index.rst
- 
- :翻译:
- 
-diff --git a/Documentation/translations/zh_CN/openrisc/openrisc_port.rst b/Documentation/translations/zh_CN/arch/openrisc/openrisc_port.rst
-similarity index 97%
-rename from Documentation/translations/zh_CN/openrisc/openrisc_port.rst
-rename to Documentation/translations/zh_CN/arch/openrisc/openrisc_port.rst
-index b8a67670492d..cadc580fa23b 100644
---- a/Documentation/translations/zh_CN/openrisc/openrisc_port.rst
-+++ b/Documentation/translations/zh_CN/arch/openrisc/openrisc_port.rst
-@@ -1,6 +1,6 @@
--.. include:: ../disclaimer-zh_CN.rst
-+.. include:: ../../disclaimer-zh_CN.rst
- 
--:Original: Documentation/openrisc/openrisc_port.rst
-+:Original: Documentation/arch/openrisc/openrisc_port.rst
- 
- :翻译:
- 
-diff --git a/Documentation/translations/zh_CN/openrisc/todo.rst b/Documentation/translations/zh_CN/arch/openrisc/todo.rst
-similarity index 88%
-rename from Documentation/translations/zh_CN/openrisc/todo.rst
-rename to Documentation/translations/zh_CN/arch/openrisc/todo.rst
-index 63c38717edb1..1f6f95616633 100644
---- a/Documentation/translations/zh_CN/openrisc/todo.rst
-+++ b/Documentation/translations/zh_CN/arch/openrisc/todo.rst
-@@ -1,6 +1,6 @@
--.. include:: ../disclaimer-zh_CN.rst
-+.. include:: ../../disclaimer-zh_CN.rst
- 
--:Original: Documentation/openrisc/todo.rst
-+:Original: Documentation/arch/openrisc/todo.rst
- 
- :翻译:
- 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index cf4eb913ea12..64ea94536f4c 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -15638,7 +15638,7 @@ S:	Maintained
- W:	http://openrisc.io
- T:	git https://github.com/openrisc/linux.git
- F:	Documentation/devicetree/bindings/openrisc/
--F:	Documentation/openrisc/
-+F:	Documentation/arch/openrisc/
- F:	arch/openrisc/
- F:	drivers/irqchip/irq-ompic.c
- F:	drivers/irqchip/irq-or1k-*
--- 
-2.39.2
+Reviewed-by: Akira Yokosawa <akiyks@gmail.com>
+
+        Thanks, Akira
+> 
+> 							Thanx, Paul
+> 
+>>         Thanks, Akira
 
