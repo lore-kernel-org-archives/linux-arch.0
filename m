@@ -2,38 +2,41 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 39D6CC7619A
-	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:20:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 91E15C77B6F
+	for <linux-arch@archiver.kernel.org>; Thu, 23 Mar 2023 22:20:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231571AbjCWWUK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 23 Mar 2023 18:20:10 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48376 "EHLO
+        id S231589AbjCWWUJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 23 Mar 2023 18:20:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48326 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231579AbjCWWUI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:20:08 -0400
+        with ESMTP id S231556AbjCWWUG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 23 Mar 2023 18:20:06 -0400
 Received: from ms.lwn.net (ms.lwn.net [IPv6:2600:3c01:e000:3a1::42])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ACAB823D99;
-        Thu, 23 Mar 2023 15:20:06 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43BD323A62;
+        Thu, 23 Mar 2023 15:20:05 -0700 (PDT)
 Received: from meer.lwn.net (unknown [IPv6:2601:281:8300:73::5f6])
-        by ms.lwn.net (Postfix) with ESMTPA id D3CED845;
-        Thu, 23 Mar 2023 22:20:05 +0000 (UTC)
-DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net D3CED845
+        by ms.lwn.net (Postfix) with ESMTPA id 801017F9;
+        Thu, 23 Mar 2023 22:20:04 +0000 (UTC)
+DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 801017F9
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
-        t=1679610006; bh=rsDSg4mYvFmVgpSxVekYd+TcSXV5fNk9ODWCs9zntmw=;
+        t=1679610004; bh=GMFWdWYJCGmh8Kpc1j6SBPSjQaQPXeqtXldToZ39nMY=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=qPiUUuy+mDNP1JupNnClvXBOF9+M9rw3YKNbQzP6w9Q+awaf/j/T9Q6OQ/cNVtlW6
-         BFSuWLmZRj3/oTkIFMkr/oy6kEu6D2KzExUjuWLf81+PK8aNJx+QKv3UaG57LnD5Kj
-         slFIvgrB2fUO/+ZZXL/cRNWrbLvFvVqfNxFYN4gUMXvKDBEfj81XW/aG8jbn3EyoSn
-         nwp31ZQJZRiaF3dfrkudo+SpT4wDUW4kqnsg7PqsGE2UKe1o2UwiOwmODLs084aQlg
-         +ub6erX52awqq34eSmkIl5J1iOU7Wpjnt/nJ6qS0Dqc+EWfQ7dWLJkkO0PEajs4aRE
-         T+ljhvWb8pLcA==
+        b=JfIrtwRnNh9NKjhq/v5mxWPI8KWmQkgtHQiTVQNrHULu3mMcJqsRQ3xHSUQYNCmBs
+         /zf0zDPFkWvFIqY+ys1xzkC/otB1aJopNRl3+6hA2PUE7PiAxrY9m92McBFWDQ4eT0
+         bbAnPLkCFW6+I3KQ0wHDzLyM686c3UKS1wiW6Qk5vQKhDecB7iOIb2/O+8AtgWGkdI
+         w3qLO+U7uzDkbWXn6OQsSzuk/MdrvufhZyUAExKi4W8mSPRPulncCJbPAndtnsJxKd
+         7353yEDuh5TCCqJ95Tyt0cdh8r7c7Vl8OJMRxWGfey5UsSx4zZPv9T256jXEn8EqFr
+         laNjamGZ6raRw==
 From:   Jonathan Corbet <corbet@lwn.net>
 To:     linux-doc@vger.kernel.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        Jonathan Corbet <corbet@lwn.net>
-Subject: [PATCH 6/6] docs: move nios2 documentation under Documentation/arch/
-Date:   Thu, 23 Mar 2023 16:19:48 -0600
-Message-Id: <20230323221948.352154-7-corbet@lwn.net>
+        Jonathan Corbet <corbet@lwn.net>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>,
+        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject: [PATCH 4/6] docs: move superh documentation under Documentation/arch/
+Date:   Thu, 23 Mar 2023 16:19:46 -0600
+Message-Id: <20230323221948.352154-5-corbet@lwn.net>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230323221948.352154-1-corbet@lwn.net>
 References: <20230323221948.352154-1-corbet@lwn.net>
@@ -46,44 +49,87 @@ X-Mailing-List: linux-arch@vger.kernel.org
 Architecture-specific documentation is being moved into Documentation/arch/
 as a way of cleaning up the top-level documentation directory and making
 the docs hierarchy more closely match the source hierarchy.  Move
-Documentation/nios2 into arch/ and fix all in-tree references.
+Documentation/sh into arch/ and fix all in-tree references.
 
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Rich Felker <dalias@libc.org>
+Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
 Signed-off-by: Jonathan Corbet <corbet@lwn.net>
 ---
- Documentation/arch/index.rst                | 2 +-
- Documentation/{ => arch}/nios2/features.rst | 0
- Documentation/{ => arch}/nios2/index.rst    | 0
- Documentation/{ => arch}/nios2/nios2.rst    | 0
- 4 files changed, 1 insertion(+), 1 deletion(-)
- rename Documentation/{ => arch}/nios2/features.rst (100%)
- rename Documentation/{ => arch}/nios2/index.rst (100%)
- rename Documentation/{ => arch}/nios2/nios2.rst (100%)
+ Documentation/arch/index.rst                   | 2 +-
+ Documentation/{ => arch}/sh/booting.rst        | 0
+ Documentation/{ => arch}/sh/features.rst       | 0
+ Documentation/{ => arch}/sh/index.rst          | 0
+ Documentation/{ => arch}/sh/new-machine.rst    | 0
+ Documentation/{ => arch}/sh/register-banks.rst | 0
+ MAINTAINERS                                    | 2 +-
+ arch/sh/Kconfig.cpu                            | 2 +-
+ 8 files changed, 3 insertions(+), 3 deletions(-)
+ rename Documentation/{ => arch}/sh/booting.rst (100%)
+ rename Documentation/{ => arch}/sh/features.rst (100%)
+ rename Documentation/{ => arch}/sh/index.rst (100%)
+ rename Documentation/{ => arch}/sh/new-machine.rst (100%)
+ rename Documentation/{ => arch}/sh/register-banks.rst (100%)
 
 diff --git a/Documentation/arch/index.rst b/Documentation/arch/index.rst
-index 65945daa40fe..ccb4d10fc1b6 100644
+index 8ec614488bd2..792f58e30f25 100644
 --- a/Documentation/arch/index.rst
 +++ b/Documentation/arch/index.rst
-@@ -16,7 +16,7 @@ implementation.
-    ../loongarch/index
-    ../m68k/index
-    ../mips/index
--   ../nios2/index
-+   nios2/index
-    openrisc/index
-    ../parisc/index
+@@ -22,7 +22,7 @@ implementation.
     ../powerpc/index
-diff --git a/Documentation/nios2/features.rst b/Documentation/arch/nios2/features.rst
+    ../riscv/index
+    ../s390/index
+-   ../sh/index
++   sh/index
+    sparc/index
+    x86/index
+    xtensa/index
+diff --git a/Documentation/sh/booting.rst b/Documentation/arch/sh/booting.rst
 similarity index 100%
-rename from Documentation/nios2/features.rst
-rename to Documentation/arch/nios2/features.rst
-diff --git a/Documentation/nios2/index.rst b/Documentation/arch/nios2/index.rst
+rename from Documentation/sh/booting.rst
+rename to Documentation/arch/sh/booting.rst
+diff --git a/Documentation/sh/features.rst b/Documentation/arch/sh/features.rst
 similarity index 100%
-rename from Documentation/nios2/index.rst
-rename to Documentation/arch/nios2/index.rst
-diff --git a/Documentation/nios2/nios2.rst b/Documentation/arch/nios2/nios2.rst
+rename from Documentation/sh/features.rst
+rename to Documentation/arch/sh/features.rst
+diff --git a/Documentation/sh/index.rst b/Documentation/arch/sh/index.rst
 similarity index 100%
-rename from Documentation/nios2/nios2.rst
-rename to Documentation/arch/nios2/nios2.rst
+rename from Documentation/sh/index.rst
+rename to Documentation/arch/sh/index.rst
+diff --git a/Documentation/sh/new-machine.rst b/Documentation/arch/sh/new-machine.rst
+similarity index 100%
+rename from Documentation/sh/new-machine.rst
+rename to Documentation/arch/sh/new-machine.rst
+diff --git a/Documentation/sh/register-banks.rst b/Documentation/arch/sh/register-banks.rst
+similarity index 100%
+rename from Documentation/sh/register-banks.rst
+rename to Documentation/arch/sh/register-banks.rst
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 250df8cee463..cf4eb913ea12 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -20125,7 +20125,7 @@ M:	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+ L:	linux-sh@vger.kernel.org
+ S:	Maintained
+ Q:	http://patchwork.kernel.org/project/linux-sh/list/
+-F:	Documentation/sh/
++F:	Documentation/arch/sh/
+ F:	arch/sh/
+ F:	drivers/sh/
+ 
+diff --git a/arch/sh/Kconfig.cpu b/arch/sh/Kconfig.cpu
+index fff419f3d757..336c54369636 100644
+--- a/arch/sh/Kconfig.cpu
++++ b/arch/sh/Kconfig.cpu
+@@ -85,7 +85,7 @@ config CPU_HAS_SR_RB
+ 	  that are lacking this bit must have another method in place for
+ 	  accomplishing what is taken care of by the banked registers.
+ 
+-	  See <file:Documentation/sh/register-banks.rst> for further
++	  See <file:Documentation/arch/sh/register-banks.rst> for further
+ 	  information on SR.RB and register banking in the kernel in general.
+ 
+ config CPU_HAS_PTEAEX
 -- 
 2.39.2
 
