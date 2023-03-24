@@ -2,157 +2,108 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EF394C6FD1C
-	for <linux-arch@archiver.kernel.org>; Fri, 24 Mar 2023 11:34:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 11409C6FD20
+	for <linux-arch@archiver.kernel.org>; Fri, 24 Mar 2023 14:11:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229870AbjCXLeA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 24 Mar 2023 07:34:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37234 "EHLO
+        id S231972AbjCXOLV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 24 Mar 2023 10:11:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46992 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229508AbjCXLd7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2023 07:33:59 -0400
-Received: from ams.source.kernel.org (ams.source.kernel.org [145.40.68.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D306B1C7FB;
-        Fri, 24 Mar 2023 04:33:56 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by ams.source.kernel.org (Postfix) with ESMTPS id 83EE2B8239C;
-        Fri, 24 Mar 2023 11:33:55 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 43F2BC4339B;
-        Fri, 24 Mar 2023 11:33:54 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1679657634;
-        bh=gN1rw7P5nD0EPnar+Hih8wRjO2zp+3Y1UdQYfZsCqBs=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=oKBFZiTSugNI6NXoGDFM/eBf78cVT9COzfU+bK3uSgOS53e3/8uY8Lu7lDAbjrduk
-         f+o8I4IP6BYkZGnxLmFm4qVfvm7dJSJkandF8nEHZh/DaIWiYRlpfG6z0ULmtwPtIg
-         nDHS6FGdnDYwICHFy4dxqwAXliGTH64w++/LYtza0OHzdJky1GlEg3mil1o4aW6rbz
-         Si9H/Df8j+pf7qs8sOV622rw/SqwGlYi73awC5Nv4oZBD90kbgTPSq3JXLOam8tfXA
-         kH7kbVtZ3aljmfG69UC5diNO8GcTecvllVT+g4KIePYuMC3aOG6ac2SfijvN6YPeoE
-         ncSzwNoANakxg==
-Received: by mail-lf1-f44.google.com with SMTP id br6so1810469lfb.11;
-        Fri, 24 Mar 2023 04:33:54 -0700 (PDT)
-X-Gm-Message-State: AAQBX9dTve0JONSYQmUyJyR56PQSmIso5wytq8LDFdP8iNPZ96Yw35Qh
-        s3AdWz0odaJVclBtzsyALS+Q8HQVkfStO+11k8c=
-X-Google-Smtp-Source: AKy350b8q3+lUeJ9w5ZT9GW50L8qAY6bqdL3UY0CHDzs4u9bAT5b8qVWBbNxvRz6Pby8JiJnvjS/qp42bIAdEGY9RWU=
-X-Received: by 2002:ac2:4a89:0:b0:4ea:12f7:a725 with SMTP id
- l9-20020ac24a89000000b004ea12f7a725mr650882lfp.4.1679657632209; Fri, 24 Mar
- 2023 04:33:52 -0700 (PDT)
+        with ESMTP id S231801AbjCXOLU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 24 Mar 2023 10:11:20 -0400
+Received: from mga05.intel.com (mga05.intel.com [192.55.52.43])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8A8D1BB
+        for <linux-arch@vger.kernel.org>; Fri, 24 Mar 2023 07:11:19 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1679667079; x=1711203079;
+  h=date:from:to:cc:subject:message-id:mime-version;
+  bh=oeKK0XxdE2OZCdERTy0WYBknFH3V6NT9BywJ7A3s4bI=;
+  b=donnLhIU2Nxxsxsq27WjJG07MQ5StG57H4YvxuFGnp+74u5349/EZd3T
+   zxHiOuDNcvFXqgpPXPxXEZbNy0LAp0aqGhy1V/WLMfV5jpL9Lzo8ZJdk4
+   Zd/VANH+ku8ckGd/bd/cLFGP/SGbITqP5VG/Vcj5fLlilSWtaDVf7n8KX
+   jvpvb8t0YGAGE13vGwvFhWTfaQvvjro85xHuWYP/IQNSP9cGwwLRJPGCR
+   DbuGO9pCntLy/IKk2Pbfq7QbGp6hK1WkHUU+UeZR60Vj2kw+iUL7qUsl7
+   E4QOGpW9LmCLtE5OsZPWnlRgMbG7zPq1iJ7J8I1OPdQnJM42bflFRCQ4k
+   A==;
+X-IronPort-AV: E=McAfee;i="6600,9927,10659"; a="426053245"
+X-IronPort-AV: E=Sophos;i="5.98,288,1673942400"; 
+   d="scan'208";a="426053245"
+Received: from orsmga004.jf.intel.com ([10.7.209.38])
+  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Mar 2023 07:11:19 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6600,9927,10659"; a="806680684"
+X-IronPort-AV: E=Sophos;i="5.98,288,1673942400"; 
+   d="scan'208";a="806680684"
+Received: from lkp-server01.sh.intel.com (HELO b613635ddfff) ([10.239.97.150])
+  by orsmga004.jf.intel.com with ESMTP; 24 Mar 2023 07:11:18 -0700
+Received: from kbuild by b613635ddfff with local (Exim 4.96)
+        (envelope-from <lkp@intel.com>)
+        id 1pfi8T-000FMK-0a;
+        Fri, 24 Mar 2023 14:11:17 +0000
+Date:   Fri, 24 Mar 2023 22:10:40 +0800
+From:   kernel test robot <lkp@intel.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org
+Subject: [arnd-asm-generic:dma-sync-rework 20/20]
+ arch/csky/mm/dma-mapping.c:65:18: error: 'paddr' undeclared
+Message-ID: <202303242224.lSidB94K-lkp@intel.com>
 MIME-Version: 1.0
-References: <20221012233500.156764-1-masahiroy@kernel.org> <ZBovCrMXJk7NPISp@aurel32.net>
- <CAMj1kXHwtb9aY+vd4e69Wg47GpL0sT=dDaCUA1sF7=edzc+Qeg@mail.gmail.com> <ZBzAp457rrO52FPy@aurel32.net>
-In-Reply-To: <ZBzAp457rrO52FPy@aurel32.net>
-From:   Ard Biesheuvel <ardb@kernel.org>
-Date:   Fri, 24 Mar 2023 12:33:40 +0100
-X-Gmail-Original-Message-ID: <CAMj1kXHvfHwQFX1SKbUvpHWOr3+i7Tp5Hod-_jZE4hDHZmmRZg@mail.gmail.com>
-Message-ID: <CAMj1kXHvfHwQFX1SKbUvpHWOr3+i7Tp5Hod-_jZE4hDHZmmRZg@mail.gmail.com>
-Subject: Re: [PATCH] arm64: remove special treatment for the link order of head.o
-To:     Ard Biesheuvel <ardb@kernel.org>,
-        Masahiro Yamada <masahiroy@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org,
-        Nicolas Schier <nicolas@fjasle.eu>,
-        linux-kernel@vger.kernel.org
-Cc:     Martin KaFai Lau <martin.lau@linux.dev>,
-        "open list:BPF JIT for MIPS (32-BIT AND 64-BIT)" 
-        <bpf@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-(cc BTF list and maintainer)
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git dma-sync-rework
+head:   9a711fbea373208c1eeb2fafb0c744bc23a79a43
+commit: 9a711fbea373208c1eeb2fafb0c744bc23a79a43 [20/20] dma-mapping: replace custom code with generic implementation
+config: csky-defconfig (https://download.01.org/0day-ci/archive/20230324/202303242224.lSidB94K-lkp@intel.com/config)
+compiler: csky-linux-gcc (GCC) 12.1.0
+reproduce (this is a W=1 build):
+        wget https://raw.githubusercontent.com/intel/lkp-tests/master/sbin/make.cross -O ~/bin/make.cross
+        chmod +x ~/bin/make.cross
+        # https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git/commit/?id=9a711fbea373208c1eeb2fafb0c744bc23a79a43
+        git remote add arnd-asm-generic https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
+        git fetch --no-tags arnd-asm-generic dma-sync-rework
+        git checkout 9a711fbea373208c1eeb2fafb0c744bc23a79a43
+        # save the config file
+        mkdir build_dir && cp config build_dir/.config
+        COMPILER_INSTALL_PATH=$HOME/0day COMPILER=gcc-12.1.0 make.cross W=1 O=build_dir ARCH=csky olddefconfig
+        COMPILER_INSTALL_PATH=$HOME/0day COMPILER=gcc-12.1.0 make.cross W=1 O=build_dir ARCH=csky SHELL=/bin/bash
 
-On Thu, 23 Mar 2023 at 22:12, Aurelien Jarno <aurelien@aurel32.net> wrote:
->
-> Hi,
->
-> On 2023-03-22 15:51, Ard Biesheuvel wrote:
-> > On Tue, 21 Mar 2023 at 23:26, Aurelien Jarno <aurelien@aurel32.net> wrote:
-> > >
-> > > Hi,
-> > >
-> > > On 2022-10-13 08:35, Masahiro Yamada wrote:
-> > > > In the previous discussion (see the Link tag), Ard pointed out that
-> > > > arm/arm64/kernel/head.o does not need any special treatment - the only
-> > > > piece that must appear right at the start of the binary image is the
-> > > > image header which is emitted into .head.text.
-> > > >
-> > > > The linker script does the right thing to do. The build system does
-> > > > not need to manipulate the link order of head.o.
-> > > >
-> > > > Link: https://lore.kernel.org/lkml/CAMj1kXH77Ja8bSsq2Qj8Ck9iSZKw=1F8Uy-uAWGVDm4-CG=EuA@mail.gmail.com/
-> > > > Suggested-by: Ard Biesheuvel <ardb@kernel.org>
-> > > > Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> > > > ---
-> > > >
-> > > >  scripts/head-object-list.txt | 1 -
-> > > >  1 file changed, 1 deletion(-)
-> > > >
-> > > > diff --git a/scripts/head-object-list.txt b/scripts/head-object-list.txt
-> > > > index b16326a92c45..f226e45e3b7b 100644
-> > > > --- a/scripts/head-object-list.txt
-> > > > +++ b/scripts/head-object-list.txt
-> > > > @@ -15,7 +15,6 @@ arch/alpha/kernel/head.o
-> > > >  arch/arc/kernel/head.o
-> > > >  arch/arm/kernel/head-nommu.o
-> > > >  arch/arm/kernel/head.o
-> > > > -arch/arm64/kernel/head.o
-> > > >  arch/csky/kernel/head.o
-> > > >  arch/hexagon/kernel/head.o
-> > > >  arch/ia64/kernel/head.o
-> > >
-> > > This patch causes a significant increase of the arch/arm64/boot/Image
-> > > size. For instance the generic arm64 Debian kernel went from 31 to 39 MB
-> > > after this patch has been applied to the 6.1 stable tree.
-> > >
-> > > In turn this causes issues with some bootloaders, for instance U-Boot on
-> > > a Raspberry Pi limits the kernel size to 36 MB.
-> > >
-> >
-> > I cannot reproduce this with mainline
-> >
-> > With the patch
-> >
-> > $ size vmlinux
-> >    text    data     bss     dec     hex filename
-> > 24567309 14752630 621680 39941619 26175f3 vmlinux
-> >
-> > With the patch reverted
-> >
-> > $ size vmlinux
-> >    text    data     bss     dec     hex filename
-> > 24567309 14752694 621680 39941683 2617633 vmlinux
->
-> I have tried with the current mainline, this is what I get, using GCC 12.2.0
-> and binutils 2.40:
->
->    text    data     bss     dec     hex filename
-> 32531655        8192996  621968 41346619        276e63b vmlinux.orig
-> 25170610        8192996  621968 33985574        2069426 vmlinux.revert
->
-> > It would help to compare the resulting vmlinux ELF images from both
-> > builds to see where the extra space is being allocated
->
-> At a first glance, it seems the extra space is allocated in the BTF
-> section. I have uploaded the resulting files as well as the config file
-> I used there:
-> https://temp.aurel32.net/linux-arm64-size-head.o.tar.gz
->
+If you fix the issue, kindly add following tag where applicable
+| Reported-by: kernel test robot <lkp@intel.com>
+| Link: https://lore.kernel.org/oe-kbuild-all/202303242224.lSidB94K-lkp@intel.com/
 
-Indeed. So we go from
+All errors (new ones prefixed by >>):
 
-  [15] .BTF              PROGBITS         ffff8000091d1ff4  011e1ff4
-       00000000005093d6  0000000000000000   A       0     0     1
+   arch/csky/mm/dma-mapping.c: In function 'arch_dma_cache_inv':
+>> arch/csky/mm/dma-mapping.c:65:18: error: 'paddr' undeclared (first use in this function)
+      65 |         cache_op(paddr, size, dma_inv_range);
+         |                  ^~~~~
+   arch/csky/mm/dma-mapping.c:65:18: note: each undeclared identifier is reported only once for each function it appears in
+   arch/csky/mm/dma-mapping.c: In function 'arch_dma_cache_wback_inv':
+   arch/csky/mm/dma-mapping.c:70:18: error: 'paddr' undeclared (first use in this function)
+      70 |         cache_op(paddr, size, dma_wbinv_range);
+         |                  ^~~~~
 
-to
 
-  [15] .BTF              PROGBITS         ffff8000091d1ff4  011e1ff4
-       0000000000c0e5eb  0000000000000000   A       0     0     1
+vim +/paddr +65 arch/csky/mm/dma-mapping.c
 
-i.e, from 5 MiB to 12+ MiB of BTF metadata.
+013de2d6671d89 Guo Ren       2018-09-05  62  
+9a711fbea37320 Arnd Bergmann 2023-03-22  63  static inline void arch_dma_cache_inv(phys_addr_t start, size_t size)
+013de2d6671d89 Guo Ren       2018-09-05  64  {
+ae76f635d4e1cf Guo Ren       2019-07-30 @65  	cache_op(paddr, size, dma_inv_range);
+013de2d6671d89 Guo Ren       2018-09-05  66  }
+9a711fbea37320 Arnd Bergmann 2023-03-22  67  
 
-To me, it is not clear at all how one would be related to the other,
-so it will leave it to the Kbuild and BTF experts to chew on this one.
+:::::: The code at line 65 was first introduced by commit
+:::::: ae76f635d4e1cffa6870cc5472567ca9d6940a22 csky: Optimize arch_sync_dma_for_cpu/device with dma_inv_range
+
+:::::: TO: Guo Ren <ren_guo@c-sky.com>
+:::::: CC: Guo Ren <ren_guo@c-sky.com>
+
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests
