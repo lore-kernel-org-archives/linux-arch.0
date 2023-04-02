@@ -2,87 +2,67 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6B984C6FD1D
-	for <linux-arch@archiver.kernel.org>; Sat,  1 Apr 2023 13:19:32 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1712CC7619A
+	for <linux-arch@archiver.kernel.org>; Sun,  2 Apr 2023 06:44:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229461AbjDANTb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 1 Apr 2023 09:19:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49722 "EHLO
+        id S229445AbjDBGo3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 2 Apr 2023 02:44:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58410 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229379AbjDANTa (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 1 Apr 2023 09:19:30 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 860501C1CD;
-        Sat,  1 Apr 2023 06:19:28 -0700 (PDT)
+        with ESMTP id S229447AbjDBGo2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 2 Apr 2023 02:44:28 -0400
+Received: from ams.source.kernel.org (ams.source.kernel.org [IPv6:2604:1380:4601:e00::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C165218F9D;
+        Sat,  1 Apr 2023 23:44:26 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 16AFD60E03;
-        Sat,  1 Apr 2023 13:19:28 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id EA2FCC433EF;
-        Sat,  1 Apr 2023 13:19:26 +0000 (UTC)
+        by ams.source.kernel.org (Postfix) with ESMTPS id 607F6B80DE7;
+        Sun,  2 Apr 2023 06:44:24 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CCC24C433EF;
+        Sun,  2 Apr 2023 06:44:20 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1680355167;
-        bh=62febkaNQnAPXtdyR9VpUShs/vCJRfylF056sOOKvKM=;
-        h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
-        b=upWKPQmZHPtKFqP2Djjw38dQywaVjwuQ0YfIxJqy6uaBjMYTghJuWxPWnyKJepKaY
-         SZ3R7lj9gAzvTJ+ZvZv61bGdQ7L/Qgi1qfPAGntT8tV457aMsONrxIvgx0g//Doz0Z
-         IXU5ZFfR13im+N2Mx1Df7FRnMpnGAL6QtKoW0XPM+zhxYcT4Syp12nIqDh9pBB+xLM
-         316UVaUBNdzlvo6FXA3PQ6X0hSU6cXkmi4kBSCKAWQgLS7NnhzS5FbcexvKWx8BL84
-         1DnCpjCSCV0zJ6T58lBwqUto6yd7/EDjIVdOVTTMJJ0Rz317uQCex0lJk/VKsU07NR
-         OTNeHRLt9rJ5A==
-From:   =?utf-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@kernel.org>
-To:     Heiko =?utf-8?Q?St=C3=BCbner?= <heiko@sntech.de>,
-        Guo Ren <guoren@kernel.org>
-Cc:     Conor Dooley <conor@kernel.org>, arnd@arndb.de,
-        palmer@rivosinc.com, tglx@linutronix.de, peterz@infradead.org,
-        luto@kernel.org, conor.dooley@microchip.com, jszhang@kernel.org,
-        lazyparser@gmail.com, falcon@tinylab.org, chenhuacai@kernel.org,
-        apatel@ventanamicro.com, atishp@atishpatra.org,
-        mark.rutland@arm.com, ben@decadent.org.uk, palmer@dabbelt.com,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org,
-        Guo Ren <guoren@linux.alibaba.com>,
-        =?utf-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@rivosinc.com>,
-        Yipeng Zou <zouyipeng@huawei.com>
-Subject: Re: [PATCH -next V17 4/7] riscv: entry: Convert to generic entry
-In-Reply-To: <2587778.7s5MMGUR32@diego>
-References: <20230222033021.983168-1-guoren@kernel.org>
- <23668656.ouqheUzb2q@diego>
- <CAJF2gTSWETHhQFuE19H+RVX6Jbue+UAu8o94QoBFx65NABas1Q@mail.gmail.com>
- <2587778.7s5MMGUR32@diego>
-Date:   Sat, 01 Apr 2023 15:19:24 +0200
-Message-ID: <87mt3rloyr.fsf@all.your.base.are.belong.to.us>
+        s=k20201202; t=1680417863;
+        bh=GUQg6sGb3Mll+C2A+4jtpUVp3KDL2ntbwa75b/ih8K0=;
+        h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+        b=awl2CvdMu+RsKngdYbfXBeBxzG4atEKaPYz0ghwrS4zk0bUy6nfht4DfKqeX/a0BO
+         YpJ1/NKNs2MeSe3DwiZ2FJXcCrngH+lLB+9IX8RbjSU4wHvSlVfl6hOD9FLYEltwqn
+         62IMpax+Q/Lj3sWGpDEmyP9fM56HddM9coqR3t6cXjZrn4LlP9Vi3v4ny+5vFBKX70
+         mdUQmPFYkuxjTc2b9WKdaqYnSX+AHZfwTzzbjBONKIDDIIcY93/cmNMCP07rsog8Te
+         GLhAHUTo8ZsZSbaGKDMu31g8c44ChXmcP7LDG52zNxJT+2GscJigJQ9Yb1o9wuXn3G
+         J0iMlZo6ZnY4A==
+Message-ID: <fc16ca68-24ee-7cff-9693-2678cbbcd946@kernel.org>
+Date:   Sun, 2 Apr 2023 12:14:44 +0530
 MIME-Version: 1.0
-Content-Type: text/plain
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.9.0
+Subject: Re: [PATCH 1/4] docs: Move arc architecture docs under
+ Documentation/arch/
+Content-Language: en-US
+To:     Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        Vineet Gupta <vgupta@kernel.org>
+References: <20230330195604.269346-1-corbet@lwn.net>
+ <20230330195604.269346-2-corbet@lwn.net>
+From:   Vineet Gupta <vgupta@kernel.org>
+In-Reply-To: <20230330195604.269346-2-corbet@lwn.net>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
->> > > > This has unfortunately broken booting my usual NFS rootfs on both my D1
->> > > > and Icicle. It's one of the Fedora images from David, I think this one:
->> > > > http://fedora.riscv.rocks/kojifiles/work/tasks/3933/1313933/
->> > > >
->> > > > It gets pretty far into things, it's once systemd is operational that
->> > > > things go pear shaped:
->> > >
->> > > Shoulda said, can share the full logs if required of course, but they're
->> > > quite verbose cos systemd etc.
->> >
->> > I was just investigating the same thing just now. So that saves me some
->> > tracking down the culprit :-) .
->> >
->> > My main qemu is living as a "board" in my boardfarm (also doing nfsroot)
->> > as well as my d1 nezha with nfsroot was affected.
->> Can you reproduce it with qemu? Could give me some tips and let me
->> reproduce it on qemu?
 
-FWIW, I'm getting the systemd issue w/o NFS, on a regular 9p virtfs.
+On 3/31/23 01:26, Jonathan Corbet wrote:
+> Architecture-specific documentation is being moved into Documentation/arch/
+> as a way of cleaning up the top-level documentation directory and making
+> the docs hierarchy more closely match the source hierarchy.  Move
+> Documentation/arc into arch/ and fix all in-tree references.
+>
+> Cc: Vineet Gupta<vgupta@kernel.org>
+> Signed-off-by: Jonathan Corbet<corbet@lwn.net>
 
-| $ sudo mmdebstrap --architecture=riscv64 lunar rv-rootfs http://ports.ubuntu.com
+Acked-by: Vineet Gupta <vgupta@kernel.org>
 
-and the rootfs qemu config:
- |  -fsdev local,id=root,path=/path/to/rv-rootfs/,security_model=none \
- |  -device virtio-9p-pci,fsdev=root,mount_tag=/dev/root \
- |  -append "root=/dev/root rw rootfstype=9p rootflags=version=9p2000.L,trans=virtio,cache=mmap,access=any security=none earlycon console=tty0 console=ttyS0"
-
+Thx,
+-Vineet
