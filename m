@@ -2,65 +2,77 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2AC67C76188
-	for <linux-arch@archiver.kernel.org>; Wed,  5 Apr 2023 14:18:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 27FD8C7619A
+	for <linux-arch@archiver.kernel.org>; Wed,  5 Apr 2023 14:18:56 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238498AbjDEOSd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 5 Apr 2023 10:18:33 -0400
+        id S238536AbjDEOSy (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 5 Apr 2023 10:18:54 -0400
 Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42850 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238402AbjDEOSZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Apr 2023 10:18:25 -0400
-Received: from mail-ed1-x530.google.com (mail-ed1-x530.google.com [IPv6:2a00:1450:4864:20::530])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 67F4B658B;
-        Wed,  5 Apr 2023 07:17:51 -0700 (PDT)
-Received: by mail-ed1-x530.google.com with SMTP id eg48so141372311edb.13;
-        Wed, 05 Apr 2023 07:17:51 -0700 (PDT)
+        with ESMTP id S238476AbjDEOSc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Apr 2023 10:18:32 -0400
+Received: from mail-ed1-x52f.google.com (mail-ed1-x52f.google.com [IPv6:2a00:1450:4864:20::52f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 992365FCC;
+        Wed,  5 Apr 2023 07:17:55 -0700 (PDT)
+Received: by mail-ed1-x52f.google.com with SMTP id eh3so141437858edb.11;
+        Wed, 05 Apr 2023 07:17:55 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20210112; t=1680704268;
+        d=gmail.com; s=20210112; t=1680704272;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=IR5uya/6k59Z6vjpJ5eLjtKZNYMu0vN6LL4bpPspKvA=;
-        b=hzv4HYQ5T2nwEJbzGw8dJN/I+F4Ay7RqJgdT+/nU+XX7ZoGg8P8l9L8teClCdkpmvP
-         3VP7uCz0Z+YqdgWXL+MH2tFmXHoR+WPJu2bf+Fr9qb/QvhkGpEoSrJ0NhG0eAx/0QiTJ
-         UQgtBAkuIqKtB9v5p/5vYSrI08EmluGXK/WD03V/0fdbsdMfx/eWMRDY+C4T7hDoaYaj
-         NOE2x6GoeZ01oYXffPbqWgJlIPw1nNp4nyMKkgNQHZrTuLm7YYwS07BBvNmSqjpH876L
-         /ISIl/kFQdHhrGtYe0xrraw5d1lTLHXAuQ1Znq44pBtvm8+Xiwqr3RT/FspKMHRWIraX
-         TSSA==
+        bh=jH8CK6/Zc/t5YGDy3q47KHMB123gE9O3L+8qZD7dC+A=;
+        b=XZjaJuc9oq0eEJuqYQaQCSxyJEBrGWscwxPcLCz1SGmMY8nwBoCrKPTVkKuDR6NHM0
+         nd8qEhQmNfk/r4MHTfpwl3GDx8xszhuQDekAlI7AuV5wPPTHtKtudXEJvnYoUIEF8a5w
+         BCncuKCXN80M4D+9c/uTSAQxM1AULldg3sOFYIYNysgVeYWsg+Xf3uXNSO3204XksTVt
+         VY7rOKvL0GsKooMWqYkHs8pZAlDl7U2kRNPRjRx+Zj41LQ7/h5JXvJnY1puZvDO1QMoW
+         76SsXCfs7PmO+YxBWiArT3kI1VrIE5rfXzPTV1J+iRMhJsk2mSVTfV9ok5E9WbeCZyIn
+         ETvg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112; t=1680704268;
+        d=1e100.net; s=20210112; t=1680704272;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=IR5uya/6k59Z6vjpJ5eLjtKZNYMu0vN6LL4bpPspKvA=;
-        b=eEA4SHokIN/xju+j22I2sq5+C0O3OqfR8wkjk6a+Vjzf3jJUa0jXFaZf+TsjXwhXeQ
-         4FM/e4/P9dsW1TA3IzzN5cgoonm7foAJqrxqxOTnpxF41Ns2GGK8C/77Mm/dxCul0ySX
-         bBO0dRKf3o/bNDJVtRoheozB7U0eL1TXiHo9N3q8ALRLr8z/PxL0N5tSt6fEEwm92hBh
-         VAyAXJKgYW1QWZPwBL1EMvI94fQZQY5iykA00A3TfJhn/+MRGErW5ls5VlMvUoaLMCIK
-         GcMc4zoalesCunWHXwaujH6yeGxSqx7Waaqp+NG2UzTfEmjYaOH4mxYfO1jA+XK+A72n
-         uEMQ==
-X-Gm-Message-State: AAQBX9et+pmj+LhA3k8rBehF6XZ5a//TVYrbW1L5VTAf9yELvIk5dIUm
-        inaE5LJfPd2VckeDdSKjrGPl451bId2cE2gl
-X-Google-Smtp-Source: AKy350apZB614sloiIbQFvOjRXtcEBijYMBgr256Z113Bx8z9JeSHopzv9p9oPRNRJ0o5MWKc6tu/g==
-X-Received: by 2002:a17:906:ece1:b0:93d:ae74:fa9e with SMTP id qt1-20020a170906ece100b0093dae74fa9emr3077789ejb.7.1680704268119;
-        Wed, 05 Apr 2023 07:17:48 -0700 (PDT)
+        bh=jH8CK6/Zc/t5YGDy3q47KHMB123gE9O3L+8qZD7dC+A=;
+        b=0A264gp2fJZQ38cz9f6l/6ypN69/+DMEmLTdu74v9y/4Zrkne8gB0+MXZ40mHNneh/
+         HQtFrDqACEhN5PBULKBAEudA1IAC81HFhp0kq85Z9zGjXHU/Xuv5ZoF+iQ8kEc7I2Lf/
+         GU29ogkA4auVzBylAfMyDpKYbZIf/8kXpgECsZhGUexisWVX6tm/mYdDPywQb/NuQ3Uq
+         mp30H3SLu05OzH8vNFTN+U6Vj0OR6ROiLESyVblWVDUuJYxe0mYHqhNAnGaaQtHuGtiO
+         h4QH8WounMADGb9HOYIB8q662PLXJV61ji7Om8fGHpAKlRoXfbcXHraWWAurhKRM4Tmv
+         ipsg==
+X-Gm-Message-State: AAQBX9d4VYwaDT5zw9AGI72aslyb04ROLmIUlAvLv1ov91vUAYS0Ckec
+        y0WMZni+7UxcTHu046k4aEiXjHLinjJfCzwW
+X-Google-Smtp-Source: AKy350adAYW+TEWiUmLpAezMNrhF5/NZq/p/j5R7S+Q7+ZgtSrt1TPPbRawQQVHNg0S3+/m7HJyxGA==
+X-Received: by 2002:a17:907:20bb:b0:930:8714:6739 with SMTP id pw27-20020a17090720bb00b0093087146739mr3007454ejb.30.1680704272405;
+        Wed, 05 Apr 2023 07:17:52 -0700 (PDT)
 Received: from localhost.localdomain ([46.248.82.114])
-        by smtp.gmail.com with ESMTPSA id g6-20020a170906348600b009334219656dsm7381246ejb.56.2023.04.05.07.17.47
+        by smtp.gmail.com with ESMTPSA id g6-20020a170906348600b009334219656dsm7381246ejb.56.2023.04.05.07.17.51
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 05 Apr 2023 07:17:47 -0700 (PDT)
+        Wed, 05 Apr 2023 07:17:52 -0700 (PDT)
 From:   Uros Bizjak <ubizjak@gmail.com>
 To:     linux-alpha@vger.kernel.org, loongarch@lists.linux.dev,
         linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
         x86@kernel.org, linux-arch@vger.kernel.org,
         linux-perf-users@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc:     Uros Bizjak <ubizjak@gmail.com>, Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Mark Rutland <mark.rutland@arm.com>
-Subject: [PATCH v2 1/5] locking/atomic: Add generic try_cmpxchg{,64}_local support
-Date:   Wed,  5 Apr 2023 16:17:06 +0200
-Message-Id: <20230405141710.3551-2-ubizjak@gmail.com>
+Cc:     Uros Bizjak <ubizjak@gmail.com>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Huacai Chen <chenhuacai@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Jun Yi <yijun@loongson.cn>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH v2 3/5] locking/arch: Wire up local_try_cmpxchg
+Date:   Wed,  5 Apr 2023 16:17:08 +0200
+Message-Id: <20230405141710.3551-4-ubizjak@gmail.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230405141710.3551-1-ubizjak@gmail.com>
 References: <20230405141710.3551-1-ubizjak@gmail.com>
@@ -70,125 +82,153 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add generic support for try_cmpxchg{,64}_local and their falbacks.
+Implement target specific support for local_try_cmpxchg
+and local_cmpxchg using typed C wrappers that call their
+_local counterpart and provide additional checking of
+their input arguments.
 
-These provides the generic try_cmpxchg_local family of functions
-from the arch_ prefixed version, also adding explicit instrumentation.
-
-Cc: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>
+Cc: Richard Henderson <richard.henderson@linaro.org>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: Huacai Chen <chenhuacai@kernel.org>
+Cc: WANG Xuerui <kernel@xen0n.name>
+Cc: Jiaxun Yang <jiaxun.yang@flygoat.com>
+Cc: Jun Yi <yijun@loongson.cn>
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: Christophe Leroy <christophe.leroy@csgroup.eu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Uros Bizjak <ubizjak@gmail.com>
 ---
- include/linux/atomic/atomic-arch-fallback.h | 24 ++++++++++++++++++++-
- include/linux/atomic/atomic-instrumented.h  | 20 ++++++++++++++++-
- scripts/atomic/gen-atomic-fallback.sh       |  4 ++++
- scripts/atomic/gen-atomic-instrumented.sh   |  2 +-
- 4 files changed, 47 insertions(+), 3 deletions(-)
+ arch/alpha/include/asm/local.h     | 12 ++++++++++--
+ arch/loongarch/include/asm/local.h | 13 +++++++++++--
+ arch/mips/include/asm/local.h      | 13 +++++++++++--
+ arch/powerpc/include/asm/local.h   | 11 +++++++++++
+ arch/x86/include/asm/local.h       | 13 +++++++++++--
+ 5 files changed, 54 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/atomic/atomic-arch-fallback.h b/include/linux/atomic/atomic-arch-fallback.h
-index 77bc5522e61c..36c92851cdee 100644
---- a/include/linux/atomic/atomic-arch-fallback.h
-+++ b/include/linux/atomic/atomic-arch-fallback.h
-@@ -217,6 +217,28 @@
+diff --git a/arch/alpha/include/asm/local.h b/arch/alpha/include/asm/local.h
+index fab26a1c93d5..0fcaad642cc3 100644
+--- a/arch/alpha/include/asm/local.h
++++ b/arch/alpha/include/asm/local.h
+@@ -52,8 +52,16 @@ static __inline__ long local_sub_return(long i, local_t * l)
+ 	return result;
+ }
  
- #endif /* arch_try_cmpxchg64_relaxed */
- 
-+#ifndef arch_try_cmpxchg_local
-+#define arch_try_cmpxchg_local(_ptr, _oldp, _new) \
-+({ \
-+	typeof(*(_ptr)) *___op = (_oldp), ___o = *___op, ___r; \
-+	___r = arch_cmpxchg_local((_ptr), ___o, (_new)); \
-+	if (unlikely(___r != ___o)) \
-+		*___op = ___r; \
-+	likely(___r == ___o); \
-+})
-+#endif /* arch_try_cmpxchg_local */
+-#define local_cmpxchg(l, o, n) \
+-	(cmpxchg_local(&((l)->a.counter), (o), (n)))
++static __inline__ long local_cmpxchg(local_t *l, long old, long new)
++{
++	return cmpxchg_local(&l->a.counter, old, new);
++}
 +
-+#ifndef arch_try_cmpxchg64_local
-+#define arch_try_cmpxchg64_local(_ptr, _oldp, _new) \
-+({ \
-+	typeof(*(_ptr)) *___op = (_oldp), ___o = *___op, ___r; \
-+	___r = arch_cmpxchg64_local((_ptr), ___o, (_new)); \
-+	if (unlikely(___r != ___o)) \
-+		*___op = ___r; \
-+	likely(___r == ___o); \
-+})
-+#endif /* arch_try_cmpxchg64_local */
++static __inline__ bool local_try_cmpxchg(local_t *l, long *old, long new)
++{
++	return try_cmpxchg_local(&l->a.counter, (s64 *)old, new);
++}
 +
- #ifndef arch_atomic_read_acquire
- static __always_inline int
- arch_atomic_read_acquire(const atomic_t *v)
-@@ -2456,4 +2478,4 @@ arch_atomic64_dec_if_positive(atomic64_t *v)
- #endif
+ #define local_xchg(l, n) (xchg_local(&((l)->a.counter), (n)))
  
- #endif /* _LINUX_ATOMIC_FALLBACK_H */
--// b5e87bdd5ede61470c29f7a7e4de781af3770f09
-+// 1f49bd4895a4b7a5383906649027205c52ec80ab
-diff --git a/include/linux/atomic/atomic-instrumented.h b/include/linux/atomic/atomic-instrumented.h
-index 7a139ec030b0..14a9212cc987 100644
---- a/include/linux/atomic/atomic-instrumented.h
-+++ b/include/linux/atomic/atomic-instrumented.h
-@@ -2066,6 +2066,24 @@ atomic_long_dec_if_positive(atomic_long_t *v)
- 	arch_sync_cmpxchg(__ai_ptr, __VA_ARGS__); \
- })
+ /**
+diff --git a/arch/loongarch/include/asm/local.h b/arch/loongarch/include/asm/local.h
+index 65fbbae9fc4d..83e995b30e47 100644
+--- a/arch/loongarch/include/asm/local.h
++++ b/arch/loongarch/include/asm/local.h
+@@ -56,8 +56,17 @@ static inline long local_sub_return(long i, local_t *l)
+ 	return result;
+ }
  
-+#define try_cmpxchg_local(ptr, oldp, ...) \
-+({ \
-+	typeof(ptr) __ai_ptr = (ptr); \
-+	typeof(oldp) __ai_oldp = (oldp); \
-+	instrument_atomic_write(__ai_ptr, sizeof(*__ai_ptr)); \
-+	instrument_atomic_write(__ai_oldp, sizeof(*__ai_oldp)); \
-+	arch_try_cmpxchg_local(__ai_ptr, __ai_oldp, __VA_ARGS__); \
-+})
+-#define local_cmpxchg(l, o, n) \
+-	((long)cmpxchg_local(&((l)->a.counter), (o), (n)))
++static inline long local_cmpxchg(local_t *l, long old, long new)
++{
++	return cmpxchg_local(&l->a.counter, old, new);
++}
 +
-+#define try_cmpxchg64_local(ptr, oldp, ...) \
-+({ \
-+	typeof(ptr) __ai_ptr = (ptr); \
-+	typeof(oldp) __ai_oldp = (oldp); \
-+	instrument_atomic_write(__ai_ptr, sizeof(*__ai_ptr)); \
-+	instrument_atomic_write(__ai_oldp, sizeof(*__ai_oldp)); \
-+	arch_try_cmpxchg64_local(__ai_ptr, __ai_oldp, __VA_ARGS__); \
-+})
++static inline bool local_try_cmpxchg(local_t *l, long *old, long new)
++{
++	typeof(l->a.counter) *__old = (typeof(l->a.counter) *) old;
++	return try_cmpxchg_local(&l->a.counter, __old, new);
++}
 +
- #define cmpxchg_double(ptr, ...) \
- ({ \
- 	typeof(ptr) __ai_ptr = (ptr); \
-@@ -2083,4 +2101,4 @@ atomic_long_dec_if_positive(atomic_long_t *v)
- })
+ #define local_xchg(l, n) (atomic_long_xchg((&(l)->a), (n)))
  
- #endif /* _LINUX_ATOMIC_INSTRUMENTED_H */
--// 764f741eb77a7ad565dc8d99ce2837d5542e8aee
-+// 456e206c7e4e681126c482e4edcc6f46921ac731
-diff --git a/scripts/atomic/gen-atomic-fallback.sh b/scripts/atomic/gen-atomic-fallback.sh
-index 3a07695e3c89..6e853f0dad8d 100755
---- a/scripts/atomic/gen-atomic-fallback.sh
-+++ b/scripts/atomic/gen-atomic-fallback.sh
-@@ -225,6 +225,10 @@ for cmpxchg in "cmpxchg" "cmpxchg64"; do
- 	gen_try_cmpxchg_fallbacks "${cmpxchg}"
- done
+ /**
+diff --git a/arch/mips/include/asm/local.h b/arch/mips/include/asm/local.h
+index 08366b1fd273..5daf6fe8e3e9 100644
+--- a/arch/mips/include/asm/local.h
++++ b/arch/mips/include/asm/local.h
+@@ -94,8 +94,17 @@ static __inline__ long local_sub_return(long i, local_t * l)
+ 	return result;
+ }
  
-+for cmpxchg in "cmpxchg_local" "cmpxchg64_local"; do
-+	gen_try_cmpxchg_fallback "${cmpxchg}" ""
-+done
+-#define local_cmpxchg(l, o, n) \
+-	((long)cmpxchg_local(&((l)->a.counter), (o), (n)))
++static __inline__ long local_cmpxchg(local_t *l, long old, long new)
++{
++	return cmpxchg_local(&l->a.counter, old, new);
++}
 +
- grep '^[a-z]' "$1" | while read name meta args; do
- 	gen_proto "${meta}" "${name}" "atomic" "int" ${args}
- done
-diff --git a/scripts/atomic/gen-atomic-instrumented.sh b/scripts/atomic/gen-atomic-instrumented.sh
-index 77c06526a574..c8165e9431bf 100755
---- a/scripts/atomic/gen-atomic-instrumented.sh
-+++ b/scripts/atomic/gen-atomic-instrumented.sh
-@@ -173,7 +173,7 @@ for xchg in "xchg" "cmpxchg" "cmpxchg64" "try_cmpxchg" "try_cmpxchg64"; do
- 	done
- done
++static __inline__ bool local_try_cmpxchg(local_t *l, long *old, long new)
++{
++	typeof(l->a.counter) *__old = (typeof(l->a.counter) *) old;
++	return try_cmpxchg_local(&l->a.counter, __old, new);
++}
++
+ #define local_xchg(l, n) (atomic_long_xchg((&(l)->a), (n)))
  
--for xchg in "cmpxchg_local" "cmpxchg64_local" "sync_cmpxchg"; do
-+for xchg in "cmpxchg_local" "cmpxchg64_local" "sync_cmpxchg" "try_cmpxchg_local" "try_cmpxchg64_local" ; do
- 	gen_xchg "${xchg}" "" ""
- 	printf "\n"
- done
+ /**
+diff --git a/arch/powerpc/include/asm/local.h b/arch/powerpc/include/asm/local.h
+index bc4bd19b7fc2..45492fb5bf22 100644
+--- a/arch/powerpc/include/asm/local.h
++++ b/arch/powerpc/include/asm/local.h
+@@ -90,6 +90,17 @@ static __inline__ long local_cmpxchg(local_t *l, long o, long n)
+ 	return t;
+ }
+ 
++static __inline__ bool local_try_cmpxchg(local_t *l, long *po, long n)
++{
++	long o = *po, r;
++
++	r = local_cmpxchg(l, o, n);
++	if (unlikely(r != o))
++		*po = r;
++
++	return likely(r == o);
++}
++
+ static __inline__ long local_xchg(local_t *l, long n)
+ {
+ 	long t;
+diff --git a/arch/x86/include/asm/local.h b/arch/x86/include/asm/local.h
+index 349a47acaa4a..56d4ef604b91 100644
+--- a/arch/x86/include/asm/local.h
++++ b/arch/x86/include/asm/local.h
+@@ -120,8 +120,17 @@ static inline long local_sub_return(long i, local_t *l)
+ #define local_inc_return(l)  (local_add_return(1, l))
+ #define local_dec_return(l)  (local_sub_return(1, l))
+ 
+-#define local_cmpxchg(l, o, n) \
+-	(cmpxchg_local(&((l)->a.counter), (o), (n)))
++static inline long local_cmpxchg(local_t *l, long old, long new)
++{
++	return cmpxchg_local(&l->a.counter, old, new);
++}
++
++static inline bool local_try_cmpxchg(local_t *l, long *old, long new)
++{
++	typeof(l->a.counter) *__old = (typeof(l->a.counter) *) old;
++	return try_cmpxchg_local(&l->a.counter, __old, new);
++}
++
+ /* Always has a lock prefix */
+ #define local_xchg(l, n) (xchg(&((l)->a.counter), (n)))
+ 
 -- 
 2.39.2
 
