@@ -2,112 +2,137 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DE50EC761A6
-	for <linux-arch@archiver.kernel.org>; Thu,  6 Apr 2023 14:13:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AE052C761A6
+	for <linux-arch@archiver.kernel.org>; Thu,  6 Apr 2023 14:30:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238972AbjDFONO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 6 Apr 2023 10:13:14 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52940 "EHLO
+        id S238863AbjDFOaZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 6 Apr 2023 10:30:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49718 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238927AbjDFONH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2023 10:13:07 -0400
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 67ABD5272
-        for <linux-arch@vger.kernel.org>; Thu,  6 Apr 2023 07:12:04 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1680790321;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+        with ESMTP id S229838AbjDFOaY (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2023 10:30:24 -0400
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [IPv6:2001:67c:2178:6::1c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 60DFB9017;
+        Thu,  6 Apr 2023 07:30:23 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by smtp-out1.suse.de (Postfix) with ESMTPS id D3F9422591;
+        Thu,  6 Apr 2023 14:30:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+        t=1680791421; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=oy2QomrGUBDfWG7234e6lYS9Z4zzgLJXtJtCEsgjhmY=;
-        b=aZhN1NC/iWWs/nmzETinltHhAezLhQDbgIzpvQxSWycMVSuxgGVvVcvmNr6gV/6TrwKrlR
-        H/UpujZANJOXhiL0pyb+Jdl+gBaLUXFN3Vxuybe0NgK7HVpfqujLcfvS3Ryp88SzLPd/ho
-        AL6MENLq53/v3AJTB/yPGoHczRXQdj0=
-Received: from mail-qv1-f70.google.com (mail-qv1-f70.google.com
- [209.85.219.70]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-586-oHTZlQAZOymqSZ3plWZRUg-1; Thu, 06 Apr 2023 10:12:00 -0400
-X-MC-Unique: oHTZlQAZOymqSZ3plWZRUg-1
-Received: by mail-qv1-f70.google.com with SMTP id px9-20020a056214050900b005d510cdfc41so18065091qvb.7
-        for <linux-arch@vger.kernel.org>; Thu, 06 Apr 2023 07:12:00 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20210112; t=1680790320; x=1683382320;
-        h=mime-version:message-id:date:references:in-reply-to:subject:cc:to
-         :from:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=oy2QomrGUBDfWG7234e6lYS9Z4zzgLJXtJtCEsgjhmY=;
-        b=MWJAS2E+lS4cpu86R2h6FJdk2cis9ewk1HO0wDQCI2Sd4JkK0qMEw05IFlt8g68EIr
-         k4e1mRZnlLtIX1eG29WOwAhHjPHQAMYakQ46LUECFZWg8nQoL4s2nYYwM+IGhwayWmqS
-         hG1O4WgWMGuoyBX1A646iQ7LNFMQvhMBcc7gONmZL9gNrJGp/3D9qtRv+M6HpmTJDpcL
-         Ei+k445RZz5rvmmrtWqH0Wh1e/FbK1LcRI8ZlZwMoGA+PEpK15Bkj9lJAijFH2IIS38b
-         dDUzxPUCdIR49S+GczhjcmVWrKtq2c+Ek/OzxdD8I+ojPhhziN8IDfkY4L9PIcVijjYJ
-         HMtQ==
-X-Gm-Message-State: AAQBX9fUjUEUE57GOs1S0AJwUnvcoKBsox2hLgFxVuVeXG8zkIUCCrnS
-        za2YaTz7R3LOTzNKW0f0OrQ2aagEEH05fhy8qB141htFmK4WrLtLVLJCgYErlfFyDI4Sdq3nTCI
-        eX+//vjan0XGpKfFoabKJEg==
-X-Received: by 2002:a05:6214:c21:b0:5a2:e3e4:59b0 with SMTP id a1-20020a0562140c2100b005a2e3e459b0mr4151635qvd.44.1680790319549;
-        Thu, 06 Apr 2023 07:11:59 -0700 (PDT)
-X-Google-Smtp-Source: AKy350YdFg9Rpod34ylmYUyAnCfxfiKdtnShPJSS+THNG9On45kotrwTmF6ARLq441OR3LQJbmn9Kg==
-X-Received: by 2002:a05:6214:c21:b0:5a2:e3e4:59b0 with SMTP id a1-20020a0562140c2100b005a2e3e459b0mr4151612qvd.44.1680790319253;
-        Thu, 06 Apr 2023 07:11:59 -0700 (PDT)
-Received: from vschneid.remote.csb ([154.57.232.159])
-        by smtp.gmail.com with ESMTPSA id d11-20020a0cf6cb000000b005dd8b9345f4sm514523qvo.140.2023.04.06.07.11.54
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 06 Apr 2023 07:11:58 -0700 (PDT)
-From:   Valentin Schneider <vschneid@redhat.com>
-To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     Frederic Weisbecker <frederic@kernel.org>,
-        Yair Podemsky <ypodemsk@redhat.com>, linux@armlinux.org.uk,
-        mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
-        hca@linux.ibm.com, gor@linux.ibm.com, agordeev@linux.ibm.com,
-        borntraeger@linux.ibm.com, svens@linux.ibm.com,
-        davem@davemloft.net, tglx@linutronix.de, mingo@redhat.com,
-        bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
-        hpa@zytor.com, will@kernel.org, aneesh.kumar@linux.ibm.com,
-        akpm@linux-foundation.org, arnd@arndb.de, keescook@chromium.org,
-        paulmck@kernel.org, jpoimboe@kernel.org, samitolvanen@google.com,
-        ardb@kernel.org, juerg.haefliger@canonical.com,
-        rmk+kernel@armlinux.org.uk, geert+renesas@glider.be,
-        tony@atomide.com, linus.walleij@linaro.org,
-        sebastian.reichel@collabora.com, nick.hawkins@hpe.com,
-        linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, mtosatti@redhat.com, dhildenb@redhat.com,
-        alougovs@redhat.com
-Subject: Re: [PATCH 3/3] mm/mmu_gather: send tlb_remove_table_smp_sync IPI
- only to CPUs in kernel mode
-In-Reply-To: <20230406133805.GO386572@hirez.programming.kicks-ass.net>
-References: <20230404134224.137038-1-ypodemsk@redhat.com>
- <20230404134224.137038-4-ypodemsk@redhat.com>
- <ZC1Q7uX4rNLg3vEg@lothringen> <ZC1XD/sEJY+zRujE@lothringen>
- <20230405114148.GA351571@hirez.programming.kicks-ass.net>
- <ZC1j8ivE/kK7+Gd5@lothringen> <xhsmhpm8ia46p.mognet@vschneid.remote.csb>
- <20230406133805.GO386572@hirez.programming.kicks-ass.net>
-Date:   Thu, 06 Apr 2023 15:11:52 +0100
-Message-ID: <xhsmh8rf59k2f.mognet@vschneid.remote.csb>
+        bh=lm4tB/qBx4Xl9gLv3tvzFp8gznBLvt7Ce6BUC7qY1PU=;
+        b=ELZbBCFGsxjsM5z83YlFc2d5Yul8exK2LYWxEFUAwwbTozT9CYMUIyIdNQ27RFNpYoEolu
+        CkGR/6aqkpLC61JwIgiwn6YSNaQNooEVmQ2rh4XD59bfW57bnCtp8JV/8/fuLH4jRrVgzG
+        mIqmtgFcDaouDL9ieXaxdWmvzF4/xUE=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+        s=susede2_ed25519; t=1680791421;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=lm4tB/qBx4Xl9gLv3tvzFp8gznBLvt7Ce6BUC7qY1PU=;
+        b=hBIBxlKrsXljHVJEgdBNSo/HiM/JPqzuP43nSlwibirDu7CMLMMyXyL6ElXVCuZKfxi5u6
+        b1qGLFxgU9kyF6CQ==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 76D5913A1D;
+        Thu,  6 Apr 2023 14:30:21 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id iNocHH3XLmS4LgAAMHmgww
+        (envelope-from <tzimmermann@suse.de>); Thu, 06 Apr 2023 14:30:21 +0000
+From:   Thomas Zimmermann <tzimmermann@suse.de>
+To:     arnd@arndb.de, daniel.vetter@ffwll.ch, deller@gmx.de,
+        javierm@redhat.com, gregkh@linuxfoundation.org
+Cc:     linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org,
+        dri-devel@lists.freedesktop.org,
+        linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org,
+        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org, x86@kernel.org,
+        Thomas Zimmermann <tzimmermann@suse.de>
+Subject: [PATCH v2 01/19] fbdev: Prepare generic architecture helpers
+Date:   Thu,  6 Apr 2023 16:30:01 +0200
+Message-Id: <20230406143019.6709-2-tzimmermann@suse.de>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230406143019.6709-1-tzimmermann@suse.de>
+References: <20230406143019.6709-1-tzimmermann@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 06/04/23 15:38, Peter Zijlstra wrote:
-> On Wed, Apr 05, 2023 at 01:45:02PM +0100, Valentin Schneider wrote:
->>
->> I've been hacking on something like this (CSD deferral for NOHZ-full),
->> and unfortunately this uses the CPU-local cfd_data storage thing, which
->> means any further smp_call_function() from the same CPU to the same
->> destination will spin on csd_lock_wait(), waiting for the target CPU to
->> come out of userspace and flush the queue - and we've just spent extra
->> effort into *not* disturbing it, so that'll take a while :(
->
-> I'm not sure I buy into deferring stuff.. a NOHZ_FULL cpu might 'never'
-> come back. Queueing data just in case it does seems wasteful.
+Generic implementations of fb_pgprotect() and fb_is_primary_device()
+have been in the source code for a long time. Prepare the header file
+to make use of them.
 
-Putting those callbacks straight into the bin would make my life much
-easier!
+Improve the code by using an inline function for fb_pgprotect()
+and by removing include statements. The default mode set by
+fb_pgprotect() is now writecombine, which is what most platforms
+want.
 
-Unfortunately, even if they really should, I don't believe all of the
-things being crammed onto NOHZ_FULL CPUs have the same definition of
-'never' as we do :/
+Symbols are protected by preprocessor guards. Architectures that
+provide a symbol need to define a preprocessor token of the same
+name and value. Otherwise the header file will provide a generic
+implementation. This pattern has been taken from <asm/io.h>.
+
+v2:
+	*  use writecombine mappings by default (Arnd)
+
+Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
+---
+ include/asm-generic/fb.h | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/fb.h b/include/asm-generic/fb.h
+index f9f18101ed36..631d97c507ca 100644
+--- a/include/asm-generic/fb.h
++++ b/include/asm-generic/fb.h
+@@ -1,13 +1,32 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
++
+ #ifndef __ASM_GENERIC_FB_H_
+ #define __ASM_GENERIC_FB_H_
+-#include <linux/fb.h>
+ 
+-#define fb_pgprotect(...) do {} while (0)
++/*
++ * Only include this header file from your architecture's <asm/fb.h>.
++ */
++
++#include <asm/page.h>
++
++struct fb_info;
++struct file;
++
++#ifndef fb_pgprotect
++#define fb_pgprotect fb_pgprotect
++static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
++				unsigned long off)
++{
++	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
++}
++#endif
+ 
++#ifndef fb_is_primary_device
++#define fb_is_primary_device fb_is_primary_device
+ static inline int fb_is_primary_device(struct fb_info *info)
+ {
+ 	return 0;
+ }
++#endif
+ 
+ #endif /* __ASM_GENERIC_FB_H_ */
+-- 
+2.40.0
 
