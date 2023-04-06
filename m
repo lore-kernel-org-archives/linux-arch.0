@@ -2,22 +2,40 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3793FC77B6C
-	for <linux-arch@archiver.kernel.org>; Thu,  6 Apr 2023 21:36:18 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 680E3C77B6C
+	for <linux-arch@archiver.kernel.org>; Thu,  6 Apr 2023 22:34:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232033AbjDFVgR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 6 Apr 2023 17:36:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59946 "EHLO
+        id S239268AbjDFWe5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 6 Apr 2023 18:34:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49972 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229714AbjDFVgQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2023 17:36:16 -0400
-Received: from netrider.rowland.org (netrider.rowland.org [192.131.102.5])
-        by lindbergh.monkeyblade.net (Postfix) with SMTP id 74BCAC5
-        for <linux-arch@vger.kernel.org>; Thu,  6 Apr 2023 14:36:14 -0700 (PDT)
-Received: (qmail 23178 invoked by uid 1000); 6 Apr 2023 17:36:13 -0400
-Date:   Thu, 6 Apr 2023 17:36:13 -0400
-From:   Alan Stern <stern@rowland.harvard.edu>
-To:     "Paul E. McKenney" <paulmck@kernel.org>
+        with ESMTP id S239247AbjDFWe4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 6 Apr 2023 18:34:56 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 374AB7ED0;
+        Thu,  6 Apr 2023 15:34:56 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id C9DF264CE7;
+        Thu,  6 Apr 2023 22:34:55 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 26A7FC433D2;
+        Thu,  6 Apr 2023 22:34:55 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1680820495;
+        bh=vBLIz7ZskpOa4TmmFIjmguzsaYx53b28m5xn+F8JkR8=;
+        h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
+        b=BnSW6D2qutMf6jzRK5iD9c23LkECG1g2oOGKgbzjcXgxLBflo+Z/iTCEujfwnRNKG
+         HMeYeieP35iGl70FfNN6xWoIg7K0N56bsxiBZyibnnWLpDjoJqZtaHRggruD5xw6Ww
+         f9TCvQZrwepmUp9dkjsbDvj4fYfTTD8kWftzmKQPkLaz1E2iCETNQDZbC0sD75VX8S
+         g3fGr9kzFM4LOWDTVP2N9jmS9iVZj8OoMU5pv5N12p5eUu2jxmfkDUQDZD46XjSg6y
+         rCF5NiABDXkiUdP1WiI0WjBrIxgo/jhtM1HxZ1kN1/V+FZvFaHp0tY39kybQjYC6yl
+         ky9o674HJjaSQ==
+Received: by paulmck-ThinkPad-P72.home (Postfix, from userid 1000)
+        id AFFDB154047D; Thu,  6 Apr 2023 15:34:54 -0700 (PDT)
+Date:   Thu, 6 Apr 2023 15:34:54 -0700
+From:   "Paul E. McKenney" <paulmck@kernel.org>
+To:     Alan Stern <stern@rowland.harvard.edu>
 Cc:     Joel Fernandes <joel@joelfernandes.org>,
         linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>,
         Jade Alglave <j.alglave@ucl.ac.uk>,
@@ -33,26 +51,40 @@ Cc:     Joel Fernandes <joel@joelfernandes.org>,
         linux-arch@vger.kernel.org, Nicholas Piggin <npiggin@gmail.com>,
         Paul =?iso-8859-1?Q?Heidekr=FCger?= <paul.heidekrueger@in.tum.de>,
         Will Deacon <will@kernel.org>
-Subject: Litmus test names
-Message-ID: <e00896d4-29e6-4373-b1c2-a995ffb0fdf5@rowland.harvard.edu>
+Subject: Re: Litmus test names
+Message-ID: <ea9376b4-4b3d-48ee-9c27-ad8de8a7b5cb@paulmck-laptop>
+Reply-To: paulmck@kernel.org
+References: <e00896d4-29e6-4373-b1c2-a995ffb0fdf5@rowland.harvard.edu>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <e00896d4-29e6-4373-b1c2-a995ffb0fdf5@rowland.harvard.edu>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Paul:
+On Thu, Apr 06, 2023 at 05:36:13PM -0400, Alan Stern wrote:
+> Paul:
+> 
+> I just saw that two of the files in tools/memory-model/litmus-tests have 
+> almost identical names:
+> 
+> 	Z6.0+pooncelock+pooncelock+pombonce.litmus
+> 	Z6.0+pooncelock+poonceLock+pombonce.litmus
+> 
+> They differ only by a lower-case 'l' vs. a capital 'L'.  It's not at all 
+> easy to see, and won't play well in case-insensitive filesystems.
+> 
+> Should one of them be renamed?
 
-I just saw that two of the files in tools/memory-model/litmus-tests have 
-almost identical names:
+Quite possibly!
 
-	Z6.0+pooncelock+pooncelock+pombonce.litmus
-	Z6.0+pooncelock+poonceLock+pombonce.litmus
+The "L" denotes smp_mb__after_spinlock().  The only code difference
+between these is that Z6.0+pooncelock+poonceLock+pombonce.litmus has
+smp_mb__after_spinlock() and Z6.0+pooncelock+pooncelock+pombonce.litmus
+does not.
 
-They differ only by a lower-case 'l' vs. a capital 'L'.  It's not at all 
-easy to see, and won't play well in case-insensitive filesystems.
+Suggestions for a better name?  We could capitalize all the letters
+in LOCK, I suppose...
 
-Should one of them be renamed?
-
-Alan
+							Thanx, Paul
