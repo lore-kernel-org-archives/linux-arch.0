@@ -2,267 +2,194 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C50D7C77B6E
-	for <linux-arch@archiver.kernel.org>; Thu, 13 Apr 2023 13:42:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 13218C77B6E
+	for <linux-arch@archiver.kernel.org>; Thu, 13 Apr 2023 13:53:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231417AbjDMNml (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 13 Apr 2023 09:42:41 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42514 "EHLO
+        id S231292AbjDMNxq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 13 Apr 2023 09:53:46 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56546 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231441AbjDMNmT (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2023 09:42:19 -0400
-Received: from smtp-relay-internal-0.canonical.com (smtp-relay-internal-0.canonical.com [185.125.188.122])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AF5F3B751
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 06:40:32 -0700 (PDT)
-Received: from mail-yb1-f198.google.com (mail-yb1-f198.google.com [209.85.219.198])
+        with ESMTP id S230394AbjDMNxp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2023 09:53:45 -0400
+Received: from smtp-relay-internal-1.canonical.com (smtp-relay-internal-1.canonical.com [185.125.188.123])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7DA4FE8
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 06:53:44 -0700 (PDT)
+Received: from mail-ed1-f69.google.com (mail-ed1-f69.google.com [209.85.208.69])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
         (No client certificate requested)
-        by smtp-relay-internal-0.canonical.com (Postfix) with ESMTPS id 7D27F3F42A
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 13:40:01 +0000 (UTC)
+        by smtp-relay-internal-1.canonical.com (Postfix) with ESMTPS id 62B993F485
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 13:35:03 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=canonical.com;
-        s=20210705; t=1681393201;
-        bh=Fwm2zA4Lu+pnk2wfvmdsIMzskA4Hu3SYjIKwChZpmug=;
-        h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-         To:Cc:Content-Type;
-        b=AWQY2V1XaMZhW8MzHMHoQ2wL1+urxuW4IcripYmhfVi+9HleXuaSpmjnD7zoxUhy3
-         iyzP/W5gCwxLS3sP3JnxfAS2Ytw+Lp0fMNv5H31L7VSn2tg3oxS0Y+jMYjYjywkp+C
-         0BDZ2Uvk3E6R7LbYOREocWWvIXsslaTJjcRnSCWA/jfo/vODqywKDJMqjYu2zq8OIp
-         Wp54ZzOafPN/B07V8Ut2JPvO+JCj4zoKX2PziLc8aTWn3et/u1emPYjjbi8pEZnaf0
-         KL2OrcqUpM7iWJniBKOMYGDLT6EDb4srr/gaq3Ofl/OTD8SGbGz/C93Gff/SUZMPkU
-         x/YTgGuZomnfA==
-Received: by mail-yb1-f198.google.com with SMTP id j6-20020a255506000000b00b8ef3da4acfso13010679ybb.8
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 06:40:01 -0700 (PDT)
+        s=20210705; t=1681392903;
+        bh=pU+XkxxaqxIltFz6HAiJgXotXtTecmR/abIbMqTWsWw=;
+        h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+         MIME-Version;
+        b=eWaxANJNBIBIxE5cnU1hUSkKJdyh9w5wXbnn8JTTTmMf2V0HgxuaC3UV9zqrTwlzh
+         cam3LzwWpSmx2eWx12tDcJGYDfm5QVIxTpuKjXF7CXMYiGJmb7aCIekA9K8NjxVqQA
+         ZTVCQCVVrKHjcZgxv2eMYK1ROa43CGgwRSC1bmpZi/xHalfG3dMaAY8YJ00NnKzBaF
+         qZviCEGsUmapOmUL67H+QgZVBhGN/z4QP0I5UquEkcbDCEeJ+DYM+R9T2NNb/vQOIU
+         jWqjTGFcXeRxh7DBzfz47yHAJfCNM0z9FuoshmzvLoG4h+X38RHhm07JHPrmzJwr3U
+         yfs+jTQ37SgNw==
+Received: by mail-ed1-f69.google.com with SMTP id 4fb4d7f45d1cf-506752f399cso1065834a12.0
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 06:35:03 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1681393200; x=1683985200;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+        d=1e100.net; s=20221208; t=1681392877; x=1683984877;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=Fwm2zA4Lu+pnk2wfvmdsIMzskA4Hu3SYjIKwChZpmug=;
-        b=FWYePZ22GyZ+IZZ19Zqs7U3JyVtvGNtkL5k4erdaNJo3XKf+aUsogycVUnZ0MNrc15
-         s2d/0C8VqytQl2138Dl6YiohR6MsmI86QwfMr6EflX5DIUsr6bPfYYATBKeDZlgmzpIW
-         1Ehh2KjOcPcbhpfCgj0cbyHj6zghSZVueGpN/8GMNoVS345zgN52zv3Nx1mKWGZSknhH
-         ZMqHoPZ26DFCddSyWY33VvUCmopnUKmhb2Vx2jMNwJnQ2tl6aWaGZIG40VKkr42npWa4
-         6W0TBu9SPQSqTka9RUYFui9O9LjzTbnszZoym5czVImG+djGqKgg/CTyL8mE/qM+flwj
-         3Rtg==
-X-Gm-Message-State: AAQBX9f+BngmoJ6oLLoZpjyYOGqDH5CYkGGJ8te5W/XOiNhEkBrHRcDj
-        Zh4xFma/vopHLlOCG8GFgC8rMbtz5wFgYf6NjG7swV+hyaIrDVUFbiLTsycsmKnVwOpL6x5k3Wh
-        4dOLSKvbA4vzFFgpnrneB9/Qss48a6ICqhDfRKo4sO/dvEqiYKtuAFdk=
-X-Received: by 2002:a81:ae0b:0:b0:54f:8f2e:a03 with SMTP id m11-20020a81ae0b000000b0054f8f2e0a03mr1459785ywh.1.1681393200537;
-        Thu, 13 Apr 2023 06:40:00 -0700 (PDT)
-X-Google-Smtp-Source: AKy350bWBZ+Oe+dqnl0WOzPCmKCiFgGY9gArAk6IN/SlCoHxVcrE5UC1Wg715sEPuLSw04N9G3npVyH3kp0ZgILmuV4=
-X-Received: by 2002:a81:ae0b:0:b0:54f:8f2e:a03 with SMTP id
- m11-20020a81ae0b000000b0054f8f2e0a03mr1459771ywh.1.1681393200269; Thu, 13 Apr
- 2023 06:40:00 -0700 (PDT)
-MIME-Version: 1.0
-References: <20230411104231.160837-1-aleksandr.mikhalitsyn@canonical.com>
- <20230411104231.160837-2-aleksandr.mikhalitsyn@canonical.com> <20230411-umarmen-mulden-c34abb9b2511@brauner>
-In-Reply-To: <20230411-umarmen-mulden-c34abb9b2511@brauner>
-From:   Aleksandr Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
-Date:   Thu, 13 Apr 2023 15:39:49 +0200
-Message-ID: <CAEivzxfHjSPGu9HJP0jKa0i34vUVbaMqkGks+=0FzT7Wq_so8A@mail.gmail.com>
-Subject: Re: [PATCH net-next v3 1/4] scm: add SO_PASSPIDFD and SCM_PIDFD
-To:     Christian Brauner <brauner@kernel.org>
-Cc:     davem@davemloft.net, linux-kernel@vger.kernel.org,
-        netdev@vger.kernel.org, Eric Dumazet <edumazet@google.com>,
+        bh=pU+XkxxaqxIltFz6HAiJgXotXtTecmR/abIbMqTWsWw=;
+        b=RceeeAkBSJl3DAadohrKHIx5GrWgwg+q5GIIwwOx8FTiCJbudxfBCYAeB4oHaUYIZN
+         SjLNj3Krsj19LsUpW4eENXAGtMoN3IaJ7RGrLY9Qag6T31bKF5XO/jBlPhwTNXfsvIr/
+         Ak8q/9G47ue7i7O9q4nHPtmx3xluei9g7xY6dz68DP4hW9nx53SiWcDFc7FBUKh3QebA
+         /EysJvcB+88TqbI3DPZjy+mm41WZ8S7/NjRegY7Ad8HpDUNV0DpFM5y4/b5aPQmhwGao
+         arRbmcZxs/E/N3EZjZmnL2tR48oG2Qa1SespnyErLwTWqDZW9mKmpQLLEwP95g5zExC3
+         rebQ==
+X-Gm-Message-State: AAQBX9cv57A7swQ7o3pB8N6zAqUdVgXPN3LMBCAQcXuIVBnnbdhc1p7G
+        h54F+xLOXPwF2sylLwmCWq8b3U3FuyIi3LH7UC8SAnV1NHPD4iGk6gWDIs2RAzjOGwXFu3FVh4x
+        rrWlrl+9IiMo+SzTqa5hjzciSta73r4P1eSvpx5g=
+X-Received: by 2002:a05:6402:49:b0:504:8a0f:13ca with SMTP id f9-20020a056402004900b005048a0f13camr1932414edu.10.1681392877052;
+        Thu, 13 Apr 2023 06:34:37 -0700 (PDT)
+X-Google-Smtp-Source: AKy350aV7p0sn03LCerGeF3KPK9DDJyh86PbUa/oXNvIx8Ve9zsyvkpvXJUqxRJSvXrr+2BQLm/qeg==
+X-Received: by 2002:a05:6402:49:b0:504:8a0f:13ca with SMTP id f9-20020a056402004900b005048a0f13camr1932387edu.10.1681392876801;
+        Thu, 13 Apr 2023 06:34:36 -0700 (PDT)
+Received: from amikhalitsyn.. ([95.91.208.118])
+        by smtp.gmail.com with ESMTPSA id et22-20020a170907295600b0094a966330fdsm976806ejc.211.2023.04.13.06.34.35
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 13 Apr 2023 06:34:36 -0700 (PDT)
+From:   Alexander Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
+To:     davem@davemloft.net
+Cc:     linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        daniel@iogearbox.net,
+        Alexander Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>,
+        Eric Dumazet <edumazet@google.com>,
         Jakub Kicinski <kuba@kernel.org>,
         Paolo Abeni <pabeni@redhat.com>,
         Leon Romanovsky <leon@kernel.org>,
         David Ahern <dsahern@kernel.org>,
         Arnd Bergmann <arnd@arndb.de>,
         Kees Cook <keescook@chromium.org>,
+        Christian Brauner <brauner@kernel.org>,
         Kuniyuki Iwashima <kuniyu@amazon.com>,
         Lennart Poettering <mzxreary@0pointer.de>,
-        Luca Boccassi <bluca@debian.org>, linux-arch@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+        linux-arch@vger.kernel.org
+Subject: [PATCH net-next v4 2/4] net: socket: add sockopts blacklist for BPF cgroup hook
+Date:   Thu, 13 Apr 2023 15:33:53 +0200
+Message-Id: <20230413133355.350571-3-aleksandr.mikhalitsyn@canonical.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20230413133355.350571-1-aleksandr.mikhalitsyn@canonical.com>
+References: <20230413133355.350571-1-aleksandr.mikhalitsyn@canonical.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Fixed in -v4
+During work on SO_PEERPIDFD, it was discovered (thanks to Christian),
+that bpf cgroup hook can cause FD leaks when used with sockopts which
+install FDs into the process fdtable.
 
-https://lore.kernel.org/netdev/20230413133355.350571-2-aleksandr.mikhalitsy=
-n@canonical.com/T/#u
+After some offlist discussion it was proposed to add a blacklist of
+socket options those can cause troubles when BPF cgroup hook is enabled.
 
-Kind regards,
-Alex
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Eric Dumazet <edumazet@google.com>
+Cc: Jakub Kicinski <kuba@kernel.org>
+Cc: Paolo Abeni <pabeni@redhat.com>
+Cc: Leon Romanovsky <leon@kernel.org>
+Cc: David Ahern <dsahern@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Christian Brauner <brauner@kernel.org>
+Cc: Kuniyuki Iwashima <kuniyu@amazon.com>
+Cc: Lennart Poettering <mzxreary@0pointer.de>
+Cc: linux-kernel@vger.kernel.org
+Cc: netdev@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Suggested-by: Daniel Borkmann <daniel@iogearbox.net>
+Suggested-by: Christian Brauner <brauner@kernel.org>
+Signed-off-by: Alexander Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
+---
+ net/socket.c | 38 +++++++++++++++++++++++++++++++++++---
+ 1 file changed, 35 insertions(+), 3 deletions(-)
 
+diff --git a/net/socket.c b/net/socket.c
+index 73e493da4589..9c1ef11de23f 100644
+--- a/net/socket.c
++++ b/net/socket.c
+@@ -108,6 +108,8 @@
+ #include <linux/ptp_clock_kernel.h>
+ #include <trace/events/sock.h>
+ 
++#include <linux/sctp.h>
++
+ #ifdef CONFIG_NET_RX_BUSY_POLL
+ unsigned int sysctl_net_busy_read __read_mostly;
+ unsigned int sysctl_net_busy_poll __read_mostly;
+@@ -2227,6 +2229,36 @@ static bool sock_use_custom_sol_socket(const struct socket *sock)
+ 	return test_bit(SOCK_CUSTOM_SOCKOPT, &sock->flags);
+ }
+ 
++#ifdef CONFIG_CGROUP_BPF
++static bool sockopt_installs_fd(int level, int optname)
++{
++	/*
++	 * These options do fd_install(), and if BPF_CGROUP_RUN_PROG_GETSOCKOPT
++	 * hook returns an error after success of the original handler
++	 * sctp_getsockopt(...), userspace will receive an error from getsockopt
++	 * syscall and will be not aware that fd was successfully installed into fdtable.
++	 *
++	 * Let's prevent bpf cgroup hook from running on them.
++	 */
++	if (level == SOL_SCTP) {
++		switch (optname) {
++		case SCTP_SOCKOPT_PEELOFF:
++		case SCTP_SOCKOPT_PEELOFF_FLAGS:
++			return true;
++		default:
++			return false;
++		}
++	}
++
++	return false;
++}
++#else /* CONFIG_CGROUP_BPF */
++static inline bool sockopt_installs_fd(int level, int optname)
++{
++	return false;
++}
++#endif /* CONFIG_CGROUP_BPF */
++
+ /*
+  *	Set a socket option. Because we don't know the option lengths we have
+  *	to pass the user mode parameter for the protocols to sort out.
+@@ -2250,7 +2282,7 @@ int __sys_setsockopt(int fd, int level, int optname, char __user *user_optval,
+ 	if (err)
+ 		goto out_put;
+ 
+-	if (!in_compat_syscall())
++	if (!in_compat_syscall() && !sockopt_installs_fd(level, optname))
+ 		err = BPF_CGROUP_RUN_PROG_SETSOCKOPT(sock->sk, &level, &optname,
+ 						     user_optval, &optlen,
+ 						     &kernel_optval);
+@@ -2304,7 +2336,7 @@ int __sys_getsockopt(int fd, int level, int optname, char __user *optval,
+ 	if (err)
+ 		goto out_put;
+ 
+-	if (!in_compat_syscall())
++	if (!in_compat_syscall() && !sockopt_installs_fd(level, optname))
+ 		max_optlen = BPF_CGROUP_GETSOCKOPT_MAX_OPTLEN(optlen);
+ 
+ 	if (level == SOL_SOCKET)
+@@ -2315,7 +2347,7 @@ int __sys_getsockopt(int fd, int level, int optname, char __user *optval,
+ 		err = sock->ops->getsockopt(sock, level, optname, optval,
+ 					    optlen);
+ 
+-	if (!in_compat_syscall())
++	if (!in_compat_syscall() && !sockopt_installs_fd(level, optname))
+ 		err = BPF_CGROUP_RUN_PROG_GETSOCKOPT(sock->sk, level, optname,
+ 						     optval, optlen, max_optlen,
+ 						     err);
+-- 
+2.34.1
 
-On Tue, Apr 11, 2023 at 5:37=E2=80=AFPM Christian Brauner <brauner@kernel.o=
-rg> wrote:
->
-> On Tue, Apr 11, 2023 at 12:42:28PM +0200, Alexander Mikhalitsyn wrote:
-> > Implement SCM_PIDFD, a new type of CMSG type analogical to SCM_CREDENTI=
-ALS,
-> > but it contains pidfd instead of plain pid, which allows programmers no=
-t
-> > to care about PID reuse problem.
-> >
-> > Idea comes from UAPI kernel group:
-> > https://uapi-group.org/kernel-features/
-> >
-> > Big thanks to Christian Brauner and Lennart Poettering for productive
-> > discussions about this.
-> >
-> > Cc: "David S. Miller" <davem@davemloft.net>
-> > Cc: Eric Dumazet <edumazet@google.com>
-> > Cc: Jakub Kicinski <kuba@kernel.org>
-> > Cc: Paolo Abeni <pabeni@redhat.com>
-> > Cc: Leon Romanovsky <leon@kernel.org>
-> > Cc: David Ahern <dsahern@kernel.org>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> > Cc: Kees Cook <keescook@chromium.org>
-> > Cc: Christian Brauner <brauner@kernel.org>
-> > Cc: Kuniyuki Iwashima <kuniyu@amazon.com>
-> > Cc: Lennart Poettering <mzxreary@0pointer.de>
-> > Cc: Luca Boccassi <bluca@debian.org>
-> > Cc: linux-kernel@vger.kernel.org
-> > Cc: netdev@vger.kernel.org
-> > Cc: linux-arch@vger.kernel.org
-> > Tested-by: Luca Boccassi <bluca@debian.org>
-> > Reviewed-by: Kuniyuki Iwashima <kuniyu@amazon.com>
-> > Signed-off-by: Alexander Mikhalitsyn <aleksandr.mikhalitsyn@canonical.c=
-om>
-> > ---
-> > v2:
-> >       According to review comments from Kuniyuki Iwashima and Christian=
- Brauner:
-> >       - use pidfd_create(..) retval as a result
-> >       - whitespace change
-> > ---
-> >  arch/alpha/include/uapi/asm/socket.h    |  2 ++
-> >  arch/mips/include/uapi/asm/socket.h     |  2 ++
-> >  arch/parisc/include/uapi/asm/socket.h   |  2 ++
-> >  arch/sparc/include/uapi/asm/socket.h    |  2 ++
-> >  include/linux/net.h                     |  1 +
-> >  include/linux/socket.h                  |  1 +
-> >  include/net/scm.h                       | 14 ++++++++++++--
-> >  include/uapi/asm-generic/socket.h       |  2 ++
-> >  net/core/sock.c                         | 11 +++++++++++
-> >  net/mptcp/sockopt.c                     |  1 +
-> >  net/unix/af_unix.c                      | 18 +++++++++++++-----
-> >  tools/include/uapi/asm-generic/socket.h |  2 ++
-> >  12 files changed, 51 insertions(+), 7 deletions(-)
-> >
-> > diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/=
-uapi/asm/socket.h
-> > index 739891b94136..ff310613ae64 100644
-> > --- a/arch/alpha/include/uapi/asm/socket.h
-> > +++ b/arch/alpha/include/uapi/asm/socket.h
-> > @@ -137,6 +137,8 @@
-> >
-> >  #define SO_RCVMARK           75
-> >
-> > +#define SO_PASSPIDFD         76
-> > +
-> >  #if !defined(__KERNEL__)
-> >
-> >  #if __BITS_PER_LONG =3D=3D 64
-> > diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/ua=
-pi/asm/socket.h
-> > index 18f3d95ecfec..762dcb80e4ec 100644
-> > --- a/arch/mips/include/uapi/asm/socket.h
-> > +++ b/arch/mips/include/uapi/asm/socket.h
-> > @@ -148,6 +148,8 @@
-> >
-> >  #define SO_RCVMARK           75
-> >
-> > +#define SO_PASSPIDFD         76
-> > +
-> >  #if !defined(__KERNEL__)
-> >
-> >  #if __BITS_PER_LONG =3D=3D 64
-> > diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/includ=
-e/uapi/asm/socket.h
-> > index f486d3dfb6bb..df16a3e16d64 100644
-> > --- a/arch/parisc/include/uapi/asm/socket.h
-> > +++ b/arch/parisc/include/uapi/asm/socket.h
-> > @@ -129,6 +129,8 @@
-> >
-> >  #define SO_RCVMARK           0x4049
-> >
-> > +#define SO_PASSPIDFD         0x404A
-> > +
-> >  #if !defined(__KERNEL__)
-> >
-> >  #if __BITS_PER_LONG =3D=3D 64
-> > diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/=
-uapi/asm/socket.h
-> > index 2fda57a3ea86..6e2847804fea 100644
-> > --- a/arch/sparc/include/uapi/asm/socket.h
-> > +++ b/arch/sparc/include/uapi/asm/socket.h
-> > @@ -130,6 +130,8 @@
-> >
-> >  #define SO_RCVMARK               0x0054
-> >
-> > +#define SO_PASSPIDFD             0x0055
-> > +
-> >  #if !defined(__KERNEL__)
-> >
-> >
-> > diff --git a/include/linux/net.h b/include/linux/net.h
-> > index b73ad8e3c212..c234dfbe7a30 100644
-> > --- a/include/linux/net.h
-> > +++ b/include/linux/net.h
-> > @@ -43,6 +43,7 @@ struct net;
-> >  #define SOCK_PASSSEC         4
-> >  #define SOCK_SUPPORT_ZC              5
-> >  #define SOCK_CUSTOM_SOCKOPT  6
-> > +#define SOCK_PASSPIDFD               7
-> >
-> >  #ifndef ARCH_HAS_SOCKET_TYPES
-> >  /**
-> > diff --git a/include/linux/socket.h b/include/linux/socket.h
-> > index 13c3a237b9c9..6bf90f251910 100644
-> > --- a/include/linux/socket.h
-> > +++ b/include/linux/socket.h
-> > @@ -177,6 +177,7 @@ static inline size_t msg_data_left(struct msghdr *m=
-sg)
-> >  #define      SCM_RIGHTS      0x01            /* rw: access rights (arr=
-ay of int) */
-> >  #define SCM_CREDENTIALS 0x02         /* rw: struct ucred             *=
-/
-> >  #define SCM_SECURITY 0x03            /* rw: security label           *=
-/
-> > +#define SCM_PIDFD    0x04            /* ro: pidfd (int)              *=
-/
-> >
-> >  struct ucred {
-> >       __u32   pid;
-> > diff --git a/include/net/scm.h b/include/net/scm.h
-> > index 585adc1346bd..0c717ae9c8db 100644
-> > --- a/include/net/scm.h
-> > +++ b/include/net/scm.h
-> > @@ -124,8 +124,9 @@ static __inline__ void scm_recv(struct socket *sock=
-, struct msghdr *msg,
-> >                               struct scm_cookie *scm, int flags)
-> >  {
-> >       if (!msg->msg_control) {
-> > -             if (test_bit(SOCK_PASSCRED, &sock->flags) || scm->fp ||
-> > -                 scm_has_secdata(sock))
-> > +             if (test_bit(SOCK_PASSCRED, &sock->flags) ||
-> > +                 test_bit(SOCK_PASSPIDFD, &sock->flags) ||
-> > +                 scm->fp || scm_has_secdata(sock))
-> >                       msg->msg_flags |=3D MSG_CTRUNC;
-> >               scm_destroy(scm);
-> >               return;
-> > @@ -141,6 +142,15 @@ static __inline__ void scm_recv(struct socket *soc=
-k, struct msghdr *msg,
-> >               put_cmsg(msg, SOL_SOCKET, SCM_CREDENTIALS, sizeof(ucreds)=
-, &ucreds);
-> >       }
-> >
-> > +     if (test_bit(SOCK_PASSPIDFD, &sock->flags)) {
-> > +             int pidfd;
-> > +
-> > +             WARN_ON_ONCE(!scm->pid);
-> > +             pidfd =3D pidfd_create(scm->pid, 0);
-> > +
-> > +             put_cmsg(msg, SOL_SOCKET, SCM_PIDFD, sizeof(int), &pidfd)=
-;
->
-> I know you already mentioned that you accidently missed to change this
-> to not leak an fd. But just so we keep track of it see the comment to v2
-> https://lore.kernel.org/netdev/20230322154817.c6qasnixow452e6x@wittgenste=
-in/#t
