@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 741E9C77B6F
-	for <linux-arch@archiver.kernel.org>; Fri, 14 Apr 2023 00:12:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 58BD4C77B6F
+	for <linux-arch@archiver.kernel.org>; Fri, 14 Apr 2023 00:12:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229713AbjDNAMR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 13 Apr 2023 20:12:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44088 "EHLO
+        id S230458AbjDNAMW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 13 Apr 2023 20:12:22 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44338 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230303AbjDNAMF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2023 20:12:05 -0400
+        with ESMTP id S230445AbjDNAMM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2023 20:12:12 -0400
 Received: from mail-yw1-x114a.google.com (mail-yw1-x114a.google.com [IPv6:2607:f8b0:4864:20::114a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AE2713586
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:12:04 -0700 (PDT)
-Received: by mail-yw1-x114a.google.com with SMTP id 00721157ae682-54fde069e4aso18614717b3.3
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:12:04 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D57C14680
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:12:09 -0700 (PDT)
+Received: by mail-yw1-x114a.google.com with SMTP id 00721157ae682-54fbb2ee579so40157297b3.14
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:12:09 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20221208; t=1681431124; x=1684023124;
+        d=google.com; s=20221208; t=1681431129; x=1684023129;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=Gsr9n7GPJt3nQiq4GcQ+TdB+rTZDJHWVuXMgSAc/inc=;
-        b=kiDTePLk95tLtwi05EOCo6F4V5CaUODRfRqdJI4Zgzm9FQWvaGZtlrD6yXaeMKkBjy
-         8RYIMMqxVwtK8hcqiFL4L6XAaUQuBxXj0Ob3OL8FosXLKFkReuzMoaSCAc6uSho3g0AT
-         1Mad+18Vu1ODUbN+2p4Gx7UN/JCMROb9IKSQZwVC0SqUcslnNIKVGAjm6jXtAj4CVyW6
-         AubdJjVqBGvAcIQftDMGLDBeWf29B2Tvkh+iboimGU/GxdHwLZqBuIds+tebPgdOIXna
-         fQ+8mzrH61gD5Hs3hKsbNr1LXybHaYbyOLpWo62wPHciL4cbfv9pbXLpD+tC0w5oX1yN
-         Vaaw==
+        bh=JIdXLIzbqoaS1yDLNUT0qQstKE8tePtbIkE0dhqmXxw=;
+        b=tYf5bMIhxkr3hMt+lIl1PwjzLoiSUpfQWFuv6YVcAfFgRdEoudCktx2A+d0JqBuvOp
+         z7jDltQapqSgAAhCbia4ma/bs6+Elmvi2Gje0GcQy+s+haBTRtk+BaqUdfLeOeW36uBM
+         6MypyFUJxdUxMweXKlUl7CO/Q1AO0eUVAwfsLrKRHXW02ZCD/fodZ/BhJs3hNjpCIo+Y
+         cIPpRQQptnvuiKd6Qf6tMjU2sO+NUQFKpX/Achfnm+Vek4M3QErvwjtnfJ6Clswfoz0b
+         wIt6IvVXO9FiMRR1epVuwOCV/qP/1d3QqZG2bG2qG2X3Hmji5CKuZuuD4fO544jPiWvf
+         +lTQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1681431124; x=1684023124;
+        d=1e100.net; s=20221208; t=1681431129; x=1684023129;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=Gsr9n7GPJt3nQiq4GcQ+TdB+rTZDJHWVuXMgSAc/inc=;
-        b=VkIeP801fIj8HtFaC9hBJEeTfsmTNjQQee1EKPByuE2/tX0o6kcBnxcvYIlZMVoOvQ
-         9wCz1dx3I0n5+AD3NRwmWjBrvILU7saSSOqJzN4Sl7IZyf19DsKL4kpn+j6rcZ2bA9Nl
-         +2y0jSsvP/+Ei870tqXUG7Zn7cObvQyHMdxPTx2AF/AcIHTw/9NlxALzRKN1VPxXvZku
-         jMVrCJEdka2eOPksuif5OBYVXZJ6IWhnyR6+EDQaQOAG027Q2HfO5WWbztluC5CAaI9W
-         OJ0UD6NA8ASIe3PUxRCkvVlI2kl0BhxF7CgxB8ZU/U049mfE9pKe8Sa/XAggd+lGgFLf
-         rHog==
-X-Gm-Message-State: AAQBX9fXdUlF5lFfqJg2yqoDTMxNAQyH3SEJf9DjPD47fvqE4ElmnbYG
-        yw6ZDOzAUUnk+C21oha1X6FK5Wdh5HVxGaoD4Q==
-X-Google-Smtp-Source: AKy350aRre2/mW24vntSSS5eHQnqj/lI3imd9ledXWOeS14bBFvJmCzkihwUza6OXJc/lSYwICNxvky6ENjOvWGfVA==
+        bh=JIdXLIzbqoaS1yDLNUT0qQstKE8tePtbIkE0dhqmXxw=;
+        b=gfSz8gonqyXG2Q+ACtqLH9WL7kqEkNsy6DmpG1OZSDhf/YTfEBuOTMHXu2mH2mKYuS
+         uLuZTdmWzMfVlnpdUxsV+cSLqe1PDE39KzT2vuyQs34RJvRoBAY0ReDmRHcfTekcJt4/
+         A8BmS8poL0Z87+UbGOE+gzPrt8H0R7gdbbXm6sQTtcY5OV6XrtxxfNlzE8iL/Cy/vhTF
+         s+/Ry6/TrG4HGucQxq+CHKWB4APpaZ1ZHa0CWKn4/2w/KIeQqlehJGcoN+hJhMxvVy59
+         sej7WRZpMOYHMl/z4Q6N24+Gml8t2k55BUa+wgtb+t77zRLUklOufuPTd223d+uAx7/h
+         ofqA==
+X-Gm-Message-State: AAQBX9edsV3RDJviPJ8OJ+tcKNQu3V5mufr0LA5iK4OmEOyyxqL4iO1C
+        hY5iC0gRbcDusrm6qxDHiPul/Uu4FHVFQqaIGw==
+X-Google-Smtp-Source: AKy350aw1qXzddjDywjx3OQ/Kkf8aSm9qQ52ggrXe9lxiXXBS/UAEkiIAH3/1jEr1IF4yNFdix0pirr9uwMpC8d++w==
 X-Received: from ackerleytng-cloudtop.c.googlers.com ([fda3:e722:ac3:cc00:7f:e700:c0a8:1f5f])
- (user=ackerleytng job=sendgmr) by 2002:a81:af0c:0:b0:54f:8566:495 with SMTP
- id n12-20020a81af0c000000b0054f85660495mr2640217ywh.1.1681431123807; Thu, 13
- Apr 2023 17:12:03 -0700 (PDT)
-Date:   Fri, 14 Apr 2023 00:11:52 +0000
+ (user=ackerleytng job=sendgmr) by 2002:a25:d288:0:b0:b75:3fd4:1b31 with SMTP
+ id j130-20020a25d288000000b00b753fd41b31mr2693074ybg.1.1681431128801; Thu, 13
+ Apr 2023 17:12:08 -0700 (PDT)
+Date:   Fri, 14 Apr 2023 00:11:55 +0000
 In-Reply-To: <cover.1681430907.git.ackerleytng@google.com>
 Mime-Version: 1.0
 References: <cover.1681430907.git.ackerleytng@google.com>
 X-Mailer: git-send-email 2.40.0.634.g4ca3ef3211-goog
-Message-ID: <43e1c951125d6700586dbd332c2036db0f2f5f2d.1681430907.git.ackerleytng@google.com>
-Subject: [RFC PATCH 3/6] mm: mempolicy: Refactor out __mpol_set_shared_policy()
+Message-ID: <7b40fc4afa41e382d72f556399ed5e0808b969b5.1681430907.git.ackerleytng@google.com>
+Subject: [RFC PATCH 6/6] selftests: mm: Add selftest for memfd_restricted_bind()
 From:   Ackerley Tng <ackerleytng@google.com>
 To:     kvm@vger.kernel.org, linux-api@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
@@ -79,86 +79,360 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Refactor out __mpol_set_shared_policy() to remove dependency on struct
-vm_area_struct, since only 2 parameters from struct vm_area_struct are
-used.
+This selftest uses memfd_restricted_bind() to set the mempolicy for a
+restrictedmem file, and then checks that pages were indeed allocated
+according to that policy.
 
-__mpol_set_shared_policy() will be used in a later patch by
-restrictedmem_set_shared_policy().
+Because restrictedmem pages are never mapped into userspace memory,
+the usual ways of checking which NUMA node the page was allocated
+on (e.g. /proc/pid/numa_maps) cannot be used.
+
+This selftest adds a small kernel module that overloads the ioctl
+syscall on /proc/restrictedmem to request a restrictedmem page and get
+the node it was allocated on. The page is freed within the ioctl handler.
 
 Signed-off-by: Ackerley Tng <ackerleytng@google.com>
 ---
- include/linux/mempolicy.h |  2 ++
- mm/mempolicy.c            | 29 +++++++++++++++++++----------
- 2 files changed, 21 insertions(+), 10 deletions(-)
+ tools/testing/selftests/mm/.gitignore         |   1 +
+ tools/testing/selftests/mm/Makefile           |   8 +
+ .../selftests/mm/memfd_restricted_bind.c      | 139 ++++++++++++++++++
+ .../mm/restrictedmem_testmod/Makefile         |  21 +++
+ .../restrictedmem_testmod.c                   |  89 +++++++++++
+ tools/testing/selftests/mm/run_vmtests.sh     |   6 +
+ 6 files changed, 264 insertions(+)
+ create mode 100644 tools/testing/selftests/mm/memfd_restricted_bind.c
+ create mode 100644 tools/testing/selftests/mm/restrictedmem_testmod/Makefile
+ create mode 100644 tools/testing/selftests/mm/restrictedmem_testmod/restrictedmem_testmod.c
 
-diff --git a/include/linux/mempolicy.h b/include/linux/mempolicy.h
-index d232de7cdc56..9a2a2dd95432 100644
---- a/include/linux/mempolicy.h
-+++ b/include/linux/mempolicy.h
-@@ -126,6 +126,8 @@ struct shared_policy {
+diff --git a/tools/testing/selftests/mm/.gitignore b/tools/testing/selftests/mm/.gitignore
+index fb6e4233374d..10c5701b9645 100644
+--- a/tools/testing/selftests/mm/.gitignore
++++ b/tools/testing/selftests/mm/.gitignore
+@@ -31,6 +31,7 @@ map_fixed_noreplace
+ write_to_hugetlbfs
+ hmm-tests
+ memfd_restricted
++memfd_restricted_bind
+ memfd_secret
+ soft-dirty
+ split_huge_page_test
+diff --git a/tools/testing/selftests/mm/Makefile b/tools/testing/selftests/mm/Makefile
+index 5ec338ea1fed..4a6cf922db45 100644
+--- a/tools/testing/selftests/mm/Makefile
++++ b/tools/testing/selftests/mm/Makefile
+@@ -46,6 +46,8 @@ TEST_GEN_FILES += map_fixed_noreplace
+ TEST_GEN_FILES += map_hugetlb
+ TEST_GEN_FILES += map_populate
+ TEST_GEN_FILES += memfd_restricted
++TEST_GEN_FILES += memfd_restricted_bind
++TEST_GEN_FILES += restrictedmem_testmod.ko
+ TEST_GEN_FILES += memfd_secret
+ TEST_GEN_FILES += migration
+ TEST_GEN_FILES += mlock-random-test
+@@ -171,6 +173,12 @@ $(OUTPUT)/ksm_tests: LDLIBS += -lnuma
  
- int vma_dup_policy(struct vm_area_struct *src, struct vm_area_struct *dst);
- void mpol_shared_policy_init(struct shared_policy *sp, struct mempolicy *mpol);
-+int __mpol_set_shared_policy(struct shared_policy *info, struct mempolicy *mpol,
-+			     unsigned long pgoff_start, unsigned long npages);
- int mpol_set_shared_policy(struct shared_policy *info,
- 				struct vm_area_struct *vma,
- 				struct mempolicy *new);
-diff --git a/mm/mempolicy.c b/mm/mempolicy.c
-index a2655b626731..f3fa5494e4a8 100644
---- a/mm/mempolicy.c
-+++ b/mm/mempolicy.c
-@@ -2817,30 +2817,39 @@ void mpol_shared_policy_init(struct shared_policy *sp, struct mempolicy *mpol)
- 	}
- }
+ $(OUTPUT)/migration: LDLIBS += -lnuma
  
--int mpol_set_shared_policy(struct shared_policy *info,
--			struct vm_area_struct *vma, struct mempolicy *npol)
-+int __mpol_set_shared_policy(struct shared_policy *info, struct mempolicy *mpol,
-+			     unsigned long pgoff_start, unsigned long npages)
- {
- 	int err;
- 	struct sp_node *new = NULL;
--	unsigned long sz = vma_pages(vma);
-+	unsigned long pgoff_end = pgoff_start + npages;
- 
- 	pr_debug("set_shared_policy %lx sz %lu %d %d %lx\n",
--		 vma->vm_pgoff,
--		 sz, npol ? npol->mode : -1,
--		 npol ? npol->flags : -1,
--		 npol ? nodes_addr(npol->nodes)[0] : NUMA_NO_NODE);
-+		 pgoff_start, npages,
-+		 mpol ? mpol->mode : -1,
-+		 mpol ? mpol->flags : -1,
-+		 mpol ? nodes_addr(mpol->nodes)[0] : NUMA_NO_NODE);
- 
--	if (npol) {
--		new = sp_alloc(vma->vm_pgoff, vma->vm_pgoff + sz, npol);
-+	if (mpol) {
-+		new = sp_alloc(pgoff_start, pgoff_end, mpol);
- 		if (!new)
- 			return -ENOMEM;
- 	}
--	err = shared_policy_replace(info, vma->vm_pgoff, vma->vm_pgoff+sz, new);
++$(OUTPUT)/memfd_restricted_bind: LDLIBS += -lnuma
++$(OUTPUT)/restrictedmem_testmod.ko: $(wildcard restrictedmem_testmod/Makefile restrictedmem_testmod/*.[ch])
++	$(call msg,MOD,,$@)
++	$(Q)$(MAKE) -C restrictedmem_testmod
++	$(Q)cp restrictedmem_testmod/restrictedmem_testmod.ko $@
 +
-+	err = shared_policy_replace(info, pgoff_start, pgoff_end, new);
-+
- 	if (err && new)
- 		sp_free(new);
-+
- 	return err;
- }
+ local_config.mk local_config.h: check_config.sh
+ 	/bin/sh ./check_config.sh $(CC)
  
-+int mpol_set_shared_policy(struct shared_policy *info,
-+			struct vm_area_struct *vma, struct mempolicy *mpol)
+diff --git a/tools/testing/selftests/mm/memfd_restricted_bind.c b/tools/testing/selftests/mm/memfd_restricted_bind.c
+new file mode 100644
+index 000000000000..64aa44c72d09
+--- /dev/null
++++ b/tools/testing/selftests/mm/memfd_restricted_bind.c
+@@ -0,0 +1,139 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <fcntl.h>
++#include <linux/mempolicy.h>
++#include <numa.h>
++#include <sys/ioctl.h>
++#include <sys/stat.h>
++#include <sys/syscall.h>
++#include <unistd.h>
++
++#include "../kselftest_harness.h"
++
++int memfd_restricted(int flags, int fd)
 +{
-+	return __mpol_set_shared_policy(info, mpol, vma->vm_pgoff, vma_pages(vma));
++	return syscall(__NR_memfd_restricted, flags, fd);
 +}
 +
- /* Free a backing policy store on inode delete. */
- void mpol_free_shared_policy(struct shared_policy *p)
- {
++int memfd_restricted_bind(
++	int fd, loff_t offset, unsigned long len, unsigned long mode,
++	const unsigned long *nmask, unsigned long maxnode, unsigned int flags)
++{
++	struct file_range range = {
++		.offset = offset,
++		.len = len,
++	};
++
++	return syscall(__NR_memfd_restricted_bind, fd, &range, mode, nmask, maxnode, flags);
++}
++
++int memfd_restricted_bind_node(
++	int fd, loff_t offset, unsigned long len,
++	unsigned long mode, int node, unsigned int flags)
++{
++	int ret;
++	struct bitmask *mask = numa_allocate_nodemask();
++
++	numa_bitmask_setbit(mask, node);
++
++	ret = memfd_restricted_bind(fd, offset, len, mode, mask->maskp, mask->size, flags);
++
++	numa_free_nodemask(mask);
++
++	return ret;
++}
++
++/**
++ * Allocates a page in restrictedmem_fd, reads the node that the page was
++ * allocated it and returns it. Returns -1 on error.
++ */
++int read_node(int restrictedmem_fd, unsigned long offset)
++{
++	int ret;
++	int fd;
++
++	fd = open("/proc/restrictedmem", O_RDWR);
++	if (!fd)
++		return -ENOTSUP;
++
++	ret = ioctl(fd, restrictedmem_fd, offset);
++
++	close(fd);
++
++	return ret;
++}
++
++bool restrictedmem_testmod_loaded(void)
++{
++	struct stat buf;
++
++	return stat("/proc/restrictedmem", &buf) == 0;
++}
++
++FIXTURE(restrictedmem_file)
++{
++	int fd;
++	size_t page_size;
++};
++
++FIXTURE_SETUP(restrictedmem_file)
++{
++	int fd;
++	int ret;
++	struct stat stat;
++
++	fd = memfd_restricted(0, -1);
++	ASSERT_GT(fd, 0);
++
++#define RESTRICTEDMEM_TEST_NPAGES 16
++	ret = ftruncate(fd, getpagesize() * RESTRICTEDMEM_TEST_NPAGES);
++	ASSERT_EQ(ret, 0);
++
++	ret = fstat(fd, &stat);
++	ASSERT_EQ(ret, 0);
++
++	self->fd = fd;
++	self->page_size = stat.st_blksize;
++};
++
++FIXTURE_TEARDOWN(restrictedmem_file)
++{
++	int ret;
++
++	ret = close(self->fd);
++	EXPECT_EQ(ret, 0);
++}
++
++#define ASSERT_REQUIREMENTS()					\
++	do {							\
++		struct bitmask *mask = numa_get_membind();	\
++		ASSERT_GT(numa_num_configured_nodes(), 1);	\
++		ASSERT_TRUE(numa_bitmask_isbitset(mask, 0));	\
++		ASSERT_TRUE(numa_bitmask_isbitset(mask, 1));	\
++		numa_bitmask_free(mask);			\
++		ASSERT_TRUE(restrictedmem_testmod_loaded());	\
++	} while (0)
++
++TEST_F(restrictedmem_file, memfd_restricted_bind_works_as_expected)
++{
++	int ret;
++	int node;
++	int i;
++	int node_bindings[] = { 1, 0, 1, 0, 1, 1, 0, 1 };
++
++	ASSERT_REQUIREMENTS();
++
++	for (i = 0; i < ARRAY_SIZE(node_bindings); i++) {
++		ret = memfd_restricted_bind_node(
++			self->fd, i * self->page_size, self->page_size,
++			MPOL_BIND, node_bindings[i], 0);
++		ASSERT_EQ(ret, 0);
++	}
++
++	for (i = 0; i < ARRAY_SIZE(node_bindings); i++) {
++		node = read_node(self->fd, i * self->page_size);
++		ASSERT_EQ(node, node_bindings[i]);
++	}
++}
++
++TEST_HARNESS_MAIN
+diff --git a/tools/testing/selftests/mm/restrictedmem_testmod/Makefile b/tools/testing/selftests/mm/restrictedmem_testmod/Makefile
+new file mode 100644
+index 000000000000..11b1d5d15e3c
+--- /dev/null
++++ b/tools/testing/selftests/mm/restrictedmem_testmod/Makefile
+@@ -0,0 +1,21 @@
++# SPDX-License-Identifier: GPL-2.0-only
++
++RESTRICTEDMEM_TESTMOD_DIR := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
++KDIR ?= $(abspath $(RESTRICTEDMEM_TESTMOD_DIR)/../../../../..)
++
++ifeq ($(V),1)
++Q =
++else
++Q = @
++endif
++
++MODULES = restrictedmem_testmod.ko
++
++obj-m += restrictedmem_testmod.o
++CFLAGS_restrictedmem_testmod.o = -I$(src)
++
++all:
++	+$(Q)make -C $(KDIR) M=$(RESTRICTEDMEM_TESTMOD_DIR) modules
++
++clean:
++	+$(Q)make -C $(KDIR) M=$(RESTRICTEDMEM_TESTMOD_DIR) clean
+diff --git a/tools/testing/selftests/mm/restrictedmem_testmod/restrictedmem_testmod.c b/tools/testing/selftests/mm/restrictedmem_testmod/restrictedmem_testmod.c
+new file mode 100644
+index 000000000000..d35f55d26408
+--- /dev/null
++++ b/tools/testing/selftests/mm/restrictedmem_testmod/restrictedmem_testmod.c
+@@ -0,0 +1,89 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include "linux/printk.h"
++#include "linux/types.h"
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/proc_fs.h>
++#include <linux/restrictedmem.h>
++
++MODULE_DESCRIPTION("A kernel module to support restrictedmem testing");
++MODULE_AUTHOR("ackerleytng@google.com");
++MODULE_LICENSE("GPL");
++
++void dummy_op(struct restrictedmem_notifier *notifier, pgoff_t start, pgoff_t end)
++{
++}
++
++static const struct restrictedmem_notifier_ops dummy_notifier_ops = {
++	.invalidate_start = dummy_op,
++	.invalidate_end = dummy_op,
++	.error = dummy_op,
++};
++
++static struct restrictedmem_notifier dummy_notifier = {
++	.ops = &dummy_notifier_ops,
++};
++
++static long restrictedmem_testmod_ioctl(
++	struct file *file, unsigned int cmd, unsigned long offset)
++{
++	long ret;
++	struct fd f;
++	struct page *page;
++	pgoff_t start = offset >> PAGE_SHIFT;
++
++	f = fdget(cmd);
++	if (!f.file)
++		return -EBADF;
++
++	ret = -EINVAL;
++	if (!file_is_restrictedmem(f.file))
++		goto out;
++
++
++	ret = restrictedmem_bind(f.file, start, start + 1, &dummy_notifier, true);
++	if (ret)
++		goto out;
++
++	ret = restrictedmem_get_page(f.file, (unsigned long)start, &page, NULL);
++	if (ret)
++		goto out;
++
++	ret = page_to_nid(page);
++
++	folio_put(page_folio(page));
++
++	restrictedmem_unbind(f.file, start, start + 1, &dummy_notifier);
++
++out:
++	fdput(f);
++
++	return ret;
++}
++
++static const struct proc_ops restrictedmem_testmod_ops = {
++	.proc_ioctl = restrictedmem_testmod_ioctl,
++};
++
++static struct proc_dir_entry *restrictedmem_testmod_entry;
++
++static int restrictedmem_testmod_init(void)
++{
++	restrictedmem_testmod_entry = proc_create(
++		"restrictedmem", 0660, NULL, &restrictedmem_testmod_ops);
++
++	return 0;
++}
++
++static void restrictedmem_testmod_exit(void)
++{
++	proc_remove(restrictedmem_testmod_entry);
++}
++
++module_init(restrictedmem_testmod_init);
++module_exit(restrictedmem_testmod_exit);
+diff --git a/tools/testing/selftests/mm/run_vmtests.sh b/tools/testing/selftests/mm/run_vmtests.sh
+index 53de84e3ec2c..bdc853d6afe4 100644
+--- a/tools/testing/selftests/mm/run_vmtests.sh
++++ b/tools/testing/selftests/mm/run_vmtests.sh
+@@ -40,6 +40,8 @@ separated by spaces:
+ 	test memadvise(2) MADV_POPULATE_{READ,WRITE} options
+ - memfd_restricted_
+ 	test memfd_restricted(2)
++- memfd_restricted_bind
++	test memfd_restricted_bind(2)
+ - memfd_secret
+ 	test memfd_secret(2)
+ - process_mrelease
+@@ -240,6 +242,10 @@ CATEGORY="madv_populate" run_test ./madv_populate
+ 
+ CATEGORY="memfd_restricted" run_test ./memfd_restricted
+ 
++test_selected "memfd_restricted_bind" && insmod ./restrictedmem_testmod.ko && \
++  CATEGORY="memfd_restricted_bind" run_test ./memfd_restricted_bind && \
++  rmmod restrictedmem_testmod > /dev/null
++
+ CATEGORY="memfd_secret" run_test ./memfd_secret
+ 
+ # KSM MADV_MERGEABLE test with 10 identical pages
 -- 
 2.40.0.634.g4ca3ef3211-goog
 
