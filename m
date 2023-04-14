@@ -2,55 +2,56 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DA38EC77B77
-	for <linux-arch@archiver.kernel.org>; Fri, 14 Apr 2023 00:12:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5B4DDC77B7D
+	for <linux-arch@archiver.kernel.org>; Fri, 14 Apr 2023 00:12:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229782AbjDNAMC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 13 Apr 2023 20:12:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43996 "EHLO
+        id S229733AbjDNAMF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 13 Apr 2023 20:12:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44032 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229561AbjDNAMB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2023 20:12:01 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E8C0B30DA
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:11:59 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id v200-20020a252fd1000000b00b8f548a72bbso4563995ybv.9
-        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:11:59 -0700 (PDT)
+        with ESMTP id S230271AbjDNAMD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 13 Apr 2023 20:12:03 -0400
+Received: from mail-pj1-x1049.google.com (mail-pj1-x1049.google.com [IPv6:2607:f8b0:4864:20::1049])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A28AB30F3
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:12:02 -0700 (PDT)
+Received: by mail-pj1-x1049.google.com with SMTP id e8-20020a17090a4a0800b002466688af09so5192476pjh.7
+        for <linux-arch@vger.kernel.org>; Thu, 13 Apr 2023 17:12:02 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20221208; t=1681431119; x=1684023119;
-        h=content-transfer-encoding:cc:to:from:subject:message-id
-         :mime-version:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=i+pweVgTeWv08z0ELDTsB0Ltp1Ye2bcZK0KHo4GqVbw=;
-        b=SxumLiXBZqVvPSsO4nE95gXtUUxXVcRm2giZRY9/5ORZ+OjADqAAbFJkobyKcqmfCt
-         ePUsZvwKG04KkaahIzuPRZeniJUEzn01e6frQqq0jAgCaSwlASsR29xtCtNlSjb+T5pj
-         VEWY0EVxAPptAmO48HG5tvNAJPPxntiFot3tECFeEreHjLrDdGnAKPlTKHy30+MbbqI8
-         64DeVDk4CEwT4IFGcaTIdQJJ7t2C3BZm2t+9Gp59h71CPchlPnK0jhl4w3WF/G3NQ2HG
-         SBMasteYkoK5+FJ8YkRnsN77u+ShB1rljGgMoVKQvjdG4NVzxFbFqiD01CFCoQkbIqFa
-         aeNQ==
+        d=google.com; s=20221208; t=1681431122; x=1684023122;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:from:to:cc:subject:date:message-id:reply-to;
+        bh=BkEj6q2IVKaYOP6wiiRLnj5ts2mBBZa+OIxL/GSTf98=;
+        b=hEKe7KJhnbtB7HOx0Et2GGRR4tPoUqzTdWnfUxGGsyi9EoTWrZhVqGnrZvvHuOndFb
+         TZMGSQ8vslsUBzDoxn9iNYO9LNL12Zs3VwW97btbxF/u5m0XCRPh93bGl4sbvEzqxT6/
+         vZR2E4QR8bsqooC9JFGEbUD4GNGVdkQWEnhHWe0gty7hNJfMUG+x6qUJrqOv1s31GKD5
+         /0uqMrvUHdk6drQi8pnb3EXthHB7+IGInrY92tJ9ElhNKYIt+IMYZonjXRQ9OCvmz8n+
+         DadYc4CMCAJvwcgOviymbXY411dscM1zCutEA5OdbSJuHP8nTNCFxIaU7gllAACoSnWm
+         TMoA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1681431119; x=1684023119;
-        h=content-transfer-encoding:cc:to:from:subject:message-id
-         :mime-version:date:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=i+pweVgTeWv08z0ELDTsB0Ltp1Ye2bcZK0KHo4GqVbw=;
-        b=QeuerAjp96f0z+TgoMvtpuZeWXbxfNaDbkUEIVBmkjKmDqt9Ind7C+1iynZor+4b/J
-         L4ZtRqla74qnhhbf8NSAneRRolQ0x6bAo8eOoa5gTeJkBs6nhWK5RVRpvnM74IKWizCS
-         k2zNLUo8y1Esa538tfyXsK70bbt/8YmV14UALfrBtHVFiHye/Wk9BG5T8D+r3xrfcIeG
-         aAPQPT8LpH2k5sBKwgwtzuOuC3dJxbUfus8neZ7mrwRcHVmY9ik3ojFY3DDecaEqiUS0
-         jYZ0ZZJkmS3+soaeUmBi13uKYndb7Clo+xT/tf+D6GiA5PS+HfQqtvf6rJV/p0lYtSvE
-         MG5w==
-X-Gm-Message-State: AAQBX9duv499DtZsPh8LNRUnLgLT1x7KXjySFd5SkqnhKVTVmGgugkWu
-        q2IHkU53NBCasSJsfulmf5XfikjHTgGjMaNF2w==
-X-Google-Smtp-Source: AKy350aFyMPBdyqRFopcQD1OOk7RIztiWHN973sMgROTFTwCsBiX6bTJGMx6PuL8Cu3fjd47w7zygKuC4QNdUU7X4w==
+        d=1e100.net; s=20221208; t=1681431122; x=1684023122;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=BkEj6q2IVKaYOP6wiiRLnj5ts2mBBZa+OIxL/GSTf98=;
+        b=LS08fVAHHi6X573quWF5CQkMIg4/0esqnl6VPnfLhlTzLYHpaIrI0qJ7d4wahvDswV
+         c6i9v219SUn2Bk2evfZyuE3P4na3MrBx5vQq+aI8MMMxYjgeH+SF5D+SA74msE5SAIds
+         eaj/1DwyLjchxs2iwd5bPZKXy43uFdj5Qq+eFacBtkxYY9qmJFwhdjmYMTUXZ2gQm41V
+         EK3TdM9OSZaIoElggsgRWrycme/5DFAJbi+FjEqvF/aJ/qG3abVpGZKmg9nXRefQIHLa
+         QcT7wcH/2PrUb6fc0mcO3Q1Tk3hrbv7LVcNxnudGRWzbW55vS7YbeFDIhgSSt0ASWaap
+         /SSQ==
+X-Gm-Message-State: AAQBX9dpzXw84e2UjzlMCC6PqYi07cY7zWRFh6s3o/cx+EYBl1rSZYZr
+        8y/8QVj5d9rQKlei1hsXK5nYlREhJNr6k0L+JA==
+X-Google-Smtp-Source: AKy350avtllPlWwvIfTF15qlG1lqqPqwu/NAHA4tctgmwlguwviMhGUhrJ6084VLBRdQnA8mKuN5Lp3jk9IuHlWLyQ==
 X-Received: from ackerleytng-cloudtop.c.googlers.com ([fda3:e722:ac3:cc00:7f:e700:c0a8:1f5f])
- (user=ackerleytng job=sendgmr) by 2002:a25:72d6:0:b0:b8f:55f6:e50f with SMTP
- id n205-20020a2572d6000000b00b8f55f6e50fmr2609596ybc.1.1681431119162; Thu, 13
- Apr 2023 17:11:59 -0700 (PDT)
-Date:   Fri, 14 Apr 2023 00:11:49 +0000
+ (user=ackerleytng job=sendgmr) by 2002:a63:1c09:0:b0:507:3e33:43e3 with SMTP
+ id c9-20020a631c09000000b005073e3343e3mr240709pgc.7.1681431122125; Thu, 13
+ Apr 2023 17:12:02 -0700 (PDT)
+Date:   Fri, 14 Apr 2023 00:11:51 +0000
+In-Reply-To: <cover.1681430907.git.ackerleytng@google.com>
 Mime-Version: 1.0
+References: <cover.1681430907.git.ackerleytng@google.com>
 X-Mailer: git-send-email 2.40.0.634.g4ca3ef3211-goog
-Message-ID: <cover.1681430907.git.ackerleytng@google.com>
-Subject: [RFC PATCH 0/6] Setting memory policy for restrictedmem file
+Message-ID: <cf43d4daa5e8dba22d2416cf46f586afcff0a33e.1681430907.git.ackerleytng@google.com>
+Subject: [RFC PATCH 2/6] mm: mempolicy: Refactor out mpol_init_from_nodemask
 From:   Ackerley Tng <ackerleytng@google.com>
 To:     kvm@vger.kernel.org, linux-api@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
@@ -74,105 +75,70 @@ Cc:     aarcange@redhat.com, ak@linux.intel.com, akpm@linux-foundation.org,
         rdunlap@infradead.org, masahiroy@kernel.org,
         mailhol.vincent@wanadoo.fr, Ackerley Tng <ackerleytng@google.com>
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hello,
+Refactor out mpol_init_from_nodemask() to simplify logic in do_mbind().
 
-This patchset builds upon the memfd_restricted() system call that was
-discussed in the 'KVM: mm: fd-based approach for supporting KVM' patch
-series [1].
+mpol_init_from_nodemask() will be used to perform similar
+functionality in do_memfd_restricted_bind() in a later patch.
 
-The tree can be found at:
-https://github.com/googleprodkernel/linux-cc/tree/restrictedmem-set-memory-=
-policy
-
-In this patchset, a new syscall is introduced, which allows userspace
-to set the memory policy (e.g. NUMA bindings) for a restrictedmem
-file, to the granularity of offsets within the file.
-
-The offset/length tuple is termed a file_range which is passed to the
-kernel via a pointer to get around the limit of 6 arguments for a
-syscall.
-
-The following other approaches were also considered:
-
-1. Pre-configuring a mount with a memory policy and providing that
-   mount to memfd_restricted() as proposed at [2].
-    + Pro: It allows choice of a specific backing mount with custom
-      memory policy configurations
-    + Con: Will need to create an entire new mount just to set memory
-      policy for a restrictedmem file; files on the same mount cannot
-      have different memory policies.
-
-2. Passing memory policy to the memfd_restricted() syscall at creation time=
-.
-    + Pro: Only need to make a single syscall to create a file with a
-      given memory policy
-    + Con: At creation time, the kernel doesn=E2=80=99t know the size of th=
-e
-      restrictedmem file. Given that memory policy is stored in the
-      inode based on ranges (start, end), it is awkward for the kernel
-      to store the memory policy and then add hooks to set the memory
-      policy when allocation is done.
-
-3. A more generic fbind(): it seems like this new functionality is
-   really only needed for restrictedmem files, hence a separate,
-   specific syscall was proposed to avoid complexities with handling
-   conflicting policies that may be specified via other syscalls like
-   mbind()
-
-TODOs
-
-+ Return -EINVAL if file_range is not within the size of the file and
-  tests for this
-
-Dependencies:
-
-+ Chao=E2=80=99s work on UPM [3]
-
-[1] https://lore.kernel.org/lkml/20221202061347.1070246-1-chao.p.peng@linux=
-.intel.com/T/
-[2] https://lore.kernel.org/lkml/cover.1681176340.git.ackerleytng@google.co=
-m/T/
-[3] https://github.com/chao-p/linux/commits/privmem-v11.5
-
+Signed-off-by: Ackerley Tng <ackerleytng@google.com>
 ---
+ mm/mempolicy.c | 32 +++++++++++++++++++++-----------
+ 1 file changed, 21 insertions(+), 11 deletions(-)
 
-Ackerley Tng (6):
-  mm: shmem: Refactor out shmem_shared_policy() function
-  mm: mempolicy: Refactor out mpol_init_from_nodemask
-  mm: mempolicy: Refactor out __mpol_set_shared_policy()
-  mm: mempolicy: Add and expose mpol_create
-  mm: restrictedmem: Add memfd_restricted_bind() syscall
-  selftests: mm: Add selftest for memfd_restricted_bind()
-
- arch/x86/entry/syscalls/syscall_32.tbl        |   1 +
- arch/x86/entry/syscalls/syscall_64.tbl        |   1 +
- include/linux/mempolicy.h                     |   4 +
- include/linux/shmem_fs.h                      |   7 +
- include/linux/syscalls.h                      |   5 +
- include/uapi/asm-generic/unistd.h             |   5 +-
- include/uapi/linux/mempolicy.h                |   7 +-
- kernel/sys_ni.c                               |   1 +
- mm/mempolicy.c                                | 100 ++++++++++---
- mm/restrictedmem.c                            |  75 ++++++++++
- mm/shmem.c                                    |  10 +-
- scripts/checksyscalls.sh                      |   1 +
- tools/testing/selftests/mm/.gitignore         |   1 +
- tools/testing/selftests/mm/Makefile           |   8 +
- .../selftests/mm/memfd_restricted_bind.c      | 139 ++++++++++++++++++
- .../mm/restrictedmem_testmod/Makefile         |  21 +++
- .../restrictedmem_testmod.c                   |  89 +++++++++++
- tools/testing/selftests/mm/run_vmtests.sh     |   6 +
- 18 files changed, 454 insertions(+), 27 deletions(-)
- create mode 100644 tools/testing/selftests/mm/memfd_restricted_bind.c
- create mode 100644 tools/testing/selftests/mm/restrictedmem_testmod/Makefi=
-le
- create mode 100644 tools/testing/selftests/mm/restrictedmem_testmod/restri=
-ctedmem_testmod.c
-
---
+diff --git a/mm/mempolicy.c b/mm/mempolicy.c
+index a256a241fd1d..a2655b626731 100644
+--- a/mm/mempolicy.c
++++ b/mm/mempolicy.c
+@@ -1254,6 +1254,25 @@ static struct page *new_page(struct page *page, unsigned long start)
+ }
+ #endif
+ 
++static long mpol_init_from_nodemask(struct mempolicy *mpol, const nodemask_t *nmask,
++				    bool always_unlock)
++{
++	long err;
++	NODEMASK_SCRATCH(scratch);
++
++	if (!scratch)
++		return -ENOMEM;
++
++	/* Cannot take lock before allocating in NODEMASK_SCRATCH */
++	mmap_write_lock(current->mm);
++	err = mpol_set_nodemask(mpol, nmask, scratch);
++	if (always_unlock || err)
++		mmap_write_unlock(current->mm);
++
++	NODEMASK_SCRATCH_FREE(scratch);
++	return err;
++}
++
+ static long do_mbind(unsigned long start, unsigned long len,
+ 		     unsigned short mode, unsigned short mode_flags,
+ 		     nodemask_t *nmask, unsigned long flags)
+@@ -1306,17 +1325,8 @@ static long do_mbind(unsigned long start, unsigned long len,
+ 
+ 		lru_cache_disable();
+ 	}
+-	{
+-		NODEMASK_SCRATCH(scratch);
+-		if (scratch) {
+-			mmap_write_lock(mm);
+-			err = mpol_set_nodemask(new, nmask, scratch);
+-			if (err)
+-				mmap_write_unlock(mm);
+-		} else
+-			err = -ENOMEM;
+-		NODEMASK_SCRATCH_FREE(scratch);
+-	}
++
++	err = mpol_init_from_nodemask(new, nmask, false);
+ 	if (err)
+ 		goto mpol_out;
+ 
+-- 
 2.40.0.634.g4ca3ef3211-goog
+
