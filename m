@@ -2,108 +2,130 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E4384C77B7A
-	for <linux-arch@archiver.kernel.org>; Mon, 17 Apr 2023 14:21:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E65EC77B77
+	for <linux-arch@archiver.kernel.org>; Mon, 17 Apr 2023 14:42:41 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229841AbjDQOVn convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 17 Apr 2023 10:21:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48448 "EHLO
+        id S229784AbjDQOmk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 17 Apr 2023 10:42:40 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38234 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229555AbjDQOVm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Apr 2023 10:21:42 -0400
-Received: from outpost1.zedat.fu-berlin.de (outpost1.zedat.fu-berlin.de [130.133.4.66])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 17835F3;
-        Mon, 17 Apr 2023 07:21:41 -0700 (PDT)
-Received: from inpost2.zedat.fu-berlin.de ([130.133.4.69])
-          by outpost.zedat.fu-berlin.de (Exim 4.95)
-          with esmtps (TLS1.3)
-          tls TLS_AES_256_GCM_SHA384
-          (envelope-from <glaubitz@zedat.fu-berlin.de>)
-          id 1poPjb-002Mbf-Vt; Mon, 17 Apr 2023 16:21:36 +0200
-Received: from p5b13a017.dip0.t-ipconnect.de ([91.19.160.23] helo=[192.168.178.81])
-          by inpost2.zedat.fu-berlin.de (Exim 4.95)
-          with esmtpsa (TLS1.3)
-          tls TLS_AES_256_GCM_SHA384
-          (envelope-from <glaubitz@physik.fu-berlin.de>)
-          id 1poPjb-0046Ky-Nw; Mon, 17 Apr 2023 16:21:35 +0200
-Message-ID: <3522e1a2957f20a01bd5bc61b0f78d4d38e43b68.camel@physik.fu-berlin.de>
-Subject: Re: [PATCH v3 16/19] arch/sh: Implement <asm/fb.h> with generic
- helpers
-From:   John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-To:     Thomas Zimmermann <tzimmermann@suse.de>, arnd@arndb.de,
-        daniel.vetter@ffwll.ch, deller@gmx.de, javierm@redhat.com,
-        gregkh@linuxfoundation.org
-Cc:     linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org,
-        dri-devel@lists.freedesktop.org,
-        linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org,
-        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org,
-        sparclinux@vger.kernel.org, x86@kernel.org,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>
-Date:   Mon, 17 Apr 2023 16:21:34 +0200
-In-Reply-To: <20230417125651.25126-17-tzimmermann@suse.de>
-References: <20230417125651.25126-1-tzimmermann@suse.de>
-         <20230417125651.25126-17-tzimmermann@suse.de>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-User-Agent: Evolution 3.48.0 
+        with ESMTP id S229551AbjDQOmj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Apr 2023 10:42:39 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 71A5B10CF;
+        Mon, 17 Apr 2023 07:42:38 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 0C8C661D57;
+        Mon, 17 Apr 2023 14:42:38 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F0820C433EF;
+        Mon, 17 Apr 2023 14:42:33 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1681742557;
+        bh=vK2Mdh81hU0JcVT4r2p86moQFzFGUnlZDHXh1AzFMFU=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=ZladgrftPwmlvOxj9rleuJBtqTLN4AMElXXoPxwqYfn7tuJEKuRJH7dRYCkW+w0oA
+         QVDdG7eL5O383ATdRuJn2WGuU4052SCGbkZTctH88NRChqbDXWKHUHyl3LI9UGvg4+
+         U5wlN5L8QgSa9qRz6IMq/i7R5M3RPOe9JlhFjLngFNqkOSG6ZRm6y0lOhR5vPd2V4n
+         sQbgGwaSSCfBS5YIsQivPArb+m9r4kLN2RbEjCVL1rAAzV8dW0Wzwn8+Vl/zq0nnr5
+         Bh2sbwhk1bBx2Hmh3qN1U4TgHyV65DamYSQ9/ms0bHZ+D4C8stNY4RhW0ni4Oo9JsE
+         Fs2k+f5y3kaOw==
+Date:   Mon, 17 Apr 2023 16:42:30 +0200
+From:   Christian Brauner <brauner@kernel.org>
+To:     Stanislav Fomichev <sdf@google.com>
+Cc:     Aleksandr Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>,
+        Eric Dumazet <edumazet@google.com>, davem@davemloft.net,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        daniel@iogearbox.net, Jakub Kicinski <kuba@kernel.org>,
+        Paolo Abeni <pabeni@redhat.com>,
+        Leon Romanovsky <leon@kernel.org>,
+        David Ahern <dsahern@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Kees Cook <keescook@chromium.org>,
+        Kuniyuki Iwashima <kuniyu@amazon.com>,
+        Lennart Poettering <mzxreary@0pointer.de>,
+        linux-arch@vger.kernel.org
+Subject: Re: [PATCH net-next v4 2/4] net: socket: add sockopts blacklist for
+ BPF cgroup hook
+Message-ID: <20230417-wellblech-zoodirektor-76a80f7763ab@brauner>
+References: <20230413133355.350571-1-aleksandr.mikhalitsyn@canonical.com>
+ <20230413133355.350571-3-aleksandr.mikhalitsyn@canonical.com>
+ <CANn89iLuLkUvX-dDC=rJhtFcxjnVmfn_-crOevbQe+EjaEDGbg@mail.gmail.com>
+ <CAEivzxcEhfLttf0VK=NmHdQxF7CRYXNm6NwUVx6jx=-u2k-T6w@mail.gmail.com>
+ <CAKH8qBt+xPygUVPMUuzbi1HCJuxc4gYOdU6JkrFmSouRQgoG6g@mail.gmail.com>
+ <ZDoEG0VF6fb9y0EC@google.com>
 MIME-Version: 1.0
-X-Original-Sender: glaubitz@physik.fu-berlin.de
-X-Originating-IP: 91.19.160.23
-X-ZEDAT-Hint: PO
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <ZDoEG0VF6fb9y0EC@google.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, 2023-04-17 at 14:56 +0200, Thomas Zimmermann wrote:
-> Replace the architecture's fbdev helpers with the generic
-> ones from <asm-generic/fb.h>. No functional changes.
+On Fri, Apr 14, 2023 at 06:55:39PM -0700, Stanislav Fomichev wrote:
+> On 04/13, Stanislav Fomichev wrote:
+> > On Thu, Apr 13, 2023 at 7:38 AM Aleksandr Mikhalitsyn
+> > <aleksandr.mikhalitsyn@canonical.com> wrote:
+> > >
+> > > On Thu, Apr 13, 2023 at 4:22 PM Eric Dumazet <edumazet@google.com> wrote:
+> > > >
+> > > > On Thu, Apr 13, 2023 at 3:35 PM Alexander Mikhalitsyn
+> > > > <aleksandr.mikhalitsyn@canonical.com> wrote:
+> > > > >
+> > > > > During work on SO_PEERPIDFD, it was discovered (thanks to Christian),
+> > > > > that bpf cgroup hook can cause FD leaks when used with sockopts which
+> > > > > install FDs into the process fdtable.
+> > > > >
+> > > > > After some offlist discussion it was proposed to add a blacklist of
+> > > >
+> > > > We try to replace this word by either denylist or blocklist, even in changelogs.
+> > >
+> > > Hi Eric,
+> > >
+> > > Oh, I'm sorry about that. :( Sure.
+> > >
+> > > >
+> > > > > socket options those can cause troubles when BPF cgroup hook is enabled.
+> > > > >
+> > > >
+> > > > Can we find the appropriate Fixes: tag to help stable teams ?
+> > >
+> > > Sure, I will add next time.
+> > >
+> > > Fixes: 0d01da6afc54 ("bpf: implement getsockopt and setsockopt hooks")
+> > >
+> > > I think it's better to add Stanislav Fomichev to CC.
+> > 
+> > Can we use 'struct proto' bpf_bypass_getsockopt instead? We already
+> > use it for tcp zerocopy, I'm assuming it should work in this case as
+> > well?
 > 
-> v2:
-> 	* use default implementation for fb_pgprotect() (Arnd)
+> Jakub reminded me of the other things I wanted to ask here bug forgot:
 > 
-> Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: Rich Felker <dalias@libc.org>
-> Cc: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-> ---
->  arch/sh/include/asm/fb.h | 15 +--------------
->  1 file changed, 1 insertion(+), 14 deletions(-)
-> 
-> diff --git a/arch/sh/include/asm/fb.h b/arch/sh/include/asm/fb.h
-> index 9a0bca2686fd..19df13ee9ca7 100644
-> --- a/arch/sh/include/asm/fb.h
-> +++ b/arch/sh/include/asm/fb.h
-> @@ -2,19 +2,6 @@
->  #ifndef _ASM_FB_H_
->  #define _ASM_FB_H_
->  
-> -#include <linux/fb.h>
-> -#include <linux/fs.h>
-> -#include <asm/page.h>
-> -
-> -static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
-> -				unsigned long off)
-> -{
-> -	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-> -}
-> -
-> -static inline int fb_is_primary_device(struct fb_info *info)
-> -{
-> -	return 0;
-> -}
-> +#include <asm-generic/fb.h>
->  
->  #endif /* _ASM_FB_H_ */
+> - setsockopt is probably not needed, right? setsockopt hook triggers
+>   before the kernel and shouldn't leak anything
+> - for getsockopt, instead of bypassing bpf completely, should we instead
+>   ignore the error from the bpf program? that would still preserve
 
-Acked-by: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+That's fine by me as well.
 
--- 
- .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer
-`. `'   Physicist
-  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+It'd be great if the net folks could tell Alex how they would want this
+handled.
+
+>   the observability aspect
+
+Please see for more details
+https://lore.kernel.org/lkml/20230411-nudelsalat-spreu-3038458f25c4@brauner
+
+
+> - or maybe we can even have a per-proto bpf_getsockopt_cleanup call that
+>   gets called whenever bpf returns an error to make sure protocols have
+>   a chance to handle that condition (and free the fd)
+
+Installing an fd into an fdtable makes it visible to userspace at which
+point calling close_fd() is doable but an absolute last resort and
+generally a good indicator of misdesign. If the bpf hook wants to make
+decisions based on the file then it should receive a struct
+file, not an fd.
