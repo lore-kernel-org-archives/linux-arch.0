@@ -2,52 +2,52 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7894CC77B76
-	for <linux-arch@archiver.kernel.org>; Mon, 17 Apr 2023 12:57:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 249E9C77B72
+	for <linux-arch@archiver.kernel.org>; Mon, 17 Apr 2023 12:59:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231454AbjDQM5s (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 17 Apr 2023 08:57:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47408 "EHLO
+        id S230030AbjDQM7B (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 17 Apr 2023 08:59:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47500 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231346AbjDQM5V (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Apr 2023 08:57:21 -0400
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [IPv6:2001:67c:2178:6::1c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DE20F9754;
-        Mon, 17 Apr 2023 05:57:03 -0700 (PDT)
+        with ESMTP id S231411AbjDQM5d (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 17 Apr 2023 08:57:33 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [IPv6:2001:67c:2178:6::1d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C25DF9ED6;
+        Mon, 17 Apr 2023 05:57:12 -0700 (PDT)
 Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
         (No client certificate requested)
-        by smtp-out1.suse.de (Postfix) with ESMTPS id 7444321A79;
-        Mon, 17 Apr 2023 12:57:01 +0000 (UTC)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id BC4EA1FE0F;
+        Mon, 17 Apr 2023 12:57:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-        t=1681736221; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+        t=1681736225; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
          mime-version:mime-version:
          content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=iG0FY3Kl3gPj6CmaqKKFtjB0wM01q0+Cw6A2hhNMH4g=;
-        b=BBEQa6NUG7vLr3ul5YZVF3dQYc/iGt5Ytsx51/ik0XKZftZeHvpY8Xr1Ky2r2Riezga1CI
-        4s9UWzwmeoLYidXEPd3PiEv4ng0HDcDsUM/mSSlTqF7QPe9EOOeF4+rEa8ixR44VROWWAk
-        HkIWt3+A9rO3XJbubEMNB0mFv6D7TB8=
+        bh=/rz0KVXgl7eygxSOZmb7rFdY5CLJi8hQKmbruW8U1YU=;
+        b=VpHvENwZHnBCyXjOULTtGXZdYAugTWqnh+HTkbLLExQWCyu+/FN1J7BdzAaO6YDeoE7GW4
+        HP8VXSA0tIb8XdH7qNsiW6OXkFbCtAecOY7mH5fW7wFCalLfaXTBxPHiiarpzxr3+IYs9w
+        vtGN25+04Ttm7vFolaDi1M+V0AQnU3o=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-        s=susede2_ed25519; t=1681736221;
+        s=susede2_ed25519; t=1681736225;
         h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
          mime-version:mime-version:
          content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=iG0FY3Kl3gPj6CmaqKKFtjB0wM01q0+Cw6A2hhNMH4g=;
-        b=Sf+t+o+Fk/BHIdeJH+iKB4J3syr51ygn2goItN4HoVYlXk2EHVBX4YTaCqbs4dmMjWg0em
-        Hszq33oX/i6vfMAw==
+        bh=/rz0KVXgl7eygxSOZmb7rFdY5CLJi8hQKmbruW8U1YU=;
+        b=BXMcHuKHts+WrGo+6uxSH+bF2kXeTa35zcDAx3h7WJADV68Zx7N+ICQonVWeTSPJg7atE7
+        I9Yhhfsyb2mxfEAQ==
 Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
         (No client certificate requested)
-        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id D9AAC1391A;
-        Mon, 17 Apr 2023 12:57:00 +0000 (UTC)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 639721390E;
+        Mon, 17 Apr 2023 12:57:05 +0000 (UTC)
 Received: from dovecot-director2.suse.de ([192.168.254.65])
         by imap2.suse-dmz.suse.de with ESMTPSA
-        id 4A9ZNBxCPWToWwAAMHmgww
-        (envelope-from <tzimmermann@suse.de>); Mon, 17 Apr 2023 12:57:00 +0000
+        id MO3fFiFCPWToWwAAMHmgww
+        (envelope-from <tzimmermann@suse.de>); Mon, 17 Apr 2023 12:57:05 +0000
 From:   Thomas Zimmermann <tzimmermann@suse.de>
 To:     arnd@arndb.de, daniel.vetter@ffwll.ch, deller@gmx.de,
         javierm@redhat.com, gregkh@linuxfoundation.org
@@ -60,10 +60,10 @@ Cc:     linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org,
         linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org,
         sparclinux@vger.kernel.org, x86@kernel.org,
         Thomas Zimmermann <tzimmermann@suse.de>,
-        Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v3 07/19] arch/m68k: Merge variants of fb_pgprotect() into single function
-Date:   Mon, 17 Apr 2023 14:56:39 +0200
-Message-Id: <20230417125651.25126-8-tzimmermann@suse.de>
+        "David S. Miller" <davem@davemloft.net>
+Subject: [PATCH v3 17/19] arch/sparc: Implement fb_is_primary_device() in source file
+Date:   Mon, 17 Apr 2023 14:56:49 +0200
+Message-Id: <20230417125651.25126-18-tzimmermann@suse.de>
 X-Mailer: git-send-email 2.40.0
 In-Reply-To: <20230417125651.25126-1-tzimmermann@suse.de>
 References: <20230417125651.25126-1-tzimmermann@suse.de>
@@ -73,55 +73,117 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Merge all variants of fb_pgprotect() into a single function body.
-There are two different cases for MMU systems. For non-MMU systems,
-the function body will be empty. No functional changes, but this
-will help with the switch to <asm-generic/fb.h>.
+Other architectures implment fb_is_primary_device() in a source
+file. Do the same on sparc. No functional changes, but allows to
+remove several include statement from <asm/fb.h>.
+
+v2:
+	* don't include <asm/prom.h> in header file
 
 Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
- arch/m68k/include/asm/fb.h | 12 +++---------
- 1 file changed, 3 insertions(+), 9 deletions(-)
+ arch/sparc/Makefile         |  1 +
+ arch/sparc/include/asm/fb.h | 23 +++++------------------
+ arch/sparc/video/Makefile   |  3 +++
+ arch/sparc/video/fbdev.c    | 24 ++++++++++++++++++++++++
+ 4 files changed, 33 insertions(+), 18 deletions(-)
+ create mode 100644 arch/sparc/video/Makefile
+ create mode 100644 arch/sparc/video/fbdev.c
 
-diff --git a/arch/m68k/include/asm/fb.h b/arch/m68k/include/asm/fb.h
-index b86c6e2e26dd..4f96989922af 100644
---- a/arch/m68k/include/asm/fb.h
-+++ b/arch/m68k/include/asm/fb.h
-@@ -7,17 +7,13 @@
- #include <asm/page.h>
- #include <asm/setup.h>
+diff --git a/arch/sparc/Makefile b/arch/sparc/Makefile
+index a4ea5b05f288..95a9211e48e3 100644
+--- a/arch/sparc/Makefile
++++ b/arch/sparc/Makefile
+@@ -60,6 +60,7 @@ libs-y                 += arch/sparc/prom/
+ libs-y                 += arch/sparc/lib/
  
--#ifdef CONFIG_MMU
--#ifdef CONFIG_SUN3
+ drivers-$(CONFIG_PM) += arch/sparc/power/
++drivers-$(CONFIG_FB) += arch/sparc/video/
+ 
+ boot := arch/sparc/boot
+ 
+diff --git a/arch/sparc/include/asm/fb.h b/arch/sparc/include/asm/fb.h
+index f699962e9ddf..28609f7a965c 100644
+--- a/arch/sparc/include/asm/fb.h
++++ b/arch/sparc/include/asm/fb.h
+@@ -1,11 +1,12 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef _SPARC_FB_H_
+ #define _SPARC_FB_H_
+-#include <linux/console.h>
+-#include <linux/fb.h>
++
+ #include <linux/fs.h>
++
+ #include <asm/page.h>
+-#include <asm/prom.h>
++
++struct fb_info;
+ 
  static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
  				unsigned long off)
- {
-+#ifdef CONFIG_MMU
-+#ifdef CONFIG_SUN3
- 	pgprot_val(vma->vm_page_prot) |= SUN3_PAGE_NOCACHE;
--}
- #else
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
--{
- 	if (CPU_IS_020_OR_030)
- 		pgprot_val(vma->vm_page_prot) |= _PAGE_NOCACHE030;
- 	if (CPU_IS_040_OR_060) {
-@@ -25,11 +21,9 @@ static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
- 		/* Use no-cache mode, serialized */
- 		pgprot_val(vma->vm_page_prot) |= _PAGE_NOCACHE_S;
- 	}
--}
- #endif /* CONFIG_SUN3 */
--#else
--#define fb_pgprotect(...) do {} while (0)
- #endif /* CONFIG_MMU */
-+}
+@@ -15,20 +16,6 @@ static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
+ #endif
+ }
  
- static inline int fb_is_primary_device(struct fb_info *info)
- {
+-static inline int fb_is_primary_device(struct fb_info *info)
+-{
+-	struct device *dev = info->device;
+-	struct device_node *node;
+-
+-	if (console_set_on_cmdline)
+-		return 0;
+-
+-	node = dev->of_node;
+-	if (node &&
+-	    node == of_console_device)
+-		return 1;
+-
+-	return 0;
+-}
++int fb_is_primary_device(struct fb_info *info);
+ 
+ #endif /* _SPARC_FB_H_ */
+diff --git a/arch/sparc/video/Makefile b/arch/sparc/video/Makefile
+new file mode 100644
+index 000000000000..6baddbd58e4d
+--- /dev/null
++++ b/arch/sparc/video/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0-only
++
++obj-$(CONFIG_FB) += fbdev.o
+diff --git a/arch/sparc/video/fbdev.c b/arch/sparc/video/fbdev.c
+new file mode 100644
+index 000000000000..dadd5799fbb3
+--- /dev/null
++++ b/arch/sparc/video/fbdev.c
+@@ -0,0 +1,24 @@
++// SPDX-License-Identifier: GPL-2.0
++
++#include <linux/console.h>
++#include <linux/fb.h>
++#include <linux/module.h>
++
++#include <asm/fb.h>
++#include <asm/prom.h>
++
++int fb_is_primary_device(struct fb_info *info)
++{
++	struct device *dev = info->device;
++	struct device_node *node;
++
++	if (console_set_on_cmdline)
++		return 0;
++
++	node = dev->of_node;
++	if (node && node == of_console_device)
++		return 1;
++
++	return 0;
++}
++EXPORT_SYMBOL(fb_is_primary_device);
 -- 
 2.40.0
 
