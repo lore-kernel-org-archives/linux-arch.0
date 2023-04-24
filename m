@@ -2,245 +2,143 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E34AEC77B7C
-	for <linux-arch@archiver.kernel.org>; Sat, 22 Apr 2023 17:57:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 65701C77B61
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Apr 2023 21:16:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229801AbjDVR51 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 22 Apr 2023 13:57:27 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44350 "EHLO
+        id S232262AbjDXVQ3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Apr 2023 17:16:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33704 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229751AbjDVR5Z (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 22 Apr 2023 13:57:25 -0400
-Received: from mailbox.box.xen0n.name (mail.xen0n.name [115.28.160.31])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59456269A;
-        Sat, 22 Apr 2023 10:57:24 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xen0n.name; s=mail;
-        t=1682186243; bh=HXXYuFEBmSyKsiMJlNx/0TnAcXA/avZNHLVfmtY016E=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=xP4n34yalLfIFyUVVY7/xam3g64taijI94UojDjyoleVPF/PTsufkN8SM2Ajp/A38
-         5ZfSlJAjq0R4nDRfNVOpwuo057dJ7/uG1IsT83BnShQ9CTTARy6JPQ62fMCiV7hqXA
-         9iGl2QgCYw8Aar8f1cnzvZhEBizck9V+J5vMsOjM=
-Received: from ld50.lan (unknown [101.228.138.124])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-        (No client certificate requested)
-        by mailbox.box.xen0n.name (Postfix) with ESMTPSA id 2203060B16;
-        Sun, 23 Apr 2023 01:57:22 +0800 (CST)
-From:   WANG Xuerui <kernel@xen0n.name>
-To:     loongarch@lists.linux.dev
-Cc:     WANG Xuerui <git@xen0n.name>, Huacai Chen <chenhuacai@kernel.org>,
-        Xi Ruoyao <xry111@xry111.site>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Al Viro <viro@zeniv.linux.org.uk>,
-        Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [PATCH v2 2/2] LoongArch: Relay BCE exceptions to userland as SIGSEGVs with si_code=SEGV_BNDERR
-Date:   Sun, 23 Apr 2023 01:57:05 +0800
-Message-Id: <20230422175705.3444561-3-kernel@xen0n.name>
-X-Mailer: git-send-email 2.40.0
-In-Reply-To: <20230422175705.3444561-1-kernel@xen0n.name>
-References: <20230422175705.3444561-1-kernel@xen0n.name>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S229872AbjDXVQ2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Apr 2023 17:16:28 -0400
+Received: from out5-smtp.messagingengine.com (out5-smtp.messagingengine.com [66.111.4.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 899A41B3;
+        Mon, 24 Apr 2023 14:16:27 -0700 (PDT)
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
+        by mailout.nyi.internal (Postfix) with ESMTP id EDEB15C0194;
+        Mon, 24 Apr 2023 17:16:26 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute6.internal (MEProxy); Mon, 24 Apr 2023 17:16:26 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :cc:content-type:content-type:date:date:from:from:in-reply-to
+        :message-id:mime-version:reply-to:sender:subject:subject:to:to;
+         s=fm2; t=1682370986; x=1682457386; bh=TdHPh7/T5CgJtnWa9OfzQfXaL
+        soGpymfbR8QJC3nNd0=; b=EBalbtpxIqJs/zg5dqzhX3AD0gh9yp7uO1yvONYE9
+        FVY5CI4IwFczbNqD6bdMkxfN6dWUiDiks88fOxqmd5cOH7LoxFkSTkfMXfTT6Wvo
+        a0HpSi8NR+eXgr1qI8jubfCz4aLCiOtYQDaxmf60bd1Y9jzvOLbj0LkY7f/EjKzz
+        H25oHYdz9zyl9gvgGvzEuc/yAZtxsjEo8B2NJ5oyHeKP+xFi+kW5lQtw3VGGWJN4
+        KpKswFQbbDVvx0IgfYZUnOOv40hX8ujFnKdR7CzK/kVcB5XZFBO9QPV4XD1uaoV5
+        lX+tKBHIxNrCLvKfBnBdGWywnYjgxlKrBSm2mj2Zy1FFg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-type:content-type:date:date
+        :feedback-id:feedback-id:from:from:in-reply-to:message-id
+        :mime-version:reply-to:sender:subject:subject:to:to:x-me-proxy
+        :x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=
+        1682370986; x=1682457386; bh=TdHPh7/T5CgJtnWa9OfzQfXaLsoGpymfbR8
+        QJC3nNd0=; b=JotyfwsAJAvuFapPOEnHL4+94qlUW18uTBY30z1q0jAYoiQnNr6
+        cMiwJ/Ojde+FKxAfpAZBCZ/4lvOIEL/Ns/gnDIpEBrC/I0ce3o1JAAxNTYHLQPjq
+        w25g9prQQKHJIc5xBdoED0wsqXATDIAOXhn8m9IEyBQd4uKKucSITOwf8X9k6G11
+        +GHF5Mdrh8M7z3p7RAFIBfzBZyOV6w2eZdCZ0+DGyyyKP61IWNxBXmqzYEZeo0el
+        7ahDMc9QVUtdCk8V1veINuvC10J3vXdw3n7nF/wfcjqulja/6dkWfxXOJga2Hx6l
+        3SAz7Xrmfu4dDl7p3k014IUcBQIyJYSmJpA==
+X-ME-Sender: <xms:qvFGZIKjg3XB9K73p97UE6dMtL75hWsTZQ4cQNa5YW9ej_bkFd1qsg>
+    <xme:qvFGZIKGwQ1VhJfVg-M1VRmZbUI0ILkfpHn1x8scqt7QdnUId-RSck4otpRGPwUvC
+    kZ2Wlrg__I61NaDx7s>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvhedrfedutddgudehlecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfgh
+    necuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmd
+    enucfjughrpefofgggkfffhffvvefutgesthdtredtreertdenucfhrhhomhepfdetrhhn
+    ugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrghtth
+    gvrhhnpeeffeeuhfekjeevtddvtdelledttddtjeegvdfhtdduvdfhueekudeihfejtefg
+    ieenucffohhmrghinhepkhgvrhhnvghlrdhorhhgnecuvehluhhsthgvrhfuihiivgeptd
+    enucfrrghrrghmpehmrghilhhfrhhomheprghrnhgusegrrhhnuggsrdguvg
+X-ME-Proxy: <xmx:qvFGZItpd23CRjK_MTqzbs4TbynQCfKhPzK56sm3B624RVF4AvxQwQ>
+    <xmx:qvFGZFY-sv9mSnk7OLoYRzGr7tEwUpguIpYp4QfZ0QP2kYwUn73tqg>
+    <xmx:qvFGZPaScUpOnyWyOek_VURLn1_Z5qIP8IKiG7RIQFhyjDGM005Qdw>
+    <xmx:qvFGZLHqKLLAXkx1HnNYDVsvTcnJNOf-vKJ6ruAj93VCu1C7sswkLg>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id 808FDB60086; Mon, 24 Apr 2023 17:16:26 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-374-g72c94f7a42-fm-20230417.001-g72c94f7a
+Mime-Version: 1.0
+Message-Id: <66184958-d99a-4f64-bc67-50a703f51019@app.fastmail.com>
+Date:   Mon, 24 Apr 2023 23:15:59 +0200
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     "Linus Torvalds" <torvalds@linux-foundation.org>
+Cc:     Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-kernel@vger.kernel.org,
+        "Niklas Schnelle" <schnelle@linux.ibm.com>,
+        "Palmer Dabbelt" <palmer@dabbelt.com>,
+        "Thomas Huth" <thuth@redhat.com>
+Subject: [GIT PULL] asm-generic updates for 6.4
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: WANG Xuerui <git@xen0n.name>
+The following changes since commit fe15c26ee26efa11741a7b632e9f23b01aca4cc6:
 
-SEGV_BNDERR was introduced initially for supporting the Intel MPX, but
-fell into disuse after the MPX support was removed. The LoongArch
-bounds-checking instructions behave very differently than MPX, but
-overall the interface is still kind of suitable for conveying the
-information to userland when bounds-checking assertions trigger, so we
-wouldn't have to invent more UAPI. Specifically, when the BCE triggers,
-a SEGV_BNDERR is sent to userland, with si_addr set to the out-of-bounds
-address or value (in asrt{gt,le}'s case), and one of si_lower or
-si_upper set to the configured bound depending on the faulting
-instruction. The other bound is set to either 0 or ULONG_MAX to resemble
-a range with both lower and upper bounds.
+  Linux 6.3-rc1 (2023-03-05 14:52:03 -0800)
 
-Note that it is possible to have si_addr == si_lower in case of a
-failing asrtgt or {ld,st}gt, because those instructions test for strict
-greater-than relationship. This should not pose a problem for userland,
-though, because the faulting PC is available for the application to
-associate back to the exact instruction for figuring out the
-expectation.
+are available in the Git repository at:
 
-Somewhat contrary to the v1.03 ISA manual's wording, CSR.BADV does not
-seem to contain the out-of-bounds value when BCE occurs in my
-experiments. So we have to resort to pattern-matching the instruction
-word to pull out the appropriate operand ourselves from the context.
+  https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-6.4
 
-Example exception context generated by a faulting `asrtgt.d t0, t1`
-(assert t0 > t1 or BCE) with t0=100 and t1=200:
+for you to fetch changes up to 73afb20716e163cdaf662af30d3597aeaacc6a0b:
 
-> pc 00005555558206a4 ra 00007ffff2d854fc tp 00007ffff2f2f180 sp 00007ffffbf9fb80
-> a0 0000000000000002 a1 00007ffffbf9fce8 a2 00007ffffbf9fd00 a3 00007ffff2ed4558
-> a4 0000000000000000 a5 00007ffff2f044c8 a6 00007ffffbf9fce0 a7 fffffffffffff000
-> t0 0000000000000064 t1 00000000000000c8 t2 00007ffffbfa2d5e t3 00007ffff2f12aa0
-> t4 00007ffff2ed6158 t5 00007ffff2ed6158 t6 000000000000002e t7 0000000003d8f538
-> t8 0000000000000005 u0 0000000000000000 s9 0000000000000000 s0 00007ffffbf9fce8
-> s1 0000000000000002 s2 0000000000000000 s3 00007ffff2f2c038 s4 0000555555820610
-> s5 00007ffff2ed5000 s6 0000555555827e38 s7 00007ffffbf9fd00 s8 0000555555827e38
->    ra: 00007ffff2d854fc
->   ERA: 00005555558206a4
->  CRMD: 000000b0 (PLV0 -IE -DA +PG DACF=CC DACM=CC -WE)
->  PRMD: 00000007 (PPLV3 +PIE -PWE)
->  EUEN: 00000000 (-FPE -SXE -ASXE -BTE)
->  ECFG: 0007181c (LIE=2-4,11-12 VS=7)
-> ESTAT: 000a0000 [BCE] (IS= ECode=10 EsubCode=0)
->  PRID: 0014c010 (Loongson-64bit, Loongson-3A5000)
+  Merge branch 'asm-generic-io' into asm-generic (2023-04-05 22:20:00 +0200)
 
-Signed-off-by: WANG Xuerui <git@xen0n.name>
----
- arch/loongarch/kernel/genex.S |  1 +
- arch/loongarch/kernel/traps.c | 99 +++++++++++++++++++++++++++++++++++
- 2 files changed, 100 insertions(+)
+----------------------------------------------------------------
+asm-generic updates for 6.4
 
-diff --git a/arch/loongarch/kernel/genex.S b/arch/loongarch/kernel/genex.S
-index 44ff1ff64260..78f066384657 100644
---- a/arch/loongarch/kernel/genex.S
-+++ b/arch/loongarch/kernel/genex.S
-@@ -82,6 +82,7 @@ SYM_FUNC_END(except_vec_cex)
- 
- 	BUILD_HANDLER ade ade badv
- 	BUILD_HANDLER ale ale badv
-+	BUILD_HANDLER bce bce none
- 	BUILD_HANDLER bp bp none
- 	BUILD_HANDLER fpe fpe fcsr
- 	BUILD_HANDLER fpu fpu none
-diff --git a/arch/loongarch/kernel/traps.c b/arch/loongarch/kernel/traps.c
-index 8b268c133b92..5b3bb6b55e05 100644
---- a/arch/loongarch/kernel/traps.c
-+++ b/arch/loongarch/kernel/traps.c
-@@ -36,6 +36,7 @@
- #include <asm/break.h>
- #include <asm/cpu.h>
- #include <asm/fpu.h>
-+#include <asm/inst.h>
- #include <asm/loongarch.h>
- #include <asm/mmu_context.h>
- #include <asm/pgtable.h>
-@@ -51,6 +52,7 @@
- 
- extern asmlinkage void handle_ade(void);
- extern asmlinkage void handle_ale(void);
-+extern asmlinkage void handle_bce(void);
- extern asmlinkage void handle_sys(void);
- extern asmlinkage void handle_bp(void);
- extern asmlinkage void handle_ri(void);
-@@ -585,6 +587,102 @@ static void bug_handler(struct pt_regs *regs)
- 	}
- }
- 
-+asmlinkage void noinstr do_bce(struct pt_regs *regs)
-+{
-+	irqentry_state_t state = irqentry_enter(regs);
-+	bool user = user_mode(regs);
-+	unsigned long era = exception_era(regs);
-+	union loongarch_instruction insn;
-+	u64 badv = 0, lower = 0, upper = ULONG_MAX;
-+
-+	if (regs->csr_prmd & CSR_PRMD_PIE)
-+		local_irq_enable();
-+
-+	current->thread.trap_nr = read_csr_excode();
-+
-+	die_if_kernel("Bounds check error in kernel code", regs);
-+
-+	/*
-+	 * Pull out the address that failed bounds checking, and the lower /
-+	 * upper bound, by minimally looking at the faulting instruction word
-+	 * and reading from the correct register.
-+	 *
-+	 * Somewhat counter-intuitively (but kinds of makes sense), BCEs
-+	 * during checked memory accesses *do not* update CSR.BADV. So badv
-+	 * still comes from regs[rj] in these cases.
-+	 */
-+	if (__get_inst(&insn.word, (u32 *)era, user))
-+		goto bad_era;
-+
-+	switch (insn.reg3_format.opcode) {
-+	case asrtle_op:
-+		if (insn.reg3_format.rd != 0)
-+			/* not asrtle */
-+			break;
-+		badv = regs->regs[insn.reg3_format.rj];
-+		upper = regs->regs[insn.reg3_format.rk];
-+		break;
-+
-+	case asrtgt_op:
-+		if (insn.reg3_format.rd != 0)
-+			/* not asrtgt */
-+			break;
-+		badv = regs->regs[insn.reg3_format.rj];
-+		lower = regs->regs[insn.reg3_format.rk];
-+		break;
-+
-+	case fldles_op:
-+	case fldled_op:
-+	case fstles_op:
-+	case fstled_op:
-+	case ldleb_op:
-+	case ldleh_op:
-+	case ldlew_op:
-+	case ldled_op:
-+	case stleb_op:
-+	case stleh_op:
-+	case stlew_op:
-+	case stled_op:
-+		badv = regs->regs[insn.reg3_format.rj];
-+		upper = regs->regs[insn.reg3_format.rk];
-+		break;
-+
-+	case fldgts_op:
-+	case fldgtd_op:
-+	case fstgts_op:
-+	case fstgtd_op:
-+	case ldgtb_op:
-+	case ldgth_op:
-+	case ldgtw_op:
-+	case ldgtd_op:
-+	case stgtb_op:
-+	case stgth_op:
-+	case stgtw_op:
-+	case stgtd_op:
-+		badv = regs->regs[insn.reg3_format.rj];
-+		lower = regs->regs[insn.reg3_format.rk];
-+		break;
-+	}
-+
-+	force_sig_bnderr((void __user *)badv, (void __user *)lower,
-+			 (void __user *)upper);
-+
-+out:
-+	if (regs->csr_prmd & CSR_PRMD_PIE)
-+		local_irq_disable();
-+
-+	irqentry_exit(regs, state);
-+	return;
-+
-+bad_era:
-+	/*
-+	 * Cannot pull out the instruction word, hence cannot provide more
-+	 * info than a regular SIGSEGV in this case.
-+	 */
-+	force_sig(SIGSEGV);
-+	goto out;
-+}
-+
- asmlinkage void noinstr do_bp(struct pt_regs *regs)
- {
- 	bool user = user_mode(regs);
-@@ -952,6 +1050,7 @@ void __init trap_init(void)
- 
- 	set_handler(EXCCODE_ADE * VECSIZE, handle_ade, VECSIZE);
- 	set_handler(EXCCODE_ALE * VECSIZE, handle_ale, VECSIZE);
-+	set_handler(EXCCODE_OOB * VECSIZE, handle_bce, VECSIZE);
- 	set_handler(EXCCODE_SYS * VECSIZE, handle_sys, VECSIZE);
- 	set_handler(EXCCODE_BP * VECSIZE, handle_bp, VECSIZE);
- 	set_handler(EXCCODE_INE * VECSIZE, handle_ri, VECSIZE);
--- 
-2.40.0
+These are various cleanups, fixing a number of uapi header files to no
+longer reference CONFIG_* symbols, and one patch that introduces the
+new CONFIG_HAS_IOPORT symbol for architectures that provide working
+inb()/outb() macros, as a preparation for adding driver dependencies
+on those in the following release.
 
+----------------------------------------------------------------
+Arnd Bergmann (1):
+      Merge branch 'asm-generic-io' into asm-generic
+
+Niklas Schnelle (1):
+      Kconfig: introduce HAS_IOPORT option and select it as necessary
+
+Palmer Dabbelt (3):
+      Move COMPAT_ATM_ADDPARTY to net/atm/svc.c
+      Move ep_take_care_of_epollwakeup() to fs/eventpoll.c
+      Move bp_type_idx to include/linux/hw_breakpoint.h
+
+Thomas Huth (2):
+      pktcdvd: Remove CONFIG_CDROM_PKTCDVD_WCACHE from uapi header
+      scripts: Update the CONFIG_* ignore list in headers_install.sh
+
+ arch/alpha/Kconfig                       |  1 +
+ arch/arm/Kconfig                         |  1 +
+ arch/arm64/Kconfig                       |  1 +
+ arch/ia64/Kconfig                        |  1 +
+ arch/loongarch/Kconfig                   |  1 +
+ arch/m68k/Kconfig                        |  1 +
+ arch/microblaze/Kconfig                  |  1 +
+ arch/mips/Kconfig                        |  1 +
+ arch/parisc/Kconfig                      |  1 +
+ arch/powerpc/Kconfig                     |  1 +
+ arch/riscv/Kconfig                       |  1 +
+ arch/sh/Kconfig                          |  1 +
+ arch/sparc/Kconfig                       |  1 +
+ arch/x86/Kconfig                         |  1 +
+ drivers/block/pktcdvd.c                  | 13 +++++++++----
+ drivers/bus/Kconfig                      |  2 +-
+ drivers/parisc/Kconfig                   |  1 +
+ fs/eventpoll.c                           | 13 +++++++++++++
+ include/linux/hw_breakpoint.h            | 10 ++++++++++
+ include/uapi/linux/atmdev.h              |  4 ----
+ include/uapi/linux/eventpoll.h           | 12 ------------
+ include/uapi/linux/hw_breakpoint.h       | 10 ----------
+ include/uapi/linux/pktcdvd.h             | 11 -----------
+ lib/Kconfig                              |  4 ++++
+ net/atm/svc.c                            |  5 +++++
+ scripts/headers_install.sh               |  4 ----
+ tools/include/uapi/linux/hw_breakpoint.h | 10 ----------
+ 27 files changed, 57 insertions(+), 56 deletions(-)
