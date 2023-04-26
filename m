@@ -2,65 +2,65 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 90BE6C77B78
-	for <linux-arch@archiver.kernel.org>; Wed, 26 Apr 2023 16:50:42 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A7F7C77B78
+	for <linux-arch@archiver.kernel.org>; Wed, 26 Apr 2023 16:51:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232972AbjDZQul (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 26 Apr 2023 12:50:41 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50946 "EHLO
+        id S231397AbjDZQvG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 26 Apr 2023 12:51:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51176 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229653AbjDZQuj (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Apr 2023 12:50:39 -0400
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5D1BA3599;
-        Wed, 26 Apr 2023 09:50:38 -0700 (PDT)
-Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
-        by mx0b-00069f02.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 33QEi8xp000962;
-        Wed, 26 Apr 2023 16:50:08 GMT
+        with ESMTP id S233560AbjDZQvE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 26 Apr 2023 12:51:04 -0400
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9405F7EC8;
+        Wed, 26 Apr 2023 09:50:54 -0700 (PDT)
+Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
+        by mx0b-00069f02.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 33QEiVjL023324;
+        Wed, 26 Apr 2023 16:50:09 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
  subject : date : message-id : in-reply-to : references :
  content-transfer-encoding : content-type : mime-version;
- s=corp-2023-03-30; bh=OJ9ZwvA5PtO1fy3J0kwyv9tvqOsMb74PvRDYnKl2qJg=;
- b=NOeNjmm3noKiHg2mIyNfkqvkdMVBLlnz7prltBOJoZ14OJfSbIrVZwzg3exkXYY+3SV2
- ET3nStFlKclNyP6D6xeLfzopzZ/vtiuMyknDFMT+CKxVc0yPARRCMIhxtXHGgBeUaJku
- k1ZrMg5bP4Ch6KLY3GP9eE+oGYkiSRYpHV/a7wPAPEB1YgNPETsMgftSqn6AXNKcRjBQ
- fJLC0W8Wi3SbpYoDXDFw6A9U57N+Obzjpilb6Pw59rqra6KF9Cb7g5nl4FfRRixbGV4/
- aDZ3wMzJKlmbdTFxYX+iONgwSpnyCP1tbjpRKXf0c+X2MseMmGiSPxkfBxsLHeYynnKJ LQ== 
+ s=corp-2023-03-30; bh=Edtv/rXrLh+RAvkBVKVzY+P/b5NeCvWwYrh6g8zNRzA=;
+ b=JCV9Qq1P25GXfMMotXyEYJB8t/PKsrYZcBtFYw4ou4ExrS/KW792k7+fuFX7O6L6m0Om
+ TfRUj+ZiGqG/shJOIRom5va//tnsbDZkHWCrto7pMUdpb29f0gBwlPRBkwZPMqUMgb1O
+ a1UaTmeXJdHcpyHVzV7DGP3p53DpPte+nAB8rurx/xn3CzF/ZB/6mGzl2pbzlD7Sfxg3
+ Ote9nR6KfSjOplddXTLomuQMZVe7TbBXutlUThARguS+tb/cknZezOnDN6MOLZNncOUD
+ McyKa2cOY0IOldPjvMInI2mm41/GFfVqgHKuXepxe4Y8MMdv8+0wg3Nbkk9cpZckDBg3 9w== 
 Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.appoci.oracle.com [147.154.114.232])
-        by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3q476u1w43-1
+        by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3q466222sq-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Wed, 26 Apr 2023 16:50:07 +0000
+        Wed, 26 Apr 2023 16:50:09 +0000
 Received: from pps.filterd (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.17.1.19/8.17.1.19) with ESMTP id 33QFfqVK032877;
-        Wed, 26 Apr 2023 16:50:06 GMT
+        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.17.1.19/8.17.1.19) with ESMTP id 33QFfqVM032877;
+        Wed, 26 Apr 2023 16:50:08 GMT
 Received: from nam02-sn1-obe.outbound.protection.outlook.com (mail-sn1nam02lp2042.outbound.protection.outlook.com [104.47.57.42])
-        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 3q4618dqt0-1
+        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 3q4618dqt0-3
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Wed, 26 Apr 2023 16:50:06 +0000
+        Wed, 26 Apr 2023 16:50:08 +0000
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=NxStjJitZtEWZ7vqvnCJwks/1QMQah/zW0iwx50krSECCiq0FLD4i/Jb9Ltk7Wt8gVtDwqcIYRqtOnK7/xk3/kWQbFKckjErdCuM3mEiVF+mNXMFObx7kr9ExXvMgvxkQld5t5grUiK1zP6yLK27IXB0SsMQyLa8boeZYEyGzjPJ5F92DLj/Ah6Gf8yLNPURxRBu0KErOgIp7KHnH086ufEcrtsg0TyI5ROOwH4GxO9kbVIkTmxs9q4ka5Tydf3pJaa33tGlt1KRz2r3sqQCMhEvWCynsId9G71qn/rUxx+t2oed/ABIjRhEbD/0U1RLMx3Dw0ZzNHmB/N7UZdEiuQ==
+ b=dYSyv1rLsAn1vstsYdXPlvQv9fBdduLsZYebQZTyQtseC9rso0RAPPWoFa7R4NOHok9JMOcAerk29Q7vrFo0xzKeAkUWDXcOHgmIQ/Y1NvZeEgFB0mCscNJq8OHQqBVmVx7dmcZBmzk+nvycFWIDx61IJ47W4urxwmYMSDXXJbnG1xDQFr2HeBb0zNS3NT0AdaBO5QM7s75Orl+aL0CzZCq62u6qhJwo31KS1saM/4KasekTykbds7h/FAl/qQRzhLl+omAnM9ntop/Lka11+6uyOX59kMKGUtqwB6K8rmk3Snpk2yTcXCYXix9Z5gdh1xGLs+vGKXeDOE+XsvK44g==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector9901;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=OJ9ZwvA5PtO1fy3J0kwyv9tvqOsMb74PvRDYnKl2qJg=;
- b=e7TiXZpaz+o5uwR3zQtGO+G5WhFiDKUxLDaxAyUja6ysAmNXbjKJBpampXaeMY611OUf49PtoWteQsW+sYgCHm0yKUqQOZ8bTns6ho90zcAm0zl4Hh0eVWQCfzZJoAmb0Fuk1Gbh98qz8H52n2ib6UgdoboB6a1Hty82t7EN5ZKkXV+ThHRzzDKRq1fZEHTHizKv1UwDdsZn+GG2kAGPjjwPeAotPhtU2nFrU3WfrBsti+ALmQEWgC3TihVqAIRM8IB3FT4O54TFD08zyMvDMI77+TUhPNHMZGDixvg6lNsoQh5RE2alQBl5lTwZvnY1I0FaMsbkObl0lsUmacEyOw==
+ bh=Edtv/rXrLh+RAvkBVKVzY+P/b5NeCvWwYrh6g8zNRzA=;
+ b=lLKN1nrUJZox0qbgV/UX59cVN5LSx6+y5wQXYu2MO/78toIOeRPj6d/VpufymGiPF2zXQ0JTMrS89u4FMb9KXYAWOqHPEaM25QzU/60VmRz3zH7gQPdQXQMbvFNeDLueUB1PGG41NhALBNkfEgkOUwo5ub3zmarlhOMSVB6gVqdG4/fO9C5qdusxJAKO012CTCcOOcFqpWfExlJtU9r1428/qXRC2lX9v4yec9bxbAqIJhxUdt7Gb+3nQN52Wk6MUDkJPk5EJJPLJ2P3Pv2zLXeogkaMfB5JUcOWqD+aEVZA8T+ga4WT2UJ78CQ6HpiJWGnDGYxzEqcuWLR0RXwuMg==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
  dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
  d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=OJ9ZwvA5PtO1fy3J0kwyv9tvqOsMb74PvRDYnKl2qJg=;
- b=SmCF9REhgv3AxmaWAPQFSpoxdn87sjxRQ0YGyWNqnyce6j8sLTm9hua3wyo/JOml+7y2pvSYaRBUlWA4UElvtTpJQWs5+UJUzYPwdDRgebqXuY2SNH+jfdtPU7eTVNSGn2jLRm1RT9rXaTd6uxpFkjwrLX0xd/M8u/0EaaZEhZU=
+ bh=Edtv/rXrLh+RAvkBVKVzY+P/b5NeCvWwYrh6g8zNRzA=;
+ b=C1RkdcZ1Yqal+dDCB/o5M9vEIIxDLmIIxlYLNqitPC0rQcNGwEZmHiMV2xM0NTDX6IhApXEQHc0RCaa1NC8HhzbRIQtWMgZowPLORStw9/InvEqsrfRG9uG8yIre3kGVjAu8Q5IS8XkPWU81UzJM8V6t0JnwEPVauSn+9r8ay+w=
 Received: from CH3PR10MB6810.namprd10.prod.outlook.com (2603:10b6:610:140::15)
  by IA0PR10MB6913.namprd10.prod.outlook.com (2603:10b6:208:433::17) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6340.21; Wed, 26 Apr
- 2023 16:49:59 +0000
+ 2023 16:50:04 +0000
 Received: from CH3PR10MB6810.namprd10.prod.outlook.com
  ([fe80::ba49:e5dd:6a80:37ae]) by CH3PR10MB6810.namprd10.prod.outlook.com
  ([fe80::ba49:e5dd:6a80:37ae%5]) with mapi id 15.20.6340.021; Wed, 26 Apr 2023
- 16:49:59 +0000
+ 16:50:04 +0000
 From:   Khalid Aziz <khalid.aziz@oracle.com>
 To:     akpm@linux-foundation.org, willy@infradead.org,
         markhemm@googlemail.com, viro@zeniv.linux.org.uk, david@redhat.com,
@@ -72,9 +72,9 @@ Cc:     Khalid Aziz <khalid.aziz@oracle.com>, andreyknvl@gmail.com,
         linux-mm@kvack.org, mhiramat@kernel.org, rostedt@goodmis.org,
         vasily.averin@linux.dev, xhao@linux.alibaba.com, pcc@google.com,
         neilb@suse.de, maz@kernel.org
-Subject: [PATCH RFC v2 2/4] mm/ptshare: Add flag MAP_SHARED_PT to mmap()
-Date:   Wed, 26 Apr 2023 10:49:49 -0600
-Message-Id: <63bb4b1339bbdf33c3412cdd097af61285162cf5.1682453344.git.khalid.aziz@oracle.com>
+Subject: [PATCH RFC v2 4/4] mm/ptshare: Add page fault handling for page table shared regions
+Date:   Wed, 26 Apr 2023 10:49:51 -0600
+Message-Id: <9edffd2a12a049a42d9a2c216e3f999aae7e65a4.1682453344.git.khalid.aziz@oracle.com>
 X-Mailer: git-send-email 2.37.2
 In-Reply-To: <cover.1682453344.git.khalid.aziz@oracle.com>
 References: <cover.1682453344.git.khalid.aziz@oracle.com>
@@ -86,148 +86,512 @@ X-ClientProxiedBy: SN6PR05CA0025.namprd05.prod.outlook.com
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
 X-MS-TrafficTypeDiagnostic: CH3PR10MB6810:EE_|IA0PR10MB6913:EE_
-X-MS-Office365-Filtering-Correlation-Id: d344b039-bfd0-4417-32f9-08db46764597
+X-MS-Office365-Filtering-Correlation-Id: 25d7728f-6416-4b0e-993c-08db467648ac
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: nJCYNoxMgdeqrl226oIjM/3CfFsifcD0oyIqoEF6CfIEzIOOGtMQ97HGjUWvp6pVG+CLNY36eh0H1oHOp3bPcErdgMCKz86RnK3is1SJSLVwr3ag9/njVidM/1+unSkWNnmKnpj4/gJQUXMxkrl9wGlP14Hs9gEvJ4k86sNpMcBX4CpjcuntK3YgoAGBNVyLwoiKP3Ne8NjL3nafnOUab1y/vKU8aSEPlyaBfOUKfznlRcaEQImDIbL1u5Py9KAprC1vtImOIFcXZ5ImYr17kcOc9l16t95w3PJzx4gVsa8qDfAKJLjb8x3Dh1KlxRX6jfbNF0Ivm24JACzbbIOyJmwLl/AeprM93LQuMj7SNZXhvtllwnu0olESqFk1yKDTBnaVpcxsDrP9T0s41iGzjRHsxWlbMcxS5qOE1FF8tk26rG/00arXuWQSrZkcB1wvsQDC9v2SC8Fk4CZDi0jKE3efs0sFteemA5hfDqBTuhKggOZokbCvm/GXzTL9Zmbxr1AmC2C/tmnZowKUdmyWnNlcA46NZNuaXxou3Tou+l+TwWFLzLJjx84+hUdO8rZz
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR10MB6810.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230028)(366004)(39860400002)(376002)(136003)(396003)(346002)(451199021)(6666004)(478600001)(83380400001)(2616005)(6506007)(186003)(36756003)(26005)(6512007)(38100700002)(86362001)(6486002)(41300700001)(316002)(66556008)(66946007)(66476007)(7416002)(4326008)(6636002)(2906002)(44832011)(8676002)(8936002)(5660300002);DIR:OUT;SFP:1101;
+X-Microsoft-Antispam-Message-Info: SlXtSbuCvg3oE1KP4T5XlxTpikrTsx5uosMfDbpWDOjrs2PVBEk3LOhAf+df6SMPGQft3qDskPVV8d6Jrw3Xx8Q7Cdx0gSIaWesuVBpuB1c8wkMEu4Xx+CqB1BodI8VG3FH/1bkFz8zDmi8cezBTyzfMm0Bv3+etWK2B2LJpXWLZLpUtvNhVB3K2XYKmbN7jEhV553vtaN3HbaKFjVbdaew+ZSk8VBbtb6iolQgtOT2Sn3hu1wVlwT997e3YJmn29MWLintjcdqWzlZWa3iTdlNdKztK7ZtvusELt5D+8L3zJBFK3FEmvE/5A4peCie6wh5ugN9myR7HvTVzeqrR/LaGMXAZjJds7n+reEYl6Rly5Mp+xTnySsz5nWQ52q3FSDeYDlOhHtoeTjiisxlPzhMssw7JgMk9K4zVxoJPLEPagmX/srqMr54dzucs2jW1zd4XIpPMYrNpp1ZwOAjTLdxeGxxPY3a7fmb2QPnbg/5R+lulFmGBd7SMWF3U8lWbX+zYv4KhSekCrSW1FDmXNonqidGKj6j06z6NARL53fjPZkovaXJAqRQ+nvho/NwV
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR10MB6810.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230028)(366004)(39860400002)(376002)(136003)(396003)(346002)(451199021)(6666004)(478600001)(83380400001)(2616005)(6506007)(186003)(36756003)(26005)(6512007)(38100700002)(86362001)(6486002)(41300700001)(316002)(66556008)(66946007)(66476007)(7416002)(4326008)(6636002)(2906002)(30864003)(44832011)(8676002)(8936002)(5660300002);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?r7fhQWd5L4g/dMwRjKdajA70xo0yZNHkd/fHE8p3SLLdRpXmZJUH+LtOSgBf?=
- =?us-ascii?Q?L+AlKtNxuWWytckH5uQZRzCwNl5+E0VfTsWECJUk4pLpIOwPsOGKAjCyE1gV?=
- =?us-ascii?Q?tSeSAHxtVin4Qn4twoXrIodIEKD4KVYK3WJjnCZprzmcCGE11yS90HjDgFo+?=
- =?us-ascii?Q?G9oZDAJvmfDH6XuRluh9x6WTlQVlRRi1/TlEVHYQyXOGsip7LvAriitOai4P?=
- =?us-ascii?Q?BYtWx59Kslk1E/4JFqbkrlI0eJVnsTX5Fxgn/uxXrmEB07QPGoKCY+CxHeN4?=
- =?us-ascii?Q?L0CJ4ftvbw2fp989vEY/ESQ0zEfLd0iEq76rEuC6gvB6apObHedH8DR8DtnM?=
- =?us-ascii?Q?THy7kjhVOKhQHsvMkESR2eUcJsyfUMNm12JrP8mHxrXdLEBJe1z+tXMMFcRq?=
- =?us-ascii?Q?fGe17868JHnJg/Ls1ipXkk2e6HkSt8cGqwefSokTmALdXYNg/9iGwyeKysH5?=
- =?us-ascii?Q?XckVYZXdCmPFQgEEcjMTbgOkfL/nR/ZClrrm1zEkX9R5Iohe3JDgQ0tCOZKv?=
- =?us-ascii?Q?MPEiJZ7yrUbnCLQqU1tWHgPzeGCmBgff3gAJi+lKj6m7FDcacYdaIU3UfaSB?=
- =?us-ascii?Q?P9RKwx+TO5mUP+fhrF2XLqvXulkkLgUhf1xXvW7VKBgd9fMZR7h/CoxTNPMd?=
- =?us-ascii?Q?kTMmbsSrToYs9MsKYC3+zRLMaZi+rxag6MQXJgACzgPPMscVR9Dqz+8ie95k?=
- =?us-ascii?Q?c8cs7YY+ZoJgn0x46MoDYAyVW3yAXF/4F06I1I9o1XjZCAoDlkMzBfTgmBkP?=
- =?us-ascii?Q?P4/m0oEY7j2GC0JtFkibab0XcHqPfRLsjTzJ3e9ICcZfKl/iEJbWZq7KgxWR?=
- =?us-ascii?Q?46YEEeSKyij0J2LDifsS3g4IqITB2n7Oll9VaHVFK21TcyBaEZPvpmtyRveD?=
- =?us-ascii?Q?oY+mGyQJVgekSx1ABkDdqcrlz/2tGoKpozGlrpETsqjaV5kYugucaU4+Urey?=
- =?us-ascii?Q?f/2xvy895ElrwGcMsccnQrldBWLi6mid3xCmKgcIu2P9Lu/2R4cBZ2BgDUqh?=
- =?us-ascii?Q?Nq/I8d5ozeysH20F0wi+k3VfT3kiqRfv6AlKFSE6v1u2qcTHorXTFZ5s1b6e?=
- =?us-ascii?Q?DyoSB0hUsVzu8gph+rT6YlyqXM9iBS5lebK1XIACiNIsbwNA8oS2l0fKV0pG?=
- =?us-ascii?Q?hEZJznlePAkqmGSXUR4egioWnLJmxDhz0hognGJ3sChCjrMw0jZjgoN4dWF7?=
- =?us-ascii?Q?d1yvYlaEqKfpJgqJgG9EN91FvJQ91zHc2JOmdBYfZJRPRZzslk49Eo+rGNwl?=
- =?us-ascii?Q?pEc0NUJbvDbFR+JLh9VxNWpCDAZXNx1smGqXeroU20BW6m75zVz1KTeQLhBh?=
- =?us-ascii?Q?NQ0ycx8o1UfHdXGcOJSjacWYACUW6fp+TnE/Au11YA+IQ1IhTHu5lTvMY403?=
- =?us-ascii?Q?XdcX02nBrvCuapICAdfx8FaqvuJWJOrd8PfdBdq4HKFU1Aln+lN9G3JRfwjQ?=
- =?us-ascii?Q?aaDsPFbrh1O9e3RWSP0FUq5LsXgHDWWB+USKIofr0oOOvzt7ISQi80w7K0Sc?=
- =?us-ascii?Q?IT/xG8VpUIid/qFO+Qio9cw74UIDDn9F1MYG8fL/rxdY1urHgezGz/dHmK0y?=
- =?us-ascii?Q?w7+Vh3J6iS6ogcYrVTkQ1LFqDD+FG0P3rDDvUL0n?=
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?dN0+s8UPOkkdwjUbnryl58VNinOjU2g29ZxoPPRStJTd/Uh/Ku5+bUOc9pPv?=
+ =?us-ascii?Q?jXZaMFjvNdTb6wOjzgUNGjwbw1WtdwNg1FuiIZP6p7o+4R87/DyeYOxW5xy2?=
+ =?us-ascii?Q?dEmaOZ45UXibM/rjH0Dby6JSN3/Eqgf2ja7hoJqZS6bbaDLunV49E1B8MOSW?=
+ =?us-ascii?Q?61NQFafTwIKgRDGvmd2DHlBlwp+qMwwR01oPEHw0HZaTMndYmrMLAaepuHAL?=
+ =?us-ascii?Q?VB5B5FgKl6sMGLEFQUM0c90unxi+Wmrf8Okj4m/dIF6kp8UdJFdBmmV4R33T?=
+ =?us-ascii?Q?3mmrIqwWeYZerk/gKn3mAevMwHofnNWh92/KwJhV60ajOjr8fhxq/ajcjJW1?=
+ =?us-ascii?Q?vq7W/UJcODWBRGw2FsbbXu71HO3A1spdYtMRC8+KO1DLk7rISeug/vk4dMxh?=
+ =?us-ascii?Q?T9A/t3xdl/ZEZF3ILG6UjAqLzaLg7MMXajgEbfe0q1bdPMFpKTFkfal+augI?=
+ =?us-ascii?Q?3XPpBpOUc1eq9471zdvmDZuYBRMgGLNlYPM/SRekB4HCW+IbCrgoAAqYAoLf?=
+ =?us-ascii?Q?En12jEGs7eeM/+Uj8VnPG3KpgwTx986MFyzxoJFge7VAE5MPQtEaAxTzavIF?=
+ =?us-ascii?Q?m3PaB7SwCLj0eCJJiTtVyMtLdUop0uXQ+JJ/geYmxa5Vgttll+yELWNH0Jfx?=
+ =?us-ascii?Q?1MfX8vm4CLYRj67fr66vo/QM8VBL+zBH6luVCMdQXXAfdxMd/DbwgMj1+BqG?=
+ =?us-ascii?Q?m4yTGfIh1VwN+ZlKSfs/4XNsSP06wt16Cg5IIwbEEws1XsLvevaZuliv8vTa?=
+ =?us-ascii?Q?q680Dt/a1lCASvkjwxzxo04c39XDINqOqRAdrZaiQMpFrxajw6oTTto0bfmt?=
+ =?us-ascii?Q?6CIDeju7jUE24drcK9s3p6nSbzXX/7uGc2VthbxVS3GAzWlmHDT9/XNTdXe6?=
+ =?us-ascii?Q?WY3xaORX2vmiBg60oK6umPG2zJXQeoIBLQwZZY4U86gqs2kTwRLJN6ImWqhs?=
+ =?us-ascii?Q?ZOZaN5JDavfsbk40PKQ6L5cW2YyhndMdTRlje5yYCHwBDZmoV8QMcm6HZIL+?=
+ =?us-ascii?Q?rDTiNH/GYrRwXpenfvSf2rFvyVnqBypAwaSHqjnN0gwIk4GiLDTcUXD9t8At?=
+ =?us-ascii?Q?bdgEOkmIu77oWEIrBiaN8RPeeoS20aWh8ng4+nEA5sBcyRM/UjfK3/sWjZs+?=
+ =?us-ascii?Q?BYdUUQWKS4Qq2v3L2fGvXT7/Ii3XFHYrKELwgHFnNYBKedGP9Yavx2DCcP9E?=
+ =?us-ascii?Q?FC+cQtd0jPQhPCBRTWfdqdniDGePSl4EeSqBT2Q0HCSAutjjx+DPGr3vzFKi?=
+ =?us-ascii?Q?kCaPLEZ/mdF3Zf6KOE1UJESCH/H9WN76ryCUje6kYEufUbuppWhtBC7xS71u?=
+ =?us-ascii?Q?O/A2Jx0sey094kjHlvjBirt7QaTbQn9P6oihW647ZKH02ydgzZmBTZY+CBkf?=
+ =?us-ascii?Q?WefIiZra7mY0B1giA5cG/ZuWrkU+oVDXQNWHzkblqBkZWvT5rt0Jbh+dmhEn?=
+ =?us-ascii?Q?7armKzVdHbLTc4n1+U0Z/e21AiC3hyJHTBGzcvgE1FC1yGE6M48UpX2cahC5?=
+ =?us-ascii?Q?9E/NRh+6SK1sqzi9pabNpIvf3VjZR8NtapdpR55E4t1xQ7m0OKQizu8dTbTO?=
+ =?us-ascii?Q?15S1/xDBmpoUeSkVvc4Krk6jqm9G68llkpkJh8UE?=
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0: =?us-ascii?Q?zLhsajRtCeyDrC/cukJpxWH4tPFImN4+nuRTkuxjKC2uawWChywPcX+GZbrt?=
- =?us-ascii?Q?gIybXxGdNWAtYKzWjqPYnQMNzn+GSN6BI7q9N7S82HcwHV4HA7n1RswNXWNZ?=
- =?us-ascii?Q?10Ir6G8VKVk0AhxVo8nuw6Px07Vqllcmm1vrjWOblejBqd05zfinZDkw5pw7?=
- =?us-ascii?Q?kFBkr/U/qhbpXc+XsXq16zGVnkRFmIbw2Ag/AyXTfuZBhNpfL2YIVWC2+qVt?=
- =?us-ascii?Q?F4DgSdeCuzhg4BFMpBkWqIyahoSGUlJm0WAxnK05akiJZBRvC/ouj3ZLXNDw?=
- =?us-ascii?Q?v3f/qmaPyGBSc7GgbteDYligqYRIj25+oSdzMwZX4enPUHcrRJKnsw4QfaZ4?=
- =?us-ascii?Q?wtQcvHEAqduHudm6SsR4Yga6MkyEXIbGIaVDGv73Ylt73GM7rCRxpoHiwy2x?=
- =?us-ascii?Q?PauZNVkvVxDQ8WVuYuhzCQIzQbpv6t07CbpMFpTzu8NXJm6Wl4dbBycVtEAm?=
- =?us-ascii?Q?zadMQzxABWihY33GioUaoQ96h8AMzdN8B0O97oaWBw99nv23jSLd00q3zpEZ?=
- =?us-ascii?Q?Z2z3CeHmGajUyZe4revI9CW7MmdzAYGxaVSuKlXfjdifV8VjQXYd+KqbRaNN?=
- =?us-ascii?Q?R/s9+Om/hdsktfY3f+Pf4FOr52dsJPvsN//rlxxVkzLLpkcqUrvbkdHo0oSU?=
- =?us-ascii?Q?LAiu4UD1uDkBvy9TLTGyaUMRjjWCfVrAPRw4wT9rALz7IoRuLzTZKsAqYMbb?=
- =?us-ascii?Q?28MYVf3Jlcaq4VKHAfM93Mb/Q8Rs+SrDI9DkUZUdO61N9r0Zz/vVVJWQD4a0?=
- =?us-ascii?Q?XQhcyrs+aT3O4lleK4jnoXYSO4cvUdLi3vE7Djm4rvpkeW2XQwa+lNKZljF5?=
- =?us-ascii?Q?LqnRxDM4xGL6WGR/w8FxtSz8mkG//6g1+0aL9MLBHSHz6JI4/Qi211OJw7C1?=
- =?us-ascii?Q?HEm0cgWfqYjaNyczHW1AGhxf8x8/3Zl4JFqDQAROIH8B3FSokY1hFzM4j2kt?=
- =?us-ascii?Q?utGoAakfG0RTD3eNkbI8TAiZ0eApfzaorCRuyCPvE1Ds3LzwRviouxqDwZBf?=
- =?us-ascii?Q?Mfidx69/wiZ6XzQbuanJ5el3KG85Qg+YkqmQvqpEAiQ3ANzH9XznWHODieOI?=
- =?us-ascii?Q?emewPxsdp+Jwbah7KHqO9YDNA8g4ljMHNl/mTzETIVgyV1Aq/YEXd7Vdtt0w?=
- =?us-ascii?Q?upGP9IbWU+LIxqsEC3GO4sEtzcEfkKs9IfOH7POfxc04Bhqmume1QQoqWNRW?=
- =?us-ascii?Q?y0DZwnp8z1q57gQr0HoRzV65HpvSbknuJ8SWE3Nj9DDZLjzMNV5WQiWbeLhH?=
- =?us-ascii?Q?xpwSOlCbG/1IyzvlNw9KHyDpR1eR/DhFu0hmCg9m2Lj6d2knguy0Jx0l/oVQ?=
- =?us-ascii?Q?vU0rB1GrPQGAPsAnF4sry8p1?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0: =?us-ascii?Q?LLcIZAEun6qq3Ci/TM/UPNMagicFSCoNT8osL62K0UM5alZPuQp1xh/hmFxI?=
+ =?us-ascii?Q?C77Ei5yoJ+NLGlYhU7EPCj/TfKN7sNhOzbFY72N6tWwLWnHuenNFXpS5eeF0?=
+ =?us-ascii?Q?oYSviLZVBBas0mdM6maM4u46OPgzg8y6eOxxWhBgFW8jEm0VUK6Xlsvz8lmg?=
+ =?us-ascii?Q?ZoT72Vb0HCOmL7HSsigT8STfoYldSzPvQrVDYCCovMZasEcm66pd63YSYBbu?=
+ =?us-ascii?Q?JvuWUKCm4L+6Qbf8ZQqIIj26nxA8bc6+Pqnj1oatQ4vXI0wfgIVBS4pAMecy?=
+ =?us-ascii?Q?UtygSkUA/ClyM+VekfMvcsm8V6+egjzuYl+37riYardWovMqQ297UwtiTmBL?=
+ =?us-ascii?Q?qzvcKgDmegOrH+gtgoeFHxYVXR9ekbNQ3sl6WtCW/VwbjZECCD76LaTJspw8?=
+ =?us-ascii?Q?StRKmIj4n4/OAs9/5OKfCpR1ieIsLYCsUbZj0aU2AK0yf/1J2SM0GQ5rxMoH?=
+ =?us-ascii?Q?CUe97qggPQGRJak5KPLRyKphJ0I9Hi6J3pKblnIYdgxj31m7Ge6fGzsQWcTD?=
+ =?us-ascii?Q?8QP9dFKA85E1yIkaRw5Y5uNr33j6vI4yy+ZWuF6vjn2hLE3bAzCeV2Tj9oZG?=
+ =?us-ascii?Q?ap8VuwWG6g2C0CAWvAxnVbKfDC7/ba14+hGe5dqWGfXj1UGdV6/Vnd0GKSE2?=
+ =?us-ascii?Q?XuF32Ajkdyu+s+llFNGgDv5CK/0XOkOMf+CnNUycN0VVhkk2DKOSWm+jCj0s?=
+ =?us-ascii?Q?b77EWGBK3j817AwOpzZLb9OkR1McpjpS21hRtl8+sNUUlgI170OtS292n0Y4?=
+ =?us-ascii?Q?9DbJS1z0B1gl7bJqpht8SEDvAMnitO6j5RD/76bdyVcWVQwSkp5t6Zqb4bAr?=
+ =?us-ascii?Q?X5w/9LhGILNC0pZg+rIe44ANNfxgP77AiF0hoUrelS1qfuV9x6JhH4lKJ85+?=
+ =?us-ascii?Q?m8paHb/dIgoVHNx0opi0a+rsUiiYAnNiZm2b1CwLWCPBzLUFyQiI7JPUSMpt?=
+ =?us-ascii?Q?KbKuGAgL3/UFfXzBYyi+6/fybVAh61uMpveVUof7mzhgB94enM5EQC9TtYfn?=
+ =?us-ascii?Q?9DiiLabm9afOWx+2RPDS3qrehShKuEzPKhd8qxvoq6NkrT6cFcRWpcpOSdit?=
+ =?us-ascii?Q?jXUTIydRWGm5AGvlMoASnZnF9Ea77giWnHswKF6Heocs0GqstqMmhu+LTzvp?=
+ =?us-ascii?Q?hi1KSvTgJqmM/UhBN2fjscxQ06kkhjjiysS/Exa72rt+kq6YTMm5wRvydz/G?=
+ =?us-ascii?Q?JMZcwX8sXkbjCrUrJLxa/C+CCL8hvmCA18nDicaFsF0z2NFMasDJMTOzvA5/?=
+ =?us-ascii?Q?giv4+7VEjgDvx5GGiWZmG7HgtOnZHHLFLRLS8KGfzluWsWL5mnc/EimuTS7V?=
+ =?us-ascii?Q?tXjDO4jqAcTX7LEY/rgcV1+I?=
 X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: d344b039-bfd0-4417-32f9-08db46764597
+X-MS-Exchange-CrossTenant-Network-Message-Id: 25d7728f-6416-4b0e-993c-08db467648ac
 X-MS-Exchange-CrossTenant-AuthSource: CH3PR10MB6810.namprd10.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 Apr 2023 16:49:59.3573
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 Apr 2023 16:50:04.5724
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: WQ7+BVmdzx0XFmbmReFFK8ubCnkHhTi8lCWO3bNBucqL8ty50gAvS8IooMurDSoq/iVwroBMRcnICPt/+3nNFg==
+X-MS-Exchange-CrossTenant-UserPrincipalName: uDEt9OqIUnFU9nE0b3x5Cn8ENbel0y8E16/M/aGd1xQhIxv8RKbEwQ+Nkh3O74C6UnVsejjcO/f8LxXFdUZuUw==
 X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA0PR10MB6913
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.942,Hydra:6.0.573,FMLib:17.11.170.22
  definitions=2023-04-26_08,2023-04-26_03,2023-02-09_01
 X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 mlxscore=0 phishscore=0
- mlxlogscore=979 adultscore=0 suspectscore=0 malwarescore=0 bulkscore=0
+ mlxlogscore=999 adultscore=0 suspectscore=0 malwarescore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2303200000
  definitions=main-2304260148
-X-Proofpoint-GUID: hQ_Kqw1tXKwKFNpr5WQq20G9YbuOEO6_
-X-Proofpoint-ORIG-GUID: hQ_Kqw1tXKwKFNpr5WQq20G9YbuOEO6_
+X-Proofpoint-ORIG-GUID: r9sQ-rPi09Y3_H-iTY4u9aOCzyz8DFKw
+X-Proofpoint-GUID: r9sQ-rPi09Y3_H-iTY4u9aOCzyz8DFKw
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When a process mmaps a file with MAP_SHARED flag, it is possible
-that any other processes mmaping the same file with MAP_SHARED
-flag with same permissions could share the page table entries as
-well instead of creating duplicate entries. This patch introduces a
-new flag MAP_SHARED_PT for mmap() which a process can use to hint
-that it can share page tables with other processes using the same
-mapping.
+Add support for creating a new set of shared page tables in a new
+mm_struct upon mmap of an region that can potentially share page
+tables. Add page fault handling for this now shared region. Modify
+free_pgtables path to make sure page tables in the shared regions
+are kept intact when a process using page table region exits and
+there are other mappers for the shared region. Clean up mm_struct
+holding shared page tables when the last process sharing the region
+exits.
 
 Signed-off-by: Khalid Aziz <khalid.aziz@oracle.com>
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- include/uapi/asm-generic/mman-common.h |  1 +
- mm/mmap.c                              | 16 ++++++++++++++++
- 2 files changed, 17 insertions(+)
+ mm/internal.h |   2 +
+ mm/memory.c   | 105 ++++++++++++++++++++++++++++++------
+ mm/ptshare.c  | 143 ++++++++++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 232 insertions(+), 18 deletions(-)
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index 6ce1f1ceb432..4d23456b5915 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -29,6 +29,7 @@
- #define MAP_HUGETLB		0x040000	/* create a huge page mapping */
- #define MAP_SYNC		0x080000 /* perform synchronous page faults for the mapping */
- #define MAP_FIXED_NOREPLACE	0x100000	/* MAP_FIXED which doesn't unmap underlying mapping */
-+#define MAP_SHARED_PT		0x200000	/* Shared page table mappings */
+diff --git a/mm/internal.h b/mm/internal.h
+index 3efb8738e26f..924065f721fe 100644
+--- a/mm/internal.h
++++ b/mm/internal.h
+@@ -1061,4 +1061,6 @@ struct ptshare_data {
+ int ptshare_new_mm(struct file *file, struct vm_area_struct *vma);
+ void ptshare_del_mm(struct vm_area_struct *vm);
+ int ptshare_insert_vma(struct mm_struct *mm, struct vm_area_struct *vma);
++extern vm_fault_t find_shared_vma(struct vm_area_struct **vmap,
++				unsigned long *addrp, unsigned int flags);
+ #endif	/* __MM_INTERNAL_H */
+diff --git a/mm/memory.c b/mm/memory.c
+index 01a23ad48a04..c67318ffd001 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -172,17 +172,28 @@ void mm_trace_rss_stat(struct mm_struct *mm, int member)
+  * has been handled earlier when unmapping all the memory regions.
+  */
+ static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
+-			   unsigned long addr)
++			   unsigned long addr, bool shared_pte)
+ {
+ 	pgtable_t token = pmd_pgtable(*pmd);
+ 	pmd_clear(pmd);
++	/*
++	 * if this address range shares page tables with other processes,
++	 * do not release pte pages. Those pages will be released when
++	 * host mm that hosts these pte pages is released
++	 */
++	if (shared_pte) {
++		tlb_flush_pmd_range(tlb, addr, PAGE_SIZE);
++		tlb->freed_tables = 1;
++		return;
++	}
+ 	pte_free_tlb(tlb, token, addr);
+ 	mm_dec_nr_ptes(tlb->mm);
+ }
  
- #define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be
- 					 * uninitialized */
-diff --git a/mm/mmap.c b/mm/mmap.c
-index d5475fbf5729..8b46d465f8d4 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1197,6 +1197,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
- 	struct mm_struct *mm = current->mm;
- 	vm_flags_t vm_flags;
- 	int pkey = 0;
-+	int ptshare = 0;
+ static inline void free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
+ 				unsigned long addr, unsigned long end,
+-				unsigned long floor, unsigned long ceiling)
++				unsigned long floor, unsigned long ceiling,
++				bool shared_pte)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+@@ -194,7 +205,7 @@ static inline void free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
+ 		next = pmd_addr_end(addr, end);
+ 		if (pmd_none_or_clear_bad(pmd))
+ 			continue;
+-		free_pte_range(tlb, pmd, addr);
++		free_pte_range(tlb, pmd, addr, shared_pte);
+ 	} while (pmd++, addr = next, addr != end);
  
- 	validate_mm(mm);
- 	*populate = 0;
-@@ -1234,6 +1235,21 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
- 	if (mm->map_count > sysctl_max_map_count)
+ 	start &= PUD_MASK;
+@@ -210,13 +221,19 @@ static inline void free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
+ 
+ 	pmd = pmd_offset(pud, start);
+ 	pud_clear(pud);
+-	pmd_free_tlb(tlb, pmd, start);
+-	mm_dec_nr_pmds(tlb->mm);
++	if (shared_pte) {
++		tlb_flush_pud_range(tlb, start, PAGE_SIZE);
++		tlb->freed_tables = 1;
++	} else {
++		pmd_free_tlb(tlb, pmd, start);
++		mm_dec_nr_pmds(tlb->mm);
++	}
+ }
+ 
+ static inline void free_pud_range(struct mmu_gather *tlb, p4d_t *p4d,
+ 				unsigned long addr, unsigned long end,
+-				unsigned long floor, unsigned long ceiling)
++				unsigned long floor, unsigned long ceiling,
++				bool shared_pte)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+@@ -228,7 +245,8 @@ static inline void free_pud_range(struct mmu_gather *tlb, p4d_t *p4d,
+ 		next = pud_addr_end(addr, end);
+ 		if (pud_none_or_clear_bad(pud))
+ 			continue;
+-		free_pmd_range(tlb, pud, addr, next, floor, ceiling);
++		free_pmd_range(tlb, pud, addr, next, floor, ceiling,
++				shared_pte);
+ 	} while (pud++, addr = next, addr != end);
+ 
+ 	start &= P4D_MASK;
+@@ -250,7 +268,8 @@ static inline void free_pud_range(struct mmu_gather *tlb, p4d_t *p4d,
+ 
+ static inline void free_p4d_range(struct mmu_gather *tlb, pgd_t *pgd,
+ 				unsigned long addr, unsigned long end,
+-				unsigned long floor, unsigned long ceiling)
++				unsigned long floor, unsigned long ceiling,
++				bool shared_pte)
+ {
+ 	p4d_t *p4d;
+ 	unsigned long next;
+@@ -262,7 +281,8 @@ static inline void free_p4d_range(struct mmu_gather *tlb, pgd_t *pgd,
+ 		next = p4d_addr_end(addr, end);
+ 		if (p4d_none_or_clear_bad(p4d))
+ 			continue;
+-		free_pud_range(tlb, p4d, addr, next, floor, ceiling);
++		free_pud_range(tlb, p4d, addr, next, floor, ceiling,
++				shared_pte);
+ 	} while (p4d++, addr = next, addr != end);
+ 
+ 	start &= PGDIR_MASK;
+@@ -284,9 +304,10 @@ static inline void free_p4d_range(struct mmu_gather *tlb, pgd_t *pgd,
+ /*
+  * This function frees user-level page tables of a process.
+  */
+-void free_pgd_range(struct mmu_gather *tlb,
++static void _free_pgd_range(struct mmu_gather *tlb,
+ 			unsigned long addr, unsigned long end,
+-			unsigned long floor, unsigned long ceiling)
++			unsigned long floor, unsigned long ceiling,
++			bool shared_pte)
+ {
+ 	pgd_t *pgd;
+ 	unsigned long next;
+@@ -342,10 +363,18 @@ void free_pgd_range(struct mmu_gather *tlb,
+ 		next = pgd_addr_end(addr, end);
+ 		if (pgd_none_or_clear_bad(pgd))
+ 			continue;
+-		free_p4d_range(tlb, pgd, addr, next, floor, ceiling);
++		free_p4d_range(tlb, pgd, addr, next, floor, ceiling,
++				shared_pte);
+ 	} while (pgd++, addr = next, addr != end);
+ }
+ 
++void free_pgd_range(struct mmu_gather *tlb,
++			unsigned long addr, unsigned long end,
++			unsigned long floor, unsigned long ceiling)
++{
++	_free_pgd_range(tlb, addr, end, floor, ceiling, false);
++}
++
+ void free_pgtables(struct mmu_gather *tlb, struct maple_tree *mt,
+ 		   struct vm_area_struct *vma, unsigned long floor,
+ 		   unsigned long ceiling)
+@@ -375,16 +404,20 @@ void free_pgtables(struct mmu_gather *tlb, struct maple_tree *mt,
+ 		} else {
+ 			/*
+ 			 * Optimization: gather nearby vmas into one call down
++			 * but make sure vmas not sharing page tables do
++			 * not get combined with vmas sharing page tables
+ 			 */
+ 			while (next && next->vm_start <= vma->vm_end + PMD_SIZE
+-			       && !is_vm_hugetlb_page(next)) {
++			       && !is_vm_hugetlb_page(next)
++			       && (vma_is_shared(next) == vma_is_shared(vma))) {
+ 				vma = next;
+ 				next = mas_find(&mas, ceiling - 1);
+ 				unlink_anon_vmas(vma);
+ 				unlink_file_vma(vma);
+ 			}
+-			free_pgd_range(tlb, addr, vma->vm_end,
+-				floor, next ? next->vm_start : ceiling);
++			_free_pgd_range(tlb, addr, vma->vm_end,
++				floor, next ? next->vm_start : ceiling,
++				vma_is_shared(vma));
+ 		}
+ 		vma = next;
+ 	} while (vma);
+@@ -5181,6 +5214,8 @@ vm_fault_t handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+ 			   unsigned int flags, struct pt_regs *regs)
+ {
+ 	vm_fault_t ret;
++	bool shared = false;
++	struct mm_struct *orig_mm;
+ 
+ 	__set_current_state(TASK_RUNNING);
+ 
+@@ -5191,6 +5226,16 @@ vm_fault_t handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+ 	if (ret)
+ 		return ret;
+ 
++	orig_mm = vma->vm_mm;
++	if (unlikely(vma_is_shared(vma))) {
++		ret = find_shared_vma(&vma, &address, flags);
++		if (ret)
++			return ret;
++		if (!vma)
++			return VM_FAULT_SIGSEGV;
++		shared = true;
++	}
++
+ 	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
+ 					    flags & FAULT_FLAG_INSTRUCTION,
+ 					    flags & FAULT_FLAG_REMOTE))
+@@ -5212,6 +5257,36 @@ vm_fault_t handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
+ 
+ 	lru_gen_exit_fault();
+ 
++	/*
++	 * Release the read lock on shared VMA's parent mm unless
++	 * __handle_mm_fault released the lock already.
++	 * __handle_mm_fault sets VM_FAULT_RETRY in return value if
++	 * it released mmap lock. If lock was released, that implies
++	 * the lock would have been released on task's original mm if
++	 * this were not a shared PTE vma. To keep lock state consistent,
++	 * make sure to release the lock on task's original mm
++	 */
++	if (shared) {
++		int release_mmlock = 1;
++
++		if (!(ret & VM_FAULT_RETRY)) {
++			mmap_read_unlock(vma->vm_mm);
++			release_mmlock = 0;
++		} else if ((flags & FAULT_FLAG_ALLOW_RETRY) &&
++			(flags & FAULT_FLAG_RETRY_NOWAIT)) {
++			mmap_read_unlock(vma->vm_mm);
++			release_mmlock = 0;
++		}
++
++		/*
++		 * Reset guest vma pointers that were set up in
++		 * find_shared_vma() to process this fault.
++		 */
++		vma->vm_mm = orig_mm;
++		if (release_mmlock)
++			mmap_read_unlock(orig_mm);
++	}
++
+ 	if (flags & FAULT_FLAG_USER) {
+ 		mem_cgroup_exit_user_fault();
+ 		/*
+diff --git a/mm/ptshare.c b/mm/ptshare.c
+index f6784268958c..e0991a877355 100644
+--- a/mm/ptshare.c
++++ b/mm/ptshare.c
+@@ -13,6 +13,136 @@
+ #include <asm/pgalloc.h>
+ #include "internal.h"
+ 
++/*
++ */
++static pmd_t
++*get_pmd(struct mm_struct *mm, unsigned long addr)
++{
++	pgd_t *pgd;
++	p4d_t *p4d;
++	pud_t *pud;
++	pmd_t *pmd;
++
++	pgd = pgd_offset(mm, addr);
++	if (pgd_none(*pgd))
++		return NULL;
++
++	p4d = p4d_offset(pgd, addr);
++	if (p4d_none(*p4d)) {
++		p4d = p4d_alloc(mm, pgd, addr);
++		if (!p4d)
++			return NULL;
++	}
++
++	pud = pud_offset(p4d, addr);
++	if (pud_none(*pud)) {
++		pud = pud_alloc(mm, p4d, addr);
++		if (!pud)
++			return NULL;
++	}
++
++	pmd = pmd_offset(pud, addr);
++	if (pmd_none(*pmd)) {
++		pmd = pmd_alloc(mm, pud, addr);
++		if (!pmd)
++			return NULL;
++	}
++
++	return pmd;
++}
++
++/*
++ * Find the shared pmd entries in host mm struct and install them into
++ * guest page tables.
++ */
++static int
++ptshare_copy_pmd(struct mm_struct *host_mm, struct mm_struct *guest_mm,
++			struct vm_area_struct *vma, unsigned long addr)
++{
++	pgd_t *guest_pgd;
++	p4d_t *guest_p4d;
++	pud_t *guest_pud;
++	pmd_t *host_pmd;
++	spinlock_t *host_ptl, *guest_ptl;
++
++	guest_pgd = pgd_offset(guest_mm, addr);
++	guest_p4d = p4d_offset(guest_pgd, addr);
++	if (p4d_none(*guest_p4d)) {
++		guest_p4d = p4d_alloc(guest_mm, guest_pgd, addr);
++		if (!guest_p4d)
++			return 1;
++	}
++
++	guest_pud = pud_offset(guest_p4d, addr);
++	if (pud_none(*guest_pud)) {
++		host_pmd = get_pmd(host_mm, addr);
++		if (!host_pmd)
++			return 1;
++
++		get_page(virt_to_page(host_pmd));
++		host_ptl = pmd_lockptr(host_mm, host_pmd);
++		guest_ptl = pud_lockptr(guest_mm, guest_pud);
++		spin_lock(host_ptl);
++		spin_lock(guest_ptl);
++		pud_populate(guest_mm, guest_pud,
++			(pmd_t *)((unsigned long)host_pmd & PAGE_MASK));
++		put_page(virt_to_page(host_pmd));
++		spin_unlock(guest_ptl);
++		spin_unlock(host_ptl);
++	}
++
++	return 0;
++}
++
++/*
++ * Find the shared page tables in hosting mm struct and install those in
++ * the guest mm struct
++ */
++vm_fault_t
++find_shared_vma(struct vm_area_struct **vmap, unsigned long *addrp,
++			unsigned int flags)
++{
++	struct ptshare_data *info;
++	struct mm_struct *host_mm;
++	struct vm_area_struct *host_vma, *guest_vma = *vmap;
++	unsigned long host_addr;
++	pmd_t *guest_pmd, *host_pmd;
++
++	if ((!guest_vma->vm_file) || (!guest_vma->vm_file->f_mapping))
++		return 0;
++	info = guest_vma->vm_file->f_mapping->ptshare_data;
++	if (!info) {
++		pr_warn("VM_SHARED_PT vma with NULL ptshare_data");
++		dump_stack_print_info(KERN_WARNING);
++		return 0;
++	}
++	host_mm = info->mm;
++
++	mmap_read_lock(host_mm);
++	host_addr = *addrp - guest_vma->vm_start + host_mm->mmap_base;
++	host_pmd = get_pmd(host_mm, host_addr);
++	guest_pmd = get_pmd(guest_vma->vm_mm, *addrp);
++	if (!pmd_same(*guest_pmd, *host_pmd)) {
++		set_pmd(guest_pmd, *host_pmd);
++		mmap_read_unlock(host_mm);
++		return VM_FAULT_NOPAGE;
++	}
++
++	*addrp = host_addr;
++	host_vma = find_vma(host_mm, host_addr);
++	if (!host_vma)
++		return VM_FAULT_SIGSEGV;
++
++	/*
++	 * Point vm_mm for the faulting vma to the mm struct holding shared
++	 * page tables so the fault handling will happen in the right
++	 * shared context
++	 */
++	guest_vma->vm_mm = host_mm;
++
++	return 0;
++}
++
+ /*
+  * Create a new mm struct that will hold the shared PTEs. Pointer to
+  * this new mm is stored in the data structure ptshare_data which also
+@@ -38,6 +168,7 @@ ptshare_new_mm(struct file *file, struct vm_area_struct *vma)
+ 	new_mm->task_size = len;
+ 	if (!new_mm->task_size)
+ 		new_mm->task_size--;
++	new_mm->owner = NULL;
+ 
+ 	info = kzalloc(sizeof(*info), GFP_KERNEL);
+ 	if (!info) {
+@@ -63,7 +194,7 @@ ptshare_new_mm(struct file *file, struct vm_area_struct *vma)
+  * insert vma into mm holding shared page tables
+  */
+ int
+-ptshare_insert_vma(struct mm_struct *mm, struct vm_area_struct *vma)
++ptshare_insert_vma(struct mm_struct *host_mm, struct vm_area_struct *vma)
+ {
+ 	struct vm_area_struct *new_vma;
+ 	int err = 0;
+@@ -80,12 +211,18 @@ ptshare_insert_vma(struct mm_struct *mm, struct vm_area_struct *vma)
+ 	 */
+ 	vm_flags_clear(new_vma, (VM_SHARED | VM_SHARED_PT));
+ 	vm_flags_set(new_vma, VM_NOHUGEPAGE);
+-	new_vma->vm_mm = mm;
++	new_vma->vm_mm = host_mm;
+ 
+-	err = insert_vm_struct(mm, new_vma);
++	err = insert_vm_struct(host_mm, new_vma);
+ 	if (err)
  		return -ENOMEM;
  
 +	/*
-+	 * If MAP_SHARED_PT is set, MAP_SHARED or MAP_SHARED_VALIDATE must
-+	 * be set as well
++	 * Copy the PMD entries from host mm to guest so they use the
++	 * same PTEs
 +	 */
-+	if (flags & MAP_SHARED_PT) {
-+#if VM_SHARED_PT
-+		if (flags & (MAP_SHARED | MAP_SHARED_VALIDATE))
-+			ptshare = 1;
-+		else
-+			return -EINVAL;
-+#else
-+		return -EINVAL;
-+#endif
-+	}
++	err = ptshare_copy_pmd(host_mm, vma->vm_mm, vma, vma->vm_start);
 +
- 	/* Obtain the address to map to. we verify (or select) it and ensure
- 	 * that it represents a valid section of the address space.
- 	 */
+ 	return err;
+ }
+ 
 -- 
 2.37.2
 
