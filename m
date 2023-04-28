@@ -2,40 +2,40 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 60D32C77B7F
-	for <linux-arch@archiver.kernel.org>; Fri, 28 Apr 2023 10:36:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6E14AC77B61
+	for <linux-arch@archiver.kernel.org>; Fri, 28 Apr 2023 10:36:55 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346001AbjD1Kgu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 28 Apr 2023 06:36:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35000 "EHLO
+        id S1346012AbjD1Kgw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 28 Apr 2023 06:36:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34998 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345881AbjD1Kgl (ORCPT
+        with ESMTP id S1345857AbjD1Kgl (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Apr 2023 06:36:41 -0400
-Received: from mailgw01.mediatek.com (unknown [60.244.123.138])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 19CC72D67;
-        Fri, 28 Apr 2023 03:36:34 -0700 (PDT)
-X-UUID: 881967b2e5b011ed9cb5633481061a41-20230428
+Received: from mailgw02.mediatek.com (unknown [210.61.82.184])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6DAB52D51;
+        Fri, 28 Apr 2023 03:36:32 -0700 (PDT)
+X-UUID: 87d1e81ae5b011edb20a276fd37b9834-20230428
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=mediatek.com; s=dk;
-        h=Content-Type:MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:CC:To:From; bh=PtPgtZRgu+to1/Lq2ayO20wJY2osH4IEeCUGpMfUXT4=;
-        b=A3eQ/nuzTJ9xyZRDnaEc9WwH9hYJjZSGwv9B6UccsUxjJdpkbSiefpqm8+DbdTmNl4T3WUQLmpDeSoS6KM/jW6j6cNGdb0A6AW5M3Zyy/1DRFnOjSRJjArjeU/s62C7arWPTBttQB2Mo+UmDUavaYlxei8rQKRDKKseLj0zUefo=;
+        h=Content-Type:MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:CC:To:From; bh=9deqyfcnq2FUj9xEAAdWH/y3a/uVDKznIhzgPgAjJQA=;
+        b=nH8BLinO6w1NrzrRcn/7wtgepndYcJeWx5q5t4g1JrV79E9F/+5Vub+wAnsrSnKuB6e8FSy0FLrlDcXt9hg6e/jdz3be438bUdcpNHvf/cLjmTuBmWyOhtpmSBnzTT4vOeiEhZBIP2JTQguShWudTkOdeUTNN+NtkzPQaV3IWZc=;
 X-CID-P-RULE: Release_Ham
-X-CID-O-INFO: VERSION:1.1.22,REQID:5f208662-bf02-42cb-81c6-72f0f98f49b0,IP:0,U
+X-CID-O-INFO: VERSION:1.1.22,REQID:f6c82082-ce7c-4744-8813-90525bcc4abd,IP:0,U
         RL:0,TC:0,Content:-25,EDM:0,RT:0,SF:0,FILE:0,BULK:0,RULE:Release_Ham,ACTIO
         N:release,TS:-25
-X-CID-META: VersionHash:120426c,CLOUDID:7c2e386a-2f20-4998-991c-3b78627e4938,B
+X-CID-META: VersionHash:120426c,CLOUDID:e32d386a-2f20-4998-991c-3b78627e4938,B
         ulkID:nil,BulkQuantity:0,Recheck:0,SF:102,TC:nil,Content:0,EDM:-3,IP:nil,U
-        RL:0,File:nil,Bulk:nil,QS:nil,BEC:nil,COL:0,OSI:0,OSA:0,AV:0
+        RL:11|1,File:nil,Bulk:nil,QS:nil,BEC:nil,COL:0,OSI:0,OSA:0,AV:0
 X-CID-BVR: 0
 X-CID-BAS: 0,_,0,_
-X-UUID: 881967b2e5b011ed9cb5633481061a41-20230428
-Received: from mtkmbs10n2.mediatek.inc [(172.21.101.183)] by mailgw01.mediatek.com
+X-UUID: 87d1e81ae5b011edb20a276fd37b9834-20230428
+Received: from mtkmbs11n1.mediatek.inc [(172.21.101.185)] by mailgw02.mediatek.com
         (envelope-from <yi-de.wu@mediatek.com>)
         (Generic MTA with TLSv1.2 ECDHE-RSA-AES256-GCM-SHA384 256/256)
-        with ESMTP id 1045583164; Fri, 28 Apr 2023 18:36:27 +0800
+        with ESMTP id 1732559990; Fri, 28 Apr 2023 18:36:27 +0800
 Received: from mtkmbs13n1.mediatek.inc (172.21.101.193) by
- mtkmbs11n1.mediatek.inc (172.21.101.185) with Microsoft SMTP Server
+ mtkmbs11n2.mediatek.inc (172.21.101.187) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1118.25; Fri, 28 Apr 2023 18:36:26 +0800
+ 15.2.1118.26; Fri, 28 Apr 2023 18:36:26 +0800
 Received: from mtksdccf07.mediatek.inc (172.21.84.99) by
  mtkmbs13n1.mediatek.inc (172.21.101.73) with Microsoft SMTP Server id
  15.2.1118.25 via Frontend Transport; Fri, 28 Apr 2023 18:36:26 +0800
@@ -64,9 +64,9 @@ CC:     <devicetree@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
         Shawn Hsiao <shawn.hsiao@mediatek.com>,
         PeiLun Suei <peilun.suei@mediatek.com>,
         Liju Chen <liju-clr.chen@mediatek.com>
-Subject: [PATCH v2 6/7] virt: geniezone: Add irqfd support
-Date:   Fri, 28 Apr 2023 18:36:21 +0800
-Message-ID: <20230428103622.18291-7-yi-de.wu@mediatek.com>
+Subject: [PATCH v2 3/7] virt: geniezone: Introduce GenieZone hypervisor support
+Date:   Fri, 28 Apr 2023 18:36:18 +0800
+Message-ID: <20230428103622.18291-4-yi-de.wu@mediatek.com>
 X-Mailer: git-send-email 2.18.0
 In-Reply-To: <20230428103622.18291-1-yi-de.wu@mediatek.com>
 References: <20230428103622.18291-1-yi-de.wu@mediatek.com>
@@ -79,832 +79,1129 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: "Yingshiuan Pan" <yingshiuan.pan@mediatek.com>
 
-irqfd enables other threads than vcpu threads to inject virtual
-interrupt through irqfd asynchronously rather through ioctl interface.
-This interface is necessary for VMM which creates separated thread for
-IO handling or uses vhost devices.
+GenieZone is MediaTek hypervisor solution, and it is running in EL2
+stand alone as a type-I hypervisor. This patch exports a set of ioctl
+interfaces for userspace VMM (e.g., crosvm) to operate guest VMs
+lifecycle (creation and destroy) on GenieZone.
 
 Signed-off-by: Yingshiuan Pan <yingshiuan.pan@mediatek.com>
 Signed-off-by: Yi-De Wu <yi-de.wu@mediatek.com>
 ---
- arch/arm64/geniezone/gzvm_arch.c    |   5 +
- arch/arm64/geniezone/gzvm_arch.h    |   7 +
- arch/arm64/geniezone/gzvm_irqchip.c |  22 +-
- drivers/virt/geniezone/Makefile     |   2 +-
- drivers/virt/geniezone/gzvm_irqfd.c | 536 ++++++++++++++++++++++++++++
- drivers/virt/geniezone/gzvm_main.c  |   5 +
- drivers/virt/geniezone/gzvm_vcpu.c  |   1 +
- drivers/virt/geniezone/gzvm_vm.c    |  19 +
- include/linux/gzvm_drv.h            |  27 ++
- include/uapi/linux/gzvm.h           |  20 +-
- 10 files changed, 641 insertions(+), 3 deletions(-)
- create mode 100644 drivers/virt/geniezone/gzvm_irqfd.c
+ MAINTAINERS                             |   6 +
+ arch/arm64/Kbuild                       |   1 +
+ arch/arm64/geniezone/Makefile           |   9 +
+ arch/arm64/geniezone/gzvm_arch.c        | 189 +++++++++++++
+ arch/arm64/geniezone/gzvm_arch.h        |  50 ++++
+ arch/arm64/include/uapi/asm/gzvm_arch.h |  18 ++
+ drivers/virt/Kconfig                    |   2 +
+ drivers/virt/geniezone/Kconfig          |  17 ++
+ drivers/virt/geniezone/Makefile         |  10 +
+ drivers/virt/geniezone/gzvm_main.c      | 146 ++++++++++
+ drivers/virt/geniezone/gzvm_vm.c        | 336 ++++++++++++++++++++++++
+ include/linux/gzvm_drv.h                |  98 +++++++
+ include/uapi/asm-generic/gzvm_arch.h    |  10 +
+ include/uapi/linux/gzvm.h               |  99 +++++++
+ 14 files changed, 991 insertions(+)
+ create mode 100644 arch/arm64/geniezone/Makefile
+ create mode 100644 arch/arm64/geniezone/gzvm_arch.c
+ create mode 100644 arch/arm64/geniezone/gzvm_arch.h
+ create mode 100644 arch/arm64/include/uapi/asm/gzvm_arch.h
+ create mode 100644 drivers/virt/geniezone/Kconfig
+ create mode 100644 drivers/virt/geniezone/Makefile
+ create mode 100644 drivers/virt/geniezone/gzvm_main.c
+ create mode 100644 drivers/virt/geniezone/gzvm_vm.c
+ create mode 100644 include/linux/gzvm_drv.h
+ create mode 100644 include/uapi/asm-generic/gzvm_arch.h
+ create mode 100644 include/uapi/linux/gzvm.h
 
-diff --git a/arch/arm64/geniezone/gzvm_arch.c b/arch/arm64/geniezone/gzvm_arch.c
-index 16ab5d4fd5b8..19ac7c1a4743 100644
---- a/arch/arm64/geniezone/gzvm_arch.c
-+++ b/arch/arm64/geniezone/gzvm_arch.c
-@@ -273,3 +273,8 @@ int gzvm_arch_inject_irq(struct gzvm *gzvm, unsigned int vcpu_idx, u32 irq_type,
- 	/* default use spi */
- 	return gzvm_vgic_inject_spi(gzvm, vcpu_idx, irq, level);
- }
-+
-+void gzvm_sync_hwstate(struct gzvm_vcpu *vcpu)
-+{
-+	gzvm_sync_vgic_state(vcpu);
-+}
-diff --git a/arch/arm64/geniezone/gzvm_arch.h b/arch/arm64/geniezone/gzvm_arch.h
-index 205bd0901333..e8d7c82efb50 100644
---- a/arch/arm64/geniezone/gzvm_arch.h
-+++ b/arch/arm64/geniezone/gzvm_arch.h
-@@ -47,6 +47,8 @@ enum {
- #define MT_HVC_GZVM_PROBE		GZVM_HCALL_ID(GZVM_FUNC_PROBE)
- #define MT_HVC_GZVM_ENABLE_CAP		GZVM_HCALL_ID(GZVM_FUNC_ENABLE_CAP)
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 1e911d1d9741..09a8ccf77b01 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -8700,6 +8700,12 @@ M:	Ze-Yu Wang <ze-yu.wang@mediatek.com>
+ M:	Yi-De Wu <yi-de.wu@mediatek.com>
+ F:	Documentation/devicetree/bindings/hypervisor/mediatek,geniezone-hyp.yaml
+ F:	Documentation/virt/geniezone/
++F:	arch/arm64/geniezone/
++F:	arch/arm64/include/uapi/asm/gzvm_arch.h
++F:	drivers/virt/geniezone/
++F:	include/linux/gzvm_drv.h
++F	include/uapi/asm-generic/gzvm_arch.h
++F:	include/uapi/linux/gzvm.h
  
-+#define GIC_V3_NR_LRS			16
-+
- static inline gzvm_id_t get_vmid_from_tuple(unsigned int tuple)
- {
- 	return (gzvm_id_t)(tuple >> 16);
-@@ -57,6 +59,11 @@ static inline gzvm_vcpu_id_t get_vcpuid_from_tuple(unsigned int tuple)
- 	return (gzvm_vcpu_id_t)(tuple & 0xffff);
- }
+ GENWQE (IBM Generic Workqueue Card)
+ M:	Frank Haverkamp <haver@linux.ibm.com>
+diff --git a/arch/arm64/Kbuild b/arch/arm64/Kbuild
+index 5bfbf7d79c99..0c3cca572919 100644
+--- a/arch/arm64/Kbuild
++++ b/arch/arm64/Kbuild
+@@ -4,6 +4,7 @@ obj-$(CONFIG_KVM)	+= kvm/
+ obj-$(CONFIG_XEN)	+= xen/
+ obj-$(subst m,y,$(CONFIG_HYPERV))	+= hyperv/
+ obj-$(CONFIG_CRYPTO)	+= crypto/
++obj-$(CONFIG_MTK_GZVM)	+= geniezone/
  
-+struct gzvm_vcpu_hwstate {
-+	__u32 nr_lrs;
-+	__u64 lr[GIC_V3_NR_LRS];
-+};
-+
- static inline unsigned int
- assemble_vm_vcpu_tuple(gzvm_id_t vmid, gzvm_vcpu_id_t vcpuid)
- {
-diff --git a/arch/arm64/geniezone/gzvm_irqchip.c b/arch/arm64/geniezone/gzvm_irqchip.c
-index c46bd34fee1b..1887cbb58fc6 100644
---- a/arch/arm64/geniezone/gzvm_irqchip.c
-+++ b/arch/arm64/geniezone/gzvm_irqchip.c
-@@ -10,8 +10,15 @@
- #include <linux/gzvm_drv.h>
- #include "gzvm_arch.h"
- 
-+static bool lr_signals_eoi(uint64_t lr_val)
-+{
-+	return !(lr_val & ICH_LR_STATE) && (lr_val & ICH_LR_EOI) &&
-+		 !(lr_val & ICH_LR_HW);
-+}
-+
- /**
-- * gzvm_sync_vgic_state() - Check all LRs synced from gz hypervisor
-+ * gzvm_sync_vgic_state() - Check all LRs synced from gz hypervisor.
-+ * @vcpu: Pointer to gzvm_vcpu.
-  *
-  * Traverse all LRs, see if any EOIed vint, notify_acked_irq if any.
-  * GZ does not fold/unfold everytime KVM_RUN, so we have to traverse all saved
-@@ -20,6 +27,19 @@
-  */
- void gzvm_sync_vgic_state(struct gzvm_vcpu *vcpu)
- {
-+	int i;
-+
-+	for (i = 0; i < vcpu->hwstate->nr_lrs; i++) {
-+		u32 vintid;
-+		u64 lr_val = vcpu->hwstate->lr[i];
-+		/* 0 means unused */
-+		if (!lr_val)
-+			continue;
-+
-+		vintid = lr_val & ICH_LR_VIRTUAL_ID_MASK;
-+		if (lr_signals_eoi(lr_val))
-+			gzvm_notify_acked_irq(vcpu->gzvm, vintid - VGIC_NR_PRIVATE_IRQS);
-+	}
- }
- 
- /* is_irq_valid() - Check the irq number and irq_type are matched */
-diff --git a/drivers/virt/geniezone/Makefile b/drivers/virt/geniezone/Makefile
-index 8ebf2db0c970..8517549e7dfb 100644
---- a/drivers/virt/geniezone/Makefile
-+++ b/drivers/virt/geniezone/Makefile
-@@ -7,5 +7,5 @@
- GZVM_DIR ?= ../../../drivers/virt/geniezone
- 
- gzvm-y := $(GZVM_DIR)/gzvm_main.o $(GZVM_DIR)/gzvm_vm.o \
--	  $(GZVM_DIR)/gzvm_vcpu.o
-+	  $(GZVM_DIR)/gzvm_vcpu.o $(GZVM_DIR)/gzvm_irqfd.o
- 
-diff --git a/drivers/virt/geniezone/gzvm_irqfd.c b/drivers/virt/geniezone/gzvm_irqfd.c
+ # for cleaning
+ subdir- += boot
+diff --git a/arch/arm64/geniezone/Makefile b/arch/arm64/geniezone/Makefile
 new file mode 100644
-index 000000000000..2594b2fe2e4e
+index 000000000000..5720c076d73c
 --- /dev/null
-+++ b/drivers/virt/geniezone/gzvm_irqfd.c
-@@ -0,0 +1,536 @@
++++ b/arch/arm64/geniezone/Makefile
+@@ -0,0 +1,9 @@
++# SPDX-License-Identifier: GPL-2.0-only
++#
++# Main Makefile for gzvm, this one includes drivers/virt/geniezone/Makefile
++#
++include $(srctree)/drivers/virt/geniezone/Makefile
++
++gzvm-y += gzvm_arch.o
++
++obj-$(CONFIG_MTK_GZVM) += gzvm.o
+diff --git a/arch/arm64/geniezone/gzvm_arch.c b/arch/arm64/geniezone/gzvm_arch.c
+new file mode 100644
+index 000000000000..2fc76f7d440f
+--- /dev/null
++++ b/arch/arm64/geniezone/gzvm_arch.c
+@@ -0,0 +1,189 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (c) 2023 MediaTek Inc.
 + */
 +
-+#include <linux/eventfd.h>
-+#include <linux/syscalls.h>
++#include <linux/arm-smccc.h>
++#include <linux/err.h>
++#include <linux/uaccess.h>
++
++#include <linux/gzvm.h>
 +#include <linux/gzvm_drv.h>
-+
-+struct gzvm_irq_ack_notifier {
-+	struct hlist_node link;
-+	unsigned int gsi;
-+	void (*irq_acked)(struct gzvm_irq_ack_notifier *ian);
-+};
++#include "gzvm_arch.h"
 +
 +/**
-+ * struct gzvm_kernel_irqfd_resampler - irqfd resampler descriptor.
-+ * @gzvm: Poiner to gzvm.
-+ * @list_head list: List of resampling struct _irqfd objects sharing this gsi.
-+ *		    RCU list modified under gzvm->irqfds.resampler_lock.
-+ * @notifier: gzvm irq ack notifier.
-+ * @list_head link: Entry in list of gzvm->irqfd.resampler_list.
-+ *		    Use for sharing esamplers among irqfds on the same gsi.
-+ *		    Accessed and modified under gzvm->irqfds.resampler_lock.
++ * geniezone_hypercall_wrapper()
 + *
-+ * Resampling irqfds are a special variety of irqfds used to emulate
-+ * level triggered interrupts.  The interrupt is asserted on eventfd
-+ * trigger.  On acknowledgment through the irq ack notifier, the
-+ * interrupt is de-asserted and userspace is notified through the
-+ * resamplefd.  All resamplers on the same gsi are de-asserted
-+ * together, so we don't need to track the state of each individual
-+ * user.  We can also therefore share the same irq source ID.
++ * Return: The wrapper helps caller to convert geniezone errno to Linux errno.
 + */
-+struct gzvm_kernel_irqfd_resampler {
-+	struct gzvm *gzvm;
-+
-+	struct list_head list;
-+	struct gzvm_irq_ack_notifier notifier;
-+
-+	struct list_head link;
-+};
-+
-+/**
-+ * struct gzvm_kernel_irqfd: gzvm kernel irqfd descriptor.
-+ * @gzvm: Pointer to gzvm.
-+ * @wait: Wait queue entry.
-+ * @gsi: Used for level IRQ fast-path.
-+ * @resampler: The resampler used by this irqfd (resampler-only).
-+ * @resamplefd: Eventfd notified on resample (resampler-only).
-+ * @resampler_link: Entry in list of irqfds for a resampler (resampler-only).
-+ * @eventfd: Used for setup/shutdown.
-+ */
-+struct gzvm_kernel_irqfd {
-+	struct gzvm *gzvm;
-+	wait_queue_entry_t wait;
-+
-+	int gsi;
-+
-+	struct gzvm_kernel_irqfd_resampler *resampler;
-+
-+	struct eventfd_ctx *resamplefd;
-+
-+	struct list_head resampler_link;
-+
-+	struct eventfd_ctx *eventfd;
-+	struct list_head list;
-+	poll_table pt;
-+	struct work_struct shutdown;
-+};
-+
-+static struct workqueue_struct *irqfd_cleanup_wq;
-+
-+/**
-+ * irqfd_set_spi(): irqfd to inject virtual interrupt.
-+ * @gzvm: Pointer to gzvm.
-+ * @irq_source_id: irq source id.
-+ * @irq: This is spi interrupt number (starts from 0 instead of 32).
-+ * @level: irq triggered level.
-+ * @line_status: irq status.
-+ */
-+static void irqfd_set_spi(struct gzvm *gzvm, int irq_source_id, u32 irq,
-+			  int level, bool line_status)
++static int gzvm_hypcall_wrapper(unsigned long a0, unsigned long a1,
++				unsigned long a2, unsigned long a3,
++				unsigned long a4, unsigned long a5,
++				unsigned long a6, unsigned long a7,
++				struct arm_smccc_res *res)
 +{
-+	if (level)
-+		gzvm_arch_inject_irq(gzvm, irq_source_id, 0, irq, level);
++	arm_smccc_hvc(a0, a1, a2, a3, a4, a5, a6, a7, res);
++	return gz_err_to_errno(res->a0);
 +}
 +
-+/**
-+ * irqfd_resampler_ack() - Notify all of the resampler irqfds using this GSI
-+ *			   when IRQ de-assert once.
-+ * @ian: Pointer to gzvm_irq_ack_notifier.
-+ *
-+ * Since resampler irqfds share an IRQ source ID, we de-assert once
-+ * then notify all of the resampler irqfds using this GSI.  We can't
-+ * do multiple de-asserts or we risk racing with incoming re-asserts.
-+ */
-+static void irqfd_resampler_ack(struct gzvm_irq_ack_notifier *ian)
++int gzvm_arch_probe(void)
 +{
-+	struct gzvm_kernel_irqfd_resampler *resampler;
-+	struct gzvm *gzvm;
-+	struct gzvm_kernel_irqfd *irqfd;
-+	int idx;
++	struct arm_smccc_res res;
 +
-+	resampler = container_of(ian,
-+				 struct gzvm_kernel_irqfd_resampler, notifier);
-+	gzvm = resampler->gzvm;
++	arm_smccc_hvc(MT_HVC_GZVM_PROBE, 0, 0, 0, 0, 0, 0, 0, &res);
++	if (res.a0 == 0)
++		return 0;
 +
-+	irqfd_set_spi(gzvm, GZVM_IRQFD_RESAMPLE_IRQ_SOURCE_ID,
-+		      resampler->notifier.gsi, 0, false);
-+
-+	idx = srcu_read_lock(&gzvm->irq_srcu);
-+
-+	list_for_each_entry_srcu(irqfd, &resampler->list, resampler_link,
-+				 srcu_read_lock_held(&gzvm->irq_srcu)) {
-+		eventfd_signal(irqfd->resamplefd, 1);
-+	}
-+
-+	srcu_read_unlock(&gzvm->irq_srcu, idx);
++	return -ENXIO;
 +}
 +
-+static void gzvm_register_irq_ack_notifier(struct gzvm *gzvm,
-+					   struct gzvm_irq_ack_notifier *ian)
++int gzvm_arch_set_memregion(gzvm_id_t vm_id, size_t buf_size,
++			    phys_addr_t region)
 +{
-+	mutex_lock(&gzvm->irq_lock);
-+	hlist_add_head_rcu(&ian->link, &gzvm->irq_ack_notifier_list);
-+	mutex_unlock(&gzvm->irq_lock);
++	struct arm_smccc_res res;
++
++	return gzvm_hypcall_wrapper(MT_HVC_GZVM_SET_MEMREGION, vm_id,
++				    buf_size, region, 0, 0, 0, 0, &res);
 +}
 +
-+static void gzvm_unregister_irq_ack_notifier(struct gzvm *gzvm,
-+					     struct gzvm_irq_ack_notifier *ian)
++static int gzvm_cap_arm_vm_ipa_size(void __user *argp)
 +{
-+	mutex_lock(&gzvm->irq_lock);
-+	hlist_del_init_rcu(&ian->link);
-+	mutex_unlock(&gzvm->irq_lock);
-+	synchronize_srcu(&gzvm->irq_srcu);
-+}
++	__u64 value = CONFIG_ARM64_PA_BITS;
 +
-+static void irqfd_resampler_shutdown(struct gzvm_kernel_irqfd *irqfd)
-+{
-+	struct gzvm_kernel_irqfd_resampler *resampler = irqfd->resampler;
-+	struct gzvm *gzvm = resampler->gzvm;
-+
-+	mutex_lock(&gzvm->irqfds.resampler_lock);
-+
-+	list_del_rcu(&irqfd->resampler_link);
-+	synchronize_srcu(&gzvm->irq_srcu);
-+
-+	if (list_empty(&resampler->list)) {
-+		list_del(&resampler->link);
-+		gzvm_unregister_irq_ack_notifier(gzvm, &resampler->notifier);
-+		irqfd_set_spi(gzvm, GZVM_IRQFD_RESAMPLE_IRQ_SOURCE_ID,
-+			      resampler->notifier.gsi, 0, false);
-+		kfree(resampler);
-+	}
-+
-+	mutex_unlock(&gzvm->irqfds.resampler_lock);
-+}
-+
-+/**
-+ * irqfd_shutdown() - Race-free decouple logic (ordering is critical).
-+ * @work: Pointer to work_struct.
-+ */
-+static void irqfd_shutdown(struct work_struct *work)
-+{
-+	struct gzvm_kernel_irqfd *irqfd =
-+		container_of(work, struct gzvm_kernel_irqfd, shutdown);
-+	struct gzvm *gzvm = irqfd->gzvm;
-+	u64 cnt;
-+
-+	/* Make sure irqfd has been initialized in assign path. */
-+	synchronize_srcu(&gzvm->irq_srcu);
-+
-+	/*
-+	 * Synchronize with the wait-queue and unhook ourselves to prevent
-+	 * further events.
-+	 */
-+	eventfd_ctx_remove_wait_queue(irqfd->eventfd, &irqfd->wait, &cnt);
-+
-+	if (irqfd->resampler) {
-+		irqfd_resampler_shutdown(irqfd);
-+		eventfd_ctx_put(irqfd->resamplefd);
-+	}
-+
-+	/*
-+	 * It is now safe to release the object's resources
-+	 */
-+	eventfd_ctx_put(irqfd->eventfd);
-+	kfree(irqfd);
-+}
-+
-+/**
-+ * irqfd_is_active() - Assumes gzvm->irqfds.lock is held.
-+ * @irqfd: Pointer to gzvm_kernel_irqfd.
-+ */
-+static bool irqfd_is_active(struct gzvm_kernel_irqfd *irqfd)
-+{
-+	return list_empty(&irqfd->list) ? false : true;
-+}
-+
-+/**
-+ * irqfd_deactivate() - Mark the irqfd as inactive and schedule it for removal.
-+ *			assumes gzvm->irqfds.lock is held.
-+ * @irqfd: Pointer to gzvm_kernel_irqfd.
-+ */
-+static void irqfd_deactivate(struct gzvm_kernel_irqfd *irqfd)
-+{
-+	if (!irqfd_is_active(irqfd))
-+		return;
-+
-+	list_del_init(&irqfd->list);
-+
-+	queue_work(irqfd_cleanup_wq, &irqfd->shutdown);
-+}
-+
-+/**
-+ * irqfd_wakeup() - Wake up irqfd to do virtual interrupt injection.
-+ * @wait: Pointer to wait_queue_entry_t.
-+ * @mode:
-+ * @sync:
-+ * @key:
-+ */
-+static int irqfd_wakeup(wait_queue_entry_t *wait, unsigned int mode, int sync,
-+			void *key)
-+{
-+	struct gzvm_kernel_irqfd *irqfd =
-+		container_of(wait, struct gzvm_kernel_irqfd, wait);
-+	__poll_t flags = key_to_poll(key);
-+	struct gzvm *gzvm = irqfd->gzvm;
-+
-+	if (flags & EPOLLIN) {
-+		u64 cnt;
-+
-+		eventfd_ctx_do_read(irqfd->eventfd, &cnt);
-+		/* gzvm's irq injection is not blocked, don't need workq */
-+		irqfd_set_spi(gzvm, GZVM_USERSPACE_IRQ_SOURCE_ID, irqfd->gsi,
-+			      1, false);
-+	}
-+
-+	if (flags & EPOLLHUP) {
-+		/* The eventfd is closing, detach from GZVM */
-+		unsigned long iflags;
-+
-+		spin_lock_irqsave(&gzvm->irqfds.lock, iflags);
-+
-+		/*
-+		 * Do more check if someone deactivated the irqfd before
-+		 * we could acquire the irqfds.lock.
-+		 */
-+		if (irqfd_is_active(irqfd))
-+			irqfd_deactivate(irqfd);
-+
-+		spin_unlock_irqrestore(&gzvm->irqfds.lock, iflags);
-+	}
++	if (copy_to_user(argp, &value, sizeof(__u64)))
++		return -EFAULT;
 +
 +	return 0;
 +}
 +
-+static void irqfd_ptable_queue_proc(struct file *file, wait_queue_head_t *wqh,
-+				    poll_table *pt)
++int gzvm_arch_check_extension(struct gzvm *gzvm, __u64 cap, void __user *argp)
 +{
-+	struct gzvm_kernel_irqfd *irqfd =
-+		container_of(pt, struct gzvm_kernel_irqfd, pt);
-+	add_wait_queue_priority(wqh, &irqfd->wait);
-+}
++	int ret = -EOPNOTSUPP;
 +
-+static int gzvm_irqfd_assign(struct gzvm *gzvm, struct gzvm_irqfd *args)
-+{
-+	struct gzvm_kernel_irqfd *irqfd, *tmp;
-+	struct fd f;
-+	struct eventfd_ctx *eventfd = NULL, *resamplefd = NULL;
-+	int ret;
-+	__poll_t events;
-+	int idx;
++	switch (cap) {
++	case GZVM_CAP_ARM_PROTECTED_VM: {
++		__u64 success = 1;
 +
-+	irqfd = kzalloc(sizeof(*irqfd), GFP_KERNEL_ACCOUNT);
-+	if (!irqfd)
-+		return -ENOMEM;
-+
-+	irqfd->gzvm = gzvm;
-+	irqfd->gsi = args->gsi;
-+	irqfd->resampler = NULL;
-+
-+	INIT_LIST_HEAD(&irqfd->list);
-+	INIT_WORK(&irqfd->shutdown, irqfd_shutdown);
-+
-+	f = fdget(args->fd);
-+	if (!f.file) {
-+		ret = -EBADF;
-+		goto out;
++		if (copy_to_user(argp, &success, sizeof(__u64)))
++			return -EFAULT;
++		ret = 0;
++		break;
++	}
++	case GZVM_CAP_ARM_VM_IPA_SIZE: {
++		ret = gzvm_cap_arm_vm_ipa_size(argp);
++		break;
++	}
++	default:
++		ret = -EOPNOTSUPP;
 +	}
 +
-+	eventfd = eventfd_ctx_fileget(f.file);
-+	if (IS_ERR(eventfd)) {
-+		ret = PTR_ERR(eventfd);
-+		goto fail;
-+	}
-+
-+	irqfd->eventfd = eventfd;
-+
-+	if (args->flags & GZVM_IRQFD_FLAG_RESAMPLE) {
-+		struct gzvm_kernel_irqfd_resampler *resampler;
-+
-+		resamplefd = eventfd_ctx_fdget(args->resamplefd);
-+		if (IS_ERR(resamplefd)) {
-+			ret = PTR_ERR(resamplefd);
-+			goto fail;
-+		}
-+
-+		irqfd->resamplefd = resamplefd;
-+		INIT_LIST_HEAD(&irqfd->resampler_link);
-+
-+		mutex_lock(&gzvm->irqfds.resampler_lock);
-+
-+		list_for_each_entry(resampler,
-+				    &gzvm->irqfds.resampler_list, link) {
-+			if (resampler->notifier.gsi == irqfd->gsi) {
-+				irqfd->resampler = resampler;
-+				break;
-+			}
-+		}
-+
-+		if (!irqfd->resampler) {
-+			resampler = kzalloc(sizeof(*resampler),
-+					    GFP_KERNEL_ACCOUNT);
-+			if (!resampler) {
-+				ret = -ENOMEM;
-+				mutex_unlock(&gzvm->irqfds.resampler_lock);
-+				goto fail;
-+			}
-+
-+			resampler->gzvm = gzvm;
-+			INIT_LIST_HEAD(&resampler->list);
-+			resampler->notifier.gsi = irqfd->gsi;
-+			resampler->notifier.irq_acked = irqfd_resampler_ack;
-+			INIT_LIST_HEAD(&resampler->link);
-+
-+			list_add(&resampler->link, &gzvm->irqfds.resampler_list);
-+			gzvm_register_irq_ack_notifier(gzvm,
-+						       &resampler->notifier);
-+			irqfd->resampler = resampler;
-+		}
-+
-+		list_add_rcu(&irqfd->resampler_link, &irqfd->resampler->list);
-+		synchronize_srcu(&gzvm->irq_srcu);
-+
-+		mutex_unlock(&gzvm->irqfds.resampler_lock);
-+	}
-+
-+	/*
-+	 * Install our own custom wake-up handling so we are notified via
-+	 * a callback whenever someone signals the underlying eventfd
-+	 */
-+	init_waitqueue_func_entry(&irqfd->wait, irqfd_wakeup);
-+	init_poll_funcptr(&irqfd->pt, irqfd_ptable_queue_proc);
-+
-+	spin_lock_irq(&gzvm->irqfds.lock);
-+
-+	ret = 0;
-+	list_for_each_entry(tmp, &gzvm->irqfds.items, list) {
-+		if (irqfd->eventfd != tmp->eventfd)
-+			continue;
-+		/* This fd is used for another irq already. */
-+		pr_err("already used: gsi=%d fd=%d\n", args->gsi, args->fd);
-+		ret = -EBUSY;
-+		spin_unlock_irq(&gzvm->irqfds.lock);
-+		goto fail;
-+	}
-+
-+	idx = srcu_read_lock(&gzvm->irq_srcu);
-+
-+	list_add_tail(&irqfd->list, &gzvm->irqfds.items);
-+
-+	spin_unlock_irq(&gzvm->irqfds.lock);
-+
-+	/*
-+	 * Check if there was an event already pending on the eventfd
-+	 * before we registered, and trigger it as if we didn't miss it.
-+	 */
-+	events = vfs_poll(f.file, &irqfd->pt);
-+
-+	/* In case there is already a pending event */
-+	if (events & EPOLLIN)
-+		irqfd_set_spi(gzvm, GZVM_IRQFD_RESAMPLE_IRQ_SOURCE_ID,
-+			      irqfd->gsi, 1, false);
-+
-+	srcu_read_unlock(&gzvm->irq_srcu, idx);
-+
-+	/*
-+	 * do not drop the file until the irqfd is fully initialized, otherwise
-+	 * we might race against the EPOLLHUP
-+	 */
-+	fdput(f);
-+	return 0;
-+
-+fail:
-+	if (irqfd->resampler)
-+		irqfd_resampler_shutdown(irqfd);
-+
-+	if (resamplefd && !IS_ERR(resamplefd))
-+		eventfd_ctx_put(resamplefd);
-+
-+	if (eventfd && !IS_ERR(eventfd))
-+		eventfd_ctx_put(eventfd);
-+
-+	fdput(f);
-+
-+out:
-+	kfree(irqfd);
 +	return ret;
 +}
 +
-+static void gzvm_notify_acked_gsi(struct gzvm *gzvm, int gsi)
-+{
-+	struct gzvm_irq_ack_notifier *gian;
-+
-+	hlist_for_each_entry_srcu(gian, &gzvm->irq_ack_notifier_list,
-+				  link, srcu_read_lock_held(&gzvm->irq_srcu))
-+		if (gian->gsi == gsi)
-+			gian->irq_acked(gian);
-+}
-+
-+void gzvm_notify_acked_irq(struct gzvm *gzvm, unsigned int gsi)
-+{
-+	int idx;
-+
-+	idx = srcu_read_lock(&gzvm->irq_srcu);
-+	gzvm_notify_acked_gsi(gzvm, gsi);
-+	srcu_read_unlock(&gzvm->irq_srcu, idx);
-+}
-+
 +/**
-+ * gzvm_irqfd_deassign() - Shutdown any irqfd's that match fd+gsi.
-+ * @gzvm: Pointer to gzvm.
-+ * @args: Pointer to gzvm_irqfd.
-+ */
-+static int gzvm_irqfd_deassign(struct gzvm *gzvm, struct gzvm_irqfd *args)
-+{
-+	struct gzvm_kernel_irqfd *irqfd, *tmp;
-+	struct eventfd_ctx *eventfd;
-+
-+	eventfd = eventfd_ctx_fdget(args->fd);
-+	if (IS_ERR(eventfd))
-+		return PTR_ERR(eventfd);
-+
-+	spin_lock_irq(&gzvm->irqfds.lock);
-+
-+	list_for_each_entry_safe(irqfd, tmp, &gzvm->irqfds.items, list) {
-+		if (irqfd->eventfd == eventfd && irqfd->gsi == args->gsi)
-+			irqfd_deactivate(irqfd);
-+	}
-+
-+	spin_unlock_irq(&gzvm->irqfds.lock);
-+	eventfd_ctx_put(eventfd);
-+
-+	/*
-+	 * Block until we know all outstanding shutdown jobs have completed
-+	 * so that we guarantee there will not be any more interrupts on this
-+	 * gsi once this deassign function returns.
-+	 */
-+	flush_workqueue(irqfd_cleanup_wq);
-+
-+	return 0;
-+}
-+
-+int gzvm_irqfd(struct gzvm *gzvm, struct gzvm_irqfd *args)
-+{
-+	if (args->flags &
-+	    ~(GZVM_IRQFD_FLAG_DEASSIGN | GZVM_IRQFD_FLAG_RESAMPLE))
-+		return -EINVAL;
-+
-+	if (args->flags & GZVM_IRQFD_FLAG_DEASSIGN)
-+		return gzvm_irqfd_deassign(gzvm, args);
-+
-+	return gzvm_irqfd_assign(gzvm, args);
-+}
-+
-+/**
-+ * gzvm_vm_irqfd_init() - Initialize irqfd data structure per VM
-+ */
-+int gzvm_vm_irqfd_init(struct gzvm *gzvm)
-+{
-+	mutex_init(&gzvm->irq_lock);
-+
-+	spin_lock_init(&gzvm->irqfds.lock);
-+	INIT_LIST_HEAD(&gzvm->irqfds.items);
-+	INIT_LIST_HEAD(&gzvm->irqfds.resampler_list);
-+	if (init_srcu_struct(&gzvm->irq_srcu))
-+		return -EINVAL;
-+	INIT_HLIST_HEAD(&gzvm->irq_ack_notifier_list);
-+	mutex_init(&gzvm->irqfds.resampler_lock);
-+
-+	return 0;
-+}
-+
-+/**
-+ * gzvm_irqfd_release() - This function is called as the gzvm VM fd is being
-+ *			  released. Shutdown all irqfds that still remain open.
-+ * @gzvm: Pointer to gzvm.
-+ */
-+void gzvm_vm_irqfd_release(struct gzvm *gzvm)
-+{
-+	struct gzvm_kernel_irqfd *irqfd, *tmp;
-+
-+	spin_lock_irq(&gzvm->irqfds.lock);
-+
-+	list_for_each_entry_safe(irqfd, tmp, &gzvm->irqfds.items, list)
-+		irqfd_deactivate(irqfd);
-+
-+	spin_unlock_irq(&gzvm->irqfds.lock);
-+
-+	/*
-+	 * Block until we know all outstanding shutdown jobs have completed.
-+	 */
-+	flush_workqueue(irqfd_cleanup_wq);
-+}
-+
-+/**
-+ * gzvm_irqfd_init() - Erase flushing work items when a VM exits.
++ * gzvm_arch_create_vm()
 + *
-+ * Create a host-wide workqueue for issuing deferred shutdown requests
-+ * aggregated from all vm* instances. We need our own isolated
-+ * queue to ease flushing work items when a VM exits.
++ * Return:
++ * * positive value	- VM ID
++ * * -ENOMEM		- Memory not enough for storing VM data
 + */
-+int gzvm_drv_irqfd_init(void)
++int gzvm_arch_create_vm(void)
 +{
-+	irqfd_cleanup_wq = alloc_workqueue("gzvm-irqfd-cleanup", 0, 0);
-+	if (!irqfd_cleanup_wq)
-+		return -ENOMEM;
++	struct arm_smccc_res res;
++	int ret;
++
++	ret = gzvm_hypcall_wrapper(MT_HVC_GZVM_CREATE_VM, 0, 0, 0, 0, 0, 0, 0,
++				   &res);
++
++	if (ret == 0)
++		return res.a1;
++	else
++		return ret;
++}
++
++int gzvm_arch_destroy_vm(gzvm_id_t vm_id)
++{
++	struct arm_smccc_res res;
++
++	return gzvm_hypcall_wrapper(MT_HVC_GZVM_DESTROY_VM, vm_id, 0, 0, 0, 0,
++				    0, 0, &res);
++}
++
++int gzvm_vm_arch_enable_cap(struct gzvm *gzvm, struct gzvm_enable_cap *cap,
++			    struct arm_smccc_res *res)
++{
++	return gzvm_hypcall_wrapper(MT_HVC_GZVM_ENABLE_CAP, gzvm->vm_id,
++				   cap->cap, cap->args[0], cap->args[1],
++				   cap->args[2], cap->args[3], cap->args[4],
++				   res);
++}
++
++/**
++ * gzvm_vm_ioctl_get_pvmfw_size() - Get pvmfw size from hypervisor, return
++ *				    in x1, and return to userspace in args.
++ *
++ * Return:
++ * * 0			- Succeed
++ * * -EINVAL		- Hypervisor return invalid results
++ * * -EFAULT		- Fail to copy back to userspace buffer
++ */
++static int gzvm_vm_ioctl_get_pvmfw_size(struct gzvm *gzvm,
++					struct gzvm_enable_cap *cap,
++					void __user *argp)
++{
++	struct arm_smccc_res res = {0};
++
++	if (gzvm_vm_arch_enable_cap(gzvm, cap, &res) != 0)
++		return -EINVAL;
++
++	cap->args[1] = res.a1;
++	if (copy_to_user(argp, cap, sizeof(*cap)))
++		return -EFAULT;
 +
 +	return 0;
 +}
 +
-+void gzvm_drv_irqfd_exit(void)
++/**
++ * gzvm_vm_ioctl_cap_pvm() - Proceed GZVM_CAP_ARM_PROTECTED_VM's subcommands
++ *
++ * Return:
++ * * 0			- Succeed
++ * * -EINVAL		- Invalid subcommand or arguments
++ */
++static int gzvm_vm_ioctl_cap_pvm(struct gzvm *gzvm, struct gzvm_enable_cap *cap,
++				 void __user *argp)
 +{
-+	destroy_workqueue(irqfd_cleanup_wq);
-+}
-diff --git a/drivers/virt/geniezone/gzvm_main.c b/drivers/virt/geniezone/gzvm_main.c
-index e3fe3ad9ffce..121816a09c8e 100644
---- a/drivers/virt/geniezone/gzvm_main.c
-+++ b/drivers/virt/geniezone/gzvm_main.c
-@@ -113,11 +113,16 @@ static int gzvm_drv_probe(struct platform_device *pdev)
- 		return ret;
- 	gzvm_debug_dev = pdev;
- 
-+	ret = gzvm_drv_irqfd_init();
-+	if (ret)
-+		return ret;
++	int ret = -EINVAL;
++	struct arm_smccc_res res = {0};
 +
- 	return 0;
- }
- 
- static int gzvm_drv_remove(struct platform_device *pdev)
- {
-+	gzvm_drv_irqfd_exit();
- 	destroy_all_vm();
- 	misc_deregister(&gzvm_dev);
- 	return 0;
-diff --git a/drivers/virt/geniezone/gzvm_vcpu.c b/drivers/virt/geniezone/gzvm_vcpu.c
-index 65b1a2372b30..faee2ee64639 100644
---- a/drivers/virt/geniezone/gzvm_vcpu.c
-+++ b/drivers/virt/geniezone/gzvm_vcpu.c
-@@ -211,6 +211,7 @@ int gzvm_vm_ioctl_create_vcpu(struct gzvm *gzvm, u32 cpuid)
- 		ret = -ENOMEM;
- 		goto free_vcpu;
- 	}
-+	vcpu->hwstate = (void *)vcpu->run + PAGE_SIZE;
- 	vcpu->vcpuid = cpuid;
- 	vcpu->gzvm = gzvm;
- 	mutex_init(&vcpu->lock);
-diff --git a/drivers/virt/geniezone/gzvm_vm.c b/drivers/virt/geniezone/gzvm_vm.c
-index a5444541b745..eb34d7ba94a2 100644
---- a/drivers/virt/geniezone/gzvm_vm.c
-+++ b/drivers/virt/geniezone/gzvm_vm.c
-@@ -295,6 +295,15 @@ static long gzvm_vm_ioctl(struct file *filp, unsigned int ioctl,
- 		ret = gzvm_vm_ioctl_create_device(gzvm, argp);
- 		break;
- 	}
-+	case GZVM_IRQFD: {
-+		struct gzvm_irqfd data;
-+
-+		ret = -EFAULT;
-+		if (copy_from_user(&data, argp, sizeof(data)))
-+			goto out;
-+		ret = gzvm_irqfd(gzvm, &data);
++	switch (cap->args[0]) {
++	case GZVM_CAP_ARM_PVM_SET_PVMFW_IPA:
++		ret = gzvm_vm_arch_enable_cap(gzvm, cap, &res);
++		break;
++	case GZVM_CAP_ARM_PVM_GET_PVMFW_SIZE:
++		ret = gzvm_vm_ioctl_get_pvmfw_size(gzvm, cap, argp);
++		break;
++	default:
++		ret = -EINVAL;
 +		break;
 +	}
- 	case GZVM_ENABLE_CAP: {
- 		struct gzvm_enable_cap cap;
- 
-@@ -319,6 +328,8 @@ static void gzvm_destroy_vm(struct gzvm *gzvm)
- 
- 	mutex_lock(&gzvm->lock);
- 
-+	gzvm_vm_irqfd_release(gzvm);
-+	gzvm_destroy_vcpus(gzvm);
- 	gzvm_arch_destroy_vm(gzvm->vm_id);
- 
- 	gzvm_destroy_vcpus(gzvm);
-@@ -365,6 +376,14 @@ static struct gzvm *gzvm_create_vm(unsigned long vm_type)
- 	gzvm->mm = current->mm;
- 	mutex_init(&gzvm->lock);
- 
-+	ret = gzvm_vm_irqfd_init(gzvm);
-+	if (ret) {
-+		dev_err(&gzvm_debug_dev->dev,
-+			"Failed to initialize irqfd\n");
-+		kfree(gzvm);
-+		return ERR_PTR(ret);
++
++	return ret;
++}
++
++int gzvm_vm_ioctl_arch_enable_cap(struct gzvm *gzvm, struct gzvm_enable_cap *cap,
++				  void __user *argp)
++{
++	int ret = -EINVAL;
++
++	switch (cap->cap) {
++	case GZVM_CAP_ARM_PROTECTED_VM:
++		ret = gzvm_vm_ioctl_cap_pvm(gzvm, cap, argp);
++		break;
++	default:
++		ret = -EINVAL;
++		break;
 +	}
 +
- 	mutex_lock(&gzvm_list_lock);
- 	list_add(&gzvm->vm_list, &gzvm_list);
- 	mutex_unlock(&gzvm_list_lock);
-diff --git a/include/linux/gzvm_drv.h b/include/linux/gzvm_drv.h
-index 1e7c81597e9a..a54a7915c514 100644
---- a/include/linux/gzvm_drv.h
-+++ b/include/linux/gzvm_drv.h
-@@ -10,6 +10,7 @@
- #include <linux/mutex.h>
- #include <linux/platform_device.h>
- #include <linux/gzvm.h>
-+#include <linux/srcu.h>
- 
- #define MODULE_NAME	"gzvm"
- #define GZVM_VCPU_MMAP_SIZE  PAGE_SIZE
-@@ -25,6 +26,8 @@
- #define ERR_NOT_SUPPORTED       (-24)
- #define ERR_NOT_IMPLEMENTED     (-27)
- #define ERR_FAULT               (-40)
-+#define GZVM_USERSPACE_IRQ_SOURCE_ID            0
-+#define GZVM_IRQFD_RESAMPLE_IRQ_SOURCE_ID       1
- 
- /*
-  * The following data structures are for data transferring between driver and
-@@ -68,6 +71,7 @@ struct gzvm_vcpu {
- 	/* lock of vcpu*/
- 	struct mutex lock;
- 	struct gzvm_vcpu_run *run;
-+	struct gzvm_vcpu_hwstate *hwstate;
- };
- 
- struct gzvm {
-@@ -77,8 +81,23 @@ struct gzvm {
- 	struct gzvm_memslot memslot[GZVM_MAX_MEM_REGION];
- 	/* lock for list_add*/
- 	struct mutex lock;
-+
-+	struct {
-+		/* lock for irqfds list operation */
-+		spinlock_t        lock;
-+		struct list_head  items;
-+		struct list_head  resampler_list;
-+		/* lock for irqfds resampler */
-+		struct mutex      resampler_lock;
-+	} irqfds;
-+
- 	struct list_head vm_list;
- 	gzvm_id_t vm_id;
-+
-+	struct hlist_head irq_ack_notifier_list;
-+	struct srcu_struct irq_srcu;
-+	/* lock for irq injection */
-+	struct mutex irq_lock;
- };
- 
- long gzvm_dev_ioctl_check_extension(struct gzvm *gzvm, unsigned long args);
-@@ -111,6 +130,14 @@ int gzvm_arch_create_device(gzvm_id_t vm_id, struct gzvm_create_device *gzvm_dev
- int gzvm_arch_inject_irq(struct gzvm *gzvm, unsigned int vcpu_idx, u32 irq_type,
- 			 u32 irq, bool level);
- 
-+void gzvm_notify_acked_irq(struct gzvm *gzvm, unsigned int gsi);
-+int gzvm_irqfd(struct gzvm *gzvm, struct gzvm_irqfd *args);
-+int gzvm_drv_irqfd_init(void);
-+void gzvm_drv_irqfd_exit(void);
-+int gzvm_vm_irqfd_init(struct gzvm *gzvm);
-+void gzvm_vm_irqfd_release(struct gzvm *gzvm);
-+void gzvm_sync_hwstate(struct gzvm_vcpu *vcpu);
-+
- extern struct platform_device *gzvm_debug_dev;
- 
- #endif /* __GZVM_DRV_H__ */
-diff --git a/include/uapi/linux/gzvm.h b/include/uapi/linux/gzvm.h
-index 2f56a53efb27..b878b25ff963 100644
---- a/include/uapi/linux/gzvm.h
-+++ b/include/uapi/linux/gzvm.h
-@@ -230,4 +230,22 @@ struct gzvm_one_reg {
- 
- #define GZVM_REG_GENERIC	   0x0000000000000000ULL
- 
--#endif /* __GZVM_H__ */
-+#define GZVM_IRQFD_FLAG_DEASSIGN	(1 << 0)
-+/**
-+ * GZVM_IRQFD_FLAG_RESAMPLE indicates resamplefd is valid and specifies
-+ * the irqfd to operate in resampling mode for level triggered interrupt
-+ * emulation.
++	return ret;
++}
+diff --git a/arch/arm64/geniezone/gzvm_arch.h b/arch/arm64/geniezone/gzvm_arch.h
+new file mode 100644
+index 000000000000..dd0b7b5f7c65
+--- /dev/null
++++ b/arch/arm64/geniezone/gzvm_arch.h
+@@ -0,0 +1,50 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2023 MediaTek Inc.
 + */
-+#define GZVM_IRQFD_FLAG_RESAMPLE	(1 << 1)
 +
-+struct gzvm_irqfd {
-+	__u32 fd;
-+	__u32 gsi;
-+	__u32 flags;
-+	__u32 resamplefd;
-+	__u8  pad[16];
++#ifndef __GZ_ARCH_H__
++#define __GZ_ARCH_H__
++
++#include <linux/arm-smccc.h>
++
++enum {
++	GZVM_FUNC_CREATE_VM = 0,
++	GZVM_FUNC_DESTROY_VM,
++	GZVM_FUNC_CREATE_VCPU,
++	GZVM_FUNC_DESTROY_VCPU,
++	GZVM_FUNC_SET_MEMREGION,
++	GZVM_FUNC_RUN,
++	GZVM_FUNC_GET_REGS,
++	GZVM_FUNC_SET_REGS,
++	GZVM_FUNC_GET_ONE_REG,
++	GZVM_FUNC_SET_ONE_REG,
++	GZVM_FUNC_IRQ_LINE,
++	GZVM_FUNC_CREATE_DEVICE,
++	GZVM_FUNC_PROBE,
++	GZVM_FUNC_ENABLE_CAP,
++	NR_GZVM_FUNC
 +};
 +
-+#define GZVM_IRQFD	_IOW(GZVM_IOC_MAGIC, 0x76, struct gzvm_irqfd)
++#define SMC_ENTITY_MTK			59
++#define GZVM_FUNCID_START		(0x1000)
++#define GZVM_HCALL_ID(func)						\
++	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL, ARM_SMCCC_SMC_32,	\
++			   SMC_ENTITY_MTK, (GZVM_FUNCID_START + (func)))
 +
-+#endif /* __GZVM__H__ */
++#define MT_HVC_GZVM_CREATE_VM		GZVM_HCALL_ID(GZVM_FUNC_CREATE_VM)
++#define MT_HVC_GZVM_DESTROY_VM		GZVM_HCALL_ID(GZVM_FUNC_DESTROY_VM)
++#define MT_HVC_GZVM_CREATE_VCPU		GZVM_HCALL_ID(GZVM_FUNC_CREATE_VCPU)
++#define MT_HVC_GZVM_DESTROY_VCPU	GZVM_HCALL_ID(GZVM_FUNC_DESTROY_VCPU)
++#define MT_HVC_GZVM_SET_MEMREGION	GZVM_HCALL_ID(GZVM_FUNC_SET_MEMREGION)
++#define MT_HVC_GZVM_RUN			GZVM_HCALL_ID(GZVM_FUNC_RUN)
++#define MT_HVC_GZVM_GET_REGS		GZVM_HCALL_ID(GZVM_FUNC_GET_REGS)
++#define MT_HVC_GZVM_SET_REGS		GZVM_HCALL_ID(GZVM_FUNC_SET_REGS)
++#define MT_HVC_GZVM_GET_ONE_REG		GZVM_HCALL_ID(GZVM_FUNC_GET_ONE_REG)
++#define MT_HVC_GZVM_SET_ONE_REG		GZVM_HCALL_ID(GZVM_FUNC_SET_ONE_REG)
++#define MT_HVC_GZVM_IRQ_LINE		GZVM_HCALL_ID(GZVM_FUNC_IRQ_LINE)
++#define MT_HVC_GZVM_CREATE_DEVICE	GZVM_HCALL_ID(GZVM_FUNC_CREATE_DEVICE)
++#define MT_HVC_GZVM_PROBE		GZVM_HCALL_ID(GZVM_FUNC_PROBE)
++#define MT_HVC_GZVM_ENABLE_CAP		GZVM_HCALL_ID(GZVM_FUNC_ENABLE_CAP)
++
++#endif /* __GZVM_ARCH_H__ */
+diff --git a/arch/arm64/include/uapi/asm/gzvm_arch.h b/arch/arm64/include/uapi/asm/gzvm_arch.h
+new file mode 100644
+index 000000000000..e7927f3dcb11
+--- /dev/null
++++ b/arch/arm64/include/uapi/asm/gzvm_arch.h
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/*
++ * Copyright (c) 2023 MediaTek Inc.
++ */
++
++#ifndef __GZVM_ARCH_H__
++#define __GZVM_ARCH_H__
++
++#include <linux/types.h>
++
++#define GZVM_CAP_ARM_VM_IPA_SIZE	165
++#define GZVM_CAP_ARM_PROTECTED_VM	0xffbadab1
++
++/* sub-commands put in args[0] for GZVM_CAP_ARM_PROTECTED_VM */
++#define GZVM_CAP_ARM_PVM_SET_PVMFW_IPA		0
++#define GZVM_CAP_ARM_PVM_GET_PVMFW_SIZE		1
++
++#endif /* __GZVM_ARCH_H__ */
+diff --git a/drivers/virt/Kconfig b/drivers/virt/Kconfig
+index f79ab13a5c28..9bbf0bdf672c 100644
+--- a/drivers/virt/Kconfig
++++ b/drivers/virt/Kconfig
+@@ -54,4 +54,6 @@ source "drivers/virt/coco/sev-guest/Kconfig"
+ 
+ source "drivers/virt/coco/tdx-guest/Kconfig"
+ 
++source "drivers/virt/geniezone/Kconfig"
++
+ endif
+diff --git a/drivers/virt/geniezone/Kconfig b/drivers/virt/geniezone/Kconfig
+new file mode 100644
+index 000000000000..6fad3c30f8d9
+--- /dev/null
++++ b/drivers/virt/geniezone/Kconfig
+@@ -0,0 +1,17 @@
++# SPDX-License-Identifier: GPL-2.0-only
++
++config MTK_GZVM
++	tristate "GenieZone Hypervisor driver for guest VM operation"
++	depends on ARM64
++	depends on KVM
++	help
++	  This driver, gzvm, enables to run guest VMs on MTK GenieZone
++	  hypervisor. It exports kvm-like interfaces for VMM (e.g., crosvm) in
++	  order to operate guest VMs on GenieZone hypervisor.
++
++	  GenieZone hypervisor now only supports MediaTek SoC and arm64
++	  architecture.
++
++	  Select M if you want it be built as a module (gzvm.ko).
++
++	  If unsure, say N.
+diff --git a/drivers/virt/geniezone/Makefile b/drivers/virt/geniezone/Makefile
+new file mode 100644
+index 000000000000..066efddc0b9c
+--- /dev/null
++++ b/drivers/virt/geniezone/Makefile
+@@ -0,0 +1,10 @@
++# SPDX-License-Identifier: GPL-2.0-only
++#
++# Makefile for GenieZone driver, this file should be include in arch's
++# to avoid two ko being generated.
++#
++
++GZVM_DIR ?= ../../../drivers/virt/geniezone
++
++gzvm-y := $(GZVM_DIR)/gzvm_main.o $(GZVM_DIR)/gzvm_vm.o
++
+diff --git a/drivers/virt/geniezone/gzvm_main.c b/drivers/virt/geniezone/gzvm_main.c
+new file mode 100644
+index 000000000000..e3fe3ad9ffce
+--- /dev/null
++++ b/drivers/virt/geniezone/gzvm_main.c
+@@ -0,0 +1,146 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2023 MediaTek Inc.
++ */
++
++#include <linux/anon_inodes.h>
++#include <linux/device.h>
++#include <linux/file.h>
++#include <linux/kdev_t.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/gzvm_drv.h>
++
++struct platform_device *gzvm_debug_dev;
++
++/**
++ * gz_err_to_errno() - Convert geniezone return value to standard errno
++ *
++ * @err: Return value from geniezone function return
++ *
++ * Return: Standard errno
++ */
++int gz_err_to_errno(unsigned long err)
++{
++	int gz_err = (int)err;
++
++	switch (gz_err) {
++	case 0:
++		return 0;
++	case ERR_NO_MEMORY:
++		return -ENOMEM;
++	case ERR_NOT_SUPPORTED:
++		return -EOPNOTSUPP;
++	case ERR_NOT_IMPLEMENTED:
++		return -EOPNOTSUPP;
++	case ERR_FAULT:
++		return -EFAULT;
++	default:
++		break;
++	}
++
++	return -EINVAL;
++}
++
++/**
++ * gzvm_dev_ioctl_check_extension() - Check if given capability is support
++ *				      or not
++ *
++ * @gzvm:
++ * @args: Pointer in u64 from userspace
++ *
++ * Return:
++ * * 0			- Support, no error
++ * * -EOPNOTSUPP	- Not support
++ * * -EFAULT		- Failed to get data from userspace
++ */
++long gzvm_dev_ioctl_check_extension(struct gzvm *gzvm, unsigned long args)
++{
++	__u64 cap;
++	void __user *argp = (void __user *)args;
++
++	if (copy_from_user(&cap, argp, sizeof(uint64_t)))
++		return -EFAULT;
++	return gzvm_arch_check_extension(gzvm, cap, argp);
++}
++
++static long gzvm_dev_ioctl(struct file *filp, unsigned int cmd,
++			   unsigned long user_args)
++{
++	long ret = -ENOTTY;
++
++	switch (cmd) {
++	case GZVM_CREATE_VM:
++		ret = gzvm_dev_ioctl_create_vm(user_args);
++		break;
++	case GZVM_CHECK_EXTENSION:
++		if (!user_args)
++			return -EINVAL;
++		ret = gzvm_dev_ioctl_check_extension(NULL, user_args);
++		break;
++	default:
++		ret = -ENOTTY;
++	}
++
++	return ret;
++}
++
++static const struct file_operations gzvm_chardev_ops = {
++	.unlocked_ioctl = gzvm_dev_ioctl,
++	.llseek		= noop_llseek,
++};
++
++static struct miscdevice gzvm_dev = {
++	.minor = MISC_DYNAMIC_MINOR,
++	.name = MODULE_NAME,
++	.fops = &gzvm_chardev_ops,
++};
++
++static int gzvm_drv_probe(struct platform_device *pdev)
++{
++	int ret;
++
++	if (gzvm_arch_probe() != 0) {
++		dev_err(&pdev->dev, "Not found available conduit\n");
++		return -ENODEV;
++	}
++
++	ret = misc_register(&gzvm_dev);
++	if (ret)
++		return ret;
++	gzvm_debug_dev = pdev;
++
++	return 0;
++}
++
++static int gzvm_drv_remove(struct platform_device *pdev)
++{
++	destroy_all_vm();
++	misc_deregister(&gzvm_dev);
++	return 0;
++}
++
++static const struct of_device_id gzvm_of_match[] = {
++	{ .compatible = "mediatek,geniezone-hyp", },
++	{/* sentinel */},
++};
++
++static struct platform_driver gzvm_driver = {
++	.probe = gzvm_drv_probe,
++	.remove = gzvm_drv_remove,
++	.driver = {
++		.name = MODULE_NAME,
++		.owner = THIS_MODULE,
++		.of_match_table = gzvm_of_match,
++	},
++};
++
++module_platform_driver(gzvm_driver);
++
++MODULE_DEVICE_TABLE(of, gzvm_of_match);
++MODULE_AUTHOR("MediaTek");
++MODULE_DESCRIPTION("GenieZone interface for VMM");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/virt/geniezone/gzvm_vm.c b/drivers/virt/geniezone/gzvm_vm.c
+new file mode 100644
+index 000000000000..58471dd899fb
+--- /dev/null
++++ b/drivers/virt/geniezone/gzvm_vm.c
+@@ -0,0 +1,336 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2023 MediaTek Inc.
++ */
++
++#include <linux/anon_inodes.h>
++#include <linux/file.h>
++#include <linux/kdev_t.h>
++#include <linux/kvm_host.h>
++#include <linux/miscdevice.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/gzvm_drv.h>
++
++static DEFINE_MUTEX(gzvm_list_lock);
++static LIST_HEAD(gzvm_list);
++
++/**
++ * gzvm_gfn_to_pfn_memslot() - Translate gfn (guest ipa) to pfn (host pa),
++ *			       result is in @pfn
++ *
++ * Leverage KVM's gfn_to_pfn_memslot(). Because gfn_to_pfn_memslot() needs
++ * kvm_memory_slot as parameter, this function populates necessary fileds
++ * for calling gfn_to_pfn_memslot().
++ *
++ * Return:
++ * * 0			- Succeed
++ * * -EFAULT		- Failed to convert
++ */
++static int gzvm_gfn_to_pfn_memslot(struct gzvm_memslot *memslot, u64 gfn, u64 *pfn)
++{
++	hfn_t __pfn;
++	struct kvm_memory_slot kvm_slot = {0};
++
++	kvm_slot.base_gfn = memslot->base_gfn;
++	kvm_slot.npages = memslot->npages;
++	kvm_slot.dirty_bitmap = NULL;
++	kvm_slot.userspace_addr = memslot->userspace_addr;
++	kvm_slot.flags = memslot->flags;
++	kvm_slot.id = memslot->slot_id;
++	kvm_slot.as_id = 0;
++
++	__pfn = gfn_to_pfn_memslot(&kvm_slot, gfn);
++	if (is_error_noslot_pfn(__pfn)) {
++		*pfn = 0;
++		return -EFAULT;
++	}
++
++	*pfn = __pfn;
++	return 0;
++}
++
++/**
++ * fill_constituents() - Populate pa to buffer until full
++ *
++ * Return: how many pages we've fill in, negative if error
++ */
++static int fill_constituents(struct mem_region_addr_range *consti,
++			     int *consti_cnt, int max_nr_consti, gfn_t gfn,
++			     u32 total_pages, struct gzvm_memslot *slot)
++{
++	int i, nr_pages;
++	hfn_t pfn, prev_pfn;
++	gfn_t gfn_end;
++
++	if (unlikely(total_pages == 0))
++		return -EINVAL;
++	gfn_end = gfn + total_pages;
++
++	/* entry 0 */
++	if (gzvm_gfn_to_pfn_memslot(slot, gfn, &pfn) != 0)
++		return -EFAULT;
++	consti[0].address = PFN_PHYS(pfn);
++	consti[0].pg_cnt = 1;
++	gfn++;
++	prev_pfn = pfn;
++	i = 0;
++	nr_pages = 1;
++	while (i < max_nr_consti && gfn < gfn_end) {
++		if (gzvm_gfn_to_pfn_memslot(slot, gfn, &pfn) != 0)
++			return -EFAULT;
++		if (pfn == (prev_pfn + 1)) {
++			consti[i].pg_cnt++;
++		} else {
++			i++;
++			if (i >= max_nr_consti)
++				break;
++			consti[i].address = PFN_PHYS(pfn);
++			consti[i].pg_cnt = 1;
++		}
++		prev_pfn = pfn;
++		gfn++;
++		nr_pages++;
++	}
++	if (i == max_nr_consti)
++		*consti_cnt = i;
++	else
++		*consti_cnt = (i + 1);
++
++	return nr_pages;
++}
++
++/* register_memslot_addr_range() - Register memory region to GZ */
++static int
++register_memslot_addr_range(struct gzvm *gzvm, struct gzvm_memslot *memslot)
++{
++	struct gzvm_memory_region_ranges *region;
++	u32 buf_size;
++	int max_nr_consti, remain_pages;
++	gfn_t gfn, gfn_end;
++
++	buf_size = PAGE_SIZE * 2;
++	region = alloc_pages_exact(buf_size, GFP_KERNEL);
++	if (!region)
++		return -ENOMEM;
++	max_nr_consti = (buf_size - sizeof(*region)) /
++			sizeof(struct mem_region_addr_range);
++
++	region->slot = memslot->slot_id;
++	remain_pages = memslot->npages;
++	gfn = memslot->base_gfn;
++	gfn_end = gfn + remain_pages;
++	while (gfn < gfn_end) {
++		int nr_pages;
++
++		nr_pages = fill_constituents(region->constituents,
++					     &region->constituent_cnt,
++					     max_nr_consti, gfn,
++					     remain_pages, memslot);
++		region->gpa = PFN_PHYS(gfn);
++		region->total_pages = nr_pages;
++
++		remain_pages -= nr_pages;
++		gfn += nr_pages;
++
++		if (gzvm_arch_set_memregion(gzvm->vm_id, buf_size,
++					    virt_to_phys(region))) {
++			dev_err(&gzvm_debug_dev->dev,
++				"Failed to register memregion to hypervisor\n");
++			free_pages_exact(region, buf_size);
++			return -EFAULT;
++		}
++	}
++	free_pages_exact(region, buf_size);
++	return 0;
++}
++
++/**
++ * gzvm_vm_ioctl_set_memory_region() - Set memory region of guest
++ *
++ * @mem: input memory region from user
++ *
++ * Return:
++ * * -EXIO		- memslot is out-of-range
++ * * -EFAULT		- Cannot find corresponding vma
++ * * -EINVAL		- region size and vma size does not match
++ */
++static int
++gzvm_vm_ioctl_set_memory_region(struct gzvm *gzvm,
++				struct gzvm_userspace_memory_region *mem)
++{
++	struct vm_area_struct *vma;
++	struct gzvm_memslot *memslot;
++	unsigned long size;
++	__u32 slot;
++
++	slot = mem->slot;
++	if (slot >= GZVM_MAX_MEM_REGION)
++		return -ENXIO;
++	memslot = &gzvm->memslot[slot];
++
++	vma = vma_lookup(gzvm->mm, mem->userspace_addr);
++	if (!vma)
++		return -EFAULT;
++
++	size = vma->vm_end - vma->vm_start;
++	if (size != mem->memory_size)
++		return -EINVAL;
++
++	memslot->base_gfn = __phys_to_pfn(mem->guest_phys_addr);
++	memslot->npages = size >> PAGE_SHIFT;
++	memslot->userspace_addr = mem->userspace_addr;
++	memslot->vma = vma;
++	memslot->flags = mem->flags;
++	memslot->slot_id = mem->slot;
++	return register_memslot_addr_range(gzvm, memslot);
++}
++
++static int gzvm_vm_ioctl_enable_cap(struct gzvm *gzvm,
++				    struct gzvm_enable_cap *cap,
++				    void __user *argp)
++{
++	return gzvm_vm_ioctl_arch_enable_cap(gzvm, cap, argp);
++}
++
++/* gzvm_vm_ioctl() - Ioctl handler of VM FD */
++static long gzvm_vm_ioctl(struct file *filp, unsigned int ioctl,
++			  unsigned long arg)
++{
++	long ret = -ENOTTY;
++	void __user *argp = (void __user *)arg;
++	struct gzvm *gzvm = filp->private_data;
++
++	switch (ioctl) {
++	case GZVM_CHECK_EXTENSION: {
++		ret = gzvm_dev_ioctl_check_extension(gzvm, arg);
++		break;
++	}
++	case GZVM_SET_USER_MEMORY_REGION: {
++		struct gzvm_userspace_memory_region userspace_mem;
++
++		ret = -EFAULT;
++		if (copy_from_user(&userspace_mem, argp,
++				   sizeof(userspace_mem)))
++			goto out;
++		ret = gzvm_vm_ioctl_set_memory_region(gzvm, &userspace_mem);
++		break;
++	}
++	case GZVM_ENABLE_CAP: {
++		struct gzvm_enable_cap cap;
++
++		ret = -EFAULT;
++		if (copy_from_user(&cap, argp, sizeof(cap)))
++			goto out;
++
++		ret = gzvm_vm_ioctl_enable_cap(gzvm, &cap, argp);
++		break;
++	}
++	default:
++		ret = -ENOTTY;
++	}
++out:
++	return ret;
++}
++
++static void gzvm_destroy_vm(struct gzvm *gzvm)
++{
++	dev_info(&gzvm_debug_dev->dev,
++		 "VM-%u is going to be destroyed\n", gzvm->vm_id);
++
++	mutex_lock(&gzvm->lock);
++
++	gzvm_arch_destroy_vm(gzvm->vm_id);
++
++	mutex_lock(&gzvm_list_lock);
++	list_del(&gzvm->vm_list);
++	mutex_unlock(&gzvm_list_lock);
++
++	mutex_unlock(&gzvm->lock);
++
++	kfree(gzvm);
++}
++
++static int gzvm_vm_release(struct inode *inode, struct file *filp)
++{
++	struct gzvm *gzvm = filp->private_data;
++
++	gzvm_destroy_vm(gzvm);
++	return 0;
++}
++
++static const struct file_operations gzvm_vm_fops = {
++	.release        = gzvm_vm_release,
++	.unlocked_ioctl = gzvm_vm_ioctl,
++	.llseek		= noop_llseek,
++};
++
++static struct gzvm *gzvm_create_vm(unsigned long vm_type)
++{
++	int ret;
++	struct gzvm *gzvm;
++
++	gzvm = kzalloc(sizeof(*gzvm), GFP_KERNEL);
++	if (!gzvm)
++		return ERR_PTR(-ENOMEM);
++
++	ret = gzvm_arch_create_vm();
++	if (ret < 0)
++		goto err;
++
++	gzvm->vm_id = ret;
++	gzvm->mm = current->mm;
++	mutex_init(&gzvm->lock);
++
++	mutex_lock(&gzvm_list_lock);
++	list_add(&gzvm->vm_list, &gzvm_list);
++	mutex_unlock(&gzvm_list_lock);
++
++	pr_info("VM-%u is created\n", gzvm->vm_id);
++
++	return gzvm;
++
++err:
++	kfree(gzvm);
++	return ERR_PTR(ret);
++}
++
++/**
++ * gzvm_dev_ioctl_create_vm - Create vm fd
++ *
++ * Return: fd of vm, negative if error
++ */
++int gzvm_dev_ioctl_create_vm(unsigned long vm_type)
++{
++	struct gzvm *gzvm;
++	int ret;
++
++	gzvm = gzvm_create_vm(vm_type);
++	if (IS_ERR(gzvm)) {
++		ret = PTR_ERR(gzvm);
++		goto error;
++	}
++
++	ret = anon_inode_getfd("gzvm-vm", &gzvm_vm_fops, gzvm,
++			       O_RDWR | O_CLOEXEC);
++	if (ret < 0)
++		goto error;
++
++error:
++	return ret;
++}
++
++void destroy_all_vm(void)
++{
++	struct gzvm *gzvm, *tmp;
++
++	mutex_lock(&gzvm_list_lock);
++	if (list_empty(&gzvm_list))
++		goto out;
++
++	list_for_each_entry_safe(gzvm, tmp, &gzvm_list, vm_list)
++		gzvm_destroy_vm(gzvm);
++
++out:
++	mutex_unlock(&gzvm_list_lock);
++}
+diff --git a/include/linux/gzvm_drv.h b/include/linux/gzvm_drv.h
+new file mode 100644
+index 000000000000..f2cfbf87c113
+--- /dev/null
++++ b/include/linux/gzvm_drv.h
+@@ -0,0 +1,98 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2023 MediaTek Inc.
++ */
++
++#ifndef __GZVM_DRV_H__
++#define __GZVM_DRV_H__
++
++#include <linux/list.h>
++#include <linux/mutex.h>
++#include <linux/platform_device.h>
++#include <linux/gzvm.h>
++
++#define MODULE_NAME	"gzvm"
++#define GZVM_VCPU_MMAP_SIZE  PAGE_SIZE
++#define INVALID_VM_ID   0xffff
++
++/**
++ * These are the efinitions of APIs between GenieZone hypervisor and driver,
++ * there's no need to be visible to uapi. Furthermore, We need GenieZone
++ * specific error code in order to map to Linux errno
++ */
++#define NO_ERROR                (0)
++#define ERR_NO_MEMORY           (-5)
++#define ERR_NOT_SUPPORTED       (-24)
++#define ERR_NOT_IMPLEMENTED     (-27)
++#define ERR_FAULT               (-40)
++
++static inline gzvm_id_t get_vmid_from_tuple(unsigned int tuple)
++{
++	return (gzvm_id_t)(tuple >> 16);
++}
++
++/**
++ * The following data structures are for data transferring between driver and
++ * hypervisor, and they're aligned with hypervisor definitions
++ */
++#define GZVM_MAX_VCPUS		 8
++#define GZVM_MAX_MEM_REGION	10
++
++/* struct mem_region_addr_range - Identical to ffa memory constituent */
++struct mem_region_addr_range {
++	/* the base IPA of the constituent memory region, aligned to 4 kiB */
++	__u64 address;
++	/* the number of 4 kiB pages in the constituent memory region. */
++	__u32 pg_cnt;
++	__u32 reserved;
++};
++
++struct gzvm_memory_region_ranges {
++	__u32 slot;
++	__u32 constituent_cnt;
++	__u64 total_pages;
++	__u64 gpa;
++	struct mem_region_addr_range constituents[];
++};
++
++/* struct gzvm_memslot - VM's memory slot descriptor */
++struct gzvm_memslot {
++	u64 base_gfn;			/* begin of guest page frame */
++	unsigned long npages;		/* number of pages this slot covers */
++	unsigned long userspace_addr;	/* corresponding userspace va */
++	struct vm_area_struct *vma;	/* vma related to this userspace addr */
++	u32 flags;
++	u32 slot_id;
++};
++
++struct gzvm {
++	/* userspace tied to this vm */
++	struct mm_struct *mm;
++	struct gzvm_memslot memslot[GZVM_MAX_MEM_REGION];
++	/* lock for list_add*/
++	struct mutex lock;
++	struct list_head vm_list;
++	gzvm_id_t vm_id;
++};
++
++long gzvm_dev_ioctl_check_extension(struct gzvm *gzvm, unsigned long args);
++int gzvm_dev_ioctl_create_vm(unsigned long vm_type);
++
++int gz_err_to_errno(unsigned long err);
++
++void destroy_all_vm(void);
++
++/* arch-dependant functions */
++int gzvm_arch_probe(void);
++int gzvm_arch_set_memregion(gzvm_id_t vm_id, size_t buf_size,
++			    phys_addr_t region);
++int gzvm_arch_check_extension(struct gzvm *gzvm, __u64 cap, void __user *argp);
++int gzvm_arch_create_vm(void);
++int gzvm_arch_destroy_vm(gzvm_id_t vm_id);
++int gzvm_vm_ioctl_arch_enable_cap(struct gzvm *gzvm,
++				  struct gzvm_enable_cap *cap,
++				  void __user *argp);
++
++extern struct platform_device *gzvm_debug_dev;
++
++#endif /* __GZVM_DRV_H__ */
+diff --git a/include/uapi/asm-generic/gzvm_arch.h b/include/uapi/asm-generic/gzvm_arch.h
+new file mode 100644
+index 000000000000..c4cc12716c91
+--- /dev/null
++++ b/include/uapi/asm-generic/gzvm_arch.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/*
++ * Copyright (c) 2023 MediaTek Inc.
++ */
++
++#ifndef __ASM_GENERIC_GZVM_ARCH_H
++#define __ASM_GENERIC_GZVM_ARCH_H
++/* geniezone only supports aarch64 platform for now */
++
++#endif /* __ASM_GENERIC_GZVM_ARCH_H */
+diff --git a/include/uapi/linux/gzvm.h b/include/uapi/linux/gzvm.h
+new file mode 100644
+index 000000000000..1d157647a580
+--- /dev/null
++++ b/include/uapi/linux/gzvm.h
+@@ -0,0 +1,99 @@
++/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
++/*
++ * Copyright (c) 2023 MediaTek Inc.
++ */
++
++#ifndef __GZVM_H__
++#define __GZVM_H__
++
++#include <linux/const.h>
++#include <linux/types.h>
++#include <linux/ioctl.h>
++
++/* geniezone only supports aarch64 platform for now */
++#if defined(__aarch64__)
++#include <asm/gzvm_arch.h>
++#endif
++
++
++/**
++ * DOC: This file declares common data structure shared between userspace,
++ *	kernel space, and GZ.
++ */
++
++typedef __u16 gzvm_id_t;
++typedef __u16 gzvm_vcpu_id_t;
++
++/* GZVM ioctls */
++#define GZVM_IOC_MAGIC			0x92	/* gz */
++
++/* ioctls for /dev/gzvm fds */
++#define GZVM_GET_API_VERSION       _IO(GZVM_IOC_MAGIC,   0x00)
++#define GZVM_CREATE_VM             _IO(GZVM_IOC_MAGIC,   0x01)
++
++#define GZVM_CHECK_EXTENSION       _IO(GZVM_IOC_MAGIC,   0x03)
++
++/* ioctls for VM fds */
++/* for GZVM_SET_MEMORY_REGION */
++struct gzvm_memory_region {
++	__u32 slot;
++	__u32 flags;
++	__u64 guest_phys_addr;
++	__u64 memory_size; /* bytes */
++};
++
++#define GZVM_SET_MEMORY_REGION     _IOW(GZVM_IOC_MAGIC,  0x40, \
++					struct gzvm_memory_region)
++/*
++ * GZVM_CREATE_VCPU receives as a parameter the vcpu slot, and returns
++ * a vcpu fd.
++ */
++#define GZVM_CREATE_VCPU           _IO(GZVM_IOC_MAGIC,   0x41)
++
++/* for GZVM_SET_USER_MEMORY_REGION */
++struct gzvm_userspace_memory_region {
++	__u32 slot;
++	__u32 flags;
++	__u64 guest_phys_addr;
++	__u64 memory_size; /* bytes */
++	__u64 userspace_addr; /* start of the userspace allocated memory */
++};
++
++#define GZVM_SET_USER_MEMORY_REGION _IOW(GZVM_IOC_MAGIC, 0x46, \
++					struct gzvm_userspace_memory_region)
++
++/* for GZVM_IRQ_LINE */
++/* GZVM_IRQ_LINE irq field index values */
++#define GZVM_IRQ_VCPU2_SHIFT		28
++#define GZVM_IRQ_VCPU2_MASK		0xf
++#define GZVM_IRQ_TYPE_SHIFT		24
++#define GZVM_IRQ_TYPE_MASK		0xf
++#define GZVM_IRQ_VCPU_SHIFT		16
++#define GZVM_IRQ_VCPU_MASK		0xff
++#define GZVM_IRQ_NUM_SHIFT		0
++#define GZVM_IRQ_NUM_MASK		0xffff
++
++/* irq_type field */
++#define GZVM_IRQ_TYPE_CPU		0
++#define GZVM_IRQ_TYPE_SPI		1
++#define GZVM_IRQ_TYPE_PPI		2
++
++/* out-of-kernel GIC cpu interrupt injection irq_number field */
++#define GZVM_IRQ_CPU_IRQ		0
++#define GZVM_IRQ_CPU_FIQ		1
++
++/* ioctls for vcpu fds */
++#define GZVM_RUN                   _IO(GZVM_IOC_MAGIC,   0x80)
++
++/* for GZVM_ENABLE_CAP */
++struct gzvm_enable_cap {
++	/* in */
++	__u64 cap;
++	/* we have total 5 (8 - 3) registers can be used for additional args */
++	__u64 args[5];
++};
++
++#define GZVM_ENABLE_CAP            _IOW(GZVM_IOC_MAGIC,  0xa3, \
++					struct gzvm_enable_cap)
++
++#endif /* __GZVM_H__ */
 -- 
 2.18.0
 
