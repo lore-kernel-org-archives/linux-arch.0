@@ -2,119 +2,158 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B3C51C77B60
-	for <linux-arch@archiver.kernel.org>; Fri, 28 Apr 2023 09:55:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5F921C77B60
+	for <linux-arch@archiver.kernel.org>; Fri, 28 Apr 2023 10:36:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1345881AbjD1JzS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 28 Apr 2023 05:55:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36496 "EHLO
+        id S1345344AbjD1Kgi (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 28 Apr 2023 06:36:38 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34934 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1345877AbjD1JzH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Apr 2023 05:55:07 -0400
-Received: from out187-3.us.a.mail.aliyun.com (out187-3.us.a.mail.aliyun.com [47.90.187.3])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2618B6197;
-        Fri, 28 Apr 2023 02:54:44 -0700 (PDT)
-X-Alimail-AntiSpam: AC=PASS;BC=-1|-1;BR=01201311R331e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=ay29a033018047201;MF=houwenlong.hwl@antgroup.com;NM=1;PH=DS;RN=17;SR=0;TI=SMTPD_---.STCEPhX_1682675589;
-Received: from localhost(mailfrom:houwenlong.hwl@antgroup.com fp:SMTPD_---.STCEPhX_1682675589)
-          by smtp.aliyun-inc.com;
-          Fri, 28 Apr 2023 17:53:10 +0800
-From:   "Hou Wenlong" <houwenlong.hwl@antgroup.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     "Thomas Garnier" <thgarnie@chromium.org>,
-        "Lai Jiangshan" <jiangshan.ljs@antgroup.com>,
-        "Kees Cook" <keescook@chromium.org>,
-        "Hou Wenlong" <houwenlong.hwl@antgroup.com>,
-        "Thomas Gleixner" <tglx@linutronix.de>,
-        "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
-        "Dave Hansen" <dave.hansen@linux.intel.com>, <x86@kernel.org>,
-        "H. Peter Anvin" <hpa@zytor.com>, "Arnd Bergmann" <arnd@arndb.de>,
-        "Peter Zijlstra" <peterz@infradead.org>,
-        "Josh Poimboeuf" <jpoimboe@kernel.org>,
-        "Juergen Gross" <jgross@suse.com>,
-        "Brian Gerst" <brgerst@gmail.com>, <linux-arch@vger.kernel.org>
-Subject: [PATCH RFC 25/43] x86/mm: Make the x86 GOT read-only
-Date:   Fri, 28 Apr 2023 17:51:05 +0800
-Message-Id: <980069339b23a6cc4ae6d605d188338467a5b08b.1682673543.git.houwenlong.hwl@antgroup.com>
-X-Mailer: git-send-email 2.31.1
-In-Reply-To: <cover.1682673542.git.houwenlong.hwl@antgroup.com>
-References: <cover.1682673542.git.houwenlong.hwl@antgroup.com>
+        with ESMTP id S230159AbjD1Kgh (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 28 Apr 2023 06:36:37 -0400
+Received: from mailgw01.mediatek.com (unknown [60.244.123.138])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 679D71FD4;
+        Fri, 28 Apr 2023 03:36:31 -0700 (PDT)
+X-UUID: 87030bdae5b011ed9cb5633481061a41-20230428
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=mediatek.com; s=dk;
+        h=Content-Type:MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:CC:To:From; bh=adkXrrnEZGPRbZSglcGKLdD759QITaY+HgrVCM5K9Y8=;
+        b=HRhYoyYlFHM9xvD/rKT/KsTnGG9L1GrgxexeeCviVNkjD9rngkDausF4/Sz9+vEX4lUtSI64pAoDVszB5ajZz/5rlx6+R7JaIUoDsYiw69Y+kMFloc5m86B2FElGrbsISEg4z3wHfs7+ZwfquxEId7XYllAPvYToqo8W6sLrmRk=;
+X-CID-UNFAMILIAR: 1
+X-CID-P-RULE: Spam_GS6885AD
+X-CID-O-INFO: VERSION:1.1.22,REQID:9459ec68-3204-49b8-aad8-a156337d5545,IP:0,U
+        RL:0,TC:0,Content:100,EDM:0,RT:0,SF:100,FILE:0,BULK:0,RULE:Spam_GS6885AD,A
+        CTION:quarantine,TS:200
+X-CID-INFO: VERSION:1.1.22,REQID:9459ec68-3204-49b8-aad8-a156337d5545,IP:0,URL
+        :0,TC:0,Content:100,EDM:0,RT:0,SF:100,FILE:0,BULK:0,RULE:Spam_HTS54396,ACT
+        ION:quarantine,TS:200
+X-CID-META: VersionHash:120426c,CLOUDID:d92d386a-2f20-4998-991c-3b78627e4938,B
+        ulkID:230428183627VRSLIXLA,BulkQuantity:0,Recheck:0,SF:38|29|28|16|19|48|8
+        01,TC:nil,Content:3,EDM:-3,IP:nil,URL:11|1,File:nil,Bulk:nil,QS:nil,BEC:ni
+        l,COL:0,OSI:0,OSA:0,AV:0
+X-CID-BVR: 0
+X-CID-BAS: 0,_,0,_
+X-UUID: 87030bdae5b011ed9cb5633481061a41-20230428
+Received: from mtkmbs13n1.mediatek.inc [(172.21.101.193)] by mailgw01.mediatek.com
+        (envelope-from <yi-de.wu@mediatek.com>)
+        (Generic MTA with TLSv1.2 ECDHE-RSA-AES256-GCM-SHA384 256/256)
+        with ESMTP id 1781620514; Fri, 28 Apr 2023 18:36:26 +0800
+Received: from mtkmbs13n1.mediatek.inc (172.21.101.193) by
+ mtkmbs11n2.mediatek.inc (172.21.101.187) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.1118.26; Fri, 28 Apr 2023 18:36:25 +0800
+Received: from mtksdccf07.mediatek.inc (172.21.84.99) by
+ mtkmbs13n1.mediatek.inc (172.21.101.73) with Microsoft SMTP Server id
+ 15.2.1118.25 via Frontend Transport; Fri, 28 Apr 2023 18:36:25 +0800
+From:   Yi-De Wu <yi-de.wu@mediatek.com>
+To:     Yingshiuan Pan <yingshiuan.pan@mediatek.com>,
+        Ze-Yu Wang <ze-yu.wang@mediatek.com>,
+        Yi-De Wu <yi-de.wu@mediatek.com>,
+        Rob Herring <robh+dt@kernel.org>,
+        Krzysztof Kozlowski <krzysztof.kozlowski+dt@linaro.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+        Matthias Brugger <matthias.bgg@gmail.com>,
+        AngeloGioacchino Del Regno 
+        <angelogioacchino.delregno@collabora.com>
+CC:     <devicetree@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
+        <linux-doc@vger.kernel.org>,
+        <linux-arm-kernel@lists.infradead.org>,
+        <linux-arch@vger.kernel.org>, <linux-mediatek@lists.infradead.org>,
+        David Bradil <dbrazdil@google.com>,
+        Trilok Soni <quic_tsoni@quicinc.com>,
+        Jade Shih <jades.shih@mediatek.com>,
+        Miles Chen <miles.chen@mediatek.com>,
+        Ivan Tseng <ivan.tseng@mediatek.com>,
+        My Chuang <my.chuang@mediatek.com>,
+        Shawn Hsiao <shawn.hsiao@mediatek.com>,
+        PeiLun Suei <peilun.suei@mediatek.com>,
+        Liju Chen <liju-clr.chen@mediatek.com>
+Subject: [PATCH v2 1/7] docs: geniezone: Introduce GenieZone hypervisor
+Date:   Fri, 28 Apr 2023 18:36:16 +0800
+Message-ID: <20230428103622.18291-2-yi-de.wu@mediatek.com>
+X-Mailer: git-send-email 2.18.0
+In-Reply-To: <20230428103622.18291-1-yi-de.wu@mediatek.com>
+References: <20230428103622.18291-1-yi-de.wu@mediatek.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-MTK:  N
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Thomas Garnier <thgarnie@chromium.org>
+From: "Yingshiuan Pan" <yingshiuan.pan@mediatek.com>
 
-From: Thomas Garnier <thgarnie@chromium.org>
+GenieZone is MediaTek proprietary hypervisor solution, and it is running
+in EL2 stand alone as a type-I hypervisor. It is a pure EL2
+implementation which implies it does not rely any specific host VM, and
+this behavior improves GenieZone's security as it limits its interface.
 
-The GOT is changed during early boot when relocations are applied. Make
-it read-only directly. This table exists only for PIE binary. Since weak
-symbol reference would always be GOT reference, there are 8 entries in
-GOT, but only one entry for __fentry__() is in use.  Other GOT
-references have been optimized by linker.
-
-[Hou Wenlong: Change commit message and skip GOT size check]
-
-Signed-off-by: Thomas Garnier <thgarnie@chromium.org>
-Signed-off-by: Hou Wenlong <houwenlong.hwl@antgroup.com>
-Cc: Lai Jiangshan <jiangshan.ljs@antgroup.com>
-Cc: Kees Cook <keescook@chromium.org>
+Signed-off-by: Yingshiuan Pan <yingshiuan.pan@mediatek.com>
+Signed-off-by: Yi-De Wu <yi-de.wu@mediatek.com>
 ---
- arch/x86/kernel/vmlinux.lds.S     |  2 ++
- include/asm-generic/vmlinux.lds.h | 12 ++++++++++++
- 2 files changed, 14 insertions(+)
+ Documentation/virt/geniezone/introduction.rst | 34 +++++++++++++++++++
+ MAINTAINERS                                   |  6 ++++
+ 2 files changed, 40 insertions(+)
+ create mode 100644 Documentation/virt/geniezone/introduction.rst
 
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index f02dcde9f8a8..fa4c6582663f 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -462,6 +462,7 @@ SECTIONS
- #endif
- 	       "Unexpected GOT/PLT entries detected!")
- 
-+#ifndef CONFIG_X86_PIE
- 	/*
- 	 * Sections that should stay zero sized, which is safer to
- 	 * explicitly check instead of blindly discarding.
-@@ -470,6 +471,7 @@ SECTIONS
- 		*(.got) *(.igot.*)
- 	}
- 	ASSERT(SIZEOF(.got) == 0, "Unexpected GOT entries detected!")
-+#endif
- 
- 	.plt : {
- 		*(.plt) *(.plt.*) *(.iplt)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index d1f57e4868ed..438ed8b39896 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -441,6 +441,17 @@
- 	__end_ro_after_init = .;
- #endif
- 
-+#ifdef CONFIG_X86_PIE
-+#define RO_GOT_X86							\
-+	.got        : AT(ADDR(.got) - LOAD_OFFSET) {			\
-+		__start_got = .;					\
-+		*(.got) *(.igot.*);					\
-+		__end_got = .;						\
-+	}
-+#else
-+#define RO_GOT_X86
-+#endif
+diff --git a/Documentation/virt/geniezone/introduction.rst b/Documentation/virt/geniezone/introduction.rst
+new file mode 100644
+index 000000000000..1fffd6cbb4db
+--- /dev/null
++++ b/Documentation/virt/geniezone/introduction.rst
+@@ -0,0 +1,34 @@
++.. SPDX-License-Identifier: GPL-2.0
 +
- /*
-  * .kcfi_traps contains a list KCFI trap locations.
-  */
-@@ -486,6 +497,7 @@
- 		BOUNDED_SECTION_PRE_LABEL(.pci_fixup_suspend_late, _pci_fixups_suspend_late, __start, __end) \
- 	}								\
- 									\
-+	RO_GOT_X86							\
- 	FW_LOADER_BUILT_IN_DATA						\
- 	TRACEDATA							\
- 									\
++======================
++GenieZone Introduction
++======================
++
++
++Overview
++========
++GenieZone is MediaTek proprietary hypervisor solution, and it is running in EL2
++stand alone as a type-I hypervisor. It is a pure EL2 implementation which
++implies it does not rely any specific host VM, and this behavior improves
++GenieZone's security as it limits its interface.
++
++To enable guest VMs running, a driver (gzvm) is provided for VMM (virtual
++machine monitor) to operate. Currently, the gzvm driver supports only crosvm.
++
++
++Supported Architecture
++======================
++GenieZone now only supports MediaTek arm64 SoC.
++
++
++Platform Virtualization
++=======================
++We leverages arm64's timer virtualization and gic virtualization for timer and
++interrupts controller.
++
++
++Device Virtualizaton
++====================
++We adopts VMM's virtio devices emulations by passing io trap to VMM, and virtio
++is a well-known and widely used virtual device implementation.
++
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 4b8971cba764..db8915114b86 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -8694,6 +8694,12 @@ F:	include/vdso/
+ F:	kernel/time/vsyscall.c
+ F:	lib/vdso/
+ 
++GENIEZONE HYPERVISOR DRIVER
++M:	Yingshiuan Pan <yingshiuan.pan@mediatek.com>
++M:	Ze-Yu Wang <ze-yu.wang@mediatek.com>
++M:	Yi-De Wu <yi-de.wu@mediatek.com>
++F:	Documentation/virt/geniezone/
++
+ GENWQE (IBM Generic Workqueue Card)
+ M:	Frank Haverkamp <haver@linux.ibm.com>
+ S:	Supported
 -- 
-2.31.1
+2.18.0
 
