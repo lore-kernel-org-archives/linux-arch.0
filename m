@@ -2,58 +2,32 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 115FFC77B7F
-	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 18:08:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3075EC77B73
+	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 18:15:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231229AbjEASIZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 May 2023 14:08:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45820 "EHLO
+        id S231397AbjEASPI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 May 2023 14:15:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47264 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229627AbjEASIY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 14:08:24 -0400
-Received: from mail-wr1-x42a.google.com (mail-wr1-x42a.google.com [IPv6:2a00:1450:4864:20::42a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7DEE51986
-        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 11:08:22 -0700 (PDT)
-Received: by mail-wr1-x42a.google.com with SMTP id ffacd0b85a97d-2f833bda191so1584302f8f.1
-        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 11:08:22 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20221208; t=1682964501; x=1685556501;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=+2lYHhqlJD16G2HYpsFMb3ZFL7Kq76WjunB2OGwz3cs=;
-        b=InnNvCbyWRIxKxFGHEw18GDFvAR07SJg7UsaQSzayd856NvZvHy/7D82OiVunxTwOQ
-         iI4bPEnaVC8DKfBD9q2mpFU/D2+4QZOsePkMvk/nKecGEkR7ieMp18RUohlow/ONsuPb
-         fRpdmKiy/hCz/JHzVWz2n5Mg5OcWXlB55bYJJxXjQz7D5uG5SID6uaCO/Kks5xdfPjJJ
-         it9fnMSSuNm2JWdg5Tcm2D1rTGbvS4aDpWOvTKMsD+KeIoUScC3se5ywU/XKx17SosJd
-         CH4HSE+fdc45RYf+DKFB/2hLNASZoyYfq4ehjOUiQfqHoIRcizKtgl3mADdezSKqh+u9
-         RU9w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1682964501; x=1685556501;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=+2lYHhqlJD16G2HYpsFMb3ZFL7Kq76WjunB2OGwz3cs=;
-        b=Btirve6zjIzsfHToYpc0Yh1dTJyvu8DDrptsHg6zgT9srsnIH21dd7rs1QiiE91Vct
-         Wn1OTS8IunRv/Q16GoXufBCJ/v6RkhB/Mt3eSzeuPjPPFdPaP/1I85Ms6obPM38wn7Zs
-         ZoG9RFYCTM/80i4q6mAFhXmPkWr/h8cNJHQQFYqMRYydoXsXUYzD7NH9RLBl08SgefAX
-         0xR/FLR9GonrLoRzK1o3rM4LASclEiJMYXQ7JmlA8imoPiI6rHiCdylCaS6CucU0dTCt
-         ruS5bqaWXzPEig8nkd3IzZKk9U9yDo8NLFt7AvMWWxNP4SNg4qZUCnYqL18ypXmnwFdb
-         vWYA==
-X-Gm-Message-State: AC+VfDwPdi/UUHBChGZnuXzdbPJ6ao0peg1zftWbPuRTGDeBbY8aZlSz
-        NjLcckv+u1R7TOER3VTJkN60nMrnEJW9czxjP9eTMA==
-X-Google-Smtp-Source: ACHHUZ5amJjA/6tq+0x964OebbbLQ/pHCZFbXYS1+6FrTMuusEGNpiFnDiBKAeRF77HbwZnod13qqDRv0TRCNeDlvRc=
-X-Received: by 2002:a5d:6351:0:b0:306:2b9e:2a8c with SMTP id
- b17-20020a5d6351000000b003062b9e2a8cmr3336094wrw.11.1682964500617; Mon, 01
- May 2023 11:08:20 -0700 (PDT)
-MIME-Version: 1.0
-References: <20230501165450.15352-1-surenb@google.com> <ZE/7FZbd31qIzrOc@P9FQF9L96D>
-In-Reply-To: <ZE/7FZbd31qIzrOc@P9FQF9L96D>
-From:   Suren Baghdasaryan <surenb@google.com>
-Date:   Mon, 1 May 2023 11:08:05 -0700
-Message-ID: <CAJuCfpHU3ZMsNuqi1gSxzAWKr2D3VkiaTY0BEUQgM-QHNxRtSg@mail.gmail.com>
-Subject: Re: [PATCH 00/40] Memory allocation profiling
-To:     Roman Gushchin <roman.gushchin@linux.dev>
+        with ESMTP id S230129AbjEASPH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 14:15:07 -0400
+Received: from out-14.mta1.migadu.com (out-14.mta1.migadu.com [95.215.58.14])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 074E11986
+        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 11:15:04 -0700 (PDT)
+Date:   Mon, 1 May 2023 11:14:45 -0700
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+        t=1682964902;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=b6T2XIeT8518y54zvjorB3kR8+9w+3ujz9aAR//CBsM=;
+        b=mSi6IKlT1RXSlUBLoPvq7jMrN2IDhBeePAQolSvVEaweLRyurIvLVwuABJN9Jpfic1Yvl3
+        LVunGzZxNirFmh6ufKgjfRW52yn83tu+sfI5PXb6yM4xtBHMfTQkPxdaHjp58szJhD01u8
+        vJeI+Y6gcJWP3T42UbTxsYN31rZoJ38=
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From:   Roman Gushchin <roman.gushchin@linux.dev>
+To:     Suren Baghdasaryan <surenb@google.com>
 Cc:     akpm@linux-foundation.org, kent.overstreet@linux.dev,
         mhocko@suse.com, vbabka@suse.cz, hannes@cmpxchg.org,
         mgorman@suse.de, dave@stgolabs.net, willy@infradead.org,
@@ -81,54 +55,69 @@ Cc:     akpm@linux-foundation.org, kent.overstreet@linux.dev,
         linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org,
         linux-mm@kvack.org, linux-modules@vger.kernel.org,
         kasan-dev@googlegroups.com, cgroups@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Subject: Re: [PATCH 00/40] Memory allocation profiling
+Message-ID: <ZFABlUB/RZM6lUyl@P9FQF9L96D>
+References: <20230501165450.15352-1-surenb@google.com>
+ <ZE/7FZbd31qIzrOc@P9FQF9L96D>
+ <CAJuCfpHU3ZMsNuqi1gSxzAWKr2D3VkiaTY0BEUQgM-QHNxRtSg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAJuCfpHU3ZMsNuqi1gSxzAWKr2D3VkiaTY0BEUQgM-QHNxRtSg@mail.gmail.com>
+X-Migadu-Flow: FLOW_OUT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, May 1, 2023 at 10:47=E2=80=AFAM Roman Gushchin <roman.gushchin@linu=
-x.dev> wrote:
->
-> On Mon, May 01, 2023 at 09:54:10AM -0700, Suren Baghdasaryan wrote:
-> > Performance overhead:
-> > To evaluate performance we implemented an in-kernel test executing
-> > multiple get_free_page/free_page and kmalloc/kfree calls with allocatio=
-n
-> > sizes growing from 8 to 240 bytes with CPU frequency set to max and CPU
-> > affinity set to a specific CPU to minimize the noise. Below is performa=
-nce
-> > comparison between the baseline kernel, profiling when enabled, profili=
-ng
-> > when disabled (nomem_profiling=3Dy) and (for comparison purposes) basel=
-ine
-> > with CONFIG_MEMCG_KMEM enabled and allocations using __GFP_ACCOUNT:
+On Mon, May 01, 2023 at 11:08:05AM -0700, Suren Baghdasaryan wrote:
+> On Mon, May 1, 2023 at 10:47 AM Roman Gushchin <roman.gushchin@linux.dev> wrote:
 > >
-> >                       kmalloc                 pgalloc
-> > Baseline (6.3-rc7)    9.200s                  31.050s
-> > profiling disabled    9.800 (+6.52%)          32.600 (+4.99%)
-> > profiling enabled     12.500 (+35.87%)        39.010 (+25.60%)
-> > memcg_kmem enabled    41.400 (+350.00%)       70.600 (+127.38%)
->
-> Hm, this makes me think we have a regression with memcg_kmem in one of
-> the recent releases. When I measured it a couple of years ago, the overhe=
-ad
-> was definitely within 100%.
->
-> Do you understand what makes the your profiling drastically faster than k=
-mem?
+> > On Mon, May 01, 2023 at 09:54:10AM -0700, Suren Baghdasaryan wrote:
+> > > Performance overhead:
+> > > To evaluate performance we implemented an in-kernel test executing
+> > > multiple get_free_page/free_page and kmalloc/kfree calls with allocation
+> > > sizes growing from 8 to 240 bytes with CPU frequency set to max and CPU
+> > > affinity set to a specific CPU to minimize the noise. Below is performance
+> > > comparison between the baseline kernel, profiling when enabled, profiling
+> > > when disabled (nomem_profiling=y) and (for comparison purposes) baseline
+> > > with CONFIG_MEMCG_KMEM enabled and allocations using __GFP_ACCOUNT:
+> > >
+> > >                       kmalloc                 pgalloc
+> > > Baseline (6.3-rc7)    9.200s                  31.050s
+> > > profiling disabled    9.800 (+6.52%)          32.600 (+4.99%)
+> > > profiling enabled     12.500 (+35.87%)        39.010 (+25.60%)
+> > > memcg_kmem enabled    41.400 (+350.00%)       70.600 (+127.38%)
+> >
+> > Hm, this makes me think we have a regression with memcg_kmem in one of
+> > the recent releases. When I measured it a couple of years ago, the overhead
+> > was definitely within 100%.
+> >
+> > Do you understand what makes the your profiling drastically faster than kmem?
+> 
+> I haven't profiled or looked into kmem overhead closely but I can do
+> that. I just wanted to see how the overhead compares with the existing
+> accounting mechanisms.
 
-I haven't profiled or looked into kmem overhead closely but I can do
-that. I just wanted to see how the overhead compares with the existing
-accounting mechanisms.
+It's a good idea and I generally think that +25-35% for kmalloc/pgalloc
+should be ok for the production use, which is great!
+In the reality, most workloads are not that sensitive to the speed of
+memory allocation.
 
-For kmalloc, the overhead is low because after we create the vector of
-slab_ext objects (which is the same as what memcg_kmem does), memory
-profiling just increments a lazy counter (which in many cases would be
-a per-cpu counter). memcg_kmem operates on cgroup hierarchy with
-additional overhead associated with that. I'm guessing that's the
-reason for the big difference between these mechanisms but, I didn't
-look into the details to understand memcg_kmem performance.
+> 
+> For kmalloc, the overhead is low because after we create the vector of
+> slab_ext objects (which is the same as what memcg_kmem does), memory
+> profiling just increments a lazy counter (which in many cases would be
+> a per-cpu counter).
 
->
-> Thanks!
+So does kmem (this is why I'm somewhat surprised by the difference).
+
+> memcg_kmem operates on cgroup hierarchy with
+> additional overhead associated with that. I'm guessing that's the
+> reason for the big difference between these mechanisms but, I didn't
+> look into the details to understand memcg_kmem performance.
+
+I suspect recent rt-related changes and also the wide usage of
+rcu primitives in the kmem code. I'll try to look closer as well.
+
+Thanks!
