@@ -2,56 +2,57 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 9F5ACC77B73
-	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 16:59:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F2951C77B61
+	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 16:59:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232942AbjEAQ7t (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 May 2023 12:59:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60094 "EHLO
+        id S232930AbjEAQ75 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 May 2023 12:59:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60836 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232930AbjEAQ65 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 12:58:57 -0400
+        with ESMTP id S232711AbjEAQ7L (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 12:59:11 -0400
 Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 73C0930EE
-        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 09:56:14 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id 3f1490d57ef6-b96ee51ee20so3263410276.3
-        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 09:56:14 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 27009358C
+        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 09:56:20 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id 3f1490d57ef6-b8f324b3ef8so3225288276.0
+        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 09:56:20 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20221208; t=1682960158; x=1685552158;
+        d=google.com; s=20221208; t=1682960163; x=1685552163;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=+1Ptlsu3HrvWcynZoOK0ZqIIaOTUmOtwKZY5J1VaLvs=;
-        b=7gQ7i/dAC1G0h1XxKulN+zlGUyuRlgFLhf3t4U3ldYpJ9ZDjgqW3Y7teulwLUtCfTD
-         /VnlwalgQGiFZbmlj07JbUX6Sp54fAN7SxMoxkItZT8pyryAeS9XmoLet1E+NORYJiar
-         iYyZW8dCc0lMzuXcFL3U4QE+FrlZuAGGckHXyur/pD6//ulYUoFzkf8zDD0aROPp40k/
-         xmTrCxx3e3E9BLeb2nij/r9kqOJAFZfyDKOq1UGUdyyy0zgGTjg9yGYmpyEbnJHJf0ZV
-         W5qYg5oFjenWEcOuTpD8cYePEcPbJSlpmAYb7YzYWjMWXvtbqAw/EQzvEU6N9zSkiTXv
-         C/RA==
+        bh=UqN7FeV7aPqCmKItkyIx4xBxa3o94vtL5Phvca7QUfw=;
+        b=E3/DZ7A2w5/KA0SPoOgDZl8cJAWCaY3BGBFQeSc/qzjQe0fM9xmbbTDocgwuOOp3LT
+         GK3YJqraePyIrgvlz0C1S6Wec6V4sz3+3alNU4R6cNfgWKAm/KHB5K1fHdSBD6UsYReW
+         OypIaQzRticsOqfq5jwU1kZdYTvr7RLYZbcqb3Ite92bHmcVQajevDqoiuCCwS030v+p
+         Be3SQphLsWQFuGhQq8i0kXYiixrDLOjgisXe2ZSgniNRK9cfGXtFSqdN+Kd8F5/lQa7E
+         /p5ZymC5neHH+BhUfAayBM2rdDwZ8KZfkYIvJtL+L0Ri9FOGTCuyj9nVUWNgD0tlqnQZ
+         Ay6A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1682960158; x=1685552158;
+        d=1e100.net; s=20221208; t=1682960163; x=1685552163;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=+1Ptlsu3HrvWcynZoOK0ZqIIaOTUmOtwKZY5J1VaLvs=;
-        b=JncQCGXRlLWxCVgteTkEWiSjJhwot0Uans9k82bg9vRN/ZhnkaELcNXi8lsj74xzy/
-         bJCzkK7cYeHIKJbZn+f+wDvwyXdOCMjFJM5vTO5Nox3kbo77pP/Bt8jJPZeBIuukpsLc
-         SWFLfio+F3VXvobgYhWL8p/+no0EcYrytEv4bVWe9ALYrSLNYz7YQq8TVvQLnhg1GcaX
-         lq6bVJEtSHUJFnggy/6L2GOC+jV42jgZQderbgwXNT1kXgbzcC1flskdIkPv5egsDtFZ
-         fpXUdMh1GgXwhiW99mISeo+zmq9XL9AbTJoWBgKv3v6JPaLCVTHsr0bKY8FXGOPJDUig
-         CG1Q==
-X-Gm-Message-State: AC+VfDyP4FYmWTyGRrvx4H0TI07E89LBdQJ6u3lcDNl+es7jBD72RbzO
-        lgCFvySNXBlFBp1tBmZP1OFwB3fHsZY=
-X-Google-Smtp-Source: ACHHUZ7r1ycZ9itNH1qfXqxuYbQFcFPivnhoEDNh4tWwK8chvFvWCKKjG1ErV0+LZWXbi1M27uOVRiApR9A=
+        bh=UqN7FeV7aPqCmKItkyIx4xBxa3o94vtL5Phvca7QUfw=;
+        b=HIkYIi/4FLCurdYshICsrWRpzDlT9vFjWjJtziYktPN+eOgF2/9BhaVHix6WGOX6wX
+         7DsDTxBdNtPAX8j8bkhexU9JIPgHCXaKf4zA/JxyGaSbLXk7tn1lJhRqiPmylwua2y2C
+         nbSpsDeTGU7TXYMpVUby1Y+GWyaSNTDtA2kZsuXazwvn6E3qaUBZJV0CP24qF91TS2NQ
+         C9+hYwersL9c+Hc00vBu7BLIiUQV9chbj/lblOlt6ZT6Qz6CwoP/7k9qPLNx3lmSJHDD
+         sL2MzpNLrmhKA3OhXiU4vbjFraGYsuE7Z5YDBWjJZ1rl+xNHvziwsW+AUS8bO7ldUwM7
+         ylpQ==
+X-Gm-Message-State: AC+VfDw9luk1m7yE4mXshpYUrdhUc0j2+d507r8DXSUcHIKrB/OJ8b7O
+        pxr1mMNHodnnT1GLFMcmg9UEbIJ2k5M=
+X-Google-Smtp-Source: ACHHUZ5uEsWRmwc91CcDamKCFDJZF1BFQrZ5fbii1YLw08AXxDN7W/lrJx2YCa2hPk82YxYc6zpx2fFuhLA=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:201:6d24:3efd:facc:7ac4])
- (user=surenb job=sendgmr) by 2002:a05:6902:1028:b0:b8c:607:7669 with SMTP id
- x8-20020a056902102800b00b8c06077669mr8930549ybt.5.1682960158430; Mon, 01 May
- 2023 09:55:58 -0700 (PDT)
-Date:   Mon,  1 May 2023 09:54:32 -0700
+ (user=surenb job=sendgmr) by 2002:a05:6902:18d6:b0:b8f:3647:d757 with SMTP id
+ ck22-20020a05690218d600b00b8f3647d757mr9026699ybb.11.1682960162837; Mon, 01
+ May 2023 09:56:02 -0700 (PDT)
+Date:   Mon,  1 May 2023 09:54:34 -0700
 In-Reply-To: <20230501165450.15352-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20230501165450.15352-1-surenb@google.com>
 X-Mailer: git-send-email 2.40.1.495.gc816e09b53d-goog
-Message-ID: <20230501165450.15352-23-surenb@google.com>
-Subject: [PATCH 22/40] mm: create new codetag references during page splitting
+Message-ID: <20230501165450.15352-25-surenb@google.com>
+Subject: [PATCH 24/40] mm/slab: add allocation accounting into slab allocation
+ and free paths
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -87,104 +88,122 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When a high-order page is split into smaller ones, each newly split
-page should get its codetag. The original codetag is reused for these
-pages but it's recorded as 0-byte allocation because original codetag
-already accounts for the original high-order allocated page.
+Account slab allocations using codetag reference embedded into slabobj_ext.
 
 Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+Co-developed-by: Kent Overstreet <kent.overstreet@linux.dev>
+Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 ---
- include/linux/pgalloc_tag.h | 30 ++++++++++++++++++++++++++++++
- mm/huge_memory.c            |  2 ++
- mm/page_alloc.c             |  2 ++
- 3 files changed, 34 insertions(+)
+ include/linux/slab_def.h |  2 +-
+ include/linux/slub_def.h |  4 ++--
+ mm/slab.c                |  4 +++-
+ mm/slab.h                | 35 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 41 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/pgalloc_tag.h b/include/linux/pgalloc_tag.h
-index 567327c1c46f..0cbba13869b5 100644
---- a/include/linux/pgalloc_tag.h
-+++ b/include/linux/pgalloc_tag.h
-@@ -52,11 +52,41 @@ static inline void pgalloc_tag_dec(struct page *page, unsigned int order)
- 	}
+diff --git a/include/linux/slab_def.h b/include/linux/slab_def.h
+index a61e7d55d0d3..23f14dcb8d5b 100644
+--- a/include/linux/slab_def.h
++++ b/include/linux/slab_def.h
+@@ -107,7 +107,7 @@ static inline void *nearest_obj(struct kmem_cache *cache, const struct slab *sla
+  *   reciprocal_divide(offset, cache->reciprocal_buffer_size)
+  */
+ static inline unsigned int obj_to_index(const struct kmem_cache *cache,
+-					const struct slab *slab, void *obj)
++					const struct slab *slab, const void *obj)
+ {
+ 	u32 offset = (obj - slab->s_mem);
+ 	return reciprocal_divide(offset, cache->reciprocal_buffer_size);
+diff --git a/include/linux/slub_def.h b/include/linux/slub_def.h
+index f6df03f934e5..e8be5b368857 100644
+--- a/include/linux/slub_def.h
++++ b/include/linux/slub_def.h
+@@ -176,14 +176,14 @@ static inline void *nearest_obj(struct kmem_cache *cache, const struct slab *sla
+ 
+ /* Determine object index from a given position */
+ static inline unsigned int __obj_to_index(const struct kmem_cache *cache,
+-					  void *addr, void *obj)
++					  void *addr, const void *obj)
+ {
+ 	return reciprocal_divide(kasan_reset_tag(obj) - addr,
+ 				 cache->reciprocal_size);
  }
  
-+static inline void pgalloc_tag_split(struct page *page, unsigned int nr)
+ static inline unsigned int obj_to_index(const struct kmem_cache *cache,
+-					const struct slab *slab, void *obj)
++					const struct slab *slab, const void *obj)
+ {
+ 	if (is_kfence_address(obj))
+ 		return 0;
+diff --git a/mm/slab.c b/mm/slab.c
+index ccc76f7455e9..026f0c08708a 100644
+--- a/mm/slab.c
++++ b/mm/slab.c
+@@ -3367,9 +3367,11 @@ static void cache_flusharray(struct kmem_cache *cachep, struct array_cache *ac)
+ static __always_inline void __cache_free(struct kmem_cache *cachep, void *objp,
+ 					 unsigned long caller)
+ {
++	struct slab *slab = virt_to_slab(objp);
+ 	bool init;
+ 
+-	memcg_slab_free_hook(cachep, virt_to_slab(objp), &objp, 1);
++	memcg_slab_free_hook(cachep, slab, &objp, 1);
++	alloc_tagging_slab_free_hook(cachep, slab, &objp, 1);
+ 
+ 	if (is_kfence_address(objp)) {
+ 		kmemleak_free_recursive(objp, cachep->flags);
+diff --git a/mm/slab.h b/mm/slab.h
+index f953e7c81e98..f9442d3a10b2 100644
+--- a/mm/slab.h
++++ b/mm/slab.h
+@@ -494,6 +494,35 @@ prepare_slab_obj_exts_hook(struct kmem_cache *s, gfp_t flags, void *p)
+ 
+ #endif /* CONFIG_SLAB_OBJ_EXT */
+ 
++#ifdef CONFIG_MEM_ALLOC_PROFILING
++
++static inline void alloc_tagging_slab_free_hook(struct kmem_cache *s, struct slab *slab,
++					void **p, int objects)
 +{
++	struct slabobj_ext *obj_exts;
 +	int i;
-+	struct page_ext *page_ext;
-+	union codetag_ref *ref;
-+	struct alloc_tag *tag;
 +
 +	if (!mem_alloc_profiling_enabled())
 +		return;
 +
-+	page_ext = page_ext_get(page);
-+	if (unlikely(!page_ext))
++	obj_exts = slab_obj_exts(slab);
++	if (!obj_exts)
 +		return;
 +
-+	ref = codetag_ref_from_page_ext(page_ext);
-+	if (!ref->ct)
-+		goto out;
++	for (i = 0; i < objects; i++) {
++		unsigned int off = obj_to_index(s, slab, p[i]);
 +
-+	tag = ct_to_alloc_tag(ref->ct);
-+	page_ext = page_ext_next(page_ext);
-+	for (i = 1; i < nr; i++) {
-+		/* New reference with 0 bytes accounted */
-+		alloc_tag_add(codetag_ref_from_page_ext(page_ext), tag, 0);
-+		page_ext = page_ext_next(page_ext);
++		alloc_tag_sub(&obj_exts[off].ref, s->size);
 +	}
-+out:
-+	page_ext_put(page_ext);
 +}
 +
- #else /* CONFIG_MEM_ALLOC_PROFILING */
++#else
++
++static inline void alloc_tagging_slab_free_hook(struct kmem_cache *s, struct slab *slab,
++					void **p, int objects) {}
++
++#endif /* CONFIG_MEM_ALLOC_PROFILING */
++
+ #ifdef CONFIG_MEMCG_KMEM
+ void mod_objcg_state(struct obj_cgroup *objcg, struct pglist_data *pgdat,
+ 		     enum node_stat_item idx, int nr);
+@@ -776,6 +805,12 @@ static inline void slab_post_alloc_hook(struct kmem_cache *s,
+ 					 s->flags, flags);
+ 		kmsan_slab_alloc(s, p[i], flags);
+ 		obj_exts = prepare_slab_obj_exts_hook(s, flags, p[i]);
++
++#ifdef CONFIG_MEM_ALLOC_PROFILING
++		/* obj_exts can be allocated for other reasons */
++		if (likely(obj_exts) && mem_alloc_profiling_enabled())
++			alloc_tag_add(&obj_exts->ref, current->alloc_tag, s->size);
++#endif
+ 	}
  
- static inline union codetag_ref *get_page_tag_ref(struct page *page) { return NULL; }
- static inline void put_page_tag_ref(union codetag_ref *ref) {}
- #define pgalloc_tag_dec(__page, __size)		do {} while (0)
-+static inline void pgalloc_tag_split(struct page *page, unsigned int nr) {}
- 
- #endif /* CONFIG_MEM_ALLOC_PROFILING */
- 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 624671aaa60d..221cce0052a2 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -37,6 +37,7 @@
- #include <linux/page_owner.h>
- #include <linux/sched/sysctl.h>
- #include <linux/memory-tiers.h>
-+#include <linux/pgalloc_tag.h>
- 
- #include <asm/tlb.h>
- #include <asm/pgalloc.h>
-@@ -2557,6 +2558,7 @@ static void __split_huge_page(struct page *page, struct list_head *list,
- 	/* Caller disabled irqs, so they are still disabled here */
- 
- 	split_page_owner(head, nr);
-+	pgalloc_tag_split(head, nr);
- 
- 	/* See comment in __split_huge_page_tail() */
- 	if (PageAnon(head)) {
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index edd35500f7f6..8cf5a835af7f 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -2796,6 +2796,7 @@ void split_page(struct page *page, unsigned int order)
- 	for (i = 1; i < (1 << order); i++)
- 		set_page_refcounted(page + i);
- 	split_page_owner(page, 1 << order);
-+	pgalloc_tag_split(page, 1 << order);
- 	split_page_memcg(page, 1 << order);
- }
- EXPORT_SYMBOL_GPL(split_page);
-@@ -5012,6 +5013,7 @@ static void *make_alloc_exact(unsigned long addr, unsigned int order,
- 		struct page *last = page + nr;
- 
- 		split_page_owner(page, 1 << order);
-+		pgalloc_tag_split(page, 1 << order);
- 		split_page_memcg(page, 1 << order);
- 		while (page < --last)
- 			set_page_refcounted(last);
+ 	memcg_slab_post_alloc_hook(s, objcg, flags, size, p);
 -- 
 2.40.1.495.gc816e09b53d-goog
 
