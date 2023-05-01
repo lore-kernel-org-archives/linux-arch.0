@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 18996C77B73
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7B242C77B7C
 	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 17:00:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233168AbjEAQ77 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 May 2023 12:59:59 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60884 "EHLO
+        id S233175AbjEARAA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 May 2023 13:00:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59598 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232968AbjEAQ7X (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 12:59:23 -0400
-Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 398FA30FF
-        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 09:56:21 -0700 (PDT)
-Received: by mail-yb1-xb4a.google.com with SMTP id 3f1490d57ef6-b9e50081556so491581276.3
-        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 09:56:21 -0700 (PDT)
+        with ESMTP id S233069AbjEAQ7Z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 12:59:25 -0400
+Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 34A853596
+        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 09:56:23 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id 3f1490d57ef6-b9a7e65b34aso4868330276.0
+        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 09:56:23 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20221208; t=1682960181; x=1685552181;
+        d=google.com; s=20221208; t=1682960167; x=1685552167;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=jY4Why07vSNVPpYg+gbjry+wnVwWuxvaUCerSTimV/s=;
-        b=Aq78soAaAyMief+cDBMeso8QgziJr1UcaoZbGj9scpfWVuA1jJXbc7+tVVMa5n+pXD
-         zJNNMs5P7WUHVBw683ECTpg5npVx6QBf0bUN7DdPu6j/C+MRzKsa8URcyNS8bC7atQCY
-         9SigXecTat+KM4eyT+hIxO14+/p9qQaXDCEC1rzj2GobJRxENTqWjSQsycHoHxjax/gY
-         eWPPPBE6ZeI91QsbK/YSznn2yYLzHfxgEG9YEj/uwkJeJF6xe27cleLqDewTpXr/rX+O
-         cI/7bSXViuC98rFsCexDBf6uZdpJdij1JBRms+fpyJvFKEAl56eecSWlzCcPWSAQrlLn
-         rFyQ==
+        bh=YfoToyHVT1LJlGJVQ6MuRV3hbhaLXh5d5qfc4HkIPik=;
+        b=Db2dTvDWbMM6MtFyLXOOyG+p1K651ww8uL+kJDohPMMG6EWYrhfJFGluhHEW0wqXl5
+         UKPrByNQ1Z4QXnisfDyfKX7dbeY+3mxaMGuFVRBjDUr3JiqQISt6WeUr2I6JPah8BGyR
+         FjdvJFEuIXgNlkkoVLLQxMPMSKPuyrjPesVcRR9te3ugJsI7tT+EXrko3AZ8ov2CcY8R
+         JR28aghvPN6+RkIPURXyrGkWco+xEzOLoyotOADRZq9o/XJ68RcgnDEgHpMVXMMei422
+         +DGh+VKx3LXxPBgO4eeggvJc6/61DcK7Fvg52O8gRCKPK/nk5YYM+Q4LDqT5D1RFb4LF
+         rBwA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1682960181; x=1685552181;
+        d=1e100.net; s=20221208; t=1682960167; x=1685552167;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=jY4Why07vSNVPpYg+gbjry+wnVwWuxvaUCerSTimV/s=;
-        b=C+pOEhJ7YIanEjwN9+9T0HagGi6uij+38ojAvHHnfJCL0Xc3PbebN92q/Sb7YRA18Z
-         XeKnsWBiKGCSxY2ukvbCmirYsfJJ1rRu5R9178VCR05jhfRxWNOGXpc5qELpZZz9fFIa
-         WM3JGnlZz2fKXyPiVkwr1CG0yweqBU2fgJnvAKqPhNYaJVGD0hSQKaPWcFfJyRA+km0d
-         LgeiIknKnZw0HuzyV4fU2nsOJtTe9ltbKMclYRNM/Bx4EWMGNi/yJmGPS25F4Rxzvaxr
-         I3gP383KAZqvC20qnBfoG1XJYqA/TsaZcL3S+CObmvbMMpe4Rq3FKxQ1Z55uJyGNHOcN
-         vvYw==
-X-Gm-Message-State: AC+VfDxgyzcHu2g1aXuF1k3dGBUp3HOUyoi+KnRHQsB4Kjic/UH7vsZm
-        nydsSSxCusq18dj2V0wf6v/s8wmKPJE=
-X-Google-Smtp-Source: ACHHUZ6jXSxE+6iq2YUjl7qVMHUxfSxuowqD06Cn0jpzZX6iMdKT0+DoukFEFTwwgTX/LkDeTP78a66LQOo=
+        bh=YfoToyHVT1LJlGJVQ6MuRV3hbhaLXh5d5qfc4HkIPik=;
+        b=bcwrQ10HvmPorm6hDUVB7eai6eyXsvwJnuBnK5aFsduczCTs8Xnbu3AhJ3mwClWygp
+         6p/ugBsp4BBLYws+471G7w9He7PitBHKXjTGi3bvkh2vT3owmSejJBi1BNLRirExsZIs
+         shb8OSGf+LvUpSEiJzDSUH5PTqOg3AU66lFXCj7tADSNVSN0o6ETPmzq99Dn5mgO9v5x
+         wGsKTrqSRGjisQoHFPua+2BtPFk0jv1SULGbVifzbUi3sk8ii/8MkYEbLVIAjAFe7myw
+         6t2gqs7IWJ2QmlsZD34NH/fWzp55srYuue1mk3+OGGrR+wi0WAXYlW/gpFq028fnL6gb
+         5vUQ==
+X-Gm-Message-State: AC+VfDz5+1lZPBLSFQRS7yM13ZBJ/ImIXCm1ms/eA3C9oBkQb0DDSWnZ
+        WMhcNtzPtjriAWIlZGe7+vpAvLRODxQ=
+X-Google-Smtp-Source: ACHHUZ40g7B5Nzrue3Inkynn2rCW8wBzh6gvt9xgi1/WmwP7LCTtOXWTAuDa8Mc648etXigh7Ci0w5kPSCE=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:201:6d24:3efd:facc:7ac4])
- (user=surenb job=sendgmr) by 2002:a25:24c4:0:b0:997:c919:4484 with SMTP id
- k187-20020a2524c4000000b00997c9194484mr5789976ybk.6.1682960180824; Mon, 01
- May 2023 09:56:20 -0700 (PDT)
-Date:   Mon,  1 May 2023 09:54:42 -0700
+ (user=surenb job=sendgmr) by 2002:a25:c0ca:0:b0:b9a:7cd6:ba7a with SMTP id
+ c193-20020a25c0ca000000b00b9a7cd6ba7amr5449586ybf.12.1682960167516; Mon, 01
+ May 2023 09:56:07 -0700 (PDT)
+Date:   Mon,  1 May 2023 09:54:36 -0700
 In-Reply-To: <20230501165450.15352-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20230501165450.15352-1-surenb@google.com>
 X-Mailer: git-send-email 2.40.1.495.gc816e09b53d-goog
-Message-ID: <20230501165450.15352-33-surenb@google.com>
-Subject: [PATCH 32/40] arm64: Fix circular header dependency
+Message-ID: <20230501165450.15352-27-surenb@google.com>
+Subject: [PATCH 26/40] mm/slub: Mark slab_free_freelist_hook() __always_inline
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -89,30 +89,27 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Kent Overstreet <kent.overstreet@linux.dev>
 
-Replace linux/percpu.h include with asm/percpu.h to avoid circular
-dependency.
+It seems we need to be more forceful with the compiler on this one.
 
 Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 Signed-off-by: Suren Baghdasaryan <surenb@google.com>
 ---
- arch/arm64/include/asm/spectre.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ mm/slub.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm64/include/asm/spectre.h b/arch/arm64/include/asm/spectre.h
-index db7b371b367c..31823d9715ab 100644
---- a/arch/arm64/include/asm/spectre.h
-+++ b/arch/arm64/include/asm/spectre.h
-@@ -13,8 +13,8 @@
- #define __BP_HARDEN_HYP_VECS_SZ	((BP_HARDEN_EL2_SLOTS - 1) * SZ_2K)
+diff --git a/mm/slub.c b/mm/slub.c
+index 8f57fd086f69..9dd57b3384a1 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -1781,7 +1781,7 @@ static __always_inline bool slab_free_hook(struct kmem_cache *s,
+ 	return kasan_slab_free(s, x, init);
+ }
  
- #ifndef __ASSEMBLY__
--
--#include <linux/percpu.h>
-+#include <linux/smp.h>
-+#include <asm/percpu.h>
- 
- #include <asm/cpufeature.h>
- #include <asm/virt.h>
+-static inline bool slab_free_freelist_hook(struct kmem_cache *s,
++static __always_inline bool slab_free_freelist_hook(struct kmem_cache *s,
+ 					   void **head, void **tail,
+ 					   int *cnt)
+ {
 -- 
 2.40.1.495.gc816e09b53d-goog
 
