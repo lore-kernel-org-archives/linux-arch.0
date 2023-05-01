@@ -2,57 +2,56 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C661C77B7F
-	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 17:01:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A5DBC77B73
+	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 17:01:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233133AbjEARBZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 May 2023 13:01:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33160 "EHLO
+        id S233136AbjEARB2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 May 2023 13:01:28 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60818 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233016AbjEAQ7q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 12:59:46 -0400
-Received: from mail-yw1-x114a.google.com (mail-yw1-x114a.google.com [IPv6:2607:f8b0:4864:20::114a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB5D33A92
-        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 09:56:32 -0700 (PDT)
-Received: by mail-yw1-x114a.google.com with SMTP id 00721157ae682-559d35837bbso53117147b3.3
-        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 09:56:32 -0700 (PDT)
+        with ESMTP id S233139AbjEAQ7x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 12:59:53 -0400
+Received: from mail-yb1-xb4a.google.com (mail-yb1-xb4a.google.com [IPv6:2607:f8b0:4864:20::b4a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 85F333A9E
+        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 09:56:38 -0700 (PDT)
+Received: by mail-yb1-xb4a.google.com with SMTP id 3f1490d57ef6-b8f6bef3d4aso5547291276.0
+        for <linux-arch@vger.kernel.org>; Mon, 01 May 2023 09:56:38 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20221208; t=1682960192; x=1685552192;
+        d=google.com; s=20221208; t=1682960174; x=1685552174;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=nH88FGoAACjgZmQtkl43JvHLPN3RafkQwEsrc5bfN4s=;
-        b=lLa+vy9YS9JYxnsS/wzOxOEwwt8wSy5Uuy+3HdA356nRicp9ut8/ucfpMAH5tzjtpk
-         TZcWKstbLNfc+ExqK3JufnNMMSOfGAmXHFXOkaH7uvY2JNRcUhOQ+mziqCIge56WJNZ/
-         gi3cQ2XcWFl2PGrQeodns68az+EoIqlViDNY/5PRPUy6or731mNfftlLkYP0wViktDEH
-         g0WRqa3axpcg1emeJdFyEEwnjL1yqR7Zf3pRutm7Z9+tW9GBqkt749c0MDSZR/CpVzak
-         uesUCRPASh4BPez2LMwWVpOzpXLQw5JYdzG+OUSaei3lVr1p9uTTjV6lehd+V/Xsz/IX
-         /oSA==
+        bh=k4gyiXZ+rLWKPzhf5TCPslUr+ioI4/2asgnCyiPdOEo=;
+        b=DmSOIqXpDpgOhsbYBtSJd0pE8NBIuLLzTwqet8jr5NLvFjfEu90BXeWtYv7qlPqaG7
+         S7+D6TPAoWHLs26LhS/oYb03UoMwG4HhBUCufMxi2OXT8Cg0Wg5ZW9rp2ejUU7/dM0E+
+         g9Ptf/gGhu2ayAN03NAMSR+d1VG5nCdJ9H6WMvt6TJ0j29Cpmun2V6f3j+OoydA/EMqH
+         hhtOdKXFKMT9O6F/RJeaiymHmIAjupnQaY2DJyokZEtCEBhHqOPrpU0cVWh3zhhtOv4w
+         vPFJ1809YCMUcOTdA9cBgXt/0HwdTb2v9IdEptjtwIgtSwcOESs6yl5SKx9kBZVUQ0L8
+         /sDw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1682960192; x=1685552192;
+        d=1e100.net; s=20221208; t=1682960174; x=1685552174;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=nH88FGoAACjgZmQtkl43JvHLPN3RafkQwEsrc5bfN4s=;
-        b=OmwVr6g75l6+7MDNjonjPWWL3136KwGsJU6eMMXIO8Lc02BzfXbXRtI37YG8CUjyfu
-         4d1aKWJBoL2tejJ13LhSP//l1Up8rKwJLR7FQhbJqumDbWmjEhmDhUkO29016HRDd8jK
-         dlD0uSPYKTzHk7u4PbmbjQrWDHenZ1slu8BAwU3rfwmCg291P/LxzLzLqp8JmC3gSApJ
-         uvgT2fPpDVA+aOyqMIEeCLixPO5DvVcysP+Iabbr+5MLs5Um4p3zbM0ApGmyKKifsumy
-         h2wLEmVhpGKRcx//MtBI1knpDsLBoaSsLElfSeHYSxpB0a11n36lwtHVqWUPp4N4aTbL
-         T9uA==
-X-Gm-Message-State: AC+VfDzimwLsCIZPDxqwyLJpuUNWETsY6wiScy+lTEBi9a/JJFr78K7/
-        LXm7xu/HZ4ea4eajof5OG4GFBWykWko=
-X-Google-Smtp-Source: ACHHUZ5TmDDUIxEKAG9xtiDkwRqmJC5j3DPuQpKL1gsUmhKOzqQ3R0545H3ZiUaU/3KgnQbVgGPYgv/taTQ=
+        bh=k4gyiXZ+rLWKPzhf5TCPslUr+ioI4/2asgnCyiPdOEo=;
+        b=Pm+ldPr0QEKJ1tnNXeec0xLGgq670hualDWFJay+9YlsH/N8jwH0KIaIkBI0mL+3zT
+         +GP5q5dTPu6RdHXij+i5+MUk0O6aaTlGqRFXonpDNqMuWVaEIV+tfFUTEYvgZHZkvmM4
+         70SWntLhg8I4zrwYwhQqaxOsX74QZhWxOxiBpzypfQ2iuHah8fWqBdFfUdL4XJ7/LvY8
+         88Sj4bu+jNgOtHmtpKy5EFqoMLmx2P8wrVva8R6sAr0nyV7tgkJtBNpVOhmhAq5Avc5w
+         HY1JPoBDOVhn1uYuPO6wCGo0b0hF4Rw2Scuni1Yj/ALzi51RdXN+wJou9jqKnZutlW3v
+         k5xg==
+X-Gm-Message-State: AC+VfDyqf4/BTes8og891+Zb9wEj+S+tnBoI8W48ePsqYJgOwcvmJd2c
+        S2dZbjcJMBzsrBPxfsZo4ral/0yzGS8=
+X-Google-Smtp-Source: ACHHUZ7aGSgmCsBUI+di96C7Ib72o4O5NVupLg+6oUGpNI3RTseMV4sdkNx3JpSisCExB2ulLnUeWNtVkhg=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:201:6d24:3efd:facc:7ac4])
- (user=surenb job=sendgmr) by 2002:a81:4011:0:b0:54f:9e1b:971c with SMTP id
- l17-20020a814011000000b0054f9e1b971cmr8801791ywn.1.1682960192486; Mon, 01 May
- 2023 09:56:32 -0700 (PDT)
-Date:   Mon,  1 May 2023 09:54:47 -0700
+ (user=surenb job=sendgmr) by 2002:a05:6902:1081:b0:b9d:d5dc:5971 with SMTP id
+ v1-20020a056902108100b00b9dd5dc5971mr3225339ybu.2.1682960174070; Mon, 01 May
+ 2023 09:56:14 -0700 (PDT)
+Date:   Mon,  1 May 2023 09:54:39 -0700
 In-Reply-To: <20230501165450.15352-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20230501165450.15352-1-surenb@google.com>
 X-Mailer: git-send-email 2.40.1.495.gc816e09b53d-goog
-Message-ID: <20230501165450.15352-38-surenb@google.com>
-Subject: [PATCH 37/40] codetag: debug: skip objext checking when it's for
- objext itself
+Message-ID: <20230501165450.15352-30-surenb@google.com>
+Subject: [PATCH 29/40] mm: percpu: Introduce pcpuobj_ext
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -88,138 +87,154 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-objext objects are created with __GFP_NO_OBJ_EXT flag and therefore have
-no corresponding objext themselves (otherwise we would get an infinite
-recursion). When freeing these objects their codetag will be empty and
-when CONFIG_MEM_ALLOC_PROFILING_DEBUG is enabled this will lead to false
-warnings. Introduce CODETAG_EMPTY special codetag value to mark
-allocations which intentionally lack codetag to avoid these warnings.
-Set objext codetags to CODETAG_EMPTY before freeing to indicate that
-the codetag is expected to be empty.
+From: Kent Overstreet <kent.overstreet@linux.dev>
 
+Upcoming alloc tagging patches require a place to stash per-allocation
+metadata.
+
+We already do this when memcg is enabled, so this patch generalizes the
+obj_cgroup * vector in struct pcpu_chunk by creating a pcpu_obj_ext
+type, which we will be adding to in an upcoming patch - similarly to the
+previous slabobj_ext patch.
+
+Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Dennis Zhou <dennis@kernel.org>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: linux-mm@kvack.org
 ---
- include/linux/alloc_tag.h | 28 ++++++++++++++++++++++++++++
- mm/slab.h                 | 33 +++++++++++++++++++++++++++++++++
- mm/slab_common.c          |  1 +
- 3 files changed, 62 insertions(+)
+ mm/percpu-internal.h | 19 +++++++++++++++++--
+ mm/percpu.c          | 30 +++++++++++++++---------------
+ 2 files changed, 32 insertions(+), 17 deletions(-)
 
-diff --git a/include/linux/alloc_tag.h b/include/linux/alloc_tag.h
-index 190ab793f7e5..2c3f4f3a8c93 100644
---- a/include/linux/alloc_tag.h
-+++ b/include/linux/alloc_tag.h
-@@ -51,6 +51,28 @@ static inline bool mem_alloc_profiling_enabled(void)
- 	return static_branch_likely(&mem_alloc_profiling_key);
- }
+diff --git a/mm/percpu-internal.h b/mm/percpu-internal.h
+index f9847c131998..2433e7b24172 100644
+--- a/mm/percpu-internal.h
++++ b/mm/percpu-internal.h
+@@ -32,6 +32,16 @@ struct pcpu_block_md {
+ 	int			nr_bits;	/* total bits responsible for */
+ };
  
-+#ifdef CONFIG_MEM_ALLOC_PROFILING_DEBUG
++struct pcpuobj_ext {
++#ifdef CONFIG_MEMCG_KMEM
++	struct obj_cgroup	*cgroup;
++#endif
++};
 +
-+#define CODETAG_EMPTY	(void *)1
++#ifdef CONFIG_MEMCG_KMEM
++#define NEED_PCPUOBJ_EXT
++#endif
 +
-+static inline bool is_codetag_empty(union codetag_ref *ref)
+ struct pcpu_chunk {
+ #ifdef CONFIG_PERCPU_STATS
+ 	int			nr_alloc;	/* # of allocations */
+@@ -57,8 +67,8 @@ struct pcpu_chunk {
+ 	int			end_offset;	/* additional area required to
+ 						   have the region end page
+ 						   aligned */
+-#ifdef CONFIG_MEMCG_KMEM
+-	struct obj_cgroup	**obj_cgroups;	/* vector of object cgroups */
++#ifdef NEED_PCPUOBJ_EXT
++	struct pcpuobj_ext	*obj_exts;	/* vector of object cgroups */
+ #endif
+ 
+ 	int			nr_pages;	/* # of pages served by this chunk */
+@@ -67,6 +77,11 @@ struct pcpu_chunk {
+ 	unsigned long		populated[];	/* populated bitmap */
+ };
+ 
++static inline bool need_pcpuobj_ext(void)
 +{
-+	return ref->ct == CODETAG_EMPTY;
++	return !mem_cgroup_kmem_disabled();
 +}
 +
-+static inline void set_codetag_empty(union codetag_ref *ref)
-+{
-+	if (ref)
-+		ref->ct = CODETAG_EMPTY;
-+}
-+
-+#else /* CONFIG_MEM_ALLOC_PROFILING_DEBUG */
-+
-+static inline bool is_codetag_empty(union codetag_ref *ref) { return false; }
-+static inline void set_codetag_empty(union codetag_ref *ref) {}
-+
-+#endif /* CONFIG_MEM_ALLOC_PROFILING_DEBUG */
-+
- static inline void __alloc_tag_sub(union codetag_ref *ref, size_t bytes,
- 				   bool may_allocate)
- {
-@@ -65,6 +87,11 @@ static inline void __alloc_tag_sub(union codetag_ref *ref, size_t bytes,
- 	if (!ref || !ref->ct)
- 		return;
+ extern spinlock_t pcpu_lock;
  
-+	if (is_codetag_empty(ref)) {
-+		ref->ct = NULL;
-+		return;
-+	}
-+
- 	if (is_codetag_ctx_ref(ref))
- 		alloc_tag_free_ctx(ref->ctx, &tag);
- 	else
-@@ -112,6 +139,7 @@ static inline void alloc_tag_add(union codetag_ref *ref, struct alloc_tag *tag,
- #else
+ extern struct list_head *pcpu_chunk_lists;
+diff --git a/mm/percpu.c b/mm/percpu.c
+index 28e07ede46f6..95b26a6b718d 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -1392,9 +1392,9 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
+ 		panic("%s: Failed to allocate %zu bytes\n", __func__,
+ 		      alloc_size);
  
- #define DEFINE_ALLOC_TAG(_alloc_tag, _old)
-+static inline void set_codetag_empty(union codetag_ref *ref) {}
- static inline void alloc_tag_sub(union codetag_ref *ref, size_t bytes) {}
- static inline void alloc_tag_sub_noalloc(union codetag_ref *ref, size_t bytes) {}
- static inline void alloc_tag_add(union codetag_ref *ref, struct alloc_tag *tag,
-diff --git a/mm/slab.h b/mm/slab.h
-index f9442d3a10b2..50d86008a86a 100644
---- a/mm/slab.h
-+++ b/mm/slab.h
-@@ -416,6 +416,31 @@ static inline struct slabobj_ext *slab_obj_exts(struct slab *slab)
- int alloc_slab_obj_exts(struct slab *slab, struct kmem_cache *s,
- 			gfp_t gfp, bool new_slab);
+-#ifdef CONFIG_MEMCG_KMEM
++#ifdef NEED_PCPUOBJ_EXT
+ 	/* first chunk is free to use */
+-	chunk->obj_cgroups = NULL;
++	chunk->obj_exts = NULL;
+ #endif
+ 	pcpu_init_md_blocks(chunk);
  
-+
-+#ifdef CONFIG_MEM_ALLOC_PROFILING_DEBUG
-+
-+static inline void mark_objexts_empty(struct slabobj_ext *obj_exts)
-+{
-+	struct slabobj_ext *slab_exts;
-+	struct slab *obj_exts_slab;
-+
-+	obj_exts_slab = virt_to_slab(obj_exts);
-+	slab_exts = slab_obj_exts(obj_exts_slab);
-+	if (slab_exts) {
-+		unsigned int offs = obj_to_index(obj_exts_slab->slab_cache,
-+						 obj_exts_slab, obj_exts);
-+		/* codetag should be NULL */
-+		WARN_ON(slab_exts[offs].ref.ct);
-+		set_codetag_empty(&slab_exts[offs].ref);
-+	}
-+}
-+
-+#else /* CONFIG_MEM_ALLOC_PROFILING_DEBUG */
-+
-+static inline void mark_objexts_empty(struct slabobj_ext *obj_exts) {}
-+
-+#endif /* CONFIG_MEM_ALLOC_PROFILING_DEBUG */
-+
- static inline bool need_slab_obj_ext(void)
- {
- #ifdef CONFIG_MEM_ALLOC_PROFILING
-@@ -437,6 +462,14 @@ static inline void free_slab_obj_exts(struct slab *slab)
- 	if (!obj_exts)
- 		return;
+@@ -1463,12 +1463,12 @@ static struct pcpu_chunk *pcpu_alloc_chunk(gfp_t gfp)
+ 	if (!chunk->md_blocks)
+ 		goto md_blocks_fail;
  
-+	/*
-+	 * obj_exts was created with __GFP_NO_OBJ_EXT flag, therefore its
-+	 * corresponding extension will be NULL. alloc_tag_sub() will throw a
-+	 * warning if slab has extensions but the extension of an object is
-+	 * NULL, therefore replace NULL with CODETAG_EMPTY to indicate that
-+	 * the extension for obj_exts is expected to be NULL.
-+	 */
-+	mark_objexts_empty(obj_exts);
- 	kfree(obj_exts);
- 	slab->obj_exts = 0;
- }
-diff --git a/mm/slab_common.c b/mm/slab_common.c
-index a05333bbb7f1..89265f825c43 100644
---- a/mm/slab_common.c
-+++ b/mm/slab_common.c
-@@ -244,6 +244,7 @@ int alloc_slab_obj_exts(struct slab *slab, struct kmem_cache *s,
- 		 * assign slabobj_exts in parallel. In this case the existing
- 		 * objcg vector should be reused.
- 		 */
-+		mark_objexts_empty(vec);
- 		kfree(vec);
- 		return 0;
+-#ifdef CONFIG_MEMCG_KMEM
+-	if (!mem_cgroup_kmem_disabled()) {
+-		chunk->obj_cgroups =
++#ifdef NEED_PCPUOBJ_EXT
++	if (need_pcpuobj_ext()) {
++		chunk->obj_exts =
+ 			pcpu_mem_zalloc(pcpu_chunk_map_bits(chunk) *
+-					sizeof(struct obj_cgroup *), gfp);
+-		if (!chunk->obj_cgroups)
++					sizeof(struct pcpuobj_ext), gfp);
++		if (!chunk->obj_exts)
+ 			goto objcg_fail;
  	}
+ #endif
+@@ -1480,7 +1480,7 @@ static struct pcpu_chunk *pcpu_alloc_chunk(gfp_t gfp)
+ 
+ 	return chunk;
+ 
+-#ifdef CONFIG_MEMCG_KMEM
++#ifdef NEED_PCPUOBJ_EXT
+ objcg_fail:
+ 	pcpu_mem_free(chunk->md_blocks);
+ #endif
+@@ -1498,8 +1498,8 @@ static void pcpu_free_chunk(struct pcpu_chunk *chunk)
+ {
+ 	if (!chunk)
+ 		return;
+-#ifdef CONFIG_MEMCG_KMEM
+-	pcpu_mem_free(chunk->obj_cgroups);
++#ifdef NEED_PCPUOBJ_EXT
++	pcpu_mem_free(chunk->obj_exts);
+ #endif
+ 	pcpu_mem_free(chunk->md_blocks);
+ 	pcpu_mem_free(chunk->bound_map);
+@@ -1648,8 +1648,8 @@ static void pcpu_memcg_post_alloc_hook(struct obj_cgroup *objcg,
+ 	if (!objcg)
+ 		return;
+ 
+-	if (likely(chunk && chunk->obj_cgroups)) {
+-		chunk->obj_cgroups[off >> PCPU_MIN_ALLOC_SHIFT] = objcg;
++	if (likely(chunk && chunk->obj_exts)) {
++		chunk->obj_exts[off >> PCPU_MIN_ALLOC_SHIFT].cgroup = objcg;
+ 
+ 		rcu_read_lock();
+ 		mod_memcg_state(obj_cgroup_memcg(objcg), MEMCG_PERCPU_B,
+@@ -1665,13 +1665,13 @@ static void pcpu_memcg_free_hook(struct pcpu_chunk *chunk, int off, size_t size)
+ {
+ 	struct obj_cgroup *objcg;
+ 
+-	if (unlikely(!chunk->obj_cgroups))
++	if (unlikely(!chunk->obj_exts))
+ 		return;
+ 
+-	objcg = chunk->obj_cgroups[off >> PCPU_MIN_ALLOC_SHIFT];
++	objcg = chunk->obj_exts[off >> PCPU_MIN_ALLOC_SHIFT].cgroup;
+ 	if (!objcg)
+ 		return;
+-	chunk->obj_cgroups[off >> PCPU_MIN_ALLOC_SHIFT] = NULL;
++	chunk->obj_exts[off >> PCPU_MIN_ALLOC_SHIFT].cgroup = NULL;
+ 
+ 	obj_cgroup_uncharge(objcg, pcpu_obj_full_size(size));
+ 
 -- 
 2.40.1.495.gc816e09b53d-goog
 
