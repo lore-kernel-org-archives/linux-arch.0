@@ -2,32 +2,60 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0993EC7EE26
-	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 19:45:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 31B92C77B7C
+	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 19:59:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232469AbjEATpY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 May 2023 15:45:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39068 "EHLO
+        id S232267AbjEAT70 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 May 2023 15:59:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46016 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232123AbjEATpX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 15:45:23 -0400
-X-Greylist: delayed 561 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 01 May 2023 12:45:20 PDT
-Received: from out-4.mta1.migadu.com (out-4.mta1.migadu.com [95.215.58.4])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 50F321B0
-        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 12:45:19 -0700 (PDT)
-Date:   Mon, 1 May 2023 15:35:43 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-        t=1682969756;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=hpWnoWbnH7XHW07GL5HN1fHIxDy9SUudHHmRHAQgRBM=;
-        b=uotwq971HnVfizoutRaYv8+Gg4dprWBpXM6BezfvimNLzl00V1oTf1QlaE+u3WeZsMeziK
-        C5H1k4WMH14ItFz/9ogt0J+TmpRUyd43sqLYCT6f12j4Qtui1iRdfjc+eiHTz8nOyq/OnG
-        5EPIGqnHT7Xhl5AP2WMXcgnbqlqcl8w=
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From:   Kent Overstreet <kent.overstreet@linux.dev>
-To:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
+        with ESMTP id S231467AbjEAT7Y (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 15:59:24 -0400
+Received: from mail-qv1-xf32.google.com (mail-qv1-xf32.google.com [IPv6:2607:f8b0:4864:20::f32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 56C543595;
+        Mon,  1 May 2023 12:58:35 -0700 (PDT)
+Received: by mail-qv1-xf32.google.com with SMTP id 6a1803df08f44-61b6101a1b9so2081556d6.3;
+        Mon, 01 May 2023 12:58:35 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20221208; t=1682971064; x=1685563064;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=9KWtLWCFndJNZE972x4UIl3VMb5lgPnWy05QC+e9YHQ=;
+        b=H8s0D2PnStbB558QXUaT5ll4HgeOP3F3gveA5ZpgVXoGtOyCk7qdahHdBJG2qJuoFD
+         0HqzyJ4Zg0siuJOE4NGOCejap5WAcKxJOUSig772mCh4QsCtjNTYhOT/LwicIJWE9bWs
+         jrJT26m+1Bq+eQTAJu9XUgL54sZ3rBnmD1Wf3mgD63haBjTeb1LZFJOQGajyc8vpiEsQ
+         V1w1TCUdZjhisRQlyxsFwexQ3NynHRek48vOQiL25dSyMrTfOeaKKLioUpoCHgP64K4R
+         6askIQpetdUtujGGp4kZIUBJMb/jdkXxrQ9+K8YBjSjSjTr4VDS6Hh6nwnpHLOhwtPL5
+         B5uA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1682971064; x=1685563064;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=9KWtLWCFndJNZE972x4UIl3VMb5lgPnWy05QC+e9YHQ=;
+        b=CeevHdJ8JhNjYbTOJpWlmBXSA2WYWq08jpFoCFii7fELOZjD+ZrJnQIdOYt43jL7Rt
+         LLVvZzKlhBlCpvkS74cdl+kHUFqclPbiCH/vqTBl8jV4kVtcwEu+jR+vTpvxXE+O2KH1
+         jg8LbqWNPB24HpeY+QuP7rVGaIOavmIjp/+mud54Sde1Zywb1DkRQ1/3HJtmuExAAvwj
+         u9xBTL7nWKvTeAMHsYIXGF30Y1nECxTG1BTss8mSZLZEbY1G5kj3sUrMEzMFotac9hNg
+         qVwP3ZS11XkVVaeK95ENKO43Gb7iZACSdeFE0J+71z/hVjVW9jNVmeW0D3vwRK3Ssfzj
+         R5BA==
+X-Gm-Message-State: AC+VfDzPDAlZu4DFM9EeQ/X8RC2UQzq+ZovsjpN84sSWs3gyuTfszDNe
+        bFYU6yUaj7SiEtnGRFu3BKRiyow1as9gbPOP7UU=
+X-Google-Smtp-Source: ACHHUZ4CCRpTSnLWkEGaALw7g2diddNGGTgl3gTtsMDJ7pS/HKTxf5g9t615t5zWEkRqE+QbhaeBbmG/dmnn24JEO8g=
+X-Received: by 2002:a05:6214:4008:b0:5ea:654e:4d3f with SMTP id
+ kd8-20020a056214400800b005ea654e4d3fmr1607440qvb.5.1682971064004; Mon, 01 May
+ 2023 12:57:44 -0700 (PDT)
+MIME-Version: 1.0
+References: <20230501165450.15352-1-surenb@google.com> <20230501165450.15352-2-surenb@google.com>
+ <ouuidemyregstrijempvhv357ggp4tgnv6cijhasnungsovokm@jkgvyuyw2fti> <ZFAUj+Q+hP7cWs4w@moria.home.lan>
+In-Reply-To: <ZFAUj+Q+hP7cWs4w@moria.home.lan>
+From:   Andy Shevchenko <andy.shevchenko@gmail.com>
+Date:   Mon, 1 May 2023 22:57:07 +0300
+Message-ID: <CAHp75VeJ_a6j3uweLN5-woSQUtN5u36c2gkoiXhnJa1HXJdoyQ@mail.gmail.com>
+Subject: Re: [PATCH 01/40] lib/string_helpers: Drop space in string_get_size's output
+To:     Kent Overstreet <kent.overstreet@linux.dev>
+Cc:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
         mhocko@suse.com, vbabka@suse.cz, hannes@cmpxchg.org,
         roman.gushchin@linux.dev, mgorman@suse.de, willy@infradead.org,
         liam.howlett@oracle.com, corbet@lwn.net, void@manifault.com,
@@ -60,42 +88,47 @@ To:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
         Paul Mackerras <paulus@samba.org>,
         "Michael S. Tsirkin" <mst@redhat.com>,
         Jason Wang <jasowang@redhat.com>,
-        Noralf =?utf-8?B?VHLDr8K/wr1ubmVz?= <noralf@tronnes.org>
-Subject: Re: [PATCH 01/40] lib/string_helpers: Drop space in
- string_get_size's output
-Message-ID: <ZFAUj+Q+hP7cWs4w@moria.home.lan>
-References: <20230501165450.15352-1-surenb@google.com>
- <20230501165450.15352-2-surenb@google.com>
- <ouuidemyregstrijempvhv357ggp4tgnv6cijhasnungsovokm@jkgvyuyw2fti>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ouuidemyregstrijempvhv357ggp4tgnv6cijhasnungsovokm@jkgvyuyw2fti>
-X-Migadu-Flow: FLOW_OUT
+        =?UTF-8?B?Tm9yYWxmIFRyw6/Cv8K9bm5lcw==?= <noralf@tronnes.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, May 01, 2023 at 11:13:15AM -0700, Davidlohr Bueso wrote:
-> On Mon, 01 May 2023, Suren Baghdasaryan wrote:
-> 
-> > From: Kent Overstreet <kent.overstreet@linux.dev>
-> > 
-> > Previously, string_get_size() outputted a space between the number and
-> > the units, i.e.
-> >  9.88 MiB
-> > 
-> > This changes it to
-> >  9.88MiB
-> > 
-> > which allows it to be parsed correctly by the 'sort -h' command.
-> 
-> Wouldn't this break users that already parse it the current way?
+On Mon, May 1, 2023 at 10:36=E2=80=AFPM Kent Overstreet
+<kent.overstreet@linux.dev> wrote:
+>
+> On Mon, May 01, 2023 at 11:13:15AM -0700, Davidlohr Bueso wrote:
+> > On Mon, 01 May 2023, Suren Baghdasaryan wrote:
+> >
+> > > From: Kent Overstreet <kent.overstreet@linux.dev>
+> > >
+> > > Previously, string_get_size() outputted a space between the number an=
+d
+> > > the units, i.e.
+> > >  9.88 MiB
+> > >
+> > > This changes it to
+> > >  9.88MiB
+> > >
+> > > which allows it to be parsed correctly by the 'sort -h' command.
 
-It's not impossible - but it's not used in very many places and we
-wouldn't be printing in human-readable units if it was meant to be
-parsed - it's mainly used for debug output currently.
+But why do we need that? What's the use case?
 
-If someone raises a specific objection we'll do something different,
-otherwise I think standardizing on what userspace tooling already parses
-is a good idea.
+> > Wouldn't this break users that already parse it the current way?
+>
+> It's not impossible - but it's not used in very many places and we
+> wouldn't be printing in human-readable units if it was meant to be
+> parsed - it's mainly used for debug output currently.
+>
+> If someone raises a specific objection we'll do something different,
+> otherwise I think standardizing on what userspace tooling already parses
+> is a good idea.
+
+Yes, I NAK this on the basis of
+https://english.stackexchange.com/a/2911/153144
+
+
+--=20
+With Best Regards,
+Andy Shevchenko
