@@ -2,141 +2,133 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 231E8C7EE21
-	for <linux-arch@archiver.kernel.org>; Tue,  2 May 2023 12:50:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 64A87C7EE24
+	for <linux-arch@archiver.kernel.org>; Tue,  2 May 2023 13:02:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234248AbjEBMug (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 May 2023 08:50:36 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35262 "EHLO
+        id S234301AbjEBNCe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 May 2023 09:02:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41578 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234164AbjEBMuf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 May 2023 08:50:35 -0400
-X-Greylist: delayed 161 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Tue, 02 May 2023 05:50:21 PDT
-Received: from bee.tesarici.cz (bee.tesarici.cz [IPv6:2a03:3b40:fe:2d4::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DC4AC59E7;
-        Tue,  2 May 2023 05:50:20 -0700 (PDT)
-Received: from meshulam.tesarici.cz (dynamic-2a00-1028-83b8-1e7a-4427-cc85-6706-c595.ipv6.o2.cz [IPv6:2a00:1028:83b8:1e7a:4427:cc85:6706:c595])
+        with ESMTP id S234275AbjEBNCb (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 May 2023 09:02:31 -0400
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 765206196;
+        Tue,  2 May 2023 06:02:28 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange ECDHE (P-256) server-signature RSA-PSS (2048 bits) server-digest SHA256)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
         (No client certificate requested)
-        by bee.tesarici.cz (Postfix) with ESMTPSA id 11C1F14D391;
-        Tue,  2 May 2023 14:50:16 +0200 (CEST)
-Authentication-Results: mail.tesarici.cz; dmarc=fail (p=none dis=none) header.from=tesarici.cz
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=tesarici.cz; s=mail;
-        t=1683031817; bh=7Jx1V6HXo4qXXJ5gzNb9WgNbQl2iBAjQx92+mbN9mcI=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=LdYat1pxvtqHcsyEsr0xSmJ80I9UQQAdwuWNsIlmRhcDv+RP+JqFNQRT+nYc9G7uP
-         dXPpgO79Zyo5DI2T6iRH+RieaWMoILvCo+t0ga1IpmjPazX2dudxt9IHa/Q1eVW8Rh
-         npJAxuinpIG3jaAdl3urTCU5KvJB8xckJUgufKO4oRJxNsCTGApQSCpiehfAf9XW2g
-         55qZn04dxosxPP6JwtR/XcAxhlpiWK6SFfOBMCcvmnxf+hMduxm0neIM19D6X3o7mp
-         /hFiYxv9D35v34aGYGGZPSYkcyumwUEB7pS25ZX4SffsQ4FOhXKIFk8+GhJJd8+bil
-         9cEFx4TVmGUMg==
-Date:   Tue, 2 May 2023 14:50:14 +0200
-From:   Petr =?UTF-8?B?VGVzYcWZw61r?= <petr@tesarici.cz>
-To:     Suren Baghdasaryan <surenb@google.com>
-Cc:     akpm@linux-foundation.org, kent.overstreet@linux.dev,
-        mhocko@suse.com, vbabka@suse.cz, hannes@cmpxchg.org,
-        roman.gushchin@linux.dev, mgorman@suse.de, dave@stgolabs.net,
-        willy@infradead.org, liam.howlett@oracle.com, corbet@lwn.net,
-        void@manifault.com, peterz@infradead.org, juri.lelli@redhat.com,
-        ldufour@linux.ibm.com, catalin.marinas@arm.com, will@kernel.org,
-        arnd@arndb.de, tglx@linutronix.de, mingo@redhat.com,
-        dave.hansen@linux.intel.com, x86@kernel.org, peterx@redhat.com,
-        david@redhat.com, axboe@kernel.dk, mcgrof@kernel.org,
-        masahiroy@kernel.org, nathan@kernel.org, dennis@kernel.org,
-        tj@kernel.org, muchun.song@linux.dev, rppt@kernel.org,
-        paulmck@kernel.org, pasha.tatashin@soleen.com,
-        yosryahmed@google.com, yuzhao@google.com, dhowells@redhat.com,
-        hughd@google.com, andreyknvl@gmail.com, keescook@chromium.org,
-        ndesaulniers@google.com, gregkh@linuxfoundation.org,
-        ebiggers@google.com, ytcoode@gmail.com, vincent.guittot@linaro.org,
-        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
-        bristot@redhat.com, vschneid@redhat.com, cl@linux.com,
-        penberg@kernel.org, iamjoonsoo.kim@lge.com, 42.hyeyoo@gmail.com,
-        glider@google.com, elver@google.com, dvyukov@google.com,
-        shakeelb@google.com, songmuchun@bytedance.com, jbaron@akamai.com,
-        rientjes@google.com, minchan@google.com, kaleshsingh@google.com,
-        kernel-team@android.com, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, iommu@lists.linux.dev,
-        linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-        linux-mm@kvack.org, linux-modules@vger.kernel.org,
-        kasan-dev@googlegroups.com, cgroups@vger.kernel.org
-Subject: Re: [PATCH 09/40] mm: introduce __GFP_NO_OBJ_EXT flag to
- selectively prevent slabobj_ext creation
-Message-ID: <20230502145014.24b28e64@meshulam.tesarici.cz>
-In-Reply-To: <20230501165450.15352-10-surenb@google.com>
-References: <20230501165450.15352-1-surenb@google.com>
-        <20230501165450.15352-10-surenb@google.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.37; x86_64-suse-linux-gnu)
+        by smtp-out1.suse.de (Postfix) with ESMTPS id 2E43A21B1C;
+        Tue,  2 May 2023 13:02:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+        t=1683032546; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=5H+Zv5ICW1VCcW395141Sp0h6W5rJmhJkcf3cNntk1k=;
+        b=1vR+ETUxDfsc2rHvp7qUThXMhyo+PDl0wJzW/O/MNiCWy2QKylJ0tn1CT4xGcGQvD2uD8u
+        i/0Y7QIbt2kYrxkY6kC7dtKBKkknHsMrK7F5dJH0xSeaBCquX/uj4klmSnYlKwbhuB37/o
+        gGEVR7DUdRHbSF0Ot8YETAAsOg117mo=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+        s=susede2_ed25519; t=1683032546;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=5H+Zv5ICW1VCcW395141Sp0h6W5rJmhJkcf3cNntk1k=;
+        b=sUEmSt7fBBh+tfNGpVJTkvIUwNAehNlqzxZUl9Hrcvm1mH+1S14snmMjTHwfTqBTFtHVVg
+        LRiCLONY8KbwhAAw==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id BF02B139D2;
+        Tue,  2 May 2023 13:02:25 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id UICJLeEJUWRYTQAAMHmgww
+        (envelope-from <tzimmermann@suse.de>); Tue, 02 May 2023 13:02:25 +0000
+From:   Thomas Zimmermann <tzimmermann@suse.de>
+To:     deller@gmx.de, geert@linux-m68k.org, javierm@redhat.com,
+        daniel@ffwll.ch, vgupta@kernel.org, chenhuacai@kernel.org,
+        kernel@xen0n.name, davem@davemloft.net,
+        James.Bottomley@HansenPartnership.com, arnd@arndb.de,
+        sam@ravnborg.org
+Cc:     linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org,
+        linux-arch@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+        linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org,
+        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
+        sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-parisc@vger.kernel.org,
+        Thomas Zimmermann <tzimmermann@suse.de>
+Subject: [PATCH v3 1/6] fbdev/matrox: Remove trailing whitespaces
+Date:   Tue,  2 May 2023 15:02:18 +0200
+Message-Id: <20230502130223.14719-2-tzimmermann@suse.de>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <20230502130223.14719-1-tzimmermann@suse.de>
+References: <20230502130223.14719-1-tzimmermann@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon,  1 May 2023 09:54:19 -0700
-Suren Baghdasaryan <surenb@google.com> wrote:
+Fix coding style. No functional changes.
 
-> Introduce __GFP_NO_OBJ_EXT flag in order to prevent recursive allocations
-> when allocating slabobj_ext on a slab.
-> 
-> Signed-off-by: Suren Baghdasaryan <surenb@google.com>
-> ---
->  include/linux/gfp_types.h | 12 ++++++++++--
->  1 file changed, 10 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/linux/gfp_types.h b/include/linux/gfp_types.h
-> index 6583a58670c5..aab1959130f9 100644
-> --- a/include/linux/gfp_types.h
-> +++ b/include/linux/gfp_types.h
-> @@ -53,8 +53,13 @@ typedef unsigned int __bitwise gfp_t;
->  #define ___GFP_SKIP_ZERO	0
->  #define ___GFP_SKIP_KASAN	0
->  #endif
-> +#ifdef CONFIG_SLAB_OBJ_EXT
-> +#define ___GFP_NO_OBJ_EXT       0x4000000u
-> +#else
-> +#define ___GFP_NO_OBJ_EXT       0
-> +#endif
->  #ifdef CONFIG_LOCKDEP
-> -#define ___GFP_NOLOCKDEP	0x4000000u
-> +#define ___GFP_NOLOCKDEP	0x8000000u
+Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
+Reviewed-by: Sam Ravnborg <sam@ravnborg.org>
+---
+ drivers/video/fbdev/matrox/matroxfb_accel.c | 6 +++---
+ drivers/video/fbdev/matrox/matroxfb_base.h  | 4 ++--
+ 2 files changed, 5 insertions(+), 5 deletions(-)
 
-So now we have two flags that depend on config options, but the first
-one is always allocated in fact. I wonder if you could use an enum to
-let the compiler allocate bits. Something similar to what Muchun Song
-did with section flags.
+diff --git a/drivers/video/fbdev/matrox/matroxfb_accel.c b/drivers/video/fbdev/matrox/matroxfb_accel.c
+index 9cb0685feddd..ce51227798a1 100644
+--- a/drivers/video/fbdev/matrox/matroxfb_accel.c
++++ b/drivers/video/fbdev/matrox/matroxfb_accel.c
+@@ -88,7 +88,7 @@
+ 
+ static inline void matrox_cfb4_pal(u_int32_t* pal) {
+ 	unsigned int i;
+-	
++
+ 	for (i = 0; i < 16; i++) {
+ 		pal[i] = i * 0x11111111U;
+ 	}
+@@ -96,7 +96,7 @@ static inline void matrox_cfb4_pal(u_int32_t* pal) {
+ 
+ static inline void matrox_cfb8_pal(u_int32_t* pal) {
+ 	unsigned int i;
+-	
++
+ 	for (i = 0; i < 16; i++) {
+ 		pal[i] = i * 0x01010101U;
+ 	}
+@@ -482,7 +482,7 @@ static void matroxfb_1bpp_imageblit(struct matrox_fb_info *minfo, u_int32_t fgx,
+ 			/* Tell... well, why bother... */
+ 			while (height--) {
+ 				size_t i;
+-				
++
+ 				for (i = 0; i < step; i += 4) {
+ 					/* Hope that there are at least three readable bytes beyond the end of bitmap */
+ 					fb_writel(get_unaligned((u_int32_t*)(chardata + i)),mmio.vaddr);
+diff --git a/drivers/video/fbdev/matrox/matroxfb_base.h b/drivers/video/fbdev/matrox/matroxfb_base.h
+index 958be6805f87..c93c69bbcd57 100644
+--- a/drivers/video/fbdev/matrox/matroxfb_base.h
++++ b/drivers/video/fbdev/matrox/matroxfb_base.h
+@@ -301,9 +301,9 @@ struct matrox_altout {
+ 	int		(*verifymode)(void* altout_dev, u_int32_t mode);
+ 	int		(*getqueryctrl)(void* altout_dev,
+ 					struct v4l2_queryctrl* ctrl);
+-	int		(*getctrl)(void* altout_dev, 
++	int		(*getctrl)(void *altout_dev,
+ 				   struct v4l2_control* ctrl);
+-	int		(*setctrl)(void* altout_dev, 
++	int		(*setctrl)(void *altout_dev,
+ 				   struct v4l2_control* ctrl);
+ };
+ 
+-- 
+2.40.1
 
-See commit ed7802dd48f7a507213cbb95bb4c6f1fe134eb5d for reference.
-
->  #else
->  #define ___GFP_NOLOCKDEP	0
->  #endif
-> @@ -99,12 +104,15 @@ typedef unsigned int __bitwise gfp_t;
->   * node with no fallbacks or placement policy enforcements.
->   *
->   * %__GFP_ACCOUNT causes the allocation to be accounted to kmemcg.
-> + *
-> + * %__GFP_NO_OBJ_EXT causes slab allocation to have no object
-> extension. */
->  #define __GFP_RECLAIMABLE ((__force gfp_t)___GFP_RECLAIMABLE)
->  #define __GFP_WRITE	((__force gfp_t)___GFP_WRITE)
->  #define __GFP_HARDWALL   ((__force gfp_t)___GFP_HARDWALL)
->  #define __GFP_THISNODE	((__force gfp_t)___GFP_THISNODE)
->  #define __GFP_ACCOUNT	((__force gfp_t)___GFP_ACCOUNT)
-> +#define __GFP_NO_OBJ_EXT   ((__force gfp_t)___GFP_NO_OBJ_EXT)
->  
->  /**
->   * DOC: Watermark modifiers
-> @@ -249,7 +257,7 @@ typedef unsigned int __bitwise gfp_t;
->  #define __GFP_NOLOCKDEP ((__force gfp_t)___GFP_NOLOCKDEP)
->  
->  /* Room for N __GFP_FOO bits */
-> -#define __GFP_BITS_SHIFT (26 + IS_ENABLED(CONFIG_LOCKDEP))
-> +#define __GFP_BITS_SHIFT (27 + IS_ENABLED(CONFIG_LOCKDEP))
-
-If the above suggestion is implemented, this could be changed to
-something like __GFP_LAST_BIT (the enum's last identifier).
-
-Petr T
