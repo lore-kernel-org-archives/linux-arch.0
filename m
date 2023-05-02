@@ -2,115 +2,86 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DF288C7EE2C
-	for <linux-arch@archiver.kernel.org>; Tue,  2 May 2023 20:09:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 588C8C77B78
+	for <linux-arch@archiver.kernel.org>; Tue,  2 May 2023 20:18:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229564AbjEBUJY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 2 May 2023 16:09:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42788 "EHLO
+        id S229641AbjEBUS3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 2 May 2023 16:18:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51820 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229847AbjEBUJX (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 May 2023 16:09:23 -0400
-Received: from mailrelay4-1.pub.mailoutpod2-cph3.one.com (mailrelay4-1.pub.mailoutpod2-cph3.one.com [46.30.211.179])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E6A531FCC
-        for <linux-arch@vger.kernel.org>; Tue,  2 May 2023 13:09:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=ravnborg.org; s=rsa1;
-        h=in-reply-to:content-type:mime-version:references:message-id:subject:cc:to:
-         from:date:from;
-        bh=7Cvc9t2uj+JoEAOf6QiHMtCJcRgtJ26CtzLE3dOVCX4=;
-        b=DAJTs66FtfCQ420jLek75/3/XNBefU855ewUyaKmXxygVB6ZwaaX4BG60IJjSKwTrXzoHzbhc711S
-         zlp4kZr4AVZMkk0zrDEzy7AwKvjS2/gg0wnNG0W/6Cto4FTV5PtE5S4fDV657GDHfaQzB5Ya9TG/kV
-         016qrq5lr1THB0fUDBipjErF2RTfNeOJgg7A+ZHrJaIi4OqW5scOKWYMFFV4N2UMUU69v6W/Pr8BQs
-         NJZFnLxFZi/NWItgGcOv4voyhae1n2JoPlDwDZo2F51Gk2sc4H8BM9ikcvgRwc/nFF3aPAbXAJpFDE
-         mfmUAPNEjXGlbQD2yXDOnYBNY2Abkjw==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed;
-        d=ravnborg.org; s=ed1;
-        h=in-reply-to:content-type:mime-version:references:message-id:subject:cc:to:
-         from:date:from;
-        bh=7Cvc9t2uj+JoEAOf6QiHMtCJcRgtJ26CtzLE3dOVCX4=;
-        b=BufBpesF4qmcj+3WAckz7l+cGAVlOpWomuRms3hnfY+4zICRqPq9RxbIV9afOQ/RW6dKCGaonFM0Q
-         kOp2kKxBA==
-X-HalOne-ID: 10b6caa3-e925-11ed-9f58-592bb1efe9dc
-Received: from ravnborg.org (2-105-2-98-cable.dk.customer.tdc.net [2.105.2.98])
-        by mailrelay4 (Halon) with ESMTPSA
-        id 10b6caa3-e925-11ed-9f58-592bb1efe9dc;
-        Tue, 02 May 2023 20:08:14 +0000 (UTC)
-Date:   Tue, 2 May 2023 22:08:13 +0200
-From:   Sam Ravnborg <sam@ravnborg.org>
-To:     Thomas Zimmermann <tzimmermann@suse.de>
-Cc:     deller@gmx.de, geert@linux-m68k.org, javierm@redhat.com,
-        daniel@ffwll.ch, vgupta@kernel.org, chenhuacai@kernel.org,
-        kernel@xen0n.name, davem@davemloft.net,
-        James.Bottomley@hansenpartnership.com, arnd@arndb.de,
-        linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org,
-        linux-arch@vger.kernel.org, linux-snps-arc@lists.infradead.org,
-        linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org,
-        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
-        sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-parisc@vger.kernel.org
-Subject: Re: [PATCH v3 6/6] fbdev: Rename fb_mem*() helpers
-Message-ID: <20230502200813.GC319489@ravnborg.org>
-References: <20230502130223.14719-1-tzimmermann@suse.de>
- <20230502130223.14719-7-tzimmermann@suse.de>
+        with ESMTP id S229676AbjEBUS1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 2 May 2023 16:18:27 -0400
+Received: from out-36.mta1.migadu.com (out-36.mta1.migadu.com [IPv6:2001:41d0:203:375::24])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 603D5212A
+        for <linux-arch@vger.kernel.org>; Tue,  2 May 2023 13:18:17 -0700 (PDT)
+Date:   Tue, 2 May 2023 16:18:04 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+        t=1683058694;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=WhFW8Rae+PmqA9NsRu2fCLYsKzvllBF+D9enxFH2HZY=;
+        b=hgtKk0MnzVAurVmwiCvBDIjIIIVHKWBblkqx4zQl8oTajKe75PQAIg3RUCa1kKrviBzNrJ
+        GpiBkz7WRGs9kn6obwH3r112ivVqUTFRAFMnA9VjU9p6KvcxDCeLXwzxjYCGsLWrMrxgoJ
+        DNMXVf2QpiAVCACDPy3H7fKlw3VRMxw=
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From:   Kent Overstreet <kent.overstreet@linux.dev>
+To:     Petr =?utf-8?B?VGVzYcWZw61r?= <petr@tesarici.cz>
+Cc:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
+        mhocko@suse.com, vbabka@suse.cz, hannes@cmpxchg.org,
+        roman.gushchin@linux.dev, mgorman@suse.de, dave@stgolabs.net,
+        willy@infradead.org, liam.howlett@oracle.com, corbet@lwn.net,
+        void@manifault.com, peterz@infradead.org, juri.lelli@redhat.com,
+        ldufour@linux.ibm.com, catalin.marinas@arm.com, will@kernel.org,
+        arnd@arndb.de, tglx@linutronix.de, mingo@redhat.com,
+        dave.hansen@linux.intel.com, x86@kernel.org, peterx@redhat.com,
+        david@redhat.com, axboe@kernel.dk, mcgrof@kernel.org,
+        masahiroy@kernel.org, nathan@kernel.org, dennis@kernel.org,
+        tj@kernel.org, muchun.song@linux.dev, rppt@kernel.org,
+        paulmck@kernel.org, pasha.tatashin@soleen.com,
+        yosryahmed@google.com, yuzhao@google.com, dhowells@redhat.com,
+        hughd@google.com, andreyknvl@gmail.com, keescook@chromium.org,
+        ndesaulniers@google.com, gregkh@linuxfoundation.org,
+        ebiggers@google.com, ytcoode@gmail.com, vincent.guittot@linaro.org,
+        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
+        bristot@redhat.com, vschneid@redhat.com, cl@linux.com,
+        penberg@kernel.org, iamjoonsoo.kim@lge.com, 42.hyeyoo@gmail.com,
+        glider@google.com, elver@google.com, dvyukov@google.com,
+        shakeelb@google.com, songmuchun@bytedance.com, jbaron@akamai.com,
+        rientjes@google.com, minchan@google.com, kaleshsingh@google.com,
+        kernel-team@android.com, linux-doc@vger.kernel.org,
+        linux-kernel@vger.kernel.org, iommu@lists.linux.dev,
+        linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-mm@kvack.org, linux-modules@vger.kernel.org,
+        kasan-dev@googlegroups.com, cgroups@vger.kernel.org
+Subject: Re: [PATCH 19/40] change alloc_pages name in dma_map_ops to avoid
+ name conflicts
+Message-ID: <ZFFv/IDprimshC8d@moria.home.lan>
+References: <20230501165450.15352-1-surenb@google.com>
+ <20230501165450.15352-20-surenb@google.com>
+ <20230502175052.43814202@meshulam.tesarici.cz>
+ <CAJuCfpGSLK50eKQ2-CE41qz1oDPM6kC8RmqF=usZKwFXgTBe8g@mail.gmail.com>
+ <20230502220909.3f55ae41@meshulam.tesarici.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20230502130223.14719-7-tzimmermann@suse.de>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20230502220909.3f55ae41@meshulam.tesarici.cz>
+X-Migadu-Flow: FLOW_OUT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Thomas.
-
-On Tue, May 02, 2023 at 03:02:23PM +0200, Thomas Zimmermann wrote:
-> Update the names of the fb_mem*() helpers to be consistent with their
-> regular counterparts. Hence, fb_memset() now becomes fb_memset_io(),
-> fb_memcpy_fromfb() now becomes fb_memcpy_fromio() and fb_memcpy_tofb()
-> becomes fb_memcpy_toio(). No functional changes.
+On Tue, May 02, 2023 at 10:09:09PM +0200, Petr Tesařík wrote:
+> Ah, right, I admit I did not quite understand why this change is
+> needed. However, this is exactly what I don't like about preprocessor
+> macros. Each macro effectively adds a new keyword to the language.
 > 
-> Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
-> ---
-...
->  
-> -#ifndef fb_memcpy_fromfb
-> -static inline void fb_memcpy_fromfb(void *to, const volatile void __iomem *from, size_t n)
-> +#ifndef fb_memcpy_fromio
-> +static inline void fb_memcpy_fromio(void *to, const volatile void __iomem *from, size_t n)
->  {
->  	memcpy_fromio(to, from, n);
->  }
-> -#define fb_memcpy_fromfb fb_memcpy_fromfb
-> +#define fb_memcpy_fromio fb_memcpy_fromio
->  #endif
->  
-> -#ifndef fb_memcpy_tofb
-> -static inline void fb_memcpy_tofb(volatile void __iomem *to, const void *from, size_t n)
-> +#ifndef fb_memcpy_toio
-> +static inline void fb_memcpy_toio(volatile void __iomem *to, const void *from, size_t n)
->  {
->  	memcpy_toio(to, from, n);
->  }
-> -#define fb_memcpy_tofb fb_memcpy_tofb
-> +#define fb_memcpy_toio fb_memcpy_toio
->  #endif
->  
->  #ifndef fb_memset
-> -static inline void fb_memset(volatile void __iomem *addr, int c, size_t n)
-> +static inline void fb_memset_io(volatile void __iomem *addr, int c, size_t n)
->  {
->  	memset_io(addr, c, n);
->  }
-> -#define fb_memset fb_memset
-> +#define fb_memset fb_memset_io
+> I believe everything can be solved with inline functions. What exactly
+> does not work if you rename alloc_pages() to e.g. alloc_pages_caller()
+> and then add an alloc_pages() inline function which calls
+> alloc_pages_caller() with _RET_IP_ as a parameter?
 
-The static inlines wrappers does not provide any value, and could be replaced by
-direct calls to memcpy_fromio(), memcpy_toio(), memset_io().
-
-If you decide to keep the wrappers I will not hold you back, so the
-patch has my:
-Reviewed-by: Sam Ravnborg <sam@ravnborg.org>
-
-But I prefer the direct calls without the wrappers....
-
-	Sam
+Perhaps you should spend a little more time reading the patchset and
+learning how the code works before commenting.
