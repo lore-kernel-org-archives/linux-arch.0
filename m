@@ -2,37 +2,36 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 181D9C7EE21
-	for <linux-arch@archiver.kernel.org>; Mon,  1 May 2023 21:43:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1B433C7EE26
+	for <linux-arch@archiver.kernel.org>; Tue,  2 May 2023 00:12:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232231AbjEAVni (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 1 May 2023 17:43:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50226 "EHLO
+        id S232101AbjEBAMw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 1 May 2023 20:12:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35558 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230003AbjEAVnh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 17:43:37 -0400
-X-Greylist: delayed 1581 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Mon, 01 May 2023 14:43:35 PDT
-Received: from out-26.mta0.migadu.com (out-26.mta0.migadu.com [IPv6:2001:41d0:1004:224b::1a])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8A51410F1
-        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 14:43:35 -0700 (PDT)
-Date:   Mon, 1 May 2023 17:16:59 -0400
+        with ESMTP id S233382AbjEBALR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 1 May 2023 20:11:17 -0400
+Received: from out-8.mta1.migadu.com (out-8.mta1.migadu.com [95.215.58.8])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CD9133A8C
+        for <linux-arch@vger.kernel.org>; Mon,  1 May 2023 17:11:15 -0700 (PDT)
+Date:   Mon, 1 May 2023 20:11:01 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-        t=1682975831;
+        t=1682986273;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         content-transfer-encoding:content-transfer-encoding:
+         to:to:cc:mime-version:mime-version:content-type:content-type:
          in-reply-to:in-reply-to:references:references;
-        bh=WS5IfKwTPa1bKv8dROPMPn7bpsB6bxr/+mMUnulbyXo=;
-        b=lW6pMkkITA3yRW/sjDAKtYtv7Nl+AYeAS5qW1/WcLz5hQIZOXhmptquOd9Uo4YjlLQagEj
-        l8KwsV9hdfnmKeThBO+Hem6g0VYZI6AYnyFLRYZNX5+S78AIIBPNkxPLEdu52Lb7u0ovlq
-        VCSzQAFEVndS+FYqBuYKLLIDbnpmrsU=
+        bh=LGkXxcXbL3GK/fmGgSEfCfzDoWKBFDwYj9o6aWx8/Qk=;
+        b=Gmp5ZD9nZN0dN2JWve8TuEsBbpH3Qw6wtBbE0JR/AgDkC56d01L5iQ46Mavw7py6Vk9DfT
+        amxHtlJ45eMzW84A+uK5Hfr4ox7Dnev1oJ2Yy8A+2WvibSyj4uUhf9gi+dGElANV/CAdFq
+        T6mFJogh6K/S0EnKKXjo3GhiYGvkFTg=
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
 From:   Kent Overstreet <kent.overstreet@linux.dev>
-To:     Andy Shevchenko <andy.shevchenko@gmail.com>
-Cc:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
-        mhocko@suse.com, vbabka@suse.cz, hannes@cmpxchg.org,
-        roman.gushchin@linux.dev, mgorman@suse.de, willy@infradead.org,
-        liam.howlett@oracle.com, corbet@lwn.net, void@manifault.com,
+To:     "Liam R. Howlett" <Liam.Howlett@oracle.com>,
+        Andy Shevchenko <andy.shevchenko@gmail.com>,
+        Suren Baghdasaryan <surenb@google.com>,
+        akpm@linux-foundation.org, mhocko@suse.com, vbabka@suse.cz,
+        hannes@cmpxchg.org, roman.gushchin@linux.dev, mgorman@suse.de,
+        willy@infradead.org, corbet@lwn.net, void@manifault.com,
         peterz@infradead.org, juri.lelli@redhat.com, ldufour@linux.ibm.com,
         catalin.marinas@arm.com, will@kernel.org, arnd@arndb.de,
         tglx@linutronix.de, mingo@redhat.com, dave.hansen@linux.intel.com,
@@ -65,57 +64,42 @@ Cc:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
         Noralf =?utf-8?B?VHLDr8K/wr1ubmVz?= <noralf@tronnes.org>
 Subject: Re: [PATCH 01/40] lib/string_helpers: Drop space in
  string_get_size's output
-Message-ID: <ZFAsS5f6eGSyxF/+@moria.home.lan>
+Message-ID: <ZFBVFfNo3OHd3izd@moria.home.lan>
 References: <20230501165450.15352-1-surenb@google.com>
  <20230501165450.15352-2-surenb@google.com>
  <ouuidemyregstrijempvhv357ggp4tgnv6cijhasnungsovokm@jkgvyuyw2fti>
  <ZFAUj+Q+hP7cWs4w@moria.home.lan>
  <CAHp75VeJ_a6j3uweLN5-woSQUtN5u36c2gkoiXhnJa1HXJdoyQ@mail.gmail.com>
+ <20230501213349.bvbf6i72eepcd56m@revolver>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAHp75VeJ_a6j3uweLN5-woSQUtN5u36c2gkoiXhnJa1HXJdoyQ@mail.gmail.com>
+In-Reply-To: <20230501213349.bvbf6i72eepcd56m@revolver>
 X-Migadu-Flow: FLOW_OUT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, May 01, 2023 at 10:57:07PM +0300, Andy Shevchenko wrote:
-> On Mon, May 1, 2023 at 10:36 PM Kent Overstreet
-> <kent.overstreet@linux.dev> wrote:
-> >
-> > On Mon, May 01, 2023 at 11:13:15AM -0700, Davidlohr Bueso wrote:
-> > > On Mon, 01 May 2023, Suren Baghdasaryan wrote:
-> > >
-> > > > From: Kent Overstreet <kent.overstreet@linux.dev>
-> > > >
-> > > > Previously, string_get_size() outputted a space between the number and
-> > > > the units, i.e.
-> > > >  9.88 MiB
-> > > >
-> > > > This changes it to
-> > > >  9.88MiB
-> > > >
-> > > > which allows it to be parsed correctly by the 'sort -h' command.
+On Mon, May 01, 2023 at 05:33:49PM -0400, Liam R. Howlett wrote:
+> * Andy Shevchenko <andy.shevchenko@gmail.com> [230501 15:57]:
+> This fixes the output to be better aligned with:
+> the output of ls -sh
+> the input expected by find -size
 > 
-> But why do we need that? What's the use case?
+> Are there counter-examples of commands that follow the SI Brochure?
 
-As was in the commit message: to produce output that sort -h knows how
-to parse.
+Even perf, which is included in the kernel tree, doesn't include the
+space - example perf top output:
 
-> > > Wouldn't this break users that already parse it the current way?
-> >
-> > It's not impossible - but it's not used in very many places and we
-> > wouldn't be printing in human-readable units if it was meant to be
-> > parsed - it's mainly used for debug output currently.
-> >
-> > If someone raises a specific objection we'll do something different,
-> > otherwise I think standardizing on what userspace tooling already parses
-> > is a good idea.
-> 
-> Yes, I NAK this on the basis of
-> https://english.stackexchange.com/a/2911/153144
+0 bcachefs:move_extent_fail
+0 bcachefs:move_extent_alloc_mem_fail
+3 bcachefs:move_data
+0 bcachefs:evacuate_bucket
+0 bcachefs:copygc
+2 bcachefs:copygc_wait
+195K bcachefs:transaction_commit
+0 bcachefs:trans_restart_injected
 
-Not sure I find a style guide on stackexchange more compelling than
-interop with a tool everyone already has installed :)
+(I'm also going to need to submit a patch that deletes or makes optional
+the B suffix, just because we're using human readable units doesn't mean
+it's bytes).
