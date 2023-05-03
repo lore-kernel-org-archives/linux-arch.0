@@ -2,197 +2,124 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 63AD7C77B78
-	for <linux-arch@archiver.kernel.org>; Wed,  3 May 2023 07:52:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 58E34C7EE22
+	for <linux-arch@archiver.kernel.org>; Wed,  3 May 2023 08:10:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229582AbjECHwZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 3 May 2023 03:52:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52590 "EHLO
+        id S229803AbjECIKI convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 3 May 2023 04:10:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38934 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229564AbjECHwP (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 May 2023 03:52:15 -0400
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.220.28])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A07E730F7;
-        Wed,  3 May 2023 00:51:51 -0700 (PDT)
-Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
-        (No client certificate requested)
-        by smtp-out1.suse.de (Postfix) with ESMTPS id 529882230F;
-        Wed,  3 May 2023 07:51:50 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-        t=1683100310; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=LbOettp3UaJGbcC185AxqMHgcSABvOiPPaXvjwmoDVE=;
-        b=u+JdKhxmNSEcTLgJetAiyE5+DpLX9lfGaxfRYrwtA1OwKYk88K/+nmG6d/2esV+aCUUtPR
-        h+gvAGPKGWUp3TxdEFsKmHv+uIDk2Y2kKg6agFx7Z77jX1G45rhNx3IzfsIMW/fcqrejJk
-        PfnqrxsJUonlqQD4TEfvThhG0FK+lVs=
-Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
-        (No client certificate requested)
-        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 2480E1331F;
-        Wed,  3 May 2023 07:51:50 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([192.168.254.65])
-        by imap2.suse-dmz.suse.de with ESMTPSA
-        id YvrlCJYSUmQIXAAAMHmgww
-        (envelope-from <mhocko@suse.com>); Wed, 03 May 2023 07:51:50 +0000
-Date:   Wed, 3 May 2023 09:51:49 +0200
-From:   Michal Hocko <mhocko@suse.com>
-To:     Kent Overstreet <kent.overstreet@linux.dev>
-Cc:     Suren Baghdasaryan <surenb@google.com>, akpm@linux-foundation.org,
-        vbabka@suse.cz, hannes@cmpxchg.org, roman.gushchin@linux.dev,
-        mgorman@suse.de, dave@stgolabs.net, willy@infradead.org,
-        liam.howlett@oracle.com, corbet@lwn.net, void@manifault.com,
-        peterz@infradead.org, juri.lelli@redhat.com, ldufour@linux.ibm.com,
-        catalin.marinas@arm.com, will@kernel.org, arnd@arndb.de,
-        tglx@linutronix.de, mingo@redhat.com, dave.hansen@linux.intel.com,
-        x86@kernel.org, peterx@redhat.com, david@redhat.com,
-        axboe@kernel.dk, mcgrof@kernel.org, masahiroy@kernel.org,
-        nathan@kernel.org, dennis@kernel.org, tj@kernel.org,
-        muchun.song@linux.dev, rppt@kernel.org, paulmck@kernel.org,
-        pasha.tatashin@soleen.com, yosryahmed@google.com,
-        yuzhao@google.com, dhowells@redhat.com, hughd@google.com,
-        andreyknvl@gmail.com, keescook@chromium.org,
-        ndesaulniers@google.com, gregkh@linuxfoundation.org,
-        ebiggers@google.com, ytcoode@gmail.com, vincent.guittot@linaro.org,
-        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
-        bristot@redhat.com, vschneid@redhat.com, cl@linux.com,
-        penberg@kernel.org, iamjoonsoo.kim@lge.com, 42.hyeyoo@gmail.com,
-        glider@google.com, elver@google.com, dvyukov@google.com,
-        shakeelb@google.com, songmuchun@bytedance.com, jbaron@akamai.com,
-        rientjes@google.com, minchan@google.com, kaleshsingh@google.com,
-        kernel-team@android.com, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, iommu@lists.linux.dev,
-        linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-        linux-mm@kvack.org, linux-modules@vger.kernel.org,
-        kasan-dev@googlegroups.com, cgroups@vger.kernel.org
-Subject: Re: [PATCH 00/40] Memory allocation profiling
-Message-ID: <ZFISlX+mSx4QJDK6@dhcp22.suse.cz>
-References: <20230501165450.15352-1-surenb@google.com>
- <ZFIMaflxeHS3uR/A@dhcp22.suse.cz>
- <ZFIOfb6/jHwLqg6M@moria.home.lan>
+        with ESMTP id S229720AbjECIKH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 3 May 2023 04:10:07 -0400
+Received: from mail-yw1-f176.google.com (mail-yw1-f176.google.com [209.85.128.176])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 34FA11716;
+        Wed,  3 May 2023 01:09:53 -0700 (PDT)
+Received: by mail-yw1-f176.google.com with SMTP id 00721157ae682-55a6efe95c9so38615197b3.1;
+        Wed, 03 May 2023 01:09:53 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1683101392; x=1685693392;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=3SVmNF978sXXspcYjjZLpiBDqyot8IfsoBtpE1ZoRNc=;
+        b=W7CHGSXOvP426ID/JQgMh2SojaH7qharrHVxPh9IYKVwCXRBUi1TzDY4iX73qZniz1
+         NEvRueNIBBOdPb0+lO+D1lat5fcW6aBLpmE9DC1HCs2UZVDsD/9JGDBSwt0EMuP0ugCU
+         gvfS7KzARnWxFgd2k9HXRC/8d0HUSDw1DQA4598ed+KT8DQBY0OlHlOq+jEYKOTqTKJK
+         U4OougSW1OjZt78kPCJ0C+uFglLtOr9imlJQChTlG35FzQVL1CjkdCf27hrlMRB295wn
+         6aGDEaGEOgB0GRm4r/zX86T6brTSzQBfryMJnCfDT0TclfeUeoyhR5frTojKtfCu4I5Q
+         XO5g==
+X-Gm-Message-State: AC+VfDz9w1SIvm7FBW/kFMU0sItSyYyExQewIKN6uq+S4l28mTmsUV9h
+        lK2Kzi90YDlqgUA/R4g8WrZMA9bCLKdW2g==
+X-Google-Smtp-Source: ACHHUZ5yFIqBAyWPU6jgBPJP96XJUTLdIAkfaJtV4XlOmse1rTDnHHtFTC6jME+Lr68ItrgraGXS8Q==
+X-Received: by 2002:a81:4f82:0:b0:55a:2ce1:2353 with SMTP id d124-20020a814f82000000b0055a2ce12353mr9928596ywb.2.1683101392047;
+        Wed, 03 May 2023 01:09:52 -0700 (PDT)
+Received: from mail-yw1-f169.google.com (mail-yw1-f169.google.com. [209.85.128.169])
+        by smtp.gmail.com with ESMTPSA id s2-20020a817702000000b00545a08184b5sm8387125ywc.69.2023.05.03.01.09.50
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 03 May 2023 01:09:51 -0700 (PDT)
+Received: by mail-yw1-f169.google.com with SMTP id 00721157ae682-559e317eef1so59866857b3.0;
+        Wed, 03 May 2023 01:09:50 -0700 (PDT)
+X-Received: by 2002:a0d:c347:0:b0:556:dd1b:3bb7 with SMTP id
+ f68-20020a0dc347000000b00556dd1b3bb7mr19301020ywd.43.1683101390642; Wed, 03
+ May 2023 01:09:50 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ZFIOfb6/jHwLqg6M@moria.home.lan>
+References: <20230502130223.14719-1-tzimmermann@suse.de> <20230502130223.14719-5-tzimmermann@suse.de>
+ <20230502195429.GA319489@ravnborg.org> <563673c0-799d-e353-974c-91b1ab881a22@suse.de>
+ <87354dyj9i.fsf@minerva.mail-host-address-is-not-set>
+In-Reply-To: <87354dyj9i.fsf@minerva.mail-host-address-is-not-set>
+From:   Geert Uytterhoeven <geert@linux-m68k.org>
+Date:   Wed, 3 May 2023 10:09:39 +0200
+X-Gmail-Original-Message-ID: <CAMuHMdW8Sm7sBu47XQ1xygn6fzq2FzQeiuK0ncMVGHan-_k4Ow@mail.gmail.com>
+Message-ID: <CAMuHMdW8Sm7sBu47XQ1xygn6fzq2FzQeiuK0ncMVGHan-_k4Ow@mail.gmail.com>
+Subject: Re: [PATCH v3 4/6] fbdev: Include <linux/io.h> via <asm/fb.h>
+To:     Javier Martinez Canillas <javierm@redhat.com>
+Cc:     Thomas Zimmermann <tzimmermann@suse.de>,
+        Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org,
+        linux-fbdev@vger.kernel.org, linux-ia64@vger.kernel.org,
+        loongarch@lists.linux.dev, arnd@arndb.de, deller@gmx.de,
+        chenhuacai@kernel.org, dri-devel@lists.freedesktop.org,
+        linux-kernel@vger.kernel.org,
+        James.Bottomley@hansenpartnership.com,
+        linux-m68k@lists.linux-m68k.org, linux-parisc@vger.kernel.org,
+        vgupta@kernel.org, sparclinux@vger.kernel.org, kernel@xen0n.name,
+        linux-snps-arc@lists.infradead.org, davem@davemloft.net,
+        linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed 03-05-23 03:34:21, Kent Overstreet wrote:
-> On Wed, May 03, 2023 at 09:25:29AM +0200, Michal Hocko wrote:
-> > On Mon 01-05-23 09:54:10, Suren Baghdasaryan wrote:
-> > > Memory allocation profiling infrastructure provides a low overhead
-> > > mechanism to make all kernel allocations in the system visible. It can be
-> > > used to monitor memory usage, track memory hotspots, detect memory leaks,
-> > > identify memory regressions.
-> > > 
-> > > To keep the overhead to the minimum, we record only allocation sizes for
-> > > every allocation in the codebase. With that information, if users are
-> > > interested in more detailed context for a specific allocation, they can
-> > > enable in-depth context tracking, which includes capturing the pid, tgid,
-> > > task name, allocation size, timestamp and call stack for every allocation
-> > > at the specified code location.
-> > [...]
-> > > Implementation utilizes a more generic concept of code tagging, introduced
-> > > as part of this patchset. Code tag is a structure identifying a specific
-> > > location in the source code which is generated at compile time and can be
-> > > embedded in an application-specific structure. A number of applications
-> > > for code tagging have been presented in the original RFC [1].
-> > > Code tagging uses the old trick of "define a special elf section for
-> > > objects of a given type so that we can iterate over them at runtime" and
-> > > creates a proper library for it. 
-> > > 
-> > > To profile memory allocations, we instrument page, slab and percpu
-> > > allocators to record total memory allocated in the associated code tag at
-> > > every allocation in the codebase. Every time an allocation is performed by
-> > > an instrumented allocator, the code tag at that location increments its
-> > > counter by allocation size. Every time the memory is freed the counter is
-> > > decremented. To decrement the counter upon freeing, allocated object needs
-> > > a reference to its code tag. Page allocators use page_ext to record this
-> > > reference while slab allocators use memcg_data (renamed into more generic
-> > > slabobj_ext) of the slab page.
-> > [...]
-> > > [1] https://lore.kernel.org/all/20220830214919.53220-1-surenb@google.com/
-> > [...]
-> > >  70 files changed, 2765 insertions(+), 554 deletions(-)
-> > 
-> > Sorry for cutting the cover considerably but I believe I have quoted the
-> > most important/interesting parts here. The approach is not fundamentally
-> > different from the previous version [1] and there was a significant
-> > discussion around this approach. The cover letter doesn't summarize nor
-> > deal with concerns expressed previous AFAICS. So let me bring those up
-> > back. At least those I find the most important:
-> 
-> We covered this previously, I'll just be giving the same answers I did
-> before:
+On Wed, May 3, 2023 at 9:19 AM Javier Martinez Canillas
+<javierm@redhat.com> wrote:
+> Thomas Zimmermann <tzimmermann@suse.de> writes:
+> > Am 02.05.23 um 21:54 schrieb Sam Ravnborg:
+> >> On Tue, May 02, 2023 at 03:02:21PM +0200, Thomas Zimmermann wrote:
+>
+> [...]
+>
+> >>>   #include <linux/console.h> /* Why should fb driver call console functions? because console_lock() */
+> >>>   #include <video/vga.h>
+> >>>
+> >>> +#include <asm/fb.h>
+> >>
+> >> When we have a header like linux/fb.h - it is my understanding that it is
+> >> preferred to include that file, and not the asm/fb.h variant.
+> >>
+> >> This is assuming the linux/fb.h contains the generic stuff, and includes
+> >> asm/fb.h for the architecture specific parts.
+> >>
+> >> So drivers will include linux/fb.h and then they automatically get the
+> >> architecture specific parts from asm/fb.h.
+> >>
+> >> In other words, drivers are not supposed to include asm/fb.h, if
+> >> linux.fb.h exists - and linux/fb.h shall include the asm/fb.h.
+> >>
+> >> If the above holds true, then it is wrong and not needed to add asm/fb.h
+> >> as seen above.
+> >>
+> >>
+> >> There are countless examples where the above are not followed,
+> >> but to my best understanding the above it the preferred way to do it.
+> >
+> > Where did youher this? I only know about this in the case of asm/io.h
+> > vs. linux/io.h.
+> >
+>
+> I understand that's the case too. I believe even checkpatch.pl complains
+> about it? (not that the script always get right, but just as an example).
 
-Your answers have shown your insight into tracing is very limited. I
-have a clear recollection there were many suggestions on how to get what
-you need and willingness to help out. Repeating your previous position
-will not help much to be honest with you.
+One more to chime in: in general, drivers should only include <linux/foo.h>.
+Including <asm/foo.h> directly is the exception.
 
-> > - This is a big change and it adds a significant maintenance burden
-> >   because each allocation entry point needs to be handled specifically.
-> >   The cost will grow with the intended coverage especially there when
-> >   allocation is hidden in a library code.
-> 
-> We've made this as clean and simple as posssible: a single new macro
-> invocation per allocation function, no calling convention changes (that
-> would indeed have been a lot of churn!)
+Gr{oetje,eeting}s,
 
-That doesn't really make the concern any less relevant. I believe you
-and Suren have made a great effort to reduce the churn as much as
-possible but looking at the diffstat the code changes are clearly there
-and you have to convince the rest of the community that this maintenance
-overhead is really worth it. The above statement hasn't helped to
-convinced me to be honest.
-
-> > - It has been brought up that this is duplicating functionality already
-> >   available via existing tracing infrastructure. You should make it very
-> >   clear why that is not suitable for the job
-> 
-> Tracing people _claimed_ this, but never demonstrated it.
-
-The burden is on you and Suren. You are proposing the implement an
-alternative tracing infrastructure.
-
-> Tracepoints
-> exist but the tooling that would consume them to provide this kind of
-> information does not exist;
-
-Any reasons why an appropriate tooling cannot be developed?
-
-> it would require maintaining an index of
-> _every outstanding allocation_ so that frees could be accounted
-> correctly - IOW, it would be _drastically_ higher overhead, so not at
-> all comparable.
-
-Do you have any actual data points to prove your claim?
-
-> > - We already have page_owner infrastructure that provides allocation
-> >   tracking data. Why it cannot be used/extended?
-> 
-> Page owner is also very high overhead,
-
-Is there any data to prove that claim? I would be really surprised that
-page_owner would give higher overhead than page tagging with profiling
-enabled (there is an allocation for each allocation request!!!). We can
-discuss the bare bone page tagging comparision to page_owner because of
-the full stack unwinding but is that overhead really prohibitively costly?
-Can we reduce that by trimming the unwinder information?
-
-> and the output is not very user
-> friendly (tracking full call stack means many related overhead gets
-> split, not generally what you want), and it doesn't cover slab.
-
-Is this something we cannot do anything about? Have you explored any
-potential ways?
-
-> This tracks _all_ memory allocations - slab, page, vmalloc, percpu.
+                        Geert
 
 -- 
-Michal Hocko
-SUSE Labs
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
