@@ -2,155 +2,144 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 37C07C7EE22
-	for <linux-arch@archiver.kernel.org>; Tue,  9 May 2023 11:08:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2AD5EC7EE2A
+	for <linux-arch@archiver.kernel.org>; Wed, 10 May 2023 11:06:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235471AbjEILIS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 9 May 2023 07:08:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58154 "EHLO
+        id S233820AbjEJLGK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 10 May 2023 07:06:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34850 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235449AbjEILIB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 9 May 2023 07:08:01 -0400
-Received: from mail-pf1-x433.google.com (mail-pf1-x433.google.com [IPv6:2607:f8b0:4864:20::433])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 95EAF49EC;
-        Tue,  9 May 2023 04:08:00 -0700 (PDT)
-Received: by mail-pf1-x433.google.com with SMTP id d2e1a72fcca58-64115eef620so41527176b3a.1;
-        Tue, 09 May 2023 04:08:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1683630479; x=1686222479;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=5yU27RYtd81vPNZ12bejpPHLZejv/XbgwelpOomxfow=;
-        b=GgUXtNdPzzYsEqIjs7txR52D9wvDQFEf0socOYlZmw/PitxcU23yv41MM37O9oHGZA
-         kQ/fNxdrKBfxetxa4uEJyzCfAhXym942L+bIs9ADv2jj+m5DkY0PX0LRchKfB/6hnxIR
-         BI50hHMDZwT+cDQ1BwzsYtWVjUf8Qu8wEpzWn9T89vxOTdUSQLhTIegKy1/7hrmh/epo
-         g6qRiGfXZT9WDeP23Y/Fz5dJ20/CvoIdiu/wF1YGa38oZStIKLjZ5EuCfJuUsAH9+NOc
-         7frAg3dij8RqGB/XtVp2WaFxav4RxVITkt+W+N7we0w98qcvI3pd+3KQm9jKp2mUCbEF
-         wySw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1683630479; x=1686222479;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=5yU27RYtd81vPNZ12bejpPHLZejv/XbgwelpOomxfow=;
-        b=TygPLpDlqBntFRD1iZrkzCGzX1NRS36qG6jDjy0DRJjUvoJAlTDtQD9gPFgw1I5nQj
-         Oqoiz4iA1VChtoWNOypD465qfhH2Y4+z4BypQ6RIan8vFQ+EgpRqVNkMDrI4pAetMsxY
-         afMzjqU7P50Mt7R5tfapNmaX3mNEoC9EeJ19TkMEX1WKNsAJ5cjG5PSTKwzI0Q0ik0Dk
-         JraWxxwYbzZF69+ehpRVq6QC7Cg3xvDFT1zHoQuZVelkkVb0L/7hlWjS40MNRN72ZumL
-         R5IAQgJl6arEiwPoy6tz/HNZTS84ZFSHDdrM1puC648q3V/s3+9Ezhw0tWY4n0enytu7
-         NWAg==
-X-Gm-Message-State: AC+VfDzFWOTi+SbcxHmoBGRe7rwfi5qrkpw34qVk23lzpNTk5XU4faty
-        MbC7TKwXsr/pi8ZuHVyCjbUV0dCxjPc=
-X-Google-Smtp-Source: ACHHUZ6R+6OFfzhp1uGRbjs11n+oFDhM5MImse43sM0dRgYG0Y8jrnmMuFRxF/l7qR3urorXfyAQgg==
-X-Received: by 2002:a17:902:d4c7:b0:1a6:bc34:2ee with SMTP id o7-20020a170902d4c700b001a6bc3402eemr16224156plg.21.1683630479628;
-        Tue, 09 May 2023 04:07:59 -0700 (PDT)
-Received: from wheely.local0.net ([118.208.131.108])
-        by smtp.gmail.com with ESMTPSA id l5-20020a17090270c500b001a641ea111fsm1269923plt.112.2023.05.09.04.07.56
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 09 May 2023 04:07:59 -0700 (PDT)
-From:   Nicholas Piggin <npiggin@gmail.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     Nicholas Piggin <npiggin@gmail.com>, linux-arch@vger.kernel.org,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC PATCH 3/3] irqflags: Warn on irq disable when disabled and enable when enabled
-Date:   Tue,  9 May 2023 21:07:39 +1000
-Message-Id: <20230509110739.241735-4-npiggin@gmail.com>
+        with ESMTP id S230205AbjEJLGJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 10 May 2023 07:06:09 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4880719B;
+        Wed, 10 May 2023 04:06:07 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id B2BA11F388;
+        Wed, 10 May 2023 11:06:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+        t=1683716765; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
+        bh=8W+Q+r0g3mw6ipQ9VB8oBVPwJD25yg38F3zvEI0QrWI=;
+        b=xsqTAyRUUHiT1tcTopM9KBzj2+MMqQbkJhsuxa0/vyp3il1j+EufLJjTLSNhmwY736dymt
+        beipLzXFzi2x06B170786gLMc00/aufz0q+zQ9JJ2aR9U29J6fLzaZ3ENrPtnxG+X7OjKg
+        NqFl67xrzCTyQ/5vVpXGiOsoNWbZsL4=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+        s=susede2_ed25519; t=1683716765;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
+        bh=8W+Q+r0g3mw6ipQ9VB8oBVPwJD25yg38F3zvEI0QrWI=;
+        b=S3VjVYLm7fDDz6TEUjM2HUYJgPdTN/ojk7o3k5n/zTMAV6d6H21pXszVtOT1O1zccafNDB
+        +4CWx0QCUD0RTCCQ==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 42DE713519;
+        Wed, 10 May 2023 11:06:05 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id bC02D516W2QfRAAAMHmgww
+        (envelope-from <tzimmermann@suse.de>); Wed, 10 May 2023 11:06:05 +0000
+From:   Thomas Zimmermann <tzimmermann@suse.de>
+To:     deller@gmx.de, geert@linux-m68k.org, javierm@redhat.com,
+        daniel@ffwll.ch, vgupta@kernel.org, chenhuacai@kernel.org,
+        kernel@xen0n.name, davem@davemloft.net,
+        James.Bottomley@HansenPartnership.com, arnd@arndb.de,
+        sam@ravnborg.org, suijingfeng@loongson.cn
+Cc:     linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org,
+        linux-arch@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+        linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org,
+        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
+        sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-parisc@vger.kernel.org,
+        Thomas Zimmermann <tzimmermann@suse.de>
+Subject: [PATCH v6 0/6] fbdev: Move framebuffer I/O helpers to <asm/fb.h>
+Date:   Wed, 10 May 2023 13:05:51 +0200
+Message-Id: <20230510110557.14343-1-tzimmermann@suse.de>
 X-Mailer: git-send-email 2.40.1
-In-Reply-To: <20230509110739.241735-1-npiggin@gmail.com>
-References: <20230509110739.241735-1-npiggin@gmail.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add CONFIG_IRQFLAGS_DEBUG checks for local_irq_disable() when irqs
-are already disabled, and local_irq_enable() when they are enabled.
-This could help catch risky or unbalanced irq manipulation.
+Fbdev provides helpers for framebuffer I/O, such as fb_readl(),
+fb_writel() or fb_memcpy_to_fb(). The implementation of each helper
+depends on the architecture, but they are all equivalent to regular
+I/O functions of similar names. So use regular functions instead and
+move all helpers into <asm-generic/fb.h>
 
-Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
----
- include/linux/irqflags.h       | 26 ++++++++++++++++++++++++--
- kernel/locking/irqflag-debug.c | 14 ++++++++++++++
- 2 files changed, 38 insertions(+), 2 deletions(-)
+The first patch a simple whitespace cleanup.
 
-diff --git a/include/linux/irqflags.h b/include/linux/irqflags.h
-index 5ec0fa71399e..82f54cda2c20 100644
---- a/include/linux/irqflags.h
-+++ b/include/linux/irqflags.h
-@@ -157,6 +157,18 @@ do {						\
- #endif
- 
- #ifdef CONFIG_DEBUG_IRQFLAGS
-+extern void warn_bogus_irq_disable(void);
-+#define raw_check_bogus_irq_disable()			\
-+	do {						\
-+		if (unlikely(arch_irqs_disabled()))	\
-+			warn_bogus_irq_disable();	\
-+	} while (0)
-+extern void warn_bogus_irq_enable(void);
-+#define raw_check_bogus_irq_enable()			\
-+	do {						\
-+		if (unlikely(!arch_irqs_disabled()))	\
-+			warn_bogus_irq_enable();	\
-+	} while (0)
- extern void warn_bogus_irq_restore(void);
- #define raw_check_bogus_irq_restore()			\
- 	do {						\
-@@ -164,14 +176,24 @@ extern void warn_bogus_irq_restore(void);
- 			warn_bogus_irq_restore();	\
- 	} while (0)
- #else
-+#define raw_check_bogus_irq_disable() do { } while (0)
-+#define raw_check_bogus_irq_enable() do { } while (0)
- #define raw_check_bogus_irq_restore() do { } while (0)
- #endif
- 
- /*
-  * Wrap the arch provided IRQ routines to provide appropriate checks.
-  */
--#define raw_local_irq_disable()		arch_local_irq_disable()
--#define raw_local_irq_enable()		arch_local_irq_enable()
-+#define raw_local_irq_disable()				\
-+	do {						\
-+		raw_check_bogus_irq_disable();		\
-+		arch_local_irq_disable();		\
-+	} while (0)
-+#define raw_local_irq_enable()				\
-+	do {						\
-+		raw_check_bogus_irq_enable();		\
-+		arch_local_irq_enable();		\
-+	} while (0)
- #define raw_local_irq_save(flags)			\
- 	do {						\
- 		typecheck(unsigned long, flags);	\
-diff --git a/kernel/locking/irqflag-debug.c b/kernel/locking/irqflag-debug.c
-index 810b50344d35..20e5e1b9a86f 100644
---- a/kernel/locking/irqflag-debug.c
-+++ b/kernel/locking/irqflag-debug.c
-@@ -4,6 +4,20 @@
- #include <linux/export.h>
- #include <linux/irqflags.h>
- 
-+noinstr void warn_bogus_irq_disable(void)
-+{
-+	instrumentation_begin();
-+	WARN_ONCE(1, "raw_local_irq_disable() called with IRQs disabled\n");
-+	instrumentation_end();
-+}
-+EXPORT_SYMBOL(warn_bogus_irq_disable);
-+noinstr void warn_bogus_irq_enable(void)
-+{
-+	instrumentation_begin();
-+	WARN_ONCE(1, "raw_local_irq_enable() called with IRQs enabled\n");
-+	instrumentation_end();
-+}
-+EXPORT_SYMBOL(warn_bogus_irq_enable);
- noinstr void warn_bogus_irq_restore(void)
- {
- 	instrumentation_begin();
+Until now, <linux/fb.h> contained an include of <asm/io.h>. As this
+will go away, patches 2 to 4 prepare include statements in the various
+drivers. Source files that use regular I/O helpers, such as readl(),
+now include <linux/io.h>. Source files that use framebuffer I/O
+helpers, such as fb_readl(), now include <linux/fb.h>.
+
+Patch 5 replaces the architecture-based if-else branching in 
+<linux/fb.h> by helpers in <asm-generic/fb.h>. All helpers use Linux'
+existing I/O functions.
+
+Patch 6 harmonizes naming among fbdev and existing I/O functions.
+
+The patchset has been built for a variety of platforms, such as x86-64,
+arm, aarch64, ppc64, parisc, m64k, mips and sparc.
+
+v6:
+	* fix build on 64-bit mips (kernel test robot)
+	* update fb_io_fops.c
+v5:
+      	* fix build on s390
+v4:
+	* keep fb_mem*() as-is on ia64, loongarch, sparc64 (Arnd)
+	* don't include <asm/fb.h> (Sam)
+v3:
+	* add the new helpers in <asm-generic/fb.h>
+	* support reordering and native byte order (Geert, Arnd)
+v2:
+	* use Linux I/O helpers (Sam, Arnd)
+
+Thomas Zimmermann (6):
+  fbdev/matrox: Remove trailing whitespaces
+  ipu-v3: Include <linux/io.h>
+  fbdev: Include <linux/io.h> in various drivers
+  fbdev: Include <linux/fb.h> instead of <asm/fb.h>
+  fbdev: Move framebuffer I/O helpers into <asm/fb.h>
+  fbdev: Rename fb_mem*() helpers
+
+ arch/ia64/include/asm/fb.h                  |  20 ++++
+ arch/loongarch/include/asm/fb.h             |  21 ++++
+ arch/mips/include/asm/fb.h                  |  22 +++++
+ arch/parisc/video/fbdev.c                   |   3 +-
+ arch/sparc/include/asm/fb.h                 |  20 ++++
+ arch/sparc/video/fbdev.c                    |   1 -
+ arch/x86/video/fbdev.c                      |   2 -
+ drivers/gpu/ipu-v3/ipu-prv.h                |   1 +
+ drivers/staging/sm750fb/sm750.c             |   2 +-
+ drivers/video/fbdev/arcfb.c                 |   1 +
+ drivers/video/fbdev/aty/atyfb.h             |   2 +
+ drivers/video/fbdev/aty/mach64_cursor.c     |   2 +-
+ drivers/video/fbdev/chipsfb.c               |   2 +-
+ drivers/video/fbdev/core/fb_io_fops.c       |   4 +-
+ drivers/video/fbdev/core/fbcon.c            |   1 -
+ drivers/video/fbdev/core/fbmem.c            |   2 -
+ drivers/video/fbdev/kyro/fbdev.c            |   2 +-
+ drivers/video/fbdev/matrox/matroxfb_accel.c |   6 +-
+ drivers/video/fbdev/matrox/matroxfb_base.h  |   4 +-
+ drivers/video/fbdev/pvr2fb.c                |   2 +-
+ drivers/video/fbdev/sstfb.c                 |   2 +-
+ drivers/video/fbdev/stifb.c                 |   4 +-
+ drivers/video/fbdev/tdfxfb.c                |   2 +-
+ drivers/video/fbdev/wmt_ge_rops.c           |   2 +
+ include/asm-generic/fb.h                    | 102 ++++++++++++++++++++
+ include/linux/fb.h                          |  55 +----------
+ 26 files changed, 210 insertions(+), 77 deletions(-)
+
 -- 
 2.40.1
 
