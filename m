@@ -2,60 +2,61 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7CB46C7EE26
-	for <linux-arch@archiver.kernel.org>; Thu, 11 May 2023 12:00:49 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 870FAC7EE23
+	for <linux-arch@archiver.kernel.org>; Thu, 11 May 2023 12:00:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238045AbjEKMAr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 11 May 2023 08:00:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38618 "EHLO
+        id S237972AbjEKMAx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 11 May 2023 08:00:53 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39290 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237869AbjEKMAR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2023 08:00:17 -0400
-Received: from mail-lj1-x235.google.com (mail-lj1-x235.google.com [IPv6:2a00:1450:4864:20::235])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6509BA5D5
-        for <linux-arch@vger.kernel.org>; Thu, 11 May 2023 04:59:55 -0700 (PDT)
-Received: by mail-lj1-x235.google.com with SMTP id 38308e7fff4ca-2acb6571922so67550401fa.0
-        for <linux-arch@vger.kernel.org>; Thu, 11 May 2023 04:59:55 -0700 (PDT)
+        with ESMTP id S237976AbjEKMAX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 11 May 2023 08:00:23 -0400
+Received: from mail-lf1-x131.google.com (mail-lf1-x131.google.com [IPv6:2a00:1450:4864:20::131])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5244EA5CC
+        for <linux-arch@vger.kernel.org>; Thu, 11 May 2023 04:59:57 -0700 (PDT)
+Received: by mail-lf1-x131.google.com with SMTP id 2adb3069b0e04-4f13d8f74abso9600352e87.0
+        for <linux-arch@vger.kernel.org>; Thu, 11 May 2023 04:59:57 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linaro.org; s=google; t=1683806393; x=1686398393;
+        d=linaro.org; s=google; t=1683806395; x=1686398395;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=cbjvTSrc7JXib/jYCtsnbT8Pj+twUmj4f7HYrh8lbjo=;
-        b=lVyXp4k3KTmo8RdF9FjbrH3Tv6c0bVkXtZywPccWNYeyjQtpi+z8J9YOLY5+sc8Eee
-         9TxIZcqfBkHZCR5W/lS4SlBkIqbWGSAPlS7Lr3r/I9TrjHIt12ePBNQQByXKE9XA5W82
-         Lp1d5/+LzKSwENiuYylfIRK6jrTQr4Zv4h1kXRVaE4hxsuTMNFh3hlQ2qHWkX+6kY0EG
-         T5bDIgWzHhDoq1MM/WpZ20V/MaFu2pz8FMs/SVRMPgnQO5dguxAOe06YAfd7vgPdzNUJ
-         UXbg5YSTuY6yxPVV9orezsqTc3SK9pkouhcNBUYohSwcaCiNBsVhx46K7y7sjmIKo1cO
-         FxrA==
+        bh=ldVw9wlzEkzEKLn5PMVleGqWnYMQxC7MlxWwEOwXVk4=;
+        b=sersNdtzW5iLzGVupNMmSJvBYmwrZ//xZBxoOUDkXI1JTW4CI6ctj4FhudGratDn9k
+         cRnkGze5UhsFvb3lR7Z7ykzxMMc0MSELwIy7erx+30m7guaXslAKu512vsaLide2fBN8
+         bzO6LMr/4P01YQk5JchLInzlvvtZaYnfs9CHAIEYLUvt9rNDqzoX36kf+ZRPAeMUF63R
+         CCLsu72Nt/qnplWuj/eGGivCt82mEPHLpvvAQfOpT7G7x9ZKs78aN4p4kFH/Q3ORHnfo
+         F+xP25avZTDsQROtfUVMJN8MesmV4EWv4hDtLKEn2U2w6S7bTHItXBK0WvgvggA3JEzW
+         4KRg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1683806393; x=1686398393;
+        d=1e100.net; s=20221208; t=1683806395; x=1686398395;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=cbjvTSrc7JXib/jYCtsnbT8Pj+twUmj4f7HYrh8lbjo=;
-        b=g8SPS6MtbM1tftEzkoxY1vVjURWnSiPmMCnFHFxqZCrtswUbiZfIjeTfC5ZCZRxroB
-         RuEUEjVQKsvYblIhd/fbfiQviWTDI42WWIr9qU0U6eZHpe8IR3NDxHVuIP0ywJ2ULQhl
-         uD6izETg1gEmAmN2d5HQ1hKOOJX6KXvCkl+XJRvh9fl/zJFKhzM05aMywUWg0u6M6JTd
-         ygq2zT6Xpy34Nqrkx8c+aTOmfbV8zx0lFBFRhE/qGhGBkGwHOfXd3LflmND/H4CuNjjj
-         FgoJp3Huj94Sdw7yge8M/TuqoPDcR9pSHtrCjv9Q6luvUr3sqi0Fa8+J4jXnJZkLiqRI
-         715w==
-X-Gm-Message-State: AC+VfDzQT3Wx5S/R6d4hn4l6QZF8ahziBU8WLZ+1XvrvA9vmzFhXHYJj
-        pi64guJuJ+PuJsleFmAAIJk7Vw==
-X-Google-Smtp-Source: ACHHUZ6yAIRSU1J7hff/jjZVil2cXfRcnI2cjw81Jl+2uJZmlGorTrbKTJFSuRdrBVeZHWDMCRrMKw==
-X-Received: by 2002:ac2:4f8e:0:b0:4f1:3eea:eaf9 with SMTP id z14-20020ac24f8e000000b004f13eeaeaf9mr2642443lfs.24.1683806393661;
-        Thu, 11 May 2023 04:59:53 -0700 (PDT)
+        bh=ldVw9wlzEkzEKLn5PMVleGqWnYMQxC7MlxWwEOwXVk4=;
+        b=ThyRYmaIzbfpS1I9nsK3kr1KU+aRS0Mo6HcYknI8TF6Aa8yn8uAK1WLzS/B3//hCVI
+         eKHymj03FVR+a4Fzor7uceDsyNOpi/76C9z2kTbNm89WNv9kF1iyM4syjsIt2hfPlym2
+         F25j/4/MJ91OFT+F9qrBRTfqJT0joj7jYLo14OtCUYI3CFu3HDabbGmQ5C84c+nUFwVi
+         33N1VPX87o2/j8HFUMDMwQoMIyiYQLZ+KXhapDR4tF+m9MwKoogYiqmk/QaFy+lh+Ece
+         PB4uT1VLXXTV3WhhPj7+8CuxlRgEn4QyCb2M8SdyS5oqm7+avOg282ZITmwAsK/V9QgV
+         pEwA==
+X-Gm-Message-State: AC+VfDwi02FxkkpDE8mQ/YpgWb97xArtDSCyGzN4q+lftjJ1pDuEGpuZ
+        f0CXAapYLIMnFpMECkUP6vY+MV6RZmrnqRHy44Q=
+X-Google-Smtp-Source: ACHHUZ6cUHNYU0J4SZMS7pZsEER32rUvhWP5SmpZGGTwBMJBiTrayLkP7UYjW+7FVQQ8Tu7K7BVxbQ==
+X-Received: by 2002:ac2:5339:0:b0:4ef:f725:ae2f with SMTP id f25-20020ac25339000000b004eff725ae2fmr3438930lfh.37.1683806395538;
+        Thu, 11 May 2023 04:59:55 -0700 (PDT)
 Received: from [127.0.1.1] ([85.235.12.238])
-        by smtp.gmail.com with ESMTPSA id f16-20020ac25090000000b004cb23904bd9sm1100841lfm.144.2023.05.11.04.59.52
+        by smtp.gmail.com with ESMTPSA id f16-20020ac25090000000b004cb23904bd9sm1100841lfm.144.2023.05.11.04.59.54
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 11 May 2023 04:59:53 -0700 (PDT)
+        Thu, 11 May 2023 04:59:55 -0700 (PDT)
 From:   Linus Walleij <linus.walleij@linaro.org>
-Date:   Thu, 11 May 2023 13:59:24 +0200
-Subject: [PATCH 07/12] netfs: Pass a pointer to virt_to_page()
+Date:   Thu, 11 May 2023 13:59:26 +0200
+Subject: [PATCH 09/12] asm-generic/page.h: Make pfn accessors static
+ inlines
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230503-virt-to-pfn-v6-4-rc1-v1-7-6c4698dcf9c8@linaro.org>
+Message-Id: <20230503-virt-to-pfn-v6-4-rc1-v1-9-6c4698dcf9c8@linaro.org>
 References: <20230503-virt-to-pfn-v6-4-rc1-v1-0-6c4698dcf9c8@linaro.org>
 In-Reply-To: <20230503-virt-to-pfn-v6-4-rc1-v1-0-6c4698dcf9c8@linaro.org>
 To:     Geert Uytterhoeven <geert@linux-m68k.org>,
@@ -74,33 +75,47 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Like the other calls in this function virt_to_page() expects
-a pointer, not an integer.
+Making virt_to_pfn() a static inline taking a strongly typed
+(const void *) makes the contract of a passing a pointer of that
+type to the function explicit and exposes any misuse of the
+macro virt_to_pfn() acting polymorphic and accepting many types
+such as (void *), (unitptr_t) or (unsigned long) as arguments
+without warnings.
 
-However since many architectures implement virt_to_pfn() as
-a macro, this function becomes polymorphic and accepts both a
-(unsigned long) and a (void *).
+For symmetry we do the same change for pfn_to_virt.
 
-Fix this up with an explicit cast.
+Immediately define virt_to_pfn and pfn_to_virt to the static
+inline after the static inline since this style of defining
+functions is used for the generic helpers.
 
 Signed-off-by: Linus Walleij <linus.walleij@linaro.org>
 ---
- fs/netfs/iterator.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/page.h | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
-diff --git a/fs/netfs/iterator.c b/fs/netfs/iterator.c
-index 8a4c86687429..0431ec4a7298 100644
---- a/fs/netfs/iterator.c
-+++ b/fs/netfs/iterator.c
-@@ -240,7 +240,7 @@ static ssize_t netfs_extract_kvec_to_sg(struct iov_iter *iter,
- 			if (is_vmalloc_or_module_addr((void *)kaddr))
- 				page = vmalloc_to_page((void *)kaddr);
- 			else
--				page = virt_to_page(kaddr);
-+				page = virt_to_page((void *)kaddr);
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index c0be2edeb484..e8ef12bb858c 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -74,8 +74,16 @@ extern unsigned long memory_end;
+ #define __va(x) ((void *)((unsigned long) (x)))
+ #define __pa(x) ((unsigned long) (x))
  
- 			sg_set_page(sg, page, len, off);
- 			sgtable->nents++;
+-#define virt_to_pfn(kaddr)	(__pa(kaddr) >> PAGE_SHIFT)
+-#define pfn_to_virt(pfn)	__va((pfn) << PAGE_SHIFT)
++static inline unsigned long virt_to_pfn(const void *kaddr)
++{
++	return __pa(kaddr) >> PAGE_SHIFT;
++}
++#define virt_to_pfn virt_to_pfn
++static inline void * pfn_to_virt(unsigned long pfn)
++{
++	return __va(pfn) << PAGE_SHIFT;
++}
++#define pfn_to_virt pfn_to_virt
+ 
+ #define virt_to_page(addr)	pfn_to_page(virt_to_pfn(addr))
+ #define page_to_virt(page)	pfn_to_virt(page_to_pfn(page))
 
 -- 
 2.34.1
