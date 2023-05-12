@@ -2,158 +2,145 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C88A8C7EE25
-	for <linux-arch@archiver.kernel.org>; Fri, 12 May 2023 07:51:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A8B91C7EE2E
+	for <linux-arch@archiver.kernel.org>; Fri, 12 May 2023 08:05:19 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S240284AbjELHvL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 12 May 2023 03:51:11 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52278 "EHLO
+        id S240347AbjELIFR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 12 May 2023 04:05:17 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36954 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239991AbjELHvK (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 May 2023 03:51:10 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C0451900B;
-        Fri, 12 May 2023 00:51:09 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 53B3B65384;
-        Fri, 12 May 2023 07:51:09 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AFE2AC433EF;
-        Fri, 12 May 2023 07:51:08 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1683877868;
-        bh=xQJ6kpGBdd8sMe9djXAeDmkVMiiz4MwCxAnjryMRGP0=;
-        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-        b=Tw4wiNJBJmWZsvKinXNZwXCJc8CJP8zJqZ56sGWKW8umDPbGIQ3KwNLn6bDZ4fjqY
-         Afwga5cdvBkcbgsQAfzQge0Gg/z4bUELXtpISFrZJTdwbygBQ35jbnXg/1Y3obhzJC
-         aLcZRUwMwpuJjfy4D0DTQNB0KdDvBqRBDi3m32kOzfXa8jPixC1MQvZZ+PZLalDPY6
-         yaXlnp/7JBYhPr3plLjrFofQBv5+NskX5hl3lBbDkoX5xdhumjd8w9QTK2vh1GbWnx
-         g05WgbqI6gEe48DuZspT02HDarfVtlgUDELvdRMbfIe/EnxqVv7GYss+UIZL316yev
-         3bJ9sKebTTJFw==
-Received: from sofa.misterjones.org ([185.219.108.64] helo=goblin-girl.misterjones.org)
-        by disco-boy.misterjones.org with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.95)
-        (envelope-from <maz@kernel.org>)
-        id 1pxNYQ-00EVeu-HZ;
-        Fri, 12 May 2023 08:51:06 +0100
-Date:   Fri, 12 May 2023 08:51:06 +0100
-Message-ID: <86wn1em1hx.wl-maz@kernel.org>
-From:   Marc Zyngier <maz@kernel.org>
-To:     =?UTF-8?B?IllpLURlIFd1ICjlkLPkuIDlvrcpIg==?= 
-        <Yi-De.Wu@mediatek.com>
-Cc:     "corbet@lwn.net" <corbet@lwn.net>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "robh+dt@kernel.org" <robh+dt@kernel.org>,
-        "angelogioacchino.delregno@collabora.com" 
-        <angelogioacchino.delregno@collabora.com>,
-        "linux-mediatek@lists.infradead.org" 
-        <linux-mediatek@lists.infradead.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        =?UTF-8?B?Ik1Z?= =?UTF-8?B?IENodWFuZyAo6I6K5piO6LqNKSI=?= 
-        <MY.Chuang@mediatek.com>,
-        "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>,
-        "quic_tsoni@quicinc.com" <quic_tsoni@quicinc.com>,
-        =?UTF-8?B?IlNoYXduIEhz?= =?UTF-8?B?aWFvICjola3lv5fnpaUpIg==?= 
-        <shawn.hsiao@mediatek.com>,
-        =?UTF-8?B?Ik1pbGVzIENoZW4gKOmZs+awkeaouiki?= 
-        <Miles.Chen@mediatek.com>,
-        =?UTF-8?B?IlBlaUx1biBTdWVpICjpmovln7nlgKspIg==?= 
-        <PeiLun.Suei@mediatek.com>,
-        =?UTF-8?B?IkxpanUtY2xyIENoZW4gKOmZs+m6lw==?= =?UTF-8?B?5aaCKSI=?= 
-        <Liju-clr.Chen@mediatek.com>,
-        =?UTF-8?B?IkphZGVzIFNo?= =?UTF-8?B?aWggKOaWveWQkeeOqCki?= 
-        <jades.shih@mediatek.com>,
-        "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
-        "dbrazdil@google.com" <dbrazdil@google.com>,
-        "linux-arm-kernel@lists.infradead.org" 
+        with ESMTP id S240392AbjELIEq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 May 2023 04:04:46 -0400
+Received: from mailgw01.mediatek.com (unknown [60.244.123.138])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8717E2711;
+        Fri, 12 May 2023 01:04:13 -0700 (PDT)
+X-UUID: 927e780af09b11ed9cb5633481061a41-20230512
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=mediatek.com; s=dk;
+        h=Content-Type:MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:CC:To:From; bh=dHOFHumFnrSrz0KER+FGn5/tfxFAz3JgJ4ek49h80NQ=;
+        b=vCm2d+riJPluxxioYplaY/BIA7Bm7YEXqRgkZEc8XRDqcAgeCLlex+KPxtSxSDLH6bgqGGr1CMLtHmEeodiuJOAWUvvyHsy1pkxD276+cR2oa8iDmtX2JxbQ9bQ9fPKDTenYV6LlYM6uWmX3FnSoI7ToR0cf7BUjV55RcuOZXHw=;
+X-CID-P-RULE: Spam_GS6885AD
+X-CID-O-INFO: VERSION:1.1.24,REQID:fcef1ffc-bba4-4e35-8604-533242491d36,IP:0,U
+        RL:25,TC:0,Content:100,EDM:0,RT:0,SF:0,FILE:0,BULK:0,RULE:Spam_GS6885AD,AC
+        TION:quarantine,TS:125
+X-CID-META: VersionHash:178d4d4,CLOUDID:92bca1c0-e32c-4c97-918d-fbb3fc224d4e,B
+        ulkID:nil,BulkQuantity:0,Recheck:0,SF:801,TC:nil,Content:3,EDM:-3,IP:nil,U
+        RL:11|1,File:nil,Bulk:nil,QS:nil,BEC:nil,COL:0,OSI:0,OSA:0,AV:0
+X-CID-BVR: 0
+X-CID-BAS: 0,_,0,_
+X-UUID: 927e780af09b11ed9cb5633481061a41-20230512
+Received: from mtkmbs11n1.mediatek.inc [(172.21.101.185)] by mailgw01.mediatek.com
+        (envelope-from <yi-de.wu@mediatek.com>)
+        (Generic MTA with TLSv1.2 ECDHE-RSA-AES256-GCM-SHA384 256/256)
+        with ESMTP id 1595457615; Fri, 12 May 2023 16:04:08 +0800
+Received: from mtkmbs13n1.mediatek.inc (172.21.101.193) by
+ mtkmbs13n1.mediatek.inc (172.21.101.193) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.1118.26; Fri, 12 May 2023 16:04:07 +0800
+Received: from mtksdccf07.mediatek.inc (172.21.84.99) by
+ mtkmbs13n1.mediatek.inc (172.21.101.73) with Microsoft SMTP Server id
+ 15.2.1118.26 via Frontend Transport; Fri, 12 May 2023 16:04:07 +0800
+From:   Yi-De Wu <yi-de.wu@mediatek.com>
+To:     Yingshiuan Pan <yingshiuan.pan@mediatek.com>,
+        Ze-Yu Wang <ze-yu.wang@mediatek.com>,
+        Yi-De Wu <yi-de.wu@mediatek.com>,
+        Rob Herring <robh+dt@kernel.org>,
+        Krzysztof Kozlowski <krzysztof.kozlowski+dt@linaro.org>,
+        Conor Dooley <conor+dt@kernel.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+        Matthias Brugger <matthias.bgg@gmail.com>,
+        AngeloGioacchino Del Regno 
+        <angelogioacchino.delregno@collabora.com>
+CC:     <devicetree@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
+        <linux-doc@vger.kernel.org>,
         <linux-arm-kernel@lists.infradead.org>,
-        =?UTF-8?B?IllpbmdzaGl1YW4gUGFu?= =?UTF-8?B?ICjmvZjnqY7ou5IpIg==?= 
-        <Yingshiuan.Pan@mediatek.com>,
-        "krzysztof.kozlowski+dt@linaro.org" 
-        <krzysztof.kozlowski+dt@linaro.org>,
-        "matthias.bgg@gmail.com" <matthias.bgg@gmail.com>,
-        "arnd@arndb.de" <arnd@arndb.de>,
-        "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
-        =?UTF-8?B?IlplLXl1IFdhbmcgKOeOi+a+pOWuhyki?= 
-        <Ze-yu.Wang@mediatek.com>, "will@kernel.org" <will@kernel.org>,
-        =?UTF-8?B?Ikl2YW4gVHNlbmcgKOabvg==?= =?UTF-8?B?5b+X6LuSKSI=?= 
-        <ivan.tseng@mediatek.com>
-Subject: Re: [PATCH v2 5/7] virt: geniezone: Add irqchip support for virtual interrupt injection
-In-Reply-To: <762e3494ed468f0337b1c336615065b154396d23.camel@mediatek.com>
-References: <20230428103622.18291-1-yi-de.wu@mediatek.com>
-        <20230428103622.18291-6-yi-de.wu@mediatek.com>
-        <f1c8c1c1c091be87dfbc27b9178fc3e6@kernel.org>
-        <762e3494ed468f0337b1c336615065b154396d23.camel@mediatek.com>
-User-Agent: Wanderlust/2.15.9 (Almost Unreal) SEMI-EPG/1.14.7 (Harue)
- FLIM-LB/1.14.9 (=?UTF-8?B?R29qxY0=?=) APEL-LB/10.8 EasyPG/1.0.0 Emacs/28.2
- (aarch64-unknown-linux-gnu) MULE/6.0 (HANACHIRUSATO)
-MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-X-SA-Exim-Connect-IP: 185.219.108.64
-X-SA-Exim-Rcpt-To: Yi-De.Wu@mediatek.com, corbet@lwn.net, linux-kernel@vger.kernel.org, robh+dt@kernel.org, angelogioacchino.delregno@collabora.com, linux-mediatek@lists.infradead.org, linux-arch@vger.kernel.org, MY.Chuang@mediatek.com, devicetree@vger.kernel.org, quic_tsoni@quicinc.com, shawn.hsiao@mediatek.com, Miles.Chen@mediatek.com, PeiLun.Suei@mediatek.com, Liju-clr.Chen@mediatek.com, jades.shih@mediatek.com, catalin.marinas@arm.com, dbrazdil@google.com, linux-arm-kernel@lists.infradead.org, Yingshiuan.Pan@mediatek.com, krzysztof.kozlowski+dt@linaro.org, matthias.bgg@gmail.com, arnd@arndb.de, linux-doc@vger.kernel.org, Ze-yu.Wang@mediatek.com, will@kernel.org, ivan.tseng@mediatek.com
-X-SA-Exim-Mail-From: maz@kernel.org
-X-SA-Exim-Scanned: No (on disco-boy.misterjones.org); SAEximRunCond expanded to false
+        <linux-arch@vger.kernel.org>, <linux-mediatek@lists.infradead.org>,
+        Trilok Soni <quic_tsoni@quicinc.com>,
+        David Bradil <dbrazdil@google.com>,
+        Jade Shih <jades.shih@mediatek.com>,
+        Miles Chen <miles.chen@mediatek.com>,
+        Ivan Tseng <ivan.tseng@mediatek.com>,
+        My Chuang <my.chuang@mediatek.com>,
+        Shawn Hsiao <shawn.hsiao@mediatek.com>,
+        PeiLun Suei <peilun.suei@mediatek.com>,
+        Liju Chen <liju-clr.chen@mediatek.com>
+Subject: [PATCH v3 2/7] dt-bindings: hypervisor: Add MediaTek GenieZone hypervisor
+Date:   Fri, 12 May 2023 16:04:00 +0800
+Message-ID: <20230512080405.12043-3-yi-de.wu@mediatek.com>
+X-Mailer: git-send-email 2.18.0
+In-Reply-To: <20230512080405.12043-1-yi-de.wu@mediatek.com>
+References: <20230512080405.12043-1-yi-de.wu@mediatek.com>
+MIME-Version: 1.0
+Content-Type: text/plain
+X-MTK:  N
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, 12 May 2023 08:19:31 +0100,
-"Yi-De Wu (=E5=90=B3=E4=B8=80=E5=BE=B7)" <Yi-De.Wu@mediatek.com> wrote:
->=20
-> On Fri, 2023-04-28 at 19:59 +0100, Marc Zyngier wrote:
-> > External email : Please do not click links or open attachments until
-> > you have verified the sender or the content.
-> >=20
-> >=20
-> > On 2023-04-28 11:36, Yi-De Wu wrote:
-> > > From: "Yingshiuan Pan" <yingshiuan.pan@mediatek.com>
-> > >=20
-> > > Enable GenieZone to handle virtual interrupt injection request.
-> > >=20
-> > > Signed-off-by: Yingshiuan Pan <yingshiuan.pan@mediatek.com>
-> > > Signed-off-by: Yi-De Wu <yi-de.wu@mediatek.com>
-> > > ---
-> > >  arch/arm64/geniezone/Makefile       |  2 +-
-> > >  arch/arm64/geniezone/gzvm_arch.c    | 24 ++++++--
-> > >  arch/arm64/geniezone/gzvm_arch.h    | 11 ++++
-> > >  arch/arm64/geniezone/gzvm_irqchip.c | 88
-> > > +++++++++++++++++++++++++++++
-> > >  drivers/virt/geniezone/gzvm_vm.c    | 75 ++++++++++++++++++++++++
-> > >  include/linux/gzvm_drv.h            |  4 ++
-> > >  include/uapi/linux/gzvm.h           | 38 ++++++++++++-
-> > >  7 files changed, 235 insertions(+), 7 deletions(-)
-> > >  create mode 100644 arch/arm64/geniezone/gzvm_irqchip.c
-> >=20
-> > [...]
-> >=20
-> > > +++ b/arch/arm64/geniezone/gzvm_irqchip.c
-> > > @@ -0,0 +1,88 @@
-> > > +// SPDX-License-Identifier: GPL-2.0
-> > > +/*
-> > > + * Copyright (c) 2023 MediaTek Inc.
-> > > + */
-> > > +
-> > > +#include <linux/irqchip/arm-gic-v3.h>
-> > > +#include <kvm/arm_vgic.h>
-> >=20
-> > NAK.
-> >=20
-> > There is no way you can rely on anything from KVM in
-> > your own hypervisor code.
-> >=20
->=20
-> Same with previous discussion, we'd like to copy or rename the related=20
-> part from KVM and keep the maintainance at our own if it's ok.
+From: "Yingshiuan Pan" <yingshiuan.pan@mediatek.com>
 
-Why do you need *ANY* of the KVM stuff? Please fully enumerate these
-dependencies and why you have them.
+Add documentation for GenieZone(gzvm) node. This node informs gzvm
+driver to start probing if geniezone hypervisor is available and
+able to do virtual machine operations.
 
-Directly using KVM stuff for something completely unrelated is not OK,
-and will never be.
+Signed-off-by: Yingshiuan Pan <yingshiuan.pan@mediatek.com>
+Signed-off-by: Yi-De Wu <yi-de.wu@mediatek.com>
+---
+ .../hypervisor/mediatek,geniezone-hyp.yaml    | 31 +++++++++++++++++++
+ MAINTAINERS                                   |  1 +
+ 2 files changed, 32 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/hypervisor/mediatek,geniezone-hyp.yaml
 
-	M.
+diff --git a/Documentation/devicetree/bindings/hypervisor/mediatek,geniezone-hyp.yaml b/Documentation/devicetree/bindings/hypervisor/mediatek,geniezone-hyp.yaml
+new file mode 100644
+index 000000000000..ab89a4c310cb
+--- /dev/null
++++ b/Documentation/devicetree/bindings/hypervisor/mediatek,geniezone-hyp.yaml
+@@ -0,0 +1,31 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/hypervisor/mediatek,geniezone-hyp.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek GenieZone hypervisor
++
++maintainers:
++  - Yingshiuan Pan <yingshiuan.pan@mediatek.com>
++
++description:
++  This interface is designed for integrating GenieZone hypervisor into Android
++  Virtualization Framework(AVF) along with Crosvm as a VMM.
++  It acts like a wrapper for every hypercall to GenieZone hypervisor in
++  order to control guest VM lifecycles and virtual interrupt injections.
++
++properties:
++  compatible:
++    const: mediatek,geniezone-hyp
++
++required:
++  - compatible
++
++additionalProperties: false
++
++examples:
++  - |
++    hypervisor {
++        compatible = "mediatek,geniezone-hyp";
++    };
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 523246ff3d15..cdc1e1b0bbe7 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -8709,6 +8709,7 @@ GENIEZONE HYPERVISOR DRIVER
+ M:	Yingshiuan Pan <yingshiuan.pan@mediatek.com>
+ M:	Ze-Yu Wang <ze-yu.wang@mediatek.com>
+ M:	Yi-De Wu <yi-de.wu@mediatek.com>
++F:	Documentation/devicetree/bindings/hypervisor/mediatek,geniezone-hyp.yaml
+ F:	Documentation/virt/geniezone/
+ 
+ GENWQE (IBM Generic Workqueue Card)
+-- 
+2.18.0
 
---=20
-Without deviation from the norm, progress is not possible.
