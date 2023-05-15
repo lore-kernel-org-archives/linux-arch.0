@@ -2,95 +2,116 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AF45CC7EE24
-	for <linux-arch@archiver.kernel.org>; Fri, 12 May 2023 21:48:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9122CC77B7D
+	for <linux-arch@archiver.kernel.org>; Mon, 15 May 2023 08:07:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235348AbjELVsE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 12 May 2023 17:48:04 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35480 "EHLO
+        id S229582AbjEOIHY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 15 May 2023 04:07:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38464 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S239602AbjELVsD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 12 May 2023 17:48:03 -0400
-Received: from mail-qk1-x736.google.com (mail-qk1-x736.google.com [IPv6:2607:f8b0:4864:20::736])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B6BAF658E;
-        Fri, 12 May 2023 14:48:02 -0700 (PDT)
-Received: by mail-qk1-x736.google.com with SMTP id af79cd13be357-7577ef2fa31so2084258485a.0;
-        Fri, 12 May 2023 14:48:02 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1683928082; x=1686520082;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=ktA0DPNP5CNQIjFJf+YrLVaDtly7+JfQEYIY1aBuK2A=;
-        b=EpptMN9+Uga6hAcxAo2XzkvGGde8U7iZgqSZwup4gFk7ua2rwfBFWm657rBr2tzbl8
-         alDpTk4rP4SwxS0++WAmPE4FdQWVm4/enEJ2mQ3J7ahbm+q5NhFo7RUTs7wUOrscZMox
-         45eupQg0KhJwmEmfQY80h//uPbuUrGvgy+2S/kMV3ur3MjhthaKdkBj5g/zXWCaAa42F
-         nlBJ5ENELKGgHvDXJ6O1MgCI5TkNz2MkLRmOh4ivwQL0KVMfgjcXf0CAUWx2Kaefsg2L
-         rPMZHV59fzGHCt/miNVdcAi7XITRfBOYPKnI+nTBEP2ciUF+hg8YN/lZWQD5Nj0f53m5
-         YpxQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1683928082; x=1686520082;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=ktA0DPNP5CNQIjFJf+YrLVaDtly7+JfQEYIY1aBuK2A=;
-        b=i36IYFiU0ytePZ7pcIjov0x2AkeeuPbz7ORnwIOzT1owKwqt7rCp1nCSkJYqRTktgw
-         S8PmdJIdpLOD6jK+FQp9ojTYZoeAuEn6XFqZyV4zS19CqXvPrCr2txjNvHPwaq9DFlQj
-         l35lZy43rS7Q6mR46qgznqXKMLu0JZctdIIsQrQJYVCFgnUn+RQf5IBIsbrmzneEgObD
-         hubIOgho6mndHB+e0nSCNY4c0gsC8jGFFF3HyQ6jXszlhtM71pZBYZiXoIwnt8Qhwsdx
-         Fdq7pCPNFieRf/nj1UYY6aO2T84VW8/40lPlzgmbl/9hAhrhzjGF63ebv9nEm22qRPrN
-         pKcA==
-X-Gm-Message-State: AC+VfDxTMalHDRjfBc3zmUPIwk3ztahqCC0qpNWpSVdHqsM2xUv2Jdxh
-        nuDrxA55bvMJik5eP5FkJpB/K4Xh3ylpg8eZFGk=
-X-Google-Smtp-Source: ACHHUZ6Ds4tgg3tY2HwzC7rc3PEkzb8YK+RMc5PzxH8b2x7aIR5D0EBt3CAybWSjFJTCM+nRvm71yFLpXl19En8supA=
-X-Received: by 2002:a05:6214:519a:b0:621:65de:f600 with SMTP id
- kl26-20020a056214519a00b0062165def600mr10970695qvb.1.1683928081711; Fri, 12
- May 2023 14:48:01 -0700 (PDT)
+        with ESMTP id S230074AbjEOIHW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 15 May 2023 04:07:22 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DFA211716;
+        Mon, 15 May 2023 01:07:15 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=gp7OCKaBYjIIkPcuPMybL+ixdp/AdwhFq0MWXNBGUCo=; b=mfr/Lee6q6wb3hW9VLMJP6RMas
+        nTl9Qe1+9Iu48xOQT4aXYKIo3YdHu4pVixS6ep5klWjn2Hleinv1VLcJZJw+35Dak53xO4M9X9KIK
+        FpMiCIIAsi7/QgdKTHO+THopVLnjgnmza7zDZfiP5yT3vka2IQVSR4N/m/pdNqYPnTzsA8lIVgWqD
+        P5m3mwC26ExmfD/meFO5f1ezwrEtuIohzrkIWoLo3mQANg3Hx3wLE8RBN4yr9HOkOwiYyEuNQ3/1W
+        PLL/LI+1uLThBRAeCCPMwP+WHJ7vOYl/0orY1PoeN18xp4Y80oyboD7BypdwlKtzQ00oQnrhgh54F
+        yIuqhB5w==;
+Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
+        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+        id 1pyTDk-00BQMy-1T;
+        Mon, 15 May 2023 08:06:16 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 0C5C8300786;
+        Mon, 15 May 2023 10:06:10 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
+        id AB37F202674A5; Mon, 15 May 2023 10:06:10 +0200 (CEST)
+Message-ID: <20230515080553.979680310@infradead.org>
+User-Agent: quilt/0.66
+Date:   Mon, 15 May 2023 09:57:00 +0200
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     torvalds@linux-foundation.org
+Cc:     corbet@lwn.net, will@kernel.org, peterz@infradead.org,
+        boqun.feng@gmail.com, mark.rutland@arm.com,
+        catalin.marinas@arm.com, dennis@kernel.org, tj@kernel.org,
+        cl@linux.com, hca@linux.ibm.com, gor@linux.ibm.com,
+        agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
+        svens@linux.ibm.com, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
+        hpa@zytor.com, joro@8bytes.org, suravee.suthikulpanit@amd.com,
+        robin.murphy@arm.com, dwmw2@infradead.org,
+        baolu.lu@linux.intel.com, Arnd Bergmann <arnd@arndb.de>,
+        Herbert Xu <herbert@gondor.apana.org.au>, davem@davemloft.net,
+        penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com,
+        Andrew Morton <akpm@linux-foundation.org>, vbabka@suse.cz,
+        roman.gushchin@linux.dev, 42.hyeyoo@gmail.com,
+        linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-mm@kvack.org, linux-s390@vger.kernel.org,
+        iommu@lists.linux.dev, linux-arch@vger.kernel.org,
+        linux-crypto@vger.kernel.org
+Subject: [PATCH v3 01/11] cyrpto/b128ops: Remove struct u128
+References: <20230515075659.118447996@infradead.org>
 MIME-Version: 1.0
-References: <20230510195806.2902878-1-nphamcs@gmail.com> <20230511092843.3896327-1-nphamcs@gmail.com>
- <ZF4YEjiTOeu3jx+5@arm.com> <20230512141510.20075825899e3c869c5358ca@linux-foundation.org>
-In-Reply-To: <20230512141510.20075825899e3c869c5358ca@linux-foundation.org>
-From:   Nhat Pham <nphamcs@gmail.com>
-Date:   Fri, 12 May 2023 14:47:50 -0700
-Message-ID: <CAKEwX=P2VW_UfdxgLfYGOq1Bho+AtHt5pci+A7r95qJSSAEFtg@mail.gmail.com>
-Subject: Re: [PATCH] arm64: wire up cachestat for arm64
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        linux-api@vger.kernel.org, kernel-team@meta.com,
-        linux-arch@vger.kernel.org, hannes@cmpxchg.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, arnd@arndb.de, will@kernel.org,
-        linux-arm-kernel@lists.infradead.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, May 12, 2023 at 2:15=E2=80=AFPM Andrew Morton <akpm@linux-foundatio=
-n.org> wrote:
->
-> On Fri, 12 May 2023 11:42:26 +0100 Catalin Marinas <catalin.marinas@arm.c=
-om> wrote:
->
-> > On Thu, May 11, 2023 at 02:28:43AM -0700, Nhat Pham wrote:
-> > > cachestat is a new syscall that was previously wired in for most
-> > > architectures:
-> > >
-> > > https://lore.kernel.org/lkml/20230503013608.2431726-1-nphamcs@gmail.c=
-om/
-> > > https://lore.kernel.org/linux-mm/20230510195806.2902878-1-nphamcs@gma=
-il.com/
-> > >
-> > > However, those patches miss arm64, which has its own syscall table in=
- arch/arm64.
-> > > This patch wires cachestat in for arm64.
-> >
-> > You may want to clarify that this is for compat support on arm64,
-> > otherwise native support uses the generic syscall numbers already.
->
-> Thanks, I updated the changelog thusly.  Note that this patch is
-> transitory - it will be squashed into "cachestat: wire up cachestat for
-> other architectures".
+Per git-grep u128_xor() and its related struct u128 are unused except
+to implement {be,le}128_xor(). Remove them to free up the namespace.
 
-It's my expectation too - it makes sense to squash it to the other patch.
-Thanks, Andrew!
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Acked-by: Herbert Xu <herbert@gondor.apana.org.au>
+---
+ include/crypto/b128ops.h |   14 +++-----------
+ 1 file changed, 3 insertions(+), 11 deletions(-)
+
+--- a/include/crypto/b128ops.h
++++ b/include/crypto/b128ops.h
+@@ -50,10 +50,6 @@
+ #include <linux/types.h>
+ 
+ typedef struct {
+-	u64 a, b;
+-} u128;
+-
+-typedef struct {
+ 	__be64 a, b;
+ } be128;
+ 
+@@ -61,20 +57,16 @@ typedef struct {
+ 	__le64 b, a;
+ } le128;
+ 
+-static inline void u128_xor(u128 *r, const u128 *p, const u128 *q)
++static inline void be128_xor(be128 *r, const be128 *p, const be128 *q)
+ {
+ 	r->a = p->a ^ q->a;
+ 	r->b = p->b ^ q->b;
+ }
+ 
+-static inline void be128_xor(be128 *r, const be128 *p, const be128 *q)
+-{
+-	u128_xor((u128 *)r, (u128 *)p, (u128 *)q);
+-}
+-
+ static inline void le128_xor(le128 *r, const le128 *p, const le128 *q)
+ {
+-	u128_xor((u128 *)r, (u128 *)p, (u128 *)q);
++	r->a = p->a ^ q->a;
++	r->b = p->b ^ q->b;
+ }
+ 
+ #endif /* _CRYPTO_B128OPS_H */
+
+
