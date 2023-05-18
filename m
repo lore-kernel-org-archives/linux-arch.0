@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5855BC77B7D
-	for <linux-arch@archiver.kernel.org>; Thu, 18 May 2023 13:14:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D3430C7EE2C
+	for <linux-arch@archiver.kernel.org>; Thu, 18 May 2023 13:15:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231675AbjERNOb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 18 May 2023 09:14:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44862 "EHLO
+        id S231303AbjERNPX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 18 May 2023 09:15:23 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44926 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231245AbjERNNz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2023 09:13:55 -0400
+        with ESMTP id S231643AbjERNOc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2023 09:14:32 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9915A1BF2;
-        Thu, 18 May 2023 06:13:11 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3142C173A;
+        Thu, 18 May 2023 06:13:44 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 0C94A64F5F;
-        Thu, 18 May 2023 13:13:07 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 57254C433A8;
-        Thu, 18 May 2023 13:12:56 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 57DA960B5F;
+        Thu, 18 May 2023 13:13:39 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 195B8C433A8;
+        Thu, 18 May 2023 13:13:26 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1684415586;
-        bh=bke8fOXFDjV1zILAGkdyjNPTOfL1ZR2nFogEIcEnLNk=;
+        s=k20201202; t=1684415618;
+        bh=fON6vf7tjch1Eg4H78YVWT75FX1UOvgM+cdcVq8dSsg=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=GAMuo5pzwMOpvpmRdsBO4B//KtrUXd+imzrD5Mh3DDlBHufx0EB8V67w+qPAZFV1z
-         dsqcutlrg70o3jltbUb8FdXkMkK0WOJiUziB5H/f9M6hsBAsHfvZAoRpxHo/Hnk2D8
-         OMPuo3LdhV3xqOxptOa0dkbeZEbo4AKYiMSGU5osum00FOUUMxAffoFb8mVcVMhH8J
-         XeXitd2dU/FrKFfnDAI3T+wzVF1rTw/2U5SFNj5R+JMAsFe0U4ohwdoDLHRxLQ1L/i
-         uM55dAsOlzVyslN7sFhhHr/n12ybWoBzk/8MLAWevVB0GKpEtGKqK+xTAD0/MU2Z6q
-         0jXdFydmOx8Sg==
+        b=u23kMThXHmJ++BOnqpsZjjQZeLcF6BmMabQ66dcskKDbNxmgadWJ009CTKZ0ZXFO8
+         9wmPSgVwfHWqv57McbVpBTo4mvjnqaZkcPO7fLJ/IhhKQuEryBsw7uMNKb+eIvL9IU
+         s/X2wT4/I5Nx02zvv6wVapEHBnLfFwa+m6DY4PlGXKNMlQooK2tjDYTvY17nN0DTyp
+         rQY4XIlND+PHAHUlGvtIWTP7eWyXNpXmhy4Fc3W23JN2nKnQlCbWZMvw1mM7dvdEMn
+         zqDiNXPmTMFKL29ygB/3ORIbk1AwJaKjrCswBNswWrSUibYKu7cMymqqkiU+dfD17L
+         16jkhw2h2BCUA==
 From:   guoren@kernel.org
 To:     arnd@arndb.de, guoren@kernel.org, palmer@rivosinc.com,
         tglx@linutronix.de, peterz@infradead.org, luto@kernel.org,
@@ -46,11 +46,10 @@ To:     arnd@arndb.de, guoren@kernel.org, palmer@rivosinc.com,
         greentime.hu@sifive.com, corbet@lwn.net, wuwei2016@iscas.ac.cn,
         jrtc27@jrtc27.com
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org,
-        Guo Ren <guoren@linux.alibaba.com>, Guo Ren <guoren@kerenl.org>
-Subject: [RFC PATCH 12/22] riscv: s64ilp32: Add ELF32 support
-Date:   Thu, 18 May 2023 09:10:03 -0400
-Message-Id: <20230518131013.3366406-13-guoren@kernel.org>
+        linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>
+Subject: [RFC PATCH 15/22] riscv: s64ilp32: Enable native atomic64
+Date:   Thu, 18 May 2023 09:10:06 -0400
+Message-Id: <20230518131013.3366406-16-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
 In-Reply-To: <20230518131013.3366406-1-guoren@kernel.org>
 References: <20230518131013.3366406-1-guoren@kernel.org>
@@ -62,29 +61,48 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-Use abi_len to distinct ELF32 and ELF64 because s64ilp32 is xlen=64 and
-abi_len=32 (__SIZEOF_POINTER__=4). And s64ilp32 is an ELF32 based the
-same as s32ilp32.
+The traditional rv32 Linux (s32ilp32) uses a generic version of the
+lib/atomic64.c, which are inaccurate atomic64 primitives and couldn't
+co-work with READ_ONCE/WRITE_ONCE,  atomic_8/16/32. The s64ilp32 could
+use native AMO instructions to implement accurate atomic64 primitives.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@kerenl.org>
+Signed-off-by: Guo Ren <guoren@kernel.org>
 ---
- arch/riscv/include/uapi/asm/elf.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/riscv/Kconfig              | 2 +-
+ arch/riscv/include/asm/atomic.h | 6 ++++++
+ 2 files changed, 7 insertions(+), 1 deletion(-)
 
-diff --git a/arch/riscv/include/uapi/asm/elf.h b/arch/riscv/include/uapi/asm/elf.h
-index d696d6610231..962e8ec8fe05 100644
---- a/arch/riscv/include/uapi/asm/elf.h
-+++ b/arch/riscv/include/uapi/asm/elf.h
-@@ -24,7 +24,7 @@ typedef __u64 elf_fpreg_t;
- typedef union __riscv_fp_state elf_fpregset_t;
- #define ELF_NFPREG (sizeof(struct __riscv_d_ext_state) / sizeof(elf_fpreg_t))
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 9c458496ec3a..33fe624ef6d3 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -60,7 +60,7 @@ config RISCV
+ 	select CPU_PM if CPU_IDLE
+ 	select EDAC_SUPPORT
+ 	select GENERIC_ARCH_TOPOLOGY
+-	select GENERIC_ATOMIC64 if !64BIT
++	select GENERIC_ATOMIC64 if ARCH_RV32I
+ 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
+ 	select GENERIC_EARLY_IOREMAP
+ 	select GENERIC_ENTRY
+diff --git a/arch/riscv/include/asm/atomic.h b/arch/riscv/include/asm/atomic.h
+index 0dfe9d857a76..edfa6a74fe04 100644
+--- a/arch/riscv/include/asm/atomic.h
++++ b/arch/riscv/include/asm/atomic.h
+@@ -16,6 +16,12 @@
+ # endif
+ #endif
  
--#if __riscv_xlen == 64
-+#if __SIZEOF_POINTER__ == 8
- #define ELF_RISCV_R_SYM(r_info)		ELF64_R_SYM(r_info)
- #define ELF_RISCV_R_TYPE(r_info)	ELF64_R_TYPE(r_info)
- #else
++#ifdef CONFIG_ARCH_RV64ILP32
++typedef struct {
++	s64 counter;
++} atomic64_t;
++#endif
++
+ #include <asm/cmpxchg.h>
+ #include <asm/barrier.h>
+ 
 -- 
 2.36.1
 
