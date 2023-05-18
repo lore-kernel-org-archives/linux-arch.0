@@ -2,35 +2,35 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D3430C7EE2C
-	for <linux-arch@archiver.kernel.org>; Thu, 18 May 2023 13:15:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6D9D5C7EE2E
+	for <linux-arch@archiver.kernel.org>; Thu, 18 May 2023 13:15:25 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231303AbjERNPX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 18 May 2023 09:15:23 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44926 "EHLO
+        id S231377AbjERNPY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 18 May 2023 09:15:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45664 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231643AbjERNOc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2023 09:14:32 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3142C173A;
-        Thu, 18 May 2023 06:13:44 -0700 (PDT)
+        with ESMTP id S231738AbjERNOz (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 18 May 2023 09:14:55 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D2DBB19A7;
+        Thu, 18 May 2023 06:14:20 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 57DA960B5F;
-        Thu, 18 May 2023 13:13:39 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 195B8C433A8;
-        Thu, 18 May 2023 13:13:26 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 0AD4664F49;
+        Thu, 18 May 2023 13:13:17 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3FA3FC4339B;
+        Thu, 18 May 2023 13:13:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1684415618;
-        bh=fON6vf7tjch1Eg4H78YVWT75FX1UOvgM+cdcVq8dSsg=;
+        s=k20201202; t=1684415596;
+        bh=it/txvlY5/L57R5itWfhNoNKfONs7t6egYUyVObkMZY=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=u23kMThXHmJ++BOnqpsZjjQZeLcF6BmMabQ66dcskKDbNxmgadWJ009CTKZ0ZXFO8
-         9wmPSgVwfHWqv57McbVpBTo4mvjnqaZkcPO7fLJ/IhhKQuEryBsw7uMNKb+eIvL9IU
-         s/X2wT4/I5Nx02zvv6wVapEHBnLfFwa+m6DY4PlGXKNMlQooK2tjDYTvY17nN0DTyp
-         rQY4XIlND+PHAHUlGvtIWTP7eWyXNpXmhy4Fc3W23JN2nKnQlCbWZMvw1mM7dvdEMn
-         zqDiNXPmTMFKL29ygB/3ORIbk1AwJaKjrCswBNswWrSUibYKu7cMymqqkiU+dfD17L
-         16jkhw2h2BCUA==
+        b=fu30wSyFsEk4AzAWQrWkefaN5GBStqjKJ+S3xJm90Aj9gpTam01WCSkm9IRyy3BeU
+         irjDzBzWYaP/ZaTR+BOle+q9IC1eZEe4KkuJGTFwao++OZpA53GT9++zVzUKGxYRzL
+         zlFgocF4KScOb7vkpUKs/keoHoihtjDWB2KZ3DL6Arauk6NJfUAtiDM+tk9Anb680x
+         PdThj9dHO3hw/y+j+J+YofQk9cU40VP3vHXSB8JoP7Xqf3yn6z56kO/AVyGmVVCY9c
+         sTXbVULljhjm63Bq21tX80E+oQaInLrpwCtOin5JGfYI/Nl7MUMUqpyWjETf7jBV/k
+         VZdzOywzG2uAw==
 From:   guoren@kernel.org
 To:     arnd@arndb.de, guoren@kernel.org, palmer@rivosinc.com,
         tglx@linutronix.de, peterz@infradead.org, luto@kernel.org,
@@ -47,9 +47,9 @@ To:     arnd@arndb.de, guoren@kernel.org, palmer@rivosinc.com,
         jrtc27@jrtc27.com
 Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: [RFC PATCH 15/22] riscv: s64ilp32: Enable native atomic64
-Date:   Thu, 18 May 2023 09:10:06 -0400
-Message-Id: <20230518131013.3366406-16-guoren@kernel.org>
+Subject: [RFC PATCH 13/22] riscv: s64ilp32: Add ARCH RV64 ILP32 compiling framework
+Date:   Thu, 18 May 2023 09:10:04 -0400
+Message-Id: <20230518131013.3366406-14-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
 In-Reply-To: <20230518131013.3366406-1-guoren@kernel.org>
 References: <20230518131013.3366406-1-guoren@kernel.org>
@@ -61,48 +61,58 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-The traditional rv32 Linux (s32ilp32) uses a generic version of the
-lib/atomic64.c, which are inaccurate atomic64 primitives and couldn't
-co-work with READ_ONCE/WRITE_ONCE,  atomic_8/16/32. The s64ilp32 could
-use native AMO instructions to implement accurate atomic64 primitives.
+Just the same as ARCH_RV64I & ARCH_RV32I, add ARCH_RV64ILP32 config
+for s64ilp32 and turn on the s64ilp32 compile switch in the
+arch/riscv/Makefile.
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
 ---
- arch/riscv/Kconfig              | 2 +-
- arch/riscv/include/asm/atomic.h | 6 ++++++
- 2 files changed, 7 insertions(+), 1 deletion(-)
+ arch/riscv/Kconfig  | 6 ++++++
+ arch/riscv/Makefile | 5 +++++
+ 2 files changed, 11 insertions(+)
 
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 9c458496ec3a..33fe624ef6d3 100644
+index 4d4fac81390f..d824fcf3cc1c 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -60,7 +60,7 @@ config RISCV
- 	select CPU_PM if CPU_IDLE
- 	select EDAC_SUPPORT
- 	select GENERIC_ARCH_TOPOLOGY
--	select GENERIC_ATOMIC64 if !64BIT
-+	select GENERIC_ATOMIC64 if ARCH_RV32I
- 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
- 	select GENERIC_EARLY_IOREMAP
- 	select GENERIC_ENTRY
-diff --git a/arch/riscv/include/asm/atomic.h b/arch/riscv/include/asm/atomic.h
-index 0dfe9d857a76..edfa6a74fe04 100644
---- a/arch/riscv/include/asm/atomic.h
-+++ b/arch/riscv/include/asm/atomic.h
-@@ -16,6 +16,12 @@
- # endif
- #endif
+@@ -300,6 +300,12 @@ config ARCH_RV64I
+ 	select ARCH_SUPPORTS_INT128 if CC_HAS_INT128
+ 	select SWIOTLB if MMU
  
-+#ifdef CONFIG_ARCH_RV64ILP32
-+typedef struct {
-+	s64 counter;
-+} atomic64_t;
-+#endif
++config ARCH_RV64ILP32
++	bool "RV64ILP32"
++	depends on NONPORTABLE
++	select 32BIT
++	select MMU
 +
- #include <asm/cmpxchg.h>
- #include <asm/barrier.h>
+ endchoice
  
+ # We must be able to map all physical memory into the kernel, but the compiler
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
+index dafe958c4217..d47ba6b09b41 100644
+--- a/arch/riscv/Makefile
++++ b/arch/riscv/Makefile
+@@ -57,6 +57,7 @@ endif
+ # ISA string setting
+ riscv-march-$(CONFIG_ARCH_RV32I)	:= rv32ima
+ riscv-march-$(CONFIG_ARCH_RV64I)	:= rv64ima
++riscv-march-$(CONFIG_ARCH_RV64ILP32)	:= rv64ima
+ riscv-march-$(CONFIG_FPU)		:= $(riscv-march-y)fd
+ riscv-march-$(CONFIG_RISCV_ISA_C)	:= $(riscv-march-y)c
+ 
+@@ -107,7 +108,11 @@ stack_protector_prepare: prepare0
+ endif
+ 
+ # arch specific predefines for sparse
++ifeq ($(CONFIG_ARCH_RV64ILP32),y)
++CHECKFLAGS += -D__riscv
++else
+ CHECKFLAGS += -D__riscv -D__riscv_xlen=$(BITS)
++endif
+ 
+ # Default target when executing plain make
+ boot		:= arch/riscv/boot
 -- 
 2.36.1
 
