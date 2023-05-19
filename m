@@ -2,167 +2,177 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C1DD2C7EE39
-	for <linux-arch@archiver.kernel.org>; Fri, 19 May 2023 16:46:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CB2F5C77B7A
+	for <linux-arch@archiver.kernel.org>; Fri, 19 May 2023 16:54:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230526AbjESQq0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 19 May 2023 12:46:26 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34794 "EHLO
+        id S231345AbjESQyE (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 19 May 2023 12:54:04 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41484 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230101AbjESQqY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2023 12:46:24 -0400
-Received: from ms.lwn.net (ms.lwn.net [IPv6:2600:3c01:e000:3a1::42])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4635BD2;
-        Fri, 19 May 2023 09:46:23 -0700 (PDT)
-Received: from meer.lwn.net (unknown [IPv6:2601:281:8300:73::5f6])
-        by ms.lwn.net (Postfix) with ESMTPA id 0690F1C33;
-        Fri, 19 May 2023 16:46:21 +0000 (UTC)
-DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 0690F1C33
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
-        t=1684514783; bh=eVURbMBHrmInyI7Tt4uD2Av3f0HpAYpSD4vdn1u6NE8=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=BupzjfOfZOGLRJU8WiQT2q3eixa3hd4KaaIcGsxvR6fh/FiWObhqBIRgaYEd6mmSm
-         DJkLz7yDU3pqH7AohfM9GHX4pLbtf57aaO5xrWlKnJFs89bt8QdG8BdDfXripIMgRZ
-         4Gs7nQq6N1AhQlkdPBVawTNegB1rx0qBnjg3LayGBzLhb6X2lgIgQRRONkhjlTq4n7
-         F/6adrcv330tCvv0c7As+8ekx6/W76Thu0m+12MeBZvgVKow9Gst1xRqiTXR2DAreX
-         s357bMKERGioqdOTxFlpOCHHU195G47SuIay4Q+8XdDvMr/euCv9OvWde856WEHPVl
-         HQIbUpw1HkPeA==
-From:   Jonathan Corbet <corbet@lwn.net>
-To:     linux-doc@vger.kernel.org
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org,
-        Jonathan Corbet <corbet@lwn.net>,
-        Dmitry Torokhov <dmitry.torokhov@gmail.com>,
-        Chen-Yu Tsai <wens@csie.org>,
-        Jernej Skrabec <jernej.skrabec@gmail.com>,
-        Samuel Holland <samuel@sholland.org>,
-        Thierry Reding <thierry.reding@gmail.com>,
-        =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
-        <u.kleine-koenig@pengutronix.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        linux-input@vger.kernel.org, linux-sunxi@lists.linux.dev,
-        linux-pwm@vger.kernel.org, linux-serial@vger.kernel.org
-Subject: [PATCH 6/7] docs: update some straggling Documentation/arm references
-Date:   Fri, 19 May 2023 10:46:06 -0600
-Message-Id: <20230519164607.38845-7-corbet@lwn.net>
-X-Mailer: git-send-email 2.40.1
-In-Reply-To: <20230519164607.38845-1-corbet@lwn.net>
-References: <20230519164607.38845-1-corbet@lwn.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S231386AbjESQyD (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 19 May 2023 12:54:03 -0400
+Received: from out2-smtp.messagingengine.com (out2-smtp.messagingengine.com [66.111.4.26])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8C5F7114;
+        Fri, 19 May 2023 09:53:58 -0700 (PDT)
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
+        by mailout.nyi.internal (Postfix) with ESMTP id C366F5C0096;
+        Fri, 19 May 2023 12:53:57 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute6.internal (MEProxy); Fri, 19 May 2023 12:53:57 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :cc:content-transfer-encoding:content-type:content-type:date
+        :date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+        :references:reply-to:sender:subject:subject:to:to; s=fm3; t=
+        1684515237; x=1684601637; bh=yhZY0s/47MOrcmNsSFhuJoECsMYmmsbPIqp
+        0mRoiHMk=; b=bmwkQjhbHOWz5dV5Cd6mu/m1Neq0V0I8nt1NOZCDWzG5SRkJ7bj
+        P68sMNZ1n2l+nY1r9MAUb1Qjku3q93PCLHKXv+K7IE8q6bhUeFiY1i5kpand7kjc
+        ojYi3fDh5X0LikoQ8VmE4g6FzhYGPwLPDguwcol0BIEdrBKhwZECKa533dwog1tR
+        0Nfp6RB1q+JkmYzufde6dET3U5w2gRAFC5L8bmKWFR5jyt20wB/s5DXZP/l/e8fi
+        jXi1jjDcLp3xUIIQ2q/vkvOX6iRGi75+ILf14+HoEI9SyJmE/WWqUQFWmKngM1fV
+        KVvpvSOm2oaFxHBNNRsxceKvI26Si1OlNHg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-transfer-encoding
+        :content-type:content-type:date:date:feedback-id:feedback-id
+        :from:from:in-reply-to:in-reply-to:message-id:mime-version
+        :references:reply-to:sender:subject:subject:to:to:x-me-proxy
+        :x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=
+        1684515237; x=1684601637; bh=yhZY0s/47MOrcmNsSFhuJoECsMYmmsbPIqp
+        0mRoiHMk=; b=F/0hcqq3GiXxzveFwLkngpTXJrLwBoVWdcv09xFv0ZX1dnxfv+y
+        n02DKYYcVysDM2IOCJu2W3bszb3AqbxenpZjIo8GLvM+wHb9LaaCSCS6vEq6EJbj
+        70EZzC0OP2uK6ursqDFKVlgGQx+mKlp8jP+aTAF5vEWKVRlo8tUgv9SqIyjyQoEp
+        g+5p3mhRKa9KJrAcIxmsCxcLG0WlSqdT3Wf5hf7NWGmQaYr7Gt2K5DjIf/RLWhtZ
+        uEvHq0qz2UtPL3cVtwN4/KrgjzbwFWyUvhPaKiZ4sUzTjNf7NWL/QZhy0esXi8Zi
+        2QPBNg4ihcPjrO1NBN5kNwXL3m7Res3pZ8w==
+X-ME-Sender: <xms:pKlnZCsKXBbX9H4L8l8SHtogv6ii6vS30a0u8eCH6Lz1ex4fb2X-Jg>
+    <xme:pKlnZHcS7SeVLxk4boyMugJhzY0NCSoYUoQHR2z21JdcRox37Ynz8Kd1xEiiPwlYo
+    wExlK4RVo_S1c9PX9k>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvhedrfeeihedguddtiecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfgh
+    necuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmd
+    enucfjughrpefofgggkfgjfhffhffvvefutgfgsehtqhertderreejnecuhfhrohhmpedf
+    tehrnhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrf
+    grthhtvghrnhepgeefjeehvdelvdffieejieejiedvvdfhleeivdelveehjeelteegudek
+    tdfgjeevnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomh
+    eprghrnhgusegrrhhnuggsrdguvg
+X-ME-Proxy: <xmx:pKlnZNwenC2zJcSOrrTY2u7bmCAtug-BuVNWhdGMFXVY_oXUsrfRXA>
+    <xmx:pKlnZNM35i5RBk3sYR4mdXrapO59bM1e3WLlV0juzyqDQMaEqpufcA>
+    <xmx:pKlnZC8b9XqAgA5BkwPs-vM-_W3fRY5c1FuMBRVRid5HaiENG-srKw>
+    <xmx:palnZBeehye73N8PsLdavUwIa4rA3f8ZFvaEZq2vbHa1CT6TCMNo7A>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id ED0CCB6008D; Fri, 19 May 2023 12:53:55 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-431-g1d6a3ebb56-fm-20230511.001-g1d6a3ebb
+Mime-Version: 1.0
+Message-Id: <a9fcf1ad-a387-42a7-957a-e5a6a36fb3d7@app.fastmail.com>
+In-Reply-To: <CAJF2gTRO8Qcz2EXz-ZAczpTj=Lm=GPO-UQMPqCRdqrfjg8sXbA@mail.gmail.com>
+References: <mhng-24855381-7da8-4c77-bcaf-a3a53c8cb38b@palmer-ri-x1c9>
+ <556bebad-3150-4fd5-8725-e4973fd6edd1@app.fastmail.com>
+ <CAJF2gTRO8Qcz2EXz-ZAczpTj=Lm=GPO-UQMPqCRdqrfjg8sXbA@mail.gmail.com>
+Date:   Fri, 19 May 2023 18:53:35 +0200
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     guoren <guoren@kernel.org>
+Cc:     "Palmer Dabbelt" <palmer@rivosinc.com>,
+        "Thomas Gleixner" <tglx@linutronix.de>,
+        "Peter Zijlstra" <peterz@infradead.org>,
+        "Andy Lutomirski" <luto@kernel.org>,
+        "Conor.Dooley" <conor.dooley@microchip.com>,
+        =?UTF-8?Q?Heiko_St=C3=BCbner?= <heiko@sntech.de>,
+        "Jisheng Zhang" <jszhang@kernel.org>,
+        "Huacai Chen" <chenhuacai@kernel.org>,
+        "Anup Patel" <apatel@ventanamicro.com>,
+        "Atish Patra" <atishp@atishpatra.org>,
+        "Mark Rutland" <mark.rutland@arm.com>,
+        =?UTF-8?Q?Bj=C3=B6rn_T=C3=B6pel?= <bjorn@kernel.org>,
+        "Paul Walmsley" <paul.walmsley@sifive.com>,
+        "Catalin Marinas" <catalin.marinas@arm.com>,
+        "Will Deacon" <will@kernel.org>, "Mike Rapoport" <rppt@kernel.org>,
+        "Anup Patel" <anup@brainfault.org>, shihua@iscas.ac.cn,
+        jiawei@iscas.ac.cn, liweiwei@iscas.ac.cn, luxufan@iscas.ac.cn,
+        chunyu@iscas.ac.cn, tsu.yubo@gmail.com, wefu@redhat.com,
+        wangjunqiang@iscas.ac.cn, kito.cheng@sifive.com,
+        "Andy Chiu" <andy.chiu@sifive.com>,
+        "Vincent Chen" <vincent.chen@sifive.com>,
+        "Greentime Hu" <greentime.hu@sifive.com>,
+        "Jonathan Corbet" <corbet@lwn.net>, wuwei2016@iscas.ac.cn,
+        "Jessica Clarke" <jrtc27@jrtc27.com>,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org,
+        "Guo Ren" <guoren@linux.alibaba.com>
+Subject: Re: [RFC PATCH 00/22] riscv: s64ilp32: Running 32-bit Linux kernel on 64-bit
+ supervisor mode
+Content-Type: text/plain;charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The Arm documentation has moved to Documentation/arch/arm; update the
-last remaining references to match.
+On Fri, May 19, 2023, at 17:31, Guo Ren wrote:
+> On Fri, May 19, 2023 at 2:29=E2=80=AFAM Arnd Bergmann <arnd@arndb.de> =
+wrote:
+>> On Thu, May 18, 2023, at 17:38, Palmer Dabbelt wrote:
+>> > On Thu, 18 May 2023 06:09:51 PDT (-0700), guoren@kernel.org wrote:
+>>
+>> If for some crazy reason you'd still want the 64ilp32 ABI in user
+>> space, running the kernel this way is probably still a bad idea,
+>> but that one is less clear. There is clearly a small memory
+>> penalty of running a 64-bit kernel for larger data structures
+>> (page, inode, task_struct, ...) and vmlinux, and there is no
+> I don't think it's a small memory penalty, our measurement is about
+> 16% with defconfig, see "Why 32-bit Linux?" section.
+>
+> This patch series doesn't add 64ilp32 userspace abi, but it seems you
+> also don't like to run 32-bit Linux kernel on 64-bit hardware, right?
 
-Cc: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Cc: Chen-Yu Tsai <wens@csie.org>
-Cc: Jernej Skrabec <jernej.skrabec@gmail.com>
-Cc: Samuel Holland <samuel@sholland.org>
-Cc: Thierry Reding <thierry.reding@gmail.com>
-Cc: "Uwe Kleine-König" <u.kleine-koenig@pengutronix.de>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: linux-input@vger.kernel.org
-Cc: linux-sunxi@lists.linux.dev
-Cc: linux-pwm@vger.kernel.org
-Cc: linux-serial@vger.kernel.org
-Signed-off-by: Jonathan Corbet <corbet@lwn.net>
----
- MAINTAINERS                          | 6 +++---
- drivers/input/touchscreen/sun4i-ts.c | 2 +-
- drivers/pwm/pwm-atmel.c              | 2 +-
- drivers/pwm/pwm-pxa.c                | 2 +-
- drivers/tty/serial/Kconfig           | 4 ++--
- 5 files changed, 8 insertions(+), 8 deletions(-)
+Ok, I'm sorry for missing the important bit here. So if this can
+still use the normal 32-bit user space, the cost of this patch set
+is not huge, and it's something that can be beneficial in a few
+cases, though I suspect most users are still better off running
+64-bit kernels.
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index e0ad886d3163..09aa1b0ef552 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -2706,7 +2706,7 @@ Q:	https://patchwork.kernel.org/project/linux-samsung-soc/list/
- B:	mailto:linux-samsung-soc@vger.kernel.org
- C:	irc://irc.libera.chat/linux-exynos
- T:	git git://git.kernel.org/pub/scm/linux/kernel/git/krzk/linux.git
--F:	Documentation/arm/samsung/
-+F:	Documentation/arch/arm/samsung/
- F:	Documentation/devicetree/bindings/arm/samsung/
- F:	Documentation/devicetree/bindings/hwinfo/samsung,*
- F:	Documentation/devicetree/bindings/power/pd-samsung.yaml
-@@ -3058,7 +3058,7 @@ M:	Will Deacon <will@kernel.org>
- L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
- S:	Maintained
- T:	git git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
--F:	Documentation/arm64/
-+F:	Documentation/arch/arm64/
- F:	arch/arm64/
- F:	tools/testing/selftests/arm64/
- X:	arch/arm64/boot/dts/
-@@ -15278,7 +15278,7 @@ OMAP DISPLAY SUBSYSTEM and FRAMEBUFFER SUPPORT (DSS2)
- L:	linux-omap@vger.kernel.org
- L:	linux-fbdev@vger.kernel.org
- S:	Orphan
--F:	Documentation/arm/omap/dss.rst
-+F:	Documentation/arch/arm/omap/dss.rst
- F:	drivers/video/fbdev/omap2/
- 
- OMAP FRAMEBUFFER SUPPORT
-diff --git a/drivers/input/touchscreen/sun4i-ts.c b/drivers/input/touchscreen/sun4i-ts.c
-index 577c75c83e25..bb3c6072fc82 100644
---- a/drivers/input/touchscreen/sun4i-ts.c
-+++ b/drivers/input/touchscreen/sun4i-ts.c
-@@ -22,7 +22,7 @@
-  * in the kernel). So this driver offers straight forward, reliable single
-  * touch functionality only.
-  *
-- * s.a. A20 User Manual "1.15 TP" (Documentation/arm/sunxi.rst)
-+ * s.a. A20 User Manual "1.15 TP" (Documentation/arch/arm/sunxi.rst)
-  * (looks like the description in the A20 User Manual v1.3 is better
-  * than the one in the A10 User Manual v.1.5)
-  */
-diff --git a/drivers/pwm/pwm-atmel.c b/drivers/pwm/pwm-atmel.c
-index 0c567d9623cd..5f7d286871cf 100644
---- a/drivers/pwm/pwm-atmel.c
-+++ b/drivers/pwm/pwm-atmel.c
-@@ -6,7 +6,7 @@
-  *		 Bo Shen <voice.shen@atmel.com>
-  *
-  * Links to reference manuals for the supported PWM chips can be found in
-- * Documentation/arm/microchip.rst.
-+ * Documentation/arch/arm/microchip.rst.
-  *
-  * Limitations:
-  * - Periods start with the inactive level.
-diff --git a/drivers/pwm/pwm-pxa.c b/drivers/pwm/pwm-pxa.c
-index 46ed668bd141..762429d5647f 100644
---- a/drivers/pwm/pwm-pxa.c
-+++ b/drivers/pwm/pwm-pxa.c
-@@ -8,7 +8,7 @@
-  *		eric miao <eric.miao@marvell.com>
-  *
-  * Links to reference manuals for some of the supported PWM chips can be found
-- * in Documentation/arm/marvell.rst.
-+ * in Documentation/arch/arm/marvell.rst.
-  *
-  * Limitations:
-  * - When PWM is stopped, the current PWM period stops abruptly at the next
-diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 398e5aac2e77..30bb9714f3c6 100644
---- a/drivers/tty/serial/Kconfig
-+++ b/drivers/tty/serial/Kconfig
-@@ -450,8 +450,8 @@ config SERIAL_SA1100
- 	help
- 	  If you have a machine based on a SA1100/SA1110 StrongARM(R) CPU you
- 	  can enable its onboard serial port by enabling this option.
--	  Please read <file:Documentation/arm/sa1100/serial_uart.rst> for further
--	  info.
-+	  Please read <file:Documentation/arch/arm/sa1100/serial_uart.rst> for
-+	  further info.
- 
- config SERIAL_SA1100_CONSOLE
- 	bool "Console on SA1100 serial port"
--- 
-2.40.1
+> The motivation of s64ilp32 (running 32-bit Linux kernel on 64-bit s-mo=
+de):
+>  - The target hardware (Canaan Kendryte k230) only supports MXL=3D64,
+> SXL=3D64, UXL=3D64/32.
+>  - The 64-bit Linux + compat 32-bit app can't satisfy the 64/128MB sce=
+narios.
+>
+>> huge additional maintenance cost on top of the ABI itself
+>> that you'd need either way, but using a 64-bit address space
+>> in the kernel has some important advantages even when running
+>> 32-bit userland: processes can use the entire 4GB virtual
+>> space, while the kernel can address more than 768MB of lowmem,
+>> and KASLR has more bits to work with for randomization. On
+>> RISCV, some additional features (VMAP_STACK, KASAN, KFENCE,
+>> ...) depend on 64-bit kernels even though they don't
+>> strictly need that.
+>
+> I agree that the 64-bit linux kernel has more functionalities, but:
+>  - What do you think about linux on a 64/128MB SoC? Could it be
+> affordable to VMAP_STACK, KASAN, KFENCE?
 
+I would definitely recommend VMAP_STACK, but that can be implemented
+and is used on other 32-bit architectures (ppc32, arm32) without a
+huge cost. The larger virtual user address space can help even on
+machines with 128MB, though most applications probably don't care at
+that point.
+
+>  - I think 32-bit Linux & RTOS have monopolized this market (64/128MB
+> scenarios), right?
+
+The minimum amount of RAM that makes a system usable for Linux is
+constantly going up, so I think with 64MB, most new projects are
+already better off running some RTOS kernel instead of Linux.
+The ones that are still usable today probably won't last a lot
+of distro upgrades before the bloat catches up with them, but I
+can see how your patch set can give them a few extra years of
+updates.
+
+For the 256MB+ systems, I would expect the sensitive kernel
+allocations to be small enough that the series makes little
+difference. The 128MB systems are the most interesting ones
+here, and I'm curious to see where you spot most of the
+memory usage differences, I'll also reply to your initial
+mail for that.
+
+       Arnd
