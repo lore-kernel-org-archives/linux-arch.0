@@ -2,63 +2,65 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A1212C7EE2F
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BAF32C7EE2E
 	for <linux-arch@archiver.kernel.org>; Mon, 22 May 2023 10:51:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229490AbjEVKvU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 22 May 2023 06:51:20 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40696 "EHLO
+        id S232783AbjEVKvV (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 22 May 2023 06:51:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40702 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232741AbjEVKvQ (ORCPT
+        with ESMTP id S232747AbjEVKvQ (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2023 06:51:16 -0400
-Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 15A71B3;
+Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 66F4CDC;
         Mon, 22 May 2023 03:51:14 -0700 (PDT)
-Received: from pps.filterd (m0353724.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 34M9cQQe010213;
-        Mon, 22 May 2023 10:51:04 GMT
+Received: from pps.filterd (m0353728.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 34MA6Hbj001212;
+        Mon, 22 May 2023 10:51:00 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
  : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=pp1;
- bh=OI6wF1zAmCtTgOoZ252lKahmHjBD6cG3jFZDrBmzfTU=;
- b=O6S7mybTB8sk5Iohs6m46NkxZOq+apwkSpMUhfNeiEziCv8DS5nYhQn6xed4YrwFmJKm
- Yvq1xfzRpBAa4AivibZEKX5dN/b/Xd/LNOr3fgB4lBxhZPTkFWFMBHlFPlacu6E9Mf6K
- sfiqWDXWqA+XBIOmw1TxBnKYG95hbvrVlOR5k5MGzf7UXWX8TMuSVaWOTI0JHvQhd3x3
- G1fYJtJZfz1rBmNSXOyCQDBiiAkBa289nIzF2Qmebu8gHwwPzaLEsCfyQMMzroDYPNoz
- Hh+5DbLxeSRq13s4/Xk+TfWR8J6WfVfNNGA9Xoif3koipdPcAGJfZKqV2h1GtPzImWsg iA== 
+ bh=6CrHbRbZwmE695h1/9xPXBODIudaFq5zB4tBHplFMOU=;
+ b=Zc0ZTnXqlOrsUbAx9iAFZXiLKqYQmS6D3onVlY0QzWj88uOAoNBE1x6g/LnF8evF2RJg
+ 1nmZdAL9K+sE3/cmT0PzQtGxgtKX8v7CP0zQJMr7++Qpq1gDN/YMZXlGSa6/44ami+0z
+ IktbsxjTsrQOLm2bz2+WtfxDzKYadJzY9fgZWREK0qetDHiZoEFCEp9+Bn1ZsnZ6kC8K
+ yrgLeeDiRGwJHXybpdJ6dS7Cq9XO0bV+JbI72GmR94jSon0xxln38SxUYS+xc8zON5o2
+ 70z8xV7wuTXq+mLsF8Kq2OCJF26n97hwsEDNT9ClIxlA/AXJRtDgqQnPZVxnJ2JaXoqa 3A== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqee6tdk3-1
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqfak2psu-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:04 +0000
-Received: from m0353724.ppops.net (m0353724.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 34MASa3O020599;
-        Mon, 22 May 2023 10:51:03 GMT
-Received: from ppma03ams.nl.ibm.com (62.31.33a9.ip4.static.sl-reverse.com [169.51.49.98])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqee6tdjj-1
+        Mon, 22 May 2023 10:51:00 +0000
+Received: from m0353728.ppops.net (m0353728.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 34MA8oV1010897;
+        Mon, 22 May 2023 10:50:59 GMT
+Received: from ppma04ams.nl.ibm.com (63.31.33a9.ip4.static.sl-reverse.com [169.51.49.99])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqfak2pru-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:03 +0000
-Received: from pps.filterd (ppma03ams.nl.ibm.com [127.0.0.1])
-        by ppma03ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 34M5xB5G007770;
-        Mon, 22 May 2023 10:51:01 GMT
-Received: from smtprelay04.fra02v.mail.ibm.com ([9.218.2.228])
-        by ppma03ams.nl.ibm.com (PPS) with ESMTPS id 3qppcu8wes-1
+        Mon, 22 May 2023 10:50:59 +0000
+Received: from pps.filterd (ppma04ams.nl.ibm.com [127.0.0.1])
+        by ppma04ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 34M3HmDa010277;
+        Mon, 22 May 2023 10:50:57 GMT
+Received: from smtprelay07.fra02v.mail.ibm.com ([9.218.2.229])
+        by ppma04ams.nl.ibm.com (PPS) with ESMTPS id 3qppdk0w94-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:01 +0000
+        Mon, 22 May 2023 10:50:56 +0000
 Received: from smtpav04.fra02v.mail.ibm.com (smtpav04.fra02v.mail.ibm.com [10.20.54.103])
-        by smtprelay04.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 34MAowpn32834006
+        by smtprelay07.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 34MAosEG59310516
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Mon, 22 May 2023 10:50:58 GMT
+        Mon, 22 May 2023 10:50:54 GMT
 Received: from smtpav04.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 4FAF120040;
-        Mon, 22 May 2023 10:50:58 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id 4A7F22005A;
+        Mon, 22 May 2023 10:50:54 +0000 (GMT)
 Received: from smtpav04.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 002AE20043;
-        Mon, 22 May 2023 10:50:57 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id CDDC520043;
+        Mon, 22 May 2023 10:50:53 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
         by smtpav04.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Mon, 22 May 2023 10:50:57 +0000 (GMT)
+        Mon, 22 May 2023 10:50:53 +0000 (GMT)
 From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>
+To:     Arnd Bergmann <arnd@arndb.de>, Peter Huewe <peterhuewe@gmx.de>,
+        Jarkko Sakkinen <jarkko@kernel.org>,
+        Jason Gunthorpe <jgg@ziepe.ca>
 Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Bjorn Helgaas <bhelgaas@google.com>,
         =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
@@ -71,75 +73,153 @@ Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Palmer Dabbelt <palmer@dabbelt.com>,
         Albert Ou <aou@eecs.berkeley.edu>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>
-Subject: [PATCH v5 10/44] firmware: dmi-sysfs: handle HAS_IOPORT=n
-Date:   Mon, 22 May 2023 12:50:15 +0200
-Message-Id: <20230522105049.1467313-11-schnelle@linux.ibm.com>
+        linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
+        linux-integrity@vger.kernel.org
+Subject: [PATCH v5 05/44] char: tpm: handle HAS_IOPORT dependencies
+Date:   Mon, 22 May 2023 12:50:10 +0200
+Message-Id: <20230522105049.1467313-6-schnelle@linux.ibm.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 References: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: I_2Gg45WEEi3OLP1qik9T0oAgXW0txyO
-X-Proofpoint-ORIG-GUID: MZA9tQJ53QoiaNqEKNPswhPP2GknA3vx
+X-Proofpoint-ORIG-GUID: kYOYTHdoIsP1ozXawvi0SoHi7nj3U6BM
+X-Proofpoint-GUID: NYXc3KokLHm36QRqFuQJZOuIpCzWiHaX
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.573,FMLib:17.11.170.22
  definitions=2023-05-22_06,2023-05-22_03,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 spamscore=0 suspectscore=0
- phishscore=0 adultscore=0 bulkscore=0 malwarescore=0 lowpriorityscore=0
- priorityscore=1501 mlxlogscore=999 clxscore=1015 impostorscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 lowpriorityscore=0
+ suspectscore=0 phishscore=0 mlxlogscore=930 spamscore=0 adultscore=0
+ mlxscore=0 impostorscore=0 clxscore=1015 bulkscore=0 malwarescore=0
+ priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2304280000 definitions=main-2305220089
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
-not being declared. We thus need to guard sections of code calling them
-as alternative access methods.
+not being declared. We thus need to add this dependency and ifdef
+sections of code using inb()/outb() as alternative access methods.
 
 Co-developed-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 ---
- drivers/firmware/dmi-sysfs.c | 4 ++++
- 1 file changed, 4 insertions(+)
+ drivers/char/tpm/Kconfig        |  1 +
+ drivers/char/tpm/tpm_infineon.c | 16 ++++++++++++----
+ drivers/char/tpm/tpm_tis_core.c | 19 ++++++++-----------
+ 3 files changed, 21 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/firmware/dmi-sysfs.c b/drivers/firmware/dmi-sysfs.c
-index 03708ab64e56..8d91997036e4 100644
---- a/drivers/firmware/dmi-sysfs.c
-+++ b/drivers/firmware/dmi-sysfs.c
-@@ -310,6 +310,7 @@ static const struct kobj_type dmi_system_event_log_ktype = {
- 	.default_groups = dmi_sysfs_sel_groups,
- };
+diff --git a/drivers/char/tpm/Kconfig b/drivers/char/tpm/Kconfig
+index 927088b2c3d3..418c9ed59ffd 100644
+--- a/drivers/char/tpm/Kconfig
++++ b/drivers/char/tpm/Kconfig
+@@ -149,6 +149,7 @@ config TCG_NSC
+ config TCG_ATMEL
+ 	tristate "Atmel TPM Interface"
+ 	depends on PPC64 || HAS_IOPORT_MAP
++	depends on HAS_IOPORT
+ 	help
+ 	  If you have a TPM security chip from Atmel say Yes and it 
+ 	  will be accessible from within Linux.  To compile this driver 
+diff --git a/drivers/char/tpm/tpm_infineon.c b/drivers/char/tpm/tpm_infineon.c
+index 9c924a1440a9..99c6e565ec8d 100644
+--- a/drivers/char/tpm/tpm_infineon.c
++++ b/drivers/char/tpm/tpm_infineon.c
+@@ -26,7 +26,9 @@
+ #define	TPM_MAX_TRIES		5000
+ #define	TPM_INFINEON_DEV_VEN_VALUE	0x15D1
  
 +#ifdef CONFIG_HAS_IOPORT
- typedef u8 (*sel_io_reader)(const struct dmi_system_event_log *sel,
- 			    loff_t offset);
+ #define TPM_INF_IO_PORT		0x0
++#endif
+ #define TPM_INF_IO_MEM		0x1
  
-@@ -374,6 +375,7 @@ static ssize_t dmi_sel_raw_read_io(struct dmi_sysfs_entry *entry,
+ #define TPM_INF_ADDR		0x0
+@@ -51,34 +53,40 @@ static struct tpm_inf_dev tpm_dev;
  
- 	return wrote;
+ static inline void tpm_data_out(unsigned char data, unsigned char offset)
+ {
++#ifdef CONFIG_HAS_IOPORT
+ 	if (tpm_dev.iotype == TPM_INF_IO_PORT)
+ 		outb(data, tpm_dev.data_regs + offset);
+ 	else
++#endif
+ 		writeb(data, tpm_dev.mem_base + tpm_dev.data_regs + offset);
  }
-+#endif
  
- static ssize_t dmi_sel_raw_read_phys32(struct dmi_sysfs_entry *entry,
- 				       const struct dmi_system_event_log *sel,
-@@ -409,11 +411,13 @@ static ssize_t dmi_sel_raw_read_helper(struct dmi_sysfs_entry *entry,
- 	memcpy(&sel, dh, sizeof(sel));
- 
- 	switch (sel.access_method) {
+ static inline unsigned char tpm_data_in(unsigned char offset)
+ {
 +#ifdef CONFIG_HAS_IOPORT
- 	case DMI_SEL_ACCESS_METHOD_IO8:
- 	case DMI_SEL_ACCESS_METHOD_IO2x8:
- 	case DMI_SEL_ACCESS_METHOD_IO16:
- 		return dmi_sel_raw_read_io(entry, &sel, state->buf,
- 					   state->pos, state->count);
+ 	if (tpm_dev.iotype == TPM_INF_IO_PORT)
+ 		return inb(tpm_dev.data_regs + offset);
+-	else
+-		return readb(tpm_dev.mem_base + tpm_dev.data_regs + offset);
 +#endif
- 	case DMI_SEL_ACCESS_METHOD_PHYS32:
- 		return dmi_sel_raw_read_phys32(entry, &sel, state->buf,
- 					       state->pos, state->count);
++	return readb(tpm_dev.mem_base + tpm_dev.data_regs + offset);
+ }
+ 
+ static inline void tpm_config_out(unsigned char data, unsigned char offset)
+ {
++#ifdef CONFIG_HAS_IOPORT
+ 	if (tpm_dev.iotype == TPM_INF_IO_PORT)
+ 		outb(data, tpm_dev.config_port + offset);
+ 	else
++#endif
+ 		writeb(data, tpm_dev.mem_base + tpm_dev.index_off + offset);
+ }
+ 
+ static inline unsigned char tpm_config_in(unsigned char offset)
+ {
++#ifdef CONFIG_HAS_IOPORT
+ 	if (tpm_dev.iotype == TPM_INF_IO_PORT)
+ 		return inb(tpm_dev.config_port + offset);
+-	else
+-		return readb(tpm_dev.mem_base + tpm_dev.index_off + offset);
++#endif
++	return readb(tpm_dev.mem_base + tpm_dev.index_off + offset);
+ }
+ 
+ /* TPM header definitions */
+diff --git a/drivers/char/tpm/tpm_tis_core.c b/drivers/char/tpm/tpm_tis_core.c
+index 558144fa707a..0ee5a83e35a8 100644
+--- a/drivers/char/tpm/tpm_tis_core.c
++++ b/drivers/char/tpm/tpm_tis_core.c
+@@ -954,11 +954,6 @@ static void tpm_tis_clkrun_enable(struct tpm_chip *chip, bool value)
+ 		clkrun_val &= ~LPC_CLKRUN_EN;
+ 		iowrite32(clkrun_val, data->ilb_base_addr + LPC_CNTRL_OFFSET);
+ 
+-		/*
+-		 * Write any random value on port 0x80 which is on LPC, to make
+-		 * sure LPC clock is running before sending any TPM command.
+-		 */
+-		outb(0xCC, 0x80);
+ 	} else {
+ 		data->clkrun_enabled--;
+ 		if (data->clkrun_enabled)
+@@ -969,13 +964,15 @@ static void tpm_tis_clkrun_enable(struct tpm_chip *chip, bool value)
+ 		/* Enable LPC CLKRUN# */
+ 		clkrun_val |= LPC_CLKRUN_EN;
+ 		iowrite32(clkrun_val, data->ilb_base_addr + LPC_CNTRL_OFFSET);
+-
+-		/*
+-		 * Write any random value on port 0x80 which is on LPC, to make
+-		 * sure LPC clock is running before sending any TPM command.
+-		 */
+-		outb(0xCC, 0x80);
+ 	}
++
++#ifdef CONFIG_HAS_IOPORT
++	/*
++	 * Write any random value on port 0x80 which is on LPC, to make
++	 * sure LPC clock is running before sending any TPM command.
++	 */
++	outb(0xCC, 0x80);
++#endif
+ }
+ 
+ static const struct tpm_class_ops tpm_tis = {
 -- 
 2.39.2
 
