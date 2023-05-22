@@ -2,63 +2,64 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7B314C7EE2F
-	for <linux-arch@archiver.kernel.org>; Mon, 22 May 2023 10:55:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A311C7EE26
+	for <linux-arch@archiver.kernel.org>; Mon, 22 May 2023 10:55:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233128AbjEVKzD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 22 May 2023 06:55:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41410 "EHLO
+        id S233135AbjEVKzF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 22 May 2023 06:55:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41158 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232538AbjEVKw7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2023 06:52:59 -0400
+        with ESMTP id S232900AbjEVKxN (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2023 06:53:13 -0400
 Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 445B2103;
-        Mon, 22 May 2023 03:51:43 -0700 (PDT)
-Received: from pps.filterd (m0356516.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 34MAMoKS005244;
-        Mon, 22 May 2023 10:51:32 GMT
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E9B8510E2;
+        Mon, 22 May 2023 03:51:44 -0700 (PDT)
+Received: from pps.filterd (m0353723.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 34MAlKsh001871;
+        Mon, 22 May 2023 10:51:34 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
  : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=pp1;
- bh=dfQ5wQfNvBBFH/wDJ5V3TSqe/Y7LuirZVNmCqlaqJ5Q=;
- b=GRnDdWhOGFX36plq4/sEtOllzRiD8AAbRkTy83bj2Nn0OFJw2o+aiS1pstoqWS7fKP2w
- gFJDAqc1K5cdEoVZbOpyxirv5s5M+MKo15D/FiOqXn/7Xh1sTJ0a/BUNPxIHuHuyr2n+
- YJoDHD38+BZulEoL56CQTOQ4aNWqTExy0oTfMkB68ZEolNsy0PqPuGMWLFDCpZmV+Z4h
- GrjSuPCx04M+SFzWU8sidYwcJ+XGipxHIjMgEGkSexJswU6v5ucIkk5vX/aYx37IGAwV
- axF2HAh0JhW50WAfKKSGCR+cqAzmpXqhySNXADRTHVoPRbwYzAfUbvtgDJ9jSETgEBnJ /A== 
+ bh=t/p78aF3Fsm1r4WfO8KCNR7jJUnK5tXbW+4ATVnvcIw=;
+ b=gQ8TUjzxE8e9vNofYwMyW2tEolkWboT+AOxlYZ8SKzzHBnTJrOQWS/jRKCVH9xEt35b7
+ Q1lk0hbyXlT4TALonhyI+7+a4QfWgbW8GeYu5K3GUL3e0R/CAGlCfKxwKAHJyqO2pX60
+ XZOSw6zq1GPn3r4HMr3muvjo/LIEqLYftn/JnMTGQBtZXYjecnfeb8JslWR4SXZmG/R0
+ xipQBxYtHH1bi8FcEanqls7Dcs5fc5SDaUHfSQUCAf8WBicssezPiBIprzL5/Ps5GGux
+ 4XrsICnR9qJmU7rrDGvJv0ngAgGEEo+991afOD1hIXDQD7mZv49pDnd6kZNzza7JDWzG Qg== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqfq39r4m-1
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqd3tc9fm-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:32 +0000
-Received: from m0356516.ppops.net (m0356516.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 34M9bChA026211;
+        Mon, 22 May 2023 10:51:34 +0000
+Received: from m0353723.ppops.net (m0353723.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 34MARHtB007329;
+        Mon, 22 May 2023 10:51:33 GMT
+Received: from ppma04ams.nl.ibm.com (63.31.33a9.ip4.static.sl-reverse.com [169.51.49.99])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqd3tc9f2-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Mon, 22 May 2023 10:51:33 +0000
+Received: from pps.filterd (ppma04ams.nl.ibm.com [127.0.0.1])
+        by ppma04ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 34M3P0ds016258;
         Mon, 22 May 2023 10:51:31 GMT
-Received: from ppma03ams.nl.ibm.com (62.31.33a9.ip4.static.sl-reverse.com [169.51.49.98])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqfq39r42-1
+Received: from smtprelay06.fra02v.mail.ibm.com ([9.218.2.230])
+        by ppma04ams.nl.ibm.com (PPS) with ESMTPS id 3qppdk0w9c-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
         Mon, 22 May 2023 10:51:31 +0000
-Received: from pps.filterd (ppma03ams.nl.ibm.com [127.0.0.1])
-        by ppma03ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 34M0H8rM032675;
-        Mon, 22 May 2023 10:51:29 GMT
-Received: from smtprelay04.fra02v.mail.ibm.com ([9.218.2.228])
-        by ppma03ams.nl.ibm.com (PPS) with ESMTPS id 3qppcu8wf6-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:28 +0000
 Received: from smtpav04.fra02v.mail.ibm.com (smtpav04.fra02v.mail.ibm.com [10.20.54.103])
-        by smtprelay04.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 34MApQTF42599134
+        by smtprelay06.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 34MApSbc18744042
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Mon, 22 May 2023 10:51:26 GMT
+        Mon, 22 May 2023 10:51:29 GMT
 Received: from smtpav04.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 7BA1A20043;
-        Mon, 22 May 2023 10:51:26 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id DB18320043;
+        Mon, 22 May 2023 10:51:28 +0000 (GMT)
 Received: from smtpav04.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 22D4220040;
-        Mon, 22 May 2023 10:51:26 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id 8287120040;
+        Mon, 22 May 2023 10:51:28 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
         by smtpav04.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Mon, 22 May 2023 10:51:26 +0000 (GMT)
+        Mon, 22 May 2023 10:51:28 +0000 (GMT)
 From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>, Helge Deller <deller@gmx.de>
+To:     Arnd Bergmann <arnd@arndb.de>, Kalle Valo <kvalo@kernel.org>,
+        Jouni Malinen <j@w1.fi>
 Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Bjorn Helgaas <bhelgaas@google.com>,
         =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
@@ -72,26 +73,26 @@ Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Albert Ou <aou@eecs.berkeley.edu>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
-        linux-fbdev@vger.kernel.org, dri-devel@lists.freedesktop.org
-Subject: [PATCH v5 40/44] fbdev: add HAS_IOPORT dependencies
-Date:   Mon, 22 May 2023 12:50:45 +0200
-Message-Id: <20230522105049.1467313-41-schnelle@linux.ibm.com>
+        linux-wireless@vger.kernel.org
+Subject: [PATCH v5 43/44] wireless: add HAS_IOPORT dependencies
+Date:   Mon, 22 May 2023 12:50:48 +0200
+Message-Id: <20230522105049.1467313-44-schnelle@linux.ibm.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 References: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-TM-AS-GCONF: 00
-X-Proofpoint-ORIG-GUID: gF39b4CtRX-VN3x90OvnQJrNShb5p1QN
-X-Proofpoint-GUID: 3MKUXHaX8MLYXQBNoJhPW_qWaJmsxJUH
+X-Proofpoint-ORIG-GUID: hkoqqsehAPnW0cobvIyfm0NtXdLn8nJK
+X-Proofpoint-GUID: QRu9rlE6l0g8yNJUAoBhXPjk5Ht-RbBR
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.573,FMLib:17.11.170.22
  definitions=2023-05-22_06,2023-05-22_03,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 phishscore=0 mlxlogscore=999
- priorityscore=1501 adultscore=0 lowpriorityscore=0 mlxscore=0 spamscore=0
- suspectscore=0 malwarescore=0 impostorscore=0 clxscore=1015 bulkscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2304280000
- definitions=main-2305220089
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 phishscore=0 suspectscore=0
+ malwarescore=0 clxscore=1015 mlxscore=0 bulkscore=0 spamscore=0
+ mlxlogscore=939 impostorscore=0 adultscore=0 lowpriorityscore=0
+ priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2304280000 definitions=main-2305220089
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -102,122 +103,39 @@ those drivers using them.
 
 Co-developed-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Arnd Bergmann <arnd@kernel.org>
+Acked-by: Kalle Valo <kvalo@kernel.org>
 Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 ---
- drivers/video/fbdev/Kconfig | 23 ++++++++++++-----------
- 1 file changed, 12 insertions(+), 11 deletions(-)
+ drivers/net/wireless/atmel/Kconfig           | 2 +-
+ drivers/net/wireless/intersil/hostap/Kconfig | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/video/fbdev/Kconfig b/drivers/video/fbdev/Kconfig
-index 0fdf5f46802c..4eea398ebbfe 100644
---- a/drivers/video/fbdev/Kconfig
-+++ b/drivers/video/fbdev/Kconfig
-@@ -335,7 +335,7 @@ config FB_IMX
+diff --git a/drivers/net/wireless/atmel/Kconfig b/drivers/net/wireless/atmel/Kconfig
+index ca45a1021cf4..bafdd57b049a 100644
+--- a/drivers/net/wireless/atmel/Kconfig
++++ b/drivers/net/wireless/atmel/Kconfig
+@@ -14,7 +14,7 @@ if WLAN_VENDOR_ATMEL
  
- config FB_CYBER2000
- 	tristate "CyberPro 2000/2010/5000 support"
--	depends on FB && PCI && (BROKEN || !SPARC64)
-+	depends on FB && PCI && HAS_IOPORT && (BROKEN || !SPARC64)
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -429,6 +429,7 @@ config FB_FM2
- config FB_ARC
- 	tristate "Arc Monochrome LCD board support"
- 	depends on FB && (X86 || COMPILE_TEST)
-+	depends on HAS_IOPORT
- 	select FB_SYS_FILLRECT
- 	select FB_SYS_COPYAREA
- 	select FB_SYS_IMAGEBLIT
-@@ -531,7 +532,7 @@ config FB_IMSTT
+ config ATMEL
+ 	tristate "Atmel at76c50x chipset  802.11b support"
+-	depends on CFG80211 && (PCI || PCMCIA)
++	depends on CFG80211 && (PCI || PCMCIA) && HAS_IOPORT
+ 	select WIRELESS_EXT
+ 	select WEXT_PRIV
+ 	select FW_LOADER
+diff --git a/drivers/net/wireless/intersil/hostap/Kconfig b/drivers/net/wireless/intersil/hostap/Kconfig
+index c865d3156cea..2edff8efbcbb 100644
+--- a/drivers/net/wireless/intersil/hostap/Kconfig
++++ b/drivers/net/wireless/intersil/hostap/Kconfig
+@@ -56,7 +56,7 @@ config HOSTAP_FIRMWARE_NVRAM
  
- config FB_VGA16
- 	tristate "VGA 16-color graphics support"
--	depends on FB && (X86 || PPC)
-+	depends on FB && HAS_IOPORT
- 	select APERTURE_HELPERS
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
-@@ -1332,7 +1333,7 @@ config FB_ATY_BACKLIGHT
- 
- config FB_S3
- 	tristate "S3 Trio/Virge support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -1393,7 +1394,7 @@ config FB_SAVAGE_ACCEL
- 
- config FB_SIS
- 	tristate "SiS/XGI display support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -1424,7 +1425,7 @@ config FB_SIS_315
- 
- config FB_VIA
- 	tristate "VIA UniChrome (Pro) and Chrome9 display support"
--	depends on FB && PCI && GPIOLIB && I2C && (X86 || COMPILE_TEST)
-+	depends on FB && PCI && GPIOLIB && I2C && HAS_IOPORT && (X86 || COMPILE_TEST)
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -1463,7 +1464,7 @@ endif
- 
- config FB_NEOMAGIC
- 	tristate "NeoMagic display support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_MODE_HELPERS
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
-@@ -1493,7 +1494,7 @@ config FB_KYRO
- 
- config FB_3DFX
- 	tristate "3Dfx Banshee/Voodoo3/Voodoo5 display support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_IMAGEBLIT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
-@@ -1543,7 +1544,7 @@ config FB_VOODOO1
- 
- config FB_VT8623
- 	tristate "VIA VT8623 support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -1558,7 +1559,7 @@ config FB_VT8623
- 
- config FB_TRIDENT
- 	tristate "Trident/CyberXXX/CyberBlade support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -1581,7 +1582,7 @@ config FB_TRIDENT
- 
- config FB_ARK
- 	tristate "ARK 2000PV support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
-@@ -2195,7 +2196,7 @@ config FB_SSD1307
- 
- config FB_SM712
- 	tristate "Silicon Motion SM712 framebuffer support"
--	depends on FB && PCI
-+	depends on FB && PCI && HAS_IOPORT
- 	select FB_CFB_FILLRECT
- 	select FB_CFB_COPYAREA
- 	select FB_CFB_IMAGEBLIT
+ config HOSTAP_PLX
+ 	tristate "Host AP driver for Prism2/2.5/3 in PLX9052 PCI adaptors"
+-	depends on PCI && HOSTAP
++	depends on PCI && HOSTAP && HAS_IOPORT
+ 	help
+ 	Host AP driver's version for Prism2/2.5/3 PC Cards in PLX9052 based
+ 	PCI adaptors.
 -- 
 2.39.2
 
