@@ -2,65 +2,66 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1EAE3C7EE2F
-	for <linux-arch@archiver.kernel.org>; Mon, 22 May 2023 10:52:21 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C30A0C77B75
+	for <linux-arch@archiver.kernel.org>; Mon, 22 May 2023 10:52:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232808AbjEVKvx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 22 May 2023 06:51:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41130 "EHLO
+        id S232590AbjEVKvu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 22 May 2023 06:51:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41142 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232876AbjEVKvi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2023 06:51:38 -0400
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 21702103;
-        Mon, 22 May 2023 03:51:19 -0700 (PDT)
-Received: from pps.filterd (m0353726.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 34MAbXmk012319;
-        Mon, 22 May 2023 10:51:05 GMT
+        with ESMTP id S232885AbjEVKvj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 22 May 2023 06:51:39 -0400
+Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA893100;
+        Mon, 22 May 2023 03:51:18 -0700 (PDT)
+Received: from pps.filterd (m0353725.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 34M9qg4P025283;
+        Mon, 22 May 2023 10:51:04 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
  : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=pp1;
- bh=6+4RrjdTfnJAshOCnAfyvJneuAtW/UXGQv11A4MgapE=;
- b=VyrSDAsAYDFG6OEqx5enKzSk51dcNvfQbBjK4MsPGZ3D4fUaWuyCtxUZdk7wVN8d9U4J
- Un7t9MT0zYwnW8LdKoaT1AJQdWYeC5OG/ZNiOc/a55YN6UjWyRybIXwKEuN3d2LODddV
- nAEYbUp29RO4qjxF8tP8RYQ1X2m7lBMOMtqcZAvlgfVimJ878v02B6emauFnmz/f/dJQ
- aBvZRlneTldH0UE2lISrldC1CJt16z79EQkFIr6iPVl2NLYaNHDjXywP8WrMhznzHFQB
- FYw9v4X18Q2CwMf+zMAqqxTex09UrG6ZTMajnhz0na27JwqMwblk4b8gs487ZaJ2YP4o dw== 
+ bh=9Kmlo6ZCBjkmXN6T3y03XJrR9HuwFE+uXebCLLUEKWc=;
+ b=jr47dkICdmjhhzDFIKsksvNwxunKZ4lkXK7WMfk+Kv2XJd52XXZQbJ7RWnjwM5WZbLOM
+ CGa/YQQpyXvd6q+pz1T/s7L2equMdbfXWERr9uydF60cR7K0JMROGK7KBzhmfOnvDB7A
+ HCpKIfu+4yfq8oiJoVfOFWWrJQIWR30wVHZwROGAxoJrpJOE4FKwUHIqsY8JM+3zWxl9
+ uXnXbfdxnJkZ+X6/q2hAZr3yT/A8yQxd8Ws/LKB6OTXqI1eCZVS/ANIf1yuqnu6aZ+FU
+ z8hODjAUZzJlgHHLU4IT8f9+jxi6LOltsQ06wOwVav/BQEIU7DbMqjkYwGpfQAe9rHKS 1Q== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qq7qjgn5p-1
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqawenue2-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:05 +0000
-Received: from m0353726.ppops.net (m0353726.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 34MAmxsk005059;
-        Mon, 22 May 2023 10:51:04 GMT
-Received: from ppma02fra.de.ibm.com (47.49.7a9f.ip4.static.sl-reverse.com [159.122.73.71])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qq7qjgn4r-1
+        Mon, 22 May 2023 10:51:03 +0000
+Received: from m0353725.ppops.net (m0353725.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 34MAaIag031931;
+        Mon, 22 May 2023 10:51:02 GMT
+Received: from ppma03fra.de.ibm.com (6b.4a.5195.ip4.static.sl-reverse.com [149.81.74.107])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3qqawenud2-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:04 +0000
-Received: from pps.filterd (ppma02fra.de.ibm.com [127.0.0.1])
-        by ppma02fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 34M5ooLM001949;
-        Mon, 22 May 2023 10:51:01 GMT
-Received: from smtprelay05.fra02v.mail.ibm.com ([9.218.2.225])
-        by ppma02fra.de.ibm.com (PPS) with ESMTPS id 3qppcs8s0m-1
+        Mon, 22 May 2023 10:51:02 +0000
+Received: from pps.filterd (ppma03fra.de.ibm.com [127.0.0.1])
+        by ppma03fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 34M6Md9P026246;
+        Mon, 22 May 2023 10:51:00 GMT
+Received: from smtprelay01.fra02v.mail.ibm.com ([9.218.2.227])
+        by ppma03fra.de.ibm.com (PPS) with ESMTPS id 3qppe08rk1-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Mon, 22 May 2023 10:51:01 +0000
+        Mon, 22 May 2023 10:51:00 +0000
 Received: from smtpav04.fra02v.mail.ibm.com (smtpav04.fra02v.mail.ibm.com [10.20.54.103])
-        by smtprelay05.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 34MAox7e15925974
+        by smtprelay01.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 34MAovm211076336
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Mon, 22 May 2023 10:50:59 GMT
+        Mon, 22 May 2023 10:50:57 GMT
 Received: from smtpav04.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 0E86A2004B;
-        Mon, 22 May 2023 10:50:59 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id A070920043;
+        Mon, 22 May 2023 10:50:57 +0000 (GMT)
 Received: from smtpav04.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id A79B520040;
-        Mon, 22 May 2023 10:50:58 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id 3649520040;
+        Mon, 22 May 2023 10:50:57 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
         by smtpav04.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Mon, 22 May 2023 10:50:58 +0000 (GMT)
+        Mon, 22 May 2023 10:50:57 +0000 (GMT)
 From:   Niklas Schnelle <schnelle@linux.ibm.com>
-To:     Arnd Bergmann <arnd@arndb.de>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        Bartosz Golaszewski <brgl@bgdev.pl>
+To:     Arnd Bergmann <arnd@arndb.de>, Dave Airlie <airlied@redhat.com>,
+        Gerd Hoffmann <kraxel@redhat.com>,
+        David Airlie <airlied@gmail.com>,
+        Daniel Vetter <daniel@ffwll.ch>
 Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Bjorn Helgaas <bhelgaas@google.com>,
         =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
@@ -74,25 +75,26 @@ Cc:     Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Albert Ou <aou@eecs.berkeley.edu>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
-        linux-gpio@vger.kernel.org
-Subject: [PATCH v5 11/44] gpio: add HAS_IOPORT dependencies
-Date:   Mon, 22 May 2023 12:50:16 +0200
-Message-Id: <20230522105049.1467313-12-schnelle@linux.ibm.com>
+        virtualization@lists.linux-foundation.org,
+        spice-devel@lists.freedesktop.org, dri-devel@lists.freedesktop.org
+Subject: [PATCH v5 09/44] drm: handle HAS_IOPORT dependencies
+Date:   Mon, 22 May 2023 12:50:14 +0200
+Message-Id: <20230522105049.1467313-10-schnelle@linux.ibm.com>
 X-Mailer: git-send-email 2.39.2
 In-Reply-To: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 References: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-TM-AS-GCONF: 00
-X-Proofpoint-ORIG-GUID: aSnFaYpRsTjOi28xxWAIUX2crvxnb9OA
-X-Proofpoint-GUID: x-LN_IorG9amB50fBQe3pvKBvQPVNJcZ
+X-Proofpoint-ORIG-GUID: Yn1aYozOoQRQ35axx6-QJVU4LBPEu3YW
+X-Proofpoint-GUID: embi3Xmr-Ok9P1L4jvo5o27uBBDwkiPk
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.573,FMLib:17.11.170.22
  definitions=2023-05-22_06,2023-05-22_03,2023-02-09_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 suspectscore=0 adultscore=0
- priorityscore=1501 clxscore=1015 mlxlogscore=734 impostorscore=0
- mlxscore=0 bulkscore=0 spamscore=0 phishscore=0 lowpriorityscore=0
- malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 impostorscore=0 adultscore=0
+ clxscore=1015 malwarescore=0 phishscore=0 spamscore=0 mlxscore=0
+ priorityscore=1501 bulkscore=0 suspectscore=0 lowpriorityscore=0
+ mlxlogscore=679 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2304280000 definitions=main-2305220089
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
@@ -100,60 +102,120 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 In a future patch HAS_IOPORT=n will result in inb()/outb() and friends
 not being declared. We thus need to add HAS_IOPORT as dependency for
-those drivers using them.
+those drivers using them. In the bochs driver there is optional MMIO
+support detected at runtime, warn if this isn't taken when
+HAS_IOPORT is not defined.
 
-Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+There is also a direct and hard coded use in cirrus.c which according to
+the comment is only necessary during resume.  Let's just skip this as
+for example s390 which doesn't have I/O port support also doesen't
+support suspend/resume.
+
 Co-developed-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Arnd Bergmann <arnd@kernel.org>
 Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 ---
- drivers/gpio/Kconfig | 26 +++++++++++++-------------
- 1 file changed, 13 insertions(+), 13 deletions(-)
+ drivers/gpu/drm/qxl/Kconfig   |  1 +
+ drivers/gpu/drm/tiny/bochs.c  | 17 +++++++++++++++++
+ drivers/gpu/drm/tiny/cirrus.c |  2 ++
+ 3 files changed, 20 insertions(+)
 
-diff --git a/drivers/gpio/Kconfig b/drivers/gpio/Kconfig
-index 5521f060d58e..a470ec8d617b 100644
---- a/drivers/gpio/Kconfig
-+++ b/drivers/gpio/Kconfig
-@@ -704,18 +704,6 @@ config GPIO_VISCONTI
- 	help
- 	  Say yes here to support GPIO on Tohisba Visconti.
+diff --git a/drivers/gpu/drm/qxl/Kconfig b/drivers/gpu/drm/qxl/Kconfig
+index ca3f51c2a8fe..d0e0d440c8d9 100644
+--- a/drivers/gpu/drm/qxl/Kconfig
++++ b/drivers/gpu/drm/qxl/Kconfig
+@@ -2,6 +2,7 @@
+ config DRM_QXL
+ 	tristate "QXL virtual GPU"
+ 	depends on DRM && PCI && MMU
++	depends on HAS_IOPORT
+ 	select DRM_KMS_HELPER
+ 	select DRM_TTM
+ 	select DRM_TTM_HELPER
+diff --git a/drivers/gpu/drm/tiny/bochs.c b/drivers/gpu/drm/tiny/bochs.c
+index d254679a136e..3710339407cc 100644
+--- a/drivers/gpu/drm/tiny/bochs.c
++++ b/drivers/gpu/drm/tiny/bochs.c
+@@ -2,6 +2,7 @@
  
--config GPIO_VX855
--	tristate "VIA VX855/VX875 GPIO"
--	depends on (X86 || COMPILE_TEST) && PCI
--	select MFD_CORE
--	select MFD_VX855
--	help
--	  Support access to the VX855/VX875 GPIO lines through the GPIO library.
--
--	  This driver provides common support for accessing the device.
--	  Additional drivers must be enabled in order to use the
--	  functionality of the device.
--
- config GPIO_WCD934X
- 	tristate "Qualcomm Technologies Inc WCD9340/WCD9341 GPIO controller driver"
- 	depends on MFD_WCD934X && OF_GPIO
-@@ -835,7 +823,19 @@ config GPIO_IDT3243X
- endmenu
+ #include <linux/module.h>
+ #include <linux/pci.h>
++#include <asm/bug.h>
  
- menu "Port-mapped I/O GPIO drivers"
--	depends on X86 # Unconditional I/O space access
-+	depends on X86 && HAS_IOPORT # I/O space access
-+
-+config GPIO_VX855
-+	tristate "VIA VX855/VX875 GPIO"
-+	depends on PCI
-+	select MFD_CORE
-+	select MFD_VX855
-+	help
-+	  Support access to the VX855/VX875 GPIO lines through the GPIO library.
-+
-+	  This driver provides common support for accessing the device.
-+	  Additional drivers must be enabled in order to use the
-+	  functionality of the device.
+ #include <drm/drm_aperture.h>
+ #include <drm/drm_atomic_helper.h>
+@@ -105,7 +106,9 @@ static void bochs_vga_writeb(struct bochs_device *bochs, u16 ioport, u8 val)
  
- config GPIO_I8255
- 	tristate
+ 		writeb(val, bochs->mmio + offset);
+ 	} else {
++#ifdef CONFIG_HAS_IOPORT
+ 		outb(val, ioport);
++#endif
+ 	}
+ }
+ 
+@@ -119,7 +122,11 @@ static u8 bochs_vga_readb(struct bochs_device *bochs, u16 ioport)
+ 
+ 		return readb(bochs->mmio + offset);
+ 	} else {
++#ifdef CONFIG_HAS_IOPORT
+ 		return inb(ioport);
++#else
++		return 0xff;
++#endif
+ 	}
+ }
+ 
+@@ -132,8 +139,12 @@ static u16 bochs_dispi_read(struct bochs_device *bochs, u16 reg)
+ 
+ 		ret = readw(bochs->mmio + offset);
+ 	} else {
++#ifdef CONFIG_HAS_IOPORT
+ 		outw(reg, VBE_DISPI_IOPORT_INDEX);
+ 		ret = inw(VBE_DISPI_IOPORT_DATA);
++#else
++		ret = 0xffff;
++#endif
+ 	}
+ 	return ret;
+ }
+@@ -145,8 +156,10 @@ static void bochs_dispi_write(struct bochs_device *bochs, u16 reg, u16 val)
+ 
+ 		writew(val, bochs->mmio + offset);
+ 	} else {
++#ifdef CONFIG_HAS_IOPORT
+ 		outw(reg, VBE_DISPI_IOPORT_INDEX);
+ 		outw(val, VBE_DISPI_IOPORT_DATA);
++#endif
+ 	}
+ }
+ 
+@@ -229,6 +242,10 @@ static int bochs_hw_init(struct drm_device *dev)
+ 			return -ENOMEM;
+ 		}
+ 	} else {
++		if (!IS_ENABLED(CONFIG_HAS_IOPORT)) {
++			DRM_ERROR("I/O ports are not supported\n");
++			return -EIO;
++		}
+ 		ioaddr = VBE_DISPI_IOPORT_INDEX;
+ 		iosize = 2;
+ 		if (!request_region(ioaddr, iosize, "bochs-drm")) {
+diff --git a/drivers/gpu/drm/tiny/cirrus.c b/drivers/gpu/drm/tiny/cirrus.c
+index 594bc472862f..c65fea049bc7 100644
+--- a/drivers/gpu/drm/tiny/cirrus.c
++++ b/drivers/gpu/drm/tiny/cirrus.c
+@@ -508,8 +508,10 @@ static void cirrus_crtc_helper_atomic_enable(struct drm_crtc *crtc,
+ 
+ 	cirrus_mode_set(cirrus, &crtc_state->mode);
+ 
++#ifdef CONFIG_HAS_IOPORT
+ 	/* Unblank (needed on S3 resume, vgabios doesn't do it then) */
+ 	outb(VGA_AR_ENABLE_DISPLAY, VGA_ATT_W);
++#endif
+ 
+ 	drm_dev_exit(idx);
+ }
 -- 
 2.39.2
 
