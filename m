@@ -2,154 +2,158 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 30E77C77B7A
-	for <linux-arch@archiver.kernel.org>; Wed, 24 May 2023 15:57:55 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D55CCC77B7A
+	for <linux-arch@archiver.kernel.org>; Wed, 24 May 2023 15:58:39 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237758AbjEXP5x (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 24 May 2023 11:57:53 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53852 "EHLO
+        id S237916AbjEXP6g (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 24 May 2023 11:58:36 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54720 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237587AbjEXP5s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2023 11:57:48 -0400
+        with ESMTP id S233929AbjEXP6W (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2023 11:58:22 -0400
 Received: from gandalf.ozlabs.org (mail.ozlabs.org [IPv6:2404:9400:2221:ea00::3])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B2BC110D1;
-        Wed, 24 May 2023 08:57:17 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 58463E68;
+        Wed, 24 May 2023 08:57:53 -0700 (PDT)
 Received: from authenticated.ozlabs.org (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
-        by mail.ozlabs.org (Postfix) with ESMTPSA id 4QRG5k12s0z4wgq;
-        Thu, 25 May 2023 01:56:58 +1000 (AEST)
+        by mail.ozlabs.org (Postfix) with ESMTPSA id 4QRG5p0dMtz4x4j;
+        Thu, 25 May 2023 01:57:02 +1000 (AEST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ellerman.id.au;
-        s=201909; t=1684943819;
-        bh=pJxluW7i0bZ3DMPSPZr/X0SsGSnZoomyK/1WDBYirpE=;
-        h=From:To:Cc:Subject:Date:From;
-        b=T9p1VcABYWBTQ5sEc6m+ml3BQKxZRLhFHtKOvTMD2sZ7pKn6WUaJApRMIy9EwE1yT
-         h5zsAxLsDoUdUvFNwhffKiLqX9Fhke4u8jJF63LdgQbv1ZL9yTejQn2+RZXylwMsGE
-         mfl4e1Jl9+k9AhM4MEAkU52z1O6CI1z+6slcx8hvc0btqT+YZYej7QK5+/AjPtVeNE
-         0FaKPhHZ7DTWG8ZGGOCpjUxnZxe8KceRraf/HWa9dsgWEfDSxea0dqf/yPFB+6gF/s
-         aMENcXu50+TasQ7jCJoYfoRkWq4zRP+VVARKRGUOKy3xwxo0KqhRC/R3ONuzfDAPBs
-         sfe9tz7TOpg3g==
+        s=201909; t=1684943822;
+        bh=w1ziCHRmZ+NzR3Oi+dKcHn23ZtE+UFXtsVrSaX2bNME=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=ayIaxsmIIYzbycIL+fpi+mYdCAKOdeI6bQPTFPl1lx5fCzjWPed9GDBRnPhFQLZEW
+         ooaF8fJc9GguiKuMXCVVZUvpMPvRGZ6r4HLZYRCi1DJGspid1sFCFN8fL0SfKBw3f2
+         +gsTzvva6khPfXn4N+JJKvrp+PTFkoKLyTKgad1+31KHo3ZJ+XDpB+rxaCtPNsINUf
+         0GK49Kick3SluL9xvAK6dIRcOGFu5Fv7gd+rtqqt7bEtufzYu8Bc7JfD5wsnL6tlAv
+         +QmloK2YRDgQKYzL/CQ0A0hSrkMKVurnoLDZ2/DYYpXepHjwrrntQOFUG9gJvldYjW
+         vO8R51bYiN0YQ==
 From:   Michael Ellerman <mpe@ellerman.id.au>
 To:     <linux-kernel@vger.kernel.org>
 Cc:     <linuxppc-dev@lists.ozlabs.org>, <linux-arch@vger.kernel.org>,
         <ldufour@linux.ibm.com>, <tglx@linutronix.de>, bp@alien8.de,
         dave.hansen@linux.intel.com, mingo@redhat.com, x86@kernel.org
-Subject: [PATCH 1/9] cpu/SMT: Move SMT prototypes into cpu_smt.h
-Date:   Thu, 25 May 2023 01:56:22 +1000
-Message-Id: <20230524155630.794584-1-mpe@ellerman.id.au>
+Subject: [PATCH 7/9] powerpc/pseries: Initialise CPU hotplug callbacks earlier
+Date:   Thu, 25 May 2023 01:56:28 +1000
+Message-Id: <20230524155630.794584-7-mpe@ellerman.id.au>
 X-Mailer: git-send-email 2.40.1
+In-Reply-To: <20230524155630.794584-1-mpe@ellerman.id.au>
+References: <20230524155630.794584-1-mpe@ellerman.id.au>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-A subsequent patch would like to use the cpuhp_smt_control enum as part
-of the interface between generic and arch code.
+As part of the generic HOTPLUG_SMT code, there is support for disabling
+secondary SMT threads at boot time, by passing "nosmt" on the kernel
+command line.
 
-Currently that leads to circular header dependencies. So split the enum
-and related declarations into a separate header.
+The way that is implemented is the secondary threads are brought partly
+online, and then taken back offline again. That is done to support x86
+CPUs needing certain initialisation done on all threads. However powerpc
+has similar needs, see commit d70a54e2d085 ("powerpc/powernv: Ignore
+smt-enabled on Power8 and later").
+
+For that to work the powerpc CPU hotplug callbacks need to be registered
+before secondary CPUs are brought online, otherwise __cpu_disable()
+fails due to smp_ops->cpu_disable being NULL.
+
+So split the basic initialisation into pseries_cpu_hotplug_init() which
+can be called early from setup_arch(). The DLPAR related initialisation
+can still be done later, because it needs to do allocations.
 
 Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/x86/include/asm/topology.h |  2 ++
- include/linux/cpu.h             | 25 +------------------------
- include/linux/cpu_smt.h         | 29 +++++++++++++++++++++++++++++
- 3 files changed, 32 insertions(+), 24 deletions(-)
- create mode 100644 include/linux/cpu_smt.h
+ arch/powerpc/platforms/pseries/hotplug-cpu.c | 22 ++++++++++++--------
+ arch/powerpc/platforms/pseries/pseries.h     |  2 ++
+ arch/powerpc/platforms/pseries/setup.c       |  2 ++
+ 3 files changed, 17 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
-index 458c891a8273..66927a59e822 100644
---- a/arch/x86/include/asm/topology.h
-+++ b/arch/x86/include/asm/topology.h
-@@ -136,6 +136,8 @@ static inline int topology_max_smt_threads(void)
- 	return __max_smt_threads;
+diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+index 1a3cb313976a..61fb7cb00880 100644
+--- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
++++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+@@ -845,15 +845,9 @@ static struct notifier_block pseries_smp_nb = {
+ 	.notifier_call = pseries_smp_notifier,
+ };
+ 
+-static int __init pseries_cpu_hotplug_init(void)
++void __init pseries_cpu_hotplug_init(void)
+ {
+ 	int qcss_tok;
+-	unsigned int node;
+-
+-#ifdef CONFIG_ARCH_CPU_PROBE_RELEASE
+-	ppc_md.cpu_probe = dlpar_cpu_probe;
+-	ppc_md.cpu_release = dlpar_cpu_release;
+-#endif /* CONFIG_ARCH_CPU_PROBE_RELEASE */
+ 
+ 	rtas_stop_self_token = rtas_function_token(RTAS_FN_STOP_SELF);
+ 	qcss_tok = rtas_function_token(RTAS_FN_QUERY_CPU_STOPPED_STATE);
+@@ -862,12 +856,22 @@ static int __init pseries_cpu_hotplug_init(void)
+ 			qcss_tok == RTAS_UNKNOWN_SERVICE) {
+ 		printk(KERN_INFO "CPU Hotplug not supported by firmware "
+ 				"- disabling.\n");
+-		return 0;
++		return;
+ 	}
+ 
+ 	smp_ops->cpu_offline_self = pseries_cpu_offline_self;
+ 	smp_ops->cpu_disable = pseries_cpu_disable;
+ 	smp_ops->cpu_die = pseries_cpu_die;
++}
++
++static int __init pseries_dlpar_init(void)
++{
++	unsigned int node;
++
++#ifdef CONFIG_ARCH_CPU_PROBE_RELEASE
++	ppc_md.cpu_probe = dlpar_cpu_probe;
++	ppc_md.cpu_release = dlpar_cpu_release;
++#endif /* CONFIG_ARCH_CPU_PROBE_RELEASE */
+ 
+ 	/* Processors can be added/removed only on LPAR */
+ 	if (firmware_has_feature(FW_FEATURE_LPAR)) {
+@@ -886,4 +890,4 @@ static int __init pseries_cpu_hotplug_init(void)
+ 
+ 	return 0;
  }
+-machine_arch_initcall(pseries, pseries_cpu_hotplug_init);
++machine_arch_initcall(pseries, pseries_dlpar_init);
+diff --git a/arch/powerpc/platforms/pseries/pseries.h b/arch/powerpc/platforms/pseries/pseries.h
+index f8bce40ebd0c..f8893ba46e83 100644
+--- a/arch/powerpc/platforms/pseries/pseries.h
++++ b/arch/powerpc/platforms/pseries/pseries.h
+@@ -75,11 +75,13 @@ static inline int dlpar_hp_pmem(struct pseries_hp_errorlog *hp_elog)
  
-+#include <linux/cpu_smt.h>
-+
- int topology_update_package_map(unsigned int apicid, unsigned int cpu);
- int topology_update_die_map(unsigned int dieid, unsigned int cpu);
- int topology_phys_to_logical_pkg(unsigned int pkg);
-diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index 8582a7142623..40548f3c201c 100644
---- a/include/linux/cpu.h
-+++ b/include/linux/cpu.h
-@@ -18,6 +18,7 @@
- #include <linux/compiler.h>
- #include <linux/cpumask.h>
- #include <linux/cpuhotplug.h>
-+#include <linux/cpu_smt.h>
+ #ifdef CONFIG_HOTPLUG_CPU
+ int dlpar_cpu(struct pseries_hp_errorlog *hp_elog);
++void pseries_cpu_hotplug_init(void);
+ #else
+ static inline int dlpar_cpu(struct pseries_hp_errorlog *hp_elog)
+ {
+ 	return -EOPNOTSUPP;
+ }
++static inline void pseries_cpu_hotplug_init(void) { }
+ #endif
  
- struct device;
- struct device_node;
-@@ -202,30 +203,6 @@ void cpuhp_report_idle_dead(void);
- static inline void cpuhp_report_idle_dead(void) { }
- #endif /* #ifdef CONFIG_HOTPLUG_CPU */
+ /* PCI root bridge prepare function override for pseries */
+diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
+index e2a57cfa6c83..41451b76c6e5 100644
+--- a/arch/powerpc/platforms/pseries/setup.c
++++ b/arch/powerpc/platforms/pseries/setup.c
+@@ -816,6 +816,8 @@ static void __init pSeries_setup_arch(void)
+ 	/* Discover PIC type and setup ppc_md accordingly */
+ 	smp_init_pseries();
  
--enum cpuhp_smt_control {
--	CPU_SMT_ENABLED,
--	CPU_SMT_DISABLED,
--	CPU_SMT_FORCE_DISABLED,
--	CPU_SMT_NOT_SUPPORTED,
--	CPU_SMT_NOT_IMPLEMENTED,
--};
--
--#if defined(CONFIG_SMP) && defined(CONFIG_HOTPLUG_SMT)
--extern enum cpuhp_smt_control cpu_smt_control;
--extern void cpu_smt_disable(bool force);
--extern void cpu_smt_check_topology(void);
--extern bool cpu_smt_possible(void);
--extern int cpuhp_smt_enable(void);
--extern int cpuhp_smt_disable(enum cpuhp_smt_control ctrlval);
--#else
--# define cpu_smt_control		(CPU_SMT_NOT_IMPLEMENTED)
--static inline void cpu_smt_disable(bool force) { }
--static inline void cpu_smt_check_topology(void) { }
--static inline bool cpu_smt_possible(void) { return false; }
--static inline int cpuhp_smt_enable(void) { return 0; }
--static inline int cpuhp_smt_disable(enum cpuhp_smt_control ctrlval) { return 0; }
--#endif
--
- extern bool cpu_mitigations_off(void);
- extern bool cpu_mitigations_auto_nosmt(void);
++	// Setup CPU hotplug callbacks
++	pseries_cpu_hotplug_init();
  
-diff --git a/include/linux/cpu_smt.h b/include/linux/cpu_smt.h
-new file mode 100644
-index 000000000000..17e105b52d85
---- /dev/null
-+++ b/include/linux/cpu_smt.h
-@@ -0,0 +1,29 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_CPU_SMT_H_
-+#define _LINUX_CPU_SMT_H_
-+
-+enum cpuhp_smt_control {
-+	CPU_SMT_ENABLED,
-+	CPU_SMT_DISABLED,
-+	CPU_SMT_FORCE_DISABLED,
-+	CPU_SMT_NOT_SUPPORTED,
-+	CPU_SMT_NOT_IMPLEMENTED,
-+};
-+
-+#if defined(CONFIG_SMP) && defined(CONFIG_HOTPLUG_SMT)
-+extern enum cpuhp_smt_control cpu_smt_control;
-+extern void cpu_smt_disable(bool force);
-+extern void cpu_smt_check_topology(void);
-+extern bool cpu_smt_possible(void);
-+extern int cpuhp_smt_enable(void);
-+extern int cpuhp_smt_disable(enum cpuhp_smt_control ctrlval);
-+#else
-+# define cpu_smt_control		(CPU_SMT_NOT_IMPLEMENTED)
-+static inline void cpu_smt_disable(bool force) { }
-+static inline void cpu_smt_check_topology(void) { }
-+static inline bool cpu_smt_possible(void) { return false; }
-+static inline int cpuhp_smt_enable(void) { return 0; }
-+static inline int cpuhp_smt_disable(enum cpuhp_smt_control ctrlval) { return 0; }
-+#endif
-+
-+#endif /* _LINUX_CPU_SMT_H_ */
+ 	if (radix_enabled() && !mmu_has_feature(MMU_FTR_GTSE))
+ 		if (!firmware_has_feature(FW_FEATURE_RPT_INVALIDATE))
 -- 
 2.40.1
 
