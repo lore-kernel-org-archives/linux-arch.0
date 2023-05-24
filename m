@@ -2,114 +2,130 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CC061C77B7A
-	for <linux-arch@archiver.kernel.org>; Wed, 24 May 2023 16:00:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7596BC7EE2E
+	for <linux-arch@archiver.kernel.org>; Wed, 24 May 2023 16:00:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237446AbjEXQAP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 24 May 2023 12:00:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54584 "EHLO
+        id S237130AbjEXQAQ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 24 May 2023 12:00:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54956 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238059AbjEXP7b (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2023 11:59:31 -0400
-Received: from smtp-relay-internal-0.canonical.com (smtp-relay-internal-0.canonical.com [185.125.188.122])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB44E1703
-        for <linux-arch@vger.kernel.org>; Wed, 24 May 2023 08:58:44 -0700 (PDT)
-Received: from mail-yw1-f198.google.com (mail-yw1-f198.google.com [209.85.128.198])
+        with ESMTP id S237587AbjEXP7a (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 24 May 2023 11:59:30 -0400
+Received: from gandalf.ozlabs.org (gandalf.ozlabs.org [150.107.74.76])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 57A281701;
+        Wed, 24 May 2023 08:58:43 -0700 (PDT)
+Received: from authenticated.ozlabs.org (localhost [127.0.0.1])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (No client certificate requested)
-        by smtp-relay-internal-0.canonical.com (Postfix) with ESMTPS id 6DBC93F195
-        for <linux-arch@vger.kernel.org>; Wed, 24 May 2023 15:45:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=canonical.com;
-        s=20210705; t=1684943138;
-        bh=92JsxtKc2doKzuIzI6aLPIX3GzuVF3Oem9Ak6r3By98=;
-        h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-         To:Cc:Content-Type;
-        b=Oy3mUJtsR8+daqdkE/eZzHg5GtrArvzXZSD1wf3sRtRff5lVcxrbz2iyIFQtBF4jW
-         vU1qslA5ZpVtSeNcxr6hTScry9QVUJltLo7awpa67Q8mjwRVvfXyINkvURd5aKkedm
-         LxrZN9cGORnnlFpxAHWwh1V7MDMdMcckZwdxNKPsUHe7x16BTCyrKosGZrj43uTYay
-         aH/oK+8BSMppKCIv1aQqEYcCpzgYq8PaiQuT9oX3BveCOvJZl+vtv4bqmsJDX3gChS
-         m3nfAGQsqCI9LYbQTgUEgNBxbDOeCCxfx5dl7kgE4vABU+w5Nai3HjYRpRNomwG6au
-         NjLnpJn/qo36g==
-Received: by mail-yw1-f198.google.com with SMTP id 00721157ae682-561985d744fso127516317b3.1
-        for <linux-arch@vger.kernel.org>; Wed, 24 May 2023 08:45:38 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1684943137; x=1687535137;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=92JsxtKc2doKzuIzI6aLPIX3GzuVF3Oem9Ak6r3By98=;
-        b=b3Sc4tZmWWodmkesnkey2+eeLVwZyWol0/Zqtvzo68G2ZML8akZ+p1CPySNs5H8FXn
-         oKrtXC52kQHhDKSmTu2XCYXA7t/PLIGtWL+tyzIgfjSCiQW2IEd/jDDFsv/7tCLNjLtl
-         W7A8ejIAcbtvvCahcvYAFSRg12C9uOAR3wyLaJa84ymCswqKbmlvj6fUSfQSlq+Lm8WJ
-         k+co0QfY2I3nzuEw7EI/HkFosyaWeN5Mwvr5JNbgEUS1lRHSOErVkvfGqy+JiUxmEgzR
-         mlAJhDt/A4pjy8zF0qgH3yGxHR/64BaCmvyMkW6QaWjnSCglGkc6RgPynERSUENQhqIf
-         NZ2A==
-X-Gm-Message-State: AC+VfDx9DwPw9rfTkfckDy8WTMItMLr+82ZbRj7jU11nNPcunxbk8Z2S
-        OXw9N1sOMj12+h7qrC/ijHzTfELpFJWLfQgXXO+Dq+s9I2AcZpTrwppgaZxiMpfY2DEFpYUJc5D
-        NGh7HtmFDFeV9l6LUIc5Cq7wPT0xTmDlkEN6sp1sHmv5xcFoZ3Djhs6pAQJep3Cs=
-X-Received: by 2002:a81:9a0e:0:b0:565:4c40:fc3 with SMTP id r14-20020a819a0e000000b005654c400fc3mr5833532ywg.23.1684943137038;
-        Wed, 24 May 2023 08:45:37 -0700 (PDT)
-X-Google-Smtp-Source: ACHHUZ4NCqrhc0yq/4yGhKiNRTK/xREKkd6tNR7bvv/mKO+Lk2sONFl/YAqyvoWKLnPhNWxGPsyLx7N9OEP4prvaTeQ=
-X-Received: by 2002:a81:9a0e:0:b0:565:4c40:fc3 with SMTP id
- r14-20020a819a0e000000b005654c400fc3mr5833509ywg.23.1684943136808; Wed, 24
- May 2023 08:45:36 -0700 (PDT)
+        by mail.ozlabs.org (Postfix) with ESMTPSA id 4QRG5p4CQBz4x4l;
+        Thu, 25 May 2023 01:57:02 +1000 (AEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ellerman.id.au;
+        s=201909; t=1684943822;
+        bh=p1bBAk5FodJhZ4XtodQ/RroeKg6GW9YX3VKIMJsVMLY=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=R22szaPDT6DGwq17NyDcp7B49+a7ThZT8uGc7W+qKi3W0c6DMaB2h0vQ+vue6uOR+
+         b2XrnJAvmLo6pAX2f8xxj86lm9GKwYwfvA2/tTAOaaqjtVABSuKDdGByysUc7XZpby
+         +g2f+yFDRIE5qlupG1yMOC5jokWBHsyU4/WGLxWQfFoejzxG6suWMWgl04/jskyc9i
+         /CaYcsLNYzVHcnBfcW3D25cIMeOmF/w3ZV9jkBMtgOoMwTxwU/h0vlEx+juDKliXeG
+         NqsMJuHoAQZGkTxJaPZTxvY4ahm49NrEIZ0JLiz16imgfbF+CPAZCVjYNuqqubFdlU
+         b01tMkPDIzEhg==
+From:   Michael Ellerman <mpe@ellerman.id.au>
+To:     <linux-kernel@vger.kernel.org>
+Cc:     <linuxppc-dev@lists.ozlabs.org>, <linux-arch@vger.kernel.org>,
+        <ldufour@linux.ibm.com>, <tglx@linutronix.de>, bp@alien8.de,
+        dave.hansen@linux.intel.com, mingo@redhat.com, x86@kernel.org
+Subject: [PATCH 8/9] powerpc: Add HOTPLUG_SMT support
+Date:   Thu, 25 May 2023 01:56:29 +1000
+Message-Id: <20230524155630.794584-8-mpe@ellerman.id.au>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <20230524155630.794584-1-mpe@ellerman.id.au>
+References: <20230524155630.794584-1-mpe@ellerman.id.au>
 MIME-Version: 1.0
-References: <20230522132439.634031-1-aleksandr.mikhalitsyn@canonical.com>
- <20230522132439.634031-2-aleksandr.mikhalitsyn@canonical.com>
- <20230522133409.5c6e839a@kernel.org> <20230523-flechten-ortsschild-e5724ecc4ed0@brauner>
- <CAMw=ZnS8GBTDV0rw+Dh6hPv3uLXJVwapRFQHLMYEYGZHNoLNOw@mail.gmail.com>
- <20230523140844.5895d645@kernel.org> <CAEivzxeS2J5i0RJDvFHq-U_RAU5bbKVF5ZbphYDGoPcMZTsE3Q@mail.gmail.com>
- <CAMw=ZnRmNaoRb2uceatrV8EAufJSKZzD2AsfT5PJE8NBBOrHCg@mail.gmail.com> <20230524081933.44dc8bea@kernel.org>
-In-Reply-To: <20230524081933.44dc8bea@kernel.org>
-From:   Aleksandr Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
-Date:   Wed, 24 May 2023 17:45:25 +0200
-Message-ID: <CAEivzxcTEghPqk=9hQMReSGzE=ruWnJyiuPhW5rGd7eUOEg12A@mail.gmail.com>
-Subject: Re: [PATCH net-next v6 1/3] scm: add SO_PASSPIDFD and SCM_PIDFD
-To:     Jakub Kicinski <kuba@kernel.org>
-Cc:     Luca Boccassi <bluca@debian.org>,
-        Christian Brauner <brauner@kernel.org>, davem@davemloft.net,
-        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
-        Eric Dumazet <edumazet@google.com>,
-        Paolo Abeni <pabeni@redhat.com>,
-        Leon Romanovsky <leon@kernel.org>,
-        David Ahern <dsahern@kernel.org>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Kees Cook <keescook@chromium.org>,
-        Kuniyuki Iwashima <kuniyu@amazon.com>,
-        Lennart Poettering <mzxreary@0pointer.de>,
-        linux-arch@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, May 24, 2023 at 5:19=E2=80=AFPM Jakub Kicinski <kuba@kernel.org> wr=
-ote:
->
-> On Wed, 24 May 2023 11:47:50 +0100 Luca Boccassi wrote:
-> > > I will send SO_PEERPIDFD as an independent patch too, because it
-> > > doesn't require this change with CONFIG_UNIX
-> > > and we can avoid waiting until CONFIG_UNIX change will be merged.
-> > > I've a feeling that the discussion around making CONFIG_UNIX  to be a
-> > > boolean won't be easy and fast ;-)
-> >
-> > Thank you, that sounds great to me, I can start using SO_PEERPIDFD
-> > independently of SCM_PIDFD, there's no hard dependency between the
-> > two.
->
-> How about you put the UNIX -> bool patch at the end of the series,
-> (making it a 4 patch series) and if there's a discussion about it
-> I'll just skip it and apply the first 3 patches?
+Add support for HOTPLUG_SMT, which enables the generic sysfs SMT support
+files in /sys/devices/system/cpu/smt, as well as the "nosmt" boot
+parameter.
 
-Sure, I will do that!
+Implement the recently added hooks to allow partial SMT states, allow
+any number of threads per core.
 
->
-> In the (IMHO more likely) case that there isn't a discussion it saves
-> me from remembering to chase you to send that patch ;)
+Tie the config symbol to HOTPLUG_CPU, which enables it on the major
+platforms that support SMT. If there are other platforms that want the
+SMT support that can be tweaked in future.
 
-Thanks a lot, Jakub!
+Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+---
+ arch/powerpc/Kconfig                |  1 +
+ arch/powerpc/include/asm/topology.h | 25 +++++++++++++++++++++++++
+ arch/powerpc/kernel/smp.c           |  3 +++
+ 3 files changed, 29 insertions(+)
 
-Kind regards,
-Alex
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 539d1f03ff42..5cf87ca10a9c 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -273,6 +273,7 @@ config PPC
+ 	select HAVE_SYSCALL_TRACEPOINTS
+ 	select HAVE_VIRT_CPU_ACCOUNTING
+ 	select HAVE_VIRT_CPU_ACCOUNTING_GEN
++	select HOTPLUG_SMT			if HOTPLUG_CPU
+ 	select HUGETLB_PAGE_SIZE_VARIABLE	if PPC_BOOK3S_64 && HUGETLB_PAGE
+ 	select IOMMU_HELPER			if PPC64
+ 	select IRQ_DOMAIN
+diff --git a/arch/powerpc/include/asm/topology.h b/arch/powerpc/include/asm/topology.h
+index 8a4d4f4d9749..1e9117a22d14 100644
+--- a/arch/powerpc/include/asm/topology.h
++++ b/arch/powerpc/include/asm/topology.h
+@@ -143,5 +143,30 @@ static inline int cpu_to_coregroup_id(int cpu)
+ #endif
+ #endif
+ 
++#ifdef CONFIG_HOTPLUG_SMT
++#include <linux/cpu_smt.h>
++#include <asm/cputhreads.h>
++
++static inline bool topology_smt_supported(void)
++{
++	return threads_per_core > 1;
++}
++
++static inline bool topology_smt_threads_supported(unsigned int num_threads)
++{
++	return num_threads <= threads_per_core;
++}
++
++static inline bool topology_is_primary_thread(unsigned int cpu)
++{
++	return cpu == cpu_first_thread_sibling(cpu);
++}
++
++static inline bool topology_smt_thread_allowed(unsigned int cpu)
++{
++	return cpu_thread_in_core(cpu) < cpu_smt_num_threads;
++}
++#endif
++
+ #endif /* __KERNEL__ */
+ #endif	/* _ASM_POWERPC_TOPOLOGY_H */
+diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+index 265801a3e94c..eed20b9253b7 100644
+--- a/arch/powerpc/kernel/smp.c
++++ b/arch/powerpc/kernel/smp.c
+@@ -1154,6 +1154,9 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ 
+ 	if (smp_ops && smp_ops->probe)
+ 		smp_ops->probe();
++
++	// Initalise the generic SMT topology support
++	cpu_smt_check_topology(threads_per_core);
+ }
+ 
+ void smp_prepare_boot_cpu(void)
+-- 
+2.40.1
+
