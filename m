@@ -2,189 +2,88 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ACDB0C7EE2F
-	for <linux-arch@archiver.kernel.org>; Thu, 25 May 2023 18:17:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 49226C7EE29
+	for <linux-arch@archiver.kernel.org>; Thu, 25 May 2023 19:22:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S241012AbjEYSR2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 25 May 2023 14:17:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43244 "EHLO
+        id S243668AbjEYTWe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 25 May 2023 15:22:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39708 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230474AbjEYSR1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2023 14:17:27 -0400
-Received: from mail-yb1-xb35.google.com (mail-yb1-xb35.google.com [IPv6:2607:f8b0:4864:20::b35])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 13330D9;
-        Thu, 25 May 2023 11:17:26 -0700 (PDT)
-Received: by mail-yb1-xb35.google.com with SMTP id 3f1490d57ef6-b9daef8681fso766668276.1;
-        Thu, 25 May 2023 11:17:26 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1685038645; x=1687630645;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=vEt/V8+3jpKdaWf/91twz9m1AxbB8mw1sieW7q1FOX4=;
-        b=qpx33W23LxzGgtt7x0f+jHNiqnq/vW7f+lo4R60odkrqHHbvAvDFwCToA7ZeGOtlZu
-         1pix82nq+XRaSlrOoV5XSSn7dUtYbrVRPJSVcc+Y0QUEIud/VeliblGAWTefKuC3uiLW
-         Y767SW9acPu7TamxQ3rDZ7ad1waallUvH2KGWMSoPdMgQ6uqByETyo++E8JgCnYWaIR7
-         T+3+xQi6fbJlgvqxHEFBxTPhg1oh030qaBtpvB360U8uoO6SqTXFxFoolc38s3Jd+HWF
-         qSuZfJvCEliq2Q2QxhelaN+CYntsdlTkVUzhuGY+pHQjjIlm9D34YIwBuMF1/x8S1rOB
-         qR0Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1685038645; x=1687630645;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=vEt/V8+3jpKdaWf/91twz9m1AxbB8mw1sieW7q1FOX4=;
-        b=GYx8Vc6Qyadtv52ZSRC1OpNQJOXQJ3a9QlpsNbv0Wl5bOH3MasYZx+fdpWz6yovU28
-         cK+lZ6pmJj8CR2CsFNMhwvFZvnnsOPUUE8RU3viIfOUieadTSqgkhShmmtQ05hGF9u7m
-         Hycf/ryemTt+RR0i1XrAIsI5x9ZT20r0z94IZaeM6A+saY6xHcepLVZGO4aOKItNWovJ
-         ir982uyT4S7KaKDZYYZsMvzu44Mme52jKcEAsqHKAYyrWM2XVpGGjLBzAxaRlKcZF3l8
-         i3ZEdC1KTlwBKMqnvWxvuTkb6zQzVZKlYs5XOq9NzhwvqtHf6fQKw7l1adPXcw+lbjSk
-         O0oQ==
-X-Gm-Message-State: AC+VfDzS8nTuROnl9ViiaFP8mNzAbhqJO6XLAcEJSgmaE6emoLIjFG0h
-        m+8Lkay510cSCS0esr3uXlkmcXSxvCQirsrSN3k=
-X-Google-Smtp-Source: ACHHUZ4CxdCafEVA2N8+YE3r54vbJuyNv4iSvWQn7ibpFdu7Q8YcRob13nPjv7XKdbKB6AoaGk0hrDu/6J2TDu7u8Qo=
-X-Received: by 2002:a25:ac6:0:b0:ba7:bb4c:7960 with SMTP id
- 189-20020a250ac6000000b00ba7bb4c7960mr4320550ybk.26.1685038645132; Thu, 25
- May 2023 11:17:25 -0700 (PDT)
+        with ESMTP id S243688AbjEYTWP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 25 May 2023 15:22:15 -0400
+Received: from mga09.intel.com (mga09.intel.com [134.134.136.24])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7A59E1992;
+        Thu, 25 May 2023 12:18:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1685042322; x=1716578322;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=KuUKj4ttsJlL4wLcdbKLyn7tabEwUjXKipzD5i05Y4s=;
+  b=lSK2/2k5bTLauJYJFdjo/h5/32Aq64DEwMlaZk5y8WtRZHN4LK+GYOQU
+   VlXnGW+S8VUITO0yMQDxVys4r4C3th3olPteqQh7D011MZxOApJn+IGfH
+   a1lCtmYOkaQDCC4zfFYGdnseJGw+3s3JLaBVkPtQBPW5IbtsVwC3mulG9
+   CXsQhDV5VEiJSCVT1fnskdHc9CqPzzvabittgc90aYpzdKClg3gGUAam5
+   OD9gvlkcCMBPDrCjTk/mXk5sr7iHUygc93NyUMlU0zexWzETrvkT/+6ej
+   rhOjbLWjNDY9V77WBBrSY+Tu5r1d9W7d1t7S73y94w7Awrbw7NOY5N/pM
+   g==;
+X-IronPort-AV: E=McAfee;i="6600,9927,10721"; a="356378002"
+X-IronPort-AV: E=Sophos;i="6.00,192,1681196400"; 
+   d="scan'208";a="356378002"
+Received: from fmsmga003.fm.intel.com ([10.253.24.29])
+  by orsmga102.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 May 2023 12:18:36 -0700
+X-ExtLoop1: 1
+X-IronPort-AV: E=McAfee;i="6600,9927,10721"; a="794777026"
+X-IronPort-AV: E=Sophos;i="6.00,192,1681196400"; 
+   d="scan'208";a="794777026"
+Received: from shuklaas-mobl1.amr.corp.intel.com (HELO [10.212.186.148]) ([10.212.186.148])
+  by fmsmga003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 25 May 2023 12:18:35 -0700
+Message-ID: <05bbef94-686e-e3cc-40d3-95acfbf45a5d@intel.com>
+Date:   Thu, 25 May 2023 12:18:34 -0700
 MIME-Version: 1.0
-References: <20230501192829.17086-1-vishal.moola@gmail.com>
- <20230501192829.17086-14-vishal.moola@gmail.com> <20230525091900.GY4967@kernel.org>
-In-Reply-To: <20230525091900.GY4967@kernel.org>
-From:   Vishal Moola <vishal.moola@gmail.com>
-Date:   Thu, 25 May 2023 11:17:14 -0700
-Message-ID: <CAOzc2pxNRbohxxNnaKtBNOBgOschHMj278-6hWZK9A1oJOgujA@mail.gmail.com>
-Subject: Re: [PATCH v2 13/34] mm: Create ptdesc equivalents for pgtable_{pte,pmd}_page_{ctor,dtor}
-To:     Mike Rapoport <rppt@kernel.org>
-Cc:     Andrew Morton <akpm@linux-foundation.org>,
-        Matthew Wilcox <willy@infradead.org>, linux-mm@kvack.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
-        loongarch@lists.linux.dev, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, linux-openrisc@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
-        xen-devel@lists.xenproject.org, kvm@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
+ Thunderbird/102.11.0
+Subject: Re: [PATCH v6 2/6] x86/tdx: Support vmalloc() for
+ tdx_enc_status_changed()
+Content-Language: en-US
+To:     "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc:     kirill.shutemov@linux.intel.com, Dexuan Cui <decui@microsoft.com>,
+        ak@linux.intel.com, arnd@arndb.de, bp@alien8.de,
+        brijesh.singh@amd.com, dan.j.williams@intel.com,
+        dave.hansen@linux.intel.com, haiyangz@microsoft.com, hpa@zytor.com,
+        jane.chu@oracle.com, kys@microsoft.com, linux-arch@vger.kernel.org,
+        linux-hyperv@vger.kernel.org, luto@kernel.org, mingo@redhat.com,
+        peterz@infradead.org, rostedt@goodmis.org,
+        sathyanarayanan.kuppuswamy@linux.intel.com, seanjc@google.com,
+        tglx@linutronix.de, tony.luck@intel.com, wei.liu@kernel.org,
+        x86@kernel.org, mikelley@microsoft.com,
+        linux-kernel@vger.kernel.org, Tianyu.Lan@microsoft.com
+References: <20230504225351.10765-1-decui@microsoft.com>
+ <20230504225351.10765-3-decui@microsoft.com>
+ <9e466079-ff27-f928-b470-eb5ef157f048@intel.com>
+ <20230523223750.botogigv6ht7p2zg@box.shutemov.name>
+ <2d96a23f-a16a-50e1-7960-a2d4998ce52f@intel.com>
+ <20230523232851.a3djqxmpjyfghbvc@box.shutemov.name>
+ <20230525190812.bz5hg5k3uaibtcys@box>
+From:   Dave Hansen <dave.hansen@intel.com>
+In-Reply-To: <20230525190812.bz5hg5k3uaibtcys@box>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, May 25, 2023 at 2:19=E2=80=AFAM Mike Rapoport <rppt@kernel.org> wro=
-te:
->
-> On Mon, May 01, 2023 at 12:28:08PM -0700, Vishal Moola (Oracle) wrote:
-> > Creates ptdesc_pte_ctor(), ptdesc_pmd_ctor(), ptdesc_pte_dtor(), and
-> > ptdesc_pmd_dtor() and make the original pgtable constructor/destructors
-> > wrappers.
->
-> I think pgtable_pXY_ctor/dtor names would be better.
+On 5/25/23 12:08, Kirill A. Shutemov wrote:
+> Shared->Private conversion is rare. I only see one call total during the
+> boot in my setup. Worth fixing anyway.
+...
+> Any comments?
 
-I have it as ptdesc to keep it consistent with the rest of the functions. I
-also think it makes more sense as it's initializing stuff tracked by a ptde=
-sc.
+So the rules are:
 
-> > Signed-off-by: Vishal Moola (Oracle) <vishal.moola@gmail.com>
-> > ---
-> >  include/linux/mm.h | 56 ++++++++++++++++++++++++++++++++++------------
-> >  1 file changed, 42 insertions(+), 14 deletions(-)
-> >
-> > diff --git a/include/linux/mm.h b/include/linux/mm.h
-> > index 58c911341a33..dc61aeca9077 100644
-> > --- a/include/linux/mm.h
-> > +++ b/include/linux/mm.h
-> > @@ -2847,20 +2847,34 @@ static inline bool ptlock_init(struct ptdesc *p=
-tdesc) { return true; }
-> >  static inline void ptlock_free(struct ptdesc *ptdesc) {}
-> >  #endif /* USE_SPLIT_PTE_PTLOCKS */
-> >
-> > -static inline bool pgtable_pte_page_ctor(struct page *page)
-> > +static inline bool ptdesc_pte_ctor(struct ptdesc *ptdesc)
-> >  {
-> > -     if (!ptlock_init(page_ptdesc(page)))
-> > +     struct folio *folio =3D ptdesc_folio(ptdesc);
-> > +
-> > +     if (!ptlock_init(ptdesc))
-> >               return false;
-> > -     __SetPageTable(page);
-> > -     inc_lruvec_page_state(page, NR_PAGETABLE);
-> > +     __folio_set_table(folio);
-> > +     lruvec_stat_add_folio(folio, NR_PAGETABLE);
-> >       return true;
-> >  }
-> >
-> > +static inline bool pgtable_pte_page_ctor(struct page *page)
-> > +{
-> > +     return ptdesc_pte_ctor(page_ptdesc(page));
-> > +}
-> > +
-> > +static inline void ptdesc_pte_dtor(struct ptdesc *ptdesc)
-> > +{
-> > +     struct folio *folio =3D ptdesc_folio(ptdesc);
-> > +
-> > +     ptlock_free(ptdesc);
-> > +     __folio_clear_table(folio);
-> > +     lruvec_stat_sub_folio(folio, NR_PAGETABLE);
-> > +}
-> > +
-> >  static inline void pgtable_pte_page_dtor(struct page *page)
-> >  {
-> > -     ptlock_free(page_ptdesc(page));
-> > -     __ClearPageTable(page);
-> > -     dec_lruvec_page_state(page, NR_PAGETABLE);
-> > +     ptdesc_pte_dtor(page_ptdesc(page));
-> >  }
-> >
-> >  #define pte_offset_map_lock(mm, pmd, address, ptlp)  \
-> > @@ -2942,20 +2956,34 @@ static inline spinlock_t *pmd_lock(struct mm_st=
-ruct *mm, pmd_t *pmd)
-> >       return ptl;
-> >  }
-> >
-> > -static inline bool pgtable_pmd_page_ctor(struct page *page)
-> > +static inline bool ptdesc_pmd_ctor(struct ptdesc *ptdesc)
-> >  {
-> > -     if (!pmd_ptlock_init(page_ptdesc(page)))
-> > +     struct folio *folio =3D ptdesc_folio(ptdesc);
-> > +
-> > +     if (!pmd_ptlock_init(ptdesc))
-> >               return false;
-> > -     __SetPageTable(page);
-> > -     inc_lruvec_page_state(page, NR_PAGETABLE);
-> > +     __folio_set_table(folio);
-> > +     lruvec_stat_add_folio(folio, NR_PAGETABLE);
-> >       return true;
-> >  }
-> >
-> > +static inline bool pgtable_pmd_page_ctor(struct page *page)
-> > +{
-> > +     return ptdesc_pmd_ctor(page_ptdesc(page));
-> > +}
-> > +
-> > +static inline void ptdesc_pmd_dtor(struct ptdesc *ptdesc)
-> > +{
-> > +     struct folio *folio =3D ptdesc_folio(ptdesc);
-> > +
-> > +     pmd_ptlock_free(ptdesc);
-> > +     __folio_clear_table(folio);
-> > +     lruvec_stat_sub_folio(folio, NR_PAGETABLE);
-> > +}
-> > +
-> >  static inline void pgtable_pmd_page_dtor(struct page *page)
-> >  {
-> > -     pmd_ptlock_free(page_ptdesc(page));
-> > -     __ClearPageTable(page);
-> > -     dec_lruvec_page_state(page, NR_PAGETABLE);
-> > +     ptdesc_pmd_dtor(page_ptdesc(page));
-> >  }
-> >
-> >  /*
-> > --
-> > 2.39.2
-> >
-> >
->
-> --
-> Sincerely yours,
-> Mike.
+ * Shared mapping of a private page: BAD
+ * Private mapping of a shared page: OK
+
+?
+
+The patch seems OK, other than having zero comments in it.
