@@ -2,27 +2,27 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C9265C7EE2F
-	for <linux-arch@archiver.kernel.org>; Fri, 26 May 2023 05:35:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B3477C7EE2C
+	for <linux-arch@archiver.kernel.org>; Fri, 26 May 2023 05:40:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229625AbjEZFfr convert rfc822-to-8bit (ORCPT
+        id S229964AbjEZFk2 convert rfc822-to-8bit (ORCPT
         <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 26 May 2023 01:35:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43284 "EHLO
+        Fri, 26 May 2023 01:40:28 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45180 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229523AbjEZFfq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2023 01:35:46 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 46C78194;
-        Thu, 25 May 2023 22:35:44 -0700 (PDT)
+        with ESMTP id S229625AbjEZFk1 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 26 May 2023 01:40:27 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B6AE118D;
+        Thu, 25 May 2023 22:40:26 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id C743260ADC;
-        Fri, 26 May 2023 05:35:43 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3BD15C433EF;
-        Fri, 26 May 2023 05:35:38 +0000 (UTC)
-Date:   Fri, 26 May 2023 01:35:34 -0400
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 4BABD64CE4;
+        Fri, 26 May 2023 05:40:26 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 66082C433EF;
+        Fri, 26 May 2023 05:40:22 +0000 (UTC)
+Date:   Fri, 26 May 2023 01:40:18 -0400
 From:   Steven Rostedt <rostedt@goodmis.org>
 To:     Nadav Amit <nadav.amit@gmail.com>
 Cc:     Arnd Bergmann <arnd@arndb.de>,
@@ -37,7 +37,7 @@ Cc:     Arnd Bergmann <arnd@arndb.de>,
         Borislav Petkov <bp@alien8.de>, X86 ML <x86@kernel.org>,
         Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 2/3] compiler: inline does not imply notrace
-Message-ID: <20230526013534.76e5b613@rorschach.local.home>
+Message-ID: <20230526014018.5ebafc55@rorschach.local.home>
 In-Reply-To: <D4B1FB24-C351-411B-8A40-4DAFE95FA921@gmail.com>
 References: <20230525210040.3637-1-namit@vmware.com>
         <20230525210040.3637-3-namit@vmware.com>
@@ -54,26 +54,9 @@ X-Mailing-List: linux-arch@vger.kernel.org
 On Thu, 25 May 2023 22:17:33 -0700
 Nadav Amit <nadav.amit@gmail.com> wrote:
 
-
-> > FYI, I have a patch queued (still needs to go through testing) that
-> > already does this ;-)
-> > 
-> > https://lore.kernel.org/all/20230502164102.1a51cdb4@gandalf.local.home/  
-> 
 > Ugh. If you cc’d me, I wouldn’t bother you during your vacation. :)
 
-I'm currently passed the vacation part and now in Taiwan for work.
-
-> 
-> I think you may like the first patch in my series to precede this patch
-> though as some of the function I marked as “notrace" are currently “inline”.
-> 
-> Let me know how you want to proceed, so I would know how to break this
-> series.
-
-Currently there's a nasty bug in v6.4-rc3 I'm fighting where I can't
-proceed on anything until it's resolved. But I could also just pull
-your first and third patch too. I'll let you know when I'm finished
-debugging.
+Oh, and if you are interested in tracing patches, just subscribe to
+linux-trace-kernel@vger.kernel.org.
 
 -- Steve
