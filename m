@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C344EC7EE45
-	for <linux-arch@archiver.kernel.org>; Wed, 31 May 2023 13:28:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 23E03C7EE32
+	for <linux-arch@archiver.kernel.org>; Wed, 31 May 2023 13:28:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236443AbjEaN21 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 May 2023 09:28:27 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47446 "EHLO
+        id S236474AbjEaN2c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 May 2023 09:28:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47450 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234345AbjEaN2U (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2023 09:28:20 -0400
+        with ESMTP id S236347AbjEaN2V (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2023 09:28:21 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E0DFC126;
-        Wed, 31 May 2023 06:28:18 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 26E48123;
+        Wed, 31 May 2023 06:28:20 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Subject:Cc:To:From:Date:Message-ID:
-        Sender:Reply-To:MIME-Version:Content-Type:Content-Transfer-Encoding:
-        Content-ID:Content-Description:In-Reply-To:References;
-        bh=wcJJV24VbYlY1PWzzae048ORvkrTfGMOvTB+4LRdIko=; b=ZCaN9EKWJgEkcuGgxM/ADbx94M
-        G03dV6vMZ01SeuX4XeUD/ST9pnnkWJlhFyUn36PeSTx4HwZLOaV1Un1/UIQdwmGQcFJy5ke1y1ph0
-        4gI+sbIacF5Qi2XhKT65K6WXemSMLSlsiRy1sMyJNOgV1Tn8vRmRMUZmDLnUwZq+cghRKjKS3YSq2
-        nov0q53CxHjOQ380s4gPZqDiXzc10/7e5vnGZl2HdRLxV+I+eL6nN6JB7wWpO5iWlxdh7Qc4sUzGU
-        t/I0z4d02H+1QiGZjucBz1TMMe0a61V9LL4YUcCfUju21PcwS5g76pVkW0OKG7aSE+R6CkRgnDmL/
-        hrab2zKA==;
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=OYq3F8aZwPPC/Y8UsexFdal3aiucmNsqQObmCMz9zjE=; b=LIi2st653mrq+qr82jZjSZoSMu
+        b4IdGvoFjlZSfW2/JQDfIQgkhRmizDc+3i69fP7F75A4WAkEYw/JPtYzsJYXvDjOlO3lYqV3CTQG2
+        W5QHSm3lF3LRIXC6DORpHYE0GY/d/aV+oN7w/SrBOka2MUxnFUNUBPn6uIzvLTkgZCknrMs9/URJT
+        jHAuSX05RfqOvsyIyF/kFoW7hbFpLP/c+WXZHzxrpS37v59bTdQPKeQCwIDOzbrtY2xMJrtSDtp8c
+        jQSyhSMxk2M6L9+FSzaQWKUsmX61W6UzXzdaMQ0wKEbO8TRWRg4MO80O6dbE/9Vv3BMgIz9xTSMYB
+        XK7W6Mcg==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
         by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1q4LrG-007IIj-33; Wed, 31 May 2023 13:27:22 +0000
+        id 1q4LrH-007IJW-3w; Wed, 31 May 2023 13:27:23 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (4096 bits))
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 03CEF30074B;
-        Wed, 31 May 2023 15:27:16 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 55A95300C0E;
+        Wed, 31 May 2023 15:27:21 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 7798E243B69E6; Wed, 31 May 2023 15:27:16 +0200 (CEST)
-Message-ID: <20230531130833.635651916@infradead.org>
+        id 95BD0243B856F; Wed, 31 May 2023 15:27:16 +0200 (CEST)
+Message-ID: <20230531132323.722039569@infradead.org>
 User-Agent: quilt/0.66
-Date:   Wed, 31 May 2023 15:08:33 +0200
+Date:   Wed, 31 May 2023 15:08:40 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     torvalds@linux-foundation.org
 Cc:     corbet@lwn.net, will@kernel.org, peterz@infradead.org,
@@ -60,76 +60,118 @@ Cc:     corbet@lwn.net, will@kernel.org, peterz@infradead.org,
         linux-crypto@vger.kernel.org, sfr@canb.auug.org.au,
         mpe@ellerman.id.au, James.Bottomley@hansenpartnership.com,
         deller@gmx.de, linux-parisc@vger.kernel.org
-Subject: [PATCH 00/12] Introduce cmpxchg128() -- aka. the demise of cmpxchg_double()
+Subject: [PATCH 07/12] percpu: #ifndef __SIZEOF_INT128__
+References: <20230531130833.635651916@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi!
+Some 64bit architectures do not advertise __SIZEOF_INT128__ on all
+supported compiler versions. Notably the HPPA64 only started doing
+with GCC-11.
 
-After much breaking of things, find here the improved version.
+Since the per-cpu ops are universally availably, and
+this_cpu_{,try_}cmpxchg128() is expected to be available on all 64bit
+architectures a wee bodge is in order.
 
-Since v3:
+Sadly, while C reverts to memcpy() for assignment of POD types, it does
+not revert to memcmp() for for equality. Therefore frob that manually.
 
- - unbreak everything that does *NOT* have cmpxchg128()
-
-   Notably this_cpu_cmpxchg_double() is used unconditionally by SLUB
-   which means that this_cpu_try_cmpxchg128() needs to be unconditionally
-   available on all 64bit architectures.
-
- - fixed up x86/x86_64 cmpxchg{8,16}b emulation for this_cpu_cmpxchg{64,128}()
-
- - introduce {raw,this}_cpu_try_cmpxchg*()
-
- - add fallback for !__SIZEOF_INT128__ 64bit architectures
-
-   Sadly there are supported 64bit architecture/compiler combinations that do
-   not have __SIZEOF_INT128__, specifically it was found that HPPA64 only added
-   this with GCC-11.
-
-   this is yuck, and ideally we'd simply raise compiler requirements, but this
-   'works'.
-
-My plan is to re-add this to tip/locking/core and thus -next later this week.
-
-Also available at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/queue.git locking/core
-
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- Documentation/core-api/this_cpu_ops.rst     |   2 -
- arch/arm64/include/asm/atomic_ll_sc.h       |  56 +++---
- arch/arm64/include/asm/atomic_lse.h         |  39 ++---
- arch/arm64/include/asm/cmpxchg.h            |  48 ++----
- arch/arm64/include/asm/percpu.h             |  30 ++--
- arch/s390/include/asm/cmpxchg.h             |  32 +---
- arch/s390/include/asm/cpu_mf.h              |   2 +-
- arch/s390/include/asm/percpu.h              |  34 ++--
- arch/s390/kernel/perf_cpum_sf.c             |  16 +-
- arch/x86/include/asm/cmpxchg.h              |  25 ---
- arch/x86/include/asm/cmpxchg_32.h           |   2 +-
- arch/x86/include/asm/cmpxchg_64.h           |  63 ++++++-
- arch/x86/include/asm/percpu.h               | 102 ++++++-----
- arch/x86/lib/Makefile                       |   3 +-
- arch/x86/lib/cmpxchg16b_emu.S               |  43 +++--
- arch/x86/lib/cmpxchg8b_emu.S                |  67 ++++++--
- drivers/iommu/amd/amd_iommu_types.h         |   9 +-
- drivers/iommu/amd/iommu.c                   |  10 +-
- drivers/iommu/intel/irq_remapping.c         |   8 +-
- include/asm-generic/percpu.h                | 257 ++++++++++++++++++++++------
- include/crypto/b128ops.h                    |  14 +-
- include/linux/atomic/atomic-arch-fallback.h |  95 +++++++++-
- include/linux/atomic/atomic-instrumented.h  |  93 ++++++++--
- include/linux/dmar.h                        | 125 +++++++-------
- include/linux/percpu-defs.h                 |  45 ++---
- include/linux/slub_def.h                    |  12 +-
- include/linux/types.h                       |  12 ++
- include/uapi/linux/types.h                  |   4 +
- lib/crypto/curve25519-hacl64.c              |   2 -
- lib/crypto/poly1305-donna64.c               |   2 -
- mm/slab.h                                   |  53 +++++-
- mm/slub.c                                   | 139 +++++++++------
- scripts/atomic/gen-atomic-fallback.sh       |   4 +-
- scripts/atomic/gen-atomic-instrumented.sh   |  19 +-
- 34 files changed, 952 insertions(+), 515 deletions(-)
+ include/asm-generic/percpu.h |   56 +++++++++++++++++++++++++++++++++++++++++++
+ include/linux/types.h        |    7 +++++
+ 2 files changed, 63 insertions(+)
+
+--- a/include/asm-generic/percpu.h
++++ b/include/asm-generic/percpu.h
+@@ -313,6 +313,35 @@ do {									\
+ #define raw_cpu_xchg_8(pcp, nval)	raw_cpu_generic_xchg(pcp, nval)
+ #endif
+ 
++#ifndef __SIZEOF_INT128__
++#define raw_cpu_generic_try_cmpxchg_memcmp(pcp, ovalp, nval)		\
++({									\
++	typeof(pcp) *__p = raw_cpu_ptr(&(pcp));				\
++	typeof(pcp) __val = *__p, __old = *(ovalp);			\
++	bool __ret;							\
++	if (!__builtin_memcmp(&__val, &__old, sizeof(pcp))) {		\
++		*__p = nval;						\
++		__ret = true;						\
++	} else {							\
++		*(ovalp) = __val;					\
++		__ret = false;						\
++	}								\
++	__ret;								\
++})
++
++#define raw_cpu_generic_cmpxchg_memcmp(pcp, oval, nval)			\
++({									\
++	typeof(pcp) __old = (oval);					\
++	raw_cpu_generic_try_cmpxchg_memcpy(pcp, &__old, nval);		\
++	__old;								\
++})
++
++#define raw_cpu_cmpxchg128(pcp, oval, nval) \
++	raw_cpu_generic_cmpxchg_memcmp(pcp, oval, nval)
++#define raw_cpu_try_cmpxchg128(pcp, ovalp, nval) \
++	raw_cpu_generic_try_cmpxchg_memcmp(pcp, ovalp, nval)
++#endif
++
+ #ifndef raw_cpu_try_cmpxchg_1
+ #ifdef raw_cpu_cmpxchg_1
+ #define raw_cpu_try_cmpxchg_1(pcp, ovalp, nval) \
+@@ -503,6 +532,33 @@ do {									\
+ #define this_cpu_xchg_8(pcp, nval)	this_cpu_generic_xchg(pcp, nval)
+ #endif
+ 
++#ifndef __SIZEOF_INT128__
++#define this_cpu_generic_try_cmpxchg_memcmp(pcp, ovalp, nval)		\
++({									\
++	bool __ret;							\
++	unsigned long __flags;						\
++	raw_local_irq_save(__flags);					\
++	__ret = raw_cpu_generic_try_cmpxchg_memcmp(pcp, ovalp, nval);	\
++	raw_local_irq_restore(__flags);					\
++	__ret;								\
++})
++
++#define this_cpu_generic_cmpxchg_memcmp(pcp, oval, nval)		\
++({									\
++	typeof(pcp) __ret;						\
++	unsigned long __flags;						\
++	raw_local_irq_save(__flags);					\
++	__ret = raw_cpu_generic_cmpxchg_memcmp(pcp, oval, nval);	\
++	raw_local_irq_restore(__flags);					\
++	__ret;								\
++})
++
++#define this_cpu_cmpxchg128(pcp, oval, nval) \
++	this_cpu_generic_cmpxchg_memcmp(pcp, oval, nval)
++#define this_cpu_try_cmpxchg128(pcp, ovalp, nval) \
++	this_cpu_generic_try_cmpxchg_memcmp(pcp, ovalp, nval)
++#endif
++
+ #ifndef this_cpu_try_cmpxchg_1
+ #ifdef this_cpu_cmpxchg_1
+ #define this_cpu_try_cmpxchg_1(pcp, ovalp, nval) \
+--- a/include/linux/types.h
++++ b/include/linux/types.h
+@@ -13,6 +13,13 @@
+ #ifdef __SIZEOF_INT128__
+ typedef __s128 s128;
+ typedef __u128 u128;
++#else
++#ifdef CONFIG_64BIT
++/* hack for this_cpu_cmpxchg128 */
++typedef struct {
++	u64 a, b;
++} u128 __attribute__((aligned(16)));
++#endif
+ #endif
+ 
+ typedef u32 __kernel_dev_t;
+
 
