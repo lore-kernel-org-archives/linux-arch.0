@@ -2,93 +2,139 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CE67AC7EE29
-	for <linux-arch@archiver.kernel.org>; Wed, 31 May 2023 21:23:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C74FDC7EE2E
+	for <linux-arch@archiver.kernel.org>; Wed, 31 May 2023 21:31:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230007AbjEaVXA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 31 May 2023 17:23:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35514 "EHLO
+        id S230195AbjEaVbW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 31 May 2023 17:31:22 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38788 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229629AbjEaVW7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2023 17:22:59 -0400
-Received: from mail-ed1-x52e.google.com (mail-ed1-x52e.google.com [IPv6:2a00:1450:4864:20::52e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8D4CAB3;
-        Wed, 31 May 2023 14:22:58 -0700 (PDT)
-Received: by mail-ed1-x52e.google.com with SMTP id 4fb4d7f45d1cf-5147e8972a1so337517a12.0;
-        Wed, 31 May 2023 14:22:58 -0700 (PDT)
+        with ESMTP id S229861AbjEaVbR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 31 May 2023 17:31:17 -0400
+Received: from mail-yw1-x112e.google.com (mail-yw1-x112e.google.com [IPv6:2607:f8b0:4864:20::112e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 60B62192;
+        Wed, 31 May 2023 14:31:12 -0700 (PDT)
+Received: by mail-yw1-x112e.google.com with SMTP id 00721157ae682-568bb833462so835877b3.1;
+        Wed, 31 May 2023 14:31:12 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1685568177; x=1688160177;
+        d=gmail.com; s=20221208; t=1685568671; x=1688160671;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=wQC0Taw9DGW/ijDYPQDBEhLOfb54DcOaqiw5dKW4RRw=;
-        b=fQbgXhP7vZD5Cb5UboaK4p5MsA/A1lgkFfndrv+/e6Xdt9DuyuFoNjaL9zWH1qYT8K
-         9H4c8AZT060gPZ4qDCi2b+rM/kjePV2T6Imlsc17d+sLCRR+86fQR75zjnq2I9yil0Tv
-         GV02WUh3oqGASMqxsvRnMBECZ20TovHpByejrsq8QjgwfCTtd9/p3y2Saso2RPn45O7D
-         mor9RvUFMe89ioFgsQ9qVPOKBP5ORxy8pnIocKTgdXne7HdJaxb5yVWqxYV8DglitDJG
-         ML38K61GcbMU1RVEiCAq4wcoCUt0nRaS+djaA5bo2qRQL1Jsszs8QOE7SEeSqBY2azdd
-         UYLw==
+        bh=bX969DJmm0QSNKJIBN0sjsA5M6jg25Ht5D0PDUGbnFg=;
+        b=P7FbSxrmAPv3mGtl9KCze7nT8iCFSFWQSZd60mX+cJFZkb27WYcyDR38HUvSUNwOfA
+         WyleVMjeIqtLEEwRc2YnbZ7txjSr2kC1Bu6eSjk/V4zQ7iY1ikjarw2unChyDBFaqyHl
+         qrkXBVTcGnA2v9yMUpvE/svfRz2vIL9d0Nbx7Bw2sQnHGn9MhsASWeYBsHvbspQGObju
+         1ipMDLV38bpj6HIH1n6AHSjFxILtRbDR5cBiuIg4YWigaXfk1Rbe6tGcUyluemp1MpHz
+         Go7YaG8Vo7KSrA3KfxzMvgw5BO+v7vQIsvpOcy7enjsShHfHLHc+oYi1vHe+rSK3PBLh
+         b6cg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1685568177; x=1688160177;
+        d=1e100.net; s=20221208; t=1685568671; x=1688160671;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=wQC0Taw9DGW/ijDYPQDBEhLOfb54DcOaqiw5dKW4RRw=;
-        b=T82SmXIl6uMkylIKwqx9tDpzHm8Rof+9GXLristfgAjc1o1AMSSttybczfsvtiJoVP
-         /GDXU5qzwNR5Mvu0VKB45ioySYOBrjT4ovMZJw/1UCNdy02UeYddUTyvon2X0xay9wq7
-         5i4aVM0+SQUXkt3ONHjDsLNpzv4Lmh8U4T0uBEN3Xr4jB3gQkKiKWA0cQM5mbIJnxCJx
-         f/V5y9zfAVHm+W7pyvZsVDi/TlSLu6VVQuC9AeiNaQZt4fhujlpg/wFYSlwkiU4jdl+0
-         ksTgKulydltW3C9LRqFrh36Mm1AhTUZstD98T05uJW8icqsHbRRzsxUWfJ+EtJf8U4na
-         speA==
-X-Gm-Message-State: AC+VfDy4LAW4Vi9Nhvpu9Z9mkgxi2FJ5ycIW0Bjf/LcNC0TDxzgLj0YQ
-        AnoHbPexyPEotmCjFm8UbI+jsi1IFJapfg==
-X-Google-Smtp-Source: ACHHUZ58AfxanTFy84gvgH+WbnI8SDn1e0skiaPsqfAo0ulKz1ynaHRQnVTu+7rCnWtzRmHPssV4kw==
-X-Received: by 2002:a17:907:6d27:b0:96f:f50b:9b15 with SMTP id sa39-20020a1709076d2700b0096ff50b9b15mr6512573ejc.35.1685568176853;
-        Wed, 31 May 2023 14:22:56 -0700 (PDT)
-Received: from jernej-laptop.localnet (82-149-1-233.dynamic.telemach.net. [82.149.1.233])
-        by smtp.gmail.com with ESMTPSA id lf4-20020a170907174400b0096f7500502csm9594497ejc.199.2023.05.31.14.22.55
+        bh=bX969DJmm0QSNKJIBN0sjsA5M6jg25Ht5D0PDUGbnFg=;
+        b=fuKDYYoTUDfpcdwV8k/HaLsbCWlq74vQ8D3P9vpxSh798jDpiR1/s749TNqSeflaOE
+         u1YKbRGAyj9Vz1m5Uo4lo1dasPZ3Cyxo7daP4Ysm4AWGQ4e3W98Bj6344A3bIvgJ4IHR
+         xNrUxqZf0OsvFHvQ5ZBhEW9+4cnV24L436s6x0cXQZYI7lXoaZNI5jOjaX75vJfjG4tp
+         +UW4dzjPup1VbOyAmsEOPrGZp+DTcUtYnCivNwfUmHwGJC7dD/UBm8t/LFi4slOw4od1
+         NXGvYGwnAVIWhOqgQnNimDGw/WKDjiV04jQE8/baYrZrQEFgWA1kTY3/bt7kEWZS77qT
+         dd9w==
+X-Gm-Message-State: AC+VfDw8fdKGBr3KzuohmgcNSDvM6DMLDxLCM2lcWrgOSDRtjsHmNXlY
+        pdsXbRFhWfEjoWQQn/Pqf/Q=
+X-Google-Smtp-Source: ACHHUZ49VjuEJEQYDlxCOib/9Ri8bRDKMaFSJKO9JbdYMtejkSn38dasbkcATHh4yJ4tcm7dGKQETg==
+X-Received: by 2002:a0d:e7c3:0:b0:565:a081:a925 with SMTP id q186-20020a0de7c3000000b00565a081a925mr7102903ywe.29.1685568671501;
+        Wed, 31 May 2023 14:31:11 -0700 (PDT)
+Received: from unknowna0e70b2ca394.attlocal.net ([2600:1700:2f7d:1800::46])
+        by smtp.googlemail.com with ESMTPSA id t63-20020a0dd142000000b0055aafcef659sm658905ywd.5.2023.05.31.14.31.09
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 31 May 2023 14:22:56 -0700 (PDT)
-From:   Jernej =?utf-8?B?xaBrcmFiZWM=?= <jernej.skrabec@gmail.com>
-To:     linux-doc@vger.kernel.org, Jonathan Corbet <corbet@lwn.net>
-Cc:     linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        Jonathan Corbet <corbet@lwn.net>,
-        Corentin Labbe <clabbe.montjoie@gmail.com>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        "David S. Miller" <davem@davemloft.net>,
-        Chen-Yu Tsai <wens@csie.org>,
-        Samuel Holland <samuel@sholland.org>,
-        linux-crypto@vger.kernel.org, linux-sunxi@lists.linux.dev
-Subject: Re: [PATCH v2 5/7] crypto: update some Arm documentation references
-Date:   Wed, 31 May 2023 23:22:55 +0200
-Message-ID: <2283368.ElGaqSPkdT@jernej-laptop>
-In-Reply-To: <20230529144856.102755-6-corbet@lwn.net>
-References: <20230529144856.102755-1-corbet@lwn.net>
- <20230529144856.102755-6-corbet@lwn.net>
+        Wed, 31 May 2023 14:31:11 -0700 (PDT)
+From:   "Vishal Moola (Oracle)" <vishal.moola@gmail.com>
+To:     Andrew Morton <akpm@linux-foundation.org>,
+        Matthew Wilcox <willy@infradead.org>
+Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org,
+        linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev,
+        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
+        linux-openrisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-um@lists.infradead.org, xen-devel@lists.xenproject.org,
+        kvm@vger.kernel.org,
+        "Vishal Moola (Oracle)" <vishal.moola@gmail.com>
+Subject: [PATCH v3 01/34] mm: Add PAGE_TYPE_OP folio functions
+Date:   Wed, 31 May 2023 14:29:59 -0700
+Message-Id: <20230531213032.25338-2-vishal.moola@gmail.com>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <20230531213032.25338-1-vishal.moola@gmail.com>
+References: <20230531213032.25338-1-vishal.moola@gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Dne ponedeljek, 29. maj 2023 ob 16:48:54 CEST je Jonathan Corbet napisal(a):
-> The Arm documentation has moved to Documentation/arch/arm; update a
-> set of references under crypto/allwinner to match.
-> 
-> Cc: Corentin Labbe <clabbe.montjoie@gmail.com>
-> Cc: Herbert Xu <herbert@gondor.apana.org.au>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Chen-Yu Tsai <wens@csie.org>
-> Cc: Jernej Skrabec <jernej.skrabec@gmail.com>
-> Cc: Samuel Holland <samuel@sholland.org>
-> Cc: linux-crypto@vger.kernel.org
-> Cc: linux-sunxi@lists.linux.dev
-> Signed-off-by: Jonathan Corbet <corbet@lwn.net>
+No folio equivalents for page type operations have been defined, so
+define them for later folio conversions.
 
-Acked-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Also changes the Page##uname macros to take in const struct page* since
+we only read the memory here.
 
-Best regards,
-Jernej
+Signed-off-by: Vishal Moola (Oracle) <vishal.moola@gmail.com>
+---
+ include/linux/page-flags.h | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
 
+diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
+index 92a2063a0a23..e99a616b9bcd 100644
+--- a/include/linux/page-flags.h
++++ b/include/linux/page-flags.h
+@@ -908,6 +908,8 @@ static inline bool is_page_hwpoison(struct page *page)
+ 
+ #define PageType(page, flag)						\
+ 	((page->page_type & (PAGE_TYPE_BASE | flag)) == PAGE_TYPE_BASE)
++#define folio_test_type(folio, flag)					\
++	((folio->page.page_type & (PAGE_TYPE_BASE | flag)) == PAGE_TYPE_BASE)
+ 
+ static inline int page_type_has_type(unsigned int page_type)
+ {
+@@ -920,20 +922,34 @@ static inline int page_has_type(struct page *page)
+ }
+ 
+ #define PAGE_TYPE_OPS(uname, lname)					\
+-static __always_inline int Page##uname(struct page *page)		\
++static __always_inline int Page##uname(const struct page *page)		\
+ {									\
+ 	return PageType(page, PG_##lname);				\
+ }									\
++static __always_inline int folio_test_##lname(const struct folio *folio)\
++{									\
++	return folio_test_type(folio, PG_##lname);			\
++}									\
+ static __always_inline void __SetPage##uname(struct page *page)		\
+ {									\
+ 	VM_BUG_ON_PAGE(!PageType(page, 0), page);			\
+ 	page->page_type &= ~PG_##lname;					\
+ }									\
++static __always_inline void __folio_set_##lname(struct folio *folio)	\
++{									\
++	VM_BUG_ON_FOLIO(!folio_test_type(folio, 0), folio);		\
++	folio->page.page_type &= ~PG_##lname;				\
++}									\
+ static __always_inline void __ClearPage##uname(struct page *page)	\
+ {									\
+ 	VM_BUG_ON_PAGE(!Page##uname(page), page);			\
+ 	page->page_type |= PG_##lname;					\
+-}
++}									\
++static __always_inline void __folio_clear_##lname(struct folio *folio)	\
++{									\
++	VM_BUG_ON_FOLIO(!folio_test_##lname(folio), folio);		\
++	folio->page.page_type |= PG_##lname;				\
++}									\
+ 
+ /*
+  * PageBuddy() indicates that the page is free and in the buddy system
+-- 
+2.40.1
 
