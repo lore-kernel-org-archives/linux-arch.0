@@ -2,124 +2,173 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 38622C7EE2E
-	for <linux-arch@archiver.kernel.org>; Thu,  1 Jun 2023 21:09:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 18DA6C77B7A
+	for <linux-arch@archiver.kernel.org>; Fri,  2 Jun 2023 10:44:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229866AbjFAVJf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 1 Jun 2023 17:09:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40626 "EHLO
+        id S235010AbjFBKof (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 2 Jun 2023 06:44:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36524 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229497AbjFAVJe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 1 Jun 2023 17:09:34 -0400
-Received: from smtp.gentoo.org (woodpecker.gentoo.org [140.211.166.183])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 086FFF2;
-        Thu,  1 Jun 2023 14:09:32 -0700 (PDT)
-References: <20230531130833.635651916@infradead.org>
- <20230531132323.722039569@infradead.org>
- <70a69deb-7ad4-45b2-8e13-34955594a7ce@app.fastmail.com>
- <20230601101409.GS4253@hirez.programming.kicks-ass.net>
- <14c50e58-fecc-e96a-ee73-39ef4e4617c7@gmx.de>
- <20230601105021.GU4253@hirez.programming.kicks-ass.net>
-User-agent: mu4e 1.10.3; emacs 29.0.91
-From:   Sam James <sam@gentoo.org>
-To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     Helge Deller <deller@gmx.de>, Arnd Bergmann <arnd@arndb.de>,
-        Linus Torvalds <torvalds@linux-foundation.org>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Will Deacon <will@kernel.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Catalin Marinas <catalin.marinas@arm.com>, dennis@kernel.org,
-        Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@linux.com>,
-        Heiko Carstens <hca@linux.ibm.com>, gor@linux.ibm.com,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        borntraeger@linux.ibm.com, Sven Schnelle <svens@linux.ibm.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        "H. Peter Anvin" <hpa@zytor.com>, Joerg Roedel <joro@8bytes.org>,
-        suravee.suthikulpanit@amd.com, Robin Murphy <robin.murphy@arm.com>,
-        David Woodhouse <dwmw2@infradead.org>,
-        Baolu Lu <baolu.lu@linux.intel.com>,
-        Herbert Xu <herbert@gondor.apana.org.au>,
-        "David S . Miller" <davem@davemloft.net>,
-        Pekka Enberg <penberg@kernel.org>,
-        David Rientjes <rientjes@google.com>,
-        Joonsoo Kim <iamjoonsoo.kim@lge.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Vlastimil Babka <vbabka@suse.cz>,
-        Roman Gushchin <roman.gushchin@linux.dev>,
-        Hyeonggon Yoo <42.hyeyoo@gmail.com>, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-        linux-s390@vger.kernel.org, iommu@lists.linux.dev,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        linux-crypto@vger.kernel.org,
-        Stephen Rothwell <sfr@canb.auug.org.au>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        "James E . J . Bottomley" <James.Bottomley@hansenpartnership.com>,
-        linux-parisc@vger.kernel.org,
-        John David Anglin <dave.anglin@bell.net>
-Subject: Re: [PATCH v2 07/12] parisc/percpu: Work around the lack of
- __SIZEOF_INT128__
-Date:   Thu, 01 Jun 2023 22:08:44 +0100
-In-reply-to: <20230601105021.GU4253@hirez.programming.kicks-ass.net>
-Message-ID: <87jzwmvqin.fsf@gentoo.org>
+        with ESMTP id S234526AbjFBKoc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 2 Jun 2023 06:44:32 -0400
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EF8F11BD
+        for <linux-arch@vger.kernel.org>; Fri,  2 Jun 2023 03:43:20 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+        s=mimecast20190719; t=1685702597;
+        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         in-reply-to:in-reply-to:references:references;
+        bh=phpZd5hK2i2mM+vAnJfGyLfRqwW0axG13fXI7MRFpGs=;
+        b=Mcd3L4aUsnJE+6hkNKR3BVyGL/Zv9r0WtYgIoOmpeexpDAxXIch6wS4otPco/E1v3g0+L/
+        37mOdAoNorYLVpwdYV0FEsd8FnEmDo6SeJ5BGAmMfVIPtndVUTt4g3++SXmp83/6QL8V8A
+        K/SCvFQnlZrO7CZ+QTfY7QZaCpwEQ08=
+Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
+ [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ us-mta-659-I1xxHkoXNl6b6j-Eozu2nw-1; Fri, 02 Jun 2023 06:43:07 -0400
+X-MC-Unique: I1xxHkoXNl6b6j-Eozu2nw-1
+Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
+        (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+        (No client certificate requested)
+        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 5F1F3185A793;
+        Fri,  2 Jun 2023 10:43:06 +0000 (UTC)
+Received: from localhost (ovpn-12-54.pek2.redhat.com [10.72.12.54])
+        by smtp.corp.redhat.com (Postfix) with ESMTPS id 6936FC154D9;
+        Fri,  2 Jun 2023 10:43:04 +0000 (UTC)
+Date:   Fri, 2 Jun 2023 18:42:59 +0800
+From:   Baoquan He <bhe@redhat.com>
+To:     Christoph Hellwig <hch@infradead.org>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, arnd@arndb.de, christophe.leroy@csgroup.eu,
+        agordeev@linux.ibm.com, wangkefeng.wang@huawei.com,
+        schnelle@linux.ibm.com, David.Laight@aculab.com, shorne@gmail.com,
+        willy@infradead.org, deller@gmx.de
+Subject: Re: [PATCH v5 RESEND 14/17] mm/ioremap: Consider IOREMAP space in
+ generic ioremap
+Message-ID: <ZHnHs+ro44SBS+lV@MiWiFi-R3L-srv>
+References: <20230515090848.833045-1-bhe@redhat.com>
+ <20230515090848.833045-15-bhe@redhat.com>
+ <ZGR3Ft27kdgXKKfp@infradead.org>
+ <ZGR3yWIdjfJTupgY@infradead.org>
+ <ZHXD082+VntWgbNo@MiWiFi-R3L-srv>
+ <ZHh9TcwFwzeWU9sx@infradead.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="=-=-=";
-        micalg=pgp-sha512; protocol="application/pgp-signature"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ZHh9TcwFwzeWU9sx@infradead.org>
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
---=-=-=
-Content-Type: text/plain
-Content-Transfer-Encoding: quoted-printable
+On 06/01/23 at 04:13am, Christoph Hellwig wrote:
+> On Tue, May 30, 2023 at 05:37:23PM +0800, Baoquan He wrote:
+> > If we want to consolidate code, we can move is_ioremap_addr() to
+> > include/linux/mm.h libe below. Not sure if it's fine. With it,
+> > both kernel/iomem.c and mm/ioremap.c can use is_ioremap_addr().
+> 
+> Can we just add a ne header for this given that no one else really
+> needs it?
 
+Is it OK like below?
 
-Peter Zijlstra <peterz@infradead.org> writes:
+From fe5d4d25afa1e989fa82877c8466a97fc8bd8c93 Mon Sep 17 00:00:00 2001
+From: Baoquan He <bhe@redhat.com>
+Date: Fri, 2 Jun 2023 18:36:48 +0800
+Subject: [PATCH] mm: move is_ioremap_addr() into new header file
+Content-type: text/plain
 
-> On Thu, Jun 01, 2023 at 12:32:38PM +0200, Helge Deller wrote:
->> On 6/1/23 12:14, Peter Zijlstra wrote:
->> > On Wed, May 31, 2023 at 04:21:22PM +0200, Arnd Bergmann wrote:
->> >=20
->> > > It would be nice to have the hack more localized to parisc
->> > > and guarded with a CONFIG_GCC_VERSION check so we can kill
->> > > it off in the future, once we drop either gcc-10 or parisc
->> > > support.
->> >=20
->> > I vote for dropping parisc -- it's the only 64bit arch that doesn't ha=
-ve
->> > sane atomics.
->>=20
->> Of course I'm against dropping parisc.
->
-> :-)
->
->> > Anyway, the below seems to work -- build tested with GCC-10.1
->>=20
->> I don't think we need to care about gcc-10 on parisc.
->> Debian and Gentoo are the only supported distributions, while Debian
->> requires gcc-12 to build > 6.x kernels, and I assume Gentoo uses at least
->> gcc-12 as well.
->>=20
->> So raising the gcc limit for parisc only (at least temporarily for now)
->> should be fine and your workaround below wouldn't be necessary, right?
->
-> Correct, if you're willing to set minimum GCC version to 11 for parisc
-> all is well and this patch can go play in the bit bucket.
+Now is_ioremap_addr() is only used in kernel/iomem.c and gonna be used
+in mm/ioremap.c. Move it into its own new header file linux/ioremap.h.
 
-It's fine for us in Gentoo, thanks!
+Signed-off-by: Baoquan He <bhe@redhat.com>
+---
+ include/linux/ioremap.h | 29 +++++++++++++++++++++++++++++
+ include/linux/mm.h      |  5 -----
+ kernel/iomem.c          |  1 +
+ mm/ioremap.c            |  1 +
+ 4 files changed, 31 insertions(+), 5 deletions(-)
+ create mode 100644 include/linux/ioremap.h
 
---=-=-=
-Content-Type: application/pgp-signature; name="signature.asc"
+diff --git a/include/linux/ioremap.h b/include/linux/ioremap.h
+new file mode 100644
+index 000000000000..2fd51a77ebdc
+--- /dev/null
++++ b/include/linux/ioremap.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _LINUX_IOREMAP_H
++#define _LINUX_IOREMAP_H
++
++#include <linux/kasan.h>
++#include <asm/pgtable.h>
++
++#if defined(CONFIG_HAS_IOMEM) || defined(CONFIG_GENERIC_IOREMAP)
++/*
++ * Ioremap often, but not always uses the generic vmalloc area. E.g on
++ * Power ARCH, it could have different ioremap space. 
++ */
++#ifndef IOREMAP_START
++#define IOREMAP_START   VMALLOC_START
++#define IOREMAP_END     VMALLOC_END
++#endif
++static inline bool is_ioremap_addr(const void *x)
++{
++	unsigned long addr = (unsigned long)kasan_reset_tag(x);
++	return addr >= IOREMAP_START && addr < IOREMAP_END;
++}
++#else
++static inline bool is_ioremap_addr(const void *x)
++{
++	return false;
++}
++#endif
++
++#endif /* _LINUX_IOREMAP_H */
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 27ce77080c79..7379f19768b4 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -1041,11 +1041,6 @@ unsigned long vmalloc_to_pfn(const void *addr);
+  * On nommu, vmalloc/vfree wrap through kmalloc/kfree directly, so there
+  * is no special casing required.
+  */
+-
+-#ifndef is_ioremap_addr
+-#define is_ioremap_addr(x) is_vmalloc_addr(x)
+-#endif
+-
+ #ifdef CONFIG_MMU
+ extern bool is_vmalloc_addr(const void *x);
+ extern int is_vmalloc_or_module_addr(const void *x);
+diff --git a/kernel/iomem.c b/kernel/iomem.c
+index 62c92e43aa0d..9682471e6471 100644
+--- a/kernel/iomem.c
++++ b/kernel/iomem.c
+@@ -3,6 +3,7 @@
+ #include <linux/types.h>
+ #include <linux/io.h>
+ #include <linux/mm.h>
++#include <linux/ioremap.h>
+ 
+ #ifndef ioremap_cache
+ /* temporary while we convert existing ioremap_cache users to memremap */
+diff --git a/mm/ioremap.c b/mm/ioremap.c
+index 0248e630561b..3dede3302eba 100644
+--- a/mm/ioremap.c
++++ b/mm/ioremap.c
+@@ -10,6 +10,7 @@
+ #include <linux/mm.h>
+ #include <linux/io.h>
+ #include <linux/export.h>
++#include <linux/ioremap.h>
+ 
+ /*
+  * Ioremap often, but not always uses the generic vmalloc area. E.g on
+-- 
+2.34.1
 
------BEGIN PGP SIGNATURE-----
+> 
+> 
 
-iOUEARYKAI0WIQQlpruI3Zt2TGtVQcJzhAn1IN+RkAUCZHkJAF8UgAAAAAAuAChp
-c3N1ZXItZnByQG5vdGF0aW9ucy5vcGVucGdwLmZpZnRoaG9yc2VtYW4ubmV0MjVB
-NkJCODhERDlCNzY0QzZCNTU0MUMyNzM4NDA5RjUyMERGOTE5MA8cc2FtQGdlbnRv
-by5vcmcACgkQc4QJ9SDfkZCxTgD8DvRqnel67WrRU5+HwB76oJ89eB+XZVKI63Ih
-mkFPKKIBAJQcSVIUwNsG7OzOuRH/3R6pDjmn/yKfCEUMjHqK3HEH
-=fJgU
------END PGP SIGNATURE-----
---=-=-=--
