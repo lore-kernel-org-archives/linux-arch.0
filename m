@@ -2,63 +2,75 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D762C7EE24
-	for <linux-arch@archiver.kernel.org>; Sat,  3 Jun 2023 10:30:00 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BFEB0C7EE23
+	for <linux-arch@archiver.kernel.org>; Sun,  4 Jun 2023 18:02:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230114AbjFCK36 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 3 Jun 2023 06:29:58 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47772 "EHLO
+        id S231195AbjFDSCP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 4 Jun 2023 14:02:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34096 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229620AbjFCK34 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 3 Jun 2023 06:29:56 -0400
-X-Greylist: delayed 4202 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Sat, 03 Jun 2023 03:29:55 PDT
-Received: from mail.webtopbits.pl (mail.webtopbits.pl [195.231.64.176])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2A6FBBC
-        for <linux-arch@vger.kernel.org>; Sat,  3 Jun 2023 03:29:55 -0700 (PDT)
-Received: by mail.webtopbits.pl (Postfix, from userid 1001)
-        id B173BA392C; Fri,  2 Jun 2023 09:40:55 +0100 (BST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=webtopbits.pl;
-        s=mail; t=1685695257;
-        bh=Eh8ECMiYd4baGAwPAzhz8mhJACXX7NSRkYjh+plaY18=;
-        h=Date:From:To:Subject:From;
-        b=QBWPaahJJeyHq86xdAZkWQJeCGXB0cMdq4DkvtMKWYkR48PGYfR2mewea/PurfXXy
-         D7khiX4ts2z/zja6DJhUU96m7YVdAoQpETVmzWEft+HhmuYAmMsAXsdzRcIb7akGDm
-         ejaUEtlmAxMaeFppIfMojF1flymAVjF4wcv1egeC05J7s1KeGNLy1IEfMb7nik1jzi
-         r2uXKjSXZaqH/1DcDHipgKltValhXki77/o9F3WNom5EB4H1QTgopzRKqNF2Q6JY3/
-         1mnpz83WLTOuPWfEN4qUSeSxVlB9oFYPPOc/WsgRW+vj025qpu5TM4qyQ/iLriSuRP
-         kUEb4iwaFpTig==
-Received: by mail.webtopbits.pl for <linux-arch@vger.kernel.org>; Fri,  2 Jun 2023 08:40:50 GMT
-Message-ID: <20230602085530-0.1.8w.5kbb.0.2id5nmszgr@webtopbits.pl>
-Date:   Fri,  2 Jun 2023 08:40:50 GMT
-From:   "Kamil Durjasz" <kamil.durjasz@webtopbits.pl>
-To:     <linux-arch@vger.kernel.org>
-Subject: =?UTF-8?Q?Wy=C5=BCsza_konwersja_w_e-sklepie_?=
-X-Mailer: mail.webtopbits.pl
+        with ESMTP id S229886AbjFDSCO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 4 Jun 2023 14:02:14 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6E5F7BD;
+        Sun,  4 Jun 2023 11:02:13 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 01D0C6102C;
+        Sun,  4 Jun 2023 18:02:13 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D3AFCC433EF;
+        Sun,  4 Jun 2023 18:02:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1685901732;
+        bh=tsgHg/5R2crKomKyj+7Pho6UFoS2AQKQ8Lkd87r9ko8=;
+        h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+        b=VPSCfy/0/VfmjnkJ26s0+N3hVhu4/HnrUCquzI2efOtUvDs/4Yi/JlPrsd6b8FGRP
+         TyJA63shtiLXlSp/yXjn24pXjiAID96auxASntrPNEF0UlR20gOlNB4B19siwHEReV
+         YXzZtRNHKcfkTKg5pZZ5yscqbcv2C/Cdn9lEK+oOgM8n5x0G0biqmaW1qSXevUP/64
+         VB8+4Sz9RdRD9EYH2/JGjHGVRbcSZyqYd/mWdQSJbck9euIo+KjHYtBIH+79oSfRrE
+         nIjjdTwBqhBroLQzxaKfpO5LPZ6XepshB3PXgabN5/RDVX1omJghFQYfI4eDAIRFVM
+         5NMZfTgqRNE4A==
+Date:   Sun, 4 Jun 2023 11:02:11 -0700
+From:   Jakub Kicinski <kuba@kernel.org>
+To:     Aleksandr Mikhalitsyn <aleksandr.mikhalitsyn@canonical.com>
+Cc:     Luca Boccassi <bluca@debian.org>,
+        Christian Brauner <brauner@kernel.org>, davem@davemloft.net,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        Eric Dumazet <edumazet@google.com>,
+        Paolo Abeni <pabeni@redhat.com>,
+        Leon Romanovsky <leon@kernel.org>,
+        David Ahern <dsahern@kernel.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Kees Cook <keescook@chromium.org>,
+        Kuniyuki Iwashima <kuniyu@amazon.com>,
+        Lennart Poettering <mzxreary@0pointer.de>,
+        linux-arch@vger.kernel.org
+Subject: Re: [PATCH net-next v6 1/3] scm: add SO_PASSPIDFD and SCM_PIDFD
+Message-ID: <20230604110211.3f6401c6@kernel.org>
+In-Reply-To: <CAEivzxcTEghPqk=9hQMReSGzE=ruWnJyiuPhW5rGd7eUOEg12A@mail.gmail.com>
+References: <20230522132439.634031-1-aleksandr.mikhalitsyn@canonical.com>
+        <20230522132439.634031-2-aleksandr.mikhalitsyn@canonical.com>
+        <20230522133409.5c6e839a@kernel.org>
+        <20230523-flechten-ortsschild-e5724ecc4ed0@brauner>
+        <CAMw=ZnS8GBTDV0rw+Dh6hPv3uLXJVwapRFQHLMYEYGZHNoLNOw@mail.gmail.com>
+        <20230523140844.5895d645@kernel.org>
+        <CAEivzxeS2J5i0RJDvFHq-U_RAU5bbKVF5ZbphYDGoPcMZTsE3Q@mail.gmail.com>
+        <CAMw=ZnRmNaoRb2uceatrV8EAufJSKZzD2AsfT5PJE8NBBOrHCg@mail.gmail.com>
+        <20230524081933.44dc8bea@kernel.org>
+        <CAEivzxcTEghPqk=9hQMReSGzE=ruWnJyiuPhW5rGd7eUOEg12A@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Dzie=C5=84 dobry,
+On Wed, 24 May 2023 17:45:25 +0200 Aleksandr Mikhalitsyn wrote:
+> > How about you put the UNIX -> bool patch at the end of the series,
+> > (making it a 4 patch series) and if there's a discussion about it
+> > I'll just skip it and apply the first 3 patches?  
+> 
+> Sure, I will do that!
 
-w jaki spos=C3=B3b docieraj=C4=85 Pa=C5=84stwo do odbiorc=C3=B3w?
-
-Tworzymy pot=C4=99=C5=BCne narz=C4=99dzia sprzeda=C5=BCy, kt=C3=B3re pozw=
-alaj=C4=85 kompleksowo rozwi=C4=85za=C4=87 problemy potencjalnych klient=C3=
-=B3w i skutecznie wp=C5=82yn=C4=85=C4=87 na ich decyzje zakupowe.=20
-
-Skupiamy si=C4=99 na Pa=C5=84stwa potrzebach zwi=C4=85zanych z obs=C5=82u=
-g=C4=85 sklepu, oczekiwaniach i planach sprzeda=C5=BCowych. Szczeg=C3=B3=C5=
-=82owo dopasowujemy grafik=C4=99, funkcjonalno=C5=9Bci, struktur=C4=99 i =
-mikrointerakcje do Pa=C5=84stwa grupy docelowej, co przek=C5=82ada si=C4=99=
- na oczekiwane rezultaty.
-
-Ch=C4=99tnie przedstawi=C4=99 dotychczasowe realizacje, aby mogli Pa=C5=84=
-stwo przekona=C4=87 si=C4=99 o naszych mo=C5=BCliwo=C5=9Bciach. Mog=C4=99=
- si=C4=99 skontaktowa=C4=87?
-
-
-Pozdrawiam
-Kamil Durjasz
+Hi Aleksandr! Did you disappear? Have I missed v7?
