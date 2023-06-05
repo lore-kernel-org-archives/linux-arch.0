@@ -2,43 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E213CC7EE24
-	for <linux-arch@archiver.kernel.org>; Mon,  5 Jun 2023 10:12:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 15855C77B73
+	for <linux-arch@archiver.kernel.org>; Mon,  5 Jun 2023 12:02:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229611AbjFEKMm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 5 Jun 2023 06:12:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41088 "EHLO
+        id S229651AbjFEMCU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 5 Jun 2023 08:02:20 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41058 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229483AbjFEKMl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Jun 2023 06:12:41 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5DD11E9;
-        Mon,  5 Jun 2023 03:12:40 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id AACC362209;
-        Mon,  5 Jun 2023 10:12:39 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 79CC4C433EF;
-        Mon,  5 Jun 2023 10:12:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1685959959;
-        bh=WHTZMibVd/jYavGziw9IAH3KvXsQuHo9quoMZmILjDs=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=mLcB4IgKZhO/0RLyFEf2w5Co9PbQLm5WJ8YixHzpu53FXyixWgNd16x/ZxNvM+EWH
-         kYdYDUKi+FMUdBzZEEvD0dLOxXg2GyqPgnZ5fZ13gWVqD1pKLwQYPZIzZAZ8WjGUKb
-         7y4e4MAeET0VDM9x3HcLhtAdGMZKS9A9/2i6TtpkMY7SZGChSFW9FriJUh7jqeAV3H
-         YS0bFpzYVrA5ahzI62pQ4M43nF8gq5MGvfH1eb7TzWDEgv4uRmaT8zhmtp5UYVUsny
-         aAcnP1Je/QOruZoUUr4T4z/JjTjNl/b8+08rSikGQEPxV/BfwSi848SQQc2EmuJ7gP
-         5YVk406HgHUuQ==
-Date:   Mon, 5 Jun 2023 12:12:35 +0200
-From:   Wolfram Sang <wsa@kernel.org>
-To:     Niklas Schnelle <schnelle@linux.ibm.com>
-Cc:     Arnd Bergmann <arnd@arndb.de>,
+        with ESMTP id S232279AbjFEMCU (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 5 Jun 2023 08:02:20 -0400
+Received: from metis.ext.pengutronix.de (metis.ext.pengutronix.de [IPv6:2001:67c:670:201:290:27ff:fe1d:cc33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 124A7A7
+        for <linux-arch@vger.kernel.org>; Mon,  5 Jun 2023 05:02:19 -0700 (PDT)
+Received: from drehscheibe.grey.stw.pengutronix.de ([2a0a:edc0:0:c01:1d::a2])
+        by metis.ext.pengutronix.de with esmtps (TLS1.3:ECDHE_RSA_AES_256_GCM_SHA384:256)
+        (Exim 4.92)
+        (envelope-from <ukl@pengutronix.de>)
+        id 1q68uP-0000Yl-Je; Mon, 05 Jun 2023 14:02:01 +0200
+Received: from [2a0a:edc0:0:900:1d::77] (helo=ptz.office.stw.pengutronix.de)
+        by drehscheibe.grey.stw.pengutronix.de with esmtp (Exim 4.94.2)
+        (envelope-from <ukl@pengutronix.de>)
+        id 1q68uN-005GF8-Fp; Mon, 05 Jun 2023 14:01:59 +0200
+Received: from ukl by ptz.office.stw.pengutronix.de with local (Exim 4.94.2)
+        (envelope-from <ukl@pengutronix.de>)
+        id 1q68uM-00BNcb-R6; Mon, 05 Jun 2023 14:01:58 +0200
+Date:   Mon, 5 Jun 2023 14:01:51 +0200
+From:   Uwe =?utf-8?Q?Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>
+To:     Wolfram Sang <wsa@kernel.org>,
+        Niklas Schnelle <schnelle@linux.ibm.com>,
+        Arnd Bergmann <arnd@arndb.de>,
         Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
         Bjorn Helgaas <bhelgaas@google.com>,
-        Uwe =?utf-8?Q?Kleine-K=C3=B6nig?= 
-        <u.kleine-koenig@pengutronix.de>,
         Mauro Carvalho Chehab <mchehab@kernel.org>,
         Alan Stern <stern@rowland.harvard.edu>,
         "Rafael J. Wysocki" <rafael@kernel.org>,
@@ -50,69 +44,69 @@ Cc:     Arnd Bergmann <arnd@arndb.de>,
         linux-pci@vger.kernel.org, Arnd Bergmann <arnd@kernel.org>,
         linux-i2c@vger.kernel.org
 Subject: Re: [PATCH v4 11/41] i2c: add HAS_IOPORT dependencies
-Message-ID: <ZH21E3Obp+YPJHkl@shikoro>
-Mail-Followup-To: Wolfram Sang <wsa@kernel.org>,
-        Niklas Schnelle <schnelle@linux.ibm.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Bjorn Helgaas <bhelgaas@google.com>,
-        Uwe =?utf-8?Q?Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>,
-        Mauro Carvalho Chehab <mchehab@kernel.org>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        "Rafael J. Wysocki" <rafael@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-pci@vger.kernel.org,
-        Arnd Bergmann <arnd@kernel.org>, linux-i2c@vger.kernel.org
+Message-ID: <20230605120151.qpoe5ordzdvxmqv7@pengutronix.de>
 References: <20230516110038.2413224-1-schnelle@linux.ibm.com>
  <20230516110038.2413224-12-schnelle@linux.ibm.com>
+ <ZH21E3Obp+YPJHkl@shikoro>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="4tL/EgbFZOh0MjKH"
+        protocol="application/pgp-signature"; boundary="rrjpp6upncpe45z2"
 Content-Disposition: inline
-In-Reply-To: <20230516110038.2413224-12-schnelle@linux.ibm.com>
+In-Reply-To: <ZH21E3Obp+YPJHkl@shikoro>
+X-SA-Exim-Connect-IP: 2a0a:edc0:0:c01:1d::a2
+X-SA-Exim-Mail-From: ukl@pengutronix.de
+X-SA-Exim-Scanned: No (on metis.ext.pengutronix.de); SAEximRunCond expanded to false
+X-PTX-Original-Recipient: linux-arch@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 
---4tL/EgbFZOh0MjKH
-Content-Type: text/plain; charset=us-ascii
+--rrjpp6upncpe45z2
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-On Tue, May 16, 2023 at 01:00:07PM +0200, Niklas Schnelle wrote:
-> In a future patch HAS_IOPORT=3Dn will result in inb()/outb() and friends
-> not being declared. We thus need to add HAS_IOPORT as dependency for
-> those drivers using them.
+Hello Wolfram,
+
+On Mon, Jun 05, 2023 at 12:12:35PM +0200, Wolfram Sang wrote:
+> On Tue, May 16, 2023 at 01:00:07PM +0200, Niklas Schnelle wrote:
+> > In a future patch HAS_IOPORT=3Dn will result in inb()/outb() and friends
+> > not being declared. We thus need to add HAS_IOPORT as dependency for
+> > those drivers using them.
+> >=20
+> > Co-developed-by: Arnd Bergmann <arnd@kernel.org>
+> > Signed-off-by: Arnd Bergmann <arnd@kernel.org>
+> > Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 >=20
-> Co-developed-by: Arnd Bergmann <arnd@kernel.org>
-> Signed-off-by: Arnd Bergmann <arnd@kernel.org>
-> Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
+> What has changed since V3? I didn't get the coverletter...
 
-What has changed since V3? I didn't get the coverletter...
+lore has it:
+https://lore.kernel.org/all/20230516110038.2413224-1-schnelle@linux.ibm.com/
 
+(Found via: https://lore.kernel.org/all/ZH21E3Obp+YPJHkl@shikoro where
+the last part of the URL is the Message-Id of your mail.)
 
---4tL/EgbFZOh0MjKH
+Best regards
+Uwe
+
+--=20
+Pengutronix e.K.                           | Uwe Kleine-K=F6nig            |
+Industrial Linux Solutions                 | https://www.pengutronix.de/ |
+
+--rrjpp6upncpe45z2
 Content-Type: application/pgp-signature; name="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAABCgAdFiEEOZGx6rniZ1Gk92RdFA3kzBSgKbYFAmR9tRMACgkQFA3kzBSg
-Kbbc+xAAqP7HS91nIrnCAA96c5zQ1oe7pFt0DHJGUlaejNCUnxEydd6fFseJiAna
-fmWKk7DsPTsB2bccl7khlpaiin8oLe8nQxY818fTPsS2mF9jlUSjf1BfZgu4fnVh
-bX76Q4KPhHyNZHOTg+9kr/dfCaQVWp1SWum9+fGFT4BmjuvLNaq+gMBI4oDCybMw
-7XvSKqjbxHkhTjNQKH1kcO++a3NHAwIO4raOY/TomHQewXBIwi6W0on+jYi5hHVo
-UjOSwBxpC/cepK5ubzp6latXWnr5cdY1an+OAGM4YkvEBvmiPgTOwlbzoVy3Ox7F
-WTqTuHfg99W1yHfosiowi1iHtWWK56TtzppJPQ3UaR7wF1PmX1ggCtGGOfJ2wfbh
-TS6F4lqnwSxXfAsav5J756eGVkq48+zuPh3kMtuZ2lRtIbI71nZQdCzsmDfqmzAs
-1T/rtRHWlKV2gMNehHp3BwIN2hI0BlCk0jZaCgMx/zERCdy6VaV8PWk4ZLKLZI/j
-kcBqfRMcKzd+OGw1s7wY3zPqNCNfaeH4VTM4aN0AlQAsbx5Qg2CuPeuirgTSPgRD
-2dZKzjuO1cQcPAGYoiAQ/MKrCuvU3MoSgX3/yVgXQePBWaTOOIiJdmKMluQpM7T1
-A7LvVZiCQiOOYRUSC5WrS9v6LnB+Hkn41t3i+UdW5y64d4CtMYI=
-=3QWP
+iQEzBAABCgAdFiEEP4GsaTp6HlmJrf7Tj4D7WH0S/k4FAmR9zqkACgkQj4D7WH0S
+/k6J+wf8DmGrLkbb+yVGL7PepId5isI8DouAOsHiBL2947XH+XFzSbVniR3Ydjfa
+V+XHlHuatOVGSKP23q6pXNFWDhwxVbCZkMWlumoPKslLqIjU+Qgt+SCznZQDiDnZ
+QqOgKD2M1CLufMBb0W/dNcm/pVxDO0T8FeyiJZO9mttJQ8yQ4nzCHCDDKXH5NDXl
+Y2PMdDlLeba0kwleogS5j5JR/jxMLmnoDqCBWjb2v8ZJQMrIg3/6YmZRJ1/hXoHO
+QAdzEIxNOl/2Tj9Cc84+9oyk7J19OsvBhXNpR8g+kB7bS39dCIrE9di96BTDzfaW
+uxKsqfUGQ7aqF/xjpAM+0Bb6NkvhKQ==
+=pscJ
 -----END PGP SIGNATURE-----
 
---4tL/EgbFZOh0MjKH--
+--rrjpp6upncpe45z2--
