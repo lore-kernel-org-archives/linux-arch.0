@@ -2,117 +2,106 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5050FC77B7A
-	for <linux-arch@archiver.kernel.org>; Wed,  7 Jun 2023 21:21:22 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 210C5C7EE2F
+	for <linux-arch@archiver.kernel.org>; Thu,  8 Jun 2023 01:44:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231956AbjFGVVU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 7 Jun 2023 17:21:20 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46066 "EHLO
+        id S232466AbjFHBoT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 7 Jun 2023 21:44:19 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54676 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231935AbjFGVVU (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2023 17:21:20 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1DABC1984;
-        Wed,  7 Jun 2023 14:21:19 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id A6CEA6488A;
-        Wed,  7 Jun 2023 21:21:18 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 85B6EC433D2;
-        Wed,  7 Jun 2023 21:21:17 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1686172878;
-        bh=jSlEKrCnMK95pETVHXEKH30RppvMmXwHnRIAJknEjUM=;
-        h=From:Date:Subject:To:Cc:From;
-        b=gJdnOvtTm3qZwrlGnx/agmFkFlojWgz2nJIaWWcgj1exOo3F19P5F3ej0gTkJfLtK
-         PH09tXlsjrcX23Fkor3z+4Oz9hYwzEwJ11TKAFLwh/hviAt4xrQiyg3tvOOUaA2odh
-         ZY84y3mh4FY5sn+V1Hef3B1o7cd5ZwXvboL/EAdZq3xr+HX9fcD62fAE1hhKLpb6Tu
-         HPZRLhfaOCCoqjIh+/vnApqwAvy/Jje4UxFHlyX/i/7ocueef60FvfYYkCNZJGU3b4
-         bewoMXcm6M28KgXLwZzHYH4teKZyQ3kcyiokp8rXpF2vFy1kUO4Tg+zo7OHgWqYdA6
-         8SILOHmkAMqdA==
-From:   Nathan Chancellor <nathan@kernel.org>
-Date:   Wed, 07 Jun 2023 14:20:59 -0700
-Subject: [PATCH] percpu: Fix self-assignment of __old in
- raw_cpu_generic_try_cmpxchg()
+        with ESMTP id S231259AbjFHBoE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 7 Jun 2023 21:44:04 -0400
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B9BA826B8;
+        Wed,  7 Jun 2023 18:43:26 -0700 (PDT)
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+        by mx0b-00069f02.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 357N6Wgj007974;
+        Thu, 8 Jun 2023 01:42:50 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
+ subject : date : message-id : in-reply-to : references : mime-version :
+ content-type : content-transfer-encoding; s=corp-2023-03-30;
+ bh=mFKIyYLsNQOscJFsa1wB8vRCWUI5xZUPEr0GCqcpNhE=;
+ b=oOjz7dXtcBHJjLfKIzY/H+TLb46agXTkuSGNT0+jVN8b/9/qXf+mGErhazy9DufbGqXG
+ bO/Ibm10iohTU1AoIUtt5aLtnN171rleEoZIPnR+EtNqMBNguznKwWRFh2X7+hLPNaxU
+ 7h0zetwKukKoarUNDopn6H9cfxusuqEIGDyTXTyy4A0eKJnzeDYlc5Fr564gklzqwUUl
+ 7y+rEdbUMpSRE0/dMsQ3UHhLBVyNo2g6x8+vYzYKA/c/3s2JCRu4t5ioeomTm+Xa6PWD
+ WRY+RWuh72/tHszEZ8V43TYj+z3UTLML2UlgQnSHbx3raZpj1rJT0X/XsAv8i/wmIOQ2 eA== 
+Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.appoci.oracle.com [147.154.114.232])
+        by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3r2a6rk4we-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 08 Jun 2023 01:42:50 +0000
+Received: from pps.filterd (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.17.1.19/8.17.1.19) with ESMTP id 3580Vp8F037094;
+        Thu, 8 Jun 2023 01:42:49 GMT
+Received: from pps.reinject (localhost [127.0.0.1])
+        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 3r2a6hytbv-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Thu, 08 Jun 2023 01:42:49 +0000
+Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 3581gQVB031871;
+        Thu, 8 Jun 2023 01:42:48 GMT
+Received: from ca-mkp2.ca.oracle.com.com (mpeterse-ol9.allregionaliads.osdevelopmeniad.oraclevcn.com [100.100.251.135])
+        by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTP id 3r2a6hyt3a-17;
+        Thu, 08 Jun 2023 01:42:48 +0000
+From:   "Martin K. Petersen" <martin.petersen@oracle.com>
+To:     Arnd Bergmann <arnd@arndb.de>,
+        Richard Cochran <richardcochran@gmail.com>,
+        Niklas Schnelle <schnelle@linux.ibm.com>
+Cc:     "Martin K . Petersen" <martin.petersen@oracle.com>,
+        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+        Bjorn Helgaas <bhelgaas@google.com>,
+        =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= 
+        <u.kleine-koenig@pengutronix.de>,
+        Mauro Carvalho Chehab <mchehab@kernel.org>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        "Rafael J. Wysocki" <rafael@kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-pci@vger.kernel.org, netdev@vger.kernel.org
+Subject: Re: [PATCH v5 00/44] treewide: Remove I/O port accessors for HAS_IOPORT=n
+Date:   Wed,  7 Jun 2023 21:42:21 -0400
+Message-Id: <168618844281.2636448.12578848394814985642.b4-ty@oracle.com>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <20230522105049.1467313-1-schnelle@linux.ibm.com>
+References: <20230522105049.1467313-1-schnelle@linux.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20230607-fix-shadowing-in-raw_cpu_generic_try_cmpxchg-v1-1-8f0a3d930d43@kernel.org>
-X-B4-Tracking: v=1; b=H4sIALr0gGQC/5XOQQ6CMBCF4auQrp1YqErwKsQ07TC0E2NpWhUM4
- e4Wb+DyX7wvbxWZElMW12oVid6ceQol6kMl0JvgCHgoLRrZKHmRLYy8QPZmmGYODjhAMrPG+NK
- OQqFQP9NH4yMu6B2c287Wsh6VVJ0opDWZwCYT0O+oPR3/4qzB+87ERGX3e93ftu0LMaPdpcUAA
- AA=
-To:     peterz@infradead.org
-Cc:     mark.rutland@arm.com, arnd@arndb.de, ndesaulniers@google.com,
-        trix@redhat.com, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org, llvm@lists.linux.dev,
-        patches@lists.linux.dev, Nathan Chancellor <nathan@kernel.org>
-X-Mailer: b4 0.13-dev
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2305; i=nathan@kernel.org;
- h=from:subject:message-id; bh=jSlEKrCnMK95pETVHXEKH30RppvMmXwHnRIAJknEjUM=;
- b=owGbwMvMwCEmm602sfCA1DTG02pJDCkNX85eNOfhDjcKuLy2JurVr61OW50+rKrcYHno8Ilzn
- AILwmrVO0pZGMQ4GGTFFFmqH6seNzScc5bxxqlJMHNYmUCGMHBxCsBEarQY/hdoJqv95NH523yh
- MTbcNuy6y4dr93aXT/n52WqjdPPVk62MDCfvfrb5LPFxxnGzrafiry/wYdZbxXv/CZv6lzfPN5j
- /28wOAA==
-X-Developer-Key: i=nathan@kernel.org; a=openpgp;
- fpr=2437CB76E544CB6AB3D9DFD399739260CB6CB716
+Content-Transfer-Encoding: 8bit
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.573,FMLib:17.11.176.26
+ definitions=2023-06-07_13,2023-06-07_01,2023-05-22_02
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 suspectscore=0 mlxscore=0
+ malwarescore=0 adultscore=0 mlxlogscore=884 bulkscore=0 phishscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2305260000
+ definitions=main-2306080011
+X-Proofpoint-ORIG-GUID: MzrzAX_nsiU9Fdxy46ABlaqqJPB34hNL
+X-Proofpoint-GUID: MzrzAX_nsiU9Fdxy46ABlaqqJPB34hNL
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-After commit c5c0ba953b8c ("percpu: Add {raw,this}_cpu_try_cmpxchg()"),
-clang built ARCH=arm and ARCH=arm64 kernels with CONFIG_INIT_STACK_NONE
-started panicking on boot in alloc_vmap_area():
+On Mon, 22 May 2023 12:50:05 +0200, Niklas Schnelle wrote:
 
-  [    0.000000] kernel BUG at mm/vmalloc.c:1638!
-  [    0.000000] Internal error: Oops - BUG: 00000000f2000800 [#1] PREEMPT SMP
-  [    0.000000] Modules linked in:
-  [    0.000000] CPU: 0 PID: 0 Comm: swapper/0 Not tainted 6.4.0-rc2-ARCH+ #1
-  [    0.000000] Hardware name: linux,dummy-virt (DT)
-  [    0.000000] pstate: 200000c9 (nzCv daIF -PAN -UAO -TCO -DIT -SSBS BTYPE=--)
-  [    0.000000] pc : alloc_vmap_area+0x7ec/0x7f8
-  [    0.000000] lr : alloc_vmap_area+0x7e8/0x7f8
+> Some platforms such as s390 do not support PCI I/O spaces. On such platforms
+> I/O space accessors like inb()/outb() are stubs that can never actually work.
+> The way these stubs are implemented in asm-generic/io.h leads to compiler
+> warnings because any use will be a NULL pointer access on these platforms. In
+> a previous patch we tried handling this with a run-time warning on access. This
+> approach however was rejected by Linus[0] with the argument that this really
+> should be a compile-time check and, though a much more invasive change, we
+> believe that is indeed the right approach.
+> 
+> [...]
 
-Compiling mm/vmalloc.c with W=2 reveals an instance of -Wshadow, which
-helps uncover that through macro expansion, '__old = *(ovalp)' in
-raw_cpu_generic_try_cmpxchg() can become '__old = *(&__old)' through
-raw_cpu_generic_cmpxchg(), which results in garbage being assigned to
-the inner __old and the cmpxchg not working properly.
+Applied to 6.5/scsi-queue, thanks!
 
-Add an extra underscore to __old in raw_cpu_generic_try_cmpxchg() so
-that there is no more self-assignment, which resolves the panics.
+[21/44] mpt fusion: add HAS_IOPORT dependencies
+        https://git.kernel.org/mkp/scsi/c/c3f903472ffa
+[31/44] scsi: add HAS_IOPORT dependencies
+        https://git.kernel.org/mkp/scsi/c/b58b2ba351b0
 
-Closes: https://github.com/ClangBuiltLinux/linux/issues/1868
-Debugged-by: Nick Desaulniers <ndesaulniers@google.com>
-Fixes: c5c0ba953b8c ("percpu: Add {raw,this}_cpu_try_cmpxchg()")
-Signed-off-by: Nathan Chancellor <nathan@kernel.org>
----
- include/asm-generic/percpu.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/percpu.h b/include/asm-generic/percpu.h
-index 68c410e85cd7..94cbd50cc870 100644
---- a/include/asm-generic/percpu.h
-+++ b/include/asm-generic/percpu.h
-@@ -101,9 +101,9 @@ do {									\
- #define raw_cpu_generic_try_cmpxchg(pcp, ovalp, nval)			\
- ({									\
- 	typeof(pcp) *__p = raw_cpu_ptr(&(pcp));				\
--	typeof(pcp) __val = *__p, __old = *(ovalp);			\
-+	typeof(pcp) __val = *__p, ___old = *(ovalp);			\
- 	bool __ret;							\
--	if (__val == __old) {						\
-+	if (__val == ___old) {						\
- 		*__p = nval;						\
- 		__ret = true;						\
- 	} else {							\
-
----
-base-commit: ef558b4b7bbbf7e115c87e4da21ce86444d6ec3b
-change-id: 20230607-fix-shadowing-in-raw_cpu_generic_try_cmpxchg-579b101f3039
-
-Best regards,
 -- 
-Nathan Chancellor <nathan@kernel.org>
-
+Martin K. Petersen	Oracle Linux Engineering
