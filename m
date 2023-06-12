@@ -2,138 +2,87 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 766A4C88CBE
-	for <linux-arch@archiver.kernel.org>; Mon, 12 Jun 2023 21:11:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 51971C88CB5
+	for <linux-arch@archiver.kernel.org>; Mon, 12 Jun 2023 23:40:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237414AbjFLVLN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Jun 2023 17:11:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58262 "EHLO
+        id S235018AbjFLXkw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Jun 2023 19:40:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40504 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238401AbjFLVH5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 17:07:57 -0400
-Received: from mail-oa1-x35.google.com (mail-oa1-x35.google.com [IPv6:2001:4860:4864:20::35])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0A6172717;
-        Mon, 12 Jun 2023 14:05:07 -0700 (PDT)
-Received: by mail-oa1-x35.google.com with SMTP id 586e51a60fabf-1a67ea77c3bso1704160fac.3;
-        Mon, 12 Jun 2023 14:05:07 -0700 (PDT)
+        with ESMTP id S237637AbjFLXkw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 19:40:52 -0400
+Received: from mail-ed1-x531.google.com (mail-ed1-x531.google.com [IPv6:2a00:1450:4864:20::531])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 296891BC
+        for <linux-arch@vger.kernel.org>; Mon, 12 Jun 2023 16:40:50 -0700 (PDT)
+Received: by mail-ed1-x531.google.com with SMTP id 4fb4d7f45d1cf-51873e1d564so144039a12.0
+        for <linux-arch@vger.kernel.org>; Mon, 12 Jun 2023 16:40:50 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1686603906; x=1689195906;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=8r19jukxjbsIB2/Mx0wfUFI2Md2D0Tal9unGSXZoJa8=;
-        b=bBBhxHhwNc0dlcaV8h2a4XYBtWHGe22hvKvpniF7KzCYgALGdtw6ZDxkDC9x8Aeb3u
-         L7SfltNSUTPpMMAZAPZwSuq1VjJBBWwWiBaC+Bz46NWJJnZ6VvwLLTRGFLrpelYb2La+
-         Z5XBEGo2Lx+4Q4s65Lii1xiAS9gXRmCdJj9fBmU+7pl8WPQzciZNN9tEea4s2EymiOfj
-         uSb7iAfMXBR2nKnU1BBVn2AVnOIW9drJ/7GGkqivFyyrk3Sd/OJyxdPtL4bbaX3dpY3E
-         iXz0Nc/l9PDCGRHW4+I9NS6xogIi8lZKNWODyR8ULfa6yt07nj/HtSeI3w5uor1wLjvR
-         igBA==
+        d=linaro.org; s=google; t=1686613248; x=1689205248;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=0plznu46M2amPYKPK8ZShoxVxxLpYp87ml9xhcEannU=;
+        b=iylhla0TLJOHJ7YHwNZvblc32iC04Dj2fukw4IkvwHF6HOMdTOBMVkcBA6f0ioZOlq
+         rP9W8XD2DgUW8AGMnhwikHTLgo4yq4AH3DMAqkVEfIKvlnfgrQlROk9ENg72G+8niOmB
+         UH58ThMEnrXe9q6wdezMeMbOrDO46P0rcOameor6+BkRe2IDTqwNRD4KK5fOIp1LEH0m
+         EFRJu63MX5e/S1O2nwL9Kx9x9i2CwgvbZ59shdEyiPkz1YdtkA6tkVvCi1c2PAh+uolg
+         OrhL54V41Zt8LZ5Tm00jRMetnsCUQtziE04+Is7tQQ3zgf0/gvheGbK4tFFfA8Ax46l8
+         w4/w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1686603906; x=1689195906;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=8r19jukxjbsIB2/Mx0wfUFI2Md2D0Tal9unGSXZoJa8=;
-        b=erjTxUAnoLFUJ4ShjbZxYazk5fXvO/CHCpRAGlNb8dCa+dPMW6OPItzk6H0rmWMGii
-         OMl/wZXu8l8irkCIXMdmOn1yLRWEAILH+NCp2znGAeziIxCjlZ+d5pewfKdB+D/jo8wa
-         w5oJvBJZ3qtCYKbWPkZfZ9ZAj/A+PMNN3NY0OvFfbtIXdgkLP15foJERMTFRObpbM0jj
-         3Dx5SOonXffyGoiMOEc1kiSx0lom9qOWGBkzPUouG8bvXcA/RQ6zywuU53hvq3JDa9Zw
-         EVUWL7L2zLJuREd7OuF/nMJEp1AvVo3U8fn18GOjjUdKPcKH7RDpcIa80+KGfH+Cmobh
-         Jc6g==
-X-Gm-Message-State: AC+VfDzrXdGLk2QEX2aPydbSM9KnvycVLtH050Y6kqYe+MD1QXwl9FvR
-        9R2IlwPIC9LL62fytDQmx+c=
-X-Google-Smtp-Source: ACHHUZ6a/96wj8UsR1eewejCsUK79jNNmW6NRKVRY6WskMtRjwMJM0HWL1CF60/WviLDJygSxMchcw==
-X-Received: by 2002:a05:6870:989c:b0:1a3:4072:58f1 with SMTP id eg28-20020a056870989c00b001a3407258f1mr7318868oab.6.1686603906371;
-        Mon, 12 Jun 2023 14:05:06 -0700 (PDT)
-Received: from unknowna0e70b2ca394.attlocal.net ([2600:1700:2f7d:1800::16])
-        by smtp.googlemail.com with ESMTPSA id s125-20020a817783000000b00569eb609458sm2757115ywc.81.2023.06.12.14.05.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 12 Jun 2023 14:05:06 -0700 (PDT)
-From:   "Vishal Moola (Oracle)" <vishal.moola@gmail.com>
-To:     Andrew Morton <akpm@linux-foundation.org>,
-        Matthew Wilcox <willy@infradead.org>
-Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org,
-        linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev,
-        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
-        linux-openrisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
-        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
-        linux-um@lists.infradead.org, xen-devel@lists.xenproject.org,
-        kvm@vger.kernel.org, Hugh Dickins <hughd@google.com>,
-        "Vishal Moola (Oracle)" <vishal.moola@gmail.com>
-Subject: [PATCH v4 10/34] mm: Convert ptlock_init() to use ptdescs
-Date:   Mon, 12 Jun 2023 14:03:59 -0700
-Message-Id: <20230612210423.18611-11-vishal.moola@gmail.com>
-X-Mailer: git-send-email 2.40.1
-In-Reply-To: <20230612210423.18611-1-vishal.moola@gmail.com>
-References: <20230612210423.18611-1-vishal.moola@gmail.com>
+        d=1e100.net; s=20221208; t=1686613248; x=1689205248;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=0plznu46M2amPYKPK8ZShoxVxxLpYp87ml9xhcEannU=;
+        b=kxIC1Wvb2IDL4L69nYaZ8GlzXRTjC5RyeZyvqJ9KmPbVwVlRlQRvasrcJp+2YuF3w+
+         JgQfcBudALugJ/sBzTd5b8tgnVJ7xUgxR2ngg4FGEJMiolfo6H9PxUJZAZ0S0Do1bGsj
+         LMfs3zd5hSl9CqxbN4Hp1ZcftbbcyNYuVxpiD5u7px10qNqikC6AR6zH2W35RErGwRAp
+         1oAyjm33jQQNFnSlMmjkWdFOUuaHULhfPGMdF/EMok2Y3nOyG7faTY1KtVkqK/dGq1Tg
+         ncGkWIZLUm5m/Ug04MdiRWJnC3QfJ5JUGBuB8cQTT6ZhteNeaY74cMuSCKyeK4ZWgXgW
+         UFfg==
+X-Gm-Message-State: AC+VfDzVXlLlkYepcyDz1thnt3zXxjWHs2zNy+6IekozXCHmoUjIL0YS
+        hcbMw/Hr/zYJVMel+KED9GOvBQ==
+X-Google-Smtp-Source: ACHHUZ77MZwbIKwyjdjJH4wSPQIhZQXuxZ5o4bsqJJFoMk2Jtj2w5fhlm9UpqhqLOuDiov0zmcH6TA==
+X-Received: by 2002:a17:907:a411:b0:96f:2315:29fe with SMTP id sg17-20020a170907a41100b0096f231529femr11761796ejc.0.1686613248692;
+        Mon, 12 Jun 2023 16:40:48 -0700 (PDT)
+Received: from [10.10.0.115] ([185.140.244.249])
+        by smtp.gmail.com with ESMTPSA id w8-20020aa7cb48000000b0051632dc69absm5598949edt.86.2023.06.12.16.40.47
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 12 Jun 2023 16:40:48 -0700 (PDT)
+Message-ID: <50955a66-f8eb-9999-1685-763c3f2ceda0@linaro.org>
+Date:   Tue, 13 Jun 2023 01:40:47 +0200
 MIME-Version: 1.0
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.11.2
+Subject: Re: [PATCH 4/7] mips: update a reference to a moved Arm Document
+Content-Language: en-US
+To:     Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        Florian Fainelli <f.fainelli@gmail.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        linux-mips@vger.kernel.org
+References: <20230519164607.38845-1-corbet@lwn.net>
+ <20230519164607.38845-5-corbet@lwn.net>
+From:   =?UTF-8?Q?Philippe_Mathieu-Daud=c3=a9?= <philmd@linaro.org>
+In-Reply-To: <20230519164607.38845-5-corbet@lwn.net>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This removes some direct accesses to struct page, working towards
-splitting out struct ptdesc from struct page.
+On 19/5/23 18:46, Jonathan Corbet wrote:
+> Arm documentation has moved to Documentation/arch/arm; update a reference
+> in arch/mips/bmips/setup.c to match.
+> 
+> Cc: Florian Fainelli <f.fainelli@gmail.com>
+> Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+> Cc: linux-mips@vger.kernel.org
+> Signed-off-by: Jonathan Corbet <corbet@lwn.net>
+> ---
+>   arch/mips/bmips/setup.c | 5 ++++-
+>   1 file changed, 4 insertions(+), 1 deletion(-)
 
-Signed-off-by: Vishal Moola (Oracle) <vishal.moola@gmail.com>
----
- include/linux/mm.h | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
-
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index daecf1db6cf1..f48e626d9c98 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2857,7 +2857,7 @@ static inline spinlock_t *pte_lockptr(struct mm_struct *mm, pmd_t *pmd)
- 	return ptlock_ptr(page_ptdesc(pmd_page(*pmd)));
- }
- 
--static inline bool ptlock_init(struct page *page)
-+static inline bool ptlock_init(struct ptdesc *ptdesc)
- {
- 	/*
- 	 * prep_new_page() initialize page->private (and therefore page->ptl)
-@@ -2866,10 +2866,10 @@ static inline bool ptlock_init(struct page *page)
- 	 * It can happen if arch try to use slab for page table allocation:
- 	 * slab code uses page->slab_cache, which share storage with page->ptl.
- 	 */
--	VM_BUG_ON_PAGE(*(unsigned long *)&page->ptl, page);
--	if (!ptlock_alloc(page_ptdesc(page)))
-+	VM_BUG_ON_PAGE(*(unsigned long *)&ptdesc->ptl, ptdesc_page(ptdesc));
-+	if (!ptlock_alloc(ptdesc))
- 		return false;
--	spin_lock_init(ptlock_ptr(page_ptdesc(page)));
-+	spin_lock_init(ptlock_ptr(ptdesc));
- 	return true;
- }
- 
-@@ -2882,13 +2882,13 @@ static inline spinlock_t *pte_lockptr(struct mm_struct *mm, pmd_t *pmd)
- 	return &mm->page_table_lock;
- }
- static inline void ptlock_cache_init(void) {}
--static inline bool ptlock_init(struct page *page) { return true; }
-+static inline bool ptlock_init(struct ptdesc *ptdesc) { return true; }
- static inline void ptlock_free(struct page *page) {}
- #endif /* USE_SPLIT_PTE_PTLOCKS */
- 
- static inline bool pgtable_pte_page_ctor(struct page *page)
- {
--	if (!ptlock_init(page))
-+	if (!ptlock_init(page_ptdesc(page)))
- 		return false;
- 	__SetPageTable(page);
- 	inc_lruvec_page_state(page, NR_PAGETABLE);
-@@ -2947,7 +2947,7 @@ static inline bool pmd_ptlock_init(struct ptdesc *ptdesc)
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 	ptdesc->pmd_huge_pte = NULL;
- #endif
--	return ptlock_init(ptdesc_page(ptdesc));
-+	return ptlock_init(ptdesc);
- }
- 
- static inline void pmd_ptlock_free(struct page *page)
--- 
-2.40.1
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
 
