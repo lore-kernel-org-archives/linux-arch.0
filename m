@@ -2,76 +2,139 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 63D6EC7EE2E
-	for <linux-arch@archiver.kernel.org>; Mon, 12 Jun 2023 16:35:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71376C88CB9
+	for <linux-arch@archiver.kernel.org>; Mon, 12 Jun 2023 21:08:05 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230077AbjFLQfJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Jun 2023 12:35:09 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37200 "EHLO
+        id S238895AbjFLVID (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Jun 2023 17:08:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56680 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237113AbjFLQer (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 12:34:47 -0400
-Received: from galois.linutronix.de (Galois.linutronix.de [IPv6:2a0a:51c0:0:12e:550::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C9F82E4A;
-        Mon, 12 Jun 2023 09:34:44 -0700 (PDT)
-From:   Thomas Gleixner <tglx@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020; t=1686587682;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=XYtSFWUwn9WeOG6ywaxCGLfcJEaLF6HVkDFCg6qR+Ck=;
-        b=LQsZ9l51ZyERdBDY/oRFCecvIwE+OJgolEZLC4ju8TGaR2glRAeJkEh/gxmEEQdxccSBRn
-        Nkl9fXN70FUGW8Vrk6QTB/EDkIx7KZeYmZ+6hqkw88Wj6xBlfn1lu+Axpx6v3exlkZA5qF
-        xn2GoaB3iJJ9RyU+3AX5GakUlntQiVF6Hibsxe8KSuHme8DQAkGCpjlVrcKHcoU8CP84Gi
-        tUjnTx26rAeD+Vkfrk88Jsc7seiQoKzogTWC3YOM2gU68500pq1a60LRxCGTeSHmS+D7Za
-        Sh+Iz2iXp9c3W8f61IDOAPWsoCQmy1klWt0eQN6qeuRKQF37olv78N0KfobMdA==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020e; t=1686587682;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=XYtSFWUwn9WeOG6ywaxCGLfcJEaLF6HVkDFCg6qR+Ck=;
-        b=LsxfhaCWfQgNL2N4GKoci45k10Ud9BYivUCi/b7WfELtf3iXReMHlqJTp3PRRnpDSGYtJr
-        yTdbFkV+sUvvFNAA==
-To:     Laurent Dufour <ldufour@linux.ibm.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        linux-kernel@vger.kernel.org
-Cc:     linux-arch@vger.kernel.org, dave.hansen@linux.intel.com,
-        x86@kernel.org, mingo@redhat.com, bp@alien8.de,
-        linuxppc-dev@lists.ozlabs.org
-Subject: Re: [PATCH 8/9] powerpc: Add HOTPLUG_SMT support
-In-Reply-To: <c0fe7b2c-1ce7-3d2f-0175-e61920fc3dee@linux.ibm.com>
-References: <20230524155630.794584-1-mpe@ellerman.id.au>
- <20230524155630.794584-8-mpe@ellerman.id.au>
- <5752a488-be54-61a0-6d18-647456abc4ee@linux.ibm.com>
- <6e86aedb-9349-afd4-0bcb-1949e828f997@linux.ibm.com> <87h6rf81n9.ffs@tglx>
- <c0fe7b2c-1ce7-3d2f-0175-e61920fc3dee@linux.ibm.com>
-Date:   Mon, 12 Jun 2023 18:34:41 +0200
-Message-ID: <87cz207i72.ffs@tglx>
+        with ESMTP id S238712AbjFLVHv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 17:07:51 -0400
+Received: from mail-yw1-x1130.google.com (mail-yw1-x1130.google.com [IPv6:2607:f8b0:4864:20::1130])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 03A53171D;
+        Mon, 12 Jun 2023 14:04:49 -0700 (PDT)
+Received: by mail-yw1-x1130.google.com with SMTP id 00721157ae682-56d17a5d786so19484627b3.1;
+        Mon, 12 Jun 2023 14:04:48 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20221208; t=1686603888; x=1689195888;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=bX969DJmm0QSNKJIBN0sjsA5M6jg25Ht5D0PDUGbnFg=;
+        b=DHb+SR7KsGRi1DGfvFeb/cxlVpv7zXU0kX0me32XsqA75bRQ7Qg4ZCnHwXeAm+exma
+         RyCRKTUKX0JKCLOqpLW0CXYvPaKDD9+dZndIAXIpXSKQZglxAQokLHyvAtkIDeRJVqHB
+         93y59nGI8Llned7VxveKPhJ65jNvn/1ZERJFDahHCyrGnH91U4DjxWNrantb6oBNpN6U
+         mc695USGNTsgQHXOo9YrYcYMEcbqRFQyfPiEiGMLPB7dp4D7SFOp0ccqCy0RMalipiJb
+         VM0Bf5j8094tpGlxI2i0lahWPWShioW25k+D4Vvon+EHV5/1d2e6qLRJOoGvyJt4DN4r
+         Rfxg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1686603888; x=1689195888;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=bX969DJmm0QSNKJIBN0sjsA5M6jg25Ht5D0PDUGbnFg=;
+        b=FFmwkTFwa0A391NSYdQ5yq/7UC9RFw50WYuU04pax2NMuDcMHijatj+GyWVrmLKDng
+         gPZyXoO/AGxo/lT+CqgcP+pjBUKYxFTVUm7nm96Ban9b70b24zMQovRlCNJngU5HcgLm
+         Yy1Ged1Wzd1B3yQ6UqgLPd9ZL2EDtrkGefTuGaMKnO6lplNA5DXbJ6uaxpUbSBbplkJM
+         XUrW2Ad4Cf1knD4wmqDHTbSxNCBdqEibrD57wR/7KIUImFoVOYkPdwkZtOcKYlpyPeFA
+         pj9/hWjkjEDcKO8SxGRT6gqDdkzBgiFIkp5WbH9mLPn86Gx37dEm3H9PrJ9KTEI/uDVl
+         K8sg==
+X-Gm-Message-State: AC+VfDyKBFef6CT7uz2fbmSEP0qkB6E7nuOxM4hH4TUG3XgufsOwKl4T
+        JgrggQK9qnfjqDzijqbFCys=
+X-Google-Smtp-Source: ACHHUZ5kzgqtkXUhDflMob/cxrmRbtpI6j8wouGy2iBpxpeE5xKDHT022OIAglde1HGCV3lUDObTDw==
+X-Received: by 2002:a81:8406:0:b0:56d:858:7d04 with SMTP id u6-20020a818406000000b0056d08587d04mr5203603ywf.51.1686603888124;
+        Mon, 12 Jun 2023 14:04:48 -0700 (PDT)
+Received: from unknowna0e70b2ca394.attlocal.net ([2600:1700:2f7d:1800::16])
+        by smtp.googlemail.com with ESMTPSA id s125-20020a817783000000b00569eb609458sm2757115ywc.81.2023.06.12.14.04.46
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 12 Jun 2023 14:04:47 -0700 (PDT)
+From:   "Vishal Moola (Oracle)" <vishal.moola@gmail.com>
+To:     Andrew Morton <akpm@linux-foundation.org>,
+        Matthew Wilcox <willy@infradead.org>
+Cc:     linux-mm@kvack.org, linux-arch@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org,
+        linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev,
+        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
+        linux-openrisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+        linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
+        linux-um@lists.infradead.org, xen-devel@lists.xenproject.org,
+        kvm@vger.kernel.org, Hugh Dickins <hughd@google.com>,
+        "Vishal Moola (Oracle)" <vishal.moola@gmail.com>
+Subject: [PATCH v4 01/34] mm: Add PAGE_TYPE_OP folio functions
+Date:   Mon, 12 Jun 2023 14:03:50 -0700
+Message-Id: <20230612210423.18611-2-vishal.moola@gmail.com>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <20230612210423.18611-1-vishal.moola@gmail.com>
+References: <20230612210423.18611-1-vishal.moola@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Mon, Jun 12 2023 at 17:20, Laurent Dufour wrote:
-> On 10/06/2023 23:10:02, Thomas Gleixner wrote:
->> This needs more thoughts to avoid a completely inconsistent duct tape
->> mess.
->
-> Despite the test against smt_enabled_at_boot, mentioned above, I can't see
-> anything else to rework. Am I missing something?
+No folio equivalents for page type operations have been defined, so
+define them for later folio conversions.
 
-See my comments on the core code changes.
+Also changes the Page##uname macros to take in const struct page* since
+we only read the memory here.
 
->> Btw, the command line parser and the variable smt_enabled_at_boot being
->> type int allow negative number of threads too... Maybe not what you want.
->
-> I do agree, it should an unsigned type.
+Signed-off-by: Vishal Moola (Oracle) <vishal.moola@gmail.com>
+---
+ include/linux/page-flags.h | 20 ++++++++++++++++++--
+ 1 file changed, 18 insertions(+), 2 deletions(-)
 
-I assume you'll fix that yourself. :)
+diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
+index 92a2063a0a23..e99a616b9bcd 100644
+--- a/include/linux/page-flags.h
++++ b/include/linux/page-flags.h
+@@ -908,6 +908,8 @@ static inline bool is_page_hwpoison(struct page *page)
+ 
+ #define PageType(page, flag)						\
+ 	((page->page_type & (PAGE_TYPE_BASE | flag)) == PAGE_TYPE_BASE)
++#define folio_test_type(folio, flag)					\
++	((folio->page.page_type & (PAGE_TYPE_BASE | flag)) == PAGE_TYPE_BASE)
+ 
+ static inline int page_type_has_type(unsigned int page_type)
+ {
+@@ -920,20 +922,34 @@ static inline int page_has_type(struct page *page)
+ }
+ 
+ #define PAGE_TYPE_OPS(uname, lname)					\
+-static __always_inline int Page##uname(struct page *page)		\
++static __always_inline int Page##uname(const struct page *page)		\
+ {									\
+ 	return PageType(page, PG_##lname);				\
+ }									\
++static __always_inline int folio_test_##lname(const struct folio *folio)\
++{									\
++	return folio_test_type(folio, PG_##lname);			\
++}									\
+ static __always_inline void __SetPage##uname(struct page *page)		\
+ {									\
+ 	VM_BUG_ON_PAGE(!PageType(page, 0), page);			\
+ 	page->page_type &= ~PG_##lname;					\
+ }									\
++static __always_inline void __folio_set_##lname(struct folio *folio)	\
++{									\
++	VM_BUG_ON_FOLIO(!folio_test_type(folio, 0), folio);		\
++	folio->page.page_type &= ~PG_##lname;				\
++}									\
+ static __always_inline void __ClearPage##uname(struct page *page)	\
+ {									\
+ 	VM_BUG_ON_PAGE(!Page##uname(page), page);			\
+ 	page->page_type |= PG_##lname;					\
+-}
++}									\
++static __always_inline void __folio_clear_##lname(struct folio *folio)	\
++{									\
++	VM_BUG_ON_FOLIO(!folio_test_##lname(folio), folio);		\
++	folio->page.page_type |= PG_##lname;				\
++}									\
+ 
+ /*
+  * PageBuddy() indicates that the page is free and in the buddy system
+-- 
+2.40.1
 
-Thanks,
-
-        tglx
