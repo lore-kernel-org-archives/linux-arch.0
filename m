@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 44E1BC88CBF
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Jun 2023 00:12:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5D42CCA9EBE
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Jun 2023 00:12:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S238836AbjFMAMa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Jun 2023 20:12:30 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51934 "EHLO
+        id S238874AbjFMAMf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Jun 2023 20:12:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51946 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238695AbjFMAMZ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 20:12:25 -0400
+        with ESMTP id S238738AbjFMAM0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 20:12:26 -0400
 Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33AAE1996;
-        Mon, 12 Jun 2023 17:12:19 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C6C9F0;
+        Mon, 12 Jun 2023 17:12:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1686615139; x=1718151139;
+  t=1686615142; x=1718151142;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=m52H3JZHS5dKvCQFGYyapfckCiGOGTRhvdDeSntBBxk=;
-  b=QY28iBE1VRwIzr0w1+d1sPUyhwOeLbtzUqxmISgNndXNT8KXB+rmz4MG
-   nEpBMDa1hMXmF0tm/naPI4x8811U9wPlZzw/w1R1q7TZnn4fb1vbT9HDl
-   0Fr/MY8kSvDWeJnFrPMrgivTbTcVrI4/QVo5WafbE/II+DSA/rUvi1LJF
-   ARapMg4l5qGppyWqsVO1mnDEOrLWIrGxmEPGdRKRwJagiVWDjDUHk/qHk
-   uOzeWvVb9VPd0qgsSXkCRKqQgU15spXPqPIh34NCpo4+dEinnJyog9jVh
-   oNco9BeRWA0AF/Om/StG6V+JDnEZp2uwHKHi/JgFNDmmT85cp5P9x8QV5
-   A==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="361556890"
+  bh=qno7FNbVCOlU0l2tsMlcvtzg5iSqFMH8Q3FgqO3yA3s=;
+  b=HQRuUlSox7Nv4w8nTyOBqx3/ZuiQHHppNSrNzzabwGyn30BldrP+ftmG
+   kg+hWfBNLPIXsfkxqD55ZDOnylyC9LjyIGgnwwcfraLeNgRscX9h6KCno
+   +mt/7Tq2xLyrKoK8bgA+iyqq2znz8MGvf/oU174MrggH4Ab2c8lIQtoYc
+   TvcqvENX8sEdZZ5nnjECZgeg5biSBxZiJjBJXK+fjbU/+NRiq7enCkbEq
+   8oLJliAvQz6yeERjjLOOvfD1dcBK4viqdFyv3/UaRyF1iVAFvdDBm86RM
+   h2f6WSpDWvFYM8CL8iUQqHNjYthEU6SvO1xtmtUu9K7/F+c9i3TrN3UCp
+   Q==;
+X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="361556946"
 X-IronPort-AV: E=Sophos;i="6.00,238,1681196400"; 
-   d="scan'208";a="361556890"
+   d="scan'208";a="361556946"
 Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:17 -0700
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:19 -0700
 X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="835671009"
+X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="835671016"
 X-IronPort-AV: E=Sophos;i="6.00,238,1681196400"; 
-   d="scan'208";a="835671009"
+   d="scan'208";a="835671016"
 Received: from almeisch-mobl1.amr.corp.intel.com (HELO rpedgeco-desk4.amr.corp.intel.com) ([10.209.42.242])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:16 -0700
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:18 -0700
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -70,9 +70,9 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         torvalds@linux-foundation.org, broonie@kernel.org
 Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-Subject: [PATCH v9 11/42] x86/mm: Update ptep/pmdp_set_wrprotect() for _PAGE_SAVED_DIRTY
-Date:   Mon, 12 Jun 2023 17:10:37 -0700
-Message-Id: <20230613001108.3040476-12-rick.p.edgecombe@intel.com>
+Subject: [PATCH v9 13/42] x86/mm: Remove _PAGE_DIRTY from kernel RO pages
+Date:   Mon, 12 Jun 2023 17:10:39 -0700
+Message-Id: <20230613001108.3040476-14-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20230613001108.3040476-1-rick.p.edgecombe@intel.com>
 References: <20230613001108.3040476-1-rick.p.edgecombe@intel.com>
@@ -82,92 +82,76 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When shadow stack is in use, Write=0,Dirty=1 PTE are preserved for
-shadow stack. Copy-on-write PTEs then have Write=0,SavedDirty=1.
+New processors that support Shadow Stack regard Write=0,Dirty=1 PTEs as
+shadow stack pages.
 
-When a PTE goes from Write=1,Dirty=1 to Write=0,SavedDirty=1, it could
-become a transient shadow stack PTE in two cases:
+In normal cases, it can be helpful to create Write=1 PTEs as also Dirty=1
+if HW dirty tracking is not needed, because if the Dirty bit is not already
+set the CPU has to set Dirty=1 when the memory gets written to. This
+creates additional work for the CPU. So traditional wisdom was to simply
+set the Dirty bit whenever you didn't care about it. However, it was never
+really very helpful for read-only kernel memory.
 
-1. Some processors can start a write but end up seeing a Write=0 PTE by
-   the time they get to the Dirty bit, creating a transient shadow stack
-   PTE. However, this will not occur on processors supporting shadow
-   stack, and a TLB flush is not necessary.
-
-2. When _PAGE_DIRTY is replaced with _PAGE_SAVED_DIRTY non-atomically, a
-   transient shadow stack PTE can be created as a result.
-
-Prevent the second case when doing a write protection and Dirty->SavedDirty
-shift at the same time with a CMPXCHG loop. The first case
-
-Note, in the PAE case CMPXCHG will need to operate on 8 byte, but
-try_cmpxchg() will not use CMPXCHG8B, so it cannot operate on a full PAE
-PTE. However the exiting logic is not operating on a full 8 byte region
-either, and relies on the fact that the Write bit is in the first 4
-bytes when doing the clear_bit(). Since both the Dirty, SavedDirty and
-Write bits are in the first 4 bytes, casting to a long will be similar to
-the existing behavior which also casts to a long.
-
-Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided many
-insights to the issue. Jann Horn provided the CMPXCHG solution.
+When CR4.CET=1 and IA32_S_CET.SH_STK_EN=1, some instructions can write to
+such supervisor memory. The kernel does not set IA32_S_CET.SH_STK_EN, so
+avoiding kernel Write=0,Dirty=1 memory is not strictly needed for any
+functional reason. But having Write=0,Dirty=1 kernel memory doesn't have
+any functional benefit either, so to reduce ambiguity between shadow stack
+and regular Write=0 pages, remove Dirty=1 from any kernel Write=0 PTEs.
 
 Co-developed-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
+Reviewed-by: Borislav Petkov (AMD) <bp@alien8.de>
+Reviewed-by: Kees Cook <keescook@chromium.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
 Tested-by: Pengfei Xu <pengfei.xu@intel.com>
 Tested-by: John Allen <john.allen@amd.com>
 Tested-by: Kees Cook <keescook@chromium.org>
 ---
-v9:
- - Use bit shifting helpers that don't need any extra conditional
-   logic. (Linus)
- - Always do the SavedDirty shifting (Linus)
----
- arch/x86/include/asm/pgtable.h | 24 ++++++++++++++++++++++--
- 1 file changed, 22 insertions(+), 2 deletions(-)
+ arch/x86/include/asm/pgtable_types.h | 8 +++++---
+ arch/x86/mm/pat/set_memory.c         | 4 ++--
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index a95f872c7429..99b54ab0a919 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -1189,7 +1189,17 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
- static inline void ptep_set_wrprotect(struct mm_struct *mm,
- 				      unsigned long addr, pte_t *ptep)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index ee6f8e57e115..26f07d6d5758 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -222,10 +222,12 @@ enum page_cache_mode {
+ #define _PAGE_TABLE_NOENC	 (__PP|__RW|_USR|___A|   0|___D|   0|   0)
+ #define _PAGE_TABLE		 (__PP|__RW|_USR|___A|   0|___D|   0|   0| _ENC)
+ 
+-#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|___D|   0|___G)
+-#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|___D|   0|___G)
++#define __PAGE_KERNEL_RO	 (__PP|   0|   0|___A|__NX|   0|   0|___G)
++#define __PAGE_KERNEL_ROX	 (__PP|   0|   0|___A|   0|   0|   0|___G)
++#define __PAGE_KERNEL		 (__PP|__RW|   0|___A|__NX|___D|   0|___G)
++#define __PAGE_KERNEL_EXEC	 (__PP|__RW|   0|___A|   0|___D|   0|___G)
+ #define __PAGE_KERNEL_NOCACHE	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __NC)
+-#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|___D|   0|___G)
++#define __PAGE_KERNEL_VVAR	 (__PP|   0|_USR|___A|__NX|   0|   0|___G)
+ #define __PAGE_KERNEL_LARGE	 (__PP|__RW|   0|___A|__NX|___D|_PSE|___G)
+ #define __PAGE_KERNEL_LARGE_EXEC (__PP|__RW|   0|___A|   0|___D|_PSE|___G)
+ #define __PAGE_KERNEL_WP	 (__PP|__RW|   0|___A|__NX|___D|   0|___G| __WP)
+diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
+index 7159cf787613..fc627acfe40e 100644
+--- a/arch/x86/mm/pat/set_memory.c
++++ b/arch/x86/mm/pat/set_memory.c
+@@ -2073,12 +2073,12 @@ int set_memory_nx(unsigned long addr, int numpages)
+ 
+ int set_memory_ro(unsigned long addr, int numpages)
  {
--	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-+	/*
-+	 * Avoid accidentally creating shadow stack PTEs
-+	 * (Write=0,Dirty=1).  Use cmpxchg() to prevent races with
-+	 * the hardware setting Dirty=1.
-+	 */
-+	pte_t old_pte, new_pte;
-+
-+	old_pte = READ_ONCE(*ptep);
-+	do {
-+		new_pte = pte_wrprotect(old_pte);
-+	} while (!try_cmpxchg((long *)&ptep->pte, (long *)&old_pte, *(long *)&new_pte));
+-	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW), 0);
++	return change_page_attr_clear(&addr, numpages, __pgprot(_PAGE_RW | _PAGE_DIRTY), 0);
  }
  
- #define flush_tlb_fix_spurious_fault(vma, address, ptep) do { } while (0)
-@@ -1241,7 +1251,17 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
- static inline void pmdp_set_wrprotect(struct mm_struct *mm,
- 				      unsigned long addr, pmd_t *pmdp)
+ int set_memory_rox(unsigned long addr, int numpages)
  {
--	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
-+	/*
-+	 * Avoid accidentally creating shadow stack PTEs
-+	 * (Write=0,Dirty=1).  Use cmpxchg() to prevent races with
-+	 * the hardware setting Dirty=1.
-+	 */
-+	pmd_t old_pmd, new_pmd;
-+
-+	old_pmd = READ_ONCE(*pmdp);
-+	do {
-+		new_pmd = pmd_wrprotect(old_pmd);
-+	} while (!try_cmpxchg((long *)pmdp, (long *)&old_pmd, *(long *)&new_pmd));
- }
+-	pgprot_t clr = __pgprot(_PAGE_RW);
++	pgprot_t clr = __pgprot(_PAGE_RW | _PAGE_DIRTY);
  
- #ifndef pmdp_establish
+ 	if (__supported_pte_mask & _PAGE_NX)
+ 		clr.pgprot |= _PAGE_NX;
 -- 
 2.34.1
 
