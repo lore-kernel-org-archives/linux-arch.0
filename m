@@ -2,42 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A0955CA9EB6
-	for <linux-arch@archiver.kernel.org>; Tue, 13 Jun 2023 00:12:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 44E1BC88CBF
+	for <linux-arch@archiver.kernel.org>; Tue, 13 Jun 2023 00:12:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235720AbjFMAM3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 12 Jun 2023 20:12:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51948 "EHLO
+        id S238836AbjFMAMa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 12 Jun 2023 20:12:30 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51934 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S238629AbjFMAMY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 20:12:24 -0400
+        with ESMTP id S238695AbjFMAMZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 12 Jun 2023 20:12:25 -0400
 Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC0B01981;
-        Mon, 12 Jun 2023 17:12:17 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 33AAE1996;
+        Mon, 12 Jun 2023 17:12:19 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1686615138; x=1718151138;
+  t=1686615139; x=1718151139;
   h=from:to:cc:subject:date:message-id:in-reply-to:
    references:mime-version:content-transfer-encoding;
-  bh=sARsUThnVYVYYqaKHA46gpgv7OakP1T/BusMzOfelkg=;
-  b=YwIeoSXkzRjb3keq9ckb0SycQRpJv0oOyV6yZB2MS/xN57lRQ2dT7MC0
-   0rAty46XsY3JhLO22NCzJQrDT/gwW4qJgh6o6XAeGNjUA1JpJobNMwnnk
-   hGARQxAjxORBPNQlyUdD/uQM9Q9yc34v/SD1tadyB2kTp5nEKN3NokHXC
-   wGCkkgYsrb5QxjBKyPAECjnfOZeuIriytnqUxemsd2mdH7ZE0wz3YFmSd
-   zh8bONtzu7dOVuZe2e2EzqIKCgxZPNJbfs0JJ3+xgJRsL+qegCZ42oZB2
-   ubFwRFS0w0hjc89e18lJ7ytUU61X6oIyOgBraGc/OddEiFhxt+58QlXXv
+  bh=m52H3JZHS5dKvCQFGYyapfckCiGOGTRhvdDeSntBBxk=;
+  b=QY28iBE1VRwIzr0w1+d1sPUyhwOeLbtzUqxmISgNndXNT8KXB+rmz4MG
+   nEpBMDa1hMXmF0tm/naPI4x8811U9wPlZzw/w1R1q7TZnn4fb1vbT9HDl
+   0Fr/MY8kSvDWeJnFrPMrgivTbTcVrI4/QVo5WafbE/II+DSA/rUvi1LJF
+   ARapMg4l5qGppyWqsVO1mnDEOrLWIrGxmEPGdRKRwJagiVWDjDUHk/qHk
+   uOzeWvVb9VPd0qgsSXkCRKqQgU15spXPqPIh34NCpo4+dEinnJyog9jVh
+   oNco9BeRWA0AF/Om/StG6V+JDnEZp2uwHKHi/JgFNDmmT85cp5P9x8QV5
    A==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="361556836"
+X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="361556890"
 X-IronPort-AV: E=Sophos;i="6.00,238,1681196400"; 
-   d="scan'208";a="361556836"
+   d="scan'208";a="361556890"
 Received: from orsmga004.jf.intel.com ([10.7.209.38])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:15 -0700
+  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:17 -0700
 X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="835670996"
+X-IronPort-AV: E=McAfee;i="6600,9927,10739"; a="835671009"
 X-IronPort-AV: E=Sophos;i="6.00,238,1681196400"; 
-   d="scan'208";a="835670996"
+   d="scan'208";a="835671009"
 Received: from almeisch-mobl1.amr.corp.intel.com (HELO rpedgeco-desk4.amr.corp.intel.com) ([10.209.42.242])
-  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:13 -0700
+  by orsmga004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Jun 2023 17:12:16 -0700
 From:   Rick Edgecombe <rick.p.edgecombe@intel.com>
 To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         Thomas Gleixner <tglx@linutronix.de>,
@@ -70,9 +70,9 @@ To:     x86@kernel.org, "H . Peter Anvin" <hpa@zytor.com>,
         torvalds@linux-foundation.org, broonie@kernel.org
 Cc:     rick.p.edgecombe@intel.com, Yu-cheng Yu <yu-cheng.yu@intel.com>,
         Pengfei Xu <pengfei.xu@intel.com>
-Subject: [PATCH v9 08/42] x86/cpufeatures: Add CPU feature flags for shadow stacks
-Date:   Mon, 12 Jun 2023 17:10:34 -0700
-Message-Id: <20230613001108.3040476-9-rick.p.edgecombe@intel.com>
+Subject: [PATCH v9 11/42] x86/mm: Update ptep/pmdp_set_wrprotect() for _PAGE_SAVED_DIRTY
+Date:   Mon, 12 Jun 2023 17:10:37 -0700
+Message-Id: <20230613001108.3040476-12-rick.p.edgecombe@intel.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20230613001108.3040476-1-rick.p.edgecombe@intel.com>
 References: <20230613001108.3040476-1-rick.p.edgecombe@intel.com>
@@ -82,97 +82,92 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The Control-Flow Enforcement Technology contains two related features,
-one of which is Shadow Stacks. Future patches will utilize this feature
-for shadow stack support in KVM, so add a CPU feature flags for Shadow
-Stacks (CPUID.(EAX=7,ECX=0):ECX[bit 7]).
+When shadow stack is in use, Write=0,Dirty=1 PTE are preserved for
+shadow stack. Copy-on-write PTEs then have Write=0,SavedDirty=1.
 
-To protect shadow stack state from malicious modification, the registers
-are only accessible in supervisor mode. This implementation
-context-switches the registers with XSAVES. Make X86_FEATURE_SHSTK depend
-on XSAVES.
+When a PTE goes from Write=1,Dirty=1 to Write=0,SavedDirty=1, it could
+become a transient shadow stack PTE in two cases:
 
-The shadow stack feature, enumerated by the CPUID bit described above,
-encompasses both supervisor and userspace support for shadow stack. In
-near future patches, only userspace shadow stack will be enabled. In
-expectation of future supervisor shadow stack support, create a software
-CPU capability to enumerate kernel utilization of userspace shadow stack
-support. This user shadow stack bit should depend on the HW "shstk"
-capability and that logic will be implemented in future patches.
+1. Some processors can start a write but end up seeing a Write=0 PTE by
+   the time they get to the Dirty bit, creating a transient shadow stack
+   PTE. However, this will not occur on processors supporting shadow
+   stack, and a TLB flush is not necessary.
+
+2. When _PAGE_DIRTY is replaced with _PAGE_SAVED_DIRTY non-atomically, a
+   transient shadow stack PTE can be created as a result.
+
+Prevent the second case when doing a write protection and Dirty->SavedDirty
+shift at the same time with a CMPXCHG loop. The first case
+
+Note, in the PAE case CMPXCHG will need to operate on 8 byte, but
+try_cmpxchg() will not use CMPXCHG8B, so it cannot operate on a full PAE
+PTE. However the exiting logic is not operating on a full 8 byte region
+either, and relies on the fact that the Write bit is in the first 4
+bytes when doing the clear_bit(). Since both the Dirty, SavedDirty and
+Write bits are in the first 4 bytes, casting to a long will be similar to
+the existing behavior which also casts to a long.
+
+Dave Hansen, Jann Horn, Andy Lutomirski, and Peter Zijlstra provided many
+insights to the issue. Jann Horn provided the CMPXCHG solution.
 
 Co-developed-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Signed-off-by: Yu-cheng Yu <yu-cheng.yu@intel.com>
 Signed-off-by: Rick Edgecombe <rick.p.edgecombe@intel.com>
-Reviewed-by: Borislav Petkov (AMD) <bp@alien8.de>
-Reviewed-by: Kees Cook <keescook@chromium.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
 Tested-by: Pengfei Xu <pengfei.xu@intel.com>
 Tested-by: John Allen <john.allen@amd.com>
 Tested-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/include/asm/cpufeatures.h       | 2 ++
- arch/x86/include/asm/disabled-features.h | 8 +++++++-
- arch/x86/kernel/cpu/cpuid-deps.c         | 1 +
- 3 files changed, 10 insertions(+), 1 deletion(-)
+v9:
+ - Use bit shifting helpers that don't need any extra conditional
+   logic. (Linus)
+ - Always do the SavedDirty shifting (Linus)
+---
+ arch/x86/include/asm/pgtable.h | 24 ++++++++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
-index cb8ca46213be..d7215c8b7923 100644
---- a/arch/x86/include/asm/cpufeatures.h
-+++ b/arch/x86/include/asm/cpufeatures.h
-@@ -308,6 +308,7 @@
- #define X86_FEATURE_MSR_TSX_CTRL	(11*32+20) /* "" MSR IA32_TSX_CTRL (Intel) implemented */
- #define X86_FEATURE_SMBA		(11*32+21) /* "" Slow Memory Bandwidth Allocation */
- #define X86_FEATURE_BMEC		(11*32+22) /* "" Bandwidth Monitoring Event Configuration */
-+#define X86_FEATURE_USER_SHSTK		(11*32+23) /* Shadow stack support for user mode applications */
- 
- /* Intel-defined CPU features, CPUID level 0x00000007:1 (EAX), word 12 */
- #define X86_FEATURE_AVX_VNNI		(12*32+ 4) /* AVX VNNI instructions */
-@@ -380,6 +381,7 @@
- #define X86_FEATURE_OSPKE		(16*32+ 4) /* OS Protection Keys Enable */
- #define X86_FEATURE_WAITPKG		(16*32+ 5) /* UMONITOR/UMWAIT/TPAUSE Instructions */
- #define X86_FEATURE_AVX512_VBMI2	(16*32+ 6) /* Additional AVX512 Vector Bit Manipulation Instructions */
-+#define X86_FEATURE_SHSTK		(16*32+ 7) /* "" Shadow stack */
- #define X86_FEATURE_GFNI		(16*32+ 8) /* Galois Field New Instructions */
- #define X86_FEATURE_VAES		(16*32+ 9) /* Vector AES */
- #define X86_FEATURE_VPCLMULQDQ		(16*32+10) /* Carry-Less Multiplication Double Quadword */
-diff --git a/arch/x86/include/asm/disabled-features.h b/arch/x86/include/asm/disabled-features.h
-index fafe9be7a6f4..b9c7eae2e70f 100644
---- a/arch/x86/include/asm/disabled-features.h
-+++ b/arch/x86/include/asm/disabled-features.h
-@@ -105,6 +105,12 @@
- # define DISABLE_TDX_GUEST	(1 << (X86_FEATURE_TDX_GUEST & 31))
- #endif
- 
-+#ifdef CONFIG_X86_USER_SHADOW_STACK
-+#define DISABLE_USER_SHSTK	0
-+#else
-+#define DISABLE_USER_SHSTK	(1 << (X86_FEATURE_USER_SHSTK & 31))
-+#endif
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index a95f872c7429..99b54ab0a919 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -1189,7 +1189,17 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
+ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long addr, pte_t *ptep)
+ {
+-	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
++	/*
++	 * Avoid accidentally creating shadow stack PTEs
++	 * (Write=0,Dirty=1).  Use cmpxchg() to prevent races with
++	 * the hardware setting Dirty=1.
++	 */
++	pte_t old_pte, new_pte;
 +
- /*
-  * Make sure to add features to the correct mask
-  */
-@@ -120,7 +126,7 @@
- #define DISABLED_MASK9	(DISABLE_SGX)
- #define DISABLED_MASK10	0
- #define DISABLED_MASK11	(DISABLE_RETPOLINE|DISABLE_RETHUNK|DISABLE_UNRET| \
--			 DISABLE_CALL_DEPTH_TRACKING)
-+			 DISABLE_CALL_DEPTH_TRACKING|DISABLE_USER_SHSTK)
- #define DISABLED_MASK12	(DISABLE_LAM)
- #define DISABLED_MASK13	0
- #define DISABLED_MASK14	0
-diff --git a/arch/x86/kernel/cpu/cpuid-deps.c b/arch/x86/kernel/cpu/cpuid-deps.c
-index f6748c8bd647..e462c1d3800a 100644
---- a/arch/x86/kernel/cpu/cpuid-deps.c
-+++ b/arch/x86/kernel/cpu/cpuid-deps.c
-@@ -81,6 +81,7 @@ static const struct cpuid_dep cpuid_deps[] = {
- 	{ X86_FEATURE_XFD,			X86_FEATURE_XSAVES    },
- 	{ X86_FEATURE_XFD,			X86_FEATURE_XGETBV1   },
- 	{ X86_FEATURE_AMX_TILE,			X86_FEATURE_XFD       },
-+	{ X86_FEATURE_SHSTK,			X86_FEATURE_XSAVES    },
- 	{}
- };
++	old_pte = READ_ONCE(*ptep);
++	do {
++		new_pte = pte_wrprotect(old_pte);
++	} while (!try_cmpxchg((long *)&ptep->pte, (long *)&old_pte, *(long *)&new_pte));
+ }
  
+ #define flush_tlb_fix_spurious_fault(vma, address, ptep) do { } while (0)
+@@ -1241,7 +1251,17 @@ static inline pud_t pudp_huge_get_and_clear(struct mm_struct *mm,
+ static inline void pmdp_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long addr, pmd_t *pmdp)
+ {
+-	clear_bit(_PAGE_BIT_RW, (unsigned long *)pmdp);
++	/*
++	 * Avoid accidentally creating shadow stack PTEs
++	 * (Write=0,Dirty=1).  Use cmpxchg() to prevent races with
++	 * the hardware setting Dirty=1.
++	 */
++	pmd_t old_pmd, new_pmd;
++
++	old_pmd = READ_ONCE(*pmdp);
++	do {
++		new_pmd = pmd_wrprotect(old_pmd);
++	} while (!try_cmpxchg((long *)pmdp, (long *)&old_pmd, *(long *)&new_pmd));
+ }
+ 
+ #ifndef pmdp_establish
 -- 
 2.34.1
 
