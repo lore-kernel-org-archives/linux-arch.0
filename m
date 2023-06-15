@@ -2,125 +2,81 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5079FEB64DB
-	for <linux-arch@archiver.kernel.org>; Thu, 15 Jun 2023 11:56:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 764C7EB64DB
+	for <linux-arch@archiver.kernel.org>; Thu, 15 Jun 2023 12:25:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1344680AbjFOL4F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 15 Jun 2023 07:56:05 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42236 "EHLO
+        id S245606AbjFOMZf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 15 Jun 2023 08:25:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38586 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1344681AbjFOLzi (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jun 2023 07:55:38 -0400
-Received: from mga03.intel.com (mga03.intel.com [134.134.136.65])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB3194C3B;
-        Thu, 15 Jun 2023 04:50:15 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1686829815; x=1718365815;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=3RJds68CeRUAh9CjCeooHStP2ZZs8S1f7llk301nLC4=;
-  b=eANIyaf+aI4ll6z510SStXdIpZefrrT7k8+HB13IxorMOK6UxssPcRvx
-   ZEkJDlv2WtdZv7PkiJLBhlm2tsrCzitkVeHuFsoidSH4fHgVYA/oBEkt1
-   lQYckrhn23fDyOWBw8dlf50K1MqBDMHWGQGHUnn//5LQaNkEOOhs0lmLY
-   VaZseGi23AwR9WD2uGi6wZhqBhoKInxHSP3x+yN3CfvNnxq15iV1ZZJAc
-   o8wSNGf7Z97E46DnsFm4WQC2uuMzJzRCDR69PucIlssSLLA/oDORfhAyc
-   2edb6dQvP/c1MQHUFxFlWzIWXQuv7t0auxvoJ27Fw4RrM1pCAlBof4IR6
-   w==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10741"; a="362272390"
-X-IronPort-AV: E=Sophos;i="6.00,244,1681196400"; 
-   d="scan'208";a="362272390"
-Received: from fmsmga006.fm.intel.com ([10.253.24.20])
-  by orsmga103.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 15 Jun 2023 04:47:39 -0700
-X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10741"; a="959164073"
-X-IronPort-AV: E=Sophos;i="6.00,244,1681196400"; 
-   d="scan'208";a="959164073"
-Received: from lkp-server02.sh.intel.com (HELO d59cacf64e9e) ([10.239.97.151])
-  by fmsmga006.fm.intel.com with ESMTP; 15 Jun 2023 04:47:33 -0700
-Received: from kbuild by d59cacf64e9e with local (Exim 4.96)
-        (envelope-from <lkp@intel.com>)
-        id 1q9lRs-0001pa-1g;
-        Thu, 15 Jun 2023 11:47:32 +0000
-Date:   Thu, 15 Jun 2023 19:47:13 +0800
-From:   kernel test robot <lkp@intel.com>
-To:     Yi-De Wu <yi-de.wu@mediatek.com>,
-        Yingshiuan Pan <yingshiuan.pan@mediatek.com>,
-        Ze-Yu Wang <ze-yu.wang@mediatek.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        Matthias Brugger <matthias.bgg@gmail.com>,
-        AngeloGioacchino Del Regno 
-        <angelogioacchino.delregno@collabora.com>
-Cc:     oe-kbuild-all@lists.linux.dev, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-arch@vger.kernel.org, linux-mediatek@lists.infradead.org,
-        Krzysztof Kozlowski <krzk@kernel.org>,
-        Rob Herring <robh+dt@kernel.org>,
-        Conor Dooley <conor.dooley@microchip.com>,
-        Trilok Soni <quic_tsoni@quicinc.com>,
-        David Bradil <dbrazdil@google.com>,
-        Jade Shih <jades.shih@mediatek.com>,
-        Miles Chen <miles.chen@mediatek.com>,
-        Ivan Tseng <ivan.tseng@mediatek.com>,
-        My Chuang <my.chuang@mediatek.com>,
-        Shawn Hsiao <shawn.hsiao@mediatek.com>,
-        PeiLun Suei <peilun.suei@mediatek.com>,
-        Liju Chen <liju-clr.chen@mediatek.com>,
-        Willix Yeh <chi-shen.yeh@mediatek.com>
-Subject: Re: [PATCH v4 1/9] docs: geniezone: Introduce GenieZone hypervisor
-Message-ID: <202306151938.M7471qHi-lkp@intel.com>
-References: <20230609085214.31071-2-yi-de.wu@mediatek.com>
+        with ESMTP id S1344948AbjFOMZL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jun 2023 08:25:11 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9B0F535B3;
+        Thu, 15 Jun 2023 05:23:34 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 33B8262DD5;
+        Thu, 15 Jun 2023 12:23:34 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 39EF0C433C8;
+        Thu, 15 Jun 2023 12:23:31 +0000 (UTC)
+From:   Huacai Chen <chenhuacai@loongson.cn>
+To:     Linus Torvalds <torvalds@linux-foundation.org>,
+        Arnd Bergmann <arnd@arndb.de>,
+        Huacai Chen <chenhuacai@kernel.org>
+Cc:     loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, Guo Ren <guoren@kernel.org>,
+        Xuerui Wang <kernel@xen0n.name>,
+        Jiaxun Yang <jiaxun.yang@flygoat.com>,
+        Huacai Chen <chenhuacai@loongson.cn>
+Subject: [GIT PULL] LoongArch fixes for v6.4-rc7
+Date:   Thu, 15 Jun 2023 20:23:11 +0800
+Message-Id: <20230615122311.3754870-1-chenhuacai@loongson.cn>
+X-Mailer: git-send-email 2.39.3
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230609085214.31071-2-yi-de.wu@mediatek.com>
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Yi-De,
+The following changes since commit 858fd168a95c5b9669aac8db6c14a9aeab446375:
 
-kernel test robot noticed the following build warnings:
+  Linux 6.4-rc6 (2023-06-11 14:35:30 -0700)
 
-[auto build test WARNING on arm64/for-next/core]
-[also build test WARNING on arnd-asm-generic/master lwn/docs-next linus/master v6.4-rc6 next-20230615]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+are available in the Git repository at:
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Yi-De-Wu/docs-geniezone-Introduce-GenieZone-hypervisor/20230609-165552
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git for-next/core
-patch link:    https://lore.kernel.org/r/20230609085214.31071-2-yi-de.wu%40mediatek.com
-patch subject: [PATCH v4 1/9] docs: geniezone: Introduce GenieZone hypervisor
-reproduce:
-        git remote add arm64 https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git
-        git fetch arm64 for-next/core
-        git checkout arm64/for-next/core
-        b4 shazam https://lore.kernel.org/r/20230609085214.31071-2-yi-de.wu@mediatek.com
-        make menuconfig
-        # enable CONFIG_COMPILE_TEST, CONFIG_WARN_MISSING_DOCUMENTS, CONFIG_WARN_ABI_ERRORS
-        make htmldocs
+  git://git.kernel.org/pub/scm/linux/kernel/git/chenhuacai/linux-loongson.git tags/loongarch-fixes-6.4-1
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202306151938.M7471qHi-lkp@intel.com/
+for you to fetch changes up to 41efbb682de1231c3f6361039f46ad149e3ff5b9:
 
-All warnings (new ones prefixed by >>):
+  LoongArch: Fix debugfs_create_dir() error checking (2023-06-15 14:35:56 +0800)
 
->> Documentation/virt/geniezone/introduction.rst:28: WARNING: Bullet list ends without a blank line; unexpected unindent.
->> Documentation/virt/geniezone/introduction.rst: WARNING: document isn't included in any toctree
+----------------------------------------------------------------
+LoongArch fixes for v6.4-rc7
 
-vim +28 Documentation/virt/geniezone/introduction.rst
+Some trivial bug fixes for v6.4-rc7.
+----------------------------------------------------------------
+Hongchen Zhang (1):
+      LoongArch: Let pmd_present() return true when splitting pmd
 
-    26	
-    27	- vCPU Management
-  > 28	VM manager aims to provide vCPUs on the basis of time sharing on physical CPUs.
-    29	It requires Linux kernel in host VM for vCPU scheduling and VM power management.
-    30	
+Huacai Chen (1):
+      LoongArch: Fix perf event id calculation
 
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Immad Mir (1):
+      LoongArch: Fix debugfs_create_dir() error checking
+
+Qi Hu (1):
+      LoongArch: Fix the write_fcsr() macro
+
+Qing Zhang (1):
+      LoongArch: Avoid uninitialized alignment_mask
+
+ arch/loongarch/include/asm/loongarch.h    | 2 +-
+ arch/loongarch/include/asm/pgtable-bits.h | 2 ++
+ arch/loongarch/include/asm/pgtable.h      | 3 ++-
+ arch/loongarch/kernel/hw_breakpoint.c     | 2 ++
+ arch/loongarch/kernel/perf_event.c        | 6 +++---
+ arch/loongarch/kernel/unaligned.c         | 2 +-
+ 6 files changed, 11 insertions(+), 6 deletions(-)
