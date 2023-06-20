@@ -2,41 +2,41 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 289F0EB64DB
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8EFF0EB64DD
 	for <linux-arch@archiver.kernel.org>; Tue, 20 Jun 2023 13:20:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232561AbjFTNUH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S231805AbjFTNUH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Tue, 20 Jun 2023 09:20:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51066 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51202 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232917AbjFTNTN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2023 09:19:13 -0400
+        with ESMTP id S232715AbjFTNTS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2023 09:19:18 -0400
 Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43B9F19AC
-        for <linux-arch@vger.kernel.org>; Tue, 20 Jun 2023 06:18:05 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2FF0019B9
+        for <linux-arch@vger.kernel.org>; Tue, 20 Jun 2023 06:18:09 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1687267079;
+        s=mimecast20190719; t=1687267083;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
          to:to:cc:cc:mime-version:mime-version:content-type:content-type:
          content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=mrr2cNyhDy3XHVdkhg3dGxWKYfHUscXJOX9H9m6IS1s=;
-        b=c7XR8s5cE8C4S327qkDkY3bpAAZcSiHot5zUBwZkTlFpB5qHpahOZeLhyxpnkKvkUv0rDP
-        4o11ywoppeE6r6MhEqbCBtBk5gNk55MlmLa96GWt74fVg7rf8hbzY3e0Qgv3UaS8NK6wK9
-        Y2R0i2Z8hI94nNqTAJhHO0uzRl2b83Y=
+        bh=keQ78Mv/VCFMjxLJbgEgr2h/sjN0UpPUn6QsvR3JRNU=;
+        b=PuAhRBNVJuCwQhU2Hz70kgZ6/8jXDfK1O5K3qkeOCkYaDQjIVnpHtSEqX8/AoawLBCtqts
+        yvQ44TUv/jXNrZbcelrOHLN5g5hiG+aF6qvowuhdbgA3ltSZjl5fi/WOLQgQv4udzCeuRq
+        93eHyENlDtD80vv27Tmc6WY5CmGf5fo=
 Received: from mimecast-mx02.redhat.com (mx3-rdu2.redhat.com
  [66.187.233.73]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-100-cbsQdSbTO9iAyNHoribILg-1; Tue, 20 Jun 2023 09:17:52 -0400
-X-MC-Unique: cbsQdSbTO9iAyNHoribILg-1
+ us-mta-168-10jviPZINQmT4T6apGJu0w-1; Tue, 20 Jun 2023 09:17:55 -0400
+X-MC-Unique: 10jviPZINQmT4T6apGJu0w-1
 Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
         (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
         (No client certificate requested)
-        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 2CDB33C28C17;
-        Tue, 20 Jun 2023 13:16:52 +0000 (UTC)
+        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 934BC3C0F691;
+        Tue, 20 Jun 2023 13:17:10 +0000 (UTC)
 Received: from MiWiFi-R3L-srv.redhat.com (ovpn-12-166.pek2.redhat.com [10.72.12.166])
-        by smtp.corp.redhat.com (Postfix) with ESMTP id 5B052C1ED97;
-        Tue, 20 Jun 2023 13:16:42 +0000 (UTC)
+        by smtp.corp.redhat.com (Postfix) with ESMTP id CA753C478C7;
+        Tue, 20 Jun 2023 13:17:02 +0000 (UTC)
 From:   Baoquan He <bhe@redhat.com>
 To:     linux-kernel@vger.kernel.org
 Cc:     linux-arch@vger.kernel.org, linux-mm@kvack.org, arnd@arndb.de,
@@ -45,13 +45,10 @@ Cc:     linux-arch@vger.kernel.org, linux-mm@kvack.org, arnd@arndb.de,
         wangkefeng.wang@huawei.com, schnelle@linux.ibm.com,
         David.Laight@ACULAB.COM, shorne@gmail.com, deller@gmx.de,
         nathan@kernel.org, glaubitz@physik.fu-berlin.de,
-        Baoquan He <bhe@redhat.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        linuxppc-dev@lists.ozlabs.org
-Subject: [PATCH v7 17/19] powerpc: mm: Convert to GENERIC_IOREMAP
-Date:   Tue, 20 Jun 2023 21:13:54 +0800
-Message-Id: <20230620131356.25440-18-bhe@redhat.com>
+        Baoquan He <bhe@redhat.com>
+Subject: [PATCH v7 19/19] mm: ioremap: remove unneeded ioremap_allowed and iounmap_allowed
+Date:   Tue, 20 Jun 2023 21:13:56 +0800
+Message-Id: <20230620131356.25440-20-bhe@redhat.com>
 In-Reply-To: <20230620131356.25440-1-bhe@redhat.com>
 References: <20230620131356.25440-1-bhe@redhat.com>
 MIME-Version: 1.0
@@ -62,201 +59,79 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
+Now there are no users of ioremap_allowed and iounmap_allowed, clean
+them up.
 
-By taking GENERIC_IOREMAP method, the generic generic_ioremap_prot(),
-generic_iounmap(), and their generic wrapper ioremap_prot(), ioremap()
-and iounmap() are all visible and available to arch. Arch needs to
-provide wrapper functions to override the generic versions if there's
-arch specific handling in its ioremap_prot(), ioremap() or iounmap().
-This change will simplify implementation by removing duplicated codes
-with generic_ioremap_prot() and generic_iounmap(), and has the equivalent
-functioality as before.
-
-Here, add wrapper functions ioremap_prot() and iounmap() for powerpc's
-special operation when ioremap() and iounmap().
-
-Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
 Signed-off-by: Baoquan He <bhe@redhat.com>
 Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Kefeng Wang <wangkefeng.wang@huawei.com>
 Reviewed-by: Mike Rapoport (IBM) <rppt@kernel.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: linuxppc-dev@lists.ozlabs.org
 ---
- arch/powerpc/Kconfig          |  1 +
- arch/powerpc/include/asm/io.h |  8 +++-----
- arch/powerpc/mm/ioremap.c     | 26 +-------------------------
- arch/powerpc/mm/ioremap_32.c  | 19 +++++++++----------
- arch/powerpc/mm/ioremap_64.c  | 12 ++----------
- 5 files changed, 16 insertions(+), 50 deletions(-)
+ include/asm-generic/io.h | 26 --------------------------
+ mm/ioremap.c             |  6 ------
+ 2 files changed, 32 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index bff5820b7cda..aadb280a539e 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -194,6 +194,7 @@ config PPC
- 	select GENERIC_CPU_VULNERABILITIES	if PPC_BARRIER_NOSPEC
- 	select GENERIC_EARLY_IOREMAP
- 	select GENERIC_GETTIMEOFDAY
-+	select GENERIC_IOREMAP
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IRQ_SHOW_LEVEL
- 	select GENERIC_PCI_IOMAP		if PCI
-diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
-index 67a3fb6de498..0732b743e099 100644
---- a/arch/powerpc/include/asm/io.h
-+++ b/arch/powerpc/include/asm/io.h
-@@ -889,8 +889,8 @@ static inline void iosync(void)
-  *
-  */
- extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
--extern void __iomem *ioremap_prot(phys_addr_t address, unsigned long size,
--				  unsigned long flags);
-+#define ioremap ioremap
-+#define ioremap_prot ioremap_prot
- extern void __iomem *ioremap_wc(phys_addr_t address, unsigned long size);
- #define ioremap_wc ioremap_wc
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 39244c3ee797..bac63e874c7b 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -1047,32 +1047,6 @@ static inline void iounmap(volatile void __iomem *addr)
+ #elif defined(CONFIG_GENERIC_IOREMAP)
+ #include <linux/pgtable.h>
  
-@@ -904,14 +904,12 @@ void __iomem *ioremap_coherent(phys_addr_t address, unsigned long size);
- #define ioremap_cache(addr, size) \
- 	ioremap_prot((addr), (size), pgprot_val(PAGE_KERNEL))
- 
--extern void iounmap(volatile void __iomem *addr);
-+#define iounmap iounmap
- 
- void __iomem *ioremap_phb(phys_addr_t paddr, unsigned long size);
- 
- int early_ioremap_range(unsigned long ea, phys_addr_t pa,
- 			unsigned long size, pgprot_t prot);
--void __iomem *do_ioremap(phys_addr_t pa, phys_addr_t offset, unsigned long size,
--			 pgprot_t prot, void *caller);
- 
- extern void __iomem *__ioremap_caller(phys_addr_t, unsigned long size,
- 				      pgprot_t prot, void *caller);
-diff --git a/arch/powerpc/mm/ioremap.c b/arch/powerpc/mm/ioremap.c
-index 4f12504fb405..705e8e8ffde4 100644
---- a/arch/powerpc/mm/ioremap.c
-+++ b/arch/powerpc/mm/ioremap.c
-@@ -41,7 +41,7 @@ void __iomem *ioremap_coherent(phys_addr_t addr, unsigned long size)
- 	return __ioremap_caller(addr, size, prot, caller);
- }
- 
--void __iomem *ioremap_prot(phys_addr_t addr, unsigned long size, unsigned long flags)
-+void __iomem *ioremap_prot(phys_addr_t addr, size_t size, unsigned long flags)
- {
- 	pte_t pte = __pte(flags);
- 	void *caller = __builtin_return_address(0);
-@@ -74,27 +74,3 @@ int early_ioremap_range(unsigned long ea, phys_addr_t pa,
- 
- 	return 0;
- }
--
--void __iomem *do_ioremap(phys_addr_t pa, phys_addr_t offset, unsigned long size,
--			 pgprot_t prot, void *caller)
+-/*
+- * Arch code can implement the following two hooks when using GENERIC_IOREMAP
+- * ioremap_allowed() return a bool,
+- *   - true means continue to remap
+- *   - false means skip remap and return directly
+- * iounmap_allowed() return a bool,
+- *   - true means continue to vunmap
+- *   - false means skip vunmap and return directly
+- */
+-#ifndef ioremap_allowed
+-#define ioremap_allowed ioremap_allowed
+-static inline bool ioremap_allowed(phys_addr_t phys_addr, size_t size,
+-				   unsigned long prot)
 -{
--	struct vm_struct *area;
--	int ret;
--	unsigned long va;
+-	return true;
+-}
+-#endif
 -
--	area = __get_vm_area_caller(size, VM_IOREMAP, IOREMAP_START, IOREMAP_END, caller);
--	if (area == NULL)
+-#ifndef iounmap_allowed
+-#define iounmap_allowed iounmap_allowed
+-static inline bool iounmap_allowed(void *addr)
+-{
+-	return true;
+-}
+-#endif
+-
+ void __iomem *generic_ioremap_prot(phys_addr_t phys_addr, size_t size,
+ 				   pgprot_t prot);
+ 
+diff --git a/mm/ioremap.c b/mm/ioremap.c
+index a21a6c9fa5ab..3e049dfb28bd 100644
+--- a/mm/ioremap.c
++++ b/mm/ioremap.c
+@@ -33,9 +33,6 @@ void __iomem *generic_ioremap_prot(phys_addr_t phys_addr, size_t size,
+ 	phys_addr -= offset;
+ 	size = PAGE_ALIGN(size + offset);
+ 
+-	if (!ioremap_allowed(phys_addr, size, pgprot_val(prot)))
 -		return NULL;
 -
--	area->phys_addr = pa;
--	va = (unsigned long)area->addr;
--
--	ret = ioremap_page_range(va, va + size, pa, prot);
--	if (!ret)
--		return (void __iomem *)area->addr + offset;
--
--	vunmap_range(va, va + size);
--	free_vm_area(area);
--
--	return NULL;
--}
-diff --git a/arch/powerpc/mm/ioremap_32.c b/arch/powerpc/mm/ioremap_32.c
-index 9d13143b8be4..ca5bc6be3e6f 100644
---- a/arch/powerpc/mm/ioremap_32.c
-+++ b/arch/powerpc/mm/ioremap_32.c
-@@ -21,6 +21,13 @@ __ioremap_caller(phys_addr_t addr, unsigned long size, pgprot_t prot, void *call
- 	phys_addr_t p, offset;
- 	int err;
- 
-+	/*
-+	 * If the address lies within the first 16 MB, assume it's in ISA
-+	 * memory space
-+	 */
-+	if (addr < SZ_16M)
-+		addr += _ISA_MEM_BASE;
-+
- 	/*
- 	 * Choose an address to map it to.
- 	 * Once the vmalloc system is running, we use it.
-@@ -31,13 +38,6 @@ __ioremap_caller(phys_addr_t addr, unsigned long size, pgprot_t prot, void *call
- 	offset = addr & ~PAGE_MASK;
- 	size = PAGE_ALIGN(addr + size) - p;
- 
--	/*
--	 * If the address lies within the first 16 MB, assume it's in ISA
--	 * memory space
--	 */
--	if (p < 16 * 1024 * 1024)
--		p += _ISA_MEM_BASE;
--
- #ifndef CONFIG_CRASH_DUMP
- 	/*
- 	 * Don't allow anybody to remap normal RAM that we're using.
-@@ -63,7 +63,7 @@ __ioremap_caller(phys_addr_t addr, unsigned long size, pgprot_t prot, void *call
- 		return (void __iomem *)v + offset;
- 
- 	if (slab_is_available())
--		return do_ioremap(p, offset, size, prot, caller);
-+		return generic_ioremap_prot(addr, size, prot);
- 
- 	/*
- 	 * Should check if it is a candidate for a BAT mapping
-@@ -87,7 +87,6 @@ void iounmap(volatile void __iomem *addr)
- 	if (v_block_mapped((unsigned long)addr))
- 		return;
- 
--	if (addr > high_memory && (unsigned long)addr < ioremap_bot)
--		vunmap((void *)(PAGE_MASK & (unsigned long)addr));
-+	generic_iounmap(addr);
- }
- EXPORT_SYMBOL(iounmap);
-diff --git a/arch/powerpc/mm/ioremap_64.c b/arch/powerpc/mm/ioremap_64.c
-index 3acece00b33e..d24e5f166723 100644
---- a/arch/powerpc/mm/ioremap_64.c
-+++ b/arch/powerpc/mm/ioremap_64.c
-@@ -29,7 +29,7 @@ void __iomem *__ioremap_caller(phys_addr_t addr, unsigned long size,
- 		return NULL;
- 
- 	if (slab_is_available())
--		return do_ioremap(paligned, offset, size, prot, caller);
-+		return generic_ioremap_prot(addr, size, prot);
- 
- 	pr_warn("ioremap() called early from %pS. Use early_ioremap() instead\n", caller);
- 
-@@ -49,17 +49,9 @@ void __iomem *__ioremap_caller(phys_addr_t addr, unsigned long size,
-  */
- void iounmap(volatile void __iomem *token)
+ 	area = __get_vm_area_caller(size, VM_IOREMAP, IOREMAP_START,
+ 				    IOREMAP_END, __builtin_return_address(0));
+ 	if (!area)
+@@ -64,9 +61,6 @@ void generic_iounmap(volatile void __iomem *addr)
  {
--	void *addr;
--
- 	if (!slab_is_available())
- 		return;
+ 	void *vaddr = (void *)((unsigned long)addr & PAGE_MASK);
  
--	addr = (void *)((unsigned long __force)PCI_FIX_ADDR(token) & PAGE_MASK);
--
--	if ((unsigned long)addr < ioremap_bot) {
--		pr_warn("Attempt to iounmap early bolted mapping at 0x%p\n", addr);
+-	if (!iounmap_allowed(vaddr))
 -		return;
--	}
--	vunmap(addr);
-+	generic_iounmap(PCI_FIX_ADDR(token));
+-
+ 	if (is_ioremap_addr(vaddr))
+ 		vunmap(vaddr);
  }
- EXPORT_SYMBOL(iounmap);
 -- 
 2.34.1
 
