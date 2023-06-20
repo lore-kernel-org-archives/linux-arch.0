@@ -2,128 +2,167 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E90FBEB64D7
-	for <linux-arch@archiver.kernel.org>; Tue, 20 Jun 2023 13:20:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 921DCEB64D7
+	for <linux-arch@archiver.kernel.org>; Tue, 20 Jun 2023 14:52:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232963AbjFTNUa (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 20 Jun 2023 09:20:30 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51314 "EHLO
+        id S231710AbjFTOwR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 20 Jun 2023 10:52:17 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55966 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232993AbjFTNT7 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2023 09:19:59 -0400
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 07DDC1730
-        for <linux-arch@vger.kernel.org>; Tue, 20 Jun 2023 06:18:33 -0700 (PDT)
+        with ESMTP id S231777AbjFTOwR (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jun 2023 10:52:17 -0400
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B6D671733
+        for <linux-arch@vger.kernel.org>; Tue, 20 Jun 2023 07:51:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-        s=mimecast20190719; t=1687267108;
+        s=mimecast20190719; t=1687272687;
         h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+         to:to:cc:cc:mime-version:mime-version:
          content-transfer-encoding:content-transfer-encoding:
          in-reply-to:in-reply-to:references:references;
-        bh=72w03eJEhQqo4F/RBmYdJ2/NuxxsDP8AZF6XbBTG/zk=;
-        b=DDUQqo1fFnhr0VufaWuE/18WeIlf8jJ8md0AWL7q0MN0aXvPLHBFqtGZWQobpNXiHVqvUw
-        xYIhgzi0w71nMgVEkw9jLQw2HwkowC3f9qTB2xsi0XunVyLI+mKZGnwzWoF/+Lm6IQT4L/
-        G3oNnLPHFIdVxQLvctizmXPzQA9hI2o=
+        bh=iujXwuftdxXImWSWSI9VizTXy4E1fvuK20wksczwI/k=;
+        b=iLZstAJrrnz8zZ+K4hUWA5A7sOvAkgN6dDPENCDwN6ygWihUl7g0DK4FlSkNTLIJ1GJ5iu
+        nnFW/FbHIyrMyTbiritPc3nutuXiPL7t8PuQL3vVnI2cB3QQU37wS7H60fSMGYc3y1ahTP
+        kOk30GrDLiKCzPY/5IxVpV/6RBzr9gE=
 Received: from mimecast-mx02.redhat.com (mimecast-mx02.redhat.com
  [66.187.233.88]) by relay.mimecast.com with ESMTP with STARTTLS
  (version=TLSv1.2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- us-mta-494-IvFW2tAHNyCwbGqZN7_6DA-1; Tue, 20 Jun 2023 09:18:22 -0400
-X-MC-Unique: IvFW2tAHNyCwbGqZN7_6DA-1
-Received: from smtp.corp.redhat.com (int-mx08.intmail.prod.int.rdu2.redhat.com [10.11.54.8])
+ us-mta-17-x-AozXEzMu217ZwsSukKWg-1; Tue, 20 Jun 2023 10:51:23 -0400
+X-MC-Unique: x-AozXEzMu217ZwsSukKWg-1
+Received: from smtp.corp.redhat.com (int-mx05.intmail.prod.int.rdu2.redhat.com [10.11.54.5])
         (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
         (No client certificate requested)
-        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id F3289185A795;
-        Tue, 20 Jun 2023 13:17:01 +0000 (UTC)
-Received: from MiWiFi-R3L-srv.redhat.com (ovpn-12-166.pek2.redhat.com [10.72.12.166])
-        by smtp.corp.redhat.com (Postfix) with ESMTP id D9852C1ED96;
-        Tue, 20 Jun 2023 13:16:52 +0000 (UTC)
-From:   Baoquan He <bhe@redhat.com>
-To:     linux-kernel@vger.kernel.org
-Cc:     linux-arch@vger.kernel.org, linux-mm@kvack.org, arnd@arndb.de,
-        hch@lst.de, christophe.leroy@csgroup.eu, rppt@kernel.org,
-        willy@infradead.org, agordeev@linux.ibm.com,
-        wangkefeng.wang@huawei.com, schnelle@linux.ibm.com,
-        David.Laight@ACULAB.COM, shorne@gmail.com, deller@gmx.de,
-        nathan@kernel.org, glaubitz@physik.fu-berlin.de,
-        Baoquan He <bhe@redhat.com>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        linux-arm-kernel@lists.infradead.org
-Subject: [PATCH v7 18/19] arm64 : mm: add wrapper function ioremap_prot()
-Date:   Tue, 20 Jun 2023 21:13:55 +0800
-Message-Id: <20230620131356.25440-19-bhe@redhat.com>
-In-Reply-To: <20230620131356.25440-1-bhe@redhat.com>
-References: <20230620131356.25440-1-bhe@redhat.com>
+        by mimecast-mx02.redhat.com (Postfix) with ESMTPS id 71CC488D51C;
+        Tue, 20 Jun 2023 14:46:42 +0000 (UTC)
+Received: from ypodemsk.tlv.csb (unknown [10.39.195.147])
+        by smtp.corp.redhat.com (Postfix) with ESMTPS id 905379E9C;
+        Tue, 20 Jun 2023 14:46:34 +0000 (UTC)
+From:   Yair Podemsky <ypodemsk@redhat.com>
+To:     mtosatti@redhat.com, ppandit@redhat.com, david@redhat.com,
+        linux@armlinux.org.uk, mpe@ellerman.id.au, npiggin@gmail.com,
+        christophe.leroy@csgroup.eu, hca@linux.ibm.com, gor@linux.ibm.com,
+        agordeev@linux.ibm.com, borntraeger@linux.ibm.com,
+        svens@linux.ibm.com, davem@davemloft.net, tglx@linutronix.de,
+        mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
+        hpa@zytor.com, keescook@chromium.org, paulmck@kernel.org,
+        frederic@kernel.org, will@kernel.org, peterz@infradead.org,
+        ardb@kernel.org, samitolvanen@google.com,
+        juerg.haefliger@canonical.com, arnd@arndb.de,
+        rmk+kernel@armlinux.org.uk, geert+renesas@glider.be,
+        linus.walleij@linaro.org, akpm@linux-foundation.org,
+        sebastian.reichel@collabora.com, rppt@kernel.org,
+        aneesh.kumar@linux.ibm.com, x86@kernel.org,
+        linux-arm-kernel@lists.infradead.org,
+        linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Cc:     ypodemsk@redhat.com
+Subject: [PATCH v2 1/2] arch: Introduce ARCH_HAS_CPUMASK_BITS
+Date:   Tue, 20 Jun 2023 17:46:17 +0300
+Message-Id: <20230620144618.125703-2-ypodemsk@redhat.com>
+In-Reply-To: <20230620144618.125703-1-ypodemsk@redhat.com>
+References: <20230620144618.125703-1-ypodemsk@redhat.com>
 MIME-Version: 1.0
-Content-type: text/plain
 Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.1 on 10.11.54.8
+X-Scanned-By: MIMEDefang 3.1 on 10.11.54.5
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since hook functions ioremap_allowed() and iounmap_allowed() will be
-obsoleted, add wrapper function ioremap_prot() to contain the
-the specific handling in addition to generic_ioremap_prot() invocation.
+Some architectures set and maintain the mm_cpumask bits when loading
+or removing process from cpu.
+This Kconfig will mark those to allow different behavior between
+kernels that maintain the mm_cpumask and those that do not.
 
-Signed-off-by: Baoquan He <bhe@redhat.com>
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Reviewed-by: Kefeng Wang <wangkefeng.wang@huawei.com>
-Reviewed-by: Mike Rapoport (IBM) <rppt@kernel.org>
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org
+Signed-off-by: Yair Podemsky <ypodemsk@redhat.com>
 ---
- arch/arm64/include/asm/io.h |  3 +--
- arch/arm64/mm/ioremap.c     | 10 ++++++----
- 2 files changed, 7 insertions(+), 6 deletions(-)
+ arch/Kconfig         | 8 ++++++++
+ arch/arm/Kconfig     | 1 +
+ arch/powerpc/Kconfig | 1 +
+ arch/s390/Kconfig    | 1 +
+ arch/sparc/Kconfig   | 1 +
+ arch/x86/Kconfig     | 1 +
+ 6 files changed, 13 insertions(+)
 
-diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
-index 877495a0fd0c..97dd4ff1253b 100644
---- a/arch/arm64/include/asm/io.h
-+++ b/arch/arm64/include/asm/io.h
-@@ -139,8 +139,7 @@ extern void __memset_io(volatile void __iomem *, int, size_t);
-  * I/O memory mapping functions.
-  */
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 205fd23e0cad..953fbfa5a2ad 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -1466,6 +1466,14 @@ config ARCH_HAS_NONLEAF_PMD_YOUNG
+ 	  address translations. Page table walkers that clear the accessed bit
+ 	  may use this capability to reduce their search space.
  
--bool ioremap_allowed(phys_addr_t phys_addr, size_t size, unsigned long prot);
--#define ioremap_allowed ioremap_allowed
-+#define ioremap_prot ioremap_prot
++config ARCH_HAS_CPUMASK_BITS
++	bool
++	help
++	  Architectures that select this option set bits on the mm_cpumask
++	  to mark which cpus loaded the mm, The mask can then be used to
++	  control mm specific actions such as tlb_flush.
++
++
+ source "kernel/gcov/Kconfig"
  
- #define _PAGE_IOREMAP PROT_DEVICE_nGnRE
- 
-diff --git a/arch/arm64/mm/ioremap.c b/arch/arm64/mm/ioremap.c
-index c5af103d4ad4..269f2f63ab7d 100644
---- a/arch/arm64/mm/ioremap.c
-+++ b/arch/arm64/mm/ioremap.c
-@@ -3,20 +3,22 @@
- #include <linux/mm.h>
- #include <linux/io.h>
- 
--bool ioremap_allowed(phys_addr_t phys_addr, size_t size, unsigned long prot)
-+void __iomem *ioremap_prot(phys_addr_t phys_addr, size_t size,
-+			   unsigned long prot)
- {
- 	unsigned long last_addr = phys_addr + size - 1;
- 
- 	/* Don't allow outside PHYS_MASK */
- 	if (last_addr & ~PHYS_MASK)
--		return false;
-+		return NULL;
- 
- 	/* Don't allow RAM to be mapped. */
- 	if (WARN_ON(pfn_is_map_memory(__phys_to_pfn(phys_addr))))
--		return false;
-+		return NULL;
- 
--	return true;
-+	return generic_ioremap_prot(phys_addr, size, __pgprot(prot));
- }
-+EXPORT_SYMBOL(ioremap_prot);
- 
- /*
-  * Must be called after early_fixmap_init
+ source "scripts/gcc-plugins/Kconfig"
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 0fb4b218f665..cd20e96bc1dc 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -70,6 +70,7 @@ config ARM
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select HARDIRQS_SW_RESEND
+ 	select HAS_IOPORT
++	select ARCH_HAS_CPUMASK_BITS
+ 	select HAVE_ARCH_AUDITSYSCALL if AEABI && !OABI_COMPAT
+ 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
+ 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index bff5820b7cda..c9218722aa2f 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -156,6 +156,7 @@ config PPC
+ 	select ARCH_HAS_TICK_BROADCAST		if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_HAS_UACCESS_FLUSHCACHE
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
++	select ARCH_HAS_CPUMASK_BITS
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_KEEP_MEMBLOCK
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 6dab9c1be508..60bf29bc3f87 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -84,6 +84,7 @@ config S390
+ 	select ARCH_HAS_SYSCALL_WRAPPER
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+ 	select ARCH_HAS_VDSO_DATA
++	select ARCH_HAS_CPUMASK_BITS
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_INLINE_READ_LOCK
+ 	select ARCH_INLINE_READ_LOCK_BH
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 8535e19062f6..e8bf4d769306 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -99,6 +99,7 @@ config SPARC64
+ 	select ARCH_HAS_PTE_SPECIAL
+ 	select PCI_DOMAINS if PCI
+ 	select ARCH_HAS_GIGANTIC_PAGE
++	select ARCH_HAS_CPUMASK_BITS
+ 	select HAVE_SOFTIRQ_ON_OWN_STACK
+ 	select HAVE_SETUP_PER_CPU_AREA
+ 	select NEED_PER_CPU_EMBED_FIRST_CHUNK
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 53bab123a8ee..b351421695f3 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -185,6 +185,7 @@ config X86
+ 	select HAVE_ARCH_THREAD_STRUCT_WHITELIST
+ 	select HAVE_ARCH_STACKLEAK
+ 	select HAVE_ARCH_TRACEHOOK
++	select ARCH_HAS_CPUMASK_BITS
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE_PUD if X86_64
+ 	select HAVE_ARCH_USERFAULTFD_WP         if X86_64 && USERFAULTFD
 -- 
-2.34.1
+2.39.3
 
