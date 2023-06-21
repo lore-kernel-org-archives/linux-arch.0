@@ -2,133 +2,196 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 02E5CEB64D8
-	for <linux-arch@archiver.kernel.org>; Wed, 21 Jun 2023 15:01:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8B2F0EB64D7
+	for <linux-arch@archiver.kernel.org>; Wed, 21 Jun 2023 16:42:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232202AbjFUPBA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 21 Jun 2023 11:01:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42160 "EHLO
+        id S232336AbjFUQms (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 21 Jun 2023 12:42:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35298 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233192AbjFUPAE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2023 11:00:04 -0400
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A71AD5FF0;
-        Wed, 21 Jun 2023 07:54:50 -0700 (PDT)
-Received: from pps.filterd (m0353728.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 35LEmqhb023057;
-        Wed, 21 Jun 2023 14:53:11 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=date : from : to : cc :
- subject : message-id : references : content-type : in-reply-to :
- mime-version; s=pp1; bh=ufplYvlDcXmpwfmv6hySA3mz7btguYibmlfOu+EhMyQ=;
- b=RksFeJCqi8/XEsNsFNNOeDB6kOaDGSwtr/y3SMMlGsZiDdvUE0WTs/Sgq5XJRyXVSmHX
- +br3q8ohmX33mzOyLHHadNhxSQn5zaVrGCvgL/YeBzrHrY+GOut69jqxfe0E3z3I6g+V
- sxgB9PvEgYNW8nqPIgSEy/nLTRuCbIkMH02R5slzI7XTjRV8DIBwkc+o+3TTga/UeRGP
- DQW2O10/YgdwB8ZEf/CpMLQyaBTeFHE46P2ktveNTB3+Mgq3uHMmGqNSp9F5B4vSKty+
- pwUTVv95Ocmw+GHnz1zVWhDIkS2hnHlvLGH9GhSwBocuuVVzgIajx+sSLROTbfrxasxy 4Q== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rc3a3g3rb-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Wed, 21 Jun 2023 14:53:10 +0000
-Received: from m0353728.ppops.net (m0353728.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 35LEmtmJ023155;
-        Wed, 21 Jun 2023 14:53:10 GMT
-Received: from ppma05fra.de.ibm.com (6c.4a.5195.ip4.static.sl-reverse.com [149.81.74.108])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rc3a3g3q0-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Wed, 21 Jun 2023 14:53:09 +0000
-Received: from pps.filterd (ppma05fra.de.ibm.com [127.0.0.1])
-        by ppma05fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 35L5ZtLD020901;
-        Wed, 21 Jun 2023 14:53:07 GMT
-Received: from smtprelay06.fra02v.mail.ibm.com ([9.218.2.230])
-        by ppma05fra.de.ibm.com (PPS) with ESMTPS id 3r94f524m3-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Wed, 21 Jun 2023 14:53:07 +0000
-Received: from smtpav06.fra02v.mail.ibm.com (smtpav06.fra02v.mail.ibm.com [10.20.54.105])
-        by smtprelay06.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 35LEr3vZ40960344
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Wed, 21 Jun 2023 14:53:03 GMT
-Received: from smtpav06.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id B7D1A20043;
-        Wed, 21 Jun 2023 14:53:03 +0000 (GMT)
-Received: from smtpav06.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 11FD520040;
-        Wed, 21 Jun 2023 14:53:03 +0000 (GMT)
-Received: from li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com (unknown [9.155.204.135])
-        by smtpav06.fra02v.mail.ibm.com (Postfix) with ESMTPS;
-        Wed, 21 Jun 2023 14:53:03 +0000 (GMT)
-Date:   Wed, 21 Jun 2023 16:53:01 +0200
-From:   Alexander Gordeev <agordeev@linux.ibm.com>
-To:     Baoquan He <bhe@redhat.com>
-Cc:     kernel test robot <lkp@intel.com>, linux-kernel@vger.kernel.org,
-        oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, arnd@arndb.de, christophe.leroy@csgroup.eu,
-        hch@lst.de, rppt@kernel.org, willy@infradead.org,
-        wangkefeng.wang@huawei.com, schnelle@linux.ibm.com,
-        David.Laight@aculab.com, shorne@gmail.com, deller@gmx.de,
-        Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        Sven Schnelle <svens@linux.ibm.com>, linux-s390@vger.kernel.org
-Subject: Re: [PATCH v6 10/19] s390: mm: Convert to GENERIC_IOREMAP
-Message-ID: <ZJMOzbQeVCLJfvXk@li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com>
-References: <20230609075528.9390-11-bhe@redhat.com>
- <202306100105.8GHnoMCP-lkp@intel.com>
- <ZIWrtFMUnRfVP5h0@MiWiFi-R3L-srv>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ZIWrtFMUnRfVP5h0@MiWiFi-R3L-srv>
-X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: NsNfLNerAb4XCeCbSoD6l5PpTopTDxHU
-X-Proofpoint-ORIG-GUID: O67ntRKqq7CkkGkM2LAJDtH5Mvg4y18j
-X-Proofpoint-UnRewURL: 0 URL was un-rewritten
+        with ESMTP id S232500AbjFUQmX (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 21 Jun 2023 12:42:23 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 318222106;
+        Wed, 21 Jun 2023 09:42:14 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id B8475615F7;
+        Wed, 21 Jun 2023 16:42:13 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1A93CC433C8;
+        Wed, 21 Jun 2023 16:42:10 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1687365733;
+        bh=FfaBg5slDXiBIl/G9ncJYT509r6SADoRGOfo1kG0lqQ=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=hcZgCWWzRxndVUInZWPJkdsIIhc2UGgGRRIAJVLbhzMzACW7z7Ux+ngAzeLh083h0
+         XTURDyUDxupRXlw35akMeLi8J5+gSciHqxadUx8PLe/mtED/psnHbQx/TZBZVKAhyo
+         JQXvxyiSHIt0in/JhCF6h0H61lTfCJZjkt3MFanUk9sVfA/uRKkJzeRcSTTOpEhOrG
+         3M4fSDv7T/8DQlBTvYJ9HIgsS/Vmnu+K2YDpKLrhgIREV3OHApQE3RHRIF+8NEozre
+         DQ1CiDczCl1vCfRUxh2zkXwbfAbHAe6JtlxxLkRfJh9Pwy+Z+IsD2uFnD2MP9YTh5c
+         5wZ/e+0Z4nvhg==
+Date:   Wed, 21 Jun 2023 17:42:08 +0100
+From:   Conor Dooley <conor@kernel.org>
+To:     Palmer Dabbelt <palmer@dabbelt.com>
+Cc:     ndesaulniers@google.com, jszhang@kernel.org, llvm@lists.linux.dev,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        aou@eecs.berkeley.edu, Arnd Bergmann <arnd@arndb.de>,
+        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Subject: Re: [PATCH v2 0/4] riscv: enable HAVE_LD_DEAD_CODE_DATA_ELIMINATION
+Message-ID: <20230621-hungrily-pancake-9e1ff5b0b02a@spud>
+References: <mhng-8caf7779-aa9e-496a-b2ee-2e6d6d1d76ff@palmer-ri-x1c9a>
+ <mhng-861ea8a6-c92c-4a78-a1a6-dfb4df554aee@palmer-ri-x1c9a>
 MIME-Version: 1.0
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.591,FMLib:17.11.176.26
- definitions=2023-06-21_08,2023-06-16_01,2023-05-22_02
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 malwarescore=0 suspectscore=0
- impostorscore=0 mlxscore=0 clxscore=1015 bulkscore=0 adultscore=0
- lowpriorityscore=0 phishscore=0 mlxlogscore=999 priorityscore=1501
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2305260000 definitions=main-2306210123
+Content-Type: multipart/signed; micalg=pgp-sha256;
+        protocol="application/pgp-signature"; boundary="qKbzBWp+WnU9QIpu"
+Content-Disposition: inline
+In-Reply-To: <mhng-861ea8a6-c92c-4a78-a1a6-dfb4df554aee@palmer-ri-x1c9a>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sun, Jun 11, 2023 at 07:10:44PM +0800, Baoquan He wrote:
 
-Hi Baoquan,
+--qKbzBWp+WnU9QIpu
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> From 26aedf424dac7e58dd1389e554cfe0693e2b371f Mon Sep 17 00:00:00 2001
-> From: Baoquan He <bhe@redhat.com>
-> Date: Sun, 11 Jun 2023 18:37:43 +0800
-> Subject: [PATCH] s390: mm: fix building error when converting to
->  GENERIC_IOREMAP
-> Content-type: text/plain
-> 
-> We should always include <asm/io.h> in ARCH, but not <asm-generic/io.h>
-> directly. Otherwise, macro defined by ARCH won't be seen and could cause
-> building error.
-> 
-> Reported-by: kernel test robot <lkp@intel.com>
-> Closes: https://lore.kernel.org/oe-kbuild-all/202306100105.8GHnoMCP-lkp@intel.com/
-> Signed-off-by: Baoquan He <bhe@redhat.com>
-> ---
->  arch/s390/kernel/perf_cpum_sf.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/arch/s390/kernel/perf_cpum_sf.c b/arch/s390/kernel/perf_cpum_sf.c
-> index 7ef72f5ff52e..b0269f3881aa 100644
-> --- a/arch/s390/kernel/perf_cpum_sf.c
-> +++ b/arch/s390/kernel/perf_cpum_sf.c
-> @@ -22,7 +22,7 @@
->  #include <asm/irq.h>
->  #include <asm/debug.h>
->  #include <asm/timex.h>
-> -#include <asm-generic/io.h>
-> +#include <asm/io.h>
->  
->  /* Minimum number of sample-data-block-tables:
->   * At least one table is required for the sampling buffer structure.
+On Wed, Jun 21, 2023 at 07:53:59AM -0700, Palmer Dabbelt wrote:
+> On Tue, 20 Jun 2023 17:13:17 PDT (-0700), Palmer Dabbelt wrote:
+> > On Tue, 20 Jun 2023 14:08:33 PDT (-0700), Palmer Dabbelt wrote:
+> >> On Tue, 20 Jun 2023 13:47:07 PDT (-0700), ndesaulniers@google.com wrot=
+e:
+> >>> On Tue, Jun 20, 2023 at 4:41=E2=80=AFPM Palmer Dabbelt <palmer@dabbel=
+t.com> wrote:
+> >>>>
+> >>>> On Tue, 20 Jun 2023 13:32:32 PDT (-0700), ndesaulniers@google.com wr=
+ote:
+> >>>> > On Tue, Jun 20, 2023 at 4:13=E2=80=AFPM Conor Dooley <conor@kernel=
+=2Eorg> wrote:
+> >>>> >>
+> >>>> >> On Tue, Jun 20, 2023 at 04:05:55PM -0400, Nick Desaulniers wrote:
+> >>>> >> > On Mon, Jun 19, 2023 at 6:06=E2=80=AFPM Palmer Dabbelt <palmer@=
+dabbelt.com> wrote:
+> >>>> >> > > On Thu, 15 Jun 2023 06:54:33 PDT (-0700), Palmer Dabbelt wrot=
+e:
+> >>>> >> > > > On Wed, 14 Jun 2023 09:25:49 PDT (-0700), jszhang@kernel.or=
+g wrote:
+> >>>> >> > > >> On Wed, Jun 14, 2023 at 07:49:17AM -0700, Palmer Dabbelt w=
+rote:
+> >>>> >> > > >>> On Tue, 23 May 2023 09:54:58 PDT (-0700), jszhang@kernel.=
+org wrote:
+> >>>> >>
+> >>>> >> > > >> Commit 3b90b09af5be ("riscv: Fix orphan section warnings c=
+aused by
+> >>>> >> > > >> kernel/pi") touches vmlinux.lds.S, so to make the merge ea=
+sy, this
+> >>>> >> > > >> series is based on 6.4-rc2.
+> >>>> >> > > >
+> >>>> >> > > > Thanks.
+> >>>> >> > >
+> >>>> >> > > Sorry to be so slow here, but I think this is causing LLD to =
+hang on
+> >>>> >> > > allmodconfig.  I'm still getting to the bottom of it, there's=
+ a few
+> >>>> >> > > other things I have in flight still.
+> >>>> >> >
+> >>>> >> > Confirmed with v3 on mainline (linux-next is pretty red at the =
+moment).
+> >>>> >> > https://lore.kernel.org/linux-riscv/20230517082936.37563-1-falc=
+on@tinylab.org/
+> >>>> >>
+> >>>> >> Just FYI Nick, there's been some concurrent work here from differ=
+ent
+> >>>> >> people working on the same thing & the v3 you linked (from Zhangj=
+in) was
+> >>>> >> superseded by this v2 (from Jisheng).
+> >>>> >
+> >>>> > Ah! I've been testing the deprecated patch set, sorry I just looke=
+d on
+> >>>> > lore for "dead code" on riscv-linux and grabbed the first thread,
+> >>>> > without noticing the difference in authors or new version numbers =
+for
+> >>>> > distinct series. ok, nevermind my noise.  I'll follow up with the
+> >>>> > correct patch set, sorry!
+> >>>>
+> >>>> Ya, I hadn't even noticed the v3 because I pretty much only look at
+> >>>> patchwork these days.  Like we talked about in IRC, I'm going to go =
+test
+> >>>> the merge of this one and see what's up -- I've got it staged at
+> >>>> <https://git.kernel.org/pub/scm/linux/kernel/git/palmer/linux.git/co=
+mmit/?h=3Dfor-next&id=3D1bd2963b21758a773206a1cb67c93e7a8ae8a195>,
+> >>>> though that won't be a stable hash if it's actually broken...
+> >>>
+> >>> Ok, https://lore.kernel.org/linux-riscv/20230523165502.2592-1-jszhang=
+@kernel.org/
+> >>> built for me.  If you're seeing a hang, please let me know what
+> >>> version of LLD you're using and I'll build that tag from source to see
+> >>> if I can reproduce, then bisect if so.
+> >>>
+> >>> $ ARCH=3Driscv LLVM=3D1 /usr/bin/time -v make -j128 allmodconfig vmli=
+nux
+> >>> ...
+> >>>         Elapsed (wall clock) time (h:mm:ss or m:ss): 2:35.68
+> >>> ...
+> >>>
+> >>> Tested-by: Nick Desaulniers <ndesaulniers@google.com> # build
+> >>
+> >> OK, it triggered enough of a rebuild that it might take a bit for
+> >> anything to filter out.
+> >
+> > I'm on LLVM 16.0.2
+> >
+> >     $ git describe
+> >     llvmorg-16.0.2
+> >     $ git log | head -n1
+> >     commit 18ddebe1a1a9bde349441631365f0472e9693520
+> >
+> > that seems to hang for me -- or at least run for an hour without
+> > completing, so I assume it's hung.  I'm not wed to 16.0.2, it just
+> > happens to be the last time I bumped the toolchain.  I'm moving to
+> > 16.0.5 to see if that changes anything.
+>=20
+> That also takes at least an hour to link.  I tried running on LLVM trunk=
+=20
+> from last night
+>=20
+>     $ git log | head -n1
+>     commit 5e9173c43a9b97c8614e36d6f754317f731e71e9
+>=20
+> and that completed.  Just as a curiosity I tried to re-spin it to see=20
+> how long it takes, and it's been running for 23 minutes so far.
 
-Applied, thanks!
+After some misdirection through stupid user error, I have also
+reproduced this for an LLVM=3D1 build w/ llvmorg-16.0.0
+
+> So I'm no longer actually sure there's a hang, just something slow. =20
+> That's even more of a grey area, but I think it's sane to call a 1-hour=
+=20
+> link time a regression -- unless it's expected that this is just very=20
+> slow to link?
+
+I dunno, if it was only a thing for allyesconfig, then whatever - but
+it's gonna significantly increase build times for any large kernels if LLD
+is this much slower than LD. Regression in my book.
+
+I'm gonna go and experiment with mixed toolchain builds, I'll report
+back..
+
+Cheers,
+Conor.
+
+--qKbzBWp+WnU9QIpu
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYIAB0WIQRh246EGq/8RLhDjO14tDGHoIJi0gUCZJMoYAAKCRB4tDGHoIJi
+0mg6AQCXbfOkpJyN5FDZceZ0Lxa6tJ9PIM7gQzEkgSc5Th1vzQD9GZgS8XtOTMpx
+cUowVAiTXyuNmzDN/wfqsaMeltMiSQA=
+=1v8b
+-----END PGP SIGNATURE-----
+
+--qKbzBWp+WnU9QIpu--
