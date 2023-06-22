@@ -2,91 +2,98 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C595EEB64DA
-	for <linux-arch@archiver.kernel.org>; Thu, 22 Jun 2023 12:14:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 82A80EB64D8
+	for <linux-arch@archiver.kernel.org>; Thu, 22 Jun 2023 12:50:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230308AbjFVMO3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 22 Jun 2023 08:14:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34306 "EHLO
+        id S230098AbjFVMu0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 22 Jun 2023 08:50:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50086 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230281AbjFVMO3 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jun 2023 08:14:29 -0400
-Received: from gandalf.ozlabs.org (mail.ozlabs.org [IPv6:2404:9400:2221:ea00::3])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 252A7171C;
-        Thu, 22 Jun 2023 05:14:28 -0700 (PDT)
-Received: from authenticated.ozlabs.org (localhost [127.0.0.1])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-        (No client certificate requested)
-        by mail.ozlabs.org (Postfix) with ESMTPSA id 4QmznY1RHFz4x04;
-        Thu, 22 Jun 2023 22:14:25 +1000 (AEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ellerman.id.au;
-        s=201909; t=1687436066;
-        bh=VyK+T7wpYZieXhcDB/H+1KJ1YxNx6190VxkOIlmBktI=;
-        h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
-        b=hnaboYieOfnnuNB8OHVEabPqrovQFXHSe6l2zxpfBrXLYGFjlm8ZAWrxhhS7y1Vap
-         0LtUYWtUif9PeV4IJlza3hqmWjOAA6FDMPe82TRMsPXMHygXkmmy0nLi0PGTZogalO
-         cP9U+cgif/Co9lGKBZO64O/wkTk9rYnW1J+5KH6+xnoZK/A3PZuzsOa0GtIffF+K87
-         W/1TMd+p4WA6T31KCxfkPzYI0Qu7AOxq6j+d1yaoH8/0ZONecNmkI6LCOL+V3Bf/eG
-         kxGSgTH5KZQ+wXxPjI98JWHeAJnyudGZqhd6tx1eq7I/kwj3q3rDhPob6NCpGP5NEV
-         8nHc9uYWGeTrg==
-From:   Michael Ellerman <mpe@ellerman.id.au>
-To:     Thomas Gleixner <tglx@linutronix.de>,
-        Laurent Dufour <ldufour@linux.ibm.com>,
-        linux-kernel@vger.kernel.org
-Cc:     linux-arch@vger.kernel.org, x86@kernel.org,
-        linuxppc-dev@lists.ozlabs.org, npiggin@gmail.com,
-        christophe.leroy@csgroup.eu, dave.hansen@linux.intel.com,
-        mingo@redhat.com, bp@alien8.de
-Subject: Re: [PATCH 07/10] cpu/SMT: Allow enabling partial SMT states via sysfs
-In-Reply-To: <87legb7tdz.ffs@tglx>
-References: <20230615154635.13660-1-ldufour@linux.ibm.com>
- <20230615154635.13660-8-ldufour@linux.ibm.com> <87legb7tdz.ffs@tglx>
-Date:   Thu, 22 Jun 2023 22:14:24 +1000
-Message-ID: <87sfajofrz.fsf@mail.lhotse>
+        with ESMTP id S229437AbjFVMuZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jun 2023 08:50:25 -0400
+Received: from mail.loongson.cn (mail.loongson.cn [114.242.206.163])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 8ECD41BC5;
+        Thu, 22 Jun 2023 05:50:22 -0700 (PDT)
+Received: from loongson.cn (unknown [113.200.148.30])
+        by gateway (Coremail) with SMTP id _____8DxfceMQ5Rkv28AAA--.693S3;
+        Thu, 22 Jun 2023 20:50:20 +0800 (CST)
+Received: from [10.130.0.149] (unknown [113.200.148.30])
+        by localhost.localdomain (Coremail) with SMTP id AQAAf8CxWM2LQ5RkrxwCAA--.11455S3;
+        Thu, 22 Jun 2023 20:50:19 +0800 (CST)
+Subject: Re: [PATCH v2 1/2] asm-generic: Unify uapi bitsperlong.h for arm64,
+ riscv and loongarch
+To:     kernel test robot <lkp@intel.com>, Arnd Bergmann <arnd@arndb.de>
+References: <1687336748-4898-2-git-send-email-yangtiezhu@loongson.cn>
+ <202306220334.C80BpATp-lkp@intel.com>
+Cc:     llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
+        linux-arm-kernel@lists.infradead.org,
+        linux-riscv@lists.infradead.org, loongarch@lists.linux.dev,
+        linux-arch@vger.kernel.org, bpf@vger.kernel.org,
+        linux-perf-users@vger.kernel.org, linux-kselftest@vger.kernel.org,
+        linux-kernel@vger.kernel.org, loongson-kernel@lists.loongnix.cn
+From:   Tiezhu Yang <yangtiezhu@loongson.cn>
+Message-ID: <27295ba8-f57e-61c1-9cc4-f2207fd97ae0@loongson.cn>
+Date:   Thu, 22 Jun 2023 20:50:19 +0800
+User-Agent: Mozilla/5.0 (X11; Linux mips64; rv:45.0) Gecko/20100101
+ Thunderbird/45.4.0
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <202306220334.C80BpATp-lkp@intel.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+X-CM-TRANSID: AQAAf8CxWM2LQ5RkrxwCAA--.11455S3
+X-CM-SenderInfo: p1dqw3xlh2x3gn0dqz5rrqw2lrqou0/
+X-Coremail-Antispam: 1Uk129KBj9xXoWrtF1ktrWrtFWDtr1xCF13Jrc_yoW3Wrb_A3
+        4aywsrGr1S9Fyqqws8CwsaqFyDJayUC3sruwn5Jw4DGFWIkw48Jws3W3srJF4kKrZxtw13
+        ZasYqr9Yyw17KosvyTuYvTs0mTUanT9S1TB71UUUUUJqnTZGkaVYY2UrUUUUj1kv1TuYvT
+        s0mT0YCTnIWjqI5I8CrVACY4xI64kE6c02F40Ex7xfYxn0WfASr-VFAUDa7-sFnT9fnUUI
+        cSsGvfJTRUUUbqxYFVCjjxCrM7AC8VAFwI0_Jr0_Gr1l1xkIjI8I6I8E6xAIw20EY4v20x
+        vaj40_Wr0E3s1l1IIY67AEw4v_JrI_Jryl8cAvFVAK0II2c7xJM28CjxkF64kEwVA0rcxS
+        w2x7M28EF7xvwVC0I7IYx2IY67AKxVWUJVWUCwA2z4x0Y4vE2Ix0cI8IcVCY1x0267AKxV
+        W8JVWxJwA2z4x0Y4vEx4A2jsIE14v26r4UJVWxJr1l84ACjcxK6I8E87Iv6xkF7I0E14v2
+        6r4UJVWxJr1ln4kS14v26r1Y6r17M2AIxVAIcxkEcVAq07x20xvEncxIr21l57IF6xkI12
+        xvs2x26I8E6xACxx1l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj6xIIjxv20xvE14v26r1Y
+        6r17McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr0_Gr1lF7xvr2IY64vIr4
+        1lc7I2V7IY0VAS07AlzVAYIcxG8wCY1x0262kKe7AKxVWUAVWUtwCF04k20xvY0x0EwIxG
+        rwCFx2IqxVCFs4IE7xkEbVWUJVW8JwCFI7km07C267AKxVWUXVWUAwC20s026c02F40E14
+        v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E67AF67kF1VAFwI0_Jw0_GFylIxkG
+        c2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUJVWUCwCI42IY6xIIjxv20xvEc7CjxVAFwI
+        0_Jr0_Gr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1xMIIF0xvEx4A2jsIE14v26r1j6r4U
+        MIIF0xvEx4A2jsIEc7CjxVAFwI0_Jr0_GrUvcSsGvfC2KfnxnUUI43ZEXa7IU89iSPUUUU
+        U==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Thomas Gleixner <tglx@linutronix.de> writes:
-> On Thu, Jun 15 2023 at 17:46, Laurent Dufour wrote:
->>  
->> -	if (ctrlval != cpu_smt_control) {
->> +	orig_threads = cpu_smt_num_threads;
->> +	cpu_smt_num_threads = num_threads;
->> +
->> +	if (num_threads > orig_threads) {
->> +		ret = cpuhp_smt_enable();
->> +	} else if (num_threads < orig_threads) {
->> +		ret = cpuhp_smt_disable(ctrlval);
->> +	} else if (ctrlval != cpu_smt_control) {
->>  		switch (ctrlval) {
->>  		case CPU_SMT_ENABLED:
->>  			ret = cpuhp_smt_enable();
->
-> This switch() is still as pointless as in the previous version.
->
-> OFF -> ON, ON -> OFF, ON -> FORCE_OFF are covered by the num_threads
-> comparisons.
->
-> So the only case where (ctrlval != cpu_smt_control) is relevant is the
-> OFF -> FORCE_OFF transition because in that case the number of threads
-> is not changing.
->
->           force_off = ctrlval != cpu_smt_control && ctrval == CPU_SMT_FORCE_DISABLED;
->
-> 	  if (num_threads > orig_threads)
-> 		  ret = cpuhp_smt_enable();
-> 	  else if (num_threads < orig_threads || force_off)
-> 		  ret = cpuhp_smt_disable(ctrlval);
->
-> Should just work, no?
 
-Yes, I think so.
 
-I'll fold that in and do a respin of this series for 6.6 in the next
-week or two.
+On 06/22/2023 04:04 AM, kernel test robot wrote:
+> Hi Tiezhu,
+>
+> kernel test robot noticed the following build warnings:
+>
 
-cheers
+...
+
+>    In file included from include/asm-generic/bitsperlong.h:5:
+>>> include/uapi/asm-generic/bitsperlong.h:13:9: warning: '__BITS_PER_LONG' macro redefined [-Wmacro-redefined]
+
+Oh, thanks for the report, I am sorry.
+
+In order to silence the build warning, it should check the definition
+of __BITS_PER_LONG first at the beginning of bitsperlong.h, like this:
+
+#ifndef __BITS_PER_LONG
+
+#if defined(__CHAR_BIT__) && defined(__SIZEOF_LONG__)
+#define __BITS_PER_LONG (__CHAR_BIT__ * __SIZEOF_LONG__)
+#else
+#define __BITS_PER_LONG 32
+#endif
+
+#endif
+
+I will test and then send v3 later.
+
+Thanks,
+Tiezhu
+
