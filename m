@@ -2,120 +2,153 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 323B6EB64DA
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jun 2023 10:06:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 71C7CEB64DC
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jun 2023 10:12:07 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230265AbjF1KGw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Jun 2023 06:06:52 -0400
-Received: from wout5-smtp.messagingengine.com ([64.147.123.21]:53607 "EHLO
-        wout5-smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-        by vger.kernel.org with ESMTP id S235289AbjF1KCZ (ORCPT
+        id S231220AbjF1KMF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Jun 2023 06:12:05 -0400
+Received: from mx0b-001b2d01.pphosted.com ([148.163.158.5]:55748 "EHLO
+        mx0b-001b2d01.pphosted.com" rhost-flags-OK-OK-OK-OK)
+        by vger.kernel.org with ESMTP id S230458AbjF1KGu (ORCPT
         <rfc822;linux-arch@vger.kernel.org>);
-        Wed, 28 Jun 2023 06:02:25 -0400
-Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
-        by mailout.west.internal (Postfix) with ESMTP id CBDC43200065;
-        Wed, 28 Jun 2023 06:02:21 -0400 (EDT)
-Received: from imap51 ([10.202.2.101])
-  by compute6.internal (MEProxy); Wed, 28 Jun 2023 06:02:23 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-        :cc:content-type:content-type:date:date:from:from:in-reply-to
-        :in-reply-to:message-id:mime-version:references:reply-to:sender
-        :subject:subject:to:to; s=fm1; t=1687946541; x=1688032941; bh=jr
-        26aMNCJW0isrXg6UfE/c6yGNQaJhjRzD6v2gyhJiU=; b=go17TU7pTv/88ZkN9V
-        azy1f3TEVC4eh2cFjnlQc2THDkHBS+hRIb/NP5smWX8p6PlBu7xeOqAwlNdA81xY
-        TUkBeDN7zTDh3o36eA21ZlUjbEU5candTuxAFq3YHskdZd/8uzhKvCwlBRFaGmdd
-        aw1DR0kZe/ksoI20WFqSBO+gM8dqlB2IUHdEh7hlP+DT2hdznnJW574L5g0d9Vwg
-        D5GtZjfLSEZm7snNwyXu0b74sIjEKF42ZMc7wLhJUDcHtrRk1pCpLasCCyCNEkNH
-        gV3ANc4YxQxjgWGLghO3x/mfFHkqhgIEr6KQRrJWV7koAkLG/LAXcn4K1lzvyzUI
-        urqw==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-        messagingengine.com; h=cc:cc:content-type:content-type:date:date
-        :feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
-        :message-id:mime-version:references:reply-to:sender:subject
-        :subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
-        :x-sasl-enc; s=fm2; t=1687946541; x=1688032941; bh=jr26aMNCJW0is
-        rXg6UfE/c6yGNQaJhjRzD6v2gyhJiU=; b=gu+CZY1l55I1TAbIiJdtfb7gL+Up+
-        PXTJtGjBdA7pyur7SHIEFhf45EIjdwgUuG47YxZDuzXjF4zqkDy4OiEdtckEj+KR
-        hT3c4gY9Y8Zbs1P5SY8EHl0lfEF5tOTz1ibyRcHsSCjras6I5fLzCyyxANm9O9rU
-        FVjvcx80F96DvBDGL+up2UfzkUD00xBJwSuVlTnkAORCl20tNBC0S4IY68yWazFd
-        sRTsJIk0gTG0ZZ6ABFprGWXtT33+zqf8wgcxS5IQc5dg10rRJNJvCtnze0zHHTMT
-        BP1xXByoUkKMsH9aQ8m1uEdksBkSYB7QcQVWzSEgMwfeR+G/jQ51lOkLA==
-X-ME-Sender: <xms:LAWcZED4fNZxTlKrdjBmHxJP-sckGwx35hV9UkqQISEoQIfhRmo-JQ>
-    <xme:LAWcZGhPNT2BfytOOn8bcbgj-iEhpLaDXkzpKrTalDsNK6BfgCbkrCcgQAl4ySoEj
-    TpHsdXpmtJtJ4PC5BI>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedviedrtddvgddvudcutefuodetggdotefrodftvf
-    curfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfghnecu
-    uegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenuc
-    fjughrpefofgggkfgjfhffhffvvefutgesthdtredtreertdenucfhrhhomhepfdetrhhn
-    ugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrghtth
-    gvrhhnpeevhfffledtgeehfeffhfdtgedvheejtdfgkeeuvefgudffteettdekkeeufeeh
-    udenucffohhmrghinhepkhgvrhhnvghlrdhorhhgnecuvehluhhsthgvrhfuihiivgeptd
-    enucfrrghrrghmpehmrghilhhfrhhomheprghrnhgusegrrhhnuggsrdguvg
-X-ME-Proxy: <xmx:LAWcZHmXSlCpeeyNoZE7_0LnoPbJ74fdoPhH1-tEgZSeUBVdS7LK5g>
-    <xmx:LAWcZKygSArf1RXeJy6o-saV1OnxLw5eXJf69NNMxU3YltpCM4robQ>
-    <xmx:LAWcZJS1GiS98HbAAxa5aqyjTH6zrMIgmdtULLLD7yJ2KFbTG__paQ>
-    <xmx:LQWcZIAyk7e_edqPJYxvNmmrL7ukerO_p8vou2sRrc2B0RKlJg_Qaw>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-        id 2F7CEB6008D; Wed, 28 Jun 2023 06:02:20 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.9.0-alpha0-499-gf27bbf33e2-fm-20230619.001-gf27bbf33
-Mime-Version: 1.0
-Message-Id: <afe5194e-fd49-4cc9-9a8c-e7671c55d664@app.fastmail.com>
-In-Reply-To: <d9ffc44c-c4ae-4f01-bc0b-ee5359a24a0a@app.fastmail.com>
-References: <20230417125651.25126-18-tzimmermann@suse.de>
- <c525adc9-6623-4660-8718-e0c9311563b8@roeck-us.net>
- <55130a50-d129-4336-99ce-3be4229b1c7d@app.fastmail.com>
- <d4156e51-102f-36b4-e42c-938268b4b608@roeck-us.net>
- <d9ffc44c-c4ae-4f01-bc0b-ee5359a24a0a@app.fastmail.com>
-Date:   Wed, 28 Jun 2023 12:01:58 +0200
-From:   "Arnd Bergmann" <arnd@arndb.de>
-To:     "Guenter Roeck" <linux@roeck-us.net>,
-        "Thomas Zimmermann" <tzimmermann@suse.de>
-Cc:     "Daniel Vetter" <daniel.vetter@ffwll.ch>,
-        "Helge Deller" <deller@gmx.de>,
-        "Javier Martinez Canillas" <javierm@redhat.com>,
-        "Greg Kroah-Hartman" <gregkh@linuxfoundation.org>,
-        Linux-Arch <linux-arch@vger.kernel.org>,
-        linux-fbdev@vger.kernel.org, linux-ia64@vger.kernel.org,
-        linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org,
-        x86@kernel.org, linux-kernel@vger.kernel.org,
-        dri-devel@lists.freedesktop.org, linux-mips@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, loongarch@lists.linux.dev,
-        sparclinux@vger.kernel.org, linux-snps-arc@lists.infradead.org,
-        linuxppc-dev@lists.ozlabs.org,
-        "David S . Miller" <davem@davemloft.net>,
-        linux-arm-kernel@lists.infradead.org,
-        "Mark Rutland" <mark.rutland@arm.com>,
-        "Peter Zijlstra (Intel)" <peterz@infradead.org>,
-        "KKees Cook" <keescook@chromium.org>,
-        "ees Cook" <keescook@chromium.org>
-Subject: Re: [v3,17/19] arch/sparc: Implement fb_is_primary_device() in source file
-Content-Type: text/plain
+        Wed, 28 Jun 2023 06:06:50 -0400
+Received: from pps.filterd (m0360072.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 35SA340d000680;
+        Wed, 28 Jun 2023 10:06:37 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
+ : date : message-id : in-reply-to : references : mime-version :
+ content-transfer-encoding; s=pp1;
+ bh=tBJniILrv67rMmqL7C9oGbfvlECwbA5Rr3vj+TgxJL4=;
+ b=HWRJg2u1lwxVdlG6NU5q/mBljBJTGNCZEQJJJakJg9JxWy3KBzrScNXcxfWzk+0kAtzk
+ LbhlNO3LnBtjUZtxIP+BHd1QeL8wYGRDt7EzVulZMZ2R4ZHccQgVh2V1p+41SiSaQM5l
+ NQakTyYiaeEJ+7W+OJQiF5mkayoGWHW6HufDPWTm19hIaW6hSA0nOtDSG+sp6IWGQB3y
+ OVCKXL/ygYPe7eDt/Vsdhl4f0il0mmU4oaB9Rb6ahPC7FgtsuwaUH87V7JpCD6Xv681i
+ ygTJ4gMT5fPkhueORzoA7mKZScV58RpYVFlUqMiatwAbL/Tsag9SSGrrtQ23n7iA5EM6 hg== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rgjs0r4kt-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Wed, 28 Jun 2023 10:06:35 +0000
+Received: from m0360072.ppops.net (m0360072.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 35SA3HJg001801;
+        Wed, 28 Jun 2023 10:06:24 GMT
+Received: from ppma06ams.nl.ibm.com (66.31.33a9.ip4.static.sl-reverse.com [169.51.49.102])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rgjs0r4b3-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Wed, 28 Jun 2023 10:06:24 +0000
+Received: from pps.filterd (ppma06ams.nl.ibm.com [127.0.0.1])
+        by ppma06ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 35RNvb77026359;
+        Wed, 28 Jun 2023 10:06:06 GMT
+Received: from smtprelay03.fra02v.mail.ibm.com ([9.218.2.224])
+        by ppma06ams.nl.ibm.com (PPS) with ESMTPS id 3rdqre2faf-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Wed, 28 Jun 2023 10:06:06 +0000
+Received: from smtpav07.fra02v.mail.ibm.com (smtpav07.fra02v.mail.ibm.com [10.20.54.106])
+        by smtprelay03.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 35SA64nx20447786
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Wed, 28 Jun 2023 10:06:04 GMT
+Received: from smtpav07.fra02v.mail.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id F17302005A;
+        Wed, 28 Jun 2023 10:06:03 +0000 (GMT)
+Received: from smtpav07.fra02v.mail.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 2608720067;
+        Wed, 28 Jun 2023 10:06:03 +0000 (GMT)
+Received: from localhost.localdomain (unknown [9.171.41.43])
+        by smtpav07.fra02v.mail.ibm.com (Postfix) with ESMTP;
+        Wed, 28 Jun 2023 10:06:03 +0000 (GMT)
+From:   Laurent Dufour <ldufour@linux.ibm.com>
+To:     linuxppc-dev@lists.ozlabs.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
+        tglx@linutronix.de, dave.hansen@linux.intel.com, mingo@redhat.com,
+        bp@alien8.de
+Subject: [PATCH v2 4/9] cpu/SMT: Remove topology_smt_supported()
+Date:   Wed, 28 Jun 2023 12:05:53 +0200
+Message-ID: <20230628100558.43482-5-ldufour@linux.ibm.com>
+X-Mailer: git-send-email 2.41.0
+In-Reply-To: <20230628100558.43482-1-ldufour@linux.ibm.com>
+References: <20230628100558.43482-1-ldufour@linux.ibm.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-ORIG-GUID: hYi_HeAVfqzMW4iPjLnc1a-Hrswq_G9v
+X-Proofpoint-GUID: O6HFOq1oVYm6U4lM_DruPdAMcNVeWxvm
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.591,FMLib:17.11.176.26
+ definitions=2023-06-28_06,2023-06-27_01,2023-05-22_02
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 lowpriorityscore=0
+ impostorscore=0 suspectscore=0 priorityscore=1501 malwarescore=0
+ adultscore=0 spamscore=0 clxscore=1015 bulkscore=0 mlxscore=0
+ mlxlogscore=999 phishscore=0 classifier=spam adjust=0 reason=mlx
+ scancount=1 engine=8.12.0-2305260000 definitions=main-2306280088
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Sat, Jun 24, 2023, at 16:21, Arnd Bergmann wrote:
-> On Sat, Jun 24, 2023, at 15:26, Guenter Roeck wrote:
->> On 6/24/23 02:27, Arnd Bergmann wrote:
->>> On Sat, Jun 24, 2023, at 03:55, Guenter Roeck wrote:
->>>>
->>>> ERROR: modpost: "__xchg_called_with_bad_pointer" [lib/atomic64_test.ko]
->>>> undefined!
->>> 
->>> These all look like old bugs that would be trivially fixed if
->>> anyone cared about sparc.
->>> 
->>
->> Odd argument, given that this _is_ a sparc patch. Those may be old
->> bugs, but at least in 6.4-rc7 sparc64:allmodconfig does at least compile.
->
-> I think we clearly want to fix the fbdev regression you found, and
-> maybe bisect the atomic64_test as well to see if that was caused by
-> a recent patch to get it into a working state again.
+Since the maximum number of threads is now passed to
+cpu_smt_set_num_threads(), checking that value is enough to know if SMT is
+supported.
 
-I have bisected this as well now and sent a trivial fix, see
-https://lore.kernel.org/lkml/20230628094938.2318171-1-arnd@kernel.org/
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Suggested-by: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Laurent Dufour <ldufour@linux.ibm.com>
+---
+ arch/x86/include/asm/topology.h | 2 --
+ arch/x86/kernel/smpboot.c       | 8 --------
+ kernel/cpu.c                    | 2 +-
+ 3 files changed, 1 insertion(+), 11 deletions(-)
 
-      Arnd
+diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
+index 66927a59e822..87358a8fe843 100644
+--- a/arch/x86/include/asm/topology.h
++++ b/arch/x86/include/asm/topology.h
+@@ -143,7 +143,6 @@ int topology_update_die_map(unsigned int dieid, unsigned int cpu);
+ int topology_phys_to_logical_pkg(unsigned int pkg);
+ int topology_phys_to_logical_die(unsigned int die, unsigned int cpu);
+ bool topology_is_primary_thread(unsigned int cpu);
+-bool topology_smt_supported(void);
+ #else
+ #define topology_max_packages()			(1)
+ static inline int
+@@ -156,7 +155,6 @@ static inline int topology_phys_to_logical_die(unsigned int die,
+ static inline int topology_max_die_per_package(void) { return 1; }
+ static inline int topology_max_smt_threads(void) { return 1; }
+ static inline bool topology_is_primary_thread(unsigned int cpu) { return true; }
+-static inline bool topology_smt_supported(void) { return false; }
+ #endif
+ 
+ static inline void arch_fix_phys_package_id(int num, u32 slot)
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index 352f0ce1ece4..3052c171668d 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -278,14 +278,6 @@ bool topology_is_primary_thread(unsigned int cpu)
+ 	return apic_id_is_primary_thread(per_cpu(x86_cpu_to_apicid, cpu));
+ }
+ 
+-/**
+- * topology_smt_supported - Check whether SMT is supported by the CPUs
+- */
+-bool topology_smt_supported(void)
+-{
+-	return smp_num_siblings > 1;
+-}
+-
+ /**
+  * topology_phys_to_logical_pkg - Map a physical package id to a logical
+  *
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index edca8b7bd400..e354af92b2b8 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -442,7 +442,7 @@ void __init cpu_smt_set_num_threads(unsigned int num_threads,
+ {
+ 	WARN_ON(!num_threads || (num_threads > max_threads));
+ 
+-	if (!topology_smt_supported())
++	if (max_threads == 1)
+ 		cpu_smt_control = CPU_SMT_NOT_SUPPORTED;
+ 
+ 	cpu_smt_max_threads = max_threads;
+-- 
+2.41.0
+
