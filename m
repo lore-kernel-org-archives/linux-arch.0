@@ -2,67 +2,76 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D45C8EB64DA
-	for <linux-arch@archiver.kernel.org>; Wed, 28 Jun 2023 08:12:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C9A67EB64D7
+	for <linux-arch@archiver.kernel.org>; Wed, 28 Jun 2023 09:27:37 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233748AbjF1IMb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 28 Jun 2023 04:12:31 -0400
-Received: from dfw.source.kernel.org ([139.178.84.217]:51718 "EHLO
-        dfw.source.kernel.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233751AbjF1IJv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2023 04:09:51 -0400
+        id S232735AbjF1J1e (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 28 Jun 2023 05:27:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47976 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S237740AbjF1JMW (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jun 2023 05:12:22 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6E25C1FED;
+        Wed, 28 Jun 2023 02:12:21 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id A58C8612EC;
-        Wed, 28 Jun 2023 05:40:16 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 189D7C433C0;
-        Wed, 28 Jun 2023 05:40:16 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id EDBEC61272;
+        Wed, 28 Jun 2023 09:12:20 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 98CBDC433C0;
+        Wed, 28 Jun 2023 09:12:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1687930816;
-        bh=DndRpF+hdE1dFRA04LFJEcmBY3VAr0k7bSTXF94LsmM=;
-        h=Subject:From:In-Reply-To:References:Date:To:Cc:From;
-        b=js7jriuJoICr/LKxWUVqR0plwSQASa2WhMv7jBsPTtubL3AnoFVKs3TtEFWfuSEU+
-         uIGHFe6Ny6uvRY9TQ8l9I1WwuIj3K+Se+cnR0ABPgJ/0LLj10HwxirCa0oPqHthIWS
-         N1/JnmVZxKYjA3U0C9N56aXiNWgIzEG7hzbeBlVOv/cW9ERbREuEyToCiDLNWT5J/Z
-         yF2hcmFJ1D9QeJd26f5y5qBfN70avGmBptxDC3Kybp35VPdsVijsegcHP4ckX8+2gP
-         /7g6cJ/KtR47U9YAEIkjnizJa0ICq59Qh/XxZKGJQMgEGi9t8bwT0CWKATRRKr9HNl
-         glohx0Hw0E2Fg==
-Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
-        by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id 05292C39563;
-        Wed, 28 Jun 2023 05:40:16 +0000 (UTC)
-Subject: Re: [GIT PULL] Move arm64 documentation under Documentation/arch
-From:   pr-tracker-bot@kernel.org
-In-Reply-To: <871qhwemuu.fsf@meer.lwn.net>
-References: <871qhwemuu.fsf@meer.lwn.net>
-X-PR-Tracked-List-Id: <linux-arm-kernel.lists.infradead.org>
-X-PR-Tracked-Message-Id: <871qhwemuu.fsf@meer.lwn.net>
-X-PR-Tracked-Remote: git://git.lwn.net/linux.git tags/docs-arm64-move
-X-PR-Tracked-Commit-Id: f40f97aaf7fa6222f4ec073c24fb14f04ffb6f80
-X-PR-Merge-Tree: torvalds/linux.git
-X-PR-Merge-Refname: refs/heads/master
-X-PR-Merge-Commit-Id: 6aeadf7896bff4ca230702daba8788455e6b866e
-Message-Id: <168793081600.877.1311315093424436546.pr-tracker-bot@kernel.org>
-Date:   Wed, 28 Jun 2023 05:40:16 +0000
-To:     Jonathan Corbet <corbet@lwn.net>
-Cc:     Linus Torvalds <torvalds@linux-foundation.org>,
-        linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+        s=k20201202; t=1687943540;
+        bh=4+LWuCHhCgLBPx3TQt9FM+S9EBnOCqZEpjrJRHY4slg=;
+        h=From:To:Cc:Subject:Date:From;
+        b=tEFODtSPH9PwiiyWel/MqR3Vzv7WJ+Q5hdPMZOE5rk7JHo0dmjMiWCJ3fD/rindP7
+         laSw4+QNVvtyArW+7XMcYXsP4eeI0/NYxQQMseeQxRlgpWARua881xj65+f/uJbjhz
+         45w9SypuKhJeEqOKycFqmczZbUVGO8x+mkK21HQZqmX1xHxnIzOWwiw9EFoUwveugr
+         o3HyCoZOCFma5KOz2/g7d6kxzG8ptoXNAGbMStOCprEngfPpRxhUIM5hnvc6/w6Ao2
+         dPDZsqtsuAo75kd9lMATaxw9CsHPsy9aB2yrXu8MF5ncYvJDC8NvYuHG46blzHg7DH
+         SP/E+6MYRdudQ==
+From:   guoren@kernel.org
+To:     arnd@arndb.de, guoren@kernel.org, palmer@rivosinc.com
+Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>
+Subject: [PATCH] riscv: sigcontext: Correct the comment of sigreturn
+Date:   Wed, 28 Jun 2023 05:12:13 -0400
+Message-Id: <20230628091213.2908149-1-guoren@kernel.org>
+X-Mailer: git-send-email 2.36.1
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The pull request you sent on Tue, 27 Jun 2023 13:17:29 -0600:
+From: Guo Ren <guoren@linux.alibaba.com>
 
-> git://git.lwn.net/linux.git tags/docs-arm64-move
+The real-time signals enlarged the sigset_t type, and most architectures
+have changed to using rt_sigreturn as the only way. The riscv is one of
+them, and there is no sys_sigreturn in it. Only some old architecture
+preserved sys_sigreturn as part of the historical burden.
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/6aeadf7896bff4ca230702daba8788455e6b866e
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@kernel.org>
+---
+ arch/riscv/include/uapi/asm/sigcontext.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Thank you!
-
+diff --git a/arch/riscv/include/uapi/asm/sigcontext.h b/arch/riscv/include/uapi/asm/sigcontext.h
+index 8b8a8541673a..ca5b5c8391a0 100644
+--- a/arch/riscv/include/uapi/asm/sigcontext.h
++++ b/arch/riscv/include/uapi/asm/sigcontext.h
+@@ -23,7 +23,7 @@ struct __sc_riscv_v_state {
+  * Signal context structure
+  *
+  * This contains the context saved before a signal handler is invoked;
+- * it is restored by sys_sigreturn / sys_rt_sigreturn.
++ * it is restored by sys_rt_sigreturn.
+  */
+ struct sigcontext {
+ 	struct user_regs_struct sc_regs;
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/prtracker.html
+2.36.1
+
