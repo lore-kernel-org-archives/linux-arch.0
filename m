@@ -2,158 +2,167 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2DA24C001B1
-	for <linux-arch@archiver.kernel.org>; Thu, 29 Jun 2023 12:04:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DA463C001B1
+	for <linux-arch@archiver.kernel.org>; Thu, 29 Jun 2023 12:19:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229469AbjF2MEm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 29 Jun 2023 08:04:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46822 "EHLO
+        id S232102AbjF2MT6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 29 Jun 2023 08:19:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52218 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230198AbjF2MEl (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2023 08:04:41 -0400
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E65AA2D71;
-        Thu, 29 Jun 2023 05:04:39 -0700 (PDT)
-Received: from pps.filterd (m0360083.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 35TBlb6h014110;
-        Thu, 29 Jun 2023 12:04:14 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=message-id : date :
- mime-version : subject : to : cc : references : from : in-reply-to :
- content-type : content-transfer-encoding; s=pp1;
- bh=FFcWFhPXK4s5EhufV5iP50/C3C+p/BQChJ9YUO6Wogs=;
- b=UNx7oT3DvlVOz5pk0UY8ZUpqPKoFDq2aQ2IEiLqdDzzbU88NCWYMTrXnxeR8wZT4+7aY
- oCCoMwdpI6hdRAlbBAjVyZt2nUfK4D4qoscePARhmUZWDb/Klm7VezQhLdj0lJ448bk3
- XIl8dvniU9fHssKeXijLtp+KcPUNkWI/E1pC6LpGz4Wgt3YDq47xbGLvpriAT3u7HvqA
- G3lgfvriY6mWun8GxVKvlv/XHflxW1nXadnFB9mPY28zJs6RiyS2bMe6ZEeKJI7WkmxY
- IvrjGI/T/xy109Hf8o9kzgZHACMWYQz49vfC8GE7p9w1RjzLjlsAvdk4Fcz0uB5nl/AC xg== 
-Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rh9d28bk3-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 29 Jun 2023 12:04:13 +0000
-Received: from m0360083.ppops.net (m0360083.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 35TC0k2k030829;
-        Thu, 29 Jun 2023 12:04:12 GMT
-Received: from ppma03fra.de.ibm.com (6b.4a.5195.ip4.static.sl-reverse.com [149.81.74.107])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rh9d28bhn-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 29 Jun 2023 12:04:12 +0000
-Received: from pps.filterd (ppma03fra.de.ibm.com [127.0.0.1])
-        by ppma03fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 35TBYLAi011422;
-        Thu, 29 Jun 2023 12:04:09 GMT
-Received: from smtprelay05.fra02v.mail.ibm.com ([9.218.2.225])
-        by ppma03fra.de.ibm.com (PPS) with ESMTPS id 3rdr452ge1-1
-        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Thu, 29 Jun 2023 12:04:09 +0000
-Received: from smtpav05.fra02v.mail.ibm.com (smtpav05.fra02v.mail.ibm.com [10.20.54.104])
-        by smtprelay05.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 35TC47JX19268186
-        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Thu, 29 Jun 2023 12:04:07 GMT
-Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id 3781C20043;
-        Thu, 29 Jun 2023 12:04:07 +0000 (GMT)
-Received: from smtpav05.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id C468320040;
-        Thu, 29 Jun 2023 12:04:06 +0000 (GMT)
-Received: from [9.144.158.239] (unknown [9.144.158.239])
-        by smtpav05.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Thu, 29 Jun 2023 12:04:06 +0000 (GMT)
-Message-ID: <91dc3a14-4f1b-ebff-69d7-ff15469b5dcb@linux.ibm.com>
-Date:   Thu, 29 Jun 2023 14:04:06 +0200
+        with ESMTP id S231208AbjF2MT5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jun 2023 08:19:57 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.220.29])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AA03E1FD8;
+        Thu, 29 Jun 2023 05:19:56 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id 4573E1F8D6;
+        Thu, 29 Jun 2023 12:19:55 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+        t=1688041195; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
+        bh=nwKCg0ASpMSj/N7nk6+LAWl9eqN5SgDZ9SSsI3CKIes=;
+        b=ifsv+rsuemSFYPhJ/STIdTvx6x75qUEhLLGZ2g9AvONK3jL91ZNzeWNAtZraZVcGWThcHM
+        EfQbM+qs5azyCMPqS9sZhBhwKPyBWCHJQhLVHCTMFRSDdi3SXNdEiGVeBJdlRqG6pE2rO7
+        z3oGS2FeItnucroHvhtx1EF9mKdmXIA=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+        s=susede2_ed25519; t=1688041195;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:  content-transfer-encoding:content-transfer-encoding;
+        bh=nwKCg0ASpMSj/N7nk6+LAWl9eqN5SgDZ9SSsI3CKIes=;
+        b=E6n/U6MQ4f+3rPbM2UsNu1qwtOXOlMais+WpB4FpCxfnJZvfgaxmYOknSshObU0+YcztfQ
+        wODdqbuTw1DsqWBw==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id CCBF713905;
+        Thu, 29 Jun 2023 12:19:54 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id 1lzwMOp2nWRlVAAAMHmgww
+        (envelope-from <tzimmermann@suse.de>); Thu, 29 Jun 2023 12:19:54 +0000
+From:   Thomas Zimmermann <tzimmermann@suse.de>
+To:     arnd@arndb.de, deller@gmx.de, daniel@ffwll.ch, airlied@gmail.com
+Cc:     linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, linux-efi@vger.kernel.org,
+        linux-csky@vger.kernel.org, linux-hexagon@vger.kernel.org,
+        linux-ia64@vger.kernel.org, loongarch@lists.linux.dev,
+        linux-mips@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-riscv@lists.infradead.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org, dri-devel@lists.freedesktop.org,
+        linux-hyperv@vger.kernel.org, linux-fbdev@vger.kernel.org,
+        linux-staging@lists.linux.dev, linux-arch@vger.kernel.org,
+        Thomas Zimmermann <tzimmermann@suse.de>
+Subject: [PATCH 00/12] arch,fbdev: Move screen_info into arch/
+Date:   Thu, 29 Jun 2023 13:45:39 +0200
+Message-ID: <20230629121952.10559-1-tzimmermann@suse.de>
+X-Mailer: git-send-email 2.41.0
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.12.0
-Subject: Re: [PATCH v2 0/9] Introduce SMT level and add PowerPC support
-Content-Language: fr
-To:     Michael Ellerman <mpe@ellerman.id.au>,
-        Sachin Sant <sachinp@linux.ibm.com>
-Cc:     linuxppc-dev <linuxppc-dev@lists.ozlabs.org>,
-        linux-arch@vger.kernel.org, dave.hansen@linux.intel.com,
-        open list <linux-kernel@vger.kernel.org>,
-        Ingo Molnar <mingo@redhat.com>, bp@alien8.de,
-        npiggin@gmail.com, tglx@linutronix.de
-References: <20230628100558.43482-1-ldufour@linux.ibm.com>
- <88E208A6-F4E0-4DE9-8752-C9652B978BC6@linux.ibm.com>
- <87edluh6ce.fsf@mail.lhotse>
-From:   Laurent Dufour <ldufour@linux.ibm.com>
-In-Reply-To: <87edluh6ce.fsf@mail.lhotse>
-Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-ORIG-GUID: 0UOBMfegDE_I71F22zNx5oVM0tK1OamE
-X-Proofpoint-GUID: UpmLjj2GgeXEOoGf8Ebdt0bsAN_eXqAi
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.591,FMLib:17.11.176.26
- definitions=2023-06-29_03,2023-06-27_01,2023-05-22_02
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 impostorscore=0
- priorityscore=1501 mlxscore=0 spamscore=0 bulkscore=0 clxscore=1015
- adultscore=0 lowpriorityscore=0 mlxlogscore=999 suspectscore=0
- malwarescore=0 phishscore=0 classifier=spam adjust=0 reason=mlx
- scancount=1 engine=8.12.0-2305260000 definitions=main-2306290108
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+The variables screen_info and edid_info provide information about
+the system's screen, and possibly EDID data of the connected display.
+Both are defined and set by architecture code. But both variables are
+declared in non-arch header files. Dependencies are at bease loosely
+tracked. To resolve this, move the global state screen_info and its
+companion edid_info into arch/. Only declare them on architectures
+that define them. List dependencies on the variables in the Kconfig
+files. Also clean up the callers.
+
+Patch 1 to 4 resolve a number of unnecessary include statements of
+<linux/screen_info.h>. The header should only be included in source
+files that access struct screen_info.
+
+Patches 5 to 7 move the declaration of screen_info and edid_info to
+<asm-generic/screen_info.h>. Architectures that provide either set
+a Kconfig token to enable them.
+
+Patches 8 to 9 make users of screen_info depend on the architecture's
+feature.
+
+Finally, patches 10 to 12 rework fbdev's handling of firmware EDID
+data to make use of existing helpers and the refactored edid_info.
+
+Tested on x86-64. Built for a variety of platforms.
+
+Future directions: with the patchset in place, it will become possible
+to provide screen_info and edid_info only if there are users. Some
+architectures do this by testing for CONFIG_VT, CONFIG_DUMMY_CONSOLE,
+etc. A more uniform approach would be nice. We should also attempt
+to minimize access to the global screen_info as much as possible. To
+do so, some drivers, such as efifb and vesafb, would require an update.
+The firmware's EDID data could possibly made available outside of fbdev.
+For example, the simpledrm and ofdrm drivers could provide such data
+to userspace compositors.
+
+Thomas Zimmermann (12):
+  efi: Do not include <linux/screen_info.h> from EFI header
+  fbdev/sm712fb: Do not include <linux/screen_info.h>
+  sysfb: Do not include <linux/screen_info.h> from sysfb header
+  staging/sm750fb: Do not include <linux/screen_info.h>
+  arch: Remove trailing whitespaces
+  arch: Declare screen_info in <asm/screen_info.h>
+  arch/x86: Declare edid_info in <asm/screen_info.h>
+  drivers/firmware: Remove trailing whitespaces
+  drivers: Add dependencies on CONFIG_ARCH_HAS_SCREEN_INFO
+  fbdev/core: Use fb_is_primary_device() in fb_firmware_edid()
+  fbdev/core: Protect edid_info with CONFIG_ARCH_HAS_EDID_INFO
+  fbdev/core: Define empty fb_firmware_edid() in <linux/fb.h>
+
+ arch/Kconfig                                  | 12 +++++++
+ arch/alpha/Kconfig                            |  1 +
+ arch/arm/Kconfig                              |  1 +
+ arch/arm/kernel/efi.c                         |  2 ++
+ arch/arm64/Kconfig                            |  1 +
+ arch/arm64/kernel/efi.c                       |  1 +
+ arch/csky/Kconfig                             |  1 +
+ arch/hexagon/Kconfig                          |  1 +
+ arch/ia64/Kconfig                             |  5 +--
+ arch/loongarch/Kconfig                        |  1 +
+ arch/mips/Kconfig                             |  1 +
+ arch/nios2/Kconfig                            |  1 +
+ arch/powerpc/Kconfig                          |  1 +
+ arch/riscv/Kconfig                            |  1 +
+ arch/sh/Kconfig                               |  7 ++--
+ arch/sparc/Kconfig                            |  1 +
+ arch/x86/Kconfig                              |  2 ++
+ arch/xtensa/Kconfig                           |  1 +
+ drivers/firmware/Kconfig                      |  3 +-
+ drivers/firmware/efi/Kconfig                  |  1 +
+ drivers/firmware/efi/libstub/efi-stub-entry.c |  2 ++
+ drivers/firmware/efi/libstub/screen_info.c    |  2 ++
+ drivers/gpu/drm/Kconfig                       |  1 +
+ drivers/hv/Kconfig                            |  1 +
+ drivers/staging/sm750fb/sm750.c               |  1 -
+ drivers/staging/sm750fb/sm750_accel.c         |  1 -
+ drivers/staging/sm750fb/sm750_cursor.c        |  1 -
+ drivers/staging/sm750fb/sm750_hw.c            |  1 -
+ drivers/video/console/Kconfig                 |  2 ++
+ drivers/video/fbdev/Kconfig                   |  4 +++
+ drivers/video/fbdev/core/fbmon.c              | 34 ++++++-------------
+ drivers/video/fbdev/i810/i810-i2c.c           |  2 +-
+ drivers/video/fbdev/intelfb/intelfbdrv.c      |  2 +-
+ drivers/video/fbdev/nvidia/nv_i2c.c           |  2 +-
+ drivers/video/fbdev/savage/savagefb-i2c.c     |  2 +-
+ drivers/video/fbdev/sm712fb.c                 |  9 +++--
+ include/asm-generic/Kbuild                    |  1 +
+ include/asm-generic/screen_info.h             | 18 ++++++++++
+ include/linux/efi.h                           |  3 +-
+ include/linux/fb.h                            | 10 +++++-
+ include/linux/screen_info.h                   |  2 +-
+ include/linux/sysfb.h                         |  3 +-
+ include/video/edid.h                          |  3 --
+ 43 files changed, 105 insertions(+), 47 deletions(-)
+ create mode 100644 include/asm-generic/screen_info.h
 
 
-Le 29/06/2023 à 13:10, Michael Ellerman a écrit :
-> Sachin Sant <sachinp@linux.ibm.com> writes:
->>> On 28-Jun-2023, at 3:35 PM, Laurent Dufour <ldufour@linux.ibm.com> wrote:
->>>
->>> I'm taking over the series Michael sent previously [1] which is smartly
->>> reviewing the initial series I sent [2].  This series is addressing the
->>> comments sent by Thomas and me on the Michael's one.
->>>
->>> Here is a short introduction to the issue this series is addressing:
->>>
->>> When a new CPU is added, the kernel is activating all its threads. This
->>> leads to weird, but functional, result when adding CPU on a SMT 4 system
->>> for instance.
->>>
->>> Here the newly added CPU 1 has 8 threads while the other one has 4 threads
->>> active (system has been booted with the 'smt-enabled=4' kernel option):
->>>
->>> ltcden3-lp12:~ # ppc64_cpu --info
->>> Core   0:    0*    1*    2*    3*    4     5     6     7
->>> Core   1:    8*    9*   10*   11*   12*   13*   14*   15*
->>>
->>> This mixed SMT level may confused end users and/or some applications.
->>>
->>
->> Thanks for the patches Laurent.
->>
->> Is the SMT level retained even when dynamically changing SMT values?
->> I am observing difference in behaviour with and without smt-enabled
->> kernel command line option.
->>
->> When smt-enabled= option is specified SMT level is retained across
->> cpu core remove and add.
->>
->> Without this option but changing SMT level during runtime using
->> ppc64_cpu —smt=<level>, the SMT level is not retained after
->> cpu core add.
-> 
-> That's because ppc64_cpu is not using the sysfs SMT control file, it's
-> just onlining/offlining threads manually.
-> 
-> If you run:
->   $ ppc64_cpu --smt=4
-> 
-> And then also do:
-> 
->   $ echo 4 > /sys/devices/system/cpu/smt/control
-> 
-> It should work as expected?
-> 
-> ppc64_cpu will need to be updated to do that automatically.
+base-commit: d2f0af8472494398a42153684b790b723a79f143
+-- 
+2.41.0
 
-Hi Sachin and Michael,
-
-Yes, ppc64_cpu will need an update, and I have a patch ready to be sent 
-once this series will be accepted.
-
-By the way, I've a fix for the build issue reported against the patch 
-6/9. I'll send a v3 soon.
-
-Cheers,
-
-Laurent.
