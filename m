@@ -2,132 +2,150 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8F794EB64DA
-	for <linux-arch@archiver.kernel.org>; Wed,  5 Jul 2023 14:43:47 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 64FC3EB64DA
+	for <linux-arch@archiver.kernel.org>; Wed,  5 Jul 2023 14:52:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232417AbjGEOnq (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 5 Jul 2023 10:43:46 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50198 "EHLO
+        id S232724AbjGEOwM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 5 Jul 2023 10:52:12 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56396 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232642AbjGEOno (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2023 10:43:44 -0400
-Received: from mail-pl1-x636.google.com (mail-pl1-x636.google.com [IPv6:2607:f8b0:4864:20::636])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B9FA71723;
-        Wed,  5 Jul 2023 07:43:34 -0700 (PDT)
-Received: by mail-pl1-x636.google.com with SMTP id d9443c01a7336-1b8ad9eede0so8036825ad.1;
-        Wed, 05 Jul 2023 07:43:34 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1688568213; x=1691160213;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to:subject
-         :user-agent:mime-version:date:message-id:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=JU+as7wi3eWeTFoM78W/MqGEZzj4O8MVzCBXBVMDvTE=;
-        b=CDviufEV0708sItf7c2FKXs4Jfh5YrsBI5pHDUqAWLyDcd53zSNBPcoXBLPuuUXTH0
-         ptCs47ERg/pFhIRrt3Jc60JmJX/7wPV2FNsGT2xnhpBX/EF5HloGSLijrlRcGhk/qPHP
-         3ATxszMjeg6fsrz/NB7zi39ZpD9++HpqERXRQQnxKqp4o++EdRmK0A0mSJfrIv0cNTSU
-         k7Fh+DBpLDEnkyPkXrFxbMX5lrJxtpfnCZGAkOsLVIuERmXQw8SkVp8L5ZFoSljBNbty
-         0dGLBtN9XHEywpg7kMAFcKwtpsZ0M4GgvbNXV78zc2wLaOTh6RgYfrkbNyVHYWvGlgoj
-         RMIw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1688568213; x=1691160213;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to:subject
-         :user-agent:mime-version:date:message-id:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=JU+as7wi3eWeTFoM78W/MqGEZzj4O8MVzCBXBVMDvTE=;
-        b=LZgY2jHTtCjxgvxO4rf6Gk3j/sow86+rlfVvQ0kiCttzVjNQieAFNn+dt1fsZvEAjH
-         QOpAMbfGsLp/dH0ZUDQ1loxMFSc4maeXbzpejGeTijuIhcPpw+rdiaEBLqB5Y4b9ywOM
-         ZYIxptVZTd2PGk3VC30ztkF7ZM/niFWaxIunu6QQEBEObYr9gCWl/IGNrUn1Dg+I6ncf
-         MRngIgVCPnHjYQEt2VNGFdwEZvSdDwBf49P7TqNCsDI1E84QkD25smL6iF2eyaY/Y5Ew
-         x61wJg1/NWjekv1o+FS5fq2GkrhPhc8fHb2+M5eHNQhCNnJJ2dSEKO/t/hqAePTh1Oth
-         Fc3Q==
-X-Gm-Message-State: ABy/qLYFhuQEAD9Z9/fNBxjtreI3GghDo1f6N2LxbsAxGyLfE3VzcqgM
-        uXGbCJS6E+lsWWSTaoi6v9tMod7Iy2RVew==
-X-Google-Smtp-Source: APBJJlFPaTaZfq7+Sz5pIUtEQPN4UM27g9oO2o1OevevI5ribpX1uyVE8K/jeL4+S3Ctqyt3W5B3CA==
-X-Received: by 2002:a17:902:c40c:b0:1b8:8dbd:e1a0 with SMTP id k12-20020a170902c40c00b001b88dbde1a0mr12991090plk.13.1688568213440;
-        Wed, 05 Jul 2023 07:43:33 -0700 (PDT)
-Received: from ?IPV6:2404:f801:0:5:8000::75b? ([2404:f801:9000:18:efec::75b])
-        by smtp.gmail.com with ESMTPSA id g3-20020a170902868300b001b04b1bd774sm19078415plo.208.2023.07.05.07.43.28
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Wed, 05 Jul 2023 07:43:33 -0700 (PDT)
-Message-ID: <ecd0aa48-90a4-50cb-7a4e-b7a6419576ce@gmail.com>
-Date:   Wed, 5 Jul 2023 22:43:24 +0800
+        with ESMTP id S232426AbjGEOwK (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2023 10:52:10 -0400
+Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6FF18FF;
+        Wed,  5 Jul 2023 07:52:09 -0700 (PDT)
+Received: from pps.filterd (m0353729.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 365ElGWS003026;
+        Wed, 5 Jul 2023 14:51:53 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
+ : date : message-id : in-reply-to : references : mime-version :
+ content-transfer-encoding; s=pp1;
+ bh=WfdHG/IFibjPqDV5js/ljbtxgQ4mhrxtxUvpA1+ay/Y=;
+ b=fUP2f6sD37eNq1w+y3JOd1a3RjqxE4EKI0Eav2kVx5OKFRqYY18wnMFWBBNL0Jaaq+rW
+ 3MyHw6EynkrbYUixtyYZtRsJgYRqQMvLKmjnjyOiMIIbmp9Gx9tUUPAFy7AmphpMwlIB
+ 2jit9HoaCpDbPTA0wWDBv5XIDdRvqvbt3Tn4z9eZ6L2Z9tmcaUyFGKKBdb0pqNuQCsR9
+ 6E5Npuai7ojWhrUycGZCh7J+GMqXhaXhibwh3v7h4XL1gzNcM1thZ0AbLd/zqlhoPnhF
+ IzBZU4ui6ueVnxK6PxP8kZvBHPTgxBDoI7wRiRol/pno89hOM0+Vs8XhlzWMziBIZwM4 3Q== 
+Received: from pps.reinject (localhost [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rnak5g37s-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Wed, 05 Jul 2023 14:51:52 +0000
+Received: from m0353729.ppops.net (m0353729.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 365ElwrU005006;
+        Wed, 5 Jul 2023 14:51:52 GMT
+Received: from ppma03ams.nl.ibm.com (62.31.33a9.ip4.static.sl-reverse.com [169.51.49.98])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rnak5g36d-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Wed, 05 Jul 2023 14:51:51 +0000
+Received: from pps.filterd (ppma03ams.nl.ibm.com [127.0.0.1])
+        by ppma03ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 3650sFUn032566;
+        Wed, 5 Jul 2023 14:51:49 GMT
+Received: from smtprelay02.fra02v.mail.ibm.com ([9.218.2.226])
+        by ppma03ams.nl.ibm.com (PPS) with ESMTPS id 3rjbs4tn97-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+        Wed, 05 Jul 2023 14:51:49 +0000
+Received: from smtpav03.fra02v.mail.ibm.com (smtpav03.fra02v.mail.ibm.com [10.20.54.102])
+        by smtprelay02.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 365Eplgc19268256
+        (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Wed, 5 Jul 2023 14:51:47 GMT
+Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 3CC3B20040;
+        Wed,  5 Jul 2023 14:51:47 +0000 (GMT)
+Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
+        by IMSVA (Postfix) with ESMTP id 2F6092004D;
+        Wed,  5 Jul 2023 14:51:46 +0000 (GMT)
+Received: from localhost.localdomain (unknown [9.171.79.178])
+        by smtpav03.fra02v.mail.ibm.com (Postfix) with ESMTP;
+        Wed,  5 Jul 2023 14:51:46 +0000 (GMT)
+From:   Laurent Dufour <ldufour@linux.ibm.com>
+To:     linuxppc-dev@lists.ozlabs.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
+        tglx@linutronix.de, dave.hansen@linux.intel.com, mingo@redhat.com,
+        bp@alien8.de, rui.zhang@intel.com
+Subject: [PATCH v4 01/10] cpu/hotplug: remove dependancy against cpu_primary_thread_mask
+Date:   Wed,  5 Jul 2023 16:51:34 +0200
+Message-ID: <20230705145143.40545-2-ldufour@linux.ibm.com>
+X-Mailer: git-send-email 2.41.0
+In-Reply-To: <20230705145143.40545-1-ldufour@linux.ibm.com>
+References: <20230705145143.40545-1-ldufour@linux.ibm.com>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
- Thunderbird/102.12.0
-Subject: Re: [PATCH V2 1/9] x86/hyperv: Add sev-snp enlightened guest static
- key
-To:     "Michael Kelley (LINUX)" <mikelley@microsoft.com>,
-        KY Srinivasan <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        "wei.liu@kernel.org" <wei.liu@kernel.org>,
-        Dexuan Cui <decui@microsoft.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "bp@alien8.de" <bp@alien8.de>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "x86@kernel.org" <x86@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>,
-        "daniel.lezcano@linaro.org" <daniel.lezcano@linaro.org>,
-        "arnd@arndb.de" <arnd@arndb.de>
-Cc:     Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "vkuznets@redhat.com" <vkuznets@redhat.com>
-References: <20230627032248.2170007-1-ltykernel@gmail.com>
- <20230627032248.2170007-2-ltykernel@gmail.com>
- <BYAPR21MB1688570E8D0D0C49B68DD548D72EA@BYAPR21MB1688.namprd21.prod.outlook.com>
-From:   Tianyu Lan <ltykernel@gmail.com>
-In-Reply-To: <BYAPR21MB1688570E8D0D0C49B68DD548D72EA@BYAPR21MB1688.namprd21.prod.outlook.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+X-TM-AS-GCONF: 00
+X-Proofpoint-GUID: h5_Kjgx80_GIwbjYFqO2hSx4w1lecSek
+X-Proofpoint-ORIG-GUID: ho0Gpv-QUkWpRbe_O5ZDGgt5gyT2EbpG
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.591,FMLib:17.11.176.26
+ definitions=2023-07-05_06,2023-07-05_01,2023-05-22_02
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 clxscore=1015 phishscore=0
+ lowpriorityscore=0 suspectscore=0 adultscore=0 malwarescore=0
+ priorityscore=1501 spamscore=0 mlxlogscore=999 mlxscore=0 impostorscore=0
+ bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2305260000 definitions=main-2307050131
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 7/4/2023 10:17 PM, Michael Kelley (LINUX) wrote:
-> From: Tianyu Lan <ltykernel@gmail.com> Sent: Monday, June 26, 2023 8:23 PM
->>
->> Introduce static key isolation_type_en_snp for enlightened
->> sev-snp guest check.
->>
->> Signed-off-by: Tianyu Lan <tiala@microsoft.com>
->> ---
->>   arch/x86/hyperv/ivm.c           | 11 +++++++++++
->>   arch/x86/include/asm/mshyperv.h |  3 +++
->>   arch/x86/kernel/cpu/mshyperv.c  |  9 +++++++--
->>   drivers/hv/hv_common.c          |  6 ++++++
->>   include/asm-generic/mshyperv.h  | 12 +++++++++---
->>   5 files changed, 36 insertions(+), 5 deletions(-)
->>
->> diff --git a/arch/x86/hyperv/ivm.c b/arch/x86/hyperv/ivm.c
->> index cc92388b7a99..5d3ee3124e00 100644
->> --- a/arch/x86/hyperv/ivm.c
->> +++ b/arch/x86/hyperv/ivm.c
->> @@ -409,3 +409,14 @@ bool hv_isolation_type_snp(void)
->>   {
->>   	return static_branch_unlikely(&isolation_type_snp);
->>   }
->> +
->> +DEFINE_STATIC_KEY_FALSE(isolation_type_en_snp);
->> +/*
->> + * hv_isolation_type_en_snp - Check system runs in the AMD SEV-SNP based
->> + * isolation enlightened VM.
->> + */
->> +bool hv_isolation_type_en_snp(void)
->> +{
->> +	return static_branch_unlikely(&isolation_type_en_snp);
->> +}
->> +
-> 
-> Vitaly had suggested some renaming of this and related variables and
-> functions, which you had agreed to do.  But I don't see that renaming
-> reflected in this patch or throughout the full patch set.
-> 
+The commit 18415f33e2ac ("cpu/hotplug: Allow "parallel" bringup up to
+CPUHP_BP_KICK_AP_STATE") introduce a dependancy against a global variable
+cpu_primary_thread_mask exported by the X86 code. This variable is only
+used when CONFIG_HOTPLUG_PARALLEL is set.
 
-Hi Michael:
-	Thanks for your review. I am preparing a separating patchset to rework 
-hv_isolation_type_en_snp() and hv_isolation_type_snp() according to 
-Vitaly suggestion because it will touch more files and not affect 
-SEV-SNP function.
+Since cpuhp_get_primary_thread_mask() and cpuhp_smt_aware() are only used
+when CONFIG_HOTPLUG_PARALLEL is set, don't define them when it is not set.
 
-Thanks.
+There is no functional change introduce by that patch.
+
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Laurent Dufour <ldufour@linux.ibm.com>
+---
+ kernel/cpu.c | 24 ++++++++++--------------
+ 1 file changed, 10 insertions(+), 14 deletions(-)
+
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index 88a7ede322bd..03309f2f35a4 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -650,22 +650,8 @@ bool cpu_smt_possible(void)
+ }
+ EXPORT_SYMBOL_GPL(cpu_smt_possible);
+ 
+-static inline bool cpuhp_smt_aware(void)
+-{
+-	return topology_smt_supported();
+-}
+-
+-static inline const struct cpumask *cpuhp_get_primary_thread_mask(void)
+-{
+-	return cpu_primary_thread_mask;
+-}
+ #else
+ static inline bool cpu_smt_allowed(unsigned int cpu) { return true; }
+-static inline bool cpuhp_smt_aware(void) { return false; }
+-static inline const struct cpumask *cpuhp_get_primary_thread_mask(void)
+-{
+-	return cpu_present_mask;
+-}
+ #endif
+ 
+ static inline enum cpuhp_state
+@@ -1793,6 +1779,16 @@ static int __init parallel_bringup_parse_param(char *arg)
+ }
+ early_param("cpuhp.parallel", parallel_bringup_parse_param);
+ 
++static inline bool cpuhp_smt_aware(void)
++{
++	return topology_smt_supported();
++}
++
++static inline const struct cpumask *cpuhp_get_primary_thread_mask(void)
++{
++	return cpu_primary_thread_mask;
++}
++
+ /*
+  * On architectures which have enabled parallel bringup this invokes all BP
+  * prepare states for each of the to be onlined APs first. The last state
+-- 
+2.41.0
+
