@@ -2,85 +2,85 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 253D1EB64DA
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C8DB0C001E0
 	for <linux-arch@archiver.kernel.org>; Wed,  5 Jul 2023 14:52:23 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232754AbjGEOwW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S232755AbjGEOwW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Wed, 5 Jul 2023 10:52:22 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56458 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56436 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232735AbjGEOwS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2023 10:52:18 -0400
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 475851719;
-        Wed,  5 Jul 2023 07:52:15 -0700 (PDT)
-Received: from pps.filterd (m0353726.ppops.net [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 365EkHKY014911;
-        Wed, 5 Jul 2023 14:52:02 GMT
+        with ESMTP id S232732AbjGEOwP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jul 2023 10:52:15 -0400
+Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F1D181713;
+        Wed,  5 Jul 2023 07:52:13 -0700 (PDT)
+Received: from pps.filterd (m0353722.ppops.net [127.0.0.1])
+        by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 365EmRvf021440;
+        Wed, 5 Jul 2023 14:51:55 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
  : date : message-id : in-reply-to : references : mime-version :
  content-transfer-encoding; s=pp1;
- bh=tx1at/2INEcqt7dGBW4108Z+7Xae9URY05LzYSvNwCU=;
- b=QvWrpJRNz2Ir/rcNGbY21wEm3nQIaxRXfvJqJelHBXqyUQksixnqISYWCiGMVC8vTwfu
- 5D2izSTDAyVcjrvmfpqnlT6ZbyitPD3FvGE0Oa4QGCMWA64AQ8jnQ0zFryqV8H/RXcKw
- Q1RmdUh1Rvza3iR87ZBvl9J4G2o6ZMlNz3wM63mGTSpo7NPGzsXHneg3+ZK13PkY7oqN
- GMa3cHQDCQyDMQqkQOjNKhQkk9m1mURacv33CEo6rQpG6XI1NRiRWh5TSIj39nbVr0Ht
- aLesmfQbktPN3JH4kO2+DYYr5vb/cH34eEyiih+a38/8UPHU73jugUd7/eG0rGowHpIV FQ== 
+ bh=cG9/pDbZ6FXFTb7O2FLnvLgPQuiEQ1Jn4qTuiwFzTvA=;
+ b=rF4hg2HnHsiuL2q4ZnAjUwD5dVbILMTMdbSdw7o9slLwwj9WD0KXpN7HNpYDlF7kbH13
+ Nz/IrOXqbvg7D23opbt0TrOq0CcOZN7qLXGNuETqcIk2gEGa4e+8uAIDVhLbH9yjMjSK
+ nETLvFUCTbBPvtjoqlB/iIlvq5ww3qg20Ak9Qw34hbxpC01jdy7Z5QCXI1J90fBKdMUK
+ 3ke1U/4QntCVkxAxiVLMkIYZ+UneEo/qtc730ozHeFdAoPwUwaNicRhkf/lp9/P7H8Wr
+ YX2fma3aY7u7v0EZ3laEBL0Uxb9ZakFFqRMfRcUVtV/WbVB/xDhadSFmfN1Zg0QyAAgf LQ== 
 Received: from pps.reinject (localhost [127.0.0.1])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rnajp84ve-1
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rnakjg31d-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Wed, 05 Jul 2023 14:52:01 +0000
-Received: from m0353726.ppops.net (m0353726.ppops.net [127.0.0.1])
-        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 365El7vG017161;
-        Wed, 5 Jul 2023 14:52:01 GMT
-Received: from ppma06fra.de.ibm.com (48.49.7a9f.ip4.static.sl-reverse.com [159.122.73.72])
-        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rnajp84th-1
+        Wed, 05 Jul 2023 14:51:54 +0000
+Received: from m0353722.ppops.net (m0353722.ppops.net [127.0.0.1])
+        by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 365Enw0T027057;
+        Wed, 5 Jul 2023 14:51:54 GMT
+Received: from ppma06ams.nl.ibm.com (66.31.33a9.ip4.static.sl-reverse.com [169.51.49.102])
+        by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3rnakjg309-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Wed, 05 Jul 2023 14:52:00 +0000
-Received: from pps.filterd (ppma06fra.de.ibm.com [127.0.0.1])
-        by ppma06fra.de.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 36596LGM030966;
-        Wed, 5 Jul 2023 14:51:58 GMT
-Received: from smtprelay01.fra02v.mail.ibm.com ([9.218.2.227])
-        by ppma06fra.de.ibm.com (PPS) with ESMTPS id 3rjbddsxsm-1
+        Wed, 05 Jul 2023 14:51:54 +0000
+Received: from pps.filterd (ppma06ams.nl.ibm.com [127.0.0.1])
+        by ppma06ams.nl.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 3654rDNT022555;
+        Wed, 5 Jul 2023 14:51:52 GMT
+Received: from smtprelay05.fra02v.mail.ibm.com ([9.218.2.225])
+        by ppma06ams.nl.ibm.com (PPS) with ESMTPS id 3rjbde2n3u-1
         (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-        Wed, 05 Jul 2023 14:51:58 +0000
+        Wed, 05 Jul 2023 14:51:52 +0000
 Received: from smtpav03.fra02v.mail.ibm.com (smtpav03.fra02v.mail.ibm.com [10.20.54.102])
-        by smtprelay01.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 365EptEa8847998
+        by smtprelay05.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 365EpnZ121561962
         (version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-        Wed, 5 Jul 2023 14:51:55 GMT
+        Wed, 5 Jul 2023 14:51:49 GMT
 Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id A82A620043;
-        Wed,  5 Jul 2023 14:51:55 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id B948020043;
+        Wed,  5 Jul 2023 14:51:49 +0000 (GMT)
 Received: from smtpav03.fra02v.mail.ibm.com (unknown [127.0.0.1])
-        by IMSVA (Postfix) with ESMTP id A266F20040;
-        Wed,  5 Jul 2023 14:51:54 +0000 (GMT)
+        by IMSVA (Postfix) with ESMTP id A032620040;
+        Wed,  5 Jul 2023 14:51:48 +0000 (GMT)
 Received: from localhost.localdomain (unknown [9.171.79.178])
         by smtpav03.fra02v.mail.ibm.com (Postfix) with ESMTP;
-        Wed,  5 Jul 2023 14:51:54 +0000 (GMT)
+        Wed,  5 Jul 2023 14:51:48 +0000 (GMT)
 From:   Laurent Dufour <ldufour@linux.ibm.com>
 To:     linuxppc-dev@lists.ozlabs.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
         tglx@linutronix.de, dave.hansen@linux.intel.com, mingo@redhat.com,
         bp@alien8.de, rui.zhang@intel.com
-Subject: [PATCH v4 08/10] powerpc/pseries: Initialise CPU hotplug callbacks earlier
-Date:   Wed,  5 Jul 2023 16:51:41 +0200
-Message-ID: <20230705145143.40545-9-ldufour@linux.ibm.com>
+Subject: [PATCH v4 03/10] cpu/SMT: Move smt/control simple exit cases earlier
+Date:   Wed,  5 Jul 2023 16:51:36 +0200
+Message-ID: <20230705145143.40545-4-ldufour@linux.ibm.com>
 X-Mailer: git-send-email 2.41.0
 In-Reply-To: <20230705145143.40545-1-ldufour@linux.ibm.com>
 References: <20230705145143.40545-1-ldufour@linux.ibm.com>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: pZANAXBPp_kVmRJtXCaqVGjwhHfHESSA
-X-Proofpoint-ORIG-GUID: WMUAvUyjTTzSBwW5o4RmbopFQ12kdqhn
+X-Proofpoint-ORIG-GUID: AhOybAAUWlRm613PfmtCAgKhSQhaFbUH
+X-Proofpoint-GUID: 8AnUnclHJ25gcTnK1cj9J-FOkWU8hm9x
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.254,Aquarius:18.0.957,Hydra:6.0.591,FMLib:17.11.176.26
  definitions=2023-07-05_06,2023-07-05_01,2023-05-22_02
 X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 priorityscore=1501
- impostorscore=0 spamscore=0 malwarescore=0 clxscore=1015 phishscore=0
- mlxlogscore=999 mlxscore=0 bulkscore=0 suspectscore=0 lowpriorityscore=0
- adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ impostorscore=0 bulkscore=0 adultscore=0 mlxlogscore=999
+ lowpriorityscore=0 suspectscore=0 mlxscore=0 clxscore=1015 phishscore=0
+ spamscore=0 malwarescore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2305260000 definitions=main-2307050131
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
@@ -88,113 +88,50 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Michael Ellerman <mpe@ellerman.id.au>
 
-As part of the generic HOTPLUG_SMT code, there is support for disabling
-secondary SMT threads at boot time, by passing "nosmt" on the kernel
-command line.
+Move the simple exit cases, ie. which don't depend on the value written,
+earlier in the function. That makes it clearer that regardless of the
+input those states can not be transitioned out of.
 
-The way that is implemented is the secondary threads are brought partly
-online, and then taken back offline again. That is done to support x86
-CPUs needing certain initialisation done on all threads. However powerpc
-has similar needs, see commit d70a54e2d085 ("powerpc/powernv: Ignore
-smt-enabled on Power8 and later").
-
-For that to work the powerpc CPU hotplug callbacks need to be registered
-before secondary CPUs are brought online, otherwise __cpu_disable()
-fails due to smp_ops->cpu_disable being NULL.
-
-So split the basic initialisation into pseries_cpu_hotplug_init() which
-can be called early from setup_arch(). The DLPAR related initialisation
-can still be done later, because it needs to do allocations.
+That does have a user-visible effect, in that the error returned will
+now always be EPERM/ENODEV for those states, regardless of the value
+written. Previously writing an invalid value would return EINVAL even
+when in those states.
 
 Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
 ---
- arch/powerpc/platforms/pseries/hotplug-cpu.c | 22 ++++++++++++--------
- arch/powerpc/platforms/pseries/pseries.h     |  2 ++
- arch/powerpc/platforms/pseries/setup.c       |  2 ++
- 3 files changed, 17 insertions(+), 9 deletions(-)
+ kernel/cpu.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-index 1a3cb313976a..61fb7cb00880 100644
---- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
-+++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-@@ -845,15 +845,9 @@ static struct notifier_block pseries_smp_nb = {
- 	.notifier_call = pseries_smp_notifier,
- };
- 
--static int __init pseries_cpu_hotplug_init(void)
-+void __init pseries_cpu_hotplug_init(void)
+diff --git a/kernel/cpu.c b/kernel/cpu.c
+index e02204c4675a..b6fe170c93e9 100644
+--- a/kernel/cpu.c
++++ b/kernel/cpu.c
+@@ -2841,6 +2841,12 @@ __store_smt_control(struct device *dev, struct device_attribute *attr,
  {
- 	int qcss_tok;
--	unsigned int node;
+ 	int ctrlval, ret;
+ 
++	if (cpu_smt_control == CPU_SMT_FORCE_DISABLED)
++		return -EPERM;
++
++	if (cpu_smt_control == CPU_SMT_NOT_SUPPORTED)
++		return -ENODEV;
++
+ 	if (sysfs_streq(buf, "on"))
+ 		ctrlval = CPU_SMT_ENABLED;
+ 	else if (sysfs_streq(buf, "off"))
+@@ -2850,12 +2856,6 @@ __store_smt_control(struct device *dev, struct device_attribute *attr,
+ 	else
+ 		return -EINVAL;
+ 
+-	if (cpu_smt_control == CPU_SMT_FORCE_DISABLED)
+-		return -EPERM;
 -
--#ifdef CONFIG_ARCH_CPU_PROBE_RELEASE
--	ppc_md.cpu_probe = dlpar_cpu_probe;
--	ppc_md.cpu_release = dlpar_cpu_release;
--#endif /* CONFIG_ARCH_CPU_PROBE_RELEASE */
- 
- 	rtas_stop_self_token = rtas_function_token(RTAS_FN_STOP_SELF);
- 	qcss_tok = rtas_function_token(RTAS_FN_QUERY_CPU_STOPPED_STATE);
-@@ -862,12 +856,22 @@ static int __init pseries_cpu_hotplug_init(void)
- 			qcss_tok == RTAS_UNKNOWN_SERVICE) {
- 		printk(KERN_INFO "CPU Hotplug not supported by firmware "
- 				"- disabling.\n");
--		return 0;
-+		return;
- 	}
- 
- 	smp_ops->cpu_offline_self = pseries_cpu_offline_self;
- 	smp_ops->cpu_disable = pseries_cpu_disable;
- 	smp_ops->cpu_die = pseries_cpu_die;
-+}
-+
-+static int __init pseries_dlpar_init(void)
-+{
-+	unsigned int node;
-+
-+#ifdef CONFIG_ARCH_CPU_PROBE_RELEASE
-+	ppc_md.cpu_probe = dlpar_cpu_probe;
-+	ppc_md.cpu_release = dlpar_cpu_release;
-+#endif /* CONFIG_ARCH_CPU_PROBE_RELEASE */
- 
- 	/* Processors can be added/removed only on LPAR */
- 	if (firmware_has_feature(FW_FEATURE_LPAR)) {
-@@ -886,4 +890,4 @@ static int __init pseries_cpu_hotplug_init(void)
- 
- 	return 0;
- }
--machine_arch_initcall(pseries, pseries_cpu_hotplug_init);
-+machine_arch_initcall(pseries, pseries_dlpar_init);
-diff --git a/arch/powerpc/platforms/pseries/pseries.h b/arch/powerpc/platforms/pseries/pseries.h
-index f8bce40ebd0c..f8893ba46e83 100644
---- a/arch/powerpc/platforms/pseries/pseries.h
-+++ b/arch/powerpc/platforms/pseries/pseries.h
-@@ -75,11 +75,13 @@ static inline int dlpar_hp_pmem(struct pseries_hp_errorlog *hp_elog)
- 
- #ifdef CONFIG_HOTPLUG_CPU
- int dlpar_cpu(struct pseries_hp_errorlog *hp_elog);
-+void pseries_cpu_hotplug_init(void);
- #else
- static inline int dlpar_cpu(struct pseries_hp_errorlog *hp_elog)
- {
- 	return -EOPNOTSUPP;
- }
-+static inline void pseries_cpu_hotplug_init(void) { }
- #endif
- 
- /* PCI root bridge prepare function override for pseries */
-diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
-index e2a57cfa6c83..41451b76c6e5 100644
---- a/arch/powerpc/platforms/pseries/setup.c
-+++ b/arch/powerpc/platforms/pseries/setup.c
-@@ -816,6 +816,8 @@ static void __init pSeries_setup_arch(void)
- 	/* Discover PIC type and setup ppc_md accordingly */
- 	smp_init_pseries();
- 
-+	// Setup CPU hotplug callbacks
-+	pseries_cpu_hotplug_init();
- 
- 	if (radix_enabled() && !mmu_has_feature(MMU_FTR_GTSE))
- 		if (!firmware_has_feature(FW_FEATURE_RPT_INVALIDATE))
+-	if (cpu_smt_control == CPU_SMT_NOT_SUPPORTED)
+-		return -ENODEV;
+-
+ 	ret = lock_device_hotplug_sysfs();
+ 	if (ret)
+ 		return ret;
 -- 
 2.41.0
 
