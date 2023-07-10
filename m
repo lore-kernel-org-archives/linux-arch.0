@@ -2,40 +2,40 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0D519C001DC
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 82C16C001DF
 	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 20:45:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231454AbjGJUo6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 Jul 2023 16:44:58 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49488 "EHLO
+        id S232603AbjGJUo7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 Jul 2023 16:44:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49492 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232310AbjGJUoE (ORCPT
+        with ESMTP id S232312AbjGJUoE (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 16:44:04 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A5974E6F;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 11AFEE6E;
         Mon, 10 Jul 2023 13:43:45 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=eXHV2JcA2dh0XcKNU/gzTdwGqE1v+tTzv2WVHsOGr9M=; b=B3VIc80OBWd43RjMo8M572CrEa
-        zGyYC6wIXDYVAo+o+lgp6aTPkjpXshQX68hmVuFOWlBzoPnz3NatZSZVmXtuSWy2OAPZtPyf6z9J+
-        fHDLATzBpxfxXoTAXtgm1EkuAWXbAtk+OwLXcLoAE8VL04uXdUJzZCSqeJ4p0d+VNXo60/6rULD20
-        RNRix6CMP0fn7cmXnb3fmGcmhce36CU7xyFVHtOXlxI660M24oAr3q1QId6Bj+qdh4hhD3WCgw1XG
-        /HpnF7VifeCQD/24RQatL/tYDDYAjuMJDGns+7CgNuNsY6Jzh1jIAxVYHqxg5TnoZwSD4xVQhnAqe
-        JUJmn7IQ==;
+        bh=V6M6yuYxLKgLs0dM6txlVNLrG54L1bTI8jXyzPojSeg=; b=OUdS+lkNlp7fuw/1woNDc/REqs
+        Aph0aluSvVzMpstH0jPPCbEiwo+MabIti+uEBTrtC3qTB1ZYI3zxNGPIam2iaqqdoTGy1urkLTfmM
+        IY5FaVvC2Lgj/UCdvTxTuA5I/+NmE/agU+MASiUYS5c0KCPwAkHhZFeRbB6emLdRKs9S4NTJKJaIe
+        n/X5OZibz3XMcF7WOHE7eFW7ikstRWkOh0EK+B7HAdzWM20sguXCno4+y1cEMNYwrpUJcGBLgiz4P
+        /xuZHS+/IFN/pExYzv+jxU87kZwY06jtgth+HalyAE9f1fEN1fyDAi+rFCb9v4BS/TVe/InlDTp0L
+        epzfagtA==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qIxjT-00Eupp-FK; Mon, 10 Jul 2023 20:43:43 +0000
+        id 1qIxjT-00EupQ-3Q; Mon, 10 Jul 2023 20:43:43 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-kernel@vger.kernel.org, Mike Rapoport <rppt@kernel.org>,
-        "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
-Subject: [PATCH v5 20/38] parisc: Implement the new page table range API
-Date:   Mon, 10 Jul 2023 21:43:21 +0100
-Message-Id: <20230710204339.3554919-21-willy@infradead.org>
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        linux-mips@vger.kernel.org
+Subject: [PATCH v5 17/38] mips: Implement the new page table range API
+Date:   Mon, 10 Jul 2023 21:43:18 +0100
+Message-Id: <20230710204339.3554919-18-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230710204339.3554919-1-willy@infradead.org>
 References: <20230710204339.3554919-1-willy@infradead.org>
@@ -45,327 +45,548 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add set_ptes(), update_mmu_cache_range(), flush_dcache_folio()
-and flush_icache_pages().  Change the PG_arch_1 (aka PG_dcache_dirty) flag
-from being per-page to per-folio.
+Rename _PFN_SHIFT to PFN_PTE_SHIFT.  Convert a few places
+to call set_pte() instead of set_pte_at().  Add set_ptes(),
+update_mmu_cache_range(), flush_icache_pages() and flush_dcache_folio().
+Change the PG_arch_1 (aka PG_dcache_dirty) flag from being per-page
+to per-folio.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
-Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
+Cc: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
+Cc: linux-mips@vger.kernel.org
 ---
- arch/parisc/include/asm/cacheflush.h |  14 ++--
- arch/parisc/include/asm/pgtable.h    |  37 +++++----
- arch/parisc/kernel/cache.c           | 107 ++++++++++++++++++---------
- 3 files changed, 105 insertions(+), 53 deletions(-)
+ arch/mips/bcm47xx/prom.c             |  2 +-
+ arch/mips/include/asm/cacheflush.h   | 32 +++++++++-----
+ arch/mips/include/asm/pgtable-32.h   | 10 ++---
+ arch/mips/include/asm/pgtable-64.h   |  6 +--
+ arch/mips/include/asm/pgtable-bits.h |  6 +--
+ arch/mips/include/asm/pgtable.h      | 63 ++++++++++++++++++----------
+ arch/mips/mm/c-r4k.c                 |  5 ++-
+ arch/mips/mm/cache.c                 | 56 ++++++++++++-------------
+ arch/mips/mm/init.c                  | 21 ++++++----
+ arch/mips/mm/pgtable-32.c            |  2 +-
+ arch/mips/mm/pgtable-64.c            |  2 +-
+ arch/mips/mm/tlbex.c                 |  2 +-
+ 12 files changed, 121 insertions(+), 86 deletions(-)
 
-diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
-index c8b6928cee1e..b77c3e0c37d3 100644
---- a/arch/parisc/include/asm/cacheflush.h
-+++ b/arch/parisc/include/asm/cacheflush.h
-@@ -43,8 +43,13 @@ void invalidate_kernel_vmap_range(void *vaddr, int size);
- #define flush_cache_vmap(start, end)		flush_cache_all()
- #define flush_cache_vunmap(start, end)		flush_cache_all()
+diff --git a/arch/mips/bcm47xx/prom.c b/arch/mips/bcm47xx/prom.c
+index a9bea411d928..99a1ba5394e0 100644
+--- a/arch/mips/bcm47xx/prom.c
++++ b/arch/mips/bcm47xx/prom.c
+@@ -116,7 +116,7 @@ void __init prom_init(void)
+ #if defined(CONFIG_BCM47XX_BCMA) && defined(CONFIG_HIGHMEM)
  
-+void flush_dcache_folio(struct folio *folio);
-+#define flush_dcache_folio flush_dcache_folio
+ #define EXTVBASE	0xc0000000
+-#define ENTRYLO(x)	((pte_val(pfn_pte((x) >> _PFN_SHIFT, PAGE_KERNEL_UNCACHED)) >> 6) | 1)
++#define ENTRYLO(x)	((pte_val(pfn_pte((x) >> PFN_PTE_SHIFT, PAGE_KERNEL_UNCACHED)) >> 6) | 1)
+ 
+ #include <asm/tlbflush.h>
+ 
+diff --git a/arch/mips/include/asm/cacheflush.h b/arch/mips/include/asm/cacheflush.h
+index d8d3f80f9fc0..0f389bc7cb90 100644
+--- a/arch/mips/include/asm/cacheflush.h
++++ b/arch/mips/include/asm/cacheflush.h
+@@ -36,12 +36,12 @@
+  */
+ #define PG_dcache_dirty			PG_arch_1
+ 
+-#define Page_dcache_dirty(page)		\
+-	test_bit(PG_dcache_dirty, &(page)->flags)
+-#define SetPageDcacheDirty(page)	\
+-	set_bit(PG_dcache_dirty, &(page)->flags)
+-#define ClearPageDcacheDirty(page)	\
+-	clear_bit(PG_dcache_dirty, &(page)->flags)
++#define folio_test_dcache_dirty(folio)		\
++	test_bit(PG_dcache_dirty, &(folio)->flags)
++#define folio_set_dcache_dirty(folio)	\
++	set_bit(PG_dcache_dirty, &(folio)->flags)
++#define folio_clear_dcache_dirty(folio)	\
++	clear_bit(PG_dcache_dirty, &(folio)->flags)
+ 
+ extern void (*flush_cache_all)(void);
+ extern void (*__flush_cache_all)(void);
+@@ -50,15 +50,24 @@ extern void (*flush_cache_mm)(struct mm_struct *mm);
+ extern void (*flush_cache_range)(struct vm_area_struct *vma,
+ 	unsigned long start, unsigned long end);
+ extern void (*flush_cache_page)(struct vm_area_struct *vma, unsigned long page, unsigned long pfn);
+-extern void __flush_dcache_page(struct page *page);
++extern void __flush_dcache_pages(struct page *page, unsigned int nr);
+ 
  #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
--void flush_dcache_page(struct page *page);
-+static inline void flush_dcache_page(struct page *page)
++static inline void flush_dcache_folio(struct folio *folio)
 +{
-+	flush_dcache_folio(page_folio(page));
++	if (cpu_has_dc_aliases)
++		__flush_dcache_pages(&folio->page, folio_nr_pages(folio));
++	else if (!cpu_has_ic_fills_f_dc)
++		folio_set_dcache_dirty(folio);
 +}
++#define flush_dcache_folio flush_dcache_folio
++
+ static inline void flush_dcache_page(struct page *page)
+ {
+ 	if (cpu_has_dc_aliases)
+-		__flush_dcache_page(page);
++		__flush_dcache_pages(page, 1);
+ 	else if (!cpu_has_ic_fills_f_dc)
+-		SetPageDcacheDirty(page);
++		folio_set_dcache_dirty(page_folio(page));
+ }
  
- #define flush_dcache_mmap_lock(mapping)		xa_lock_irq(&mapping->i_pages)
- #define flush_dcache_mmap_unlock(mapping)	xa_unlock_irq(&mapping->i_pages)
-@@ -53,10 +58,9 @@ void flush_dcache_page(struct page *page);
- #define flush_dcache_mmap_unlock_irqrestore(mapping, flags)	\
- 		xa_unlock_irqrestore(&mapping->i_pages, flags)
+ #define flush_dcache_mmap_lock(mapping)		do { } while (0)
+@@ -73,10 +82,11 @@ static inline void flush_anon_page(struct vm_area_struct *vma,
+ 		__flush_anon_page(page, vmaddr);
+ }
  
--#define flush_icache_page(vma,page)	do { 		\
--	flush_kernel_dcache_page_addr(page_address(page)); \
--	flush_kernel_icache_page(page_address(page)); 	\
--} while (0)
-+void flush_icache_pages(struct vm_area_struct *vma, struct page *page,
-+		unsigned int nr);
-+#define flush_icache_page(vma, page)	flush_icache_pages(vma, page, 1)
+-static inline void flush_icache_page(struct vm_area_struct *vma,
+-	struct page *page)
++static inline void flush_icache_pages(struct vm_area_struct *vma,
++		struct page *page, unsigned int nr)
+ {
+ }
++#define flush_icache_page(vma, page) flush_icache_pages(vma, page, 1)
  
- #define flush_icache_range(s,e)		do { 		\
- 	flush_kernel_dcache_range_asm(s,e); 		\
-diff --git a/arch/parisc/include/asm/pgtable.h b/arch/parisc/include/asm/pgtable.h
-index 5656395c95ee..ce38bb375b60 100644
---- a/arch/parisc/include/asm/pgtable.h
-+++ b/arch/parisc/include/asm/pgtable.h
-@@ -73,15 +73,6 @@ extern void __update_cache(pte_t pte);
- 		mb();				\
- 	} while(0)
+ extern void (*flush_icache_range)(unsigned long start, unsigned long end);
+ extern void (*local_flush_icache_range)(unsigned long start, unsigned long end);
+diff --git a/arch/mips/include/asm/pgtable-32.h b/arch/mips/include/asm/pgtable-32.h
+index ba0016709a1a..0e196650f4f4 100644
+--- a/arch/mips/include/asm/pgtable-32.h
++++ b/arch/mips/include/asm/pgtable-32.h
+@@ -153,7 +153,7 @@ static inline void pmd_clear(pmd_t *pmdp)
+ #if defined(CONFIG_XPA)
  
--#define set_pte_at(mm, addr, pteptr, pteval)	\
--	do {					\
--		if (pte_present(pteval) &&	\
--		    pte_user(pteval))		\
--			__update_cache(pteval);	\
--		*(pteptr) = (pteval);		\
--		purge_tlb_entries(mm, addr);	\
--	} while (0)
+ #define MAX_POSSIBLE_PHYSMEM_BITS 40
+-#define pte_pfn(x)		(((unsigned long)((x).pte_high >> _PFN_SHIFT)) | (unsigned long)((x).pte_low << _PAGE_PRESENT_SHIFT))
++#define pte_pfn(x)		(((unsigned long)((x).pte_high >> PFN_PTE_SHIFT)) | (unsigned long)((x).pte_low << _PAGE_PRESENT_SHIFT))
+ static inline pte_t
+ pfn_pte(unsigned long pfn, pgprot_t prot)
+ {
+@@ -161,7 +161,7 @@ pfn_pte(unsigned long pfn, pgprot_t prot)
+ 
+ 	pte.pte_low = (pfn >> _PAGE_PRESENT_SHIFT) |
+ 				(pgprot_val(prot) & ~_PFNX_MASK);
+-	pte.pte_high = (pfn << _PFN_SHIFT) |
++	pte.pte_high = (pfn << PFN_PTE_SHIFT) |
+ 				(pgprot_val(prot) & ~_PFN_MASK);
+ 	return pte;
+ }
+@@ -184,9 +184,9 @@ static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
+ #else
+ 
+ #define MAX_POSSIBLE_PHYSMEM_BITS 32
+-#define pte_pfn(x)		((unsigned long)((x).pte >> _PFN_SHIFT))
+-#define pfn_pte(pfn, prot)	__pte(((unsigned long long)(pfn) << _PFN_SHIFT) | pgprot_val(prot))
+-#define pfn_pmd(pfn, prot)	__pmd(((unsigned long long)(pfn) << _PFN_SHIFT) | pgprot_val(prot))
++#define pte_pfn(x)		((unsigned long)((x).pte >> PFN_PTE_SHIFT))
++#define pfn_pte(pfn, prot)	__pte(((unsigned long long)(pfn) << PFN_PTE_SHIFT) | pgprot_val(prot))
++#define pfn_pmd(pfn, prot)	__pmd(((unsigned long long)(pfn) << PFN_PTE_SHIFT) | pgprot_val(prot))
+ #endif /* defined(CONFIG_PHYS_ADDR_T_64BIT) && defined(CONFIG_CPU_MIPS32) */
+ 
+ #define pte_page(x)		pfn_to_page(pte_pfn(x))
+diff --git a/arch/mips/include/asm/pgtable-64.h b/arch/mips/include/asm/pgtable-64.h
+index 98e24e3e7f2b..20ca48c1b606 100644
+--- a/arch/mips/include/asm/pgtable-64.h
++++ b/arch/mips/include/asm/pgtable-64.h
+@@ -298,9 +298,9 @@ static inline void pud_clear(pud_t *pudp)
+ 
+ #define pte_page(x)		pfn_to_page(pte_pfn(x))
+ 
+-#define pte_pfn(x)		((unsigned long)((x).pte >> _PFN_SHIFT))
+-#define pfn_pte(pfn, prot)	__pte(((pfn) << _PFN_SHIFT) | pgprot_val(prot))
+-#define pfn_pmd(pfn, prot)	__pmd(((pfn) << _PFN_SHIFT) | pgprot_val(prot))
++#define pte_pfn(x)		((unsigned long)((x).pte >> PFN_PTE_SHIFT))
++#define pfn_pte(pfn, prot)	__pte(((pfn) << PFN_PTE_SHIFT) | pgprot_val(prot))
++#define pfn_pmd(pfn, prot)	__pmd(((pfn) << PFN_PTE_SHIFT) | pgprot_val(prot))
+ 
+ #ifndef __PAGETABLE_PMD_FOLDED
+ static inline pmd_t *pud_pgtable(pud_t pud)
+diff --git a/arch/mips/include/asm/pgtable-bits.h b/arch/mips/include/asm/pgtable-bits.h
+index 1c576679aa87..421e78c30253 100644
+--- a/arch/mips/include/asm/pgtable-bits.h
++++ b/arch/mips/include/asm/pgtable-bits.h
+@@ -182,10 +182,10 @@ enum pgtable_bits {
+ #if defined(CONFIG_CPU_R3K_TLB)
+ # define _CACHE_UNCACHED	(1 << _CACHE_UNCACHED_SHIFT)
+ # define _CACHE_MASK		_CACHE_UNCACHED
+-# define _PFN_SHIFT		PAGE_SHIFT
++# define PFN_PTE_SHIFT		PAGE_SHIFT
+ #else
+ # define _CACHE_MASK		(7 << _CACHE_SHIFT)
+-# define _PFN_SHIFT		(PAGE_SHIFT - 12 + _CACHE_SHIFT + 3)
++# define PFN_PTE_SHIFT		(PAGE_SHIFT - 12 + _CACHE_SHIFT + 3)
+ #endif
+ 
+ #ifndef _PAGE_NO_EXEC
+@@ -195,7 +195,7 @@ enum pgtable_bits {
+ #define _PAGE_SILENT_READ	_PAGE_VALID
+ #define _PAGE_SILENT_WRITE	_PAGE_DIRTY
+ 
+-#define _PFN_MASK		(~((1 << (_PFN_SHIFT)) - 1))
++#define _PFN_MASK		(~((1 << (PFN_PTE_SHIFT)) - 1))
+ 
+ /*
+  * The final layouts of the PTE bits are:
+diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
+index 574fa14ac8b2..cbb93a834f52 100644
+--- a/arch/mips/include/asm/pgtable.h
++++ b/arch/mips/include/asm/pgtable.h
+@@ -66,7 +66,7 @@ extern void paging_init(void);
+ 
+ static inline unsigned long pmd_pfn(pmd_t pmd)
+ {
+-	return pmd_val(pmd) >> _PFN_SHIFT;
++	return pmd_val(pmd) >> PFN_PTE_SHIFT;
+ }
+ 
+ #ifndef CONFIG_MIPS_HUGE_TLB_SUPPORT
+@@ -105,9 +105,6 @@ do {									\
+ 	}								\
+ } while(0)
+ 
+-static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+-			      pte_t *ptep, pte_t pteval);
 -
- #endif /* !__ASSEMBLY__ */
+ #if defined(CONFIG_PHYS_ADDR_T_64BIT) && defined(CONFIG_CPU_MIPS32)
  
- #define pte_ERROR(e) \
-@@ -285,7 +276,7 @@ extern unsigned long *empty_zero_page;
- #define pte_none(x)     (pte_val(x) == 0)
- #define pte_present(x)	(pte_val(x) & _PAGE_PRESENT)
- #define pte_user(x)	(pte_val(x) & _PAGE_USER)
--#define pte_clear(mm, addr, xp)  set_pte_at(mm, addr, xp, __pte(0))
-+#define pte_clear(mm, addr, xp)  set_pte(xp, __pte(0))
+ #ifdef CONFIG_XPA
+@@ -157,7 +154,7 @@ static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *pt
+ 			null.pte_low = null.pte_high = _PAGE_GLOBAL;
+ 	}
  
- #define pmd_flag(x)	(pmd_val(x) & PxD_FLAG_MASK)
- #define pmd_address(x)	((unsigned long)(pmd_val(x) &~ PxD_FLAG_MASK) << PxD_VALUE_SHIFT)
-@@ -391,11 +382,29 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+-	set_pte_at(mm, addr, ptep, null);
++	set_pte(ptep, null);
+ 	htw_start();
+ }
+ #else
+@@ -196,28 +193,41 @@ static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *pt
+ #if !defined(CONFIG_CPU_R3K_TLB)
+ 	/* Preserve global status for the pair */
+ 	if (pte_val(*ptep_buddy(ptep)) & _PAGE_GLOBAL)
+-		set_pte_at(mm, addr, ptep, __pte(_PAGE_GLOBAL));
++		set_pte(ptep, __pte(_PAGE_GLOBAL));
+ 	else
+ #endif
+-		set_pte_at(mm, addr, ptep, __pte(0));
++		set_pte(ptep, __pte(0));
+ 	htw_start();
+ }
+ #endif
  
- extern void paging_init (void);
- 
+-static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
+-			      pte_t *ptep, pte_t pteval)
 +static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
 +		pte_t *ptep, pte_t pte, unsigned int nr)
-+{
-+	if (pte_present(pte) && pte_user(pte))
-+		__update_cache(pte);
+ {
++	unsigned int i;
++	bool do_sync = false;
+ 
+-	if (!pte_present(pteval))
+-		goto cache_sync_done;
++	for (i = 0; i < nr; i++) {
++		if (!pte_present(pte))
++			continue;
++		if (pte_present(ptep[i]) &&
++		    (pte_pfn(ptep[i]) == pte_pfn(pte)))
++			continue;
++		do_sync = true;
++	}
+ 
+-	if (pte_present(*ptep) && (pte_pfn(*ptep) == pte_pfn(pteval)))
+-		goto cache_sync_done;
++	if (do_sync)
++		__update_cache(addr, pte);
+ 
+-	__update_cache(addr, pteval);
+-cache_sync_done:
+-	set_pte(ptep, pteval);
 +	for (;;) {
-+		*ptep = pte;
-+		purge_tlb_entries(mm, addr);
++		set_pte(ptep, pte);
 +		if (--nr == 0)
 +			break;
 +		ptep++;
-+		pte_val(pte) += 1 << PFN_PTE_SHIFT;
-+		addr += PAGE_SIZE;
++		pte = __pte(pte_val(pte) + (1UL << PFN_PTE_SHIFT));
 +	}
-+}
+ }
 +#define set_ptes set_ptes
-+
- /* Used for deferring calls to flush_dcache_page() */
- 
- #define PG_dcache_dirty         PG_arch_1
- 
--#define update_mmu_cache(vms,addr,ptep) __update_cache(*ptep)
-+#define update_mmu_cache_range(vmf, vma, addr, ptep, nr) __update_cache(*ptep)
-+#define update_mmu_cache(vma, addr, ptep) __update_cache(*ptep)
  
  /*
-  * Encode/decode swap entries and swap PTEs. Swap PTEs are all PTEs that
-@@ -450,7 +459,7 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma, unsigned
- 	if (!pte_young(pte)) {
- 		return 0;
- 	}
--	set_pte_at(vma->vm_mm, addr, ptep, pte_mkold(pte));
-+	set_pte(ptep, pte_mkold(pte));
- 	return 1;
- }
- 
-@@ -460,14 +469,14 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm, unsigned long addr,
- 	pte_t old_pte;
- 
- 	old_pte = *ptep;
--	set_pte_at(mm, addr, ptep, __pte(0));
-+	set_pte(ptep, __pte(0));
- 
- 	return old_pte;
- }
- 
- static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
+  * (pmds are folded into puds so this doesn't get actually called,
+@@ -486,7 +496,7 @@ static inline int ptep_set_access_flags(struct vm_area_struct *vma,
+ 					pte_t entry, int dirty)
  {
--	set_pte_at(mm, addr, ptep, pte_wrprotect(*ptep));
-+	set_pte(ptep, pte_wrprotect(*ptep));
- }
+ 	if (!pte_same(*ptep, entry))
+-		set_pte_at(vma->vm_mm, address, ptep, entry);
++		set_pte(ptep, entry);
+ 	/*
+ 	 * update_mmu_cache will unconditionally execute, handling both
+ 	 * the case that the PTE changed and the spurious fault case.
+@@ -568,12 +578,21 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte)
+ extern void __update_tlb(struct vm_area_struct *vma, unsigned long address,
+ 	pte_t pte);
  
- #define pte_same(A,B)	(pte_val(A) == pte_val(B))
-diff --git a/arch/parisc/kernel/cache.c b/arch/parisc/kernel/cache.c
-index b55b35c89d6a..442109a48940 100644
---- a/arch/parisc/kernel/cache.c
-+++ b/arch/parisc/kernel/cache.c
-@@ -94,11 +94,11 @@ static inline void flush_data_cache(void)
- /* Kernel virtual address of pfn.  */
- #define pfn_va(pfn)	__va(PFN_PHYS(pfn))
- 
--void
--__update_cache(pte_t pte)
-+void __update_cache(pte_t pte)
- {
- 	unsigned long pfn = pte_pfn(pte);
--	struct page *page;
-+	struct folio *folio;
-+	unsigned int nr;
- 
- 	/* We don't have pte special.  As a result, we can be called with
- 	   an invalid pfn and we don't need to flush the kernel dcache page.
-@@ -106,13 +106,17 @@ __update_cache(pte_t pte)
- 	if (!pfn_valid(pfn))
- 		return;
- 
--	page = pfn_to_page(pfn);
--	if (page_mapping_file(page) &&
--	    test_bit(PG_dcache_dirty, &page->flags)) {
--		flush_kernel_dcache_page_addr(pfn_va(pfn));
--		clear_bit(PG_dcache_dirty, &page->flags);
-+	folio = page_folio(pfn_to_page(pfn));
-+	pfn = folio_pfn(folio);
-+	nr = folio_nr_pages(folio);
-+	if (folio_flush_mapping(folio) &&
-+	    test_bit(PG_dcache_dirty, &folio->flags)) {
-+		while (nr--)
-+			flush_kernel_dcache_page_addr(pfn_va(pfn + nr));
-+		clear_bit(PG_dcache_dirty, &folio->flags);
- 	} else if (parisc_requires_coherency())
--		flush_kernel_dcache_page_addr(pfn_va(pfn));
-+		while (nr--)
-+			flush_kernel_dcache_page_addr(pfn_va(pfn + nr));
- }
- 
- void
-@@ -366,6 +370,20 @@ static void flush_user_cache_page(struct vm_area_struct *vma, unsigned long vmad
- 	preempt_enable();
- }
- 
-+void flush_icache_pages(struct vm_area_struct *vma, struct page *page,
-+		unsigned int nr)
+-static inline void update_mmu_cache(struct vm_area_struct *vma,
+-	unsigned long address, pte_t *ptep)
+-{
+-	pte_t pte = *ptep;
+-	__update_tlb(vma, address, pte);
++static inline void update_mmu_cache_range(struct vm_fault *vmf,
++		struct vm_area_struct *vma, unsigned long address,
++		pte_t *ptep, unsigned int nr)
 +{
-+	void *kaddr = page_address(page);
-+
 +	for (;;) {
-+		flush_kernel_dcache_page_addr(kaddr);
-+		flush_kernel_icache_page(kaddr);
++		pte_t pte = *ptep;
++		__update_tlb(vma, address, pte);
 +		if (--nr == 0)
 +			break;
-+		kaddr += PAGE_SIZE;
++		ptep++;
++		address += PAGE_SIZE;
 +	}
-+}
-+
- static inline pte_t *get_ptep(struct mm_struct *mm, unsigned long addr)
- {
- 	pte_t *ptep = NULL;
-@@ -394,27 +412,30 @@ static inline bool pte_needs_flush(pte_t pte)
- 		== (_PAGE_PRESENT | _PAGE_ACCESSED);
+ }
++#define update_mmu_cache(vma, address, ptep) \
++	update_mmu_cache_range(NULL, vma, address, ptep, 1)
+ 
+ #define	__HAVE_ARCH_UPDATE_MMU_TLB
+ #define update_mmu_tlb	update_mmu_cache
+diff --git a/arch/mips/mm/c-r4k.c b/arch/mips/mm/c-r4k.c
+index 4b6554b48923..187d1c16361c 100644
+--- a/arch/mips/mm/c-r4k.c
++++ b/arch/mips/mm/c-r4k.c
+@@ -568,13 +568,14 @@ static inline void local_r4k_flush_cache_page(void *args)
+ 	if ((mm == current->active_mm) && (pte_val(*ptep) & _PAGE_VALID))
+ 		vaddr = NULL;
+ 	else {
++		struct folio *folio = page_folio(page);
+ 		/*
+ 		 * Use kmap_coherent or kmap_atomic to do flushes for
+ 		 * another ASID than the current one.
+ 		 */
+ 		map_coherent = (cpu_has_dc_aliases &&
+-				page_mapcount(page) &&
+-				!Page_dcache_dirty(page));
++				folio_mapped(folio) &&
++				!folio_test_dcache_dirty(folio));
+ 		if (map_coherent)
+ 			vaddr = kmap_coherent(page, addr);
+ 		else
+diff --git a/arch/mips/mm/cache.c b/arch/mips/mm/cache.c
+index d21cf8c6cf6c..02042100e267 100644
+--- a/arch/mips/mm/cache.c
++++ b/arch/mips/mm/cache.c
+@@ -99,13 +99,15 @@ SYSCALL_DEFINE3(cacheflush, unsigned long, addr, unsigned long, bytes,
+ 	return 0;
  }
  
--void flush_dcache_page(struct page *page)
-+void flush_dcache_folio(struct folio *folio)
+-void __flush_dcache_page(struct page *page)
++void __flush_dcache_pages(struct page *page, unsigned int nr)
  {
 -	struct address_space *mapping = page_mapping_file(page);
--	struct vm_area_struct *mpnt;
--	unsigned long offset;
++	struct folio *folio = page_folio(page);
 +	struct address_space *mapping = folio_flush_mapping(folio);
-+	struct vm_area_struct *vma;
- 	unsigned long addr, old_addr = 0;
-+	void *kaddr;
- 	unsigned long count = 0;
--	unsigned long flags;
-+	unsigned long i, nr, flags;
- 	pgoff_t pgoff;
+ 	unsigned long addr;
++	unsigned int i;
  
  	if (mapping && !mapping_mapped(mapping)) {
--		set_bit(PG_dcache_dirty, &page->flags);
-+		set_bit(PG_dcache_dirty, &folio->flags);
+-		SetPageDcacheDirty(page);
++		folio_set_dcache_dirty(folio);
  		return;
  	}
  
--	flush_kernel_dcache_page_addr(page_address(page));
-+	nr = folio_nr_pages(folio);
-+	kaddr = folio_address(folio);
-+	for (i = 0; i < nr; i++)
-+		flush_kernel_dcache_page_addr(kaddr + i * PAGE_SIZE);
- 
- 	if (!mapping)
- 		return;
- 
--	pgoff = page->index;
-+	pgoff = folio->index;
- 
- 	/*
- 	 * We have carefully arranged in arch_get_unmapped_area() that
-@@ -424,20 +445,33 @@ void flush_dcache_page(struct page *page)
- 	 * on machines that support equivalent aliasing
+@@ -114,25 +116,21 @@ void __flush_dcache_page(struct page *page)
+ 	 * case is for exec env/arg pages and those are %99 certainly going to
+ 	 * get faulted into the tlb (and thus flushed) anyways.
  	 */
- 	flush_dcache_mmap_lock_irqsave(mapping, flags);
--	vma_interval_tree_foreach(mpnt, &mapping->i_mmap, pgoff, pgoff) {
--		offset = (pgoff - mpnt->vm_pgoff) << PAGE_SHIFT;
--		addr = mpnt->vm_start + offset;
--		if (parisc_requires_coherency()) {
--			bool needs_flush = false;
--			pte_t *ptep;
-+	vma_interval_tree_foreach(vma, &mapping->i_mmap, pgoff, pgoff + nr - 1) {
-+		unsigned long offset = pgoff - vma->vm_pgoff;
-+		unsigned long pfn = folio_pfn(folio);
-+
-+		addr = vma->vm_start;
-+		nr = folio_nr_pages(folio);
-+		if (offset > -nr) {
-+			pfn -= offset;
-+			nr += offset;
-+		} else {
-+			addr += offset * PAGE_SIZE;
-+		}
-+		if (addr + nr * PAGE_SIZE > vma->vm_end)
-+			nr = (vma->vm_end - addr) / PAGE_SIZE;
- 
--			ptep = get_ptep(mpnt->vm_mm, addr);
--			if (ptep) {
--				needs_flush = pte_needs_flush(*ptep);
-+		if (parisc_requires_coherency()) {
-+			for (i = 0; i < nr; i++) {
-+				pte_t *ptep = get_ptep(vma->vm_mm,
-+							addr + i * PAGE_SIZE);
-+				if (!ptep)
-+					continue;
-+				if (pte_needs_flush(*ptep))
-+					flush_user_cache_page(vma,
-+							addr + i * PAGE_SIZE);
-+				/* Optimise accesses to the same table? */
- 				pte_unmap(ptep);
- 			}
--			if (needs_flush)
--				flush_user_cache_page(mpnt, addr);
- 		} else {
- 			/*
- 			 * The TLB is the engine of coherence on parisc:
-@@ -450,27 +484,32 @@ void flush_dcache_page(struct page *page)
- 			 * in (until the user or kernel specifically
- 			 * accesses it, of course)
- 			 */
--			flush_tlb_page(mpnt, addr);
-+			for (i = 0; i < nr; i++)
-+				flush_tlb_page(vma, addr + i * PAGE_SIZE);
- 			if (old_addr == 0 || (old_addr & (SHM_COLOUR - 1))
- 					!= (addr & (SHM_COLOUR - 1))) {
--				__flush_cache_page(mpnt, addr, page_to_phys(page));
-+				for (i = 0; i < nr; i++)
-+					__flush_cache_page(vma,
-+						addr + i * PAGE_SIZE,
-+						(pfn + i) * PAGE_SIZE);
- 				/*
- 				 * Software is allowed to have any number
- 				 * of private mappings to a page.
- 				 */
--				if (!(mpnt->vm_flags & VM_SHARED))
-+				if (!(vma->vm_flags & VM_SHARED))
- 					continue;
- 				if (old_addr)
- 					pr_err("INEQUIVALENT ALIASES 0x%lx and 0x%lx in file %pD\n",
--						old_addr, addr, mpnt->vm_file);
--				old_addr = addr;
-+						old_addr, addr, vma->vm_file);
-+				if (nr == folio_nr_pages(folio))
-+					old_addr = addr;
- 			}
- 		}
- 		WARN_ON(++count == 4096);
- 	}
- 	flush_dcache_mmap_unlock_irqrestore(mapping, flags);
+-	if (PageHighMem(page))
+-		addr = (unsigned long)kmap_atomic(page);
+-	else
+-		addr = (unsigned long)page_address(page);
+-
+-	flush_data_cache_page(addr);
+-
+-	if (PageHighMem(page))
+-		kunmap_atomic((void *)addr);
++	for (i = 0; i < nr; i++) {
++		addr = (unsigned long)kmap_local_page(page + i);
++		flush_data_cache_page(addr);
++		kunmap_local((void *)addr);
++	}
  }
--EXPORT_SYMBOL(flush_dcache_page);
-+EXPORT_SYMBOL(flush_dcache_folio);
+-
+-EXPORT_SYMBOL(__flush_dcache_page);
++EXPORT_SYMBOL(__flush_dcache_pages);
  
- /* Defined in arch/parisc/kernel/pacache.S */
- EXPORT_SYMBOL(flush_kernel_dcache_range_asm);
+ void __flush_anon_page(struct page *page, unsigned long vmaddr)
+ {
+ 	unsigned long addr = (unsigned long) page_address(page);
++	struct folio *folio = page_folio(page);
+ 
+ 	if (pages_do_alias(addr, vmaddr)) {
+-		if (page_mapcount(page) && !Page_dcache_dirty(page)) {
++		if (folio_mapped(folio) && !folio_test_dcache_dirty(folio)) {
+ 			void *kaddr;
+ 
+ 			kaddr = kmap_coherent(page, vmaddr);
+@@ -147,27 +145,29 @@ EXPORT_SYMBOL(__flush_anon_page);
+ 
+ void __update_cache(unsigned long address, pte_t pte)
+ {
+-	struct page *page;
++	struct folio *folio;
+ 	unsigned long pfn, addr;
+ 	int exec = !pte_no_exec(pte) && !cpu_has_ic_fills_f_dc;
++	unsigned int i;
+ 
+ 	pfn = pte_pfn(pte);
+ 	if (unlikely(!pfn_valid(pfn)))
+ 		return;
+-	page = pfn_to_page(pfn);
+-	if (Page_dcache_dirty(page)) {
+-		if (PageHighMem(page))
+-			addr = (unsigned long)kmap_atomic(page);
+-		else
+-			addr = (unsigned long)page_address(page);
+-
+-		if (exec || pages_do_alias(addr, address & PAGE_MASK))
+-			flush_data_cache_page(addr);
+ 
+-		if (PageHighMem(page))
+-			kunmap_atomic((void *)addr);
++	folio = page_folio(pfn_to_page(pfn));
++	address &= PAGE_MASK;
++	address -= offset_in_folio(folio, pfn << PAGE_SHIFT);
++
++	if (folio_test_dcache_dirty(folio)) {
++		for (i = 0; i < folio_nr_pages(folio); i++) {
++			addr = (unsigned long)kmap_local_folio(folio, i);
+ 
+-		ClearPageDcacheDirty(page);
++			if (exec || pages_do_alias(addr, address))
++				flush_data_cache_page(addr);
++			kunmap_local((void *)addr);
++			address += PAGE_SIZE;
++		}
++		folio_clear_dcache_dirty(folio);
+ 	}
+ }
+ 
+diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
+index 5a8002839550..5dcb525a8995 100644
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -88,7 +88,7 @@ static void *__kmap_pgprot(struct page *page, unsigned long addr, pgprot_t prot)
+ 	pte_t pte;
+ 	int tlbidx;
+ 
+-	BUG_ON(Page_dcache_dirty(page));
++	BUG_ON(folio_test_dcache_dirty(page_folio(page)));
+ 
+ 	preempt_disable();
+ 	pagefault_disable();
+@@ -169,11 +169,12 @@ void kunmap_coherent(void)
+ void copy_user_highpage(struct page *to, struct page *from,
+ 	unsigned long vaddr, struct vm_area_struct *vma)
+ {
++	struct folio *src = page_folio(from);
+ 	void *vfrom, *vto;
+ 
+ 	vto = kmap_atomic(to);
+ 	if (cpu_has_dc_aliases &&
+-	    page_mapcount(from) && !Page_dcache_dirty(from)) {
++	    folio_mapped(src) && !folio_test_dcache_dirty(src)) {
+ 		vfrom = kmap_coherent(from, vaddr);
+ 		copy_page(vto, vfrom);
+ 		kunmap_coherent();
+@@ -194,15 +195,17 @@ void copy_to_user_page(struct vm_area_struct *vma,
+ 	struct page *page, unsigned long vaddr, void *dst, const void *src,
+ 	unsigned long len)
+ {
++	struct folio *folio = page_folio(page);
++
+ 	if (cpu_has_dc_aliases &&
+-	    page_mapcount(page) && !Page_dcache_dirty(page)) {
++	    folio_mapped(folio) && !folio_test_dcache_dirty(folio)) {
+ 		void *vto = kmap_coherent(page, vaddr) + (vaddr & ~PAGE_MASK);
+ 		memcpy(vto, src, len);
+ 		kunmap_coherent();
+ 	} else {
+ 		memcpy(dst, src, len);
+ 		if (cpu_has_dc_aliases)
+-			SetPageDcacheDirty(page);
++			folio_set_dcache_dirty(folio);
+ 	}
+ 	if (vma->vm_flags & VM_EXEC)
+ 		flush_cache_page(vma, vaddr, page_to_pfn(page));
+@@ -212,15 +215,17 @@ void copy_from_user_page(struct vm_area_struct *vma,
+ 	struct page *page, unsigned long vaddr, void *dst, const void *src,
+ 	unsigned long len)
+ {
++	struct folio *folio = page_folio(page);
++
+ 	if (cpu_has_dc_aliases &&
+-	    page_mapcount(page) && !Page_dcache_dirty(page)) {
++	    folio_mapped(folio) && !folio_test_dcache_dirty(folio)) {
+ 		void *vfrom = kmap_coherent(page, vaddr) + (vaddr & ~PAGE_MASK);
+ 		memcpy(dst, vfrom, len);
+ 		kunmap_coherent();
+ 	} else {
+ 		memcpy(dst, src, len);
+ 		if (cpu_has_dc_aliases)
+-			SetPageDcacheDirty(page);
++			folio_set_dcache_dirty(folio);
+ 	}
+ }
+ EXPORT_SYMBOL_GPL(copy_from_user_page);
+@@ -448,10 +453,10 @@ static inline void __init mem_init_free_highmem(void)
+ void __init mem_init(void)
+ {
+ 	/*
+-	 * When _PFN_SHIFT is greater than PAGE_SHIFT we won't have enough PTE
++	 * When PFN_PTE_SHIFT is greater than PAGE_SHIFT we won't have enough PTE
+ 	 * bits to hold a full 32b physical address on MIPS32 systems.
+ 	 */
+-	BUILD_BUG_ON(IS_ENABLED(CONFIG_32BIT) && (_PFN_SHIFT > PAGE_SHIFT));
++	BUILD_BUG_ON(IS_ENABLED(CONFIG_32BIT) && (PFN_PTE_SHIFT > PAGE_SHIFT));
+ 
+ #ifdef CONFIG_HIGHMEM
+ 	max_mapnr = highend_pfn ? highend_pfn : max_low_pfn;
+diff --git a/arch/mips/mm/pgtable-32.c b/arch/mips/mm/pgtable-32.c
+index f57fb69472f8..84dd5136d53a 100644
+--- a/arch/mips/mm/pgtable-32.c
++++ b/arch/mips/mm/pgtable-32.c
+@@ -35,7 +35,7 @@ pmd_t mk_pmd(struct page *page, pgprot_t prot)
+ {
+ 	pmd_t pmd;
+ 
+-	pmd_val(pmd) = (page_to_pfn(page) << _PFN_SHIFT) | pgprot_val(prot);
++	pmd_val(pmd) = (page_to_pfn(page) << PFN_PTE_SHIFT) | pgprot_val(prot);
+ 
+ 	return pmd;
+ }
+diff --git a/arch/mips/mm/pgtable-64.c b/arch/mips/mm/pgtable-64.c
+index b4386a0e2ef8..c76d21f7dffb 100644
+--- a/arch/mips/mm/pgtable-64.c
++++ b/arch/mips/mm/pgtable-64.c
+@@ -93,7 +93,7 @@ pmd_t mk_pmd(struct page *page, pgprot_t prot)
+ {
+ 	pmd_t pmd;
+ 
+-	pmd_val(pmd) = (page_to_pfn(page) << _PFN_SHIFT) | pgprot_val(prot);
++	pmd_val(pmd) = (page_to_pfn(page) << PFN_PTE_SHIFT) | pgprot_val(prot);
+ 
+ 	return pmd;
+ }
+diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
+index 8d514a9082c6..b4e1c783e617 100644
+--- a/arch/mips/mm/tlbex.c
++++ b/arch/mips/mm/tlbex.c
+@@ -253,7 +253,7 @@ static void output_pgtable_bits_defines(void)
+ 	pr_define("_PAGE_GLOBAL_SHIFT %d\n", _PAGE_GLOBAL_SHIFT);
+ 	pr_define("_PAGE_VALID_SHIFT %d\n", _PAGE_VALID_SHIFT);
+ 	pr_define("_PAGE_DIRTY_SHIFT %d\n", _PAGE_DIRTY_SHIFT);
+-	pr_define("_PFN_SHIFT %d\n", _PFN_SHIFT);
++	pr_define("PFN_PTE_SHIFT %d\n", PFN_PTE_SHIFT);
+ 	pr_debug("\n");
+ }
+ 
 -- 
 2.39.2
 
