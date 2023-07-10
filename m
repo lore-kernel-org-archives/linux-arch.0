@@ -2,155 +2,137 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 620CDEB64D9
-	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 05:40:52 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 82A4AEB64DC
+	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 08:02:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229868AbjGJFkv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 Jul 2023 01:40:51 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46374 "EHLO
+        id S229801AbjGJIC3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 Jul 2023 04:02:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33484 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229458AbjGJFku (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 01:40:50 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43C14A8;
-        Sun,  9 Jul 2023 22:40:49 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        with ESMTP id S229562AbjGJIC2 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 04:02:28 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5B054A6;
+        Mon, 10 Jul 2023 01:02:26 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Transfer-Encoding:
+        Content-Type:MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:
+        Sender:Reply-To:Content-ID:Content-Description;
+        bh=yNHDpzzYjieskAxABdDoEsqYSB5/uS6TUrXGMxgOO98=; b=N99m4nozzqxFHNBeNmFnfuL0Yp
+        +A521LWm9TiYTqrAsIYVfa3VHL0b9r5GMrproiVKMHVOP6TE4Cy8w/TftoGRFFiaDE38kqnMcjsDH
+        xeUABEteMR+PZlpoHFfw+Qz0DCKQnPO0MK7fC3o85tgPx7g1tthDfgRVNUrjUEFHYVZ6vjXBHamOJ
+        cu4xFA/boDgzrKZD8/iF4a0jqsJ1XQdes6nuQLeD7eWIgQeuaGyB7BVs5ACRMjnCrN9/thpPP4JxP
+        8bfYNPFbswyKbBnUGgHpYfBUErFA4J839MBBYWAF1b+sPPpl8i7JwdDotUHM+5p+JBnDzLgFVyg/4
+        HwAW5SBA==;
+Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
+        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+        id 1qIlqF-000jDT-0v;
+        Mon, 10 Jul 2023 08:01:56 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id D630560DFE;
-        Mon, 10 Jul 2023 05:40:48 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7DF2DC433C7;
-        Mon, 10 Jul 2023 05:40:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1688967648;
-        bh=vTePZySJwROm5kopsmfpT+96m9V/ekc/sUd11srBFsU=;
-        h=From:To:Cc:Subject:Date:From;
-        b=YWmXKZSqljsSEjQnsy1OYiCfCaPh2j1hzxcY/ZLIkpotGxHgoJM5wkIKD7Go1IcRV
-         cfJwcsPsQdTbXlFiDpUYgfj3lpAMuZRUEQqBuj6dOlB5Ev14XeXsfd6fsd88lLIDCm
-         cVmu5BCSMYaRKXqdXfCsPmrsT+g1inMmhTyQ13so+6W6hZrMCgRHwQlhxdSnKdwCjh
-         v++6Z0GP66TwoQmjwWQgAwwkbE/fiJBu7Jr0NtV5pPhs2Mdw8CFlTbC2KBA0GYIIRu
-         FWGX3u0fURZZj9hQuSpEjDYgYryvisP1XPwyVJnJ3fYmI+r1vS22O/2vb/VAdUNN73
-         jPXdeZ53PuEMQ==
-From:   guoren@kernel.org
-To:     guoren@kernel.org, palmer@rivosinc.com, paul.walmsley@sifive.com,
-        zong.li@sifive.com, atishp@atishpatra.org, alex@ghiti.fr,
-        jszhang@kernel.org, bjorn@kernel.org
-Cc:     linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH V2] riscv: kexec: Fixup synchronization problem between init_mm and active_mm
-Date:   Mon, 10 Jul 2023 01:40:29 -0400
-Message-Id: <20230710054029.2026124-1-guoren@kernel.org>
-X-Mailer: git-send-email 2.36.1
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id AFEC1300274;
+        Mon, 10 Jul 2023 10:01:52 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 1000)
+        id 6346D29984D29; Mon, 10 Jul 2023 10:01:52 +0200 (CEST)
+Date:   Mon, 10 Jul 2023 10:01:52 +0200
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     Guo Ren <guoren@kernel.org>
+Cc:     arnd@arndb.de, palmer@rivosinc.com, tglx@linutronix.de,
+        luto@kernel.org, conor.dooley@microchip.com, heiko@sntech.de,
+        jszhang@kernel.org, lazyparser@gmail.com, falcon@tinylab.org,
+        chenhuacai@kernel.org, apatel@ventanamicro.com,
+        atishp@atishpatra.org, mark.rutland@arm.com, bjorn@kernel.org,
+        palmer@dabbelt.com, bjorn@rivosinc.com, daniel.thompson@linaro.org,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-riscv@lists.infradead.org, stable@vger.kernel.org,
+        Guo Ren <guoren@linux.alibaba.com>
+Subject: Re: [PATCH] riscv: entry: Fixup do_trap_break from kernel side
+Message-ID: <20230710080152.GA3028865@hirez.programming.kicks-ass.net>
+References: <20230702025708.784106-1-guoren@kernel.org>
+ <20230704164003.GB83892@hirez.programming.kicks-ass.net>
+ <CAJF2gTTc0Gyo=K-0dCW6wu7q=Wq34hgTB69qJ7VSF_KAgKhavA@mail.gmail.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAJF2gTTc0Gyo=K-0dCW6wu7q=Wq34hgTB69qJ7VSF_KAgKhavA@mail.gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+On Sun, Jul 09, 2023 at 10:30:22AM +0800, Guo Ren wrote:
+> On Wed, Jul 5, 2023 at 12:40 AM Peter Zijlstra <peterz@infradead.org> wrote:
+> >
+> > On Sat, Jul 01, 2023 at 10:57:07PM -0400, guoren@kernel.org wrote:
+> > > From: Guo Ren <guoren@linux.alibaba.com>
+> > >
+> > > The irqentry_nmi_enter/exit would force the current context into in_interrupt.
+> > > That would trigger the kernel to dead panic, but the kdb still needs "ebreak" to
+> > > debug the kernel.
+> > >
+> > > Move irqentry_nmi_enter/exit to exception_enter/exit could correct handle_break
+> > > of the kernel side.
+> >
+> > This doesn't explain much if anything :/
+> >
+> > I'm confused (probably because I don't know RISC-V very well), what's
+> > EBREAK and how does it happen?
+> EBREAK is just an instruction of riscv which would rise breakpoint exception.
+> 
+> 
+> >
+> > Specifically, if EBREAK can happen inside an local_irq_disable() region,
+> > then the below change is actively wrong. Any exception/interrupt that
+> > can happen while local_irq_disable() must be treated like an NMI.
+> When the ebreak happend out of local_irq_disable region, but
+> __nmi_enter forces handle_break() into in_interupt() state. So how
 
-The machine_kexec() uses set_memory_x to modify the direct mapping
-attributes from RW to RWX. But set_memory_x only changes the init_mm's
-attributes, not current->active_mm, so when kexec jumps into
-control_buffer, the instruction page fault happens, and there is no
-minor_pagefault for it, then panic.
+And why is that a problem? I think I'm missing something fundamental
+here...
 
-The bug is found on an MMU_sv39 machine, and the direct mapping used a
-1GB PUD, the pgd entries. Here is the bug output:
+> about:
+> 
+> diff --git a/arch/riscv/kernel/traps.c b/arch/riscv/kernel/traps.c
+> index f910dfccbf5d..69f7043a98b9 100644
+> --- a/arch/riscv/kernel/traps.c
+> +++ b/arch/riscv/kernel/traps.c
+> @@ -18,6 +18,7 @@
+>  #include <linux/irq.h>
+>  #include <linux/kexec.h>
+>  #include <linux/entry-common.h>
+> +#include <linux/context_tracking.h>
+> 
+>  #include <asm/asm-prototypes.h>
+>  #include <asm/bug.h>
+> @@ -285,12 +286,18 @@ asmlinkage __visible __trap_section void
+> do_trap_break(struct pt_regs *regs)
+>                 handle_break(regs);
+> 
+>                 irqentry_exit_to_user_mode(regs);
+> -       } else {
+> +       } else if (in_interrupt()){
+>                 irqentry_state_t state = irqentry_nmi_enter(regs);
+> 
+>                 handle_break(regs);
+> 
+>                 irqentry_nmi_exit(regs, state);
+> +       } else {
+> +               enum ctx_state prev_state = exception_enter();
+> +
+> +               handle_break(regs);
+> +
+> +               exception_exit(prev_state);
+>         }
+>  }
 
- kexec_core: Starting new kernel
- Will call new kernel at 00300000 from hart id 0
- FDT image at 747c7000
- Bye...
- Unable to handle kernel paging request at virtual address ffffffda23b0d000
- Oops [#1]
- Modules linked in:
- CPU: 0 PID: 53 Comm: uinit Not tainted 6.4.0-rc6 #15
- Hardware name: Sophgo Mango (DT)
- epc : 0xffffffda23b0d000
-  ra : machine_kexec+0xa6/0xb0
- epc : ffffffda23b0d000 ra : ffffffff80008272 sp : ffffffc80c173d10
-  gp : ffffffff8150e1e0 tp : ffffffd9073d2c40 t0 : 0000000000000000
-  t1 : 0000000000000042 t2 : 6567616d69205444 s0 : ffffffc80c173d50
-  s1 : ffffffd9076c4800 a0 : ffffffd9076c4800 a1 : 0000000000300000
-  a2 : 00000000747c7000 a3 : 0000000000000000 a4 : ffffffd800000000
-  a5 : 0000000000000000 a6 : ffffffd903619c40 a7 : ffffffffffffffff
-  s2 : ffffffda23b0d000 s3 : 0000000000300000 s4 : 00000000747c7000
-  s5 : 0000000000000000 s6 : 0000000000000000 s7 : 0000000000000000
-  s8 : 0000000000000000 s9 : 0000000000000000 s10: 0000000000000000
-  s11: 0000003f940001a0 t3 : ffffffff815351af t4 : ffffffff815351af
-  t5 : ffffffff815351b0 t6 : ffffffc80c173b50
- status: 0000000200000100 badaddr: ffffffda23b0d000 cause: 000000000000000c
+That's wrong. If you want to make it conditional, you have to look at
+!(regs->status & SR_IE) (that's the interrupt enable flag of the
+interrupted context, right?)
 
-The solution is to fix machine_kexec() to remap control code page outside
-the linear mapping.
+When you hit an EBREAK when IRQs were disabled, you must be NMI like.
 
-Fixes: 3335068f8721 ("riscv: Use PUD/P4D/PGD pages for the linear mapping")
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
-Signed-off-by: Guo Ren <guoren@kernel.org>
-Cc: Alexandre Ghiti <alex@ghiti.fr>
----
-Changelog:
-V2:
- - Use vm_map_ram instead of modifying set_memory_x
- - Correct Fixes tag
----
- arch/riscv/include/asm/kexec.h    |  1 +
- arch/riscv/kernel/machine_kexec.c | 14 ++++++++++----
- 2 files changed, 11 insertions(+), 4 deletions(-)
-
-diff --git a/arch/riscv/include/asm/kexec.h b/arch/riscv/include/asm/kexec.h
-index 2b56769cb530..17456e91476e 100644
---- a/arch/riscv/include/asm/kexec.h
-+++ b/arch/riscv/include/asm/kexec.h
-@@ -41,6 +41,7 @@ crash_setup_regs(struct pt_regs *newregs,
- struct kimage_arch {
- 	void *fdt; /* For CONFIG_KEXEC_FILE */
- 	unsigned long fdt_addr;
-+	void *control_code_buffer;
- };
- 
- extern const unsigned char riscv_kexec_relocate[];
-diff --git a/arch/riscv/kernel/machine_kexec.c b/arch/riscv/kernel/machine_kexec.c
-index 2d139b724bc8..eeb209775107 100644
---- a/arch/riscv/kernel/machine_kexec.c
-+++ b/arch/riscv/kernel/machine_kexec.c
-@@ -86,7 +86,14 @@ machine_kexec_prepare(struct kimage *image)
- 
- 	/* Copy the assembler code for relocation to the control page */
- 	if (image->type != KEXEC_TYPE_CRASH) {
--		control_code_buffer = page_address(image->control_code_page);
-+		control_code_buffer = vm_map_ram(&image->control_code_page,
-+						 KEXEC_CONTROL_PAGE_SIZE/PAGE_SIZE,
-+						 NUMA_NO_NODE);
-+		if (control_code_buffer == NULL) {
-+			pr_err("Failed to vm_map control page\n");
-+			return -ENOMEM;
-+		}
-+
- 		control_code_buffer_sz = page_size(image->control_code_page);
- 
- 		if (unlikely(riscv_kexec_relocate_size > control_code_buffer_sz)) {
-@@ -97,8 +104,7 @@ machine_kexec_prepare(struct kimage *image)
- 		memcpy(control_code_buffer, riscv_kexec_relocate,
- 			riscv_kexec_relocate_size);
- 
--		/* Mark the control page executable */
--		set_memory_x((unsigned long) control_code_buffer, 1);
-+		internal->control_code_buffer = control_code_buffer;
- 	}
- 
- 	return 0;
-@@ -211,7 +217,7 @@ machine_kexec(struct kimage *image)
- 	unsigned long this_cpu_id = __smp_processor_id();
- 	unsigned long this_hart_id = cpuid_to_hartid_map(this_cpu_id);
- 	unsigned long fdt_addr = internal->fdt_addr;
--	void *control_code_buffer = page_address(image->control_code_page);
-+	void *control_code_buffer = internal->control_code_buffer;
- 	riscv_kexec_method kexec_method = NULL;
- 
- #ifdef CONFIG_SMP
--- 
-2.36.1
-
+But making it conditional like this makes it really hard to write a
+handler though, it basically must assume it will be NMI contetx (because
+it can't know) so there is no point in sometimes not doing NMI context.
