@@ -2,38 +2,39 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 200F8EB64D9
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C1A83C001DC
 	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 20:45:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232922AbjGJUpN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 Jul 2023 16:45:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50492 "EHLO
+        id S232938AbjGJUpO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 Jul 2023 16:45:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50496 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230200AbjGJUo6 (ORCPT
+        with ESMTP id S231130AbjGJUo6 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 16:44:58 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 32278E7A;
-        Mon, 10 Jul 2023 13:43:48 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 422971BB;
+        Mon, 10 Jul 2023 13:43:49 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=3MITzrjsscz3EOfHnUvCpgkBiqSORw5f6CrRiwc69RA=; b=c4AwRiQVrDhrNfG53FzdnE3K+f
-        r0ZI918ORvWE+/rlklI90tC0rTzLt/bZqIrIPosed6W8sSGZxn5juLhXXar5zemsZK9Vcqxkkq584
-        hDoHHqbFMo7S/5Kft9b2sm/K+b4TNB+bz5U1evgEm9J9ZpskVhypF9jwxVDDkfidplEasdsIZjYqO
-        hH7enTDz4wEm9cPzJr4rkEdVKpTkoNXBC4520HuxwPXnYULE3dtoqo3/DlkNRUpSSrtJge5TyrO3P
-        66GSziBTrEilNJlA1FCPqBoUjxKyXL04BGstWBXnLIjizU1uhiKJbsmRFrSuJbkOfbXM/ZC6jW7yK
-        Q5ywJ05w==;
+        bh=ACu0coWtToHgVmiLGofuGFdkSZdUJPASY/IVnZUUiqI=; b=KQOV3xnxHjVz1lKBWRN/GFYNE1
+        GTBdXlh6aD0aeos173WgoFubkYCHUodGZDmayFlE9FTXCLuhz5xIE+AadrazVBmXfKT39tbNfgOw2
+        K0iRfSZnxTkWs/5gE9dfpnjaeyyhaWQ54RdmXki7k6/fHGo7TvY2BI+m+rMPm9kpT6ET/U9ve5HvC
+        kigmCWilg4GNeA6mHkAZu+vCFDNFdVxEPrfAjlY70cViC7O6jSSM5hCzEcYZMOvfO8aZ7LjRdXxo8
+        1+HNso/FGePI0Jwzvi2mfP0b60fd1N7ZvvDiphtMsH5/Byk3Ia3ED0/XU4GFchyjsgBz4v9l4J535
+        pnYQNKyw==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qIxjV-00Eurk-IK; Mon, 10 Jul 2023 20:43:45 +0000
+        id 1qIxjU-00EuqN-3M; Mon, 10 Jul 2023 20:43:44 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, linux-kernel@vger.kernel.org,
-        Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v5 37/38] filemap: Batch PTE mappings
-Date:   Mon, 10 Jul 2023 21:43:38 +0100
-Message-Id: <20230710204339.3554919-38-willy@infradead.org>
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, Mike Rapoport <rppt@kernel.org>,
+        "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Subject: [PATCH v5 25/38] sparc32: Implement the new page table range API
+Date:   Mon, 10 Jul 2023 21:43:26 +0100
+Message-Id: <20230710204339.3554919-26-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230710204339.3554919-1-willy@infradead.org>
 References: <20230710204339.3554919-1-willy@infradead.org>
@@ -43,118 +44,123 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Yin Fengwei <fengwei.yin@intel.com>
+Add PFN_PTE_SHIFT, update_mmu_cache_range(), flush_dcache_folio() and
+flush_icache_pages().
 
-Call set_pte_range() once per contiguous range of the folio instead
-of once per page.  This batches the updates to mm counters and the
-rmap.
-
-With a will-it-scale.page_fault3 like app (change file write
-fault testing to read fault testing. Trying to upstream it to
-will-it-scale at [1]) got 15% performance gain on a 48C/96T
-Cascade Lake test box with 96 processes running against xfs.
-
-Perf data collected before/after the change:
-  18.73%--page_add_file_rmap
-          |
-           --11.60%--__mod_lruvec_page_state
-                     |
-                     |--7.40%--__mod_memcg_lruvec_state
-                     |          |
-                     |           --5.58%--cgroup_rstat_updated
-                     |
-                      --2.53%--__mod_lruvec_state
-                                |
-                                 --1.48%--__mod_node_page_state
-
-  9.93%--page_add_file_rmap_range
-         |
-          --2.67%--__mod_lruvec_page_state
-                    |
-                    |--1.95%--__mod_memcg_lruvec_state
-                    |          |
-                    |           --1.57%--cgroup_rstat_updated
-                    |
-                     --0.61%--__mod_lruvec_state
-                               |
-                                --0.54%--__mod_node_page_state
-
-The running time of __mode_lruvec_page_state() is reduced about 9%.
-
-[1]: https://github.com/antonblanchard/will-it-scale/pull/37
-
-Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 ---
- mm/filemap.c | 43 +++++++++++++++++++++++++++++--------------
- 1 file changed, 29 insertions(+), 14 deletions(-)
+ arch/sparc/include/asm/cacheflush_32.h |  9 +++++++--
+ arch/sparc/include/asm/pgtable_32.h    |  8 ++++----
+ arch/sparc/mm/init_32.c                | 13 +++++++++++--
+ 3 files changed, 22 insertions(+), 8 deletions(-)
 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index c06e9d331416..014b73eb96a1 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -3480,11 +3480,12 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
- 	struct file *file = vma->vm_file;
- 	struct page *page = folio_page(folio, start);
- 	unsigned int mmap_miss = READ_ONCE(file->f_ra.mmap_miss);
--	unsigned int ref_count = 0, count = 0;
-+	unsigned int count = 0;
-+	pte_t *old_ptep = vmf->pte;
+diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/asm/cacheflush_32.h
+index adb6991d0455..8dba35d63328 100644
+--- a/arch/sparc/include/asm/cacheflush_32.h
++++ b/arch/sparc/include/asm/cacheflush_32.h
+@@ -16,6 +16,7 @@
+ 	sparc32_cachetlb_ops->cache_page(vma, addr)
+ #define flush_icache_range(start, end)		do { } while (0)
+ #define flush_icache_page(vma, pg)		do { } while (0)
++#define flush_icache_pages(vma, pg, nr)		do { } while (0)
  
- 	do {
--		if (PageHWPoison(page))
--			continue;
-+		if (PageHWPoison(page + count))
-+			goto skip;
+ #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
+ 	do {							\
+@@ -35,11 +36,15 @@
+ #define flush_page_for_dma(addr) \
+ 	sparc32_cachetlb_ops->page_for_dma(addr)
  
- 		if (mmap_miss > 0)
- 			mmap_miss--;
-@@ -3494,20 +3495,34 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
- 		 * handled in the specific fault path, and it'll prohibit the
- 		 * fault-around logic.
- 		 */
--		if (!pte_none(*vmf->pte))
--			continue;
+-struct page;
+ void sparc_flush_page_to_ram(struct page *page);
++void sparc_flush_folio_to_ram(struct folio *folio);
+ 
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+-#define flush_dcache_page(page)			sparc_flush_page_to_ram(page)
++#define flush_dcache_folio(folio)		sparc_flush_folio_to_ram(folio)
++static inline void flush_dcache_page(struct page *page)
++{
++	flush_dcache_folio(page_folio(page));
++}
+ #define flush_dcache_mmap_lock(mapping)		do { } while (0)
+ #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+ 
+diff --git a/arch/sparc/include/asm/pgtable_32.h b/arch/sparc/include/asm/pgtable_32.h
+index d4330e3c57a6..315d316614ca 100644
+--- a/arch/sparc/include/asm/pgtable_32.h
++++ b/arch/sparc/include/asm/pgtable_32.h
+@@ -101,8 +101,6 @@ static inline void set_pte(pte_t *ptep, pte_t pteval)
+ 	srmmu_swap((unsigned long *)ptep, pte_val(pteval));
+ }
+ 
+-#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
 -
--		if (vmf->address == addr)
--			ret = VM_FAULT_NOPAGE;
-+		if (!pte_none(vmf->pte[count]))
-+			goto skip;
+ static inline int srmmu_device_memory(unsigned long x)
+ {
+ 	return ((x & 0xF0000000) != 0);
+@@ -256,6 +254,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
+ 	return __pte(pte_val(pte) | SRMMU_REF);
+ }
  
--		ref_count++;
--		set_pte_range(vmf, folio, page, 1, addr);
--	} while (vmf->pte++, page++, addr += PAGE_SIZE, ++count < nr_pages);
-+		count++;
-+		continue;
-+skip:
-+		if (count) {
-+			set_pte_range(vmf, folio, page, count, addr);
-+			folio_ref_add(folio, count);
-+			if (in_range(vmf->address, addr, count))
-+				ret = VM_FAULT_NOPAGE;
-+		}
++#define PFN_PTE_SHIFT			(PAGE_SHIFT - 4)
+ #define pfn_pte(pfn, prot)		mk_pte(pfn_to_page(pfn), prot)
  
--	/* Restore the vmf->pte */
--	vmf->pte -= nr_pages;
-+		count++;
-+		page += count;
-+		vmf->pte += count;
-+		addr += count * PAGE_SIZE;
-+		count = 0;
-+	} while (--nr_pages > 0);
+ static inline unsigned long pte_pfn(pte_t pte)
+@@ -268,7 +267,7 @@ static inline unsigned long pte_pfn(pte_t pte)
+ 		 */
+ 		return ~0UL;
+ 	}
+-	return (pte_val(pte) & SRMMU_PTE_PMASK) >> (PAGE_SHIFT-4);
++	return (pte_val(pte) & SRMMU_PTE_PMASK) >> PFN_PTE_SHIFT;
+ }
+ 
+ #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
+@@ -318,6 +317,7 @@ void mmu_info(struct seq_file *m);
+ #define FAULT_CODE_USER     0x4
+ 
+ #define update_mmu_cache(vma, address, ptep) do { } while (0)
++#define update_mmu_cache_range(vmf, vma, address, ptep, nr) do { } while (0)
+ 
+ void srmmu_mapiorange(unsigned int bus, unsigned long xpa,
+                       unsigned long xva, unsigned int len);
+@@ -422,7 +422,7 @@ static inline int io_remap_pfn_range(struct vm_area_struct *vma,
+ ({									  \
+ 	int __changed = !pte_same(*(__ptep), __entry);			  \
+ 	if (__changed) {						  \
+-		set_pte_at((__vma)->vm_mm, (__address), __ptep, __entry); \
++		set_pte(__ptep, __entry);				  \
+ 		flush_tlb_page(__vma, __address);			  \
+ 	}								  \
+ 	__changed;							  \
+diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
+index 9c0ea457bdf0..d96a14ffceeb 100644
+--- a/arch/sparc/mm/init_32.c
++++ b/arch/sparc/mm/init_32.c
+@@ -297,11 +297,20 @@ void sparc_flush_page_to_ram(struct page *page)
+ {
+ 	unsigned long vaddr = (unsigned long)page_address(page);
+ 
+-	if (vaddr)
+-		__flush_page_to_ram(vaddr);
++	__flush_page_to_ram(vaddr);
+ }
+ EXPORT_SYMBOL(sparc_flush_page_to_ram);
+ 
++void sparc_flush_folio_to_ram(struct folio *folio)
++{
++	unsigned long vaddr = (unsigned long)folio_address(folio);
++	unsigned int i, nr = folio_nr_pages(folio);
 +
-+	if (count) {
-+		set_pte_range(vmf, folio, page, count, addr);
-+		folio_ref_add(folio, count);
-+		if (in_range(vmf->address, addr, count))
-+			ret = VM_FAULT_NOPAGE;
-+	}
- 
--	folio_ref_add(folio, ref_count);
-+	vmf->pte = old_ptep;
- 	WRITE_ONCE(file->f_ra.mmap_miss, mmap_miss);
- 
- 	return ret;
++	for (i = 0; i < nr; i++)
++		__flush_page_to_ram(vaddr + i * PAGE_SIZE);
++}
++EXPORT_SYMBOL(sparc_flush_folio_to_ram);
++
+ static const pgprot_t protection_map[16] = {
+ 	[VM_NONE]					= PAGE_NONE,
+ 	[VM_READ]					= PAGE_READONLY,
 -- 
 2.39.2
 
