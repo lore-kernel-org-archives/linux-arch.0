@@ -2,40 +2,42 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id A8D88C001B0
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2DA16EB64DA
 	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 20:45:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232907AbjGJUpM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 Jul 2023 16:45:12 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49318 "EHLO
+        id S232902AbjGJUpL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 Jul 2023 16:45:11 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50490 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230268AbjGJUo6 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 16:44:58 -0400
+        with ESMTP id S229920AbjGJUo5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 16:44:57 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 230071AC;
-        Mon, 10 Jul 2023 13:43:49 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7CD6E19C;
+        Mon, 10 Jul 2023 13:43:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=cPCd6cun2Qq+jg4xfMvT7i67deMTX4AKGcyftDmfVKA=; b=C9TSROXSunzG3cB3FVg0vhwjCE
-        YgmwcMCux99SPh+GxYxHk3AlIpRjvDf35Dzcd+hFlpbMupPuhvzorw+hrAixznhcikQzs7/63ir80
-        wJeXXRvpz11TsZkzFWAwHpmRMOboz1asiiDtglKNC+hSgwiJrSt79ufQmkB27WNBM2WJUY5L+W1Dj
-        iKk91117x9cIhMuI+eAanjtJbWR9qM8GNcARzrUptagmoTQdzCpyl5tYnd4iDVkXJD6/dEUQX+qsA
-        kszHZ67VpOrbYHYqtV1Qcsozcizy840BVWqZclQlU1IrssvuddvRZPni9wHqyR3es+cfJuJX6chcC
-        71T/9+QQ==;
+        bh=LkNLbBSWedZKYyPfN1pGuZQo5tC7Q714M9YkIGeohI8=; b=LstrdFs9UlKVnGLIEf/uAPHDQu
+        pOcMiPmZPEJbQXp8d+wByOWnPshMUaJOCjYNfNldJhUqffupXq2qr8ZW2cIEmvQSvBMZBk4WZTWwx
+        D+h9KKwgOJoSQv5oq9816YjDOxDh8LKWQTqQLYLMInOiJTbUxKGZjexoGn7JzrNc1CLeVnITSE7n7
+        jz4V7oRq0/Gll+bVW0g0QVkL+PoDSNhsfLO9kWfztiTTfuVf7WndNMFG5cpOgSme0XkSl0Xiox2R5
+        bU0RGm7kycVY3av7mjwaL0GDR6eAER8KIgTNLG4IrpJTHfaEWOCIWBqgqOZHA39mj7MRaicZpYCdR
+        TEEB/kQQ==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qIxjU-00Euqf-Fc; Mon, 10 Jul 2023 20:43:44 +0000
+        id 1qIxjT-00Eupe-BF; Mon, 10 Jul 2023 20:43:43 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-kernel@vger.kernel.org, Mike Rapoport <rppt@kernel.org>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        linux-xtensa@linux-xtensa.org
-Subject: [PATCH v5 29/38] xtensa: Implement the new page table range API
-Date:   Mon, 10 Jul 2023 21:43:30 +0100
-Message-Id: <20230710204339.3554919-30-willy@infradead.org>
+        Jonas Bonn <jonas@southpole.se>,
+        Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+        Stafford Horne <shorne@gmail.com>,
+        linux-openrisc@vger.kernel.org
+Subject: [PATCH v5 19/38] openrisc: Implement the new page table range API
+Date:   Mon, 10 Jul 2023 21:43:20 +0100
+Message-Id: <20230710204339.3554919-20-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230710204339.3554919-1-willy@infradead.org>
 References: <20230710204339.3554919-1-willy@infradead.org>
@@ -45,236 +47,115 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add PFN_PTE_SHIFT, update_mmu_cache_range(), flush_dcache_folio() and
-flush_icache_pages().
+Add PFN_PTE_SHIFT, update_mmu_cache_range() and flush_dcache_folio().
+Change the PG_arch_1 (aka PG_dcache_dirty) flag from being per-page
+to per-folio.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-xtensa@linux-xtensa.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>
+Cc: Stafford Horne <shorne@gmail.com>
+Cc: linux-openrisc@vger.kernel.org
 ---
- arch/xtensa/include/asm/cacheflush.h |  9 ++-
- arch/xtensa/include/asm/pgtable.h    | 18 +++---
- arch/xtensa/mm/cache.c               | 83 ++++++++++++++++------------
- 3 files changed, 63 insertions(+), 47 deletions(-)
+ arch/openrisc/include/asm/cacheflush.h |  8 +++++++-
+ arch/openrisc/include/asm/pgtable.h    | 15 ++++++++++-----
+ arch/openrisc/mm/cache.c               | 12 ++++++++----
+ 3 files changed, 25 insertions(+), 10 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/cacheflush.h b/arch/xtensa/include/asm/cacheflush.h
-index 7b4359312c25..35153f6725e4 100644
---- a/arch/xtensa/include/asm/cacheflush.h
-+++ b/arch/xtensa/include/asm/cacheflush.h
-@@ -119,8 +119,14 @@ void flush_cache_page(struct vm_area_struct*,
- #define flush_cache_vmap(start,end)	flush_cache_all()
- #define flush_cache_vunmap(start,end)	flush_cache_all()
+diff --git a/arch/openrisc/include/asm/cacheflush.h b/arch/openrisc/include/asm/cacheflush.h
+index eeac40d4a854..984c331ff5f4 100644
+--- a/arch/openrisc/include/asm/cacheflush.h
++++ b/arch/openrisc/include/asm/cacheflush.h
+@@ -56,10 +56,16 @@ static inline void sync_icache_dcache(struct page *page)
+  */
+ #define PG_dc_clean                  PG_arch_1
  
-+void flush_dcache_folio(struct folio *folio);
++static inline void flush_dcache_folio(struct folio *folio)
++{
++	clear_bit(PG_dc_clean, &folio->flags);
++}
 +#define flush_dcache_folio flush_dcache_folio
 +
  #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
--void flush_dcache_page(struct page *);
-+static inline void flush_dcache_page(struct page *page)
-+{
+ static inline void flush_dcache_page(struct page *page)
+ {
+-	clear_bit(PG_dc_clean, &page->flags);
 +	flush_dcache_folio(page_folio(page));
-+}
+ }
  
- void local_flush_cache_range(struct vm_area_struct *vma,
- 		unsigned long start, unsigned long end);
-@@ -156,6 +162,7 @@ void local_flush_cache_page(struct vm_area_struct *vma,
- 
- /* This is not required, see Documentation/core-api/cachetlb.rst */
- #define	flush_icache_page(vma,page)			do { } while (0)
-+#define	flush_icache_pages(vma, page, nr)		do { } while (0)
- 
- #define flush_dcache_mmap_lock(mapping)			do { } while (0)
- #define flush_dcache_mmap_unlock(mapping)		do { } while (0)
-diff --git a/arch/xtensa/include/asm/pgtable.h b/arch/xtensa/include/asm/pgtable.h
-index fc7a14884c6c..ef79cb6c20dc 100644
---- a/arch/xtensa/include/asm/pgtable.h
-+++ b/arch/xtensa/include/asm/pgtable.h
-@@ -274,6 +274,7 @@ static inline pte_t pte_mkwrite(pte_t pte)
-  * and a page entry and page directory to the page they refer to.
+ #define flush_icache_user_page(vma, page, addr, len)	\
+diff --git a/arch/openrisc/include/asm/pgtable.h b/arch/openrisc/include/asm/pgtable.h
+index 3eb9b9555d0d..7bdf1bb0d177 100644
+--- a/arch/openrisc/include/asm/pgtable.h
++++ b/arch/openrisc/include/asm/pgtable.h
+@@ -46,7 +46,7 @@ extern void paging_init(void);
+  * hook is made available.
   */
+ #define set_pte(pteptr, pteval) ((*(pteptr)) = (pteval))
+-#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
++
+ /*
+  * (pmds are folded into pgds so this doesn't get actually called,
+  * but the define is needed for a generic inline function.)
+@@ -357,6 +357,7 @@ static inline unsigned long pmd_page_vaddr(pmd_t pmd)
+ #define __pmd_offset(address) \
+ 	(((address) >> PMD_SHIFT) & (PTRS_PER_PMD-1))
  
 +#define PFN_PTE_SHIFT		PAGE_SHIFT
- #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
- #define pte_same(a,b)		(pte_val(a) == pte_val(b))
- #define pte_page(x)		pfn_to_page(pte_pfn(x))
-@@ -301,15 +302,9 @@ static inline void update_pte(pte_t *ptep, pte_t pteval)
+ #define pte_pfn(x)		((unsigned long)(((x).pte)) >> PAGE_SHIFT)
+ #define pfn_pte(pfn, prot)  __pte((((pfn) << PAGE_SHIFT)) | pgprot_val(prot))
  
- struct mm_struct;
+@@ -379,13 +380,17 @@ static inline void update_tlb(struct vm_area_struct *vma,
+ extern void update_cache(struct vm_area_struct *vma,
+ 	unsigned long address, pte_t *pte);
  
--static inline void
--set_pte_at(struct mm_struct *mm, unsigned long addr, pte_t *ptep, pte_t pteval)
--{
--	update_pte(ptep, pteval);
--}
--
--static inline void set_pte(pte_t *ptep, pte_t pteval)
-+static inline void set_pte(pte_t *ptep, pte_t pte)
+-static inline void update_mmu_cache(struct vm_area_struct *vma,
+-	unsigned long address, pte_t *pte)
++static inline void update_mmu_cache_range(struct vm_fault *vmf,
++		struct vm_area_struct *vma, unsigned long address,
++		pte_t *ptep, unsigned int nr)
  {
--	update_pte(ptep, pteval);
-+	update_pte(ptep, pte);
+-	update_tlb(vma, address, pte);
+-	update_cache(vma, address, pte);
++	update_tlb(vma, address, ptep);
++	update_cache(vma, address, ptep);
  }
  
- static inline void
-@@ -407,8 +402,11 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte)
- 
- #else
- 
--extern  void update_mmu_cache(struct vm_area_struct * vma,
--			      unsigned long address, pte_t *ptep);
-+struct vm_fault;
-+void update_mmu_cache_range(struct vm_fault *vmf, struct vm_area_struct *vma,
-+		unsigned long address, pte_t *ptep, unsigned int nr);
-+#define update_mmu_cache(vma, address, ptep) \
-+	update_mmu_cache_range(NULL, vma, address, ptep, 1)
- 
- typedef pte_t *pte_addr_t;
- 
-diff --git a/arch/xtensa/mm/cache.c b/arch/xtensa/mm/cache.c
-index 19e5a478a7e8..7ec66a79f472 100644
---- a/arch/xtensa/mm/cache.c
-+++ b/arch/xtensa/mm/cache.c
-@@ -121,9 +121,9 @@ EXPORT_SYMBOL(copy_user_highpage);
-  *
-  */
- 
--void flush_dcache_page(struct page *page)
-+void flush_dcache_folio(struct folio *folio)
- {
--	struct address_space *mapping = page_mapping_file(page);
-+	struct address_space *mapping = folio_flush_mapping(folio);
- 
- 	/*
- 	 * If we have a mapping but the page is not mapped to user-space
-@@ -132,14 +132,14 @@ void flush_dcache_page(struct page *page)
- 	 */
- 
- 	if (mapping && !mapping_mapped(mapping)) {
--		if (!test_bit(PG_arch_1, &page->flags))
--			set_bit(PG_arch_1, &page->flags);
-+		if (!test_bit(PG_arch_1, &folio->flags))
-+			set_bit(PG_arch_1, &folio->flags);
- 		return;
- 
- 	} else {
--
--		unsigned long phys = page_to_phys(page);
--		unsigned long temp = page->index << PAGE_SHIFT;
-+		unsigned long phys = folio_pfn(folio) * PAGE_SIZE;
-+		unsigned long temp = folio_pos(folio);
-+		unsigned int i, nr = folio_nr_pages(folio);
- 		unsigned long alias = !(DCACHE_ALIAS_EQ(temp, phys));
- 		unsigned long virt;
- 
-@@ -154,22 +154,26 @@ void flush_dcache_page(struct page *page)
- 			return;
- 
- 		preempt_disable();
--		virt = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
--		__flush_invalidate_dcache_page_alias(virt, phys);
-+		for (i = 0; i < nr; i++) {
-+			virt = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
-+			__flush_invalidate_dcache_page_alias(virt, phys);
- 
--		virt = TLBTEMP_BASE_1 + (temp & DCACHE_ALIAS_MASK);
-+			virt = TLBTEMP_BASE_1 + (temp & DCACHE_ALIAS_MASK);
- 
--		if (alias)
--			__flush_invalidate_dcache_page_alias(virt, phys);
-+			if (alias)
-+				__flush_invalidate_dcache_page_alias(virt, phys);
- 
--		if (mapping)
--			__invalidate_icache_page_alias(virt, phys);
-+			if (mapping)
-+				__invalidate_icache_page_alias(virt, phys);
-+			phys += PAGE_SIZE;
-+			temp += PAGE_SIZE;
-+		}
- 		preempt_enable();
- 	}
- 
- 	/* There shouldn't be an entry in the cache for this page anymore. */
- }
--EXPORT_SYMBOL(flush_dcache_page);
-+EXPORT_SYMBOL(flush_dcache_folio);
++#define update_mmu_cache(vma, addr, ptep) \
++	update_mmu_cache_range(NULL, vma, addr, ptep, 1)
++
+ /* __PHX__ FIXME, SWAP, this probably doesn't work */
  
  /*
-  * For now, flush the whole cache. FIXME??
-@@ -207,45 +211,52 @@ EXPORT_SYMBOL(local_flush_cache_page);
- 
- #endif /* DCACHE_WAY_SIZE > PAGE_SIZE */
- 
--void
--update_mmu_cache(struct vm_area_struct * vma, unsigned long addr, pte_t *ptep)
-+void update_mmu_cache_range(struct vm_fault *vmf, struct vm_area_struct *vma,
-+		unsigned long addr, pte_t *ptep, unsigned int nr)
+diff --git a/arch/openrisc/mm/cache.c b/arch/openrisc/mm/cache.c
+index 534a52ec5e66..eb43b73f3855 100644
+--- a/arch/openrisc/mm/cache.c
++++ b/arch/openrisc/mm/cache.c
+@@ -43,15 +43,19 @@ void update_cache(struct vm_area_struct *vma, unsigned long address,
+ 	pte_t *pte)
  {
- 	unsigned long pfn = pte_pfn(*ptep);
--	struct page *page;
-+	struct folio *folio;
-+	unsigned int i;
+ 	unsigned long pfn = pte_val(*pte) >> PAGE_SHIFT;
+-	struct page *page = pfn_to_page(pfn);
+-	int dirty = !test_and_set_bit(PG_dc_clean, &page->flags);
++	struct folio *folio = page_folio(pfn_to_page(pfn));
++	int dirty = !test_and_set_bit(PG_dc_clean, &folio->flags);
  
- 	if (!pfn_valid(pfn))
- 		return;
- 
--	page = pfn_to_page(pfn);
-+	folio = page_folio(pfn_to_page(pfn));
- 
--	/* Invalidate old entry in TLBs */
--
--	flush_tlb_page(vma, addr);
-+	/* Invalidate old entries in TLBs */
-+	for (i = 0; i < nr; i++)
-+		flush_tlb_page(vma, addr + i * PAGE_SIZE);
-+	nr = folio_nr_pages(folio);
- 
- #if (DCACHE_WAY_SIZE > PAGE_SIZE)
- 
--	if (!PageReserved(page) && test_bit(PG_arch_1, &page->flags)) {
--		unsigned long phys = page_to_phys(page);
-+	if (!folio_test_reserved(folio) && test_bit(PG_arch_1, &folio->flags)) {
-+		unsigned long phys = folio_pfn(folio) * PAGE_SIZE;
- 		unsigned long tmp;
- 
- 		preempt_disable();
--		tmp = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
--		__flush_invalidate_dcache_page_alias(tmp, phys);
--		tmp = TLBTEMP_BASE_1 + (addr & DCACHE_ALIAS_MASK);
--		__flush_invalidate_dcache_page_alias(tmp, phys);
--		__invalidate_icache_page_alias(tmp, phys);
-+		for (i = 0; i < nr; i++) {
-+			tmp = TLBTEMP_BASE_1 + (phys & DCACHE_ALIAS_MASK);
-+			__flush_invalidate_dcache_page_alias(tmp, phys);
-+			tmp = TLBTEMP_BASE_1 + (addr & DCACHE_ALIAS_MASK);
-+			__flush_invalidate_dcache_page_alias(tmp, phys);
-+			__invalidate_icache_page_alias(tmp, phys);
-+			phys += PAGE_SIZE;
-+		}
- 		preempt_enable();
- 
--		clear_bit(PG_arch_1, &page->flags);
-+		clear_bit(PG_arch_1, &folio->flags);
- 	}
- #else
--	if (!PageReserved(page) && !test_bit(PG_arch_1, &page->flags)
-+	if (!folio_test_reserved(folio) && !test_bit(PG_arch_1, &folio->flags)
- 	    && (vma->vm_flags & VM_EXEC) != 0) {
--		unsigned long paddr = (unsigned long)kmap_atomic(page);
--		__flush_dcache_page(paddr);
--		__invalidate_icache_page(paddr);
--		set_bit(PG_arch_1, &page->flags);
--		kunmap_atomic((void *)paddr);
-+		for (i = 0; i < nr; i++) {
-+			void *paddr = kmap_local_folio(folio, i * PAGE_SIZE);
-+			__flush_dcache_page((unsigned long)paddr);
-+			__invalidate_icache_page((unsigned long)paddr);
-+			kunmap_local(paddr);
-+		}
-+		set_bit(PG_arch_1, &folio->flags);
- 	}
- #endif
+ 	/*
+ 	 * Since icaches do not snoop for updated data on OpenRISC, we
+ 	 * must write back and invalidate any dirty pages manually. We
+ 	 * can skip data pages, since they will not end up in icaches.
+ 	 */
+-	if ((vma->vm_flags & VM_EXEC) && dirty)
+-		sync_icache_dcache(page);
++	if ((vma->vm_flags & VM_EXEC) && dirty) {
++		unsigned int nr = folio_nr_pages(folio);
++
++		while (nr--)
++			sync_icache_dcache(folio_page(folio, nr));
++	}
  }
+ 
 -- 
 2.39.2
 
