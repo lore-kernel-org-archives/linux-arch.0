@@ -2,39 +2,41 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C1A83C001DC
-	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 20:45:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9474EEB64DC
+	for <linux-arch@archiver.kernel.org>; Mon, 10 Jul 2023 20:45:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232938AbjGJUpO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 10 Jul 2023 16:45:14 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50496 "EHLO
+        id S232947AbjGJUpP (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 10 Jul 2023 16:45:15 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49496 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231130AbjGJUo6 (ORCPT
+        with ESMTP id S230494AbjGJUo6 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 10 Jul 2023 16:44:58 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 422971BB;
-        Mon, 10 Jul 2023 13:43:49 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2B80AE79;
+        Mon, 10 Jul 2023 13:43:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=ACu0coWtToHgVmiLGofuGFdkSZdUJPASY/IVnZUUiqI=; b=KQOV3xnxHjVz1lKBWRN/GFYNE1
-        GTBdXlh6aD0aeos173WgoFubkYCHUodGZDmayFlE9FTXCLuhz5xIE+AadrazVBmXfKT39tbNfgOw2
-        K0iRfSZnxTkWs/5gE9dfpnjaeyyhaWQ54RdmXki7k6/fHGo7TvY2BI+m+rMPm9kpT6ET/U9ve5HvC
-        kigmCWilg4GNeA6mHkAZu+vCFDNFdVxEPrfAjlY70cViC7O6jSSM5hCzEcYZMOvfO8aZ7LjRdXxo8
-        1+HNso/FGePI0Jwzvi2mfP0b60fd1N7ZvvDiphtMsH5/Byk3Ia3ED0/XU4GFchyjsgBz4v9l4J535
-        pnYQNKyw==;
+        bh=3eckwhASlJ5kB1LQ/if3Fo0Hxrj5Tti58CwpH+WVOLg=; b=Cvh1UbtToEDk9/QV9A82rA+pgO
+        ZTVGf7qezP8ORX82Pd9066sJeOM5dE7LJVSdU72VBPOJJePCnnmx2XPj4ovyJ6l2tseqYrpT30eCK
+        U+OfkAb85sMFzp4gY6kAmZ3KHrVUGYUv1fcbj6hZfNkAAMJWS9kq6rLqMWHlXH3D8AU8Y4Fzo2ksa
+        rYBNjIHm+ngWuRRZxot/g5zHA3FmaazW2bANzxCp7m6yvQvNfshhbM4XpxK/qAQ9ssoe/TgzTYC2B
+        1gy6zazOwafB2OLz5giRT6S2BdKpDM2fRB9CnJTd+dM1btzR+GYIvpVPyQG3p8ZOUcLjb7krJ5nyw
+        9ExiL9KQ==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qIxjU-00EuqN-3M; Mon, 10 Jul 2023 20:43:44 +0000
+        id 1qIxjS-00EupG-Rz; Mon, 10 Jul 2023 20:43:42 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, Mike Rapoport <rppt@kernel.org>,
-        "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Subject: [PATCH v5 25/38] sparc32: Implement the new page table range API
-Date:   Mon, 10 Jul 2023 21:43:26 +0100
-Message-Id: <20230710204339.3554919-26-willy@infradead.org>
+        linux-kernel@vger.kernel.org,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        Mike Rapoport <rppt@kernel.org>,
+        linux-m68k@lists.linux-m68k.org
+Subject: [PATCH v5 15/38] m68k: Implement the new page table range API
+Date:   Mon, 10 Jul 2023 21:43:16 +0100
+Message-Id: <20230710204339.3554919-16-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230710204339.3554919-1-willy@infradead.org>
 References: <20230710204339.3554919-1-willy@infradead.org>
@@ -44,123 +46,160 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add PFN_PTE_SHIFT, update_mmu_cache_range(), flush_dcache_folio() and
-flush_icache_pages().
+Add PFN_PTE_SHIFT, update_mmu_cache_range(), flush_icache_pages() and
+flush_dcache_folio().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
 ---
- arch/sparc/include/asm/cacheflush_32.h |  9 +++++++--
- arch/sparc/include/asm/pgtable_32.h    |  8 ++++----
- arch/sparc/mm/init_32.c                | 13 +++++++++++--
- 3 files changed, 22 insertions(+), 8 deletions(-)
+ arch/m68k/include/asm/cacheflush_mm.h    | 27 ++++++++++++++++--------
+ arch/m68k/include/asm/mcf_pgtable.h      |  1 +
+ arch/m68k/include/asm/motorola_pgtable.h |  1 +
+ arch/m68k/include/asm/pgtable_mm.h       | 10 +++++----
+ arch/m68k/include/asm/sun3_pgtable.h     |  1 +
+ arch/m68k/mm/motorola.c                  |  2 +-
+ 6 files changed, 28 insertions(+), 14 deletions(-)
 
-diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/asm/cacheflush_32.h
-index adb6991d0455..8dba35d63328 100644
---- a/arch/sparc/include/asm/cacheflush_32.h
-+++ b/arch/sparc/include/asm/cacheflush_32.h
-@@ -16,6 +16,7 @@
- 	sparc32_cachetlb_ops->cache_page(vma, addr)
- #define flush_icache_range(start, end)		do { } while (0)
- #define flush_icache_page(vma, pg)		do { } while (0)
-+#define flush_icache_pages(vma, pg, nr)		do { } while (0)
+diff --git a/arch/m68k/include/asm/cacheflush_mm.h b/arch/m68k/include/asm/cacheflush_mm.h
+index 1ac55e7b47f0..88eb85e81ef6 100644
+--- a/arch/m68k/include/asm/cacheflush_mm.h
++++ b/arch/m68k/include/asm/cacheflush_mm.h
+@@ -220,24 +220,29 @@ static inline void flush_cache_page(struct vm_area_struct *vma, unsigned long vm
  
- #define copy_to_user_page(vma, page, vaddr, dst, src, len) \
- 	do {							\
-@@ -35,11 +36,15 @@
- #define flush_page_for_dma(addr) \
- 	sparc32_cachetlb_ops->page_for_dma(addr)
- 
--struct page;
- void sparc_flush_page_to_ram(struct page *page);
-+void sparc_flush_folio_to_ram(struct folio *folio);
+ /* Push the page at kernel virtual address and clear the icache */
+ /* RZ: use cpush %bc instead of cpush %dc, cinv %ic */
+-static inline void __flush_page_to_ram(void *vaddr)
++static inline void __flush_pages_to_ram(void *vaddr, unsigned int nr)
+ {
+ 	if (CPU_IS_COLDFIRE) {
+ 		unsigned long addr, start, end;
+ 		addr = ((unsigned long) vaddr) & ~(PAGE_SIZE - 1);
+ 		start = addr & ICACHE_SET_MASK;
+-		end = (addr + PAGE_SIZE - 1) & ICACHE_SET_MASK;
++		end = (addr + nr * PAGE_SIZE - 1) & ICACHE_SET_MASK;
+ 		if (start > end) {
+ 			flush_cf_bcache(0, end);
+ 			end = ICACHE_MAX_ADDR;
+ 		}
+ 		flush_cf_bcache(start, end);
+ 	} else if (CPU_IS_040_OR_060) {
+-		__asm__ __volatile__("nop\n\t"
+-				     ".chip 68040\n\t"
+-				     "cpushp %%bc,(%0)\n\t"
+-				     ".chip 68k"
+-				     : : "a" (__pa(vaddr)));
++		unsigned long paddr = __pa(vaddr);
++
++		do {
++			__asm__ __volatile__("nop\n\t"
++					     ".chip 68040\n\t"
++					     "cpushp %%bc,(%0)\n\t"
++					     ".chip 68k"
++					     : : "a" (paddr));
++			paddr += PAGE_SIZE;
++		} while (--nr);
+ 	} else {
+ 		unsigned long _tmp;
+ 		__asm__ __volatile__("movec %%cacr,%0\n\t"
+@@ -249,10 +254,14 @@ static inline void __flush_page_to_ram(void *vaddr)
+ }
  
  #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
--#define flush_dcache_page(page)			sparc_flush_page_to_ram(page)
-+#define flush_dcache_folio(folio)		sparc_flush_folio_to_ram(folio)
-+static inline void flush_dcache_page(struct page *page)
-+{
-+	flush_dcache_folio(page_folio(page));
-+}
+-#define flush_dcache_page(page)		__flush_page_to_ram(page_address(page))
++#define flush_dcache_page(page)	__flush_pages_to_ram(page_address(page), 1)
++#define flush_dcache_folio(folio)		\
++	__flush_pages_to_ram(folio_address(folio), folio_nr_pages(folio))
  #define flush_dcache_mmap_lock(mapping)		do { } while (0)
  #define flush_dcache_mmap_unlock(mapping)	do { } while (0)
+-#define flush_icache_page(vma, page)	__flush_page_to_ram(page_address(page))
++#define flush_icache_pages(vma, page, nr)	\
++	__flush_pages_to_ram(page_address(page), nr)
++#define flush_icache_page(vma, page) flush_icache_pages(vma, page, 1)
  
-diff --git a/arch/sparc/include/asm/pgtable_32.h b/arch/sparc/include/asm/pgtable_32.h
-index d4330e3c57a6..315d316614ca 100644
---- a/arch/sparc/include/asm/pgtable_32.h
-+++ b/arch/sparc/include/asm/pgtable_32.h
-@@ -101,8 +101,6 @@ static inline void set_pte(pte_t *ptep, pte_t pteval)
- 	srmmu_swap((unsigned long *)ptep, pte_val(pteval));
+ extern void flush_icache_user_page(struct vm_area_struct *vma, struct page *page,
+ 				    unsigned long addr, int len);
+diff --git a/arch/m68k/include/asm/mcf_pgtable.h b/arch/m68k/include/asm/mcf_pgtable.h
+index 43e8da8465f9..772b7e7b0654 100644
+--- a/arch/m68k/include/asm/mcf_pgtable.h
++++ b/arch/m68k/include/asm/mcf_pgtable.h
+@@ -291,6 +291,7 @@ static inline pte_t pte_swp_clear_exclusive(pte_t pte)
+ 	return pte;
  }
  
++#define PFN_PTE_SHIFT		PAGE_SHIFT
+ #define pmd_pfn(pmd)		(pmd_val(pmd) >> PAGE_SHIFT)
+ #define pmd_page(pmd)		(pfn_to_page(pmd_val(pmd) >> PAGE_SHIFT))
+ 
+diff --git a/arch/m68k/include/asm/motorola_pgtable.h b/arch/m68k/include/asm/motorola_pgtable.h
+index ec0dc19ab834..38d5e5edc3e1 100644
+--- a/arch/m68k/include/asm/motorola_pgtable.h
++++ b/arch/m68k/include/asm/motorola_pgtable.h
+@@ -112,6 +112,7 @@ static inline void pud_set(pud_t *pudp, pmd_t *pmdp)
+ #define pte_present(pte)	(pte_val(pte) & (_PAGE_PRESENT | _PAGE_PROTNONE))
+ #define pte_clear(mm,addr,ptep)		({ pte_val(*(ptep)) = 0; })
+ 
++#define PFN_PTE_SHIFT		PAGE_SHIFT
+ #define pte_page(pte)		virt_to_page(__va(pte_val(pte)))
+ #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
+ #define pfn_pte(pfn, prot)	__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot))
+diff --git a/arch/m68k/include/asm/pgtable_mm.h b/arch/m68k/include/asm/pgtable_mm.h
+index b93c41fe2067..dbdf1c2b2f66 100644
+--- a/arch/m68k/include/asm/pgtable_mm.h
++++ b/arch/m68k/include/asm/pgtable_mm.h
+@@ -31,8 +31,6 @@
+ 	do{							\
+ 		*(pteptr) = (pteval);				\
+ 	} while(0)
 -#define set_pte_at(mm,addr,ptep,pteval) set_pte(ptep,pteval)
 -
- static inline int srmmu_device_memory(unsigned long x)
+ 
+ /* PMD_SHIFT determines the size of the area a second-level page table can map */
+ #if CONFIG_PGTABLE_LEVELS == 3
+@@ -138,11 +136,15 @@ extern void kernel_set_cachemode(void *addr, unsigned long size, int cmode);
+  * tables contain all the necessary information.  The Sun3 does, but
+  * they are updated on demand.
+  */
+-static inline void update_mmu_cache(struct vm_area_struct *vma,
+-				    unsigned long address, pte_t *ptep)
++static inline void update_mmu_cache_range(struct vm_fault *vmf,
++		struct vm_area_struct *vma, unsigned long address,
++		pte_t *ptep, unsigned int nr)
  {
- 	return ((x & 0xF0000000) != 0);
-@@ -256,6 +254,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
- 	return __pte(pte_val(pte) | SRMMU_REF);
  }
  
-+#define PFN_PTE_SHIFT			(PAGE_SHIFT - 4)
- #define pfn_pte(pfn, prot)		mk_pte(pfn_to_page(pfn), prot)
++#define update_mmu_cache(vma, addr, ptep) \
++	update_mmu_cache_range(NULL, vma, addr, ptep, 1)
++
+ #endif /* !__ASSEMBLY__ */
  
- static inline unsigned long pte_pfn(pte_t pte)
-@@ -268,7 +267,7 @@ static inline unsigned long pte_pfn(pte_t pte)
- 		 */
- 		return ~0UL;
- 	}
--	return (pte_val(pte) & SRMMU_PTE_PMASK) >> (PAGE_SHIFT-4);
-+	return (pte_val(pte) & SRMMU_PTE_PMASK) >> PFN_PTE_SHIFT;
+ /* MMU-specific headers */
+diff --git a/arch/m68k/include/asm/sun3_pgtable.h b/arch/m68k/include/asm/sun3_pgtable.h
+index 9e7bf8a5f8f8..0cc39a88ce55 100644
+--- a/arch/m68k/include/asm/sun3_pgtable.h
++++ b/arch/m68k/include/asm/sun3_pgtable.h
+@@ -105,6 +105,7 @@ static inline void pte_clear (struct mm_struct *mm, unsigned long addr, pte_t *p
+ 	pte_val (*ptep) = 0;
  }
  
- #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
-@@ -318,6 +317,7 @@ void mmu_info(struct seq_file *m);
- #define FAULT_CODE_USER     0x4
++#define PFN_PTE_SHIFT		0
+ #define pte_pfn(pte)            (pte_val(pte) & SUN3_PAGE_PGNUM_MASK)
+ #define pfn_pte(pfn, pgprot) \
+ ({ pte_t __pte; pte_val(__pte) = pfn | pgprot_val(pgprot); __pte; })
+diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
+index c75984e2d86b..8bca46e51e94 100644
+--- a/arch/m68k/mm/motorola.c
++++ b/arch/m68k/mm/motorola.c
+@@ -81,7 +81,7 @@ static inline void cache_page(void *vaddr)
  
- #define update_mmu_cache(vma, address, ptep) do { } while (0)
-+#define update_mmu_cache_range(vmf, vma, address, ptep, nr) do { } while (0)
- 
- void srmmu_mapiorange(unsigned int bus, unsigned long xpa,
-                       unsigned long xva, unsigned int len);
-@@ -422,7 +422,7 @@ static inline int io_remap_pfn_range(struct vm_area_struct *vma,
- ({									  \
- 	int __changed = !pte_same(*(__ptep), __entry);			  \
- 	if (__changed) {						  \
--		set_pte_at((__vma)->vm_mm, (__address), __ptep, __entry); \
-+		set_pte(__ptep, __entry);				  \
- 		flush_tlb_page(__vma, __address);			  \
- 	}								  \
- 	__changed;							  \
-diff --git a/arch/sparc/mm/init_32.c b/arch/sparc/mm/init_32.c
-index 9c0ea457bdf0..d96a14ffceeb 100644
---- a/arch/sparc/mm/init_32.c
-+++ b/arch/sparc/mm/init_32.c
-@@ -297,11 +297,20 @@ void sparc_flush_page_to_ram(struct page *page)
+ void mmu_page_ctor(void *page)
  {
- 	unsigned long vaddr = (unsigned long)page_address(page);
- 
--	if (vaddr)
--		__flush_page_to_ram(vaddr);
-+	__flush_page_to_ram(vaddr);
+-	__flush_page_to_ram(page);
++	__flush_pages_to_ram(page, 1);
+ 	flush_tlb_kernel_page(page);
+ 	nocache_page(page);
  }
- EXPORT_SYMBOL(sparc_flush_page_to_ram);
- 
-+void sparc_flush_folio_to_ram(struct folio *folio)
-+{
-+	unsigned long vaddr = (unsigned long)folio_address(folio);
-+	unsigned int i, nr = folio_nr_pages(folio);
-+
-+	for (i = 0; i < nr; i++)
-+		__flush_page_to_ram(vaddr + i * PAGE_SIZE);
-+}
-+EXPORT_SYMBOL(sparc_flush_folio_to_ram);
-+
- static const pgprot_t protection_map[16] = {
- 	[VM_NONE]					= PAGE_NONE,
- 	[VM_READ]					= PAGE_READONLY,
 -- 
 2.39.2
 
