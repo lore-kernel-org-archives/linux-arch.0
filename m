@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4E56CC001E0
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:58:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0A0EAC001DE
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:58:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233125AbjGPV6E (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 17:58:04 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52746 "EHLO
+        id S232801AbjGPV6Y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 17:58:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52752 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231318AbjGPV5a (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:57:30 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5E97F26B2;
-        Sun, 16 Jul 2023 14:55:41 -0700 (PDT)
+        with ESMTP id S231303AbjGPV6B (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:58:01 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B045E3C27;
+        Sun, 16 Jul 2023 14:55:51 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 1097C60EF3;
-        Sun, 16 Jul 2023 21:55:40 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BB808C43391;
-        Sun, 16 Jul 2023 21:55:33 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 2AF6360D3C;
+        Sun, 16 Jul 2023 21:55:09 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D92A0C433D9;
+        Sun, 16 Jul 2023 21:55:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544539;
-        bh=6C9vpUKzxaC1YPufnnUpE8qHeuHqYjFB9iVUxK25t6w=;
+        s=k20201202; t=1689544508;
+        bh=Qo7VEeq35SIQJBwY5tGh8MK5qJhh/DcNObXLhMO8UqU=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=qRa+YtE7yvYvcODmiwXlBSh4F1vfSwmQsxOYCCQHdyb7+9c2QZaWomxYvuS8kAIhp
-         714G1h1smywg2+5j2TZEfjSY4jKrv7pSFsPmWoRlS0zeS6ohrJTmnPvVIi14ff21D8
-         JDffHX6QBQP9aOIkracyewUb01/PrSGXzH4WmI+M4og6H7vnCvlW8GNZs+SChNn2N3
-         CFO4IYgetGBzac0xoAbaU0lbR8qvrMLJ3zH0bVfQcPnzspiFpfFuWqBx87Ho0dw9Vh
-         P14G/ouU2IXhzfq4tdx9JGoiCtFadeEMcbJpJfckv7oSDxvR+DrHoPw2gwKEtpbUZO
-         WD42Obeggb7Jg==
+        b=GzegXUhYlkdZAQDz17YKUhLLyzootwSLonFAjsX9Zc+ZSjteNmOCmvJJ884p4d3hu
+         qIS4BEzrJGPTwFVnVdZAKKeX0MzlCMgWgH0ehM0M61t5vijMMiRlRW1ObmbRzmkCqL
+         CTX+eVqknGKA5xZFRpb7pcMfVoiPDqBRLL7UUj0m3JjpH5CAUYMuu4SQcQ6K4lcEp5
+         w0vWBWcT5F46HmaVKX1o9DU5niE01RjGoY7FAgxODqldWt3x/z8MkB959NgqqViyhP
+         t971vTB/91Nk3bOQ43QvhBAR10mwh8Ivjw950T21xaLsWHWE1hk0jwt+X5JlkkEku4
+         VrFLlda7C+CKw==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:23 +0100
-Subject: [PATCH 27/35] kselftest/arm64: Verify the GCS hwcap
+Date:   Sun, 16 Jul 2023 22:51:18 +0100
+Subject: [PATCH 22/35] arm64/mm: Implement map_shadow_stack()
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-27-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-22-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,66 +67,150 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1205; i=broonie@kernel.org;
- h=from:subject:message-id; bh=6C9vpUKzxaC1YPufnnUpE8qHeuHqYjFB9iVUxK25t6w=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGakI2DafnLEN0xPOYtS8rBwoQOkhbNIa3aIl3+T
- kLXsS3CJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmpAAKCRAk1otyXVSH0C6mB/
- wOqidQ+86Oz6oompV7K5g7vr0TQDYT17lne0KPFqCuXH52UJc3v5g1bWEBZCf72AIeUyxqIlXL1eo+
- fCOPXyV5gx9kIxzNL5ZchfzMMppq9l2z8iGxIDidnZ6Rwu88A8zTi11YTTgcJawGzWSHPi5x0M4tYS
- kmZDonpfdL3p2LhjP7t0nhltgDjNqnE0LdDpgk1M6KoClhQX7tBC0Y++yuKtA8RVSwE87k+oaTYNUW
- ieQNE9JyTJnXTC1B5QfO3otl1F+D47QHyh9/+ktlmXTv5gfNRDIydVmDscZmRd4N7GYcn9T2SDLx4b
- kNoA3+dO/UVfdsAY+7oBJuc+B6wbTC
+X-Developer-Signature: v=1; a=openpgp-sha256; l=4421; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=Qo7VEeq35SIQJBwY5tGh8MK5qJhh/DcNObXLhMO8UqU=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGagvpwQV4XAkoRVhZdCmWBlzCHbZlMBfrgD+NYq
+ bRpNHx2JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmoAAKCRAk1otyXVSH0EWoB/
+ 9XAB49ipxqD8pTqi39SsA0KNzDNrBqckpW5K9QoMb12JtitNbyGeiaGrOPwn0ACjVR141Br7EUPih6
+ gPjGmAcuimOQ9HAU2vvEWLFOcXDEKd4yEFQJXLcRpLeiFxmnkEo+AuNpfpHZEJJ9R9Tb70KPD0Q/7S
+ N9SLSNPr+UoE5B7AP/sTeTcek9UkA2s95d9gPfbYtjO1KIkLlyb0/WTEGfsdwJuYjnl0S4aE9RshsF
+ TuRR563zyw25tegN6qsR0JCuRyvKEXGKTTFsiydbE9LBvJ1NEe4eut5QC/Gue2AP85cH81UUzbN7ph
+ v6+CWf070I1sThmu6TF5TkeoScNblM
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add coverage of the GCS hwcap to the hwcap selftest, using a read of
-GCSPR_EL0 to generate SIGILL without having to worry about enabling GCS.
+As discussed extensively in the changelog for the addition of this
+syscall on x86 ("x86/shstk: Introduce map_shadow_stack syscall") the
+existing mmap() and madvise() syscalls do not map entirely well onto the
+security requirements for guarded control stacks since they lead to
+windows where memory is allocated but not yet protected or stacks which
+are not properly and safely initialised. Instead a new syscall
+map_shadow_stack() has been defined which allocates and initialises a
+shadow stack page.
+
+Implement this for arm64, initialising memory allocated this way with
+the top two entries in the stack being 0 (to allow detection of the end
+of the GCS) and a GCS cap token (to allow switching to the newly
+allocated GCS via the GCS switch instructions).
+
+Since the x86 code has not yet been rebased to v6.5-rc1 this includes
+the architecture neutral parts of Rick Edgecmbe's "x86/shstk: Introduce
+map_shadow_stack syscall".
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/abi/hwcap.c | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
+ arch/arm64/mm/gcs.c               | 44 ++++++++++++++++++++++++++++++++++++++-
+ include/linux/syscalls.h          |  1 +
+ include/uapi/asm-generic/unistd.h |  5 ++++-
+ kernel/sys_ni.c                   |  1 +
+ 4 files changed, 49 insertions(+), 2 deletions(-)
 
-diff --git a/tools/testing/selftests/arm64/abi/hwcap.c b/tools/testing/selftests/arm64/abi/hwcap.c
-index d4ad813fed10..38844e4c5aae 100644
---- a/tools/testing/selftests/arm64/abi/hwcap.c
-+++ b/tools/testing/selftests/arm64/abi/hwcap.c
-@@ -39,6 +39,17 @@ static void cssc_sigill(void)
- 	asm volatile(".inst 0xdac01c00" : : : "x0");
+diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
+index b137493c594d..4a0a736800c0 100644
+--- a/arch/arm64/mm/gcs.c
++++ b/arch/arm64/mm/gcs.c
+@@ -52,7 +52,6 @@ unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
+ 		return 0;
+ 
+ 	size = gcs_size(size);
+-
+ 	addr = alloc_gcs(0, size, 0, 0);
+ 	if (IS_ERR_VALUE(addr))
+ 		return addr;
+@@ -64,6 +63,49 @@ unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
+ 	return addr;
  }
  
-+static void gcs_sigill(void)
++SYSCALL_DEFINE3(map_shadow_stack, unsigned long, addr, unsigned long, size, unsigned int, flags)
 +{
-+	unsigned long *gcspr;
++	unsigned long aligned_size;
++	unsigned long __user *cap_ptr;
++	unsigned long cap_val;
++	int ret;
 +
-+	asm volatile(
-+		"mrs	%0, S3_3_C2_C5_1"
-+	: "=r" (gcspr)
-+	:
-+	: "cc");
++	if (!system_supports_gcs())
++		return -EOPNOTSUPP;
++
++	if (flags)
++		return -EINVAL;
++
++	/*
++	 * An overflow would result in attempting to write the restore token
++	 * to the wrong location. Not catastrophic, but just return the right
++	 * error code and block it.
++	 */
++	aligned_size = PAGE_ALIGN(size);
++	if (aligned_size < size)
++		return -EOVERFLOW;
++
++	addr = alloc_gcs(addr, aligned_size, 0, false);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
++	/*
++	 * Put a cap token at the end of the allocated region so it
++	 * can be switched to.
++	 */
++	cap_ptr = (unsigned long __user *)(addr + aligned_size -
++					   (2 * sizeof(unsigned long)));
++	cap_val = GCS_CAP(cap_ptr);
++
++	ret = copy_to_user_gcs(cap_ptr, &cap_val, 1);
++	if (ret != 0) {
++		vm_munmap(addr, size);
++		return -EFAULT;
++	}
++
++	return addr;
 +}
 +
- static void mops_sigill(void)
- {
- 	char dst[1], src[1];
-@@ -223,6 +234,14 @@ static const struct hwcap_data {
- 		.cpuinfo = "cssc",
- 		.sigill_fn = cssc_sigill,
- 	},
-+	{
-+		.name = "GCS",
-+		.at_hwcap = AT_HWCAP2,
-+		.hwcap_bit = HWCAP2_GCS,
-+		.cpuinfo = "gcs",
-+		.sigill_fn = gcs_sigill,
-+		.sigill_reliable = true,
-+	},
- 	{
- 		.name = "MOPS",
- 		.at_hwcap = AT_HWCAP2,
+ /*
+  * Apply the GCS mode configured for the specified task to the
+  * hardware.
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 03e3d0121d5e..7f6dc0988197 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -953,6 +953,7 @@ asmlinkage long sys_set_mempolicy_home_node(unsigned long start, unsigned long l
+ asmlinkage long sys_cachestat(unsigned int fd,
+ 		struct cachestat_range __user *cstat_range,
+ 		struct cachestat __user *cstat, unsigned int flags);
++asmlinkage long sys_map_shadow_stack(unsigned long addr, unsigned long size, unsigned int flags);
+ 
+ /*
+  * Architecture-specific system calls
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index fd6c1cb585db..38885a795ea6 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -820,8 +820,11 @@ __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
+ #define __NR_cachestat 451
+ __SYSCALL(__NR_cachestat, sys_cachestat)
+ 
++#define __NR_map_shadow_stack 452
++__SYSCALL(__NR_map_shadow_stack, sys_map_shadow_stack)
++
+ #undef __NR_syscalls
+-#define __NR_syscalls 452
++#define __NR_syscalls 453
+ 
+ /*
+  * 32 bit systems traditionally used different
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 781de7cc6a4e..e137c1385c56 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -274,6 +274,7 @@ COND_SYSCALL(vm86old);
+ COND_SYSCALL(modify_ldt);
+ COND_SYSCALL(vm86);
+ COND_SYSCALL(kexec_file_load);
++COND_SYSCALL(map_shadow_stack);
+ 
+ /* s390 */
+ COND_SYSCALL(s390_pci_mmio_read);
 
 -- 
 2.30.2
