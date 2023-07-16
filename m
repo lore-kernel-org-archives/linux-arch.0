@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 48A94EB64DD
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:54:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EEEBEC001E0
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:55:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230444AbjGPVy4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 17:54:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53232 "EHLO
+        id S229687AbjGPVzO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 17:55:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53436 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230408AbjGPVyR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:54:17 -0400
+        with ESMTP id S229912AbjGPVyo (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:54:44 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9084BE6A;
-        Sun, 16 Jul 2023 14:53:48 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 84FA3198A;
+        Sun, 16 Jul 2023 14:54:02 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 1F3C060ED1;
-        Sun, 16 Jul 2023 21:53:46 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C9FC2C433CD;
-        Sun, 16 Jul 2023 21:53:39 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 6F1B660ECF;
+        Sun, 16 Jul 2023 21:53:58 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 228C0C43391;
+        Sun, 16 Jul 2023 21:53:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544425;
-        bh=5itbN5XsI23hSHpvwvYCaA48pJH6cAkdAvMEghq3bJY=;
+        s=k20201202; t=1689544437;
+        bh=ufPJWcWWu+6JM5PZqp1IxvkydElVfjSFTlywESeiyGo=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=B3WvwLPa0kPZ05606e24d+wKXy8XvpvoWS8YyXrjOnIukFSSQjhJyUhJjQ5PzlGRO
-         4fopiqdU0YF7x5/huJrF7KQ1A3IiNvr910mVOS+lL0aHGqvThP7j3SBISVrQihTTVN
-         KEK6mooqm4aeC+0i9FAeSvNEzSX6rjL3UmKdWHOUkmvJYeBnz5mEBlDTvMnwRnj+bT
-         f1pEcJrT7JyJS7kWKg3ntcxzSmPf160RwTF7Oe8QMN9pjhEuAmQMG89D/9zH8fjwgd
-         7YM/JEc3IOzMz8gZQmhtML7z2GKqPNIx+KgdLFhahrmLs+wlctaioJTYMx0LrobbP7
-         6FKUm+ZYqoDSA==
+        b=lzRdJXTo9N1xMkzBJ4HfAyjULGlOFa/mVmdLxxy9olUV7hXENG9iy0FUWWgh32cvA
+         EZLnaY7YkBNlhe1OFL1pFzQufrumuzamHF7cqIAYugdds0nWfewqnKRz+5K0LVyxxD
+         3GaBOMnd8NBl9yhSfvgP2iCwV36Pbw8qj0Opl/vleSeS27Ry/xFnSzEDC9mOZ87KEv
+         /D+uxFghuLK60yFGUtY/zWigdDPc65NQe0SylrU0s+SGFnhxE+RLp3xysvUMe3vxz3
+         qLBZbumD11u7bV2iO5NYDzt/sej57EhLQ8rVg+I/mfOHcfR47V+h2a0f3bAH72nCz6
+         l/vAFhoQFM2XQ==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:05 +0100
-Subject: [PATCH 09/35] arm64/cpufeature: Runtime detection of Guarded
- Control Stack (GCS)
+Date:   Sun, 16 Jul 2023 22:51:07 +0100
+Subject: [PATCH 11/35] mm: Define VM_SHADOW_STACK for arm64 when we support
+ GCS
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-9-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-11-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,105 +68,80 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3031; i=broonie@kernel.org;
- h=from:subject:message-id; bh=5itbN5XsI23hSHpvwvYCaA48pJH6cAkdAvMEghq3bJY=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGaWtHOw3enM4B5g54amxlUgz0T6xDyKMI+X9aWP
- sDgDapSJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmlgAKCRAk1otyXVSH0DjsB/
- 0ftgZjkmfkC59iaeyPxrKWG/EPzbWppuZtL8wn2nYjEI3bKdPsmO0+WXETjIu9YHQORgfIW30ICk9U
- HmPWiGbezKYCwJ/zM3zsqbeXD87zxToeeKUH4htD7F9lMAbpaK9YOLJ596ay8x5+rjIlXdxvxnSv+V
- WBhYXp4H998g2hwxyzNly3XnI0XFqdKO4B1FhThymySJjhLOLi+08NAoJe+zsNJD4tHL+IF/J2EoHB
- WL4/ADcAuOeBMtWPKBRFOodh5DaZ9bZu1dUrVcFM1LJIJLtiPEyxaL9oa1AN7vV4WoDQod9H2+4gOB
- /CLOY7fL0loYFvUKiTy6SeyWF+d9AN
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2027; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=ufPJWcWWu+6JM5PZqp1IxvkydElVfjSFTlywESeiyGo=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGaXF2oYYZQdYSl/hcMDijqHILEl2w8VSBPWp4zr
+ LQDC8xCJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmlwAKCRAk1otyXVSH0JBHB/
+ 0UMsUIVGuhNOpmEycSG+UXYN2beXnLM5L8SfuikOrBSp/GQvhGB4w7gh/BPFR8+CexF6Qe+/ELvupM
+ bJNv7jA+8nrgUJnWTVu0NTJ/V+FwH2trT8qp8qfvb2z/7enJaZn0nfz4DXZaeagQMX6hom7CBEzzVW
+ /Bj5Nft1u7JkLIUyzRJ/lUdfHkv3WcyIe9NVisS8JrhANKeQ5NSYrf4BDtcjSzPVp5XG5zZQ/OCAz5
+ FrsHtOE9d1BW96V4j6dbESpJexmGOJrMycPmff4yo6kMNDeqlfetekL7TWS8bTxcHFbRXVqMDs1EI8
+ wYdNjyJyRwRg0C3CqrERuwxLeS24k1
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add a cpufeature for GCS, allowing other code to conditionally support it
-at runtime.
+Use VM_HIGH_ARCH_5 for guarded control stack pages.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/cpufeature.h |  6 ++++++
- arch/arm64/kernel/cpufeature.c      | 20 ++++++++++++++++++++
- arch/arm64/tools/cpucaps            |  1 +
- 3 files changed, 27 insertions(+)
+ Documentation/filesystems/proc.rst |  2 +-
+ fs/proc/task_mmu.c                 |  3 +++
+ include/linux/mm.h                 | 12 +++++++++++-
+ 3 files changed, 15 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/include/asm/cpufeature.h b/arch/arm64/include/asm/cpufeature.h
-index 96e50227f940..189783142a96 100644
---- a/arch/arm64/include/asm/cpufeature.h
-+++ b/arch/arm64/include/asm/cpufeature.h
-@@ -831,6 +831,12 @@ static inline bool system_supports_tlb_range(void)
- 		cpus_have_const_cap(ARM64_HAS_TLB_RANGE);
- }
+diff --git a/Documentation/filesystems/proc.rst b/Documentation/filesystems/proc.rst
+index 6ccb57089a06..086a0408a4d7 100644
+--- a/Documentation/filesystems/proc.rst
++++ b/Documentation/filesystems/proc.rst
+@@ -566,7 +566,7 @@ encoded manner. The codes are the following:
+     mt    arm64 MTE allocation tags are enabled
+     um    userfaultfd missing tracking
+     uw    userfaultfd wr-protect tracking
+-    ss    shadow stack page
++    ss    shadow/guarded control stack page
+     ==    =======================================
  
-+static inline bool system_supports_gcs(void)
-+{
-+	return IS_ENABLED(CONFIG_ARM64_GCS) &&
-+		cpus_have_const_cap(ARM64_HAS_GCS);
-+}
+ Note that there is no guarantee that every flag and associated mnemonic will
+diff --git a/fs/proc/task_mmu.c b/fs/proc/task_mmu.c
+index cfab855fe7e9..e8c50848bb16 100644
+--- a/fs/proc/task_mmu.c
++++ b/fs/proc/task_mmu.c
+@@ -711,6 +711,9 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
+ #endif /* CONFIG_HAVE_ARCH_USERFAULTFD_MINOR */
+ #ifdef CONFIG_X86_USER_SHADOW_STACK
+ 		[ilog2(VM_SHADOW_STACK)] = "ss",
++#endif
++#ifdef CONFIG_ARM64_GCS
++		[ilog2(VM_SHADOW_STACK)] = "ss",
+ #endif
+ 	};
+ 	size_t i;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index bf16edf2fcd9..f526032c4dc6 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -372,7 +372,17 @@ extern unsigned int kobjsize(const void *objp);
+  * having a PAGE_SIZE guard gap.
+  */
+ # define VM_SHADOW_STACK	VM_HIGH_ARCH_5
+-#else
++#endif
 +
- int do_emulate_mrs(struct pt_regs *regs, u32 sys_reg, u32 rt);
- bool try_emulate_mrs(struct pt_regs *regs, u32 isn);
- 
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index f9d456fe132d..92e730027d84 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -254,6 +254,8 @@ static const struct arm64_ftr_bits ftr_id_aa64pfr0[] = {
- };
- 
- static const struct arm64_ftr_bits ftr_id_aa64pfr1[] = {
-+	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_GCS),
-+		       FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_EL1_GCS_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_VISIBLE_IF_IS_ENABLED(CONFIG_ARM64_SME),
- 		       FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_EL1_SME_SHIFT, 4, 0),
- 	ARM64_FTR_BITS(FTR_HIDDEN, FTR_STRICT, FTR_LOWER_SAFE, ID_AA64PFR1_EL1_MPAM_frac_SHIFT, 4, 0),
-@@ -2219,6 +2221,12 @@ static void cpu_enable_mops(const struct arm64_cpu_capabilities *__unused)
- 	sysreg_clear_set(sctlr_el1, 0, SCTLR_EL1_MSCEn);
- }
- 
-+static void cpu_enable_gcs(const struct arm64_cpu_capabilities *__unused)
-+{
-+	/* GCS is not currently used at EL1 */
-+	write_sysreg_s(0, SYS_GCSCR_EL1);
-+}
++#if defined(CONFIG_ARM64_GCS)
++/*
++ * arm64's Guarded Control Stack implements similar functionality and
++ * has similar constraints to shadow stacks.
++ */
++# define VM_SHADOW_STACK	VM_HIGH_ARCH_5
++#endif
 +
- /* Internal helper functions to match cpu capability type */
- static bool
- cpucap_late_cpu_optional(const struct arm64_cpu_capabilities *cap)
-@@ -2715,6 +2723,18 @@ static const struct arm64_cpu_capabilities arm64_features[] = {
- 		.min_field_value = ID_AA64MMFR2_EL1_EVT_IMP,
- 		.matches = has_cpuid_feature,
- 	},
-+	{
-+		.desc = "Guarded Control Stack (GCS)",
-+		.capability = ARM64_HAS_GCS,
-+		.type = ARM64_CPUCAP_SYSTEM_FEATURE,
-+		.sys_reg = SYS_ID_AA64PFR1_EL1,
-+		.sign = FTR_UNSIGNED,
-+		.field_pos = ID_AA64PFR1_EL1_GCS_SHIFT,
-+		.field_width = 4,
-+		.min_field_value = ID_AA64PFR1_EL1_GCS_IMP,
-+		.matches = has_cpuid_feature,
-+		.cpu_enable = cpu_enable_gcs,
-+	},
- 	{},
- };
++#ifndef VM_SHADOW_STACK
+ # define VM_SHADOW_STACK	VM_NONE
+ #endif
  
-diff --git a/arch/arm64/tools/cpucaps b/arch/arm64/tools/cpucaps
-index c80ed4f3cbce..ab582f592131 100644
---- a/arch/arm64/tools/cpucaps
-+++ b/arch/arm64/tools/cpucaps
-@@ -26,6 +26,7 @@ HAS_ECV
- HAS_ECV_CNTPOFF
- HAS_EPAN
- HAS_EVT
-+HAS_GCS
- HAS_GENERIC_AUTH
- HAS_GENERIC_AUTH_ARCH_QARMA3
- HAS_GENERIC_AUTH_ARCH_QARMA5
 
 -- 
 2.30.2
