@@ -2,44 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7FA68C0015E
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 22:00:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 929C3C00528
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 22:00:32 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231311AbjGPWAK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 18:00:10 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58614 "EHLO
+        id S231184AbjGPWA3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 18:00:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58536 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230071AbjGPV7s (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:59:48 -0400
+        with ESMTP id S232771AbjGPV7z (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:59:55 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 366C030DE;
-        Sun, 16 Jul 2023 14:57:02 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AA970469B;
+        Sun, 16 Jul 2023 14:57:14 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 6E6A260E71;
-        Sun, 16 Jul 2023 21:55:52 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1D3FCC43391;
-        Sun, 16 Jul 2023 21:55:45 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 207A460EBC;
+        Sun, 16 Jul 2023 21:56:32 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CFA34C433C9;
+        Sun, 16 Jul 2023 21:56:23 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544551;
-        bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
+        s=k20201202; t=1689544591;
+        bh=1uknQQAJm7Zcgtc49DMW82pswMUU7bOoBBe2xNDqskk=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=HLJp1PdswqCNq1wYjWtV7kdpQQdsIF6PbOAs1DdxVIDUr271ZtsXaw0pT7n6EHg/J
-         PNQDKSMHKSTQ7l583T9geSPx7pEC/hj2TLSc1ki5Mb54YgxQBOl1d/8b/DC6NImHRk
-         kkxTHOsVXqT15aIa3ZZQPpziQKm2CwXl5+TryO3DUfmOgKg3/OzvOCi+Oyi8DBNdtL
-         BZ3y0Hir5JQnmrqWN8msRZL+OE/yTvlBl3LWhMOzrjbQ38GZZWTgflCc9nKBUifQnC
-         mdyW05hvnN9rDr4Ly6ZqRAXa5EZcVUddACiZ9mNql6HiT1COKlFZt/JGxXzOnvNJqG
-         oxTY+e9f1GO5Q==
+        b=HYCi+HJcMYksgMlSsz5SeJKHMIPo9eezjQ6k/dwWnPejxrCUitkbJm0rPO7Z6jYLu
+         o8aVLkRa1vPbCbt14ue/98nFQ/+kf/rFZHt/pvr0DSCwuOHZm87O/V3suA+YyjfeDq
+         7l1WRJrAqsEeQUl4rwvoMbwDPkCb7+DOyk3Jy5u4qUAj++g3JdBxG2LdxExndUaRlR
+         X0HuUzoy3RiYRj8uvjK+ECln4B8fvBvH1JH0VQl7Y9K45Y+1zqZx6MBmz2fh3RmOWr
+         Qh0CAowHOVjL3xPH7QcUq2qx4+7MJXCNBEXNSAw5Oy/W5lIykrgPLNOvg5QHo1QKRd
+         wA/S1uejub5jA==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:25 +0100
-Subject: [PATCH 29/35] kselftest/arm64: Add framework support for GCS to
- signal handling tests
+Date:   Sun, 16 Jul 2023 22:51:31 +0100
+Subject: [PATCH 35/35] kselftest/arm64: Enable GCS for the FP stress tests
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-29-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-35-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,60 +67,112 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1590; i=broonie@kernel.org;
- h=from:subject:message-id; bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGams/1o2FBpw3AOTccDx7xYDuhWhJAAlqli+qBI
- f+Cr23WJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmpgAKCRAk1otyXVSH0H9IB/
- 9uVI86Wh0m+jKCdZsMXDL5z5tGDQtNodAMlpbSInG2EefWBm2jNMaiInXFEKrPSyMmZ0EutT+Di8GG
- pmbMZvDpJvK/9haASKmdxQoyhAUfggLS2KLtHnHOb18PbwikLGlwpd3aXqj7Z6PkbOSpaDcFLYNhv4
- 5sx8SB4VD0ueTKVRP/8R+IABokYM2HTK+wORDfwd7MTZPeyaSjagIL8LCuZQoIGQbfmLP36rA2eJXh
- JOl2YmzMhTJF1dcOFUaJvLvKtEUtm+BNQskId0JiVQAA9up7GB38IsAYmJEnBx1hzGEVlZEzZICvBv
- X7+qWQKaz0ozYAZC60ObOtkiQ9CT8l
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3085; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=1uknQQAJm7Zcgtc49DMW82pswMUU7bOoBBe2xNDqskk=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGaqmYOxTQGWh9HskLim53vCootcqf2/ddkPhC00
+ Odm1DY2JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmqgAKCRAk1otyXVSH0PDXB/
+ 90DyWLWRjEtd7nn3ZQR7fbY40YyGkh8XYKiRwLIDVIydAzHvcByMZWD+a4Uv6Xdeu1w89et6R4V/X9
+ H/3ZhsDt7CJzpTn13Xgt0BsZOcX8oegAiBb+nJR6UUb4SMzZ8xERXst50kf9UXPUhcRdUk8hiuiqjg
+ qO7tQMbP8v14LaNXegZqEN5YlcXPMVBNKVwojwyXuZhvtp09OZl1ngcUtMsl5JxIAGJSEVka+duVfb
+ y8ir6M5SA8HNklCb4Ff1y9JEFJPwQpAtSgZ9G0iU4DH9Dk8qTEAupS2NE1jgwTTni47nCYc5Gs6KFX
+ 2lymhms33vgR5jCsHTYDBT33smrX8x
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Teach the framework about the GCS signal context, avoiding warnings on
-the unknown context.
+While it's a bit off topic for them the floating point stress tests do give
+us some coverage of context thrashing cases, and also of active signal
+delivery separate to the relatively complicated framework in the actual
+signals tests. Have the tests enable GCS on startup, ignoring failures so
+they continue to work as before on systems without GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/signal/testcases/testcases.c | 7 +++++++
- tools/testing/selftests/arm64/signal/testcases/testcases.h | 1 +
- 2 files changed, 8 insertions(+)
+ tools/testing/selftests/arm64/fp/assembler.h   | 15 +++++++++++++++
+ tools/testing/selftests/arm64/fp/fpsimd-test.S |  2 ++
+ tools/testing/selftests/arm64/fp/sve-test.S    |  2 ++
+ tools/testing/selftests/arm64/fp/za-test.S     |  2 ++
+ tools/testing/selftests/arm64/fp/zt-test.S     |  2 ++
+ 5 files changed, 23 insertions(+)
 
-diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.c b/tools/testing/selftests/arm64/signal/testcases/testcases.c
-index 9f580b55b388..1cd124732be4 100644
---- a/tools/testing/selftests/arm64/signal/testcases/testcases.c
-+++ b/tools/testing/selftests/arm64/signal/testcases/testcases.c
-@@ -209,6 +209,13 @@ bool validate_reserved(ucontext_t *uc, size_t resv_sz, char **err)
- 			zt = (struct zt_context *)head;
- 			new_flags |= ZT_CTX;
- 			break;
-+		case GCS_MAGIC:
-+			if (flags & GCS_CTX)
-+				*err = "Multiple GCS_MAGIC";
-+			if (head->size != sizeof(struct gcs_context))
-+				*err = "Bad size for gcs_context";
-+			new_flags |= GCS_CTX;
-+			break;
- 		case EXTRA_MAGIC:
- 			if (flags & EXTRA_CTX)
- 				*err = "Multiple EXTRA_MAGIC";
-diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.h b/tools/testing/selftests/arm64/signal/testcases/testcases.h
-index a08ab0d6207a..9b2599745c29 100644
---- a/tools/testing/selftests/arm64/signal/testcases/testcases.h
-+++ b/tools/testing/selftests/arm64/signal/testcases/testcases.h
-@@ -19,6 +19,7 @@
- #define ZA_CTX		(1 << 2)
- #define EXTRA_CTX	(1 << 3)
- #define ZT_CTX		(1 << 4)
-+#define GCS_CTX		(1 << 5)
+diff --git a/tools/testing/selftests/arm64/fp/assembler.h b/tools/testing/selftests/arm64/fp/assembler.h
+index 9b38a0da407d..d01b61947f56 100644
+--- a/tools/testing/selftests/arm64/fp/assembler.h
++++ b/tools/testing/selftests/arm64/fp/assembler.h
+@@ -65,4 +65,19 @@ endfunction
+ 	bl	puts
+ .endm
  
- #define KSFT_BAD_MAGIC	0xdeadbeef
++#define PR_SET_SHADOW_STACK_STATUS      72
++# define PR_SHADOW_STACK_ENABLE         (1UL << 1)
++
++.macro enable_gcs
++	// Run with GCS
++	mov	x0, PR_SET_SHADOW_STACK_STATUS
++	mov	x1, PR_SHADOW_STACK_ENABLE
++	mov	x2, xzr
++	mov	x3, xzr
++	mov	x4, xzr
++	mov	x5, xzr
++	mov	x8, #__NR_prctl
++	svc	#0
++.endm
++
+ #endif /* ! ASSEMBLER_H */
+diff --git a/tools/testing/selftests/arm64/fp/fpsimd-test.S b/tools/testing/selftests/arm64/fp/fpsimd-test.S
+index 8b960d01ed2e..b16fb7f42e3e 100644
+--- a/tools/testing/selftests/arm64/fp/fpsimd-test.S
++++ b/tools/testing/selftests/arm64/fp/fpsimd-test.S
+@@ -215,6 +215,8 @@ endfunction
+ // Main program entry point
+ .globl _start
+ function _start
++	enable_gcs
++
+ 	mov	x23, #0		// signal count
  
+ 	mov	w0, #SIGINT
+diff --git a/tools/testing/selftests/arm64/fp/sve-test.S b/tools/testing/selftests/arm64/fp/sve-test.S
+index 4328895dfc87..486634bc7def 100644
+--- a/tools/testing/selftests/arm64/fp/sve-test.S
++++ b/tools/testing/selftests/arm64/fp/sve-test.S
+@@ -378,6 +378,8 @@ endfunction
+ // Main program entry point
+ .globl _start
+ function _start
++	enable_gcs
++
+ 	mov	x23, #0		// Irritation signal count
+ 
+ 	mov	w0, #SIGINT
+diff --git a/tools/testing/selftests/arm64/fp/za-test.S b/tools/testing/selftests/arm64/fp/za-test.S
+index 9dcd70911397..f789694fa3ea 100644
+--- a/tools/testing/selftests/arm64/fp/za-test.S
++++ b/tools/testing/selftests/arm64/fp/za-test.S
+@@ -231,6 +231,8 @@ endfunction
+ // Main program entry point
+ .globl _start
+ function _start
++	enable_gcs
++
+ 	mov	x23, #0		// signal count
+ 
+ 	mov	w0, #SIGINT
+diff --git a/tools/testing/selftests/arm64/fp/zt-test.S b/tools/testing/selftests/arm64/fp/zt-test.S
+index d63286397638..ea5e55310705 100644
+--- a/tools/testing/selftests/arm64/fp/zt-test.S
++++ b/tools/testing/selftests/arm64/fp/zt-test.S
+@@ -200,6 +200,8 @@ endfunction
+ // Main program entry point
+ .globl _start
+ function _start
++	enable_gcs
++
+ 	mov	x23, #0		// signal count
+ 
+ 	mov	w0, #SIGINT
 
 -- 
 2.30.2
