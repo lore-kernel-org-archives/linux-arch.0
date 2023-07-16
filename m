@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F11CEEB64DD
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:55:48 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id AFBA3C001DE
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:56:13 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230299AbjGPVzr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 17:55:47 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52786 "EHLO
+        id S231245AbjGPV4L (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 17:56:11 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53180 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230264AbjGPVzJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:55:09 -0400
+        with ESMTP id S230448AbjGPVzc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:55:32 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4181710CA;
-        Sun, 16 Jul 2023 14:54:20 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C76B01FC0;
+        Sun, 16 Jul 2023 14:54:32 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id B625260D2C;
-        Sun, 16 Jul 2023 21:54:19 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 43320C433C7;
-        Sun, 16 Jul 2023 21:54:11 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 1475E60D41;
+        Sun, 16 Jul 2023 21:54:32 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BF73BC433D9;
+        Sun, 16 Jul 2023 21:54:25 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544459;
-        bh=i1aix1RgS5IjaF2Iu7kd7fJ3f4OLUgmDQiT+LzoziAY=;
+        s=k20201202; t=1689544471;
+        bh=hfdAD1hF5pjiY4NJJFhXM0iAxOU8x83qlxrDKcBZRfc=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=fvPQBMMWH9k8MbsAJ75YhRiyBnh+6Q0GrlLAJ7eGzs7w/uFOuAIcfnqkOSfP20LmG
-         +HgPumkAowZQjPL8Mx5KEm2Yv5Gc5tgCKV40LLyL82A7kicWtzjL0P+hASzf6159YP
-         Iulj1O//Xgu6j54+YX+tXw65hF2ZTIPYzin7QYB+yIz3xLAN2QnYwBtk6NGoCam9e0
-         VLmLA5z9GeTjpDRa7XLfAd2c2gA4W0PQv08qM0pt0l4oOg+b5nfcuyNjpkyP04haqD
-         zShFhq46QEJd+F2JYS0p4zdPuYHLkCkvrGV+azYKpkAztbbL1d5j94+r/xRApDGly3
-         FIUjvEBoKQGCQ==
+        b=HaS0IpjmWc7RPdKflzvR1m92xmlx4Q8R38l3zv555IEEKl1Sjbcjbo74vGft4cyDl
+         85YpHVz3Xkga5vWN+S3NW8xHnU0aKLuMtZWHE4VTG7JBvX4CYrgg+MUKB5a46h0vR0
+         hX7wuIhSDKTiHw9oZ8g9O1XzOXaREYDMJG0BTZ8ap3PBBN8W2tZTxXALCHDdlPl/xK
+         2kViAzcZE0p+hJfkI7bQv8MV6guzdMpwn0ObIdk6EeAAw9aFQNchU6RAl73fSHxioz
+         pY42awU118ZP1LX6NNPrHug5T0K/0M2wL6PmQnk7t3Cuiwt8u41VH6MuysUXzKZ7Sr
+         5fOKx+PHuDJuA==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:10 +0100
-Subject: [PATCH 14/35] arm64: Disable traps for GCS usage at EL0 and EL1
+Date:   Sun, 16 Jul 2023 22:51:12 +0100
+Subject: [PATCH 16/35] arm64/hwcap: Add hwcap for GCS
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-14-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-16-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,49 +67,95 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=974; i=broonie@kernel.org;
- h=from:subject:message-id; bh=i1aix1RgS5IjaF2Iu7kd7fJ3f4OLUgmDQiT+LzoziAY=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGaaEQ2gp7NUvT3HihHDuCJYw1+FmyE2XJwsCAaM
- X+Nw3PaJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmmgAKCRAk1otyXVSH0PMHB/
- 9Ai5dAPLpndzrBw51n3UEuG8S1soNZTX9cdiHVHYXTcDMPDxp4WDhfARumAWnIENr0mcN8Fwez24jU
- Oc5FnBr/1k7xbpcbeddwJjm9cHainWKSRb0TIr2RfdXm09pcZBnmv/TUs9BsYK4wE3DVFJLTLVZ9AD
- cg9NUvQYl0RGt/C9ND3wBLLeGB0yPHwzuRXybnqPMon0AXinX7JpIPWueGyJU/YfCxM0o5oTcgUils
- asocd22uXfISjsFVqQPkpyEDJPsreaMqFzy0vuZ9Vd0SF3WKnQ7JZdTbYWKv8bZ70S1jBOQuYxdgHX
- 4uARjcF8Rx+0EQFIEqKj+e7wjz0CpS
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3001; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=hfdAD1hF5pjiY4NJJFhXM0iAxOU8x83qlxrDKcBZRfc=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGabmyvRWwR7jBN9hFP4F4YEd2MA0AE9Q82rXU01
+ WsmY2omJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmmwAKCRAk1otyXVSH0LVuB/
+ 0cU20/Th92ATrYv1n5jnDaGdyTa6egcd9nv5x6xxxdWV6a+sInGonGP2/AcJ7yNu18ocOVGtISh/d+
+ cs4/IuhwTrpJh8H/hb4bk2R41zt3Pil2OUQDB9tzGJvDeOL6Jfac7Z/MLba+3i9rmQs6OV/2nTy5m6
+ UALjGybScIJVg2fCpBnfKGWYkaCcfz60ercYSS+14VHIxlO6U1IxRCtb5ojVEDda5l3uKvNCHyB0KU
+ NuLzPx3+4eU4sBq5GmyP0Hv2+rGR4LnG1RtCO21jBNXa0arsG4IfR+8w2LFr07EVwQAuAX28YxNc18
+ wWaY5Q+/0LK++T87TLW6t1tfrwz/8j
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There are fine grained traps for GCS usage at EL0 and EL1, disable them
-for the host kernel if we detect GCS.
+Provide a hwcap to enable userspace to detect support for GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/el2_setup.h | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ Documentation/arch/arm64/elf_hwcaps.rst | 3 +++
+ arch/arm64/include/asm/hwcap.h          | 1 +
+ arch/arm64/include/uapi/asm/hwcap.h     | 1 +
+ arch/arm64/kernel/cpufeature.c          | 3 +++
+ arch/arm64/kernel/cpuinfo.c             | 1 +
+ 5 files changed, 9 insertions(+)
 
-diff --git a/arch/arm64/include/asm/el2_setup.h b/arch/arm64/include/asm/el2_setup.h
-index 8e5ffb58f83e..c941b0dc0418 100644
---- a/arch/arm64/include/asm/el2_setup.h
-+++ b/arch/arm64/include/asm/el2_setup.h
-@@ -186,6 +186,15 @@
- 	orr	x0, x0, #HFGxTR_EL2_nPIR_EL1
- 	orr	x0, x0, #HFGxTR_EL2_nPIRE0_EL1
+diff --git a/Documentation/arch/arm64/elf_hwcaps.rst b/Documentation/arch/arm64/elf_hwcaps.rst
+index 8c8addb4194c..75f3960cad39 100644
+--- a/Documentation/arch/arm64/elf_hwcaps.rst
++++ b/Documentation/arch/arm64/elf_hwcaps.rst
+@@ -305,6 +305,9 @@ HWCAP2_SMEF16F16
+ HWCAP2_MOPS
+     Functionality implied by ID_AA64ISAR2_EL1.MOPS == 0b0001.
  
-+	/* GCS depends on PIE so we don't check it if PIE is absent */
-+	mrs_s	x1, SYS_ID_AA64PFR1_EL1
-+	ubfx	x1, x1, #ID_AA64PFR1_EL1_GCS_SHIFT, #4
-+	cbz	x1, .Lset_fgt_\@
++HWCAP2_GCS
++    Functionality implied by ID_AA64PFR1_EL1.GCS == 0b1
 +
-+	/* Disable traps of access to GCS registers at EL0 and EL1 */
-+	orr	x0, x0, #HFGxTR_EL2_nGCS_EL1_MASK
-+	orr	x0, x0, #HFGxTR_EL2_nGCS_EL0_MASK
-+
- .Lset_fgt_\@:
- 	msr_s	SYS_HFGRTR_EL2, x0
- 	msr_s	SYS_HFGWTR_EL2, x0
+ 4. Unused AT_HWCAP bits
+ -----------------------
+ 
+diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
+index 692b1ec663b2..39f397a2b5b2 100644
+--- a/arch/arm64/include/asm/hwcap.h
++++ b/arch/arm64/include/asm/hwcap.h
+@@ -138,6 +138,7 @@
+ #define KERNEL_HWCAP_SME_B16B16		__khwcap2_feature(SME_B16B16)
+ #define KERNEL_HWCAP_SME_F16F16		__khwcap2_feature(SME_F16F16)
+ #define KERNEL_HWCAP_MOPS		__khwcap2_feature(MOPS)
++#define KERNEL_HWCAP_GCS		__khwcap2_feature(GCS)
+ 
+ /*
+  * This yields a mask that user programs can use to figure out what
+diff --git a/arch/arm64/include/uapi/asm/hwcap.h b/arch/arm64/include/uapi/asm/hwcap.h
+index a2cac4305b1e..7510c35e6864 100644
+--- a/arch/arm64/include/uapi/asm/hwcap.h
++++ b/arch/arm64/include/uapi/asm/hwcap.h
+@@ -103,5 +103,6 @@
+ #define HWCAP2_SME_B16B16	(1UL << 41)
+ #define HWCAP2_SME_F16F16	(1UL << 42)
+ #define HWCAP2_MOPS		(1UL << 43)
++#define HWCAP2_GCS		(1UL << 44)
+ 
+ #endif /* _UAPI__ASM_HWCAP_H */
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 92e730027d84..595d982d318f 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -2844,6 +2844,9 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
+ 	HWCAP_CAP(ID_AA64ZFR0_EL1, I8MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEI8MM),
+ 	HWCAP_CAP(ID_AA64ZFR0_EL1, F32MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEF32MM),
+ 	HWCAP_CAP(ID_AA64ZFR0_EL1, F64MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEF64MM),
++#endif
++#ifdef CONFIG_ARM64_GCS
++	HWCAP_CAP(ID_AA64PFR1_EL1, GCS, IMP, CAP_HWCAP, KERNEL_HWCAP_GCS),
+ #endif
+ 	HWCAP_CAP(ID_AA64PFR1_EL1, SSBS, SSBS2, CAP_HWCAP, KERNEL_HWCAP_SSBS),
+ #ifdef CONFIG_ARM64_BTI
+diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+index 58622dc85917..451fbbeffa39 100644
+--- a/arch/arm64/kernel/cpuinfo.c
++++ b/arch/arm64/kernel/cpuinfo.c
+@@ -126,6 +126,7 @@ static const char *const hwcap_str[] = {
+ 	[KERNEL_HWCAP_SME_B16B16]	= "smeb16b16",
+ 	[KERNEL_HWCAP_SME_F16F16]	= "smef16f16",
+ 	[KERNEL_HWCAP_MOPS]		= "mops",
++	[KERNEL_HWCAP_GCS]		= "gcs",
+ };
+ 
+ #ifdef CONFIG_COMPAT
 
 -- 
 2.30.2
