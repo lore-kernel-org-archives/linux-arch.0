@@ -2,44 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 70E5DC04A94
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:58:40 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 288ABEB64DD
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:59:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232782AbjGPV6j (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 17:58:39 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:52526 "EHLO
+        id S231298AbjGPV7L (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 17:59:11 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53278 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230205AbjGPV6O (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:58:14 -0400
+        with ESMTP id S230366AbjGPV6e (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:58:34 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5247E420C;
-        Sun, 16 Jul 2023 14:56:03 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 101161FDB;
+        Sun, 16 Jul 2023 14:56:19 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 5D03160ED2;
-        Sun, 16 Jul 2023 21:55:15 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0F1A5C433CD;
-        Sun, 16 Jul 2023 21:55:08 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id E1A3260ECC;
+        Sun, 16 Jul 2023 21:55:33 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 94855C433CA;
+        Sun, 16 Jul 2023 21:55:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544514;
-        bh=IRPiROrkNB3kUOdwWZbwXaWKwQj52u2NCwJOGF2R4Sc=;
+        s=k20201202; t=1689544533;
+        bh=pU/Cpaxis09XYO6pS+Tm9irl4OV1fzcTdHAFs+JXaiE=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=X8fGlXBVOw7r4yAprIZ+kiw/ryd0Wh+6+SFQCEGf04EUbvmqymRi1oissq6NTtnoy
-         QIxLK6tH4vVhbHFdeEh0suZnVNifPkxRXB6pJ8lQs/j4RE1cK14RE+awKQjUzrOT98
-         qylgjPz+lmesBs9r3rxXffkTR+qC9Dum9D74IdD6knMbYUaHO787Bf0yEX74TDGlfw
-         joVPK7K/qnwAnsNHMDUt91HxyULkAMbvByEr3eO6VNX4c9+boHflmcxPZwxdvtUqgy
-         00hw51azDroLt6dk7f3fF9kFLPEGgGYcWmslH4+e6rzGH6YaexDDuGP9Gxpx9eq3mc
-         C/4vJ67cJaiEg==
+        b=rWGbpHGpAPUGRkeHBlxB3u7YFF02VUBqBH3DDfi/zq+uR3bo5c9/02qDMlbROcq1a
+         TOxZq+swTzl/Cn9rsFrq0fkp5SOMZ9rQdBdNmFqBC1WAmool8nFYx21GlscpJIPaX5
+         Hj4VHZuaIdAexXk06rf4SIr9g7kTQlHiAqUekjYGnvRjB0F6hrvpboYOjI/7sNGzH6
+         vO0/Sk0ndEyBZ5Xb7JXIentYaOHaqbRU2SiE/17mQ8tYAWW9MdndQvzgrHI+Gte1+R
+         I25r1VajxxALbkW5eIIXj+twrpfKo9XBumj5mL0llLHJuRgO6RoUYB0fbwIFe2mCnI
+         xdT5wxQd/9Vww==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:19 +0100
-Subject: [PATCH 23/35] arm64/signal: Set up and restore the GCS context for
- signal handlers
+Date:   Sun, 16 Jul 2023 22:51:22 +0100
+Subject: [PATCH 26/35] arm64: Add Kconfig for Guarded Control Stack (GCS)
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-23-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-26-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,269 +67,59 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=7379; i=broonie@kernel.org;
- h=from:subject:message-id; bh=IRPiROrkNB3kUOdwWZbwXaWKwQj52u2NCwJOGF2R4Sc=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGahg7DotblkjcSfwUFC6Isjt/jiQVo6t4WibWEe
- C8U2ix+JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmoQAKCRAk1otyXVSH0OOWB/
- wIeZomcMZ8MKKejsyZrDUdGTnJMN7Y0qlopScHT/rNeF51V1OYlw4155l7F8rqdIi1ioJXzxTgGX6G
- BJmCIYRHjlOqmTaoPjYUCPkxJfDHM80qMVVt8P/F1f9kWc14QIjs2KpXuubfSuikckqQ5vlYJz9/bI
- Xg9unXrwZZ7PgOwdm0xUZ/0Jfvc9umK2vqHPXmpAmhQDd+p9DcjVhgVrffU+YEDJc9EkQHyIjEhgpN
- owoBmjwlMoiOV9zWSzWtte0E+Sn2tUKJpEQgFLO5UqJbSWYTeQUO7z7kpJjYc9DmotnL4NKr/7FlhH
- mXmUpjWM+STovTTDaSv+WYg/sbTD1H
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1333; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=pU/Cpaxis09XYO6pS+Tm9irl4OV1fzcTdHAFs+JXaiE=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGajNEQmje9r0OAkZ6IXOyAN5ruAxFmeetfHxjAC
+ LDyTfAyJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmowAKCRAk1otyXVSH0JhGB/
+ 4uEom4k4x+430HQzhyHP2BDhwiv0Xo2K1mTO20ue7Lk8Wti2gS+bFt3j5ucEpMEwtZzUpbv9aFHg8g
+ yVDFSa62TJm4VnlCyDGJgQ8tJrySIzQDdUWaW4NsZkCYMvzaHn7Io9BSwTN7Zseo4HDAFXeuVN+KcI
+ 6W/YOWtqN+FpSOZSkAOtNDCCtHC+Bnwr5v6a6FDSO91/wXPICZ9z5JG71wr/l8ddWrbzhdD+2lp/5O
+ sqSoPHL3zXgrAcCHuCXDKtfj+XAC/YXjHy8TdZgS0bh4tp9AbE5iob7yXE/SpJfC8W3JOO8pyrZA3r
+ LZHn0cmojWthyoDyKu+QYIQJkyHsLU
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When invoking a signal handler we use the GCS configuration and stack
-for the current thread.
-
-Since we implement signal return by calling the signal handler with a
-return address set up pointing to a trampoline in the vDSO we need to
-also configure any active GCS for this by pushing a frame for the
-trampoline onto the GCS.  If we do not do this then signal return will
-generate a GCS protection fault.
-
-In order to guard against attempts to bypass GCS protections via signal
-return we only allow returning with GCSPR_EL0 pointing to an address
-where it was previously preempted by a signal.  We do this by pushing a
-cap onto the GCS, this takes the form of an architectural GCS cap token
-with the top bit set which we add on signal entry and validate and pop
-off on signal return.  Since the top bit is set address validation for
-the token will fail if an attempt is made to use it with the stack
-switch instructions.
+Provide a Kconfig option allowing the user to select if GCS support is
+built into the kernel.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/gcs.h |   2 +
- arch/arm64/kernel/signal.c   | 134 +++++++++++++++++++++++++++++++++++++++++--
- arch/arm64/mm/gcs.c          |   1 +
- 3 files changed, 132 insertions(+), 5 deletions(-)
+ arch/arm64/Kconfig | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
-index 8655ba8054c7..8ef2313522b4 100644
---- a/arch/arm64/include/asm/gcs.h
-+++ b/arch/arm64/include/asm/gcs.h
-@@ -8,6 +8,8 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 7856c3a3e35a..e1aeeda13c52 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2091,6 +2091,25 @@ config ARM64_EPAN
+ 	  if the cpu does not implement the feature.
+ endmenu # "ARMv8.7 architectural features"
  
-+struct ksignal;
++menu "v9.4 architectural features"
 +
- static inline void gcsb_dsync(void)
- {
- 	asm volatile(".inst 0xd503227f" : : : "memory");
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 0df8cc295ea5..922b694fa0aa 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -25,6 +25,7 @@
- #include <asm/elf.h>
- #include <asm/exception.h>
- #include <asm/cacheflush.h>
-+#include <asm/gcs.h>
- #include <asm/ucontext.h>
- #include <asm/unistd.h>
- #include <asm/fpsimd.h>
-@@ -34,6 +35,36 @@
- #include <asm/traps.h>
- #include <asm/vdso.h>
- 
-+#ifdef CONFIG_ARM64_GCS
-+/* Extra bit set in the address distinguishing a signal cap token. */
-+#define GCS_SIGNAL_CAP_FLAG BIT(63)
++config ARM64_GCS
++	bool "Enable support for Guarded Control Stack (GCS)"
++	default y
++	select ARCH_USES_HIGH_VMA_FLAGS
++	help
++	  Guarded Control Stack (GCS) provides support for a separate
++	  stack with restricted access which contains only return
++	  addresses.  This can be used to harden against some attacks
++	  by comparing return address used by the program with what is
++	  stored in the GCS, and may also be used to efficiently obtain
++	  the call stack for applications such as profiling.
 +
-+#define GCS_SIGNAL_CAP(addr) (GCS_CAP(addr) | GCS_SIGNAL_CAP_FLAG)
++	  The feature is detected at runtime, and will remain disabled
++	  if the system does not implement the feature.
 +
-+static bool gcs_signal_cap_valid(u64 addr, u64 val)
-+{
-+	/*
-+	 * The top bit should be set, this is an invalid address for
-+	 * EL0 and will only be set for caps created by signals.
-+	 */
-+	if (!(val & GCS_SIGNAL_CAP_FLAG))
-+		return false;
++endmenu # "2022 archiectural features"
 +
-+	/* The rest should be a standard architectural cap token. */
-+	val &= ~GCS_SIGNAL_CAP_FLAG;
-+
-+	/* The cap must have the low bits set to a token value */
-+	if (GCS_CAP_TOKEN(val) != GCS_CAP_VALID_TOKEN)
-+		return false;
-+
-+	/* The cap must store the VA the cap was stored at */
-+	if (GCS_CAP_ADDR(addr) != GCS_CAP_ADDR(val))
-+		return false;
-+
-+	return true;
-+}
-+#endif
-+
- /*
-  * Do a signal return; undo the signal stack. These are aligned to 128-bit.
-  */
-@@ -815,6 +846,49 @@ static int restore_sigframe(struct pt_regs *regs,
- 	return err;
- }
- 
-+#ifdef CONFIG_ARM64_GCS
-+static int gcs_restore_signal(void)
-+{
-+	u64 gcspr_el0, cap;
-+	int ret;
-+
-+	if (!system_supports_gcs())
-+		return 0;
-+
-+	if (!(current->thread.gcs_el0_mode & PR_SHADOW_STACK_ENABLE))
-+		return 0;
-+
-+	/*
-+	 * We are exiting from a signal, the in memory state will be the
-+	 * most up to date value.
-+	 */
-+	gcspr_el0 = current->thread.gcspr_el0;
-+
-+	/*
-+	 * GCSPR_EL0 should be pointing at a capped GCS, read the cap...
-+	 */
-+	gcsb_dsync();
-+	ret = copy_from_user(&cap, (__user void*)gcspr_el0, sizeof(cap));
-+	if (ret)
-+		return -EFAULT;
-+
-+	/*
-+	 * ...then check that the cap is the actual GCS before
-+	 * restoring it.
-+	 */
-+	if (!gcs_signal_cap_valid(gcspr_el0, cap))
-+		return -EINVAL;
-+
-+	current->thread.gcspr_el0 = gcspr_el0 + sizeof(cap);
-+	write_sysreg_s(current->thread.gcspr_el0, SYS_GCSPR_EL0);
-+
-+	return 0;
-+}
-+
-+#else
-+static int gcs_restore_signal(void) { return 0; }
-+#endif
-+
- SYSCALL_DEFINE0(rt_sigreturn)
- {
- 	struct pt_regs *regs = current_pt_regs();
-@@ -841,6 +915,9 @@ SYSCALL_DEFINE0(rt_sigreturn)
- 	if (restore_altstack(&frame->uc.uc_stack))
- 		goto badframe;
- 
-+	if (gcs_restore_signal())
-+		goto badframe;
-+
- 	return regs->regs[0];
- 
- badframe:
-@@ -1071,7 +1148,52 @@ static int get_sigframe(struct rt_sigframe_user_layout *user,
- 	return 0;
- }
- 
--static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
-+#ifdef CONFIG_ARM64_GCS
-+
-+static int gcs_signal_entry(__sigrestore_t sigtramp, struct ksignal *ksig)
-+{
-+	unsigned long __user *gcspr_el0;
-+	unsigned long cap[2];
-+	int ret;
-+
-+	if (!system_supports_gcs())
-+		return 0;
-+
-+	if (!task_gcs_el0_enabled(current))
-+		return 0;
-+
-+	/*
-+	 * We are entering a signal handler, current register state is
-+	 * active.
-+	 */
-+	gcspr_el0 = (unsigned long __user *)read_sysreg_s(SYS_GCSPR_EL0);
-+
-+	/*
-+	 * Push a cap and the GCS entry for the trampoline onto the GCS.
-+	 */
-+	cap[1] = GCS_SIGNAL_CAP(gcspr_el0 - 1);
-+	cap[0] = (unsigned long)sigtramp;
-+	ret = copy_to_user_gcs(gcspr_el0 - 2, cap, ARRAY_SIZE(cap));
-+	if (ret != 0)
-+		return ret;
-+
-+	gcsb_dsync();
-+
-+	gcspr_el0 -= 2;
-+	write_sysreg_s((unsigned long)gcspr_el0, SYS_GCSPR_EL0);
-+
-+	return 0;
-+}
-+#else
-+
-+static int gcs_signal_entry(__sigrestore_t sigtramp, struct ksignal *ksig)
-+{
-+	return 0;
-+}
-+
-+#endif
-+
-+static int setup_return(struct pt_regs *regs, struct ksignal *ksig,
- 			 struct rt_sigframe_user_layout *user, int usig)
- {
- 	__sigrestore_t sigtramp;
-@@ -1079,7 +1201,7 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 	regs->regs[0] = usig;
- 	regs->sp = (unsigned long)user->sigframe;
- 	regs->regs[29] = (unsigned long)&user->next_frame->fp;
--	regs->pc = (unsigned long)ka->sa.sa_handler;
-+	regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
- 
- 	/*
- 	 * Signal delivery is a (wacky) indirect function call in
-@@ -1119,12 +1241,14 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 		sme_smstop();
- 	}
- 
--	if (ka->sa.sa_flags & SA_RESTORER)
--		sigtramp = ka->sa.sa_restorer;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER)
-+		sigtramp = ksig->ka.sa.sa_restorer;
- 	else
- 		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp);
- 
- 	regs->regs[30] = (unsigned long)sigtramp;
-+
-+	return gcs_signal_entry(sigtramp, ksig);
- }
- 
- static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-@@ -1147,7 +1271,7 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
- 	err |= setup_sigframe(&user, regs, set);
- 	if (err == 0) {
--		setup_return(regs, &ksig->ka, &user, usig);
-+		err = setup_return(regs, ksig, &user, usig);
- 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
- 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 			regs->regs[1] = (unsigned long)&frame->info;
-diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
-index 4a0a736800c0..ac7013fb05f3 100644
---- a/arch/arm64/mm/gcs.c
-+++ b/arch/arm64/mm/gcs.c
-@@ -6,6 +6,7 @@
- #include <linux/types.h>
- 
- #include <asm/cpufeature.h>
-+#include <asm/gcs.h>
- #include <asm/page.h>
- 
- static unsigned long alloc_gcs(unsigned long addr, unsigned long size,
+ config ARM64_SVE
+ 	bool "ARM Scalable Vector Extension support"
+ 	default y
 
 -- 
 2.30.2
