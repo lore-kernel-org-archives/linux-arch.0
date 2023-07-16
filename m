@@ -2,43 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CC03AC001DE
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:55:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B69E8C001B0
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:55:35 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230358AbjGPVzS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 17:55:18 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53518 "EHLO
+        id S231169AbjGPVze (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 17:55:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53202 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230339AbjGPVyq (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:54:46 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CDE57199C;
-        Sun, 16 Jul 2023 14:54:04 -0700 (PDT)
+        with ESMTP id S229679AbjGPVyw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:54:52 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1FA062694;
+        Sun, 16 Jul 2023 14:54:10 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id AE18060ECD;
-        Sun, 16 Jul 2023 21:54:04 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4A8C6C433D9;
-        Sun, 16 Jul 2023 21:53:58 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 4087F60EC9;
+        Sun, 16 Jul 2023 21:53:52 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F1959C433C8;
+        Sun, 16 Jul 2023 21:53:45 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544444;
-        bh=viG5anxcCcnETy6WTEqLj0O+gpdZleg7ylSYSUDSWcI=;
+        s=k20201202; t=1689544431;
+        bh=BgZhQzy1ZDJ87SbUj0QMsK2M0tcAHYl7N7+4HCzYWRs=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=SwCpkJ/re/3QSPdOxaSvPmTUXqWyUYkc1452Z6mBhqiKzmB5dXQ/cYeSPFblePc64
-         8UJ+5qbsQHPqRV7eXlUH7stZtlnPKB7kI/LWN+cxruPahvww4EdxtsoO+sI/tTn0EQ
-         qdNtuuJbES2trN5efTE+qv0nM1D/yG/Mim3jkmKJBLAwtXhWWtlmWthlc0A6bh9gXk
-         1C90UGVaHBe+F4P9Vy1v1jg6i6o58elJ5GmZlNCIB7YvkT5iri0JFOIA4f+OSbnjdJ
-         0x5z42vjeE3UCul3EOX6ZIBcyARUKPaIH7UVQriq9uQIjqWyf47XOUcN6EnZKBxx/p
-         gjk/S9RqX2LpA==
+        b=fE04IcJ78ZQnPaQ3Ay8Qv97lmyNvNGnu+scPqJDRUrC+f2FW8HVBB+nAVXt6SuF4n
+         wEiNofxMv5RUBs+gGJ/29J74O/wLqMmDNeroBCueNjPZFvW8Fb4xFf/WF9B28jb6qi
+         MmU+IdVfnXmbpses4PIle04Js9RHO2NYTDJIWnyjzG7O79o5Ms4XJR498cuPq5PFPY
+         Hj9tTGfKREuZbiaZp0GshqhBO42hw8caAkGtRit75FB8FZaQZcN9zrLiDnID+dqhJO
+         5es9YsMc/nZVOHMisUM1s65ZHso3ph6f0J2f9enn1dSpHEHw9yrdsWeurL/k1UKuk1
+         BghW7jueDS0vA==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:08 +0100
-Subject: [PATCH 12/35] arm64/mm: Map pages for guarded control stack
+Date:   Sun, 16 Jul 2023 22:51:06 +0100
+Subject: [PATCH 10/35] arm64/mm: Allocate PIE slots for EL0 guarded control
+ stack
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-12-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-10-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,61 +68,75 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1225; i=broonie@kernel.org;
- h=from:subject:message-id; bh=viG5anxcCcnETy6WTEqLj0O+gpdZleg7ylSYSUDSWcI=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGaYY8P9SxztwbReqsOD4EXSgrju2yjwCdYsxO7X
- ObL/CRyJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmmAAKCRAk1otyXVSH0CFjB/
- wITNeqHx2A9A/AJ1DNYpxUDzTwZ9+T8pd3XOVneuYwaTzi2MZZye6tNiKR7wiNv5QIUneXtkSg4tPn
- zzsu4E2T4EZd/99PiJr0CIU7iav1s9FW8s4SW7VitRAsaErFQQp+sBM6u7MnHrNS3iH+u4UBvtt9sl
- CKKObd7jfjgeFS+kmjiFsZSP9GjUQBkPW9DjXWJ8XNw7DkEK5KnmRY5yS5djZpGtZ7CGCkktenGhaQ
- 5DQjV/3Lb+1ksoB7g/SRlkIZCrnv5us2Evkh/UXqNufRoWbsJa4du5YWevpf0T/TfT1TXYEmXm+NJ6
- PpE6d0otsGkuF72xIz5WxGxqAtuw7y
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2919; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=BgZhQzy1ZDJ87SbUj0QMsK2M0tcAHYl7N7+4HCzYWRs=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGaX/DeynJM1AQTo4tiA9qsSX7bFYQTdZophim53
+ cpiZhmKJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmlwAKCRAk1otyXVSH0FLNB/
+ 9VWyeSNh/ecavajLIFERLxhuP1AWliN0iMrCdq6gbiMcwO9CmD0XAbdiwUralUNgcM711Andu7rY0f
+ YbGUReF+DooPBhY6noc45rkzMNqY2e/SwVlE0kxA3Iskf3B0dCiWSrHJwHxZ6twNdxZbeE9jsv2d29
+ oNXFtEEVPhRsG4ruMWG/CNdDlDwKLjCIXMc9nEA2wGjCS/nC7jvQklbYrTaTvAZhPeiI1Xs6vS7Zqb
+ U+m0c+b/vGCsIglBljirMn5knwBxnvmKJjgaT+iBrMDZITNVDzMhc27c41jt1Pe2qcdcIVbljYjp+n
+ d4WkF+gceF3YUsH3fRoFS/HBTDDW53
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Map pages flagged as being part of a GCS as such rather than using the
-full set of generic VM flags.
+Pages used for guarded control stacks need to be described to the hardware
+using the Permission Indirection Extension, GCS is not supported without
+PIE. In order to support copy on write for guarded stacks we allocate two
+values, one for active GCSs and one for GCS pages marked as read only prior
+to copy.
 
-This is done using a conditional rather than extending the size of
-protection_map since that would make for a very sparse array.
+Since the actual effect is defined using PIE the specific bit pattern used
+does not matter to the hardware but we choose two values which differ only
+in PTE_WRITE in order to help share code with non-PIE cases.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/mm/mmap.c | 17 ++++++++++++++++-
- 1 file changed, 16 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/pgtable-prot.h | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/mm/mmap.c b/arch/arm64/mm/mmap.c
-index 8f5b7ce857ed..e2ca770920ed 100644
---- a/arch/arm64/mm/mmap.c
-+++ b/arch/arm64/mm/mmap.c
-@@ -79,8 +79,23 @@ arch_initcall(adjust_protection_map);
+diff --git a/arch/arm64/include/asm/pgtable-prot.h b/arch/arm64/include/asm/pgtable-prot.h
+index eed814b00a38..b157ae0420ed 100644
+--- a/arch/arm64/include/asm/pgtable-prot.h
++++ b/arch/arm64/include/asm/pgtable-prot.h
+@@ -131,15 +131,23 @@ extern bool arm64_use_ng_mappings;
+ /* 6:                                PTE_PXN | PTE_WRITE            */
+ /* 7: PAGE_SHARED_EXEC               PTE_PXN | PTE_WRITE | PTE_USER */
+ /* 8: PAGE_KERNEL_ROX      PTE_UXN                                  */
+-/* 9:                      PTE_UXN |                       PTE_USER */
++/* 9: PAGE_GCS_RO          PTE_UXN |                       PTE_USER */
+ /* a: PAGE_KERNEL_EXEC     PTE_UXN |           PTE_WRITE            */
+-/* b:                      PTE_UXN |           PTE_WRITE | PTE_USER */
++/* b: PAGE_GCS             PTE_UXN |           PTE_WRITE | PTE_USER */
+ /* c: PAGE_KERNEL_RO       PTE_UXN | PTE_PXN                        */
+ /* d: PAGE_READONLY        PTE_UXN | PTE_PXN |             PTE_USER */
+ /* e: PAGE_KERNEL          PTE_UXN | PTE_PXN | PTE_WRITE            */
+ /* f: PAGE_SHARED          PTE_UXN | PTE_PXN | PTE_WRITE | PTE_USER */
  
- pgprot_t vm_get_page_prot(unsigned long vm_flags)
- {
--	pteval_t prot = pgprot_val(protection_map[vm_flags &
-+	pteval_t prot;
++#define _PAGE_GCS	(_PAGE_DEFAULT | PTE_UXN | PTE_WRITE | PTE_USER)
++#define _PAGE_GCS_RO	(_PAGE_DEFAULT | PTE_UXN | PTE_USER)
 +
-+	/*
-+	 * If this is a GCS then only interpret VM_WRITE.
-+	 *
-+	 * TODO: Just make protection_map[] bigger?  Nothing seems
-+	 * ideal here.
-+	 */
-+	if (system_supports_gcs() && (vm_flags & VM_SHADOW_STACK)) {
-+		if (vm_flags & VM_WRITE)
-+			prot = _PAGE_GCS;
-+		else
-+			prot = _PAGE_GCS_RO;
-+	} else {
-+		prot = pgprot_val(protection_map[vm_flags &
- 				   (VM_READ|VM_WRITE|VM_EXEC|VM_SHARED)]);
-+	}
++#define PAGE_GCS	__pgprot(_PAGE_GCS)
++#define PAGE_GCS_RO	__pgprot(_PAGE_GCS_RO)
++
+ #define PIE_E0	( \
++	PIRx_ELx_PERM(pte_pi_index(_PAGE_GCS),           PIE_GCS)  | \
++	PIRx_ELx_PERM(pte_pi_index(_PAGE_GCS_RO),        PIE_R)   | \
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_EXECONLY),      PIE_X_O) | \
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_READONLY_EXEC), PIE_RX)  | \
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_SHARED_EXEC),   PIE_RWX) | \
+@@ -147,6 +155,8 @@ extern bool arm64_use_ng_mappings;
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_SHARED),        PIE_RW))
  
- 	if (vm_flags & VM_ARM64_BTI)
- 		prot |= PTE_GP;
+ #define PIE_E1	( \
++	PIRx_ELx_PERM(pte_pi_index(_PAGE_GCS),           PIE_RW)      | \
++	PIRx_ELx_PERM(pte_pi_index(_PAGE_GCS_RO),        PIE_R)      | \
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_EXECONLY),      PIE_NONE_O) | \
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_READONLY_EXEC), PIE_R)      | \
+ 	PIRx_ELx_PERM(pte_pi_index(_PAGE_SHARED_EXEC),   PIE_RW)     | \
 
 -- 
 2.30.2
