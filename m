@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DD67CEB64DD
-	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:56:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 49262C0015E
+	for <linux-arch@archiver.kernel.org>; Sun, 16 Jul 2023 21:56:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230448AbjGPV4P (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sun, 16 Jul 2023 17:56:15 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53274 "EHLO
+        id S229564AbjGPV4c (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sun, 16 Jul 2023 17:56:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53068 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230351AbjGPVzf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:55:35 -0400
+        with ESMTP id S231206AbjGPVzy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jul 2023 17:55:54 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B54FD2726;
-        Sun, 16 Jul 2023 14:54:39 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BFE572119;
+        Sun, 16 Jul 2023 14:54:44 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id DEF6360ECC;
-        Sun, 16 Jul 2023 21:54:25 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 90095C433C8;
-        Sun, 16 Jul 2023 21:54:19 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 7B4D160ED6;
+        Sun, 16 Jul 2023 21:54:44 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 27304C433CD;
+        Sun, 16 Jul 2023 21:54:37 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1689544465;
-        bh=AFWazg68H0m9wjDZ4noTEGRptXvqnY78FqkUfPNC3A0=;
+        s=k20201202; t=1689544483;
+        bh=Ic5184HtLjp7BRJp2h4YHI8S+wCBGgxplC9dANJy2o0=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=FMeXWEV5yAyaEPLEB992tOXVK+vCLSYIXTyxB0U3l3Ds2WewZFDlaW5jJxBCaVCoi
-         Iwcbr/i9r6VG9Bfs0Y3NmDiCOmAybluOct/NF3PaAaINoc0aofOLacRKfmt5KC0diX
-         6TfuqKGMtLci9Opdw9SfAnYEKd2ZICBHWlybTnT9vidq6qDCmRr67INpP0Sw3C8riw
-         3LPAdcdOGGKsdPkDOXQVdoTzbEdov/q8ArWNeO6SpadhKqPOfolVUbVV17Qp5IWVrJ
-         Zsi9qOHqgknSatY1+djSbenrFq1SvZjGgL38hMXQ5SpRqUD78R89DeIB7kCOgarOeZ
-         n/7VAOkIkGabQ==
+        b=RelYncrnGny+EAIlfhvuL2ShmSOMTtQz9t2jp4p0osbukgPqBuUZYVANDMaD8K74z
+         bYSe6oyv9RfNlLF9wz9y7pqkyTDLJP9kscdXHnI5m5Xrn64tgu8wukMhliN8npSrjV
+         BWXz1aweiGD4JBLEouYmkqMQJff4w9YknUECZ6bHn/AoQ0TZOW2n2N6+12vwWB/1D/
+         OfXu6akRY27HEUpErilhIpLqIUIaX+gJ4PwoS433nwRFGIg+SwdzyjKOs/IQIVJXh/
+         ALASiXAB7eJzX8QGDEET2oFy2GpWZJpLTN+DDDQE9w7MKMU++Nhk3l3xKBCgYHJt6v
+         bS+aWM3JZxT6w==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Sun, 16 Jul 2023 22:51:11 +0100
-Subject: [PATCH 15/35] arm64/idreg: Add overrride for GCS
+Date:   Sun, 16 Jul 2023 22:51:14 +0100
+Subject: [PATCH 18/35] arm64/mm: Handle GCS data aborts
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230716-arm64-gcs-v1-15-bf567f93bba6@kernel.org>
+Message-Id: <20230716-arm64-gcs-v1-18-bf567f93bba6@kernel.org>
 References: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 In-Reply-To: <20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,64 +67,177 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1796; i=broonie@kernel.org;
- h=from:subject:message-id; bh=AFWazg68H0m9wjDZ4noTEGRptXvqnY78FqkUfPNC3A0=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGab91+EJ26x8iY5lDhEOYmtfPq6vkb7yCYAcdWx
- xSRoj+yJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmmwAKCRAk1otyXVSH0DJPB/
- 4vzo6JR5dFTOQf1R5DmSVjR/1p7iMTVE2SYJ7qxBP2WIWk87yKna1gbFBNta87Jmu3LDdMy0aguATt
- 9HOxJlWpEXCmYfj4025r6F8mKq3XG6N41FTUMqSN6POsRapXiQgzzqhxE1dnP4rKOGX6u8kpx1+AjV
- llL15xPO9cgJXspmXN1ezfMhVgm10GY+pepXqZ/KxiWDgDRIN7JAj2Wa3f8gyKOJX/muBNjCG2m8NQ
- Mw74OiaLgdv6fENZKXo71ddUmc8XaWT1IySfM/F+6iLSoOyHN6MG2PLcVZtja8MQegU6tGYEdTdPGq
- M/bCxQHA14o+o1Tewj8tiNUrFRtOrN
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5561; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=Ic5184HtLjp7BRJp2h4YHI8S+wCBGgxplC9dANJy2o0=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBktGadjCcwsj3WTxSZ76WapUXTwRGVNGO3X5o1MiEr
+ UcRBdd6JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZLRmnQAKCRAk1otyXVSH0EUsB/
+ 0Y2q2IvD26b2AqosjuYfhXApUyZKIxrJGf5qPB9eQjeURpZjoVTQowhU4IE6kQbT4thl/xF8yO0K2c
+ aC2sWmWA+cTNsD38B1GCLo4NG6DPxbzsMcMyrTgV7sxHT2V0LxyJXff2xzdJ+JMCan/00Fuw+YB1A0
+ gHLIqHbzExbVwdBpDJ/47KeR32ti3bHPFPL9zO4+3qmnVBEzKbHcOnmpkNuuoVfMO3hVGiAHarBjcV
+ Dbd5Mg8tYgg4VuE7ih68Tu+7ebUKIHriLwZljkBYHMHhUNlcoz0rx/Lbp4anYXnv1culJCySnMUY+D
+ V5l28lm3yjxrMkwHTtiMzOuVPj9dIz
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hook up an override for GCS, allowing it to be disabled from the command
-line by specifying arm64.nogcs in case there are problems.
+All GCS operations at EL0 must happen on a page which is marked as
+having UnprivGCS access, including read operations.  If a GCS operation
+attempts to access a page without this then it will generate a data
+abort with the GCS bit set in ESR_EL1.ISS2.
+
+EL0 may validly generate such faults, for example due to copy on write
+which will cause the GCS data to be stored in a read only page with no
+GCS permissions until the actual copy happens.  Since UnprivGCS allows
+both reads and writes to the GCS (though only through GCS operations) we
+need to ensure that the memory management subsystem handles GCS accesses
+as writes at all times.  Do this by adding FAULT_FLAG_WRITE to any GCS
+page faults, adding handling to ensure that invalid cases are identfied
+as such early so the memory management core does not think they will
+succeed.  The core cannot distinguish between VMAs which are generally
+writeable and VMAs which are only writeable through GCS operations.
+
+EL1 may validly write to EL0 GCS for management purposes (eg, while
+initialising with cap tokens).
+
+We also report any GCS faults in VMAs not marked as part of a GCS as
+access violations, causing a fault to be delivered to userspace if it
+attempts to do GCS operations outside a GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- Documentation/admin-guide/kernel-parameters.txt | 3 +++
- arch/arm64/kernel/idreg-override.c              | 2 ++
- 2 files changed, 5 insertions(+)
+ arch/arm64/mm/fault.c | 75 +++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 67 insertions(+), 8 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index a1457995fd41..86662eed3003 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -418,6 +418,9 @@
- 	arm64.nobti	[ARM64] Unconditionally disable Branch Target
- 			Identification support
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 3fe516b32577..facade819abb 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -494,13 +494,30 @@ static void do_bad_area(unsigned long far, unsigned long esr,
+ 	}
+ }
  
-+	arm64.nogcs	[ARM64] Unconditionally disable Guarded Control Stack
-+			support
++/*
++ * Note: not valid for EL1 DC IVAC, but we never use that such that it
++ * should fault. EL0 cannot issue DC IVAC (undef).
++ */
++static bool is_write_abort(unsigned long esr)
++{
++	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
++}
 +
- 	arm64.nopauth	[ARM64] Unconditionally disable Pointer Authentication
- 			support
++static bool is_gcs_fault(unsigned long esr)
++{
++	if (!esr_is_data_abort(esr))
++		return false;
++
++	return ESR_ELx_ISS2(esr) & ESR_ELx_GCS;
++}
++
+ #define VM_FAULT_BADMAP		((__force vm_fault_t)0x010000)
+ #define VM_FAULT_BADACCESS	((__force vm_fault_t)0x020000)
  
-diff --git a/arch/arm64/kernel/idreg-override.c b/arch/arm64/kernel/idreg-override.c
-index 2fe2491b692c..49269a5cff10 100644
---- a/arch/arm64/kernel/idreg-override.c
-+++ b/arch/arm64/kernel/idreg-override.c
-@@ -99,6 +99,7 @@ static const struct ftr_set_desc pfr1 __initconst = {
- 	.override	= &id_aa64pfr1_override,
- 	.fields		= {
- 		FIELD("bt", ID_AA64PFR1_EL1_BT_SHIFT, NULL ),
-+		FIELD("gcs", ID_AA64PFR1_EL1_GCS_SHIFT, NULL),
- 		FIELD("mte", ID_AA64PFR1_EL1_MTE_SHIFT, NULL),
- 		FIELD("sme", ID_AA64PFR1_EL1_SME_SHIFT, pfr1_sme_filter),
- 		{}
-@@ -178,6 +179,7 @@ static const struct {
- 	{ "arm64.nosve",		"id_aa64pfr0.sve=0" },
- 	{ "arm64.nosme",		"id_aa64pfr1.sme=0" },
- 	{ "arm64.nobti",		"id_aa64pfr1.bt=0" },
-+	{ "arm64.nogcs",		"id_aa64pfr1.gcs=0" },
- 	{ "arm64.nopauth",
- 	  "id_aa64isar1.gpi=0 id_aa64isar1.gpa=0 "
- 	  "id_aa64isar1.api=0 id_aa64isar1.apa=0 "
+ static vm_fault_t __do_page_fault(struct mm_struct *mm,
+ 				  struct vm_area_struct *vma, unsigned long addr,
+ 				  unsigned int mm_flags, unsigned long vm_flags,
+-				  struct pt_regs *regs)
++				  unsigned long esr, struct pt_regs *regs)
+ {
+ 	/*
+ 	 * Ok, we have a good vm_area for this memory access, so we can handle
+@@ -510,6 +527,26 @@ static vm_fault_t __do_page_fault(struct mm_struct *mm,
+ 	 */
+ 	if (!(vma->vm_flags & vm_flags))
+ 		return VM_FAULT_BADACCESS;
++
++	if (vma->vm_flags & VM_SHADOW_STACK) {
++		/*
++		 * Writes to a GCS must either be generated by a GCS
++		 * operation or be from EL1.
++		 */
++		if (is_write_abort(esr) &&
++		    !(is_gcs_fault(esr) || is_el1_data_abort(esr)))
++			return VM_FAULT_BADACCESS;
++	} else {
++		/*
++		 * GCS faults should never happen for pages that are
++		 * not part of a GCS and the operation being attempted
++		 * can never succeed.
++		 */
++		if (is_gcs_fault(esr))
++			return VM_FAULT_BADACCESS;
++	}
++
++
+ 	return handle_mm_fault(vma, addr, mm_flags, regs);
+ }
+ 
+@@ -518,13 +555,15 @@ static bool is_el0_instruction_abort(unsigned long esr)
+ 	return ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_LOW;
+ }
+ 
+-/*
+- * Note: not valid for EL1 DC IVAC, but we never use that such that it
+- * should fault. EL0 cannot issue DC IVAC (undef).
+- */
+-static bool is_write_abort(unsigned long esr)
++static bool is_invalid_el0_gcs_access(struct vm_area_struct *vma, u64 esr)
+ {
+-	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
++	if (!system_supports_gcs())
++		return false;
++	if (likely(!(vma->vm_flags & VM_SHADOW_STACK)))
++		return false;
++	if (is_gcs_fault(esr))
++		return false;
++	return is_write_abort(esr);
+ }
+ 
+ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+@@ -573,6 +612,13 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 		/* If EPAN is absent then exec implies read */
+ 		if (!cpus_have_const_cap(ARM64_HAS_EPAN))
+ 			vm_flags |= VM_EXEC;
++		/*
++		 * Upgrade read faults to write faults, GCS reads must
++		 * occur on a page marked as GCS so we need to trigger
++		 * copy on write always.
++		 */
++		if (is_gcs_fault(esr))
++			mm_flags |= FAULT_FLAG_WRITE;
+ 	}
+ 
+ 	if (is_ttbr0_addr(addr) && is_el1_permission_fault(addr, esr, regs)) {
+@@ -595,6 +641,19 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 	if (!vma)
+ 		goto lock_mmap;
+ 
++	/*
++	 * We get legitimate write faults for GCS pages from GCS
++	 * operations and from EL1 writes to EL0 pages but just plain
++	 * EL0 writes are invalid.  Specifically check for this since
++	 * as a result of upgrading read faults to write faults for
++	 * CoW the mm core isn't able to distinguish these invalid
++	 * writes.
++	 */
++	if (is_invalid_el0_gcs_access(vma, esr)) {
++		vma_end_read(vma);
++		goto lock_mmap;
++	}
++
+ 	if (!(vma->vm_flags & vm_flags)) {
+ 		vma_end_read(vma);
+ 		goto lock_mmap;
+@@ -624,7 +683,7 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 		goto done;
+ 	}
+ 
+-	fault = __do_page_fault(mm, vma, addr, mm_flags, vm_flags, regs);
++	fault = __do_page_fault(mm, vma, addr, mm_flags, vm_flags, esr, regs);
+ 
+ 	/* Quick path to respond to signals */
+ 	if (fault_signal_pending(fault, regs)) {
 
 -- 
 2.30.2
