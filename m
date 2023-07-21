@@ -2,42 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DE033C04A94
-	for <linux-arch@archiver.kernel.org>; Fri, 21 Jul 2023 11:00:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 24C55EB64DC
+	for <linux-arch@archiver.kernel.org>; Fri, 21 Jul 2023 11:01:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231290AbjGULAH (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 21 Jul 2023 07:00:07 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49004 "EHLO
+        id S231308AbjGULBB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 21 Jul 2023 07:01:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49156 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231128AbjGUK7f (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2023 06:59:35 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EE0342735;
-        Fri, 21 Jul 2023 03:58:56 -0700 (PDT)
+        with ESMTP id S231154AbjGUK7n (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 21 Jul 2023 06:59:43 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2FBC830DF;
+        Fri, 21 Jul 2023 03:59:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
         Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
         Content-ID:Content-Description:In-Reply-To;
-        bh=MbiyL9h+1k5eBqWcaS863zQjxcb9GdsKTgaiCBDYOPw=; b=lSsRZMc9T3tGB9Ieux+7hvkxfF
-        Vnz5Lsvm2DYmHmKQq3w/c4FK8AjTU2Bn7kUeQQhdbWn3QC7/C19EOf9rMc1/nPR5qOXneVXZbRsq1
-        An6V+XSLXnXUzrTm6QDiDdqrn7CA+eNyOilPo535fQwcD2Uqn8nAFnL0Jk58B4Rm2X2DaXC+KGlHy
-        e+/4vpaEz7u1OpNNH/QRx5XJ3ZTNTHG7OgWZs30fD+Q9Db443cfgxgP8iWplL4EkKCrhxYRcZcqf7
-        i2rJlSJHM/XGAFME3I/tS1FmavMMFlmDe/UQBu4NlDwPbDDB88QOQvq0znfdtwO856yNKhRC21CKZ
-        rETTZ9zg==;
+        bh=0OvZxrAbgKVueqnrMDc9zKBhn7N/Qfvk936XgBKJyzg=; b=i2Up1YJcKcROlG2uFhIm/PX3JM
+        XmlM0nBGqzdATbwc0H09VZ4Cnh28vJg3gQOTltByte8iuH6Doc2RaXszR9lHG4kvFIGJJ7W8H5u/e
+        bFZXkUBflexyC8HwKIqTbUu/hCXdg+ZR4N7D+3IhTuTXVMXpw/H5F+Y4sFf3mGjPs8gV+Wg/wXPQU
+        auZ5VYpTsbYWOiqTa9O8AQdfIMeuFhCgw0ckRubRkc2RdCsKMQJOvA8lWutJRkeIHIFfq+UWvjmHB
+        WRe2YxzC3uS4F95VTLdcSyWaobmiuIWCw3CI75xItB4KbRIk0Bx9vSmZ7/5xQGQg6WGzQCoDF2zPY
+        PznX7d1g==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qMnqK-0012Oc-7m; Fri, 21 Jul 2023 10:58:40 +0000
+        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+        id 1qMnqK-0000Kz-0r;
+        Fri, 21 Jul 2023 10:58:40 +0000
 Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (4096 bits))
+         key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
         (Client did not present a certificate)
-        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 2DAD9300C24;
-        Fri, 21 Jul 2023 12:58:39 +0200 (CEST)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id 31D30300886;
+        Fri, 21 Jul 2023 12:58:38 +0200 (CEST)
 Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
-        id 064873157E61E; Fri, 21 Jul 2023 12:58:38 +0200 (CEST)
-Message-ID: <20230721105744.022509272@infradead.org>
+        id EB8D2314E02F2; Fri, 21 Jul 2023 12:58:37 +0200 (CEST)
+Message-ID: <20230721105743.819362688@infradead.org>
 User-Agent: quilt/0.66
-Date:   Fri, 21 Jul 2023 12:22:42 +0200
+Date:   Fri, 21 Jul 2023 12:22:39 +0200
 From:   Peter Zijlstra <peterz@infradead.org>
 To:     tglx@linutronix.de, axboe@kernel.dk
 Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
@@ -47,7 +48,7 @@ Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
         Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
         linux-mm@kvack.org, linux-arch@vger.kernel.org,
         malteskarupke@web.de
-Subject: [PATCH v1 05/14] futex: Add sys_futex_wake()
+Subject: [PATCH v1 02/14] futex: Extend the FUTEX2 flags
 References: <20230721102237.268073801@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -55,241 +56,56 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To complement sys_futex_waitv() add sys_futex_wake(). This syscall
-implements what was previously known as FUTEX_WAKE_BITSET except it
-uses 'unsigned long' for the bitmask and takes FUTEX2 flags.
-
-The 'unsigned long' allows FUTEX2_64 on 64bit platforms.
+Add the definition for the missing but always intended extra sizes,
+and add a NUMA flag for the planned numa extention.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/alpha/kernel/syscalls/syscall.tbl      |    1 
- arch/arm/tools/syscall.tbl                  |    1 
- arch/arm64/include/asm/unistd32.h           |    2 +
- arch/ia64/kernel/syscalls/syscall.tbl       |    1 
- arch/m68k/kernel/syscalls/syscall.tbl       |    1 
- arch/microblaze/kernel/syscalls/syscall.tbl |    1 
- arch/mips/kernel/syscalls/syscall_n32.tbl   |    1 
- arch/mips/kernel/syscalls/syscall_n64.tbl   |    1 
- arch/mips/kernel/syscalls/syscall_o32.tbl   |    1 
- arch/parisc/kernel/syscalls/syscall.tbl     |    1 
- arch/powerpc/kernel/syscalls/syscall.tbl    |    1 
- arch/s390/kernel/syscalls/syscall.tbl       |    1 
- arch/sh/kernel/syscalls/syscall.tbl         |    1 
- arch/sparc/kernel/syscalls/syscall.tbl      |    1 
- arch/x86/entry/syscalls/syscall_32.tbl      |    1 
- arch/x86/entry/syscalls/syscall_64.tbl      |    1 
- arch/xtensa/kernel/syscalls/syscall.tbl     |    1 
- include/linux/syscalls.h                    |    3 ++
- include/uapi/asm-generic/unistd.h           |    5 ++--
- kernel/futex/syscalls.c                     |   30 ++++++++++++++++++++++++++++
- kernel/sys_ni.c                             |    1 
- 21 files changed, 55 insertions(+), 2 deletions(-)
+ include/uapi/linux/futex.h |    7 ++++---
+ kernel/futex/syscalls.c    |    9 +++++++--
+ 2 files changed, 11 insertions(+), 5 deletions(-)
 
---- a/arch/alpha/kernel/syscalls/syscall.tbl
-+++ b/arch/alpha/kernel/syscalls/syscall.tbl
-@@ -491,3 +491,4 @@
- 559	common  futex_waitv                     sys_futex_waitv
- 560	common	set_mempolicy_home_node		sys_ni_syscall
- 561	common	cachestat			sys_cachestat
-+562	common	futex_wake			sys_futex_wake
---- a/arch/arm/tools/syscall.tbl
-+++ b/arch/arm/tools/syscall.tbl
-@@ -465,3 +465,4 @@
- 449	common	futex_waitv			sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/arm64/include/asm/unistd32.h
-+++ b/arch/arm64/include/asm/unistd32.h
-@@ -909,6 +909,8 @@ __SYSCALL(__NR_futex_waitv, sys_futex_wa
- __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
- #define __NR_cachestat 451
- __SYSCALL(__NR_cachestat, sys_cachestat)
-+#define __NR_futex_wake 452
-+__SYSCALL(__NR_futex_wake, sys_futex_wake)
- 
+--- a/include/uapi/linux/futex.h
++++ b/include/uapi/linux/futex.h
+@@ -46,10 +46,11 @@
  /*
-  * Please add new compat syscalls above this comment and update
---- a/arch/ia64/kernel/syscalls/syscall.tbl
-+++ b/arch/ia64/kernel/syscalls/syscall.tbl
-@@ -372,3 +372,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/m68k/kernel/syscalls/syscall.tbl
-+++ b/arch/m68k/kernel/syscalls/syscall.tbl
-@@ -451,3 +451,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/microblaze/kernel/syscalls/syscall.tbl
-+++ b/arch/microblaze/kernel/syscalls/syscall.tbl
-@@ -457,3 +457,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/mips/kernel/syscalls/syscall_n32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
-@@ -390,3 +390,4 @@
- 449	n32	futex_waitv			sys_futex_waitv
- 450	n32	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	n32	cachestat			sys_cachestat
-+452	n32	futex_wake			sys_futex_wake
---- a/arch/mips/kernel/syscalls/syscall_n64.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
-@@ -366,3 +366,4 @@
- 449	n64	futex_waitv			sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	n64	cachestat			sys_cachestat
-+452	n64	futex_wake			sys_futex_wake
---- a/arch/mips/kernel/syscalls/syscall_o32.tbl
-+++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
-@@ -439,3 +439,4 @@
- 449	o32	futex_waitv			sys_futex_waitv
- 450	o32	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	o32	cachestat			sys_cachestat
-+452	o32	futex_wake			sys_futex_wake
---- a/arch/parisc/kernel/syscalls/syscall.tbl
-+++ b/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -450,3 +450,4 @@
- 449	common	futex_waitv			sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/powerpc/kernel/syscalls/syscall.tbl
-+++ b/arch/powerpc/kernel/syscalls/syscall.tbl
-@@ -538,3 +538,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450 	nospu	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/s390/kernel/syscalls/syscall.tbl
-+++ b/arch/s390/kernel/syscalls/syscall.tbl
-@@ -454,3 +454,4 @@
- 449  common	futex_waitv		sys_futex_waitv			sys_futex_waitv
- 450  common	set_mempolicy_home_node	sys_set_mempolicy_home_node	sys_set_mempolicy_home_node
- 451  common	cachestat		sys_cachestat			sys_cachestat
-+452  common	futex_wake		sys_futex_wake			sys_futex_wake
---- a/arch/sh/kernel/syscalls/syscall.tbl
-+++ b/arch/sh/kernel/syscalls/syscall.tbl
-@@ -454,3 +454,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/sparc/kernel/syscalls/syscall.tbl
-+++ b/arch/sparc/kernel/syscalls/syscall.tbl
-@@ -497,3 +497,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -456,3 +456,4 @@
- 449	i386	futex_waitv		sys_futex_waitv
- 450	i386	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	i386	cachestat		sys_cachestat
-+452	i386	futex_wake		sys_futex_wake
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -373,6 +373,7 @@
- 449	common	futex_waitv		sys_futex_waitv
- 450	common	set_mempolicy_home_node	sys_set_mempolicy_home_node
- 451	common	cachestat		sys_cachestat
-+452	common	futex_wake		sys_futex_wake
- 
- #
- # Due to a historical design error, certain syscalls are numbered differently
---- a/arch/xtensa/kernel/syscalls/syscall.tbl
-+++ b/arch/xtensa/kernel/syscalls/syscall.tbl
-@@ -422,3 +422,4 @@
- 449	common  futex_waitv                     sys_futex_waitv
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
-+452	common	futex_wake			sys_futex_wake
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -563,6 +563,9 @@ asmlinkage long sys_set_robust_list(stru
- asmlinkage long sys_futex_waitv(struct futex_waitv *waiters,
- 				unsigned int nr_futexes, unsigned int flags,
- 				struct __kernel_timespec __user *timeout, clockid_t clockid);
-+
-+asmlinkage long sys_futex_wake(void __user *uaddr, unsigned long mask, int nr, unsigned int flags);
-+
- asmlinkage long sys_nanosleep(struct __kernel_timespec __user *rqtp,
- 			      struct __kernel_timespec __user *rmtp);
- asmlinkage long sys_nanosleep_time32(struct old_timespec32 __user *rqtp,
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -816,12 +816,13 @@ __SYSCALL(__NR_process_mrelease, sys_pro
- __SYSCALL(__NR_futex_waitv, sys_futex_waitv)
- #define __NR_set_mempolicy_home_node 450
- __SYSCALL(__NR_set_mempolicy_home_node, sys_set_mempolicy_home_node)
--
- #define __NR_cachestat 451
- __SYSCALL(__NR_cachestat, sys_cachestat)
-+#define __NR_futex_wake 452
-+__SYSCALL(__NR_futex_wake, sys_futex_wake)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 452
-+#define __NR_syscalls 453
- 
- /*
-  * 32 bit systems traditionally used different
+  * Flags for futex2 syscalls.
+  */
+-			/*	0x00 */
+-			/*	0x01 */
++#define FUTEX2_8		0x00
++#define FUTEX2_16		0x01
+ #define FUTEX2_32		0x02
+-			/*	0x04 */
++#define FUTEX2_64		0x03
++#define FUTEX2_NUMA		0x04
+ 			/*	0x08 */
+ 			/*	0x10 */
+ 			/*	0x20 */
 --- a/kernel/futex/syscalls.c
 +++ b/kernel/futex/syscalls.c
-@@ -306,6 +306,36 @@ SYSCALL_DEFINE5(futex_waitv, struct fute
- 	return ret;
+@@ -183,7 +183,7 @@ SYSCALL_DEFINE6(futex, u32 __user *, uad
+ 	return do_futex(uaddr, op, val, tp, uaddr2, (unsigned long)utime, val3);
  }
  
-+/*
-+ * sys_futex_wake - Wake a number of futexes
-+ * @uaddr:	Address of the futex(es) to wake
-+ * @mask:	bitmask
-+ * @nr:		Number of the futexes to wake
-+ * @flags:	FUTEX2 flags
-+ *
-+ * Identical to the traditional FUTEX_WAKE_BITSET op, except it is part of the
-+ * futex2 family of calls.
-+ */
+-#define FUTEX2_MASK (FUTEX2_32 | FUTEX2_PRIVATE)
++#define FUTEX2_MASK (FUTEX2_64 | FUTEX2_PRIVATE)
+ 
+ /**
+  * futex_parse_waitv - Parse a waitv array from userspace
+@@ -207,7 +207,12 @@ static int futex_parse_waitv(struct fute
+ 		if ((aux.flags & ~FUTEX2_MASK) || aux.__reserved)
+ 			return -EINVAL;
+ 
+-		if (!(aux.flags & FUTEX2_32))
++		if (!IS_ENABLED(CONFIG_64BIT) || in_compat_syscall()) {
++			if ((aux.flags & FUTEX2_64) == FUTEX2_64)
++				return -EINVAL;
++		}
 +
-+SYSCALL_DEFINE4(futex_wake,
-+		void __user *, uaddr,
-+		unsigned long, mask,
-+		int, nr,
-+		unsigned int, flags)
-+{
-+	if (flags & ~FUTEX2_MASK)
-+		return -EINVAL;
-+
-+	flags = futex2_to_flags(flags);
-+	if (!futex_flags_valid(flags))
-+		return -EINVAL;
-+
-+	if (!futex_validate_input(flags, mask))
-+		return -EINVAL;
-+
-+	return futex_wake(uaddr, flags, nr, mask);
-+}
-+
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE2(set_robust_list,
- 		struct compat_robust_list_head __user *, head,
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -87,6 +87,7 @@ COND_SYSCALL_COMPAT(set_robust_list);
- COND_SYSCALL(get_robust_list);
- COND_SYSCALL_COMPAT(get_robust_list);
- COND_SYSCALL(futex_waitv);
-+COND_SYSCALL(futex_wake);
- COND_SYSCALL(kexec_load);
- COND_SYSCALL_COMPAT(kexec_load);
- COND_SYSCALL(init_module);
++		if ((aux.flags & FUTEX2_64) != FUTEX2_32)
+ 			return -EINVAL;
+ 
+ 		futexv[i].w.flags = aux.flags;
 
 
