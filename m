@@ -2,43 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F33A8C001E0
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:51:29 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6C7CAC001E0
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:51:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231342AbjGXMv2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jul 2023 08:51:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37844 "EHLO
+        id S231417AbjGXMvd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jul 2023 08:51:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38794 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231345AbjGXMum (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:50:42 -0400
+        with ESMTP id S230472AbjGXMvB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:51:01 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C3A6F421C;
-        Mon, 24 Jul 2023 05:49:04 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6EDAD4227;
+        Mon, 24 Jul 2023 05:49:08 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id EA3B56115B;
-        Mon, 24 Jul 2023 12:48:36 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 877F2C433C7;
-        Mon, 24 Jul 2023 12:48:30 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 508DC6113A;
+        Mon, 24 Jul 2023 12:49:08 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E4BE1C433C7;
+        Mon, 24 Jul 2023 12:49:01 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690202916;
-        bh=ggfCgbEg0UE7JP5CH6e+dKjRf0SerXD/ltcRHcZOEeI=;
+        s=k20201202; t=1690202947;
+        bh=3y05YgLEE7escOOoGXKTI0JE3+x1TY+XK9aZf0p3Mn4=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=ZlYyKGx5oVvOMCsNxuqZ4HRF3rvaY0YwGG/oWgFTRzMKYrJMGtgwu7klWTg/EK2OE
-         V+/0x7bthpwL6TZG1IMfBvVdYiFaEV30QTzmWrxcjYn3siUcHaSDiKkiFhafOqS5kF
-         KoInIffQYumzNVhO706WkQSEXJmNPwh4BhncyG0CzIl4dGOcCu7mtPzJNRHdzwM8b5
-         BbTQ3rNcw+mGsmVl6Q5KHJw0s/435ijNB+0xM6dH3UnyLUCP5fA6LusN2Zxv+CEMRI
-         YSFb+SNJDDbU/0qkGLO5CYwAV8V41dUFmpoUcqULYew038wwhOQp5ontiNxuhh18tE
-         Z+Z0FQcxKgWmQ==
+        b=h4MiWG/1sIFoIspyO2WVZRg2EbDLJmWhXTUSuSbvDLR/pOit1Zn76FYgCN8c0cd1Z
+         YdfSis31bz4LW9AuOpijUGengzNFDDLBwIBGkFXVwlXKw8FXWvokOKBiXfqy0X9Z8w
+         X7cdJ/PiET/I/XdkDB2UTN89Y50wgkUegTG5mtuUiVm+NdVGNsF3TNI026SVOx7/kK
+         CrS/uwtdpmxvWOWeFa7vVjuzioBTKmlbP7HAPqxP7P6TyAjSmGeXsPJVs0g1HfTO5+
+         pc0ZgaMY/XAxSvMd9smLqK5Ep5K1FlEX3Iu2cSzfvT/jRdPqVWuVy8nSg9QAEoQa/r
+         mDFlexwZd7nUQ==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 24 Jul 2023 13:46:02 +0100
-Subject: [PATCH v2 15/35] arm64/hwcap: Add hwcap for GCS
+Date:   Mon, 24 Jul 2023 13:46:07 +0100
+Subject: [PATCH v2 20/35] arm64/gcs: Implement shadow stack prctl()
+ interface
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230724-arm64-gcs-v2-15-dc2c1d44c2eb@kernel.org>
+Message-Id: <20230724-arm64-gcs-v2-20-dc2c1d44c2eb@kernel.org>
 References: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 In-Reply-To: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,95 +68,206 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3001; i=broonie@kernel.org;
- h=from:subject:message-id; bh=ggfCgbEg0UE7JP5CH6e+dKjRf0SerXD/ltcRHcZOEeI=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKcknfKTRZzzz9LbJqgRRYQvQPCXo2LJwyJ51fr
- V9bqvnyJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5ynAAKCRAk1otyXVSH0FxjB/
- 9s5qbeKLsQo6cJg7CW6iKQsH0m1MonkUJ29aRZgGkImNaZqMPwNq2aDasRT9454sPPGfQ+G/Ygvzf1
- S1QuaQjU5/GeTtiG2vHwVUPCzlbr8nVVSyjQDRMaTJCXI8BaVrrtIdPwuNyIKnVw4z8W8Z8GBenp84
- jF72SJGd1juVuSEimlfH/nM9iNkZaGToXORIeQxqIjLBvmszrlgTD0NQ9YvnGDCrd36rmFTXUUq0ke
- m3HYgcLS3kSgZ5RTJ+hlrvMovehLpCDaPmVKV6T0KUMptoJ8603pXErRs8N4yHdel5aNMcBHcgLiV0
- utMsK9B0MA0Eq6XGMZGJQyyk7JTwjO
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5673; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=3y05YgLEE7escOOoGXKTI0JE3+x1TY+XK9aZf0p3Mn4=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKjsWMyjDHT6nsc5ASBE3kr1s3jQrX0pSd6V5/B
+ NRK1rHSJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5yowAKCRAk1otyXVSH0Mh/B/
+ 96RYg4yf06IdtEDKJRAWQGZq+kX/mYRpStm3p+QIzWxx9Fny7LIxlzpAhiXVykRzvxlyT2zBIQTXyf
+ bZtMJWwmAUzcFp17ry9TWxSCzyFZGYMy6aiTWVvS9joxmlOGd/y2HhpiJx9U450OSJKtU9regGZXtj
+ PBlL/KdoHa34I5u8yL2As+RUsUmnYYRZVtVYUfSeKLQ+ZYem/3v3GM+Rv3WBPxS+kyCZ3E+zXtzlhe
+ bHSHP5vW5ynIQmBRo/W0146dxlMufC3D4VDTTVtrfgbXNwF/Ly6pmQFbV9quECKuZTUw/9NR10iMF3
+ TYPGLU1PDNcfyXMkrNgu5E2D/tnp+3
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Provide a hwcap to enable userspace to detect support for GCS.
+Implement the architecture neutral prtctl() interface for setting the
+shadow stack status, this supports setting and reading the current GCS
+configuration for the current thread.
+
+Userspace can enable basic GCS functionality and additionally also
+support for GCS pushes and arbatrary GCS stores.  It is expected that
+this prctl() will be called very early in application startup, for
+example by the dynamic linker, and not subsequently adjusted during
+normal operation.  Users should carefully note that after enabling GCS
+for a thread GCS will become active with no call stack so it is not
+normally possible to return from the function that invoked the prctl().
+
+State is stored per thread, enabling GCS for a thread causes a GCS to be
+allocated for that thread.
+
+Userspace may lock the current GCS configuration by specifying
+PR_SHADOW_STACK_ENABLE_LOCK, this prevents any further changes to the
+GCS configuration via any means.
+
+If GCS is not being enabled then all flags other than _LOCK are ignored,
+it is not possible to enable stores or pops without enabling GCS.
+
+When disabling the GCS we do not free the allocated stack, this allows
+for inspection of the GCS after disabling as part of fault reporting.
+Since it is not an expected use case and since it presents some
+complications in determining what to do with previously initialsed data
+on the GCS attempts to reenable GCS after this are rejected.  This can
+be revisted if a use case arises.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- Documentation/arch/arm64/elf_hwcaps.rst | 3 +++
- arch/arm64/include/asm/hwcap.h          | 1 +
- arch/arm64/include/uapi/asm/hwcap.h     | 1 +
- arch/arm64/kernel/cpufeature.c          | 3 +++
- arch/arm64/kernel/cpuinfo.c             | 1 +
- 5 files changed, 9 insertions(+)
+ arch/arm64/include/asm/gcs.h       | 22 ++++++++++
+ arch/arm64/include/asm/processor.h |  1 +
+ arch/arm64/mm/gcs.c                | 82 ++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 105 insertions(+)
 
-diff --git a/Documentation/arch/arm64/elf_hwcaps.rst b/Documentation/arch/arm64/elf_hwcaps.rst
-index 8c8addb4194c..75f3960cad39 100644
---- a/Documentation/arch/arm64/elf_hwcaps.rst
-+++ b/Documentation/arch/arm64/elf_hwcaps.rst
-@@ -305,6 +305,9 @@ HWCAP2_SMEF16F16
- HWCAP2_MOPS
-     Functionality implied by ID_AA64ISAR2_EL1.MOPS == 0b0001.
+diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
+index 4371a2f99b4a..c150e76869a1 100644
+--- a/arch/arm64/include/asm/gcs.h
++++ b/arch/arm64/include/asm/gcs.h
+@@ -48,6 +48,9 @@ static inline u64 gcsss2(void)
+ 	return Xt;
+ }
  
-+HWCAP2_GCS
-+    Functionality implied by ID_AA64PFR1_EL1.GCS == 0b1
++#define PR_SHADOW_STACK_SUPPORTED_STATUS_MASK \
++	(PR_SHADOW_STACK_ENABLE | PR_SHADOW_STACK_WRITE | PR_SHADOW_STACK_PUSH)
 +
- 4. Unused AT_HWCAP bits
- -----------------------
+ #ifdef CONFIG_ARM64_GCS
  
-diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
-index 692b1ec663b2..39f397a2b5b2 100644
---- a/arch/arm64/include/asm/hwcap.h
-+++ b/arch/arm64/include/asm/hwcap.h
-@@ -138,6 +138,7 @@
- #define KERNEL_HWCAP_SME_B16B16		__khwcap2_feature(SME_B16B16)
- #define KERNEL_HWCAP_SME_F16F16		__khwcap2_feature(SME_F16F16)
- #define KERNEL_HWCAP_MOPS		__khwcap2_feature(MOPS)
-+#define KERNEL_HWCAP_GCS		__khwcap2_feature(GCS)
+ static inline bool task_gcs_el0_enabled(struct task_struct *task)
+@@ -61,6 +64,20 @@ void gcs_preserve_current_state(void);
+ unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
+ 			    unsigned long clone_flags, size_t size);
  
- /*
-  * This yields a mask that user programs can use to figure out what
-diff --git a/arch/arm64/include/uapi/asm/hwcap.h b/arch/arm64/include/uapi/asm/hwcap.h
-index a2cac4305b1e..7510c35e6864 100644
---- a/arch/arm64/include/uapi/asm/hwcap.h
-+++ b/arch/arm64/include/uapi/asm/hwcap.h
-@@ -103,5 +103,6 @@
- #define HWCAP2_SME_B16B16	(1UL << 41)
- #define HWCAP2_SME_F16F16	(1UL << 42)
- #define HWCAP2_MOPS		(1UL << 43)
-+#define HWCAP2_GCS		(1UL << 44)
++static inline int gcs_check_locked(struct task_struct *task,
++				   unsigned long new_val)
++{
++	unsigned long cur_val = task->thread.gcs_el0_mode;
++
++	cur_val &= task->thread.gcs_el0_locked;
++	new_val &= task->thread.gcs_el0_locked;
++
++	if (cur_val != new_val)
++		return -EBUSY;
++
++	return 0;
++}
++
+ #else
  
- #endif /* _UAPI__ASM_HWCAP_H */
-diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
-index 91a14a6ccb04..7b46e01140c4 100644
---- a/arch/arm64/kernel/cpufeature.c
-+++ b/arch/arm64/kernel/cpufeature.c
-@@ -2840,6 +2840,9 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
- 	HWCAP_CAP(ID_AA64ZFR0_EL1, I8MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEI8MM),
- 	HWCAP_CAP(ID_AA64ZFR0_EL1, F32MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEF32MM),
- 	HWCAP_CAP(ID_AA64ZFR0_EL1, F64MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEF64MM),
-+#endif
-+#ifdef CONFIG_ARM64_GCS
-+	HWCAP_CAP(ID_AA64PFR1_EL1, GCS, IMP, CAP_HWCAP, KERNEL_HWCAP_GCS),
+ static inline bool task_gcs_el0_enabled(struct task_struct *task)
+@@ -76,6 +93,11 @@ static inline unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
+ {
+ 	return -ENOTSUPP;
+ }
++static inline int gcs_check_locked(struct task_struct *task,
++				   unsigned long new_val)
++{
++	return 0;
++}
+ 
  #endif
- 	HWCAP_CAP(ID_AA64PFR1_EL1, SSBS, SSBS2, CAP_HWCAP, KERNEL_HWCAP_SSBS),
- #ifdef CONFIG_ARM64_BTI
-diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
-index 58622dc85917..451fbbeffa39 100644
---- a/arch/arm64/kernel/cpuinfo.c
-+++ b/arch/arm64/kernel/cpuinfo.c
-@@ -126,6 +126,7 @@ static const char *const hwcap_str[] = {
- 	[KERNEL_HWCAP_SME_B16B16]	= "smeb16b16",
- 	[KERNEL_HWCAP_SME_F16F16]	= "smef16f16",
- 	[KERNEL_HWCAP_MOPS]		= "mops",
-+	[KERNEL_HWCAP_GCS]		= "gcs",
- };
  
- #ifdef CONFIG_COMPAT
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index f1551228a143..e4255749844a 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -181,6 +181,7 @@ struct thread_struct {
+ 	u64			tpidr2_el0;
+ #ifdef CONFIG_ARM64_GCS
+ 	unsigned int		gcs_el0_mode;
++	unsigned int		gcs_el0_locked;
+ 	u64			gcspr_el0;
+ 	u64			gcs_base;
+ 	u64			gcs_size;
+diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
+index 1e059c37088d..64c9f9a85925 100644
+--- a/arch/arm64/mm/gcs.c
++++ b/arch/arm64/mm/gcs.c
+@@ -93,3 +93,85 @@ void gcs_free(struct task_struct *task)
+ 	task->thread.gcs_base = 0;
+ 	task->thread.gcs_size = 0;
+ }
++
++int arch_set_shadow_stack_status(struct task_struct *task, unsigned long arg)
++{
++	unsigned long gcs, size;
++	int ret;
++
++	if (!system_supports_gcs())
++		return -EINVAL;
++
++	if (is_compat_thread(task_thread_info(task)))
++		return -EINVAL;
++
++	/* Reject unknown flags */
++	if (arg & ~PR_SHADOW_STACK_SUPPORTED_STATUS_MASK)
++		return -EINVAL;
++
++	ret = gcs_check_locked(task, arg);
++	if (ret != 0)
++		return ret;
++
++	/* If we are enabling GCS then make sure we have a stack */
++	if (arg & PR_SHADOW_STACK_ENABLE) {
++		if (!task_gcs_el0_enabled(task)) {
++			/* Do not allow GCS to be reenabled */
++			if (task->thread.gcs_base)
++				return -EINVAL;
++
++			if (task != current)
++				return -EBUSY;
++
++			size = gcs_size(0);
++			gcs = alloc_gcs(task->thread.gcspr_el0, size,
++					0, 0);
++			if (!gcs)
++				return -ENOMEM;
++
++			task->thread.gcspr_el0 = gcs + size - sizeof(u64);
++			task->thread.gcs_base = gcs;
++			task->thread.gcs_size = size;
++			if (task == current)
++				write_sysreg_s(task->thread.gcspr_el0,
++					       SYS_GCSPR_EL0);
++
++		}
++	}
++
++	task->thread.gcs_el0_mode = arg;
++	if (task == current)
++		gcs_set_el0_mode(task);
++
++	return 0;
++}
++
++int arch_get_shadow_stack_status(struct task_struct *task,
++				 unsigned long __user *arg)
++{
++	if (!system_supports_gcs())
++		return -EINVAL;
++
++	if (is_compat_thread(task_thread_info(task)))
++		return -EINVAL;
++
++	return put_user(task->thread.gcs_el0_mode, arg);
++}
++
++int arch_lock_shadow_stack_status(struct task_struct *task,
++				  unsigned long arg)
++{
++	if (!system_supports_gcs())
++		return -EINVAL;
++
++	if (is_compat_thread(task_thread_info(task)))
++		return -EINVAL;
++
++	/*
++	 * We support locking unknown bits so applications can prevent
++	 * any changes in a future proof manner.
++	 */
++	task->thread.gcs_el0_locked |= arg;
++
++	return 0;
++}
 
 -- 
 2.30.2
