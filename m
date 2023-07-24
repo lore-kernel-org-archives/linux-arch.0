@@ -2,43 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BF77C0015E
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:47:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 611E5C41513
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:48:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231161AbjGXMrs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jul 2023 08:47:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38188 "EHLO
+        id S230170AbjGXMsI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jul 2023 08:48:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37822 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230261AbjGXMre (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:47:34 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AAAE119AD;
-        Mon, 24 Jul 2023 05:47:25 -0700 (PDT)
+        with ESMTP id S231193AbjGXMsB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:48:01 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2BCB6E7E;
+        Mon, 24 Jul 2023 05:47:38 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 3FE8A61159;
-        Mon, 24 Jul 2023 12:47:25 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D4635C433C7;
-        Mon, 24 Jul 2023 12:47:18 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id BE0A46113D;
+        Mon, 24 Jul 2023 12:47:37 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5FE53C433D9;
+        Mon, 24 Jul 2023 12:47:31 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690202844;
-        bh=8dG7a5zhnwPAZeiNFnvKUhXNUal9236c6/e90HmcsCA=;
+        s=k20201202; t=1690202857;
+        bh=sadX6jRs7DdBAThhpdGK2D3phr2V3dLQCMXle4b8GlY=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=GPIY2N8zNHNlDz14CAA1jmIFGZmuW9fDHtdOh3MPt3BZdhE461y0GtsoqgDiA/yL7
-         wothIL4cR3CeLc28m7hxiwJ/LEACOWhXikdf5Jjy5NnRJyjEUP8ChEsXbj6+PymJM2
-         kias7RMaIAvUUuYLisB8n6RXXlLgff+HiRXCNlxWVCakhD8WNWEmRp4PfIXS/kgyZL
-         DIXe77CDfhB8tdQaYCm2gkgATyP7z28ogKDbM04sIfzJrzlq2uS1Gs4CrLb073La6e
-         DfE4mcqogFCWqf2T7JVUaKESPowAtDd8KROenvXJSry19sxckRQ/WNbGzF7gZhqU/s
-         evFeUzCOWC+2A==
+        b=K16sTq9Hn6ycqMora+BBwAk/ozE8SGLAK3z2N3zL60iYgOalkFMztrWQrhEAry0Vj
+         CcVkx2kwQQKjL3HdmJxoAgQpF5yWOmRYxsW+QLgOxd4sWN90UptH+kGz92hZjGt+yN
+         o3Ofa4xS4uCZEZbtOT06PBqw4pFNHzegdgSRDJiKaqOgWuxrjkVArJ4A9CCKPF/UOj
+         xskgy53bAd4PRdXm+neB4s3/4qRwEEfWAq8/GHBgRLVTUw960S6FCEbMd8A+p78ZeJ
+         7XCeOVFGchbvinttLBXT4aeKvf1mUDuB8SDH1Tcqrv164NBYaUfyXwzmwIMjNzvLhi
+         iVFf9d+YH0Ytw==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 24 Jul 2023 13:45:51 +0100
-Subject: [PATCH v2 04/35] arm64/sysreg: Add new system registers for GCS
+Date:   Mon, 24 Jul 2023 13:45:53 +0100
+Subject: [PATCH v2 06/35] arm64/gcs: Add manual encodings of GCS
+ instructions
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230724-arm64-gcs-v2-4-dc2c1d44c2eb@kernel.org>
+Message-Id: <20230724-arm64-gcs-v2-6-dc2c1d44c2eb@kernel.org>
 References: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 In-Reply-To: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,116 +68,123 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1873; i=broonie@kernel.org;
- h=from:subject:message-id; bh=8dG7a5zhnwPAZeiNFnvKUhXNUal9236c6/e90HmcsCA=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKJD49WQWF3h6SbcPE9HTobTvo7eUy6CZWyvqg1
- A5u6ozqJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5yiQAKCRAk1otyXVSH0GAmB/
- 9DiUj33XT81zMLJ00o87ws7Me4CuZQ9AcGUzuY91P7bsxx2d0xvTJ+364s194OJLQoPbCqA2Bk7Rri
- 8gTZ69F8JetV3ES2pk/8aOFGg3vWH6xWFFxM0AQxJnRJIu50yHTrNFg3UdzS3xWn7JXnChkQeer/cf
- C90p11k56xfGbagwcmMcrve5IZ4GhTkkx4wXqgqR3JAyi3xu6/XDoOT9lpc3yvEtYXjfRii24FFJgs
- NNdtltKpeGbWozWGJ86n6lzoPr+MAqSYwkqTPMz0apwHMlo1CXmcU6WQQifpdf30sH50xnxurgBWAN
- pwNloweXlU6NL2eDZ3y/SJEfNIcrlY
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2577; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=sadX6jRs7DdBAThhpdGK2D3phr2V3dLQCMXle4b8GlY=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKKVmClDR5NeGhf5MemevHD0L0bH31Lfo0oBRNY
+ y9EJtxuJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5yigAKCRAk1otyXVSH0HXhB/
+ 9jWPX3plb44CCP1lSbqRmoTanjOWee0vnZnhI5zu4xXhD9o3fE+5JeyJ0M1zlScNRpISjVxUCw6TZ4
+ 6LotQ99ybyOyzqYR54lPtBV5caae/chJyKMDP+KJ1/vN6CcDTUU07qK8YWvcsr8n/7gEs4muWfCM0e
+ zc01Ds4rOkjBzAVpDQ/wq/NNU+y4lRc5qDm50G0XEnk9CLpasxFGDptY3SJOl5NM7bORjUWH0LdxRL
+ 5Y/1Lc1NnSJIDs/22LBT/PrUJAO4wQABjy4Nyudxnm5Bn4VySTpk+puEtJJEdmwLLH2+Mmv4pTlWJ/
+ gQD7KMDC7CuxzbVR1B9pG9aDwmfU91
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-FEAT_GCS introduces a number of new system registers. Add the registers
-available up to EL2 to sysreg as per DDI0601 2022-12.
+Define C callable functions for GCS instructions used by the kernel. In
+order to avoid ambitious toolchain requirements for GCS support these are
+manually encoded, this means we have fixed register numbers which will be
+a bit limiting for the compiler but none of these should be used in
+sufficiently fast paths for this to be a problem.
+
+Note that GCSSTTR is used to store to EL0.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/tools/sysreg | 55 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 55 insertions(+)
+ arch/arm64/include/asm/gcs.h     | 51 ++++++++++++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/uaccess.h | 22 +++++++++++++++++
+ 2 files changed, 73 insertions(+)
 
-diff --git a/arch/arm64/tools/sysreg b/arch/arm64/tools/sysreg
-index 65866bf819c3..20c12e65a304 100644
---- a/arch/arm64/tools/sysreg
-+++ b/arch/arm64/tools/sysreg
-@@ -1780,6 +1780,41 @@ Sysreg	SMCR_EL1	3	0	1	2	6
- Fields	SMCR_ELx
- EndSysreg
+diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
+new file mode 100644
+index 000000000000..7c5e95218db6
+--- /dev/null
++++ b/arch/arm64/include/asm/gcs.h
+@@ -0,0 +1,51 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2023 ARM Ltd.
++ */
++#ifndef __ASM_GCS_H
++#define __ASM_GCS_H
++
++#include <asm/types.h>
++#include <asm/uaccess.h>
++
++static inline void gcsb_dsync(void)
++{
++	asm volatile(".inst 0xd503227f" : : : "memory");
++}
++
++static inline void gcsstr(u64 *addr, u64 val)
++{
++	register u64 *_addr __asm__ ("x0") = addr;
++	register long _val __asm__ ("x1") = val;
++
++	/* GCSSTTR x1, x0 */
++	asm volatile(
++		".inst 0xd91f1c01\n"
++		:
++		: "rZ" (_val), "r" (_addr)
++		: "memory");
++}
++
++static inline void gcsss1(u64 Xt)
++{
++	asm volatile (
++		"sys #3, C7, C7, #2, %0\n"
++		:
++		: "rZ" (Xt)
++		: "memory");
++}
++
++static inline u64 gcsss2(void)
++{
++	u64 Xt;
++
++	asm volatile(
++		"SYSL %0, #3, C7, C7, #3\n"
++		: "=r" (Xt)
++		:
++		: "memory");
++
++	return Xt;
++}
++
++#endif
+diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uaccess.h
+index 14be5000c5a0..22e10e79f56a 100644
+--- a/arch/arm64/include/asm/uaccess.h
++++ b/arch/arm64/include/asm/uaccess.h
+@@ -425,4 +425,26 @@ static inline size_t probe_subpage_writeable(const char __user *uaddr,
  
-+SysregFields	GCSCR_ELx
-+Res0	63:10
-+Field	9	STREn
-+Field	8	PUSHMEn
-+Res0	7
-+Field	6	EXLOCKEN
-+Field	5	RVCHKEN
-+Res0	4:1
-+Field	0	PCRSEL
-+EndSysregFields
-+
-+Sysreg	GCSCR_EL1	3	0	2	5	0
-+Fields	GCSCR_ELx
-+EndSysreg
-+
-+SysregFields	GCSPR_ELx
-+Field	63:3	PTR
-+Res0	2:0
-+EndSysregFields
-+
-+Sysreg	GCSPR_EL1	3	0	2	5	1
-+Fields	GCSPR_ELx
-+EndSysreg
-+
-+Sysreg	GCSCRE0_EL1	3	0	2	5	2
-+Res0	63:11
-+Field	10	nTR
-+Field	9	STREn
-+Field	8	PUSHMEn
-+Res0	7:6
-+Field	5	RVCHKEN
-+Res0	4:1
-+Field	0	PCRSEL
-+EndSysreg
-+
- Sysreg	ALLINT	3	0	4	3	0
- Res0	63:14
- Field	13	ALLINT
-@@ -2010,6 +2045,10 @@ Field	4	DZP
- Field	3:0	BS
- EndSysreg
+ #endif /* CONFIG_ARCH_HAS_SUBPAGE_FAULTS */
  
-+Sysreg	GCSPR_EL0	3	3	2	5	1
-+Fields	GCSPR_ELx
-+EndSysreg
++#ifdef CONFIG_ARM64_GCS
 +
- Sysreg	SVCR	3	3	4	2	2
- Res0	63:2
- Field	1	ZA
-@@ -2209,6 +2248,14 @@ Sysreg	SMCR_EL2	3	4	1	2	6
- Fields	SMCR_ELx
- EndSysreg
- 
-+Sysreg	GCSCR_EL2	3	4	2	5	0
-+Fields	GCSCR_ELx
-+EndSysreg
++static inline int gcssttr(unsigned long __user *addr, unsigned long val)
++{
++	register unsigned long __user *_addr __asm__ ("x0") = addr;
++	register unsigned long _val __asm__ ("x1") = val;
++	int err = 0;
 +
-+Sysreg	GCSPR_EL2	3	4	2	5	1
-+Fields	GCSPR_ELx
-+EndSysreg
++	/* GCSSTTR x1, x0 */
++	asm volatile(
++		"1: .inst 0xd91f1c01\n"
++		"2: \n"
++		_ASM_EXTABLE_UACCESS_ERR(1b, 2b, %w0)
++		: "+r" (err)
++		: "rZ" (_val), "r" (_addr)
++		: "memory");
 +
- Sysreg	DACR32_EL2	3	4	3	0	0
- Res0	63:32
- Field	31:30	D15
-@@ -2268,6 +2315,14 @@ Sysreg	SMCR_EL12	3	5	1	2	6
- Fields	SMCR_ELx
- EndSysreg
- 
-+Sysreg	GCSCR_EL12	3	5	2	5	0
-+Fields	GCSCR_ELx
-+EndSysreg
++	return err;
++}
 +
-+Sysreg	GCSPR_EL12	3	5	2	5	1
-+Fields	GCSPR_ELx
-+EndSysreg
++#endif /* CONFIG_ARM64_GCS */
 +
- Sysreg	FAR_EL12	3	5	6	0	0
- Field	63:0	ADDR
- EndSysreg
+ #endif /* __ASM_UACCESS_H */
 
 -- 
 2.30.2
