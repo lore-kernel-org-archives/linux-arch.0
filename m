@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BE7E1C001E0
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:50:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 65A4DC41513
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:50:42 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231262AbjGXMuY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jul 2023 08:50:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38790 "EHLO
+        id S231336AbjGXMul (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jul 2023 08:50:41 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38952 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231268AbjGXMtz (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:49:55 -0400
+        with ESMTP id S231294AbjGXMuM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:50:12 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4E8EE2D6D;
-        Mon, 24 Jul 2023 05:48:37 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B6F4C3A90;
+        Mon, 24 Jul 2023 05:48:49 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id F08F961153;
-        Mon, 24 Jul 2023 12:48:17 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BCB6CC433C8;
-        Mon, 24 Jul 2023 12:48:09 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 7BC8861152;
+        Mon, 24 Jul 2023 12:48:49 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 139E7C433C7;
+        Mon, 24 Jul 2023 12:48:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690202897;
-        bh=tjbWwPwmImMptyDPc55s3c7Oj7q65gF9QqqfPkrYo0c=;
+        s=k20201202; t=1690202928;
+        bh=Qk1oAglcSxLTK1OL1yhAbWpcUwaL4dga6Y2wJZdhO9Q=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=ADxRF/rPadsVQZC+i6BqotmFLVNKg076CcFfLhOBO8/KXuFISllZyQm+ZLlPLRMh1
-         3A79q+cxaE+hzhoQwwnkUcTElR79/APwv2RhDVkBZIEC/NbKFNFGKYDv4Nkwo5TWhY
-         f2BXeoa+KRoEfk95MzM8mpVnNzyzQ1a/4G5vTVoxyZweh7xEBjpiJatLgjChZ7gtex
-         qoaXatmAK/9UoNIvy34ASKuO1BGkIaXMUWLWXbk7y70VhSb4ETmsomItbv6LOpZOwW
-         okB9ShLTyeUu3dvoM4zm/AENtnyDifyekbqCfO/r0DSUUM1HhQn80MUaK9nkFe7ZQU
-         a0G+Z5YalyCxQ==
+        b=GA7d9sNT/rJ0WJ+xEL1kedzmwFpOvzkvWpWRRSXDefPpF0h7Z3LoT3il5uE0/jaGL
+         L6aLEJLHytNQA3WxKZLSH6zh8Ow1I0Sn6BDkVTKcQtowTsnxfbvl8xAWfXIBC43yNa
+         gEuVty8LRHrHffr0mz/NHq9wuN5cxiRR+uZ0kCpgifaMxeY4L1cEPV1cDAt8Uw0LjM
+         ZkAdqcq7fwA52dr5Nft0H2gFnqGTWJxohX1c7MFcual5CLTH0ItrzoHs2zGqDqt+32
+         qB+MJmtKIkbPeklyMwx3GGljV2KcajFETid9doKwrM3Xrz5jn8emTI7Aa/1hh1Wkzb
+         cZC8+Lx9lXWJw==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 24 Jul 2023 13:45:59 +0100
-Subject: [PATCH v2 12/35] KVM: arm64: Manage GCS registers for guests
+Date:   Mon, 24 Jul 2023 13:46:04 +0100
+Subject: [PATCH v2 17/35] arm64/mm: Handle GCS data aborts
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230724-arm64-gcs-v2-12-dc2c1d44c2eb@kernel.org>
+Message-Id: <20230724-arm64-gcs-v2-17-dc2c1d44c2eb@kernel.org>
 References: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 In-Reply-To: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,158 +67,180 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=5343; i=broonie@kernel.org;
- h=from:subject:message-id; bh=tjbWwPwmImMptyDPc55s3c7Oj7q65gF9QqqfPkrYo0c=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKSv10GbqCkJKl0MIgaPzbU+3ins2JfIR4qxdNq
- VBMr5EeJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5ykgAKCRAk1otyXVSH0HYkB/
- oD+/iKQHx+kc51iDU03jw2wlz1limfx2oHjsDk7t3Mr9lcTphYTMe06qVIXhlQAYhNPh77cMXu1tMm
- BUdtEbelf2oNNO+lQMqtmtbGzBeJsalvCoNCYP5P9dlTf1Z5PiyvP1Te1hLpz7Lmf7ZSu3CeSnjzGx
- G4Fc5l3dyqyjV3aZuvZGqc81w7Oc/LmERqgQgpDRxnuoK8mqlSn4ZPuiZOHu1vTEw5GuYKl2y5pxlr
- 0zS+UoZ5FYLGltgMGqCwFXTaA2Jzwhqolu5rLSk7WJHQAs7Sxma8rPR1B7a+8Z/TaN9Q4p5z7Xy11q
- e0ZPRYnRBPrd9EGdjqoNyVfx7CzbUe
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5613; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=Qk1oAglcSxLTK1OL1yhAbWpcUwaL4dga6Y2wJZdhO9Q=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKe3zPPjWT4b5WmOZ3LAhxzwLz4yNXLUgcttsYr
+ ud3QVBKJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5yngAKCRAk1otyXVSH0CvEB/
+ 4jJiJu+LxDMxSGM2XECjRZURDqgeoOVcHxDefJs3PqcXqoU78dy0rTwv9nHdWMNe+DxcP2JfpG4vEb
+ k9vfD4lKa5yBhhGMdAlXIkCXPuwQUuzai8rSnHIT/cdu+2ZVa6Hojaz9I5uQVc0pyJeOkZtFnCqtHB
+ 77pPbY8SwUtKgnD5M77EcPmScDx3sKQBKkzWB3KLbTeMZDA8yfqMYK4CpIFEDwig1tpVD2vQfmE3NB
+ q2o7Gyg5xJ2kaaV981T3GAAMlM9XFNkEzmfBPLjurRO3/0LXeRE0v0wNUaOdhK0nmUK36u9mja0sU1
+ 6MZAvqkH9o6DodF4d0KyhqXs9hG9k8
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-GCS introduces a number of system registers for EL1 and EL0, on systems
-with GCS we need to context switch them and expose them to VMMs to allow
-guests to use GCS.  Traps are already disabled.
+All GCS operations at EL0 must happen on a page which is marked as
+having UnprivGCS access, including read operations.  If a GCS operation
+attempts to access a page without this then it will generate a data
+abort with the GCS bit set in ESR_EL1.ISS2.
+
+EL0 may validly generate such faults, for example due to copy on write
+which will cause the GCS data to be stored in a read only page with no
+GCS permissions until the actual copy happens.  Since UnprivGCS allows
+both reads and writes to the GCS (though only through GCS operations) we
+need to ensure that the memory management subsystem handles GCS accesses
+as writes at all times.  Do this by adding FAULT_FLAG_WRITE to any GCS
+page faults, adding handling to ensure that invalid cases are identfied
+as such early so the memory management core does not think they will
+succeed.  The core cannot distinguish between VMAs which are generally
+writeable and VMAs which are only writeable through GCS operations.
+
+EL1 may validly write to EL0 GCS for management purposes (eg, while
+initialising with cap tokens).
+
+We also report any GCS faults in VMAs not marked as part of a GCS as
+access violations, causing a fault to be delivered to userspace if it
+attempts to do GCS operations outside a GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/kvm_host.h          | 12 ++++++++++++
- arch/arm64/kvm/hyp/include/hyp/sysreg-sr.h | 17 +++++++++++++++++
- arch/arm64/kvm/sys_regs.c                  | 22 ++++++++++++++++++++++
- 3 files changed, 51 insertions(+)
+ arch/arm64/mm/fault.c | 78 +++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 70 insertions(+), 8 deletions(-)
 
-diff --git a/arch/arm64/include/asm/kvm_host.h b/arch/arm64/include/asm/kvm_host.h
-index d3dd05bbfe23..a5bb00f58108 100644
---- a/arch/arm64/include/asm/kvm_host.h
-+++ b/arch/arm64/include/asm/kvm_host.h
-@@ -364,6 +364,12 @@ enum vcpu_sysreg {
- 	PIR_EL1,       /* Permission Indirection Register 1 (EL1) */
- 	PIRE0_EL1,     /*  Permission Indirection Register 0 (EL1) */
- 
-+	/* Guarded Control Stack registers */
-+	GCSCRE0_EL1,	/* Guarded Control Stack Control (EL0) */
-+	GCSCR_EL1,	/* Guarded Control Stack Control (EL1) */
-+	GCSPR_EL0,	/* Guarded Control Stack Pointer (EL0) */
-+	GCSPR_EL1,	/* Guarded Control Stack Pointer (EL1) */
-+
- 	/* 32bit specific registers. */
- 	DACR32_EL2,	/* Domain Access Control Register */
- 	IFSR32_EL2,	/* Instruction Fault Status Register */
-@@ -1136,6 +1142,12 @@ bool kvm_arm_vcpu_is_finalized(struct kvm_vcpu *vcpu);
- #define kvm_vm_has_ran_once(kvm)					\
- 	(test_bit(KVM_ARCH_FLAG_HAS_RAN_ONCE, &(kvm)->arch.flags))
- 
-+static inline bool has_gcs(void)
-+{
-+	return IS_ENABLED(CONFIG_ARM64_GCS) &&
-+		cpus_have_final_cap(ARM64_HAS_GCS);
-+}
-+
- int kvm_trng_call(struct kvm_vcpu *vcpu);
- #ifdef CONFIG_KVM
- extern phys_addr_t hyp_mem_base;
-diff --git a/arch/arm64/kvm/hyp/include/hyp/sysreg-sr.h b/arch/arm64/kvm/hyp/include/hyp/sysreg-sr.h
-index bb6b571ec627..ec34d4a90717 100644
---- a/arch/arm64/kvm/hyp/include/hyp/sysreg-sr.h
-+++ b/arch/arm64/kvm/hyp/include/hyp/sysreg-sr.h
-@@ -25,6 +25,8 @@ static inline void __sysreg_save_user_state(struct kvm_cpu_context *ctxt)
- {
- 	ctxt_sys_reg(ctxt, TPIDR_EL0)	= read_sysreg(tpidr_el0);
- 	ctxt_sys_reg(ctxt, TPIDRRO_EL0)	= read_sysreg(tpidrro_el0);
-+	if (has_gcs())
-+		ctxt_sys_reg(ctxt, GCSPR_EL0) = read_sysreg_s(SYS_GCSPR_EL0);
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 3fe516b32577..ec392207a475 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -494,13 +494,30 @@ static void do_bad_area(unsigned long far, unsigned long esr,
+ 	}
  }
  
- static inline bool ctxt_has_mte(struct kvm_cpu_context *ctxt)
-@@ -62,6 +64,12 @@ static inline void __sysreg_save_el1_state(struct kvm_cpu_context *ctxt)
- 	ctxt_sys_reg(ctxt, PAR_EL1)	= read_sysreg_par();
- 	ctxt_sys_reg(ctxt, TPIDR_EL1)	= read_sysreg(tpidr_el1);
++/*
++ * Note: not valid for EL1 DC IVAC, but we never use that such that it
++ * should fault. EL0 cannot issue DC IVAC (undef).
++ */
++static bool is_write_abort(unsigned long esr)
++{
++	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
++}
++
++static bool is_gcs_fault(unsigned long esr)
++{
++	if (!esr_is_data_abort(esr))
++		return false;
++
++	return ESR_ELx_ISS2(esr) & ESR_ELx_GCS;
++}
++
+ #define VM_FAULT_BADMAP		((__force vm_fault_t)0x010000)
+ #define VM_FAULT_BADACCESS	((__force vm_fault_t)0x020000)
  
-+	if (has_gcs()) {
-+		ctxt_sys_reg(ctxt, GCSPR_EL1)	= read_sysreg_el1(SYS_GCSPR);
-+		ctxt_sys_reg(ctxt, GCSCR_EL1)	= read_sysreg_el1(SYS_GCSCR);
-+		ctxt_sys_reg(ctxt, GCSCRE0_EL1)	= read_sysreg_s(SYS_GCSCRE0_EL1);
+ static vm_fault_t __do_page_fault(struct mm_struct *mm,
+ 				  struct vm_area_struct *vma, unsigned long addr,
+ 				  unsigned int mm_flags, unsigned long vm_flags,
+-				  struct pt_regs *regs)
++				  unsigned long esr, struct pt_regs *regs)
+ {
+ 	/*
+ 	 * Ok, we have a good vm_area for this memory access, so we can handle
+@@ -510,6 +527,26 @@ static vm_fault_t __do_page_fault(struct mm_struct *mm,
+ 	 */
+ 	if (!(vma->vm_flags & vm_flags))
+ 		return VM_FAULT_BADACCESS;
++
++	if (vma->vm_flags & VM_SHADOW_STACK) {
++		/*
++		 * Writes to a GCS must either be generated by a GCS
++		 * operation or be from EL1.
++		 */
++		if (is_write_abort(esr) &&
++		    !(is_gcs_fault(esr) || is_el1_data_abort(esr)))
++			return VM_FAULT_BADACCESS;
++	} else {
++		/*
++		 * GCS faults should never happen for pages that are
++		 * not part of a GCS and the operation being attempted
++		 * can never succeed.
++		 */
++		if (is_gcs_fault(esr))
++			return VM_FAULT_BADACCESS;
 +	}
 +
- 	if (ctxt_has_mte(ctxt)) {
- 		ctxt_sys_reg(ctxt, TFSR_EL1) = read_sysreg_el1(SYS_TFSR);
- 		ctxt_sys_reg(ctxt, TFSRE0_EL1) = read_sysreg_s(SYS_TFSRE0_EL1);
-@@ -95,6 +103,8 @@ static inline void __sysreg_restore_user_state(struct kvm_cpu_context *ctxt)
- {
- 	write_sysreg(ctxt_sys_reg(ctxt, TPIDR_EL0),	tpidr_el0);
- 	write_sysreg(ctxt_sys_reg(ctxt, TPIDRRO_EL0),	tpidrro_el0);
-+	if (has_gcs())
-+		write_sysreg_s(ctxt_sys_reg(ctxt, GCSPR_EL0), SYS_GCSPR_EL0);
++
+ 	return handle_mm_fault(vma, addr, mm_flags, regs);
  }
  
- static inline void __sysreg_restore_el1_state(struct kvm_cpu_context *ctxt)
-@@ -138,6 +148,13 @@ static inline void __sysreg_restore_el1_state(struct kvm_cpu_context *ctxt)
- 	write_sysreg(ctxt_sys_reg(ctxt, PAR_EL1),	par_el1);
- 	write_sysreg(ctxt_sys_reg(ctxt, TPIDR_EL1),	tpidr_el1);
+@@ -518,13 +555,18 @@ static bool is_el0_instruction_abort(unsigned long esr)
+ 	return ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_LOW;
+ }
  
-+	if (has_gcs()) {
-+		write_sysreg_el1(ctxt_sys_reg(ctxt, GCSPR_EL1),	SYS_GCSPR);
-+		write_sysreg_el1(ctxt_sys_reg(ctxt, GCSCR_EL1),	SYS_GCSCR);
-+		write_sysreg_s(ctxt_sys_reg(ctxt, GCSCRE0_EL1),
-+			       SYS_GCSCRE0_EL1);
+-/*
+- * Note: not valid for EL1 DC IVAC, but we never use that such that it
+- * should fault. EL0 cannot issue DC IVAC (undef).
+- */
+-static bool is_write_abort(unsigned long esr)
++static bool is_invalid_el0_gcs_access(struct vm_area_struct *vma, u64 esr)
+ {
+-	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
++	if (!system_supports_gcs())
++		return false;
++	if (likely(!(vma->vm_flags & VM_SHADOW_STACK))) {
++		if (is_gcs_fault(esr))
++			return true;
++		return false;
++	}
++	if (is_gcs_fault(esr))
++		return false;
++	return is_write_abort(esr);
+ }
+ 
+ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+@@ -573,6 +615,13 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 		/* If EPAN is absent then exec implies read */
+ 		if (!cpus_have_const_cap(ARM64_HAS_EPAN))
+ 			vm_flags |= VM_EXEC;
++		/*
++		 * Upgrade read faults to write faults, GCS reads must
++		 * occur on a page marked as GCS so we need to trigger
++		 * copy on write always.
++		 */
++		if (is_gcs_fault(esr))
++			mm_flags |= FAULT_FLAG_WRITE;
+ 	}
+ 
+ 	if (is_ttbr0_addr(addr) && is_el1_permission_fault(addr, esr, regs)) {
+@@ -595,6 +644,19 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 	if (!vma)
+ 		goto lock_mmap;
+ 
++	/*
++	 * We get legitimate write faults for GCS pages from GCS
++	 * operations and from EL1 writes to EL0 pages but just plain
++	 * EL0 writes are invalid.  Specifically check for this since
++	 * as a result of upgrading read faults to write faults for
++	 * CoW the mm core isn't able to distinguish these invalid
++	 * writes.
++	 */
++	if (is_invalid_el0_gcs_access(vma, esr)) {
++		vma_end_read(vma);
++		goto lock_mmap;
 +	}
 +
- 	if (ctxt_has_mte(ctxt)) {
- 		write_sysreg_el1(ctxt_sys_reg(ctxt, TFSR_EL1), SYS_TFSR);
- 		write_sysreg_s(ctxt_sys_reg(ctxt, TFSRE0_EL1), SYS_TFSRE0_EL1);
-diff --git a/arch/arm64/kvm/sys_regs.c b/arch/arm64/kvm/sys_regs.c
-index 2ca2973abe66..5b2f238d33be 100644
---- a/arch/arm64/kvm/sys_regs.c
-+++ b/arch/arm64/kvm/sys_regs.c
-@@ -1768,6 +1768,23 @@ static unsigned int mte_visibility(const struct kvm_vcpu *vcpu,
- 	.visibility = mte_visibility,		\
- }
+ 	if (!(vma->vm_flags & vm_flags)) {
+ 		vma_end_read(vma);
+ 		goto lock_mmap;
+@@ -624,7 +686,7 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 		goto done;
+ 	}
  
-+static unsigned int gcs_visibility(const struct kvm_vcpu *vcpu,
-+				   const struct sys_reg_desc *rd)
-+{
-+	if (has_gcs())
-+		return 0;
-+
-+	return REG_HIDDEN;
-+}
-+
-+#define GCS_REG(name) {				\
-+	SYS_DESC(SYS_##name),			\
-+	.access = undef_access,			\
-+	.reset = reset_unknown,			\
-+	.reg = name,				\
-+	.visibility = gcs_visibility,		\
-+}
-+
- static unsigned int el2_visibility(const struct kvm_vcpu *vcpu,
- 				   const struct sys_reg_desc *rd)
- {
-@@ -2080,6 +2097,10 @@ static const struct sys_reg_desc sys_reg_descs[] = {
- 	PTRAUTH_KEY(APDB),
- 	PTRAUTH_KEY(APGA),
+-	fault = __do_page_fault(mm, vma, addr, mm_flags, vm_flags, regs);
++	fault = __do_page_fault(mm, vma, addr, mm_flags, vm_flags, esr, regs);
  
-+	GCS_REG(GCSCR_EL1),
-+	GCS_REG(GCSPR_EL1),
-+	GCS_REG(GCSCRE0_EL1),
-+
- 	{ SYS_DESC(SYS_SPSR_EL1), access_spsr},
- 	{ SYS_DESC(SYS_ELR_EL1), access_elr},
- 
-@@ -2162,6 +2183,7 @@ static const struct sys_reg_desc sys_reg_descs[] = {
- 	{ SYS_DESC(SYS_SMIDR_EL1), undef_access },
- 	{ SYS_DESC(SYS_CSSELR_EL1), access_csselr, reset_unknown, CSSELR_EL1 },
- 	{ SYS_DESC(SYS_CTR_EL0), access_ctr },
-+	GCS_REG(GCSPR_EL0),
- 	{ SYS_DESC(SYS_SVCR), undef_access },
- 
- 	{ PMU_SYS_REG(PMCR_EL0), .access = access_pmcr,
+ 	/* Quick path to respond to signals */
+ 	if (fault_signal_pending(fault, regs)) {
 
 -- 
 2.30.2
