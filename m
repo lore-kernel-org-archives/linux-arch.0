@@ -2,44 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 042DBC0015E
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:52:28 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7C5F5C04A94
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:52:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231448AbjGXMw0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jul 2023 08:52:26 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38148 "EHLO
+        id S231465AbjGXMwm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jul 2023 08:52:42 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38742 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230447AbjGXMvc (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:51:32 -0400
+        with ESMTP id S231436AbjGXMwH (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:52:07 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8365A2695;
-        Mon, 24 Jul 2023 05:49:33 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 01A691BC5;
+        Mon, 24 Jul 2023 05:49:46 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 5881861159;
-        Mon, 24 Jul 2023 12:49:33 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E8FE5C43395;
-        Mon, 24 Jul 2023 12:49:26 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id D506861161;
+        Mon, 24 Jul 2023 12:49:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 77D0EC433C7;
+        Mon, 24 Jul 2023 12:49:39 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690202972;
-        bh=0QIP38ZumyMQzrMYtc7Z/0L/bXiC+1OudC2zVRODlMU=;
+        s=k20201202; t=1690202985;
+        bh=6C9vpUKzxaC1YPufnnUpE8qHeuHqYjFB9iVUxK25t6w=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=S2by7fTwtza1j7xK4vbG8/TPOT2ELIzrq6FBkXgnpc6RctcJGbowE2cdinUL4ulWk
-         7kgfWBLa3QPeh67Bq/HwoBGJPM3YKT3ieNSZa3vjgLZvwW6V298RjM3nH+udx3CZ7C
-         BalpvWV9J6jGIyyXUu5c/FlFhlhXbavjPDUawnWhwgNT/Wf2N/860D5yMszrT+6AnJ
-         u25J44GdZV9Dr/bbXzh20oPEcGz+lcIPgUy2JEBop64BJ1G/yRUV/1MQNCVuhE2pbT
-         JmF6sNtU8bcS1oP52Rijepzl0lILyOL3xAYAStMey/6YrpMjkwefKWab1SHoNzf58u
-         lAzw2ITdTjNfA==
+        b=XsJYHa+kIAgS2CCOa7LW/8nHLa52NtiPmwTpouZl0KMjTcwczWJae9MrsyadRYqp4
+         NjmpGvvKIqjNEZbIw1ihnZyO28RsU1vq8rf0vm313/q7CEMyRmYRwZ7MDdIFHhkyng
+         t83jp5fU2aSUHOgp5bSx+cti2+h4koI/azC65FWVTD18niCraPWwpjAHyfOpKVaH+T
+         YTuaHyxYss4pCnIKAjF3A5lqDVrogZQdzzMtedQefoBauCySoxEtkXuyHGrIMX+m/E
+         9GV6Onzc5k2gYSPBxresj9HoSJPMrmcw5u1C1lMAw/DX3mZO4s3nwBNtHhzct2rHrr
+         T0q+KNBLoAavg==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 24 Jul 2023 13:46:11 +0100
-Subject: [PATCH v2 24/35] arm64/ptrace: Expose GCS via ptrace and core
- files
+Date:   Mon, 24 Jul 2023 13:46:13 +0100
+Subject: [PATCH v2 26/35] kselftest/arm64: Verify the GCS hwcap
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230724-arm64-gcs-v2-24-dc2c1d44c2eb@kernel.org>
+Message-Id: <20230724-arm64-gcs-v2-26-dc2c1d44c2eb@kernel.org>
 References: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 In-Reply-To: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,155 +67,66 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=4259; i=broonie@kernel.org;
- h=from:subject:message-id; bh=0QIP38ZumyMQzrMYtc7Z/0L/bXiC+1OudC2zVRODlMU=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKnsKf0W3lFoB635rzoGTaz2yndy/CskcQVKCzm
- 47uSwjaJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5ypwAKCRAk1otyXVSH0AebB/
- 9puHQ2nwuUf5/vMSPRgsFleh5e8Wzb39H2Z5TEz9UwGoC/oIWJUEWVBE4rq/Rh28vaZI7jO8ZJyAta
- 21BWYzIEGw6stgm713SrMoFk2ZjG7RqY0nnGCWqcnSEb0pNnKbzaXp0reUarS0StFUw6hli3dYbmBN
- QtVbuiA+19RLe6CiXaEG8sQecaHQquhFMUjYf2OOpLdfB8IzlPHpE93YRBqRK8t1AcKPzkGab0+uN4
- FjBtounVbAZNw2iobITFysaexYdZPhDsMqBbufwQGQhzhsXveM2YJWEjo3+yvHwtajHgHDwAjJpdvo
- 1whVPHF41mLonD9s5b5HGyBbHehGOz
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1205; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=6C9vpUKzxaC1YPufnnUpE8qHeuHqYjFB9iVUxK25t6w=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKo6f3jqr3UTwz6pZgSF+rdKksxp/uJtcwca2ZR
+ AgUzGISJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5yqAAKCRAk1otyXVSH0LM3B/
+ 0UPEO0Wjj2jDMhLtiAxLbW0+JmSRkL85UA8GD7f0behK4SZudUEnykSfwI6LC+7dHO2StbswpuE0md
+ IfAL8WVuwJr4TTV2wog9c8Poi5AbnXKPq1h8O86dzjA0ccYL+f4P1CSepX94zyYdpxVnqDk5lYBmd9
+ BbLMZfUAoLDFVFkNxMMHycIrpEC/Tq2CH2QIMTdEHqTOcbMiSahlB9lLXeHlSN6pmUAEkioll7m+hD
+ GH9RdRHuxb+j2j9EqPOAs35APr7sLaY0UOMs124NtTM3/+Kr4TzcFF4K2BD3w56v+uDEDxLrYxT24q
+ dWpQqi14QIEjkH1aQLDG8jYPKLJTaw
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Provide a new register type NT_ARM_GCS reporting the current GCS mode
-and pointer for EL0.  Due to the interactions with allocation and
-deallocation of Guarded Control Stacks we do not permit any changes to
-the GCS mode via ptrace, only GCSPR_EL0 may be changed.
+Add coverage of the GCS hwcap to the hwcap selftest, using a read of
+GCSPR_EL0 to generate SIGILL without having to worry about enabling GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/uapi/asm/ptrace.h |  8 +++++
- arch/arm64/kernel/ptrace.c           | 59 ++++++++++++++++++++++++++++++++++++
- include/uapi/linux/elf.h             |  1 +
- 3 files changed, 68 insertions(+)
+ tools/testing/selftests/arm64/abi/hwcap.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-diff --git a/arch/arm64/include/uapi/asm/ptrace.h b/arch/arm64/include/uapi/asm/ptrace.h
-index 7fa2f7036aa7..0f39ba4f3efd 100644
---- a/arch/arm64/include/uapi/asm/ptrace.h
-+++ b/arch/arm64/include/uapi/asm/ptrace.h
-@@ -324,6 +324,14 @@ struct user_za_header {
- #define ZA_PT_SIZE(vq)						\
- 	(ZA_PT_ZA_OFFSET + ZA_PT_ZA_SIZE(vq))
- 
-+/* GCS state (NT_ARM_GCS) */
-+
-+struct user_gcs {
-+	__u64 features_enabled;
-+	__u64 features_locked;
-+	__u64 gcspr_el0;
-+};
-+
- #endif /* __ASSEMBLY__ */
- 
- #endif /* _UAPI__ASM_PTRACE_H */
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-index d7f4f0d1ae12..c159090bc731 100644
---- a/arch/arm64/kernel/ptrace.c
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -33,6 +33,7 @@
- #include <asm/cpufeature.h>
- #include <asm/debug-monitors.h>
- #include <asm/fpsimd.h>
-+#include <asm/gcs.h>
- #include <asm/mte.h>
- #include <asm/pointer_auth.h>
- #include <asm/stacktrace.h>
-@@ -1390,6 +1391,51 @@ static int tagged_addr_ctrl_set(struct task_struct *target, const struct
+diff --git a/tools/testing/selftests/arm64/abi/hwcap.c b/tools/testing/selftests/arm64/abi/hwcap.c
+index d4ad813fed10..38844e4c5aae 100644
+--- a/tools/testing/selftests/arm64/abi/hwcap.c
++++ b/tools/testing/selftests/arm64/abi/hwcap.c
+@@ -39,6 +39,17 @@ static void cssc_sigill(void)
+ 	asm volatile(".inst 0xdac01c00" : : : "x0");
  }
- #endif
  
-+#ifdef CONFIG_ARM64_GCS
-+static int gcs_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   struct membuf to)
++static void gcs_sigill(void)
 +{
-+	struct user_gcs user_gcs;
++	unsigned long *gcspr;
 +
-+	if (target == current)
-+		gcs_preserve_current_state();
-+
-+	user_gcs.features_enabled = target->thread.gcs_el0_mode;
-+	user_gcs.features_locked = target->thread.gcs_el0_locked;
-+	user_gcs.gcspr_el0 = target->thread.gcspr_el0;
-+
-+	return membuf_write(&to, &user_gcs, sizeof(user_gcs));
++	asm volatile(
++		"mrs	%0, S3_3_C2_C5_1"
++	: "=r" (gcspr)
++	:
++	: "cc");
 +}
 +
-+static int gcs_set(struct task_struct *target, const struct
-+		   user_regset *regset, unsigned int pos,
-+		   unsigned int count, const void *kbuf, const
-+		   void __user *ubuf)
-+{
-+	int ret;
-+	struct user_gcs user_gcs;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, &user_gcs, 0, -1);
-+	if (ret)
-+		return ret;
-+
-+	if (user_gcs.features_enabled & ~PR_SHADOW_STACK_SUPPORTED_STATUS_MASK)
-+		return -EINVAL;
-+
-+	/* Do not allow enable via ptrace */
-+	if ((user_gcs.features_enabled & PR_SHADOW_STACK_ENABLE) &&
-+	    !!(target->thread.gcs_el0_mode & PR_SHADOW_STACK_ENABLE))
-+		return -EBUSY;
-+
-+	target->thread.gcs_el0_mode = user_gcs.features_enabled;
-+	target->thread.gcs_el0_locked = user_gcs.features_locked;
-+	target->thread.gcspr_el0 = user_gcs.gcspr_el0;
-+
-+	return 0;
-+}
-+#endif
-+
- enum aarch64_regset {
- 	REGSET_GPR,
- 	REGSET_FPR,
-@@ -1418,6 +1464,9 @@ enum aarch64_regset {
- #ifdef CONFIG_ARM64_TAGGED_ADDR_ABI
- 	REGSET_TAGGED_ADDR_CTRL,
- #endif
-+#ifdef CONFIG_ARM64_GCS
-+	REGSET_GCS,
-+#endif
- };
- 
- static const struct user_regset aarch64_regsets[] = {
-@@ -1568,6 +1617,16 @@ static const struct user_regset aarch64_regsets[] = {
- 		.set = tagged_addr_ctrl_set,
+ static void mops_sigill(void)
+ {
+ 	char dst[1], src[1];
+@@ -223,6 +234,14 @@ static const struct hwcap_data {
+ 		.cpuinfo = "cssc",
+ 		.sigill_fn = cssc_sigill,
  	},
- #endif
-+#ifdef CONFIG_ARM64_GCS
-+	[REGSET_GCS] = {
-+		.core_note_type = NT_ARM_GCS,
-+		.n = sizeof(struct user_gcs) / sizeof(u64),
-+		.size = sizeof(u64),
-+		.align = sizeof(u64),
-+		.regset_get = gcs_get,
-+		.set = gcs_set,
++	{
++		.name = "GCS",
++		.at_hwcap = AT_HWCAP2,
++		.hwcap_bit = HWCAP2_GCS,
++		.cpuinfo = "gcs",
++		.sigill_fn = gcs_sigill,
++		.sigill_reliable = true,
 +	},
-+#endif
- };
- 
- static const struct user_regset_view user_aarch64_view = {
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 0c8cf359ea5b..00f698a2ab17 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -438,6 +438,7 @@ typedef struct elf64_shdr {
- #define NT_ARM_SSVE	0x40b		/* ARM Streaming SVE registers */
- #define NT_ARM_ZA	0x40c		/* ARM SME ZA registers */
- #define NT_ARM_ZT	0x40d		/* ARM SME ZT registers */
-+#define NT_ARM_GCS	0x40e		/* ARM GCS state */
- #define NT_ARC_V2	0x600		/* ARCv2 accumulator/extra registers */
- #define NT_VMCOREDD	0x700		/* Vmcore Device Dump Note */
- #define NT_MIPS_DSP	0x800		/* MIPS DSP ASE registers */
+ 	{
+ 		.name = "MOPS",
+ 		.at_hwcap = AT_HWCAP2,
 
 -- 
 2.30.2
