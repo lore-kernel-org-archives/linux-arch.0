@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CDCE0C001DE
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:53:43 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B7E60C41513
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:54:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231235AbjGXMxm (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jul 2023 08:53:42 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43830 "EHLO
+        id S229581AbjGXMyF (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jul 2023 08:54:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43972 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231590AbjGXMxG (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:53:06 -0400
+        with ESMTP id S231695AbjGXMxO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:53:14 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ADDDD171B;
-        Mon, 24 Jul 2023 05:50:13 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9807844BD;
+        Mon, 24 Jul 2023 05:50:28 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 68D2D6115B;
-        Mon, 24 Jul 2023 12:49:58 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 01DD1C433D9;
-        Mon, 24 Jul 2023 12:49:51 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 937B861152;
+        Mon, 24 Jul 2023 12:49:39 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 38E35C433C9;
+        Mon, 24 Jul 2023 12:49:33 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690202997;
-        bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
+        s=k20201202; t=1690202979;
+        bh=H5XnWdFwxjuGxEH72kUlpbP8cfBTQj97MLlaTYR448U=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=IUoZTFytVGL4xL7IhIxdg1nWec1xqYOM3rC8hP5r7Ed3fjKC6Epo6KgMdnaCGtZRE
-         /1Ia7SCVFhMN7008WtWRIVVIQewdoaH/kLojOC/4B8CeSMYhg/9WvHvzEdZDrdNhM/
-         ZppJfgvJmeUYCboPphugV+Qc4zfN8d7SrKHz4Pgm039wTNQ83NIiKGqlB6w5BrY+lP
-         SS2KPsG6UsSf4E9abb94zbB5S3eFhHqLBXDRN4l1suiGEkxttzaapRbGn+YCasRGel
-         bGdb5JDjalsMIDleYixTH358UfPeKiW43FfZDzuafowTWjq5JJq1F7TpsimiGwZP2b
-         fbtQWo91n0esg==
+        b=UOuiRDkBusphHSxvKkLrOi4hb6QDNJiEeqdsk+bAiNRlkVULSMR4LyXqN6lh8jEqU
+         6aY+o5iGUOA6CFekoyYKLuLpmCp+ki3We97BjjOgf1TovklVWs1IesDN2/4ZJCIFfS
+         IKWq2s7SUCup5jqqhGVztCdgWGCi6H6vhnbavEeaeBK1/JuRYjJ9aPnPZUR/omR95F
+         rxly5mAwX/l/+1i7EX1ua9A7x1W/LZ+n23XWxRezK9rDiN3SJ1xWbA9wJnBHy88E8Y
+         vSfU0G78J8CFivTLw4aU6EPd8y37uIJOGTm2UJNJVqYpVChDBEi/Xr+hdmloQtpFzg
+         l5nGgTUqt5dhw==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 24 Jul 2023 13:46:15 +0100
-Subject: [PATCH v2 28/35] kselftest/arm64: Add framework support for GCS to
- signal handling tests
+Date:   Mon, 24 Jul 2023 13:46:12 +0100
+Subject: [PATCH v2 25/35] arm64: Add Kconfig for Guarded Control Stack
+ (GCS)
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230724-arm64-gcs-v2-28-dc2c1d44c2eb@kernel.org>
+Message-Id: <20230724-arm64-gcs-v2-25-dc2c1d44c2eb@kernel.org>
 References: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 In-Reply-To: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,60 +68,59 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1590; i=broonie@kernel.org;
- h=from:subject:message-id; bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKw/Lzy9vRLhQ0v13Z2E1an+ZYJFNFtfGDMR5qc
- 2iz7nAKJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5ysAAKCRAk1otyXVSH0Dv/B/
- 9z12rHapBgNvwTFstRW+LvaYq4zIFOeh7QfQsNxWufo6IybVnbM+Hvd0mXm4AjTv/BSluOomrarAEr
- m3sxqGmEoeUCUnwYUab6uGpkjrUOG0c4Vow9UuK4BDQ8IsGg63BT2nP+T+DQEIBN+MzYp4BF6e9yBS
- sqqcXKNecviuKIdE0tlR3/D6YYzJKwPOqJDLOvrrA6DsmD9JDj/p4NQEjt95ikt6ivRQ70L32KKP0D
- /hduQnIfCgJZ3Z+IR33Z2xIrkZUkqbaUXnvXzYMwAGdpajGCshPQve1wb+BzsV4pXBkDDGv2EFXYLv
- KFvvodUxTwYEQrCmkpjw9Sl04yI9WO
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1334; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=H5XnWdFwxjuGxEH72kUlpbP8cfBTQj97MLlaTYR448U=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKnQmQDKgw1sV73XajzPOr/VVN8eYW4BuRVpTBw
+ 6U/CDZaJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5ypwAKCRAk1otyXVSH0BjjB/
+ 4zmlP2LuDl/tCz3VO/DUeOVn6ZcSaI/xa1REDMlzha0SDGdV+QTgnOm9wNwq8WieSsejDlPhxDuvki
+ paM4LrVSh1c5aAtMHMQ/HGCdvkCO5DgZgBqp71Vmbl6yz4Vi/gj0UfNJDOA3FLp9ww3m7Qe5H3UTpY
+ SJsdjSeveABSRymkrBiBwjX6uOxi1DtrtMVpatbk1zkkjp5TTaBE35yRGdsgVgA8ODTsqZP5OKTSN3
+ 4HIlACNi9tjNEGYf4wzBTSKJAaxhrT3jJQH6jMsMwwyXhVvlMx9/aQLLuBXlSZcSRJyqVsR/kzRIxf
+ +bE7Fh1YOi9lG6dI2er5/PlgVCBoni
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Teach the framework about the GCS signal context, avoiding warnings on
-the unknown context.
+Provide a Kconfig option allowing the user to select if GCS support is
+built into the kernel.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/signal/testcases/testcases.c | 7 +++++++
- tools/testing/selftests/arm64/signal/testcases/testcases.h | 1 +
- 2 files changed, 8 insertions(+)
+ arch/arm64/Kconfig | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.c b/tools/testing/selftests/arm64/signal/testcases/testcases.c
-index 9f580b55b388..1cd124732be4 100644
---- a/tools/testing/selftests/arm64/signal/testcases/testcases.c
-+++ b/tools/testing/selftests/arm64/signal/testcases/testcases.c
-@@ -209,6 +209,13 @@ bool validate_reserved(ucontext_t *uc, size_t resv_sz, char **err)
- 			zt = (struct zt_context *)head;
- 			new_flags |= ZT_CTX;
- 			break;
-+		case GCS_MAGIC:
-+			if (flags & GCS_CTX)
-+				*err = "Multiple GCS_MAGIC";
-+			if (head->size != sizeof(struct gcs_context))
-+				*err = "Bad size for gcs_context";
-+			new_flags |= GCS_CTX;
-+			break;
- 		case EXTRA_MAGIC:
- 			if (flags & EXTRA_CTX)
- 				*err = "Multiple EXTRA_MAGIC";
-diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.h b/tools/testing/selftests/arm64/signal/testcases/testcases.h
-index a08ab0d6207a..9b2599745c29 100644
---- a/tools/testing/selftests/arm64/signal/testcases/testcases.h
-+++ b/tools/testing/selftests/arm64/signal/testcases/testcases.h
-@@ -19,6 +19,7 @@
- #define ZA_CTX		(1 << 2)
- #define EXTRA_CTX	(1 << 3)
- #define ZT_CTX		(1 << 4)
-+#define GCS_CTX		(1 << 5)
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a2511b30d0f6..b5ef1a698770 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2093,6 +2093,25 @@ config ARM64_EPAN
+ 	  if the cpu does not implement the feature.
+ endmenu # "ARMv8.7 architectural features"
  
- #define KSFT_BAD_MAGIC	0xdeadbeef
- 
++menu "v9.4 architectural features"
++
++config ARM64_GCS
++	bool "Enable support for Guarded Control Stack (GCS)"
++	default y
++	select ARCH_USES_HIGH_VMA_FLAGS
++	help
++	  Guarded Control Stack (GCS) provides support for a separate
++	  stack with restricted access which contains only return
++	  addresses.  This can be used to harden against some attacks
++	  by comparing return address used by the program with what is
++	  stored in the GCS, and may also be used to efficiently obtain
++	  the call stack for applications such as profiling.
++
++	  The feature is detected at runtime, and will remain disabled
++	  if the system does not implement the feature.
++
++endmenu # "v9.4 architectural features"
++
+ config ARM64_SVE
+ 	bool "ARM Scalable Vector Extension support"
+ 	default y
 
 -- 
 2.30.2
