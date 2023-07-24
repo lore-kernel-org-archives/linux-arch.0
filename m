@@ -2,43 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id BBF04C41513
-	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:51:24 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BF247C0015E
+	for <linux-arch@archiver.kernel.org>; Mon, 24 Jul 2023 12:51:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231154AbjGXMvX (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 24 Jul 2023 08:51:23 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37896 "EHLO
+        id S231392AbjGXMvZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 24 Jul 2023 08:51:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38958 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230341AbjGXMuh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:50:37 -0400
+        with ESMTP id S230458AbjGXMuk (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 24 Jul 2023 08:50:40 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6FFA84206;
-        Mon, 24 Jul 2023 05:49:00 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3418D4211;
+        Mon, 24 Jul 2023 05:49:02 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id ABFC061169;
-        Mon, 24 Jul 2023 12:48:30 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4DCD3C43391;
-        Mon, 24 Jul 2023 12:48:24 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 139CF61155;
+        Mon, 24 Jul 2023 12:49:02 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9DF04C433CC;
+        Mon, 24 Jul 2023 12:48:55 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690202910;
-        bh=AFWazg68H0m9wjDZ4noTEGRptXvqnY78FqkUfPNC3A0=;
+        s=k20201202; t=1690202941;
+        bh=QNLQ8kMMswSwDNNNdkC4JMSh/ccvZNRY7O5oRui945g=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=giuhfGtTPG0MOomEevxhotfg8wlauxtR9gyPrLU6e5/NzOyb6ForplAHWdYl00/he
-         CKr1enrMhwHVwHWi3HU/hR7mGrP8NBfok1v2sHJUkNSZ5IIi5ldwdN5hNA6+sxiisM
-         6R4APr5a8OOQWu1UtHSHhvrsGsniifPUxi5pp87nFJcwpcNZy3x2QUnF3N8+Kxlb4s
-         cd+P3dtimdv2l8gNyyRDzx4oM4ucz8Smd2ReEoNR0R5noGN1u6vJBQPgnQ4g0p6Ra8
-         UEYJU4OBnzWP2QzPerL279F3hl2Yt0OXLv89s/ymkHvOA9UtDGCN9bNeC3Gg8p+zMM
-         xBBItdsS3mLJA==
+        b=AlxmpCLETBmLqddSMK51fZ32WDvxGLvxDmnSYcRk7WdS9TC4Qhnxzw6V16gWpnSR6
+         r1jEsSzd718jMWwVDyLdCBdberKTExz/7IGv653VnmbLwLG7TxxWLHLpaRkqzyeTh7
+         rFKkDcJrScG+G4hyLQtRcjhEId4/m/ztZzFlzxQjQMEJkXGnMCJ0VlJ17e9603h3bx
+         732VzGlxNlU/U7E+V4yJQkh+4lG6+tDoWu4VhRtB/jAzCfe1XEzaxRfnfNxHqGuAEj
+         /jPcX0zrOZgFSy3TtZfFyNG761KDQpHk68yOVckYs9L82CyEe4PTn2UV4y6x7cplCh
+         zrveLkGtqZ5zw==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 24 Jul 2023 13:46:01 +0100
-Subject: [PATCH v2 14/35] arm64/idreg: Add overrride for GCS
+Date:   Mon, 24 Jul 2023 13:46:06 +0100
+Subject: [PATCH v2 19/35] arm64/gcs: Allocate a new GCS for threads with
+ GCS enabled
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230724-arm64-gcs-v2-14-dc2c1d44c2eb@kernel.org>
+Message-Id: <20230724-arm64-gcs-v2-19-dc2c1d44c2eb@kernel.org>
 References: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 In-Reply-To: <20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,64 +68,190 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1796; i=broonie@kernel.org;
- h=from:subject:message-id; bh=AFWazg68H0m9wjDZ4noTEGRptXvqnY78FqkUfPNC3A0=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKU81Pk2edCICz2OW5guwGvRbaa0LykvA7B57zE
- 9f8cZ1WJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5ylAAKCRAk1otyXVSH0DpMB/
- 44QJS1fhFSBn6QCa10Pi5llBAjbCj5l+DxLBybjlXmZIVF9/Xxvlp/lvRw861TcivaJG9o7rw2HKuO
- T1W3aOoMeDss1ZfzbGMq1uKQCDI3IwhlgYpv+wvLH9Zf7NEZGTh5dHwnaUD86hiaD15PGLj92be/1r
- UxlK6RgWcTn3W1ESGqWcuffQFfcSL9nGqb5BTJJtN5CWoI1b188aMmZ5gSZJxOt9ZmQYSptKCzS8K5
- /DxdxR47IhqcL96zOjX2ST3lAQK6b2UWBZXulZlYoEFJRdwRlnsOpIVbdt4RZWzQtcMAj1CC0VGXEz
- 33J0SQWPhy4JgPLaLHttjqP/Enp8qw
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5142; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=QNLQ8kMMswSwDNNNdkC4JMSh/ccvZNRY7O5oRui945g=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkvnKjd5H4T7HVGGGvCV4nQfR+bRm0kpxekGX3nuqx
+ YMIaxVeJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZL5yowAKCRAk1otyXVSH0N04B/
+ wNA+KKlovm9aHcWE4LguyaxlEw37PNfiCmNG3bV4WWtfSlphw1b9Td8f7QLubjaD7a2g3zEybvkLhW
+ y5yxBPyH5PCleDM87YgHkVStgryUbU+z/x7gN4Bz0mNoaoddrxVeyNFfJi0Ao9VePvkSGOzZx/AK4v
+ dJKB94ZJ+XndzypqJpDS4v/ETYh6WSUOgsySRju4Ew62J3jkSroWU2E8OJcYsBV9PFwxjga7LGZTjL
+ ingXJAt8UvFrmIk83HqCCtAp+MSbX39oayG4Ak+NAiz+nSUFeWACASb/2oqHWB7LJcCuIyhV/jksq/
+ 9Lscn001s44mlUqgjQm2EkfbuZ33cc
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hook up an override for GCS, allowing it to be disabled from the command
-line by specifying arm64.nogcs in case there are problems.
+We do not currently have a mechanism to specify a new GCS for a new
+thread so when a thread is created which has GCS enabled allocate one
+for it.  Since there is no current API for specifying the size of the
+GCS we follow the extensively discussed x86 implementation and allocate
+min(RLIMIT_STACK, 4G).  Since the GCS only stores the call stack and not
+any variables this should be more than sufficient for most applications.
+
+When allocating the stack we initialise GCSPR_EL0 to point to one entry
+below the end of the region allocated, this keeps the top entry of the
+stack 0 so software walking the GCS can easily detect the end of the
+region.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- Documentation/admin-guide/kernel-parameters.txt | 3 +++
- arch/arm64/kernel/idreg-override.c              | 2 ++
- 2 files changed, 5 insertions(+)
+ arch/arm64/include/asm/gcs.h |  7 ++++++
+ arch/arm64/kernel/process.c  | 30 ++++++++++++++++++++++++
+ arch/arm64/mm/gcs.c          | 56 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 93 insertions(+)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index a1457995fd41..86662eed3003 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -418,6 +418,9 @@
- 	arm64.nobti	[ARM64] Unconditionally disable Branch Target
- 			Identification support
+diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
+index 04594ef59dad..4371a2f99b4a 100644
+--- a/arch/arm64/include/asm/gcs.h
++++ b/arch/arm64/include/asm/gcs.h
+@@ -58,6 +58,8 @@ static inline bool task_gcs_el0_enabled(struct task_struct *task)
+ void gcs_set_el0_mode(struct task_struct *task);
+ void gcs_free(struct task_struct *task);
+ void gcs_preserve_current_state(void);
++unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
++			    unsigned long clone_flags, size_t size);
  
-+	arm64.nogcs	[ARM64] Unconditionally disable Guarded Control Stack
-+			support
+ #else
+ 
+@@ -69,6 +71,11 @@ static inline bool task_gcs_el0_enabled(struct task_struct *task)
+ static inline void gcs_set_el0_mode(struct task_struct *task) { }
+ static inline void gcs_free(struct task_struct *task) { }
+ static inline void gcs_preserve_current_state(void) { }
++static inline unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
++				     unsigned long clone_flags, size_t size)
++{
++	return -ENOTSUPP;
++}
+ 
+ #endif
+ 
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index b78f60d4a1e4..8589818166d7 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -284,9 +284,34 @@ static void flush_gcs(void)
+ 	}
+ }
+ 
++static int copy_thread_gcs(struct task_struct *p, unsigned long clone_flags,
++			   size_t stack_size)
++{
++	unsigned long gcs;
 +
- 	arm64.nopauth	[ARM64] Unconditionally disable Pointer Authentication
- 			support
++	if (!system_supports_gcs())
++		return 0;
++
++	if (!task_gcs_el0_enabled(p))
++		return 0;
++
++	p->thread.gcspr_el0 = read_sysreg_s(SYS_GCSPR_EL0);
++
++	gcs = gcs_alloc_thread_stack(p, clone_flags, stack_size);
++	if (IS_ERR_VALUE(gcs))
++		return PTR_ERR((void *)gcs);
++
++	return 0;
++}
++
+ #else
  
-diff --git a/arch/arm64/kernel/idreg-override.c b/arch/arm64/kernel/idreg-override.c
-index 2fe2491b692c..49269a5cff10 100644
---- a/arch/arm64/kernel/idreg-override.c
-+++ b/arch/arm64/kernel/idreg-override.c
-@@ -99,6 +99,7 @@ static const struct ftr_set_desc pfr1 __initconst = {
- 	.override	= &id_aa64pfr1_override,
- 	.fields		= {
- 		FIELD("bt", ID_AA64PFR1_EL1_BT_SHIFT, NULL ),
-+		FIELD("gcs", ID_AA64PFR1_EL1_GCS_SHIFT, NULL),
- 		FIELD("mte", ID_AA64PFR1_EL1_MTE_SHIFT, NULL),
- 		FIELD("sme", ID_AA64PFR1_EL1_SME_SHIFT, pfr1_sme_filter),
- 		{}
-@@ -178,6 +179,7 @@ static const struct {
- 	{ "arm64.nosve",		"id_aa64pfr0.sve=0" },
- 	{ "arm64.nosme",		"id_aa64pfr1.sme=0" },
- 	{ "arm64.nobti",		"id_aa64pfr1.bt=0" },
-+	{ "arm64.nogcs",		"id_aa64pfr1.gcs=0" },
- 	{ "arm64.nopauth",
- 	  "id_aa64isar1.gpi=0 id_aa64isar1.gpa=0 "
- 	  "id_aa64isar1.api=0 id_aa64isar1.apa=0 "
+ static void flush_gcs(void) { }
++static int copy_thread_gcs(struct task_struct *p, unsigned long clone_flags,
++			   size_t stack_size)
++{
++	return 0;
++}
+ 
+ #endif
+ 
+@@ -368,6 +393,7 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+ 	unsigned long stack_start = args->stack;
+ 	unsigned long tls = args->tls;
+ 	struct pt_regs *childregs = task_pt_regs(p);
++	int ret;
+ 
+ 	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
+ 
+@@ -409,6 +435,10 @@ int copy_thread(struct task_struct *p, const struct kernel_clone_args *args)
+ 			p->thread.uw.tp_value = tls;
+ 			p->thread.tpidr2_el0 = 0;
+ 		}
++
++		ret = copy_thread_gcs(p, clone_flags, args->stack_size);
++		if (ret != 0)
++			return ret;
+ 	} else {
+ 		/*
+ 		 * A kthread has no context to ERET to, so ensure any buggy
+diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
+index b0a67efc522b..1e059c37088d 100644
+--- a/arch/arm64/mm/gcs.c
++++ b/arch/arm64/mm/gcs.c
+@@ -8,6 +8,62 @@
+ #include <asm/cpufeature.h>
+ #include <asm/page.h>
+ 
++static unsigned long alloc_gcs(unsigned long addr, unsigned long size,
++			       unsigned long token_offset, bool set_res_tok)
++{
++	int flags = MAP_ANONYMOUS | MAP_PRIVATE;
++	struct mm_struct *mm = current->mm;
++	unsigned long mapped_addr, unused;
++
++	if (addr)
++		flags |= MAP_FIXED_NOREPLACE;
++
++	mmap_write_lock(mm);
++	mapped_addr = do_mmap(NULL, addr, size, PROT_READ, flags,
++			      VM_SHADOW_STACK | VM_WRITE, 0, &unused, NULL);
++	mmap_write_unlock(mm);
++
++	return mapped_addr;
++}
++
++static unsigned long gcs_size(unsigned long size)
++{
++	if (size)
++		return PAGE_ALIGN(size);
++
++	/* Allocate RLIMIT_STACK with limits of PAGE_SIZE..4G */
++	size = PAGE_ALIGN(min_t(unsigned long long,
++				rlimit(RLIMIT_STACK), SZ_4G));
++	return max(PAGE_SIZE, size);
++}
++
++unsigned long gcs_alloc_thread_stack(struct task_struct *tsk,
++				     unsigned long clone_flags, size_t size)
++{
++	unsigned long addr;
++
++	if (!system_supports_gcs())
++		return 0;
++
++	if (!task_gcs_el0_enabled(tsk))
++		return 0;
++
++	if ((clone_flags & (CLONE_VFORK | CLONE_VM)) != CLONE_VM)
++		return 0;
++
++	size = gcs_size(size);
++
++	addr = alloc_gcs(0, size, 0, 0);
++	if (IS_ERR_VALUE(addr))
++		return addr;
++
++	tsk->thread.gcs_base = addr;
++	tsk->thread.gcs_size = size;
++	tsk->thread.gcspr_el0 = addr + size - sizeof(u64);
++
++	return addr;
++}
++
+ /*
+  * Apply the GCS mode configured for the specified task to the
+  * hardware.
 
 -- 
 2.30.2
