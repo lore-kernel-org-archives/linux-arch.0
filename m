@@ -2,49 +2,49 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D4A64C07E8D
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 08:03:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A1F0C10F19
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 08:04:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233676AbjG0ID6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Jul 2023 04:03:58 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38380 "EHLO
+        id S233691AbjG0ID7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Jul 2023 04:03:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39194 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233716AbjG0ICu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 04:02:50 -0400
+        with ESMTP id S233720AbjG0ICx (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 04:02:53 -0400
 Received: from mailgw01.mediatek.com (unknown [60.244.123.138])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D480126A8;
-        Thu, 27 Jul 2023 01:00:21 -0700 (PDT)
-X-UUID: 9f41a47e2c5311ee9cb5633481061a41-20230727
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 09B3F4ECE;
+        Thu, 27 Jul 2023 01:00:23 -0700 (PDT)
+X-UUID: 9f464f922c5311ee9cb5633481061a41-20230727
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=mediatek.com; s=dk;
-        h=Content-Type:MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:CC:To:From; bh=1sbzAAq0pL+hANw50K0jFP/mmk99nt1Mb8BD/sWj5o0=;
-        b=kW9K7NEQb98srDCVoluUxHXMGt+nLRIclst7FcUTWyyXpGRUmtuSnYsysfpGxraLjNWySJalikE9mlZ4GE8RL0eepmStX5BghzNideb5cP9axdngsJaiDV6X7ju9UYWetAzGlPsOuIFyyM/98pARHZ6d4tLJkWX3qwmnCqKACVs=;
+        h=Content-Type:MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:CC:To:From; bh=devMYFzSoIEuCUsRGn+dCzHOaJhS9a71RW/2r1uCPF0=;
+        b=Rj3UAqPXTg3YP2Dp01YVXt1CwgxCEZSV8R/ovQgYjtjyLr62SaSxUu58Nbv5lki51tbTAV7UWPwAsiPLHlO6GcN4iuW8ySm5HrvG9xFNSeQC2Y4rHGnVHCL7ySjVosxzMphakATOqPs/978KlIfNQimtdoJypuA7pfrScbc7S1Q=;
 X-CID-P-RULE: Release_Ham
-X-CID-O-INFO: VERSION:1.1.29,REQID:18f482a3-6d8d-4f73-bfe3-9ccf4936a5db,IP:0,U
+X-CID-O-INFO: VERSION:1.1.29,REQID:078d6cb6-3c49-4daf-aa24-ae5ab05120bd,IP:0,U
         RL:0,TC:0,Content:-25,EDM:0,RT:0,SF:95,FILE:0,BULK:0,RULE:Release_Ham,ACTI
         ON:release,TS:70
-X-CID-INFO: VERSION:1.1.29,REQID:18f482a3-6d8d-4f73-bfe3-9ccf4936a5db,IP:0,URL
+X-CID-INFO: VERSION:1.1.29,REQID:078d6cb6-3c49-4daf-aa24-ae5ab05120bd,IP:0,URL
         :0,TC:0,Content:-25,EDM:0,RT:0,SF:95,FILE:0,BULK:0,RULE:Spam_GS981B3D,ACTI
         ON:quarantine,TS:70
-X-CID-META: VersionHash:e7562a7,CLOUDID:73998342-d291-4e62-b539-43d7d78362ba,B
-        ulkID:230727160017115FM6O1,BulkQuantity:0,Recheck:0,SF:19|48|38|29|28|17,T
-        C:nil,Content:0,EDM:-3,IP:nil,URL:11|1,File:nil,Bulk:nil,QS:nil,BEC:nil,CO
-        L:0,OSI:0,OSA:0,AV:0,LES:1,SPR:NO,DKR:0,DKP:0,BRR:0,BRE:0
+X-CID-META: VersionHash:e7562a7,CLOUDID:781e97a0-0933-4333-8d4f-6c3c53ebd55b,B
+        ulkID:230727160017QDW4XJ1U,BulkQuantity:0,Recheck:0,SF:38|29|28|17|19|48,T
+        C:nil,Content:0,EDM:-3,IP:nil,URL:0,File:nil,Bulk:nil,QS:nil,BEC:nil,COL:0
+        ,OSI:0,OSA:0,AV:0,LES:1,SPR:NO,DKR:0,DKP:0,BRR:0,BRE:0
 X-CID-BVR: 0
 X-CID-BAS: 0,_,0,_
-X-CID-FACTOR: TF_CID_SPAM_ULN,TF_CID_SPAM_SNR,TF_CID_SPAM_SDM,TF_CID_SPAM_ASC,
-        TF_CID_SPAM_FAS,TF_CID_SPAM_FSD
-X-UUID: 9f41a47e2c5311ee9cb5633481061a41-20230727
+X-CID-FACTOR: TF_CID_SPAM_SDM,TF_CID_SPAM_ASC,TF_CID_SPAM_FAS,TF_CID_SPAM_FSD,
+        TF_CID_SPAM_SNR
+X-UUID: 9f464f922c5311ee9cb5633481061a41-20230727
 Received: from mtkmbs13n1.mediatek.inc [(172.21.101.193)] by mailgw01.mediatek.com
         (envelope-from <yi-de.wu@mediatek.com>)
         (Generic MTA with TLSv1.2 ECDHE-RSA-AES256-GCM-SHA384 256/256)
-        with ESMTP id 296318186; Thu, 27 Jul 2023 16:00:16 +0800
+        with ESMTP id 1391972622; Thu, 27 Jul 2023 16:00:16 +0800
 Received: from mtkmbs11n2.mediatek.inc (172.21.101.187) by
  MTKMBS14N2.mediatek.inc (172.21.101.76) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1118.26; Thu, 27 Jul 2023 16:00:14 +0800
+ 15.2.1118.26; Thu, 27 Jul 2023 16:00:15 +0800
 Received: from mtksdccf07.mediatek.inc (172.21.84.99) by
  mtkmbs11n2.mediatek.inc (172.21.101.73) with Microsoft SMTP Server id
- 15.2.1118.26 via Frontend Transport; Thu, 27 Jul 2023 16:00:14 +0800
+ 15.2.1118.26 via Frontend Transport; Thu, 27 Jul 2023 16:00:15 +0800
 From:   Yi-De Wu <yi-de.wu@mediatek.com>
 To:     Yingshiuan Pan <yingshiuan.pan@mediatek.com>,
         Ze-Yu Wang <ze-yu.wang@mediatek.com>,
@@ -71,9 +71,9 @@ CC:     <devicetree@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
         PeiLun Suei <peilun.suei@mediatek.com>,
         Liju Chen <liju-clr.chen@mediatek.com>,
         Willix Yeh <chi-shen.yeh@mediatek.com>
-Subject: [PATCH v5 07/12] virt: geniezone: Add ioeventfd support
-Date:   Thu, 27 Jul 2023 16:00:00 +0800
-Message-ID: <20230727080005.14474-8-yi-de.wu@mediatek.com>
+Subject: [PATCH v5 11/12] virt: geniezone: Add guest page fault handler
+Date:   Thu, 27 Jul 2023 16:00:04 +0800
+Message-ID: <20230727080005.14474-12-yi-de.wu@mediatek.com>
 X-Mailer: git-send-email 2.18.0
 In-Reply-To: <20230727080005.14474-1-yi-de.wu@mediatek.com>
 References: <20230727080005.14474-1-yi-de.wu@mediatek.com>
@@ -86,463 +86,329 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: "Yingshiuan Pan" <yingshiuan.pan@mediatek.com>
 
-Ioeventfd leverages eventfd to provide asynchronous notification
-mechanism for VMM. VMM can register a mmio address and bind with an
-eventfd. Once a mmio trap occurs on this registered region, its
-corresponding eventfd will be notified.
+This page fault handler helps GenieZone hypervisor to do demand paging.
+On a lower level translation fault, GenieZone hypervisor will first
+check the fault GPA (guest physical address or IPA in ARM) is valid
+e.g. within the registered memory region, then it will setup the
+vcpu_run->exit_reason with necessary information for returning to
+gzvm driver.
+
+With the fault information, the gzvm driver looks up the physical
+address and call the MT_HVC_GZVM_MAP_GUEST to request the hypervisor
+maps the found PA to the fault GPA (IPA).
 
 Signed-off-by: Yingshiuan Pan <yingshiuan.pan@mediatek.com>
 Signed-off-by: Liju Chen <liju-clr.chen@mediatek.com>
 Signed-off-by: Yi-De Wu <yi-de.wu@mediatek.com>
 ---
- drivers/virt/geniezone/Makefile         |   3 +-
- drivers/virt/geniezone/gzvm_ioeventfd.c | 273 ++++++++++++++++++++++++
- drivers/virt/geniezone/gzvm_vcpu.c      |  27 ++-
- drivers/virt/geniezone/gzvm_vm.c        |  17 ++
- include/linux/gzvm_drv.h                |  12 ++
- include/uapi/linux/gzvm.h               |  25 +++
- 6 files changed, 355 insertions(+), 2 deletions(-)
- create mode 100644 drivers/virt/geniezone/gzvm_ioeventfd.c
+ arch/arm64/geniezone/gzvm_arch_common.h |  2 +
+ arch/arm64/geniezone/vm.c               |  9 ++++
+ arch/arm64/include/uapi/asm/gzvm_arch.h |  4 ++
+ drivers/virt/geniezone/Makefile         |  2 +-
+ drivers/virt/geniezone/gzvm_exception.c | 66 +++++++++++++++++++++++++
+ drivers/virt/geniezone/gzvm_main.c      |  2 +
+ drivers/virt/geniezone/gzvm_vcpu.c      |  6 ++-
+ drivers/virt/geniezone/gzvm_vm.c        | 28 ++++++++++-
+ include/linux/gzvm_drv.h                |  7 +++
+ include/uapi/asm-generic/gzvm_arch.h    |  3 ++
+ include/uapi/linux/gzvm.h               | 14 ++++++
+ 11 files changed, 138 insertions(+), 5 deletions(-)
+ create mode 100644 drivers/virt/geniezone/gzvm_exception.c
 
+diff --git a/arch/arm64/geniezone/gzvm_arch_common.h b/arch/arm64/geniezone/gzvm_arch_common.h
+index e51310be2376..d4db0ee7bcb8 100644
+--- a/arch/arm64/geniezone/gzvm_arch_common.h
++++ b/arch/arm64/geniezone/gzvm_arch_common.h
+@@ -24,6 +24,7 @@ enum {
+ 	GZVM_FUNC_INFORM_EXIT = 14,
+ 	GZVM_FUNC_MEMREGION_PURPOSE = 15,
+ 	GZVM_FUNC_SET_DTB_CONFIG = 16,
++	GZVM_FUNC_MAP_GUEST = 17,
+ 	NR_GZVM_FUNC,
+ };
+ 
+@@ -48,6 +49,7 @@ enum {
+ #define MT_HVC_GZVM_INFORM_EXIT		GZVM_HCALL_ID(GZVM_FUNC_INFORM_EXIT)
+ #define MT_HVC_GZVM_MEMREGION_PURPOSE	GZVM_HCALL_ID(GZVM_FUNC_MEMREGION_PURPOSE)
+ #define MT_HVC_GZVM_SET_DTB_CONFIG	GZVM_HCALL_ID(GZVM_FUNC_SET_DTB_CONFIG)
++#define MT_HVC_GZVM_MAP_GUEST		GZVM_HCALL_ID(GZVM_FUNC_MAP_GUEST)
+ 
+ #define GIC_V3_NR_LRS			16
+ 
+diff --git a/arch/arm64/geniezone/vm.c b/arch/arm64/geniezone/vm.c
+index a47e1d60dc1f..9d6b22bd1d70 100644
+--- a/arch/arm64/geniezone/vm.c
++++ b/arch/arm64/geniezone/vm.c
+@@ -240,3 +240,12 @@ u64 gzvm_hva_to_pa_arch(u64 hva)
+ 
+ 	return par & PAR_PA47_MASK;
+ }
++
++int gzvm_arch_map_guest(u16 vm_id, int memslot_id, u64 pfn, u64 gfn,
++			u64 nr_pages)
++{
++	struct arm_smccc_res res;
++
++	return gzvm_hypcall_wrapper(MT_HVC_GZVM_MAP_GUEST, vm_id, memslot_id,
++				    pfn, gfn, nr_pages, 0, 0, &res);
++}
+diff --git a/arch/arm64/include/uapi/asm/gzvm_arch.h b/arch/arm64/include/uapi/asm/gzvm_arch.h
+index acfe9be0f849..ebb136c2a57a 100644
+--- a/arch/arm64/include/uapi/asm/gzvm_arch.h
++++ b/arch/arm64/include/uapi/asm/gzvm_arch.h
+@@ -51,4 +51,8 @@
+ #define GZVM_VGIC_NR_PPIS		16
+ #define GZVM_VGIC_NR_PRIVATE_IRQS	(GZVM_VGIC_NR_SGIS + GZVM_VGIC_NR_PPIS)
+ 
++struct gzvm_arch_exception {
++	__u64 esr_el2;
++};
++
+ #endif /* __GZVM_ARCH_H__ */
 diff --git a/drivers/virt/geniezone/Makefile b/drivers/virt/geniezone/Makefile
-index 19a835b0aac2..bc5ae49f2407 100644
+index bc5ae49f2407..e1299f99df76 100644
 --- a/drivers/virt/geniezone/Makefile
 +++ b/drivers/virt/geniezone/Makefile
-@@ -7,4 +7,5 @@
- GZVM_DIR ?= ../../../drivers/virt/geniezone
+@@ -8,4 +8,4 @@ GZVM_DIR ?= ../../../drivers/virt/geniezone
  
  gzvm-y := $(GZVM_DIR)/gzvm_main.o $(GZVM_DIR)/gzvm_vm.o \
--	  $(GZVM_DIR)/gzvm_vcpu.o $(GZVM_DIR)/gzvm_irqfd.o
-+	  $(GZVM_DIR)/gzvm_vcpu.o $(GZVM_DIR)/gzvm_irqfd.o \
-+	  $(GZVM_DIR)/gzvm_ioeventfd.o
-diff --git a/drivers/virt/geniezone/gzvm_ioeventfd.c b/drivers/virt/geniezone/gzvm_ioeventfd.c
+ 	  $(GZVM_DIR)/gzvm_vcpu.o $(GZVM_DIR)/gzvm_irqfd.o \
+-	  $(GZVM_DIR)/gzvm_ioeventfd.o
++	  $(GZVM_DIR)/gzvm_ioeventfd.o $(GZVM_DIR)/gzvm_exception.o
+diff --git a/drivers/virt/geniezone/gzvm_exception.c b/drivers/virt/geniezone/gzvm_exception.c
 new file mode 100644
-index 000000000000..8d41db16ada2
+index 000000000000..c2cab1472d2f
 --- /dev/null
-+++ b/drivers/virt/geniezone/gzvm_ioeventfd.c
-@@ -0,0 +1,273 @@
++++ b/drivers/virt/geniezone/gzvm_exception.c
+@@ -0,0 +1,66 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (c) 2023 MediaTek Inc.
 + */
 +
-+#include <linux/eventfd.h>
-+#include <linux/file.h>
-+#include <linux/syscalls.h>
-+#include <linux/gzvm.h>
++#include <linux/device.h>
 +#include <linux/gzvm_drv.h>
-+#include <linux/wait.h>
-+#include <linux/poll.h>
-+#include <linux/module.h>
-+#include <linux/slab.h>
-+
-+struct gzvm_ioevent {
-+	struct list_head list;
-+	__u64 addr;
-+	__u32 len;
-+	struct eventfd_ctx  *evt_ctx;
-+	__u64 datamatch;
-+	bool wildcard;
-+};
 +
 +/**
-+ * ioeventfd_check_collision() - Check collison assumes gzvm->slots_lock held.
-+ * @gzvm: Pointer to gzvm.
-+ * @p: Pointer to gzvm_ioevent.
++ * gzvm_handle_page_fault() - Handle guest page fault, find corresponding page
++ *                            for the faulting gpa
++ * @vcpu: Pointer to struct gzvm_vcpu_run of the faulting vcpu
 + *
 + * Return:
-+ * * true			- collison found
-+ * * false			- no collison
++ * * 0			- Success to handle guest page fault
++ * * -EFAULT		- Failed to map phys addr to guest's GPA
 + */
-+static bool ioeventfd_check_collision(struct gzvm *gzvm, struct gzvm_ioevent *p)
++static int gzvm_handle_page_fault(struct gzvm_vcpu *vcpu)
 +{
-+	struct gzvm_ioevent *_p;
-+
-+	list_for_each_entry(_p, &gzvm->ioevents, list)
-+		if (_p->addr == p->addr &&
-+		    (!_p->len || !p->len ||
-+		     (_p->len == p->len &&
-+		      (_p->wildcard || p->wildcard ||
-+		       _p->datamatch == p->datamatch))))
-+			return true;
-+
-+	return false;
-+}
-+
-+static void gzvm_ioevent_release(struct gzvm_ioevent *p)
-+{
-+	eventfd_ctx_put(p->evt_ctx);
-+	list_del(&p->list);
-+	kfree(p);
-+}
-+
-+static bool gzvm_ioevent_in_range(struct gzvm_ioevent *p, __u64 addr, int len,
-+				  const void *val)
-+{
-+	u64 _val;
-+
-+	if (addr != p->addr)
-+		/* address must be precise for a hit */
-+		return false;
-+
-+	if (!p->len)
-+		/* length = 0 means only look at the address, so always a hit */
-+		return true;
-+
-+	if (len != p->len)
-+		/* address-range must be precise for a hit */
-+		return false;
-+
-+	if (p->wildcard)
-+		/* all else equal, wildcard is always a hit */
-+		return true;
-+
-+	/* otherwise, we have to actually compare the data */
-+
-+	WARN_ON_ONCE(!IS_ALIGNED((unsigned long)val, len));
-+
-+	switch (len) {
-+	case 1:
-+		_val = *(u8 *)val;
-+		break;
-+	case 2:
-+		_val = *(u16 *)val;
-+		break;
-+	case 4:
-+		_val = *(u32 *)val;
-+		break;
-+	case 8:
-+		_val = *(u64 *)val;
-+		break;
-+	default:
-+		return false;
-+	}
-+
-+	return _val == p->datamatch;
-+}
-+
-+static int gzvm_deassign_ioeventfd(struct gzvm *gzvm,
-+				   struct gzvm_ioeventfd *args)
-+{
-+	struct gzvm_ioevent *p, *tmp;
-+	struct eventfd_ctx *evt_ctx;
-+	int ret = -ENOENT;
-+	bool wildcard;
-+
-+	evt_ctx = eventfd_ctx_fdget(args->fd);
-+	if (IS_ERR(evt_ctx))
-+		return PTR_ERR(evt_ctx);
-+
-+	wildcard = !(args->flags & GZVM_IOEVENTFD_FLAG_DATAMATCH);
-+
-+	mutex_lock(&gzvm->lock);
-+
-+	list_for_each_entry_safe(p, tmp, &gzvm->ioevents, list) {
-+		if (p->evt_ctx != evt_ctx  ||
-+		    p->addr != args->addr  ||
-+		    p->len != args->len ||
-+		    p->wildcard != wildcard)
-+			continue;
-+
-+		if (!p->wildcard && p->datamatch != args->datamatch)
-+			continue;
-+
-+		gzvm_ioevent_release(p);
-+		ret = 0;
-+		break;
-+	}
-+
-+	mutex_unlock(&gzvm->lock);
-+
-+	/* got in the front of this function */
-+	eventfd_ctx_put(evt_ctx);
-+
-+	return ret;
-+}
-+
-+static int gzvm_assign_ioeventfd(struct gzvm *gzvm, struct gzvm_ioeventfd *args)
-+{
-+	struct eventfd_ctx *evt_ctx;
-+	struct gzvm_ioevent *evt;
++	struct gzvm *vm = vcpu->gzvm;
++	int memslot_id;
++	u64 pfn, gfn;
 +	int ret;
 +
-+	evt_ctx = eventfd_ctx_fdget(args->fd);
-+	if (IS_ERR(evt_ctx))
-+		return PTR_ERR(evt_ctx);
++	gfn = PHYS_PFN(vcpu->run->exception.fault_gpa);
++	memslot_id = gzvm_find_memslot(vm, gfn);
++	if (unlikely(memslot_id < 0))
++		return -EFAULT;
 +
-+	evt = kmalloc(sizeof(*evt), GFP_KERNEL);
-+	if (!evt)
-+		return -ENOMEM;
-+	*evt = (struct gzvm_ioevent) {
-+		.addr = args->addr,
-+		.len = args->len,
-+		.evt_ctx = evt_ctx,
-+	};
-+	if (args->flags & GZVM_IOEVENTFD_FLAG_DATAMATCH) {
-+		evt->datamatch = args->datamatch;
-+		evt->wildcard = false;
-+	} else {
-+		evt->wildcard = true;
-+	}
++	ret = gzvm_gfn_to_pfn_memslot(&vm->memslot[memslot_id], gfn, &pfn);
++	if (unlikely(ret))
++		return -EFAULT;
 +
-+	if (ioeventfd_check_collision(gzvm, evt)) {
-+		ret = -EEXIST;
-+		goto err_free;
-+	}
-+
-+	mutex_lock(&gzvm->lock);
-+	list_add_tail(&evt->list, &gzvm->ioevents);
-+	mutex_unlock(&gzvm->lock);
++	ret = gzvm_arch_map_guest(vm->vm_id, memslot_id, pfn, gfn, 1);
++	if (unlikely(ret))
++		return -EFAULT;
 +
 +	return 0;
-+
-+err_free:
-+	kfree(evt);
-+	eventfd_ctx_put(evt_ctx);
-+	return ret;
 +}
 +
 +/**
-+ * gzvm_ioeventfd_check_valid() - Check user arguments is valid.
-+ * @args: Pointer to gzvm_ioeventfd.
-+ *
++ * gzvm_handle_guest_exception() - Handle guest exception
++ * @vcpu: Pointer to struct gzvm_vcpu_run in userspace
 + * Return:
-+ * * true if user arguments are valid.
-+ * * false if user arguments are invalid.
++ * * true - This exception has been processed, no need to back to VMM.
++ * * false - This exception has not been processed, require userspace.
 + */
-+static bool gzvm_ioeventfd_check_valid(struct gzvm_ioeventfd *args)
++bool gzvm_handle_guest_exception(struct gzvm_vcpu *vcpu)
 +{
-+	/* must be natural-word sized, or 0 to ignore length */
-+	switch (args->len) {
-+	case 0:
-+	case 1:
-+	case 2:
-+	case 4:
-+	case 8:
++	int ret;
++
++	switch (vcpu->run->exception.exception) {
++	case GZVM_EXCEPTION_PAGE_FAULT:
++		ret = gzvm_handle_page_fault(vcpu);
 +		break;
++	case GZVM_EXCEPTION_UNKNOWN:
++		fallthrough;
 +	default:
-+		return false;
++		ret = -EFAULT;
 +	}
 +
-+	/* check for range overflow */
-+	if (args->addr + args->len < args->addr)
++	if (!ret)
++		return true;
++	else
 +		return false;
-+
-+	/* check for extra flags that we don't understand */
-+	if (args->flags & ~GZVM_IOEVENTFD_VALID_FLAG_MASK)
-+		return false;
-+
-+	/* ioeventfd with no length can't be combined with DATAMATCH */
-+	if (!args->len && (args->flags & GZVM_IOEVENTFD_FLAG_DATAMATCH))
-+		return false;
-+
-+	/* gzvm does not support pio bus ioeventfd */
-+	if (args->flags & GZVM_IOEVENTFD_FLAG_PIO)
-+		return false;
-+
-+	return true;
 +}
-+
-+/**
-+ * gzvm_ioeventfd() - Register ioevent to ioevent list.
-+ * @gzvm: Pointer to gzvm.
-+ * @args: Pointer to gzvm_ioeventfd.
-+ *
-+ * Return:
-+ * * 0			- Success.
-+ * * Negative		- Failure.
-+ */
-+int gzvm_ioeventfd(struct gzvm *gzvm, struct gzvm_ioeventfd *args)
-+{
-+	if (gzvm_ioeventfd_check_valid(args) == false)
+diff --git a/drivers/virt/geniezone/gzvm_main.c b/drivers/virt/geniezone/gzvm_main.c
+index a4c235f3ff01..933146f79d4f 100644
+--- a/drivers/virt/geniezone/gzvm_main.c
++++ b/drivers/virt/geniezone/gzvm_main.c
+@@ -30,6 +30,8 @@ int gzvm_err_to_errno(unsigned long err)
+ 		return 0;
+ 	case ERR_NO_MEMORY:
+ 		return -ENOMEM;
++	case ERR_INVALID_ARGS:
 +		return -EINVAL;
-+
-+	if (args->flags & GZVM_IOEVENTFD_FLAG_DEASSIGN)
-+		return gzvm_deassign_ioeventfd(gzvm, args);
-+	return gzvm_assign_ioeventfd(gzvm, args);
-+}
-+
-+/**
-+ * gzvm_ioevent_write() - Travers this vm's registered ioeventfd to see if
-+ *			  need notifying it.
-+ * @vcpu: Pointer to vcpu.
-+ * @addr: mmio address.
-+ * @len: mmio size.
-+ * @val: Pointer to void.
-+ *
-+ * Return:
-+ * * true if this io is already sent to ioeventfd's listener.
-+ * * false if we cannot find any ioeventfd registering this mmio write.
-+ */
-+bool gzvm_ioevent_write(struct gzvm_vcpu *vcpu, __u64 addr, int len,
-+			const void *val)
-+{
-+	struct gzvm_ioevent *e;
-+
-+	list_for_each_entry(e, &vcpu->gzvm->ioevents, list) {
-+		if (gzvm_ioevent_in_range(e, addr, len, val)) {
-+			eventfd_signal(e->evt_ctx, 1);
-+			return true;
-+		}
-+	}
-+	return false;
-+}
-+
-+int gzvm_init_ioeventfd(struct gzvm *gzvm)
-+{
-+	INIT_LIST_HEAD(&gzvm->ioevents);
-+
-+	return 0;
-+}
+ 	case ERR_NOT_SUPPORTED:
+ 		return -EOPNOTSUPP;
+ 	case ERR_NOT_IMPLEMENTED:
 diff --git a/drivers/virt/geniezone/gzvm_vcpu.c b/drivers/virt/geniezone/gzvm_vcpu.c
-index a717fc713b2e..72bd122a8be7 100644
+index 8dac8ba4c0cf..794b24da40e2 100644
 --- a/drivers/virt/geniezone/gzvm_vcpu.c
 +++ b/drivers/virt/geniezone/gzvm_vcpu.c
-@@ -50,6 +50,30 @@ static long gzvm_vcpu_update_one_reg(struct gzvm_vcpu *vcpu,
+@@ -112,9 +112,11 @@ static long gzvm_vcpu_run(struct gzvm_vcpu *vcpu, void * __user argp)
+ 		 * it's geniezone's responsibility to fill corresponding data
+ 		 * structure
+ 		 */
+-		case GZVM_EXIT_HYPERCALL:
+-			fallthrough;
+ 		case GZVM_EXIT_EXCEPTION:
++			if (!gzvm_handle_guest_exception(vcpu))
++				need_userspace = true;
++			break;
++		case GZVM_EXIT_HYPERCALL:
+ 			fallthrough;
+ 		case GZVM_EXIT_DEBUG:
+ 			fallthrough;
+diff --git a/drivers/virt/geniezone/gzvm_vm.c b/drivers/virt/geniezone/gzvm_vm.c
+index 8e9967b754df..3da5fdc141b6 100644
+--- a/drivers/virt/geniezone/gzvm_vm.c
++++ b/drivers/virt/geniezone/gzvm_vm.c
+@@ -98,8 +98,7 @@ static u64 __gzvm_gfn_to_pfn_memslot(struct gzvm_memslot *memslot, u64 gfn)
+  * * 0			- Succeed
+  * * -EFAULT		- Failed to convert
+  */
+-static int gzvm_gfn_to_pfn_memslot(struct gzvm_memslot *memslot, u64 gfn,
+-				   u64 *pfn)
++int gzvm_gfn_to_pfn_memslot(struct gzvm_memslot *memslot, u64 gfn, u64 *pfn)
+ {
+ 	u64 __pfn;
+ 
+@@ -117,6 +116,31 @@ static int gzvm_gfn_to_pfn_memslot(struct gzvm_memslot *memslot, u64 gfn,
  	return 0;
  }
  
 +/**
-+ * gzvm_vcpu_handle_mmio() - Handle mmio in kernel space.
-+ * @vcpu: Pointer to vcpu.
++ * gzvm_find_memslot() - Find memslot containing this @gpa
++ * @vm: Pointer to struct gzvm
++ * @gfn: Guest frame number
 + *
 + * Return:
-+ * * true - This mmio exit has been processed.
-+ * * false - This mmio exit has not been processed, require userspace.
++ * * >=0		- Index of memslot
++ * * -EFAULT		- Not found
 + */
-+static bool gzvm_vcpu_handle_mmio(struct gzvm_vcpu *vcpu)
++int gzvm_find_memslot(struct gzvm *vm, u64 gfn)
 +{
-+	__u64 addr;
-+	__u32 len;
-+	const void *val_ptr;
++	int i;
 +
-+	/* So far, we don't have in-kernel mmio read handler */
-+	if (!vcpu->run->mmio.is_write)
-+		return false;
-+	addr = vcpu->run->mmio.phys_addr;
-+	len = vcpu->run->mmio.size;
-+	val_ptr = &vcpu->run->mmio.data;
++	for (i = 0; i < GZVM_MAX_MEM_REGION; i++) {
++		if (vm->memslot[i].npages == 0)
++			continue;
 +
-+	return gzvm_ioevent_write(vcpu, addr, len, val_ptr);
++		if (gfn >= vm->memslot[i].base_gfn &&
++		    gfn < vm->memslot[i].base_gfn + vm->memslot[i].npages)
++			return i;
++	}
++
++	return -EFAULT;
 +}
 +
  /**
-  * gzvm_vcpu_run() - Handle vcpu run ioctl, entry point to guest and exit
-  *		     point from guest
-@@ -81,7 +105,8 @@ static long gzvm_vcpu_run(struct gzvm_vcpu *vcpu, void * __user argp)
- 
- 		switch (exit_reason) {
- 		case GZVM_EXIT_MMIO:
--			need_userspace = true;
-+			if (!gzvm_vcpu_handle_mmio(vcpu))
-+				need_userspace = true;
- 			break;
- 		/**
- 		 * it's geniezone's responsibility to fill corresponding data
-diff --git a/drivers/virt/geniezone/gzvm_vm.c b/drivers/virt/geniezone/gzvm_vm.c
-index a93f5b0e7078..60bd017e41fa 100644
---- a/drivers/virt/geniezone/gzvm_vm.c
-+++ b/drivers/virt/geniezone/gzvm_vm.c
-@@ -386,6 +386,16 @@ static long gzvm_vm_ioctl(struct file *filp, unsigned int ioctl,
- 		ret = gzvm_irqfd(gzvm, &data);
- 		break;
- 	}
-+	case GZVM_IOEVENTFD: {
-+		struct gzvm_ioeventfd data;
-+
-+		if (copy_from_user(&data, argp, sizeof(data))) {
-+			ret = -EFAULT;
-+			goto out;
-+		}
-+		ret = gzvm_ioeventfd(gzvm, &data);
-+		break;
-+	}
- 	case GZVM_ENABLE_CAP: {
- 		struct gzvm_enable_cap cap;
- 
-@@ -462,6 +472,13 @@ static struct gzvm *gzvm_create_vm(unsigned long vm_type)
- 		return ERR_PTR(ret);
- 	}
- 
-+	ret = gzvm_init_ioeventfd(gzvm);
-+	if (ret) {
-+		pr_err("Failed to initialize ioeventfd\n");
-+		kfree(gzvm);
-+		return ERR_PTR(ret);
-+	}
-+
- 	mutex_lock(&gzvm_list_lock);
- 	list_add(&gzvm->vm_list, &gzvm_list);
- 	mutex_unlock(&gzvm_list_lock);
+  * fill_constituents() - Populate pa to buffer until full
+  * @consti: Pointer to struct mem_region_addr_range.
 diff --git a/include/linux/gzvm_drv.h b/include/linux/gzvm_drv.h
-index af7043d66567..d2985e4df4a0 100644
+index e5b21ac9215b..d7838679c700 100644
 --- a/include/linux/gzvm_drv.h
 +++ b/include/linux/gzvm_drv.h
-@@ -6,6 +6,7 @@
- #ifndef __GZVM_DRV_H__
- #define __GZVM_DRV_H__
+@@ -23,6 +23,7 @@
+  */
+ #define NO_ERROR                (0)
+ #define ERR_NO_MEMORY           (-5)
++#define ERR_INVALID_ARGS        (-8)
+ #define ERR_NOT_SUPPORTED       (-24)
+ #define ERR_NOT_IMPLEMENTED     (-27)
+ #define ERR_FAULT               (-40)
+@@ -119,6 +120,8 @@ int gzvm_arch_set_memregion(u16 vm_id, size_t buf_size,
+ int gzvm_arch_check_extension(struct gzvm *gzvm, __u64 cap, void __user *argp);
+ int gzvm_arch_create_vm(unsigned long vm_type);
+ int gzvm_arch_destroy_vm(u16 vm_id);
++int gzvm_arch_map_guest(u16 vm_id, int memslot_id, u64 pfn, u64 gfn,
++			u64 nr_pages);
+ int gzvm_vm_ioctl_arch_enable_cap(struct gzvm *gzvm,
+ 				  struct gzvm_enable_cap *cap,
+ 				  void __user *argp);
+@@ -134,6 +137,10 @@ int gzvm_arch_inform_exit(u16 vm_id);
+ int gzvm_arch_drv_init(void);
+ void gzvm_arch_drv_exit(void);
  
-+#include <linux/eventfd.h>
- #include <linux/list.h>
- #include <linux/mutex.h>
- #include <linux/gzvm.h>
-@@ -89,6 +90,8 @@ struct gzvm {
- 		struct mutex      resampler_lock;
- 	} irqfds;
- 
-+	struct list_head ioevents;
++int gzvm_gfn_to_pfn_memslot(struct gzvm_memslot *memslot, u64 gfn, u64 *pfn);
++int gzvm_find_memslot(struct gzvm *vm, u64 gpa);
++bool gzvm_handle_guest_exception(struct gzvm_vcpu *vcpu);
 +
- 	struct list_head vm_list;
- 	u16 vm_id;
+ int gzvm_arch_create_device(u16 vm_id, struct gzvm_create_device *gzvm_dev);
+ int gzvm_arch_inject_irq(struct gzvm *gzvm, unsigned int vcpu_idx,
+ 			 u32 irq_type, u32 irq, bool level);
+diff --git a/include/uapi/asm-generic/gzvm_arch.h b/include/uapi/asm-generic/gzvm_arch.h
+index c4cc12716c91..0b2cde406f5a 100644
+--- a/include/uapi/asm-generic/gzvm_arch.h
++++ b/include/uapi/asm-generic/gzvm_arch.h
+@@ -5,6 +5,9 @@
  
-@@ -138,4 +141,13 @@ void gzvm_drv_irqfd_exit(void);
- int gzvm_vm_irqfd_init(struct gzvm *gzvm);
- void gzvm_vm_irqfd_release(struct gzvm *gzvm);
- 
-+int gzvm_init_ioeventfd(struct gzvm *gzvm);
-+int gzvm_ioeventfd(struct gzvm *gzvm, struct gzvm_ioeventfd *args);
-+bool gzvm_ioevent_write(struct gzvm_vcpu *vcpu, __u64 addr, int len,
-+			const void *val);
-+void eventfd_ctx_do_read(struct eventfd_ctx *ctx, __u64 *cnt);
-+struct vm_area_struct *vma_lookup(struct mm_struct *mm, unsigned long addr);
-+void add_wait_queue_priority(struct wait_queue_head *wq_head,
-+			     struct wait_queue_entry *wq_entry);
+ #ifndef __ASM_GENERIC_GZVM_ARCH_H
+ #define __ASM_GENERIC_GZVM_ARCH_H
 +
- #endif /* __GZVM_DRV_H__ */
+ /* geniezone only supports aarch64 platform for now */
++struct gzvm_arch_exception {
++};
+ 
+ #endif /* __ASM_GENERIC_GZVM_ARCH_H */
 diff --git a/include/uapi/linux/gzvm.h b/include/uapi/linux/gzvm.h
-index f4b16d70f035..506ef975de02 100644
+index d37be00fbeea..a3329b713089 100644
 --- a/include/uapi/linux/gzvm.h
 +++ b/include/uapi/linux/gzvm.h
-@@ -301,4 +301,29 @@ struct gzvm_irqfd {
+@@ -150,6 +150,12 @@ enum {
+ 	GZVM_EXIT_GZ = 0x9292000a,
+ };
  
- #define GZVM_IRQFD	_IOW(GZVM_IOC_MAGIC, 0x76, struct gzvm_irqfd)
- 
++/* exception definitions of GZVM_EXIT_EXCEPTION */
 +enum {
-+	gzvm_ioeventfd_flag_nr_datamatch = 0,
-+	gzvm_ioeventfd_flag_nr_pio = 1,
-+	gzvm_ioeventfd_flag_nr_deassign = 2,
-+	gzvm_ioeventfd_flag_nr_max,
++	GZVM_EXCEPTION_UNKNOWN = 0x0,
++	GZVM_EXCEPTION_PAGE_FAULT = 0x1,
 +};
 +
-+#define GZVM_IOEVENTFD_FLAG_DATAMATCH	(1 << gzvm_ioeventfd_flag_nr_datamatch)
-+#define GZVM_IOEVENTFD_FLAG_PIO		(1 << gzvm_ioeventfd_flag_nr_pio)
-+#define GZVM_IOEVENTFD_FLAG_DEASSIGN	(1 << gzvm_ioeventfd_flag_nr_deassign)
-+#define GZVM_IOEVENTFD_VALID_FLAG_MASK	((1 << gzvm_ioeventfd_flag_nr_max) - 1)
-+
-+struct gzvm_ioeventfd {
-+	__u64 datamatch;
-+	/* private: legal pio/mmio address */
-+	__u64 addr;
-+	/* private: 1, 2, 4, or 8 bytes; or 0 to ignore length */
-+	__u32 len;
-+	__s32 fd;
-+	__u32 flags;
-+	__u8  pad[36];
-+};
-+
-+#define GZVM_IOEVENTFD	_IOW(GZVM_IOC_MAGIC, 0x79, struct gzvm_ioeventfd)
-+
- #endif /* __GZVM_H__ */
+ /**
+  * struct gzvm_vcpu_run: Same purpose as kvm_run, this struct is
+  *			shared between userspace, kernel and
+@@ -174,6 +180,11 @@ enum {
+  *             Handle exception occurred in VM
+  * @exception: Which exception vector
+  * @error_code: Exception error codes
++ * @fault_gpa: Fault GPA (guest physical address or IPA in ARM)
++ * @reserved: Future-proof reservation and should be zeroed, and this can also
++ *            fix the offset of `gzvm_arch_exception`
++ * @arch: struct gzvm_arch_exception, architecture information for guest
++ *        exception
+  * @hypercall: The nested struct in anonymous union.
+  *             Some hypercalls issued from VM must be handled
+  * @args: The hypercall's arguments
+@@ -220,6 +231,9 @@ struct gzvm_vcpu_run {
+ 		struct {
+ 			__u32 exception;
+ 			__u32 error_code;
++			__u64 fault_gpa;
++			__u64 reserved[6];
++			struct gzvm_arch_exception arch;
+ 		} exception;
+ 		/* GZVM_EXIT_HYPERCALL */
+ 		struct {
 -- 
 2.18.0
 
