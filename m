@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7B14DC04FE1
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 19:55:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BCC70C05052
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 19:55:09 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232336AbjG0TzG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Jul 2023 15:55:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34734 "EHLO
+        id S232363AbjG0TzI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Jul 2023 15:55:08 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34744 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231912AbjG0TzA (ORCPT
+        with ESMTP id S229995AbjG0TzA (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 15:55:00 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 4351930C0;
-        Thu, 27 Jul 2023 12:54:57 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 4C6A030D4;
+        Thu, 27 Jul 2023 12:54:59 -0700 (PDT)
 Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
-        by linux.microsoft.com (Postfix) with ESMTPSA id 56CC82380B32;
-        Thu, 27 Jul 2023 12:54:56 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 56CC82380B32
+        by linux.microsoft.com (Postfix) with ESMTPSA id 3D8EF2383EF5;
+        Thu, 27 Jul 2023 12:54:57 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3D8EF2383EF5
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1690487696;
-        bh=s2PL0i1EvjQgxdXG0JW/YlWSGiRGc/bzYV3J8bL5UoY=;
-        h=From:To:Cc:Subject:Date:From;
-        b=ku3myf/PWApZyHGN2DNxiu4GcCRzrHblOUNdsiBFyUDTu/1MlvHqJoDV7Q5FjC07K
-         2gxO5Kf61+pOPg6AfIIVI+TWm9oc7hK+z+fgs4q5OHycsF4mLkzHZxcqvnnSWIY0V7
-         PFKt7slXFee3/0XWhKFZEKOb2qlYPF+MEiaY1cH8=
+        s=default; t=1690487697;
+        bh=HPETpWBPXcktJiZxDGWrM7Bd3Q7E+nExHqjfNeCbApo=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=fTWMskoQmaiRKYdKSqF8KN7KIhXNYhlpbivfWu4+Oy1P7HYd9Z+BoDF38kI6TH7b6
+         KqqJ1TpASd3aeiNA2Mak+9sdTcFrsiLjjsPwTmYiP1WS/42I6mYZDf5lr7zmQYZZV9
+         S7qwQ8Z/HVglVTZKCWImoAOU4lsYLcQXP3OnRoiE=
 From:   Nuno Das Neves <nunodasneves@linux.microsoft.com>
 To:     linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
         x86@kernel.org, linux-arm-kernel@lists.infradead.org,
@@ -37,173 +37,111 @@ Cc:     mikelley@microsoft.com, kys@microsoft.com, wei.liu@kernel.org,
         vkuznets@redhat.com, tglx@linutronix.de, mingo@redhat.com,
         bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
         will@kernel.org, catalin.marinas@arm.com
-Subject: [PATCH 00/15] Introduce /dev/mshv drivers
-Date:   Thu, 27 Jul 2023 12:54:35 -0700
-Message-Id: <1690487690-2428-1-git-send-email-nunodasneves@linux.microsoft.com>
+Subject: [PATCH 08/15] Drivers: hv: Introduce per-cpu event ring tail
+Date:   Thu, 27 Jul 2023 12:54:43 -0700
+Message-Id: <1690487690-2428-9-git-send-email-nunodasneves@linux.microsoft.com>
 X-Mailer: git-send-email 1.8.3.1
+In-Reply-To: <1690487690-2428-1-git-send-email-nunodasneves@linux.microsoft.com>
+References: <1690487690-2428-1-git-send-email-nunodasneves@linux.microsoft.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This series introduces support for creating and running guest machines
-while running on the Microsoft Hypervisor. [0]
-This is done via an IOCTL interface accessed through /dev/mshv, similar to
-/dev/kvm. Another series introducing this support was previously posted.
-[1]
+Add a pointer hv_synic_eventring_tail to track the tail pointer for the
+SynIC event ring buffer for each SINT.
+This will be used by the mshv driver, but must be tracked independently
+since the driver module could be removed and re-inserted.
 
-These interfaces support VMMs running in:
-1. The root patition - provided in the mshv_root module, and
-2. VTL 2 - provided in the mshv_vtl module [2]
+Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
+---
+ drivers/hv/hv_common.c         | 25 +++++++++++++++++++++++++
+ include/asm-generic/mshyperv.h |  2 ++
+ 2 files changed, 27 insertions(+)
 
-Patches breakdown
------------------
-The first 7 patches are refactoring and adding some helper functions.
-They provide some benefit on their own and could be applied independently
-as cleanup patches.
-
-The following 5 patches just set things up for the driver code to come.
-These are very small. They are separated so that the remaining patches are
-more self-contained.
-
-The final 3 patches are the meat of the series:
-- Patch 13 contains new header files used by the driver.
-  These are designed to mirror the ABI headers exported by Hyper-V. This is
-  done to avoid polluting hyperv-tlfs.h and help track changes to the ABIs
-  that are still unstable. (See FAQ below).
-- Patch 14 conditionally includes these new header files into mshyperv.h
-  and linux/hyperv.h, in order to be able to use these files in the new
-  drivers while remaining independent from hyperv-tlfs.h.
-- Patch 15 contains the new driver code located in drivers/hv. This is a
-  large amount of code and new files, but it is mostly self-contained and
-  all within drivers/hv - apart from the IOCTL interface itself in uapi.
-
-FAQ on include/uapi/hyperv/*.h
-------------------------------
-Q:
-Why not just add these definitions to hyperv-tlfs.h?
-A:
-The intention of hyperv-tlfs.h is to contain stable definitions documented
-in the public TLFS document. These new definitions don't fit that criteria,
-so they should be separate.
-
-Q:
-Why are these files named hvgdk.h, hvgdk_mini.h, hvhdk.h and hvhdk_mini.h?
-A:
-The precise meaning of the names reflects conventions used internally at
-Microsoft.
-Naming them this way makes it easy to find where particular Hyper-V
-definitions come from, and check their correctness.
-It also facilitates the future work of automatically generating these files.
-
-Q:
-Why are they in uapi?
-A:
-In short, to keep things simple. There are many definitions needed in both
-the kernel and the VMM in userspace. Separating them doesn't serve much
-purpose, and makes it more laborious to import definitions from Hyper-V
-code.
-
-Q:
-The new headers redefine many things that are already in hyperv-tlfs.h - why?
-A:
-Some definitions are extended compared to what is documented in the TLFS.
-In order to avoid adding undocumented or unstable definitions to hyperv-tlfs.h,
-the new headers must compile independently.
-Therefore, the new headers must redefine many things in hyperv-tlfs.h in order
-to compile.
-
---------------------------
-[0] "Hyper-V" is more well-known, but it really refers to the whole stack
-    including the hypervisor and other components that run in Windows
-    kernel and userspace.
-[1] Previous /dev/mshv patch series and discussion:
-    https://lore.kernel.org/linux-hyperv/1632853875-20261-1-git-send-email-nunodasneves@linux.microsoft.com/
-[2] Virtual Secure Mode (VSM) and Virtual Trust Levels (VTL):
-    https://learn.microsoft.com/en-us/virtualization/hyper-v-on-windows/tlfs/vsm
-
-Nuno Das Neves (15):
-  hyperv-tlfs: Change shared HV_REGISTER_* defines to HV_MSR_*
-  mshyperv: Introduce hv_get_hypervisor_version
-  mshyperv: Introduce numa_node_to_proximity_domain_info
-  asm-generic/mshyperv: Introduce hv_recommend_using_aeoi()
-  hyperv: Move hv_connection_id to hyperv-tlfs
-  hyperv-tlfs: Introduce hv_status_to_string and hv_status_to_errno
-  Drivers: hv: Move hv_call_deposit_pages and hv_call_create_vp to
-    common code
-  Drivers: hv: Introduce per-cpu event ring tail
-  Drivers: hv: Introduce hv_output_arg_exists in hv_common
-  x86: hyperv: Add mshv_handler irq handler and setup function
-  Drivers: hv: export vmbus_isr, hv_context and hv_post_message
-  Documentation: Reserve ioctl number for mshv driver
-  uapi: hyperv: Add mshv driver headers hvhdk.h, hvhdk_mini.h, hvgdk.h,
-    hvgdk_mini.h
-  asm-generic: hyperv: Use mshv headers conditionally. Add
-    asm-generic/hyperv-defs.h
-  Drivers: hv: Add modules to expose /dev/mshv to VMMs running on
-    Hyper-V
-
- .../userspace-api/ioctl/ioctl-number.rst      |    2 +
- arch/arm64/hyperv/mshyperv.c                  |   23 +-
- arch/arm64/include/asm/hyperv-tlfs.h          |   25 +
- arch/arm64/include/asm/mshyperv.h             |    2 +-
- arch/x86/hyperv/hv_init.c                     |    2 +-
- arch/x86/hyperv/hv_proc.c                     |  166 +-
- arch/x86/include/asm/hyperv-tlfs.h            |  137 +-
- arch/x86/include/asm/mshyperv.h               |   13 +-
- arch/x86/kernel/cpu/mshyperv.c                |   71 +-
- drivers/acpi/numa/srat.c                      |    1 +
- drivers/clocksource/hyperv_timer.c            |   24 +-
- drivers/hv/Kconfig                            |   54 +
- drivers/hv/Makefile                           |   21 +
- drivers/hv/hv.c                               |   46 +-
- drivers/hv/hv_call.c                          |  119 +
- drivers/hv/hv_common.c                        |  225 +-
- drivers/hv/hyperv_vmbus.h                     |    2 +-
- drivers/hv/mshv.h                             |  156 ++
- drivers/hv/mshv_eventfd.c                     |  758 +++++++
- drivers/hv/mshv_eventfd.h                     |   80 +
- drivers/hv/mshv_main.c                        |  208 ++
- drivers/hv/mshv_msi.c                         |  129 ++
- drivers/hv/mshv_portid_table.c                |   84 +
- drivers/hv/mshv_root.h                        |  194 ++
- drivers/hv/mshv_root_hv_call.c                | 1064 +++++++++
- drivers/hv/mshv_root_main.c                   | 1964 +++++++++++++++++
- drivers/hv/mshv_synic.c                       |  689 ++++++
- drivers/hv/mshv_vtl.h                         |   52 +
- drivers/hv/mshv_vtl_main.c                    | 1541 +++++++++++++
- drivers/hv/vmbus_drv.c                        |    3 +-
- drivers/hv/xfer_to_guest.c                    |   28 +
- include/asm-generic/hyperv-defs.h             |   26 +
- include/asm-generic/hyperv-tlfs.h             |   77 +-
- include/asm-generic/mshyperv.h                |   76 +-
- include/linux/hyperv.h                        |   11 +-
- include/uapi/hyperv/hvgdk.h                   |   41 +
- include/uapi/hyperv/hvgdk_mini.h              | 1077 +++++++++
- include/uapi/hyperv/hvhdk.h                   | 1352 ++++++++++++
- include/uapi/hyperv/hvhdk_mini.h              |  164 ++
- include/uapi/linux/mshv.h                     |  298 +++
- 40 files changed, 10653 insertions(+), 352 deletions(-)
- create mode 100644 drivers/hv/hv_call.c
- create mode 100644 drivers/hv/mshv.h
- create mode 100644 drivers/hv/mshv_eventfd.c
- create mode 100644 drivers/hv/mshv_eventfd.h
- create mode 100644 drivers/hv/mshv_main.c
- create mode 100644 drivers/hv/mshv_msi.c
- create mode 100644 drivers/hv/mshv_portid_table.c
- create mode 100644 drivers/hv/mshv_root.h
- create mode 100644 drivers/hv/mshv_root_hv_call.c
- create mode 100644 drivers/hv/mshv_root_main.c
- create mode 100644 drivers/hv/mshv_synic.c
- create mode 100644 drivers/hv/mshv_vtl.h
- create mode 100644 drivers/hv/mshv_vtl_main.c
- create mode 100644 drivers/hv/xfer_to_guest.c
- create mode 100644 include/asm-generic/hyperv-defs.h
- create mode 100644 include/uapi/hyperv/hvgdk.h
- create mode 100644 include/uapi/hyperv/hvgdk_mini.h
- create mode 100644 include/uapi/hyperv/hvhdk.h
- create mode 100644 include/uapi/hyperv/hvhdk_mini.h
- create mode 100644 include/uapi/linux/mshv.h
-
+diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+index 9f9c3dc89bb2..99d9b262b8a7 100644
+--- a/drivers/hv/hv_common.c
++++ b/drivers/hv/hv_common.c
+@@ -61,6 +61,16 @@ static void hv_kmsg_dump_unregister(void);
+ 
+ static struct ctl_table_header *hv_ctl_table_hdr;
+ 
++/*
++ * Per-cpu array holding the tail pointer for the SynIC event ring buffer
++ * for each SINT.
++ *
++ * We cannot maintain this in mshv driver because the tail pointer should
++ * persist even if the mshv driver is unloaded.
++ */
++u8 __percpu **hv_synic_eventring_tail;
++EXPORT_SYMBOL_GPL(hv_synic_eventring_tail);
++
+ /*
+  * Hyper-V specific initialization and shutdown code that is
+  * common across all architectures.  Called from architecture
+@@ -332,6 +342,8 @@ int __init hv_common_init(void)
+ 	if (hv_root_partition) {
+ 		hyperv_pcpu_output_arg = alloc_percpu(void *);
+ 		BUG_ON(!hyperv_pcpu_output_arg);
++		hv_synic_eventring_tail = alloc_percpu(u8 *);
++		BUG_ON(hv_synic_eventring_tail == NULL);
+ 	}
+ 
+ 	hv_vp_index = kmalloc_array(num_possible_cpus(), sizeof(*hv_vp_index),
+@@ -356,6 +368,7 @@ int __init hv_common_init(void)
+ int hv_common_cpu_init(unsigned int cpu)
+ {
+ 	void **inputarg, **outputarg;
++	u8 **synic_eventring_tail;
+ 	u64 msr_vp_index;
+ 	gfp_t flags;
+ 	int pgcount = hv_root_partition ? 2 : 1;
+@@ -371,6 +384,14 @@ int hv_common_cpu_init(unsigned int cpu)
+ 	if (hv_root_partition) {
+ 		outputarg = (void **)this_cpu_ptr(hyperv_pcpu_output_arg);
+ 		*outputarg = (char *)(*inputarg) + HV_HYP_PAGE_SIZE;
++		synic_eventring_tail = (u8 **)this_cpu_ptr(hv_synic_eventring_tail);
++		*synic_eventring_tail = kcalloc(HV_SYNIC_SINT_COUNT, sizeof(u8),
++						flags);
++
++		if (unlikely(!*synic_eventring_tail)) {
++			kfree(*inputarg);
++			return -ENOMEM;
++		}
+ 	}
+ 
+ 	msr_vp_index = hv_get_register(HV_MSR_VP_INDEX);
+@@ -387,6 +408,7 @@ int hv_common_cpu_die(unsigned int cpu)
+ {
+ 	unsigned long flags;
+ 	void **inputarg, **outputarg;
++	u8 **synic_eventring_tail;
+ 	void *mem;
+ 
+ 	local_irq_save(flags);
+@@ -398,6 +420,9 @@ int hv_common_cpu_die(unsigned int cpu)
+ 	if (hv_root_partition) {
+ 		outputarg = (void **)this_cpu_ptr(hyperv_pcpu_output_arg);
+ 		*outputarg = NULL;
++		synic_eventring_tail = (u8 **)this_cpu_ptr(hv_synic_eventring_tail);
++		kfree(*synic_eventring_tail);
++		*synic_eventring_tail = NULL;
+ 	}
+ 
+ 	local_irq_restore(flags);
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index 0c94d20b4d44..9118d678b27a 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -73,6 +73,8 @@ extern bool hv_nested;
+ extern void * __percpu *hyperv_pcpu_input_arg;
+ extern void * __percpu *hyperv_pcpu_output_arg;
+ 
++extern u8 __percpu **hv_synic_eventring_tail;
++
+ extern u64 hv_do_hypercall(u64 control, void *inputaddr, void *outputaddr);
+ extern u64 hv_do_fast_hypercall8(u16 control, u64 input8);
+ extern bool hv_isolation_type_snp(void);
 -- 
 2.25.1
 
