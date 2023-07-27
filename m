@@ -2,189 +2,107 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 31295C41513
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 19:00:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D4976C00528
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 19:55:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231701AbjG0TAJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Jul 2023 15:00:09 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44270 "EHLO
+        id S232226AbjG0TzC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Jul 2023 15:55:02 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34706 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231670AbjG0TAI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 15:00:08 -0400
-Received: from mail-lj1-x22d.google.com (mail-lj1-x22d.google.com [IPv6:2a00:1450:4864:20::22d])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 28618212A
-        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2023 12:00:07 -0700 (PDT)
-Received: by mail-lj1-x22d.google.com with SMTP id 38308e7fff4ca-2b701e1ca63so20482831fa.1
-        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2023 12:00:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=rivosinc-com.20221208.gappssmtp.com; s=20221208; t=1690484405; x=1691089205;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=RNz5ULfyNJeCjPsvwCv5L4clxVFquhVEWOvSxelKP+w=;
-        b=GSLEhl1R8oaK89GQOF+Pv24vQFwey5dkoAOjZEenIXfi01TU4C1AFY7vwTgG+IbUlF
-         Bt6mSf5r0S5qnDSbj7fbdtGv7jJ9iOIgyrK6WLr9GeK+jc2ceGyLFhK5wvI+lwtOGyns
-         czustvBmWlA/JC7ECm2Z0wVylVcw7vbMO0XeSmF1L7ausPlrs8/XAS6Xs65/CWeQ8Wfp
-         tsRKYYdO/ryRUCT9y2Jg2iATmCj4AqgpipC57hi+IHiQ5cyV+qpL+Zjknvlp0yeTBYnd
-         SQsKP9CGJ03Unrmv/tUdQbc4zK6ruo/AZl67eW8Md9grR2PmdteBl/N9wtoGp55xr42V
-         jXYQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1690484405; x=1691089205;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=RNz5ULfyNJeCjPsvwCv5L4clxVFquhVEWOvSxelKP+w=;
-        b=kfBst+vdq/OM2hbvBhGMuogR5rnCeA/zYBBqlujmEJmZGSUDr++04WA5sk0J/OjD37
-         IejIoCR7yG4AYszQq4RSq67R6U0x11XQYv+PvVcKZZiGT4p+beyHYUTyVUey6LyzXveM
-         BC1fD8SOexMoJ/+ArdX7t4zjGoesk3p1EAsq078AIRzJ7L306w65SYhuLG2FR3eKp3j+
-         IFM808jmQcutzVdKw9FctUZ7pGLMvZJIlFnF2bQNwQOX4s1gqOzCxV38dABZniXZfwZ4
-         P9P0qXk56c0UcjHZaSZ1XCShvDaA0eOo/XH/2QTod7TDzV+llwnJyp2kygKs3uQ16Rfe
-         F7CQ==
-X-Gm-Message-State: ABy/qLZLoGhPsJ6QXslQvKktBXqbtSKVtvJxXPmLIdBh3I4AXYz4Mcoz
-        jT8oeJIKxtPtGpGeTg5hMycOxw==
-X-Google-Smtp-Source: APBJJlHJDmgCrOPWkDvISdqVBAhll7aGnu9u1uL1uj24Zj+LruMascb6qDrvCi38iKxywHDYgHx7iw==
-X-Received: by 2002:a2e:9444:0:b0:2b6:da64:321 with SMTP id o4-20020a2e9444000000b002b6da640321mr2299474ljh.45.1690484405350;
-        Thu, 27 Jul 2023 12:00:05 -0700 (PDT)
-Received: from alex-rivos.home (amontpellier-656-1-456-62.w92-145.abo.wanadoo.fr. [92.145.124.62])
-        by smtp.gmail.com with ESMTPSA id p1-20020a7bcc81000000b003fa96fe2bebsm2470792wma.41.2023.07.27.12.00.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 27 Jul 2023 12:00:05 -0700 (PDT)
-From:   Alexandre Ghiti <alexghiti@rivosinc.com>
-To:     Will Deacon <will@kernel.org>,
-        "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Nick Piggin <npiggin@gmail.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Mayuresh Chitale <mchitale@ventanamicro.com>,
-        Vincent Chen <vincent.chen@sifive.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, linux-riscv@lists.infradead.org,
-        linux-kernel@vger.kernel.org
-Cc:     Alexandre Ghiti <alexghiti@rivosinc.com>
-Subject: [PATCH v2 4/4] riscv: Improve flush_tlb_kernel_range()
-Date:   Thu, 27 Jul 2023 20:55:53 +0200
-Message-Id: <20230727185553.980262-5-alexghiti@rivosinc.com>
-X-Mailer: git-send-email 2.39.2
-In-Reply-To: <20230727185553.980262-1-alexghiti@rivosinc.com>
-References: <20230727185553.980262-1-alexghiti@rivosinc.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+        with ESMTP id S231701AbjG0Ty7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 15:54:59 -0400
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 57A3E30CA;
+        Thu, 27 Jul 2023 12:54:57 -0700 (PDT)
+Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
+        by linux.microsoft.com (Postfix) with ESMTPSA id C58042383ECB;
+        Thu, 27 Jul 2023 12:54:56 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com C58042383ECB
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+        s=default; t=1690487696;
+        bh=74cerE47LViHpGSOEG683htQjcSrM81CVEYVeue49d8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=UUTklpCArQXKpCTvY9tpDIQL+I3r4jExFcVxpN5srxuHmYdiVB31RKS6i05a6FdFe
+         g0V9JBNV1eD513ONcQ5kT2idJWi3Tn6NrHDYh2IqxfeodBh+7+cHZUZRacShzqBTMK
+         u7l29JWMHeFkFQYL6oQv0ZgLmT16RLYFW4+X4+98=
+From:   Nuno Das Neves <nunodasneves@linux.microsoft.com>
+To:     linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        x86@kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-arch@vger.kernel.org
+Cc:     mikelley@microsoft.com, kys@microsoft.com, wei.liu@kernel.org,
+        haiyangz@microsoft.com, decui@microsoft.com,
+        ssengar@linux.microsoft.com, mukeshrathor@microsoft.com,
+        stanislav.kinsburskiy@gmail.com, jinankjain@linux.microsoft.com,
+        apais@linux.microsoft.com, Tianyu.Lan@microsoft.com,
+        vkuznets@redhat.com, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
+        will@kernel.org, catalin.marinas@arm.com
+Subject: [PATCH 04/15] asm-generic/mshyperv: Introduce hv_recommend_using_aeoi()
+Date:   Thu, 27 Jul 2023 12:54:39 -0700
+Message-Id: <1690487690-2428-5-git-send-email-nunodasneves@linux.microsoft.com>
+X-Mailer: git-send-email 1.8.3.1
+In-Reply-To: <1690487690-2428-1-git-send-email-nunodasneves@linux.microsoft.com>
+References: <1690487690-2428-1-git-send-email-nunodasneves@linux.microsoft.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This function used to simply flush the whole tlb of all harts, be more
-subtile and try to only flush the range.
+Factor out logic for determining if we should set the auto eoi flag in SINT
+register.
 
-The problem is that we can only use PAGE_SIZE as stride since we don't know
-the size of the underlying mapping and then this function will be improved
-only if the size of the region to flush is < threshold * PAGE_SIZE.
-
-Signed-off-by: Alexandre Ghiti <alexghiti@rivosinc.com>
+Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
 ---
- arch/riscv/include/asm/tlbflush.h | 11 +++++-----
- arch/riscv/mm/tlbflush.c          | 35 +++++++++++++++++++++++--------
- 2 files changed, 32 insertions(+), 14 deletions(-)
+ drivers/hv/hv.c                | 12 +-----------
+ include/asm-generic/mshyperv.h | 13 +++++++++++++
+ 2 files changed, 14 insertions(+), 11 deletions(-)
 
-diff --git a/arch/riscv/include/asm/tlbflush.h b/arch/riscv/include/asm/tlbflush.h
-index f5c4fb0ae642..7426fdcd8ec5 100644
---- a/arch/riscv/include/asm/tlbflush.h
-+++ b/arch/riscv/include/asm/tlbflush.h
-@@ -37,6 +37,7 @@ void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
- void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr);
- void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
- 		     unsigned long end);
-+void flush_tlb_kernel_range(unsigned long start, unsigned long end);
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- #define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
- void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
-@@ -53,15 +54,15 @@ static inline void flush_tlb_range(struct vm_area_struct *vma,
- 	local_flush_tlb_all();
- }
+diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+index bffd15ce06f3..a897951634af 100644
+--- a/drivers/hv/hv.c
++++ b/drivers/hv/hv.c
+@@ -217,17 +217,7 @@ void hv_synic_enable_regs(unsigned int cpu)
  
--#define flush_tlb_mm(mm) flush_tlb_all()
--#define flush_tlb_mm_range(mm, start, end, page_size) flush_tlb_all()
--#endif /* !CONFIG_SMP || !CONFIG_MMU */
+ 	shared_sint.vector = vmbus_interrupt;
+ 	shared_sint.masked = false;
 -
- /* Flush a range of kernel pages */
- static inline void flush_tlb_kernel_range(unsigned long start,
- 	unsigned long end)
- {
--	flush_tlb_all();
-+	local_flush_tlb_all();
- }
+-	/*
+-	 * On architectures where Hyper-V doesn't support AEOI (e.g., ARM64),
+-	 * it doesn't provide a recommendation flag and AEOI must be disabled.
+-	 */
+-#ifdef HV_DEPRECATING_AEOI_RECOMMENDED
+-	shared_sint.auto_eoi =
+-			!(ms_hyperv.hints & HV_DEPRECATING_AEOI_RECOMMENDED);
+-#else
+-	shared_sint.auto_eoi = 0;
+-#endif
++	shared_sint.auto_eoi = hv_recommend_using_aeoi();
+ 	hv_set_register(HV_MSR_SINT0 + VMBUS_MESSAGE_SINT,
+ 				shared_sint.as_uint64);
  
-+#define flush_tlb_mm(mm) flush_tlb_all()
-+#define flush_tlb_mm_range(mm, start, end, page_size) flush_tlb_all()
-+#endif /* !CONFIG_SMP || !CONFIG_MMU */
-+
- #endif /* _ASM_RISCV_TLBFLUSH_H */
-diff --git a/arch/riscv/mm/tlbflush.c b/arch/riscv/mm/tlbflush.c
-index 8017d2130e27..96aeacb269d5 100644
---- a/arch/riscv/mm/tlbflush.c
-+++ b/arch/riscv/mm/tlbflush.c
-@@ -117,18 +117,27 @@ static void __flush_tlb_range(struct mm_struct *mm, unsigned long start,
- 			      unsigned long size, unsigned long stride)
- {
- 	struct flush_tlb_range_data ftd;
--	struct cpumask *cmask = mm_cpumask(mm);
--	unsigned int cpuid;
-+	struct cpumask *cmask, full_cmask;
- 	bool broadcast;
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index 447e7ebe67ee..90fcbb95f1ee 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -77,6 +77,19 @@ extern u64 hv_do_hypercall(u64 control, void *inputaddr, void *outputaddr);
+ extern u64 hv_do_fast_hypercall8(u16 control, u64 input8);
+ extern bool hv_isolation_type_snp(void);
  
--	if (cpumask_empty(cmask))
--		return;
-+	if (mm) {
-+		unsigned int cpuid;
-+
-+		cmask = mm_cpumask(mm);
-+		if (cpumask_empty(cmask))
-+			return;
-+
-+		cpuid = get_cpu();
-+		/* check if the tlbflush needs to be sent to other CPUs */
-+		broadcast = cpumask_any_but(cmask, cpuid) < nr_cpu_ids;
-+	} else {
-+		cpumask_setall(&full_cmask);
-+		cmask = &full_cmask;
-+		broadcast = true;
-+	}
- 
--	cpuid = get_cpu();
--	/* check if the tlbflush needs to be sent to other CPUs */
--	broadcast = cpumask_any_but(cmask, cpuid) < nr_cpu_ids;
- 	if (static_branch_unlikely(&use_asid_allocator)) {
--		unsigned long asid = atomic_long_read(&mm->context.id) & asid_mask;
-+		unsigned long asid = mm ? atomic_long_read(&mm->context.id) & asid_mask : 0;
- 
- 		if (broadcast) {
- 			if (riscv_use_ipi_for_rfence()) {
-@@ -162,7 +171,8 @@ static void __flush_tlb_range(struct mm_struct *mm, unsigned long start,
- 		}
- 	}
- 
--	put_cpu();
-+	if (mm)
-+		put_cpu();
- }
- 
- void flush_tlb_mm(struct mm_struct *mm)
-@@ -194,6 +204,13 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
- 	__flush_tlb_range(vma->vm_mm,
- 			  start, end - start, 1 << stride_shift);
- }
-+
-+void flush_tlb_kernel_range(unsigned long start,
-+			    unsigned long end)
++/*
++ * On architectures where Hyper-V doesn't support AEOI (e.g., ARM64),
++ * it doesn't provide a recommendation flag and AEOI must be disabled.
++ */
++static inline bool hv_recommend_using_aeoi(void)
 +{
-+	__flush_tlb_range(NULL, start, end, PAGE_SIZE);
++#ifdef HV_DEPRECATING_AEOI_RECOMMENDED
++	return !(ms_hyperv.hints & HV_DEPRECATING_AEOI_RECOMMENDED);
++#else
++	return false;
++#endif
 +}
 +
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
- 			unsigned long end)
+ /* Helper functions that provide a consistent pattern for checking Hyper-V hypercall status. */
+ static inline int hv_result(u64 status)
+ {
 -- 
-2.39.2
+2.25.1
 
