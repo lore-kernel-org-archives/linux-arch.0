@@ -2,224 +2,111 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1D192C04A94
-	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 17:56:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 21971C00528
+	for <linux-arch@archiver.kernel.org>; Thu, 27 Jul 2023 18:56:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230446AbjG0R4D (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 27 Jul 2023 13:56:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42786 "EHLO
+        id S231251AbjG0S4F (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 27 Jul 2023 14:56:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42112 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229481AbjG0Rz5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 13:55:57 -0400
-X-Greylist: delayed 603 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Thu, 27 Jul 2023 10:55:56 PDT
-Received: from mout-p-103.mailbox.org (mout-p-103.mailbox.org [IPv6:2001:67c:2050:0:465::103])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AF02A2685
-        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2023 10:55:56 -0700 (PDT)
-Received: from smtp102.mailbox.org (smtp102.mailbox.org [IPv6:2001:67c:2050:b231:465::102])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange ECDHE (P-384) server-signature RSA-PSS (4096 bits) server-digest SHA256)
-        (No client certificate requested)
-        by mout-p-103.mailbox.org (Postfix) with ESMTPS id 4RBdM30DJxz9sZf;
-        Thu, 27 Jul 2023 19:39:59 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=cyphar.com; s=MBO0001;
-        t=1690479599;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=GQKpQzTtuTgmV4ZqIE3KcLbmLNqhQUqywqcDE85QggY=;
-        b=LebiUGvnmtqBMdP9UCAXiJ1Pl3CSQBkvviLbrj5UXcmxN5/WOT3jGv4M6e/OMZFj1IjTTh
-        q92VoAmt1GCyjvN9SWRIRmkkq0G+4f6DJyWrJJ7Ci5EL+qPRpEuF8iCJgNq2ZkvB4YIsg9
-        5z5DAqtXdnKbOtKaN6f4KCLgSwczrTdk/5G6CdujS8OwaweZAlRUCP2subTKn8iMslIiKN
-        NFtlIHVzPl+Wvr4O77YPZUlEefc00Y27y+Il6NsHRe4p4cev83K/+LGgsj27HdU32FLMuM
-        RtguNMSI0mT10u6+If44Y+VD0IboQGWEKQZ9Ivg9QxsTS7dtAOJEy7ZntsHvWw==
-Date:   Fri, 28 Jul 2023 03:39:30 +1000
-From:   Aleksa Sarai <cyphar@cyphar.com>
-To:     Alexey Gladkov <legion@kernel.org>
-Cc:     LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-        linux-api@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-        viro@zeniv.linux.org.uk, James.Bottomley@hansenpartnership.com,
-        acme@kernel.org, alexander.shishkin@linux.intel.com,
-        axboe@kernel.dk, benh@kernel.crashing.org, borntraeger@de.ibm.com,
-        bp@alien8.de, catalin.marinas@arm.com, christian@brauner.io,
-        dalias@libc.org, davem@davemloft.net, deepa.kernel@gmail.com,
-        deller@gmx.de, dhowells@redhat.com, fenghua.yu@intel.com,
-        fweimer@redhat.com, geert@linux-m68k.org, glebfm@altlinux.org,
-        gor@linux.ibm.com, hare@suse.com, hpa@zytor.com,
-        ink@jurassic.park.msu.ru, jhogan@kernel.org, kim.phillips@arm.com,
-        ldv@altlinux.org, linux-alpha@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
-        linux-parisc@vger.kernel.org, linux-s390@vger.kernel.org,
-        linux-sh@vger.kernel.org, linux@armlinux.org.uk,
-        linuxppc-dev@lists.ozlabs.org, luto@kernel.org, mattst88@gmail.com,
-        mingo@redhat.com, monstr@monstr.eu, mpe@ellerman.id.au,
-        namhyung@kernel.org, paulus@samba.org, peterz@infradead.org,
-        ralf@linux-mips.org, sparclinux@vger.kernel.org, stefan@agner.ch,
-        tglx@linutronix.de, tony.luck@intel.com, tycho@tycho.ws,
-        will@kernel.org, x86@kernel.org, ysato@users.sourceforge.jp,
-        Palmer Dabbelt <palmer@sifive.com>
-Subject: Re: [PATCH v4 2/5] fs: Add fchmodat2()
-Message-ID: <20230727.173441-loving.habit.lame.acrobat-V6VTPe8G4FRI@cyphar.com>
-References: <cover.1689074739.git.legion@kernel.org>
- <cover.1689092120.git.legion@kernel.org>
- <f2a846ef495943c5d101011eebcf01179d0c7b61.1689092120.git.legion@kernel.org>
- <njnhwhgmsk64e6vf3ur7fifmxlipmzez3r5g7ejozsrkbwvq7w@tu7w3ieystcq>
- <ZMEjlDNJkFpYERr1@example.org>
- <20230727.041348-imposing.uptake.velvet.nylon-712tDwzCAbCCoSGx@cyphar.com>
+        with ESMTP id S231129AbjG0S4E (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jul 2023 14:56:04 -0400
+Received: from mail-wm1-x329.google.com (mail-wm1-x329.google.com [IPv6:2a00:1450:4864:20::329])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F31E9E47
+        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2023 11:56:02 -0700 (PDT)
+Received: by mail-wm1-x329.google.com with SMTP id 5b1f17b1804b1-3fbc5d5742bso14452365e9.2
+        for <linux-arch@vger.kernel.org>; Thu, 27 Jul 2023 11:56:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rivosinc-com.20221208.gappssmtp.com; s=20221208; t=1690484161; x=1691088961;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=5FhI2SLAGzFPgM0XDlLYh3qjUrSBQmA+KXnizzmLufc=;
+        b=UEbP1zqhCFEiTaUL5idLu7vKPg1UFl76YwNFzxk+gTjDjuwDufCyOxWIareE7LpI7M
+         hQcy4WocH73NHpscnoUE2uao5LPwfT3On28WKOhhuLLnmQgK8lo4dVzqOTGjTi33ALg6
+         c0/7py79DrKXQQpO35r81d4LEai/ijN+47oqcZVg/oTep4drF+adrfWVrIMhYBBmOwwW
+         qxvwQ4vQ6q+8AyNVn3Mh2geRJmizY2Xeum0eYyg0CTL4wZVWTEVTg/SJ7yek42Ifpb1Q
+         vGQsJgw6HlMmZSxtyxv3qNun490/7QiQpcxjaTP1yWWjQtpMhCI8ZcM2CMV4nQfYfzYr
+         FQ3g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1690484161; x=1691088961;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=5FhI2SLAGzFPgM0XDlLYh3qjUrSBQmA+KXnizzmLufc=;
+        b=M95xrzgO2nDG2phLRqCZBn2z+4hiGX4ofnkjIxqpBowUXS2aXfQTTFEaIpb2oudp02
+         0hMoUW0NZtqCuRhzLfbd3pPTQc0lOoTw0CB2ve5hJpoPYCOTk5JPMz3Vv2N6l8VKAmiF
+         iWROS4TcD/gl3vBKIlk+amiwEROX7I/CGXdPRZ+VhaR+AN05UgkBuCn1eiTe/Yp264K9
+         kGay6a46j6aqMcayr2UifQVG6OKsjoqHOfla96Vfm0UDqTRu7epm1mQmbgt19qj9EGf1
+         8wv7ObDC5Pn2vCl6a+rw/Ss9IQjhIxfbVePTMp8WjKAB4BICYB67y6F8Hgdqbibl4xh6
+         CYNQ==
+X-Gm-Message-State: ABy/qLYACkQukrrjyhAHWD9oAy/40Zkmp3q+8qZGf8TPEdNrMSWM5weU
+        8YK0OGzSQBXBkxofHzZHDJK/Yw==
+X-Google-Smtp-Source: APBJJlEReV5Op3Esz4H3z1WgrD5RqflHv8MjR+KBErCwj/H8fcva/UlqbpkT+CFwmLCi+oxSnh262A==
+X-Received: by 2002:a05:6000:11cc:b0:317:7af4:5297 with SMTP id i12-20020a05600011cc00b003177af45297mr4780wrx.62.1690484161377;
+        Thu, 27 Jul 2023 11:56:01 -0700 (PDT)
+Received: from alex-rivos.home (amontpellier-656-1-456-62.w92-145.abo.wanadoo.fr. [92.145.124.62])
+        by smtp.gmail.com with ESMTPSA id u13-20020a5d514d000000b003172510d19dsm2754302wrt.73.2023.07.27.11.56.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 27 Jul 2023 11:56:00 -0700 (PDT)
+From:   Alexandre Ghiti <alexghiti@rivosinc.com>
+To:     Will Deacon <will@kernel.org>,
+        "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Nick Piggin <npiggin@gmail.com>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Mayuresh Chitale <mchitale@ventanamicro.com>,
+        Vincent Chen <vincent.chen@sifive.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, linux-riscv@lists.infradead.org,
+        linux-kernel@vger.kernel.org
+Cc:     Alexandre Ghiti <alexghiti@rivosinc.com>
+Subject: [PATCH v2 0/4] riscv: tlb flush improvements
+Date:   Thu, 27 Jul 2023 20:55:49 +0200
+Message-Id: <20230727185553.980262-1-alexghiti@rivosinc.com>
+X-Mailer: git-send-email 2.39.2
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="e7zcgctqub3jhgoj"
-Content-Disposition: inline
-In-Reply-To: <20230727.041348-imposing.uptake.velvet.nylon-712tDwzCAbCCoSGx@cyphar.com>
-X-Rspamd-Queue-Id: 4RBdM30DJxz9sZf
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+This series optimizes the tlb flushes on riscv which used to simply
+flush the whole tlb whatever the size of the range to flush or the size
+of the stride.
 
---e7zcgctqub3jhgoj
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Patch 3 introduces a threshold that is microarchitecture specific and
+will very likely be modified by vendors, not sure though which mechanism
+we'll use to do that (dt? alternatives? vendor initialization code?).
 
-On 2023-07-28, Aleksa Sarai <cyphar@cyphar.com> wrote:
-> On 2023-07-26, Alexey Gladkov <legion@kernel.org> wrote:
-> > On Wed, Jul 26, 2023 at 02:36:25AM +1000, Aleksa Sarai wrote:
-> > > On 2023-07-11, Alexey Gladkov <legion@kernel.org> wrote:
-> > > > On the userspace side fchmodat(3) is implemented as a wrapper
-> > > > function which implements the POSIX-specified interface. This
-> > > > interface differs from the underlying kernel system call, which doe=
-s not
-> > > > have a flags argument. Most implementations require procfs [1][2].
-> > > >=20
-> > > > There doesn't appear to be a good userspace workaround for this iss=
-ue
-> > > > but the implementation in the kernel is pretty straight-forward.
-> > > >=20
-> > > > The new fchmodat2() syscall allows to pass the AT_SYMLINK_NOFOLLOW =
-flag,
-> > > > unlike existing fchmodat.
-> > > >=20
-> > > > [1] https://sourceware.org/git/?p=3Dglibc.git;a=3Dblob;f=3Dsysdeps/=
-unix/sysv/linux/fchmodat.c;h=3D17eca54051ee28ba1ec3f9aed170a62630959143;hb=
-=3Da492b1e5ef7ab50c6fdd4e4e9879ea5569ab0a6c#l35
-> > > > [2] https://git.musl-libc.org/cgit/musl/tree/src/stat/fchmodat.c?id=
-=3D718f363bc2067b6487900eddc9180c84e7739f80#n28
-> > > >=20
-> > > > Co-developed-by: Palmer Dabbelt <palmer@sifive.com>
-> > > > Signed-off-by: Palmer Dabbelt <palmer@sifive.com>
-> > > > Signed-off-by: Alexey Gladkov <legion@kernel.org>
-> > > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > > > ---
-> > > >  fs/open.c                | 18 ++++++++++++++----
-> > > >  include/linux/syscalls.h |  2 ++
-> > > >  2 files changed, 16 insertions(+), 4 deletions(-)
-> > > >=20
-> > > > diff --git a/fs/open.c b/fs/open.c
-> > > > index 0c55c8e7f837..39a7939f0d00 100644
-> > > > --- a/fs/open.c
-> > > > +++ b/fs/open.c
-> > > > @@ -671,11 +671,11 @@ SYSCALL_DEFINE2(fchmod, unsigned int, fd, umo=
-de_t, mode)
-> > > >  	return err;
-> > > >  }
-> > > > =20
-> > > > -static int do_fchmodat(int dfd, const char __user *filename, umode=
-_t mode)
-> > > > +static int do_fchmodat(int dfd, const char __user *filename, umode=
-_t mode, int lookup_flags)
-> > >=20
-> > > I think it'd be much neater to do the conversion of AT_ flags here and
-> > > pass 0 as a flags argument for all of the wrappers (this is how most =
-of
-> > > the other xyz(), fxyz(), fxyzat() syscall wrappers are done IIRC).
-> >=20
-> > I just addressed the Al Viro's suggestion.
-> >=20
-> > https://lore.kernel.org/lkml/20190717014802.GS17978@ZenIV.linux.org.uk/
->=20
-> I think Al misspoke, because he also said "pass it 0 as an extra
-> argument", but you actually have to pass LOOKUP_FOLLOW from the
-> wrappers. If you look at how faccessat2 and faccessat are implemented,
-> it follows the behaviour I described.
->=20
-> > > >  {
-> > > >  	struct path path;
-> > > >  	int error;
-> > > > -	unsigned int lookup_flags =3D LOOKUP_FOLLOW;
-> > > > +
-> > > >  retry:
-> > > >  	error =3D user_path_at(dfd, filename, lookup_flags, &path);
-> > > >  	if (!error) {
-> > > > @@ -689,15 +689,25 @@ static int do_fchmodat(int dfd, const char __=
-user *filename, umode_t mode)
-> > > >  	return error;
-> > > >  }
-> > > > =20
-> > > > +SYSCALL_DEFINE4(fchmodat2, int, dfd, const char __user *, filename,
-> > > > +		umode_t, mode, int, flags)
-> > > > +{
-> > > > +	if (unlikely(flags & ~AT_SYMLINK_NOFOLLOW))
-> > > > +		return -EINVAL;
-> > >=20
-> > > We almost certainly want to support AT_EMPTY_PATH at the same time.
-> > > Otherwise userspace will still need to go through /proc when trying to
-> > > chmod a file handle they have.
-> >=20
-> > I'm not sure I understand. Can you explain what you mean?
->=20
-> You should add support for AT_EMPTY_PATH (LOOKUP_EMPTY) as well as
-> AT_SYMLINK_NOFOLLOW. It would only require something like:
->=20
-> 	unsigned int lookup_flags =3D LOOKUP_FOLLOW;
->=20
-> 	if (flags & ~(AT_EMPTY_PATH | AT_SYMLINK_NOFOLLOW))
-> 		return -EINVAL;
->=20
-> 	if (flags & AT_EMPTY_PATH)
-> 		lookup_flags |=3D LOOKUP_EMPTY;
-> 	if (flags & AT_SYMLINK_NOFOLLOW)
-> 		lookup_flags &=3D ~LOOKUP_FOLLOW;
->=20
-> 	/* ... */
->=20
-> This would be effectively equivalent to fchmod(fd, mode). (I was wrong
-> when I said this wasn't already possible -- I forgot about fchmod(2).)
+Next steps would be to implement:
+- svinval extension as Mayuresh did here [1]
+- BATCHED_UNMAP_TLB_FLUSH (I'll wait for arm64 patchset to land)
+- MMU_GATHER_RCU_TABLE_FREE
+- MMU_GATHER_MERGE_VMAS
 
-=2E.. with the exception (as Christian mentioned) of O_PATH descriptors.
-However, there are two counter-points to this:
+Any other idea welcome.
 
- * fchownat(AT_EMPTY_PATH) exists but fchown() doesn't work on O_PATH
-   descriptors *by design* (according to open(2)).
- * chmod(/proc/self/fd/$n) works on O_PATH descriptors, meaning this
-   behaviour is already allowed and all that AT_EMPTY_PATH would do is
-   allow programs to avoid depending on procfs for this.
+[1] https://lore.kernel.org/linux-riscv/20230623123849.1425805-1-mchitale@ventanamicro.com/
 
-FWIW, I agree with Christian that these behaviours are not ideal (and
-I'm working on a series that might allow for these things to be properly
-blocked in the future) but there's also the consistency argument -- I
-don't think fchownat() is much safer to allow in this way than
-fchmodat() and (again) this behaviour is already possible through
-procfs.
+Changes in v2:
+- Make static tlb_flush_all_threshold, we'll figure out later how to
+  override this value on a vendor basis, as suggested by Conor and Palmer
+- Fix nommu build, as reported by Conor
 
-Ultimately, we can always add AT_EMPTY_PATH later. It just seemed like
-an obvious omission to me that would be easy to resolve.
+Alexandre Ghiti (4):
+  riscv: Improve flush_tlb()
+  riscv: Improve flush_tlb_range() for hugetlb pages
+  riscv: Make __flush_tlb_range() loop over pte instead of flushing the
+    whole tlb
+  riscv: Improve flush_tlb_kernel_range()
 
---=20
-Aleksa Sarai
-Senior Software Engineer (Containers)
-SUSE Linux GmbH
-<https://www.cyphar.com/>
+ arch/riscv/include/asm/tlb.h      |  8 ++-
+ arch/riscv/include/asm/tlbflush.h | 12 ++--
+ arch/riscv/mm/tlbflush.c          | 93 +++++++++++++++++++++++++++----
+ 3 files changed, 96 insertions(+), 17 deletions(-)
 
---e7zcgctqub3jhgoj
-Content-Type: application/pgp-signature; name="signature.asc"
+-- 
+2.39.2
 
------BEGIN PGP SIGNATURE-----
-
-iHQEABYKAB0WIQS2TklVsp+j1GPyqQYol/rSt+lEbwUCZMKr0QAKCRAol/rSt+lE
-bxOTAPjqvyH1UP+6mwe27KnhSozfZ2ESIjoNHwsnKv4yQR4pAP9MxrQ+haWjNEfZ
-ZZDcWZoKyujVbOOH33jx88GCIDrFDQ==
-=2N8j
------END PGP SIGNATURE-----
-
---e7zcgctqub3jhgoj--
