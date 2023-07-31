@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E5302C001DC
-	for <linux-arch@archiver.kernel.org>; Mon, 31 Jul 2023 13:57:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3FB11C001DC
+	for <linux-arch@archiver.kernel.org>; Mon, 31 Jul 2023 13:57:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232900AbjGaN5Y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 31 Jul 2023 09:57:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49454 "EHLO
+        id S233092AbjGaN5n (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 31 Jul 2023 09:57:43 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49382 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231508AbjGaN4w (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jul 2023 09:56:52 -0400
+        with ESMTP id S230132AbjGaN5R (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jul 2023 09:57:17 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7539D3AB4;
-        Mon, 31 Jul 2023 06:53:37 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9BAC44214;
+        Mon, 31 Jul 2023 06:53:49 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 2644C61154;
-        Mon, 31 Jul 2023 13:53:37 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CAEDAC433CA;
-        Mon, 31 Jul 2023 13:53:30 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 7A1AA61168;
+        Mon, 31 Jul 2023 13:53:49 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2DD39C43397;
+        Mon, 31 Jul 2023 13:53:43 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690811616;
-        bh=Go+3eKanODPQVKnV1QnMIrC75/lXwO2PkPnkMfOn2oA=;
+        s=k20201202; t=1690811628;
+        bh=JCh6BoCIOxePO8zZIr/FO/CERnc7ZRYHEz9dpM/Qpg4=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=tl403dLJF2hiL4lgfn1M27YQC6t0QzZ26RnJZA3dqdpknBMDGeNe0afBztul4JuVn
-         xlopjw8Bomjs0svJ9yBOPrJL2B4+025U4LSRKcvbWB3RSt8HiOcplPy3if2ex0mH0E
-         a+QVYDlphFzL7mzCQb6XNi5UTNk9tECa8OjdoaB1MnzTCR8uQ5sc+nRxBN6EAEt0EG
-         dq96F0cZKlEJgRnQwNS0nC5rMp3zAnMEhMKNoq8OjeIP6BAr04rkVD62Y4VCWCEfeS
-         58/VGJiNeNKddzD8+cqKbqsbzyPN+0eh4LRqubPZ4Tv3g1TVi0jLixt2Qoic8bTYkJ
-         zoMhhmuu66A7Q==
+        b=lKNxW4L2tfcDqraAr6F+eZmSso+52kd8zPLGqPLF7s7q7099ebmcfKMNRHP91iV/G
+         xueonqLxvZa/pD9BkvH/MivJ5PcOeyUqPkI/ksqjIffYeV8WuSn4farpdW5PSSYU7f
+         p5zADzGaQjJnXkFuAxqGeFcuSAql7LhS5Zt+K/NpxLBR0Ke8YJ5xmEPH7Hc3GTwIm0
+         58EDdrSVQ6Z8ZibxBrl++4FeXu4Kdpf+z9URn3CvQsQDuGYhIdp1o8llmkLEU9l1Sr
+         A6/gK15baetyOYG19ubBXBVfubyeInnRba5KFhaWsyho+0qmdRgrwORxtMJqE8Fwc1
+         sNDOVQgyCwi8Q==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 31 Jul 2023 14:43:36 +0100
-Subject: [PATCH v3 27/36] kselftest/arm64: Add GCS as a detected feature in
- the signal tests
+Date:   Mon, 31 Jul 2023 14:43:38 +0100
+Subject: [PATCH v3 29/36] kselftest/arm64: Allow signals tests to specify
+ an expected si_code
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230731-arm64-gcs-v3-27-cddf9f980d98@kernel.org>
+Message-Id: <20230731-arm64-gcs-v3-29-cddf9f980d98@kernel.org>
 References: <20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org>
 In-Reply-To: <20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,71 +68,87 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-099c9
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1828; i=broonie@kernel.org;
- h=from:subject:message-id; bh=Go+3eKanODPQVKnV1QnMIrC75/lXwO2PkPnkMfOn2oA=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkx7wpe4d+jUhnR1Drf+zgBDN7lxol6j07oJ2Scvw8
- hYvLjZ6JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZMe8KQAKCRAk1otyXVSH0JD6B/
- 9EjugsKK1CPBzK9oHH4oicVJXLFEs8Pn02QHURdLgCmbAD6xaJkT+dMEOtWyZkNPkWK0mWvYT6Np+o
- 3Y/5uHLx5ub41CEvqg20Ocu5QtHnv32Lpk0/xv4fnXroxcY+kYM8q8a+jPjDsAA+x4M/D7M5H+dK0v
- Yva4qD/Bk/SRPSN6Y58xyvl08S7/EfwSC/+2RxyYtZpegun8pJ04aMOVpR96hotYt+v/EGQ4zKEXI+
- QyZxAwRtdbD8tsCnL+yanDCkGTMZ18iXFpKlV2/Mv5neQ70JnhpsLMtIIzKZscZH+9QoJvQ2B0QLLB
- dOpJjH3haZv06cZ/k3cG/WIZVqumia
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2627; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=JCh6BoCIOxePO8zZIr/FO/CERnc7ZRYHEz9dpM/Qpg4=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBkx7wrJ2MMKCplHFo4w2qqAyy67RZ+wtID1tflTa1/
+ uaTYBWWJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZMe8KwAKCRAk1otyXVSH0IuOB/
+ oD/ulWvA32HthWh0oU1DvnYa32FuSCyjtSBAepaH6LfBjFMSA1fvx6PxD32vTTjAp5nVpTQiRrbAE1
+ 3X4LRViyLC1kgFSWgNvcY79EmKBJJZzxdbySSZZCrcakqc3KkAaEOoJQ8VMvN3e+69VXx+r7rxBBBt
+ IJZnORrlLDhDxb06Ae8LHHOf5rhQRZfQB90Iomm8X3gsOXZTqYtHDbZkaUhIhLjIrXtgsOH1pyWQIN
+ sTgLU2qRNBfwsCSPNr3gV8eczbcQD7AjJJIz/hQVu+OSmJkT4IemNRTzqg+lTtbytwoEFhoIz3ukLY
+ KZnYL18EEQc9x2gjy7OmhnjjF+Esr2
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In preparation for testing GCS related signal handling add it as a feature
-we check for in the signal handling support code.
+Currently we ignore si_code unless the expected signal is a SIGSEGV, in
+which case we enforce it being SEGV_ACCERR. Allow test cases to specify
+exactly which si_code should be generated so we can validate this, and
+test for other segfault codes.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/signal/test_signals.h       | 2 ++
- tools/testing/selftests/arm64/signal/test_signals_utils.c | 3 +++
- 2 files changed, 5 insertions(+)
+ .../testing/selftests/arm64/signal/test_signals.h  |  4 +++
+ .../selftests/arm64/signal/test_signals_utils.c    | 29 ++++++++++++++--------
+ 2 files changed, 23 insertions(+), 10 deletions(-)
 
 diff --git a/tools/testing/selftests/arm64/signal/test_signals.h b/tools/testing/selftests/arm64/signal/test_signals.h
-index 1e6273d81575..7ada43688c02 100644
+index 7ada43688c02..ee75a2c25ce7 100644
 --- a/tools/testing/selftests/arm64/signal/test_signals.h
 +++ b/tools/testing/selftests/arm64/signal/test_signals.h
-@@ -35,6 +35,7 @@ enum {
- 	FSME_BIT,
- 	FSME_FA64_BIT,
- 	FSME2_BIT,
-+	FGCS_BIT,
- 	FMAX_END
- };
- 
-@@ -43,6 +44,7 @@ enum {
- #define FEAT_SME		(1UL << FSME_BIT)
- #define FEAT_SME_FA64		(1UL << FSME_FA64_BIT)
- #define FEAT_SME2		(1UL << FSME2_BIT)
-+#define FEAT_GCS		(1UL << FGCS_BIT)
- 
- /*
-  * A descriptor used to describe and configure a test case.
+@@ -71,6 +71,10 @@ struct tdescr {
+ 	 * Zero when no signal is expected on success
+ 	 */
+ 	int			sig_ok;
++	/*
++	 * expected si_code for sig_ok, or 0 to not check
++	 */
++	int			sig_ok_code;
+ 	/* signum expected on unsupported CPU features. */
+ 	int			sig_unsupp;
+ 	/* a timeout in second for test completion */
 diff --git a/tools/testing/selftests/arm64/signal/test_signals_utils.c b/tools/testing/selftests/arm64/signal/test_signals_utils.c
-index 0dc948db3a4a..89ef95c1af0e 100644
+index 89ef95c1af0e..63deca32b0df 100644
 --- a/tools/testing/selftests/arm64/signal/test_signals_utils.c
 +++ b/tools/testing/selftests/arm64/signal/test_signals_utils.c
-@@ -30,6 +30,7 @@ static char const *const feats_names[FMAX_END] = {
- 	" SME ",
- 	" FA64 ",
- 	" SME2 ",
-+	" GCS ",
- };
- 
- #define MAX_FEATS_SZ	128
-@@ -329,6 +330,8 @@ int test_init(struct tdescr *td)
- 			td->feats_supported |= FEAT_SME_FA64;
- 		if (getauxval(AT_HWCAP2) & HWCAP2_SME2)
- 			td->feats_supported |= FEAT_SME2;
-+		if (getauxval(AT_HWCAP2) & HWCAP2_GCS)
-+			td->feats_supported |= FEAT_GCS;
- 		if (feats_ok(td)) {
- 			if (td->feats_required & td->feats_supported)
- 				fprintf(stderr,
+@@ -143,16 +143,25 @@ static bool handle_signal_ok(struct tdescr *td,
+ 			"current->token ZEROED...test is probably broken!\n");
+ 		abort();
+ 	}
+-	/*
+-	 * Trying to narrow down the SEGV to the ones generated by Kernel itself
+-	 * via arm64_notify_segfault(). This is a best-effort check anyway, and
+-	 * the si_code check may need to change if this aspect of the kernel
+-	 * ABI changes.
+-	 */
+-	if (td->sig_ok == SIGSEGV && si->si_code != SEGV_ACCERR) {
+-		fprintf(stdout,
+-			"si_code != SEGV_ACCERR...test is probably broken!\n");
+-		abort();
++	if (td->sig_ok_code) {
++		if (si->si_code != td->sig_ok_code) {
++			fprintf(stdout, "si_code is %d not %d\n",
++				si->si_code, td->sig_ok_code);
++			abort();
++		}
++	} else {
++		/*
++		 * Trying to narrow down the SEGV to the ones
++		 * generated by Kernel itself via
++		 * arm64_notify_segfault(). This is a best-effort
++		 * check anyway, and the si_code check may need to
++		 * change if this aspect of the kernel ABI changes.
++		 */
++		if (td->sig_ok == SIGSEGV && si->si_code != SEGV_ACCERR) {
++			fprintf(stdout,
++				"si_code != SEGV_ACCERR...test is probably broken!\n");
++			abort();
++		}
+ 	}
+ 	td->pass = 1;
+ 	/*
 
 -- 
 2.30.2
