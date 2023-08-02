@@ -2,36 +2,36 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A380C04E69
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Aug 2023 16:52:45 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2813DC04E69
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Aug 2023 16:53:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233055AbjHBQwo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 2 Aug 2023 12:52:44 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50172 "EHLO
+        id S229689AbjHBQxO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 2 Aug 2023 12:53:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49478 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233051AbjHBQwQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Aug 2023 12:52:16 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B81E33C34;
-        Wed,  2 Aug 2023 09:51:39 -0700 (PDT)
+        with ESMTP id S233883AbjHBQwy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Aug 2023 12:52:54 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7D6E830DD;
+        Wed,  2 Aug 2023 09:52:16 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 5BD1C61A3E;
-        Wed,  2 Aug 2023 16:51:27 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 13B42C433C8;
-        Wed,  2 Aug 2023 16:51:11 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 0229D615C2;
+        Wed,  2 Aug 2023 16:52:16 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5C253C433C8;
+        Wed,  2 Aug 2023 16:51:59 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1690995086;
-        bh=1/GsGHwmBv8uH+dMkqUv9IEb/BPlKAA9d7hlqgNtS/w=;
+        s=k20201202; t=1690995135;
+        bh=hP8Bz7RWW4+moS/X2zthnCXyEaOfAgK0ZYvCm4g+kP4=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=WjEKhwxTykGowm9ZIjdHGLeI/AhTS0fwaekb++vJl1EBhZj0uTbvwoTA6Nva8ivX/
-         VavcZY4KiNAy1NF8+diCDFt3/LnkTYMsCc5vgegL3MI9LGArnb96JGQtIZm9D6hCHV
-         iy1r+Fg6640k5qONYfPBeFyx25cFaoF799+WquNgLGDLeus6Vzl0wEgr35NwYJzQTl
-         xWLjI9wCXkHllFQXic4zh6NB3qBQ746warrABJTL9JMCj64UsNKKC8uJX2otK6yblb
-         JxNUFElHUiNTPpBqwJCePYvh83fH5f/4baqwXva0qpsFD/AJy3kqRerGvW5Brm0E2Y
-         M3uIfGIt6q+QA==
+        b=eJlajARTiQw0wmVH+8BmDyVwH/J6ZNHqhetqesuZrKodpf/s0TzQgKvDPVtSsU046
+         flSuT+qJyT9JBueeF390ynX7srNGmdjsZwCWsc02/FhDqCHVHTK2PwIFuTCNQRkZiw
+         0x9hXbKPu4Y4RRHsQATOFk4yd91Ucmb24v0LOiCbGwGaC5WFB/t4faWrvL5CxoO/6T
+         ohqw0moDbQn0NuDLMmX/2bisP9DszzXcl5ls31EakEUd5oROo6MhlXwrfI1vdlA9d1
+         xjNil637eLOAwM4Lw13tawI1IjccWixfpEh/zJNhxsXrVOadWm+EN/jt2Ebra34x9u
+         9WUkOsu5POSoQ==
 From:   guoren@kernel.org
 To:     paul.walmsley@sifive.com, anup@brainfault.org,
         peterz@infradead.org, mingo@redhat.com, will@kernel.org,
@@ -47,9 +47,9 @@ Cc:     linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
         virtualization@lists.linux-foundation.org,
         linux-csky@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>,
         Guo Ren <guoren@kernel.org>
-Subject: [PATCH V10 14/19] RISC-V: paravirt: pvqspinlock: Add xchg8 & cmpxchg_small support
-Date:   Wed,  2 Aug 2023 12:46:56 -0400
-Message-Id: <20230802164701.192791-15-guoren@kernel.org>
+Subject: [PATCH V10 17/19] RISC-V: paravirt: pvqspinlock: Add trace point for pv_kick/wait
+Date:   Wed,  2 Aug 2023 12:46:59 -0400
+Message-Id: <20230802164701.192791-18-guoren@kernel.org>
 X-Mailer: git-send-email 2.36.1
 In-Reply-To: <20230802164701.192791-1-guoren@kernel.org>
 References: <20230802164701.192791-1-guoren@kernel.org>
@@ -61,261 +61,145 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Guo Ren <guoren@linux.alibaba.com>
 
-The pvqspinlock needs additional sub-word atomic operations. Here
-is the list:
- - xchg8 (RCsc)
- - cmpxchg8/16_relaxed
- - cmpxchg8/16_release (Rcpc)
- - cmpxchg8_acquire (RCpc)
- - cmpxchg8 (RCsc)
+Add trace point for pv_kick/wait, here is the output:
 
-Although paravirt qspinlock doesn't have the native_qspinlock
-fairness, giving a strong forward progress guarantee to these
-atomic semantics could prevent unnecessary tries, which would
-cause cache line bouncing.
+ entries-in-buffer/entries-written: 33927/33927   #P:12
+
+                                _-----=> irqs-off/BH-disabled
+                               / _----=> need-resched
+                              | / _---=> hardirq/softirq
+                              || / _--=> preempt-depth
+                              ||| / _-=> migrate-disable
+                              |||| /     delay
+           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
+              | |         |   |||||     |         |
+             sh-100     [001] d..2.    28.312294: pv_wait: cpu 1 out of wfi
+         <idle>-0       [000] d.h4.    28.322030: pv_kick: cpu 0 kick target cpu 1
+             sh-100     [001] d..2.    30.982631: pv_wait: cpu 1 out of wfi
+         <idle>-0       [000] d.h4.    30.993289: pv_kick: cpu 0 kick target cpu 1
+             sh-100     [002] d..2.    44.987573: pv_wait: cpu 2 out of wfi
+         <idle>-0       [000] d.h4.    44.989000: pv_kick: cpu 0 kick target cpu 2
+         <idle>-0       [003] d.s3.    51.593978: pv_kick: cpu 3 kick target cpu 4
+      rcu_sched-15      [004] d..2.    51.595192: pv_wait: cpu 4 out of wfi
+lock_torture_wr-115     [004] ...2.    52.656482: pv_kick: cpu 4 kick target cpu 2
+lock_torture_wr-113     [002] d..2.    52.659146: pv_wait: cpu 2 out of wfi
+lock_torture_wr-114     [008] d..2.    52.659507: pv_wait: cpu 8 out of wfi
+lock_torture_wr-114     [008] d..2.    52.663503: pv_wait: cpu 8 out of wfi
+lock_torture_wr-113     [002] ...2.    52.666128: pv_kick: cpu 2 kick target cpu 8
+lock_torture_wr-114     [008] d..2.    52.667261: pv_wait: cpu 8 out of wfi
+lock_torture_wr-114     [009] .n.2.    53.141515: pv_kick: cpu 9 kick target cpu 11
+lock_torture_wr-113     [002] d..2.    53.143339: pv_wait: cpu 2 out of wfi
+lock_torture_wr-116     [007] d..2.    53.143412: pv_wait: cpu 7 out of wfi
+lock_torture_wr-118     [000] d..2.    53.143457: pv_wait: cpu 0 out of wfi
+lock_torture_wr-115     [008] d..2.    53.143481: pv_wait: cpu 8 out of wfi
+lock_torture_wr-117     [011] d..2.    53.143522: pv_wait: cpu 11 out of wfi
+lock_torture_wr-117     [011] ...2.    53.143987: pv_kick: cpu 11 kick target cpu 8
+lock_torture_wr-115     [008] ...2.    53.144269: pv_kick: cpu 8 kick target cpu 7
 
 Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
 Signed-off-by: Guo Ren <guoren@kernel.org>
 ---
- arch/riscv/include/asm/cmpxchg.h | 177 +++++++++++++++++++++++++++++++
- 1 file changed, 177 insertions(+)
+ arch/riscv/kernel/paravirt.c                  |  8 +++
+ .../kernel/trace_events_filter_paravirt.h     | 60 +++++++++++++++++++
+ 2 files changed, 68 insertions(+)
+ create mode 100644 arch/riscv/kernel/trace_events_filter_paravirt.h
 
-diff --git a/arch/riscv/include/asm/cmpxchg.h b/arch/riscv/include/asm/cmpxchg.h
-index 3ab37215ed86..2fd797c04e7a 100644
---- a/arch/riscv/include/asm/cmpxchg.h
-+++ b/arch/riscv/include/asm/cmpxchg.h
-@@ -103,12 +103,37 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
- 					    _x_, sizeof(*(ptr)));	\
- })
+diff --git a/arch/riscv/kernel/paravirt.c b/arch/riscv/kernel/paravirt.c
+index 564d64f11e4f..cc80e968ab13 100644
+--- a/arch/riscv/kernel/paravirt.c
++++ b/arch/riscv/kernel/paravirt.c
+@@ -134,10 +134,16 @@ int __init pv_time_init(void)
+ #ifdef CONFIG_PARAVIRT_SPINLOCKS
+ #include <asm/qspinlock_paravirt.h>
  
-+static inline ulong __xchg8(ulong new, void *ptr)
-+{
-+	ulong ret, tmp;
-+	ulong shif = ((ulong)ptr & 3) * 8;
-+	ulong mask = 0xff << shif;
-+	ulong *__ptr = (ulong *)((ulong)ptr & ~3);
++#define CREATE_TRACE_POINTS
++#include "trace_events_filter_paravirt.h"
 +
-+	__asm__ __volatile__ (
-+		"0:	lr.w %0, %2\n"
-+		"	and  %1, %0, %z3\n"
-+		"	or   %1, %1, %z4\n"
-+		"	sc.w.rl %1, %1, %2\n"
-+		"	bnez %1, 0b\n"
-+			"fence w, rw\n"
-+		: "=&r" (ret), "=&r" (tmp), "+A" (*__ptr)
-+		: "rJ" (~mask), "rJ" (new << shif)
-+		: "memory");
+ void pv_kick(int cpu)
+ {
+ 	sbi_ecall(SBI_EXT_PVLOCK, SBI_EXT_PVLOCK_KICK_CPU,
+ 		  cpuid_to_hartid_map(cpu), 0, 0, 0, 0, 0);
 +
-+	return (ulong)((ret & mask) >> shif);
-+}
++	trace_pv_kick(smp_processor_id(), cpu);
 +
- #define __arch_xchg(ptr, new, size)					\
- ({									\
- 	__typeof__(ptr) __ptr = (ptr);					\
- 	__typeof__(new) __new = (new);					\
- 	__typeof__(*(ptr)) __ret;					\
- 	switch (size) {							\
-+	case 1:								\
-+		__ret = (__typeof__(*(ptr)))				\
-+			__xchg8((ulong)__new, __ptr);			\
-+		break;							\
- 	case 4:								\
- 		__asm__ __volatile__ (					\
- 			"	amoswap.w.aqrl %0, %2, %1\n"		\
-@@ -140,6 +165,51 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
-  * store NEW in MEM.  Return the initial value in MEM.  Success is
-  * indicated by comparing RETURN with OLD.
-  */
-+static inline ulong __cmpxchg_small_relaxed(void *ptr, ulong old,
-+					    ulong new, ulong size)
-+{
-+	ulong shift;
-+	ulong ret, mask, temp;
-+	volatile ulong *ptr32;
-+
-+	/* Mask inputs to the correct size. */
-+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
-+	old &= mask;
-+	new &= mask;
-+
-+	/*
-+	 * Calculate a shift & mask that correspond to the value we wish to
-+	 * compare & exchange within the naturally aligned 4 byte integer
-+	 * that includes it.
-+	 */
-+	shift = (ulong)ptr & 0x3;
-+	shift *= BITS_PER_BYTE;
-+	old <<= shift;
-+	new <<= shift;
-+	mask <<= shift;
-+
-+	/*
-+	 * Calculate a pointer to the naturally aligned 4 byte integer that
-+	 * includes our byte of interest, and load its value.
-+	 */
-+	ptr32 = (volatile ulong *)((ulong)ptr & ~0x3);
-+
-+	__asm__ __volatile__ (
-+		"0:	lr.w %0, %2\n"
-+		"	and  %1, %0, %z3\n"
-+		"	bne  %1, %z5, 1f\n"
-+		"	and  %1, %0, %z4\n"
-+		"	or   %1, %1, %z6\n"
-+		"	sc.w %1, %1, %2\n"
-+		"	bnez %1, 0b\n"
-+		"1:\n"
-+		: "=&r" (ret), "=&r" (temp), "+A" (*ptr32)
-+		: "rJ" (mask), "rJ" (~mask), "rJ" (old), "rJ" (new)
-+		: "memory");
-+
-+	return (ret & mask) >> shift;
-+}
-+
- #define __cmpxchg_relaxed(ptr, old, new, size)				\
- ({									\
- 	__typeof__(ptr) __ptr = (ptr);					\
-@@ -148,6 +218,11 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
- 	__typeof__(*(ptr)) __ret;					\
- 	register unsigned int __rc;					\
- 	switch (size) {							\
-+	case 1:								\
-+		__ret = (__typeof__(*(ptr)))				\
-+			__cmpxchg_small_relaxed(__ptr, (ulong)__old,	\
-+					(ulong)__new, (ulong)size);	\
-+		break;							\
- 	case 4:								\
- 		__asm__ __volatile__ (					\
- 			"0:	lr.w %0, %2\n"				\
-@@ -184,6 +259,52 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
- 					_o_, _n_, sizeof(*(ptr)));	\
- })
+ 	return;
+ }
  
-+static inline ulong __cmpxchg_small_acquire(void *ptr, ulong old,
-+					    ulong new, ulong size)
-+{
-+	ulong shift;
-+	ulong ret, mask, temp;
-+	volatile ulong *ptr32;
-+
-+	/* Mask inputs to the correct size. */
-+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
-+	old &= mask;
-+	new &= mask;
-+
-+	/*
-+	 * Calculate a shift & mask that correspond to the value we wish to
-+	 * compare & exchange within the naturally aligned 4 byte integer
-+	 * that includes it.
-+	 */
-+	shift = (ulong)ptr & 0x3;
-+	shift *= BITS_PER_BYTE;
-+	old <<= shift;
-+	new <<= shift;
-+	mask <<= shift;
-+
-+	/*
-+	 * Calculate a pointer to the naturally aligned 4 byte integer that
-+	 * includes our byte of interest, and load its value.
-+	 */
-+	ptr32 = (volatile ulong *)((ulong)ptr & ~0x3);
-+
-+	__asm__ __volatile__ (
-+		"0:	lr.w %0, %2\n"
-+		"	and  %1, %0, %z3\n"
-+		"	bne  %1, %z5, 1f\n"
-+		"	and  %1, %0, %z4\n"
-+		"	or   %1, %1, %z6\n"
-+		"	sc.w %1, %1, %2\n"
-+		"	bnez %1, 0b\n"
-+		RISCV_ACQUIRE_BARRIER
-+		"1:\n"
-+		: "=&r" (ret), "=&r" (temp), "+A" (*ptr32)
-+		: "rJ" (mask), "rJ" (~mask), "rJ" (old), "rJ" (new)
-+		: "memory");
-+
-+	return (ret & mask) >> shift;
-+}
-+
- #define __cmpxchg_acquire(ptr, old, new, size)				\
- ({									\
- 	__typeof__(ptr) __ptr = (ptr);					\
-@@ -192,6 +313,12 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
- 	__typeof__(*(ptr)) __ret;					\
- 	register unsigned int __rc;					\
- 	switch (size) {							\
-+	case 1:								\
-+	case 2:								\
-+		__ret = (__typeof__(*(ptr)))				\
-+			__cmpxchg_small_acquire(__ptr, (ulong)__old,	\
-+					(ulong)__new, (ulong)size);	\
-+		break;							\
- 	case 4:								\
- 		__asm__ __volatile__ (					\
- 			"0:	lr.w %0, %2\n"				\
-@@ -230,6 +357,51 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
- 					_o_, _n_, sizeof(*(ptr)));	\
- })
+@@ -153,6 +159,8 @@ void pv_wait(u8 *ptr, u8 val)
+ 		goto out;
  
-+static inline ulong __cmpxchg_small(void *ptr, ulong old,
-+				    ulong new, ulong size)
-+{
-+	ulong shift;
-+	ulong ret, mask, temp;
-+	volatile ulong *ptr32;
+ 	wait_for_interrupt();
 +
-+	/* Mask inputs to the correct size. */
-+	mask = GENMASK((size * BITS_PER_BYTE) - 1, 0);
-+	old &= mask;
-+	new &= mask;
++	trace_pv_wait(smp_processor_id());
+ out:
+ 	local_irq_restore(flags);
+ }
+diff --git a/arch/riscv/kernel/trace_events_filter_paravirt.h b/arch/riscv/kernel/trace_events_filter_paravirt.h
+new file mode 100644
+index 000000000000..9ff5aa451b12
+--- /dev/null
++++ b/arch/riscv/kernel/trace_events_filter_paravirt.h
+@@ -0,0 +1,60 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c), 2023 Alibaba Cloud
++ * Authors:
++ *	Guo Ren <guoren@linux.alibaba.com>
++ */
++#undef TRACE_SYSTEM
++#define TRACE_SYSTEM paravirt
 +
-+	/*
-+	 * Calculate a shift & mask that correspond to the value we wish to
-+	 * compare & exchange within the naturally aligned 4 byte integer
-+	 * that includes it.
-+	 */
-+	shift = (ulong)ptr & 0x3;
-+	shift *= BITS_PER_BYTE;
-+	old <<= shift;
-+	new <<= shift;
-+	mask <<= shift;
++#if !defined(_TRACE_PARAVIRT_H) || defined(TRACE_HEADER_MULTI_READ)
++#define _TRACE_PARAVIRT_H
 +
-+	/*
-+	 * Calculate a pointer to the naturally aligned 4 byte integer that
-+	 * includes our byte of interest, and load its value.
-+	 */
-+	ptr32 = (volatile ulong *)((ulong)ptr & ~0x3);
++#include <linux/tracepoint.h>
 +
-+	__asm__ __volatile__ (
-+		"0:	lr.w %0, %2\n"
-+		"	and  %1, %0, %z3\n"
-+		"	bne  %1, %z5, 1f\n"
-+		"	and  %1, %0, %z4\n"
-+		"	or   %1, %1, %z6\n"
-+		"	sc.w.rl %1, %1, %2\n"
-+		"	bnez %1, 0b\n"
-+		"	fence w, rw\n"
-+		"1:\n"
-+		: "=&r" (ret), "=&r" (temp), "+A" (*ptr32)
-+		: "rJ" (mask), "rJ" (~mask), "rJ" (old), "rJ" (new)
-+		: "memory");
++TRACE_EVENT(pv_kick,
++	TP_PROTO(int cpu, int target),
++	TP_ARGS(cpu, target),
 +
-+	return (ret & mask) >> shift;
-+}
- #define __cmpxchg(ptr, old, new, size)					\
- ({									\
- 	__typeof__(ptr) __ptr = (ptr);					\
-@@ -238,6 +410,11 @@ static inline ulong __xchg16_relaxed(ulong new, void *ptr)
- 	__typeof__(*(ptr)) __ret;					\
- 	register unsigned int __rc;					\
- 	switch (size) {							\
-+	case 1:								\
-+		__ret = (__typeof__(*(ptr)))				\
-+			__cmpxchg_small(__ptr, (ulong)__old,		\
-+					(ulong)__new, (ulong)size);	\
-+		break;							\
- 	case 4:								\
- 		__asm__ __volatile__ (					\
- 			"0:	lr.w %0, %2\n"				\
++	TP_STRUCT__entry(
++		__field(int, cpu)
++		__field(int, target)
++	),
++
++	TP_fast_assign(
++		__entry->cpu = cpu;
++		__entry->target = target;
++	),
++
++	TP_printk("cpu %d kick target cpu %d",
++		__entry->cpu,
++		__entry->target
++	)
++);
++
++TRACE_EVENT(pv_wait,
++	TP_PROTO(int cpu),
++	TP_ARGS(cpu),
++
++	TP_STRUCT__entry(
++		__field(int, cpu)
++	),
++
++	TP_fast_assign(
++		__entry->cpu = cpu;
++	),
++
++	TP_printk("cpu %d out of wfi",
++		__entry->cpu
++	)
++);
++
++#endif /* _TRACE_PARAVIRT_H || TRACE_HEADER_MULTI_READ */
++
++#undef TRACE_INCLUDE_PATH
++#undef TRACE_INCLUDE_FILE
++#define TRACE_INCLUDE_PATH ../../../arch/riscv/kernel/
++#define TRACE_INCLUDE_FILE trace_events_filter_paravirt
++
++/* This part must be outside protection */
++#include <trace/define_trace.h>
 -- 
 2.36.1
 
