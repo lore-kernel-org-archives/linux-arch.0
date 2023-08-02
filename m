@@ -2,174 +2,82 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2D762C04A6A
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Aug 2023 15:15:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id F21DEC04A6A
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Aug 2023 16:15:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234513AbjHBPPw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 2 Aug 2023 11:15:52 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37622 "EHLO
+        id S229480AbjHBQP6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 2 Aug 2023 12:15:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58534 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234966AbjHBPO1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Aug 2023 11:14:27 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7ADD3122;
-        Wed,  2 Aug 2023 08:14:23 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=5NeY2tinWPOPcN8XQpBKoS8mG0qewPWY+zZNL+PQrqQ=; b=XVrKAxvc+jVqKyFmXERMoGt5Kw
-        vwMb2okt9L3PZTtcfHLjMcidaiM+dInPYZKdG4RiJ2S/xU98gNNb2jGRpaNTjy9O86mit4xeStfPE
-        HfvMOauWiFKc0COw3Ih0gBrxzH+kFievJLj/HlmbMsbL2AIbUm3Gxu+wgfYQgl8zj2eZtpXk/aPxz
-        LjHbHXgwtrWqmIXLIcq92sAkVI0DYUuRVt6PWgiZ1PvWmB0g+2XooTtKdfyEuz47yzGQTceO0MBC3
-        RqwrDg+VgVmAmZwR5sucETkA33L69LiobG2TgpntFFGR7dtgBl2CiJHwFQwBxCzO4a0U/tf0RNk/H
-        A4xEcWPA==;
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qRDYC-00Ffly-6k; Wed, 02 Aug 2023 15:14:12 +0000
-From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     Yin Fengwei <fengwei.yin@intel.com>, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, linux-kernel@vger.kernel.org,
-        Matthew Wilcox <willy@infradead.org>
-Subject: [PATCH v6 36/38] mm: Convert do_set_pte() to set_pte_range()
-Date:   Wed,  2 Aug 2023 16:14:04 +0100
-Message-Id: <20230802151406.3735276-37-willy@infradead.org>
-X-Mailer: git-send-email 2.37.1
-In-Reply-To: <20230802151406.3735276-1-willy@infradead.org>
-References: <20230802151406.3735276-1-willy@infradead.org>
+        with ESMTP id S230512AbjHBQP5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Aug 2023 12:15:57 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D2E161982;
+        Wed,  2 Aug 2023 09:15:56 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 67D74619CB;
+        Wed,  2 Aug 2023 16:15:56 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6689FC433C9;
+        Wed,  2 Aug 2023 16:15:55 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1690992955;
+        bh=aFB7V+3UZPnXI2t7HCSOEac0MGFqyimdDX0kPkq9PJY=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=FcGDg/QoAgueCnjJ9htQ21ACnmhEnP0HCMC52BIWD717UyZgx8nRkDxGhxFbuZHHP
+         Vt8nmloqhzQ+kreiqcdM9z98m0TUC5I9yHpVh5PWkbLEae7niNndRzm4U25INskyXG
+         nzo/QO+8fgzpwBW95+RmRGtEJ3Qm8P9llSmcyrpA8p3KOd2xpU10b4Sus2IaauQN7R
+         sm0wC3ji2L1BnZ4zwgIuy8XM7MMba58e+JO07lbDb/HKmEdXgaBK7iW8pA45ACUMhL
+         Y50QJvBdQVgDP+eSoVsMvKTVcBd2W+A+PJd1m53TzNJPriX3GsPFin+4iPM90jal3t
+         jP7BzbnsPCqvw==
+Date:   Wed, 2 Aug 2023 09:15:53 -0700
+From:   Nathan Chancellor <nathan@kernel.org>
+To:     Linus Torvalds <torvalds@linux-foundation.org>
+Cc:     ndesaulniers@google.com, Arnd Bergmann <arnd@arndb.de>,
+        Tom Rix <trix@redhat.com>, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, llvm@lists.linux.dev
+Subject: Re: [PATCH] word-at-a-time: use the same return type for has_zero
+ regardless of endianness
+Message-ID: <20230802161553.GA2108867@dev-arch.thelio-3990X>
+References: <20230801-bitwise-v1-1-799bec468dc4@google.com>
+ <CAHk-=wgkC80Ey0Wyi3zHYexUmteeDL3hvZrp=EpMrDccRGmMwA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHk-=wgkC80Ey0Wyi3zHYexUmteeDL3hvZrp=EpMrDccRGmMwA@mail.gmail.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Yin Fengwei <fengwei.yin@intel.com>
+On Tue, Aug 01, 2023 at 06:07:08PM -0700, Linus Torvalds wrote:
+> I think the patch is fine, but I guess I'd like to know that people
+> who are affected actually don't see any code generation changes (or
+> possibly see improvements from not turning it into a bool until later)
 
-set_pte_range() allows to setup page table entries for a specific
-range.  It takes advantage of batched rmap update for large folio.
-It now takes care of calling update_mmu_cache_range().
+We see this warning with ARCH=arm64 defconfig + CONFIG_CPU_BIG_ENDIAN=y.
+With both clang 18.0.0 (tip of tree) and GCC 13.1.0, I don't see any
+actual code generation changes in fs/namei.o with this configuration.
+I'd be pretty surprised if any of the other uses of has_zero() show any
+changes, I at least checked lib/string.o with that configuration and
+s390 and did not see anything.
 
-Signed-off-by: Yin Fengwei <fengwei.yin@intel.com>
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
----
- Documentation/filesystems/locking.rst |  2 +-
- include/linux/mm.h                    |  3 ++-
- mm/filemap.c                          |  3 +--
- mm/memory.c                           | 37 +++++++++++++++++----------
- 4 files changed, 28 insertions(+), 17 deletions(-)
+As far as I can tell, arm and arm64 with CONFIG_CPU_BIG_ENDIAN=y are the
+only configurations that can hit the particular bit of code with the
+generic big endian has_zero() implementation because the version of
+hash_name() that uses has_zero() in this manner is only used when
+CONFIG_DCACHE_WORD_ACCESS is set, which only arm, arm64, powerpc (little
+endian), and x86 select.
 
-diff --git a/Documentation/filesystems/locking.rst b/Documentation/filesystems/locking.rst
-index 89c5ec9e3392..cd032f2324e8 100644
---- a/Documentation/filesystems/locking.rst
-+++ b/Documentation/filesystems/locking.rst
-@@ -670,7 +670,7 @@ locked. The VM will unlock the page.
- Filesystem should find and map pages associated with offsets from "start_pgoff"
- till "end_pgoff". ->map_pages() is called with the RCU lock held and must
- not block.  If it's not possible to reach a page without blocking,
--filesystem should skip it. Filesystem should use do_set_pte() to setup
-+filesystem should skip it. Filesystem should use set_pte_range() to setup
- page table entry. Pointer to entry associated with the page is passed in
- "pte" field in vm_fault structure. Pointers to entries for other offsets
- should be calculated relative to "pte".
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 2fbc6c631764..19493d6a2bb8 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1346,7 +1346,8 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
- }
- 
- vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page);
--void do_set_pte(struct vm_fault *vmf, struct page *page, unsigned long addr);
-+void set_pte_range(struct vm_fault *vmf, struct folio *folio,
-+		struct page *page, unsigned int nr, unsigned long addr);
- 
- vm_fault_t finish_fault(struct vm_fault *vmf);
- vm_fault_t finish_mkwrite_fault(struct vm_fault *vmf);
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 9dc15af7ab5b..2e7050461a87 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -3506,8 +3506,7 @@ static vm_fault_t filemap_map_folio_range(struct vm_fault *vmf,
- 			ret = VM_FAULT_NOPAGE;
- 
- 		ref_count++;
--		do_set_pte(vmf, page, addr);
--		update_mmu_cache(vma, addr, vmf->pte);
-+		set_pte_range(vmf, folio, page, 1, addr);
- 	} while (vmf->pte++, page++, addr += PAGE_SIZE, ++count < nr_pages);
- 
- 	/* Restore the vmf->pte */
-diff --git a/mm/memory.c b/mm/memory.c
-index e25edd4c24b8..621716109627 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -4465,15 +4465,24 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
- }
- #endif
- 
--void do_set_pte(struct vm_fault *vmf, struct page *page, unsigned long addr)
-+/**
-+ * set_pte_range - Set a range of PTEs to point to pages in a folio.
-+ * @vmf: Fault decription.
-+ * @folio: The folio that contains @page.
-+ * @page: The first page to create a PTE for.
-+ * @nr: The number of PTEs to create.
-+ * @addr: The first address to create a PTE for.
-+ */
-+void set_pte_range(struct vm_fault *vmf, struct folio *folio,
-+		struct page *page, unsigned int nr, unsigned long addr)
- {
- 	struct vm_area_struct *vma = vmf->vma;
- 	bool uffd_wp = vmf_orig_pte_uffd_wp(vmf);
- 	bool write = vmf->flags & FAULT_FLAG_WRITE;
--	bool prefault = vmf->address != addr;
-+	bool prefault = in_range(vmf->address, addr, nr * PAGE_SIZE);
- 	pte_t entry;
- 
--	flush_icache_page(vma, page);
-+	flush_icache_pages(vma, page, nr);
- 	entry = mk_pte(page, vma->vm_page_prot);
- 
- 	if (prefault && arch_wants_old_prefaulted_pte())
-@@ -4487,14 +4496,18 @@ void do_set_pte(struct vm_fault *vmf, struct page *page, unsigned long addr)
- 		entry = pte_mkuffd_wp(entry);
- 	/* copy-on-write page */
- 	if (write && !(vma->vm_flags & VM_SHARED)) {
--		inc_mm_counter(vma->vm_mm, MM_ANONPAGES);
--		page_add_new_anon_rmap(page, vma, addr);
--		lru_cache_add_inactive_or_unevictable(page, vma);
-+		add_mm_counter(vma->vm_mm, MM_ANONPAGES, nr);
-+		VM_BUG_ON_FOLIO(nr != 1, folio);
-+		folio_add_new_anon_rmap(folio, vma, addr);
-+		folio_add_lru_vma(folio, vma);
- 	} else {
--		inc_mm_counter(vma->vm_mm, mm_counter_file(page));
--		page_add_file_rmap(page, vma, false);
-+		add_mm_counter(vma->vm_mm, mm_counter_file(page), nr);
-+		folio_add_file_rmap_range(folio, page, nr, vma, false);
- 	}
--	set_pte_at(vma->vm_mm, addr, vmf->pte, entry);
-+	set_ptes(vma->vm_mm, addr, vmf->pte, entry, nr);
-+
-+	/* no need to invalidate: a not-present page won't be cached */
-+	update_mmu_cache_range(vmf, vma, addr, vmf->pte, nr);
- }
- 
- static bool vmf_pte_changed(struct vm_fault *vmf)
-@@ -4562,11 +4575,9 @@ vm_fault_t finish_fault(struct vm_fault *vmf)
- 
- 	/* Re-check under ptl */
- 	if (likely(!vmf_pte_changed(vmf))) {
--		do_set_pte(vmf, page, vmf->address);
--
--		/* no need to invalidate: a not-present page won't be cached */
--		update_mmu_cache(vma, vmf->address, vmf->pte);
-+		struct folio *folio = page_folio(page);
- 
-+		set_pte_range(vmf, folio, page, 1, vmf->address);
- 		ret = 0;
- 	} else {
- 		update_mmu_tlb(vma, vmf->address, vmf->pte);
--- 
-2.40.1
+arch/arm/Kconfig:49:         select DCACHE_WORD_ACCESS if HAVE_EFFICIENT_UNALIGNED_ACCESS
+arch/arm64/Kconfig:121:        select DCACHE_WORD_ACCESS
+arch/powerpc/Kconfig:183:        select DCACHE_WORD_ACCESS                if PPC64 && CPU_LITTLE_ENDIAN
+arch/x86/Kconfig:140:        select DCACHE_WORD_ACCESS                if !KMSAN
+arch/x86/um/Kconfig:12:         select DCACHE_WORD_ACCESS
 
+So seems like a pretty low risk patch to me but I could be missing
+something.
+
+Cheers,
+Nathan
