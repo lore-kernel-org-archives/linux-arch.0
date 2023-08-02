@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1537FC04FDF
-	for <linux-arch@archiver.kernel.org>; Wed,  2 Aug 2023 15:14:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7829FC05051
+	for <linux-arch@archiver.kernel.org>; Wed,  2 Aug 2023 15:14:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234871AbjHBPOY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 2 Aug 2023 11:14:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37472 "EHLO
+        id S234932AbjHBPOZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 2 Aug 2023 11:14:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37494 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234589AbjHBPOS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Aug 2023 11:14:18 -0400
+        with ESMTP id S234421AbjHBPOT (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 2 Aug 2023 11:14:19 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A15F82D61;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A1FE72D63;
         Wed,  2 Aug 2023 08:14:10 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=sWJNYdXqGD763FMdnHwt3YTZQSetHeelliQAJYOMW5U=; b=ODgX07LlP3sQFSkIbptb9AtJgc
-        aaCt28wefXbzh+jzF+mtW4/M2MS161SOAexmrxiEJVBvfMf4Dfthf+3NjqhKyrcEkEOmRfLAgsr2o
-        Zkk3vRGGJAs8v76/DT1wxvYQyQnslgAHIcM9NeAuGr3GAv3/i2oOdrGFNFI/d+ccyTKu6XPbqwSQ/
-        COCod5aBIAQ7z+dXxFJMofhLgtjXZu5F77MSFSgoRMsJ+U9IlNsgp20zP/XVmaeDFFRbHwIgFndzb
-        je7K0gzcmMJsibrqt1C/K6PDAIPqugOFgc4j7kRSb8OBNR4d9LS2i0IQZSZ4eJPK9V6Al4Zz1+ZOz
-        Gqw0+z5Q==;
+        bh=VNpFvvJuxNncni/NZj8MqUaBRQkp6jW1k1zH+muyRMk=; b=noGvCnhS9S4mgWHMRm9TXvx40M
+        TCeYeWtmyAT9uWLfWJpesadFa0pXWjz2gE4OdZD8eTAypBDZqw2iKRpqTjIDZ2avPr0EULQzAyrMz
+        7bZoL+hXe9Vo93OQj3Ibqe49WWSrxBLT5EMQDTDTSDEZRYIiQHaqnznlVh8bUNDuv205uuSvqY2fS
+        6kfggKqXVAhQNd4ztc+q6VCyzpJgwellAvJFm0b2AGFrhU66ESrhJ8d9BEnP05Mkg1Nf9Nhlb+5gp
+        z/gnJSLlCGOQQpRSDrZmSty7pBGapaY4WiqyyO6OoAnkGkzw4qFMNjbfufjGXEz6qLpe/zdpo8SDS
+        e17P3+Wg==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qRDY8-00Ffig-6O; Wed, 02 Aug 2023 15:14:08 +0000
+        id 1qRDY9-00Ffj7-05; Wed, 02 Aug 2023 15:14:09 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org, Mike Rapoport <rppt@kernel.org>,
-        Anshuman Khandual <anshuman.khandual@arm.com>
-Subject: [PATCH v6 03/38] mm: Add generic flush_icache_pages() and documentation
-Date:   Wed,  2 Aug 2023 16:13:31 +0100
-Message-Id: <20230802151406.3735276-4-willy@infradead.org>
+        linux-kernel@vger.kernel.org, Guo Ren <guoren@kernel.org>,
+        Mike Rapoport <rppt@kernel.org>, linux-csky@vger.kernel.org
+Subject: [PATCH v6 11/38] csky: Implement the new page table range API
+Date:   Wed,  2 Aug 2023 16:13:39 +0100
+Message-Id: <20230802151406.3735276-12-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230802151406.3735276-1-willy@infradead.org>
 References: <20230802151406.3735276-1-willy@infradead.org>
@@ -44,100 +44,213 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-flush_icache_page() is deprecated but not yet removed, so add
-a range version of it.  Change the documentation to refer to
-update_mmu_cache_range() instead of update_mmu_cache().
+Add PFN_PTE_SHIFT, update_mmu_cache_range() and flush_dcache_folio().
+Change the PG_dcache_clean flag from being per-page to per-folio.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Acked-by: Guo Ren <guoren@kernel.org>
 Acked-by: Mike Rapoport (IBM) <rppt@kernel.org>
-Reviewed-by: Anshuman Khandual <anshuman.khandual@arm.com>
+Cc: linux-csky@vger.kernel.org
 ---
- Documentation/core-api/cachetlb.rst | 39 ++++++++++++++++-------------
- include/asm-generic/cacheflush.h    |  5 ++++
- 2 files changed, 27 insertions(+), 17 deletions(-)
+ arch/csky/abiv1/cacheflush.c         | 32 +++++++++++++++++-----------
+ arch/csky/abiv1/inc/abi/cacheflush.h |  2 ++
+ arch/csky/abiv2/cacheflush.c         | 32 ++++++++++++++--------------
+ arch/csky/abiv2/inc/abi/cacheflush.h | 10 +++++++--
+ arch/csky/include/asm/pgtable.h      |  8 ++++---
+ 5 files changed, 50 insertions(+), 34 deletions(-)
 
-diff --git a/Documentation/core-api/cachetlb.rst b/Documentation/core-api/cachetlb.rst
-index 5c0552e78c58..b645947954fb 100644
---- a/Documentation/core-api/cachetlb.rst
-+++ b/Documentation/core-api/cachetlb.rst
-@@ -88,13 +88,17 @@ changes occur:
+diff --git a/arch/csky/abiv1/cacheflush.c b/arch/csky/abiv1/cacheflush.c
+index 94fbc03cbe70..171e8fb32285 100644
+--- a/arch/csky/abiv1/cacheflush.c
++++ b/arch/csky/abiv1/cacheflush.c
+@@ -15,45 +15,51 @@
  
- 	This is used primarily during fault processing.
+ #define PG_dcache_clean		PG_arch_1
  
--5) ``void update_mmu_cache(struct vm_area_struct *vma,
--   unsigned long address, pte_t *ptep)``
-+5) ``void update_mmu_cache_range(struct vm_fault *vmf,
-+   struct vm_area_struct *vma, unsigned long address, pte_t *ptep,
-+   unsigned int nr)``
- 
--	At the end of every page fault, this routine is invoked to
--	tell the architecture specific code that a translation
--	now exists at virtual address "address" for address space
--	"vma->vm_mm", in the software page tables.
-+	At the end of every page fault, this routine is invoked to tell
-+	the architecture specific code that translations now exists
-+	in the software page tables for address space "vma->vm_mm"
-+	at virtual address "address" for "nr" consecutive pages.
-+
-+	This routine is also invoked in various other places which pass
-+	a NULL "vmf".
- 
- 	A port may use this information in any way it so chooses.
- 	For example, it could use this event to pre-load TLB
-@@ -306,17 +310,18 @@ maps this page at its virtual address.
- 	private".  The kernel guarantees that, for pagecache pages, it will
- 	clear this bit when such a page first enters the pagecache.
- 
--	This allows these interfaces to be implemented much more efficiently.
--	It allows one to "defer" (perhaps indefinitely) the actual flush if
--	there are currently no user processes mapping this page.  See sparc64's
--	flush_dcache_page and update_mmu_cache implementations for an example
--	of how to go about doing this.
-+	This allows these interfaces to be implemented much more
-+	efficiently.  It allows one to "defer" (perhaps indefinitely) the
-+	actual flush if there are currently no user processes mapping this
-+	page.  See sparc64's flush_dcache_page and update_mmu_cache_range
-+	implementations for an example of how to go about doing this.
- 
--	The idea is, first at flush_dcache_page() time, if page_file_mapping()
--	returns a mapping, and mapping_mapped on that mapping returns %false,
--	just mark the architecture private page flag bit.  Later, in
--	update_mmu_cache(), a check is made of this flag bit, and if set the
--	flush is done and the flag bit is cleared.
-+	The idea is, first at flush_dcache_page() time, if
-+	page_file_mapping() returns a mapping, and mapping_mapped on that
-+	mapping returns %false, just mark the architecture private page
-+	flag bit.  Later, in update_mmu_cache_range(), a check is made
-+	of this flag bit, and if set the flush is done and the flag bit
-+	is cleared.
- 
- 	.. important::
- 
-@@ -369,7 +374,7 @@ maps this page at its virtual address.
-   ``void flush_icache_page(struct vm_area_struct *vma, struct page *page)``
- 
- 	All the functionality of flush_icache_page can be implemented in
--	flush_dcache_page and update_mmu_cache. In the future, the hope
-+	flush_dcache_page and update_mmu_cache_range. In the future, the hope
- 	is to remove this interface completely.
- 
- The final category of APIs is for I/O to deliberately aliased address
-diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
-index f46258d1a080..09d51a680765 100644
---- a/include/asm-generic/cacheflush.h
-+++ b/include/asm-generic/cacheflush.h
-@@ -78,6 +78,11 @@ static inline void flush_icache_range(unsigned long start, unsigned long end)
- #endif
- 
- #ifndef flush_icache_page
-+static inline void flush_icache_pages(struct vm_area_struct *vma,
-+				     struct page *page, unsigned int nr)
-+{
-+}
-+
- static inline void flush_icache_page(struct vm_area_struct *vma,
- 				     struct page *page)
+-void flush_dcache_page(struct page *page)
++void flush_dcache_folio(struct folio *folio)
  {
+ 	struct address_space *mapping;
+ 
+-	if (page == ZERO_PAGE(0))
++	if (is_zero_pfn(folio_pfn(folio)))
+ 		return;
+ 
+-	mapping = page_mapping_file(page);
++	mapping = folio_flush_mapping(folio);
+ 
+-	if (mapping && !page_mapcount(page))
+-		clear_bit(PG_dcache_clean, &page->flags);
++	if (mapping && !folio_mapped(folio))
++		clear_bit(PG_dcache_clean, &folio->flags);
+ 	else {
+ 		dcache_wbinv_all();
+ 		if (mapping)
+ 			icache_inv_all();
+-		set_bit(PG_dcache_clean, &page->flags);
++		set_bit(PG_dcache_clean, &folio->flags);
+ 	}
+ }
++EXPORT_SYMBOL(flush_dcache_folio);
++
++void flush_dcache_page(struct page *page)
++{
++	flush_dcache_folio(page_folio(page));
++}
+ EXPORT_SYMBOL(flush_dcache_page);
+ 
+-void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
+-	pte_t *ptep)
++void update_mmu_cache_range(struct vm_fault *vmf, struct vm_area_struct *vma,
++		unsigned long addr, pte_t *ptep, unsigned int nr)
+ {
+ 	unsigned long pfn = pte_pfn(*ptep);
+-	struct page *page;
++	struct folio *folio;
+ 
+ 	flush_tlb_page(vma, addr);
+ 
+ 	if (!pfn_valid(pfn))
+ 		return;
+ 
+-	page = pfn_to_page(pfn);
+-	if (page == ZERO_PAGE(0))
++	if (is_zero_pfn(pfn))
+ 		return;
+ 
+-	if (!test_and_set_bit(PG_dcache_clean, &page->flags))
++	folio = page_folio(pfn_to_page(pfn));
++	if (!test_and_set_bit(PG_dcache_clean, &folio->flags))
+ 		dcache_wbinv_all();
+ 
+-	if (page_mapping_file(page)) {
++	if (folio_flush_mapping(folio)) {
+ 		if (vma->vm_flags & VM_EXEC)
+ 			icache_inv_all();
+ 	}
+diff --git a/arch/csky/abiv1/inc/abi/cacheflush.h b/arch/csky/abiv1/inc/abi/cacheflush.h
+index ed62e2066ba7..0d6cb65624c4 100644
+--- a/arch/csky/abiv1/inc/abi/cacheflush.h
++++ b/arch/csky/abiv1/inc/abi/cacheflush.h
+@@ -9,6 +9,8 @@
+ 
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+ extern void flush_dcache_page(struct page *);
++void flush_dcache_folio(struct folio *);
++#define flush_dcache_folio flush_dcache_folio
+ 
+ #define flush_cache_mm(mm)			dcache_wbinv_all()
+ #define flush_cache_page(vma, page, pfn)	cache_wbinv_all()
+diff --git a/arch/csky/abiv2/cacheflush.c b/arch/csky/abiv2/cacheflush.c
+index 9923cd24db58..d05a551af5d5 100644
+--- a/arch/csky/abiv2/cacheflush.c
++++ b/arch/csky/abiv2/cacheflush.c
+@@ -7,32 +7,32 @@
+ #include <asm/cache.h>
+ #include <asm/tlbflush.h>
+ 
+-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+-		      pte_t *pte)
++void update_mmu_cache_range(struct vm_fault *vmf, struct vm_area_struct *vma,
++		unsigned long address, pte_t *pte, unsigned int nr)
+ {
+-	unsigned long addr;
+-	struct page *page;
++	unsigned long pfn = pte_pfn(*pte);
++	struct folio *folio;
++	unsigned int i;
+ 
+ 	flush_tlb_page(vma, address);
+ 
+-	if (!pfn_valid(pte_pfn(*pte)))
++	if (!pfn_valid(pfn))
+ 		return;
+ 
+-	page = pfn_to_page(pte_pfn(*pte));
+-	if (page == ZERO_PAGE(0))
+-		return;
++	folio = page_folio(pfn_to_page(pfn));
+ 
+-	if (test_and_set_bit(PG_dcache_clean, &page->flags))
++	if (test_and_set_bit(PG_dcache_clean, &folio->flags))
+ 		return;
+ 
+-	addr = (unsigned long) kmap_atomic(page);
+-
+-	dcache_wb_range(addr, addr + PAGE_SIZE);
++	for (i = 0; i < folio_nr_pages(folio); i++) {
++		unsigned long addr = (unsigned long) kmap_local_folio(folio,
++								i * PAGE_SIZE);
+ 
+-	if (vma->vm_flags & VM_EXEC)
+-		icache_inv_range(addr, addr + PAGE_SIZE);
+-
+-	kunmap_atomic((void *) addr);
++		dcache_wb_range(addr, addr + PAGE_SIZE);
++		if (vma->vm_flags & VM_EXEC)
++			icache_inv_range(addr, addr + PAGE_SIZE);
++		kunmap_local((void *) addr);
++	}
+ }
+ 
+ void flush_icache_deferred(struct mm_struct *mm)
+diff --git a/arch/csky/abiv2/inc/abi/cacheflush.h b/arch/csky/abiv2/inc/abi/cacheflush.h
+index a565e00c3f70..9c728933a776 100644
+--- a/arch/csky/abiv2/inc/abi/cacheflush.h
++++ b/arch/csky/abiv2/inc/abi/cacheflush.h
+@@ -18,11 +18,17 @@
+ 
+ #define PG_dcache_clean		PG_arch_1
+ 
++static inline void flush_dcache_folio(struct folio *folio)
++{
++	if (test_bit(PG_dcache_clean, &folio->flags))
++		clear_bit(PG_dcache_clean, &folio->flags);
++}
++#define flush_dcache_folio flush_dcache_folio
++
+ #define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
+ static inline void flush_dcache_page(struct page *page)
+ {
+-	if (test_bit(PG_dcache_clean, &page->flags))
+-		clear_bit(PG_dcache_clean, &page->flags);
++	flush_dcache_folio(page_folio(page));
+ }
+ 
+ #define flush_dcache_mmap_lock(mapping)		do { } while (0)
+diff --git a/arch/csky/include/asm/pgtable.h b/arch/csky/include/asm/pgtable.h
+index d4042495febc..42405037c871 100644
+--- a/arch/csky/include/asm/pgtable.h
++++ b/arch/csky/include/asm/pgtable.h
+@@ -28,6 +28,7 @@
+ #define pgd_ERROR(e) \
+ 	pr_err("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
+ 
++#define PFN_PTE_SHIFT	PAGE_SHIFT
+ #define pmd_pfn(pmd)	(pmd_phys(pmd) >> PAGE_SHIFT)
+ #define pmd_page(pmd)	(pfn_to_page(pmd_phys(pmd) >> PAGE_SHIFT))
+ #define pte_clear(mm, addr, ptep)	set_pte((ptep), \
+@@ -90,7 +91,6 @@ static inline void set_pte(pte_t *p, pte_t pte)
+ 	/* prevent out of order excution */
+ 	smp_mb();
+ }
+-#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
+ 
+ static inline pte_t *pmd_page_vaddr(pmd_t pmd)
+ {
+@@ -263,8 +263,10 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
+ extern void paging_init(void);
+ 
+-void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+-		      pte_t *pte);
++void update_mmu_cache_range(struct vm_fault *vmf, struct vm_area_struct *vma,
++		unsigned long address, pte_t *pte, unsigned int nr);
++#define update_mmu_cache(vma, addr, ptep) \
++	update_mmu_cache_range(NULL, vma, addr, ptep, 1)
+ 
+ #define io_remap_pfn_range(vma, vaddr, pfn, size, prot) \
+ 	remap_pfn_range(vma, vaddr, pfn, size, prot)
 -- 
 2.40.1
 
