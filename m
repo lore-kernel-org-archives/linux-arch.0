@@ -2,85 +2,76 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E4932C00528
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Aug 2023 15:32:56 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5C560C04E69
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Aug 2023 15:32:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230258AbjHGPc4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Aug 2023 11:32:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53998 "EHLO
+        id S230244AbjHGPc5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Aug 2023 11:32:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54016 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230269AbjHGPcv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2023 11:32:51 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 493A9BD;
-        Mon,  7 Aug 2023 08:32:50 -0700 (PDT)
+        with ESMTP id S230336AbjHGPcy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2023 11:32:54 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1A86899;
+        Mon,  7 Aug 2023 08:32:54 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id DB88661E0C;
-        Mon,  7 Aug 2023 15:32:49 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 34E9EC433C8;
-        Mon,  7 Aug 2023 15:32:48 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 993D461D9A;
+        Mon,  7 Aug 2023 15:32:53 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D557BC433C7;
+        Mon,  7 Aug 2023 15:32:51 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1691422369;
-        bh=/uziKBOz0Ulect0QjG+rpsPYlSVkOGh4loFdVsG0S1c=;
-        h=From:To:Cc:Subject:Date:From;
-        b=ljupM/8nM4zcDEW6o4Y8mGJFsQGXGTsHjGAQkke9TqY7XilPqnjaDwLzYYMG8OKnE
-         pt2Cc5Js/SNNRpYpJnBfcKsWSu0Cvsrkv5Tv/YtfhLuADt06nTCuZwm7qL5LIB0qQL
-         +wjD1y5UhsV6+Tk0z91ASmWGj2++Vrvvgq6cVs4M2Z3CHQdPH8r9/lTmiuSazBU8sJ
-         1NcLNh1E/PcCMAR1ANazYZTsOCtbZ9dy8dZeF+qhwnwqCuczeRQObuGPUdPzGrGq0l
-         IRuZrdpeq2mWR8M6wVc7T9tFDMUmzQmlle1K41YWCWKiF6ASsJiyBoy8wrHud3AXqZ
-         hduveCSkZVe+g==
+        s=k20201202; t=1691422373;
+        bh=vOf1XqgmYLSwrx6KzBjR0fMHLia73ppzcL8DVn7baw8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=BPjrcJ5CcPuV83asiURhBN0ARRksVqvPAdrxHCXdlNGpSG1wyTQusM9cnn1gLaFKS
+         swlzncvfKpAIC5ftFmJIppPA3Eh30LUBZBx97usk8zftSJ6mTp+9Xc93dVASQxC2kF
+         x0cZstAa57lJjhY0459IIdl3OLAWXJyP/6xVSMd9DikIu49J4BmaLWpMnOIPesvK9V
+         v+WJngSxZ0r4cAyzV43ezWJF1kSOa8ke444XJlDYsgkr51QqbqCa/tpufnLCWXj9NU
+         9YtzhusR9z9r7jt24q85EhSKYCoVBsoeymGnTso9tXVeLXjFljzFC53jsMqxY0u8Et
+         NQTxmLnrLTYdA==
 From:   Masahiro Yamada <masahiroy@kernel.org>
 To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
         linux-mips@vger.kernel.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 1/3] mips: remove unneeded #include <asm/export.h>
-Date:   Tue,  8 Aug 2023 00:32:41 +0900
-Message-Id: <20230807153243.996262-1-masahiroy@kernel.org>
+Subject: [PATCH 3/3] mips: remove <asm/export.h>
+Date:   Tue,  8 Aug 2023 00:32:43 +0900
+Message-Id: <20230807153243.996262-3-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230807153243.996262-1-masahiroy@kernel.org>
+References: <20230807153243.996262-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There is no EXPORT_SYMBOL line there, hence #include <asm/export.h>
-is unneeded.
+All *.S files under arch/mips/ have been converted to include
+<linux/export.h> instead of <asm/export.h>.
+
+Remove <asm/export.h>.
 
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- arch/mips/kernel/octeon_switch.S | 1 -
- arch/mips/kernel/r2300_switch.S  | 1 -
- 2 files changed, 2 deletions(-)
+ arch/mips/include/asm/Kbuild | 1 -
+ 1 file changed, 1 deletion(-)
 
-diff --git a/arch/mips/kernel/octeon_switch.S b/arch/mips/kernel/octeon_switch.S
-index 9b7c8ab6f08c..447a3ea14aa1 100644
---- a/arch/mips/kernel/octeon_switch.S
-+++ b/arch/mips/kernel/octeon_switch.S
-@@ -11,7 +11,6 @@
-  *    written by Carsten Langgaard, carstenl@mips.com
-  */
- #include <asm/asm.h>
--#include <asm/export.h>
- #include <asm/asm-offsets.h>
- #include <asm/mipsregs.h>
- #include <asm/regdef.h>
-diff --git a/arch/mips/kernel/r2300_switch.S b/arch/mips/kernel/r2300_switch.S
-index 71b1aafae1bb..48e63943e6f7 100644
---- a/arch/mips/kernel/r2300_switch.S
-+++ b/arch/mips/kernel/r2300_switch.S
-@@ -13,7 +13,6 @@
-  */
- #include <asm/asm.h>
- #include <asm/cachectl.h>
--#include <asm/export.h>
- #include <asm/fpregdef.h>
- #include <asm/mipsregs.h>
- #include <asm/asm-offsets.h>
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index dee172716581..7ba67a0d6c97 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -7,7 +7,6 @@ generated-y += unistd_nr_n32.h
+ generated-y += unistd_nr_n64.h
+ generated-y += unistd_nr_o32.h
+ 
+-generic-y += export.h
+ generic-y += kvm_para.h
+ generic-y += mcs_spinlock.h
+ generic-y += parport.h
 -- 
 2.39.2
 
