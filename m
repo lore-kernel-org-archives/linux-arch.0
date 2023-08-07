@@ -2,47 +2,45 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5FFDCC04A6A
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Aug 2023 15:32:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 1A054C001B0
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Aug 2023 15:37:03 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230259AbjHGPc4 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Aug 2023 11:32:56 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54010 "EHLO
+        id S229761AbjHGPhC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Aug 2023 11:37:02 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57950 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230309AbjHGPcx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2023 11:32:53 -0400
+        with ESMTP id S230341AbjHGPhB (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2023 11:37:01 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1267FBD;
-        Mon,  7 Aug 2023 08:32:52 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DB87C10DC;
+        Mon,  7 Aug 2023 08:37:00 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 744D861E0C;
-        Mon,  7 Aug 2023 15:32:51 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id ACF98C433C9;
-        Mon,  7 Aug 2023 15:32:49 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 6922861E31;
+        Mon,  7 Aug 2023 15:37:00 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BBB52C433C8;
+        Mon,  7 Aug 2023 15:36:58 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1691422370;
-        bh=WDVv22MYYfLqjdwf8Gw7PbfPu+30r8uVpIIUVl3UkFU=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=cWfaVxKnRv69ooHYPILI0MVK98tkMGMuwWYY76pcQWuyB3YkoQXAAbcnObAI68n1T
-         /8zec6weUmLF+gdxCYWPQRhfjzA4aXSnn5iYnn/UAyd3Wwq5AurhQjtrLU5EI8qXGu
-         sUk+9jS+zxAGvvk0V9OgRNWHlq4s72VQzjBly9Y6oIZXGdpTakiTgkqWmkedGV+my0
-         5N18gSVC76THBVKWtpw1lxjlv5cP6e+srqK+P5QBnFWfp75FIIaDPk6+bNwpa7mEMZ
-         sxBpoG+mC1MKrnTuA5yKBmuVDW++FKnYxesqUiaNYPrPLgbwspjG4gJhSQ3sISs+Nf
-         XVofTJLalCj5w==
+        s=k20201202; t=1691422619;
+        bh=Rm2bAUsRPFrHQrBfNXP+Gimchvv0P1P9SUNLosCJSXw=;
+        h=From:To:Cc:Subject:Date:From;
+        b=mc0XgWHtFZpAPWBP2MrmMTcXwrE0x5Qk8z/49KcFfDEFBbTbOA3I/3+vF+P3dQjqO
+         6ziLRfMWP2QETN3FU+hltqu/8FOaL+CDibSouQjNcup/FMt2sn6xcMV8w5HgG/D2ih
+         EMDGK8285L6wF3G1l3yYYWTXBr2tw1ym/7tWXNixxbmusi8g5QgGdFNtEXUm/wlzJ7
+         mk1whT9pPEa8d4jsfnYyeDa5tBYFxRfPrhfLjOPZgFl2+7ILG8k4at/EdLpS+hwCbo
+         UJNYqqWoFlGikzAs/yuXQyKkx2p4nD6BfBW29LrG7x4WfuTwbNCdYTs0bjI0V62Oh6
+         S6/VXl5xjgnQg==
 From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-mips@vger.kernel.org
+To:     Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-m68k@lists.linux-m68k.org
 Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         Masahiro Yamada <masahiroy@kernel.org>
-Subject: [PATCH 2/3] mips: replace #include <asm/export.h> with #include <linux/export.h>
-Date:   Tue,  8 Aug 2023 00:32:42 +0900
-Message-Id: <20230807153243.996262-2-masahiroy@kernel.org>
+Subject: [PATCH 1/2] m68k: replace #include <asm/export.h> with #include <linux/export.h>
+Date:   Tue,  8 Aug 2023 00:36:53 +0900
+Message-Id: <20230807153654.997091-1-masahiroy@kernel.org>
 X-Mailer: git-send-email 2.39.2
-In-Reply-To: <20230807153243.996262-1-masahiroy@kernel.org>
-References: <20230807153243.996262-1-masahiroy@kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
@@ -60,182 +58,78 @@ After all the <asm/export.h> lines are converted, <asm/export.h> and
 Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
 ---
 
- arch/mips/cavium-octeon/octeon-memcpy.S | 2 +-
- arch/mips/kernel/mcount.S               | 2 +-
- arch/mips/kernel/r2300_fpu.S            | 2 +-
- arch/mips/kernel/r4k_fpu.S              | 2 +-
- arch/mips/lib/csum_partial.S            | 2 +-
- arch/mips/lib/memcpy.S                  | 2 +-
- arch/mips/lib/memset.S                  | 2 +-
- arch/mips/lib/strncpy_user.S            | 2 +-
- arch/mips/lib/strnlen_user.S            | 2 +-
- arch/mips/mm/page-funcs.S               | 2 +-
- arch/mips/mm/tlb-funcs.S                | 2 +-
- 11 files changed, 11 insertions(+), 11 deletions(-)
+ arch/m68k/lib/divsi3.S  | 2 +-
+ arch/m68k/lib/modsi3.S  | 2 +-
+ arch/m68k/lib/mulsi3.S  | 2 +-
+ arch/m68k/lib/udivsi3.S | 2 +-
+ arch/m68k/lib/umodsi3.S | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/mips/cavium-octeon/octeon-memcpy.S b/arch/mips/cavium-octeon/octeon-memcpy.S
-index 25860fba6218..fef0c6de3fa1 100644
---- a/arch/mips/cavium-octeon/octeon-memcpy.S
-+++ b/arch/mips/cavium-octeon/octeon-memcpy.S
-@@ -13,9 +13,9 @@
-  * Mnemonic names for arguments to memcpy/__copy_user
-  */
- 
-+#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asm-offsets.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
- 
- #define dst a0
-diff --git a/arch/mips/kernel/mcount.S b/arch/mips/kernel/mcount.S
-index cff52b283e03..fcec579f64e9 100644
---- a/arch/mips/kernel/mcount.S
-+++ b/arch/mips/kernel/mcount.S
-@@ -10,7 +10,7 @@
-  * Author: Wu Zhangjin <wuzhangjin@gmail.com>
-  */
+diff --git a/arch/m68k/lib/divsi3.S b/arch/m68k/lib/divsi3.S
+index 3a2143f51631..62787b4333e7 100644
+--- a/arch/m68k/lib/divsi3.S
++++ b/arch/m68k/lib/divsi3.S
+@@ -33,7 +33,7 @@ General Public License for more details. */
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
  
 -#include <asm/export.h>
 +#include <linux/export.h>
- #include <asm/regdef.h>
- #include <asm/stackframe.h>
- #include <asm/ftrace.h>
-diff --git a/arch/mips/kernel/r2300_fpu.S b/arch/mips/kernel/r2300_fpu.S
-index 6c745aa9e825..c000b22e3fcd 100644
---- a/arch/mips/kernel/r2300_fpu.S
-+++ b/arch/mips/kernel/r2300_fpu.S
-@@ -11,10 +11,10 @@
-  * Further modifications to make this work:
-  * Copyright (c) 1998 Harald Koerfgen
-  */
-+#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asmmacro.h>
- #include <asm/errno.h>
--#include <asm/export.h>
- #include <asm/fpregdef.h>
- #include <asm/mipsregs.h>
- #include <asm/asm-offsets.h>
-diff --git a/arch/mips/kernel/r4k_fpu.S b/arch/mips/kernel/r4k_fpu.S
-index 4e8c98517d9d..4bb97ee89904 100644
---- a/arch/mips/kernel/r4k_fpu.S
-+++ b/arch/mips/kernel/r4k_fpu.S
-@@ -12,10 +12,10 @@
-  * Copyright (C) 2000 MIPS Technologies, Inc.
-  * Copyright (C) 1999, 2001 Silicon Graphics, Inc.
-  */
-+#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asmmacro.h>
- #include <asm/errno.h>
--#include <asm/export.h>
- #include <asm/fpregdef.h>
- #include <asm/mipsregs.h>
- #include <asm/asm-offsets.h>
-diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
-index 7767137c3e49..3d2ff4118d79 100644
---- a/arch/mips/lib/csum_partial.S
-+++ b/arch/mips/lib/csum_partial.S
-@@ -11,9 +11,9 @@
-  * Copyright (C) 2014 Imagination Technologies Ltd.
-  */
- #include <linux/errno.h>
-+#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asm-offsets.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
  
- #ifdef CONFIG_64BIT
-diff --git a/arch/mips/lib/memcpy.S b/arch/mips/lib/memcpy.S
-index 18a43f2e29c8..a4b4e805ff13 100644
---- a/arch/mips/lib/memcpy.S
-+++ b/arch/mips/lib/memcpy.S
-@@ -32,9 +32,9 @@
- #undef CONFIG_CPU_HAS_PREFETCH
- #endif
+ /* These are predefined by new versions of GNU cpp.  */
  
-+#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asm-offsets.h>
+diff --git a/arch/m68k/lib/modsi3.S b/arch/m68k/lib/modsi3.S
+index 1c967649a4e0..1bcb742d0b76 100644
+--- a/arch/m68k/lib/modsi3.S
++++ b/arch/m68k/lib/modsi3.S
+@@ -33,7 +33,7 @@ General Public License for more details. */
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+ 
 -#include <asm/export.h>
- #include <asm/regdef.h>
- 
- #define dst a0
-diff --git a/arch/mips/lib/memset.S b/arch/mips/lib/memset.S
-index 0b342bae9a98..79405c32cc85 100644
---- a/arch/mips/lib/memset.S
-+++ b/arch/mips/lib/memset.S
-@@ -8,9 +8,9 @@
-  * Copyright (C) 2007 by Maciej W. Rozycki
-  * Copyright (C) 2011, 2012 MIPS Technologies, Inc.
-  */
 +#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asm-offsets.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
  
- #if LONGSIZE == 4
-diff --git a/arch/mips/lib/strncpy_user.S b/arch/mips/lib/strncpy_user.S
-index 13aaa9927ad1..94f4203563c1 100644
---- a/arch/mips/lib/strncpy_user.S
-+++ b/arch/mips/lib/strncpy_user.S
-@@ -7,9 +7,9 @@
-  * Copyright (C) 2011 MIPS Technologies, Inc.
-  */
- #include <linux/errno.h>
+ /* These are predefined by new versions of GNU cpp.  */
+ 
+diff --git a/arch/m68k/lib/mulsi3.S b/arch/m68k/lib/mulsi3.S
+index 855675e69a8a..c2853248249e 100644
+--- a/arch/m68k/lib/mulsi3.S
++++ b/arch/m68k/lib/mulsi3.S
+@@ -32,7 +32,7 @@ General Public License for more details. */
+    Some of this code comes from MINIX, via the folks at ericsson.
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+-#include <asm/export.h>
 +#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asm-offsets.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
+ /* These are predefined by new versions of GNU cpp.  */
  
- #define EX(insn,reg,addr,handler)			\
-diff --git a/arch/mips/lib/strnlen_user.S b/arch/mips/lib/strnlen_user.S
-index 6de31b616f9c..c192a6f6cd84 100644
---- a/arch/mips/lib/strnlen_user.S
-+++ b/arch/mips/lib/strnlen_user.S
-@@ -6,9 +6,9 @@
-  * Copyright (c) 1996, 1998, 1999, 2004 by Ralf Baechle
-  * Copyright (c) 1999 Silicon Graphics, Inc.
-  */
+ #ifndef __USER_LABEL_PREFIX__
+diff --git a/arch/m68k/lib/udivsi3.S b/arch/m68k/lib/udivsi3.S
+index 78440ae513bf..39ad70596293 100644
+--- a/arch/m68k/lib/udivsi3.S
++++ b/arch/m68k/lib/udivsi3.S
+@@ -32,7 +32,7 @@ General Public License for more details. */
+    Some of this code comes from MINIX, via the folks at ericsson.
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+-#include <asm/export.h>
 +#include <linux/export.h>
- #include <asm/asm.h>
- #include <asm/asm-offsets.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
+ /* These are predefined by new versions of GNU cpp.  */
  
- #define EX(insn,reg,addr,handler)			\
-diff --git a/arch/mips/mm/page-funcs.S b/arch/mips/mm/page-funcs.S
-index 43181ac0a1af..42d0516ca18a 100644
---- a/arch/mips/mm/page-funcs.S
-+++ b/arch/mips/mm/page-funcs.S
-@@ -8,8 +8,8 @@
-  * Copyright (C) 2012  MIPS Technologies, Inc.
-  * Copyright (C) 2012  Ralf Baechle <ralf@linux-mips.org>
-  */
+ #ifndef __USER_LABEL_PREFIX__
+diff --git a/arch/m68k/lib/umodsi3.S b/arch/m68k/lib/umodsi3.S
+index b6fd11f58948..6640eaa9eb03 100644
+--- a/arch/m68k/lib/umodsi3.S
++++ b/arch/m68k/lib/umodsi3.S
+@@ -32,7 +32,7 @@ General Public License for more details. */
+    Some of this code comes from MINIX, via the folks at ericsson.
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+-#include <asm/export.h>
 +#include <linux/export.h>
- #include <asm/asm.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
+ /* These are predefined by new versions of GNU cpp.  */
  
- #ifdef CONFIG_SIBYTE_DMA_PAGEOPS
-diff --git a/arch/mips/mm/tlb-funcs.S b/arch/mips/mm/tlb-funcs.S
-index 00fef578c8cd..2705d7dcb33e 100644
---- a/arch/mips/mm/tlb-funcs.S
-+++ b/arch/mips/mm/tlb-funcs.S
-@@ -11,8 +11,8 @@
-  * Copyright (C) 2012  MIPS Technologies, Inc.
-  * Copyright (C) 2012  Ralf Baechle <ralf@linux-mips.org>
-  */
-+#include <linux/export.h>
- #include <asm/asm.h>
--#include <asm/export.h>
- #include <asm/regdef.h>
- 
- #define FASTPATH_SIZE	128
+ #ifndef __USER_LABEL_PREFIX__
 -- 
 2.39.2
 
