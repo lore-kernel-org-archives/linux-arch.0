@@ -2,175 +2,126 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3E6BDEB64DD
-	for <linux-arch@archiver.kernel.org>; Mon,  7 Aug 2023 10:21:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2926EC04E69
+	for <linux-arch@archiver.kernel.org>; Mon,  7 Aug 2023 12:37:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231349AbjHGKVs (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 7 Aug 2023 06:21:48 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49898 "EHLO
+        id S232181AbjHGMhT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 7 Aug 2023 08:37:19 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36524 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231269AbjHGKVn (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2023 06:21:43 -0400
-Received: from EUR05-DB8-obe.outbound.protection.outlook.com (mail-db8eur05on2075.outbound.protection.outlook.com [40.107.20.75])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F150710F7;
-        Mon,  7 Aug 2023 03:21:41 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=armh.onmicrosoft.com;
- s=selector2-armh-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=Mrs6y9Ptah9WPIEcrIb0ZeASDoxywYFtpPwtKfqhMWE=;
- b=oQyNepHlSzcZkHsVl1gWTKObuR6WipAgDDDyaUwJjBOR5TvLMEJzz0NHus7CsbcjMobDo62Wi1+X58GzYj/qVIek0EQKSgLSIQxi5D3pS8Gtl997RYuBnTyyNQ/dBPybVU/12SuNTphNaWHyc3/6RB34oJwKGVqb8K4TtEJDAU8=
-Received: from DUZPR01CA0207.eurprd01.prod.exchangelabs.com
- (2603:10a6:10:4b6::9) by AM0PR08MB5476.eurprd08.prod.outlook.com
- (2603:10a6:208:18d::18) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6652.26; Mon, 7 Aug
- 2023 10:21:26 +0000
-Received: from DBAEUR03FT064.eop-EUR03.prod.protection.outlook.com
- (2603:10a6:10:4b6:cafe::63) by DUZPR01CA0207.outlook.office365.com
- (2603:10a6:10:4b6::9) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6652.26 via Frontend
- Transport; Mon, 7 Aug 2023 10:21:25 +0000
-X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 63.35.35.123)
- smtp.mailfrom=arm.com; dkim=pass (signature was verified)
- header.d=armh.onmicrosoft.com;dmarc=pass action=none header.from=arm.com;
-Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
- 63.35.35.123 as permitted sender) receiver=protection.outlook.com;
- client-ip=63.35.35.123; helo=64aa7808-outbound-1.mta.getcheckrecipient.com;
- pr=C
-Received: from 64aa7808-outbound-1.mta.getcheckrecipient.com (63.35.35.123) by
- DBAEUR03FT064.mail.protection.outlook.com (100.127.143.3) with Microsoft SMTP
- Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.20.6678.15 via Frontend Transport; Mon, 7 Aug 2023 10:21:25 +0000
-Received: ("Tessian outbound f9124736ff4f:v145"); Mon, 07 Aug 2023 10:21:25 +0000
-X-CheckRecipientChecked: true
-X-CR-MTA-CID: d6abb263343ff9e9
-X-CR-MTA-TID: 64aa7808
-Received: from 7876b55f53d8.2
-        by 64aa7808-outbound-1.mta.getcheckrecipient.com id 9065A3D3-B4AC-44BB-8CEB-3887A004694F.1;
-        Mon, 07 Aug 2023 10:21:15 +0000
-Received: from EUR04-VI1-obe.outbound.protection.outlook.com
-    by 64aa7808-outbound-1.mta.getcheckrecipient.com with ESMTPS id 7876b55f53d8.2
-    (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384);
-    Mon, 07 Aug 2023 10:21:15 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=WDVtEsOp0ZspyDEtXDuyt2lDuf5M3rqll2Hidi63YbB2TTEh4Vb/wasdd4uwIuPYy2q//Zf5O2L8DksZmVVpaN3VYLpZ5y54Z6Z4tXVZWReNB3xqmVnj0WVmW5Pw0Ubd5/o8DM+V9k7DFXiucOx9FpiSJTvjakD7vWRpUAMKMwkuaKJXRJjuj6T9OzKHZKy4h47bRrmOaykvGUCcI36hDW7A9QnjAPzzNXvF26QG/J+JI1zoXaWVTnkO7mEaKN/4NX2E5JfewoF94wtTtiIGgm3YYZTtuYCDWTo1+Hb+xYdCGcFKNJYVRJt0ZF6leXny8pNevr0kVY6BWAKXbukVyg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=Mrs6y9Ptah9WPIEcrIb0ZeASDoxywYFtpPwtKfqhMWE=;
- b=cMABMlLUSQEgcDRC48dwh12XE/QqL/SgrUWPWlNMDnISJYswVit6whfTZo4umx96pGT1DLzJxydfn9MrgyqmtXjNIm38FSbcQ86VNuxYuLHO2cXumpMRTO9tsbeiRE7DVFiE0AwkpF79HAeLS+vY846I2qltkFbwiX+OK8DMdNsTYw2/VCfjGzOp2I9NuHaYI+kHClPUtqmwqax9dgeFXGXahuBCFtCqvGnlK2kYbZbSWnJmedvXcvRWCXLmUwbXBDs/F3B41JLf1Q58FZoMyJfT8pQTu7pMQPaoSwkIavJOD4Dzht3PMVWC+/F1LyifYl9c3Nd0aKluTzOsZuKphw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
- header.d=arm.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=armh.onmicrosoft.com;
- s=selector2-armh-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=Mrs6y9Ptah9WPIEcrIb0ZeASDoxywYFtpPwtKfqhMWE=;
- b=oQyNepHlSzcZkHsVl1gWTKObuR6WipAgDDDyaUwJjBOR5TvLMEJzz0NHus7CsbcjMobDo62Wi1+X58GzYj/qVIek0EQKSgLSIQxi5D3pS8Gtl997RYuBnTyyNQ/dBPybVU/12SuNTphNaWHyc3/6RB34oJwKGVqb8K4TtEJDAU8=
-Authentication-Results-Original: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=arm.com;
-Received: from DB9PR08MB7179.eurprd08.prod.outlook.com (2603:10a6:10:2cc::19)
- by AS8PR08MB10151.eurprd08.prod.outlook.com (2603:10a6:20b:628::9) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6652.26; Mon, 7 Aug
- 2023 10:21:12 +0000
-Received: from DB9PR08MB7179.eurprd08.prod.outlook.com
- ([fe80::adb0:61cb:8733:6db2]) by DB9PR08MB7179.eurprd08.prod.outlook.com
- ([fe80::adb0:61cb:8733:6db2%7]) with mapi id 15.20.6652.026; Mon, 7 Aug 2023
- 10:21:12 +0000
-Date:   Mon, 7 Aug 2023 11:20:58 +0100
-From:   Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-To:     Mark Brown <broonie@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Marc Zyngier <maz@kernel.org>,
-        Oliver Upton <oliver.upton@linux.dev>,
-        James Morse <james.morse@arm.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Kees Cook <keescook@chromium.org>,
-        Shuah Khan <shuah@kernel.org>,
-        "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
-        Deepak Gupta <debug@rivosinc.com>,
-        Ard Biesheuvel <ardb@kernel.org>
-Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
-        kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org
-Subject: Re: [PATCH v3 21/36] arm64/mm: Implement map_shadow_stack()
-Message-ID: <ZNDFioFIM34VcsuV@arm.com>
-References: <20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org>
- <20230731-arm64-gcs-v3-21-cddf9f980d98@kernel.org>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20230731-arm64-gcs-v3-21-cddf9f980d98@kernel.org>
-X-ClientProxiedBy: LO6P123CA0017.GBRP123.PROD.OUTLOOK.COM
- (2603:10a6:600:313::7) To DB9PR08MB7179.eurprd08.prod.outlook.com
- (2603:10a6:10:2cc::19)
+        with ESMTP id S229562AbjHGMhS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 7 Aug 2023 08:37:18 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E685810F2;
+        Mon,  7 Aug 2023 05:37:16 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-ID:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=53jHvCThY56ekVsZwPC+RAqN66FMg8fPTI36UoUqaKU=; b=eqmLvazGl7vBH7qJgPl+mV8Rn1
+        Db9gNWnIQZ6A9f+8x4iCTa3tOp45OF1tMlCfJCzFVwpufed2L7Syzuc7UOY9iih9D4mimwCVtlcDQ
+        5FAN+SfFoNcoZgnC0ba/iDFxh6N7opePHRF2GS1XFSgF6jwb1TdsPczXS237JH48Uo2hQM6B4//4N
+        5GuRLi7XiTPgNCyPEcQw5aln/fT+PUo0QdWUVkjjAyoUG6MzYF3TqTPqdrdvCZsTN9LYGFKD0FGFf
+        TQK0/YtXVD4x9hkj8ivhhhRiVCQ2Rx4zxOsKNOlw0CNxd3aDi11330mX1Q9ng36kvGJP2ha83Y9ht
+        EjcAsWdA==;
+Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
+        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1qSzTk-00AxFz-Rv; Mon, 07 Aug 2023 12:36:57 +0000
+Received: from hirez.programming.kicks-ass.net (hirez.programming.kicks-ass.net [192.168.1.225])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (4096 bits))
+        (Client did not present a certificate)
+        by noisy.programming.kicks-ass.net (Postfix) with ESMTPS id D39913005A2;
+        Mon,  7 Aug 2023 14:36:54 +0200 (CEST)
+Received: by hirez.programming.kicks-ass.net (Postfix, from userid 0)
+        id 8A81C2021C3D4; Mon,  7 Aug 2023 14:36:54 +0200 (CEST)
+Message-ID: <20230807123322.814039156@infradead.org>
+User-Agent: quilt/0.66
+Date:   Mon, 07 Aug 2023 14:18:44 +0200
+From:   Peter Zijlstra <peterz@infradead.org>
+To:     tglx@linutronix.de, axboe@kernel.dk
+Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
+        mingo@redhat.com, dvhart@infradead.org, dave@stgolabs.net,
+        andrealmeid@igalia.com, Andrew Morton <akpm@linux-foundation.org>,
+        urezki@gmail.com, hch@infradead.org, lstoakes@gmail.com,
+        Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
+        linux-mm@kvack.org, linux-arch@vger.kernel.org,
+        malteskarupke@web.de
+Subject: [PATCH  v2 01/14] futex: Clarify FUTEX2 flags
+References: <20230807121843.710612856@infradead.org>
 MIME-Version: 1.0
-X-MS-TrafficTypeDiagnostic: DB9PR08MB7179:EE_|AS8PR08MB10151:EE_|DBAEUR03FT064:EE_|AM0PR08MB5476:EE_
-X-MS-Office365-Filtering-Correlation-Id: c72431a3-cfbc-4efc-6995-08db97300e62
-x-checkrecipientrouted: true
-NoDisclaimer: true
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam-Untrusted: BCL:0;
-X-Microsoft-Antispam-Message-Info-Original: CTRobn5o9nqHHhogJ7n8JBCHnbaaCwFAgnJ1NMXylevQ6J4xtiPtYYyAvqQCiRG/rMlJ5OGosHgNx6zVzMwOE46qZ6ysELCvpfVTxVKI1xYrVYjM0IjDYfsk6TgFFehNoHe/t03778ZtffFy70hdIXk24wXL+PjrFtjJ3LowlG4JD/wySKmJEJVAKC98NbAh453Eibky/SExOELBrzoGxTMT+XVxAbd02vXqLgI5+tsYi3uFU0BRQb7ZSPZvdnRI4dtqKL9+o2uuSLJUgRCDAJL0h4+3c+M+7pNhdxAVhRgU9yVxRCFLa2uIMJCHgqeKrxwqfqIS2Mu3zGMjkvOA3K6t91e/JDGg8wMRn+Kv2nf0KnOp6hu/WDAy0d4wASwNbeeGZyQpFEVYjQrLwD0U7heWx8BRW1wYJh4Z9RWpXMhlvskb8YMl6zabT/a8WF7kOSwHpD3T55kjTUbnbogY+Ly3nKfeigmXV8nLWBAeC0I0gBaTk4pbdxXkHfZ4lFfpkdjzK6KRyuGI8pt6altuAOvwyl6w/FHbUmeF8WgNdp+JlfSFwdYFG8kILSugIySaEpx71QCDaSX4CZoZeM3U9KIzZdTbB2XIZT2ceyeX4W0=
-X-Forefront-Antispam-Report-Untrusted: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DB9PR08MB7179.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230028)(4636009)(396003)(346002)(366004)(39860400002)(376002)(136003)(451199021)(1800799003)(186006)(6512007)(26005)(6506007)(36756003)(110136005)(54906003)(38100700002)(5660300002)(7416002)(86362001)(4744005)(4326008)(2906002)(66476007)(66556008)(66946007)(41300700001)(316002)(8936002)(8676002)(6666004)(478600001)(921005)(2616005)(6486002);DIR:OUT;SFP:1101;
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: AS8PR08MB10151
-Original-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=arm.com;
-X-EOPAttributedMessage: 0
-X-MS-Exchange-Transport-CrossTenantHeadersStripped: DBAEUR03FT064.eop-EUR03.prod.protection.outlook.com
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id-Prvs: fbe038b5-8ae4-4c9f-ce87-08db973005e5
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: 0OnYTicc3g4QWAuhipwb+rvZ5MWFXP01n2gRK2Pp0c5XxDTbHCDOdp0FWwXzbdPXHU5zVsCLgv2X7wFit5mYHNGjLH2cRYGjb9YsPg9kBA3ith650XlJJwi/uM1//1wpFJnks7XWXdvBYbQXvK6LSXeT5rsQtV3J3qZBx4yFYdVOK4NcCyq0dmi6VvTCfTDZKIBdJ4jhPLfeUwnDnBztfnIXUu2A/SRR/9MRrvKGwefvRlAjOCAEktd/PW37hPT11oDkU+AewDiseglQTS1ol2lz16/GWa8pAp2sGMxvGXzcyKx3Wvvp7b8FBa4HlBaeYEIkdS6mTDC4/idKt3a2NAirnyJqb1r3O7ntTvTI59pzQr2VYtyuiZbdjgc5mV5OHTSBT+IGmxJTTI7MNrptiA4bFrQ25MBA5l1OalfL9RNzO6yOZhdvq0qi8IiE+Kk3c45dD+plxxuSY3GI3XscDL00QUxvtrpbyZme7SDXE9cwHmlKIYkRG0onEtMgVDgaU2DWzcYeBZN8wcMVjCH+G9a+bbMumEeCS2rkUd8i9NTPlZ4aKIOnVQYTFzi7Z9/kcFLCCpnipBHdGxhOUNQl+RQCB2MyRRn1d9scjluyt4Qtqrlucp4qvt3TyTtROHgaCY8hTWF69JXLH2AacJD9990Dgv25fLMxmxXsyilHhpYmESPvf5CVCa6t+jGT3xTtXnKTJSCXzwHxY/mCkvYuoHzuKcQJRgb9dxkBBj2i8cQM0kvHP/15KdtVjlkTaZ77
-X-Forefront-Antispam-Report: CIP:63.35.35.123;CTRY:IE;LANG:en;SCL:1;SRV:;IPV:CAL;SFV:NSPM;H:64aa7808-outbound-1.mta.getcheckrecipient.com;PTR:ec2-63-35-35-123.eu-west-1.compute.amazonaws.com;CAT:NONE;SFS:(13230028)(4636009)(396003)(39860400002)(376002)(136003)(346002)(451199021)(82310400008)(1800799003)(186006)(46966006)(36840700001)(40470700004)(6512007)(40480700001)(26005)(6506007)(107886003)(40460700003)(36756003)(54906003)(110136005)(5660300002)(86362001)(4744005)(4326008)(2906002)(450100002)(70206006)(70586007)(41300700001)(8936002)(8676002)(316002)(6666004)(921005)(356005)(478600001)(81166007)(82740400003)(2616005)(47076005)(36860700001)(6486002)(336012);DIR:OUT;SFP:1101;
-X-OriginatorOrg: arm.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Aug 2023 10:21:25.7205
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: c72431a3-cfbc-4efc-6995-08db97300e62
-X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[63.35.35.123];Helo=[64aa7808-outbound-1.mta.getcheckrecipient.com]
-X-MS-Exchange-CrossTenant-AuthSource: DBAEUR03FT064.eop-EUR03.prod.protection.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM0PR08MB5476
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The 07/31/2023 14:43, Mark Brown wrote:
-> +SYSCALL_DEFINE3(map_shadow_stack, unsigned long, addr, unsigned long, size, unsigned int, flags)
-> +{
-> +	unsigned long alloc_size;
-> +	unsigned long __user *cap_ptr;
-> +	unsigned long cap_val;
-> +	int ret;
-> +
-> +	if (!system_supports_gcs())
-> +		return -EOPNOTSUPP;
-> +
-> +	if (flags)
-> +		return -EINVAL;
-> +
-> +	if (addr % 16)
-> +		return -EINVAL;
+sys_futex_waitv() is part of the futex2 series (the first and only so
+far) of syscalls and has a flags field per futex (as opposed to flags
+being encoded in the futex op).
 
-mmap addr must be page aligned (and there is no align req on size).
+This new flags field has a new namespace, which unfortunately isn't
+super explicit. Notably it currently takes FUTEX_32 and
+FUTEX_PRIVATE_FLAG.
 
-i'd expect similar api here.
+Introduce the FUTEX2 namespace to clarify this
 
-> +
-> +	if (size == 16 || size % 16)
-> +		return -EINVAL;
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ include/uapi/linux/futex.h |   16 +++++++++++++---
+ kernel/futex/syscalls.c    |    7 +++----
+ 2 files changed, 16 insertions(+), 7 deletions(-)
 
-why %16 and not %8 ?
+--- a/include/uapi/linux/futex.h
++++ b/include/uapi/linux/futex.h
+@@ -44,10 +44,20 @@
+ 					 FUTEX_PRIVATE_FLAG)
+ 
+ /*
+- * Flags to specify the bit length of the futex word for futex2 syscalls.
+- * Currently, only 32 is supported.
++ * Flags for futex2 syscalls.
+  */
+-#define FUTEX_32		2
++			/*	0x00 */
++			/*	0x01 */
++#define FUTEX2_SIZE_U32		0x02
++			/*	0x04 */
++			/*	0x08 */
++			/*	0x10 */
++			/*	0x20 */
++			/*	0x40 */
++#define FUTEX2_PRIVATE		FUTEX_PRIVATE_FLAG
++
++/* do not use */
++#define FUTEX_32		FUTEX2_SIZE_U32 /* historical accident :-( */
+ 
+ /*
+  * Max numbers of elements in a futex_waitv array
+--- a/kernel/futex/syscalls.c
++++ b/kernel/futex/syscalls.c
+@@ -183,8 +183,7 @@ SYSCALL_DEFINE6(futex, u32 __user *, uad
+ 	return do_futex(uaddr, op, val, tp, uaddr2, (unsigned long)utime, val3);
+ }
+ 
+-/* Mask of available flags for each futex in futex_waitv list */
+-#define FUTEXV_WAITER_MASK (FUTEX_32 | FUTEX_PRIVATE_FLAG)
++#define FUTEX2_VALID_MASK (FUTEX2_SIZE_U32 | FUTEX2_PRIVATE)
+ 
+ /**
+  * futex_parse_waitv - Parse a waitv array from userspace
+@@ -205,10 +204,10 @@ static int futex_parse_waitv(struct fute
+ 		if (copy_from_user(&aux, &uwaitv[i], sizeof(aux)))
+ 			return -EFAULT;
+ 
+-		if ((aux.flags & ~FUTEXV_WAITER_MASK) || aux.__reserved)
++		if ((aux.flags & ~FUTEX2_VALID_MASK) || aux.__reserved)
+ 			return -EINVAL;
+ 
+-		if (!(aux.flags & FUTEX_32))
++		if (!(aux.flags & FUTEX2_SIZE_U32))
+ 			return -EINVAL;
+ 
+ 		futexv[i].w.flags = aux.flags;
+
+
