@@ -2,85 +2,99 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D258BC04A6A
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 17:48:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 941DDC04A94
+	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 18:08:34 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232921AbjHHRse (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Aug 2023 13:48:34 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34658 "EHLO
+        id S235317AbjHHSId (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Aug 2023 14:08:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43920 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230264AbjHHRsF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 13:48:05 -0400
-Received: from galois.linutronix.de (Galois.linutronix.de [IPv6:2a0a:51c0:0:12e:550::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id AB2AD26326;
-        Tue,  8 Aug 2023 09:21:21 -0700 (PDT)
-From:   Thomas Gleixner <tglx@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020; t=1691485930;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=DoNI5v5umT0Z8D7XCCNoP2aZrQ/gIq+jzyHgWzWgdgo=;
-        b=NqxDxnpmcGRK6PtnO2RtI8BZQByg8ruKL7AL6OSKYguyFob+ikfLazgjxgzcUIJWkJhrIV
-        Yd3n5dzvSzw5eVwwC0r2HOYW6OtbKaFSRM6SpqW5HBgBtS+xwvuxk7HIponmeb+5YGaRpK
-        vmUnB89jlJlxzC0YFhTOSLlZj8RqGKax7LN8fMKvpWMl8AmHQ4jses991y5VE8KX5/bm9r
-        Q9vK4dhdNvj/zvq32GeI8WemoTegluSjDa6sohOJpDMN/IkUd9004TZI2p/1xDXw0ONEa5
-        yykhTXK511yAJf2tMDinXIC4bHb2+ZzTgMR07UtYcZ4/sDGELEpKDRe1y3Rqkw==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-        s=2020e; t=1691485930;
-        h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-         to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-         in-reply-to:in-reply-to:references:references;
-        bh=DoNI5v5umT0Z8D7XCCNoP2aZrQ/gIq+jzyHgWzWgdgo=;
-        b=AKO4JGVhFpvSXlHLtgexL3PAvihILrtXinYpKnJnh4vFOWYHw1/0e+Pbm0TdD8Oax1T3wG
-        mduROucX9K/ICRAg==
-To:     Peter Zijlstra <peterz@infradead.org>
-Cc:     axboe@kernel.dk, linux-kernel@vger.kernel.org, mingo@redhat.com,
-        dvhart@infradead.org, dave@stgolabs.net, andrealmeid@igalia.com,
-        Andrew Morton <akpm@linux-foundation.org>, urezki@gmail.com,
-        hch@infradead.org, lstoakes@gmail.com,
-        Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
-        linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        malteskarupke@web.de
-Subject: Re: [PATCH  v2 11/14] futex: Implement FUTEX2_NUMA
-In-Reply-To: <20230808085406.GU212435@hirez.programming.kicks-ass.net>
-References: <20230807121843.710612856@infradead.org>
- <20230807123323.504975124@infradead.org> <87fs4utv6f.ffs@tglx>
- <20230808085406.GU212435@hirez.programming.kicks-ass.net>
-Date:   Tue, 08 Aug 2023 11:12:09 +0200
-Message-ID: <87y1ilsxsm.ffs@tglx>
+        with ESMTP id S235264AbjHHSIO (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 14:08:14 -0400
+Received: from mail-lj1-x235.google.com (mail-lj1-x235.google.com [IPv6:2a00:1450:4864:20::235])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6326163D60
+        for <linux-arch@vger.kernel.org>; Tue,  8 Aug 2023 10:09:27 -0700 (PDT)
+Received: by mail-lj1-x235.google.com with SMTP id 38308e7fff4ca-2b9aa1d3029so94876571fa.2
+        for <linux-arch@vger.kernel.org>; Tue, 08 Aug 2023 10:09:27 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linaro.org; s=google; t=1691514565; x=1692119365;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=k0zLEburh9ZFfE548pNOj7q2UOj2GGR4k/WQno4jj70=;
+        b=S+AucvGTkY09UO3Bc6ry7Q5Xi0gdFFTpRS0Cj/AXdz4163H9qhmfp7v+r+Hm29wCqf
+         O2qWaNHdBntMCRXP2W9ZpC1f6s/5X6AVSpb0m6Uu9xbPGipIT5cyztACYuJCQS1sL1Ht
+         XA/q56Djn16kH9WYzmZpYg+vUw5FGv8NL9Pg3IdmHRv68sxOt9mXJTsMK735enVChD2I
+         wC8D37wrVs4cUJQTYexrtcycng+M8WwHLfFEpPswymOX8S/aWWg7CU3C2fn7Kpgi3SCc
+         B/YxdfU53iumsVj7ualt/8a6yukVkAN5HjsSdz2eRgzGEupRHSavUv73cW4BS9bYosXm
+         urFw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1691514565; x=1692119365;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to
+         :content-language:subject:user-agent:mime-version:date:message-id
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=k0zLEburh9ZFfE548pNOj7q2UOj2GGR4k/WQno4jj70=;
+        b=dFoc+HMGfrJQ0MnB13INPgRWh4DWXEDDL6oIx1tO3LIBI49pWoCmEGpimqNR3aHKn3
+         jP4GOiX/3AgnT79Rn900E1L6/S8rF39mvGxea2qASl6NUNTA0AugophrpuCzrV7Luj2N
+         jYV0h8qs/2N35WTnihJrnosCUHcUKYm6suHD5oEIEKn/AYNemlzVkjSYqlR2gaOUgJoD
+         FjRS99gLCSc2iERQhYFBYzH2ZCB/HCK/osa9aT3k0z4aVp74F+/nECQHjhSI8BW6V9EI
+         BtlB33QWZtwcJQeKgmxIk+8B4zhOg4+DDiufi2Xxy84uyp8bWp+VE6BvYeCdNMXiDhpe
+         /WxA==
+X-Gm-Message-State: AOJu0Yxhm9wH5GFBksZlhmvfaD67yEpYfB2vun8amLIFp6bqg/4HU8rb
+        tbwSabSKO3+w15nsSB+QzQhqpDxeCONNYbLBheE=
+X-Google-Smtp-Source: AGHT+IENaoLogdmwEquxviK7pRALZnOeydEhILSaohDlqrXatiaCu5M9MfM3jQOl2xSE+z2HLZbssA==
+X-Received: by 2002:a05:600c:2213:b0:3fe:2b76:3d7 with SMTP id z19-20020a05600c221300b003fe2b7603d7mr9376833wml.10.1691487533357;
+        Tue, 08 Aug 2023 02:38:53 -0700 (PDT)
+Received: from [192.168.69.115] ([176.176.177.253])
+        by smtp.gmail.com with ESMTPSA id e13-20020a05600c218d00b003fe2bea77ccsm13219267wme.5.2023.08.08.02.38.50
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 08 Aug 2023 02:38:53 -0700 (PDT)
+Message-ID: <60ac32e8-5fea-84d4-ff3f-f09e6f8ad499@linaro.org>
+Date:   Tue, 8 Aug 2023 11:38:49 +0200
 MIME-Version: 1.0
-Content-Type: text/plain
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
+ Gecko/20100101 Thunderbird/102.13.0
+Subject: Re: [PATCH 2/3] mips: replace #include <asm/export.h> with #include
+ <linux/export.h>
+Content-Language: en-US
+To:     Masahiro Yamada <masahiroy@kernel.org>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        linux-mips@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+References: <20230807153243.996262-1-masahiroy@kernel.org>
+ <20230807153243.996262-2-masahiroy@kernel.org>
+From:   =?UTF-8?Q?Philippe_Mathieu-Daud=c3=a9?= <philmd@linaro.org>
+In-Reply-To: <20230807153243.996262-2-masahiroy@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Aug 08 2023 at 10:54, Peter Zijlstra wrote:
-> On Mon, Aug 07, 2023 at 11:11:04PM +0200, Thomas Gleixner wrote:
->> On Mon, Aug 07 2023 at 14:18, Peter Zijlstra wrote:
->> >  /**
->> >   * futex_hash - Return the hash bucket in the global hash
->> >   * @key:	Pointer to the futex key for which the hash is calculated
->> > @@ -114,10 +137,29 @@ late_initcall(fail_futex_debugfs);
->> >   */
->> >  struct futex_hash_bucket *futex_hash(union futex_key *key)
->> >  {
->> > -	u32 hash = jhash2((u32 *)key, offsetof(typeof(*key), both.offset) / 4,
->> > +	u32 hash = jhash2((u32 *)key,
->> > +			  offsetof(typeof(*key), both.offset) / sizeof(u32),
->> >  			  key->both.offset);
->> > +	int node = key->both.node;
->> > +
->> > +	if (node == -1) {
->> 
->> NUMA_NO_NODE please all over the place.
->
-> Ah, so our (futex2) ABI states this needs to be -1, but in theory
-> someone could come along and change the kernel internal NUMA_NO_NODE to
-> something else.
->
-> That is, I explicitly chose not to use it. I can of course, because as
-> of now these values do match.
+On 7/8/23 17:32, Masahiro Yamada wrote:
+> Commit ddb5cdbafaaa ("kbuild: generate KSYMTAB entries by modpost")
+> deprecated <asm/export.h>, which is now a wrapper of <linux/export.h>.
+> 
+> Replace #include <asm/export.h> with #include <linux/export.h>.
+> 
+> After all the <asm/export.h> lines are converted, <asm/export.h> and
+> <asm-generic/export.h> will be removed.
+> 
+> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+> ---
+> 
+>   arch/mips/cavium-octeon/octeon-memcpy.S | 2 +-
+>   arch/mips/kernel/mcount.S               | 2 +-
+>   arch/mips/kernel/r2300_fpu.S            | 2 +-
+>   arch/mips/kernel/r4k_fpu.S              | 2 +-
+>   arch/mips/lib/csum_partial.S            | 2 +-
+>   arch/mips/lib/memcpy.S                  | 2 +-
+>   arch/mips/lib/memset.S                  | 2 +-
+>   arch/mips/lib/strncpy_user.S            | 2 +-
+>   arch/mips/lib/strnlen_user.S            | 2 +-
+>   arch/mips/mm/page-funcs.S               | 2 +-
+>   arch/mips/mm/tlb-funcs.S                | 2 +-
+>   11 files changed, 11 insertions(+), 11 deletions(-)
 
-Fair enough, but can we at least have a proper define in the futex2 ABI
-please?
+Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+
