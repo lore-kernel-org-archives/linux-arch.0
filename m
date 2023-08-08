@@ -2,212 +2,298 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4F830C04E69
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 21:14:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C336EC001B0
+	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 21:48:04 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236379AbjHHVOh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Aug 2023 17:14:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36522 "EHLO
+        id S231586AbjHHVsD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Aug 2023 17:48:03 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48638 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236381AbjHHVO1 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 17:14:27 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59B66EF08;
-        Tue,  8 Aug 2023 13:25:22 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id E447662972;
-        Tue,  8 Aug 2023 20:25:21 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 642B0C433C7;
-        Tue,  8 Aug 2023 20:25:14 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1691526321;
-        bh=smwaBn/3bhNSBudLMySHNd7VdPh0ay51eRzjOUAiv8k=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=Z7qPau380MtqBH1YfBjf3ydSe5ZPYOXHkvrPUe9NueiqGF06irfTF61HfBlWIgEFM
-         Xene2NE0cZsbfc2/THaiH2McN+fJdiUtfouEeeC+uTCqNKj3ibgNrxGiBbpzXM2Rfr
-         SLP2dNBoB4rAy2dAR+EjA+W5kuwIc3bsOHQmGjDMAjdbaal6lB4m2K1kA6RktTFbmO
-         02t7XsWWSbtTXvIUWrk8iMcnEOIvFO7Y/cWPTnAO+6lk64SAs11bpXJ/uRCtzNh6CR
-         cFThQj0MCTV2OyT9PlJbicNhDswQ0VbfX2XhKiU6rRGAMW/+MAkZniDHdnmuLuo+LK
-         255m/CZ2eUo6w==
-Date:   Tue, 8 Aug 2023 21:25:11 +0100
-From:   Mark Brown <broonie@kernel.org>
-To:     Will Deacon <will@kernel.org>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Marc Zyngier <maz@kernel.org>,
-        Oliver Upton <oliver.upton@linux.dev>,
-        James Morse <james.morse@arm.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Kees Cook <keescook@chromium.org>,
-        Shuah Khan <shuah@kernel.org>,
-        "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
-        Deepak Gupta <debug@rivosinc.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Szabolcs Nagy <Szabolcs.Nagy@arm.com>,
-        "H.J. Lu" <hjl.tools@gmail.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
-        kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org
-Subject: Re: [PATCH v3 00/36] arm64/gcs: Provide support for GCS in userspace
-Message-ID: <f279ec25-e1c7-48e6-bd9d-5c753e829aad@sirena.org.uk>
-References: <20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org>
- <20230801141319.GC26253@willie-the-truck>
- <09b7a94d-cc88-4372-85de-52db26bc2daf@sirena.org.uk>
- <20230808133857.GC2369@willie-the-truck>
+        with ESMTP id S231365AbjHHVsC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 17:48:02 -0400
+Received: from mail-yw1-x1134.google.com (mail-yw1-x1134.google.com [IPv6:2607:f8b0:4864:20::1134])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 17B7830DD;
+        Tue,  8 Aug 2023 10:18:45 -0700 (PDT)
+Received: by mail-yw1-x1134.google.com with SMTP id 00721157ae682-584243f84eeso67230587b3.0;
+        Tue, 08 Aug 2023 10:18:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20221208; t=1691515121; x=1692119921;
+        h=cc:to:subject:message-id:date:from:references:in-reply-to
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=694ts041qMq4P0o30b2m71kcJCYvyz59KOSQWxuaGro=;
+        b=AEvteDYhCGBKfBiYrW1QNP/QSXTIrNuNomnfLMNuss3h7d/AKsaaWhq0cT2ZMmOkPf
+         Sne9PgyD9QNwb3SQ9wPsHoGzypxmo6Hb+RNIimf7/yMzdBb0gNplY/XjTzMYMm8wPekn
+         UppRRROJll68BbzeZTEb3eyIFqzpElGORhcAQ1MiCboCVKVoHbiSbsi3w1exFmoxhD/l
+         L9OxjRp9cUfKhb7jtEAyPSPH+JN9IVC5M3TnjvRygh8RdPPjy7j/RRuN6LtktFFQ2nGC
+         g7/5QEmMt6Z8DvBbEJe0E52UvRRxC/VYiXtu9uoObTLnBrI8gKpP+XfToMtswXuJGuHE
+         pQQw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1691515121; x=1692119921;
+        h=cc:to:subject:message-id:date:from:references:in-reply-to
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=694ts041qMq4P0o30b2m71kcJCYvyz59KOSQWxuaGro=;
+        b=F9EP6MmO0bX3bXiAEwjwhTwpbj0TGYWhTh13aWi99VEJqOWiLxOuipfrxjQFjJjsKK
+         XEYHotDa595BYlZoI6O2EuogG22CMuzDugGFirK1S/RYb7GU1EnPmOw0PbuIEfzIBQsk
+         0HWAAtDJNU5sFvyRmKnvaLb9WdPrj5Ox06gz8LplNf+rhFpqnOogY2xWKP5BYq6zMZEy
+         Jgp1bnDgc3ydny8AkAlhPogLhwbGK5ltSVYbIKfLqqdMDnagIMn/i2B60+IMnfeNf2fa
+         oVIBlR/AEG58KaVbDnJLxHix+JBlnJPv0xNYqunvfMXYzSSEphnUP9OKLiMTM62/mSdJ
+         NbFw==
+X-Gm-Message-State: AOJu0Yyvlqjci+P4mwZ1fzFqcxDFn1D9DlSM9UrBiW6TKCjrosDe9cKR
+        5rLQjsTFZ79Cy2rTyUInnM+Bhl4vXaHQW3L+tB1Sv6DtRik=
+X-Google-Smtp-Source: AGHT+IH7VG/tSlNfYrSJiqGN7tVMMFiwEj6CcG7Ue4DbCdRSXbidxa0qqgv0gNNet0VW0ZVsx4gbteA6n9E14PBjz3g=
+X-Received: by 2002:a4a:650d:0:b0:56c:e71c:2993 with SMTP id
+ y13-20020a4a650d000000b0056ce71c2993mr11518458ooc.8.1691481746597; Tue, 08
+ Aug 2023 01:02:26 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="2iuCE+Z3sT2tGztq"
-Content-Disposition: inline
-In-Reply-To: <20230808133857.GC2369@willie-the-truck>
-X-Cookie: You need not be present to win.
+Received: by 2002:a8a:696:0:b0:4f0:1250:dd51 with HTTP; Tue, 8 Aug 2023
+ 01:02:26 -0700 (PDT)
+In-Reply-To: <ZNG2tHFOABSXGCVi@gmail.com>
+References: <20230731023308.3748432-1-guoren@kernel.org> <20230807183655.kbnjtvbi4jfrcrce@f>
+ <ZNG2tHFOABSXGCVi@gmail.com>
+From:   Mateusz Guzik <mjguzik@gmail.com>
+Date:   Tue, 8 Aug 2023 10:02:26 +0200
+Message-ID: <CAGudoHEDFX7Wk-PA5=chWr0z4PnRO_gKoU2g-3RJO0uOzqogYQ@mail.gmail.com>
+Subject: Re: [PATCH V2] asm-generic: ticket-lock: Optimize arch_spin_value_unlocked
+To:     Guo Ren <guoren@kernel.org>
+Cc:     will@kernel.org, David.Laight@aculab.com, peterz@infradead.org,
+        mingo@redhat.com, longman@redhat.com, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org,
+        Guo Ren <guoren@linux.alibaba.com>
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On 8/8/23, Guo Ren <guoren@kernel.org> wrote:
+> On Mon, Aug 07, 2023 at 08:36:55PM +0200, Mateusz Guzik wrote:
+>> On Sun, Jul 30, 2023 at 10:33:08PM -0400, guoren@kernel.org wrote:
+>> > From: Guo Ren <guoren@linux.alibaba.com>
+>> >
+>> > The arch_spin_value_unlocked would cause an unnecessary memory
+>> > access to the contended value. Although it won't cause a significant
+>> > performance gap in most architectures, the arch_spin_value_unlocked
+>> > argument contains enough information. Thus, remove unnecessary
+>> > atomic_read in arch_spin_value_unlocked().
+>> >
+>> > The caller of arch_spin_value_unlocked() could benefit from this
+>> > change. Currently, the only caller is lockref.
+>> >
+>>
+>> Have you verified you are getting an extra memory access from this in
+>> lockref? What architecture is it?
+> For riscv, this patch could optimize the lock_ref on the same compiling
+> condition:
+>  - After lifting data dependencies, the compiler optimizes the prologue
+>    behavior, thus the callee-register-saved path becomes optional. This
+>    is a significant improvement on the lock_ref() self.
+>  - Compare the "98: & 9c:" lines before the patch and the "88:" line
+>    after the patch. We saved two memory accesses not only one load.
+>
 
---2iuCE+Z3sT2tGztq
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Now that you mention it, I see riscv in cc. ;)
 
-On Tue, Aug 08, 2023 at 02:38:58PM +0100, Will Deacon wrote:
+Your commit message states "arch_spin_value_unlocked would cause an
+unnecessary memory access to the contended value" and that lockref
+uses it. Perhaps incorrectly I took it to claim lockref is suffering
+extra loads from the area it modifies with cmpxchg -- as I verified,
+this is not happening as the argument to arch_spin_value_unlocked is a
+copy of the target lockref struct. With this not being a problem,
+potential scalability impact goes down a lot. And so happens with the
+code from qspinlock on x86-64 there are no extra memory accesses to
+anything anyway.
 
-> But seriously, I think the question is more about what this brings us
-> *on top of* SCS, since for the forseeable future folks that care about
-> this stuff (like Android) will be using SCS. GCS on its own doesn't make
-> sense to me, given the recompilation effort to remove SCS and the lack
-> of hardware, so then you have to look at what it brings in addition to
-> GCS and balance that against the performance cost.
+I don't speak riscv asm so can't comment on the result. I'll note
+again that extra work for single-threaded use is definitely worth
+shaving and may or may not affect throughput in face of other CPUs
+messing with lockref.
 
-> Given that, is anybody planning to ship a distribution with this enabled?
+You can easily test lockref with will-it-scale, I would suggest the
+access() system call which afaics has least amount of unrelated
+overhead. You can find the bench here:
+https://github.com/antonblanchard/will-it-scale/pull/36/files
 
-I'm not sure that your assumption that the only people would would
-consider deploying this are those who have deployed SCS is a valid one,
-SCS users are definitely part of the mix but GCS is expected to be much
-more broadly applicable.  As you say SCS is very invasive, requires a
-rebuild of everything with different code generated and as Szabolcs
-outlined has ABI challenges for general distros.  Any code built (or
-JITed) with anything other than clang is going to require some explicit
-support to do SCS (eg, the kernel's SCS support does nothing for
-assembly code) and there's a bunch of runtime support.  It's very much a
-specialist feature, mainly practical in well controlled somewhat
-vertical systems - I've not seen any suggestion that general purpose
-distros are considering using it.
+> ========================================================================
+> Before the patch:
+> void lockref_get(struct lockref *lockref)
+> {
+>   78:   fd010113                add     sp,sp,-48
+>   7c:   02813023                sd      s0,32(sp)
+>   80:   02113423                sd      ra,40(sp)
+>   84:   03010413                add     s0,sp,48
+>
+> 0000000000000088 <.LBB296>:
+>         CMPXCHG_LOOP(
+>   88:   00053783                ld      a5,0(a0)
+>
+> 000000000000008c <.LBB265>:
+> }
+>
+> static __always_inline int ticket_spin_is_locked(arch_spinlock_t *lock)
+> {
+>         u32 val = atomic_read(&lock->val);
+>         return ((val >> 16) != (val & 0xffff));
+>   8c:   00010637                lui     a2,0x10
+>
+> 0000000000000090 <.LBE265>:
+>   90:   06400593                li      a1,100
+>
+> 0000000000000094 <.LBB274>:
+>   94:   fff60613                add     a2,a2,-1 # ffff <.LLST8+0xf49a>
+>
+> 0000000000000098 <.L8>:
+>   98:   fef42423                sw      a5,-24(s0)
+>
+> 000000000000009c <.LBB269>:
+>   9c:   fe842703                lw      a4,-24(s0)
+>
+> 00000000000000a0 <.LBE269>:
+>   a0:   0107569b                srlw    a3,a4,0x10
+>   a4:   00c77733                and     a4,a4,a2
+>   a8:   04e69063                bne     a3,a4,e8 <.L12>
+>
+> 00000000000000ac <.LBB282>:
+>   ac:   4207d693                sra     a3,a5,0x20
+>   b0:   02079713                sll     a4,a5,0x20
+>   b4:   0016869b                addw    a3,a3,1
+>   b8:   02069693                sll     a3,a3,0x20
+>   bc:   02075713                srl     a4,a4,0x20
+>   c0:   00d76733                or      a4,a4,a3
+>
+> 00000000000000c4 <.L0^B1>:
+>   c4:   100536af                lr.d    a3,(a0)
+>   c8:   00f69863                bne     a3,a5,d8 <.L1^B1>
+>   cc:   1ae5382f                sc.d.rl a6,a4,(a0)
+>   d0:   fe081ae3                bnez    a6,c4 <.L0^B1>
+>   d4:   0330000f                fence   rw,rw
+>
+> 00000000000000d8 <.L1^B1>:
+>   d8:   02d78a63                beq     a5,a3,10c <.L7>
+>
+> 00000000000000dc <.LBE292>:
+>   dc:   fff5859b                addw    a1,a1,-1
+>
+> 00000000000000e0 <.LBB293>:
+>   e0:   00068793                mv      a5,a3
+>
+> 00000000000000e4 <.LBE293>:
+>   e4:   fa059ae3                bnez    a1,98 <.L8>
+>
+> 00000000000000e8 <.L12>:
+>
+> ========================================================================
+> After the patch:
+> void lockref_get(struct lockref *lockref)
+> {
+>         CMPXCHG_LOOP(
+>   78:   00053783                ld      a5,0(a0)
+>
+> 000000000000007c <.LBB212>:
+>
+> static __always_inline int ticket_spin_value_unlocked(arch_spinlock_t
+> lock)
+> {
+>         u32 val = lock.val.counter;
+>
+>         return ((val >> 16) == (val & 0xffff));
+>   7c:   00010637                lui     a2,0x10
+>
+> 0000000000000080 <.LBE212>:
+>   80:   06400593                li      a1,100
+>
+> 0000000000000084 <.LBB216>:
+>   84:   fff60613                add     a2,a2,-1 # ffff <.LLST8+0xf4aa>
+>
+> 0000000000000088 <.L8>:
+>   88:   0007871b                sext.w  a4,a5
+>
+> 000000000000008c <.LBB217>:
+>   8c:   0107d69b                srlw    a3,a5,0x10
+>   90:   00c77733                and     a4,a4,a2
+>   94:   04e69063                bne     a3,a4,d4 <.L12>
+>
+> 0000000000000098 <.LBB218>:
+>   98:   4207d693                sra     a3,a5,0x20
+>   9c:   02079713                sll     a4,a5,0x20
+>   a0:   0016869b                addw    a3,a3,1
+>   a4:   02069693                sll     a3,a3,0x20
+>   a8:   02075713                srl     a4,a4,0x20
+>   ac:   00d76733                or      a4,a4,a3
+>
+> 00000000000000b0 <.L0^B1>:
+>   b0:   100536af                lr.d    a3,(a0)
+>   b4:   00f69863                bne     a3,a5,c4 <.L1^B1>
+>   b8:   1ae5382f                sc.d.rl a6,a4,(a0)
+>   bc:   fe081ae3                bnez    a6,b0 <.L0^B1>
+>   c0:   0330000f                fence   rw,rw
+>
+> 00000000000000c4 <.L1^B1>:
+>   c4:   04d78a63                beq     a5,a3,118 <.L18>
+>
+> 00000000000000c8 <.LBE228>:
+>   c8:   fff5859b                addw    a1,a1,-1
+>
+> 00000000000000cc <.LBB229>:
+>   cc:   00068793                mv      a5,a3
+>
+> 00000000000000d0 <.LBE229>:
+>   d0:   fa059ce3                bnez    a1,88 <.L8>
+>
+> 00000000000000d4 <.L12>:
+> {
+>   d4:   fe010113                add     sp,sp,-32
+>   d8:   00113c23                sd      ra,24(sp)
+>   dc:   00813823                sd      s0,16(sp)
+>   e0:   02010413                add     s0,sp,32
+> ========================================================================
+>
+>>
+>> I have no opinion about the patch itself, I will note though that the
+>> argument to the routine is *not* the actual memory-shared lockref,
+>> instead it's something from the local copy obtained with READ_ONCE
+>> from the real thing. So I would be surprised if the stock routine was
+>> generating accesses to that sucker.
+>>
+>> Nonetheless, if the patched routine adds nasty asm, that would be nice
+>> to sort out.
+>>
+>> FWIW on x86-64 qspinlock is used (i.e. not the stuff you are patching)
+>> and I verified there are only 2 memory accesses -- the initial READ_ONCE
+>> and later cmpxchg. I don't know which archs *don't* use qspinlock.
+>>
+>> It also turns out generated asm is quite atrocious and cleaning it up
+>> may yield a small win under more traffic. Maybe I'll see about it later
+>> this week.
+>>
+>> For example, disassembling lockref_put_return:
+>> <+0>:     mov    (%rdi),%rax            <-- initial load, expected
+>> <+3>:     mov    $0x64,%r8d
+>> <+9>:     mov    %rax,%rdx
+>> <+12>:    test   %eax,%eax              <-- retries loop back here
+>> 					<-- this is also the unlocked
+>> 					    check
+>> <+14>:    jne    0xffffffff8157aba3 <lockref_put_return+67>
+>> <+16>:    mov    %rdx,%rsi
+>> <+19>:    mov    %edx,%edx
+>> <+21>:    sar    $0x20,%rsi
+>> <+25>:    lea    -0x1(%rsi),%ecx        <-- new.count--;
+>> <+28>:    shl    $0x20,%rcx
+>> <+32>:    or     %rcx,%rdx
+>> <+35>:    test   %esi,%esi
+>> <+37>:    jle    0xffffffff8157aba3 <lockref_put_return+67>
+>> <+39>:    lock cmpxchg %rdx,(%rdi)      <-- the attempt to change
+>> <+44>:    jne    0xffffffff8157ab9a <lockref_put_return+58>
+>> <+46>:    shr    $0x20,%rdx
+>> <+50>:    mov    %rdx,%rax
+>> <+53>:    jmp    0xffffffff81af8540 <__x86_return_thunk>
+>> <+58>:    mov    %rax,%rdx
+>> <+61>:    sub    $0x1,%r8d              <-- retry count check
+>> <+65>:    jne    0xffffffff8157ab6c <lockref_put_return+12> <-- go back
+>> <+67>:    mov    $0xffffffff,%eax
+>> <+72>:    jmp    0xffffffff81af8540 <__x86_return_thunk>
+>>
+>
 
-In contrast in the case of GCS one of the nice features is that for most
-code it's very much non-invasive, much less so than things like PAC/BTI
-and SCS, which means that the audience is much wider than it is for SCS
-- it's a *much* easier sell for general purpose distros to enable GCS
-than to enable SCS.  For the majority of programs all the support that
-is needed is in the kernel and libgcc/libc, there's no impact on the
-code generation.  There are no extra instructions in the normal flow
-which will impact systems without the feature, and there are no extra
-registers in use, so even if the binaries are run on a system without
-GCS or for some reason someone decides that it's best to turn the
-feature off on a system that is capable of using it the fact that it's
-just using the existing bl/ret pairs means that there is minimal
-overhead.  This all means that it's much more practical to deploy in
-general purpose distros.  On the other hand when active it affects all
-code, this improves coverage but the improved coverage can be a worry.
 
-I can see that systems that have gone through all the effort of enabling
-SCS might not rush to implement GCS, though there should be no harm in
-having the two features running side by side beyond the doubled memory
-requirements so you can at least have a transition plan (GCS does have
-some allowances which enable hardware to mitigate some of the memory
-bandwidth requirements at least).  You do still get the benefit of the
-additional hardware protections GCS offers, and the coverage of all
-branch and ret instructions will be of interest both for security and
-for unwinders.  It's definitely offers less of an incremental
-improvement on top of SCS than it is without SCS though.
-
-GCS and SCS are comparable features in terms of the protection they aim
-to add but their system integration impacts are different.
-
-> If not, why are we bothering? If so, how much of that distribution has
-> been brought up and how does the "dynamic linker or other startup code"
-> decide what to do?
-
-There is active interest in the x86 shadow stack support from distros,
-GCS is a lot earlier on in the process but isn't fundamentally different
-so it is expected that this will translate.  There is also a chicken and
-egg thing where upstream support gates a lot of people's interest, what
-people will consider carrying out of tree is different to what they'll
-enable.  Architecture specific feedback on the implementation can also
-be fed back into the still ongoing review of the ABI that is being
-established for x86, there will doubtless be pushback about variations
-between architectures from userspace people.
-
-The userspace decision about enablement will primarily be driven by an
-ELF marking which the dynamic linker looks at to determine if the
-binaries it is loading can support GCS, a later dlopen() can either
-refuse to load an additional library if the process currently has GCS
-enabled, ignore the issue and hope things work out (there's a good
-chance they will but obviously that's not safe) or (more complicatedly)
-go round all the threads and disable GCS before proceeding.  The main
-reason any sort of rebuild is required for most code is to add the ELF
-marking, there will be a compiler option to select it.  Static binaries
-should know if everything linked into them is GCS compatible and enable
-GCS if appropriate in their startup code.
-
-The majority of the full distro work at this point is on the x86 side
-given the hardware availability, we are looking at that within Arm of
-course.  I'm not aware of any huge blockers we have encountered thus
-far.
-
-It is fair to say that there's less active interest on the arm64 side
-since as you say the feature is quite a way off making it's way into
-hardware, though there are also long lead times on getting the full
-software stack to end users and kernel support becomes a blocker for
-the userspace stack.
-
-> After the mess we had with BTI and mprotect(), I'm hesitant to merge
-> features like this without knowing that the ABI can stand real code.
-
-The equivalent x86 feature is in current hardware[1], there has been
-some distro work (I believe one of the issues x86 has had is coping with
-a distro which shipped an early out of tree ABI, that experience has
-informed the current ABI which as the cover letter says we are following
-closely).  AIUI the biggest blocker on userspace work for x86 right now
-is landing the kernel side of things so that everyone else has a stable
-ABI to work from and don't need to carry out of tree patches, I've heard
-frustration expressed at the deployment being held up.  IIRC Fedora were
-on the leading edge in terms of active interest, they tend to be given
-that they're one of the most quickly iterating distros. =20
-
-This definitely does rely fairly heavily on the x86 experience for
-confidence in the ABI, and to be honest one of the big unknowns at this
-point is if you or Catalin will have opinions on how things are being
-done.
-
-[1] https://edc.intel.com/content/www/us/en/design/ipla/software-developmen=
-t-platforms/client/platforms/alder-lake-desktop/12th-generation-intel-core-=
-processors-datasheet-volume-1-of-2/009/shadow-stack/
-
---2iuCE+Z3sT2tGztq
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmTSpKYACgkQJNaLcl1U
-h9Bm7wf/TWEY6FZexKo9ZslcLVc8FfZTGr2JbqBTjc0hIyi6JIvIUPaBtV8B4GKh
-aJOvjQlkWGfIrVsezaRToCVgoxhsnRmsKCDr1gABiWQuJDCL5mLR1BRMF6XfJC+g
-FANZz3+vabPD5HlypgtGUsdgtm1d3vPwRnOcI1XK5ARt53I+3Wbd1Gc/Kzsv8qz2
-KmEbIIR0tk/KpUJwAokBaHnsH6pnZKxUDy0Ei3i9zFBtcRjqWOJSgjJ0fKKscJQa
-uIKhZ7no7GVtdNnfO1XBllyefendmwyKNc9QdFsNgE3WgXy2iiaMbWmp4JJU6GHr
-BamhHq9n+PvDZVvrISCsTZxmnjcGVg==
-=YAxR
------END PGP SIGNATURE-----
-
---2iuCE+Z3sT2tGztq--
+-- 
+Mateusz Guzik <mjguzik gmail.com>
