@@ -2,99 +2,131 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 941DDC04A94
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 18:08:34 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2B671C41513
+	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 21:08:50 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235317AbjHHSId (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Aug 2023 14:08:33 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43920 "EHLO
+        id S235998AbjHHVIt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Aug 2023 17:08:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60654 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235264AbjHHSIO (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 14:08:14 -0400
-Received: from mail-lj1-x235.google.com (mail-lj1-x235.google.com [IPv6:2a00:1450:4864:20::235])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6326163D60
-        for <linux-arch@vger.kernel.org>; Tue,  8 Aug 2023 10:09:27 -0700 (PDT)
-Received: by mail-lj1-x235.google.com with SMTP id 38308e7fff4ca-2b9aa1d3029so94876571fa.2
-        for <linux-arch@vger.kernel.org>; Tue, 08 Aug 2023 10:09:27 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linaro.org; s=google; t=1691514565; x=1692119365;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=k0zLEburh9ZFfE548pNOj7q2UOj2GGR4k/WQno4jj70=;
-        b=S+AucvGTkY09UO3Bc6ry7Q5Xi0gdFFTpRS0Cj/AXdz4163H9qhmfp7v+r+Hm29wCqf
-         O2qWaNHdBntMCRXP2W9ZpC1f6s/5X6AVSpb0m6Uu9xbPGipIT5cyztACYuJCQS1sL1Ht
-         XA/q56Djn16kH9WYzmZpYg+vUw5FGv8NL9Pg3IdmHRv68sxOt9mXJTsMK735enVChD2I
-         wC8D37wrVs4cUJQTYexrtcycng+M8WwHLfFEpPswymOX8S/aWWg7CU3C2fn7Kpgi3SCc
-         B/YxdfU53iumsVj7ualt/8a6yukVkAN5HjsSdz2eRgzGEupRHSavUv73cW4BS9bYosXm
-         urFw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1691514565; x=1692119365;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=k0zLEburh9ZFfE548pNOj7q2UOj2GGR4k/WQno4jj70=;
-        b=dFoc+HMGfrJQ0MnB13INPgRWh4DWXEDDL6oIx1tO3LIBI49pWoCmEGpimqNR3aHKn3
-         jP4GOiX/3AgnT79Rn900E1L6/S8rF39mvGxea2qASl6NUNTA0AugophrpuCzrV7Luj2N
-         jYV0h8qs/2N35WTnihJrnosCUHcUKYm6suHD5oEIEKn/AYNemlzVkjSYqlR2gaOUgJoD
-         FjRS99gLCSc2iERQhYFBYzH2ZCB/HCK/osa9aT3k0z4aVp74F+/nECQHjhSI8BW6V9EI
-         BtlB33QWZtwcJQeKgmxIk+8B4zhOg4+DDiufi2Xxy84uyp8bWp+VE6BvYeCdNMXiDhpe
-         /WxA==
-X-Gm-Message-State: AOJu0Yxhm9wH5GFBksZlhmvfaD67yEpYfB2vun8amLIFp6bqg/4HU8rb
-        tbwSabSKO3+w15nsSB+QzQhqpDxeCONNYbLBheE=
-X-Google-Smtp-Source: AGHT+IENaoLogdmwEquxviK7pRALZnOeydEhILSaohDlqrXatiaCu5M9MfM3jQOl2xSE+z2HLZbssA==
-X-Received: by 2002:a05:600c:2213:b0:3fe:2b76:3d7 with SMTP id z19-20020a05600c221300b003fe2b7603d7mr9376833wml.10.1691487533357;
-        Tue, 08 Aug 2023 02:38:53 -0700 (PDT)
-Received: from [192.168.69.115] ([176.176.177.253])
-        by smtp.gmail.com with ESMTPSA id e13-20020a05600c218d00b003fe2bea77ccsm13219267wme.5.2023.08.08.02.38.50
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 08 Aug 2023 02:38:53 -0700 (PDT)
-Message-ID: <60ac32e8-5fea-84d4-ff3f-f09e6f8ad499@linaro.org>
-Date:   Tue, 8 Aug 2023 11:38:49 +0200
+        with ESMTP id S235999AbjHHVIi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 17:08:38 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 38CB5106;
+        Tue,  8 Aug 2023 13:42:31 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id C5F6262CB0;
+        Tue,  8 Aug 2023 20:42:30 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CCD7CC433C8;
+        Tue,  8 Aug 2023 20:42:23 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1691527350;
+        bh=KLqUngF3vFNjZyVU1zCXyvfBsVeYIJBflOdj05tEw0A=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=Hkx8tFHEcSmSd/pdVhIsTiCpPGZ8uPf9NEXvhA7T1JE0q+KFDzDda7u74mkgkO92P
+         D6BrXqWbCduifpG00gPnMKsZMBCqDXpp1kSKJ9YwnTBNfINsZ/X4bV2vVtFJ0BuW4I
+         DzywDtHXbqsAHFmmOaUr+A66TeVuRUsMnJOV5LKFRw6aylWaQEdokWI2Ho+l/Jgo9p
+         VECTFyGkyg5IJ9/WB3x07RywFKIrHg4+3wffsKp1r8oys5VpCJBVALKOqSWjyTVJpe
+         QLSrnevT8KKCV6CCbD8vucQ4bjl5w0l+9tsB8i/nTaItUBRxtIG9ynqlNvE8ald88c
+         RSgTwpjk3e9wA==
+Date:   Tue, 8 Aug 2023 21:42:20 +0100
+From:   Mark Brown <broonie@kernel.org>
+To:     Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+Cc:     Catalin Marinas <catalin.marinas@arm.com>,
+        Will Deacon <will@kernel.org>,
+        Jonathan Corbet <corbet@lwn.net>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Marc Zyngier <maz@kernel.org>,
+        Oliver Upton <oliver.upton@linux.dev>,
+        James Morse <james.morse@arm.com>,
+        Suzuki K Poulose <suzuki.poulose@arm.com>,
+        Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Kees Cook <keescook@chromium.org>,
+        Shuah Khan <shuah@kernel.org>,
+        "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
+        Deepak Gupta <debug@rivosinc.com>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        "H.J. Lu" <hjl.tools@gmail.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
+        kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-riscv@lists.infradead.org
+Subject: Re: [PATCH v3 21/36] arm64/mm: Implement map_shadow_stack()
+Message-ID: <0cf8f1fd-f4d4-45b3-ad49-5ec5ebc5a24f@sirena.org.uk>
+References: <20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org>
+ <20230731-arm64-gcs-v3-21-cddf9f980d98@kernel.org>
+ <ZNDFioFIM34VcsuV@arm.com>
+ <3a077ff3-8627-4337-9b4a-6a8828eda0e7@sirena.org.uk>
+ <ZNH679dDPtvotp5j@arm.com>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.13.0
-Subject: Re: [PATCH 2/3] mips: replace #include <asm/export.h> with #include
- <linux/export.h>
-Content-Language: en-US
-To:     Masahiro Yamada <masahiroy@kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-mips@vger.kernel.org
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20230807153243.996262-1-masahiroy@kernel.org>
- <20230807153243.996262-2-masahiroy@kernel.org>
-From:   =?UTF-8?Q?Philippe_Mathieu-Daud=c3=a9?= <philmd@linaro.org>
-In-Reply-To: <20230807153243.996262-2-masahiroy@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="75LSeCYWaZU9+5nJ"
+Content-Disposition: inline
+In-Reply-To: <ZNH679dDPtvotp5j@arm.com>
+X-Cookie: You need not be present to win.
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 7/8/23 17:32, Masahiro Yamada wrote:
-> Commit ddb5cdbafaaa ("kbuild: generate KSYMTAB entries by modpost")
-> deprecated <asm/export.h>, which is now a wrapper of <linux/export.h>.
-> 
-> Replace #include <asm/export.h> with #include <linux/export.h>.
-> 
-> After all the <asm/export.h> lines are converted, <asm/export.h> and
-> <asm-generic/export.h> will be removed.
-> 
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> ---
-> 
->   arch/mips/cavium-octeon/octeon-memcpy.S | 2 +-
->   arch/mips/kernel/mcount.S               | 2 +-
->   arch/mips/kernel/r2300_fpu.S            | 2 +-
->   arch/mips/kernel/r4k_fpu.S              | 2 +-
->   arch/mips/lib/csum_partial.S            | 2 +-
->   arch/mips/lib/memcpy.S                  | 2 +-
->   arch/mips/lib/memset.S                  | 2 +-
->   arch/mips/lib/strncpy_user.S            | 2 +-
->   arch/mips/lib/strnlen_user.S            | 2 +-
->   arch/mips/mm/page-funcs.S               | 2 +-
->   arch/mips/mm/tlb-funcs.S                | 2 +-
->   11 files changed, 11 insertions(+), 11 deletions(-)
 
-Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+--75LSeCYWaZU9+5nJ
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
+On Tue, Aug 08, 2023 at 09:21:03AM +0100, Szabolcs Nagy wrote:
+> The 08/07/2023 14:00, Mark Brown wrote:
+
+> > That's not what the manual page or a quick check of the code suggest
+> > that mmap() does, they say that the kernel just takes it as a hint and
+
+> i should have said that i expect MAP_FIXED_NOREPLACE semantics
+> (since the x86 code seemed to use that) and then the mapped
+> address must match exactly thus page aligned.
+
+Ah, I see.  We do pass MAP_FIXED_NOREPLACE when allocating the stack if
+an address was specified but currently leave it up to the VM subsystem
+to figure out what to do with the address.  I don't immediately see
+where mmap() enforces this requirement, but I have to admit I didn't
+look overly hard.  I don't see a problem with enforcing a PAGE_SIZE
+constraint here.
+
+> > > > +	if (size == 16 || size % 16)
+> > > > +		return -EINVAL;
+
+> > > why %16 and not %8 ?
+
+> > I don't think that's needed any more - there was some stuff in an
+> > earlier version of the code but no longer.
+
+> it's kind of important to know the exact logic so the cap token
+> location can be computed in userspace for arbitrary size.
+
+> (this is why i wanted to see the map_shadow_stack man page first
+> but i was told that comes separately on linux..)
+
+Right, I'd already changed it to % 8 in the version I posted yesterday.
+
+--75LSeCYWaZU9+5nJ
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmTSqKsACgkQJNaLcl1U
+h9AuoAf+O+IZyJ2WsrUsv2iiyK/bNfKz6UPd4mztZDvaNs7eb/cJv2LxftttubUm
+ylVCfdJZ50MxIN96kAREHXqiG51v7ab8riEFK1puVDbbnCQzP+qPb67HnyeJA+eP
+y/G51VNYUA+n9mnB1hQgqwtqkRTCLfgE2uX+rXQj+yoQMO9eqwx7hJU32LaT7ReN
+82F1d4g+o08IJR4pqL41OnfuoXtSswkeN+W4ODix90Im31z8oXU+KhOdlg2FPOwf
+eYLnaE+2b0TySQGqjik3cLjGTQZySBerzjLi/2SpdzJx+OHzus/8kWzGWsiZOvEg
+CyJ1jHyJf+ImWGDIY22GGPPmIHRyQw==
+=DrsG
+-----END PGP SIGNATURE-----
+
+--75LSeCYWaZU9+5nJ--
