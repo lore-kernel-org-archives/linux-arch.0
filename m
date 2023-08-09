@@ -2,86 +2,92 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 79B58C001B0
-	for <linux-arch@archiver.kernel.org>; Tue,  8 Aug 2023 21:48:14 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 63D3AC04A94
+	for <linux-arch@archiver.kernel.org>; Wed,  9 Aug 2023 00:27:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232097AbjHHVsN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 8 Aug 2023 17:48:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48576 "EHLO
+        id S229846AbjHIA1T (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 8 Aug 2023 20:27:19 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:45858 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231376AbjHHVsE (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 17:48:04 -0400
-Received: from mail-ed1-x532.google.com (mail-ed1-x532.google.com [IPv6:2a00:1450:4864:20::532])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 398F2175DDE
-        for <linux-arch@vger.kernel.org>; Tue,  8 Aug 2023 10:19:56 -0700 (PDT)
-Received: by mail-ed1-x532.google.com with SMTP id 4fb4d7f45d1cf-5234dee9a44so355457a12.2
-        for <linux-arch@vger.kernel.org>; Tue, 08 Aug 2023 10:19:56 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linaro.org; s=google; t=1691515187; x=1692119987;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=gMnxgsCoh82ZoNEGZ3gXMUz0wSz2MoqQmZYxTHk1iuo=;
-        b=wjthSXg/fQNd9RMXGsA23XJFov9pnFr+goO4hgqTjlahaHNskf5qHl73zO5k342EET
-         23L7iqrrcc9JOlHDKnnCkq1LWr+XlYjDwJwB6BnBGNK6DxTayKmpQr45awcpokrvfTX4
-         ejS8jY1RrpJ4m6u10RV59/LcUU3dG3UOARhIFMf+ICbaesqOUVad5bgwz3WgOFWG6YFY
-         qrw0K3Xkay3PbSRaPNEG8wEIFLcrvHDXCt6qVv3AcO+ifR4t0t+eG7yd+kDudpneuoZo
-         UygMQxnKiprtbb7gdGPgFk+B2+Elb+4SJQXQVEosnleEmSuMPaPKrzQ63I4k6lcUKyfc
-         rahQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1691515187; x=1692119987;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=gMnxgsCoh82ZoNEGZ3gXMUz0wSz2MoqQmZYxTHk1iuo=;
-        b=QTPBvGCXFSxhQdMKucTdyS/8PRgn6vnvexvGh0pH5OX6EkOWSQccOvklJl3RJVus6K
-         1Av1aFDOq2W2IqsYfMlMD2YltcTr9nBqDhcq+r599B8uGv+1uQeR6n98gutEITStqvvr
-         Sv3WBOlz+EKOHiYV+Hl8kpYItkxdRyM1hVvwRHdTRB6mpHgOVyYOEWE3HT5p80IcTQbU
-         wz7y04eEQ1q0ZkZJ8SlzugNHhin1JijrnTMzv6d2dEo/n+eGEODJry+2eh5nRqkV4PTe
-         +ACdys8WlaQHbKmKpJ141bM9wSKRpLKoIEQjGz8K+ITL17I8vPaDRUaYZKlXt/eHrUnW
-         zvbA==
-X-Gm-Message-State: AOJu0YyhK9EkY5oDg3p0Q9xPEg4CY9DcohGC4OkoI5LjUm1/4bmMmvQM
-        KIR3wjCNwor8kvE1KH2HiXbF72PpvFqpm/k6hLI=
-X-Google-Smtp-Source: AGHT+IGh6quNsM0lZU6+CofawmyTZRbZPfDUraQexF9fMQWdjRw/ox0syxTlOeazcQZlc3UFNsK4eQ==
-X-Received: by 2002:adf:dfc8:0:b0:317:f1dc:36ed with SMTP id q8-20020adfdfc8000000b00317f1dc36edmr2849673wrn.47.1691487575619;
-        Tue, 08 Aug 2023 02:39:35 -0700 (PDT)
-Received: from [192.168.69.115] ([176.176.177.253])
-        by smtp.gmail.com with ESMTPSA id o10-20020a5d474a000000b003141a3c4353sm13080004wrs.30.2023.08.08.02.39.34
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 08 Aug 2023 02:39:35 -0700 (PDT)
-Message-ID: <794d4bfc-2404-9f4f-4a00-f5edf44a3f5a@linaro.org>
-Date:   Tue, 8 Aug 2023 11:39:31 +0200
+        with ESMTP id S229464AbjHIA1T (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 8 Aug 2023 20:27:19 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 739CE10C8;
+        Tue,  8 Aug 2023 17:27:18 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id E401F62872;
+        Wed,  9 Aug 2023 00:27:17 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 82209C433C8;
+        Wed,  9 Aug 2023 00:27:15 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1691540837;
+        bh=S9A8lsMPD5vafBC3exul64JZFYrfYwASuWTO2d/SczI=;
+        h=From:To:Cc:Subject:Date:From;
+        b=prZMMinNj84sV1SosgrzU6L4y95I4VW73g2owfDDcTnql7djpQD50G0OvSMQ/i3tv
+         6BcPAWeyKwP+2kppZFYRUkioPsiEj758yt8PIcLt/miPHMzbnHMfX3eF0IGAZMsCS3
+         1ue3/vL8OMMGUYoYW1yvZ3jEnoTvIvKsek6+17jucPinvgq7dsApK1vcw05RCE8qPd
+         BRk31vQ6EoH3RWdtJGwnuTwGiS6MrsDHF6m/q4MEIRnZZxvFVLGain5vcRJ9G3Ej+o
+         vl+9NnpJA2MRnKbE0+QiRfMxKoGdyg7WSASokdrqxJuzKCQ8g6PQ7WWiQYGo4sXCId
+         Fhsu1Vv8+0gBw==
+From:   guoren@kernel.org
+To:     guoren@kernel.org, arnd@arndb.de
+Cc:     linux-csky@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
+Subject: [PATCH] csky: pgtable: Invalidate stale I-cache lines in update_mmu_cache
+Date:   Tue,  8 Aug 2023 20:27:07 -0400
+Message-Id: <20230809002707.1190435-1-guoren@kernel.org>
+X-Mailer: git-send-email 2.36.1
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0)
- Gecko/20100101 Thunderbird/102.13.0
-Subject: Re: [PATCH 3/3] mips: remove <asm/export.h>
-Content-Language: en-US
-To:     Masahiro Yamada <masahiroy@kernel.org>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        linux-mips@vger.kernel.org
-Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20230807153243.996262-1-masahiroy@kernel.org>
- <20230807153243.996262-3-masahiroy@kernel.org>
-From:   =?UTF-8?Q?Philippe_Mathieu-Daud=c3=a9?= <philmd@linaro.org>
-In-Reply-To: <20230807153243.996262-3-masahiroy@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 7/8/23 17:32, Masahiro Yamada wrote:
-> All *.S files under arch/mips/ have been converted to include
-> <linux/export.h> instead of <asm/export.h>.
-> 
-> Remove <asm/export.h>.
-> 
-> Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
-> ---
-> 
->   arch/mips/include/asm/Kbuild | 1 -
->   1 file changed, 1 deletion(-)
+From: Guo Ren <guoren@linux.alibaba.com>
 
-Reviewed-by: Philippe Mathieu-Daudé <philmd@linaro.org>
+The final icache_flush was in the update_mmu_cache, and update_mmu_cache
+is after the set_pte_at. Thus, when CPU0 sets the pte,  the other CPU
+would see it before the icache_flush broadcast happens, and their
+icaches may have cached stale VIPT cache lines in their I-caches. When
+address translation was ready for the new cache line, they will use the
+stale data of icache, not the fresh one of the dcache.
 
+The csky instruction cache is VIPT, and it needs an origin virtual
+address to invalidate the virtual address index entries of cache ways.
+The current implementation uses a temporary mapping mechanism -
+kmap_atomic, which returns a new virtual address for invalidation. But,
+the original virtual address cache line may still in the I-cache.
+
+So force invalidation I-cache in update_mmu_cache, and prevent
+flush_dcache when there is an EXEC page. This bug was detected in the
+4*c860 SMP system, and this patch could pass the stress test.
+
+Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
+Signed-off-by: Guo Ren <guoren@kernel.org>
+---
+ arch/csky/abiv2/cacheflush.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/arch/csky/abiv2/cacheflush.c b/arch/csky/abiv2/cacheflush.c
+index 9923cd24db58..500eb8f69397 100644
+--- a/arch/csky/abiv2/cacheflush.c
++++ b/arch/csky/abiv2/cacheflush.c
+@@ -27,11 +27,9 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
+ 
+ 	addr = (unsigned long) kmap_atomic(page);
+ 
++	icache_inv_range(address, address + PAGE_SIZE);
+ 	dcache_wb_range(addr, addr + PAGE_SIZE);
+ 
+-	if (vma->vm_flags & VM_EXEC)
+-		icache_inv_range(addr, addr + PAGE_SIZE);
+-
+ 	kunmap_atomic((void *) addr);
+ }
+ 
+-- 
+2.36.1
 
