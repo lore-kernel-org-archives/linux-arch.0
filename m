@@ -2,155 +2,133 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DBC9BC07E8C
-	for <linux-arch@archiver.kernel.org>; Wed, 16 Aug 2023 16:00:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CB2BAC0729B
+	for <linux-arch@archiver.kernel.org>; Wed, 16 Aug 2023 18:17:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1344481AbjHPP7h (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 16 Aug 2023 11:59:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57104 "EHLO
+        id S1345440AbjHPSQh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 16 Aug 2023 14:16:37 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40950 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1344507AbjHPP7Q (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Aug 2023 11:59:16 -0400
-Received: from mail-pf1-x42e.google.com (mail-pf1-x42e.google.com [IPv6:2607:f8b0:4864:20::42e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2FD46270D;
-        Wed, 16 Aug 2023 08:59:01 -0700 (PDT)
-Received: by mail-pf1-x42e.google.com with SMTP id d2e1a72fcca58-68842ebdcf7so2452567b3a.0;
-        Wed, 16 Aug 2023 08:59:01 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1692201540; x=1692806340;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=1q0ExsI3pZAGsklMym6d7DNNYHY+idgg1apdYHwk6a0=;
-        b=rXITgZZp0o9Vtlah42WjNzegYa/NV+nMDhC8/tGI4GJ2/SWRTYJaATXHEWUC4TVcZK
-         fH+15DAe986d0wiHXKEYCeICXp7I6MkN7AiuBHLCdQ9brbNEGWPn+Wkk+H4xSzLM2PEH
-         2Vz01nx3MUPRcpGB4IBPyysVE3CTQ7pLoehdeB11/I9gtL9rD5C5zwhUX+qpCbavTasZ
-         uZXk4syi+0HJCuJpxXBzhGjqq2N8L6/R6tapr9WPQY3ROoE8ZBI6kwtafvR0TSCfSJfV
-         W4YYxeTgAKKc+K16HV3i2OBKzmS6gg4AdX4luGVpw59rhQdmkK4LhMWtjZ+C/+ukHzJP
-         sA+A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1692201540; x=1692806340;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=1q0ExsI3pZAGsklMym6d7DNNYHY+idgg1apdYHwk6a0=;
-        b=CseTweX1Ebm8pJn0FenfA+uEdQWT9NhYVR48zqc4zCa21paj2w9vDl998HExrbXCA7
-         cz2+61Mte70mVxWXjnf631YNFDo6VMte8qlRHKsGKilYxvs6Wz7rZxsK87qfPCMxJU6w
-         tDcdTFpcHHSzUqVVumNuGVzrQ0vHUBwANC7F3LahtUfbGZ7oc95/Ab9aPxOrUUXyEaPh
-         2VqzWLpNaDKxkWUIcVSMgFo8LpqHidCAeul9K6k1NWSj8N5T4a1M7qA/PFzuzyTDSbwE
-         1dlvc8OCBox7DfsqkuSq4ZA6fKBLXGx0Wd7fJcrFZAVSZNFvVrFJd7U9gakIF2t++XdR
-         +QoA==
-X-Gm-Message-State: AOJu0Yw5bpzIxEJuBJiJtfj32vu05oQsUwRqPBzFAjgKoUTDula883aW
-        UoTalFMedXLsziwB1VbPGy4=
-X-Google-Smtp-Source: AGHT+IFMRgL+51v/aLD/m+oquII/+B1z41Re83qM9wvj9kFOX6vM5jTEeCJcwIUyGQo0dE8GyvxSvQ==
-X-Received: by 2002:a05:6a20:ce91:b0:13e:a442:c899 with SMTP id if17-20020a056a20ce9100b0013ea442c899mr2639372pzb.37.1692201540591;
-        Wed, 16 Aug 2023 08:59:00 -0700 (PDT)
-Received: from ubuntu-Virtual-Machine.corp.microsoft.com ([2001:4898:80e8:0:e588:8d80:9ae5:5adc])
-        by smtp.gmail.com with ESMTPSA id h17-20020a170902f7d100b001bc930d4517sm13366973plw.42.2023.08.16.08.58.59
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 16 Aug 2023 08:59:00 -0700 (PDT)
-From:   Tianyu Lan <ltykernel@gmail.com>
-To:     kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
-        decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
-        bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org,
-        hpa@zytor.com, daniel.lezcano@linaro.org, arnd@arndb.de,
-        michael.h.kelley@microsoft.com
-Cc:     Tianyu Lan <tiala@microsoft.com>, linux-arch@vger.kernel.org,
-        linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        vkuznets@redhat.com
-Subject: [PATCH v6 5/8] x86/hyperv: Use vmmcall to implement Hyper-V hypercall in sev-snp enlightened guest
-Date:   Wed, 16 Aug 2023 11:58:46 -0400
-Message-Id: <20230816155850.1216996-6-ltykernel@gmail.com>
-X-Mailer: git-send-email 2.25.1
-In-Reply-To: <20230816155850.1216996-1-ltykernel@gmail.com>
-References: <20230816155850.1216996-1-ltykernel@gmail.com>
+        with ESMTP id S1345439AbjHPSQG (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 16 Aug 2023 14:16:06 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9F98DE4C;
+        Wed, 16 Aug 2023 11:16:03 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 33BEE65BC3;
+        Wed, 16 Aug 2023 18:16:03 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C596DC433C7;
+        Wed, 16 Aug 2023 18:15:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1692209762;
+        bh=TgK016C/w5t6JQKrQP4E8mcD6V8oPi/S+UCWzSu2Rbc=;
+        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+        b=djQMSkkoGjtLgUNe6JiG+uUbjTG+u7ie7eym1Qc/s0ITrVmBOvMdk78mSJmK4ub/N
+         BH/UchLawIzBNwHe6rSkOxpgF+9ayCmXUe+Jm7bBi6IIIFDF2HmzCsSA8IKIPjtzYy
+         vqUXL/PRWiYVHhJKMQDXe+LpZ7bDavgxVmYjSYwsV4NqVBdnLJnwgUEnP9jySYJcMj
+         UlvkUii28ef0E+WUplhkuFmFDfhE+PqklMByDsCChsqfuljh2qr6ywU/K+qtnnWyZy
+         aaaXhGNFfTCa6SGlKE6Cz/VqFo4RwngUUKGxQ6a30H5DdMlCF9ksxaqQXcnOfoRwXX
+         NWfU0nIwFHXfw==
+Date:   Wed, 16 Aug 2023 19:15:53 +0100
+From:   Mark Brown <broonie@kernel.org>
+To:     Catalin Marinas <catalin.marinas@arm.com>
+Cc:     Will Deacon <will@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Marc Zyngier <maz@kernel.org>,
+        Oliver Upton <oliver.upton@linux.dev>,
+        James Morse <james.morse@arm.com>,
+        Suzuki K Poulose <suzuki.poulose@arm.com>,
+        Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
+        Eric Biederman <ebiederm@xmission.com>,
+        Kees Cook <keescook@chromium.org>,
+        Shuah Khan <shuah@kernel.org>,
+        "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
+        Deepak Gupta <debug@rivosinc.com>,
+        Ard Biesheuvel <ardb@kernel.org>,
+        Szabolcs Nagy <Szabolcs.Nagy@arm.com>,
+        "H.J. Lu" <hjl.tools@gmail.com>,
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
+        kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-riscv@lists.infradead.org
+Subject: Re: [PATCH v4 18/36] arm64/gcs: Context switch GCS state for EL0
+Message-ID: <28a61b5f-db65-427e-8e92-60dd61549da5@sirena.org.uk>
+References: <20230807-arm64-gcs-v4-0-68cfa37f9069@kernel.org>
+ <20230807-arm64-gcs-v4-18-68cfa37f9069@kernel.org>
+ <ZNZUerbrJmzqZzJw@arm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+        protocol="application/pgp-signature"; boundary="w/BKAb+ClmJrMdeD"
+Content-Disposition: inline
+In-Reply-To: <ZNZUerbrJmzqZzJw@arm.com>
+X-Cookie: Old soldiers never die.  Young ones do.
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Tianyu Lan <tiala@microsoft.com>
 
-In sev-snp enlightened guest, Hyper-V hypercall needs
-to use vmmcall to trigger vmexit and notify hypervisor
-to handle hypercall request.
+--w/BKAb+ClmJrMdeD
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Signed-off-by: Tianyu Lan <tiala@microsoft.com>
----
- arch/x86/include/asm/mshyperv.h | 44 ++++++++++++++++++++++++---------
- 1 file changed, 33 insertions(+), 11 deletions(-)
+On Fri, Aug 11, 2023 at 04:32:10PM +0100, Catalin Marinas wrote:
+> On Mon, Aug 07, 2023 at 11:00:23PM +0100, Mark Brown wrote:
 
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index 9f11f0495950..8479626cd7cb 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -59,16 +59,25 @@ static inline u64 hv_do_hypercall(u64 control, void *input, void *output)
- 	u64 hv_status;
- 
- #ifdef CONFIG_X86_64
--	if (!hv_hypercall_pg)
--		return U64_MAX;
-+	if (hv_isolation_type_en_snp()) {
-+		__asm__ __volatile__("mov %4, %%r8\n"
-+				     "vmmcall"
-+				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				       "+c" (control), "+d" (input_address)
-+				     :  "r" (output_address)
-+				     : "cc", "memory", "r8", "r9", "r10", "r11");
-+	} else {
-+		if (!hv_hypercall_pg)
-+			return U64_MAX;
- 
--	__asm__ __volatile__("mov %4, %%r8\n"
--			     CALL_NOSPEC
--			     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
--			       "+c" (control), "+d" (input_address)
--			     :  "r" (output_address),
--				THUNK_TARGET(hv_hypercall_pg)
--			     : "cc", "memory", "r8", "r9", "r10", "r11");
-+		__asm__ __volatile__("mov %4, %%r8\n"
-+				     CALL_NOSPEC
-+				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				       "+c" (control), "+d" (input_address)
-+				     :  "r" (output_address),
-+					THUNK_TARGET(hv_hypercall_pg)
-+				     : "cc", "memory", "r8", "r9", "r10", "r11");
-+	}
- #else
- 	u32 input_address_hi = upper_32_bits(input_address);
- 	u32 input_address_lo = lower_32_bits(input_address);
-@@ -102,7 +111,13 @@ static inline u64 _hv_do_fast_hypercall8(u64 control, u64 input1)
- 	u64 hv_status;
- 
- #ifdef CONFIG_X86_64
--	{
-+	if (hv_isolation_type_en_snp()) {
-+		__asm__ __volatile__(
-+				"vmmcall"
-+				: "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				"+c" (control), "+d" (input1)
-+				:: "cc", "r8", "r9", "r10", "r11");
-+	} else {
- 		__asm__ __volatile__(CALL_NOSPEC
- 				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
- 				       "+c" (control), "+d" (input1)
-@@ -147,7 +162,14 @@ static inline u64 _hv_do_fast_hypercall16(u64 control, u64 input1, u64 input2)
- 	u64 hv_status;
- 
- #ifdef CONFIG_X86_64
--	{
-+	if (hv_isolation_type_en_snp()) {
-+		__asm__ __volatile__("mov %4, %%r8\n"
-+				     "vmmcall"
-+				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				       "+c" (control), "+d" (input1)
-+				     : "r" (input2)
-+				     : "cc", "r8", "r9", "r10", "r11");
-+	} else {
- 		__asm__ __volatile__("mov %4, %%r8\n"
- 				     CALL_NOSPEC
- 				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
--- 
-2.25.1
+> > +		gcs_free(current);
+> > +		current->thread.gcs_el0_mode = 0;
+> > +		write_sysreg_s(0, SYS_GCSCRE0_EL1);
+> > +		write_sysreg_s(0, SYS_GCSPR_EL0);
+> > +	}
+> > +}
 
+> Do we need and isb() or there's one on this path? If it's only EL0
+> making use of this register, we should be fine with the ERET before
+> returning to user. Not sure whether the kernel uses this, GCSSTTR
+> doesn't need it.
+
+They're only used by EL0, at EL1 we do read GCSPR for signal handling
+but AIUI that shouldn't be any more of an issue than it is for the
+TPIDRs which we don't have a barrier for.  It's possible I'm
+misunderstanding though.
+
+> > +	/*
+> > +	 * Ensure that GCS changes are observable by/from other PEs in
+> > +	 * case of migration.
+> > +	 */
+> > +	if (task_gcs_el0_enabled(current) || task_gcs_el0_enabled(next))
+> > +		gcsb_dsync();
+
+> What's this barrier for? The spec (at least the version I have) only
+> talks about accesses, nothing to do with the registers that we context
+> switch here.
+
+Right, it's for the GCS memory rather than the registers.  I'm fairly
+sure it's excessive but but was erring on the side of caution until I
+have convinced myself that the interactions between GCS barriers and
+regular barriers were doing the right thing, until we have physical
+implementations to contend with I'd guess the practical impact will be
+minimal.
+
+--w/BKAb+ClmJrMdeD
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmTdElkACgkQJNaLcl1U
+h9AWogf/YEdfvtUHD2e4VQoupNYTIQwE4lzBKY5h7rikxnt03b6khOwEnmScy/XC
+1TB3W5zmAGwyJdWCumepeAk5BTRzsKZWV9cdvP0YvcmTlzMqj/1ueNfpHfEu0NQs
+Udxb7QLhxyd8wdlIZn+ycumv7YnckO8stcBNRbenMRsLqKpTsXlM3zcsul9zvSPK
+zWPmyj/57XvYpeEmXgL+2zyLRmGfWEQB97ImfCgO0EkoAxFA6TUugdIAa6g0DWoO
+hZKEu0+mqQUN0RTXOLAqYQXJLGD2lVzT5G3L8HTPyR2GNZIruqNzD+8ZkhSSMm51
+QjFuF+aVfUlZwpNuSsl7bhqHNJmB5w==
+=8c8E
+-----END PGP SIGNATURE-----
+
+--w/BKAb+ClmJrMdeD--
