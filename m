@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 53251C71153
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6ABC5C71157
 	for <linux-arch@archiver.kernel.org>; Thu, 17 Aug 2023 22:02:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1355527AbjHQWCW (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 17 Aug 2023 18:02:22 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39580 "EHLO
+        id S1355548AbjHQWCY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 17 Aug 2023 18:02:24 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39616 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1355501AbjHQWCC (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2023 18:02:02 -0400
+        with ESMTP id S1355509AbjHQWCE (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2023 18:02:04 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id B1605358D;
-        Thu, 17 Aug 2023 15:02:01 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 156B230F1;
+        Thu, 17 Aug 2023 15:02:02 -0700 (PDT)
 Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
-        by linux.microsoft.com (Postfix) with ESMTPSA id ACECA211F7DB;
-        Thu, 17 Aug 2023 15:01:59 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com ACECA211F7DB
+        by linux.microsoft.com (Postfix) with ESMTPSA id 42250211F928;
+        Thu, 17 Aug 2023 15:02:00 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 42250211F928
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1692309719;
-        bh=UF9KXgy9RsSasqAfOy/c+T7O+q2CZQATwtSIp6QmwHs=;
+        s=default; t=1692309720;
+        bh=VWQPdnoO2AKnlcVCBK2uWcpOSyiq2ea2s0AoxyvchiU=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=cewk1cU1/KixfGm5zvZM4vAw/b6ilZ9X3mUQFA4BBXTSLgxJpJdBvXNENaj1hFnfo
-         4Pufotvn0O+1T77veXMx5mNEQIQ91p9T+mkvr5Ter7Wj4GPcqwVZkHjTaflFBaIHzA
-         mB34M4LNc6IzPHAxgxuMy5ZYqkqPG5UgJw+ODGdw=
+        b=a7luczd2a2mcxfkBlPHQEVvd/0/nsxFjznSFmp6L/KvT4tc9IzoYLRF14yxckw/1Z
+         l+0fBI3hKrheDNI2XJqYemtL1OOgfvQffTlsjg3jg+iOmCwm646rOFN70cx8k9wtvZ
+         J7TUdSzTzvtoVlzxwr0uwwUQTSB+1eyMvbagUYGk=
 From:   Nuno Das Neves <nunodasneves@linux.microsoft.com>
 To:     linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
         x86@kernel.org, linux-arm-kernel@lists.infradead.org,
@@ -37,9 +37,9 @@ Cc:     patches@lists.linux.dev, mikelley@microsoft.com, kys@microsoft.com,
         vkuznets@redhat.com, tglx@linutronix.de, mingo@redhat.com,
         bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
         will@kernel.org, catalin.marinas@arm.com
-Subject: [PATCH v2 09/15] Drivers: hv: Introduce hv_output_arg_exists in hv_common.c
-Date:   Thu, 17 Aug 2023 15:01:45 -0700
-Message-Id: <1692309711-5573-10-git-send-email-nunodasneves@linux.microsoft.com>
+Subject: [PATCH v2 14/15] asm-generic: hyperv: Use mshv headers conditionally. Add asm-generic/hyperv-defs.h
+Date:   Thu, 17 Aug 2023 15:01:50 -0700
+Message-Id: <1692309711-5573-15-git-send-email-nunodasneves@linux.microsoft.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <1692309711-5573-1-git-send-email-nunodasneves@linux.microsoft.com>
 References: <1692309711-5573-1-git-send-email-nunodasneves@linux.microsoft.com>
@@ -47,70 +47,125 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is a more flexible approach for determining whether to allocate the
-output page.
+Add hyperv-defs.h to replace some inclusions of hyperv-tlfs.h.
+
+It includes hyperv-tlfs.h or hvhdk.h depending on a compile-time constant
+HV_HYPERV_DEFS which will be defined in the mshv driver.
+
+This is needed to keep unstable Hyper-V interfaces independent of
+hyperv-tlfs.h. This ensures hvhdk.h replaces hyperv-tlfs.h in the mshv driver,
+even via indirect includes.
 
 Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
 ---
- drivers/hv/hv_common.c | 20 ++++++++++++++++----
- 1 file changed, 16 insertions(+), 4 deletions(-)
+ arch/arm64/include/asm/mshyperv.h |  2 +-
+ arch/x86/include/asm/mshyperv.h   |  3 +--
+ drivers/hv/hyperv_vmbus.h         |  1 -
+ include/asm-generic/hyperv-defs.h | 26 ++++++++++++++++++++++++++
+ include/asm-generic/mshyperv.h    |  2 +-
+ include/linux/hyperv.h            |  2 +-
+ 6 files changed, 30 insertions(+), 6 deletions(-)
+ create mode 100644 include/asm-generic/hyperv-defs.h
 
-diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
-index 0dd3091beef3..79efedc8bf39 100644
---- a/drivers/hv/hv_common.c
-+++ b/drivers/hv/hv_common.c
-@@ -57,6 +57,14 @@ EXPORT_SYMBOL_GPL(hyperv_pcpu_input_arg);
- void * __percpu *hyperv_pcpu_output_arg;
- EXPORT_SYMBOL_GPL(hyperv_pcpu_output_arg);
+diff --git a/arch/arm64/include/asm/mshyperv.h b/arch/arm64/include/asm/mshyperv.h
+index 20070a847304..8ec14caf3d4f 100644
+--- a/arch/arm64/include/asm/mshyperv.h
++++ b/arch/arm64/include/asm/mshyperv.h
+@@ -20,7 +20,7 @@
  
+ #include <linux/types.h>
+ #include <linux/arm-smccc.h>
+-#include <asm/hyperv-tlfs.h>
++#include <asm-generic/hyperv-defs.h>
+ 
+ /*
+  * Declare calls to get and set Hyper-V VP register values on ARM64, which
+diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+index 79ffc7913016..c009e9c71445 100644
+--- a/arch/x86/include/asm/mshyperv.h
++++ b/arch/x86/include/asm/mshyperv.h
+@@ -6,10 +6,9 @@
+ #include <linux/nmi.h>
+ #include <linux/msi.h>
+ #include <asm/io.h>
+-#include <asm/hyperv-tlfs.h>
+ #include <asm/nospec-branch.h>
+ #include <asm/paravirt.h>
+-#include <asm/mshyperv.h>
++#include <asm-generic/hyperv-defs.h>
+ 
+ /*
+  * Hyper-V always provides a single IO-APIC at this MMIO address.
+diff --git a/drivers/hv/hyperv_vmbus.h b/drivers/hv/hyperv_vmbus.h
+index 85f3c08bb42b..49529f0b8b99 100644
+--- a/drivers/hv/hyperv_vmbus.h
++++ b/drivers/hv/hyperv_vmbus.h
+@@ -15,7 +15,6 @@
+ #include <linux/list.h>
+ #include <linux/bitops.h>
+ #include <asm/sync_bitops.h>
+-#include <asm/hyperv-tlfs.h>
+ #include <linux/atomic.h>
+ #include <linux/hyperv.h>
+ #include <linux/interrupt.h>
+diff --git a/include/asm-generic/hyperv-defs.h b/include/asm-generic/hyperv-defs.h
+new file mode 100644
+index 000000000000..ac6fcba35c8c
+--- /dev/null
++++ b/include/asm-generic/hyperv-defs.h
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_GENERIC_HYPERV_DEFS_H
++#define _ASM_GENERIC_HYPERV_DEFS_H
++
 +/*
-+ * Determine whether output arg is needed
++ * There are cases where Microsoft Hypervisor ABIs are needed which may not be
++ * stable or present in the Hyper-V TLFS document. E.g. the mshv_root driver.
++ *
++ * As these interfaces are unstable and may differ from hyperv-tlfs.h, they
++ * must be kept separate and independent.
++ *
++ * However, code from files that depend on hyperv-tlfs.h (such as mshyperv.h)
++ * is still needed, so work around the issue by conditionally including the
++ * correct definitions.
++ *
++ * Note: Since they are independent of each other, there are many definitions
++ * duplicated in both hyperv-tlfs.h and uapi/hyperv/hv*.h files.
 + */
-+static inline bool hv_output_arg_exists(void)
-+{
-+	return hv_root_partition ? true : false;
-+}
++#ifdef HV_HYPERV_DEFS
++#include <uapi/hyperv/hvhdk.h>
++#else
++#include <asm/hyperv-tlfs.h>
++#endif
 +
- static void hv_kmsg_dump_unregister(void);
- 
- static struct ctl_table_header *hv_ctl_table_hdr;
-@@ -341,10 +349,12 @@ int __init hv_common_init(void)
- 	hyperv_pcpu_input_arg = alloc_percpu(void  *);
- 	BUG_ON(!hyperv_pcpu_input_arg);
- 
--	/* Allocate the per-CPU state for output arg for root */
--	if (hv_root_partition) {
-+	if (hv_output_arg_exists()) {
- 		hyperv_pcpu_output_arg = alloc_percpu(void *);
- 		BUG_ON(!hyperv_pcpu_output_arg);
-+	}
++#endif /* _ASM_GENERIC_HYPERV_DEFS_H */
 +
-+	if (hv_root_partition) {
- 		hv_synic_eventring_tail = alloc_percpu(u8 *);
- 		BUG_ON(hv_synic_eventring_tail == NULL);
- 	}
-@@ -374,7 +384,7 @@ int hv_common_cpu_init(unsigned int cpu)
- 	u8 **synic_eventring_tail;
- 	u64 msr_vp_index;
- 	gfp_t flags;
--	int pgcount = hv_root_partition ? 2 : 1;
-+	int pgcount = hv_output_arg_exists() ? 2 : 1;
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index 2b20994d809e..e86b6f51fb64 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -25,7 +25,7 @@
+ #include <linux/cpumask.h>
+ #include <linux/nmi.h>
+ #include <asm/ptrace.h>
+-#include <asm/hyperv-tlfs.h>
++#include <asm-generic/hyperv-defs.h>
  
- 	/* hv_cpu_init() can be called with IRQs disabled from hv_resume() */
- 	flags = irqs_disabled() ? GFP_ATOMIC : GFP_KERNEL;
-@@ -390,9 +400,11 @@ int hv_common_cpu_init(unsigned int cpu)
- 		if (!(*inputarg))
- 			return -ENOMEM;
+ #define VTPM_BASE_ADDRESS 0xfed40000
  
--		if (hv_root_partition) {
-+		if (hv_output_arg_exists()) {
- 			outputarg = (void **)this_cpu_ptr(hyperv_pcpu_output_arg);
- 			*outputarg = (char *)(*inputarg) + HV_HYP_PAGE_SIZE;
-+		}
-+		if (hv_root_partition) {
- 			synic_eventring_tail = (u8 **)this_cpu_ptr(hv_synic_eventring_tail);
- 			*synic_eventring_tail = kcalloc(HV_SYNIC_SINT_COUNT, sizeof(u8),
- 							flags);
+diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
+index f90de5abcd50..66ed8b3e5d89 100644
+--- a/include/linux/hyperv.h
++++ b/include/linux/hyperv.h
+@@ -24,7 +24,7 @@
+ #include <linux/mod_devicetable.h>
+ #include <linux/interrupt.h>
+ #include <linux/reciprocal_div.h>
+-#include <asm/hyperv-tlfs.h>
++#include <asm-generic/hyperv-defs.h>
+ 
+ #define MAX_PAGE_BUFFER_COUNT				32
+ #define MAX_MULTIPAGE_BUFFER_COUNT			32 /* 128K */
 -- 
 2.25.1
 
