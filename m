@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1ECAFC3DA57
-	for <linux-arch@archiver.kernel.org>; Thu, 17 Aug 2023 16:08:58 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 31515C52CDA
+	for <linux-arch@archiver.kernel.org>; Thu, 17 Aug 2023 16:08:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1353510AbjHQQIZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 17 Aug 2023 12:08:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:59620 "EHLO
+        id S1353507AbjHQQI1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 17 Aug 2023 12:08:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46792 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1353484AbjHQQIB (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2023 12:08:01 -0400
-Received: from xavier.telenet-ops.be (xavier.telenet-ops.be [IPv6:2a02:1800:120:4::f00:14])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0E7CB35A4
-        for <linux-arch@vger.kernel.org>; Thu, 17 Aug 2023 09:07:56 -0700 (PDT)
+        with ESMTP id S1353467AbjHQQH7 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 17 Aug 2023 12:07:59 -0400
+Received: from michel.telenet-ops.be (michel.telenet-ops.be [IPv6:2a02:1800:110:4::f00:18])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1369F358E
+        for <linux-arch@vger.kernel.org>; Thu, 17 Aug 2023 09:07:55 -0700 (PDT)
 Received: from ramsan.of.borg ([IPv6:2a02:1810:ac12:ed40:d85a:258d:2c59:b44])
-        by xavier.telenet-ops.be with bizsmtp
-        id ag7i2A0024QHFyo01g7imV; Thu, 17 Aug 2023 18:07:54 +0200
+        by michel.telenet-ops.be with bizsmtp
+        id ag7i2A0034QHFyo06g7i5M; Thu, 17 Aug 2023 18:07:54 +0200
 Received: from rox.of.borg ([192.168.97.57])
         by ramsan.of.borg with esmtp (Exim 4.95)
         (envelope-from <geert@linux-m68k.org>)
-        id 1qWfX4-000uIh-Ba;
+        id 1qWfX4-000uIj-CR;
         Thu, 17 Aug 2023 18:07:41 +0200
 Received: from geert by rox.of.borg with local (Exim 4.95)
         (envelope-from <geert@linux-m68k.org>)
-        id 1qWfXB-007YEe-Q2;
+        id 1qWfXB-007YEk-Re;
         Thu, 17 Aug 2023 18:07:41 +0200
 From:   Geert Uytterhoeven <geert@linux-m68k.org>
 To:     Russell King <linux@armlinux.org.uk>,
@@ -43,9 +43,9 @@ Cc:     linux-arm-kernel@lists.infradead.org, linux-parisc@vger.kernel.org,
         linux-ide@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
         linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
         Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 1/9] ARM: Remove <asm/ide.h>
-Date:   Thu, 17 Aug 2023 18:07:32 +0200
-Message-Id: <e53f0f8da1607856028d941e7ac8646aa2abc555.1692288018.git.geert@linux-m68k.org>
+Subject: [PATCH 3/9] powerpc: Remove <asm/ide.h>
+Date:   Thu, 17 Aug 2023 18:07:34 +0200
+Message-Id: <eb79960c5f9f72013b3b2f6d19461e5d8134fcc2.1692288018.git.geert@linux-m68k.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <cover.1692288018.git.geert@linux-m68k.org>
 References: <cover.1692288018.git.geert@linux-m68k.org>
@@ -60,40 +60,34 @@ v5.14, there are no more generic users of <asm/ide.h>.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 ---
- arch/arm/include/asm/ide.h | 24 ------------------------
- 1 file changed, 24 deletions(-)
- delete mode 100644 arch/arm/include/asm/ide.h
+ arch/powerpc/include/asm/ide.h | 18 ------------------
+ 1 file changed, 18 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/ide.h
 
-diff --git a/arch/arm/include/asm/ide.h b/arch/arm/include/asm/ide.h
+diff --git a/arch/powerpc/include/asm/ide.h b/arch/powerpc/include/asm/ide.h
 deleted file mode 100644
-index a81e0b0d6747aa2f..0000000000000000
---- a/arch/arm/include/asm/ide.h
+index ce87a4441ca34887..0000000000000000
+--- a/arch/powerpc/include/asm/ide.h
 +++ /dev/null
-@@ -1,24 +0,0 @@
+@@ -1,18 +0,0 @@
 -/* SPDX-License-Identifier: GPL-2.0 */
 -/*
-- *  arch/arm/include/asm/ide.h
+- *  Copyright (C) 1994-1996 Linus Torvalds & authors
 - *
-- *  Copyright (C) 1994-1996  Linus Torvalds & authors
+- *  This file contains the powerpc architecture specific IDE code.
 - */
+-#ifndef _ASM_POWERPC_IDE_H
+-#define _ASM_POWERPC_IDE_H
 -
--/*
-- *  This file contains the ARM architecture specific IDE code.
-- */
+-#include <linux/compiler.h>
+-#include <asm/io.h>
 -
--#ifndef __ASMARM_IDE_H
--#define __ASMARM_IDE_H
+-#define __ide_mm_insw(p, a, c)	readsw((void __iomem *)(p), (a), (c))
+-#define __ide_mm_insl(p, a, c)	readsl((void __iomem *)(p), (a), (c))
+-#define __ide_mm_outsw(p, a, c)	writesw((void __iomem *)(p), (a), (c))
+-#define __ide_mm_outsl(p, a, c)	writesl((void __iomem *)(p), (a), (c))
 -
--#ifdef __KERNEL__
--
--#define __ide_mm_insw(port,addr,len)	readsw(port,addr,len)
--#define __ide_mm_insl(port,addr,len)	readsl(port,addr,len)
--#define __ide_mm_outsw(port,addr,len)	writesw(port,addr,len)
--#define __ide_mm_outsl(port,addr,len)	writesl(port,addr,len)
--
--#endif /* __KERNEL__ */
--
--#endif /* __ASMARM_IDE_H */
+-#endif /* _ASM_POWERPC_IDE_H */
 -- 
 2.34.1
 
