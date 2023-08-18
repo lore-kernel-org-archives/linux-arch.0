@@ -2,53 +2,53 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6D8BCC71150
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BBEE4C71153
 	for <linux-arch@archiver.kernel.org>; Fri, 18 Aug 2023 10:30:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1359496AbjHRKaD (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 18 Aug 2023 06:30:03 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47686 "EHLO
+        id S1376303AbjHRKaG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 18 Aug 2023 06:30:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:47760 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1359836AbjHRK3c (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2023 06:29:32 -0400
-Received: from mail-pl1-x62e.google.com (mail-pl1-x62e.google.com [IPv6:2607:f8b0:4864:20::62e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 62C922701;
-        Fri, 18 Aug 2023 03:29:30 -0700 (PDT)
-Received: by mail-pl1-x62e.google.com with SMTP id d9443c01a7336-1bf3a2f44f0so3145575ad.2;
-        Fri, 18 Aug 2023 03:29:30 -0700 (PDT)
+        with ESMTP id S1376264AbjHRK3g (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 18 Aug 2023 06:29:36 -0400
+Received: from mail-pl1-x630.google.com (mail-pl1-x630.google.com [IPv6:2607:f8b0:4864:20::630])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B01E4273C;
+        Fri, 18 Aug 2023 03:29:34 -0700 (PDT)
+Received: by mail-pl1-x630.google.com with SMTP id d9443c01a7336-1bcad794ad4so5849665ad.3;
+        Fri, 18 Aug 2023 03:29:34 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20221208; t=1692354570; x=1692959370;
+        d=gmail.com; s=20221208; t=1692354574; x=1692959374;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=f087Kw274k/dHkYZVOPSAgM/VBWlSfgBOsFhfzHlNmw=;
-        b=KZrFiA8fiiM4d0xz7n9Ixn971l+r4JjIvA19bKj27HpnXecRGgq/nEDYTqomme2W2m
-         EVfC0to8UoDOI7uS49w7DdnvxguvMPeiJqW8/XzgST0cL491iB1vOnkybRIpRxPrGkx8
-         qYUea8vnBjP6V37Q/hioEAg9tKRAXIryJ5oSjwX/sk2OTgqEPIg66VHfhS4BEruTx3zs
-         k+J7AAVO7nwsOlbXuC/FuNgj5SMQKoj47WMiV7xPsUWzISUyImXpj1UZAFo7GcnBVMqg
-         XF3lDFnyW3JCHgpZgfZ0WP8OqV9Zxgmsgx9G/8vzEM5H6ZdjfjUnkGLeAujMN6byh9gU
-         wGuA==
+        bh=1DnnhOE4bu9200LOu4wzMzLwwowVrfU+l1Oc5QLPUw0=;
+        b=CrAew059PvN32BuoRfvYcuKsfaSnVYJFhk2X1KtHMoxYVRYGhcapVGspJ+hsqzYurl
+         9mEhVWpizCYqCMXiRq2cCBXCKELlWyfR/ZLnsMMoFNaXcNMBKyWHpSXw8B0ujJzOtl00
+         o2OQpkAeBzLMVSTC//xgOgFTntZJjRz7WltjdCQz/08eALqZeHftJAPJ1IcfkQfi5mel
+         1rydKvUUGEU3xtLEmD0+48rc4xnumjkWdMt6acDA68f0eehTTGzF2orMcLJpeAwwZ5Y0
+         vMnawIZJyF+0qKBcQIiNgbHloPrfPnUAwHJmIq0qdkaQgsk2lKHwUqBv2aWsJ1dyEnFe
+         chPg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1692354570; x=1692959370;
+        d=1e100.net; s=20221208; t=1692354574; x=1692959374;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=f087Kw274k/dHkYZVOPSAgM/VBWlSfgBOsFhfzHlNmw=;
-        b=Yx0bIxN5Mg4xJzUJrDw8bBnMD/ty8TdLukFFEBUtkEPqxA+4e5YIxEj8mOGcXeQdtK
-         aS9K149x+Cp5JmrKgCihjkWq10dXA8ipo22qG0wbaDLUNMYMHnut/3O3GLqv8Ps50SeG
-         HU7Qr2xN5UnhasMhc2h44wjfQPJMvll4b1uISJlKxW8/w0gaCXAeVZt+UNmx5bbi4HIJ
-         wZwo94RkyGB4txLRjlKp8Yl0peIPny9kksGaeo4A8d3qAebIQSYgZ4z422zldw3IbuAk
-         GZGdmOMy1+0gAzQuvv5wi9F3agsg/Imd9GfydbgJZXN4Qzx63R9Re1Ga4oRLeSGD9iGk
-         rBBQ==
-X-Gm-Message-State: AOJu0YzX2BSO50Epcy4wjcIbN45Q1QYXuoSbTqL4LOFe9DnH5BN5uEtg
-        G3aTbpaPGfr/nci2vJ8yxmE=
-X-Google-Smtp-Source: AGHT+IHWOnWffy/5o427UeNdAeXXntr4FcIrpe7g+HZVxbtiIHyjkpV+7mWe810Qfupkb5K7GQO4/Q==
-X-Received: by 2002:a17:902:7b94:b0:1bc:ee6:7f2e with SMTP id w20-20020a1709027b9400b001bc0ee67f2emr1700820pll.53.1692354570443;
-        Fri, 18 Aug 2023 03:29:30 -0700 (PDT)
+        bh=1DnnhOE4bu9200LOu4wzMzLwwowVrfU+l1Oc5QLPUw0=;
+        b=ZYCwlNOjDZ9zxY40zaEJa1KmNqVJ+u1yExnY0yo45V6wvIh4ZLJ/BQ2U8qOlvTfQ1k
+         zblegFXHbqMzCu2+OwLPHbtrdyEWOjHQAAbgTMMMBRutaJkCQYEx6cptEgRDnaqZxJ33
+         HuuVTnna0QpHLzLJWQ/6Hgki7duRsMCAH1rlUPEHYPKvBkMrapazMAg76WUTmMg8YnP4
+         IkqEGlFj89YtWYPgLXV8H+0Kyb6VWsnFJTP+NwZdqPxOPOhUXZGjmHl4+we6vLcenL/K
+         5j6K/OzGuN/dBm6muaFENPGUze/cnjiRNdMillrmfOfERUG5g69N2y4pzYEmz+zmIWSx
+         LmQw==
+X-Gm-Message-State: AOJu0Ywkzy4NFm8i/DtLFu2PncyyC5UFWKZCoPFM/NhQjwjO/geUg2g6
+        oyl/BLs9yS8zec03OTJCOCY=
+X-Google-Smtp-Source: AGHT+IF1laguaPanx0hW5wS9Lca+aCWhhfbxKDfUAuOHs6LmiTQMJdxrKmSDWZWa7UiJBoNpXoIfEw==
+X-Received: by 2002:a17:902:da85:b0:1b0:3637:384e with SMTP id j5-20020a170902da8500b001b03637384emr2459356plx.25.1692354574109;
+        Fri, 18 Aug 2023 03:29:34 -0700 (PDT)
 Received: from ubuntu-Virtual-Machine.corp.microsoft.com ([2001:4898:80e8:7:4545:4938:97f0:2e1f])
-        by smtp.gmail.com with ESMTPSA id f1-20020a17090274c100b001b9be79729csm1386766plt.165.2023.08.18.03.29.29
+        by smtp.gmail.com with ESMTPSA id f1-20020a17090274c100b001b9be79729csm1386766plt.165.2023.08.18.03.29.33
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 18 Aug 2023 03:29:29 -0700 (PDT)
+        Fri, 18 Aug 2023 03:29:33 -0700 (PDT)
 From:   Tianyu Lan <ltykernel@gmail.com>
 To:     kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
         decui@microsoft.com, tglx@linutronix.de, mingo@redhat.com,
@@ -57,10 +57,10 @@ To:     kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
         michael.h.kelley@microsoft.com
 Cc:     Tianyu Lan <tiala@microsoft.com>, linux-arch@vger.kernel.org,
         linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
-        vkuznets@redhat.com
-Subject: [PATCH v7 5/8] x86/hyperv: Use vmmcall to implement Hyper-V hypercall in sev-snp enlightened guest
-Date:   Fri, 18 Aug 2023 06:29:15 -0400
-Message-Id: <20230818102919.1318039-6-ltykernel@gmail.com>
+        vkuznets@redhat.com, Michael Kelley <mikelley@microsoft.com>
+Subject: [PATCH v7 8/8] x86/hyperv: Add hyperv-specific handling for VMMCALL under SEV-ES
+Date:   Fri, 18 Aug 2023 06:29:18 -0400
+Message-Id: <20230818102919.1318039-9-ltykernel@gmail.com>
 X-Mailer: git-send-email 2.25.1
 In-Reply-To: <20230818102919.1318039-1-ltykernel@gmail.com>
 References: <20230818102919.1318039-1-ltykernel@gmail.com>
@@ -72,84 +72,60 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Tianyu Lan <tiala@microsoft.com>
 
-In sev-snp enlightened guest, Hyper-V hypercall needs
-to use vmmcall to trigger vmexit and notify hypervisor
-to handle hypercall request.
+Add Hyperv-specific handling for faults caused by VMMCALL
+instructions.
 
+Reviewed-by: Dexuan Cui <decui@microsoft.com>
+Reviewed-by: Michael Kelley <mikelley@microsoft.com>
 Signed-off-by: Tianyu Lan <tiala@microsoft.com>
 ---
- arch/x86/include/asm/mshyperv.h | 30 +++++++++++++++++++++++++++---
- 1 file changed, 27 insertions(+), 3 deletions(-)
+ arch/x86/kernel/cpu/mshyperv.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index 9f11f0495950..8660d6bca6f2 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -48,6 +48,8 @@ extern u64 hv_current_partition_id;
+diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+index c56fc151b8db..26b9fcabd7d9 100644
+--- a/arch/x86/kernel/cpu/mshyperv.c
++++ b/arch/x86/kernel/cpu/mshyperv.c
+@@ -32,6 +32,7 @@
+ #include <asm/nmi.h>
+ #include <clocksource/hyperv_timer.h>
+ #include <asm/numa.h>
++#include <asm/svm.h>
  
- extern union hv_ghcb * __percpu *hv_ghcb_pg;
+ /* Is Linux running as the root partition? */
+ bool hv_root_partition;
+@@ -574,6 +575,22 @@ static bool __init ms_hyperv_msi_ext_dest_id(void)
+ 	return eax & HYPERV_VS_PROPERTIES_EAX_EXTENDED_IOAPIC_RTE;
+ }
  
-+extern bool hv_isolation_type_en_snp(void);
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++static void hv_sev_es_hcall_prepare(struct ghcb *ghcb, struct pt_regs *regs)
++{
++	/* RAX and CPL are already in the GHCB */
++	ghcb_set_rcx(ghcb, regs->cx);
++	ghcb_set_rdx(ghcb, regs->dx);
++	ghcb_set_r8(ghcb, regs->r8);
++}
 +
- int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
- int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
- int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags);
-@@ -59,6 +61,16 @@ static inline u64 hv_do_hypercall(u64 control, void *input, void *output)
- 	u64 hv_status;
- 
- #ifdef CONFIG_X86_64
-+	if (hv_isolation_type_en_snp()) {
-+		__asm__ __volatile__("mov %4, %%r8\n"
-+				     "vmmcall"
-+				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				       "+c" (control), "+d" (input_address)
-+				     :  "r" (output_address)
-+				     : "cc", "memory", "r8", "r9", "r10", "r11");
-+		return hv_status;
-+	}
++static bool hv_sev_es_hcall_finish(struct ghcb *ghcb, struct pt_regs *regs)
++{
++	/* No checking of the return state needed */
++	return true;
++}
++#endif
 +
- 	if (!hv_hypercall_pg)
- 		return U64_MAX;
- 
-@@ -102,7 +114,13 @@ static inline u64 _hv_do_fast_hypercall8(u64 control, u64 input1)
- 	u64 hv_status;
- 
- #ifdef CONFIG_X86_64
--	{
-+	if (hv_isolation_type_en_snp()) {
-+		__asm__ __volatile__(
-+				"vmmcall"
-+				: "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				"+c" (control), "+d" (input1)
-+				:: "cc", "r8", "r9", "r10", "r11");
-+	} else {
- 		__asm__ __volatile__(CALL_NOSPEC
- 				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
- 				       "+c" (control), "+d" (input1)
-@@ -147,7 +165,14 @@ static inline u64 _hv_do_fast_hypercall16(u64 control, u64 input1, u64 input2)
- 	u64 hv_status;
- 
- #ifdef CONFIG_X86_64
--	{
-+	if (hv_isolation_type_en_snp()) {
-+		__asm__ __volatile__("mov %4, %%r8\n"
-+				     "vmmcall"
-+				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
-+				       "+c" (control), "+d" (input1)
-+				     : "r" (input2)
-+				     : "cc", "r8", "r9", "r10", "r11");
-+	} else {
- 		__asm__ __volatile__("mov %4, %%r8\n"
- 				     CALL_NOSPEC
- 				     : "=a" (hv_status), ASM_CALL_CONSTRAINT,
-@@ -240,7 +265,6 @@ static inline void hv_vtom_init(void) {}
- #endif
- 
- extern bool hv_isolation_type_snp(void);
--extern bool hv_isolation_type_en_snp(void);
- 
- static inline bool hv_is_synic_reg(unsigned int reg)
- {
+ const __initconst struct hypervisor_x86 x86_hyper_ms_hyperv = {
+ 	.name			= "Microsoft Hyper-V",
+ 	.detect			= ms_hyperv_platform,
+@@ -581,4 +598,8 @@ const __initconst struct hypervisor_x86 x86_hyper_ms_hyperv = {
+ 	.init.x2apic_available	= ms_hyperv_x2apic_available,
+ 	.init.msi_ext_dest_id	= ms_hyperv_msi_ext_dest_id,
+ 	.init.init_platform	= ms_hyperv_init_platform,
++#ifdef CONFIG_AMD_MEM_ENCRYPT
++	.runtime.sev_es_hcall_prepare = hv_sev_es_hcall_prepare,
++	.runtime.sev_es_hcall_finish = hv_sev_es_hcall_finish,
++#endif
+ };
 -- 
 2.25.1
 
