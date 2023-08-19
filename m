@@ -2,408 +2,105 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2F5EBEE49A5
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 00:18:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C80A3EE49A6
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 00:20:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229577AbjHTAR7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Aug 2023 20:17:59 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60776 "EHLO
+        id S229633AbjHTATf convert rfc822-to-8bit (ORCPT
+        <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Aug 2023 20:19:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51376 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229674AbjHTAR5 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 20:17:57 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1523488CE9;
-        Sat, 19 Aug 2023 16:34:02 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id A929661A5C;
-        Sat, 19 Aug 2023 23:34:01 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0238DC433CA;
-        Sat, 19 Aug 2023 23:33:59 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692488041;
-        bh=JFhA8y871vv+gRtTcPjd9V7hXE56sCKpW0Vj8S1748E=;
-        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=DKO9KLcyBESyHV5iuYqMVkQhzDHq8YAPi1uEoCKavq2tdIxRG1lOlcpEZty1plKYK
-         cvjDXVhm0Q+9efwybvbdTRJa9sSR+t7W6jT4CulLPJcuEOJezK0zQvjmrmk9zJmDdE
-         OIThQhaGtDa9lmsMo7ciFoLBZvkYzr7cdsKMx6rrs1b+Hr+VelhUQpANV4/jILNd8K
-         SetHh7xHsayX62uCNaSnZ9o/rZ/IhwvYqOwLU+U9SCfvCP6x3pftrHIZNbamnCHb68
-         YDbY3BFle/2KkzG8Ubxd/Xf4TiKa9yPBoN0Y29dlW5IAUZmJeb27euy7QXuEYzd5ZG
-         XcFEV2p3pWgzA==
-From:   Masahiro Yamada <masahiroy@kernel.org>
-To:     linux-kbuild@vger.kernel.org
-Cc:     linux-arch@vger.kernel.org, Masahiro Yamada <masahiroy@kernel.org>,
-        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: [PATCH 3/6] ia64: replace #include <asm/export.h> with #include <linux/export.h>
-Date:   Sun, 20 Aug 2023 08:33:50 +0900
-Message-Id: <20230819233353.3683813-3-masahiroy@kernel.org>
-X-Mailer: git-send-email 2.39.2
-In-Reply-To: <20230819233353.3683813-1-masahiroy@kernel.org>
-References: <20230819233353.3683813-1-masahiroy@kernel.org>
+        with ESMTP id S229763AbjHTATQ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 20:19:16 -0400
+Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B343ACFE22;
+        Sat, 19 Aug 2023 14:17:49 -0700 (PDT)
+Received: from localhost (localhost [127.0.0.1])
+        by lithops.sigma-star.at (Postfix) with ESMTP id 6015C63DB7E5;
+        Sat, 19 Aug 2023 23:17:48 +0200 (CEST)
+Received: from lithops.sigma-star.at ([127.0.0.1])
+        by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10032)
+        with ESMTP id 4g8WFByNW1hB; Sat, 19 Aug 2023 23:17:48 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+        by lithops.sigma-star.at (Postfix) with ESMTP id DB93163DB801;
+        Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
+Received: from lithops.sigma-star.at ([127.0.0.1])
+        by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10026)
+        with ESMTP id V-A1eIJKOCYu; Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
+Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
+        by lithops.sigma-star.at (Postfix) with ESMTP id ABF7E63DB7E5;
+        Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
+Date:   Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
+From:   Richard Weinberger <richard@nod.at>
+To:     davidgow <davidgow@google.com>
+Cc:     anton ivanov <anton.ivanov@cambridgegreys.com>,
+        Johannes Berg <johannes@sipsolutions.net>,
+        tglx <tglx@linutronix.de>, mingo <mingo@redhat.com>,
+        bp <bp@alien8.de>, dave hansen <dave.hansen@linux.intel.com>,
+        hpa <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+        Noah Goldstein <goldstein.w.n@gmail.com>,
+        linux-um <linux-um@lists.infradead.org>, x86 <x86@kernel.org>,
+        linux-arch <linux-arch@vger.kernel.org>,
+        Geert Uytterhoeven <geert@linux-m68k.org>,
+        linux-kselftest <linux-kselftest@vger.kernel.org>,
+        linux-kernel <linux-kernel@vger.kernel.org>
+Message-ID: <1999963356.6490608.1692479867613.JavaMail.zimbra@nod.at>
+In-Reply-To: <20230704083022.692368-1-davidgow@google.com>
+References: <20230704083022.692368-1-davidgow@google.com>
+Subject: Re: [PATCH 1/2] asm-generic: current: Don't include thread-info.h
+ if building asm
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
+X-Originating-IP: [195.201.40.130]
+X-Mailer: Zimbra 8.8.12_GA_3807 (ZimbraWebClient - FF97 (Linux)/8.8.12_GA_3809)
+Thread-Topic: asm-generic: current: Don't include thread-info.h if building asm
+Thread-Index: nVjiU4WyfVH2A7QVxS/nlClMU8OkNw==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Commit ddb5cdbafaaa ("kbuild: generate KSYMTAB entries by modpost")
-deprecated <asm/export.h>, which is now a wrapper of <linux/export.h>.
+----- Ursprüngliche Mail -----
+> Von: "davidgow" <davidgow@google.com>
+> asm/current.h is included by some assembly files (either directly, or
+> indirectly). This works on some architectures (such as x86), as their
+> implementation of current.h is careful to not include any C, but the
+> asm-generic version includes linux/thread-info.h unconditionally, which
+> leads to errors when either C code or non-asm-compatible preprocessor
+> directives are included.
+> 
+> Just wrap the contents behind an #ifndef __ASSEMBLY__ to avoid any C
+> code making its way in.
+> 
+> Signed-off-by: David Gow <davidgow@google.com>
+> ---
+> 
+> This is requrired for patch #2 here, as UML uses this asm-generic
+> header, but works with x86 assembly files which are expecting the x86
+> current.h, which is assembly-friendly.
+> 
+> ---
+> include/asm-generic/current.h | 2 ++
+> 1 file changed, 2 insertions(+)
+> 
+> diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
+> index 3a2e224b9fa0..9c2aeecbd05a 100644
+> --- a/include/asm-generic/current.h
+> +++ b/include/asm-generic/current.h
+> @@ -2,9 +2,11 @@
+> #ifndef __ASM_GENERIC_CURRENT_H
+> #define __ASM_GENERIC_CURRENT_H
+> 
+> +#ifndef __ASSEMBLY__
+> #include <linux/thread_info.h>
+> 
+> #define get_current() (current_thread_info()->task)
+> #define current get_current()
+> +#endif
+> 
+> #endif /* __ASM_GENERIC_CURRENT_H */
 
-Replace #include <asm/export.h> with #include <linux/export.h>.
+I'm fine with the UML side of this change but the generic part needs Arnd's ACK.
 
-After all the <asm/export.h> lines are converted, <asm/export.h> and
-<asm-generic/export.h> will be removed.
-
-Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
----
-
- arch/ia64/kernel/entry.S          | 3 +--
- arch/ia64/kernel/esi_stub.S       | 2 +-
- arch/ia64/kernel/head.S           | 3 +--
- arch/ia64/kernel/ivt.S            | 3 +--
- arch/ia64/kernel/pal.S            | 2 +-
- arch/ia64/lib/clear_page.S        | 2 +-
- arch/ia64/lib/clear_user.S        | 2 +-
- arch/ia64/lib/copy_page.S         | 2 +-
- arch/ia64/lib/copy_page_mck.S     | 2 +-
- arch/ia64/lib/copy_user.S         | 2 +-
- arch/ia64/lib/flush.S             | 3 +--
- arch/ia64/lib/idiv32.S            | 2 +-
- arch/ia64/lib/idiv64.S            | 2 +-
- arch/ia64/lib/ip_fast_csum.S      | 2 +-
- arch/ia64/lib/memcpy.S            | 2 +-
- arch/ia64/lib/memcpy_mck.S        | 2 +-
- arch/ia64/lib/memset.S            | 2 +-
- arch/ia64/lib/strlen.S            | 2 +-
- arch/ia64/lib/strncpy_from_user.S | 2 +-
- arch/ia64/lib/strnlen_user.S      | 2 +-
- arch/ia64/lib/xor.S               | 2 +-
- 21 files changed, 21 insertions(+), 25 deletions(-)
-
-diff --git a/arch/ia64/kernel/entry.S b/arch/ia64/kernel/entry.S
-index 5eba3fb2e311..ac06d44b9b27 100644
---- a/arch/ia64/kernel/entry.S
-+++ b/arch/ia64/kernel/entry.S
-@@ -37,7 +37,7 @@
-  *	pNonSys:	!pSys
-  */
- 
--
-+#include <linux/export.h>
- #include <linux/pgtable.h>
- #include <asm/asmmacro.h>
- #include <asm/cache.h>
-@@ -49,7 +49,6 @@
- #include <asm/thread_info.h>
- #include <asm/unistd.h>
- #include <asm/ftrace.h>
--#include <asm/export.h>
- 
- #include "minstate.h"
- 
-diff --git a/arch/ia64/kernel/esi_stub.S b/arch/ia64/kernel/esi_stub.S
-index 821e68d10598..9928c5b2957c 100644
---- a/arch/ia64/kernel/esi_stub.S
-+++ b/arch/ia64/kernel/esi_stub.S
-@@ -34,9 +34,9 @@
- #define PSR_BITS_TO_SET							\
- 	(IA64_PSR_BN)
- 
-+#include <linux/export.h>
- #include <asm/processor.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- /*
-  * Inputs:
-diff --git a/arch/ia64/kernel/head.S b/arch/ia64/kernel/head.S
-index c096500590e9..85c8a57da402 100644
---- a/arch/ia64/kernel/head.S
-+++ b/arch/ia64/kernel/head.S
-@@ -20,7 +20,7 @@
-  *   Support for CPU Hotplug
-  */
- 
--
-+#include <linux/export.h>
- #include <linux/pgtable.h>
- #include <asm/asmmacro.h>
- #include <asm/fpu.h>
-@@ -33,7 +33,6 @@
- #include <asm/mca_asm.h>
- #include <linux/init.h>
- #include <linux/linkage.h>
--#include <asm/export.h>
- 
- #ifdef CONFIG_HOTPLUG_CPU
- #define SAL_PSR_BITS_TO_SET				\
-diff --git a/arch/ia64/kernel/ivt.S b/arch/ia64/kernel/ivt.S
-index 7a418e324d30..da90c49df628 100644
---- a/arch/ia64/kernel/ivt.S
-+++ b/arch/ia64/kernel/ivt.S
-@@ -47,7 +47,7 @@
-  * Table is based upon EAS2.6 (Oct 1999)
-  */
- 
--
-+#include <linux/export.h>
- #include <linux/pgtable.h>
- #include <asm/asmmacro.h>
- #include <asm/break.h>
-@@ -58,7 +58,6 @@
- #include <asm/thread_info.h>
- #include <asm/unistd.h>
- #include <asm/errno.h>
--#include <asm/export.h>
- 
- #if 0
- # define PSR_DEFAULT_BITS	psr.ac
-diff --git a/arch/ia64/kernel/pal.S b/arch/ia64/kernel/pal.S
-index 06d01a070aae..fb6db6966f70 100644
---- a/arch/ia64/kernel/pal.S
-+++ b/arch/ia64/kernel/pal.S
-@@ -13,9 +13,9 @@
-  * 05/24/2000 eranian Added support for physical mode static calls
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
- #include <asm/processor.h>
--#include <asm/export.h>
- 
- 	.data
- pal_entry_point:
-diff --git a/arch/ia64/lib/clear_page.S b/arch/ia64/lib/clear_page.S
-index 65b75085c8f4..ba0dd2538fa5 100644
---- a/arch/ia64/lib/clear_page.S
-+++ b/arch/ia64/lib/clear_page.S
-@@ -10,9 +10,9 @@
-  * 3/08/02 davidm	Some more tweaking
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
- #include <asm/page.h>
--#include <asm/export.h>
- 
- #ifdef CONFIG_ITANIUM
- # define L3_LINE_SIZE	64	// Itanium L3 line size
-diff --git a/arch/ia64/lib/clear_user.S b/arch/ia64/lib/clear_user.S
-index a28f39d349eb..1d9e45ccf8e5 100644
---- a/arch/ia64/lib/clear_user.S
-+++ b/arch/ia64/lib/clear_user.S
-@@ -12,8 +12,8 @@
-  *	Stephane Eranian <eranian@hpl.hp.com>
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- //
- // arguments
-diff --git a/arch/ia64/lib/copy_page.S b/arch/ia64/lib/copy_page.S
-index 176f857c522e..c0a0e6b2af00 100644
---- a/arch/ia64/lib/copy_page.S
-+++ b/arch/ia64/lib/copy_page.S
-@@ -15,9 +15,9 @@
-  *
-  * 4/06/01 davidm	Tuned to make it perform well both for cached and uncached copies.
-  */
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
- #include <asm/page.h>
--#include <asm/export.h>
- 
- #define PIPE_DEPTH	3
- #define EPI		p[PIPE_DEPTH-1]
-diff --git a/arch/ia64/lib/copy_page_mck.S b/arch/ia64/lib/copy_page_mck.S
-index d6fd56e4f1c1..5e8bb4b4b535 100644
---- a/arch/ia64/lib/copy_page_mck.S
-+++ b/arch/ia64/lib/copy_page_mck.S
-@@ -60,9 +60,9 @@
-  *	to fetch the second-half of the L2 cache line into L1, and the tX words are copied in
-  *	an order that avoids bank conflicts.
-  */
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
- #include <asm/page.h>
--#include <asm/export.h>
- 
- #define PREFETCH_DIST	8		// McKinley sustains 16 outstanding L2 misses (8 ld, 8 st)
- 
-diff --git a/arch/ia64/lib/copy_user.S b/arch/ia64/lib/copy_user.S
-index f681556c6b86..8daab72cfe77 100644
---- a/arch/ia64/lib/copy_user.S
-+++ b/arch/ia64/lib/copy_user.S
-@@ -30,8 +30,8 @@
-  *	- fix extraneous stop bit introduced by the EX() macro.
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- //
- // Tuneable parameters
-diff --git a/arch/ia64/lib/flush.S b/arch/ia64/lib/flush.S
-index 8573d59c9ed1..f8e795fe45cb 100644
---- a/arch/ia64/lib/flush.S
-+++ b/arch/ia64/lib/flush.S
-@@ -8,9 +8,8 @@
-  * 05/28/05 Zoltan Menyhart	Dynamic stride size
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
--
- 
- 	/*
- 	 * flush_icache_range(start,end)
-diff --git a/arch/ia64/lib/idiv32.S b/arch/ia64/lib/idiv32.S
-index def92b708e6e..83586fbc51ff 100644
---- a/arch/ia64/lib/idiv32.S
-+++ b/arch/ia64/lib/idiv32.S
-@@ -15,8 +15,8 @@
-  * (http://www.goodreads.com/book/show/2019887.Ia_64_and_Elementary_Functions)
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- #ifdef MODULO
- # define OP	mod
-diff --git a/arch/ia64/lib/idiv64.S b/arch/ia64/lib/idiv64.S
-index a8ba3bd3d4d8..5c9113691f72 100644
---- a/arch/ia64/lib/idiv64.S
-+++ b/arch/ia64/lib/idiv64.S
-@@ -15,8 +15,8 @@
-  * (http://www.goodreads.com/book/show/2019887.Ia_64_and_Elementary_Functions)
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- #ifdef MODULO
- # define OP	mod
-diff --git a/arch/ia64/lib/ip_fast_csum.S b/arch/ia64/lib/ip_fast_csum.S
-index dc9e6e6fe876..fcc0b812ce2e 100644
---- a/arch/ia64/lib/ip_fast_csum.S
-+++ b/arch/ia64/lib/ip_fast_csum.S
-@@ -13,8 +13,8 @@
-  * Copyright (C) 2002, 2006 Ken Chen <kenneth.w.chen@intel.com>
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- /*
-  * Since we know that most likely this function is called with buf aligned
-diff --git a/arch/ia64/lib/memcpy.S b/arch/ia64/lib/memcpy.S
-index 91a625fddbf0..35c9069a8345 100644
---- a/arch/ia64/lib/memcpy.S
-+++ b/arch/ia64/lib/memcpy.S
-@@ -14,8 +14,8 @@
-  *	Stephane Eranian <eranian@hpl.hp.com>
-  *	David Mosberger-Tang <davidm@hpl.hp.com>
-  */
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- GLOBAL_ENTRY(memcpy)
- 
-diff --git a/arch/ia64/lib/memcpy_mck.S b/arch/ia64/lib/memcpy_mck.S
-index cc4e6ac914b6..c0d4362217ae 100644
---- a/arch/ia64/lib/memcpy_mck.S
-+++ b/arch/ia64/lib/memcpy_mck.S
-@@ -14,9 +14,9 @@
-  * Copyright (C) 2002 Intel Corp.
-  * Copyright (C) 2002 Ken Chen <kenneth.w.chen@intel.com>
-  */
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
- #include <asm/page.h>
--#include <asm/export.h>
- 
- #define EK(y...) EX(y)
- 
-diff --git a/arch/ia64/lib/memset.S b/arch/ia64/lib/memset.S
-index 07a8b92c6496..552c5c7e4d06 100644
---- a/arch/ia64/lib/memset.S
-+++ b/arch/ia64/lib/memset.S
-@@ -18,8 +18,8 @@
-    Since a stf.spill f0 can store 16B in one go, we use this instruction
-    to get peak speed when value = 0.  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- #undef ret
- 
- #define dest		in0
-diff --git a/arch/ia64/lib/strlen.S b/arch/ia64/lib/strlen.S
-index d66de5966974..1f4a46c15127 100644
---- a/arch/ia64/lib/strlen.S
-+++ b/arch/ia64/lib/strlen.S
-@@ -17,8 +17,8 @@
-  * 09/24/99 S.Eranian add speculation recovery code
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- //
- //
-diff --git a/arch/ia64/lib/strncpy_from_user.S b/arch/ia64/lib/strncpy_from_user.S
-index 49eb81b69cd2..a287169bd953 100644
---- a/arch/ia64/lib/strncpy_from_user.S
-+++ b/arch/ia64/lib/strncpy_from_user.S
-@@ -17,8 +17,8 @@
-  *			 by Andreas Schwab <schwab@suse.de>).
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- GLOBAL_ENTRY(__strncpy_from_user)
- 	alloc r2=ar.pfs,3,0,0,0
-diff --git a/arch/ia64/lib/strnlen_user.S b/arch/ia64/lib/strnlen_user.S
-index 4b684d4da106..a7eb56e840a9 100644
---- a/arch/ia64/lib/strnlen_user.S
-+++ b/arch/ia64/lib/strnlen_user.S
-@@ -13,8 +13,8 @@
-  * Copyright (C) 1999, 2001 David Mosberger-Tang <davidm@hpl.hp.com>
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- GLOBAL_ENTRY(__strnlen_user)
- 	.prologue
-diff --git a/arch/ia64/lib/xor.S b/arch/ia64/lib/xor.S
-index 5413dafe6b2e..6e2a69662c06 100644
---- a/arch/ia64/lib/xor.S
-+++ b/arch/ia64/lib/xor.S
-@@ -5,8 +5,8 @@
-  * Optimized RAID-5 checksumming functions for IA-64.
-  */
- 
-+#include <linux/export.h>
- #include <asm/asmmacro.h>
--#include <asm/export.h>
- 
- GLOBAL_ENTRY(xor_ia64_2)
- 	.prologue
--- 
-2.39.2
-
+Thanks,
+//richard
