@@ -2,105 +2,75 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C80A3EE49A6
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 00:20:06 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 44FA2EE49AC
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 00:34:01 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229633AbjHTATf convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Aug 2023 20:19:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51376 "EHLO
+        id S229674AbjHTAd3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Aug 2023 20:33:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46916 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229763AbjHTATQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 20:19:16 -0400
-Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B343ACFE22;
-        Sat, 19 Aug 2023 14:17:49 -0700 (PDT)
-Received: from localhost (localhost [127.0.0.1])
-        by lithops.sigma-star.at (Postfix) with ESMTP id 6015C63DB7E5;
-        Sat, 19 Aug 2023 23:17:48 +0200 (CEST)
-Received: from lithops.sigma-star.at ([127.0.0.1])
-        by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10032)
-        with ESMTP id 4g8WFByNW1hB; Sat, 19 Aug 2023 23:17:48 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-        by lithops.sigma-star.at (Postfix) with ESMTP id DB93163DB801;
-        Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
-Received: from lithops.sigma-star.at ([127.0.0.1])
-        by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10026)
-        with ESMTP id V-A1eIJKOCYu; Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
-Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
-        by lithops.sigma-star.at (Postfix) with ESMTP id ABF7E63DB7E5;
-        Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
-Date:   Sat, 19 Aug 2023 23:17:47 +0200 (CEST)
-From:   Richard Weinberger <richard@nod.at>
-To:     davidgow <davidgow@google.com>
-Cc:     anton ivanov <anton.ivanov@cambridgegreys.com>,
-        Johannes Berg <johannes@sipsolutions.net>,
-        tglx <tglx@linutronix.de>, mingo <mingo@redhat.com>,
-        bp <bp@alien8.de>, dave hansen <dave.hansen@linux.intel.com>,
-        hpa <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        Noah Goldstein <goldstein.w.n@gmail.com>,
-        linux-um <linux-um@lists.infradead.org>, x86 <x86@kernel.org>,
-        linux-arch <linux-arch@vger.kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        linux-kselftest <linux-kselftest@vger.kernel.org>,
-        linux-kernel <linux-kernel@vger.kernel.org>
-Message-ID: <1999963356.6490608.1692479867613.JavaMail.zimbra@nod.at>
-In-Reply-To: <20230704083022.692368-1-davidgow@google.com>
-References: <20230704083022.692368-1-davidgow@google.com>
-Subject: Re: [PATCH 1/2] asm-generic: current: Don't include thread-info.h
- if building asm
+        with ESMTP id S229743AbjHTAdF (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 20:33:05 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1F72188CF4;
+        Sat, 19 Aug 2023 16:34:04 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 5F26261A60;
+        Sat, 19 Aug 2023 23:34:03 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 84FE2C433C8;
+        Sat, 19 Aug 2023 23:34:01 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1692488042;
+        bh=nIfDO5AJtyTcclk+tlfLVxSChbajrljmwnUClALdUiU=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=iwhxDMVrzGufl+ixJQKMhyTnX23HBwjB6h5t1xAGlTU8wwL2WiNTgGnCcROe+OykL
+         tF8d2Cr/akJbQv1jYHqQchg7Y99XZXP56OI5D0OCx9XzHmOTCoBcdHzIWJnfsTwNDA
+         raw+RvcJMyha9xPI/46eXKXdIvTVop59G+EEW0BUYcCkqSdMqQYBA5/lptUafTNta5
+         baHBu0m6pe/5uz3i5g8I6BtObpQsjwJW11Sd8iSG0fnwLfHORnrzD2XUGFeVO15zQm
+         RZRHGtISyt1Tfc1UCZJ00scvKc1Mi8BsYTg2KrfEymLzMH5V8ZC6u+7/zwpFtsMism
+         sU0fZl4rAV/ZQ==
+From:   Masahiro Yamada <masahiroy@kernel.org>
+To:     linux-kbuild@vger.kernel.org
+Cc:     linux-arch@vger.kernel.org, Masahiro Yamada <masahiroy@kernel.org>,
+        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [PATCH 4/6] ia64: remove <asm/export.h>
+Date:   Sun, 20 Aug 2023 08:33:51 +0900
+Message-Id: <20230819233353.3683813-4-masahiroy@kernel.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230819233353.3683813-1-masahiroy@kernel.org>
+References: <20230819233353.3683813-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
-X-Originating-IP: [195.201.40.130]
-X-Mailer: Zimbra 8.8.12_GA_3807 (ZimbraWebClient - FF97 (Linux)/8.8.12_GA_3809)
-Thread-Topic: asm-generic: current: Don't include thread-info.h if building asm
-Thread-Index: nVjiU4WyfVH2A7QVxS/nlClMU8OkNw==
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
------ Ursprüngliche Mail -----
-> Von: "davidgow" <davidgow@google.com>
-> asm/current.h is included by some assembly files (either directly, or
-> indirectly). This works on some architectures (such as x86), as their
-> implementation of current.h is careful to not include any C, but the
-> asm-generic version includes linux/thread-info.h unconditionally, which
-> leads to errors when either C code or non-asm-compatible preprocessor
-> directives are included.
-> 
-> Just wrap the contents behind an #ifndef __ASSEMBLY__ to avoid any C
-> code making its way in.
-> 
-> Signed-off-by: David Gow <davidgow@google.com>
-> ---
-> 
-> This is requrired for patch #2 here, as UML uses this asm-generic
-> header, but works with x86 assembly files which are expecting the x86
-> current.h, which is assembly-friendly.
-> 
-> ---
-> include/asm-generic/current.h | 2 ++
-> 1 file changed, 2 insertions(+)
-> 
-> diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
-> index 3a2e224b9fa0..9c2aeecbd05a 100644
-> --- a/include/asm-generic/current.h
-> +++ b/include/asm-generic/current.h
-> @@ -2,9 +2,11 @@
-> #ifndef __ASM_GENERIC_CURRENT_H
-> #define __ASM_GENERIC_CURRENT_H
-> 
-> +#ifndef __ASSEMBLY__
-> #include <linux/thread_info.h>
-> 
-> #define get_current() (current_thread_info()->task)
-> #define current get_current()
-> +#endif
-> 
-> #endif /* __ASM_GENERIC_CURRENT_H */
+All *.S files under arch/ia64/ have been converted to include
+<linux/export.h> instead of <asm/export.h>.
 
-I'm fine with the UML side of this change but the generic part needs Arnd's ACK.
+Remove <asm/export.h>.
 
-Thanks,
-//richard
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
+
+ arch/ia64/include/asm/Kbuild | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index 33733245f42b..aefae2efde9f 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -1,7 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ generated-y += syscall_table.h
+ generic-y += agp.h
+-generic-y += export.h
+ generic-y += kvm_para.h
+ generic-y += mcs_spinlock.h
+ generic-y += vtime.h
+-- 
+2.39.2
+
