@@ -2,388 +2,408 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CDB21EE49AA
-	for <linux-arch@archiver.kernel.org>; Sat, 19 Aug 2023 16:25:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2F5EBEE49A5
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 00:18:31 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233944AbjHSQZh (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Aug 2023 12:25:37 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53776 "EHLO
+        id S229577AbjHTAR7 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Aug 2023 20:17:59 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60776 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233930AbjHSQZh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 12:25:37 -0400
-Received: from mail-pl1-x635.google.com (mail-pl1-x635.google.com [IPv6:2607:f8b0:4864:20::635])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3D4C312740
-        for <linux-arch@vger.kernel.org>; Sat, 19 Aug 2023 09:25:34 -0700 (PDT)
-Received: by mail-pl1-x635.google.com with SMTP id d9443c01a7336-1bee82fad0fso12869425ad.2
-        for <linux-arch@vger.kernel.org>; Sat, 19 Aug 2023 09:25:34 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linaro.org; s=google; t=1692462333; x=1693067133;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=WA5JDd/9nUU2fK4W4FowJyIDo0hZC42y0ehtux77zMQ=;
-        b=sNW0KUZRGeAXGHzvoScyY2/aFp2GFPkerenykd6naqGfTRHlCiSEUlqTdC1BUJezRN
-         hEW4JL/mSoSrBcKPscDg1xdymSA7PqF9KvnAplbzUxMcF/5uV32/0Tl0siLCx5Lrjr3Q
-         NRzKzaycNNNT/4+nCqCNfP6cm0bEakiGQQcvLIP1KlVUrf7QvBam0tmz944NWgEhx8XL
-         eVMmz4DEnIPndUzyr4HcqYxuppmHXuH6CcXhpOZtnVdZGvGtj9z7cjBffkWmxNLbaors
-         5OhsKj/rCnLZCJlmZZ4z9Y1HUh/zGl22Lmbw8zbNE1mxVQbOWtrX43bCQCS0JkdAs7xO
-         XMfA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20221208; t=1692462333; x=1693067133;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=WA5JDd/9nUU2fK4W4FowJyIDo0hZC42y0ehtux77zMQ=;
-        b=GqU5PrWF+ZabWR8y+tiu1oJyvDhroLATQC9ScBMXPa74T0doQvJrbTE4+CteYJXk97
-         zUntg38Js40w8ivBf090zF5o7+2wmv1+gIniKfU6qi/BYqwfRLCGa/Gcz9iayabgauw9
-         nH789PeI2FaxulQofWsKhS70NzLO/7EvFvxz6Iu5Fot4utUk3w9KU+66jtpUE/M1JaYB
-         4VangGODcZAZIv8lD8GlEHCvw8wLRAnB/vxCy5GwHl2x5b/fHLdqNMlyOogsMQm/CcJA
-         Y+FFE7mdziu5yEuRjPi3H5sYxea6TJcB7Q0X8cGEAWU/6babRwqlxRfaCmhQR/Wiycgl
-         y+Tg==
-X-Gm-Message-State: AOJu0YzgfWxU0HTS/XpLnX4IRlaBiGm3LsC3gOFCuRGIS098SDb96/mV
-        Rx0XKwMc+9HWfOQ4XtVWpBaJ0A==
-X-Google-Smtp-Source: AGHT+IFa5xhJmHi1B7k8WN50Y4oHUGAg2Qd3sJJM1mihhQByTEWkqUDhI+rj35OMLxGgKzkE0Cpuzw==
-X-Received: by 2002:a17:902:e802:b0:1bf:1acf:9c0c with SMTP id u2-20020a170902e80200b001bf1acf9c0cmr2084621plg.26.1692462333490;
-        Sat, 19 Aug 2023 09:25:33 -0700 (PDT)
-Received: from leoy-huanghe.lan ([156.59.96.144])
-        by smtp.gmail.com with ESMTPSA id f21-20020a170902e99500b001aadd0d7364sm3855425plb.83.2023.08.19.09.25.28
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 19 Aug 2023 09:25:32 -0700 (PDT)
-Date:   Sun, 20 Aug 2023 00:25:26 +0800
-From:   Leo Yan <leo.yan@linaro.org>
-To:     Gang Li <gang.li@linux.dev>
-Cc:     Alex Shi <alex.shi@linux.alibaba.com>, linux-doc@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kernel@vger.kernel.org,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Boqun Feng <boqun.feng@gmail.com>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>,
-        Jonathan Corbet <corbet@lwn.net>, Alex Shi <alexs@kernel.org>,
-        Yanteng Si <siyanteng@loongson.cn>,
-        Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v1] docs/zh_CN: add zh_CN translation for
- memory-barriers.txt
-Message-ID: <20230819162526.GA274478@leoy-huanghe.lan>
-References: <214aed18-5df5-1014-b73d-a1748c0cca13@linux.dev>
+        with ESMTP id S229674AbjHTAR5 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 20:17:57 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1523488CE9;
+        Sat, 19 Aug 2023 16:34:02 -0700 (PDT)
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature RSA-PSS (2048 bits))
+        (No client certificate requested)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id A929661A5C;
+        Sat, 19 Aug 2023 23:34:01 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0238DC433CA;
+        Sat, 19 Aug 2023 23:33:59 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1692488041;
+        bh=JFhA8y871vv+gRtTcPjd9V7hXE56sCKpW0Vj8S1748E=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=DKO9KLcyBESyHV5iuYqMVkQhzDHq8YAPi1uEoCKavq2tdIxRG1lOlcpEZty1plKYK
+         cvjDXVhm0Q+9efwybvbdTRJa9sSR+t7W6jT4CulLPJcuEOJezK0zQvjmrmk9zJmDdE
+         OIThQhaGtDa9lmsMo7ciFoLBZvkYzr7cdsKMx6rrs1b+Hr+VelhUQpANV4/jILNd8K
+         SetHh7xHsayX62uCNaSnZ9o/rZ/IhwvYqOwLU+U9SCfvCP6x3pftrHIZNbamnCHb68
+         YDbY3BFle/2KkzG8Ubxd/Xf4TiKa9yPBoN0Y29dlW5IAUZmJeb27euy7QXuEYzd5ZG
+         XcFEV2p3pWgzA==
+From:   Masahiro Yamada <masahiroy@kernel.org>
+To:     linux-kbuild@vger.kernel.org
+Cc:     linux-arch@vger.kernel.org, Masahiro Yamada <masahiroy@kernel.org>,
+        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org
+Subject: [PATCH 3/6] ia64: replace #include <asm/export.h> with #include <linux/export.h>
+Date:   Sun, 20 Aug 2023 08:33:50 +0900
+Message-Id: <20230819233353.3683813-3-masahiroy@kernel.org>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20230819233353.3683813-1-masahiroy@kernel.org>
+References: <20230819233353.3683813-1-masahiroy@kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <214aed18-5df5-1014-b73d-a1748c0cca13@linux.dev>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi,
+Commit ddb5cdbafaaa ("kbuild: generate KSYMTAB entries by modpost")
+deprecated <asm/export.h>, which is now a wrapper of <linux/export.h>.
 
-On Fri, Aug 11, 2023 at 02:22:55PM +0800, Gang Li wrote:
-> Add new zh translation zh_CN/memory-barrier.txt based on v6.5-rc5.
-> 
-> Signed-off-by: Gang Li <gang.li@linux.dev>
-> ---
->   .../translations/zh_CN/memory-barriers.txt    | 2458 +++++++++++++++++
->   1 file changed, 2458 insertions(+)
->   create mode 100644 Documentation/translations/zh_CN/memory-barriers.txt
-> 
-> diff --git a/Documentation/translations/zh_CN/memory-barriers.txt 
-> b/Documentation/translations/zh_CN/memory-barriers.txt
-> new file mode 100644
-> index 000000000000..caa2775cc9c6
-> --- /dev/null
-> +++ b/Documentation/translations/zh_CN/memory-barriers.txt
-> @@ -0,0 +1,2458 @@
-> +译注：
-> +本文仅为方便汉语阅读，不保证与英文版本同步;
-> +若有疑问，请阅读英文版本;
-> +若有翻译问题，请通知译者；
-> +若想修改文档，也请先修改英文版本。
-> +
-> +			 ============================
-> +			 	Linux 内核内存屏障
-> +			 ============================
-> +
-> +作者：David Howells <dhowells@redhat.com>
-> +    Paul E. McKenney <paulmck@linux.ibm.com>
-> +    Will Deacon <will.deacon@arm.com>
-> +    Peter Zijlstra <peterz@infradead.org>
-> +
-> +译者：李港 Gang Li <gang.li@linux.dev>
-> +
-> +==========
-> +免责声明
-> +==========
-> +
-> +本文档不是一个规范；它由于有意 (为了简洁) 或无意 (由于人为因素) 
-> 的原因而不完整。本文档
-> +旨在指导如何使用 Linux 提供的各种内存屏障，如果有疑问 
-> (而且有很多)，请在邮件列表咨询。
-> +一些疑问可以通过参考正式的内存一致性模型和 tools/memory-model/ 
-> 下的相关文档来解决。
-> +这些内存模型是维护者的集体意见，而不是准确无误的实现规范。
-> +
-> +再次重申，本文档不是 Linux 对硬件的规范或期望。
+Replace #include <asm/export.h> with #include <linux/export.h>.
 
-再次重申，本文档不是 Linux 对硬件要求的规范手册。
+After all the <asm/export.h> lines are converted, <asm/export.h> and
+<asm-generic/export.h> will be removed.
 
-> +本文档的目的有两个：
-> +
-> + (1) 为内核屏障函数指定可以依赖的最小功能，以及
+Signed-off-by: Masahiro Yamada <masahiroy@kernel.org>
+---
 
-(1) 针对任何一个特定的屏障，定义其可依赖的最小功能;
+ arch/ia64/kernel/entry.S          | 3 +--
+ arch/ia64/kernel/esi_stub.S       | 2 +-
+ arch/ia64/kernel/head.S           | 3 +--
+ arch/ia64/kernel/ivt.S            | 3 +--
+ arch/ia64/kernel/pal.S            | 2 +-
+ arch/ia64/lib/clear_page.S        | 2 +-
+ arch/ia64/lib/clear_user.S        | 2 +-
+ arch/ia64/lib/copy_page.S         | 2 +-
+ arch/ia64/lib/copy_page_mck.S     | 2 +-
+ arch/ia64/lib/copy_user.S         | 2 +-
+ arch/ia64/lib/flush.S             | 3 +--
+ arch/ia64/lib/idiv32.S            | 2 +-
+ arch/ia64/lib/idiv64.S            | 2 +-
+ arch/ia64/lib/ip_fast_csum.S      | 2 +-
+ arch/ia64/lib/memcpy.S            | 2 +-
+ arch/ia64/lib/memcpy_mck.S        | 2 +-
+ arch/ia64/lib/memset.S            | 2 +-
+ arch/ia64/lib/strlen.S            | 2 +-
+ arch/ia64/lib/strncpy_from_user.S | 2 +-
+ arch/ia64/lib/strnlen_user.S      | 2 +-
+ arch/ia64/lib/xor.S               | 2 +-
+ 21 files changed, 21 insertions(+), 25 deletions(-)
 
-> +
-> + (2) 提供关于如何使用屏障的指南。
+diff --git a/arch/ia64/kernel/entry.S b/arch/ia64/kernel/entry.S
+index 5eba3fb2e311..ac06d44b9b27 100644
+--- a/arch/ia64/kernel/entry.S
++++ b/arch/ia64/kernel/entry.S
+@@ -37,7 +37,7 @@
+  *	pNonSys:	!pSys
+  */
+ 
+-
++#include <linux/export.h>
+ #include <linux/pgtable.h>
+ #include <asm/asmmacro.h>
+ #include <asm/cache.h>
+@@ -49,7 +49,6 @@
+ #include <asm/thread_info.h>
+ #include <asm/unistd.h>
+ #include <asm/ftrace.h>
+-#include <asm/export.h>
+ 
+ #include "minstate.h"
+ 
+diff --git a/arch/ia64/kernel/esi_stub.S b/arch/ia64/kernel/esi_stub.S
+index 821e68d10598..9928c5b2957c 100644
+--- a/arch/ia64/kernel/esi_stub.S
++++ b/arch/ia64/kernel/esi_stub.S
+@@ -34,9 +34,9 @@
+ #define PSR_BITS_TO_SET							\
+ 	(IA64_PSR_BN)
+ 
++#include <linux/export.h>
+ #include <asm/processor.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ /*
+  * Inputs:
+diff --git a/arch/ia64/kernel/head.S b/arch/ia64/kernel/head.S
+index c096500590e9..85c8a57da402 100644
+--- a/arch/ia64/kernel/head.S
++++ b/arch/ia64/kernel/head.S
+@@ -20,7 +20,7 @@
+  *   Support for CPU Hotplug
+  */
+ 
+-
++#include <linux/export.h>
+ #include <linux/pgtable.h>
+ #include <asm/asmmacro.h>
+ #include <asm/fpu.h>
+@@ -33,7 +33,6 @@
+ #include <asm/mca_asm.h>
+ #include <linux/init.h>
+ #include <linux/linkage.h>
+-#include <asm/export.h>
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ #define SAL_PSR_BITS_TO_SET				\
+diff --git a/arch/ia64/kernel/ivt.S b/arch/ia64/kernel/ivt.S
+index 7a418e324d30..da90c49df628 100644
+--- a/arch/ia64/kernel/ivt.S
++++ b/arch/ia64/kernel/ivt.S
+@@ -47,7 +47,7 @@
+  * Table is based upon EAS2.6 (Oct 1999)
+  */
+ 
+-
++#include <linux/export.h>
+ #include <linux/pgtable.h>
+ #include <asm/asmmacro.h>
+ #include <asm/break.h>
+@@ -58,7 +58,6 @@
+ #include <asm/thread_info.h>
+ #include <asm/unistd.h>
+ #include <asm/errno.h>
+-#include <asm/export.h>
+ 
+ #if 0
+ # define PSR_DEFAULT_BITS	psr.ac
+diff --git a/arch/ia64/kernel/pal.S b/arch/ia64/kernel/pal.S
+index 06d01a070aae..fb6db6966f70 100644
+--- a/arch/ia64/kernel/pal.S
++++ b/arch/ia64/kernel/pal.S
+@@ -13,9 +13,9 @@
+  * 05/24/2000 eranian Added support for physical mode static calls
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+ #include <asm/processor.h>
+-#include <asm/export.h>
+ 
+ 	.data
+ pal_entry_point:
+diff --git a/arch/ia64/lib/clear_page.S b/arch/ia64/lib/clear_page.S
+index 65b75085c8f4..ba0dd2538fa5 100644
+--- a/arch/ia64/lib/clear_page.S
++++ b/arch/ia64/lib/clear_page.S
+@@ -10,9 +10,9 @@
+  * 3/08/02 davidm	Some more tweaking
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+ #include <asm/page.h>
+-#include <asm/export.h>
+ 
+ #ifdef CONFIG_ITANIUM
+ # define L3_LINE_SIZE	64	// Itanium L3 line size
+diff --git a/arch/ia64/lib/clear_user.S b/arch/ia64/lib/clear_user.S
+index a28f39d349eb..1d9e45ccf8e5 100644
+--- a/arch/ia64/lib/clear_user.S
++++ b/arch/ia64/lib/clear_user.S
+@@ -12,8 +12,8 @@
+  *	Stephane Eranian <eranian@hpl.hp.com>
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ //
+ // arguments
+diff --git a/arch/ia64/lib/copy_page.S b/arch/ia64/lib/copy_page.S
+index 176f857c522e..c0a0e6b2af00 100644
+--- a/arch/ia64/lib/copy_page.S
++++ b/arch/ia64/lib/copy_page.S
+@@ -15,9 +15,9 @@
+  *
+  * 4/06/01 davidm	Tuned to make it perform well both for cached and uncached copies.
+  */
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+ #include <asm/page.h>
+-#include <asm/export.h>
+ 
+ #define PIPE_DEPTH	3
+ #define EPI		p[PIPE_DEPTH-1]
+diff --git a/arch/ia64/lib/copy_page_mck.S b/arch/ia64/lib/copy_page_mck.S
+index d6fd56e4f1c1..5e8bb4b4b535 100644
+--- a/arch/ia64/lib/copy_page_mck.S
++++ b/arch/ia64/lib/copy_page_mck.S
+@@ -60,9 +60,9 @@
+  *	to fetch the second-half of the L2 cache line into L1, and the tX words are copied in
+  *	an order that avoids bank conflicts.
+  */
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+ #include <asm/page.h>
+-#include <asm/export.h>
+ 
+ #define PREFETCH_DIST	8		// McKinley sustains 16 outstanding L2 misses (8 ld, 8 st)
+ 
+diff --git a/arch/ia64/lib/copy_user.S b/arch/ia64/lib/copy_user.S
+index f681556c6b86..8daab72cfe77 100644
+--- a/arch/ia64/lib/copy_user.S
++++ b/arch/ia64/lib/copy_user.S
+@@ -30,8 +30,8 @@
+  *	- fix extraneous stop bit introduced by the EX() macro.
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ //
+ // Tuneable parameters
+diff --git a/arch/ia64/lib/flush.S b/arch/ia64/lib/flush.S
+index 8573d59c9ed1..f8e795fe45cb 100644
+--- a/arch/ia64/lib/flush.S
++++ b/arch/ia64/lib/flush.S
+@@ -8,9 +8,8 @@
+  * 05/28/05 Zoltan Menyhart	Dynamic stride size
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+-
+ 
+ 	/*
+ 	 * flush_icache_range(start,end)
+diff --git a/arch/ia64/lib/idiv32.S b/arch/ia64/lib/idiv32.S
+index def92b708e6e..83586fbc51ff 100644
+--- a/arch/ia64/lib/idiv32.S
++++ b/arch/ia64/lib/idiv32.S
+@@ -15,8 +15,8 @@
+  * (http://www.goodreads.com/book/show/2019887.Ia_64_and_Elementary_Functions)
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ #ifdef MODULO
+ # define OP	mod
+diff --git a/arch/ia64/lib/idiv64.S b/arch/ia64/lib/idiv64.S
+index a8ba3bd3d4d8..5c9113691f72 100644
+--- a/arch/ia64/lib/idiv64.S
++++ b/arch/ia64/lib/idiv64.S
+@@ -15,8 +15,8 @@
+  * (http://www.goodreads.com/book/show/2019887.Ia_64_and_Elementary_Functions)
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ #ifdef MODULO
+ # define OP	mod
+diff --git a/arch/ia64/lib/ip_fast_csum.S b/arch/ia64/lib/ip_fast_csum.S
+index dc9e6e6fe876..fcc0b812ce2e 100644
+--- a/arch/ia64/lib/ip_fast_csum.S
++++ b/arch/ia64/lib/ip_fast_csum.S
+@@ -13,8 +13,8 @@
+  * Copyright (C) 2002, 2006 Ken Chen <kenneth.w.chen@intel.com>
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ /*
+  * Since we know that most likely this function is called with buf aligned
+diff --git a/arch/ia64/lib/memcpy.S b/arch/ia64/lib/memcpy.S
+index 91a625fddbf0..35c9069a8345 100644
+--- a/arch/ia64/lib/memcpy.S
++++ b/arch/ia64/lib/memcpy.S
+@@ -14,8 +14,8 @@
+  *	Stephane Eranian <eranian@hpl.hp.com>
+  *	David Mosberger-Tang <davidm@hpl.hp.com>
+  */
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ GLOBAL_ENTRY(memcpy)
+ 
+diff --git a/arch/ia64/lib/memcpy_mck.S b/arch/ia64/lib/memcpy_mck.S
+index cc4e6ac914b6..c0d4362217ae 100644
+--- a/arch/ia64/lib/memcpy_mck.S
++++ b/arch/ia64/lib/memcpy_mck.S
+@@ -14,9 +14,9 @@
+  * Copyright (C) 2002 Intel Corp.
+  * Copyright (C) 2002 Ken Chen <kenneth.w.chen@intel.com>
+  */
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+ #include <asm/page.h>
+-#include <asm/export.h>
+ 
+ #define EK(y...) EX(y)
+ 
+diff --git a/arch/ia64/lib/memset.S b/arch/ia64/lib/memset.S
+index 07a8b92c6496..552c5c7e4d06 100644
+--- a/arch/ia64/lib/memset.S
++++ b/arch/ia64/lib/memset.S
+@@ -18,8 +18,8 @@
+    Since a stf.spill f0 can store 16B in one go, we use this instruction
+    to get peak speed when value = 0.  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ #undef ret
+ 
+ #define dest		in0
+diff --git a/arch/ia64/lib/strlen.S b/arch/ia64/lib/strlen.S
+index d66de5966974..1f4a46c15127 100644
+--- a/arch/ia64/lib/strlen.S
++++ b/arch/ia64/lib/strlen.S
+@@ -17,8 +17,8 @@
+  * 09/24/99 S.Eranian add speculation recovery code
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ //
+ //
+diff --git a/arch/ia64/lib/strncpy_from_user.S b/arch/ia64/lib/strncpy_from_user.S
+index 49eb81b69cd2..a287169bd953 100644
+--- a/arch/ia64/lib/strncpy_from_user.S
++++ b/arch/ia64/lib/strncpy_from_user.S
+@@ -17,8 +17,8 @@
+  *			 by Andreas Schwab <schwab@suse.de>).
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ GLOBAL_ENTRY(__strncpy_from_user)
+ 	alloc r2=ar.pfs,3,0,0,0
+diff --git a/arch/ia64/lib/strnlen_user.S b/arch/ia64/lib/strnlen_user.S
+index 4b684d4da106..a7eb56e840a9 100644
+--- a/arch/ia64/lib/strnlen_user.S
++++ b/arch/ia64/lib/strnlen_user.S
+@@ -13,8 +13,8 @@
+  * Copyright (C) 1999, 2001 David Mosberger-Tang <davidm@hpl.hp.com>
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ GLOBAL_ENTRY(__strnlen_user)
+ 	.prologue
+diff --git a/arch/ia64/lib/xor.S b/arch/ia64/lib/xor.S
+index 5413dafe6b2e..6e2a69662c06 100644
+--- a/arch/ia64/lib/xor.S
++++ b/arch/ia64/lib/xor.S
+@@ -5,8 +5,8 @@
+  * Optimized RAID-5 checksumming functions for IA-64.
+  */
+ 
++#include <linux/export.h>
+ #include <asm/asmmacro.h>
+-#include <asm/export.h>
+ 
+ GLOBAL_ENTRY(xor_ia64_2)
+ 	.prologue
+-- 
+2.39.2
 
-(2) 对于可用的屏障，提供如何使用的指南。
-
-> +
-> +请注意，一个架构可以为任何屏障提供超出最低要求的功能，但是，如果架构提供的功能少于最低
-> +要求，则该架构是错误的。
-
-... 一个架构可以为任何特定的屏障实现超出最低要求的功能 ...
-
-> +
-> +还要注意的是，在某些架构中，部分屏障可能是空操作。因为该架构已经保证了该内存序，使得
-> +显式屏障是不必要的。
-
-还要注意，在某些架构中，一个屏障可能是空操作。这是因为这些架构的工作
-方式不再需要显式地使用屏障了。
-
-> +
-> +========
-> +目录
-> +========
-> +
-> + (*) 抽象内存访问模型。
-> +
-> +     - 设备操作。
-> +     - CPU 的保证。
-> +
-> + (*) 什么是内存屏障？
-> +
-> +     - 内存屏障的种类。
-> +     - 关于内存屏障不可假设什么？
-> +     - 地址依赖屏障 (旧) 。
-> +     - 控制依赖。
-> +     - SMP 屏障配对。
-> +     - 内存屏障序列示例。
-> +     - 读屏障与预读。
-
-s/预读/读取预测
-
-> +     - 多拷贝原子性。
-> +
-> + (*) 显式内核屏障函数。
-> +
-> +     - 编译器屏障。
-> +     - CPU 内存屏障。
-> +
-> + (*) 隐式内核屏障函数。
-> +
-> +     - 取锁函数。
-
-锁获取函数。
-
-> +     - 关中断函数。
-> +     - 睡眠和唤醒函数。
-> +     - 其他函数。
-> +
-> + (*) 跨CPU ACQUIRING 屏障的影响。
-> +
-> +     - Acquires 与 内存访问。
-> +
-> + (*) 哪里需要内存屏障？
-> +
-> +     - 处理器间交互。
-> +     - 原子操作。
-> +     - 访问设备。
-> +     - 中断。
-> +
-> + (*) 内核 I/O 屏障。
-> +
-> + (*) 假想的最小执行顺序模型。
-
-s/假想/预设 ?
-
-> +
-> + (*) CPU 缓存的影响。
-> +
-> +     - 缓存一致性。
-> +     - 缓存一致性与 DMA。
-> +     - 缓存一致性与 MMIO。
-> +
-> + (*) CPU 相关。
-> +
-> +     - 还有就是Alpha。
-> +     - 虚拟机客户端。
-> +
-> + (*) 使用示例。
-> +
-> +     - 环形缓冲区。
-> +
-> + (*) 参考资料。
-> +
-> +============================
-> +抽象内存访问模型
-> +============================
-> +
-> +考虑以下抽象模型：
-> +
-> +		            :                :
-> +		            :                :
-> +		            :                :
-> +		+-------+   :   +--------+   :   +-------+
-> +		|       |   :   |        |   :   |       |
-> +		|       |   :   |        |   :   |       |
-> +		| CPU 1 |<----->|   内存  |<----->| CPU 2 |
-
-Unalignment caused by extra space around "内存".
-
-> +		|       |   :   |        |   :   |       |
-> +		|       |   :   |        |   :   |       |
-> +		+-------+   :   +--------+   :   +-------+
-> +		    ^       :       ^        :       ^
-> +		    |       :       |        :       |
-> +		    |       :       |        :       |
-> +		    |       :       v        :       |
-> +		    |       :   +--------+   :       |
-> +		    |       :   |        |   :       |
-> +		    |       :   |        |   :       |
-> +		    +---------->|   设备  |<----------+
-> +		            :   |        |   :
-> +		            :   |        |   :
-> +		            :   +--------+   :
-> +		            :                :
-> +
-> +每个 CPU 执行一个访存程序。在本文的抽象 CPU 中，访问指令的顺序非常松散，每个 
-
-s/访问指令的顺序非常松散/访问操作可以是完全乱序的/
-
-Here we need to take care the subtle difference between the "memory
-instructions ordering" vs "memory operations ordering".
-
-
-> CPU 可以
-
-Unintended new line.
-
-> +按照任意顺序执行访存指令，每个 CPU 
-
-s/访存指令/访存操作/
-
-> 都保证在本核心看来，最终执行结果与不乱序的情况相同。
-> +同样，编译器也可以按照任意顺序排列指令，只要不影响程序的运行结果。
-> +
-> +CPU可以通过一些本地缓存来提高指令运行效率，内存操作会被缓存在当前CPU上，每个 
-> CPU 都能
-> +按顺序看到自己的内存操作。但每个缓存项写入到主存的顺序未知，在上图中，即每条指令的结果穿过
-> +虚线的顺序未知。
-
-Here cannot match with the original words:
-
-"So in the above diagram, the effects of the memory operations performed by a
-CPU are perceived by the rest of the system as the operations cross the
-interface between the CPU and rest of the system (the dotted lines)."
-
-在上图中，当一个CPU执行内存操作后，其结果可以被系统中其他硬件所感知,
-这需要通过在CPU和系统其他模块的接口(虚线所示)之间的额外操作来完成。
-
-> +
-> +
-> +例如，考虑以下内存操作序列：
-> +
-> +	CPU 1		CPU 2
-> +	===============	===============
-> +	{ A == 1; B == 2 }
-> +	A = 3;		x = B;
-> +	B = 4;		y = A;
-> +
-> +CPU 外部可能看到如下任意顺序：
-
-CPU 外部可能看到如下任意顺序, 其排列组合共有24种情况:
-
-> +
-> +	STORE A=3,	STORE B=4,	y=LOAD A->3,	x=LOAD B->4
-> +	STORE A=3,	STORE B=4,	x=LOAD B->4,	y=LOAD A->3
-> +	STORE A=3,	y=LOAD A->3,	STORE B=4,	x=LOAD B->4
-> +	STORE A=3,	y=LOAD A->3,	x=LOAD B->2,	STORE B=4
-> +	STORE A=3,	x=LOAD B->2,	STORE B=4,	y=LOAD A->3
-> +	STORE A=3,	x=LOAD B->2,	y=LOAD A->3,	STORE B=4
-> +	STORE B=4,	STORE A=3,	y=LOAD A->3,	x=LOAD B->4
-> +	STORE B=4, ...
-> +	...
-> +
-> +可以得到四种不同的结果组合：
-> +
-> +	x == 2, y == 1
-> +	x == 2, y == 3
-> +	x == 4, y == 1
-> +	x == 4, y == 3
-> +
-> +
-> +此外，一个 CPU 核心向主存提交的写可能不会被另一个 CPU 核心按顺序读。
-
-一个CPU向内存进行写操作，而另外一个CPU在执行读操作，进行读操作的CPU
-感知（或者观察到）的数据顺序，有可能和写操作（Stores）的顺序是不同的。
-
-> +
-> +
-> +再举一个例子，考虑这个序列：
-> +
-> +	CPU 1		CPU 2
-> +	===============	===============
-> +	{ A == 1, B == 2, C == 3, P == &A, Q == &C }
-> +	B = 4;		Q = P;
-> +	P = &B;		D = *Q;
-> +
-> +这里有一个明显的地址依赖，D 的值取决于 CPU 2 从 P 
-> 读到的地址。在序列结束时，可能出现以下任何结果：
-> +
-> +	(Q == &A) 和 (D == 1)
-> +	(Q == &B) 和 (D == 2)
-> +	(Q == &B) 和 (D == 4)
-> +
-> +请注意，CPU 2 永远不会 将 C 的值写入 D，因为 CPU 会在读 *Q 前将 P 赋值给 
-> Q。
-> +
-> +
-> +设备操作
-> +-----------------
-> +
-> +有些设备是通过将自己的寄存器映射到内存来控制的，访问控制寄存器的顺序非常重要。假设一个
-
-一些设备提供了一组访存地址空间，用于访问设备的控制接口（例如寄存器），
-那么访问控制寄存器的顺序非常重要。例如，我们想象一个网卡，需要通过其
-地址端口寄存器 (A) 和数据端口寄存器 (D)来访问内部寄存器。
-
-> +网卡有一组通过地址端口寄存器 (A) 和数据端口寄存器 (D) 访问的内部寄存器。
-> +要读取 5 号内部寄存器，可以使用以下代码：
-> +
-> +	*A = 5;
-> +	x = *D;
-> +
-> +可能有两种执行顺序：
-> +
-> +	STORE *A = 5, x = LOAD *D
-> +	x = LOAD *D, STORE *A = 5
-> +
-> +其中第二个序列几乎肯定会导致故障，因为先读后写。
-
-... 因为地址的设置是在读取寄存器之后才完成的。
-
-
-I stop here in today and will continue to review this doc.
-
-Thanks for doing this!
-
-Leo
