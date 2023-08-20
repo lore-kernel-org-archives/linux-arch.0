@@ -2,101 +2,142 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EFF87EE49A6
-	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 02:43:25 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E8F46EE49A6
+	for <linux-arch@archiver.kernel.org>; Sun, 20 Aug 2023 02:52:06 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229849AbjHTCn0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Sat, 19 Aug 2023 22:43:26 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38020 "EHLO
+        id S229661AbjHTCwG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Sat, 19 Aug 2023 22:52:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48200 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229732AbjHTCnQ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 22:43:16 -0400
+        with ESMTP id S229922AbjHTCvy (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Sat, 19 Aug 2023 22:51:54 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 612656A5A;
-        Sat, 19 Aug 2023 18:36:55 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 730EC81831;
+        Sat, 19 Aug 2023 18:41:23 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id E9A82618A9;
-        Sun, 20 Aug 2023 01:36:54 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 40ACDC433CA;
-        Sun, 20 Aug 2023 01:36:54 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 076D961939;
+        Sun, 20 Aug 2023 01:41:23 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 59FC2C433CA;
+        Sun, 20 Aug 2023 01:41:22 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692495414;
-        bh=/6ZD3a1/w3AluyCxLOe7XB7yWBmEmhM8gGnVv/KNyZ0=;
+        s=k20201202; t=1692495682;
+        bh=8vJrg6bScgP7KMUHXJiLEWTyerH8jmKxylz1ghIm6LQ=;
         h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=ThQcXO/7mYy1X9qncCgUvkkvVv5Ju85HrVEzV3di6MSmEqD+9Wp8EL5LykSDB7/gk
-         NxeDo7d2cX+aSaM2DrVG2yWeeRCJAt9A+h8uf58u7YBe/7EWWgiJXh6lPfI5049QSU
-         pVdjqmUm6vefmBO9ijdwDfY7C6SXpWoEYdytcM5Bzf2OEfOQk1wci9OpmArMuZbjFF
-         dQM+UJY1RXFyxiJwAElaD2sqwmfU2QEF9N2PeMkV93iVTIoxc9H64Db6BwgJPQoHAJ
-         HJpuyxxbW08Ru3zYuXsLUsY4UNqY8tekTLS01tRM5kQL+fb10dizOprK3qqDfS3qbO
-         rh/QJe4Gkrqcw==
-Received: by mail-ot1-f54.google.com with SMTP id 46e09a7af769-6bc9c01e154so1771107a34.0;
-        Sat, 19 Aug 2023 18:36:54 -0700 (PDT)
-X-Gm-Message-State: AOJu0YwgNB37r791INtVTXebcbzh/DS8yHuP6awPEd3J/z0kSTGoczXl
-        fPegI5UwilUfBgo+HoB6i3JVTLhhG6VUV1iwX0o=
-X-Google-Smtp-Source: AGHT+IEwVUhK0RwZdjxGlE1oRin2YF1Cw37OsBCNvzSh0Zm9F619cPzMJ0iDdJ7YUFThp9pZW8tcI0S18VRm+VYrEl4=
-X-Received: by 2002:a05:6808:219d:b0:3a4:1223:d224 with SMTP id
- be29-20020a056808219d00b003a41223d224mr2516859oib.21.1692495413538; Sat, 19
- Aug 2023 18:36:53 -0700 (PDT)
+        b=kA5YXM7kDOEphlJJ2ct6EUdud5KXpeKlqM5WCAFJMN1O4xUaPnp5cWMq8Z03mqT4H
+         iVlI9VSEbYBCTy0S49s1P+Rw6I0C9zdtE+mBjLLwWS5DmuejAeU8gC685JBmNxWDIx
+         yxpgfbeFSWmiyg8aiIR5/kemOx8zLpQRA+n8xhwXY59XmoCDd2nVhMbKneTcsqlNWp
+         fcfBNg0xGOUqnA3sbb3fYZqyRSoBhu1QnlGYLEBpu+GWz7GLelFYNJsmKKk0kp1+8+
+         slaZpsptNj1WqYtdKjtpa/hC/tn/snJw44inV608iiG+RBDE1wlW73lhwFAbGeVVJx
+         pmMEXgAvZ9A1Q==
+Received: by mail-oa1-f49.google.com with SMTP id 586e51a60fabf-1c8be41e5efso1356962fac.3;
+        Sat, 19 Aug 2023 18:41:22 -0700 (PDT)
+X-Gm-Message-State: AOJu0YwJopPoui7qeug0MH3YCMkYDk2zs6l0jAiAlsmhbJHan6o+Vbye
+        yesb2ucl/5sG7c4+nNcyX73i/BVSBSScB75T+IA=
+X-Google-Smtp-Source: AGHT+IG29AmKpf1Sid9m6LYfYuiXk8qrFeMM2FmYfu5NkRteGi4dD2h6nnzgPp0MYVohCvtPXI3kP4IllyUrurld9Dg=
+X-Received: by 2002:a05:6870:8308:b0:1ba:3a7f:50eb with SMTP id
+ p8-20020a056870830800b001ba3a7f50ebmr4107984oae.22.1692495681563; Sat, 19 Aug
+ 2023 18:41:21 -0700 (PDT)
 MIME-Version: 1.0
-References: <20230811140327.3754597-1-arnd@kernel.org> <20230811140327.3754597-3-arnd@kernel.org>
- <20230811141943.GB3948268@dev-arch.thelio-3990X> <6e1c3faf-83f3-4627-bd74-42fea5b88dfb@app.fastmail.com>
-In-Reply-To: <6e1c3faf-83f3-4627-bd74-42fea5b88dfb@app.fastmail.com>
+References: <20230811140327.3754597-1-arnd@kernel.org> <20230811140327.3754597-6-arnd@kernel.org>
+ <CAK7LNASuTOwHA0zz8MqxPdt5snMstpSY7==0o6kmU-RML3nioQ@mail.gmail.com>
+In-Reply-To: <CAK7LNASuTOwHA0zz8MqxPdt5snMstpSY7==0o6kmU-RML3nioQ@mail.gmail.com>
 From:   Masahiro Yamada <masahiroy@kernel.org>
-Date:   Sun, 20 Aug 2023 10:36:17 +0900
-X-Gmail-Original-Message-ID: <CAK7LNAT84H_dh25E3OywSHiM9z7TNgCymhHFA7yjUxgTjZgXvg@mail.gmail.com>
-Message-ID: <CAK7LNAT84H_dh25E3OywSHiM9z7TNgCymhHFA7yjUxgTjZgXvg@mail.gmail.com>
-Subject: Re: [PATCH 2/9] Kbuild: consolidate warning flags in scripts/Makefile.extrawarn
-To:     Arnd Bergmann <arnd@arndb.de>
-Cc:     Nathan Chancellor <nathan@kernel.org>,
-        Arnd Bergmann <arnd@kernel.org>,
+Date:   Sun, 20 Aug 2023 10:40:45 +0900
+X-Gmail-Original-Message-ID: <CAK7LNASWu5otunZrgfgS+BLdUu9R853fBaiW-aVOhKER0F_57w@mail.gmail.com>
+Message-ID: <CAK7LNASWu5otunZrgfgS+BLdUu9R853fBaiW-aVOhKER0F_57w@mail.gmail.com>
+Subject: Re: [PATCH 5/9] extrawarn: enable format and stringop overflow
+ warnings in W=1
+To:     Arnd Bergmann <arnd@kernel.org>
+Cc:     Arnd Bergmann <arnd@arndb.de>,
+        Nathan Chancellor <nathan@kernel.org>,
         Nick Desaulniers <ndesaulniers@google.com>,
         Nicolas Schier <nicolas@fjasle.eu>,
         Guenter Roeck <linux@roeck-us.net>, Lee Jones <lee@kernel.org>,
         Stephen Rothwell <sfr@canb.auug.org.au>,
-        linux-kbuild@vger.kernel.org,
-        Linux-Arch <linux-arch@vger.kernel.org>
+        linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Aug 11, 2023 at 11:45=E2=80=AFPM Arnd Bergmann <arnd@arndb.de> wrot=
-e:
+On Sat, Aug 12, 2023 at 10:10=E2=80=AFPM Masahiro Yamada <masahiroy@kernel.=
+org> wrote:
 >
-> On Fri, Aug 11, 2023, at 16:19, Nathan Chancellor wrote:
-> > On Fri, Aug 11, 2023 at 04:03:20PM +0200, Arnd Bergmann wrote:
-> >> From: Arnd Bergmann <arnd@arndb.de>
-> >>
-> >> Warning options are enabled and disabled in inconsistent ways and
-> >> inconsistent locations. Start rearranging those by moving all options
-> >> into Makefile.extrawarn.
-> >>
-> >> This should not change any behavior, but makes sure we can group them
-> >> in a way that ensures that each warning that got temporarily disabled
-> >> is turned back on at an appropriate W=3D1 level later on.
-> >>
-> >> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> >> ---
-> >>  Makefile                   | 88 -------------------------------------
-> >>  scripts/Makefile.extrawarn | 90 +++++++++++++++++++++++++++++++++++++=
-+
-> >>  2 files changed, 90 insertions(+), 88 deletions(-)
+> On Sat, Aug 12, 2023 at 10:50=E2=80=AFAM Arnd Bergmann <arnd@kernel.org> =
+wrote:
 > >
-> > This shuffle seems reasonable to me. Would it make sense to rename the
-> > Makefile from Makefile.extrawarn to just Makefile.warn or
-> > Makefile.warnings? They are still "extra" warnings but to me, the
-> > meaning of the Makefile is changing so it seems reasonable to drop the
-> > "extra" part.
+> > From: Arnd Bergmann <arnd@arndb.de>
+> >
+> > The stringop and format warnings got disabled globally when they were
+> > newly introduced in commit bd664f6b3e376 ("disable new gcc-7.1.1 warnin=
+gs
+> > for now"), 217c3e0196758 ("disable stringop truncation warnings for now=
+")
+> > and 5a76021c2eff7 ("gcc-10: disable 'stringop-overflow' warning for now=
+").
+> >
+> > In all cases, the sentiment at the time was that the warnings are
+> > useful, and we actually addressed a number of real bugs based on
+> > them, but we never managed to eliminate them all because even the
+> > build bots using W=3D1 builds only see the -Wstringop-truncation
+> > warnings that are enabled at that level.
+> >
+> > Move these into the W=3D1 section to give them a larger build coverage
+> > and actually eliminate them over time.
+> >
+> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> > ---
+> >  scripts/Makefile.extrawarn | 11 ++++++-----
+> >  1 file changed, 6 insertions(+), 5 deletions(-)
+> >
+> > diff --git a/scripts/Makefile.extrawarn b/scripts/Makefile.extrawarn
+> > index 87bfe153198f1..ec528972371fa 100644
+> > --- a/scripts/Makefile.extrawarn
+> > +++ b/scripts/Makefile.extrawarn
+> > @@ -16,8 +16,6 @@ KBUILD_CFLAGS +=3D -Werror=3Dstrict-prototypes
+> >  KBUILD_CFLAGS +=3D -Wno-format-security
+> >  KBUILD_CFLAGS +=3D -Wno-trigraphs
+> >  KBUILD_CFLAGS +=3D $(call cc-disable-warning,frame-address,)
+> > -KBUILD_CFLAGS +=3D $(call cc-disable-warning, format-truncation)
+> > -KBUILD_CFLAGS +=3D $(call cc-disable-warning, format-overflow)
+> >  KBUILD_CFLAGS +=3D $(call cc-disable-warning, address-of-packed-member=
+)
+> >
+> >  ifneq ($(CONFIG_FRAME_WARN),0)
+> > @@ -56,9 +54,6 @@ KBUILD_CFLAGS +=3D -Wno-pointer-sign
+> >  # globally built with -Wcast-function-type.
+> >  KBUILD_CFLAGS +=3D $(call cc-option, -Wcast-function-type)
+> >
+> > -# We'll want to enable this eventually, but it's not going away for 5.=
+7 at least
+> > -KBUILD_CFLAGS +=3D $(call cc-disable-warning, stringop-overflow)
+> > -
+> >  # Another good warning that we'll want to enable eventually
+> >  KBUILD_CFLAGS +=3D $(call cc-disable-warning, restrict)
+> >
+> > @@ -111,6 +106,9 @@ KBUILD_CFLAGS +=3D -Wmissing-include-dirs
+> >  KBUILD_CFLAGS +=3D $(call cc-option, -Wunused-but-set-variable)
+> >  KBUILD_CFLAGS +=3D $(call cc-option, -Wunused-const-variable)
+> >  KBUILD_CFLAGS +=3D $(call cc-option, -Wpacked-not-aligned)
+> > +KBUILD_CFLAGS +=3D $(call cc-option, -Wformat-overflow)
+> > +KBUILD_CFLAGS +=3D $(call cc-option, -Wformat-truncation)
 >
-> Renaming the file seems fine, but I'd much prefer to do that separately
-> if we decide to do it, otherwise rebasing my patches is going to
-> be even more painful.
 >
->      Arnd
+> These are redundant because -Wall implies
+> -Wformat-overflow and -Wformat-truncation
+> according to the GCC manual.
+>
+>
+>
+>
+> --
+> Best Regards
+> Masahiro Yamada
+
 
 Applied  to linux-kbuild. Thanks.
 
