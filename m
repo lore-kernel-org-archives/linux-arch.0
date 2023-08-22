@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 5A111EE49AA
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:20:31 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 51B65EE49AE
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:20:33 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236138AbjHVOUb (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:20:31 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53744 "EHLO
+        id S236500AbjHVOUd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 10:20:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53750 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235340AbjHVOUb (ORCPT
+        with ESMTP id S236134AbjHVOUb (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:20:31 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B571B1BE;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D8F73CC1;
         Tue, 22 Aug 2023 07:20:27 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 0B3C664451;
-        Tue, 22 Aug 2023 14:05:59 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 41D76C433CA;
-        Tue, 22 Aug 2023 14:05:52 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 8133A65772;
+        Tue, 22 Aug 2023 14:05:26 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 24BC1C43395;
+        Tue, 22 Aug 2023 14:05:19 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713158;
-        bh=Go+3eKanODPQVKnV1QnMIrC75/lXwO2PkPnkMfOn2oA=;
+        s=k20201202; t=1692713125;
+        bh=pTf0v4Nwr1c2atopY90/GZ4bcDLJRrAaZS5Juu/K/wc=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=gP9A+b1HzhHJiT1F4bdDZzJB+Kw0p+eXo0v/P+dPIVFOsxYSgHcC0CP9RO6rXtxWR
-         hMKxtPAnwCepSywokGXiKPaFD05t8txpPLEP64kXEVWLBqUvUjJRy9oUPmIFRia1r4
-         b+uutZgItL7Z5SFOuIQynsUG5fILGtGaqNntU04ub0rJ3bQxNrF8WprpJzNyzlFdv6
-         /9lRarB/6pp5xQ2/ef9T8/uTNBwOqyVmBimCA6JBAfH13lvzeoPZf6jkVFTEZBUM8/
-         N/VijmrLALPIiriMal7i4Ilox18fjOQl0dhXD4e/jA75oFmKWm+RhgrRKFkQLUQTFa
-         32TBOYqFOhLzg==
+        b=RqTPgN/Syt+4uEDWPBWzuOq4DfgJHj5yIAyIhU3LQ2hZlJZWwroKIla+zSt2T7mdp
+         bHmjwAPBcY67Scx7yaD0aF6C9owyz9vp4q3eMb7rutXTwjzNEwbsmz99cuNz1nTyAB
+         jOcqJ5jHo7Hvt5tXbsIh50vRvO1Uqg+nPAM3nDoUSNlZx6rlllyzuIDy7LQCwx66PD
+         kg+EIbak1WMTnF+ZYgpoqgRrn6ItNI1gKLvGoWaGnHvMALQ+UuccxHjAI6sC9rFAQu
+         ZXQG8me22Pcj4JQHtLx7b9sGaq/zFNq0U73etvi3UwezBMZaHQ0pekr/WRRROnIpll
+         pzlM8alInqnQA==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:57:01 +0100
-Subject: [PATCH v5 28/37] kselftest/arm64: Add GCS as a detected feature in
- the signal tests
+Date:   Tue, 22 Aug 2023 14:56:56 +0100
+Subject: [PATCH v5 23/37] arm64/signal: Set up and restore the GCS context
+ for signal handlers
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-28-9ef181dd6324@kernel.org>
+Message-Id: <20230822-arm64-gcs-v5-23-9ef181dd6324@kernel.org>
 References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,71 +68,265 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1828; i=broonie@kernel.org;
- h=from:subject:message-id; bh=Go+3eKanODPQVKnV1QnMIrC75/lXwO2PkPnkMfOn2oA=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAFQYUTz//x5ckqwC2O/FhWGiN1vKBvthv6xsqS
- x0RUTwqJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTABQAKCRAk1otyXVSH0EgYB/
- 93+Qd6TuAOmA1X1TNTKSnDg5urc26kXvTXggBZyppzFFhBTKiFjvBnXDxlq6IbK0FnJIHL9Stz+fqh
- MTf6riUSqW1bQkCHuGFXXtKwq4P7Nv4qAeJOXoj2gtuDfnQNzBuLHvewcxbyUpaH74WocVn4s5k53F
- a29PA6NMFb3UsfeH0k+h3WehfkJe6ph8o7uHn0h2lgRjEfWdN8BFLOsY69BIpulERd0AToy1zxOVlB
- 1vMEq71vTGn446QjiJPAR5nDEOxfYBU3KUcsTUOUMCWPYHp+hYlTLMcF+NeKiLoqv1/4I+NKaD0NO/
- xNrl5pV/0cJ8ej3Lc5v+Fxqw7JOK9A
+X-Developer-Signature: v=1; a=openpgp-sha256; l=7272; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=pTf0v4Nwr1c2atopY90/GZ4bcDLJRrAaZS5Juu/K/wc=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MABbrLFWcCwIhWQO+8yGnoa6yEke/SWgDcMI8OK
+ /Sx/f5KJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTAAQAKCRAk1otyXVSH0FptB/
+ 9rR4g5V4VeC6QgdZnQOvu8AFx/V0oZgsu/P9pOisxXYqyT6s+GW0joKF34fF5aKOn4WvtbQQHESlh6
+ RzBmGodHgERHsJkrwpxMVeZWmiINmFg04hRiywofXUwOYwSpN2SdidGqR2naKt1A8Isu+urZI6IyuE
+ sgX6+fz/0SewTtzjZfBbMv1m96rUqnrYdvCEoEqUnENhSmV6AtL9FDyripzu+u/9SFNKDJ115tktZH
+ IlH84atxbzFtvpuKoy/AZBhlnovnI62EBXVsPwqeJ6amm62ZpKkIR13ftobJQhMy9KXWUA24i2onec
+ UHItrMYxTs0R9g0W1wYp0HsL6xmqDx
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-In preparation for testing GCS related signal handling add it as a feature
-we check for in the signal handling support code.
+When invoking a signal handler we use the GCS configuration and stack
+for the current thread.
+
+Since we implement signal return by calling the signal handler with a
+return address set up pointing to a trampoline in the vDSO we need to
+also configure any active GCS for this by pushing a frame for the
+trampoline onto the GCS.  If we do not do this then signal return will
+generate a GCS protection fault.
+
+In order to guard against attempts to bypass GCS protections via signal
+return we only allow returning with GCSPR_EL0 pointing to an address
+where it was previously preempted by a signal.  We do this by pushing a
+cap onto the GCS, this takes the form of an architectural GCS cap token
+with the top bit set which we add on signal entry and validate and pop
+off on signal return.  Since the top bit is set address validation for
+the token will fail if an attempt is made to use it with the stack
+switch instructions.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/signal/test_signals.h       | 2 ++
- tools/testing/selftests/arm64/signal/test_signals_utils.c | 3 +++
- 2 files changed, 5 insertions(+)
+ arch/arm64/include/asm/gcs.h |   2 +
+ arch/arm64/kernel/signal.c   | 130 +++++++++++++++++++++++++++++++++++++++++--
+ arch/arm64/mm/gcs.c          |   1 +
+ 3 files changed, 128 insertions(+), 5 deletions(-)
 
-diff --git a/tools/testing/selftests/arm64/signal/test_signals.h b/tools/testing/selftests/arm64/signal/test_signals.h
-index 1e6273d81575..7ada43688c02 100644
---- a/tools/testing/selftests/arm64/signal/test_signals.h
-+++ b/tools/testing/selftests/arm64/signal/test_signals.h
-@@ -35,6 +35,7 @@ enum {
- 	FSME_BIT,
- 	FSME_FA64_BIT,
- 	FSME2_BIT,
-+	FGCS_BIT,
- 	FMAX_END
- };
+diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
+index c150e76869a1..65496103d462 100644
+--- a/arch/arm64/include/asm/gcs.h
++++ b/arch/arm64/include/asm/gcs.h
+@@ -8,6 +8,8 @@
+ #include <asm/types.h>
+ #include <asm/uaccess.h>
  
-@@ -43,6 +44,7 @@ enum {
- #define FEAT_SME		(1UL << FSME_BIT)
- #define FEAT_SME_FA64		(1UL << FSME_FA64_BIT)
- #define FEAT_SME2		(1UL << FSME2_BIT)
-+#define FEAT_GCS		(1UL << FGCS_BIT)
++struct ksignal;
++
+ static inline void gcsb_dsync(void)
+ {
+ 	asm volatile(".inst 0xd503227f" : : : "memory");
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+index 0e8beb3349ea..97004c52aea3 100644
+--- a/arch/arm64/kernel/signal.c
++++ b/arch/arm64/kernel/signal.c
+@@ -25,6 +25,7 @@
+ #include <asm/elf.h>
+ #include <asm/exception.h>
+ #include <asm/cacheflush.h>
++#include <asm/gcs.h>
+ #include <asm/ucontext.h>
+ #include <asm/unistd.h>
+ #include <asm/fpsimd.h>
+@@ -34,6 +35,36 @@
+ #include <asm/traps.h>
+ #include <asm/vdso.h>
  
++#ifdef CONFIG_ARM64_GCS
++/* Extra bit set in the address distinguishing a signal cap token. */
++#define GCS_SIGNAL_CAP_FLAG BIT(63)
++
++#define GCS_SIGNAL_CAP(addr) (GCS_CAP(addr) | GCS_SIGNAL_CAP_FLAG)
++
++static bool gcs_signal_cap_valid(u64 addr, u64 val)
++{
++	/*
++	 * The top bit should be set, this is an invalid address for
++	 * EL0 and will only be set for caps created by signals.
++	 */
++	if (!(val & GCS_SIGNAL_CAP_FLAG))
++		return false;
++
++	/* The rest should be a standard architectural cap token. */
++	val &= ~GCS_SIGNAL_CAP_FLAG;
++
++	/* The cap must have the low bits set to a token value */
++	if (GCS_CAP_TOKEN(val) != GCS_CAP_VALID_TOKEN)
++		return false;
++
++	/* The cap must store the VA the cap was stored at */
++	if (GCS_CAP_ADDR(addr) != GCS_CAP_ADDR(val))
++		return false;
++
++	return true;
++}
++#endif
++
  /*
-  * A descriptor used to describe and configure a test case.
-diff --git a/tools/testing/selftests/arm64/signal/test_signals_utils.c b/tools/testing/selftests/arm64/signal/test_signals_utils.c
-index 0dc948db3a4a..89ef95c1af0e 100644
---- a/tools/testing/selftests/arm64/signal/test_signals_utils.c
-+++ b/tools/testing/selftests/arm64/signal/test_signals_utils.c
-@@ -30,6 +30,7 @@ static char const *const feats_names[FMAX_END] = {
- 	" SME ",
- 	" FA64 ",
- 	" SME2 ",
-+	" GCS ",
- };
+  * Do a signal return; undo the signal stack. These are aligned to 128-bit.
+  */
+@@ -815,6 +846,45 @@ static int restore_sigframe(struct pt_regs *regs,
+ 	return err;
+ }
  
- #define MAX_FEATS_SZ	128
-@@ -329,6 +330,8 @@ int test_init(struct tdescr *td)
- 			td->feats_supported |= FEAT_SME_FA64;
- 		if (getauxval(AT_HWCAP2) & HWCAP2_SME2)
- 			td->feats_supported |= FEAT_SME2;
-+		if (getauxval(AT_HWCAP2) & HWCAP2_GCS)
-+			td->feats_supported |= FEAT_GCS;
- 		if (feats_ok(td)) {
- 			if (td->feats_required & td->feats_supported)
- 				fprintf(stderr,
++#ifdef CONFIG_ARM64_GCS
++static int gcs_restore_signal(void)
++{
++	u64 gcspr_el0, cap;
++	int ret;
++
++	if (!system_supports_gcs())
++		return 0;
++
++	if (!(current->thread.gcs_el0_mode & PR_SHADOW_STACK_ENABLE))
++		return 0;
++
++	gcspr_el0 = read_sysreg_s(SYS_GCSPR_EL0);
++
++	/*
++	 * GCSPR_EL0 should be pointing at a capped GCS, read the cap...
++	 */
++	gcsb_dsync();
++	ret = copy_from_user(&cap, (__user void*)gcspr_el0, sizeof(cap));
++	if (ret)
++		return -EFAULT;
++
++	/*
++	 * ...then check that the cap is the actual GCS before
++	 * restoring it.
++	 */
++	if (!gcs_signal_cap_valid(gcspr_el0, cap))
++		return -EINVAL;
++
++	current->thread.gcspr_el0 = gcspr_el0 + sizeof(cap);
++	write_sysreg_s(current->thread.gcspr_el0, SYS_GCSPR_EL0);
++
++	return 0;
++}
++
++#else
++static int gcs_restore_signal(void) { return 0; }
++#endif
++
+ SYSCALL_DEFINE0(rt_sigreturn)
+ {
+ 	struct pt_regs *regs = current_pt_regs();
+@@ -841,6 +911,9 @@ SYSCALL_DEFINE0(rt_sigreturn)
+ 	if (restore_altstack(&frame->uc.uc_stack))
+ 		goto badframe;
+ 
++	if (gcs_restore_signal())
++		goto badframe;
++
+ 	return regs->regs[0];
+ 
+ badframe:
+@@ -1071,7 +1144,52 @@ static int get_sigframe(struct rt_sigframe_user_layout *user,
+ 	return 0;
+ }
+ 
+-static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
++#ifdef CONFIG_ARM64_GCS
++
++static int gcs_signal_entry(__sigrestore_t sigtramp, struct ksignal *ksig)
++{
++	unsigned long __user *gcspr_el0;
++	unsigned long cap[2];
++	int ret;
++
++	if (!system_supports_gcs())
++		return 0;
++
++	if (!task_gcs_el0_enabled(current))
++		return 0;
++
++	/*
++	 * We are entering a signal handler, current register state is
++	 * active.
++	 */
++	gcspr_el0 = (unsigned long __user *)read_sysreg_s(SYS_GCSPR_EL0);
++
++	/*
++	 * Push a cap and the GCS entry for the trampoline onto the GCS.
++	 */
++	cap[1] = GCS_SIGNAL_CAP(gcspr_el0 - 1);
++	cap[0] = (unsigned long)sigtramp;
++	ret = copy_to_user_gcs(gcspr_el0 - 2, cap, ARRAY_SIZE(cap));
++	if (ret != 0)
++		return ret;
++
++	gcsb_dsync();
++
++	gcspr_el0 -= 2;
++	write_sysreg_s((unsigned long)gcspr_el0, SYS_GCSPR_EL0);
++
++	return 0;
++}
++#else
++
++static int gcs_signal_entry(__sigrestore_t sigtramp, struct ksignal *ksig)
++{
++	return 0;
++}
++
++#endif
++
++static int setup_return(struct pt_regs *regs, struct ksignal *ksig,
+ 			 struct rt_sigframe_user_layout *user, int usig)
+ {
+ 	__sigrestore_t sigtramp;
+@@ -1079,7 +1197,7 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 	regs->regs[0] = usig;
+ 	regs->sp = (unsigned long)user->sigframe;
+ 	regs->regs[29] = (unsigned long)&user->next_frame->fp;
+-	regs->pc = (unsigned long)ka->sa.sa_handler;
++	regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
+ 
+ 	/*
+ 	 * Signal delivery is a (wacky) indirect function call in
+@@ -1119,12 +1237,14 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
+ 		sme_smstop();
+ 	}
+ 
+-	if (ka->sa.sa_flags & SA_RESTORER)
+-		sigtramp = ka->sa.sa_restorer;
++	if (ksig->ka.sa.sa_flags & SA_RESTORER)
++		sigtramp = ksig->ka.sa.sa_restorer;
+ 	else
+ 		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp);
+ 
+ 	regs->regs[30] = (unsigned long)sigtramp;
++
++	return gcs_signal_entry(sigtramp, ksig);
+ }
+ 
+ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+@@ -1147,7 +1267,7 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
+ 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
+ 	err |= setup_sigframe(&user, regs, set);
+ 	if (err == 0) {
+-		setup_return(regs, &ksig->ka, &user, usig);
++		err = setup_return(regs, ksig, &user, usig);
+ 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
+ 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 			regs->regs[1] = (unsigned long)&frame->info;
+diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
+index 2963041d1d64..6251c362a7f9 100644
+--- a/arch/arm64/mm/gcs.c
++++ b/arch/arm64/mm/gcs.c
+@@ -6,6 +6,7 @@
+ #include <linux/types.h>
+ 
+ #include <asm/cpufeature.h>
++#include <asm/gcs.h>
+ #include <asm/page.h>
+ 
+ static unsigned long alloc_gcs(unsigned long addr, unsigned long size,
 
 -- 
 2.30.2
