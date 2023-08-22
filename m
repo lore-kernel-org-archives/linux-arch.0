@@ -2,43 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4E5E2EE49B0
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:08:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C6864EE49A4
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:12:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236578AbjHVOIn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:08:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34158 "EHLO
+        id S234750AbjHVOMf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 10:12:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43714 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236629AbjHVOI0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:08:26 -0400
+        with ESMTP id S234115AbjHVOMe (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:12:34 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C5B7110E7;
-        Tue, 22 Aug 2023 07:08:07 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D5664CF7;
+        Tue, 22 Aug 2023 07:12:09 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 7934E634F6;
-        Tue, 22 Aug 2023 14:06:47 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 25486C433BC;
-        Tue, 22 Aug 2023 14:06:40 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 1368C657F2;
+        Tue, 22 Aug 2023 14:06:22 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B54DBC433CA;
+        Tue, 22 Aug 2023 14:06:14 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713206;
-        bh=VKZ6TiHFuT5aAiOwah57tTttkzurhwux6QHXIkpaxF8=;
+        s=k20201202; t=1692713181;
+        bh=Nuasx9Ylf/ySuoGV/J7jU7muHvsTQeng/1l4pki2YVk=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=Vf67Oq+BXJSDpfmdTpFzV7RyrFQOBnbtLpugMJFwwqVZKA4H0j3bpxysoceVemJpD
-         kVeNd3DHr05TMcVL8RHw7zDOkFCcrouGrMvhZ5brLh1D6BrXxZH6hEFFO1bFEwpu13
-         ccgDUpOTonZ/txRzFQLyu2PFhfLgn7Od66QfQA03TeW+cL3dTWPUbDomYVmEYUY/l6
-         UGoRLZoygKezwvbIa0vXvYgwxESaAimHaamIrEmvwi9YE3u5hDB0Lfna8dt2VUgMRb
-         Vix9vmRGY18bUA2NP5d3g4ViqzlNl6KulaHLxJ3mQgipygm2ho4WLhy5bUGBeuqcK8
-         +gIe3Hy82edgA==
+        b=MqAwb/aWxREwi9w3daLu0ewAyXCvv6r/RCVXRhhcSOIAkDUF0lGX9nzO4iiqQTH6x
+         AsYtF89WylBwuYjEQf8qAuzSf8g4oVDmufDb8abGzwwdBWy+OhEhFYhFfdfHqa4P/+
+         jlxNmMfibruPS3XserjLyma1YWPCWPBFF/5Bg7zW+d8uovlRM/WN8201iM6MgJirXG
+         CbL8oShaVgiSN8f4YOBnQ4zm1uJ4EzlzkKkAnLbV1LWFNtkWUQLsPaHja7q7DPhLNI
+         jDheQxm71CxrbYXWYn8aDD3CPMttYd6E7v4eQxNmjx0n1e8k8LUIB28zy8hZH0tW9e
+         G6AsrAEV4ALzQ==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:57:08 +0100
-Subject: [PATCH v5 35/37] selftests/arm64: Add GCS signal tests
+Date:   Tue, 22 Aug 2023 14:57:04 +0100
+Subject: [PATCH v5 31/37] kselftest/arm64: Always run signals tests with
+ GCS enabled
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-35-9ef181dd6324@kernel.org>
+Message-Id: <20230822-arm64-gcs-v5-31-9ef181dd6324@kernel.org>
 References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,296 +68,115 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=7313; i=broonie@kernel.org;
- h=from:subject:message-id; bh=VKZ6TiHFuT5aAiOwah57tTttkzurhwux6QHXIkpaxF8=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MALm6KX/GtWe1iKyD4vcolQvfJmaPZitADLUn1G
- ogI67nWJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTACwAKCRAk1otyXVSH0FT4B/
- 9/h8W+WhzVsDXWpwyHRrnvMxhXBocAk2NhKtbtx093Z+pzjiVVWNmZ8Qjhtq8hbXXxJiAWwWXmh4g6
- Jqp8ffo0w7rEA6vSNFetSzPMGJmeYvDRQfZlbAqbV1/bjgU6ip1X3JzjwIJN1AC30wrW+Yh+Y629SS
- UlmhVLLAF9vm9wO00xDXSIhTVKSyFBerBhNXKiGZ+gAmoxiOfDX9/37GP2dcpYIkGau0zLl4s0BM0G
- gI2TWrzQb8fweyOYspKPtn5ZLkGev7uO7bcqHwdvj98vDYJeSSCQrpYAthQU7Wp95CaWqgxjFe3JWS
- QJIWzU7L42HocPLdFgi8Yo26G1wndp
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3590; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=Nuasx9Ylf/ySuoGV/J7jU7muHvsTQeng/1l4pki2YVk=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAIYtmVyvEH4RH6kobbZ8dzV0Gh6wuRozucrRx7
+ JOJxU7qJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTACAAKCRAk1otyXVSH0CCEB/
+ 9N3VecI4j96Dnvvms8ya9WkFGh6Q+CSjjT5/AqC8D3DTGm5A5sBZVKIlFaeCvdh4EB/LeXgLHAXebT
+ 2O38tF8Or4+k4HX6rV9gB+E7oN/Fw/GEPEjINm9fqHQRneMAp36veUqZxzay6pLDW9uLUfQ5SPboIX
+ rxqlKPLBnX217YDQGBzgL2YTTetcZU/iMkZDQ0siZsz2w6Mp2EET9m2X9RIc76wLVEF3woH68SoqGW
+ BsvzbOJPfmzYTZbxJvYsqZCKLfyRaMnp32w7hkRP9EW0AbPC25SpEUEDHLzlPJ4wC7YmQHlLKLok4q
+ UTYrhIX6jwnyJPUXPxpjYgqctF8DuY
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Do some testing of the signal handling for GCS, checking that a GCS
-frame has the expected information in it and that the expected signals
-are delivered with invalid operations.
+Since it is not possible to return from the function that enabled GCS
+without disabling GCS it is very inconvenient to use the signal handling
+tests to cover GCS when GCS is not enabled by the toolchain and runtime,
+something that no current distribution does. Since none of the testcases
+do anything with stacks that would cause problems with GCS we can sidestep
+this issue by unconditionally enabling GCS on startup and exiting with a
+call to exit() rather than a return from main().
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/signal/.gitignore    |  1 +
- .../selftests/arm64/signal/test_signals_utils.h    | 10 +++
- .../arm64/signal/testcases/gcs_exception_fault.c   | 59 ++++++++++++++++
- .../selftests/arm64/signal/testcases/gcs_frame.c   | 78 ++++++++++++++++++++++
- .../arm64/signal/testcases/gcs_write_fault.c       | 67 +++++++++++++++++++
- 5 files changed, 215 insertions(+)
+ .../testing/selftests/arm64/signal/test_signals.c  | 17 ++++++++++++-
+ .../selftests/arm64/signal/test_signals_utils.h    | 29 ++++++++++++++++++++++
+ 2 files changed, 45 insertions(+), 1 deletion(-)
 
-diff --git a/tools/testing/selftests/arm64/signal/.gitignore b/tools/testing/selftests/arm64/signal/.gitignore
-index 839e3a252629..26de12918890 100644
---- a/tools/testing/selftests/arm64/signal/.gitignore
-+++ b/tools/testing/selftests/arm64/signal/.gitignore
-@@ -1,6 +1,7 @@
- # SPDX-License-Identifier: GPL-2.0-only
- mangle_*
- fake_sigreturn_*
-+gcs_*
- sme_*
- ssve_*
- sve_*
-diff --git a/tools/testing/selftests/arm64/signal/test_signals_utils.h b/tools/testing/selftests/arm64/signal/test_signals_utils.h
-index 1cea64986baa..d41f237db28d 100644
---- a/tools/testing/selftests/arm64/signal/test_signals_utils.h
-+++ b/tools/testing/selftests/arm64/signal/test_signals_utils.h
-@@ -6,6 +6,7 @@
- 
- #include <assert.h>
- #include <stdio.h>
-+#include <stdint.h>
- #include <string.h>
+diff --git a/tools/testing/selftests/arm64/signal/test_signals.c b/tools/testing/selftests/arm64/signal/test_signals.c
+index 00051b40d71e..30e95f50db19 100644
+--- a/tools/testing/selftests/arm64/signal/test_signals.c
++++ b/tools/testing/selftests/arm64/signal/test_signals.c
+@@ -7,6 +7,10 @@
+  * Each test provides its own tde struct tdescr descriptor to link with
+  * this wrapper. Framework provides common helpers.
+  */
++
++#include <sys/auxv.h>
++#include <sys/prctl.h>
++
+ #include <kselftest.h>
  
  #include "test_signals.h"
-@@ -45,6 +46,15 @@ void test_result(struct tdescr *td);
- 		_arg1;							\
- 	})
+@@ -16,6 +20,16 @@ struct tdescr *current = &tde;
  
-+static inline __attribute__((always_inline)) uint64_t get_gcspr_el0(void)
-+{
-+	uint64_t val;
+ int main(int argc, char *argv[])
+ {
++	/*
++	 * Ensure GCS is at least enabled throughout the tests if
++	 * supported, otherwise the inability to return from the
++	 * function that enabled GCS makes it very inconvenient to set
++	 * up test cases.  The prctl() may fail if GCS was locked by
++	 * libc setup code.
++	 */
++	if (getauxval(AT_HWCAP2) & HWCAP2_GCS)
++		gcs_set_state(PR_SHADOW_STACK_ENABLE);
 +
-+	asm volatile("mrs %0, S3_3_C2_C5_1" : "=r" (val));
+ 	ksft_print_msg("%s :: %s\n", current->name, current->descr);
+ 	if (test_setup(current) && test_init(current)) {
+ 		test_run(current);
+@@ -23,5 +37,6 @@ int main(int argc, char *argv[])
+ 	}
+ 	test_result(current);
+ 
+-	return current->result;
++	/* Do not return in case GCS was enabled */
++	exit(current->result);
+ }
+diff --git a/tools/testing/selftests/arm64/signal/test_signals_utils.h b/tools/testing/selftests/arm64/signal/test_signals_utils.h
+index 222093f51b67..1cea64986baa 100644
+--- a/tools/testing/selftests/arm64/signal/test_signals_utils.h
++++ b/tools/testing/selftests/arm64/signal/test_signals_utils.h
+@@ -16,6 +16,35 @@ void test_cleanup(struct tdescr *td);
+ int test_run(struct tdescr *td);
+ void test_result(struct tdescr *td);
+ 
++#ifndef __NR_prctl
++#define __NR_prctl 167
++#endif
 +
-+	return val;
-+}
++/*
++ * The prctl takes 1 argument but we need to ensure that the other
++ * values passed in registers to the syscall are zero since the kernel
++ * validates them.
++ */
++#define gcs_set_state(state)					\
++	({								\
++		register long _num  __asm__ ("x8") = __NR_prctl;	\
++		register long _arg1 __asm__ ("x0") =  PR_SET_SHADOW_STACK_STATUS; \
++		register long _arg2 __asm__ ("x1") = (long)(state);	\
++		register long _arg3 __asm__ ("x2") = 0;			\
++		register long _arg4 __asm__ ("x3") = 0;			\
++		register long _arg5 __asm__ ("x4") = 0;			\
++	                                                                      \
++		__asm__  volatile (					\
++			"svc #0\n"					\
++			: "=r"(_arg1)					\
++			: "r"(_arg1), "r"(_arg2),			\
++			  "r"(_arg3), "r"(_arg4),			\
++			  "r"(_arg5), "r"(_num)				\
++			: "memory", "cc"				\
++			);						\
++		_arg1;							\
++	})
 +
  static inline bool feats_ok(struct tdescr *td)
  {
  	if (td->feats_incompatible & td->feats_supported)
-diff --git a/tools/testing/selftests/arm64/signal/testcases/gcs_exception_fault.c b/tools/testing/selftests/arm64/signal/testcases/gcs_exception_fault.c
-new file mode 100644
-index 000000000000..532d533592a1
---- /dev/null
-+++ b/tools/testing/selftests/arm64/signal/testcases/gcs_exception_fault.c
-@@ -0,0 +1,59 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2023 ARM Limited
-+ */
-+
-+#include <errno.h>
-+#include <signal.h>
-+#include <unistd.h>
-+
-+#include <sys/mman.h>
-+#include <sys/prctl.h>
-+
-+#include "test_signals_utils.h"
-+#include "testcases.h"
-+
-+/* This should be includable from some standard header, but which? */
-+#ifndef SEGV_CPERR
-+#define SEGV_CPERR 10
-+#endif
-+
-+static inline void gcsss1(uint64_t Xt)
-+{
-+	asm volatile (
-+		"sys #3, C7, C7, #2, %0\n"
-+		:
-+		: "rZ" (Xt)
-+		: "memory");
-+}
-+
-+static int gcs_op_fault_trigger(struct tdescr *td)
-+{
-+	/*
-+	 * The slot below our current GCS should be in a valid GCS but
-+	 * must not have a valid cap in it.
-+	 */
-+	gcsss1(get_gcspr_el0() - 8);
-+
-+	return 0;
-+}
-+
-+static int gcs_op_fault_signal(struct tdescr *td, siginfo_t *si,
-+				  ucontext_t *uc)
-+{
-+	ASSERT_GOOD_CONTEXT(uc);
-+
-+	return 1;
-+}
-+
-+struct tdescr tde = {
-+	.name = "Invalid GCS operation",
-+	.descr = "An invalid GCS operation generates the expected signal",
-+	.feats_required = FEAT_GCS,
-+	.timeout = 3,
-+	.sig_ok = SIGSEGV,
-+	.sig_ok_code = SEGV_CPERR,
-+	.sanity_disabled = true,
-+	.trigger = gcs_op_fault_trigger,
-+	.run = gcs_op_fault_signal,
-+};
-diff --git a/tools/testing/selftests/arm64/signal/testcases/gcs_frame.c b/tools/testing/selftests/arm64/signal/testcases/gcs_frame.c
-new file mode 100644
-index 000000000000..d67cb26195a6
---- /dev/null
-+++ b/tools/testing/selftests/arm64/signal/testcases/gcs_frame.c
-@@ -0,0 +1,78 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2023 ARM Limited
-+ */
-+
-+#include <signal.h>
-+#include <ucontext.h>
-+#include <sys/prctl.h>
-+
-+#include "test_signals_utils.h"
-+#include "testcases.h"
-+
-+static union {
-+	ucontext_t uc;
-+	char buf[1024 * 64];
-+} context;
-+
-+static int gcs_regs(struct tdescr *td, siginfo_t *si, ucontext_t *uc)
-+{
-+	size_t offset;
-+	struct _aarch64_ctx *head = GET_BUF_RESV_HEAD(context);
-+	struct gcs_context *gcs;
-+	unsigned long expected, gcspr;
-+	int ret;
-+
-+	ret = prctl(PR_GET_SHADOW_STACK_STATUS, &expected, 0, 0, 0);
-+	if (ret != 0) {
-+		fprintf(stderr, "Unable to query GCS status\n");
-+		return 1;
-+	}
-+
-+	/* We expect a cap to be added to the GCS in the signal frame */
-+	gcspr = get_gcspr_el0();
-+	gcspr -= 8;
-+	fprintf(stderr, "Expecting GCSPR_EL0 %lx\n", gcspr);
-+
-+	if (!get_current_context(td, &context.uc, sizeof(context))) {
-+		fprintf(stderr, "Failed getting context\n");
-+		return 1;
-+	}
-+	fprintf(stderr, "Got context\n");
-+
-+	head = get_header(head, GCS_MAGIC, GET_BUF_RESV_SIZE(context),
-+			  &offset);
-+	if (!head) {
-+		fprintf(stderr, "No GCS context\n");
-+		return 1;
-+	}
-+
-+	gcs = (struct gcs_context *)head;
-+
-+	/* Basic size validation is done in get_current_context() */
-+
-+	if (gcs->features_enabled != expected) {
-+		fprintf(stderr, "Features enabled %llx but expected %lx\n",
-+			gcs->features_enabled, expected);
-+		return 1;
-+	}
-+
-+	if (gcs->gcspr != gcspr) {
-+		fprintf(stderr, "Got GCSPR %llx but expected %lx\n",
-+			gcs->gcspr, gcspr);
-+		return 1;
-+	}
-+
-+	fprintf(stderr, "GCS context validated\n");
-+	td->pass = 1;
-+
-+	return 0;
-+}
-+
-+struct tdescr tde = {
-+	.name = "GCS basics",
-+	.descr = "Validate a GCS signal context",
-+	.feats_required = FEAT_GCS,
-+	.timeout = 3,
-+	.run = gcs_regs,
-+};
-diff --git a/tools/testing/selftests/arm64/signal/testcases/gcs_write_fault.c b/tools/testing/selftests/arm64/signal/testcases/gcs_write_fault.c
-new file mode 100644
-index 000000000000..126b1a294a29
---- /dev/null
-+++ b/tools/testing/selftests/arm64/signal/testcases/gcs_write_fault.c
-@@ -0,0 +1,67 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2023 ARM Limited
-+ */
-+
-+#include <errno.h>
-+#include <signal.h>
-+#include <unistd.h>
-+
-+#include <sys/mman.h>
-+#include <sys/prctl.h>
-+
-+#include "test_signals_utils.h"
-+#include "testcases.h"
-+
-+static uint64_t *gcs_page;
-+
-+#ifndef __NR_map_shadow_stack
-+#define __NR_map_shadow_stack 452
-+#endif
-+
-+static bool alloc_gcs(struct tdescr *td)
-+{
-+	long page_size = sysconf(_SC_PAGE_SIZE);
-+
-+	gcs_page = (void *)syscall(__NR_map_shadow_stack, 0,
-+				   page_size, 0);
-+	if (gcs_page == MAP_FAILED) {
-+		fprintf(stderr, "Failed to map %ld byte GCS: %d\n",
-+			page_size, errno);
-+		return false;
-+	}
-+
-+	return true;
-+}
-+
-+static int gcs_write_fault_trigger(struct tdescr *td)
-+{
-+	/* Verify that the page is readable (ie, not completely unmapped) */
-+	fprintf(stderr, "Read value 0x%lx\n", gcs_page[0]);
-+
-+	/* A regular write should trigger a fault */
-+	gcs_page[0] = EINVAL;
-+
-+	return 0;
-+}
-+
-+static int gcs_write_fault_signal(struct tdescr *td, siginfo_t *si,
-+				  ucontext_t *uc)
-+{
-+	ASSERT_GOOD_CONTEXT(uc);
-+
-+	return 1;
-+}
-+
-+
-+struct tdescr tde = {
-+	.name = "GCS write fault",
-+	.descr = "Normal writes to a GCS segfault",
-+	.feats_required = FEAT_GCS,
-+	.timeout = 3,
-+	.sig_ok = SIGSEGV,
-+	.sanity_disabled = true,
-+	.init = alloc_gcs,
-+	.trigger = gcs_write_fault_trigger,
-+	.run = gcs_write_fault_signal,
-+};
 
 -- 
 2.30.2
