@@ -2,47 +2,85 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 51B65EE49AE
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:20:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9CCB7EE49A3
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 15:05:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236500AbjHVOUd (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:20:33 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53750 "EHLO
+        id S235338AbjHVPF5 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 11:05:57 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:51988 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236134AbjHVOUb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:20:31 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D8F73CC1;
-        Tue, 22 Aug 2023 07:20:27 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 8133A65772;
-        Tue, 22 Aug 2023 14:05:26 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 24BC1C43395;
-        Tue, 22 Aug 2023 14:05:19 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713125;
-        bh=pTf0v4Nwr1c2atopY90/GZ4bcDLJRrAaZS5Juu/K/wc=;
-        h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=RqTPgN/Syt+4uEDWPBWzuOq4DfgJHj5yIAyIhU3LQ2hZlJZWwroKIla+zSt2T7mdp
-         bHmjwAPBcY67Scx7yaD0aF6C9owyz9vp4q3eMb7rutXTwjzNEwbsmz99cuNz1nTyAB
-         jOcqJ5jHo7Hvt5tXbsIh50vRvO1Uqg+nPAM3nDoUSNlZx6rlllyzuIDy7LQCwx66PD
-         kg+EIbak1WMTnF+ZYgpoqgRrn6ItNI1gKLvGoWaGnHvMALQ+UuccxHjAI6sC9rFAQu
-         ZXQG8me22Pcj4JQHtLx7b9sGaq/zFNq0U73etvi3UwezBMZaHQ0pekr/WRRROnIpll
-         pzlM8alInqnQA==
-From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:56:56 +0100
-Subject: [PATCH v5 23/37] arm64/signal: Set up and restore the GCS context
- for signal handlers
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-23-9ef181dd6324@kernel.org>
-References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
-In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
-To:     Catalin Marinas <catalin.marinas@arm.com>,
+        with ESMTP id S234755AbjHVPF4 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 11:05:56 -0400
+Received: from EUR05-DB8-obe.outbound.protection.outlook.com (mail-db8eur05on2079.outbound.protection.outlook.com [40.107.20.79])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7B60E198;
+        Tue, 22 Aug 2023 08:05:54 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=armh.onmicrosoft.com;
+ s=selector2-armh-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=BfrtkIHD41BdedViPMyVzl+Hx3DX+Q5alc3k43j05cI=;
+ b=KNOT4WQr2ip1eJmqTzufkPODbARBuwPqAGEyg6jwpkUvQuj4hpohkJYoQs4aBWGNs+kCbeSXxznfj+zGXGBCf8g7HLr3Enjotltdm9WrXEcSlyi/WfjklvG65BbEF8OcU8vJTeatsxO/PJ4bBqUjSnqV6qdc+zHyL2aebdW5uTM=
+Received: from DUZPR01CA0298.eurprd01.prod.exchangelabs.com
+ (2603:10a6:10:4b7::15) by AS8PR08MB8491.eurprd08.prod.outlook.com
+ (2603:10a6:20b:566::19) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6699.24; Tue, 22 Aug
+ 2023 15:05:49 +0000
+Received: from DBAEUR03FT036.eop-EUR03.prod.protection.outlook.com
+ (2603:10a6:10:4b7:cafe::79) by DUZPR01CA0298.outlook.office365.com
+ (2603:10a6:10:4b7::15) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6699.25 via Frontend
+ Transport; Tue, 22 Aug 2023 15:05:49 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 63.35.35.123)
+ smtp.mailfrom=arm.com; dkim=pass (signature was verified)
+ header.d=armh.onmicrosoft.com;dmarc=pass action=none header.from=arm.com;
+Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
+ 63.35.35.123 as permitted sender) receiver=protection.outlook.com;
+ client-ip=63.35.35.123; helo=64aa7808-outbound-1.mta.getcheckrecipient.com;
+ pr=C
+Received: from 64aa7808-outbound-1.mta.getcheckrecipient.com (63.35.35.123) by
+ DBAEUR03FT036.mail.protection.outlook.com (100.127.142.193) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.20.6723.15 via Frontend Transport; Tue, 22 Aug 2023 15:05:49 +0000
+Received: ("Tessian outbound 169aaa6bf2b7:v175"); Tue, 22 Aug 2023 15:05:49 +0000
+X-CheckRecipientChecked: true
+X-CR-MTA-CID: d37bb38f735fa9d8
+X-CR-MTA-TID: 64aa7808
+Received: from 44561ca60c7c.2
+        by 64aa7808-outbound-1.mta.getcheckrecipient.com id 31AF0FB9-91C9-4605-8271-7B75269EFF6E.1;
+        Tue, 22 Aug 2023 15:05:42 +0000
+Received: from EUR05-DB8-obe.outbound.protection.outlook.com
+    by 64aa7808-outbound-1.mta.getcheckrecipient.com with ESMTPS id 44561ca60c7c.2
+    (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384);
+    Tue, 22 Aug 2023 15:05:42 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=fLmSz49N4qNR5r0qm1oDSblwsc8ngBADluagQFCnQzg6tDu95KIShybBbukcLSpFGdJK+2kOsRVTFLOgSYqqzl0/gUxCEaG0Fpl2X5UShTkYZs30CnrvrV/elyUWl5QUhAi5XvE/ONduBFMRg3bpv5Zpj6lU5pb6D7qecDNUsa/RZuutI4kK6I3mlnJxqXjc7IlN/hKYdMLt0yESjnr1OvuHI9JSHb0Xak+FQUMr+qrL3he5uFk3JMp7jvDOdi9x+xceVRBSBqRdjpYIu/+eGowkzlXgtnAgxk+l5Xo/XLey+RcNN7NNFk8EdEjYO7wsH8sQsP08pOlgqIsl5GPWFw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=BfrtkIHD41BdedViPMyVzl+Hx3DX+Q5alc3k43j05cI=;
+ b=Ok8nPlgNTEmmtAwEG3R3clvatLK6DtXq5BTK43DZIYItmOAvdWWx1NuhwB/d5q1X8mv75I+2rwPKjF5qFuXqTdGiXYYnKvImc3kYeomlPznbW46YFDUCoWnOEth+x48Gb1d508XXW3+5dqfjExWnIdbUGGdvERB5lBaxFq10gxSuNRwu7gpDFCNmI9sLICYDUwHEWTdllKjQbIAh2UEwxHY6idVbEswpF2h8LVByveNYaoCUXIWssFzMY0DbPtxIvFXS7h9rYZ1+XPpJWkPiugiuJw04Hym8pllNokQmX4iMO26VMXI93/vN6NLU8NcfMYi9wMz7zVkAuJvruN4b2w==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
+ header.d=arm.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=armh.onmicrosoft.com;
+ s=selector2-armh-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=BfrtkIHD41BdedViPMyVzl+Hx3DX+Q5alc3k43j05cI=;
+ b=KNOT4WQr2ip1eJmqTzufkPODbARBuwPqAGEyg6jwpkUvQuj4hpohkJYoQs4aBWGNs+kCbeSXxznfj+zGXGBCf8g7HLr3Enjotltdm9WrXEcSlyi/WfjklvG65BbEF8OcU8vJTeatsxO/PJ4bBqUjSnqV6qdc+zHyL2aebdW5uTM=
+Authentication-Results-Original: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=arm.com;
+Received: from DB9PR08MB7179.eurprd08.prod.outlook.com (2603:10a6:10:2cc::19)
+ by AM8PR08MB5732.eurprd08.prod.outlook.com (2603:10a6:20b:1d4::16) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6699.24; Tue, 22 Aug
+ 2023 15:05:39 +0000
+Received: from DB9PR08MB7179.eurprd08.prod.outlook.com
+ ([fe80::adb0:61cb:8733:6db2]) by DB9PR08MB7179.eurprd08.prod.outlook.com
+ ([fe80::adb0:61cb:8733:6db2%7]) with mapi id 15.20.6699.022; Tue, 22 Aug 2023
+ 15:05:39 +0000
+Date:   Tue, 22 Aug 2023 16:05:15 +0100
+From:   Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+To:     Mark Brown <broonie@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
         Will Deacon <will@kernel.org>,
         Jonathan Corbet <corbet@lwn.net>,
         Andrew Morton <akpm@linux-foundation.org>,
@@ -56,8 +94,7 @@ To:     Catalin Marinas <catalin.marinas@arm.com>,
         Shuah Khan <shuah@kernel.org>,
         "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
         Deepak Gupta <debug@rivosinc.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Szabolcs Nagy <Szabolcs.Nagy@arm.com>
+        Ard Biesheuvel <ardb@kernel.org>
 Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         Paul Walmsley <paul.walmsley@sifive.com>,
         Palmer Dabbelt <palmer@dabbelt.com>,
@@ -66,268 +103,72 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
-X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=7272; i=broonie@kernel.org;
- h=from:subject:message-id; bh=pTf0v4Nwr1c2atopY90/GZ4bcDLJRrAaZS5Juu/K/wc=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MABbrLFWcCwIhWQO+8yGnoa6yEke/SWgDcMI8OK
- /Sx/f5KJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTAAQAKCRAk1otyXVSH0FptB/
- 9rR4g5V4VeC6QgdZnQOvu8AFx/V0oZgsu/P9pOisxXYqyT6s+GW0joKF34fF5aKOn4WvtbQQHESlh6
- RzBmGodHgERHsJkrwpxMVeZWmiINmFg04hRiywofXUwOYwSpN2SdidGqR2naKt1A8Isu+urZI6IyuE
- sgX6+fz/0SewTtzjZfBbMv1m96rUqnrYdvCEoEqUnENhSmV6AtL9FDyripzu+u/9SFNKDJ115tktZH
- IlH84atxbzFtvpuKoy/AZBhlnovnI62EBXVsPwqeJ6amm62ZpKkIR13ftobJQhMy9KXWUA24i2onec
- UHItrMYxTs0R9g0W1wYp0HsL6xmqDx
-X-Developer-Key: i=broonie@kernel.org; a=openpgp;
- fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
+        linux-riscv@lists.infradead.org
+Subject: Re: [PATCH v5 04/37] arm64/gcs: Document the ABI for Guarded Control
+ Stacks
+Message-ID: <ZOTOqxBFqselqN8U@arm.com>
+References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
+ <20230822-arm64-gcs-v5-4-9ef181dd6324@kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20230822-arm64-gcs-v5-4-9ef181dd6324@kernel.org>
+X-ClientProxiedBy: SN1PR12CA0070.namprd12.prod.outlook.com
+ (2603:10b6:802:20::41) To DB9PR08MB7179.eurprd08.prod.outlook.com
+ (2603:10a6:10:2cc::19)
+MIME-Version: 1.0
+X-MS-TrafficTypeDiagnostic: DB9PR08MB7179:EE_|AM8PR08MB5732:EE_|DBAEUR03FT036:EE_|AS8PR08MB8491:EE_
+X-MS-Office365-Filtering-Correlation-Id: c0698088-b06a-462f-86cb-08dba321456c
+x-checkrecipientrouted: true
+NoDisclaimer: true
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam-Untrusted: BCL:0;
+X-Microsoft-Antispam-Message-Info-Original: YcQqMwk4Dn5hMK+j4004Cs80OkhHHW6XQ7wOn41UvxizXAzqHevZO8vajBB9wd6zzuuO/XQSS10lQO09TMQVDfSDBHBMpeq2o9AcXLqwGMhvEe259I03oqU8PCZLDkXX7/q5VmGxHru6Ld/j3nQdfeSuVbb0v/VTe4Oel4cmS6F+InXhLkK/b7NTmpC8KttkbWlKmZqw2oVUOsEEqCrrtQEidefpZtXNy9KIpjRUeqSvWgHBPTG5Gi6fTShgUV9cDG9/fcX48UQWgPQEKZx4cw3Xm4STZn3TeyCdClt+bArIyIJjvq2HvPUugHEITSgPWmv4xqWU//JPcnpFnImaZkWXRUcM8HVs8sbB4DyljPhGEq2up1Q6LH+2jaWwxQ2WMp0gl9YjzDNvbOG8LmC1P+CSbh9Qcc7eJ1m3Eozz9YA34eQ3RIhTLhzbrwj8KQ5NBQSGflJATJtHpcqvxZE0j2J0Giy3lpuIkx/KGdBXOPWWhqaJXm6IYDh3OhS3lNHR+R90aZLBTTfQqmmMKnvBjSFYJbV/kf9nv7lPuPWQ1ET3jxTMhDbfJXF8/T8g/2buoK3RXkbc81lJdh/FBpyIgpbsuuRHu/CPZzRpVKK6CwQ=
+X-Forefront-Antispam-Report-Untrusted: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:DB9PR08MB7179.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230031)(396003)(136003)(376002)(39860400002)(346002)(366004)(1800799009)(186009)(451199024)(54906003)(66476007)(66556008)(6512007)(316002)(66946007)(110136005)(8676002)(8936002)(2616005)(4326008)(36756003)(41300700001)(921005)(478600001)(6666004)(38100700002)(6486002)(6506007)(4744005)(2906002)(7416002)(86362001)(5660300002)(26005);DIR:OUT;SFP:1101;
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AM8PR08MB5732
+Original-Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=arm.com;
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Transport-CrossTenantHeadersStripped: DBAEUR03FT036.eop-EUR03.prod.protection.outlook.com
+X-MS-PublicTrafficType: Email
+X-MS-Office365-Filtering-Correlation-Id-Prvs: d3ed07dc-d070-4514-981c-08dba3213f11
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: 2WOUFxXj/22wybnGSH9BkICb8ukXUpakkExclI8FkAE1klcazkDsigPO3nJfriBLll8Aaqj7pwEZ5todAAaFOF8ZCqhxJ4ht7o2vVxQumERQvYLaEhQBvqiJn5rZDKwTslZlp4qhJykWEEUb39o2CAJa9NKcYgsUNJkIfnli1oFz3gZ5s3HoyGwfM1bmUbv2JZ/dSE/7UdZXDdeT0vU2runKP9mJmhQdlCUthOfRBXjA8iCfSYgNsJ9vi1B+Zd5K3faAzFarZ17pbmFuCpTMMOyIKAN550VHB8++bD51Dt0kLjuKwHK/5ggFlC58BteF5A/OU+S8Vs1vndxtm6i5PAlbCpiHCjPPhrgBv8ugfFxktgDVqDABh8YYCxpdK4coHwdkwd4tRCGgSsinEc5tlNZEFloyixBsV4LPCaT47CvJE+ZU9CRn1fZtLji5Dd7qwf0iUeEKLJ5zRdCxsVN0YLTZBZ2lZKA0eJgT236f4syf/9jTyoycqYgbZnQWkkCe1e57xzev07UL63ZYCaiJDBDZqQ9RG1wN3MGY9A0RfI+wbON4vkwGBgr4Y8Oa+rPxuzvFjParO9cfFr6DPspTx+uu3Do6BuKKtoBUr5ZUBZeHIhewFBq6UoX+x0GlZKw162tEGE37DAunmKvUJ1OMnNKSnL430z8gjoC1YWVUc6/SwYmITpwAq+GBP1CkqJ77Jv0tri72F72U0gn2Uh9mGuRg1zE+r7DPlHj34Fx9O5qSkoGCn+aSNxCS6g4chmNv
+X-Forefront-Antispam-Report: CIP:63.35.35.123;CTRY:IE;LANG:en;SCL:1;SRV:;IPV:CAL;SFV:NSPM;H:64aa7808-outbound-1.mta.getcheckrecipient.com;PTR:ec2-63-35-35-123.eu-west-1.compute.amazonaws.com;CAT:NONE;SFS:(13230031)(4636009)(396003)(136003)(376002)(39860400002)(346002)(1800799009)(186009)(451199024)(82310400011)(46966006)(36840700001)(40470700004)(54906003)(6512007)(70586007)(316002)(70206006)(110136005)(450100002)(8676002)(8936002)(2616005)(107886003)(4326008)(36756003)(40460700003)(41300700001)(82740400003)(356005)(81166007)(921005)(478600001)(6666004)(6486002)(6506007)(40480700001)(4744005)(2906002)(47076005)(36860700001)(86362001)(336012)(5660300002)(26005);DIR:OUT;SFP:1101;
+X-OriginatorOrg: arm.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 22 Aug 2023 15:05:49.5952
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: c0698088-b06a-462f-86cb-08dba321456c
+X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[63.35.35.123];Helo=[64aa7808-outbound-1.mta.getcheckrecipient.com]
+X-MS-Exchange-CrossTenant-AuthSource: DBAEUR03FT036.eop-EUR03.prod.protection.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: AS8PR08MB8491
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-When invoking a signal handler we use the GCS configuration and stack
-for the current thread.
+just nits.
 
-Since we implement signal return by calling the signal handler with a
-return address set up pointing to a trampoline in the vDSO we need to
-also configure any active GCS for this by pushing a frame for the
-trampoline onto the GCS.  If we do not do this then signal return will
-generate a GCS protection fault.
+The 08/22/2023 14:56, Mark Brown wrote:
+> +3.  Allocation of Guarded Control Stacks
+> +----------------------------------------
+...
+> +* Stacks allocated using map_shadow_stack() must be larger than 8 bytes and
+> +  must be 8 bytes aligned.
 
-In order to guard against attempts to bypass GCS protections via signal
-return we only allow returning with GCSPR_EL0 pointing to an address
-where it was previously preempted by a signal.  We do this by pushing a
-cap onto the GCS, this takes the form of an architectural GCS cap token
-with the top bit set which we add on signal entry and validate and pop
-off on signal return.  Since the top bit is set address validation for
-the token will fail if an attempt is made to use it with the stack
-switch instructions.
+"the size must be multiple of 8 bytes."
 
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- arch/arm64/include/asm/gcs.h |   2 +
- arch/arm64/kernel/signal.c   | 130 +++++++++++++++++++++++++++++++++++++++++--
- arch/arm64/mm/gcs.c          |   1 +
- 3 files changed, 128 insertions(+), 5 deletions(-)
+> +
+> +* An address can be specified to map_shadow_stack(), if one is provided then
+> +  it must be aligned to a page boundary.
+...
+> +5.  Signal return
+> +-----------------
+...
+> +
+> +7.  ptrace extensions
+> +---------------------
 
-diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
-index c150e76869a1..65496103d462 100644
---- a/arch/arm64/include/asm/gcs.h
-+++ b/arch/arm64/include/asm/gcs.h
-@@ -8,6 +8,8 @@
- #include <asm/types.h>
- #include <asm/uaccess.h>
- 
-+struct ksignal;
-+
- static inline void gcsb_dsync(void)
- {
- 	asm volatile(".inst 0xd503227f" : : : "memory");
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 0e8beb3349ea..97004c52aea3 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -25,6 +25,7 @@
- #include <asm/elf.h>
- #include <asm/exception.h>
- #include <asm/cacheflush.h>
-+#include <asm/gcs.h>
- #include <asm/ucontext.h>
- #include <asm/unistd.h>
- #include <asm/fpsimd.h>
-@@ -34,6 +35,36 @@
- #include <asm/traps.h>
- #include <asm/vdso.h>
- 
-+#ifdef CONFIG_ARM64_GCS
-+/* Extra bit set in the address distinguishing a signal cap token. */
-+#define GCS_SIGNAL_CAP_FLAG BIT(63)
-+
-+#define GCS_SIGNAL_CAP(addr) (GCS_CAP(addr) | GCS_SIGNAL_CAP_FLAG)
-+
-+static bool gcs_signal_cap_valid(u64 addr, u64 val)
-+{
-+	/*
-+	 * The top bit should be set, this is an invalid address for
-+	 * EL0 and will only be set for caps created by signals.
-+	 */
-+	if (!(val & GCS_SIGNAL_CAP_FLAG))
-+		return false;
-+
-+	/* The rest should be a standard architectural cap token. */
-+	val &= ~GCS_SIGNAL_CAP_FLAG;
-+
-+	/* The cap must have the low bits set to a token value */
-+	if (GCS_CAP_TOKEN(val) != GCS_CAP_VALID_TOKEN)
-+		return false;
-+
-+	/* The cap must store the VA the cap was stored at */
-+	if (GCS_CAP_ADDR(addr) != GCS_CAP_ADDR(val))
-+		return false;
-+
-+	return true;
-+}
-+#endif
-+
- /*
-  * Do a signal return; undo the signal stack. These are aligned to 128-bit.
-  */
-@@ -815,6 +846,45 @@ static int restore_sigframe(struct pt_regs *regs,
- 	return err;
- }
- 
-+#ifdef CONFIG_ARM64_GCS
-+static int gcs_restore_signal(void)
-+{
-+	u64 gcspr_el0, cap;
-+	int ret;
-+
-+	if (!system_supports_gcs())
-+		return 0;
-+
-+	if (!(current->thread.gcs_el0_mode & PR_SHADOW_STACK_ENABLE))
-+		return 0;
-+
-+	gcspr_el0 = read_sysreg_s(SYS_GCSPR_EL0);
-+
-+	/*
-+	 * GCSPR_EL0 should be pointing at a capped GCS, read the cap...
-+	 */
-+	gcsb_dsync();
-+	ret = copy_from_user(&cap, (__user void*)gcspr_el0, sizeof(cap));
-+	if (ret)
-+		return -EFAULT;
-+
-+	/*
-+	 * ...then check that the cap is the actual GCS before
-+	 * restoring it.
-+	 */
-+	if (!gcs_signal_cap_valid(gcspr_el0, cap))
-+		return -EINVAL;
-+
-+	current->thread.gcspr_el0 = gcspr_el0 + sizeof(cap);
-+	write_sysreg_s(current->thread.gcspr_el0, SYS_GCSPR_EL0);
-+
-+	return 0;
-+}
-+
-+#else
-+static int gcs_restore_signal(void) { return 0; }
-+#endif
-+
- SYSCALL_DEFINE0(rt_sigreturn)
- {
- 	struct pt_regs *regs = current_pt_regs();
-@@ -841,6 +911,9 @@ SYSCALL_DEFINE0(rt_sigreturn)
- 	if (restore_altstack(&frame->uc.uc_stack))
- 		goto badframe;
- 
-+	if (gcs_restore_signal())
-+		goto badframe;
-+
- 	return regs->regs[0];
- 
- badframe:
-@@ -1071,7 +1144,52 @@ static int get_sigframe(struct rt_sigframe_user_layout *user,
- 	return 0;
- }
- 
--static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
-+#ifdef CONFIG_ARM64_GCS
-+
-+static int gcs_signal_entry(__sigrestore_t sigtramp, struct ksignal *ksig)
-+{
-+	unsigned long __user *gcspr_el0;
-+	unsigned long cap[2];
-+	int ret;
-+
-+	if (!system_supports_gcs())
-+		return 0;
-+
-+	if (!task_gcs_el0_enabled(current))
-+		return 0;
-+
-+	/*
-+	 * We are entering a signal handler, current register state is
-+	 * active.
-+	 */
-+	gcspr_el0 = (unsigned long __user *)read_sysreg_s(SYS_GCSPR_EL0);
-+
-+	/*
-+	 * Push a cap and the GCS entry for the trampoline onto the GCS.
-+	 */
-+	cap[1] = GCS_SIGNAL_CAP(gcspr_el0 - 1);
-+	cap[0] = (unsigned long)sigtramp;
-+	ret = copy_to_user_gcs(gcspr_el0 - 2, cap, ARRAY_SIZE(cap));
-+	if (ret != 0)
-+		return ret;
-+
-+	gcsb_dsync();
-+
-+	gcspr_el0 -= 2;
-+	write_sysreg_s((unsigned long)gcspr_el0, SYS_GCSPR_EL0);
-+
-+	return 0;
-+}
-+#else
-+
-+static int gcs_signal_entry(__sigrestore_t sigtramp, struct ksignal *ksig)
-+{
-+	return 0;
-+}
-+
-+#endif
-+
-+static int setup_return(struct pt_regs *regs, struct ksignal *ksig,
- 			 struct rt_sigframe_user_layout *user, int usig)
- {
- 	__sigrestore_t sigtramp;
-@@ -1079,7 +1197,7 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 	regs->regs[0] = usig;
- 	regs->sp = (unsigned long)user->sigframe;
- 	regs->regs[29] = (unsigned long)&user->next_frame->fp;
--	regs->pc = (unsigned long)ka->sa.sa_handler;
-+	regs->pc = (unsigned long)ksig->ka.sa.sa_handler;
- 
- 	/*
- 	 * Signal delivery is a (wacky) indirect function call in
-@@ -1119,12 +1237,14 @@ static void setup_return(struct pt_regs *regs, struct k_sigaction *ka,
- 		sme_smstop();
- 	}
- 
--	if (ka->sa.sa_flags & SA_RESTORER)
--		sigtramp = ka->sa.sa_restorer;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER)
-+		sigtramp = ksig->ka.sa.sa_restorer;
- 	else
- 		sigtramp = VDSO_SYMBOL(current->mm->context.vdso, sigtramp);
- 
- 	regs->regs[30] = (unsigned long)sigtramp;
-+
-+	return gcs_signal_entry(sigtramp, ksig);
- }
- 
- static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
-@@ -1147,7 +1267,7 @@ static int setup_rt_frame(int usig, struct ksignal *ksig, sigset_t *set,
- 	err |= __save_altstack(&frame->uc.uc_stack, regs->sp);
- 	err |= setup_sigframe(&user, regs, set);
- 	if (err == 0) {
--		setup_return(regs, &ksig->ka, &user, usig);
-+		err = setup_return(regs, ksig, &user, usig);
- 		if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
- 			err |= copy_siginfo_to_user(&frame->info, &ksig->info);
- 			regs->regs[1] = (unsigned long)&frame->info;
-diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
-index 2963041d1d64..6251c362a7f9 100644
---- a/arch/arm64/mm/gcs.c
-+++ b/arch/arm64/mm/gcs.c
-@@ -6,6 +6,7 @@
- #include <linux/types.h>
- 
- #include <asm/cpufeature.h>
-+#include <asm/gcs.h>
- #include <asm/page.h>
- 
- static unsigned long alloc_gcs(unsigned long addr, unsigned long size,
-
--- 
-2.30.2
-
+section 6. is missing
