@@ -2,43 +2,43 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6D32BEE49A4
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:06:30 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 769C6EE49AC
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:06:40 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235118AbjHVOG3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:06:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56710 "EHLO
+        id S236517AbjHVOGk (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 10:06:40 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56770 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236471AbjHVOG2 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:06:28 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8258AE6A;
-        Tue, 22 Aug 2023 07:05:52 -0700 (PDT)
+        with ESMTP id S236480AbjHVOG3 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:06:29 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1C19EE7E;
+        Tue, 22 Aug 2023 07:05:57 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 626D6652DB;
-        Tue, 22 Aug 2023 14:05:52 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A6F5CC433C7;
-        Tue, 22 Aug 2023 14:05:45 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 90062657AE;
+        Tue, 22 Aug 2023 14:04:55 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0D4A7C433B7;
+        Tue, 22 Aug 2023 14:04:48 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713151;
-        bh=6C9vpUKzxaC1YPufnnUpE8qHeuHqYjFB9iVUxK25t6w=;
+        s=k20201202; t=1692713094;
+        bh=3frSXltfyEgjNXyKMr5NRlsNK13A5vKOgV3TE3uJgDA=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=uJR6Rmf+qWK78zBrJ5KatjzpBt/zfdeHYWwr0S//dMcWGE/DklAiD0RhbylsxjuWq
-         AgW1xD+vCT8fH4tWjcKaygQxQXqyRBWHqWl09eE14J9DoxhVhh4Yuxkh8C1GZjXCmB
-         8a7+5Rt6n+xYiEgdrgb5L1OLIhEv6rFxTiXck/AowYaULVrkRP/z3DQMLLHLboATCL
-         DCMroNXGQ9wQaG6Rx3KRLCmfLwgN4KXOXvDGj4NCrhcBwgkNhiG94BGzp4p9/QgUtc
-         zlGsBWjQHBN3swarNNezk7L3qxgdGmTNqSvSpYUEtNG9NhR51bf1MhYUQx8sKdW470
-         XVy8F9R33hVZQ==
+        b=B3UT8vxOVGaVegOI8NaCaSn8giOEs9eVqYN9WX97ni0WSuirae2Tcwh9V7SyMgZ6T
+         hBoE4k6reDxJPgmx3Cwn3HkR7JkFZyk5MvxtVpWegyam3zrGHP7xpZCfle/AbyBs9n
+         2fGz4Kfiou+GC15IHoFUWi+EyC7Vf9DVuHyz4N8MkdrIlWsFOtpN62T+tryRI4aGCr
+         I/HrbAQ9IP+oTOwY4bOZYvDv6ukz9+/YOxZS28uxnje3CJK9froaQ6HCXtAWDc3VtE
+         pjIjerokOH5e+Y/WLLAnsbY/mvMCAs190YJovQYlvfF8/rVxneKzojc7uBjT9qLwZa
+         3WydLQ2DDIuJA==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:57:00 +0100
-Subject: [PATCH v5 27/37] kselftest/arm64: Verify the GCS hwcap
+Date:   Tue, 22 Aug 2023 14:56:51 +0100
+Subject: [PATCH v5 18/37] arm64/mm: Handle GCS data aborts
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-27-9ef181dd6324@kernel.org>
+Message-Id: <20230822-arm64-gcs-v5-18-9ef181dd6324@kernel.org>
 References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,66 +67,181 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1205; i=broonie@kernel.org;
- h=from:subject:message-id; bh=6C9vpUKzxaC1YPufnnUpE8qHeuHqYjFB9iVUxK25t6w=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAFVY0DMZDd3of+ZsoKYtYgu7+iC/vtAH2sxv5S
- Ct/vCAyJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTABQAKCRAk1otyXVSH0HMgB/
- 9PlNyibc4TgMe/I+kZC9KpcT9K77mdlW2wxZPsDRhN/T0euRO6+H37S+U/5XE0hkgbi0It5Iq9BZO4
- oQ+7+SQ1m28ZtNjMYXIn4akZXZDhCp2swX5UmH8AFn0AopKhVs8GOQhbObnt/ZonAFdC5dnn5djvDe
- s4wgV6nTaGOARPBZQSliJVVycQgxOqW8juxwQh3V8vJSscDRi9h2yvANzIlzbRB7LwyIcWYQ8ld3be
- hi2eNHC7QcQvJK8m/jioaJCHMNO+L3U48Urgtxk0Y+FngycnuKgpxPxpSTwBtQjK02La5/10LeU9C4
- LvOKY8d6wzNW8Doj/s6E0saM25SmOA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=5679; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=3frSXltfyEgjNXyKMr5NRlsNK13A5vKOgV3TE3uJgDA=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5L/9im1DUi+39LOQU1mpKVEB2F91vv6me+DtJIZ6
+ hyMd0CWJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOS//QAKCRAk1otyXVSH0L87B/
+ 9+wGlX99gOV614aXcVAQd4o9IoMTsg6WepK9KILI3i3olNpP2jqTXj3gggiApp+rXWE7KAMmlz6j4w
+ irvIuu2ZG4x0rPOh/0LMykOrs5HIk0iqEikPtywxTmgtTFXNI29TklzzxZVh6z5kEqnkagFZEGNwl0
+ zSKaGoMYAbKcBj2b2O252Uvqw7xlRysgV9h/L7spclBPpC2vtpQ3Ttv4iMLGAOssepkgl4Isr12yVa
+ zTfwYvNA0BHyJHb2HCefF86gNry1UqvqYOlyfiywvte40mCogRDKOpPNY7+++SbvX3R/tPzhaGbLJj
+ F0piLbihb2xEc1lY83A4/NLkZJZpCr
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add coverage of the GCS hwcap to the hwcap selftest, using a read of
-GCSPR_EL0 to generate SIGILL without having to worry about enabling GCS.
+All GCS operations at EL0 must happen on a page which is marked as
+having UnprivGCS access, including read operations.  If a GCS operation
+attempts to access a page without this then it will generate a data
+abort with the GCS bit set in ESR_EL1.ISS2.
+
+EL0 may validly generate such faults, for example due to copy on write
+which will cause the GCS data to be stored in a read only page with no
+GCS permissions until the actual copy happens.  Since UnprivGCS allows
+both reads and writes to the GCS (though only through GCS operations) we
+need to ensure that the memory management subsystem handles GCS accesses
+as writes at all times.  Do this by adding FAULT_FLAG_WRITE to any GCS
+page faults, adding handling to ensure that invalid cases are identfied
+as such early so the memory management core does not think they will
+succeed.  The core cannot distinguish between VMAs which are generally
+writeable and VMAs which are only writeable through GCS operations.
+
+EL1 may validly write to EL0 GCS for management purposes (eg, while
+initialising with cap tokens).
+
+We also report any GCS faults in VMAs not marked as part of a GCS as
+access violations, causing a fault to be delivered to userspace if it
+attempts to do GCS operations outside a GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/abi/hwcap.c | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
+ arch/arm64/mm/fault.c | 79 +++++++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 71 insertions(+), 8 deletions(-)
 
-diff --git a/tools/testing/selftests/arm64/abi/hwcap.c b/tools/testing/selftests/arm64/abi/hwcap.c
-index d4ad813fed10..38844e4c5aae 100644
---- a/tools/testing/selftests/arm64/abi/hwcap.c
-+++ b/tools/testing/selftests/arm64/abi/hwcap.c
-@@ -39,6 +39,17 @@ static void cssc_sigill(void)
- 	asm volatile(".inst 0xdac01c00" : : : "x0");
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 3fe516b32577..42a710981779 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -494,13 +494,30 @@ static void do_bad_area(unsigned long far, unsigned long esr,
+ 	}
  }
  
-+static void gcs_sigill(void)
++/*
++ * Note: not valid for EL1 DC IVAC, but we never use that such that it
++ * should fault. EL0 cannot issue DC IVAC (undef).
++ */
++static bool is_write_abort(unsigned long esr)
 +{
-+	unsigned long *gcspr;
-+
-+	asm volatile(
-+		"mrs	%0, S3_3_C2_C5_1"
-+	: "=r" (gcspr)
-+	:
-+	: "cc");
++	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
 +}
 +
- static void mops_sigill(void)
++static bool is_gcs_fault(unsigned long esr)
++{
++	if (!esr_is_data_abort(esr))
++		return false;
++
++	return ESR_ELx_ISS2(esr) & ESR_ELx_GCS;
++}
++
+ #define VM_FAULT_BADMAP		((__force vm_fault_t)0x010000)
+ #define VM_FAULT_BADACCESS	((__force vm_fault_t)0x020000)
+ 
+ static vm_fault_t __do_page_fault(struct mm_struct *mm,
+ 				  struct vm_area_struct *vma, unsigned long addr,
+ 				  unsigned int mm_flags, unsigned long vm_flags,
+-				  struct pt_regs *regs)
++				  unsigned long esr, struct pt_regs *regs)
  {
- 	char dst[1], src[1];
-@@ -223,6 +234,14 @@ static const struct hwcap_data {
- 		.cpuinfo = "cssc",
- 		.sigill_fn = cssc_sigill,
- 	},
-+	{
-+		.name = "GCS",
-+		.at_hwcap = AT_HWCAP2,
-+		.hwcap_bit = HWCAP2_GCS,
-+		.cpuinfo = "gcs",
-+		.sigill_fn = gcs_sigill,
-+		.sigill_reliable = true,
-+	},
- 	{
- 		.name = "MOPS",
- 		.at_hwcap = AT_HWCAP2,
+ 	/*
+ 	 * Ok, we have a good vm_area for this memory access, so we can handle
+@@ -510,6 +527,26 @@ static vm_fault_t __do_page_fault(struct mm_struct *mm,
+ 	 */
+ 	if (!(vma->vm_flags & vm_flags))
+ 		return VM_FAULT_BADACCESS;
++
++	if (vma->vm_flags & VM_SHADOW_STACK) {
++		/*
++		 * Writes to a GCS must either be generated by a GCS
++		 * operation or be from EL1.
++		 */
++		if (is_write_abort(esr) &&
++		    !(is_gcs_fault(esr) || is_el1_data_abort(esr)))
++			return VM_FAULT_BADACCESS;
++	} else {
++		/*
++		 * GCS faults should never happen for pages that are
++		 * not part of a GCS and the operation being attempted
++		 * can never succeed.
++		 */
++		if (is_gcs_fault(esr))
++			return VM_FAULT_BADACCESS;
++	}
++
++
+ 	return handle_mm_fault(vma, addr, mm_flags, regs);
+ }
+ 
+@@ -518,13 +555,18 @@ static bool is_el0_instruction_abort(unsigned long esr)
+ 	return ESR_ELx_EC(esr) == ESR_ELx_EC_IABT_LOW;
+ }
+ 
+-/*
+- * Note: not valid for EL1 DC IVAC, but we never use that such that it
+- * should fault. EL0 cannot issue DC IVAC (undef).
+- */
+-static bool is_write_abort(unsigned long esr)
++static bool is_invalid_el0_gcs_access(struct vm_area_struct *vma, u64 esr)
+ {
+-	return (esr & ESR_ELx_WNR) && !(esr & ESR_ELx_CM);
++	if (!system_supports_gcs())
++		return false;
++	if (likely(!(vma->vm_flags & VM_SHADOW_STACK))) {
++		if (is_gcs_fault(esr))
++			return true;
++		return false;
++	}
++	if (is_gcs_fault(esr))
++		return false;
++	return is_write_abort(esr);
+ }
+ 
+ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+@@ -573,6 +615,13 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 		/* If EPAN is absent then exec implies read */
+ 		if (!cpus_have_const_cap(ARM64_HAS_EPAN))
+ 			vm_flags |= VM_EXEC;
++		/*
++		 * Upgrade read faults to write faults, GCS reads must
++		 * occur on a page marked as GCS so we need to trigger
++		 * copy on write always.
++		 */
++		if (is_gcs_fault(esr))
++			mm_flags |= FAULT_FLAG_WRITE;
+ 	}
+ 
+ 	if (is_ttbr0_addr(addr) && is_el1_permission_fault(addr, esr, regs)) {
+@@ -595,6 +644,20 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 	if (!vma)
+ 		goto lock_mmap;
+ 
++	/*
++	 * We get legitimate write faults for GCS pages from GCS
++	 * operations, even when the initial operation was a read, as
++	 * a result of upgrading GCS accesses to writes for CoW but
++	 * GCS acceses outside of a GCS must fail.  Specifically check
++	 * for this since the mm core isn't able to distinguish
++	 * invalid GCS access from valid ones and will try to resolve
++	 * the fault.
++	 */
++	if (is_invalid_el0_gcs_access(vma, esr)) {
++		vma_end_read(vma);
++		goto lock_mmap;
++	}
++
+ 	if (!(vma->vm_flags & vm_flags)) {
+ 		vma_end_read(vma);
+ 		goto lock_mmap;
+@@ -624,7 +687,7 @@ static int __kprobes do_page_fault(unsigned long far, unsigned long esr,
+ 		goto done;
+ 	}
+ 
+-	fault = __do_page_fault(mm, vma, addr, mm_flags, vm_flags, regs);
++	fault = __do_page_fault(mm, vma, addr, mm_flags, vm_flags, esr, regs);
+ 
+ 	/* Quick path to respond to signals */
+ 	if (fault_signal_pending(fault, regs)) {
 
 -- 
 2.30.2
