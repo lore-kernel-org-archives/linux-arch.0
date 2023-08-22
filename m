@@ -2,43 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id E05F6EE4993
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:06:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 7C359EE49A4
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:06:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236458AbjHVOGM (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:06:12 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33854 "EHLO
+        id S234373AbjHVOGO (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 10:06:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41804 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233337AbjHVOGI (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:06:08 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5EFD9E56;
-        Tue, 22 Aug 2023 07:05:42 -0700 (PDT)
+        with ESMTP id S236455AbjHVOGM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:06:12 -0400
+Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E2652E40;
+        Tue, 22 Aug 2023 07:05:47 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id D3067649B4;
-        Tue, 22 Aug 2023 14:05:32 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 54D3CC433C7;
-        Tue, 22 Aug 2023 14:05:26 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id EDB996546C;
+        Tue, 22 Aug 2023 14:05:45 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C2EEFC433CD;
+        Tue, 22 Aug 2023 14:05:38 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713132;
-        bh=oHAoMyZjF9g9W2qKAKfFFNVap7j750I1wK7h+SBfGKM=;
+        s=k20201202; t=1692713145;
+        bh=H5XnWdFwxjuGxEH72kUlpbP8cfBTQj97MLlaTYR448U=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=uV47zMyNVSy8lZoEqOFp/weZrgIWcrdmMRDiveKCVZQndjxELzRXvFwV375l1ULG9
-         NxC3UN1CfZIPv5jxt4Yn3UCNv5ohrIrEOq5Z9gwKZh/QfoP73v897TbKjGTJPLgp7e
-         knqzGb80zdsUBmK3q30iN5QCO6C2OTdqNzZ6ieAIywu7McPLWfzHcjwSmQGVyAfZRe
-         Pr0rEM9wgopdS2QkbGgRAPKdLOLVILjY2Q77kdpU7LHBveB4MIPH8WUvBK939vwhG3
-         HtsC3PqrX9/PbfRXyQfq778E5ISQZLmyoz/F7g6t2LCYJ+BnjUJDqf13NCgHDNRfaP
-         yJFQ/8TejBicw==
+        b=dIUxNRrQkD1AC9FBGH+9l0U9ZvUnTLslHNuzmoBYliSNiMjoHbh5dJU/cPaxEgnvQ
+         fMyAmRdE1xxwHRmv2U0FDuaP0YabymuRE8p0HIUJdDHdd18evke32ASlni9odJAKqm
+         kJOGYpk59tFXT22PC74wYB0KIJoWfCpeiU5hhDWUB9vH/IwGogNDkAhhlDJaR2e373
+         LaFNUIb/I4uzxYcTrr/taSDf1/Nn2KftPmQOmW8Q1wQ8E6JrC7klyzXff58QuUzCTL
+         c3dqlJL3znAzBR6J4dn2qXFtJNYquax4v2ho5W2IWp4/tesIKEI19VWSJXP5CLEOMF
+         0fTJUjT2+MvZA==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:56:57 +0100
-Subject: [PATCH v5 24/37] arm64/signal: Expose GCS state in signal frames
+Date:   Tue, 22 Aug 2023 14:56:59 +0100
+Subject: [PATCH v5 26/37] arm64: Add Kconfig for Guarded Control Stack
+ (GCS)
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-24-9ef181dd6324@kernel.org>
+Message-Id: <20230822-arm64-gcs-v5-26-9ef181dd6324@kernel.org>
 References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -67,224 +68,59 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=5977; i=broonie@kernel.org;
- h=from:subject:message-id; bh=oHAoMyZjF9g9W2qKAKfFFNVap7j750I1wK7h+SBfGKM=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MACn9EM8kDg4Zd3ABXmAqIDrZFZKjm8ByzT0FPn
- wa1aYZ2JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTAAgAKCRAk1otyXVSH0GpaB/
- 9Q9EST0r4US0yp6YSqWBa/X5sqL9DzJGuN65ghuYKH6I/9GnJA9X05tAFD18Y8pVaTr5eqVhd8kdLR
- GS1gSb0sAZyxgOHjScDx2UIHcqBnAdRbAsRtx7osjPHuZocaqeYe2dstvM5jS75++IU1WiCgdSLhXr
- RY6FsHcS+WW6Sw/Euai/4J/VSJmkpdlnE1lkUB1PDIJeo22GfNCFB0dFM1vaqs5WYqF46KY4Ha/AWF
- m82DuyoKwhlI7woW+z61J3H9MqYAJFOfjW2JYzBU/+JAsG4NADaHMZ/7VOiTmhYhD2bULjHLdaOO9B
- u3vDP0dEBlB9/4zoY62abIFNV8i05P
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1334; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=H5XnWdFwxjuGxEH72kUlpbP8cfBTQj97MLlaTYR448U=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAEgUhGnrifDQTFSNQG5IJMFO4vUClMyRD9oH4B
+ Sm9h0T+JATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTABAAKCRAk1otyXVSH0JoWB/
+ 4ztlxfSdMS7IVWSbChfjGpFHRePzfGZHEaisYlp3k0kgZx8bcwjiV3o02hzm5zftIak8w79jWQSmd3
+ aN3YkxU5jhpqq63aESrUMuKSdYOeIUwRDsu+s8slntzbARzAKK5Efjuzees8q/RKdd91jRnEOBAxgD
+ HUsvaCGLSybMULc1imROdMfNWAef8n0HAHB6WQCtfcoBe7Pmv6V2eFz++vPOyyYRthGKShLfjHO9CF
+ joqJBr0GX+lqZ//ckS4sVPKa8Aop/jc6SHwCaKJ1UCZx+6yMg1Q1o1EuCa3Mad1di9PSbfEMe6d6Qf
+ 5Zt2G62F0VAglOrKBiG+LBDf7/bObx
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add a context for the GCS state and include it in the signal context when
-running on a system that supports GCS. We reuse the same flags that the
-prctl() uses to specify which GCS features are enabled and also provide the
-current GCS pointer.
-
-We do not support enabling GCS via signal return, there is a conflict
-between specifying GCSPR_EL0 and allocation of a new GCS and this is not
-an ancticipated use case.  We also enforce GCS configuration locking on
-signal return.
+Provide a Kconfig option allowing the user to select if GCS support is
+built into the kernel.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/uapi/asm/sigcontext.h |   9 +++
- arch/arm64/kernel/signal.c               | 107 +++++++++++++++++++++++++++++++
- 2 files changed, 116 insertions(+)
+ arch/arm64/Kconfig | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
-diff --git a/arch/arm64/include/uapi/asm/sigcontext.h b/arch/arm64/include/uapi/asm/sigcontext.h
-index f23c1dc3f002..7b66d245f2d2 100644
---- a/arch/arm64/include/uapi/asm/sigcontext.h
-+++ b/arch/arm64/include/uapi/asm/sigcontext.h
-@@ -168,6 +168,15 @@ struct zt_context {
- 	__u16 __reserved[3];
- };
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a2511b30d0f6..b5ef1a698770 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2093,6 +2093,25 @@ config ARM64_EPAN
+ 	  if the cpu does not implement the feature.
+ endmenu # "ARMv8.7 architectural features"
  
-+#define GCS_MAGIC	0x47435300
++menu "v9.4 architectural features"
 +
-+struct gcs_context {
-+	struct _aarch64_ctx head;
-+	__u64 gcspr;
-+	__u64 features_enabled;
-+	__u64 reserved;
-+};
++config ARM64_GCS
++	bool "Enable support for Guarded Control Stack (GCS)"
++	default y
++	select ARCH_USES_HIGH_VMA_FLAGS
++	help
++	  Guarded Control Stack (GCS) provides support for a separate
++	  stack with restricted access which contains only return
++	  addresses.  This can be used to harden against some attacks
++	  by comparing return address used by the program with what is
++	  stored in the GCS, and may also be used to efficiently obtain
++	  the call stack for applications such as profiling.
 +
- #endif /* !__ASSEMBLY__ */
- 
- #include <asm/sve_context.h>
-diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
-index 97004c52aea3..78370cf9576a 100644
---- a/arch/arm64/kernel/signal.c
-+++ b/arch/arm64/kernel/signal.c
-@@ -87,6 +87,7 @@ struct rt_sigframe_user_layout {
- 
- 	unsigned long fpsimd_offset;
- 	unsigned long esr_offset;
-+	unsigned long gcs_offset;
- 	unsigned long sve_offset;
- 	unsigned long tpidr2_offset;
- 	unsigned long za_offset;
-@@ -213,6 +214,8 @@ struct user_ctxs {
- 	u32 za_size;
- 	struct zt_context __user *zt;
- 	u32 zt_size;
-+	struct gcs_context __user *gcs;
-+	u32 gcs_size;
- };
- 
- static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
-@@ -605,6 +608,82 @@ extern int restore_zt_context(struct user_ctxs *user);
- 
- #endif /* ! CONFIG_ARM64_SME */
- 
-+#ifdef CONFIG_ARM64_GCS
++	  The feature is detected at runtime, and will remain disabled
++	  if the system does not implement the feature.
 +
-+static int preserve_gcs_context(struct gcs_context __user *ctx)
-+{
-+	int err = 0;
-+	u64 gcspr;
++endmenu # "v9.4 architectural features"
 +
-+	/*
-+	 * We will add a cap token to the frame, include it in the
-+	 * GCSPR_EL0 we report to support stack switching via
-+	 * sigreturn.
-+	 */
-+	gcs_preserve_current_state();
-+	gcspr = current->thread.gcspr_el0;
-+	if (task_gcs_el0_enabled(current))
-+		gcspr -= 8;
-+
-+	__put_user_error(GCS_MAGIC, &ctx->head.magic, err);
-+	__put_user_error(sizeof(*ctx), &ctx->head.size, err);
-+	__put_user_error(gcspr, &ctx->gcspr, err);
-+	__put_user_error(current->thread.gcs_el0_mode,
-+			 &ctx->features_enabled, err);
-+
-+	return err;
-+}
-+
-+static int restore_gcs_context(struct user_ctxs *user)
-+{
-+	u64 gcspr, enabled;
-+	int err = 0;
-+
-+	if (user->gcs_size != sizeof(*user->gcs))
-+		return -EINVAL;
-+
-+	__get_user_error(gcspr, &user->gcs->gcspr, err);
-+	__get_user_error(enabled, &user->gcs->features_enabled, err);
-+	if (err)
-+		return err;
-+
-+	/* Don't allow unknown modes */
-+	if (enabled & ~PR_SHADOW_STACK_SUPPORTED_STATUS_MASK)
-+		return -EINVAL;
-+
-+	err = gcs_check_locked(current, enabled);
-+	if (err != 0)
-+		return err;
-+
-+	/* Don't allow enabling */
-+	if (!task_gcs_el0_enabled(current) &&
-+	    (enabled & PR_SHADOW_STACK_ENABLE))
-+		return -EINVAL;
-+
-+	/* If we are disabling disable everything */
-+	if (!(enabled & PR_SHADOW_STACK_ENABLE))
-+		enabled = 0;
-+
-+	current->thread.gcs_el0_mode = enabled;
-+
-+	/*
-+	 * We let userspace set GCSPR_EL0 to anything here, we will
-+	 * validate later in gcs_restore_signal().
-+	 */
-+	current->thread.gcspr_el0 = gcspr;
-+	write_sysreg_s(current->thread.gcspr_el0, SYS_GCSPR_EL0);
-+
-+	return 0;
-+}
-+
-+#else /* ! CONFIG_ARM64_GCS */
-+
-+/* Turn any non-optimised out attempts to use these into a link error: */
-+extern int preserve_gcs_context(void __user *ctx);
-+extern int restore_gcs_context(struct user_ctxs *user);
-+
-+#endif /* ! CONFIG_ARM64_GCS */
-+
- static int parse_user_sigframe(struct user_ctxs *user,
- 			       struct rt_sigframe __user *sf)
- {
-@@ -621,6 +700,7 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 	user->tpidr2 = NULL;
- 	user->za = NULL;
- 	user->zt = NULL;
-+	user->gcs = NULL;
- 
- 	if (!IS_ALIGNED((unsigned long)base, 16))
- 		goto invalid;
-@@ -715,6 +795,17 @@ static int parse_user_sigframe(struct user_ctxs *user,
- 			user->zt_size = size;
- 			break;
- 
-+		case GCS_MAGIC:
-+			if (!system_supports_gcs())
-+				goto invalid;
-+
-+			if (user->gcs)
-+				goto invalid;
-+
-+			user->gcs = (struct gcs_context __user *)head;
-+			user->gcs_size = size;
-+			break;
-+
- 		case EXTRA_MAGIC:
- 			if (have_extra_context)
- 				goto invalid;
-@@ -834,6 +925,9 @@ static int restore_sigframe(struct pt_regs *regs,
- 			err = restore_fpsimd_context(&user);
- 	}
- 
-+	if (err == 0 && system_supports_gcs() && user.gcs)
-+		err = restore_gcs_context(&user);
-+
- 	if (err == 0 && system_supports_tpidr2() && user.tpidr2)
- 		err = restore_tpidr2_context(&user);
- 
-@@ -948,6 +1042,13 @@ static int setup_sigframe_layout(struct rt_sigframe_user_layout *user,
- 			return err;
- 	}
- 
-+	if (system_supports_gcs()) {
-+		err = sigframe_alloc(user, &user->gcs_offset,
-+				     sizeof(struct gcs_context));
-+		if (err)
-+			return err;
-+	}
-+
- 	if (system_supports_sve() || system_supports_sme()) {
- 		unsigned int vq = 0;
- 
-@@ -1041,6 +1142,12 @@ static int setup_sigframe(struct rt_sigframe_user_layout *user,
- 		__put_user_error(current->thread.fault_code, &esr_ctx->esr, err);
- 	}
- 
-+	if (system_supports_gcs() && err == 0 && user->gcs_offset) {
-+		struct gcs_context __user *gcs_ctx =
-+			apply_user_offset(user, user->gcs_offset);
-+		err |= preserve_gcs_context(gcs_ctx);
-+	}
-+
- 	/* Scalable Vector Extension state (including streaming), if present */
- 	if ((system_supports_sve() || system_supports_sme()) &&
- 	    err == 0 && user->sve_offset) {
+ config ARM64_SVE
+ 	bool "ARM Scalable Vector Extension support"
+ 	default y
 
 -- 
 2.30.2
