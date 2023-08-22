@@ -2,44 +2,44 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id C6864EE49A4
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:12:54 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 321C1EE49A3
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:13:36 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234750AbjHVOMf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:12:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43714 "EHLO
+        id S234672AbjHVONf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 10:13:35 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34170 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234115AbjHVOMe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:12:34 -0400
+        with ESMTP id S236503AbjHVOHg (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:07:36 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D5664CF7;
-        Tue, 22 Aug 2023 07:12:09 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 908351BD;
+        Tue, 22 Aug 2023 07:07:14 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 1368C657F2;
-        Tue, 22 Aug 2023 14:06:22 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B54DBC433CA;
-        Tue, 22 Aug 2023 14:06:14 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id 0E151657C9;
+        Tue, 22 Aug 2023 14:06:06 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E5084C43391;
+        Tue, 22 Aug 2023 14:05:58 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713181;
-        bh=Nuasx9Ylf/ySuoGV/J7jU7muHvsTQeng/1l4pki2YVk=;
+        s=k20201202; t=1692713165;
+        bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=MqAwb/aWxREwi9w3daLu0ewAyXCvv6r/RCVXRhhcSOIAkDUF0lGX9nzO4iiqQTH6x
-         AsYtF89WylBwuYjEQf8qAuzSf8g4oVDmufDb8abGzwwdBWy+OhEhFYhFfdfHqa4P/+
-         jlxNmMfibruPS3XserjLyma1YWPCWPBFF/5Bg7zW+d8uovlRM/WN8201iM6MgJirXG
-         CbL8oShaVgiSN8f4YOBnQ4zm1uJ4EzlzkKkAnLbV1LWFNtkWUQLsPaHja7q7DPhLNI
-         jDheQxm71CxrbYXWYn8aDD3CPMttYd6E7v4eQxNmjx0n1e8k8LUIB28zy8hZH0tW9e
-         G6AsrAEV4ALzQ==
+        b=ZOgpLFvEoV4Fl1FvVbSSgz2/Mj78bvfRA8xiejW7Bi3U/XKUn1OK5Eoiwp02hRqJV
+         BoN7QzqTJlT7/4sq7e6uCpcQ0FJjQHbtBa4Bh+ISC41INrfFOdwYeh1/jBX9aooVXR
+         xozkSbtxJpejUwy8oVHtfCOrL3WFrZ1vSqvBFxc15R16xh9KYb9zqCvolFqSBzWMpC
+         blq4imAo3MoK7BNbXAhzJzD9fcNKaUfEGEyslUR+4gCpvceBvZGZmc4EsCa5kZYWJ4
+         YIqZmA0mtL1Kn+lHX89MIXxcqP96lkEkvdAZdIXGJrzCIS9l+EEO1rJPLncz9AzIix
+         qNzdyXKqj7Obg==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:57:04 +0100
-Subject: [PATCH v5 31/37] kselftest/arm64: Always run signals tests with
- GCS enabled
+Date:   Tue, 22 Aug 2023 14:57:02 +0100
+Subject: [PATCH v5 29/37] kselftest/arm64: Add framework support for GCS to
+ signal handling tests
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-31-9ef181dd6324@kernel.org>
+Message-Id: <20230822-arm64-gcs-v5-29-9ef181dd6324@kernel.org>
 References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -68,115 +68,60 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3590; i=broonie@kernel.org;
- h=from:subject:message-id; bh=Nuasx9Ylf/ySuoGV/J7jU7muHvsTQeng/1l4pki2YVk=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAIYtmVyvEH4RH6kobbZ8dzV0Gh6wuRozucrRx7
- JOJxU7qJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTACAAKCRAk1otyXVSH0CCEB/
- 9N3VecI4j96Dnvvms8ya9WkFGh6Q+CSjjT5/AqC8D3DTGm5A5sBZVKIlFaeCvdh4EB/LeXgLHAXebT
- 2O38tF8Or4+k4HX6rV9gB+E7oN/Fw/GEPEjINm9fqHQRneMAp36veUqZxzay6pLDW9uLUfQ5SPboIX
- rxqlKPLBnX217YDQGBzgL2YTTetcZU/iMkZDQ0siZsz2w6Mp2EET9m2X9RIc76wLVEF3woH68SoqGW
- BsvzbOJPfmzYTZbxJvYsqZCKLfyRaMnp32w7hkRP9EW0AbPC25SpEUEDHLzlPJ4wC7YmQHlLKLok4q
- UTYrhIX6jwnyJPUXPxpjYgqctF8DuY
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1590; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAGLEBZ9sskmCLotqY50F2aYrfxhSo+BYl1xBRX
+ FbvO12SJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTABgAKCRAk1otyXVSH0PZuCA
+ CA6lfUrkE3UeDR2DNu+5N5dkfGxwXpB+tmPrcnUEeEirT3qOITAEyNfcVjBtyYo0wepiBNmuVV2RHf
+ AISFl+OOwApMFIcy35/meJtPtEmfBihBmFuEpnswF7A4XzdoadZzYbNOQZHIRvThARc6HD9L8093sG
+ szHiwh7XS9v9GmJt//PVC7MUAsHySUTEa3PAIcX0wUyDgAoqXddqUVLYZNX8Ib5qGmt3FamXoBkSD+
+ RXvf2XbfumURCXKlF34h9zvAWwOG0AZZWRULwmH9xYbliAhgBsla19+qnXFHWulkXAOSwIL20FWsTf
+ AWf2fqlFSy46sUl+38NML+eaYrGvx9
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Since it is not possible to return from the function that enabled GCS
-without disabling GCS it is very inconvenient to use the signal handling
-tests to cover GCS when GCS is not enabled by the toolchain and runtime,
-something that no current distribution does. Since none of the testcases
-do anything with stacks that would cause problems with GCS we can sidestep
-this issue by unconditionally enabling GCS on startup and exiting with a
-call to exit() rather than a return from main().
+Teach the framework about the GCS signal context, avoiding warnings on
+the unknown context.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- .../testing/selftests/arm64/signal/test_signals.c  | 17 ++++++++++++-
- .../selftests/arm64/signal/test_signals_utils.h    | 29 ++++++++++++++++++++++
- 2 files changed, 45 insertions(+), 1 deletion(-)
+ tools/testing/selftests/arm64/signal/testcases/testcases.c | 7 +++++++
+ tools/testing/selftests/arm64/signal/testcases/testcases.h | 1 +
+ 2 files changed, 8 insertions(+)
 
-diff --git a/tools/testing/selftests/arm64/signal/test_signals.c b/tools/testing/selftests/arm64/signal/test_signals.c
-index 00051b40d71e..30e95f50db19 100644
---- a/tools/testing/selftests/arm64/signal/test_signals.c
-+++ b/tools/testing/selftests/arm64/signal/test_signals.c
-@@ -7,6 +7,10 @@
-  * Each test provides its own tde struct tdescr descriptor to link with
-  * this wrapper. Framework provides common helpers.
-  */
-+
-+#include <sys/auxv.h>
-+#include <sys/prctl.h>
-+
- #include <kselftest.h>
+diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.c b/tools/testing/selftests/arm64/signal/testcases/testcases.c
+index 9f580b55b388..1cd124732be4 100644
+--- a/tools/testing/selftests/arm64/signal/testcases/testcases.c
++++ b/tools/testing/selftests/arm64/signal/testcases/testcases.c
+@@ -209,6 +209,13 @@ bool validate_reserved(ucontext_t *uc, size_t resv_sz, char **err)
+ 			zt = (struct zt_context *)head;
+ 			new_flags |= ZT_CTX;
+ 			break;
++		case GCS_MAGIC:
++			if (flags & GCS_CTX)
++				*err = "Multiple GCS_MAGIC";
++			if (head->size != sizeof(struct gcs_context))
++				*err = "Bad size for gcs_context";
++			new_flags |= GCS_CTX;
++			break;
+ 		case EXTRA_MAGIC:
+ 			if (flags & EXTRA_CTX)
+ 				*err = "Multiple EXTRA_MAGIC";
+diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.h b/tools/testing/selftests/arm64/signal/testcases/testcases.h
+index a08ab0d6207a..9b2599745c29 100644
+--- a/tools/testing/selftests/arm64/signal/testcases/testcases.h
++++ b/tools/testing/selftests/arm64/signal/testcases/testcases.h
+@@ -19,6 +19,7 @@
+ #define ZA_CTX		(1 << 2)
+ #define EXTRA_CTX	(1 << 3)
+ #define ZT_CTX		(1 << 4)
++#define GCS_CTX		(1 << 5)
  
- #include "test_signals.h"
-@@ -16,6 +20,16 @@ struct tdescr *current = &tde;
+ #define KSFT_BAD_MAGIC	0xdeadbeef
  
- int main(int argc, char *argv[])
- {
-+	/*
-+	 * Ensure GCS is at least enabled throughout the tests if
-+	 * supported, otherwise the inability to return from the
-+	 * function that enabled GCS makes it very inconvenient to set
-+	 * up test cases.  The prctl() may fail if GCS was locked by
-+	 * libc setup code.
-+	 */
-+	if (getauxval(AT_HWCAP2) & HWCAP2_GCS)
-+		gcs_set_state(PR_SHADOW_STACK_ENABLE);
-+
- 	ksft_print_msg("%s :: %s\n", current->name, current->descr);
- 	if (test_setup(current) && test_init(current)) {
- 		test_run(current);
-@@ -23,5 +37,6 @@ int main(int argc, char *argv[])
- 	}
- 	test_result(current);
- 
--	return current->result;
-+	/* Do not return in case GCS was enabled */
-+	exit(current->result);
- }
-diff --git a/tools/testing/selftests/arm64/signal/test_signals_utils.h b/tools/testing/selftests/arm64/signal/test_signals_utils.h
-index 222093f51b67..1cea64986baa 100644
---- a/tools/testing/selftests/arm64/signal/test_signals_utils.h
-+++ b/tools/testing/selftests/arm64/signal/test_signals_utils.h
-@@ -16,6 +16,35 @@ void test_cleanup(struct tdescr *td);
- int test_run(struct tdescr *td);
- void test_result(struct tdescr *td);
- 
-+#ifndef __NR_prctl
-+#define __NR_prctl 167
-+#endif
-+
-+/*
-+ * The prctl takes 1 argument but we need to ensure that the other
-+ * values passed in registers to the syscall are zero since the kernel
-+ * validates them.
-+ */
-+#define gcs_set_state(state)					\
-+	({								\
-+		register long _num  __asm__ ("x8") = __NR_prctl;	\
-+		register long _arg1 __asm__ ("x0") =  PR_SET_SHADOW_STACK_STATUS; \
-+		register long _arg2 __asm__ ("x1") = (long)(state);	\
-+		register long _arg3 __asm__ ("x2") = 0;			\
-+		register long _arg4 __asm__ ("x3") = 0;			\
-+		register long _arg5 __asm__ ("x4") = 0;			\
-+	                                                                      \
-+		__asm__  volatile (					\
-+			"svc #0\n"					\
-+			: "=r"(_arg1)					\
-+			: "r"(_arg1), "r"(_arg2),			\
-+			  "r"(_arg3), "r"(_arg4),			\
-+			  "r"(_arg5), "r"(_num)				\
-+			: "memory", "cc"				\
-+			);						\
-+		_arg1;							\
-+	})
-+
- static inline bool feats_ok(struct tdescr *td)
- {
- 	if (td->feats_incompatible & td->feats_supported)
 
 -- 
 2.30.2
