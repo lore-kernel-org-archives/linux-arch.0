@@ -2,127 +2,198 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 321C1EE49A3
-	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:13:36 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A59EEE49A3
+	for <linux-arch@archiver.kernel.org>; Tue, 22 Aug 2023 14:19:02 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234672AbjHVONf (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 22 Aug 2023 10:13:35 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34170 "EHLO
+        id S234188AbjHVOTC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 22 Aug 2023 10:19:02 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44132 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236503AbjHVOHg (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:07:36 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [IPv6:2604:1380:4641:c500::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 908351BD;
-        Tue, 22 Aug 2023 07:07:14 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 0E151657C9;
-        Tue, 22 Aug 2023 14:06:06 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E5084C43391;
-        Tue, 22 Aug 2023 14:05:58 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1692713165;
-        bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
-        h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=ZOgpLFvEoV4Fl1FvVbSSgz2/Mj78bvfRA8xiejW7Bi3U/XKUn1OK5Eoiwp02hRqJV
-         BoN7QzqTJlT7/4sq7e6uCpcQ0FJjQHbtBa4Bh+ISC41INrfFOdwYeh1/jBX9aooVXR
-         xozkSbtxJpejUwy8oVHtfCOrL3WFrZ1vSqvBFxc15R16xh9KYb9zqCvolFqSBzWMpC
-         blq4imAo3MoK7BNbXAhzJzD9fcNKaUfEGEyslUR+4gCpvceBvZGZmc4EsCa5kZYWJ4
-         YIqZmA0mtL1Kn+lHX89MIXxcqP96lkEkvdAZdIXGJrzCIS9l+EEO1rJPLncz9AzIix
-         qNzdyXKqj7Obg==
-From:   Mark Brown <broonie@kernel.org>
-Date:   Tue, 22 Aug 2023 14:57:02 +0100
-Subject: [PATCH v5 29/37] kselftest/arm64: Add framework support for GCS to
- signal handling tests
+        with ESMTP id S231965AbjHVOTC (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 22 Aug 2023 10:19:02 -0400
+Received: from mail-pg1-x529.google.com (mail-pg1-x529.google.com [IPv6:2607:f8b0:4864:20::529])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 3C136CEC;
+        Tue, 22 Aug 2023 07:18:53 -0700 (PDT)
+Received: by mail-pg1-x529.google.com with SMTP id 41be03b00d2f7-565e395e7a6so2272122a12.0;
+        Tue, 22 Aug 2023 07:18:53 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20221208; t=1692713932; x=1693318732;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to:subject
+         :user-agent:mime-version:date:message-id:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Wto+R/pwAtZu+OAScHxoYW4hGhVsJhO4pIWd7518M1Q=;
+        b=l5QtfNZ6Z8FTVUTOWi3QXpSmkPogCFuhWE6Z3hn5zWiR9wj7Z5Wj/ygvTdIJsr4PEq
+         G7bgcyULDSd8NeCioQj7LGXJUYx5b03fi7ePwRTcgY359HeJleTzcpNeaa3OeV/URsf/
+         ZAcPGhk/z+vHUYT9EawP5L/YlYGcXVkkBnHsinKGOpc1QBLgTW8Nryb+hpkFKw4V7h9v
+         hbpLK5REmmyuW70S6GFX1eblaOh0iaZM+5cCCFa/yU+lxhQ3GzY5+PGuKSXo8nrWYSUS
+         +M5LtPkKHeu/hCZpwzr3m1WmQLb3KiXq55AIdoEr1I88EsXnhCNud+cWBHRHtz5kdry2
+         H9gw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1692713932; x=1693318732;
+        h=content-transfer-encoding:in-reply-to:from:references:cc:to:subject
+         :user-agent:mime-version:date:message-id:x-gm-message-state:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=Wto+R/pwAtZu+OAScHxoYW4hGhVsJhO4pIWd7518M1Q=;
+        b=GeTXgxhsPvrfsfiLLk9mE1qzhGZjUiOVxZvQmjsN3f6oRvOfBt5E8Xz7yS98YyfmpN
+         AGAEDwY6+cEpP+OV9KmqwuFeb76WN1zkPDW6rK0jA/7gDz8GmYPqzL1DYj8AzXePS9hf
+         pZ/Uc3yFOsfxIhVJwT2M0KYZxNpqPcqOFQ1AaLu8Zk4t75wufJKfkXLE5C8+Tb0ZRVKo
+         QA24lCqddVSwy3Twi063oXoC2nv10OuUak3f/n+WRY6xygzwgtFXxDuhcpmVjtyZlgD6
+         fs1QqUU0VOL6T+inOcHRL/7Eq/sec3YIZKBpUxHWwrWyIApBcSaJI6cXmQfwOffwRn/4
+         Osfw==
+X-Gm-Message-State: AOJu0YxhiWea3h0x0xspbAGePRaW8R9RKuOXvK0hqxd0Lp+7kSs7Jd9A
+        QU+pEDYHpwSP1wo4sNUNsBg=
+X-Google-Smtp-Source: AGHT+IE9KwhpwrFbIukPEqvcbgOjh7c0pPMFqq/gj/IcafR6fmndFP8nyetCpeh57XjcUBT2zkF4Wg==
+X-Received: by 2002:a17:90a:f3cf:b0:268:d716:4b62 with SMTP id ha15-20020a17090af3cf00b00268d7164b62mr6502213pjb.0.1692713932406;
+        Tue, 22 Aug 2023 07:18:52 -0700 (PDT)
+Received: from ?IPV6:2404:f801:0:5:8000::75b? ([2404:f801:9000:1a:efea::75b])
+        by smtp.gmail.com with ESMTPSA id s2-20020a17090a764200b002630c9d78aasm7839481pjl.5.2023.08.22.07.18.39
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 22 Aug 2023 07:18:51 -0700 (PDT)
+Message-ID: <c06aa27a-54b6-877b-224e-b0da615f4b55@gmail.com>
+Date:   Tue, 22 Aug 2023 22:18:38 +0800
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
+ Thunderbird/102.14.0
+Subject: Re: [PATCH 1/9] x86/hyperv: Add hv_isolation_type_tdx() to detect TDX
+ guests
+To:     Dexuan Cui <decui@microsoft.com>, ak@linux.intel.com,
+        arnd@arndb.de, bp@alien8.de, brijesh.singh@amd.com,
+        dan.j.williams@intel.com, dave.hansen@intel.com,
+        dave.hansen@linux.intel.com, haiyangz@microsoft.com, hpa@zytor.com,
+        jane.chu@oracle.com, kirill.shutemov@linux.intel.com,
+        kys@microsoft.com, linux-hyperv@vger.kernel.org, luto@kernel.org,
+        mingo@redhat.com, peterz@infradead.org, rostedt@goodmis.org,
+        sathyanarayanan.kuppuswamy@linux.intel.com, seanjc@google.com,
+        tglx@linutronix.de, tony.luck@intel.com, wei.liu@kernel.org,
+        Jason@zx2c4.com, nik.borisov@suse.com, mikelley@microsoft.com
+Cc:     x86@kernel.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org, Tianyu.Lan@microsoft.com,
+        rick.p.edgecombe@intel.com, andavis@redhat.com, mheslin@redhat.com,
+        vkuznets@redhat.com, xiaoyao.li@intel.com
+References: <20230811221851.10244-1-decui@microsoft.com>
+ <20230811221851.10244-2-decui@microsoft.com>
+From:   Tianyu Lan <ltykernel@gmail.com>
+In-Reply-To: <20230811221851.10244-2-decui@microsoft.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Message-Id: <20230822-arm64-gcs-v5-29-9ef181dd6324@kernel.org>
-References: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
-In-Reply-To: <20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org>
-To:     Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Marc Zyngier <maz@kernel.org>,
-        Oliver Upton <oliver.upton@linux.dev>,
-        James Morse <james.morse@arm.com>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Kees Cook <keescook@chromium.org>,
-        Shuah Khan <shuah@kernel.org>,
-        "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
-        Deepak Gupta <debug@rivosinc.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
-        kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
-X-Mailer: b4 0.13-dev-034f2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1590; i=broonie@kernel.org;
- h=from:subject:message-id; bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBk5MAGLEBZ9sskmCLotqY50F2aYrfxhSo+BYl1xBRX
- FbvO12SJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZOTABgAKCRAk1otyXVSH0PZuCA
- CA6lfUrkE3UeDR2DNu+5N5dkfGxwXpB+tmPrcnUEeEirT3qOITAEyNfcVjBtyYo0wepiBNmuVV2RHf
- AISFl+OOwApMFIcy35/meJtPtEmfBihBmFuEpnswF7A4XzdoadZzYbNOQZHIRvThARc6HD9L8093sG
- szHiwh7XS9v9GmJt//PVC7MUAsHySUTEa3PAIcX0wUyDgAoqXddqUVLYZNX8Ib5qGmt3FamXoBkSD+
- RXvf2XbfumURCXKlF34h9zvAWwOG0AZZWRULwmH9xYbliAhgBsla19+qnXFHWulkXAOSwIL20FWsTf
- AWf2fqlFSy46sUl+38NML+eaYrGvx9
-X-Developer-Key: i=broonie@kernel.org; a=openpgp;
- fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Teach the framework about the GCS signal context, avoiding warnings on
-the unknown context.
+On 8/12/2023 6:18 AM, Dexuan Cui wrote:
+> No logic change to SNP/VBS guests.
+> 
+> hv_isolation_type_tdx() will be used to instruct a TDX guest on Hyper-V to
+> do some TDX-specific operations, e.g. for a fully enlightened TDX guest
+> (i.e. without the paravisor), hv_do_hypercall() should use
+> __tdx_hypercall() and such a guest on Hyper-V should handle the Hyper-V
+> Event/Message/Monitor pages specially.
+> 
+> Reviewed-by: Michael Kelley <mikelley@microsoft.com>
+> Signed-off-by: Dexuan Cui <decui@microsoft.com>
 
-Signed-off-by: Mark Brown <broonie@kernel.org>
----
- tools/testing/selftests/arm64/signal/testcases/testcases.c | 7 +++++++
- tools/testing/selftests/arm64/signal/testcases/testcases.h | 1 +
- 2 files changed, 8 insertions(+)
+Reviewed-by: Tianyu Lan <tiala@microsoft.com>
 
-diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.c b/tools/testing/selftests/arm64/signal/testcases/testcases.c
-index 9f580b55b388..1cd124732be4 100644
---- a/tools/testing/selftests/arm64/signal/testcases/testcases.c
-+++ b/tools/testing/selftests/arm64/signal/testcases/testcases.c
-@@ -209,6 +209,13 @@ bool validate_reserved(ucontext_t *uc, size_t resv_sz, char **err)
- 			zt = (struct zt_context *)head;
- 			new_flags |= ZT_CTX;
- 			break;
-+		case GCS_MAGIC:
-+			if (flags & GCS_CTX)
-+				*err = "Multiple GCS_MAGIC";
-+			if (head->size != sizeof(struct gcs_context))
-+				*err = "Bad size for gcs_context";
-+			new_flags |= GCS_CTX;
-+			break;
- 		case EXTRA_MAGIC:
- 			if (flags & EXTRA_CTX)
- 				*err = "Multiple EXTRA_MAGIC";
-diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.h b/tools/testing/selftests/arm64/signal/testcases/testcases.h
-index a08ab0d6207a..9b2599745c29 100644
---- a/tools/testing/selftests/arm64/signal/testcases/testcases.h
-+++ b/tools/testing/selftests/arm64/signal/testcases/testcases.h
-@@ -19,6 +19,7 @@
- #define ZA_CTX		(1 << 2)
- #define EXTRA_CTX	(1 << 3)
- #define ZT_CTX		(1 << 4)
-+#define GCS_CTX		(1 << 5)
- 
- #define KSFT_BAD_MAGIC	0xdeadbeef
- 
-
--- 
-2.30.2
-
+> ---
+>   arch/x86/hyperv/ivm.c              | 9 +++++++++
+>   arch/x86/include/asm/hyperv-tlfs.h | 3 ++-
+>   arch/x86/include/asm/mshyperv.h    | 3 +++
+>   arch/x86/kernel/cpu/mshyperv.c     | 2 ++
+>   drivers/hv/hv_common.c             | 6 ++++++
+>   include/asm-generic/mshyperv.h     | 1 +
+>   6 files changed, 23 insertions(+), 1 deletion(-)
+> 
+> diff --git a/arch/x86/hyperv/ivm.c b/arch/x86/hyperv/ivm.c
+> index ee08a0cd6da38..d4aafe8b6b50d 100644
+> --- a/arch/x86/hyperv/ivm.c
+> +++ b/arch/x86/hyperv/ivm.c
+> @@ -524,3 +524,12 @@ bool hv_isolation_type_en_snp(void)
+>   	return static_branch_unlikely(&isolation_type_en_snp);
+>   }
+>   
+> +DEFINE_STATIC_KEY_FALSE(isolation_type_tdx);
+> +/*
+> + * hv_isolation_type_tdx - Check if the system runs in an Intel TDX based
+> + * isolated VM.
+> + */
+> +bool hv_isolation_type_tdx(void)
+> +{
+> +	return static_branch_unlikely(&isolation_type_tdx);
+> +}
+> diff --git a/arch/x86/include/asm/hyperv-tlfs.h b/arch/x86/include/asm/hyperv-tlfs.h
+> index 4bf0b315b0ce9..2ff26f53cd624 100644
+> --- a/arch/x86/include/asm/hyperv-tlfs.h
+> +++ b/arch/x86/include/asm/hyperv-tlfs.h
+> @@ -169,7 +169,8 @@
+>   enum hv_isolation_type {
+>   	HV_ISOLATION_TYPE_NONE	= 0,
+>   	HV_ISOLATION_TYPE_VBS	= 1,
+> -	HV_ISOLATION_TYPE_SNP	= 2
+> +	HV_ISOLATION_TYPE_SNP	= 2,
+> +	HV_ISOLATION_TYPE_TDX	= 3
+>   };
+>   
+>   /* Hyper-V specific model specific registers (MSRs) */
+> diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+> index 0b0d1eb249d0a..83fc3a79f1557 100644
+> --- a/arch/x86/include/asm/mshyperv.h
+> +++ b/arch/x86/include/asm/mshyperv.h
+> @@ -27,6 +27,7 @@ union hv_ghcb;
+>   
+>   DECLARE_STATIC_KEY_FALSE(isolation_type_snp);
+>   DECLARE_STATIC_KEY_FALSE(isolation_type_en_snp);
+> +DECLARE_STATIC_KEY_FALSE(isolation_type_tdx);
+>   
+>   typedef int (*hyperv_fill_flush_list_func)(
+>   		struct hv_guest_mapping_flush_list *flush,
+> @@ -59,6 +60,8 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages);
+>   int hv_call_add_logical_proc(int node, u32 lp_index, u32 acpi_id);
+>   int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags);
+>   
+> +bool hv_isolation_type_tdx(void);
+> +
+>   static inline u64 hv_do_hypercall(u64 control, void *input, void *output)
+>   {
+>   	u64 input_address = input ? virt_to_phys(input) : 0;
+> diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+> index b7d73f3107c63..a50fd3650ea9b 100644
+> --- a/arch/x86/kernel/cpu/mshyperv.c
+> +++ b/arch/x86/kernel/cpu/mshyperv.c
+> @@ -418,6 +418,8 @@ static void __init ms_hyperv_init_platform(void)
+>   			static_branch_enable(&isolation_type_en_snp);
+>   		} else if (hv_get_isolation_type() == HV_ISOLATION_TYPE_SNP) {
+>   			static_branch_enable(&isolation_type_snp);
+> +		} else if (hv_get_isolation_type() == HV_ISOLATION_TYPE_TDX) {
+> +			static_branch_enable(&isolation_type_tdx);
+>   		}
+>   	}
+>   
+> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+> index 2d43ba2bc925d..da3307533f4d7 100644
+> --- a/drivers/hv/hv_common.c
+> +++ b/drivers/hv/hv_common.c
+> @@ -521,6 +521,12 @@ bool __weak hv_isolation_type_en_snp(void)
+>   }
+>   EXPORT_SYMBOL_GPL(hv_isolation_type_en_snp);
+>   
+> +bool __weak hv_isolation_type_tdx(void)
+> +{
+> +	return false;
+> +}
+> +EXPORT_SYMBOL_GPL(hv_isolation_type_tdx);
+> +
+>   void __weak hv_setup_vmbus_handler(void (*handler)(void))
+>   {
+>   }
+> diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+> index efd0d2aedad39..c5e657c3cdf4c 100644
+> --- a/include/asm-generic/mshyperv.h
+> +++ b/include/asm-generic/mshyperv.h
+> @@ -66,6 +66,7 @@ extern u64 hv_do_hypercall(u64 control, void *inputaddr, void *outputaddr);
+>   extern u64 hv_do_fast_hypercall8(u16 control, u64 input8);
+>   extern bool hv_isolation_type_snp(void);
+>   extern bool hv_isolation_type_en_snp(void);
+> +extern bool hv_isolation_type_tdx(void);
+>   
+>   /* Helper functions that provide a consistent pattern for checking Hyper-V hypercall status. */
+>   static inline int hv_result(u64 status)
