@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 55A89EE49A3
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2E9D8EE49B2
 	for <linux-arch@archiver.kernel.org>; Wed, 23 Aug 2023 13:27:57 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232434AbjHWN15 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S235376AbjHWN15 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Wed, 23 Aug 2023 09:27:57 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53782 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53586 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236006AbjHWN1i (ORCPT
+        with ESMTP id S236005AbjHWN1i (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Aug 2023 09:27:38 -0400
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 5F2C410CF;
-        Wed, 23 Aug 2023 06:27:06 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 5476B10C8;
+        Wed, 23 Aug 2023 06:27:05 -0700 (PDT)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id CC2FD169C;
-        Wed, 23 Aug 2023 06:17:09 -0700 (PDT)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id D315F15DB;
+        Wed, 23 Aug 2023 06:18:48 -0700 (PDT)
 Received: from e121798.cable.virginm.net (unknown [172.31.20.19])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 866CD3F740;
-        Wed, 23 Aug 2023 06:16:23 -0700 (PDT)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 799E43F740;
+        Wed, 23 Aug 2023 06:18:02 -0700 (PDT)
 From:   Alexandru Elisei <alexandru.elisei@arm.com>
 To:     catalin.marinas@arm.com, will@kernel.org, oliver.upton@linux.dev,
         maz@kernel.org, james.morse@arm.com, suzuki.poulose@arm.com,
@@ -36,9 +36,9 @@ Cc:     pcc@google.com, steven.price@arm.com, anshuman.khandual@arm.com,
         kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-trace-kernel@vger.kernel.org
-Subject: [PATCH RFC 22/37] mm: shmem: Allocate metadata storage for in-memory filesystems
-Date:   Wed, 23 Aug 2023 14:13:35 +0100
-Message-Id: <20230823131350.114942-23-alexandru.elisei@arm.com>
+Subject: [PATCH RFC 37/37] arm64: mte: Enable tag storage management
+Date:   Wed, 23 Aug 2023 14:13:50 +0100
+Message-Id: <20230823131350.114942-38-alexandru.elisei@arm.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20230823131350.114942-1-alexandru.elisei@arm.com>
 References: <20230823131350.114942-1-alexandru.elisei@arm.com>
@@ -48,56 +48,30 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Set __GFP_TAGGED when a new page is faulted in, so the page allocator
-reserves the corresponding metadata storage.
+Everything is in place, enable tag storage management.
 
 Signed-off-by: Alexandru Elisei <alexandru.elisei@arm.com>
 ---
- mm/shmem.c | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
+ arch/arm64/kernel/mte_tag_storage.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/mm/shmem.c b/mm/shmem.c
-index 2f2e0e618072..0b772ec34caa 100644
---- a/mm/shmem.c
-+++ b/mm/shmem.c
-@@ -81,6 +81,8 @@ static struct vfsmount *shm_mnt;
+diff --git a/arch/arm64/kernel/mte_tag_storage.c b/arch/arm64/kernel/mte_tag_storage.c
+index 1ccbcc144979..18264bc8f590 100644
+--- a/arch/arm64/kernel/mte_tag_storage.c
++++ b/arch/arm64/kernel/mte_tag_storage.c
+@@ -399,6 +399,12 @@ static int __init mte_tag_storage_activate_regions(void)
+ 	}
  
- #include <linux/uaccess.h>
+ 	ret = reserve_metadata_storage(ZERO_PAGE(0), 0, GFP_HIGHUSER_MOVABLE);
++	if (ret) {
++		pr_info("MTE tag storage disabled");
++	} else {
++		static_branch_enable(&metadata_storage_enabled_key);
++		pr_info("MTE tag storage enabled\n");
++	}
  
-+#include <asm/memory_metadata.h>
-+
- #include "internal.h"
- 
- #define BLOCKS_PER_PAGE  (PAGE_SIZE/512)
-@@ -1530,7 +1532,7 @@ static struct folio *shmem_swapin(swp_entry_t swap, gfp_t gfp,
-  */
- static gfp_t limit_gfp_mask(gfp_t huge_gfp, gfp_t limit_gfp)
- {
--	gfp_t allowflags = __GFP_IO | __GFP_FS | __GFP_RECLAIM;
-+	gfp_t allowflags = __GFP_IO | __GFP_FS | __GFP_RECLAIM | __GFP_TAGGED;
- 	gfp_t denyflags = __GFP_NOWARN | __GFP_NORETRY;
- 	gfp_t zoneflags = limit_gfp & GFP_ZONEMASK;
- 	gfp_t result = huge_gfp & ~(allowflags | GFP_ZONEMASK);
-@@ -1941,6 +1943,8 @@ static int shmem_get_folio_gfp(struct inode *inode, pgoff_t index,
- 		goto alloc_nohuge;
- 
- 	huge_gfp = vma_thp_gfp_mask(vma);
-+	if (vma_has_metadata(vma))
-+		huge_gfp |= __GFP_TAGGED;
- 	huge_gfp = limit_gfp_mask(huge_gfp, gfp);
- 	folio = shmem_alloc_and_acct_folio(huge_gfp, inode, index, true);
- 	if (IS_ERR(folio)) {
-@@ -2101,6 +2105,10 @@ static vm_fault_t shmem_fault(struct vm_fault *vmf)
- 	int err;
- 	vm_fault_t ret = VM_FAULT_LOCKED;
- 
-+	/* Fixup gfp flags for metadata enabled VMAs. */
-+	if (vma_has_metadata(vma))
-+		gfp |= __GFP_TAGGED;
-+
- 	/*
- 	 * Trinity finds that probing a hole which tmpfs is punching can
- 	 * prevent the hole-punch from ever completing: which in turn
+ 	return ret;
+ }
 -- 
 2.41.0
 
