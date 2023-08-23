@@ -2,24 +2,24 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id CF190EE49A0
-	for <linux-arch@archiver.kernel.org>; Wed, 23 Aug 2023 13:17:37 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id D77C5EE49B2
+	for <linux-arch@archiver.kernel.org>; Wed, 23 Aug 2023 13:17:48 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235675AbjHWNRe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 23 Aug 2023 09:17:34 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34090 "EHLO
+        id S235712AbjHWNRt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 23 Aug 2023 09:17:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40174 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235397AbjHWNRd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Aug 2023 09:17:33 -0400
+        with ESMTP id S235397AbjHWNRr (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 23 Aug 2023 09:17:47 -0400
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id BDC4AE7E;
-        Wed, 23 Aug 2023 06:17:08 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 17DE8E6A;
+        Wed, 23 Aug 2023 06:17:21 -0700 (PDT)
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id ECD8715BF;
-        Wed, 23 Aug 2023 06:16:36 -0700 (PDT)
+        by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 740FB16F8;
+        Wed, 23 Aug 2023 06:17:57 -0700 (PDT)
 Received: from e121798.cable.virginm.net (unknown [172.31.20.19])
-        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 8BF703F740;
-        Wed, 23 Aug 2023 06:15:50 -0700 (PDT)
+        by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 1BF5A3F740;
+        Wed, 23 Aug 2023 06:17:10 -0700 (PDT)
 From:   Alexandru Elisei <alexandru.elisei@arm.com>
 To:     catalin.marinas@arm.com, will@kernel.org, oliver.upton@linux.dev,
         maz@kernel.org, james.morse@arm.com, suzuki.poulose@arm.com,
@@ -36,9 +36,9 @@ Cc:     pcc@google.com, steven.price@arm.com, anshuman.khandual@arm.com,
         kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, linux-mm@kvack.org,
         linux-trace-kernel@vger.kernel.org
-Subject: [PATCH RFC 17/37] arm64: mte: Disable dynamic tag storage management if HW KASAN is enabled
-Date:   Wed, 23 Aug 2023 14:13:30 +0100
-Message-Id: <20230823131350.114942-18-alexandru.elisei@arm.com>
+Subject: [PATCH RFC 29/37] mm: arm64: Define the PAGE_METADATA_NONE page protection
+Date:   Wed, 23 Aug 2023 14:13:42 +0100
+Message-Id: <20230823131350.114942-30-alexandru.elisei@arm.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20230823131350.114942-1-alexandru.elisei@arm.com>
 References: <20230823131350.114942-1-alexandru.elisei@arm.com>
@@ -48,44 +48,99 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Reserving the tag storage associated with a tagged page requires the
-ability to migrate existing data if the tag storage is in use for data.
+Define the PAGE_METADATA_NONE page protection to be used when a page with
+metadata doesn't have metadata storage reserved.
 
-The kernel allocates pages, which are now tagged because of HW KASAN, in
-non-preemptible contexts, which can make reserving the associate tag
-storage impossible.
-
-Don't expose the tag storage pages to the memory allocator if HW KASAN is
-enabled.
+For arm64, this is accomplished by adding a new page table entry software
+bit PTE_METADATA_NONE. Linux doesn't set any of the PBHA bits in entries
+from the last level of the translation table and it doesn't use the
+TCR_ELx.HWUxx bits.  This makes it safe to define PTE_METADATA_NONE as bit
+59.
 
 Signed-off-by: Alexandru Elisei <alexandru.elisei@arm.com>
 ---
- arch/arm64/kernel/mte_tag_storage.c | 12 ++++++++++++
- 1 file changed, 12 insertions(+)
+ arch/arm64/include/asm/pgtable-prot.h |  2 ++
+ arch/arm64/include/asm/pgtable.h      | 16 ++++++++++++++--
+ include/linux/pgtable.h               | 12 ++++++++++++
+ 3 files changed, 28 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm64/kernel/mte_tag_storage.c b/arch/arm64/kernel/mte_tag_storage.c
-index 4a6bfdf88458..f45128d0244e 100644
---- a/arch/arm64/kernel/mte_tag_storage.c
-+++ b/arch/arm64/kernel/mte_tag_storage.c
-@@ -314,6 +314,18 @@ static int __init mte_tag_storage_activate_regions(void)
- 		return 0;
- 	}
+diff --git a/arch/arm64/include/asm/pgtable-prot.h b/arch/arm64/include/asm/pgtable-prot.h
+index eed814b00a38..ed2a98ec4e95 100644
+--- a/arch/arm64/include/asm/pgtable-prot.h
++++ b/arch/arm64/include/asm/pgtable-prot.h
+@@ -19,6 +19,7 @@
+ #define PTE_SPECIAL		(_AT(pteval_t, 1) << 56)
+ #define PTE_DEVMAP		(_AT(pteval_t, 1) << 57)
+ #define PTE_PROT_NONE		(_AT(pteval_t, 1) << 58) /* only when !PTE_VALID */
++#define PTE_METADATA_NONE	(_AT(pteval_t, 1) << 59) /* only when PTE_PROT_NONE */
  
-+	/*
-+	 * The kernel allocates memory in non-preemptible contexts, which makes
-+	 * migration impossible when reserving the associated tag storage.
-+	 *
-+	 * The check is safe to make because KASAN HW tags are enabled before
-+	 * the rest of the init functions are called, in smp_prepare_boot_cpu().
-+	 */
-+	if (kasan_hw_tags_enabled()) {
-+		pr_info("KASAN HW tags enabled, disabling tag storage");
-+		return 0;
-+	}
+ /*
+  * This bit indicates that the entry is present i.e. pmd_page()
+@@ -98,6 +99,7 @@ extern bool arm64_use_ng_mappings;
+ 	 })
+ 
+ #define PAGE_NONE		__pgprot(((_PAGE_DEFAULT) & ~PTE_VALID) | PTE_PROT_NONE | PTE_RDONLY | PTE_NG | PTE_PXN | PTE_UXN)
++#define PAGE_METADATA_NONE	__pgprot((_PAGE_DEFAULT & ~PTE_VALID) | PTE_PROT_NONE | PTE_METADATA_NONE | PTE_RDONLY | PTE_NG | PTE_PXN | PTE_UXN)
+ /* shared+writable pages are clean by default, hence PTE_RDONLY|PTE_WRITE */
+ #define PAGE_SHARED		__pgprot(_PAGE_SHARED)
+ #define PAGE_SHARED_EXEC	__pgprot(_PAGE_SHARED_EXEC)
+diff --git a/arch/arm64/include/asm/pgtable.h b/arch/arm64/include/asm/pgtable.h
+index 944860d7090e..2e42f7713425 100644
+--- a/arch/arm64/include/asm/pgtable.h
++++ b/arch/arm64/include/asm/pgtable.h
+@@ -451,6 +451,18 @@ static inline int pmd_protnone(pmd_t pmd)
+ }
+ #endif
+ 
++#ifdef CONFIG_MEMORY_METADATA
++static inline bool pte_metadata_none(pte_t pte)
++{
++	return (((pte_val(pte) & (PTE_VALID | PTE_PROT_NONE)) == PTE_PROT_NONE)
++		&& (pte_val(pte) & PTE_METADATA_NONE));
++}
++static inline bool pmd_metadata_none(pmd_t pmd)
++{
++	return pte_metadata_none(pmd_pte(pmd));
++}
++#endif
 +
- 	for (i = 0; i < num_tag_regions; i++) {
- 		tag_range = &tag_regions[i].tag_range;
- 		for (pfn = tag_range->start; pfn <= tag_range->end; pfn += pageblock_nr_pages) {
+ #define pmd_present_invalid(pmd)     (!!(pmd_val(pmd) & PMD_PRESENT_INVALID))
+ 
+ static inline int pmd_present(pmd_t pmd)
+@@ -809,8 +821,8 @@ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
+ 	 * in MAIR_EL1. The mask below has to include PTE_ATTRINDX_MASK.
+ 	 */
+ 	const pteval_t mask = PTE_USER | PTE_PXN | PTE_UXN | PTE_RDONLY |
+-			      PTE_PROT_NONE | PTE_VALID | PTE_WRITE | PTE_GP |
+-			      PTE_ATTRINDX_MASK;
++			      PTE_PROT_NONE | PTE_METADATA_NONE | PTE_VALID |
++			      PTE_WRITE | PTE_GP | PTE_ATTRINDX_MASK;
+ 	/* preserve the hardware dirty information */
+ 	if (pte_hw_dirty(pte))
+ 		pte = pte_mkdirty(pte);
+diff --git a/include/linux/pgtable.h b/include/linux/pgtable.h
+index 5063b482e34f..0119ffa2c0ab 100644
+--- a/include/linux/pgtable.h
++++ b/include/linux/pgtable.h
+@@ -1340,6 +1340,18 @@ static inline int pmd_protnone(pmd_t pmd)
+ }
+ #endif /* CONFIG_NUMA_BALANCING */
+ 
++#ifndef CONFIG_MEMORY_METADATA
++static inline bool pte_metadata_none(pte_t pte)
++{
++	return false;
++}
++
++static inline bool pmd_metadata_none(pmd_t pmd)
++{
++	return false;
++}
++#endif /* CONFIG_MEMORY_METADATA */
++
+ #endif /* CONFIG_MMU */
+ 
+ #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
 -- 
 2.41.0
 
