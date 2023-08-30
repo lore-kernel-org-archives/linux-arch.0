@@ -2,133 +2,144 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 968FBC6FA8F
-	for <linux-arch@archiver.kernel.org>; Wed, 30 Aug 2023 20:18:59 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6A8FEC83F01
+	for <linux-arch@archiver.kernel.org>; Wed, 30 Aug 2023 20:46:28 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235277AbjH3UTA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 30 Aug 2023 16:19:00 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41116 "EHLO
+        id S239462AbjH3Uq3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 30 Aug 2023 16:46:29 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39748 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235340AbjH3UTA (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2023 16:19:00 -0400
-Received: from pandora.armlinux.org.uk (unknown [IPv6:2001:4d48:ad52:32c8:5054:ff:fe00:142])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C25813C00;
-        Wed, 30 Aug 2023 13:18:35 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=armlinux.org.uk; s=pandora-2019; h=Sender:In-Reply-To:Content-Type:
-        MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-        Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:
-        Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:
-        List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-        bh=tjJFXRrC0i86SOlwgDvPcsbn6f+wSEMk3Zmh190DkJ8=; b=xHP24Y/i/tnQDk79l2uTYI3JHj
-        lP0dtLRHCqayWm9bwkWjvNBtOs2R78CGLNGRim6gTaqJdL9BQbQbPYRb8WzQfWr/W1m+DqFTYAxnd
-        UgYr/Ps3inemlF6uvLKaDCx6hdvKtYA+rS+1e+8yq0sDlf272aPTceyNM6nFrDtIBAXi1lmKmdLGC
-        OVTtKny5z2AlHOVKvX8jRMy9wls2UDe9xMULQPdWgcRKBOF0EQ7r0K++CljbtmGhf33Q/DwK57Dwz
-        hhPbnLA8vITgdB8scOlAI9dQksSfLKbM1f3OwNJopUziqpurdNxtdUZeLhCfGFBXrpkZLtwlK0vTR
-        Ps3dkCoQ==;
-Received: from shell.armlinux.org.uk ([fd8f:7570:feb6:1:5054:ff:fe00:4ec]:52236)
-        by pandora.armlinux.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-        (Exim 4.96)
-        (envelope-from <linux@armlinux.org.uk>)
-        id 1qbPyO-0001ww-2C;
-        Wed, 30 Aug 2023 19:31:24 +0100
-Received: from linux by shell.armlinux.org.uk with local (Exim 4.94.2)
-        (envelope-from <linux@shell.armlinux.org.uk>)
-        id 1qbPyJ-0005vm-NG; Wed, 30 Aug 2023 19:31:19 +0100
-Date:   Wed, 30 Aug 2023 19:31:19 +0100
-From:   "Russell King (Oracle)" <linux@armlinux.org.uk>
-To:     James Morse <james.morse@arm.com>
-Cc:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
-        kvmarm@lists.linux.dev, kvm@vger.kernel.org,
-        linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, x86@kernel.org,
-        Marc Zyngier <maz@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Lorenzo Pieralisi <lpieralisi@kernel.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Sudeep Holla <sudeep.holla@arm.com>,
-        Borislav Petkov <bp@alien8.de>, H Peter Anvin <hpa@zytor.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Huacai Chen <chenhuacai@kernel.org>,
-        Suzuki K Poulose <suzuki.poulose@arm.com>,
-        Oliver Upton <oliver.upton@linux.dev>,
-        Len Brown <lenb@kernel.org>,
-        Rafael Wysocki <rafael@kernel.org>,
-        WANG Xuerui <kernel@xen0n.name>,
-        Salil Mehta <salil.mehta@huawei.com>,
-        Jean-Philippe Brucker <jean-philippe@linaro.org>
-Subject: Re: [RFC PATCH 02/32] ACPI: Move ACPI_HOTPLUG_CPU to be enabled per
- architecture
-Message-ID: <ZO+K9+C+RgNeZ7Nq@shell.armlinux.org.uk>
-References: <20230203135043.409192-1-james.morse@arm.com>
- <20230203135043.409192-3-james.morse@arm.com>
+        with ESMTP id S240478AbjH3UqS (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2023 16:46:18 -0400
+Received: from mail-wr1-x434.google.com (mail-wr1-x434.google.com [IPv6:2a00:1450:4864:20::434])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 89FD0CEC
+        for <linux-arch@vger.kernel.org>; Wed, 30 Aug 2023 13:45:49 -0700 (PDT)
+Received: by mail-wr1-x434.google.com with SMTP id ffacd0b85a97d-307d20548adso726f8f.0
+        for <linux-arch@vger.kernel.org>; Wed, 30 Aug 2023 13:45:49 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google; t=1693428241; x=1694033041; darn=vger.kernel.org;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=1V+IGdRyJRzIXYkK3ZtH0ylxOSZQ1q4yqJcT6PRMsv0=;
+        b=R2u2bT2o8W8R2N/AtUryzSiWdBDu1FU8VZFw7qyLgIhzB6xc1HLa5j1b5aAV92AYpR
+         BJI8gfRLeQaEHYT9JdUrEmM8ehghSNFmenWgkJ0ldN2k8JJFunGaec3z0mvGfaivxgpG
+         hXSvS1aR54Najquupuzh9QnScdU8Yq5HC1434=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20221208; t=1693428241; x=1694033041;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=1V+IGdRyJRzIXYkK3ZtH0ylxOSZQ1q4yqJcT6PRMsv0=;
+        b=i9wa+a4pla27lL7jsRcUuims9jnWkHkg/LZ75IgJ2o6rVj9C5PTR3jPl0lQac7+aPN
+         gPVvtJoTXrWJW6A29oVAk1+ofiLvHdSUByM0m/eDAh+NdAj9cy2MOPY5dJfuGI/aJWJk
+         6Hh45In00ZF75AKGFexYjT9bbIUqJszjzZ3h3dMlKjhF+79FZ1BrFSGYREC8NFIKM8Ak
+         OGqUy9VPDVtD0iqVn5wxIf5kGZP1Xpd+0vPhq5bzNV3di3HSGPYecinc857XrfRedKLM
+         2WXLLqGGgQOXnAZk8dic9G6i1e5C8qN536sw+WzEPlCyQJ3BvX4t7jupTxT/mpIW5Bck
+         DcaA==
+X-Gm-Message-State: AOJu0Yxv4nsrZc3fIbKspa5mO3xC9S6pwEneYiADsuqmFnQS4P6u4gpd
+        9y8iBJIFN21zQlKjrePldQi3vheJ3tED4HmzocaKCCyL
+X-Google-Smtp-Source: AGHT+IHjpxD2C88vQzJ5Z4Td9zDU7ukIZQeAckL3J0MJkl7gsH6XSA87mYC/cXAKB8+AuzRxB4a52g==
+X-Received: by 2002:adf:cf09:0:b0:31d:cd33:b30e with SMTP id o9-20020adfcf09000000b0031dcd33b30emr2165895wrj.4.1693425664947;
+        Wed, 30 Aug 2023 13:01:04 -0700 (PDT)
+Received: from mail-ej1-f48.google.com (mail-ej1-f48.google.com. [209.85.218.48])
+        by smtp.gmail.com with ESMTPSA id bj13-20020a170906b04d00b0099cf9bf4c98sm7529969ejb.8.2023.08.30.13.01.01
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 30 Aug 2023 13:01:01 -0700 (PDT)
+Received: by mail-ej1-f48.google.com with SMTP id a640c23a62f3a-9a2185bd83cso3149866b.0
+        for <linux-arch@vger.kernel.org>; Wed, 30 Aug 2023 13:01:01 -0700 (PDT)
+X-Received: by 2002:a17:906:2d6:b0:994:54ff:10f6 with SMTP id
+ 22-20020a17090602d600b0099454ff10f6mr2316759ejk.30.1693425661231; Wed, 30 Aug
+ 2023 13:01:01 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20230203135043.409192-3-james.morse@arm.com>
-Sender: Russell King (Oracle) <linux@armlinux.org.uk>
+References: <20230830140315.2666490-1-mjguzik@gmail.com>
+In-Reply-To: <20230830140315.2666490-1-mjguzik@gmail.com>
+From:   Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed, 30 Aug 2023 13:00:44 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wgADyL9i8r1=YkRTehKG8T89TzqAFMXDJV1Ag+_4_25Cw@mail.gmail.com>
+Message-ID: <CAHk-=wgADyL9i8r1=YkRTehKG8T89TzqAFMXDJV1Ag+_4_25Cw@mail.gmail.com>
+Subject: Re: [PATCH v2] x86: bring back rep movsq for user access on CPUs
+ without ERMS
+To:     Mateusz Guzik <mjguzik@gmail.com>
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        bp@alien8.de
+Content-Type: multipart/mixed; boundary="000000000000fe07ea0604296283"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Fri, Feb 03, 2023 at 01:50:13PM +0000, James Morse wrote:
-> --- a/arch/ia64/Kconfig
-> +++ b/arch/ia64/Kconfig
-> @@ -15,6 +15,7 @@ config IA64
->  	select ARCH_MIGHT_HAVE_PC_PARPORT
->  	select ARCH_MIGHT_HAVE_PC_SERIO
->  	select ACPI
-> +	select ACPI_HOTPLUG_CPU if ACPI
-> --- a/arch/loongarch/Kconfig
-> +++ b/arch/loongarch/Kconfig
-> @@ -5,6 +5,7 @@ config LOONGARCH
->  	select ACPI
->  	select ACPI_GENERIC_GSI if ACPI
->  	select ACPI_MCFG if ACPI
-> +	select ACPI_HOTPLUG_CPU if ACPI
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -59,6 +59,7 @@ config X86
->  	#
->  	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
->  	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
-> +	select ACPI_HOTPLUG_CPU			if ACPI
-> --- a/drivers/acpi/Kconfig
-> +++ b/drivers/acpi/Kconfig
-> @@ -309,7 +309,6 @@ config ACPI_HOTPLUG_CPU
->  	bool
->  	depends on ACPI_PROCESSOR && HOTPLUG_CPU
->  	select ACPI_CONTAINER
-> -	default y
+--000000000000fe07ea0604296283
+Content-Type: text/plain; charset="UTF-8"
 
-When selecting the symbol, it's a good idea to ensure that its
-dependencies are satisfied. So here, ACPI_HOTPLUG_CPU depends on
-ACPI_PROCESSOR and HOTPLUG_CPU.
+Side note, if you want to play around with the user copy routines (or
+maybe Borislav wants to), I have a patch that handles a couple of
+common cases statically.
 
-For x86, you're selecting ACPI_HOTPLUG_CPU if ACPI is enabled,
-and ACPI can be freely enabled. HOTPLUG_CPU depends on SMP,
-which is also a freely selectable option. Lastly,
-ACPI_PROCESSOR depends on X86 || IA64 || ARM64 || LOONGARCH,
-and is a user selectable, defaulting-y option if ACPI is
-enabled.
+It requires that we inline copy_to/from_user() in order to get
+constant size information, but almost all other architectures do that
+anyway, and it's not as horrid as it used to be with the current
+access_ok() that doesn't need to do that nasty dynamic task size
+check.
 
-So, shouldn't the x86 select be:
+In particular, it should help with copying structures - notably the
+'stat' structure in cp_new_stat().
 
-	select ACPI_HOTPLUG_CPU if ACPI_PROCESSOR && HOTPLUG_CPU
+The attached patch is entirely untested, except for me checking code
+generation for some superficial sanity in a couple of places.
 
-?
+I'm not convinced that
 
-I suspect similar issues exist for the other architecture Kconfig files
-modified above.
+    len >= 64 && !(len & 7)
 
-This seems to also be in the latest rfc too, which is why I'm bringing
-it up.
+is necessarily the "correct" option, but I resurrected an older patch
+for this, and decided to use that as the "this is what
+rep_movs_alternative would do anyway" test.
 
-Thanks.
+And obviously I expect that FSRM also does ok with "rep movsq", even
+if technically "movsb" is the simpler case (because it doesn't have
+the alignment issues that "rep movsq" has).
 
--- 
-RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
-FTTP is here! 80Mbps down 10Mbps up. Decent connectivity at last!
+                 Linus
+
+--000000000000fe07ea0604296283
+Content-Type: text/x-patch; charset="US-ASCII"; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+Content-ID: <f_lly5wgs70>
+X-Attachment-Id: f_lly5wgs70
+
+IGFyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3NfNjQuaCB8IDQxICsrKysrKysrKysrKysrKysr
+KysrKysrKysrKy0tLS0tLS0tLS0tLQogMSBmaWxlIGNoYW5nZWQsIDI5IGluc2VydGlvbnMoKyks
+IDEyIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nl
+c3NfNjQuaCBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3NfNjQuaAppbmRleCBmMmMwMmU0
+NDY5Y2MuLjAxNzY2NTA1MjAzNiAxMDA2NDQKLS0tIGEvYXJjaC94ODYvaW5jbHVkZS9hc20vdWFj
+Y2Vzc182NC5oCisrKyBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3NfNjQuaApAQCAtMTIs
+NiArMTIsOSBAQAogI2luY2x1ZGUgPGFzbS9jcHVmZWF0dXJlcy5oPgogI2luY2x1ZGUgPGFzbS9w
+YWdlLmg+CiAKKyNkZWZpbmUgSU5MSU5FX0NPUFlfRlJPTV9VU0VSCisjZGVmaW5lIElOTElORV9D
+T1BZX1RPX1VTRVIKKwogI2lmZGVmIENPTkZJR19BRERSRVNTX01BU0tJTkcKIC8qCiAgKiBNYXNr
+IG91dCB0YWcgYml0cyBmcm9tIHRoZSBhZGRyZXNzLgpAQCAtMTAxLDIyICsxMDQsMzYgQEAgc3Rh
+dGljIGlubGluZSBib29sIF9fYWNjZXNzX29rKGNvbnN0IHZvaWQgX191c2VyICpwdHIsIHVuc2ln
+bmVkIGxvbmcgc2l6ZSkKIF9fbXVzdF9jaGVjayB1bnNpZ25lZCBsb25nCiByZXBfbW92c19hbHRl
+cm5hdGl2ZSh2b2lkICp0bywgY29uc3Qgdm9pZCAqZnJvbSwgdW5zaWduZWQgbGVuKTsKIAorI2Rl
+ZmluZSBzdGF0aWNhbGx5X3RydWUoeCkgKF9fYnVpbHRpbl9jb25zdGFudF9wKHgpICYmICh4KSkK
+Kwogc3RhdGljIF9fYWx3YXlzX2lubGluZSBfX211c3RfY2hlY2sgdW5zaWduZWQgbG9uZwogY29w
+eV91c2VyX2dlbmVyaWModm9pZCAqdG8sIGNvbnN0IHZvaWQgKmZyb20sIHVuc2lnbmVkIGxvbmcg
+bGVuKQogewogCXN0YWMoKTsKLQkvKgotCSAqIElmIENQVSBoYXMgRlNSTSBmZWF0dXJlLCB1c2Ug
+J3JlcCBtb3ZzJy4KLQkgKiBPdGhlcndpc2UsIHVzZSByZXBfbW92c19hbHRlcm5hdGl2ZS4KLQkg
+Ki8KLQlhc20gdm9sYXRpbGUoCi0JCSIxOlxuXHQiCi0JCUFMVEVSTkFUSVZFKCJyZXAgbW92c2Ii
+LAotCQkJICAgICJjYWxsIHJlcF9tb3ZzX2FsdGVybmF0aXZlIiwgQUxUX05PVChYODZfRkVBVFVS
+RV9GU1JNKSkKLQkJIjI6XG4iCi0JCV9BU01fRVhUQUJMRV9VQSgxYiwgMmIpCi0JCToiK2MiIChs
+ZW4pLCAiK0QiICh0byksICIrUyIgKGZyb20pLCBBU01fQ0FMTF9DT05TVFJBSU5UCi0JCTogOiAi
+bWVtb3J5IiwgInJheCIpOworCWlmIChzdGF0aWNhbGx5X3RydWUobGVuID49IDY0ICYmICEobGVu
+ICYgNykpKSB7CisJCWxlbiA+Pj0gMzsKKwkJYXNtIHZvbGF0aWxlKAorCQkJIlxuMTpcdCIKKwkJ
+CSJyZXAgbW92c3EiCisJCQkiXG4yOlxuIgorCQkJX0FTTV9FWFRBQkxFX1VBKDFiLCAyYikKKwkJ
+CToiK2MiIChsZW4pLCAiK0QiICh0byksICIrUyIgKGZyb20pCisJCQk6IDoibWVtb3J5Iik7CisJ
+CWxlbiA8PD0gMzsKKwl9IGVsc2UgeworCQkvKgorCQkgKiBJZiBDUFUgaGFzIEZTUk0gZmVhdHVy
+ZSwgdXNlICdyZXAgbW92cycuCisJCSAqIE90aGVyd2lzZSwgdXNlIHJlcF9tb3ZzX2FsdGVybmF0
+aXZlLgorCQkgKi8KKwkJYXNtIHZvbGF0aWxlKAorCQkJIjE6XG5cdCIKKwkJCUFMVEVSTkFUSVZF
+KCJyZXAgbW92c2IiLAorCQkJCSAgICAiY2FsbCByZXBfbW92c19hbHRlcm5hdGl2ZSIsIEFMVF9O
+T1QoWDg2X0ZFQVRVUkVfRlNSTSkpCisJCQkiMjpcbiIKKwkJCV9BU01fRVhUQUJMRV9VQSgxYiwg
+MmIpCisJCQk6IitjIiAobGVuKSwgIitEIiAodG8pLCAiK1MiIChmcm9tKSwgQVNNX0NBTExfQ09O
+U1RSQUlOVAorCQkJOiA6ICJtZW1vcnkiLCAicmF4Iik7CisJfQogCWNsYWMoKTsKIAlyZXR1cm4g
+bGVuOwogfQo=
+--000000000000fe07ea0604296283--
