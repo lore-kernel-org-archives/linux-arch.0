@@ -2,146 +2,133 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3A6E0C83F33
-	for <linux-arch@archiver.kernel.org>; Wed, 30 Aug 2023 18:47:01 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 968FBC6FA8F
+	for <linux-arch@archiver.kernel.org>; Wed, 30 Aug 2023 20:18:59 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S237181AbjH3Spu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 30 Aug 2023 14:45:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38904 "EHLO
+        id S235277AbjH3UTA (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 30 Aug 2023 16:19:00 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41116 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1343718AbjH3Qmk (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2023 12:42:40 -0400
-Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id E5FEA19A;
-        Wed, 30 Aug 2023 09:42:32 -0700 (PDT)
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature RSA-PSS (2048 bits))
-        (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id 81AD762119;
-        Wed, 30 Aug 2023 16:42:32 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9F379C433C7;
-        Wed, 30 Aug 2023 16:42:22 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1693413751;
-        bh=+cegdjpC7G5umSHFHbrmT1BIlMdov4rtt+v2oJEk1tM=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=VjbX4CCwh2T7VRmcGdTip7u/f/TaIxuYGePqe7e+D4VSLmbiZHbmccKJEensZqdYd
-         /SkVtQoHfFek1l/akYZpl6ne+8eKdaeb9A2TuvGKtHgX54qQvFDVWxI1azmcGgWe2A
-         TCS6C1oK4Z9Yi4kRDMDic1bnoquUGBouKD5MDQ3AY/kt+9FcjbvW5qvdsxbxoapCQj
-         m6CelcYTizHCgj7uEUvmooKRW1IDpuIbzMXpLTY63MW/y+bD0wODuEHfxQZ27KwMGs
-         UK+r1H9fjVVo3zf7MJOTbhSZBfN9GnYmDVX/HSF7zUQGGf3T2s6/zw2yHd96jP9gqw
-         cyxOybFWimvpA==
-Date:   Wed, 30 Aug 2023 17:42:18 +0100
-From:   Mark Brown <broonie@kernel.org>
-To:     Szabolcs Nagy <Szabolcs.Nagy@arm.com>
-Cc:     Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Jonathan Corbet <corbet@lwn.net>,
-        Andrew Morton <akpm@linux-foundation.org>,
+        with ESMTP id S235340AbjH3UTA (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2023 16:19:00 -0400
+Received: from pandora.armlinux.org.uk (unknown [IPv6:2001:4d48:ad52:32c8:5054:ff:fe00:142])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C25813C00;
+        Wed, 30 Aug 2023 13:18:35 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=armlinux.org.uk; s=pandora-2019; h=Sender:In-Reply-To:Content-Type:
+        MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
+        Content-Transfer-Encoding:Content-ID:Content-Description:Resent-Date:
+        Resent-From:Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:
+        List-Help:List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
+        bh=tjJFXRrC0i86SOlwgDvPcsbn6f+wSEMk3Zmh190DkJ8=; b=xHP24Y/i/tnQDk79l2uTYI3JHj
+        lP0dtLRHCqayWm9bwkWjvNBtOs2R78CGLNGRim6gTaqJdL9BQbQbPYRb8WzQfWr/W1m+DqFTYAxnd
+        UgYr/Ps3inemlF6uvLKaDCx6hdvKtYA+rS+1e+8yq0sDlf272aPTceyNM6nFrDtIBAXi1lmKmdLGC
+        OVTtKny5z2AlHOVKvX8jRMy9wls2UDe9xMULQPdWgcRKBOF0EQ7r0K++CljbtmGhf33Q/DwK57Dwz
+        hhPbnLA8vITgdB8scOlAI9dQksSfLKbM1f3OwNJopUziqpurdNxtdUZeLhCfGFBXrpkZLtwlK0vTR
+        Ps3dkCoQ==;
+Received: from shell.armlinux.org.uk ([fd8f:7570:feb6:1:5054:ff:fe00:4ec]:52236)
+        by pandora.armlinux.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        (Exim 4.96)
+        (envelope-from <linux@armlinux.org.uk>)
+        id 1qbPyO-0001ww-2C;
+        Wed, 30 Aug 2023 19:31:24 +0100
+Received: from linux by shell.armlinux.org.uk with local (Exim 4.94.2)
+        (envelope-from <linux@shell.armlinux.org.uk>)
+        id 1qbPyJ-0005vm-NG; Wed, 30 Aug 2023 19:31:19 +0100
+Date:   Wed, 30 Aug 2023 19:31:19 +0100
+From:   "Russell King (Oracle)" <linux@armlinux.org.uk>
+To:     James Morse <james.morse@arm.com>
+Cc:     linux-pm@vger.kernel.org, loongarch@lists.linux.dev,
+        kvmarm@lists.linux.dev, kvm@vger.kernel.org,
+        linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, x86@kernel.org,
         Marc Zyngier <maz@kernel.org>,
-        Oliver Upton <oliver.upton@linux.dev>,
-        James Morse <james.morse@arm.com>,
+        Thomas Gleixner <tglx@linutronix.de>,
+        Lorenzo Pieralisi <lpieralisi@kernel.org>,
+        Mark Rutland <mark.rutland@arm.com>,
+        Sudeep Holla <sudeep.holla@arm.com>,
+        Borislav Petkov <bp@alien8.de>, H Peter Anvin <hpa@zytor.com>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Ingo Molnar <mingo@redhat.com>, Will Deacon <will@kernel.org>,
+        Catalin Marinas <catalin.marinas@arm.com>,
+        Huacai Chen <chenhuacai@kernel.org>,
         Suzuki K Poulose <suzuki.poulose@arm.com>,
-        Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
-        Eric Biederman <ebiederm@xmission.com>,
-        Kees Cook <keescook@chromium.org>,
-        Shuah Khan <shuah@kernel.org>,
-        "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
-        Deepak Gupta <debug@rivosinc.com>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        "H.J. Lu" <hjl.tools@gmail.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
-        kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-riscv@lists.infradead.org
-Subject: Re: [PATCH v4 03/36] arm64/gcs: Document the ABI for Guarded Control
- Stacks
-Message-ID: <9992beaf-f57d-41f8-9dbb-8044c783ddf4@sirena.org.uk>
-References: <aaea542c-929c-4c9b-8caa-ca67e0eb9c1e@sirena.org.uk>
- <ZOTnL1SDJWZjHPUW@arm.com>
- <43ec219d-bf20-47b8-a5f8-32bc3b64d487@sirena.org.uk>
- <ZOXa98SqwYPwxzNP@arm.com>
- <227e6552-353c-40a9-86c1-280587a40e3c@sirena.org.uk>
- <ZOY3lz+Zyhd5ZyQ9@arm.com>
- <ZOZEmO6WGyVAcOqK@arm.com>
- <ef7272d2-d807-428f-9915-6fc9febadb5c@sirena.org.uk>
- <ZOd6lzj29VksAp7L@arm.com>
- <ZO84DWEiYk6dU3iR@arm.com>
+        Oliver Upton <oliver.upton@linux.dev>,
+        Len Brown <lenb@kernel.org>,
+        Rafael Wysocki <rafael@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Salil Mehta <salil.mehta@huawei.com>,
+        Jean-Philippe Brucker <jean-philippe@linaro.org>
+Subject: Re: [RFC PATCH 02/32] ACPI: Move ACPI_HOTPLUG_CPU to be enabled per
+ architecture
+Message-ID: <ZO+K9+C+RgNeZ7Nq@shell.armlinux.org.uk>
+References: <20230203135043.409192-1-james.morse@arm.com>
+ <20230203135043.409192-3-james.morse@arm.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-        protocol="application/pgp-signature"; boundary="K/vjy3MP44rS/waF"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <ZO84DWEiYk6dU3iR@arm.com>
-X-Cookie: Immanuel doesn't pun, he Kant.
+In-Reply-To: <20230203135043.409192-3-james.morse@arm.com>
+Sender: Russell King (Oracle) <linux@armlinux.org.uk>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+On Fri, Feb 03, 2023 at 01:50:13PM +0000, James Morse wrote:
+> --- a/arch/ia64/Kconfig
+> +++ b/arch/ia64/Kconfig
+> @@ -15,6 +15,7 @@ config IA64
+>  	select ARCH_MIGHT_HAVE_PC_PARPORT
+>  	select ARCH_MIGHT_HAVE_PC_SERIO
+>  	select ACPI
+> +	select ACPI_HOTPLUG_CPU if ACPI
+> --- a/arch/loongarch/Kconfig
+> +++ b/arch/loongarch/Kconfig
+> @@ -5,6 +5,7 @@ config LOONGARCH
+>  	select ACPI
+>  	select ACPI_GENERIC_GSI if ACPI
+>  	select ACPI_MCFG if ACPI
+> +	select ACPI_HOTPLUG_CPU if ACPI
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -59,6 +59,7 @@ config X86
+>  	#
+>  	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+>  	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+> +	select ACPI_HOTPLUG_CPU			if ACPI
+> --- a/drivers/acpi/Kconfig
+> +++ b/drivers/acpi/Kconfig
+> @@ -309,7 +309,6 @@ config ACPI_HOTPLUG_CPU
+>  	bool
+>  	depends on ACPI_PROCESSOR && HOTPLUG_CPU
+>  	select ACPI_CONTAINER
+> -	default y
 
---K/vjy3MP44rS/waF
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+When selecting the symbol, it's a good idea to ensure that its
+dependencies are satisfied. So here, ACPI_HOTPLUG_CPU depends on
+ACPI_PROCESSOR and HOTPLUG_CPU.
 
-On Wed, Aug 30, 2023 at 01:37:33PM +0100, Szabolcs Nagy wrote:
-> The 08/24/2023 16:43, Catalin Marinas wrote:
+For x86, you're selecting ACPI_HOTPLUG_CPU if ACPI is enabled,
+and ACPI can be freely enabled. HOTPLUG_CPU depends on SMP,
+which is also a freely selectable option. Lastly,
+ACPI_PROCESSOR depends on X86 || IA64 || ARM64 || LOONGARCH,
+and is a user selectable, defaulting-y option if ACPI is
+enabled.
 
-> > Is there a use-case for the unlocked configuration to allow disabling
-> > the GCS implicitly via a clone syscall?
+So, shouldn't the x86 select be:
 
-> how would you handle clone or clone3 without gcs specified?
-> (in the cases when clone creates a new thread with new stack)
+	select ACPI_HOTPLUG_CPU if ACPI_PROCESSOR && HOTPLUG_CPU
 
-> (1) fail.
-> (2) allocate gcs.
-> (3) disable gcs.
+?
 
-...
+I suspect similar issues exist for the other architecture Kconfig files
+modified above.
 
-> problem with (2) is that the size policy and lifetime management
-> is in the kernel then. (since only special cases are affected i
-> guess that is ok, but i assumed we want to avoid this by moving
-> to clone3 and user managed gcs).
+This seems to also be in the latest rfc too, which is why I'm bringing
+it up.
 
-Right, it seems like if we go with this then we may as well just allow
-plain clone() too.
+Thanks.
 
-> the problem with (3) is escaping the security measure, however
-> it only applies to very special threads that can always decide
-> to opt-in to gcs, so i don't see this as such a bad option and
-> at least bw compat with existing code. (in my threat model the
-> attacker cannot hijack clone syscalls as that seems stronger
-> than hijacking return addresses.)
-
-It doesn't seem great to have a feature which is to a large extent a
-security feature where we provide a fairly straightforward mechanism for
-disabling the feature and actively expect things to be using it.
-
-Given the timescales until this gets practically deployed on arm64 I
-would be inclined to go with making things fail and forcing updates in
-the users, though obviously that's less helpful for x86 where the
-hardware is in user hands already so it's more of a pressing issue (and
-there's already what is effectively option 2 in the code).  We could
-have the architectures diverge, as you say the effect is likely to be
-mainly in very low level code rather than general software.
-
---K/vjy3MP44rS/waF
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmTvcWkACgkQJNaLcl1U
-h9BrNwf/ZAr2lf9jr/JbNkYpu9zm6Fga4tZrLQoMWCDnP9PGxphhBn9iAMWz6X+F
-0X05x9pIN7D4g7qLffjEzsFOpfukbLwIQ4wH/AdjNW7MvFpuH+4kt7iWwiDparY/
-wliRfw6VyCf8lMA40bSac+jlTEJowbBmX+nh1z+EI924BOUXDONu/PGGfoVtn9U0
-mOVw+DFx3lACf5cjCPKSE9JfYf74s+y9cH8fk9x1/D6jHuJuX5IOafLld3PytL/v
-Yxbc/C9XY0Qa9If9yV/NWPb7irX1i7vTMOcHJ8AAzwzHV7LjOOk2cBgRj0IJ2TBI
-1fuiPsv3RNuj2GUC01Od5Md0pPjifQ==
-=qSdV
------END PGP SIGNATURE-----
-
---K/vjy3MP44rS/waF--
+-- 
+RMK's Patch system: https://www.armlinux.org.uk/developer/patches/
+FTTP is here! 80Mbps down 10Mbps up. Decent connectivity at last!
