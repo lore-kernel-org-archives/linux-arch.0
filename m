@@ -2,83 +2,84 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6AD2EC83F32
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E0C91C83F1A
 	for <linux-arch@archiver.kernel.org>; Wed, 30 Aug 2023 18:47:00 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233912AbjH3Spt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 30 Aug 2023 14:45:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58220 "EHLO
+        id S235299AbjH3Spu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 30 Aug 2023 14:45:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48244 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242818AbjH3JrD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2023 05:47:03 -0400
+        with ESMTP id S244561AbjH3NUj (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 30 Aug 2023 09:20:39 -0400
 Received: from dfw.source.kernel.org (dfw.source.kernel.org [139.178.84.217])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 602161A4;
-        Wed, 30 Aug 2023 02:47:01 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 38AF9CDA;
+        Wed, 30 Aug 2023 06:20:37 -0700 (PDT)
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
         (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
          key-exchange X25519 server-signature RSA-PSS (2048 bits))
         (No client certificate requested)
-        by dfw.source.kernel.org (Postfix) with ESMTPS id F3265615A0;
-        Wed, 30 Aug 2023 09:47:00 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8A3CFC433C8;
-        Wed, 30 Aug 2023 09:46:58 +0000 (UTC)
+        by dfw.source.kernel.org (Postfix) with ESMTPS id CC1DD6208E;
+        Wed, 30 Aug 2023 13:20:35 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPS id DE2DBC433BD;
+        Wed, 30 Aug 2023 13:20:34 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1693388820;
-        bh=kTGYHnWJ3gzPlhXKqsUN9bUzT388h/9DiQuE8wCZUho=;
-        h=From:To:Cc:Subject:Date:From;
-        b=FWT31d/f0mCee+oe2RpoHRWuy7BaEhYxxWMFJaiZAN6CR0tJNLANokteDrW4eThQT
-         UsOJ9R3xmuZnfB53mDG1PFU06C6Uzfw799Fvw4pPcHf0ydZ2LVE4PfRIVvQDj3IxEz
-         v96Ot9FTGUw18MLSYOyr1QZi7pYgKSwO3iupMAf2vW5QPYJq/aZ5s0i8rG1/4vE5Lf
-         ZmmwbstV/QOF5y0CgCw08qsJNiWaelMqn4uDThCdEnSNZ6oIEkTJstTcI1ch67J8ZZ
-         0nHWIdtBAOEyXw43Yr9XLEJTl76oU3bUR7rY/bV4QDJ2IFu8xMXH7VDFFxqMhCewJt
-         ppQ5UqdKp34aw==
-From:   guoren@kernel.org
-To:     guoren@kernel.org, arnd@arndb.de, linux@roeck-us.net
-Cc:     linux-csky@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, Guo Ren <guoren@linux.alibaba.com>
-Subject: [PATCH] csky: Fixup compile error
-Date:   Wed, 30 Aug 2023 05:46:53 -0400
-Message-Id: <20230830094653.2833443-1-guoren@kernel.org>
-X-Mailer: git-send-email 2.36.1
+        s=k20201202; t=1693401634;
+        bh=cuLPLucPgzyIA7ym72xVrHdEZINVLlHnb8WQoni9rVU=;
+        h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
+        b=QyAIgZuy/C/TOqnKxD161167AISrmBTCr1WmpxsiHP9AB9WxONiSxAqsmPsdKVHUF
+         4OYpw5mxRottJwKTojqVJPa2C/v62LniRZjK4/e5wabj3jKPvZq4+Irz4tRpUyKO+H
+         0/PPE6BCIgU6UH8YxRPAn1+c5jmuOuNrpYNbrVqMLYgcn9Vetd5P8mgQCaWOD3Aq19
+         QwW85d/nhsNKh3ACcxwAvmyEENZ8k80nd2BNolhJp1pnDBT+F2y0nC0A7gtirpm12E
+         bvVPAVM1ZVxROqfUicljxB4n2sY77M1HYh+Win+uNdf32y6Ej/jMc6Zjn/277UAh+3
+         ZY/Htaz9xw1LQ==
+Received: from aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (localhost.localdomain [127.0.0.1])
+        by aws-us-west-2-korg-oddjob-1.ci.codeaurora.org (Postfix) with ESMTP id C648EE29F3B;
+        Wed, 30 Aug 2023 13:20:34 +0000 (UTC)
+Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v2] riscv: support PREEMPT_DYNAMIC with static keys
+From:   patchwork-bot+linux-riscv@kernel.org
+Message-Id: <169340163480.19859.2206176253038715452.git-patchwork-notify@kernel.org>
+Date:   Wed, 30 Aug 2023 13:20:34 +0000
+References: <20230716164925.1858-1-jszhang@kernel.org>
+In-Reply-To: <20230716164925.1858-1-jszhang@kernel.org>
+To:     Jisheng Zhang <jszhang@kernel.org>
+Cc:     linux-riscv@lists.infradead.org, paul.walmsley@sifive.com,
+        palmer@dabbelt.com, aou@eecs.berkeley.edu, arnd@arndb.de,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Guo Ren <guoren@linux.alibaba.com>
+Hello:
 
-Add header file for asmlinkage macro.
+This patch was applied to riscv/linux.git (for-next)
+by Palmer Dabbelt <palmer@rivosinc.com>:
 
-Error log:
-In file included from arch/csky/include/asm/ptrace.h:7,
-                 from arch/csky/include/asm/elf.h:6,
-                 from include/linux/elf.h:6,
-                 from kernel/extable.c:6:
-arch/csky/include/asm/traps.h:43:11: error: expected ';' before 'void'
-   43 | asmlinkage void do_trap_unknown(struct pt_regs *regs);
-      |           ^~~~~
+On Mon, 17 Jul 2023 00:49:25 +0800 you wrote:
+> Currently, each architecture can support PREEMPT_DYNAMIC through
+> either static calls or static keys. To support PREEMPT_DYNAMIC on
+> riscv, we face three choices:
+> 
+> 1. only add static calls support to riscv
+> As Mark pointed out in commit 99cf983cc8bc ("sched/preempt: Add
+> PREEMPT_DYNAMIC using static keys"), static keys "...should have
+> slightly lower overhead than non-inline static calls, as this
+> effectively inlines each trampoline into the start of its callee. This
+> may avoid redundant work, and may integrate better with CFI schemes."
+> So even we add static calls(without inline static calls) to riscv,
+> static keys is still a better choice.
+> 
+> [...]
 
-Fixes: c8171a86b274 ("csky: Fixup -Wmissing-prototypes warning")
-Reported-by: Guenter Roeck <linux@roeck-us.net>
-Signed-off-by: Guo Ren <guoren@linux.alibaba.com>
----
- arch/csky/include/asm/traps.h | 2 ++
- 1 file changed, 2 insertions(+)
+Here is the summary with links:
+  - [v2] riscv: support PREEMPT_DYNAMIC with static keys
+    https://git.kernel.org/riscv/c/15e062726f55
 
-diff --git a/arch/csky/include/asm/traps.h b/arch/csky/include/asm/traps.h
-index 1e7d303b91e9..732c4aaa2e26 100644
---- a/arch/csky/include/asm/traps.h
-+++ b/arch/csky/include/asm/traps.h
-@@ -3,6 +3,8 @@
- #ifndef __ASM_CSKY_TRAPS_H
- #define __ASM_CSKY_TRAPS_H
- 
-+#include <linux/linkage.h>
-+
- #define VEC_RESET	0
- #define VEC_ALIGN	1
- #define VEC_ACCESS	2
+You are awesome, thank you!
 -- 
-2.36.1
+Deet-doot-dot, I am a bot.
+https://korg.docs.kernel.org/patchwork/pwbot.html
+
 
