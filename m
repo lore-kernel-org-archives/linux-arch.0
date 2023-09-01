@@ -2,130 +2,115 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 33528CA0FE1
-	for <linux-arch@archiver.kernel.org>; Fri,  1 Sep 2023 13:33:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id A46B7CA0FEB
+	for <linux-arch@archiver.kernel.org>; Fri,  1 Sep 2023 14:27:08 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1349751AbjIANdN convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 1 Sep 2023 09:33:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38070 "EHLO
+        id S1349985AbjIAO1J (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 1 Sep 2023 10:27:09 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35702 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232143AbjIANdN (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Sep 2023 09:33:13 -0400
-Received: from eu-smtp-delivery-151.mimecast.com (eu-smtp-delivery-151.mimecast.com [185.58.86.151])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 97B68E77
-        for <linux-arch@vger.kernel.org>; Fri,  1 Sep 2023 06:33:09 -0700 (PDT)
-Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) by
- relay.mimecast.com with ESMTP with both STARTTLS and AUTH (version=TLSv1.2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id
- uk-mta-127-rzP1TfnNM9Kwg3WdJebEew-1; Fri, 01 Sep 2023 14:33:07 +0100
-X-MC-Unique: rzP1TfnNM9Kwg3WdJebEew-1
-Received: from AcuMS.Aculab.com (10.202.163.6) by AcuMS.aculab.com
- (10.202.163.6) with Microsoft SMTP Server (TLS) id 15.0.1497.48; Fri, 1 Sep
- 2023 14:33:03 +0100
-Received: from AcuMS.Aculab.com ([::1]) by AcuMS.aculab.com ([::1]) with mapi
- id 15.00.1497.048; Fri, 1 Sep 2023 14:33:03 +0100
-From:   David Laight <David.Laight@ACULAB.COM>
-To:     'Mateusz Guzik' <mjguzik@gmail.com>,
-        "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
-CC:     "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "bp@alien8.de" <bp@alien8.de>
-Subject: RE: [PATCH v2] x86: bring back rep movsq for user access on CPUs
- without ERMS
-Thread-Topic: [PATCH v2] x86: bring back rep movsq for user access on CPUs
- without ERMS
-Thread-Index: AQHZ23Vdq8Esj5k0zUGYupOb09r6RrAF7nHA
-Date:   Fri, 1 Sep 2023 13:33:03 +0000
-Message-ID: <27ba3536633c4e43b65f1dcd0a82c0de@AcuMS.aculab.com>
-References: <20230830140315.2666490-1-mjguzik@gmail.com>
-In-Reply-To: <20230830140315.2666490-1-mjguzik@gmail.com>
-Accept-Language: en-GB, en-US
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-x-ms-exchange-transport-fromentityheader: Hosted
-x-originating-ip: [10.202.205.107]
+        with ESMTP id S1349988AbjIAO1J (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 1 Sep 2023 10:27:09 -0400
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [IPv6:2001:67c:2178:6::1d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 61A5E10F8;
+        Fri,  1 Sep 2023 07:27:04 -0700 (PDT)
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by smtp-out2.suse.de (Postfix) with ESMTPS id D36AA1F86C;
+        Fri,  1 Sep 2023 14:27:02 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+        t=1693578422; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=QETxACuLG117Ppkadvcn1KtVg/Yq0288OgnzhzA/ULk=;
+        b=tTb6ATZYkM5FNNeKaXMkOL4QJI48iFJt1y+xae4e6Sni0Qo27M2NlefCoxXCM+ZPwuj5tY
+        r6xiCRU9xE1ETGEIZu5/kgrkooxMs/C9oh6EIsNPIXVUeTWz4BFtm8DB8Ne72nR4yY5uHC
+        CKnY5HhPDRktVXU0PL1grEur0ikDxHE=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+        s=susede2_ed25519; t=1693578422;
+        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+         mime-version:mime-version:
+         content-transfer-encoding:content-transfer-encoding:
+         in-reply-to:in-reply-to:references:references;
+        bh=QETxACuLG117Ppkadvcn1KtVg/Yq0288OgnzhzA/ULk=;
+        b=r9L0JRZVYTtkWaU2SguMwkS3pjaoQE7s9J2buuvT1wa6t0fpg65RTcSNZfXNjZynX0yed+
+        2ppvNK3qFb4vS+CA==
+Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
+        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
+        (No client certificate requested)
+        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id 8E69913A12;
+        Fri,  1 Sep 2023 14:27:02 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([192.168.254.65])
+        by imap2.suse-dmz.suse.de with ESMTPSA
+        id WKLZIbb08WQGYAAAMHmgww
+        (envelope-from <tzimmermann@suse.de>); Fri, 01 Sep 2023 14:27:02 +0000
+From:   Thomas Zimmermann <tzimmermann@suse.de>
+To:     mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
+        arnd@arndb.de, deller@gmx.de
+Cc:     linuxppc-dev@lists.ozlabs.org, linux-fbdev@vger.kernel.org,
+        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, sparclinux@vger.kernel.org,
+        dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org,
+        Thomas Zimmermann <tzimmermann@suse.de>
+Subject: [PATCH 1/4] arch/powerpc: Remove trailing whitespaces
+Date:   Fri,  1 Sep 2023 16:16:33 +0200
+Message-ID: <20230901142659.31787-2-tzimmermann@suse.de>
+X-Mailer: git-send-email 2.41.0
+In-Reply-To: <20230901142659.31787-1-tzimmermann@suse.de>
+References: <20230901142659.31787-1-tzimmermann@suse.de>
 MIME-Version: 1.0
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: aculab.com
-Content-Language: en-US
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-From: Mateusz Guzik
-> Sent: 30 August 2023 15:03
-...
-> Hand-rolled mov loops executing in this case are quite pessimal compared
-> to rep movsq for bigger sizes. While the upper limit depends on uarch,
-> everyone is well south of 1KB AFAICS and sizes bigger than that are
-> common.
+Fix coding style. No functional changes.
 
-That unrolled loop is pretty pessimal and very much 1980s.
+Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
+---
+ arch/powerpc/include/asm/machdep.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-It should be pretty easy to write a code loop that runs
-at one copy (8 bytes) per clock on modern desktop x86.
-I think that matches 'rep movsq'.
-(It will run slower on Atom based cpu.)
-
-A very simple copy loop needs (using negative offsets
-from the end of the buffer):
-	A memory read
-	A memory write
-	An increment
-	A jnz
-Doing all of those every clock is well with the cpu's capabilities.
-However I've never managed a 1 clock loop.
-So you need to unroll once (and only once) to copy 8 bytes/clock.
-
-So for copies that are multiples of 16 bytes something like:
-	# dst in %rdi, src in %rsi, len in %rdx
-	add	%rdi, %rdx
-	add	%rsi, %rdx
-	neg	%rdx
-1:
-	mov	%rcx,0(%rsi, %rdx)
-	mov	0(%rdi, %rdx), %rcx
-	add	#16, %rdx
-	mov	%rcx, -8(%rsi, %rdx)
-	mov	-8(%rdi, %rdx), %rcx
-	jnz	1b
-
-Is likely to execute an iteration every two clocks.
-The memory read/write all get queued up and will happen at
-some point - so memory latency doesn't matter at all.
-
-For copies (over 16 bytes) that aren't multiples of
-16 it is probably just worth copying the first 16 bytes
-and then doing 16 bytes copies that align with the end
-of the buffer - copying some bytes twice.
-(Or even copy the last 16 bytes first and copy aligned
-with the start.)
-
-I'm also not at all sure how much it is worth optimising
-mis-aligned transfers.
-An IP-Checksum function (which only does reads) is only
-just measurable slower for mis-aligned buffers.
-Less than 1 clock per cache line.
-
-I think you can get an idea of what happens from looking
-at the PCIe TLP generated for misaligned transfers and
-assuming that memory requests get much the same treatment.
-
-Last time I checked (on an i7-7700) misaligned transfers
-were done in 8-byte chunks (SSE/AVX) and accesses that
-crossed cache-line boundaries split into two.
-Since the cpu can issue two reads/clock not all of the
-split reads (to cache) will take an extra clock.
-(which sort of matches what we see.)
-OTOH misaligned writes that cross a cache-line boundary
-probably always take a 1 clock penalty.
-
-	David
-
--
-Registered Address Lakeside, Bramley Road, Mount Farm, Milton Keynes, MK1 1PT, UK
-Registration No: 1397386 (Wales)
+diff --git a/arch/powerpc/include/asm/machdep.h b/arch/powerpc/include/asm/machdep.h
+index 4f6e7d7ee388..933465ed4c43 100644
+--- a/arch/powerpc/include/asm/machdep.h
++++ b/arch/powerpc/include/asm/machdep.h
+@@ -10,7 +10,7 @@
+ #include <linux/export.h>
+ 
+ struct pt_regs;
+-struct pci_bus;	
++struct pci_bus;
+ struct device_node;
+ struct iommu_table;
+ struct rtc_time;
+@@ -78,8 +78,8 @@ struct machdep_calls {
+ 	unsigned char 	(*nvram_read_val)(int addr);
+ 	void		(*nvram_write_val)(int addr, unsigned char val);
+ 	ssize_t		(*nvram_write)(char *buf, size_t count, loff_t *index);
+-	ssize_t		(*nvram_read)(char *buf, size_t count, loff_t *index);	
+-	ssize_t		(*nvram_size)(void);		
++	ssize_t		(*nvram_read)(char *buf, size_t count, loff_t *index);
++	ssize_t		(*nvram_size)(void);
+ 	void		(*nvram_sync)(void);
+ 
+ 	/* Exception handlers */
+@@ -102,9 +102,9 @@ struct machdep_calls {
+ 	 */
+ 	long	 	(*feature_call)(unsigned int feature, ...);
+ 
+-	/* Get legacy PCI/IDE interrupt mapping */ 
++	/* Get legacy PCI/IDE interrupt mapping */
+ 	int		(*pci_get_legacy_ide_irq)(struct pci_dev *dev, int channel);
+-	
++
+ 	/* Get access protection for /dev/mem */
+ 	pgprot_t	(*phys_mem_access_prot)(struct file *file,
+ 						unsigned long pfn,
+-- 
+2.41.0
 
