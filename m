@@ -2,161 +2,126 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3BAD3CA0EC0
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DB46BCA0EC1
 	for <linux-arch@archiver.kernel.org>; Mon, 11 Sep 2023 21:10:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S235392AbjIKVEu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 11 Sep 2023 17:04:50 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41740 "EHLO
+        id S230094AbjIKVEz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 11 Sep 2023 17:04:55 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39710 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243856AbjIKSDd (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Sep 2023 14:03:33 -0400
-Received: from mgamail.intel.com (mgamail.intel.com [134.134.136.20])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9DCD6103;
-        Mon, 11 Sep 2023 11:03:28 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1694455408; x=1725991408;
-  h=from:to:cc:subject:date:message-id:mime-version:
-   content-transfer-encoding;
-  bh=kxCm8IPxO4Adx3HaWS72d7S3asKhB+RqeSR07UfgL5Q=;
-  b=TgH4ZcvVeLgcJBMx88q+zt+rnhR/XRfuO/nxy/Ozi0X2cpYXH4HE64yE
-   j4PeTqTgQ1pE7xsMbvKBDjvUV3dHOaKnXYaQzFOxFkmFjMxlfXscIU4uV
-   t5M/C2DEPcLN6vUKsoLbTn6FVeytlnO9OZI40vOQiVzZxYKyjaYjTxK+P
-   jqWA5m5kF9XHSqvBJzfHvJUi4BzKSRf7MkHRuEGlFh/Rl86gIRZubwHqz
-   0ej0Fpyy9u/zLIvZEZr3LmRfZnfkJcx/O0nvzAihVAg5kky/2xMsbjQvX
-   OOj6q3VwwaBI2omjAlgvm0Vfs8s0PHkMGhLQpeP0Sdh4RXpaOPcA8ZTEy
-   g==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10830"; a="368416937"
-X-IronPort-AV: E=Sophos;i="6.02,244,1688454000"; 
-   d="scan'208";a="368416937"
-Received: from fmsmga008.fm.intel.com ([10.253.24.58])
-  by orsmga101.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 11 Sep 2023 11:03:27 -0700
-X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10830"; a="808905950"
-X-IronPort-AV: E=Sophos;i="6.02,244,1688454000"; 
-   d="scan'208";a="808905950"
-Received: from sohilmeh.sc.intel.com ([172.25.103.65])
-  by fmsmga008.fm.intel.com with ESMTP; 11 Sep 2023 11:03:26 -0700
-From:   Sohil Mehta <sohil.mehta@intel.com>
-To:     linux-kernel@vger.kernel.org, linux-api@vger.kernel.org,
-        linux-arch@vger.kernel.org
-Cc:     Sohil Mehta <sohil.mehta@intel.com>,
-        Richard Henderson <richard.henderson@linaro.org>,
-        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
-        Matt Turner <mattst88@gmail.com>,
-        Russell King <linux@armlinux.org.uk>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Will Deacon <will@kernel.org>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Michal Simek <monstr@monstr.eu>,
-        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-        "James E . J . Bottomley" <James.Bottomley@HansenPartnership.com>,
-        Helge Deller <deller@gmx.de>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        Christophe Leroy <christophe.leroy@csgroup.eu>,
-        Heiko Carstens <hca@linux.ibm.com>,
-        Vasily Gorbik <gor@linux.ibm.com>,
-        Alexander Gordeev <agordeev@linux.ibm.com>,
-        Christian Borntraeger <borntraeger@linux.ibm.com>,
-        Sven Schnelle <svens@linux.ibm.com>,
-        Yoshinori Sato <ysato@users.sourceforge.jp>,
-        Rich Felker <dalias@libc.org>,
-        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-        "David S . Miller" <davem@davemloft.net>,
-        Andy Lutomirski <luto@kernel.org>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-        "H . Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>,
-        Max Filippov <jcmvbkbc@gmail.com>,
-        Arnd Bergmann <arnd@arndb.de>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Arnaldo Carvalho de Melo <acme@kernel.org>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Alexander Shishkin <alexander.shishkin@linux.intel.com>,
-        Jiri Olsa <jolsa@kernel.org>,
-        Namhyung Kim <namhyung@kernel.org>,
-        Ian Rogers <irogers@google.com>,
-        Adrian Hunter <adrian.hunter@intel.com>,
-        Lukas Bulwahn <lukas.bulwahn@gmail.com>,
-        Sergei Trofimovich <slyich@gmail.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Rohan McLure <rmclure@linux.ibm.com>,
-        Andreas Schwab <schwab@linux-m68k.org>,
-        "Eric W . Biederman" <ebiederm@xmission.com>,
-        Brian Gerst <brgerst@gmail.com>,
-        Randy Dunlap <rdunlap@infradead.org>,
-        Rick Edgecombe <rick.p.edgecombe@intel.com>,
-        Mark Brown <broonie@kernel.org>,
-        Deepak Gupta <debug@rivosinc.com>, linux-alpha@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-ia64@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
-        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
-        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
-        sparclinux@vger.kernel.org, linux-perf-users@vger.kernel.org
-Subject: [PATCH 0/2] arch: Sync all syscall tables with 2 newly added system calls
-Date:   Mon, 11 Sep 2023 18:02:08 +0000
-Message-Id: <20230911180210.1060504-1-sohil.mehta@intel.com>
-X-Mailer: git-send-email 2.34.1
+        with ESMTP id S237027AbjIKLwm (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Sep 2023 07:52:42 -0400
+Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA349E40;
+        Mon, 11 Sep 2023 04:52:37 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7C558C433C7;
+        Mon, 11 Sep 2023 11:52:30 +0000 (UTC)
+Date:   Mon, 11 Sep 2023 12:52:27 +0100
+From:   Catalin Marinas <catalin.marinas@arm.com>
+To:     Alexandru Elisei <alexandru.elisei@arm.com>
+Cc:     David Hildenbrand <david@redhat.com>, will@kernel.org,
+        oliver.upton@linux.dev, maz@kernel.org, james.morse@arm.com,
+        suzuki.poulose@arm.com, yuzenghui@huawei.com, arnd@arndb.de,
+        akpm@linux-foundation.org, mingo@redhat.com, peterz@infradead.org,
+        juri.lelli@redhat.com, vincent.guittot@linaro.org,
+        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
+        mgorman@suse.de, bristot@redhat.com, vschneid@redhat.com,
+        mhiramat@kernel.org, rppt@kernel.org, hughd@google.com,
+        pcc@google.com, steven.price@arm.com, anshuman.khandual@arm.com,
+        vincenzo.frascino@arm.com, eugenis@google.com, kcc@google.com,
+        hyesoo.yu@samsung.com, linux-arm-kernel@lists.infradead.org,
+        linux-kernel@vger.kernel.org, kvmarm@lists.linux.dev,
+        linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org
+Subject: Re: [PATCH RFC 00/37] Add support for arm64 MTE dynamic tag storage
+ reuse
+Message-ID: <ZP7/e8YFiosElvTm@arm.com>
+References: <20230823131350.114942-1-alexandru.elisei@arm.com>
+ <33def4fe-fdb8-6388-1151-fabd2adc8220@redhat.com>
+ <ZOc0fehF02MohuWr@arm.com>
+ <ebd3f142-43cc-dc92-7512-8f1c99073fce@redhat.com>
+ <0b9c122a-c05a-b3df-c69f-85f520294adc@redhat.com>
+ <ZOd2LvUKMguWdlgq@arm.com>
+ <ZPhfNVWXhabqnknK@monolith>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ZPhfNVWXhabqnknK@monolith>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-6.6-rc1 has added support for 2 new system calls:
-[1] fchmodat2()
-[2] x86-specific map_shadow_stack()
+On Wed, Sep 06, 2023 at 12:23:21PM +0100, Alexandru Elisei wrote:
+> On Thu, Aug 24, 2023 at 04:24:30PM +0100, Catalin Marinas wrote:
+> > On Thu, Aug 24, 2023 at 01:25:41PM +0200, David Hildenbrand wrote:
+> > > On 24.08.23 13:06, David Hildenbrand wrote:
+> > > > Regarding one complication: "The kernel needs to know where to allocate
+> > > > a PROT_MTE page from or migrate a current page if it becomes PROT_MTE
+> > > > (mprotect()) and the range it is in does not support tagging.",
+> > > > simplified handling would be if it's in a MIGRATE_CMA pageblock, it
+> > > > doesn't support tagging. You have to migrate to a !CMA page (for
+> > > > example, not specifying GFP_MOVABLE as a quick way to achieve that).
+> > > 
+> > > Okay, I now realize that this patch set effectively duplicates some CMA
+> > > behavior using a new migrate-type.
+[...]
+> I considered mixing the tag storage memory memory with normal memory and
+> adding it to MIGRATE_CMA. But since tag storage memory cannot be tagged,
+> this means that it's not enough anymore to have a __GFP_MOVABLE allocation
+> request to use MIGRATE_CMA.
+> 
+> I considered two solutions to this problem:
+> 
+> 1. Only allocate from MIGRATE_CMA is the requested memory is not tagged =>
+> this effectively means transforming all memory from MIGRATE_CMA into the
+> MIGRATE_METADATA migratetype that the series introduces. Not very
+> appealing, because that means treating normal memory that is also on the
+> MIGRATE_CMA lists as tagged memory.
 
-This series mainly synchronizes the syscall tables arcoss the core kernel and
-tools to reflect the recent updates.
+That's indeed not ideal. We could try this if it makes the patches
+significantly simpler, though I'm not so sure.
 
-For fchmodat2(), it fixes the missing entries in the tools directory.
+Allocating metadata is the easier part as we know the correspondence
+from the tagged pages (32 PROT_MTE page) to the metadata page (1 tag
+storage page), so alloc_contig_range() does this for us. Just adding it
+to the CMA range is sufficient.
 
-For map_shadow_stack(), it reserves the syscall across the board. Since
-map_shadow_stack() is x86 specific for now, it is marked as a conditional
-syscall in sys_ni.c. Adding it to the syscall tables of other architectures is
-harmless and would return ENOSYS when exercised.
+However, making sure that we don't allocate PROT_MTE pages from the
+metadata range is what led us to another migrate type. I guess we could
+achieve something similar with a new zone or a CPU-less NUMA node,
+though the latter is not guaranteed not to allocate memory from the
+range, only make it less likely. Both these options are less flexible in
+terms of size/alignment/placement.
 
-Reserving arch-specific syscall numbers in the tables of all architectures is
-good practice and would help avoid future conflicts.
+Maybe as a quick hack - only allow PROT_MTE from ZONE_NORMAL and
+configure the metadata range in ZONE_MOVABLE but at some point I'd
+expect some CXL-attached memory to support MTE with additional carveout
+reserved.
 
-[1]: https://lore.kernel.org/lkml/20230824-frohlocken-vorabend-725f6fdaad50@brauner/
-[2]: https://lore.kernel.org/lkml/20230830234752.19858-1-dave.hansen@linux.intel.com/
+To recap, in this series, a PROT_MTE page allocation starts with a
+typical allocation from anywhere other than MIGRATE_METADATA followed by
+the hooks to reserve the corresponding metadata range at (pfn * 128 +
+offset) for a 4K page. The whole metadata page is reserved, so the
+adjacent 31 pages around the original allocation can also be mapped as
+PROT_MTE.
 
-Sohil Mehta (2):
-  tools headers UAPI: Sync fchmodat2() syscall table entries
-  arch: Reserve map_shadow_stack() syscall number for all architectures
+(Peter and Evgenii @ Google had a slightly different approach in their
+prototype: separate free_area[] array for PROT_MTE pages; while it has
+some advantages, I found it more intrusive since the same page can be on
+a free_area/free_list or another)
 
- arch/alpha/kernel/syscalls/syscall.tbl              | 1 +
- arch/arm/tools/syscall.tbl                          | 1 +
- arch/arm64/include/asm/unistd.h                     | 2 +-
- arch/arm64/include/asm/unistd32.h                   | 2 ++
- arch/ia64/kernel/syscalls/syscall.tbl               | 1 +
- arch/m68k/kernel/syscalls/syscall.tbl               | 1 +
- arch/microblaze/kernel/syscalls/syscall.tbl         | 1 +
- arch/mips/kernel/syscalls/syscall_n32.tbl           | 1 +
- arch/mips/kernel/syscalls/syscall_n64.tbl           | 1 +
- arch/mips/kernel/syscalls/syscall_o32.tbl           | 1 +
- arch/parisc/kernel/syscalls/syscall.tbl             | 1 +
- arch/powerpc/kernel/syscalls/syscall.tbl            | 1 +
- arch/s390/kernel/syscalls/syscall.tbl               | 1 +
- arch/sh/kernel/syscalls/syscall.tbl                 | 1 +
- arch/sparc/kernel/syscalls/syscall.tbl              | 1 +
- arch/x86/entry/syscalls/syscall_32.tbl              | 1 +
- arch/xtensa/kernel/syscalls/syscall.tbl             | 1 +
- include/uapi/asm-generic/unistd.h                   | 5 ++++-
- tools/include/uapi/asm-generic/unistd.h             | 8 +++++++-
- tools/perf/arch/mips/entry/syscalls/syscall_n64.tbl | 2 ++
- tools/perf/arch/powerpc/entry/syscalls/syscall.tbl  | 2 ++
- tools/perf/arch/s390/entry/syscalls/syscall.tbl     | 2 ++
- tools/perf/arch/x86/entry/syscalls/syscall_64.tbl   | 2 ++
- 23 files changed, 37 insertions(+), 3 deletions(-)
+> 2. Keep track of which pages are tag storage at page granularity (either by
+> a page flag, or by checking that the pfn falls in one of the tag storage
+> region, or by some other mechanism). When the page allocator takes free
+> pages from the MIGRATE_METADATA list to satisfy an allocation, compare the
+> gfp mask with the page type, and if the allocation is tagged and the page
+> is a tag storage page, put it back at the tail of the free list and choose
+> the next page. Repeat until the page allocator finds a normal memory page
+> that can be tagged (some refinements obviously needed to need to avoid
+> infinite loops).
 
+With large enough CMA areas, there's a real risk of latency spikes, RCU
+stalls etc. Not really keen on such heuristics.
 
-base-commit: 0bb80ecc33a8fb5a682236443c1e740d5c917d1d
 -- 
-2.34.1
-
+Catalin
