@@ -2,346 +2,156 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 8CE50CA0EC0
-	for <linux-arch@archiver.kernel.org>; Mon, 11 Sep 2023 21:10:46 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 00AC5CA0EC3
+	for <linux-arch@archiver.kernel.org>; Mon, 11 Sep 2023 21:10:49 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230408AbjIKVFY (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 11 Sep 2023 17:05:24 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36684 "EHLO
+        id S235255AbjIKVFc (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 11 Sep 2023 17:05:32 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44350 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237703AbjIKNKp (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Sep 2023 09:10:45 -0400
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [IPv6:2001:67c:2178:6::1c])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83176E40;
-        Mon, 11 Sep 2023 06:10:40 -0700 (PDT)
-Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
-        (No client certificate requested)
-        by smtp-out1.suse.de (Postfix) with ESMTPS id 28D1E21847;
-        Mon, 11 Sep 2023 13:10:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
-        t=1694437839; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:
-         content-transfer-encoding:content-transfer-encoding:
-         in-reply-to:in-reply-to:references:references;
-        bh=ZodmzkMYid+Fz47QG0dNJvIaxaksL2nhfvjUaZbfPX4=;
-        b=vLL5qubtyg3IVc+uYLzLnlLZ8l6EpGXavmTJHBAN++02vm5Yv4qoqN7Buht/BFkgvSs1tX
-        UdwxxuQS4CHP1gwkH/R9Y9SgNjn6CqOUBVa2W9MZE4lWKGG/7lTiSDGckbMAb77MS/vPwu
-        AEKseBZ+o1Mqtxbdi/yaE1UUNmGPmmE=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
-        s=susede2_ed25519; t=1694437839;
-        h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-         mime-version:mime-version:
-         content-transfer-encoding:content-transfer-encoding:
-         in-reply-to:in-reply-to:references:references;
-        bh=ZodmzkMYid+Fz47QG0dNJvIaxaksL2nhfvjUaZbfPX4=;
-        b=KdpV7fOV/mojhOCjMnFjSFzYsP8Nx9jXyaQjL+ELWq0lUU5auevuOmlJteGkwDIMcaRp7U
-        bSaxTSGnF3yk1oCw==
-Received: from imap2.suse-dmz.suse.de (imap2.suse-dmz.suse.de [192.168.254.74])
-        (using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-         key-exchange X25519 server-signature ECDSA (P-521) server-digest SHA512)
-        (No client certificate requested)
-        by imap2.suse-dmz.suse.de (Postfix) with ESMTPS id CC53113780;
-        Mon, 11 Sep 2023 13:10:38 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([192.168.254.65])
-        by imap2.suse-dmz.suse.de with ESMTPSA
-        id AKOkMM4R/2SCIwAAMHmgww
-        (envelope-from <tzimmermann@suse.de>); Mon, 11 Sep 2023 13:10:38 +0000
-From:   Thomas Zimmermann <tzimmermann@suse.de>
-To:     mpe@ellerman.id.au, npiggin@gmail.com, christophe.leroy@csgroup.eu,
-        arnd@arndb.de, deller@gmx.de
-Cc:     linuxppc-dev@lists.ozlabs.org, linux-fbdev@vger.kernel.org,
-        linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
-        linux-mips@vger.kernel.org, sparclinux@vger.kernel.org,
-        dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org,
-        Thomas Zimmermann <tzimmermann@suse.de>
-Subject: [PATCH v3 2/5] fbdev: Replace fb_pgprotect() with fb_pgprot_device()
-Date:   Mon, 11 Sep 2023 15:08:32 +0200
-Message-ID: <20230911131033.27745-3-tzimmermann@suse.de>
-X-Mailer: git-send-email 2.42.0
-In-Reply-To: <20230911131033.27745-1-tzimmermann@suse.de>
-References: <20230911131033.27745-1-tzimmermann@suse.de>
+        with ESMTP id S236438AbjIKKio (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Sep 2023 06:38:44 -0400
+Received: from eu-smtp-delivery-151.mimecast.com (eu-smtp-delivery-151.mimecast.com [185.58.86.151])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 6DF2DE69
+        for <linux-arch@vger.kernel.org>; Mon, 11 Sep 2023 03:38:39 -0700 (PDT)
+Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) by
+ relay.mimecast.com with ESMTP with both STARTTLS and AUTH (version=TLSv1.2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id
+ uk-mta-321-IzkOUA4zNlKP5UCAOsRxDw-1; Mon, 11 Sep 2023 11:38:10 +0100
+X-MC-Unique: IzkOUA4zNlKP5UCAOsRxDw-1
+Received: from AcuMS.Aculab.com (10.202.163.6) by AcuMS.aculab.com
+ (10.202.163.6) with Microsoft SMTP Server (TLS) id 15.0.1497.48; Mon, 11 Sep
+ 2023 11:37:59 +0100
+Received: from AcuMS.Aculab.com ([::1]) by AcuMS.aculab.com ([::1]) with mapi
+ id 15.00.1497.048; Mon, 11 Sep 2023 11:37:59 +0100
+From:   David Laight <David.Laight@ACULAB.COM>
+To:     'Mateusz Guzik' <mjguzik@gmail.com>
+CC:     "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>,
+        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+        "bp@alien8.de" <bp@alien8.de>
+Subject: RE: [PATCH v2] x86: bring back rep movsq for user access on CPUs
+ without ERMS
+Thread-Topic: [PATCH v2] x86: bring back rep movsq for user access on CPUs
+ without ERMS
+Thread-Index: AQHZ23Vdq8Esj5k0zUGYupOb09r6RrAF7nHAgAAb1ICAABQQEIANxBwAgAGZkGA=
+Date:   Mon, 11 Sep 2023 10:37:58 +0000
+Message-ID: <ed0ac0937cdf4bb99b273fc0396b46b9@AcuMS.aculab.com>
+References: <20230830140315.2666490-1-mjguzik@gmail.com>
+ <27ba3536633c4e43b65f1dcd0a82c0de@AcuMS.aculab.com>
+ <CAGudoHHUWZNz0OU5yCqOBkeifSYKhm4y6WO1x+q5pDPt1j3+GA@mail.gmail.com>
+ <9a5dd401bf154a0aace0e5f781a3580c@AcuMS.aculab.com>
+ <CAGudoHEuY1cMFStdRAjb8aWbHNqy8Pbeavk6tPB+u=rYzFDF+Q@mail.gmail.com>
+In-Reply-To: <CAGudoHEuY1cMFStdRAjb8aWbHNqy8Pbeavk6tPB+u=rYzFDF+Q@mail.gmail.com>
+Accept-Language: en-GB, en-US
+X-MS-Has-Attach: yes
+X-MS-TNEF-Correlator: 
+x-ms-exchange-transport-fromentityheader: Hosted
+x-originating-ip: [10.202.205.107]
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Mimecast-Spam-Score: 0
+X-Mimecast-Originator: aculab.com
+Content-Language: en-US
+Content-Type: multipart/mixed;
+        boundary="_002_ed0ac0937cdf4bb99b273fc0396b46b9AcuMSaculabcom_"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Rename the fbdev mmap helper fb_pgprotect() to pgprot_framebuffer().
-The helper sets VMA page-access flags for framebuffers in device I/O
-memory.
+--_002_ed0ac0937cdf4bb99b273fc0396b46b9AcuMSaculabcom_
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
 
-Also clean up the helper's parameters and return value. Instead of
-the VMA instance, pass the individial parameters separately: existing
-page-access flags, the VMAs start and end addresses and the offset
-in the underlying device memory rsp file. Return the new page-access
-flags. These changes align pgprot_framebuffer() with other pgprot_()
-functions.
+RnJvbTogTWF0ZXVzeiBHdXppaw0KPiBTZW50OiAxMCBTZXB0ZW1iZXIgMjAyMyAxMTo1NA0KPiAN
+Cj4gT24gOS8zLzIzLCBEYXZpZCBMYWlnaHQgPERhdmlkLkxhaWdodEBhY3VsYWIuY29tPiB3cm90
+ZToNCj4gPiAuLi4NCj4gPj4gV2hlbiBJIHdhcyBwbGF5aW5nIHdpdGggdGhpcyBzdHVmZiBhYm91
+dCA1IHllYXJzIGFnbyBJIGZvdW5kIDMyLWJ5dGUNCj4gPj4gbG9vcHMgdG8gYmUgb3B0aW1hbCBm
+b3IgdWFyY2hzIG9mIHRoZSBwcmlvZCAoU2t5bGFrZSwgQnJvYWR3ZWxsLA0KPiA+PiBIYXN3ZWxs
+IGFuZCBzbyBvbiksIGJ1dCBvbmx5IHVwIHRvIGEgcG9pbnQgd2hlcmUgcmVwIHdpbnMuDQo+ID4N
+Cj4gPiBEb2VzIHRoZSAncmVwIG1vdnNxJyBldmVyIGFjdHVhbGx5IHdpbj8NCj4gPiAoVW5sZXNz
+IHlvdSBmaW5kIG9uZSBvZiB0aGUgRU1SUyAob3Igc2ltaWxhcikgdmVyc2lvbnMuKQ0KPiA+IElJ
+UkMgaXQgb25seSBldmVyIGRvZXMgb25lIGl0ZXJhdGlvbiBwZXIgY2xvY2sgLSBhbmQgeW91DQo+
+ID4gc2hvdWxkIGJlIGFibGUgdG8gbWF0Y2ggdGhhdCB3aXRoIGEgY2FyZWZ1bGx5IGNvbnN0cnVj
+dGVkIGxvb3AuDQo+ID4NCj4gDQo+IFNvcnJ5IGZvciBsYXRlIHJlcGx5LCBJIG1pc3NlZCB5b3Vy
+IGUtbWFpbCBkdWUgdG8gYWxsIHRoZSB1bnJlbGF0ZWQNCj4gdHJhZmZpYyBpbiB0aGUgdGhyZWFk
+IGFuZCB1c2luZyBnbWFpbCBjbGllbnQuIDspDQo+IA0KPiBJIGFtIHNvbWV3aGF0IGNvbmZ1c2Vk
+IGJ5IHRoZSBxdWVzdGlvbiB0aG91Z2guIEluIHRoaXMgdmVyeSBwYXRjaCBJJ20NCj4gc2hvd2lu
+ZyBudW1iZXJzIGZyb20gYW4gRVJNUy1sZXNzIHVhcmNoIGdldHRpbmcgYSB3aW4gZnJvbSBzd2l0
+Y2hpbmcNCj4gZnJvbSBoYW5kLXJvbGxlZCBtb3YgbG9vcCB0byByZXAgbW92c3EsIHdoaWxlIGRv
+aW5nIDRLQiBjb3BpZXMuDQoNCkkndmUganVzdCBkb21lIHNvbWUgbWVhc3VyZW1lbnRzIG9uIGFu
+IGk3LTc3MDAuDQpUaGF0IGRvZXMgaGF2ZSBFUk1TIChmYXN0ICdyZXAgbW92c2InKSBidXQgc2hv
+d3Mgc29tZSBpbnRlcmVzdGluZyBpbmZvLg0KDQpUaGUgb3ZlcmhlYWQgb2YgJ3JlcCBtb3Zicycg
+aXMgYWJvdXQgMzYgY2xvY2tzLCAncmVwIG1vdnNxJyBvbmx5IDE2Lg0KKGV4Y2VwdCBpdCBoYXMg
+anVzdCBjaGFuZ2VkIGl0cyBtaW5kLi4uKQ0KJ3JlcCBtb3ZzYicgd2lsbCBjb3B5IChhYm91dCkg
+MzIgYnl0ZXMvY2xvY2sgcHJvdmlkZWQgdGhlDQpkZXN0aW5hdGlvbiBidWZmZXIgaXMgMzJieXRl
+IGFsaWduZWQsIGJ1dCBvbmx5IDE2IGJ5dGVzL2Nsb2NrDQpvdGhlcndpc2UuIFRoZSBzb3VyY2Ug
+YnVmZmVyIGFsaWdubWVudCBkb2Vzbid0IHNlZW0gdG8gbWF0dGVyLg0KDQpPbiB0aGlzIHN5c3Rl
+bSAncmVwIG1vdnNxJyBzZWVtcyB0byBiZWhhdmUgdGhlIHNhbWUgd2F5Lg0KDQpTbyB0aGF0IGlz
+IGZhc3RlciB0aGFuIGFuIGNvcHkgbG9vcCAtIGxpbWl0ZWQgdG8gb25lIHJlZ2lzdGVyDQp3cml0
+ZSBwZXIgY2xvY2suDQoNClRlc3QgcHJvZ3JhbSBhdHRhY2hlZC4NCg0KCURhdmlkDQoNCi0NClJl
+Z2lzdGVyZWQgQWRkcmVzcyBMYWtlc2lkZSwgQnJhbWxleSBSb2FkLCBNb3VudCBGYXJtLCBNaWx0
+b24gS2V5bmVzLCBNSzEgMVBULCBVSw0KUmVnaXN0cmF0aW9uIE5vOiAxMzk3Mzg2IChXYWxlcykN
+Cg==
+--_002_ed0ac0937cdf4bb99b273fc0396b46b9AcuMSaculabcom_
+Content-Type: text/plain; name=memcpy_perf.c; charset=WINDOWS-1252
+Content-Description: memcpy_perf.c
+Content-Disposition: attachment; filename="memcpy_perf.c"; size=2972;
+	creation-date="Mon, 11 Sep 2023 10:18:55 GMT";
+	modification-date="Mon, 11 Sep 2023 10:18:55 GMT"
+Content-Transfer-Encoding: base64
 
-v3:
-	* rename fb_pgprotect() to pgprot_framebuffer() (Arnd)
-
-Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
----
- arch/ia64/include/asm/fb.h           | 15 +++++++--------
- arch/m68k/include/asm/fb.h           | 19 ++++++++++---------
- arch/mips/include/asm/fb.h           | 11 +++++------
- arch/powerpc/include/asm/fb.h        | 13 +++++--------
- arch/sparc/include/asm/fb.h          | 15 +++++++++------
- arch/x86/include/asm/fb.h            | 10 ++++++----
- arch/x86/video/fbdev.c               | 15 ++++++++-------
- drivers/video/fbdev/core/fb_chrdev.c |  3 ++-
- include/asm-generic/fb.h             | 12 ++++++------
- 9 files changed, 58 insertions(+), 55 deletions(-)
-
-diff --git a/arch/ia64/include/asm/fb.h b/arch/ia64/include/asm/fb.h
-index 1717b26fd423f..7fce0d5423590 100644
---- a/arch/ia64/include/asm/fb.h
-+++ b/arch/ia64/include/asm/fb.h
-@@ -8,17 +8,16 @@
- 
- #include <asm/page.h>
- 
--struct file;
--
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
-+static inline pgprot_t pgprot_framebuffer(pgprot_t prot,
-+					  unsigned long vm_start, unsigned long vm_end,
-+					  unsigned long offset)
- {
--	if (efi_range_is_wc(vma->vm_start, vma->vm_end - vma->vm_start))
--		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-+	if (efi_range_is_wc(vm_start, vm_end - vm_start))
-+		return pgprot_writecombine(prot);
- 	else
--		vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-+		return pgprot_noncached(prot);
- }
--#define fb_pgprotect fb_pgprotect
-+#define pgprot_framebuffer pgprot_framebuffer
- 
- static inline void fb_memcpy_fromio(void *to, const volatile void __iomem *from, size_t n)
- {
-diff --git a/arch/m68k/include/asm/fb.h b/arch/m68k/include/asm/fb.h
-index 24273fc7ad917..9941b7434b696 100644
---- a/arch/m68k/include/asm/fb.h
-+++ b/arch/m68k/include/asm/fb.h
-@@ -5,26 +5,27 @@
- #include <asm/page.h>
- #include <asm/setup.h>
- 
--struct file;
--
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
-+static inline pgprot_t pgprot_framebuffer(pgprot_t prot,
-+					  unsigned long vm_start, unsigned long vm_end,
-+					  unsigned long offset)
- {
- #ifdef CONFIG_MMU
- #ifdef CONFIG_SUN3
--	pgprot_val(vma->vm_page_prot) |= SUN3_PAGE_NOCACHE;
-+	pgprot_val(prot) |= SUN3_PAGE_NOCACHE;
- #else
- 	if (CPU_IS_020_OR_030)
--		pgprot_val(vma->vm_page_prot) |= _PAGE_NOCACHE030;
-+		pgprot_val(prot) |= _PAGE_NOCACHE030;
- 	if (CPU_IS_040_OR_060) {
--		pgprot_val(vma->vm_page_prot) &= _CACHEMASK040;
-+		pgprot_val(prot) &= _CACHEMASK040;
- 		/* Use no-cache mode, serialized */
--		pgprot_val(vma->vm_page_prot) |= _PAGE_NOCACHE_S;
-+		pgprot_val(prot) |= _PAGE_NOCACHE_S;
- 	}
- #endif /* CONFIG_SUN3 */
- #endif /* CONFIG_MMU */
-+
-+	return prot;
- }
--#define fb_pgprotect fb_pgprotect
-+#define pgprot_framebuffer pgprot_framebuffer
- 
- #include <asm-generic/fb.h>
- 
-diff --git a/arch/mips/include/asm/fb.h b/arch/mips/include/asm/fb.h
-index 18b7226403bad..d98d6681d64ec 100644
---- a/arch/mips/include/asm/fb.h
-+++ b/arch/mips/include/asm/fb.h
-@@ -3,14 +3,13 @@
- 
- #include <asm/page.h>
- 
--struct file;
--
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
-+static inline pgprot_t pgprot_framebuffer(pgprot_t prot,
-+					  unsigned long vm_start, unsigned long vm_end,
-+					  unsigned long offset)
- {
--	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-+	return pgprot_noncached(prot);
- }
--#define fb_pgprotect fb_pgprotect
-+#define pgprot_framebuffer pgprot_framebuffer
- 
- /*
-  * MIPS doesn't define __raw_ I/O macros, so the helpers
-diff --git a/arch/powerpc/include/asm/fb.h b/arch/powerpc/include/asm/fb.h
-index 61e3b8806db69..3cecf14d51de8 100644
---- a/arch/powerpc/include/asm/fb.h
-+++ b/arch/powerpc/include/asm/fb.h
-@@ -2,23 +2,20 @@
- #ifndef _ASM_FB_H_
- #define _ASM_FB_H_
- 
--#include <linux/fs.h>
--
- #include <asm/page.h>
- 
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
-+static inline pgprot_t pgprot_framebuffer(pgprot_t prot,
-+					  unsigned long vm_start, unsigned long vm_end,
-+					  unsigned long offset)
- {
- 	/*
- 	 * PowerPC's implementation of phys_mem_access_prot() does
- 	 * not use the file argument. Set it to NULL in preparation
- 	 * of later updates to the interface.
- 	 */
--	vma->vm_page_prot = phys_mem_access_prot(NULL, PHYS_PFN(off),
--						 vma->vm_end - vma->vm_start,
--						 vma->vm_page_prot);
-+	return phys_mem_access_prot(NULL, PHYS_PFN(offset), vm_end - vm_start, prot);
- }
--#define fb_pgprotect fb_pgprotect
-+#define pgprot_framebuffer pgprot_framebuffer
- 
- #include <asm-generic/fb.h>
- 
-diff --git a/arch/sparc/include/asm/fb.h b/arch/sparc/include/asm/fb.h
-index 572ecd3e1cc48..24440c0fda490 100644
---- a/arch/sparc/include/asm/fb.h
-+++ b/arch/sparc/include/asm/fb.h
-@@ -4,15 +4,18 @@
- 
- #include <linux/io.h>
- 
-+#include <asm/page.h>
-+
- struct fb_info;
--struct file;
--struct vm_area_struct;
- 
- #ifdef CONFIG_SPARC32
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
--{ }
--#define fb_pgprotect fb_pgprotect
-+static inline pgprot_t pgprot_framebuffer(pgprot_t prot,
-+					  unsigned long vm_start, unsigned long vm_end,
-+					  unsigned long offset)
-+{
-+	return prot;
-+}
-+#define pgprot_framebuffer pgprot_framebuffer
- #endif
- 
- int fb_is_primary_device(struct fb_info *info);
-diff --git a/arch/x86/include/asm/fb.h b/arch/x86/include/asm/fb.h
-index 23873da8fb77c..c3b9582de7efd 100644
---- a/arch/x86/include/asm/fb.h
-+++ b/arch/x86/include/asm/fb.h
-@@ -2,12 +2,14 @@
- #ifndef _ASM_X86_FB_H
- #define _ASM_X86_FB_H
- 
-+#include <asm/page.h>
-+
- struct fb_info;
--struct file;
--struct vm_area_struct;
- 
--void fb_pgprotect(struct file *file, struct vm_area_struct *vma, unsigned long off);
--#define fb_pgprotect fb_pgprotect
-+pgprot_t pgprot_framebuffer(pgprot_t prot,
-+			    unsigned long vm_start, unsigned long vm_end,
-+			    unsigned long offset);
-+#define pgprot_framebuffer pgprot_framebuffer
- 
- int fb_is_primary_device(struct fb_info *info);
- #define fb_is_primary_device fb_is_primary_device
-diff --git a/arch/x86/video/fbdev.c b/arch/x86/video/fbdev.c
-index 49a0452402e97..1dd6528cc947c 100644
---- a/arch/x86/video/fbdev.c
-+++ b/arch/x86/video/fbdev.c
-@@ -13,16 +13,17 @@
- #include <linux/vgaarb.h>
- #include <asm/fb.h>
- 
--void fb_pgprotect(struct file *file, struct vm_area_struct *vma, unsigned long off)
-+pgprot_t pgprot_framebuffer(pgprot_t prot,
-+			    unsigned long vm_start, unsigned long vm_end,
-+			    unsigned long offset)
- {
--	unsigned long prot;
--
--	prot = pgprot_val(vma->vm_page_prot) & ~_PAGE_CACHE_MASK;
-+	pgprot_val(prot) &= ~_PAGE_CACHE_MASK;
- 	if (boot_cpu_data.x86 > 3)
--		pgprot_val(vma->vm_page_prot) =
--			prot | cachemode2protval(_PAGE_CACHE_MODE_UC_MINUS);
-+		pgprot_val(prot) |= cachemode2protval(_PAGE_CACHE_MODE_UC_MINUS);
-+
-+	return prot;
- }
--EXPORT_SYMBOL(fb_pgprotect);
-+EXPORT_SYMBOL(pgprot_framebuffer);
- 
- int fb_is_primary_device(struct fb_info *info)
- {
-diff --git a/drivers/video/fbdev/core/fb_chrdev.c b/drivers/video/fbdev/core/fb_chrdev.c
-index eadb81f53a821..32a7315b4b6dd 100644
---- a/drivers/video/fbdev/core/fb_chrdev.c
-+++ b/drivers/video/fbdev/core/fb_chrdev.c
-@@ -365,7 +365,8 @@ static int fb_mmap(struct file *file, struct vm_area_struct *vma)
- 	mutex_unlock(&info->mm_lock);
- 
- 	vma->vm_page_prot = vm_get_page_prot(vma->vm_flags);
--	fb_pgprotect(file, vma, start);
-+	vma->vm_page_prot = pgprot_framebuffer(vma->vm_page_prot, vma->vm_start,
-+					       vma->vm_end, start);
- 
- 	return vm_iomap_memory(vma, start, len);
- }
-diff --git a/include/asm-generic/fb.h b/include/asm-generic/fb.h
-index bb7ee9c70e603..6ccabb400aa66 100644
---- a/include/asm-generic/fb.h
-+++ b/include/asm-generic/fb.h
-@@ -12,14 +12,14 @@
- #include <linux/pgtable.h>
- 
- struct fb_info;
--struct file;
- 
--#ifndef fb_pgprotect
--#define fb_pgprotect fb_pgprotect
--static inline void fb_pgprotect(struct file *file, struct vm_area_struct *vma,
--				unsigned long off)
-+#ifndef pgprot_framebuffer
-+#define pgprot_framebuffer pgprot_framebuffer
-+static inline pgprot_t pgprot_framebuffer(pgprot_t prot,
-+					  unsigned long vm_start, unsigned long vm_end,
-+					  unsigned long offset)
- {
--	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-+	return pgprot_writecombine(prot);
- }
- #endif
- 
--- 
-2.42.0
+I2luY2x1ZGUgPHN0ZGlvLmg+CiNpbmNsdWRlIDxzdGRsaWIuaD4KI2luY2x1ZGUgPHVuaXN0ZC5o
+PgojaW5jbHVkZSA8c3RyaW5nLmg+CiNpbmNsdWRlIDxlcnJuby5oPgoKI2luY2x1ZGUgPGxpbnV4
+L3BlcmZfZXZlbnQuaD4KI2luY2x1ZGUgPHN5cy9tbWFuLmg+CiNpbmNsdWRlIDxzeXMvc3lzY2Fs
+bC5oPgoKc3RhdGljIGludCBpbml0X3BtYyh2b2lkKQp7CglzdGF0aWMgc3RydWN0IHBlcmZfZXZl
+bnRfYXR0ciBwZXJmX2F0dHIgPSB7CgkJLnR5cGUgPSBQRVJGX1RZUEVfSEFSRFdBUkUsCgkJLmNv
+bmZpZyA9IFBFUkZfQ09VTlRfSFdfQ1BVX0NZQ0xFUywKCQkucGlubmVkID0gMSwKCX07CglzdHJ1
+Y3QgcGVyZl9ldmVudF9tbWFwX3BhZ2UgKnBjOwoKCWludCBwZXJmX2ZkOwoJcGVyZl9mZCA9IHN5
+c2NhbGwoX19OUl9wZXJmX2V2ZW50X29wZW4sICZwZXJmX2F0dHIsIDAsIC0xLCAtMSwgMCk7Cglp
+ZiAocGVyZl9mZCA8IDApIHsKCQlmcHJpbnRmKHN0ZGVyciwgInBlcmZfZXZlbnRfb3BlbiBmYWls
+ZWQ6IGVycm5vICVkXG4iLCBlcnJubyk7CgkJZXhpdCgxKTsKCX0KCXBjID0gbW1hcChOVUxMLCA0
+MDk2LCBQUk9UX1JFQUQsIE1BUF9TSEFSRUQsIHBlcmZfZmQsIDApOwoJaWYgKHBjID09IE1BUF9G
+QUlMRUQpIHsKCQlmcHJpbnRmKHN0ZGVyciwgInBlcmZfZXZlbnQgbW1hcCgpIGZhaWxlZDogZXJy
+bm8gJWRcbiIsIGVycm5vKTsKCQlleGl0KDEpOwoJfQoJcmV0dXJuIHBjLT5pbmRleCAtIDE7Cn0K
+CnN0YXRpYyBpbmxpbmUgdW5zaWduZWQgaW50IHJkcG1jKHVuc2lnbmVkIGludCBjb3VudGVyKQp7
+CiAgICAgICAgdW5zaWduZWQgaW50IGxvdywgaGlnaDsKCgkvLyBhc20gdm9sYXRpbGUoInJkdHNj
+IiA6ICI9YSIgKGxvdyksICI9ZCIgKGhpZ2gpKTsKCWFzbSB2b2xhdGlsZSgibGZlbmNlIik7Cglh
+c20gdm9sYXRpbGUoInJkcG1jIiA6ICI9YSIgKGxvdyksICI9ZCIgKGhpZ2gpIDogImMiIChjb3Vu
+dGVyKSk7CgoJLy8gcmV0dXJuIGxvdyBiaXRzLCBjb3VudGVyIG1pZ2h0IHRvIDMyIG9yIDQwIGJp
+dHMgd2lkZS4KCXJldHVybiBsb3c7Cn0KCiNpZm5kZWYgTU9ERQojZGVmaW5lIE1PREUgMAojZW5k
+aWYKCl9fYXR0cmlidXRlX18oKG5vaW5saW5lKSkKdm9pZCBtZW1jcHlfcGVyZih1bnNpZ25lZCBj
+aGFyICpkX2J1ZmYsIGNvbnN0IHVuc2lnbmVkIGNoYXIgKnNfYnVmZiwgdW5zaWduZWQgbG9uZyBs
+ZW4pCnsKCiNpZiBNT0RFID09IC0xCi8vICdObyBjb3B5JyBsb29wIGZvciBiYXNlbGluZSBvdmVy
+aGVhZAoJYXNtIHZvbGF0aWxlKCIJbm9wXG4iCgkJOiAiKyZEIiAoZF9idWZmKSwgICIrJlMiIChz
+X2J1ZmYpLCAgIismYyIgKGxlbikKCQk6IDogIm1lbW9yeSIpOwojZW5kaWYKCiNpZiBNT0RFID09
+IDAKLy8gU2ltcGxlICdyZXAgbW92cycgbG9vcAoJYXNtIHZvbGF0aWxlKCIJcmVwIG1vdnNiXG4i
+CgkJOiAiKyZEIiAoZF9idWZmKSwgICIrJlMiIChzX2J1ZmYpLCAgIismYyIgKGxlbikKCQk6IDog
+Im1lbW9yeSIpOwojZW5kaWYKCiNpZiBNT0RFID09IDEKLy8gU2ltcGxlICdyZXAgbW92cScgbG9v
+cAoJbGVuIC89IDg7Cglhc20gdm9sYXRpbGUoIglyZXAgbW92c3FcbiIKCQk6ICIrJkQiIChkX2J1
+ZmYpLCAgIismUyIgKHNfYnVmZiksICAiKyZjIiAobGVuKQoJCTogOiAibWVtb3J5Iik7CiNlbmRp
+ZgoKfQoKdW5zaWduZWQgY2hhciBzX2J1ZmZbODE5Ml0gX19hdHRyaWJ1dGVfXygoYWxpZ25lZCg0
+MDk2KSkpOwp1bnNpZ25lZCBjaGFyIGRfYnVmZls4MTkyICsgMV0gX19hdHRyaWJ1dGVfXygoYWxp
+Z25lZCg0MDk2KSkpOwoKI2lmbmRlZiBQQVNTRVMKI2RlZmluZSBQQVNTRVMgNQojZW5kaWYKCiNp
+Zm5kZWYgT0ZGU0VUCiNkZWZpbmUgT0ZGU0VUIDAKI2VuZGlmCgppbnQgbWFpbihpbnQgYXJnYywg
+Y2hhciAqKmFyZ3YpCnsKCXVuc2lnbmVkIGludCB0aWNrOwoJdW5zaWduZWQgaW50IHRpY2tzW1BB
+U1NFU107Cgl1bnNpZ25lZCBpbnQgbGVuLCBzX29mZiA9IDAsIGRfb2ZmID0gMDsKCXVuc2lnbmVk
+IGludCBpOwoJdW5zaWduZWQgaW50IGlkID0gaW5pdF9wbWMoKTsKCXVuc2lnbmVkIGludCBvZmZz
+ZXQgPSBPRkZTRVQ7CgoJbGVuID0gc2l6ZW9mIHNfYnVmZjsKCWZvciAoOzspIHsKCQlzd2l0Y2gg
+KGdldG9wdChhcmdjLCBhcmd2LCAibDpzOmQ6bzoiKSkgewoJCWNhc2UgLTE6CgkJCWJyZWFrOwoJ
+CWRlZmF1bHQ6CgkJCWV4aXQoMSk7CgkJY2FzZSAnbCc6IGxlbiA9IGF0b2kob3B0YXJnKTsgY29u
+dGludWU7CgkJY2FzZSAncyc6IHNfb2ZmID0gYXRvaShvcHRhcmcpOyBjb250aW51ZTsKCQljYXNl
+ICdkJzogZF9vZmYgPSBhdG9pKG9wdGFyZyk7IGNvbnRpbnVlOwoJCWNhc2UgJ28nOiBvZmZzZXQg
+PSBhdG9pKG9wdGFyZyk7IGNvbnRpbnVlOwoJCX0KCQlicmVhazsKCX0KCglpZiAoc19vZmYgKyBs
+ZW4gPiBzaXplb2Ygc19idWZmIHx8IGRfb2ZmICsgbGVuID4gc2l6ZW9mIGRfYnVmZiAtIDEpIHsK
+CQlmcHJpbnRmKHN0ZGVyciwgInRvbyBsb25nXG4iKTsKCQlleGl0KDEpOwoJfQoKCWZvciAoaSA9
+IDA7IGkgPCBsZW47IGkrKykKCQlzX2J1ZmZbaV0gPSByYW5kKCk7CgoJZm9yIChpID0gMDsgaSA8
+IFBBU1NFUzsgaSsrKSB7CgkJdGljayA9IHJkcG1jKGlkKTsKCQltZW1jcHlfcGVyZihkX2J1ZmYg
+KyBkX29mZiwgc19idWZmICsgc19vZmYsIGxlbik7CgkJdGlja3NbaV0gPSByZHBtYyhpZCkgLSB0
+aWNrOwoJfQoKCXByaW50ZigiICAgdGlja3MgICAgcmF0ZSBtb2RlICVkXG4iLCBNT0RFKTsKCWZv
+ciAoaSA9IDA7IGkgPCBQQVNTRVM7IGkrKykKCQlwcmludGYoIiAlN3UgJTd1XG4iLCB0aWNrc1tp
+XSwgMTAwICogbGVuIC8gKHRpY2tzW2ldIC0gb2Zmc2V0KSk7CgoJaWYgKG1lbWNtcChkX2J1ZmYg
+KyBkX29mZiwgc19idWZmICsgc19vZmYsIGxlbikgfHwgZF9idWZmW2Rfb2ZmICsgbGVuXSkgewoJ
+CWZwcmludGYoc3RkZXJyLCAiY29weSBtaXNtYXRjaFxuIik7CgkJZXhpdCgxKTsKCX0KCXJldHVy
+biAwOwp9Cgo=
+--_002_ed0ac0937cdf4bb99b273fc0396b46b9AcuMSaculabcom_--
 
