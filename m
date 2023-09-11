@@ -2,126 +2,192 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DB46BCA0EC1
-	for <linux-arch@archiver.kernel.org>; Mon, 11 Sep 2023 21:10:20 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 76620CA0ECD
+	for <linux-arch@archiver.kernel.org>; Mon, 11 Sep 2023 21:10:22 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230094AbjIKVEz (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 11 Sep 2023 17:04:55 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39710 "EHLO
+        id S231893AbjIKVE6 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 11 Sep 2023 17:04:58 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37322 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S237027AbjIKLwm (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Sep 2023 07:52:42 -0400
-Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DA349E40;
-        Mon, 11 Sep 2023 04:52:37 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7C558C433C7;
-        Mon, 11 Sep 2023 11:52:30 +0000 (UTC)
-Date:   Mon, 11 Sep 2023 12:52:27 +0100
-From:   Catalin Marinas <catalin.marinas@arm.com>
-To:     Alexandru Elisei <alexandru.elisei@arm.com>
-Cc:     David Hildenbrand <david@redhat.com>, will@kernel.org,
-        oliver.upton@linux.dev, maz@kernel.org, james.morse@arm.com,
-        suzuki.poulose@arm.com, yuzenghui@huawei.com, arnd@arndb.de,
-        akpm@linux-foundation.org, mingo@redhat.com, peterz@infradead.org,
-        juri.lelli@redhat.com, vincent.guittot@linaro.org,
-        dietmar.eggemann@arm.com, rostedt@goodmis.org, bsegall@google.com,
-        mgorman@suse.de, bristot@redhat.com, vschneid@redhat.com,
-        mhiramat@kernel.org, rppt@kernel.org, hughd@google.com,
-        pcc@google.com, steven.price@arm.com, anshuman.khandual@arm.com,
-        vincenzo.frascino@arm.com, eugenis@google.com, kcc@google.com,
-        hyesoo.yu@samsung.com, linux-arm-kernel@lists.infradead.org,
-        linux-kernel@vger.kernel.org, kvmarm@lists.linux.dev,
-        linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
-        linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org
-Subject: Re: [PATCH RFC 00/37] Add support for arm64 MTE dynamic tag storage
- reuse
-Message-ID: <ZP7/e8YFiosElvTm@arm.com>
-References: <20230823131350.114942-1-alexandru.elisei@arm.com>
- <33def4fe-fdb8-6388-1151-fabd2adc8220@redhat.com>
- <ZOc0fehF02MohuWr@arm.com>
- <ebd3f142-43cc-dc92-7512-8f1c99073fce@redhat.com>
- <0b9c122a-c05a-b3df-c69f-85f520294adc@redhat.com>
- <ZOd2LvUKMguWdlgq@arm.com>
- <ZPhfNVWXhabqnknK@monolith>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <ZPhfNVWXhabqnknK@monolith>
+        with ESMTP id S243645AbjIKR1R (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 11 Sep 2023 13:27:17 -0400
+Received: from out1-smtp.messagingengine.com (out1-smtp.messagingengine.com [66.111.4.25])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 50E3B125;
+        Mon, 11 Sep 2023 10:27:09 -0700 (PDT)
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
+        by mailout.nyi.internal (Postfix) with ESMTP id 6FB9E5C0165;
+        Mon, 11 Sep 2023 13:27:08 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute6.internal (MEProxy); Mon, 11 Sep 2023 13:27:08 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :cc:content-type:content-type:date:date:from:from:in-reply-to
+        :in-reply-to:message-id:mime-version:references:reply-to:sender
+        :subject:subject:to:to; s=fm1; t=1694453228; x=1694539628; bh=Td
+        Gi7kVXEnEKoxN/ecGUPAlNClbuxU0h+eeQmE5muyU=; b=TPU3W6SYFJ7e/IDmmJ
+        xVpTiH4yGa4dS7/hYvgGW+IxFjo1AKWnWi0cxY73TQNDRBy95nX+2Ln16B8eX+uc
+        24420CK6I+1E3po3N/7w6h+xpUVQN5iakEs9SWqkGZzfaBWyS8mm6ZZcXDNM3Enj
+        DNcD+XPFH3/ihBtnnceAmRyohx2HuIkc5x0O3q3+DSBnjvcY+BkG+Ar6jfpTCZaC
+        MYz7GqU4CJ57CeyBG8ba0NMZMAqq9xuJb2lsZMjLUDlR55FsghaGUcXNfPHXYiMW
+        7BvR9RFZY0ARIWsZzZ1y0E+Ff1fiyeCC4tzrg5BS0lbP2yUy2A2/Za+2QGm0oS9a
+        Sg+Q==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-type:content-type:date:date
+        :feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
+        :message-id:mime-version:references:reply-to:sender:subject
+        :subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
+        :x-sasl-enc; s=fm1; t=1694453228; x=1694539628; bh=TdGi7kVXEnEKo
+        xN/ecGUPAlNClbuxU0h+eeQmE5muyU=; b=IjBdVEQ0w4QnMwyv3KzHbk003lgrX
+        CryomNEZLcLZtWdU9qgXMjkgPVvkDx0seprWJ02+laI36Kw20IGYJqHv9LDinrGQ
+        JBNearY/wXoxxZXuVopKdKzhu95lW9UDS2VBu/3UjrRHzRAWm2ZtFC2p9pA78atd
+        ialY5pN3M6gfMqfiGa5aAVs3etQoeHcj3+V+JvcPNB61AakLSWOO+CZt7G2pzoln
+        zF3O891DCL6ZY5tksw8iHqFr2maJLJzUSVak2EOiqAow0PSq/nj7BFYQlROoMtlX
+        ErBVjE/jeBLlJzqURyFTJd2ImY+ltCXPj09M1PRQ2td2j4mbPC1MAzZoA==
+X-ME-Sender: <xms:6U3_ZDAItsKohJrpOX0uEMEkEAxzm3QjJajwzyjZxdmAKPDrYWEDaA>
+    <xme:6U3_ZJi4Eudh4S8_7fjb7Yj_G8MTc8o7F7iYINwrkvR1lyqcfR2cuFcM0w4Sw7BtA
+    NNurCDYAE0hbrSo_0c>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedviedrudeigedgudduudcutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfgh
+    necuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmd
+    enucfjughrpefofgggkfgjfhffhffvvefutgesthdtredtreertdenucfhrhhomhepfdet
+    rhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrg
+    htthgvrhhnpeffheeugeetiefhgeethfejgfdtuefggeejleehjeeutefhfeeggefhkedt
+    keetffenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpe
+    grrhhnugesrghrnhgusgdruggv
+X-ME-Proxy: <xmx:6U3_ZOmAUShIz1HnYgmzBw2dyATGVeic8h1uMbmqjso3L3Sxe_HTOw>
+    <xmx:6U3_ZFylNI6c-B9sY4q6WZvBrRULVLHGeYUgy0FbbXzxh2U1dsV-LQ>
+    <xmx:6U3_ZITUDk4-y_jscr0qL5-f3PPv0XhwOAR7JoqXM3SVOFVH9MXQ3w>
+    <xmx:7E3_ZPLrOvvJLlcwP2woMLT2bK_I5P4HhJeKDGBmxqXR4N-uSRzmNg>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id C5A3EB60089; Mon, 11 Sep 2023 13:27:05 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-745-g95dd7bea33-fm-20230905.001-g95dd7bea
+Mime-Version: 1.0
+Message-Id: <e80f9c6f-d194-41c7-bdb5-e6a78751f543@app.fastmail.com>
+In-Reply-To: <ZP28D8dZXz3+4s9v@memverge.com>
+References: <20230907075453.350554-1-gregory.price@memverge.com>
+ <20230907075453.350554-4-gregory.price@memverge.com>
+ <f73d0495-f575-4b97-bc74-a57bd427df98@app.fastmail.com>
+ <ZPrRcJCjRBvJ9c3N@memverge.com>
+ <2fe03345-01a2-4cfe-9648-ae088493d1af@app.fastmail.com>
+ <ZP28D8dZXz3+4s9v@memverge.com>
+Date:   Mon, 11 Sep 2023 19:26:45 +0200
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     "Gregory Price" <gregory.price@memverge.com>
+Cc:     "Gregory Price" <gourry.memverge@gmail.com>,
+        linux-mm@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Linux-Arch <linux-arch@vger.kernel.org>,
+        linux-api@vger.kernel.org, linux-cxl@vger.kernel.org,
+        "Andy Lutomirski" <luto@kernel.org>,
+        "Thomas Gleixner" <tglx@linutronix.de>,
+        "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
+        "Dave Hansen" <dave.hansen@linux.intel.com>,
+        "H. Peter Anvin" <hpa@zytor.com>,
+        "Andrew Morton" <akpm@linux-foundation.org>, x86@kernel.org
+Subject: Re: [RFC PATCH 3/3] mm/migrate: Create move_phys_pages syscall
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Sep 06, 2023 at 12:23:21PM +0100, Alexandru Elisei wrote:
-> On Thu, Aug 24, 2023 at 04:24:30PM +0100, Catalin Marinas wrote:
-> > On Thu, Aug 24, 2023 at 01:25:41PM +0200, David Hildenbrand wrote:
-> > > On 24.08.23 13:06, David Hildenbrand wrote:
-> > > > Regarding one complication: "The kernel needs to know where to allocate
-> > > > a PROT_MTE page from or migrate a current page if it becomes PROT_MTE
-> > > > (mprotect()) and the range it is in does not support tagging.",
-> > > > simplified handling would be if it's in a MIGRATE_CMA pageblock, it
-> > > > doesn't support tagging. You have to migrate to a !CMA page (for
-> > > > example, not specifying GFP_MOVABLE as a quick way to achieve that).
-> > > 
-> > > Okay, I now realize that this patch set effectively duplicates some CMA
-> > > behavior using a new migrate-type.
-[...]
-> I considered mixing the tag storage memory memory with normal memory and
-> adding it to MIGRATE_CMA. But since tag storage memory cannot be tagged,
-> this means that it's not enough anymore to have a __GFP_MOVABLE allocation
-> request to use MIGRATE_CMA.
-> 
-> I considered two solutions to this problem:
-> 
-> 1. Only allocate from MIGRATE_CMA is the requested memory is not tagged =>
-> this effectively means transforming all memory from MIGRATE_CMA into the
-> MIGRATE_METADATA migratetype that the series introduces. Not very
-> appealing, because that means treating normal memory that is also on the
-> MIGRATE_CMA lists as tagged memory.
+On Sun, Sep 10, 2023, at 14:52, Gregory Price wrote:
+> On Sat, Sep 09, 2023 at 05:18:13PM +0200, Arnd Bergmann wrote:
+>> 
+>> I think a pointer to '__u64' is the most appropriate here,
+>> that is compatible between 32-bit and 64-bit architectures
+>> and covers all addresses until we get architectures with
+>> 128-bit addressing.
+>> 
+>> Thinking about it more, I noticed an existing bug in
+>> both sys_move_pages and your current version of
+>> sys_move_phys_pages: the 'pages' array is in fact not
+>> suitable for compat tasks and needs an is_compat_task
+>> check to load a 32-bit address from compat userspace on
+>> the "if (get_user(p, pages + i))" line.
+>>
+>
+> I'll clean up the current implementation for what I have on a v2 of an
+> RFC, and then look at adding some pull-ahead patches to fix both
+> move_pages and move_phys_pages for compat processes.  Might take me a
+> bit, I've only done compat work once before and I remember it being
+> annoying to get right.
 
-That's indeed not ideal. We could try this if it makes the patches
-significantly simpler, though I'm not so sure.
+I think what you want is roughly this (untested):
 
-Allocating metadata is the easier part as we know the correspondence
-from the tagged pages (32 PROT_MTE page) to the metadata page (1 tag
-storage page), so alloc_contig_range() does this for us. Just adding it
-to the CMA range is sufficient.
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -2159,6 +2159,7 @@ static int do_pages_move(struct mm_struct *mm, nodemask_t task_nodes,
+                         const int __user *nodes,
+                         int __user *status, int flags)
+ {
++       struct compat_uptr_t __user *compat_pages = (void __user *)pages;
+        int current_node = NUMA_NO_NODE;
+        LIST_HEAD(pagelist);
+        int start, i;
+@@ -2171,8 +2172,17 @@ static int do_pages_move(struct mm_struct *mm, nodemask_t task_nodes,
+                int node;
+ 
+                err = -EFAULT;
+-               if (get_user(p, pages + i))
+-                       goto out_flush;
++               if (in_compat_syscall() {
++                       compat_uptr_t cp;
++
++                       if (get_user(cp, compat_pages + i))
++                               goto out_flush;
++
++                       p = compat_ptr(cp);
++               } else {
++                       if (get_user(p, pages + i))
++                               goto out_flush;
++               }
+                if (get_user(node, nodes + i))
+                        goto out_flush;
+ 
+alternatively you could use the get_compat_pages_array()
+helper that is already used in the do_pages_stat()
+function.
 
-However, making sure that we don't allocate PROT_MTE pages from the
-metadata range is what led us to another migrate type. I guess we could
-achieve something similar with a new zone or a CPU-less NUMA node,
-though the latter is not guaranteed not to allocate memory from the
-range, only make it less likely. Both these options are less flexible in
-terms of size/alignment/placement.
+> I did see other work on migrate.c hanging around on the list, I'll
+> double check this hasn't already been discovered/handled.
 
-Maybe as a quick hack - only allow PROT_MTE from ZONE_NORMAL and
-configure the metadata range in ZONE_MOVABLE but at some point I'd
-expect some CXL-attached memory to support MTE with additional carveout
-reserved.
+It looks like I broke it, and it was working before my own
+5b1b561ba73c8 ("mm: simplify compat_sys_move_pages"), which
+only handled the nodes=NULL path.
 
-To recap, in this series, a PROT_MTE page allocation starts with a
-typical allocation from anywhere other than MIGRATE_METADATA followed by
-the hooks to reserve the corresponding metadata range at (pfn * 128 +
-offset) for a 4K page. The whole metadata page is reserved, so the
-adjacent 31 pages around the original allocation can also be mapped as
-PROT_MTE.
+I suppose nobody noticed the regression because there are very
+few 32-bit NUMA systems, and even fewer cases in which one
+would run compat userspace to manage a 64-bit NUMA machine.
 
-(Peter and Evgenii @ Google had a slightly different approach in their
-prototype: separate free_area[] array for PROT_MTE pages; while it has
-some advantages, I found it more intrusive since the same page can be on
-a free_area/free_list or another)
+>
+> This only requires plumbing new 2 flags through do_pages_move, and no
+> new user-exposed types or information.
+>
+> Is there an ick-factor with the idea of adding the following?
+>
+> MPOL_MF_PHYS_ADDR : Treat page migration addresses as physical
+> MPOL_MF_PFN : Treat page migration addresses as PFNs
 
-> 2. Keep track of which pages are tag storage at page granularity (either by
-> a page flag, or by checking that the pfn falls in one of the tag storage
-> region, or by some other mechanism). When the page allocator takes free
-> pages from the MIGRATE_METADATA list to satisfy an allocation, compare the
-> gfp mask with the page type, and if the allocation is tagged and the page
-> is a tag storage page, put it back at the tail of the free list and choose
-> the next page. Repeat until the page allocator finds a normal memory page
-> that can be tagged (some refinements obviously needed to need to avoid
-> infinite loops).
+I would strongly prefer supporting only one of the two, and
+a 64-bit physical address seems like the logical choice here.
 
-With large enough CMA areas, there's a real risk of latency spikes, RCU
-stalls etc. Not really keen on such heuristics.
+>> These do not seem to be problematic from the ASLR perspective, so
+>> I guess it may still be useful without CAP_SYS_ADMIN.
+>
+> After reviewing the capabilities documentation it seems like
+> CAP_SYS_NICE is the appropriate capability.  My last meassage I said
+> CAP_SYS_ADMIN was probably correct, but I think using CAP_SYS_NICE
+> is more appropriate unless there are strong feelings due to the use of
+> PFN and Physcall Address.
+>
+> I'm not sure rowhammer is of great concern in this interface because you
+> can't choose the destination address, only the destination node. Though
+> I suppose someone could go nuts and try to "massage" a node in some way
+> to get a statistical likelihood of placement (similar heap grooming).
 
--- 
-Catalin
+I agree that this doesn't introduce any additional risk for rowhammer
+attacks, but it seems slightly more logical to me to use CAP_SYS_ADMIN
+if that is what the other interfaces use that handle physical addresses
+and may leak address information.
+
+     Arnd
