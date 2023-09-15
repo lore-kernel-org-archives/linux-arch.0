@@ -2,105 +2,89 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7B70DEED61F
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B3940EED624
 	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 18:38:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236543AbjIOSiT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Sep 2023 14:38:19 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33916 "EHLO
+        id S236644AbjIOSiU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Sep 2023 14:38:20 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33932 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236544AbjIOShr (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:47 -0400
+        with ESMTP id S236548AbjIOShs (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:48 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 736281BD3;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 760DC1BDA;
         Fri, 15 Sep 2023 11:37:42 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=JjdcCeARBetsZH137aFl33BJ3ii6NFAsip2SWa5M3tY=; b=p17pTr3se0JO/f6M04cDpPtP+5
-        K/0tbeZ6PTE1lD28UmJtDp+MmcL/fkV6rpoqjooMTaFiT6A+wiZNO3LfFsTW0EJg0CtGJ3T2Htj7q
-        2vPlqyDoipOOe5joiIo8yawKYHtz72l/cRIJRH1Y7fKZZaXRjPnL96TuNG3d7I5exwb2fOz2bdJZx
-        hrZHp1wcxwHcn37XwnLC4Q98HIXkwl0RW4mQtwsuzJZ06on3fs6Qb0d6uUwUI1wZ+FxH8pQT4w73L
-        qS3WAWId/CoC7Q2weH7Kr/MQIOEamN7K1gZKEzWnitOC6RJa5VvnCInxTb738HTzJvu/bfYYBYciq
-        GcGIN+Ig==;
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=wP0bf/c0k4lziBracMplPOL5jGzdkJZTznJybrN+G0o=; b=nmNahHbU8N6VQC3bwwkYcMi5SK
+        9z62LhVFB97uUetddKzSC5oxvrkgAa/37C9YLshZHa2WYGzbLW1TAnnZNykG8eoRg+AOQq8BqL20h
+        TfICsXD5xZCp5JrkQ4Q1sz/lfXN+iKm2bI9bS0rzLlmR6H21VLEf8YRxZaKEZUmUCNVMKfXfEh5aO
+        jns8hqlgjEOLgpJQUGWwTWmGwpgmYz8XJ09lPpNE96iue3gnjaEUr3FLrhGJIr5rUkDm6pkOnyjLu
+        eKXEzJKBOlS5VYgsfvPQtgf/zPmG3M/q0F4HUD9j5wJj9j7ISu1xfFpZQYsQ8GjQvM65661Wvg30j
+        F47ncT9Q==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qhDgi-00BMIL-Vs; Fri, 15 Sep 2023 18:37:09 +0000
+        id 1qhDgj-00BMId-FC; Fri, 15 Sep 2023 18:37:09 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
         torvalds@linux-foundation.org, Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 00/17] Add folio_end_read
-Date:   Fri, 15 Sep 2023 19:36:50 +0100
-Message-Id: <20230915183707.2707298-1-willy@infradead.org>
+Subject: [PATCH 05/17] buffer: Use folio_end_read()
+Date:   Fri, 15 Sep 2023 19:36:55 +0100
+Message-Id: <20230915183707.2707298-6-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20230915183707.2707298-1-willy@infradead.org>
+References: <20230915183707.2707298-1-willy@infradead.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The core of this patchset is the new folio_end_read() call which
-filesystems can use when finishing a page cache read instead of separate
-calls to mark the folio uptodate and unlock it.  As an illustration of
-its use, I converted ext4, iomap & mpage; more can be converted.
+There are two places that we can use this new helper.
 
-I think that's useful by itself, but the interesting optimisation is
-that we can implement that with a single XOR instruction that sets the
-uptodate bit, clears the lock bit, tests the waiter bit and provides a
-write memory barrier.  That removes one memory barrier and one atomic
-instruction from each page read, which seems worth doing.  That's in
-patch 15.
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ fs/buffer.c | 16 ++++------------
+ 1 file changed, 4 insertions(+), 12 deletions(-)
 
-The last two patches could be a separate series, but basically we can do
-the same thing with the writeback flag that we do with the unlock flag;
-clear it and test the waiters bit at the same time.
-
-I don't have any performance numbers; I'm hoping Nick might provide some
-since PPC seems particularly unhappy with write-after-write hazards.
-
-Matthew Wilcox (Oracle) (17):
-  iomap: Hold state_lock over call to ifs_set_range_uptodate()
-  iomap: Protect read_bytes_pending with the state_lock
-  mm: Add folio_end_read()
-  ext4: Use folio_end_read()
-  buffer: Use folio_end_read()
-  iomap: Use folio_end_read()
-  bitops: Add xor_unlock_is_negative_byte()
-  alpha: Implement xor_unlock_is_negative_byte
-  m68k: Implement xor_unlock_is_negative_byte
-  mips: Implement xor_unlock_is_negative_byte
-  powerpc: Implement arch_xor_unlock_is_negative_byte on 32-bit
-  riscv: Implement xor_unlock_is_negative_byte
-  s390: Implement arch_xor_unlock_is_negative_byte
-  mm: Delete checks for xor_unlock_is_negative_byte()
-  mm: Add folio_xor_flags_has_waiters()
-  mm: Make __end_folio_writeback() return void
-  mm: Use folio_xor_flags_has_waiters() in folio_end_writeback()
-
- arch/alpha/include/asm/bitops.h               | 20 +++++
- arch/m68k/include/asm/bitops.h                | 13 ++++
- arch/mips/include/asm/bitops.h                | 25 +++++-
- arch/mips/lib/bitops.c                        | 14 ++++
- arch/powerpc/include/asm/bitops.h             | 21 ++---
- arch/riscv/include/asm/bitops.h               | 12 +++
- arch/s390/include/asm/bitops.h                | 10 +++
- arch/x86/include/asm/bitops.h                 | 11 ++-
- fs/buffer.c                                   | 16 +---
- fs/ext4/readpage.c                            | 14 +---
- fs/iomap/buffered-io.c                        | 55 ++++++++-----
- .../asm-generic/bitops/instrumented-lock.h    | 28 ++++---
- include/asm-generic/bitops/lock.h             | 20 +----
- include/linux/page-flags.h                    | 19 +++++
- include/linux/pagemap.h                       |  1 +
- kernel/kcsan/kcsan_test.c                     |  9 +--
- kernel/kcsan/selftest.c                       |  9 +--
- mm/filemap.c                                  | 77 ++++++++++---------
- mm/kasan/kasan_test.c                         |  8 +-
- mm/page-writeback.c                           | 35 ++++-----
- 20 files changed, 248 insertions(+), 169 deletions(-)
-
+diff --git a/fs/buffer.c b/fs/buffer.c
+index 2379564e5aea..345a9a42610f 100644
+--- a/fs/buffer.c
++++ b/fs/buffer.c
+@@ -282,13 +282,7 @@ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
+ 	} while (tmp != bh);
+ 	spin_unlock_irqrestore(&first->b_uptodate_lock, flags);
+ 
+-	/*
+-	 * If all of the buffers are uptodate then we can set the page
+-	 * uptodate.
+-	 */
+-	if (folio_uptodate)
+-		folio_mark_uptodate(folio);
+-	folio_unlock(folio);
++	folio_end_read(folio, folio_uptodate);
+ 	return;
+ 
+ still_busy:
+@@ -2413,12 +2407,10 @@ int block_read_full_folio(struct folio *folio, get_block_t *get_block)
+ 
+ 	if (!nr) {
+ 		/*
+-		 * All buffers are uptodate - we can set the folio uptodate
+-		 * as well. But not if get_block() returned an error.
++		 * All buffers are uptodate or get_block() returned an
++		 * error when trying to map them - we can finish the read.
+ 		 */
+-		if (!page_error)
+-			folio_mark_uptodate(folio);
+-		folio_unlock(folio);
++		folio_end_read(folio, !page_error);
+ 		return 0;
+ 	}
+ 
 -- 
 2.40.1
 
