@@ -2,38 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0CD6DEED632
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 720B5EED634
 	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 18:38:17 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236597AbjIOShv (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Sep 2023 14:37:51 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:49006 "EHLO
+        id S236620AbjIOShw (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Sep 2023 14:37:52 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:33878 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236368AbjIOShf (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:35 -0400
+        with ESMTP id S236511AbjIOSho (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:44 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 859E0115;
-        Fri, 15 Sep 2023 11:37:30 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83E7D196;
+        Fri, 15 Sep 2023 11:37:39 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=3RDv1UzFpsOkAGzAbd6eo8f3gCp7HajbbasO9DDS7OQ=; b=l7/C+pIBN/0+OfCBSo8I+LYeOy
-        mF+TpEuZNJw8+JiNsmRfWrhjnNLgd6Txx79Xz2XVo7OVest1Qi+dglnG1T25vyb0Xpc8NLATE9/Au
-        ybl6Gu/i/Td0hGN+ZdVvfD8LF/2mk/oF4PUmAsSRMpnyTXOei1O3inZEkAt6HEz7IaCtxJRYNOxM0
-        6GS70vkf9aU86BccdSHzK8DlUV7uejZVS8XHXtB4KyvwB8hapKImjlueOcr/dVW2WJbm4DdFvYPPw
-        nbKZFLvA2rCr2J8VDHR9zw1FjnvHE8CpEr6SiUz+TbiJBEjFRsjX3erwBo5P1AshO50tSAoi8YhYN
-        ECdR01vg==;
+        bh=6EBV41RIEaRQJ/bvvEj83J2s787qIb+bZO0o/tTL46o=; b=PGQxstVhyCK0bbn5NHcYRNn1ww
+        TxkyLFF82AJXaUuPCP6DmEIuZbEa0EI2ja1MyNLl3TdgTTfLGsIjYXP4J5tsPhGSDcF4Lowtd/gxr
+        WmuuHVRLsydmaX8bgQiQF/TghtX7r/DGahRcDs+Z8x33x9u9jN+r0263r9IdacDiIbu5vI+zvQue/
+        CUN2QU8Lx2GRWbdVVFYgK0NfRCOq1DP4DgN1U15kTUtq3xrZm+drFqyseUENixVGv3Jf5rprOB25c
+        1fBweM05s0kmBDCS73000UmQyQJG9ZJmwSibr6lcT6hX4gnU+xO7zy4dEck0fA2C6m5EnJs/hCw5q
+        ZJpNOApA==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qhDgj-00BMIQ-6i; Fri, 15 Sep 2023 18:37:09 +0000
+        id 1qhDgj-00BMIj-Ml; Fri, 15 Sep 2023 18:37:09 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
         torvalds@linux-foundation.org, Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 02/17] iomap: Protect read_bytes_pending with the state_lock
-Date:   Fri, 15 Sep 2023 19:36:52 +0100
-Message-Id: <20230915183707.2707298-3-willy@infradead.org>
+Subject: [PATCH 08/17] alpha: Implement xor_unlock_is_negative_byte
+Date:   Fri, 15 Sep 2023 19:36:58 +0100
+Message-Id: <20230915183707.2707298-9-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230915183707.2707298-1-willy@infradead.org>
 References: <20230915183707.2707298-1-willy@infradead.org>
@@ -43,91 +43,46 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Perform one atomic operation (acquiring the spinlock) instead of
-two (spinlock & atomic_sub) per read completion.
+Inspired by the alpha clear_bit() and arch_atomic_add_return(), this
+will surely be more efficient than the generic one defined in filemap.c.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/iomap/buffered-io.c | 35 ++++++++++++++++++++++++++---------
- 1 file changed, 26 insertions(+), 9 deletions(-)
+ arch/alpha/include/asm/bitops.h | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-index 4c05fd457ee7..cade15b70627 100644
---- a/fs/iomap/buffered-io.c
-+++ b/fs/iomap/buffered-io.c
-@@ -29,9 +29,9 @@ typedef int (*iomap_punch_t)(struct inode *inode, loff_t offset, loff_t length);
-  * and I/O completions.
-  */
- struct iomap_folio_state {
--	atomic_t		read_bytes_pending;
--	atomic_t		write_bytes_pending;
- 	spinlock_t		state_lock;
-+	unsigned int		read_bytes_pending;
-+	atomic_t		write_bytes_pending;
+diff --git a/arch/alpha/include/asm/bitops.h b/arch/alpha/include/asm/bitops.h
+index bafb1c1f0fdc..138930e8a504 100644
+--- a/arch/alpha/include/asm/bitops.h
++++ b/arch/alpha/include/asm/bitops.h
+@@ -286,6 +286,27 @@ arch___test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
+ #define arch_test_bit generic_test_bit
+ #define arch_test_bit_acquire generic_test_bit_acquire
  
- 	/*
- 	 * Each block has two bits in this bitmap:
-@@ -183,7 +183,7 @@ static void ifs_free(struct folio *folio)
- 
- 	if (!ifs)
- 		return;
--	WARN_ON_ONCE(atomic_read(&ifs->read_bytes_pending));
-+	WARN_ON_ONCE(ifs->read_bytes_pending != 0);
- 	WARN_ON_ONCE(atomic_read(&ifs->write_bytes_pending));
- 	WARN_ON_ONCE(ifs_is_fully_uptodate(folio, ifs) !=
- 			folio_test_uptodate(folio));
-@@ -250,19 +250,33 @@ static void iomap_adjust_read_range(struct inode *inode, struct folio *folio,
- 	*lenp = plen;
- }
- 
--static void iomap_finish_folio_read(struct folio *folio, size_t offset,
-+static void iomap_finish_folio_read(struct folio *folio, size_t off,
- 		size_t len, int error)
- {
- 	struct iomap_folio_state *ifs = folio->private;
-+	unsigned long flags;
-+	bool uptodate;
-+	bool finished = true;
++static inline bool xor_unlock_is_negative_byte(unsigned long mask,
++		volatile unsigned long *p)
++{
++	unsigned long temp, old;
 +
-+	if (ifs)
-+		spin_lock_irqsave(&ifs->state_lock, flags);
- 
- 	if (unlikely(error)) {
--		folio_clear_uptodate(folio);
-+		uptodate = false;
- 		folio_set_error(folio);
- 	} else {
--		iomap_set_range_uptodate(folio, offset, len);
-+		uptodate = !ifs || ifs_set_range_uptodate(folio, ifs, off, len);
- 	}
- 
--	if (!ifs || atomic_sub_and_test(len, &ifs->read_bytes_pending))
-+	if (ifs) {
-+		ifs->read_bytes_pending -= len;
-+		finished = !ifs->read_bytes_pending;
-+		spin_unlock_irqrestore(&ifs->state_lock, flags);
-+	}
++	__asm__ __volatile__(
++	"1:	ldl_l %0,%4\n"
++	"	xor %0,%3,%0\n"
++	"	xor %0,%3,%2\n"
++	"	stl_c %0,%1\n"
++	"	beq %0,2f\n"
++	".subsection 2\n"
++	"2:	br 1b\n"
++	".previous"
++	:"=&r" (temp), "=m" (*p), "=&r" (old)
++	:"Ir" (mask), "m" (*p));
 +
-+	if (uptodate)
-+		folio_mark_uptodate(folio);
-+	if (finished)
- 		folio_unlock(folio);
- }
- 
-@@ -360,8 +374,11 @@ static loff_t iomap_readpage_iter(const struct iomap_iter *iter,
- 	}
- 
- 	ctx->cur_folio_in_bio = true;
--	if (ifs)
--		atomic_add(plen, &ifs->read_bytes_pending);
-+	if (ifs) {
-+		spin_lock_irq(&ifs->state_lock);
-+		ifs->read_bytes_pending += plen;
-+		spin_unlock_irq(&ifs->state_lock);
-+	}
- 
- 	sector = iomap_sector(iomap, pos);
- 	if (!ctx->bio ||
++	return (old & BIT(7)) != 0;
++}
++#define xor_unlock_is_negative_byte xor_unlock_is_negative_byte
++
+ /*
+  * ffz = Find First Zero in word. Undefined if no zero exists,
+  * so code should check against ~0UL first..
 -- 
 2.40.1
 
