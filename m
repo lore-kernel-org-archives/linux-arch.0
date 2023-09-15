@@ -2,38 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id ACC4FEED625
-	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 18:38:15 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4586DEED626
+	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 18:38:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236519AbjIOShp (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Sep 2023 14:37:45 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35468 "EHLO
+        id S236566AbjIOSht (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Sep 2023 14:37:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42112 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236464AbjIOShW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:22 -0400
+        with ESMTP id S236603AbjIOSh0 (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:26 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8288010D9;
-        Fri, 15 Sep 2023 11:37:15 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 924161A5;
+        Fri, 15 Sep 2023 11:37:21 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=aanqWz7LXsKQhB1oKoWrq/hhDEToXtz4R83zwTN5ek4=; b=eFAUDvC1j+eUES+EbIT45gn1R1
-        ++XVlsh8I4oCrZdiCg6UnYc8aXWJEyHdUZQIC4cvEomnlBym8xe2PELLXDw/GqKgpT01e0JbE/VrW
-        XHeSvudWZJ81qKFqooD32XIzGJsN00TKCoOlRmGvKrDKb31R3frDJY0JM5CS0AVOPhI/BwNftt6yQ
-        xafCSe2PErcOIYuJ1W09lM5nqBETq5QoJRNHE9qNtIKOBvHrg/NwGWvndtPBaqHXMOiMCCAJqCC5P
-        j3JNlJZnH0fLf7twNFL5cWWTzaY5KIF1HaGYRjeDBwPu8c3Q5cviTs9Sxn+VH6fP/S3xKFSNZD52s
-        8Is8ufIQ==;
+        bh=1WZX9lC/NFReBBEGgdt7ENtP8Fsb2zBQZdLGumoTT54=; b=fajBqc/PVmpLWssoMHeJr28vDZ
+        ilkXDBbt56Rb0ualgExvyRQqSpVYXiMZZHCeDXpikIfzxBLmEIzlDYNLfXAZ1Cn/lojNZCh2Wrexh
+        yqIjb+XAVcAH5C3+JpeakQ9TG52GjgtRYiCRD43iBzgHvEj450no85QLc/jqO9Mj7jluQT+wNuylE
+        PIM6rNYr1NdwNDhRENIxbeRz5E6r62lwMe8gNo0dLbIMTIIU62YKKqGRW+VOAL9eY28yseH3ZtoWa
+        vOUnKWwDJStVsL5+9mH1Pc8jGNkzmd4IPnjll/EekaNgUC4o3hB8j4zXSCQ9/Xgey9HuMmuysh7Dm
+        xG1N10FA==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qhDgj-00BMIf-HO; Fri, 15 Sep 2023 18:37:09 +0000
+        id 1qhDgj-00BMIq-U5; Fri, 15 Sep 2023 18:37:09 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
         torvalds@linux-foundation.org, Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 06/17] iomap: Use folio_end_read()
-Date:   Fri, 15 Sep 2023 19:36:56 +0100
-Message-Id: <20230915183707.2707298-7-willy@infradead.org>
+Subject: [PATCH 11/17] powerpc: Implement arch_xor_unlock_is_negative_byte on 32-bit
+Date:   Fri, 15 Sep 2023 19:37:01 +0100
+Message-Id: <20230915183707.2707298-12-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230915183707.2707298-1-willy@infradead.org>
 References: <20230915183707.2707298-1-willy@infradead.org>
@@ -43,30 +43,42 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Combine the setting of the uptodate flag with the clearing of the
-locked flag.
+Simply remove the ifdef.  The assembly is identical to that in the
+non-optimised case of test_and_clear_bits() on PPC32, and it's not clear
+to me how the PPC32 optimisation works, nor whether it would work for
+arch_xor_unlock_is_negative_byte().  If that optimisation would work,
+someone can implement it later, but this is more efficient than the
+implementation in filemap.c.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/iomap/buffered-io.c | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ arch/powerpc/include/asm/bitops.h | 4 ----
+ 1 file changed, 4 deletions(-)
 
-diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-index cade15b70627..e59831bd9217 100644
---- a/fs/iomap/buffered-io.c
-+++ b/fs/iomap/buffered-io.c
-@@ -274,10 +274,8 @@ static void iomap_finish_folio_read(struct folio *folio, size_t off,
- 		spin_unlock_irqrestore(&ifs->state_lock, flags);
- 	}
- 
--	if (uptodate)
--		folio_mark_uptodate(folio);
- 	if (finished)
--		folio_unlock(folio);
-+		folio_end_read(folio, uptodate);
+diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
+index 40cc3ded60cb..671ecc6711e3 100644
+--- a/arch/powerpc/include/asm/bitops.h
++++ b/arch/powerpc/include/asm/bitops.h
+@@ -233,7 +233,6 @@ static inline int arch_test_and_change_bit(unsigned long nr,
+ 	return test_and_change_bits(BIT_MASK(nr), addr + BIT_WORD(nr)) != 0;
  }
  
- static void iomap_read_end_io(struct bio *bio)
+-#ifdef CONFIG_PPC64
+ static inline bool arch_xor_unlock_is_negative_byte(unsigned long mask,
+ 		volatile unsigned long *p)
+ {
+@@ -251,11 +250,8 @@ static inline bool arch_xor_unlock_is_negative_byte(unsigned long mask,
+ 
+ 	return (old & BIT_MASK(7)) != 0;
+ }
+-
+ #define arch_xor_unlock_is_negative_byte arch_xor_unlock_is_negative_byte
+ 
+-#endif /* CONFIG_PPC64 */
+-
+ #include <asm-generic/bitops/non-atomic.h>
+ 
+ static inline void arch___clear_bit_unlock(int nr, volatile unsigned long *addr)
 -- 
 2.40.1
 
