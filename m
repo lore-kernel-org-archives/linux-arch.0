@@ -2,38 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6F899EED62D
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8946AEED62C
 	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 18:38:16 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S236563AbjIOSht (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Sep 2023 14:37:49 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42060 "EHLO
+        id S236582AbjIOShu (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Sep 2023 14:37:50 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:42168 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S236596AbjIOShY (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:24 -0400
+        with ESMTP id S236515AbjIOShc (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 14:37:32 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A2C6D196;
-        Fri, 15 Sep 2023 11:37:18 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7AD55115;
+        Fri, 15 Sep 2023 11:37:27 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=vWwsy+BgXOEcfKuqkIEkXjDw+riS2szWYiR2hDnP9b4=; b=iaE2slop4N4xLJSD+OgbNbmYDB
-        gvFtf3rpiE7MHfx1VcIaaTK6mqcWPzGB45tY/We9XP2f0KJYV6gGKzvmGnaGt2e4dMZjvKt6U+qoZ
-        WsFrvPotolFPbFSAus8TnTLqvsp79DzGWxNd6OPiUC0zBFJ8QqtYxPBpgfsmB7lLCeWKcELGjqU3R
-        SI2HI870LgmTnj0NvcJMVY/Ff+qZeSlET7hIisVQBmwZejpdiwpNCHb2wohJKyFAUerGvW1W2rtzt
-        QQhq6L1YGWcKYaWuTaIaXH7nHZkN9TozL0NTGQj9pBBGGCg5ZFFmlcZipxMpNs2sZyXo59jSYV1fQ
-        U35De4qQ==;
+        bh=sq3juwAyx/kGuC+9AEnQhgmCbLKhgaGhWILandlCIyQ=; b=lvm+93Zyyorgp8mPn2eE91Y0ck
+        yXGQm7QiGVOUuyMWNgjTS4pNocHj7b8QyPTXC+m+yEougBY7HK7uxFHF4R9PMWFw5lNWvO5FMUXSH
+        KIzHlaINvKtugaNxW5bmu6PFryvnw6AuavKx7Gy7vVWCxhZcRsnwoACLM/O8Wb9L980gJmemiBQa2
+        RYXD+V0C8B8y522E/iE9I3d+7qlSebZrsVo6lAVMgf7AHAKWHH9+etiPvc2BBDqeSvQw6x3P1E2Cn
+        FxdZGaWZEZikCcoccFyIlsW8Hn04rypDvS97Z3PmKp904uOpHsAYHM9FqZxLoe6HM0XVRthvC8PXs
+        PLyYU16Q==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qhDgj-00BMIn-Rw; Fri, 15 Sep 2023 18:37:09 +0000
+        id 1qhDgj-00BMIW-8u; Fri, 15 Sep 2023 18:37:09 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     linux-kernel@vger.kernel.org
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
         torvalds@linux-foundation.org, Nicholas Piggin <npiggin@gmail.com>
-Subject: [PATCH 10/17] mips: Implement xor_unlock_is_negative_byte
-Date:   Fri, 15 Sep 2023 19:37:00 +0100
-Message-Id: <20230915183707.2707298-11-willy@infradead.org>
+Subject: [PATCH 03/17] mm: Add folio_end_read()
+Date:   Fri, 15 Sep 2023 19:36:53 +0100
+Message-Id: <20230915183707.2707298-4-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20230915183707.2707298-1-willy@infradead.org>
 References: <20230915183707.2707298-1-willy@infradead.org>
@@ -43,81 +43,60 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Inspired by the mips test_and_change_bit(), this will surely be more
-efficient than the generic one defined in filemap.c
+Provide a function for filesystems to call when they have finished
+reading an entire folio.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- arch/mips/include/asm/bitops.h | 26 +++++++++++++++++++++++++-
- arch/mips/lib/bitops.c         | 14 ++++++++++++++
- 2 files changed, 39 insertions(+), 1 deletion(-)
+ include/linux/pagemap.h |  1 +
+ mm/filemap.c            | 22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+)
 
-diff --git a/arch/mips/include/asm/bitops.h b/arch/mips/include/asm/bitops.h
-index b4bf754f7db3..d98a05c478f4 100644
---- a/arch/mips/include/asm/bitops.h
-+++ b/arch/mips/include/asm/bitops.h
-@@ -73,7 +73,8 @@ int __mips_test_and_clear_bit(unsigned long nr,
- 			      volatile unsigned long *addr);
- int __mips_test_and_change_bit(unsigned long nr,
- 			       volatile unsigned long *addr);
--
-+bool __mips_xor_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *addr);
- 
- /*
-  * set_bit - Atomically set a bit in memory
-@@ -279,6 +280,29 @@ static inline int test_and_change_bit(unsigned long nr,
- 	return res;
+diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
+index 351c3b7f93a1..5bb2f5f802bc 100644
+--- a/include/linux/pagemap.h
++++ b/include/linux/pagemap.h
+@@ -1129,6 +1129,7 @@ static inline void wait_on_page_locked(struct page *page)
+ 	folio_wait_locked(page_folio(page));
  }
  
-+static inline bool xor_unlock_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *p)
-+{
-+	unsigned long orig;
-+	bool res;
-+
-+	smp_mb__before_atomic();
-+
-+	if (!kernel_uses_llsc) {
-+		res = __mips_xor_is_negative_byte(mask, p);
-+	} else {
-+		orig = __test_bit_op(*p, "%0",
-+				     "xor\t%1, %0, %3",
-+				     "ir"(mask));
-+		res = (orig & BIT(7)) != 0;
-+	}
-+
-+	smp_llsc_mb();
-+
-+	return res;
-+}
-+#define xor_unlock_is_negative_byte xor_unlock_is_negative_byte
-+
- #undef __bit_op
- #undef __test_bit_op
- 
-diff --git a/arch/mips/lib/bitops.c b/arch/mips/lib/bitops.c
-index 116d0bd8b2ae..00aee98e9d54 100644
---- a/arch/mips/lib/bitops.c
-+++ b/arch/mips/lib/bitops.c
-@@ -146,3 +146,17 @@ int __mips_test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
- 	return res;
++void folio_end_read(struct folio *folio, bool success);
+ void wait_on_page_writeback(struct page *page);
+ void folio_wait_writeback(struct folio *folio);
+ int folio_wait_writeback_killable(struct folio *folio);
+diff --git a/mm/filemap.c b/mm/filemap.c
+index 582f5317ff71..e3843cf1d8e1 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -1527,6 +1527,28 @@ void folio_unlock(struct folio *folio)
  }
- EXPORT_SYMBOL(__mips_test_and_change_bit);
-+
-+bool __mips_xor_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *addr)
+ EXPORT_SYMBOL(folio_unlock);
+ 
++/**
++ * folio_end_read - End read on a folio.
++ * @folio: The folio.
++ * @success: True if all reads completed successfully.
++ *
++ * When all reads against a folio have completed, filesystems should
++ * call this function to let the pagecache know that no more reads
++ * are outstanding.  This will unlock the folio and wake up any thread
++ * sleeping on the lock.  The folio will also be marked uptodate if all
++ * reads succeeded.
++ *
++ * Context: May be called from interrupt or process context.  May not be
++ * called from NMI context.
++ */
++void folio_end_read(struct folio *folio, bool success)
 +{
-+	unsigned long flags;
-+	unsigned long data;
-+
-+	raw_local_irq_save(flags);
-+	data = *addr;
-+	*addr = data ^ mask;
-+	raw_local_irq_restore(flags);
-+
-+	return (data & BIT(7)) != 0;
++	if (success)
++		folio_mark_uptodate(folio);
++	folio_unlock(folio);
 +}
++EXPORT_SYMBOL(folio_end_read);
++
+ /**
+  * folio_end_private_2 - Clear PG_private_2 and wake any waiters.
+  * @folio: The folio.
 -- 
 2.40.1
 
