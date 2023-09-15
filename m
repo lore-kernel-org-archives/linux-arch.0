@@ -2,171 +2,172 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id AD69EEED61A
-	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 16:47:50 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 85136EED61C
+	for <linux-arch@archiver.kernel.org>; Fri, 15 Sep 2023 17:03:27 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232911AbjIOQrW convert rfc822-to-8bit (ORCPT
-        <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 15 Sep 2023 12:47:22 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54884 "EHLO
+        id S235215AbjIORDB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 15 Sep 2023 13:03:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36334 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S235340AbjIOQrD (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 12:47:03 -0400
-Received: from frasgout.his.huawei.com (frasgout.his.huawei.com [185.176.79.56])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 163632701;
-        Fri, 15 Sep 2023 09:46:48 -0700 (PDT)
-Received: from lhrpeml100005.china.huawei.com (unknown [172.18.147.200])
-        by frasgout.his.huawei.com (SkyGuard) with ESMTP id 4RnKnn2zm4z67LX2;
-        Sat, 16 Sep 2023 00:46:05 +0800 (CST)
-Received: from lhrpeml500001.china.huawei.com (7.191.163.213) by
- lhrpeml100005.china.huawei.com (7.191.160.25) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id
- 15.1.2507.31; Fri, 15 Sep 2023 17:46:45 +0100
-Received: from lhrpeml500001.china.huawei.com ([7.191.163.213]) by
- lhrpeml500001.china.huawei.com ([7.191.163.213]) with mapi id 15.01.2507.031;
- Fri, 15 Sep 2023 17:46:45 +0100
-From:   Salil Mehta <salil.mehta@huawei.com>
-To:     Russell King <linux@armlinux.org.uk>
-CC:     "Rafael J. Wysocki" <rafael@kernel.org>,
-        Ard Biesheuvel <ardb@kernel.org>,
-        Jonathan Cameron <jonathan.cameron@huawei.com>,
-        James Morse <james.morse@arm.com>,
-        "linux-pm@vger.kernel.org" <linux-pm@vger.kernel.org>,
-        "loongarch@lists.linux.dev" <loongarch@lists.linux.dev>,
-        "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-arm-kernel@lists.infradead.org" 
-        <linux-arm-kernel@lists.infradead.org>,
-        "linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>,
-        "kvmarm@lists.linux.dev" <kvmarm@lists.linux.dev>,
-        "x86@kernel.org" <x86@kernel.org>,
-        "Jean-Philippe Brucker" <jean-philippe@linaro.org>,
-        "jianyong.wu@arm.com" <jianyong.wu@arm.com>,
-        "justin.he@arm.com" <justin.he@arm.com>
-Subject: RE: [RFC PATCH v2 27/35] ACPICA: Add new MADT GICC flags fields [code
- first?]
-Thread-Topic: [RFC PATCH v2 27/35] ACPICA: Add new MADT GICC flags fields
- [code first?]
-Thread-Index: AQHZ5mDqpYLh+nkhC0mj9mPBt3XEBLAZ5MMAgAB0lICAAAsFgIAAEfIQgADzSoCAABq9gIAAG4DQ////VACAAFZdgP///CGAgAAf/qA=
-Date:   Fri, 15 Sep 2023 16:46:45 +0000
-Message-ID: <4ec689fa42474d0abc99a2f2055ddcff@huawei.com>
-References: <20230913163823.7880-28-james.morse@arm.com>
-        <CAMj1kXHRAt7ecB9p_dm3MjDL5wZkAsVh30hMY2SV_XUe=bm6Vg@mail.gmail.com>
-        <20230914155459.00002dba@Huawei.com>
-        <CAMj1kXFquiLGCMow3iujHUU4GBZx2t9KfKy1R9iqjBFjY+acaA@mail.gmail.com>
-        <f5d9beea95e149ab89364dcdb0f8bf69@huawei.com>
-        <ZQQDJT6MOaIOPmq5@shell.armlinux.org.uk>
-        <CAJZ5v0jUQ+4G5ArYAtu1gvYF4356CK_QVTO4oWn0ukwdOiZaHA@mail.gmail.com>
-        <80e36ff513504a0382a1cbce83e42295@huawei.com>
-        <CAJZ5v0gou9Pdj_CPC=vLJ-6S-hz+0VY+GMgXcRJk=6t9mL1ykw@mail.gmail.com>
-        <cec8f4ad16434c2daa0b5db7f6d60a6b@huawei.com>
- <ZQR1R+okAxfJrS0p@shell.armlinux.org.uk>
-In-Reply-To: <ZQR1R+okAxfJrS0p@shell.armlinux.org.uk>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-x-originating-ip: [10.126.174.239]
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+        with ESMTP id S235490AbjIORCi (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 15 Sep 2023 13:02:38 -0400
+Received: from mail-pl1-x630.google.com (mail-pl1-x630.google.com [IPv6:2607:f8b0:4864:20::630])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DE2532710
+        for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2023 10:02:32 -0700 (PDT)
+Received: by mail-pl1-x630.google.com with SMTP id d9443c01a7336-1c0ecb9a075so19904485ad.2
+        for <linux-arch@vger.kernel.org>; Fri, 15 Sep 2023 10:02:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rivosinc-com.20230601.gappssmtp.com; s=20230601; t=1694797352; x=1695402152; darn=vger.kernel.org;
+        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
+         :mime-version:subject:date:from:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=1k75qxIvoyjoXO7i5f1b9o5ew6JdXdHy21zFkpaW4Nc=;
+        b=QTjIO+zalWvOOy048VbiCaKq7TESIubbUhWzSQK692xypb8OJwzrne6DVs9LGqY4Wx
+         0fZ8t4a2JHxdtoko0KWNZmk8DxP4bmHFYMf2NMngC2bfcYKR7oaqAtnUhoiNkVIeO3HR
+         iHFWm91uzQV3kYmAtpBLoKWwMeFU6xP3gYfRxXLhdnJbARdL2n0K8AHjX/TEgg5BpcWd
+         j70XM7AIcLKZ2oFJl1U8e2TDSGmr6neMLMytJSCJXU2zlPSqLbtvWFSLPdqJ1X9O+oa2
+         yKYmEbhXxVJSVBUCNybKJofKm0M9DRA5G78Ipum75k0b+mfDhLyr4KJrgVo+RbewP1T5
+         F+Ug==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1694797352; x=1695402152;
+        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
+         :mime-version:subject:date:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=1k75qxIvoyjoXO7i5f1b9o5ew6JdXdHy21zFkpaW4Nc=;
+        b=Sn8ztiTegZowfRDZoQEdaZLl6QSaF7j6wppsPvCSwpP8BWYgNk6GQ3ZvYbls8Zgvmd
+         LlffPNPYmb6gnQNA1q7HumuM4ZR/Vi6B7Y0x7r828ZrV6/kkzQ0r8CyNTyfgeY9Wejn+
+         PowmNeSw3X+GHKTeITv+HUeEx3ZDybbgMqG2fb8IOQjnaio0FAHmywJD1jjai/71SmaJ
+         Op8sLjSWKkdyMyMx2A7/hzXmpVN84un22gE/7/0f779gNHxU7c/zdLZWjfLodjk1BAfW
+         eM058f9gn3JXCILmEbjDrKU5jUj6SKYPzFGusA/99psQU24lMPzBq3as0s8tn/LOGaL+
+         GnSA==
+X-Gm-Message-State: AOJu0Yy+CAFht9uHUMrDi2iDsPLhjpGAmyRmD4iRcTC7Bik4aqpr0HBz
+        Q24Y1oqycyAAVqIf411eo7skbg==
+X-Google-Smtp-Source: AGHT+IH1jPn04soXbAnfI7sIsWevrTzCm19sW4JGO/9RBel+0bsUazXseS8iwam4Uk1qhMvvhuehhw==
+X-Received: by 2002:a17:902:ab5d:b0:1c3:8679:6ed4 with SMTP id ij29-20020a170902ab5d00b001c386796ed4mr2424521plb.8.1694797352279;
+        Fri, 15 Sep 2023 10:02:32 -0700 (PDT)
+Received: from charlie.ba.rivosinc.com ([66.220.2.162])
+        by smtp.gmail.com with ESMTPSA id g22-20020a1709029f9600b001c44c8d857esm34299plq.120.2023.09.15.10.02.31
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 15 Sep 2023 10:02:31 -0700 (PDT)
+From:   Charlie Jenkins <charlie@rivosinc.com>
+Date:   Fri, 15 Sep 2023 10:01:18 -0700
+Subject: [PATCH v6 2/4] riscv: Checksum header
 MIME-Version: 1.0
-X-CFilter-Loop: Reflected
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-Id: <20230915-optimize_checksum-v6-2-14a6cf61c618@rivosinc.com>
+References: <20230915-optimize_checksum-v6-0-14a6cf61c618@rivosinc.com>
+In-Reply-To: <20230915-optimize_checksum-v6-0-14a6cf61c618@rivosinc.com>
+To:     Charlie Jenkins <charlie@rivosinc.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Conor Dooley <conor@kernel.org>,
+        Samuel Holland <samuel.holland@sifive.com>,
+        David Laight <David.Laight@aculab.com>,
+        linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+        linux-arch@vger.kernel.org
+Cc:     Paul Walmsley <paul.walmsley@sifive.com>,
+        Albert Ou <aou@eecs.berkeley.edu>,
+        Arnd Bergmann <arnd@arndb.de>
+X-Mailer: b4 0.12.3
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Hi Russel,
+Provide checksum algorithms that have been designed to leverage riscv
+instructions such as rotate. In 64-bit, can take advantage of the larger
+register to avoid some overflow checking.
 
-> From: Russell King <linux@armlinux.org.uk>
-> Sent: Friday, September 15, 2023 4:16 PM
-> To: Salil Mehta <salil.mehta@huawei.com>
-> Cc: Rafael J. Wysocki <rafael@kernel.org>; Ard Biesheuvel
-> <ardb@kernel.org>; Jonathan Cameron <jonathan.cameron@huawei.com>; James
-> Morse <james.morse@arm.com>; linux-pm@vger.kernel.org;
-> loongarch@lists.linux.dev; linux-acpi@vger.kernel.org; linux-
-> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-arm-
-> kernel@lists.infradead.org; linux-riscv@lists.infradead.org;
-> kvmarm@lists.linux.dev; x86@kernel.org; Jean-Philippe Brucker <jean-
-> philippe@linaro.org>; jianyong.wu@arm.com; justin.he@arm.com
-> Subject: Re: [RFC PATCH v2 27/35] ACPICA: Add new MADT GICC flags fields
-> [code first?]
-> 
-> On Fri, Sep 15, 2023 at 02:49:41PM +0000, Salil Mehta wrote:
-> > I am not aware of any on x86. Maybe we can do it on ARM first and
-> > let other Arch pitch-in their objection later? Afterall, there is
-> > a legitimate use-case in case of ARM. Having mutually exclusive
-> > bits breaks certain use-cases and we have to do the tradeoffs.
-> 
-> ... but let's not use that as an argument to delay the forward
-> progress of getting aarch64 vCPU hotplug patches merged.
+Signed-off-by: Charlie Jenkins <charlie@rivosinc.com>
+---
+ arch/riscv/include/asm/checksum.h | 79 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 79 insertions(+)
 
+diff --git a/arch/riscv/include/asm/checksum.h b/arch/riscv/include/asm/checksum.h
+new file mode 100644
+index 000000000000..dc0dd89f2a13
+--- /dev/null
++++ b/arch/riscv/include/asm/checksum.h
+@@ -0,0 +1,79 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * IP checksum routines
++ *
++ * Copyright (C) 2023 Rivos Inc.
++ */
++#ifndef __ASM_RISCV_CHECKSUM_H
++#define __ASM_RISCV_CHECKSUM_H
++
++#include <linux/in6.h>
++#include <linux/uaccess.h>
++
++#define ip_fast_csum ip_fast_csum
++
++#include <asm-generic/checksum.h>
++
++/*
++ * Quickly compute an IP checksum with the assumption that IPv4 headers will
++ * always be in multiples of 32-bits, and have an ihl of at least 5.
++ * @ihl is the number of 32 bit segments and must be greater than or equal to 5.
++ * @iph is assumed to be word aligned.
++ */
++static inline __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
++{
++	unsigned long csum = 0;
++	int pos = 0;
++
++	do {
++		csum += ((const unsigned int *)iph)[pos];
++		if (IS_ENABLED(CONFIG_32BIT))
++			csum += csum < ((const unsigned int *)iph)[pos];
++	} while (++pos < ihl);
++
++	/*
++	 * ZBB only saves three instructions on 32-bit and five on 64-bit so not
++	 * worth checking if supported without Alternatives.
++	 */
++	if (IS_ENABLED(CONFIG_RISCV_ISA_ZBB) &&
++	    IS_ENABLED(CONFIG_RISCV_ALTERNATIVE)) {
++		unsigned long fold_temp;
++
++		asm_volatile_goto(ALTERNATIVE("j %l[no_zbb]", "nop", 0,
++					      RISCV_ISA_EXT_ZBB, 1)
++		    :
++		    :
++		    :
++		    : no_zbb);
++
++		if (IS_ENABLED(CONFIG_32BIT)) {
++			asm(".option push				\n\
++			.option arch,+zbb				\n\
++				not	%[fold_temp], %[csum]		\n\
++				rori	%[csum], %[csum], 16		\n\
++				sub	%[csum], %[fold_temp], %[csum]	\n\
++			.option pop"
++			: [csum] "+r" (csum), [fold_temp] "=&r" (fold_temp));
++		} else {
++			asm(".option push				\n\
++			.option arch,+zbb				\n\
++				rori	%[fold_temp], %[csum], 32	\n\
++				add	%[csum], %[fold_temp], %[csum]	\n\
++				srli	%[csum], %[csum], 32		\n\
++				not	%[fold_temp], %[csum]		\n\
++				roriw	%[csum], %[csum], 16		\n\
++				subw	%[csum], %[fold_temp], %[csum]	\n\
++			.option pop"
++			: [csum] "+r" (csum), [fold_temp] "=&r" (fold_temp));
++		}
++		return csum >> 16;
++	}
++no_zbb:
++#ifndef CONFIG_32BIT
++	csum += (csum >> 32) | (csum << 32);
++	csum >>= 32;
++#endif
++	return csum_fold((__force __wsum)csum);
++}
++
++#endif // __ASM_RISCV_CHECKSUM_H
 
-Why would anybody do that? We have been working with ARM for almost
-3 years to get to the current point where we have overcome most of
-the architecture issues and have made this feature viable at the
-first place. It is totally out of wits that anyone of us would
-want to delay its acceptance.
+-- 
+2.42.0
 
-
-> 
-> If we want to later propose that Enabled=1 Online-Capable=1 means
-> that the CPU can be hot-unplugged, then that's something that can
-> be added to the spec later, and added to the kernel later. There
-> is no need to go through more iterations of patch sets to add this
-> feature before considering that aarch64 vCPU hotplug is ready to
-> be merged.
-
-Absolutely but again these two things can be done in parallel.
-And whether patch-set is ready to get accepted is up to the
-Maintainers to decide and other community members as well.
-Yourself, James, I and others have been making efforts in this
-direction already.
-
-But I understand your concern that maybe current discussion might
-create a bit of a distraction and can be held.
-
-> 
-> Like I said in my other email, it's time to stop this "well, if we
-> do this, then we can do that" cycle - stop playing games with what
-> can be done.
-
-Don't know which cyclic games are being referred here - really!
-
-I will leave it up to James to answer that.
-
-> Delaying merging this code means not only does the maintenance
-> burden keep increasing (because more and more patches accumulate
-> which have to be constantly forward ported) but those who *want*
-> this feature are deprived for what, another year? two years?
-> decades? before it gets merged.
-
-It is good to know that there are customers waiting for this
-feature at your side as well. Let us hope this can get accepted
-quickly.
-
-> So please, stop dreaming up new features. Let's get aarch64 vCPU
-> hotplug that is compliant with the current ACPI spec, merged into
-> upstream. If we _then_ want to consider additional features, that's
-> the time to do it.
-
-
-That's what I suggested earlier as well but the discussions for the
-problem cannot be ignored.
-
-
-> If you're not prepared to do that, do not be surprised if someone
-> else (such as myself) decides to fork James' work in order to get
-> it merged upstream - and yes, I _will_ do that if these games
-> carry on. I have already started to do that by proposing a patch
-> that is different from what James has to at least get some of
-> James' desired changes upstream - and I will continue doing that
-> all the time that (a) I see that there's a better way to address
-> something in James' patch and (b) I think in the longer term it
-> will reduce the maintenance burden of this patch set.
-
-Are you changing the approach of the kernel?
-
-
-Thanks
-Salil.
