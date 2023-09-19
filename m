@@ -2,256 +2,226 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 1AAB5CE79AC
-	for <linux-arch@archiver.kernel.org>; Tue, 19 Sep 2023 20:00:16 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 91A98CE79A9
+	for <linux-arch@archiver.kernel.org>; Tue, 19 Sep 2023 23:09:58 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233052AbjISUAT (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 19 Sep 2023 16:00:19 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38186 "EHLO
+        id S233553AbjISXKB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 19 Sep 2023 19:10:01 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55944 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233035AbjISUAS (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Sep 2023 16:00:18 -0400
-Received: from NAM10-BN7-obe.outbound.protection.outlook.com (mail-bn7nam10on2089.outbound.protection.outlook.com [40.107.92.89])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 83CDC9C;
-        Tue, 19 Sep 2023 13:00:11 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=imCMwj5lPFB7uMhYW4GZTWzKpFVg4QDxHHTUU5fUbbnQrY9VVw+WDU8UNzn01zCibD3mtjtdlnCCaTSApCou5+XcMHwGgxnidd+zJAUqumcWXRAJCnYUzllL7kd2RkVwACHr1XXKQE1/7HBfYyCZln2iidOX7TPduk7reuYiUY3J/MaoUnpPJ+/VXLmZQnK5g0YE9or1XgU+fF96ESp+T3C3rbt14X0fddgKdTvRBEsq7OANE+NIkOMFYJma4qumKWFtdr+snRO5wBseb6rHqRxYJ6QeYSQ4sYGPRu9jSwW8U8otgxFnpFY4NQ8b+9glRTfkYq5h7Br3P7JPlliJeQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=M65/YX0u+OL9gq+V3+q+iaPDBvIjibRRGKWVvpbHrKM=;
- b=fHLRwpr/xXMTtjdEClTB+5cg5BNJq9hHzW6xbvG6atlODiRPxZRLB7GjMEa3ejPo4Z4CY+IYdF8BiHZal98WbTVbQ8iBE/1sHtGbEQSCNf/LGX8HzsbZo/lrgmChX2fHcC5OEi8NB1GVa2VPyyyfpEqeW4/lGmc2l3+LEpaIUNXyPNTkoGJn7fGKswk1Z+W68bgHTBJ0H2SgqHFT1hf3hYW0u31i3vJvCTFPOlHDFExrEX9yf4Rz3Sv0ItJfFK+DHztO6/w9zTF9KBh7jhWIwbnBPOXbb7yZME1Qstxlh9WehHLtUxpiy9Le8pKqd01rwJYQdtl1PfqWEqErA2iKtA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=memverge.com; dmarc=pass action=none header.from=memverge.com;
- dkim=pass header.d=memverge.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=memverge.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=M65/YX0u+OL9gq+V3+q+iaPDBvIjibRRGKWVvpbHrKM=;
- b=EMZRJ+5zHQtBybDxv8g4MIrFUcn1XB+DoVMGkzLYJAl1mQJKlPUp0ezIsjtGIwZalqfXBA0RDfXH0VF6pXtsPkF2KYar3JJgufen77ZXbQ7bCeXTT73yTsrXW4AvVfwbyJvvr7kB9nKOae82jtCE4dzzOdC+rQQjp3chlVSNRz0=
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=memverge.com;
-Received: from SJ0PR17MB5512.namprd17.prod.outlook.com (2603:10b6:a03:394::19)
- by IA1PR17MB6309.namprd17.prod.outlook.com (2603:10b6:208:42a::18) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6792.28; Tue, 19 Sep
- 2023 20:00:07 +0000
-Received: from SJ0PR17MB5512.namprd17.prod.outlook.com
- ([fe80::f4e8:df0d:9be8:88cc]) by SJ0PR17MB5512.namprd17.prod.outlook.com
- ([fe80::f4e8:df0d:9be8:88cc%6]) with mapi id 15.20.6792.026; Tue, 19 Sep 2023
- 20:00:07 +0000
-Date:   Tue, 19 Sep 2023 15:59:57 -0400
-From:   Gregory Price <gregory.price@memverge.com>
-To:     Andy Lutomirski <luto@kernel.org>
-Cc:     Jonathan Corbet <corbet@lwn.net>,
-        Gregory Price <gourry.memverge@gmail.com>,
-        linux-mm@vger.kernel.org,
-        Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
-        linux-arch@vger.kernel.org, Linux API <linux-api@vger.kernel.org>,
-        linux-cxl@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        the arch/x86 maintainers <x86@kernel.org>
-Subject: Re: [RFC PATCH 3/3] mm/migrate: Create move_phys_pages syscall
-Message-ID: <ZQn9vfKGB4pqvYsG@memverge.com>
-References: <20230907075453.350554-1-gregory.price@memverge.com>
- <20230907075453.350554-4-gregory.price@memverge.com>
- <878r9dzrxj.fsf@meer.lwn.net>
- <ZP2tYY00/q9ElFQn@memverge.com>
- <42d97bb4-fa0c-4ecc-8a1b-337b40dca930@app.fastmail.com>
- <ZQnMzD26VI3C/ivf@memverge.com>
- <0a7e3ccc-db66-428e-8c09-66e67bfded51@app.fastmail.com>
- <ZQnmVI0Q/Al5UKgQ@memverge.com>
- <1b7ea860-55e2-48fb-86ba-ff3f9f6d8904@app.fastmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1b7ea860-55e2-48fb-86ba-ff3f9f6d8904@app.fastmail.com>
-X-ClientProxiedBy: BYAPR11CA0079.namprd11.prod.outlook.com
- (2603:10b6:a03:f4::20) To SJ0PR17MB5512.namprd17.prod.outlook.com
- (2603:10b6:a03:394::19)
+        with ESMTP id S233781AbjISXJq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 19 Sep 2023 19:09:46 -0400
+Received: from mail-yw1-x1142.google.com (mail-yw1-x1142.google.com [IPv6:2607:f8b0:4864:20::1142])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 74A0C1B9;
+        Tue, 19 Sep 2023 16:09:29 -0700 (PDT)
+Received: by mail-yw1-x1142.google.com with SMTP id 00721157ae682-59bc97d7b3dso4487777b3.1;
+        Tue, 19 Sep 2023 16:09:29 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1695164968; x=1695769768; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=BLouotyXGn65Q/3Hxsys2lst/s1kpw1SClrVTeQFtkc=;
+        b=TGptGmlT/N3cQ9n7Jhz7htjuNxuS+DKE1ih2L99YImvZgafvrYWZTfec5VK3M6O7NQ
+         LSx9bDe0m1yqFnwaskoXaZTaGJfVKbhbb3D4yHuQE4KnFc8lJHcvuGVWLdLe774f1mYe
+         83Zx+knnuHaMrsyIVsvk6VI8rFL2XNv1IrcS6oBK/H/3YiFWZnbUnODfpaXbbdUtR0o9
+         X5hGyypUlaYLk0SZB8BVgzZzZQdiaR7mu7P4Xq1mfC8WbUhkxfkZNM8MbHbNUabpY5sk
+         skyqQqXjRf4vNrbXuHRN3QuTSRR8v4AJrFnnctUJb2eCxXo4eLVOafX77u8KX+CR1Siq
+         /G3w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1695164968; x=1695769768;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=BLouotyXGn65Q/3Hxsys2lst/s1kpw1SClrVTeQFtkc=;
+        b=GdEE6eehsreTyCMlE2C2eCSK0WvD3n+MGXKW/Re2G5Pel6o1aNqHadB1uhiPiIBUYd
+         KuOcyGSLA9b09M0p0Ewts+3RDOSbIeeEXfcO9UEuKJkXLYfpzTrCG0AFlThjUWn1OWfF
+         YFjx5jBRcPOu3d8MMFLPJo7f0twgwRBa8BySqVC6WMGKdddGRUX8+2shLA6f/HNw9K6u
+         sNS5iGgnHVzAX3x9bpw6J6rqigQPelbwAF/S7Nv2UbTtZTzS/OTXL61ArYEbkYV0UHZ1
+         SCYs4wRrAZPYBmIVHe05KDjWp1qjCQO2t/rKXBQ120L69JAQODf594Ev7plP7T2vD/7b
+         8zng==
+X-Gm-Message-State: AOJu0YzR1D31m63x+9FeftBZ9FYIC1Q5d4t6iSzvbJoML2NmD8j4xXa/
+        aQKx8pk/RyFDV/H006vcb+kD4Qhsm11X
+X-Google-Smtp-Source: AGHT+IF47zIeEsarZk/JZFIFSE3MQxssVw9sGEWuhuP2/NTGCJ+Cj6XHJ/FmmxB/D4g/ZGB8xvzDKw==
+X-Received: by 2002:a0d:d4ce:0:b0:56f:fd0a:588d with SMTP id w197-20020a0dd4ce000000b0056ffd0a588dmr5098911ywd.8.1695164968364;
+        Tue, 19 Sep 2023 16:09:28 -0700 (PDT)
+Received: from fedora.mshome.net (pool-173-79-56-208.washdc.fios.verizon.net. [173.79.56.208])
+        by smtp.gmail.com with ESMTPSA id d128-20020a0df486000000b005925765aa30sm3476327ywf.135.2023.09.19.16.09.27
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 19 Sep 2023 16:09:28 -0700 (PDT)
+From:   Gregory Price <gourry.memverge@gmail.com>
+X-Google-Original-From: Gregory Price <gregory.price@memverge.com>
+To:     linux-mm@vger.kernel.org
+Cc:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-api@vger.kernel.org, linux-cxl@vger.kernel.org,
+        luto@kernel.org, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
+        arnd@arndb.de, akpm@linux-foundation.org, x86@kernel.org,
+        Gregory Price <gregory.price@memverge.com>
+Subject: [RFC v2 3/5] mm/migrate: refactor add_page_for_migration for code re-use
+Date:   Tue, 19 Sep 2023 19:09:06 -0400
+Message-Id: <20230919230909.530174-4-gregory.price@memverge.com>
+X-Mailer: git-send-email 2.39.1
+In-Reply-To: <20230919230909.530174-1-gregory.price@memverge.com>
+References: <20230919230909.530174-1-gregory.price@memverge.com>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: SJ0PR17MB5512:EE_|IA1PR17MB6309:EE_
-X-MS-Office365-Filtering-Correlation-Id: 909bc047-6202-4af5-b681-08dbb94b0517
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info: PyZLsuXCAiGwtWIVCVeUT7gyVW55Jf2DN3XMaAE/lb70GzNQZZS897EaCsY+vbKc6nEqDXxVb1gsENXGEiTPex0GVVhl0qIxO6CFKq1AHZMLuXjLZig7Oi0M549FXBvM1OrQyqOEHax/RKwQ/BHqzQcIJHQquLiA+CL/U2DG+InypVho+0LtiMxGx9q7L3vnWyKe83GfNTuwA19cHjo0W5gDwR3PojwEPLg/z3jOK07Cn9CoIKQQZw9NlPayXYhaujmOC7ZDJ+GdlwaFKm4rmd0h12m39o1AuaAT8toDUlgHjto1027PUA+Y2kBkwMn/iV/jLRjLTWGptD3H0al0zXNI38LSO1kt2v+fKsrPOC/NoOPdWMYwgNiJaPeJ7OR7WQh80ke7U9XPi2yZ0xxhuPq7v67L8lIOrgXkNJ+7Orwh79R8TD5zG19libQqTUY9ZhKkUVg390z811kABLdNbWEpMnCA4xhzCZmRsoQiXlvBZHXQ2PWNnpRzXGcIHm5jLRIND207wfQZD5k+ZHFXU3uI9UFKBoqk0E6XCFnAWP3L4f+5Sl3Q1ynZ7wF5LFuY
-X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SJ0PR17MB5512.namprd17.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230031)(136003)(396003)(376002)(39840400004)(366004)(346002)(1800799009)(451199024)(186009)(478600001)(6506007)(6666004)(6486002)(6512007)(4326008)(83380400001)(26005)(2616005)(8676002)(2906002)(7416002)(66556008)(6916009)(66476007)(54906003)(316002)(66946007)(5660300002)(8936002)(41300700001)(44832011)(36756003)(38100700002)(86362001);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0: =?utf-8?B?bEphRC9RSUNkL0FjZktXS1ZxRlJPRXM1eEowa3NEY1MydTdYQlRMUGcrZTJI?=
- =?utf-8?B?RmpVY2FoU1NYK0ZRakNuM0d1U1JYT0pOSitoY25mUW10dDJkWTR3MnRCSFlB?=
- =?utf-8?B?Q1M0N0lXbkdYSWNBbHdGRmtJU0NpYmgyWDloUUFLai9Eb0o1K2hzbkF0V2k4?=
- =?utf-8?B?eWRNSFRKbGlJWEhOcVJ1TXVCcVhQMWprVlVzcWdTeGFzQnFLMFNua1gzOStE?=
- =?utf-8?B?U1d6YWs2SkF3eGlZaUdCZ0hGQm9YU294NHE5TWZnSExWaloya0t3REV4clNj?=
- =?utf-8?B?ZW9LTk5PRzhZQ0djVFd0M2ZMaHp2OGsrN1J6cVcvQ1hZTWhCeWhQK3FGTXJi?=
- =?utf-8?B?Vmk1ZlFFRW8yME5UY2IydlgrU0RISkQwNzhub1JmcUtmRTBTT2ZQTVdBYTFM?=
- =?utf-8?B?cCtkOFpEMXFqWURnY3ZvMmlTVE9CNXFIaU1oZUZsemlOYTZkZG1lWUpDMWxD?=
- =?utf-8?B?SHUyWHY1Zm8wbUQ1UzlJMWdhRWZkTnJwUjk3UkZ2dzNyRzNRSGJUNnVLbjla?=
- =?utf-8?B?aXY3K1RBL1YwZXpwdGVXNHJuMzYwU1pyN2VFRnBXWElGN1NUNWlndDlQb2FM?=
- =?utf-8?B?dzUzNkNXY214eElNUHk2NXVSMVk1dW9QVU1GR1NadGhERE9CNVJxQ0tDejZx?=
- =?utf-8?B?dkx0SmxvRFVmWkczTFY4WFVvOVQwdXQyUFZ4U0pJemFERVJyM0N2eFdFejVC?=
- =?utf-8?B?YVZQVUZ4NnNtZnpOQUhUcnRsREVoQzNGemlQYWdQa0NIQWRZdVlnYVB3UjBa?=
- =?utf-8?B?WHQzM2ZwWWtvcjFSVkFLeUVyYVJGWGoxemVqTDhMTmRXMjRzY0F3RHFRRHZy?=
- =?utf-8?B?ckE5QllXZkhTbkRYMDBjRDRIMHVYOUVGV3ZodEMwZ1RZbkNSZXFXcmtjbEZh?=
- =?utf-8?B?ODhLSjYxOGhuTnBJNzZCbFRPUHlnbHlZdVEyL3NUeStRWG1ZU3lEQTJvRi8v?=
- =?utf-8?B?cjVOckpVaGsraVRjUzNjakVMVnQ1MHhLZ1ovMEhndndWOHRtM3l6cldOTlo4?=
- =?utf-8?B?UTZOMFBmK3ZZbDhaUVNLY20zajJFSmRvcWdkWEg3Nlhnb2QvV2QwbFdodGpW?=
- =?utf-8?B?WUl6YVdpcGFBM0xCa3ZPUS9zU3hHTzZsOGdEcXkzOFhFMzRKcWFsV1FzZDhm?=
- =?utf-8?B?TlMySEdHYS9hWVpXYWczNUVHdG1mV0IrcHBoSCtnWFllMmhzckxGTkFKNzdB?=
- =?utf-8?B?aW1ZR2FZdjJUTmJxOHZVZlo0VUEzSThJdjdOQkVLdFdIL09TeFFKcXFpa0Vh?=
- =?utf-8?B?NG54dFBEdmlSZU1ZbjBySmdILzNRNkpkTHR4ZXRKbkpTVmhIMVJSZTdTWmxX?=
- =?utf-8?B?eFlrOWIwczhSV3ZKb05QWFNRdGhjaVhRV24zQ0Qwbit5M3UyTjZNR2RaR0U2?=
- =?utf-8?B?cmFuWlhIYXZDTU5IemJaUjk3c1ZqYUlwRUE1S2QxbUpvTHl6TVY3a1loR1Nv?=
- =?utf-8?B?a21tNkxmZysvNXRKaUxiUXZrWkJycklKQW9pNE12NTdtQkxSNEFsWDQ4L1lM?=
- =?utf-8?B?K2FIOXNnbnB1K1NzVUhEZG0yWGs0bitUQUFoYVRCR1d3RG9TM29FWmsxQW9D?=
- =?utf-8?B?akxJSHdENkRtMzhWdHpIZ0VvUERoa1NzZ01sVW82S1RWdExlK3dYbmx5NFMx?=
- =?utf-8?B?cEdKdzUzRjFScXZ1bXZuVkhXTkpGK1A3L3hvMUVEcFA0T0V1NjUzYW5sOGIv?=
- =?utf-8?B?THlnRmFaRUZkOXJEYTQxMy9oS1F6a0NsandrYzhBSGl3YjQvV01HclYycVBZ?=
- =?utf-8?B?Njl2RGd0Z0hENUpSRGQwZm0zU2lra3hVb3ozNlEyTHgzTkZjQmI0bXQwRVdT?=
- =?utf-8?B?T1pjd1ViaXFjamV5YXp3NXBDWDhTWGJyQnNLSU8zWlFSUHBFWGppYkFOTXVW?=
- =?utf-8?B?QnNtM2FNelh4eCt1T1V5Yk41SHh6MmFncWo2V3hTam1BZjg1VGlGNGVVc0t1?=
- =?utf-8?B?K3pZVU5sRHlGamhMZ2RVTkd5TndQSUxMNkJSVzZaKzhQU1VrZmFWTHo3clZM?=
- =?utf-8?B?R3lSekwrZWFpQzVtanFpYXB1ZVNmYzBHVjRFaUNVblVFc2lhQXJRa1lEdUJj?=
- =?utf-8?B?Tm5lSU9qUWEvVDJrbmFSbldGN2xBR1ltVjgzS0Rzd0xoNGhFeU9mRVd3b3k5?=
- =?utf-8?B?c1NHc2R1YjNSOFFGNCtSaFlJVWV4SnpMWHBTaFFSUFYycEZjNDFiQ1hwbUVJ?=
- =?utf-8?B?RFE9PQ==?=
-X-OriginatorOrg: memverge.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 909bc047-6202-4af5-b681-08dbb94b0517
-X-MS-Exchange-CrossTenant-AuthSource: SJ0PR17MB5512.namprd17.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 19 Sep 2023 20:00:07.0770
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 5c90cb59-37e7-4c81-9c07-00473d5fb682
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: Cng2y8d2Fsq28j9fp19vI77X0QyXvVclIW0ZwpG9qrpUZAt54ZY82gFoOizYHJwhVSs7ceXyDEZzl7bjgWjDtG0+G8FXdIYDPfEkePsj3hc=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA1PR17MB6309
+Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Tue, Sep 19, 2023 at 11:52:27AM -0700, Andy Lutomirski wrote:
-> 
-> 
-> On Tue, Sep 19, 2023, at 11:20 AM, Gregory Price wrote:
-> > On Tue, Sep 19, 2023 at 10:59:33AM -0700, Andy Lutomirski wrote:
-> >> 
-> >> I'm not complaining about the name.  I'm objecting about the semantics.
-> >> 
-> >> Apparently you have a system to collect usage statistics of physical addresses, but you have no idea what those pages map do (without crawling /proc or /sys, anyway).  But that means you have no idea when the logical contents of those pages *changes*.  So you fundamentally have a nasty race: anything else that swaps or migrates those pages will mess up your statistics, and you'll start trying to migrate the wrong thing.
-> >
-> > How does this change if I use virtual address based migration?
-> >
-> > I could do sampling based on virtual address (page faults, IBS/PEBs,
-> > whatever), and by the time I make a decision, the kernel could have
-> > migrated the data or even my task from Node A to Node B.  The sample I
-> > took is now stale, and I could make a poor migration decision.
-> 
-> The window is a lot narrower. If you’re sampling by VA, you collect stats and associate them with the logical page (the tuple (mapping, VA), for example).  The kernel can do this without races from page faults handlers.  If you sample based on PA, you fundamentally race against anything that does migration.
-> 
+add_page_for_migration presently does two actions:
+  1) validates the page is present and migratable
+  2) isolates the page from LRU and puts it into the migration list
 
-Race conditions are race conditions, narrow or otherwise.  The narrow-ness
-of the condition is either irrelevant, or you can accept some level of race
-because the goal allows for slop within a certain window.
+Break add_page_for_migration into 2 functions:
+  add_page_for_migration - isolate the page from LUR and add to list
+  add_virt_page_for_migration - validate the page and call the above
 
-In fact, the entire purpose of this interface is to very explicity
-reduce the time it takes to go from sampling to migration decision.
+add_page_for_migration does not require the mm_struct and so can be
+re-used for a physical addressing version of move_pages
 
-Certainly a user could simply use a heatmap with cgroups.numa_stat
-to determine what processes they should interrogate - but for systems
-with many tennants/processes/tasks, sometimes just acting on the overall
-view of memory would be better served if *major* changes have to be made
-to the overall distribution.
+Signed-off-by: Gregory Price <gregory.price@memverge.com>
+---
+ mm/migrate.c | 83 +++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 50 insertions(+), 33 deletions(-)
 
+diff --git a/mm/migrate.c b/mm/migrate.c
+index dbe436163d65..1123d841a7f1 100644
+--- a/mm/migrate.c
++++ b/mm/migrate.c
+@@ -2042,52 +2042,33 @@ static int do_move_pages_to_node(struct list_head *pagelist, int node)
+ }
+ 
+ /*
+- * Resolves the given address to a struct page, isolates it from the LRU and
+- * puts it to the given pagelist.
++ * Isolates the page from the LRU and puts it into the given pagelist
+  * Returns:
+  *     errno - if the page cannot be found/isolated
+  *     0 - when it doesn't have to be migrated because it is already on the
+  *         target node
+  *     1 - when it has been queued
+  */
+-static int add_page_for_migration(struct mm_struct *mm, const void __user *p,
+-		int node, struct list_head *pagelist, bool migrate_all)
++static int add_page_for_migration(struct page *page, int node,
++		struct list_head *pagelist, bool migrate_all)
+ {
+-	struct vm_area_struct *vma;
+-	unsigned long addr;
+-	struct page *page;
+ 	int err;
+ 	bool isolated;
+ 
+-	mmap_read_lock(mm);
+-	addr = (unsigned long)untagged_addr_remote(mm, p);
+-
+-	err = -EFAULT;
+-	vma = vma_lookup(mm, addr);
+-	if (!vma || !vma_migratable(vma))
+-		goto out;
+-
+-	/* FOLL_DUMP to ignore special (like zero) pages */
+-	page = follow_page(vma, addr, FOLL_GET | FOLL_DUMP);
+-
+-	err = PTR_ERR(page);
+-	if (IS_ERR(page))
+-		goto out;
+-
+ 	err = -ENOENT;
+ 	if (!page)
+ 		goto out;
+ 
+ 	if (is_zone_device_page(page))
+-		goto out_putpage;
++		goto out;
+ 
+ 	err = 0;
+ 	if (page_to_nid(page) == node)
+-		goto out_putpage;
++		goto out;
+ 
+ 	err = -EACCES;
+ 	if (page_mapcount(page) > 1 && !migrate_all)
+-		goto out_putpage;
++		goto out;
+ 
+ 	if (PageHuge(page)) {
+ 		if (PageHead(page)) {
+@@ -2101,7 +2082,7 @@ static int add_page_for_migration(struct mm_struct *mm, const void __user *p,
+ 		isolated = isolate_lru_page(head);
+ 		if (!isolated) {
+ 			err = -EBUSY;
+-			goto out_putpage;
++			goto out;
+ 		}
+ 
+ 		err = 1;
+@@ -2110,12 +2091,48 @@ static int add_page_for_migration(struct mm_struct *mm, const void __user *p,
+ 			NR_ISOLATED_ANON + page_is_file_lru(head),
+ 			thp_nr_pages(head));
+ 	}
+-out_putpage:
+-	/*
+-	 * Either remove the duplicate refcount from
+-	 * isolate_lru_page() or drop the page ref if it was
+-	 * not isolated.
+-	 */
++out:
++	return err;
++}
++
++/*
++ * Resolves the given address to a struct page, isolates it from the LRU and
++ * puts it to the given pagelist.
++ * Returns:
++ *     errno - if the page cannot be found/isolated
++ *     0 - when it doesn't have to be migrated because it is already on the
++ *         target node
++ *     1 - when it has been queued
++ */
++static int add_virt_page_for_migration(struct mm_struct *mm,
++		const void __user *p, int node, struct list_head *pagelist,
++		bool migrate_all)
++{
++	struct vm_area_struct *vma;
++	unsigned long addr;
++	struct page *page;
++	int err = -EFAULT;
++
++	mmap_read_lock(mm);
++	addr = (unsigned long)untagged_addr_remote(mm, p);
++
++	vma = vma_lookup(mm, addr);
++	if (!vma || !vma_migratable(vma))
++		goto out;
++
++	/* FOLL_DUMP to ignore special (like zero) pages */
++	page = follow_page(vma, addr, FOLL_GET | FOLL_DUMP);
++
++	err = PTR_ERR(page);
++	if (IS_ERR(page))
++		goto out;
++
++	err = -ENOENT;
++	if (!page)
++		goto out;
++
++	err = add_page_for_migration(page, node, pagelist, migrate_all);
++
+ 	put_page(page);
+ out:
+ 	mmap_read_unlock(mm);
+@@ -2211,7 +2228,7 @@ static int do_pages_move(struct mm_struct *mm, nodemask_t task_nodes,
+ 		 * Errors in the page lookup or isolation are not fatal and we simply
+ 		 * report them via status
+ 		 */
+-		err = add_page_for_migration(mm, p, current_node, &pagelist,
++		err = add_virt_page_for_migration(mm, p, current_node, &pagelist,
+ 					     flags & MPOL_MF_MOVE_ALL);
+ 
+ 		if (err > 0) {
+-- 
+2.39.1
 
-Similarly, collection of data can likewise we made more performant.
-
-Faults introduce runtime overhead.  Pushing heatmap collection to
-devices alleviates the need for introducing that overhead.  Use of
-IBS/PEBS is (by nature of sampling and a variety of quirks having to do
-with the prefetcher) quite inaccurate and costly to compute after being
-collected.
-
-
-Ultimately if your goal is extremely high precision for the performance
-of a single process, I agree with your analysis.  However, I never claimed
-the goal is precision on the level a single process.  On the contrary,
-the goal is system-wide tiering based on cheap-to-acquire information.
-
-> >
-> > If I do move_pages(pid, some_virt_addr, some_node) and it migrates the
-> > page from NodeA to NodeB, then the device-side collection is likewise
-> > no longer valid.  This problem doesn't change because I used virtual
-> > address compared to physical address.
-> 
-> Sure it does, as long as you collect those samples when you migrate. And I think the kernel migrating to or from device memory (or more generally allocating and freeing device memory and possibly even regular memory) *should* be aware of whatever hotness statistics are in use.
->
-
-I'm not keen on "the kernel should..." implying "user land should not".
-
-I don't disagree that the kernel could/should/would use this same
-information.  My proposal here is that there is value in enabling
-userland to do the same thing (so long as security is not compromised).
-
-> >
-> > But if i have a 512GB memory device, and i can see a wide swath of that
-> > 512GB is hot, while a good chunk of my local DRAM is not - then I
-> > probably don't care *what* gets migrated up to DRAM, i just care that a
-> > vast majority of that hot data does.
-> >
-> > The goal here isn't 100% precision, you will never get there. The goal
-> > here is broad-scope performance enhancements of the overall system
-> > while minimizing the cost to compute the migration actions to be taken.
-> >
-> > I don't think the contents of the page are always relevant.  The entire
-> > concept here is to enable migration without caring about what programs
-> > are using the memory for - just so long as the memcg's and zoning is
-> > respected.
-> >
-> 
-> At the very least I think you need to be aware of page *size*.  And if you want to avoid excessive fragmentation, you probably also want to be aware of the boundaries of a logical allocation.
->
-
-Re page size: this was brought up in a prior email, and I agree,
-but that also doesn't really change for move_pages.  The man page for
-move_pages already says this:
-
-"""
-pages is an array of pointers to the pages that should be moved.
-These are pointers that should be aligned to page boundaries.
-"""
-
-But to an extent I agree with you.
-
-A device collecting data as I describe won't necessarily know the
-page size (or there may even be multiple sized pages hosted on the
-device).  Operating on that data blind does have some risks.
-
-Some work probably could be done to ensure the data being used doesn't,
-for example, cause a hugepage to be migrated multiple times.  In that
-regard, if the address doesn't match the base of the page the migration
-should fail.
-
-I think there are simple ways to avoid these footguns.
-
-> 
-> I think that doing this entire process by PA, blind, from userspace will end up stuck in a not-so-good solution, and the ABI will be set in stone, and it will not be a great situation for long term maintainability or performance.
-
-"entire process" and "blind" are a little bit of an straw man here. The
-goal is to marry many pieces of data to make decisions about how and
-what to move, with as many (flexible) tools available to enact changes
-quickly to reduce the staleness of information issue.
-
-Sometimes it would be "more blind" than others, yes.  In other cases,
-such a device-provided heatmap would simply be informational for overall
-system health.
-
-To me, unless I'm misunderstanding, it sounds like you think system-wide
-tiering decisions should not be a function userland is empowered to do
-directly, but instead should be implemented entirely in the kernel?
-
-~Gregory
