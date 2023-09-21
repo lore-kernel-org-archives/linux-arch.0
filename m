@@ -2,98 +2,93 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D5A92E7D0A1
-	for <linux-arch@archiver.kernel.org>; Thu, 21 Sep 2023 17:10:57 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9DF49E7D0A5
+	for <linux-arch@archiver.kernel.org>; Thu, 21 Sep 2023 18:11:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230162AbjIURLB (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 21 Sep 2023 13:11:01 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58072 "EHLO
+        id S229971AbjIUSLr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 21 Sep 2023 14:11:47 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48284 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S231359AbjIURKb (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Sep 2023 13:10:31 -0400
-Received: from wout1-smtp.messagingengine.com (wout1-smtp.messagingengine.com [64.147.123.24])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 98B1EA5C9;
-        Thu, 21 Sep 2023 10:05:54 -0700 (PDT)
-Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
-        by mailout.west.internal (Postfix) with ESMTP id D723832009EB;
-        Thu, 21 Sep 2023 08:25:22 -0400 (EDT)
-Received: from imap51 ([10.202.2.101])
-  by compute6.internal (MEProxy); Thu, 21 Sep 2023 08:25:24 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-        :cc:content-type:content-type:date:date:from:from:in-reply-to
-        :in-reply-to:message-id:mime-version:references:reply-to:sender
-        :subject:subject:to:to; s=fm1; t=1695299122; x=1695385522; bh=Qt
-        VbcPXLwmPHbqM7Z1JFnFzIc7YAtI2BYnyrt95OPhk=; b=Cu8cylWkfAYqM4kdKA
-        E0MUXpGBIZnygnpCeE2qbClbzc+r82AC9G4kcFl6d1f3KQ9tZrKxdWm358GD10FS
-        9A+C918gXnGOtCToboUZLWoDRNUVoJaIy+r3JpfHBeMRhjQpQNCyEFOTDeb7SxiU
-        TR/aIxr7lhgp2kJxbXovIZc3qBCBRm8amFslmXGS5B6bAmUycT5hpwJMkw+mizKH
-        mwzax1tg1v/Pj9uP/kgxsP+qwQxqWkUnkRVdcoDpES9bGtlPC9dWgoT71IhvgLYd
-        w0Wxq4wdNoEj4M1ps7kktxszrSjUuQpJj1Tg42EhY1N0/zfctp1UZeDFx0NNX3jF
-        f+gQ==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-        messagingengine.com; h=cc:cc:content-type:content-type:date:date
-        :feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
-        :message-id:mime-version:references:reply-to:sender:subject
-        :subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
-        :x-sasl-enc; s=fm2; t=1695299122; x=1695385522; bh=QtVbcPXLwmPHb
-        qM7Z1JFnFzIc7YAtI2BYnyrt95OPhk=; b=DDeBOwHhwDXEaTztHATTvfe4jIk3Y
-        4FIjRbYQ0f9lgPxfl0ZlMvexXSzxTp4DQ53S2Vnm+3vjxu7Y2lLSW0Ro7rBnV4ka
-        3OkI0SKH5tgaLTClViXESDyvCGcS3m5Ky0PAaCNuETCPt9EOW9iqURw3B3vg6I8W
-        3pva8IVYF+FH+UR7vBPjaYU1RKQTORhvnX6ryUkq+wIZoANCzbunVeqB4honcHEZ
-        N+yIOBxhjzNubNM90lyVdk4NM71Y86FLGKYRdpg2E9Df79DsBbfX+J/kyee5NZs8
-        EsoYTAz0Ko1lEzgI+VdpRcUJxDFUUIM7QQ8dNks8sZcWhfxnMoX7yFxbg==
-X-ME-Sender: <xms:MTYMZSSEg_SSqGx5AGZe4oU9f0aKxlr-qUhBubmHtIx8pVYcnMCn-Q>
-    <xme:MTYMZXy33ZVSyvUq9BX316kG4OfB-mZMOPOiTUehtC2J2ttC6xtsAe2WiBeeojUEA
-    LD0EcVt96vrCtR5E7I>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedviedrudekiedghedtucetufdoteggodetrfdotf
-    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
-    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhepofgfggfkjghffffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehr
-    nhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrth
-    htvghrnhepffehueegteeihfegtefhjefgtdeugfegjeelheejueethfefgeeghfektdek
-    teffnecuvehluhhsthgvrhfuihiivgepudenucfrrghrrghmpehmrghilhhfrhhomheprg
-    hrnhgusegrrhhnuggsrdguvg
-X-ME-Proxy: <xmx:MTYMZf3f8KfjcqJQRDz8SU1PHtJvnR0afaNP21xbMt37zhvmWSoXOg>
-    <xmx:MTYMZeAY7BKRDTnqh1zyDybLCkYzoVpj29UVdZ2Am7NmWDsHcr8JaQ>
-    <xmx:MTYMZbibo5dvZkxXU98F6xDuuKRk5XuShs5_fQaka5qHJiOnHPAvwg>
-    <xmx:MjYMZWR-kXl52lIkKZjN4zS-ggkjUeUB_2c2-uIknDLPgbAtRzT8iA>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-        id 50E5CB60089; Thu, 21 Sep 2023 08:25:21 -0400 (EDT)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.9.0-alpha0-761-gece9e40c48-fm-20230913.001-gece9e40c
+        with ESMTP id S229734AbjIUSLP (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Sep 2023 14:11:15 -0400
+Received: from desiato.infradead.org (desiato.infradead.org [IPv6:2001:8b0:10b:1:d65d:64ff:fe57:4e05])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C1D64580B1;
+        Thu, 21 Sep 2023 10:19:11 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
+        Subject:Cc:To:From:Date:Message-Id:Sender:Reply-To:Content-Transfer-Encoding:
+        Content-ID:Content-Description:In-Reply-To;
+        bh=+WIdohk1HL2nzrHveE43px5IkTjGhV/7JBkH2s5C174=; b=ViAEDbVGOlyxSg3ebF8KxwAziD
+        ZJXxCIy42X12v4Mep2vVxljFUC4bpie4jrjZc5b7y0aR/AFBwBx8QQf7IyrWb6in0/ZjL0xzIPnSx
+        pb6UQGfcsxlZIGeiFtjBChv2JNIQwRXxcHOt6/36MAnZlaHZe1+0fz5A4w/a/h9G+i1YiZoOjLNE4
+        OwpOyR+wNSWxm0UFxB37sVSQEBBvFtN6ftl6Pn5yJIMtEP7rAmx4bdY6aw54FXq2amDzF8WCOnnaP
+        MIOPlPb7NIN0RqyDlWXr9vkr9PkW1Y4MN8g0z/WF3CPS10TmZ2L6+1wJRYHnIB47xz4TyxFPPPHSd
+        HzrBon7A==;
+Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
+        by desiato.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+        id 1qjHQN-00FJvv-1Z;
+        Thu, 21 Sep 2023 11:00:59 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 0)
+        id 15CCD30067A; Thu, 21 Sep 2023 13:00:43 +0200 (CEST)
+Message-Id: <20230921105248.683656626@noisy.programming.kicks-ass.net>
+User-Agent: quilt/0.65
+Date:   Thu, 21 Sep 2023 12:45:16 +0200
+From:   peterz@infradead.org
+To:     tglx@linutronix.de, axboe@kernel.dk
+Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
+        mingo@redhat.com, dvhart@infradead.org, dave@stgolabs.net,
+        andrealmeid@igalia.com, Andrew Morton <akpm@linux-foundation.org>,
+        urezki@gmail.com, hch@infradead.org, lstoakes@gmail.com,
+        Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
+        linux-mm@kvack.org, linux-arch@vger.kernel.org,
+        malteskarupke@web.de, Christoph Hellwig <hch@lst.de>
+Subject: [PATCH v3 11/15] mm: Add vmalloc_huge_node()
+References: <20230921104505.717750284@noisy.programming.kicks-ass.net>
 MIME-Version: 1.0
-Message-Id: <2c3e0545-c00e-412f-9ab3-d736d07df045@app.fastmail.com>
-In-Reply-To: <20230921110424.215592-5-bhe@redhat.com>
-References: <20230921110424.215592-1-bhe@redhat.com>
- <20230921110424.215592-5-bhe@redhat.com>
-Date:   Thu, 21 Sep 2023 08:24:59 -0400
-From:   "Arnd Bergmann" <arnd@arndb.de>
-To:     "Baoquan He" <bhe@redhat.com>, linux-kernel@vger.kernel.org
-Cc:     Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org,
-        "Andrew Morton" <akpm@linux-foundation.org>,
-        "Jiaxun Yang" <jiaxun.yang@flygoat.com>,
-        "Michael Ellerman" <mpe@ellerman.id.au>,
-        "Geert Uytterhoeven" <geert@linux-m68k.org>,
-        "Luis Chamberlain" <mcgrof@kernel.org>,
-        "Christoph Hellwig" <hch@infradead.org>,
-        "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
-        "Florian Fainelli" <f.fainelli@gmail.com>,
-        "Helge Deller" <deller@gmx.de>,
-        "Serge Semin" <fancer.lancer@gmail.com>,
-        "Huacai Chen" <chenhuacai@kernel.org>, linux-mips@vger.kernel.org
-Subject: Re: [PATCH v5 4/4] mips: io: remove duplicated codes
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline; filename=peterz-vmalloc_huge_node.patch
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, Sep 21, 2023, at 07:04, Baoquan He wrote:
-> By adding <asm-generic/io.h> support, the duplicated phys_to_virt
-> can be removed to use the default version in <asm-gneneric/io.h>.
->
-> Meanwhile move isa_bus_to_virt() down below <asm-generic/io.h> including
-> to fix the compiling error of missing phys_to_virt definition.
->
+To enable node specific hash-tables.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+---
+ include/linux/vmalloc.h |    1 +
+ mm/vmalloc.c            |    7 +++++++
+ 2 files changed, 8 insertions(+)
+
+Index: linux-2.6/include/linux/vmalloc.h
+===================================================================
+--- linux-2.6.orig/include/linux/vmalloc.h
++++ linux-2.6/include/linux/vmalloc.h
+@@ -152,6 +152,7 @@ extern void *__vmalloc_node_range(unsign
+ void *__vmalloc_node(unsigned long size, unsigned long align, gfp_t gfp_mask,
+ 		int node, const void *caller) __alloc_size(1);
+ void *vmalloc_huge(unsigned long size, gfp_t gfp_mask) __alloc_size(1);
++void *vmalloc_huge_node(unsigned long size, gfp_t gfp_mask, int node) __alloc_size(1);
+ 
+ extern void *__vmalloc_array(size_t n, size_t size, gfp_t flags) __alloc_size(1, 2);
+ extern void *vmalloc_array(size_t n, size_t size) __alloc_size(1, 2);
+Index: linux-2.6/mm/vmalloc.c
+===================================================================
+--- linux-2.6.orig/mm/vmalloc.c
++++ linux-2.6/mm/vmalloc.c
+@@ -3420,6 +3420,13 @@ void *vmalloc(unsigned long size)
+ }
+ EXPORT_SYMBOL(vmalloc);
+ 
++void *vmalloc_huge_node(unsigned long size, gfp_t gfp_mask, int node)
++{
++	return __vmalloc_node_range(size, 1, VMALLOC_START, VMALLOC_END,
++				    gfp_mask, PAGE_KERNEL, VM_ALLOW_HUGE_VMAP,
++				    node, __builtin_return_address(0));
++}
++
+ /**
+  * vmalloc_huge - allocate virtually contiguous memory, allow huge pages
+  * @size:      allocation size
+
+
