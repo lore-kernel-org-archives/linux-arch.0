@@ -2,344 +2,121 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id D8911E7D0AB
-	for <linux-arch@archiver.kernel.org>; Thu, 21 Sep 2023 21:03:39 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3F160E7D0AA
+	for <linux-arch@archiver.kernel.org>; Thu, 21 Sep 2023 21:20:51 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232437AbjIUVDn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 21 Sep 2023 17:03:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54602 "EHLO
+        id S232646AbjIUVUx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 21 Sep 2023 17:20:53 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:46084 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229990AbjIUVDR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Sep 2023 17:03:17 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BC80535AD;
-        Thu, 21 Sep 2023 11:10:42 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
-        Subject:Cc:To:From:Date:Message-Id:Sender:Reply-To:Content-Transfer-Encoding:
-        Content-ID:Content-Description:In-Reply-To;
-        bh=2DTgjumfpm1XkZ715bEL5OW+Lzt/Am5TA3vJOTBLXZU=; b=XtAFaLhmRfTSIAepdy7Z15s9Wy
-        b1BqY+tCKhG7iyZKLYYRNBZJwy94StzYUTqTRb4lHlI1R2dX7EN+UPkoJULC5vToF96NtZbh7DJNr
-        pTY0V1ZnfaiE7UbbbZJByPuN2HXlor7S6wiQ/LCk7IplNknLy93ZOB92k8zpLDFoFIiUeIsaRFSe0
-        +XpYMy8qnNT2sPEYPDdBo65fv2TLQ/McFO5r8jj1XGaBf5mkd6OJSbAm2arUAPFUaGHhGx0kK0UNg
-        //TgiNaI26sQrDaKAHt9H9bCJt3yGOC9sNcWBcNm0DUfZlETWKVXDYWK3X05N72GmLWsjWXc9s9d4
-        Cfr8LB7Q==;
-Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-        by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qjHQO-00BTok-R7; Thu, 21 Sep 2023 11:00:48 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 0)
-        id E749B300585; Thu, 21 Sep 2023 13:00:42 +0200 (CEST)
-Message-Id: <20230921105247.936205525@noisy.programming.kicks-ass.net>
-User-Agent: quilt/0.65
-Date:   Thu, 21 Sep 2023 12:45:10 +0200
-From:   peterz@infradead.org
-To:     tglx@linutronix.de, axboe@kernel.dk
-Cc:     linux-kernel@vger.kernel.org, peterz@infradead.org,
-        mingo@redhat.com, dvhart@infradead.org, dave@stgolabs.net,
-        andrealmeid@igalia.com, Andrew Morton <akpm@linux-foundation.org>,
-        urezki@gmail.com, hch@infradead.org, lstoakes@gmail.com,
-        Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
-        linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        malteskarupke@web.de, Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH v3 05/15] futex: Add sys_futex_wake()
-References: <20230921104505.717750284@noisy.programming.kicks-ass.net>
+        with ESMTP id S232801AbjIUVOw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 21 Sep 2023 17:14:52 -0400
+Received: from wnew1-smtp.messagingengine.com (wnew1-smtp.messagingengine.com [64.147.123.26])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A4FEA7EF5;
+        Thu, 21 Sep 2023 10:10:52 -0700 (PDT)
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
+        by mailnew.west.internal (Postfix) with ESMTP id 0FCFB2B00167;
+        Thu, 21 Sep 2023 08:27:35 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute6.internal (MEProxy); Thu, 21 Sep 2023 08:27:37 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+        :cc:content-type:content-type:date:date:from:from:in-reply-to
+        :in-reply-to:message-id:mime-version:references:reply-to:sender
+        :subject:subject:to:to; s=fm1; t=1695299255; x=1695306455; bh=Xq
+        U4+PADbmN/YvqQXLrRCGcZ07y18plfxqgBBJgIpjw=; b=Xdx4hQsTzl4c24llIz
+        192HiWdE2r0Z17h7hha/5B+uybwHOw+lHySp5dgSFIyremltJv6BupWCCE7vqAtS
+        DUduuni5p7SDjaoxP7Y0c3dI1L3DDC96hM3q6xwLck95D6CeqCmsxrkKZ6Zgv2mQ
+        ih8pZz4GlPyAEKT2EByi/sbL53k7F9MpaztW3ubpkI67GluVKqoEgJAoZkJac6xf
+        L40yx+zPXQSonM/qQqXr+/44QEGY/LW3tmoWxfCIXGmvbDY8YlzEj56Y1t4Q3Ooi
+        aLhMW+mRkUenODaIJ7pTKXCN8HhFkJ2SLPpatk0e1cLMSpNqYk1QxmquZjzyFqfT
+        dFiw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-type:content-type:date:date
+        :feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
+        :message-id:mime-version:references:reply-to:sender:subject
+        :subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
+        :x-sasl-enc; s=fm2; t=1695299255; x=1695306455; bh=XqU4+PADbmN/Y
+        vqQXLrRCGcZ07y18plfxqgBBJgIpjw=; b=AsHXnvbTE0NoKn8UR1wNiZEQ0Izgl
+        oJ1le/svDXQKmB5iunzfl757K0xMqaKgwpjVCaw2UuP2Vt2mi2RMkN55AQsiD+0o
+        /NGYpK0Q1N3N8f+y8hlvcaJaEnVYzzUXulTecLj6OPE2kfCABIE81WZlt/TQWRym
+        a3YS2kb9o3UDiIqmT6Muw7WaDcpWDjOLS4FEg9ERk6Zsv5Hp/uVcGqvfRusPbRxs
+        /TkNZpWQa1QyBFLzjTES+Opz/HvajxF5Bnwti4DvpslyUHWi81WsLXmneMghKGmm
+        5uLl0cSZ1BQNDmkjOK4WmcBmk5Rvp6jy4BVNblrnY0nqT6NYPATO7irCQ==
+X-ME-Sender: <xms:tzYMZUXcSuZhEjYsCWLs0tRkqLt6ojmPoMPl4a4ip4r-sgw8vTC6og>
+    <xme:tzYMZYnjV322WYYdSTMoXm4rPGFrj126uFz03pQ5jZLRtclncn1Vn2e5IKuSknQur
+    nwLBT-aUOiRNbskyLQ>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedviedrudekiedgheduucetufdoteggodetrfdotf
+    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
+    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
+    cujfgurhepofgfggfkjghffffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehr
+    nhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrth
+    htvghrnhepffehueegteeihfegtefhjefgtdeugfegjeelheejueethfefgeeghfektdek
+    teffnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprg
+    hrnhgusegrrhhnuggsrdguvg
+X-ME-Proxy: <xmx:tzYMZYZPhdycibP7W_ddmUBtLn0YGUONRmMTwUtOUl4FxP4TbdnjHQ>
+    <xmx:tzYMZTWsoHJEmyjcJspV67bM8725seq0dG7wF9ka6iwdPlA97rgN6Q>
+    <xmx:tzYMZem0QBzUTaJpXkKhVHcTIdTE5qwySok6bADpAf29P4FWOrLpBA>
+    <xmx:tzYMZdec6437asUuro7oN_lGHpAgzzqxstK0csnQRsD1an1TXXRMnjq-9-g>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id 0F24AB60089; Thu, 21 Sep 2023 08:27:34 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-761-gece9e40c48-fm-20230913.001-gece9e40c
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-futex2-wake.patch
+Message-Id: <c4a96578-b27c-44fa-82ef-1c5bf43b972a@app.fastmail.com>
+In-Reply-To: <20230921110424.215592-4-bhe@redhat.com>
+References: <20230921110424.215592-1-bhe@redhat.com>
+ <20230921110424.215592-4-bhe@redhat.com>
+Date:   Thu, 21 Sep 2023 08:27:14 -0400
+From:   "Arnd Bergmann" <arnd@arndb.de>
+To:     "Baoquan He" <bhe@redhat.com>, linux-kernel@vger.kernel.org
+Cc:     Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org,
+        "Andrew Morton" <akpm@linux-foundation.org>,
+        "Jiaxun Yang" <jiaxun.yang@flygoat.com>,
+        "Michael Ellerman" <mpe@ellerman.id.au>,
+        "Geert Uytterhoeven" <geert@linux-m68k.org>,
+        "Luis Chamberlain" <mcgrof@kernel.org>,
+        "Christoph Hellwig" <hch@infradead.org>,
+        "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
+        "Florian Fainelli" <f.fainelli@gmail.com>,
+        "Helge Deller" <deller@gmx.de>, linux-alpha@vger.kernel.org,
+        linux-hexagon@vger.kernel.org, linux-m68k@lists.linux-m68k.org,
+        linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+        linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org
+Subject: Re: [PATCH v5 3/4] arch/*/io.h: remove ioremap_uc in some architectures
+Content-Type: text/plain
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-To complement sys_futex_waitv() add sys_futex_wake(). This syscall
-implements what was previously known as FUTEX_WAKE_BITSET except it
-uses 'unsigned long' for the bitmask and takes FUTEX2 flags.
+On Thu, Sep 21, 2023, at 07:04, Baoquan He wrote:
+> ioremap_uc() is only meaningful on old x86-32 systems with the PAT
+> extension, and on ia64 with its slightly unconventional ioremap()
+> behavior. So remove the ioremap_uc() definition in architecutures
+> other than x86 and ia64. These architectures all have asm-generic/io.h
+> included and will have the default ioremap_uc() definition which
+> returns NULL.
+>
+> This changes the existing behaviour, while no need to worry about
+> any breakage because in the only callsite of ioremap_uc(), code
+> has been adjusted to eliminate the impact. Please see
+> atyfb_setup_generic() of drivers/video/fbdev/aty/atyfb_base.c.
+>
+> If any new invocation of ioremap_uc() need be added, please consider
+> using ioremap() intead or adding a ARCH specific version if necessary.
+>
+> Signed-off-by: Baoquan He <bhe@redhat.com>
+> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+> Acked-by: Helge Deller <deller@gmx.de>  # parisc
+> Cc: linux-alpha@vger.kernel.org
+> Cc: linux-hexagon@vger.kernel.org
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: linux-mips@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
 
-The 'unsigned long' allows FUTEX2_SIZE_U64 on 64bit platforms.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
- arch/alpha/kernel/syscalls/syscall.tbl      |    1 
- arch/arm/tools/syscall.tbl                  |    1 
- arch/arm64/include/asm/unistd.h             |    2 -
- arch/arm64/include/asm/unistd32.h           |    2 +
- arch/ia64/kernel/syscalls/syscall.tbl       |    1 
- arch/m68k/kernel/syscalls/syscall.tbl       |    1 
- arch/microblaze/kernel/syscalls/syscall.tbl |    1 
- arch/mips/kernel/syscalls/syscall_n32.tbl   |    1 
- arch/mips/kernel/syscalls/syscall_n64.tbl   |    1 
- arch/mips/kernel/syscalls/syscall_o32.tbl   |    1 
- arch/parisc/kernel/syscalls/syscall.tbl     |    1 
- arch/powerpc/kernel/syscalls/syscall.tbl    |    1 
- arch/s390/kernel/syscalls/syscall.tbl       |    1 
- arch/sh/kernel/syscalls/syscall.tbl         |    1 
- arch/sparc/kernel/syscalls/syscall.tbl      |    1 
- arch/x86/entry/syscalls/syscall_32.tbl      |    1 
- arch/x86/entry/syscalls/syscall_64.tbl      |    1 
- arch/xtensa/kernel/syscalls/syscall.tbl     |    1 
- include/linux/syscalls.h                    |    3 ++
- include/uapi/asm-generic/unistd.h           |    5 ++--
- kernel/futex/syscalls.c                     |   33 ++++++++++++++++++++++++++++
- kernel/sys_ni.c                             |    1 
- 22 files changed, 59 insertions(+), 3 deletions(-)
-
-Index: linux-2.6/arch/alpha/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/alpha/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/alpha/kernel/syscalls/syscall.tbl
-@@ -492,3 +492,4 @@
- 560	common	set_mempolicy_home_node		sys_ni_syscall
- 561	common	cachestat			sys_cachestat
- 562	common	fchmodat2			sys_fchmodat2
-+563	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/arm/tools/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/arm/tools/syscall.tbl
-+++ linux-2.6/arch/arm/tools/syscall.tbl
-@@ -466,3 +466,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/arm64/include/asm/unistd.h
-===================================================================
---- linux-2.6.orig/arch/arm64/include/asm/unistd.h
-+++ linux-2.6/arch/arm64/include/asm/unistd.h
-@@ -39,7 +39,7 @@
- #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE + 5)
- #define __ARM_NR_COMPAT_END		(__ARM_NR_COMPAT_BASE + 0x800)
- 
--#define __NR_compat_syscalls		453
-+#define __NR_compat_syscalls		455
- #endif
- 
- #define __ARCH_WANT_SYS_CLONE
-Index: linux-2.6/arch/arm64/include/asm/unistd32.h
-===================================================================
---- linux-2.6.orig/arch/arm64/include/asm/unistd32.h
-+++ linux-2.6/arch/arm64/include/asm/unistd32.h
-@@ -911,6 +911,8 @@ __SYSCALL(__NR_set_mempolicy_home_node,
- __SYSCALL(__NR_cachestat, sys_cachestat)
- #define __NR_fchmodat2 452
- __SYSCALL(__NR_fchmodat2, sys_fchmodat2)
-+#define __NR_futex_wake 454
-+__SYSCALL(__NR_futex_wake, sys_futex_wake)
- 
- /*
-  * Please add new compat syscalls above this comment and update
-Index: linux-2.6/arch/ia64/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/ia64/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/ia64/kernel/syscalls/syscall.tbl
-@@ -373,3 +373,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/m68k/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/m68k/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/m68k/kernel/syscalls/syscall.tbl
-@@ -452,3 +452,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/microblaze/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/microblaze/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/microblaze/kernel/syscalls/syscall.tbl
-@@ -458,3 +458,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/mips/kernel/syscalls/syscall_n32.tbl
-===================================================================
---- linux-2.6.orig/arch/mips/kernel/syscalls/syscall_n32.tbl
-+++ linux-2.6/arch/mips/kernel/syscalls/syscall_n32.tbl
-@@ -391,3 +391,4 @@
- 450	n32	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	n32	cachestat			sys_cachestat
- 452	n32	fchmodat2			sys_fchmodat2
-+454	n32	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/mips/kernel/syscalls/syscall_n64.tbl
-===================================================================
---- linux-2.6.orig/arch/mips/kernel/syscalls/syscall_n64.tbl
-+++ linux-2.6/arch/mips/kernel/syscalls/syscall_n64.tbl
-@@ -367,3 +367,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	n64	cachestat			sys_cachestat
- 452	n64	fchmodat2			sys_fchmodat2
-+454	n64	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/mips/kernel/syscalls/syscall_o32.tbl
-===================================================================
---- linux-2.6.orig/arch/mips/kernel/syscalls/syscall_o32.tbl
-+++ linux-2.6/arch/mips/kernel/syscalls/syscall_o32.tbl
-@@ -440,3 +440,4 @@
- 450	o32	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	o32	cachestat			sys_cachestat
- 452	o32	fchmodat2			sys_fchmodat2
-+454	o32	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/parisc/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/parisc/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/parisc/kernel/syscalls/syscall.tbl
-@@ -451,3 +451,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/powerpc/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/powerpc/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/powerpc/kernel/syscalls/syscall.tbl
-@@ -539,3 +539,4 @@
- 450 	nospu	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/s390/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/s390/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/s390/kernel/syscalls/syscall.tbl
-@@ -455,3 +455,4 @@
- 450  common	set_mempolicy_home_node	sys_set_mempolicy_home_node	sys_set_mempolicy_home_node
- 451  common	cachestat		sys_cachestat			sys_cachestat
- 452  common	fchmodat2		sys_fchmodat2			sys_fchmodat2
-+454  common	futex_wake		sys_futex_wake			sys_futex_wake
-Index: linux-2.6/arch/sh/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/sh/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/sh/kernel/syscalls/syscall.tbl
-@@ -455,3 +455,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/sparc/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/sparc/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/sparc/kernel/syscalls/syscall.tbl
-@@ -498,3 +498,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/arch/x86/entry/syscalls/syscall_32.tbl
-===================================================================
---- linux-2.6.orig/arch/x86/entry/syscalls/syscall_32.tbl
-+++ linux-2.6/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -457,3 +457,4 @@
- 450	i386	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	i386	cachestat		sys_cachestat
- 452	i386	fchmodat2		sys_fchmodat2
-+454	i386	futex_wake		sys_futex_wake
-Index: linux-2.6/arch/x86/entry/syscalls/syscall_64.tbl
-===================================================================
---- linux-2.6.orig/arch/x86/entry/syscalls/syscall_64.tbl
-+++ linux-2.6/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -375,6 +375,7 @@
- 451	common	cachestat		sys_cachestat
- 452	common	fchmodat2		sys_fchmodat2
- 453	64	map_shadow_stack	sys_map_shadow_stack
-+454	common	futex_wake		sys_futex_wake
- 
- #
- # Due to a historical design error, certain syscalls are numbered differently
-Index: linux-2.6/arch/xtensa/kernel/syscalls/syscall.tbl
-===================================================================
---- linux-2.6.orig/arch/xtensa/kernel/syscalls/syscall.tbl
-+++ linux-2.6/arch/xtensa/kernel/syscalls/syscall.tbl
-@@ -423,3 +423,4 @@
- 450	common	set_mempolicy_home_node		sys_set_mempolicy_home_node
- 451	common	cachestat			sys_cachestat
- 452	common	fchmodat2			sys_fchmodat2
-+454	common	futex_wake			sys_futex_wake
-Index: linux-2.6/include/linux/syscalls.h
-===================================================================
---- linux-2.6.orig/include/linux/syscalls.h
-+++ linux-2.6/include/linux/syscalls.h
-@@ -549,6 +549,9 @@ asmlinkage long sys_set_robust_list(stru
- asmlinkage long sys_futex_waitv(struct futex_waitv *waiters,
- 				unsigned int nr_futexes, unsigned int flags,
- 				struct __kernel_timespec __user *timeout, clockid_t clockid);
-+
-+asmlinkage long sys_futex_wake(void __user *uaddr, unsigned long mask, int nr, unsigned int flags);
-+
- asmlinkage long sys_nanosleep(struct __kernel_timespec __user *rqtp,
- 			      struct __kernel_timespec __user *rmtp);
- asmlinkage long sys_nanosleep_time32(struct old_timespec32 __user *rqtp,
-Index: linux-2.6/include/uapi/asm-generic/unistd.h
-===================================================================
---- linux-2.6.orig/include/uapi/asm-generic/unistd.h
-+++ linux-2.6/include/uapi/asm-generic/unistd.h
-@@ -822,9 +822,11 @@ __SYSCALL(__NR_cachestat, sys_cachestat)
- 
- #define __NR_fchmodat2 452
- __SYSCALL(__NR_fchmodat2, sys_fchmodat2)
-+#define __NR_futex_wake 454
-+__SYSCALL(__NR_futex_wake, sys_futex_wake)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 453
-+#define __NR_syscalls 455
- 
- /*
-  * 32 bit systems traditionally used different
-Index: linux-2.6/kernel/futex/syscalls.c
-===================================================================
---- linux-2.6.orig/kernel/futex/syscalls.c
-+++ linux-2.6/kernel/futex/syscalls.c
-@@ -306,6 +306,36 @@ destroy_timer:
- 	return ret;
- }
- 
-+/*
-+ * sys_futex_wake - Wake a number of futexes
-+ * @uaddr:	Address of the futex(es) to wake
-+ * @mask:	bitmask
-+ * @nr:		Number of the futexes to wake
-+ * @flags:	FUTEX2 flags
-+ *
-+ * Identical to the traditional FUTEX_WAKE_BITSET op, except it is part of the
-+ * futex2 family of calls.
-+ */
-+
-+SYSCALL_DEFINE4(futex_wake,
-+		void __user *, uaddr,
-+		unsigned long, mask,
-+		int, nr,
-+		unsigned int, flags)
-+{
-+	if (flags & ~FUTEX2_VALID_MASK)
-+		return -EINVAL;
-+
-+	flags = futex2_to_flags(flags);
-+	if (!futex_flags_valid(flags))
-+		return -EINVAL;
-+
-+	if (!futex_validate_input(flags, mask))
-+		return -EINVAL;
-+
-+	return futex_wake(uaddr, flags, nr, mask);
-+}
-+
- #ifdef CONFIG_COMPAT
- COMPAT_SYSCALL_DEFINE2(set_robust_list,
- 		struct compat_robust_list_head __user *, head,
-Index: linux-2.6/kernel/sys_ni.c
-===================================================================
---- linux-2.6.orig/kernel/sys_ni.c
-+++ linux-2.6/kernel/sys_ni.c
-@@ -87,6 +87,7 @@ COND_SYSCALL_COMPAT(set_robust_list);
- COND_SYSCALL(get_robust_list);
- COND_SYSCALL_COMPAT(get_robust_list);
- COND_SYSCALL(futex_waitv);
-+COND_SYSCALL(futex_wake);
- COND_SYSCALL(kexec_load);
- COND_SYSCALL_COMPAT(kexec_load);
- COND_SYSCALL(init_module);
-
-
+Acked-by: Arnd Bergmann <arnd@arndb.de>
