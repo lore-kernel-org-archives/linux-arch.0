@@ -2,126 +2,214 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EE536E6FE2F
-	for <linux-arch@archiver.kernel.org>; Fri, 22 Sep 2023 13:56:33 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C3BBFCD484C
+	for <linux-arch@archiver.kernel.org>; Fri, 22 Sep 2023 18:38:44 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S231438AbjIVN4i (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 22 Sep 2023 09:56:38 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38174 "EHLO
+        id S232736AbjIVSis (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 22 Sep 2023 14:38:48 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:53346 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229953AbjIVN4h (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2023 09:56:37 -0400
-Received: from mail-io1-xd32.google.com (mail-io1-xd32.google.com [IPv6:2607:f8b0:4864:20::d32])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 43715E8
-        for <linux-arch@vger.kernel.org>; Fri, 22 Sep 2023 06:56:31 -0700 (PDT)
-Received: by mail-io1-xd32.google.com with SMTP id ca18e2360f4ac-79f96830e4dso15725939f.1
-        for <linux-arch@vger.kernel.org>; Fri, 22 Sep 2023 06:56:31 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=kernel-dk.20230601.gappssmtp.com; s=20230601; t=1695390990; x=1695995790; darn=vger.kernel.org;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=l4ucugCATkzwXuMI23OkOn2TmVsi6Gz/cX1EPcaz7Pc=;
-        b=OXfNquCIOcbqGFkW8h4CwCOrqp13I/OO5Ey9q0Ta9VHoviE5FI1wY5XxB0J3PW+sHg
-         0ltGtSn3TC7n4L1Neos1SZdAPGDeEE9q1binQlp4zP3fZTzyO2Z8btQ0Mdh+Kz5gTuRV
-         6HB1b2DI88yO9o8DRswBiRulqaqsYRk4sOEzRb0kDoOBJyefZSqYjocWUbdz9dXPOGYn
-         WNJJUfOV3uYi8Xt5jBqr+cJjshrbnCa+TZAkDfGiSmSSQgrxYG8hxe9Ygjs5xs0y+hKF
-         VRub7/r03NVK5HT2ojyWTwPCMq7sjh4UjxDmYNWQePXMOPvXefCapWgoMPHa+m/KkmiX
-         fT3g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1695390990; x=1695995790;
-        h=content-transfer-encoding:in-reply-to:from:references:cc:to
-         :content-language:subject:user-agent:mime-version:date:message-id
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=l4ucugCATkzwXuMI23OkOn2TmVsi6Gz/cX1EPcaz7Pc=;
-        b=OJrzT9SAQO/UT8nZVw9e1SgiifYv74Cj7+4xGwspgoJXysMy4/Df7RfqlPXXSfCs2d
-         ddEdu9YSJvA63d2cKxdpzt/TWcu1o+JFujeuKMhmb/pjopPahmmSeP0X91UC4bKngUn0
-         9DKzCsMy3CB6CshLux+9JU9Tje6i3xgfIvQEYbYEgMzaE4vr9k+8JtiKsnSZhqMccxIp
-         ZtIPpuiEUvfgHyHL1dxt7i7UvuZ8Hx4nhdKhTAoHML/4HbjMq49RrhfVpftkYBOgWniw
-         g99jhyIlQd8nP59IMPT2hygXl7mSZpKziO8tUZcitMXRqvJm18LWVuR7jpvKIekf0o7Q
-         9v4Q==
-X-Gm-Message-State: AOJu0YznxhQ9r4zx1LPp3XwK9WZwz0qRg06PeBnJP+F1IOGCxtwy5bUB
-        FXJYq3FKaYe4Lreyj1wTao7f6g==
-X-Google-Smtp-Source: AGHT+IGjSQ4+X2lvYsCJzmEr2bY8Ksct5WoXMUIbuCCLm87x5DFFi7/n497IxFMbPn45HSyCkxKdYQ==
-X-Received: by 2002:a05:6602:13c2:b0:79d:1c65:9bde with SMTP id o2-20020a05660213c200b0079d1c659bdemr11422024iov.1.1695390990588;
-        Fri, 22 Sep 2023 06:56:30 -0700 (PDT)
-Received: from [192.168.1.94] ([96.43.243.2])
-        by smtp.gmail.com with ESMTPSA id l13-20020a02cd8d000000b0042b05586c52sm1028681jap.25.2023.09.22.06.56.29
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 22 Sep 2023 06:56:29 -0700 (PDT)
-Message-ID: <ec7cf6ad-3081-47a8-be83-af6eb7befa35@kernel.dk>
-Date:   Fri, 22 Sep 2023 07:56:28 -0600
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 10/15] futex: Add sys_futex_requeue()
-Content-Language: en-US
-To:     Peter Zijlstra <peterz@infradead.org>,
-        Ingo Molnar <mingo@kernel.org>
-Cc:     tglx@linutronix.de, linux-kernel@vger.kernel.org, mingo@redhat.com,
-        dvhart@infradead.org, dave@stgolabs.net, andrealmeid@igalia.com,
-        Andrew Morton <akpm@linux-foundation.org>, urezki@gmail.com,
-        hch@infradead.org, lstoakes@gmail.com,
-        Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
-        linux-mm@kvack.org, linux-arch@vger.kernel.org,
-        malteskarupke@web.de, Geert Uytterhoeven <geert@linux-m68k.org>
-References: <20230921104505.717750284@noisy.programming.kicks-ass.net>
- <20230921105248.511860556@noisy.programming.kicks-ass.net>
- <ZQ1fx29+b8PmLVk6@gmail.com>
- <20230922110335.GC7080@noisy.programming.kicks-ass.net>
-From:   Jens Axboe <axboe@kernel.dk>
-In-Reply-To: <20230922110335.GC7080@noisy.programming.kicks-ass.net>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+        with ESMTP id S229802AbjIVSis (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 22 Sep 2023 14:38:48 -0400
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 99384AF;
+        Fri, 22 Sep 2023 11:38:41 -0700 (PDT)
+Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
+        by linux.microsoft.com (Postfix) with ESMTPSA id 0F671212C5D0;
+        Fri, 22 Sep 2023 11:38:41 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 0F671212C5D0
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+        s=default; t=1695407921;
+        bh=NIfGVUlO7WQ33ga3OGW5GP0MsO2X2+qMCAxYLtCBKi8=;
+        h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+        b=hCeq+BcHF6IgXlUxk71xccHS8s89u9ojevfczhxOorqjOTzwcR2Mr3kkXmSI0HoOJ
+         Npbpm9gyhhDOgfOIXcmSkCd7JtYLPFqoLfthfOLvAUYzNYJY1l8jORxfrlkUiNFDNK
+         gSlF8MvKfETlfwz42VzB0pkoaTXxqTykw18wfHFw=
+From:   Nuno Das Neves <nunodasneves@linux.microsoft.com>
+To:     linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
+        x86@kernel.org, linux-arm-kernel@lists.infradead.org,
+        linux-arch@vger.kernel.org
+Cc:     patches@lists.linux.dev, mikelley@microsoft.com, kys@microsoft.com,
+        wei.liu@kernel.org, gregkh@linuxfoundation.org,
+        haiyangz@microsoft.com, decui@microsoft.com,
+        apais@linux.microsoft.com, Tianyu.Lan@microsoft.com,
+        ssengar@linux.microsoft.com, mukeshrathor@microsoft.com,
+        stanislav.kinsburskiy@gmail.com, jinankjain@linux.microsoft.com,
+        vkuznets@redhat.com, tglx@linutronix.de, mingo@redhat.com,
+        bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
+        will@kernel.org, catalin.marinas@arm.com
+Subject: [PATCH v3 02/15] mshyperv: Introduce hv_get_hypervisor_version function
+Date:   Fri, 22 Sep 2023 11:38:22 -0700
+Message-Id: <1695407915-12216-3-git-send-email-nunodasneves@linux.microsoft.com>
+X-Mailer: git-send-email 1.8.3.1
+In-Reply-To: <1695407915-12216-1-git-send-email-nunodasneves@linux.microsoft.com>
+References: <1695407915-12216-1-git-send-email-nunodasneves@linux.microsoft.com>
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On 9/22/23 5:03 AM, Peter Zijlstra wrote:
-> On Fri, Sep 22, 2023 at 11:35:03AM +0200, Ingo Molnar wrote:
->>
->> * peterz@infradead.org <peterz@infradead.org> wrote:
->>
->>> --- linux-2.6.orig/kernel/futex/syscalls.c
->>> +++ linux-2.6/kernel/futex/syscalls.c
->>> @@ -396,6 +396,44 @@ SYSCALL_DEFINE6(futex_wait,
->>>  	return ret;
->>>  }
->>>  
->>> +/*
->>> + * sys_futex_requeue - Requeue a waiter from one futex to another
->>> + * @waiters:	array describing the source and destination futex
->>> + * @flags:	unused
->>> + * @nr_wake:	number of futexes to wake
->>> + * @nr_requeue:	number of futexes to requeue
->>> + *
->>> + * Identical to the traditional FUTEX_CMP_REQUEUE op, except it is part of the
->>> + * futex2 family of calls.
->>> + */
->>> +
->>> +SYSCALL_DEFINE4(futex_requeue,
->>> +		struct futex_waitv __user *, waiters,
->>> +		unsigned int, flags,
->>> +		int, nr_wake,
->>> +		int, nr_requeue)
->>> +{
->>> +	struct futex_vector futexes[2];
->>> +	u32 cmpval;
->>> +	int ret;
->>> +
->>> +	if (flags)
->>> +		return -EINVAL;
->>
->> Small detail, but isn't -ENOSYS the canonical error code for functionality 
->> not yet implemented - which the unused 'flags' ABI is arguably?
->>
->> -EINVAL is for recognized but incorrect parameters, such as:
-> 
-> IIUC 'unknown flag' falls into the -EINVAL return category. Here we
-> happen to have no known flags, but that should not matter.
+x86_64 and arm64 implementations to get the hypervisor version
+information. Store these in hv_hypervisor_version_info structure to
+simplify parsing the fields.
 
-Yep, -ENOSYS is for not having the syscall at all, -EINVAL for unknown
-flags set.
+Replace the existing parsing when printing the version numbers at boot.
 
+Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
+---
+ arch/arm64/hyperv/mshyperv.c      | 23 +++++++++++++-------
+ arch/x86/kernel/cpu/mshyperv.c    | 36 +++++++++++++++++++------------
+ include/asm-generic/hyperv-tlfs.h | 23 ++++++++++++++++++++
+ include/asm-generic/mshyperv.h    |  2 ++
+ 4 files changed, 62 insertions(+), 22 deletions(-)
+
+diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+index f1b8a04ee9f2..53bdd3bc81ac 100644
+--- a/arch/arm64/hyperv/mshyperv.c
++++ b/arch/arm64/hyperv/mshyperv.c
+@@ -19,10 +19,19 @@
+ 
+ static bool hyperv_initialized;
+ 
++int hv_get_hypervisor_version(union hv_hypervisor_version_info *info)
++{
++	hv_get_vpreg_128(HV_REGISTER_HYPERVISOR_VERSION,
++			 (struct hv_get_vp_registers_output *)info);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(hv_get_hypervisor_version);
++
+ static int __init hyperv_init(void)
+ {
+-	struct hv_get_vp_registers_output	result;
+-	u32	a, b, c, d;
++	struct hv_get_vp_registers_output result;
++	union hv_hypervisor_version_info version;
+ 	u64	guest_id;
+ 	int	ret;
+ 
+@@ -55,13 +64,11 @@ static int __init hyperv_init(void)
+ 		ms_hyperv.misc_features);
+ 
+ 	/* Get information about the Hyper-V host version */
+-	hv_get_vpreg_128(HV_REGISTER_HYPERVISOR_VERSION, &result);
+-	a = result.as32.a;
+-	b = result.as32.b;
+-	c = result.as32.c;
+-	d = result.as32.d;
++	hv_get_hypervisor_version(&version);
+ 	pr_info("Hyper-V: Host Build %d.%d.%d.%d-%d-%d\n",
+-		b >> 16, b & 0xFFFF, a,	d & 0xFFFFFF, c, d >> 24);
++		version.major_version, version.minor_version,
++		version.build_number, version.service_number,
++		version.service_pack, version.service_branch);
+ 
+ 	ret = hv_common_init();
+ 	if (ret)
+diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+index 7c82b96da11f..73fbcc003d68 100644
+--- a/arch/x86/kernel/cpu/mshyperv.c
++++ b/arch/x86/kernel/cpu/mshyperv.c
+@@ -347,13 +347,26 @@ static void __init reduced_hw_init(void)
+ 	x86_init.irqs.pre_vector_init	= x86_init_noop;
+ }
+ 
++int hv_get_hypervisor_version(union hv_hypervisor_version_info *info)
++{
++	unsigned int hv_max_functions;
++
++	hv_max_functions = cpuid_eax(HYPERV_CPUID_VENDOR_AND_MAX_FUNCTIONS);
++	if (hv_max_functions < HYPERV_CPUID_VERSION) {
++		pr_err("%s: Could not detect Hyper-V version\n", __func__);
++		return -ENODEV;
++	}
++
++	cpuid(HYPERV_CPUID_VERSION, &info->eax, &info->ebx, &info->ecx, &info->edx);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(hv_get_hypervisor_version);
++
+ static void __init ms_hyperv_init_platform(void)
+ {
+ 	int hv_max_functions_eax;
+-	int hv_host_info_eax;
+-	int hv_host_info_ebx;
+-	int hv_host_info_ecx;
+-	int hv_host_info_edx;
++	union hv_hypervisor_version_info version;
+ 
+ #ifdef CONFIG_PARAVIRT
+ 	pv_info.name = "Hyper-V";
+@@ -407,16 +420,11 @@ static void __init ms_hyperv_init_platform(void)
+ 	/*
+ 	 * Extract host information.
+ 	 */
+-	if (hv_max_functions_eax >= HYPERV_CPUID_VERSION) {
+-		hv_host_info_eax = cpuid_eax(HYPERV_CPUID_VERSION);
+-		hv_host_info_ebx = cpuid_ebx(HYPERV_CPUID_VERSION);
+-		hv_host_info_ecx = cpuid_ecx(HYPERV_CPUID_VERSION);
+-		hv_host_info_edx = cpuid_edx(HYPERV_CPUID_VERSION);
+-
+-		pr_info("Hyper-V: Host Build %d.%d.%d.%d-%d-%d\n",
+-			hv_host_info_ebx >> 16, hv_host_info_ebx & 0xFFFF,
+-			hv_host_info_eax, hv_host_info_edx & 0xFFFFFF,
+-			hv_host_info_ecx, hv_host_info_edx >> 24);
++	if (hv_get_hypervisor_version(&version) == 0) {
++		pr_info("Hyper-V Host Build:%d-%d.%d-%d-%d.%d\n",
++			version.build_number, version.major_version,
++			version.minor_version, version.service_pack,
++			version.service_branch, version.service_number);
+ 	}
+ 
+ 	if (ms_hyperv.features & HV_ACCESS_FREQUENCY_MSRS &&
+diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
+index fdac4a1714ec..f63b3704d89e 100644
+--- a/include/asm-generic/hyperv-tlfs.h
++++ b/include/asm-generic/hyperv-tlfs.h
+@@ -787,6 +787,29 @@ struct hv_input_unmap_device_interrupt {
+ #define HV_SOURCE_SHADOW_NONE               0x0
+ #define HV_SOURCE_SHADOW_BRIDGE_BUS_RANGE   0x1
+ 
++/*
++ * Version info reported by hypervisor
++ */
++union hv_hypervisor_version_info {
++	struct {
++		u32 build_number;
++
++		u32 minor_version : 16;
++		u32 major_version : 16;
++
++		u32 service_pack;
++
++		u32 service_number : 24;
++		u32 service_branch : 8;
++	};
++	struct {
++		u32 eax;
++		u32 ebx;
++		u32 ecx;
++		u32 edx;
++	};
++};
++
+ /*
+  * The whole argument should fit in a page to be able to pass to the hypervisor
+  * in one hypercall.
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index 38fc48405d5f..5b3512e5a72e 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -161,6 +161,8 @@ static inline void vmbus_signal_eom(struct hv_message *msg, u32 old_msg_type)
+ 	}
+ }
+ 
++int hv_get_hypervisor_version(union hv_hypervisor_version_info *info);
++
+ void hv_setup_vmbus_handler(void (*handler)(void));
+ void hv_remove_vmbus_handler(void);
+ void hv_setup_stimer0_handler(void (*handler)(void));
 -- 
-Jens Axboe
+2.25.1
 
