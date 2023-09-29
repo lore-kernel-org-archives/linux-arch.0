@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 10997E728D5
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Sep 2023 18:02:19 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 6ABA6E728CF
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Sep 2023 18:02:20 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S233804AbjI2SCR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Sep 2023 14:02:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56316 "EHLO
+        id S233829AbjI2SCU (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Sep 2023 14:02:20 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56204 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233795AbjI2SCI (ORCPT
+        with ESMTP id S233824AbjI2SCI (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2023 14:02:08 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 3958FCDF;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 453D5CE3;
         Fri, 29 Sep 2023 11:02:05 -0700 (PDT)
 Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
-        by linux.microsoft.com (Postfix) with ESMTPSA id 3086D20B74CF;
+        by linux.microsoft.com (Postfix) with ESMTPSA id 6817120B74C3;
         Fri, 29 Sep 2023 11:01:57 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3086D20B74CF
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 6817120B74C3
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
         s=default; t=1696010517;
-        bh=j5sW5mMEoYHm8DyqU1vnEleiYv6JR/wYpPjIO4U9RC0=;
+        bh=+X19D62rwhGltzmqE9hkowrhpuhbGotyJ9cqKAt/I2k=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=Gcw2f4Rmk1aH40/en2JxNjJBJcKDjpLXuuh3DYUe8udcIismZkOgUet1zt/OKXKek
-         dy00lZWPrIIaYQ4/ud3woRFPajdNMYXJUCLS6BD46uLttFnhpuvJBtKxtpXnCIvdBZ
-         UFj/K5W60c4xG3HMHANxWV1clCicz3C+8O0WE150=
+        b=Svl+o1aPZN9g64ZPJA152dkqcc1Q17nHMqBbccrEeM3HYmsignv9qc56AANMnTh8H
+         RNJM/3j1pPg738h2nnAcFuizNQyWY+japk5CIpJFbFJ/tWOP6cTK0lAG87BHQG4XfU
+         Y/nDJ9d1iC+IJvaTfQur/BjzSvGBPS2bOLtYqS2E=
 From:   Nuno Das Neves <nunodasneves@linux.microsoft.com>
 To:     linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
         x86@kernel.org, linux-arm-kernel@lists.infradead.org,
@@ -38,9 +38,9 @@ Cc:     patches@lists.linux.dev, mikelley@microsoft.com, kys@microsoft.com,
         vkuznets@redhat.com, tglx@linutronix.de, mingo@redhat.com,
         bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
         will@kernel.org, catalin.marinas@arm.com
-Subject: [PATCH v4 08/15] Drivers: hv: Introduce per-cpu event ring tail
-Date:   Fri, 29 Sep 2023 11:01:34 -0700
-Message-Id: <1696010501-24584-9-git-send-email-nunodasneves@linux.microsoft.com>
+Subject: [PATCH v4 10/15] x86: hyperv: Add mshv_handler irq handler and setup function
+Date:   Fri, 29 Sep 2023 11:01:36 -0700
+Message-Id: <1696010501-24584-11-git-send-email-nunodasneves@linux.microsoft.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <1696010501-24584-1-git-send-email-nunodasneves@linux.microsoft.com>
 References: <1696010501-24584-1-git-send-email-nunodasneves@linux.microsoft.com>
@@ -48,106 +48,81 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add a pointer hv_synic_eventring_tail to track the tail pointer for the
-SynIC event ring buffer for each SINT.
-
-This will be used by the mshv driver, but must be tracked independently
-since the driver module could be removed and re-inserted.
+This will handle SYNIC interrupts such as intercepts, doorbells, and
+scheduling messages intended for the mshv driver.
 
 Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
 Reviewed-by: Wei Liu <wei.liu@kernel.org>
+Reviewed-by: Tianyu Lan <tiala@microsoft.com>
 ---
- drivers/hv/hv_common.c         | 28 ++++++++++++++++++++++++++--
- include/asm-generic/mshyperv.h |  2 ++
- 2 files changed, 28 insertions(+), 2 deletions(-)
+ arch/x86/kernel/cpu/mshyperv.c | 9 +++++++++
+ drivers/hv/hv_common.c         | 5 +++++
+ include/asm-generic/mshyperv.h | 2 ++
+ 3 files changed, 16 insertions(+)
 
-diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
-index 9d9f6f90f99e..39077841d518 100644
---- a/drivers/hv/hv_common.c
-+++ b/drivers/hv/hv_common.c
-@@ -62,6 +62,16 @@ static void hv_kmsg_dump_unregister(void);
+diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
+index 9b898b65a013..06f79963add5 100644
+--- a/arch/x86/kernel/cpu/mshyperv.c
++++ b/arch/x86/kernel/cpu/mshyperv.c
+@@ -110,6 +110,7 @@ void hv_set_register(unsigned int reg, u64 value)
+ }
+ EXPORT_SYMBOL_GPL(hv_set_register);
  
- static struct ctl_table_header *hv_ctl_table_hdr;
++static void (*mshv_handler)(void);
+ static void (*vmbus_handler)(void);
+ static void (*hv_stimer0_handler)(void);
+ static void (*hv_kexec_handler)(void);
+@@ -120,6 +121,9 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_hyperv_callback)
+ 	struct pt_regs *old_regs = set_irq_regs(regs);
  
-+/*
-+ * Per-cpu array holding the tail pointer for the SynIC event ring buffer
-+ * for each SINT.
-+ *
-+ * We cannot maintain this in mshv driver because the tail pointer should
-+ * persist even if the mshv driver is unloaded.
-+ */
-+u8 __percpu **hv_synic_eventring_tail;
-+EXPORT_SYMBOL_GPL(hv_synic_eventring_tail);
+ 	inc_irq_stat(irq_hv_callback_count);
++	if (mshv_handler)
++		mshv_handler();
 +
- /*
-  * Hyper-V specific initialization and shutdown code that is
-  * common across all architectures.  Called from architecture
-@@ -84,6 +94,9 @@ void __init hv_common_free(void)
+ 	if (vmbus_handler)
+ 		vmbus_handler();
  
- 	free_percpu(hyperv_pcpu_input_arg);
- 	hyperv_pcpu_input_arg = NULL;
-+
-+	free_percpu(hv_synic_eventring_tail);
-+	hv_synic_eventring_tail = NULL;
+@@ -129,6 +133,11 @@ DEFINE_IDTENTRY_SYSVEC(sysvec_hyperv_callback)
+ 	set_irq_regs(old_regs);
  }
  
- /*
-@@ -333,6 +346,8 @@ int __init hv_common_init(void)
- 	if (hv_root_partition) {
- 		hyperv_pcpu_output_arg = alloc_percpu(void *);
- 		BUG_ON(!hyperv_pcpu_output_arg);
-+		hv_synic_eventring_tail = alloc_percpu(u8 *);
-+		BUG_ON(hv_synic_eventring_tail == NULL);
- 	}
- 
- 	hv_vp_index = kmalloc_array(num_possible_cpus(), sizeof(*hv_vp_index),
-@@ -357,6 +372,7 @@ int __init hv_common_init(void)
- int hv_common_cpu_init(unsigned int cpu)
- {
- 	void **inputarg, **outputarg;
-+	u8 **synic_eventring_tail;
- 	u64 msr_vp_index;
- 	gfp_t flags;
- 	int pgcount = hv_root_partition ? 2 : 1;
-@@ -369,8 +385,8 @@ int hv_common_cpu_init(unsigned int cpu)
- 	inputarg = (void **)this_cpu_ptr(hyperv_pcpu_input_arg);
- 
- 	/*
--	 * hyperv_pcpu_input_arg and hyperv_pcpu_output_arg memory is already
--	 * allocated if this CPU was previously online and then taken offline
-+	 * The per-cpu memory is already allocated if this CPU was previously
-+	 * online and then taken offline
- 	 */
- 	if (!*inputarg) {
- 		mem = kmalloc(pgcount * HV_HYP_PAGE_SIZE, flags);
-@@ -380,6 +396,14 @@ int hv_common_cpu_init(unsigned int cpu)
- 		if (hv_root_partition) {
- 			outputarg = (void **)this_cpu_ptr(hyperv_pcpu_output_arg);
- 			*outputarg = (char *)mem + HV_HYP_PAGE_SIZE;
-+			synic_eventring_tail = (u8 **)this_cpu_ptr(hv_synic_eventring_tail);
-+			*synic_eventring_tail = kcalloc(HV_SYNIC_SINT_COUNT, sizeof(u8),
-+							flags);
++void hv_setup_mshv_irq(void (*handler)(void))
++{
++	mshv_handler = handler;
++}
 +
-+			if (unlikely(!*synic_eventring_tail)) {
-+				kfree(mem);
-+				return -ENOMEM;
-+			}
- 		}
+ void hv_setup_vmbus_handler(void (*handler)(void))
+ {
+ 	vmbus_handler = handler;
+diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+index 3f6f23e4c579..6ec63502d83d 100644
+--- a/drivers/hv/hv_common.c
++++ b/drivers/hv/hv_common.c
+@@ -585,6 +585,11 @@ void __weak hv_remove_vmbus_handler(void)
+ }
+ EXPORT_SYMBOL_GPL(hv_remove_vmbus_handler);
  
- 		if (!ms_hyperv.paravisor_present &&
++void __weak hv_setup_mshv_irq(void (*handler)(void))
++{
++}
++EXPORT_SYMBOL_GPL(hv_setup_mshv_irq);
++
+ void __weak hv_setup_kexec_handler(void (*handler)(void))
+ {
+ }
 diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index 4f2bb6099063..4e49fd662b2b 100644
+index 4e49fd662b2b..d832852d0ee7 100644
 --- a/include/asm-generic/mshyperv.h
 +++ b/include/asm-generic/mshyperv.h
-@@ -77,6 +77,8 @@ extern bool hv_nested;
- extern void * __percpu *hyperv_pcpu_input_arg;
- extern void * __percpu *hyperv_pcpu_output_arg;
+@@ -198,6 +198,8 @@ void hv_remove_vmbus_handler(void);
+ void hv_setup_stimer0_handler(void (*handler)(void));
+ void hv_remove_stimer0_handler(void);
  
-+extern u8 __percpu **hv_synic_eventring_tail;
++void hv_setup_mshv_irq(void (*handler)(void));
 +
- extern u64 hv_do_hypercall(u64 control, void *inputaddr, void *outputaddr);
- extern u64 hv_do_fast_hypercall8(u16 control, u64 input8);
- bool hv_isolation_type_snp(void);
+ void hv_setup_kexec_handler(void (*handler)(void));
+ void hv_remove_kexec_handler(void);
+ void hv_setup_crash_handler(void (*handler)(struct pt_regs *regs));
 -- 
 2.25.1
 
