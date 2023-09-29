@@ -2,29 +2,29 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 761B5E728CF
-	for <linux-arch@archiver.kernel.org>; Fri, 29 Sep 2023 18:02:11 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 552A8E728DA
+	for <linux-arch@archiver.kernel.org>; Fri, 29 Sep 2023 18:02:15 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S232985AbjI2SCL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Fri, 29 Sep 2023 14:02:11 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56258 "EHLO
+        id S233767AbjI2SCN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Fri, 29 Sep 2023 14:02:13 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38786 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233856AbjI2SCF (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2023 14:02:05 -0400
+        with ESMTP id S233798AbjI2SCI (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2023 14:02:08 -0400
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 707E4CC0;
-        Fri, 29 Sep 2023 11:01:57 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTP id CAC90CE7;
+        Fri, 29 Sep 2023 11:02:05 -0700 (PDT)
 Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
-        by linux.microsoft.com (Postfix) with ESMTPSA id 9759C20B74C5;
-        Fri, 29 Sep 2023 11:01:56 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 9759C20B74C5
+        by linux.microsoft.com (Postfix) with ESMTPSA id 832A120B74D4;
+        Fri, 29 Sep 2023 11:01:57 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 832A120B74D4
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-        s=default; t=1696010516;
-        bh=3fBbVBD2uKgvoquqz27ACQRB2O2cWkvCr1Y5+xe6PMQ=;
+        s=default; t=1696010517;
+        bh=HF/7TB3ETksYEB9KlMb0r3JzZFCijaEXdQeCMYRt1dI=;
         h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-        b=TVzDnXd53dpojCdgNZ5GSAI//ZFMoeAD646kLVWXYHL7HjKqKyHska0roEu9A8e06
-         48THBjuWo+E3tP8M0Lca97fbz4zZJfSDJeqq+ebFnchVaWQ2KK1Bdbh1NlVkc25n6r
-         kkk0+eDGORRWw+MIk77oxZqmF5pLRWnzrB45aqAI=
+        b=Glh+75DkolqBQ8RtEtapSaQIo8RtOlXCmgQ9VG7LYu6+d+xpZ9ZjQmGfY7x0FL2nD
+         cEY35bbIgL1+h9dA1HBB00yEdjoXTRo75+1prMRbfC+93CGSgX+/k6X84pXecN2rho
+         TlG3SCevISlR8R74cXtULhYbrUn2mc/uhvboA2Dc=
 From:   Nuno Das Neves <nunodasneves@linux.microsoft.com>
 To:     linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
         x86@kernel.org, linux-arm-kernel@lists.infradead.org,
@@ -38,9 +38,9 @@ Cc:     patches@lists.linux.dev, mikelley@microsoft.com, kys@microsoft.com,
         vkuznets@redhat.com, tglx@linutronix.de, mingo@redhat.com,
         bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
         will@kernel.org, catalin.marinas@arm.com
-Subject: [PATCH v4 03/15] mshyperv: Introduce numa_node_to_proximity_domain_info
-Date:   Fri, 29 Sep 2023 11:01:29 -0700
-Message-Id: <1696010501-24584-4-git-send-email-nunodasneves@linux.microsoft.com>
+Subject: [PATCH v4 11/15] Drivers: hv: export vmbus_isr, hv_context and hv_post_message
+Date:   Fri, 29 Sep 2023 11:01:37 -0700
+Message-Id: <1696010501-24584-12-git-send-email-nunodasneves@linux.microsoft.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <1696010501-24584-1-git-send-email-nunodasneves@linux.microsoft.com>
 References: <1696010501-24584-1-git-send-email-nunodasneves@linux.microsoft.com>
@@ -48,130 +48,69 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Factor out logic for converting numa node to proximity domain info into
-a helper function, and export it.
-
-Change hv_proximity_domain_info to a struct to simplify the code.
+These will be used by the mshv_vtl driver.
 
 Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
-Reviewed-by: Wei Liu <wei.liu@kernel.org>
+Acked-by: Wei Liu <wei.liu@kernel.org>
 ---
- arch/x86/hyperv/hv_proc.c         |  8 ++------
- drivers/acpi/numa/srat.c          |  1 +
- include/asm-generic/hyperv-tlfs.h | 14 +++++---------
- include/asm-generic/mshyperv.h    | 15 +++++++++++++++
- 4 files changed, 23 insertions(+), 15 deletions(-)
+ drivers/hv/hv.c           | 2 ++
+ drivers/hv/hyperv_vmbus.h | 1 +
+ drivers/hv/vmbus_drv.c    | 3 ++-
+ 3 files changed, 5 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/hyperv/hv_proc.c b/arch/x86/hyperv/hv_proc.c
-index 68a0843d4750..5ba5ca1b2089 100644
---- a/arch/x86/hyperv/hv_proc.c
-+++ b/arch/x86/hyperv/hv_proc.c
-@@ -121,7 +121,6 @@ int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
- 	u64 status;
- 	unsigned long flags;
- 	int ret = HV_STATUS_SUCCESS;
--	int pxm = node_to_pxm(node);
+diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+index d7869205dcbe..c60a4fb55f3c 100644
+--- a/drivers/hv/hv.c
++++ b/drivers/hv/hv.c
+@@ -25,6 +25,7 @@
  
- 	/*
- 	 * When adding a logical processor, the hypervisor may return
-@@ -137,11 +136,8 @@ int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
+ /* The one and only */
+ struct hv_context hv_context;
++EXPORT_SYMBOL_GPL(hv_context);
  
- 		input->lp_index = lp_index;
- 		input->apic_id = apic_id;
--		input->flags = 0;
--		input->proximity_domain_info.domain_id = pxm;
--		input->proximity_domain_info.flags.reserved = 0;
--		input->proximity_domain_info.flags.proximity_info_valid = 1;
--		input->proximity_domain_info.flags.proximity_preferred = 1;
-+		input->proximity_domain_info =
-+			numa_node_to_proximity_domain_info(node);
- 		status = hv_do_hypercall(HVCALL_ADD_LOGICAL_PROCESSOR,
- 					 input, output);
- 		local_irq_restore(flags);
-diff --git a/drivers/acpi/numa/srat.c b/drivers/acpi/numa/srat.c
-index 1f4fc5f8a819..0cf9f0574495 100644
---- a/drivers/acpi/numa/srat.c
-+++ b/drivers/acpi/numa/srat.c
-@@ -48,6 +48,7 @@ int node_to_pxm(int node)
- 		return PXM_INVAL;
- 	return node_to_pxm_map[node];
+ /*
+  * hv_init - Main initialization routine.
+@@ -93,6 +94,7 @@ int hv_post_message(union hv_connection_id connection_id,
+ 
+ 	return hv_result(status);
  }
-+EXPORT_SYMBOL(node_to_pxm);
++EXPORT_SYMBOL_GPL(hv_post_message);
  
- static void __acpi_map_pxm_to_node(int pxm, int node)
+ int hv_synic_alloc(void)
  {
-diff --git a/include/asm-generic/hyperv-tlfs.h b/include/asm-generic/hyperv-tlfs.h
-index f63b3704d89e..a6dffb346bf2 100644
---- a/include/asm-generic/hyperv-tlfs.h
-+++ b/include/asm-generic/hyperv-tlfs.h
-@@ -512,13 +512,9 @@ struct hv_proximity_domain_flags {
- 	u32 proximity_info_valid : 1;
- } __packed;
+diff --git a/drivers/hv/hyperv_vmbus.h b/drivers/hv/hyperv_vmbus.h
+index f6b1e710f805..09792eb4ffed 100644
+--- a/drivers/hv/hyperv_vmbus.h
++++ b/drivers/hv/hyperv_vmbus.h
+@@ -32,6 +32,7 @@
+  */
+ #define HV_UTIL_NEGO_TIMEOUT 55
  
--/* Not a union in windows but useful for zeroing */
--union hv_proximity_domain_info {
--	struct {
--		u32 domain_id;
--		struct hv_proximity_domain_flags flags;
--	};
--	u64 as_uint64;
-+struct hv_proximity_domain_info {
-+	u32 domain_id;
-+	struct hv_proximity_domain_flags flags;
- } __packed;
++void vmbus_isr(void);
  
- struct hv_lp_startup_status {
-@@ -535,7 +531,7 @@ struct hv_lp_startup_status {
- struct hv_add_logical_processor_in {
- 	u32 lp_index;
- 	u32 apic_id;
--	union hv_proximity_domain_info proximity_domain_info;
-+	struct hv_proximity_domain_info proximity_domain_info;
- 	u64 flags;
- } __packed;
+ /* Definitions for the monitored notification facility */
+ union hv_monitor_trigger_group {
+diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
+index edbb38f6956b..6d27597af8bf 100644
+--- a/drivers/hv/vmbus_drv.c
++++ b/drivers/hv/vmbus_drv.c
+@@ -1286,7 +1286,7 @@ static void vmbus_chan_sched(struct hv_per_cpu_context *hv_cpu)
+ 	}
+ }
  
-@@ -560,7 +556,7 @@ struct hv_create_vp {
- 	u8 padding[3];
- 	u8 subnode_type;
- 	u64 subnode_id;
--	union hv_proximity_domain_info proximity_domain_info;
-+	struct hv_proximity_domain_info proximity_domain_info;
- 	u64 flags;
- } __packed;
+-static void vmbus_isr(void)
++void vmbus_isr(void)
+ {
+ 	struct hv_per_cpu_context *hv_cpu
+ 		= this_cpu_ptr(hv_context.cpu_context);
+@@ -1309,6 +1309,7 @@ static void vmbus_isr(void)
  
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index 9f2c06c9d5d1..8cc7b0e316d7 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -21,6 +21,7 @@
- #include <linux/types.h>
- #include <linux/atomic.h>
- #include <linux/bitops.h>
-+#include <acpi/acpi_numa.h>
- #include <linux/cpumask.h>
- #include <linux/nmi.h>
- #include <asm/ptrace.h>
-@@ -28,6 +29,20 @@
+ 	add_interrupt_randomness(vmbus_interrupt);
+ }
++EXPORT_SYMBOL_GPL(vmbus_isr);
  
- #define VTPM_BASE_ADDRESS 0xfed40000
- 
-+static inline struct hv_proximity_domain_info
-+numa_node_to_proximity_domain_info(int node)
-+{
-+	struct hv_proximity_domain_info proximity_domain_info = {};
-+
-+	if (node != NUMA_NO_NODE) {
-+		proximity_domain_info.domain_id = node_to_pxm(node);
-+		proximity_domain_info.flags.proximity_info_valid = 1;
-+		proximity_domain_info.flags.proximity_preferred = 1;
-+	}
-+
-+	return proximity_domain_info;
-+}
-+
- struct ms_hyperv_info {
- 	u32 features;
- 	u32 priv_high;
+ static irqreturn_t vmbus_percpu_isr(int irq, void *dev_id)
+ {
 -- 
 2.25.1
 
