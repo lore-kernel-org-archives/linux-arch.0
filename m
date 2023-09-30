@@ -2,53 +2,53 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 155BBE7734D
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DAC1DE7734E
 	for <linux-arch@archiver.kernel.org>; Sat, 30 Sep 2023 02:01:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229645AbjI3CB3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        id S230122AbjI3CB3 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
         Fri, 29 Sep 2023 22:01:29 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54654 "EHLO
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54644 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S229483AbjI3CB2 (ORCPT
+        with ESMTP id S229489AbjI3CB2 (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Fri, 29 Sep 2023 22:01:28 -0400
-Received: from mgamail.intel.com (mgamail.intel.com [192.55.52.43])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 760821B2;
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.9])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2D5961B1;
         Fri, 29 Sep 2023 19:01:26 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1696039286; x=1727575286;
+  t=1696039287; x=1727575287;
   h=date:from:to:cc:subject:message-id:references:
    mime-version:in-reply-to;
-  bh=GekbOuakCUNDQg4GF3MQMTe2CD00Lneso8LnNx1IsE8=;
-  b=jw+hoQ7LeavJfs7xcKJzi9ZWnEL8kNkstw5jRWyXY5tEvwfVmlA9reSD
-   AFuD6/Zn7VBWT3wnlk4ExAsYVznygrDJjLd+gqgcDreZYHFS0N73EuNnD
-   hBEx0N4l5oztcCfJeIdvDxPOQAd2ocPvHvhsofy/9/QXrk9VxG+hsDdRo
-   rR89ygybKmFbUY2B+PXKT06s9M7CVxlRPEjb9uc/on0RyJ2G8y70pyHN9
-   VNUkRfoWG5Rs5wW0XyLpQLOsyNl+0rinuYvjIW9Mnn/0SpSTUnP+1YZHO
-   VQBriFvo9JLP2Qghfd8pbQMeLdPTcgMP7HqRpUi4xQ+gmGCAF+NyAcUox
-   w==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10848"; a="468694576"
+  bh=9p/MmbFubZ7+onPM66zGlCc5VukskJwqDk7TgoZizQ4=;
+  b=mAj3VOZ3+TxcqGyBt735lXWrryQN90uvuabN2t5sCjHpkOSnRZXZVHAU
+   BkMQEw6EAWGI0fqvuIW61345cc+iPGwKQlXSwc01jD5UQuuIgZcgpgY7w
+   LSvz1IRCOghrAux2NrDbQ4vEzW+HsfoHfv+LURpRfbKBNf9DzPP8CYTqy
+   XYRRgLPEAgoXbOkY9gT/VsXIaeR+zv4YuON8snNvQgnfys/9CKpynU6VU
+   x+r2931Vl86X4T//rGy2p/iCNcE659LgHjUqUu5uuVLxD0stpzjjNFO3K
+   CCmzwo5ttrMebrp3OtwqLca3mOFHa+qzB8UMh8aGior+LY8Z1v5EhiiLy
+   Q==;
+X-IronPort-AV: E=McAfee;i="6600,9927,10848"; a="1012983"
 X-IronPort-AV: E=Sophos;i="6.03,189,1694761200"; 
-   d="scan'208";a="468694576"
-Received: from orsmga007.jf.intel.com ([10.7.209.58])
-  by fmsmga105.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Sep 2023 19:01:25 -0700
+   d="scan'208";a="1012983"
+Received: from fmsmga008.fm.intel.com ([10.253.24.58])
+  by orvoesa101.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 29 Sep 2023 19:01:26 -0700
 X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10848"; a="743598288"
+X-IronPort-AV: E=McAfee;i="6600,9927,10848"; a="815767776"
 X-IronPort-AV: E=Sophos;i="6.03,189,1694761200"; 
-   d="scan'208";a="743598288"
+   d="scan'208";a="815767776"
 Received: from lkp-server02.sh.intel.com (HELO c3b01524d57c) ([10.239.97.151])
-  by orsmga007.jf.intel.com with ESMTP; 29 Sep 2023 19:01:24 -0700
+  by fmsmga008.fm.intel.com with ESMTP; 29 Sep 2023 19:01:23 -0700
 Received: from kbuild by c3b01524d57c with local (Exim 4.96)
         (envelope-from <lkp@intel.com>)
-        id 1qmPIH-0003YZ-2H;
+        id 1qmPIH-0003YX-2B;
         Sat, 30 Sep 2023 02:01:21 +0000
-Date:   Sat, 30 Sep 2023 10:00:33 +0800
+Date:   Sat, 30 Sep 2023 10:00:26 +0800
 From:   kernel test robot <lkp@intel.com>
 To:     KaiLong Wang <wangkailong@jari.cn>, arnd@arndb.de
 Cc:     oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org,
         linux-kernel@vger.kernel.org
 Subject: Re: [PATCH] vmlinux.lds.h: Clean up errors in vmlinux.lds.h
-Message-ID: <202309300906.QmMaoccp-lkp@intel.com>
+Message-ID: <202309300943.xp3w8c0g-lkp@intel.com>
 References: <72e80688.8a8.18ad9bba905.Coremail.wangkailong@jari.cn>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -72,18 +72,18 @@ url:    https://github.com/intel-lab-lkp/linux/commits/KaiLong-Wang/vmlinux-lds-
 base:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
 patch link:    https://lore.kernel.org/r/72e80688.8a8.18ad9bba905.Coremail.wangkailong%40jari.cn
 patch subject: [PATCH] vmlinux.lds.h: Clean up errors in vmlinux.lds.h
-config: arm-allnoconfig (https://download.01.org/0day-ci/archive/20230930/202309300906.QmMaoccp-lkp@intel.com/config)
-compiler: arm-linux-gnueabi-gcc (GCC) 13.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20230930/202309300906.QmMaoccp-lkp@intel.com/reproduce)
+config: csky-randconfig-001-20230930 (https://download.01.org/0day-ci/archive/20230930/202309300943.xp3w8c0g-lkp@intel.com/config)
+compiler: csky-linux-gcc (GCC) 13.2.0
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20230930/202309300943.xp3w8c0g-lkp@intel.com/reproduce)
 
 If you fix the issue in a separate patch/commit (i.e. not just a new version of
 the same patch/commit), kindly add following tags
 | Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202309300906.QmMaoccp-lkp@intel.com/
+| Closes: https://lore.kernel.org/oe-kbuild-all/202309300943.xp3w8c0g-lkp@intel.com/
 
 All errors (new ones prefixed by >>):
 
->> arm-linux-gnueabi-ld:./arch/arm/kernel/vmlinux.lds:20: syntax error
+>> csky-linux-ld:./arch/csky/kernel/vmlinux.lds:32: syntax error
 
 -- 
 0-DAY CI Kernel Test Service
