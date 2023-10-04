@@ -2,110 +2,132 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id DA229E7C4E2
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 605B1E7C4E8
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:10 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243575AbjJDQyJ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Oct 2023 12:54:09 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56716 "EHLO
+        id S243608AbjJDQyL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Oct 2023 12:54:11 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60878 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243522AbjJDQxe (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:53:34 -0400
+        with ESMTP id S243562AbjJDQxl (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:53:41 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1B470A7;
-        Wed,  4 Oct 2023 09:53:31 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5C5EFF9;
+        Wed,  4 Oct 2023 09:53:37 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-        Content-Description:In-Reply-To:References;
-        bh=LwA3p5YQj5OgBPSUkutIowOVEGM0rG3Lj5ULCLty+YM=; b=JRt10tJuArdHNRRYBWcWAKTL3L
-        5qoqHs+L3muErMYTGOiagRQEu5W1rLCQDiFr3Iwo196Be3buwEBHUBuhyJ2lkzSo5boAHD6BpdQHv
-        kqco3WhNwcfQdxHLgIKr6jj1hCDFmwbEOi7zalI+OyPKeGZXwcyxU39WAzL3812ODwKoz8UIhx/vv
-        o61fvI+j3BZ7GT/v6+KeSDyP9XVgSoWDWfOCSoQLKWZ0jA4gDvO0Oce/vZbGPFASGWxPj7GtcqhGH
-        SzFZ2r52dVlmq2d4eN2U6+hmOI9Y86s4spZlVWUiqtlfz7/s5/BMdU/trJw0lt93QR3U5OocxHR28
-        nsv+z4xA==;
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=D/8R0cQXGxymytv8qeJZP60gdDV9xdbcF13gSUAJ8s0=; b=P9PqackIT0b7fZvk2PUiwq2eEL
+        ogL4pXi4p90LlQsy6dqVmscrou91ZCSdQPbrsXf44oAxDyO/BxwBm5Z2vIwKUlQlUDpjFbnFPG9fM
+        BrJ63AckCUHqeJPCN9sjwAn+cG1XEsPXgyCNIWA2qvjPyp6VYgJA83cYUMVSJesCNkv4zWzv7yoTQ
+        gP2Z1xQ6jEcNIyFm3dsMavIcKirjm580itF3FOEGmJRHUDqy4pF9sGf2LiGyEorzm8grd31hr/VVK
+        KTTbbG5C8guCMxuwevbECmyH8mc5IYYAvCK+Lb8Nkenf0880jROkyzHaXctQk/+6ULTCzBapwqBs3
+        erU9zo2g==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qo57f-004SEr-45; Wed, 04 Oct 2023 16:53:19 +0000
+        id 1qo57f-004SEv-92; Wed, 04 Oct 2023 16:53:19 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
         npiggin@gmail.com
-Subject: [PATCH v2 00/17] Add folio_end_read
-Date:   Wed,  4 Oct 2023 17:53:00 +0100
-Message-Id: <20231004165317.1061855-1-willy@infradead.org>
+Subject: [PATCH v2 02/17] iomap: Protect read_bytes_pending with the state_lock
+Date:   Wed,  4 Oct 2023 17:53:02 +0100
+Message-Id: <20231004165317.1061855-3-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20231004165317.1061855-1-willy@infradead.org>
+References: <20231004165317.1061855-1-willy@infradead.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-The core of this patchset is the new folio_end_read() call which
-filesystems can use when finishing a page cache read instead of separate
-calls to mark the folio uptodate and unlock it.  As an illustration of
-its use, I converted ext4, iomap & mpage; more can be converted.
+Perform one atomic operation (acquiring the spinlock) instead of
+two (spinlock & atomic_sub) per read completion.
 
-I think that's useful by itself, but the interesting optimisation is
-that we can implement that with a single XOR instruction that sets the
-uptodate bit, clears the lock bit, tests the waiter bit and provides a
-write memory barrier.  That removes one memory barrier and one atomic
-instruction from each page read, which seems worth doing.  That's in
-patch 15.
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ fs/iomap/buffered-io.c | 37 +++++++++++++++++++++++++------------
+ 1 file changed, 25 insertions(+), 12 deletions(-)
 
-The last two patches could be a separate series, but basically we can do
-the same thing with the writeback flag that we do with the unlock flag;
-clear it and test the waiters bit at the same time.
-
-v2:
- - Update to 6.6-rc4
- - Simplify iomap's use of folio_end_read() as suggested by Linus
- - Fix weird Alpha assembly, as suggested by Linus
- - Implement xor_unlock_is_negative_byte for Coldfire
- - Add a likely() to folio_end_read() after studying the Coldfire assembly
-
-Matthew Wilcox (Oracle) (17):
-  iomap: Hold state_lock over call to ifs_set_range_uptodate()
-  iomap: Protect read_bytes_pending with the state_lock
-  mm: Add folio_end_read()
-  ext4: Use folio_end_read()
-  buffer: Use folio_end_read()
-  iomap: Use folio_end_read()
-  bitops: Add xor_unlock_is_negative_byte()
-  alpha: Implement xor_unlock_is_negative_byte
-  m68k: Implement xor_unlock_is_negative_byte
-  mips: Implement xor_unlock_is_negative_byte
-  powerpc: Implement arch_xor_unlock_is_negative_byte on 32-bit
-  riscv: Implement xor_unlock_is_negative_byte
-  s390: Implement arch_xor_unlock_is_negative_byte
-  mm: Delete checks for xor_unlock_is_negative_byte()
-  mm: Add folio_xor_flags_has_waiters()
-  mm: Make __end_folio_writeback() return void
-  mm: Use folio_xor_flags_has_waiters() in folio_end_writeback()
-
- arch/alpha/include/asm/bitops.h               | 20 +++++
- arch/m68k/include/asm/bitops.h                | 21 +++++
- arch/mips/include/asm/bitops.h                | 25 +++++-
- arch/mips/lib/bitops.c                        | 14 ++++
- arch/powerpc/include/asm/bitops.h             | 21 ++---
- arch/riscv/include/asm/bitops.h               | 12 +++
- arch/s390/include/asm/bitops.h                | 10 +++
- arch/x86/include/asm/bitops.h                 | 11 ++-
- fs/buffer.c                                   | 16 +---
- fs/ext4/readpage.c                            | 14 +---
- fs/iomap/buffered-io.c                        | 57 ++++++++------
- .../asm-generic/bitops/instrumented-lock.h    | 28 ++++---
- include/asm-generic/bitops/lock.h             | 20 +----
- include/linux/page-flags.h                    | 19 +++++
- include/linux/pagemap.h                       |  1 +
- kernel/kcsan/kcsan_test.c                     |  9 +--
- kernel/kcsan/selftest.c                       |  9 +--
- mm/filemap.c                                  | 77 ++++++++++---------
- mm/kasan/kasan_test.c                         |  8 +-
- mm/page-writeback.c                           | 35 ++++-----
- 20 files changed, 255 insertions(+), 172 deletions(-)
-
+diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
+index 6e780ca64ce3..4a996c5327ef 100644
+--- a/fs/iomap/buffered-io.c
++++ b/fs/iomap/buffered-io.c
+@@ -29,9 +29,9 @@ typedef int (*iomap_punch_t)(struct inode *inode, loff_t offset, loff_t length);
+  * and I/O completions.
+  */
+ struct iomap_folio_state {
+-	atomic_t		read_bytes_pending;
+-	atomic_t		write_bytes_pending;
+ 	spinlock_t		state_lock;
++	unsigned int		read_bytes_pending;
++	atomic_t		write_bytes_pending;
+ 
+ 	/*
+ 	 * Each block has two bits in this bitmap:
+@@ -183,7 +183,7 @@ static void ifs_free(struct folio *folio)
+ 
+ 	if (!ifs)
+ 		return;
+-	WARN_ON_ONCE(atomic_read(&ifs->read_bytes_pending));
++	WARN_ON_ONCE(ifs->read_bytes_pending != 0);
+ 	WARN_ON_ONCE(atomic_read(&ifs->write_bytes_pending));
+ 	WARN_ON_ONCE(ifs_is_fully_uptodate(folio, ifs) !=
+ 			folio_test_uptodate(folio));
+@@ -250,19 +250,29 @@ static void iomap_adjust_read_range(struct inode *inode, struct folio *folio,
+ 	*lenp = plen;
+ }
+ 
+-static void iomap_finish_folio_read(struct folio *folio, size_t offset,
++static void iomap_finish_folio_read(struct folio *folio, size_t off,
+ 		size_t len, int error)
+ {
+ 	struct iomap_folio_state *ifs = folio->private;
++	bool uptodate = !error;
++	bool finished = true;
+ 
+-	if (unlikely(error)) {
+-		folio_clear_uptodate(folio);
+-		folio_set_error(folio);
+-	} else {
+-		iomap_set_range_uptodate(folio, offset, len);
++	if (ifs) {
++		unsigned long flags;
++
++		spin_lock_irqsave(&ifs->state_lock, flags);
++		if (!error)
++			uptodate = ifs_set_range_uptodate(folio, ifs, off, len);
++		ifs->read_bytes_pending -= len;
++		finished = !ifs->read_bytes_pending;
++		spin_unlock_irqrestore(&ifs->state_lock, flags);
+ 	}
+ 
+-	if (!ifs || atomic_sub_and_test(len, &ifs->read_bytes_pending))
++	if (error)
++		folio_set_error(folio);
++	if (uptodate)
++		folio_mark_uptodate(folio);
++	if (finished)
+ 		folio_unlock(folio);
+ }
+ 
+@@ -360,8 +370,11 @@ static loff_t iomap_readpage_iter(const struct iomap_iter *iter,
+ 	}
+ 
+ 	ctx->cur_folio_in_bio = true;
+-	if (ifs)
+-		atomic_add(plen, &ifs->read_bytes_pending);
++	if (ifs) {
++		spin_lock_irq(&ifs->state_lock);
++		ifs->read_bytes_pending += plen;
++		spin_unlock_irq(&ifs->state_lock);
++	}
+ 
+ 	sector = iomap_sector(iomap, pos);
+ 	if (!ctx->bio ||
 -- 
 2.40.1
 
