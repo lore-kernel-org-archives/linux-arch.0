@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 81005E7C4E9
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:12 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 9A452E7C4E2
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:26 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243515AbjJDQyN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Oct 2023 12:54:13 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56722 "EHLO
+        id S243634AbjJDQy1 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Oct 2023 12:54:27 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35336 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243573AbjJDQyJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:54:09 -0400
+        with ESMTP id S243591AbjJDQyL (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:54:11 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59472114;
-        Wed,  4 Oct 2023 09:53:40 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 06B76180;
+        Wed,  4 Oct 2023 09:53:46 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=5DKdxAyadRWDMiaslNEJr4yDpo8DKXMNV0hB6QcBBkM=; b=RYa3D/dVz/0wGHfevaGhpqecso
-        oT/Olzw7bs2m/lGKXPnZgBQatCf8z7bbcJjMtVfb0rXmyId6jA7S52FGGUqnby6PARrrczH/tB+vq
-        We8hxsnFlycmu3R+t9Hg+VA4GM8ODiAUa7NU9DLjpuEbw/0AZ/iezCzuzB9+HkzTs3GrLbqbefqdz
-        FjnB4rMgOWGRfIMh3v+2asasqkmqjO6UKVDTIjqqQ0D5VUKk1n+87VHmoGUUb67cVpiXOCZdSiMUp
-        mQAZqJAfG8Mo6maQNsXErIyaMjGeLDbbjBrqxR0eyXp59QLdFngcX8oNVmFosewRlKa6F7HDj/h9a
-        DAi5gaWw==;
+        bh=GcBru3fPdpYKCu6uB4MY5f4K8PaG3ucCqPSqDGXRe9s=; b=RPsCKy9Rm26TskJl3Eur107F7S
+        57OHLJxeUuwkSmlr5qVXZQNjmq1fs6H47cGDYcmjzJxyEwDsj8u0jKLys/oRopqDf28XCm639dRkF
+        9yBzlYSdR7vgpEP7jHoxcf6LR3/zR9PCM+Ttcw7pDWHC2Fb1C3BcOcK5DulZT8hp7ezhCo/yCky9S
+        pkxMgSich07C8uTk28HlWqZ3lcIgGVe23a/iYvjX/OrOn/BuvAeYNMag8CYx0+Xxssf72G8/uGqXV
+        AY5Kndoit3mw7LA3XgJfj3g5Ben6dO64o9z+tqXsl9Vk8Z6UXSNiqQBLfYajlHYtcokZxJlu28Tdu
+        owaSdX3Q==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qo57f-004SF3-GH; Wed, 04 Oct 2023 16:53:19 +0000
+        id 1qo57f-004SFA-Pp; Wed, 04 Oct 2023 16:53:19 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
         npiggin@gmail.com
-Subject: [PATCH v2 05/17] buffer: Use folio_end_read()
-Date:   Wed,  4 Oct 2023 17:53:05 +0100
-Message-Id: <20231004165317.1061855-6-willy@infradead.org>
+Subject: [PATCH v2 08/17] alpha: Implement xor_unlock_is_negative_byte
+Date:   Wed,  4 Oct 2023 17:53:08 +0100
+Message-Id: <20231004165317.1061855-9-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20231004165317.1061855-1-willy@infradead.org>
 References: <20231004165317.1061855-1-willy@infradead.org>
@@ -44,48 +44,46 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There are two places that we can use this new helper.
+Inspired by the alpha clear_bit() and arch_atomic_add_return(), this
+will surely be more efficient than the generic one defined in filemap.c.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/buffer.c | 16 ++++------------
- 1 file changed, 4 insertions(+), 12 deletions(-)
+ arch/alpha/include/asm/bitops.h | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-diff --git a/fs/buffer.c b/fs/buffer.c
-index 12e9a71c693d..b7bafba87273 100644
---- a/fs/buffer.c
-+++ b/fs/buffer.c
-@@ -282,13 +282,7 @@ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
- 	} while (tmp != bh);
- 	spin_unlock_irqrestore(&first->b_uptodate_lock, flags);
+diff --git a/arch/alpha/include/asm/bitops.h b/arch/alpha/include/asm/bitops.h
+index bafb1c1f0fdc..b50ad6b83e85 100644
+--- a/arch/alpha/include/asm/bitops.h
++++ b/arch/alpha/include/asm/bitops.h
+@@ -286,6 +286,27 @@ arch___test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
+ #define arch_test_bit generic_test_bit
+ #define arch_test_bit_acquire generic_test_bit_acquire
  
--	/*
--	 * If all of the buffers are uptodate then we can set the page
--	 * uptodate.
--	 */
--	if (folio_uptodate)
--		folio_mark_uptodate(folio);
--	folio_unlock(folio);
-+	folio_end_read(folio, folio_uptodate);
- 	return;
- 
- still_busy:
-@@ -2425,12 +2419,10 @@ int block_read_full_folio(struct folio *folio, get_block_t *get_block)
- 
- 	if (!nr) {
- 		/*
--		 * All buffers are uptodate - we can set the folio uptodate
--		 * as well. But not if get_block() returned an error.
-+		 * All buffers are uptodate or get_block() returned an
-+		 * error when trying to map them - we can finish the read.
- 		 */
--		if (!page_error)
--			folio_mark_uptodate(folio);
--		folio_unlock(folio);
-+		folio_end_read(folio, !page_error);
- 		return 0;
- 	}
- 
++static inline bool xor_unlock_is_negative_byte(unsigned long mask,
++		volatile unsigned long *p)
++{
++	unsigned long temp, old;
++
++	__asm__ __volatile__(
++	"1:	ldl_l %0,%4\n"
++	"	mov %0,%2\n"
++	"	xor %0,%3,%0\n"
++	"	stl_c %0,%1\n"
++	"	beq %0,2f\n"
++	".subsection 2\n"
++	"2:	br 1b\n"
++	".previous"
++	:"=&r" (temp), "=m" (*p), "=&r" (old)
++	:"Ir" (mask), "m" (*p));
++
++	return (old & BIT(7)) != 0;
++}
++#define xor_unlock_is_negative_byte xor_unlock_is_negative_byte
++
+ /*
+  * ffz = Find First Zero in word. Undefined if no zero exists,
+  * so code should check against ~0UL first..
 -- 
 2.40.1
 
