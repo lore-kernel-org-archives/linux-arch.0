@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 0F3AFE7C4E2
+	by smtp.lore.kernel.org (Postfix) with ESMTP id BB27CE7C4E6
 	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:53:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243466AbjJDQxZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Oct 2023 12:53:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54894 "EHLO
+        id S243481AbjJDQx0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Oct 2023 12:53:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54896 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243442AbjJDQxZ (ORCPT
+        with ESMTP id S233446AbjJDQxZ (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:53:25 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5EE7FAB;
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5ED3AA7;
         Wed,  4 Oct 2023 09:53:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=+0PawpxhJKqaj77T374P+o4JeUu6sT89JK6ue2yK9T0=; b=YtNGtSMzne6N+0JeD40RVE95Pv
-        2LaBF0plT+dXJTT9umXL9Q5qH94HYx6QSxE5QGemVyAB+9qEYNOT01LEgHewvUIBwN+9CI5PB7rq6
-        V5RF+KubKhJsLsz/OCz1jCq5k9YDLQX0jJeOWqvB/xZqbrmDwN65iDoS2M/N04QW9IbCzVHaA79v3
-        TY7Q+Bi0Jfx2ve9d3/ryDr2L5Jde8QbzA20cm4EyfXY0A6IGsnqwIYyU1oPZHj5S9eibEbOV5BOCw
-        L5FZQALvQ8eYHOf3cdx1O/M0HmQ7xHKgkP5uWOZlwFPTYoBIjWnmMMjt1EGy3f1zmuTJJHFMFzLvj
-        oqp7VTFg==;
+        bh=bfs2p6og8MVmu/PmsnwWj8Grt12H9inYLMhPvOjgtD4=; b=NWC6d6ZFQxlxn/oWJ2tJnU0gwB
+        ZelMR2zlgkLzaavxoF29vyK9rUKk3wZoVjQYF4K0JVoHtYF3lYdM3bogFOO8lFAEDNgqsWBU/VXZr
+        YHo3HmIrljWo2RkuVx1+vSIVD0DPaQJalBikdceY0434SmUBzRY1jyCXk/mJwjly9XRiLKBwBwU0m
+        2HpWLNh91z6H8q4wUtSN7qp3N6J7evJn15lOl5L3vi8PtH4ySsZtI3e7CYoaeQaMTanTOJmyLMy2C
+        6wLxIkOasNlqbdxCUl5F6HQe+SYdShEeFYIl91MG5vji2Y56KV2H2hSVVyLjqcZCmQMVLsqOrDh6m
+        rKkojOcg==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qo57f-004SEx-BB; Wed, 04 Oct 2023 16:53:19 +0000
+        id 1qo57f-004SFN-Sx; Wed, 04 Oct 2023 16:53:19 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
         npiggin@gmail.com
-Subject: [PATCH v2 03/17] mm: Add folio_end_read()
-Date:   Wed,  4 Oct 2023 17:53:03 +0100
-Message-Id: <20231004165317.1061855-4-willy@infradead.org>
+Subject: [PATCH v2 09/17] m68k: Implement xor_unlock_is_negative_byte
+Date:   Wed,  4 Oct 2023 17:53:09 +0100
+Message-Id: <20231004165317.1061855-10-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20231004165317.1061855-1-willy@infradead.org>
 References: <20231004165317.1061855-1-willy@infradead.org>
@@ -44,60 +44,53 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Provide a function for filesystems to call when they have finished
-reading an entire folio.
+Using EOR to clear the guaranteed-to-be-set lock bit will test the
+negative flag just like the x86 implementation.  This should be
+more efficient than the generic implementation in filemap.c.  It
+would be better if m68k had __GCC_ASM_FLAG_OUTPUTS__.
+
+Coldfire doesn't have a byte-sized EOR, so we test bit 7 after the
+EOR, which is a second memory access, but it's slightly better than
+the current C code.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- include/linux/pagemap.h |  1 +
- mm/filemap.c            | 22 ++++++++++++++++++++++
- 2 files changed, 23 insertions(+)
+ arch/m68k/include/asm/bitops.h | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
 
-diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
-index 351c3b7f93a1..5bb2f5f802bc 100644
---- a/include/linux/pagemap.h
-+++ b/include/linux/pagemap.h
-@@ -1129,6 +1129,7 @@ static inline void wait_on_page_locked(struct page *page)
- 	folio_wait_locked(page_folio(page));
+diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
+index e984af71df6b..80ee36095905 100644
+--- a/arch/m68k/include/asm/bitops.h
++++ b/arch/m68k/include/asm/bitops.h
+@@ -319,6 +319,28 @@ arch___test_and_change_bit(unsigned long nr, volatile unsigned long *addr)
+ 	return test_and_change_bit(nr, addr);
  }
  
-+void folio_end_read(struct folio *folio, bool success);
- void wait_on_page_writeback(struct page *page);
- void folio_wait_writeback(struct folio *folio);
- int folio_wait_writeback_killable(struct folio *folio);
-diff --git a/mm/filemap.c b/mm/filemap.c
-index f0a15ce1bd1b..ea317cdf9532 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -1527,6 +1527,28 @@ void folio_unlock(struct folio *folio)
- }
- EXPORT_SYMBOL(folio_unlock);
- 
-+/**
-+ * folio_end_read - End read on a folio.
-+ * @folio: The folio.
-+ * @success: True if all reads completed successfully.
-+ *
-+ * When all reads against a folio have completed, filesystems should
-+ * call this function to let the pagecache know that no more reads
-+ * are outstanding.  This will unlock the folio and wake up any thread
-+ * sleeping on the lock.  The folio will also be marked uptodate if all
-+ * reads succeeded.
-+ *
-+ * Context: May be called from interrupt or process context.  May not be
-+ * called from NMI context.
-+ */
-+void folio_end_read(struct folio *folio, bool success)
++static inline bool xor_unlock_is_negative_byte(unsigned long mask,
++		volatile unsigned long *p)
 +{
-+	if (likely(success))
-+		folio_mark_uptodate(folio);
-+	folio_unlock(folio);
-+}
-+EXPORT_SYMBOL(folio_end_read);
++#ifdef CONFIG_COLDFIRE
++	__asm__ __volatile__ ("eorl %1, %0"
++		: "+m" (*p)
++		: "d" (mask)
++		: "memory");
++	return *p & (1 << 7);
++#else
++	char result;
++	char *cp = (char *)p + 3;	/* m68k is big-endian */
 +
- /**
-  * folio_end_private_2 - Clear PG_private_2 and wake any waiters.
-  * @folio: The folio.
++	__asm__ __volatile__ ("eor.b %1, %2; smi %0"
++		: "=d" (result)
++		: "di" (mask), "o" (*cp)
++		: "memory");
++	return result;
++#endif
++}
++#define xor_unlock_is_negative_byte xor_unlock_is_negative_byte
++
+ /*
+  *	The true 68020 and more advanced processors support the "bfffo"
+  *	instruction for finding bits. ColdFire and simple 68000 parts
 -- 
 2.40.1
 
