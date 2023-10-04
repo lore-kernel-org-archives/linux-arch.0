@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3FC2CE7C4E5
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:10 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 81005E7C4E9
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:12 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243600AbjJDQyL (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Oct 2023 12:54:11 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56770 "EHLO
+        id S243515AbjJDQyN (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Oct 2023 12:54:13 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:56722 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243551AbjJDQxh (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:53:37 -0400
+        with ESMTP id S243573AbjJDQyJ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:54:09 -0400
 Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4B646DD;
-        Wed,  4 Oct 2023 09:53:34 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 59472114;
+        Wed,  4 Oct 2023 09:53:40 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
         References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
         Content-Type:Content-ID:Content-Description;
-        bh=KV8LjVnp8SrGIYzPBzTmbRSPvfzlFJYoh9EV/UdX1VU=; b=XKrwcSOWaQs6f+lvNnjqWsQNeA
-        tgWGSVcwUcSUK+ppxTN6wCxuM6QU4zpdWpMiV6KVrIp0r98Vydm6CI9x3+M231XCLbvBHeUsTq1Ls
-        +eZkvGGQwfurJSHA3nMDjyfvsg3VWB1w7Wx3V3DziFeKyn/pTJoHxUMnw/Y0g1ZbGCod0NlutrX1u
-        figIDtFZopRavwvsxs9+1eC5eeKlB+YwkNGYdG+6yHXeWhuaeNGxlKiTUBIQrV/JCqNxwxPBkUPJ4
-        ygOewt9UVPVSMnaPp9qvSI+NvRcESnTW6dPLxrxNb6Il9rZ36q3vUjsCZiCcnR1NwTo+eprsm+LCY
-        ab+q/3Xg==;
+        bh=5DKdxAyadRWDMiaslNEJr4yDpo8DKXMNV0hB6QcBBkM=; b=RYa3D/dVz/0wGHfevaGhpqecso
+        oT/Olzw7bs2m/lGKXPnZgBQatCf8z7bbcJjMtVfb0rXmyId6jA7S52FGGUqnby6PARrrczH/tB+vq
+        We8hxsnFlycmu3R+t9Hg+VA4GM8ODiAUa7NU9DLjpuEbw/0AZ/iezCzuzB9+HkzTs3GrLbqbefqdz
+        FjnB4rMgOWGRfIMh3v+2asasqkmqjO6UKVDTIjqqQ0D5VUKk1n+87VHmoGUUb67cVpiXOCZdSiMUp
+        mQAZqJAfG8Mo6maQNsXErIyaMjGeLDbbjBrqxR0eyXp59QLdFngcX8oNVmFosewRlKa6F7HDj/h9a
+        DAi5gaWw==;
 Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qo57f-004SEt-6o; Wed, 04 Oct 2023 16:53:19 +0000
+        id 1qo57f-004SF3-GH; Wed, 04 Oct 2023 16:53:19 +0000
 From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To:     Andrew Morton <akpm@linux-foundation.org>
 Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
         linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
         linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
         npiggin@gmail.com
-Subject: [PATCH v2 01/17] iomap: Hold state_lock over call to ifs_set_range_uptodate()
-Date:   Wed,  4 Oct 2023 17:53:01 +0100
-Message-Id: <20231004165317.1061855-2-willy@infradead.org>
+Subject: [PATCH v2 05/17] buffer: Use folio_end_read()
+Date:   Wed,  4 Oct 2023 17:53:05 +0100
+Message-Id: <20231004165317.1061855-6-willy@infradead.org>
 X-Mailer: git-send-email 2.37.1
 In-Reply-To: <20231004165317.1061855-1-willy@infradead.org>
 References: <20231004165317.1061855-1-willy@infradead.org>
@@ -44,59 +44,47 @@ Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-This is really preparation for the next patch, but it lets us call
-folio_mark_uptodate() in just one place instead of two.
+There are two places that we can use this new helper.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- fs/iomap/buffered-io.c | 20 +++++++++++---------
- 1 file changed, 11 insertions(+), 9 deletions(-)
+ fs/buffer.c | 16 ++++------------
+ 1 file changed, 4 insertions(+), 12 deletions(-)
 
-diff --git a/fs/iomap/buffered-io.c b/fs/iomap/buffered-io.c
-index 5db54ca29a35..6e780ca64ce3 100644
---- a/fs/iomap/buffered-io.c
-+++ b/fs/iomap/buffered-io.c
-@@ -57,30 +57,32 @@ static inline bool ifs_block_is_uptodate(struct iomap_folio_state *ifs,
- 	return test_bit(block, ifs->state);
- }
+diff --git a/fs/buffer.c b/fs/buffer.c
+index 12e9a71c693d..b7bafba87273 100644
+--- a/fs/buffer.c
++++ b/fs/buffer.c
+@@ -282,13 +282,7 @@ static void end_buffer_async_read(struct buffer_head *bh, int uptodate)
+ 	} while (tmp != bh);
+ 	spin_unlock_irqrestore(&first->b_uptodate_lock, flags);
  
--static void ifs_set_range_uptodate(struct folio *folio,
-+static bool ifs_set_range_uptodate(struct folio *folio,
- 		struct iomap_folio_state *ifs, size_t off, size_t len)
- {
- 	struct inode *inode = folio->mapping->host;
- 	unsigned int first_blk = off >> inode->i_blkbits;
- 	unsigned int last_blk = (off + len - 1) >> inode->i_blkbits;
- 	unsigned int nr_blks = last_blk - first_blk + 1;
--	unsigned long flags;
- 
--	spin_lock_irqsave(&ifs->state_lock, flags);
- 	bitmap_set(ifs->state, first_blk, nr_blks);
--	if (ifs_is_fully_uptodate(folio, ifs))
+-	/*
+-	 * If all of the buffers are uptodate then we can set the page
+-	 * uptodate.
+-	 */
+-	if (folio_uptodate)
 -		folio_mark_uptodate(folio);
--	spin_unlock_irqrestore(&ifs->state_lock, flags);
-+	return ifs_is_fully_uptodate(folio, ifs);
- }
+-	folio_unlock(folio);
++	folio_end_read(folio, folio_uptodate);
+ 	return;
  
- static void iomap_set_range_uptodate(struct folio *folio, size_t off,
- 		size_t len)
- {
- 	struct iomap_folio_state *ifs = folio->private;
-+	unsigned long flags;
-+	bool uptodate = true;
+ still_busy:
+@@ -2425,12 +2419,10 @@ int block_read_full_folio(struct folio *folio, get_block_t *get_block)
  
--	if (ifs)
--		ifs_set_range_uptodate(folio, ifs, off, len);
--	else
-+	if (ifs) {
-+		spin_lock_irqsave(&ifs->state_lock, flags);
-+		uptodate = ifs_set_range_uptodate(folio, ifs, off, len);
-+		spin_unlock_irqrestore(&ifs->state_lock, flags);
-+	}
-+
-+	if (uptodate)
- 		folio_mark_uptodate(folio);
- }
+ 	if (!nr) {
+ 		/*
+-		 * All buffers are uptodate - we can set the folio uptodate
+-		 * as well. But not if get_block() returned an error.
++		 * All buffers are uptodate or get_block() returned an
++		 * error when trying to map them - we can finish the read.
+ 		 */
+-		if (!page_error)
+-			folio_mark_uptodate(folio);
+-		folio_unlock(folio);
++		folio_end_read(folio, !page_error);
+ 		return 0;
+ 	}
  
 -- 
 2.40.1
