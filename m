@@ -2,295 +2,247 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 18A29E7C4E5
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:54:27 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 08309E7C4E2
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:58:53 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S243553AbjJDQy2 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Oct 2023 12:54:28 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60858 "EHLO
+        id S243487AbjJDQ6y (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Oct 2023 12:58:54 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:37388 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S243590AbjJDQyL (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:54:11 -0400
-Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1A19D124;
-        Wed,  4 Oct 2023 09:53:43 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
-        Content-Type:Content-ID:Content-Description;
-        bh=OIlQfxJf3xAAiVPkn5SRGC4SYIlWa7s9rUyJZz1UNfs=; b=UqleOktTdw71dOuqvUTkD/lTJC
-        /1rNyzDWQux+76a/MyNZ7b97z52LjXlT+ak8UrubShO37NVtXE7k3Ph8/mT57SkTDQpAHSUKSTuu+
-        lZqaCxa7E81SY6oE4eEl1ohjTq6wwoE+ETJHlDi14DrN4NtXUJL1S8AYaArG2RntaEi1z1S66ufX+
-        Mla38SKlbyTzqxALsm+yu60psa1+hSMwo8NDSoRKlVfcWn5ElJqp3R/QObk1kXt0Yh7Ug4IhOY1zT
-        cVDoxMJkxwI2p0Mf4fu1N1VjR7bmROWaxwNBJO4NFBFdxiVWxWWp4jYgraRylFw9dv/tKj+OrBI/9
-        BBp2jzDA==;
-Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
-        id 1qo57f-004SF7-LD; Wed, 04 Oct 2023 16:53:19 +0000
-From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To:     Andrew Morton <akpm@linux-foundation.org>
-Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
-        linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
-        npiggin@gmail.com
-Subject: [PATCH v2 07/17] bitops: Add xor_unlock_is_negative_byte()
-Date:   Wed,  4 Oct 2023 17:53:07 +0100
-Message-Id: <20231004165317.1061855-8-willy@infradead.org>
-X-Mailer: git-send-email 2.37.1
-In-Reply-To: <20231004165317.1061855-1-willy@infradead.org>
-References: <20231004165317.1061855-1-willy@infradead.org>
-MIME-Version: 1.0
+        with ESMTP id S233437AbjJDQ6x (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:58:53 -0400
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 85BC195;
+        Wed,  4 Oct 2023 09:58:49 -0700 (PDT)
+Received: from pps.filterd (m0333521.ppops.net [127.0.0.1])
+        by mx0b-00069f02.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 394FJ1t3016039;
+        Wed, 4 Oct 2023 16:58:47 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=from : to : cc :
+ subject : date : message-id : in-reply-to : references :
+ content-transfer-encoding : content-type : mime-version;
+ s=corp-2023-03-30; bh=dX31TLwAkeufAs7pvOyCIuED6k5EFIiplKJqeD3ywyY=;
+ b=q6nPklgpm0Y9D3sNE6cUn/PzgDCNAkXUKn579gbso+D0Rd4QHGBtMPehpq2pRMA2Ya0+
+ LFXzne92kvYGQcRGK1rC6k7xZDV8LaMQ9Zor3QLxGMGjubcn9+BUqfL5PUDNjBSDSipa
+ H+agalcA4lAI3KgZ+EFDPDQnACmQdoGnytlh6siF0ndWPeLh2qc/UG6nteTPql6HHobP
+ y/RE/WVOZChaSMEhiXvpZWrDoUkXOhkGKl7FaS+IRbD20MQ7os86s5zshU+PN0BOEfl9
+ YpzibuVEiOA+X8T1csJENWJczEQE6LDTAjafv7Fv44TPhqjNkPkjd+0q9v601rZ0Jyv+ CQ== 
+Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
+        by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 3teakcfn9x-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Wed, 04 Oct 2023 16:58:47 +0000
+Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+        by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.17.1.19/8.17.1.19) with ESMTP id 394GUJI8033618;
+        Wed, 4 Oct 2023 16:58:46 GMT
+Received: from nam10-mw2-obe.outbound.protection.outlook.com (mail-mw2nam10lp2107.outbound.protection.outlook.com [104.47.55.107])
+        by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 3tea481euy-1
+        (version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+        Wed, 04 Oct 2023 16:58:46 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
+ b=fpVVKLWdcMjqh9r9Cpg/yg8I4rPBMO9/gzLviKb4mvb41853ViJsrf/WHwBCdenDJHTIQND/fNibVK1hB+KQKuWlajC2KtkYF2qTAjrADddUVitwE9uN90R+xYTTp2t1PyYthtH998k4ZBX/wZr0rBOZoEj7BG5pWXrvKercAI8vHd3Xm/ypAhsplPXi62eIVdjvA0N2RQ9/Q/TvFzSikx3mBJpR05S/QXb5zFXCSNl2I+0zp36ACwZBjGgutq32k0rVSyDift/GjodISrQ7sWoMfqeKQAPpJbE+RSBoeb2lzmO/7p1aql0RR4gqMpY41tAd7PhoUp0N78IY+0/s9g==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector9901;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=dX31TLwAkeufAs7pvOyCIuED6k5EFIiplKJqeD3ywyY=;
+ b=ac4V6zdAwO7OfdeJkunPB1MwOxLYT+bpQbRFoPj+/yZuTYGjjPM64fvgVZ+V+kboXpfFtzkqbveB4pWPXmZEUxMu8YEfdcppojHLUOP0HurHhi/CukXb/6LCIHUJkmV8QZnD2iJHQcTnHdb0t0NUvjUiM0ttPqQeR4gqQ5Ql3EmMh04t4vjiqy+EyjvoEC81D1qsyYIpGfx1vVYyDhpQxXUiCK5embpj/M9kOjYZHHmqfXyiWDjvsEKzsmhw7oPxsgsPzWwTudTZK18PcOnVOpUUtdvIjr5CK+2NO+w7hdVZtRHiBUVK4yLyJ3w2G6xknuSLIg41vSx5TIjew//smA==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=dX31TLwAkeufAs7pvOyCIuED6k5EFIiplKJqeD3ywyY=;
+ b=Ze9nullKSx1qRdCbK00q9PaRWT/nBr8pXiWbmZBPeFYQhazDOitPkO2eGEFizqebUbuuAtb8wWY+ybyAfg53HcNmM4/triHHShbl/kbc3aDLTDsR4rVPhRP4vyRXU7zP3KLarI+JNKJdyXS5efu9q7SLVTVxxHDp62SXutFuZ0c=
+Received: from PH8PR10MB6597.namprd10.prod.outlook.com (2603:10b6:510:226::20)
+ by DM3PR10MB7912.namprd10.prod.outlook.com (2603:10b6:0:43::17) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.6838.33; Wed, 4 Oct
+ 2023 16:58:09 +0000
+Received: from PH8PR10MB6597.namprd10.prod.outlook.com
+ ([fe80::35e3:7e4c:72b2:cf74]) by PH8PR10MB6597.namprd10.prod.outlook.com
+ ([fe80::35e3:7e4c:72b2:cf74%7]) with mapi id 15.20.6792.026; Wed, 4 Oct 2023
+ 16:58:09 +0000
+From:   Stephen Brennan <stephen.s.brennan@oracle.com>
+To:     Arnd Bergmann <arnd@arndb.de>
+Cc:     Stephen Brennan <stephen.s.brennan@oracle.com>,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        linux-debuggers@vger.kernel.org
+Subject: [PATCH 1/1] kernel/config: Introduce CONFIG_DEBUG_INFO_IKCONFIG
+Date:   Wed,  4 Oct 2023 09:58:04 -0700
+Message-Id: <20231004165804.659482-2-stephen.s.brennan@oracle.com>
+X-Mailer: git-send-email 2.39.3
+In-Reply-To: <20231004165804.659482-1-stephen.s.brennan@oracle.com>
+References: <20231004165804.659482-1-stephen.s.brennan@oracle.com>
 Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: PH7PR17CA0013.namprd17.prod.outlook.com
+ (2603:10b6:510:324::6) To PH8PR10MB6597.namprd10.prod.outlook.com
+ (2603:10b6:510:226::20)
+MIME-Version: 1.0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: PH8PR10MB6597:EE_|DM3PR10MB7912:EE_
+X-MS-Office365-Filtering-Correlation-Id: 487d72c3-6ec0-4d66-46d2-08dbc4fb1605
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;
+X-Microsoft-Antispam-Message-Info: O+WZJGGh5hAAXVAZ7RW9p7aUZ3qfXVFqbaI2PUa/gfrTJTpD1kFYASPQDn1Qt+ux/1YD6MbRyUtVmdfudCmYHlzjbdEfdBZMrLwJJkinFE4y4SY12GTjHtMVkHHzdXASY1wJqD/B6W3dsWao9g5QXPFvIRrdmbez6IUSK9wYoCjx2Qwvbun0clTvbJMmUTdpMqmAu8f+KK0NGOgrrgRifLgFxPXfjhXIA81U2C/m5WHf22t6MsUZH++D45zcCZdkdmZ/Q3Sr9TvN6ywTwv2W38tDO1L/MZiXM0+BNFu3H0Ocfo838tJGYp4IyFBomBC0Nbb52WJTsNUJeTpgJwf1HCXjZe0f6K4VsbjsuM7PzMM95XgYn8fXGISHrUAllaQaJQ8bqmrMKbtWcya3zHEZun93geHqMmonIriesYepIYPh7YHFEeVXFlabqGcJtECGGlUiADs27hTEQ95OVtK+t7fDqvnWfFb6Q0s2BFUu5W07YC2OZviG6dr0Rk1c9R5mri0dqxhP/L5Oeb4H6PLTVtLmI4Amv8LHVWen6e0zArcoIDg5ZMMUR2R9hCmn4Fcx
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH8PR10MB6597.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230031)(136003)(346002)(366004)(396003)(376002)(39860400002)(230922051799003)(64100799003)(1800799009)(451199024)(186009)(2906002)(8676002)(41300700001)(4326008)(8936002)(36756003)(5660300002)(66476007)(316002)(2616005)(86362001)(478600001)(6506007)(6512007)(38100700002)(6666004)(1076003)(6486002)(66946007)(66556008)(83380400001)(6916009)(103116003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?YKwwqJ2YM5JKEVW9j/SpK4lGxn0Bf+pm0lq2wnObW7DP5STVDIKapuuUHnSN?=
+ =?us-ascii?Q?9cWt6SajPXIhNYnm67EJyTJnNpm+M7djVRQ7uyVYx9Ga8D3kEY5zyDhz2r0z?=
+ =?us-ascii?Q?NloI8Isycd+PJuRmhzdZJuc+v8HR9a5Ga0UotTs8IewAwtedcR2erRgCBqCd?=
+ =?us-ascii?Q?Lon+AwTxmfFJcWGR5N/IEyDpqaGepe7Q7KNLOqSM4hkhSH5C1Uw+47wzfXmw?=
+ =?us-ascii?Q?zu+1P+fnE7xYShpnwTASkfuU3s0iv5hx0Q9UeWpSHRU4+zmfHs/cTcXWUJmK?=
+ =?us-ascii?Q?uK0BHr3I3gNKpRN60dfNgFnt657oChCYAYdNQ27P7mqCPeXEHtQakCptI11g?=
+ =?us-ascii?Q?W7Whty8uSekgJk/PXAu7TjKST1lzPwIdPRjozNqD8IxZiXaUSPM0VOxcl16K?=
+ =?us-ascii?Q?7JdHujBPCftSrpUKYvoxDPLvYSMXRbM+fK74LtZyj2M0JhyYCH9N3MQ4CL3B?=
+ =?us-ascii?Q?P7zx3hbJwErmgZ6sM9SywP7CTrOtv+nbA2gN4ooiOfsTNA9B9CgrKjAG0Iga?=
+ =?us-ascii?Q?LT9LkGyD6cFKoTIooPyH4+MeXsvVqb9ELKweo4t8nU+qs0erSoUKt8YZIpK2?=
+ =?us-ascii?Q?hcUv8I2bpqZGP+ECoJ7VmUv9MgI8gZ+0oBlZeKeAyNb3LtkWh5HzeKNuNW4A?=
+ =?us-ascii?Q?dRx611+cCErAazC22hWLqXH6wM9Gu1qwMxsFgJ/BEhBz8oPHyPJrVxlllTzq?=
+ =?us-ascii?Q?VP61HIA+O/ONTXkRjYqkmEh5uPTb3H8Mx3CMlBoC6Pjt7Yg8vY/yKQgddp5C?=
+ =?us-ascii?Q?umAEQhsLRRMnlStslYHcIWOvn+c3AnUnp844cbI1OP3c0tBmClx2mENVJbMH?=
+ =?us-ascii?Q?8jTUgcunYpif8XmCOvMTzOc8VJxSEmBXf/AZFvZ9jIrPvHj/wjEY6VF9leKW?=
+ =?us-ascii?Q?dlTySGdgna9Hd6UiUzOn1F9XU/8zkT6YkTBATA1tnczvqP9ciM7hMbpnTe1U?=
+ =?us-ascii?Q?zMYrJJBvv8kAHvNe2ZL72nFDOougRr0nVhMKE73Hayy0x81fcBjIcbbV1tmO?=
+ =?us-ascii?Q?+cnPiiViYVfd5cFglDeIj4+pSB82/ipvuN+3j1buM12pTG+b2V0sYK/qsNZE?=
+ =?us-ascii?Q?u1HV3DaYFC/wpQv249asAnvkuDOqsT4Ps7pFvYTY58ZhhMzC5PugneCFrBHx?=
+ =?us-ascii?Q?xQekO3GcgLJip+0pickV8doTSIoOvVIH5nmlfhSE5sckikgmlePTR6xe+rG8?=
+ =?us-ascii?Q?xUYKi3VIHsjGvBtnQvYxJfeCHwzXL4HwpLiw46Muwz+QT+lm/wGNF65MBWz2?=
+ =?us-ascii?Q?PT/dKMyisVv0kF4qCPAK6paAMKwJ5jIJhGZb1Hi2kRCDuyXk+YsmxedEIOAK?=
+ =?us-ascii?Q?6bVCxFpaUgc7ElHIxsiqpdpzWr1v9BJifcL8tl877xkbQFIhaIh6uKoOP299?=
+ =?us-ascii?Q?qBoL5KadQVUSwO8Qf5vbIFjusOXfATBMCChR/TF8qY8W/84mqHgeZLlXyzSF?=
+ =?us-ascii?Q?LiNFG8UdRqBoWVc7d/kmdz8QoFyN6+hUz5u3hkFmcQtEEl9Nz6EYY/v8xHat?=
+ =?us-ascii?Q?Thzc2uqGw1fQZKgn3cRqONUQZGvFlVjK5v/JaR3mr5XGNO5MYCbJtB1BSzd+?=
+ =?us-ascii?Q?Wt9Q8TWzMAXWSw36+IiURLjiohraK6yhp9LrgoIaebZW9PxR8NtE03MqK0hA?=
+ =?us-ascii?Q?ghI7MmNjGh+sc82zsW4sxxL3dDujV1Nb9kBqeFbBty9NOr0Se0vsoV25ds+w?=
+ =?us-ascii?Q?nFy15zZkAt4gNluoH4YrlWixKXU=3D?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0: 7pAbHF6vZFnLFhij0Lj4crYsu1aAio0aWo8o4phvVrMmnPnV4cFuC5O3nCDE/EXHuM/aN2tvTWHsYIV5apDIeM7F5uI01euIMRnJy4LxIIfZkiIUkVQEinQaURdZnbE9aYx7aAEnUDos5NdyZsN8Q+LmKMBUlWtzY+bLlhDZG7Qj1lAlacgA1RfL0x9nNoTQ427Su898kVtpZ1GdC8gQWkdqfwM/lUinX+lO1VpkrmjfmGAA7vnESdi1BbMkP63M/rd4xNPPtHpK928daSDl09rDM8tE/UNRvAxu4ItFDxieeHeZ6xpVEKKwKdl2xpIMiLESQLd4EA8JqCcSNyexaErIf+hKvzOD+ejPcAIKhrAX5OcauaV3pqnfJBwvccQsZYsaZUzsRVR5fNFfnyw88MF24fFT6ORveKIQSxql4TQMFriWip/Cqo97uOAJ9FYFnnDhQ2sX0ShocRf5B9izPbE3/yj2C9H3pDAhXa4N7vBNZnAbiQUzbAH31OttA4itq3ykiJEbzrLkR0uBWh9w3Elzi5B4OlbZVewahigysvnp0MlYVn2cVF5b24FmNrE3DOy3zMRXyhuvbUOdP+ajcBAqtROmnZDut87fK3XkBNX/U5sfOnBmumr32UdYj1v3F6XBgY3YHrZCFXyjeKqFApeeFGgbmNTEFWrrdWRVeU4c8JYErbildPeVKCP83He3HU7S4MTCOtYcq9CY9832ulxcGTh3KA7fh9AR0RHEDxtBgehfVw7MIj/615h+f9eUyVDEkDoW8rPNjls6SmmO1qBhgMqcMlY7bOsK7MdzsO0=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 487d72c3-6ec0-4d66-46d2-08dbc4fb1605
+X-MS-Exchange-CrossTenant-AuthSource: PH8PR10MB6597.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 04 Oct 2023 16:58:08.9689
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: GoBekCbu3mJgia8peOtycLQr6ITTiZ+UdmzeHgUxMNYbzuhZuoAOoMqAFSliiLiTloRsecpBJjOBsX6UcgAFFdUHNURUHkBMMZqBcmUHgQk=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM3PR10MB7912
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.267,Aquarius:18.0.980,Hydra:6.0.619,FMLib:17.11.176.26
+ definitions=2023-10-04_08,2023-10-02_01,2023-05-22_02
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 mlxlogscore=999
+ suspectscore=0 malwarescore=0 spamscore=0 bulkscore=0 mlxscore=0
+ adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2309180000 definitions=main-2310040123
+X-Proofpoint-GUID: 4nNXAUgbiYDQAhv2JriJv9uijGQM1X6i
+X-Proofpoint-ORIG-GUID: 4nNXAUgbiYDQAhv2JriJv9uijGQM1X6i
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Replace clear_bit_and_unlock_is_negative_byte() with
-xor_unlock_is_negative_byte().  We have a few places that like to lock
-a folio, set a flag and unlock it again.  Allow for the possibility of
-combining the latter two operations for efficiency.  We are guaranteed
-that the caller holds the lock, so it is safe to unlock it with the xor.
-The caller must guarantee that nobody else will set the flag without
-holding the lock; it is not safe to do this with the PG_dirty flag,
-for example.
+The option CONFIG_IKCONFIG allows the gzip compressed kernel
+configuration to be included into vmlinux or a module. In these cases,
+debuggers can access the config data and use it to adjust their behavior
+according to the configuration. However, distributions rarely enable
+this, likely because it uses a fair bit of kernel memory which cannot be
+swapped out.
 
-Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+This means that in practice, the kernel configuration is rarely
+available to debuggers.
+
+So, introduce an alternative, CONFIG_DEBUG_INFO_IKCONFIG. This strategy,
+which is only available if IKCONFIG is not already built-in, adds a
+section ".debug_linux_ikconfig", to the vmlinux ELF. It will be stripped
+out of the final images, but will remain in the debuginfo files. So
+debuggers which rely on vmlinux debuginfo can have access to the kernel
+configuration, without incurring a cost to the kernel at runtime.
+
+Signed-off-by: Stephen Brennan <stephen.s.brennan@oracle.com>
 ---
- arch/powerpc/include/asm/bitops.h             | 17 ++++--------
- arch/x86/include/asm/bitops.h                 | 11 ++++----
- .../asm-generic/bitops/instrumented-lock.h    | 27 ++++++++++---------
- include/asm-generic/bitops/lock.h             | 21 ++++-----------
- kernel/kcsan/kcsan_test.c                     |  8 +++---
- kernel/kcsan/selftest.c                       |  8 +++---
- mm/filemap.c                                  |  5 ++++
- mm/kasan/kasan_test.c                         |  7 ++---
- 8 files changed, 47 insertions(+), 57 deletions(-)
+ include/asm-generic/vmlinux.lds.h |  3 ++-
+ kernel/Makefile                   |  1 +
+ kernel/configs-debug.S            | 18 ++++++++++++++++++
+ lib/Kconfig.debug                 | 14 ++++++++++++++
+ 4 files changed, 35 insertions(+), 1 deletion(-)
+ create mode 100644 kernel/configs-debug.S
 
-diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
-index 7e0f0322912b..40cc3ded60cb 100644
---- a/arch/powerpc/include/asm/bitops.h
-+++ b/arch/powerpc/include/asm/bitops.h
-@@ -234,32 +234,25 @@ static inline int arch_test_and_change_bit(unsigned long nr,
- }
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index 9c59409104f6..025b0bfe17bf 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -824,7 +824,8 @@
+ 		.comment 0 : { *(.comment) }				\
+ 		.symtab 0 : { *(.symtab) }				\
+ 		.strtab 0 : { *(.strtab) }				\
+-		.shstrtab 0 : { *(.shstrtab) }
++		.shstrtab 0 : { *(.shstrtab) }				\
++		.debug_linux_ikconfig 0 : { *(.debug_linux_ikconfig) }
  
- #ifdef CONFIG_PPC64
--static inline unsigned long
--clear_bit_unlock_return_word(int nr, volatile unsigned long *addr)
-+static inline bool arch_xor_unlock_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *p)
- {
- 	unsigned long old, t;
--	unsigned long *p = (unsigned long *)addr + BIT_WORD(nr);
--	unsigned long mask = BIT_MASK(nr);
+ #ifdef CONFIG_GENERIC_BUG
+ #define BUG_TABLE							\
+diff --git a/kernel/Makefile b/kernel/Makefile
+index 3947122d618b..e2f517a10f04 100644
+--- a/kernel/Makefile
++++ b/kernel/Makefile
+@@ -138,6 +138,7 @@ KCSAN_SANITIZE_stackleak.o := n
+ KCOV_INSTRUMENT_stackleak.o := n
  
- 	__asm__ __volatile__ (
- 	PPC_RELEASE_BARRIER
- "1:"	PPC_LLARX "%0,0,%3,0\n"
--	"andc %1,%0,%2\n"
-+	"xor %1,%0,%2\n"
- 	PPC_STLCX "%1,0,%3\n"
- 	"bne- 1b\n"
- 	: "=&r" (old), "=&r" (t)
- 	: "r" (mask), "r" (p)
- 	: "cc", "memory");
+ obj-$(CONFIG_SCF_TORTURE_TEST) += scftorture.o
++obj-$(CONFIG_DEBUG_INFO_IKCONFIG) += configs-debug.o
  
--	return old;
-+	return (old & BIT_MASK(7)) != 0;
- }
+ $(obj)/configs.o: $(obj)/config_data.gz
  
--/*
-- * This is a special function for mm/filemap.c
-- * Bit 7 corresponds to PG_waiters.
-- */
--#define arch_clear_bit_unlock_is_negative_byte(nr, addr)		\
--	(clear_bit_unlock_return_word(nr, addr) & BIT_MASK(7))
-+#define arch_xor_unlock_is_negative_byte arch_xor_unlock_is_negative_byte
- 
- #endif /* CONFIG_PPC64 */
- 
-diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-index 2edf68475fec..f03c0a50ec3a 100644
---- a/arch/x86/include/asm/bitops.h
-+++ b/arch/x86/include/asm/bitops.h
-@@ -94,18 +94,17 @@ arch___clear_bit(unsigned long nr, volatile unsigned long *addr)
- 	asm volatile(__ASM_SIZE(btr) " %1,%0" : : ADDR, "Ir" (nr) : "memory");
- }
- 
--static __always_inline bool
--arch_clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
-+static __always_inline bool arch_xor_unlock_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *addr)
- {
- 	bool negative;
--	asm volatile(LOCK_PREFIX "andb %2,%1"
-+	asm volatile(LOCK_PREFIX "xorb %2,%1"
- 		CC_SET(s)
- 		: CC_OUT(s) (negative), WBYTE_ADDR(addr)
--		: "ir" ((char) ~(1 << nr)) : "memory");
-+		: "iq" ((char)mask) : "memory");
- 	return negative;
- }
--#define arch_clear_bit_unlock_is_negative_byte                                 \
--	arch_clear_bit_unlock_is_negative_byte
-+#define arch_xor_unlock_is_negative_byte arch_xor_unlock_is_negative_byte
- 
- static __always_inline void
- arch___clear_bit_unlock(long nr, volatile unsigned long *addr)
-diff --git a/include/asm-generic/bitops/instrumented-lock.h b/include/asm-generic/bitops/instrumented-lock.h
-index eb64bd4f11f3..e8ea3aeda9a9 100644
---- a/include/asm-generic/bitops/instrumented-lock.h
-+++ b/include/asm-generic/bitops/instrumented-lock.h
-@@ -58,27 +58,30 @@ static inline bool test_and_set_bit_lock(long nr, volatile unsigned long *addr)
- 	return arch_test_and_set_bit_lock(nr, addr);
- }
- 
--#if defined(arch_clear_bit_unlock_is_negative_byte)
-+#if defined(arch_xor_unlock_is_negative_byte)
- /**
-- * clear_bit_unlock_is_negative_byte - Clear a bit in memory and test if bottom
-- *                                     byte is negative, for unlock.
-- * @nr: the bit to clear
-- * @addr: the address to start counting from
-+ * xor_unlock_is_negative_byte - XOR a single byte in memory and test if
-+ * it is negative, for unlock.
-+ * @mask: Change the bits which are set in this mask.
-+ * @addr: The address of the word containing the byte to change.
-  *
-+ * Changes some of bits 0-6 in the word pointed to by @addr.
-  * This operation is atomic and provides release barrier semantics.
-+ * Used to optimise some folio operations which are commonly paired
-+ * with an unlock or end of writeback.  Bit 7 is used as PG_waiters to
-+ * indicate whether anybody is waiting for the unlock.
-  *
-- * This is a bit of a one-trick-pony for the filemap code, which clears
-- * PG_locked and tests PG_waiters,
-+ * Return: Whether the top bit of the byte is set.
-  */
--static inline bool
--clear_bit_unlock_is_negative_byte(long nr, volatile unsigned long *addr)
-+static inline bool xor_unlock_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *addr)
- {
- 	kcsan_release();
--	instrument_atomic_write(addr + BIT_WORD(nr), sizeof(long));
--	return arch_clear_bit_unlock_is_negative_byte(nr, addr);
-+	instrument_atomic_write(addr, sizeof(long));
-+	return arch_xor_unlock_is_negative_byte(mask, addr);
- }
- /* Let everybody know we have it. */
--#define clear_bit_unlock_is_negative_byte clear_bit_unlock_is_negative_byte
-+#define xor_unlock_is_negative_byte xor_unlock_is_negative_byte
- #endif
- 
- #endif /* _ASM_GENERIC_BITOPS_INSTRUMENTED_LOCK_H */
-diff --git a/include/asm-generic/bitops/lock.h b/include/asm-generic/bitops/lock.h
-index 40913516e654..6a638e89d130 100644
---- a/include/asm-generic/bitops/lock.h
-+++ b/include/asm-generic/bitops/lock.h
-@@ -66,27 +66,16 @@ arch___clear_bit_unlock(unsigned int nr, volatile unsigned long *p)
- 	raw_atomic_long_set_release((atomic_long_t *)p, old);
- }
- 
--/**
-- * arch_clear_bit_unlock_is_negative_byte - Clear a bit in memory and test if bottom
-- *                                          byte is negative, for unlock.
-- * @nr: the bit to clear
-- * @addr: the address to start counting from
-- *
-- * This is a bit of a one-trick-pony for the filemap code, which clears
-- * PG_locked and tests PG_waiters,
-- */
--#ifndef arch_clear_bit_unlock_is_negative_byte
--static inline bool arch_clear_bit_unlock_is_negative_byte(unsigned int nr,
--							  volatile unsigned long *p)
-+#ifndef arch_xor_unlock_is_negative_byte
-+static inline bool arch_xor_unlock_is_negative_byte(unsigned long mask,
-+		volatile unsigned long *p)
- {
- 	long old;
--	unsigned long mask = BIT_MASK(nr);
- 
--	p += BIT_WORD(nr);
--	old = raw_atomic_long_fetch_andnot_release(mask, (atomic_long_t *)p);
-+	old = raw_atomic_long_fetch_xor_release(mask, (atomic_long_t *)p);
- 	return !!(old & BIT(7));
- }
--#define arch_clear_bit_unlock_is_negative_byte arch_clear_bit_unlock_is_negative_byte
-+#define arch_xor_unlock_is_negative_byte arch_xor_unlock_is_negative_byte
- #endif
- 
- #include <asm-generic/bitops/instrumented-lock.h>
-diff --git a/kernel/kcsan/kcsan_test.c b/kernel/kcsan/kcsan_test.c
-index 0ddbdab5903d..1333d23ac4ef 100644
---- a/kernel/kcsan/kcsan_test.c
-+++ b/kernel/kcsan/kcsan_test.c
-@@ -700,10 +700,10 @@ static void test_barrier_nothreads(struct kunit *test)
- 	KCSAN_EXPECT_RW_BARRIER(mutex_lock(&test_mutex), false);
- 	KCSAN_EXPECT_RW_BARRIER(mutex_unlock(&test_mutex), true);
- 
--#ifdef clear_bit_unlock_is_negative_byte
--	KCSAN_EXPECT_READ_BARRIER(clear_bit_unlock_is_negative_byte(0, &test_var), true);
--	KCSAN_EXPECT_WRITE_BARRIER(clear_bit_unlock_is_negative_byte(0, &test_var), true);
--	KCSAN_EXPECT_RW_BARRIER(clear_bit_unlock_is_negative_byte(0, &test_var), true);
-+#ifdef xor_unlock_is_negative_byte
-+	KCSAN_EXPECT_READ_BARRIER(xor_unlock_is_negative_byte(1, &test_var), true);
-+	KCSAN_EXPECT_WRITE_BARRIER(xor_unlock_is_negative_byte(1, &test_var), true);
-+	KCSAN_EXPECT_RW_BARRIER(xor_unlock_is_negative_byte(1, &test_var), true);
- #endif
- 	kcsan_nestable_atomic_end();
- }
-diff --git a/kernel/kcsan/selftest.c b/kernel/kcsan/selftest.c
-index 8679322450f2..619be7417420 100644
---- a/kernel/kcsan/selftest.c
-+++ b/kernel/kcsan/selftest.c
-@@ -228,10 +228,10 @@ static bool __init test_barrier(void)
- 	spin_lock(&test_spinlock);
- 	KCSAN_CHECK_RW_BARRIER(spin_unlock(&test_spinlock));
- 
--#ifdef clear_bit_unlock_is_negative_byte
--	KCSAN_CHECK_RW_BARRIER(clear_bit_unlock_is_negative_byte(0, &test_var));
--	KCSAN_CHECK_READ_BARRIER(clear_bit_unlock_is_negative_byte(0, &test_var));
--	KCSAN_CHECK_WRITE_BARRIER(clear_bit_unlock_is_negative_byte(0, &test_var));
-+#ifdef xor_unlock_is_negative_byte
-+	KCSAN_CHECK_RW_BARRIER(xor_unlock_is_negative_byte(1, &test_var));
-+	KCSAN_CHECK_READ_BARRIER(xor_unlock_is_negative_byte(1, &test_var));
-+	KCSAN_CHECK_WRITE_BARRIER(xor_unlock_is_negative_byte(1, &test_var));
- #endif
- 	kcsan_nestable_atomic_end();
- 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index ea317cdf9532..7da465616317 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -1484,6 +1484,11 @@ void folio_add_wait_queue(struct folio *folio, wait_queue_entry_t *waiter)
- }
- EXPORT_SYMBOL_GPL(folio_add_wait_queue);
- 
-+#ifdef xor_unlock_is_negative_byte
-+#define clear_bit_unlock_is_negative_byte(nr, p)	\
-+	xor_unlock_is_negative_byte(1 << nr, p)
-+#endif
+diff --git a/kernel/configs-debug.S b/kernel/configs-debug.S
+new file mode 100644
+index 000000000000..d0dd5c2f7bd5
+--- /dev/null
++++ b/kernel/configs-debug.S
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0-only
++ *
++ * Inline kernel configuration for debuginfo files
++ *
++ * Copyright (c) 2023, Oracle and/or its affiliates.
++ */
 +
- #ifndef clear_bit_unlock_is_negative_byte
++/*
++ * By using the same "IKCFG_ST" and "IKCFG_ED" markers found in configs.c, we
++ * can ensure that the resulting debuginfo files can be read by
++ * scripts/extract-ikconfig. Unfortunately, this means that the contents of the
++ * section cannot be directly extracted and used. Since debuggers should be able
++ * to trim these markers off trivially, this is a good tradeoff.
++ */
++	.section .debug_linux_ikconfig
++	.ascii "IKCFG_ST"
++	.incbin "kernel/config_data.gz"
++	.ascii "IKCFG_ED"
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index fa307f93fa2e..4ebd1bcd49c7 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -429,6 +429,20 @@ config GDB_SCRIPTS
+ 	  instance. See Documentation/dev-tools/gdb-kernel-debugging.rst
+ 	  for further details.
  
- /*
-diff --git a/mm/kasan/kasan_test.c b/mm/kasan/kasan_test.c
-index b61cc6a42541..c1de091dfc92 100644
---- a/mm/kasan/kasan_test.c
-+++ b/mm/kasan/kasan_test.c
-@@ -1098,9 +1098,10 @@ static void kasan_bitops_test_and_modify(struct kunit *test, int nr, void *addr)
- 	KUNIT_EXPECT_KASAN_FAIL(test, __test_and_change_bit(nr, addr));
- 	KUNIT_EXPECT_KASAN_FAIL(test, kasan_int_result = test_bit(nr, addr));
++config DEBUG_INFO_IKCONFIG
++	bool "Embed KConfig in debuginfo, if not already present"
++	depends on IKCONFIG!=y
++	help
++	  This provides the gzip-compressed KConfig information in an ELF
++	  section called .ikconfig which will be stripped out of the final
++	  bootable image, but remain in the debuginfo. Debuggers that are aware
++	  of this can use this to customize their behavior to the kernel
++	  configuration, without requiring the configuration information to be
++	  stored in the kernel like CONFIG_IKCONFIG does. This configuration is
++	  unnecessary when CONFIG_IKCONFIG is enabled, since the data can be
++	  found in the .rodata section in that case (see
++	  scripts/extract-ikconfig).
++
+ endif # DEBUG_INFO
  
--#if defined(clear_bit_unlock_is_negative_byte)
--	KUNIT_EXPECT_KASAN_FAIL(test, kasan_int_result =
--				clear_bit_unlock_is_negative_byte(nr, addr));
-+#if defined(xor_unlock_is_negative_byte)
-+	if (nr < 7)
-+		KUNIT_EXPECT_KASAN_FAIL(test, kasan_int_result =
-+				xor_unlock_is_negative_byte(1 << nr, addr));
- #endif
- }
- 
+ config FRAME_WARN
 -- 
-2.40.1
+2.39.3
 
