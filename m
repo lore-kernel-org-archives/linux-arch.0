@@ -2,137 +2,102 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 6BA49E7B606
-	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 12:36:05 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 0F3AFE7C4E2
+	for <linux-arch@archiver.kernel.org>; Wed,  4 Oct 2023 16:53:24 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S242508AbjJDMgG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Wed, 4 Oct 2023 08:36:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39358 "EHLO
+        id S243466AbjJDQxZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Wed, 4 Oct 2023 12:53:25 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:54894 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S242457AbjJDMfx (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 08:35:53 -0400
-Received: from icp-osb-irony-out4.external.iinet.net.au (icp-osb-irony-out4.external.iinet.net.au [203.59.1.220])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTP id 99BC1E4;
-        Wed,  4 Oct 2023 05:35:43 -0700 (PDT)
-Received: from gateway.pc5.atmailcloud.com (HELO mqr.i-08c0d97331176e550) ([13.54.26.16])
-  by icp-osb-irony-out4.iinet.net.au with ESMTP; 04 Oct 2023 20:35:35 +0800
-Received: from CMR-KAKADU04.i-00e2aafc82f8e4b03 by MQR.i-08c0d97331176e550 with esmtps
-        (envelope-from <gregungerer@westnet.com.au>)
-        id 1qo16F-0002by-1P;
-        Wed, 04 Oct 2023 12:35:35 +0000
-Received: from [203.220.76.238] (helo=[192.168.0.22])
-         by CMR-KAKADU04.i-00e2aafc82f8e4b03 with esmtpsa
-        (envelope-from <gregungerer@westnet.com.au>)
-        id 1qo0eB-0005nQ-3A;
-        Wed, 04 Oct 2023 12:06:36 +0000
-Message-ID: <22caaecc-c954-d880-672f-45761bf7fac2@westnet.com.au>
-Date:   Wed, 4 Oct 2023 22:06:29 +1000
+        with ESMTP id S243442AbjJDQxZ (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Wed, 4 Oct 2023 12:53:25 -0400
+Received: from casper.infradead.org (casper.infradead.org [IPv6:2001:8b0:10b:1236::1])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5EE7FAB;
+        Wed,  4 Oct 2023 09:53:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+        d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
+        References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:Sender:Reply-To:
+        Content-Type:Content-ID:Content-Description;
+        bh=+0PawpxhJKqaj77T374P+o4JeUu6sT89JK6ue2yK9T0=; b=YtNGtSMzne6N+0JeD40RVE95Pv
+        2LaBF0plT+dXJTT9umXL9Q5qH94HYx6QSxE5QGemVyAB+9qEYNOT01LEgHewvUIBwN+9CI5PB7rq6
+        V5RF+KubKhJsLsz/OCz1jCq5k9YDLQX0jJeOWqvB/xZqbrmDwN65iDoS2M/N04QW9IbCzVHaA79v3
+        TY7Q+Bi0Jfx2ve9d3/ryDr2L5Jde8QbzA20cm4EyfXY0A6IGsnqwIYyU1oPZHj5S9eibEbOV5BOCw
+        L5FZQALvQ8eYHOf3cdx1O/M0HmQ7xHKgkP5uWOZlwFPTYoBIjWnmMMjt1EGy3f1zmuTJJHFMFzLvj
+        oqp7VTFg==;
+Received: from willy by casper.infradead.org with local (Exim 4.94.2 #2 (Red Hat Linux))
+        id 1qo57f-004SEx-BB; Wed, 04 Oct 2023 16:53:19 +0000
+From:   "Matthew Wilcox (Oracle)" <willy@infradead.org>
+To:     Andrew Morton <akpm@linux-foundation.org>
+Cc:     "Matthew Wilcox (Oracle)" <willy@infradead.org>,
+        linux-mm@kvack.org, linux-fsdevel@vger.kernel.org,
+        linux-arch@vger.kernel.org, torvalds@linux-foundation.org,
+        npiggin@gmail.com
+Subject: [PATCH v2 03/17] mm: Add folio_end_read()
+Date:   Wed,  4 Oct 2023 17:53:03 +0100
+Message-Id: <20231004165317.1061855-4-willy@infradead.org>
+X-Mailer: git-send-email 2.37.1
+In-Reply-To: <20231004165317.1061855-1-willy@infradead.org>
+References: <20231004165317.1061855-1-willy@infradead.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101
- Thunderbird/102.15.1
-Subject: Re: [PATCH 09/17] m68k: Implement xor_unlock_is_negative_byte
-Content-Language: en-US
-To:     Matthew Wilcox <willy@infradead.org>
-Cc:     David Laight <David.Laight@aculab.com>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>,
-        Nicholas Piggin <npiggin@gmail.com>
-References: <20230915183707.2707298-10-willy@infradead.org>
- <6e409d5f-a419-07b7-c82c-4e80fe19c6ba@westnet.com.au>
- <ZQW849TfSCK6u2f8@casper.infradead.org>
- <e1fb697714ac408e85c4e3dc573cd7d5@AcuMS.aculab.com>
- <ZQmvhC+pGWNs9R23@casper.infradead.org>
- <cffc2a427ae74f62b07345ec9348e43e@AcuMS.aculab.com>
- <ZQm67lGOBBdC2Dl9@casper.infradead.org>
- <35a33582-9206-94bb-eca2-a1d9c585f6c1@westnet.com.au>
- <ZRsi7smLotWDwoNP@casper.infradead.org>
- <9d73b9e2-502e-4ef5-bb49-bc89d478329a@westnet.com.au>
- <ZRx0lIo5i2EuIsZ/@casper.infradead.org>
-From:   Greg Ungerer <gregungerer@westnet.com.au>
-In-Reply-To: <ZRx0lIo5i2EuIsZ/@casper.infradead.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
-X-Atmail-Id: gregungerer@westnet.com.au
-X-atmailcloud-spam-action: no action
-X-atmailcloud-spam-report: Action: no action
-X-Cm-Analysis: v=2.4 cv=P7P8xAMu c=1 sm=1 tr=0 ts=651d554c a=1qi1FL2F0EdFFg+SXJ3Exg==:117 a=1qi1FL2F0EdFFg+SXJ3Exg==:17 a=IkcTkHD0fZMA:10 a=bhdUkHdE2iEA:10 a=80-xaVIC0AIA:10 a=x7bEGLp0ZPQA:10 a=8g8xS9MRXoAFlEb5IXsA:9 a=QEXdDO2ut3YA:10
-X-Cm-Envelope: MS4xfAmUuvsILtV2K9sDwZC7fTHAJy9B8bsXj8FFb2QWx9qHYZfrqmuosXgYNdJncSBIxJksOu0m7jpqiLpP1/a4zgICWf3m2wymcwM7oLDbgG7NaJT/Pn8y L1cRWkaievwZGd5kr54HDH08FzyhIQCsHeV5DP7JVYumukb5Jes2ti+fcgYw2dtXG8jxpxqxOHzRgw==
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
+Provide a function for filesystems to call when they have finished
+reading an entire folio.
 
-On 4/10/23 06:07, Matthew Wilcox wrote:
-> On Wed, Oct 04, 2023 at 12:14:10AM +1000, Greg Ungerer wrote:
->> On 3/10/23 06:07, Matthew Wilcox wrote:
->>> 00000918 <folio_unlock>:
->>>        918:       206f 0004       moveal %sp@(4),%a0
->>>        91c:       7001            moveq #1,%d0
->>>        91e:       b190            eorl %d0,%a0@
->>>        920:       2010            movel %a0@,%d0
->>>        922:       4a00            tstb %d0
->>>        924:       6a0a            bpls 930 <folio_unlock+0x18>
->>>        926:       42a7            clrl %sp@-
->>>        928:       2f08            movel %a0,%sp@-
->>>        92a:       4eba fafa       jsr %pc@(426 <folio_wake_bit>)
->>>        92e:       508f            addql #8,%sp
->>>        930:       4e75            rts
-> 
-> fwiw, here's what folio_unlock looks like today without any of my
-> patches:
-> 
-> 00000746 <folio_unlock>:
->       746:       206f 0004       moveal %sp@(4),%a0
->       74a:       43e8 0003       lea %a0@(3),%a1
->       74e:       0891 0000       bclr #0,%a1@
->       752:       2010            movel %a0@,%d0
->       754:       4a00            tstb %d0
->       756:       6a0a            bpls 762 <folio_unlock+0x1c>
->       758:       42a7            clrl %sp@-
->       75a:       2f08            movel %a0,%sp@-
->       75c:       4eba fcc8       jsr %pc@(426 <folio_wake_bit>)
->       760:       508f            addql #8,%sp
->       762:       4e75            rts
-> 
-> Same number of instructions, but today's code has slightly longer insns,
-> so I'm tempted to take the win?
+Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+---
+ include/linux/pagemap.h |  1 +
+ mm/filemap.c            | 22 ++++++++++++++++++++++
+ 2 files changed, 23 insertions(+)
 
-Yes, I reckon so.
-
-
->>> We could use eori instead of eorl, at least according to table 3-9 on
->>> page 3-8:
->>>
->>> EOR Dy,<ea>x L Source ^ Destination → Destination ISA_A
->>> EORI #<data>,Dx L Immediate Data ^ Destination → Destination ISA_A
-> 
-> Oh.  I misread.  It only does EORI to a data register; it can't do EORI
-> to an address.
-> 
->> 400413e6 <folio_unlock>:
->> 400413e6:       206f 0004       moveal %sp@(4),%a0
->> 400413ea:       2010            movel %a0@,%d0
->> 400413ec:       0a80 0000 0001  eoril #1,%d0
->> 400413f2:       2080            movel %d0,%a0@
->> 400413f4:       2010            movel %a0@,%d0
->> 400413f6:       4a00            tstb %d0
->> 400413f8:       6c0a            bges 40041404 <folio_unlock+0x1e>
->> 400413fa:       42a7            clrl %sp@-
->> 400413fc:       2f08            movel %a0,%sp@-
->> 400413fe:       4eba ff30       jsr %pc@(40041330 <folio_wake_bit>)
->> 40041402:       508f            addql #8,%sp
->> 40041404:       4e75            rts
->>
->> But that is still worse anyway.
-> 
-> Yup.  Looks like the version I posted actually does the best!  I'll
-> munge that into the patch series and repost.  Thanks for your help!
-
-No worries. Sorry I didn't notice it earlier, but glad it is sorted now.
-
-Regards
-Greg
-
+diff --git a/include/linux/pagemap.h b/include/linux/pagemap.h
+index 351c3b7f93a1..5bb2f5f802bc 100644
+--- a/include/linux/pagemap.h
++++ b/include/linux/pagemap.h
+@@ -1129,6 +1129,7 @@ static inline void wait_on_page_locked(struct page *page)
+ 	folio_wait_locked(page_folio(page));
+ }
+ 
++void folio_end_read(struct folio *folio, bool success);
+ void wait_on_page_writeback(struct page *page);
+ void folio_wait_writeback(struct folio *folio);
+ int folio_wait_writeback_killable(struct folio *folio);
+diff --git a/mm/filemap.c b/mm/filemap.c
+index f0a15ce1bd1b..ea317cdf9532 100644
+--- a/mm/filemap.c
++++ b/mm/filemap.c
+@@ -1527,6 +1527,28 @@ void folio_unlock(struct folio *folio)
+ }
+ EXPORT_SYMBOL(folio_unlock);
+ 
++/**
++ * folio_end_read - End read on a folio.
++ * @folio: The folio.
++ * @success: True if all reads completed successfully.
++ *
++ * When all reads against a folio have completed, filesystems should
++ * call this function to let the pagecache know that no more reads
++ * are outstanding.  This will unlock the folio and wake up any thread
++ * sleeping on the lock.  The folio will also be marked uptodate if all
++ * reads succeeded.
++ *
++ * Context: May be called from interrupt or process context.  May not be
++ * called from NMI context.
++ */
++void folio_end_read(struct folio *folio, bool success)
++{
++	if (likely(success))
++		folio_mark_uptodate(folio);
++	folio_unlock(folio);
++}
++EXPORT_SYMBOL(folio_end_read);
++
+ /**
+  * folio_end_private_2 - Clear PG_private_2 and wake any waiters.
+  * @folio: The folio.
+-- 
+2.40.1
 
