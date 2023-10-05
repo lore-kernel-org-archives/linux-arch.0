@@ -2,153 +2,165 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 587E5E92708
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Oct 2023 15:11:04 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4AC7AE92706
+	for <linux-arch@archiver.kernel.org>; Thu,  5 Oct 2023 15:12:38 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S229555AbjJEPLC (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 5 Oct 2023 11:11:02 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:48220 "EHLO
+        id S230031AbjJEPMG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 5 Oct 2023 11:12:06 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58566 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S232029AbjJEPKJ (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2023 11:10:09 -0400
+        with ESMTP id S233454AbjJEPKv (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2023 11:10:51 -0400
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id ACADC3693;
-        Thu,  5 Oct 2023 07:42:31 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5D80EC433AD;
-        Thu,  5 Oct 2023 06:26:40 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-        s=korg; t=1696487200;
-        bh=9xyNVyN7N7MBzA9UwuP9xPWMA9I3taWkS2jqsvKhr3s=;
-        h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-        b=jLcSNkQ/LCUGlX23x7bKHMrm6O+lCfLyVyl4lJFpqj9ZiSYYzwxEp9jZma31Pfllr
-         wdUrN6biBfOS5V6bMBNu6EAM0Sq3HUrUansreS7bmBd3mLFduc2pF/kqcY06+yQC5z
-         D87SMtm/bM/1USoOdPqeLZaEubagHNYsjEKm7koc=
-Date:   Thu, 5 Oct 2023 08:26:38 +0200
-From:   Greg KH <gregkh@linuxfoundation.org>
-To:     Nuno Das Neves <nunodasneves@linux.microsoft.com>
-Cc:     Dexuan Cui <decui@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
-        "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
-        "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-        "x86@kernel.org" <x86@kernel.org>,
-        "linux-arm-kernel@lists.infradead.org" 
-        <linux-arm-kernel@lists.infradead.org>,
-        "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-        "patches@lists.linux.dev" <patches@lists.linux.dev>,
-        "Michael Kelley (LINUX)" <mikelley@microsoft.com>,
-        KY Srinivasan <kys@microsoft.com>,
-        Haiyang Zhang <haiyangz@microsoft.com>,
-        "apais@linux.microsoft.com" <apais@linux.microsoft.com>,
-        Tianyu Lan <Tianyu.Lan@microsoft.com>,
-        "ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>,
-        MUKESH RATHOR <mukeshrathor@microsoft.com>,
-        "stanislav.kinsburskiy@gmail.com" <stanislav.kinsburskiy@gmail.com>,
-        "jinankjain@linux.microsoft.com" <jinankjain@linux.microsoft.com>,
-        vkuznets <vkuznets@redhat.com>,
-        "tglx@linutronix.de" <tglx@linutronix.de>,
-        "mingo@redhat.com" <mingo@redhat.com>,
-        "bp@alien8.de" <bp@alien8.de>,
-        "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
-        "hpa@zytor.com" <hpa@zytor.com>,
-        "will@kernel.org" <will@kernel.org>,
-        "catalin.marinas@arm.com" <catalin.marinas@arm.com>
-Subject: Re: [PATCH v4 13/15] uapi: hyperv: Add mshv driver headers defining
- hypervisor ABIs
-Message-ID: <2023100540-linked-remote-3da7@gregkh>
-References: <1696010501-24584-1-git-send-email-nunodasneves@linux.microsoft.com>
- <1696010501-24584-14-git-send-email-nunodasneves@linux.microsoft.com>
- <2023093057-eggplant-reshoot-8513@gregkh>
- <ZRia1uyFfEkSqmXw@liuwe-devbox-debian-v2>
- <2023100154-ferret-rift-acef@gregkh>
- <dd5159fe-5337-44ed-bf1b-58220221b597@linux.microsoft.com>
- <2023100443-wrinkly-romp-79d9@gregkh>
- <SA1PR21MB1335F5145ACB0ED4F378105ABFCBA@SA1PR21MB1335.namprd21.prod.outlook.com>
- <2023100415-diving-clapper-a2a7@gregkh>
- <e960ffec-f367-4180-b857-4aceedb7cd89@linux.microsoft.com>
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2235E24872;
+        Thu,  5 Oct 2023 07:42:55 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C5E43C116B2;
+        Thu,  5 Oct 2023 08:46:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+        s=k20201202; t=1696495568;
+        bh=O28cSR7Cr0eaFyJrtrwVYzzFWiveIlOT1XkgOooL/4c=;
+        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+        b=IzRXU9Px5c3n01w2hL6TXrXk0qmB6XiEmc76egnT7MIKU2kJMXj+veSRyx9gk4Nef
+         BxALI5NcIMpUB3Nb9X0XLivJGiGrpTFmGpocJh3NqNLFuODlIT8nwx/zF1T7FOeK0s
+         J9oAGx8xCNAi2qgQ/FuLMRJCvTGsLX3gsaXMlJxqEBJneCO6njbN3SjC2Yl2ze3rCG
+         9wkmiENLlRuX+sSY4jXINvd9d1CkljE0exJU9PCQnJ+tJYFVTZ0cto/uGA7DhekYSr
+         66LoQmvNDibzrqqPyfZluS6pW4QPSrH2ZJgKlDFEJNbKJ4bI5btl0/d5fS96tUkZXP
+         2itiGfBdegm1A==
+Received: by mail-lj1-f178.google.com with SMTP id 38308e7fff4ca-2c007d6159aso8368701fa.3;
+        Thu, 05 Oct 2023 01:46:08 -0700 (PDT)
+X-Gm-Message-State: AOJu0Yy6P0EPJY2s5XILjLj5N5M7XKteYJqK9t3vuqFqPFoPQCbTTU3i
+        CDqxWFY3pAfFxJCbj3cO+3M3RPM3we/2f12X40M=
+X-Google-Smtp-Source: AGHT+IEtADSVn35WZ581174ge4XxOAWcE6fmbw7gaKYUjPnOtoz7NBJuPN55+Y62R/ndYxbc8dOuHuJ5Qfwv9XH3LqU=
+X-Received: by 2002:a2e:b70d:0:b0:2bc:b224:98ac with SMTP id
+ j13-20020a2eb70d000000b002bcb22498acmr4498033ljo.31.1696495566957; Thu, 05
+ Oct 2023 01:46:06 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e960ffec-f367-4180-b857-4aceedb7cd89@linux.microsoft.com>
+References: <72e80688.8a8.18ad9bba905.Coremail.wangkailong@jari.cn>
+In-Reply-To: <72e80688.8a8.18ad9bba905.Coremail.wangkailong@jari.cn>
+From:   Ard Biesheuvel <ardb@kernel.org>
+Date:   Thu, 5 Oct 2023 10:45:55 +0200
+X-Gmail-Original-Message-ID: <CAMj1kXEXkVRKf6tq04MvP4FYsTBRPAjHSdgcvvu+NU=vXZpjXA@mail.gmail.com>
+Message-ID: <CAMj1kXEXkVRKf6tq04MvP4FYsTBRPAjHSdgcvvu+NU=vXZpjXA@mail.gmail.com>
+Subject: Re: [PATCH] vmlinux.lds.h: Clean up errors in vmlinux.lds.h
+To:     KaiLong Wang <wangkailong@jari.cn>
+Cc:     arnd@arndb.de, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, Oct 04, 2023 at 11:16:46AM -0700, Nuno Das Neves wrote:
-> On 10/4/2023 10:50 AM, Greg KH wrote:
-> > On Wed, Oct 04, 2023 at 05:36:32PM +0000, Dexuan Cui wrote:
-> > > > From: Greg KH <gregkh@linuxfoundation.org>
-> > > > Sent: Tuesday, October 3, 2023 11:10 PM
-> > > > [...]
-> > > > On Tue, Oct 03, 2023 at 04:37:01PM -0700, Nuno Das Neves wrote:
-> > > > > On 9/30/2023 11:19 PM, Greg KH wrote:
-> > > > > > On Sat, Sep 30, 2023 at 10:01:58PM +0000, Wei Liu wrote:
-> > > > > > > On Sat, Sep 30, 2023 at 08:09:19AM +0200, Greg KH wrote:
-> > > > > > > > On Fri, Sep 29, 2023 at 11:01:39AM -0700, Nuno Das Neves wrote:
-> > > > > > > > > +/* Define connection identifier type. */
-> > > > > > > > > +union hv_connection_id {
-> > > > > > > > > +   __u32 asu32;
-> > > > > > > > > +   struct {
-> > > > > > > > > +           __u32 id:24;
-> > > > > > > > > +           __u32 reserved:8;
-> > > > > > > > > +   } __packed u;
-> > > 
-> > > IMO the "__packed" is unnecessary.
-> > > 
-> > > > > > > > bitfields will not work properly in uapi .h files, please never do that.
-> > > > > > > 
-> > > > > > > Can you clarify a bit more why it wouldn't work? Endianess? Alignment?
-> > > > > > 
-> > > > > > Yes to both.
-> > > > > > 
-> > > > > > Did you all read the documentation for how to write a kernel api?  If
-> > > > > > not, please do so.  I think it mentions bitfields, but it not, it really
-> > > > > > should as of course, this will not work properly with different endian
-> > > > > > systems or many compilers.
-> > > > > 
-> > > > > Yes, in
-> > > > https://docs.k/
-> > > > ernel.org%2Fdriver-
-> > > > api%2Fioctl.html&data=05%7C01%7Cdecui%40microsoft.com%7Ce404769e0f
-> > > > 85493f0aa108dbc4a08a27%7C72f988bf86f141af91ab2d7cd011db47%7C1%7C
-> > > > 0%7C638319966071263290%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLj
-> > > > AwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%
-> > > > 7C%7C&sdata=RiLNA5DRviWBQK6XXhxC4m77raSDBb%2F0BB6BDpFPUJY%3D
-> > > > &reserved=0 it says that it is
-> > > > > "better to avoid" bitfields.
-> > > > > 
-> > > > > Unfortunately bitfields are used in the definition of the hypervisor
-> > > > > ABI. We import these definitions directly from the hypervisor code.
-> > > > 
-> > > > So why do you feel you have to use this specific format for your
-> > > > user/kernel api?  That is not what is going to the hypervisor.
-> > > 
-> These *are* going to the hypervisor - we use these same definitions in
-> our driver for the kernel/hypervisor API. This is so we don't have to
-> maintain two separate definitions for user/kernel and kernel/hypervisor
-> APIs.
+On Thu, 28 Sept 2023 at 05:02, KaiLong Wang <wangkailong@jari.cn> wrote:
+>
+> Fix the following errors reported by checkpatch:
+>
+> ERROR: spaces required around that ':' (ctx:WxV)
+> ERROR: space required after that ',' (ctx:VxO)
+> ERROR: need consistent spacing around '*' (ctx:VxW)
+>
+> Signed-off-by: KaiLong Wang <wangkailong@jari.cn>
 
-So these fields are just pass-through from userspace to the hypervisor
-and are not touched at all by the kernel?  If so, I hope the hypervisor
-is doing some validation of the data :)
+NAK
 
-> > > If it's hard to avoid bitfield here, maybe we can refer to the definition of
-> > > struct iphdr in include/uapi/linux/ip.h
-> > 
-> > It is not hard to avoid using bitfields, just use the proper definitions
-> > to make this portable for all compilers.  And ick, ip.h is not a good
-> > thing to follow :)
-> > 
-> Greg, there is nothing making us use bitfields. It just makes the work
-> of porting the hypervisor definitions to Linux easier - aided by the
-> fact that in practice, all the compilers in our stack produce the same
-> code for these.
+Please don't use checkpatch without testing the result. And please
+don't go around running checkpatch on existing source files to
+generate cosmetic patches: checkpatch is useful for new code
+contributions but there is no desire in the community to make the
+entire existing code base checkpatch-clean (and given this broken
+patch, that is not even possible)
 
-"our stack" is not how Linux works, you have to write files that work
-for all compilers here.
+checkpatch does not work for linker scripts and this header file is
+#include'd by linker scripts exclusively.
 
-Just use a normal variable and define the bits in them with proper bit
-shifts or masks and that will be portable everywhere.  This isn't rocket
-science...
+If you are looking for ways to start contributing to the linux kernel,
+have a look at drivers/staging instead of proposing cosmetic 'fixes'
+that break the code.
 
-thanks,
 
-greg k-h
+
+> ---
+>  include/asm-generic/vmlinux.lds.h | 22 +++++++++++-----------
+>  1 file changed, 11 insertions(+), 11 deletions(-)
+>
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 9c59409104f6..9e19234bbf97 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -63,8 +63,8 @@
+>   * up in the PT_NOTE Program Header.
+>   */
+>  #ifdef EMITS_PT_NOTE
+> -#define NOTES_HEADERS          :text :note
+> -#define NOTES_HEADERS_RESTORE  __restore_ph : { *(.__restore_ph) } :text
+> +#define NOTES_HEADERS : text : note
+> +#define NOTES_HEADERS_RESTORE  __restore_ph : { *(.__restore_ph) } : text
+>  #else
+>  #define NOTES_HEADERS
+>  #define NOTES_HEADERS_RESTORE
+> @@ -98,10 +98,10 @@
+>   */
+>  #if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) || defined(CONFIG_LTO_CLANG)
+>  #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
+> -#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..L* .data..compoundliteral* .data.$__unnamed_* .data.$L*
+> +#define DATA_MAIN .data .data.[0-9a-zA-Z_] * .data..L * .data..compoundliteral * .data.$__unnamed_ * .data.$L*
+>  #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
+> -#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]* .rodata..L*
+> -#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
+> +#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_] * .rodata..L*
+> +#define BSS_MAIN .bss .bss.[0-9a-zA-Z_] * .bss..compoundliteral*
+>  #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
+>  #else
+>  #define TEXT_MAIN .text
+> @@ -294,7 +294,7 @@
+>  #ifdef CONFIG_SERIAL_EARLYCON
+>  #define EARLYCON_TABLE()                                               \
+>         . = ALIGN(8);                                                   \
+> -       BOUNDED_SECTION_POST_LABEL(__earlycon_table, __earlycon_table, , _end)
+> +       BOUNDED_SECTION_POST_LABEL(__earlycon_table, __earlycon_table,, _end)
+>  #else
+>  #define EARLYCON_TABLE()
+>  #endif
+> @@ -462,7 +462,7 @@
+>         . = ALIGN((align));                                             \
+>         .rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {           \
+>                 __start_rodata = .;                                     \
+> -               *(.rodata) *(.rodata.*)                                 \
+> +               *(.rodata) * (.rodata.*)                                        \
+>                 SCHED_DATA                                              \
+>                 RO_AFTER_INIT_DATA      /* Read only after init */      \
+>                 . = ALIGN(8);                                           \
+> @@ -494,28 +494,28 @@
+>         /* Kernel symbol table: Normal symbols */                       \
+>         __ksymtab         : AT(ADDR(__ksymtab) - LOAD_OFFSET) {         \
+>                 __start___ksymtab = .;                                  \
+> -               KEEP(*(SORT(___ksymtab+*)))                             \
+> +               KEEP(*(SORT(___ksymtab+ *)))                            \
+>                 __stop___ksymtab = .;                                   \
+>         }                                                               \
+>                                                                         \
+>         /* Kernel symbol table: GPL-only symbols */                     \
+>         __ksymtab_gpl     : AT(ADDR(__ksymtab_gpl) - LOAD_OFFSET) {     \
+>                 __start___ksymtab_gpl = .;                              \
+> -               KEEP(*(SORT(___ksymtab_gpl+*)))                         \
+> +               KEEP(*(SORT(___ksymtab_gpl+ *)))                        \
+>                 __stop___ksymtab_gpl = .;                               \
+>         }                                                               \
+>                                                                         \
+>         /* Kernel symbol table: Normal symbols */                       \
+>         __kcrctab         : AT(ADDR(__kcrctab) - LOAD_OFFSET) {         \
+>                 __start___kcrctab = .;                                  \
+> -               KEEP(*(SORT(___kcrctab+*)))                             \
+> +               KEEP(*(SORT(___kcrctab+ *)))                            \
+>                 __stop___kcrctab = .;                                   \
+>         }                                                               \
+>                                                                         \
+>         /* Kernel symbol table: GPL-only symbols */                     \
+>         __kcrctab_gpl     : AT(ADDR(__kcrctab_gpl) - LOAD_OFFSET) {     \
+>                 __start___kcrctab_gpl = .;                              \
+> -               KEEP(*(SORT(___kcrctab_gpl+*)))                         \
+> +               KEEP(*(SORT(___kcrctab_gpl+ *)))                        \
+>                 __stop___kcrctab_gpl = .;                               \
+>         }                                                               \
+>                                                                         \
+> --
+> 2.17.1
