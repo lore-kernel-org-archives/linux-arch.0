@@ -2,165 +2,91 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 4AC7AE92706
-	for <linux-arch@archiver.kernel.org>; Thu,  5 Oct 2023 15:12:38 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 362DBE7AD45
+	for <linux-arch@archiver.kernel.org>; Thu,  5 Oct 2023 17:09:30 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S230031AbjJEPMG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 5 Oct 2023 11:12:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:58566 "EHLO
+        id S230035AbjJERIt (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 5 Oct 2023 13:08:49 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60716 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S233454AbjJEPKv (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2023 11:10:51 -0400
+        with ESMTP id S230200AbjJERHw (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 5 Oct 2023 13:07:52 -0400
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2235E24872;
-        Thu,  5 Oct 2023 07:42:55 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C5E43C116B2;
-        Thu,  5 Oct 2023 08:46:08 +0000 (UTC)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4CB7B1FC2;
+        Thu,  5 Oct 2023 09:53:13 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E04C4C433C7;
+        Thu,  5 Oct 2023 16:53:12 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1696495568;
-        bh=O28cSR7Cr0eaFyJrtrwVYzzFWiveIlOT1XkgOooL/4c=;
-        h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-        b=IzRXU9Px5c3n01w2hL6TXrXk0qmB6XiEmc76egnT7MIKU2kJMXj+veSRyx9gk4Nef
-         BxALI5NcIMpUB3Nb9X0XLivJGiGrpTFmGpocJh3NqNLFuODlIT8nwx/zF1T7FOeK0s
-         J9oAGx8xCNAi2qgQ/FuLMRJCvTGsLX3gsaXMlJxqEBJneCO6njbN3SjC2Yl2ze3rCG
-         9wkmiENLlRuX+sSY4jXINvd9d1CkljE0exJU9PCQnJ+tJYFVTZ0cto/uGA7DhekYSr
-         66LoQmvNDibzrqqPyfZluS6pW4QPSrH2ZJgKlDFEJNbKJ4bI5btl0/d5fS96tUkZXP
-         2itiGfBdegm1A==
-Received: by mail-lj1-f178.google.com with SMTP id 38308e7fff4ca-2c007d6159aso8368701fa.3;
-        Thu, 05 Oct 2023 01:46:08 -0700 (PDT)
-X-Gm-Message-State: AOJu0Yy6P0EPJY2s5XILjLj5N5M7XKteYJqK9t3vuqFqPFoPQCbTTU3i
-        CDqxWFY3pAfFxJCbj3cO+3M3RPM3we/2f12X40M=
-X-Google-Smtp-Source: AGHT+IEtADSVn35WZ581174ge4XxOAWcE6fmbw7gaKYUjPnOtoz7NBJuPN55+Y62R/ndYxbc8dOuHuJ5Qfwv9XH3LqU=
-X-Received: by 2002:a2e:b70d:0:b0:2bc:b224:98ac with SMTP id
- j13-20020a2eb70d000000b002bcb22498acmr4498033ljo.31.1696495566957; Thu, 05
- Oct 2023 01:46:06 -0700 (PDT)
+        s=k20201202; t=1696524792;
+        bh=QqFYej4zszOQ9dZXHQnUKqXBkmPZfqU3JS9WYFmKdmQ=;
+        h=Date:From:To:Cc:Subject:Reply-To:From;
+        b=jLxs7RQUwT/7fGOj6cQriRmgkLmIlXWgZAFYKosF74F9NyB3UNvErb1T/7nI/6Si9
+         rOa2rY9VSOZHefnUmUNYKPJIdU4kUjwP0ovsyGfGN8ujImCgY4H4nfkAV9si2htizu
+         Z2et/xgbnU3WOpSEPrnLeRW8WlHQ2iv998MuPOq9E03EBangBojAbKvsd96brKRVh9
+         dMTTYS1YvFm7K721l139E0t65bYIaud8Cy5VC2gnAlCSFoJlzK8jZztudgCZM5hiF5
+         P5BopJk+Zu62aXB7B2waSVrYNZwTl6mml8nl6FpmncMjY4JsSjAmruuQDOiY8OTHEJ
+         qMJKOrKBZyGqw==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+        id 8157ACE0869; Thu,  5 Oct 2023 09:53:12 -0700 (PDT)
+Date:   Thu, 5 Oct 2023 09:53:12 -0700
+From:   "Paul E. McKenney" <paulmck@kernel.org>
+To:     linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-doc@vger.kernel.org
+Cc:     Alan Stern <stern@rowland.harvard.edu>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Will Deacon <will@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Boqun Feng <boqun.feng@gmail.com>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        David Howells <dhowells@redhat.com>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        Akira Yokosawa <akiyks@gmail.com>,
+        Daniel Lustig <dlustig@nvidia.com>,
+        Joel Fernandes <joel@joelfernandes.org>,
+        Jonathan Corbet <corbet@lwn.net>
+Subject: [PATCH memory-model] docs: memory-barriers: Add note on compiler
+ transformation and address deps
+Message-ID: <ceaeba0a-fc30-4635-802a-668c859a58b2@paulmck-laptop>
+Reply-To: paulmck@kernel.org
 MIME-Version: 1.0
-References: <72e80688.8a8.18ad9bba905.Coremail.wangkailong@jari.cn>
-In-Reply-To: <72e80688.8a8.18ad9bba905.Coremail.wangkailong@jari.cn>
-From:   Ard Biesheuvel <ardb@kernel.org>
-Date:   Thu, 5 Oct 2023 10:45:55 +0200
-X-Gmail-Original-Message-ID: <CAMj1kXEXkVRKf6tq04MvP4FYsTBRPAjHSdgcvvu+NU=vXZpjXA@mail.gmail.com>
-Message-ID: <CAMj1kXEXkVRKf6tq04MvP4FYsTBRPAjHSdgcvvu+NU=vXZpjXA@mail.gmail.com>
-Subject: Re: [PATCH] vmlinux.lds.h: Clean up errors in vmlinux.lds.h
-To:     KaiLong Wang <wangkailong@jari.cn>
-Cc:     arnd@arndb.de, linux-arch@vger.kernel.org,
-        linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Thu, 28 Sept 2023 at 05:02, KaiLong Wang <wangkailong@jari.cn> wrote:
->
-> Fix the following errors reported by checkpatch:
->
-> ERROR: spaces required around that ':' (ctx:WxV)
-> ERROR: space required after that ',' (ctx:VxO)
-> ERROR: need consistent spacing around '*' (ctx:VxW)
->
-> Signed-off-by: KaiLong Wang <wangkailong@jari.cn>
+The compiler has the ability to cause misordering by destroying
+address-dependency barriers if comparison operations are used. Add a
+note about this to memory-barriers.txt in the beginning of both the
+historical address-dependency sections and point to rcu-dereference.rst
+for more information.
 
-NAK
+Signed-off-by: Joel Fernandes (Google) <joel@joelfernandes.org>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 
-Please don't use checkpatch without testing the result. And please
-don't go around running checkpatch on existing source files to
-generate cosmetic patches: checkpatch is useful for new code
-contributions but there is no desire in the community to make the
-entire existing code base checkpatch-clean (and given this broken
-patch, that is not even possible)
-
-checkpatch does not work for linker scripts and this header file is
-#include'd by linker scripts exclusively.
-
-If you are looking for ways to start contributing to the linux kernel,
-have a look at drivers/staging instead of proposing cosmetic 'fixes'
-that break the code.
-
-
-
-> ---
->  include/asm-generic/vmlinux.lds.h | 22 +++++++++++-----------
->  1 file changed, 11 insertions(+), 11 deletions(-)
->
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 9c59409104f6..9e19234bbf97 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -63,8 +63,8 @@
->   * up in the PT_NOTE Program Header.
->   */
->  #ifdef EMITS_PT_NOTE
-> -#define NOTES_HEADERS          :text :note
-> -#define NOTES_HEADERS_RESTORE  __restore_ph : { *(.__restore_ph) } :text
-> +#define NOTES_HEADERS : text : note
-> +#define NOTES_HEADERS_RESTORE  __restore_ph : { *(.__restore_ph) } : text
->  #else
->  #define NOTES_HEADERS
->  #define NOTES_HEADERS_RESTORE
-> @@ -98,10 +98,10 @@
->   */
->  #if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) || defined(CONFIG_LTO_CLANG)
->  #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
-> -#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..L* .data..compoundliteral* .data.$__unnamed_* .data.$L*
-> +#define DATA_MAIN .data .data.[0-9a-zA-Z_] * .data..L * .data..compoundliteral * .data.$__unnamed_ * .data.$L*
->  #define SDATA_MAIN .sdata .sdata.[0-9a-zA-Z_]*
-> -#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_]* .rodata..L*
-> -#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral*
-> +#define RODATA_MAIN .rodata .rodata.[0-9a-zA-Z_] * .rodata..L*
-> +#define BSS_MAIN .bss .bss.[0-9a-zA-Z_] * .bss..compoundliteral*
->  #define SBSS_MAIN .sbss .sbss.[0-9a-zA-Z_]*
->  #else
->  #define TEXT_MAIN .text
-> @@ -294,7 +294,7 @@
->  #ifdef CONFIG_SERIAL_EARLYCON
->  #define EARLYCON_TABLE()                                               \
->         . = ALIGN(8);                                                   \
-> -       BOUNDED_SECTION_POST_LABEL(__earlycon_table, __earlycon_table, , _end)
-> +       BOUNDED_SECTION_POST_LABEL(__earlycon_table, __earlycon_table,, _end)
->  #else
->  #define EARLYCON_TABLE()
->  #endif
-> @@ -462,7 +462,7 @@
->         . = ALIGN((align));                                             \
->         .rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {           \
->                 __start_rodata = .;                                     \
-> -               *(.rodata) *(.rodata.*)                                 \
-> +               *(.rodata) * (.rodata.*)                                        \
->                 SCHED_DATA                                              \
->                 RO_AFTER_INIT_DATA      /* Read only after init */      \
->                 . = ALIGN(8);                                           \
-> @@ -494,28 +494,28 @@
->         /* Kernel symbol table: Normal symbols */                       \
->         __ksymtab         : AT(ADDR(__ksymtab) - LOAD_OFFSET) {         \
->                 __start___ksymtab = .;                                  \
-> -               KEEP(*(SORT(___ksymtab+*)))                             \
-> +               KEEP(*(SORT(___ksymtab+ *)))                            \
->                 __stop___ksymtab = .;                                   \
->         }                                                               \
->                                                                         \
->         /* Kernel symbol table: GPL-only symbols */                     \
->         __ksymtab_gpl     : AT(ADDR(__ksymtab_gpl) - LOAD_OFFSET) {     \
->                 __start___ksymtab_gpl = .;                              \
-> -               KEEP(*(SORT(___ksymtab_gpl+*)))                         \
-> +               KEEP(*(SORT(___ksymtab_gpl+ *)))                        \
->                 __stop___ksymtab_gpl = .;                               \
->         }                                                               \
->                                                                         \
->         /* Kernel symbol table: Normal symbols */                       \
->         __kcrctab         : AT(ADDR(__kcrctab) - LOAD_OFFSET) {         \
->                 __start___kcrctab = .;                                  \
-> -               KEEP(*(SORT(___kcrctab+*)))                             \
-> +               KEEP(*(SORT(___kcrctab+ *)))                            \
->                 __stop___kcrctab = .;                                   \
->         }                                                               \
->                                                                         \
->         /* Kernel symbol table: GPL-only symbols */                     \
->         __kcrctab_gpl     : AT(ADDR(__kcrctab_gpl) - LOAD_OFFSET) {     \
->                 __start___kcrctab_gpl = .;                              \
-> -               KEEP(*(SORT(___kcrctab_gpl+*)))                         \
-> +               KEEP(*(SORT(___kcrctab_gpl+ *)))                        \
->                 __stop___kcrctab_gpl = .;                               \
->         }                                                               \
->                                                                         \
-> --
-> 2.17.1
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 06e14efd8662..d414e145f912 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -396,6 +396,10 @@ Memory barriers come in four basic varieties:
+ 
+ 
+  (2) Address-dependency barriers (historical).
++     [!] This section is marked as HISTORICAL: For more up-to-date
++     information, including how compiler transformations related to pointer
++     comparisons can sometimes cause problems, see
++     Documentation/RCU/rcu_dereference.rst.
+ 
+      An address-dependency barrier is a weaker form of read barrier.  In the
+      case where two loads are performed such that the second depends on the
+@@ -556,6 +560,9 @@ There are certain things that the Linux kernel memory barriers do not guarantee:
+ 
+ ADDRESS-DEPENDENCY BARRIERS (HISTORICAL)
+ ----------------------------------------
++[!] This section is marked as HISTORICAL: For more up-to-date information,
++including how compiler transformations related to pointer comparisons can
++sometimes cause problems, see Documentation/RCU/rcu_dereference.rst.
+ 
+ As of v4.15 of the Linux kernel, an smp_mb() was added to READ_ONCE() for
+ DEC Alpha, which means that about the only people who need to pay attention
