@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 3B2D1E95A91
-	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:14:35 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B4888E95A96
+	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:14:54 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346625AbjJIMOe (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 Oct 2023 08:14:34 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:41000 "EHLO
+        id S1346556AbjJIMOx (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 Oct 2023 08:14:53 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40932 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1376308AbjJIMNu (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2023 08:13:50 -0400
+        with ESMTP id S1346573AbjJIMOM (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2023 08:14:12 -0400
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 48BFE1988;
-        Mon,  9 Oct 2023 05:12:47 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 793CAC433C7;
-        Mon,  9 Oct 2023 12:12:40 +0000 (UTC)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C2C7619AA;
+        Mon,  9 Oct 2023 05:13:00 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1240BC433C7;
+        Mon,  9 Oct 2023 12:12:53 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1696853566;
-        bh=sIXiMHqGT53KOfswnAd1tnEcZ0j0aXrKTuf98iIbpAU=;
+        s=k20201202; t=1696853580;
+        bh=PsDxGrHqBjHeoGwMKffcey2x+5qoqTXr2+aWdiIPZRc=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=JV5GeEBlJhSJovOYlr9LVRaAEDTP0w+UILC7gn/T+CmREOnxo/15rVH2H5B29mcyy
-         7Me6PJ6ziPknbDa6vhOalgsQtJSh1R+Uevgl6EtmR0VXd2YnpTdHGf1gbu4aZfU2YJ
-         mi9haE+Mjrd/z7jPoPRR0GuKrzD2GVM7uq9vs4IEBgvxmObSW+pPqTYJ+pL1Eg3I5V
-         aF34C/Gwl2lS1YtI40+85xBGssAh4u3agUaBM3SnFVcwgTCtNSGoKOEioeEgFznaS4
-         xWabbOFnhdC+EgBBI9hJMz8d2fNQ95OxabxbNX4CqErqPLcso7muq66u+NG8ypuEzP
-         m+436lfAVY4+Q==
+        b=iKhWOUFKZmqlPTCVntQFX3sftVawRKn9CWFuYhr1HacIW0QavY+74JLMYsIYeJNlh
+         5zE1wF6oyCriG8ouCwlBUl9VVUfFWlZWCaEXiFiIfbOgs28bt4ZmVgoSAoCS90M+py
+         z6a5f8Z+72aCubjm1ZgHaCIw4uvZQDQMrK6gG8/wENb///QtE2n0X7CIt0zJZ3JAGA
+         9XJAkg0glYf6c2Z+wQFxF13Pt/h3zRtUtk0R24iXd85uiTglkBjQHu7NEz9uVCrBBp
+         Yum8sKNjcrN3WMuyW/cV/hlv0dT6TDDm11P7zbHMTmqCFv/RO7SZ88ioxX/v9kOYm6
+         4bIaVcBgqkT9A==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 09 Oct 2023 13:08:52 +0100
-Subject: [PATCH v6 18/38] arm64/traps: Handle GCS exceptions
+Date:   Mon, 09 Oct 2023 13:08:54 +0100
+Subject: [PATCH v6 20/38] arm64/gcs: Context switch GCS state for EL0
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20231009-arm64-gcs-v6-18-78e55deaa4dd@kernel.org>
+Message-Id: <20231009-arm64-gcs-v6-20-78e55deaa4dd@kernel.org>
 References: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 In-Reply-To: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -63,186 +63,248 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-0438c
-X-Developer-Signature: v=1; a=openpgp-sha256; l=6026; i=broonie@kernel.org;
- h=from:subject:message-id; bh=sIXiMHqGT53KOfswnAd1tnEcZ0j0aXrKTuf98iIbpAU=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2fgmbR8ogvFOWuIBQXLZL/EI/xdEFTBW33fk9I
- jIPh42iJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtnwAKCRAk1otyXVSH0GCHB/
- 9mrJqknBMqEyHavL9Xwwy1/do6TLd3nJsr2NHNNb75vImTX45rZzOAJGX1cuPwoH/mnx14L/0tTiJq
- Wy55ygcGfkLEn52PHv0jIL8GSBrqMJsWIzynC4I/pjtzoH5RGPjgKNiEtjBma6FnKxqo4bcAN5Vg4z
- 39hDxGjRNmRlugF518e8CxGly/U6GERIPZl5P5GVFIhW408whh6jikyaYxbkmHIHWs2SXLrTI8EDIi
- sf/MO9nsCrD8bQpXsRVYHBOhUI0s4crj0y8zJJy2LESmOrlCWvzJbHl9iaP+SfLRGVOcDJ7XSPXBYh
- l0/kx5/dtGQuSCmkX/GkJnk6slsSdI
+X-Developer-Signature: v=1; a=openpgp-sha256; l=6699; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=PsDxGrHqBjHeoGwMKffcey2x+5qoqTXr2+aWdiIPZRc=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2hbbP3VnYRsnb17lXU/A+9RkWvZGWWlHoKGK2+
+ qeseoAGJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtoQAKCRAk1otyXVSH0K4AB/
+ 9+YBAaqYdbu7vj+lMgN58kY+vS5cul1puBFzMWybte5jONTfDRc1nanSU6A9YBwF32L4/Rwrnd5CvU
+ M5UHfjpl6liN1DtXHDJ45kbOXiJr3LPLqfYBMUrlSt1FWJUUiNwS1zh2KzzgfHBxDipRAwKw+DWQDt
+ tsKt7RIXqtfeJBUiw6tsMzIi0GsyGjma02uGPzTArfkULqyNhm0UhXKlh5VcEWq+aiH/hq+JmG0xwY
+ IPcB7tJCZU/87LiZP134XiiSZXEBNSY6KceFUjtceNJu0EKVXqGpg1+mFwF54krOMNgcTkgZ0mVqeh
+ YS2H2ubIwj+yX4SSSs5PDiyXntB0YF
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-A new exception code is defined for GCS specific faults other than
-standard load/store faults, for example GCS token validation failures,
-add handling for this. These faults are reported to userspace as
-segfaults with code SEGV_CPERR (protection error), mirroring the
-reporting for x86 shadow stack errors.
+There are two registers controlling the GCS state of EL0, GCSPR_EL0 which
+is the current GCS pointer and GCSCRE0_EL1 which has enable bits for the
+specific GCS functionality enabled for EL0. Manage these on context switch
+and process lifetime events, GCS is reset on exec().  Also ensure that
+any changes to the GCS memory are visible to other PEs and that changes
+from other PEs are visible on this one by issuing a GCSB DSYNC when
+moving to or from a thread with GCS.
 
-GCS faults due to memory load/store operations generate data aborts with
-a flag set, these will be handled separately as part of the data abort
-handling.
+Since the current GCS configuration of a thread will be visible to
+userspace we store the configuration in the format used with userspace
+and provide a helper which configures the system register as needed.
 
-Since we do not currently enable GCS for EL1 we should not get any faults
-there but while we're at it we wire things up there, treating any GCS
-fault as fatal.
+On systems that support GCS we always allow access to GCSPR_EL0, this
+facilitates reporting of GCS faults if userspace implements disabling of
+GCS on error - the GCS can still be discovered and examined even if GCS
+has been disabled.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/esr.h       | 28 +++++++++++++++++++++++++++-
- arch/arm64/include/asm/exception.h |  2 ++
- arch/arm64/kernel/entry-common.c   | 23 +++++++++++++++++++++++
- arch/arm64/kernel/traps.c          | 11 +++++++++++
- 4 files changed, 63 insertions(+), 1 deletion(-)
+ arch/arm64/include/asm/gcs.h       | 24 ++++++++++++++++
+ arch/arm64/include/asm/processor.h |  6 ++++
+ arch/arm64/kernel/process.c        | 56 ++++++++++++++++++++++++++++++++++++++
+ arch/arm64/mm/Makefile             |  1 +
+ arch/arm64/mm/gcs.c                | 39 ++++++++++++++++++++++++++
+ 5 files changed, 126 insertions(+)
 
-diff --git a/arch/arm64/include/asm/esr.h b/arch/arm64/include/asm/esr.h
-index ae35939f395b..a87a8305051f 100644
---- a/arch/arm64/include/asm/esr.h
-+++ b/arch/arm64/include/asm/esr.h
-@@ -51,7 +51,8 @@
- #define ESR_ELx_EC_FP_EXC32	(0x28)
- /* Unallocated EC: 0x29 - 0x2B */
- #define ESR_ELx_EC_FP_EXC64	(0x2C)
--/* Unallocated EC: 0x2D - 0x2E */
-+#define ESR_ELx_EC_GCS		(0x2D)
-+/* Unallocated EC: 0x2E */
- #define ESR_ELx_EC_SERROR	(0x2F)
- #define ESR_ELx_EC_BREAKPT_LOW	(0x30)
- #define ESR_ELx_EC_BREAKPT_CUR	(0x31)
-@@ -382,6 +383,31 @@
- #define ESR_ELx_MOPS_ISS_SRCREG(esr)	(((esr) & (UL(0x1f) << 5)) >> 5)
- #define ESR_ELx_MOPS_ISS_SIZEREG(esr)	(((esr) & (UL(0x1f) << 0)) >> 0)
- 
-+/* ISS field definitions for GCS */
-+#define ESR_ELx_ExType_SHIFT	(20)
-+#define ESR_ELx_ExType_MASK		GENMASK(23, 20)
-+#define ESR_ELx_Raddr_SHIFT		(10)
-+#define ESR_ELx_Raddr_MASK		GENMASK(14, 10)
-+#define ESR_ELx_Rn_SHIFT		(5)
-+#define ESR_ELx_Rn_MASK			GENMASK(9, 5)
-+#define ESR_ELx_Rvalue_SHIFT		5
-+#define ESR_ELx_Rvalue_MASK		GENMASK(9, 5)
-+#define ESR_ELx_IT_SHIFT		(0)
-+#define ESR_ELx_IT_MASK			GENMASK(4, 0)
-+
-+#define ESR_ELx_ExType_DATA_CHECK	0
-+#define ESR_ELx_ExType_EXLOCK		1
-+#define ESR_ELx_ExType_STR		2
-+
-+#define ESR_ELx_IT_RET			0
-+#define ESR_ELx_IT_GCSPOPM		1
-+#define ESR_ELx_IT_RET_KEYA		2
-+#define ESR_ELx_IT_RET_KEYB		3
-+#define ESR_ELx_IT_GCSSS1		4
-+#define ESR_ELx_IT_GCSSS2		5
-+#define ESR_ELx_IT_GCSPOPCX		6
-+#define ESR_ELx_IT_GCSPOPX		7
-+
- #ifndef __ASSEMBLY__
- #include <asm/types.h>
- 
-diff --git a/arch/arm64/include/asm/exception.h b/arch/arm64/include/asm/exception.h
-index ad688e157c9b..99caff458e20 100644
---- a/arch/arm64/include/asm/exception.h
-+++ b/arch/arm64/include/asm/exception.h
-@@ -57,6 +57,8 @@ void do_el0_undef(struct pt_regs *regs, unsigned long esr);
- void do_el1_undef(struct pt_regs *regs, unsigned long esr);
- void do_el0_bti(struct pt_regs *regs);
- void do_el1_bti(struct pt_regs *regs, unsigned long esr);
-+void do_el0_gcs(struct pt_regs *regs, unsigned long esr);
-+void do_el1_gcs(struct pt_regs *regs, unsigned long esr);
- void do_debug_exception(unsigned long addr_if_watchpoint, unsigned long esr,
- 			struct pt_regs *regs);
- void do_fpsimd_acc(unsigned long esr, struct pt_regs *regs);
-diff --git a/arch/arm64/kernel/entry-common.c b/arch/arm64/kernel/entry-common.c
-index 0fc94207e69a..52d78ce63a4e 100644
---- a/arch/arm64/kernel/entry-common.c
-+++ b/arch/arm64/kernel/entry-common.c
-@@ -429,6 +429,15 @@ static void noinstr el1_bti(struct pt_regs *regs, unsigned long esr)
- 	exit_to_kernel_mode(regs);
+diff --git a/arch/arm64/include/asm/gcs.h b/arch/arm64/include/asm/gcs.h
+index 7c5e95218db6..04594ef59dad 100644
+--- a/arch/arm64/include/asm/gcs.h
++++ b/arch/arm64/include/asm/gcs.h
+@@ -48,4 +48,28 @@ static inline u64 gcsss2(void)
+ 	return Xt;
  }
  
-+static void noinstr el1_gcs(struct pt_regs *regs, unsigned long esr)
++#ifdef CONFIG_ARM64_GCS
++
++static inline bool task_gcs_el0_enabled(struct task_struct *task)
 +{
-+	enter_from_kernel_mode(regs);
-+	local_daif_inherit(regs);
-+	do_el1_gcs(regs, esr);
-+	local_daif_mask();
-+	exit_to_kernel_mode(regs);
++	return current->thread.gcs_el0_mode & PR_SHADOW_STACK_ENABLE;
 +}
 +
- static void noinstr el1_dbg(struct pt_regs *regs, unsigned long esr)
- {
- 	unsigned long far = read_sysreg(far_el1);
-@@ -471,6 +480,9 @@ asmlinkage void noinstr el1h_64_sync_handler(struct pt_regs *regs)
- 	case ESR_ELx_EC_BTI:
- 		el1_bti(regs, esr);
- 		break;
-+	case ESR_ELx_EC_GCS:
-+		el1_gcs(regs, esr);
-+		break;
- 	case ESR_ELx_EC_BREAKPT_CUR:
- 	case ESR_ELx_EC_SOFTSTP_CUR:
- 	case ESR_ELx_EC_WATCHPT_CUR:
-@@ -650,6 +662,14 @@ static void noinstr el0_mops(struct pt_regs *regs, unsigned long esr)
- 	exit_to_user_mode(regs);
++void gcs_set_el0_mode(struct task_struct *task);
++void gcs_free(struct task_struct *task);
++void gcs_preserve_current_state(void);
++
++#else
++
++static inline bool task_gcs_el0_enabled(struct task_struct *task)
++{
++	return false;
++}
++
++static inline void gcs_set_el0_mode(struct task_struct *task) { }
++static inline void gcs_free(struct task_struct *task) { }
++static inline void gcs_preserve_current_state(void) { }
++
++#endif
++
+ #endif
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+index e5bc54522e71..c28681cf9721 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -179,6 +179,12 @@ struct thread_struct {
+ 	u64			sctlr_user;
+ 	u64			svcr;
+ 	u64			tpidr2_el0;
++#ifdef CONFIG_ARM64_GCS
++	unsigned int		gcs_el0_mode;
++	u64			gcspr_el0;
++	u64			gcs_base;
++	u64			gcs_size;
++#endif
+ };
+ 
+ static inline unsigned int thread_get_vl(struct thread_struct *thread,
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 0fcc4eb1a7ab..84bac012f744 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -48,6 +48,7 @@
+ #include <asm/cacheflush.h>
+ #include <asm/exec.h>
+ #include <asm/fpsimd.h>
++#include <asm/gcs.h>
+ #include <asm/mmu_context.h>
+ #include <asm/mte.h>
+ #include <asm/processor.h>
+@@ -271,12 +272,32 @@ static void flush_tagged_addr_state(void)
+ 		clear_thread_flag(TIF_TAGGED_ADDR);
  }
  
-+static void noinstr el0_gcs(struct pt_regs *regs, unsigned long esr)
++#ifdef CONFIG_ARM64_GCS
++
++static void flush_gcs(void)
 +{
-+	enter_from_user_mode(regs);
-+	local_daif_restore(DAIF_PROCCTX);
-+	do_el0_gcs(regs, esr);
-+	exit_to_user_mode(regs);
++	if (!system_supports_gcs())
++		return;
++
++	gcs_free(current);
++	current->thread.gcs_el0_mode = 0;
++	write_sysreg_s(0, SYS_GCSCRE0_EL1);
++	write_sysreg_s(0, SYS_GCSPR_EL0);
 +}
 +
- static void noinstr el0_inv(struct pt_regs *regs, unsigned long esr)
++#else
++
++static void flush_gcs(void) { }
++
++#endif
++
+ void flush_thread(void)
  {
- 	enter_from_user_mode(regs);
-@@ -732,6 +752,9 @@ asmlinkage void noinstr el0t_64_sync_handler(struct pt_regs *regs)
- 	case ESR_ELx_EC_MOPS:
- 		el0_mops(regs, esr);
- 		break;
-+	case ESR_ELx_EC_GCS:
-+		el0_gcs(regs, esr);
-+		break;
- 	case ESR_ELx_EC_BREAKPT_LOW:
- 	case ESR_ELx_EC_SOFTSTP_LOW:
- 	case ESR_ELx_EC_WATCHPT_LOW:
-diff --git a/arch/arm64/kernel/traps.c b/arch/arm64/kernel/traps.c
-index 8b70759cdbb9..65dab959f620 100644
---- a/arch/arm64/kernel/traps.c
-+++ b/arch/arm64/kernel/traps.c
-@@ -500,6 +500,16 @@ void do_el1_bti(struct pt_regs *regs, unsigned long esr)
- 	die("Oops - BTI", regs, esr);
+ 	fpsimd_flush_thread();
+ 	tls_thread_flush();
+ 	flush_ptrace_hw_breakpoint(current);
+ 	flush_tagged_addr_state();
++	flush_gcs();
  }
  
-+void do_el0_gcs(struct pt_regs *regs, unsigned long esr)
+ void arch_release_task_struct(struct task_struct *tsk)
+@@ -474,6 +495,40 @@ static void entry_task_switch(struct task_struct *next)
+ 	__this_cpu_write(__entry_task, next);
+ }
+ 
++#ifdef CONFIG_ARM64_GCS
++
++void gcs_preserve_current_state(void)
 +{
-+	force_signal_inject(SIGSEGV, SEGV_CPERR, regs->pc, 0);
++	if (task_gcs_el0_enabled(current))
++		current->thread.gcspr_el0 = read_sysreg_s(SYS_GCSPR_EL0);
 +}
 +
-+void do_el1_gcs(struct pt_regs *regs, unsigned long esr)
++static void gcs_thread_switch(struct task_struct *next)
 +{
-+	die("Oops - GCS", regs, esr);
++	if (!system_supports_gcs())
++		return;
++
++	gcs_preserve_current_state();
++
++	gcs_set_el0_mode(next);
++	write_sysreg_s(next->thread.gcspr_el0, SYS_GCSPR_EL0);
++
++	/*
++	 * Ensure that GCS changes are observable by/from other PEs in
++	 * case of migration.
++	 */
++	if (task_gcs_el0_enabled(current) || task_gcs_el0_enabled(next))
++		gcsb_dsync();
 +}
 +
- void do_el0_fpac(struct pt_regs *regs, unsigned long esr)
- {
- 	force_signal_inject(SIGILL, ILL_ILLOPN, regs->pc, esr);
-@@ -884,6 +894,7 @@ static const char *esr_class_str[] = {
- 	[ESR_ELx_EC_MOPS]		= "MOPS",
- 	[ESR_ELx_EC_FP_EXC32]		= "FP (AArch32)",
- 	[ESR_ELx_EC_FP_EXC64]		= "FP (AArch64)",
-+	[ESR_ELx_EC_GCS]		= "Guarded Control Stack",
- 	[ESR_ELx_EC_SERROR]		= "SError",
- 	[ESR_ELx_EC_BREAKPT_LOW]	= "Breakpoint (lower EL)",
- 	[ESR_ELx_EC_BREAKPT_CUR]	= "Breakpoint (current EL)",
++#else
++
++static void gcs_thread_switch(struct task_struct *next)
++{
++}
++
++#endif
++
+ /*
+  * ARM erratum 1418040 handling, affecting the 32bit view of CNTVCT.
+  * Ensure access is disabled when switching to a 32bit task, ensure
+@@ -533,6 +588,7 @@ struct task_struct *__switch_to(struct task_struct *prev,
+ 	ssbs_thread_switch(next);
+ 	erratum_1418040_thread_switch(next);
+ 	ptrauth_thread_switch_user(next);
++	gcs_thread_switch(next);
+ 
+ 	/*
+ 	 * Complete any pending TLB or cache maintenance on this CPU in case
+diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
+index dbd1bc95967d..4e7cb2f02999 100644
+--- a/arch/arm64/mm/Makefile
++++ b/arch/arm64/mm/Makefile
+@@ -10,6 +10,7 @@ obj-$(CONFIG_TRANS_TABLE)	+= trans_pgd.o
+ obj-$(CONFIG_TRANS_TABLE)	+= trans_pgd-asm.o
+ obj-$(CONFIG_DEBUG_VIRTUAL)	+= physaddr.o
+ obj-$(CONFIG_ARM64_MTE)		+= mteswap.o
++obj-$(CONFIG_ARM64_GCS)		+= gcs.o
+ KASAN_SANITIZE_physaddr.o	+= n
+ 
+ obj-$(CONFIG_KASAN)		+= kasan_init.o
+diff --git a/arch/arm64/mm/gcs.c b/arch/arm64/mm/gcs.c
+new file mode 100644
+index 000000000000..b0a67efc522b
+--- /dev/null
++++ b/arch/arm64/mm/gcs.c
+@@ -0,0 +1,39 @@
++// SPDX-License-Identifier: GPL-2.0-only
++
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/syscalls.h>
++#include <linux/types.h>
++
++#include <asm/cpufeature.h>
++#include <asm/page.h>
++
++/*
++ * Apply the GCS mode configured for the specified task to the
++ * hardware.
++ */
++void gcs_set_el0_mode(struct task_struct *task)
++{
++	u64 gcscre0_el1 = GCSCRE0_EL1_nTR;
++
++	if (task->thread.gcs_el0_mode & PR_SHADOW_STACK_ENABLE)
++		gcscre0_el1 |= GCSCRE0_EL1_RVCHKEN | GCSCRE0_EL1_PCRSEL;
++
++	if (task->thread.gcs_el0_mode & PR_SHADOW_STACK_WRITE)
++		gcscre0_el1 |= GCSCRE0_EL1_STREn;
++
++	if (task->thread.gcs_el0_mode & PR_SHADOW_STACK_PUSH)
++		gcscre0_el1 |= GCSCRE0_EL1_PUSHMEn;
++
++	write_sysreg_s(gcscre0_el1, SYS_GCSCRE0_EL1);
++}
++
++void gcs_free(struct task_struct *task)
++{
++	if (task->thread.gcs_base)
++		vm_munmap(task->thread.gcs_base, task->thread.gcs_size);
++
++	task->thread.gcspr_el0 = 0;
++	task->thread.gcs_base = 0;
++	task->thread.gcs_size = 0;
++}
 
 -- 
 2.30.2
