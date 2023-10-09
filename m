@@ -2,37 +2,37 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2F66BE95A8E
-	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:14:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id E67DFE95A8E
+	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:14:11 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346486AbjJIMOG (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 Oct 2023 08:14:06 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:32916 "EHLO
+        id S1346509AbjJIMOK (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 Oct 2023 08:14:10 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:44172 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346510AbjJIMNR (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2023 08:13:17 -0400
+        with ESMTP id S1346680AbjJIMNq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2023 08:13:46 -0400
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4092F1A4;
-        Mon,  9 Oct 2023 05:12:25 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BD389C433CC;
-        Mon,  9 Oct 2023 12:12:17 +0000 (UTC)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A34A71721;
+        Mon,  9 Oct 2023 05:12:40 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id C1EABC433AB;
+        Mon,  9 Oct 2023 12:12:32 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1696853544;
-        bh=HYoopujMYYx9DIwWQ/56zZgOFvuBdtqWANEIYJVZJO8=;
+        s=k20201202; t=1696853560;
+        bh=lvoE1O3P70dbe+mZ76dqPIgfPzAOQeTbed5LhVnXTzQ=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=j9U89MV1GBU5jOVOLZpCSQry22wWl///VTwFucF5T+ppLeyNlY+ijNsKStJjX34zz
-         TKtMy0coDvVyA+8ko0HqNYCUMkgHFACaF6LEWpLS1QxmhzeE9XnEjzyQ0M8mEULhOy
-         LoDl1uMcTq+Z0BPqDawgEjWUIaaGtEiTfAuKnfR4txzV/sle6cv7axr7grDcYKQzB0
-         cMUl8mqk7ccL5ojvydYfH77A8erbD64hcfT3XJ4LIwDDSLm8GsFaXNsL/c0VGUO7LX
-         elVXN6hoTFeVaqLLe/WXRoRAuUJPbwwSWMPqVxC1UU5DdJApxPBpYygj5t2E7gAAB0
-         PKRs52LSefP9A==
+        b=qbHBXwJKK6WbkIpHZVNNuR75YMWz6B1rlWgXQGomiLIBnVf2ZbBp1dMC0ZMOgBEor
+         2EF/M4CxuUDKzhTkgYFMt2wKxY40qj1uuIf5HvM4Yd2qcAqbdokdvFm0wK5Tv+3Vfi
+         vDukFgrzMMfwyPCYvnAe/jatMV2NZIUenzxynOCuwBNxnT8XV7mQIAhodVazrt8BGb
+         KP7yKsLjSQOfd10jZ71s4gTznggZm9Je/wNUcYqFWSUIYPvsSIQ4wV3eddwp4bOZGR
+         3y2hn54HnEP0BPy6BzKeM5VHL8ZDI9dspK+4Jzy5MK3NrkvTCCVt6sz071rB9ad1Ql
+         yhgZjrJKSvQ2Q==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 09 Oct 2023 13:08:49 +0100
-Subject: [PATCH v6 15/38] arm64/gcs: Allow GCS usage at EL0 and EL1
+Date:   Mon, 09 Oct 2023 13:08:51 +0100
+Subject: [PATCH v6 17/38] arm64/hwcap: Add hwcap for GCS
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20231009-arm64-gcs-v6-15-78e55deaa4dd@kernel.org>
+Message-Id: <20231009-arm64-gcs-v6-17-78e55deaa4dd@kernel.org>
 References: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 In-Reply-To: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -63,82 +63,95 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-0438c
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2250; i=broonie@kernel.org;
- h=from:subject:message-id; bh=HYoopujMYYx9DIwWQ/56zZgOFvuBdtqWANEIYJVZJO8=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2dfP1gHPRa8C0+dKhkGMXquypekN26lEUP9onB
- zh3nmgqJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtnQAKCRAk1otyXVSH0GamB/
- 4zkdD6yWJZ6LzOyEnr8Hw3FnF1NVfnuu8/QcW8ibj5rkATYPiavxMq3LPm07WlulO7ZtCP7Gdeg0GH
- kDP3wzqx62horUPdFah+l76lfzloOsBbU39pySCg9LZVRsnjG1FyFqDV/K7qE5GDRondjc529mjnmW
- /Zq7/3B279Cu8mPCyA322DF81o2QzFuyQqwCwR1f/nvr1kKFH/CAFqJR1R1zfkYTz948CaxtKKewpc
- 7k2FwkiXhUAo2OyVo5APZZQ4cGYkttf6x44lxUYW5FpwU9Okq5Y1aiKcdQ3ADCFCe2kgupisipbU4v
- oMCEU+UrDbK8wEiZ/6nPcObFK6gRMN
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2961; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=lvoE1O3P70dbe+mZ76dqPIgfPzAOQeTbed5LhVnXTzQ=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2e97itUFbmdKM/AAm/oWnm9YAweKpQRndIz6MZ
+ nS5x0VmJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtngAKCRAk1otyXVSH0EeYB/
+ 9Q/PNyvnWiW4p9UMFv1tk22XH72fXtr+z/uCzMFO15lWzaMu2s5nb304MeTiU7E3qiL9sx6GCQBB7K
+ BkhkD1KNIyCu140HAsk+JKUr2XlTIbR/t7Ec9SDoPKKtasEYd1FagLldM6jZn+BfLwR9Rq/LfE03jW
+ GBJXSo6RHjSPSkiqNtc333VrTbWBknLn5MiUc2szJzvRaGccbjSwn3U0ZtidN5MC2+Ddx4yK5Oc8lZ
+ gBKjROMbML5xWREWb2yXxSYfDBe2tKfZSn1ctZNFHgN0YtorefoswvPl5MM1wIcnGN3+PQyzUPI78G
+ MzzKoi+Db2v4RN7Nur25rmi3/QsEPU
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-There is a control HCRX_EL2.GCSEn which must be set to allow GCS
-features to take effect at lower ELs and also fine grained traps for GCS
-usage at EL0 and EL1.  Configure all these to allow GCS usage by EL0 and
-EL1.
+Provide a hwcap to enable userspace to detect support for GCS.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/include/asm/el2_setup.h | 17 +++++++++++++++++
- arch/arm64/include/asm/kvm_arm.h   |  4 ++--
- 2 files changed, 19 insertions(+), 2 deletions(-)
+ Documentation/arch/arm64/elf_hwcaps.rst | 3 +++
+ arch/arm64/include/asm/hwcap.h          | 1 +
+ arch/arm64/include/uapi/asm/hwcap.h     | 1 +
+ arch/arm64/kernel/cpufeature.c          | 3 +++
+ arch/arm64/kernel/cpuinfo.c             | 1 +
+ 5 files changed, 9 insertions(+)
 
-diff --git a/arch/arm64/include/asm/el2_setup.h b/arch/arm64/include/asm/el2_setup.h
-index b7afaa026842..17672563e333 100644
---- a/arch/arm64/include/asm/el2_setup.h
-+++ b/arch/arm64/include/asm/el2_setup.h
-@@ -27,6 +27,14 @@
- 	ubfx	x0, x0, #ID_AA64MMFR1_EL1_HCX_SHIFT, #4
- 	cbz	x0, .Lskip_hcrx_\@
- 	mov_q	x0, HCRX_HOST_FLAGS
-+
-+        /* Enable GCS if supported */
-+	mrs_s	x1, SYS_ID_AA64PFR1_EL1
-+	ubfx	x1, x1, #ID_AA64PFR1_EL1_GCS_SHIFT, #4
-+	cbz	x1, .Lset_hcrx_\@
-+	orr	x0, x0, #HCRX_EL2_GCSEn
-+
-+.Lset_hcrx_\@:
- 	msr_s	SYS_HCRX_EL2, x0
- .Lskip_hcrx_\@:
- .endm
-@@ -190,6 +198,15 @@
- 	orr	x0, x0, #HFGxTR_EL2_nPIR_EL1
- 	orr	x0, x0, #HFGxTR_EL2_nPIRE0_EL1
+diff --git a/Documentation/arch/arm64/elf_hwcaps.rst b/Documentation/arch/arm64/elf_hwcaps.rst
+index 76ff9d7398fd..5c9e17a3c8d8 100644
+--- a/Documentation/arch/arm64/elf_hwcaps.rst
++++ b/Documentation/arch/arm64/elf_hwcaps.rst
+@@ -308,6 +308,9 @@ HWCAP2_MOPS
+ HWCAP2_HBC
+     Functionality implied by ID_AA64ISAR2_EL1.BC == 0b0001.
  
-+	/* GCS depends on PIE so we don't check it if PIE is absent */
-+	mrs_s	x1, SYS_ID_AA64PFR1_EL1
-+	ubfx	x1, x1, #ID_AA64PFR1_EL1_GCS_SHIFT, #4
-+	cbz	x1, .Lset_fgt_\@
++HWCAP2_GCS
++    Functionality implied by ID_AA64PFR1_EL1.GCS == 0b1
 +
-+	/* Disable traps of access to GCS registers at EL0 and EL1 */
-+	orr	x0, x0, #HFGxTR_EL2_nGCS_EL1_MASK
-+	orr	x0, x0, #HFGxTR_EL2_nGCS_EL0_MASK
-+
- .Lset_fgt_\@:
- 	msr_s	SYS_HFGRTR_EL2, x0
- 	msr_s	SYS_HFGWTR_EL2, x0
-diff --git a/arch/arm64/include/asm/kvm_arm.h b/arch/arm64/include/asm/kvm_arm.h
-index 5882b2415596..d74b626b829a 100644
---- a/arch/arm64/include/asm/kvm_arm.h
-+++ b/arch/arm64/include/asm/kvm_arm.h
-@@ -102,8 +102,8 @@
- #define HCR_HOST_NVHE_PROTECTED_FLAGS (HCR_HOST_NVHE_FLAGS | HCR_TSC)
- #define HCR_HOST_VHE_FLAGS (HCR_RW | HCR_TGE | HCR_E2H)
+ 4. Unused AT_HWCAP bits
+ -----------------------
  
--#define HCRX_GUEST_FLAGS (HCRX_EL2_SMPME | HCRX_EL2_TCR2En)
--#define HCRX_HOST_FLAGS (HCRX_EL2_MSCEn | HCRX_EL2_TCR2En)
-+#define HCRX_GUEST_FLAGS (HCRX_EL2_SMPME | HCRX_EL2_TCR2En | HCRX_EL2_GCSEn)
-+#define HCRX_HOST_FLAGS (HCRX_EL2_MSCEn | HCRX_EL2_TCR2En | HCRX_EL2_GCSEn)
+diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.h
+index 521267478d18..d4bcd1cab698 100644
+--- a/arch/arm64/include/asm/hwcap.h
++++ b/arch/arm64/include/asm/hwcap.h
+@@ -139,6 +139,7 @@
+ #define KERNEL_HWCAP_SME_F16F16		__khwcap2_feature(SME_F16F16)
+ #define KERNEL_HWCAP_MOPS		__khwcap2_feature(MOPS)
+ #define KERNEL_HWCAP_HBC		__khwcap2_feature(HBC)
++#define KERNEL_HWCAP_GCS		__khwcap2_feature(GCS)
  
- /* TCR_EL2 Registers bits */
- #define TCR_EL2_RES1		((1U << 31) | (1 << 23))
+ /*
+  * This yields a mask that user programs can use to figure out what
+diff --git a/arch/arm64/include/uapi/asm/hwcap.h b/arch/arm64/include/uapi/asm/hwcap.h
+index 53026f45a509..5c0932bb7842 100644
+--- a/arch/arm64/include/uapi/asm/hwcap.h
++++ b/arch/arm64/include/uapi/asm/hwcap.h
+@@ -104,5 +104,6 @@
+ #define HWCAP2_SME_F16F16	(1UL << 42)
+ #define HWCAP2_MOPS		(1UL << 43)
+ #define HWCAP2_HBC		(1UL << 44)
++#define HWCAP2_GCS		(1UL << 45)
+ 
+ #endif /* _UAPI__ASM_HWCAP_H */
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index e247dce1759c..114876512172 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -2844,6 +2844,9 @@ static const struct arm64_cpu_capabilities arm64_elf_hwcaps[] = {
+ 	HWCAP_CAP(ID_AA64ZFR0_EL1, I8MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEI8MM),
+ 	HWCAP_CAP(ID_AA64ZFR0_EL1, F32MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEF32MM),
+ 	HWCAP_CAP(ID_AA64ZFR0_EL1, F64MM, IMP, CAP_HWCAP, KERNEL_HWCAP_SVEF64MM),
++#endif
++#ifdef CONFIG_ARM64_GCS
++	HWCAP_CAP(ID_AA64PFR1_EL1, GCS, IMP, CAP_HWCAP, KERNEL_HWCAP_GCS),
+ #endif
+ 	HWCAP_CAP(ID_AA64PFR1_EL1, SSBS, SSBS2, CAP_HWCAP, KERNEL_HWCAP_SSBS),
+ #ifdef CONFIG_ARM64_BTI
+diff --git a/arch/arm64/kernel/cpuinfo.c b/arch/arm64/kernel/cpuinfo.c
+index 98fda8500535..e99724c9b440 100644
+--- a/arch/arm64/kernel/cpuinfo.c
++++ b/arch/arm64/kernel/cpuinfo.c
+@@ -127,6 +127,7 @@ static const char *const hwcap_str[] = {
+ 	[KERNEL_HWCAP_SME_F16F16]	= "smef16f16",
+ 	[KERNEL_HWCAP_MOPS]		= "mops",
+ 	[KERNEL_HWCAP_HBC]		= "hbc",
++	[KERNEL_HWCAP_GCS]		= "gcs",
+ };
+ 
+ #ifdef CONFIG_COMPAT
 
 -- 
 2.30.2
