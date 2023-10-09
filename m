@@ -2,37 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B106CE95A97
-	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:21:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2F0E3E95A8E
+	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:21:29 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346756AbjJIMVZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 Oct 2023 08:21:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34598 "EHLO
+        id S1346761AbjJIMV0 (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 Oct 2023 08:21:26 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34664 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346578AbjJIMVR (ORCPT
+        with ESMTP id S1346597AbjJIMVR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2023 08:21:17 -0400
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 2A7771AA;
-        Mon,  9 Oct 2023 05:13:54 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3A219C4339A;
-        Mon,  9 Oct 2023 12:13:47 +0000 (UTC)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1091310E6;
+        Mon,  9 Oct 2023 05:14:07 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 70D5FC4339A;
+        Mon,  9 Oct 2023 12:14:00 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1696853633;
-        bh=CQJ0Nn/FrNQwik1UANJ8xSGTPojw3dSDEOcln7FrjBk=;
+        s=k20201202; t=1696853646;
+        bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=NeKlb9iqE4AGE1VnnuuEDi9x2qHDhG39YDOtQOygNJGcp/7puO71yjWwEgjDhH3Ok
-         EsjeQrTlMbsE9cdsW802P0C4KwKQrLhXCAVPvYoMyhwdzLylGiRYrjWH/2pZ60L35S
-         a9jKGbTd5a1hArbwkwropJxQO7vTjD7c0Xx2znQT6EoNdzaeRtiC4g26P+M7uLgWrS
-         b3oQO2OsLcUn+5vvhhOIDKBd0jOw7N1t0STVQxilRLL4vRA2LTeFElBL2WUiAMl4Hv
-         HOWchYwqBex8aqYopW1sVnLkcj0J6hahyC/X4knAzKLC7SCmnLWKhbRz/SG+nIDF/N
-         IhyAEtwkn59tQ==
+        b=QDoT3Rs0dy70eTof0MpL8Clmp5D5N4G+bALCxg28WbX45WAE5V6sk/vUBxZzkCB/w
+         +FzuuGTRC+vbQZTP/LJpXLFQoJoa/dFN8A2DtrbsMC44VXAJojUm/L6KjiZYupFDCz
+         OMIxqgNnfIkH9qe9SiQAivSWq/uD540hHtpMeukDnCv+Vc3dGA9ZE1l8BLDAHcW1Dy
+         8gni6ij4/iID3PCNkQjgI1ZeN1tRleWQo/QbuHLXszaDuCR53Gq8KF+8bPUzhuXaC9
+         +/wUvXP2RYyXaJVthDj1tU9T5Ul+HV6UcQvMFV2HaaFGAZXQV0aJ5NpUZoW+zq7wOT
+         94CHAAamp91hg==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 09 Oct 2023 13:09:02 +0100
-Subject: [PATCH v6 28/38] kselftest/arm64: Verify the GCS hwcap
+Date:   Mon, 09 Oct 2023 13:09:04 +0100
+Subject: [PATCH v6 30/38] kselftest/arm64: Add framework support for GCS to
+ signal handling tests
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20231009-arm64-gcs-v6-28-78e55deaa4dd@kernel.org>
+Message-Id: <20231009-arm64-gcs-v6-30-78e55deaa4dd@kernel.org>
 References: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 In-Reply-To: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -63,66 +64,60 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-0438c
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1190; i=broonie@kernel.org;
- h=from:subject:message-id; bh=CQJ0Nn/FrNQwik1UANJ8xSGTPojw3dSDEOcln7FrjBk=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2nVuVBXqjsn2LJUIT0YQm3p4RqL6b7G3kTo12X
- jK0EkTuJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtpwAKCRAk1otyXVSH0DpxB/
- oD/2yjl18oaUFoxgjlXboHnU3Vdbj18snA/U+HNmjP8ycDMAla/rlRZJTMobzcc6q3xUzjBw6Qby42
- XQwsre3+1XKPZXNnbbU4/AE729y6HgZeTm9fQ6OYXPXHqyLSUC70l8Mo4jdi6hLBwPh6S8TQSHX7NQ
- gwp1jXGMDhHgNWm9OEXmFTt5+FD7DPoWDWt02MDae8YapOFbDrFRg5urZTSdSJLdZnCDJ77TJT4QQP
- vhmv94GFddGFi32RfpOmDdfT0/fr2hdAfocT2Sv6jv7q5XCYP8ofxBQ1QvfGbrhqxoMKQwleOK6puP
- vrqiRdibSz+Kgt6dLzej/2YoOwjid2
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1590; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=DtrqsekNxnVEUxJ8rAESK/JTguJ8OvysbbylOwjoIT0=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2pq7Qa4GULwtgg75uflK1VZRll9L2EqVA5sWym
+ iRyIswiJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtqQAKCRAk1otyXVSH0ANuB/
+ 9EYHlc6mJYvvbF83tv2urYj/dsRi3MZGM9bL42WvASqT9Fe6RxhqSl8+yBkjK9zlnt99TI4RlGWH2H
+ 7TfVXMoQwlEhSvycSBbhwJp3KYFlja1mU/BKWyUAB524VVNqk0FaXeYcYsePJoMup3ysfKgET+5Ow7
+ BudxsoJJPf8SPjz7bcGQshCK0bskVX6ZG6P5z72NmpAo78PQjf/fdgwdqG7MgXhLVpnJcrp6LUXsKI
+ py/v2S1R5Fz2sZW8EPhj+QlJjC+XxuA+xBNiUeTNFfblGGaQHnVhVpXKDfA9t69zSl3KsWhTZ14286
+ LPcR/NM0Ve/MSPwybGmUQHozt93Wpz
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Add coverage of the GCS hwcap to the hwcap selftest, using a read of
-GCSPR_EL0 to generate SIGILL without having to worry about enabling GCS.
+Teach the framework about the GCS signal context, avoiding warnings on
+the unknown context.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- tools/testing/selftests/arm64/abi/hwcap.c | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
+ tools/testing/selftests/arm64/signal/testcases/testcases.c | 7 +++++++
+ tools/testing/selftests/arm64/signal/testcases/testcases.h | 1 +
+ 2 files changed, 8 insertions(+)
 
-diff --git a/tools/testing/selftests/arm64/abi/hwcap.c b/tools/testing/selftests/arm64/abi/hwcap.c
-index e3d262831d91..785c9a4ad666 100644
---- a/tools/testing/selftests/arm64/abi/hwcap.c
-+++ b/tools/testing/selftests/arm64/abi/hwcap.c
-@@ -63,6 +63,17 @@ static void fp_sigill(void)
- 	asm volatile("fmov s0, #1");
- }
+diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.c b/tools/testing/selftests/arm64/signal/testcases/testcases.c
+index 9f580b55b388..1cd124732be4 100644
+--- a/tools/testing/selftests/arm64/signal/testcases/testcases.c
++++ b/tools/testing/selftests/arm64/signal/testcases/testcases.c
+@@ -209,6 +209,13 @@ bool validate_reserved(ucontext_t *uc, size_t resv_sz, char **err)
+ 			zt = (struct zt_context *)head;
+ 			new_flags |= ZT_CTX;
+ 			break;
++		case GCS_MAGIC:
++			if (flags & GCS_CTX)
++				*err = "Multiple GCS_MAGIC";
++			if (head->size != sizeof(struct gcs_context))
++				*err = "Bad size for gcs_context";
++			new_flags |= GCS_CTX;
++			break;
+ 		case EXTRA_MAGIC:
+ 			if (flags & EXTRA_CTX)
+ 				*err = "Multiple EXTRA_MAGIC";
+diff --git a/tools/testing/selftests/arm64/signal/testcases/testcases.h b/tools/testing/selftests/arm64/signal/testcases/testcases.h
+index a08ab0d6207a..9b2599745c29 100644
+--- a/tools/testing/selftests/arm64/signal/testcases/testcases.h
++++ b/tools/testing/selftests/arm64/signal/testcases/testcases.h
+@@ -19,6 +19,7 @@
+ #define ZA_CTX		(1 << 2)
+ #define EXTRA_CTX	(1 << 3)
+ #define ZT_CTX		(1 << 4)
++#define GCS_CTX		(1 << 5)
  
-+static void gcs_sigill(void)
-+{
-+	unsigned long *gcspr;
-+
-+	asm volatile(
-+		"mrs	%0, S3_3_C2_C5_1"
-+	: "=r" (gcspr)
-+	:
-+	: "cc");
-+}
-+
- static void ilrcpc_sigill(void)
- {
- 	/* LDAPUR W0, [SP, #8] */
-@@ -327,6 +338,14 @@ static const struct hwcap_data {
- 		.cpuinfo = "fp",
- 		.sigill_fn = fp_sigill,
- 	},
-+	{
-+		.name = "GCS",
-+		.at_hwcap = AT_HWCAP2,
-+		.hwcap_bit = HWCAP2_GCS,
-+		.cpuinfo = "gcs",
-+		.sigill_fn = gcs_sigill,
-+		.sigill_reliable = true,
-+	},
- 	{
- 		.name = "JSCVT",
- 		.at_hwcap = AT_HWCAP,
+ #define KSFT_BAD_MAGIC	0xdeadbeef
+ 
 
 -- 
 2.30.2
