@@ -2,38 +2,38 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id EEC02E95A96
-	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:21:44 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DD581E95A9A
+	for <linux-arch@archiver.kernel.org>; Mon,  9 Oct 2023 12:21:45 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1346716AbjJIMVn (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Mon, 9 Oct 2023 08:21:43 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:35228 "EHLO
+        id S1376310AbjJIMVo (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Mon, 9 Oct 2023 08:21:44 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:34630 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1346686AbjJIMVR (ORCPT
+        with ESMTP id S1346647AbjJIMVR (ORCPT
         <rfc822;linux-arch@vger.kernel.org>); Mon, 9 Oct 2023 08:21:17 -0400
 Received: from smtp.kernel.org (relay.kernel.org [52.25.139.140])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 31B28C6;
-        Mon,  9 Oct 2023 05:13:47 -0700 (PDT)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 922A0C433C9;
-        Mon,  9 Oct 2023 12:13:40 +0000 (UTC)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7E773D40;
+        Mon,  9 Oct 2023 05:14:00 -0700 (PDT)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D1117C433C9;
+        Mon,  9 Oct 2023 12:13:53 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-        s=k20201202; t=1696853626;
-        bh=HKr5dcgoD1HRE8Dfu3M7S45WXlztyGX1cPv4uDvvFRM=;
+        s=k20201202; t=1696853640;
+        bh=Go+3eKanODPQVKnV1QnMIrC75/lXwO2PkPnkMfOn2oA=;
         h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-        b=H39Ysk/jv3RNdJhL+Jsv7sBxcXZHRih+ROezijJvWx9EN4JvZ8YLVnCFWuh5eiiAl
-         J3BcFT9L59aj2K0HyS0TQb5id7+eKSVp9IjZACZ4PEq4aEUJjOSP7GkJfDBzcp2Jrb
-         u93V6DlJLKNe93rxNaei3Ow4LXKe+OKHKlwDOxFWm1SDJ76Ri39wH5qX2/YhNNY5DJ
-         oZm3ml3SR7XSkXmMZ2NeCqJMYBJ305rEf0L35tZkyRCWXvoBdQFqFuMqNZgytHtcPR
-         nvWKeRmVjuWn6bsz71J5LB+/nVGpBcBAqwMVSDG3VYjbyzwNtsmi2AWTk0W5qcRWwU
-         zkc7oXD/SsHuA==
+        b=Z5tE8lnmdXjuy2FqbmQSDL/utDLHfOoZ4eKkj7w/pFe+3P01nqhLYlWUbu46Kb66T
+         MQggDAPnYeq7fIffhSX2fspIXyhKvHV3fcYzejotBmZFk0/3MKUyi/jRYi5wNt5K+X
+         Oa54ejUABuIC3+Js8winzFrZE+yubCehE6R1fsFaKY82wL9X3leYnlD8DgFEeJC1Wt
+         vRFhGhw4q2GODqA4+lX1CM7HM2u3IvA003ToN+sKy1g4py3QVoI+lxBQqzVi5BRe8B
+         QNxy5na8NSMcK74IKtvdeJxxYDIFj9484A4tWvzdF6gUaaprljtOF3zzC/XcH3gwSs
+         f+M/VlaD8QrCg==
 From:   Mark Brown <broonie@kernel.org>
-Date:   Mon, 09 Oct 2023 13:09:01 +0100
-Subject: [PATCH v6 27/38] arm64: Add Kconfig for Guarded Control Stack
- (GCS)
+Date:   Mon, 09 Oct 2023 13:09:03 +0100
+Subject: [PATCH v6 29/38] kselftest/arm64: Add GCS as a detected feature in
+ the signal tests
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20231009-arm64-gcs-v6-27-78e55deaa4dd@kernel.org>
+Message-Id: <20231009-arm64-gcs-v6-29-78e55deaa4dd@kernel.org>
 References: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 In-Reply-To: <20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org>
 To:     Catalin Marinas <catalin.marinas@arm.com>,
@@ -64,59 +64,71 @@ Cc:     "H.J. Lu" <hjl.tools@gmail.com>,
         linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
         linux-riscv@lists.infradead.org, Mark Brown <broonie@kernel.org>
 X-Mailer: b4 0.13-dev-0438c
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1334; i=broonie@kernel.org;
- h=from:subject:message-id; bh=HKr5dcgoD1HRE8Dfu3M7S45WXlztyGX1cPv4uDvvFRM=;
- b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2m6LbrIKImLz43AhLYkdJ+mn8/n/WtjdVAC+Y3
- I5cZkuiJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtpgAKCRAk1otyXVSH0C9JB/
- 9PeuQ7odFNzac2es7G1H21MYtcjVH9+a2Xh/QADOSwBO/AZwG1T+Q4oNOVnGIYZhsMy5AUgOtQDFOg
- zDd8RXL2Yzchc4BhE4Ekw1h1A8Fde16BC4U8J5YyfbQTWzzV5ZjYMZRgWLWLEmJ82HR2bI/yfKju2O
- yiag57d6zPB3jBl31kU7tVUGxpZ+W2N3e3w0Lsn0dB/LatGzkRPssH45VRWQSLCiWocphZV2S0FttF
- 8NdpTgTettJANn4cQtR8Ybduqa7BR2LVBS9TWMxRVAdrv8KMfeizfOEaa1rfjudAGqmDa9T2OYofSN
- a9bEGUta99nzCir41mnHoSZ0Cwo785
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1828; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=Go+3eKanODPQVKnV1QnMIrC75/lXwO2PkPnkMfOn2oA=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBlI+2oIo6FOsWYrBJln/h48RApJUprOroIIr+6v3AC
+ j4QlW3qJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZSPtqAAKCRAk1otyXVSH0KBKB/
+ 4rQ16IAS5wQp6WQY1eD2bS9klRAJX/EGZrEuSxlVT2NgqoWHdyR64Ppf4FG1FKuUqvMND5hTvoNO5r
+ j6KcnXXEnvj1rbqL+4p87ulL7NX44680MNQJqrr2ev8vbbzXgOZpLp8yKaAV+ZTeW3adrfCoHaRd68
+ 4vj9950qxYJkRIpQs3PWHIQl7LTy0wFOhiBvvyeygH8sAlKEce8j/t0SCSj1+irzRPsWT7VolGRuoz
+ 26oZ3vn8jKDTn8gqey9cIe2Kg+tDLrK/FU+K4451nNXAvOqRl7LoBBpIbrg5H0LgHewcu+t0rhnLyW
+ 9vQzfxF+XMWgy4/GxIOBR1MUoAluz0
 X-Developer-Key: i=broonie@kernel.org; a=openpgp;
  fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-Provide a Kconfig option allowing the user to select if GCS support is
-built into the kernel.
+In preparation for testing GCS related signal handling add it as a feature
+we check for in the signal handling support code.
 
 Signed-off-by: Mark Brown <broonie@kernel.org>
 ---
- arch/arm64/Kconfig | 19 +++++++++++++++++++
- 1 file changed, 19 insertions(+)
+ tools/testing/selftests/arm64/signal/test_signals.h       | 2 ++
+ tools/testing/selftests/arm64/signal/test_signals_utils.c | 3 +++
+ 2 files changed, 5 insertions(+)
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index b10515c0200b..d235e725177b 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -2060,6 +2060,25 @@ config ARM64_EPAN
- 	  if the cpu does not implement the feature.
- endmenu # "ARMv8.7 architectural features"
+diff --git a/tools/testing/selftests/arm64/signal/test_signals.h b/tools/testing/selftests/arm64/signal/test_signals.h
+index 1e6273d81575..7ada43688c02 100644
+--- a/tools/testing/selftests/arm64/signal/test_signals.h
++++ b/tools/testing/selftests/arm64/signal/test_signals.h
+@@ -35,6 +35,7 @@ enum {
+ 	FSME_BIT,
+ 	FSME_FA64_BIT,
+ 	FSME2_BIT,
++	FGCS_BIT,
+ 	FMAX_END
+ };
  
-+menu "v9.4 architectural features"
-+
-+config ARM64_GCS
-+	bool "Enable support for Guarded Control Stack (GCS)"
-+	default y
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	help
-+	  Guarded Control Stack (GCS) provides support for a separate
-+	  stack with restricted access which contains only return
-+	  addresses.  This can be used to harden against some attacks
-+	  by comparing return address used by the program with what is
-+	  stored in the GCS, and may also be used to efficiently obtain
-+	  the call stack for applications such as profiling.
-+
-+	  The feature is detected at runtime, and will remain disabled
-+	  if the system does not implement the feature.
-+
-+endmenu # "v9.4 architectural features"
-+
- config ARM64_SVE
- 	bool "ARM Scalable Vector Extension support"
- 	default y
+@@ -43,6 +44,7 @@ enum {
+ #define FEAT_SME		(1UL << FSME_BIT)
+ #define FEAT_SME_FA64		(1UL << FSME_FA64_BIT)
+ #define FEAT_SME2		(1UL << FSME2_BIT)
++#define FEAT_GCS		(1UL << FGCS_BIT)
+ 
+ /*
+  * A descriptor used to describe and configure a test case.
+diff --git a/tools/testing/selftests/arm64/signal/test_signals_utils.c b/tools/testing/selftests/arm64/signal/test_signals_utils.c
+index 0dc948db3a4a..89ef95c1af0e 100644
+--- a/tools/testing/selftests/arm64/signal/test_signals_utils.c
++++ b/tools/testing/selftests/arm64/signal/test_signals_utils.c
+@@ -30,6 +30,7 @@ static char const *const feats_names[FMAX_END] = {
+ 	" SME ",
+ 	" FA64 ",
+ 	" SME2 ",
++	" GCS ",
+ };
+ 
+ #define MAX_FEATS_SZ	128
+@@ -329,6 +330,8 @@ int test_init(struct tdescr *td)
+ 			td->feats_supported |= FEAT_SME_FA64;
+ 		if (getauxval(AT_HWCAP2) & HWCAP2_SME2)
+ 			td->feats_supported |= FEAT_SME2;
++		if (getauxval(AT_HWCAP2) & HWCAP2_GCS)
++			td->feats_supported |= FEAT_GCS;
+ 		if (feats_ok(td)) {
+ 			if (td->feats_required & td->feats_supported)
+ 				fprintf(stderr,
 
 -- 
 2.30.2
