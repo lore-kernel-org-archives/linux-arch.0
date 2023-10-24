@@ -2,56 +2,56 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 919A9C25B6D
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Oct 2023 13:50:26 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EDBC2C25B6C
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Oct 2023 13:50:43 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1343644AbjJXNuZ (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 24 Oct 2023 09:50:25 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:50242 "EHLO
+        id S1343670AbjJXNun (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Oct 2023 09:50:43 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57810 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S1343642AbjJXNtW (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Oct 2023 09:49:22 -0400
+        with ESMTP id S1343663AbjJXNte (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Oct 2023 09:49:34 -0400
 Received: from mail-yb1-xb49.google.com (mail-yb1-xb49.google.com [IPv6:2607:f8b0:4864:20::b49])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF97C2106
-        for <linux-arch@vger.kernel.org>; Tue, 24 Oct 2023 06:47:42 -0700 (PDT)
-Received: by mail-yb1-xb49.google.com with SMTP id 3f1490d57ef6-da0631f977bso19642276.2
-        for <linux-arch@vger.kernel.org>; Tue, 24 Oct 2023 06:47:42 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5CA7D10D1
+        for <linux-arch@vger.kernel.org>; Tue, 24 Oct 2023 06:47:47 -0700 (PDT)
+Received: by mail-yb1-xb49.google.com with SMTP id 3f1490d57ef6-d9cafa90160so5239760276.2
+        for <linux-arch@vger.kernel.org>; Tue, 24 Oct 2023 06:47:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1698155262; x=1698760062; darn=vger.kernel.org;
+        d=google.com; s=20230601; t=1698155266; x=1698760066; darn=vger.kernel.org;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=wChZbZdPrjdzw8yNa1DdlAJuF9I/RLt/gyhxqa0kGe0=;
-        b=C+D79NCukv4/03mbQOn2L3MjZjS2Mc/v8G0SND58fFUoYP/ECQHr1x5xSJ6vPLGf9p
-         oq3bZFosD6p8MdGS6v9YsEmVgMy8Dqd3t9gD6SsQN26pvXPFUqYW3t4hjBegEgbwSvzZ
-         iVSY8PCnalxJwxCDe2xQ+boTPLItMWgdbXWTuritqITkGQS/dTSsrdO8t8eTtgR7EjPO
-         EA5JmYg5CEyV2PNourExFaKDyA4rD2LZZBMEicJ2v1XAYLnZy1Xp4AlhhtqrmTJ4Oik6
-         DPBIij/ftV9rlYTT+S1FdA44Xfo00KMEE5kr3VRobooyT/q+r1d8D9BRfzkWJTASmyfs
-         nPsA==
+        bh=QaUscnVR3A9ivKzFSXLwhZ9WVAKd01wEmSHK760WXQ8=;
+        b=e8MH4gnJoAUpsPTyheF3wyTjBPTAOvkvqVsK4m8evYCMDbM6k+SRnEdexKewJMF7/C
+         EB+7Qnca8n5RsAn+fOZdyj4uFlE1s2YGQp4QnyfI9JXhdkE73Nt5gfPaBTfcjTUg3Sd8
+         HR73DgnWHRunS5r+0EAFzWrR12p/qSOSyHva2483Ojt6rdfZF5B2we8JKHfTgq3yhG9a
+         7XPCtBXakeJgYmQV/DyoXGmlJC5ndSrmERPszGYkrWw4D/k7TXi/210ANxAAb0ZUpvkQ
+         JYmaZyCTkTwCEXDflhlWc22d4aZm+PslZre6aCXyTUzv+wm7gMRlLH3VYHGPcYPYvzPv
+         1+KQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1698155262; x=1698760062;
+        d=1e100.net; s=20230601; t=1698155266; x=1698760066;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=wChZbZdPrjdzw8yNa1DdlAJuF9I/RLt/gyhxqa0kGe0=;
-        b=Cs/Am8x4YlEIfqL/n0ygbJtSJG4hr2O3bc602FQxybm8NLUuKX6CO/TMcqWGSzauP6
-         IEp4y+DxrJWvZwr+VOhW4tsoX42K9KVW2Ao9PVhOvAJa9f02DN7YsXLp7Fl6mqoX+Zh2
-         wX7geMFFzRUeCpzsJjZbGVt4L2hBigfh4pZEfIZk+DRyKXCL51xnN4iH4RaCz1uMcbAg
-         ByojgpqJajUuU3vvfa8lq4L2X2vv/N4+STvERKw/3hVUwFmXxPd2uyZi7MRXCVUkmXTb
-         euEZtzJc7R3FgOhkvYLFFTmCdHnHWI145uEdjQ5tiFHC/fyzpdNOwtfgjb+zlhL34NEl
-         1h9A==
-X-Gm-Message-State: AOJu0YzllMYJDb139R7n1iP34tGiMlkJSPXU4DNnVXOW3unCW5o78lGT
-        A8QulHcMpD9+XBRbGOhShQ2V1GAo5Ew=
-X-Google-Smtp-Source: AGHT+IGcrV5EmbtfxBae51aMAnIIsiAAzPfQg3R0miJy2XM7/Ak0S71e3wg0OW88a6RB4IGUgmC4AuntPsg=
+        bh=QaUscnVR3A9ivKzFSXLwhZ9WVAKd01wEmSHK760WXQ8=;
+        b=Z2M1VnslNQ8Lf97L7FlNtm1lwtEJp28vSXWG/RogVgSfmZPYvayeUzAjzH50u8nfaA
+         SRnixe3SOkyiK3clOyl1aQOIZ72Vfn2yBtvo52VJ47kl+Qu62RwxLAdtxLRNJA77ryW0
+         0+zd7hxyQR816VvM2IS6rll8ZE9+lXSuAha/7fHUVjDU0sZkJKmlfvYFEjcqCIK2j8tV
+         jnolAfj39pJDr7+Oo0E+bqWtanxAeMW2+4cJtNu7qPZvygPwzLG8xY1499H2C9loP3zI
+         xWwuzs2xbqQcWwQ+STxNsiCz8d8f09M6wvyXeGwKeyP+jI2RnevHAWR0WKSeLI8uqmel
+         K02Q==
+X-Gm-Message-State: AOJu0YyAZSB4tzG8cf9nm+CC/dk/K7PX+myfuHPWQ24FSC+fdr83jizI
+        q4oR+r3G6jZF5dua7hM9v/rbZ9tA0eQ=
+X-Google-Smtp-Source: AGHT+IH1Lkjv7kiNBXwNvQL565BH4DAdvvh1g2aWFQE+hKVCSXY8/YuVaym3f5veoHBOTW82zGAoDjJNWeM=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:201:45ba:3318:d7a5:336a])
- (user=surenb job=sendgmr) by 2002:a25:7755:0:b0:d9a:519f:d0e6 with SMTP id
- s82-20020a257755000000b00d9a519fd0e6mr234250ybc.6.1698155261852; Tue, 24 Oct
- 2023 06:47:41 -0700 (PDT)
-Date:   Tue, 24 Oct 2023 06:46:24 -0700
+ (user=surenb job=sendgmr) by 2002:a05:6902:105:b0:da0:3da9:ce08 with SMTP id
+ o5-20020a056902010500b00da03da9ce08mr35592ybh.10.1698155266214; Tue, 24 Oct
+ 2023 06:47:46 -0700 (PDT)
+Date:   Tue, 24 Oct 2023 06:46:26 -0700
 In-Reply-To: <20231024134637.3120277-1-surenb@google.com>
 Mime-Version: 1.0
 References: <20231024134637.3120277-1-surenb@google.com>
 X-Mailer: git-send-email 2.42.0.758.gaed0368e0e-goog
-Message-ID: <20231024134637.3120277-28-surenb@google.com>
-Subject: [PATCH v2 27/39] xfs: Memory allocation profiling fixups
+Message-ID: <20231024134637.3120277-30-surenb@google.com>
+Subject: [PATCH v2 29/39] mm: percpu: Introduce pcpuobj_ext
 From:   Suren Baghdasaryan <surenb@google.com>
 To:     akpm@linux-foundation.org
 Cc:     kent.overstreet@linux.dev, mhocko@suse.com, vbabka@suse.cz,
@@ -89,72 +89,152 @@ X-Mailing-List: linux-arch@vger.kernel.org
 
 From: Kent Overstreet <kent.overstreet@linux.dev>
 
-This adds an alloc_hooks() wrapper around kmem_alloc(), so that we can
-have allocations accounted to the proper callsite.
+Upcoming alloc tagging patches require a place to stash per-allocation
+metadata.
+
+We already do this when memcg is enabled, so this patch generalizes the
+obj_cgroup * vector in struct pcpu_chunk by creating a pcpu_obj_ext
+type, which we will be adding to in an upcoming patch - similarly to the
+previous slabobj_ext patch.
 
 Signed-off-by: Kent Overstreet <kent.overstreet@linux.dev>
 Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Dennis Zhou <dennis@kernel.org>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Christoph Lameter <cl@linux.com>
+Cc: linux-mm@kvack.org
 ---
- fs/xfs/kmem.c |  4 ++--
- fs/xfs/kmem.h | 10 ++++------
- 2 files changed, 6 insertions(+), 8 deletions(-)
+ mm/percpu-internal.h | 19 +++++++++++++++++--
+ mm/percpu.c          | 30 +++++++++++++++---------------
+ 2 files changed, 32 insertions(+), 17 deletions(-)
 
-diff --git a/fs/xfs/kmem.c b/fs/xfs/kmem.c
-index c557a030acfe..9aa57a4e2478 100644
---- a/fs/xfs/kmem.c
-+++ b/fs/xfs/kmem.c
-@@ -8,7 +8,7 @@
- #include "xfs_trace.h"
+diff --git a/mm/percpu-internal.h b/mm/percpu-internal.h
+index cdd0aa597a81..e62d582f4bf3 100644
+--- a/mm/percpu-internal.h
++++ b/mm/percpu-internal.h
+@@ -32,6 +32,16 @@ struct pcpu_block_md {
+ 	int			nr_bits;	/* total bits responsible for */
+ };
  
- void *
--kmem_alloc(size_t size, xfs_km_flags_t flags)
-+kmem_alloc_noprof(size_t size, xfs_km_flags_t flags)
++struct pcpuobj_ext {
++#ifdef CONFIG_MEMCG_KMEM
++	struct obj_cgroup	*cgroup;
++#endif
++};
++
++#ifdef CONFIG_MEMCG_KMEM
++#define NEED_PCPUOBJ_EXT
++#endif
++
+ struct pcpu_chunk {
+ #ifdef CONFIG_PERCPU_STATS
+ 	int			nr_alloc;	/* # of allocations */
+@@ -64,8 +74,8 @@ struct pcpu_chunk {
+ 	int			end_offset;	/* additional area required to
+ 						   have the region end page
+ 						   aligned */
+-#ifdef CONFIG_MEMCG_KMEM
+-	struct obj_cgroup	**obj_cgroups;	/* vector of object cgroups */
++#ifdef NEED_PCPUOBJ_EXT
++	struct pcpuobj_ext	*obj_exts;	/* vector of object cgroups */
+ #endif
+ 
+ 	int			nr_pages;	/* # of pages served by this chunk */
+@@ -74,6 +84,11 @@ struct pcpu_chunk {
+ 	unsigned long		populated[];	/* populated bitmap */
+ };
+ 
++static inline bool need_pcpuobj_ext(void)
++{
++	return !mem_cgroup_kmem_disabled();
++}
++
+ extern spinlock_t pcpu_lock;
+ 
+ extern struct list_head *pcpu_chunk_lists;
+diff --git a/mm/percpu.c b/mm/percpu.c
+index a7665de8485f..5a6202acffa3 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -1392,9 +1392,9 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
+ 		panic("%s: Failed to allocate %zu bytes\n", __func__,
+ 		      alloc_size);
+ 
+-#ifdef CONFIG_MEMCG_KMEM
++#ifdef NEED_PCPUOBJ_EXT
+ 	/* first chunk is free to use */
+-	chunk->obj_cgroups = NULL;
++	chunk->obj_exts = NULL;
+ #endif
+ 	pcpu_init_md_blocks(chunk);
+ 
+@@ -1463,12 +1463,12 @@ static struct pcpu_chunk *pcpu_alloc_chunk(gfp_t gfp)
+ 	if (!chunk->md_blocks)
+ 		goto md_blocks_fail;
+ 
+-#ifdef CONFIG_MEMCG_KMEM
+-	if (!mem_cgroup_kmem_disabled()) {
+-		chunk->obj_cgroups =
++#ifdef NEED_PCPUOBJ_EXT
++	if (need_pcpuobj_ext()) {
++		chunk->obj_exts =
+ 			pcpu_mem_zalloc(pcpu_chunk_map_bits(chunk) *
+-					sizeof(struct obj_cgroup *), gfp);
+-		if (!chunk->obj_cgroups)
++					sizeof(struct pcpuobj_ext), gfp);
++		if (!chunk->obj_exts)
+ 			goto objcg_fail;
+ 	}
+ #endif
+@@ -1480,7 +1480,7 @@ static struct pcpu_chunk *pcpu_alloc_chunk(gfp_t gfp)
+ 
+ 	return chunk;
+ 
+-#ifdef CONFIG_MEMCG_KMEM
++#ifdef NEED_PCPUOBJ_EXT
+ objcg_fail:
+ 	pcpu_mem_free(chunk->md_blocks);
+ #endif
+@@ -1498,8 +1498,8 @@ static void pcpu_free_chunk(struct pcpu_chunk *chunk)
  {
- 	int	retries = 0;
- 	gfp_t	lflags = kmem_flags_convert(flags);
-@@ -17,7 +17,7 @@ kmem_alloc(size_t size, xfs_km_flags_t flags)
- 	trace_kmem_alloc(size, flags, _RET_IP_);
+ 	if (!chunk)
+ 		return;
+-#ifdef CONFIG_MEMCG_KMEM
+-	pcpu_mem_free(chunk->obj_cgroups);
++#ifdef NEED_PCPUOBJ_EXT
++	pcpu_mem_free(chunk->obj_exts);
+ #endif
+ 	pcpu_mem_free(chunk->md_blocks);
+ 	pcpu_mem_free(chunk->bound_map);
+@@ -1648,8 +1648,8 @@ static void pcpu_memcg_post_alloc_hook(struct obj_cgroup *objcg,
+ 	if (!objcg)
+ 		return;
  
- 	do {
--		ptr = kmalloc(size, lflags);
-+		ptr = kmalloc_noprof(size, lflags);
- 		if (ptr || (flags & KM_MAYFAIL))
- 			return ptr;
- 		if (!(++retries % 100))
-diff --git a/fs/xfs/kmem.h b/fs/xfs/kmem.h
-index b987dc2c6851..c4cf1dc2a7af 100644
---- a/fs/xfs/kmem.h
-+++ b/fs/xfs/kmem.h
-@@ -6,6 +6,7 @@
- #ifndef __XFS_SUPPORT_KMEM_H__
- #define __XFS_SUPPORT_KMEM_H__
+-	if (likely(chunk && chunk->obj_cgroups)) {
+-		chunk->obj_cgroups[off >> PCPU_MIN_ALLOC_SHIFT] = objcg;
++	if (likely(chunk && chunk->obj_exts)) {
++		chunk->obj_exts[off >> PCPU_MIN_ALLOC_SHIFT].cgroup = objcg;
  
-+#include <linux/alloc_tag.h>
- #include <linux/slab.h>
- #include <linux/sched.h>
- #include <linux/mm.h>
-@@ -56,18 +57,15 @@ kmem_flags_convert(xfs_km_flags_t flags)
- 	return lflags;
- }
- 
--extern void *kmem_alloc(size_t, xfs_km_flags_t);
- static inline void  kmem_free(const void *ptr)
+ 		rcu_read_lock();
+ 		mod_memcg_state(obj_cgroup_memcg(objcg), MEMCG_PERCPU_B,
+@@ -1665,13 +1665,13 @@ static void pcpu_memcg_free_hook(struct pcpu_chunk *chunk, int off, size_t size)
  {
- 	kvfree(ptr);
- }
+ 	struct obj_cgroup *objcg;
  
-+extern void *kmem_alloc_noprof(size_t, xfs_km_flags_t);
-+#define kmem_alloc(...)			alloc_hooks(kmem_alloc_noprof(__VA_ARGS__))
+-	if (unlikely(!chunk->obj_cgroups))
++	if (unlikely(!chunk->obj_exts))
+ 		return;
  
--static inline void *
--kmem_zalloc(size_t size, xfs_km_flags_t flags)
--{
--	return kmem_alloc(size, flags | KM_ZERO);
--}
-+#define kmem_zalloc(_size, _flags)	kmem_alloc((_size), (_flags) | KM_ZERO)
+-	objcg = chunk->obj_cgroups[off >> PCPU_MIN_ALLOC_SHIFT];
++	objcg = chunk->obj_exts[off >> PCPU_MIN_ALLOC_SHIFT].cgroup;
+ 	if (!objcg)
+ 		return;
+-	chunk->obj_cgroups[off >> PCPU_MIN_ALLOC_SHIFT] = NULL;
++	chunk->obj_exts[off >> PCPU_MIN_ALLOC_SHIFT].cgroup = NULL;
  
- /*
-  * Zone interfaces
+ 	obj_cgroup_uncharge(objcg, pcpu_obj_full_size(size));
+ 
 -- 
 2.42.0.758.gaed0368e0e-goog
 
