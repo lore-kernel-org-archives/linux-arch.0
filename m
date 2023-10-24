@@ -2,39 +2,39 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id F2393C25B72
-	for <linux-arch@archiver.kernel.org>; Tue, 24 Oct 2023 15:19:17 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B63CFC27C4A
+	for <linux-arch@archiver.kernel.org>; Tue, 24 Oct 2023 15:19:18 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S234715AbjJXPTR (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Tue, 24 Oct 2023 11:19:17 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:36502 "EHLO
+        id S234765AbjJXPTS (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Tue, 24 Oct 2023 11:19:18 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:55336 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S234734AbjJXPS0 (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Oct 2023 11:18:26 -0400
+        with ESMTP id S234810AbjJXPSp (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Tue, 24 Oct 2023 11:18:45 -0400
 Received: from pandora.armlinux.org.uk (pandora.armlinux.org.uk [IPv6:2001:4d48:ad52:32c8:5054:ff:fe00:142])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id C88D2198E;
-        Tue, 24 Oct 2023 08:17:35 -0700 (PDT)
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 242B319AC;
+        Tue, 24 Oct 2023 08:17:38 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
         d=armlinux.org.uk; s=pandora-2019; h=Date:Sender:Message-Id:Content-Type:
         Content-Transfer-Encoding:MIME-Version:Subject:Cc:To:From:References:
         In-Reply-To:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:
         Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:
         List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-        bh=+gACgpTQj8OpvruPj/p3shExXAIg9qVB65uOYbGxgdU=; b=S+hMwPD1b9oQ/RqKbnhw1l9eHh
-        B5f+XBLR8a9qXl8fH2rLn1s6mfbARa4b9U6prgqxT3kAF5/t7lW8FVuiVE0g4iWDxuaMel/MnTKcl
-        cNt8zlbqh3Td1sLM/Qe/hT6rUp3qsPThS8Ffp1E9er9heuQqHfLJMZCIrdGWVrxXqLdTK8eG4GjBh
-        fawV+SO4XGkk8Sw9U7RkxiPTsv8nmLQs7ydSMjvkhp1MYiTFVMRya3EPZdkR91BPLwRgyXw4H0dMy
-        iDr8dmnkOcHbcaTVLbYtp0eQIcv7M4EvJ9RiSiidyLEzaFqHhqZmQNTh+700LPffqertf8Nz6fyaZ
-        S6Yjv1xw==;
-Received: from e0022681537dd.dyn.armlinux.org.uk ([fd8f:7570:feb6:1:222:68ff:fe15:37dd]:34484 helo=rmk-PC.armlinux.org.uk)
+        bh=dh+jsR2oRY9sfsyFdktS9+0lX1Q0KghWkOaQMlI8IM4=; b=ajV8p/zuaO4aFqKEKamK+Dmcjd
+        D8dgFtK5CysBQTIRIT+StQp57SggyUn6aHwE8gxkjqbOVv2DN7V+g6cCBb29f49yYcE2sSNMAvdlM
+        lBfEOjlCvUAw/SSFrfSvOcE/nkNhteQW47quKJAt3Q2ppKyJhebTCChzAMw1BvjIz/uqr9Me7rc6C
+        OXbLGj8ibVTQmatNPB3Pj0XCQXtsSPFsSR63KTKTYkIvrHYeZfaV06kJmK7coNq0IKdUkZZ9Flhzu
+        FDbmwzv2Tao+LIqjKL5NSNWP/h8P1jDEEMa+HsaduZXnnZ48PYBjuJMF0bkglF5/HJPcoZr36Qlq8
+        jFJGEFKA==;
+Received: from e0022681537dd.dyn.armlinux.org.uk ([fd8f:7570:feb6:1:222:68ff:fe15:37dd]:34776 helo=rmk-PC.armlinux.org.uk)
         by pandora.armlinux.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
         (Exim 4.96)
         (envelope-from <rmk@armlinux.org.uk>)
-        id 1qvJ9e-0004Ox-2H;
-        Tue, 24 Oct 2023 16:17:15 +0100
+        id 1qvJ9w-0004Q6-3B;
+        Tue, 24 Oct 2023 16:17:33 +0100
 Received: from rmk by rmk-PC.armlinux.org.uk with local (Exim 4.94.2)
         (envelope-from <rmk@rmk-PC.armlinux.org.uk>)
-        id 1qvJ9g-00AqQ5-5y; Tue, 24 Oct 2023 16:17:16 +0100
+        id 1qvJ9v-00AqQO-K9; Tue, 24 Oct 2023 16:17:31 +0100
 In-Reply-To: <ZTffkAdOqL2pI2la@shell.armlinux.org.uk>
 References: <ZTffkAdOqL2pI2la@shell.armlinux.org.uk>
 From:   Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
@@ -49,55 +49,98 @@ Cc:     Salil Mehta <salil.mehta@huawei.com>,
         Jean-Philippe Brucker <jean-philippe@linaro.org>,
         jianyong.wu@arm.com, justin.he@arm.com,
         James Morse <james.morse@arm.com>,
-        Thomas Gleixner <tglx@linutronix.de>,
-        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 13/39] x86: intel_epb: Don't rely on link order
+        Paul Walmsley <paul.walmsley@sifive.com>,
+        Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>
+Subject: [PATCH 16/39] riscv: Switch over to GENERIC_CPU_DEVICES
 MIME-Version: 1.0
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset="utf-8"
-Message-Id: <E1qvJ9g-00AqQ5-5y@rmk-PC.armlinux.org.uk>
+Message-Id: <E1qvJ9v-00AqQO-K9@rmk-PC.armlinux.org.uk>
 Sender: Russell King <rmk@armlinux.org.uk>
-Date:   Tue, 24 Oct 2023 16:17:16 +0100
+Date:   Tue, 24 Oct 2023 16:17:31 +0100
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
 From: James Morse <james.morse@arm.com>
 
-intel_epb_init() is called as a subsys_initcall() to register cpuhp
-callbacks. The callbacks make use of get_cpu_device() which will return
-NULL unless register_cpu() has been called. register_cpu() is called
-from topology_init(), which is also a subsys_initcall().
+Now that GENERIC_CPU_DEVICES calls arch_register_cpu(), which can be
+overridden by the arch code, switch over to this to allow common code
+to choose when the register_cpu() call is made.
 
-This is fragile. Moving the register_cpu() to a different
-subsys_initcall()  leads to a NULL dereference during boot.
+This allows topology_init() to be removed.
 
-Make intel_epb_init() a late_initcall(), user-space can't provide a
-policy before this point anyway.
+This is an intermediate step to the logic being moved to drivers/acpi,
+where GENERIC_CPU_DEVICES will do the work when booting with acpi=off.
+
+This patch also has the effect of moving the registration of CPUs from
+subsys to driver core initialisation, prior to any initcalls running.
 
 Signed-off-by: James Morse <james.morse@arm.com>
+Reviewed-by: Jonathan Cameron <Jonathan.Cameron@huawei.com>
 Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
 ---
-subsys_initcall_sync() would be an option, but moving the register_cpu()
-calls into ACPI also means adding a safety net for CPUs that are online
-but not described properly by firmware. This lives in subsys_initcall_sync().
+Changes since RFC v2:
+ * Add note about initialisation order change.
 ---
- arch/x86/kernel/cpu/intel_epb.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/riscv/Kconfig        |  1 +
+ arch/riscv/kernel/setup.c | 19 ++++---------------
+ 2 files changed, 5 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/intel_epb.c b/arch/x86/kernel/cpu/intel_epb.c
-index e4c3ba91321c..f18d35fe27a9 100644
---- a/arch/x86/kernel/cpu/intel_epb.c
-+++ b/arch/x86/kernel/cpu/intel_epb.c
-@@ -237,4 +237,4 @@ static __init int intel_epb_init(void)
- 	cpuhp_remove_state(CPUHP_AP_X86_INTEL_EPB_ONLINE);
- 	return ret;
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index d607ab0f7c6d..eeb80fb55acc 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -69,6 +69,7 @@ config RISCV
+ 	select GENERIC_ARCH_TOPOLOGY
+ 	select GENERIC_ATOMIC64 if !64BIT
+ 	select GENERIC_CLOCKEVENTS_BROADCAST if SMP
++	select GENERIC_CPU_DEVICES
+ 	select GENERIC_EARLY_IOREMAP
+ 	select GENERIC_ENTRY
+ 	select GENERIC_GETTIMEOFDAY if HAVE_GENERIC_VDSO
+diff --git a/arch/riscv/kernel/setup.c b/arch/riscv/kernel/setup.c
+index aac853ae4eb7..311e99741cf8 100644
+--- a/arch/riscv/kernel/setup.c
++++ b/arch/riscv/kernel/setup.c
+@@ -62,7 +62,6 @@ atomic_t hart_lottery __section(".sdata")
+ #endif
+ ;
+ unsigned long boot_cpu_hartid;
+-static DEFINE_PER_CPU(struct cpu, cpu_devices);
+ 
+ /*
+  * Place kernel memory regions on the resource tree so that
+@@ -307,23 +306,13 @@ void __init setup_arch(char **cmdline_p)
+ 	riscv_set_dma_cache_alignment();
  }
--subsys_initcall(intel_epb_init);
-+late_initcall(intel_epb_init);
+ 
+-static int __init topology_init(void)
++int arch_register_cpu(int cpu)
+ {
+-	int i, ret;
++	struct cpu *c = &per_cpu(cpu_devices, cpu);
+ 
+-	for_each_possible_cpu(i) {
+-		struct cpu *cpu = &per_cpu(cpu_devices, i);
+-
+-		cpu->hotpluggable = cpu_has_hotplug(i);
+-		ret = register_cpu(cpu, i);
+-		if (unlikely(ret))
+-			pr_warn("Warning: %s: register_cpu %d failed (%d)\n",
+-			       __func__, i, ret);
+-	}
+-
+-	return 0;
++	c->hotpluggable = cpu_has_hotplug(cpu);
++	return register_cpu(c, cpu);
+ }
+-subsys_initcall(topology_init);
+ 
+ void free_initmem(void)
+ {
 -- 
 2.30.2
 
