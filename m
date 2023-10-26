@@ -2,111 +2,129 @@ Return-Path: <linux-arch-owner@vger.kernel.org>
 X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
 	aws-us-west-2-korg-lkml-1.web.codeaurora.org
 Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B8AB9C25B6B
-	for <linux-arch@archiver.kernel.org>; Thu, 26 Oct 2023 11:17:08 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 534E0C25B48
+	for <linux-arch@archiver.kernel.org>; Thu, 26 Oct 2023 12:36:47 +0000 (UTC)
 Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
-        id S1344788AbjJZLRI (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
-        Thu, 26 Oct 2023 07:17:08 -0400
-Received: from lindbergh.monkeyblade.net ([23.128.96.19]:60194 "EHLO
+        id S229647AbjJZMgr (ORCPT <rfc822;linux-arch@archiver.kernel.org>);
+        Thu, 26 Oct 2023 08:36:47 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:43866 "EHLO
         lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-        with ESMTP id S230406AbjJZLRH (ORCPT
-        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Oct 2023 07:17:07 -0400
-Received: from mail-ua1-x92e.google.com (mail-ua1-x92e.google.com [IPv6:2607:f8b0:4864:20::92e])
-        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9187D1AD
-        for <linux-arch@vger.kernel.org>; Thu, 26 Oct 2023 04:17:04 -0700 (PDT)
-Received: by mail-ua1-x92e.google.com with SMTP id a1e0cc1a2514c-7b636ee2b38so495178241.0
-        for <linux-arch@vger.kernel.org>; Thu, 26 Oct 2023 04:17:04 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1698319023; x=1698923823; darn=vger.kernel.org;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=ADQcQPFXDFUAE1kDLSEymM4GykgZRpKmE6Mqe8TDGH4=;
-        b=hLgA+35TwPIRTqpwo25BV1IqB+22lDsO+ZzJFFejglYNU/9CBRxzasxR079HuJaP2f
-         Fi5D4lWHOm0QRKswoeNH/oI5IGtlaIB5zPrZ+BzqgDVRdZWp4QTDZ9C9NcFp0bd3YHhi
-         Fpvi/P1favuSuzE3GgqZSo0CrStCLNAdKijyAcDlXWWXtb2cd0I46eEkZ1072haxM8BG
-         IR00FZVGSJHkd7tBApkrlOHcrXgkT3bDe8mz64MTuvnd5lfBBTz51/6wwZ3mxIwJ3m1G
-         H9yUD698Em0cNN/z11Dtdbo483KqIquOuP3cffQ8KHFB3AzfC0gyGQrTdtbP65Qsh1/G
-         IZiA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1698319023; x=1698923823;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=ADQcQPFXDFUAE1kDLSEymM4GykgZRpKmE6Mqe8TDGH4=;
-        b=K0mmgFFTw/bptzBIU97UmvGlcZRblOiwrl103dObwjcDG3LT0/3RT8Wg6O+nsc3CX2
-         6iCPVA3EplRAsBNmViNW9flVe/Nu3UTzuXdYCuCv3pPTEPktM1llt9kzbKXSJzou1e8U
-         VflBQQcX+NyjXrK5yeyx4iMWTZQOhggXMaEBGw4VwCRfzquwhasAm8uWApDXje1RO4/f
-         XZ4xFv3LkF2Zz8tATYKiuUiLzGST8LoKog9Do15SWEObeqYLRcKPq2MPOGV18qzvR87q
-         xGn/sCXxXTU4UjLLKrhkT9lgiCOnEhjgwvKTVGD+H8KPm0/ZUhwlK6F60Xvur9YdMCe5
-         Ghwg==
-X-Gm-Message-State: AOJu0Yx9MiklXzr44UiVtt1oPJmCf2Luetsx37f/S0zcIit4bHLFuURg
-        8kYsBaHzbXyTTO8StjaM32dXnlNI1CnZ7QrqwV9TSw==
-X-Google-Smtp-Source: AGHT+IFL1Bi1n9i8tyu/TR0kE59uAhq0MbAYLquMr3viL391nUxuNb4eUNFXaqX2lALhkyqgTfVTxU9ppHTJB0CpVFA=
-X-Received: by 2002:a67:e086:0:b0:450:cebb:4f15 with SMTP id
- f6-20020a67e086000000b00450cebb4f15mr1164753vsl.1.1698319023532; Thu, 26 Oct
- 2023 04:17:03 -0700 (PDT)
+        with ESMTP id S230413AbjJZMgq (ORCPT
+        <rfc822;linux-arch@vger.kernel.org>); Thu, 26 Oct 2023 08:36:46 -0400
+Received: from wout4-smtp.messagingengine.com (wout4-smtp.messagingengine.com [64.147.123.20])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 32E10111;
+        Thu, 26 Oct 2023 05:36:43 -0700 (PDT)
+Received: from compute3.internal (compute3.nyi.internal [10.202.2.43])
+        by mailout.west.internal (Postfix) with ESMTP id 6632E3200943;
+        Thu, 26 Oct 2023 08:36:41 -0400 (EDT)
+Received: from imap44 ([10.202.2.94])
+  by compute3.internal (MEProxy); Thu, 26 Oct 2023 08:36:42 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=flygoat.com; h=
+        cc:cc:content-transfer-encoding:content-type:content-type:date
+        :date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+        :references:reply-to:sender:subject:subject:to:to; s=fm1; t=
+        1698323800; x=1698410200; bh=7Ou35+gtN5wPlKenTK4K7QdEWtUFHuuBjgj
+        vnmJt2so=; b=ReK/1CPMHcj4oFv60BrYhPVG1zqUf01nfY1GKPWcNf69ULCkO8o
+        cnP8yuy5WQmqBeNLBdnx5BJVYm6Z2qRPNSb+q6QXW4R2/Wrq1GKORxLZsnMNIxxY
+        6PG1jsYaHi/9fj96JAPLCKrr9OoudlC6RYE6s3RFVPOJ7vN/X7LpY01xWgNevNa7
+        +7RYD67P1hdjp4srkFlYBgiob57FfonvLTXqde6ri0zooVr+EH/pEoQRfKos+1Ce
+        Og+toa/ApC7M0jWyY7X6ONmOShWHFE+3zpvt2vINo9n4c3Tke38wISEe4yipxtDc
+        aGrfNOqerCiyDzq34glZqQRkLneKPgek2Cg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+        messagingengine.com; h=cc:cc:content-transfer-encoding
+        :content-type:content-type:date:date:feedback-id:feedback-id
+        :from:from:in-reply-to:in-reply-to:message-id:mime-version
+        :references:reply-to:sender:subject:subject:to:to:x-me-proxy
+        :x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=
+        1698323800; x=1698410200; bh=7Ou35+gtN5wPlKenTK4K7QdEWtUFHuuBjgj
+        vnmJt2so=; b=loijJ83r4Let7U+9tN186djBs/D0jVuaFqRfByNiqGvgbW7yuIH
+        IQ8/m6s50xNKY0IdAKlVGkIB/4qRjrxAEKKypCIPTL0w0PoqoXhUhj7PFx4dGFny
+        bxj04yVY9TpU2p41660X7hqq6Fu4r2k3qIBdbfmlzEBMbE3PDa4QU8qzsanHZ4E5
+        JA0NuwKApPdV5RXu+3uAayL+yZPFPb81lpcu/yEwS6jLq61QXKobVB4YcMeWelWO
+        kwCXkgkxMiawKTxtP+8jpKLB9o0IMpMULEX7pxPQFVDIbSXoAoBG1nwDzapRYOut
+        Eafmz0T75gCZLMLT+WgcQEvCTpR+efc8Erw==
+X-ME-Sender: <xms:WF06ZR_oEwY7nQqu-JgSf15pAQKz9G4xHIa3ctQTy88aJKmxLQ7Mpw>
+    <xme:WF06ZVvLj596brZxRQG7TJqhIdo__s5djGJhFbP2FEWlSYpn2Zlpqx3d2p0EmxVar
+    eHfLlXHMV2CIkAKhRk>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvkedrledvgdehfecutefuodetggdotefrodftvf
+    curfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfghnecu
+    uegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenuc
+    fjughrpefofgggkfgjfhffhffvvefutgfgsehtqhertderreejnecuhfhrohhmpedflfhi
+    rgiguhhnucgjrghnghdfuceojhhirgiguhhnrdihrghnghesfhhlhihgohgrthdrtghomh
+    eqnecuggftrfgrthhtvghrnhepudefgeeftedugeehffdtheefgfevffelfefghefhjeeu
+    geevtefhudduvdeihefgnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrg
+    hilhhfrhhomhepjhhirgiguhhnrdihrghnghesfhhlhihgohgrthdrtghomh
+X-ME-Proxy: <xmx:WF06ZfCvMXqNGY963g5bF6Z2PeH8e47FzVTL5fbAZPN2fAKmpPEVwQ>
+    <xmx:WF06ZVf1XEF6HYkgxH75gdFnHnUl3TOVInxr2CRbL2SgbzZWFfugkA>
+    <xmx:WF06ZWNkeDMfuZ9oB8bQT9QclpRwTSh6a8cFR5l3zjszWN7zUsVfDQ>
+    <xmx:WF06ZXHVnC-rSqPU1vPCnVB1PSViYfPqZdx49gBkbH92JFieBzB7lA>
+Feedback-ID: ifd894703:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+        id 06B5A36A0075; Thu, 26 Oct 2023 08:36:39 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-1048-g9229b632c5-fm-20231019.001-g9229b632
 MIME-Version: 1.0
-References: <20231025195339.1431894-1-boqun.feng@gmail.com>
-In-Reply-To: <20231025195339.1431894-1-boqun.feng@gmail.com>
-From:   Marco Elver <elver@google.com>
-Date:   Thu, 26 Oct 2023 13:16:25 +0200
-Message-ID: <CANpmjNN6PN7tNLuUKZXcTe5n=HOv9Po0er0cDhvP9x=uA7rTTw@mail.gmail.com>
-Subject: Re: [RFC] rust: types: Add read_once and write_once
-To:     Boqun Feng <boqun.feng@gmail.com>
-Cc:     rust-for-linux@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, llvm@lists.linux.dev,
-        Miguel Ojeda <ojeda@kernel.org>,
-        Alex Gaynor <alex.gaynor@gmail.com>,
-        Wedson Almeida Filho <wedsonaf@gmail.com>,
-        Gary Guo <gary@garyguo.net>,
-        =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
-        Benno Lossin <benno.lossin@proton.me>,
-        Andreas Hindborg <a.hindborg@samsung.com>,
-        Alice Ryhl <aliceryhl@google.com>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Will Deacon <will@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Nicholas Piggin <npiggin@gmail.com>,
-        David Howells <dhowells@redhat.com>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Akira Yokosawa <akiyks@gmail.com>,
-        Daniel Lustig <dlustig@nvidia.com>,
-        Joel Fernandes <joel@joelfernandes.org>,
-        Nathan Chancellor <nathan@kernel.org>,
-        Nick Desaulniers <ndesaulniers@google.com>,
-        Tom Rix <trix@redhat.com>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Christian Brauner <brauner@kernel.org>,
-        kent.overstreet@gmail.com,
-        Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-        Matthew Wilcox <willy@infradead.org>,
-        Dave Chinner <david@fromorbit.com>,
-        linux-fsdevel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Message-Id: <a7e3fdcd-d5e6-4261-85be-3ec1221edf24@app.fastmail.com>
+In-Reply-To: <20230921110424.215592-1-bhe@redhat.com>
+References: <20230921110424.215592-1-bhe@redhat.com>
+Date:   Thu, 26 Oct 2023 13:36:13 +0100
+From:   "Jiaxun Yang" <jiaxun.yang@flygoat.com>
+To:     "Baoquan He" <bhe@redhat.com>, linux-kernel@vger.kernel.org
+Cc:     linux-arch@vger.kernel.org, linux-mm@kvack.org,
+        "Andrew Morton" <akpm@linux-foundation.org>,
+        "Arnd Bergmann" <arnd@arndb.de>, mpe@ellerman.id.au,
+        "Geert Uytterhoeven" <geert@linux-m68k.org>,
+        "Luis Chamberlain" <mcgrof@kernel.org>, hch@infradead.org,
+        "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
+        "Florian Fainelli" <f.fainelli@gmail.com>, deller@gmx.de
+Subject: Re: [PATCH v5 0/4] arch/*/io.h: remove ioremap_uc in some architectures
+Content-Type: text/plain;charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 List-ID: <linux-arch.vger.kernel.org>
 X-Mailing-List: linux-arch@vger.kernel.org
 
-On Wed, 25 Oct 2023 at 21:54, Boqun Feng <boqun.feng@gmail.com> wrote:
->
-> In theory, `read_volatile` and `write_volatile` in Rust can have UB in
-> case of the data races [1]. However, kernel uses volatiles to implement
-> READ_ONCE() and WRITE_ONCE(), and expects races on these marked accesses
-> don't cause UB. And they are proven to have a lot of usages in kernel.
->
-> To close this gap, `read_once` and `write_once` are introduced, they
-> have the same semantics as `READ_ONCE` and `WRITE_ONCE` especially
-> regarding data races under the assumption that `read_volatile` and
-> `write_volatile` have the same behavior as a volatile pointer in C from
-> a compiler point of view.
->
-> Longer term solution is to work with Rust language side for a better way
-> to implement `read_once` and `write_once`. But so far, it should be good
-> enough.
 
-One thing you may also want to address is the ability to switch
-between READ_ONCE implementations depending on config. For one, arm64
-with LTO will promote READ_ONCE() to acquires.
+
+=E5=9C=A82023=E5=B9=B49=E6=9C=8821=E6=97=A5=E4=B9=9D=E6=9C=88 =E4=B8=8B=E5=
+=8D=8812:04=EF=BC=8CBaoquan He=E5=86=99=E9=81=93=EF=BC=9A
+> This patchset tries to remove ioremap_uc() in the current architectures
+> except of x86 and ia64. They will use the default ioremap_uc version
+> in <asm-generic/io.h> which returns NULL. Anyone who wants to add new
+> invocation of ioremap_uc(), please consider using ioremap() instead or
+> adding a new ARCH specific ioremap_uc(), or refer to the callsite
+> in drivers/video/fbdev/aty/atyfb_base.c.
+>
+> This change won't cuase breakage to the current kernel because in the
+> only ioremap_uc callsite, an adjustment is made to eliminate impact in
+> patch 1 of this series.
+>
+> To get rid of all of them other than x86 and ia64, add asm-generic/io.h
+> to asm/io.h of mips ARCH. With this adding, we can get rid of the
+> ioremap_uc() in mips too. This is done in patch 2. And a followup patch
+> 4 is added to remove duplicated code according to Arnd's suggestion.
+>
+> Test:
+> =3D=3D=3D=3D=3D
+> Except of Jiaxun's efficient testing on patch 2/4, I also did cross co=
+mpiling
+> of this series on mips64, building passed.
+>
+
+For whole series:
+
+Tested-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
+
+Hi Arnd and Thomas,
+
+I've got some work pending based on this series, however I'm unclear abo=
+ut
+which tree this series will go since both of you give acked-by.
+
+Given that there are some tree-wide modifications, I guess it should go =
+into
+Arnd's asm-generic tree?
+
+Thanks
+--=20
+- Jiaxun
