@@ -1,34 +1,34 @@
 Received: from lindbergh.monkeyblade.net (lindbergh.monkeyblade.net [23.128.96.19])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EDBB14A86;
-	Tue,  7 Nov 2023 10:30:17 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E0C414A86;
+	Tue,  7 Nov 2023 10:30:20 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=armlinux.org.uk header.i=@armlinux.org.uk header.b="gaYb0AGp"
+	dkim=pass (2048-bit key) header.d=armlinux.org.uk header.i=@armlinux.org.uk header.b="iWpNzX/i"
 Received: from pandora.armlinux.org.uk (pandora.armlinux.org.uk [IPv6:2001:4d48:ad52:32c8:5054:ff:fe00:142])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 215B310E0;
-	Tue,  7 Nov 2023 02:30:14 -0800 (PST)
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 55E469B;
+	Tue,  7 Nov 2023 02:30:16 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=armlinux.org.uk; s=pandora-2019; h=Date:Sender:Message-Id:Content-Type:
 	Content-Transfer-Encoding:MIME-Version:Subject:Cc:To:From:References:
 	In-Reply-To:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:
 	Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:
 	List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-	bh=SNsUqv3mHEJC05AIRv8JP1Jps5pzoeiw8iuzzTO88jM=; b=gaYb0AGpNaGyoeAwB30k2zFAeu
-	QtE/mEgx2bN+6/cRgeApfIsEGJb5BL+f4bWGno6vbNHXGoTsCsxHtO0KnvHEuiHfneaXcVDdgwQiW
-	YFfzzRt7XVvbgHS3f6+K+sKJzN4D6hyQXJnEsqD4fn1yKl5PoIpHkx3vrfiWVoCl248NoqIfc9bdM
-	+lapY16Nh7cPph9APkox+294r9ekgPv7okr3Udzy0ho27B/UyD7w5g/JQ8wTyEc8jRbp5pzJj48zv
-	KxlKag3ePeznKBc6qDe594xO56tMzv/1jI3u5/9/ONDwx/tUUqNCSI10JpZOAbpICTK9NFkA6zXK7
-	lxjWydMQ==;
-Received: from e0022681537dd.dyn.armlinux.org.uk ([fd8f:7570:feb6:1:222:68ff:fe15:37dd]:41354 helo=rmk-PC.armlinux.org.uk)
+	bh=AMLeOPj97UWFUJITi7pviQd/DMBECoV/Ju2iA1XroZM=; b=iWpNzX/iPGoOYZQkZm1FIQXbPq
+	l/1gVppyboPmC6oMcfXlstcdMZwkQemSDC3sAWAcxjAeobj3XzuPCbPhXny1YZMJO2nRHG63r3Mh0
+	jNvRH7k+2oC8ySGSAk8U2dvBaMevMXVHN0gC+MMpsqaWK0L8ihN0bQUJoxLPTYxrKgZM+Pjlih3fs
+	LcT8t4CZjhVC6MPxRxQ/d17Q4R2MW+G5mBgCs6797LrxnXap9B7GaDDQT/BHu44vMbeZ+KHsAGb5e
+	MKJai+jRkoPwqj8S97N9deRW2n8XWFl+QX4UABVhRevJwiRLKylNLlAEpPAjcV2W5jTxW4wJunXYc
+	Rs7uQr5g==;
+Received: from e0022681537dd.dyn.armlinux.org.uk ([fd8f:7570:feb6:1:222:68ff:fe15:37dd]:54898 helo=rmk-PC.armlinux.org.uk)
 	by pandora.armlinux.org.uk with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 	(Exim 4.96)
 	(envelope-from <rmk@armlinux.org.uk>)
-	id 1r0JLP-0000FP-2Y;
-	Tue, 07 Nov 2023 10:30:04 +0000
+	id 1r0JLU-0000GD-0Y;
+	Tue, 07 Nov 2023 10:30:08 +0000
 Received: from rmk by rmk-PC.armlinux.org.uk with local (Exim 4.94.2)
 	(envelope-from <rmk@rmk-PC.armlinux.org.uk>)
-	id 1r0JLL-00CTxD-Gc; Tue, 07 Nov 2023 10:29:59 +0000
+	id 1r0JLV-00CTxS-QB; Tue, 07 Nov 2023 10:30:09 +0000
 In-Reply-To: <ZUoRY33AAHMc5ThW@shell.armlinux.org.uk>
 References: <ZUoRY33AAHMc5ThW@shell.armlinux.org.uk>
 From: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
@@ -51,11 +51,9 @@ Cc: Salil Mehta <salil.mehta@huawei.com>,
 	 justin.he@arm.com,
 	 James Morse <james.morse@arm.com>,
 	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	"Rafael J. Wysocki" <rafael@kernel.org>,
-	Paul Walmsley <paul.walmsley@sifive.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>
-Subject: [PATCH RFC 08/22] drivers: base: Implement weak arch_unregister_cpu()
+	"Rafael J. Wysocki" <rafael@kernel.org>
+Subject: [PATCH RFC 10/22] drivers: base: Move cpu_dev_init() after
+ node_dev_init()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -65,47 +63,44 @@ MIME-Version: 1.0
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset="utf-8"
-Message-Id: <E1r0JLL-00CTxD-Gc@rmk-PC.armlinux.org.uk>
+Message-Id: <E1r0JLV-00CTxS-QB@rmk-PC.armlinux.org.uk>
 Sender: Russell King <rmk@armlinux.org.uk>
-Date: Tue, 07 Nov 2023 10:29:59 +0000
+Date: Tue, 07 Nov 2023 10:30:09 +0000
 
 From: James Morse <james.morse@arm.com>
 
-Add arch_unregister_cpu() to allow the ACPI machinery to call
-unregister_cpu(). This is enough for arm64, riscv and loongarch, but
-needs to be overridden by x86 and ia64 who need to do more work.
+NUMA systems require the node descriptions to be ready before CPUs are
+registered. This is so that the node symlinks can be created in sysfs.
 
-CC: Jean-Philippe Brucker <jean-philippe@linaro.org>
+Currently no NUMA platform uses GENERIC_CPU_DEVICES, meaning that CPUs
+are registered by arch code, instead of cpu_dev_init().
+
+Move cpu_dev_init() after node_dev_init() so that NUMA architectures
+can use GENERIC_CPU_DEVICES.
+
 Signed-off-by: James Morse <james.morse@arm.com>
+Signed-off-by: Russell King (Oracle) <rmk+kernel@armlinux.org.uk>
 ---
-Changes since v1:
- * Added CONFIG_HOTPLUG_CPU ifdeffery around unregister_cpu
-Changes since RFC v2:
- * Move earlier in the series
+Note: Jonathan's comment still needs addressing - see
+  https://lore.kernel.org/r/20230914121612.00006ac7@Huawei.com
 ---
- drivers/base/cpu.c | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ drivers/base/init.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
-index 579064fda97b..58bb86091b34 100644
---- a/drivers/base/cpu.c
-+++ b/drivers/base/cpu.c
-@@ -531,7 +531,14 @@ int __weak arch_register_cpu(int cpu)
- {
- 	return register_cpu(&per_cpu(cpu_devices, cpu), cpu);
+diff --git a/drivers/base/init.c b/drivers/base/init.c
+index 397eb9880cec..c4954835128c 100644
+--- a/drivers/base/init.c
++++ b/drivers/base/init.c
+@@ -35,8 +35,8 @@ void __init driver_init(void)
+ 	of_core_init();
+ 	platform_bus_init();
+ 	auxiliary_bus_init();
+-	cpu_dev_init();
+ 	memory_dev_init();
+ 	node_dev_init();
++	cpu_dev_init();
+ 	container_dev_init();
  }
--#endif
-+
-+#ifdef CONFIG_HOTPLUG_CPU
-+void __weak arch_unregister_cpu(int num)
-+{
-+	unregister_cpu(&per_cpu(cpu_devices, num));
-+}
-+#endif /* CONFIG_HOTPLUG_CPU */
-+#endif /* CONFIG_GENERIC_CPU_DEVICES */
- 
- static void __init cpu_dev_register_generic(void)
- {
 -- 
 2.30.2
 
