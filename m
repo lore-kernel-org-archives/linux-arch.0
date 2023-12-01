@@ -1,108 +1,107 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="Yk573CjB"
-Received: from mail-lj1-x22b.google.com (mail-lj1-x22b.google.com [IPv6:2a00:1450:4864:20::22b])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id EBE73197
-	for <linux-arch@vger.kernel.org>; Fri,  1 Dec 2023 05:53:35 -0800 (PST)
-Received: by mail-lj1-x22b.google.com with SMTP id 38308e7fff4ca-2c9d2ca9a96so19914761fa.3
-        for <linux-arch@vger.kernel.org>; Fri, 01 Dec 2023 05:53:35 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=bytedance.com; s=google; t=1701438814; x=1702043614; darn=vger.kernel.org;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=B2gDIyfWC+W4ytDLyZ1ApFFOSpObEoeppni2yotM7Sk=;
-        b=Yk573CjBNOA4iH35REuCAlz0xcvrPdhovdZ10G+9ct9/82MJ2VUkatWF5ob7pNDWHA
-         quWrakx+4FF5/3XxvR9LtyfIDhm487E0vDDSXGnyFHtYI6mDH0TY6fk/h/3gmV1C23gR
-         u+j36SCyGcOQ6ubn8/4hNrahVAFCc3S6xZJ7yYv2HkoAaRGWKI7xwDI1Farhm0gLIuG8
-         w0y0Ix375m7LdTFa20D2Cd7XERlNahb3EAJ9mSeSu3MSKb5MmvJJmbEikY+vNDgLL2E4
-         BwlqV0QaZcYNaGlMM5nWO8nalNRO1MUptzEi0wUC7rWJ8FgsQNWGbd3WwOgSVDDkcvIi
-         cj6A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1701438814; x=1702043614;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=B2gDIyfWC+W4ytDLyZ1ApFFOSpObEoeppni2yotM7Sk=;
-        b=LkWQOo/bhnu5Uiq9UcRccviL1NEhxUmYhp+blch678OmMapE0bL120g42wiYVhcmhI
-         nkJXIzrBCGaFP+k3H6V/oi/ESM7yFkXBSWBdLkCDbJ4C+iIy6UnMzkcSUyGuMW3L5ZWa
-         R3j6m2O8YdoWggBDI4WKP/qaRkmt9W/NeNdd4RaP/geo6uKtSxFHbrMul/hA4tm5yr27
-         s6DrCWIy/zNfVf3/z/GN6WiA0yWJb4PmrKuW23HUTTDfDXOVe+eO4Wk7++v1DjTr2UkC
-         oMUlQslBXIl1979W4KcEGQqbd+ZbhfIvx7GE6AT4Qb/KdXEZVpVMALBQllqSDGYfiM7f
-         62VQ==
-X-Gm-Message-State: AOJu0YxNcCLrdeA778CGaO+aF42/G2OhklLCtFfMtoilPi36orqHBplI
-	mBkVHmw2/WJaLXO14rmnhJG/yJsC1X0TcGAvSqc94A==
-X-Google-Smtp-Source: AGHT+IEWbDp/BHTI35lHYKJahi0bZ7EApCyKw47RGLaZzY7863jjC5lW9Ntg2R4fr5oj1AbZZjB53QPWww4cZ5h4s3o=
-X-Received: by 2002:a2e:8783:0:b0:2c9:c22e:31eb with SMTP id
- n3-20020a2e8783000000b002c9c22e31ebmr611668lji.22.1701438814214; Fri, 01 Dec
- 2023 05:53:34 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="uYcRRnt0";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="0dayboYg"
+X-Greylist: delayed 67 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Fri, 01 Dec 2023 06:45:07 PST
+Received: from new3-smtp.messagingengine.com (new3-smtp.messagingengine.com [66.111.4.229])
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 922D110F9;
+	Fri,  1 Dec 2023 06:45:07 -0800 (PST)
+Received: from compute5.internal (compute5.nyi.internal [10.202.2.45])
+	by mailnew.nyi.internal (Postfix) with ESMTP id C97045809F7;
+	Fri,  1 Dec 2023 09:45:06 -0500 (EST)
+Received: from imap51 ([10.202.2.101])
+  by compute5.internal (MEProxy); Fri, 01 Dec 2023 09:45:06 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-type:content-type:date:date:from:from:in-reply-to
+	:in-reply-to:message-id:mime-version:references:reply-to:sender
+	:subject:subject:to:to; s=fm3; t=1701441906; x=1701449106; bh=+L
+	CHDVdMO4HroZLW4+K9iEctf8j8Pnc97pjq2+19EyM=; b=uYcRRnt0ypzG+T8STd
+	NQrTedJ4t8y0QKNJgAZMqlWY3f00cPTsTaIXTxIpFmqq7hJEECpNU0LqRb6bcxlC
+	ObOEogFq/gXRXJPgdKt0uj978H4ktMy5QTAt4c8wGeVqnhSuJivsbNTAIc8vNG/0
+	kGqnfX6AfiroCZw8elB/ZcBja7NHtMgBcZfdf0F+4O4M92fPynweAgK8BZ/Uezv4
+	HuSUTBed+UAbjBq6YyG5ssvoIVr4TwyowCUetCQAXxRDntTIfeQ7m9hINLuSdEw4
+	Kt0W9XQvzynA2ian5d/Skxr5U+OD5fbfp7LPznSkAtB4T8KSfetaJA6jJLuREucL
+	zvnw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:content-type:date:date
+	:feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
+	:message-id:mime-version:references:reply-to:sender:subject
+	:subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
+	:x-sasl-enc; s=fm1; t=1701441906; x=1701449106; bh=+LCHDVdMO4Hro
+	ZLW4+K9iEctf8j8Pnc97pjq2+19EyM=; b=0dayboYg4YVfLSp9hNyPyWJXns73T
+	SRa8QuDwE+c8lIYmC5/t3uefRAnTr9hujOPoNi9/SVoT0qP3n/x08EnjZwL8q9Ua
+	kP71YcKmgAeCbOuciaGct6Q9fiXCExG08YTzovOK18X1SjtZNJP1LnDnhEXAK7ds
+	/fZdLVtXPaUYactCyaLG+Hqf8CICJjWNcv8YYlcCDSxBjr2LGWJD6DTyzsSn+Td2
+	Nnf0nd6JaBnS+/SU8qqflw0PnS+pbFjedMbBUtmf3VvUGbVKw01fQePx7hcbLrRZ
+	p7nCNEPutvSXFhbea2eJ0bTlCCjqj6MGPsPTCiSMsdwfKuNYYLbEvSZrw==
+X-ME-Sender: <xms:cfFpZQ1CG5NdFTXZ68XBLazYcvfypIXc78eUEdp6YJDoySA7pNsCjw>
+    <xme:cfFpZbHp5JFCiZIwVHAwnfLNwRdyxO2XwSUpm82KIoo7LKDYNARJJ4wG5HzW5ZzjV
+    wpE7aGaNQyIV5IfJe0>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvkedrudeiledgieelucetufdoteggodetrfdotf
+    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
+    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
+    cujfgurhepofgfggfkjghffffhvfevufgtsehttdertderredtnecuhfhrohhmpedftehr
+    nhguuceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrth
+    htvghrnhepffehueegteeihfegtefhjefgtdeugfegjeelheejueethfefgeeghfektdek
+    teffnecuvehluhhsthgvrhfuihiivgepudenucfrrghrrghmpehmrghilhhfrhhomheprg
+    hrnhgusegrrhhnuggsrdguvg
+X-ME-Proxy: <xmx:cfFpZY7e-KyiayVgkJpo-i1ayoVGmJz_zybGKW6FiLkOtKLrOt1miw>
+    <xmx:cfFpZZ3CtdGZPa6sBS2cq4_eTsTr6pdO4JtYHsQMqHMFCstNd44dPw>
+    <xmx:cfFpZTGvPGLr9As6kKvuuoBgumiPsnibN1HkdvSr8qpriD0ftGd7Vw>
+    <xmx:cvFpZbOqIU7ip9gmR0yiazV2Zf4CI2KsorVZuIknhVpONDGKfxOCwQ>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+	id 80EE6B60089; Fri,  1 Dec 2023 09:45:05 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.9.0-alpha0-1178-geeaf0069a7-fm-20231114.001-geeaf0069
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <ZV5zGROLefrsEcHJ@r13-u19.micron.com> <CACSyD1OFjROw26+2ojG37eDBParVg721x1HCROMiF2pW2aHj8A@mail.gmail.com>
- <ZV/HSFMmv3xwkNPL@memverge.com> <CACSyD1MrCzyV-93Ov07NpV3Nm3u0fYExmD1ShE_e2tapW6a6HA@mail.gmail.com>
- <ZWizUEd/rsxSc0fW@memverge.com>
-In-Reply-To: <ZWizUEd/rsxSc0fW@memverge.com>
-From: Zhongkun He <hezhongkun.hzk@bytedance.com>
-Date: Fri, 1 Dec 2023 21:53:23 +0800
-Message-ID: <CACSyD1PCjPEwPCVXKVULjbNwxUG89DZUUfiDLg+wFyJRJXAPzA@mail.gmail.com>
-Subject: Re: [RFC PATCH] mm/mbind: Introduce process_mbind() syscall for
- external memory binding
-To: Gregory Price <gregory.price@memverge.com>
-Cc: Vinicius Petrucci <vpetrucci@gmail.com>, akpm@linux-foundation.org, 
-	linux-mm@vger.kernel.org, linux-cxl@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-api@vger.kernel.org, minchan@kernel.org, dave.hansen@linux.intel.com, 
-	x86@kernel.org, Jonathan.Cameron@huawei.com, aneesh.kumar@linux.ibm.com, 
-	ying.huang@intel.com, dan.j.williams@intel.com, fvdl@google.com, 
-	surenb@google.com, rientjes@google.com, hannes@cmpxchg.org, mhocko@suse.com, 
-	Hasan.Maruf@amd.com, jgroves@micron.com, ravis.opensrc@micron.com, 
-	sthanneeru@micron.com, emirakhur@micron.com, vtavarespetr@micron.com
-Content-Type: text/plain; charset="UTF-8"
+Message-Id: <32552a65-b540-4baa-9180-e04a278f0ca6@app.fastmail.com>
+In-Reply-To: <20231201121622.16343-3-pstanner@redhat.com>
+References: <20231201121622.16343-1-pstanner@redhat.com>
+ <20231201121622.16343-3-pstanner@redhat.com>
+Date: Fri, 01 Dec 2023 15:44:44 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Philipp Stanner" <pstanner@redhat.com>,
+ "Bjorn Helgaas" <bhelgaas@google.com>,
+ "Andrew Morton" <akpm@linux-foundation.org>,
+ "Dan Williams" <dan.j.williams@intel.com>,
+ "Jonathan Cameron" <Jonathan.Cameron@huawei.com>,
+ "Jakub Kicinski" <kuba@kernel.org>, "Dave Jiang" <dave.jiang@intel.com>,
+ "Uladzislau Koshchanka" <koshchanka@gmail.com>, "Neil Brown" <neilb@suse.de>,
+ "Niklas Schnelle" <schnelle@linux.ibm.com>, "John Sanpe" <sanpeqf@gmail.com>,
+ "Kent Overstreet" <kent.overstreet@gmail.com>,
+ "Masami Hiramatsu" <mhiramat@kernel.org>,
+ "Kees Cook" <keescook@chromium.org>, "David Gow" <davidgow@google.com>,
+ "Yury Norov" <yury.norov@gmail.com>,
+ "wuqiang.matt" <wuqiang.matt@bytedance.com>,
+ "Jason Baron" <jbaron@akamai.com>,
+ "Kefeng Wang" <wangkefeng.wang@huawei.com>,
+ "Ben Dooks" <ben.dooks@codethink.co.uk>, "Danilo Krummrich" <dakr@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
+ Linux-Arch <linux-arch@vger.kernel.org>
+Subject: Re: [PATCH v2 2/4] lib: move pci-specific devres code to drivers/pci/
+Content-Type: text/plain
 
+On Fri, Dec 1, 2023, at 13:16, Philipp Stanner wrote:
+> The pcim_*() functions in lib/devres.c are guarded by an #ifdef
+> CONFIG_PCI and, thus, don't belong to this file. They are only ever used
+> for pci and are not generic infrastructure.
 >
-> Hi ZhongKun!
+> Move all pcim_*() functions in lib/devres.c to drivers/pci/devres.c.
+> Adjust the Makefile.
 >
-> I actually just sent out a more general RFC to mempolicy updates that
-> discuss this more completely:
->
-> https://lore.kernel.org/linux-mm/ZWezcQk+BYEq%2FWiI@memverge.com/
->
+> Suggested-by: Danilo Krummrich <dakr@redhat.com>
+> Signed-off-by: Philipp Stanner <pstanner@redhat.com>
+> ---
+>  drivers/pci/Makefile |   2 +-
+>  drivers/pci/devres.c | 207 ++++++++++++++++++++++++++++++++++++++++++
+>  lib/devres.c         | 208 +------------------------------------------
 
-OK.
+I still think this should go into drivers/pci/pci_iomap.c along
+with the other functions.
 
-> and another post on even more issues with pidfd modifications to vma
-> mempolicies:
->
-> https://lore.kernel.org/linux-mm/ZWYsth2CtC4Ilvoz@memverge.com/
->
-> We may have to slow-walk the changes to vma policies due to there being
-> many more hidden accesses to (current) than expected. It's a rather
-> nasty rats nest of mempolicy-vma-cpusets-shmem callbacks that obscure
-> these current-task accesses, it will take time to work through.
->
-
-Got it, thanks. It's more complicated than I thought.
-
-> As for hot-path reference counting - we may need to change the way
-> mempolicy is managed, possibly we could leverage RCU to manage mempolicy
-> references in the hot path, rather than using locks.  In this scenario,
-> we would likely need to change the way the default policy is applied
-> (maybe not, I haven't fully explored it).
->
-
-RCU may have a long time in the read-side critical section.
-
-We should probably replace the atomic_t refcnt with percpu_ref in
-mempolicy(also suggested by Michal), but refactoring work involves
-a lot of code.
-
-A simple way is to use task_work to release the mempolicy which may
-be used by alloc_pages(). But it doesn't have a direct result.
-
-> Do you have thoughts on this?  Would very much like additional comments
-> before I go through the refactor work.
->
-> Regards,
-> Gregory
+     Arnd
