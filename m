@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="XB9ar2Xh"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="Bt9k2tZg"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BB9DFD6D;
-	Mon,  4 Dec 2023 18:24:36 -0800 (PST)
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 9AFBC10F9;
+	Mon,  4 Dec 2023 18:24:39 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=vBvpxhxAlJUtQr1e6w1WFsry5arE1IE06RFBsXpoeKs=; b=XB9ar2XhXX4BtEAi7tW7HsiwFy
-	XqTD4EzZmC4q5aWyUecD8F/+olu503o9oV4DNN5kE20cJP6e2g2PfRcep0pmeVqzTM4+i0F35QmyW
-	AwitCu9Q4fGDN/uZr/rW12N1Y5WfgEazSF08KNWAZF2fJR2GzJvxYXJAvxWaWQKqGX907WP0fGl7B
-	89l2LwYq7GlW9ytNEM8ikxY+LaCLZsEQ/2II9mvG0wAGJaTWzLL/bL2d+/BmUtNHHUfS7COZ5RKp0
-	jvS+WtpjGgRB75wM+AOtfnhMMk0vJlyuk9kX2y5A/ZilTt9ZVkXR1yaE1q/Yiz4Rl+ihFRmQ6uN0X
-	wTPQdk8A==;
+	bh=BlfFBoYl8WljiWMPq8jOBx3qNB8G8Xt5J/at8Fwypa8=; b=Bt9k2tZgpXVg03EVTq0I8WE1O0
+	vQO825s7Z3TgdgUtIO0IW5DOlZ+UWldUhgjCjonyZlXrrijRzzcgKDHyxXdqqbPuR+cqsbnjqMUTF
+	zO6QZJiB4DGodMoXD8eqNTduyCa9qWqyRUfFhD+swITRozjThpiGjuG1C0s3XLDd8hlbmr1iVKEe4
+	YkrgQqDmTZpVOPP+/HtWloG0pRw/scLrl/fQRXywmKkJtAcGxuGxA5v0wGAqoH2SslJrDTBq8MVD+
+	zBSjDETBAjE+LEsGXsjebXX6v4XWbK7jXkV4r2NEK4o5uNWhGnezo9OqYtB6dzNGgsVUVr0LyYysO
+	dp2Kj+Pg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6h-007928-1c;
-	Tue, 05 Dec 2023 02:24:19 +0000
+	id 1rAL6g-007920-2L;
+	Tue, 05 Dec 2023 02:24:18 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 3/9] udf_rename(): only access the child content on cross-directory rename
-Date: Tue,  5 Dec 2023 02:23:57 +0000
-Message-Id: <20231205022418.1703007-6-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 1/9] reiserfs: Avoid touching renamed directory if parent does not change
+Date: Tue,  5 Dec 2023 02:23:53 +0000
+Message-Id: <20231205022418.1703007-2-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,53 +47,138 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-We can't really afford locking the source on same-directory rename;
-currently vfs_rename() tries to do that, but it will have to be
-changed.  The logics in udf_rename() is lazy and goes looking for
-".." in source even in same-directory case.  It's not hard to get
-rid of that, leaving that behaviour only for cross-directory case;
-that VFS can get locks safely (and will keep doing that after the
-coming changes).
+From: Jan Kara <jack@suse.cz>
 
-Reviewed-by: Jan Kara <jack@suse.cz>
+The VFS will not be locking moved directory if its parent does not
+change. Change reiserfs rename code to avoid touching renamed directory
+if its parent does not change as without locking that can corrupt the
+filesystem.
+
+Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/udf/namei.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ fs/reiserfs/namei.c | 54 ++++++++++++++++++++++++---------------------
+ 1 file changed, 29 insertions(+), 25 deletions(-)
 
-diff --git a/fs/udf/namei.c b/fs/udf/namei.c
-index 3508ac484da3..fac806a7a8d4 100644
---- a/fs/udf/namei.c
-+++ b/fs/udf/namei.c
-@@ -766,7 +766,7 @@ static int udf_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 	struct inode *old_inode = d_inode(old_dentry);
- 	struct inode *new_inode = d_inode(new_dentry);
- 	struct udf_fileident_iter oiter, niter, diriter;
--	bool has_diriter = false;
-+	bool has_diriter = false, is_dir = false;
- 	int retval;
- 	struct kernel_lb_addr tloc;
+diff --git a/fs/reiserfs/namei.c b/fs/reiserfs/namei.c
+index 994d6e6995ab..5996197ba40c 100644
+--- a/fs/reiserfs/namei.c
++++ b/fs/reiserfs/namei.c
+@@ -1324,8 +1324,8 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 	struct inode *old_inode, *new_dentry_inode;
+ 	struct reiserfs_transaction_handle th;
+ 	int jbegin_count;
+-	umode_t old_inode_mode;
+ 	unsigned long savelink = 1;
++	bool update_dir_parent = false;
  
-@@ -789,6 +789,9 @@ static int udf_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 			if (!empty_dir(new_inode))
- 				goto out_oiter;
+ 	if (flags & ~RENAME_NOREPLACE)
+ 		return -EINVAL;
+@@ -1375,8 +1375,7 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 		return -ENOENT;
+ 	}
+ 
+-	old_inode_mode = old_inode->i_mode;
+-	if (S_ISDIR(old_inode_mode)) {
++	if (S_ISDIR(old_inode->i_mode)) {
+ 		/*
+ 		 * make sure that directory being renamed has correct ".."
+ 		 * and that its new parent directory has not too many links
+@@ -1389,24 +1388,28 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 			}
  		}
-+		is_dir = true;
-+	}
-+	if (is_dir && old_dir != new_dir) {
- 		retval = udf_fiiter_find_entry(old_inode, &dotdot_name,
- 					       &diriter);
- 		if (retval == -ENOENT) {
-@@ -878,7 +881,9 @@ static int udf_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 			       udf_dir_entry_len(&diriter.fi));
- 		udf_fiiter_write_fi(&diriter, NULL);
- 		udf_fiiter_release(&diriter);
-+	}
  
-+	if (is_dir) {
- 		inode_dec_link_count(old_dir);
- 		if (new_inode)
- 			inode_dec_link_count(new_inode);
+-		/*
+-		 * directory is renamed, its parent directory will be changed,
+-		 * so find ".." entry
+-		 */
+-		dot_dot_de.de_gen_number_bit_string = NULL;
+-		retval =
+-		    reiserfs_find_entry(old_inode, "..", 2, &dot_dot_entry_path,
++		if (old_dir != new_dir) {
++			/*
++			 * directory is renamed, its parent directory will be
++			 * changed, so find ".." entry
++			 */
++			dot_dot_de.de_gen_number_bit_string = NULL;
++			retval =
++			    reiserfs_find_entry(old_inode, "..", 2,
++					&dot_dot_entry_path,
+ 					&dot_dot_de);
+-		pathrelse(&dot_dot_entry_path);
+-		if (retval != NAME_FOUND) {
+-			reiserfs_write_unlock(old_dir->i_sb);
+-			return -EIO;
+-		}
++			pathrelse(&dot_dot_entry_path);
++			if (retval != NAME_FOUND) {
++				reiserfs_write_unlock(old_dir->i_sb);
++				return -EIO;
++			}
+ 
+-		/* inode number of .. must equal old_dir->i_ino */
+-		if (dot_dot_de.de_objectid != old_dir->i_ino) {
+-			reiserfs_write_unlock(old_dir->i_sb);
+-			return -EIO;
++			/* inode number of .. must equal old_dir->i_ino */
++			if (dot_dot_de.de_objectid != old_dir->i_ino) {
++				reiserfs_write_unlock(old_dir->i_sb);
++				return -EIO;
++			}
++			update_dir_parent = true;
+ 		}
+ 	}
+ 
+@@ -1486,7 +1489,7 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 
+ 		reiserfs_prepare_for_journal(old_inode->i_sb, new_de.de_bh, 1);
+ 
+-		if (S_ISDIR(old_inode->i_mode)) {
++		if (update_dir_parent) {
+ 			if ((retval =
+ 			     search_by_entry_key(new_dir->i_sb,
+ 						 &dot_dot_de.de_entry_key,
+@@ -1534,14 +1537,14 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 							 new_de.de_bh);
+ 			reiserfs_restore_prepared_buffer(old_inode->i_sb,
+ 							 old_de.de_bh);
+-			if (S_ISDIR(old_inode_mode))
++			if (update_dir_parent)
+ 				reiserfs_restore_prepared_buffer(old_inode->
+ 								 i_sb,
+ 								 dot_dot_de.
+ 								 de_bh);
+ 			continue;
+ 		}
+-		if (S_ISDIR(old_inode_mode)) {
++		if (update_dir_parent) {
+ 			if (item_moved(&dot_dot_ih, &dot_dot_entry_path) ||
+ 			    !entry_points_to_object("..", 2, &dot_dot_de,
+ 						    old_dir)) {
+@@ -1559,7 +1562,7 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 			}
+ 		}
+ 
+-		RFALSE(S_ISDIR(old_inode_mode) &&
++		RFALSE(update_dir_parent &&
+ 		       !buffer_journal_prepared(dot_dot_de.de_bh), "");
+ 
+ 		break;
+@@ -1592,11 +1595,12 @@ static int reiserfs_rename(struct mnt_idmap *idmap,
+ 		savelink = new_dentry_inode->i_nlink;
+ 	}
+ 
+-	if (S_ISDIR(old_inode_mode)) {
++	if (update_dir_parent) {
+ 		/* adjust ".." of renamed directory */
+ 		set_ino_in_dir_entry(&dot_dot_de, INODE_PKEY(new_dir));
+ 		journal_mark_dirty(&th, dot_dot_de.de_bh);
+-
++	}
++	if (S_ISDIR(old_inode->i_mode)) {
+ 		/*
+ 		 * there (in new_dir) was no directory, so it got new link
+ 		 * (".."  of renamed directory)
 -- 
 2.39.2
 
