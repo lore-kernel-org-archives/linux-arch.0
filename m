@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="iZtdp/lq"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="mPJx6ea8"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 04D5C138;
-	Mon,  4 Dec 2023 18:24:26 -0800 (PST)
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BDC3C136;
+	Mon,  4 Dec 2023 18:24:25 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=ZCMPofc2KEJbmEAnz7UaJiKj4wW96HZw4tHcbX9kqo4=; b=iZtdp/lqVhW6ovhpzIMykdHDI2
-	l6r8tK5+5noZQXY+3M4bVwREPqN+1cxk5jKvVGyLBjFVpL8Ccs+MKi+7nT9Ws09smhv+yPwh8AqTi
-	3ndOhJLkrkxKOTG15fJ9jEzFlL4ti5QaQAWnYxsZmjIIqvA17+WV7vVWqamYywHknFRyIxUYRYRDM
-	Mm1DLFtIP7Hf/XiAlcYUtGDEP5XGy567znv8fejj3AkdNyKlHMmdBRnF0Kgaau/8/8fOeZY6Z7b9D
-	UeroVeubkRoCzDeCo41j4VGHEIZgl59Hz4MrB1Y1nXSCejQQ2qc12CNOJNOBaXNfnIBADWSrACYl4
-	MtIM+1+Q==;
+	bh=w69zjgaxFJQbH1/ONj8McE50176zxtKRnbYIHlWVN5w=; b=mPJx6ea8oysK7tXYQlQso0iNu3
+	QNqxLTplWTnXH7JcjgChAJqb8ktoawBN0Wg3Q6iZf26dg2nXOTF6JmRm3n7D4TtaA3hWA1J2+9z5W
+	sAxKvkZ9ytFirqfPJFn2OV9qBhxgPI5415JUCo106lcM5fGnW8WXf3HM4Hv+EtKBcCsEkr2ZUtzrt
+	xInbDCw6pntBUv46kgFdCjBWD5NblNaZ44rcUNEItc+USpKs8qFi9dVIXDJwF6JuYxLqyijwUsGsM
+	S0QEjt09L0/6UoA5L6hk+A7uGB/dzFdW3c0Zy7OY7TPW56TwEENnmxcXWueYoQBXm9HbsmNZZucCX
+	Ow9SY0Dw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6m-00794Q-1J;
-	Tue, 05 Dec 2023 02:24:24 +0000
+	id 1rAL6i-00792h-38;
+	Tue, 05 Dec 2023 02:24:21 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 18/18] uml/x86: use normal x86 checksum.h
-Date: Tue,  5 Dec 2023 02:24:18 +0000
-Message-Id: <20231205022418.1703007-27-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 07/18] consolidate default ip_compute_csum()
+Date: Tue,  5 Dec 2023 02:24:04 +0000
+Message-Id: <20231205022418.1703007-13-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,387 +47,369 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-The only difference left is that UML really does *NOT* want the
-csum-and-uaccess combinations; leave those in
-arch/x86/include/asm/checksum_{32,64}, move the rest into
-arch/x86/include/asm/checksum.h (under ifdefs) and that's
-pretty much it.
+... and take it into include/net/checksum.h
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/include/asm/checksum.h    |  63 ++++++++++++++-
- arch/x86/include/asm/checksum_32.h |  25 ------
- arch/x86/include/asm/checksum_64.h |  25 ------
- arch/x86/um/asm/checksum.h         | 125 -----------------------------
- arch/x86/um/asm/checksum_32.h      |  33 --------
- arch/x86/um/asm/checksum_64.h      |  17 ----
- 6 files changed, 60 insertions(+), 228 deletions(-)
- delete mode 100644 arch/x86/um/asm/checksum.h
- delete mode 100644 arch/x86/um/asm/checksum_32.h
- delete mode 100644 arch/x86/um/asm/checksum_64.h
+ arch/alpha/include/asm/checksum.h    |  8 +-------
+ arch/arm/include/asm/checksum.h      | 10 ----------
+ arch/m68k/include/asm/checksum.h     | 10 ----------
+ arch/mips/include/asm/checksum.h     |  9 ---------
+ arch/parisc/include/asm/checksum.h   | 10 ----------
+ arch/powerpc/include/asm/checksum.h  |  9 ---------
+ arch/s390/include/asm/checksum.h     |  8 --------
+ arch/sh/include/asm/checksum_32.h    |  9 ---------
+ arch/sparc/include/asm/checksum_32.h |  6 ------
+ arch/sparc/include/asm/checksum_64.h |  6 ------
+ arch/x86/include/asm/checksum_32.h   | 10 ----------
+ arch/x86/include/asm/checksum_64.h   | 10 +---------
+ arch/x86/um/asm/checksum_32.h        |  5 -----
+ arch/x86/um/asm/checksum_64.h        |  4 ++--
+ arch/xtensa/include/asm/checksum.h   | 10 ----------
+ include/asm-generic/checksum.h       |  8 +++-----
+ include/net/checksum.h               | 17 +++++++++++++++++
+ 17 files changed, 24 insertions(+), 125 deletions(-)
 
-diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
-index 05dd4c59880a..e8fb8167f52a 100644
---- a/arch/x86/include/asm/checksum.h
-+++ b/arch/x86/include/asm/checksum.h
-@@ -22,9 +22,6 @@ static inline __wsum csum_add(__wsum csum, __wsum addend)
- #ifdef CONFIG_GENERIC_CSUM
- # include <asm-generic/checksum.h>
- #else
--# define  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER 1
--# define HAVE_CSUM_COPY_USER
--# define _HAVE_ARCH_CSUM_AND_COPY
+diff --git a/arch/alpha/include/asm/checksum.h b/arch/alpha/include/asm/checksum.h
+index bc6a47e46fed..0d7c21a79961 100644
+--- a/arch/alpha/include/asm/checksum.h
++++ b/arch/alpha/include/asm/checksum.h
+@@ -42,13 +42,7 @@ __wsum_fault csum_and_copy_from_user(const void __user *src, void *dst, int len)
  
- /**
-  * csum_partial - Compute an internet checksum.
-@@ -124,10 +121,70 @@ static inline __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
- 	return (__force __sum16)sum;
- }
+ __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len);
  
-+struct in6_addr;
-+
-+# ifdef CONFIG_X86_32
-+
-+#define _HAVE_ARCH_IPV6_CSUM
-+static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
-+				      const struct in6_addr *daddr,
-+				      __u32 len, __u8 proto, __wsum sum)
-+{
-+	asm("addl 0(%1), %0	;\n"
-+	    "adcl 4(%1), %0	;\n"
-+	    "adcl 8(%1), %0	;\n"
-+	    "adcl 12(%1), %0	;\n"
-+	    "adcl 0(%2), %0	;\n"
-+	    "adcl 4(%2), %0	;\n"
-+	    "adcl 8(%2), %0	;\n"
-+	    "adcl 12(%2), %0	;\n"
-+	    "adcl %3, %0	;\n"
-+	    "adcl %4, %0	;\n"
-+	    "adcl $0, %0	;\n"
-+	    : "=&r" (sum)
-+	    : "r" (saddr), "r" (daddr),
-+	      "r" (htonl(len)), "r" (htonl(proto)), "0" (sum)
-+	    : "memory");
-+
-+	return csum_fold(sum);
-+}
-+# else
-+
+-
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-
+-extern __sum16 ip_compute_csum(const void *buff, int len);
 +#define _HAVE_IP_COMPUTE_CSUM
-+
-+/**
-+ * csum_ipv6_magic - Compute checksum of an IPv6 pseudo header.
-+ * @saddr: source address
-+ * @daddr: destination address
-+ * @len: length of packet
-+ * @proto: protocol of packet
-+ * @sum: initial sum (32bit unfolded) to be added in
-+ *
-+ * Computes an IPv6 pseudo header checksum. This sum is added the checksum
-+ * into UDP/TCP packets and contains some link layer information.
-+ * Returns the unfolded 32bit checksum.
-+ */
-+
-+#define _HAVE_ARCH_IPV6_CSUM 1
-+extern __sum16
-+csum_ipv6_magic(const struct in6_addr *saddr, const struct in6_addr *daddr,
-+		__u32 len, __u8 proto, __wsum sum);
-+# endif
-+
-+#ifndef CONFIG_UML
-+/*
-+ * UML uaccess is better done in large chunks, so combining csum with
-+ * copyin/copyout is not worth the trouble.
-+ */
-+# define  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER 1
-+# define HAVE_CSUM_COPY_USER
-+# define _HAVE_ARCH_CSUM_AND_COPY
- # ifdef CONFIG_X86_32
- #  include <asm/checksum_32.h>
- # else
- #  include <asm/checksum_64.h>
- # endif
-+#endif
-+
- #endif
- #endif
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index 164bf98fb23a..f0e8ef27f220 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -2,7 +2,6 @@
- #ifndef _ASM_X86_CHECKSUM_32_H
- #define _ASM_X86_CHECKSUM_32_H
- 
--#include <linux/in6.h>
- #include <linux/uaccess.h>
  
  /*
-@@ -41,30 +40,6 @@ static inline __wsum_fault csum_and_copy_from_user(const void __user *src,
- 	return ret;
- }
+  *	Fold a partial checksum without adding pseudo headers
+diff --git a/arch/arm/include/asm/checksum.h b/arch/arm/include/asm/checksum.h
+index 23c8ef0311cf..f5ca8aac5eda 100644
+--- a/arch/arm/include/asm/checksum.h
++++ b/arch/arm/include/asm/checksum.h
+@@ -130,16 +130,6 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
+ 	return sum;
+ }	
  
--#define _HAVE_ARCH_IPV6_CSUM
--static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
--				      const struct in6_addr *daddr,
--				      __u32 len, __u8 proto, __wsum sum)
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-static inline __sum16
+-ip_compute_csum(const void *buff, int len)
 -{
--	asm("addl 0(%1), %0	;\n"
--	    "adcl 4(%1), %0	;\n"
--	    "adcl 8(%1), %0	;\n"
--	    "adcl 12(%1), %0	;\n"
--	    "adcl 0(%2), %0	;\n"
--	    "adcl 4(%2), %0	;\n"
--	    "adcl 8(%2), %0	;\n"
--	    "adcl 12(%2), %0	;\n"
--	    "adcl %3, %0	;\n"
--	    "adcl %4, %0	;\n"
--	    "adcl $0, %0	;\n"
--	    : "=&r" (sum)
--	    : "r" (saddr), "r" (daddr),
--	      "r" (htonl(len)), "r" (htonl(proto)), "0" (sum)
--	    : "memory");
--
--	return csum_fold(sum);
+-	return csum_fold(csum_partial(buff, len, 0));
 -}
 -
- /*
-  *	Copy and checksum to user
-  */
+ #define _HAVE_ARCH_IPV6_CSUM
+ extern __wsum
+ __csum_ipv6_magic(const struct in6_addr *saddr, const struct in6_addr *daddr, __be32 len,
+diff --git a/arch/m68k/include/asm/checksum.h b/arch/m68k/include/asm/checksum.h
+index 3462a42b6fec..9979f5728d70 100644
+--- a/arch/m68k/include/asm/checksum.h
++++ b/arch/m68k/include/asm/checksum.h
+@@ -93,16 +93,6 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
+ 	return sum;
+ }
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold (csum_partial(buff, len, 0));
+-}
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ static __inline__ __sum16
+ csum_ipv6_magic(const struct in6_addr *saddr, const struct in6_addr *daddr,
+diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
+index 3dfe9eca4adc..1e49fd107da1 100644
+--- a/arch/mips/include/asm/checksum.h
++++ b/arch/mips/include/asm/checksum.h
+@@ -170,15 +170,6 @@ static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
+ }
+ #define csum_tcpudp_nofold csum_tcpudp_nofold
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 					  const struct in6_addr *daddr,
+diff --git a/arch/parisc/include/asm/checksum.h b/arch/parisc/include/asm/checksum.h
+index 62a390297414..6ddd591e9dde 100644
+--- a/arch/parisc/include/asm/checksum.h
++++ b/arch/parisc/include/asm/checksum.h
+@@ -85,16 +85,6 @@ static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
+ 	return sum;
+ }
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-static inline __sum16 ip_compute_csum(const void *buf, int len)
+-{
+-	 return csum_fold (csum_partial(buf, len, 0));
+-}
+-
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 					  const struct in6_addr *daddr,
+diff --git a/arch/powerpc/include/asm/checksum.h b/arch/powerpc/include/asm/checksum.h
+index 5925eaff6b8b..910a3a71e3ae 100644
+--- a/arch/powerpc/include/asm/checksum.h
++++ b/arch/powerpc/include/asm/checksum.h
+@@ -193,15 +193,6 @@ static __always_inline __wsum csum_partial(const void *buff, int len, __wsum sum
+ 	return sum;
+ }
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 			const struct in6_addr *daddr,
+diff --git a/arch/s390/include/asm/checksum.h b/arch/s390/include/asm/checksum.h
+index 23b9840ed640..49c509a23b8a 100644
+--- a/arch/s390/include/asm/checksum.h
++++ b/arch/s390/include/asm/checksum.h
+@@ -91,14 +91,6 @@ static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
+ 	return (__force __wsum)(csum >> 32);
+ }
+ 
+-/*
+- * Used for miscellaneous IP-like checksums, mainly icmp.
+- */
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 				      const struct in6_addr *daddr,
+diff --git a/arch/sh/include/asm/checksum_32.h b/arch/sh/include/asm/checksum_32.h
+index 7b91b7b6c1e9..77e89f308ad5 100644
+--- a/arch/sh/include/asm/checksum_32.h
++++ b/arch/sh/include/asm/checksum_32.h
+@@ -134,15 +134,6 @@ static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
+ 	return sum;
+ }
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-    return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 				      const struct in6_addr *daddr,
+diff --git a/arch/sparc/include/asm/checksum_32.h b/arch/sparc/include/asm/checksum_32.h
+index e53331114217..e0322970ad83 100644
+--- a/arch/sparc/include/asm/checksum_32.h
++++ b/arch/sparc/include/asm/checksum_32.h
+@@ -208,12 +208,6 @@ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 	return csum_fold(sum);
+ }
+ 
+-/* this routine is used for miscellaneous IP-like checksums, mainly in icmp.c */
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define HAVE_ARCH_CSUM_ADD
+ static inline __wsum csum_add(__wsum csum, __wsum addend)
+ {
+diff --git a/arch/sparc/include/asm/checksum_64.h b/arch/sparc/include/asm/checksum_64.h
+index 70f88abd93a1..e4cca92cecd6 100644
+--- a/arch/sparc/include/asm/checksum_64.h
++++ b/arch/sparc/include/asm/checksum_64.h
+@@ -112,12 +112,6 @@ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 	return csum_fold(sum);
+ }
+ 
+-/* this routine is used for miscellaneous IP-like checksums, mainly in icmp.c */
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define HAVE_ARCH_CSUM_ADD
+ static inline __wsum csum_add(__wsum csum, __wsum addend)
+ {
+diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
+index 4521474a08ab..7570bdff7dea 100644
+--- a/arch/x86/include/asm/checksum_32.h
++++ b/arch/x86/include/asm/checksum_32.h
+@@ -120,16 +120,6 @@ static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
+ 	return sum;
+ }
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-    return csum_fold(csum_partial(buff, len, 0));
+-}
+-
+ #define _HAVE_ARCH_IPV6_CSUM
+ static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 				      const struct in6_addr *daddr,
 diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
-index ce28f7c0bc29..027d86a9fa3f 100644
+index 84e26b8c0af5..2bd75710eea1 100644
 --- a/arch/x86/include/asm/checksum_64.h
 +++ b/arch/x86/include/asm/checksum_64.h
-@@ -8,9 +8,6 @@
-  * with some code from asm-x86/checksum.h
-  */
- 
--#include <linux/compiler.h>
--#include <asm/byteorder.h>
--
- /* Do not call this directly. Use the wrappers below */
- extern __visible __wsum_fault csum_partial_copy_generic(const void *src, void *dst, int len);
- 
-@@ -18,26 +15,4 @@ extern __wsum_fault csum_and_copy_from_user(const void __user *src, void *dst, i
+@@ -117,15 +117,7 @@ extern __wsum_fault csum_and_copy_from_user(const void __user *src, void *dst, i
  extern __wsum_fault csum_and_copy_to_user(const void *src, void __user *dst, int len);
  extern __wsum csum_partial_copy_nocheck(const void *src, void *dst, int len);
  
--#define _HAVE_IP_COMPUTE_CSUM
--
 -/**
-- * csum_ipv6_magic - Compute checksum of an IPv6 pseudo header.
-- * @saddr: source address
-- * @daddr: destination address
-- * @len: length of packet
-- * @proto: protocol of packet
-- * @sum: initial sum (32bit unfolded) to be added in
+- * ip_compute_csum - Compute an 16bit IP checksum.
+- * @buff: buffer address.
+- * @len: length of buffer.
 - *
-- * Computes an IPv6 pseudo header checksum. This sum is added the checksum
-- * into UDP/TCP packets and contains some link layer information.
-- * Returns the unfolded 32bit checksum.
+- * Returns the 16bit folded/inverted checksum of the passed buffer.
+- * Ready to fill in.
 - */
--
--struct in6_addr;
--
--#define _HAVE_ARCH_IPV6_CSUM 1
--extern __sum16
--csum_ipv6_magic(const struct in6_addr *saddr, const struct in6_addr *daddr,
--		__u32 len, __u8 proto, __wsum sum);
--
- #endif /* _ASM_X86_CHECKSUM_64_H */
-diff --git a/arch/x86/um/asm/checksum.h b/arch/x86/um/asm/checksum.h
-deleted file mode 100644
-index 0986c19e5ff0..000000000000
---- a/arch/x86/um/asm/checksum.h
-+++ /dev/null
-@@ -1,125 +0,0 @@
--/* SPDX-License-Identifier: GPL-2.0 */
--#ifndef __UM_CHECKSUM_H
--#define __UM_CHECKSUM_H
--
--#include <linux/string.h>
--#include <linux/in6.h>
--#include <linux/uaccess.h>
--
--static inline unsigned add32_with_carry(unsigned a, unsigned b)
--{
--	asm("addl %2,%0\n\t"
--	    "adcl $0,%0"
--	    : "=r" (a)
--	    : "0" (a), "rm" (b));
--	return a;
--}
--
--/* note: with gcc-8 or later generic csum_add() yields the same code */
--#define HAVE_ARCH_CSUM_ADD
--static inline __wsum csum_add(__wsum csum, __wsum addend)
--{
--	return (__force __wsum)add32_with_carry((__force unsigned)csum,
--						(__force unsigned)addend);
--}
--
--/*
-- * computes the checksum of a memory block at buff, length len,
-- * and adds in "sum" (32-bit)
-- *
-- * returns a 32-bit number suitable for feeding into itself
-- * or csum_tcpudp_magic
-- *
-- * this function must be called with even lengths, except
-- * for the last fragment, which may be odd
-- *
-- * it's best to have buff aligned on a 32-bit boundary
-- */
--extern __wsum csum_partial(const void *buff, int len, __wsum sum);
--
--/**
-- * csum_fold - Fold and invert a 32bit checksum.
-- * sum: 32bit unfolded sum
-- *
-- * Fold a 32bit running checksum to 16bit and invert it. This is usually
-- * the last step before putting a checksum into a packet.
-- * Make sure not to mix with 64bit checksums.
-- */
--static inline __sum16 csum_fold(__wsum sum)
--{
--	__asm__(
--		"  addl %1,%0\n"
--		"  adcl $0xffff,%0"
--		: "=r" (sum)
--		: "r" ((__force u32)sum << 16),
--		  "0" ((__force u32)sum & 0xffff0000)
--	);
--	return (__force __sum16)(~(__force u32)sum >> 16);
--}
--
--/**
-- * csum_tcpup_nofold - Compute an IPv4 pseudo header checksum.
-- * @saddr: source address
-- * @daddr: destination address
-- * @len: length of packet
-- * @proto: ip protocol of packet
-- * @sum: initial sum to be added in (32bit unfolded)
-- *
-- * Returns the pseudo header checksum the input data. Result is
-- * 32bit unfolded.
-- */
--static inline __wsum
--csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
--		  __u8 proto, __wsum sum)
--{
--	asm("  addl %1, %0\n"
--	    "  adcl %2, %0\n"
--	    "  adcl %3, %0\n"
--	    "  adcl $0, %0\n"
--		: "=r" (sum)
--	    : "g" (daddr), "g" (saddr), "g" ((len + proto) << 8), "0" (sum));
--	return sum;
--}
--
--/**
-- * ip_fast_csum - Compute the IPv4 header checksum efficiently.
-- * iph: ipv4 header
-- * ihl: length of header / 4
-- */
--static inline __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
--{
--	unsigned int sum;
--
--	asm(	"  movl (%1), %0\n"
--		"  subl $4, %2\n"
--		"  jbe 2f\n"
--		"  addl 4(%1), %0\n"
--		"  adcl 8(%1), %0\n"
--		"  adcl 12(%1), %0\n"
--		"1: adcl 16(%1), %0\n"
--		"  lea 4(%1), %1\n"
--		"  decl %2\n"
--		"  jne	1b\n"
--		"  adcl $0, %0\n"
--		"  movl %0, %2\n"
--		"  shrl $16, %0\n"
--		"  addw %w2, %w0\n"
--		"  adcl $0, %0\n"
--		"  notl %0\n"
--		"2:"
--	/* Since the input registers which are loaded with iph and ipl
--	   are modified, we must also specify them as outputs, or gcc
--	   will assume they contain their original values. */
--	: "=r" (sum), "=r" (iph), "=r" (ihl)
--	: "1" (iph), "2" (ihl)
--	: "memory");
--	return (__force __sum16)sum;
--}
--
--#ifdef CONFIG_X86_32
--# include "checksum_32.h"
--#else
--# include "checksum_64.h"
--#endif
--
--#endif
+-extern __sum16 ip_compute_csum(const void *buff, int len);
++#define _HAVE_IP_COMPUTE_CSUM
+ 
+ /**
+  * csum_ipv6_magic - Compute checksum of an IPv6 pseudo header.
 diff --git a/arch/x86/um/asm/checksum_32.h b/arch/x86/um/asm/checksum_32.h
-deleted file mode 100644
-index c5820c5d819b..000000000000
+index 0b13c2947ad1..c5820c5d819b 100644
 --- a/arch/x86/um/asm/checksum_32.h
-+++ /dev/null
-@@ -1,33 +0,0 @@
--/*
-- * Licensed under the GPL
-- */
--
--#ifndef __UM_SYSDEP_CHECKSUM_H
--#define __UM_SYSDEP_CHECKSUM_H
--
--#define _HAVE_ARCH_IPV6_CSUM
--static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
--					  const struct in6_addr *daddr,
--					  __u32 len, __u8 proto,
--					  __wsum sum)
++++ b/arch/x86/um/asm/checksum_32.h
+@@ -5,11 +5,6 @@
+ #ifndef __UM_SYSDEP_CHECKSUM_H
+ #define __UM_SYSDEP_CHECKSUM_H
+ 
+-static inline __sum16 ip_compute_csum(const void *buff, int len)
 -{
--	__asm__(
--		"addl 0(%1), %0		;\n"
--		"adcl 4(%1), %0		;\n"
--		"adcl 8(%1), %0		;\n"
--		"adcl 12(%1), %0	;\n"
--		"adcl 0(%2), %0		;\n"
--		"adcl 4(%2), %0		;\n"
--		"adcl 8(%2), %0		;\n"
--		"adcl 12(%2), %0	;\n"
--		"adcl %3, %0		;\n"
--		"adcl %4, %0		;\n"
--		"adcl $0, %0		;\n"
--		: "=&r" (sum)
--		: "r" (saddr), "r" (daddr),
--		  "r"(htonl(len)), "r"(htonl(proto)), "0"(sum));
--
--	return csum_fold(sum);
+-    return csum_fold (csum_partial(buff, len, 0));
 -}
 -
--#endif
+ #define _HAVE_ARCH_IPV6_CSUM
+ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 					  const struct in6_addr *daddr,
 diff --git a/arch/x86/um/asm/checksum_64.h b/arch/x86/um/asm/checksum_64.h
-deleted file mode 100644
-index 228424a52b7f..000000000000
+index 7b6cd1921573..fd1ab07e4a4c 100644
 --- a/arch/x86/um/asm/checksum_64.h
-+++ /dev/null
-@@ -1,17 +0,0 @@
++++ b/arch/x86/um/asm/checksum_64.h
+@@ -5,6 +5,8 @@
+ #ifndef __UM_SYSDEP_CHECKSUM_H
+ #define __UM_SYSDEP_CHECKSUM_H
+ 
++#define _HAVE_IP_COMPUTE_CSUM
++
+ static inline unsigned add32_with_carry(unsigned a, unsigned b)
+ {
+         asm("addl %2,%0\n\t"
+@@ -14,6 +16,4 @@ static inline unsigned add32_with_carry(unsigned a, unsigned b)
+         return a;
+ }
+ 
+-extern __sum16 ip_compute_csum(const void *buff, int len);
+-
+ #endif
+diff --git a/arch/xtensa/include/asm/checksum.h b/arch/xtensa/include/asm/checksum.h
+index d1b0e8dac1a5..9fa7664a60c0 100644
+--- a/arch/xtensa/include/asm/checksum.h
++++ b/arch/xtensa/include/asm/checksum.h
+@@ -149,16 +149,6 @@ static __inline__ __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
+ 	return sum;
+ }
+ 
 -/*
-- * Licensed under the GPL
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
 - */
 -
--#ifndef __UM_SYSDEP_CHECKSUM_H
--#define __UM_SYSDEP_CHECKSUM_H
+-static __inline__ __sum16 ip_compute_csum(const void *buff, int len)
+-{
+-	return csum_fold (csum_partial(buff, len, 0));
+-}
 -
--#define _HAVE_IP_COMPUTE_CSUM
--
--struct in6_addr;
--
--#define _HAVE_ARCH_IPV6_CSUM 1
--extern __sum16
--csum_ipv6_magic(const struct in6_addr *saddr, const struct in6_addr *daddr,
--		__u32 len, __u8 proto, __wsum sum);
--
--#endif
+ #define _HAVE_ARCH_IPV6_CSUM
+ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 					  const struct in6_addr *daddr,
+diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
+index 797316e34d15..cbc06ac7829f 100644
+--- a/include/asm-generic/checksum.h
++++ b/include/asm-generic/checksum.h
+@@ -47,10 +47,8 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
+ 		   __u8 proto, __wsum sum);
+ #endif
+ 
+-/*
+- * this routine is used for miscellaneous IP-like checksums, mainly
+- * in icmp.c
+- */
+-extern __sum16 ip_compute_csum(const void *buff, int len);
++#ifdef CONFIG_GENERIC_CSUM
++#define _HAVE_IP_COMPUTE_CSUM
++#endif
+ 
+ #endif /* __ASM_GENERIC_CHECKSUM_H */
+diff --git a/include/net/checksum.h b/include/net/checksum.h
+index 706c5fb287cc..078ec71368fa 100644
+--- a/include/net/checksum.h
++++ b/include/net/checksum.h
+@@ -55,6 +55,23 @@ static inline bool wsum_is_fault(__wsum_fault v)
+ #include <linux/uaccess.h>
+ #endif
+ 
++/**
++ * ip_compute_csum - Compute an 16bit IP checksum.
++ * @buff: buffer address.
++ * @len: length of buffer.
++ *
++ * Returns the 16bit folded/inverted checksum of the passed buffer.
++ * Ready to fill in.
++ */
++#ifndef _HAVE_IP_COMPUTE_CSUM
++static inline __sum16 ip_compute_csum(const void *buff, int len)
++{
++	return csum_fold (csum_partial(buff, len, 0));
++}
++#else
++extern __sum16 ip_compute_csum(const void *buff, int len);
++#endif
++
+ /*
+  * computes the checksum of the TCP/UDP pseudo-header
+  * returns a 16-bit checksum, already complemented
 -- 
 2.39.2
 
