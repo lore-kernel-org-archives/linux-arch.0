@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="TIN2rLHw"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="ftqyCDwP"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 6C98610F;
-	Mon,  4 Dec 2023 18:24:22 -0800 (PST)
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A014F11F;
+	Mon,  4 Dec 2023 18:24:23 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=1kXdQTzP9QbMwip9HhQkODeDCTy6uPz4pJDbGLrfwH4=; b=TIN2rLHwJM9EnMlKGMZ3+UixZd
-	6ZAAU6BcSIeX1Tdupwr4sOYumjzoDu9npdMdeoScH5yBlbbhfLEYT1n1InaswtEJ3zlArIiMMzUBy
-	S4H/KsWiEpKhcmSM5iL3HhGeGaiCqcAAR/Mf8Jo+0FsDuKi6xVfRhhJTi3BvqCLVfAtgeoVa/x6Lc
-	dVIAByfTXF/n5im83qZjIenUOEhtJTpCj9Gmy8SO9v5sf/xlFVVkh+pTxztsYSptdaPYgcge97e72
-	bgPohg0HxHRGSknDY9P1ZiNLzishSSL0mQfQnbXILTVcbJkzHLezJvE+BftSVgQ2K5YrEpdZrF5Em
-	Yxnre5sw==;
+	bh=+ftBbukfbbgB/3/4QoTvmiqqpacNNyeFRNlaZmcdRVg=; b=ftqyCDwPPLwgkHLsUwmdm5vWdw
+	3X8jVP2KGrZwzU8ISQlnPaZR+3nV/h0rwQIbnwWAHv1JjQIguquG0DAAe0sUN9N8xt5/zXi4eki8X
+	5Kh6Y7Pfu7JuId3EUU+4h99/T757qoM7cEDBC4akHwXD2q9dUa9HQU87f2XAv0PFWsb2K/IZChimn
+	CJYFuYkIe0OAGcQ6GhZBSkfItbtxgyBjxz+xF18eDfYyGKlSkQsp/iC8N8JSQdwZ39MnvdxcbYuF2
+	h9ksaoDjqeqHqVYtW9jA9j4+Mij2xp6Nlz0H0vCfOtI4g/S4pijHmS6oZ2IxnLqQJw2z5eC2Yfod4
+	++f++LEQ==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6i-00792e-2T;
-	Tue, 05 Dec 2023 02:24:20 +0000
+	id 1rAL6j-007937-2f;
+	Tue, 05 Dec 2023 02:24:21 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 6/9] f2fs: Avoid reading renamed directory if parent does not change
-Date: Tue,  5 Dec 2023 02:24:03 +0000
-Message-Id: <20231205022418.1703007-12-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 09/18] mips: pull include of asm-generic/checksum.h out of #if
+Date: Tue,  5 Dec 2023 02:24:08 +0000
+Message-Id: <20231205022418.1703007-17-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,85 +47,36 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-From: Jan Kara <jack@suse.cz>
-
-The VFS will not be locking moved directory if its parent does not
-change.  Change f2fs rename code to avoid reading renamed directory if
-its parent does not change.  Having it uninlined while we are reading
-it would cause trouble and we won't be able to rely upon ->i_rwsem
-on the directory being renamed in cases that do not alter its parent.
-
-Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/f2fs/namei.c | 15 ++++++++-------
- 1 file changed, 8 insertions(+), 7 deletions(-)
+ arch/mips/include/asm/checksum.h | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
 
-diff --git a/fs/f2fs/namei.c b/fs/f2fs/namei.c
-index d0053b0284d8..fdc97df6bb85 100644
---- a/fs/f2fs/namei.c
-+++ b/fs/f2fs/namei.c
-@@ -963,6 +963,7 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 	struct f2fs_dir_entry *old_dir_entry = NULL;
- 	struct f2fs_dir_entry *old_entry;
- 	struct f2fs_dir_entry *new_entry;
-+	bool old_is_dir = S_ISDIR(old_inode->i_mode);
- 	int err;
+diff --git a/arch/mips/include/asm/checksum.h b/arch/mips/include/asm/checksum.h
+index 1e49fd107da1..061b56163668 100644
+--- a/arch/mips/include/asm/checksum.h
++++ b/arch/mips/include/asm/checksum.h
+@@ -12,9 +12,7 @@
+ #ifndef _ASM_CHECKSUM_H
+ #define _ASM_CHECKSUM_H
  
- 	if (unlikely(f2fs_cp_error(sbi)))
-@@ -1017,7 +1018,7 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 		goto out;
- 	}
+-#ifdef CONFIG_GENERIC_CSUM
+-#include <asm-generic/checksum.h>
+-#else
++#ifndef CONFIG_GENERIC_CSUM
  
--	if (S_ISDIR(old_inode->i_mode)) {
-+	if (old_is_dir && old_dir != new_dir) {
- 		old_dir_entry = f2fs_parent_dir(old_inode, &old_dir_page);
- 		if (!old_dir_entry) {
- 			if (IS_ERR(old_dir_page))
-@@ -1029,7 +1030,7 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 	if (new_inode) {
+ #include <linux/in6.h>
  
- 		err = -ENOTEMPTY;
--		if (old_dir_entry && !f2fs_empty_dir(new_inode))
-+		if (old_is_dir && !f2fs_empty_dir(new_inode))
- 			goto out_dir;
+@@ -237,7 +235,8 @@ static __inline__ __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
+ 	return csum_fold(sum);
+ }
  
- 		err = -ENOENT;
-@@ -1054,7 +1055,7 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
+-#include <asm-generic/checksum.h>
+ #endif /* CONFIG_GENERIC_CSUM */
  
- 		inode_set_ctime_current(new_inode);
- 		f2fs_down_write(&F2FS_I(new_inode)->i_sem);
--		if (old_dir_entry)
-+		if (old_is_dir)
- 			f2fs_i_links_write(new_inode, false);
- 		f2fs_i_links_write(new_inode, false);
- 		f2fs_up_write(&F2FS_I(new_inode)->i_sem);
-@@ -1074,12 +1075,12 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 			goto out_dir;
- 		}
- 
--		if (old_dir_entry)
-+		if (old_is_dir)
- 			f2fs_i_links_write(new_dir, true);
- 	}
- 
- 	f2fs_down_write(&F2FS_I(old_inode)->i_sem);
--	if (!old_dir_entry || whiteout)
-+	if (!old_is_dir || whiteout)
- 		file_lost_pino(old_inode);
- 	else
- 		/* adjust dir's i_pino to pass fsck check */
-@@ -1105,8 +1106,8 @@ static int f2fs_rename(struct mnt_idmap *idmap, struct inode *old_dir,
- 		iput(whiteout);
- 	}
- 
--	if (old_dir_entry) {
--		if (old_dir != new_dir && !whiteout)
-+	if (old_is_dir) {
-+		if (old_dir_entry && !whiteout)
- 			f2fs_set_link(old_inode, old_dir_entry,
- 						old_dir_page, new_dir);
- 		else
++#include <asm-generic/checksum.h>
++
+ #endif /* _ASM_CHECKSUM_H */
 -- 
 2.39.2
 
