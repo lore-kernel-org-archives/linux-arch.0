@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="JCGDI0md"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="TG/QAcsi"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8B660129;
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEEA3CE;
 	Mon,  4 Dec 2023 18:24:24 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=p0QbRDSGTsnljguGwK4onaxu6aufljbSVtROKxqrxWo=; b=JCGDI0mdMpbr3QTQ3xsS99jCIF
-	47/7SqdYFe8jCE+UeMmmKc2DP6Bt6JbuboXllqJHXoFfhHnuJltiSEbkKbO10C9LCz0qPC+vYwNIF
-	bMHyARtjXbkOV4ej2DCtJtDQj4pSgSefY7qOiT92W740/S/ZCUcCGOmDYwvXMOWIry+JFhzTfl8Oc
-	LvntpLu/5LTvAWeGh53Zws1qaOfXRnjS187tNPTtB74/bZKSy96Z0ytZSte3YqcrqAKQrAZZ/S0AW
-	NhF8EoX0/+RhlaXQeHqvvnBPCAsSbfz42QiAhe0lM/s5oLx9fZ2Z2mgWAU1Fu9TFIQOWd1rejoy6R
-	R1iPPwbA==;
+	bh=yKvqmq+5jHD+XGPNm1nT/5MD5KNh5HIfxm0EQcxHIB4=; b=TG/QAcsiFAjEPFAhuK6dCGmPHP
+	zrLw07/EQnEIW1+BZTHAIV2eDcgXxm7gUSr+lyX3abH3VfELwVV5+ftXhRjf7UrtltA2UExVj25tE
+	IYAXVVSHUHa3/Oi9En5rcLaObFF7mIkttR4jw9JjsQVfPce4z11svXT0c/e8Wx7OW0ugdm8cxrrBK
+	4zLz3d90+BAtwmR906FL8EML9YJKchG01EnEQFKs0Sbkme6nbxU/GSmHxyMTfSdCkZx2q8CIEUn4F
+	CtzTxsGSeAESEIeKYEJKwD+dIrJFG5XrGzgPbvSQX9CGtBUMVogdGuuv1ILZIUXf6uimRnDqjG9F5
+	IArjDOzg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6k-00793j-3C;
-	Tue, 05 Dec 2023 02:24:23 +0000
+	id 1rAL6i-00792E-0C;
+	Tue, 05 Dec 2023 02:24:20 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 13/18] x86: merge csum_tcpudp_nofold() for 32bit and 64bit
-Date: Tue,  5 Dec 2023 02:24:13 +0000
-Message-Id: <20231205022418.1703007-22-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 05/18] bits missing from csum_and_copy_{from,to}_user() unexporting.
+Date: Tue,  5 Dec 2023 02:24:00 +0000
+Message-Id: <20231205022418.1703007-9-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,113 +47,59 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Identical.
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/include/asm/checksum.h    | 25 +++++++++++++++++++++++++
- arch/x86/include/asm/checksum_32.h | 14 --------------
- arch/x86/include/asm/checksum_64.h | 26 --------------------------
- 3 files changed, 25 insertions(+), 40 deletions(-)
+ arch/arm/kernel/armksyms.c   | 1 -
+ arch/mips/lib/csum_partial.S | 2 --
+ arch/sparc/lib/csum_copy.S   | 2 +-
+ 3 files changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
-index 5e617a380537..c66fa797703a 100644
---- a/arch/x86/include/asm/checksum.h
-+++ b/arch/x86/include/asm/checksum.h
-@@ -26,6 +26,31 @@ static inline __sum16 csum_fold(__wsum sum)
- 	return (__force __sum16)(~(__force u32)sum >> 16);
- }
+diff --git a/arch/arm/kernel/armksyms.c b/arch/arm/kernel/armksyms.c
+index d076a5c8556f..5c2a5cf2e550 100644
+--- a/arch/arm/kernel/armksyms.c
++++ b/arch/arm/kernel/armksyms.c
+@@ -55,7 +55,6 @@ EXPORT_SYMBOL(arm_delay_ops);
  
-+/**
-+ * csum_tcpup_nofold - Compute an IPv4 pseudo header checksum.
-+ * @saddr: source address
-+ * @daddr: destination address
-+ * @len: length of packet
-+ * @proto: ip protocol of packet
-+ * @sum: initial sum to be added in (32bit unfolded)
-+ *
-+ * Returns the pseudo header checksum the input data. Result is
-+ * 32bit unfolded.
-+ */
-+static inline __wsum
-+csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
-+		   __u8 proto, __wsum sum)
-+{
-+	asm("  addl %1, %0\n"
-+	    "  adcl %2, %0\n"
-+	    "  adcl %3, %0\n"
-+	    "  adcl $0, %0\n"
-+	    : "=r" (sum)
-+	    : "g" (daddr), "g" (saddr),
-+	      "g" ((len + proto)<<8), "0" (sum));
-+	return sum;
-+}
-+
- /*
-  *	This is a version of ip_compute_csum() optimized for IP headers,
-  *	which always checksum on 4 octet boundaries.
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index d920e6c335bc..959f8c6f5247 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -55,20 +55,6 @@ static inline __wsum_fault csum_and_copy_from_user(const void __user *src,
- 	return ret;
- }
+ 	/* networking */
+ EXPORT_SYMBOL(csum_partial);
+-EXPORT_SYMBOL(csum_partial_copy_from_user);
+ EXPORT_SYMBOL(csum_partial_copy_nocheck);
+ EXPORT_SYMBOL(__csum_ipv6_magic);
  
--static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
--					__u32 len, __u8 proto,
--					__wsum sum)
--{
--	asm("addl %1, %0	;\n"
--	    "adcl %2, %0	;\n"
--	    "adcl %3, %0	;\n"
--	    "adcl $0, %0	;\n"
--	    : "=r" (sum)
--	    : "g" (daddr), "g"(saddr),
--	      "g" ((len + proto) << 8), "0" (sum));
--	return sum;
--}
--
- #define _HAVE_ARCH_IPV6_CSUM
- static inline __sum16 csum_ipv6_magic(const struct in6_addr *saddr,
- 				      const struct in6_addr *daddr,
-diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
-index b80c82590d8d..e225a12cec68 100644
---- a/arch/x86/include/asm/checksum_64.h
-+++ b/arch/x86/include/asm/checksum_64.h
-@@ -11,32 +11,6 @@
- #include <linux/compiler.h>
- #include <asm/byteorder.h>
+diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
+index b0cda2950f4e..d27a25b653bf 100644
+--- a/arch/mips/lib/csum_partial.S
++++ b/arch/mips/lib/csum_partial.S
+@@ -743,9 +743,7 @@ FEXPORT(__csum_partial_copy_nocheck)
+ EXPORT_SYMBOL(__csum_partial_copy_nocheck)
+ #ifndef CONFIG_EVA
+ FEXPORT(__csum_partial_copy_to_user)
+-EXPORT_SYMBOL(__csum_partial_copy_to_user)
+ FEXPORT(__csum_partial_copy_from_user)
+-EXPORT_SYMBOL(__csum_partial_copy_from_user)
+ #endif
+ __BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP
  
--/**
-- * csum_tcpup_nofold - Compute an IPv4 pseudo header checksum.
-- * @saddr: source address
-- * @daddr: destination address
-- * @len: length of packet
-- * @proto: ip protocol of packet
-- * @sum: initial sum to be added in (32bit unfolded)
-- *
-- * Returns the pseudo header checksum the input data. Result is
-- * 32bit unfolded.
-- */
--static inline __wsum
--csum_tcpudp_nofold(__be32 saddr, __be32 daddr, __u32 len,
--		   __u8 proto, __wsum sum)
--{
--	asm("  addl %1, %0\n"
--	    "  adcl %2, %0\n"
--	    "  adcl %3, %0\n"
--	    "  adcl $0, %0\n"
--	    : "=r" (sum)
--	    : "g" (daddr), "g" (saddr),
--	      "g" ((len + proto)<<8), "0" (sum));
--	return sum;
--}
--
--
- /**
-  * csum_partial - Compute an internet checksum.
-  * @buff: buffer to be checksummed
+diff --git a/arch/sparc/lib/csum_copy.S b/arch/sparc/lib/csum_copy.S
+index 9312d51367d3..13b7e01af133 100644
+--- a/arch/sparc/lib/csum_copy.S
++++ b/arch/sparc/lib/csum_copy.S
+@@ -34,6 +34,7 @@
+ 
+ #ifndef FUNC_NAME
+ #define FUNC_NAME	csum_partial_copy_nocheck
++EXPORT_SYMBOL(csum_partial_copy_nocheck)
+ #endif
+ 
+ 	.register	%g2, #scratch
+@@ -67,7 +68,6 @@
+ 
+ 	.globl		FUNC_NAME
+ 	.type		FUNC_NAME,#function
+-	EXPORT_SYMBOL(FUNC_NAME)
+ FUNC_NAME:		/* %o0=src, %o1=dst, %o2=len */
+ 	LOAD(prefetch, %o0 + 0x000, #n_reads)
+ 	xor		%o0, %o1, %g1
 -- 
 2.39.2
 
