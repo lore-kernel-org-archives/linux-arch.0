@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="TG/QAcsi"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="UJDauNpR"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id CEEA3CE;
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id F14E3134;
 	Mon,  4 Dec 2023 18:24:24 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=yKvqmq+5jHD+XGPNm1nT/5MD5KNh5HIfxm0EQcxHIB4=; b=TG/QAcsiFAjEPFAhuK6dCGmPHP
-	zrLw07/EQnEIW1+BZTHAIV2eDcgXxm7gUSr+lyX3abH3VfELwVV5+ftXhRjf7UrtltA2UExVj25tE
-	IYAXVVSHUHa3/Oi9En5rcLaObFF7mIkttR4jw9JjsQVfPce4z11svXT0c/e8Wx7OW0ugdm8cxrrBK
-	4zLz3d90+BAtwmR906FL8EML9YJKchG01EnEQFKs0Sbkme6nbxU/GSmHxyMTfSdCkZx2q8CIEUn4F
-	CtzTxsGSeAESEIeKYEJKwD+dIrJFG5XrGzgPbvSQX9CGtBUMVogdGuuv1ILZIUXf6uimRnDqjG9F5
-	IArjDOzg==;
+	bh=Lz9jDx1K1J1PVs+5ELGTz3x5GcPqr4KZv94HVfgzNvM=; b=UJDauNpRs2sWRFoqxzYw4pL6kX
+	kvCaUzHAkNfC9Xk2cC4LSbtif0CXS9TFXcA1qBHhoEXGpDQaALJu8QLQh2R0JclzfpfMYvz4BQVbm
+	Vb5plQmEVC6PzpbB16Qdnf2xzresMHr8kppWJpbGbVNjXPv8OyPuXagNLk2OFDSoZ6Hv417zHn3TT
+	/lzijk8PybhTEqV4023qhQoPgKWI7Yo4hHNg0aZRyJvVMZITEOOQLSf9Z3yy+1VfhH/2aK2ljyqJv
+	I0pmXBHrlD/1TJ63VFrrVFBf2zPhNOyUznkbY8dNxqIIZxd+TbhYKF45TC21Sku0XjkffGP3ljHbj
+	Kz13T9ow==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6i-00792E-0C;
-	Tue, 05 Dec 2023 02:24:20 +0000
+	id 1rAL6l-00793x-14;
+	Tue, 05 Dec 2023 02:24:23 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 05/18] bits missing from csum_and_copy_{from,to}_user() unexporting.
-Date: Tue,  5 Dec 2023 02:24:00 +0000
-Message-Id: <20231205022418.1703007-9-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 15/18] x86: optimized csum_add() is the same for 32bit and 64bit
+Date: Tue,  5 Dec 2023 02:24:15 +0000
+Message-Id: <20231205022418.1703007-24-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,59 +47,117 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
+... and when gcc-8 becomes a requirement, we could simply switch to
+generic version.
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/arm/kernel/armksyms.c   | 1 -
- arch/mips/lib/csum_partial.S | 2 --
- arch/sparc/lib/csum_copy.S   | 2 +-
- 3 files changed, 1 insertion(+), 4 deletions(-)
+ arch/x86/include/asm/checksum.h    | 18 ++++++++++++++++++
+ arch/x86/include/asm/checksum_64.h | 16 ----------------
+ arch/x86/um/asm/checksum.h         | 17 +++++++++++++++++
+ arch/x86/um/asm/checksum_64.h      |  9 ---------
+ 4 files changed, 35 insertions(+), 25 deletions(-)
 
-diff --git a/arch/arm/kernel/armksyms.c b/arch/arm/kernel/armksyms.c
-index d076a5c8556f..5c2a5cf2e550 100644
---- a/arch/arm/kernel/armksyms.c
-+++ b/arch/arm/kernel/armksyms.c
-@@ -55,7 +55,6 @@ EXPORT_SYMBOL(arm_delay_ops);
+diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
+index c66fa797703a..5c0a730c7316 100644
+--- a/arch/x86/include/asm/checksum.h
++++ b/arch/x86/include/asm/checksum.h
+@@ -1,6 +1,24 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+ #ifndef _ASM_X86_CHECKSUM_H
+ #define _ASM_X86_CHECKSUM_H
++
++static inline unsigned add32_with_carry(unsigned a, unsigned b)
++{
++	asm("addl %2,%0\n\t"
++	    "adcl $0,%0"
++	    : "=r" (a)
++	    : "0" (a), "rm" (b));
++	return a;
++}
++
++/* note: with gcc-8 or later generic csum_add() yields the same code */
++#define HAVE_ARCH_CSUM_ADD
++static inline __wsum csum_add(__wsum csum, __wsum addend)
++{
++	return (__force __wsum)add32_with_carry((__force unsigned)csum,
++						(__force unsigned)addend);
++}
++
+ #ifdef CONFIG_GENERIC_CSUM
+ # include <asm-generic/checksum.h>
+ #else
+diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
+index e225a12cec68..c86db605c0fd 100644
+--- a/arch/x86/include/asm/checksum_64.h
++++ b/arch/x86/include/asm/checksum_64.h
+@@ -52,20 +52,4 @@ extern __sum16
+ csum_ipv6_magic(const struct in6_addr *saddr, const struct in6_addr *daddr,
+ 		__u32 len, __u8 proto, __wsum sum);
  
- 	/* networking */
- EXPORT_SYMBOL(csum_partial);
--EXPORT_SYMBOL(csum_partial_copy_from_user);
- EXPORT_SYMBOL(csum_partial_copy_nocheck);
- EXPORT_SYMBOL(__csum_ipv6_magic);
+-static inline unsigned add32_with_carry(unsigned a, unsigned b)
+-{
+-	asm("addl %2,%0\n\t"
+-	    "adcl $0,%0"
+-	    : "=r" (a)
+-	    : "0" (a), "rm" (b));
+-	return a;
+-}
+-
+-#define HAVE_ARCH_CSUM_ADD
+-static inline __wsum csum_add(__wsum csum, __wsum addend)
+-{
+-	return (__force __wsum)add32_with_carry((__force unsigned)csum,
+-						(__force unsigned)addend);
+-}
+-
+ #endif /* _ASM_X86_CHECKSUM_64_H */
+diff --git a/arch/x86/um/asm/checksum.h b/arch/x86/um/asm/checksum.h
+index 9ef8ef4291f4..0986c19e5ff0 100644
+--- a/arch/x86/um/asm/checksum.h
++++ b/arch/x86/um/asm/checksum.h
+@@ -6,6 +6,23 @@
+ #include <linux/in6.h>
+ #include <linux/uaccess.h>
  
-diff --git a/arch/mips/lib/csum_partial.S b/arch/mips/lib/csum_partial.S
-index b0cda2950f4e..d27a25b653bf 100644
---- a/arch/mips/lib/csum_partial.S
-+++ b/arch/mips/lib/csum_partial.S
-@@ -743,9 +743,7 @@ FEXPORT(__csum_partial_copy_nocheck)
- EXPORT_SYMBOL(__csum_partial_copy_nocheck)
- #ifndef CONFIG_EVA
- FEXPORT(__csum_partial_copy_to_user)
--EXPORT_SYMBOL(__csum_partial_copy_to_user)
- FEXPORT(__csum_partial_copy_from_user)
--EXPORT_SYMBOL(__csum_partial_copy_from_user)
++static inline unsigned add32_with_carry(unsigned a, unsigned b)
++{
++	asm("addl %2,%0\n\t"
++	    "adcl $0,%0"
++	    : "=r" (a)
++	    : "0" (a), "rm" (b));
++	return a;
++}
++
++/* note: with gcc-8 or later generic csum_add() yields the same code */
++#define HAVE_ARCH_CSUM_ADD
++static inline __wsum csum_add(__wsum csum, __wsum addend)
++{
++	return (__force __wsum)add32_with_carry((__force unsigned)csum,
++						(__force unsigned)addend);
++}
++
+ /*
+  * computes the checksum of a memory block at buff, length len,
+  * and adds in "sum" (32-bit)
+diff --git a/arch/x86/um/asm/checksum_64.h b/arch/x86/um/asm/checksum_64.h
+index fd1ab07e4a4c..17228e4c26b6 100644
+--- a/arch/x86/um/asm/checksum_64.h
++++ b/arch/x86/um/asm/checksum_64.h
+@@ -7,13 +7,4 @@
+ 
+ #define _HAVE_IP_COMPUTE_CSUM
+ 
+-static inline unsigned add32_with_carry(unsigned a, unsigned b)
+-{
+-        asm("addl %2,%0\n\t"
+-            "adcl $0,%0"
+-            : "=r" (a)
+-            : "0" (a), "r" (b));
+-        return a;
+-}
+-
  #endif
- __BUILD_CSUM_PARTIAL_COPY_USER LEGACY_MODE USEROP USEROP
- 
-diff --git a/arch/sparc/lib/csum_copy.S b/arch/sparc/lib/csum_copy.S
-index 9312d51367d3..13b7e01af133 100644
---- a/arch/sparc/lib/csum_copy.S
-+++ b/arch/sparc/lib/csum_copy.S
-@@ -34,6 +34,7 @@
- 
- #ifndef FUNC_NAME
- #define FUNC_NAME	csum_partial_copy_nocheck
-+EXPORT_SYMBOL(csum_partial_copy_nocheck)
- #endif
- 
- 	.register	%g2, #scratch
-@@ -67,7 +68,6 @@
- 
- 	.globl		FUNC_NAME
- 	.type		FUNC_NAME,#function
--	EXPORT_SYMBOL(FUNC_NAME)
- FUNC_NAME:		/* %o0=src, %o1=dst, %o2=len */
- 	LOAD(prefetch, %o0 + 0x000, #n_reads)
- 	xor		%o0, %o1, %g1
 -- 
 2.39.2
 
