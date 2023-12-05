@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="LtctdxV8"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="JSa9wSgY"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id A690518B;
-	Mon,  4 Dec 2023 18:24:27 -0800 (PST)
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 629B7183;
+	Mon,  4 Dec 2023 18:24:33 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=yGsLus4r20WEhHIEUwFMWqvoY3KD5tmxwmXqu9yESi4=; b=LtctdxV88ZB9dZnAzKcrsyJRmK
-	3tN0NMX6g3+akOw4y3ZNae1A3WM5uC6dRSRxk6bOx3aJe8VdZMcHFaxBG74+d99D+waBD/i98aJwV
-	QU/6GapyrDEWQvaNpCZpTxGjvEIcZIboUFseYoKgzl7oI6yttsI4siDtFjqWhqLxpOU6ImEd/fFbW
-	zm6wfLREYe0TezDiEYLrnFGjLo3kTnRvEA9LAJvSbpQ6piFK5m/36cm/rPWhAbx9N1NdpzSFfe3Oc
-	LoXFth9KtYsZr1nAQfqwCkznKqpzSctgzBXjzTVJq4pvxKAvKggqk4moJXHMSraFWvOm8IRc9e98R
-	iXfHokZQ==;
+	bh=Ssumj8Ga0ODeYpoCztyRyOohgV6bExhFJeHjoXEJ+Bk=; b=JSa9wSgYC6qHTANuSw4rJ3cYDB
+	VEpipY+WowKTenQpMASC6oMife6jMA3wmPdhOPwtLa4Ps7NSA/LdccXE5kKE/vqSvGI1bvQF1WgLq
+	I+LoSWIzJmJdrbMtKhHWAcXuJeKv8oJbg/bbc8yfLkMANQCK99Kmj+l5DuIZm7wcneMfqmKsaFL7v
+	x3MaBeICRKdnquaYa0DIIXzJhk9bHG+fJLB2JUVXhfZdwrJ8dm2XRSeqalJD+7gEW5/a7nSOGpysp
+	cxBfiCBKvQ5L6BpW6U7yISnD6kDF3H8WII4XtHuHM+YnhYeO3Wxs0XF4PLz/KvYWDRxLvtHOXoNz0
+	5pOfwhHw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6k-00793Z-2V;
-	Tue, 05 Dec 2023 02:24:22 +0000
+	id 1rAL6h-007926-14;
+	Tue, 05 Dec 2023 02:24:19 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 12/18] x86: merge ip_fast_csum() for 32bit and 64bit
-Date: Tue,  5 Dec 2023 02:24:12 +0000
-Message-Id: <20231205022418.1703007-21-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 03/18] make net/checksum.h the sole user of asm/checksum.h
+Date: Tue,  5 Dec 2023 02:23:56 +0000
+Message-Id: <20231205022418.1703007-5-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,173 +47,232 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Identical, except that 32bit version uses asm volatile where 64bit
-one uses plain asm.  The former had become pointless when memory
-clobber got added to both versions...
+All other users (all in arch/* by now) can pull net/checksum.h
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/include/asm/checksum.h    | 43 ++++++++++++++++++++++++++++++
- arch/x86/include/asm/checksum_32.h | 37 -------------------------
- arch/x86/include/asm/checksum_64.h | 43 ------------------------------
- 3 files changed, 43 insertions(+), 80 deletions(-)
+ arch/alpha/include/asm/asm-prototypes.h   | 2 +-
+ arch/arm/kernel/armksyms.c                | 2 +-
+ arch/microblaze/kernel/microblaze_ksyms.c | 2 +-
+ arch/mips/include/asm/asm-prototypes.h    | 2 +-
+ arch/openrisc/kernel/or32_ksyms.c         | 2 +-
+ arch/powerpc/include/asm/asm-prototypes.h | 2 +-
+ arch/powerpc/lib/checksum_wrappers.c      | 2 +-
+ arch/s390/kernel/ipl.c                    | 2 +-
+ arch/s390/kernel/os_info.c                | 2 +-
+ arch/sh/kernel/sh_ksyms_32.c              | 2 +-
+ arch/sparc/include/asm/asm-prototypes.h   | 2 +-
+ arch/x86/include/asm/asm-prototypes.h     | 2 +-
+ arch/x86/lib/csum-partial_64.c            | 2 +-
+ arch/x86/lib/csum-wrappers_64.c           | 2 +-
+ arch/xtensa/include/asm/asm-prototypes.h  | 2 +-
+ 15 files changed, 15 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
-index eaa5dda09bee..5e617a380537 100644
---- a/arch/x86/include/asm/checksum.h
-+++ b/arch/x86/include/asm/checksum.h
-@@ -26,6 +26,49 @@ static inline __sum16 csum_fold(__wsum sum)
- 	return (__force __sum16)(~(__force u32)sum >> 16);
- }
+diff --git a/arch/alpha/include/asm/asm-prototypes.h b/arch/alpha/include/asm/asm-prototypes.h
+index c8ae46fc2e74..5bedc308be3c 100644
+--- a/arch/alpha/include/asm/asm-prototypes.h
++++ b/arch/alpha/include/asm/asm-prototypes.h
+@@ -1,10 +1,10 @@
+ #include <linux/spinlock.h>
  
-+/*
-+ *	This is a version of ip_compute_csum() optimized for IP headers,
-+ *	which always checksum on 4 octet boundaries.
-+ *
-+ *	By Jorge Cwik <jorge@laser.satlink.net>, adapted for linux by
-+ *	Arnt Gulbrandsen.
-+ */
-+
-+/**
-+ * ip_fast_csum - Compute the IPv4 header checksum efficiently.
-+ * iph: ipv4 header
-+ * ihl: length of header / 4
-+ */
-+static inline __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
-+{
-+	unsigned int sum;
-+
-+	asm("  movl (%1), %0\n"
-+	    "  subl $4, %2\n"
-+	    "  jbe 2f\n"
-+	    "  addl 4(%1), %0\n"
-+	    "  adcl 8(%1), %0\n"
-+	    "  adcl 12(%1), %0\n"
-+	    "1: adcl 16(%1), %0\n"
-+	    "  lea 4(%1), %1\n"
-+	    "  decl %2\n"
-+	    "  jne	1b\n"
-+	    "  adcl $0, %0\n"
-+	    "  movl %0, %2\n"
-+	    "  shrl $16, %0\n"
-+	    "  addw %w2, %w0\n"
-+	    "  adcl $0, %0\n"
-+	    "  notl %0\n"
-+	    "2:"
-+	/* Since the input registers which are loaded with iph and ihl
-+	   are modified, we must also specify them as outputs, or gcc
-+	   will assume they contain their original values. */
-+	    : "=r" (sum), "=r" (iph), "=r" (ihl)
-+	    : "1" (iph), "2" (ihl)
-+	    : "memory");
-+	return (__force __sum16)sum;
-+}
-+
- # ifdef CONFIG_X86_32
- #  include <asm/checksum_32.h>
- # else
-diff --git a/arch/x86/include/asm/checksum_32.h b/arch/x86/include/asm/checksum_32.h
-index 4e96d0473f88..d920e6c335bc 100644
---- a/arch/x86/include/asm/checksum_32.h
-+++ b/arch/x86/include/asm/checksum_32.h
-@@ -55,43 +55,6 @@ static inline __wsum_fault csum_and_copy_from_user(const void __user *src,
- 	return ret;
- }
+-#include <asm/checksum.h>
+ #include <asm/console.h>
+ #include <asm/page.h>
+ #include <asm/string.h>
+ #include <linux/uaccess.h>
++#include <net/checksum.h>
  
--/*
-- *	This is a version of ip_compute_csum() optimized for IP headers,
-- *	which always checksum on 4 octet boundaries.
-- *
-- *	By Jorge Cwik <jorge@laser.satlink.net>, adapted for linux by
-- *	Arnt Gulbrandsen.
-- */
--static inline __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
--{
--	unsigned int sum;
--
--	asm volatile("movl (%1), %0	;\n"
--		     "subl $4, %2	;\n"
--		     "jbe 2f		;\n"
--		     "addl 4(%1), %0	;\n"
--		     "adcl 8(%1), %0	;\n"
--		     "adcl 12(%1), %0;\n"
--		     "1:	adcl 16(%1), %0	;\n"
--		     "lea 4(%1), %1	;\n"
--		     "decl %2	;\n"
--		     "jne 1b		;\n"
--		     "adcl $0, %0	;\n"
--		     "movl %0, %2	;\n"
--		     "shrl $16, %0	;\n"
--		     "addw %w2, %w0	;\n"
--		     "adcl $0, %0	;\n"
--		     "notl %0	;\n"
--		     "2:		;\n"
--	/* Since the input registers which are loaded with iph and ihl
--	   are modified, we must also specify them as outputs, or gcc
--	   will assume they contain their original values. */
--		     : "=r" (sum), "=r" (iph), "=r" (ihl)
--		     : "1" (iph), "2" (ihl)
--		     : "memory");
--	return (__force __sum16)sum;
--}
--
- static inline __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
- 					__u32 len, __u8 proto,
- 					__wsum sum)
-diff --git a/arch/x86/include/asm/checksum_64.h b/arch/x86/include/asm/checksum_64.h
-index d261b4124ca6..b80c82590d8d 100644
---- a/arch/x86/include/asm/checksum_64.h
-+++ b/arch/x86/include/asm/checksum_64.h
-@@ -11,49 +11,6 @@
+ #include <asm-generic/asm-prototypes.h>
+ 
+diff --git a/arch/arm/kernel/armksyms.c b/arch/arm/kernel/armksyms.c
+index 82e96ac83684..d076a5c8556f 100644
+--- a/arch/arm/kernel/armksyms.c
++++ b/arch/arm/kernel/armksyms.c
+@@ -14,7 +14,7 @@
+ #include <linux/io.h>
+ #include <linux/arm-smccc.h>
+ 
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/ftrace.h>
+ 
+ /*
+diff --git a/arch/microblaze/kernel/microblaze_ksyms.c b/arch/microblaze/kernel/microblaze_ksyms.c
+index c892e173ec99..e5858b15cd37 100644
+--- a/arch/microblaze/kernel/microblaze_ksyms.c
++++ b/arch/microblaze/kernel/microblaze_ksyms.c
+@@ -10,7 +10,7 @@
+ #include <linux/in6.h>
+ #include <linux/syscalls.h>
+ 
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/cacheflush.h>
+ #include <linux/io.h>
+ #include <asm/page.h>
+diff --git a/arch/mips/include/asm/asm-prototypes.h b/arch/mips/include/asm/asm-prototypes.h
+index 8e8fc38b0941..44fd0c30fd73 100644
+--- a/arch/mips/include/asm/asm-prototypes.h
++++ b/arch/mips/include/asm/asm-prototypes.h
+@@ -1,11 +1,11 @@
+ /* SPDX-License-Identifier: GPL-2.0 */
+-#include <asm/checksum.h>
+ #include <asm/page.h>
+ #include <asm/fpu.h>
+ #include <asm-generic/asm-prototypes.h>
+ #include <linux/uaccess.h>
+ #include <asm/ftrace.h>
+ #include <asm/mmu_context.h>
++#include <net/checksum.h>
+ 
+ extern void clear_page_cpu(void *page);
+ extern void copy_page_cpu(void *to, void *from);
+diff --git a/arch/openrisc/kernel/or32_ksyms.c b/arch/openrisc/kernel/or32_ksyms.c
+index 212e5f85004c..a56dea4411ab 100644
+--- a/arch/openrisc/kernel/or32_ksyms.c
++++ b/arch/openrisc/kernel/or32_ksyms.c
+@@ -22,7 +22,7 @@
+ 
+ #include <asm/processor.h>
+ #include <linux/uaccess.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/io.h>
+ #include <asm/hardirq.h>
+ #include <asm/delay.h>
+diff --git a/arch/powerpc/include/asm/asm-prototypes.h b/arch/powerpc/include/asm/asm-prototypes.h
+index 274bce76f5da..c283183e5a81 100644
+--- a/arch/powerpc/include/asm/asm-prototypes.h
++++ b/arch/powerpc/include/asm/asm-prototypes.h
+@@ -11,7 +11,7 @@
+ 
+ #include <linux/threads.h>
+ #include <asm/cacheflush.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <linux/uaccess.h>
+ #include <asm/epapr_hcalls.h>
+ #include <asm/dcr.h>
+diff --git a/arch/powerpc/lib/checksum_wrappers.c b/arch/powerpc/lib/checksum_wrappers.c
+index 1a14c8780278..6df0fd24482e 100644
+--- a/arch/powerpc/lib/checksum_wrappers.c
++++ b/arch/powerpc/lib/checksum_wrappers.c
+@@ -8,8 +8,8 @@
+ #include <linux/export.h>
  #include <linux/compiler.h>
- #include <asm/byteorder.h>
+ #include <linux/types.h>
+-#include <asm/checksum.h>
+ #include <linux/uaccess.h>
++#include <net/checksum.h>
  
--/*
-- *	This is a version of ip_compute_csum() optimized for IP headers,
-- *	which always checksum on 4 octet boundaries.
-- *
-- *	By Jorge Cwik <jorge@laser.satlink.net>, adapted for linux by
-- *	Arnt Gulbrandsen.
-- */
--
--/**
-- * ip_fast_csum - Compute the IPv4 header checksum efficiently.
-- * iph: ipv4 header
-- * ihl: length of header / 4
-- */
--static inline __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
--{
--	unsigned int sum;
--
--	asm("  movl (%1), %0\n"
--	    "  subl $4, %2\n"
--	    "  jbe 2f\n"
--	    "  addl 4(%1), %0\n"
--	    "  adcl 8(%1), %0\n"
--	    "  adcl 12(%1), %0\n"
--	    "1: adcl 16(%1), %0\n"
--	    "  lea 4(%1), %1\n"
--	    "  decl %2\n"
--	    "  jne	1b\n"
--	    "  adcl $0, %0\n"
--	    "  movl %0, %2\n"
--	    "  shrl $16, %0\n"
--	    "  addw %w2, %w0\n"
--	    "  adcl $0, %0\n"
--	    "  notl %0\n"
--	    "2:"
--	/* Since the input registers which are loaded with iph and ihl
--	   are modified, we must also specify them as outputs, or gcc
--	   will assume they contain their original values. */
--	    : "=r" (sum), "=r" (iph), "=r" (ihl)
--	    : "1" (iph), "2" (ihl)
--	    : "memory");
--	return (__force __sum16)sum;
--}
--
+ __wsum csum_and_copy_from_user(const void __user *src, void *dst,
+ 			       int len)
+diff --git a/arch/s390/kernel/ipl.c b/arch/s390/kernel/ipl.c
+index cc364fce6aa9..0a2d11a22c37 100644
+--- a/arch/s390/kernel/ipl.c
++++ b/arch/s390/kernel/ipl.c
+@@ -28,7 +28,7 @@
+ #include <asm/cpcmd.h>
+ #include <asm/ebcdic.h>
+ #include <asm/sclp.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/debug.h>
+ #include <asm/abs_lowcore.h>
+ #include <asm/os_info.h>
+diff --git a/arch/s390/kernel/os_info.c b/arch/s390/kernel/os_info.c
+index 6e1824141b29..44447e3fef84 100644
+--- a/arch/s390/kernel/os_info.c
++++ b/arch/s390/kernel/os_info.c
+@@ -12,7 +12,7 @@
+ #include <linux/crash_dump.h>
+ #include <linux/kernel.h>
+ #include <linux/slab.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/abs_lowcore.h>
+ #include <asm/os_info.h>
+ #include <asm/maccess.h>
+diff --git a/arch/sh/kernel/sh_ksyms_32.c b/arch/sh/kernel/sh_ksyms_32.c
+index 5858936cb431..ce9d5547ac74 100644
+--- a/arch/sh/kernel/sh_ksyms_32.c
++++ b/arch/sh/kernel/sh_ksyms_32.c
+@@ -4,7 +4,7 @@
+ #include <linux/uaccess.h>
+ #include <linux/delay.h>
+ #include <linux/mm.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/sections.h>
+ 
+ EXPORT_SYMBOL(memchr);
+diff --git a/arch/sparc/include/asm/asm-prototypes.h b/arch/sparc/include/asm/asm-prototypes.h
+index 4987c735ff56..e15661bf8b36 100644
+--- a/arch/sparc/include/asm/asm-prototypes.h
++++ b/arch/sparc/include/asm/asm-prototypes.h
+@@ -4,7 +4,7 @@
+  */
+ 
+ #include <asm/xor.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/trap_block.h>
+ #include <linux/uaccess.h>
+ #include <asm/atomic.h>
+diff --git a/arch/x86/include/asm/asm-prototypes.h b/arch/x86/include/asm/asm-prototypes.h
+index b1a98fa38828..655e25745349 100644
+--- a/arch/x86/include/asm/asm-prototypes.h
++++ b/arch/x86/include/asm/asm-prototypes.h
+@@ -4,7 +4,7 @@
+ #include <linux/pgtable.h>
+ #include <asm/string.h>
+ #include <asm/page.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/mce.h>
+ 
+ #include <asm-generic/asm-prototypes.h>
+diff --git a/arch/x86/lib/csum-partial_64.c b/arch/x86/lib/csum-partial_64.c
+index cea25ca8b8cf..5e877592a7b3 100644
+--- a/arch/x86/lib/csum-partial_64.c
++++ b/arch/x86/lib/csum-partial_64.c
+@@ -8,7 +8,7 @@
+ 
+ #include <linux/compiler.h>
+ #include <linux/export.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/word-at-a-time.h>
+ 
+ static inline unsigned short from32to16(unsigned a)
+diff --git a/arch/x86/lib/csum-wrappers_64.c b/arch/x86/lib/csum-wrappers_64.c
+index f4df4d241526..03251664462a 100644
+--- a/arch/x86/lib/csum-wrappers_64.c
++++ b/arch/x86/lib/csum-wrappers_64.c
+@@ -4,9 +4,9 @@
+  *
+  * Wrappers of assembly checksum functions for x86-64.
+  */
+-#include <asm/checksum.h>
+ #include <linux/export.h>
+ #include <linux/uaccess.h>
++#include <net/checksum.h>
+ #include <asm/smap.h>
+ 
  /**
-  * csum_tcpup_nofold - Compute an IPv4 pseudo header checksum.
-  * @saddr: source address
+diff --git a/arch/xtensa/include/asm/asm-prototypes.h b/arch/xtensa/include/asm/asm-prototypes.h
+index b0da61812b85..b01b8170fafb 100644
+--- a/arch/xtensa/include/asm/asm-prototypes.h
++++ b/arch/xtensa/include/asm/asm-prototypes.h
+@@ -3,7 +3,7 @@
+ #define __ASM_PROTOTYPES_H
+ 
+ #include <asm/cacheflush.h>
+-#include <asm/checksum.h>
++#include <net/checksum.h>
+ #include <asm/ftrace.h>
+ #include <asm/page.h>
+ #include <asm/string.h>
 -- 
 2.39.2
 
