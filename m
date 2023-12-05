@@ -1,138 +1,148 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="MvHnm+WX"
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5BA78196
-	for <linux-arch@vger.kernel.org>; Tue,  5 Dec 2023 07:52:19 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1701791538;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=NoDK23LlK5p4IgH6ZTqMMZELxs6CauTLQ4NGvi9HnM4=;
-	b=MvHnm+WXonaZxwf7LRdXRiBFtUEOZrsifDkA8f+/CV1kKfsShOZhOGG6MFRX1HfSqqo3aI
-	wHJKU6RXLCLpONENt41r7cfpdJwAJAS7yp0zpxohGgJxgxkIT/EPPSNjcgOkTDYQE//LTz
-	KG23LObs9OZK3ifMIxZu1nA1HWqJo+U=
-Received: from mail-wm1-f70.google.com (mail-wm1-f70.google.com
- [209.85.128.70]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-110-XG8G5-_YNmq4CBZ8KUoEnw-1; Tue, 05 Dec 2023 10:50:23 -0500
-X-MC-Unique: XG8G5-_YNmq4CBZ8KUoEnw-1
-Received: by mail-wm1-f70.google.com with SMTP id 5b1f17b1804b1-40b53d6a000so10351415e9.0
-        for <linux-arch@vger.kernel.org>; Tue, 05 Dec 2023 07:50:22 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Ua44hSie"
+Received: from mail-wr1-x434.google.com (mail-wr1-x434.google.com [IPv6:2a00:1450:4864:20::434])
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 1ABC01AB;
+	Tue,  5 Dec 2023 08:01:39 -0800 (PST)
+Received: by mail-wr1-x434.google.com with SMTP id ffacd0b85a97d-3333224c7b9so3711757f8f.1;
+        Tue, 05 Dec 2023 08:01:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1701792097; x=1702396897; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=Tvo/9rnArZ8fI0hFLD0+8fIJyDMuJ5boJQpNSGg0de4=;
+        b=Ua44hSie5AoBdpKopXuz6XgZ4mVi8FN/VOwnnUMYnfUYsNcd6eJ3/x53YNLEo7xgim
+         f/ZhmeoTXKDWSLDX7KvuO5yGQth/g1a8bZAkGRQynVUs1MOhIQMT1jRFwxzoA2ZPOmRU
+         EqLNpvZegCB+wYnsUCWKcPQNxSaAV+2YsQMbdgXjyb/KQcW/oMAAgKMiMz8ZUgKk+XtA
+         5H9DX+0KjHNPGO9vQLmeXzu8/4NaxXAzzWXIe5n4ji6P0ySLOErqzDaJQCr0zjidjjif
+         56NOZxSinLA+Ar4kzkUUovi/jn8CWUURiTwlNqRvM7lafyN0+TabPRcW+po5OTqWgDZi
+         6JoQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1701791117; x=1702395917;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=NoDK23LlK5p4IgH6ZTqMMZELxs6CauTLQ4NGvi9HnM4=;
-        b=qc+svGZqmaAnaGhzlPLiORWlYfdaVU/2ThbBCSkJ9CBuQVBjYqXLBXuOEq/Wk3t1c9
-         S7AjX+H8AYRZnvSRcoYzixi5kYt8ybAXJDOCjtYSPl0GSUH/Oxwxryi7GC4IBHM2lqMx
-         bjYWJpdLxlCTDtg0Swxq8VkLHSRMDkAMxbFKITosm6k0ouvgu1PvHSiQ5lDRb0WqU5zo
-         NjAOZUpeCHyLynsZajeyrSZZvipJSxA16xOjMD7GXcZgG6MDe+TSQX5U8TQAIeGp1oYT
-         4rjycqYae8Y4hIEE5vKK3bwqToxwDBS9WBRh8OYKjzZMGXTS2TBaJf2rpL/ZSeJkovUv
-         i+7w==
-X-Gm-Message-State: AOJu0YyTMB7GAc/yknGupHMmnNMwDSyoDaDezeiR884GGWQj9TV4cXjw
-	P8JiuJ+VSvE8KvP2hAyZpQxX1ZcEht07VjQylSGnrlKgYcRA8hPm2/mQ9cxAnBExNTgQx86qtju
-	fz24Ge2R7OXihLHSLwoEq8g==
-X-Received: by 2002:a05:6402:1d0e:b0:54d:2efd:369e with SMTP id dg14-20020a0564021d0e00b0054d2efd369emr1100578edb.1.1701790673582;
-        Tue, 05 Dec 2023 07:37:53 -0800 (PST)
-X-Google-Smtp-Source: AGHT+IHMWm/1bFBFbNN6jWtOQ+6Wi9ETG9A4NbaILiBypRArdxNy576pceUJLgrbNKwNpAp9z7aoNA==
-X-Received: by 2002:a05:6402:1d0e:b0:54d:2efd:369e with SMTP id dg14-20020a0564021d0e00b0054d2efd369emr1100547edb.1.1701790673178;
-        Tue, 05 Dec 2023 07:37:53 -0800 (PST)
-Received: from pstanner-thinkpadt14sgen1.remote.csb ([2a01:599:912:71c8:c243:7b37:30b:a236])
-        by smtp.gmail.com with ESMTPSA id r15-20020a056402018f00b0054c21d1fda7sm1244578edv.1.2023.12.05.07.37.50
+        d=1e100.net; s=20230601; t=1701792097; x=1702396897;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Tvo/9rnArZ8fI0hFLD0+8fIJyDMuJ5boJQpNSGg0de4=;
+        b=WlcMUCOIDrVGv/wcWvNtjLJ3i31U1+mr/SIDJu6lgY3g8icXq9q5srzDOdLNA+vh/7
+         GpqG5nSqNQjfYcE2KvKTrBZ/Hgc67Igc89DzQDfnpY7LJ6bgwZtOnc12QtrWkRgpYx9k
+         QfRt7l8eyF1MK+dO195vowrBmF6/uv8Wr9euNKNg9ZlUSGclMer3bf1YLHvJlSCFFjZm
+         0xzrGkM0lBJU7OnfdVe9q9NINHPJR+E89Wj/clW9moeNP4wvelGw0KHZCLZ/PfjaixZ7
+         KJaXfjbJ7nCjJyzMJNtkJR3jz2VFIp8fMpQ+AaVJsX+r7F/yztYdDdvIE2gp36L18DDo
+         HFkQ==
+X-Gm-Message-State: AOJu0YxqNdPTCMSO4qj7u9Bip/ed6fMPfTqFBEokZEzIX3+nDCH0huyw
+	OMs7zRe8eIuKk/kTc7BHdnJf5W3RKA==
+X-Google-Smtp-Source: AGHT+IGVDOHWf2/MsqsnRu1T0vHj++2BZvSkVNdgYatcywQjkipt57Ds2m07DrWUWbWeutZCjMzx6A==
+X-Received: by 2002:adf:e349:0:b0:333:4862:8520 with SMTP id n9-20020adfe349000000b0033348628520mr2133188wrj.138.1701792097218;
+        Tue, 05 Dec 2023 08:01:37 -0800 (PST)
+Received: from p183 ([46.53.254.107])
+        by smtp.gmail.com with ESMTPSA id r13-20020a056000014d00b003333fc2cb92sm8295598wrx.58.2023.12.05.08.01.36
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 05 Dec 2023 07:37:52 -0800 (PST)
-From: Philipp Stanner <pstanner@redhat.com>
-To: Bjorn Helgaas <bhelgaas@google.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Johannes Berg <johannes@sipsolutions.net>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	NeilBrown <neilb@suse.de>,
-	John Sanpe <sanpeqf@gmail.com>,
-	Kent Overstreet <kent.overstreet@gmail.com>,
-	Niklas Schnelle <schnelle@linux.ibm.com>,
-	Philipp Stanner <pstanner@redhat.com>,
-	Dave Jiang <dave.jiang@intel.com>,
-	Uladzislau Koshchanka <koshchanka@gmail.com>,
-	"Masami Hiramatsu (Google)" <mhiramat@kernel.org>,
-	David Gow <davidgow@google.com>,
-	Kees Cook <keescook@chromium.org>,
-	Rae Moar <rmoar@google.com>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	"wuqiang.matt" <wuqiang.matt@bytedance.com>,
-	Yury Norov <yury.norov@gmail.com>,
-	Jason Baron <jbaron@akamai.com>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Marco Elver <elver@google.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Ben Dooks <ben.dooks@codethink.co.uk>,
-	dakr@redhat.com
-Cc: linux-kernel@vger.kernel.org,
-	linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	stable@vger.kernel.org,
-	Arnd Bergmann <arnd@kernel.org>
-Subject: [PATCH v4 1/5] lib/pci_iomap.c: fix cleanup bugs in pci_iounmap()
-Date: Tue,  5 Dec 2023 16:36:26 +0100
-Message-ID: <20231205153629.26020-3-pstanner@redhat.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20231205153629.26020-2-pstanner@redhat.com>
-References: <20231205153629.26020-2-pstanner@redhat.com>
+        Tue, 05 Dec 2023 08:01:36 -0800 (PST)
+Date: Tue, 5 Dec 2023 19:01:34 +0300
+From: Alexey Dobriyan <adobriyan@gmail.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Florian Weimer <fweimer@redhat.com>, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-api@vger.kernel.org,
+	x86@kernel.org
+Subject: [PATCH v2] ELF: supply userspace with available page shifts
+ (AT_PAGE_SHIFT_MASK)
+Message-ID: <1d679805-8a82-44a4-ba14-49d4f28ff597@p183>
+References: <6b399b86-a478-48b0-92a1-25240a8ede54@p183>
+ <87v89dvuxg.fsf@oldenburg.str.redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <87v89dvuxg.fsf@oldenburg.str.redhat.com>
 
-pci_iounmap() in lib/pci_iomap.c is supposed to check whether an address
-is within ioport-range IF the config specifies that ioports exist. If
-so, the port should be unmapped with ioport_unmap(). If not, it's a
-generic MMIO address that has to be passed to iounmap().
+Report available page shifts in arch independent manner, so that
+userspace developers won't have to parse /proc/cpuinfo hunting
+for arch specific strings:
 
-The bugs are:
-  1. ioport_unmap() is missing entirely, so this function will never
-     actually unmap a port.
-  2. the #ifdef for the ioport-ranges accidentally also guards
-     iounmap(), potentially compiling an empty function. This would
-     cause the mapping to be leaked.
+Note!
 
-Implement the missing call to ioport_unmap().
+This is strictly for userspace, if some page size is shutdown due
+to kernel command line option or CPU bug workaround, than is must not
+be reported in aux vector!
 
-Move the guard so that iounmap() will always be part of the function.
+x86_64 machine with 1 GiB pages:
 
-CC: <stable@vger.kernel.org> # v5.15+
-Fixes: 316e8d79a095 ("pci_iounmap'2: Electric Boogaloo: try to make sense of it all")
-Reported-by: Danilo Krummrich <dakr@redhat.com>
-Suggested-by: Arnd Bergmann <arnd@kernel.org>
-Signed-off-by: Philipp Stanner <pstanner@redhat.com>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+	00000030  06 00 00 00 00 00 00 00  00 10 00 00 00 00 00 00
+	00000040  1d 00 00 00 00 00 00 00  00 10 20 40 00 00 00 00
+
+x86_64 machine with 2 MiB pages only:
+
+	00000030  06 00 00 00 00 00 00 00  00 10 00 00 00 00 00 00
+	00000040  1d 00 00 00 00 00 00 00  00 10 20 00 00 00 00 00
+
+AT_PAGESZ is always 4096 which is not that interesting.
+
+Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
 ---
- lib/pci_iomap.c | 6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
-index ce39ce9f3526..6e144b017c48 100644
---- a/lib/pci_iomap.c
-+++ b/lib/pci_iomap.c
-@@ -168,10 +168,12 @@ void pci_iounmap(struct pci_dev *dev, void __iomem *p)
- 	uintptr_t start = (uintptr_t) PCI_IOBASE;
- 	uintptr_t addr = (uintptr_t) p;
+	v2: switch to 1 bit per page shift (bitmask)
+
+ arch/x86/include/asm/elf.h  |   12 ++++++++++++
+ fs/binfmt_elf.c             |    3 +++
+ include/uapi/linux/auxvec.h |   14 ++++++++++++++
+ 3 files changed, 29 insertions(+)
+
+--- a/arch/x86/include/asm/elf.h
++++ b/arch/x86/include/asm/elf.h
+@@ -358,6 +358,18 @@ else if (IS_ENABLED(CONFIG_IA32_EMULATION))				\
  
--	if (addr >= start && addr < start + IO_SPACE_LIMIT)
-+	if (addr >= start && addr < start + IO_SPACE_LIMIT) {
-+		ioport_unmap(p);
- 		return;
--	iounmap(p);
-+	}
+ #define COMPAT_ELF_ET_DYN_BASE	(TASK_UNMAPPED_BASE + 0x1000000)
+ 
++#define ARCH_AT_PAGE_SHIFT_MASK					\
++	do {							\
++		u32 val = 1 << 12;				\
++		if (boot_cpu_has(X86_FEATURE_PSE)) {		\
++			val |= 1 << 21;				\
++		}						\
++		if (boot_cpu_has(X86_FEATURE_GBPAGES)) {	\
++			val |= 1 << 30;				\
++		}						\
++		NEW_AUX_ENT(AT_PAGE_SHIFT_MASK, val);		\
++	} while (0)
++
+ #endif /* !CONFIG_X86_32 */
+ 
+ #define VDSO_CURRENT_BASE	((unsigned long)current->mm->context.vdso)
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -240,6 +240,9 @@ create_elf_tables(struct linux_binprm *bprm, const struct elfhdr *exec,
  #endif
-+	iounmap(p);
- }
- EXPORT_SYMBOL(pci_iounmap);
+ 	NEW_AUX_ENT(AT_HWCAP, ELF_HWCAP);
+ 	NEW_AUX_ENT(AT_PAGESZ, ELF_EXEC_PAGESIZE);
++#ifdef ARCH_AT_PAGE_SHIFT_MASK
++	ARCH_AT_PAGE_SHIFT_MASK;
++#endif
+ 	NEW_AUX_ENT(AT_CLKTCK, CLOCKS_PER_SEC);
+ 	NEW_AUX_ENT(AT_PHDR, phdr_addr);
+ 	NEW_AUX_ENT(AT_PHENT, sizeof(struct elf_phdr));
+--- a/include/uapi/linux/auxvec.h
++++ b/include/uapi/linux/auxvec.h
+@@ -33,6 +33,20 @@
+ #define AT_RSEQ_FEATURE_SIZE	27	/* rseq supported feature size */
+ #define AT_RSEQ_ALIGN		28	/* rseq allocation alignment */
  
--- 
-2.43.0
-
++/*
++ * Page sizes available for mmap(2) encoded as bitmask.
++ *
++ * Example: x86_64 system with pse, pdpe1gb /proc/cpuinfo flags reports
++ * 4 KiB, 2 MiB and 1 GiB page support.
++ *
++ *	$ hexdump -C /proc/self/auxv
++ *	00000030  06 00 00 00 00 00 00 00  00 10 00 00 00 00 00 00
++ *	00000040  1d 00 00 00 00 00 00 00  00 10 20 40 00 00 00 00
++ *
++ * For 2^64 hugepage support please contact your Universe sales representative.
++ */
++#define AT_PAGE_SHIFT_MASK	29
++
+ #define AT_EXECFN  31	/* filename of program */
+ 
+ #ifndef AT_MINSIGSTKSZ
