@@ -1,21 +1,21 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="EWKMwUo/"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="rdXV8YLe"
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [IPv6:2a03:a000:7:0:5054:ff:fe1c:15ff])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 61B3D188;
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id DF228191;
 	Mon,  4 Dec 2023 18:24:27 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-Id:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=74v1Dg7yBE+4rxKY7xG9GKf0VfPvIUvY43ZeQBhdM3Q=; b=EWKMwUo/8wy48J2pbhY4lZQO23
-	0qzFugxTNoAEN6C3h1KbXW06gdXjkl9CqZv7usDSVDKr80lCUxKcKZxBy8LKYDmVrmg4aKvu0VmDX
-	+p9QYkUT4Z2f6nJrtyEdqzDM+f1F62cMM27GViWZ3YgS8hhd8EJDkG5nxKPjhEgAZtxKv0VPgOT/7
-	ZVkplcpBO0uxfZREfI74yQaoSzesyndzqXv9pG2+vxzVC3mcLQI262SXcVvPvD/1kgQ0oZA5qf43F
-	m0lTQWnFZR66n1NUUVBB2R4Z4a32Ev+UDB0weLenVXhsqAzhEJoqPf+8pKjQ/W75uqtjktbrPL8wM
-	/Al/5kWQ==;
+	bh=BOlDhXErEGL5vq9/qi5YxTCcpTGQOTXCdpaBafqvR+8=; b=rdXV8YLeqaYLb41yEuhx8J99j9
+	Ot+YALUdjpRHPsNgo9UV53/kLiaA3i1xnEfb6bNdzOKEoCMH3cJ6CAvVnxzYxnMg7YNhBPy4FrUmR
+	A1k1HkN9QXcPEXeF7wkacoDVqZzPm8hCPHPevxGuj/39ENbuOheMrG5ZTHxjOeyqZPOnebmwTZclP
+	06FvfH7OccZtLTZNqfYuKEVOpQirWvBSEFZS56OvIYiu+QTbEUjCK/zp8s/7ma+ctLHxF4rBo2+Pa
+	FXJx76gLoNuZKPL2RS5ivNgUjXhZOh9xn1+FwatyvQMsCvn6xlB8iIfJkdi5SmbeOt2GaqYEl4XIU
+	F56F8KVw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.96 #2 (Red Hat Linux))
-	id 1rAL6h-007924-0V;
-	Tue, 05 Dec 2023 02:24:19 +0000
+	id 1rAL6l-00793l-0G;
+	Tue, 05 Dec 2023 02:24:23 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-arch@vger.kernel.org
 Cc: gus Gusenleitner Klaus <gus@keba.com>,
@@ -31,9 +31,9 @@ Cc: gus Gusenleitner Klaus <gus@keba.com>,
 	"kuba@kernel.org" <kuba@kernel.org>,
 	Paolo Abeni <pabeni@redhat.com>,
 	Eric Dumazet <edumazet@google.com>
-Subject: [PATCH v2 2/9] ocfs2: Avoid touching renamed directory if parent does not change
-Date: Tue,  5 Dec 2023 02:23:55 +0000
-Message-Id: <20231205022418.1703007-4-viro@zeniv.linux.org.uk>
+Subject: [PATCH v2 14/18] amd64: saner handling of odd address in csum_partial()
+Date: Tue,  5 Dec 2023 02:24:14 +0000
+Message-Id: <20231205022418.1703007-23-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <20231205022418.1703007-1-viro@zeniv.linux.org.uk>
 References: <20231205022100.GB1674809@ZenIV>
@@ -47,52 +47,51 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-From: Jan Kara <jack@suse.cz>
+all we want there is to have return value congruent to
+result * 256 modulo 0xffff; no need to convert from
+32bit to 16bit (i.e. take it modulo 0xffff) first -
+cyclic shift of 32bit value by 8 bits (in either direction)
+will work.
 
-The VFS will not be locking moved directory if its parent does not
-change. Change ocfs2 rename code to avoid touching renamed directory if
-its parent does not change as without locking that can corrupt the
-filesystem.
+Kills the from32to16() helper and yields better code...
 
-Signed-off-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/ocfs2/namei.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
+ arch/x86/lib/csum-partial_64.c | 16 ++--------------
+ 1 file changed, 2 insertions(+), 14 deletions(-)
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 814733ba2f4b..9221a33f917b 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -1336,7 +1336,7 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 		goto bail;
- 	}
+diff --git a/arch/x86/lib/csum-partial_64.c b/arch/x86/lib/csum-partial_64.c
+index 5e877592a7b3..192d4772c2a3 100644
+--- a/arch/x86/lib/csum-partial_64.c
++++ b/arch/x86/lib/csum-partial_64.c
+@@ -11,25 +11,13 @@
+ #include <net/checksum.h>
+ #include <asm/word-at-a-time.h>
  
--	if (S_ISDIR(old_inode->i_mode)) {
-+	if (S_ISDIR(old_inode->i_mode) && new_dir != old_dir) {
- 		u64 old_inode_parent;
+-static inline unsigned short from32to16(unsigned a)
+-{
+-	unsigned short b = a >> 16;
+-	asm("addw %w2,%w0\n\t"
+-	    "adcw $0,%w0\n"
+-	    : "=r" (b)
+-	    : "0" (b), "r" (a));
+-	return b;
+-}
+-
+ static inline __wsum csum_tail(u64 temp64, int odd)
+ {
+ 	unsigned int result;
  
- 		update_dot_dot = 1;
-@@ -1353,8 +1353,7 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 			goto bail;
- 		}
+ 	result = add32_with_carry(temp64 >> 32, temp64 & 0xffffffff);
+-	if (unlikely(odd)) {
+-		result = from32to16(result);
+-		result = ((result >> 8) & 0xff) | ((result & 0xff) << 8);
+-	}
++	if (unlikely(odd))
++		result = rol32(result, 8);
+ 	return (__force __wsum)result;
+ }
  
--		if (!new_inode && new_dir != old_dir &&
--		    new_dir->i_nlink >= ocfs2_link_max(osb)) {
-+		if (!new_inode && new_dir->i_nlink >= ocfs2_link_max(osb)) {
- 			status = -EMLINK;
- 			goto bail;
- 		}
-@@ -1601,6 +1600,9 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 			mlog_errno(status);
- 			goto bail;
- 		}
-+	}
-+
-+	if (S_ISDIR(old_inode->i_mode)) {
- 		drop_nlink(old_dir);
- 		if (new_inode) {
- 			drop_nlink(new_inode);
 -- 
 2.39.2
 
