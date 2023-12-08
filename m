@@ -1,43 +1,43 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="Dk8xWHfZ"
-Received: from mail-pg1-x52f.google.com (mail-pg1-x52f.google.com [IPv6:2607:f8b0:4864:20::52f])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B27A1171E
-	for <linux-arch@vger.kernel.org>; Thu,  7 Dec 2023 21:55:04 -0800 (PST)
-Received: by mail-pg1-x52f.google.com with SMTP id 41be03b00d2f7-5c5f0e325a6so1235285a12.1
-        for <linux-arch@vger.kernel.org>; Thu, 07 Dec 2023 21:55:04 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="LsZ+1abe"
+Received: from mail-pl1-x62b.google.com (mail-pl1-x62b.google.com [IPv6:2607:f8b0:4864:20::62b])
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 7576E1721
+	for <linux-arch@vger.kernel.org>; Thu,  7 Dec 2023 21:55:08 -0800 (PST)
+Received: by mail-pl1-x62b.google.com with SMTP id d9443c01a7336-1d05212a7c5so13051845ad.0
+        for <linux-arch@vger.kernel.org>; Thu, 07 Dec 2023 21:55:08 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=sifive.com; s=google; t=1702014904; x=1702619704; darn=vger.kernel.org;
+        d=sifive.com; s=google; t=1702014908; x=1702619708; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=cT/f+zG+eBk9GDNM3PRDRS7FWs4vWVwDUJpda1v2enk=;
-        b=Dk8xWHfZUEGYbcq4rBFQOt5NQX1WON5x0U03CMOa1gXwmiOHsQ1+cjsCrw58iIsRMg
-         IKnXNYpyf6ARFQkPvi9k/8Xcmp4eSXf83/eKRPBJTAxyuhx/Jk1eKduJ6mcQ3OH6cCP8
-         eFi6iM35kXFxXlsKMAWkmXDWbgXm9p7UYUZE7Ha8n4gWb7q/ZSvuJthn8sojYk38IOMK
-         9ybjvw9uSUar+rl1fer5qNtkEPSVoKyeidlKAPogOFxNC9JgTf81nyLr1Wg1SR1AOtas
-         xVW1CVKp2r6T916J6rhLHiclSqifFTC5LJJ0Z0NZpMFHTIZzFxVnBRMhcs0HmWRvpAyB
-         ynew==
+        bh=y10I6kBvaoBdzCYCMFFIBpivZ4OdHpoiZkoWcSRPSMo=;
+        b=LsZ+1abePke2lWjvnjGEMnRKRFedjn2235vw5scbYl+tO/bO6ZKjEikpE/NVfV2rQN
+         wKhxHdX8X9kN7Tg5UjdnKKJotveENdlKlUExf8lqiyTUsdV/Th2SLK9K2mhQVqOkjh3+
+         AVkIKXkrYFUUH1L7JT9ttyLOOFllpdEdAJZxKuwW4mWvq+OkT/vG+a0LpifJGKbhmMpA
+         ktpJwCfL+mWYRX0+a0Mj6pMhEcU/yE6vEO1IrQnlBEnG/UMQCr8KFlO56qA5mXKGnK+U
+         l1G1dzqzIRN2hV20Fro2IZLdtgtq9crtLriu8h3Fa4Xqlfl45rhJPr8sRyXrkV+A+X97
+         BZOg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1702014904; x=1702619704;
+        d=1e100.net; s=20230601; t=1702014908; x=1702619708;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=cT/f+zG+eBk9GDNM3PRDRS7FWs4vWVwDUJpda1v2enk=;
-        b=cxWLtO8EEJOEGFz7L+6DdTM7b1OojDuGww2hKGT2p/0TusEPrbhEc67KPGIqfhjSMd
-         nFmO1wQDx5fctv4V63eUKD90Zz1TYQJ7+cm6dy+rf6xsavma6ei9NUmG1ycLhGA0IkrG
-         0DMQRHz+uwyPzI/UnTcJQruyTYnBp9RLvJ0LahLEp7tfoZtGiKPHx6VsKIQFsvgEAmeS
-         TWUcPubsrQkmF2q6EkNeJ1XOGyeb4y2cCtY+0PBA3MYKqaqQUUxW0XMYmH6+TIGlOp+b
-         Ara3t5lBouz2r5X2rGhq7vI/5QmfQC4VF6ggW0bGlAOwZbitjaplv/bWm77XfVW4LotP
-         zoSg==
-X-Gm-Message-State: AOJu0Ywb2zVZgHbkjs5mhjWcpxxtpkDJb0OTB7fQBupAImQs5KzitFrt
-	3vDOQXVa4BJBLuf4GWG/B26YGw==
-X-Google-Smtp-Source: AGHT+IHjHZOPQupU2gBIY1LJy6ZLE2Spe4muScdMLjHj9er/qEsoCLB+Of3eLXhwYzBMH5NUihe96w==
-X-Received: by 2002:a05:6a20:160a:b0:190:14d9:4797 with SMTP id l10-20020a056a20160a00b0019014d94797mr1355279pzj.4.1702014904099;
-        Thu, 07 Dec 2023 21:55:04 -0800 (PST)
+        bh=y10I6kBvaoBdzCYCMFFIBpivZ4OdHpoiZkoWcSRPSMo=;
+        b=evFIQy8MceQmuqsG4xGDhKglkZsKTmhe4OwvuwJTpnn2ZQ6BIWM7F4a2qVGvNeyLP7
+         20IyKgiMcs9Kncv/CUPYIQ4hj06jBdf39sBBmsj2HKz2VobRkEIAy2FNS+pjvjgRyT9a
+         ylXhGfNuqdHZcCq0lai7sFCTQG1iuW98+P7bEo0RCE3pMv8M9kMxLKvr0FnA0AaRF7je
+         1UmgAKGbYOb5Ny6WU9AS88kraCx8u/Mz2VrdbjDKitIGcWlnho6M1yOduXDIqhQsNlCL
+         0Pr1arDQXoHlEqY8xrkeE9LddIzZWgJp6bqMMoYGHZZOSxJ9c7eJYIaHzmJ7g5jEnA7W
+         qYYQ==
+X-Gm-Message-State: AOJu0YzXKSH7GMyczTBPqGdFysAhn68o3BZiZ7CwNi1RIxDdzBN5rvQe
+	ZD7LN/NXmIIgM0pnRu1RrHqzVQ==
+X-Google-Smtp-Source: AGHT+IEV61WWeWMu7V3217Zpahk/hLH31IwX3YH3+NDaZQD5K6JU/sf2eERQjPEIU9FeQqZ//wlz9w==
+X-Received: by 2002:a17:903:983:b0:1d0:bba1:57c1 with SMTP id mb3-20020a170903098300b001d0bba157c1mr3658032plb.78.1702014907827;
+        Thu, 07 Dec 2023 21:55:07 -0800 (PST)
 Received: from sw06.internal.sifive.com ([4.53.31.132])
-        by smtp.gmail.com with ESMTPSA id s22-20020a170902989600b001ce5b859a59sm786250plp.305.2023.12.07.21.55.03
+        by smtp.gmail.com with ESMTPSA id s22-20020a170902989600b001ce5b859a59sm786250plp.305.2023.12.07.21.55.07
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 07 Dec 2023 21:55:03 -0800 (PST)
+        Thu, 07 Dec 2023 21:55:07 -0800 (PST)
 From: Samuel Holland <samuel.holland@sifive.com>
 To: linux-arm-kernel@lists.infradead.org,
 	loongarch@lists.linux.dev,
@@ -49,9 +49,9 @@ Cc: linux-kernel@vger.kernel.org,
 	amd-gfx@lists.freedesktop.org,
 	linux-arch@vger.kernel.org,
 	Samuel Holland <samuel.holland@sifive.com>
-Subject: [RFC PATCH 01/12] arch: Add ARCH_HAS_KERNEL_FPU_SUPPORT
-Date: Thu,  7 Dec 2023 21:54:31 -0800
-Message-ID: <20231208055501.2916202-2-samuel.holland@sifive.com>
+Subject: [RFC PATCH 04/12] arm64: Implement ARCH_HAS_KERNEL_FPU_SUPPORT
+Date: Thu,  7 Dec 2023 21:54:34 -0800
+Message-ID: <20231208055501.2916202-5-samuel.holland@sifive.com>
 X-Mailer: git-send-email 2.42.0
 In-Reply-To: <20231208055501.2916202-1-samuel.holland@sifive.com>
 References: <20231208055501.2916202-1-samuel.holland@sifive.com>
@@ -63,60 +63,74 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Several architectures provide an API to enable the FPU and run
-floating-point SIMD code in kernel space. However, the function names,
-header locations, and semantics are inconsistent across architectures,
-and FPU support may be gated behind other Kconfig options.
+arm64 provides an equivalent to the common kernel-mode FPU API, but in a
+different header and using different function names. Add a wrapper
+header, and export CFLAGS adjustments as found in lib/raid6/Makefile.
 
-Provide a standard way for architectures to declare that kernel space
-FPU support is available. Architectures selecting this option must
-implement what is currently the most common API (kernel_fpu_begin() and
-kernel_fpu_end(), plus a new function kernel_fpu_available()) and
-provide the appropriate CFLAGS for compiling floating-point C code.
-
-Suggested-by: Christoph Hellwig <hch@infradead.org>
 Signed-off-by: Samuel Holland <samuel.holland@sifive.com>
 ---
 
- Makefile     | 4 ++++
- arch/Kconfig | 9 +++++++++
- 2 files changed, 13 insertions(+)
+ arch/arm64/Kconfig           |  1 +
+ arch/arm64/Makefile          |  9 ++++++++-
+ arch/arm64/include/asm/fpu.h | 17 +++++++++++++++++
+ 3 files changed, 26 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm64/include/asm/fpu.h
 
-diff --git a/Makefile b/Makefile
-index 511b5616aa41..e65c186cf2c9 100644
---- a/Makefile
-+++ b/Makefile
-@@ -969,6 +969,10 @@ KBUILD_CFLAGS	+= $(CC_FLAGS_CFI)
- export CC_FLAGS_CFI
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 7b071a00425d..485ac389ac11 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -30,6 +30,7 @@ config ARM64
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_GIGANTIC_PAGE
+ 	select ARCH_HAS_KCOV
++	select ARCH_HAS_KERNEL_FPU_SUPPORT if KERNEL_MODE_NEON
+ 	select ARCH_HAS_KEEPINITRD
+ 	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+ 	select ARCH_HAS_NMI_SAFE_THIS_CPU_OPS
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index 9a2d3723cd0f..4a65f24c7998 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -36,7 +36,14 @@ ifeq ($(CONFIG_BROKEN_GAS_INST),y)
+ $(warning Detected assembler with broken .inst; disassembly will be unreliable)
  endif
  
-+# Architectures can define flags to add/remove for floating-point support
-+export CC_FLAGS_FPU
-+export CC_FLAGS_NO_FPU
+-KBUILD_CFLAGS	+= -mgeneral-regs-only	\
++# The GCC option -ffreestanding is required in order to compile code containing
++# ARM/NEON intrinsics in a non C99-compliant environment (such as the kernel)
++CC_FLAGS_FPU	:= -ffreestanding
++# Enable <arm_neon.h>
++CC_FLAGS_FPU	+= -isystem $(shell $(CC) -print-file-name=include)
++CC_FLAGS_NO_FPU	:= -mgeneral-regs-only
 +
- ifneq ($(CONFIG_FUNCTION_ALIGNMENT),0)
- KBUILD_CFLAGS += -falign-functions=$(CONFIG_FUNCTION_ALIGNMENT)
- endif
-diff --git a/arch/Kconfig b/arch/Kconfig
-index f4b210ab0612..6df834e18e9c 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -1478,6 +1478,15 @@ config ARCH_HAS_NONLEAF_PMD_YOUNG
- 	  address translations. Page table walkers that clear the accessed bit
- 	  may use this capability to reduce their search space.
- 
-+config ARCH_HAS_KERNEL_FPU_SUPPORT
-+	bool
-+	help
-+	  An architecture should select this option if it supports running
-+	  floating-point code in kernel space. It must export the functions
-+	  kernel_fpu_available(), kernel_fpu_begin(), and kernel_fpu_end() from
-+	  <asm/fpu.h>, and define CC_FLAGS_FPU and/or CC_FLAGS_NO_FPU as
-+	  necessary in its Makefile.
++KBUILD_CFLAGS	+= $(CC_FLAGS_NO_FPU) \
+ 		   $(compat_vdso) $(cc_has_k_constraint)
+ KBUILD_CFLAGS	+= $(call cc-disable-warning, psabi)
+ KBUILD_AFLAGS	+= $(compat_vdso)
+diff --git a/arch/arm64/include/asm/fpu.h b/arch/arm64/include/asm/fpu.h
+new file mode 100644
+index 000000000000..664c0a192ab1
+--- /dev/null
++++ b/arch/arm64/include/asm/fpu.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * linux/arch/arm64/include/asm/fpu.h
++ *
++ * Copyright (C) 2023 SiFive
++ */
 +
- source "kernel/gcov/Kconfig"
- 
- source "scripts/gcc-plugins/Kconfig"
++#ifndef __ASM_FPU_H
++#define __ASM_FPU_H
++
++#include <asm/neon.h>
++
++#define kernel_fpu_available()	cpu_has_neon()
++#define kernel_fpu_begin()	kernel_neon_begin()
++#define kernel_fpu_end()	kernel_neon_end()
++
++#endif /* ! __ASM_FPU_H */
 -- 
 2.42.0
 
