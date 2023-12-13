@@ -1,67 +1,170 @@
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=xen0n.name header.i=@xen0n.name header.b="FdZA5oT7"
-X-Greylist: delayed 368 seconds by postgrey-1.37 at lindbergh.monkeyblade.net; Wed, 13 Dec 2023 08:19:52 PST
-Received: from mailbox.box.xen0n.name (mail.xen0n.name [115.28.160.31])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 5756512A
-	for <linux-arch@vger.kernel.org>; Wed, 13 Dec 2023 08:19:51 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xen0n.name; s=mail;
-	t=1702483992; bh=4XxyHnJEJKkc+5PvBy8tJ98Zzp6SReQrbmR5u3CSVkY=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=FdZA5oT75tJH3PJN0bxT2ijMm1wBFi9fAIDpRIiLKEJ8qcv7c86KrC4Caujnwy/Qz
-	 h0yWOBpr5j9YQlGHX6bTEdnz+dQUQ431E11+MzKZsjI9OYJQRIedzGgmfPSOvFDP5W
-	 xvNwB4vhFx3KjM5C9g2J1KLykNu0MN4NW1kORqlg=
-Received: from [IPV6:240e:388:8d05:a200:783a:c9a8:595e:71d0] (unknown [IPv6:240e:388:8d05:a200:783a:c9a8:595e:71d0])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by mailbox.box.xen0n.name (Postfix) with ESMTPSA id E250E600D1;
-	Thu, 14 Dec 2023 00:13:11 +0800 (CST)
-Message-ID: <cc762327-796a-481b-9d79-3751361daff8@xen0n.name>
-Date: Thu, 14 Dec 2023 00:13:11 +0800
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00C8051C31;
+	Wed, 13 Dec 2023 17:22:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nCjqTyEE"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6BC89C433CA;
+	Wed, 13 Dec 2023 17:22:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1702488152;
+	bh=MdFfxmRqnU2pgiKIHVjpuT5qM/n8AmSOleAkAeYhZzY=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+	b=nCjqTyEEwYAqdW8/rlU/X2qNfvBr2d9kOIKAiAWZ9qncIg+m+22IilZcJEY8VRoTX
+	 7PgbJV6HZ5JLE3sDdfsX2UHiaQmp3mY3zRbfmkxhAQWJ83UeIlzK3XIiaKF4vV3C3f
+	 l9pxj+2hx8VjnlJ2uwTuDTSGTfuTbmQMk1sflXBlXe0SOkan+3n93ddJV7VKUEfu0Z
+	 MZFFlYrGAojnFk9Ri12mVxePt5n8d5wu+mgtpl3OjT9ECbV+/ED8mE03YSGnU9dACx
+	 ItkqIXFCrBxK8l26h8/TEEuSPhBnj4lDFVScIjFLiDXKOzURPiqtz1dSaT/lmYKVu+
+	 rig24IG2XtNVw==
+Received: by mail-lf1-f48.google.com with SMTP id 2adb3069b0e04-50bf37fd2bbso9710812e87.0;
+        Wed, 13 Dec 2023 09:22:32 -0800 (PST)
+X-Gm-Message-State: AOJu0Yy2uYAhtI/7k+yf9Nu6M0xCqF7BTg6Pqn9wGukmtqAQXHv1sMP6
+	XEI8kv4E9uG7B072YJbHPSp10FfY7W7/1rN9ew==
+X-Google-Smtp-Source: AGHT+IFqzlN5cXgUWTtVKqvQkSS2vQPSTV20xZkO0pzlfuqEtQX8svaifgRBAAqLPVw/kWvXPFUvtTzHkFE1kxDLXyI=
+X-Received: by 2002:ac2:5504:0:b0:50c:a39:ee37 with SMTP id
+ j4-20020ac25504000000b0050c0a39ee37mr4154700lfk.109.1702488150631; Wed, 13
+ Dec 2023 09:22:30 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH 06/12] LoongArch: Implement
- ARCH_HAS_KERNEL_FPU_SUPPORT
-To: Samuel Holland <samuel.holland@sifive.com>,
- linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
- linuxppc-dev@lists.ozlabs.org, x86@kernel.org,
- linux-riscv@lists.infradead.org, Christoph Hellwig <hch@infradead.org>
-Cc: linux-kernel@vger.kernel.org, amd-gfx@lists.freedesktop.org,
- linux-arch@vger.kernel.org
-References: <20231208055501.2916202-1-samuel.holland@sifive.com>
- <20231208055501.2916202-7-samuel.holland@sifive.com>
-Content-Language: en-US
-From: WANG Xuerui <kernel@xen0n.name>
-In-Reply-To: <20231208055501.2916202-7-samuel.holland@sifive.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+References: <20231119165721.9849-1-alexandru.elisei@arm.com>
+ <20231119165721.9849-12-alexandru.elisei@arm.com> <CAL_Jsq+k5BeM9+u12AQvWQ0b4Uv5Cy0vPOpK_uLcYtRnunq4iQ@mail.gmail.com>
+ <ZXiMiLz9ZyUdxUP8@raptor> <CAL_Jsq+U_GR=mOK3-phnd4jeJKf79aOmhPwDOSj+f=s-7fZZWQ@mail.gmail.com>
+ <ZXmr-Kl9L2SO13--@raptor> <CAL_JsqL=P1Y6w38LD_xw+vK4CNqt22FW_FE9oi_XTLHVQEne7Q@mail.gmail.com>
+ <ZXnE3724jYYSg4o6@raptor>
+In-Reply-To: <ZXnE3724jYYSg4o6@raptor>
+From: Rob Herring <robh@kernel.org>
+Date: Wed, 13 Dec 2023 11:22:17 -0600
+X-Gmail-Original-Message-ID: <CAL_JsqJgTnuQjo13cKo1Ebm5j9tCRT8GhNavdqu5vwp+fdnTLw@mail.gmail.com>
+Message-ID: <CAL_JsqJgTnuQjo13cKo1Ebm5j9tCRT8GhNavdqu5vwp+fdnTLw@mail.gmail.com>
+Subject: Re: [PATCH RFC v2 11/27] arm64: mte: Reserve tag storage memory
+To: Alexandru Elisei <alexandru.elisei@arm.com>
+Cc: catalin.marinas@arm.com, will@kernel.org, oliver.upton@linux.dev, 
+	maz@kernel.org, james.morse@arm.com, suzuki.poulose@arm.com, 
+	yuzenghui@huawei.com, arnd@arndb.de, akpm@linux-foundation.org, 
+	mingo@redhat.com, peterz@infradead.org, juri.lelli@redhat.com, 
+	vincent.guittot@linaro.org, dietmar.eggemann@arm.com, rostedt@goodmis.org, 
+	bsegall@google.com, mgorman@suse.de, bristot@redhat.com, vschneid@redhat.com, 
+	mhiramat@kernel.org, rppt@kernel.org, hughd@google.com, pcc@google.com, 
+	steven.price@arm.com, anshuman.khandual@arm.com, vincenzo.frascino@arm.com, 
+	david@redhat.com, eugenis@google.com, kcc@google.com, hyesoo.yu@samsung.com, 
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
+	kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-mm@kvack.org, 
+	linux-trace-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On 12/8/23 13:54, Samuel Holland wrote:
-> LoongArch already provides kernel_fpu_begin() and kernel_fpu_end() in
-> asm/fpu.h, so it only needs to add kernel_fpu_available() and export
-> the CFLAGS adjustments.
+On Wed, Dec 13, 2023 at 8:51=E2=80=AFAM Alexandru Elisei
+<alexandru.elisei@arm.com> wrote:
 >
-> Signed-off-by: Samuel Holland <samuel.holland@sifive.com>
-> ---
+> Hi,
 >
->   arch/loongarch/Kconfig           | 1 +
->   arch/loongarch/Makefile          | 5 ++++-
->   arch/loongarch/include/asm/fpu.h | 1 +
->   3 files changed, 6 insertions(+), 1 deletion(-)
+> On Wed, Dec 13, 2023 at 08:06:44AM -0600, Rob Herring wrote:
+> > On Wed, Dec 13, 2023 at 7:05=E2=80=AFAM Alexandru Elisei
+> > <alexandru.elisei@arm.com> wrote:
+> > >
+> > > Hi Rob,
+> > >
+> > > On Tue, Dec 12, 2023 at 12:44:06PM -0600, Rob Herring wrote:
+> > > > On Tue, Dec 12, 2023 at 10:38=E2=80=AFAM Alexandru Elisei
+> > > > <alexandru.elisei@arm.com> wrote:
+> > > > >
+> > > > > Hi Rob,
+> > > > >
+> > > > > Thank you so much for the feedback, I'm not very familiar with de=
+vice tree,
+> > > > > and any comments are very useful.
+> > > > >
+> > > > > On Mon, Dec 11, 2023 at 11:29:40AM -0600, Rob Herring wrote:
+> > > > > > On Sun, Nov 19, 2023 at 10:59=E2=80=AFAM Alexandru Elisei
+> > > > > > <alexandru.elisei@arm.com> wrote:
+> > > > > > >
+> > > > > > > Allow the kernel to get the size and location of the MTE tag =
+storage
+> > > > > > > regions from the DTB. This memory is marked as reserved for n=
+ow.
+> > > > > > >
+> > > > > > > The DTB node for the tag storage region is defined as:
+> > > > > > >
+> > > > > > >         tags0: tag-storage@8f8000000 {
+> > > > > > >                 compatible =3D "arm,mte-tag-storage";
+> > > > > > >                 reg =3D <0x08 0xf8000000 0x00 0x4000000>;
+> > > > > > >                 block-size =3D <0x1000>;
+> > > > > > >                 memory =3D <&memory0>;    // Associated tagge=
+d memory node
+> > > > > > >         };
+> > > > > >
+> > > > > > I skimmed thru the discussion some. If this memory range is wit=
+hin
+> > > > > > main RAM, then it definitely belongs in /reserved-memory.
+> > > > >
+> > > > > Ok, will do that.
+> > > > >
+> > > > > If you don't mind, why do you say that it definitely belongs in
+> > > > > reserved-memory? I'm not trying to argue otherwise, I'm curious a=
+bout the
+> > > > > motivation.
+> > > >
+> > > > Simply so that /memory nodes describe all possible memory and
+> > > > /reserved-memory is just adding restrictions. It's also because
+> > > > /reserved-memory is what gets handled early, and we don't need
+> > > > multiple things to handle early.
+> > > >
+> > > > > Tag storage is not DMA and can live anywhere in memory.
+> > > >
+> > > > Then why put it in DT at all? The only reason CMA is there is to se=
+t
+> > > > the size. It's not even clear to me we need CMA in DT either. The
+> > > > reasoning long ago was the kernel didn't do a good job of moving an=
+d
+> > > > reclaiming contiguous space, but that's supposed to be better now (=
+and
+> > > > most h/w figured out they need IOMMUs).
+> > > >
+> > > > But for tag storage you know the size as it is a function of the
+> > > > memory size, right? After all, you are validating the size is corre=
+ct.
+> > > > I guess there is still the aspect of whether you want enable MTE or
+> > > > not which could be done in a variety of ways.
+> > >
+> > > Oh, sorry, my bad, I should have been clearer about this. I don't wan=
+t to
+> > > put it in the DT as a "linux,cma" node. But I want it to be managed b=
+y CMA.
+> >
+> > Yes, I understand, but my point remains. Why do you need this in DT?
+> > If the location doesn't matter and you can calculate the size from the
+> > memory size, what else is there to add to the DT?
+>
+> I am afraid there has been a misunderstanding. What do you mean by
+> "location doesn't matter"?
 
-This is all intuitive wrapping, so:
+You said:
+> Tag storage is not DMA and can live anywhere in memory.
 
-Acked-by: WANG Xuerui <git@xen0n.name>
+Which I took as the kernel can figure out where to put it. But maybe
+you meant the h/w platform can hard code it to be anywhere in memory?
+If so, then yes, DT is needed.
 
-Thanks!
+> At the very least, Linux needs to know the address and size of a memory
+> region to use it. The series is about using the tag storage memory for
+> data. Tag storage cannot be described as a regular memory node because it
+> cannot be tagged (and normal memory can).
 
--- 
-WANG "xen0n" Xuerui
+If the tag storage lives in the middle of memory, then it would be
+described in the memory node, but removed by being in reserved-memory
+node.
 
-Linux/LoongArch mailing list: https://lore.kernel.org/loongarch/
+> Then there's the matter of the tag storage block size (explained in this
+> commit message), and also knowing the memory range for which a tag storag=
+e
+> region stores the tags. This is explained in the cover letter.
 
+Honestly, I just forgot about that part.
+
+Rob
