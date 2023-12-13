@@ -1,153 +1,63 @@
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="E9K1L8Nk"
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.8])
-	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id BD5B0A1;
-	Tue, 12 Dec 2023 18:46:45 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1702435606; x=1733971606;
-  h=from:to:cc:subject:in-reply-to:references:date:
-   message-id:mime-version;
-  bh=HeA8jqVHlKL8RuAwlVwqlEfSLUf01LuyOK0z4h52XBU=;
-  b=E9K1L8NkXiwvE8fDUPMWUEOiMS9H8D41NxJxxGD7pTJwcIqp9QlaqDsq
-   h0vDJhhzXywSBBP5IwyqZrCPG3szk7RQ/B+ZdJEbd/6DGfYw/+b6Ua5c4
-   JmN2q3cO72YukyM13Kq60uMkctSEzYqBlEm1anIxY6JbmNLjXgVZGDwje
-   sPDW3Q/xhfhTa8wlmaMBErgIkgVicdDupxArRzxvj7KxJ2hk0UpZR4nrT
-   bzXXWyVOzTdNLIdRZLZxJPZQMdPb23GxAiIiWQEtKpwPGPSuCSxWAT5Z3
-   GotW5FtEWlSxoeQwdStJKVDIFnD1ZY3AmcbR1Y7CSEll62/6WkBifmf7e
-   g==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10922"; a="8281547"
-X-IronPort-AV: E=Sophos;i="6.04,271,1695711600"; 
-   d="scan'208";a="8281547"
-Received: from orsmga001.jf.intel.com ([10.7.209.18])
-  by fmvoesa102.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Dec 2023 18:46:45 -0800
-X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10922"; a="808005595"
-X-IronPort-AV: E=Sophos;i="6.04,271,1695711600"; 
-   d="scan'208";a="808005595"
-Received: from yhuang6-desk2.sh.intel.com (HELO yhuang6-desk2.ccr.corp.intel.com) ([10.238.208.55])
-  by orsmga001-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 12 Dec 2023 18:46:35 -0800
-From: "Huang, Ying" <ying.huang@intel.com>
-To: Gregory Price <gregory.price@memverge.com>
-Cc: Gregory Price <gourry.memverge@gmail.com>,  <linux-mm@kvack.org>,
-  <linux-doc@vger.kernel.org>,  <linux-fsdevel@vger.kernel.org>,
-  <linux-api@vger.kernel.org>,  <linux-arch@vger.kernel.org>,
-  <linux-kernel@vger.kernel.org>,  <akpm@linux-foundation.org>,
-  <arnd@arndb.de>,  <tglx@linutronix.de>,  <luto@kernel.org>,
-  <mingo@redhat.com>,  <bp@alien8.de>,  <dave.hansen@linux.intel.com>,
-  <x86@kernel.org>,  <hpa@zytor.com>,  <mhocko@kernel.org>,
-  <tj@kernel.org>,  <corbet@lwn.net>,  <rakie.kim@sk.com>,
-  <hyeongtak.ji@sk.com>,  <honggyu.kim@sk.com>,  <vtavarespetr@micron.com>,
-  <peterz@infradead.org>,  <jgroves@micron.com>,
-  <ravis.opensrc@micron.com>,  <sthanneeru@micron.com>,
-  <emirakhur@micron.com>,  <Hasan.Maruf@amd.com>,
-  <seungjun.ha@samsung.com>,  Johannes Weiner <hannes@cmpxchg.org>,  "Hasan
- Al Maruf" <hasanalmaruf@fb.com>,  Hao Wang <haowang3@fb.com>,  Dan
- Williams <dan.j.williams@intel.com>,  Michal Hocko <mhocko@suse.com>,
-  Zhongkun He <hezhongkun.hzk@bytedance.com>,  Frank van der Linden
- <fvdl@google.com>,  "John Groves" <john@jagalactic.com>,  Jonathan Cameron
- <Jonathan.Cameron@huawei.com>
-Subject: Re: [PATCH v2 00/11] mempolicy2, mbind2, and weighted interleave
-In-Reply-To: <ZXiDSrdNfbv8/Ple@memverge.com> (Gregory Price's message of "Tue,
-	12 Dec 2023 10:59:06 -0500")
-References: <20231209065931.3458-1-gregory.price@memverge.com>
-	<87r0jtxp23.fsf@yhuang6-desk2.ccr.corp.intel.com>
-	<ZXc74yJzXDkCm+BA@memverge.com>
-	<87plzbx5hz.fsf@yhuang6-desk2.ccr.corp.intel.com>
-	<ZXiDSrdNfbv8/Ple@memverge.com>
-Date: Wed, 13 Dec 2023 10:44:35 +0800
-Message-ID: <87zfyestws.fsf@yhuang6-desk2.ccr.corp.intel.com>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="fY9UFcRb"
+Received: from bombadil.infradead.org (bombadil.infradead.org [IPv6:2607:7c80:54:3::133])
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 47A67AC;
+	Tue, 12 Dec 2023 20:30:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=3zU9qWCg0noGR4z5kjUevqgcV3l4ea81bsNQeNCgnKI=; b=fY9UFcRbBEqeM3Op5saC6LJCof
+	Cepvl1xAzVKC2SZhPrbOeKAYl7OTb9zd2qVJIWXpPgTpMU2JP/jmWVPyCZs9EDW2T3YO/S0S+ngq1
+	HsBvdfR/dnZq8SlPn6QZe83UCGsWBTaxWzy3RfUh6upreoet0m/mL/lT2h7ZjWX6x/vh07K1K7FbT
+	3IKCMITH3cD5DAQNuI9AgUyeuxm/qgiuWpXrSPjZZeoBUXK33jN669oZ2W3hCXbKKgX/UOjkzPr5W
+	Ih75xbhD47fUtKiJ4iQIaptomk4D6nIpC7CzEygBOGpT+k4M5kYGb+uU4qostqcKP/HhFdcQPRyUF
+	AfBukSWQ==;
+Received: from [50.53.46.231] (helo=bombadil.infradead.org)
+	by bombadil.infradead.org with esmtpsa (Exim 4.96 #2 (Red Hat Linux))
+	id 1rDGtA-00Da4K-0C;
+	Wed, 13 Dec 2023 04:30:28 +0000
+From: Randy Dunlap <rdunlap@infradead.org>
+To: linux-kernel@vger.kernel.org
+Cc: Randy Dunlap <rdunlap@infradead.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	linux-arch@vger.kernel.org
+Subject: [PATCH] asm-generic/io.h: fix grammar typos
+Date: Tue, 12 Dec 2023 20:30:27 -0800
+Message-ID: <20231213043027.9884-1-rdunlap@infradead.org>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=ascii
+Content-Transfer-Encoding: 8bit
 
-Gregory Price <gregory.price@memverge.com> writes:
+Correct grammar mistakes.
 
-> On Tue, Dec 12, 2023 at 03:08:24PM +0800, Huang, Ying wrote:
->> Gregory Price <gregory.price@memverge.com> writes:
->> 
->> >> For example, can we use something as below?
->> >> 
->> >>   long set_mempolicy2(int mode, const unsigned long *nodemask, unsigned int *il_weights,
->> >>                           unsigned long maxnode, unsigned long home_node,
->> >>                           unsigned long flags);
->> >> 
->> >>   long mbind2(unsigned long start, unsigned long len,
->> >>                           int mode, const unsigned long *nodemask, unsigned int *il_weights,
->> >>                           unsigned long maxnode, unsigned long home_node,
->> >>                           unsigned long flags);
->> >> 
->> >
->> > Your definition of mbind2 is impossible.
->> >
->> > Neither of these interfaces solve the extensibility issue.  If a new
->> > policy which requires a new format of data arrives, we can look forward
->> > to set_mempolicy3 and mbind3.
->> 
->> IIUC, we will not over-engineering too much.  It's hard to predict the
->> requirements in the future.
->> 
->
-> Sure, but having the mempolicy struct at least gives us more flexibility
-> than the original interface.
->
->> >> A struct may be defined to hold mempolicy iteself.
->> >> 
->> >> struct mpol {
->> >>         int mode;
->> >>         unsigned int home_node;
->> >>         const unsigned long *nodemask;
->> >>         unsigned int *il_weights;
->> >>         unsigned int maxnode;
->> >> };
->> >> 
->> >
->> > addr could be pulled out for get_mempolicy2, so i will do that
->> >
->> > 'addr_node' and 'policy_node' are warts that came from the original
->> > get_mempolicy.  Removing them increases the complexity of handling
->> > arguments in the common get_mempolicy code.
->> >
->> > I could probably just drop support for retrieving the addr_node from
->> > get_mempolicy2, since it's already possible with get_mempolicy.  So I
->> > will do that.
->> 
->> If it's necessary, we can add another struct for get_mempolicy2().  But
->> I don't think that it's necessary to add get_mempolicy2() specific
->> parameters for set_mempolicy2() or mbind2().
->
-> After edits, the only parameter that doesn't have parity between
-> interfaces is `addr_node` and `policy_node`.  This was an unfortunate
-> wart on the original get_mempolicy() that multiplexed the output of
-> (*mode) based on whether MPOL_F_NODE was set.
->
-> Example:
-> if (MPOL_F_ADDR | MPOL_F_NODE), then get_mempolicy() would return
-> details about a VMA mempolicy + the node of that address in (*mode).
->
-> Right now in get_mempolicy2() I fetch this unconditionally instead of
-> requiring MPOL_F_NODE.  I did not want to multiplexing (*mode) output.
->
-> I see two options:
-> 1) Get rid of MPOL_F_NODE functionality in get_mempolicy2()
->    If a user wants that information, they can still use get_mempolicy()
->
-> 2) Keep MPOL_F_NODE and mpol_args->addr_node/policy_node, but don't allow
->    any future extensions that create this kind of situation.
+Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+---
+ include/asm-generic/io.h |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-3) Add another parameter to get_mempolicy2(), such as "unsigned long
-*value" to retrieve addr_node or policy_node.  We can extend it to be a
-"struct *" in the future if necessary.
-
-> I'm fine with either.  I originally aimed for get_mempolicy2() to be
-> all of get_mempolicy() features + new data, but that obviously isn't
-> required.
-
---
-Best Regards,
-Huang, Ying
+diff -- a/include/asm-generic/io.h b/include/asm-generic/io.h
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -1019,12 +1019,12 @@ static inline void *phys_to_virt(unsigne
+  *
+  * Architectures with an MMU are expected to provide ioremap() and iounmap()
+  * themselves or rely on GENERIC_IOREMAP.  For NOMMU architectures we provide
+- * a default nop-op implementation that expect that the physical address used
++ * a default nop-op implementation that expects that the physical addresses used
+  * for MMIO are already marked as uncached, and can be used as kernel virtual
+  * addresses.
+  *
+  * ioremap_wc() and ioremap_wt() can provide more relaxed caching attributes
+- * for specific drivers if the architecture choses to implement them.  If they
++ * for specific drivers if the architecture chooses to implement them.  If they
+  * are not implemented we fall back to plain ioremap. Conversely, ioremap_np()
+  * can provide stricter non-posted write semantics if the architecture
+  * implements them.
