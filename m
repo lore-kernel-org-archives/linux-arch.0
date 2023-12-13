@@ -1,90 +1,118 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 61FAB1C01;
-	Wed, 13 Dec 2023 02:19:11 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DyCeS9Gm"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CBD23C433C8;
-	Wed, 13 Dec 2023 02:19:09 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1702433950;
-	bh=DQPF3GcanIRKcaZKx1G5ZSV6kAy0I6t5QN8G9OuMZdM=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=DyCeS9GmtbFGFSsFn5YSGcJgY03zFug1iziwTrwVmg/ZlNI8m4c58IveouykxEdqa
-	 EMnEhzuZ63StLiesj5cSjbJf4TmG4ZBa1yJ7JCzsdawYg44TMs0dyNRoLJ1GELn1tz
-	 mZ0ttW2DALNof274ibmywvx6VjyQmwZ21hJje2+EzxdBAhAbf2HCJYKHiiZ+1qP7MN
-	 awBRzsmBQJpRFMscNENawsc7TC/PSZAjpMEzMokycEPjSXZZ9oUEEmo+Oekfpv6dsz
-	 Lulob+ZQQMb5SPxcQHqSMtRg1Oa5btnY+jl5DG0GR/t04qzTQhWGqHRNhfn4l51+iE
-	 FdNU7DP2aIKOg==
-Message-ID: <cd464bae-af47-42f1-ac9f-9620137ede89@kernel.org>
-Date: Tue, 12 Dec 2023 18:19:09 -0800
+	dkim=pass (2048-bit key) header.d=linaro.org header.i=@linaro.org header.b="ZcidFv8J"
+Received: from mail-pf1-x435.google.com (mail-pf1-x435.google.com [IPv6:2607:f8b0:4864:20::435])
+	by lindbergh.monkeyblade.net (Postfix) with ESMTPS id D8B06A1
+	for <linux-arch@vger.kernel.org>; Tue, 12 Dec 2023 18:45:09 -0800 (PST)
+Received: by mail-pf1-x435.google.com with SMTP id d2e1a72fcca58-6cebcf8a48aso5181669b3a.3
+        for <linux-arch@vger.kernel.org>; Tue, 12 Dec 2023 18:45:09 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linaro.org; s=google; t=1702435509; x=1703040309; darn=vger.kernel.org;
+        h=mime-version:message-id:date:in-reply-to:subject:cc:to:from
+         :user-agent:references:from:to:cc:subject:date:message-id:reply-to;
+        bh=CJ7qwCmvq20mGgi3dRymJGPN14h9pbhwL4VM2txPZCM=;
+        b=ZcidFv8JCRaEhFx285fX5LJKtnAW/6xdQ+f7UfXQ943HmZyW9UeCMTAYCaHECv8vLb
+         URWXgHbvPOMeXQuHw0S2vjSjHuBlCXvquyzPVXx4sAqi1JBubDTEmBqHBx1KrJeEMFSr
+         062t+bhgVI5fKT3UeJt5TWjN/EyiUIycC4uMBVg7+ZpGfANAqH9sq327mW42WX36tCBA
+         EmOhUf9rvG1Eo7TCMc5XNLm9Olzb5gcmAmGaze1GIY+DTTPP25On2mTimeGQpBImvEr/
+         eUYhQKfZ/0EQF0sRexHfXempTf+gySR6FEDkr6mkUt0DHZ4wXN6L7dp0zbLaL0qsZsT+
+         vaEg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1702435509; x=1703040309;
+        h=mime-version:message-id:date:in-reply-to:subject:cc:to:from
+         :user-agent:references:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=CJ7qwCmvq20mGgi3dRymJGPN14h9pbhwL4VM2txPZCM=;
+        b=kRXNTK1QtkHVUPidJAxs2B7vhV7mztJRfZItXnJUMI4WJ6X/JZrrENgXCuxIH1gThH
+         G+WWuls2Rcqf/DSWKseIJuF0XkgBIb7kWnFKY93Ix+OqRAQIiQvfh1vU5sCfzseudTNc
+         CnaLshsE7iuziXbZohy+objiY7D2BRQfdr0DDgLn16JoVOYft62oRXwQRIPXz3nde6L0
+         R4O6yhDvUFuS4PwyDwwKYC0IpQoWYabMC36cWYKLR7N5cETxCeKgK0Mdshxq1tqS8DHi
+         CXyd42taYBEF3mdwyCNKy17qN/2M7AqqZqxpV3Bdkhr3yKWGrTy9FnngKI6Lw197SZ90
+         zgww==
+X-Gm-Message-State: AOJu0YwvUNC24+H4gzlNitgQuIdxOHz1j8OFR1jzUFZAAg+neU+c8EF5
+	i5sBAVz03OjzGBb7TKQocEQL0g==
+X-Google-Smtp-Source: AGHT+IGi//6HE3KINOZpirefGAX+e3jIHwZFWzUp/AR1xA1scaFysKSWvBw9/QjFkCNOqGCFGdEidA==
+X-Received: by 2002:a05:6a00:c81:b0:6cb:a2f4:8579 with SMTP id a1-20020a056a000c8100b006cba2f48579mr8585102pfv.15.1702435509333;
+        Tue, 12 Dec 2023 18:45:09 -0800 (PST)
+Received: from localhost ([2804:14d:7e39:8470:cddd:ffc9:f19e:a4dc])
+        by smtp.gmail.com with ESMTPSA id y72-20020a62ce4b000000b006cb7bdbc3besm9528817pfg.17.2023.12.12.18.45.08
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 12 Dec 2023 18:45:08 -0800 (PST)
+References: <20231122-arm64-gcs-v7-0-201c483bd775@kernel.org>
+ <20231122-arm64-gcs-v7-37-201c483bd775@kernel.org>
+User-agent: mu4e 1.10.8; emacs 29.1
+From: Thiago Jung Bauermann <thiago.bauermann@linaro.org>
+To: Mark Brown <broonie@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon
+ <will@kernel.org>, Jonathan Corbet <corbet@lwn.net>, Andrew Morton
+ <akpm@linux-foundation.org>, Marc Zyngier <maz@kernel.org>, Oliver Upton
+ <oliver.upton@linux.dev>, James Morse <james.morse@arm.com>, Suzuki K
+ Poulose <suzuki.poulose@arm.com>, Arnd Bergmann <arnd@arndb.de>, Oleg
+ Nesterov <oleg@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Kees
+ Cook <keescook@chromium.org>, Shuah Khan <shuah@kernel.org>, "Rick P.
+ Edgecombe" <rick.p.edgecombe@intel.com>, Deepak Gupta
+ <debug@rivosinc.com>, Ard Biesheuvel <ardb@kernel.org>, Szabolcs Nagy
+ <Szabolcs.Nagy@arm.com>, "H.J. Lu" <hjl.tools@gmail.com>, Paul Walmsley
+ <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
+ <aou@eecs.berkeley.edu>, Florian Weimer <fweimer@redhat.com>, Christian
+ Brauner <brauner@kernel.org>, linux-arm-kernel@lists.infradead.org,
+ linux-doc@vger.kernel.org, kvmarm@lists.linux.dev,
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-mm@kvack.org, linux-kselftest@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org
+Subject: Re: [PATCH v7 37/39] kselftest/arm64: Add a GCS stress test
+In-reply-to: <20231122-arm64-gcs-v7-37-201c483bd775@kernel.org>
+Date: Tue, 12 Dec 2023 23:45:06 -0300
+Message-ID: <87zfyex1l9.fsf@linaro.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [net-next v1 08/16] memory-provider: dmabuf devmem memory
- provider
-Content-Language: en-US
-To: Mina Almasry <almasrymina@google.com>, Jason Gunthorpe <jgg@nvidia.com>
-Cc: Shailend Chand <shailend@google.com>, netdev@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org,
- bpf@vger.kernel.org, linux-media@vger.kernel.org,
- dri-devel@lists.freedesktop.org, "David S. Miller" <davem@davemloft.net>,
- Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>,
- Paolo Abeni <pabeni@redhat.com>, Jonathan Corbet <corbet@lwn.net>,
- Jeroen de Borst <jeroendb@google.com>,
- Praveen Kaligineedi <pkaligineedi@google.com>,
- Jesper Dangaard Brouer <hawk@kernel.org>,
- Ilias Apalodimas <ilias.apalodimas@linaro.org>, Arnd Bergmann
- <arnd@arndb.de>, Willem de Bruijn <willemdebruijn.kernel@gmail.com>,
- Shuah Khan <shuah@kernel.org>, Sumit Semwal <sumit.semwal@linaro.org>,
- =?UTF-8?Q?Christian_K=C3=B6nig?= <christian.koenig@amd.com>,
- Yunsheng Lin <linyunsheng@huawei.com>,
- Harshitha Ramamurthy <hramamurthy@google.com>,
- Shakeel Butt <shakeelb@google.com>, Willem de Bruijn <willemb@google.com>,
- Kaiyuan Zhang <kaiyuanz@google.com>, Christoph Hellwig <hch@infradead.org>
-References: <20231208005250.2910004-1-almasrymina@google.com>
- <20231208005250.2910004-9-almasrymina@google.com>
- <20231212122535.GA3029808@nvidia.com>
- <CAHS8izMVMx0fpT=dWsnD7piqs1g7Fam8Xf5dK3iOFNxeOQD9vQ@mail.gmail.com>
- <20231212143942.GF3014157@nvidia.com>
- <CAHS8izNHtemjjkMf43grCHP1RZ=2UFiMtgea0M6+PaAgC=DDMQ@mail.gmail.com>
- <20231212150834.GI3014157@nvidia.com>
- <CAHS8izMdKYyjE9bdcFDWWPWECwVZL7XQjtjOFoTq5_bEEJvN6w@mail.gmail.com>
-From: David Ahern <dsahern@kernel.org>
-In-Reply-To: <CAHS8izMdKYyjE9bdcFDWWPWECwVZL7XQjtjOFoTq5_bEEJvN6w@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 
-On 12/12/23 6:09 PM, Mina Almasry wrote:
-> OK, I imagine this is not that hard to implement - it's really whether
-> the change is acceptable to reviewers.
-> 
-> I figure I can start by implementing a no-op abstraction to page*:
-> 
-> typedef struct page netmem_t
-> 
-> and replace the page* in the following places with netmem_t*:
-> 
-> 1. page_pool API (not internals)
-> 2. drivers using the page_pool.
-> 3. skb_frag_t.
-> 
 
-accessors to skb_frag_t field are now consolidated to
-include/linux/skbuff.h (the one IB driver was fixed in Sept by
-4ececeb83986), so changing skb_frag_t from bio_vec to something like:
+I'm going a bit out-of-order to report a build failure in a test:
 
-typedef struct skb_frag {
-	void *addr;
-	unsigned int length;
-	unsigned int offset;
-};
+Mark Brown <broonie@kernel.org> writes:
 
-is trivial. From there, addr can default to `struct page *`. If LSB is
-set, strip it and return `struct page_pool_iov *` or `struct buffer_pool *`
+> +// Recurse x20 times
+> +.macro recurse id
+
+I get an assembler error here:
+
+gcc -nostdlib gcs-stress-thread.S -o /home/thiago.bauermann/src/linux/tools/testing/selftests/arm64/gcs/gcs-stress-thread
+gcs-stress-thread.S: Assembler messages:
+gcs-stress-thread.S:236: Error: unexpected end of file in macro `recurse' definition
+make[2]: *** [Makefile:24: /home/thiago.bauermann/src/linux/tools/testing/selftests/arm64/gcs/gcs-stress-thread] Error 1
+
+This is with gas from Ubuntu 22.04, which ships binutils 2.38.
+
+> +function recurse\id
+> +	stp	x29, x30, [sp, #-16]!
+> +	mov	x29, sp
+> +
+> +	cmp	x20, 0
+> +	beq	1f
+> +	sub	x20, x20, 1
+> +	bl	recurse\id
+> +
+> +1:
+> +	ldp	x29, x30, [sp], #16
+> +
+> +	// Do a syscall immediately prior to returning to try to provoke
+> +	// scheduling and migration at a point where coherency issues
+> +	// might trigger.
+> +	mov	x8, #__NR_getpid
+> +	svc	#0
+> +
+> +	ret
+> +endfunction
+> +.endmacro
+> +
+> +// Generate and use two copies so we're changing the GCS contents
+> +recurse 1
+> +recurse 2
+
+-- 
+Thiago
