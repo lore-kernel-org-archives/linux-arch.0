@@ -1,11 +1,11 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 55F836A347;
-	Thu, 14 Dec 2023 20:18:25 +0000 (UTC)
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1B415C433C7;
-	Thu, 14 Dec 2023 20:18:24 +0000 (UTC)
-Date: Thu, 14 Dec 2023 15:19:11 -0500
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 68EBE675CD;
+	Thu, 14 Dec 2023 20:26:54 +0000 (UTC)
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 26AE4C433C8;
+	Thu, 14 Dec 2023 20:26:53 +0000 (UTC)
+Date: Thu, 14 Dec 2023 15:27:40 -0500
 From: Steven Rostedt <rostedt@goodmis.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: LKML <linux-kernel@vger.kernel.org>, Linux Trace Kernel
@@ -14,10 +14,11 @@ Cc: LKML <linux-kernel@vger.kernel.org>, Linux Trace Kernel
  Desnoyers <mathieu.desnoyers@efficios.com>, Linux Arch
  <linux-arch@vger.kernel.org>
 Subject: Re: [PATCH v3] ring-buffer: Remove 32bit timestamp logic
-Message-ID: <20231214151911.2df9f845@gandalf.local.home>
-In-Reply-To: <CAHk-=wiKooX5vOu6TgGPEwdX--k0DyE4ntJDU4QzbVFMWGVXFw@mail.gmail.com>
+Message-ID: <20231214152740.24d01893@gandalf.local.home>
+In-Reply-To: <20231214151911.2df9f845@gandalf.local.home>
 References: <20231214125433.03091e5e@gandalf.local.home>
 	<CAHk-=wiKooX5vOu6TgGPEwdX--k0DyE4ntJDU4QzbVFMWGVXFw@mail.gmail.com>
+	<20231214151911.2df9f845@gandalf.local.home>
 X-Mailer: Claws Mail 3.19.1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -28,62 +29,18 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On Thu, 14 Dec 2023 11:46:55 -0800
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Thu, 14 Dec 2023 15:19:11 -0500
+Steven Rostedt <rostedt@goodmis.org> wrote:
 
-> On Thu, 14 Dec 2023 at 09:53, Steven Rostedt <rostedt@goodmis.org> wrote:
-> >
-> > +       /*
-> > +        * For architectures that can not do cmpxchg() in NMI, or require
-> > +        * disabling interrupts to do 64-bit cmpxchg(), do not allow them
-> > +        * to record in NMI context.
-> > +        */
-> > +       if ((!IS_ENABLED(CONFIG_ARCH_HAVE_NMI_SAFE_CMPXCHG) ||
-> > +            (IS_ENABLED(CONFIG_X86_32) && !IS_ENABLED(CONFIG_X86_CMPXCHG64))) &&
-> > +           unlikely(in_nmi())) {
-> > +               return NULL;
-> > +       }  
+> For this issue of the 64bit cmpxchg, is there any config that works for any
+> arch that do not have a safe 64-bit cmpxchg? At least for 486, is the
+> second half of the if condition reasonable?
 > 
-> Again, this is COMPLETE GARBAGE.
-> 
-> You're using "ARCH_HAVE_NMI_SAFE_CMPXCHG" to test something that just
-> isn't what it's about.
+> 	if (IS_ENABLED(CONFIG_X86_32) && !IS_ENABLED(CONFIG_X86_CMPXCHG64)) {
+> 		if (unlikely(in_nmi()))
+> 			return NULL;
+> 	}
 
-For the 64-bit cmpxchg, on it isn't useful, but this code also calls normal
-cmpxchg too. I had that part of the if condition as a separate patch, but
-not for this purpose, but for actual architectures that do not support
-cmpxchg in NMI. Those are broken here too, and that check fixes it.
-
-> 
-> Having a NMI-safe cmpxchg does *not* mean that you actualyl have a
-> NMI-safe 64-bit version.
-
-Understood, but we also have cmpxchg in this path as well.
-
-> 
-> You can't test it that way.
-> 
-> Stop making random changes that just happen to work on the one machine
-> you tested it on.
-
-They are not random, but they are two different reasons. I still have the
-standalone patch that adds the ARCH_HAVE_NMI_SAFE_CMPXCHG for the purpose
-of not calling this code on architectures that do not support cmpxchg in
-NMI, because if cmpxchg is not supported in NMI, then this should bail.
-
-My mistake was to combine that change into this one which made it looks like
-they are related, when in actuality they are not. Which is why there's a
-"||" and not an "&&"
-
-For this issue of the 64bit cmpxchg, is there any config that works for any
-arch that do not have a safe 64-bit cmpxchg? At least for 486, is the
-second half of the if condition reasonable?
-
-	if (IS_ENABLED(CONFIG_X86_32) && !IS_ENABLED(CONFIG_X86_CMPXCHG64)) {
-		if (unlikely(in_nmi()))
-			return NULL;
-	}
-
-?
+Ignore this, I'm now reading your other email. I'll have more questions there.
 
 -- Steve
