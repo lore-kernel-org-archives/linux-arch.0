@@ -1,30 +1,30 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C976814290;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C9794171A6;
 	Fri, 15 Dec 2023 09:33:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="bnPrR5+C"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="DJUGDSMs"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Type:MIME-Version:References:
 	Subject:Cc:To:From:Date:Message-Id:Sender:Reply-To:Content-Transfer-Encoding:
 	Content-ID:Content-Description:In-Reply-To;
-	bh=78VUp4ekMeaCQuFyW0sC3Rbbj/THiYo4c7UXzXOpUYU=; b=bnPrR5+CXr7BBoaFWXx1hwtAwH
-	2F2PEBm7YfZ8Z+ek5E6sU2NggQXV8mH21iJOx8IuUUKojL8nl8piu1SVhyFdQehQqPX2euFT8vltW
-	gihZz2bb9gv+VspJ5CUh/WjJz42XFPueBSyn/WRVvdtzjuELfVeUcwPUpxitCH1rPHzI5cnsWn6R6
-	OA71iWY86Q5Duna4NQFs5qEO9r76fyhbsZt9MW8nobXMxoFO5xvrRTH57KxULwxHYWII82RLcrG8u
-	0xuFVu5NdLh7F6MnKASZQN+xq+AblZov9qntQ2dc8J39R9EsSjSbj7uUsPN6ddau0FzX8ZUSPYnLe
-	HmXCrtSg==;
+	bh=pbCkSkpL0VTDsMcIMxCWVNworlFDlzLYPEKR3Py08RA=; b=DJUGDSMsYcY1FuLTMqpTLZuuD7
+	hLcMb7eOFpemVUB+Svi/65P+67gUSbeKh1GOBa7cr2FYt8/qyXeoCT/pi9uAhu9eJwsOkfFe9UNZA
+	E+tGfdbdcJMPCvbJI7kQhXFFPwJ/zB9n+CEo8T0lj3ii//1wGhtPUl50MbNeh94rHVUSccRW0YYK0
+	U3qkPi7dJl+StxkZqBM6AttokeY+LDewP6v1hQKFnOmnEqTogDs7l+ALwC9Yv1WLjHiAofFrqYNBs
+	J4UwojSpM8p8N5gRGZbTqyJFVtkENll8kEtpzjHrxv2v395vu0J14T0nFZ4f2uZJEZWyLZsr8TYXI
+	2mV7ppVg==;
 Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
 	by casper.infradead.org with esmtpsa (Exim 4.94.2 #2 (Red Hat Linux))
-	id 1rE4ZE-00FSOc-4Z; Fri, 15 Dec 2023 09:33:13 +0000
+	id 1rE4ZD-00FSOT-HF; Fri, 15 Dec 2023 09:33:12 +0000
 Received: by noisy.programming.kicks-ass.net (Postfix, from userid 0)
-	id DB5FA301157; Fri, 15 Dec 2023 10:33:11 +0100 (CET)
-Message-Id: <20231215092707.799451071@infradead.org>
+	id BF53730049D; Fri, 15 Dec 2023 10:33:11 +0100 (CET)
+Message-Id: <20231215092707.231038174@infradead.org>
 User-Agent: quilt/0.65
-Date: Fri, 15 Dec 2023 10:12:22 +0100
+Date: Fri, 15 Dec 2023 10:12:17 +0100
 From: Peter Zijlstra <peterz@infradead.org>
 To: Alexei Starovoitov <alexei.starovoitov@gmail.com>
 Cc: paul.walmsley@sifive.com,
@@ -63,7 +63,7 @@ Cc: paul.walmsley@sifive.com,
  joao@overdrivepizza.com,
  mark.rutland@arm.com,
  peterz@infradead.org
-Subject: [PATCH v3 6/7] bpf: Fix dtor CFI
+Subject: [PATCH v3 1/7] cfi: Flip headers
 References: <20231215091216.135791411@infradead.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -73,118 +73,100 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 
-Ensure the various dtor functions match their prototype and retain
-their CFI signatures, since they don't have their address taken, they
-are prone to not getting CFI, making them impossible to call
-indirectly.
+Normal include order is that linux/foo.h should include asm/foo.h, CFI has it
+the wrong way around.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Reviewed-by: Sami Tolvanen <samitolvanen@google.com>
 ---
- kernel/bpf/cpumask.c |    8 +++++++-
- kernel/bpf/helpers.c |   16 ++++++++++++++--
- net/bpf/test_run.c   |   15 +++++++++++++--
- 3 files changed, 34 insertions(+), 5 deletions(-)
+ arch/riscv/include/asm/cfi.h |    3 ++-
+ arch/riscv/kernel/cfi.c      |    2 +-
+ arch/x86/include/asm/cfi.h   |    3 ++-
+ arch/x86/kernel/cfi.c        |    4 ++--
+ include/asm-generic/Kbuild   |    1 +
+ include/asm-generic/cfi.h    |    5 +++++
+ include/linux/cfi.h          |    1 +
+ 7 files changed, 14 insertions(+), 5 deletions(-)
 
---- a/kernel/bpf/cpumask.c
-+++ b/kernel/bpf/cpumask.c
-@@ -96,6 +96,12 @@ __bpf_kfunc void bpf_cpumask_release(str
- 	migrate_enable();
- }
+--- a/arch/riscv/include/asm/cfi.h
++++ b/arch/riscv/include/asm/cfi.h
+@@ -7,8 +7,9 @@
+  *
+  * Copyright (C) 2023 Google LLC
+  */
++#include <linux/bug.h>
  
-+__bpf_kfunc void bpf_cpumask_release_dtor(void *cpumask)
-+{
-+	bpf_cpumask_release(cpumask);
-+}
-+CFI_NOSEAL(bpf_cpumask_release_dtor);
+-#include <linux/cfi.h>
++struct pt_regs;
+ 
+ #ifdef CONFIG_CFI_CLANG
+ enum bug_trap_type handle_cfi_failure(struct pt_regs *regs);
+--- a/arch/riscv/kernel/cfi.c
++++ b/arch/riscv/kernel/cfi.c
+@@ -4,7 +4,7 @@
+  *
+  * Copyright (C) 2023 Google LLC
+  */
+-#include <asm/cfi.h>
++#include <linux/cfi.h>
+ #include <asm/insn.h>
+ 
+ /*
+--- a/arch/x86/include/asm/cfi.h
++++ b/arch/x86/include/asm/cfi.h
+@@ -7,8 +7,9 @@
+  *
+  * Copyright (C) 2022 Google LLC
+  */
++#include <linux/bug.h>
+ 
+-#include <linux/cfi.h>
++struct pt_regs;
+ 
+ #ifdef CONFIG_CFI_CLANG
+ enum bug_trap_type handle_cfi_failure(struct pt_regs *regs);
+--- a/arch/x86/kernel/cfi.c
++++ b/arch/x86/kernel/cfi.c
+@@ -4,10 +4,10 @@
+  *
+  * Copyright (C) 2022 Google LLC
+  */
+-#include <asm/cfi.h>
++#include <linux/string.h>
++#include <linux/cfi.h>
+ #include <asm/insn.h>
+ #include <asm/insn-eval.h>
+-#include <linux/string.h>
+ 
+ /*
+  * Returns the target address and the expected type when regs->ip points
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -11,6 +11,7 @@ mandatory-y += bitops.h
+ mandatory-y += bug.h
+ mandatory-y += bugs.h
+ mandatory-y += cacheflush.h
++mandatory-y += cfi.h
+ mandatory-y += checksum.h
+ mandatory-y += compat.h
+ mandatory-y += current.h
+--- /dev/null
++++ b/include/asm-generic/cfi.h
+@@ -0,0 +1,5 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ASM_GENERIC_CFI_H
++#define __ASM_GENERIC_CFI_H
 +
- /**
-  * bpf_cpumask_first() - Get the index of the first nonzero bit in the cpumask.
-  * @cpumask: The cpumask being queried.
-@@ -441,7 +447,7 @@ static const struct btf_kfunc_id_set cpu
++#endif /* __ASM_GENERIC_CFI_H */
+--- a/include/linux/cfi.h
++++ b/include/linux/cfi.h
+@@ -9,6 +9,7 @@
  
- BTF_ID_LIST(cpumask_dtor_ids)
- BTF_ID(struct, bpf_cpumask)
--BTF_ID(func, bpf_cpumask_release)
-+BTF_ID(func, bpf_cpumask_release_dtor)
+ #include <linux/bug.h>
+ #include <linux/module.h>
++#include <asm/cfi.h>
  
- static int __init cpumask_kfunc_init(void)
- {
---- a/kernel/bpf/helpers.c
-+++ b/kernel/bpf/helpers.c
-@@ -2150,6 +2150,12 @@ __bpf_kfunc void bpf_task_release(struct
- 	put_task_struct_rcu_user(p);
- }
- 
-+__bpf_kfunc void bpf_task_release_dtor(void *p)
-+{
-+	put_task_struct_rcu_user(p);
-+}
-+CFI_NOSEAL(bpf_task_release_dtor);
-+
- #ifdef CONFIG_CGROUPS
- /**
-  * bpf_cgroup_acquire - Acquire a reference to a cgroup. A cgroup acquired by
-@@ -2174,6 +2180,12 @@ __bpf_kfunc void bpf_cgroup_release(stru
- 	cgroup_put(cgrp);
- }
- 
-+__bpf_kfunc void bpf_cgroup_release_dtor(void *cgrp)
-+{
-+	cgroup_put(cgrp);
-+}
-+CFI_NOSEAL(bpf_cgroup_release_dtor);
-+
- /**
-  * bpf_cgroup_ancestor - Perform a lookup on an entry in a cgroup's ancestor
-  * array. A cgroup returned by this kfunc which is not subsequently stored in a
-@@ -2570,10 +2582,10 @@ static const struct btf_kfunc_id_set gen
- 
- BTF_ID_LIST(generic_dtor_ids)
- BTF_ID(struct, task_struct)
--BTF_ID(func, bpf_task_release)
-+BTF_ID(func, bpf_task_release_dtor)
- #ifdef CONFIG_CGROUPS
- BTF_ID(struct, cgroup)
--BTF_ID(func, bpf_cgroup_release)
-+BTF_ID(func, bpf_cgroup_release_dtor)
- #endif
- 
- BTF_SET8_START(common_btf_ids)
---- a/net/bpf/test_run.c
-+++ b/net/bpf/test_run.c
-@@ -600,10 +600,21 @@ __bpf_kfunc void bpf_kfunc_call_test_rel
- 	refcount_dec(&p->cnt);
- }
- 
-+__bpf_kfunc void bpf_kfunc_call_test_release_dtor(void *p)
-+{
-+	bpf_kfunc_call_test_release(p);
-+}
-+CFI_NOSEAL(bpf_kfunc_call_test_release_dtor);
-+
- __bpf_kfunc void bpf_kfunc_call_memb_release(struct prog_test_member *p)
- {
- }
- 
-+__bpf_kfunc void bpf_kfunc_call_memb_release_dtor(void *p)
-+{
-+}
-+CFI_NOSEAL(bpf_kfunc_call_memb_release_dtor);
-+
- __bpf_kfunc_end_defs();
- 
- BTF_SET8_START(bpf_test_modify_return_ids)
-@@ -1671,9 +1682,9 @@ static const struct btf_kfunc_id_set bpf
- 
- BTF_ID_LIST(bpf_prog_test_dtor_kfunc_ids)
- BTF_ID(struct, prog_test_ref_kfunc)
--BTF_ID(func, bpf_kfunc_call_test_release)
-+BTF_ID(func, bpf_kfunc_call_test_release_dtor)
- BTF_ID(struct, prog_test_member)
--BTF_ID(func, bpf_kfunc_call_memb_release)
-+BTF_ID(func, bpf_kfunc_call_memb_release_dtor)
- 
- static int __init bpf_prog_test_run_init(void)
- {
+ #ifdef CONFIG_CFI_CLANG
+ enum bug_trap_type report_cfi_failure(struct pt_regs *regs, unsigned long addr,
 
 
