@@ -1,122 +1,84 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.55.52.120])
+Received: from out162-62-57-49.mail.qq.com (out162-62-57-49.mail.qq.com [162.62.57.49])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5885B639;
-	Tue,  9 Jan 2024 00:29:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC36039AC0;
+	Tue,  9 Jan 2024 14:46:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=cyyself.name
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=cyyself.name
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="UhX17OvJ"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1704760168; x=1736296168;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=ICS0Q1nES6wmFGgjB/iavarHm9pD/C1AFIAVIA7DcCg=;
-  b=UhX17OvJ5dE7T7WIKCyciBTJqWDWcu4lVS6h1KJxP6Wa2kfJ2nBA8pDu
-   z7ZSIUTckegp5Tx5h9hNfhCINjYibt+/B+cLo1YEnxmLkBMK20xWRbqhS
-   LI9zoA8GkpgOW8MwCUxlK+o8fd01AxKxNkvyW5zlaPZjuLntFZOnPlLAx
-   z1M+BA/xKIhbEKavwGukIQowopfAAaXtKchhgLuGATa2bNYp1VtP6XPxl
-   BghbUtfXg5ejUs5v22z4z+nTKi77wZ7nQunBMA6hDzFrDdDfdo0RR0n1L
-   IvevUkNMAKuzokjrGuaj88yD1dF2xLsnIr/Ecdsdj7vgEG4RZYe8y2Yny
-   w==;
-X-IronPort-AV: E=McAfee;i="6600,9927,10947"; a="396911428"
-X-IronPort-AV: E=Sophos;i="6.04,181,1695711600"; 
-   d="scan'208";a="396911428"
-Received: from fmsmga002.fm.intel.com ([10.253.24.26])
-  by fmsmga104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 08 Jan 2024 16:29:25 -0800
-X-ExtLoop1: 1
-X-IronPort-AV: E=McAfee;i="6600,9927,10947"; a="900547474"
-X-IronPort-AV: E=Sophos;i="6.04,181,1695711600"; 
-   d="scan'208";a="900547474"
-Received: from lkp-server02.sh.intel.com (HELO b07ab15da5fe) ([10.239.97.151])
-  by fmsmga002.fm.intel.com with ESMTP; 08 Jan 2024 16:29:19 -0800
-Received: from kbuild by b07ab15da5fe with local (Exim 4.96)
-	(envelope-from <lkp@intel.com>)
-	id 1rMzzZ-0005G6-28;
-	Tue, 09 Jan 2024 00:29:17 +0000
-Date: Tue, 9 Jan 2024 08:28:59 +0800
-From: kernel test robot <lkp@intel.com>
-To: Thomas Zimmermann <tzimmermann@suse.de>, ardb@kernel.org,
-	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com,
-	bhelgaas@google.com, arnd@arndb.de, zohar@linux.ibm.com,
-	dmitry.kasatkin@gmail.com, paul@paul-moore.com, jmorris@namei.org,
-	serge@hallyn.com, javierm@redhat.com
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
-	linux-arch@vger.kernel.org, linux-efi@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
-	linux-integrity@vger.kernel.org,
-	linux-security-module@vger.kernel.org,
-	Thomas Zimmermann <tzimmermann@suse.de>
-Subject: Re: [PATCH v4 2/4] arch/x86: Move internal setup_data structures
- into setup_data.h
-Message-ID: <202401090800.UOBEKB3W-lkp@intel.com>
-References: <20240108095903.8427-3-tzimmermann@suse.de>
+	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="roCY5IWt"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
+	t=1704811582; bh=kW1dPczTH04Crl0tbFUCfcQMkxib/V9/fWFO15vd0ac=;
+	h=From:To:Cc:Subject:Date;
+	b=roCY5IWtGteTzczcJ6Rg5jYCIT2mgvePdtxbY/m+xxSpnwzFi+pnsyBqdLsBvAyCp
+	 vpsfKa/TnPiX9K2O1LLNTDqCHGKbhkUdgIT7i/h2EG43+3eUKlfimWPQ5P/uSolojh
+	 8GCX0wl1jLQ99XCyTmwkdPWatoLOSjUf+J45nRNk=
+Received: from cyy-pc.lan ([2001:da8:c800:d084:c65a:644a:13d7:e72c])
+	by newxmesmtplogicsvrszb9-1.qq.com (NewEsmtp) with SMTP
+	id B8806A65; Tue, 09 Jan 2024 22:46:08 +0800
+X-QQ-mid: xmsmtpt1704811568tjhw333a7
+Message-ID: <tencent_13A0B6B4A3136E46CC448874232A9F956006@qq.com>
+X-QQ-XMAILINFO: MJf32pulH481N5+721FHDLNIsCPMMppGeNjz2u6HG63swzGmnY8jwl7oe52Ui6
+	 DZcnWAjXa93Z9dClvHOMcvdpYU5C73qTscOBPb3nCL/w9utGbUUuPUOZzN7MBkVXkpCd+qPRy7N+
+	 irGWHzeIRxFpPzCzCCqN6rbJbQWqUt4zsAtXXTtH6sj+iWXDlCaIAvWx2qBogRRIkReNvy47Ytbq
+	 7YE8wVeEMrTifNQx6S+aLlKdrdAyRu0lTDnt1tGsUzhXW31UtyDk6pydzCyL8ic+wvpmnrttyJ7o
+	 XOnL3gRCVw6c2ZdxZdVrvQbgSeUhAY2dwhCAPbAuz3ft+BwYa+UJHiUtuNu1jKJNvMg+QNeCP9Qa
+	 H0znsWzWa+9/WAQFFQYTxmCnaEPqQQB/XbUilTf9ZioykuQ/HrIctj/bOyJGQSgHcikt9D4SJS7N
+	 whidKdbYGiFGMnHT32hV4yHMsLC2NBSG/P5rv4FtdSA4W2HJfultP74sQthjUFzAWULP2f1jYtXl
+	 6FMToImFWmp7EValb6ILd5wxCgjv4nK3O6jYk11qDRpP5i6Y8Ns1SlIdH7APxo+uMSBeTRfzV6OL
+	 7iU1KQ1nm9N75RU9mj1dax4MIAe8c3+3dQQkOdd6Usre6DmnwihTaLiFTh19ZsrebEYDf76PGNgx
+	 8GtW3LzRINoW1QRZ5vCy0UUUNayOVFUGa2QsCG2/0PGZygcn7K+tQ4ZNnPQvlE5ySZrG027YkkeT
+	 xnDvThWzmaEgBCmS5IGwU/bxkZv3BUH6OJ0X1kvR8xbsDGdzL29M0CdLYHUh7V3naGdTSJ4YZvXu
+	 ThgkA8V0QZeVBCI+YqNDjf1a1S3RC28HiDGZ795GmtQBoQGcENZdg6Wk0Ybe9Q/Jd+I97sOOzX57
+	 NykiS9ynUeeg6cNSHZnEc2g8o6cWALxP2/2+rHdZ6rgUxuxdyIQmBQeD98nFQNQ5dgtmZE0FPcSc
+	 DCT1M/3VHEzZbo4g1ElO1o5YBlLJQ6uMp8ZjrhA9K048YtOv733gr1Jf4l6ebq
+X-QQ-XMRINFO: MSVp+SPm3vtS1Vd6Y4Mggwc=
+From: Yangyu Chen <cyy@cyyself.name>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@lst.de>,
+	Alexander Potapenko <glider@google.com>,
+	Mike Frysinger <vapier@gentoo.org>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Yangyu Chen <cyy@cyyself.name>
+Subject: [PATCH] asm-generic: flush icache only when vma->vm_flags has VM_EXEC set
+Date: Tue,  9 Jan 2024 22:45:59 +0800
+X-OQ-MSGID: <20240109144559.315476-1-cyy@cyyself.name>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20240108095903.8427-3-tzimmermann@suse.de>
+Content-Transfer-Encoding: 8bit
 
-Hi Thomas,
+For some ISAs like RISC-V, which may not support bus broadcast-based
+icache flushing instructions, it's necessary to send IPIs to all of the
+CPUs in the system to flush the icache. This process can be expensive for
+these ISAs and introduce disturbances during performance profiling.
+Limiting the icache flush to occur only when the vma->vm_flags has VM_EXEC
+can help minimize the frequency of these operations.
 
-kernel test robot noticed the following build warnings:
+Signed-off-by: Yangyu Chen <cyy@cyyself.name>
+---
+ include/asm-generic/cacheflush.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-[auto build test WARNING on tip/x86/core]
-[also build test WARNING on efi/next tip/master tip/auto-latest linus/master v6.7 next-20240108]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
-
-url:    https://github.com/intel-lab-lkp/linux/commits/Thomas-Zimmermann/arch-x86-Move-UAPI-setup-structures-into-setup_data-h/20240108-180158
-base:   tip/x86/core
-patch link:    https://lore.kernel.org/r/20240108095903.8427-3-tzimmermann%40suse.de
-patch subject: [PATCH v4 2/4] arch/x86: Move internal setup_data structures into setup_data.h
-config: x86_64-rhel-8.3-bpf (https://download.01.org/0day-ci/archive/20240109/202401090800.UOBEKB3W-lkp@intel.com/config)
-compiler: ClangBuiltLinux clang version 17.0.6 (https://github.com/llvm/llvm-project 6009708b4367171ccdbf4b5905cb6a803753fe18)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20240109/202401090800.UOBEKB3W-lkp@intel.com/reproduce)
-
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202401090800.UOBEKB3W-lkp@intel.com/
-
-All warnings (new ones prefixed by >>):
-
-   In file included from arch/x86/realmode/rm/wakemain.c:3:
-   In file included from arch/x86/boot/boot.h:24:
-   In file included from arch/x86/include/asm/setup.h:10:
-   In file included from arch/x86/include/asm/page_types.h:7:
-   In file included from include/linux/mem_encrypt.h:17:
-   In file included from arch/x86/include/asm/mem_encrypt.h:18:
-   In file included from arch/x86/include/uapi/asm/bootparam.h:5:
->> arch/x86/include/asm/setup_data.h:10:20: warning: field 'data' with variable sized type 'struct setup_data' not at the end of a struct or class is a GNU extension [-Wgnu-variable-sized-type-not-at-end]
-      10 |         struct setup_data data;
-         |                           ^
-   1 warning generated.
-
-
-vim +10 arch/x86/include/asm/setup_data.h
-
-     8	
-     9	struct pci_setup_rom {
-  > 10		struct setup_data data;
-    11		uint16_t vendor;
-    12		uint16_t devid;
-    13		uint64_t pcilen;
-    14		unsigned long segment;
-    15		unsigned long bus;
-    16		unsigned long device;
-    17		unsigned long function;
-    18		uint8_t romdata[];
-    19	};
-    20	
-
+diff --git a/include/asm-generic/cacheflush.h b/include/asm-generic/cacheflush.h
+index 84ec53ccc450..729d51536575 100644
+--- a/include/asm-generic/cacheflush.h
++++ b/include/asm-generic/cacheflush.h
+@@ -102,7 +102,8 @@ static inline void flush_cache_vunmap(unsigned long start, unsigned long end)
+ 	do { \
+ 		instrument_copy_to_user((void __user *)dst, src, len); \
+ 		memcpy(dst, src, len); \
+-		flush_icache_user_page(vma, page, vaddr, len); \
++		if (vma->vm_flags & VM_EXEC) \
++			flush_icache_user_page(vma, page, vaddr, len); \
+ 	} while (0)
+ #endif
+ 
 -- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+2.43.0
+
