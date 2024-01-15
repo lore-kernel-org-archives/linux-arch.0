@@ -1,22 +1,22 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DC25F1F95D;
-	Mon, 15 Jan 2024 23:26:21 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E7841C2BC;
+	Mon, 15 Jan 2024 23:27:26 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="SL0kbxSx"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BDE39C433F1;
-	Mon, 15 Jan 2024 23:26:20 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LI16xNMh"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DE6A0C433C7;
+	Mon, 15 Jan 2024 23:27:25 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1705361181;
-	bh=wSXUTcV5scJ3nhuOk08NT/tBmROQk/JmFEHXBQTMGcM=;
+	s=k20201202; t=1705361246;
+	bh=SLjTFVzCCuFtlCTLtbQ8mH7lK3/LrsRsGGDoB43LPJQ=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=SL0kbxSxpdEsn6Y+1Aa8jweNhBsRr1L8jTbOa2vGu5mLLFmN5FG2zuaPRmRWup7Ng
-	 rPmTR4abhAX2gkO2rHouExISMnatRPsBXf6zmZ8Es2v7v9Tse120ujp6yhkUwc+jVc
-	 LVhu1dhPVhpN1YuLev7buWB7FXsUgDGB8p0Bnet2mcwZcS8ivmsvDDhQ+zDgYfuw4x
-	 MxSg3pneouXo9tqj0sYlCkbf1lyqDKJy5EX84ELHXthtulACibMi0M9bxdLDHMo/1s
-	 4NxsCuaalGzGz+zPc8ESPY1kOe8OEUK0OKjBy9MDj5n7lEi8IeDU/sSNTgHocMtkfx
-	 vLgIWjZOzYT7g==
+	b=LI16xNMh5cNPH5hn5aIIF+HNsWkDmq35wqPe8QDIq+YYf9FojELEQjfJqjU+3MPC6
+	 HG23tpCPi8ZYC4WQQTS+9x3UAV2rWGDIQUxSj5WKAheDwA8Gy7S9T31b1NCVft3Ayo
+	 2mEoDzYcNt4BLqv8F1xmPfiRr5MH9U9ziThNc5uWqTbA44XmhonWd7VT58xCx39u9L
+	 MyiK0QoPsI0c5NYQUwdI/HLnFOw/Wc73I+vXDIdLKAECN1nis9W/m++a8/PFd92V0Y
+	 3qxBKsg7OItxRYOoagDDRNf3mXg7M4byViDYcX0N1gbD2CetYQOBKK3cPBk7xms/dG
+	 PDWJzz1Wae/fw==
 From: Sasha Levin <sashal@kernel.org>
 To: linux-kernel@vger.kernel.org,
 	stable@vger.kernel.org
@@ -27,12 +27,12 @@ Cc: Huang Shijie <shijie@os.amperecomputing.com>,
 	gregkh@linuxfoundation.org,
 	linux-arm-kernel@lists.infradead.org,
 	linux-arch@vger.kernel.org
-Subject: [PATCH AUTOSEL 6.1 04/14] arm64: irq: set the correct node for VMAP stack
-Date: Mon, 15 Jan 2024 18:25:38 -0500
-Message-ID: <20240115232611.209265-4-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 5.15 03/12] arm64: irq: set the correct node for VMAP stack
+Date: Mon, 15 Jan 2024 18:26:48 -0500
+Message-ID: <20240115232718.209642-3-sashal@kernel.org>
 X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20240115232611.209265-1-sashal@kernel.org>
-References: <20240115232611.209265-1-sashal@kernel.org>
+In-Reply-To: <20240115232718.209642-1-sashal@kernel.org>
+References: <20240115232718.209642-1-sashal@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-stable: review
 X-Patchwork-Hint: Ignore
-X-stable-base: Linux 6.1.73
+X-stable-base: Linux 5.15.147
 Content-Transfer-Encoding: 8bit
 
 From: Huang Shijie <shijie@os.amperecomputing.com>
@@ -76,18 +76,18 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
  3 files changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
-index 38dbd3828f13..d9db544285c4 100644
+index bda49430c9ea..dab45f19df49 100644
 --- a/arch/arm64/kernel/irq.c
 +++ b/arch/arm64/kernel/irq.c
-@@ -22,6 +22,7 @@
+@@ -19,6 +19,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/scs.h>
+ #include <linux/seq_file.h>
++#include <asm/numa.h>
  #include <linux/vmalloc.h>
  #include <asm/daifflags.h>
- #include <asm/exception.h>
-+#include <asm/numa.h>
  #include <asm/vmap_stack.h>
- #include <asm/softirq_stack.h>
- 
-@@ -50,13 +51,13 @@ static void init_irq_scs(void)
+@@ -48,13 +49,13 @@ static void init_irq_scs(void)
  }
  
  #ifdef CONFIG_VMAP_STACK
@@ -104,7 +104,7 @@ index 38dbd3828f13..d9db544285c4 100644
  	}
  }
 diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
-index eaa31e567d1e..5b59d133b6af 100644
+index 00fb4120a5b3..bce0902dccb4 100644
 --- a/drivers/base/arch_numa.c
 +++ b/drivers/base/arch_numa.c
 @@ -144,7 +144,7 @@ void __init early_map_cpu_to_node(unsigned int cpu, int nid)
