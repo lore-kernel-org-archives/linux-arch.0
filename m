@@ -1,145 +1,115 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from szxga02-in.huawei.com (szxga02-in.huawei.com [45.249.212.188])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D745E7764D;
-	Wed, 24 Jan 2024 13:32:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 56DAA60DD1;
+	Wed, 24 Jan 2024 14:26:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.188
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1706103146; cv=none; b=b7XrddCuGNjcS+vxIipYwJ9SCA7b4JBqSSsVrH1+XRIHtf7npjboAi/2sSxGBnCTKiXcs2D4p9AMRqm+n+/GbwUmvAbdrXbna4aPrHCehE26qURIiOxiReoh3yRIIZvuwhHZG2/kyah7Po4daJw9STRcSiKbh81Ytmd6QMdvGn8=
+	t=1706106390; cv=none; b=pB5kVLTbgoiJxA3TJ42u8y15t2/F2FGWOXW3C/s693OGBPMT5C5UZ1dkqIn3mO+4Om0hKR5Vwdzs/5w0PDvOLJVng4nUkf0ke5nXrjVMbCZ2NVsREFtW7vadPgn4SM3mPeLx84u8oK9B12Mpo3CENSI9cmIGfSsTOm/amkLVEZ4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1706103146; c=relaxed/simple;
-	bh=r/MlFBpvh1urs5RoLLL/ijS6xLZtzSvDUzcUVrRz0qg=;
-	h=Date:Message-ID:From:To:Cc:Subject:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=nX05J7skNod4BF4exVYuz68oBnQBKAJixhVrJSiCqlJ19c30JTxJFx3UziQYxv59WeC4ckw5saeGWmd6XNovI0JW0WCL3On024MNKCx0QfwOHv0JyOV/h9EZd4BfotAHGMiRQYzrCgGwSUwB4ZmpK29LjMli5EolEUd4LLSt5mM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=SrLg8X3y; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="SrLg8X3y"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 451DDC433F1;
-	Wed, 24 Jan 2024 13:32:25 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1706103145;
-	bh=r/MlFBpvh1urs5RoLLL/ijS6xLZtzSvDUzcUVrRz0qg=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=SrLg8X3yYniHxZwENFjZsAgizr3UjIfhtUS2EurygS8zMBytauAclht/3xb4y1N1l
-	 jssmr565BWsHby3emkyBm8UsL6VKrgOqTeIi+kdcOTGYrvcWb0siB25MhmnknNIVMJ
-	 MLsz+qcvDx7SD+/i49it9WWAveT0o6AtRQpBCruQZRxMDHgEIOJpRl/G0nk4bDEtlN
-	 LlHGeFBsKqNTZbZ22SFbMbMBF4inDHbGiTKpA6aITfCvUZBJ+aD3c2MsshrHVqsHv1
-	 cf45NrrpNL1TvYpxJH6q1XxYGiKFZGPL2Wj4lCQI/pMnEXSazSO34/r6g/gQI5yq7k
-	 EJReS1PRUXOgA==
-Received: from sofa.misterjones.org ([185.219.108.64] helo=goblin-girl.misterjones.org)
-	by disco-boy.misterjones.org with esmtpsa  (TLS1.3) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	(Exim 4.95)
-	(envelope-from <maz@kernel.org>)
-	id 1rSdMc-00EL7Z-Ke;
-	Wed, 24 Jan 2024 13:32:22 +0000
-Date: Wed, 24 Jan 2024 13:32:22 +0000
-Message-ID: <86bk9a97rt.wl-maz@kernel.org>
-From: Marc Zyngier <maz@kernel.org>
-To: Jason Gunthorpe <jgg@nvidia.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>,
-	Mark Rutland <mark.rutland@arm.com>,
-	Niklas Schnelle <schnelle@linux.ibm.com>,
-	Leon Romanovsky <leon@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	linux-rdma@vger.kernel.org,
-	llvm@lists.linux.dev,
-	Michael Guralnik <michaelgur@mellanox.com>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	Will Deacon <will@kernel.org>
-Subject: Re: [PATCH rdma-next 1/2] arm64/io: add memcpy_toio_64
-In-Reply-To: <20240124130638.GE1455070@nvidia.com>
-References: <20231205195130.GM2692119@nvidia.com>
-	<ZXBWXodu2rxQ7Szz@arm.com>
-	<20231206125919.GP2692119@nvidia.com>
-	<20240116185121.GB980613@nvidia.com>
-	<ZafISDVeAA1swx2I@FVFF77S0Q05N.cambridge.arm.com>
-	<20240117123618.GD734935@nvidia.com>
-	<ZafWIsrjvk--JdDn@FVFF77S0Q05N.cambridge.arm.com>
-	<ZbAj34vdVuMrmdFD@arm.com>
-	<20240124012723.GD1455070@nvidia.com>
-	<86ede787d7.wl-maz@kernel.org>
-	<20240124130638.GE1455070@nvidia.com>
-User-Agent: Wanderlust/2.15.9 (Almost Unreal) SEMI-EPG/1.14.7 (Harue)
- FLIM-LB/1.14.9 (=?UTF-8?B?R29qxY0=?=) APEL-LB/10.8 EasyPG/1.0.0 Emacs/29.1
- (aarch64-unknown-linux-gnu) MULE/6.0 (HANACHIRUSATO)
+	s=arc-20240116; t=1706106390; c=relaxed/simple;
+	bh=T4ZmNyGgSAx5pc1IvXagEPFYy85Sq3UzouNrKov/L9w=;
+	h=From:To:CC:Subject:Date:Message-ID:MIME-Version:Content-Type; b=eqE2FvLK0FJwW7mrzIKAa+B0GAWjLXDQ7mC1K8YkxNSLUPm59PZQkT3gGODwsG0w6AfwOfCW26myslIMpX37hh1m7JFodqWBqPuYQdOQYDnYMPTz8yTs4saJCSiIgpUmEWk0nJG2qFRettsbpa366GgGf9KuQzs+Y0POxo1dlRc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; arc=none smtp.client-ip=45.249.212.188
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
+Received: from mail.maildlp.com (unknown [172.19.163.174])
+	by szxga02-in.huawei.com (SkyGuard) with ESMTP id 4TKmSl4JKCzXgcK;
+	Wed, 24 Jan 2024 22:25:11 +0800 (CST)
+Received: from dggpeml500021.china.huawei.com (unknown [7.185.36.21])
+	by mail.maildlp.com (Postfix) with ESMTPS id 26FC51400D7;
+	Wed, 24 Jan 2024 22:26:24 +0800 (CST)
+Received: from huawei.com (10.175.127.227) by dggpeml500021.china.huawei.com
+ (7.185.36.21) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id 15.1.2507.35; Wed, 24 Jan
+ 2024 22:26:23 +0800
+From: Baokun Li <libaokun1@huawei.com>
+To: <linux-fsdevel@vger.kernel.org>
+CC: <torvalds@linux-foundation.org>, <viro@zeniv.linux.org.uk>,
+	<brauner@kernel.org>, <jack@suse.cz>, <willy@infradead.org>,
+	<akpm@linux-foundation.org>, <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
+	<linux-kernel@vger.kernel.org>, <yi.zhang@huawei.com>,
+	<yangerkun@huawei.com>, <yukuai3@huawei.com>, <libaokun1@huawei.com>
+Subject: [PATCH v2 0/3] fs: make the i_size_read/write helpers be smp_load_acquire/store_release()
+Date: Wed, 24 Jan 2024 22:28:54 +0800
+Message-ID: <20240124142857.4146716-1-libaokun1@huawei.com>
+X-Mailer: git-send-email 2.31.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
-Content-Type: text/plain; charset=US-ASCII
-X-SA-Exim-Connect-IP: 185.219.108.64
-X-SA-Exim-Rcpt-To: jgg@nvidia.com, catalin.marinas@arm.com, mark.rutland@arm.com, schnelle@linux.ibm.com, leon@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-rdma@vger.kernel.org, llvm@lists.linux.dev, michaelgur@mellanox.com, nathan@kernel.org, ndesaulniers@google.com, will@kernel.org
-X-SA-Exim-Mail-From: maz@kernel.org
-X-SA-Exim-Scanned: No (on disco-boy.misterjones.org); SAEximRunCond expanded to false
+MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-ClientProxiedBy: dggems706-chm.china.huawei.com (10.3.19.183) To
+ dggpeml500021.china.huawei.com (7.185.36.21)
 
-On Wed, 24 Jan 2024 13:06:38 +0000,
-Jason Gunthorpe <jgg@nvidia.com> wrote:
-> 
-> On Wed, Jan 24, 2024 at 08:26:28AM +0000, Marc Zyngier wrote:
-> 
-> > > Even if you refuse to take STP to mainline it *will* be running in VMs
-> > > under ARM hypervisors.
-> > 
-> > A hypervisor can't do anything with it. If you cared to read the
-> > architecture, you'd know by now. So your VM will be either dead, or
-> > dog slow, depending on your hypervisor. In any case, I'm sure it will
-> > reflect positively on your favourite software.
-> 
-> "Dog slow" is fine. Forcing IO emulation on paths that shouldn't have
-> it is a VMM problem. KVM & qemu have some issues where this can happen
-> infrequently for VFIO MMIO maps. It is just important that it be
-> functionally correct if you get unlucky. The performance path is to
-> not take a fault in the first place.
-> 
-> > > What exactly do you think should be done about that?
-> > 
-> > Well, you could use KVM_CAP_ARM_NISV_TO_USER in userspace and see
-> > everything slow down. Your call.
-> 
-> The issue Mark raised here was that things like STP/etc cannot work in
-> VMs, not that they are slow.
->
-> The places we are talking about using the STP pattern are all high
-> performance HW drivers, that do not have any existing SW emulation to
-> worry about. ie the VMM will be using VFIO to back the MMIO the
-> acessors target.
-> 
-> So, I'm fine if the answer is that VMM's using VFIO need to use
-> KVM_CAP_ARM_NISV_TO_USER and do instruction parsing for emulated IO in
-> userspace if they have a design where VFIO MMIO can infrequently
-> generate faults. That is all VMM design stuff and has nothing to do
-> with the kernel.
+V1->V2:
+  Add patch 3 to fix an error when compiling code for 32-bit architectures
+  without CONFIG_SMP enabled.
 
-Which will work a treat with things like CCA, I'm sure.
+This patchset follows the Linus suggestion to make the i_size_read/write
+helpers be smp_load_acquire/store_release(), after which the extra smp_rmb
+in filemap_read() is no longer needed, so it is removed. And remove the
+extra type checking in smp_load_acquire/smp_store_release under the
+!CONFIG_SMP case to avoid compilation errors.
 
-> 
-> My objection is this notion we should degrade a performance hot path
-> in drivers to accomodate an ARM VMM issue that should be solved in the
-> VMM.
-> 
-> > Or you can stop whining and try to get better performance out of what
-> > we have today.
-> 
-> "better performance"!?!? You are telling me I have to destroy one of
-> our important fast paths for HPC workloads to accommodate some
-> theoretical ARM KVM problem?
+Functional tests were performed and no new problems were found.
 
-What I'm saying is that there are way to make it better without
-breaking your particular toy workload which, as important as it may be
-to *you*, doesn't cover everybody's use case.
+Here are the results of unixbench tests based on 6.7.0-next-20240118 on
+arm64, with some degradation in single-threading and some optimization in
+multi-threading, but overall the impact is not significant.
 
-Mark did post such an example that has the potential of having that
-improvement. I'd suggest that you give it a go.
+### 72 CPUs in system; running 1 parallel copy of tests
+System Benchmarks Index Values        |   base  | patched |  cmp   |
+--------------------------------------|---------|---------|--------|
+Dhrystone 2 using register variables  | 3635.06 | 3596.3  | -1.07% |
+Double-Precision Whetstone            | 808.58  | 808.58  | 0.00%  |
+Execl Throughput                      | 623.52  | 618.1   | -0.87% |
+File Copy 1024 bufsize 2000 maxblocks | 1715.82 | 1668.58 | -2.75% |
+File Copy 256 bufsize 500 maxblocks   | 1320.98 | 1250.16 | -5.36% |
+File Copy 4096 bufsize 8000 maxblocks | 2639.36 | 2488.48 | -5.72% |
+Pipe Throughput                       | 869.06  | 872.3   | 0.37%  |
+Pipe-based Context Switching          | 106.26  | 117.22  | 10.31% |
+Process Creation                      | 247.72  | 246.74  | -0.40% |
+Shell Scripts (1 concurrent)          | 1234.98 | 1226    | -0.73% |
+Shell Scripts (8 concurrent)          | 6893.96 | 6210.46 | -9.91% |
+System Call Overhead                  | 493.72  | 494.28  | 0.11%  |
+--------------------------------------|---------|---------|--------|
+Total                                 | 1003.92 | 989.58  | -1.43% |
 
-But your attitude of "who cares if it breaks as long as it works for
-me" is not something I can adhere to.
+### 72 CPUs in system; running 72 parallel copy of tests
+System Benchmarks Index Values        |   base    |  patched  |  cmp   |
+--------------------------------------|-----------|-----------|--------|
+Dhrystone 2 using register variables  | 260471.88 | 258065.04 | -0.92% |
+Double-Precision Whetstone            | 58212.32  | 58219.3   | 0.01%  |
+Execl Throughput                      | 6954.7    | 7444.08   | 7.04%  |
+File Copy 1024 bufsize 2000 maxblocks | 64244.74  | 64618.24  | 0.58%  |
+File Copy 256 bufsize 500 maxblocks   | 89933.8   | 87026.38  | -3.23% |
+File Copy 4096 bufsize 8000 maxblocks | 79808.14  | 81916.42  | 2.64%  |
+Pipe Throughput                       | 62174.38  | 62389.74  | 0.35%  |
+Pipe-based Context Switching          | 27239.28  | 27887.24  | 2.38%  |
+Process Creation                      | 3551.28   | 3800.54   | 7.02%  |
+Shell Scripts (1 concurrent)          | 19212.26  | 20749.34  | 8.00%  |
+Shell Scripts (8 concurrent)          | 20842.02  | 21958.12  | 5.36%  |
+System Call Overhead                  | 35328.24  | 35451.68  | 0.35%  |
+--------------------------------------|-----------|-----------|--------|
+Total                                 | 35592.42  | 36450.36  | 2.41%  |
 
-	M.
+Baokun Li (3):
+  fs: make the i_size_read/write helpers be
+    smp_load_acquire/store_release()
+  Revert "mm/filemap: avoid buffered read/write race to read
+    inconsistent data"
+  asm-generic: remove extra type checking in acquire/release for non-SMP
+    case
+
+ include/asm-generic/barrier.h |  2 --
+ include/linux/fs.h            | 10 ++++++++--
+ mm/filemap.c                  |  9 ---------
+ 3 files changed, 8 insertions(+), 13 deletions(-)
 
 -- 
-Without deviation from the norm, progress is not possible.
+2.31.1
+
