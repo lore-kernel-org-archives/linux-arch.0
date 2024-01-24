@@ -1,42 +1,44 @@
-Received: from szxga05-in.huawei.com (szxga05-in.huawei.com [45.249.212.191])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from xavier.telenet-ops.be (xavier.telenet-ops.be [195.130.132.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A7AF7A718;
-	Wed, 24 Jan 2024 14:26:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.191
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 45EA27CF25
+	for <linux-arch@vger.kernel.org>; Wed, 24 Jan 2024 14:27:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.130.132.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1706106391; cv=none; b=l/cyCXUPz7YEkH6o6AVeJgA989Df0zQptuot2hIe4wi/sT0SNmPkpxU78Va9/0AKlLYibYeUbu9FU4eFzjeIgsGp03gK1wwgRGRDX+hIj50d3bWvhD0s/LoFGJpQD5THPbizEC4L4wyUZLuds/IlGT9MnQXvF6FTXmMCunSLfm4=
+	t=1706106470; cv=none; b=X0hsDMASK7hdoOA1viztQ5x46kZJ1RuYiEZDz6SHEnZGOMsCKrnJ2oBh+6IQ42bPvBNeZ9en8rm8ZsSDxqWry2VSGz/Obi1WurMe+sUJO8UbgJGaFeyhrROmjCMzhKC55Si8AVdyIomm9QQ1Vb8Cy4/GkuxcddZKdUO3YzZrGIQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1706106391; c=relaxed/simple;
-	bh=N2BkwODbR5p4I61Zd4giHOOLJ0sc4FCaSVpwgMLT51U=;
-	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=PgJDpt3RL/RwtgO4t9ONXgJ2i2U7LrBa3raBv+lQgq7/nPkS4uwV+unKvP1f5FxmRrkqpRLzJok0AkVbMqdRmK30PRaCJAbYwn59MPh7z9CUFJRaqEHBfHrZXRTp7WEo+4fzHTpdxA0evWPXMFgEqu0bjx48iSzTYQscIiuX+Mk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; arc=none smtp.client-ip=45.249.212.191
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
-Received: from mail.maildlp.com (unknown [172.19.163.44])
-	by szxga05-in.huawei.com (SkyGuard) with ESMTP id 4TKmS9199Cz1gy0X;
-	Wed, 24 Jan 2024 22:24:41 +0800 (CST)
-Received: from dggpeml500021.china.huawei.com (unknown [7.185.36.21])
-	by mail.maildlp.com (Postfix) with ESMTPS id 6403114011F;
-	Wed, 24 Jan 2024 22:26:25 +0800 (CST)
-Received: from huawei.com (10.175.127.227) by dggpeml500021.china.huawei.com
- (7.185.36.21) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id 15.1.2507.35; Wed, 24 Jan
- 2024 22:26:24 +0800
-From: Baokun Li <libaokun1@huawei.com>
-To: <linux-fsdevel@vger.kernel.org>
-CC: <torvalds@linux-foundation.org>, <viro@zeniv.linux.org.uk>,
-	<brauner@kernel.org>, <jack@suse.cz>, <willy@infradead.org>,
-	<akpm@linux-foundation.org>, <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
-	<linux-kernel@vger.kernel.org>, <yi.zhang@huawei.com>,
-	<yangerkun@huawei.com>, <yukuai3@huawei.com>, <libaokun1@huawei.com>
-Subject: [PATCH v2 2/3] Revert "mm/filemap: avoid buffered read/write race to read inconsistent data"
-Date: Wed, 24 Jan 2024 22:28:56 +0800
-Message-ID: <20240124142857.4146716-3-libaokun1@huawei.com>
-X-Mailer: git-send-email 2.31.1
-In-Reply-To: <20240124142857.4146716-1-libaokun1@huawei.com>
-References: <20240124142857.4146716-1-libaokun1@huawei.com>
+	s=arc-20240116; t=1706106470; c=relaxed/simple;
+	bh=CfszxU16lZncejKjedsKD1lxYOGoDUS8ZJocL2mNhvk=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=UM/T1CMCHbJ5lyOfopwcdGFIiOOkUaqVSQeXQQsnbGfUczKpoIN/AjXUGzFYptj5M4sCP/y+GXO/NPHC1x8qrMvnN0uWrkOcgj30de+0gPpj5pKoMXSaB55GWNnDb1jcEefxOyFz2HYJlo9fZTj1NC9SG7HfAa8hJre+LGzxi/8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; arc=none smtp.client-ip=195.130.132.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
+Received: from ramsan.of.borg ([IPv6:2a02:1810:ac12:ed40:bc9e:fcb8:8aa3:5dc0])
+	by xavier.telenet-ops.be with bizsmtp
+	id eeTd2B00o58agq201eTdz7; Wed, 24 Jan 2024 15:27:38 +0100
+Received: from rox.of.borg ([192.168.97.57])
+	by ramsan.of.borg with esmtp (Exim 4.95)
+	(envelope-from <geert@linux-m68k.org>)
+	id 1rSeDH-00GQnc-Hq;
+	Wed, 24 Jan 2024 15:27:37 +0100
+Received: from geert by rox.of.borg with local (Exim 4.95)
+	(envelope-from <geert@linux-m68k.org>)
+	id 1rSeE5-00FCwG-E2;
+	Wed, 24 Jan 2024 15:27:37 +0100
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+To: Arnd Bergmann <arnd@arndb.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Ilya Leoshkevich <iii@linux.ibm.com>,
+	Josh Poimboeuf <jpoimboe@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>
+Cc: linux-s390@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Geert Uytterhoeven <geert+renesas@glider.be>
+Subject: [PATCH] init: Remove obsolete arch_call_rest_init() wrapper
+Date: Wed, 24 Jan 2024 15:27:35 +0100
+Message-Id: <aa10868bfb176eef4abb8bb4a710b85330792694.1706106183.git.geert@linux-m68k.org>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -44,41 +46,84 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: dggems706-chm.china.huawei.com (10.3.19.183) To
- dggpeml500021.china.huawei.com (7.185.36.21)
 
-This reverts commit e2c27b803bb6 ("mm/filemap: avoid buffered read/write
-race to read inconsistent data"). After making the i_size_read/write
-helpers be smp_load_acquire/store_release(), it is already guaranteed that
-changes to page contents are visible before we see increased inode size,
-so the extra smp_rmb() in filemap_read() can be removed.
+From: Geert Uytterhoeven <geert+renesas@glider.be>
 
-Signed-off-by: Baokun Li <libaokun1@huawei.com>
+Since commit 3570ee046c46b5dc ("s390/smp: keep the original lowcore for
+CPU 0"), there is no longer any architecture that needs to override
+arch_call_rest_init().
+
+Remove the weak wrapper around rest_init(), call rest_init() directly,
+and make rest_init() static.
+
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
 ---
- mm/filemap.c | 9 ---------
- 1 file changed, 9 deletions(-)
+Perhaps rest_init() should lose its noinline tag, or should even be
+inlined manually?
+---
+ include/linux/start_kernel.h | 2 --
+ init/main.c                  | 9 ++-------
+ tools/objtool/noreturns.h    | 1 -
+ 3 files changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/mm/filemap.c b/mm/filemap.c
-index 142864338ca4..bed844b07e87 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -2608,15 +2608,6 @@ ssize_t filemap_read(struct kiocb *iocb, struct iov_iter *iter,
- 			goto put_folios;
- 		end_offset = min_t(loff_t, isize, iocb->ki_pos + iter->count);
+diff --git a/include/linux/start_kernel.h b/include/linux/start_kernel.h
+index a9806a44a605c7d7..09f994ac87df44f1 100644
+--- a/include/linux/start_kernel.h
++++ b/include/linux/start_kernel.h
+@@ -9,7 +9,5 @@
+    up something else. */
  
--		/*
--		 * Pairs with a barrier in
--		 * block_write_end()->mark_buffer_dirty() or other page
--		 * dirtying routines like iomap_write_end() to ensure
--		 * changes to page contents are visible before we see
--		 * increased inode size.
--		 */
--		smp_rmb();
+ extern asmlinkage void __init __noreturn start_kernel(void);
+-extern void __init __noreturn arch_call_rest_init(void);
+-extern void __ref __noreturn rest_init(void);
+ 
+ #endif /* _LINUX_START_KERNEL_H */
+diff --git a/init/main.c b/init/main.c
+index e24b0780fdff7a80..521f40770e67dd27 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -681,7 +681,7 @@ static void __init setup_command_line(char *command_line)
+ 
+ static __initdata DECLARE_COMPLETION(kthreadd_done);
+ 
+-noinline void __ref __noreturn rest_init(void)
++static noinline void __ref __noreturn rest_init(void)
+ {
+ 	struct task_struct *tsk;
+ 	int pid;
+@@ -822,11 +822,6 @@ static int __init early_randomize_kstack_offset(char *buf)
+ early_param("randomize_kstack_offset", early_randomize_kstack_offset);
+ #endif
+ 
+-void __init __weak __noreturn arch_call_rest_init(void)
+-{
+-	rest_init();
+-}
 -
- 		/*
- 		 * Once we start copying data, we don't want to be touching any
- 		 * cachelines that might be contended:
+ static void __init print_unknown_bootoptions(void)
+ {
+ 	char *unknown_options;
+@@ -1069,7 +1064,7 @@ void start_kernel(void)
+ 	kcsan_init();
+ 
+ 	/* Do the rest non-__init'ed, we're now alive */
+-	arch_call_rest_init();
++	rest_init();
+ 
+ 	/*
+ 	 * Avoid stack canaries in callers of boot_init_stack_canary for gcc-10
+diff --git a/tools/objtool/noreturns.h b/tools/objtool/noreturns.h
+index 1685d7ea6a9f7002..7cda577da897cac5 100644
+--- a/tools/objtool/noreturns.h
++++ b/tools/objtool/noreturns.h
+@@ -12,7 +12,6 @@ NORETURN(__reiserfs_panic)
+ NORETURN(__stack_chk_fail)
+ NORETURN(__tdx_hypercall_failed)
+ NORETURN(__ubsan_handle_builtin_unreachable)
+-NORETURN(arch_call_rest_init)
+ NORETURN(arch_cpu_idle_dead)
+ NORETURN(bch2_trans_in_restart_error)
+ NORETURN(bch2_trans_restart_error)
 -- 
-2.31.1
+2.34.1
 
