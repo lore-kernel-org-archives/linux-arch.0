@@ -1,40 +1,39 @@
 Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F05667A717;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F051B7A713;
 	Wed, 24 Jan 2024 14:26:28 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.187
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1706106391; cv=none; b=c0AjvIXvUjfRfeLX2qAhdfOdRpCzAg3QvNWMUCH8oxQYnlt0Q5S0Df8mL+uUfKTBOoWlzQP5rXn+BMtd4ri208xJv9edCoJlvzXpCYGYifKRpAwih//ZKZ/FQNuuApzdZktGDbscf66T7cUoFIXV9wUJxmK0moT4FmewVju2EFI=
+	t=1706106391; cv=none; b=CkwE2z8c01h4XFx/Qy5y9H2u6FnPgu6/lz+iEkpFotL+MAV9WxpJmohs76ZaUG6ammYhR3SaDfNyHovdQs1h1XzznvPoMaCfxiYLqNjLq/WGV8/q/TDiM7hh82Oxn3tnHddZ4zgJimJ823fffjb0Sy2+FzmezXvoTnaZW3VBRU8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1706106391; c=relaxed/simple;
-	bh=XxIR8G6KchKU6wk5xqbi4STGiKxsOiyyqLu0eG/Irxw=;
+	bh=lPvpLliId+cA8aYHjC8ognT98Fz3rKIw47pkYuX9fn8=;
 	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=NWGEFXmag6aWv5xYPNgqHNULwSIxdHUNEwW7oVk7ciuX19Zk/1FxASI8x85iKEhHlAcJa1hcZD8d/vKEyEA5fT/fzujSItpBb4jAS2VG7KaMPOgZX5ND7NOiDN3jnrB82fxKKbXk2xZnMRK8avjBuCTybB+ONSS96Mm1+yeCjtM=
+	 MIME-Version:Content-Type; b=O01c+c3oobLiKHsI6/aQ8q+Z4IZo5Eq7fQfoffBgafplFN3vcW6I7ik96wmH9C/jIr0NhG7Xa58rd7Mnfd61lOOL1cOG60cUyaFL7+vLZfEFSFxrpe/aFnDKxJq8fys4rgM8o5OEb7p1Year5Kbyo1eUFYVd/8T3u0TFaLv681E=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; arc=none smtp.client-ip=45.249.212.187
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Received: from mail.maildlp.com (unknown [172.19.88.105])
-	by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4TKmSz02qNzsWJK;
-	Wed, 24 Jan 2024 22:25:23 +0800 (CST)
+	by szxga01-in.huawei.com (SkyGuard) with ESMTP id 4TKmSx4xBfzsWHQ;
+	Wed, 24 Jan 2024 22:25:21 +0800 (CST)
 Received: from dggpeml500021.china.huawei.com (unknown [7.185.36.21])
-	by mail.maildlp.com (Postfix) with ESMTPS id 1284F14011A;
-	Wed, 24 Jan 2024 22:26:26 +0800 (CST)
+	by mail.maildlp.com (Postfix) with ESMTPS id BB34E14011A;
+	Wed, 24 Jan 2024 22:26:24 +0800 (CST)
 Received: from huawei.com (10.175.127.227) by dggpeml500021.china.huawei.com
  (7.185.36.21) with Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id 15.1.2507.35; Wed, 24 Jan
- 2024 22:26:25 +0800
+ 2024 22:26:24 +0800
 From: Baokun Li <libaokun1@huawei.com>
 To: <linux-fsdevel@vger.kernel.org>
 CC: <torvalds@linux-foundation.org>, <viro@zeniv.linux.org.uk>,
 	<brauner@kernel.org>, <jack@suse.cz>, <willy@infradead.org>,
 	<akpm@linux-foundation.org>, <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
 	<linux-kernel@vger.kernel.org>, <yi.zhang@huawei.com>,
-	<yangerkun@huawei.com>, <yukuai3@huawei.com>, <libaokun1@huawei.com>, kernel
- test robot <lkp@intel.com>
-Subject: [PATCH v2 3/3] asm-generic: remove extra type checking in acquire/release for non-SMP case
-Date: Wed, 24 Jan 2024 22:28:57 +0800
-Message-ID: <20240124142857.4146716-4-libaokun1@huawei.com>
+	<yangerkun@huawei.com>, <yukuai3@huawei.com>, <libaokun1@huawei.com>
+Subject: [PATCH v2 1/3] fs: make the i_size_read/write helpers be smp_load_acquire/store_release()
+Date: Wed, 24 Jan 2024 22:28:55 +0800
+Message-ID: <20240124142857.4146716-2-libaokun1@huawei.com>
 X-Mailer: git-send-email 2.31.1
 In-Reply-To: <20240124142857.4146716-1-libaokun1@huawei.com>
 References: <20240124142857.4146716-1-libaokun1@huawei.com>
@@ -44,46 +43,75 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
 X-ClientProxiedBy: dggems706-chm.china.huawei.com (10.3.19.183) To
  dggpeml500021.china.huawei.com (7.185.36.21)
 
-If CONFIG_SMP is not enabled, the smp_load_acquire/smp_store_release is
-implemented as READ_ONCE/READ_ONCE and barrier() and type checking.
-READ_ONCE/READ_ONCE already checks the pointer type, and then checks it
-more stringently outside, but the non-SMP case simply isn't relevant, so
-remove the extra compiletime_assert_atomic_type() to avoid compilation
-errors.
+In [Link] Linus mentions that acquire/release makes it clear which
+_particular_ memory accesses are the ordered ones, and it's unlikely
+to make any performance difference, so it's much better to pair up
+the release->acquire ordering than have a "wmb->rmb" ordering.
 
-Reported-by: kernel test robot <lkp@intel.com>
-Closes: https://lore.kernel.org/oe-kbuild-all/202401230837.TXro0PHi-lkp@intel.com/
+=========================================================
+ update pagecache
+ folio_mark_uptodate(folio)
+   smp_wmb()
+   set_bit PG_uptodate
+
+ === ↑↑↑ STLR ↑↑↑ === smp_store_release(&inode->i_size, i_size)
+
+ folio_test_uptodate(folio)
+   test_bit PG_uptodate
+   smp_rmb()
+
+ === ↓↓↓ LDAR ↓↓↓ === smp_load_acquire(&inode->i_size)
+
+ copy_page_to_iter()
+=========================================================
+
+Calling smp_store_release() in i_size_write() ensures that the data
+in the page and the PG_uptodate bit are updated before the isize is
+updated, and calling smp_load_acquire() in i_size_read ensures that
+it will not read a newer isize than the data in the page. Therefore,
+this avoids buffered read-write inconsistencies caused by Load-Load
+reordering.
+
+Link: https://lore.kernel.org/r/CAHk-=wifOnmeJq+sn+2s-P46zw0SFEbw9BSCGgp2c5fYPtRPGw@mail.gmail.com/
 Suggested-by: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Baokun Li <libaokun1@huawei.com>
 ---
- include/asm-generic/barrier.h | 2 --
- 1 file changed, 2 deletions(-)
+ include/linux/fs.h | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index 961f4d88f9ef..0c0695763bea 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -193,7 +193,6 @@ do {									\
- #ifndef smp_store_release
- #define smp_store_release(p, v)						\
- do {									\
--	compiletime_assert_atomic_type(*p);				\
- 	barrier();							\
- 	WRITE_ONCE(*p, v);						\
- } while (0)
-@@ -203,7 +202,6 @@ do {									\
- #define smp_load_acquire(p)						\
- ({									\
- 	__unqual_scalar_typeof(*p) ___p1 = READ_ONCE(*p);		\
--	compiletime_assert_atomic_type(*p);				\
- 	barrier();							\
- 	(typeof(*p))___p1;						\
- })
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index 6bb10bbd7035..1cc1f3f08107 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -907,7 +907,8 @@ static inline loff_t i_size_read(const struct inode *inode)
+ 	preempt_enable();
+ 	return i_size;
+ #else
+-	return inode->i_size;
++	/* Pairs with smp_store_release() in i_size_write() */
++	return smp_load_acquire(&inode->i_size);
+ #endif
+ }
+ 
+@@ -929,7 +930,12 @@ static inline void i_size_write(struct inode *inode, loff_t i_size)
+ 	inode->i_size = i_size;
+ 	preempt_enable();
+ #else
+-	inode->i_size = i_size;
++	/*
++	 * Pairs with smp_load_acquire() in i_size_read() to ensure
++	 * changes related to inode size (such as page contents) are
++	 * visible before we see the changed inode size.
++	 */
++	smp_store_release(&inode->i_size, i_size);
+ #endif
+ }
+ 
 -- 
 2.31.1
 
