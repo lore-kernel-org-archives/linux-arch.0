@@ -1,152 +1,151 @@
-Received: from out4-smtp.messagingengine.com (out4-smtp.messagingengine.com [66.111.4.28])
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.13])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D44E9433B9;
-	Fri,  2 Feb 2024 12:30:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=66.111.4.28
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D5E701798F;
+	Fri,  2 Feb 2024 14:35:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.13
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1706877044; cv=none; b=pM0zzrUiSv6DEMTaAlZrvAcnaZXVb2+QumKvhky1vTgDqDEt4ADaYounMr+CTv86MuanI6Fo4fYxzWRf90Q5wCmvpsEoPoAWLSpDldRFrYwjM2rNKk4lmYJUJRAnRPdkyzipdYGs+N4NPrASFuBEC4ZuxkkPW3kJeos0QLEjvOQ=
+	t=1706884529; cv=none; b=aMTKuz0eruMTwNU09ZZnCJ6biCLRFwl0IBllUbLzu3jrBrcDyXX/aPokq1fGUawWp9IF0KFN8gbiVnU2syDquOR3XOreOzxVh8yq3mLSWxcg9fNzyCmRofDcyVN0CKpp5ERsFjSSWUUBbFfmoIJub+o+BrnsNKWt4Gvl58cGzTE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1706877044; c=relaxed/simple;
-	bh=pGqKeHOWkrrdSTGrMykY9rjwN9Hvy+fpNB0uLbEruW0=;
-	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=nUBMGfnh5j1n2KsKF6NYmzS17fafNxRuZ/IOQ+EnkGkZ4QesAnsoLHxngqlBs0luhmH2eFbC90ZFV50E4y7KkpQhArTrTNu5cJkqxWOGUCt4Q3WUNkmjC2+qLYT3ktOPmfwBRZSZ6gKK/Ymolm/3C+SXkx0kXdaCQKK2437VhE4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com; spf=pass smtp.mailfrom=flygoat.com; dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b=MZV4wMb8; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=PFwE9yHU; arc=none smtp.client-ip=66.111.4.28
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flygoat.com
+	s=arc-20240116; t=1706884529; c=relaxed/simple;
+	bh=wriapjeWuh2ey1LerCDuOBHA5fjmti3BBGSuCxUGacE=;
+	h=From:To:Cc:Subject:Date:Message-Id; b=aPKOo9B4RC27ncRebT2GjZDpzLFUqjlX/au/1f1ZCb8s47vyKQEsbZqReaNM9vI0WtRBB0bXxbSoi7G84quK7Raasrc/B+wkx3mvNMANVLVMfWeSqZI9VQDi+ra9+RleHdQ5qoQAQEK73vABoagmh3mx6Ow+aRw+PP3vFmNm5zo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=GpRI3mL6; arc=none smtp.client-ip=198.175.65.13
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b="MZV4wMb8";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="PFwE9yHU"
-Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
-	by mailout.nyi.internal (Postfix) with ESMTP id B35FB5C0172;
-	Fri,  2 Feb 2024 07:30:34 -0500 (EST)
-Received: from mailfrontend2 ([10.202.2.163])
-  by compute6.internal (MEProxy); Fri, 02 Feb 2024 07:30:34 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=flygoat.com; h=
-	cc:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:message-id:mime-version:reply-to
-	:subject:subject:to:to; s=fm1; t=1706877034; x=1706963434; bh=yR
-	uTU6WwnK4ASnLLJJkZtTcbcg4dpQfErooMSebUGYI=; b=MZV4wMb8fDxCIy14Hg
-	XrOXP9hayqNVHIn6LVzBCsDTLZQ4/6P5YWFrjNLcrcDioLZHFItwYbDwS4zY3bKN
-	md4GJ0OYkgqQfiVpL7cnqKCnJY2dj4P4zyg5gje3R3hljYr/+rtFR0eh40ixiDqQ
-	gbQdRVgcANZTa5BLzu0zFvRjLyH9oTl/pi3LtWKmtVyV5laYtETmc1VzQe6JWFFB
-	uCtXjswYTCCS1A+uUOvia0ukE9Oh9lZzW0WlTSpK1IyG5g/8UlyNaSfTBttY3mn1
-	l8CgIf0XxuPmtUNGCnY7dlpNJYnuRnpHlFFPooWX9CdyrsLVdiml81HUqasLJjNr
-	jx9Q==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:message-id:mime-version:reply-to:subject
-	:subject:to:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender
-	:x-sasl-enc; s=fm3; t=1706877034; x=1706963434; bh=yRuTU6WwnK4AS
-	nLLJJkZtTcbcg4dpQfErooMSebUGYI=; b=PFwE9yHUFdVOGhRcB+PN/twkCb8qa
-	CT2vTPaqjAqbwxzFY1BRJYUKqk1rQq71oAmHvZzcjRnfoBzbx4jyPrBOkr8c2eSK
-	JEpO5uYcM7w5zI5h7Yg1LpdRIN2F2vKo6dcpKE+jUl2TbvONuRPQlr5Y1axA/oKv
-	/t2m8v7TA4dALlwpja3C8oXyMDImJcFuuyystXr5qEUuk9uXIUN6cYri28GYE9wd
-	fp+k15mOWcqBH11MCgALjCsmC+fnd5CVKwm4V/UiFTovT0mPK4L2OENRp2GEMI0T
-	ZWahw1f+PlH0AQKvlrw0QjGgqBqFQijjynVYEo+K8YX2r/mNKMI3X2iHg==
-X-ME-Sender: <xms:aOC8ZR2THUBA0oAJdPJCYig1GxLTLHdymPi8026KD9piA8dte4Z30g>
-    <xme:aOC8ZYHNdeuSqIwaJtZDhvwJbDQeRNotrbtcT8BxbMAUPsvv6BzTJBjng3b4B9tde
-    l1WSe009lw4mIwicSE>
-X-ME-Received: <xmr:aOC8ZR6-FmBcYPJmYf7-Qu-DnAlQ8wp3MSGJatIhKRgYgAOA4Kmemh1bVcOGnZOCwpaAHVJ1in6G0x0n_53h9DPS0g>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvkedrfedugedggedtucetufdoteggodetrfdotf
-    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
-    uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhephffufffkgggtgffvvefosehtjeertdertdejnecuhfhrohhmpeflihgrgihu
-    nhcujggrnhhguceojhhirgiguhhnrdihrghnghesfhhlhihgohgrthdrtghomheqnecugg
-    ftrfgrthhtvghrnhepgfevffejteegjeeflefgkeetleekhfeugfegvdeuueejkeejteek
-    kedvfffffedunecuffhomhgrihhnpehkvghrnhgvlhdrohhrghenucevlhhushhtvghruf
-    hiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpehjihgrgihunhdrhigrnhhgsehf
-    lhihghhorghtrdgtohhm
-X-ME-Proxy: <xmx:aOC8Ze1SCeXfzkiTMkk1GdIrrtNLURJG2McgcnoNHiPZ1mPTrm3oZw>
-    <xmx:aOC8ZUEBORqqQJ5qH4tGuVN0NbAfAHqdPDRSMaM_fCMeg04wGqsHTw>
-    <xmx:aOC8Zf-KOGgTJjmVPVHlquKgKgDo-z6DOf8OM2rHQfXfLYHL3Y6eCQ>
-    <xmx:auC8ZfAIfcoj686uYaS8vQdkIPFDbGn9FtPWovQLe1aSbHoUkA9Xqw>
-Feedback-ID: ifd894703:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
- 2 Feb 2024 07:30:31 -0500 (EST)
-From: Jiaxun Yang <jiaxun.yang@flygoat.com>
-Subject: [PATCH v2 0/3] Handle delay slot for extable lookup
-Date: Fri, 02 Feb 2024 12:30:25 +0000
-Message-Id: <20240202-exception_ip-v2-0-e6894d5ce705@flygoat.com>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="GpRI3mL6"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1706884528; x=1738420528;
+  h=from:to:cc:subject:date:message-id;
+  bh=wriapjeWuh2ey1LerCDuOBHA5fjmti3BBGSuCxUGacE=;
+  b=GpRI3mL618VYgPf6Axyxb/1UXZJJrEpk5NG49LBqgYybDS8MwCFuqnYT
+   rXtU1cKU4UzPV99FdUtAWucK5wfZSa7iBrt+bQtD+dMWpgGSfVNd4Gfgc
+   cdggaIzol+gfCguKIdK1x1AOgXrqjlL6w1cvz1g39KXJBCrNvMeqPGND8
+   t8BTYyUHDeTRQRcSyA7EURMJSl3VkS7e1FLtEko9seJiwWHKPEgSvpDAf
+   pse4s8DFOyCDPy3TQ0eU8CWUPzSOqH1lw+GlBUL3im2kaok1IdyTIGOzD
+   fdTbxFbKo/vXE77UU8uWu1zS+CjhHtkkHwQaDTTRqi5ZeIUyCUohWPsVc
+   Q==;
+X-IronPort-AV: E=McAfee;i="6600,9927,10971"; a="11265575"
+X-IronPort-AV: E=Sophos;i="6.05,238,1701158400"; 
+   d="scan'208";a="11265575"
+Received: from fmviesa003.fm.intel.com ([10.60.135.143])
+  by orvoesa105.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Feb 2024 06:35:27 -0800
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.05,238,1701158400"; 
+   d="scan'208";a="4707751"
+Received: from yzhao56-desk.sh.intel.com ([10.239.159.62])
+  by fmviesa003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Feb 2024 06:35:23 -0800
+From: Yan Zhao <yan.y.zhao@intel.com>
+To: arnd@arndb.de,
+	linus.walleij@linaro.org,
+	guoren@kernel.org,
+	bcain@quicinc.com,
+	jonas@southpole.se,
+	stefan.kristiansson@saunalahti.fi,
+	shorne@gmail.com
+Cc: linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-csky@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	linux-openrisc@vger.kernel.org,
+	Yan Zhao <yan.y.zhao@intel.com>
+Subject: [PATCH] mm: Remove broken pfn_to_virt() on arch csky/hexagon/openrisc
+Date: Fri,  2 Feb 2024 22:05:50 +0800
+Message-Id: <20240202140550.9886-1-yan.y.zhao@intel.com>
+X-Mailer: git-send-email 2.17.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-X-B4-Tracking: v=1; b=H4sIAGHgvGUC/13MQQqDMBCF4avIrJuSxFRoV71HkTLGUQdaE5Igi
- uTuTe2uy3+Y9+0QKTBFuFU7BFo4sptL6FMFdsJ5JMF9adBSG6lqJWi15FP5erIX6mrIYC+psQh
- l4gMNvB7coy09cUwubIe+qO/1B2n5By1KSIGoG+xqItld7sNrGx2ms3VvaHPOH0aPv4mqAAAA
-To: Oleg Nesterov <oleg@redhat.com>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- Andrew Morton <akpm@linux-foundation.org>, 
- Ben Hutchings <ben@decadent.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-mips@vger.kernel.org, linux-mm@kvack.org, 
- Jiaxun Yang <jiaxun.yang@flygoat.com>, Xi Ruoyao <xry111@xry111.site>, 
- Linus Torvalds <torvalds@linux-foundation.org>
-X-Mailer: b4 0.12.4
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1507;
- i=jiaxun.yang@flygoat.com; h=from:subject:message-id;
- bh=pGqKeHOWkrrdSTGrMykY9rjwN9Hvy+fpNB0uLbEruW0=;
- b=owGbwMvMwCXmXMhTe71c8zDjabUkhtQ9D9JY1ZN+2RmLFb5hZLfOsy+9bCvKkvriW2thfXnT7
- /uJfxw7SlkYxLgYZMUUWUIElPo2NF5ccP1B1h+YOaxMIEMYuDgFYCJfqhn+cC75k3JAd+3LKVvn
- usV8ZJSyFj+8/pj27Yc2Zsps75JyUxkZmu2L7j6x/vtZ/aOn9yvl/du1WNX/Fa54pckROm/mR7b
- rnAA=
-X-Developer-Key: i=jiaxun.yang@flygoat.com; a=openpgp;
- fpr=980379BEFEBFBF477EA04EF9C111949073FC0F67
 
-Hi all,
+Remove the broken pfn_to_virt() on architectures csky/hexagon/openrisc.
 
-This series fixed extable handling for architecture delay slot (MIPS).
+The pfn_to_virt() on those architectures takes PFN instead of PA as the
+input to macro __va(), with PAGE_SHIFT applying to the converted VA, which
+is not right, especially when there's a non-zero offset in __va(). [1]
 
-Please see previous discussions at [1].
+The broken pfn_to_virt() was noticed when checking how page_to_virt() is
+unfolded on x86. It turns out that the one in linux/mm.h instead of in
+asm-generic/page.h is compiled for x86. However, page_to_virt() in
+asm-generic/page.h is found out expanding to pfn_to_virt() with a bug
+described above. The pfn_to_virt() is found out not right as well on
+architectures csky/hexagon/openrisc.
 
-There are some other places in kernel not handling delay slots properly,
-such as uprobe and kgdb, I'll sort them later.
+Since there's no single caller on csky/hexagon/openrisc to pfn_to_virt()
+and there are functions doing similar things as pfn_to_virt() --
+- pfn_to_kaddr() in asm/page.h for csky,
+- page_to_virt() in asm/page.h for hexagon, and
+- page_to_virt() in linux/mm.h for openrisc,
+just delete the pfn_to_virt() on those architectures.
 
-Thanks!
+The pfn_to_virt() in asm-generic/page.h is not touched in this patch as
+it's referenced by page_to_virt() in that header while the whole header is
+going to be removed as a whole due to no one including it.
 
-[1]: https://lore.kernel.org/lkml/75e9fd7b08562ad9b456a5bdaacb7cc220311cc9.camel@xry111.site
-
-To: Oleg Nesterov <oleg@redhat.com>
-
-To: Thomas Bogendoerfer <tsbogend@alpha.franken.de>
-
-To: Andrew Morton <akpm@linux-foundation.org>
-To: Ben Hutchings <ben@decadent.org.uk>
-
-Cc:  <linux-arch@vger.kernel.org>
-Cc:  <linux-kernel@vger.kernel.org>
-
-Cc:  <linux-mips@vger.kernel.org>
-
-Cc:  <linux-mm@kvack.org>
-
-Signed-off-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
+Link:https://lore.kernel.org/all/20240131055159.2506-1-yan.y.zhao@intel.com [1]
+Cc: Linus Walleij <linus.walleij@linaro.org>
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Yan Zhao <yan.y.zhao@intel.com>
 ---
-Changes in v2:
-- Reduce diffstat by implemente fallback macro in linux/ptrace.h (linus)
-- Link to v1: https://lore.kernel.org/r/20240201-exception_ip-v1-0-aa26ab3ee0b5@flygoat.com
+ arch/csky/include/asm/page.h     | 5 -----
+ arch/hexagon/include/asm/page.h  | 6 ------
+ arch/openrisc/include/asm/page.h | 5 -----
+ 3 files changed, 16 deletions(-)
 
----
-Jiaxun Yang (3):
-      ptrace: Introduce exception_ip arch hook
-      MIPS: Clear Cause.BD in instruction_pointer_set
-      mm/memory: Use exception ip to search exception tables
+diff --git a/arch/csky/include/asm/page.h b/arch/csky/include/asm/page.h
+index 4a0502e324a6..866855e1ab43 100644
+--- a/arch/csky/include/asm/page.h
++++ b/arch/csky/include/asm/page.h
+@@ -82,11 +82,6 @@ static inline unsigned long virt_to_pfn(const void *kaddr)
+ 	return __pa(kaddr) >> PAGE_SHIFT;
+ }
+ 
+-static inline void * pfn_to_virt(unsigned long pfn)
+-{
+-	return (void *)((unsigned long)__va(pfn) << PAGE_SHIFT);
+-}
+-
+ #define MAP_NR(x)	PFN_DOWN((unsigned long)(x) - PAGE_OFFSET - \
+ 				 PHYS_OFFSET_OFFSET)
+ #define virt_to_page(x)	(mem_map + MAP_NR(x))
+diff --git a/arch/hexagon/include/asm/page.h b/arch/hexagon/include/asm/page.h
+index 10f1bc07423c..32394b7e752e 100644
+--- a/arch/hexagon/include/asm/page.h
++++ b/arch/hexagon/include/asm/page.h
+@@ -133,12 +133,6 @@ static inline unsigned long virt_to_pfn(const void *kaddr)
+ 	return __pa(kaddr) >> PAGE_SHIFT;
+ }
+ 
+-static inline void *pfn_to_virt(unsigned long pfn)
+-{
+-	return (void *)((unsigned long)__va(pfn) << PAGE_SHIFT);
+-}
+-
+-
+ #define page_to_virt(page)	__va(page_to_phys(page))
+ 
+ #include <asm/mem-layout.h>
+diff --git a/arch/openrisc/include/asm/page.h b/arch/openrisc/include/asm/page.h
+index 44fc1fd56717..de33ba10ee67 100644
+--- a/arch/openrisc/include/asm/page.h
++++ b/arch/openrisc/include/asm/page.h
+@@ -77,11 +77,6 @@ static inline unsigned long virt_to_pfn(const void *kaddr)
+ 	return __pa(kaddr) >> PAGE_SHIFT;
+ }
+ 
+-static inline void * pfn_to_virt(unsigned long pfn)
+-{
+-	return (void *)((unsigned long)__va(pfn) << PAGE_SHIFT);
+-}
+-
+ #define virt_to_page(addr) \
+ 	(mem_map + (((unsigned long)(addr)-PAGE_OFFSET) >> PAGE_SHIFT))
+ 
 
- arch/mips/include/asm/ptrace.h | 3 +++
- arch/mips/kernel/ptrace.c      | 7 +++++++
- include/linux/ptrace.h         | 4 ++++
- mm/memory.c                    | 4 ++--
- 4 files changed, 16 insertions(+), 2 deletions(-)
----
-base-commit: 06f658aadff0e483ee4f807b0b46c9e5cba62bfa
-change-id: 20240131-exception_ip-194e4ad0e6ca
-
-Best regards,
+base-commit: 41bccc98fb7931d63d03f326a746ac4d429c1dd3
 -- 
-Jiaxun Yang <jiaxun.yang@flygoat.com>
+2.17.1
 
