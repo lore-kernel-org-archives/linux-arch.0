@@ -1,105 +1,140 @@
 Received: from smtpout.efficios.com (smtpout.efficios.com [167.114.26.122])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5EB578062E;
-	Fri,  2 Feb 2024 20:18:36 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A6C7081748;
+	Fri,  2 Feb 2024 21:00:28 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=167.114.26.122
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1706905119; cv=none; b=d49LNG+8uzbVwouRZSquhxnfRxL6+Ghqyme4OJwoeqcAM2Y5BoBbEtS5ErchDTSpdI7NcBzeSsaP6SexgKdOgSWp2yR3OUkEaJwILPaRCqQor/wkrQMbFxY0WWgyLeEmxXjHDtAn/H5sngKSd190gNidxnNCB9Zf2iDA+q3IuzM=
+	t=1706907631; cv=none; b=AdeRIdg022I5A1hFI3SlfG+qCwVMMzqJZBlD1a4bGF5XXkyXWS6ZmqUwime8eyyYUsV1uynPGTMgf0XSnbvWDXrx/LI0aXQXM0CVGvNMVmKcvAKFxmbXKG2TX9pybnAVUl6eoAw+l1y0kioxIF7Faq9RJfLNWrp5x6AOUU3dNxw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1706905119; c=relaxed/simple;
-	bh=mh+mo38fsEQgb9l3Kuwv1eN4wevPn1ndoe/G9f1R3Wg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=uHn5/lGzD9U37WtlaMGvwzelWDLRrcQIDnJCfepOltQ5rDb4MJuMAFXwkM6HC1hBrW3/ilGHEthFcS5qF3tjFjMM2i3q5Q6q4gwR3kQ3qWEjDdyGhmKdu8UdXe2mmHMRIMExcx3ve0dHOyWy0idtQje/U2h/bfGF1aDqWggLwwA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=efficios.com; spf=pass smtp.mailfrom=efficios.com; dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.b=j0YbsdI3; arc=none smtp.client-ip=167.114.26.122
+	s=arc-20240116; t=1706907631; c=relaxed/simple;
+	bh=NdQ4OmFkV2+G2H8B4VkXTCxDeM+TIHeVIiPEQVlM7R8=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=jMWVzwu53yHgHWMSkZ5Ug8v4GT7ph7AtRbe+lUB4TU/3+7f4KdGGZyn2dkeyo3/vKw/TN9IIJLf8QJsmwbqreE8Sm1y8P+q+zBA+/Rrb6OkBzbLHtxXIkE9RKHBPBBATpwWVXwXIG+CMKvnZ7MJCk0M1abWvw/TN28iNIBeSOuw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=efficios.com; spf=pass smtp.mailfrom=efficios.com; dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.b=SfD+9FBO; arc=none smtp.client-ip=167.114.26.122
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=efficios.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=efficios.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.b="j0YbsdI3"
+	dkim=pass (2048-bit key) header.d=efficios.com header.i=@efficios.com header.b="SfD+9FBO"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=efficios.com;
-	s=smtpout1; t=1706905115;
-	bh=mh+mo38fsEQgb9l3Kuwv1eN4wevPn1ndoe/G9f1R3Wg=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=j0YbsdI3y6vCPgWvcLlBfSENnF1fM18wQKlrQ47Z6vS/Lu+5uXdTUXoJtf3p1E10p
-	 20YTd4Yysds9Fc8+0b6V+OsfbT17mhbkv37sH0RogmtvLcyJvkNXvcbLGe74TWbrhS
-	 HUx5JRvOie7xZ1Qqhc3oXMoE8WJJLhi/VkVjuI8CQ7qNhPK+No8OaIzt+DQfEKdgYt
-	 woV0Cd/riDC8CadDDjBDCpwxlRatUyiNLEwFXzLL03k+hlFBnEBK1c1gytA7iBfe3e
-	 AMPZTBIMrqrQGCYQEWxcSx259uC6FjHPECXXrtL/pbBU/8IJthIyCDSvplBrQc2OEO
-	 hD2B6tCO0gM5A==
-Received: from [172.16.0.134] (192-222-143-198.qc.cable.ebox.net [192.222.143.198])
-	by smtpout.efficios.com (Postfix) with ESMTPSA id 4TRRtM1f6yzXBq;
-	Fri,  2 Feb 2024 15:18:35 -0500 (EST)
-Message-ID: <f3ec50a5-ff5e-41ae-ab2f-7319a18381e2@efficios.com>
-Date: Fri, 2 Feb 2024 15:18:36 -0500
+	s=smtpout1; t=1706907627;
+	bh=NdQ4OmFkV2+G2H8B4VkXTCxDeM+TIHeVIiPEQVlM7R8=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=SfD+9FBODsvL9YxlK1eefFmH2Hjg5R7Nm2c0c/fiMmV+KMkEfMgn8fwXWEqe567tr
+	 hitR0HdbXa8MBPzXdEQAfPlMmOwmhspx1tBJIONQneKlE9TwWJmkzfjXVdmBRroRoc
+	 tjILNBX/OBLmXaCizqF3wbdgWKaqsoQBmA0IBcR2qmBOEZHO6sI+lwpuXk3mpdXWn1
+	 0wFeI3QK26ekNegrAv+Homtya3de6AuOl2OXBg83Pb+HUc1wnEG95Aq+dFPABMDzZX
+	 A4jobyF0SFA0vRkB0HcB8gGIiRsGKsSNiGhvGEQux2MIPMvpIBgiM+92vhzg7Pf3gh
+	 OJnjmBEQikO1Q==
+Received: from thinkos.internal.efficios.com (192-222-143-198.qc.cable.ebox.net [192.222.143.198])
+	by smtpout.efficios.com (Postfix) with ESMTPSA id 4TRSpg3hSPzX4Q;
+	Fri,  2 Feb 2024 16:00:27 -0500 (EST)
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+To: Dan Williams <dan.j.williams@intel.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Dave Chinner <david@fromorbit.com>
+Cc: linux-kernel@vger.kernel.org,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Linus Torvalds <torvalds@linux-foundation.org>,
+	Vishal Verma <vishal.l.verma@intel.com>,
+	Dave Jiang <dave.jiang@intel.com>,
+	Matthew Wilcox <willy@infradead.org>,
+	Russell King <linux@armlinux.org.uk>,
+	linux-arch@vger.kernel.org,
+	linux-cxl@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-xfs@vger.kernel.org,
+	dm-devel@lists.linux.dev,
+	nvdimm@lists.linux.dev,
+	linux-s390@vger.kernel.org,
+	Alasdair Kergon <agk@redhat.com>,
+	Mike Snitzer <snitzer@kernel.org>,
+	Mikulas Patocka <mpatocka@redhat.com>
+Subject: [RFC PATCH v4 02/12] nvdimm/pmem: Treat alloc_dax() -EOPNOTSUPP failure as non-fatal
+Date: Fri,  2 Feb 2024 16:00:09 -0500
+Message-Id: <20240202210019.88022-3-mathieu.desnoyers@efficios.com>
+X-Mailer: git-send-email 2.39.2
+In-Reply-To: <20240202210019.88022-1-mathieu.desnoyers@efficios.com>
+References: <20240202210019.88022-1-mathieu.desnoyers@efficios.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v3 2/4] dax: Check for data cache aliasing at runtime
-Content-Language: en-US
-To: Dan Williams <dan.j.williams@intel.com>, Arnd Bergmann <arnd@arndb.de>,
- Dave Chinner <david@fromorbit.com>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>,
- Linus Torvalds <torvalds@linux-foundation.org>, linux-mm@kvack.org,
- linux-arch@vger.kernel.org, Vishal Verma <vishal.l.verma@intel.com>,
- Dave Jiang <dave.jiang@intel.com>, Matthew Wilcox <willy@infradead.org>,
- Russell King <linux@armlinux.org.uk>, nvdimm@lists.linux.dev,
- linux-cxl@vger.kernel.org, linux-fsdevel@vger.kernel.org,
- dm-devel@lists.linux.dev
-References: <20240131162533.247710-1-mathieu.desnoyers@efficios.com>
- <20240131162533.247710-3-mathieu.desnoyers@efficios.com>
- <65bab567665f3_37ad2943c@dwillia2-xfh.jf.intel.com.notmuch>
- <0a38176b-c453-4be0-be83-f3e1bb897973@efficios.com>
- <65bac71a9659b_37ad29428@dwillia2-xfh.jf.intel.com.notmuch>
- <f1d14941-2d22-452a-99e6-42db806b6d7f@efficios.com>
- <65bd284165177_2d43c29443@dwillia2-mobl3.amr.corp.intel.com.notmuch>
- <6bdf6085-101d-47ef-86f4-87936622345a@efficios.com>
- <65bd457460fb1_719322942@dwillia2-mobl3.amr.corp.intel.com.notmuch>
- <5e838147-524c-40e5-b106-e388bf4e549b@efficios.com>
- <65bd4d18cab98_7193229421@dwillia2-mobl3.amr.corp.intel.com.notmuch>
-From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-In-Reply-To: <65bd4d18cab98_7193229421@dwillia2-mobl3.amr.corp.intel.com.notmuch>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 2024-02-02 15:14, Dan Williams wrote:
-> Mathieu Desnoyers wrote:
-> [..]
->>> Thanks for that. All of those need to be done before the fs goes live
->>> later in virtio_device_ready(), but before that point nothing should be
->>> calling into virtio_fs_dax_ops, so as far as I can see it is safe to
->>> change the order.
->>
->> Sounds good, I'll do that.
->>
->> I will soon be ready to send out a RFC v4, which is still only
->> compiled-tested. Do you happen to have some kind of test suite
->> you can use to automate some of the runtime testing ?
-> 
-> There is a test suite for the pmem, dm, and dax changes
-> (https://github.com/pmem/ndctl?tab=readme-ov-file#unit-tests), but not
-> automated unfortunately. The NVDIMM maintainer team will run that before
-> pushing patches out to the fixes branch if you just want to lean on
-> that. For the rest I think we will need to depend on tested-by's from
-> s390 + virtio_fs folks, and / or sufficient soak time in linux-next.
+In preparation for checking whether the architecture has data cache
+aliasing within alloc_dax(), modify the error handling of nvdimm/pmem
+pmem_attach_disk() to treat alloc_dax() -EOPNOTSUPP failure as non-fatal.
 
-I suspect this will be necessary. There are just so many combinations
-of architectures, drivers and filesystems involved here that I don't
-think it is realistic to try to do all this testing manually on my own.
+For the transition, consider that alloc_dax() returning NULL is the
+same as returning -EOPNOTSUPP.
 
-I prefer to voice this up front, so there are no misplaced expectations
-about testing.
+Fixes: d92576f1167c ("dax: does not work correctly with virtual aliasing caches")
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Alasdair Kergon <agk@redhat.com>
+Cc: Mike Snitzer <snitzer@kernel.org>
+Cc: Mikulas Patocka <mpatocka@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Vishal Verma <vishal.l.verma@intel.com>
+Cc: Dave Jiang <dave.jiang@intel.com>
+Cc: Matthew Wilcox <willy@infradead.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@armlinux.org.uk>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-cxl@vger.kernel.org
+Cc: linux-fsdevel@vger.kernel.org
+Cc: linux-mm@kvack.org
+Cc: linux-xfs@vger.kernel.org
+Cc: dm-devel@lists.linux.dev
+Cc: nvdimm@lists.linux.dev
+---
+ drivers/nvdimm/pmem.c | 26 ++++++++++++++------------
+ 1 file changed, 14 insertions(+), 12 deletions(-)
 
-Thanks,
-
-Mathieu
-
-
+diff --git a/drivers/nvdimm/pmem.c b/drivers/nvdimm/pmem.c
+index 9fe358090720..f1d9f5c6dbac 100644
+--- a/drivers/nvdimm/pmem.c
++++ b/drivers/nvdimm/pmem.c
+@@ -558,19 +558,21 @@ static int pmem_attach_disk(struct device *dev,
+ 	disk->bb = &pmem->bb;
+ 
+ 	dax_dev = alloc_dax(pmem, &pmem_dax_ops);
+-	if (IS_ERR(dax_dev)) {
+-		rc = PTR_ERR(dax_dev);
+-		goto out;
++	if (IS_ERR_OR_NULL(dax_dev)) {
++		rc = IS_ERR(dax_dev) ? PTR_ERR(dax_dev) : -EOPNOTSUPP;
++		if (rc != -EOPNOTSUPP)
++			goto out;
++	} else {
++		set_dax_nocache(dax_dev);
++		set_dax_nomc(dax_dev);
++		if (is_nvdimm_sync(nd_region))
++			set_dax_synchronous(dax_dev);
++		pmem->dax_dev = dax_dev;
++		rc = dax_add_host(dax_dev, disk);
++		if (rc)
++			goto out_cleanup_dax;
++		dax_write_cache(dax_dev, nvdimm_has_cache(nd_region));
+ 	}
+-	set_dax_nocache(dax_dev);
+-	set_dax_nomc(dax_dev);
+-	if (is_nvdimm_sync(nd_region))
+-		set_dax_synchronous(dax_dev);
+-	pmem->dax_dev = dax_dev;
+-	rc = dax_add_host(dax_dev, disk);
+-	if (rc)
+-		goto out_cleanup_dax;
+-	dax_write_cache(dax_dev, nvdimm_has_cache(nd_region));
+ 	rc = device_add_disk(dev, disk, pmem_attribute_groups);
+ 	if (rc)
+ 		goto out_remove_host;
 -- 
-Mathieu Desnoyers
-EfficiOS Inc.
-https://www.efficios.com
+2.39.2
 
