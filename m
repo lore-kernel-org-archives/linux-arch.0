@@ -1,119 +1,128 @@
-Received: from out1-smtp.messagingengine.com (out1-smtp.messagingengine.com [66.111.4.25])
+Received: from out4-smtp.messagingengine.com (out4-smtp.messagingengine.com [66.111.4.28])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3552B1799B;
-	Fri,  2 Feb 2024 07:28:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=66.111.4.25
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0876E144624;
+	Fri,  2 Feb 2024 12:30:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=66.111.4.28
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1706858889; cv=none; b=VB5bRquuv2Xpxqey2aoqvA7qXLnBiQ3db9WhbBkEIfaw58evbocgOcLyc3QlQJL1u6FcpRz5lNIi90QSPR3kbqURwICRvpVy16HoLYGKij9j/Vk+KMz0zczBb98WxO9SkRYC0YkFUX2Yj4cbMsWl6q5Eg0xPEcd7tjVhzeBfRsg=
+	t=1706877042; cv=none; b=QrR/p5Ii9vUhOem+mKTaAVGUWV7TcThpN/L3WQqkSPDC6xyVOKwb1w12e+J3ge+hOLB2asR0DS4IVyD7YjxwUO6HTd5gQcgfLPKla4TGu9Rq4PO2D2TC+mXY0c2dM7Xt24ceUKHuteCiWYQ4Go8uccoHVLBbNPtE1SYqZluKFfU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1706858889; c=relaxed/simple;
-	bh=qzWs7s2cjCDmOtXG5wsxz7DfTUlVvOtF6j0Zrjbgr1c=;
-	h=MIME-Version:Message-Id:In-Reply-To:References:Date:From:To:Cc:
-	 Subject:Content-Type; b=QEudhAQ3RaUVAUmh5+Z28GuwPZQ6vlv8QD4QQsM/6OJd8+rXXnitLyBFERH4rJGKsyeDxApPBrzCL1aY+zm3z809tgwTDbmPQYg9nDKQqjBa4GJAPi9n0pdstpjzOI6FeTxRQDK+pHvfucp5P7iGY6cNtaKjCundq9lpo/yS0pM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=eprMJ04E; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=tx2jpuRx; arc=none smtp.client-ip=66.111.4.25
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1706877042; c=relaxed/simple;
+	bh=eEckd5oJQ3BVb3TI50bExWCbMqs/5XPSjzMz9OXoNmg=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=uKRvbo9xfnaECIYJ0xjdS3yZMpX/Efrgw5sXqpTTrvvQOMveQylOfSbgW/p5GNIU6PzO/6ka9lh9d2pSVmk9QrpPG33l/R5blPEqMFvce1WxwBZLzs+GCIw6cOxeuRYmvjqmTfhDh3j8PCgVqIwG7M9rbTEHdlWo9uCpTPAvOUY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com; spf=pass smtp.mailfrom=flygoat.com; dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b=KPCaY3+u; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=yPVF2ep6; arc=none smtp.client-ip=66.111.4.28
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flygoat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="eprMJ04E";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="tx2jpuRx"
-Received: from compute5.internal (compute5.nyi.internal [10.202.2.45])
-	by mailout.nyi.internal (Postfix) with ESMTP id B2F3E5C015B;
-	Fri,  2 Feb 2024 02:28:05 -0500 (EST)
-Received: from imap51 ([10.202.2.101])
-  by compute5.internal (MEProxy); Fri, 02 Feb 2024 02:28:05 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
+	dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b="KPCaY3+u";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="yPVF2ep6"
+Received: from compute6.internal (compute6.nyi.internal [10.202.2.47])
+	by mailout.nyi.internal (Postfix) with ESMTP id 00D0A5C00C0;
+	Fri,  2 Feb 2024 07:30:38 -0500 (EST)
+Received: from mailfrontend2 ([10.202.2.163])
+  by compute6.internal (MEProxy); Fri, 02 Feb 2024 07:30:38 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=flygoat.com; h=
+	cc:cc:content-transfer-encoding:content-type:content-type:date
 	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm2; t=1706858885;
-	 x=1706945285; bh=IBhqBcxYgArhRS7kDjbkPgkUVZMe8vXWLNsnaVY75NY=; b=
-	eprMJ04EiYCWlFcEeNIqGZhp0qteiNOVp5xwxMRhruh13A+1lHAv14LGC0mgYfzQ
-	DNoKWiZlvG1DpONyKEAeXwbYZGC7gahiGm6RryFrS2/OBT4GvOfea8xVSmJetlDU
-	oCM5FoDhTnIcn9xx2sw8EPkQAuiZf1Gy1s6rKGHTxPLd0q3YUGu8A6maWGfzlPr/
-	Ar6N2/yBu9G0pJybx16suvWI/7En9wkR36rOhvYFZwEM2ImIrmOg1+XT0M8nR9Cq
-	AhaFZW5Rrl8AQYxHZgpjs90T/1s7i+nhHQvMjqyg5WnGHE7o6EwxBvgSl9ow/Ydh
-	IYkI0t9epQnLiW696GDpWA==
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1706877037;
+	 x=1706963437; bh=w2r17fGseyKoUkYg1Q+CG1Kwf5xRgoFxjWp3QiPCMOY=; b=
+	KPCaY3+uIJ73xN9kmYWwqgB93DBfywxqEdTVF6jc120MMGM0qem41ii6ITXekWMz
+	VBrSyQbOQFobNNMOYtJbqvUhxmtWSVWUogeU9JxxLmq05JvxZetbuaVM8hFwtZc7
+	B+dlZAVTfVuWDfXAy6QGqW6YSij16X4jDd73BiueETOXlSy2csX5Su4y+mBe6Zue
+	FDZIj8Mk8xs4vvI5W7S86b8zCJauqXvPqpGTya19/yJvq6dKYZb1UvcYAbflthp9
+	2Su/6ZEeuTXPGiTorKVckNAGL24Jk3/kE/y84EUkHooM9TkQQjIHzagTBvRaad5M
+	m2bsiZJgHM3sTlhiUx3AYg==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-transfer-encoding
 	:content-type:content-type:date:date:feedback-id:feedback-id
 	:from:from:in-reply-to:in-reply-to:message-id:mime-version
 	:references:reply-to:subject:subject:to:to:x-me-proxy:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1706858885; x=
-	1706945285; bh=IBhqBcxYgArhRS7kDjbkPgkUVZMe8vXWLNsnaVY75NY=; b=t
-	x2jpuRxZFTXsR+uLz6RFaAik9Xok8AF/8AFgu+VBnBy3I6BdakGBCKoz54E3plrn
-	wMkr++6acBGqXmZAFGwGjo4TKsfdb8yHAI95XcgUrVAWIp83eYeu/LK0i4iBemaU
-	PnAF6Xn4RgUnGCavBwbeFAie31CWTN+GT21PBmFxj1kgnYi9sWPzam2UR15N3D9u
-	A21tl7DW6JA4ITC6mrEfnMs2kEmxQ9RX/II0S2i7qH9QI1oEI3kUghAmfz+0+NtJ
-	XiTd08wRwcDJlVYzJnVtEchE3W4i4Ab91pXUurS49WMkwS4hKeiGN1fmQJKMMCMQ
-	C7eDadqSNO4RpTqhlVSsQ==
-X-ME-Sender: <xms:hZm8ZXvvbRMfzy7svCN_sNXsMryR7yOUCKvADPtNBiNpwJTqNJ9gUQ>
-    <xme:hZm8ZYeVUcLy6HrRYn2WaHFtmUqRcPuCJBXPKO5OkSfjQMPruhFi5HK7EnEZfSUTH
-    DDs3C9FgpVM3F4BMWE>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvkedrfedufedgvdejucetufdoteggodetrfdotf
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1706877037; x=
+	1706963437; bh=w2r17fGseyKoUkYg1Q+CG1Kwf5xRgoFxjWp3QiPCMOY=; b=y
+	PVF2ep61M5MoWsoGtC6vryilWqWoSPCuYHTkRIUxkp2m+XgU2WglQGeTgqMRkWen
+	z3n/xeXDSYWxohz/3+6PfCnngrXxukbjVlgRq/M3TbTRhIytfk3C52Q8reQIwY8Y
+	LhlxM1J1GBRMp/5yY34id+Y/jJyXHDFlIlQBTxxvsK3b/y3sZ1oWp3d4a0ZCGQBd
+	mhawXZ3huHsn/FEiDGAcrMNf/6j2mYVmMK5GbdhWDvMmIja2QU72CFCs32FpS54m
+	c4y9+s/rCgzw3TAy1OwJ8QsuYM1UPwOcZ8zjmbL3cQNTtwI77TfFYR1dyB59Btly
+	nIU18gB2KMbJuwqTFfCsg==
+X-ME-Sender: <xms:beC8ZSS9vgNrVs-Hvq82_CG87KfVGjMgjClvvg-9JnosgFFm_cn8zg>
+    <xme:beC8ZXz8StOt_t-l7V58i0P4ZiCOSH6iMH-iLoTNJNuhb_fLuPzK8LZR0DyK-sWad
+    qOY8VRFfoxoaoLzilI>
+X-ME-Received: <xmr:beC8Zf1AdZciTpZB7LvtHMPQI6YTzogHyxj0T-mff9W2B776ZmnBA5SINvzxo325x8UfKsq3cHUJdXFiBowYJ-n0Zw>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgedvkedrfedugedggedtucetufdoteggodetrfdotf
     fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfqfgfvpdfurfetoffkrfgpnffqhgen
     uceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmne
-    cujfgurhepofgfggfkjghffffhvfevufgtgfesthhqredtreerjeenucfhrhhomhepfdet
-    rhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrg
-    htthgvrhhnpeeghefggeduuedvvdfgiefgffehfedtffdvvddutefhvddvtdfhgfetveet
-    ueevheenucffohhmrghinhepghhithhhuhgsrdgtohhmnecuvehluhhsthgvrhfuihiivg
-    eptdenucfrrghrrghmpehmrghilhhfrhhomheprghrnhgusegrrhhnuggsrdguvg
-X-ME-Proxy: <xmx:hZm8ZaxM6OoRWhGpL46GEYaSFCgq_sk_6uSNzNWdPyfhmGmo5ezeSQ>
-    <xmx:hZm8ZWOZPtWitIYGcNKjrQDCCto_K7L_mm0vgtGwIOx_tOpqWoZxGQ>
-    <xmx:hZm8ZX8F_oaT9NFnhztJSzuwMFsM0pTfXiP2eh6CE_zukT4WrI8n_A>
-    <xmx:hZm8ZY31fPDy9VGPiAfoXQadB8awDZtcoPBLELb-3nXF9sqEvCBZQg>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.nyi.internal (Postfix, from userid 501)
-	id 18AA0B6008D; Fri,  2 Feb 2024 02:28:05 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
-User-Agent: Cyrus-JMAP/3.11.0-alpha0-144-ge5821d614e-fm-20240125.002-ge5821d61
+    cujfgurhephfffufggtgfgkfhfjgfvvefosehtjeertdertdejnecuhfhrohhmpeflihgr
+    gihunhcujggrnhhguceojhhirgiguhhnrdihrghnghesfhhlhihgohgrthdrtghomheqne
+    cuggftrfgrthhtvghrnhepvdekiefhfeevkeeuveetfeelffekgedugefhtdduudeghfeu
+    veegffegudekjeelnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilh
+    hfrhhomhepjhhirgiguhhnrdihrghnghesfhhlhihgohgrthdrtghomh
+X-ME-Proxy: <xmx:beC8ZeBlb2n27dINsto1uwELIsIlvuV_sUhwwj9pqak7va1ogJIdIQ>
+    <xmx:beC8ZbhkuWBdmrfyG_WPT4eWPuNjqTVOd3uP6cW9ewFPiEuBZXdcBg>
+    <xmx:beC8ZarO86mYBvc-swgrf3yZyy5wysSV31Kzb3dP_IMZ1tDBhZzYtQ>
+    <xmx:beC8ZbidnBaNgShomJ5CCVAgU2mnr9vmDVx5ibPZlThb2a9ReQoM2Q>
+Feedback-ID: ifd894703:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
+ 2 Feb 2024 07:30:36 -0500 (EST)
+From: Jiaxun Yang <jiaxun.yang@flygoat.com>
+Date: Fri, 02 Feb 2024 12:30:27 +0000
+Subject: [PATCH v2 2/3] MIPS: Clear Cause.BD in instruction_pointer_set
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <38ad9807-a298-44f6-88eb-4fb8047eafbe@app.fastmail.com>
-In-Reply-To: 
- <CAMuHMdWPToeXdcBWv2LJuu2Z6td-JYz3GGf5fD1+ScqVD+Wurg@mail.gmail.com>
-References: <20240131055159.2506-1-yan.y.zhao@intel.com>
- <5e55b5c0-6c8d-45b4-ac04-cf694bcb08d3@app.fastmail.com>
- <ZbrfcTaiuu2gaa2A@yzhao56-desk.sh.intel.com>
- <9f27c23b-ea8b-443c-b09c-03ecaa210cd5@app.fastmail.com>
- <CAMuHMdWPToeXdcBWv2LJuu2Z6td-JYz3GGf5fD1+ScqVD+Wurg@mail.gmail.com>
-Date: Fri, 02 Feb 2024 08:27:44 +0100
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Geert Uytterhoeven" <geert@linux-m68k.org>
-Cc: "Yan Zhao" <yan.y.zhao@intel.com>,
- "Linus Walleij" <linus.walleij@linaro.org>, guoren <guoren@kernel.org>,
- "Brian Cain" <bcain@quicinc.com>, "Jonas Bonn" <jonas@southpole.se>,
- "Stefan Kristiansson" <stefan.kristiansson@saunalahti.fi>,
- "Stafford Horne" <shorne@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>,
- linux-kernel@vger.kernel.org,
- "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
- linux-hexagon@vger.kernel.org,
- "linux-openrisc@vger.kernel.org" <linux-openrisc@vger.kernel.org>
-Subject: Re: [PATCH 0/4] apply page shift to PFN instead of VA in pfn_to_virt
-Content-Type: text/plain;charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-Id: <20240202-exception_ip-v2-2-e6894d5ce705@flygoat.com>
+References: <20240202-exception_ip-v2-0-e6894d5ce705@flygoat.com>
+In-Reply-To: <20240202-exception_ip-v2-0-e6894d5ce705@flygoat.com>
+To: Oleg Nesterov <oleg@redhat.com>, 
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+ Andrew Morton <akpm@linux-foundation.org>, 
+ Ben Hutchings <ben@decadent.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+ linux-mips@vger.kernel.org, linux-mm@kvack.org, 
+ Jiaxun Yang <jiaxun.yang@flygoat.com>
+X-Mailer: b4 0.12.4
+X-Developer-Signature: v=1; a=openpgp-sha256; l=860;
+ i=jiaxun.yang@flygoat.com; h=from:subject:message-id;
+ bh=eEckd5oJQ3BVb3TI50bExWCbMqs/5XPSjzMz9OXoNmg=;
+ b=owGbwMvMwCXmXMhTe71c8zDjabUkhtQ9D9KbxBb5s2avMMxZk/Fa1OTF/ICgHV78MjaFTJtvf
+ f35OXBNRykLgxgXg6yYIkuIgFLfhsaLC64/yPoDM4eVCWQIAxenAEzE9Dsjwz6v/vdH3Fze1/99
+ FOW6+OMuxxvHUq8msNTf6zrBPE9PsIThr3h4jgr7uXVaRkt3sXl2P3nPWfRUcFd+muzkppu3Vhz
+ /zQAA
+X-Developer-Key: i=jiaxun.yang@flygoat.com; a=openpgp;
+ fpr=980379BEFEBFBF477EA04EF9C111949073FC0F67
 
-On Thu, Feb 1, 2024, at 11:46, Geert Uytterhoeven wrote:
-> Hi Arnd,
->
-> On Thu, Feb 1, 2024 at 11:11=E2=80=AFAM Arnd Bergmann <arnd@arndb.de> =
-wrote:
->> I think it's fair to assume we won't need asm-generic/page.h any
->> more, as we likely won't be adding new NOMMU architectures.
->
-> So you think riscv-nommu (k210) was the last one we will ever see?
+Clear Cause.BD after we use instruction_pointer_set to override
+EPC.
 
-Yes. We've already removed half of the nommu architectures
-(blackfin, avr32, h8300, m32r, microblaze-nommu)  over
-the past couple of years, and the remaining ones are pretty
-much only there to support existing users.
+This can prevent exception_epc check against instruction code at
+new return address.
+It won't be considered as "in delay slot" after epc being overridden
+anyway.
 
-The only platform one that I see getting real work is
-esp32 [1], but that is not a new architecture.
+Signed-off-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
+---
+ arch/mips/include/asm/ptrace.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-     Arnd
+diff --git a/arch/mips/include/asm/ptrace.h b/arch/mips/include/asm/ptrace.h
+index 701a233583c2..d14d0e37ad02 100644
+--- a/arch/mips/include/asm/ptrace.h
++++ b/arch/mips/include/asm/ptrace.h
+@@ -60,6 +60,7 @@ static inline void instruction_pointer_set(struct pt_regs *regs,
+                                            unsigned long val)
+ {
+ 	regs->cp0_epc = val;
++	regs->cp0_cause &= ~CAUSEF_BD;
+ }
+ 
+ /* Query offset/name of register from its name/offset */
 
-[1] https://github.com/jcmvbkbc/linux-xtensa/tree/xtensa-6.8-rc2-esp32
+-- 
+2.43.0
+
