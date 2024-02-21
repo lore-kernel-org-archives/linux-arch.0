@@ -1,221 +1,235 @@
-Received: from NAM10-MW2-obe.outbound.protection.outlook.com (mail-mw2nam10on2043.outbound.protection.outlook.com [40.107.94.43])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from brightrain.aerifal.cx (brightrain.aerifal.cx [104.156.224.86])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B345748E;
-	Wed, 21 Feb 2024 01:17:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.94.43
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1708478266; cv=fail; b=FOsqxmEGx2ijI7KPeLMgAa8+ngyWx7G2dd+O1bDr/uCW5ygy6dgVu33uvCq1BNx02TKFMI5blcWHBGocKMgoDfQAoThJBEhOYPhb6QvVj4oXQTIdY6oCqWNM5OuPuZZgPKPEw5Crlxo/cpXUW2AjfBRmD7eOUu8HWsmXdHVEIQo=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1708478266; c=relaxed/simple;
-	bh=VIHA3Mvya4c85Qxw3FIBjS4O9w2g7AZKsgoVcGD7yfo=;
-	h=From:To:Cc:Subject:Date:Message-ID:Content-Type:MIME-Version; b=HPJOnGr/QFTidQkdyU2wxaUvgMogkM8b8U/Eg6Dbp1al0B+gEp8qDqfW7luY+LAaDm3lmNXRh5i/P+kChtPKcyJMCbvoamalAxGIbJkV6HmtnnNjc1izTE5QJPZGkEMSfltIkF9KjzM6XTtKP4TIkfzgbd1FryNJWwDa7bD5svk=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=jmS9LIEf; arc=fail smtp.client-ip=40.107.94.43
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="jmS9LIEf"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=Au17HivPtKgwTUwsIsVe4w8acB/YnaJca9l6bdKojKgPnF0o5wZ4l2LNTLQKkcw7WOdnLtlRV6VZ9IfraVzuLtp3NlxN44kZVCgwJHZt0Ze0HmygRF0O9UI4QP7EjiZHKKTnJbZcN3ZFL6r2rhjmT6BdSyc8bEsG7JfNElL9MsIs3D6SdSLWx9Bo5WrWsW2DxNPEjqk+t+QsHo0Dt1s0sSyLAV7LkLpqnYW3bMjjj7bssffUQfJWaPAuEw8Lt5IeP2zbz25Zdr4PJFRMecntAhpUUzX7kF5ymyUbE7Fdo9+4I35i02tmaGwk3vd/yTkoSwZ9zm14y8Cx6IdVZ4k7UQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=mW7ie0e+X6dYg50MFn//UM2JmFfloVFyb957RHrxNqs=;
- b=UlS0uZydyrkl7NrkdT2M+kG0FODgi8Sup073BddrRw00eMMSynlPplpzMeW3vDQiIaaPpV9z27Ki4yubxYbpgPa8wZioYh4OTbNELyV2AtOffB5fug90xrZzir4wAUUDGA0CwsO8yx51E4EOyMwYb+BCmGeHh1mTPFPsBZmTOYD5+qfg+8mhrhhmYSTAFr33co28VNnaofRvlwhyAtzQrasq9atpo4otRP/ZssRsTbgh71pE6Msrm2HX9iK+Fuuw8tsZ1ZODbxkeheA3x9PKCoJfisxkiUc9X6WFsKX6bjQ+O7x4JHpUgRFL4cu36+xw9MpIM9qDeP/RLuAFuP/33g==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
- dkim=pass header.d=nvidia.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
- s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=mW7ie0e+X6dYg50MFn//UM2JmFfloVFyb957RHrxNqs=;
- b=jmS9LIEfF1yLbZ2MGkg5tNLrblHgHHUbR9Xs/1wUITnOWgN9OiKW1ZAhC409weS4TGkB+Wfj0yCejuLi6L0ZQuvNCo3nm43msTr3xVuHYOFnSd3zs+rVdEYwQl3sC8JNDfsQtrmL2q5UnAgeuR8q5jLiGutW62RaroHM2votXhbwoAKvGnhkcCXjK/Xo1nbM96MpwinwJDwNlDxOORwZkfD5aBCsXdhGNHHdBycW09xVwZtx6F2K3zPie0hfpOPT3JXcprWImb4pfLGQ7w86Jr4/aziWoNZ0GT2LFavNh5Ut7RH8Exgwp7ZcEBEwqC2J/tgli2rUB2TMfAfC3z6CEw==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=nvidia.com;
-Received: from LV2PR12MB5869.namprd12.prod.outlook.com (2603:10b6:408:176::16)
- by MN0PR12MB5714.namprd12.prod.outlook.com (2603:10b6:208:371::7) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7316.19; Wed, 21 Feb
- 2024 01:17:14 +0000
-Received: from LV2PR12MB5869.namprd12.prod.outlook.com
- ([fe80::96dd:1160:6472:9873]) by LV2PR12MB5869.namprd12.prod.outlook.com
- ([fe80::96dd:1160:6472:9873%6]) with mapi id 15.20.7316.018; Wed, 21 Feb 2024
- 01:17:14 +0000
-From: Jason Gunthorpe <jgg@nvidia.com>
-To: Alexander Gordeev <agordeev@linux.ibm.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"David S. Miller" <davem@davemloft.net>,
-	Eric Dumazet <edumazet@google.com>,
-	Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	Justin Stitt <justinstitt@google.com>,
-	Jakub Kicinski <kuba@kernel.org>,
-	Leon Romanovsky <leon@kernel.org>,
-	linux-rdma@vger.kernel.org,
-	linux-s390@vger.kernel.org,
-	llvm@lists.linux.dev,
-	Ingo Molnar <mingo@redhat.com>,
-	Bill Wendling <morbo@google.com>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Nick Desaulniers <ndesaulniers@google.com>,
-	netdev@vger.kernel.org,
-	Paolo Abeni <pabeni@redhat.com>,
-	Salil Mehta <salil.mehta@huawei.com>,
-	Jijie Shao <shaojijie@huawei.com>,
-	Sven Schnelle <svens@linux.ibm.com>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	x86@kernel.org,
-	Yisen Zhuang <yisen.zhuang@huawei.com>
-Cc: Arnd Bergmann <arnd@arndb.de>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Leon Romanovsky <leonro@mellanox.com>,
-	linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	Mark Rutland <mark.rutland@arm.com>,
-	Michael Guralnik <michaelgur@mellanox.com>,
-	patches@lists.linux.dev,
-	Niklas Schnelle <schnelle@linux.ibm.com>,
-	Will Deacon <will@kernel.org>
-Subject: [PATCH 0/6] Fix mlx5 write combining support on new ARM64 cores
-Date: Tue, 20 Feb 2024 21:17:04 -0400
-Message-ID: <0-v1-38290193eace+5-mlx5_arm_wc_jgg@nvidia.com>
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: BL1P223CA0006.NAMP223.PROD.OUTLOOK.COM
- (2603:10b6:208:2c4::11) To LV2PR12MB5869.namprd12.prod.outlook.com
- (2603:10b6:408:176::16)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EFCB33FE0
+	for <linux-arch@vger.kernel.org>; Wed, 21 Feb 2024 01:27:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=104.156.224.86
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1708478844; cv=none; b=HB1qH4TMD8e+P1BiFg7d7LiNYCvUea8XRKzSTkVZ2T859ZD/ma5SrRVlo6r99t4xpZRRQHhPobZMcY55jCKi0amfVs+48w50QRhw2jsGVqfpLQvCRMIRORob5PISqtSMRyBzRe22AHgQfTCABaYd8cBngiPZtRJjE9TzfeCDQm0=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1708478844; c=relaxed/simple;
+	bh=pJwSeYFj2jRtte9Mv3vmD/7PvwCI3TccoqOgPr5VrYI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=u5s13mMLlyGoQP8GX8ghmNlfGOT5Vd2ueBHc/JMbPHfLz4lCwxhZPWwZKMg7bjO2RWKP8+9v8UjerPwDuYmZbY6+0wLzdDDNz/xJsgoaQODPdJA3JzGmWfo4iqCH01O8UF3fhXlWCD9VO6JPUG1gvxV3K2LO3KYyOMkfOn4Afkc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=libc.org; spf=pass smtp.mailfrom=libc.org; arc=none smtp.client-ip=104.156.224.86
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=libc.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=libc.org
+Date: Tue, 20 Feb 2024 20:27:37 -0500
+From: "dalias@libc.org" <dalias@libc.org>
+To: "Edgecombe, Rick P" <rick.p.edgecombe@intel.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+	"suzuki.poulose@arm.com" <suzuki.poulose@arm.com>,
+	"Szabolcs.Nagy@arm.com" <Szabolcs.Nagy@arm.com>,
+	"musl@lists.openwall.com" <musl@lists.openwall.com>,
+	"linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>,
+	"linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>,
+	"kvmarm@lists.linux.dev" <kvmarm@lists.linux.dev>,
+	"corbet@lwn.net" <corbet@lwn.net>,
+	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+	"catalin.marinas@arm.com" <catalin.marinas@arm.com>,
+	"broonie@kernel.org" <broonie@kernel.org>,
+	"oliver.upton@linux.dev" <oliver.upton@linux.dev>,
+	"palmer@dabbelt.com" <palmer@dabbelt.com>,
+	"debug@rivosinc.com" <debug@rivosinc.com>,
+	"aou@eecs.berkeley.edu" <aou@eecs.berkeley.edu>,
+	"shuah@kernel.org" <shuah@kernel.org>,
+	"arnd@arndb.de" <arnd@arndb.de>, "maz@kernel.org" <maz@kernel.org>,
+	"oleg@redhat.com" <oleg@redhat.com>,
+	"fweimer@redhat.com" <fweimer@redhat.com>,
+	"keescook@chromium.org" <keescook@chromium.org>,
+	"james.morse@arm.com" <james.morse@arm.com>,
+	"ebiederm@xmission.com" <ebiederm@xmission.com>,
+	"will@kernel.org" <will@kernel.org>,
+	"brauner@kernel.org" <brauner@kernel.org>,
+	"hjl.tools@gmail.com" <hjl.tools@gmail.com>,
+	"linux-kselftest@vger.kernel.org" <linux-kselftest@vger.kernel.org>,
+	"paul.walmsley@sifive.com" <paul.walmsley@sifive.com>,
+	"ardb@kernel.org" <ardb@kernel.org>,
+	"linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>,
+	"linux-mm@kvack.org" <linux-mm@kvack.org>,
+	"thiago.bauermann@linaro.org" <thiago.bauermann@linaro.org>,
+	"akpm@linux-foundation.org" <akpm@linux-foundation.org>,
+	"sorear@fastmail.com" <sorear@fastmail.com>,
+	"linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>
+Subject: Re: [musl] Re: [PATCH v8 00/38] arm64/gcs: Provide support for GCS
+ in userspace
+Message-ID: <20240221012736.GQ4163@brightrain.aerifal.cx>
+References: <20240203-arm64-gcs-v8-0-c9fec77673ef@kernel.org>
+ <22a53b78-10d7-4a5a-a01e-b2f3a8c22e94@app.fastmail.com>
+ <4c7bdf8fde9cc45174f10b9221fa58ffb450b755.camel@intel.com>
+ <20240220185714.GO4163@brightrain.aerifal.cx>
+ <9fc9c45ff6e14df80ad023e66ff7a978bd4ec91c.camel@intel.com>
+ <20240220235415.GP4163@brightrain.aerifal.cx>
+ <a57d6c7eada4b9a7c35addbc8556f5b53a0c3e6f.camel@intel.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: LV2PR12MB5869:EE_|MN0PR12MB5714:EE_
-X-MS-Office365-Filtering-Correlation-Id: bc1cb82c-6cf2-45eb-b721-08dc327ad4f7
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;
-X-Microsoft-Antispam-Message-Info:
-	mjzQ4IR33Aude1JpvBAEco7oIX0GN+ux2Sb3IvDNnJ5ttnC95n0+XpbQ+nso4xAtMhwVuwF5Mmp+yvgi5s19PmGG1eyNf3GsFzVURHyWuE0jiDpBGgvEpHD8fV2ySJvnjKv1ovtlOCF/Z76R0I3F0Qrso+36UdxPnlKo0f9KrNXq24ZTMZFMSco98piUOoUPlNtgx0hTOCcEDhPZX0/mf8wbG+PxyK+/jiDHWgtIOyWlCu1+Kyzpwh/lhSvgJQAuQ6sRBh0iEBBQT8XZRI5kVQCBBDUeos39R/lZFLXtv5zWe8mtL2acdO+4bLSINa0vHngaOlTKUcJBk1BlAr4yBSMR0PzwWI1iVY0yUkY1kRPTog5pX560523TisnBVjbyAB+YwSS1m0bl23Xm0v4u6U1e6URYQkgQjbftyzRkMi/2eAPl2E+j7kV3TQMYpxu5is0jG5RafIMyxWHeeY1YfBM3qCLXjDbRutjS/TloBG9N88FtnxyRijIjtrLsaaoBH743Ko0ttwhNJRzPxgMnWDvHC6BlR3l091b6L9B0DYe+Kww4bO636lgQ3Pi601ADMBxblA5EfL7VRhRuNFn73I2FnONg2AlFSJJ3GxE9HgURlvituQF9rYn2KhNguzB2jPh3erhgdijac3f+iEARhw==
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV2PR12MB5869.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230031)(921011);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?mySvtt5aiSypU+XvFca+es8y6V5upmdpaiDMpHgApiTVpldIPRG45s4a9/uG?=
- =?us-ascii?Q?WlF6ExFkNEg75xPJlzG3nauYIiGGP5it1y4V7SaaCqmK6wgMJnnGhCo+Mtni?=
- =?us-ascii?Q?tQAJjxRw7NLwkeY1iuicL3EYTYcmmfQVFjalYx3z/QCn9XBB7UBosjNJ1+vV?=
- =?us-ascii?Q?HH4gGx4+LsaHtPB+MD3P4I8/h9rPNF0Jr9jvtb1GamOVGdeYobaDXDqZB9iw?=
- =?us-ascii?Q?QOdMOqd3z08jepAg6zs/HJoqXg7nReBXPfdrAoNkOW7E+Mom4nflEwGqTOhJ?=
- =?us-ascii?Q?NlB8J7zryzs2N5cXN1BsPLOy0bAs/kjNey1T6C8HDsIppzlMwr+J/CGjTrpx?=
- =?us-ascii?Q?8vX4hxcH8vE3Io5YPBWmqNwl70pq1ZqT8/BoUuNJS3Aexmrc0vRpz+JeEdOO?=
- =?us-ascii?Q?D28VJ1boIEz4wiJqiu9r33oWtxm2YI5V9IWtXoN3ifAOYGT9YPp81nlqxhyc?=
- =?us-ascii?Q?nXa2mWMYZaOtmI4mw2ExazQeXqdlv3NYPfc06B4F82lkh/fNgkqOMbPagk5j?=
- =?us-ascii?Q?tmjaJwLzgJEwkSl3MPc1hj9OKxLqGQjXTWIA0q4Y+IRiQBcL5jlYTofZzZPQ?=
- =?us-ascii?Q?qrMJn1erYFJYeC2PV6YFBt/dpVAjo6BfNvE7qjkIUmlEDJvy9iJnEbhlRulj?=
- =?us-ascii?Q?UyzR8dqPltsZSUd6OZOXeuszqjfFF2krYU5bUr8a5gEzg1oxIDjFQ/ES+aik?=
- =?us-ascii?Q?sbqGqhGy6CN58p0uCzQl+YeIiWYW1SfX7htQVro8DfM4R+UkC7PLa4bk0t/L?=
- =?us-ascii?Q?xDmfv3Aelk9APbGXNshL461NBdXI97zV1YrY9vdgIK9SY0UpXg2pf68PMMDv?=
- =?us-ascii?Q?KXmAYjkDSun1rRmYl+sVgCJRdeSmUJSSFVKEyfOJRxtx7Iv5hw1CdQJJpHt9?=
- =?us-ascii?Q?uracNcyjVJGboZI7+CxL9cwcaFfOjkFVQDcdHwutvOVJHKk6/yoIliEpIf2v?=
- =?us-ascii?Q?ZyeV1UeoEvrBT6+Kddf5/228sTeZPFxDuunQLfeaI282vQ4vZ7m9SFR/675b?=
- =?us-ascii?Q?bfwA7c7gbOTZZqz6/T0+KJHY15iGSi/YUFskW6SM/BIUvSs6EJjUptPOnc2w?=
- =?us-ascii?Q?MESOvyp2NawMky15MjErkynEeaZv1H6NBUHbjLbi+gpfC8LlRvJPf2bHARJy?=
- =?us-ascii?Q?oRNkJ0L2nWR4VFg0aLQY7S1TQtpo9rDSoTHCLBJj2n9SXkejqKkIzW1M2yUj?=
- =?us-ascii?Q?2jFo8ZvwITCEJcHzWBxDnbPJC6PMrna50Tb7KrqDeNva1L56xmwEjnKUBe0C?=
- =?us-ascii?Q?i1a5WihZ0psNc70yGW9YWnQk8E9ipzDKJry/6FSeXxpfmiUIAcKVXhfuIq6R?=
- =?us-ascii?Q?hGIZXBpVrYr7a5A599u3SeWckyVfrcaw2P1nq291yquQvZ/IDrq69bjPb5Qi?=
- =?us-ascii?Q?AnHXB4B68EmJ3spbBusOcFAVeAo5y0xItGs0v3LzOR+z2CQ737IQMQQHF3BJ?=
- =?us-ascii?Q?piNQiNtCCwu6Hw1OauzyakFkG6j8yqdmtQDfUvuoZHdZq5mwPGgL/dmk3JST?=
- =?us-ascii?Q?i/24AewbzXu7Xx9YIf0c1WDAAo4g6yVVOWiP6MHSw7shhtulg1Nww7/nUH8O?=
- =?us-ascii?Q?lhowgESgyrUmnMfvMJjSlbakoclB/fAgi3ueb84p?=
-X-OriginatorOrg: Nvidia.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: bc1cb82c-6cf2-45eb-b721-08dc327ad4f7
-X-MS-Exchange-CrossTenant-AuthSource: LV2PR12MB5869.namprd12.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 21 Feb 2024 01:17:12.1349
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: lZm+1tAjwY54wFxKXYiS6iZn4stQtGF7V8WW8nnqoo6vipvYFAiQ/b1Gb72blQZP
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN0PR12MB5714
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <a57d6c7eada4b9a7c35addbc8556f5b53a0c3e6f.camel@intel.com>
+User-Agent: Mutt/1.5.21 (2010-09-15)
 
-mlx5 has a built in self-test at driver startup to evaluate if the
-platform supports write combining to generate a 64 byte PCIe TLP or
-not. This has proven necessary because a lot of common scenarios end up
-with broken write combining (especially inside virtual machines) and there
-is no other way to learn this information.
+On Wed, Feb 21, 2024 at 12:35:48AM +0000, Edgecombe, Rick P wrote:
+> On Tue, 2024-02-20 at 18:54 -0500, dalias@libc.org wrote:
+> > On Tue, Feb 20, 2024 at 11:30:22PM +0000, Edgecombe, Rick P wrote:
+> > > On Tue, 2024-02-20 at 13:57 -0500, Rich Felker wrote:
+> > > > On Tue, Feb 20, 2024 at 06:41:05PM +0000, Edgecombe, Rick P
+> > > > > Shadow stacks currently have automatic guard gaps to try to
+> > > > > prevent
+> > > > > one
+> > > > > thread from overflowing onto another thread's shadow stack.
+> > > > > This
+> > > > > would
+> > > > > somewhat opens that up, as the stack guard gaps are usually
+> > > > > maintained
+> > > > > by userspace for new threads. It would have to be thought
+> > > > > through
+> > > > > if
+> > > > > these could still be enforced with checking at additional
+> > > > > spots.
+> > > > 
+> > > > I would think the existing guard pages would already do that if a
+> > > > thread's shadow stack is contiguous with its own data stack.
+> > > 
+> > > The difference is that the kernel provides the guard gaps, where
+> > > this
+> > > would rely on userspace to do it. It is not a showstopper either.
+> > > 
+> > > I think my biggest question on this is how does it change the
+> > > capability for two threads to share a shadow stack. It might
+> > > require
+> > > some special rules around the syscall that writes restore tokens.
+> > > So
+> > > I'm not sure. It probably needs a POC.
+> > 
+> > Why would they be sharing a shadow stack?
+> 
+> The guard gap was introduced originally based on a suggestion that
+> overflowing a shadow stack onto an adjacent shadow stack could cause
+> corruption that could be used by an attacker to work around the
+> protection. There wasn't any concrete demonstrated attacks or
+> suggestion that all the protection was moot.
 
-This self test has been consistently failing on new ARM64 CPU
-designs (specifically with NVIDIA Grace's implementation of Neoverse
-V2). The C loop around writeq() generates some pretty terrible ARM64
-assembly, but historically this has worked on alot of existing ARM64 CPUs
-till now.
+OK, so not sharing, just happening to be adjacent.
 
-We see it succeed about 1 time in 10,000 on the worst affected
-systems. The CPU architects speculate that the load instructions
-interspersed with the stores make the test unreliable.
+I was thinking from a standpoint of allocating them as part of the
+same range as the main stack, just with different protections, where
+that would never happen; you'd always have intervening non-shadowstack
+pages. But when they're kernel-allocated, yes, they need their own
+guard pages.
 
-Arrange things so that the ARM64 uses a predictable inline assembly block
-of 8 STR instructions.
+> But when we talk about capabilities for converting memory to shadow
+> stack with simple memory accesses, and syscalls that can write restore
+> token to shadow stacks, it's not immediately clear to me that it
+> wouldn't open up something like that. Like if two restore tokens were
+> written to a shadow stack, or two shadow stacks were adjacent with
+> normal memory between them that later got converted to shadow stack.
+> Those sorts of scenarios, but I won't lean on those specific examples.
+> Sorry for being hand wavy. It's just where I'm at, at this point.
 
-Catalin suggested implementing this in terms of the obscure
-__iowrite64_copy() interface which was long ago added to optimize write
-combining stores on Pathscale RDMA HW for x86. These copy routines have
-the advantage of requiring the caller to supply alignment which allows an
-optimal assembly implementation.
+I don't think it's safe to have automatic conversions back and forth,
+only for normal accesses to convert shadowstack to normal memory (in
+which case, any subsequent attempt to operate on it as shadow stack
+indicates a critical bug and should be trapped to terminate the
+process).
 
-This is a good suggestion because it turns out that S390 has much the same
-problem and already uses the __iowrite64_copy() to try to make its WC
-operations work.
+> > > > From the musl side, I have always looked at the entirely of
+> > > > shadow
+> > > > stack stuff with very heavy skepticism, and anything that breaks
+> > > > existing interface contracts, introduced places where apps can
+> > > > get
+> > > > auto-killed because a late resource allocation fails, or requires
+> > > > applications to code around the existence of something that
+> > > > should be
+> > > > an implementation detail, is a non-starter. To even consider
+> > > > shadow
+> > > > stack support, it must truely be fully non-breaking.
+> > > 
+> > > The manual assembly stack switching and JIT code in the apps needs
+> > > to
+> > > be updated. I don't think there is a way around it.
+> > 
+> > Indeed, I'm not talking about programs with JIT/manual stack-
+> > switching
+> > asm, just anything using existing APIs for control of stack --
+> > pthread_setstack, makecontext, sigaltstack, etc.
+> 
+> Then I think WRSS might fit your requirements better than what glibc
+> did. It was considered a reduced security mode that made libc's job
+> much easier and had better compatibility, but the last discussion was
+> to try to do it without WRSS.
 
-The first several patches modernize and improve the performance of
-__iowriteXX_copy() so that an ARM64 implementation can be provided which
-relies on __builtin_constant_p to generate fast inlined assembly code in a
-few common cases.
+Where can I read more about this? Some searches I tried didn't turn up
+much useful information.
 
-It should come after the S390 fix:
+> > > I agree though that the late allocation failures are not great.
+> > > Mark is
+> > > working on clone3 support which should allow moving the shadow
+> > > stack
+> > > allocation to happen in userspace with the normal stack. Even for
+> > > riscv
+> > > though, doesn't it need to update a new register in stack
+> > > switching?
+> > 
+> > If clone is called with signals masked, it's probably not necessary
+> > for the kernel to set the shadow stack register as part of clone3.
+> 
+> So you would want a mode of clone3 that basically leaves the shadow
+> stack bits alone? Mark was driving that effort, but it doesn't seem
+> horrible to me on first impression. If it would open up the possibility
+> of musl support.
 
-https://lore.kernel.org/r/0-v1-9b1ea6869554+110c60-iommufd_ck_data_type_jgg@nvidia.com
+Well I'm not sure. That's what we're trying to figure out. But I don't
+think modifying it is a hard requirement, since it can be modified
+from userspace if needed as long as signals are masked.
 
-With acks, I'd like to take this through the RDMA tree.
+> > One reasonable thing to do, that might be preferable to
+> > overengineered
+> > solutions, is to disable shadow-stack process-wide if an interface
+> > incompatible with it is used (sigaltstack, pthread_create with an
+> > attribute setup using pthread_attr_setstack, makecontext, etc.), as
+> > well as if an incompatible library is is dlopened.
+> 
+> I think it would be an interesting approach to determining
+> compatibility. On x86 there has been cases of binaries getting
+> mismarked as supporting shadow stack. So an automated way of filtering
+> some of those out would be very useful I think. I guess the dynamic
+> linker could determine this based on some list of functions?
 
-v2:
- - Rework everything to use __iowrite64_copy().
- - Don't use STP since that is not reliably supported in ARM VMs
- - New patches to tidy up __iowriteXX_copy() on x86 and s390
-v1: https://lore.kernel.org/r/cover.1700766072.git.leon@kernel.org
+I didn't follow this whole mess, but from our side (musl) it does not
+seem relevant. There are no legacy binaries wrongly marked because we
+have never supported shadow stacks so far.
 
-Jason Gunthorpe (6):
-  x86: Stop using weak symbols for __iowrite32_copy()
-  s390: Implement __iowrite32_copy()
-  s390: Stop using weak symbols for __iowrite64_copy()
-  arm64/io: Provide a WC friendly __iowriteXX_copy()
-  net: hns3: Remove io_stop_wc() calls after __iowrite64_copy()
-  IB/mlx5: Use __iowrite64_copy() for write combining stores
+> The dlopen() bit gets complicated though. You need to disable shadow
+> stack for all threads, which presumably the kernel could be coaxed into
+> doing. But those threads might be using shadow stack instructions
+> (INCSSP, RSTORSSP, etc). These are a collection of instructions that
+> allow limited control of the SSP. When shadow stack gets disabled,
+> these suddenly turn into #UD generating instructions. So any other
+> threads executing those instructions when shadow stack got disabled
+> would be in for a nasty surprise.
 
- arch/arm64/include/asm/io.h                   | 132 ++++++++++++++++++
- arch/arm64/kernel/io.c                        |  42 ++++++
- arch/s390/include/asm/io.h                    |  15 ++
- arch/s390/pci/pci.c                           |   6 -
- arch/x86/include/asm/io.h                     |  17 +++
- arch/x86/lib/Makefile                         |   1 -
- arch/x86/lib/iomap_copy_64.S                  |  15 --
- drivers/infiniband/hw/mlx5/mem.c              |   8 +-
- .../net/ethernet/hisilicon/hns3/hns3_enet.c   |   4 -
- include/linux/io.h                            |   8 +-
- lib/iomap_copy.c                              |  13 +-
- 11 files changed, 222 insertions(+), 39 deletions(-)
- delete mode 100644 arch/x86/lib/iomap_copy_64.S
+This is the kernel's problem if that's happening. It should be
+trapping these and returning immediately like a NOP if shadow stack
+has been disabled, not generating SIGILL.
 
+> > The place where it's really needed to be able to allocate the shadow
+> > stack synchronously under userspace control, in order to harden
+> > normal
+> > applications that aren't doing funny things, is in pthread_create
+> > without a caller-provided stack.
+> 
+> Yea most apps don't do anything too tricky. Mostly shadow stack "just
+> works". But it's no excuse to just crash for the others.
 
-base-commit: 3856559a378586366dc602f93febe1c57cdc366c
--- 
-2.43.2
+One thing to note here is that, to enable this, we're going to need
+some way to detect "new enough kernel that shadow stack semantics are
+all right". If there are kernels that have shadow stack support but
+with problems that make it unsafe to use (this sounds like the case),
+we can't turn it on without a way to avoid trying to use it on those.
 
+Rich
