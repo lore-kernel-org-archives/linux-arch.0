@@ -1,175 +1,155 @@
-Received: from NAM11-CO1-obe.outbound.protection.outlook.com (mail-co1nam11olkn2028.outbound.protection.outlook.com [40.92.18.28])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pg1-f182.google.com (mail-pg1-f182.google.com [209.85.215.182])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7366E80601;
-	Wed,  6 Mar 2024 17:43:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.92.18.28
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1709747026; cv=fail; b=jjkdI9InPZjjaaD5P0N0XV+2z0rczQS78Vu+pS1CFf+qYpuaCBqaq62AdlyXPL3kLkmzvrKjidoY3FnNEOq2qo5LjQrLXMUC3hItxkUB1eFCQ95RQ1MogFo0fJJEoHRMZTs1bNo4k55AeMxIozPCc4ENzN7aiazPFmO5tiCXSSg=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1709747026; c=relaxed/simple;
-	bh=r0nc4VmAd1GgMbV+9XAHwToToGG9k56Gg7fl3V0X4e8=;
-	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
-	 Content-Type:MIME-Version; b=XV+W7J9FF/6zuOWsvRi4Qk+dr4nH5/GOez8bsQ0Rzc27JClhmIkHwUVnxkyACXo9uqWRePRvmCaUzCB/gAdTksM2tBav/NoUBwrK47y+67RylDBtgxWjpu4l8ucESiF/7UT++0GRQUjsO42zYa3rC+kq2RUN3s4vYNDdWniSm0Q=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=OHqTf0AT; arc=fail smtp.client-ip=40.92.18.28
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5CE5513BAFC
+	for <linux-arch@vger.kernel.org>; Wed,  6 Mar 2024 18:24:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.182
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1709749458; cv=none; b=RAaKytIJlvl1CcOipNRd5DEydvcd+XWUypmlxXVx/zw5ed6lAzzzHfq7Ph2EpZld40P652T/zWITiR7WogoDkc8KAwuOYP/vtEVrMdclKIJCN6B1j6KuwFBVjh6xC7zdn89/QQxYaRwOahq4iomgP3aPz1GmEUpvn/kQ+VX0M7c=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1709749458; c=relaxed/simple;
+	bh=WytS40ZdmsM5zwjaJMMr9w3erghzLSkCQiyje+s3eGY=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=chel+otxsaMoIZ6KBGFbowI5DJQ+U1jGuCc3doI2fpqxR6n8Ha1AOTbbyfQT2tAVRSm8p3K+h9oDFPl1x9tEWxyROXKPOTYOWTF0hlRqVOplQ6Y2LbUyqty0geVWUG2mSZnmOyiNPT/cqIQu0yFi0Sn3BFm5rfiMWPuqxertCPs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linaro.org; spf=pass smtp.mailfrom=linaro.org; dkim=pass (2048-bit key) header.d=linaro.org header.i=@linaro.org header.b=xSDSt4M9; arc=none smtp.client-ip=209.85.215.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linaro.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linaro.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="OHqTf0AT"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector9901; d=microsoft.com; cv=none;
- b=g/aS9N+Z8O37ca5A/A1l214YIBq2NFnhz9L29eRNPWdk8fqP4Y+pMkP2HQSVqZx7lA1bSs7l/YRPyM/ljw8FezQI4gqxZEo+5ArLVzCRr5Wfg4lAeFmvuj63nCO9PNyruHrrOVbZKvYelhaK1gOlzXy15AO7HmsQJkpp4FrXn3kVINQCo4hwgWxIQEs47/JC7Ha+cJpqJBE08Ld2uXD2rDMEF31F4NNhf5ULnwyViQ/n2sEsq40uY27X/4Wb+YKyOXtrGce9UsIaeqCpaIMWgAKI9undGRec5Znu6brx8FCD2Ya+3/k1GtyYLLm4M2MDtY5rCRoRH5g75xT1xXqBOA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector9901;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=VBQynf+cv/c992G73fUo+kv1Z//vQ9oKlM9bdkVPFh4=;
- b=aW8JZ+qryRwqlbH6y5QcFzGu5X4A0ofuF6ix8X+mLsc51hZExGrVzlPMXo9siyC4TcVnPxcCRbyKUpl6m4jyVcIbhff/YJISCylmxtFi5oVjHlTKBnPmJxxznI1L0e8EMBTZgeoTLo28Ky4dikyuyVihctQ53xr1oj7LLjFugV4ms3yojCMOq3i+f5qZfhIpkpMUFf9M1pZo81MmYJtblch1i8DxGNLC6s5PKi+E/DzRktb/I4dpzLahErTtC6/xqXODD6PboeA18ZrRZEjL6NFA5n9vImsqRi+CTDb6SDB/WqxELpmxXFcNNJClbQP/CIQ2WduFOjhZwSznAEhSww==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
- dkim=none; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
- s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=VBQynf+cv/c992G73fUo+kv1Z//vQ9oKlM9bdkVPFh4=;
- b=OHqTf0AT3LG6FTpeiCkOB0X5JGxFmqbwDHMgK9hxpFjSKRYyi/4hSv7SC1QMBh1j+jkXPa5nLtYB05prViJ1/+zsYL+UhuKU8QChwlyM0NbPGcrdfxw9l8tSXed5M3S02KR9Xse02YhvCEuauWH0CA22mqsCoNvAi4IU81s29z+iHhWPFAbGdQZN3M+36wtEpP2hIb2fwvGCYtq1wwAPvq6cAt6itsbNS25PETyy4N/+jHYfdmguikAsAyBH6a32jwlKyd/LUTJHUWvUOx0DOOG+MPOEuju4X8l4pL8kFM6Os31gfL0TTbylFCjZ/vX0C6SUArxj6SNEhZC089CQAg==
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
- by CH2PR02MB6537.namprd02.prod.outlook.com (2603:10b6:610:69::12) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7339.39; Wed, 6 Mar
- 2024 17:43:42 +0000
-Received: from SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::67a9:f3c0:f57b:86dd]) by SN6PR02MB4157.namprd02.prod.outlook.com
- ([fe80::67a9:f3c0:f57b:86dd%5]) with mapi id 15.20.7339.035; Wed, 6 Mar 2024
- 17:43:42 +0000
-From: Michael Kelley <mhklinux@outlook.com>
-To: "wei.liu@kernel.org" <wei.liu@kernel.org>
-CC: "haiyangz@microsoft.com" <haiyangz@microsoft.com>, "decui@microsoft.com"
-	<decui@microsoft.com>, "tglx@linutronix.de" <tglx@linutronix.de>,
-	"mingo@redhat.com" <mingo@redhat.com>, "bp@alien8.de" <bp@alien8.de>,
-	"dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>, "hpa@zytor.com"
-	<hpa@zytor.com>, "arnd@arndb.de" <arnd@arndb.de>, "tytso@mit.edu"
-	<tytso@mit.edu>, "Jason@zx2c4.com" <Jason@zx2c4.com>, "x86@kernel.org"
-	<x86@kernel.org>, "linux-kernel@vger.kernel.org"
-	<linux-kernel@vger.kernel.org>, "linux-hyperv@vger.kernel.org"
-	<linux-hyperv@vger.kernel.org>, "linux-arch@vger.kernel.org"
-	<linux-arch@vger.kernel.org>, Saurabh Singh Sengar <ssengar@microsoft.com>,
-	Long Li <longli@microsoft.com>
-Subject: RE: [PATCH 1/1] x86/hyperv: Use Hyper-V entropy to seed guest random
- number generator
-Thread-Topic: [PATCH 1/1] x86/hyperv: Use Hyper-V entropy to seed guest random
- number generator
-Thread-Index: AQHaTVXupwvTPY5m0kOclayMSeGBz7ErP/XA
-Date: Wed, 6 Mar 2024 17:43:41 +0000
-Message-ID:
- <SN6PR02MB4157B61CA09C0DAF0BB994E1D4212@SN6PR02MB4157.namprd02.prod.outlook.com>
-References: <20240122160003.348521-1-mhklinux@outlook.com>
-In-Reply-To: <20240122160003.348521-1-mhklinux@outlook.com>
-Accept-Language: en-US
-Content-Language: en-US
-X-MS-Has-Attach:
-X-MS-TNEF-Correlator:
-x-tmn: [fYpzzOH95P8VQZ1G+RxN64cqInnGNBfy]
-x-ms-publictraffictype: Email
-x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|CH2PR02MB6537:EE_
-x-ms-office365-filtering-correlation-id: b4d9355c-f76f-4842-1ade-08dc3e04f6ae
-x-microsoft-antispam: BCL:0;
-x-microsoft-antispam-message-info:
- AIvIwGepn0O54SAZ30wuVeZ3eVmia753Jp1AUWx7hLRAg0HZ36i8hVZGEC27Z585Sit6l9Ty3CboNpLj6ZTq5ykrg3cZHPBM09lR58Ni85gu5GTvuuSlh789TWBuBnXrGK1NI7vRcIgKozbrHE2wxuuqHD6M2DSXY+TTxCkQDPYsrK7dzegoViVt5oGG83uHGLUvREuC+yrPfvmYIHDZ5IPO0vCSjaKfj92v5ZvEPMUniGk8ia9XIpBdKo5aXabZBZ556mCj2gqGyBYDH1Jt3PLvzSG2wTzk3ny+i+DOSwqwbFiY9Lim/vgjEPNBZ5SY088xKYJ+iDmA6joP9NUHThhlgMpo2Xfw92a1gx7chSOZYsR1bD5unTTn3UF7MpG1G0Os30YuBZhFqagbFfbeNmHZxXn1pxLuiZaOpzfgt1Z/YX5+aJs6nI46zNxra+GSz64hGhKKRfN2Ni6f1AAW2jekBtO11dDy1zSdRdeqf3akrdCUbOmYFK1ZXEFZS0YPtnsBLvgmutEmiYHhK+EARA3gOF+CdcVxJl+SfbvwqNYVyMpZNaJacd24o4QDCMgH
-x-ms-exchange-antispam-messagedata-chunkcount: 1
-x-ms-exchange-antispam-messagedata-0:
- =?us-ascii?Q?oXyKs/TTzwlGr+UzVueZsbNZWsFgtLjqUIGfiO75AdrxT72ciJS93OrG+ZHW?=
- =?us-ascii?Q?n7+VmcsmtxJejjgFFHEUxlP+VcY47zcSlQqCA1WOh14AJXsyYdNDD0boBwZw?=
- =?us-ascii?Q?qvbO1FKL58nhsbsDD+fB/vBytQ+sP14eqFf27smV4gJUlZ0zm6fkDl8GyJ6Z?=
- =?us-ascii?Q?s/A6Nt2wuLDoYjAsoeiwM/fzsRF3qNcCASF95Qzq4RgNccxeSmMN/ID/t/kH?=
- =?us-ascii?Q?pEWg3GYoLcer6e06MSqml5GuubOZmDv8gZq4gvTm8QXNkZXIe+7HkF9AlNnP?=
- =?us-ascii?Q?mU737zF6MDrZgnMQEnbZJwObXwjl4xLqcU/dtTm4lcLYC08gXGu+xGeKaEWh?=
- =?us-ascii?Q?GXusU4Wh+bar/Z6b2hnpFkf2ShtHaV01xuCt0F2Tf5YAK71VraIFn9nY93mu?=
- =?us-ascii?Q?1HTcW7u9kYa9sJJEIeTe8NF/uXkzbXUYmfYeWG0EY/PqU8wxG/SGLwKHx3qW?=
- =?us-ascii?Q?ht+jwGH2sHFQZVdp0jcExRP46EVaHlP2IVfuYynBTDOwvr37GxMldI6RriXp?=
- =?us-ascii?Q?p+FO+fZRtL6EhQo9WWTNaXBDGzz7o9sUogwEd6f28RTL1fBUfeaGvBkXwNdK?=
- =?us-ascii?Q?pq2If1+6Hljf2MotF5KRTm99trSAl7x7fo2wfOMeqfKxOj2SfwkL71S9ltLT?=
- =?us-ascii?Q?/G+22sjkG6IMX/Z9Ri94350Z6GygtEDVVtS2PIH/OCD/mInf6ZaCH1NzV/y9?=
- =?us-ascii?Q?zf91d3Tg8dygPMr7+Y3JYSpGnqZeOuUOWhAwLJfJsnxlxgLEKsH9VF39ld/g?=
- =?us-ascii?Q?lk1rz4PLEZPZkzpVRmLyPCR7q/7YqwYPo9nBBjyvyBwPmpyslsuAlkNZ6avr?=
- =?us-ascii?Q?+pK2EgZL6l9v5T+3miUOR5bi1gl8R09HGuxGrYp2N7VIYc/TJB2MBxbSKWbn?=
- =?us-ascii?Q?64SV5PtaK89i9Db2GZu2GuKocvsOYJvEG59rMd02/rRX9Q+/SPjwPEJx3VUR?=
- =?us-ascii?Q?4aowzqnBXNqzysdKgfp0PUvJ+y3L2kQlTuydNX/s2WeZauBu1ypUCdr9tUSq?=
- =?us-ascii?Q?hFXoqfM2m0MzTYGt6G//aBL5tLtFvC2o0TaNSBtjpvFJU3IAZjROaPxTAx/Z?=
- =?us-ascii?Q?Sjf2dQC3qSj0FVZegW2sAMYjJaVJ2bFaXJyBJY91uMJcvtFOEYHGvB67lnio?=
- =?us-ascii?Q?Tm+pZxUJdJZihOlVn8gNbmR9U8UIy5bM1D4fWdvZXQ8v1cRc5nwe+0L81ywU?=
- =?us-ascii?Q?8Tsts3foKY31hajsyiANFlPX6VcKPU0S9xIJ2w=3D=3D?=
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+	dkim=pass (2048-bit key) header.d=linaro.org header.i=@linaro.org header.b="xSDSt4M9"
+Received: by mail-pg1-f182.google.com with SMTP id 41be03b00d2f7-5ce942efda5so5838511a12.2
+        for <linux-arch@vger.kernel.org>; Wed, 06 Mar 2024 10:24:17 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linaro.org; s=google; t=1709749456; x=1710354256; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=RWWS4LnVP/asDNzm/6wkKWnD1LdXMDQVgVaviFZ4aPg=;
+        b=xSDSt4M9UoLeDP7OmunKwSARN+zE8oqO+Vx00xIodsni+Jai1c6Oo1sgafAF+ggn6q
+         FjeR+7UjMDREMOatQi7cqH0B7Ae4eXdLJCD45B7kxTVv+ZozK6sG3NsyJgxYik7t23Uo
+         I0ekengU3Gg3M2aWWBhsUO/sdc7TYx2rKXZQ0pMH7BE87AKqmZucvGmabW7HZHTfBQ+J
+         60lJ/k6QKlIWfT5zhsXpqs4xz6SQKfIa2X6FzIJ0/QzGacD0Yq5s/JGxxasW4KQ5gwyk
+         +Ua95cMya9C8VrcfWP42WOvMQt2T9fHpseneaFXvE8I/EE5FeO3YmUh7cSLt2O8p6vSG
+         ZBXA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1709749456; x=1710354256;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=RWWS4LnVP/asDNzm/6wkKWnD1LdXMDQVgVaviFZ4aPg=;
+        b=oJo2t9W/2z/fYdfDBjbqxrJzBwkDm/MD0M8ZAGt6klOIEXxM+C+/bwu68GzLgT6RR1
+         4xM56pO8tEu1uiNkbvHHHb67x5r5eUxrPDIjY/f0S0MU54Z2D8tk0F9w6uiohZgdFDbS
+         8llRjkeF0iZjWaV/4RfoNrW3RuVG65VCtpdP+r85HBFFvJiH3t5XuYgv5t/O6nubZR+2
+         cthHlx5HtnhuyBblOefbsqFuTYvlBIrZVfw77sqlmvxOGm1zv7vjvduPGq4L+ZhnWMIN
+         r/8ajN0SgGsHGFzsnkGNnB62jtiGBfMDX5Ul2B17itMd5fSXH4n9mQeMKAfbaLMt8YXk
+         BxGw==
+X-Forwarded-Encrypted: i=1; AJvYcCVTZATPi7IZsW3eDeZaE4WXIZovDaUres+6Pf4qxigzfTl6G6J6ItNm2NufjJCjD8LAZTrlCgHsATgyG7Iddsv+1btyL+0pXqBBDg==
+X-Gm-Message-State: AOJu0YzqgzXA6IqSm2bd8c3oVrO8cRw7eYrXS/6GycdTtt5OBCpmPu2f
+	y0/8MuPXimiIb2DyhbTppitFrBrb77Pd+MM/3lezCSss4/BLyGqRuJQmXt9D4CfkqAaQ4kOeJ5t
+	1qZTY3Jpb8Tn2la3w+W0jynrIdLAjlNEPY0/7eA==
+X-Google-Smtp-Source: AGHT+IHKPEqxOppMA9uKtWnzKAyEDN9QbdCsWR4IDnjuRlBVf+wG6gTH/NYYdjq2Jeob5XWC2zp4Hl1RW9kYPP1CSp8=
+X-Received: by 2002:a17:90a:8986:b0:29a:c886:243e with SMTP id
+ v6-20020a17090a898600b0029ac886243emr14404213pjn.39.1709749456443; Wed, 06
+ Mar 2024 10:24:16 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-OriginatorOrg: outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
-X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-CrossTenant-Network-Message-Id: b4d9355c-f76f-4842-1ade-08dc3e04f6ae
-X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
-X-MS-Exchange-CrossTenant-originalarrivaltime: 06 Mar 2024 17:43:41.8760
- (UTC)
-X-MS-Exchange-CrossTenant-fromentityheader: Hosted
-X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH2PR02MB6537
+References: <20240305184033.425294-1-linux@roeck-us.net>
+In-Reply-To: <20240305184033.425294-1-linux@roeck-us.net>
+From: =?UTF-8?B?RGFuaWVsIETDrWF6?= <daniel.diaz@linaro.org>
+Date: Wed, 6 Mar 2024 12:24:05 -0600
+Message-ID: <CAEUSe79fwDAhTdAD3OecCAw=LRzajxA3b-B2r8YtVDPeH7LCtA@mail.gmail.com>
+Subject: Re: [RFC PATCH 0/5] Add support for suppressing warning backtraces
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: linux-kselftest@vger.kernel.org, David Airlie <airlied@gmail.com>, 
+	Arnd Bergmann <arnd@arndb.de>, =?UTF-8?B?TWHDrXJhIENhbmFs?= <mcanal@igalia.com>, 
+	Dan Carpenter <dan.carpenter@linaro.org>, Kees Cook <keescook@chromium.org>, 
+	David Gow <davidgow@google.com>, Arthur Grillo <arthurgrillo@riseup.net>, 
+	Brendan Higgins <brendan.higgins@linux.dev>, Naresh Kamboju <naresh.kamboju@linaro.org>, 
+	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, Maxime Ripard <mripard@kernel.org>, 
+	=?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <ville.syrjala@linux.intel.com>, 
+	Daniel Vetter <daniel@ffwll.ch>, Thomas Zimmermann <tzimmermann@suse.de>, dri-devel@lists.freedesktop.org, 
+	linux-kernel@vger.kernel.org, loongarch@lists.linux.dev, 
+	linux-arm-kernel@lists.infradead.org, kunit-dev@googlegroups.com, 
+	linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-From: wei.liu@kernel.org @ 2024-03-04  6:57 UTC
->=20
-> > +void __init ms_hyperv_late_init(void)
-> > +{
-> > +	struct acpi_table_header *header;
-> > +	acpi_status status;
-> > +	u8 *randomdata;
-> > +	u32 length, i;
-> > +
-> > +	/*
-> > +	 * Seed the Linux random number generator with entropy provided by
-> > +	 * the Hyper-V host in ACPI table OEM0.  It would be nice to do this
-> > +	 * even earlier in ms_hyperv_init_platform(), but the ACPI subsystem
-> > +	 * isn't set up at that point. Skip if booted via EFI as generic EFI
-> > +	 * code has already done some seeding using the EFI RNG protocol.
-> > +	 */
-> > +	if (!IS_ENABLED(CONFIG_ACPI) || efi_enabled(EFI_BOOT))
-> > +		return;
-> > +
-> > +	status =3D acpi_get_table("OEM0", 0, &header);
-> > +	if (ACPI_FAILURE(status) || !header) {
-> > +		pr_info("Hyper-V: ACPI table OEM0 not found\n");
->=20
-> I would like this to be a pr_debug() instead of pr_info(), considering
-> using the negative case may cause users to think not having this table
-> can be problematic.
->=20
-> Alternatively, we can remove this message here, and then ...
->=20
-> > +		return;
-> > +	}
-> > +
->=20
-> ... add a pr_debug() here to indicate that the table was found.
->=20
-> 	pr_info("Hyper-V: Seeding randomness with data from ACPI table OEM0\n");
+Hello!
 
-You wrote the code as "pr_info()" but your comment suggests "pr_debug()".
-I'm assuming pr_debug() is better because we don't really need any output
-on success or failure. If trying to debug something related to the rng,
-even with no explicit output it's relatively easy to tell whether a Gen1 VM
-picked up any entropy from the OEM0 table.  When it does, this dmesg
-line will appear much earlier than when it does not.
+On Tue, 5 Mar 2024 at 12:40, Guenter Roeck <linux@roeck-us.net> wrote:
+> Some unit tests intentionally trigger warning backtraces by passing bad
+> parameters to kernel API functions. Such unit tests typically check the
+> return value from such calls, not the existence of the warning backtrace.
+>
+> Such intentionally generated warning backtraces are neither desirable
+> nor useful for a number of reasons.
+> - They can result in overlooked real problems.
+> - A warning that suddenly starts to show up in unit tests needs to be
+>   investigated and has to be marked to be ignored, for example by
+>   adjusting filter scripts. Such filters are ad-hoc because there is
+>   no real standard format for warnings. On top of that, such filter
+>   scripts would require constant maintenance.
+>
+> One option to address problem would be to add messages such as "expected
+> warning backtraces start / end here" to the kernel log.  However, that
+> would again require filter scripts, it might result in missing real
+> problematic warning backtraces triggered while the test is running, and
+> the irrelevant backtrace(s) would still clog the kernel log.
+>
+> Solve the problem by providing a means to identify and suppress specific
+> warning backtraces while executing test code. Support suppressing multipl=
+e
+> backtraces while at the same time limiting changes to generic code to the
+> absolute minimum. Architecture specific changes are kept at minimum by
+> retaining function names only if both CONFIG_DEBUG_BUGVERBOSE and
+> CONFIG_KUNIT are enabled.
+>
+> The first patch of the series introduces the necessary infrastructure.
+> The second patch marks the warning message in drm_calc_scale() in the DRM
+> subsystem as intentional where warranted. This patch is intended to serve
+> as an example for the use of the functionality introduced with this serie=
+s.
+> The last three patches in the series introduce the necessary architecture
+> specific changes for x86, arm64, and loongarch.
+>
+> This series is based on the RFC patch and subsequent discussion at
+> https://patchwork.kernel.org/project/linux-kselftest/patch/02546e59-1afe-=
+4b08-ba81-d94f3b691c9a@moroto.mountain/
+> and offers a more comprehensive solution of the problem discussed there.
+>
+> Checkpatch note:
+>   Remaining checkpatch errors and warnings were deliberately ignored.
+>   Some are triggered by matching coding style or by comments interpreted
+>   as code, others by assembler macros which are disliked by checkpatch.
+>   Suggestions for improvements are welcome.
+>
+> Some questions:
+>
+> - Is the general approach promising ? If not, are there other possible
+>   solutions ?
+> - Function pointers are only added to the __bug_table section if both
+>   CONFIG_KUNIT and CONFIG_DEBUG_BUGVERBOSE are enabled. This avoids image
+>   size increases if CONFIG_KUNIT=3Dn. Downside is slightly more complex
+>   architecture specific assembler code. If function pointers were always
+>   added to the __bug_table section, vmlinux image size would increase by
+>   approximately 0.6-0.7%. Is the increased complexity in assembler code
+>   worth the reduced image size ? I think so, but I would like to hear
+>   other opinions.
+> - There are additional possibilities associated with storing the bug
+>   function name in the __bug_table section. It could be independent of
+>   KUNIT, it could be a configuration flag, and/or it could be used to
+>   display the name of the offending function in BUG/WARN messages.
+>   Is any of those of interest ?
 
-[    0.000000] random: crng init done
+Thank you SO very much for this work! This is very much appreciated!
+We run into these warnings at LKFT all the time, and making sure that
+the noise doesn't drown the relevant signal is very important.
 
-I'll spin a v2 with this tweak and your wording comment on the
-commit message.
+Greetings!
 
-Michael
-
->=20
-> Dexuan, Saurabh, Haiyang and Long, can you give an ack or nack to this
-> patch and help test it?
->=20
-> Thanks,
-> Wei.
+Daniel D=C3=ADaz
+daniel.diaz@linaro.org
