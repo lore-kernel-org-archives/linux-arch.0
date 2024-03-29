@@ -1,57 +1,57 @@
-Received: from mail-pj1-f47.google.com (mail-pj1-f47.google.com [209.85.216.47])
+Received: from mail-pf1-f178.google.com (mail-pf1-f178.google.com [209.85.210.178])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B55E647F47
-	for <linux-arch@vger.kernel.org>; Fri, 29 Mar 2024 07:24:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 942EB4086F
+	for <linux-arch@vger.kernel.org>; Fri, 29 Mar 2024 07:24:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1711697095; cv=none; b=F41Qdxsav9gR4WdlThkYb72q1O33B9PF9PiX9hjXD5PH0sdf12Nos3Prvkkv6FzmbB3gkxUUGGJbft3DQA9DjU30KXw9kts6DSqIv+bHA6RwFJ+5MoVJiLMpHN0jBNbCCCrzYWwDIZDR5blj84HwffUb16NGTmmF0VgqR8PgaM4=
+	t=1711697101; cv=none; b=F+QOIsI7t84ICS277QTrdP0x4O24rYYjihgnOZ1dT4IBPMbXxc/9nBHuSq3QOTheos4IS/5qnYR3E/NMxxewSmAEMVp2LWblUNwg/jqjZ4iSHPkxSYJk5Hrz15ICYwp2YoNC/WLlS4pGIdmIL9zvlnXykg9W1BRPHQemOUwp1o4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1711697095; c=relaxed/simple;
-	bh=gxAW0DTrkLtRtKQJA86gMhjr+tKNdgSukt4KSi/OgcI=;
+	s=arc-20240116; t=1711697101; c=relaxed/simple;
+	bh=b0p3yNyhI4gS1UO6/7FtNHSLtx6SD/wV4pT5We/leTo=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=oTe5hXJq5ozbPnsfp3Ca49p6RrPdI0WOHkI67OrFEwnhTW/ThQf7dJrfLa4pf+rKr8oVNqbEQTXJrseMwTq+rRiJ9+pNt3aTKWTS2YNs4bF0xniWIrppZ9U7O3KPMIW2V45jz0gue82dsRIW41o6QChWdyuxHK9TIGsSkpUAMOA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com; spf=pass smtp.mailfrom=sifive.com; dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b=AxAST/U4; arc=none smtp.client-ip=209.85.216.47
+	 MIME-Version; b=X/hTodbJbhvcby+/r2zQ4Zz2lfoRU72jAAZgmj95bIjAB02+n2wK4kTHdh6B9J78ncm+q9G37Wlwq8tXuQPg57blBsYS5KdX5FGsEbpXOgMz+VB7jmfyjoMPxcc+N2JZ+Ue8ylKrTJxx3qSS7UImGN/ozI2s2LqhbbtnHJB8cPU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com; spf=pass smtp.mailfrom=sifive.com; dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b=W9Nr8Et4; arc=none smtp.client-ip=209.85.210.178
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sifive.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="AxAST/U4"
-Received: by mail-pj1-f47.google.com with SMTP id 98e67ed59e1d1-2a04ac98cf7so1254905a91.0
-        for <linux-arch@vger.kernel.org>; Fri, 29 Mar 2024 00:24:51 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="W9Nr8Et4"
+Received: by mail-pf1-f178.google.com with SMTP id d2e1a72fcca58-6eac64f2205so1527684b3a.2
+        for <linux-arch@vger.kernel.org>; Fri, 29 Mar 2024 00:24:59 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=sifive.com; s=google; t=1711697091; x=1712301891; darn=vger.kernel.org;
+        d=sifive.com; s=google; t=1711697099; x=1712301899; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=XqbtCYy6rKAgoCWJo/IDkaQi4Zmy7pvo/Tw1FadjoIk=;
-        b=AxAST/U497xjGykVJDQvhnMeDzd0dLvtTxtiRbO83g4AIHBhVhLkurVPr1EHb+fmvT
-         xFRSY2emLL2CM3qn4XuI5crOsXFAXGKGwW4BSgKyqSIWF6z7DAAGFa9nGXs6H4YkfiBQ
-         ZuH3ueFn+tk/Mnm2IuecSuiAWFuWOqtIeXqUrNtlQAtcq9kB0eJU+JV/Ah8vuFaePHcL
-         WED0U/ZuPHxEK6q155ciLDDsjVd7gpSRsG3TrzmnuP97d2B1rO6obc6YpME1k8/f5cfz
-         2VZ4aguZtrj1qm6mjK7GxCbJYoMRpX+l9oJ15/1o8N4vbJzSBFEHF16zSJVclHXHai8e
-         K80w==
+        bh=miBOSRWGIbztCOf3acmBaICqQz/+WnlSIiHBb+4Rl8M=;
+        b=W9Nr8Et4E7CYYgCXsjROXWY+7psvqjEG+P6oATRtBEuCOvOUDiUXpO1oYQKwPh725t
+         FFMzcQYn9hF3EdD2PIEh+Lpv6WzWeoZH7rejTzk9Hm97+xwK5DmfeOJ026lYqV3gwxAV
+         CVkjLMj1RqPjZWsURZfw6K8yNPYMuQqvoTggVfh7YU8wyDkR809xfF/fzZzOW8uWXyrL
+         XEuHlW9dy1xV99rvlZIjjhvAjE+AoxrB3TYYh8INRk8G9CsPU1CnqwGSpayz+d27YYzP
+         u/T5+0tsjqz8Yt0hEsFtpqOdR0epwwhKAshtmgbFVXo2rhO5I1Ldknnj4pVQnP/H/rAe
+         blkQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1711697091; x=1712301891;
+        d=1e100.net; s=20230601; t=1711697099; x=1712301899;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=XqbtCYy6rKAgoCWJo/IDkaQi4Zmy7pvo/Tw1FadjoIk=;
-        b=IXZ9n1ZR7dXnIxjuiVFS0Kk3O8GJ0KOoUHADhkrMTZ2Lq/A6K1EwueG88rl/tp1Umr
-         fwLzzCVosaacCXEixQ8YH/WpWEm0/xxibw9jhcvcf/5Ykq2kQ5qJ9wXM3iwrViri0kxC
-         n2cWXKntSGUb07rx0hgok9qARx/CztJoe9ELDru2zNtm2S2I2qj/HpWv4Zap1FaWYTEI
-         /37GGFcWLMgJONH0fnDYOI4CfxoNtKWJ13chUPLdheZv01fTdoCOzBzpHwsZp7gdXZyx
-         /Ex37QdOpge+PPjjQaobujUv6SnKUoybWoNM62w6jV4Wyx5fJ1VQeks678XsLHyVHAwG
-         cz4g==
-X-Forwarded-Encrypted: i=1; AJvYcCVIHHIU7GK5jgAmQeocsyGpaVdROtQpD1X0i5HGdk3bzR8fr1X66oJqd7l2y9nwE+DHc2j2Rjm//djCWiJ2ktnBoCKonJCw+dQHrw==
-X-Gm-Message-State: AOJu0YwEbgENmlQF0lhBMvPlQ1zV+tjauirF1e6WkV0jByUg9b4FXIfd
-	/oyJbSeEBJ/mUD12C8f7/it6JEomgWWUlzhVd/AAODuWY2q4p0S2Lps/lubsRdQ=
-X-Google-Smtp-Source: AGHT+IFpgVY+di4cvDttsjDdGENlsS7ZbuG0wU7DGKwYbCO2yCZHbkcZgR0Ijs83aSucHtPBLyzxXQ==
-X-Received: by 2002:a17:90a:d588:b0:2a0:3b1d:7c5 with SMTP id v8-20020a17090ad58800b002a03b1d07c5mr6633406pju.3.1711697091135;
-        Fri, 29 Mar 2024 00:24:51 -0700 (PDT)
+        bh=miBOSRWGIbztCOf3acmBaICqQz/+WnlSIiHBb+4Rl8M=;
+        b=KyiVJnFgvzvyTetuen3nX6x86Rm81kTlw/T22nXTy2gee7P4C8siANzOE9XgUbqPhU
+         eETLSBOXEQJQQH7+61Dl/ESSPpa8qvcs4Yvpw8kBQfbKwKaX9k5TpoLn/JmqJodxY2Pa
+         MPpQq9dgv70HDgzWhJdtChRlKU7RLDqsQRM+sPDXTltJ/M0cDN8+BgdTshTw/I2MVSTB
+         /Bu5IiOc7JJ37+9/ILq7Iq37SUFZywY4cu5Pl+CqMKGmd1cWlSTeG2e3/mRYRBnB+Q3G
+         ye+i3DHCHncDfrM2ZDJqz0JGWvi/6/0wKe1qbQsw1XXPydSDEpTe9xmaMsBVnqQp5NAz
+         stMw==
+X-Forwarded-Encrypted: i=1; AJvYcCWUZwV094HxzTdzukDYdxS6FgEBj77/H351SbrEGItohXe7M7OehvE3fbLW83gtTZ9d7bMcKgaOiL2+Vl+GNG2aSXyIPHlR17LNTA==
+X-Gm-Message-State: AOJu0YxdWtGEAcIcz6VIKkSBD9K3LdAxBQmrk89Qv2N6nBMXExNNQWoo
+	IDsA3gpJG1Ewiwy/6+3KJC62n4yosSr4sVZnfdkqU/9IKDT30UbVpfFKgjBAxyQ=
+X-Google-Smtp-Source: AGHT+IHGvAdAnX/0WDZVeXS0a7ZQ/motGWeac64eqKBau0xYaG382zqiN+0tE34St5zugVtRmJL1tg==
+X-Received: by 2002:a05:6a20:549c:b0:1a3:baad:d566 with SMTP id i28-20020a056a20549c00b001a3baadd566mr1487303pzk.40.1711697098883;
+        Fri, 29 Mar 2024 00:24:58 -0700 (PDT)
 Received: from sw06.internal.sifive.com ([4.53.31.132])
-        by smtp.gmail.com with ESMTPSA id b8-20020a17090a010800b0029ddac03effsm4971798pjb.11.2024.03.29.00.24.50
+        by smtp.gmail.com with ESMTPSA id b8-20020a17090a010800b0029ddac03effsm4971798pjb.11.2024.03.29.00.24.52
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 29 Mar 2024 00:24:50 -0700 (PDT)
+        Fri, 29 Mar 2024 00:24:53 -0700 (PDT)
 From: Samuel Holland <samuel.holland@sifive.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	linux-arm-kernel@lists.infradead.org,
@@ -64,12 +64,10 @@ Cc: linux-kernel@vger.kernel.org,
 	loongarch@lists.linux.dev,
 	amd-gfx@lists.freedesktop.org,
 	Samuel Holland <samuel.holland@sifive.com>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Russell King <linux@armlinux.org.uk>,
-	Will Deacon <will@kernel.org>
-Subject: [PATCH v4 06/15] lib/raid6: Use CC_FLAGS_FPU for NEON CFLAGS
-Date: Fri, 29 Mar 2024 00:18:21 -0700
-Message-ID: <20240329072441.591471-7-samuel.holland@sifive.com>
+	Michael Ellerman <mpe@ellerman.id.au>
+Subject: [PATCH v4 08/15] powerpc: Implement ARCH_HAS_KERNEL_FPU_SUPPORT
+Date: Fri, 29 Mar 2024 00:18:23 -0700
+Message-ID: <20240329072441.591471-9-samuel.holland@sifive.com>
 X-Mailer: git-send-email 2.44.0
 In-Reply-To: <20240329072441.591471-1-samuel.holland@sifive.com>
 References: <20240329072441.591471-1-samuel.holland@sifive.com>
@@ -81,71 +79,93 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Now that CC_FLAGS_FPU is exported and can be used anywhere in the source
-tree, use it instead of duplicating the flags here.
+PowerPC provides an equivalent to the common kernel-mode FPU API, but in
+a different header and using different function names. The PowerPC API
+also requires a non-preemptible context. Add a wrapper header, and
+export the CFLAGS adjustments.
 
+Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
 Reviewed-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Samuel Holland <samuel.holland@sifive.com>
 ---
 
-Changes in v4:
- - Add missed CFLAGS changes for recov_neon_inner.c
-   (fixes arm build failures)
+(no changes since v1)
 
- lib/raid6/Makefile | 33 ++++++++++-----------------------
- 1 file changed, 10 insertions(+), 23 deletions(-)
+ arch/powerpc/Kconfig           |  1 +
+ arch/powerpc/Makefile          |  5 ++++-
+ arch/powerpc/include/asm/fpu.h | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 33 insertions(+), 1 deletion(-)
+ create mode 100644 arch/powerpc/include/asm/fpu.h
 
-diff --git a/lib/raid6/Makefile b/lib/raid6/Makefile
-index 385a94aa0b99..0e88bfe6445b 100644
---- a/lib/raid6/Makefile
-+++ b/lib/raid6/Makefile
-@@ -33,25 +33,6 @@ CFLAGS_REMOVE_vpermxor8.o += -msoft-float
- endif
- endif
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 1c4be3373686..c42a57b6839d 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -137,6 +137,7 @@ config PPC
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_HUGEPD			if HUGETLB_PAGE
+ 	select ARCH_HAS_KCOV
++	select ARCH_HAS_KERNEL_FPU_SUPPORT	if PPC_FPU
+ 	select ARCH_HAS_MEMBARRIER_CALLBACKS
+ 	select ARCH_HAS_MEMBARRIER_SYNC_CORE
+ 	select ARCH_HAS_MEMREMAP_COMPAT_ALIGN	if PPC_64S_HASH_MMU
+diff --git a/arch/powerpc/Makefile b/arch/powerpc/Makefile
+index 65261cbe5bfd..93d89f055b70 100644
+--- a/arch/powerpc/Makefile
++++ b/arch/powerpc/Makefile
+@@ -153,6 +153,9 @@ CFLAGS-$(CONFIG_PPC32)	+= $(call cc-option, $(MULTIPLEWORD))
  
--# The GCC option -ffreestanding is required in order to compile code containing
--# ARM/NEON intrinsics in a non C99-compliant environment (such as the kernel)
--ifeq ($(CONFIG_KERNEL_MODE_NEON),y)
--NEON_FLAGS := -ffreestanding
--# Enable <arm_neon.h>
--NEON_FLAGS += -isystem $(shell $(CC) -print-file-name=include)
--ifeq ($(ARCH),arm)
--NEON_FLAGS += -march=armv7-a -mfloat-abi=softfp -mfpu=neon
--endif
--CFLAGS_recov_neon_inner.o += $(NEON_FLAGS)
--ifeq ($(ARCH),arm64)
--CFLAGS_REMOVE_recov_neon_inner.o += -mgeneral-regs-only
--CFLAGS_REMOVE_neon1.o += -mgeneral-regs-only
--CFLAGS_REMOVE_neon2.o += -mgeneral-regs-only
--CFLAGS_REMOVE_neon4.o += -mgeneral-regs-only
--CFLAGS_REMOVE_neon8.o += -mgeneral-regs-only
--endif
--endif
--
- quiet_cmd_unroll = UNROLL  $@
-       cmd_unroll = $(AWK) -v N=$* -f $(srctree)/$(src)/unroll.awk < $< > $@
+ CFLAGS-$(CONFIG_PPC32)	+= $(call cc-option,-mno-readonly-in-sdata)
  
-@@ -75,10 +56,16 @@ targets += vpermxor1.c vpermxor2.c vpermxor4.c vpermxor8.c
- $(obj)/vpermxor%.c: $(src)/vpermxor.uc $(src)/unroll.awk FORCE
- 	$(call if_changed,unroll)
++CC_FLAGS_FPU		:= $(call cc-option,-mhard-float)
++CC_FLAGS_NO_FPU		:= $(call cc-option,-msoft-float)
++
+ ifdef CONFIG_FUNCTION_TRACER
+ ifdef CONFIG_ARCH_USING_PATCHABLE_FUNCTION_ENTRY
+ KBUILD_CPPFLAGS	+= -DCC_USING_PATCHABLE_FUNCTION_ENTRY
+@@ -174,7 +177,7 @@ asinstr := $(call as-instr,lis 9$(comma)foo@high,-DHAVE_AS_ATHIGH=1)
  
--CFLAGS_neon1.o += $(NEON_FLAGS)
--CFLAGS_neon2.o += $(NEON_FLAGS)
--CFLAGS_neon4.o += $(NEON_FLAGS)
--CFLAGS_neon8.o += $(NEON_FLAGS)
-+CFLAGS_neon1.o += $(CC_FLAGS_FPU)
-+CFLAGS_neon2.o += $(CC_FLAGS_FPU)
-+CFLAGS_neon4.o += $(CC_FLAGS_FPU)
-+CFLAGS_neon8.o += $(CC_FLAGS_FPU)
-+CFLAGS_recov_neon_inner.o += $(CC_FLAGS_FPU)
-+CFLAGS_REMOVE_neon1.o += $(CC_FLAGS_NO_FPU)
-+CFLAGS_REMOVE_neon2.o += $(CC_FLAGS_NO_FPU)
-+CFLAGS_REMOVE_neon4.o += $(CC_FLAGS_NO_FPU)
-+CFLAGS_REMOVE_neon8.o += $(CC_FLAGS_NO_FPU)
-+CFLAGS_REMOVE_recov_neon_inner.o += $(CC_FLAGS_NO_FPU)
- targets += neon1.c neon2.c neon4.c neon8.c
- $(obj)/neon%.c: $(src)/neon.uc $(src)/unroll.awk FORCE
- 	$(call if_changed,unroll)
+ KBUILD_CPPFLAGS	+= -I $(srctree)/arch/powerpc $(asinstr)
+ KBUILD_AFLAGS	+= $(AFLAGS-y)
+-KBUILD_CFLAGS	+= $(call cc-option,-msoft-float)
++KBUILD_CFLAGS	+= $(CC_FLAGS_NO_FPU)
+ KBUILD_CFLAGS	+= $(CFLAGS-y)
+ CPP		= $(CC) -E $(KBUILD_CFLAGS)
+ 
+diff --git a/arch/powerpc/include/asm/fpu.h b/arch/powerpc/include/asm/fpu.h
+new file mode 100644
+index 000000000000..ca584e4bc40f
+--- /dev/null
++++ b/arch/powerpc/include/asm/fpu.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (C) 2023 SiFive
++ */
++
++#ifndef _ASM_POWERPC_FPU_H
++#define _ASM_POWERPC_FPU_H
++
++#include <linux/preempt.h>
++
++#include <asm/cpu_has_feature.h>
++#include <asm/switch_to.h>
++
++#define kernel_fpu_available()	(!cpu_has_feature(CPU_FTR_FPU_UNAVAILABLE))
++
++static inline void kernel_fpu_begin(void)
++{
++	preempt_disable();
++	enable_kernel_fp();
++}
++
++static inline void kernel_fpu_end(void)
++{
++	disable_kernel_fp();
++	preempt_enable();
++}
++
++#endif /* ! _ASM_POWERPC_FPU_H */
 -- 
 2.44.0
 
