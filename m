@@ -1,139 +1,224 @@
-Received: from mail-yw1-f175.google.com (mail-yw1-f175.google.com [209.85.128.175])
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72D1C13A879
-	for <linux-arch@vger.kernel.org>; Fri, 29 Mar 2024 20:02:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.175
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AF6613985A;
+	Fri, 29 Mar 2024 20:35:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1711742537; cv=none; b=BUOhpWEs4cqNof4gAuzl2xGYGUAy2SYWY4SGdMMVtrZ0jnAXsnxSnbvHFcq2VLzKFK4H1EPdhUNJykxCBwTJcTwu12o4BZRG7PdrDOd8WeiYgepqYZjPfh6jJQZE+UrHm4mVP+lo304lWKpySMukbtsZalcciXoJ4KAvR8UYm5c=
+	t=1711744502; cv=none; b=fjcYnOCS7m7++i3mArJETlO99jp5LHVpDekfQ1dZyeMRjBF0Cpe2hAUeUh2A4DcERRQvb3/72zlFOhXnasMv3uwJDatB2vi6zhTUazXTg8DkWm3iACGEOAO17G8ZyrRSvG2VBCQOb1TYOIZ8Ue6RVuO2+O0Zb7+44GJq7IXaYNk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1711742537; c=relaxed/simple;
-	bh=4s7FSUVD/FVF5uIwuXZCch5XKC36897y0OwJwUbVkWU=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=DouRZLsaEyvL+nvEE2Q1BDA40rC5sMBdmWE1ywdjZ+vxpAXL3VoRfbJ8ds2/H2/fD5ubnwTOweWmT60atRdDjCP0tfv8U1puSLVzYuaSG7EKSw976y3pdrY+8mB/uw/OXGDVSsNGOAe0TY6Rt3fSjvDAckEAsgmGUV5CApmxFcg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=rivosinc.com; spf=pass smtp.mailfrom=rivosinc.com; dkim=pass (2048-bit key) header.d=rivosinc-com.20230601.gappssmtp.com header.i=@rivosinc-com.20230601.gappssmtp.com header.b=PpdbJ3dL; arc=none smtp.client-ip=209.85.128.175
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=rivosinc.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=rivosinc.com
+	s=arc-20240116; t=1711744502; c=relaxed/simple;
+	bh=1F3bC9AfluAx91aimWFrXnEkMkyhFJNbxwKmrZG2b8A=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=G5m4m4klNzHchv/BCT9LAxOunHNrRG5DniTGhZxfquKU2Y+5GL5EBmjVQhVT8gyUxaqW9x8dKZHhDQyqbgpeTkCOlH0oaYaAi2JgP+/hXICleYyN1nG/9uDj6lqzsMNni7Vl6viIdW0A3GDviyJB4Ixk0z4xyDAK1WJnM3JMMzg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de; spf=pass smtp.mailfrom=suse.de; dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b=0N/h/M4o; dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b=pmoyIzmQ; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=rivosinc-com.20230601.gappssmtp.com header.i=@rivosinc-com.20230601.gappssmtp.com header.b="PpdbJ3dL"
-Received: by mail-yw1-f175.google.com with SMTP id 00721157ae682-611639a0e4eso20881107b3.0
-        for <linux-arch@vger.kernel.org>; Fri, 29 Mar 2024 13:02:15 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=rivosinc-com.20230601.gappssmtp.com; s=20230601; t=1711742534; x=1712347334; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=t40h4ZVVyU3YcHuS3ADegeoOz9PnpHCj92mWxUgwXKE=;
-        b=PpdbJ3dLERUkITJYMoM+a1cy/96JymF+wE1D1yJKQX5faXTDoD72D6WoH0axtT/aSs
-         Yz/BoJn7V8VbfqVkGpvBGRA+tAP/tOHT8chsRJ682qF6ZbPVud3ICpQAs/RhzGMdi43F
-         IwKLEhFhZpo48O/UbPyEolSn8HVhWo2fHAzMZenHzcYFXxgwE3iKO2XLjTlRSHjfRj9+
-         340BsyUD6TQCaikIUq/1pc/GuyEyw4xOWRkXnGOGw+gd9kxQNwUbzQ+rmWiNgxf9lKl4
-         zpUZona16fJXAtqbsRG65WeSQpklE2v1ubUdzBXVoIDFbkLAsfzspl5VW77VM9K48Awi
-         FqVw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1711742534; x=1712347334;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=t40h4ZVVyU3YcHuS3ADegeoOz9PnpHCj92mWxUgwXKE=;
-        b=tX4+x5GiCvFTdmOGjlDAHiglTqMI6nDWGyXYIK3VegtawKuIPYgOs/CoDRwcq+lWVg
-         ErJKqbHK39lWpKAvsfMaVpNs3Kfcu+T5HAPy3vanzEE1Ga9VNbQ+azAcySNq1VfiEzLO
-         WyHG/1Jy4Nga6o2bLFKrj8FridtWhSTo0kZEBdl7eavsquvHuOvEbt3kXbTFDz5Elojm
-         QmSyRSloUMV82MqYF3ssSzCMV5xFE/MWziZECnIMrgdz9ASQNZH+JtOK/4TXA2neAs9g
-         fhr9SN7Ea5Fkro4jWmciB+J+gE9GsL6agx31AiJKL3R3RJZF1XjiNfa6Up05lqLhaNor
-         0xsQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVY1yr4n6eCdo4RAKMzkhmDiRm+KlPxgw8/F364gH019kCLwfuWnJhFi5qihjmdOkoM33hc8cEAJGCLYOA//ior9UJYIuTwTRbShQ==
-X-Gm-Message-State: AOJu0YxLK99iQhesQEP9cxqnzf58xmzezNV5gDm6/PmwrK/Ub9ILxBsW
-	LcWyLmBYaEtly7g+IesILckNv3QNi8YnzyhBRETFHiVpbyZrC/m3EC83kh6LLPyyKFoB/DSzSPD
-	dPdISPLt6mHAs4M9aMSqGtAfMuHSv3+s+ZDdDoA==
-X-Google-Smtp-Source: AGHT+IGtnKg+yyXhs907Pora7J+RzD45KJQ+UfSqQQ1XkC5eECGLQ66rb6PRiDq9m4/5ND7CCb26prI4BwPY/uB5eaA=
-X-Received: by 2002:a25:f912:0:b0:dc7:494e:ff33 with SMTP id
- q18-20020a25f912000000b00dc7494eff33mr2270811ybe.7.1711742534274; Fri, 29 Mar
- 2024 13:02:14 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=suse.de header.i=@suse.de header.b="0N/h/M4o";
+	dkim=permerror (0-bit key) header.d=suse.de header.i=@suse.de header.b="pmoyIzmQ"
+Received: from imap2.dmz-prg2.suse.org (imap2.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:98])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id EFC633528A;
+	Fri, 29 Mar 2024 20:34:58 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.de; s=susede2_rsa;
+	t=1711744499; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=MEcgOTyAQAoXByBYKUR2lBKOa8ZhmGZAbpGTc5urdcs=;
+	b=0N/h/M4oFKP9e6JE78XEh1S/v6uJSKh1uvA1wPsCajar4AYYVB5MtoSQURwicU0FjTA3ZA
+	61MBm+lwJkoVB7qIrNvH3IDBG4ar+09OTaZYiATVbRQqTa3K+2VbkUVT17xAR/I3rqyXWN
+	Z87CE1W9k4JpKCgCEwSFnBh/TZXfcOY=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.de;
+	s=susede2_ed25519; t=1711744499;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=MEcgOTyAQAoXByBYKUR2lBKOa8ZhmGZAbpGTc5urdcs=;
+	b=pmoyIzmQMCIpxEEegRU389t/9HfEGPbkrxeN/Z4w3PlV59F1yC09nX/ACLDPrFrN/Qx5Ay
+	FEGw4evB+gjhIACQ==
+Authentication-Results: smtp-out1.suse.de;
+	dkim=none
+Received: from imap2.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap2.dmz-prg2.suse.org (Postfix) with ESMTPS id 06E2013A8B;
+	Fri, 29 Mar 2024 20:34:58 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap2.dmz-prg2.suse.org with ESMTPSA
+	id 2ONmAPIlB2YTPgAAn2gu4w
+	(envelope-from <tzimmermann@suse.de>); Fri, 29 Mar 2024 20:34:58 +0000
+From: Thomas Zimmermann <tzimmermann@suse.de>
+To: arnd@arndb.de,
+	sam@ravnborg.org,
+	javierm@redhat.com,
+	deller@gmx.de,
+	sui.jingfeng@linux.dev
+Cc: linux-arch@vger.kernel.org,
+	dri-devel@lists.freedesktop.org,
+	linux-fbdev@vger.kernel.org,
+	sparclinux@vger.kernel.org,
+	linux-sh@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org,
+	linux-parisc@vger.kernel.org,
+	linux-mips@vger.kernel.org,
+	linux-m68k@lists.linux-m68k.org,
+	loongarch@lists.linux.dev,
+	linux-arm-kernel@lists.infradead.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-kernel@vger.kernel.org,
+	Thomas Zimmermann <tzimmermann@suse.de>,
+	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH v3 1/3] arch: Select fbdev helpers with CONFIG_VIDEO
+Date: Fri, 29 Mar 2024 21:32:10 +0100
+Message-ID: <20240329203450.7824-2-tzimmermann@suse.de>
+X-Mailer: git-send-email 2.44.0
+In-Reply-To: <20240329203450.7824-1-tzimmermann@suse.de>
+References: <20240329203450.7824-1-tzimmermann@suse.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20240329044459.3990638-1-debug@rivosinc.com> <20240329044459.3990638-28-debug@rivosinc.com>
- <4b38393a-f69d-4a77-a896-b6cd42c7edcf@collabora.com>
-In-Reply-To: <4b38393a-f69d-4a77-a896-b6cd42c7edcf@collabora.com>
-From: Deepak Gupta <debug@rivosinc.com>
-Date: Fri, 29 Mar 2024 13:02:03 -0700
-Message-ID: <CAKC1njQ_RU=uHhrna=MFVdjAMjjQNqZWnkjPoJvO7CxtPMeNuQ@mail.gmail.com>
-Subject: Re: [PATCH v2 27/27] kselftest/riscv: kselftest for user mode cfi
-To: Muhammad Usama Anjum <usama.anjum@collabora.com>
-Cc: paul.walmsley@sifive.com, rick.p.edgecombe@intel.com, broonie@kernel.org, 
-	Szabolcs.Nagy@arm.com, kito.cheng@sifive.com, keescook@chromium.org, 
-	ajones@ventanamicro.com, conor.dooley@microchip.com, cleger@rivosinc.com, 
-	atishp@atishpatra.org, alex@ghiti.fr, bjorn@rivosinc.com, 
-	alexghiti@rivosinc.com, samuel.holland@sifive.com, palmer@sifive.com, 
-	conor@kernel.org, linux-doc@vger.kernel.org, linux-riscv@lists.infradead.org, 
-	linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-mm@kvack.org, 
-	linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, corbet@lwn.net, 
-	tech-j-ext@lists.risc-v.org, palmer@dabbelt.com, aou@eecs.berkeley.edu, 
-	robh+dt@kernel.org, krzysztof.kozlowski+dt@linaro.org, oleg@redhat.com, 
-	akpm@linux-foundation.org, arnd@arndb.de, ebiederm@xmission.com, 
-	Liam.Howlett@oracle.com, vbabka@suse.cz, lstoakes@gmail.com, shuah@kernel.org, 
-	brauner@kernel.org, andy.chiu@sifive.com, jerry.shih@sifive.com, 
-	hankuan.chen@sifive.com, greentime.hu@sifive.com, evan@rivosinc.com, 
-	xiao.w.wang@intel.com, charlie@rivosinc.com, apatel@ventanamicro.com, 
-	mchitale@ventanamicro.com, dbarboza@ventanamicro.com, sameo@rivosinc.com, 
-	shikemeng@huaweicloud.com, willy@infradead.org, vincent.chen@sifive.com, 
-	guoren@kernel.org, samitolvanen@google.com, songshuaishuai@tinylab.org, 
-	gerg@kernel.org, heiko@sntech.de, bhe@redhat.com, 
-	jeeheng.sia@starfivetech.com, cyy@cyyself.name, maskray@google.com, 
-	ancientmodern4@gmail.com, mathis.salmen@matsal.de, cuiyunhui@bytedance.com, 
-	bgray@linux.ibm.com, mpe@ellerman.id.au, baruch@tkos.co.il, alx@kernel.org, 
-	david@redhat.com, catalin.marinas@arm.com, revest@chromium.org, 
-	josh@joshtriplett.org, shr@devkernel.io, deller@gmx.de, omosnace@redhat.com, 
-	ojeda@kernel.org, jhubbard@nvidia.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+X-Spam-Score: 2.89
+X-Spam-Flag: NO
+X-Spamd-Bar: ++
+X-Spamd-Result: default: False [2.89 / 50.00];
+	 ARC_NA(0.00)[];
+	 RCVD_VIA_SMTP_AUTH(0.00)[];
+	 FROM_HAS_DN(0.00)[];
+	 TO_DN_SOME(0.00)[];
+	 FREEMAIL_ENVRCPT(0.00)[gmx.de];
+	 R_MISSING_CHARSET(2.50)[];
+	 MIME_GOOD(-0.10)[text/plain];
+	 TO_MATCH_ENVRCPT_ALL(0.00)[];
+	 BROKEN_CONTENT_TYPE(1.50)[];
+	 DNSWL_BLOCKED(0.00)[2a07:de40:b281:104:10:150:64:98:from];
+	 NEURAL_HAM_LONG(-1.00)[-1.000];
+	 RCVD_COUNT_THREE(0.00)[3];
+	 DKIM_SIGNED(0.00)[suse.de:s=susede2_rsa,suse.de:s=susede2_ed25519];
+	 MX_GOOD(-0.01)[];
+	 NEURAL_HAM_SHORT(-0.20)[-0.999];
+	 RCPT_COUNT_TWELVE(0.00)[28];
+	 MID_CONTAINS_FROM(1.00)[];
+	 DBL_BLOCKED_OPENRESOLVER(0.00)[suse.de:email,intel.com:email];
+	 FREEMAIL_TO(0.00)[arndb.de,ravnborg.org,redhat.com,gmx.de,linux.dev];
+	 FUZZY_BLOCKED(0.00)[rspamd.com];
+	 FROM_EQ_ENVFROM(0.00)[];
+	 R_DKIM_NA(2.20)[];
+	 MIME_TRACE(0.00)[0:+];
+	 RCVD_TLS_ALL(0.00)[];
+	 BAYES_HAM(-3.00)[100.00%]
+X-Spam-Level: **
+X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
+X-Rspamd-Queue-Id: EFC633528A
 
-On Fri, Mar 29, 2024 at 12:50=E2=80=AFPM Muhammad Usama Anjum
-<usama.anjum@collabora.com> wrote:
->
-> On 3/29/24 9:44 AM, Deepak Gupta wrote:
-> > Adds kselftest for RISC-V control flow integrity implementation for use=
-r
-> > mode. There is not a lot going on in kernel for enabling landing pad fo=
-r
-> > user mode. Thus kselftest simply enables landing pad for the binary and
-> > a signal handler is registered for SIGSEGV. Any control flow violation =
-are
-> > reported as SIGSEGV with si_code =3D SEGV_CPERR. Test will fail on reci=
-eving
-> > any SEGV_CPERR. Shadow stack part has more changes in kernel and thus t=
-here
-> > are separate tests for that
-> >       - enable and disable
-> >       - Exercise `map_shadow_stack` syscall
-> >       - `fork` test to make sure COW works for shadow stack pages
-> >       - gup tests
-> >         As of today kernel uses FOLL_FORCE when access happens to memor=
-y via
-> >         /proc/<pid>/mem. Not breaking that for shadow stack
-> >       - signal test. Make sure signal delivery results in token creatio=
-n on
-> >       shadow stack and consumes (and verifies) token on sigreturn
-> >     - shadow stack protection test. attempts to write using regular sto=
-re
-> >         instruction on shadow stack memory must result in access faults
-> >
-> > Signed-off-by: Deepak Gupta <debug@rivosinc.com>
-> > ---
-> >  tools/testing/selftests/riscv/Makefile        |   2 +-
-> >  tools/testing/selftests/riscv/cfi/Makefile    |  10 +
-> >  .../testing/selftests/riscv/cfi/cfi_rv_test.h |  85 ++++
-> >  .../selftests/riscv/cfi/riscv_cfi_test.c      |  91 +++++
-> >  .../testing/selftests/riscv/cfi/shadowstack.c | 376 ++++++++++++++++++
-> >  .../testing/selftests/riscv/cfi/shadowstack.h |  39 ++
-> Please add generated binaries in the .gitignore files.
+Various Kconfig options selected the per-architecture helpers for
+fbdev. But none of the contained code depends on fbdev. Standardize
+on CONFIG_VIDEO, which will allow to add more general helpers for
+video functionality.
 
-hmm...
-I don't see binary as part of the patch. Which file are you referring
-to here being binary?
+CONFIG_VIDEO protects each architecture's video/ directory. This
+allows for the use of more fine-grained control for each directory's
+files, such as the use of CONFIG_STI_CORE on parisc.
 
->
+v2:
+- sparc: rebased onto Makefile changes
+
+Signed-off-by: Thomas Zimmermann <tzimmermann@suse.de>
+Reviewed-by: Sam Ravnborg <sam@ravnborg.org>
+Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
+Cc: Helge Deller <deller@gmx.de>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Andreas Larsson <andreas@gaisler.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: x86@kernel.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+---
+ arch/parisc/Makefile      | 2 +-
+ arch/sparc/Makefile       | 4 ++--
+ arch/sparc/video/Makefile | 2 +-
+ arch/x86/Makefile         | 2 +-
+ arch/x86/video/Makefile   | 3 ++-
+ 5 files changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/arch/parisc/Makefile b/arch/parisc/Makefile
+index 316f84f1d15c8..21b8166a68839 100644
+--- a/arch/parisc/Makefile
++++ b/arch/parisc/Makefile
+@@ -119,7 +119,7 @@ export LIBGCC
+ 
+ libs-y	+= arch/parisc/lib/ $(LIBGCC)
+ 
+-drivers-y += arch/parisc/video/
++drivers-$(CONFIG_VIDEO) += arch/parisc/video/
+ 
+ boot	:= arch/parisc/boot
+ 
+diff --git a/arch/sparc/Makefile b/arch/sparc/Makefile
+index 2a03daa68f285..757451c3ea1df 100644
+--- a/arch/sparc/Makefile
++++ b/arch/sparc/Makefile
+@@ -59,8 +59,8 @@ endif
+ libs-y                 += arch/sparc/prom/
+ libs-y                 += arch/sparc/lib/
+ 
+-drivers-$(CONFIG_PM) += arch/sparc/power/
+-drivers-$(CONFIG_FB_CORE) += arch/sparc/video/
++drivers-$(CONFIG_PM)    += arch/sparc/power/
++drivers-$(CONFIG_VIDEO) += arch/sparc/video/
+ 
+ boot := arch/sparc/boot
+ 
+diff --git a/arch/sparc/video/Makefile b/arch/sparc/video/Makefile
+index d4d83f1702c61..9dd82880a027a 100644
+--- a/arch/sparc/video/Makefile
++++ b/arch/sparc/video/Makefile
+@@ -1,3 +1,3 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
+-obj-$(CONFIG_FB_CORE) += fbdev.o
++obj-y	+= fbdev.o
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index 662d9d4033e6b..b80d15c29ecc6 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -260,7 +260,7 @@ drivers-$(CONFIG_PCI)            += arch/x86/pci/
+ # suspend and hibernation support
+ drivers-$(CONFIG_PM) += arch/x86/power/
+ 
+-drivers-$(CONFIG_FB_CORE) += arch/x86/video/
++drivers-$(CONFIG_VIDEO) += arch/x86/video/
+ 
+ ####
+ # boot loader support. Several targets are kept for legacy purposes
+diff --git a/arch/x86/video/Makefile b/arch/x86/video/Makefile
+index 5ebe48752ffc4..9dd82880a027a 100644
+--- a/arch/x86/video/Makefile
++++ b/arch/x86/video/Makefile
+@@ -1,2 +1,3 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-obj-$(CONFIG_FB_CORE)		+= fbdev.o
++
++obj-y	+= fbdev.o
+-- 
+2.44.0
+
