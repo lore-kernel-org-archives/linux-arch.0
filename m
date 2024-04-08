@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E7031448D4;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 452C114431C;
 	Mon,  8 Apr 2024 17:49:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1712598587; cv=none; b=alCk//doUX8KQZNDnAqbEcNJHzYN8ijQI2HpZRZRxEx1SHXQr200dEtPRk9T+VnW7f9g03iDOEM/M6EPT7gEYEWf4mgfxtN4xagF/BCvr80TNqWsoNXHETKIsCvjjmnogM0EyJF8XVCw7OWOuTPHw6l1YOT2LWW9ud7bvANtX9E=
+	t=1712598587; cv=none; b=dZrCj2HLWzXf89B0uOHmaSn+WKwJEVDJy90GeB226ePmjeENnT3xQJfOeO6BIvwEzMS0JmAAmD8UGRNU0MZR677mKCrJL8h+Y6Rfj/iIEo002fFvJpYI/+wCLKIXyOOg59q1yipP3R22W5ruUTX40q1zTg8ADH/XY3fbxrTna/0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1712598587; c=relaxed/simple;
-	bh=CsdoBFIa1iUKUh43LG7ixotspstLiAd1X2CXa4pgxHQ=;
+	bh=JQmLzMtBpKC/TtfERldphRZSepAv95vPmjK1jOVEaZM=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=cBuorKHF+BnrFXEsjf+iHga+nrhNcPccNwxkFeFMR+zW131f4pGW6qrdXMw+zbKphsfnbhRjHtef616efsiHnWp8mFK2V3ajqi0F14FwI4PJ+1n4MDa/nsAYEbyL+zVG8iwLE/lA0GNDsoveQzYzogx5ETGHcc7GAZcgsFaNKpo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=AyTIZnDM; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=gr+TQClgVwNxIJewvrQ0o8i24svb5fhwoXOjkwfyonahoVrsF00drVxssSGyFfhaUinKNu9kPvVn1aDNtx7hlrN8PkAKnIi245oBtZ0rcA83LCYoi4uWLi5ibZpF/pddIf3Ur8sxbHrFFTDTokNKAhuCa9oBpyMQU5Dpx6EOXVQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=EaTuN8fN; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="AyTIZnDM"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1FADFC41679;
-	Mon,  8 Apr 2024 17:49:47 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="EaTuN8fN"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id EE318C43601;
+	Mon,  8 Apr 2024 17:49:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1712598587;
-	bh=CsdoBFIa1iUKUh43LG7ixotspstLiAd1X2CXa4pgxHQ=;
+	bh=JQmLzMtBpKC/TtfERldphRZSepAv95vPmjK1jOVEaZM=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=AyTIZnDMdDNdEeZd8JhwXdayK4jqjWb/AQJ8n1boadxn4LgqbDKQFSVuvoL3FSTaz
-	 qufXEp960YoUMK16/1hEBbFzCtUaOyca/liTZ/vOKRLCBiAoTKdMYuaDyHf32V5ADl
-	 V25qgGiNzd2YB7+a/YPPYHq+Fm6IdNBjj7GtQhiXB+HetnLq779PjU/YCUCt77Bu0t
-	 kkaG9fRdkygxlehPmmMHYpuO60oDnJAwNg1FWJ8SqIIJnlZ3vWAO2A/Gyv+QzsnD4v
-	 fal812wQxjsFRlwCqcp31MJqDy8EmTATfV6WZb6rAjwHvkJglbJ0wMrdcDQC3i6Ss9
-	 +NBhEFKZzW+5g==
+	b=EaTuN8fNI0+WZ62ylMY5dtBA33Pfm7uJAF3/3+yfk5Zo16QAlWA8dH8RV94LQTAcB
+	 /TCbzXBUNABV7sW6dZ4fh1hiI08jTyXC0FqnoonimRb9h8uRLZEVvJGtfCdXDyJ9Mg
+	 FOxpgXWzr43xO1S4Xgo5fKP+fhqrZWy9YfU8jRmqINHdw4J/AJ3QTAFgOwPJUFVz8V
+	 Xm9zngLOHXi0nSHh71nhcRmYJh28WgQz29EYvoSljw700jTBJma1QDjcjSmy9DQRip
+	 QtArN/yxzD8mP1hkGIf2ofhq9GxDfEJNfcTiotgQNBwuZ9W2OSQHandTmih2gLhWNJ
+	 F9bO+7hcgEFWQ==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 5A71FCE2CD9; Mon,  8 Apr 2024 10:49:46 -0700 (PDT)
+	id 4CA58CE2CCC; Mon,  8 Apr 2024 10:49:46 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org
@@ -39,14 +39,11 @@ Cc: elver@google.com,
 	pmladek@suse.com,
 	torvalds@linux-foundation.org,
 	Arnd Bergmann <arnd@arndb.de>,
-	"Paul E. McKenney" <paulmck@kernel.org>,
-	Andi Shyti <andi.shyti@linux.intel.com>,
-	Palmer Dabbelt <palmer@rivosinc.com>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	linux-sh@vger.kernel.org
-Subject: [PATCH cmpxchg 12/14] sh: Emulate one-byte cmpxchg
-Date: Mon,  8 Apr 2024 10:49:42 -0700
-Message-Id: <20240408174944.907695-12-paulmck@kernel.org>
+	Al Viro <viro@zeniv.linux.org.uk>,
+	"Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH cmpxchg 07/14] parisc: add missing export of __cmpxchg_u8()
+Date: Mon,  8 Apr 2024 10:49:37 -0700
+Message-Id: <20240408174944.907695-7-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
 References: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
@@ -58,46 +55,31 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Use the new cmpxchg_emu_u8() to emulate one-byte cmpxchg() on sh.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-[ paulmck: Drop two-byte support per Arnd Bergmann feedback. ]
+__cmpxchg_u8() had been added (initially) for the sake of
+drivers/phy/ti/phy-tusb1210.c; the thing is, that drivers is
+modular, so we need an export
 
+Fixes: b344d6a83d01 "parisc: add support for cmpxchg on u8 pointers"
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-Cc: Andi Shyti <andi.shyti@linux.intel.com>
-Cc: Palmer Dabbelt <palmer@rivosinc.com>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: <linux-sh@vger.kernel.org>
 ---
- arch/sh/Kconfig               | 1 +
- arch/sh/include/asm/cmpxchg.h | 2 ++
- 2 files changed, 3 insertions(+)
+ arch/parisc/kernel/parisc_ksyms.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index 2ad3e29f0ebec..f47e9ccf4efd2 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -16,6 +16,7 @@ config SUPERH
- 	select ARCH_HIBERNATION_POSSIBLE if MMU
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_WANT_IPC_PARSE_VERSION
-+	select ARCH_NEED_CMPXCHG_1_EMU
- 	select CPU_NO_EFFICIENT_FFS
- 	select DMA_DECLARE_COHERENT
- 	select GENERIC_ATOMIC64
-diff --git a/arch/sh/include/asm/cmpxchg.h b/arch/sh/include/asm/cmpxchg.h
-index 5d617b3ef78f7..27a9040983cfe 100644
---- a/arch/sh/include/asm/cmpxchg.h
-+++ b/arch/sh/include/asm/cmpxchg.h
-@@ -56,6 +56,8 @@ static inline unsigned long __cmpxchg(volatile void * ptr, unsigned long old,
- 		unsigned long new, int size)
- {
- 	switch (size) {
-+	case 1:
-+		return cmpxchg_emu_u8((volatile u8 *)ptr, old, new);
- 	case 4:
- 		return __cmpxchg_u32(ptr, old, new);
- 	}
+diff --git a/arch/parisc/kernel/parisc_ksyms.c b/arch/parisc/kernel/parisc_ksyms.c
+index 6f0c92e8149d8..dcf61cbd31470 100644
+--- a/arch/parisc/kernel/parisc_ksyms.c
++++ b/arch/parisc/kernel/parisc_ksyms.c
+@@ -22,6 +22,7 @@ EXPORT_SYMBOL(memset);
+ #include <linux/atomic.h>
+ EXPORT_SYMBOL(__xchg8);
+ EXPORT_SYMBOL(__xchg32);
++EXPORT_SYMBOL(__cmpxchg_u8);
+ EXPORT_SYMBOL(__cmpxchg_u32);
+ EXPORT_SYMBOL(__cmpxchg_u64);
+ #ifdef CONFIG_SMP
 -- 
 2.40.1
 
