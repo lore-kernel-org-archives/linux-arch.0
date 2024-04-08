@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 411F114430D;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44DB414430E;
 	Mon,  8 Apr 2024 17:49:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1712598587; cv=none; b=bag+Ny48dNbKq5+zwYPwZ1D9S8bB7tL/vYtV34L1RdbsN24p8BiPGkI77F1KKhudtu7B9JcZ7AeTPSx354ysBOwjCRq/5hQM0mXTtJLOQxXfRgHYSEpjIRfTvDXDxbbjZ8AuNLeCXRkslHhFOQyptJ3at5ewH21iT/BLJKJiaCg=
+	t=1712598587; cv=none; b=VKA93r30OrmcKNj3idxqG9lJMgp1WU5w9E5GbcVafS7isA8CZks85a/xTEX7ICWapbbb+12LHUUv8D2KE/THlMNhj2UVF+Oc9mic1KQASDAgCCn4xhQLQnxtATYoZdBvNVUwT0jAD0hMWG3bWqRWUNPIlDbS5h725drRiv0wOZ4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1712598587; c=relaxed/simple;
-	bh=tfMsSeoEnAanJOvsNUK1ZSGwuyHwUMHJZxMmkLFM9oM=;
+	bh=1iPZOptm0sNwEG3zVn5V4DRrsb9XL24MUs8zOVTokRw=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=XLG8OP9znCSa5Goao/gOZWYveJEFF0FtIm0AjeGx56ZGaksJoSU0r1tOwZPztmPj5qLJVYNLX2tq1RwkSarZrktK+0/XuJVyx8VnmEZiHxKUFdESPThGNOla/tupvkwljy4d8kVOneGOuw93W94FMLFQoebpiGeWOsyjv5DDV1M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Fy8cbsHj; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=TjULCnScOPwrf8XVC76TNHzm3CceBqOTsV1MVA9+PW1ZjkI1TwckBUd+Uo+d45vVbs9p5ysL2ShUxALRmvcVh/i25yWZNyCv9rtr/TIkKxqPfYVIkBBdSldIFK61hGPj60A5VHnWD82h/CJVN93BY+ExKtsL6nGIIDQ16G35zSo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UwI2ewdr; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Fy8cbsHj"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 12396C4166B;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UwI2ewdr"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 017A2C43143;
 	Mon,  8 Apr 2024 17:49:47 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1712598587;
-	bh=tfMsSeoEnAanJOvsNUK1ZSGwuyHwUMHJZxMmkLFM9oM=;
+	bh=1iPZOptm0sNwEG3zVn5V4DRrsb9XL24MUs8zOVTokRw=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Fy8cbsHj41PBvy142ggT5VF4bjQpqQj5tVH6mMSOeBiI2gWJSNxGwfIrWI5dgXs45
-	 8H+qV+/sPsvmH2wG5HAI26Xrsz8vHSMDr+6ahlihXdJbd8VOe0fcsHzFFra/eMs7S2
-	 wTfHCDyLbT8x6oo//Wy9DTDKgKwPq3LysoiJs8TQ7qw+l2xmPXciuiq/UUzdSKfcod
-	 5josUU5CMZy+Al/Tz2qZVrW7p/Mle95lxAwRcPOvlIbjSO0t8reXFUbwYJzDQOR0k1
-	 l/uFbi6BvFPyCRxBgF/O9AILZGqmKaCtvyb6FrmC8fTV7BmUs6SAEitXued40oo2gf
-	 VAaoRDF/lE/0A==
+	b=UwI2ewdrRIMjK8yclC1KQaZLwf1y10Wn6huH7A8TRjI/S9aWqK1lRWhKmdomftXVI
+	 GlBjjzxFmZKOJeXII+qqrstSg/6xqMGZd9okUtPSqhU/nG8Kg/wMdPt5c1hreBKtGz
+	 Oanb+2osQf22/awafAu5FcL0zkgm/JI4mTmmzMFJSEBhq1f3mEceV/zC9kvbjnH4Iy
+	 Lipk0Qhkxtz0CHP5RvydAJNvrJgylz6zayNV3W1lvaAQK/SE1vs5AyntTDWfDK+zS3
+	 OnWWzv9/oGsO5aTuRECpkBymQD+uhWCp233BQx4283l3jrAqY5UzggUyxSylgpdl9w
+	 WNjRI0YrZlyXA==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 54D52CE2CD2; Mon,  8 Apr 2024 10:49:46 -0700 (PDT)
+	id 4F2CBCE2CCD; Mon,  8 Apr 2024 10:49:46 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org
@@ -39,15 +39,11 @@ Cc: elver@google.com,
 	pmladek@suse.com,
 	torvalds@linux-foundation.org,
 	Arnd Bergmann <arnd@arndb.de>,
-	"Paul E. McKenney" <paulmck@kernel.org>,
-	Vineet Gupta <vgupta@kernel.org>,
-	Andi Shyti <andi.shyti@linux.intel.com>,
-	Andrzej Hajda <andrzej.hajda@intel.com>,
-	Palmer Dabbelt <palmer@rivosinc.com>,
-	linux-snps-arc@lists.infradead.org
-Subject: [PATCH cmpxchg 10/14] ARC: Emulate one-byte cmpxchg
-Date: Mon,  8 Apr 2024 10:49:40 -0700
-Message-Id: <20240408174944.907695-10-paulmck@kernel.org>
+	Al Viro <viro@zeniv.linux.org.uk>,
+	"Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH cmpxchg 08/14] parisc: add u16 support to cmpxchg()
+Date: Mon,  8 Apr 2024 10:49:38 -0700
+Message-Id: <20240408174944.907695-8-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
 References: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
@@ -59,86 +55,84 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Use the new cmpxchg_emu_u8() to emulate one-byte cmpxchg() on arc.
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-[ paulmck: Drop two-byte support per Arnd Bergmann feedback. ]
+Add (and export) __cmpxchg_u16(), teach __cmpxchg() to use it.
 
+And get rid of manual truncation down to u8, etc. in there - the
+only reason for those is to avoid bogus warnings about constant
+truncation from sparse, and those are easy to avoid by turning
+that switch into conditional expression.
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-Cc: Vineet Gupta <vgupta@kernel.org>
-Cc: Andi Shyti <andi.shyti@linux.intel.com>
-Cc: Andrzej Hajda <andrzej.hajda@intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Palmer Dabbelt <palmer@rivosinc.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: <linux-snps-arc@lists.infradead.org>
 ---
- arch/arc/Kconfig               |  1 +
- arch/arc/include/asm/cmpxchg.h | 32 +++++++++++++++++++++++---------
- 2 files changed, 24 insertions(+), 9 deletions(-)
+ arch/parisc/include/asm/cmpxchg.h | 19 +++++++++----------
+ arch/parisc/kernel/parisc_ksyms.c |  1 +
+ arch/parisc/lib/bitops.c          |  1 +
+ 3 files changed, 11 insertions(+), 10 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 99d2845f3feb9..5bf6137f0fd47 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -14,6 +14,7 @@ config ARC
- 	select ARCH_HAS_SETUP_DMA_OPS
- 	select ARCH_HAS_SYNC_DMA_FOR_CPU
- 	select ARCH_HAS_SYNC_DMA_FOR_DEVICE
-+	select ARCH_NEED_CMPXCHG_1_EMU
- 	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
- 	select ARCH_32BIT_OFF_T
- 	select BUILDTIME_TABLE_SORT
-diff --git a/arch/arc/include/asm/cmpxchg.h b/arch/arc/include/asm/cmpxchg.h
-index e138fde067dea..c3833e18389f4 100644
---- a/arch/arc/include/asm/cmpxchg.h
-+++ b/arch/arc/include/asm/cmpxchg.h
-@@ -46,6 +46,9 @@
- 	__typeof__(*(ptr)) _prev_;					\
- 									\
- 	switch(sizeof((_p_))) {						\
-+	case 1:								\
-+		_prev_ = cmpxchg_emu_u8((volatile u8 *)_p_, _o_, _n_);	\
-+		break;							\
- 	case 4:								\
- 		_prev_ = __cmpxchg(_p_, _o_, _n_);			\
- 		break;							\
-@@ -65,16 +68,27 @@
- 	__typeof__(*(ptr)) _prev_;					\
- 	unsigned long __flags;						\
- 									\
--	BUILD_BUG_ON(sizeof(_p_) != 4);					\
-+	switch(sizeof((_p_))) {						\
-+	case 1:								\
-+		__flags = cmpxchg_emu_u8((volatile u8 *)_p_, _o_, _n_);	\
-+		_prev_ = (__typeof__(*(ptr)))__flags;			\
-+		break;							\
-+		break;							\
-+	case 4:								\
-+		/*							\
-+		 * spin lock/unlock provide the needed smp_mb()		\
-+		 * before/after						\
-+		 */							\
-+		atomic_ops_lock(__flags);				\
-+		_prev_ = *_p_;						\
-+		if (_prev_ == _o_)					\
-+			*_p_ = _n_;					\
-+		atomic_ops_unlock(__flags);				\
-+		break;							\
-+	default:							\
-+		BUILD_BUG();						\
-+	}								\
- 									\
--	/*								\
--	 * spin lock/unlock provide the needed smp_mb() before/after	\
--	 */								\
--	atomic_ops_lock(__flags);					\
--	_prev_ = *_p_;							\
--	if (_prev_ == _o_)						\
--		*_p_ = _n_;						\
--	atomic_ops_unlock(__flags);					\
- 	_prev_;								\
- })
+diff --git a/arch/parisc/include/asm/cmpxchg.h b/arch/parisc/include/asm/cmpxchg.h
+index 0924ebc576d28..bf0a0f1189eb2 100644
+--- a/arch/parisc/include/asm/cmpxchg.h
++++ b/arch/parisc/include/asm/cmpxchg.h
+@@ -56,25 +56,24 @@ __arch_xchg(unsigned long x, volatile void *ptr, int size)
+ /* bug catcher for when unsupported size is used - won't link */
+ extern void __cmpxchg_called_with_bad_pointer(void);
  
+-/* __cmpxchg_u32/u64 defined in arch/parisc/lib/bitops.c */
++/* __cmpxchg_u... defined in arch/parisc/lib/bitops.c */
++extern u8 __cmpxchg_u8(volatile u8 *ptr, u8 old, u8 new_);
++extern u16 __cmpxchg_u16(volatile u16 *ptr, u16 old, u16 new_);
+ extern u32 __cmpxchg_u32(volatile u32 *m, u32 old, u32 new_);
+ extern u64 __cmpxchg_u64(volatile u64 *ptr, u64 old, u64 new_);
+-extern u8 __cmpxchg_u8(volatile u8 *ptr, u8 old, u8 new_);
+ 
+ /* don't worry...optimizer will get rid of most of this */
+ static inline unsigned long
+ __cmpxchg(volatile void *ptr, unsigned long old, unsigned long new_, int size)
+ {
+-	switch (size) {
++	return
+ #ifdef CONFIG_64BIT
+-	case 8: return __cmpxchg_u64((u64 *)ptr, old, new_);
++		size == 8 ? __cmpxchg_u64(ptr, old, new_) :
+ #endif
+-	case 4: return __cmpxchg_u32((unsigned int *)ptr,
+-				     (unsigned int)old, (unsigned int)new_);
+-	case 1: return __cmpxchg_u8((u8 *)ptr, old & 0xff, new_ & 0xff);
+-	}
+-	__cmpxchg_called_with_bad_pointer();
+-	return old;
++		size == 4 ? __cmpxchg_u32(ptr, old, new_) :
++		size == 2 ? __cmpxchg_u16(ptr, old, new_) :
++		size == 1 ? __cmpxchg_u8(ptr, old, new_) :
++			(__cmpxchg_called_with_bad_pointer(), old);
+ }
+ 
+ #define arch_cmpxchg(ptr, o, n)						 \
+diff --git a/arch/parisc/kernel/parisc_ksyms.c b/arch/parisc/kernel/parisc_ksyms.c
+index dcf61cbd31470..c1587aa35beb6 100644
+--- a/arch/parisc/kernel/parisc_ksyms.c
++++ b/arch/parisc/kernel/parisc_ksyms.c
+@@ -23,6 +23,7 @@ EXPORT_SYMBOL(memset);
+ EXPORT_SYMBOL(__xchg8);
+ EXPORT_SYMBOL(__xchg32);
+ EXPORT_SYMBOL(__cmpxchg_u8);
++EXPORT_SYMBOL(__cmpxchg_u16);
+ EXPORT_SYMBOL(__cmpxchg_u32);
+ EXPORT_SYMBOL(__cmpxchg_u64);
+ #ifdef CONFIG_SMP
+diff --git a/arch/parisc/lib/bitops.c b/arch/parisc/lib/bitops.c
+index cae30a3eb6d9b..9df8100506427 100644
+--- a/arch/parisc/lib/bitops.c
++++ b/arch/parisc/lib/bitops.c
+@@ -71,4 +71,5 @@ unsigned long notrace __xchg8(char x, volatile char *ptr)
+ 
+ CMPXCHG(u64)
+ CMPXCHG(u32)
++CMPXCHG(u16)
+ CMPXCHG(u8)
 -- 
 2.40.1
 
