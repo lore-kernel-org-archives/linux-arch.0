@@ -1,142 +1,124 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 592AF143C64;
-	Mon,  8 Apr 2024 17:47:48 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C524B8662A;
+	Mon,  8 Apr 2024 17:49:46 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1712598468; cv=none; b=iBM1y1t7EdVyimrjehWNJrXj8bRYGOHvZq9wI3XD3cQeUq8VW5EwkrL5uy9ZDK/SCTni65E+0py8MEL10Otk58woydMxtYsa3qf80Qd4abSvT6p6ygREKECsXJkj25pXqReCQR0+jjGBKIYfdBxmfGVNZWFsbaVBs8oQkOhjkPQ=
+	t=1712598586; cv=none; b=YlTXkV1D3XVOcbzDq3FLZBr9+UZ0J1Ncdaez6QouZvNExsRjISvxBAfY5s5SJeLQzyKmSMXQWeRe1LkrFijq74oiGARGRWhWZ2/duFAUZLsAVPG0+QBmT+3/I2pJ+MEfeqt+guXCqMyu5F7BshdpSLqPRk0PbXnvvN+hKFYiL1U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1712598468; c=relaxed/simple;
-	bh=hthrMF23hrV7RDKnYkCQipSHR0wxEktgjaf796DaoDs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LjxJOZZogjV0hzSRKXby9V9oYw6LukF8V1Cra7UN8DcbR/RUqwJw7nUlEQFSxfpAUbIAzs+v3xypf+ya5PGiDwy6JeyY1xRZpE13Ewmz+3miaPUZzsQ9tzl15/XDByfPSCM49ZBZCsriH6eGCHWdsQn/vVOAzVGfLNNOB6pexUg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WGNktws4; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1712598586; c=relaxed/simple;
+	bh=c2cXyTpfqV8tv5AG0/sE+MGJrrEmGRkliM6KcM6nVj0=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=AEr++b6yvvmh21GcWdg5Eib5gRpogvBOUYv842MIpA5IG5nSKmcWdhNH32oDE5t9oUtIE2nq88lKyvyY86xTRkEnQMOGRAObeQDKtGtV4Bg7qiwxEwUOeo7A7MhoSTVtIczwcM1TzAP3XI0KIcO0UtJAOJsr4zjraDhMROooBtI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=pkDaCYAs; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WGNktws4"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DE569C433F1;
-	Mon,  8 Apr 2024 17:47:47 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="pkDaCYAs"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 9B31DC43394;
+	Mon,  8 Apr 2024 17:49:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1712598467;
-	bh=hthrMF23hrV7RDKnYkCQipSHR0wxEktgjaf796DaoDs=;
-	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
-	b=WGNktws4jrKrfs0hp9jzy2Rg5s6G+ayHXXoAJFBujBxETGjf8N+UUSKjr03tlm+C3
-	 63k6v3IxOvf8o4z4eS3djGlgP8Iyo2ulyVQ2890TFXS14M5zm52QWY5hoMl8BBxniz
-	 sTHOzbwiZPBP09ZFgQ+cDxcHZEPmONohpNmtaJMY/qImG/AcT9QfY2e0L0w8oT6sDB
-	 QMzTi6K2KY7kpurfxHGFKOfRJLHmgcOMZJxfeiFIF3WDczzEonk+yUorBgj+iRGVBJ
-	 zbMV0z9/+t/HJdkNMcf04aXWaSZbewcNOMQGRdod/ydnMmv05NSvvv/fIGM+uiadrh
-	 O251MTKUs79NA==
+	s=k20201202; t=1712598586;
+	bh=c2cXyTpfqV8tv5AG0/sE+MGJrrEmGRkliM6KcM6nVj0=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=pkDaCYAs8wLBAmNJrQPXv0CPsOdpVGkdbWveLaEfw1DCONWIadMw4soW1dhYpyu94
+	 Fdnlow2GF5HBAOWrscn4a3d48e6Df1PgZASM6kmDIH/NTP9D6dGKvJi8+Ez1zIqO8t
+	 qGS9UyZYitPRSyzVY/qDb61ftb1KhNpVZHDdS6C4Pv+TD8hO7fMyrO1ED+gxNTk0fB
+	 X+b7tRdoLdz3ubZ1PyfPI1w/hxtjxi5MKUsuJogRQPqXgZnbJEK6dkoAQxikoxAoNk
+	 HwQ/eRmDx6HqLJmZX4XRDGNqZGfScEnjz3dVkET7J8Sl24WpKn7kgJo4LM11uzmy8j
+	 3fsbrcPuREMqw==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 6A1E4CE126C; Mon,  8 Apr 2024 10:47:46 -0700 (PDT)
-Date: Mon, 8 Apr 2024 10:47:46 -0700
+	id 417E2CE13F0; Mon,  8 Apr 2024 10:49:46 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: elver@google.com, akpm@linux-foundation.org, tglx@linutronix.de,
-	peterz@infradead.org, dianders@chromium.org, pmladek@suse.com,
-	torvalds@linux-foundation.org, Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH RFC cmpxchg 0/8] Provide emulation for one- and two-byte
- cmpxchg()
-Message-ID: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
-Reply-To: paulmck@kernel.org
-References: <31c82dcc-e203-48a9-aadd-f2fcd57d94c1@paulmck-laptop>
+To: linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Cc: elver@google.com,
+	akpm@linux-foundation.org,
+	tglx@linutronix.de,
+	peterz@infradead.org,
+	dianders@chromium.org,
+	pmladek@suse.com,
+	torvalds@linux-foundation.org,
+	Arnd Bergmann <arnd@arndb.de>,
+	Al Viro <viro@zeniv.linux.org.uk>,
+	"Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH cmpxchg 03/14] sparc32: unify __cmpxchg_u{32,64}
+Date: Mon,  8 Apr 2024 10:49:33 -0700
+Message-Id: <20240408174944.907695-3-paulmck@kernel.org>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
+References: <7b3646e0-667c-48e2-8f09-e493c43c30cb@paulmck-laptop>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <31c82dcc-e203-48a9-aadd-f2fcd57d94c1@paulmck-laptop>
+Content-Transfer-Encoding: 8bit
 
-Hello!
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-This series provides emulation functions for one-byte cmpxchg, and uses it
-for those architectures not supporting this in hardware.  The emulation
-is in terms of the fully ordered four-byte cmpxchg() that is supplied
-by all of these architectures.  This was tested by making x86 forget
-that it can do one-byte cmpxchg() natively:
+Add a macro that expands to one of those when given u32 or u64
+as an argument - atomic32.c has a lot of similar stuff already.
 
-88a9b3f7a924 ("EXP arch/x86: Test one-byte cmpxchg emulation")
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ arch/sparc/lib/atomic32.c | 41 +++++++++++++++------------------------
+ 1 file changed, 16 insertions(+), 25 deletions(-)
 
-This commit is local to -rcu and is of course not intended for mainline.
+diff --git a/arch/sparc/lib/atomic32.c b/arch/sparc/lib/atomic32.c
+index e15affbbb5238..0d215a772428e 100644
+--- a/arch/sparc/lib/atomic32.c
++++ b/arch/sparc/lib/atomic32.c
+@@ -159,32 +159,23 @@ unsigned long sp32___change_bit(unsigned long *addr, unsigned long mask)
+ }
+ EXPORT_SYMBOL(sp32___change_bit);
+ 
+-u32 __cmpxchg_u32(volatile u32 *ptr, u32 old, u32 new)
+-{
+-	unsigned long flags;
+-	u32 prev;
+-
+-	spin_lock_irqsave(ATOMIC_HASH(ptr), flags);
+-	if ((prev = *ptr) == old)
+-		*ptr = new;
+-	spin_unlock_irqrestore(ATOMIC_HASH(ptr), flags);
+-
+-	return prev;
+-}
++#define CMPXCHG(T)						\
++	T __cmpxchg_##T(volatile T *ptr, T old, T new)		\
++	{							\
++		unsigned long flags;				\
++		T prev;						\
++								\
++		spin_lock_irqsave(ATOMIC_HASH(ptr), flags);	\
++		if ((prev = *ptr) == old)			\
++			*ptr = new;				\
++		spin_unlock_irqrestore(ATOMIC_HASH(ptr), flags);\
++								\
++		return prev;					\
++	}
++
++CMPXCHG(u32)
++CMPXCHG(u64)
+ EXPORT_SYMBOL(__cmpxchg_u32);
+-
+-u64 __cmpxchg_u64(volatile u64 *ptr, u64 old, u64 new)
+-{
+-	unsigned long flags;
+-	u64 prev;
+-
+-	spin_lock_irqsave(ATOMIC_HASH(ptr), flags);
+-	if ((prev = *ptr) == old)
+-		*ptr = new;
+-	spin_unlock_irqrestore(ATOMIC_HASH(ptr), flags);
+-
+-	return prev;
+-}
+ EXPORT_SYMBOL(__cmpxchg_u64);
+ 
+ unsigned long __xchg_u32(volatile u32 *ptr, u32 new)
+-- 
+2.40.1
 
-If accepted, RCU Tasks will use this capability in place of the current
-rcu_trc_cmpxchg_need_qs() open-coding of this emulation.
-
-1.	sparc32: make __cmpxchg_u32() return u32, courtesy of Al Viro.
-
-2.	sparc32: make the first argument of __cmpxchg_u64() volatile u64 *,
-	courtesy of Al Viro.
-
-3.	sparc32: unify __cmpxchg_u{32,64}, courtesy of Al Viro.
-
-4.	sparc32: add __cmpxchg_u{8,16}() and teach __cmpxchg() to handle those
-	sizes, courtesy of Al Viro.
-
-5.	parisc: __cmpxchg_u32(): lift conversion into the callers, courtesy of
-	Al Viro.
-
-6.	parisc: unify implementations of __cmpxchg_u{8,32,64}, courtesy of
-	Al Viro.
-
-7.	parisc: add missing export of __cmpxchg_u8(), courtesy of Al Viro.
-
-8.	parisc: add u16 support to cmpxchg(), courtesy of Al Viro.
-
-9.	lib: Add one-byte emulation function.
-
-10.	ARC: Emulate one-byte cmpxchg.
-
-11.	csky: Emulate one-byte cmpxchg.
-
-12.	sh: Emulate one-byte cmpxchg.
-
-13.	xtensa: Emulate one-byte cmpxchg.
-
-14.	riscv: Emulate one-byte cmpxchg.
-
-Changes since v1:
-
-o	Add native support for sparc32 and parisc, courtesy of Al Viro.
-
-o	Remove two-byte emulation due to architectures that still do not
-	support two-byte load and store instructions, per Arnd Bergmann
-	feedback.  (Yes, there are a few systems out there that do not
-	even support one-byte load instructions, but these are slated
-	for removal anyway.)
-
-o	Fix numerous casting bugs spotted by kernel test robot.
-
-o	Fix SPDX header.  "//" for .c files and "/*" for .h files.
-	I am sure that there is a good reason for this.  ;-)
-
-						Thanx, Paul
-
-------------------------------------------------------------------------
-
- arch/parisc/include/asm/cmpxchg.h     |   19 +++++-------
- arch/parisc/kernel/parisc_ksyms.c     |    1 
- arch/parisc/lib/bitops.c              |   52 +++++++++++-----------------------
- arch/sparc/include/asm/cmpxchg_32.h   |   18 +++++------
- arch/sparc/lib/atomic32.c             |   47 +++++++++++++-----------------
- b/arch/Kconfig                        |    3 +
- b/arch/arc/Kconfig                    |    1 
- b/arch/arc/include/asm/cmpxchg.h      |   32 +++++++++++++++-----
- b/arch/csky/Kconfig                   |    1 
- b/arch/csky/include/asm/cmpxchg.h     |   10 ++++++
- b/arch/parisc/include/asm/cmpxchg.h   |    3 -
- b/arch/parisc/kernel/parisc_ksyms.c   |    1 
- b/arch/parisc/lib/bitops.c            |    6 +--
- b/arch/riscv/Kconfig                  |    1 
- b/arch/riscv/include/asm/cmpxchg.h    |   13 ++++++++
- b/arch/sh/Kconfig                     |    1 
- b/arch/sh/include/asm/cmpxchg.h       |    2 +
- b/arch/sparc/include/asm/cmpxchg_32.h |    4 +-
- b/arch/sparc/lib/atomic32.c           |    4 +-
- b/arch/xtensa/Kconfig                 |    1 
- b/arch/xtensa/include/asm/cmpxchg.h   |    2 +
- b/include/linux/cmpxchg-emu.h         |   15 +++++++++
- b/lib/Makefile                        |    1 
- b/lib/cmpxchg-emu.c                   |   45 +++++++++++++++++++++++++++++
- 24 files changed, 184 insertions(+), 99 deletions(-)
