@@ -1,139 +1,282 @@
-Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
+Received: from frasgout.his.huawei.com (frasgout.his.huawei.com [185.176.79.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB50816EBF3;
-	Wed, 10 Apr 2024 15:10:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.156.1
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C1FC215DBA9;
+	Wed, 10 Apr 2024 15:59:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.176.79.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1712761849; cv=none; b=YHRsLiURS34CaQDbMvNNKRRhie53JdPiBwulGC97N0wrKdzg58ujAKyyLuD3YogM1RZWfWB1yiP7loSdqIpN7dDGnsJNxWkhWm1M9HgxmAUCWjeSVOp9RhdtXdsb5/z5ufC5gFUUOZ04N9DmNc5yTXiWRvjC8tomU/Vm9CezDUs=
+	t=1712764747; cv=none; b=Yn6aMDK1J9NepSyYZAeEf8exfWwta5r1Tts3ipsgPn9/XIL5rBqZ83m/suYEgO/lkEHrY0seDzlShK8wTnu594rZXXrgAEn9YzN3DojoSBwFkUFqAp6Etx266eYdeYqO/ENSX0JSoK4R35rP/UFMoHyRsVNYPJ+hs58EFZ/Ek10=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1712761849; c=relaxed/simple;
-	bh=m8eE0AcwzEs5wRNkzi5ro5vJAfqsbE5UexQ/HfZKWAY=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=jns02tMeOqB73+l9lpNUjwm2ky9HJ2PG76VLJxDFTwahKN1pNM/rhGdoFz7OekiUYo+lyR4LviWzQvafv1SMFnyvNz5i9kcVWMB5jgPZU91GsOF4kG2VhTFvhMVcuZWCrIdqHO45dLCQZN3PD0V6w1Yss5cLPX8askGy5PptN74=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=RBNh+tqa; arc=none smtp.client-ip=148.163.156.1
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="RBNh+tqa"
-Received: from pps.filterd (m0356517.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.17.1.19/8.17.1.19) with ESMTP id 43AF76LJ019812;
-	Wed, 10 Apr 2024 15:09:57 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=from : to : cc : subject
- : date : message-id : mime-version : content-transfer-encoding; s=pp1;
- bh=S7Sh61Dwbw08Hj8QqXjKFpfPZZqM0K8Q6t/Sk/b6f4Y=;
- b=RBNh+tqaPKTIhKRa+KG5KVN8s36DSZb74fobi7BHt6HaQooIAqn/PnkXtM8BFDHjTW+T
- 9Oe7e3W0pDJfG2AND0nSgmRwdo8D2aLCqQefluGkBM4m60b/Xvjk9mbd9+jKsgyYV2+w
- 5FkVXCrQYAWjxIPBhKwF0Q+sSUwCop+qt7zi3kJBvvqlHJQa3qBjPZXmiolZNWRbKcdN
- T4+N/BMWsK/adOJnp3scBxfQIr7K/XywKizk6fCJK6s6IB0XFLJFRl51fxKxttjZ+OaV
- WT5jo+MQ6BycbKjoYZrj6u2Q5HzOZNrsemRJBGbHnfW8VAeGmLgM/M1pFcVm00xc6GuC GA== 
-Received: from pps.reinject (localhost [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3xdw4n806d-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Wed, 10 Apr 2024 15:09:56 +0000
-Received: from m0356517.ppops.net (m0356517.ppops.net [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 43AF9uAj023241;
-	Wed, 10 Apr 2024 15:09:56 GMT
-Received: from ppma11.dal12v.mail.ibm.com (db.9e.1632.ip4.static.sl-reverse.com [50.22.158.219])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 3xdw4n806a-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Wed, 10 Apr 2024 15:09:56 +0000
-Received: from pps.filterd (ppma11.dal12v.mail.ibm.com [127.0.0.1])
-	by ppma11.dal12v.mail.ibm.com (8.17.1.19/8.17.1.19) with ESMTP id 43ACSJid016982;
-	Wed, 10 Apr 2024 15:09:55 GMT
-Received: from smtprelay05.fra02v.mail.ibm.com ([9.218.2.225])
-	by ppma11.dal12v.mail.ibm.com (PPS) with ESMTPS id 3xbke2n0jm-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Wed, 10 Apr 2024 15:09:54 +0000
-Received: from smtpav06.fra02v.mail.ibm.com (smtpav06.fra02v.mail.ibm.com [10.20.54.105])
-	by smtprelay05.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 43AF9nam48562646
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 10 Apr 2024 15:09:51 GMT
-Received: from smtpav06.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 265842004F;
-	Wed, 10 Apr 2024 15:09:49 +0000 (GMT)
-Received: from smtpav06.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 125DF2004B;
-	Wed, 10 Apr 2024 15:09:49 +0000 (GMT)
-Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
-	by smtpav06.fra02v.mail.ibm.com (Postfix) with ESMTPS;
-	Wed, 10 Apr 2024 15:09:49 +0000 (GMT)
-Received: by tuxmaker.boeblingen.de.ibm.com (Postfix, from userid 55669)
-	id CA30CE0301; Wed, 10 Apr 2024 17:09:48 +0200 (CEST)
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-To: Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
-        Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org,
-        Nicholas Piggin <npiggin@gmail.com>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        Frederic Weisbecker <frederic@kernel.org>,
-        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>
-Subject: [PATCH v2 RESEND 0/5] sched/vtime: vtime.h headers cleanup
-Date: Wed, 10 Apr 2024 17:09:43 +0200
-Message-Id: <cover.1712760275.git.agordeev@linux.ibm.com>
-X-Mailer: git-send-email 2.40.1
+	s=arc-20240116; t=1712764747; c=relaxed/simple;
+	bh=xfuJ3ry5n91qJc92j6kBa5Z9W5YhchcmI5daF8Z4UqY=;
+	h=Date:From:To:CC:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=C3CudGzcCa84BvuYwipZaYA0DCgyK0O8kow+kyKvYUgCHxfWtbtynoyPuBk7mHSEAtvgymIYYy9BBSxiTrFyRznUwEF0VXVv6ZRnm+7b7hCBXk+FfgXVCcvIn7dlEfmPEz+GOporlrqwHAidBaMfufRPo0is8NSPMojr2vmCB7A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; arc=none smtp.client-ip=185.176.79.56
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
+Received: from mail.maildlp.com (unknown [172.18.186.231])
+	by frasgout.his.huawei.com (SkyGuard) with ESMTP id 4VF6sR73psz6J9yF;
+	Wed, 10 Apr 2024 23:57:15 +0800 (CST)
+Received: from lhrpeml500005.china.huawei.com (unknown [7.191.163.240])
+	by mail.maildlp.com (Postfix) with ESMTPS id 32165140DD4;
+	Wed, 10 Apr 2024 23:58:56 +0800 (CST)
+Received: from localhost (10.122.247.231) by lhrpeml500005.china.huawei.com
+ (7.191.163.240) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.1.2507.35; Wed, 10 Apr
+ 2024 16:58:55 +0100
+Date: Wed, 10 Apr 2024 16:58:54 +0100
+From: Jonathan Cameron <Jonathan.Cameron@huawei.com>
+To: "Rafael J. Wysocki" <rafael@kernel.org>
+CC: Russell King <rmk+kernel@armlinux.org.uk>, <linux-pm@vger.kernel.org>,
+	<loongarch@lists.linux.dev>, <linux-acpi@vger.kernel.org>,
+	<linux-arch@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
+	<linux-arm-kernel@lists.infradead.org>, <linux-riscv@lists.infradead.org>,
+	<kvmarm@lists.linux.dev>, <x86@kernel.org>,
+	<acpica-devel@lists.linuxfoundation.org>, <linux-csky@vger.kernel.org>,
+	<linux-doc@vger.kernel.org>, <linux-ia64@vger.kernel.org>,
+	<linux-parisc@vger.kernel.org>, Salil Mehta <salil.mehta@huawei.com>,
+	Jean-Philippe Brucker <jean-philippe@linaro.org>, <jianyong.wu@arm.com>,
+	<justin.he@arm.com>, James Morse <james.morse@arm.com>, Miguel Luis
+	<miguel.luis@oracle.com>
+Subject: Re: [PATCH RFC v4 02/15] ACPI: processor: Register all CPUs from
+ acpi_processor_get_info()
+Message-ID: <20240410165854.00002973@huawei.com>
+In-Reply-To: <CAJZ5v0hRPFd7jmhJdCu8jVCRc4hZRUt9sKm6iWfynZH1mX7rCg@mail.gmail.com>
+References: <Zbp5xzmFhKDAgHws@shell.armlinux.org.uk>
+	<E1rVDmU-0027YP-Jz@rmk-PC.armlinux.org.uk>
+	<CAJZ5v0iiJpUWq5GMSnKFWQTzn_bdwoQz9m=hDaXNg4Lj_ePF4g@mail.gmail.com>
+	<20240322185327.00002416@Huawei.com>
+	<20240410134318.0000193c@huawei.com>
+	<CAJZ5v0ggD042sfz3jDXQVDUxQZu_AWaF2ox-Me8CvFeRB8nczw@mail.gmail.com>
+	<20240410145005.00003050@Huawei.com>
+	<CAJZ5v0hRPFd7jmhJdCu8jVCRc4hZRUt9sKm6iWfynZH1mX7rCg@mail.gmail.com>
+Organization: Huawei Technologies R&D (UK) Ltd.
+X-Mailer: Claws Mail 4.0.0 (GTK+ 3.24.29; x86_64-w64-mingw32)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-TM-AS-GCONF: 00
-X-Proofpoint-GUID: 43tJPVhQ1qfmHz2XICzEeDqIzqiN8NXK
-X-Proofpoint-ORIG-GUID: iPRydWYHzjU6SLaIr79RnupfQ4DzWgiA
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.272,Aquarius:18.0.1011,Hydra:6.0.619,FMLib:17.11.176.26
- definitions=2024-04-10_04,2024-04-09_01,2023-05-22_02
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 phishscore=0 malwarescore=0
- adultscore=0 clxscore=1015 suspectscore=0 lowpriorityscore=0
- mlxlogscore=787 bulkscore=0 impostorscore=0 spamscore=0 mlxscore=0
- priorityscore=1501 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2404010000 definitions=main-2404100109
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+X-ClientProxiedBy: lhrpeml100006.china.huawei.com (7.191.160.224) To
+ lhrpeml500005.china.huawei.com (7.191.163.240)
 
-Hi All,
+On Wed, 10 Apr 2024 16:19:50 +0200
+"Rafael J. Wysocki" <rafael@kernel.org> wrote:
 
-There are no changes since the last post, just a re-send.
+> On Wed, Apr 10, 2024 at 3:50=E2=80=AFPM Jonathan Cameron
+> <Jonathan.Cameron@huawei.com> wrote:
+> >
+> > On Wed, 10 Apr 2024 15:28:18 +0200
+> > "Rafael J. Wysocki" <rafael@kernel.org> wrote:
+> > =20
+> > > On Wed, Apr 10, 2024 at 2:43=E2=80=AFPM Jonathan Cameron
+> > > <Jonathan.Cameron@huawei.com> wrote: =20
+> > > > =20
+> > > > > > =20
+> > > > > > > diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
+> > > > > > > index 47de0f140ba6..13d052bf13f4 100644
+> > > > > > > --- a/drivers/base/cpu.c
+> > > > > > > +++ b/drivers/base/cpu.c
+> > > > > > > @@ -553,7 +553,11 @@ static void __init cpu_dev_register_gene=
+ric(void)
+> > > > > > >  {
+> > > > > > >         int i, ret;
+> > > > > > >
+> > > > > > > -       if (!IS_ENABLED(CONFIG_GENERIC_CPU_DEVICES))
+> > > > > > > +       /*
+> > > > > > > +        * When ACPI is enabled, CPUs are registered via
+> > > > > > > +        * acpi_processor_get_info().
+> > > > > > > +        */
+> > > > > > > +       if (!IS_ENABLED(CONFIG_GENERIC_CPU_DEVICES) || !acpi_=
+disabled)
+> > > > > > >                 return; =20
+> > > > > >
+> > > > > > Honestly, this looks like a quick hack to me and it absolutely
+> > > > > > requires an ACK from the x86 maintainers to go anywhere. =20
+> > > > > Will address this separately.
+> > > > > =20
+> > > >
+> > > > So do people prefer this hack, or something along lines of the foll=
+owing?
+> > > >
+> > > > static int __init cpu_dev_register_generic(void)
+> > > > {
+> > > >         int i, ret =3D 0;
+> > > >
+> > > >         for_each_online_cpu(i) {
+> > > >                 if (!get_cpu_device(i)) {
+> > > >                         ret =3D arch_register_cpu(i);
+> > > >                         if (ret)
+> > > >                                 pr_warn("register_cpu %d failed (%d=
+)\n", i, ret);
+> > > >                 }
+> > > >         }
+> > > >         //Probably just eat the error.
+> > > >         return 0;
+> > > > }
+> > > > subsys_initcall_sync(cpu_dev_register_generic); =20
+> > >
+> > > I would prefer something like the above.
+> > >
+> > > I actually thought that arch_register_cpu() might return something
+> > > like -EPROBE_DEFER when it cannot determine whether or not the CPU is
+> > > really available. =20
+> >
+> > Ok. That would end up looking much more like the original code I think.
+> > So we wouldn't have this late registration at all, or keep it for DT
+> > on arm64?  I'm not sure that's a clean solution though leaves
+> > the x86 path alone. =20
+>=20
+> I'm not sure why DT on arm64 would need to do late registration.
 
-v2:
-- patch 4: commit message reworded (Heiko)
-- patch 5: vtime.h is removed from Kbuild scripts (PowerPC only) (Heiko)
+This was me falsely thinking better to do it close together for
+DT and ACPI. It definitely doesn't need to (or it wouldn't work today!)
 
-v1:
-Please find a small cleanup to vtime_task_switch() wiring.
-I split it into smaller patches to allow separate PowerPC
-vs s390 reviews. Otherwise patches 2+3 and 4+5 could have
-been merged.
+>=20
+> There is this chain of calls in the mainline today:
+>=20
+> driver_init()
+>   cpu_dev_init()
+>     cpu_dev_register_generic()
+>=20
+> the last of which registers CPUs on arm64/DT systems IIUC. I don't see
+> a need to change this behavior.
+>=20
+> On arm64/ACPI, though, arch_register_cpu() cannot make progress until
+> it can look into the ACPI Namespace, so I would just make it return
+> -EPROBE_DEFER or equivalent then and the ACPI enumeration will find
+> the CPU and basically treat it as one that has just appeared.
 
-I tested it on s390 and compile-tested it on 32- and 64-bit
-PowerPC and few other major architectures only, but it is
-only of concern for CONFIG_VIRT_CPU_ACCOUNTING_NATIVE-capable
-ones (AFAICT).
+Ok so giving this a go...
 
-Thanks!
+Arm 64 version of arch_register_cpu() ended up as the following
+(obviously needs cleaning up, bikeshedding of naming etc)
 
+int arch_register_cpu(int cpu)
+{
+        struct cpu *c =3D &per_cpu(cpu_devices, cpu);
+        acpi_handle acpi_handle =3D ACPI_HANDLE(&c->dev);
+        int ret;
 
-Alexander Gordeev (5):
-  sched/vtime: remove confusing arch_vtime_task_switch() declaration
-  sched/vtime: get rid of generic vtime_task_switch() implementation
-  s390/vtime: remove unused __ARCH_HAS_VTIME_TASK_SWITCH leftover
-  s390/irq,nmi: include <asm/vtime.h> header directly
-  sched/vtime: do not include <asm/vtime.h> header
+	printk("!!!!! INTO arch_register_cpu() %px\n", ACPI_HANDLE(&c->dev));
 
- arch/powerpc/include/asm/Kbuild    |  1 -
- arch/powerpc/include/asm/cputime.h | 13 -------------
- arch/powerpc/kernel/time.c         | 22 ++++++++++++++++++++++
- arch/s390/include/asm/vtime.h      |  2 --
- arch/s390/kernel/irq.c             |  1 +
- arch/s390/kernel/nmi.c             |  1 +
- include/asm-generic/vtime.h        |  1 -
- include/linux/vtime.h              |  5 -----
- kernel/sched/cputime.c             | 13 -------------
- 9 files changed, 24 insertions(+), 35 deletions(-)
- delete mode 100644 include/asm-generic/vtime.h
+        if (!acpi_disabled && !acpi_handle)
+                return -EPROBE_DEFER;
+        if (acpi_handle) {
+                ret =3D acpi_sta_enabled(acpi_handle);
+                if (ret) {
+                        printk("Have handle, not enabled\n");
+                        /* Not enabled */
+                        return ret;
+                }
+        }
+        printk("!!!!! onwards arch_register_cpu()\n");
 
--- 
-2.40.1
+        c->hotpluggable =3D arch_cpu_is_hotpluggable(cpu);
+
+        return register_cpu(c, cpu);
+}
+
+with new utility function in drivers/acpi/utils.c
+
+int acpi_sta_enabled(acpi_handle handle)
+{
+       unsigned long long sta;
+       bool present, enabled;
+       acpi_status status;
+
+       if (acpi_has_method(handle, "_STA")) {
+               status =3D acpi_evaluate_integer(handle, "_STA", NULL, &sta);
+               if (ACPI_FAILURE(status))
+                       return -ENODEV;
+
+               present =3D sta & ACPI_STA_DEVICE_PRESENT;
+               enabled =3D sta & ACPI_STA_DEVICE_ENABLED;
+               if (!present || !enabled) {
+                       return -EPROBE_DEFER;
+               }
+               return 0;
+       }
+       return 0; /* No _STA means always on! */
+}
+	struct cpu *c =3D &per_cpu(cpu_devices, pr->id);=09
+	ACPI_COMPANION_SET(&c->dev, device);
+
+in acpi_processor_get_info() and that calls
+
+static int acpi_processor_make_enabled(struct acpi_processor *pr)
+{
+        int ret;
+
+        if (invalid_phys_cpuid(pr->phys_id))
+                return -ENODEV;
+
+        cpus_write_lock();
+        ret =3D arch_register_cpu(pr->id);
+        cpus_write_unlock();
+
+        return ret;
+}
+
+I think setting the ACPI handle should be harmless on other architectures.
+It seems like the obvious one to set it to for cpu->dev.
+
+Brief tests on same set of DT and ACPI on x86 and arm64 seem fine.
+
+>=20
+> > If we get rid of this catch all, solution would be to move the
+> > !acpi_disabled check into the arm64 version of arch_cpu_register()
+> > because we would only want the delayed registration path to be
+> > used on ACPI cases where the question of CPU availability can't
+> > yet be resolved. =20
+>=20
+> Exactly.
+>=20
+> This is similar (if not equivalent even) to a CPU becoming available
+> between the cpu_dev_register_generic() call and the ACPI enumeration.
+
+>=20
+> > >
+> > > Then, the ACPI processor enumeration path may take care of registering
+> > > CPU that have not been registered so far and in the more-or-less the
+> > > same way regardless of the architecture (modulo some arch-specific
+> > > stuff). =20
+> >
+> > If I understand correctly, in acpi_processor_get_info() we'd end up
+> > with a similar check on whether it was already registered (the x86 path)
+> > or had be deferred (arm64 / acpi).
+> > =20
+> > >
+> > > In the end, it should be possible to avoid changing the behavior of
+> > > x86 and loongarch in this series. =20
+> >
+> > Possible, yes, but result if I understand correctly is we end up with
+> > very different flows and replication of functionality between the
+> > early registration and the late one. I'm fine with that if you prefer i=
+t! =20
+>=20
+> But that's what is there today, isn't it?
+
+Agreed - but I was previously thinking we could move everything late.
+I'm fine with just keeping the two flows separate.
+
+>=20
+> I think this can be changed to reduce the duplication, but I'd prefer
+> to do that later, when the requisite functionality is in place and we
+> just do the consolidation.  In that case, if anything goes wrong, we
+> can take a step back and reconsider without deferring the arm64 CPU
+> hotplug support.
+
+Great. That plan certainly works for me :)
+
+Thanks for quick replies and help getting this headed in right direction.
+
++CC Miguel who is also looking at some of this series. Sorry Miguel,
+was assuming you were on the thread and never checked :(
+
+Jonathan
+
 
