@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0B7C168AED;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC33E168AE6;
 	Wed,  1 May 2024 23:01:32 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1714604493; cv=none; b=qtuTBG1iu0v7bKQqNSVLx5w7OJiTRAmapONZJphNeRgCVEXojjPXT2YoF36VcYv/eVUpngE0lCS63J3SjWWP+w/GciMrmFjxCPjzpSR5rUet+qyxmuL8DNnKaieVHnB2rQouYZuqA5ASLcenOqqxZmCZjzqYuXxGikehQxMsv90=
+	t=1714604493; cv=none; b=PcdmXomb7tV+QV9oJxlSO1wdcxFr0OqIOM0Ns1zaVUrRfZ5HEeJQEy0uae5K8nCIgZr8Y0Y95zD1SN1FR7ixMsuYz1sTqBzmn7uIufYIRDcorTp9PogcwpqlcdnbF5GxNtdsNRe7qkhjcIFOLBI8DAi2Dzgm0gC9nZVDe3SnRQ4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1714604493; c=relaxed/simple;
-	bh=ehpYlEI/7ddbuIzdM9fBMt5Xa6+QYchqcgxnWBcCufs=;
+	bh=Zs6ak+wPmG4tPQkLrLcc6JxAJjrKyJZjKo6tat/+S/g=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=habGulP+3HxPtGnzer1nYPSbHyqF+UCLATlvpcnUg8NjPOLnrP8GOaT6vNhrNQA2n8ypk1nbmDEvB0zApF1X++QHJxlBaaE4CaoIEYsMqNYhJjQkC3c/yEHRdknAZqji8AKF8JAQmnIvyVteRaIztLplR/HjeOYDQCntZcrmaaU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=t2KtLMkK; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=ubU8WkWbUWzO2Lw01U4Y122Alo4yFplFsIR8mVpiijMhKlEbDTdAoUNHSMdF7F+nY2tFSIBA4xNli4O2oAcxS0y9zg8jIaHVHX+o3o6vrZndsl5Leigcw2x1MLP7BF3wpRXaeKbiPR7J4T9TLXM8vcPj3C1G4lyDbHgHUbNToXY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=XH9vIivI; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="t2KtLMkK"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 821FCC4AF4D;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="XH9vIivI"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 95074C4AF51;
 	Wed,  1 May 2024 23:01:32 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1714604492;
-	bh=ehpYlEI/7ddbuIzdM9fBMt5Xa6+QYchqcgxnWBcCufs=;
+	bh=Zs6ak+wPmG4tPQkLrLcc6JxAJjrKyJZjKo6tat/+S/g=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=t2KtLMkKSwpi3V6yfk2x80G1xvO37BHZJpU4pzwPsYJATGnBPLIK8Xwd4b90+VtgV
-	 Ucs1mN317R0+ZCd9f/u4jUetGp/Yd2epdeLdPWml5VZBzdcanpn9WOMqyd7Ebs32OS
-	 QnKGSGZm+NesLnXvtgTox7Ls2fuqw/J8MvyqvRv8QCYsGRb80qxt87r3S1pGY594sI
-	 VSNYFavCYTAPhQ/MFhQMy3PwpM+J57RJJT1W+UitNzQoASnfCkNyLGqbtnbgI7ETT0
-	 +e9hG6sgvzTQxx4AZtKrMZPBpMwqI11zbGEDcA6VGKqoOnMzCXk0wbp1ZxPW+vFn50
-	 R2KepK/5DKD8g==
+	b=XH9vIivIX47KRQExC5xnU+LZC/uG5D0FeEfAoXkVPwo/PTEd9yqIYpCPKiZcS7ifl
+	 3ERfMzuFeuTI57s+bH5QGzcUtcsD0t7XyR0NyJeMNKEesobUphmk37JASgd+wTWv9h
+	 jeCYJ+rXWPe8/H/pmlpj8BziFD6iXQYJ34DCpQAvMFw8tl4VZnG/kWqSOGfqulujH4
+	 VrvpnKeTVU8fHuwPcCU/cFmzzdvGWyfOUKt+GjhBXzpXhXHgpVtwfnork9aIxwRNhk
+	 wfYkihPp4voUhbeAJqC5JMczxccduyhU+c+6FuCRt/x2j5E/AR8jAI+ntK/qSgNUx5
+	 oXHnotmaZeiMQ==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id CA9A5CE226C; Wed,  1 May 2024 16:01:31 -0700 (PDT)
+	id D3895CE2281; Wed,  1 May 2024 16:01:31 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org
@@ -40,11 +40,10 @@ Cc: elver@google.com,
 	arnd@arndb.de,
 	torvalds@linux-foundation.org,
 	kernel-team@meta.com,
-	Al Viro <viro@zeniv.linux.org.uk>,
-	"Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH v2 cmpxchg 06/13] parisc: unify implementations of __cmpxchg_u{8,32,64}
-Date: Wed,  1 May 2024 16:01:23 -0700
-Message-Id: <20240501230130.1111603-6-paulmck@kernel.org>
+	"Paul E. McKenney" <paulmck@kernel.org>
+Subject: [PATCH v2 cmpxchg 09/13] lib: Add one-byte emulation function
+Date: Wed,  1 May 2024 16:01:26 -0700
+Message-Id: <20240501230130.1111603-9-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <b67e79d4-06cb-4a45-a906-b9e0fbae22c5@paulmck-laptop>
 References: <b67e79d4-06cb-4a45-a906-b9e0fbae22c5@paulmck-laptop>
@@ -56,75 +55,137 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Al Viro <viro@zeniv.linux.org.uk>
+Architectures are required to provide four-byte cmpxchg() and 64-bit
+architectures are additionally required to provide eight-byte cmpxchg().
+However, there are cases where one-byte cmpxchg() would be extremely
+useful.  Therefore, provide cmpxchg_emu_u8() that emulates one-byte
+cmpxchg() in terms of four-byte cmpxchg().
 
-identical except for type name involved
+Note that this emulations is fully ordered, and can (for example) cause
+one-byte cmpxchg_relaxed() to incur the overhead of full ordering.
+If this causes problems for a given architecture, that architecture is
+free to provide its own lighter-weight primitives.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+[ paulmck: Apply Marco Elver feedback. ]
+[ paulmck: Apply kernel test robot feedback. ]
+[ paulmck: Drop two-byte support per Arnd Bergmann feedback. ]
+
+Link: https://lore.kernel.org/all/0733eb10-5e7a-4450-9b8a-527b97c842ff@paulmck-laptop/
+
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Acked-by: Marco Elver <elver@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+Cc: Douglas Anderson <dianders@chromium.org>
+Cc: Petr Mladek <pmladek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: <linux-arch@vger.kernel.org>
 ---
- arch/parisc/lib/bitops.c | 51 +++++++++++++---------------------------
- 1 file changed, 16 insertions(+), 35 deletions(-)
+ arch/Kconfig                |  3 +++
+ include/linux/cmpxchg-emu.h | 15 +++++++++++++
+ lib/Makefile                |  1 +
+ lib/cmpxchg-emu.c           | 45 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 64 insertions(+)
+ create mode 100644 include/linux/cmpxchg-emu.h
+ create mode 100644 lib/cmpxchg-emu.c
 
-diff --git a/arch/parisc/lib/bitops.c b/arch/parisc/lib/bitops.c
-index ae2231d921985..cae30a3eb6d9b 100644
---- a/arch/parisc/lib/bitops.c
-+++ b/arch/parisc/lib/bitops.c
-@@ -56,38 +56,19 @@ unsigned long notrace __xchg8(char x, volatile char *ptr)
- }
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 9f066785bb71d..284663392eef8 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -1609,4 +1609,7 @@ config CC_HAS_SANE_FUNCTION_ALIGNMENT
+ 	# strict alignment always, even with -falign-functions.
+ 	def_bool CC_HAS_MIN_FUNCTION_ALIGNMENT || CC_IS_CLANG
  
- 
--u64 notrace __cmpxchg_u64(volatile u64 *ptr, u64 old, u64 new)
--{
--	unsigned long flags;
--	u64 prev;
--
--	_atomic_spin_lock_irqsave(ptr, flags);
--	if ((prev = *ptr) == old)
--		*ptr = new;
--	_atomic_spin_unlock_irqrestore(ptr, flags);
--	return prev;
--}
--
--u32 notrace __cmpxchg_u32(volatile u32 *ptr, u32 old, u32 new)
--{
--	unsigned long flags;
--	u32 prev;
--
--	_atomic_spin_lock_irqsave(ptr, flags);
--	if ((prev = *ptr) == old)
--		*ptr = new;
--	_atomic_spin_unlock_irqrestore(ptr, flags);
--	return prev;
--}
--
--u8 notrace __cmpxchg_u8(volatile u8 *ptr, u8 old, u8 new)
--{
--	unsigned long flags;
--	u8 prev;
--
--	_atomic_spin_lock_irqsave(ptr, flags);
--	if ((prev = *ptr) == old)
--		*ptr = new;
--	_atomic_spin_unlock_irqrestore(ptr, flags);
--	return prev;
--}
-+#define CMPXCHG(T)						\
-+	T notrace __cmpxchg_##T(volatile T *ptr, T old, T new)	\
-+	{							\
-+		unsigned long flags;				\
-+		T prev;						\
-+								\
-+		_atomic_spin_lock_irqsave(ptr, flags);		\
-+		if ((prev = *ptr) == old)			\
-+			*ptr = new;				\
-+		_atomic_spin_unlock_irqrestore(ptr, flags);	\
-+		return prev;					\
-+	}
++config ARCH_NEED_CMPXCHG_1_EMU
++	bool
 +
-+CMPXCHG(u64)
-+CMPXCHG(u32)
-+CMPXCHG(u8)
+ endmenu
+diff --git a/include/linux/cmpxchg-emu.h b/include/linux/cmpxchg-emu.h
+new file mode 100644
+index 0000000000000..998deec67740a
+--- /dev/null
++++ b/include/linux/cmpxchg-emu.h
+@@ -0,0 +1,15 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Emulated 1-byte and 2-byte cmpxchg operations for architectures
++ * lacking direct support for these sizes.  These are implemented in terms
++ * of 4-byte cmpxchg operations.
++ *
++ * Copyright (C) 2024 Paul E. McKenney.
++ */
++
++#ifndef __LINUX_CMPXCHG_EMU_H
++#define __LINUX_CMPXCHG_EMU_H
++
++uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new);
++
++#endif /* __LINUX_CMPXCHG_EMU_H */
+diff --git a/lib/Makefile b/lib/Makefile
+index ffc6b2341b45a..cc3d52fdb477d 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -236,6 +236,7 @@ obj-$(CONFIG_FUNCTION_ERROR_INJECTION) += error-inject.o
+ lib-$(CONFIG_GENERIC_BUG) += bug.o
+ 
+ obj-$(CONFIG_HAVE_ARCH_TRACEHOOK) += syscall.o
++obj-$(CONFIG_ARCH_NEED_CMPXCHG_1_EMU) += cmpxchg-emu.o
+ 
+ obj-$(CONFIG_DYNAMIC_DEBUG_CORE) += dynamic_debug.o
+ #ensure exported functions have prototypes
+diff --git a/lib/cmpxchg-emu.c b/lib/cmpxchg-emu.c
+new file mode 100644
+index 0000000000000..27f6f97cb60dd
+--- /dev/null
++++ b/lib/cmpxchg-emu.c
+@@ -0,0 +1,45 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * Emulated 1-byte cmpxchg operation for architectures lacking direct
++ * support for this size.  This is implemented in terms of 4-byte cmpxchg
++ * operations.
++ *
++ * Copyright (C) 2024 Paul E. McKenney.
++ */
++
++#include <linux/types.h>
++#include <linux/export.h>
++#include <linux/instrumented.h>
++#include <linux/atomic.h>
++#include <linux/panic.h>
++#include <linux/bug.h>
++#include <asm-generic/rwonce.h>
++#include <linux/cmpxchg-emu.h>
++
++union u8_32 {
++	u8 b[4];
++	u32 w;
++};
++
++/* Emulate one-byte cmpxchg() in terms of 4-byte cmpxchg. */
++uintptr_t cmpxchg_emu_u8(volatile u8 *p, uintptr_t old, uintptr_t new)
++{
++	u32 *p32 = (u32 *)(((uintptr_t)p) & ~0x3);
++	int i = ((uintptr_t)p) & 0x3;
++	union u8_32 old32;
++	union u8_32 new32;
++	u32 ret;
++
++	ret = READ_ONCE(*p32);
++	do {
++		old32.w = ret;
++		if (old32.b[i] != old)
++			return old32.b[i];
++		new32.w = old32.w;
++		new32.b[i] = new;
++		instrument_atomic_read_write(p, 1);
++		ret = data_race(cmpxchg(p32, old32.w, new32.w)); // Overridden above.
++	} while (ret != old32.w);
++	return old;
++}
++EXPORT_SYMBOL_GPL(cmpxchg_emu_u8);
 -- 
 2.40.1
 
