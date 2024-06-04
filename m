@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F12C01422C2;
-	Tue,  4 Jun 2024 22:14:21 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 425BC14D293;
+	Tue,  4 Jun 2024 22:14:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1717539262; cv=none; b=Wl3SIoqTfHQ6BTVlolrvU9JYEuS1sGImvyA4XhPzfCSp4s5jkLILJxMTM86rmpd9/AVxDPzliLbbxLJks1PbC2mNfDkCCyOo7YeAyyXVzt4Tt+4JkY+WreZH0zxTiyQL0TVSp5dkERGHvhwFhrMG03gt5shE2/2ynSvsfl/+eik=
+	t=1717539262; cv=none; b=fazv0gI/Z7Qbw1fxwCdDhUMmvQHWFMJqsMxEAyH76mGTKdRU09vA+1eq1MnVhNwt+ZH0H9y1uMIb2lAxTXBQB5bPEjLBEHfCYso8w0ywTYhTQmVv7FcgNagOVvyBz/4QtKtgQB0pFfNAv0Ne0Hmh+/Z8nyJd9pf7/kc/Qu6/Qcc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1717539262; c=relaxed/simple;
-	bh=01pGRoOVLm7FmVgPZ/DAaMBZsWrBo+heyMml9ojdBqE=;
+	bh=ygTLP2T8slbXOZ6W4tEAKQMW6AwWve81xPXtxXbnv+8=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=ltbzUVxqLDFw/R1PAtb9sbtarUpHHzuPQ4ceXY0ISpJFoJXX9qdVlLTHNs5NDUehxoih066su47S0JVl4YdxzRK0GIrGOyW2TjU//a2fRZ0Td5ws2b8Ee7ogSNgpY4TD74alnLQfvvEQIm7PcHsUTDZVUCA4yNXLczWeXP/U02k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=LrgyCsOk; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=ZqUnMZ+iCj7CBL8/CUPOp5zndm4+CaSeAtpb4GugVRKdtY7ar7aDQKp0GM4AE+rS2eqFLBBr7V3nSYRq01euKJeYNYfsrlOh2NOrpVV1y5/llq9J3oCNqB88HL4A52qeCeJazl2IqkR9zJp5YukFL4ItujHos5W58AVfNxpWfr8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WjooraZf; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LrgyCsOk"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C29C9C3277B;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WjooraZf"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D8D0BC2BBFC;
 	Tue,  4 Jun 2024 22:14:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1717539261;
-	bh=01pGRoOVLm7FmVgPZ/DAaMBZsWrBo+heyMml9ojdBqE=;
+	bh=ygTLP2T8slbXOZ6W4tEAKQMW6AwWve81xPXtxXbnv+8=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=LrgyCsOkoKsbedWkJFmOXWZtCJ3EfgoRKRhDX/gCdhr3WQTecd9lSDlwg9pi2qEk0
-	 cx/O+yxGhahNjUAwemYo/ABJd7i4qnnLIlLEZZ7gJcfT8IjVwyDK7hDT8gCMug/5Js
-	 EQd20I+D1cDEXW/Qpqb3eaVFsyVP89uZTJb4DPZ5GzEUYqcaFrHjbOX5YqHmpZY3+s
-	 9Uecvnu5CN8XdRRdkLR4xDNwlAHygBA9ustXUF7tX1DhFV6uWfYt7uzcWEHv5lHCMa
-	 KnOJbX/drAbFI3upAqHoRgoiuc6lPeic9YU5Dq06dONJkgqK2laJ2glNZt7h+HecMq
-	 66MVDXyG90z1Q==
+	b=WjooraZfIwtaTfAywxDMSlOrkCdYYFPZ7+5wfes6MP1KqO38si2R1O9XoB4jYUwlI
+	 J2Og1gHtAjKOaLaem9ppYfWPpUW6DHxLJurJenD1JU0GwPT0qPeo41r7Adt9KjTFBq
+	 uEdit18/04o2B7B0UGOUDetssx5ohdr4k9ILzBK4BIeoGQZZ4sQHvhtovCmfzVr4ge
+	 4w/XzbOT/rpklacUqKhO7et6liJdNLZPN2XuWQitcC1eXfb1LgfGCiMajbtqmqtrwU
+	 U1I2dzAIJHFXBvAK4TIq6MSjNGlpCynylrIDUKsexfQMgXhSpcILLF+mdyVTOUKvcf
+	 z2sAq1DrpvtQA==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 78F41CE3ED6; Tue,  4 Jun 2024 15:14:21 -0700 (PDT)
+	id 81331CE3F26; Tue,  4 Jun 2024 15:14:21 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org,
@@ -43,13 +43,13 @@ Cc: stern@rowland.harvard.edu,
 	j.alglave@ucl.ac.uk,
 	luc.maranget@inria.fr,
 	akiyks@gmail.com,
-	Puranjay Mohan <puranjay@kernel.org>,
-	"Paul E . McKenney" <paulmck@kernel.org>,
+	"Paul E. McKenney" <paulmck@kernel.org>,
+	Marco Elver <elver@google.com>,
 	Daniel Lustig <dlustig@nvidia.com>,
 	Joel Fernandes <joel@joelfernandes.org>
-Subject: [PATCH memory-model 1/3] tools/memory-model: Add atomic_and()/or()/xor() and add_negative
-Date: Tue,  4 Jun 2024 15:14:17 -0700
-Message-Id: <20240604221419.2370127-1-paulmck@kernel.org>
+Subject: [PATCH memory-model 3/3] tools/memory-model: Add KCSAN LF mentorship session citation
+Date: Tue,  4 Jun 2024 15:14:19 -0700
+Message-Id: <20240604221419.2370127-3-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <b290acd5-074f-4e17-a8bf-b444e553d986@paulmck-laptop>
 References: <b290acd5-074f-4e17-a8bf-b444e553d986@paulmck-laptop>
@@ -61,26 +61,18 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Puranjay Mohan <puranjay@kernel.org>
+Add a citation to Marco's LF mentorship session presentation entitled
+"The Kernel Concurrency Sanitizer"
 
-Pull-849[1] added the support of '&', '|', and '^' to the herd7 tool's
-atomics operations.
+[ paulmck: Apply Marco Elver feedback. ]
 
-Use these in linux-kernel.def to implement atomic_and()/or()/xor() with
-all their ordering variants.
-
-atomic_add_negative() is already available so add its acquire, release,
-and relaxed ordering variants.
-
-[1] https://github.com/herd/herdtools7/pull/849
-
-Signed-off-by: Puranjay Mohan <puranjay@kernel.org>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
+Reported-by: Marco Elver <elver@google.com>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
 Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Andrea Parri <parri.andrea@gmail.com>
 Cc: Will Deacon <will@kernel.org>
 Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
 Cc: Nicholas Piggin <npiggin@gmail.com>
 Cc: David Howells <dhowells@redhat.com>
 Cc: Jade Alglave <j.alglave@ucl.ac.uk>
@@ -90,52 +82,42 @@ Cc: Daniel Lustig <dlustig@nvidia.com>
 Cc: Joel Fernandes <joel@joelfernandes.org>
 Cc: <linux-arch@vger.kernel.org>
 ---
- tools/memory-model/linux-kernel.def | 21 +++++++++++++++++++++
- 1 file changed, 21 insertions(+)
+ tools/memory-model/Documentation/access-marking.txt | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index 88a39601f5256..d1f11930ec512 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -65,6 +65,9 @@ atomic_set_release(X,V) { smp_store_release(X,V); }
+diff --git a/tools/memory-model/Documentation/access-marking.txt b/tools/memory-model/Documentation/access-marking.txt
+index 65778222183e3..f531b0837356b 100644
+--- a/tools/memory-model/Documentation/access-marking.txt
++++ b/tools/memory-model/Documentation/access-marking.txt
+@@ -6,7 +6,8 @@ normal accesses to shared memory, that is "normal" as in accesses that do
+ not use read-modify-write atomic operations.  It also describes how to
+ document these accesses, both with comments and with special assertions
+ processed by the Kernel Concurrency Sanitizer (KCSAN).  This discussion
+-builds on an earlier LWN article [1].
++builds on an earlier LWN article [1] and Linux Foundation mentorship
++session [2].
  
- atomic_add(V,X) { __atomic_op(X,+,V); }
- atomic_sub(V,X) { __atomic_op(X,-,V); }
-+atomic_and(V,X) { __atomic_op(X,&,V); }
-+atomic_or(V,X)  { __atomic_op(X,|,V); }
-+atomic_xor(V,X) { __atomic_op(X,^,V); }
- atomic_inc(X)   { __atomic_op(X,+,1); }
- atomic_dec(X)   { __atomic_op(X,-,1); }
  
-@@ -77,6 +80,21 @@ atomic_fetch_add_relaxed(V,X) __atomic_fetch_op{once}(X,+,V)
- atomic_fetch_add_acquire(V,X) __atomic_fetch_op{acquire}(X,+,V)
- atomic_fetch_add_release(V,X) __atomic_fetch_op{release}(X,+,V)
+ ACCESS-MARKING OPTIONS
+@@ -31,7 +32,7 @@ example:
+ 	WRITE_ONCE(a, b + data_race(c + d) + READ_ONCE(e));
  
-+atomic_fetch_and(V,X) __atomic_fetch_op{mb}(X,&,V)
-+atomic_fetch_and_relaxed(V,X) __atomic_fetch_op{once}(X,&,V)
-+atomic_fetch_and_acquire(V,X) __atomic_fetch_op{acquire}(X,&,V)
-+atomic_fetch_and_release(V,X) __atomic_fetch_op{release}(X,&,V)
+ Neither plain C-language accesses nor data_race() (#1 and #2 above) place
+-any sort of constraint on the compiler's choice of optimizations [2].
++any sort of constraint on the compiler's choice of optimizations [3].
+ In contrast, READ_ONCE() and WRITE_ONCE() (#3 and #4 above) restrict the
+ compiler's use of code-motion and common-subexpression optimizations.
+ Therefore, if a given access is involved in an intentional data race,
+@@ -594,5 +595,8 @@ REFERENCES
+ [1] "Concurrency bugs should fear the big bad data-race detector (part 2)"
+     https://lwn.net/Articles/816854/
+ 
+-[2] "Who's afraid of a big bad optimizing compiler?"
++[2] "The Kernel Concurrency Sanitizer"
++    https://www.linuxfoundation.org/webinars/the-kernel-concurrency-sanitizer
 +
-+atomic_fetch_or(V,X) __atomic_fetch_op{mb}(X,|,V)
-+atomic_fetch_or_relaxed(V,X) __atomic_fetch_op{once}(X,|,V)
-+atomic_fetch_or_acquire(V,X) __atomic_fetch_op{acquire}(X,|,V)
-+atomic_fetch_or_release(V,X) __atomic_fetch_op{release}(X,|,V)
-+
-+atomic_fetch_xor(V,X) __atomic_fetch_op{mb}(X,^,V)
-+atomic_fetch_xor_relaxed(V,X) __atomic_fetch_op{once}(X,^,V)
-+atomic_fetch_xor_acquire(V,X) __atomic_fetch_op{acquire}(X,^,V)
-+atomic_fetch_xor_release(V,X) __atomic_fetch_op{release}(X,^,V)
-+
- atomic_inc_return(X) __atomic_op_return{mb}(X,+,1)
- atomic_inc_return_relaxed(X) __atomic_op_return{once}(X,+,1)
- atomic_inc_return_acquire(X) __atomic_op_return{acquire}(X,+,1)
-@@ -117,3 +135,6 @@ atomic_sub_and_test(V,X) __atomic_op_return{mb}(X,-,V) == 0
- atomic_dec_and_test(X)  __atomic_op_return{mb}(X,-,1) == 0
- atomic_inc_and_test(X)  __atomic_op_return{mb}(X,+,1) == 0
- atomic_add_negative(V,X) __atomic_op_return{mb}(X,+,V) < 0
-+atomic_add_negative_relaxed(V,X) __atomic_op_return{once}(X,+,V) < 0
-+atomic_add_negative_acquire(V,X) __atomic_op_return{acquire}(X,+,V) < 0
-+atomic_add_negative_release(V,X) __atomic_op_return{release}(X,+,V) < 0
++[3] "Who's afraid of a big bad optimizing compiler?"
+     https://lwn.net/Articles/793253/
 -- 
 2.40.1
 
