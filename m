@@ -1,146 +1,120 @@
-Received: from pb-smtp21.pobox.com (pb-smtp21.pobox.com [173.228.157.53])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yw1-f174.google.com (mail-yw1-f174.google.com [209.85.128.174])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F268171BB;
-	Fri,  5 Jul 2024 02:24:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=173.228.157.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B7A1143C64;
+	Fri,  5 Jul 2024 08:13:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1720146269; cv=none; b=BaPFJ62BfyeO0YRYR+2JWAgmzzsbAausLMSKnmh8Q3iDudTIxhQzY2PKnp8dJVKUkG/EqiKLDPFWWpbnxG9vs44JlU28VUHI4yeTuJ/bre4fxbhsIfHVgyysHppsJLn02RhcJCD+wYzKWUauvzGLISQh9HIxT5QefpYMIaN8y28=
+	t=1720167190; cv=none; b=pU5gJaomtE37KY7x4YTOPNXCZXtClwmTHR6vm3Mg4euyc/5bqBP68X8bzUfQYY+djMiUhGMNiTf3vJSgtJX7FnoTdoJ52glGtN3+nL/Y/QOS8LwyMNWiLZ2Z482SCZR4KGT0gOyrPjyQ3CKwiEz8g8pXsHXiRv6shL38B5n4dUo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1720146269; c=relaxed/simple;
-	bh=07LCEtp0Flmh6rOuWMY5fE00GlqWnZG1Ro+zSOWdKCM=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=a7rqq/KTCyj6kb9bb/fojugqB8Yr9G1Ghlb1X9dTZFweFrO1VhwzCtjZoLygwJUUZSYyKsd03IZV2QuUFvX0kma/FerLOyXgPx5+tjRBKsdASBXS55wl2o76eEpK17RFZcC0YOs/UZO2F5LchnsIrLvfF5xHzoOMRkf8y7oI33s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net; spf=pass smtp.mailfrom=fluxnic.net; dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b=blOwK4DO; dkim=fail (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b=Qup5kK99 reason="signature verification failed"; arc=none smtp.client-ip=173.228.157.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fluxnic.net
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b="blOwK4DO";
-	dkim=fail reason="signature verification failed" (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b="Qup5kK99"
-Received: from pb-smtp21.pobox.com (unknown [127.0.0.1])
-	by pb-smtp21.pobox.com (Postfix) with ESMTP id 0488C1DF53;
-	Thu,  4 Jul 2024 22:24:22 -0400 (EDT)
-	(envelope-from nico@fluxnic.net)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=pobox.com; h=from:to:cc
-	:subject:date:message-id:in-reply-to:references:mime-version
-	:content-transfer-encoding; s=sasl; bh=07LCEtp0Flmh6rOuWMY5fE00G
-	lqWnZG1Ro+zSOWdKCM=; b=blOwK4DOqZHdlSQcPG3Q2j2QpkBpYpLYwXspUr23T
-	gE20GaCqHgq8Q/U21g0BiEB60htrceSgd3CV+aK684X/BsnRXGVoqCNVIlMULU6f
-	XQMe+KfVuvOyFBPC1+Bt6nxh64SpUyhugFIRKvINHXi7OK1XCazksNOFBmGgN5St
-	uI=
-Received: from pb-smtp21.sea.icgroup.com (unknown [127.0.0.1])
-	by pb-smtp21.pobox.com (Postfix) with ESMTP id F0AB41DF52;
-	Thu,  4 Jul 2024 22:24:21 -0400 (EDT)
-	(envelope-from nico@fluxnic.net)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=fluxnic.net;
- h=from:to:cc:subject:date:message-id:in-reply-to:references:mime-version:content-transfer-encoding; s=2016-12.pbsmtp; bh=0Yw/pYnIc0k8ImJRiHZ7qTYic9zc+p3Q+HSBMVQGCiI=; b=Qup5kK998eq40TlTTSzKfXahTeEEutFl18f/ZtnkMVAv9kzO+YqwxTlGT0jHbx1vDo+nZKiKEQSFWrC2gPw9eyTWonmYz/pGq1R5kUCXw+AnGo0jW2pYaXtuePZ30lXT2AVtw95WYw3W67mfZTc+G9FBqOR12yY4v7wUqIA+gr0=
-Received: from yoda.fluxnic.net (unknown [184.162.15.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by pb-smtp21.pobox.com (Postfix) with ESMTPSA id 088A31DF34;
-	Thu,  4 Jul 2024 22:24:18 -0400 (EDT)
-	(envelope-from nico@fluxnic.net)
-Received: from xanadu.lan (OpenWrt.lan [192.168.1.1])
-	by yoda.fluxnic.net (Postfix) with ESMTPSA id C2707D35BC7;
-	Thu,  4 Jul 2024 22:24:15 -0400 (EDT)
-From: Nicolas Pitre <nico@fluxnic.net>
-To: Arnd Bergmann <arnd@arndb.de>,
-	Russell King <linux@armlinux.org.uk>
-Cc: Nicolas Pitre <npitre@baylibre.com>,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH 1/2] ARM: div64: remove custom __arch_xprod_64()
-Date: Thu,  4 Jul 2024 22:20:28 -0400
-Message-ID: <20240705022334.1378363-2-nico@fluxnic.net>
-X-Mailer: git-send-email 2.45.2
-In-Reply-To: <20240705022334.1378363-1-nico@fluxnic.net>
-References: <20240705022334.1378363-1-nico@fluxnic.net>
+	s=arc-20240116; t=1720167190; c=relaxed/simple;
+	bh=r8RsOl90vUmFb3iH2mDrRyejM11RkeHxvGCGNnKIo5U=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=WXgBuO9bGtfSUONsGIiVqr7y5ENzUOgXIjr/kymPH3hsoFXs5HYqwA9b8TyyhJp4bDW5Oqe3nblPyuoYG9ie818nspc7G2cZlxIo9g56XMnZVlsL1s5rCiffXsMQMGzztfS/CCgy2oObEuMmkTG4LI808IlrXxNZB/aHzE3zhDI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.128.174
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Received: by mail-yw1-f174.google.com with SMTP id 00721157ae682-650866942aeso13016347b3.0;
+        Fri, 05 Jul 2024 01:13:09 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1720167188; x=1720771988;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=ipFWrtbP2pnadKQDEjq7tVSKBPDnD8noGTMoh58siUs=;
+        b=uVnfIwjbgmgIwz2TgLsoRKEP+mDpvBHI5l/DL1UhOvzAikOPkANoJrHMm9Sophe56a
+         pMuzJ+ksGJGSbG9EQctyoLUVEbiHDCXHpLuoXWnaZBTpmNFbxJzKdTIHwgi0bLInF4Cc
+         hEpyRAXNLbogMUooNqelYUl392dPHaaNba/A1Qw1K4qboic1yizCH6GMT0lVlMeaxbpN
+         ZC1Nk8c3o9MbmzbswwC448i/4l8dZM/1II7Xhwb4S+G73J/7JwjVXWP1Y8HoBSlHqIj+
+         RVwUXlJGurNSe/Ax3Z6MytTC0Lk7SxYli8zg5mpqVpoXRoHLdHDdfs4mtBlvipRVLFmE
+         WOZQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWASXcyQo3Em++vhPerPFTkIn7Bs8mJX+0gQuLb/7m7DiP0hC3SRrQCD1hFgcrCFyK1jRbSNZoucz/8eTzOAPyTr9G8qHq1G29VJatifWnKnXnXlq+IAF39oqCbKFXy/3dcFAxkmnJWm3RB/Avq/Rq464SSfBWQWhHUTHbKHM3dein5HGjcJWhVNUL/06FanmJSK5OdEN9rYbU8+NAVnTZqI6dTGY/x8AY6SKlw0AGPerVvhTRZPiJd6HhPUZnyz7MAh2BUvQ==
+X-Gm-Message-State: AOJu0Yxv7C5EUWUBGyoEj0OlZMUOV38ZoLp6nLOMi1L7JlJmhewo6eOW
+	QwdAHEZ0Oi95r4efjckkReIpspvxzDvtu0oOWiQofXhRoBVkPGy9GNBa7GFz
+X-Google-Smtp-Source: AGHT+IE5w6dodX6tkNdpYo2JcOIQFCoBaWvJ3qj0W+78A8aPmU0fAixL3wQKsWOqabg+jcNHcrGYNg==
+X-Received: by 2002:a0d:ea0d:0:b0:61a:e4ef:51d with SMTP id 00721157ae682-652d61e9c9dmr39923847b3.9.1720167188342;
+        Fri, 05 Jul 2024 01:13:08 -0700 (PDT)
+Received: from mail-yw1-f170.google.com (mail-yw1-f170.google.com. [209.85.128.170])
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-64a9ba5a2e7sm27802817b3.80.2024.07.05.01.13.08
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 05 Jul 2024 01:13:08 -0700 (PDT)
+Received: by mail-yw1-f170.google.com with SMTP id 00721157ae682-6504101cfd6so12313287b3.3;
+        Fri, 05 Jul 2024 01:13:08 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCWEXA0Z7eKZyJwrR4v8wVZLcf0Cj9LlgAmdcgphSbZE+xmcYZSi9s2HFwI5UVUusKBaQtpv3xv5ItuVKPwoO026FIEkhZnaFRWtwrjzBAQ2RsigT2FexW4IjaRTOVN+kX5Cldv44AEtWPvBuo8G2lqBTpS5mGJEf9DTvQCZ4OFVGaKp07wZZZLc1IdcvBJWHfKTeRkF/Cs9ecWANVar8UGkiEPzKgZ07fXx/SvuZf8nvvs2eCyqLK9wvfYcS9tgMPgV7Vockg==
+X-Received: by 2002:a81:431f:0:b0:633:8b49:f97c with SMTP id
+ 00721157ae682-652d842fd27mr38728927b3.37.1720167188020; Fri, 05 Jul 2024
+ 01:13:08 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Pobox-Relay-ID:
- AE3B9198-3A75-11EF-B426-DFF1FEA446E2-78420484!pb-smtp21.pobox.com
+References: <20240704143611.2979589-1-arnd@kernel.org> <20240704143611.2979589-8-arnd@kernel.org>
+In-Reply-To: <20240704143611.2979589-8-arnd@kernel.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Fri, 5 Jul 2024 10:12:55 +0200
+X-Gmail-Original-Message-ID: <CAMuHMdV-JtJWixt8J45rhZbpb7S90EDhp=x5iGGBhmUZyyQSnw@mail.gmail.com>
+Message-ID: <CAMuHMdV-JtJWixt8J45rhZbpb7S90EDhp=x5iGGBhmUZyyQSnw@mail.gmail.com>
+Subject: Re: [PATCH 07/17] clone3: drop __ARCH_WANT_SYS_CLONE3 macro
+To: Arnd Bergmann <arnd@kernel.org>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, 
+	Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <nathan@kernel.org>, 
+	Nicolas Schier <nicolas@fjasle.eu>, Vineet Gupta <vgupta@kernel.org>, 
+	Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, 
+	Will Deacon <will@kernel.org>, Guo Ren <guoren@kernel.org>, Brian Cain <bcain@quicinc.com>, 
+	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
+	Dinh Nguyen <dinguyen@kernel.org>, Jonas Bonn <jonas@southpole.se>, 
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>, Stafford Horne <shorne@gmail.com>, 
+	Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt <palmer@dabbelt.com>, 
+	Albert Ou <aou@eecs.berkeley.edu>, Rich Felker <dalias@libc.org>, 
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, "David S. Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, Christian Brauner <brauner@kernel.org>, 
+	Mark Rutland <mark.rutland@arm.com>, linux-kbuild@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-snps-arc@lists.infradead.org, 
+	linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org, 
+	linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev, 
+	linux-openrisc@vger.kernel.org, linux-riscv@lists.infradead.org
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-From: Nicolas Pitre <npitre@baylibre.com>
+On Thu, Jul 4, 2024 at 4:38=E2=80=AFPM Arnd Bergmann <arnd@kernel.org> wrot=
+e:
+> From: Arnd Bergmann <arnd@arndb.de>
+>
+> When clone3() was introduced, it was not obvious how each architecture
+> deals with setting up the stack and keeping the register contents in
+> a fork()-like system call, so this was left for the architecture
+> maintainers to implement, with __ARCH_WANT_SYS_CLONE3 defined by those
+> that already implement it.
+>
+> Five years later, we still have a few architectures left that are missing
+> clone3(), and the macro keeps getting in the way as it's fundamentally
+> different from all the other __ARCH_WANT_SYS_* macros that are meant
+> to provide backwards-compatibility with applications using older
+> syscalls that are no longer provided by default.
+>
+> Address this by reversing the polarity of the macro, adding an
+> __ARCH_BROKEN_SYS_CLONE3 macro to all architectures that don't
+> already provide the syscall, and remove __ARCH_WANT_SYS_CLONE3
+> from all the other ones.
+>
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-Turns out that the compiler does a better job with the generic C version
-these days. In any case, an even better generic implementation is
-coming next, making this code doubly obsolete.
+>  arch/m68k/include/asm/unistd.h                 | 1 -
 
-Signed-off-by: Nicolas Pitre <npitre@baylibre.com>
----
- arch/arm/include/asm/div64.h | 52 ------------------------------------
- 1 file changed, 52 deletions(-)
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-diff --git a/arch/arm/include/asm/div64.h b/arch/arm/include/asm/div64.h
-index 4b69cf8504..99b80db595 100644
---- a/arch/arm/include/asm/div64.h
-+++ b/arch/arm/include/asm/div64.h
-@@ -52,58 +52,6 @@ static inline uint32_t __div64_32(uint64_t *n, uint32_=
-t base)
-=20
- #else
-=20
--static inline uint64_t __arch_xprod_64(uint64_t m, uint64_t n, bool bias=
-)
--{
--	unsigned long long res;
--	register unsigned int tmp asm("ip") =3D 0;
--
--	if (!bias) {
--		asm (	"umull	%Q0, %R0, %Q1, %Q2\n\t"
--			"mov	%Q0, #0"
--			: "=3D&r" (res)
--			: "r" (m), "r" (n)
--			: "cc");
--	} else if (!(m & ((1ULL << 63) | (1ULL << 31)))) {
--		res =3D m;
--		asm (	"umlal	%Q0, %R0, %Q1, %Q2\n\t"
--			"mov	%Q0, #0"
--			: "+&r" (res)
--			: "r" (m), "r" (n)
--			: "cc");
--	} else {
--		asm (	"umull	%Q0, %R0, %Q2, %Q3\n\t"
--			"cmn	%Q0, %Q2\n\t"
--			"adcs	%R0, %R0, %R2\n\t"
--			"adc	%Q0, %1, #0"
--			: "=3D&r" (res), "+&r" (tmp)
--			: "r" (m), "r" (n)
--			: "cc");
--	}
--
--	if (!(m & ((1ULL << 63) | (1ULL << 31)))) {
--		asm (	"umlal	%R0, %Q0, %R1, %Q2\n\t"
--			"umlal	%R0, %Q0, %Q1, %R2\n\t"
--			"mov	%R0, #0\n\t"
--			"umlal	%Q0, %R0, %R1, %R2"
--			: "+&r" (res)
--			: "r" (m), "r" (n)
--			: "cc");
--	} else {
--		asm (	"umlal	%R0, %Q0, %R2, %Q3\n\t"
--			"umlal	%R0, %1, %Q2, %R3\n\t"
--			"mov	%R0, #0\n\t"
--			"adds	%Q0, %1, %Q0\n\t"
--			"adc	%R0, %R0, #0\n\t"
--			"umlal	%Q0, %R0, %R2, %R3"
--			: "+&r" (res), "+&r" (tmp)
--			: "r" (m), "r" (n)
--			: "cc");
--	}
--
--	return res;
--}
--#define __arch_xprod_64 __arch_xprod_64
--
- #include <asm-generic/div64.h>
-=20
- #endif
+Gr{oetje,eeting}s,
+
+                        Geert
+
 --=20
-2.45.2
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k=
+.org
 
+In personal conversations with technical people, I call myself a hacker. Bu=
+t
+when I'm talking to journalists I just say "programmer" or something like t=
+hat.
+                                -- Linus Torvalds
