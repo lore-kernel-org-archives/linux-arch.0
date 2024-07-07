@@ -1,47 +1,47 @@
 Received: from pb-smtp20.pobox.com (pb-smtp20.pobox.com [173.228.157.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B43C66A8BE;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 20A836BFCA;
 	Sun,  7 Jul 2024 17:19:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=173.228.157.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1720372773; cv=none; b=fcsWWbt4/yquqpgT3S+AbxRbzQM/HjL3xtaBhNQgqqw9HP4OVJLvHdYR65LdK2RRNM5X8h4qEe0mIiAo9aPgIZLkZz5Xt9w7+bJ4t02Yv2lsAHw23jL1fgAQJVMU+kAoC3n3qiRm7IhTV4JyjfAkuu5Ux5apzGWH1W5GySmIZMs=
+	t=1720372773; cv=none; b=ac8WPbzozcC7iPzNL0ecmslFFa6wn/7GcxCNbcFJ8z+/9OZIC1Emxd/h1R+jy2U0saWnSUcjr7Bb0akNThH0DNHVJsDIVaRlhucE4R09b7CzEK2zutyotCl1EnIl8ehbvQrFGq/ZJl4RFpjAVvxh9cYhi2/1IeTipTJ0JPJX2hE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1720372773; c=relaxed/simple;
-	bh=Wvb+Vn4lROGh7zULPRLJ0/y1kO2X/fYwxN0sgAcujaU=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=T8VDDd2otKsAIQVmDhH359VybV/NbWxN/HTfrfI1Ru3giaLs51GMO8OzUna9BngJ9uM9VQjmHY9noJ9y5mQYcQyY1VFJNNk8Q/T9G3BYvXVNA1fXV8C/+P8z2FwtaztcjPjZIVGM4zCaJHQmGNhefHenAqE3ysm20ZfRSbwCmec=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net; spf=pass smtp.mailfrom=fluxnic.net; dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b=q66UZuaU; dkim=fail (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b=tjftYmuM reason="signature verification failed"; arc=none smtp.client-ip=173.228.157.52
+	bh=/QuuLJC1nxKgKxynXhnQImpEZwtp//wq0C11wSeUgwM=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=QC4Ck94WArlCSkcVKcg2krNQ9vdsJ7p7QUsfV3wQ0ZSiFezGoFIre78L4hs62P4RKkIdB4JndeceMmDSlVVqSfQuxlwfHqaZtBuPRLdGl9MFAVLNoqfwCYqJf7pWeBLIPL3XDsyUp7Wn09JeXsRf+5vDyQjIazlkc2BkOhg50+E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net; spf=pass smtp.mailfrom=fluxnic.net; dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b=ephEmCz0; dkim=fail (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b=IHnMbrny reason="signature verification failed"; arc=none smtp.client-ip=173.228.157.52
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fluxnic.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b="q66UZuaU";
-	dkim=fail reason="signature verification failed" (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b="tjftYmuM"
+	dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b="ephEmCz0";
+	dkim=fail reason="signature verification failed" (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b="IHnMbrny"
 Received: from pb-smtp20.pobox.com (unknown [127.0.0.1])
-	by pb-smtp20.pobox.com (Postfix) with ESMTP id 36AF22D821;
+	by pb-smtp20.pobox.com (Postfix) with ESMTP id B480E2D823;
 	Sun,  7 Jul 2024 13:19:31 -0400 (EDT)
 	(envelope-from nico@fluxnic.net)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=pobox.com; h=from:to:cc
-	:subject:date:message-id:mime-version:content-transfer-encoding;
-	 s=sasl; bh=Wvb+Vn4lROGh7zULPRLJ0/y1kO2X/fYwxN0sgAcujaU=; b=q66U
-	ZuaUnHOA6wiTDUCASWYGi7jsPc6YOQPCWTfyQjZCeusnYRPbqDd/VOJbP2pQ/5Z0
-	cnXRj6wPHXP+2dF0tIg/9yfj63qV5EeOKmB9dIkt5q+1agAH1ZH96wT+RkDO7RXz
-	XXN9Q+5oge0zMfw+oljONYQDyts5+tRN9NJgd5g=
+	:subject:date:message-id:in-reply-to:references:mime-version
+	:content-transfer-encoding; s=sasl; bh=/QuuLJC1nxKgKxynXhnQImpEZ
+	wtp//wq0C11wSeUgwM=; b=ephEmCz0LimOeexEBEfJAUlfodnujXcfDiiGRHBND
+	jrRB51LeAr0Dwc1aK21Fb+h+fnxc9DouWRiq66h7yB3gdaBjiT8csqdinTcVFW6U
+	iP8b9YHwRcgTK6z7Xz64pIYsKxY2idHM6wDbxA2480LLOe341pAgWpnRghQX1YoJ
+	HU=
 Received: from pb-smtp20.sea.icgroup.com (unknown [127.0.0.1])
-	by pb-smtp20.pobox.com (Postfix) with ESMTP id 2EE802D820;
+	by pb-smtp20.pobox.com (Postfix) with ESMTP id AE2932D822;
 	Sun,  7 Jul 2024 13:19:31 -0400 (EDT)
 	(envelope-from nico@fluxnic.net)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=fluxnic.net;
- h=from:to:cc:subject:date:message-id:mime-version:content-transfer-encoding;
- s=2016-12.pbsmtp; bh=OKKMTFAfldo0lBdjlf8CjAfHfITmKkHhDKlvSVqT+nM=;
- b=tjftYmuMK6QOrWFmUZcAqqMtkuLzedeQZqG0LlrWZZjfrs7h98wvwyOGbOyhybaLs5zQi3dK+6TX1JNQIbMyTq5Fi+0tVKN0xLZC4IdRuIhH/4iILDqtpkiWCeQaqMpLOn69uEMV6lAlcPXmCI6TZOOADlRu2NR0XMp5QgOS3mU=
+ h=from:to:cc:subject:date:message-id:in-reply-to:references:mime-version:content-transfer-encoding; s=2016-12.pbsmtp; bh=ywfxdQDukdfVWt5y0bqhjJ6Uf8FKCaBkrknbgBicBmY=; b=IHnMbrnypAD49U6KbEf93hV0EpjAokmpx/Rv8bVqlEeYyea94r17/SquSIRdLaPDmq9DMqVM5aCiMCgm14rHyMKb3SZ4iOWqnZbIVUTu+GBhvCEmd0bIbHdERFvan9pMNEUdMq1stvOa4kD1+q8SZCu5o1OVgD/mezofoKNn2Fc=
 Received: from yoda.fluxnic.net (unknown [184.162.15.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by pb-smtp20.pobox.com (Postfix) with ESMTPSA id 312B22D81E;
+	by pb-smtp20.pobox.com (Postfix) with ESMTPSA id ADD0F2D81F;
 	Sun,  7 Jul 2024 13:19:27 -0400 (EDT)
 	(envelope-from nico@fluxnic.net)
 Received: from xanadu.lan (OpenWrt.lan [192.168.1.1])
-	by yoda.fluxnic.net (Postfix) with ESMTPSA id 16A30D3B289;
+	by yoda.fluxnic.net (Postfix) with ESMTPSA id 79FAFD3B28E;
 	Sun,  7 Jul 2024 13:19:25 -0400 (EDT)
 From: Nicolas Pitre <nico@fluxnic.net>
 To: Arnd Bergmann <arnd@arndb.de>,
@@ -49,10 +49,12 @@ To: Arnd Bergmann <arnd@arndb.de>,
 Cc: Nicolas Pitre <npitre@baylibre.com>,
 	linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org
-Subject: [PATCH v2 0/4] do_div() with constant divisor simplification
-Date: Sun,  7 Jul 2024 13:17:32 -0400
-Message-ID: <20240707171919.1951895-1-nico@fluxnic.net>
+Subject: [PATCH v2 4/4] __arch_xprod64(): make __always_inline when optimizing for performance
+Date: Sun,  7 Jul 2024 13:17:36 -0400
+Message-ID: <20240707171919.1951895-5-nico@fluxnic.net>
 X-Mailer: git-send-email 2.45.2
+In-Reply-To: <20240707171919.1951895-1-nico@fluxnic.net>
+References: <20240707171919.1951895-1-nico@fluxnic.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -60,30 +62,61 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-Pobox-Relay-ID:
- 1037ACAE-3C85-11EF-89FD-C38742FD603B-78420484!pb-smtp20.pobox.com
+ 1085295C-3C85-11EF-858D-C38742FD603B-78420484!pb-smtp20.pobox.com
 Content-Transfer-Encoding: quoted-printable
 
-While working on mul_u64_u64_div_u64() improvements I realized that there
-is a better way to perform a 64x64->128 bits multiplication with overflow
-handling. This is not as lean as v1 of the series but still much better
-than the existing code IMHO.
+From: Nicolas Pitre <npitre@baylibre.com>
 
-Changes from v1:
+Recent gcc versions started not systematically inline __arch_xprod64()
+and that has performance implications. Give the compiler the freedom to
+decide only when optimizing for size.
 
-- Formalize condition for when overflow handling can be skipped.
-- Make this condition apply only if it can be determined at compile time
-  (beware of the compiler not always inling code).
-- Keep the ARM assembly but apply the above changes to it as well.
-- Simplify generic C code for __arch_xprod64() further.
-- Force __always_inline when optimizing for performance.
-- Augment test_div64.c with important edge cases.
+Signed-off-by: Nicolas Pitre <npitre@baylibre.com>
+---
+ arch/arm/include/asm/div64.h | 7 ++++++-
+ include/asm-generic/div64.h  | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
 
-Link to v1: https://lore.kernel.org/lkml/20240705022334.1378363-1-nico@fl=
-uxnic.net/
+diff --git a/arch/arm/include/asm/div64.h b/arch/arm/include/asm/div64.h
+index 562d5376ae..3912bf4ce9 100644
+--- a/arch/arm/include/asm/div64.h
++++ b/arch/arm/include/asm/div64.h
+@@ -52,7 +52,12 @@ static inline uint32_t __div64_32(uint64_t *n, uint32_=
+t base)
+=20
+ #else
+=20
+-static inline uint64_t __arch_xprod_64(uint64_t m, uint64_t n, bool bias=
+)
++#ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
++static __always_inline
++#else
++static inline
++#endif
++__arch_xprod_64(uint64_t m, uint64_t n, bool bias)
+ {
+ 	unsigned long long res;
+ 	register unsigned int tmp asm("ip") =3D 0;
+diff --git a/include/asm-generic/div64.h b/include/asm-generic/div64.h
+index 5d59cf7e73..25e7b4b58d 100644
+--- a/include/asm-generic/div64.h
++++ b/include/asm-generic/div64.h
+@@ -134,7 +134,12 @@
+  * Hoping for compile-time optimization of  conditional code.
+  * Architectures may provide their own optimized assembly implementation=
+.
+  */
+-static inline uint64_t __arch_xprod_64(const uint64_t m, uint64_t n, boo=
+l bias)
++#ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
++static __always_inline
++#else
++static inline
++#endif
++uint64_t __arch_xprod_64(const uint64_t m, uint64_t n, bool bias)
+ {
+ 	uint32_t m_lo =3D m;
+ 	uint32_t m_hi =3D m >> 32;
+--=20
+2.45.2
 
-The diffstat is:
-
- arch/arm/include/asm/div64.h |  13 +++-
- include/asm-generic/div64.h  | 121 ++++++++++++-----------------------
- lib/math/test_div64.c        |  85 +++++++++++++++++++++++-
- 3 files changed, 134 insertions(+), 85 deletions(-)
