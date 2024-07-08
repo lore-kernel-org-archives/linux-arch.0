@@ -1,269 +1,123 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.12])
+Received: from pb-smtp20.pobox.com (pb-smtp20.pobox.com [173.228.157.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB0B26026A;
-	Sun,  7 Jul 2024 19:41:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.12
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F4AB19B;
+	Mon,  8 Jul 2024 01:21:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=173.228.157.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1720381283; cv=none; b=j1KzNpTIv2uPIg6GVcIwqu7ksLB23/F3KugZWUTEtOMt9vOFo8qIT6jk0Lq1p76vLtix/66F0uz+JVfcU2toQQGCuA7aQbz9BuX8aZ+RgvGtGW84p68hNgJq8tjMPeMh3DlRhVK4oTM7cht6xY/w1U5zPplqZJ399okFmK065J0=
+	t=1720401692; cv=none; b=BcR0oteR7pguc1GQw96e8gcMM/+ViU+6wKgdKpH7jQ04X/eJZiOZSe0orsPg0Y0UN7AvPgOAhVqjfTgkPlYE3CxBl/7fvwu+4CkSFi4GSRe5xct1S5/0C4jWAvPjhQjlO1fuyVETGZNfuUFeh9vJ9+YYXzh+UKaRwt/7mNL9JE4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1720381283; c=relaxed/simple;
-	bh=kYO/PXycSIMCVZ1dSA2pHriPbtYjljDjWcl/Y1G1BWg=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=VHNeUzN5P/mriUtoVPksbGpEih2KwjyRJ/XvkqG6fYAxZPrGYGhdOUO5dI9qxpQSLTvTvTF8/2hhc5hgch3Xxoo2ZJxHGzZehgf3n94BG+OVp+EGV/sryJcbumtxlRvzJl/KxXtiiTsRw13fFSQIbeC5tgIOO7Dvdxh4wd8028Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=XQx+P4wN; arc=none smtp.client-ip=198.175.65.12
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1720401692; c=relaxed/simple;
+	bh=SrabfQfrtwWxcdX18kQycQ2yUzzWvO8BO1Eq9DoJvks=;
+	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
+	 MIME-Version:Content-Type; b=gle1zgkQD/m1lS+B/a8+rXtDdjKi4iQnnJfm/tPeEzkt7VKO9NHxuoM0swQ8B66Jl+Dt6GEs9bitoIIi0J5sEaydrxU3GjHaFndIj2iRJbQgJOB6uDl3jXUiIIcItgk2F1WJj40E7t0aoFBDqY6rnLWsNo/jb7e77VFtVJ1FQp8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net; spf=pass smtp.mailfrom=fluxnic.net; dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b=Bq45LWmi; dkim=pass (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b=T8aoiESy; arc=none smtp.client-ip=173.228.157.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fluxnic.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="XQx+P4wN"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1720381281; x=1751917281;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=kYO/PXycSIMCVZ1dSA2pHriPbtYjljDjWcl/Y1G1BWg=;
-  b=XQx+P4wNP6NgLj1pEYDwSkRlqtA77iXHAnVrdjIginkSPoEiJC4G77+b
-   Lzb1wIiY18S4EOvslDiP7pR92v3n/CI/27JGqosWocpr08/oPeYOyJAWJ
-   VRb+yqrr4Ue3c40xLAOFCxPA5PEblsWsaY3prYSsL/xLcbLnta3X3Ocw3
-   p7yP7DifUTwbmtgM63BhiTinnDNDNAzMGkZQvAKxgOaLCiVT9wjCaB+YN
-   yeKMckQolvQSCMybLqV2Xs6/dg9GgLAPwaFdJWpkQ88mDTQOSFI2hW/sP
-   bpvvOO0noJKXd3dhPEQo5nTc/aGl5QEdjra2y6bhEXWBprHbjLVcuI90C
-   Q==;
-X-CSE-ConnectionGUID: 2yAc5R4RRTuwMHgLQzpQOw==
-X-CSE-MsgGUID: wHABy4yNTxeOZr+WjfaTvw==
-X-IronPort-AV: E=McAfee;i="6700,10204,11126"; a="28979905"
-X-IronPort-AV: E=Sophos;i="6.09,190,1716274800"; 
-   d="scan'208";a="28979905"
-Received: from fmviesa006.fm.intel.com ([10.60.135.146])
-  by orvoesa104.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 07 Jul 2024 12:41:18 -0700
-X-CSE-ConnectionGUID: 4+vQzwEASpyZbLDuxJjJAw==
-X-CSE-MsgGUID: 3a7ExpBfSPeXZbUFG1sNlQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.09,190,1716274800"; 
-   d="scan'208";a="47080364"
-Received: from lkp-server01.sh.intel.com (HELO 68891e0c336b) ([10.239.97.150])
-  by fmviesa006.fm.intel.com with ESMTP; 07 Jul 2024 12:41:15 -0700
-Received: from kbuild by 68891e0c336b with local (Exim 4.96)
-	(envelope-from <lkp@intel.com>)
-	id 1sQXl3-000VEI-1S;
-	Sun, 07 Jul 2024 19:41:13 +0000
-Date: Mon, 8 Jul 2024 03:40:28 +0800
-From: kernel test robot <lkp@intel.com>
-To: Nicolas Pitre <nico@fluxnic.net>, Arnd Bergmann <arnd@arndb.de>,
-	Russell King <linux@armlinux.org.uk>
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
-	Nicolas Pitre <npitre@baylibre.com>, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
+	dkim=pass (1024-bit key) header.d=pobox.com header.i=@pobox.com header.b="Bq45LWmi";
+	dkim=pass (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b="T8aoiESy"
+Received: from pb-smtp20.pobox.com (unknown [127.0.0.1])
+	by pb-smtp20.pobox.com (Postfix) with ESMTP id 8BA3930592;
+	Sun,  7 Jul 2024 21:21:24 -0400 (EDT)
+	(envelope-from nico@fluxnic.net)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=pobox.com; h=date:from
+	:to:cc:subject:in-reply-to:message-id:references:mime-version
+	:content-type; s=sasl; bh=SrabfQfrtwWxcdX18kQycQ2yUzzWvO8BO1Eq9D
+	oJvks=; b=Bq45LWmilKGSvTZj6Tr0/vVsZcoO5KIAbTrbM3iz0zpMVJQhxk6UFc
+	TIhz+3Zg2F1jA4O/+Go0Xh/OEPzyapgtmkoEOn58OrgyPdDuUsKXKdawPHDcp6Q5
+	5yy/Kx4w4q907QfMhhTN3gxWwvYLQVhtfaDsbzeAGPknAtL3KcRzY=
+Received: from pb-smtp20.sea.icgroup.com (unknown [127.0.0.1])
+	by pb-smtp20.pobox.com (Postfix) with ESMTP id 8428B30591;
+	Sun,  7 Jul 2024 21:21:24 -0400 (EDT)
+	(envelope-from nico@fluxnic.net)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed; d=fluxnic.net;
+ h=date:from:to:cc:subject:in-reply-to:message-id:references:mime-version:content-type; s=2016-12.pbsmtp; bh=SrabfQfrtwWxcdX18kQycQ2yUzzWvO8BO1Eq9DoJvks=; b=T8aoiESyqpHPaupJZRaX0lrklDDFGgy5A/BzStsRsAG2C1i3rO5tfl8s3lVnmxUyYaE2HdE6UJHC8esWoLQ23ZYwd2y9xtew3Mk0XhWi/DTqbWeUWqXP1Sd/vokRBbb5GGJ32YseZynCIB4uZIrzKT9FqQIljidEo2REw2sIDJk=
+Received: from yoda.fluxnic.net (unknown [184.162.15.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by pb-smtp20.pobox.com (Postfix) with ESMTPSA id 8598C30590;
+	Sun,  7 Jul 2024 21:21:20 -0400 (EDT)
+	(envelope-from nico@fluxnic.net)
+Received: from xanadu (unknown [IPv6:fd17:d3d3:663b:0:9696:df8a:e3:af35])
+	by yoda.fluxnic.net (Postfix) with ESMTPSA id 59A40D3BCE2;
+	Sun,  7 Jul 2024 21:21:18 -0400 (EDT)
+Date: Sun, 7 Jul 2024 21:21:18 -0400 (EDT)
+From: Nicolas Pitre <nico@fluxnic.net>
+To: Arnd Bergmann <arnd@arndb.de>
+cc: Russell King <linux@armlinux.org.uk>, 
+    Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org
 Subject: Re: [PATCH v2 4/4] __arch_xprod64(): make __always_inline when
  optimizing for performance
-Message-ID: <202407080326.fBdpm1Tq-lkp@intel.com>
-References: <20240707171919.1951895-5-nico@fluxnic.net>
+In-Reply-To: <3dc8f89e-4525-4084-9d4a-facb6105239c@app.fastmail.com>
+Message-ID: <57srp3ps-n7p8-orqq-86rq-p04o2246pn7s@syhkavp.arg>
+References: <20240707171919.1951895-1-nico@fluxnic.net> <20240707171919.1951895-5-nico@fluxnic.net> <55a8cff0-1d73-4743-9c56-2792616426c7@app.fastmail.com> <8251045r-26sn-4674-p820-4qp6s5o322qq@syhkavp.arg>
+ <3dc8f89e-4525-4084-9d4a-facb6105239c@app.fastmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20240707171919.1951895-5-nico@fluxnic.net>
+Content-Type: text/plain; charset=US-ASCII
+X-Pobox-Relay-ID:
+ 61EA045A-3CC8-11EF-B4F2-C38742FD603B-78420484!pb-smtp20.pobox.com
 
-Hi Nicolas,
+On Sun, 7 Jul 2024, Arnd Bergmann wrote:
 
-kernel test robot noticed the following build errors:
+> On Sun, Jul 7, 2024, at 21:14, Nicolas Pitre wrote:
+> > On Sun, 7 Jul 2024, Arnd Bergmann wrote:
+> >
+> >> On Sun, Jul 7, 2024, at 19:17, Nicolas Pitre wrote:
+> >> > From: Nicolas Pitre <npitre@baylibre.com>
+> >> >
+> >> > Recent gcc versions started not systematically inline __arch_xprod64()
+> >> > and that has performance implications. Give the compiler the freedom to
+> >> > decide only when optimizing for size.
+> >> >
+> >> > Signed-off-by: Nicolas Pitre <npitre@baylibre.com>
+> >> 
+> >> Seems reasonable. Just to make sure: do you know if the non-inline
+> >> version of xprod_64 ends up producing a more effecient division
+> >> result than the __do_div64() code path on arch/arm?
+> >
+> > __arch_xprod_64() is part of the __do_div64() code path. So I'm not sure 
+> > of your question.
+> >
+> > Obviously, having __arch_xprod_64() inlined is faster but it increases 
+> > binary size.
+> 
+> I meant whether calling __div64_const32->__arch_xprod_64() is
+> still faster for a constant base when the new __arch_xprod_64()
+> is out of line, compared to the __div64_32->__do_div64()
+> assembly code path we take for a non-constant base.
 
-[auto build test ERROR on arnd-asm-generic/master]
-[also build test ERROR on arm/for-next arm/fixes soc/for-next linus/master v6.10-rc6 next-20240703]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+Oh, most likely yes. The non-constant base has to go through the whole 
+one-bit-at-a-time division loop whereas the constant base with 
+__div64_const32 results in 4 64-bits multiply and add. Moving 
+__arch_xprod_64() out of line adds the argument shuffling overhead and 
+it can't skip overflow handling, but still.
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Nicolas-Pitre/lib-math-test_div64-add-some-edge-cases-relevant-to-__div64_const32/20240708-013344
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git master
-patch link:    https://lore.kernel.org/r/20240707171919.1951895-5-nico%40fluxnic.net
-patch subject: [PATCH v2 4/4] __arch_xprod64(): make __always_inline when optimizing for performance
-config: arm-randconfig-003-20240708 (https://download.01.org/0day-ci/archive/20240708/202407080326.fBdpm1Tq-lkp@intel.com/config)
-compiler: clang version 16.0.6 (https://github.com/llvm/llvm-project 7cbf1a2591520c2491aa35339f227775f4d3adf6)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20240708/202407080326.fBdpm1Tq-lkp@intel.com/reproduce)
+Here's some numbers. With latest patches using __always_inline:
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202407080326.fBdpm1Tq-lkp@intel.com/
+test_div64: Starting 64bit/32bit division and modulo test
+test_div64: Completed 64bit/32bit division and modulo test, 0.048285584s elapsed
 
-All errors (new ones prefixed by >>):
+Latest patches but __always_inline left out:
 
-   In file included from arch/arm/kernel/asm-offsets.c:11:
-   In file included from include/linux/sched.h:16:
-   In file included from include/linux/cpumask.h:11:
-   In file included from include/linux/kernel.h:27:
-   In file included from include/linux/math.h:6:
->> arch/arm/include/asm/div64.h:60:1: error: type specifier missing, defaults to 'int'; ISO C99 and later do not support implicit int [-Wimplicit-int]
-   __arch_xprod_64(uint64_t m, uint64_t n, bool bias)
-   ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:98:11: warning: array index 3 is past the end of the array (that has type 'unsigned long[2]') [-Warray-bounds]
-                   return (set->sig[3] | set->sig[2] |
-                           ^        ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:98:25: warning: array index 2 is past the end of the array (that has type 'unsigned long[2]') [-Warray-bounds]
-                   return (set->sig[3] | set->sig[2] |
-                                         ^        ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:114:11: warning: array index 3 is past the end of the array (that has type 'const unsigned long[2]') [-Warray-bounds]
-                   return  (set1->sig[3] == set2->sig[3]) &&
-                            ^         ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:114:27: warning: array index 3 is past the end of the array (that has type 'const unsigned long[2]') [-Warray-bounds]
-                   return  (set1->sig[3] == set2->sig[3]) &&
-                                            ^         ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:115:5: warning: array index 2 is past the end of the array (that has type 'const unsigned long[2]') [-Warray-bounds]
-                           (set1->sig[2] == set2->sig[2]) &&
-                            ^         ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:115:21: warning: array index 2 is past the end of the array (that has type 'const unsigned long[2]') [-Warray-bounds]
-                           (set1->sig[2] == set2->sig[2]) &&
-                                            ^         ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
-   In file included from include/linux/percpu-rwsem.h:7:
-   In file included from include/linux/rcuwait.h:6:
-   In file included from include/linux/sched/signal.h:6:
-   include/linux/signal.h:157:1: warning: array index 3 is past the end of the array (that has type 'const unsigned long[2]') [-Warray-bounds]
-   _SIG_SET_BINOP(sigorsets, _sig_or)
-   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/signal.h:138:8: note: expanded from macro '_SIG_SET_BINOP'
-                   a3 = a->sig[3]; a2 = a->sig[2];                         \
-                        ^      ~
-   arch/arm/include/asm/signal.h:17:2: note: array 'sig' declared here
-           unsigned long sig[_NSIG_WORDS];
-           ^
-   In file included from arch/arm/kernel/asm-offsets.c:12:
-   In file included from include/linux/mm.h:1120:
-   In file included from include/linux/huge_mm.h:8:
-   In file included from include/linux/fs.h:33:
+test_div64: Starting 64bit/32bit division and modulo test
+test_div64: Completed 64bit/32bit division and modulo test, 0.053023584s elapsed
+
+Forcing both constant and non-constant base through the same path:
+
+test_div64: Starting 64bit/32bit division and modulo test
+test_div64: Completed 64bit/32bit division and modulo test, 0.103263776s elapsed
+
+It is worth noting that test_div64 does half the test with non constant 
+divisors already so the impact is greater than what those numbers show.
+
+And for what it is worth, those numbers were obtained using QEMU. The 
+gcc version is 14.1.0.
 
 
-vim +/int +60 arch/arm/include/asm/div64.h
-
-    54	
-    55	#ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-    56	static __always_inline
-    57	#else
-    58	static inline
-    59	#endif
-  > 60	__arch_xprod_64(uint64_t m, uint64_t n, bool bias)
-    61	{
-    62		unsigned long long res;
-    63		register unsigned int tmp asm("ip") = 0;
-    64		bool no_ovf = __builtin_constant_p(m) &&
-    65			      ((m >> 32) + (m & 0xffffffff) < 0x100000000);
-    66	
-    67		if (!bias) {
-    68			asm (	"umull	%Q0, %R0, %Q1, %Q2\n\t"
-    69				"mov	%Q0, #0"
-    70				: "=&r" (res)
-    71				: "r" (m), "r" (n)
-    72				: "cc");
-    73		} else if (no_ovf) {
-    74			res = m;
-    75			asm (	"umlal	%Q0, %R0, %Q1, %Q2\n\t"
-    76				"mov	%Q0, #0"
-    77				: "+&r" (res)
-    78				: "r" (m), "r" (n)
-    79				: "cc");
-    80		} else {
-    81			asm (	"umull	%Q0, %R0, %Q2, %Q3\n\t"
-    82				"cmn	%Q0, %Q2\n\t"
-    83				"adcs	%R0, %R0, %R2\n\t"
-    84				"adc	%Q0, %1, #0"
-    85				: "=&r" (res), "+&r" (tmp)
-    86				: "r" (m), "r" (n)
-    87				: "cc");
-    88		}
-    89	
-    90		if (no_ovf) {
-    91			asm (	"umlal	%R0, %Q0, %R1, %Q2\n\t"
-    92				"umlal	%R0, %Q0, %Q1, %R2\n\t"
-    93				"mov	%R0, #0\n\t"
-    94				"umlal	%Q0, %R0, %R1, %R2"
-    95				: "+&r" (res)
-    96				: "r" (m), "r" (n)
-    97				: "cc");
-    98		} else {
-    99			asm (	"umlal	%R0, %Q0, %R2, %Q3\n\t"
-   100				"umlal	%R0, %1, %Q2, %R3\n\t"
-   101				"mov	%R0, #0\n\t"
-   102				"adds	%Q0, %1, %Q0\n\t"
-   103				"adc	%R0, %R0, #0\n\t"
-   104				"umlal	%Q0, %R0, %R2, %R3"
-   105				: "+&r" (res), "+&r" (tmp)
-   106				: "r" (m), "r" (n)
-   107				: "cc");
-   108		}
-   109	
-   110		return res;
-   111	}
-   112	#define __arch_xprod_64 __arch_xprod_64
-   113	
-
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Nicolas
