@@ -1,113 +1,94 @@
-Received: from mail-wr1-f45.google.com (mail-wr1-f45.google.com [209.85.221.45])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fout7-smtp.messagingengine.com (fout7-smtp.messagingengine.com [103.168.172.150])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5D2CC198E9C;
-	Wed, 10 Jul 2024 10:37:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1BE5681723;
+	Wed, 10 Jul 2024 12:46:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.150
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1720607841; cv=none; b=Hv0HxayG7aFN4ZTjhLyD65pBBQ2KCtiTRzi33FH2Z6UfPANrnNz8rXcHOSDX1tPraBAzq11oUOuyqWpl6Bn2ETUzYjYp5h17tbmskVH47H8skaW2xlfHNVApz+Dmt4wltV9G8PSRtDMO25kt+KxX65gBpPEFItn4i8XMo7yVvQ8=
+	t=1720615568; cv=none; b=OLH03W0nmuAvrnDkBN5rxY6qAdo7HAgAUrWZl4bQF7fPW1dByZzC+U6fqmhban4gpqFTdgZH215/VA/DQVYtK0+VaGlc7t3Z+GH43n2vmzzW0PlOkwrp+723BuhfFDbQSLdjRRYeWVb6V92bfDd4/C6HtqRf+M0xrM+RizN2zUY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1720607841; c=relaxed/simple;
-	bh=vldLU5ousstfmDh5bnJGfW4ITCUolQrrvfqTIfAcNhk=;
-	h=From:To:Cc:Subject:In-Reply-To:Date:Message-ID:References:
-	 MIME-Version:Content-Type; b=DguMVwVHLBvyAzKVzOgLvUPmkuu0NWP+GC4I4NNbUN/a1wDJnX13pZwNnMWr5Ia6CsXY5vLSTh2O3xn+sydmqxVMtL9jKd902xJvgFttwfBSP/AHnKY2QoEARi4M1xnFgkUox1VAJwa6yaOpoo0wYrp+eqyZ9jgoiU8EFWLC6oQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=KlBuPgO9; arc=none smtp.client-ip=209.85.221.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1720615568; c=relaxed/simple;
+	bh=ENCye+tN6ZTv1qBEWwY9zTaG+Gvl9QpdG298D8ehGvs=;
+	h=MIME-Version:Message-Id:In-Reply-To:References:Date:From:To:Cc:
+	 Subject:Content-Type; b=WEsQnOOYHCMMj9lN4AuzjCcRAQgnzl9ttP/f3jhgNjM1DCZ+IfYbPpA+NsVchiioJKwrYCylCpdEmzXuI00jabRRcLyr73mjV1iuNjBuu6ACrf4edOX//lzrejLeTsRDdzI4WmfbMSlw5FTl6UhecdmZKrRtIhfXqfibgsCUNuI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=W/YNqMl+; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=crGDQrNc; arc=none smtp.client-ip=103.168.172.150
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="KlBuPgO9"
-Received: by mail-wr1-f45.google.com with SMTP id ffacd0b85a97d-367a464e200so3285421f8f.2;
-        Wed, 10 Jul 2024 03:37:20 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1720607839; x=1721212639; darn=vger.kernel.org;
-        h=mime-version:user-agent:references:message-id:date:in-reply-to
-         :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=vldLU5ousstfmDh5bnJGfW4ITCUolQrrvfqTIfAcNhk=;
-        b=KlBuPgO9Ni7hnunhFgMgIA5zfzNEFeChtT6L92zZsk7NVi+a6DXH00NltdsV+1JGOF
-         +wAfiLNBKARiC0gp98zW5QQDz95rPNscpaAt3Ipiqmwbr2fkU81JfkQfGP2BkcNfnYeU
-         Nas2o6m4bm6zPKP6tN576VMfVIJuw6nm4wAx+jMsLlBnFiH5D/XaDIxA/MFZ/8n/4T2F
-         xpoen2BuFzDjXmPUoH1b+P80wDBbDmvacCfY/Hi7iKHAbQH5ihK+DnAVzePfymUVBIbc
-         ZMaijunVuxG5cdCeypcchBzA/FfNxJyygx9oVpy3YIsglSKNlkqaY/s9AWLvn8sYXElF
-         HN+Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1720607839; x=1721212639;
-        h=mime-version:user-agent:references:message-id:date:in-reply-to
-         :subject:cc:to:from:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=vldLU5ousstfmDh5bnJGfW4ITCUolQrrvfqTIfAcNhk=;
-        b=GFWGgB5rUZhPpPqKNjcrShUl6dkusNTKfT4NxyeH1BaXyZ5KGfH/l3V6hWI3pW3xPL
-         uENsQQRkh4+D841Tq+0y8w4ovQZHfDWjD8KizgFtoInGrDN5mXTCZPidq9ZlmYdWhRZj
-         /8tM6mAu25g/qSFYSjuDFEWtjsn5Hs8AMNw4H8UitnqmdvOBqUdzYOsMtAaDLMYc5VqA
-         KuTQ551JTUaOX/21byPMWJUdNBrvtHLPiWlK/b4QZKJMxWXFqLKDZn4M13n6KnHFYm4J
-         Xu0o8PLprI/GjpN/FHFUTjv35ZuRS8rKQVcGh3/P9o7hZgxlQU8vIx+gOxDeW4HxfwXC
-         A7aA==
-X-Forwarded-Encrypted: i=1; AJvYcCV9s9+3NHl1H6i6sTDQswpWtmEGhfyloLCMsEa3vcdubtI6OsuCRM+GXD1GGwqyRghYrpcfBwyDq157YoF3nvise9L1ULkQq5/vuy32Ne7lamUIk+vV7LESX7UFIKBSfeJJuErUWIWM7kukr8yCOAdmdTOJUQGkpZzfFC86sEQWsYhWZSA3k/0J7IK7/jIvMuB8GwlZT5BNVfEeydoUsFyITUVn34KbInZ7kKZxmJ9oeIVKT6B9V6PJvEBLwIuwWY3yxAkd1YIjeBUc7WaroSxDYgGXAaIJqcwboE5mW379ni0EOdvG1BiC+Wg5wZ291Z0tU7B55KLO5uSUc/LFjGEbWqjp7akx9Q0v4rbl1l9dqZAlrRf27U8cOKU/a4jC+5N4QQr6xqSPHV1tflYpCLPlbffSMyYIYxoze3wpmHMrskLB778fmQPefwJIGIxKpqkaCrVYE+vX5Opk4ByHne8rx1/FIcPi7em575stxA==
-X-Gm-Message-State: AOJu0YzMd7Gs6UtSeFhGnZjYj4qXsihrnPKo4fpw94lolZiRv9Anvbih
-	O8eMTpXtPqE5t7Hh03t6bwHzDmUINeLbZbIquG4NnbB2AM9/IEJw
-X-Google-Smtp-Source: AGHT+IHfVxi0Lmy20qi3zZkkAs93779qbLSUYFgab3guGNLSJuv1zXb2yWVvs5PzjNax6/VrOLGUkw==
-X-Received: by 2002:a05:6000:e90:b0:367:9748:ee7f with SMTP id ffacd0b85a97d-367cead931emr3298090f8f.65.1720607838413;
-        Wed, 10 Jul 2024 03:37:18 -0700 (PDT)
-Received: from imac ([2a02:8010:60a0:0:d1a7:2644:c75e:c5ee])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-367cdfab6d3sm4896005f8f.112.2024.07.10.03.37.16
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 10 Jul 2024 03:37:17 -0700 (PDT)
-From: Donald Hunter <donald.hunter@gmail.com>
-To: Mina Almasry <almasrymina@google.com>
-Cc: netdev@vger.kernel.org,  linux-kernel@vger.kernel.org,
-  linux-doc@vger.kernel.org,  linux-alpha@vger.kernel.org,
-  linux-mips@vger.kernel.org,  linux-parisc@vger.kernel.org,
-  sparclinux@vger.kernel.org,  linux-trace-kernel@vger.kernel.org,
-  linux-arch@vger.kernel.org,  linux-kselftest@vger.kernel.org,
-  bpf@vger.kernel.org,  linux-media@vger.kernel.org,
-  dri-devel@lists.freedesktop.org,  Jakub Kicinski <kuba@kernel.org>,
-  "David S. Miller" <davem@davemloft.net>,  Eric Dumazet
- <edumazet@google.com>,  Paolo Abeni <pabeni@redhat.com>,  Jonathan Corbet
- <corbet@lwn.net>,  Richard Henderson <richard.henderson@linaro.org>,  Ivan
- Kokshaysky <ink@jurassic.park.msu.ru>,  Matt Turner <mattst88@gmail.com>,
-  Thomas Bogendoerfer <tsbogend@alpha.franken.de>,  "James E.J. Bottomley"
- <James.Bottomley@HansenPartnership.com>,  Helge Deller <deller@gmx.de>,
-  Andreas Larsson <andreas@gaisler.com>,  Jesper Dangaard Brouer
- <hawk@kernel.org>,  Ilias Apalodimas <ilias.apalodimas@linaro.org>,
-  Steven Rostedt <rostedt@goodmis.org>,  Masami Hiramatsu
- <mhiramat@kernel.org>,  Mathieu Desnoyers
- <mathieu.desnoyers@efficios.com>,  Arnd Bergmann <arnd@arndb.de>,  Steffen
- Klassert <steffen.klassert@secunet.com>,  Herbert Xu
- <herbert@gondor.apana.org.au>,  David Ahern <dsahern@kernel.org>,  Willem
- de Bruijn <willemdebruijn.kernel@gmail.com>,  Shuah Khan
- <shuah@kernel.org>,  Sumit Semwal <sumit.semwal@linaro.org>,  =?utf-8?Q?C?=
- =?utf-8?Q?hristian_K=C3=B6nig?= <christian.koenig@amd.com>,  Bagas Sanjaya
- <bagasdotme@gmail.com>,
-  Christoph Hellwig <hch@infradead.org>,  Nikolay Aleksandrov
- <razor@blackwall.org>,  Taehee Yoo <ap420073@gmail.com>,  Pavel Begunkov
- <asml.silence@gmail.com>,  David Wei <dw@davidwei.uk>,  Jason Gunthorpe
- <jgg@ziepe.ca>,  Yunsheng Lin <linyunsheng@huawei.com>,  Shailend Chand
- <shailend@google.com>,  Harshitha Ramamurthy <hramamurthy@google.com>,
-  Shakeel Butt <shakeel.butt@linux.dev>,  Jeroen de Borst
- <jeroendb@google.com>,  Praveen Kaligineedi <pkaligineedi@google.com>,
-  Stanislav Fomichev <sdf@google.com>
-Subject: Re: [PATCH net-next v16 02/13] net: netdev netlink api to bind
- dma-buf to a net device
-In-Reply-To: <20240710001749.1388631-3-almasrymina@google.com> (Mina Almasry's
-	message of "Wed, 10 Jul 2024 00:17:35 +0000")
-Date: Wed, 10 Jul 2024 11:30:12 +0100
-Message-ID: <m25xtd1qvf.fsf@gmail.com>
-References: <20240710001749.1388631-1-almasrymina@google.com>
-	<20240710001749.1388631-3-almasrymina@google.com>
-User-Agent: Gnus/5.13 (Gnus v5.13)
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="W/YNqMl+";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="crGDQrNc"
+Received: from compute5.internal (compute5.nyi.internal [10.202.2.45])
+	by mailfout.nyi.internal (Postfix) with ESMTP id 326441381D67;
+	Wed, 10 Jul 2024 08:46:01 -0400 (EDT)
+Received: from imap51 ([10.202.2.101])
+  by compute5.internal (MEProxy); Wed, 10 Jul 2024 08:46:01 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-type:content-type:date:date:from:from:in-reply-to
+	:in-reply-to:message-id:mime-version:references:reply-to:subject
+	:subject:to:to; s=fm2; t=1720615561; x=1720701961; bh=iHV40EwQ89
+	jWy0gmmC2olWSBS48TkU1OBQ1jmtxb560=; b=W/YNqMl+VwtHXRTXRaIaTOqRcu
+	mDP8QLj6Y/2fx3oKUqBRqm+/EvlkDGK6INDctqhYqZ3P0KT7vl/+ONvvpDWHtav/
+	INrtSGgAZfvTy2FfPZ9e5U/ctGW3UJ0bG2lUD2zECL27IMknS02KkO4xYtFqLPBj
+	L2f/0q2NsPYTnRD+eEcgUbmSqhyTxFukCCVcNLQJmYEKrojVaRMMcet0mseQivoc
+	o7zT9j6+vj6iRy4t3eL0G13u5IlzeRdY/5n5BJkOi+qzJS8IfesV2TO0CO28SgZd
+	FbG20NrFr2uvqVaRPkcxe+3M8kDz2yTGMUkIvfFov1HyYDVOaUnyF26xK+sw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:content-type:date:date
+	:feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
+	:message-id:mime-version:references:reply-to:subject:subject:to
+	:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm2; t=1720615561; x=1720701961; bh=iHV40EwQ89jWy0gmmC2olWSBS48T
+	kU1OBQ1jmtxb560=; b=crGDQrNcTJb5MTItzXl+jd9CXkgr1tJQYNoL1x3el+K9
+	/M/IZo69NXq64HMZcDPOkuB+uJRF93MnUp9dD5hscD5u4VIFCqFsOhRkmjQm3ZAQ
+	2puyHiKtAn15LB0ldiIjH75pikyvlrLSOO72dQM9RQiLsXqHCKfm9CiykJ66sOpC
+	WAOmASa4SsEoMLBvP05Rk1dBUX4o8y8XSZ4hmZEchCGS9IirIHo68LpiVHkS/zWC
+	ZcDUm8RW2r696ghojf8F6LWcW07ZlGqrh9efhJEe3palyNaWXzgIOgwk/VguCm0o
+	WJaG/ijrOVzrKDAntP9FIW1kOdvTCK/q6FDTlxZLBg==
+X-ME-Sender: <xms:iIKOZuwRgj1GBkAB4crhdq046iBrTrYf_VQFUqmQo92yzGACZaFmYw>
+    <xme:iIKOZqTFAYKPr3m7m3IjGxxTUEes8tCXK0qurabiwEZG_6DwxZXwYu-xhCBUGffGX
+    t_UcNSWA38BHsgdlh4>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddrfedugdehiecutefuodetggdotefrodftvf
+    curfhrohhfihhlvgemucfhrghsthforghilhdpqfgfvfdpuffrtefokffrpgfnqfghnecu
+    uegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenuc
+    fjughrpefofgggkfgjfhffhffvvefutgesthdtredtreertdenucfhrhhomhepfdetrhhn
+    ugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusgdruggvqeenucggtffrrghtth
+    gvrhhnpeffheeugeetiefhgeethfejgfdtuefggeejleehjeeutefhfeeggefhkedtkeet
+    ffenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrh
+    hnugesrghrnhgusgdruggv
+X-ME-Proxy: <xmx:iIKOZgXX4lS7AhfaBALO2NgUi_Q_hqGvfqsThQRcdzSW8AxNOcU2UQ>
+    <xmx:iIKOZkh3Q8Uv568BncsOYYwSy5NZqYdQ5vsYnP2OEyZUWVUErABkvQ>
+    <xmx:iIKOZgA-iD0SinnbnWicFgosiMfgcgfGqE6pQCD26vQq1I_TbrpU3w>
+    <xmx:iIKOZlICnUNdS2ZWXCfC8mojYGl6A5g57_lKFS3g1u2HUiNpWXxoZA>
+    <xmx:iYKOZjML3T9OUaj4EJch1lH_wzFpD2tpbfalNhCZaWdmfLSSIwJp8wc9>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+	id EB4A7B6008D; Wed, 10 Jul 2024 08:45:59 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
+User-Agent: Cyrus-JMAP/3.11.0-alpha0-568-g843fbadbe-fm-20240701.003-g843fbadb
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Message-Id: <461243b3-4f80-4745-8169-c5dcee32ed63@app.fastmail.com>
+In-Reply-To: <5fc31a39-2068-4fff-b9bf-27feb4ca3bbe@arm.com>
+References: <20240612160038.522924-1-steven.price@arm.com>
+ <7f258a4c-6048-4718-851d-4768789bc5e1@app.fastmail.com>
+ <5fc31a39-2068-4fff-b9bf-27feb4ca3bbe@arm.com>
+Date: Wed, 10 Jul 2024 14:45:38 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Steven Price" <steven.price@arm.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] fixmap: Remove unused set_fixmap_offset_io()
 Content-Type: text/plain
 
-Mina Almasry <almasrymina@google.com> writes:
+On Thu, Jun 27, 2024, at 15:58, Steven Price wrote:
+> On 12/06/2024 21:02, Arnd Bergmann wrote:
+> Actually for now it looks[1] like we're going to drop the overriding of 
+> set_fixmap_io() so if you want to apply this change separately please 
+> do!
 
-> API takes the dma-buf fd as input, and binds it to the netdevice. The
-> user can specify the rx queues to bind the dma-buf to.
->
-> Suggested-by: Stanislav Fomichev <sdf@google.com>
-> Signed-off-by: Mina Almasry <almasrymina@google.com>
+Applied now.
 
-Reviewed-by: Donald Hunter <donald.hunter@gmail.com>
+    Arnd
