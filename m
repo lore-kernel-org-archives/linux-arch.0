@@ -1,299 +1,366 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 73CAB19AD87
-	for <linux-arch@vger.kernel.org>; Thu,  1 Aug 2024 12:53:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3B6AE158A2C;
+	Thu,  1 Aug 2024 12:57:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1722516805; cv=none; b=oxTXlIJ6DzcZaZExFYBi4VGdHE1XTYyyenVQqsQPKj9KWPLiZQm77TWCDT9v2ma1T0WL/wDn+8WaU9WaucAUUVPl8FSfRvzWoeuU7ZTNGtbiBnObhfBKSSLrJalgoXWcH+Xg2CztL37CaAVaaqcI4Ff19Kv93EnREWFbTyTtYrw=
+	t=1722517039; cv=none; b=X1zeO0m+YAYhx+UK9KoI0vg2iSGCbrvhiTZ4pReoKIJSRPAZiDGc1Y2wUXCPWR5F9gu/tHY0u2hd8B/i0vjNPqw/EhIlCigjEbFKfSvoyykAquKshC/IXC+7dV+d3eoFh775XDaBPl15NM6Mx6wKl+xEKFIIUGHfCFFaIMQvJ70=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1722516805; c=relaxed/simple;
-	bh=RSXa3QrdosMXek03Kn5TJUgAyt9Pgt8CEW3Dz2q5d6k=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=P6CF3r4uyMq+Ayn+TADyxcdyvvKOGuA3FKribc3SLCYc/nC/ZBIJDLEJcSPMgTNhBAlZ4rtvzXptvseb8c+O+tdfSap4Sa6SHUwqF2AssKqKMMF8QVdKBoaIY8Vazg5weeEcjliGhGLPEKV56O+Fkl6rzmGlRcJl0fEs8DIF+7M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=jOosIZBZ; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1722517039; c=relaxed/simple;
+	bh=U475xcRFgFiU1cZUXJj+PiDWuwAev7AQsTZb3LnNrZw=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=btNutpi5u0Y1xOjz5aeBgvPs/A9WtJLf/FWEhla4wAFVohlGVVeuwHmUglNy1lQ2EvxrO9BMxUh+t+1xf5MQFoRnsEiOxWOdeEpxJ9QWiBiqgQ7Bs87mrIZ8yt6YYwbhHuJNQIss1jev/sl0EwWp8IRLuL58vcFokYyludSiueo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=JkikZKih; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="jOosIZBZ"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1722516802;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
-	bh=tY3FTh7vOTxS/LhqhyyExp9r4gGoOfraF1glml6en7Q=;
-	b=jOosIZBZGQTA8l+OiWKwMzhLzigshAK/nV9vhCJNY/NLT+TUtL17ZBj/F3NF9l/AwjmWEf
-	GUH75fVn67N9cKzCJr1tlEBt1K3OsgR3HRXIaxs+6kcv3fNr2TPBNL83AsyU+YefTh/4dk
-	wE5TFOLGG11KwpjnLCCQOfzUIxcdkEw=
-Received: from mail-wr1-f69.google.com (mail-wr1-f69.google.com
- [209.85.221.69]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-528-I594v3-pP7aEM2Nr1ufIPA-1; Thu, 01 Aug 2024 08:53:20 -0400
-X-MC-Unique: I594v3-pP7aEM2Nr1ufIPA-1
-Received: by mail-wr1-f69.google.com with SMTP id ffacd0b85a97d-368374dc565so3191009f8f.2
-        for <linux-arch@vger.kernel.org>; Thu, 01 Aug 2024 05:53:20 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1722516799; x=1723121599;
-        h=content-transfer-encoding:in-reply-to:organization:autocrypt
-         :content-language:from:references:cc:to:subject:user-agent
-         :mime-version:date:message-id:x-gm-message-state:from:to:cc:subject
-         :date:message-id:reply-to;
-        bh=tY3FTh7vOTxS/LhqhyyExp9r4gGoOfraF1glml6en7Q=;
-        b=HgH2SCXfZ46zNKNMuZMKxkWfBHW962r100ZGJyrAqWBM0jICXYQfZvyl16o6DBvNo4
-         iW1JevGVuSBey2IBo/GR2jKd2dgLDHM18Emc5ASB8v+3RhcNC71hSb8xj50CdAztqQhj
-         kWJ5vPUcIMsGoToZ0aZ0tgqCKDs6wusutC5sQczB2gEsi6g2yQWrdkL6NnzpNkYJ56E5
-         OFX+bKnQObj8u/J/jBtJwn+mK89QqONYdG61qmifLmx1Heln2s+D4g+bkoF3BIOHYkWW
-         hmpROnDKTrQquywWlVDTYa3tusTxVv3lODvczr3KbTilH/HPY1nU/Yf4QnT3JAFL2tEq
-         XuHA==
-X-Forwarded-Encrypted: i=1; AJvYcCVG8SSkNm/KjMD65/pbspBarIZ0UgnX+TVNoRS67TJK/HuX3OXw7rrB5ugV6+j6JQpBZAzmTaU2OettxqNKMHOQPVpv0qx80WRvag==
-X-Gm-Message-State: AOJu0YyItxSZg2nWVL35B3F/r/TY82Qtfn/2dzV9snx07XTccul7Awl+
-	yl9zKZjsEnXdoAon2j1Rcw+h4pWYppVDGJmxeYkxnE1s1suCWa942/AftLE+foWLW6LAsPVqar0
-	9HwHMAeV2oFImgE4o5FsGbodGksW5wTozjl4/aT+bsh/GzS5YADFjpvUMQ5o=
-X-Received: by 2002:adf:ed11:0:b0:364:8568:f843 with SMTP id ffacd0b85a97d-36baaf46ff3mr1747190f8f.59.1722516799375;
-        Thu, 01 Aug 2024 05:53:19 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IEXkQzuiBajNhJVSP5UhLjv2gX0jPjX0Kpt2L7st5acq9l3/tBwA4i709DCI0A4Sa8f6WF5tw==
-X-Received: by 2002:adf:ed11:0:b0:364:8568:f843 with SMTP id ffacd0b85a97d-36baaf46ff3mr1747154f8f.59.1722516798788;
-        Thu, 01 Aug 2024 05:53:18 -0700 (PDT)
-Received: from ?IPV6:2003:cb:c707:5c00:e650:bcd7:e2a0:54fe? (p200300cbc7075c00e650bcd7e2a054fe.dip0.t-ipconnect.de. [2003:cb:c707:5c00:e650:bcd7:e2a0:54fe])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-36b36858197sm19818391f8f.68.2024.08.01.05.53.17
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Thu, 01 Aug 2024 05:53:18 -0700 (PDT)
-Message-ID: <bffe178c-bd97-4945-898e-97ba203f503e@redhat.com>
-Date: Thu, 1 Aug 2024 14:53:15 +0200
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="JkikZKih"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 48D07C4AF0F;
+	Thu,  1 Aug 2024 12:57:10 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1722517039;
+	bh=U475xcRFgFiU1cZUXJj+PiDWuwAev7AQsTZb3LnNrZw=;
+	h=From:Subject:Date:To:Cc:From;
+	b=JkikZKih6IeS7vKpVgeU31KVPMWDSdVQuHpnj6lVMWl7yY9SgAlWZ54OyRJvEAmRu
+	 TSJ5orSKnKrwkVMlPPQIPa3z2iJy+sP2KUPnVyCwUpMKTsZw0YTaWu4fghU/hOyFE4
+	 4Wv7r+ztpG6XpTI9UM3iMMEcF8rQ+cbFLYjK1v0aU3kjMJ5lNugDt44uXO+NYtZN63
+	 OQmNYWy3xmzirWPDY9kkluNSvbGUFf6kxKI+qa0YpDomkPRx/oQPe3SrZjjeUrWuQk
+	 yUtxbhksUN4PpgXb/q4OV5LUzSRMAxlywWa9xRFCl40orkmyj08/GDY5FQ+HeLf2Ch
+	 YyXf7eLiWqfYA==
+From: Mark Brown <broonie@kernel.org>
+Subject: [PATCH v10 00/40] arm64/gcs: Provide support for GCS in userspace
+Date: Thu, 01 Aug 2024 13:06:27 +0100
+Message-Id: <20240801-arm64-gcs-v10-0-699e2bd2190b@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 0/1] mm: introduce MADV_DEMOTE/MADV_PROMOTE
-To: Zhangrenze <zhang.renze@h3c.com>, "linux-mm@kvack.org"
- <linux-mm@kvack.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Cc: "arnd@arndb.de" <arnd@arndb.de>,
- "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
- "chris@zankel.net" <chris@zankel.net>,
- "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>,
- "James.Bottomley@HansenPartnership.com"
- <James.Bottomley@HansenPartnership.com>, "deller@gmx.de" <deller@gmx.de>,
- "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>,
- "tsbogend@alpha.franken.de" <tsbogend@alpha.franken.de>,
- "rdunlap@infradead.org" <rdunlap@infradead.org>,
- "bhelgaas@google.com" <bhelgaas@google.com>,
- "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
- "richard.henderson@linaro.org" <richard.henderson@linaro.org>,
- "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>,
- "mattst88@gmail.com" <mattst88@gmail.com>,
- "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>,
- Jiaoxupo <jiaoxupo@h3c.com>, Zhouhaofan <zhou.haofan@h3c.com>
-References: <3a5785661e1b4f3381046aa5e808854c@h3c.com>
-From: David Hildenbrand <david@redhat.com>
-Content-Language: en-US
-Autocrypt: addr=david@redhat.com; keydata=
- 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
- WNyWQQ==
-Organization: Red Hat
-In-Reply-To: <3a5785661e1b4f3381046aa5e808854c@h3c.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAER6q2YC/2XRS04DMQwG4KtUWRPkOG9W3AOxyMNpR9CZKlONQ
+ FXvTqYImmqUla18/q3kwmaqA83sZXdhlZZhHqaxFQKediwdwrgnPuTWYAgooR0e6tEovk8zJyl
+ EiJCdRc/a/Rhm4rGGMR1WcT6e1u6pUhm+bhFv760+DPN5qt+3xEWs3d/ZVphu9iI48Fi0scXLG
+ IN5/aA60ufzVPdsHbNgR1H1FBvNCZPISiWkuKGyo1L0VDaaci6+eAfZuw1Vd+rA9lQ1alwqQba
+ VwfgN1R1F7Klu1FMRTuRsJKoNNf9UAPiemkatI60zhaBy3lB7p+Ix1TaKIJJyMmZr9Ya6P6oAH
+ z5+cesz+ULJWmMllQ31d2pQ99Q3CsVIpYyPrsADvV6vP8PnJ9KSAgAA
+To: Catalin Marinas <catalin.marinas@arm.com>, 
+ Will Deacon <will@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+ Andrew Morton <akpm@linux-foundation.org>, Marc Zyngier <maz@kernel.org>, 
+ Oliver Upton <oliver.upton@linux.dev>, James Morse <james.morse@arm.com>, 
+ Suzuki K Poulose <suzuki.poulose@arm.com>, Arnd Bergmann <arnd@arndb.de>, 
+ Oleg Nesterov <oleg@redhat.com>, Eric Biederman <ebiederm@xmission.com>, 
+ Shuah Khan <shuah@kernel.org>, 
+ "Rick P. Edgecombe" <rick.p.edgecombe@intel.com>, 
+ Deepak Gupta <debug@rivosinc.com>, Ard Biesheuvel <ardb@kernel.org>, 
+ Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Kees Cook <kees@kernel.org>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, 
+ Paul Walmsley <paul.walmsley@sifive.com>, 
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+ Florian Weimer <fweimer@redhat.com>, Christian Brauner <brauner@kernel.org>, 
+ Thiago Jung Bauermann <thiago.bauermann@linaro.org>, 
+ Ross Burton <ross.burton@arm.com>, linux-arm-kernel@lists.infradead.org, 
+ linux-doc@vger.kernel.org, kvmarm@lists.linux.dev, 
+ linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, 
+ linux-mm@kvack.org, linux-kselftest@vger.kernel.org, 
+ linux-kernel@vger.kernel.org, linux-riscv@lists.infradead.org, 
+ Mark Brown <broonie@kernel.org>
+X-Mailer: b4 0.15-dev-37811
+X-Developer-Signature: v=1; a=openpgp-sha256; l=15062; i=broonie@kernel.org;
+ h=from:subject:message-id; bh=U475xcRFgFiU1cZUXJj+PiDWuwAev7AQsTZb3LnNrZw=;
+ b=owEBbQGS/pANAwAKASTWi3JdVIfQAcsmYgBmq4YFod/Z3Lomd1dmbOLUlpMn226o7HlKmnZgpc+h
+ 617q/OuJATMEAAEKAB0WIQSt5miqZ1cYtZ/in+ok1otyXVSH0AUCZquGBQAKCRAk1otyXVSH0GThB/
+ 9DcZ0LVm1TrH/yltJ2xo39dYNzAAqjO4xMq8AEsUq/HzuoMuVA7IW9UWoUo2qEIEbOExnQQJJjWm9Z
+ Al2WXa67Srrj+BGHvnT2LsrWUiUIP+Xj3njGeF8aTzPHs1hFIFbYJh0KxapyaUmOPHxyXpRsqBYXAc
+ 2gjySuAYoowEGMWSm+Lj3siz2Jnx2/Jk1eNV13jFY3lV+Ti3FflbiaVLSJmZDRBoNLWJI4hA4Zorti
+ kHNBLIutfC81Jnls6AzEKyBCUHqnvvOL3drVxmLgQK1jfN9LawqKWvVFUkw/5XyRjQyVkZ6nrUJ5Un
+ 8Ua/EkapH4BvuopBeTOKExYBymHhw8
+X-Developer-Key: i=broonie@kernel.org; a=openpgp;
+ fpr=3F2568AAC26998F9E813A1C5C3F436CA30F5D8EB
 
-On 01.08.24 11:57, Zhangrenze wrote:
->>> Sure, here's the Scalable Tiered Memory Control (STMC)
->>>
->>> **Background**
->>>
->>> In the era when artificial intelligence, big data analytics, and
->>> machine learning have become mainstream research topics and
->>> application scenarios, the demand for high-capacity and high-
->>> bandwidth memory in computers has become increasingly important.
->>> The emergence of CXL (Compute Express Link) provides the
->>> possibility of high-capacity memory. Although CXL TYPE3 devices
->>> can provide large memory capacities, their access speed is lower
->>> than traditional DRAM due to hardware architecture limitations.
->>>
->>> To enjoy the large capacity brought by CXL memory while minimizing
->>> the impact of high latency, Linux has introduced the Tiered Memory
->>> architecture. In the Tiered Memory architecture, CXL memory is
->>> treated as an independent, slower NUMA NODE, while DRAM is
->>> considered as a relatively faster NUMA NODE. Applications allocate
->>> memory from the local node, and Tiered Memory, leveraging memory
->>> reclamation and NUMA Balancing mechanisms, can transparently demote
->>> physical pages not recently accessed by user processes to the slower
->>> CXL NUMA NODE. However, when user processes re-access the demoted
->>> memory, the Tiered Memory mechanism will, based on certain logic,
->>> decide whether to promote the demoted physical pages back to the
->>> fast NUMA NODE. If the promotion is successful, the memory accessed
->>> by the user process will reside in DRAM; otherwise, it will reside in
->>> the CXL NODE. Through the Tiered Memory mechanism, Linux balances
->>> betweenlarge memory capacity and latency, striving to maintain an
->>> equilibrium for applications.
->>>
->>> **Problem**
->>> Although Tiered Memory strives to balance between large capacity and
->>> latency, specific scenarios can lead to the following issues:
->>>
->>>     1. In scenarios requiring massive computations, if data is heavily
->>>        stored in CXL slow memory and Tiered Memory cannot promptly
->>>        promote this memory to fast DRAM, it will significantly impact
->>>        program performance.
->>>     2. Similar to the scenario described in point 1, if Tiered Memory
->>>        decides to promote these physical pages to fast DRAM NODE, but
->>>        due to limitations in the DRAM NODE promote ratio, these physical
->>>        pages cannot be promoted. Consequently, the program will keep
->>>        running in slow memory.
->>>     3. After an application finishes computing on a large block of fast
->>>        memory, it may not immediately re-access it. Hence, this memory
->>>        can only wait for the memory reclamation mechanism to demote it.
->>>     4. Similar to the scenario described in point 3, if the demotion
->>>        speed is slow, these cold pages will occupy the promotion
->>>        resources, preventing some eligible slow pages from being
->>>        immediately promoted, severely affecting application efficiency.
->>>
->>> **Solution**
->>> We propose the **Scalable Tiered Memory Control (STMC)** mechanism,
->>> which delegates the authority of promoting and demoting memory to the
->>> application. The principle is simple, as follows:
->>>
->>>     1. When an application is preparing for computation, it can promote
->>>        the memory it needs to use or ensure the memory resides on a fast
->>>        NODE.
->>>     2. When an application will not use the memory shortly, it can
->>>        immediately demote the memory to slow memory, freeing up valuable
->>>        promotion resources.
->>>
->>> STMC mechanism is implemented through the madvise system call, providing
->>> two new advice options: MADV_DEMOTE and MADV_PROMOTE. MADV_DEMOTE
->>> advises demote the physical memory to the node where slow memory
->>> resides; this advice only fails if there is no free physical memory on
->>> the slow memory node. MADV_PROMOTE advises retaining the physical memory
->>> in the fast memory; this advice only fails if there are no promotion
->>> slots available on the fast memory node. Benefits brought by STMC
->>> include:
->>>
->>>     1. The STMC mechanism is a variant of on-demand memory management
->>>        designed to let applications enjoy fast memory as much as possible,
->>>        while actively demoting to slow memory when not in use, thus
->>>        freeing up promotion slots for the NODE and allowing it to run in
->>>        an optimized Tiered Memory environment.
->>>     2. The STMC mechanism better balances large capacity and latency.
->>>
->>> **Shortcomings of STMC**
->>> The STMC mechanism requires the caller to manage memory demotion and
->>> promotion. If the memory is not promptly demoting after an promotion,
->>> it may cause issues similar to memory leaks
->> Ehm, that sounds scary. Can you elaborate what's happening here and why
->> it is "similar to memory leaks"?
->>
->>
->> Can you also point out why migrate_pages() is not suitable? I would
->> assume demote/promote is in essence simply migrating memory between nodes.
->>
->> -- 
->> Cheers,
->>
->> David / dhildenb
->>
-> 
-> Thank you for the response. Below are my points of view. If there are any
-> mistakes, I appreciate your understanding:
-> 
-> 1. In a tiered memory system, fast nodes and slow nodes act as two common
->     memory pools. The system has a certain ratio limit for promotion. For
->     example, a NODE may stipulate that when the available memory is less
->     than 1GB or 1/4 of the node's memory, promotion are prohibited. If we
->     use migrate_pages at this point, it will unrestrictedly promote slow
->     pages to fast memory, which may prevent other processes’ pages that
->     should have been promoted from being promoted. This is what I mean by
->     occupying promotion resources.
-> 2. As described in point 1, if we use MADV_PROMOTE to temporarily promote
->     a batch of pages and do not demote them immediately after usage, it
->     will occupy many promotion resources. Other hot pages that need promote
->     will not be able to get promote, which will impact the performance of
->     certain processes.
+The arm64 Guarded Control Stack (GCS) feature provides support for
+hardware protected stacks of return addresses, intended to provide
+hardening against return oriented programming (ROP) attacks and to make
+it easier to gather call stacks for applications such as profiling.
 
-So, you mean, applications can actively consume "fast memory" and 
-"steal" it from other applications? I assume that's what you meant with 
-"memory leak".
+When GCS is active a secondary stack called the Guarded Control Stack is
+maintained, protected with a memory attribute which means that it can
+only be written with specific GCS operations.  The current GCS pointer
+can not be directly written to by userspace.  When a BL is executed the
+value stored in LR is also pushed onto the GCS, and when a RET is
+executed the top of the GCS is popped and compared to LR with a fault
+being raised if the values do not match.  GCS operations may only be
+performed on GCS pages, a data abort is generated if they are not.
 
-I would really suggest to *not* call this "similar to memory leaks", in 
-your own favor ;)
+The combination of hardware enforcement and lack of extra instructions
+in the function entry and exit paths should result in something which
+has less overhead and is more difficult to attack than a purely software
+implementation like clang's shadow stacks.
 
-> 3. MADV_DEMOTE and MADV_PROMOTE only rely on madvise, while migrate_pages
->     depends on libnuma.
+This series implements support for use of GCS by userspace, along with
+support for use of GCS within KVM guests.  It does not enable use of GCS
+by either EL1 or EL2, this will be implemented separately.  Executables
+are started without GCS and must use a prctl() to enable it, it is
+expected that this will be done very early in application execution by
+the dynamic linker or other startup code.  For dynamic linking this will
+be done by checking that everything in the executable is marked as GCS
+compatible.
 
-Well, you can trivially call that systemcall also without libnuma ;) So 
-that shouldn't really make a difference and is rather something that can 
-be solved in user space.
+x86 has an equivalent feature called shadow stacks, this series depends
+on the x86 patches for generic memory management support for the new
+guarded/shadow stack page type and shares APIs as much as possible.  As
+there has been extensive discussion with the wider community around the
+ABI for shadow stacks I have as far as practical kept implementation
+decisions close to those for x86, anticipating that review would lead to
+similar conclusions in the absence of strong reasoning for divergence.
 
-> 4. MADV_DEMOTE and MADV_PROMOTE provide a better balance between capacity
->     and latency. They allow hot pages that need promoting to be promoted
->     smoothly and pages that need demoting to be demoted immediately. This
->     helps tiered memory systems to operate more rationally.
+The main divergence I am concious of is that x86 allows shadow stack to
+be enabled and disabled repeatedly, freeing the shadow stack for the
+thread whenever disabled, while this implementation keeps the GCS
+allocated after disable but refuses to reenable it.  This is to avoid
+races with things actively walking the GCS during a disable, we do
+anticipate that some systems will wish to disable GCS at runtime but are
+not aware of any demand for subsequently reenabling it.
 
-Can you summarize why something similar could not be provided by a 
-library that builds up on existing functionality, such as migrate_pages? 
-It could easily take a look at memory stats to reason whether a 
-promotion/demotion makes sense (your example above with the memory 
-distribution).
+x86 uses an arch_prctl() to manage enable and disable, since only x86
+and S/390 use arch_prctl() a generic prctl() was proposed[1] as part of a
+patch set for the equivalent RISC-V Zicfiss feature which I initially
+adopted fairly directly but following review feedback has been revised
+quite a bit.
 
- From the patch itself I read
+We currently maintain the x86 pattern of implicitly allocating a shadow
+stack for threads started with shadow stack enabled, there has been some
+discussion of removing this support and requiring the use of clone3()
+with explicit allocation of shadow stacks instead.  I have no strong
+feelings either way, implicit allocation is not really consistent with
+anything else we do and creates the potential for errors around thread
+exit but on the other hand it is existing ABI on x86 and minimises the
+changes needed in userspace code.
 
-"MADV_DEMOTE can mark a range of memory pages as cold
-pages and immediately demote them to slow memory. MADV_PROMOTE can mark
-a range of memory pages as hot pages and immediately promote them to
-fast memory"
+glibc and bionic changes using this ABI have been implemented and
+tested.  Headless Android systems have been validated and Ross Burton
+has used this code has been used to bring up a Yocto system with GCS
+enabed as standard, a test implementation of V8 support has also been
+done.
 
-which sounds to me like migrate_pages / MADV_COLD might be able to 
-achieve something similar.
+There is an open issue with support for CRIU, on x86 this required the
+ability to set the GCS mode via ptrace.  This series supports
+configuring mode bits other than enable/disable via ptrace but it needs
+to be confirmed if this is sufficient.
 
-What's the biggest difference that MADV_DEMOTE|MADV_PROMOTE can do better?
+The series depends on support for shadow stacks in clone3(), that series
+includes the addition of ARCH_HAS_USER_SHADOW_STACK.
 
+   https://lore.kernel.org/r/20240731-clone3-shadow-stack-v7-0-a9532eebfb1d@kernel.org
+
+You can see a branch with the full set of dependencies against Linus'
+tree at:
+
+   https://git.kernel.org/pub/scm/linux/kernel/git/broonie/misc.git arm64-gcs
+
+[1] https://lore.kernel.org/lkml/20230213045351.3945824-1-debug@rivosinc.com/
+
+Signed-off-by: Mark Brown <broonie@kernel.org>
+---
+Changes in v10:
+- Fix issues with THP.
+- Tighten up requirements for initialising GCSCR*.
+- Only generate GCS signal frames for threads using GCS.
+- Only context switch EL1 GCS registers if S1PIE is enabled.
+- Move context switch of GCSCRE0_EL1 to EL0 context switch.
+- Make GCS registers unconditionally visible to userspace.
+- Use FHU infrastructure.
+- Don't change writability of ID_AA64PFR1_EL1 for KVM.
+- Remove unused arguments from alloc_gcs().
+- Typo fixes.
+- Link to v9: https://lore.kernel.org/r/20240625-arm64-gcs-v9-0-0f634469b8f0@kernel.org
+
+Changes in v9:
+- Rebase onto v6.10-rc3.
+- Restructure and clarify memory management fault handling.
+- Fix up basic-gcs for the latest clone3() changes.
+- Convert to newly merged KVM ID register based feature configuration.
+- Fixes for NV traps.
+- Link to v8: https://lore.kernel.org/r/20240203-arm64-gcs-v8-0-c9fec77673ef@kernel.org
+
+Changes in v8:
+- Invalidate signal cap token on stack when consuming.
+- Typo and other trivial fixes.
+- Don't try to use process_vm_write() on GCS, it intentionally does not
+  work.
+- Fix leak of thread GCSs.
+- Rebase onto latest clone3() series.
+- Link to v7: https://lore.kernel.org/r/20231122-arm64-gcs-v7-0-201c483bd775@kernel.org
+
+Changes in v7:
+- Rebase onto v6.7-rc2 via the clone3() patch series.
+- Change the token used to cap the stack during signal handling to be
+  compatible with GCSPOPM.
+- Fix flags for new page types.
+- Fold in support for clone3().
+- Replace copy_to_user_gcs() with put_user_gcs().
+- Link to v6: https://lore.kernel.org/r/20231009-arm64-gcs-v6-0-78e55deaa4dd@kernel.org
+
+Changes in v6:
+- Rebase onto v6.6-rc3.
+- Add some more gcsb_dsync() barriers following spec clarifications.
+- Due to ongoing discussion around clone()/clone3() I've not updated
+  anything there, the behaviour is the same as on previous versions.
+- Link to v5: https://lore.kernel.org/r/20230822-arm64-gcs-v5-0-9ef181dd6324@kernel.org
+
+Changes in v5:
+- Don't map any permissions for user GCSs, we always use EL0 accessors
+  or use a separate mapping of the page.
+- Reduce the standard size of the GCS to RLIMIT_STACK/2.
+- Enforce a PAGE_SIZE alignment requirement on map_shadow_stack().
+- Clarifications and fixes to documentation.
+- More tests.
+- Link to v4: https://lore.kernel.org/r/20230807-arm64-gcs-v4-0-68cfa37f9069@kernel.org
+
+Changes in v4:
+- Implement flags for map_shadow_stack() allowing the cap and end of
+  stack marker to be enabled independently or not at all.
+- Relax size and alignment requirements for map_shadow_stack().
+- Add more blurb explaining the advantages of hardware enforcement.
+- Link to v3: https://lore.kernel.org/r/20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org
+
+Changes in v3:
+- Rebase onto v6.5-rc4.
+- Add a GCS barrier on context switch.
+- Add a GCS stress test.
+- Link to v2: https://lore.kernel.org/r/20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org
+
+Changes in v2:
+- Rebase onto v6.5-rc3.
+- Rework prctl() interface to allow each bit to be locked independently.
+- map_shadow_stack() now places the cap token based on the size
+  requested by the caller not the actual space allocated.
+- Mode changes other than enable via ptrace are now supported.
+- Expand test coverage.
+- Various smaller fixes and adjustments.
+- Link to v1: https://lore.kernel.org/r/20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org
+
+---
+Mark Brown (40):
+      arm64/mm: Restructure arch_validate_flags() for extensibility
+      prctl: arch-agnostic prctl for shadow stack
+      mman: Add map_shadow_stack() flags
+      arm64: Document boot requirements for Guarded Control Stacks
+      arm64/gcs: Document the ABI for Guarded Control Stacks
+      arm64/sysreg: Add definitions for architected GCS caps
+      arm64/gcs: Add manual encodings of GCS instructions
+      arm64/gcs: Provide put_user_gcs()
+      arm64/gcs: Provide basic EL2 setup to allow GCS usage at EL0 and EL1
+      arm64/cpufeature: Runtime detection of Guarded Control Stack (GCS)
+      arm64/mm: Allocate PIE slots for EL0 guarded control stack
+      mm: Define VM_SHADOW_STACK for arm64 when we support GCS
+      arm64/mm: Map pages for guarded control stack
+      KVM: arm64: Manage GCS access and registers for guests
+      arm64/idreg: Add overrride for GCS
+      arm64/hwcap: Add hwcap for GCS
+      arm64/traps: Handle GCS exceptions
+      arm64/mm: Handle GCS data aborts
+      arm64/gcs: Context switch GCS state for EL0
+      arm64/gcs: Ensure that new threads have a GCS
+      arm64/gcs: Implement shadow stack prctl() interface
+      arm64/mm: Implement map_shadow_stack()
+      arm64/signal: Set up and restore the GCS context for signal handlers
+      arm64/signal: Expose GCS state in signal frames
+      arm64/ptrace: Expose GCS via ptrace and core files
+      arm64: Add Kconfig for Guarded Control Stack (GCS)
+      kselftest/arm64: Verify the GCS hwcap
+      kselftest: Provide shadow stack enable helpers for arm64
+      selftests/clone3: Enable arm64 shadow stack testing
+      kselftest/arm64: Add GCS as a detected feature in the signal tests
+      kselftest/arm64: Add framework support for GCS to signal handling tests
+      kselftest/arm64: Allow signals tests to specify an expected si_code
+      kselftest/arm64: Always run signals tests with GCS enabled
+      kselftest/arm64: Add very basic GCS test program
+      kselftest/arm64: Add a GCS test program built with the system libc
+      kselftest/arm64: Add test coverage for GCS mode locking
+      kselftest/arm64: Add GCS signal tests
+      kselftest/arm64: Add a GCS stress test
+      kselftest/arm64: Enable GCS for the FP stress tests
+      KVM: selftests: arm64: Add GCS registers to get-reg-list
+
+ Documentation/admin-guide/kernel-parameters.txt    |   3 +
+ Documentation/arch/arm64/booting.rst               |  30 +
+ Documentation/arch/arm64/elf_hwcaps.rst            |   2 +
+ Documentation/arch/arm64/gcs.rst                   | 233 +++++++
+ Documentation/arch/arm64/index.rst                 |   1 +
+ Documentation/filesystems/proc.rst                 |   2 +-
+ arch/arm64/Kconfig                                 |  20 +
+ arch/arm64/include/asm/cpufeature.h                |   6 +
+ arch/arm64/include/asm/el2_setup.h                 |  29 +
+ arch/arm64/include/asm/esr.h                       |  28 +-
+ arch/arm64/include/asm/exception.h                 |   2 +
+ arch/arm64/include/asm/gcs.h                       | 107 +++
+ arch/arm64/include/asm/hwcap.h                     |   1 +
+ arch/arm64/include/asm/kvm_host.h                  |   8 +
+ arch/arm64/include/asm/mman.h                      |  23 +-
+ arch/arm64/include/asm/pgtable-prot.h              |  14 +-
+ arch/arm64/include/asm/processor.h                 |   7 +
+ arch/arm64/include/asm/sysreg.h                    |  20 +
+ arch/arm64/include/asm/uaccess.h                   |  40 ++
+ arch/arm64/include/asm/vncr_mapping.h              |   2 +
+ arch/arm64/include/uapi/asm/hwcap.h                |   1 +
+ arch/arm64/include/uapi/asm/ptrace.h               |   8 +
+ arch/arm64/include/uapi/asm/sigcontext.h           |   9 +
+ arch/arm64/kernel/cpufeature.c                     |  12 +
+ arch/arm64/kernel/cpuinfo.c                        |   1 +
+ arch/arm64/kernel/entry-common.c                   |  23 +
+ arch/arm64/kernel/pi/idreg-override.c              |   2 +
+ arch/arm64/kernel/process.c                        |  85 +++
+ arch/arm64/kernel/ptrace.c                         |  59 ++
+ arch/arm64/kernel/signal.c                         | 240 ++++++-
+ arch/arm64/kernel/traps.c                          |  11 +
+ arch/arm64/kvm/hyp/include/hyp/sysreg-sr.h         |  49 +-
+ arch/arm64/kvm/sys_regs.c                          |  12 +
+ arch/arm64/mm/Makefile                             |   1 +
+ arch/arm64/mm/fault.c                              |  42 ++
+ arch/arm64/mm/gcs.c                                | 324 +++++++++
+ arch/arm64/mm/mmap.c                               |  10 +-
+ arch/arm64/tools/cpucaps                           |   1 +
+ arch/x86/include/uapi/asm/mman.h                   |   3 -
+ include/linux/mm.h                                 |  16 +-
+ include/uapi/asm-generic/mman.h                    |   4 +
+ include/uapi/linux/elf.h                           |   1 +
+ include/uapi/linux/prctl.h                         |  22 +
+ kernel/sys.c                                       |  30 +
+ tools/testing/selftests/arm64/Makefile             |   2 +-
+ tools/testing/selftests/arm64/abi/hwcap.c          |  19 +
+ tools/testing/selftests/arm64/fp/assembler.h       |  15 +
+ tools/testing/selftests/arm64/fp/fpsimd-test.S     |   2 +
+ tools/testing/selftests/arm64/fp/sve-test.S        |   2 +
+ tools/testing/selftests/arm64/fp/za-test.S         |   2 +
+ tools/testing/selftests/arm64/fp/zt-test.S         |   2 +
+ tools/testing/selftests/arm64/gcs/.gitignore       |   5 +
+ tools/testing/selftests/arm64/gcs/Makefile         |  24 +
+ tools/testing/selftests/arm64/gcs/asm-offsets.h    |   0
+ tools/testing/selftests/arm64/gcs/basic-gcs.c      | 357 ++++++++++
+ tools/testing/selftests/arm64/gcs/gcs-locking.c    | 200 ++++++
+ .../selftests/arm64/gcs/gcs-stress-thread.S        | 311 +++++++++
+ tools/testing/selftests/arm64/gcs/gcs-stress.c     | 530 +++++++++++++++
+ tools/testing/selftests/arm64/gcs/gcs-util.h       | 100 +++
+ tools/testing/selftests/arm64/gcs/libc-gcs.c       | 736 +++++++++++++++++++++
+ tools/testing/selftests/arm64/signal/.gitignore    |   1 +
+ .../testing/selftests/arm64/signal/test_signals.c  |  17 +-
+ .../testing/selftests/arm64/signal/test_signals.h  |   6 +
+ .../selftests/arm64/signal/test_signals_utils.c    |  32 +-
+ .../selftests/arm64/signal/test_signals_utils.h    |  39 ++
+ .../arm64/signal/testcases/gcs_exception_fault.c   |  62 ++
+ .../selftests/arm64/signal/testcases/gcs_frame.c   |  88 +++
+ .../arm64/signal/testcases/gcs_write_fault.c       |  67 ++
+ .../selftests/arm64/signal/testcases/testcases.c   |   7 +
+ .../selftests/arm64/signal/testcases/testcases.h   |   1 +
+ tools/testing/selftests/clone3/clone3_selftests.h  |  26 +
+ tools/testing/selftests/ksft_shstk.h               |  37 ++
+ tools/testing/selftests/kvm/aarch64/get-reg-list.c |  28 +
+ 73 files changed, 4222 insertions(+), 40 deletions(-)
+---
+base-commit: 2d2c15fd64fcaba525a96e3198e4a4732680a49e
+change-id: 20230303-arm64-gcs-e311ab0d8729
+
+Best regards,
 -- 
-Cheers,
-
-David / dhildenb
+Mark Brown <broonie@kernel.org>
 
