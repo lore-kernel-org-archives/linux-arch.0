@@ -1,392 +1,299 @@
-Received: from APC01-SG2-obe.outbound.protection.outlook.com (mail-sgaapc01on2064.outbound.protection.outlook.com [40.107.215.64])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EB0F3BBE5;
-	Thu,  1 Aug 2024 10:33:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.107.215.64
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1722508415; cv=fail; b=n4CvKrHPcwq1QfoasHOaQ2ywU4mkpSJWj72nNqtoqAoIXYVc5ywzNg/jfii3yKNj80WosqJrmK0785ob4ttY/LxkPbH3Xkru5ek1apgN2lTZnGIEdDTkQJQHqBslwhguDBjHbjkVk0heXiygfyC2ekSUOUrPdFo1EGKV0zOIOXk=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1722508415; c=relaxed/simple;
-	bh=6rXwTGW/kJFgD7RBRMnmL9hjkgCO2pQcuxFvVqL4/60=;
-	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=nezT46KNADSLw9JeRpH5Cuni2x0YspDxw9qpUHFt2UadnxFo9VRiPPnMrLx/2J5sTyhFRE5y9c/Dt++FX8i11izOpZMvUaSwzFlRmA5dE1jRnyLSulPGQc05izWO66waEfHhqyJtip+XarEcZCREAQNqG0dmCcxBixFkbpbIKy8=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=vivo.com; spf=pass smtp.mailfrom=vivo.com; dkim=pass (2048-bit key) header.d=vivo.com header.i=@vivo.com header.b=pTLvbacu; arc=fail smtp.client-ip=40.107.215.64
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=vivo.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=vivo.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 73CAB19AD87
+	for <linux-arch@vger.kernel.org>; Thu,  1 Aug 2024 12:53:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1722516805; cv=none; b=oxTXlIJ6DzcZaZExFYBi4VGdHE1XTYyyenVQqsQPKj9KWPLiZQm77TWCDT9v2ma1T0WL/wDn+8WaU9WaucAUUVPl8FSfRvzWoeuU7ZTNGtbiBnObhfBKSSLrJalgoXWcH+Xg2CztL37CaAVaaqcI4Ff19Kv93EnREWFbTyTtYrw=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1722516805; c=relaxed/simple;
+	bh=RSXa3QrdosMXek03Kn5TJUgAyt9Pgt8CEW3Dz2q5d6k=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=P6CF3r4uyMq+Ayn+TADyxcdyvvKOGuA3FKribc3SLCYc/nC/ZBIJDLEJcSPMgTNhBAlZ4rtvzXptvseb8c+O+tdfSap4Sa6SHUwqF2AssKqKMMF8QVdKBoaIY8Vazg5weeEcjliGhGLPEKV56O+Fkl6rzmGlRcJl0fEs8DIF+7M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=jOosIZBZ; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=vivo.com header.i=@vivo.com header.b="pTLvbacu"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=Yo8Apioke3v1+7GeEoO9oPIKiqRj16k4tg9vxldEqCdAxhmxMYaAnjC47vv6IsGW3Q4OxSPq+65JEFzG/Rp4rOxweRwHlUFPuHtZP5Lj68fzO9HRfz2nZZ2GccytyEA7PYRQgEQEQF59Xvs8mPMmlO2IXwdmI9m3PfYr6j+jXYfFbdThwZWrl0CbD1NMW9txNAvIc4KQ+jQdarq/OjeqI6OcAPlodiwcaOmRwYrVKxoZiykmOB3WIebVP46erR7Dynw7cGGVLn2BX4I7yerwYTsBB8cY6Aykcl+OB7A7pWJNx5xJCFKvEevuIsAp2ZuH9rOnwyS36rZsiXTb0BE92Q==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=DSuE5Oa7/DmjtlVa8Mg5447RmfexKka8rSYuQMUbJTk=;
- b=V+YFPLH4R55WRPI/tLjFtLUPhCOi1dx8Wm1mgDkSgp6Ndnu1tBsy9UyZUNjrCdIay73lKDdOQm9+3xyZlaxWkwhmUuYYh6XHUFnem944N0/ayG7Ea3tYb/Tu/qFHXyI1mi0CnBPXbvJN50Ee7fpl2yJQv41wCUb1k95Syv4msz6zog/PcqI0EOb8mvbchmriaQShnaf8eRAoFXhadc8jACHV010qmM5HRYyMP6rxx6pTH1U73zjTDIywWdNNOwPvq3AORiy2UY2WVt5/JyYqi3gs4PWPaiTNo44b8qrxZU2qGl66bEE52ORXzsbchjAI/WmbLRwRHygZOWjzA8bcWA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=vivo.com; dmarc=pass action=none header.from=vivo.com;
- dkim=pass header.d=vivo.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=vivo.com; s=selector2;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=DSuE5Oa7/DmjtlVa8Mg5447RmfexKka8rSYuQMUbJTk=;
- b=pTLvbacuSwVBxp3fM6RhesnI1CiTrenqsfXeeb0OicRVaJtVNy9ye95m1E3zP+oqPXoFfQH5cfXOtqV/rbHfpusnKMBMCopzCewd/lYAO9pT1bu67S3Z0trGr+Stit8t9LrKYUOTxmbHWUeZnVx66ljGRJa9ghWcOO4pqlqR0cHF4RRJkSXuWFuG4t/GtZcjSe7EFCYhv5nRx+LOXXX5WJ2lC3HJl1f8H+jp7PHxC4a6lqHa2+QpOkDaJX9CphYPjt/PkQXlbl4+XU7/4vd8zfnl95+Z3Neo12+OpDPpjC2FoX0cyZSV9IGxY17GBQaAu5XW0/0zrLvZYPoD6l13OQ==
-Authentication-Results: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=vivo.com;
-Received: from JH0PR06MB6849.apcprd06.prod.outlook.com (2603:1096:990:47::12)
- by TYZPR06MB5099.apcprd06.prod.outlook.com (2603:1096:400:1c5::5) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7807.28; Thu, 1 Aug
- 2024 10:33:27 +0000
-Received: from JH0PR06MB6849.apcprd06.prod.outlook.com
- ([fe80::ed24:a6cd:d489:c5ed]) by JH0PR06MB6849.apcprd06.prod.outlook.com
- ([fe80::ed24:a6cd:d489:c5ed%3]) with mapi id 15.20.7828.016; Thu, 1 Aug 2024
- 10:33:27 +0000
-Message-ID: <820dfff4-1f09-474e-aa68-30d779a72fed@vivo.com>
-Date: Thu, 1 Aug 2024 18:33:24 +0800
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 0/3] mm: tlb swap entries batch async release
-To: Barry Song <21cnbao@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Arnd Bergmann <arnd@arndb.de>, Johannes Weiner <hannes@cmpxchg.org>,
- Michal Hocko <mhocko@kernel.org>, Roman Gushchin <roman.gushchin@linux.dev>,
- Shakeel Butt <shakeel.butt@linux.dev>, Muchun Song <muchun.song@linux.dev>,
- linux-arch@vger.kernel.org, cgroups@vger.kernel.org,
- kernel test robot <lkp@intel.com>, opensource.kernel@vivo.com
-References: <20240731133318.527-1-justinjiang@vivo.com>
- <20240731091715.b78969467c002fa3a120e034@linux-foundation.org>
- <dbead7ca-e9a4-4ee8-9247-4e1ba9f6695c@vivo.com>
- <CAGsJ_4xv--92w+hOVWtMtYK-0TsR6z67xiHEXCvuRNvXx71b2A@mail.gmail.com>
-From: zhiguojiang <justinjiang@vivo.com>
-In-Reply-To: <CAGsJ_4xv--92w+hOVWtMtYK-0TsR6z67xiHEXCvuRNvXx71b2A@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
-X-ClientProxiedBy: SG2P153CA0008.APCP153.PROD.OUTLOOK.COM (2603:1096::18) To
- JH0PR06MB6849.apcprd06.prod.outlook.com (2603:1096:990:47::12)
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="jOosIZBZ"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1722516802;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
+	bh=tY3FTh7vOTxS/LhqhyyExp9r4gGoOfraF1glml6en7Q=;
+	b=jOosIZBZGQTA8l+OiWKwMzhLzigshAK/nV9vhCJNY/NLT+TUtL17ZBj/F3NF9l/AwjmWEf
+	GUH75fVn67N9cKzCJr1tlEBt1K3OsgR3HRXIaxs+6kcv3fNr2TPBNL83AsyU+YefTh/4dk
+	wE5TFOLGG11KwpjnLCCQOfzUIxcdkEw=
+Received: from mail-wr1-f69.google.com (mail-wr1-f69.google.com
+ [209.85.221.69]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-528-I594v3-pP7aEM2Nr1ufIPA-1; Thu, 01 Aug 2024 08:53:20 -0400
+X-MC-Unique: I594v3-pP7aEM2Nr1ufIPA-1
+Received: by mail-wr1-f69.google.com with SMTP id ffacd0b85a97d-368374dc565so3191009f8f.2
+        for <linux-arch@vger.kernel.org>; Thu, 01 Aug 2024 05:53:20 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1722516799; x=1723121599;
+        h=content-transfer-encoding:in-reply-to:organization:autocrypt
+         :content-language:from:references:cc:to:subject:user-agent
+         :mime-version:date:message-id:x-gm-message-state:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=tY3FTh7vOTxS/LhqhyyExp9r4gGoOfraF1glml6en7Q=;
+        b=HgH2SCXfZ46zNKNMuZMKxkWfBHW962r100ZGJyrAqWBM0jICXYQfZvyl16o6DBvNo4
+         iW1JevGVuSBey2IBo/GR2jKd2dgLDHM18Emc5ASB8v+3RhcNC71hSb8xj50CdAztqQhj
+         kWJ5vPUcIMsGoToZ0aZ0tgqCKDs6wusutC5sQczB2gEsi6g2yQWrdkL6NnzpNkYJ56E5
+         OFX+bKnQObj8u/J/jBtJwn+mK89QqONYdG61qmifLmx1Heln2s+D4g+bkoF3BIOHYkWW
+         hmpROnDKTrQquywWlVDTYa3tusTxVv3lODvczr3KbTilH/HPY1nU/Yf4QnT3JAFL2tEq
+         XuHA==
+X-Forwarded-Encrypted: i=1; AJvYcCVG8SSkNm/KjMD65/pbspBarIZ0UgnX+TVNoRS67TJK/HuX3OXw7rrB5ugV6+j6JQpBZAzmTaU2OettxqNKMHOQPVpv0qx80WRvag==
+X-Gm-Message-State: AOJu0YyItxSZg2nWVL35B3F/r/TY82Qtfn/2dzV9snx07XTccul7Awl+
+	yl9zKZjsEnXdoAon2j1Rcw+h4pWYppVDGJmxeYkxnE1s1suCWa942/AftLE+foWLW6LAsPVqar0
+	9HwHMAeV2oFImgE4o5FsGbodGksW5wTozjl4/aT+bsh/GzS5YADFjpvUMQ5o=
+X-Received: by 2002:adf:ed11:0:b0:364:8568:f843 with SMTP id ffacd0b85a97d-36baaf46ff3mr1747190f8f.59.1722516799375;
+        Thu, 01 Aug 2024 05:53:19 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IEXkQzuiBajNhJVSP5UhLjv2gX0jPjX0Kpt2L7st5acq9l3/tBwA4i709DCI0A4Sa8f6WF5tw==
+X-Received: by 2002:adf:ed11:0:b0:364:8568:f843 with SMTP id ffacd0b85a97d-36baaf46ff3mr1747154f8f.59.1722516798788;
+        Thu, 01 Aug 2024 05:53:18 -0700 (PDT)
+Received: from ?IPV6:2003:cb:c707:5c00:e650:bcd7:e2a0:54fe? (p200300cbc7075c00e650bcd7e2a054fe.dip0.t-ipconnect.de. [2003:cb:c707:5c00:e650:bcd7:e2a0:54fe])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-36b36858197sm19818391f8f.68.2024.08.01.05.53.17
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 01 Aug 2024 05:53:18 -0700 (PDT)
+Message-ID: <bffe178c-bd97-4945-898e-97ba203f503e@redhat.com>
+Date: Thu, 1 Aug 2024 14:53:15 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: JH0PR06MB6849:EE_|TYZPR06MB5099:EE_
-X-MS-Office365-Filtering-Correlation-Id: b2686242-a7fa-4821-d12f-08dcb2156140
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|7416014|376014|366016|43062017;
-X-Microsoft-Antispam-Message-Info:
-	=?utf-8?B?KzhwQzhQT21lWk51dW0vdDM2S1JGZXJQYU1tUnh3YXN3b1Rtb0dNeCtBSGN6?=
- =?utf-8?B?SGdhMUR6anVnZTQ4WEJmOGpxRFdlaGZlUGw4V0lvQWVnTW8vMnJhOTNTMnYv?=
- =?utf-8?B?bGhzVU96d3JYZkQwMzl6TnQrYVpnRTloRmJKN2h4bEZmSzQyTU9EV1BnSFhH?=
- =?utf-8?B?WEhxcURFQXkyMmVNcm1VUTh1UFJzYXhob09nMWQxb3BpV3ZPVWdLcUtTV0sz?=
- =?utf-8?B?TVphNzFJZW80NVBuOGlnZGcyalp6VG1wWmk3RVYwNUxwSzZWZmREdDlUTTRH?=
- =?utf-8?B?S0hKSkU1NElRSDFxdGpjRkZVdzhIWkRJZG5rY0lnZ3BHZUp4TTdKOENjcXdu?=
- =?utf-8?B?YTE3aGtubGRsUlJkZysvUzJ6L0xFY1RvR1ZPUnExRVdQZ1JHSVo3RTA1T1Zv?=
- =?utf-8?B?cldXcDFOd1J1UjIva1FmR05sZnNmVEhtS1JGenU0d1lBT3VDMXF0TjlmYUlL?=
- =?utf-8?B?QmcxL1F1aVJVOWc4NnBGZ1FmR1JwRU02VG42cmFmQWNqSjBxYnlVT092S2Vp?=
- =?utf-8?B?T2dHZFMzOEJZV24wWEV5RFVXYituL1FheDlBaHBhL2VaelBycnRqUUc5TVE1?=
- =?utf-8?B?TWtEMmpWSzBaNTFRR2J5QUNRekhhbHdnV1dVYUtqRWtrR2RZdUNxUzFPUFNX?=
- =?utf-8?B?RXZSTytuV2FRalVaQXVrMDR1clgvU25Kdk9uOVRBRE9nd0pmV29YZk4rRnFZ?=
- =?utf-8?B?dG9qMWhvMEVpVDY3ODhSWVhzWGtoYUJwVzhoV0psWUZ1ZFFmR09DL2dNemZi?=
- =?utf-8?B?UVJVZ0hwcE5Qd0V4allNQXkrNzdIbi96bGE4Z3pLN2Q1SDk4MWtvbUNjY1ky?=
- =?utf-8?B?UFhnY2EwcW1iYXhFTFVEWjlkeUt6dy9RRXhyVHBNdGxtTDVLdDZYZW8yYXZn?=
- =?utf-8?B?RHgrWFdOM0FTWnBuSk11aE1QTXNtTHI2c3AvbUpnWW05WHhLWDU2aXByb2U5?=
- =?utf-8?B?bmlDZXk4Yld3SXZYY284TU1HSXh4eUo5QjRQWmErMlgzbVFHS0F0bzhtVXhE?=
- =?utf-8?B?eVg3Y3phUmlQR1FBV3p2Z3Zjc3hGb2pqdXpXekxlQzM1NERJQ3N1NWd1bFhD?=
- =?utf-8?B?OEFFc1BvOXYyU0E0YkhpNFd1WjErVzRhcllRaDlEUXlibnFsc0p6T2dCenZl?=
- =?utf-8?B?NFQvdTRSYVBOVnZIOHdNc1VrUzJuYUgzVVVoYVhHcTZxdXpDMDEzWXozR3BX?=
- =?utf-8?B?TW1yczFSTW40bXpsZDhIYnpBaW81TjFKdTBmaklmd200RGhWOGZDWTZvdkNk?=
- =?utf-8?B?WUJwTFlVSHpTaS9VZTRVanl6VXcvYS9CMldVaHBpbDU3c296Ulp2WWxZekg0?=
- =?utf-8?B?bHc5Y2xWSXJ5UUYwQXV2OUFaTWxXZFh0U2p5L1orUmpvb2MvM3JpQ1BlVnFX?=
- =?utf-8?B?dmswanBySkxRcVdNK2Y3NThsRUFLVzcwUWZNbmc0SmwySFVKd2xHQUEwRUxI?=
- =?utf-8?B?SHpFVDV2b3Z3d2hWWkczZXRwSDFkNVN1MnF4TDczQlo3VjZ0T252cFJCMHJY?=
- =?utf-8?B?ZXQza1BtQVBYcjF0dWVhZFBCRGNKODY4ZFZnZU95eDlreVRpVFh4ZW9QQkhk?=
- =?utf-8?B?Y3FGQWRsOGV1QmNjLzRVbVZRc2ZKbmNJSVFnVDhYbEhBOGpDN1Jzd1ZzSDkw?=
- =?utf-8?B?R01laHlJb3RYdGUwcTQ3MU9iVnhoTGdRdlZKZ0JETmxqWmpEcmljWkZCMkhz?=
- =?utf-8?B?UitZdHowODQwRnlFMUNmRVlRT0VYdDNrR05nVTdBSG14M0x6bjh2SHB6VUNj?=
- =?utf-8?B?NGMzSUFNZC9lcDVCU3FyTm11Z2xZTStnaUUrSm9rQ3pOSWc1WHNHQ3VzV2lx?=
- =?utf-8?B?aFg5RjgrN2JHSWRoVWFGUko0VG11L1pjM2tIYVpJcVMveGdhdlJYU2ppaTJK?=
- =?utf-8?B?Y1JYaEc4RXMrRmJBd0R2RFlVZ0dFdHlNRXZDWDRzN3pGQWc9PQ==?=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:JH0PR06MB6849.apcprd06.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(7416014)(376014)(366016)(43062017);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?ejJVc3FMZnNMaHZDcXJZcDY1QzhvOU1BbDRMdFZXWEZ5ODJRWHozdGhPZ1JQ?=
- =?utf-8?B?dVNocUF3VC9RbkV4QkNONThhVnRFZEtJODU5WU5RNkNweWVpTVVwZ1ZZQTFU?=
- =?utf-8?B?MzlsbktTdnRYQlVtNG9KMmpiZUpiUS9hNEhmWGluMS9vMzFUVHI0RldILzI4?=
- =?utf-8?B?ZDhzYThxTHcvbEdPVEQzSzYzNlZKL2pCYmtUWlNydFJUOTVpdFdxckNDL00x?=
- =?utf-8?B?dW15bDJ4ZlB0UXhwWTE5SUw5cm1INXEwQmtoK3JyWXV1bzg5ZHRMSTRVTGJT?=
- =?utf-8?B?a2UvYVdwdHhiOUlrM0hUTmFLeWFnaVIyaVJ6YWJDZmdNWDRCa0d5N0FGaWQ0?=
- =?utf-8?B?NVJqWU5WMGdnd3pwdjZ6ZWZyRVZSdmxzc09MMExyWUR3WFRqSG8xNmVvejJx?=
- =?utf-8?B?MldBc1QyY1dGZ2d3dlMvWGVIYVlxb1NZamRKb3NNRkVCY0Q4VE9kY21mVlZS?=
- =?utf-8?B?RFdxU2ppSEtuZEd4TTA5QjRBNExzRzcyT2sxQk8ySVZvSXV4RWpSRXVzRFo1?=
- =?utf-8?B?UEhrcWNPNGJpUUdERlNqU2xEbmsvVWhVVnFKTDVaUDluSFNVSVM3ZXMyT2th?=
- =?utf-8?B?Z3IwMjNVaWtMT0wvdGVwNUxnSUovVVV6eVdKT05mMlhrTlg2am1RUXRTQ2h1?=
- =?utf-8?B?MzA0c0g3MEREMnl5QlpZdVFROE5PdE5VNlhKY3Zqb0JmTFpaMmVKZ2pSK2xt?=
- =?utf-8?B?dU5hdEt4WnlqVnBZQW44ZFdIUGJ0cENIbWxmVW5wZUpVK0hGR3ZxWUQzQnls?=
- =?utf-8?B?TFFiOW43RXdkQW9SMW0rS0xKMnJWcEVqbEl6bGxJUTJLNGxvWTNWdFVMTllu?=
- =?utf-8?B?NDZrRjA0N3licnI2RTVsVlJzcm9wcVp5VURsMUk4K2pZZjUzQ2h3NHZRWmxm?=
- =?utf-8?B?M2lvV2taMzNuNkJBUXpIcnpjYURuYXp2SVMvSlJBajZwUERZVFFLanZSeHht?=
- =?utf-8?B?WDhNU3BHdkowbmJCT0xWYzN5Q1RMMTBvVSt0Rit5REIvMTRFVVA4Q3NBakR1?=
- =?utf-8?B?RUlMNitFdFlXLzRQZW9uQlA3NmZMV3JtMzdrM0FyWGF3VFNIemh2K2Y0NXR4?=
- =?utf-8?B?L0RoMHdvUzVsREpXWDd0SDNFdnlUUlZDTCt2MnE5d2xZWUxwc2w1MGdDOHdG?=
- =?utf-8?B?bzIwWFlsZzQ0NGp4QmU3eGJBbm5DcEl3SHVrTE1ZSVBsWHlSdU5QS0RmeERN?=
- =?utf-8?B?UDRyOGxUSVZFNFNKTGJHV1dxYXU4TXR3TkVjMVNnY1BCK3R0L2lrOW9DU0JP?=
- =?utf-8?B?RnlJVFJySlVrY09PbTVOa0l1c2xyN2tGd0RoNEVDTEhqeC9WQmxCZjBSUytq?=
- =?utf-8?B?Q0l6N09aSkZzQkxyc1dwa3haVmlBQzhDUlMzQzc2N0JkRUo1Ym92QmFVTGJN?=
- =?utf-8?B?ZG5RckRad2krTWQ1VDRTU1lxTGdWckRSdVNzbTNIdm5UQy9NRmhkM3ZXVXNp?=
- =?utf-8?B?Rmc0aGQ3SWt4aDd1TkIrR2tLdlkwYkVVNURSTDA0ME1zaWl3REQyV0hqT0ZH?=
- =?utf-8?B?OC85M0FzdU1YcVdVb3ZRaEduYjRlQlowTklQcmdEY2RJOThUcU4wUjJ4QU9P?=
- =?utf-8?B?dXBwVWdnakZHRmc4RHZNSHRXOUtsdEl2eSt2QVc2eHo3MGNGKzBBQkJSZ3ps?=
- =?utf-8?B?bXE2Q0RjbEpTbmUrNVY5WGxCbzJaMERKTVNHMm9CSlRnbkptRys0ZHFGVW9V?=
- =?utf-8?B?QmF5UWxuakVVK3M0NnJ6MFlaMHllTVJpM25EdkR3UU5zb25waUNDMk9XbitW?=
- =?utf-8?B?TmpjMDArbE9GTUZHTXEvTVg1WEN4MzFlakxqVVlSM0MrMmRna3Fwa2wvN25R?=
- =?utf-8?B?Q2dzb05HV0tHZElCMDlwQUxPWWp1c05qbktXTWpMWFdFeW9KSTM1QmZ6cjB6?=
- =?utf-8?B?aU9CWUpsWXM2ZlJLaXZiV1F5RzNPb0llbFZ1THB2OHVkdU9Qc3lpU29VUStr?=
- =?utf-8?B?UWRxUmZtQnBjUlVoUnhMNlZvVXpxYTdEUFFnTzdTQUJIS21GNGhkZWxKcHNi?=
- =?utf-8?B?K21FL0FGa0UzMG83UnpIYW9BbXpLRHhaSzJrMWc0b1doQmdmekxVVkR0WlBu?=
- =?utf-8?B?WVpjUElqd2FmMUFMN2FsR2s0UlVTY3ZJUDJYYk96UmJkZG82cW5QOWM5N25m?=
- =?utf-8?Q?nky/LTdnuY3BZQECO68OeNV0u?=
-X-OriginatorOrg: vivo.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: b2686242-a7fa-4821-d12f-08dcb2156140
-X-MS-Exchange-CrossTenant-AuthSource: JH0PR06MB6849.apcprd06.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 01 Aug 2024 10:33:27.6474
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 923e42dc-48d5-4cbe-b582-1a797a6412ed
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: BbudOa4mvgHWrRbw1RBjYXfE59jc82ck80P/fyv9VpWIdKmy1FGRW1rgUXm9Vbopn/lzafG4qNp2g5hFUorUwA==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: TYZPR06MB5099
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 0/1] mm: introduce MADV_DEMOTE/MADV_PROMOTE
+To: Zhangrenze <zhang.renze@h3c.com>, "linux-mm@kvack.org"
+ <linux-mm@kvack.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: "arnd@arndb.de" <arnd@arndb.de>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+ "chris@zankel.net" <chris@zankel.net>,
+ "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>,
+ "James.Bottomley@HansenPartnership.com"
+ <James.Bottomley@HansenPartnership.com>, "deller@gmx.de" <deller@gmx.de>,
+ "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>,
+ "tsbogend@alpha.franken.de" <tsbogend@alpha.franken.de>,
+ "rdunlap@infradead.org" <rdunlap@infradead.org>,
+ "bhelgaas@google.com" <bhelgaas@google.com>,
+ "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
+ "richard.henderson@linaro.org" <richard.henderson@linaro.org>,
+ "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>,
+ "mattst88@gmail.com" <mattst88@gmail.com>,
+ "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>,
+ Jiaoxupo <jiaoxupo@h3c.com>, Zhouhaofan <zhou.haofan@h3c.com>
+References: <3a5785661e1b4f3381046aa5e808854c@h3c.com>
+From: David Hildenbrand <david@redhat.com>
+Content-Language: en-US
+Autocrypt: addr=david@redhat.com; keydata=
+ xsFNBFXLn5EBEAC+zYvAFJxCBY9Tr1xZgcESmxVNI/0ffzE/ZQOiHJl6mGkmA1R7/uUpiCjJ
+ dBrn+lhhOYjjNefFQou6478faXE6o2AhmebqT4KiQoUQFV4R7y1KMEKoSyy8hQaK1umALTdL
+ QZLQMzNE74ap+GDK0wnacPQFpcG1AE9RMq3aeErY5tujekBS32jfC/7AnH7I0v1v1TbbK3Gp
+ XNeiN4QroO+5qaSr0ID2sz5jtBLRb15RMre27E1ImpaIv2Jw8NJgW0k/D1RyKCwaTsgRdwuK
+ Kx/Y91XuSBdz0uOyU/S8kM1+ag0wvsGlpBVxRR/xw/E8M7TEwuCZQArqqTCmkG6HGcXFT0V9
+ PXFNNgV5jXMQRwU0O/ztJIQqsE5LsUomE//bLwzj9IVsaQpKDqW6TAPjcdBDPLHvriq7kGjt
+ WhVhdl0qEYB8lkBEU7V2Yb+SYhmhpDrti9Fq1EsmhiHSkxJcGREoMK/63r9WLZYI3+4W2rAc
+ UucZa4OT27U5ZISjNg3Ev0rxU5UH2/pT4wJCfxwocmqaRr6UYmrtZmND89X0KigoFD/XSeVv
+ jwBRNjPAubK9/k5NoRrYqztM9W6sJqrH8+UWZ1Idd/DdmogJh0gNC0+N42Za9yBRURfIdKSb
+ B3JfpUqcWwE7vUaYrHG1nw54pLUoPG6sAA7Mehl3nd4pZUALHwARAQABzSREYXZpZCBIaWxk
+ ZW5icmFuZCA8ZGF2aWRAcmVkaGF0LmNvbT7CwZgEEwEIAEICGwMGCwkIBwMCBhUIAgkKCwQW
+ AgMBAh4BAheAAhkBFiEEG9nKrXNcTDpGDfzKTd4Q9wD/g1oFAl8Ox4kFCRKpKXgACgkQTd4Q
+ 9wD/g1oHcA//a6Tj7SBNjFNM1iNhWUo1lxAja0lpSodSnB2g4FCZ4R61SBR4l/psBL73xktp
+ rDHrx4aSpwkRP6Epu6mLvhlfjmkRG4OynJ5HG1gfv7RJJfnUdUM1z5kdS8JBrOhMJS2c/gPf
+ wv1TGRq2XdMPnfY2o0CxRqpcLkx4vBODvJGl2mQyJF/gPepdDfcT8/PY9BJ7FL6Hrq1gnAo4
+ 3Iv9qV0JiT2wmZciNyYQhmA1V6dyTRiQ4YAc31zOo2IM+xisPzeSHgw3ONY/XhYvfZ9r7W1l
+ pNQdc2G+o4Di9NPFHQQhDw3YTRR1opJaTlRDzxYxzU6ZnUUBghxt9cwUWTpfCktkMZiPSDGd
+ KgQBjnweV2jw9UOTxjb4LXqDjmSNkjDdQUOU69jGMUXgihvo4zhYcMX8F5gWdRtMR7DzW/YE
+ BgVcyxNkMIXoY1aYj6npHYiNQesQlqjU6azjbH70/SXKM5tNRplgW8TNprMDuntdvV9wNkFs
+ 9TyM02V5aWxFfI42+aivc4KEw69SE9KXwC7FSf5wXzuTot97N9Phj/Z3+jx443jo2NR34XgF
+ 89cct7wJMjOF7bBefo0fPPZQuIma0Zym71cP61OP/i11ahNye6HGKfxGCOcs5wW9kRQEk8P9
+ M/k2wt3mt/fCQnuP/mWutNPt95w9wSsUyATLmtNrwccz63XOwU0EVcufkQEQAOfX3n0g0fZz
+ Bgm/S2zF/kxQKCEKP8ID+Vz8sy2GpDvveBq4H2Y34XWsT1zLJdvqPI4af4ZSMxuerWjXbVWb
+ T6d4odQIG0fKx4F8NccDqbgHeZRNajXeeJ3R7gAzvWvQNLz4piHrO/B4tf8svmRBL0ZB5P5A
+ 2uhdwLU3NZuK22zpNn4is87BPWF8HhY0L5fafgDMOqnf4guJVJPYNPhUFzXUbPqOKOkL8ojk
+ CXxkOFHAbjstSK5Ca3fKquY3rdX3DNo+EL7FvAiw1mUtS+5GeYE+RMnDCsVFm/C7kY8c2d0G
+ NWkB9pJM5+mnIoFNxy7YBcldYATVeOHoY4LyaUWNnAvFYWp08dHWfZo9WCiJMuTfgtH9tc75
+ 7QanMVdPt6fDK8UUXIBLQ2TWr/sQKE9xtFuEmoQGlE1l6bGaDnnMLcYu+Asp3kDT0w4zYGsx
+ 5r6XQVRH4+5N6eHZiaeYtFOujp5n+pjBaQK7wUUjDilPQ5QMzIuCL4YjVoylWiBNknvQWBXS
+ lQCWmavOT9sttGQXdPCC5ynI+1ymZC1ORZKANLnRAb0NH/UCzcsstw2TAkFnMEbo9Zu9w7Kv
+ AxBQXWeXhJI9XQssfrf4Gusdqx8nPEpfOqCtbbwJMATbHyqLt7/oz/5deGuwxgb65pWIzufa
+ N7eop7uh+6bezi+rugUI+w6DABEBAAHCwXwEGAEIACYCGwwWIQQb2cqtc1xMOkYN/MpN3hD3
+ AP+DWgUCXw7HsgUJEqkpoQAKCRBN3hD3AP+DWrrpD/4qS3dyVRxDcDHIlmguXjC1Q5tZTwNB
+ boaBTPHSy/Nksu0eY7x6HfQJ3xajVH32Ms6t1trDQmPx2iP5+7iDsb7OKAb5eOS8h+BEBDeq
+ 3ecsQDv0fFJOA9ag5O3LLNk+3x3q7e0uo06XMaY7UHS341ozXUUI7wC7iKfoUTv03iO9El5f
+ XpNMx/YrIMduZ2+nd9Di7o5+KIwlb2mAB9sTNHdMrXesX8eBL6T9b+MZJk+mZuPxKNVfEQMQ
+ a5SxUEADIPQTPNvBewdeI80yeOCrN+Zzwy/Mrx9EPeu59Y5vSJOx/z6OUImD/GhX7Xvkt3kq
+ Er5KTrJz3++B6SH9pum9PuoE/k+nntJkNMmQpR4MCBaV/J9gIOPGodDKnjdng+mXliF3Ptu6
+ 3oxc2RCyGzTlxyMwuc2U5Q7KtUNTdDe8T0uE+9b8BLMVQDDfJjqY0VVqSUwImzTDLX9S4g/8
+ kC4HRcclk8hpyhY2jKGluZO0awwTIMgVEzmTyBphDg/Gx7dZU1Xf8HFuE+UZ5UDHDTnwgv7E
+ th6RC9+WrhDNspZ9fJjKWRbveQgUFCpe1sa77LAw+XFrKmBHXp9ZVIe90RMe2tRL06BGiRZr
+ jPrnvUsUUsjRoRNJjKKA/REq+sAnhkNPPZ/NNMjaZ5b8Tovi8C0tmxiCHaQYqj7G2rgnT0kt
+ WNyWQQ==
+Organization: Red Hat
+In-Reply-To: <3a5785661e1b4f3381046aa5e808854c@h3c.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-
-
-在 2024/8/1 15:36, Barry Song 写道:
-> On Thu, Aug 1, 2024 at 2:31 PM zhiguojiang <justinjiang@vivo.com> wrote:
->>
->> 在 2024/8/1 0:17, Andrew Morton 写道:
->>> [Some people who received this message don't often get email from akpm@linux-foundation.org. Learn why this is important at https://aka.ms/LearnAboutSenderIdentification ]
+On 01.08.24 11:57, Zhangrenze wrote:
+>>> Sure, here's the Scalable Tiered Memory Control (STMC)
 >>>
->>> On Wed, 31 Jul 2024 21:33:14 +0800 Zhiguo Jiang <justinjiang@vivo.com> wrote:
+>>> **Background**
 >>>
->>>> The main reasons for the prolonged exit of a background process is the
->>> The kernel really doesn't have a concept of a "background process".
->>> It's a userspace concept - perhaps "the parent process isn't waiting on
->>> this process via wait()".
+>>> In the era when artificial intelligence, big data analytics, and
+>>> machine learning have become mainstream research topics and
+>>> application scenarios, the demand for high-capacity and high-
+>>> bandwidth memory in computers has become increasingly important.
+>>> The emergence of CXL (Compute Express Link) provides the
+>>> possibility of high-capacity memory. Although CXL TYPE3 devices
+>>> can provide large memory capacities, their access speed is lower
+>>> than traditional DRAM due to hardware architecture limitations.
 >>>
->>> I assume here you're referring to an Android userspace concept?  I
->>> expect that when Android "backgrounds" a process, it does lots of
->>> things to that process.  Perhaps scheduling priority, perhaps
->>> alteration of various MM tunables, etc.
+>>> To enjoy the large capacity brought by CXL memory while minimizing
+>>> the impact of high latency, Linux has introduced the Tiered Memory
+>>> architecture. In the Tiered Memory architecture, CXL memory is
+>>> treated as an independent, slower NUMA NODE, while DRAM is
+>>> considered as a relatively faster NUMA NODE. Applications allocate
+>>> memory from the local node, and Tiered Memory, leveraging memory
+>>> reclamation and NUMA Balancing mechanisms, can transparently demote
+>>> physical pages not recently accessed by user processes to the slower
+>>> CXL NUMA NODE. However, when user processes re-access the demoted
+>>> memory, the Tiered Memory mechanism will, based on certain logic,
+>>> decide whether to promote the demoted physical pages back to the
+>>> fast NUMA NODE. If the promotion is successful, the memory accessed
+>>> by the user process will reside in DRAM; otherwise, it will reside in
+>>> the CXL NODE. Through the Tiered Memory mechanism, Linux balances
+>>> betweenlarge memory capacity and latency, striving to maintain an
+>>> equilibrium for applications.
 >>>
->>> So rather than referring to "backgrounding" it would be better to
->>> identify what tuning alterations are made to such processes to bring
->>> about this behavior.
->> Hi Andrew Morton,
->>
->> Thank you for your review and comments.
->>
->> You are right. The "background process" here refers to the process
->> corresponding to an Android application switched to the background.
->> In fact, this patch is applicable to any exiting process.
->>
->> The further explaination the concept of "multiple exiting processes",
->> is that it refers to different processes owning independent mm rather
->> than sharing the same mm.
->>
->> I will use "mm" to describe process instead of "background" in next
->> version.
->>>> time-consuming release of its swap entries. The proportion of swap memory
->>>> occupied by the background process increases with its duration in the
->>>> background, and after a period of time, this value can reach 60% or more.
->>> Again, what is it about the tuning of such processes which causes this
->>> behavior?
->> When system is low memory, memory recycling will be trigged, where
->> anonymous folios in the process will be continuously reclaimed, resulting
->> in an increase of swap entries occupies by this process. So when the
->> process is killed, it takes more time to release it's swap entries over
->> time.
->>
->> Testing datas of process occuping different physical memory sizes at
->> different time points:
->> Testing Platform: 8GB RAM
->> Testing procedure:
->> After booting up, start 15 processes first, and then observe the
->> physical memory size occupied by the last launched process at
->> different time points.
->>
->> Example:
->> The process launched last: com.qiyi.video
->> |  memory type  |  0min  |  1min  | BG 5min | BG 10min | BG 15min |
->> -------------------------------------------------------------------
->> |     VmRSS(KB) | 453832 | 252300 |  204364 |   199944 |  199748  |
->> |   RssAnon(KB) | 247348 |  99296 |   71268 |    67808 |   67660  |
->> |   RssFile(KB) | 205536 | 152020 |  132144 |   131184 |  131136  |
->> |  RssShmem(KB) |   1048 |    984 |     952 |     952  |     952  |
->> |    VmSwap(KB) | 202692 | 334852 |  362880 |   366340 |  366488  |
->> | Swap ratio(%) | 30.87% | 57.03% |  63.97% |   64.69% |  64.72%  |
->> min - minute.
->>
->> Based on the above datas, we can know that the swap ratio occupied by
->> the process gradually increases over time.
-> If I understand correctly, during zap_pte_range(), if 64.72% of the anonymous
-> pages are actually swapped out, you end up zapping 100 PTEs but only freeing
-> 36.28 pages of memory. By doing this asynchronously, you prevent the
-> swap_release operation from blocking the process of zapping normal
-> PTEs that are mapping to memory.
->
-> Could you provide data showing the improvements after implementing
-> asynchronous freeing of swap entries?
-Hi Barry,
-
-Your understanding is correct. From the perspective of the benefits of
-releasing the physical memory occupied by the exiting process, an
-asynchronous kworker releasing swap entries can indeed accelerate
-the exiting process to release its pte_present memory (e.g. file and
-anonymous folio) faster.
-
-In addition, from the perspective of CPU resources, for scenarios where
-multiple exiting processes are running simultaneously, an asynchronous
-kworker instead of multiple exiting processes is used to release swap
-entries can release more CPU core resources for the current non-exiting
-and important processes to use, thereby improving the user experience
-of the current non-exiting and important processes. I think this is the
-main contribution of this modification.
-
-Example:
-When there are multiple processes and the system memory is low, if
-the camera processes are started at this time, it will trigger the
-instantaneous killing of many processes because the camera processes
-need to alloc a large amount of memory, resulting in multiple exiting
-processes running simultaneously. These exiting processes will compete
-with the current camera processes for CPU resources, and the release of
-physical memory occupied by multiple exiting processes due to scheduling
-is slow, ultimately affecting the slow execution of the camera process.
-
-By using this optimization modification, multiple exiting processes can
-quickly exit, freeing up their CPU resources and physical memory of
-pte_preset, improving the running speed of camera processes.
-
-Testing Platform: 8GB RAM
-Testing procedure:
-After restarting the machine, start 15 app processes first, and then
-start the camera app processes, we monitor the cold start and preview
-time datas of the camera app processes.
-
-Test datas of camera processes cold start time (unit: millisecond):
-|  seq   |   1  |   2  |   3  |   4  |   5  |   6  | average |
-| before | 1498 | 1476 | 1741 | 1337 | 1367 | 1655 |   1512  |
-| after  | 1396 | 1107 | 1136 | 1178 | 1071 | 1339 |   1204  |
-
-Test datas of camera processes preview time (unit: millisecond):
-|  seq   |   1  |   2  |   3  |   4  |   5  |   6  | average |
-| before |  267 |  402 |  504 |  513 |  161 |  265 |   352   |
-| after  |  188 |  223 |  301 |  203 |  162 |  154 |   205   |
-
-Base on the average of the six sets of test datas above, we can see that
-the benefit datas of the modified patch:
-1. The cold start time of camera app processes has reduced by about 20%.
-2. The preview time of camera app processes has reduced by about 42%.
->
->>>> Additionally, the relatively lengthy path for releasing swap entries
->>>> further contributes to the longer time required for the background process
->>>> to release its swap entries.
->>>>
->>>> In the multiple background applications scenario, when launching a large
->>>> memory application such as a camera, system may enter a low memory state,
->>>> which will triggers the killing of multiple background processes at the
->>>> same time. Due to multiple exiting processes occupying multiple CPUs for
->>>> concurrent execution, the current foreground application's CPU resources
->>>> are tight and may cause issues such as lagging.
->>>>
->>>> To solve this problem, we have introduced the multiple exiting process
->>>> asynchronous swap memory release mechanism, which isolates and caches
->>>> swap entries occupied by multiple exit processes, and hands them over
->>>> to an asynchronous kworker to complete the release. This allows the
->>>> exiting processes to complete quickly and release CPU resources. We have
->>>> validated this modification on the products and achieved the expected
->>>> benefits.
->>> Dumb question: why can't this be done in userspace?  The exiting
->>> process does fork/exit and lets the child do all this asynchronous freeing?
->> The logic optimization for kernel releasing swap entries cannot be
->> implemented in userspace. The multiple exiting processes here own
->> their independent mm, rather than parent and child processes share the
->> same mm. Therefore, when the kernel executes multiple exiting process
->> simultaneously, they will definitely occupy multiple CPU core resources
->> to complete it.
->>>> It offers several benefits:
->>>> 1. Alleviate the high system cpu load caused by multiple exiting
->>>>      processes running simultaneously.
->>>> 2. Reduce lock competition in swap entry free path by an asynchronous
->>>>      kworker instead of multiple exiting processes parallel execution.
->>> Why is lock contention reduced?  The same amount of work needs to be
->>> done.
->> When multiple CPU cores run to release the different swap entries belong
->> to different exiting processes simultaneously, cluster lock or swapinfo
->> lock may encounter lock contention issues, and while an asynchronous
->> kworker that only occupies one CPU core is used to complete this work,
->> it can reduce the probability of lock contention and free up the
->> remaining CPU core resources for other non-exiting processes to use.
->>>> 3. Release memory occupied by exiting processes more efficiently.
->>> Probably it's slightly less efficient.
->> We observed that using an asynchronous kworker can result in more free
->> memory earlier. When multiple processes exit simultaneously, due to CPU
->> core resources competition, these exiting processes remain in a
->> runnable state for a long time and cannot release their occupied memory
->> resources timely.
->>> There are potential problems with this approach of passing work to a
->>> kernel thread:
+>>> **Problem**
+>>> Although Tiered Memory strives to balance between large capacity and
+>>> latency, specific scenarios can lead to the following issues:
 >>>
->>> - The process will exit while its resources are still allocated.  But
->>>     its parent process assumes those resources are now all freed and the
->>>     parent process then proceeds to allocate resources.  This results in
->>>     a time period where peak resource consumption is higher than it was
->>>     before such a change.
->> - I don't think this modification will cause such a problem. Perhaps I
->>     haven't fully understood your meaning yet. Can you give me a specific
->>     example?
-> Normally, after completing zap_pte_range, your swap slots are returned to
-> the swap file, except for a few slot caches. However, with the asynchronous
-> approach, it means that even after your process has completely exited,
->   some swap slots might still not be released to the system. This could
-> potentially starve other processes waiting for swap slots to perform
-> swap-outs. I assume this isn't a critical issue for you because, in the
-> case of killing processes, freeing up memory is more important than
-> releasing swap entries?
-  I did not encounter issues caused by the slow release of swap entries
-by asynchronous kworker during our testing. Normally, asynchronous
-kworker can also release cached swap entries in a short period of time.
-Of course, if the system allows, it is necessary to increase the running
-priority of the asynchronous kworker appropriately in order to release
-swap entries faster, which is also beneficial for the system.
-
-The swap-out datas for swap entries is also compressed and stored in the
-zram memory space, so it is relatively important to release the zram
-memory space corresponding to swap entries as soon as possible.
->
->>> - If all CPUs are running in userspace with realtime policy
->>>     (SCHED_FIFO, for example) then the kworker thread will not run,
->>>     indefinitely.
->> - In my clumsy understanding, the execution priority of kernel threads
->>     should not be lower than that of the exiting process, and the
->>     asynchronous kworker execution should only be triggered when the
->>     process exits. The exiting process should not be set to SCHED_LFO,
->>     so when the exiting process is executed, the asynchronous kworker
->>     should also have opportunity to get timely execution.
->>> - Work which should have been accounted to the exiting process will
->>>     instead go unaccounted.
->> - You are right, the statistics of process exit time may no longer be
->>     complete.
->>> So please fully address all these potential issues.
->> Thanks
->> Zhiguo
+>>>     1. In scenarios requiring massive computations, if data is heavily
+>>>        stored in CXL slow memory and Tiered Memory cannot promptly
+>>>        promote this memory to fast DRAM, it will significantly impact
+>>>        program performance.
+>>>     2. Similar to the scenario described in point 1, if Tiered Memory
+>>>        decides to promote these physical pages to fast DRAM NODE, but
+>>>        due to limitations in the DRAM NODE promote ratio, these physical
+>>>        pages cannot be promoted. Consequently, the program will keep
+>>>        running in slow memory.
+>>>     3. After an application finishes computing on a large block of fast
+>>>        memory, it may not immediately re-access it. Hence, this memory
+>>>        can only wait for the memory reclamation mechanism to demote it.
+>>>     4. Similar to the scenario described in point 3, if the demotion
+>>>        speed is slow, these cold pages will occupy the promotion
+>>>        resources, preventing some eligible slow pages from being
+>>>        immediately promoted, severely affecting application efficiency.
+>>>
+>>> **Solution**
+>>> We propose the **Scalable Tiered Memory Control (STMC)** mechanism,
+>>> which delegates the authority of promoting and demoting memory to the
+>>> application. The principle is simple, as follows:
+>>>
+>>>     1. When an application is preparing for computation, it can promote
+>>>        the memory it needs to use or ensure the memory resides on a fast
+>>>        NODE.
+>>>     2. When an application will not use the memory shortly, it can
+>>>        immediately demote the memory to slow memory, freeing up valuable
+>>>        promotion resources.
+>>>
+>>> STMC mechanism is implemented through the madvise system call, providing
+>>> two new advice options: MADV_DEMOTE and MADV_PROMOTE. MADV_DEMOTE
+>>> advises demote the physical memory to the node where slow memory
+>>> resides; this advice only fails if there is no free physical memory on
+>>> the slow memory node. MADV_PROMOTE advises retaining the physical memory
+>>> in the fast memory; this advice only fails if there are no promotion
+>>> slots available on the fast memory node. Benefits brought by STMC
+>>> include:
+>>>
+>>>     1. The STMC mechanism is a variant of on-demand memory management
+>>>        designed to let applications enjoy fast memory as much as possible,
+>>>        while actively demoting to slow memory when not in use, thus
+>>>        freeing up promotion slots for the NODE and allowing it to run in
+>>>        an optimized Tiered Memory environment.
+>>>     2. The STMC mechanism better balances large capacity and latency.
+>>>
+>>> **Shortcomings of STMC**
+>>> The STMC mechanism requires the caller to manage memory demotion and
+>>> promotion. If the memory is not promptly demoting after an promotion,
+>>> it may cause issues similar to memory leaks
+>> Ehm, that sounds scary. Can you elaborate what's happening here and why
+>> it is "similar to memory leaks"?
 >>
-> Thanks
-> Barry
-Thanks
-Zhiguo
+>>
+>> Can you also point out why migrate_pages() is not suitable? I would
+>> assume demote/promote is in essence simply migrating memory between nodes.
+>>
+>> -- 
+>> Cheers,
+>>
+>> David / dhildenb
+>>
+> 
+> Thank you for the response. Below are my points of view. If there are any
+> mistakes, I appreciate your understanding:
+> 
+> 1. In a tiered memory system, fast nodes and slow nodes act as two common
+>     memory pools. The system has a certain ratio limit for promotion. For
+>     example, a NODE may stipulate that when the available memory is less
+>     than 1GB or 1/4 of the node's memory, promotion are prohibited. If we
+>     use migrate_pages at this point, it will unrestrictedly promote slow
+>     pages to fast memory, which may prevent other processes’ pages that
+>     should have been promoted from being promoted. This is what I mean by
+>     occupying promotion resources.
+> 2. As described in point 1, if we use MADV_PROMOTE to temporarily promote
+>     a batch of pages and do not demote them immediately after usage, it
+>     will occupy many promotion resources. Other hot pages that need promote
+>     will not be able to get promote, which will impact the performance of
+>     certain processes.
+
+So, you mean, applications can actively consume "fast memory" and 
+"steal" it from other applications? I assume that's what you meant with 
+"memory leak".
+
+I would really suggest to *not* call this "similar to memory leaks", in 
+your own favor ;)
+
+> 3. MADV_DEMOTE and MADV_PROMOTE only rely on madvise, while migrate_pages
+>     depends on libnuma.
+
+Well, you can trivially call that systemcall also without libnuma ;) So 
+that shouldn't really make a difference and is rather something that can 
+be solved in user space.
+
+> 4. MADV_DEMOTE and MADV_PROMOTE provide a better balance between capacity
+>     and latency. They allow hot pages that need promoting to be promoted
+>     smoothly and pages that need demoting to be demoted immediately. This
+>     helps tiered memory systems to operate more rationally.
+
+Can you summarize why something similar could not be provided by a 
+library that builds up on existing functionality, such as migrate_pages? 
+It could easily take a look at memory stats to reason whether a 
+promotion/demotion makes sense (your example above with the memory 
+distribution).
+
+ From the patch itself I read
+
+"MADV_DEMOTE can mark a range of memory pages as cold
+pages and immediately demote them to slow memory. MADV_PROMOTE can mark
+a range of memory pages as hot pages and immediately promote them to
+fast memory"
+
+which sounds to me like migrate_pages / MADV_COLD might be able to 
+achieve something similar.
+
+What's the biggest difference that MADV_DEMOTE|MADV_PROMOTE can do better?
+
+-- 
+Cheers,
+
+David / dhildenb
 
