@@ -1,88 +1,143 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44E28134AC;
-	Fri,  2 Aug 2024 00:22:04 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C061D79F3;
+	Fri,  2 Aug 2024 00:22:17 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1722558125; cv=none; b=VBuCQvl4XexK2sXyjp5QS2RAPCLj/C9GyeTKrfwx6BD5RNAAvLRkUP9o2v0JN/G2rqrncq1y32fnVSoy58n35Gx9Tj56zzC5voSc4v7VVEuvcWSEfKWLIZFLyaGsVVaqIeuZq/in843tSkgPOnqVmjys4skNCh7ciQE20x7v6G4=
+	t=1722558137; cv=none; b=HVN9qVoecjS/wrQkrOP+kW9QTEAI82keuovDGlSfncAtwlGWThP1dDnRs6QnwbpvoARRLGs60Taxod25h3DRjxwmM67b683qPF0soQuq5NIUh/1UmSrYIJngipcgY5oJHM+1kmKsXlkxjuM+MJzwFsBnfXD3ngFWblAslgHWDJc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1722558125; c=relaxed/simple;
-	bh=rEoWPFpPS2fkdkiCezt44NzRUl97kQ26hPkj1rdopps=;
-	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type:
-	 Content-Disposition; b=kzdUUTdwRD3JQ9DRb0l4jXbZ5kcaMdQ0jIQ3+1j4udSv+CjBsOawNnhHGU/JOjZXW8EQS+RKXXjekCkJ56hq9BtxNfxtKiWHlNDtLEUGS1dg40nlecE4ws7kfuhNpDF2Hpjiv5qY1yOSF2/Sr5VOGmf4k1xW6cmZjPf4byT9YaU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=KHVqF1JU; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1722558137; c=relaxed/simple;
+	bh=21ND8h3aXwqP4GPXt1SePJHjRlQNFlNVkqExdK3K1F0=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=SmlqF41nQHPrQFf5BwPVsfRKaU8axBlVesgOdI02136DgeKZUhsuISus9HlaI2cn2Z0xb6+a5bnYxAx8fBNVB/bsA1RlqEVViLHxbXEOR8CKYUJIhOVMwJM3mGBtWfRlQoZ7ZG0bNKCAEZYNBi956cgwv0AHbO7H3yNor87JUFM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=W0nfnCBU; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="KHVqF1JU"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B4C2CC32786;
-	Fri,  2 Aug 2024 00:22:04 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="W0nfnCBU"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 90E59C4AF0C;
+	Fri,  2 Aug 2024 00:22:17 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1722558124;
-	bh=rEoWPFpPS2fkdkiCezt44NzRUl97kQ26hPkj1rdopps=;
-	h=Date:From:To:Cc:Subject:Reply-To:From;
-	b=KHVqF1JUdFPtkL4Jd9AJS2DWDWCHzUu23KAz1mY0dwTtckMo6lzL5MY0RGog2l/nI
-	 s9Q08TOpmQ3hGaUJ+aKayp/eP0+yfSdr4m4Iw1mkeuoncJErm9VyMAGUB33wGh3Sk2
-	 /5Zbe2DEP3dessKk20sFtlrY25OhmV9oXoQkA3fOdhzzGprb9NIyt+gXBDO3dTea/z
-	 bcL8aZk9heE+Nq0FJNFOWOkJhvgHIoslMt4B1um9XdjmYKjF64EX2J4GaDNmr0rbnb
-	 ahGNSZjNxlU3GkyElqsQQ8kzbt4Jp15xr4HqbmMabQhygUiErDJJNEK3N1Fop10KX0
-	 /ybM6xCpDxv8Q==
+	s=k20201202; t=1722558137;
+	bh=21ND8h3aXwqP4GPXt1SePJHjRlQNFlNVkqExdK3K1F0=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=W0nfnCBU933apYAMTZLNx2dGHT8W94gDuC5j3qYumvDt2d0n1l/8PNjicMIwvV3iL
+	 TBMuL3ntQ57n3vpr6wUQ8AJLdzzV9ldYuPpCUGaMEL0h4AgRrarbsN9SRIsTeLrMOI
+	 08plQUTDTskDp5nUhj9zOkck5htJzDHBtZc7GRrpIBMVaOc0ySPVc1hlrULrYRHg97
+	 kngLH8UurI/3xeTyPo20NR5hGutYdFApg5HaecnFTMc+z5o2qOqAwsJFi6h16xGAPU
+	 kWHL5mn7//Rk/I3Quf/ZS8TzCQrxv2sLo4b76H6QmsMea55+HVd6lF6XnhYcsZeB60
+	 CFPy0RIv4okvA==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 5526FCE09F8; Thu,  1 Aug 2024 17:22:04 -0700 (PDT)
-Date: Thu, 1 Aug 2024 17:22:04 -0700
+	id 31C5DCE0A01; Thu,  1 Aug 2024 17:22:17 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	lkmm@lists.linux.dev, kernel-team@meta.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-	peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-	dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-	akiyks@gmail.com
-Subject: [PATCH memory-model 0/7] LKMM updates for v6.12
-Message-ID: <e384a9ac-05c1-45d6-9639-28457dd183d9@paulmck-laptop>
-Reply-To: paulmck@kernel.org
+To: linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	lkmm@lists.linux.dev,
+	kernel-team@meta.com,
+	mingo@kernel.org
+Cc: stern@rowland.harvard.edu,
+	parri.andrea@gmail.com,
+	will@kernel.org,
+	peterz@infradead.org,
+	boqun.feng@gmail.com,
+	npiggin@gmail.com,
+	dhowells@redhat.com,
+	j.alglave@ucl.ac.uk,
+	luc.maranget@inria.fr,
+	akiyks@gmail.com,
+	Puranjay Mohan <puranjay@kernel.org>,
+	"Paul E . McKenney" <paulmck@kernel.org>,
+	Daniel Lustig <dlustig@nvidia.com>,
+	Joel Fernandes <joel@joelfernandes.org>
+Subject: [PATCH memory-model 2/7] tools/memory-model: Add atomic_andnot() with its variants
+Date: Thu,  1 Aug 2024 17:22:10 -0700
+Message-Id: <20240802002215.4133695-2-paulmck@kernel.org>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <e384a9ac-05c1-45d6-9639-28457dd183d9@paulmck-laptop>
+References: <e384a9ac-05c1-45d6-9639-28457dd183d9@paulmck-laptop>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 
-Hello!
+From: Puranjay Mohan <puranjay@kernel.org>
 
-This series adds a few atomic operations, some documentation, and updates
-the MAINTAINERS file.
+Pull-855[1] added the support of atomic_andnot() to the herd tool. Use
+this to add the implementation in the LKMM. All of the ordering variants
+are also added.
 
-1.	Add atomic_and()/or()/xor() and add_negative, courtesy of
-	Puranjay Mohan.
+Here is a small litmus-test that uses this operation:
 
-2.	Add atomic_andnot() with its variants, courtesy of Puranjay Mohan.
+C andnot
 
-3.	Document herd7 (abstract) representation, courtesy of Andrea
-	Parri.
+{
+atomic_t u = ATOMIC_INIT(7);
+}
 
-4.	Add locking.txt and glossary.txt to README, courtesy of Akira
-	Yokosawa.
+P0(atomic_t *u)
+{
 
-5.	simple.txt: Fix stale reference to recipes-pairs.txt, courtesy
-	of Akira Yokosawa.
+        r0 = atomic_fetch_andnot(3, u);
+        r1 = READ_ONCE(*u);
+}
 
-6.	docs/memory-barriers.txt: Remove left-over references to "CACHE
-	COHERENCY", courtesy of Akira Yokosawa.
+exists (0:r0=7 /\ 0:r1=4)
 
-7.	MAINTAINERS: Add the dedicated maillist info for LKMM, courtesy
-	of Boqun Feng.
+Test andnot Allowed
+States 1
+0:r0=7; 0:r1=4;
+Ok
+Witnesses
+Positive: 1 Negative: 0
+Condition exists (0:r0=7 /\ 0:r1=4)
+Observation andnot Always 1 0
+Time andnot 0.00
+Hash=78f011a0b5a0c65fa1cf106fcd62c845
 
-						Thanx, Paul
+[1] https://github.com/herd/herdtools7/pull/855
 
-------------------------------------------------------------------------
+Signed-off-by: Puranjay Mohan <puranjay@kernel.org>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Cc: Alan Stern <stern@rowland.harvard.edu>
+Cc: Will Deacon <will@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Jade Alglave <j.alglave@ucl.ac.uk>
+Cc: Luc Maranget <luc.maranget@inria.fr>
+Cc: Akira Yokosawa <akiyks@gmail.com>
+Cc: Daniel Lustig <dlustig@nvidia.com>
+Cc: Joel Fernandes <joel@joelfernandes.org>
+Cc: <linux-arch@vger.kernel.org>
+---
+ tools/memory-model/linux-kernel.def | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
- b/Documentation/memory-barriers.txt                        |    3 
- b/MAINTAINERS                                              |    1 
- b/tools/memory-model/Documentation/README                  |    7 
- b/tools/memory-model/Documentation/herd-representation.txt |  110 +++++++++++++
- b/tools/memory-model/Documentation/simple.txt              |    2 
- b/tools/memory-model/linux-kernel.def                      |   21 ++
- tools/memory-model/Documentation/README                    |   17 ++
- tools/memory-model/linux-kernel.def                        |    6 
- 8 files changed, 162 insertions(+), 5 deletions(-)
+diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
+index d1f11930ec512..a12b96c547b7a 100644
+--- a/tools/memory-model/linux-kernel.def
++++ b/tools/memory-model/linux-kernel.def
+@@ -70,6 +70,7 @@ atomic_or(V,X)  { __atomic_op(X,|,V); }
+ atomic_xor(V,X) { __atomic_op(X,^,V); }
+ atomic_inc(X)   { __atomic_op(X,+,1); }
+ atomic_dec(X)   { __atomic_op(X,-,1); }
++atomic_andnot(V,X) { __atomic_op(X,&~,V); }
+ 
+ atomic_add_return(V,X) __atomic_op_return{mb}(X,+,V)
+ atomic_add_return_relaxed(V,X) __atomic_op_return{once}(X,+,V)
+@@ -138,3 +139,8 @@ atomic_add_negative(V,X) __atomic_op_return{mb}(X,+,V) < 0
+ atomic_add_negative_relaxed(V,X) __atomic_op_return{once}(X,+,V) < 0
+ atomic_add_negative_acquire(V,X) __atomic_op_return{acquire}(X,+,V) < 0
+ atomic_add_negative_release(V,X) __atomic_op_return{release}(X,+,V) < 0
++
++atomic_fetch_andnot(V,X) __atomic_fetch_op{mb}(X,&~,V)
++atomic_fetch_andnot_acquire(V,X) __atomic_fetch_op{acquire}(X,&~,V)
++atomic_fetch_andnot_release(V,X) __atomic_fetch_op{release}(X,&~,V)
++atomic_fetch_andnot_relaxed(V,X) __atomic_fetch_op{once}(X,&~,V)
+-- 
+2.40.1
+
