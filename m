@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EEE5DA92D;
-	Fri,  2 Aug 2024 00:22:17 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 41F93DF58;
+	Fri,  2 Aug 2024 00:22:18 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1722558138; cv=none; b=XDiAqTNJYnqQUYfMKljKV8mHGAopSo6QkjA5FvUz/RFFb/sFMyDRgxWAd3B7WqrtuMhqA8An514+3rkvbhVtVantjhBjVGhgdE7ddKohCruwtx+oj/wWpUC9Yv0X4E7DJDEBQIASBDQBCi/S/0fh35i5IXx0yl7Dp/6gl6VgGbU=
+	t=1722558138; cv=none; b=kReup8wTLFx7KJe5pRpFBqpBeiecbEoKOKMlXV2J9otuEJk1BMq5FoOJKWS+w90eqh5IDIpYiqNAO9mRBG3VRpm1AFC9T+ictd1HK3CixgAMk3gsL/83yOGzOzqeQ1FgwQ+upknliCVFYE/4IparPFhp+V0/ZByRSzRESI5EOfg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1722558138; c=relaxed/simple;
-	bh=HWgXzYpJ7/mbDcOQ+89qAzkXxLhuNy9Ezr+ijzp8aQQ=;
+	bh=YQa/BOhKsMMPECZqFlDEInRJsjszfx0/oAkzFKBeHPE=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=E8Uwn24jqAr7CbkHqYS7WBs17fBV4OlppAqE7V//h2bYdEaZLF0FoXtKriYgElAOvfFhuQjopd+Fsy6vm4Y21VlaPL5qRAATNjmXPbLsS9RUSpL2EHsIx3Q9l0XrPXpeWosYW4ORkbq7HkMv/Wyan/I+F6oCdAwbb+T37L7k6tk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Rx547oAj; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=V9HuSbmHg95/jPfKS2pL1YXwxwevcBuBFkSzUN5hfJIO8ZKSFcYIc0kX3WI5ZzIwJ7S2aHTmK14Og+zx8gA+DSPmzmuiLHMs8hbcukoUHUHZ0EDfttkxPcqHOZQHmmuKQlDLRzw7okTyfhTlvywYfsMDZO25xvvhjC77whMbJoI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=a9Wpw6Di; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Rx547oAj"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 94A22C4AF0E;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="a9Wpw6Di"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id DB24FC4AF4D;
 	Fri,  2 Aug 2024 00:22:17 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1722558137;
-	bh=HWgXzYpJ7/mbDcOQ+89qAzkXxLhuNy9Ezr+ijzp8aQQ=;
+	bh=YQa/BOhKsMMPECZqFlDEInRJsjszfx0/oAkzFKBeHPE=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Rx547oAjhx0eCaJSEDCH1dUI0bkjyduk0/5k/th+eB5774fuQUS4wY4bPDix780dw
-	 yexIIUSusFf/0thrndRb6/j1M586ecscemJZmDUqHX1EcTxXOdr6Jh2mkUVC7pAEKF
-	 tipcKybyht6iE+dC1kWFzTATYDErokkwL25TWktIuz5BlqEYwlbdBfwuEaBGbMqXnv
-	 AJHv2+vlLlj1sY0K436g/7L1wFfxZobI/VtFKlvcib1mvcbr2ETrXhtxLQQfjVUTiH
-	 Z4ID0Q8faVmp3i0j2JgrpYFVn7vNYaT7jA+48yk7WCmiRSC4jWU/AhXMJLTG80lqbs
-	 /jyyGGb4Iqerg==
+	b=a9Wpw6Di29zAk7Jth13XJRfxf0N5JOZbcuVm0nkMP5fOHyCavyJ5mOvfXl4EP9JSH
+	 jT4tsTek8Ke7PQPq4Cyixs9xvFdApPtXzfKmzJ6pwA8EWTcAE8x7NPZ+EiE2YmSvtJ
+	 Y0/znLlz/WYS63e06UHxaNH0CztMeAmSEd43sFGIHL3skXWhe0QG9J7ACs/xgSlalG
+	 7AqFbMwSo2ZGYXwbjKvSAswnT/OnR17NYDqDWK9f/uBuB3QvM9PC8qkNBb7IdHtdYS
+	 iTrHC84k9h8oufgv9c9QrOv/6DqREimavu87LFrY1kmKnz2Mytuajq1y0URkNFriEH
+	 pwmReqWtx9XRg==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 385E2CE0E0B; Thu,  1 Aug 2024 17:22:17 -0700 (PDT)
+	id 3E39FCE0FA1; Thu,  1 Aug 2024 17:22:17 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org,
@@ -44,11 +44,10 @@ Cc: stern@rowland.harvard.edu,
 	j.alglave@ucl.ac.uk,
 	luc.maranget@inria.fr,
 	akiyks@gmail.com,
-	Marco Elver <elver@google.com>,
 	"Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 4/7] tools/memory-model: Add locking.txt and glossary.txt to README
-Date: Thu,  1 Aug 2024 17:22:12 -0700
-Message-Id: <20240802002215.4133695-4-paulmck@kernel.org>
+Subject: [PATCH memory-model 6/7] docs/memory-barriers.txt: Remove left-over references to "CACHE COHERENCY"
+Date: Thu,  1 Aug 2024 17:22:14 -0700
+Message-Id: <20240802002215.4133695-6-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <e384a9ac-05c1-45d6-9639-28457dd183d9@paulmck-laptop>
 References: <e384a9ac-05c1-45d6-9639-28457dd183d9@paulmck-laptop>
@@ -62,76 +61,41 @@ Content-Transfer-Encoding: 8bit
 
 From: Akira Yokosawa <akiyks@gmail.com>
 
-locking.txt and glossary.txt have been in LKMM's documentation for
-quite a while.
+Commit 8ca924aeb4f2 ("Documentation/barriers: Remove references to
+[smp_]read_barrier_depends()") removed the entire section of "CACHE
+COHERENCY", without getting rid of its traces.
 
-Add them in README's introduction of docs and the list of docs at the
-bottom.  Add access-marking.txt in the former as well.
+Remove them.
 
 Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Cc: Marco Elver <elver@google.com>
+Cc: Will Deacon <will@kernel.org>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Acked-by: Andrea Parri <parri.andrea@gmail.com>
 ---
- tools/memory-model/Documentation/README | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ Documentation/memory-barriers.txt | 3 ---
+ 1 file changed, 3 deletions(-)
 
-diff --git a/tools/memory-model/Documentation/README b/tools/memory-model/Documentation/README
-index 44e7dae73b296..9999c1effdb65 100644
---- a/tools/memory-model/Documentation/README
-+++ b/tools/memory-model/Documentation/README
-@@ -9,6 +9,8 @@ depending on what you know and what you would like to learn.  Please note
- that the documents later in this list assume that the reader understands
- the material provided by documents earlier in this list.
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 4202174a6262c..93d58d9a428b8 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -88,7 +88,6 @@ CONTENTS
  
-+If LKMM-specific terms lost you, glossary.txt might help you.
-+
- o	You are new to Linux-kernel concurrency: simple.txt
+  (*) The effects of the cpu cache.
  
- o	You have some background in Linux-kernel concurrency, and would
-@@ -21,6 +23,9 @@ o	You are familiar with the Linux-kernel concurrency primitives
- 	that you need, and just want to get started with LKMM litmus
- 	tests:  litmus-tests.txt
+-     - Cache coherency.
+      - Cache coherency vs DMA.
+      - Cache coherency vs MMIO.
  
-+o	You would like to access lock-protected shared variables without
-+	having their corresponding locks held:  locking.txt
-+
- o	You are familiar with Linux-kernel concurrency, and would
- 	like a detailed intuitive understanding of LKMM, including
- 	situations involving more than two threads:  recipes.txt
-@@ -28,6 +33,11 @@ o	You are familiar with Linux-kernel concurrency, and would
- o	You would like a detailed understanding of what your compiler can
- 	and cannot do to control dependencies:  control-dependencies.txt
+@@ -677,8 +676,6 @@ include/linux/rcupdate.h.  This permits the current target of an RCU'd
+ pointer to be replaced with a new modified target, without the replacement
+ target appearing to be incompletely initialised.
  
-+o	You would like to mark concurrent normal accesses to shared
-+	variables so that intentional "racy" accesses can be properly
-+	documented, especially when you are responding to complaints
-+	from KCSAN:  access-marking.txt
-+
- o	You are familiar with Linux-kernel concurrency and the use of
- 	LKMM, and would like a quick reference:  cheatsheet.txt
+-See also the subsection on "Cache Coherency" for a more thorough example.
+-
  
-@@ -62,6 +72,9 @@ control-dependencies.txt
- explanation.txt
- 	Detailed description of the memory model.
- 
-+glossary.txt
-+	Brief definitions of LKMM-related terms.
-+
- herd-representation.txt
- 	The (abstract) representation of the Linux-kernel concurrency
- 	primitives in terms of events.
-@@ -70,6 +83,10 @@ litmus-tests.txt
- 	The format, features, capabilities, and limitations of the litmus
- 	tests that LKMM can evaluate.
- 
-+locking.txt
-+	Rules for accessing lock-protected shared variables outside of
-+	their corresponding critical sections.
-+
- ordering.txt
- 	Overview of the Linux kernel's low-level memory-ordering
- 	primitives by category.
+ CONTROL DEPENDENCIES
+ --------------------
 -- 
 2.40.1
 
