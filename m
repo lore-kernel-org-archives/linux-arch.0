@@ -1,229 +1,153 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-vk1-f177.google.com (mail-vk1-f177.google.com [209.85.221.177])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D33F2176FB4;
-	Tue,  6 Aug 2024 22:50:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16362158DC0;
+	Tue,  6 Aug 2024 23:25:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1722984619; cv=none; b=Tli0dmEDQ3dpbFnOvgEwMooe1oaE9ZvLR3F2rZafV4Fm1O1g14QX4qUKEO942KFNaM4FlDoaiaqK/DoSEYQriDFnXWdqVtT5OYmfOkXA0m5c0v4IVSCG1D6J/oAXCuxYS4angkgiYnGdbyhXip2ACPh5UlHbfKDLPQ2rDbw47nA=
+	t=1722986734; cv=none; b=CYhJLD8ASbFqq11Cnys8MJoBkdj4QLhIgSF2jVMvQ6rhTXB2UNwbNEya7/tZXN/6KF5NUDWzjhZXsbOm2ZTSfbDWuIJr0TxERFX5IxY8Bo3bZWgjtvbv20YR/FgMYfmi/pdS+gj6kS8D1CK3aeEnDlUPb5LGT+/M7bbCbcViU6M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1722984619; c=relaxed/simple;
-	bh=kUpQHDjXUTcIXEW4LUblPgmepAxQU9tsDNhcE63app4=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=WMEdIqgeOjj17wX2/AlLv/W+7f/reZIE4Rkca2My7aP2yLV/5QUX3FFSntdsN8taZv7L2BfJYTOKWomWLVW+bRTzgRTWkCK5LHnuATnHVkv6wTmtLOk3GES4GgOsGGdjPb7TDTVO9cOPDqx10hXEdGyv/Obh4Fwe15xYHmpwfZI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Udf26Tm7; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1722986734; c=relaxed/simple;
+	bh=6ZRRPBKkMSaxmVdpbwsaWDoYkf+fA6dKf22zWHhMhSM=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=CYg/ycRQK4EIMlbrBQOYbIwiVDSzCImA3NRHiLTtgIXQbi6Kqtw8EFzhVF0fYAJ6jcVQsXsni63t1WEp3swIE25ngINBRDai1uyytESZboa3Gkc/X/xhT413o5N/XzEZGp++X+y2PsqC9GZT3EQ97IOEHqXKEVP62efxD/DE8i0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fN7oSuah; arc=none smtp.client-ip=209.85.221.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Udf26Tm7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 28FD4C4AF10;
-	Tue,  6 Aug 2024 22:50:19 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1722984619;
-	bh=kUpQHDjXUTcIXEW4LUblPgmepAxQU9tsDNhcE63app4=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Udf26Tm7rBKe1LFR1FupsjguWMDeClI8dZtNxzG5xlGDEQyDE2H4VciUMCtxDg60P
-	 soZXEMbuROr85oNvgcvg27983KJjpDrSlZRbUlLvBODOqJ0FmiUJFe8/emfSGHo1Xs
-	 rTnsF1YKO4nTeY1IzMDGPWQs1jiFlj05d3fmyOD+QeoNqVzflIIAIS55VZKAHLbr9R
-	 aoiWYCiNmS8idV0lBIDXMcZHYDMfJOy+Zp6kQvOv0ZafQVD3O8ZKfg5vh5fW6W0hWP
-	 ddfWwaQo8/sHInLsTz2BzhlFBYNvBU42R7QCVyjidlD1CLIDJDt3zOUhNbx71mnL4y
-	 oKZr2ABVW2dnA==
-From: Namhyung Kim <namhyung@kernel.org>
-To: Arnaldo Carvalho de Melo <acme@kernel.org>
-Cc: Ian Rogers <irogers@google.com>,
-	Jiri Olsa <jolsa@kernel.org>,
-	Adrian Hunter <adrian.hunter@intel.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Ingo Molnar <mingo@kernel.org>,
-	LKML <linux-kernel@vger.kernel.org>,
-	linux-perf-users@vger.kernel.org,
-	Linus Torvalds <torvalds@linux-foundation.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org
-Subject: [PATCH 06/10] tools/include: Sync uapi/asm-generic/unistd.h with the kernel sources
-Date: Tue,  6 Aug 2024 15:50:09 -0700
-Message-ID: <20240806225013.126130-7-namhyung@kernel.org>
-X-Mailer: git-send-email 2.46.0.rc2.264.g509ed76dc8-goog
-In-Reply-To: <20240806225013.126130-1-namhyung@kernel.org>
-References: <20240806225013.126130-1-namhyung@kernel.org>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fN7oSuah"
+Received: by mail-vk1-f177.google.com with SMTP id 71dfb90a1353d-4f6be9d13cdso431798e0c.3;
+        Tue, 06 Aug 2024 16:25:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1722986732; x=1723591532; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Kn1X94t9UKU9+zjgXbaa22ND3HJp/723o1tByU9QibM=;
+        b=fN7oSuahZqOuV9bwzX8MutX9bPcA37DntcIT9EfhN1NQMuQotcycU42cYFduY9+aC6
+         wY68KzBEqazH+P+f5krmjzKiH1KNqeOPzMy6AYGL/EFQungJknARWehZgtaEzoeH+ZWb
+         acDzbxE9YxkEWZUT7A5CpSQ4gjMKr+K5B5B/djThRGdsiK3/qq0ANoHtrZ3IksIR1PW8
+         UUamSDKAl09hktLAxVHBQJs7Zi30ID1WGPrLy/zrxzobhlq2Fm98S8m46PSqbUVs+kaB
+         bxu8z+fehaor9dn2t65NAbw6DsvQaqKd3UVhoUP0hl8+XHk38soRu1TM0RrA8zq8c1GB
+         oZOA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1722986732; x=1723591532;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Kn1X94t9UKU9+zjgXbaa22ND3HJp/723o1tByU9QibM=;
+        b=up0JnKkuIW6f7tflnMqMng32mfOdVDrnvt0K/GRiawEX0oSHPy4ELfikfXpRJ+XPHD
+         /CUgyemBryPeWlVKDIx3gs9dAtAWUOuX7NOtTCf78qv9g7d+fGvlwDpFfoKtPhvziNI0
+         fP2X7cRU1z3CiE+ozSnadgQ1111LW70FB5atygvZwDtf63EvN+CnJL8KEYinvLjFbeDk
+         v4uV3wZvRe1JLHgJcV427RQZxZdO5hwqPRI/4Cb64/IEcw656JrvH1P2tkVSFrYBHt1L
+         Ofa+6Zg/GiFgLVT2+XW0yQN0sdUba92a8CkxjOI1bqN8ok74pgOna4RvuqpeUSOIF0Xj
+         FemA==
+X-Forwarded-Encrypted: i=1; AJvYcCX+/mJ0OIjRoLPv/xGVs/xtgAgaaZeABHxEcZ2AWTSKVoszdYuFMHF9GRq2tZmPLyuGrdfccah1JwqtU1P0omC/e43govvdifX2PxvhJyzNIq817aIzLr6jJCqsk+vCcGtogCTurF2breJ5lXS6S60vha0XvlkT3gjIqJ8sFyWf+s0=
+X-Gm-Message-State: AOJu0YwEZ/Mb5m/7hG5LgvSpEXSgpXIiQbLUP9KSDkznRErzYpXTry6r
+	rvnYZDXEeHeqxSUDFDloQ+cqtVslL6hDxPcKdtnGRUE8RxcJcB1ufGnpGlkXGr19ZBr12cxPAxY
+	1nS50claPn4bX7dL1D3LCWvVCDUg=
+X-Google-Smtp-Source: AGHT+IEt3+EX9yk7C1SBDu+blfaTia7GUs2USzvugPfeSyBWkcu2ovT9O6mqRNcPjjj9TmjJxepfcQVNhkNVZUXd6AU=
+X-Received: by 2002:a05:6122:311b:b0:4f6:ca2:ad0 with SMTP id
+ 71dfb90a1353d-4f89ff45ec9mr13580385e0c.1.1722986731757; Tue, 06 Aug 2024
+ 16:25:31 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <20240731133318.527-1-justinjiang@vivo.com> <20240731091715.b78969467c002fa3a120e034@linux-foundation.org>
+ <dbead7ca-e9a4-4ee8-9247-4e1ba9f6695c@vivo.com> <20240806133823.5cb3f27ef30c42dad5d0c3e8@linux-foundation.org>
+ <CAGsJ_4x1tLEmRFbnUYcNYtV73SyBYpBtAx_syjfcnjrom-R+4w@mail.gmail.com> <20240806153947.1af20ffccfb42f1e8d981d6f@linux-foundation.org>
+In-Reply-To: <20240806153947.1af20ffccfb42f1e8d981d6f@linux-foundation.org>
+From: Barry Song <21cnbao@gmail.com>
+Date: Wed, 7 Aug 2024 06:21:20 +0800
+Message-ID: <CAGsJ_4wVT7uHFdExwPxFD=91Wvn1RR_7L6ACvpQuWteKWOaJag@mail.gmail.com>
+Subject: Re: [PATCH v2 0/3] mm: tlb swap entries batch async release
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: zhiguojiang <justinjiang@vivo.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+	Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, 
+	Nick Piggin <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Johannes Weiner <hannes@cmpxchg.org>, Michal Hocko <mhocko@kernel.org>, 
+	Roman Gushchin <roman.gushchin@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>, 
+	Muchun Song <muchun.song@linux.dev>, linux-arch@vger.kernel.org, cgroups@vger.kernel.org, 
+	kernel test robot <lkp@intel.com>, opensource.kernel@vivo.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-And arch syscall tables to pick up changes from:
+On Wed, Aug 7, 2024 at 6:39=E2=80=AFAM Andrew Morton <akpm@linux-foundation=
+.org> wrote:
+>
+> On Wed, 7 Aug 2024 04:32:09 +0800 Barry Song <21cnbao@gmail.com> wrote:
+>
+> > > > their independent mm, rather than parent and child processes share =
+the
+> > > > same mm. Therefore, when the kernel executes multiple exiting proce=
+ss
+> > > > simultaneously, they will definitely occupy multiple CPU core resou=
+rces
+> > > > to complete it.
+> > >
+> > > What I'm asking is why not change those userspace processes so that t=
+hey
+> > > fork off a child process which shares the MM (shared mm_struct) and
+> > > then the original process exits, leaving the asynchronously-running
+> > > child to clean up the MM resources.
+> >
+> > Not Zhiguo. From my perspective as a phone engineer, this issue isn't r=
+elated
+> > to the parent-child process or the wait() function. Phones rely heavily=
+ on
+> > mechanisms similar to the OOM killer to function efficiently. For insta=
+nce,
+> > if you're using apps like YouTube, TikTok, and Facebook, and then you
+> > open the camera app to take a photo, the camera app becomes the foregro=
+und
+> > process and demands a lot of memory. In this scenario, the phone might
+> > decide to terminate the most memory-consuming and less important apps,
+> > such as TikTok or YouTube, to free up memory for the camera app. TikTok
+> > and YouTube become less important because they are no longer occupying
+> > the phone's screen and have moved to the background. The faster TikTok
+> > and YouTube can be unmapped, the quicker the camera app can launch,
+> > enhancing the user experience.
+>
+> I don't see how this relates to my question.
+>
+> Userspace can arrange for these resources to be released in an
+> asynchronous fashion (can't it?).  So why change the kernel to do that?
 
-  b1e31c134a8a powerpc: restore some missing spu syscalls
-  d3882564a77c syscalls: fix compat_sys_io_pgetevents_time64 usage
-  54233a425403 uretprobe: change syscall number, again
-  63ded110979b uprobe: Change uretprobe syscall scope and number
-  9142be9e6443 x86/syscall: Mark exit[_group] syscall handlers __noreturn
-  9aae1baa1c5d x86, arm: Add missing license tag to syscall tables files
-  5c28424e9a34 syscalls: Fix to add sys_uretprobe to syscall.tbl
-  190fec72df4a uprobe: Wire up uretprobe system call
+I don't believe that userspace can distinguish between swap entries
+and PTEs that point to folios.
 
-This should be used to beautify syscall arguments and it addresses
-these tools/perf build warnings:
+If we are killing tiktok now, we will be performing munmap
+and zap_pte_range(). The PTEs for tiktok might look like this:
 
-  Warning: Kernel ABI header differences:
-  diff -u tools/arch/arm64/include/uapi/asm/unistd.h arch/arm64/include/uapi/asm/unistd.h
-  diff -u tools/include/uapi/asm-generic/unistd.h include/uapi/asm-generic/unistd.h
-  diff -u tools/perf/arch/x86/entry/syscalls/syscall_64.tbl arch/x86/entry/syscalls/syscall_64.tbl
-  diff -u tools/perf/arch/powerpc/entry/syscalls/syscall.tbl arch/powerpc/kernel/syscalls/syscall.tbl
-  diff -u tools/perf/arch/s390/entry/syscalls/syscall.tbl arch/s390/kernel/syscalls/syscall.tbl
+PTE0 - page
+PTE1 - swap
+PTE2 - swap
+PTE3 - page
+PTE4 - swap
+PTE5 - swap
+PTE6 - swap
+PTE7 - page
 
-Please see tools/include/uapi/README for details (it's in the first patch
-of this series).
+Currently, zap_pte_range is freeing all PTEs one by one. While PTE0,
+PTE2, and PTE7 can contribute to freeing memory and help accelerate
+the launch of the new camera app, PTE1, PTE3, PTE4, PTE5, and
+PTE6 do not. They are blocking the memory release of PTE0, PTE2,
+and PTE7.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Namhyung Kim <namhyung@kernel.org>
----
- tools/arch/arm64/include/uapi/asm/unistd.h    | 24 +------------------
- tools/include/uapi/asm-generic/unistd.h       |  2 +-
- .../arch/powerpc/entry/syscalls/syscall.tbl   |  6 ++++-
- .../perf/arch/s390/entry/syscalls/syscall.tbl |  2 +-
- .../arch/x86/entry/syscalls/syscall_64.tbl    |  8 ++++---
- 5 files changed, 13 insertions(+), 29 deletions(-)
+By handling this in kernel space, freeing memory and releasing
+swaps won't block each other:
 
-diff --git a/tools/arch/arm64/include/uapi/asm/unistd.h b/tools/arch/arm64/include/uapi/asm/unistd.h
-index 9306726337fe..df36f23876e8 100644
---- a/tools/arch/arm64/include/uapi/asm/unistd.h
-+++ b/tools/arch/arm64/include/uapi/asm/unistd.h
-@@ -1,24 +1,2 @@
- /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
--/*
-- * Copyright (C) 2012 ARM Ltd.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-- */
--
--#define __ARCH_WANT_RENAMEAT
--#define __ARCH_WANT_NEW_STAT
--#define __ARCH_WANT_SET_GET_RLIMIT
--#define __ARCH_WANT_TIME32_SYSCALLS
--#define __ARCH_WANT_MEMFD_SECRET
--
--#include <asm-generic/unistd.h>
-+#include <asm/unistd_64.h>
-diff --git a/tools/include/uapi/asm-generic/unistd.h b/tools/include/uapi/asm-generic/unistd.h
-index a00d53d02723..5bf6148cac2b 100644
---- a/tools/include/uapi/asm-generic/unistd.h
-+++ b/tools/include/uapi/asm-generic/unistd.h
-@@ -737,7 +737,7 @@ __SC_COMP(__NR_pselect6_time64, sys_pselect6, compat_sys_pselect6_time64)
- #define __NR_ppoll_time64 414
- __SC_COMP(__NR_ppoll_time64, sys_ppoll, compat_sys_ppoll_time64)
- #define __NR_io_pgetevents_time64 416
--__SYSCALL(__NR_io_pgetevents_time64, sys_io_pgetevents)
-+__SC_COMP(__NR_io_pgetevents_time64, sys_io_pgetevents, compat_sys_io_pgetevents_time64)
- #define __NR_recvmmsg_time64 417
- __SC_COMP(__NR_recvmmsg_time64, sys_recvmmsg, compat_sys_recvmmsg_time64)
- #define __NR_mq_timedsend_time64 418
-diff --git a/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl b/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl
-index 3656f1ca7a21..ebae8415dfbb 100644
---- a/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl
-+++ b/tools/perf/arch/powerpc/entry/syscalls/syscall.tbl
-@@ -230,8 +230,10 @@
- 178	nospu 	rt_sigsuspend			sys_rt_sigsuspend		compat_sys_rt_sigsuspend
- 179	32	pread64				sys_ppc_pread64			compat_sys_ppc_pread64
- 179	64	pread64				sys_pread64
-+179	spu	pread64				sys_pread64
- 180	32	pwrite64			sys_ppc_pwrite64		compat_sys_ppc_pwrite64
- 180	64	pwrite64			sys_pwrite64
-+180	spu	pwrite64			sys_pwrite64
- 181	common	chown				sys_chown
- 182	common	getcwd				sys_getcwd
- 183	common	capget				sys_capget
-@@ -246,6 +248,7 @@
- 190	common	ugetrlimit			sys_getrlimit			compat_sys_getrlimit
- 191	32	readahead			sys_ppc_readahead		compat_sys_ppc_readahead
- 191	64	readahead			sys_readahead
-+191	spu	readahead			sys_readahead
- 192	32	mmap2				sys_mmap2			compat_sys_mmap2
- 193	32	truncate64			sys_ppc_truncate64		compat_sys_ppc_truncate64
- 194	32	ftruncate64			sys_ppc_ftruncate64		compat_sys_ppc_ftruncate64
-@@ -293,6 +296,7 @@
- 232	nospu	set_tid_address			sys_set_tid_address
- 233	32	fadvise64			sys_ppc32_fadvise64		compat_sys_ppc32_fadvise64
- 233	64	fadvise64			sys_fadvise64
-+233	spu	fadvise64			sys_fadvise64
- 234	nospu	exit_group			sys_exit_group
- 235	nospu	lookup_dcookie			sys_ni_syscall
- 236	common	epoll_create			sys_epoll_create
-@@ -502,7 +506,7 @@
- 412	32	utimensat_time64		sys_utimensat			sys_utimensat
- 413	32	pselect6_time64			sys_pselect6			compat_sys_pselect6_time64
- 414	32	ppoll_time64			sys_ppoll			compat_sys_ppoll_time64
--416	32	io_pgetevents_time64		sys_io_pgetevents		sys_io_pgetevents
-+416	32	io_pgetevents_time64		sys_io_pgetevents		compat_sys_io_pgetevents_time64
- 417	32	recvmmsg_time64			sys_recvmmsg			compat_sys_recvmmsg_time64
- 418	32	mq_timedsend_time64		sys_mq_timedsend		sys_mq_timedsend
- 419	32	mq_timedreceive_time64		sys_mq_timedreceive		sys_mq_timedreceive
-diff --git a/tools/perf/arch/s390/entry/syscalls/syscall.tbl b/tools/perf/arch/s390/entry/syscalls/syscall.tbl
-index bd0fee24ad10..01071182763e 100644
---- a/tools/perf/arch/s390/entry/syscalls/syscall.tbl
-+++ b/tools/perf/arch/s390/entry/syscalls/syscall.tbl
-@@ -418,7 +418,7 @@
- 412	32	utimensat_time64	-				sys_utimensat
- 413	32	pselect6_time64		-				compat_sys_pselect6_time64
- 414	32	ppoll_time64		-				compat_sys_ppoll_time64
--416	32	io_pgetevents_time64	-				sys_io_pgetevents
-+416	32	io_pgetevents_time64	-				compat_sys_io_pgetevents_time64
- 417	32	recvmmsg_time64		-				compat_sys_recvmmsg_time64
- 418	32	mq_timedsend_time64	-				sys_mq_timedsend
- 419	32	mq_timedreceive_time64	-				sys_mq_timedreceive
-diff --git a/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl b/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
-index a396f6e6ab5b..7093ee21c0d1 100644
---- a/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/tools/perf/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -1,8 +1,9 @@
-+# SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note
- #
- # 64-bit system call numbers and entry vectors
- #
- # The format is:
--# <number> <abi> <name> <entry point>
-+# <number> <abi> <name> <entry point> [<compat entry point> [noreturn]]
- #
- # The __x64_sys_*() stubs are created on-the-fly for sys_*() system calls
- #
-@@ -68,7 +69,7 @@
- 57	common	fork			sys_fork
- 58	common	vfork			sys_vfork
- 59	64	execve			sys_execve
--60	common	exit			sys_exit
-+60	common	exit			sys_exit			-			noreturn
- 61	common	wait4			sys_wait4
- 62	common	kill			sys_kill
- 63	common	uname			sys_newuname
-@@ -239,7 +240,7 @@
- 228	common	clock_gettime		sys_clock_gettime
- 229	common	clock_getres		sys_clock_getres
- 230	common	clock_nanosleep		sys_clock_nanosleep
--231	common	exit_group		sys_exit_group
-+231	common	exit_group		sys_exit_group			-			noreturn
- 232	common	epoll_wait		sys_epoll_wait
- 233	common	epoll_ctl		sys_epoll_ctl
- 234	common	tgkill			sys_tgkill
-@@ -343,6 +344,7 @@
- 332	common	statx			sys_statx
- 333	common	io_pgetevents		sys_io_pgetevents
- 334	common	rseq			sys_rseq
-+335	common	uretprobe		sys_uretprobe
- # don't use numbers 387 through 423, add new calls after the last
- # 'common' entry
- 424	common	pidfd_send_signal	sys_pidfd_send_signal
--- 
-2.46.0.rc2.264.g509ed76dc8-goog
+T1                                             T2
+PTE0 - page              PTE1 -SWAP
+PTE3 - page              PTE2-SWAP
+PTE7 - page              PTE4 -SWAP
+...
 
+On phones, over 60% of an app's memory could be in swap. This 60%
+is obstructing the normal memory release for munmap.
+
+Thanks
+Barry
