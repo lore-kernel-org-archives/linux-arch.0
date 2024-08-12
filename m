@@ -1,55 +1,55 @@
-Received: from fout4-smtp.messagingengine.com (fout4-smtp.messagingengine.com [103.168.172.147])
+Received: from fhigh7-smtp.messagingengine.com (fhigh7-smtp.messagingengine.com [103.168.172.158])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8645616D9DB;
-	Mon, 12 Aug 2024 09:37:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.147
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C030916DEBD;
+	Mon, 12 Aug 2024 09:37:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.158
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1723455451; cv=none; b=n+mcab5D7C8hbcGhLzQcscVPJX6yo627nTYpQvUWT+NogR7R4byxMex/IfmLz1BezgGCNdHmA0TYfY8V9HH9CXweem0IxmCZp+aquLWJTqsVZM/H3P8omHTIDcTKiI7DnCAj1SMuvr5BtAp53E4jquPhBjBIB2ywaww+OlnNGRU=
+	t=1723455453; cv=none; b=BKKuYlwVraETzTlnfTHUEH8g8vSKOw2FAZcF9XAxL+Qqw4nBdRFuG/ZHfc3xCtm2bmyCnxSNJ2dP0vwVUpsO46AVdbounWO17cDnhgrrWwoTLX/oyflU/lSM099b6wA+Y9t++uzYdAugflkGPwbwDgjYLrwP65KQchgyj/yxwdo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1723455451; c=relaxed/simple;
-	bh=/2vM9Jarepf6oyk/v8ZwnyJnwqhxSDzHMZeDhKKDNNc=;
+	s=arc-20240116; t=1723455453; c=relaxed/simple;
+	bh=25PGnrDbozNqXeo66FAaZeG/EjrxdTBJIrhq5W4w0Zg=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=Xelr/9LTzbQc2/k69D3u0cqHkJeG9ehQ/aoVubNpGvj+RUdn4q5QIjhf7gdbOUt1FWdVmDwzKASGOzvtmFvhm+LU3qcCCg4/GfCcxr1Vyg5gfVWXnORq+EfXdU6wECxODY+BwKZmWMSWHXd6V6FJP3PecqHnRlXX0DSKg7qvQvk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com; spf=pass smtp.mailfrom=flygoat.com; dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b=XH8JYUX9; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=gFecbiKM; arc=none smtp.client-ip=103.168.172.147
+	 In-Reply-To:To:Cc; b=Y5MzEgNxUfAej9myOIMCQi+X8iKolzvhTLr1mJQqLsgmADs74+v8v0JBYQ+vC2rlaBl9UbZVMmtwpU7jJjVGrSji/UA9XrLRTyvZ/gapu5rqRg72AYFnkw+u9cpdJksIniqrhXiuXJpXB1mFGSDf6TlgnjZs0MnbylqlARohODg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com; spf=pass smtp.mailfrom=flygoat.com; dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b=V3F8WsrQ; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=V8lkh58+; arc=none smtp.client-ip=103.168.172.158
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flygoat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b="XH8JYUX9";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="gFecbiKM"
-Received: from phl-compute-06.internal (phl-compute-06.nyi.internal [10.202.2.46])
-	by mailfout.nyi.internal (Postfix) with ESMTP id 8E864138FC87;
-	Mon, 12 Aug 2024 05:37:27 -0400 (EDT)
+	dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b="V3F8WsrQ";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="V8lkh58+"
+Received: from phl-compute-02.internal (phl-compute-02.nyi.internal [10.202.2.42])
+	by mailfhigh.nyi.internal (Postfix) with ESMTP id 17E69114709A;
+	Mon, 12 Aug 2024 05:37:30 -0400 (EDT)
 Received: from mailfrontend2 ([10.202.2.163])
-  by phl-compute-06.internal (MEProxy); Mon, 12 Aug 2024 05:37:27 -0400
+  by phl-compute-02.internal (MEProxy); Mon, 12 Aug 2024 05:37:30 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=flygoat.com; h=
 	cc:cc:content-transfer-encoding:content-type:content-type:date
 	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm1; t=1723455447;
-	 x=1723541847; bh=Lux1sMrQcX9bqRHe6vEl5Vg0QIiAUMpeYGep9wxBF34=; b=
-	XH8JYUX9o+wI5vUkqD/azjyMbzSom9Q5gUC1Gq7wGro4hYLHlxmaEjUDT3N4a2Mg
-	BtRCQvm0SljkUe8tInoEK4LzYfKzUNIpiqO1KYX7TZwJqRatNACxA+v0MqXyTvMy
-	anNSxjnxOwZ5p8dy7xl9kggy2INA99wtsXmXMIu8XydlQJKGDHt/OKkVBcKRVDRI
-	65mVlc6c/5E5MgklgdNHfmx9Q2KEDAk6JWUynqu4+QkiO/CpH81ucw/v5Q3uyhtQ
-	46inRYtV8dVOCxEfo29mKGH09ZTat08UnLbxbFtDmJcgEwU51yi9/d0zQstDUa0m
-	iqgwVuJoMHUncgv+A98hZA==
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1723455450;
+	 x=1723541850; bh=91Ntn8+8S3tkwtkpXtQo+UUnbH7tPRABNLmEHtSRkko=; b=
+	V3F8WsrQ5HxTj9fr1WdAgoJUIZOH41ZKKp0Hcsb5lKBpJlqBj6zq8y0P6o8I55S0
+	1rVRt3nqu8xK2gjqdj/kscR+r0XNWgz/ExqtNu2DM1CwBpUyEfx+XKlmgcksODBM
+	N2A1uTvvre7kV5CeSoDHtF3rrLgU9yWy9AE2yTykAF1QBL4HktvIM66H/bn2rG/v
+	d/0WMhzE9/KnUoHcxVAfQ9ars1kbU1MeNuHpxxnmzmAWQzTuRm6k2UvoAS0T327P
+	kiNjHGEOltHL0JXRL00R9SgUAcjtuYx4ZqsOz7Fymn5OGcab1GtMC0JRsPjIaGiA
+	kHlUVw92tgsHIk4vtZRyww==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-transfer-encoding
 	:content-type:content-type:date:date:feedback-id:feedback-id
 	:from:from:in-reply-to:in-reply-to:message-id:mime-version
 	:references:reply-to:subject:subject:to:to:x-me-proxy:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1723455447; x=
-	1723541847; bh=Lux1sMrQcX9bqRHe6vEl5Vg0QIiAUMpeYGep9wxBF34=; b=g
-	FecbiKMWWnSz6E/wRPOTnC5ItgMhlIS7l7M65DdIiAD7Nenzmyv13g2rxoG41L9H
-	NzBQyOpLfj1niuay4oz5YBR/5vEdMO3ykn0sA93qSj0/wWAg571f/TEsNC19S4Vh
-	1DdmXxzxFeT+hP4FZLXQ468bhSOaVNdn7tbhlbUVV0kg76A2MNLY3T18knIJBU4F
-	jKDatW7Pfngmzt1OmSCPIfUN9BdzyVLJh+YQedO+8xBlR/GzNWd7Lwv0X0eBmBGA
-	jl2AScTYs3u6aXnH3YKo8I+Y6ynRF6FdzqcqoYijDbA2c/HGChteYI/fogBMySlP
-	PpYNf5E/S4vAJ2InzVd1Q==
-X-ME-Sender: <xms:19e5ZtmC3saxCJZPLJY_kEhHy2_EOWEvvA3214dlbEDSv53-wg6Bhw>
-    <xme:19e5Zo3ITqx9ITpFlN3cFjbwcRTSCXLTFVFb1YdLDi42Y3MusmbSU20TO6SmZoXUZ
-    JbPgz5eWoOQzoQaV-E>
-X-ME-Received: <xmr:19e5ZjpqFkXa52-qykehDuk0peuIRKouUi2bmRgJdhmvRzd3hkb4ANjQEuiulXUReQ>
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1723455450; x=
+	1723541850; bh=91Ntn8+8S3tkwtkpXtQo+UUnbH7tPRABNLmEHtSRkko=; b=V
+	8lkh58+LZljnia9kVJFkbHv7FE2jOorprFHvWn8lkJiC/1ecgnysFk3WNbAlCV+7
+	rPADjnH1WDJyg/wAPjFiHsZatv03miQHQQRbYK4inGiw5ahRViOyOzh6Y2be5p9y
+	sv2kbsjKg590ejVveizTtikqSVJaqtBGYLyOsWR4V5/fKS9Ss1uMVSeUDYxUx5TS
+	7D9cAnCY+BbHpVxFDzC28ljRd+V3XxIxg6hX7h4sZhTkRsXTUCCaB4AbrNgK/DxH
+	xffcHYymz3dcYTcTu8nhBPlUKJ5Tu3x8c1BH63efKcNcBcxs3zkIBi+hlfNa0/tQ
+	m0OltqUC+siR49jxTNYdA==
+X-ME-Sender: <xms:2de5Zh2zh-pvjcVsvQiYJUPjS2u32A3VZmQJ1dTl7Dr9MnX9cv3WRg>
+    <xme:2de5ZoFtZVMcqn3rt_dsh6GaNDSIH3VQyXAuOXfhq4urLfIAX_17_nS9q4vkZV51u
+    8XmPeUsVN5thIayRVE>
+X-ME-Received: <xmr:2de5Zh7e3WpPROANArGYhFieTYvKkyDKVJ6mYMDZdTRUFCbR_nldCvjAens5lN0jnA>
 X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddruddttddgudekucetufdoteggodetrfdotf
     fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdggtfgfnhhsuhgsshgtrhhisggvpdfu
     rfetoffkrfgpnffqhgenuceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnh
@@ -66,17 +66,17 @@ X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddruddttddgudekucetufdoteggod
     htthhopehtshgsohhgvghnugesrghlphhhrgdrfhhrrghnkhgvnhdruggvpdhrtghpthht
     oheplhhinhhugidqkhgvrhhnvghlsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpth
     htohepjhhirgiguhhnrdihrghnghesfhhlhihgohgrthdrtghomh
-X-ME-Proxy: <xmx:19e5ZtnCVgyM4-08b9Y3KJ7rLmfUUyo5DQ2byKM3KWrW3L9ruFM2OA>
-    <xmx:19e5Zr2wTz4mm2xEBSJyjtRc9_7zxLAbhDnRdHYvGcF0uUlrKTRifA>
-    <xmx:19e5Zsuq2nVhcgDeW-Xuu3VwRC14UX9X2eFYbqpLx9PCm1gYJVIzng>
-    <xmx:19e5ZvWrTpMmGB7J7s2Xa9X6KZzTMZyrZG4gB8_JgUJa-pH8ElNszg>
-    <xmx:19e5ZkJVfNEnTUj4xVDEqBg-Uy6p_IKf47Una4gCBTQpVnko-ZF_5atp>
+X-ME-Proxy: <xmx:2te5Zu3ykeLnz-EylXvcmKD829FvlGSDProzZMBRThVt_qeyz-5Fcg>
+    <xmx:2te5ZkEhJU3RDFQXPKRE1XZMRQdMNGTNv4XQZ7PIFLAAckFub3omsw>
+    <xmx:2te5Zv8qgruKpjiuSoyXkaBUpNGpd1WmFgYYB_cNFyy_EbL5n7sY6w>
+    <xmx:2te5Zhn6vgDIxIC7u9G2VcifnCRohM0VMrzTbx_Bg2n6DkDxbfeiDw>
+    <xmx:2te5ZiaKWPtUH18ELsrRsPHsNwz2fgjl4Y4dwnTFn1mCICDflLwrn7-h>
 Feedback-ID: ifd894703:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Mon,
- 12 Aug 2024 05:37:26 -0400 (EDT)
+ 12 Aug 2024 05:37:28 -0400 (EDT)
 From: Jiaxun Yang <jiaxun.yang@flygoat.com>
-Date: Mon, 12 Aug 2024 10:37:17 +0100
-Subject: [PATCH v2 3/7] MIPS: Prepare NUMA headers for arch_numa
+Date: Mon, 12 Aug 2024 10:37:19 +0100
+Subject: [PATCH v2 5/7] MIPS: smp: Process NUMA information
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -85,7 +85,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20240812-mips-numa-v2-3-fd9bdb2033b9@flygoat.com>
+Message-Id: <20240812-mips-numa-v2-5-fd9bdb2033b9@flygoat.com>
 References: <20240812-mips-numa-v2-0-fd9bdb2033b9@flygoat.com>
 In-Reply-To: <20240812-mips-numa-v2-0-fd9bdb2033b9@flygoat.com>
 To: "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
@@ -94,241 +94,145 @@ To: "Rafael J. Wysocki" <rafael@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
  linux-mips@vger.kernel.org, Jiaxun Yang <jiaxun.yang@flygoat.com>
 X-Mailer: b4 0.14.1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=7544;
+X-Developer-Signature: v=1; a=openpgp-sha256; l=4040;
  i=jiaxun.yang@flygoat.com; h=from:subject:message-id;
- bh=/2vM9Jarepf6oyk/v8ZwnyJnwqhxSDzHMZeDhKKDNNc=;
- b=owGbwMvMwCXmXMhTe71c8zDjabUkhrSd1y89kfT0fS4oXPPS8kvF5reevU374s8us7bo1NC2z
- vqq/+l/RykLgxgXg6yYIkuIgFLfhsaLC64/yPoDM4eVCWQIAxenAEzklzLD/7TqkyYX135VXuHn
- fSrs6hzDvrTGTgnv83xH7Rs1NofM5WFkOLtWd+nLzTbXn7D0Xz1juWinS/X04l496bNccr0Pnt0
- K5QAA
+ bh=25PGnrDbozNqXeo66FAaZeG/EjrxdTBJIrhq5W4w0Zg=;
+ b=owGbwMvMwCXmXMhTe71c8zDjabUkhrSd1y9V2ClGO4dcXXeg1GhRzeurThekvFZKPU4Ld8g2P
+ Mt8gzOyo5SFQYyLQVZMkSVEQKlvQ+PFBdcfZP2BmcPKBDKEgYtTACZyeg/DX2FX4ckPp4qkv6lR
+ 0Zviek9bUDZ/666aLNfuvuV7TwjJCTP8r9xubjpjl+Dr57NK1diSfvxvy0zp4hRYfVzr3B6/vfI
+ LGQA=
 X-Developer-Key: i=jiaxun.yang@flygoat.com; a=openpgp;
  fpr=980379BEFEBFBF477EA04EF9C111949073FC0F67
 
-Massage headers so that we can include asm-generic/numa.h
-for generic platform.
-
-Provide dummy arch_numa like functions in Loongson64/IP27 platform
-to fill the gap between them and generic platform.
+Performing numa_add_cpu and numa_remove_cpu as necessary, store
+NUMA map from devicetree and fix up if platform SMP code didn't
+do mapping properly.
 
 Signed-off-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
 ---
- arch/mips/include/asm/mach-generic/mmzone.h      | 11 +++++++++++
- arch/mips/include/asm/mach-generic/numa.h        | 11 +++++++++++
- arch/mips/include/asm/mach-generic/topology.h    |  7 +++++++
- arch/mips/include/asm/mach-ip27/numa.h           | 22 ++++++++++++++++++++++
- arch/mips/include/asm/mach-ip27/topology.h       |  8 +++-----
- arch/mips/include/asm/mach-loongson64/numa.h     | 22 ++++++++++++++++++++++
- arch/mips/include/asm/mach-loongson64/topology.h | 10 ++++------
- arch/mips/include/asm/mmzone.h                   |  5 +----
- arch/mips/include/asm/numa.h                     | 12 ++++++++++++
- arch/mips/kernel/setup.c                         |  1 +
- 10 files changed, 94 insertions(+), 15 deletions(-)
+ arch/mips/include/asm/smp-ops.h |  7 +------
+ arch/mips/kernel/smp-cps.c      |  6 ++++++
+ arch/mips/kernel/smp.c          | 26 ++++++++++++++++++++++++++
+ 3 files changed, 33 insertions(+), 6 deletions(-)
 
-diff --git a/arch/mips/include/asm/mach-generic/mmzone.h b/arch/mips/include/asm/mach-generic/mmzone.h
-new file mode 100644
-index 000000000000..d4374b71a900
---- /dev/null
-+++ b/arch/mips/include/asm/mach-generic/mmzone.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2024 Jiaxun Yang <jiaxun.yang@flygoat.com>
-+ */
-+
-+#ifndef __ASM_MACH_GENERIC_MMZONE_H
-+#define __ASM_MACH_GENERIC_MMZONE_H
-+
-+/* Intentionally empty file ...	 */
-+
-+#endif /* __ASM_MACH_GENERIC_MMZONE_H */
-diff --git a/arch/mips/include/asm/mach-generic/numa.h b/arch/mips/include/asm/mach-generic/numa.h
-new file mode 100644
-index 000000000000..311a5871807c
---- /dev/null
-+++ b/arch/mips/include/asm/mach-generic/numa.h
-@@ -0,0 +1,11 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2024 Jiaxun Yang <jiaxun.yang@flygoat.com>
-+ */
-+
-+#ifndef __ASM_MACH_GENERIC_NUMA_H
-+#define __ASM_MACH_GENERIC_NUMA_H
-+
-+#include <asm-generic/numa.h>
-+
-+#endif	/* __ASM_NUMA_H */
-diff --git a/arch/mips/include/asm/mach-generic/topology.h b/arch/mips/include/asm/mach-generic/topology.h
-index 5428f333a02c..fa82d18ba9e7 100644
---- a/arch/mips/include/asm/mach-generic/topology.h
-+++ b/arch/mips/include/asm/mach-generic/topology.h
-@@ -1 +1,8 @@
-+/* SPDX-License-Identifier: GPL-2.0-or-later */
-+#ifndef __ASM_MACH_GENERIC_TOPOLOGY_H
-+#define __ASM_MACH_GENERIC_TOPOLOGY_H
-+
-+#include <asm/numa.h>
- #include <asm-generic/topology.h>
-+
-+#endif
-diff --git a/arch/mips/include/asm/mach-ip27/numa.h b/arch/mips/include/asm/mach-ip27/numa.h
-new file mode 100644
-index 000000000000..e2adadf8a589
---- /dev/null
-+++ b/arch/mips/include/asm/mach-ip27/numa.h
-@@ -0,0 +1,22 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2024 Jiaxun Yang <jiaxun.yang@flygoat.com>
-+ */
-+
-+#ifndef __ASM_MACH_NUMA_H
-+#define __ASM_MACH_NUMA_H
-+
-+#ifdef CONFIG_NUMA
-+extern unsigned char __node_distances[MAX_NUMNODES][MAX_NUMNODES];
-+
-+#define node_distance(from, to) (__node_distances[(from)][(to)])
-+#endif
-+
-+/* Hanlded in platform code */
-+static inline void numa_store_cpu_info(unsigned int cpu) { }
-+static inline void numa_add_cpu(unsigned int cpu) { }
-+static inline void numa_remove_cpu(unsigned int cpu) { }
-+static inline void arch_numa_init(void) { }
-+static inline void early_map_cpu_to_node(unsigned int cpu, int nid) { }
-+
-+#endif	/* __ASM_NUMA_H */
-diff --git a/arch/mips/include/asm/mach-ip27/topology.h b/arch/mips/include/asm/mach-ip27/topology.h
-index 0ad74e2e0d85..33d5bf925431 100644
---- a/arch/mips/include/asm/mach-ip27/topology.h
-+++ b/arch/mips/include/asm/mach-ip27/topology.h
-@@ -4,6 +4,7 @@
+diff --git a/arch/mips/include/asm/smp-ops.h b/arch/mips/include/asm/smp-ops.h
+index 1617b207723f..4d984f0088cb 100644
+--- a/arch/mips/include/asm/smp-ops.h
++++ b/arch/mips/include/asm/smp-ops.h
+@@ -40,12 +40,7 @@ struct plat_smp_ops {
  
- #include <asm/sn/types.h>
- #include <asm/mmzone.h>
-+#include <asm/numa.h>
+ extern void register_smp_ops(const struct plat_smp_ops *ops);
  
- struct cpuinfo_ip27 {
- 	nasid_t		p_nasid;	/* my node ID in numa-as-id-space */
-@@ -13,15 +14,12 @@ struct cpuinfo_ip27 {
- 
- extern struct cpuinfo_ip27 sn_cpu_info[NR_CPUS];
- 
--#define cpu_to_node(cpu)	(cputonasid(cpu))
-+#define early_cpu_to_node(cpu)	(cputonasid(cpu))
-+#define cpu_to_node(cpu)  early_cpu_to_node(cpu)
- #define cpumask_of_node(node)	((node) == -1 ?				\
- 				 cpu_all_mask :				\
- 				 &hub_data(node)->h_cpus)
- 
--extern unsigned char __node_distances[MAX_NUMNODES][MAX_NUMNODES];
+-static inline void plat_smp_setup(void)
+-{
+-	extern const struct plat_smp_ops *mp_ops;	/* private */
 -
--#define node_distance(from, to) (__node_distances[(from)][(to)])
--
- #include <asm-generic/topology.h>
+-	mp_ops->smp_setup();
+-}
++extern void __init plat_smp_setup(void);
  
- #endif /* _ASM_MACH_TOPOLOGY_H */
-diff --git a/arch/mips/include/asm/mach-loongson64/numa.h b/arch/mips/include/asm/mach-loongson64/numa.h
-new file mode 100644
-index 000000000000..2fac370d981f
---- /dev/null
-+++ b/arch/mips/include/asm/mach-loongson64/numa.h
-@@ -0,0 +1,22 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2024 Jiaxun Yang <jiaxun.yang@flygoat.com>
-+ */
-+
-+#ifndef __ASM_MACH_LOONGSON64_NUMA_H
-+#define __ASM_MACH_LOONGSON64_NUMA_H
-+
-+#ifdef CONFIG_NUMA
-+extern unsigned char __node_distances[MAX_NUMNODES][MAX_NUMNODES];
-+
-+#define node_distance(from, to)	(__node_distances[(from)][(to)])
-+#endif
-+
-+/* Hanlded in platform code */
-+static inline void numa_store_cpu_info(unsigned int cpu) { }
-+static inline void numa_add_cpu(unsigned int cpu) { }
-+static inline void numa_remove_cpu(unsigned int cpu) { }
-+static inline void arch_numa_init(void) { }
-+static inline void early_map_cpu_to_node(unsigned int cpu, int nid) { }
-+
-+#endif	/* __ASM_NUMA_H */
-diff --git a/arch/mips/include/asm/mach-loongson64/topology.h b/arch/mips/include/asm/mach-loongson64/topology.h
-index c60ccdbe5a94..ebb086821401 100644
---- a/arch/mips/include/asm/mach-loongson64/topology.h
-+++ b/arch/mips/include/asm/mach-loongson64/topology.h
-@@ -2,17 +2,15 @@
- #ifndef _ASM_MACH_TOPOLOGY_H
- #define _ASM_MACH_TOPOLOGY_H
+ extern void mips_smp_send_ipi_single(int cpu, unsigned int action);
+ extern void mips_smp_send_ipi_mask(const struct cpumask *mask,
+diff --git a/arch/mips/kernel/smp-cps.c b/arch/mips/kernel/smp-cps.c
+index 395622c37325..be9f13c0b058 100644
+--- a/arch/mips/kernel/smp-cps.c
++++ b/arch/mips/kernel/smp-cps.c
+@@ -8,6 +8,7 @@
+ #include <linux/delay.h>
+ #include <linux/io.h>
+ #include <linux/memblock.h>
++#include <linux/of.h>
+ #include <linux/sched/task_stack.h>
+ #include <linux/sched/hotplug.h>
+ #include <linux/slab.h>
+@@ -179,10 +180,14 @@ static void __init cps_smp_setup(void)
  
--#ifdef CONFIG_NUMA
-+#include <asm/numa.h>
+ 	/* Indicate present CPUs (CPU being synonymous with VPE) */
+ 	for (v = 0; v < min_t(unsigned, nvpes, NR_CPUS); v++) {
++		struct device_node *np = of_get_cpu_node(v, NULL);
++
+ 		set_cpu_possible(v, cpu_cluster(&cpu_data[v]) == 0);
+ 		set_cpu_present(v, cpu_cluster(&cpu_data[v]) == 0);
+ 		__cpu_number_map[v] = v;
+ 		__cpu_logical_map[v] = v;
++		if (np)
++			early_map_cpu_to_node(v, of_node_to_nid(np));
+ 	}
  
--#define cpu_to_node(cpu)	(cpu_logical_map(cpu) >> 2)
-+#ifdef CONFIG_NUMA
-+#define early_cpu_to_node(cpu)	(cpu_logical_map(cpu) >> 2)
-+#define cpu_to_node(cpu)  early_cpu_to_node(cpu)
+ 	/* Set a coherent default CCA (CWB) */
+@@ -553,6 +558,7 @@ static int cps_cpu_disable(void)
+ 	atomic_sub(1 << cpu_vpe_id(&current_cpu_data), &core_cfg->vpe_mask);
+ 	smp_mb__after_atomic();
+ 	set_cpu_online(cpu, false);
++	numa_remove_cpu(cpu);
+ 	calculate_cpu_foreign_map();
+ 	irq_migrate_all_off_this_cpu();
  
- extern cpumask_t __node_cpumask[];
- #define cpumask_of_node(node)	(&__node_cpumask[node])
+diff --git a/arch/mips/kernel/smp.c b/arch/mips/kernel/smp.c
+index 0362fc5df7b0..17dd97ad3cbb 100644
+--- a/arch/mips/kernel/smp.c
++++ b/arch/mips/kernel/smp.c
+@@ -153,6 +153,11 @@ void calculate_cpu_foreign_map(void)
+ 			       &temp_foreign_map, &cpu_sibling_map[i]);
+ }
  
--extern unsigned char __node_distances[MAX_NUMNODES][MAX_NUMNODES];
--
--#define node_distance(from, to)	(__node_distances[(from)][(to)])
--
++bool arch_match_cpu_phys_id(int cpu, u64 phys_id)
++{
++	return phys_id == cpu_logical_map(cpu);
++}
++
+ const struct plat_smp_ops *mp_ops;
+ EXPORT_SYMBOL(mp_ops);
+ 
+@@ -164,6 +169,19 @@ void register_smp_ops(const struct plat_smp_ops *ops)
+ 	mp_ops = ops;
+ }
+ 
++void __init plat_smp_setup(void)
++{
++	unsigned int cpu;
++
++	mp_ops->smp_setup();
++
++	for_each_possible_cpu(cpu) {
++		/* Workaround platform SMP code not handling NUMA map */
++		if (early_cpu_to_node(cpu) == NUMA_NO_NODE)
++			early_map_cpu_to_node(cpu, 0);
++	}
++}
++
+ #ifdef CONFIG_GENERIC_IRQ_IPI
+ void mips_smp_send_ipi_single(int cpu, unsigned int action)
+ {
+@@ -372,6 +390,7 @@ asmlinkage void start_secondary(void)
+ 
+ 	set_cpu_sibling_map(cpu);
+ 	set_cpu_core_map(cpu);
++	numa_add_cpu(cpu);
+ 
+ 	cpumask_set_cpu(cpu, &cpu_coherent_mask);
+ 	notify_cpu_starting(cpu);
+@@ -426,6 +445,8 @@ void __init smp_cpus_done(unsigned int max_cpus)
+ /* called from main before smp_init() */
+ void __init smp_prepare_cpus(unsigned int max_cpus)
+ {
++	unsigned int cpu;
++
+ 	init_new_context(current, &init_mm);
+ 	current_thread_info()->cpu = 0;
+ 	mp_ops->prepare_cpus(max_cpus);
+@@ -436,6 +457,11 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ 	init_cpu_present(cpu_possible_mask);
  #endif
- 
- #include <asm-generic/topology.h>
-diff --git a/arch/mips/include/asm/mmzone.h b/arch/mips/include/asm/mmzone.h
-index 14226ea42036..f472c8ec3a63 100644
---- a/arch/mips/include/asm/mmzone.h
-+++ b/arch/mips/include/asm/mmzone.h
-@@ -7,10 +7,7 @@
- #define _ASM_MMZONE_H_
- 
- #include <asm/page.h>
--
--#ifdef CONFIG_NUMA
--# include <mmzone.h>
--#endif
-+#include <mmzone.h>
- 
- #ifndef pa_to_nid
- #define pa_to_nid(addr) 0
-diff --git a/arch/mips/include/asm/numa.h b/arch/mips/include/asm/numa.h
-new file mode 100644
-index 000000000000..ff1eb9ef51e6
---- /dev/null
-+++ b/arch/mips/include/asm/numa.h
-@@ -0,0 +1,12 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+/*
-+ * Copyright (C) 2024 Jiaxun Yang <jiaxun.yang@flygoat.com>
-+ */
+ 	cpumask_copy(&cpu_coherent_mask, cpu_possible_mask);
 +
-+#ifndef __ASM_NUMA_H
-+#define __ASM_NUMA_H
++	for_each_possible_cpu(cpu)
++		numa_store_cpu_info(cpu);
 +
-+#include <asm/topology.h>
-+#include <numa.h>
-+
-+#endif /* __ASM_NUMA_H */
-diff --git a/arch/mips/kernel/setup.c b/arch/mips/kernel/setup.c
-index 12a1a4ffb602..655391c04477 100644
---- a/arch/mips/kernel/setup.c
-+++ b/arch/mips/kernel/setup.c
-@@ -664,6 +664,7 @@ static void __init arch_mem_init(char **cmdline_p)
++	numa_add_cpu(0);
+ }
  
- 	mips_parse_crashkernel();
- 	device_tree_init();
-+	arch_numa_init();
- 
- 	/*
- 	 * In order to reduce the possibility of kernel panic when failed to
+ /* preload SMP state for boot cpu */
 
 -- 
 2.46.0
