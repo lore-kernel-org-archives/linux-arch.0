@@ -1,104 +1,137 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 024531B582B;
-	Wed, 14 Aug 2024 15:44:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8515C3D552;
+	Wed, 14 Aug 2024 16:00:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1723650278; cv=none; b=uj23HwJMDowyIvLJWWV6RN6yWh4b/h3GdROMBgCHO8XTVNhVFCbN20Usd6uMFZ2NA43nnvFg0I8E2hOaqylBunbt6WWP0weJw8Ir5LOCwp0BAFZAd31w0r77sWAxwwiGOHt1U8OdEKuALj/f587kPKLkV7B2/tKmu3+1G/xQmPE=
+	t=1723651233; cv=none; b=HHfFwydcQ3IV9xTwvzx1fw3fAyV6fyRlW+jTFbEwHigLrZA+7oZg/yeWw+f+HmMjKL/Yy/pfRgGoWrGRiy6OA9V9k31lRtSlkj2DzwH1O1VczD1ts3zvILZl55wHxa4fkxG4cIOnpoZhjg7SoVq/E3CoC+kskV1JBvPqvfhOwKE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1723650278; c=relaxed/simple;
-	bh=U7WuHYR57mLXTPaEpqW6Wd2ZQf59JaIgOYyS+tdv5xU=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=DAw4KtLV8kS69IFmow5Mf6Nh5tCWHOeAyG588t6zHfKr9yB4bmqx6e14jy0Rqtx9qAJINT6ru++kwzYEmcx3pNt3HAU6EqPvWr7J3P6XchW5i36ummUx1KNyc+KbibxyhRl97AjMgKGcyGY3CaspNM75MdomRHMTSjlo8Inn39A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=Nlp68Wv4; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1723651233; c=relaxed/simple;
+	bh=tJ9y/t0p8CoWT3GLrKdQZ0dSWk0FZ5F+3VCb9/8rtJc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=X7XGZRWMcpbMavEVGi3q05wmpt+fgLDWxzw9/hRsYv5DM4jFHWaiP26xAY3nkrwrphVyuLQ+WArt5vz4+mD0FlW8ZmBRnhCXoe5XK+OVqPq5wH8lGG7JyLOO543LOBXln1CTf7pNkw1APPKloIwMZWclRO3fd7zT0F2NxCB212g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=C1Qo0Znc; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="Nlp68Wv4"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
-	Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:Content-ID:
-	Content-Description:In-Reply-To:References;
-	bh=Y8GzTtU2QoStw/WgTavIsPk3vntaV6mcfxUlw+vTkw4=; b=Nlp68Wv4gWlG8g9amXu9RSnoTE
-	bGIkORrON8YDkyXuNB3pHR0x3EWS8Cj46g5V0nmkoNra8NLu3eoLcdQDcSfXtQUcNoQv73JbO5irY
-	YO/2KtHV5uYXpcKre5wKy5/4Hv3pAdgjf5CgBoylTiilTIclax+k/Y1qqeGMWDIu25oBopw+ZSuo/
-	+PbCg3gzutTroTrptbNhWjqMZBqJlVGdigr+h7eL9Gwfxuq3uaXQEiYu6lJesN6VHloOF2NJxcVQ5
-	g8Bi5zp2BmmvlEC8p4EYP5Qf2CZacyuv2wEMcW0vqzDern12I/bCWq9yZIfLqu4qinNlF3KSoMUbe
-	DgnzBqVg==;
-Received: from willy by casper.infradead.org with local (Exim 4.97.1 #2 (Red Hat Linux))
-	id 1seGAr-00000000gH2-3gSE;
-	Wed, 14 Aug 2024 15:44:33 +0000
-From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-To: linux-mm@kvack.org,
-	linux-arch@vger.kernel.org
-Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
-	linux-s390@vger.kernel.org,
-	linux-um@lists.infradead.org,
-	x86@kernel.org
-Subject: [PATCH 0/5] Provide a single definition of mk_pte()
-Date: Wed, 14 Aug 2024 16:44:20 +0100
-Message-ID: <20240814154427.162475-1-willy@infradead.org>
-X-Mailer: git-send-email 2.45.2
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="C1Qo0Znc"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id AAE22C116B1;
+	Wed, 14 Aug 2024 16:00:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1723651233;
+	bh=tJ9y/t0p8CoWT3GLrKdQZ0dSWk0FZ5F+3VCb9/8rtJc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=C1Qo0Zncz+RdR9DeUEI52CB7DQtewBYXVGfRUQ4A1toxpkFsbuQ6aJyDgJz7UfDuH
+	 bzxXCMK2CVyRwzj4Fzsp12NcASucmaKle8j/eMgOwWVzR2lvflN7lzCLHhTyQ3ScD3
+	 +3H4j8mCCyM0GSJc3pBhGBO2bXmXG5WzBuDhGy5GyWML6OrUSxKM3fVQt794iZbGN7
+	 zq37MEqlxsQmv9ud3qgMIDnCP26tQt1p0hjVBhliLYp5ui4XBUgvCNn/OsKWmUZrSd
+	 Krpj/jmqgiJLPoYpTX6m1uOjpJNj4kjuDK0YvvBuQWHt0Y9IyIEzIa3etR5NZwtbL6
+	 zsq/MP82yJmiw==
+Date: Wed, 14 Aug 2024 17:00:23 +0100
+From: Mark Brown <broonie@kernel.org>
+To: Dave Martin <Dave.Martin@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Marc Zyngier <maz@kernel.org>,
+	Oliver Upton <oliver.upton@linux.dev>,
+	James Morse <james.morse@arm.com>,
+	Suzuki K Poulose <suzuki.poulose@arm.com>,
+	Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
+	Eric Biederman <ebiederm@xmission.com>,
+	Shuah Khan <shuah@kernel.org>,
+	"Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
+	Deepak Gupta <debug@rivosinc.com>, Ard Biesheuvel <ardb@kernel.org>,
+	Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Kees Cook <kees@kernel.org>,
+	"H.J. Lu" <hjl.tools@gmail.com>,
+	Paul Walmsley <paul.walmsley@sifive.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Florian Weimer <fweimer@redhat.com>,
+	Christian Brauner <brauner@kernel.org>,
+	Thiago Jung Bauermann <thiago.bauermann@linaro.org>,
+	Ross Burton <ross.burton@arm.com>,
+	linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
+	kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-mm@kvack.org,
+	linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-riscv@lists.infradead.org
+Subject: Re: [PATCH v10 23/40] arm64/signal: Set up and restore the GCS
+ context for signal handlers
+Message-ID: <08932f6d-01ef-40e8-97d2-08f0d2016191@sirena.org.uk>
+References: <20240801-arm64-gcs-v10-0-699e2bd2190b@kernel.org>
+ <20240801-arm64-gcs-v10-23-699e2bd2190b@kernel.org>
+ <ZrzEfg5LqdAzgJ6+@e133380.arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="d9byunHM6BED1bDk"
+Content-Disposition: inline
+In-Reply-To: <ZrzEfg5LqdAzgJ6+@e133380.arm.com>
+X-Cookie: The second best policy is dishonesty.
 
-Each architecturee must provide a definition of mk_pte() today.  They must
-also provide pfn_pte().  Usually the former is defined in terms of the
-latter, but not on some architectures.  I was trying to decide what we
-should do for creating PTEs in a folio world, and it struck me that we
-should have architectures only provide pfn_pte() and then I don't need
-to trouble the arch maintainers with whatever MM API I come up with.
 
-The architectures not on the cc list I considered trivial.  The
-architectures who have named patches are less trivial, and I did my
-best to write a decent commit message explaining why I did what I did
-to each architecture.
+--d9byunHM6BED1bDk
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-I have some followup patches which remove folio->page conversions, but
-if this set of patches are wrong on any architecture, then they'll also
-be wrong, so I'm not sending them right now.
+On Wed, Aug 14, 2024 at 03:51:42PM +0100, Dave Martin wrote:
+> On Thu, Aug 01, 2024 at 01:06:50PM +0100, Mark Brown wrote:
 
-Matthew Wilcox (Oracle) (5):
-  mm: Introduce a common definition of mk_pte()
-  x86: Remove custom definition of mk_pte()
-  um: Remove custom definition of mk_pte()
-  s390: Remove custom definition of mk_pte()
-  mm: Make mk_pte() definition unconditional
+> > +	put_user_gcs((unsigned long)sigtramp, gcspr_el0 - 2, &ret);
+> > +	put_user_gcs(GCS_SIGNAL_CAP(gcspr_el0 - 1), gcspr_el0 - 1, &ret);
+> > +	if (ret != 0)
+> > +		return ret;
 
- arch/alpha/include/asm/pgtable.h         |  7 -------
- arch/arc/include/asm/pgtable-levels.h    |  1 -
- arch/arm/include/asm/pgtable.h           |  1 -
- arch/arm64/include/asm/pgtable.h         |  6 ------
- arch/csky/include/asm/pgtable.h          |  5 -----
- arch/hexagon/include/asm/pgtable.h       |  3 ---
- arch/loongarch/include/asm/pgtable.h     |  6 ------
- arch/m68k/include/asm/mcf_pgtable.h      |  6 ------
- arch/m68k/include/asm/motorola_pgtable.h |  6 ------
- arch/m68k/include/asm/sun3_pgtable.h     |  6 ------
- arch/microblaze/include/asm/pgtable.h    |  8 --------
- arch/mips/include/asm/pgtable.h          |  6 ------
- arch/nios2/include/asm/pgtable.h         |  6 ------
- arch/openrisc/include/asm/pgtable.h      |  2 --
- arch/parisc/include/asm/pgtable.h        |  2 --
- arch/powerpc/include/asm/pgtable.h       |  1 -
- arch/riscv/include/asm/pgtable.h         |  2 --
- arch/s390/include/asm/pgtable.h          | 10 ----------
- arch/sh/include/asm/pgtable_32.h         |  8 --------
- arch/sparc/include/asm/pgtable_32.h      |  9 ++-------
- arch/sparc/include/asm/pgtable_64.h      |  1 -
- arch/um/include/asm/pgtable-2level.h     |  1 -
- arch/um/include/asm/pgtable-3level.h     |  9 ---------
- arch/um/include/asm/pgtable.h            | 17 ++++++++++-------
- arch/x86/include/asm/pgtable.h           | 19 +++----------------
- arch/xtensa/include/asm/pgtable.h        |  1 -
- include/linux/pgtable.h                  |  5 +++++
- 27 files changed, 20 insertions(+), 134 deletions(-)
+> What happens if we went wrong here, or if the signal we are delivering
+> was caused by a GCS overrun or bad GCSPR_EL0 in the first place?
 
--- 
-2.43.0
+> It feels like a program has no way to rescue itself from excessive
+> recursion in some thread.  Is there something equivalent to
+> sigaltstack()?
 
+> Or is the shadow stack always supposed to be big enough to cope with
+> recursion that exhausts the main stack and alternate signal stack (and
+> if so, how is this ensured)?
+
+There's no sigaltstack() for GCS, this is also the ABI with the existing
+shadow stack on x86 and should be addressed in a cross architecture
+fashion.  There have been some discussions about providing a shadow alt
+stack but they've generally been circular and inconclusive, there were a
+bunch of tradeoffs for corner cases and nobody had a clear sense as to
+what a good solution should be.  It was a bit unclear that actively
+doing anything was worthwhile.  The issues were IIRC around unwinders
+and disjoint shadow stacks, compatibility with non-shadow stacks and
+behaviour when we overflow the shadow stack.  I think there were also
+some applications trying to be very clever with alt stacks that needed
+to be interacted with and complicated everything but I could be
+misremembering there.
+
+Practically speaking since we're only storing return addresses the
+default GCS should be extremely large so it's unlikely to come up
+without first encountering and handling issues on the normal stack.
+Users allocating their own shadow stacks should be careful.  This isn't
+really satisfying but is probably fine in practice, there's certainly
+not been any pressure yet from the existing x86 deployments (though at
+present nobody can explicitly select their own shadow stack size,
+perhaps it'll become more of an issue when the clone3() stuff is in).
+
+--d9byunHM6BED1bDk
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+
+iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAma81JcACgkQJNaLcl1U
+h9DStQf+MHf5MIvFUrZBpQZg07XSllBYTCVHtBIGn5XzIx/KW1GJXKIov1DxWUTX
+4/a2ua/8So/yt7XHqWLjBgCUd7U4AsSNKO3kBxUGH1j85SY4YPkZtb+t8AriDoS5
+aBVNq2boS8RzipYyeieLa1TUtet845IqOUX6AZ6yMIyWEcqaST5KfdYG0vmy3tKH
+Rk85zpx0YvxXhmd63f+dAZYPPsOxVaJxVgUGl8/qDJzXEHHsT8nNlkLc4x6s7vja
+MyVsVWQGYTa7MKQofcxfH+yB1UtWlMV9oxMRWab4Uy7GPaBO05yTKxDukJQUklbt
+S47T7TUaZvxSLe1aJLMls0FHfdO5uQ==
+=go3J
+-----END PGP SIGNATURE-----
+
+--d9byunHM6BED1bDk--
