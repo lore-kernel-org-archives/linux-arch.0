@@ -1,63 +1,63 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.21])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.7])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 67207DF5C;
-	Thu, 15 Aug 2024 02:45:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.21
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CC7A12209D;
+	Thu, 15 Aug 2024 04:08:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.7
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1723689958; cv=none; b=EWBBS8JABYiZUXbMVGozHrElIR/26wYk4Z7OBDZfftdJwCAag1/etINlC8APZYoVttXUmHuThZSft+G2c/ALJ6VZme5nPKSAi4hGeyfSioxzuTCkRjjNwPMPthXGL9QcSoZLuTMeMylbu3sePRvXXrUXe3EIGAzDGYmstjGiJlQ=
+	t=1723694940; cv=none; b=tLGga1NuPqWOFYLTp2JwG7Hr4KLNU+weUOuRIWZdZPS/MkCmeDfeEtFzVGKYt+hMzrypcXGX1B9NsDu3b5pg4+7UhyHQfHMmN/0U8qEJvBfv7wqLISirDlrw4HSuxGp49JwV4xXvY6INsrx/7Rod2x1XvCvOPxJ7KlfFQmxG8Uw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1723689958; c=relaxed/simple;
-	bh=+u3XTavjkbuxY8GKnvcN2PMrpWamDcirFx/TdBwdhs8=;
+	s=arc-20240116; t=1723694940; c=relaxed/simple;
+	bh=9z4AfTVcoGr13kMqfy68br6N15Zt4R0Ze/WP37ZrMSw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=bCEZGe/KZvMIrVnuOMriE+hUfUxlw/MwDKrAZUwAPCLYx6lteW1HtIjG7g/ACRo3lztrz9Gs3TIc8TyLUxBt9Ht0gkSw1vVj65K7eEf7oT9jMhgwArD3+/JdjOL9U0P/4ggCIVSgZDH0lo+FTfW+udpxIkCiHwfyD9wuvzve0/4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=SMX6DI4b; arc=none smtp.client-ip=198.175.65.21
+	 Content-Type:Content-Disposition:In-Reply-To; b=lYjTS53bQG2/1nFLuLJQy75Nwab9hA7+oRsFLh2MYsNP+hwoV4O6n9U5++yP59q3yHD3JENp/0/jQ6JNdYTa6KaIIaJJmKwRzjTvC78MdBZOZI4sexxHE5oC1GAxuu2nIi5zrvF3X+rT7RBLiTl9DAPNusrHYsgKZcgW1hW3N28=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=ZIJE00PY; arc=none smtp.client-ip=192.198.163.7
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="SMX6DI4b"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="ZIJE00PY"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1723689956; x=1755225956;
+  t=1723694938; x=1755230938;
   h=date:from:to:cc:subject:message-id:references:
    mime-version:in-reply-to;
-  bh=+u3XTavjkbuxY8GKnvcN2PMrpWamDcirFx/TdBwdhs8=;
-  b=SMX6DI4bwtPbikGhnaFcPiLxOQw+9rcyqRSwnUWuHIK8G9MDT3c7Tav3
-   kSA+4AreSBG7Wgv8KJfcysvRObhs0GUeOvP8A77YAGCk+04K6adNGLEzw
-   Is7xaG6wZQ/xUa5809ZUvr/p9w+ehF5+7c2qor7x9aWwlgxkDDKbR1XBF
-   cK9rrmKckM4DtPIFdsqbPH2QnVP7szDZeWmr0W+DapbuLJqDwLCPmAsA7
-   jdsn3rmq5P4tdB96KCVjOL7hyf/N4/FsPBmM8qG5+YJ9UPjOcgMR3WHXW
-   zf1YA24IVoCKZ/VlOlUH3SAUvtP6KJ4SvTVGpo2/Gf98JU4TIKrTrJcZt
-   g==;
-X-CSE-ConnectionGUID: 6Rybu8MTSwi9To8lFvYvCg==
-X-CSE-MsgGUID: RmTqdxhaQKWNNWJL5If08g==
-X-IronPort-AV: E=McAfee;i="6700,10204,11164"; a="21905403"
+  bh=9z4AfTVcoGr13kMqfy68br6N15Zt4R0Ze/WP37ZrMSw=;
+  b=ZIJE00PYAU76QT5I+K9vflTMqj761wDFYJ61jJD2F0PeSYpb3EkZ7yjK
+   YvQGIBAQ0mnK9MELqbzLiIieVrdoIhC3LtCGC1V/+7/rzpLn+nFABMP33
+   VQatvcrRNLqcMBdc60cW7STDdN75BkjcZKDHZNGyESjZJfGMdeTpjK8tJ
+   k+tAlyUYz24LZQIsWUUgx4YlwimJwANKl0pQ0iQ2A8DzBvA0pEDYPObpT
+   Aayme+3npEtShy09dcrUOQirZ+e6nHbaVmD/V1pWCEpgyp7S87MHn+VdI
+   96BtHWzyO41NQYbwJNvuB/g4+zqo5MqhfL3TVbOFIYUoTvdFQlZdUajcw
+   A==;
+X-CSE-ConnectionGUID: hkmzUXusRtOqJH+xynAN8w==
+X-CSE-MsgGUID: xrZZ8B3ZTSOcAgJUMF5ZLA==
+X-IronPort-AV: E=McAfee;i="6700,10204,11164"; a="47344023"
 X-IronPort-AV: E=Sophos;i="6.10,147,1719903600"; 
-   d="scan'208";a="21905403"
-Received: from orviesa002.jf.intel.com ([10.64.159.142])
-  by orvoesa113.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Aug 2024 19:45:53 -0700
-X-CSE-ConnectionGUID: e6+ZbYP3Rg6XynfxE0oMGQ==
-X-CSE-MsgGUID: SO6r+U/QSlKKQ7j3nvsDiw==
+   d="scan'208";a="47344023"
+Received: from orviesa001.jf.intel.com ([10.64.159.141])
+  by fmvoesa101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Aug 2024 21:08:57 -0700
+X-CSE-ConnectionGUID: GN/Tr+wuRC2pLnQX3oZfVQ==
+X-CSE-MsgGUID: PeZUkHPzRwGOa+UQ1jnVog==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="6.10,147,1719903600"; 
-   d="scan'208";a="89918473"
+   d="scan'208";a="96751066"
 Received: from lkp-server01.sh.intel.com (HELO 9a732dc145d3) ([10.239.97.150])
-  by orviesa002.jf.intel.com with ESMTP; 14 Aug 2024 19:45:51 -0700
+  by orviesa001.jf.intel.com with ESMTP; 14 Aug 2024 21:08:55 -0700
 Received: from kbuild by 9a732dc145d3 with local (Exim 4.96)
 	(envelope-from <lkp@intel.com>)
-	id 1seQUn-00036Q-0m;
-	Thu, 15 Aug 2024 02:45:49 +0000
-Date: Thu, 15 Aug 2024 10:45:17 +0800
+	id 1seRnA-0003Ak-17;
+	Thu, 15 Aug 2024 04:08:52 +0000
+Date: Thu, 15 Aug 2024 12:08:51 +0800
 From: kernel test robot <lkp@intel.com>
 To: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org,
 	linux-arch@vger.kernel.org
-Cc: oe-kbuild-all@lists.linux.dev,
+Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
 	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	linux-s390@vger.kernel.org, linux-um@lists.infradead.org,
 	x86@kernel.org
-Subject: Re: [PATCH 1/5] mm: Introduce a common definition of mk_pte()
-Message-ID: <202408151035.TtR6QRvZ-lkp@intel.com>
-References: <20240814154427.162475-2-willy@infradead.org>
+Subject: Re: [PATCH 2/5] x86: Remove custom definition of mk_pte()
+Message-ID: <202408151133.BaOdxDkR-lkp@intel.com>
+References: <20240814154427.162475-3-willy@infradead.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -66,7 +66,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20240814154427.162475-2-willy@infradead.org>
+In-Reply-To: <20240814154427.162475-3-willy@infradead.org>
 
 Hi Matthew,
 
@@ -81,74 +81,80 @@ https://git-scm.com/docs/git-format-patch#_base_tree_information]
 
 url:    https://github.com/intel-lab-lkp/linux/commits/Matthew-Wilcox-Oracle/mm-Introduce-a-common-definition-of-mk_pte/20240815-001852
 base:   https://git.kernel.org/pub/scm/linux/kernel/git/geert/linux-m68k.git for-next
-patch link:    https://lore.kernel.org/r/20240814154427.162475-2-willy%40infradead.org
-patch subject: [PATCH 1/5] mm: Introduce a common definition of mk_pte()
-config: arc-allnoconfig (https://download.01.org/0day-ci/archive/20240815/202408151035.TtR6QRvZ-lkp@intel.com/config)
-compiler: arc-elf-gcc (GCC) 13.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20240815/202408151035.TtR6QRvZ-lkp@intel.com/reproduce)
+patch link:    https://lore.kernel.org/r/20240814154427.162475-3-willy%40infradead.org
+patch subject: [PATCH 2/5] x86: Remove custom definition of mk_pte()
+config: x86_64-buildonly-randconfig-003-20240815 (https://download.01.org/0day-ci/archive/20240815/202408151133.BaOdxDkR-lkp@intel.com/config)
+compiler: clang version 18.1.5 (https://github.com/llvm/llvm-project 617a15a9eac96088ae5e9134248d8236e34b91b1)
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20240815/202408151133.BaOdxDkR-lkp@intel.com/reproduce)
 
 If you fix the issue in a separate patch/commit (i.e. not just a new version of
 the same patch/commit), kindly add following tags
 | Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202408151035.TtR6QRvZ-lkp@intel.com/
+| Closes: https://lore.kernel.org/oe-kbuild-all/202408151133.BaOdxDkR-lkp@intel.com/
 
 All errors (new ones prefixed by >>):
 
-   In file included from arch/arc/include/asm/io.h:11,
-                    from include/linux/io.h:14,
-                    from lib/iomap_copy.c:7:
-   include/linux/pgtable.h: In function 'mk_pte':
->> include/asm-generic/memory_model.h:19:59: error: 'mem_map' undeclared (first use in this function); did you mean 'memcmp'?
-      19 | #define __page_to_pfn(page)     ((unsigned long)((page) - mem_map) + \
-         |                                                           ^~~~~~~
-   arch/arc/include/asm/page.h:75:37: note: in definition of macro '__pte'
-      75 | #define __pte(x)        ((pte_t) { (x) })
-         |                                     ^
-   include/asm-generic/memory_model.h:62:33: note: in expansion of macro 'PFN_PHYS'
-      62 | #define __pfn_to_phys(pfn)      PFN_PHYS(pfn)
-         |                                 ^~~~~~~~
-   arch/arc/include/asm/pgtable-levels.h:179:39: note: in expansion of macro '__pfn_to_phys'
-     179 | #define pfn_pte(pfn, prot)      __pte(__pfn_to_phys(pfn) | pgprot_val(prot))
-         |                                       ^~~~~~~~~~~~~
-   include/linux/pgtable.h:47:16: note: in expansion of macro 'pfn_pte'
+   In file included from arch/x86/kernel/asm-offsets.c:14:
+   In file included from include/linux/suspend.h:5:
+   In file included from include/linux/swap.h:9:
+   In file included from include/linux/memcontrol.h:21:
+   In file included from include/linux/mm.h:30:
+>> include/linux/pgtable.h:47:17: error: call to undeclared function 'page_to_section'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
       47 |         return pfn_pte(page_to_pfn(page), pgprot);
-         |                ^~~~~~~
-   include/asm-generic/memory_model.h:64:21: note: in expansion of macro '__page_to_pfn'
+         |                        ^
+   include/asm-generic/memory_model.h:64:21: note: expanded from macro 'page_to_pfn'
       64 | #define page_to_pfn __page_to_pfn
-         |                     ^~~~~~~~~~~~~
-   include/linux/pgtable.h:47:24: note: in expansion of macro 'page_to_pfn'
-      47 |         return pfn_pte(page_to_pfn(page), pgprot);
-         |                        ^~~~~~~~~~~
-   include/asm-generic/memory_model.h:19:59: note: each undeclared identifier is reported only once for each function it appears in
-      19 | #define __page_to_pfn(page)     ((unsigned long)((page) - mem_map) + \
-         |                                                           ^~~~~~~
-   arch/arc/include/asm/page.h:75:37: note: in definition of macro '__pte'
-      75 | #define __pte(x)        ((pte_t) { (x) })
-         |                                     ^
-   include/asm-generic/memory_model.h:62:33: note: in expansion of macro 'PFN_PHYS'
-      62 | #define __pfn_to_phys(pfn)      PFN_PHYS(pfn)
-         |                                 ^~~~~~~~
-   arch/arc/include/asm/pgtable-levels.h:179:39: note: in expansion of macro '__pfn_to_phys'
-     179 | #define pfn_pte(pfn, prot)      __pte(__pfn_to_phys(pfn) | pgprot_val(prot))
-         |                                       ^~~~~~~~~~~~~
-   include/linux/pgtable.h:47:16: note: in expansion of macro 'pfn_pte'
-      47 |         return pfn_pte(page_to_pfn(page), pgprot);
-         |                ^~~~~~~
-   include/asm-generic/memory_model.h:64:21: note: in expansion of macro '__page_to_pfn'
+         |                     ^
+   include/asm-generic/memory_model.h:47:14: note: expanded from macro '__page_to_pfn'
+      47 |         int __sec = page_to_section(__pg);                      \
+         |                     ^
+   include/linux/pgtable.h:47:17: note: did you mean '__nr_to_section'?
+   include/asm-generic/memory_model.h:64:21: note: expanded from macro 'page_to_pfn'
       64 | #define page_to_pfn __page_to_pfn
-         |                     ^~~~~~~~~~~~~
-   include/linux/pgtable.h:47:24: note: in expansion of macro 'page_to_pfn'
+         |                     ^
+   include/asm-generic/memory_model.h:47:14: note: expanded from macro '__page_to_pfn'
+      47 |         int __sec = page_to_section(__pg);                      \
+         |                     ^
+   include/linux/mmzone.h:1853:35: note: '__nr_to_section' declared here
+    1853 | static inline struct mem_section *__nr_to_section(unsigned long nr)
+         |                                   ^
+   In file included from arch/x86/kernel/asm-offsets.c:14:
+   In file included from include/linux/suspend.h:5:
+   In file included from include/linux/swap.h:9:
+   In file included from include/linux/memcontrol.h:21:
+>> include/linux/mm.h:1904:29: error: static declaration of 'page_to_section' follows non-static declaration
+    1904 | static inline unsigned long page_to_section(const struct page *page)
+         |                             ^
+   include/linux/pgtable.h:47:17: note: previous implicit declaration is here
       47 |         return pfn_pte(page_to_pfn(page), pgprot);
-         |                        ^~~~~~~~~~~
+         |                        ^
+   include/asm-generic/memory_model.h:64:21: note: expanded from macro 'page_to_pfn'
+      64 | #define page_to_pfn __page_to_pfn
+         |                     ^
+   include/asm-generic/memory_model.h:47:14: note: expanded from macro '__page_to_pfn'
+      47 |         int __sec = page_to_section(__pg);                      \
+         |                     ^
+   2 errors generated.
+   make[3]: *** [scripts/Makefile.build:117: arch/x86/kernel/asm-offsets.s] Error 1 shuffle=262036656
+   make[3]: Target 'prepare' not remade because of errors.
+   make[2]: *** [Makefile:1208: prepare0] Error 2 shuffle=262036656
+   make[2]: Target 'prepare' not remade because of errors.
+   make[1]: *** [Makefile:240: __sub-make] Error 2 shuffle=262036656
+   make[1]: Target 'prepare' not remade because of errors.
+   make: *** [Makefile:240: __sub-make] Error 2 shuffle=262036656
+   make: Target 'prepare' not remade because of errors.
 
 
-vim +19 include/asm-generic/memory_model.h
+vim +/page_to_section +47 include/linux/pgtable.h
 
-a117e66ed45ac0 KAMEZAWA Hiroyuki 2006-03-27  17  
-67de648211fa04 Andy Whitcroft    2006-06-23  18  #define __pfn_to_page(pfn)	(mem_map + ((pfn) - ARCH_PFN_OFFSET))
-67de648211fa04 Andy Whitcroft    2006-06-23 @19  #define __page_to_pfn(page)	((unsigned long)((page) - mem_map) + \
-a117e66ed45ac0 KAMEZAWA Hiroyuki 2006-03-27  20  				 ARCH_PFN_OFFSET)
-a117e66ed45ac0 KAMEZAWA Hiroyuki 2006-03-27  21  
+1c2f7d14d84f767 Anshuman Khandual       2021-06-30  43  
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14  44) #ifndef mk_pte
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14  45) static inline pte_t mk_pte(struct page *page, pgprot_t pgprot)
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14  46) {
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14 @47) 	return pfn_pte(page_to_pfn(page), pgprot);
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14  48) }
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14  49) #endif
+9353c36cfa235ae Matthew Wilcox (Oracle  2024-08-14  50) 
 
 -- 
 0-DAY CI Kernel Test Service
