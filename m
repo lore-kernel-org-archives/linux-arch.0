@@ -1,63 +1,66 @@
-Received: from mail-yw1-f201.google.com (mail-yw1-f201.google.com [209.85.128.201])
+Received: from mail-yw1-f202.google.com (mail-yw1-f202.google.com [209.85.128.202])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEA832628C
-	for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2024 15:15:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E7F5F39851
+	for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2024 15:15:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.202
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724080517; cv=none; b=sdkAatqlR0FbXO8VUP7BypARuugITB77l6GPm8m1yfbCzVLWdC0+Wn08lBwazMhTXRU3Qumv8YFjzFco0efUZdFsFSnu7Y0ejgdy1DpymYFCLUVgx5F0zLetVQZ/z87jHAljAfu5+a8cLIWmn52L7kC9LAVOxI5XJ040W/a6Pus=
+	t=1724080521; cv=none; b=XNAIP79cU8TcM7zu2hXs36eki2FVdh8V5BIstWF15vYUk1JY4/jfouES++zwcE9w25ViMMtldKxFkR8fO/OAcAhBZeegq4/q1p64B5Ji8ZXIw8qjA8fn6hlxTP1VhZT0am41thYZkFQJEcXVmetLM+cFLLdiNuzqiyqL00kLJ8w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724080517; c=relaxed/simple;
-	bh=E50KkIeJzI2UI/KUMPCFchsUF1az6c7lpuIqxhkdzhs=;
-	h=Date:Mime-Version:Message-ID:Subject:From:To:Cc:Content-Type; b=P+Ad0K72nWDLWqfvn/sDUF49fKdw+Fw3h8YkpXyjQAHcogmW5Diyg8obawKkPcWvhlipo4p5BWZTMAGrK++Vn83crsWKhVkNJRcRqiLG1Tb582APSkuZG1Knsl+VMYjSSlN/9B/se4r3CN5/1uaX74kp0SfUD8yI+LVuJY0Rc30=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--surenb.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=w0FZSam9; arc=none smtp.client-ip=209.85.128.201
+	s=arc-20240116; t=1724080521; c=relaxed/simple;
+	bh=QNtt7nrudv1sg5/MkXuYHkfQoV0QFVSTo3l1TW67kZ8=;
+	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
+	 To:Cc:Content-Type; b=czHHnKvW3UwXTdDWxYiF9qbBjMGffRB5PhK/msLkS26sjOxfdF/W1QudjozfI3x1+Bj6yOq2h9y3qJG8Ua0H+lcHeoKBdGNzecnht1yktiC7dpx05Smn25/D0JLoNVCrLHq0f0hs2BG15r87vZfxgvSEH/Iv68D5Vte971dSfPw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--surenb.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=gbkwS2QI; arc=none smtp.client-ip=209.85.128.202
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--surenb.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="w0FZSam9"
-Received: by mail-yw1-f201.google.com with SMTP id 00721157ae682-6ad660add0fso56109537b3.0
-        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2024 08:15:15 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="gbkwS2QI"
+Received: by mail-yw1-f202.google.com with SMTP id 00721157ae682-6b052c5939cso38877427b3.1
+        for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2024 08:15:19 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1724080515; x=1724685315; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:mime-version:date:from:to:cc:subject
-         :date:message-id:reply-to;
-        bh=A78JLOnxz0DbZH9XkqfQj68kUgx61DwizYim3aGCBzo=;
-        b=w0FZSam90qoqcmPtroBX1SfaxkIY3OAsY76yGUY8YBorHDlykooSOtSI7QQPkFd1Qs
-         RYqYsb/YM9dHdZC0EFvgJTgVWEek+zR/1tkKLXnSsW5QiuOOLTmhki+gKZ2x7/O2YCT0
-         PMgeuDbvhb9LM6H7Tgfqq5ufU9OzYLyUTTh0D+K60RncIDgkZIPBETUJ1pDVSZsT8gRx
-         stRTX3O2moscXjYzOHjgTwKjvDjB4UiI7KZU+XU6FbVyASe1VjruaRQgIKC92IHABrdn
-         qgOUeoTnFMo/TTN6ustLebs9tk1spGwDt8dylK/AytdvtSuoFyBjNwMwUv6xZ3LBaajO
-         yA1A==
+        d=google.com; s=20230601; t=1724080519; x=1724685319; darn=vger.kernel.org;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:from:to:cc:subject:date:message-id:reply-to;
+        bh=VNxQmk8ltcvVRdy69Ay4z75/w4T2K+JdAEqULautUD8=;
+        b=gbkwS2QIYAkkgho/K3KLMPU3GDoh/vN5KwMbDVyNZaxvIn0iPQiHX+rfy1Y0OlbW0j
+         jtAcJ8WlTMiLfx/ZxAdl+f+z2AhtkO9LQbqzYiHcRGagS78yme0A6iHBbj2azUhHzstW
+         y2qfAbU8Ik2BP3huTxKc1DNXVF9KNKfC4pfUtebxL0CG0GwJbCcNVjfOy9aa+TNGv8bg
+         v/uZe+koizstmjiXkzJIbU2x3j8KOCiPji3BHVk3VLdafke9HJJP6IDWrYp4Fc/vGkoi
+         z0xN83bWNynPCoE6gpJvmR+OZVF7XHgmntpRYLWxX0k/34/kRlrzTGJ70SIumCiJn5J9
+         faoQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724080515; x=1724685315;
-        h=cc:to:from:subject:message-id:mime-version:date:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=A78JLOnxz0DbZH9XkqfQj68kUgx61DwizYim3aGCBzo=;
-        b=bEENzcEhqVwee4ExXBb31mnZUZryF84AVgPgVeliWySjo8B0E1sFSKtbi8bTBTN8/9
-         fNQG1gOOCQnUl7SfYzKY+7omGScI3tCzPR3xERMn46sQ5hAp3rHdLitlkcAjunNVuclA
-         hqon/ZMm0VdZkWAIxDFH/Lsl14XqbGceomT1sq5I7uLt356RwlunWnJ55JsZ1sPlbCus
-         BmgPCVN2NqdGS56eXoSDvf8zUZa034s9eeOyWYiqB0nBo6EZe1qE8tf7cRBM2CNwlf1R
-         XzVsm0SrND2uYLrzixck68cvwL5voh6r4IPSZKSBAE4pvDNWY8Fb8iasovClmf2Ifn78
-         qDDQ==
-X-Forwarded-Encrypted: i=1; AJvYcCXbENNLMqpDw/wIxp1b14BKk9Fhz+wUkMQd24YgYihbvw0B1GqzJHocmNHeFdKw0vrA/v68JCIN3BSF@vger.kernel.org
-X-Gm-Message-State: AOJu0Yz5tjb1BBuQFkBOw8+YVfsrjRgTxlQ4JaouhPO+Qvh6nGBnX4WH
-	wweYq32f/b1dgYwZElkIQg69P5wKMEUnAvNILHS2PB7GtigKa0xbzSCJSHJByUyZCd7n63/lEEV
-	SmQ==
-X-Google-Smtp-Source: AGHT+IGn4wFVR9Ch9/vmxxSH0rhO9DsLWlVWUxLzfz71jRdOXd7qjKZt0JLceuItsIaKthQC3GCSSl3ZiT0=
+        d=1e100.net; s=20230601; t=1724080519; x=1724685319;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=VNxQmk8ltcvVRdy69Ay4z75/w4T2K+JdAEqULautUD8=;
+        b=j4ZZ7qPrSKAy/dAjVxNHDgVyPw2s7+N+cPLE9wA6V30bNMP0rbW5GLLBtlWj8QB9Xj
+         e693f/iBOx7VxrFTFA+6er1cug+nWnwv1sl41hFNuGj/o25eruOrM5EwDOD7eCjGZa5P
+         d/DVocwxh6hbBD79TgmcpndFfj+71XlGaSpfu3RmwPv91BA4Kzub3pS0pfXtRBoxBiJM
+         TIOY11/NZsQTHi8UtDVNkJhVPJMPk6YczaSbP0aCxXrhaQfSjf7n+pszk4VBXoWy6Wu5
+         PygyZ/vrT43zIctavJTjCjxh4fLPOME/FlvQpXgYP718TcH4vxQPTT8b7HmSPKhKYM5a
+         itfg==
+X-Forwarded-Encrypted: i=1; AJvYcCXb3Y8pY6mzcZ+FJsMlnToM+JBbDTxr37jdX0mx3SPoFYLOwq8zV2QlkTk6GPVXFXUrRHp4B8hfkNYb@vger.kernel.org
+X-Gm-Message-State: AOJu0YyOmDwxNzBGFZ5tLSlLhNWLAic+Z4reZtUfbpRf0bxSwmxhu3i0
+	P0bguxX0Rd4xzhxzOajZMclO90mAVkaSRmR+spqX5RhWVBzz4lvUg+GDiWCIZ4CDHGJnnec/az2
+	0kw==
+X-Google-Smtp-Source: AGHT+IFc3XJvlFR9abCJBzx6LfnqtUZrq0wbNXmeGLgIyv9XIwJOTdcKULoLpjDTZrzYGsBBSDXaDMNiqLo=
 X-Received: from surenb-desktop.mtv.corp.google.com ([2620:15c:211:201:5aea:cf26:50f4:76db])
- (user=surenb job=sendgmr) by 2002:a05:690c:2b06:b0:6b2:e9cd:ede9 with SMTP id
- 00721157ae682-6b2e9cdef05mr783597b3.3.1724080514873; Mon, 19 Aug 2024
- 08:15:14 -0700 (PDT)
-Date: Mon, 19 Aug 2024 08:15:06 -0700
+ (user=surenb job=sendgmr) by 2002:a05:690c:b8e:b0:648:2f1d:1329 with SMTP id
+ 00721157ae682-6b1d38cac51mr8818697b3.1.1724080518814; Mon, 19 Aug 2024
+ 08:15:18 -0700 (PDT)
+Date: Mon, 19 Aug 2024 08:15:08 -0700
+In-Reply-To: <20240819151512.2363698-1-surenb@google.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
+References: <20240819151512.2363698-1-surenb@google.com>
 X-Mailer: git-send-email 2.46.0.184.g6999bdac58-goog
-Message-ID: <20240819151512.2363698-1-surenb@google.com>
-Subject: [PATCH 0/5] page allocation tag compression
+Message-ID: <20240819151512.2363698-3-surenb@google.com>
+Subject: [PATCH 2/5] alloc_tag: eliminate alloc_tag_ref_set
 From: Suren Baghdasaryan <surenb@google.com>
 To: akpm@linux-foundation.org
 Cc: kent.overstreet@linux.dev, corbet@lwn.net, arnd@arndb.de, 
@@ -74,68 +77,81 @@ Cc: kent.overstreet@linux.dev, corbet@lwn.net, arnd@arndb.de,
 	linux-modules@vger.kernel.org, kernel-team@android.com, surenb@google.com
 Content-Type: text/plain; charset="UTF-8"
 
-This patchset implements several improvements:
-1. Gracefully handles module unloading while there are used allocations
-allocated from that module;
-2. Provides an option to reduce memory overhead from storing page
-allocation references by indexing allocation tags;
-3. Provides an option to store page allocation tag references in the
-page flags, removing dependency on page extensions and eliminating the
-memory overhead from storing page allocation references (~0.2% of total
-system memory).
-4. Improves page allocation performance when CONFIG_MEM_ALLOC_PROFILING
-is enabled by eliminating page extension lookup. Page allocation
-performance overhead is reduced from 14% to 5.5%.
+To simplify further refactoring, open-code the only two callers
+of alloc_tag_ref_set().
 
-Patch #1 copies module tags into virtually contiguous memory which
-serves two purposes:
-- Lets us deal with the situation when module is unloaded while there
-are still live allocations from that module. Since we are using a copy
-version of the tags we can safely unload the module. Space and gaps in
-this contiguous memory are managed using a maple tree.
-- Enables simple indexing of the tags in the later patches.
+Signed-off-by: Suren Baghdasaryan <surenb@google.com>
+---
+ include/linux/alloc_tag.h   | 25 ++-----------------------
+ include/linux/pgalloc_tag.h | 12 +++++++++++-
+ 2 files changed, 13 insertions(+), 24 deletions(-)
 
-Preallocated virtually contiguous memory size can be configured using
-max_module_alloc_tags kernel parameter.
-
-Patch #2 is a code cleanup to simplify later changes.
-
-Patch #3 abstracts page allocation tag reference to simplify later
-changes.
-
-Patch #4 lets us control page allocation tag reference sizes and
-introduces tag indexing.
-
-Patch #5 adds a config to store page allocation tag references inside
-page flags if they fit.
-
-Patchset applies to mm-unstable.
-
-Suren Baghdasaryan (5):
-  alloc_tag: load module tags into separate continuous memory
-  alloc_tag: eliminate alloc_tag_ref_set
-  alloc_tag: introduce pgalloc_tag_ref to abstract page tag references
-  alloc_tag: make page allocation tag reference size configurable
-  alloc_tag: config to store page allocation tag refs in page flags
-
- .../admin-guide/kernel-parameters.txt         |   4 +
- include/asm-generic/codetag.lds.h             |  19 ++
- include/linux/alloc_tag.h                     |  46 ++-
- include/linux/codetag.h                       |  38 ++-
- include/linux/mmzone.h                        |   3 +
- include/linux/page-flags-layout.h             |  10 +-
- include/linux/pgalloc_tag.h                   | 257 ++++++++++++---
- kernel/module/main.c                          |  67 ++--
- lib/Kconfig.debug                             |  36 ++-
- lib/alloc_tag.c                               | 300 ++++++++++++++++--
- lib/codetag.c                                 | 105 +++++-
- mm/mm_init.c                                  |   1 +
- mm/page_ext.c                                 |   2 +-
- scripts/module.lds.S                          |   5 +-
- 14 files changed, 759 insertions(+), 134 deletions(-)
-
-
-base-commit: 651c8c1d735983040bec4f71d0e2e690f3c0fc2d
+diff --git a/include/linux/alloc_tag.h b/include/linux/alloc_tag.h
+index 99cbc7f086ad..21e3098220e3 100644
+--- a/include/linux/alloc_tag.h
++++ b/include/linux/alloc_tag.h
+@@ -143,36 +143,15 @@ static inline void alloc_tag_add_check(union codetag_ref *ref, struct alloc_tag
+ static inline void alloc_tag_sub_check(union codetag_ref *ref) {}
+ #endif
+ 
+-/* Caller should verify both ref and tag to be valid */
+-static inline void __alloc_tag_ref_set(union codetag_ref *ref, struct alloc_tag *tag)
+-{
+-	ref->ct = &tag->ct;
+-	/*
+-	 * We need in increment the call counter every time we have a new
+-	 * allocation or when we split a large allocation into smaller ones.
+-	 * Each new reference for every sub-allocation needs to increment call
+-	 * counter because when we free each part the counter will be decremented.
+-	 */
+-	this_cpu_inc(tag->counters->calls);
+-}
+-
+-static inline void alloc_tag_ref_set(union codetag_ref *ref, struct alloc_tag *tag)
+-{
+-	alloc_tag_add_check(ref, tag);
+-	if (!ref || !tag)
+-		return;
+-
+-	__alloc_tag_ref_set(ref, tag);
+-}
+-
+ static inline void alloc_tag_add(union codetag_ref *ref, struct alloc_tag *tag, size_t bytes)
+ {
+ 	alloc_tag_add_check(ref, tag);
+ 	if (!ref || !tag)
+ 		return;
+ 
+-	__alloc_tag_ref_set(ref, tag);
++	ref->ct = &tag->ct;
+ 	this_cpu_add(tag->counters->bytes, bytes);
++	this_cpu_inc(tag->counters->calls);
+ }
+ 
+ static inline void alloc_tag_sub(union codetag_ref *ref, size_t bytes)
+diff --git a/include/linux/pgalloc_tag.h b/include/linux/pgalloc_tag.h
+index 207f0c83c8e9..244a328dff62 100644
+--- a/include/linux/pgalloc_tag.h
++++ b/include/linux/pgalloc_tag.h
+@@ -103,7 +103,17 @@ static inline void pgalloc_tag_split(struct page *page, unsigned int nr)
+ 	page_ext = page_ext_next(page_ext);
+ 	for (i = 1; i < nr; i++) {
+ 		/* Set new reference to point to the original tag */
+-		alloc_tag_ref_set(codetag_ref_from_page_ext(page_ext), tag);
++		ref = codetag_ref_from_page_ext(page_ext);
++		alloc_tag_add_check(ref, tag);
++		if (ref) {
++			ref->ct = &tag->ct;
++			/*
++			 * We need in increment the call counter every time we split a
++			 * large allocation into smaller ones because when we free each
++			 * part the counter will be decremented.
++			 */
++			this_cpu_inc(tag->counters->calls);
++		}
+ 		page_ext = page_ext_next(page_ext);
+ 	}
+ out:
 -- 
 2.46.0.184.g6999bdac58-goog
 
