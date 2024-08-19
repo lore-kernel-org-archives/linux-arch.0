@@ -1,311 +1,138 @@
-Received: from mail-yw1-f202.google.com (mail-yw1-f202.google.com [209.85.128.202])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fhigh5-smtp.messagingengine.com (fhigh5-smtp.messagingengine.com [103.168.172.156])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0BE715A849
-	for <linux-arch@vger.kernel.org>; Mon, 19 Aug 2024 03:55:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.202
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BEFA3156C65;
+	Mon, 19 Aug 2024 07:13:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.156
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724039724; cv=none; b=AxDLAtG4TC6Pot5YSRV3xg2UOE+2JtcgEfiqjv4Lg3o5+arZ+QbJN0GuTlRUw/eudQHx1E5M1BYCpQbA0lxHRufxYYB7p1Y6U1ARo21yOlG+vT10JSeud49tpOeuZ1BioOKqHyt5pP6dVV/wAc3B1xSvusEu527dzjEazzrP71o=
+	t=1724051626; cv=none; b=GDTaRHgQ2s269FwcCU5CqKTFms378DB/pOqlBiXkILADQJRfEhZYs0dqDXcO7WKwMvBmZzloNFVLh0yoeFmtB+TGaXmi0rrUPsUCF5q9MkGf8RmkbyInf3Qx+hhiX3bukhYhiXJODrQlgKYa4OD1Vswi/TSmu4hWyc41lY8VG3E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724039724; c=relaxed/simple;
-	bh=PPQ2TBgVSA5ptdS1uXtTClgYd1XhgNnYEziAm9uUxX8=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=UtFzTEL68Vzhee+Y9VoIjKVjgRXqnJUb2odYSVd/3TWRZ2Dt3RGkd7JJRa9WXlObX41JEa2Ql43WFOuyKb6f3PQVo2vouxr9QYLMqwPCnxn53sSy/tARpF/VGZBb/SjOvtfNESRvukL+OnCvjirVC7mfCznxVzj7tejvpZ8OThI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--almasrymina.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=udpdownh; arc=none smtp.client-ip=209.85.128.202
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--almasrymina.bounces.google.com
+	s=arc-20240116; t=1724051626; c=relaxed/simple;
+	bh=+uyVveA05i+0z9RqiARBKsUQTWytXmBTj23JiyhLifc=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=F20PRWiA/1UShe9ijSuTSGS3YcLC+dCmi317wiEnI99Qwxzj2c7X6faDiOPuFlvA4DU6fUdhsjY960aqUrZwoPHgEm8FRSqYPGQOCKnkkmA26F37bUd3W7uSlmlu+MSdNTWDc84DTq3S/1GxmlKBQthrdwW6iJ+ZuiiLNN+qt6I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=jUWg3ftF; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=GYoyqUYc; arc=none smtp.client-ip=103.168.172.156
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="udpdownh"
-Received: by mail-yw1-f202.google.com with SMTP id 00721157ae682-6af8f7a30dbso68160787b3.2
-        for <linux-arch@vger.kernel.org>; Sun, 18 Aug 2024 20:55:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1724039717; x=1724644517; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=hPapFkFm/Emn5E+NKHs5wZxA+eyN6xzbSo8b+H6Rcvo=;
-        b=udpdownhuV5Iu76bs1wCpHswX+/kaAPjTbE/I0u0GU8yvZpfzakxNtlW9tjVUwVgwi
-         m+xyz0v+Rk2YDjIG3LSE1EtiV5Eetwn0qG0IS/tjV1vULwR1G7aMC+RnHbP/nU1zVOBn
-         OQ31jkDXyTUgHB8vbZJmmIgGynnyyw3X7BXpP5TCUNn7BggtAs3ZvyHTbPL44WXh9yus
-         jHTf6PP1mkwfK4YHy3i8odgd9XKhshdRq7xIrFxfKkxSuN6avnrg1vSlotTzM4TDhJ9O
-         ccxcYpPWD7rHpWKc7TS9lll8LEIXCpqd7mwCCyNq+8D1wzu4mrfT/X1NAetoCsczMtTb
-         0urw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724039717; x=1724644517;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=hPapFkFm/Emn5E+NKHs5wZxA+eyN6xzbSo8b+H6Rcvo=;
-        b=miC/042qVlp9HRtQtQlsHngeq1l0+JiWAZ8jFqY0wVMbX4gYYbA5eh5c7ml4Ub1uZY
-         9QWBy1/Ti+xNvsmliRFHgNpyhx5CQ27Oao/3uT9t8Jc17K+fnyTr//uxrK/Jk7Urzyk7
-         UrJ3V6a7bmz2MiHNfNYftDxPJfUZh59WzPzZrRe9ikIfSaqZprYv/AftcwIfB0GqWkYV
-         RNHIVQ1v0+SQAPcLkxUF2ZD+/5UPtM5xKNuGZ3kTnL+ZJKvq3CmC17G0RlR+eIf8qh7V
-         6PTPqA5DL2RbjE9xVn73tzd+jhe6masEuFPWdZNpUj9l8RUwQ7hOLAAgkhiILagHkgvR
-         v2VQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVtq3w4xKk5Lh30bu5swIg+AyomeEIxBDp1W8bBgTfXL+znA2aM8OaJrRH/MhgFl97N5o8+1HYX3J4UrQ+bRV4f89GFk1ksZPJejA==
-X-Gm-Message-State: AOJu0YzVZMieZh/IzuJ6B2adxv8BAlfv8jeg576hkKqtonCeDCD+obbJ
-	pgzaGtfLINxtoVW3g9wEGHNSiUrIMXcqrIc+lvhEOvw+raAa196QX7qlSHx2VGTeeTP45R3sVPJ
-	GcTiXKd8jCQgFNSf7brT+MA==
-X-Google-Smtp-Source: AGHT+IE595XwTUUDYFu7glIYVz3bvBcAAZ1ahbx/lc1/M+W958f66sVN6SoLK5Q2Bl1M8HEA5y2izG6K2nU/xMM9UA==
-X-Received: from almasrymina.c.googlers.com ([fda3:e722:ac3:cc00:20:ed76:c0a8:4bc5])
- (user=almasrymina job=sendgmr) by 2002:a25:d3c3:0:b0:e11:6a73:b0d with SMTP
- id 3f1490d57ef6-e1180e8d1f4mr16114276.6.1724039709762; Sun, 18 Aug 2024
- 20:55:09 -0700 (PDT)
-Date: Mon, 19 Aug 2024 03:54:45 +0000
-In-Reply-To: <20240819035448.2473195-1-almasrymina@google.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="jUWg3ftF";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="GYoyqUYc"
+Received: from phl-compute-04.internal (phl-compute-04.nyi.internal [10.202.2.44])
+	by mailfhigh.nyi.internal (Postfix) with ESMTP id B9A1F114AB0C;
+	Mon, 19 Aug 2024 03:13:42 -0400 (EDT)
+Received: from phl-imap-11 ([10.202.2.101])
+  by phl-compute-04.internal (MEProxy); Mon, 19 Aug 2024 03:13:42 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1724051622;
+	 x=1724138022; bh=/AyYONc647/SgUmFrxZcnoWv2j0dTReNKV8vQzoChbc=; b=
+	jUWg3ftF1YSQF0BsQx4GdBfXMCG5hYnFr6QCEsUPOY2kpptsz8kAX185nL9axqHi
+	5rqiFd4XDSbPcj9q6TraI6YfOlkJI8YKhwdoF7FFZ2KJQ5Dy0u+TIzqxGOyrz5SA
+	4FQc+TACqXEiZd4HNIPzHMvDzgK2GhSanBfwn9o7cADgNtpZUtR20gDzSgdrmmKF
+	Fq2YFaSTqEdxr9Fh453kPm1k0P1+wf1FF1DT7RHAzZXZ0S+K5oMCnTF6AR5GgnHZ
+	YDWgPZiaVTYyQuk+/sy16a5uis/9ojDjTKRtsSCwqMecWPbhG8Q7OqWvDd+NZ/xQ
+	zGDio0U8WP9ApabMg3Qg0w==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1724051622; x=
+	1724138022; bh=/AyYONc647/SgUmFrxZcnoWv2j0dTReNKV8vQzoChbc=; b=G
+	YoyqUYcJMNdgy/GMlrH4Pb5w+c2ZKBvdOrL/rPNdCxNqpAWA4a/UU2frnulOnVcM
+	+rF9x7VioTP/znsprPnq6Dgs8KLKUWaiKvrBMtbLG/bAJ+FJyQiE6qBuF13I7Vnp
+	13JzIUbi9IyzbncMFXajo9/6NjqIYK4VaventJpGBgr1G7bc9EgD56LMT748/pxw
+	rjFwK9NZFvXAM+UKWj/dCC9m7vQLcjxkXMRvX+ZVtd1zHj/YFfHFMUFjl+/uUGA9
+	ggcGNPImafFlOUYBLD944JsxIvgNQmTEob3TunfZ7sUXoY5Lu2CWmjgNTCLAmELI
+	WAiaLOKzIApjrhNpT8/pA==
+X-ME-Sender: <xms:pvDCZmFLIFc2c9QGi3NSd5Axa7HkCjkBLI5QSlm51H3HPQHvCZ7Kwg>
+    <xme:pvDCZnVa2_8Vc4mauW7RP-g0C-uyXdVoJUqy7TTYUrkv0IPSBuoVOUsVXaKt2J95a
+    E47GrfTyTz-avrOe_g>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddruddufedguddulecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
+    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
+    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthejredtredt
+    tdenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
+    druggvqeenucggtffrrghtthgvrhhnpefhtdfhvddtfeehudekteeggffghfejgeegteef
+    gffgvedugeduveelvdekhfdvieenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
+    epmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopeej
+    pdhmohguvgepshhmthhpohhuthdprhgtphhtthhopegrnhhshhhumhgrnhdrkhhhrghnug
+    hurghlsegrrhhmrdgtohhmpdhrtghpthhtohephihurhihrdhnohhrohhvsehgmhgrihhl
+    rdgtohhmpdhrtghpthhtoheprghruggssehkvghrnhgvlhdrohhrghdprhgtphhtthhope
+    grkhhpmheslhhinhhugidqfhhouhhnuggrthhiohhnrdhorhhgpdhrtghpthhtoheplhhi
+    nhhugiesrhgrshhmuhhsvhhilhhlvghmohgvshdrughkpdhrtghpthhtoheplhhinhhugi
+    dqrghrtghhsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidq
+    khgvrhhnvghlsehvghgvrhdrkhgvrhhnvghlrdhorhhg
+X-ME-Proxy: <xmx:pvDCZgL65tQK4uFa1m8vw5JgrS7BxiQRyFMZvq2Lw8I_PBpFQkNSuQ>
+    <xmx:pvDCZgGrsaWlxQeUqExGZk_Jycvlw8wE1oaknEfGBqZXck7T_2eQrA>
+    <xmx:pvDCZsV5eOsspMpSfCTqM9wXb3r7bASi3mqiPm9QaHQxSewey30IiQ>
+    <xmx:pvDCZjNzNRg-SW_FLzQ57kjjvEwHZuj7lUrAwZuAg9UMRtPlmF59Tg>
+    <xmx:pvDCZuJKK5N6HhoyYcba9eJ-ahQ2Nw441V1vUtLM_sDaTh3uy28_CAjF>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.nyi.internal (Postfix, from userid 501)
+	id 2E57516005E; Mon, 19 Aug 2024 03:13:42 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20240819035448.2473195-1-almasrymina@google.com>
-X-Mailer: git-send-email 2.46.0.184.g6999bdac58-goog
-Message-ID: <20240819035448.2473195-11-almasrymina@google.com>
-Subject: [PATCH net-next v20 10/13] net: add SO_DEVMEM_DONTNEED setsockopt to
- release RX frags
-From: Mina Almasry <almasrymina@google.com>
-To: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, 
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
-	sparclinux@vger.kernel.org, linux-trace-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org, 
-	bpf@vger.kernel.org, linux-media@vger.kernel.org, 
-	dri-devel@lists.freedesktop.org
-Cc: Mina Almasry <almasrymina@google.com>, "David S. Miller" <davem@davemloft.net>, 
-	Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
-	Donald Hunter <donald.hunter@gmail.com>, Jonathan Corbet <corbet@lwn.net>, 
-	Richard Henderson <richard.henderson@linaro.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, 
-	Matt Turner <mattst88@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
-	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, 
-	Andreas Larsson <andreas@gaisler.com>, Jesper Dangaard Brouer <hawk@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Steffen Klassert <steffen.klassert@secunet.com>, 
-	Herbert Xu <herbert@gondor.apana.org.au>, David Ahern <dsahern@kernel.org>, 
-	Willem de Bruijn <willemdebruijn.kernel@gmail.com>, Shuah Khan <shuah@kernel.org>, 
-	Alexei Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, 
-	John Fastabend <john.fastabend@gmail.com>, Sumit Semwal <sumit.semwal@linaro.org>, 
-	"=?UTF-8?q?Christian=20K=C3=B6nig?=" <christian.koenig@amd.com>, Bagas Sanjaya <bagasdotme@gmail.com>, 
-	Christoph Hellwig <hch@infradead.org>, Nikolay Aleksandrov <razor@blackwall.org>, Taehee Yoo <ap420073@gmail.com>, 
-	Pavel Begunkov <asml.silence@gmail.com>, David Wei <dw@davidwei.uk>, Jason Gunthorpe <jgg@ziepe.ca>, 
-	Yunsheng Lin <linyunsheng@huawei.com>, Shailend Chand <shailend@google.com>, 
-	Harshitha Ramamurthy <hramamurthy@google.com>, Shakeel Butt <shakeel.butt@linux.dev>, 
-	Jeroen de Borst <jeroendb@google.com>, Praveen Kaligineedi <pkaligineedi@google.com>, 
-	Willem de Bruijn <willemb@google.com>, Kaiyuan Zhang <kaiyuanz@google.com>
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Date: Mon, 19 Aug 2024 09:13:08 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Anshuman Khandual" <anshuman.khandual@arm.com>,
+ linux-kernel@vger.kernel.org
+Cc: "Ard Biesheuvel" <ardb@kernel.org>,
+ "Andrew Morton" <akpm@linux-foundation.org>,
+ "Yury Norov" <yury.norov@gmail.com>,
+ "Rasmus Villemoes" <linux@rasmusvillemoes.dk>,
+ Linux-Arch <linux-arch@vger.kernel.org>
+Message-Id: <3b219e52-1d2a-4e6d-adff-efbab3e2282d@app.fastmail.com>
+In-Reply-To: <090eb237-10f4-4358-be07-1eb8d30c3ec1@arm.com>
+References: <20240801071646.682731-1-anshuman.khandual@arm.com>
+ <20240801071646.682731-2-anshuman.khandual@arm.com>
+ <090eb237-10f4-4358-be07-1eb8d30c3ec1@arm.com>
+Subject: Re: [PATCH V3 1/2] uapi: Define GENMASK_U128
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-Add an interface for the user to notify the kernel that it is done
-reading the devmem dmabuf frags returned as cmsg. The kernel will
-drop the reference on the frags to make them available for reuse.
+On Fri, Aug 16, 2024, at 08:28, Anshuman Khandual wrote:
+>
+> This is caused by ((unsigned __int128)(1) << (128)) which is generated
+> via (h + 1) element in __GENMASK_U128().
+>
+> #define _BIT128(x)	((unsigned __int128)(1) << (x))
+> #define __GENMASK_U128(h, l) \
+> 	((_BIT128((h) + 1)) - (_BIT128(l)))
 
-Signed-off-by: Willem de Bruijn <willemb@google.com>
-Signed-off-by: Kaiyuan Zhang <kaiyuanz@google.com>
-Signed-off-by: Mina Almasry <almasrymina@google.com>
-Reviewed-by: Pavel Begunkov <asml.silence@gmail.com>
-Reviewed-by: Eric Dumazet <edumazet@google.com>
+Right, makes sense.
 
----
+>
+> The most significant bit in the generate mask can be added separately
+> , thus voiding that extra shift. The following patch solves the build
+> problem.
+>
+> diff --git a/include/uapi/linux/bits.h b/include/uapi/linux/bits.h
+> index 4d4b7b08003c..4e50f635c6d9 100644
+> --- a/include/uapi/linux/bits.h
+> +++ b/include/uapi/linux/bits.h
+> @@ -13,6 +13,6 @@
+>           (~_ULL(0) >> (__BITS_PER_LONG_LONG - 1 - (h))))
+> 
+>  #define __GENMASK_U128(h, l) \
+> -       ((_BIT128((h) + 1)) - (_BIT128(l)))
+> +       (((_BIT128(h)) - (_BIT128(l))) | (_BIT128(h)))
 
-v16:
-- Use sk_is_tcp().
-- Fix unnamed 128 DONTNEED limit (David).
-- Fix kernel allocating for 128 tokens even if the user didn't ask for
-  that much (Eric).
-- Fix number assignement (Arnd).
+This could probably use a comment then, as it's less intuitive.
 
-v10:
-- Fix leak of tokens (Nikolay).
+Another solution might be to use a double shift, as in
 
-v7:
-- Updated SO_DEVMEM_* uapi to use the next available entry (Arnd).
+#define __GENMASK_U128(h, l) \
+       ((_BIT128((h)) << 1) - (_BIT128(l)))
 
-v6:
-- Squash in locking optimizations from edumazet@google.com. With his
-  changes we lock the xarray once per sock_devmem_dontneed operation
-  rather than once per frag.
+but I have not checked if this is correct for all inputs
+or if it avoids the warning. Your version looks fine to
+me otherwise.
 
-Changes in v1:
-- devmemtoken -> dmabuf_token (David).
-- Use napi_pp_put_page() for refcounting (Yunsheng).
-- Fix build error with missing socket options on other asms.
-
----
- arch/alpha/include/uapi/asm/socket.h  |  1 +
- arch/mips/include/uapi/asm/socket.h   |  1 +
- arch/parisc/include/uapi/asm/socket.h |  1 +
- arch/sparc/include/uapi/asm/socket.h  |  1 +
- include/uapi/asm-generic/socket.h     |  1 +
- include/uapi/linux/uio.h              |  4 ++
- net/core/sock.c                       | 68 +++++++++++++++++++++++++++
- 7 files changed, 77 insertions(+)
-
-diff --git a/arch/alpha/include/uapi/asm/socket.h b/arch/alpha/include/uapi/asm/socket.h
-index ef4656a41058..251b73c5481e 100644
---- a/arch/alpha/include/uapi/asm/socket.h
-+++ b/arch/alpha/include/uapi/asm/socket.h
-@@ -144,6 +144,7 @@
- #define SCM_DEVMEM_LINEAR	SO_DEVMEM_LINEAR
- #define SO_DEVMEM_DMABUF	79
- #define SCM_DEVMEM_DMABUF	SO_DEVMEM_DMABUF
-+#define SO_DEVMEM_DONTNEED	80
- 
- #if !defined(__KERNEL__)
- 
-diff --git a/arch/mips/include/uapi/asm/socket.h b/arch/mips/include/uapi/asm/socket.h
-index 414807d55e33..8ab7582291ab 100644
---- a/arch/mips/include/uapi/asm/socket.h
-+++ b/arch/mips/include/uapi/asm/socket.h
-@@ -155,6 +155,7 @@
- #define SCM_DEVMEM_LINEAR	SO_DEVMEM_LINEAR
- #define SO_DEVMEM_DMABUF	79
- #define SCM_DEVMEM_DMABUF	SO_DEVMEM_DMABUF
-+#define SO_DEVMEM_DONTNEED	80
- 
- #if !defined(__KERNEL__)
- 
-diff --git a/arch/parisc/include/uapi/asm/socket.h b/arch/parisc/include/uapi/asm/socket.h
-index 2b817efd4544..38fc0b188e08 100644
---- a/arch/parisc/include/uapi/asm/socket.h
-+++ b/arch/parisc/include/uapi/asm/socket.h
-@@ -136,6 +136,7 @@
- #define SCM_DEVMEM_LINEAR	SO_DEVMEM_LINEAR
- #define SO_DEVMEM_DMABUF	79
- #define SCM_DEVMEM_DMABUF	SO_DEVMEM_DMABUF
-+#define SO_DEVMEM_DONTNEED	80
- 
- #if !defined(__KERNEL__)
- 
-diff --git a/arch/sparc/include/uapi/asm/socket.h b/arch/sparc/include/uapi/asm/socket.h
-index 00248fc68977..57084ed2f3c4 100644
---- a/arch/sparc/include/uapi/asm/socket.h
-+++ b/arch/sparc/include/uapi/asm/socket.h
-@@ -137,6 +137,7 @@
- #define SCM_DEVMEM_LINEAR        SO_DEVMEM_LINEAR
- #define SO_DEVMEM_DMABUF         0x0058
- #define SCM_DEVMEM_DMABUF        SO_DEVMEM_DMABUF
-+#define SO_DEVMEM_DONTNEED       0x0059
- 
- #if !defined(__KERNEL__)
- 
-diff --git a/include/uapi/asm-generic/socket.h b/include/uapi/asm-generic/socket.h
-index e993edc9c0ee..3b4e3e815602 100644
---- a/include/uapi/asm-generic/socket.h
-+++ b/include/uapi/asm-generic/socket.h
-@@ -139,6 +139,7 @@
- #define SCM_DEVMEM_LINEAR	SO_DEVMEM_LINEAR
- #define SO_DEVMEM_DMABUF	79
- #define SCM_DEVMEM_DMABUF	SO_DEVMEM_DMABUF
-+#define SO_DEVMEM_DONTNEED	80
- 
- #if !defined(__KERNEL__)
- 
-diff --git a/include/uapi/linux/uio.h b/include/uapi/linux/uio.h
-index 3a22ddae376a..d17f8fcd93ec 100644
---- a/include/uapi/linux/uio.h
-+++ b/include/uapi/linux/uio.h
-@@ -33,6 +33,10 @@ struct dmabuf_cmsg {
- 				 */
- };
- 
-+struct dmabuf_token {
-+	__u32 token_start;
-+	__u32 token_count;
-+};
- /*
-  *	UIO_MAXIOV shall be at least 16 1003.1g (5.4.1.1)
-  */
-diff --git a/net/core/sock.c b/net/core/sock.c
-index 9abc4fe25953..df2a2dd6409d 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -124,6 +124,7 @@
- #include <linux/netdevice.h>
- #include <net/protocol.h>
- #include <linux/skbuff.h>
-+#include <linux/skbuff_ref.h>
- #include <net/net_namespace.h>
- #include <net/request_sock.h>
- #include <net/sock.h>
-@@ -1049,6 +1050,69 @@ static int sock_reserve_memory(struct sock *sk, int bytes)
- 	return 0;
- }
- 
-+#ifdef CONFIG_PAGE_POOL
-+
-+/* This is the number of tokens that the user can SO_DEVMEM_DONTNEED in
-+ * 1 syscall. The limit exists to limit the amount of memory the kernel
-+ * allocates to copy these tokens.
-+ */
-+#define MAX_DONTNEED_TOKENS 128
-+
-+static noinline_for_stack int
-+sock_devmem_dontneed(struct sock *sk, sockptr_t optval, unsigned int optlen)
-+{
-+	unsigned int num_tokens, i, j, k, netmem_num = 0;
-+	struct dmabuf_token *tokens;
-+	netmem_ref netmems[16];
-+	int ret = 0;
-+
-+	if (!sk_is_tcp(sk))
-+		return -EBADF;
-+
-+	if (optlen % sizeof(struct dmabuf_token) ||
-+	    optlen > sizeof(*tokens) * MAX_DONTNEED_TOKENS)
-+		return -EINVAL;
-+
-+	tokens = kvmalloc_array(optlen, sizeof(*tokens), GFP_KERNEL);
-+	if (!tokens)
-+		return -ENOMEM;
-+
-+	num_tokens = optlen / sizeof(struct dmabuf_token);
-+	if (copy_from_sockptr(tokens, optval, optlen)) {
-+		kvfree(tokens);
-+		return -EFAULT;
-+	}
-+
-+	xa_lock_bh(&sk->sk_user_frags);
-+	for (i = 0; i < num_tokens; i++) {
-+		for (j = 0; j < tokens[i].token_count; j++) {
-+			netmem_ref netmem = (__force netmem_ref)__xa_erase(
-+				&sk->sk_user_frags, tokens[i].token_start + j);
-+
-+			if (netmem &&
-+			    !WARN_ON_ONCE(!netmem_is_net_iov(netmem))) {
-+				netmems[netmem_num++] = netmem;
-+				if (netmem_num == ARRAY_SIZE(netmems)) {
-+					xa_unlock_bh(&sk->sk_user_frags);
-+					for (k = 0; k < netmem_num; k++)
-+						WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
-+					netmem_num = 0;
-+					xa_lock_bh(&sk->sk_user_frags);
-+				}
-+				ret++;
-+			}
-+		}
-+	}
-+
-+	xa_unlock_bh(&sk->sk_user_frags);
-+	for (k = 0; k < netmem_num; k++)
-+		WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
-+
-+	kvfree(tokens);
-+	return ret;
-+}
-+#endif
-+
- void sockopt_lock_sock(struct sock *sk)
- {
- 	/* When current->bpf_ctx is set, the setsockopt is called from
-@@ -1211,6 +1275,10 @@ int sk_setsockopt(struct sock *sk, int level, int optname,
- 			ret = -EOPNOTSUPP;
- 		return ret;
- 		}
-+#ifdef CONFIG_PAGE_POOL
-+	case SO_DEVMEM_DONTNEED:
-+		return sock_devmem_dontneed(sk, optval, optlen);
-+#endif
- 	}
- 
- 	sockopt_lock_sock(sk);
--- 
-2.46.0.184.g6999bdac58-goog
-
+    Arnd
