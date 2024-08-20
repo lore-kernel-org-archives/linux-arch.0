@@ -1,57 +1,57 @@
-Received: from mail-ed1-f48.google.com (mail-ed1-f48.google.com [209.85.208.48])
+Received: from mail-ej1-f52.google.com (mail-ej1-f52.google.com [209.85.218.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AF9171917FF
-	for <linux-arch@vger.kernel.org>; Tue, 20 Aug 2024 14:36:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 07FFC191F96
+	for <linux-arch@vger.kernel.org>; Tue, 20 Aug 2024 14:36:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724164581; cv=none; b=IbJrii0gOPIDxp9a3xMf9pk+an2aor8HxdnjkTMpTM+dqmcnCBe8hSkCyNMWYjxUipre+iGF5LqytyQqCWO9b4y6jRPbZS7nMgu/XB5wjWAXhRLsjFxieCZfB+2z/vULfEkMzo5o5AFNLRxEs8hyMS0W6/a4SOW2hijOs7wEecA=
+	t=1724164583; cv=none; b=VoYngyCpGlhUb3UXPYA3yBIf9M/cmbD+TEcVIhqqsT/Vz9Ie0kkJImJ3pI/uX40FG6EwDZF65vkKckUHA/ghU6ZPwbAPncVwpfCCVhA5rbFY+xLks4odKErW3zgthhEdjeFFgRHdEOQEigFrxHhGlcp3HCZ5Das0Cl6K6RSH+6Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724164581; c=relaxed/simple;
-	bh=lmkX3X+lZfdLocHcy9uquvCuB7MX3sjbyBoHFtfeUIs=;
+	s=arc-20240116; t=1724164583; c=relaxed/simple;
+	bh=5S2rS93fK6yMvjrCCxzHJ+5LjG17CGjTYW//cVGBTKI=;
 	h=From:To:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=dhDJo2bFAg0LoTR3f6sr2QT3th53tva0ZEDkT5A/yMZAuaibxSUuRgeOClZSVyZs1nV1gQg1kiakR7nOCusaeazeI+ZfXn5gOYXT08x0YZLg9Q1qlEzQgJmdt4AHIJOuYf1u/h9C0CZHyKFMJU9PnywYs9fYCtz1rAmsFWuMIHs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=GOFbM3ej; arc=none smtp.client-ip=209.85.208.48
+	 MIME-Version; b=bT2hR09CyJdzf69/euQrx46Da3HpeTQvsHpusNKB73J0MlzfAEKUx80qhqVFYYSvu0m0tvSgMsbqFTLJOdmilKbtjTGggwQdrcVUleeckvu0/FpsKQKIidlAT9xmyBgnNCEcEvXcstGVRI/TI7mcVRnTCR5OEEFscRjuD2W15Bs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=R2Bb2H5g; arc=none smtp.client-ip=209.85.218.52
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="GOFbM3ej"
-Received: by mail-ed1-f48.google.com with SMTP id 4fb4d7f45d1cf-5bf0261f162so2092185a12.0
-        for <linux-arch@vger.kernel.org>; Tue, 20 Aug 2024 07:36:16 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="R2Bb2H5g"
+Received: by mail-ej1-f52.google.com with SMTP id a640c23a62f3a-a7aa4bf4d1eso749004266b.0
+        for <linux-arch@vger.kernel.org>; Tue, 20 Aug 2024 07:36:18 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1724164575; x=1724769375; darn=vger.kernel.org;
+        d=suse.com; s=google; t=1724164577; x=1724769377; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=xT6huOC6T7Yu7zfFRkWYs+RyZWH6K8VkXHaDH7bLRdw=;
-        b=GOFbM3ejQrvqPnq3AQiItzlch4kDbEyor+mNzJTzIJ1Tdp5pM9qNbmhYh8YZJWYrcU
-         a9NkZOO3tzPBotazYKDhjjhXKlAJ34B5tiTJqvbEyvCHD7kGqRBYfIpxCQkzu1+rzWrG
-         jx70FKUmqrCkbPJF1smy8fFJyafehS4kHW089dDrtRLbzg792WlTgVdwegXi0OnIl33x
-         IwadkE/9PWDo7MU7EA0yM6v6b+81CqrA5FQ7DyUySclAvW9y6SLGHEj2tiuHSTsClT+I
-         cHS9BPpykW/LplwpQDZ47z5olZaYKFG/IE/56ZGr9q5lZZvZQItIYd+kpIFc+KYVCpH7
-         OBZg==
+        bh=rh2Q70Yw8J0M3uUvlLdvsQJ7GpaTom9Aupmo76o5wP8=;
+        b=R2Bb2H5gXS+3BDftGOGlZCQ+Wyo82Qnw9HqTASkf2sDMPnuFWG0xuyUgR/syYMrosP
+         pwO//CoCHBjRUsreF885hRlCpEvIpc/fm7whEAEprK6EFXrB0SgnU2lDVY8d7JE54aCO
+         ncF9+z3rq97EY5v2DK5N9SeyDjpVysq+sXsCeeUIHjsXaPzeTdxjhR2hoqYS3oce4wJK
+         qXq+YaaY0HsVqMr/yC+C6ZM6Q/Qa+vyIJg+zxq5VirqAmvILbfUvQQfgBZvTstj9yKz5
+         dO05yQIytoyHtAVx191MkqyQDjCsIuToqWyKZZkjwoGmlBjKlMBfqFjsOTVwwHbppGZW
+         rqDg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1724164575; x=1724769375;
+        d=1e100.net; s=20230601; t=1724164577; x=1724769377;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:to:from:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=xT6huOC6T7Yu7zfFRkWYs+RyZWH6K8VkXHaDH7bLRdw=;
-        b=eJ9WyOChPn4ridTetLsSjgxATaGOMyGvWIFNs7NLzBvPXrVj2IwWVjp8yACTWSBreJ
-         UkzeC9CaQc8S01dkRpxedg+7RoFvdhUqshGcNA1G2KZ/31jV5kL3JWq8ya6l9VYNvH/t
-         aqZn12lq9hs+xkkkChqM0Pm6PmJCkVWWNvuf9MNQeWHW0XWJPcjkRw9hjImmvotRCRPA
-         hM6OiaZIQ1g+3Csd1GBFZci9GozxBigP5+e2y//bbckUkAQH7WpQ02xW7YwwsWWOhZPa
-         MzB5IKuqy+gV/zdUtFGN2b43BLQPWlXLW65wHEsfLjhina/PLL5l65I6oskegii+EQKW
-         rgWQ==
-X-Forwarded-Encrypted: i=1; AJvYcCXSBkvx2Y6SgccMUwhVVRtNm/nGatojkVSc6oMWZf7o2+zHlNXlMFiDMdWNllFvf+YREd/kbhogpifY@vger.kernel.org
-X-Gm-Message-State: AOJu0YyBN4aIBHwl0IAPyeo8tdC6yRAbx6OVTVaJ/cNFY1Jfd4h0iW/g
-	xd4zjvRUJ7R9orJzSF8//DYkp8KvKyqncmfjtww3dTXtm7vyEgAyIYTRNbJtbzM=
-X-Google-Smtp-Source: AGHT+IGQKwDr2ogZrSzCgclLvBAiT9X7zYngYAlcDJL0KUFwXPaOBp69ElOzx3FbUUgrmqZUdz3wjQ==
-X-Received: by 2002:a05:6402:520c:b0:5be:fadc:8707 with SMTP id 4fb4d7f45d1cf-5befadc893emr4836516a12.7.1724164574347;
-        Tue, 20 Aug 2024 07:36:14 -0700 (PDT)
+        bh=rh2Q70Yw8J0M3uUvlLdvsQJ7GpaTom9Aupmo76o5wP8=;
+        b=PLNujuftw5irsLrO8b83iBltB9BiEERCyGtsJyOkUQV8HgVmCXQwWmRVr7Z4h3Y74p
+         Rk5R3uwUK2JoA22rcnvn6rohu/LuxnYruxCh48Vy0pM7BFGEAmitvl62+ZMLxyH/N1Zr
+         GAIXg01E+nB6JdfODGi7CTp608Buv+jZ09HO3S+8LepyYiwZoaFVy86AX0Zfz6k9yjoG
+         gn8SA2a/b4D2FIRY1maZThvOOpFGeu8Lsg8weI9tB1UA62d7j0Q/gW3vArbWkB4EgOC+
+         QxsMR73YsA9jd+dBw+GiQMVDBtjrumeqLTpwttmKRq6H/TlDDi5SJJaFTz8Sipnd8d1d
+         sWNg==
+X-Forwarded-Encrypted: i=1; AJvYcCUOk+/UguhUhZRYuW/lyNTsz59BV9o2KQ8IF/MlKeWJK93/zVN6miO3LY0NbpvxhCjXGBUA5fJ4+zetlQ1A+Keur3+hsGHFR/mEPQ==
+X-Gm-Message-State: AOJu0Yz7O1pPm5kWjoSdYQQAFcKB8yagIDlR3N1Aoy97c1PtSLq4nfqy
+	mUTWy610g5opMYENqeg1HvNrXRY+Emb0nkBCrBGXLu4ndHfcnI/Z9nhDURGiR7Y=
+X-Google-Smtp-Source: AGHT+IEGycq7Zes7rT7OOvl2flOQqrkeiAZAc96Hg1g64tQ+uh8+RnXT78ievbR0WEcFfugVqWJabQ==
+X-Received: by 2002:a17:906:d7cb:b0:a7a:c256:3cf with SMTP id a640c23a62f3a-a839292f3fdmr1084910466b.24.1724164576436;
+        Tue, 20 Aug 2024 07:36:16 -0700 (PDT)
 Received: from localhost ([87.13.33.30])
-        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-5bebc0817a8sm6821446a12.84.2024.08.20.07.36.13
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-a83839355f5sm766076166b.106.2024.08.20.07.36.16
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 20 Aug 2024 07:36:14 -0700 (PDT)
+        Tue, 20 Aug 2024 07:36:16 -0700 (PDT)
 From: Andrea della Porta <andrea.porta@suse.com>
 To: Andrea della Porta <andrea.porta@suse.com>,
 	Michael Turquette <mturquette@baylibre.com>,
@@ -88,9 +88,9 @@ To: Andrea della Porta <andrea.porta@suse.com>,
 	Lee Jones <lee@kernel.org>,
 	Andrew Lunn <andrew@lunn.ch>,
 	Stefan Wahren <wahrenst@gmx.net>
-Subject: [PATCH 03/11] PCI: of_property: Sanitize 32 bit PCI address parsed from DT
-Date: Tue, 20 Aug 2024 16:36:05 +0200
-Message-ID: <8b4fa91380fc4754ea80f47330c613e4f6b6592c.1724159867.git.andrea.porta@suse.com>
+Subject: [PATCH 05/11] vmlinux.lds.h: Preserve DTB sections from being discarded after init
+Date: Tue, 20 Aug 2024 16:36:07 +0200
+Message-ID: <12d0909b1612fb6d2caa42b4fda5e5ae63d623a3.1724159867.git.andrea.porta@suse.com>
 X-Mailer: git-send-email 2.44.0
 In-Reply-To: <cover.1724159867.git.andrea.porta@suse.com>
 References: <cover.1724159867.git.andrea.porta@suse.com>
@@ -102,40 +102,39 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The of_pci_set_address() function parse devicetree PCI range specifier
-assuming the address is 'sanitized' at the origin, i.e. without checking
-whether the incoming address is 32 or 64 bit has specified in the flags.
-In this way an address with no OF_PCI_ADDR_SPACE_MEM64 set in the flagss
-could leak through and the upper 32 bits of the address will be set too,
-and this violates the PCI specs stating that ion 32 bit address the upper
-bit should be zero.
-This could cause mapping translation mismatch on PCI devices (e.g. RP1)
-that are expected to be addressed with a 64 bit address while advertising
-a 32 bit address in the PCI config region.
-Add a check in of_pci_set_address() to set upper 32 bits to zero in case
-the address has no 64 bit flag set.
+The special section .dtb.init.rodata contains dtb and dtbo compiled
+as objects inside the kernel and ends up in .init.data sectiion that
+will be discarded early after the init phase. This is a problem for
+builtin drivers that apply dtb overlay at runtime since this happens
+later (e.g. during bus enumeration) and also for modules that should
+be able to do it dynamically during runtime.
+Move the dtb section to .data.
 
 Signed-off-by: Andrea della Porta <andrea.porta@suse.com>
 ---
- drivers/pci/of_property.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+ include/asm-generic/vmlinux.lds.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/pci/of_property.c b/drivers/pci/of_property.c
-index 5a0b98e69795..77865facdb4a 100644
---- a/drivers/pci/of_property.c
-+++ b/drivers/pci/of_property.c
-@@ -60,7 +60,10 @@ static void of_pci_set_address(struct pci_dev *pdev, u32 *prop, u64 addr,
- 	prop[0] |= flags | reg_num;
- 	if (!reloc) {
- 		prop[0] |= OF_PCI_ADDR_FIELD_NONRELOC;
--		prop[1] = upper_32_bits(addr);
-+		if (FIELD_GET(OF_PCI_ADDR_FIELD_SS, flags) == OF_PCI_ADDR_SPACE_MEM64)
-+			prop[1] = upper_32_bits(addr);
-+		else
-+			prop[1] = 0;
- 		prop[2] = lower_32_bits(addr);
- 	}
- }
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index ad6afc5c4918..3ae9097774b0 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -365,6 +365,7 @@
+ 	TRACE_PRINTKS()							\
+ 	BPF_RAW_TP()							\
+ 	TRACEPOINT_STR()						\
++	KERNEL_DTB()							\
+ 	KUNIT_TABLE()
+ 
+ /*
+@@ -683,7 +684,6 @@
+ 	TIMER_OF_TABLES()						\
+ 	CPU_METHOD_OF_TABLES()						\
+ 	CPUIDLE_METHOD_OF_TABLES()					\
+-	KERNEL_DTB()							\
+ 	IRQCHIP_OF_MATCH_TABLE()					\
+ 	ACPI_PROBE_TABLE(irqchip)					\
+ 	ACPI_PROBE_TABLE(timer)						\
 -- 
 2.35.3
 
