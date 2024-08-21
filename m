@@ -1,127 +1,115 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02B1F7D07D;
-	Wed, 21 Aug 2024 18:03:23 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B3171B2EE2;
+	Wed, 21 Aug 2024 18:10:13 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724263404; cv=none; b=NXuch/NubouTctiBn2In/PcAgz771ATwMwFmNzTGqjviYfsu+J/dj/qDH4Z8SsbIZmxvdjVcvI4dLIR2nTksRPq0qmzX91jYCNp/lrkBC8R/HVz6C9qxajghllLROa72BtB33KgiM/LjdNOR5QzjcE2Yka7DNCoCUdWCqsPmJhg=
+	t=1724263813; cv=none; b=t82yHDDB3NFEEL/dtI+6ccQMU95TR692Jw5aCpapeaqkksjJAg4kiw9WizlATHVjuSAkhTaU/ezdBDy7jxKY/EdUyoJobLa3ZoWTYMjOQ3WaqmYO5uYh4SKmNjIfW8+QyaMV7l9l+0s2lknVhxHkVhlMssy84McFePPvQ/1GlZs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724263404; c=relaxed/simple;
-	bh=/aRfrKXnSS1N7hftXMF8UQpgchZc2Ul1bFVicgzIero=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=JeSFTyWybtepfIkOb135erCIv7limj2W+81DRv9mR3eC9fvykAfnLd0wbuRb24KS9UnS2vdl6gUR3Jyv4qhC37qKqVXAUuAWd0mOZYIlsou2IVHdQWjIStKrog0/EbuiPCz5N4as3qKlziO4FlbiyXA9+LIK/4Woi+anS0jIyoc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=hVf6XBs6; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1724263813; c=relaxed/simple;
+	bh=rRjox4fY0egq63DbDfR2UVfQKrpoEipdNtPZ92fJEcw=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=CnWXTODCUdK7uCrPqJTenh/U/OxpW1uX1ML1a/DNBQTuADKiP+WPPjnCx6pliObtY/7Dz3iPeOf3q2BviYc/WHuPogmCoBlRCfXsmffobhvocPoHLpponIpkovelwq9Knr9DudHkssp2uEMzLj0vgDFh3vrXHCxC6ClpFSlSJfw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Ml6UOk07; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="hVf6XBs6"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E75F2C32781;
-	Wed, 21 Aug 2024 18:03:16 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Ml6UOk07"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 315AEC4AF0E;
+	Wed, 21 Aug 2024 18:10:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1724263403;
-	bh=/aRfrKXnSS1N7hftXMF8UQpgchZc2Ul1bFVicgzIero=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=hVf6XBs6LZ1VwE8MCvsuECUI8wDLGVGOsDoP+OXniIlNf3c8k325LY7GWi5qo07XQ
-	 L5WmJeQ22aV02dE0bx8Uv+TTVGqk392h6XEVMUcuE3/Bquc1IP3YU+Tv4lXSErAX1A
-	 tIPxc5SMCm4nwEyJW3TPX0DkImgCK/ZstcvqRamVSUaFlJI7wlo8DK+zzT1787oA5Q
-	 JymUOdFqBvriwf4scDwIi3uE8VJVvMh86PiQJ2tfnUuD/uI1YznuR8F+kaHBKgHIDU
-	 UKW/QdL/rg3e0M2U1kBKyw20f1xQDKzBhdwPOjgZjNs5tM589OUaEaken7gv5k/X4w
-	 /DkM7l6sKJTGg==
-Date: Wed, 21 Aug 2024 19:03:13 +0100
-From: Mark Brown <broonie@kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will@kernel.org>, Jonathan Corbet <corbet@lwn.net>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Marc Zyngier <maz@kernel.org>,
-	Oliver Upton <oliver.upton@linux.dev>,
-	James Morse <james.morse@arm.com>,
-	Suzuki K Poulose <suzuki.poulose@arm.com>,
-	Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>,
-	Eric Biederman <ebiederm@xmission.com>,
-	Shuah Khan <shuah@kernel.org>,
-	"Rick P. Edgecombe" <rick.p.edgecombe@intel.com>,
-	Deepak Gupta <debug@rivosinc.com>, Ard Biesheuvel <ardb@kernel.org>,
-	Szabolcs Nagy <Szabolcs.Nagy@arm.com>, Kees Cook <kees@kernel.org>,
-	"H.J. Lu" <hjl.tools@gmail.com>,
-	Paul Walmsley <paul.walmsley@sifive.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Florian Weimer <fweimer@redhat.com>,
-	Christian Brauner <brauner@kernel.org>,
-	Thiago Jung Bauermann <thiago.bauermann@linaro.org>,
-	Ross Burton <ross.burton@arm.com>,
-	linux-arm-kernel@lists.infradead.org, linux-doc@vger.kernel.org,
-	kvmarm@lists.linux.dev, linux-fsdevel@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org,
-	linux-kselftest@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-riscv@lists.infradead.org
-Subject: Re: [PATCH v10 23/40] arm64/signal: Set up and restore the GCS
- context for signal handlers
-Message-ID: <d5473c27-167f-46c3-9368-487ed4b657cf@sirena.org.uk>
-References: <20240801-arm64-gcs-v10-0-699e2bd2190b@kernel.org>
- <20240801-arm64-gcs-v10-23-699e2bd2190b@kernel.org>
- <ZsYj0YYMuX1YRBZT@arm.com>
+	s=k20201202; t=1724263813;
+	bh=rRjox4fY0egq63DbDfR2UVfQKrpoEipdNtPZ92fJEcw=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=Ml6UOk07YO3enrVKQ0NNvDl9iFc3hFp4f1iRte27zuWvaJhi3eZYvzOkIXMwf2jtY
+	 keMUS1yVsT+NdB9i0aillOCvpZhd0/wbKYrOEs1TX2q6t/7Exj6ZfIf+gYF+NyWNP9
+	 DGb3HZj3ZOkWwN1Mw8swjA3a8trSybB24Pgs4EkngRtNkvjPHi0/tARtCFE/2LF3U3
+	 QF5FtUkk9Icwxut7BsViLwZUblDd+5qW3wP1nW9bYoOZ2ZbvUv10LBKOUjnRODkSrl
+	 7eIzte7H+FM/aY1HJf8LjAR6Xa4bif9gk86LcblyVuRMBs9HiiWCgkYd6L+xO2GQur
+	 e63b+kYObalcg==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+	id BFF71CE16C8; Wed, 21 Aug 2024 11:10:12 -0700 (PDT)
+From: "Paul E. McKenney" <paulmck@kernel.org>
+To: linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	elver@google.com
+Cc: akpm@linux-foundation.org,
+	tglx@linutronix.de,
+	peterz@infradead.org,
+	torvalds@linux-foundation.org,
+	arnd@arndb.de,
+	geert@linux-m68k.org,
+	kernel-team@meta.com,
+	"Paul E. McKenney" <paulmck@kernel.org>,
+	Andi Shyti <andi.shyti@linux.intel.com>,
+	Palmer Dabbelt <palmer@rivosinc.com>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	linux-sh@vger.kernel.org,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Subject: [PATCH v2 cmpxchg 3/3] sh: Emulate one-byte cmpxchg
+Date: Wed, 21 Aug 2024 11:10:11 -0700
+Message-Id: <20240821181011.2604152-3-paulmck@kernel.org>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <04a6010c-536d-4906-bf7c-b2335a2f54b0@paulmck-laptop>
+References: <04a6010c-536d-4906-bf7c-b2335a2f54b0@paulmck-laptop>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="vOVm5CyTt8nbbuUu"
-Content-Disposition: inline
-In-Reply-To: <ZsYj0YYMuX1YRBZT@arm.com>
-X-Cookie: You are false data.
+Content-Transfer-Encoding: 8bit
 
+Use the new cmpxchg_emu_u8() to emulate one-byte cmpxchg() on sh.
 
---vOVm5CyTt8nbbuUu
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+[ paulmck: Drop two-byte support per Arnd Bergmann feedback. ]
+[ paulmck: Apply feedback from Naresh Kamboju. ]
+[ Apply Geert Uytterhoeven feedback. ]
 
-On Wed, Aug 21, 2024 at 06:28:49PM +0100, Catalin Marinas wrote:
-> On Thu, Aug 01, 2024 at 01:06:50PM +0100, Mark Brown wrote:
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Cc: Andi Shyti <andi.shyti@linux.intel.com>
+Cc: Palmer Dabbelt <palmer@rivosinc.com>
+Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: <linux-sh@vger.kernel.org>
+Acked-by: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+---
+ arch/sh/Kconfig               | 1 +
+ arch/sh/include/asm/cmpxchg.h | 3 +++
+ 2 files changed, 4 insertions(+)
 
-> > +	ret = copy_from_user(&cap, (__user void*)gcspr_el0, sizeof(cap));
-> > +	if (ret)
-> > +		return -EFAULT;
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 1aa3c4a0c5b27..e9103998cca91 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -14,6 +14,7 @@ config SUPERH
+ 	select ARCH_HIBERNATION_POSSIBLE if MMU
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_WANT_IPC_PARSE_VERSION
++	select ARCH_NEED_CMPXCHG_1_EMU
+ 	select CPU_NO_EFFICIENT_FFS
+ 	select DMA_DECLARE_COHERENT
+ 	select GENERIC_ATOMIC64
+diff --git a/arch/sh/include/asm/cmpxchg.h b/arch/sh/include/asm/cmpxchg.h
+index 5d617b3ef78f7..1e5dc5ccf7bf5 100644
+--- a/arch/sh/include/asm/cmpxchg.h
++++ b/arch/sh/include/asm/cmpxchg.h
+@@ -9,6 +9,7 @@
+ 
+ #include <linux/compiler.h>
+ #include <linux/types.h>
++#include <linux/cmpxchg-emu.h>
+ 
+ #if defined(CONFIG_GUSA_RB)
+ #include <asm/cmpxchg-grb.h>
+@@ -56,6 +57,8 @@ static inline unsigned long __cmpxchg(volatile void * ptr, unsigned long old,
+ 		unsigned long new, int size)
+ {
+ 	switch (size) {
++	case 1:
++		return cmpxchg_emu_u8(ptr, old, new);
+ 	case 4:
+ 		return __cmpxchg_u32(ptr, old, new);
+ 	}
+-- 
+2.40.1
 
-> Can the user change GCSPR_EL0 to a non-shadow-stack region, fake the
-> cap before sigreturn? copy_from_user() cannot check it's a GCS page.
-> Does it actually matter?
-
-We don't take any steps to prevent that since I'm not clear that it
-matters, as soon as userspace tries to use the non-GCS page as a GCS it
-will fault.  Given the abundance of ways in which a signal handler can
-cause a crash it didn't seem worth specific code, the cap token check is
-about protecting an actual GCS.
-
-> > +	/*
-> > +	 * Push a cap and the GCS entry for the trampoline onto the GCS.
-> > +	 */
-> > +	put_user_gcs((unsigned long)sigtramp, gcspr_el0 - 2, &ret);
-> > +	put_user_gcs(GCS_SIGNAL_CAP(gcspr_el0 - 1), gcspr_el0 - 1, &ret);
-> > +	if (ret != 0)
-> > +		return ret;
-
-> Doesn't the second put_user_gcs() override the previous ret?
-
-No, we only set ret on error - if the first one faults it'll set ret
-then the second one will either leave it unchanged or write the same
-error code depending on if it fails.  This idiom is used quite a lot in
-the signal code.
-
---vOVm5CyTt8nbbuUu
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iQEzBAABCgAdFiEEreZoqmdXGLWf4p/qJNaLcl1Uh9AFAmbGK+AACgkQJNaLcl1U
-h9DN2ggAhLNXxP2D63m8tGi5TB8JVrMOEHceQoOhWbYArtPnk8DUJUwAVQKy4370
-gWRlpUv3C9Prym8J79cdGllLtJAxGtFL846FtZ4GEzCwI0h42OKyIHIK0ayYDGwT
-7mhlLJAE9x/zLEwqeSMWfUiGAUZs+B5Bcc/qe3gEkuBX9zJ1D4kkt0rUSUB8PR9+
-mb7bq8tnqBOZ2/Ys/rHd7YOVTKnL9fNb3BG6ORxTFjKI/wwea16GhNrhUMcSaGCx
-OjyC6/p6czJQmOMjRXUIRp2W8KD6YyRu8dOKy8imoKaZl7tcxZRwOC2XNWdH+9vC
-sBN7fffBdrQUaKButl4to5BBOZzO0w==
-=oJjq
------END PGP SIGNATURE-----
-
---vOVm5CyTt8nbbuUu--
