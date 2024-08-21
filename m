@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B3171B2EE2;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 780F41B2EEF;
 	Wed, 21 Aug 2024 18:10:13 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724263813; cv=none; b=t82yHDDB3NFEEL/dtI+6ccQMU95TR692Jw5aCpapeaqkksjJAg4kiw9WizlATHVjuSAkhTaU/ezdBDy7jxKY/EdUyoJobLa3ZoWTYMjOQ3WaqmYO5uYh4SKmNjIfW8+QyaMV7l9l+0s2lknVhxHkVhlMssy84McFePPvQ/1GlZs=
+	t=1724263813; cv=none; b=pQ404HRjvn7XPOVGRNCXrqyMydY8YYl/DwPyzj4WGbAEuLzRSoVyCXGR98j9Bt5zOMrDYMeoRGMhmKW2AIVwNwpOqyQpAx0/EfCfeJychBDZJnq2xkqV438I84j/KDrK+hgyx8JL2xA5e61scBCHIMF3fCIG25b9/G+ru8GssAE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1724263813; c=relaxed/simple;
-	bh=rRjox4fY0egq63DbDfR2UVfQKrpoEipdNtPZ92fJEcw=;
+	bh=SsfSYlvMJfbrFJhxWSLRoEWcjcncMnxVxwE9E1US2+0=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=CnWXTODCUdK7uCrPqJTenh/U/OxpW1uX1ML1a/DNBQTuADKiP+WPPjnCx6pliObtY/7Dz3iPeOf3q2BviYc/WHuPogmCoBlRCfXsmffobhvocPoHLpponIpkovelwq9Knr9DudHkssp2uEMzLj0vgDFh3vrXHCxC6ClpFSlSJfw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Ml6UOk07; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=UnOTh7F8Bqsip4OX7ZDEshZpHogMYS7OUW6T+ENVVAQZIvts+qn3uQ1rawaE9etvjh9NbZ72GgUEVF1pk/c8RaR1moCATbZD/ZA4UjQX5kEieWQ566iaLDZy9LXaWHSV6DplKF0FexHuehNNrFjbsqVT2zZRndGUguVFpJuGv9o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Mi8hKXWv; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Ml6UOk07"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 315AEC4AF0E;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Mi8hKXWv"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 26FEAC4AF09;
 	Wed, 21 Aug 2024 18:10:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1724263813;
-	bh=rRjox4fY0egq63DbDfR2UVfQKrpoEipdNtPZ92fJEcw=;
+	bh=SsfSYlvMJfbrFJhxWSLRoEWcjcncMnxVxwE9E1US2+0=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Ml6UOk07YO3enrVKQ0NNvDl9iFc3hFp4f1iRte27zuWvaJhi3eZYvzOkIXMwf2jtY
-	 keMUS1yVsT+NdB9i0aillOCvpZhd0/wbKYrOEs1TX2q6t/7Exj6ZfIf+gYF+NyWNP9
-	 DGb3HZj3ZOkWwN1Mw8swjA3a8trSybB24Pgs4EkngRtNkvjPHi0/tARtCFE/2LF3U3
-	 QF5FtUkk9Icwxut7BsViLwZUblDd+5qW3wP1nW9bYoOZ2ZbvUv10LBKOUjnRODkSrl
-	 7eIzte7H+FM/aY1HJf8LjAR6Xa4bif9gk86LcblyVuRMBs9HiiWCgkYd6L+xO2GQur
-	 e63b+kYObalcg==
+	b=Mi8hKXWvAOjmdqCKmwwPBuyC/Bi6ih8OGQOxWRnoREf7UzDrED43aPxGGpuM65Q5e
+	 PCujx8KWqnrkuVLpxYriJVGOqPZ+8wfc3GdKh4jIn2YtEOi+ah6HZl/kvRWfs3/cxI
+	 idoK/rTHjBnwoapgNadhElunGQsTA8pLce86C5iLsNwUVfi4fCH6NaW2Vfnx/mHEIE
+	 cmiiHDwaROmnKcVr1+YfAxefVzg/g+yks0Nk+iPy8f9EKHEgWWdUdODMpX6OEg78wF
+	 BUK/jBh39c9QkUWK1AmQKaSFN1luClo/Xm40/YUORWOazweQe1W69LGIhbiUJIBYZn
+	 5JPMRv+hEjM3g==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id BFF71CE16C8; Wed, 21 Aug 2024 11:10:12 -0700 (PDT)
+	id B99BDCE160F; Wed, 21 Aug 2024 11:10:12 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
@@ -40,14 +40,11 @@ Cc: akpm@linux-foundation.org,
 	geert@linux-m68k.org,
 	kernel-team@meta.com,
 	"Paul E. McKenney" <paulmck@kernel.org>,
-	Andi Shyti <andi.shyti@linux.intel.com>,
-	Palmer Dabbelt <palmer@rivosinc.com>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	linux-sh@vger.kernel.org,
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-Subject: [PATCH v2 cmpxchg 3/3] sh: Emulate one-byte cmpxchg
-Date: Wed, 21 Aug 2024 11:10:11 -0700
-Message-Id: <20240821181011.2604152-3-paulmck@kernel.org>
+	Yujie Liu <yujie.liu@intel.com>,
+	Andi Shyti <andi.shyti@linux.intel.com>
+Subject: [PATCH v2 cmpxchg 1/3] xtensa: Emulate one-byte cmpxchg
+Date: Wed, 21 Aug 2024 11:10:09 -0700
+Message-Id: <20240821181011.2604152-1-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <04a6010c-536d-4906-bf7c-b2335a2f54b0@paulmck-laptop>
 References: <04a6010c-536d-4906-bf7c-b2335a2f54b0@paulmck-laptop>
@@ -59,57 +56,55 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Use the new cmpxchg_emu_u8() to emulate one-byte cmpxchg() on sh.
+Use the new cmpxchg_emu_u8() to emulate one-byte cmpxchg() on xtensa.
 
+[ paulmck: Apply kernel test robot feedback. ]
 [ paulmck: Drop two-byte support per Arnd Bergmann feedback. ]
-[ paulmck: Apply feedback from Naresh Kamboju. ]
 [ Apply Geert Uytterhoeven feedback. ]
 
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+Tested-by: Yujie Liu <yujie.liu@intel.com>
 Cc: Andi Shyti <andi.shyti@linux.intel.com>
-Cc: Palmer Dabbelt <palmer@rivosinc.com>
-Cc: Masami Hiramatsu <mhiramat@kernel.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: <linux-sh@vger.kernel.org>
-Acked-by: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>
 ---
- arch/sh/Kconfig               | 1 +
- arch/sh/include/asm/cmpxchg.h | 3 +++
- 2 files changed, 4 insertions(+)
+ arch/xtensa/Kconfig               | 1 +
+ arch/xtensa/include/asm/cmpxchg.h | 2 ++
+ 2 files changed, 3 insertions(+)
 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index 1aa3c4a0c5b27..e9103998cca91 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -14,6 +14,7 @@ config SUPERH
- 	select ARCH_HIBERNATION_POSSIBLE if MMU
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_WANT_IPC_PARSE_VERSION
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index f200a4ec044e6..d3db28f2f8110 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -14,6 +14,7 @@ config XTENSA
+ 	select ARCH_HAS_DMA_SET_UNCACHED if MMU
+ 	select ARCH_HAS_STRNCPY_FROM_USER if !KASAN
+ 	select ARCH_HAS_STRNLEN_USER
 +	select ARCH_NEED_CMPXCHG_1_EMU
- 	select CPU_NO_EFFICIENT_FFS
- 	select DMA_DECLARE_COHERENT
- 	select GENERIC_ATOMIC64
-diff --git a/arch/sh/include/asm/cmpxchg.h b/arch/sh/include/asm/cmpxchg.h
-index 5d617b3ef78f7..1e5dc5ccf7bf5 100644
---- a/arch/sh/include/asm/cmpxchg.h
-+++ b/arch/sh/include/asm/cmpxchg.h
-@@ -9,6 +9,7 @@
+ 	select ARCH_USE_MEMTEST
+ 	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_USE_QUEUED_SPINLOCKS
+diff --git a/arch/xtensa/include/asm/cmpxchg.h b/arch/xtensa/include/asm/cmpxchg.h
+index 675a11ea8de76..95e33a913962d 100644
+--- a/arch/xtensa/include/asm/cmpxchg.h
++++ b/arch/xtensa/include/asm/cmpxchg.h
+@@ -15,6 +15,7 @@
  
- #include <linux/compiler.h>
- #include <linux/types.h>
+ #include <linux/bits.h>
+ #include <linux/stringify.h>
 +#include <linux/cmpxchg-emu.h>
  
- #if defined(CONFIG_GUSA_RB)
- #include <asm/cmpxchg-grb.h>
-@@ -56,6 +57,8 @@ static inline unsigned long __cmpxchg(volatile void * ptr, unsigned long old,
- 		unsigned long new, int size)
+ /*
+  * cmpxchg
+@@ -74,6 +75,7 @@ static __inline__ unsigned long
+ __cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
  {
  	switch (size) {
-+	case 1:
-+		return cmpxchg_emu_u8(ptr, old, new);
- 	case 4:
- 		return __cmpxchg_u32(ptr, old, new);
- 	}
++	case 1:  return cmpxchg_emu_u8(ptr, old, new);
+ 	case 4:  return __cmpxchg_u32(ptr, old, new);
+ 	default: __cmpxchg_called_with_bad_pointer();
+ 		 return old;
 -- 
 2.40.1
 
