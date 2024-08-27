@@ -1,226 +1,172 @@
-Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 044C6158DD0;
-	Tue, 27 Aug 2024 08:55:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=93.17.235.10
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 58188158DD0;
+	Tue, 27 Aug 2024 08:55:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724748938; cv=none; b=jCGLF0lu15EN3HuIdG9dTf/lnQkrPv4n38QK2mcv6fJbkaFj6YSKhu3txS25cRjrz/kug9wyIT6iFlUeau32cXgMl8K5VO8kpnh/eQEvht1YZOlGsJynhUihwoY/GsWLK2Wih6QoV0lhj9stG8JFnUmuZ9dCJDLdWDnAhf8pGmQ=
+	t=1724748945; cv=none; b=bLyEsNYT8WeLcukQ5W+0k58/kim9tIPhGIssieGFgBjDgndmcdCVx+ZBvjqA2+dosRdy8ryr1CoFfr3Qb3xKHtab7WuLBYb5dgto36HhoxjfgYTAhFkXjcRKuLGnU3wrLcS1RzSy1RVxoKfUC0LtlEak2epeUdHnzCC3T84a5oY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724748938; c=relaxed/simple;
-	bh=ZfA+lNjZLRY1OVSU5/JRfG/bdaLh+2XWOYPWuqUMM4M=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=pwCFYbO6/0I9bxAgahES6xPLa4tHSMyLxnZBIxsy8RObOSIt3CZCc0Q0jhQI79nTSDWmagreGPBTk8OAscGTUDHms4+VvsJX6g9oUUmbBdnw8bPhEhSH1rxy9t7ZCBwKPRqk+sXGsd0tyZaDlnuwLBv/Huywjas/n5LO41QKDAY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu; spf=pass smtp.mailfrom=csgroup.eu; arc=none smtp.client-ip=93.17.235.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=csgroup.eu
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-	by localhost (Postfix) with ESMTP id 4WtLwk0nMzz9sRr;
-	Tue, 27 Aug 2024 10:55:34 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-	by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-	with ESMTP id XOoAxCltyyiQ; Tue, 27 Aug 2024 10:55:34 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-	by pegase2.c-s.fr (Postfix) with ESMTP id 4WtLwj6xKNz9rvV;
-	Tue, 27 Aug 2024 10:55:33 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-	by messagerie.si.c-s.fr (Postfix) with ESMTP id DC4A38B781;
-	Tue, 27 Aug 2024 10:55:33 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-	by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-	with ESMTP id E77BewEmZDDY; Tue, 27 Aug 2024 10:55:33 +0200 (CEST)
-Received: from [192.168.233.149] (unknown [192.168.233.149])
-	by messagerie.si.c-s.fr (Postfix) with ESMTP id 2BECF8B763;
-	Tue, 27 Aug 2024 10:55:33 +0200 (CEST)
-Message-ID: <cd32f64c-e3c4-46f3-94cc-69baf493f452@csgroup.eu>
-Date: Tue, 27 Aug 2024 10:55:32 +0200
+	s=arc-20240116; t=1724748945; c=relaxed/simple;
+	bh=WLyDwKrTLwxUKO9wLuHMkEx2eqbtMQG2RDk7GrJYDXs=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=oW+yXMNYQLA8jsdJv8q+4imlY13EYHDB43Pi/YHEqiPG0tfwost9HmHi9gToLX3rOliQ49yvvdc1sLeVJnek25rOgrvDA3/hH5iYjH1dJ+jRDb4w9I2hLG/S6S47Z+71FPe/IJmHo0mt47b7lYNGEiVVzOXnRRgo84P4UjHV6aw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DusVZnZ7; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DusVZnZ7"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E362BC8B7A5;
+	Tue, 27 Aug 2024 08:55:30 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1724748944;
+	bh=WLyDwKrTLwxUKO9wLuHMkEx2eqbtMQG2RDk7GrJYDXs=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=DusVZnZ7wV2iULh/1avLL75JPrhMhQlBqoECiJtic0bUtwgwuIxQeD5hzgO3OPkyS
+	 dpl+eK1bBgzJJ35WOwwwbfdgq1YQrY2eHAEWUAKnv8OixY+PRJYPtQH9Uh4KDOOHgD
+	 2/VI5iJPwBhdC5LsFDFX73FW+2wIcx/umVi6Bv43EvELDrk40xPn4mIuDGkezsnKRA
+	 xbs+ZNNQqQDTYUIePAvIqd1K0l/VrmBAarQw0NUQwiKK+jAlMR+ifUUyK+I6EB0ATl
+	 0IqZzSdRMeIajz+pVDlkeyPLq3GoGX7ttE4pCEa3ZuqwGkXktl0F6ooJc0ev3A8Yxa
+	 2+SfAAZCXhU+Q==
+Date: Tue, 27 Aug 2024 11:52:55 +0300
+From: Mike Rapoport <rppt@kernel.org>
+To: Bruno Faccini <bfaccini@nvidia.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Christophe Leroy <christophe.leroy@csgroup.eu>,
+	Dan Williams <dan.j.williams@intel.com>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	David Hildenbrand <david@redhat.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Davidlohr Bueso <dave@stgolabs.net>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Huacai Chen <chenhuacai@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Jiaxun Yang <jiaxun.yang@flygoat.com>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	Jonathan Cameron <jonathan.cameron@huawei.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	"Rafael J. Wysocki" <rafael@kernel.org>,
+	Rob Herring <robh@kernel.org>,
+	Samuel Holland <samuel.holland@sifive.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Vasily Gorbik <gor@linux.ibm.com>, Will Deacon <will@kernel.org>,
+	"devicetree@vger.kernel.org" <devicetree@vger.kernel.org>,
+	"linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>,
+	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+	"linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>,
+	"linux-cxl@vger.kernel.org" <linux-cxl@vger.kernel.org>,
+	"linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
+	"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
+	"linux-mm@kvack.org" <linux-mm@kvack.org>,
+	"linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>,
+	"linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>,
+	"linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>,
+	"linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>,
+	"loongarch@lists.linux.dev" <loongarch@lists.linux.dev>,
+	"nvdimm@lists.linux.dev" <nvdimm@lists.linux.dev>,
+	"sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>,
+	"x86@kernel.org" <x86@kernel.org>, Zi Yan <ziy@nvidia.com>
+Subject: Re: [PATCH v4 24/26] arch_numa: switch over to numa_memblks
+Message-ID: <Zs2T5wkSYO9MGcab@kernel.org>
+References: <MW4PR12MB72616723E1A090E315681FF6A38B2@MW4PR12MB7261.namprd12.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] random: vDSO: Redefine PAGE_SIZE and PAGE_MASK
-To: "Jason A. Donenfeld" <Jason@zx2c4.com>
-Cc: Theodore Ts'o <tytso@mit.edu>, Arnd Bergmann <arnd@arndb.de>,
- Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>,
- Vincenzo Frascino <vincenzo.frascino@arm.com>, Ingo Molnar
- <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
- Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-References: <b8f8fb6d1d10386c74f2d8826b737a74c60b76b2.1724743492.git.christophe.leroy@csgroup.eu>
- <defab86b7fb897c88a05a33b62ccf38467dda884.1724747058.git.christophe.leroy@csgroup.eu>
- <Zs2RCfMgfNu_2vos@zx2c4.com>
-Content-Language: fr-FR
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-In-Reply-To: <Zs2RCfMgfNu_2vos@zx2c4.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <MW4PR12MB72616723E1A090E315681FF6A38B2@MW4PR12MB7261.namprd12.prod.outlook.com>
 
+Hi,
 
+On Mon, Aug 26, 2024 at 06:17:22PM +0000, Bruno Faccini wrote:
+> > On 7 Aug 2024, at 2:41, Mike Rapoport wrote:
+> > 
+> > From: "Mike Rapoport (Microsoft)" <rppt@kernel.org>
+> > 
+> > Until now arch_numa was directly translating firmware NUMA information
+> > to memblock.
+> > 
+> > Using numa_memblks as an intermediate step has a few advantages:
+> > * alignment with more battle tested x86 implementation
+> > * availability of NUMA emulation
+> > * maintaining node information for not yet populated memory
+> > 
+> > Adjust a few places in numa_memblks to compile with 32-bit phys_addr_t
+> > and replace current functionality related to numa_add_memblk() and
+> > __node_distance() in arch_numa with the implementation based on
+> > numa_memblks and add functions required by numa_emulation.
+> > 
+> > Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+> > Tested-by: Zi Yan <ziy@nvidia.com> # for x86_64 and arm64
+> > Reviewed-by: Jonathan Cameron <Jonathan.Cameron@huawei.com>
+> > Tested-by: Jonathan Cameron <Jonathan.Cameron@huawei.com> [arm64 + CXL via
+> > QEMU]
+> > Acked-by: Dan Williams <dan.j.williams@intel.com>
+> > Acked-by: David Hildenbrand <david@redhat.com>
+> > ---
+> >   drivers/base/Kconfig       |   1 +
+> >   drivers/base/arch_numa.c   | 201 +++++++++++--------------------------
+> >   include/asm-generic/numa.h |   6 +-
+> >   mm/numa_memblks.c          |  17 ++--
+> >   4 files changed, 75 insertions(+), 150 deletions(-)
+> >  
+> > <snip>
+> > 
+> > +
+> > +u64 __init numa_emu_dma_end(void)
+> > +{
+> > +             return PFN_PHYS(memblock_start_of_DRAM() + SZ_4G);
+> > +}
+> > +
+> 
+> PFN_PHYS() translation is unnecessary here, as
+> memblock_start_of_DRAM() + SZ_4G is already a
+> memory size.
+> 
+> This should fix it:
+>  
+> diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
+> index 8d49893c0e94..e18701676426 100644
+> --- a/drivers/base/arch_numa.c
+> +++ b/drivers/base/arch_numa.c
+> @@ -346,7 +346,7 @@ void __init numa_emu_update_cpu_to_node(int
+> *emu_nid_to_phys,
+> 
+> u64 __init numa_emu_dma_end(void)
+> {
+> -              return PFN_PHYS(memblock_start_of_DRAM() + SZ_4G);
+> +             return memblock_start_of_DRAM() + SZ_4G;
+> }
+> 
+> void debug_cpumask_set_cpu(unsigned int cpu, int node, bool enable)
 
-Le 27/08/2024 à 10:40, Jason A. Donenfeld a écrit :
-> I don't love this, but it might be the lesser of evils, so sure, let's
-> do it.
+Right, I've missed that. Thanks for the fix!
 
-I don't love it either but I still prefer it to:
+Andrew, can you please apply this (with fixed formatting)
 
-#ifndef PAGE_SIZE
-#define PAGE_SIZE
-#define PAGE_MASK
-#endif
+diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
+index 8d49893c0e94..e18701676426 100644
+--- a/drivers/base/arch_numa.c
++++ b/drivers/base/arch_numa.c
+@@ -346,7 +346,7 @@ void __init numa_emu_update_cpu_to_node(int *emu_nid_to_phys,
+ 
+ u64 __init numa_emu_dma_end(void)
+ {
+-	return PFN_PHYS(memblock_start_of_DRAM() + SZ_4G);
++	return memblock_start_of_DRAM() + SZ_4G;
+ }
+ 
+ void debug_cpumask_set_cpu(unsigned int cpu, int node, bool enable)
 
-At least we are sure that every architecture get the same , independant 
-of the selected options, and we know what we get.
-
-For instance, on x86, when you select CONFIG_HYPERV_TIMER you get 
-asm/hyperv_timer.h which indirectly pulls page.h. But when 
-CONFIG_HYPERV_TIMER is not selected you don't get asm/hyperv_timer.h
-
-> 
-> I think I'll combine these header fixups so that the whole operation is
-> a bit more clear. The commit is still pretty small. Something like
-> below:
-
-Looks good to me.
-
-Thanks
-Christophe
-
-> 
->  From 0d9a3d68cd6222395a605abd0ac625c41d4cabfa Mon Sep 17 00:00:00 2001
-> From: Christophe Leroy <christophe.leroy@csgroup.eu>
-> Date: Tue, 27 Aug 2024 09:31:47 +0200
-> Subject: [PATCH] random: vDSO: clean header inclusion in getrandom
-> 
-> Depending on the architecture, building a 32-bit vDSO on a 64-bit kernel
-> is problematic when some system headers are included.
-> 
-> Minimise the amount of headers by moving needed items, such as
-> __{get,put}_unaligned_t, into dedicated common headers and in general
-> use more specific headers, similar to what was done in commit
-> 8165b57bca21 ("linux/const.h: Extract common header for vDSO") and
-> commit 8c59ab839f52 ("lib/vdso: Enable common headers").
-> 
-> On some architectures this results in missing PAGE_SIZE, as was
-> described by commit 8b3843ae3634 ("vdso/datapage: Quick fix - use
-> asm/page-def.h for ARM64"), so define this if necessary, in the same way
-> as done prior by commit cffaefd15a8f ("vdso: Use CONFIG_PAGE_SHIFT in
-> vdso/datapage.h").
-> 
-> Removing linux/time64.h leads to missing 'struct timespec64' in
-> x86's asm/pvclock.h. Add a forward declaration of that struct in
-> that file.
-> 
-> Signed-off-by: Christophe Leroy <christophe.leroy@csgroup.eu>
-> Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
-> ---
->   arch/x86/include/asm/pvclock.h  |  1 +
->   include/asm-generic/unaligned.h | 11 +----------
->   include/vdso/helpers.h          |  1 +
->   include/vdso/unaligned.h        | 15 +++++++++++++++
->   lib/vdso/getrandom.c            | 13 ++++++++-----
->   5 files changed, 26 insertions(+), 15 deletions(-)
->   create mode 100644 include/vdso/unaligned.h
-> 
-> diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclock.h
-> index 0c92db84469d..6e4f8fae3ce9 100644
-> --- a/arch/x86/include/asm/pvclock.h
-> +++ b/arch/x86/include/asm/pvclock.h
-> @@ -5,6 +5,7 @@
->   #include <asm/clocksource.h>
->   #include <asm/pvclock-abi.h>
-> 
-> +struct timespec64;
->   /* some helper functions for xen and kvm pv clock sources */
->   u64 pvclock_clocksource_read(struct pvclock_vcpu_time_info *src);
->   u64 pvclock_clocksource_read_nowd(struct pvclock_vcpu_time_info *src);
-> diff --git a/include/asm-generic/unaligned.h b/include/asm-generic/unaligned.h
-> index a84c64e5f11e..95acdd70b3b2 100644
-> --- a/include/asm-generic/unaligned.h
-> +++ b/include/asm-generic/unaligned.h
-> @@ -8,16 +8,7 @@
->    */
->   #include <linux/unaligned/packed_struct.h>
->   #include <asm/byteorder.h>
-> -
-> -#define __get_unaligned_t(type, ptr) ({						\
-> -	const struct { type x; } __packed *__pptr = (typeof(__pptr))(ptr);	\
-> -	__pptr->x;								\
-> -})
-> -
-> -#define __put_unaligned_t(type, val, ptr) do {					\
-> -	struct { type x; } __packed *__pptr = (typeof(__pptr))(ptr);		\
-> -	__pptr->x = (val);							\
-> -} while (0)
-> +#include <vdso/unaligned.h>
-> 
->   #define get_unaligned(ptr)	__get_unaligned_t(typeof(*(ptr)), (ptr))
->   #define put_unaligned(val, ptr) __put_unaligned_t(typeof(*(ptr)), (val), (ptr))
-> diff --git a/include/vdso/helpers.h b/include/vdso/helpers.h
-> index 73501149439d..3ddb03bb05cb 100644
-> --- a/include/vdso/helpers.h
-> +++ b/include/vdso/helpers.h
-> @@ -4,6 +4,7 @@
-> 
->   #ifndef __ASSEMBLY__
-> 
-> +#include <asm/barrier.h>
->   #include <vdso/datapage.h>
-> 
->   static __always_inline u32 vdso_read_begin(const struct vdso_data *vd)
-> diff --git a/include/vdso/unaligned.h b/include/vdso/unaligned.h
-> new file mode 100644
-> index 000000000000..eee3d2a4dbe4
-> --- /dev/null
-> +++ b/include/vdso/unaligned.h
-> @@ -0,0 +1,15 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +#ifndef __VDSO_UNALIGNED_H
-> +#define __VDSO_UNALIGNED_H
-> +
-> +#define __get_unaligned_t(type, ptr) ({						\
-> +	const struct { type x; } __packed *__pptr = (typeof(__pptr))(ptr);	\
-> +	__pptr->x;								\
-> +})
-> +
-> +#define __put_unaligned_t(type, val, ptr) do {					\
-> +	struct { type x; } __packed *__pptr = (typeof(__pptr))(ptr);		\
-> +	__pptr->x = (val);							\
-> +} while (0)
-> +
-> +#endif /* __VDSO_UNALIGNED_H */
-> diff --git a/lib/vdso/getrandom.c b/lib/vdso/getrandom.c
-> index 1281fa3546c2..938ca539aaa6 100644
-> --- a/lib/vdso/getrandom.c
-> +++ b/lib/vdso/getrandom.c
-> @@ -4,15 +4,18 @@
->    */
-> 
->   #include <linux/array_size.h>
-> -#include <linux/cache.h>
-> -#include <linux/kernel.h>
-> -#include <linux/time64.h>
-> +#include <linux/minmax.h>
->   #include <vdso/datapage.h>
->   #include <vdso/getrandom.h>
-> +#include <vdso/unaligned.h>
->   #include <asm/vdso/getrandom.h>
-> -#include <asm/vdso/vsyscall.h>
-> -#include <asm/unaligned.h>
->   #include <uapi/linux/mman.h>
-> +#include <uapi/linux/random.h>
-> +
-> +#undef PAGE_SIZE
-> +#undef PAGE_MASK
-> +#define PAGE_SIZE (1UL << CONFIG_PAGE_SHIFT)
-> +#define PAGE_MASK (~(PAGE_SIZE - 1))
-> 
->   #define MEMCPY_AND_ZERO_SRC(type, dst, src, len) do {				\
->   	while (len >= sizeof(type)) {						\
-> --
-> 2.46.0
+-- 
+Sincerely yours,
+Mike.
