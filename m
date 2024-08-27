@@ -1,172 +1,123 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 58188158DD0;
-	Tue, 27 Aug 2024 08:55:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DCFA41714B8;
+	Tue, 27 Aug 2024 09:31:57 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724748945; cv=none; b=bLyEsNYT8WeLcukQ5W+0k58/kim9tIPhGIssieGFgBjDgndmcdCVx+ZBvjqA2+dosRdy8ryr1CoFfr3Qb3xKHtab7WuLBYb5dgto36HhoxjfgYTAhFkXjcRKuLGnU3wrLcS1RzSy1RVxoKfUC0LtlEak2epeUdHnzCC3T84a5oY=
+	t=1724751118; cv=none; b=jS7VOEKwk+TGbQNfgPssDUo+BdADNEbu1l2/WtO87+XVA0eby24E39OkZHiu9EUHS7tofcht9VrJfcLKK8iTOWss6Gw2W3TCQG/0xN7E8ZpPPSPxhL2htpfXSdK9Gv1ARM4RtzEQ0rrEsRVQ+kHPhyNJ4SVHJV76eNngkOjdXL4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724748945; c=relaxed/simple;
-	bh=WLyDwKrTLwxUKO9wLuHMkEx2eqbtMQG2RDk7GrJYDXs=;
+	s=arc-20240116; t=1724751118; c=relaxed/simple;
+	bh=v5la12xuZlpJAHBwKesqG3ct7vbuw4Dwscy40oiBezU=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=oW+yXMNYQLA8jsdJv8q+4imlY13EYHDB43Pi/YHEqiPG0tfwost9HmHi9gToLX3rOliQ49yvvdc1sLeVJnek25rOgrvDA3/hH5iYjH1dJ+jRDb4w9I2hLG/S6S47Z+71FPe/IJmHo0mt47b7lYNGEiVVzOXnRRgo84P4UjHV6aw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DusVZnZ7; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=BXZXHBKbFxio7amxifvsto4gD/RExVzGPVwdoVERrJ/jsknJUx24GeM0Ukx4+/QZ89JetBZt+/B3RiFEGhS9VsWpGb5hJvIdZzcVvDfmtN4/OYqf6BpHIri2vHfGbRGKL2sBbX2K7ibnkX1acthQf48BAPwSOxekvEgpZLBhnPQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b=DxHa9hxJ; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DusVZnZ7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E362BC8B7A5;
-	Tue, 27 Aug 2024 08:55:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1724748944;
-	bh=WLyDwKrTLwxUKO9wLuHMkEx2eqbtMQG2RDk7GrJYDXs=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=DusVZnZ7wV2iULh/1avLL75JPrhMhQlBqoECiJtic0bUtwgwuIxQeD5hzgO3OPkyS
-	 dpl+eK1bBgzJJ35WOwwwbfdgq1YQrY2eHAEWUAKnv8OixY+PRJYPtQH9Uh4KDOOHgD
-	 2/VI5iJPwBhdC5LsFDFX73FW+2wIcx/umVi6Bv43EvELDrk40xPn4mIuDGkezsnKRA
-	 xbs+ZNNQqQDTYUIePAvIqd1K0l/VrmBAarQw0NUQwiKK+jAlMR+ifUUyK+I6EB0ATl
-	 0IqZzSdRMeIajz+pVDlkeyPLq3GoGX7ttE4pCEa3ZuqwGkXktl0F6ooJc0ev3A8Yxa
-	 2+SfAAZCXhU+Q==
-Date: Tue, 27 Aug 2024 11:52:55 +0300
-From: Mike Rapoport <rppt@kernel.org>
-To: Bruno Faccini <bfaccini@nvidia.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Andreas Larsson <andreas@gaisler.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Arnd Bergmann <arnd@arndb.de>, Borislav Petkov <bp@alien8.de>,
+	dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="DxHa9hxJ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 94408C8B7CD;
+	Tue, 27 Aug 2024 09:31:54 +0000 (UTC)
+Authentication-Results: smtp.kernel.org;
+	dkim=pass (1024-bit key) header.d=zx2c4.com header.i=@zx2c4.com header.b="DxHa9hxJ"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zx2c4.com; s=20210105;
+	t=1724751112;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=JdIowXx5hArmXp0irpZ89oIJDLeZuVLuZPGcLtq5hgU=;
+	b=DxHa9hxJdBbjx/iowG23VxSZyG/CGmRspd62YsjFHqw0za1fqkq/Nd7+a80kDZL2Tm7peD
+	o/We6F+5fwEzQZMoosma4XFBPFOH2qWxrLQ/P73o66d8kChstBj6lF3d8wi2fZxcpqCXkw
+	uIFnWdSd9qKW1JqXm2PC/smuCa0IZ5c=
+Received: 
+	by mail.zx2c4.com (ZX2C4 Mail Server) with ESMTPSA id ecb5f7c9 (TLSv1.3:TLS_AES_256_GCM_SHA384:256:NO);
+	Tue, 27 Aug 2024 09:31:50 +0000 (UTC)
+Date: Tue, 27 Aug 2024 11:31:43 +0200
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+To: Christophe Leroy <christophe.leroy@csgroup.eu>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>, Xi Ruoyao <xry111@xry111.site>,
+	Jinyang He <hejinyang@loongson.cn>,
+	Tiezhu Yang <yangtiezhu@loongson.cn>,
 	Catalin Marinas <catalin.marinas@arm.com>,
-	Christophe Leroy <christophe.leroy@csgroup.eu>,
-	Dan Williams <dan.j.williams@intel.com>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	David Hildenbrand <david@redhat.com>,
-	"David S. Miller" <davem@davemloft.net>,
-	Davidlohr Bueso <dave@stgolabs.net>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	Huacai Chen <chenhuacai@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Jiaxun Yang <jiaxun.yang@flygoat.com>,
-	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-	Jonathan Cameron <jonathan.cameron@huawei.com>,
-	Jonathan Corbet <corbet@lwn.net>,
+	Will Deacon <will@kernel.org>,
+	Adhemerval Zanella <adhemerval.zanella@linaro.org>,
 	Michael Ellerman <mpe@ellerman.id.au>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	"Rafael J. Wysocki" <rafael@kernel.org>,
-	Rob Herring <robh@kernel.org>,
-	Samuel Holland <samuel.holland@sifive.com>,
-	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Vasily Gorbik <gor@linux.ibm.com>, Will Deacon <will@kernel.org>,
-	"devicetree@vger.kernel.org" <devicetree@vger.kernel.org>,
-	"linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>,
-	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
-	"linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>,
-	"linux-cxl@vger.kernel.org" <linux-cxl@vger.kernel.org>,
-	"linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>,
-	"linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
-	"linux-mm@kvack.org" <linux-mm@kvack.org>,
-	"linux-riscv@lists.infradead.org" <linux-riscv@lists.infradead.org>,
-	"linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>,
-	"linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>,
-	"linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>,
-	"loongarch@lists.linux.dev" <loongarch@lists.linux.dev>,
-	"nvdimm@lists.linux.dev" <nvdimm@lists.linux.dev>,
-	"sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>,
-	"x86@kernel.org" <x86@kernel.org>, Zi Yan <ziy@nvidia.com>
-Subject: Re: [PATCH v4 24/26] arch_numa: switch over to numa_memblks
-Message-ID: <Zs2T5wkSYO9MGcab@kernel.org>
-References: <MW4PR12MB72616723E1A090E315681FF6A38B2@MW4PR12MB7261.namprd12.prod.outlook.com>
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Theodore Ts'o <tytso@mit.edu>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev
+Subject: getrandom() vDSO archs (arm64, ppc, loongarch) for 6.12 [Was: Re:
+ [PATCH v2 00/17] Wire up getrandom() vDSO implementation on powerpc]
+Message-ID: <Zs2c_9Z6sFMNJs1O@zx2c4.com>
+References: <cover.1724309198.git.christophe.leroy@csgroup.eu>
+ <Zswsennpw6fvigVh@zx2c4.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <MW4PR12MB72616723E1A090E315681FF6A38B2@MW4PR12MB7261.namprd12.prod.outlook.com>
+In-Reply-To: <Zswsennpw6fvigVh@zx2c4.com>
 
-Hi,
+Hey again,
 
-On Mon, Aug 26, 2024 at 06:17:22PM +0000, Bruno Faccini wrote:
-> > On 7 Aug 2024, at 2:41, Mike Rapoport wrote:
-> > 
-> > From: "Mike Rapoport (Microsoft)" <rppt@kernel.org>
-> > 
-> > Until now arch_numa was directly translating firmware NUMA information
-> > to memblock.
-> > 
-> > Using numa_memblks as an intermediate step has a few advantages:
-> > * alignment with more battle tested x86 implementation
-> > * availability of NUMA emulation
-> > * maintaining node information for not yet populated memory
-> > 
-> > Adjust a few places in numa_memblks to compile with 32-bit phys_addr_t
-> > and replace current functionality related to numa_add_memblk() and
-> > __node_distance() in arch_numa with the implementation based on
-> > numa_memblks and add functions required by numa_emulation.
-> > 
-> > Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
-> > Tested-by: Zi Yan <ziy@nvidia.com> # for x86_64 and arm64
-> > Reviewed-by: Jonathan Cameron <Jonathan.Cameron@huawei.com>
-> > Tested-by: Jonathan Cameron <Jonathan.Cameron@huawei.com> [arm64 + CXL via
-> > QEMU]
-> > Acked-by: Dan Williams <dan.j.williams@intel.com>
-> > Acked-by: David Hildenbrand <david@redhat.com>
-> > ---
-> >   drivers/base/Kconfig       |   1 +
-> >   drivers/base/arch_numa.c   | 201 +++++++++++--------------------------
-> >   include/asm-generic/numa.h |   6 +-
-> >   mm/numa_memblks.c          |  17 ++--
-> >   4 files changed, 75 insertions(+), 150 deletions(-)
-> >  
-> > <snip>
-> > 
-> > +
-> > +u64 __init numa_emu_dma_end(void)
-> > +{
-> > +             return PFN_PHYS(memblock_start_of_DRAM() + SZ_4G);
-> > +}
-> > +
+On Mon, Aug 26, 2024 at 09:19:22AM +0200, Jason A. Donenfeld wrote:
+> Thanks for this series. There are quite a few preliminary patches in it,
+> before you get to the PPC part, which fix up general build system or test
+> harness correctness issues. Since some of those affect all architectures
+> that are adding vDSO getrandom() support for 6.12, I'm going to take
+> those into my random.git tree as a fix for 6.11 now, in hopes that the
+> new archs can mostly go into arch trees without too many tree
+> interdependencies.
 > 
-> PFN_PHYS() translation is unnecessary here, as
-> memblock_start_of_DRAM() + SZ_4G is already a
-> memory size.
-> 
-> This should fix it:
->  
-> diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
-> index 8d49893c0e94..e18701676426 100644
-> --- a/drivers/base/arch_numa.c
-> +++ b/drivers/base/arch_numa.c
-> @@ -346,7 +346,7 @@ void __init numa_emu_update_cpu_to_node(int
-> *emu_nid_to_phys,
-> 
-> u64 __init numa_emu_dma_end(void)
-> {
-> -              return PFN_PHYS(memblock_start_of_DRAM() + SZ_4G);
-> +             return memblock_start_of_DRAM() + SZ_4G;
-> }
-> 
-> void debug_cpumask_set_cpu(unsigned int cpu, int node, bool enable)
+> So I'll reply to individual patches for that, mentioning which ones I
+> extract.
 
-Right, I've missed that. Thanks for the fix!
+Seeing the volume of these and the amount of ground they touch, I'm now
+having second thoughts about rushing this into 6.11. Particularly with
+the header changes, I think it might be smart to let it cook in
+linux-next for a bit before sending it to Linus.
 
-Andrew, can you please apply this (with fixed formatting)
+  $ git --no-pager diff --name-only linus/master
+  arch/x86/entry/vdso/vma.c
+  arch/x86/include/asm/pvclock.h
+  arch/x86/include/asm/vdso/vsyscall.h
+  drivers/char/random.c
+  include/asm-generic/unaligned.h
+  include/vdso/helpers.h
+  include/vdso/unaligned.h
+  lib/vdso/Makefile
+  lib/vdso/getrandom.c
+  tools/arch/x86/vdso
+  tools/include/linux/linkage.h
+  tools/testing/selftests/vDSO/Makefile
+  tools/testing/selftests/vDSO/vdso_config.h
+  tools/testing/selftests/vDSO/vdso_test_getrandom.c
 
-diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
-index 8d49893c0e94..e18701676426 100644
---- a/drivers/base/arch_numa.c
-+++ b/drivers/base/arch_numa.c
-@@ -346,7 +346,7 @@ void __init numa_emu_update_cpu_to_node(int *emu_nid_to_phys,
- 
- u64 __init numa_emu_dma_end(void)
- {
--	return PFN_PHYS(memblock_start_of_DRAM() + SZ_4G);
-+	return memblock_start_of_DRAM() + SZ_4G;
- }
- 
- void debug_cpumask_set_cpu(unsigned int cpu, int node, bool enable)
+So I think what I'll do is, for 6.11-rc6, send in the real bug fixes,
+which right now amount to:
 
--- 
-Sincerely yours,
-Mike.
+  - random: vDSO: reject unknown getrandom() flags
+  - random: vDSO: don't use 64-bit atomics on 32-bit architectures
+
+  $ git --no-pager diff --name-only linus/master..a90592ab7cad
+  drivers/char/random.c
+  lib/vdso/getrandom.c
+
+And then for the pending aarm64, ppc64(/32?), and loongarch enablement
+patches for 6.12, I'll just take those through my random.git tree, which
+have all of these build-system preliminaries. And then we'll obviously
+require acks from the maintainers of the archs for each of those arch
+enablement patches.
+
+If that sounds like an acceptable plan, you might want to mention in the
+cover letter that you're basing your arch-specific patches on
+https://git.kernel.org/pub/scm/linux/kernel/git/crng/random.git/ and
+want an ack from the arch maintainer, etc.
+
+Jason
