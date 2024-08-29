@@ -1,106 +1,119 @@
-Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qt1-f175.google.com (mail-qt1-f175.google.com [209.85.160.175])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DCB814C59C;
-	Thu, 29 Aug 2024 18:50:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=93.17.235.10
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DBC3F1B9B55
+	for <linux-arch@vger.kernel.org>; Thu, 29 Aug 2024 19:38:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1724957435; cv=none; b=Ga2oJcVkgizxrba5s7l4cjJNagvRNi0hPyw0xcF19iswrGCQDHgAQ+iRImSGkP5z/xm4WuyE8XzOUFNPZj91/yOINphJ3vX43SYBVgZATpdYMJgF+OatoGllimWjRpCb5uOqWRa9WrQUxP6x1QUT2kEfL9E1uYX8jTtI32s/oyU=
+	t=1724960310; cv=none; b=Aq2ntSZbCcjswavbzgKa/th6iHUf9Mf0vQCsZzYgWfywrC1tJZ+81ts9+RMPey5zAtxIbUYCQUe1kBvSeGKAZDBwWS07hm1xwPR5xEKDnIAlXphfg+LQJ11KxNKH41IMtyv3pGJR9HbVqAiXW2WExrg0QFNp5dgk+zeuURjWG9A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1724957435; c=relaxed/simple;
-	bh=Qvvdt8As0tj94WcYrAFQF5qmE5TlgptVt/D8ZJGXxjc=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=kWHURlPvjDKS+y4vgGOoO1b5rOvQcbgzwjc52ReH1Atn+MQloGRSQVmaj9tBzUC58zqZ57IYl/oHSg+sqzbyZvy83ft1UD9n8/wWrtrc9AHrI6ifFWE/KvgNHLhFP5VAJp5MaGezZialTjdnWUdyFw3AVWSbJ8+ZPRlTEKKxTSg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu; spf=pass smtp.mailfrom=csgroup.eu; arc=none smtp.client-ip=93.17.235.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=csgroup.eu
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-	by localhost (Postfix) with ESMTP id 4Wvr2G19nBz9sS8;
-	Thu, 29 Aug 2024 20:50:30 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-	by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-	with ESMTP id Xnbi20xoF7or; Thu, 29 Aug 2024 20:50:30 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-	by pegase2.c-s.fr (Postfix) with ESMTP id 4Wvr2G0DSsz9sRs;
-	Thu, 29 Aug 2024 20:50:30 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-	by messagerie.si.c-s.fr (Postfix) with ESMTP id E7E898B794;
-	Thu, 29 Aug 2024 20:50:29 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-	by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-	with ESMTP id 3gsZv-SyUxEW; Thu, 29 Aug 2024 20:50:29 +0200 (CEST)
-Received: from [192.168.234.66] (unknown [192.168.234.66])
-	by messagerie.si.c-s.fr (Postfix) with ESMTP id A97138B764;
-	Thu, 29 Aug 2024 20:50:28 +0200 (CEST)
-Message-ID: <eb7fdc6b-889f-4934-814f-f0572f4b089a@csgroup.eu>
-Date: Thu, 29 Aug 2024 20:50:28 +0200
+	s=arc-20240116; t=1724960310; c=relaxed/simple;
+	bh=4ASADOnCoqNrKV+beHl14a4vrTkq7UjCX+g5PUIp7tg=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=ehnciuuE6OsLcxrZKL+8s+TCG0uLQB3R4Rca67K2/s+HZvzebCgcL9AnrVFHur+AGOBuSAPu6v+b5Swam1tSkVL9X1KJlNaqszlB0LwYUWbVpcpsxQ16SORyq7MpD41213A8HRo3p7q3Vq7AgPzMzxXyvdRsdr5H8FRuUX4zQJE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=Vyqjdfwa; arc=none smtp.client-ip=209.85.160.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="Vyqjdfwa"
+Received: by mail-qt1-f175.google.com with SMTP id d75a77b69052e-45029af1408so5231cf.1
+        for <linux-arch@vger.kernel.org>; Thu, 29 Aug 2024 12:38:27 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1724960307; x=1725565107; darn=vger.kernel.org;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=1ZUAgIcTyrR43pe3gP0emMAssjHjCGemTU8nsF1ejxc=;
+        b=VyqjdfwarXMeB4Y4INlQGUPhZkirtCNWsnj7M3szpM9Xkt7avb/e7YL2r2AdYlJkCS
+         /Bpf7hR7X6IlL1U00gOg9VKWrTicKAP4a4yqJWgpfD21VBRGI411IWdBSUD/5Y7hsg9E
+         wiVrzRVTIUriossLHYwrF3NOTBlUA3fP1JfXXgA9ryu2/FdUqqHMT8zgBxP1tTSWZWlL
+         QCyKGDNZFHsNdIEwBTf7SgOpdzJpSQ9AKGvSvwmWIzeVHSp0cwe2o0wB9IAFaHfCkgXB
+         wDw8hEMaWDSzGdgfIQ/2EvAJXL3hA9d/YHiz5Hi5yCNbiwnKJ3rLPdpN++PpwyVTZWmo
+         hrMA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1724960307; x=1725565107;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=1ZUAgIcTyrR43pe3gP0emMAssjHjCGemTU8nsF1ejxc=;
+        b=wCtzmXjMS5NaTdOfwIrHNsN6t54+1Ru+EqklI9cEQIWefDjM6IpTUxB6yxgrP6cc76
+         RQixo6/Y2avBDoQmduxpsYQKY5EYS9wz/sWHELzOTRj/nv0Wn8CTB5EFF1k9uu4apooj
+         bKlKwStx5cVYtVKWQUy4JlTziujTkfmj21ALCw5raQ6N7k6mAMO6d4GyEPO9ataND5Vx
+         hwF8Q1+vOWGOQ4B4HSk3qFKDCZ+b0r5V5z1Q6PS7k7b73fSnyDqL2wmNGguggjWNRwtZ
+         nRxzaYfkRN89MlBzCBVB4TwL8/iA83ptRHg403MESennUtLSsuvjqAj5hSI8LqDKA6Iu
+         k1sg==
+X-Forwarded-Encrypted: i=1; AJvYcCV/e3B+m/3KhL1XP3QHEHLmJbDks9UUHcrHy++CNFX0/vDwaJccOusfRYVF3noPPn41DzgHZ87nXqzw@vger.kernel.org
+X-Gm-Message-State: AOJu0YyiXH8b5PiS+FNcaFNWTDnltXOA9cLzVRTrDxDGjEt8tJmwauzw
+	ljESjgbyD/NxVVMI86mVOHFWNvSgUstgCMegtBvzaopXK0/CbexQRyQr5KBJ2r7fnw647fL3lsY
+	THPBONxU0u7LijQP8oGGaTT7mW1aMiO89dl3b
+X-Google-Smtp-Source: AGHT+IEckjBQSLEDMwf1jYHRwORJ2ZVKtBH36SKJpIYMP8NrCeogwJVm7Q7nebuPSmPKh9r8A+fJeiK+617lAC3ocsU=
+X-Received: by 2002:a05:622a:281:b0:447:e59b:54eb with SMTP id
+ d75a77b69052e-4568aacd777mr496041cf.26.1724960306474; Thu, 29 Aug 2024
+ 12:38:26 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 05/17] vdso: Avoid call to memset() by getrandom
-To: Segher Boessenkool <segher@kernel.crashing.org>
-Cc: Ard Biesheuvel <ardb@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
- "Jason A . Donenfeld" <Jason@zx2c4.com>, Eric Biggers <ebiggers@kernel.org>,
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
- Naveen N Rao <naveen@kernel.org>, Andy Lutomirski <luto@kernel.org>,
- Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
- Theodore Ts'o <tytso@mit.edu>, Andrew Morton <akpm@linux-foundation.org>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
- Vincenzo Frascino <vincenzo.frascino@arm.com>, shuah <shuah@kernel.org>,
- linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
- linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
- linux-kselftest@vger.kernel.org
-References: <20240827180819.GB2049@sol.localdomain>
- <20240827225330.GC29862@gate.crashing.org> <Zs8HirKLk-SrwTIu@zx2c4.com>
- <fc19bf63-d519-46e2-be70-80202c85ff92@app.fastmail.com>
- <20240828124519.GE29862@gate.crashing.org>
- <CAMj1kXGmDmxy75eP=rf_fzKmg0g_FeKV43jk2G_gibnKZBtVww@mail.gmail.com>
- <20240828162025.GG29862@gate.crashing.org>
- <CAMj1kXHZPfr2Sz78UrgsdX-2uBp0D1sCnznQnz5ZyMdiJq6rAA@mail.gmail.com>
- <20240828172538.GI29862@gate.crashing.org>
- <e5a36d98-c880-4d33-954a-2a05240ef02f@csgroup.eu>
- <20240829180241.GJ29862@gate.crashing.org>
-Content-Language: fr-FR
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-In-Reply-To: <20240829180241.GJ29862@gate.crashing.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+References: <20240829060126.2792671-1-almasrymina@google.com> <20240829060126.2792671-4-almasrymina@google.com>
+In-Reply-To: <20240829060126.2792671-4-almasrymina@google.com>
+From: Mina Almasry <almasrymina@google.com>
+Date: Thu, 29 Aug 2024 12:38:13 -0700
+Message-ID: <CAHS8izMCZbynEQQ3rPs2QaEbD51ew7VK0sMziBTayCi2yEZ_EA@mail.gmail.com>
+Subject: Re: [PATCH net-next v23 03/13] netdev: support binding dma-buf to netdevice
+To: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, 
+	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
+	sparclinux@vger.kernel.org, linux-trace-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, bpf@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, linux-media@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org
+Cc: "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
+	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
+	Donald Hunter <donald.hunter@gmail.com>, Jonathan Corbet <corbet@lwn.net>, 
+	Richard Henderson <richard.henderson@linaro.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, 
+	Matt Turner <mattst88@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, 
+	Andreas Larsson <andreas@gaisler.com>, Jesper Dangaard Brouer <hawk@kernel.org>, 
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	Arnd Bergmann <arnd@arndb.de>, Steffen Klassert <steffen.klassert@secunet.com>, 
+	Herbert Xu <herbert@gondor.apana.org.au>, David Ahern <dsahern@kernel.org>, 
+	Willem de Bruijn <willemdebruijn.kernel@gmail.com>, =?UTF-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@kernel.org>, 
+	Magnus Karlsson <magnus.karlsson@intel.com>, 
+	Maciej Fijalkowski <maciej.fijalkowski@intel.com>, Jonathan Lemon <jonathan.lemon@gmail.com>, 
+	Shuah Khan <shuah@kernel.org>, Alexei Starovoitov <ast@kernel.org>, 
+	Daniel Borkmann <daniel@iogearbox.net>, John Fastabend <john.fastabend@gmail.com>, 
+	Sumit Semwal <sumit.semwal@linaro.org>, =?UTF-8?Q?Christian_K=C3=B6nig?= <christian.koenig@amd.com>, 
+	Pavel Begunkov <asml.silence@gmail.com>, David Wei <dw@davidwei.uk>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	Yunsheng Lin <linyunsheng@huawei.com>, Shailend Chand <shailend@google.com>, 
+	Harshitha Ramamurthy <hramamurthy@google.com>, Shakeel Butt <shakeel.butt@linux.dev>, 
+	Jeroen de Borst <jeroendb@google.com>, Praveen Kaligineedi <pkaligineedi@google.com>, 
+	Bagas Sanjaya <bagasdotme@gmail.com>, Christoph Hellwig <hch@infradead.org>, 
+	Nikolay Aleksandrov <razor@blackwall.org>, Taehee Yoo <ap420073@gmail.com>, 
+	Willem de Bruijn <willemb@google.com>, Kaiyuan Zhang <kaiyuanz@google.com>, 
+	Daniel Vetter <daniel.vetter@ffwll.ch>
+Content-Type: text/plain; charset="UTF-8"
 
+> +#include <linux/list.h>
+>  #include <uapi/linux/netdev.h>
+>
+...
 
+>
+> +#include <linux/list.h>
+>  #include <uapi/linux/netdev.h>
+>
 
-Le 29/08/2024 à 20:02, Segher Boessenkool a écrit :
-> On Thu, Aug 29, 2024 at 07:36:38PM +0200, Christophe Leroy wrote:
->>
->>
->> Le 28/08/2024 à 19:25, Segher Boessenkool a écrit :
->>>
->>>> Not sure about static binaries, though: do those even use the VDSO?
->>>
->>> With "static binary" people usually mean "a binary not using any DSOs",
->>> I think the VDSO is a DSO, also in this respect?  As always, -static
->>> builds are *way* less problematic (and faster and smaller :-) )
->>>
->>
->> AFAIK on powerpc even static binaries use the vDSO, otherwise signals
->> don't work.
-> 
-> How can that work?  Non-dynamic binaries do not use ld.so (that is the
-> definition of a dynamic binary, even).  So they cannot link (at runtime)
-> to any DSO (unless that is done manually?!)
-> 
-> Maybe there is something at a fixed offset in the vDSO, or something
-> like that?  Is this documented somewhere?
-> 
+Darn, I went too overboard with sorting of includes. ynl-regen.sh
+wants these in the reverse order, which is unsorted. I'll fix it in
+the next iteration, and I added this check as well to my presubmits.
 
-You've got some explanation here : 
-https://github.com/torvalds/linux/blob/master/Documentation/ABI/stable/vdso
+BTW I submitted 2 iterations already this week, Sunday and Wednesday.
+This is easily fixable and I can resend before the end of the week,
+but if I'm stressing NIPA too much with reposts of this large series I
+can wait until next week. Sorry about that.
+
+-- 
+Thanks,
+Mina
