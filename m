@@ -1,78 +1,80 @@
-Received: from fhigh1-smtp.messagingengine.com (fhigh1-smtp.messagingengine.com [103.168.172.152])
+Received: from fhigh3-smtp.messagingengine.com (fhigh3-smtp.messagingengine.com [103.168.172.154])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 788EA1D2F43;
-	Fri,  6 Sep 2024 17:20:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.152
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3B0E114C5AE;
+	Sun,  8 Sep 2024 11:26:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.154
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725643211; cv=none; b=YoqJjUDJcIzSIuCIb3baHpN95zExjAsw6TsEQkXoNkLffW+EwVp+aEXdaLD7EQqvgOsBkHExD8IO2zo4zniBcPB3nnNPvMJNwSdWiSqZ6cTnwOcT8+X8FGroK+W3kygJNbp/k5CXrVZQ/iD/iD92WwRREruclm5pfngMOL1IXk8=
+	t=1725794794; cv=none; b=WLT3NBmDpcWc8wBAQCGpyeAQS8PMCy4fGTLalsiD5tmcSnfzdBdRHQyvqR1CiWrMnF6fZb09N+KYZeJxQRkIAnE4SQdjI0vA5JpOdRdB3GxQgbSD5kuF/8uRKKq4r8g1MHOnk0F+VbQjzYJyj0DkQFPsDdjfSXDH9fkDafQmUUY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725643211; c=relaxed/simple;
-	bh=hFsVCuWFovzKfydtu/2HfnueKRA8iG/FfmTYP+cgV60=;
+	s=arc-20240116; t=1725794794; c=relaxed/simple;
+	bh=s22LiCvHg5GCcJ/0gjfyATBl5wTKkAzg5feHIKI+9mg=;
 	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=n4pgNb35Ltt5qIrM8nSkrb6SYstEoEHr0gBZdwifNkYqZeKpwZ2K1Q523ZgLwLu+y7Ux2Dw851v0V2kovhOvG4nFnfcDQY6INI9xOnDg+2YozZnJ2kNIVjRSoHO6XBqYEr+Wi0LvTWJCEFlmviIH3wx6OcRzr0pFhNWaMCrKSPQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=GUTFNgtQ; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=U9R9wPK1; arc=none smtp.client-ip=103.168.172.152
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	 Subject:Content-Type; b=aYcxkp484MmM+FrfRhD5VqerfdH0vkf5usJzw9Ghkfl4K39nUeCD69aafatkYKxxoX0GF9+PfHeBSmsv7DyVf5SfxfjGmFZ8kqhvwHMb4IYPV86KsFqp/Z9O6HSxvWhcCllcb1GxDdYIG4+LTUYbentBtcLlj05RkPYMWq0BieU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com; spf=pass smtp.mailfrom=flygoat.com; dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b=oHOi2tzi; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=fg90YUwB; arc=none smtp.client-ip=103.168.172.154
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flygoat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="GUTFNgtQ";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="U9R9wPK1"
-Received: from phl-compute-10.internal (phl-compute-10.phl.internal [10.202.2.50])
-	by mailfhigh.phl.internal (Postfix) with ESMTP id 8FB57114017E;
-	Fri,  6 Sep 2024 13:20:08 -0400 (EDT)
-Received: from phl-imap-11 ([10.202.2.101])
-  by phl-compute-10.internal (MEProxy); Fri, 06 Sep 2024 13:20:08 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
+	dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b="oHOi2tzi";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="fg90YUwB"
+Received: from phl-compute-09.internal (phl-compute-09.phl.internal [10.202.2.49])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 303BC1140239;
+	Sun,  8 Sep 2024 07:26:31 -0400 (EDT)
+Received: from phl-imap-12 ([10.202.2.86])
+  by phl-compute-09.internal (MEProxy); Sun, 08 Sep 2024 07:26:31 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=flygoat.com; h=
+	cc:cc:content-transfer-encoding:content-type:content-type:date
 	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1725643208;
-	 x=1725729608; bh=pGqQNxsj9qfH9QsO5+3KB74ZxiKlh96u9meajutmSw8=; b=
-	GUTFNgtQFspoqY52oTwNT8LGQnoU4H5uEN9RCeE6gsv3bwEHDlnVhLP50Pdu9Fu2
-	2kdGuRC787ra70SOi0UHXcegX3AHoLHukGeHXAxg56kIS58HVYC7w0+P/Sm2cSLN
-	DlbIi+sdAUcRaOLVdAU1qUpy/WCbNDNwKiSA6lU8WR8S55y1WdO/oJyoHm07EssY
-	osYOgAcVNnf8/sawYqWKezWV/nLNODEen6w+s2P8IiLxkOjLiI4YkBD/VLV0Q/Nl
-	6LgaZTm7eHbRfQmgYIxXLKmyMpGoLDZRf0mr70S4kMDxBizzrN9ysSeLtNhthK//
-	LeElrKukKR3n4/4pKHbsYg==
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1725794791;
+	 x=1725881191; bh=XEUlxjTawgkGJUbuV5995m7w7A2+JrHLDxzMf66rOFU=; b=
+	oHOi2tziFYipU/36G0P4pMedwfORQXdZAEe5c9Wj6Pkgv2OwPwT8YruLqHeDtPPl
+	aYsVkmP6MoSs3CPhOdnNnBGy1EB5dQRcXluTi7nR3uZ/IDhEp7vIUihrBhkfgOQR
+	4j/c6PqoGTCGYa4f9b5UUfA47nFjzGxrAO5K6afnIZDUmCftz5UOHhJvGMudLFdR
+	rSgAL4fXR0uC4GGqwHMng2woukdSPh5Nqwjlr2tYXmkYDBL4QJWPUAkQDVZrkSYD
+	oCgX/0eT5ac+iDDRk/ni/6T8yfLtxVDLu3kVGfhB6uGlgNQxAoF7BKg/Uo7g09m6
+	MdYX7iA0mE0HTDF/kiQgZw==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-transfer-encoding
 	:content-type:content-type:date:date:feedback-id:feedback-id
 	:from:from:in-reply-to:in-reply-to:message-id:mime-version
 	:references:reply-to:subject:subject:to:to:x-me-proxy:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1725643208; x=
-	1725729608; bh=pGqQNxsj9qfH9QsO5+3KB74ZxiKlh96u9meajutmSw8=; b=U
-	9R9wPK1G+49xOApyDsYUf3Fu3yQ5Vpd576/nOMIoIbwoax7odlvHHdYUQdZREVmx
-	QM0CI//E+Bd1YBnjFtXWJqWAI/+gS2W6Br6mrc9hWBYIotQZp/LIjc1yeih9r2RK
-	YSX5FTqLJ28Y/ekzoUfrJHsdpTQx1lH9uBInGAazEeAImpPc248R57rdLjcJKh7b
-	FC0zG3bUZ7bgUI1Ypp1mUO+ZpoF4QLx2p8qce88pDSkAhmKPZFCRg7cpuojXe9Zb
-	uwIPs45uyLTqZzS06qMWOb1tRyHBPRe70+6F2cKBNHPLL0PizwmXMCaEqWbgDz02
-	WNjstbFo++LL9oHYolAiw==
-X-ME-Sender: <xms:xznbZoRc9TVjrwLKZD3SHzdddDiP96tjjtxv7zYuQTxohyzpwwcKxw>
-    <xme:xznbZlwYPXSDx2sdJuDKdfHHY_kloBKx7LdIHrJznJ6NTYm47RJugPzFXBqtpiGba
-    y7hkWlc55lr9ypGJ1g>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddrudeiuddguddufecutefuodetggdotefrod
-    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
-    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
-    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthejredtredt
-    tdenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
-    druggvqeenucggtffrrghtthgvrhhnpefhtdfhvddtfeehudekteeggffghfejgeegteef
-    gffgvedugeduveelvdekhfdvieenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
-    epmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopedv
-    tddpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepsghpsegrlhhivghnkedruggvpd
-    hrtghpthhtohepvhhinhgtvghniihordhfrhgrshgtihhnohesrghrmhdrtghomhdprhgt
-    phhtthhopegthhhrihhsthhophhhvgdrlhgvrhhohiestghsghhrohhuphdrvghupdhrtg
-    hpthhtohepmhgrthhhihgvuhdruggvshhnohihvghrshesvghffhhitghiohhsrdgtohhm
-    pdhrtghpthhtohepmhhpvgesvghllhgvrhhmrghnrdhiugdrrghupdhrtghpthhtohepnh
-    hpihhgghhinhesghhmrghilhdrtghomhdprhgtphhtthhopehrohhsthgvughtsehgohho
-    ughmihhsrdhorhhgpdhrtghpthhtoheplhhuthhosehkvghrnhgvlhdrohhrghdprhgtph
-    htthhopehmhhhirhgrmhgrtheskhgvrhhnvghlrdhorhhg
-X-ME-Proxy: <xmx:xznbZl1fFpbhEQaSulOr5Sb5zVIVPk3MWod4f0_odz-P4kBqh0pBWw>
-    <xmx:xznbZsCU09WoXMvmnkvlxoT-lKYi7xxe8W1lB0yGdF4oSnkanfmeGg>
-    <xmx:xznbZhia_v-Pv1knXsHTdr-LSugEdm-qUUfO4wftFXFqKrccp8gEiQ>
-    <xmx:xznbZorI3xx_yg1Bao5_pENYkT_hqfWhD2oxzzfDc1KcZTunJ0-Gsw>
-    <xmx:yDnbZm2SOmPpRxhr_WCBYx6zAC4fjvxBPkGmXhlUQA-4a4PbbOdxdC8n>
-Feedback-ID: i56a14606:Fastmail
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1725794791; x=
+	1725881191; bh=XEUlxjTawgkGJUbuV5995m7w7A2+JrHLDxzMf66rOFU=; b=f
+	g90YUwBHInWhIR7eot/GF/L5V8rTEiLKyfgrEwEGaITOsFWt+MRMHpLTuqzTFmCc
+	HA44h/q1BXd4iJMNi4nfHe6z24uwouoQ4RMWlqcwyKrjROgMakTgYu6gfEHlzrUr
+	i0hjfXXqfZRRehxdtj+aZa+1cwviPfTK+T6zzG6WGuFIe0xPI7jQ2Y3nPhlYRt37
+	Z5c7fxczZEhGsHiXmlTZFd3F73OxlTU5QGWxZSnZ3oUznMRj9qp+QkcdwGmLd5ZU
+	LjBieS65NRQt0Ufia4wkB0gY7cNhU/+mjeq4n2QgZCei4VKJJM5vk5T2uR8ZIyce
+	A8dS7WV0a6DERl6qoyLBg==
+X-ME-Sender: <xms:5ondZv5EyLULksTd86Gox8AAQuTkdW8_EDaOnSzJ807aoMMq3SvXKw>
+    <xme:5ondZk6wX3pv5Yj08ahY3NmdyrnN8xyC9XqeN4JEBp7G18z0_I04to5vGA7mByLdc
+    zyCAe6ZBI3bkPAOBEU>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddrudeihedgfeelucetufdoteggodetrfdotf
+    fvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdggtfgfnhhsuhgsshgtrhhisggvpdfu
+    rfetoffkrfgpnffqhgenuceurghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnh
+    htshculddquddttddmnecujfgurhepofggfffhvfevkfgjfhfutgfgsehtqhertdertdej
+    necuhfhrohhmpedflfhirgiguhhnucgjrghnghdfuceojhhirgiguhhnrdihrghnghesfh
+    hlhihgohgrthdrtghomheqnecuggftrfgrthhtvghrnhepjeehfeduvddtgffgvdffkeet
+    hefhlefgvdevvdekuefffeekheehgeevhfevteejnecuvehluhhsthgvrhfuihiivgeptd
+    enucfrrghrrghmpehmrghilhhfrhhomhepjhhirgiguhhnrdihrghnghesfhhlhihgohgr
+    thdrtghomhdpnhgspghrtghpthhtohepuddvpdhmohguvgepshhmthhpohhuthdprhgtph
+    htthhopehlihhnuhigqdgrlhhphhgrsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghp
+    thhtoheplhhinhhugidqrghrtghhsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpth
+    htoheplhhinhhugidqtghskhihsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthht
+    oheplhhinhhugidqkhgvrhhnvghlsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpth
+    htoheplhhinhhugidqkhhsvghlfhhtvghsthesvhhgvghrrdhkvghrnhgvlhdrohhrghdp
+    rhgtphhtthhopehlihhnuhigqdhmihhpshesvhhgvghrrdhkvghrnhgvlhdrohhrghdprh
+    gtphhtthhopehlihhnuhigqdhprghrihhstgesvhhgvghrrdhkvghrnhgvlhdrohhrghdp
+    rhgtphhtthhopehlihhnuhigqdhsfeeltdesvhhgvghrrdhkvghrnhgvlhdrohhrghdprh
+    gtphhtthhopehlihhnuhigqdhshhesvhhgvghrrdhkvghrnhgvlhdrohhrgh
+X-ME-Proxy: <xmx:5ondZmd9bDZgTBNLmCVK9WctNnt9UdyUUYLzicp8fRUQJOEeEHozCQ>
+    <xmx:5ondZgJbs9ZbQEnjCxeIQX3jr6jp32cCYqcxW8vB_4rDfb71lY8o7g>
+    <xmx:5ondZjJQPWwtLvEPjhQrPNIUhMsNJM9qEgpuiiWJGtcO2UPfCU6EbA>
+    <xmx:5ondZpytJvdFgsOqTwWS9Vs06wpz46tg4dTRIE_gHhIODGZYtV_FWQ>
+    <xmx:54ndZlxfc3c_LrCS3N9s-1LqRMFbltsGr3zCZwtJfxdiMSPhLMCNLrFL>
+Feedback-ID: ifd894703:Fastmail
 Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 2F9C7222006F; Fri,  6 Sep 2024 13:20:07 -0400 (EDT)
+	id 900D51C20065; Sun,  8 Sep 2024 07:26:30 -0400 (EDT)
 X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -80,53 +82,104 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Date: Fri, 06 Sep 2024 19:19:46 +0000
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Vincenzo Frascino" <vincenzo.frascino@arm.com>,
- linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
- linux-mm@kvack.org
-Cc: "Andy Lutomirski" <luto@kernel.org>,
- "Thomas Gleixner" <tglx@linutronix.de>,
- "Jason A . Donenfeld" <Jason@zx2c4.com>,
+Date: Sun, 08 Sep 2024 12:26:09 +0100
+From: "Jiaxun Yang" <jiaxun.yang@flygoat.com>
+To: "Charlie Jenkins" <charlie@rivosinc.com>,
+ "Arnd Bergmann" <arnd@arndb.de>,
+ "Richard Henderson" <richard.henderson@linaro.org>,
+ "Ivan Kokshaysky" <ink@jurassic.park.msu.ru>,
+ "Matt Turner" <mattst88@gmail.com>, "Vineet Gupta" <vgupta@kernel.org>,
+ "Russell King" <linux@armlinux.org.uk>, "Guo Ren" <guoren@kernel.org>,
+ "Huacai Chen" <chenhuacai@kernel.org>, "Xuerui Wang" <kernel@xen0n.name>,
+ "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
+ "James Bottomley" <James.Bottomley@hansenpartnership.com>,
+ "Helge Deller" <deller@gmx.de>, "Michael Ellerman" <mpe@ellerman.id.au>,
+ "Nicholas Piggin" <npiggin@gmail.com>,
  "Christophe Leroy" <christophe.leroy@csgroup.eu>,
- "Michael Ellerman" <mpe@ellerman.id.au>,
- "Nicholas Piggin" <npiggin@gmail.com>, "Naveen N Rao" <naveen@kernel.org>,
- "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, "Theodore Ts'o" <tytso@mit.edu>,
+ "Naveen N Rao" <naveen@kernel.org>,
+ "Alexander Gordeev" <agordeev@linux.ibm.com>,
+ "Gerald Schaefer" <gerald.schaefer@linux.ibm.com>,
+ "Heiko Carstens" <hca@linux.ibm.com>,
+ "Vasily Gorbik" <gor@linux.ibm.com>,
+ "Christian Borntraeger" <borntraeger@linux.ibm.com>,
+ "Sven Schnelle" <svens@linux.ibm.com>,
+ "Yoshinori Sato" <ysato@users.sourceforge.jp>,
+ "Rich Felker" <dalias@libc.org>,
+ "John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>,
+ "David S . Miller" <davem@davemloft.net>,
+ "Andreas Larsson" <andreas@gaisler.com>,
+ "Thomas Gleixner" <tglx@linutronix.de>, "Ingo Molnar" <mingo@redhat.com>,
+ "Borislav Petkov" <bp@alien8.de>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Andy Lutomirski" <luto@kernel.org>,
+ "Peter Zijlstra" <peterz@infradead.org>,
+ "Muchun Song" <muchun.song@linux.dev>,
  "Andrew Morton" <akpm@linux-foundation.org>,
- "Steven Rostedt" <rostedt@goodmis.org>,
- "Masami Hiramatsu" <mhiramat@kernel.org>,
- "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com>
-Message-Id: <11527a80-7453-4624-b406-e88c5692b015@app.fastmail.com>
-In-Reply-To: <e28e1974-cced-462c-8f57-ca1474272e73@arm.com>
-References: <20240903151437.1002990-1-vincenzo.frascino@arm.com>
- <20240903151437.1002990-4-vincenzo.frascino@arm.com>
- <cfb5ea05-0322-492b-815d-17a4aad4da99@app.fastmail.com>
- <e28e1974-cced-462c-8f57-ca1474272e73@arm.com>
-Subject: Re: [PATCH 3/9] x86: vdso: Introduce asm/vdso/page.h
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+ "Liam R. Howlett" <Liam.Howlett@oracle.com>,
+ "Vlastimil Babka" <vbabka@suse.cz>,
+ "Lorenzo Stoakes" <lorenzo.stoakes@oracle.com>,
+ "Shuah Khan" <shuah@kernel.org>, "Christoph Hellwig" <hch@infradead.org>,
+ "Michal Hocko" <mhocko@suse.com>,
+ "Kirill A. Shutemov" <kirill@shutemov.name>,
+ "Chris Torek" <chris.torek@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+ linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org,
+ loongarch@lists.linux.dev,
+ "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
+ linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+ linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+ sparclinux@vger.kernel.org, linux-mm@kvack.org,
+ linux-kselftest@vger.kernel.org, linux-abi-devel@lists.sourceforge.net
+Message-Id: <53384dc9-38c9-4d05-bcde-a3552fbed7ac@app.fastmail.com>
+In-Reply-To: 
+ <20240905-patches-below_hint_mmap-v3-0-3cd5564efbbb@rivosinc.com>
+References: <20240905-patches-below_hint_mmap-v3-0-3cd5564efbbb@rivosinc.com>
+Subject: Re: [PATCH RFC v3 0/2] mm: Introduce ADDR_LIMIT_47BIT personality flag
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On Fri, Sep 6, 2024, at 11:20, Vincenzo Frascino wrote:
-> On 04/09/2024 15:52, Arnd Bergmann wrote:
->> On Tue, Sep 3, 2024, at 15:14, Vincenzo Frascino wrote:
-> Looking at the definition of PAGE_SIZE and PAGE_MASK for each architecture they
-> all depend on CONFIG_PAGE_SHIFT but they are slightly different, e.g.:
->
-> x86:
-> #define PAGE_SIZE        (_AC(1,UL) << PAGE_SHIFT)
->
-> powerpc:
-> #define PAGE_SIZE        (ASM_CONST(1) << PAGE_SHIFT)
->
-> hence I left to the architecture the responsibility of redefining the constants
-> for the VSDO.
 
-ASM_CONST() is a powerpc-specific macro that is defined the
-same way as _AC(). We could probably just replace all ASM_CONST()
-as a cleanup, but for this purpose, just remove the custom PAGE_SIZE
-and PAGE_SHIFT macros. This can be a single patch fro all
-architectures.
 
-    Arnd
+=E5=9C=A82024=E5=B9=B49=E6=9C=885=E6=97=A5=E4=B9=9D=E6=9C=88 =E4=B8=8B=E5=
+=8D=8810:15=EF=BC=8CCharlie Jenkins=E5=86=99=E9=81=93=EF=BC=9A
+> Some applications rely on placing data in free bits addresses allocated
+> by mmap. Various architectures (eg. x86, arm64, powerpc) restrict the
+> address returned by mmap to be less than the 48-bit address space,
+> unless the hint address uses more than 47 bits (the 48th bit is reserv=
+ed
+> for the kernel address space).
+>
+> The riscv architecture needs a way to similarly restrict the virtual
+> address space. On the riscv port of OpenJDK an error is thrown if
+> attempted to run on the 57-bit address space, called sv57 [1].  golang
+> has a comment that sv57 support is not complete, but there are some
+> workarounds to get it to mostly work [2].
+>
+> These applications work on x86 because x86 does an implicit 47-bit
+> restriction of mmap() address that contain a hint address that is less
+> than 48 bits.
+>
+> Instead of implicitly restricting the address space on riscv (or any
+> current/future architecture), provide a flag to the personality syscall
+> that can be used to ensure an application works in any arbitrary VA
+> space. A similar feature has already been implemented by the personali=
+ty
+> syscall in ADDR_LIMIT_32BIT.
+>
+> This flag will also allow seemless compatibility between all
+> architectures, so applications like Go and OpenJDK that use bits in a
+> virtual address can request the exact number of bits they need in a
+> generic way. The flag can be checked inside of vm_unmapped_area() so
+> that this flag does not have to be handled individually by each
+> architecture.=20
+
+Tested-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
+
+Tested on MIPS VA 48 system, fixed pointer tagging on mozjs!
+
+Thanks!
+
+[...]
+--=20
+- Jiaxun
