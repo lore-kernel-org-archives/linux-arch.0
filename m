@@ -1,127 +1,153 @@
-Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
+Received: from fout3-smtp.messagingengine.com (fout3-smtp.messagingengine.com [103.168.172.146])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06CFA158528;
-	Sun,  8 Sep 2024 13:53:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=93.17.235.10
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B0391C01;
+	Sun,  8 Sep 2024 18:48:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.146
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725803590; cv=none; b=smyNS7lrSdoZqAn6xL5cdP6yjz3jKa6wOVYXuNqkbehGAevGnWCno4/cHTiKOG4sZAadapq5qc+d+kFV75zq5z4phM74PiZuHp7HPaRe4AZUBHNauNQs+S5pK3ar7rWagrXChjAPUZY2hbG8iftidRjwrGseoBr4EoswnP7Syxs=
+	t=1725821327; cv=none; b=dr+YWgqdLzbWiSgD4UggV0x35A/X1KNaNx2wmcnzppgRGcRWdDprUzVRWt2BUhjNeJ5usAQjBNWoLYHdEHByC9CswlCgVtiMTbKEsPoRWiKjqhN6gLHHsip3YtIg1LV4AodeEE0a9NldynhAbBpCmyumplKvY5y0bsn78kdsO5Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725803590; c=relaxed/simple;
-	bh=aEdLEikBSLEPzKcxCjBbIOioRyI64/UAVQIiVNGhYT0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=mVyl2I7h7dvhhl/yfWweoKqV1ZVAiKRQ6FCI3Cg0WO0mJ5ExTsDSLnKgm+ieXB3ka3hbGAFd7aev4xL35+jlS/y/kw8CaOOZoHYOtEEsbYqtBWPYbBU9NjTC2KJIa2uhPvhuFDwzgyBBLP2iu4YTL4E8bo8oRWOmDvsygEV3YF0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu; spf=pass smtp.mailfrom=csgroup.eu; arc=none smtp.client-ip=93.17.235.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=csgroup.eu
-Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
-	by localhost (Postfix) with ESMTP id 4X1ryW1Z3zz9sS7;
-	Sun,  8 Sep 2024 15:53:07 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from pegase2.c-s.fr ([172.26.127.65])
-	by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
-	with ESMTP id xr9tftewbl7Q; Sun,  8 Sep 2024 15:53:07 +0200 (CEST)
-Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
-	by pegase2.c-s.fr (Postfix) with ESMTP id 4X1rvW6thvz9sWW;
-	Sun,  8 Sep 2024 15:50:31 +0200 (CEST)
-Received: from localhost (localhost [127.0.0.1])
-	by messagerie.si.c-s.fr (Postfix) with ESMTP id 3E3AC8BFDA;
-	Fri,  6 Sep 2024 20:40:50 +0200 (CEST)
-X-Virus-Scanned: amavisd-new at c-s.fr
-Received: from messagerie.si.c-s.fr ([127.0.0.1])
-	by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
-	with ESMTP id DQ3Yl1oMtObJ; Fri,  6 Sep 2024 20:40:50 +0200 (CEST)
-Received: from [192.168.235.70] (unknown [192.168.235.70])
-	by messagerie.si.c-s.fr (Postfix) with ESMTP id 6735D8BFD1;
-	Fri,  6 Sep 2024 20:40:49 +0200 (CEST)
-Message-ID: <ccaac82f-0c43-491e-ab8a-1da8bf8c7477@csgroup.eu>
-Date: Fri, 6 Sep 2024 20:40:49 +0200
+	s=arc-20240116; t=1725821327; c=relaxed/simple;
+	bh=yPWXRto6tdgYRKT/hZX27dOSn/QmreMfWXsYaWnFT04=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=MH6SUWmKjbNhJxHzLbc7PSVpKITEypmKPEOp0MCfarfSajvobwgSioKjuv6P+yYtPHh1k+A6WbsvT65z9qRRH7tRaNb+f5cKh4xAuoRX5KKHLUEOrDW7SzzWK1Mhyx4B7Ai8YUf7HLtR72ypTVynAPzaPLKynVIBNIJtrzjPQQI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=pIelrbMj; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=WTh6/Dma; arc=none smtp.client-ip=103.168.172.146
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="pIelrbMj";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="WTh6/Dma"
+Received: from phl-compute-10.internal (phl-compute-10.phl.internal [10.202.2.50])
+	by mailfout.phl.internal (Postfix) with ESMTP id 49AAF13801AA;
+	Sun,  8 Sep 2024 14:48:44 -0400 (EDT)
+Received: from phl-imap-11 ([10.202.2.101])
+  by phl-compute-10.internal (MEProxy); Sun, 08 Sep 2024 14:48:44 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1725821324;
+	 x=1725907724; bh=JkD38rG6xdhn5i8WXaenEJLcpRWMj44PoaCjb/hfV80=; b=
+	pIelrbMjzXjQ8Ew5W3xoLJu9A3jIsP2Oag3u1DOyAtDF1mZypFx7NT/+QlyxQN3V
+	YxqnFHci0MgsFyLMmF9Krglm61h60GF4srEKy+HQgGMTOMYKbjdaG5CuTdNEcSxL
+	hy2/vEXVaV5RSxycEYsCNWT/VFG8+f+Qg0qFwO2VX+ezBBvm78Llo6HeV8fDpEP1
+	C/ct0ps3Hy/20VFpEl8Me1SwQG2aFrbtIHUHJ9xrqeVKE2dK5T0tckVEaewxkUgt
+	QlhqSa9sC7BDCU0KJBd5zAIOvq2RtF3/0DTcrN3V2CDASmJxKmhCZ8I354vE4+Xm
+	DvtDeCt84FIHjpb2oDQw9g==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1725821324; x=
+	1725907724; bh=JkD38rG6xdhn5i8WXaenEJLcpRWMj44PoaCjb/hfV80=; b=W
+	Th6/Dmaz4u1MUSFoaoOfiwdXeUB08JQfEM0hLCPrVZ/a3zeAAyTOmGjosgRs/Uo4
+	5Udzf9x48lGNmOrN8eRZlAl5CQGdtUzKfulrF82PkTtxfZcF1/wszW1TKuMYcBHP
+	lQnrcnuXUJpZv9i9C9TP3ur0m3MLWwBea3WhfFRnExn9v6I9eee0IGF2Oyo7ZdNm
+	zx5etOmTYb57giFL33yt6PPifMZtjKH7dvANLZAqNZtAbTy5jYcRCNZnPBjAV5eJ
+	OU94CAQdThroc/6wk2PgCkLbAgbTAboSEHY05pn4gqVLW2WfQhzY+f+LJLzYzHL9
+	dcfZsEKvM7YMGyITv3/RQ==
+X-ME-Sender: <xms:ivHdZv0xhuAuvkevwC6DJx68nNBhhaBFW5zP1DvgPMzgyRrYe6EwCw>
+    <xme:ivHdZuGyPu0LiUbax-bh1niuN_UdPSVWZ2qVd4ptM0SVVsmwxNa8aMBViPsKTydAD
+    BphhdRHzt8uAzX1BCA>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddrudeihedgudeftdcutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
+    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
+    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthhqredtredt
+    jeenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
+    druggvqeenucggtffrrghtthgvrhhnpedvhfdvkeeuudevfffftefgvdevfedvleehvddv
+    geejvdefhedtgeegveehfeeljeenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
+    epmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopedv
+    tddpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepsghpsegrlhhivghnkedruggvpd
+    hrtghpthhtohepvhhinhgtvghniihordhfrhgrshgtihhnohesrghrmhdrtghomhdprhgt
+    phhtthhopegthhhrihhsthhophhhvgdrlhgvrhhohiestghsghhrohhuphdrvghupdhrtg
+    hpthhtohepmhgrthhhihgvuhdruggvshhnohihvghrshesvghffhhitghiohhsrdgtohhm
+    pdhrtghpthhtohepmhhpvgesvghllhgvrhhmrghnrdhiugdrrghupdhrtghpthhtohepnh
+    hpihhgghhinhesghhmrghilhdrtghomhdprhgtphhtthhopehrohhsthgvughtsehgohho
+    ughmihhsrdhorhhgpdhrtghpthhtoheplhhuthhosehkvghrnhgvlhdrohhrghdprhgtph
+    htthhopehmhhhirhgrmhgrtheskhgvrhhnvghlrdhorhhg
+X-ME-Proxy: <xmx:ivHdZv6nNFUrn5XmLkKF35GTSouNKkWWLuX06yE0YPeK45vVKKveZw>
+    <xmx:ivHdZk0nZf1Feto-7H40HJ2v6Ui881h5W2au4eJAHrLCAhnVHcOx9g>
+    <xmx:ivHdZiGuoALEufxRpE90cCMmr3F1uSBqk195kxtAAA26uP7U_9nxyw>
+    <xmx:ivHdZl9mLiBRJfdqfZsXkPOAxKWqTpzkx1_bU2dot9dvmF2pQmxVaw>
+    <xmx:jPHdZiL9IJJKlrUNvAQBAi0GcSLaQ74LAykM6vwkuMak7swWOT-VvxS8>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id C28F8222006F; Sun,  8 Sep 2024 14:48:42 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 3/9] x86: vdso: Introduce asm/vdso/page.h
-To: Arnd Bergmann <arnd@arndb.de>,
- Vincenzo Frascino <vincenzo.frascino@arm.com>, linux-kernel@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, linux-mm@kvack.org
-Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>,
+Date: Sun, 08 Sep 2024 20:48:06 +0000
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Christophe Leroy" <christophe.leroy@csgroup.eu>,
+ "Vincenzo Frascino" <vincenzo.frascino@arm.com>,
+ linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
+ linux-mm@kvack.org
+Cc: "Andy Lutomirski" <luto@kernel.org>,
+ "Thomas Gleixner" <tglx@linutronix.de>,
  "Jason A . Donenfeld" <Jason@zx2c4.com>,
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
- Naveen N Rao <naveen@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- "H. Peter Anvin" <hpa@zytor.com>, Theodore Ts'o <tytso@mit.edu>,
- Andrew Morton <akpm@linux-foundation.org>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+ "Michael Ellerman" <mpe@ellerman.id.au>,
+ "Nicholas Piggin" <npiggin@gmail.com>, "Naveen N Rao" <naveen@kernel.org>,
+ "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>,
+ "H. Peter Anvin" <hpa@zytor.com>, "Theodore Ts'o" <tytso@mit.edu>,
+ "Andrew Morton" <akpm@linux-foundation.org>,
+ "Steven Rostedt" <rostedt@goodmis.org>,
+ "Masami Hiramatsu" <mhiramat@kernel.org>,
+ "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com>
+Message-Id: <8868ef2c-6bfb-4ab7-ac5e-640e05658ee1@app.fastmail.com>
+In-Reply-To: <ccaac82f-0c43-491e-ab8a-1da8bf8c7477@csgroup.eu>
 References: <20240903151437.1002990-1-vincenzo.frascino@arm.com>
  <20240903151437.1002990-4-vincenzo.frascino@arm.com>
  <cfb5ea05-0322-492b-815d-17a4aad4da99@app.fastmail.com>
  <e28e1974-cced-462c-8f57-ca1474272e73@arm.com>
  <11527a80-7453-4624-b406-e88c5692b015@app.fastmail.com>
-Content-Language: fr-FR
-From: Christophe Leroy <christophe.leroy@csgroup.eu>
-In-Reply-To: <11527a80-7453-4624-b406-e88c5692b015@app.fastmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+ <ccaac82f-0c43-491e-ab8a-1da8bf8c7477@csgroup.eu>
+Subject: Re: [PATCH 3/9] x86: vdso: Introduce asm/vdso/page.h
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-Hi Arnd,
+On Fri, Sep 6, 2024, at 18:40, Christophe Leroy wrote:
+> Le 06/09/2024 =C3=A0 21:19, Arnd Bergmann a =C3=A9crit=C2=A0:
+>> On Fri, Sep 6, 2024, at 11:20, Vincenzo Frascino wrote:
 
-Le 06/09/2024 à 21:19, Arnd Bergmann a écrit :
-> On Fri, Sep 6, 2024, at 11:20, Vincenzo Frascino wrote:
->> On 04/09/2024 15:52, Arnd Bergmann wrote:
->>> On Tue, Sep 3, 2024, at 15:14, Vincenzo Frascino wrote:
->> Looking at the definition of PAGE_SIZE and PAGE_MASK for each architecture they
->> all depend on CONFIG_PAGE_SHIFT but they are slightly different, e.g.:
->>
->> x86:
->> #define PAGE_SIZE        (_AC(1,UL) << PAGE_SHIFT)
->>
->> powerpc:
->> #define PAGE_SIZE        (ASM_CONST(1) << PAGE_SHIFT)
->>
->> hence I left to the architecture the responsibility of redefining the constants
->> for the VSDO.
-> 
-> ASM_CONST() is a powerpc-specific macro that is defined the
-> same way as _AC(). We could probably just replace all ASM_CONST()
-> as a cleanup, but for this purpose, just remove the custom PAGE_SIZE
-> and PAGE_SHIFT macros. This can be a single patch fro all
-> architectures.
-> 
+>>> Looking at the definition of PAGE_SIZE and PAGE_MASK for each archit=
+ecture they
+>>> all depend on CONFIG_PAGE_SHIFT but they are slightly different, e.g=
+.:
+>>>
+>>> x86:
+>>> #define PAGE_SIZE        (_AC(1,UL) << PAGE_SHIFT)
+>>>
+>>> powerpc:
+>>> #define PAGE_SIZE        (ASM_CONST(1) << PAGE_SHIFT)
+>>>
+>>> hence I left to the architecture the responsibility of redefining th=
+e constants
+>>> for the VSDO.
+>>=20
+>> ASM_CONST() is a powerpc-specific macro that is defined the
+>> same way as _AC(). We could probably just replace all ASM_CONST()
+>> as a cleanup, but for this purpose, just remove the custom PAGE_SIZE
+>> and PAGE_SHIFT macros. This can be a single patch fro all
+>> architectures.
+>>=20
+>
+> I'm not worried about _AC versus ASM_CONST, but I am by the 1UL versus=
+ 1.
+>
+>
+> This can be a problem on 32 bits platforms with 64 bits phys_addr_t
 
-I'm not worried about _AC versus ASM_CONST, but I am by the 1UL versus 1.
+But that would already be a bug if anything used this, however
+none of them do. The only instance of an open-coded
 
-The two functions below don't provide the same result:
+#define PAGE_SIZE       (1 << PAGE_SHIFT)
 
-#define PAGE_SIZE (1 << 12)
-#define PAGE_MASK (~(PAGE_SIZE - 1))
+is from openrisc, but that is only used inside of __ASSEMBLY__, for
+the same effect as _AC().
 
-unsigned long long f(unsigned long long x)
-{
-	return x & PAGE_MASK;
-}
-
-#define PAGE_SIZE_2 (1UL << 12)
-#define PAGE_MASK_2 (~(PAGE_SIZE_2 - 1))
-
-unsigned long long g(unsigned long long x)
-{
-	return x & PAGE_MASK_2;
-}
-
-00000000 <f>:
-    0:	54 84 00 26 	clrrwi  r4,r4,12
-    4:	4e 80 00 20 	blr
-
-00000008 <g>:
-    8:	54 84 00 26 	clrrwi  r4,r4,12
-    c:	38 60 00 00 	li      r3,0
-   10:	4e 80 00 20 	blr
-
-
-This can be a problem on 32 bits platforms with 64 bits phys_addr_t
-
-Christophe
+    Arnd
