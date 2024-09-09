@@ -1,90 +1,177 @@
-Received: from eu-smtp-delivery-151.mimecast.com (eu-smtp-delivery-151.mimecast.com [185.58.86.151])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qt1-f170.google.com (mail-qt1-f170.google.com [209.85.160.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CDCB917554A
-	for <linux-arch@vger.kernel.org>; Sun,  8 Sep 2024 19:59:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.58.86.151
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D86936AAD
+	for <linux-arch@vger.kernel.org>; Mon,  9 Sep 2024 00:21:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725825567; cv=none; b=Xz/NB3GwXTp8IJYi8B/JyU+YXGBAWjvct9jt5c8dY4NpWtDFJbjqN5/tzhC1J8zCMO9NxvXw3/9mS74ZuQHv3EJxB9FOELD/W3cTrKILfIHTrdYtcMBImPmciGDJb7ZKgJX3hZEWmNEjSoKtOzRHEHz3N/IG2MACq7Yfm2bzR6A=
+	t=1725841299; cv=none; b=Owo/IAFS/k0fLWhLSxRuLq4o8MdpQs7/gnIBSIqh0a+TgPrj6K/KlYw1merGyOrk9pqJe2cImPfulvBQTMsS0rv1k2oGnvdwy//yAbJssAz0vnz8wNFj7DSz4OGSkeMpn1e03Ai3nXHwFpEpLFy+RglabaD+oy8LEiFUeSyQGjc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725825567; c=relaxed/simple;
-	bh=VWa+VuWxEr4chYv5590B0BLqcgbZUprsswlSpAmZjuc=;
-	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
-	 MIME-Version:Content-Type; b=SutI4ODX2i8f7BiJvrkK6tbqALy98uBcVgehZODUm5Z/SNnXMOlujTHkYKE86MZAL2iyYteIWXQiTrVEBdYANHH6Z32N3NoQPfDW2tE8Hd8u7gFvtJJ+BuHI7Uhyk5JTxt+8yfwoo4cIPkU2f1mpAgbqqhrqfPYJjt+l+Jmy4qc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=ACULAB.COM; spf=pass smtp.mailfrom=aculab.com; arc=none smtp.client-ip=185.58.86.151
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=ACULAB.COM
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=aculab.com
-Received: from AcuMS.aculab.com (156.67.243.121 [156.67.243.121]) by
- relay.mimecast.com with ESMTP with both STARTTLS and AUTH (version=TLSv1.2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384) id
- uk-mta-231-KzG2DeCpP5-7FmGTxaYhAQ-1; Sun, 08 Sep 2024 20:59:23 +0100
-X-MC-Unique: KzG2DeCpP5-7FmGTxaYhAQ-1
-Received: from AcuMS.Aculab.com (10.202.163.4) by AcuMS.aculab.com
- (10.202.163.4) with Microsoft SMTP Server (TLS) id 15.0.1497.48; Sun, 8 Sep
- 2024 20:58:32 +0100
-Received: from AcuMS.Aculab.com ([::1]) by AcuMS.aculab.com ([::1]) with mapi
- id 15.00.1497.048; Sun, 8 Sep 2024 20:58:32 +0100
-From: David Laight <David.Laight@ACULAB.COM>
-To: 'Vincenzo Frascino' <vincenzo.frascino@arm.com>, Arnd Bergmann
-	<arnd@arndb.de>, Christophe Leroy <christophe.leroy@csgroup.eu>,
-	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch
-	<linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-CC: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>,
-	"Jason A . Donenfeld" <Jason@zx2c4.com>, Michael Ellerman
-	<mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, Naveen N Rao
-	<naveen@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
-	<bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin"
-	<hpa@zytor.com>, Theodore Ts'o <tytso@mit.edu>, Andrew Morton
-	<akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>, "Masami
- Hiramatsu" <mhiramat@kernel.org>, Mathieu Desnoyers
-	<mathieu.desnoyers@efficios.com>
-Subject: RE: [PATCH 5/9] vdso: Split linux/minmax.h
-Thread-Topic: [PATCH 5/9] vdso: Split linux/minmax.h
-Thread-Index: AQHbAFGj6anFtpX/JkyngSSwmyUx4rJOUXIA
-Date: Sun, 8 Sep 2024 19:58:32 +0000
-Message-ID: <79a350d94d754a16864b55336e50bce6@AcuMS.aculab.com>
-References: <20240903151437.1002990-1-vincenzo.frascino@arm.com>
- <20240903151437.1002990-6-vincenzo.frascino@arm.com>
- <b78eab34-61f5-4c9e-b080-d2524cd30eb8@csgroup.eu>
- <780d969f-8057-41aa-901f-08a5fbebcba9@app.fastmail.com>
- <1d86a38b-dd57-48ac-875b-4d9d2f645d47@arm.com>
-In-Reply-To: <1d86a38b-dd57-48ac-875b-4d9d2f645d47@arm.com>
-Accept-Language: en-GB, en-US
-X-MS-Has-Attach: 
-X-MS-TNEF-Correlator: 
-x-ms-exchange-transport-fromentityheader: Hosted
+	s=arc-20240116; t=1725841299; c=relaxed/simple;
+	bh=KVZMNnMYMnNRh9XEUd/AbAsrshEQNXgSkDB5lDD5qq8=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=jBTUzzWYrYwyMiHr55EhJgDCko5QYU4zOwRA5JlV507adoANcJouPS+RyP18xajYiAjmdy0KdVoK7MWt/NXepKH2ehWQfp20GZ5Wh2YMRXuMrNFRuuLoENjQAxCwIgBQr5so+xrtadzGvwNIeahdFruAl+vtW6d0/BLI3uSfMME=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=L1Phm7wG; arc=none smtp.client-ip=209.85.160.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="L1Phm7wG"
+Received: by mail-qt1-f170.google.com with SMTP id d75a77b69052e-4582a5b495cso163631cf.1
+        for <linux-arch@vger.kernel.org>; Sun, 08 Sep 2024 17:21:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1725841296; x=1726446096; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=+M1qVooEyNPT1gAAftfRiR4Q5Ah3XuHi08JSkLTfyCg=;
+        b=L1Phm7wGMuZuJebhYKnd+JQyBUyE9C1zk1fQHdZNxb97P8m+M+PxEraXZjvXXUAMxN
+         YgeLRp+lFQS66t9ESCBstlYEggoxa0L1O/PC+UpZxl6L665n3Rv4OnKWpcbaTlaXpWf0
+         9c/7mIYxN3/DmAJu6trHAsXv8hyRFuuFoFHjV/iJGToGgpxTbH2z/J2T93C6Ekh9D9Xw
+         mKakVQhQm860axVGd1VHj7SIRv/pB5vXfMZqrzwpugZo5E1rbuACJ0d/qs9z36lc0gC4
+         v+H5OuBq9pX20rpRn3oES5ryQ4nnoL4jusdt9JjBhzBLJ3hxIViJUR2dmGv04meKCtBN
+         ye6g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1725841296; x=1726446096;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=+M1qVooEyNPT1gAAftfRiR4Q5Ah3XuHi08JSkLTfyCg=;
+        b=nES3aKWHvW+r3n1yfjCXAERfgeBMnC3ww+h6oKg2HmiJa0i189OLddJNF2P+x7ndva
+         /fDlJ7DN2I5h/j0yNdCn+Lq+S4HlEwOlLgQf6W6uNo4D+unn9+dnJxzQjh4oh2EdtWGR
+         ICEU/hHsQ2huO9Kbs27XNUEP+v9sfNh990ya8/ErAcu7/U3zkMoKQ8/CW5j+vDY98uXL
+         IgXrUYcmHBVrGcmByAEDdr7lbLBXnZh2+jQfqQ2M1m780MPvdOlm5d556/7GNmPw2W2t
+         NrulCF/OtjQIlZCpZ1GEehKtvCtiPWppeyEnUW3nyaQ2bN/HTsBTxDGfpRsmNS9cIEQZ
+         GnTw==
+X-Forwarded-Encrypted: i=1; AJvYcCWjrn9VVwiLgnSLbgIJiUTGz5X2tyngEeVomMxiuK58B4QYmI3gAFiI7mazOISY+YL354h1lNIli8R5@vger.kernel.org
+X-Gm-Message-State: AOJu0YxMRkN+KsmOvi/P9MHPFVsE2FuIJwZDcf4XGOrTjjOihwhnLXzU
+	SSOEqyFV6iMPZyuq9uLDmGNZgRf6+5fL4a8y4eah5DAbSUvfJD4aSCl7eL1Q1B85yl3Sh6VRIpo
+	OSozNqNirLXCIT6fhOO4m1cDR81R98mbXDYpA
+X-Google-Smtp-Source: AGHT+IHeebo47LrVuqQNlmWSroknDWyh0p2+ySnmSfFMd++vvWmH0RLig1T8xF/sYDtVArFYD/iKIyTthz+4Y2vdWxE=
+X-Received: by 2002:ac8:5714:0:b0:456:796b:2fe5 with SMTP id
+ d75a77b69052e-4582147fdcamr3000151cf.9.1725841295262; Sun, 08 Sep 2024
+ 17:21:35 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Mimecast-Spam-Score: 0
-X-Mimecast-Originator: aculab.com
-Content-Language: en-US
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+References: <20240831004313.3713467-1-almasrymina@google.com>
+ <20240831004313.3713467-7-almasrymina@google.com> <20240903141948.269e22bb@kernel.org>
+In-Reply-To: <20240903141948.269e22bb@kernel.org>
+From: Mina Almasry <almasrymina@google.com>
+Date: Sun, 8 Sep 2024 17:21:23 -0700
+Message-ID: <CAHS8izN_6_0VUWJzyXZ60kDjvGpdJv1a=-6mGOURapHdfHbcMQ@mail.gmail.com>
+Subject: Re: [PATCH net-next v24 06/13] memory-provider: dmabuf devmem memory provider
+To: Jakub Kicinski <kuba@kernel.org>
+Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, 
+	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
+	sparclinux@vger.kernel.org, linux-trace-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, bpf@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, linux-media@vger.kernel.org, 
+	dri-devel@lists.freedesktop.org, Donald Hunter <donald.hunter@gmail.com>, 
+	"David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
+	Paolo Abeni <pabeni@redhat.com>, Jonathan Corbet <corbet@lwn.net>, 
+	Richard Henderson <richard.henderson@linaro.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, 
+	Matt Turner <mattst88@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+	"James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, 
+	Andreas Larsson <andreas@gaisler.com>, Jesper Dangaard Brouer <hawk@kernel.org>, 
+	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, 
+	Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	Arnd Bergmann <arnd@arndb.de>, Steffen Klassert <steffen.klassert@secunet.com>, 
+	Herbert Xu <herbert@gondor.apana.org.au>, David Ahern <dsahern@kernel.org>, 
+	Willem de Bruijn <willemdebruijn.kernel@gmail.com>, =?UTF-8?B?QmrDtnJuIFTDtnBlbA==?= <bjorn@kernel.org>, 
+	Magnus Karlsson <magnus.karlsson@intel.com>, 
+	Maciej Fijalkowski <maciej.fijalkowski@intel.com>, Jonathan Lemon <jonathan.lemon@gmail.com>, 
+	Shuah Khan <shuah@kernel.org>, Alexei Starovoitov <ast@kernel.org>, 
+	Daniel Borkmann <daniel@iogearbox.net>, John Fastabend <john.fastabend@gmail.com>, 
+	Sumit Semwal <sumit.semwal@linaro.org>, =?UTF-8?Q?Christian_K=C3=B6nig?= <christian.koenig@amd.com>, 
+	Pavel Begunkov <asml.silence@gmail.com>, David Wei <dw@davidwei.uk>, Jason Gunthorpe <jgg@ziepe.ca>, 
+	Yunsheng Lin <linyunsheng@huawei.com>, Shailend Chand <shailend@google.com>, 
+	Harshitha Ramamurthy <hramamurthy@google.com>, Shakeel Butt <shakeel.butt@linux.dev>, 
+	Jeroen de Borst <jeroendb@google.com>, Praveen Kaligineedi <pkaligineedi@google.com>, 
+	Bagas Sanjaya <bagasdotme@gmail.com>, Christoph Hellwig <hch@infradead.org>, 
+	Nikolay Aleksandrov <razor@blackwall.org>, Taehee Yoo <ap420073@gmail.com>, 
+	Willem de Bruijn <willemb@google.com>, Kaiyuan Zhang <kaiyuanz@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-RnJvbTogVmluY2Vuem8gRnJhc2Npbm8NCj4gU2VudDogMDYgU2VwdGVtYmVyIDIwMjQgMTI6NDEN
-Cj4gDQo+IE9uIDA0LzA5LzIwMjQgMTg6MjMsIEFybmQgQmVyZ21hbm4gd3JvdGU6DQo+ID4gT24g
-V2VkLCBTZXAgNCwgMjAyNCwgYXQgMTc6MTcsIENocmlzdG9waGUgTGVyb3kgd3JvdGU6DQo+ID4+
-IExlIDAzLzA5LzIwMjQgw6AgMTc6MTQsIFZpbmNlbnpvIEZyYXNjaW5vIGEgw6ljcml0wqA6DQo+
-ID4+PiBUaGUgVkRTTyBpbXBsZW1lbnRhdGlvbiBpbmNsdWRlcyBoZWFkZXJzIGZyb20gb3V0c2lk
-ZSBvZiB0aGUNCj4gPj4+IHZkc28vIG5hbWVzcGFjZS4NCj4gPj4+DQo+ID4+PiBTcGxpdCBsaW51
-eC9taW5tYXguaCB0byBtYWtlIHN1cmUgdGhhdCB0aGUgZ2VuZXJpYyBsaWJyYXJ5DQo+ID4+PiB1
-c2VzIG9ubHkgdGhlIGFsbG93ZWQgbmFtZXNwYWNlLg0KPiA+Pg0KPiA+PiBJdCBpcyBwcm9iYWJs
-eSBlYXNpZXIgdG8ganVzdCBkb24ndCB1c2UgbWluX3QoKSBpbiBWRFNPLiBDYW4gYmUgb3Blbg0K
-PiA+PiBjb2RlZCB3aXRob3V0IGltcGVlZGluZyByZWFkYWJpbGl0eS4NCj4gPg0KPiA+IFJpZ2h0
-LCBvciBwb3NzaWJseSB0aGUgZXZlbiBzaW1wbGVyIE1JTigpL01BWCgpIGlmIHRoZSBhcmd1bWVu
-dHMNCj4gPiBoYXZlIG5vIHNpZGUtZWZmZWN0cy4NCj4gPg0KPiANCj4gQWdyZWVkLCBnZW5lcmFs
-bHkgSSBkbyBub3QgbGlrZSBvcGVuLWNvZGluZyBzaW5jZSBpdCB0ZW5kcyB0byBpbnRyb2R1Y2UN
-Cj4gZHVwbGljYXRpb24sIGJ1dCB0aGVzZSBjYXNlcyBhcmUgc2ltcGxlIGVzcGVjaWFsbHkgaWYg
-d2UgY2FuIHVzZSBNSU4oKS9NQVgoKS4NCg0KQXJlbid0IE1JTigpL01BWCgpIGxpa2VseSB0byBn
-ZXQgZGVmaW5lZCBpbiBtaW5tYXguaCBmb3IgY2FzZXMgd2hlcmUgdGhlDQphcmd1bWVudHMgYXJl
-IGNvbnN0YW50cyAtIGFuZCBtYXliZSBoYXZlIGNoZWNrcyB0aGF0IHRoZXkgYXJlIGNvbnN0YW50
-cy4NClNvIHlvdSBkb24ndCB3YW50IHRvIGRlZmluZSB0aGVtIGluIHRoZSBWRFNPIGhlYWRlciBl
-aXRoZXIuDQoNCk9wZW4gY29kaW5nIHNpbXBsZSBjYXNlcyBpcyBhY3R1YWxseSBlYXNpZXIgdG8g
-cmVhZCA6LSkNCg0KCURhdmlkDQoNCi0NClJlZ2lzdGVyZWQgQWRkcmVzcyBMYWtlc2lkZSwgQnJh
-bWxleSBSb2FkLCBNb3VudCBGYXJtLCBNaWx0b24gS2V5bmVzLCBNSzEgMVBULCBVSw0KUmVnaXN0
-cmF0aW9uIE5vOiAxMzk3Mzg2IChXYWxlcykNCg==
+On Tue, Sep 3, 2024 at 2:19=E2=80=AFPM Jakub Kicinski <kuba@kernel.org> wro=
+te:
+>
+> On Sat, 31 Aug 2024 00:43:06 +0000 Mina Almasry wrote:
+> > diff --git a/include/net/mp_dmabuf_devmem.h b/include/net/mp_dmabuf_dev=
+mem.h
+> > new file mode 100644
+> > index 000000000000..6d1cf2a77f6b
+> > --- /dev/null
+> > +++ b/include/net/mp_dmabuf_devmem.h
+>
+> this header can live under net/core/ like netmem_priv.h right?
+> devmem internals should be of no interest outside of core networking.
+>
 
+Yes, those can be moved under net/core trivially. done.
+
+> In fact the same is true for include/net/devmem.h ?
+>
+
+This turned out to be possible, but with a minor moving around of some
+helpers. Basically netmem.h included devmem.h to get access to some
+devmem internals for some of the net_iov helpers specific to devmem.
+Moving these helpers to devmem.h enabled me to keep
+include/net/netmem.h but put devmem.h under net/core. Now netmem.h
+doesn't need to include devmem.h. I think this is an improvement.
+
+> > +static inline netmem_ref mp_dmabuf_devmem_alloc_netmems(struct page_po=
+ol *pool,
+> > +                                                     gfp_t gfp)
+>
+> Please break the lines after the return type if the line gets long:
+>
+> static inline netmem_ref
+> mp_dmabuf_devmem_alloc_netmems(struct page_pool *pool, gfp_t gfp)
+>
+> Please fix where you can (at least where it cases going over 80 chars)
+>
+
+FWIW I use a formatting tool (clang-format) which seems to prefer
+breaking in between the args, but I'll fix this manually and wherever
+else I notice.
+
+> >       struct_group_tagged(page_pool_params_slow, slow,
+> >               struct net_device *netdev;
+> > +             struct netdev_rx_queue *queue;
+>
+> Why set a pointer? It should work but drivers don't usually deal with
+> netdev_rx_queue struct directly. struct xdp_rxq_info takes an integer
+> queue id, and it serves a somewhat similar function.
+>
+> Keep in mind that there will be more drivers than core code, so
+> convenience for them matters more.
+>
+
+Makes sense.
+
+> > +bool mp_dmabuf_devmem_release_page(struct page_pool *pool, netmem_ref =
+netmem)
+> > +{
+> > +     if (WARN_ON_ONCE(!netmem_is_net_iov(netmem)))
+> > +             return false;
+> > +
+> > +     if (WARN_ON_ONCE(atomic_long_read(netmem_get_pp_ref_count_ref(net=
+mem)) !=3D
+> > +                  1))
+>
+> something needs factoring out here, to make this line shorter, please..
+> either netmem -> net_iov conversion or at least reading of the ref
+> count?
+>
+
+Ah, sorry I think you pointed this out earlier and I missed applying
+it. Should be done in the next iteration.
+
+--
+Thanks,
+Mina
