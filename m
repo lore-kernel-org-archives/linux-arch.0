@@ -1,236 +1,1019 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B15981AD41E
-	for <linux-arch@vger.kernel.org>; Mon,  9 Sep 2024 06:49:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F5431AD417;
+	Mon,  9 Sep 2024 06:49:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725864562; cv=none; b=hG2J0eEq3TLEF6mrKVUtbRpphNpseET/o9DNsOyKtg4/d9yjKnBaMiAG6C0StMFatJcPUwfRMhiz2Om4EZI3EjnhNXgLusAOgFfCQNgOLBgVtLJFyYppDFlY37C5ao2Mn5JhzIacJowLDRdBPFUN1Cl5V7s8D4851DZLDWl5OCw=
+	t=1725864567; cv=none; b=F+M+82VmF0k8sjDTpNV93ZajS5xWsSp7wTCJWCm9pmxrbQRWv33j7bpzJ7dlrcL3LPk5JEI0U7EGZ2tqJq3UDag/C+BnXeEUjc3Xyc54GMsu4LS+dbFZ2MiMUE8Ly0V+A41TQcTI7vLYLnDMPNIYI1gyXcufud0vQP4oqNQ9QwY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725864562; c=relaxed/simple;
-	bh=SjHLYWDfXnr3p3p6wa8I8tEYpTX6vPv0T+2hBmHXtgA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=YcnS/rcqaybH4bRJm+FeBwjhXTJbZTFtaNN8MvPTperlJuyQObMbrpIju8jBrAFO30jmYn2/i32hPdaLZ45JtdZ/hpOuR7lVj0IDKtFWG9Rl6diUH2V3TBx8ndq14I2N6LWuXkUvbee+zxvLN14AQWv1gP3YOu6ux+ULueoiQHI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=i9GJpeOw; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1725864567; c=relaxed/simple;
+	bh=eegQhIgk/sL/1GOJrTqC/b1XxgPEj6Y/jFdDZ0nJTYE=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=mQbNFsWXQaYVpTiYmssEekluhX+h9BxcrA9JfAh3v9w1ApKhBeeSxFmc8bBI1zO9i/wlVpoJqh4c5ofVLDQISFkG8ezdYin4ADp+qB+8QKckf13tcJcvPmbkvwD7e7ySCKFVm/Ukr0ZXt+/gFQ/Gyq5HRD8gXcd6AVTcF6rhGDU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=inY4vLv/; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="i9GJpeOw"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1725864558;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
-	bh=Q0vZaaN8XN8yMPgUxaQulebtfVBBWF4xeIGzXw2tfzg=;
-	b=i9GJpeOwZmaND8o0ohya0QL5hEVN6zmTXyQoC1/5WTWHM4wMpdJhCR0/AXPPtpBeIGl2Sq
-	aLqiM2GH06a8DJjSnvOM91FwlJzOBtlWURSTrRZdgApL3TwAmm7oNkOc/Qtky9AIYNDUhz
-	dOyc4BbwsSHzqCohqBIX80RDf2oCU0g=
-Received: from mail-wr1-f69.google.com (mail-wr1-f69.google.com
- [209.85.221.69]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-326-3Zvu_exQNGKbGEOIkeq26A-1; Mon, 09 Sep 2024 02:49:16 -0400
-X-MC-Unique: 3Zvu_exQNGKbGEOIkeq26A-1
-Received: by mail-wr1-f69.google.com with SMTP id ffacd0b85a97d-374c301db60so1705288f8f.2
-        for <linux-arch@vger.kernel.org>; Sun, 08 Sep 2024 23:49:16 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1725864555; x=1726469355;
-        h=content-transfer-encoding:in-reply-to:organization:autocrypt
-         :content-language:from:references:cc:to:subject:user-agent
-         :mime-version:date:message-id:x-gm-message-state:from:to:cc:subject
-         :date:message-id:reply-to;
-        bh=Q0vZaaN8XN8yMPgUxaQulebtfVBBWF4xeIGzXw2tfzg=;
-        b=P2eKpusppU4E586+sA/XLpKeF3PKRxnP0oFi5Hs2hMR7qlj7+mevcAvg39VI/WVdbi
-         XcBhsT8dJxR1Urn3u7z7PuLcz0Fps6vQSEYHBxt2J7v9v05L/i+BF8uvmA5ooUDu8vnO
-         2KF7S3XtO3yGJemblJtK+zQHafrXrIqReylF1QpJDwwSYRQhHPKZJ/rUWRAvSNOz4LPG
-         R/2MZQgdsMB1zEntt37fLucOPteebfgP1+sGLt6/EaHgWCYqvwPPF+m3P8GbafCdaoBa
-         9lxjbVzwREzCoIU6bLTzEV2eF7zn+rv3S6B9wtgGUjRXfxM6pBMqUbA008/u8gDAH7ya
-         C2uw==
-X-Forwarded-Encrypted: i=1; AJvYcCUYiOc+fDqSYKmfJ+I7uFgRcLRNGDoYEdZA3UzzAuTG11+tweje9584J5N1qaU8WZCC5zkFfsuxwy0I@vger.kernel.org
-X-Gm-Message-State: AOJu0Ywqk8pfR6MqDbEnWpphbk9+Mpzew+NdszgZffh/xLHc0dW0Hn7E
-	Q95lZOmsE48keEpXg18YWcUpYWjiHtpR+6nS/OIngVgEGGQhLbnbHnwkkzaAg7W9YdBc8VkN2BB
-	aW1SsDt/SnrelRuJdZVNObh89/xz42jajXgPHyoFhrH4NLrwOAKy93xwCLwQ=
-X-Received: by 2002:a05:6000:cd0:b0:368:7f4f:9ead with SMTP id ffacd0b85a97d-3789268571emr4019483f8f.7.1725864555548;
-        Sun, 08 Sep 2024 23:49:15 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IGHRo7i2wTwbkFO2KsGt9mdkl4lcfRtUMDM4VF6HWrmm2c9uz5xyhjWMGOCaprjgrOG9IgeSg==
-X-Received: by 2002:a05:6000:cd0:b0:368:7f4f:9ead with SMTP id ffacd0b85a97d-3789268571emr4019434f8f.7.1725864554312;
-        Sun, 08 Sep 2024 23:49:14 -0700 (PDT)
-Received: from ?IPV6:2003:cb:c729:d800:d3b6:a549:7878:a6ee? (p200300cbc729d800d3b6a5497878a6ee.dip0.t-ipconnect.de. [2003:cb:c729:d800:d3b6:a549:7878:a6ee])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-378956de152sm5120092f8f.103.2024.09.08.23.49.13
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Sun, 08 Sep 2024 23:49:13 -0700 (PDT)
-Message-ID: <f58950cd-dbe3-4629-ac92-30c76db7849a@redhat.com>
-Date: Mon, 9 Sep 2024 08:49:12 +0200
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="inY4vLv/"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id EFF33C4CEC5;
+	Mon,  9 Sep 2024 06:49:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1725864566;
+	bh=eegQhIgk/sL/1GOJrTqC/b1XxgPEj6Y/jFdDZ0nJTYE=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=inY4vLv/rCei6hvO677oAbkldi8JiS794K7OVL5eAmFWer+B6Fnk1Y3opiOND3RNF
+	 6nmfiKqx2+esZ6gGErvJLSfFT3N+YVH4tTT4jOn2hlTN0dRZfPzY4jLDdBYF8L1flp
+	 Gt0SHBeldYC7GwZtxhtr6YVaiZ5k+pSaqMlsLfpYgGxDaHenEBokr5Vv86I2InuOo4
+	 2/1zO0vu2FHKamJMtf51odD9DD4RtKEHR+k1O2/6p/XY/dBg4q8EdsMfE3KEPt2MFe
+	 Cg8orzFpvbOo+y16nGzOF4IMi0DprNQwBxJ3lSGPU9fCZRgaBdicO8VuIUsONrQTe0
+	 qWWDJ8gcuxfbA==
+From: Mike Rapoport <rppt@kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andreas Larsson <andreas@gaisler.com>,
+	Andy Lutomirski <luto@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Borislav Petkov <bp@alien8.de>,
+	Brian Cain <bcain@quicinc.com>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Christoph Hellwig <hch@infradead.org>,
+	Christophe Leroy <christophe.leroy@csgroup.eu>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	Dinh Nguyen <dinguyen@kernel.org>,
+	Geert Uytterhoeven <geert@linux-m68k.org>,
+	Guo Ren <guoren@kernel.org>,
+	Helge Deller <deller@gmx.de>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	Kent Overstreet <kent.overstreet@linux.dev>,
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Mark Rutland <mark.rutland@arm.com>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Matt Turner <mattst88@gmail.com>,
+	Max Filippov <jcmvbkbc@gmail.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Michal Simek <monstr@monstr.eu>,
+	Mike Rapoport <rppt@kernel.org>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Richard Weinberger <richard@nod.at>,
+	Russell King <linux@armlinux.org.uk>,
+	Song Liu <song@kernel.org>,
+	Stafford Horne <shorne@gmail.com>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Uladzislau Rezki <urezki@gmail.com>,
+	Vineet Gupta <vgupta@kernel.org>,
+	Will Deacon <will@kernel.org>,
+	bpf@vger.kernel.org,
+	linux-alpha@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-csky@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-m68k@lists.linux-m68k.org,
+	linux-mips@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-modules@vger.kernel.org,
+	linux-openrisc@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	linux-sh@vger.kernel.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-trace-kernel@vger.kernel.org,
+	linux-um@lists.infradead.org,
+	linuxppc-dev@lists.ozlabs.org,
+	loongarch@lists.linux.dev,
+	sparclinux@vger.kernel.org,
+	x86@kernel.org
+Subject: [PATCH v3 6/8] x86/module: perpare module loading for ROX allocations of text
+Date: Mon,  9 Sep 2024 09:47:28 +0300
+Message-ID: <20240909064730.3290724-7-rppt@kernel.org>
+X-Mailer: git-send-email 2.43.0
+In-Reply-To: <20240909064730.3290724-1-rppt@kernel.org>
+References: <20240909064730.3290724-1-rppt@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 2/2] mm: tlb: add tlb swap entries batch async release
-To: Zhiguo Jiang <justinjiang@vivo.com>,
- Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, Will Deacon <will@kernel.org>,
- "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>, Nick Piggin
- <npiggin@gmail.com>, Peter Zijlstra <peterz@infradead.org>,
- Arnd Bergmann <arnd@arndb.de>, Johannes Weiner <hannes@cmpxchg.org>,
- Michal Hocko <mhocko@kernel.org>, Roman Gushchin <roman.gushchin@linux.dev>,
- Shakeel Butt <shakeel.butt@linux.dev>, Muchun Song <muchun.song@linux.dev>,
- linux-arch@vger.kernel.org, cgroups@vger.kernel.org,
- Barry Song <21cnbao@gmail.com>
-Cc: opensource.kernel@vivo.com
-References: <20240805153639.1057-1-justinjiang@vivo.com>
- <20240805153639.1057-3-justinjiang@vivo.com>
-From: David Hildenbrand <david@redhat.com>
-Content-Language: en-US
-Autocrypt: addr=david@redhat.com; keydata=
- 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
- WNyWQQ==
-Organization: Red Hat
-In-Reply-To: <20240805153639.1057-3-justinjiang@vivo.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 05.08.24 17:36, Zhiguo Jiang wrote:
-> One of the main reasons for the prolonged exit of the process with
-> independent mm is the time-consuming release of its swap entries.
-> The proportion of swap memory occupied by the process increases over
-> time due to high memory pressure triggering to reclaim anonymous folio
-> into swapspace, e.g., in Android devices, we found this proportion can
-> reach 60% or more after a period of time. Additionally, the relatively
-> lengthy path for releasing swap entries further contributes to the
-> longer time required to release swap entries.
-> 
-> Testing Platform: 8GB RAM
-> Testing procedure:
-> After booting up, start 15 processes first, and then observe the
-> physical memory size occupied by the last launched process at different
-> time points.
-> Example: The process launched last: com.qiyi.video
-> |  memory type  |  0min  |  1min  |   5min  |   10min  |   15min  |
-> -------------------------------------------------------------------
-> |     VmRSS(KB) | 453832 | 252300 |  204364 |   199944 |  199748  |
-> |   RssAnon(KB) | 247348 |  99296 |   71268 |    67808 |   67660  |
-> |   RssFile(KB) | 205536 | 152020 |  132144 |   131184 |  131136  |
-> |  RssShmem(KB) |   1048 |    984 |     952 |     952  |     952  |
-> |    VmSwap(KB) | 202692 | 334852 |  362880 |   366340 |  366488  |
-> | Swap ratio(%) | 30.87% | 57.03% |  63.97% |   64.69% |  64.72%  |
-> Note: min - minute.
-> 
-> When there are multiple processes with independent mm and the high
-> memory pressure in system, if the large memory required process is
-> launched at this time, system will is likely to trigger the instantaneous
-> killing of many processes with independent mm. Due to multiple exiting
-> processes occupying multiple CPU core resources for concurrent execution,
-> leading to some issues such as the current non-exiting and important
-> processes lagging.
-> 
-> To solve this problem, we have introduced the multiple exiting process
-> asynchronous swap entries release mechanism, which isolates and caches
-> swap entries occupied by multiple exiting processes, and hands them over
-> to an asynchronous kworker to complete the release. This allows the
-> exiting processes to complete quickly and release CPU resources. We have
-> validated this modification on the Android products and achieved the
-> expected benefits.
-> 
-> Testing Platform: 8GB RAM
-> Testing procedure:
-> After restarting the machine, start 15 app processes first, and then
-> start the camera app processes, we monitor the cold start and preview
-> time datas of the camera app processes.
-> 
-> Test datas of camera processes cold start time (unit: millisecond):
-> |  seq   |   1  |   2  |   3  |   4  |   5  |   6  | average |
-> | before | 1498 | 1476 | 1741 | 1337 | 1367 | 1655 |   1512  |
-> | after  | 1396 | 1107 | 1136 | 1178 | 1071 | 1339 |   1204  |
-> 
-> Test datas of camera processes preview time (unit: millisecond):
-> |  seq   |   1  |   2  |   3  |   4  |   5  |   6  | average |
-> | before |  267 |  402 |  504 |  513 |  161 |  265 |   352   |
-> | after  |  188 |  223 |  301 |  203 |  162 |  154 |   205   |
-> 
-> Base on the average of the six sets of test datas above, we can see that
-> the benefit datas of the modified patch:
-> 1. The cold start time of camera app processes has reduced by about 20%.
-> 2. The preview time of camera app processes has reduced by about 42%.
-> 
-> It offers several benefits:
-> 1. Alleviate the high system cpu loading caused by multiple exiting
->     processes running simultaneously.
-> 2. Reduce lock competition in swap entry free path by an asynchronous
->     kworker instead of multiple exiting processes parallel execution.
-> 3. Release pte_present memory occupied by exiting processes more
->     efficiently.
-> 
-> Signed-off-by: Zhiguo Jiang <justinjiang@vivo.com>
-> ---
->   arch/s390/include/asm/tlb.h |   8 +
->   include/asm-generic/tlb.h   |  44 ++++++
->   include/linux/mm_types.h    |  58 +++++++
->   mm/memory.c                 |   3 +-
->   mm/mmu_gather.c             | 296 ++++++++++++++++++++++++++++++++++++
->   5 files changed, 408 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/s390/include/asm/tlb.h b/arch/s390/include/asm/tlb.h
-> index e95b2c8081eb..3f681f63390f
-> --- a/arch/s390/include/asm/tlb.h
-> +++ b/arch/s390/include/asm/tlb.h
-> @@ -28,6 +28,8 @@ static inline bool __tlb_remove_page_size(struct mmu_gather *tlb,
->   		struct page *page, bool delay_rmap, int page_size);
->   static inline bool __tlb_remove_folio_pages(struct mmu_gather *tlb,
->   		struct page *page, unsigned int nr_pages, bool delay_rmap);
-> +static inline bool __tlb_remove_swap_entries(struct mmu_gather *tlb,
-> +		swp_entry_t entry, int nr);
+From: "Mike Rapoport (Microsoft)" <rppt@kernel.org>
 
+When module text memory will be allocated with ROX permissions, the
+memory at the actual address where the module will live will contain
+invalid instructions and there will be a writable copy that contains the
+actual module code.
 
-The problem I am having is that swap entries don't have any intersection 
-with the TLB. It sounds like we're squeezing something into an existing 
-concept (MMU gather) that just doesn't belong in there.
+Update relocations and alternatives patching to deal with it.
 
+Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+---
+ arch/um/kernel/um_arch.c           |  11 +-
+ arch/x86/entry/vdso/vma.c          |   3 +-
+ arch/x86/include/asm/alternative.h |  14 +--
+ arch/x86/kernel/alternative.c      | 160 +++++++++++++++++------------
+ arch/x86/kernel/ftrace.c           |  41 +++++---
+ arch/x86/kernel/module.c           |  45 +++++---
+ include/linux/module.h             |  16 ++-
+ 7 files changed, 172 insertions(+), 118 deletions(-)
+
+diff --git a/arch/um/kernel/um_arch.c b/arch/um/kernel/um_arch.c
+index f8de31a0c5d1..e8e8b54b3037 100644
+--- a/arch/um/kernel/um_arch.c
++++ b/arch/um/kernel/um_arch.c
+@@ -435,24 +435,25 @@ void __init arch_cpu_finalize_init(void)
+ 	os_check_bugs();
+ }
+ 
+-void apply_seal_endbr(s32 *start, s32 *end)
++void apply_seal_endbr(s32 *start, s32 *end, struct module *mod)
+ {
+ }
+ 
+-void apply_retpolines(s32 *start, s32 *end)
++void apply_retpolines(s32 *start, s32 *end, struct module *mod)
+ {
+ }
+ 
+-void apply_returns(s32 *start, s32 *end)
++void apply_returns(s32 *start, s32 *end, struct module *mod)
+ {
+ }
+ 
+ void apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+-		   s32 *start_cfi, s32 *end_cfi)
++		   s32 *start_cfi, s32 *end_cfi, struct module *mod)
+ {
+ }
+ 
+-void apply_alternatives(struct alt_instr *start, struct alt_instr *end)
++void apply_alternatives(struct alt_instr *start, struct alt_instr *end,
++			struct module *mod)
+ {
+ }
+ 
+diff --git a/arch/x86/entry/vdso/vma.c b/arch/x86/entry/vdso/vma.c
+index 6d83ceb7f1ba..31412adef5d2 100644
+--- a/arch/x86/entry/vdso/vma.c
++++ b/arch/x86/entry/vdso/vma.c
+@@ -51,7 +51,8 @@ int __init init_vdso_image(const struct vdso_image *image)
+ 
+ 	apply_alternatives((struct alt_instr *)(image->data + image->alt),
+ 			   (struct alt_instr *)(image->data + image->alt +
+-						image->alt_len));
++						image->alt_len),
++			   NULL);
+ 
+ 	return 0;
+ }
+diff --git a/arch/x86/include/asm/alternative.h b/arch/x86/include/asm/alternative.h
+index ca9ae606aab9..dc03a647776d 100644
+--- a/arch/x86/include/asm/alternative.h
++++ b/arch/x86/include/asm/alternative.h
+@@ -96,16 +96,16 @@ extern struct alt_instr __alt_instructions[], __alt_instructions_end[];
+  * instructions were patched in already:
+  */
+ extern int alternatives_patched;
++struct module;
+ 
+ extern void alternative_instructions(void);
+-extern void apply_alternatives(struct alt_instr *start, struct alt_instr *end);
+-extern void apply_retpolines(s32 *start, s32 *end);
+-extern void apply_returns(s32 *start, s32 *end);
+-extern void apply_seal_endbr(s32 *start, s32 *end);
++extern void apply_alternatives(struct alt_instr *start, struct alt_instr *end,
++			       struct module *mod);
++extern void apply_retpolines(s32 *start, s32 *end, struct module *mod);
++extern void apply_returns(s32 *start, s32 *end, struct module *mod);
++extern void apply_seal_endbr(s32 *start, s32 *end, struct module *mod);
+ extern void apply_fineibt(s32 *start_retpoline, s32 *end_retpoine,
+-			  s32 *start_cfi, s32 *end_cfi);
+-
+-struct module;
++			  s32 *start_cfi, s32 *end_cfi, struct module *mod);
+ 
+ struct callthunk_sites {
+ 	s32				*call_start, *call_end;
+diff --git a/arch/x86/kernel/alternative.c b/arch/x86/kernel/alternative.c
+index d17518ca19b8..3b3fa93af3b1 100644
+--- a/arch/x86/kernel/alternative.c
++++ b/arch/x86/kernel/alternative.c
+@@ -392,8 +392,10 @@ EXPORT_SYMBOL(BUG_func);
+  * Rewrite the "call BUG_func" replacement to point to the target of the
+  * indirect pv_ops call "call *disp(%ip)".
+  */
+-static int alt_replace_call(u8 *instr, u8 *insn_buff, struct alt_instr *a)
++static int alt_replace_call(u8 *instr, u8 *insn_buff, struct alt_instr *a,
++			    struct module *mod)
+ {
++	u8 *wr_instr = module_writable_address(mod, instr);
+ 	void *target, *bug = &BUG_func;
+ 	s32 disp;
+ 
+@@ -403,14 +405,14 @@ static int alt_replace_call(u8 *instr, u8 *insn_buff, struct alt_instr *a)
+ 	}
+ 
+ 	if (a->instrlen != 6 ||
+-	    instr[0] != CALL_RIP_REL_OPCODE ||
+-	    instr[1] != CALL_RIP_REL_MODRM) {
++	    wr_instr[0] != CALL_RIP_REL_OPCODE ||
++	    wr_instr[1] != CALL_RIP_REL_MODRM) {
+ 		pr_err("ALT_FLAG_DIRECT_CALL set for unrecognized indirect call\n");
+ 		BUG();
+ 	}
+ 
+ 	/* Skip CALL_RIP_REL_OPCODE and CALL_RIP_REL_MODRM */
+-	disp = *(s32 *)(instr + 2);
++	disp = *(s32 *)(wr_instr + 2);
+ #ifdef CONFIG_X86_64
+ 	/* ff 15 00 00 00 00   call   *0x0(%rip) */
+ 	/* target address is stored at "next instruction + disp". */
+@@ -448,7 +450,8 @@ static inline u8 * instr_va(struct alt_instr *i)
+  * to refetch changed I$ lines.
+  */
+ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+-						  struct alt_instr *end)
++						  struct alt_instr *end,
++						  struct module *mod)
+ {
+ 	u8 insn_buff[MAX_PATCH_LEN];
+ 	u8 *instr, *replacement;
+@@ -477,6 +480,7 @@ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+ 	 */
+ 	for (a = start; a < end; a++) {
+ 		int insn_buff_sz = 0;
++		u8 *wr_instr, *wr_replacement;
+ 
+ 		/*
+ 		 * In case of nested ALTERNATIVE()s the outer alternative might
+@@ -490,7 +494,11 @@ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+ 		}
+ 
+ 		instr = instr_va(a);
++		wr_instr = module_writable_address(mod, instr);
++
+ 		replacement = (u8 *)&a->repl_offset + a->repl_offset;
++		wr_replacement = module_writable_address(mod, replacement);
++
+ 		BUG_ON(a->instrlen > sizeof(insn_buff));
+ 		BUG_ON(a->cpuid >= (NCAPINTS + NBUGINTS) * 32);
+ 
+@@ -501,9 +509,9 @@ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+ 		 *   patch if feature is *NOT* present.
+ 		 */
+ 		if (!boot_cpu_has(a->cpuid) == !(a->flags & ALT_FLAG_NOT)) {
+-			memcpy(insn_buff, instr, a->instrlen);
++			memcpy(insn_buff, wr_instr, a->instrlen);
+ 			optimize_nops(instr, insn_buff, a->instrlen);
+-			text_poke_early(instr, insn_buff, a->instrlen);
++			text_poke_early(wr_instr, insn_buff, a->instrlen);
+ 			continue;
+ 		}
+ 
+@@ -513,11 +521,12 @@ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+ 			instr, instr, a->instrlen,
+ 			replacement, a->replacementlen, a->flags);
+ 
+-		memcpy(insn_buff, replacement, a->replacementlen);
++		memcpy(insn_buff, wr_replacement, a->replacementlen);
+ 		insn_buff_sz = a->replacementlen;
+ 
+ 		if (a->flags & ALT_FLAG_DIRECT_CALL) {
+-			insn_buff_sz = alt_replace_call(instr, insn_buff, a);
++			insn_buff_sz = alt_replace_call(instr, insn_buff, a,
++							mod);
+ 			if (insn_buff_sz < 0)
+ 				continue;
+ 		}
+@@ -527,11 +536,11 @@ void __init_or_module noinline apply_alternatives(struct alt_instr *start,
+ 
+ 		apply_relocation(insn_buff, instr, a->instrlen, replacement, a->replacementlen);
+ 
+-		DUMP_BYTES(ALT, instr, a->instrlen, "%px:   old_insn: ", instr);
++		DUMP_BYTES(ALT, wr_instr, a->instrlen, "%px:   old_insn: ", instr);
+ 		DUMP_BYTES(ALT, replacement, a->replacementlen, "%px:   rpl_insn: ", replacement);
+ 		DUMP_BYTES(ALT, insn_buff, insn_buff_sz, "%px: final_insn: ", instr);
+ 
+-		text_poke_early(instr, insn_buff, insn_buff_sz);
++		text_poke_early(wr_instr, insn_buff, insn_buff_sz);
+ 	}
+ 
+ 	kasan_enable_current();
+@@ -722,18 +731,20 @@ static int patch_retpoline(void *addr, struct insn *insn, u8 *bytes)
+ /*
+  * Generated by 'objtool --retpoline'.
+  */
+-void __init_or_module noinline apply_retpolines(s32 *start, s32 *end)
++void __init_or_module noinline apply_retpolines(s32 *start, s32 *end,
++						struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		struct insn insn;
+ 		int len, ret;
+ 		u8 bytes[16];
+ 		u8 op1, op2;
+ 
+-		ret = insn_decode_kernel(&insn, addr);
++		ret = insn_decode_kernel(&insn, wr_addr);
+ 		if (WARN_ON_ONCE(ret < 0))
+ 			continue;
+ 
+@@ -761,9 +772,9 @@ void __init_or_module noinline apply_retpolines(s32 *start, s32 *end)
+ 		len = patch_retpoline(addr, &insn, bytes);
+ 		if (len == insn.length) {
+ 			optimize_nops(addr, bytes, len);
+-			DUMP_BYTES(RETPOLINE, ((u8*)addr),  len, "%px: orig: ", addr);
++			DUMP_BYTES(RETPOLINE, ((u8*)wr_addr),  len, "%px: orig: ", addr);
+ 			DUMP_BYTES(RETPOLINE, ((u8*)bytes), len, "%px: repl: ", addr);
+-			text_poke_early(addr, bytes, len);
++			text_poke_early(wr_addr, bytes, len);
+ 		}
+ 	}
+ }
+@@ -799,7 +810,8 @@ static int patch_return(void *addr, struct insn *insn, u8 *bytes)
+ 	return i;
+ }
+ 
+-void __init_or_module noinline apply_returns(s32 *start, s32 *end)
++void __init_or_module noinline apply_returns(s32 *start, s32 *end,
++					     struct module *mod)
+ {
+ 	s32 *s;
+ 
+@@ -808,12 +820,13 @@ void __init_or_module noinline apply_returns(s32 *start, s32 *end)
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *dest = NULL, *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		struct insn insn;
+ 		int len, ret;
+ 		u8 bytes[16];
+ 		u8 op;
+ 
+-		ret = insn_decode_kernel(&insn, addr);
++		ret = insn_decode_kernel(&insn, wr_addr);
+ 		if (WARN_ON_ONCE(ret < 0))
+ 			continue;
+ 
+@@ -833,32 +846,35 @@ void __init_or_module noinline apply_returns(s32 *start, s32 *end)
+ 
+ 		len = patch_return(addr, &insn, bytes);
+ 		if (len == insn.length) {
+-			DUMP_BYTES(RET, ((u8*)addr),  len, "%px: orig: ", addr);
++			DUMP_BYTES(RET, ((u8*)wr_addr),  len, "%px: orig: ", addr);
+ 			DUMP_BYTES(RET, ((u8*)bytes), len, "%px: repl: ", addr);
+-			text_poke_early(addr, bytes, len);
++			text_poke_early(wr_addr, bytes, len);
+ 		}
+ 	}
+ }
+ #else
+-void __init_or_module noinline apply_returns(s32 *start, s32 *end) { }
++void __init_or_module noinline apply_returns(s32 *start, s32 *end,
++					     struct module *mod) { }
+ #endif /* CONFIG_MITIGATION_RETHUNK */
+ 
+ #else /* !CONFIG_MITIGATION_RETPOLINE || !CONFIG_OBJTOOL */
+ 
+-void __init_or_module noinline apply_retpolines(s32 *start, s32 *end) { }
+-void __init_or_module noinline apply_returns(s32 *start, s32 *end) { }
++void __init_or_module noinline apply_retpolines(s32 *start, s32 *end,
++						struct module *mod) { }
++void __init_or_module noinline apply_returns(s32 *start, s32 *end,
++					     struct module *mod) { }
+ 
+ #endif /* CONFIG_MITIGATION_RETPOLINE && CONFIG_OBJTOOL */
+ 
+ #ifdef CONFIG_X86_KERNEL_IBT
+ 
+-static void poison_cfi(void *addr);
++static void poison_cfi(void *addr, void *wr_addr);
+ 
+-static void __init_or_module poison_endbr(void *addr, bool warn)
++static void __init_or_module poison_endbr(void *addr, void *wr_addr, bool warn)
+ {
+ 	u32 endbr, poison = gen_endbr_poison();
+ 
+-	if (WARN_ON_ONCE(get_kernel_nofault(endbr, addr)))
++	if (WARN_ON_ONCE(get_kernel_nofault(endbr, wr_addr)))
+ 		return;
+ 
+ 	if (!is_endbr(endbr)) {
+@@ -873,7 +889,7 @@ static void __init_or_module poison_endbr(void *addr, bool warn)
+ 	 */
+ 	DUMP_BYTES(ENDBR, ((u8*)addr), 4, "%px: orig: ", addr);
+ 	DUMP_BYTES(ENDBR, ((u8*)&poison), 4, "%px: repl: ", addr);
+-	text_poke_early(addr, &poison, 4);
++	text_poke_early(wr_addr, &poison, 4);
+ }
+ 
+ /*
+@@ -882,22 +898,23 @@ static void __init_or_module poison_endbr(void *addr, bool warn)
+  * Seal the functions for indirect calls by clobbering the ENDBR instructions
+  * and the kCFI hash value.
+  */
+-void __init_or_module noinline apply_seal_endbr(s32 *start, s32 *end)
++void __init_or_module noinline apply_seal_endbr(s32 *start, s32 *end, struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 
+-		poison_endbr(addr, true);
++		poison_endbr(addr, wr_addr, true);
+ 		if (IS_ENABLED(CONFIG_FINEIBT))
+-			poison_cfi(addr - 16);
++			poison_cfi(addr - 16, wr_addr - 16);
+ 	}
+ }
+ 
+ #else
+ 
+-void __init_or_module apply_seal_endbr(s32 *start, s32 *end) { }
++void __init_or_module apply_seal_endbr(s32 *start, s32 *end, struct module *mod) { }
+ 
+ #endif /* CONFIG_X86_KERNEL_IBT */
+ 
+@@ -1119,7 +1136,7 @@ static u32 decode_caller_hash(void *addr)
+ }
+ 
+ /* .retpoline_sites */
+-static int cfi_disable_callers(s32 *start, s32 *end)
++static int cfi_disable_callers(s32 *start, s32 *end, struct module *mod)
+ {
+ 	/*
+ 	 * Disable kCFI by patching in a JMP.d8, this leaves the hash immediate
+@@ -1131,6 +1148,7 @@ static int cfi_disable_callers(s32 *start, s32 *end)
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		u32 hash;
+ 
+ 		addr -= fineibt_caller_size;
+@@ -1138,13 +1156,13 @@ static int cfi_disable_callers(s32 *start, s32 *end)
+ 		if (!hash) /* nocfi callers */
+ 			continue;
+ 
+-		text_poke_early(addr, jmp, 2);
++		text_poke_early(wr_addr, jmp, 2);
+ 	}
+ 
+ 	return 0;
+ }
+ 
+-static int cfi_enable_callers(s32 *start, s32 *end)
++static int cfi_enable_callers(s32 *start, s32 *end, struct module *mod)
+ {
+ 	/*
+ 	 * Re-enable kCFI, undo what cfi_disable_callers() did.
+@@ -1154,6 +1172,7 @@ static int cfi_enable_callers(s32 *start, s32 *end)
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		u32 hash;
+ 
+ 		addr -= fineibt_caller_size;
+@@ -1161,19 +1180,20 @@ static int cfi_enable_callers(s32 *start, s32 *end)
+ 		if (!hash) /* nocfi callers */
+ 			continue;
+ 
+-		text_poke_early(addr, mov, 2);
++		text_poke_early(wr_addr, mov, 2);
+ 	}
+ 
+ 	return 0;
+ }
+ 
+ /* .cfi_sites */
+-static int cfi_rand_preamble(s32 *start, s32 *end)
++static int cfi_rand_preamble(s32 *start, s32 *end, struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		u32 hash;
+ 
+ 		hash = decode_preamble_hash(addr);
+@@ -1182,18 +1202,19 @@ static int cfi_rand_preamble(s32 *start, s32 *end)
+ 			return -EINVAL;
+ 
+ 		hash = cfi_rehash(hash);
+-		text_poke_early(addr + 1, &hash, 4);
++		text_poke_early(wr_addr + 1, &hash, 4);
+ 	}
+ 
+ 	return 0;
+ }
+ 
+-static int cfi_rewrite_preamble(s32 *start, s32 *end)
++static int cfi_rewrite_preamble(s32 *start, s32 *end, struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		u32 hash;
+ 
+ 		hash = decode_preamble_hash(addr);
+@@ -1201,59 +1222,62 @@ static int cfi_rewrite_preamble(s32 *start, s32 *end)
+ 			 addr, addr, 5, addr))
+ 			return -EINVAL;
+ 
+-		text_poke_early(addr, fineibt_preamble_start, fineibt_preamble_size);
++		text_poke_early(wr_addr, fineibt_preamble_start, fineibt_preamble_size);
+ 		WARN_ON(*(u32 *)(addr + fineibt_preamble_hash) != 0x12345678);
+-		text_poke_early(addr + fineibt_preamble_hash, &hash, 4);
++		text_poke_early(wr_addr + fineibt_preamble_hash, &hash, 4);
+ 	}
+ 
+ 	return 0;
+ }
+ 
+-static void cfi_rewrite_endbr(s32 *start, s32 *end)
++static void cfi_rewrite_endbr(s32 *start, s32 *end, struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 
+-		poison_endbr(addr+16, false);
++		poison_endbr(addr+16, wr_addr, false);
+ 	}
+ }
+ 
+ /* .retpoline_sites */
+-static int cfi_rand_callers(s32 *start, s32 *end)
++static int cfi_rand_callers(s32 *start, s32 *end, struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		u32 hash;
+ 
+ 		addr -= fineibt_caller_size;
+ 		hash = decode_caller_hash(addr);
+ 		if (hash) {
+ 			hash = -cfi_rehash(hash);
+-			text_poke_early(addr + 2, &hash, 4);
++			text_poke_early(wr_addr + 2, &hash, 4);
+ 		}
+ 	}
+ 
+ 	return 0;
+ }
+ 
+-static int cfi_rewrite_callers(s32 *start, s32 *end)
++static int cfi_rewrite_callers(s32 *start, s32 *end, struct module *mod)
+ {
+ 	s32 *s;
+ 
+ 	for (s = start; s < end; s++) {
+ 		void *addr = (void *)s + *s;
++		void *wr_addr = module_writable_address(mod, addr);
+ 		u32 hash;
+ 
+ 		addr -= fineibt_caller_size;
+ 		hash = decode_caller_hash(addr);
+ 		if (hash) {
+-			text_poke_early(addr, fineibt_caller_start, fineibt_caller_size);
++			text_poke_early(wr_addr, fineibt_caller_start, fineibt_caller_size);
+ 			WARN_ON(*(u32 *)(addr + fineibt_caller_hash) != 0x12345678);
+-			text_poke_early(addr + fineibt_caller_hash, &hash, 4);
++			text_poke_early(wr_addr + fineibt_caller_hash, &hash, 4);
+ 		}
+ 		/* rely on apply_retpolines() */
+ 	}
+@@ -1262,8 +1286,9 @@ static int cfi_rewrite_callers(s32 *start, s32 *end)
+ }
+ 
+ static void __apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+-			    s32 *start_cfi, s32 *end_cfi, bool builtin)
++			    s32 *start_cfi, s32 *end_cfi, struct module *mod)
+ {
++	bool builtin = mod ? false : true;
+ 	int ret;
+ 
+ 	if (WARN_ONCE(fineibt_preamble_size != 16,
+@@ -1281,7 +1306,7 @@ static void __apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+ 	 * rewrite them. This disables all CFI. If this succeeds but any of the
+ 	 * later stages fails, we're without CFI.
+ 	 */
+-	ret = cfi_disable_callers(start_retpoline, end_retpoline);
++	ret = cfi_disable_callers(start_retpoline, end_retpoline, mod);
+ 	if (ret)
+ 		goto err;
+ 
+@@ -1292,11 +1317,11 @@ static void __apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+ 			cfi_bpf_subprog_hash = cfi_rehash(cfi_bpf_subprog_hash);
+ 		}
+ 
+-		ret = cfi_rand_preamble(start_cfi, end_cfi);
++		ret = cfi_rand_preamble(start_cfi, end_cfi, mod);
+ 		if (ret)
+ 			goto err;
+ 
+-		ret = cfi_rand_callers(start_retpoline, end_retpoline);
++		ret = cfi_rand_callers(start_retpoline, end_retpoline, mod);
+ 		if (ret)
+ 			goto err;
+ 	}
+@@ -1308,7 +1333,7 @@ static void __apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+ 		return;
+ 
+ 	case CFI_KCFI:
+-		ret = cfi_enable_callers(start_retpoline, end_retpoline);
++		ret = cfi_enable_callers(start_retpoline, end_retpoline, mod);
+ 		if (ret)
+ 			goto err;
+ 
+@@ -1318,17 +1343,17 @@ static void __apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+ 
+ 	case CFI_FINEIBT:
+ 		/* place the FineIBT preamble at func()-16 */
+-		ret = cfi_rewrite_preamble(start_cfi, end_cfi);
++		ret = cfi_rewrite_preamble(start_cfi, end_cfi, mod);
+ 		if (ret)
+ 			goto err;
+ 
+ 		/* rewrite the callers to target func()-16 */
+-		ret = cfi_rewrite_callers(start_retpoline, end_retpoline);
++		ret = cfi_rewrite_callers(start_retpoline, end_retpoline, mod);
+ 		if (ret)
+ 			goto err;
+ 
+ 		/* now that nobody targets func()+0, remove ENDBR there */
+-		cfi_rewrite_endbr(start_cfi, end_cfi);
++		cfi_rewrite_endbr(start_cfi, end_cfi, mod);
+ 
+ 		if (builtin)
+ 			pr_info("Using FineIBT CFI\n");
+@@ -1347,7 +1372,7 @@ static inline void poison_hash(void *addr)
+ 	*(u32 *)addr = 0;
+ }
+ 
+-static void poison_cfi(void *addr)
++static void poison_cfi(void *addr, void *wr_addr)
+ {
+ 	switch (cfi_mode) {
+ 	case CFI_FINEIBT:
+@@ -1359,8 +1384,8 @@ static void poison_cfi(void *addr)
+ 		 *	ud2
+ 		 * 1:	nop
+ 		 */
+-		poison_endbr(addr, false);
+-		poison_hash(addr + fineibt_preamble_hash);
++		poison_endbr(addr, wr_addr, false);
++		poison_hash(wr_addr + fineibt_preamble_hash);
+ 		break;
+ 
+ 	case CFI_KCFI:
+@@ -1369,7 +1394,7 @@ static void poison_cfi(void *addr)
+ 		 *	movl	$0, %eax
+ 		 *	.skip	11, 0x90
+ 		 */
+-		poison_hash(addr + 1);
++		poison_hash(wr_addr + 1);
+ 		break;
+ 
+ 	default:
+@@ -1380,22 +1405,21 @@ static void poison_cfi(void *addr)
+ #else
+ 
+ static void __apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+-			    s32 *start_cfi, s32 *end_cfi, bool builtin)
++			    s32 *start_cfi, s32 *end_cfi, struct module *mod)
+ {
+ }
+ 
+ #ifdef CONFIG_X86_KERNEL_IBT
+-static void poison_cfi(void *addr) { }
++static void poison_cfi(void *addr, void *wr_addr) { }
+ #endif
+ 
+ #endif
+ 
+ void apply_fineibt(s32 *start_retpoline, s32 *end_retpoline,
+-		   s32 *start_cfi, s32 *end_cfi)
++		   s32 *start_cfi, s32 *end_cfi, struct module *mod)
+ {
+ 	return __apply_fineibt(start_retpoline, end_retpoline,
+-			       start_cfi, end_cfi,
+-			       /* .builtin = */ false);
++			       start_cfi, end_cfi, mod);
+ }
+ 
+ #ifdef CONFIG_SMP
+@@ -1692,16 +1716,16 @@ void __init alternative_instructions(void)
+ 	paravirt_set_cap();
+ 
+ 	__apply_fineibt(__retpoline_sites, __retpoline_sites_end,
+-			__cfi_sites, __cfi_sites_end, true);
++			__cfi_sites, __cfi_sites_end, NULL);
+ 
+ 	/*
+ 	 * Rewrite the retpolines, must be done before alternatives since
+ 	 * those can rewrite the retpoline thunks.
+ 	 */
+-	apply_retpolines(__retpoline_sites, __retpoline_sites_end);
+-	apply_returns(__return_sites, __return_sites_end);
++	apply_retpolines(__retpoline_sites, __retpoline_sites_end, NULL);
++	apply_returns(__return_sites, __return_sites_end, NULL);
+ 
+-	apply_alternatives(__alt_instructions, __alt_instructions_end);
++	apply_alternatives(__alt_instructions, __alt_instructions_end, NULL);
+ 
+ 	/*
+ 	 * Now all calls are established. Apply the call thunks if
+@@ -1712,7 +1736,7 @@ void __init alternative_instructions(void)
+ 	/*
+ 	 * Seal all functions that do not have their address taken.
+ 	 */
+-	apply_seal_endbr(__ibt_endbr_seal, __ibt_endbr_seal_end);
++	apply_seal_endbr(__ibt_endbr_seal, __ibt_endbr_seal_end, NULL);
+ 
+ #ifdef CONFIG_SMP
+ 	/* Patch to UP if other cpus not imminent. */
+diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
+index 8da0e66ca22d..563d9a890ce2 100644
+--- a/arch/x86/kernel/ftrace.c
++++ b/arch/x86/kernel/ftrace.c
+@@ -118,10 +118,13 @@ ftrace_modify_code_direct(unsigned long ip, const char *old_code,
+ 		return ret;
+ 
+ 	/* replace the text with the new text */
+-	if (ftrace_poke_late)
++	if (ftrace_poke_late) {
+ 		text_poke_queue((void *)ip, new_code, MCOUNT_INSN_SIZE, NULL);
+-	else
+-		text_poke_early((void *)ip, new_code, MCOUNT_INSN_SIZE);
++	} else {
++		mutex_lock(&text_mutex);
++		text_poke((void *)ip, new_code, MCOUNT_INSN_SIZE);
++		mutex_unlock(&text_mutex);
++	}
+ 	return 0;
+ }
+ 
+@@ -318,7 +321,7 @@ create_trampoline(struct ftrace_ops *ops, unsigned int *tramp_size)
+ 	unsigned const char op_ref[] = { 0x48, 0x8b, 0x15 };
+ 	unsigned const char retq[] = { RET_INSN_OPCODE, INT3_INSN_OPCODE };
+ 	union ftrace_op_code_union op_ptr;
+-	int ret;
++	void *ret;
+ 
+ 	if (ops->flags & FTRACE_OPS_FL_SAVE_REGS) {
+ 		start_offset = (unsigned long)ftrace_regs_caller;
+@@ -349,15 +352,15 @@ create_trampoline(struct ftrace_ops *ops, unsigned int *tramp_size)
+ 	npages = DIV_ROUND_UP(*tramp_size, PAGE_SIZE);
+ 
+ 	/* Copy ftrace_caller onto the trampoline memory */
+-	ret = copy_from_kernel_nofault(trampoline, (void *)start_offset, size);
+-	if (WARN_ON(ret < 0))
++	ret = text_poke_copy(trampoline, (void *)start_offset, size);
++	if (WARN_ON(!ret))
+ 		goto fail;
+ 
+ 	ip = trampoline + size;
+ 	if (cpu_feature_enabled(X86_FEATURE_RETHUNK))
+ 		__text_gen_insn(ip, JMP32_INSN_OPCODE, ip, x86_return_thunk, JMP32_INSN_SIZE);
+ 	else
+-		memcpy(ip, retq, sizeof(retq));
++		text_poke_copy(ip, retq, sizeof(retq));
+ 
+ 	/* No need to test direct calls on created trampolines */
+ 	if (ops->flags & FTRACE_OPS_FL_SAVE_REGS) {
+@@ -365,8 +368,7 @@ create_trampoline(struct ftrace_ops *ops, unsigned int *tramp_size)
+ 		ip = trampoline + (jmp_offset - start_offset);
+ 		if (WARN_ON(*(char *)ip != 0x75))
+ 			goto fail;
+-		ret = copy_from_kernel_nofault(ip, x86_nops[2], 2);
+-		if (ret < 0)
++		if (!text_poke_copy(ip, x86_nops[2], 2))
+ 			goto fail;
+ 	}
+ 
+@@ -379,7 +381,7 @@ create_trampoline(struct ftrace_ops *ops, unsigned int *tramp_size)
+ 	 */
+ 
+ 	ptr = (unsigned long *)(trampoline + size + RET_SIZE);
+-	*ptr = (unsigned long)ops;
++	text_poke_copy(ptr, &ops, sizeof(unsigned long));
+ 
+ 	op_offset -= start_offset;
+ 	memcpy(&op_ptr, trampoline + op_offset, OP_REF_SIZE);
+@@ -395,7 +397,7 @@ create_trampoline(struct ftrace_ops *ops, unsigned int *tramp_size)
+ 	op_ptr.offset = offset;
+ 
+ 	/* put in the new offset to the ftrace_ops */
+-	memcpy(trampoline + op_offset, &op_ptr, OP_REF_SIZE);
++	text_poke_copy(trampoline + op_offset, &op_ptr, OP_REF_SIZE);
+ 
+ 	/* put in the call to the function */
+ 	mutex_lock(&text_mutex);
+@@ -405,9 +407,9 @@ create_trampoline(struct ftrace_ops *ops, unsigned int *tramp_size)
+ 	 * the depth accounting before the call already.
+ 	 */
+ 	dest = ftrace_ops_get_func(ops);
+-	memcpy(trampoline + call_offset,
+-	       text_gen_insn(CALL_INSN_OPCODE, trampoline + call_offset, dest),
+-	       CALL_INSN_SIZE);
++	text_poke_copy_locked(trampoline + call_offset,
++	      text_gen_insn(CALL_INSN_OPCODE, trampoline + call_offset, dest),
++	      CALL_INSN_SIZE, false);
+ 	mutex_unlock(&text_mutex);
+ 
+ 	/* ALLOC_TRAMP flags lets us know we created it */
+@@ -654,4 +656,15 @@ void ftrace_graph_func(unsigned long ip, unsigned long parent_ip,
+ }
+ #endif
+ 
++void ftrace_swap_func(void *a, void *b, int n)
++{
++	unsigned long t;
++
++	WARN_ON_ONCE(n != sizeof(t));
++
++	t = *((unsigned long *)a);
++	text_poke_copy(a, b, sizeof(t));
++	text_poke_copy(b, &t, sizeof(t));
++}
++
+ #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
+diff --git a/arch/x86/kernel/module.c b/arch/x86/kernel/module.c
+index 837450b6e882..8984abd91c00 100644
+--- a/arch/x86/kernel/module.c
++++ b/arch/x86/kernel/module.c
+@@ -146,18 +146,21 @@ static int __write_relocate_add(Elf64_Shdr *sechdrs,
+ 		}
+ 
+ 		if (apply) {
+-			if (memcmp(loc, &zero, size)) {
++			void *wr_loc = module_writable_address(me, loc);
++
++			if (memcmp(wr_loc, &zero, size)) {
+ 				pr_err("x86/modules: Invalid relocation target, existing value is nonzero for type %d, loc %p, val %Lx\n",
+ 				       (int)ELF64_R_TYPE(rel[i].r_info), loc, val);
+ 				return -ENOEXEC;
+ 			}
+-			write(loc, &val, size);
++			write(wr_loc, &val, size);
+ 		} else {
+ 			if (memcmp(loc, &val, size)) {
+ 				pr_warn("x86/modules: Invalid relocation target, existing value does not match expected value for type %d, loc %p, val %Lx\n",
+ 					(int)ELF64_R_TYPE(rel[i].r_info), loc, val);
+ 				return -ENOEXEC;
+ 			}
++			/* FIXME: needs care for ROX module allocations */
+ 			write(loc, &zero, size);
+ 		}
+ 	}
+@@ -224,7 +227,7 @@ int module_finalize(const Elf_Ehdr *hdr,
+ 		    const Elf_Shdr *sechdrs,
+ 		    struct module *me)
+ {
+-	const Elf_Shdr *s, *alt = NULL, *locks = NULL,
++	const Elf_Shdr *s, *alt = NULL,
+ 		*orc = NULL, *orc_ip = NULL,
+ 		*retpolines = NULL, *returns = NULL, *ibt_endbr = NULL,
+ 		*calls = NULL, *cfi = NULL;
+@@ -233,8 +236,6 @@ int module_finalize(const Elf_Ehdr *hdr,
+ 	for (s = sechdrs; s < sechdrs + hdr->e_shnum; s++) {
+ 		if (!strcmp(".altinstructions", secstrings + s->sh_name))
+ 			alt = s;
+-		if (!strcmp(".smp_locks", secstrings + s->sh_name))
+-			locks = s;
+ 		if (!strcmp(".orc_unwind", secstrings + s->sh_name))
+ 			orc = s;
+ 		if (!strcmp(".orc_unwind_ip", secstrings + s->sh_name))
+@@ -265,20 +266,20 @@ int module_finalize(const Elf_Ehdr *hdr,
+ 			csize = cfi->sh_size;
+ 		}
+ 
+-		apply_fineibt(rseg, rseg + rsize, cseg, cseg + csize);
++		apply_fineibt(rseg, rseg + rsize, cseg, cseg + csize, me);
+ 	}
+ 	if (retpolines) {
+ 		void *rseg = (void *)retpolines->sh_addr;
+-		apply_retpolines(rseg, rseg + retpolines->sh_size);
++		apply_retpolines(rseg, rseg + retpolines->sh_size, me);
+ 	}
+ 	if (returns) {
+ 		void *rseg = (void *)returns->sh_addr;
+-		apply_returns(rseg, rseg + returns->sh_size);
++		apply_returns(rseg, rseg + returns->sh_size, me);
+ 	}
+ 	if (alt) {
+ 		/* patch .altinstructions */
+ 		void *aseg = (void *)alt->sh_addr;
+-		apply_alternatives(aseg, aseg + alt->sh_size);
++		apply_alternatives(aseg, aseg + alt->sh_size, me);
+ 	}
+ 	if (calls || alt) {
+ 		struct callthunk_sites cs = {};
+@@ -297,8 +298,28 @@ int module_finalize(const Elf_Ehdr *hdr,
+ 	}
+ 	if (ibt_endbr) {
+ 		void *iseg = (void *)ibt_endbr->sh_addr;
+-		apply_seal_endbr(iseg, iseg + ibt_endbr->sh_size);
++		apply_seal_endbr(iseg, iseg + ibt_endbr->sh_size, me);
+ 	}
++
++	if (orc && orc_ip)
++		unwind_module_init(me, (void *)orc_ip->sh_addr, orc_ip->sh_size,
++				   (void *)orc->sh_addr, orc->sh_size);
++
++	return 0;
++}
++
++int module_post_finalize(const Elf_Ehdr *hdr,
++			 const Elf_Shdr *sechdrs,
++			 struct module *me)
++{
++	const Elf_Shdr *s, *locks = NULL;
++	char *secstrings = (void *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
++
++	for (s = sechdrs; s < sechdrs + hdr->e_shnum; s++) {
++		if (!strcmp(".smp_locks", secstrings + s->sh_name))
++			locks = s;
++	}
++
+ 	if (locks) {
+ 		void *lseg = (void *)locks->sh_addr;
+ 		void *text = me->mem[MOD_TEXT].base;
+@@ -308,10 +329,6 @@ int module_finalize(const Elf_Ehdr *hdr,
+ 					    text, text_end);
+ 	}
+ 
+-	if (orc && orc_ip)
+-		unwind_module_init(me, (void *)orc_ip->sh_addr, orc_ip->sh_size,
+-				   (void *)orc->sh_addr, orc->sh_size);
+-
+ 	return 0;
+ }
+ 
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 7039f609c6ef..2c1a24ba99a3 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -376,15 +376,6 @@ struct module_memory {
+ #endif
+ };
+ 
+-#ifdef CONFIG_MODULES
+-void *module_writable_address(struct module *mod, void *loc);
+-#else
+-static inline void *module_writable_address(struct module *mod, void *loc)
+-{
+-	return loc;
+-}
+-#endif
+-
+ #ifdef CONFIG_MODULES_TREE_LOOKUP
+ /* Only touch one cacheline for common rbtree-for-core-layout case. */
+ #define __module_memory_align ____cacheline_aligned
+@@ -778,6 +769,8 @@ static inline bool is_livepatch_module(struct module *mod)
+ 
+ void set_module_sig_enforced(void);
+ 
++void *module_writable_address(struct module *mod, void *loc);
++
+ #else /* !CONFIG_MODULES... */
+ 
+ static inline struct module *__module_address(unsigned long addr)
+@@ -885,6 +878,11 @@ static inline bool module_is_coming(struct module *mod)
+ {
+ 	return false;
+ }
++
++static inline void *module_writable_address(struct module *mod, void *loc)
++{
++	return loc;
++}
+ #endif /* CONFIG_MODULES */
+ 
+ #ifdef CONFIG_SYSFS
 -- 
-Cheers,
-
-David / dhildenb
+2.43.0
 
