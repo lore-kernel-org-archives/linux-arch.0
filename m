@@ -1,791 +1,307 @@
-Received: from mail-yw1-f201.google.com (mail-yw1-f201.google.com [209.85.128.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E6CC1AAE04
-	for <linux-arch@vger.kernel.org>; Tue, 10 Sep 2024 17:15:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.201
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1725988534; cv=none; b=rsS0SzJtDckyOAFHwzwfwzbgI3SE9GtZsfpO0iyuP95xySR739YXxJYDHLKnqUfBC3cTj5yXxytqdUCx8A9CacdWZFciKFB3GYxSIJsotlOXu3Qt8k+CEybW9OFj464UM/LzD7JQEdH9/7tj4doXO7EHteMazrX4h6sS18p2PgI=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1725988534; c=relaxed/simple;
-	bh=+WKjAvj/SJsZ+i2BPYrYgM6EjBBDmMaV/3m9rOmpwfc=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=Ecgf8Y0tuL93Okc/8sdH0yMsdbOb//YwPYEFzv6xONUaUb+61TbYwdv+3AQmzOqGyA/hCOI9I4wllNxREZnFMR4ye2iErfEl4UYPjbNXoNJVOVcHw9ZeRsRoEErfkyCgwOQgYioQTeMR6PnE/dPte7joLsSVow57fHeSNmvT5Ls=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--almasrymina.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=nCMd27Bd; arc=none smtp.client-ip=209.85.128.201
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--almasrymina.bounces.google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 32DBE194C77;
+	Tue, 10 Sep 2024 19:10:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1725995430; cv=fail; b=gOtvydKvuALRBdnTFkuqBYWGf60nAnPct3ZmEL0ggcUixH7WO8kYm1+Oe6CZ48MCsxkDv4kJ0VygPKrBA6fBs6v+qoqCjHRIrq1TkdpGuiou7T6vQ8aUPjZgJsXaAKsOQ7bLuRkm5yYWgG+XT3IaBC8zJ5oBBswif0CJf7TRKnI=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1725995430; c=relaxed/simple;
+	bh=0zE6XJ5G2HgDbbO/6LEP2jT/Wnk+NLyP4kee7tyO03A=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=Npqla3iGb5j71vEeT+ijFDPl3/pCTKl/mkn+BWqHeodtb1CQRcQdUrjn4DD0+CzAcgT5qNJLySFeEeswPY9czv8nobfMKoCjnlkPMCi9rlfPKeSmozo7qVZrJuNTboHcDsaH11k3keGisDXbM6pTKZdETMoD3uhgxWOri87HCs4=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=mLePeWy8; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=ll24WDh3; arc=fail smtp.client-ip=205.220.177.32
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="nCMd27Bd"
-Received: by mail-yw1-f201.google.com with SMTP id 00721157ae682-6b41e02c293so211896057b3.0
-        for <linux-arch@vger.kernel.org>; Tue, 10 Sep 2024 10:15:25 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="mLePeWy8";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="ll24WDh3"
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 48AHNY5H005825;
+	Tue, 10 Sep 2024 19:08:23 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=
+	date:from:to:cc:subject:message-id:references:content-type
+	:content-transfer-encoding:in-reply-to:mime-version; s=
+	corp-2023-11-20; bh=0zE6XJ5G2HgDbbO/6LEP2jT/Wnk+NLyP4kee7tyO03A=; b=
+	mLePeWy82gl86cVB0blfoFTXLpH7l1xGCkeRf4niBb7+bpL2f/qJvmr7RVtLAI7B
+	kMnNNNOjxv7dMkCu9ruzrLGOpWnb2gSv/sfrh5S8MdhGV1vVR+UshdKWCFNP11aw
+	Vgv7J7oGPFqmUqx3sbr/pHMT5zOfxiRvOqkNp3ZeiuJQxQpnH0cMtbRxgAhvyJXC
+	3mzYExdjrCl6S89dZpMKP2FtnvlCZpBBWbF5YDwn1GHP2V0AwzObslhXNdHvdVwd
+	MP00stCLvbU23mNGyjmHjT4yMFG2cBO1rkAkTQD7IUE/yzdweKe44b1SJzKabHdp
+	Xlkq5Hdu6NCHRqrwYZYIUA==
+Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 41gjbup7fb-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Tue, 10 Sep 2024 19:08:23 +0000 (GMT)
+Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 48AHa6OE033545;
+	Tue, 10 Sep 2024 19:08:22 GMT
+Received: from nam12-dm6-obe.outbound.protection.outlook.com (mail-dm6nam12lp2173.outbound.protection.outlook.com [104.47.59.173])
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 41gd991kb6-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Tue, 10 Sep 2024 19:08:22 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=IVbc7uSxhmpWPgY7hh0IVhHXfUlifRjgGbR5ijVASPyfHscEms5IoQxWr96q8t5mNeBgtHDrz55KAvQ9Rzp8LdrsBBYgGIOTdb1gj5pG7nuoiCS9S9EPpv2Zaa7KATLqCMjf5iPs3bIa1CE5hFUvXeB7Nbcbb+4diybUcIU/7G3rSn5Co3Fj6Hxkvzo9cyDLkKA6pv56nFmlzKVubQbwvAmF2JQCdGiWsXn7GGxxB4z7Rf3VnNk4KOn/op4v+tExjDbJNtusxM6yto1+djinIc1Q7m7pNmnh0eTnrqjFsh9jLc325h4wmG0fZMDj0U5UQ8pF1046GzVhBRQwxN20bw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=0zE6XJ5G2HgDbbO/6LEP2jT/Wnk+NLyP4kee7tyO03A=;
+ b=W+8LpRvB1a1dsWinU+ScUliK4cqfMFJDfwhsWnNlEaCc17Tmx753/23I9uRYRGaL4Nx2hJoJzL73fTCcMpC1+QksYYPzHnCk+rB2r4mCJMWo8QyB2NaHqPLRaBdbvHuF3UkWE73QXR6PA6yW+mMdQK49apMUmH/K60Y84HVq6LJkPvIdjdsmUKWgehrTavfNecEmM1htTKlHC8s6ktuer+xwFmmlu93JfK6z54tEGuvDcbANLDeuv+YXb85Jdtw0uD8LyG+6YhLGYWzSZbFbsRLUE8wE0Bw5f8wMXEcBt9C/yHkKaPRC10JFeXcqwxiIYgr3AWj9kpP/Gw8LJkbiPg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1725988523; x=1726593323; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=HTq1ahNtP7bfKTiUYMOkvsIp91vuWez2yTTAEimYEQM=;
-        b=nCMd27Bd6a2Z31fJgMm6iaIBVkQpi5eBtt9XhUfZltvgvsVNXSRQ8GephFCedVhvIY
-         BE38Du30Y/xnVT0jNTSK5/28g9oV0PB5hyjDe2N0OmHsOZHYHB7wmfxqik8nzrsHCEDF
-         bRevw4fbsh37ynHPGf457BVw0pbdssLbmQx8ZARPaSlhE49lNVAeBoQ0eEIvbvmj2I9r
-         a4Uu0+ULITPB8zOuMGZPjKjDG8H5hTeh1HPBilDg1UZ3BlAos43/9nvvezjPaNa02ETo
-         2a7yH2BOCqgdVsmMMmFwCa0M/3W0Eks+x0KYwcvdIw4LjFhxvLw0Bs5zKLuJEZ1fUdue
-         c8hA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1725988523; x=1726593323;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=HTq1ahNtP7bfKTiUYMOkvsIp91vuWez2yTTAEimYEQM=;
-        b=bQblWzVtvWuNPzrwiyQv2pBSfrSvDA+r+ngGKTR/1efE6GV8V4kOUilJEuPu6Ocs4C
-         FEHtt51G5xniCvXpMF4fSIvlVYP5bX4EPABjmsb2dgsN5ACt+PrI7HgjQE1i6nm5Ukb+
-         uRmKv7gpwUmBpkV8DdA2j7oqnB2ZChM9arSOtr9A0xog6zlNOKCzU3TaNU/pTMWhksNp
-         5cyr45OlhWxALmoradWCVzQbw0zA0pqut+rrEx12dZBu4m2fnZmhIfHVd9ANn1trRzWT
-         i5YP74APklKoakwY5FQlmWn6EeVVyCsgjRaBk2y46NKxiVD3eq2sn+M7PX8FUNZJg6fr
-         N+sw==
-X-Forwarded-Encrypted: i=1; AJvYcCUoWgePEOcJ7r5++K4M4smWOC196WXO8npSCADqB8s2oTbM2JHyehLv1BIIxlfNBmUqwTB7ewO+fV6A@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy9Vu1sVjYd4+z/jkmjQzPmqnwFxs5/j1D3pZwnxW37E95vnjhC
-	Wa2Hs5eRjPBZWlTlVK/mbfHRD4Od6zzm3HioxCxjfqLPVaba6nI3rPBSTbGtvmp+N6BT1eOpR3Y
-	x5vVY0YLC7ohyopqB2ve7eQ==
-X-Google-Smtp-Source: AGHT+IHbKiU5Q8+dHZquZIv0LqCZM0wO2eTwj0zxmzgfdByDL8Dus1u/NP5oVQmANKL45UYWCAHcRkJZDFySudCiyA==
-X-Received: from almasrymina.c.googlers.com ([fda3:e722:ac3:cc00:20:ed76:c0a8:4bc5])
- (user=almasrymina job=sendgmr) by 2002:a05:690c:3601:b0:6d7:37b9:ac93 with
- SMTP id 00721157ae682-6db45168382mr9520137b3.5.1725988523149; Tue, 10 Sep
- 2024 10:15:23 -0700 (PDT)
-Date: Tue, 10 Sep 2024 17:14:56 +0000
-In-Reply-To: <20240910171458.219195-1-almasrymina@google.com>
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=0zE6XJ5G2HgDbbO/6LEP2jT/Wnk+NLyP4kee7tyO03A=;
+ b=ll24WDh30IWFb+Q8udpja3FLfixaLjlhp/M1AT65Kg9raItAopjBrm+ICfNDnl1mx8ju4w4Xt/2qJfo9w1iCSVhDn1q/qcwvQImwZZBTxnlXwfHfX7/+rxzOutswxEdvLPDFYos9geu09K/SY4FfYCqlGS++/D5zkVTcJVCcEJ0=
+Received: from LV8PR10MB7943.namprd10.prod.outlook.com (2603:10b6:408:1f9::22)
+ by CY8PR10MB6706.namprd10.prod.outlook.com (2603:10b6:930:92::22) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.7939.14; Tue, 10 Sep
+ 2024 19:08:18 +0000
+Received: from LV8PR10MB7943.namprd10.prod.outlook.com
+ ([fe80::a8ec:6b6b:e1a:782d]) by LV8PR10MB7943.namprd10.prod.outlook.com
+ ([fe80::a8ec:6b6b:e1a:782d%7]) with mapi id 15.20.7918.020; Tue, 10 Sep 2024
+ 19:08:18 +0000
+Date: Tue, 10 Sep 2024 15:08:14 -0400
+From: "Liam R. Howlett" <Liam.Howlett@oracle.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, guoren <guoren@kernel.org>,
+        Charlie Jenkins <charlie@rivosinc.com>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@kernel.org>,
+        Russell King <linux@armlinux.org.uk>,
+        Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E . J . Bottomley" <James.Bottomley@hansenpartnership.com>,
+        Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        Christophe Leroy <christophe.leroy@csgroup.eu>,
+        Naveen N Rao <naveen@kernel.org>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>,
+        Yoshinori Sato <ysato@users.sourceforge.jp>,
+        Rich Felker <dalias@libc.org>,
+        John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+        "David S . Miller" <davem@davemloft.net>,
+        Andreas Larsson <andreas@gaisler.com>,
+        Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+        "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        Muchun Song <muchun.song@linux.dev>,
+        Andrew Morton <akpm@linux-foundation.org>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        Lorenzo Stoakes <lorenzo.stoakes@oracle.com>, shuah <shuah@kernel.org>,
+        Christoph Hellwig <hch@infradead.org>, Michal Hocko <mhocko@suse.com>,
+        "Kirill A. Shutemov" <kirill@shutemov.name>,
+        Chris Torek <chris.torek@gmail.com>,
+        Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
+        linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org,
+        linux-arm-kernel@lists.infradead.org,
+        "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>,
+        loongarch@lists.linux.dev, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+        linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+        sparclinux@vger.kernel.org, linux-mm@kvack.org,
+        linux-kselftest@vger.kernel.org, linux-abi-devel@lists.sourceforge.net
+Subject: Re: [PATCH RFC v3 1/2] mm: Add personality flag to limit address to
+ 47 bits
+Message-ID: <oshwto46wbbgneiayj63umllyozm3c4267rvpszqzaopwnt2l7@6mxl5vydtons>
+Mail-Followup-To: "Liam R. Howlett" <Liam.Howlett@oracle.com>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, guoren <guoren@kernel.org>, 
+	Charlie Jenkins <charlie@rivosinc.com>, Richard Henderson <richard.henderson@linaro.org>, 
+	Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, 
+	Vineet Gupta <vgupta@kernel.org>, Russell King <linux@armlinux.org.uk>, 
+	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
+	"James E . J . Bottomley" <James.Bottomley@hansenpartnership.com>, Helge Deller <deller@gmx.de>, 
+	Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
+	Christophe Leroy <christophe.leroy@csgroup.eu>, Naveen N Rao <naveen@kernel.org>, 
+	Alexander Gordeev <agordeev@linux.ibm.com>, Gerald Schaefer <gerald.schaefer@linux.ibm.com>, 
+	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
+	Christian Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>, 
+	Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, 
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, "David S . Miller" <davem@davemloft.net>, 
+	Andreas Larsson <andreas@gaisler.com>, Thomas Gleixner <tglx@linutronix.de>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+	Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Muchun Song <muchun.song@linux.dev>, Andrew Morton <akpm@linux-foundation.org>, 
+	Vlastimil Babka <vbabka@suse.cz>, Lorenzo Stoakes <lorenzo.stoakes@oracle.com>, 
+	shuah <shuah@kernel.org>, Christoph Hellwig <hch@infradead.org>, 
+	Michal Hocko <mhocko@suse.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, 
+	Chris Torek <chris.torek@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, 
+	linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-snps-arc@lists.infradead.org, 
+	linux-arm-kernel@lists.infradead.org, "linux-csky@vger.kernel.org" <linux-csky@vger.kernel.org>, 
+	loongarch@lists.linux.dev, linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
+	linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, 
+	sparclinux@vger.kernel.org, linux-mm@kvack.org, linux-kselftest@vger.kernel.org, 
+	linux-abi-devel@lists.sourceforge.net
+References: <20240905-patches-below_hint_mmap-v3-0-3cd5564efbbb@rivosinc.com>
+ <20240905-patches-below_hint_mmap-v3-1-3cd5564efbbb@rivosinc.com>
+ <9fc4746b-8e9d-4a75-b966-e0906187e6b7@app.fastmail.com>
+ <CAJF2gTTVX9CFM3oRZZP3hGExwVwA_=n1Lrq_0DQKWA+-ZbOekg@mail.gmail.com>
+ <f23b18c6-1856-4b59-9ba3-59809b425c81@app.fastmail.com>
+ <Ztrq8PBLJ3QuFJz7@arm.com>
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <Ztrq8PBLJ3QuFJz7@arm.com>
+User-Agent: NeoMutt/20240425
+X-ClientProxiedBy: YT4P288CA0046.CANP288.PROD.OUTLOOK.COM
+ (2603:10b6:b01:d3::28) To LV8PR10MB7943.namprd10.prod.outlook.com
+ (2603:10b6:408:1f9::22)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20240910171458.219195-1-almasrymina@google.com>
-X-Mailer: git-send-email 2.46.0.598.g6f2099f65c-goog
-Message-ID: <20240910171458.219195-13-almasrymina@google.com>
-Subject: [PATCH net-next v26 12/13] selftests: add ncdevmem, netcat for devmem TCP
-From: Mina Almasry <almasrymina@google.com>
-To: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-doc@vger.kernel.org, linux-alpha@vger.kernel.org, 
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
-	sparclinux@vger.kernel.org, linux-trace-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, bpf@vger.kernel.org, 
-	linux-kselftest@vger.kernel.org, linux-media@vger.kernel.org, 
-	dri-devel@lists.freedesktop.org
-Cc: Mina Almasry <almasrymina@google.com>, "David S. Miller" <davem@davemloft.net>, 
-	Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, 
-	Donald Hunter <donald.hunter@gmail.com>, Jonathan Corbet <corbet@lwn.net>, 
-	Richard Henderson <richard.henderson@linaro.org>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, 
-	Matt Turner <mattst88@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
-	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, Helge Deller <deller@gmx.de>, 
-	Andreas Larsson <andreas@gaisler.com>, Jesper Dangaard Brouer <hawk@kernel.org>, 
-	Ilias Apalodimas <ilias.apalodimas@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, 
-	Masami Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Steffen Klassert <steffen.klassert@secunet.com>, 
-	Herbert Xu <herbert@gondor.apana.org.au>, David Ahern <dsahern@kernel.org>, 
-	Willem de Bruijn <willemdebruijn.kernel@gmail.com>, 
-	"=?UTF-8?q?Bj=C3=B6rn=20T=C3=B6pel?=" <bjorn@kernel.org>, Magnus Karlsson <magnus.karlsson@intel.com>, 
-	Maciej Fijalkowski <maciej.fijalkowski@intel.com>, Jonathan Lemon <jonathan.lemon@gmail.com>, 
-	Shuah Khan <shuah@kernel.org>, Alexei Starovoitov <ast@kernel.org>, 
-	Daniel Borkmann <daniel@iogearbox.net>, John Fastabend <john.fastabend@gmail.com>, 
-	Sumit Semwal <sumit.semwal@linaro.org>, 
-	"=?UTF-8?q?Christian=20K=C3=B6nig?=" <christian.koenig@amd.com>, Pavel Begunkov <asml.silence@gmail.com>, 
-	David Wei <dw@davidwei.uk>, Jason Gunthorpe <jgg@ziepe.ca>, Yunsheng Lin <linyunsheng@huawei.com>, 
-	Shailend Chand <shailend@google.com>, Harshitha Ramamurthy <hramamurthy@google.com>, 
-	Shakeel Butt <shakeel.butt@linux.dev>, Jeroen de Borst <jeroendb@google.com>, 
-	Praveen Kaligineedi <pkaligineedi@google.com>, Bagas Sanjaya <bagasdotme@gmail.com>, 
-	Christoph Hellwig <hch@infradead.org>, Nikolay Aleksandrov <razor@blackwall.org>, Taehee Yoo <ap420073@gmail.com>, 
-	Stanislav Fomichev <sdf@fomichev.me>
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: LV8PR10MB7943:EE_|CY8PR10MB6706:EE_
+X-MS-Office365-Filtering-Correlation-Id: 5714aaf5-8cc6-44ba-0e75-08dcd1cbee1b
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;ARA:13230040|1800799024|376014|7416014|366016;
+X-Microsoft-Antispam-Message-Info:
+	=?utf-8?B?dzMyR2x5Z1NiSmI1aVJWRGhsUThDWkszZW10NW5tc080ejQ1eHQrUDQ5KzNH?=
+ =?utf-8?B?bnA3bFkrSmJCMjFGRTliUmE0Q2sxaEh0QmR3dXBBYkdSczM3Mm0rYk1OT1ZG?=
+ =?utf-8?B?YlIvWjNJeFlOakhidUpXL1d3cTQrUFNBVTZBSFVxY2hhZDEzNVhHRHpqaW00?=
+ =?utf-8?B?eHJLN3hzNTdBa1RhOUYwV0EvSS9nWjBNNkhGZUp5NjZLdWVIQ0NHRkVEOEVu?=
+ =?utf-8?B?OE1hQ1BSV3dHa1ZLNExCQUFFRGR6aGZ0TDFhQ25RWk5JS0VIWkFscUYvaWhv?=
+ =?utf-8?B?WEEwYlBXTHl0a3ZYK2ljallxdnphTHdNYTZwZEpmTzRlQ2s0YlpSUnZzdytM?=
+ =?utf-8?B?b1c2bGplSVFCSE05RnZaYzdUYlVCZnk5YnZSZHFVeFVob0pXUkRTcjBRMDBz?=
+ =?utf-8?B?Y1Iydk5EMUg4QWMrNTF1RU55UGVHT1MxcUpQTExGOUptYk9EaGdjZzZGTzlU?=
+ =?utf-8?B?R0NDbzdNRWFpMjBXZmU1bW1oZHg0YVdQeDNKTEdhaEp2N0IrTzZyalczWDUy?=
+ =?utf-8?B?RkpBbkxHZ3BPckFnS0lrdFhhcmdyUEJXTXhzNGNaVHRhckovalZjcGd5MEho?=
+ =?utf-8?B?NnRBV2xyVFlNbUVreW1JenpEanRCeVY5b2hQSGNCS2F1cHpXTVNDQXg0dy93?=
+ =?utf-8?B?cUsvZENLS2poVmdaZTJzYWNUdXVlaG0yNWMrR3JrZVAyZnRPdFhxT1BscGtG?=
+ =?utf-8?B?Z2M1VEZHWXVLcXREb3pjMFovVSs2LzJUc1lmemlEVVF3WXNXdEpCNzZRdkJo?=
+ =?utf-8?B?QlVVSVNzYkFJYnN5SFVsWlN5LzZQVmFJRktBSU9ROWtOSzBaNkVwVC9vZU9z?=
+ =?utf-8?B?SlVTQ0NGcEJUdHlWWGltM0o5cmxrcGFkc3V5ZHR3K3VHUmJCc09mSE5oa1RK?=
+ =?utf-8?B?RjFhOXdZUmZlbmJJZ3NkWHdISzFPbUh0ODlsdGFvK0V3dTUzSnE3VzlpMy9w?=
+ =?utf-8?B?TVorY2JTcEtpTHRhdjV1dGl2QWhxN2RYcjk2Tzcvd3N4MVhadi9lT0ZkQXlD?=
+ =?utf-8?B?ZER6bzNldS9Rdjg1dXlzMHdIM0FSK1dQaGZmSEx0RXFuWHNDeFlzME5lV3Ri?=
+ =?utf-8?B?WnRpYWpxeldoWWhzSERxOEd3d1FsYUVkUmpRbnlRSmU0RzN4bEdweVBSOFBW?=
+ =?utf-8?B?blhncEpERmFWQ0JEMkVhVytyQXlmRXdzQVpLU1JJWnFSckQyMTVEazJZZGRl?=
+ =?utf-8?B?eGdGa2NSblVzMEdZUThLY01lSmQyNzlpeTdpeHZtbHdaQkVTN3ZNZzNyTnBp?=
+ =?utf-8?B?anRQQTd3bUhvVTJTUnlybFF4WFB3ZUY1R2ZNNHhzQ2NnZXJpakZhWkszcFdF?=
+ =?utf-8?B?SW0ydWwzNDJnbkNvR2JDUUR5UHgrK0VKeVJMSFpySnBiRlk4REZxbDlNWVdm?=
+ =?utf-8?B?alZJcjdEKzZCR3JvT2xZSFdqbUNsczVkSlUyM25GelNVbit0UElGN1UxNE9o?=
+ =?utf-8?B?b2JuemNqYzZJcVBIbVNObEhaWUJ2Rk5lRUthUW5zdnlGVDVMTXUvNmxxOWtM?=
+ =?utf-8?B?eGZVU015ZFpCMTZLdFoxdzBTenZQK2VReVAxVkRRNVU2R2dTVEFiaHFKYUQ2?=
+ =?utf-8?B?Zm1Ub0lkdUZZcjJoL2lPWklCRHNGZmNOcWpDZk1BUXhkNlladmR5dFozUnVQ?=
+ =?utf-8?B?YVk1MHNhT21IRTdtbnhCOHErTUQ3QThqUXRGbmViemNoVm5PUVBzTnNadTA1?=
+ =?utf-8?B?dW1BUFRGNDF1ZnE4Rk9DSEtYRVU5QkE5WHprYS90T1A4Q3ZYSlZxeGV6TDFu?=
+ =?utf-8?B?WlVTS3Y1alovU09PQ3hqMEtTdUpjaHovVk9HTEtKWWR5U2dIVHFvL3VQRTgw?=
+ =?utf-8?B?R0dpQVp5LzRhVG5ZOWlIZz09?=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:LV8PR10MB7943.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(376014)(7416014)(366016);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?M28wUFU4TU5ndzlxS0ttUFVzTjU0QXU3N3ZEMzN4YWc3WHZkVWorR3ZoYitK?=
+ =?utf-8?B?a1Y3dUYrVzZVYlpKL0h3ak9udVN1SUh6NmhyYkYvWEJ2QlNOZUlKcE9VZmFH?=
+ =?utf-8?B?MnhRL0FVUDVWS096S3BZSmZRc1lCSUpoOFVkd0txcTVBTVBweEFUQlpMRkcx?=
+ =?utf-8?B?Rkd6TDJUeUI4S1ZVS251RUQxWWFkNkI2d1FiSnVLelhrTzdBYXZDbEc4UkF0?=
+ =?utf-8?B?eUdCRlhwdTFSQVYwS055MVBzcWZWQjByNDZrS2FKdlkramN5ZjlCUHQrOUhX?=
+ =?utf-8?B?eVR6Q3Z5NllLRm8yNjBDUlEyMFNlQ3dDYmZzOVFzMU9NbnF2K2xGN09MUmQr?=
+ =?utf-8?B?aUlya1BtRVNlQ1lkalFzTmpRTXg5aWRMMmZlMTlWT3RpcENuaTFZMWt3aDl3?=
+ =?utf-8?B?L1FSYkVQbjZHeTB6eEh0YlFFQ2NkVTJkeUFhYU1zaVhOeFUrbzhnVXExNmtQ?=
+ =?utf-8?B?Rm4vcG9TcWZ1VUt5MnJ4alg4VUZQaTZlTForWlppZjdqNVlnMUNjYXJlWEx5?=
+ =?utf-8?B?OEFmaWZkRUFIajV1UlZxbjB0aE5IUkVQY2JwbWgyQlJ4d0ZzQkJ5STFJbFBZ?=
+ =?utf-8?B?bXRuQmlTS3ZJNjczU2IxQnFxU0J2UlJGOUt0ZVFQNDRPS3preHJsWjZHOEtD?=
+ =?utf-8?B?RnRHK1dXT21RWlY4dGlKeXUzR1YyZ2pYOWRHNXJzOWUwSU9EYkxMdWUvNml4?=
+ =?utf-8?B?RHlJL1FsdE0xa09aMXYxTzBwb0t0SWZ1TDdBMmZaamsyUENRSExDeDJzeDN0?=
+ =?utf-8?B?ZUkySGo4R0E2QUkzOG82U2t4M0ZaRGJzUTBidXZGQ21wc01hMm84NUd4MjNS?=
+ =?utf-8?B?OFpBaUhPTE5xVVhmcFBLbUloejJYTkxKK2FIdU9DUXBSV3J4R1NHSkFtaGcx?=
+ =?utf-8?B?MmVRZXUzcVBhb3VPS0daVThRcmx6MDBCbjdKS3NMU0poMWIxSFBJOHhMc3JI?=
+ =?utf-8?B?K2RpRm9tU3M4UDNoekpNcjFMWEJ5MnhZSG5iSWRlRENQNGJhMnNsdFA1b2c3?=
+ =?utf-8?B?L3pJbHRLQ1M2d1VzKzNodUJ4UmFBSWhoVk9YZXBxT0cvMnpHRUEzVENQbzhQ?=
+ =?utf-8?B?WlpxdWNFU1ZMZnNqM3pjVWsyU3IzZTNhNUROc3ZCcWtkUE84ZmhMWC9ZYjhO?=
+ =?utf-8?B?cGppdHlTcHUwc1pwUnpQaVBzZ3IzaGp5N0NmRkJ5Z2tzQjVzbmx6dXVIKzd3?=
+ =?utf-8?B?T3U0NCtFbVhMUTd4dDEzbzVhMmE3STJodGFORCs0cGFzeFB3NVQxUW1qazgr?=
+ =?utf-8?B?ak9rdkNMNWZ4RFpDaE1VQ0wvUG50Yi9GNDU1cDRZczgyVnl6QndTRFpLUXph?=
+ =?utf-8?B?TFUwSGRFR1lrTDJPcmtHaHFYTHJ3SXEvSUNmUzREa0l6Y0RnZVI0N3pjVllN?=
+ =?utf-8?B?R1pPSFAwRkZEa3VJS1kxbTdXVzJ6b1FNS1gyVUFVMzgrZE1Qd3JmQXE1cEYz?=
+ =?utf-8?B?S1ZYSHk3aWpuU3FFZkFNK3R3aWpzNExrQ3ZpYzhNcmhaSlFSY2VMWFZOaFNz?=
+ =?utf-8?B?Z3plaFhXaWx3T0JpMDJib1dsdzNpaklpZmIwS25YRysvVE00Wlhxa1pUVzRJ?=
+ =?utf-8?B?WGJhZ1ZiSkYvRXN5ZWp0WXZ6MU51eXNRZmVMRmFpQmlpd2pFeUFTY0ZyUGQ0?=
+ =?utf-8?B?d2xEQXR6V0FlVXJETTc5T1FLZzN0WWdZK1Byc0tmemw0TUxaYllZOS9OZlIr?=
+ =?utf-8?B?NEVnUXMxSWJ4bXJIYW8xcy9naFFDaUJnOXU2YnViUHA0UGMwOTV1aUN6K3pH?=
+ =?utf-8?B?U09XM1BwOFNKbVN6SmN0T0plck1NWi9jajdLRStzNytxaXlvWGRFOGk2MVYr?=
+ =?utf-8?B?Ny8xZElnRndTbWwrVGgxMkZlVVhxYkZ3UWlldWcyNGJ5aENPZnpMNmhkeFBt?=
+ =?utf-8?B?cjQvczZqc0FCei9nNjU2amVkUmQvOGxVNi80VEUvWk40VWhSWmdOa1FZTkFD?=
+ =?utf-8?B?aU5uSnRrNFd1ZkVSSmlTKzRXZWkzSDVKcWRMYmdMUXpJZDd1aUd2UHZrRlMw?=
+ =?utf-8?B?UmFMYjVvQzJQS2phbnFlMGd0QlF6RmJTZHJuc1FOU0wzRURNZTZ3UmtSaWlH?=
+ =?utf-8?B?S0hOaGlpU3dBVjBwM251RlRqYVBiQmsxVnFlRjhMZW1Pb3VKQ3ZCNm9zOXE5?=
+ =?utf-8?Q?0oEKy1t8y7Fd+TlTDFn+YrqpM?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
+	oxwMGhdRZVKdybHTaNCBD8LRDhy/rI0aYNVJF9PRSldPWnU5rwA7kZMx+WAz/8humzhM5JvfFyKc4JPCs4BRMCJe1yfUsQYQbI6vv5AGhXfpXDD1RttRNzPKSGssVID1Cx/rR+T/al3Qt5XVBVnmCgfmcDnz9I/6cPAngC5bp5O22EL8aqenv7G9+nCH3qBNIYgOxI1VtWRLhe8WEfxrEJOX3sF2lNzOaGyqhfojdoUB/qrAqp9yv8HM2yVu/e/NJPlMiYdB2Leumk/V7i+XJFvgWxXgS3O8C8TssMoQclTMZwS1Yn8DiCntQdaC7ABzmTkBnuWV97i/x052t4U8jfznxuuOg5QZFcwYGw0+3vSIZRJ7hCPYNObkFeszfGHJ23vDw7JEyIdSbX1LYLnNMOwA2fbuyUp5wa4lb5JY1/aPkYIdr0O8QvfH68QVLC8HhH4Hv7fFjfqH6IXysPrMdY04lwzUJ4Pb/mdtV8gzES7qtyZGepDra7gDynpLsDk5JPMQ47kixZ34IZ22DWaUEK8+5lyr2XjaQ6arSwc+dUDEJ14meNZ5L12xC8iisz8HMkBneZTQpp3LX80zMN5eXxAOiB2jBvz5oMJ0V1NbiPY=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 5714aaf5-8cc6-44ba-0e75-08dcd1cbee1b
+X-MS-Exchange-CrossTenant-AuthSource: LV8PR10MB7943.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 10 Sep 2024 19:08:18.5124
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: 5flw2MUoYRqDWRlg8rzfX4pv5JCRY/drXo7k+IM0bEbGSgkplXGPaim57i+6JqJiDxvUYFuxeYUHwo1zRkKOcg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CY8PR10MB6706
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1039,Hydra:6.0.680,FMLib:17.12.60.29
+ definitions=2024-09-10_06,2024-09-09_02,2024-09-02_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 suspectscore=0 phishscore=0
+ spamscore=0 malwarescore=0 adultscore=0 mlxscore=0 mlxlogscore=897
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2408220000
+ definitions=main-2409100142
+X-Proofpoint-GUID: hyb9fM_VkBAwT7pgXbXBzXO-kOv_X7to
+X-Proofpoint-ORIG-GUID: hyb9fM_VkBAwT7pgXbXBzXO-kOv_X7to
 
-ncdevmem is a devmem TCP netcat. It works similarly to netcat, but it
-sends and receives data using the devmem TCP APIs. It uses udmabuf as
-the dmabuf provider. It is compatible with a regular netcat running on
-a peer, or a ncdevmem running on a peer.
+* Catalin Marinas <catalin.marinas@arm.com> [240906 07:44]:
+> On Fri, Sep 06, 2024 at 09:55:42AM +0000, Arnd Bergmann wrote:
+> > On Fri, Sep 6, 2024, at 09:14, Guo Ren wrote:
+> > > On Fri, Sep 6, 2024 at 3:18=E2=80=AFPM Arnd Bergmann <arnd@arndb.de> =
+wrote:
+> > >> It's also unclear to me how we want this flag to interact with
+> > >> the existing logic in arch_get_mmap_end(), which attempts to
+> > >> limit the default mapping to a 47-bit address space already.
+> > >
+> > > To optimize RISC-V progress, I recommend:
+> > >
+> > > Step 1: Approve the patch.
+> > > Step 2: Update Go and OpenJDK's RISC-V backend to utilize it.
+> > > Step 3: Wait approximately several iterations for Go & OpenJDK
+> > > Step 4: Remove the 47-bit constraint in arch_get_mmap_end()
+> >=20
+> > I really want to first see a plausible explanation about why
+> > RISC-V can't just implement this using a 47-bit DEFAULT_MAP_WINDOW
+> > like all the other major architectures (x86, arm64, powerpc64),
+>=20
+> FWIW arm64 actually limits DEFAULT_MAP_WINDOW to 48-bit in the default
+> configuration. We end up with a 47-bit with 16K pages but for a
+> different reason that has to do with LPA2 support (I doubt we need this
+> for the user mapping but we need to untangle some of the macros there;
+> that's for a separate discussion).
+>=20
+> That said, we haven't encountered any user space problems with a 48-bit
+> DEFAULT_MAP_WINDOW. So I also think RISC-V should follow a similar
+> approach (47 or 48 bit default limit). Better to have some ABI
+> consistency between architectures. One can still ask for addresses above
+> this default limit via mmap().
 
-In addition to normal netcat support, ncdevmem has a validation mode,
-where it sends a specific pattern and validates this pattern on the
-receiver side to ensure data integrity.
+I think that is best as well.
 
-Suggested-by: Stanislav Fomichev <sdf@fomichev.me>
-Signed-off-by: Mina Almasry <almasrymina@google.com>
+Can we please just do what x86 and arm64 does?
 
----
-
-v24:
-- Add *.d to .gitignore, to stop tracking this file the build generates:
-
-```
-git status
-...
-?? tools/net/ynl/lib/ynl.d
-```
-
-v22:
-- Add run_command helper. It reduces boiler plate and prints the
-  commands it is running.
-
-v20:
-- Remove unnecessary sleep(1)
-- Add test to ensure dmabuf binding fails if header split is disabled.
-
-v19:
-- Check return code of ethtool commands.
-- Add test for deactivating mp bound rx queues
-- Add test for attempting to bind with missing netlink attributes.
-
-v16:
-- Remove outdated -n option (Taehee).
-- Use 'ifname' instead of accidentally hardcoded 'eth1'. (Taehee)
-- Remove dead code 'iterations' (Taehee).
-- Use if_nametoindex() instead of passing device index (Taehee).
-
-v15:
-- Fix linking against libynl. (Jakub)
-
-v9: https://lore.kernel.org/netdev/20240403002053.2376017-15-almasrymina@google.com/
-- Remove unused nic_pci_addr entry (Cong).
-
-v6:
-- Updated to bind 8 queues.
-- Added RSS configuration.
-- Added some more tests for the netlink API.
-
-Changes in v1:
-- Many more general cleanups (Willem).
-- Removed driver reset (Jakub).
-- Removed hardcoded if index (Paolo).
-
-RFC v2:
-- General cleanups (Willem).
-
----
- tools/net/ynl/lib/.gitignore           |   1 +
- tools/testing/selftests/net/.gitignore |   1 +
- tools/testing/selftests/net/Makefile   |   9 +
- tools/testing/selftests/net/ncdevmem.c | 570 +++++++++++++++++++++++++
- 4 files changed, 581 insertions(+)
- create mode 100644 tools/testing/selftests/net/ncdevmem.c
-
-diff --git a/tools/net/ynl/lib/.gitignore b/tools/net/ynl/lib/.gitignore
-index c18dd8d83cee..296c4035dbf2 100644
---- a/tools/net/ynl/lib/.gitignore
-+++ b/tools/net/ynl/lib/.gitignore
-@@ -1 +1,2 @@
- __pycache__/
-+*.d
-diff --git a/tools/testing/selftests/net/.gitignore b/tools/testing/selftests/net/.gitignore
-index 923bf098e2eb..1c04c780db66 100644
---- a/tools/testing/selftests/net/.gitignore
-+++ b/tools/testing/selftests/net/.gitignore
-@@ -17,6 +17,7 @@ ipv6_flowlabel
- ipv6_flowlabel_mgr
- log.txt
- msg_zerocopy
-+ncdevmem
- nettest
- psock_fanout
- psock_snd
-diff --git a/tools/testing/selftests/net/Makefile b/tools/testing/selftests/net/Makefile
-index 27362e40eb37..fc1c3a64de2d 100644
---- a/tools/testing/selftests/net/Makefile
-+++ b/tools/testing/selftests/net/Makefile
-@@ -97,6 +97,11 @@ TEST_PROGS += fq_band_pktlimit.sh
- TEST_PROGS += vlan_hw_filter.sh
- TEST_PROGS += bpf_offload.py
- 
-+# YNL files, must be before "include ..lib.mk"
-+EXTRA_CLEAN += $(OUTPUT)/libynl.a
-+YNL_GEN_FILES := ncdevmem
-+TEST_GEN_FILES += $(YNL_GEN_FILES)
-+
- TEST_FILES := settings
- TEST_FILES += in_netns.sh lib.sh net_helper.sh setup_loopback.sh setup_veth.sh
- 
-@@ -106,6 +111,10 @@ TEST_INCLUDES := forwarding/lib.sh
- 
- include ../lib.mk
- 
-+# YNL build
-+YNL_GENS := netdev
-+include ynl.mk
-+
- $(OUTPUT)/epoll_busy_poll: LDLIBS += -lcap
- $(OUTPUT)/reuseport_bpf_numa: LDLIBS += -lnuma
- $(OUTPUT)/tcp_mmap: LDLIBS += -lpthread -lcrypto
-diff --git a/tools/testing/selftests/net/ncdevmem.c b/tools/testing/selftests/net/ncdevmem.c
-new file mode 100644
-index 000000000000..64d6805381c5
---- /dev/null
-+++ b/tools/testing/selftests/net/ncdevmem.c
-@@ -0,0 +1,570 @@
-+// SPDX-License-Identifier: GPL-2.0
-+#define _GNU_SOURCE
-+#define __EXPORTED_HEADERS__
-+
-+#include <linux/uio.h>
-+#include <stdio.h>
-+#include <stdlib.h>
-+#include <unistd.h>
-+#include <stdbool.h>
-+#include <string.h>
-+#include <errno.h>
-+#define __iovec_defined
-+#include <fcntl.h>
-+#include <malloc.h>
-+#include <error.h>
-+
-+#include <arpa/inet.h>
-+#include <sys/socket.h>
-+#include <sys/mman.h>
-+#include <sys/ioctl.h>
-+#include <sys/syscall.h>
-+
-+#include <linux/memfd.h>
-+#include <linux/dma-buf.h>
-+#include <linux/udmabuf.h>
-+#include <libmnl/libmnl.h>
-+#include <linux/types.h>
-+#include <linux/netlink.h>
-+#include <linux/genetlink.h>
-+#include <linux/netdev.h>
-+#include <time.h>
-+#include <net/if.h>
-+
-+#include "netdev-user.h"
-+#include <ynl.h>
-+
-+#define PAGE_SHIFT 12
-+#define TEST_PREFIX "ncdevmem"
-+#define NUM_PAGES 16000
-+
-+#ifndef MSG_SOCK_DEVMEM
-+#define MSG_SOCK_DEVMEM 0x2000000
-+#endif
-+
-+/*
-+ * tcpdevmem netcat. Works similarly to netcat but does device memory TCP
-+ * instead of regular TCP. Uses udmabuf to mock a dmabuf provider.
-+ *
-+ * Usage:
-+ *
-+ *	On server:
-+ *	ncdevmem -s <server IP> -c <client IP> -f eth1 -l -p 5201 -v 7
-+ *
-+ *	On client:
-+ *	yes $(echo -e \\x01\\x02\\x03\\x04\\x05\\x06) | \
-+ *		tr \\n \\0 | \
-+ *		head -c 5G | \
-+ *		nc <server IP> 5201 -p 5201
-+ *
-+ * Note this is compatible with regular netcat. i.e. the sender or receiver can
-+ * be replaced with regular netcat to test the RX or TX path in isolation.
-+ */
-+
-+static char *server_ip = "192.168.1.4";
-+static char *client_ip = "192.168.1.2";
-+static char *port = "5201";
-+static size_t do_validation;
-+static int start_queue = 8;
-+static int num_queues = 8;
-+static char *ifname = "eth1";
-+static unsigned int ifindex;
-+static unsigned int dmabuf_id;
-+
-+void print_bytes(void *ptr, size_t size)
-+{
-+	unsigned char *p = ptr;
-+	int i;
-+
-+	for (i = 0; i < size; i++)
-+		printf("%02hhX ", p[i]);
-+	printf("\n");
-+}
-+
-+void print_nonzero_bytes(void *ptr, size_t size)
-+{
-+	unsigned char *p = ptr;
-+	unsigned int i;
-+
-+	for (i = 0; i < size; i++)
-+		putchar(p[i]);
-+	printf("\n");
-+}
-+
-+void validate_buffer(void *line, size_t size)
-+{
-+	static unsigned char seed = 1;
-+	unsigned char *ptr = line;
-+	int errors = 0;
-+	size_t i;
-+
-+	for (i = 0; i < size; i++) {
-+		if (ptr[i] != seed) {
-+			fprintf(stderr,
-+				"Failed validation: expected=%u, actual=%u, index=%lu\n",
-+				seed, ptr[i], i);
-+			errors++;
-+			if (errors > 20)
-+				error(1, 0, "validation failed.");
-+		}
-+		seed++;
-+		if (seed == do_validation)
-+			seed = 0;
-+	}
-+
-+	fprintf(stdout, "Validated buffer\n");
-+}
-+
-+#define run_command(cmd, ...)                                           \
-+	({                                                              \
-+		char command[256];                                      \
-+		memset(command, 0, sizeof(command));                    \
-+		snprintf(command, sizeof(command), cmd, ##__VA_ARGS__); \
-+		printf("Running: %s\n", command);                       \
-+		system(command);                                        \
-+	})
-+
-+static int reset_flow_steering(void)
-+{
-+	int ret = 0;
-+
-+	ret = run_command("sudo ethtool -K %s ntuple off", ifname);
-+	if (ret)
-+		return ret;
-+
-+	return run_command("sudo ethtool -K %s ntuple on", ifname);
-+}
-+
-+static int configure_headersplit(bool on)
-+{
-+	return run_command("sudo ethtool -G %s tcp-data-split %s", ifname,
-+			   on ? "on" : "off");
-+}
-+
-+static int configure_rss(void)
-+{
-+	return run_command("sudo ethtool -X %s equal %d", ifname, start_queue);
-+}
-+
-+static int configure_channels(unsigned int rx, unsigned int tx)
-+{
-+	return run_command("sudo ethtool -L %s rx %u tx %u", ifname, rx, tx);
-+}
-+
-+static int configure_flow_steering(void)
-+{
-+	return run_command("sudo ethtool -N %s flow-type tcp4 src-ip %s dst-ip %s src-port %s dst-port %s queue %d",
-+			   ifname, client_ip, server_ip, port, port, start_queue);
-+}
-+
-+static int bind_rx_queue(unsigned int ifindex, unsigned int dmabuf_fd,
-+			 struct netdev_queue_id *queues,
-+			 unsigned int n_queue_index, struct ynl_sock **ys)
-+{
-+	struct netdev_bind_rx_req *req = NULL;
-+	struct netdev_bind_rx_rsp *rsp = NULL;
-+	struct ynl_error yerr;
-+
-+	*ys = ynl_sock_create(&ynl_netdev_family, &yerr);
-+	if (!*ys) {
-+		fprintf(stderr, "YNL: %s\n", yerr.msg);
-+		return -1;
-+	}
-+
-+	req = netdev_bind_rx_req_alloc();
-+	netdev_bind_rx_req_set_ifindex(req, ifindex);
-+	netdev_bind_rx_req_set_fd(req, dmabuf_fd);
-+	__netdev_bind_rx_req_set_queues(req, queues, n_queue_index);
-+
-+	rsp = netdev_bind_rx(*ys, req);
-+	if (!rsp) {
-+		perror("netdev_bind_rx");
-+		goto err_close;
-+	}
-+
-+	if (!rsp->_present.id) {
-+		perror("id not present");
-+		goto err_close;
-+	}
-+
-+	printf("got dmabuf id=%d\n", rsp->id);
-+	dmabuf_id = rsp->id;
-+
-+	netdev_bind_rx_req_free(req);
-+	netdev_bind_rx_rsp_free(rsp);
-+
-+	return 0;
-+
-+err_close:
-+	fprintf(stderr, "YNL failed: %s\n", (*ys)->err.msg);
-+	netdev_bind_rx_req_free(req);
-+	ynl_sock_destroy(*ys);
-+	return -1;
-+}
-+
-+static void create_udmabuf(int *devfd, int *memfd, int *buf, size_t dmabuf_size)
-+{
-+	struct udmabuf_create create;
-+	int ret;
-+
-+	*devfd = open("/dev/udmabuf", O_RDWR);
-+	if (*devfd < 0) {
-+		error(70, 0,
-+		      "%s: [skip,no-udmabuf: Unable to access DMA buffer device file]\n",
-+		      TEST_PREFIX);
-+	}
-+
-+	*memfd = memfd_create("udmabuf-test", MFD_ALLOW_SEALING);
-+	if (*memfd < 0)
-+		error(70, 0, "%s: [skip,no-memfd]\n", TEST_PREFIX);
-+
-+	/* Required for udmabuf */
-+	ret = fcntl(*memfd, F_ADD_SEALS, F_SEAL_SHRINK);
-+	if (ret < 0)
-+		error(73, 0, "%s: [skip,fcntl-add-seals]\n", TEST_PREFIX);
-+
-+	ret = ftruncate(*memfd, dmabuf_size);
-+	if (ret == -1)
-+		error(74, 0, "%s: [FAIL,memfd-truncate]\n", TEST_PREFIX);
-+
-+	memset(&create, 0, sizeof(create));
-+
-+	create.memfd = *memfd;
-+	create.offset = 0;
-+	create.size = dmabuf_size;
-+	*buf = ioctl(*devfd, UDMABUF_CREATE, &create);
-+	if (*buf < 0)
-+		error(75, 0, "%s: [FAIL, create udmabuf]\n", TEST_PREFIX);
-+}
-+
-+int do_server(void)
-+{
-+	char ctrl_data[sizeof(int) * 20000];
-+	struct netdev_queue_id *queues;
-+	size_t non_page_aligned_frags = 0;
-+	struct sockaddr_in client_addr;
-+	struct sockaddr_in server_sin;
-+	size_t page_aligned_frags = 0;
-+	int devfd, memfd, buf, ret;
-+	size_t total_received = 0;
-+	socklen_t client_addr_len;
-+	bool is_devmem = false;
-+	char *buf_mem = NULL;
-+	struct ynl_sock *ys;
-+	size_t dmabuf_size;
-+	char iobuf[819200];
-+	char buffer[256];
-+	int socket_fd;
-+	int client_fd;
-+	size_t i = 0;
-+	int opt = 1;
-+
-+	dmabuf_size = getpagesize() * NUM_PAGES;
-+
-+	create_udmabuf(&devfd, &memfd, &buf, dmabuf_size);
-+
-+	if (reset_flow_steering())
-+		error(1, 0, "Failed to reset flow steering\n");
-+
-+	/* Configure RSS to divert all traffic from our devmem queues */
-+	if (configure_rss())
-+		error(1, 0, "Failed to configure rss\n");
-+
-+	/* Flow steer our devmem flows to start_queue */
-+	if (configure_flow_steering())
-+		error(1, 0, "Failed to configure flow steering\n");
-+
-+	sleep(1);
-+
-+	queues = malloc(sizeof(*queues) * num_queues);
-+
-+	for (i = 0; i < num_queues; i++) {
-+		queues[i]._present.type = 1;
-+		queues[i]._present.id = 1;
-+		queues[i].type = NETDEV_QUEUE_TYPE_RX;
-+		queues[i].id = start_queue + i;
-+	}
-+
-+	if (bind_rx_queue(ifindex, buf, queues, num_queues, &ys))
-+		error(1, 0, "Failed to bind\n");
-+
-+	buf_mem = mmap(NULL, dmabuf_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-+		       buf, 0);
-+	if (buf_mem == MAP_FAILED)
-+		error(1, 0, "mmap()");
-+
-+	server_sin.sin_family = AF_INET;
-+	server_sin.sin_port = htons(atoi(port));
-+
-+	ret = inet_pton(server_sin.sin_family, server_ip, &server_sin.sin_addr);
-+	if (socket < 0)
-+		error(79, 0, "%s: [FAIL, create socket]\n", TEST_PREFIX);
-+
-+	socket_fd = socket(server_sin.sin_family, SOCK_STREAM, 0);
-+	if (socket < 0)
-+		error(errno, errno, "%s: [FAIL, create socket]\n", TEST_PREFIX);
-+
-+	ret = setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT, &opt,
-+			 sizeof(opt));
-+	if (ret)
-+		error(errno, errno, "%s: [FAIL, set sock opt]\n", TEST_PREFIX);
-+
-+	ret = setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &opt,
-+			 sizeof(opt));
-+	if (ret)
-+		error(errno, errno, "%s: [FAIL, set sock opt]\n", TEST_PREFIX);
-+
-+	printf("binding to address %s:%d\n", server_ip,
-+	       ntohs(server_sin.sin_port));
-+
-+	ret = bind(socket_fd, &server_sin, sizeof(server_sin));
-+	if (ret)
-+		error(errno, errno, "%s: [FAIL, bind]\n", TEST_PREFIX);
-+
-+	ret = listen(socket_fd, 1);
-+	if (ret)
-+		error(errno, errno, "%s: [FAIL, listen]\n", TEST_PREFIX);
-+
-+	client_addr_len = sizeof(client_addr);
-+
-+	inet_ntop(server_sin.sin_family, &server_sin.sin_addr, buffer,
-+		  sizeof(buffer));
-+	printf("Waiting or connection on %s:%d\n", buffer,
-+	       ntohs(server_sin.sin_port));
-+	client_fd = accept(socket_fd, &client_addr, &client_addr_len);
-+
-+	inet_ntop(client_addr.sin_family, &client_addr.sin_addr, buffer,
-+		  sizeof(buffer));
-+	printf("Got connection from %s:%d\n", buffer,
-+	       ntohs(client_addr.sin_port));
-+
-+	while (1) {
-+		struct iovec iov = { .iov_base = iobuf,
-+				     .iov_len = sizeof(iobuf) };
-+		struct dmabuf_cmsg *dmabuf_cmsg = NULL;
-+		struct dma_buf_sync sync = { 0 };
-+		struct cmsghdr *cm = NULL;
-+		struct msghdr msg = { 0 };
-+		struct dmabuf_token token;
-+		ssize_t ret;
-+
-+		is_devmem = false;
-+		printf("\n\n");
-+
-+		msg.msg_iov = &iov;
-+		msg.msg_iovlen = 1;
-+		msg.msg_control = ctrl_data;
-+		msg.msg_controllen = sizeof(ctrl_data);
-+		ret = recvmsg(client_fd, &msg, MSG_SOCK_DEVMEM);
-+		printf("recvmsg ret=%ld\n", ret);
-+		if (ret < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-+			continue;
-+		if (ret < 0) {
-+			perror("recvmsg");
-+			continue;
-+		}
-+		if (ret == 0) {
-+			printf("client exited\n");
-+			goto cleanup;
-+		}
-+
-+		i++;
-+		for (cm = CMSG_FIRSTHDR(&msg); cm; cm = CMSG_NXTHDR(&msg, cm)) {
-+			if (cm->cmsg_level != SOL_SOCKET ||
-+			    (cm->cmsg_type != SCM_DEVMEM_DMABUF &&
-+			     cm->cmsg_type != SCM_DEVMEM_LINEAR)) {
-+				fprintf(stdout, "skipping non-devmem cmsg\n");
-+				continue;
-+			}
-+
-+			dmabuf_cmsg = (struct dmabuf_cmsg *)CMSG_DATA(cm);
-+			is_devmem = true;
-+
-+			if (cm->cmsg_type == SCM_DEVMEM_LINEAR) {
-+				/* TODO: process data copied from skb's linear
-+				 * buffer.
-+				 */
-+				fprintf(stdout,
-+					"SCM_DEVMEM_LINEAR. dmabuf_cmsg->frag_size=%u\n",
-+					dmabuf_cmsg->frag_size);
-+
-+				continue;
-+			}
-+
-+			token.token_start = dmabuf_cmsg->frag_token;
-+			token.token_count = 1;
-+
-+			total_received += dmabuf_cmsg->frag_size;
-+			printf("received frag_page=%llu, in_page_offset=%llu, frag_offset=%llu, frag_size=%u, token=%u, total_received=%lu, dmabuf_id=%u\n",
-+			       dmabuf_cmsg->frag_offset >> PAGE_SHIFT,
-+			       dmabuf_cmsg->frag_offset % getpagesize(),
-+			       dmabuf_cmsg->frag_offset, dmabuf_cmsg->frag_size,
-+			       dmabuf_cmsg->frag_token, total_received,
-+			       dmabuf_cmsg->dmabuf_id);
-+
-+			if (dmabuf_cmsg->dmabuf_id != dmabuf_id)
-+				error(1, 0,
-+				      "received on wrong dmabuf_id: flow steering error\n");
-+
-+			if (dmabuf_cmsg->frag_size % getpagesize())
-+				non_page_aligned_frags++;
-+			else
-+				page_aligned_frags++;
-+
-+			sync.flags = DMA_BUF_SYNC_READ | DMA_BUF_SYNC_START;
-+			ioctl(buf, DMA_BUF_IOCTL_SYNC, &sync);
-+
-+			if (do_validation)
-+				validate_buffer(
-+					((unsigned char *)buf_mem) +
-+						dmabuf_cmsg->frag_offset,
-+					dmabuf_cmsg->frag_size);
-+			else
-+				print_nonzero_bytes(
-+					((unsigned char *)buf_mem) +
-+						dmabuf_cmsg->frag_offset,
-+					dmabuf_cmsg->frag_size);
-+
-+			sync.flags = DMA_BUF_SYNC_READ | DMA_BUF_SYNC_END;
-+			ioctl(buf, DMA_BUF_IOCTL_SYNC, &sync);
-+
-+			ret = setsockopt(client_fd, SOL_SOCKET,
-+					 SO_DEVMEM_DONTNEED, &token,
-+					 sizeof(token));
-+			if (ret != 1)
-+				error(1, 0,
-+				      "SO_DEVMEM_DONTNEED not enough tokens");
-+		}
-+		if (!is_devmem)
-+			error(1, 0, "flow steering error\n");
-+
-+		printf("total_received=%lu\n", total_received);
-+	}
-+
-+	fprintf(stdout, "%s: ok\n", TEST_PREFIX);
-+
-+	fprintf(stdout, "page_aligned_frags=%lu, non_page_aligned_frags=%lu\n",
-+		page_aligned_frags, non_page_aligned_frags);
-+
-+	fprintf(stdout, "page_aligned_frags=%lu, non_page_aligned_frags=%lu\n",
-+		page_aligned_frags, non_page_aligned_frags);
-+
-+cleanup:
-+
-+	munmap(buf_mem, dmabuf_size);
-+	close(client_fd);
-+	close(socket_fd);
-+	close(buf);
-+	close(memfd);
-+	close(devfd);
-+	ynl_sock_destroy(ys);
-+
-+	return 0;
-+}
-+
-+void run_devmem_tests(void)
-+{
-+	struct netdev_queue_id *queues;
-+	int devfd, memfd, buf;
-+	struct ynl_sock *ys;
-+	size_t dmabuf_size;
-+	size_t i = 0;
-+
-+	dmabuf_size = getpagesize() * NUM_PAGES;
-+
-+	create_udmabuf(&devfd, &memfd, &buf, dmabuf_size);
-+
-+	/* Configure RSS to divert all traffic from our devmem queues */
-+	if (configure_rss())
-+		error(1, 0, "rss error\n");
-+
-+	queues = calloc(num_queues, sizeof(*queues));
-+
-+	if (configure_headersplit(1))
-+		error(1, 0, "Failed to configure header split\n");
-+
-+	if (!bind_rx_queue(ifindex, buf, queues, num_queues, &ys))
-+		error(1, 0, "Binding empty queues array should have failed\n");
-+
-+	for (i = 0; i < num_queues; i++) {
-+		queues[i]._present.type = 1;
-+		queues[i]._present.id = 1;
-+		queues[i].type = NETDEV_QUEUE_TYPE_RX;
-+		queues[i].id = start_queue + i;
-+	}
-+
-+	if (configure_headersplit(0))
-+		error(1, 0, "Failed to configure header split\n");
-+
-+	if (!bind_rx_queue(ifindex, buf, queues, num_queues, &ys))
-+		error(1, 0, "Configure dmabuf with header split off should have failed\n");
-+
-+	if (configure_headersplit(1))
-+		error(1, 0, "Failed to configure header split\n");
-+
-+	for (i = 0; i < num_queues; i++) {
-+		queues[i]._present.type = 1;
-+		queues[i]._present.id = 1;
-+		queues[i].type = NETDEV_QUEUE_TYPE_RX;
-+		queues[i].id = start_queue + i;
-+	}
-+
-+	if (bind_rx_queue(ifindex, buf, queues, num_queues, &ys))
-+		error(1, 0, "Failed to bind\n");
-+
-+	/* Deactivating a bound queue should not be legal */
-+	if (!configure_channels(num_queues, num_queues - 1))
-+		error(1, 0, "Deactivating a bound queue should be illegal.\n");
-+
-+	/* Closing the netlink socket does an implicit unbind */
-+	ynl_sock_destroy(ys);
-+}
-+
-+int main(int argc, char *argv[])
-+{
-+	int is_server = 0, opt;
-+
-+	while ((opt = getopt(argc, argv, "ls:c:p:v:q:t:f:")) != -1) {
-+		switch (opt) {
-+		case 'l':
-+			is_server = 1;
-+			break;
-+		case 's':
-+			server_ip = optarg;
-+			break;
-+		case 'c':
-+			client_ip = optarg;
-+			break;
-+		case 'p':
-+			port = optarg;
-+			break;
-+		case 'v':
-+			do_validation = atoll(optarg);
-+			break;
-+		case 'q':
-+			num_queues = atoi(optarg);
-+			break;
-+		case 't':
-+			start_queue = atoi(optarg);
-+			break;
-+		case 'f':
-+			ifname = optarg;
-+			break;
-+		case '?':
-+			printf("unknown option: %c\n", optopt);
-+			break;
-+		}
-+	}
-+
-+	ifindex = if_nametoindex(ifname);
-+
-+	for (; optind < argc; optind++)
-+		printf("extra arguments: %s\n", argv[optind]);
-+
-+	run_devmem_tests();
-+
-+	if (is_server)
-+		return do_server();
-+
-+	return 0;
-+}
--- 
-2.46.0.598.g6f2099f65c-goog
-
+Thanks,
+Liam
