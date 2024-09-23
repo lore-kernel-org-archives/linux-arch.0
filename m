@@ -1,23 +1,23 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0853319E826;
-	Mon, 23 Sep 2024 14:19:55 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0B29E19E98A;
+	Mon, 23 Sep 2024 14:19:58 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727101197; cv=none; b=XJbc9/pWW5epY7+JyA0TkvF4k0zrSAi67RJnIJmAz2SU+l3RBYeKBw/PFCRAKuaoyN8sMKhAAgYxVPQ/0F+UCFPQ492wW6ApYRyvFnsMUZqBJVgtR5+qFbaN9BY79KizTFNxw+0BedX6CIKaqeXGQIOH/LhB0O7bkcjUFs3HwP0=
+	t=1727101200; cv=none; b=qTEvygZaRNUbyJ9mtCQMgy+Z2ucxJ3ZZ4OsrZrTrPILMnicTLb7MukLUykUlQ0z6v54N2uU+9Mn0MbnJuPKrBTv/f5OGHS6SNO57m3adhvw7SeaIxFvcrY16IZYY1RBS2Tyo3+x0oIdU178lNIEYHB9KXi7hlFSJWt+TIeiJwok=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727101197; c=relaxed/simple;
-	bh=RG/cfpXH/muOmJVkgTisiDMbLDgDLywHXvGg2kVl3YU=;
+	s=arc-20240116; t=1727101200; c=relaxed/simple;
+	bh=bBzISRReGVBxfhmbyVzs2I5ENYJmBXaF4IKTHC+ss/o=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=nn7IgD+rv5dPqr+6l4CsqSK0SNoz2+fQoC+WRXoayzszTVbUX5OMiI7P0klRTtYp0lTvwvT2Akp9/tqtILXYGNtFQYk1bo4VQW1eoujlumMLz39RMte8+ap3qRZYYtb28Cl8X5BzagmpCT9vFEPyGjQwQ7MjTSSYtpFRKunuR0M=
+	 MIME-Version; b=TA0AclwcpEta2g4xSGLVHCMeRo9QJ+KgmFOIBApeJkey8lBRvzxP4txlVAXBzaTokIprNJKuXDZ0a0IsnDz33hPgutabo0R2T7EFFBcapdOaK69JXknfEUeWhYtiHNAhCzE5z+p7oHx/GLSVINybwS7sJ6hRRMIzZNta+IP2E+0=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id D48CA11FB;
-	Mon, 23 Sep 2024 07:20:24 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 897AC12FC;
+	Mon, 23 Sep 2024 07:20:27 -0700 (PDT)
 Received: from e119884-lin.cambridge.arm.com (e119884-lin.cambridge.arm.com [10.1.196.72])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id EB8593F64C;
-	Mon, 23 Sep 2024 07:19:52 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id A024D3F64C;
+	Mon, 23 Sep 2024 07:19:55 -0700 (PDT)
 From: Vincenzo Frascino <vincenzo.frascino@arm.com>
 To: linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org,
@@ -40,9 +40,9 @@ Cc: Vincenzo Frascino <vincenzo.frascino@arm.com>,
 	Steven Rostedt <rostedt@goodmis.org>,
 	Masami Hiramatsu <mhiramat@kernel.org>,
 	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Subject: [PATCH v2 2/8] arm64: vdso: Introduce asm/vdso/mman.h
-Date: Mon, 23 Sep 2024 15:19:37 +0100
-Message-Id: <20240923141943.133551-3-vincenzo.frascino@arm.com>
+Subject: [PATCH v2 3/8] vdso: Introduce vdso/mman.h
+Date: Mon, 23 Sep 2024 15:19:38 +0100
+Message-Id: <20240923141943.133551-4-vincenzo.frascino@arm.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20240923141943.133551-1-vincenzo.frascino@arm.com>
 References: <20240923141943.133551-1-vincenzo.frascino@arm.com>
@@ -57,7 +57,7 @@ Content-Transfer-Encoding: 8bit
 The VDSO implementation includes headers from outside of the
 vdso/ namespace.
 
-Introduce asm/vdso/mman.h to make sure that the generic library
+Introduce vdso/mman.h to make sure that the generic library
 uses only the allowed namespace.
 
 Cc: Andy Lutomirski <luto@kernel.org>
@@ -65,31 +65,23 @@ Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Jason A. Donenfeld <Jason@zx2c4.com>
 Signed-off-by: Vincenzo Frascino <vincenzo.frascino@arm.com>
 ---
- arch/arm64/include/asm/vdso/mman.h | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
- create mode 100644 arch/arm64/include/asm/vdso/mman.h
+ include/vdso/mman.h | 7 +++++++
+ 1 file changed, 7 insertions(+)
+ create mode 100644 include/vdso/mman.h
 
-diff --git a/arch/arm64/include/asm/vdso/mman.h b/arch/arm64/include/asm/vdso/mman.h
+diff --git a/include/vdso/mman.h b/include/vdso/mman.h
 new file mode 100644
-index 000000000000..4c936c9d11ab
+index 000000000000..95e3da714c64
 --- /dev/null
-+++ b/arch/arm64/include/asm/vdso/mman.h
-@@ -0,0 +1,15 @@
-+
++++ b/include/vdso/mman.h
+@@ -0,0 +1,7 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_VDSO_MMAN_H
-+#define __ASM_VDSO_MMAN_H
++#ifndef __VDSO_MMAN_H
++#define __VDSO_MMAN_H
 +
-+#ifndef __ASSEMBLY__
++#include <asm/vdso/mman.h>
 +
-+#include <uapi/linux/mman.h>
-+
-+#define VDSO_MMAP_PROT	PROT_READ | PROT_WRITE
-+#define VDSO_MMAP_FLAGS	MAP_DROPPABLE | MAP_ANONYMOUS
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __ASM_VDSO_MMAN_H */
++#endif	/* __VDSO_MMAN_H */
 -- 
 2.34.1
 
