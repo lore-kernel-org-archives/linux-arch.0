@@ -1,214 +1,345 @@
-Received: from outpost1.zedat.fu-berlin.de (outpost1.zedat.fu-berlin.de [130.133.4.66])
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 434AE18A959;
-	Fri, 27 Sep 2024 09:06:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=130.133.4.66
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727428021; cv=none; b=RH7HXmH54XhHh8fKv96ZY+f01Bd2cDIs+/nahwYQdSTS+IqGlvCBjves/mVBYEisSDpPXEkkXGuDowQrAVJqsap2vVkQ8Zw7icAWXlN5yQuUClbsj71BC7f4ox9GZ4XXi5jIF+TfGc5hS/pigoU2twh7JzESu/FI4VTNKJgX5lM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727428021; c=relaxed/simple;
-	bh=Eu20caTVDuYFkjSNbtlsKZAt0thZ1W9gzLCf/RaCc6M=;
-	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=vAmaqK7KX8jpbLfYDcOVSFJ53iqWtXoGn8rcb4WIOvWNyLTWcp+rN5kG97mOXsa5h9gn3tzVyVr6lCuCFp+lUvvlKnI9AfWls+U8mcIF12Q70TzguAmO0IoG7qh0wuIDJs3Lak3GLoFxk11lMDaJoAeGMQfPVPC/gfBbCuAb0sA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=physik.fu-berlin.de; spf=pass smtp.mailfrom=zedat.fu-berlin.de; dkim=pass (2048-bit key) header.d=fu-berlin.de header.i=@fu-berlin.de header.b=VtGT/OA1; arc=none smtp.client-ip=130.133.4.66
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=physik.fu-berlin.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zedat.fu-berlin.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 70F80F9C1;
+	Fri, 27 Sep 2024 12:52:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1727441539; cv=fail; b=m9djbk1V3UdwsBIxhqSoUHOvWope/uE0SfdAtod9qYmLPlgGRPa/H2YTqhO7dysvI0MJeHt3HzWTs4cUhsZgZNN9uqdafJ7zVn1fs827lck3az0dqLYagTwMheZsnnI/I/Sz8p0mZTvIJKD+1B2QNSlJ60uc45NVXZoW0o6ISk8=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1727441539; c=relaxed/simple;
+	bh=JJ0syywZks346iX3343ipqA9nVnqNorbEWhDbdKy50g=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=LFbiAfyc+RIDS3xU/sPIMpnSKfrl2CRkYTnYyoOINe8QvZaR/ctprqAnvRSMgcwtKd38JzZUQjzViYeirO9WlpPnjLN509PjEIUm1OZdUdE3BQrUvrRUDxjWW46W4oL6Mo97SNdqYBo9sjgObCJuYyOlWtmSTbKC3K3lmUFMqYg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=JWx099h6; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=HOBiU7q4; arc=fail smtp.client-ip=205.220.177.32
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=fu-berlin.de header.i=@fu-berlin.de header.b="VtGT/OA1"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=fu-berlin.de; s=fub01; h=MIME-Version:Content-Transfer-Encoding:
-	Content-Type:References:In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender
-	:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:
-	Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:
-	List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-	bh=XeUc6G+ijEKJod2eAolRc/0pDu+4naba5TZ9vLUildU=; t=1727428018; x=1728032818; 
-	b=VtGT/OA1B9TATzpKxHZc6QRrY/kCjyitI2Iy9O8Mbt4oWI8z7nDYWzP53EtSOLYx3q1G6XMkkYI
-	K1wquzz8XITNK806PlpxPzHf5eG6UtpccWhvt3jPbC2J11VVh6rnOAv+8UPdIKQMBHqk6JPMPmy5o
-	Im2abz+NXGHe9B7JtAU8fyBgwfMnibtNc08/63E3MkNGtCb+zp1P9RHMS90uZgAcWTClXKGCrsY3X
-	DbEJOze0ZRrPHKpVd/8fM1quHCe4uuvnuFlzjNdW+qqaWt8E0oUBj5JIbK+dkUFvOAraDzj27cHN1
-	XJBWwLgjADfW+ENyAXceQKnWJ7MewbXJC3Ug==;
-Received: from inpost2.zedat.fu-berlin.de ([130.133.4.69])
-          by outpost.zedat.fu-berlin.de (Exim 4.98)
-          with esmtps (TLS1.3)
-          tls TLS_AES_256_GCM_SHA384
-          (envelope-from <glaubitz@zedat.fu-berlin.de>)
-          id 1su6w4-00000003BAD-3bb0; Fri, 27 Sep 2024 11:06:48 +0200
-Received: from p57bd904e.dip0.t-ipconnect.de ([87.189.144.78] helo=[192.168.178.20])
-          by inpost2.zedat.fu-berlin.de (Exim 4.98)
-          with esmtpsa (TLS1.3)
-          tls TLS_AES_256_GCM_SHA384
-          (envelope-from <glaubitz@physik.fu-berlin.de>)
-          id 1su6w4-00000001TWj-2adp; Fri, 27 Sep 2024 11:06:48 +0200
-Message-ID: <fbc1dde6650a3e729fab57decbb5bf4ef14436ce.camel@physik.fu-berlin.de>
-Subject: Re: [PATCH V2 3/3] SH: cpuinfo: Fix a warning for
- CONFIG_CPUMASK_OFFSTACK
-From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-To: Kexy Biscuit <kexybiscuit@aosc.io>, Huacai Chen <chenhuacai@gmail.com>
-Cc: Huacai Chen <chenhuacai@loongson.cn>, Arnd Bergmann <arnd@arndb.de>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, Yoshinori Sato
- <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, 
- loongarch@lists.linux.dev, linux-arch@vger.kernel.org, 
- linux-kernel@vger.kernel.org, Guo Ren <guoren@kernel.org>, Xuerui Wang
- <kernel@xen0n.name>, Jiaxun Yang <jiaxun.yang@flygoat.com>, 
- linux-mips@vger.kernel.org, linux-sh@vger.kernel.org, stable@vger.kernel.org
-Date: Fri, 27 Sep 2024 11:06:47 +0200
-In-Reply-To: <a45f1209-ff29-4010-b035-921cb136d58d@aosc.io>
-References: <20220714084136.570176-1-chenhuacai@loongson.cn>
-	 <20220714084136.570176-3-chenhuacai@loongson.cn>
-	 <3a5a4bee5c0739a3b988a328376a6eed3c385fda.camel@physik.fu-berlin.de>
-	 <CAAhV-H5bw3xcym2-GpyntQEad1h2eB8xDQGwVr_bRRKAOakzoQ@mail.gmail.com>
-	 <8947f91ba1a10f98723a5982f0fc13ee589d3bf7.camel@physik.fu-berlin.de>
-	 <a45f1209-ff29-4010-b035-921cb136d58d@aosc.io>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.52.4 
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="JWx099h6";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="HOBiU7q4"
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 48R5gZN8025994;
+	Fri, 27 Sep 2024 12:51:35 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=
+	from:to:cc:subject:date:message-id:in-reply-to:references
+	:content-transfer-encoding:content-type:mime-version; s=
+	corp-2023-11-20; bh=meQWsa6pqi4gRe3614XH1tchOUd5jCH9YSDFm265TZ8=; b=
+	JWx099h6qd/XB92eMPNpuGjFSwqrvobzGWP21/J/25u9HvibT14t3ri+qAKt4oeS
+	Y3NgrRWzeafem1mdpn52jl3SeScAhYNFCzyhomh9tVwdt5jppCYNtN11Uh11vWya
+	QOlaMh8PM1NgG2XCPdcwYKX37N4XyTK9OZRvqyjNnxP/9nBkJWCentk2YUp6BNpY
+	VL4DI8J2+sNuggaL/SyF394YeccRQYtvBGD6FovLIxgRzKR8P4rQ+HiOXA5ZavYT
+	4nAWM7DPFyAMBsWs/HkCIE1I9fSKYCv8Nb9ffqPjNJlLIrm9UDcoT3XrGtKOU4Zc
+	EtFi6TGAFDrxQwPSKzuSYA==
+Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.appoci.oracle.com [147.154.18.20])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 41smx3d4gw-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Fri, 27 Sep 2024 12:51:35 +0000 (GMT)
+Received: from pps.filterd (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 48RBmmkC030416;
+	Fri, 27 Sep 2024 12:51:34 GMT
+Received: from nam11-bn8-obe.outbound.protection.outlook.com (mail-bn8nam11lp2170.outbound.protection.outlook.com [104.47.58.170])
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 41smkdkc03-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Fri, 27 Sep 2024 12:51:34 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=JiBBXtTSdNDUQHG/XNLMKspR2kllJ1apoeOA8c0atQNppoTT/xNf6VUSlNpsKbLbKvCLVfI1r0WulGV0DcvMdYWc0N1yzLov5exxM2Aabat4iGx9D0HKyGCYoZodfeUKTv24kMaoug0BLwOjKSmdx8RVGl6o6sk4A0WckCycZDwTBoYcsaBNcHOTE4LEe3xbHYRA9jR2kaM8hQma/OtDG4QZCAiEMuuroXaDQXjgg8UkaKjE6/2LeUXt33Qh/Xof9FMBrwlne14vYMIrSvGLuQNIOZMb6kL5zhprbCiEHiYS1VcxgMT4Zm9S0o7La/ThTBgKWA4dt44jgPqu+RG+AA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=meQWsa6pqi4gRe3614XH1tchOUd5jCH9YSDFm265TZ8=;
+ b=v4Uw/If6qgPU9bHnFCpEaiZ1iKt7tVmRIdI/o5qIBL6Pr+519QnULMi66I4qpOUbhNHeVoQAlF2+66v22lMp4kXNA5FjbFyvExGE78ZbfiIiNBx/wYkS98TNVPY5Q2Pi0kMXFWXI1pU0ZeA8I/UQ/EjuJ9GCOiGAB18Z6r23uPYPl2GilTcdCucchtlBfaAmBysSbOftcVeyDrab2rxDj7Gcj70xPV9IXBP5lDq1ZJ+dCBymUjcrmoex/ToDQ/Pida/R/8h8Ttc6pkZfWWJuA7etmNy5lFp0f7Mqzl8qIkLfaz+uxER/pU2WxErqEy4RueFlUmDJB8+ygS95NBQHOQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=meQWsa6pqi4gRe3614XH1tchOUd5jCH9YSDFm265TZ8=;
+ b=HOBiU7q4/Y3zCk2/ovxnoTMYjgOu+kR+/nEHNdvKKI2ma4lZSyu5/luqN8AxNVIO1t04/x1c9NLuc6Bv12X0T1UDBCDi/ofTaua8Yb1bt+sl0rANnJARRiKtU4oFiAIoJ9pHDgrBBhfNPFM4V+P2QbIJHrVMpw9frMRL7d/R4Gc=
+Received: from SJ0PR10MB5613.namprd10.prod.outlook.com (2603:10b6:a03:3d0::5)
+ by IA0PR10MB6820.namprd10.prod.outlook.com (2603:10b6:208:437::11) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.8026.10; Fri, 27 Sep
+ 2024 12:51:32 +0000
+Received: from SJ0PR10MB5613.namprd10.prod.outlook.com
+ ([fe80::4239:cf6f:9caa:940e]) by SJ0PR10MB5613.namprd10.prod.outlook.com
+ ([fe80::4239:cf6f:9caa:940e%5]) with mapi id 15.20.8026.009; Fri, 27 Sep 2024
+ 12:51:32 +0000
+From: Lorenzo Stoakes <lorenzo.stoakes@oracle.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Suren Baghdasaryan <surenb@google.com>,
+        "Liam R . Howlett" <Liam.Howlett@oracle.com>,
+        Matthew Wilcox <willy@infradead.org>, Vlastimil Babka <vbabka@suse.cz>,
+        "Paul E . McKenney" <paulmck@kernel.org>, Jann Horn <jannh@google.com>,
+        David Hildenbrand <david@redhat.com>, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, Muchun Song <muchun.song@linux.dev>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E . J . Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>, Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>,
+        linux-alpha@vger.kernel.org, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org,
+        Shuah Khan <shuah@kernel.org>, Christian Brauner <brauner@kernel.org>,
+        linux-kselftest@vger.kernel.org,
+        Sidhartha Kumar <sidhartha.kumar@oracle.com>
+Subject: [RFC PATCH 2/4] mm: add PTE_MARKER_GUARD PTE marker
+Date: Fri, 27 Sep 2024 13:51:12 +0100
+Message-ID: <03570f8a0ad2a9c0a92cc0c594e375c4185eccdc.1727440966.git.lorenzo.stoakes@oracle.com>
+X-Mailer: git-send-email 2.46.2
+In-Reply-To: <cover.1727440966.git.lorenzo.stoakes@oracle.com>
+References: <cover.1727440966.git.lorenzo.stoakes@oracle.com>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: LO2P123CA0015.GBRP123.PROD.OUTLOOK.COM
+ (2603:10a6:600:a6::27) To SJ0PR10MB5613.namprd10.prod.outlook.com
+ (2603:10b6:a03:3d0::5)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Original-Sender: glaubitz@physik.fu-berlin.de
-X-ZEDAT-Hint: PO
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: SJ0PR10MB5613:EE_|IA0PR10MB6820:EE_
+X-MS-Office365-Filtering-Correlation-Id: 693c504e-27f9-41b0-c70f-08dcdef31cb2
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;ARA:13230040|7416014|376014|1800799024|366016;
+X-Microsoft-Antispam-Message-Info:
+	=?us-ascii?Q?7nNrvUvMBna91H8v+DQSvY4z6loP4LzHg4gg76Jahk/HokFHpk1KGMwZruv/?=
+ =?us-ascii?Q?GvIZ8dDdB0SmZ1JwIXUq98R1ed6Q/MLn0zMRBCu7aZCSevKUDapgjE62wdtb?=
+ =?us-ascii?Q?ATCzxiMh30+L7VmUjgLuT9fYSbpXkYmgBNJt33dzE0fFMpsMm3/26MLQLHMi?=
+ =?us-ascii?Q?yTgHLmfFoRniQJYIJYOsYCMXCA60flRsmJJ2CTVWV0KfSrgGnaEiTo7/mrLy?=
+ =?us-ascii?Q?bSWPH/tG3FN7sNj3QGbAk955s3QFp++f5ELSwupvb8Zkm44ZaqUanwjGxLHB?=
+ =?us-ascii?Q?LWUh/ojwvg/KRErAThsJe9/xLd1iwYIevdTwWuzIOgXonxiS+BEHwJ0dLZy3?=
+ =?us-ascii?Q?SIq+WOqvvcbrSLmXvWlIt+wStPuspfW4PHld4XXXV9kdSNBflEW35Gg0UHJp?=
+ =?us-ascii?Q?2lpMoehnd2TX+w9QKWYZsg5xSI/FQ12DWC84ZvpwlTAPOscQN0FoS++jkW86?=
+ =?us-ascii?Q?51ldiTw9hIBg79+V5c6TSPKSFpFO/eyAJrTJfxSPgmUKACBHzoBpte3IGIXL?=
+ =?us-ascii?Q?dliJoBbFO1cEZCHuEhoQylttuAPzBBTCHveevNyGqbjkHFc+wthuy3uXoBLA?=
+ =?us-ascii?Q?C3YFHlLuwVPSUefvaioFgOsmspcnArDn/0I0wSiSCUJtLHQOF0ie6qqlf1Pz?=
+ =?us-ascii?Q?IaoDQiyWyHpYMNk9fxA+QlXKwHL07yIiXjQSML0KnpVnn7pCQFh/C1IWKI9v?=
+ =?us-ascii?Q?xla0mtEcRaeCj6LNk8m22qQ0WhVxnajVIeSiyvp2i//wPflCc4P9nhYSTuBE?=
+ =?us-ascii?Q?UC6Kqe+ejexnfCY0rIiaRj6swzyTvrGOIBme9g9J4w8KLIcMU6N+CW6KqMcV?=
+ =?us-ascii?Q?pcDkVM8DVBI9dvwq8VDQuuxh7HSNP6X7XnoyGgaW0fKr98YsrjuyQHbphUkt?=
+ =?us-ascii?Q?ZClNzui28ovN1+5DOk7jGRA6aHRfU6vqPP9QNiabrcB3DiV7ETcPBuwrxQI+?=
+ =?us-ascii?Q?cA8R1NF9IkT7VqMQijolhfLtRuyEMWDRIv3sGqZJeiS5GR4j5FSGLlULVH6o?=
+ =?us-ascii?Q?wJhIORsY7s0eCF3lsURCYGIGICPyC2n6Et8ozmoYdnxeVISAcJfteWYVsUvD?=
+ =?us-ascii?Q?05/HC9tqCqTugwOcSz7gwqyGbSWhlbCpZwesjnOH86pdjCJ+J2YDahuKAyqn?=
+ =?us-ascii?Q?JALXnYwJdbJ5Sg20E6qdF5BFynoU4RN/bb90G+2t22LHIcvhl3cUN6iwjZ80?=
+ =?us-ascii?Q?aUP8LXoldhqtKV7U1UX80X4KJiCz6gN6/SLqCXJDwT+tniDTOt0Ue9paKYgj?=
+ =?us-ascii?Q?JXAk+zn0ILedLh3KoCjcBaPrxxKjYeNrLaWuBC5rJLK5+U4WXqvWOGSknlIl?=
+ =?us-ascii?Q?77Q2xOs5gDsdqG1NfSQVKtQKMMkAxbA0AeCtOwM0H/MUuQ=3D=3D?=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SJ0PR10MB5613.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(1800799024)(366016);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?fi0xQ/qb2XAH2fFLsVxurm4LxH5F6mXjXMCteANE+cExBOrfEijS3SxerrZ/?=
+ =?us-ascii?Q?MGltRLGSej4tksKFdfQJBp+3hs52fgex54t9b2mnQMxNThdIZIVqqMUrIaKl?=
+ =?us-ascii?Q?41TRYy8gA20bHfLj+KePe1GCmZG6w5P+oB2uBl3hljxUi3eq6b+39Sx9moCB?=
+ =?us-ascii?Q?nvsIDx9wjNFHWgPUTVCuJWkJmzDh0OHtuAfPoqiFHOWJRsMilx1dpQ6iC4jG?=
+ =?us-ascii?Q?IZxXyMo7wW48WsUIHb1POBIT/bUdA1XOhokRVjgeR+y3fIu9cAtPH9vmfaOD?=
+ =?us-ascii?Q?pMGnX1CSgHUieZYpcMxQDkgb59JEgChLOCGbCbDcZIsfvH4b5MYI+4NuqmN4?=
+ =?us-ascii?Q?ohRGkGHHdFABC3BosfrwvZhsp2086L+bw50s4Yc4IJRJETSVTm6LrkYI8v3K?=
+ =?us-ascii?Q?NMGS7zDyqJ+q4kgEWSK0dkhtrHiRmC/ACRm6ZNnrKoCBvKmhhYK/0tjUpYCs?=
+ =?us-ascii?Q?qhguXfEeC9Ul5/AxONTH3R06pI4blpJZpoLfJ2C7UZgqM+g9ZqHNESoeF5V2?=
+ =?us-ascii?Q?U7/f2oXeujAjOdq9RFHRgklbYGzGldiyfC/ctOfNhmRL4n55jONrBtqUlYEr?=
+ =?us-ascii?Q?uBLdYpXlX3NL4iH0JwQMbs03ux9du2n8/pXJNuzV1owx9kcMgLpZwYiTMRVH?=
+ =?us-ascii?Q?l/CrvnRiKVNwE6jJY35r9lT8+t31N5g5XcAqqtlDAXo8cmXxWxYAcXEb5knH?=
+ =?us-ascii?Q?Kc0dttnSjTPIzuQKl0+dSnR0liOf50JRd5DNf+udMCgcrPzUY1AOwXCDJr9I?=
+ =?us-ascii?Q?YTlz17zqkrEV9YIeWDT/H0Ieg+7+8I07SmppL1dx8XJmpKkgy2kIdBcs6Jg1?=
+ =?us-ascii?Q?PNQjK1e0r8LLPX381IohFubw4U/WXghb8xKHgYn5GmV/pPxQuwutVSh3NuNX?=
+ =?us-ascii?Q?xFtFKlp8EpxoWYYKmPaVYbHonHwtCs9ua7Djh2OEyk5FAIHX487mZITA9CeW?=
+ =?us-ascii?Q?It5wRzjGjkQ18lNR+bY/YR1ZNUr/Te1qpKsv3fJcNNhG+j3MV6gphoCTJ+pK?=
+ =?us-ascii?Q?d7LZcDZUOK0pseUv4DhamACuIdQwd428z5Vf06p1W85iDxs+0QQMwpw5Skoj?=
+ =?us-ascii?Q?128We9phTP5iKatmRBDYSRTBaUbNBIfLjKbMJKuEev9vU6mgANYABBM1axi1?=
+ =?us-ascii?Q?khGXu78J7yxT/ZUVhhohVepVYydOK3OwxAxP5eH//UdvJtYkCsoDzRtZMVkm?=
+ =?us-ascii?Q?QBlwfZO2yRsf0igclftK6+Vc5iyfyTk9VnI2JVD66HcWMLikqjQjqsUJ/9Wd?=
+ =?us-ascii?Q?1OncJyMPNYTzVOMbGwPWDBMVwD1yXpxzo8bY31YYKuIjNrr0p71B8PbO8Ecx?=
+ =?us-ascii?Q?vqBzqZGc8B6vEctB5hvbCQBmhTb5tlm3Qbg8+u1Utr30XGSkijBFOJDdSqOb?=
+ =?us-ascii?Q?8HPVjy9Ub5eHlDUMBPlIqxoXUdclTYVopQzUvtS6dFLJamlBIyYCJCWnc3uq?=
+ =?us-ascii?Q?HUX6gj9UsbfLhr+Dr9O3KcScJjz8s+6XHLfcaya1OqkB+XM/LRhtjUnFeasB?=
+ =?us-ascii?Q?NjpyiRA8WGDm5TVfJy6MZBHj2qjsmg9TMuiV+DgFCWuAMvf+Stm0uyGkNg/5?=
+ =?us-ascii?Q?78TZnLOxzhaxYiJoH4IgRRTlwCVV+IUkKvXS73Zp1yBO2rt51kS10897uiB/?=
+ =?us-ascii?Q?UQ=3D=3D?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
+	oWSkn+uyv6NsOaC3xM0VX3IVY5rTUSWrhEv8oaek3JGI+V/UjHFdmkOxt0l6dXAWvDCmwZvAlKMepxsAu7xMMSLYPJV6FVqzw7MfLQlW3kLR7JIgDFaWdAHB95ZbIcEJCAasaygkRlF7afmqcWpCB89MvnfjTquYj88QvUWUBrNdb4dU0M5VfgNRMnj2QPLexsGn2DfSnLpRr6SZWqewqbxfnafIeUFKvkjiaPP07uXobo2eweZAhia0RPzO/GXraLiR5x0oi7eY1/k6J3XIFjhSuOTwEnsC8j7IkhObI989svzKgY/Prsi4L7xhKq3eoy7Y9RZQIwZ+TZW6jk8obGcHRh6gTwbCIHSJOQMRBecABz9HcM/xa75Duy9EOzXUmpUdnc4R6VETN6hxn/4Cv+rZ7CyXvfCLlqK41PyQj3/FnyQ5x5gO7DOVRdjB8KcpyPsPY2YN9nt9NxWZHxECpHLBLj+6smz0SdTcB7dfRg53ISzvxrqCszsmon2Uh7TvhZbEHdpahYIiSHL2+TITydWYmjnn5GZ82X7VedTm90zSWNBGsvo/ka07cSv9lw+x+qf0jwe9jpnJCWgu6bv0J0RIvr0SDbs70REEB/fEUQg=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 693c504e-27f9-41b0-c70f-08dcdef31cb2
+X-MS-Exchange-CrossTenant-AuthSource: SJ0PR10MB5613.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 27 Sep 2024 12:51:32.0535
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: eng9sAdM/DpV++rLe9HKZxmQ4cZKgEX62aZsn3Gu7yFre3XrckD6CR1uYthKT7DUV91Ybkt3i8oQNEkdfIkNEUeP6DDAaU/P7Lsw4OSrmQw=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: IA0PR10MB6820
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1051,Hydra:6.0.680,FMLib:17.12.60.29
+ definitions=2024-09-27_06,2024-09-27_01,2024-09-02_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 phishscore=0 spamscore=0
+ bulkscore=0 suspectscore=0 malwarescore=0 mlxscore=0 mlxlogscore=999
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2408220000
+ definitions=main-2409270092
+X-Proofpoint-ORIG-GUID: PF5f5kub0HJcgp19TOds1_mVvYzdTsrX
+X-Proofpoint-GUID: PF5f5kub0HJcgp19TOds1_mVvYzdTsrX
 
-Hi,
+Add a new PTE marker that results in any access causing the accessing
+process to segfault.
 
-On Fri, 2024-09-27 at 13:31 +0800, Kexy Biscuit wrote:
-> On 3/19/2024 1:12 AM, John Paul Adrian Glaubitz wrote:
-> > Hi Hucai,
-> >=20
-> > On Mon, 2024-03-18 at 22:21 +0800, Huacai Chen wrote:
-> > > Hi, SuperH maintainers,
-> > >=20
-> > > On Wed, Feb 8, 2023 at 8:59=E2=80=AFPM John Paul Adrian Glaubitz
-> > > <glaubitz@physik.fu-berlin.de> wrote:
-> > > >=20
-> > > > On Thu, 2022-07-14 at 16:41 +0800, Huacai Chen wrote:
-> > > > > When CONFIG_CPUMASK_OFFSTACK and CONFIG_DEBUG_PER_CPU_MAPS is sel=
-ected,
-> > > > > cpu_max_bits_warn() generates a runtime warning similar as below =
-while
-> > > > > we show /proc/cpuinfo. Fix this by using nr_cpu_ids (the runtime =
-limit)
-> > > > > instead of NR_CPUS to iterate CPUs.
-> > > > >=20
-> > > > > [    3.052463] ------------[ cut here ]------------
-> > > > > [    3.059679] WARNING: CPU: 3 PID: 1 at include/linux/cpumask.h:=
-108 show_cpuinfo+0x5e8/0x5f0
-> > > > > [    3.070072] Modules linked in: efivarfs autofs4
-> > > > > [    3.076257] CPU: 0 PID: 1 Comm: systemd Not tainted 5.19-rc5+ =
-#1052
-> > > > > [    3.099465] Stack : 9000000100157b08 9000000000f18530 90000000=
-00cf846c 9000000100154000
-> > > > > [    3.109127]         9000000100157a50 0000000000000000 90000001=
-00157a58 9000000000ef7430
-> > > > > [    3.118774]         90000001001578e8 0000000000000040 00000000=
-00000020 ffffffffffffffff
-> > > > > [    3.128412]         0000000000aaaaaa 1ab25f00eec96a37 90000001=
-0021de80 900000000101c890
-> > > > > [    3.138056]         0000000000000000 0000000000000000 00000000=
-00000000 0000000000aaaaaa
-> > > > > [    3.147711]         ffff8000339dc220 0000000000000001 00000000=
-06ab4000 0000000000000000
-> > > > > [    3.157364]         900000000101c998 0000000000000004 90000000=
-00ef7430 0000000000000000
-> > > > > [    3.167012]         0000000000000009 000000000000006c 00000000=
-00000000 0000000000000000
-> > > > > [    3.176641]         9000000000d3de08 9000000001639390 90000000=
-002086d8 00007ffff0080286
-> > > > > [    3.186260]         00000000000000b0 0000000000000004 00000000=
-00000000 0000000000071c1c
-> > > > > [    3.195868]         ...
-> > > > > [    3.199917] Call Trace:
-> > > > > [    3.203941] [<90000000002086d8>] show_stack+0x38/0x14c
-> > > > > [    3.210666] [<9000000000cf846c>] dump_stack_lvl+0x60/0x88
-> > > > > [    3.217625] [<900000000023d268>] __warn+0xd0/0x100
-> > > > > [    3.223958] [<9000000000cf3c90>] warn_slowpath_fmt+0x7c/0xcc
-> > > > > [    3.231150] [<9000000000210220>] show_cpuinfo+0x5e8/0x5f0
-> > > > > [    3.238080] [<90000000004f578c>] seq_read_iter+0x354/0x4b4
-> > > > > [    3.245098] [<90000000004c2e90>] new_sync_read+0x17c/0x1c4
-> > > > > [    3.252114] [<90000000004c5174>] vfs_read+0x138/0x1d0
-> > > > > [    3.258694] [<90000000004c55f8>] ksys_read+0x70/0x100
-> > > > > [    3.265265] [<9000000000cfde9c>] do_syscall+0x7c/0x94
-> > > > > [    3.271820] [<9000000000202fe4>] handle_syscall+0xc4/0x160
-> > > > > [    3.281824] ---[ end trace 8b484262b4b8c24c ]---
-> > > > >=20
-> > > > > Cc: stable@vger.kernel.org
-> > > > > Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
-> > > > > ---
-> > > > >   arch/sh/kernel/cpu/proc.c | 2 +-
-> > > > >   1 file changed, 1 insertion(+), 1 deletion(-)
-> > > > >=20
-> > > > > diff --git a/arch/sh/kernel/cpu/proc.c b/arch/sh/kernel/cpu/proc.=
-c
-> > > > > index a306bcd6b341..5f6d0e827bae 100644
-> > > > > --- a/arch/sh/kernel/cpu/proc.c
-> > > > > +++ b/arch/sh/kernel/cpu/proc.c
-> > > > > @@ -132,7 +132,7 @@ static int show_cpuinfo(struct seq_file *m, v=
-oid *v)
-> > > > >=20
-> > > > >   static void *c_start(struct seq_file *m, loff_t *pos)
-> > > > >   {
-> > > > > -     return *pos < NR_CPUS ? cpu_data + *pos : NULL;
-> > > > > +     return *pos < nr_cpu_ids ? cpu_data + *pos : NULL;
-> > > > >   }
-> > > > >   static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-> > > > >   {
-> > > >=20
-> > > > I build-tested the patch and also booted the patched kernel success=
-fully
-> > > > on my SH-7785LCR board.
-> > > >=20
-> > > > Showing the contents of /proc/cpuinfo works fine, too:
-> > > >=20
-> > > > root@tirpitz:~> cat /proc/cpuinfo
-> > > > machine         : SH7785LCR
-> > > > processor       : 0
-> > > > cpu family      : sh4a
-> > > > cpu type        : SH7785
-> > > > cut             : 7.x
-> > > > cpu flags       : fpu perfctr llsc
-> > > > cache type      : split (harvard)
-> > > > icache size     : 32KiB (4-way)
-> > > > dcache size     : 32KiB (4-way)
-> > > > address sizes   : 32 bits physical
-> > > > bogomips        : 599.99
-> > > > root@tirpitz:~>
-> > > >=20
-> > > > Tested-by: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
-> > > >=20
-> > > > I am not sure yet whether the change is also correct as I don't kno=
-w whether
-> > > > it's possible to change the number of CPUs at runtime on SuperH.
-> > > Can this patch be merged? This is the only one still unmerged in the
-> > > whole series.
-> >=20
-> > Thanks for the reminder. I will pick it up for 6.10.
-> >=20
-> > Got sick this week, so I can't pick up anymore patches for 6.9 and will=
- just
-> > send Linus a PR later this week.
-> >=20
-> > Adrian
-> >=20
->=20
-> Gentle ping on this, can we get this patch merged into 6.12?
+This is preferable to PTE_MARKER_POISONED, which results in the same
+handling as hardware poisoned memory, and is thus undesirable for cases
+where we simply wish to 'soft' poison a range.
 
-Thanks a lot for the reminder. Since the merge window is about to close, I'=
-ll
-pick this up for 6.13 as it hasn't been reviewed yet from what I can see.
+This is in preparation for implementing the ability to specify guard pages
+at the page table level, i.e. ranges that, when accessed, should cause
+process termination.
 
-I will definitely pick it up for 6.13 and I'm sorry for the very long delay=
-.
+Additionally, rename zap_drop_file_uffd_wp() to zap_drop_markers() - the
+function checks the ZAP_FLAG_DROP_MARKER flag so naming it for this single
+purpose was simply incorrect.
 
-However, when this patch got posted back then, I wasn't a kernel maintainer=
- yet.
+We then reuse the same logic to determine whether a zap should clear a
+guard entry - this should only be performed on teardown and never on
+MADV_DONTNEED or the like.
 
-Adrian
+Signed-off-by: Lorenzo Stoakes <lorenzo.stoakes@oracle.com>
+---
+ include/linux/mm_inline.h |  2 +-
+ include/linux/swapops.h   | 26 ++++++++++++++++++++++++--
+ mm/hugetlb.c              |  3 +++
+ mm/memory.c               | 18 +++++++++++++++---
+ 4 files changed, 43 insertions(+), 6 deletions(-)
 
---=20
- .''`.  John Paul Adrian Glaubitz
-: :' :  Debian Developer
-`. `'   Physicist
-  `-    GPG: 62FF 8A75 84E0 2956 9546  0006 7426 3B37 F5B5 F913
+diff --git a/include/linux/mm_inline.h b/include/linux/mm_inline.h
+index 6f801c7b36e2..0d97a14bf051 100644
+--- a/include/linux/mm_inline.h
++++ b/include/linux/mm_inline.h
+@@ -531,7 +531,7 @@ static inline pte_marker copy_pte_marker(
+ {
+ 	pte_marker srcm = pte_marker_get(entry);
+ 	/* Always copy error entries. */
+-	pte_marker dstm = srcm & PTE_MARKER_POISONED;
++	pte_marker dstm = srcm & (PTE_MARKER_POISONED | PTE_MARKER_GUARD);
+ 
+ 	/* Only copy PTE markers if UFFD register matches. */
+ 	if ((srcm & PTE_MARKER_UFFD_WP) && userfaultfd_wp(dst_vma))
+diff --git a/include/linux/swapops.h b/include/linux/swapops.h
+index cb468e418ea1..4d0606df0791 100644
+--- a/include/linux/swapops.h
++++ b/include/linux/swapops.h
+@@ -426,9 +426,15 @@ typedef unsigned long pte_marker;
+  * "Poisoned" here is meant in the very general sense of "future accesses are
+  * invalid", instead of referring very specifically to hardware memory errors.
+  * This marker is meant to represent any of various different causes of this.
++ *
++ * Note that, when encountered by the faulting logic, PTEs with this marker will
++ * result in VM_FAULT_HWPOISON and thus regardless trigger hardware memory error
++ * logic.
+  */
+ #define  PTE_MARKER_POISONED			BIT(1)
+-#define  PTE_MARKER_MASK			(BIT(2) - 1)
++/* Indicates that, on fault, this PTE will case a SIGSEGV signal to be sent. */
++#define  PTE_MARKER_GUARD			BIT(2)
++#define  PTE_MARKER_MASK			(BIT(3) - 1)
+ 
+ static inline swp_entry_t make_pte_marker_entry(pte_marker marker)
+ {
+@@ -461,9 +467,25 @@ static inline swp_entry_t make_poisoned_swp_entry(void)
+ }
+ 
+ static inline int is_poisoned_swp_entry(swp_entry_t entry)
++{
++	/*
++	 * We treat guard pages as poisoned too as these have the same semantics
++	 * as poisoned ranges, only with different fault handling.
++	 */
++	return is_pte_marker_entry(entry) &&
++		(pte_marker_get(entry) &
++		 (PTE_MARKER_POISONED | PTE_MARKER_GUARD));
++}
++
++static inline swp_entry_t make_guard_swp_entry(void)
++{
++	return make_pte_marker_entry(PTE_MARKER_GUARD);
++}
++
++static inline int is_guard_swp_entry(swp_entry_t entry)
+ {
+ 	return is_pte_marker_entry(entry) &&
+-	    (pte_marker_get(entry) & PTE_MARKER_POISONED);
++		(pte_marker_get(entry) & PTE_MARKER_GUARD);
+ }
+ 
+ /*
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 190fa05635f4..daf69ac46360 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -6348,6 +6348,9 @@ vm_fault_t hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
+ 				ret = VM_FAULT_HWPOISON_LARGE |
+ 				      VM_FAULT_SET_HINDEX(hstate_index(h));
+ 				goto out_mutex;
++			} else if (marker & PTE_MARKER_GUARD) {
++				ret = VM_FAULT_SIGSEGV;
++				goto out_mutex;
+ 			}
+ 		}
+ 
+diff --git a/mm/memory.c b/mm/memory.c
+index 5c6486e33e63..6c413c3d72fd 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1457,7 +1457,7 @@ static inline bool should_zap_folio(struct zap_details *details,
+ 	return !folio_test_anon(folio);
+ }
+ 
+-static inline bool zap_drop_file_uffd_wp(struct zap_details *details)
++static inline bool zap_drop_markers(struct zap_details *details)
+ {
+ 	if (!details)
+ 		return false;
+@@ -1478,7 +1478,7 @@ zap_install_uffd_wp_if_needed(struct vm_area_struct *vma,
+ 	if (vma_is_anonymous(vma))
+ 		return;
+ 
+-	if (zap_drop_file_uffd_wp(details))
++	if (zap_drop_markers(details))
+ 		return;
+ 
+ 	for (;;) {
+@@ -1673,7 +1673,15 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
+ 			 * drop the marker if explicitly requested.
+ 			 */
+ 			if (!vma_is_anonymous(vma) &&
+-			    !zap_drop_file_uffd_wp(details))
++			    !zap_drop_markers(details))
++				continue;
++		} else if (is_guard_swp_entry(entry)) {
++			/*
++			 * Ordinary zapping should not remove guard PTE
++			 * markers. Only do so if we should remove PTE markers
++			 * in general.
++			 */
++			if (!zap_drop_markers(details))
+ 				continue;
+ 		} else if (is_hwpoison_entry(entry) ||
+ 			   is_poisoned_swp_entry(entry)) {
+@@ -4005,6 +4013,10 @@ static vm_fault_t handle_pte_marker(struct vm_fault *vmf)
+ 	if (marker & PTE_MARKER_POISONED)
+ 		return VM_FAULT_HWPOISON;
+ 
++	/* Hitting a guard page is always a fatal condition. */
++	if (marker & PTE_MARKER_GUARD)
++		return VM_FAULT_SIGSEGV;
++
+ 	if (pte_marker_entry_uffd_wp(entry))
+ 		return pte_marker_handle_uffd_wp(vmf);
+ 
+-- 
+2.46.2
+
