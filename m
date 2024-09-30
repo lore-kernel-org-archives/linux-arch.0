@@ -1,62 +1,62 @@
-Received: from mail-qk1-f180.google.com (mail-qk1-f180.google.com [209.85.222.180])
+Received: from mail-yb1-f173.google.com (mail-yb1-f173.google.com [209.85.219.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CEFA818C31;
-	Mon, 30 Sep 2024 17:51:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.180
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DA49618C31;
+	Mon, 30 Sep 2024 17:52:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727718702; cv=none; b=p5SPQp3lxUAEgb2nliLjt6waF4Xt1n7e70iJ7oPDUziP4U+Jnyxmi/zSFwADsbr1nIVHHZO08LGauUKmWDkSjmyqpTUwQ7++rbgFdXmTJ7M+qEOsUUdJ7SOr7cM0p3ZSG1HRmuMjX5BCd3JCK3qZhPmQH229W5Vjthh9WTj/8LA=
+	t=1727718763; cv=none; b=eNXfxwvuT/ROQD3KIkd9twcZXFETLspFPcgXevhqbrYQlLI3axJF49mvEjPVDX/6bGABN2aUDN1QTbaCfoi1oELVt9Ihhpr7axA2ZjveNUgirakQNxtgx4Pw5xzUOse+jVJz/OX7vBl0bUojjPBP5bX8DyhPGSEMJ0sjSmAinM8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1727718702; c=relaxed/simple;
-	bh=PQ2VgHYe0Ngojxr8nNlQI/+nPbwGo4g+HQCTJc64GP8=;
+	s=arc-20240116; t=1727718763; c=relaxed/simple;
+	bh=TOOuuBttpBHTK/VFXkEJ6D++xCveU/rYxT8fYGWJb0w=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=CDh0bt9QIXwTqywyh9FOZzhpYeosZ+35wVVUcVKTyA0zwvCH6A7t2DjFK4q7c8Kgl4ujNDHdCCvBbEn/uo1FTgSuoevHsTgy+V/ntqM3ZatolbBXtVaitUx2s5i2iwb2uIt/ITOdALe0PIUxYnNkD3PjOUtYkOg+PKgQ++uldcs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.222.180
+	 To:Cc:Content-Type; b=eUlqCzLWa5Qfdeell2ku9MyBkLvvpb8uShe7g97ZnTpoaISii1kcOzVOMcRk2WL0Q0yTDqhG5DgIcjPpNZLoUhpY4o6dzhqJzIgGyE47otVHHOznZXE3cGMFM7VNgJNCTkCLlJCel0gGSatgMsMD5tS3fgmjFBZ6V/rL47imutg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.219.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Received: by mail-qk1-f180.google.com with SMTP id af79cd13be357-7a99eee4a5bso417475885a.0;
-        Mon, 30 Sep 2024 10:51:38 -0700 (PDT)
+Received: by mail-yb1-f173.google.com with SMTP id 3f1490d57ef6-e0875f1e9edso4032163276.1;
+        Mon, 30 Sep 2024 10:52:41 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1727718697; x=1728323497;
+        d=1e100.net; s=20230601; t=1727718758; x=1728323558;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=ZoyzlnnLRNj4i2u5Dgn44nDbhn4MB5fS72eP0TVQdtc=;
-        b=O81Ppus9t8REbPpGcEtyXeb8y/xbWZk2CkPsqqsCGawxWH7Ddj6P0SSMdxjlOXh1N/
-         RM3sUSnRqz/LwJgxjUMlwYjLXE7COf+ogR9qXFnzdO+MGQCy9Xofm/2p8p3f+/Z046Ev
-         xCKy1Re+SXo17ZnX75KkEPzpBfsyOENXQTtJnf3XxWrBw6Jr8SG1mkX/5twuypZ5/Ncy
-         3kA6CBVzf39W0v5XlPgcRE5ABzkQx94UPu5bvM1cofCEYqVBpizX+InR3dN2IU4T5g2g
-         S23avZIP1DYaaONer6e0S0YhmAPLIizZlYDYRQ4tcsRPjxPaBh/1sg7176PJFdIjVwRs
-         ouoQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUFs9Ik8AEiQB0iL4H5nmNncPPA+kd/F3NV3G6Co0gc++oOPNVBA78O1ZgJy3HxXcdnvojZY9xRYT36jQ==@vger.kernel.org, AJvYcCUiRdmrNtNGrTFZ4+SQae7Ig9CNQkvu42USZNLBkbiJ1cSWNJNDvhYgi99WdlZYjb8For2/Sgfgw0xJAQ==@vger.kernel.org, AJvYcCVr0iKjeZ7ujCr47hGQjEVR32yVBCjzR9/Y3pTQjDtxyaXAPTPeOOzzXjQVfiQ5H83qJufSggnyoxu+uOpA@vger.kernel.org, AJvYcCWXB+uM2TZkNG5Tot0CcREWJJfNZlTRkKe9+2D1UTCryH71Xx//oO+FK116SjCCtBayrxGL/s/KWgc=@vger.kernel.org, AJvYcCWb3mTL4edSQhE11aOrgEBCRNxxdJzfXKAYdqSjfKtPs7vrL7mWOsdoSLQcBwFAjT/xDDQiH/gLxNSaW2vX@vger.kernel.org, AJvYcCWr9ZafmlfD8tlXIHKaVFxBweKKNmqxrR4Br0Xw4cjeWXn884plcPwe58sQd8cecVcTtXxxHCGFnvuooA==@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy6R3eRsYOufpOaO+ySb0WTWagO+wJschVEwRxjJbhdzC9CVAYq
-	Sh0gNP+SEbQWvvmZOQGyBnx4AeetEVbdeoQ4YNHth625e/wOD5cdCrp/EboQ
-X-Google-Smtp-Source: AGHT+IFrQXnUt9rGHYGl09CM7yMs469aVfJQ+cgoyxYWZ1x7U+9n59mLCbQBoUAY1g6J7P9AmAqIOQ==
-X-Received: by 2002:a05:620a:28c5:b0:7ac:9c44:dde1 with SMTP id af79cd13be357-7ae3785615bmr2009444585a.28.1727718697333;
-        Mon, 30 Sep 2024 10:51:37 -0700 (PDT)
-Received: from mail-qk1-f174.google.com (mail-qk1-f174.google.com. [209.85.222.174])
-        by smtp.gmail.com with ESMTPSA id d75a77b69052e-45c9f2e0cfasm38500391cf.43.2024.09.30.10.51.37
+        bh=1uPwxLcg5Bq74tqCqqhr1kbUuC1X8WKeLcVZP/gaR94=;
+        b=wJHVcNIzZNnVZFP9y2ScfvG0sWkJYkBHHdlF/oFKmjyPKJHmrJLDPu+Ag0cZ2dmOAv
+         sh+H2qUo0qBcMXxyU4pzHhqDpeOUN2iZwmM3f79rTZ3O2JjPaIAIuTFJ7H2lQoxwt+ie
+         ycj1DMnN4qYcDx1EF7c6iXWv7cPm5DtaVsmxQIxmrmZ4dXWBHC2oOxs4iqKwj4+wa9xh
+         oMzJJlCMPCqdcECgVSEOYisRCBdFAOH26J5U8tcZOI/f5RO0Wsj4uiks6rfyQeWYSrqZ
+         O2TwRgQbeffB5NoFaHZU5CYvLrFlwtv/PDbEkQ26fSaj2YDL1IiZOo9Li5zUkRtVOOs6
+         f27g==
+X-Forwarded-Encrypted: i=1; AJvYcCUWg/q/yfysl0oA5kRiNztYAvwnp11SwfCOFpNJK/c+zgh3+6rY5u/VRfFomN8pqjtQTPTgvX/PO/2Iqdd0@vger.kernel.org, AJvYcCVBaL0pjmy6xSMTYG0TWF7NDjCHaX6+R6GNO6HMh7unVPO3dliWhLrS6SdYzirWIhH/VBEA89utH5bY+Q==@vger.kernel.org, AJvYcCXcjSnHPMhuklkyl5e3uu1hGANWSS/50zNeuGwoCqU66tjNXbx/Jir8llQWbWtAJ9+TDcOOz/0KiWwjCg==@vger.kernel.org, AJvYcCXdi5DN0jBeqAbFTDmLNPep9yasKRB7moSYmhSB8AGpPLgAqE+yWCLKvxB2+yJomPcG/P1AyNYwfywmup3K@vger.kernel.org, AJvYcCXuGLLMwd3EuYGvWAcwJcS9I7hiLjxhzBFN7Cmw5KloVWWHTB/FD4mBZwj6g9XSmH1vnUI9GtVzcuk=@vger.kernel.org, AJvYcCXzJxgVxN9ySfJfbjxQ3mIMqcb88O76hqXF/2bImqd9MrwgQrvhmk+QDgfSHBv+7aztnTDKQoBOlk7CkA==@vger.kernel.org
+X-Gm-Message-State: AOJu0YzWZU9AmRDdihWWxqAD3TIS1n9vfGUF9NLZFGy+k9Pd0soxVTgC
+	WznBOTUG93mMTccs8HAmZy6ZsjneKG47OKdaskQix5BjUH5diXRHwsOeiO4a
+X-Google-Smtp-Source: AGHT+IHOv+HbpqmfBe8XWVdJmLn/+157Wl7GTtutPjDKKRI2377B5oy/De67xatOq0WToPCPAcHx5Q==
+X-Received: by 2002:a05:6902:2289:b0:e25:abb9:c71b with SMTP id 3f1490d57ef6-e2604c7b6e1mr10920364276.39.1727718758067;
+        Mon, 30 Sep 2024 10:52:38 -0700 (PDT)
+Received: from mail-yw1-f173.google.com (mail-yw1-f173.google.com. [209.85.128.173])
+        by smtp.gmail.com with ESMTPSA id 3f1490d57ef6-e25e6294a3csm2405672276.52.2024.09.30.10.52.36
         (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 30 Sep 2024 10:51:37 -0700 (PDT)
-Received: by mail-qk1-f174.google.com with SMTP id af79cd13be357-7a99eee4a5bso417474485a.0;
-        Mon, 30 Sep 2024 10:51:37 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AJvYcCUEVLRRqha2O1w1YOdq5YuGCYiw90qa3lUMoCIcGWOsmEZ9LnTrsNcsfVnKOEhNmgntrbJdgGJpqn+N0Wt/@vger.kernel.org, AJvYcCV3dEN6g+yN82R2wRAH9whin4y6QpEm5NRugt9uOvB4qKI/LYoyFBwIAq0/j3vi8CY8Zm7dvKG1eDjiOw==@vger.kernel.org, AJvYcCVIiD9Gvhpmg69fciM0PrBLv1KFPqV+fFUGmWVUAGZJW8qu5AkdaFm37Qf/ZBV8zdCtml49h7BTAT0=@vger.kernel.org, AJvYcCVmUrGeFtSlHc7FxMKS+Z/fOgUmBjXx5YEKkU4mVbBij9F82D/09gm1UkeUuFh2RWKCMkqD8n2wWVGDUQ==@vger.kernel.org, AJvYcCVw50OSr+HSXw7eSZMyzB+52cVEmWxyopjM90WUlOa3T03n/7+tsVdjGGxlIxwedAEnSOc9/DAUprPojQ==@vger.kernel.org, AJvYcCXYyWgfX86i/saQCZwASwKX+Om/zPtd/3ajAIsvTYnCkfolcUDMVGUCi2Oy83k+3DCQb163xiqBL8fj2uda@vger.kernel.org
-X-Received: by 2002:a05:690c:60c3:b0:6dd:bbb4:bcc7 with SMTP id
- 00721157ae682-6e2476334f2mr105898897b3.44.1727718393293; Mon, 30 Sep 2024
- 10:46:33 -0700 (PDT)
+        Mon, 30 Sep 2024 10:52:37 -0700 (PDT)
+Received: by mail-yw1-f173.google.com with SMTP id 00721157ae682-6db20e22c85so40537767b3.0;
+        Mon, 30 Sep 2024 10:52:36 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCUdEsNjs3zt6wJjpNMcqVEFEvlDwKzd5snRfxqXo+xkxuhvxBuBHVN951N+euzF28TWnPjWcUR3z8ArdAVV@vger.kernel.org, AJvYcCV9Nacq52xn5QiAuS2T74gVYoTrNvyCRqXgE/sCBvtBewRVdxe7oUIMB3YE7nL/74EUJ8oAFSvB19RISA==@vger.kernel.org, AJvYcCVrXUdWycwLzNdRBSa6Ox4TKaBxKPnC0FXXvcV9oqr1xRiZ3Qg4Z9aTQSzRseis4+nAdor6WjnjeTj5o7Mg@vger.kernel.org, AJvYcCW6MfbFO/BxzMJkeF8l4RU68v2ciQDnHqbU2U5kk9i+OY+DsijDJZuKLS1hqCjAIoSRpr3A6EPb22I=@vger.kernel.org, AJvYcCX9jMiNIOf7vLKOH4Gb6R/DL9riKEP3ipBgqS2ZQrtMqRaJcK4qC8UbmEtBZEs2mcLW5Gj7w91B8kxLZw==@vger.kernel.org, AJvYcCXEpqhdyc2ge0Dl9BQdDlfA9ilu7syN6hiF+B25S/2z7a7DupgtHOc9lnbAeGALaZRxBlLaDAxfU8n3KA==@vger.kernel.org
+X-Received: by 2002:a05:690c:d1b:b0:6dd:ba22:d946 with SMTP id
+ 00721157ae682-6e247561690mr104291347b3.13.1727718756479; Mon, 30 Sep 2024
+ 10:52:36 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20240930132321.2785718-1-jvetter@kalrayinc.com> <20240930132321.2785718-6-jvetter@kalrayinc.com>
-In-Reply-To: <20240930132321.2785718-6-jvetter@kalrayinc.com>
+References: <20240930132321.2785718-1-jvetter@kalrayinc.com> <20240930132321.2785718-9-jvetter@kalrayinc.com>
+In-Reply-To: <20240930132321.2785718-9-jvetter@kalrayinc.com>
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Mon, 30 Sep 2024 19:46:21 +0200
-X-Gmail-Original-Message-ID: <CAMuHMdVnb-fo2MP7ERwSj-sPNU3-QyikNinfhvgVa2DnR9jJrQ@mail.gmail.com>
-Message-ID: <CAMuHMdVnb-fo2MP7ERwSj-sPNU3-QyikNinfhvgVa2DnR9jJrQ@mail.gmail.com>
-Subject: Re: [PATCH v7 05/10] m68k: Align prototypes of IO memcpy/memset
+Date: Mon, 30 Sep 2024 19:52:23 +0200
+X-Gmail-Original-Message-ID: <CAMuHMdWpiS-MgQZ8YyX=PDvQ+ZvS5TdMV5wn11MKFZVT7CHDhg@mail.gmail.com>
+Message-ID: <CAMuHMdWpiS-MgQZ8YyX=PDvQ+ZvS5TdMV5wn11MKFZVT7CHDhg@mail.gmail.com>
+Subject: Re: [PATCH v7 08/10] sh: Align prototypes of IO memcpy/memset
 To: Julian Vetter <jvetter@kalrayinc.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@armlinux.org.uk>, 
 	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Guo Ren <guoren@kernel.org>, 
@@ -80,7 +80,8 @@ Content-Transfer-Encoding: quoted-printable
 On Mon, Sep 30, 2024 at 3:25=E2=80=AFPM Julian Vetter <jvetter@kalrayinc.co=
 m> wrote:
 > Align the prototypes of the memcpy_{from,to}io and memset_io functions
-> with the new ones from iomap_copy.c.
+> with the new ones from iomap_copy.c and remove function declarations,
+> because they are now declared in asm-generic/io.h.
 >
 > Reviewed-by: Yann Sionneau <ysionneau@kalrayinc.com>
 > Signed-off-by: Julian Vetter <jvetter@kalrayinc.com>
@@ -88,8 +89,7 @@ m> wrote:
 > Changes for v7:
 > - New patch
 
-Reviewed-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Reviewed-by: Geert Uytterhoeven <geert+renesas@glider.be>
 
 Gr{oetje,eeting}s,
 
