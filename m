@@ -1,87 +1,85 @@
 Received: from fout-a6-smtp.messagingengine.com (fout-a6-smtp.messagingengine.com [103.168.172.149])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0A401A76CE;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0AF71AC429;
 	Thu,  3 Oct 2024 21:18:34 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.149
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1727990316; cv=none; b=IaPiWjY43shfpP5nyWglUtYp+r/AJ1SVfZ91Ts0E3XrBFNba20xLS4QValseY/MvsuoToMe4wzHIOeiMKiTqDjlW8lkVX7A7z1oGSNvvKAJUSaqv61THkUgqUdxOSfDeuCHRp+/zPZlTe1uXE9604EAPGL8VRqwQsTEs3b90MRo=
+	t=1727990316; cv=none; b=NbWTrteLGTSu0Pgz6FSJPOmIdw8xeC6afiB3sA855uxWIiLXMpwxOilyAHZazC0yutPQRN4r/muD8nvHOkV0zc6+Y6pUdDRCrWhPsu8+bAg9O7NaX/7mxpHwaId/N44Dmxwbn6IMububREO2ptOWEllvRbA66m+enbL6bzLRsno=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1727990316; c=relaxed/simple;
-	bh=fB4Z3BxVeo+0QrW+Ii/+Itqcp6qi1Tzmaq8LNY0yfFo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=uqoarFDWEUHYXQk6fn2Hw4ZxBKM1U5cx2C3CZJwnijpj2gTOD9+QFfY7rsEHtc/2mvNJoF6rwgPkfvpFRIe70zacYsRgyLPq5a14ejMKYba3IZMuad2G8S2zIzTIShGongoiDFMNMpMe1KUF+Y9Nu8f9hlXdn5Xb8uejxOGfAn4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net; spf=pass smtp.mailfrom=fluxnic.net; dkim=pass (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b=xiQc8KuK; dkim=pass (2048-bit key) header.d=pobox.com header.i=@pobox.com header.b=C6AyC3Qs; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=crppWk2b; arc=none smtp.client-ip=103.168.172.149
+	bh=LmRkPEtetlt/EtZRgE8oBBdUuhM04htPeZvlXdE7Ps0=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Oaj5c/UvTrN6m7RdrnDrdaGvQRr58p/4bcj8tGR2cb2WIb16Ch53u8FEbb0D+A21jaQNIMELI7j5rC+s9K/79Ev0Cuntt+qUrrER0AnRi/LGZ4rw3zI//CCVjunIX93UteOFM5jWBKBYMyKKHy2F9JuGMgmvjI8UO0Yx6sCB9Pc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net; spf=pass smtp.mailfrom=fluxnic.net; dkim=pass (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b=MgUTrxX5; dkim=pass (2048-bit key) header.d=pobox.com header.i=@pobox.com header.b=ukm3MEFV; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=MuoX+tN8; arc=none smtp.client-ip=103.168.172.149
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fluxnic.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fluxnic.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b="xiQc8KuK";
-	dkim=pass (2048-bit key) header.d=pobox.com header.i=@pobox.com header.b="C6AyC3Qs";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="crppWk2b"
-Received: from phl-compute-06.internal (phl-compute-06.phl.internal [10.202.2.46])
-	by mailfout.phl.internal (Postfix) with ESMTP id E6874138027B;
+	dkim=pass (1024-bit key) header.d=fluxnic.net header.i=@fluxnic.net header.b="MgUTrxX5";
+	dkim=pass (2048-bit key) header.d=pobox.com header.i=@pobox.com header.b="ukm3MEFV";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="MuoX+tN8"
+Received: from phl-compute-05.internal (phl-compute-05.phl.internal [10.202.2.45])
+	by mailfout.phl.internal (Postfix) with ESMTP id F06F9138027D;
 	Thu,  3 Oct 2024 17:18:33 -0400 (EDT)
-Received: from phl-frontend-01 ([10.202.2.160])
-  by phl-compute-06.internal (MEProxy); Thu, 03 Oct 2024 17:18:33 -0400
+Received: from phl-frontend-02 ([10.202.2.161])
+  by phl-compute-05.internal (MEProxy); Thu, 03 Oct 2024 17:18:33 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=fluxnic.net; h=
 	cc:cc:content-transfer-encoding:content-type:date:date:from:from
-	:in-reply-to:in-reply-to:message-id:mime-version:references
-	:reply-to:subject:subject:to:to; s=2016-12.pbsmtp; t=1727990313;
-	 x=1728076713; bh=JO+JOZInDR3JSscjDLnxO7RphvcKtqdKqusKtWnLamo=; b=
-	xiQc8KuKs6C1A0Bz82h6j1i7dL6Fkx3ExM6Z3cJzExZR9myZG2I6T2Wvi+TDDuvL
-	fOKeJSRqFB/IepmkZvEEzGR4ZhxEto9ROaiKO6bt/B+ExjVM8/wyxI7rvTx6h+CI
-	rkRHXwJwJicenyDr31kxo5eCdphX9VhFyRYSH+X+TqY=
+	:in-reply-to:message-id:mime-version:reply-to:subject:subject:to
+	:to; s=2016-12.pbsmtp; t=1727990313; x=1728076713; bh=e57WkNCw2N
+	btjgn0XJeGOncEvSeD4r7iE/OdJO8XpKo=; b=MgUTrxX5ee1jj/8bC2ioFQAUqb
+	J5KPn6q/hN8bEFVjBjB70XMvm58a+3rr4e/MEG6Oy6ERE+yIxMbbaY4Kc+xPNJ+9
+	mWxlJErOnnSrik0633sFBqcO3UhyyKSKjZb8X43dczhrnB0a/Fj5zagtbd9U/cCm
+	v2kVcoVSLqS92Ij0Y=
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=pobox.com; h=cc
 	:cc:content-transfer-encoding:content-type:date:date:from:from
-	:in-reply-to:in-reply-to:message-id:mime-version:references
-	:reply-to:subject:subject:to:to; s=fm1; t=1727990313; x=
-	1728076713; bh=JO+JOZInDR3JSscjDLnxO7RphvcKtqdKqusKtWnLamo=; b=C
-	6AyC3Qs0Fz0GewEeTa0S4x0fVwy1tX23WvH0Ipo/iDFaxH9tkR2egkdHDpKzRtrb
-	X5RBqvo7muqKWbyXREzMVWZeyTmz1dNhBjXLe3JP/jkTOTHb4h8xdHeqoHaLw8C4
-	4x/TeTNBeIBFRdeUdCaPCTObgFMW99WVs/MYkddfqAEshO2YdaxxikH0Z4GlBdKZ
-	Mly8Pb8UTjWiVnfSlNxYq6jO030ZihiRNjXX2Vuxs9vWLNgpvlkfPdborpvSTwtv
-	UBp8eoC8qZa5wN/KOBzQPlSii/t1qjHuwWIQNE0km2sKNVwZR8MJGx74tEgMWkFz
-	UpbOMi8YB2bGahEz55w6w==
+	:in-reply-to:message-id:mime-version:reply-to:subject:subject:to
+	:to; s=fm1; t=1727990313; x=1728076713; bh=e57WkNCw2Nbtjgn0XJeGO
+	ncEvSeD4r7iE/OdJO8XpKo=; b=ukm3MEFV7275SzLEX3J/aFZZNS+2QHY8nVC15
+	atwSW+AFIpfD0TQF/dy869Ni0EmwSUkTVm6xFX+8KahndCVaozsDn3NlBglAd98T
+	AEdnsFkvKZrqO7hVJ1FKZjr7tl3GKjrPg7mKKA0p0kgFMAex6sbmbyJWKcVEyfvK
+	XFjOwG+BhfEYra8jRoidJnMlPfcVFPeBQGheQoPZu+b+JqVRwQYIaUzTKFkOHE1T
+	Rm+Nby8/rhOlqcCT2LNXTqOVtt77/snxU4AUcLntxk9M3/q/u/UIgZ8Z88N7JFVV
+	eO+S0f+LukLSQ8iA67+GESXdcJLjUG4uLOAa6kvzg0rwnUb7w==
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-transfer-encoding
 	:content-type:date:date:feedback-id:feedback-id:from:from
-	:in-reply-to:in-reply-to:message-id:mime-version:references
-	:reply-to:subject:subject:to:to:x-me-proxy:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1727990313; x=
-	1728076713; bh=JO+JOZInDR3JSscjDLnxO7RphvcKtqdKqusKtWnLamo=; b=c
-	rppWk2bk5QmgDq24/PSKWdoXFmXjrvgCv5axA3hilFX9c3hN7BRSefkMhULdq3R2
-	rL0ngyn08v4sgcWItX6wpnhsB2uyzd3yqP850tFSkUdQHRt7fMi9MZBHsktpO1Ba
-	ctVPBM4x/iGm2zqK8ojlidyqTgmD56+ZZ0iVz/fhJbYPhRZ9iw48sVbeTEtEhkJ/
-	cWabe+DKOzaYU9h8TSdkI0ZQQPSYbjPO5yGqgmnOZuXoWkEDj51kXWxVw5lR2gBO
-	tM/pYQij+s2IL0NfzJ6je/ojo+mWpMC1KHv2EttmpLc6tueuQIFt7GZ4ghwHgodA
-	kC3j6xkis1PjTA8A3xVig==
-X-ME-Sender: <xms:KQr_ZuZvdFMOF8oNOPrytTgzQ9GBO07bTGPtaAOtygiWYUyaMX0nAg>
-    <xme:KQr_ZhZlGgkfjT3NhJ6VSlm7p9YH5n7FZhFP9H8TRjGsM-gaSQPqCTWmtjapjtmcX
-    JaqsdIcEa0VvGaQpkU>
-X-ME-Received: <xmr:KQr_Zo8mt9KeKC6ihqL32Ues4sa11hSaJGhKPpWPKps4DuAVud1HCGynYUc6uEjIbDjYzgMVu242pJ2-ZMCzzplWsQQ8ldtqKiXvd2D87_KKAwSPqg>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddrvddvuddgudeiudcutefuodetggdotefrod
+	:in-reply-to:message-id:mime-version:reply-to:subject:subject:to
+	:to:x-me-proxy:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm2; t=1727990313; x=1728076713; bh=e57WkNCw2Nbtjgn0XJeGOncEvSeD
+	4r7iE/OdJO8XpKo=; b=MuoX+tN8fujn8nfgJk2lvyqI+0dQHfUqu96Oc/z5hWuP
+	jDhV+su84RGeDxNYL3T7V4wrkB1iMNH4RsC0ul6vLhjYJvW04M1kCoqTW6YlUdgN
+	kMvm9MI79KCdkFqOV9Xzm/EXogOvHCOZ44lZUw8XCL/vpO6xerr7hpN2BQbFW2it
+	BDzFGeDtUiWPucn1Y6oKxAypaTdfocw8XxYnj81CPQaiDAA1A9jcmr6Ln958i8Od
+	H1zwUlSX/rOCpXPOG6QmJ7e7guT/ov+CxQL1+pfuBfC+rQe150ybxSzZjHjoPPJe
+	6YEKmX3bEnOqlFiHioSTIFWDKS5x7nmMAvljhj5hOQ==
+X-ME-Sender: <xms:KQr_ZkewgwB7hMgTQOISo7x3gqcu37oAseGzFsNmlYm2kXC4x5h2ow>
+    <xme:KQr_ZmP02-PiBk3at19onqPaC8ZLhc-g4jBjIoQ8ldZr7PCcxpZhiWBAnnnouRUFU
+    noCua81aRKTDopy6s0>
+X-ME-Received: <xmr:KQr_ZlhY3L6hjm6Oj_093HnlZAudI9axeOFh7yT1ctyzd6XJ3u3VV61yEo6lFk5krSA9dF0FhGU6jKQ8RJ4aJTz4ljwu8ubxaeNmtd59Pvj73rfvEA>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeftddrvddvuddgudeitdcutefuodetggdotefrod
     ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
     uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
-    hnthhsucdlqddutddtmdenucfjughrpefhvfevufffkffojghfggfgsedtkeertdertddt
-    necuhfhrohhmpefpihgtohhlrghsucfrihhtrhgvuceonhhitghosehflhhugihnihgtrd
-    hnvghtqeenucggtffrrghtthgvrhhnpedtjeeuieeiheeiueffuddvffelheekleegkedu
-    keeffffhudffudegvdetiefhteenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
-    epmhgrihhlfhhrohhmpehnihgtohesfhhluhignhhitgdrnhgvthdpnhgspghrtghpthht
-    ohephedpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtoheplhhinhhugiesrghrmhhlih
-    hnuhigrdhorhhgrdhukhdprhgtphhtthhopegrrhhnugesrghrnhgusgdruggvpdhrtghp
-    thhtohepnhhpihhtrhgvsegsrgihlhhisghrvgdrtghomhdprhgtphhtthhopehlihhnuh
-    igqdgrrhgthhesvhhgvghrrdhkvghrnhgvlhdrohhrghdprhgtphhtthhopehlihhnuhig
-    qdhkvghrnhgvlhesvhhgvghrrdhkvghrnhgvlhdrohhrgh
-X-ME-Proxy: <xmx:KQr_ZgpRVxeygztM41AeUb-spO1qZ7bZRPqqTz_ZJ8FZrxU2MZJiGw>
-    <xmx:KQr_ZppBeABkvqHXCqm_bk4eXmpLZMQ5R99m833Gr9RJmbNRx18ZRg>
-    <xmx:KQr_ZuTmAsXIGTGB1KHFGINQLmOmD_MMzw3yQE75cuH3zW6GXpaH8A>
-    <xmx:KQr_Zpq4eoKOJAwCINCHK3XA6zzoaQ1w8-J3swhSD7Hms3OBjv7mGg>
-    <xmx:KQr_ZqeaFbkJkHgEdIPsPUBkv46A0r4Vwkod4E_unArZL7dnnYIga36W>
+    hnthhsucdlqddutddtmdenucfjughrpefhvfevufffkffoggfgsedtkeertdertddtnecu
+    hfhrohhmpefpihgtohhlrghsucfrihhtrhgvuceonhhitghosehflhhugihnihgtrdhnvg
+    htqeenucggtffrrghtthgvrhhnpeduhfdvlefggeeugfejiefgtdekjeehkeevveegiedt
+    ledviefhveefteffieegkeenucffohhmrghinhepkhgvrhhnvghlrdhorhhgnecuvehluh
+    hsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomhepnhhitghosehflhhu
+    gihnihgtrdhnvghtpdhnsggprhgtphhtthhopeehpdhmohguvgepshhmthhpohhuthdprh
+    gtphhtthhopehlihhnuhigsegrrhhmlhhinhhugidrohhrghdruhhkpdhrtghpthhtohep
+    rghrnhgusegrrhhnuggsrdguvgdprhgtphhtthhopehnphhithhrvgessggrhihlihgsrh
+    gvrdgtohhmpdhrtghpthhtoheplhhinhhugidqrghrtghhsehvghgvrhdrkhgvrhhnvghl
+    rdhorhhgpdhrtghpthhtoheplhhinhhugidqkhgvrhhnvghlsehvghgvrhdrkhgvrhhnvg
+    hlrdhorhhg
+X-ME-Proxy: <xmx:KQr_Zp8ZNEH1eWl2JwGVRNUha0YIBXBLQPupp6msDA-6KcbewkthBA>
+    <xmx:KQr_ZguHC08c5HklB2MOffd7C3yG-ZWthDwX7JcmnAIAF_MLBbI2uA>
+    <xmx:KQr_ZgH-Roz9f_Pn16v8-fyt16L57BpUAsebNIo7_Hhg4rX4bUNGog>
+    <xmx:KQr_ZvOd-PvDxHlnIYrfyrITVGTTAJ1Z-qKjZDo0XCP-bZWRf-7ROg>
+    <xmx:KQr_Zki1aVQdq3CgMzPVF7sQNn3wGJ9ng6dvkWWuwaINjGPgMuuQSEuM>
 Feedback-ID: i58514971:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Thu,
  3 Oct 2024 17:18:33 -0400 (EDT)
 Received: from xanadu.lan (OpenWrt.lan [192.168.1.1])
-	by yoda.fluxnic.net (Postfix) with ESMTPSA id C8528E3CD87;
+	by yoda.fluxnic.net (Postfix) with ESMTPSA id 7A224E3CD82;
 	Thu,  3 Oct 2024 17:18:32 -0400 (EDT)
 From: Nicolas Pitre <nico@fluxnic.net>
 To: Arnd Bergmann <arnd@arndb.de>,
@@ -89,12 +87,10 @@ To: Arnd Bergmann <arnd@arndb.de>,
 Cc: Nicolas Pitre <npitre@baylibre.com>,
 	linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org
-Subject: [PATCH v4 4/4] __arch_xprod64(): make __always_inline when optimizing for performance
-Date: Thu,  3 Oct 2024 17:16:16 -0400
-Message-ID: <20241003211829.2750436-5-nico@fluxnic.net>
+Subject: [PATCH v4 0/4] simplify do_div() with constant divisor
+Date: Thu,  3 Oct 2024 17:16:12 -0400
+Message-ID: <20241003211829.2750436-1-nico@fluxnic.net>
 X-Mailer: git-send-email 2.46.1
-In-Reply-To: <20241003211829.2750436-1-nico@fluxnic.net>
-References: <20241003211829.2750436-1-nico@fluxnic.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -103,82 +99,36 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Nicolas Pitre <npitre@baylibre.com>
+While working on mul_u64_u64_div_u64() improvements I realized that there
+is a better way to perform a 64x64->128 bits multiplication with overflow
+handling.
 
-Recent gcc versions started not systematically inline __arch_xprod64()
-and that has performance implications. Give the compiler the freedom to
-decide only when optimizing for size.
+Change from v3:
 
-Here's some timing numbers from lib/math/test_div64.c
+- Added timings to commit log of patch #4.
 
-Using __always_inline:
+Link to v3: https://lore.kernel.org/lkml/20240708012749.2098373-2-nico@fluxnic.net/T/
 
-```
-test_div64: Starting 64bit/32bit division and modulo test
-test_div64: Completed 64bit/32bit division and modulo test, 0.048285584s elapsed
-```
+Change from v2:
 
-Without __always_inline:
+- Fix last minute edit screw-up (missing one function return type).
 
-```
-test_div64: Starting 64bit/32bit division and modulo test
-test_div64: Completed 64bit/32bit division and modulo test, 0.053023584s elapsed
-```
+Link to v2: https://lore.kernel.org/lkml/20240707171919.1951895-1-nico@fluxnic.net/
 
-Forcing constant base through the non-constant base code path:
+Changes from v1:
 
-```
-test_div64: Starting 64bit/32bit division and modulo test
-test_div64: Completed 64bit/32bit division and modulo test, 0.103263776s elapsed
-```
+- Formalize condition for when overflow handling can be skipped.
+- Make this condition apply only if it can be determined at compile time
+  (guard against the compiler not always inling code).
+- Keep the ARM assembly but apply the above changes to it as well.
+- Force __always_inline when optimizing for performance.
+- Augment test_div64.c with important edge cases.
 
-It is worth noting that test_div64 does half the test with non constant
-divisors already so the impact is greater than what those numbers show.
-And for what it is worth, those numbers were obtained using QEMU. The
-gcc version is 14.1.0.
+Link to v1: https://lore.kernel.org/lkml/20240705022334.1378363-1-nico@fluxnic.net/
 
-Signed-off-by: Nicolas Pitre <npitre@baylibre.com>
----
- arch/arm/include/asm/div64.h | 7 ++++++-
- include/asm-generic/div64.h  | 7 ++++++-
- 2 files changed, 12 insertions(+), 2 deletions(-)
+The diffstat is:
 
-diff --git a/arch/arm/include/asm/div64.h b/arch/arm/include/asm/div64.h
-index 562d5376ae..d3ef8e416b 100644
---- a/arch/arm/include/asm/div64.h
-+++ b/arch/arm/include/asm/div64.h
-@@ -52,7 +52,12 @@ static inline uint32_t __div64_32(uint64_t *n, uint32_t base)
- 
- #else
- 
--static inline uint64_t __arch_xprod_64(uint64_t m, uint64_t n, bool bias)
-+#ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-+static __always_inline
-+#else
-+static inline
-+#endif
-+uint64_t __arch_xprod_64(uint64_t m, uint64_t n, bool bias)
- {
- 	unsigned long long res;
- 	register unsigned int tmp asm("ip") = 0;
-diff --git a/include/asm-generic/div64.h b/include/asm-generic/div64.h
-index 5d59cf7e73..25e7b4b58d 100644
---- a/include/asm-generic/div64.h
-+++ b/include/asm-generic/div64.h
-@@ -134,7 +134,12 @@
-  * Hoping for compile-time optimization of  conditional code.
-  * Architectures may provide their own optimized assembly implementation.
-  */
--static inline uint64_t __arch_xprod_64(const uint64_t m, uint64_t n, bool bias)
-+#ifdef CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-+static __always_inline
-+#else
-+static inline
-+#endif
-+uint64_t __arch_xprod_64(const uint64_t m, uint64_t n, bool bias)
- {
- 	uint32_t m_lo = m;
- 	uint32_t m_hi = m >> 32;
--- 
-2.46.1
-
+ arch/arm/include/asm/div64.h |  13 +++-
+ include/asm-generic/div64.h  | 121 ++++++++++++-----------------------
+ lib/math/test_div64.c        |  85 +++++++++++++++++++++++-
+ 3 files changed, 134 insertions(+), 85 deletions(-)
