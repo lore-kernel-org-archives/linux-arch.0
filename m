@@ -1,151 +1,118 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E68EC1946DF;
-	Fri, 11 Oct 2024 15:24:10 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B32CF178372;
+	Fri, 11 Oct 2024 15:27:11 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728660251; cv=none; b=LY1Oygv4qSJwh7w4deh77MAIgmFTHtLcwg6KVxWtBVw+HT2HfKx9dVePkKEsapslwvco2hWhH/rwDRCPtuOPskE2WDvPAujUv8xBpA1Agsl388+KLWelW6TjMjSNI3tdYcPsHK+YnGvevP2BJBiYYL9Tukbw5vSlAeEoWbgliDk=
+	t=1728660432; cv=none; b=PjIrseXp/GEemARWjszBYmEXkyHh2uKyTwJBBE8gVmAFP54qrRNfDG5mxsHu2nvNEiRu5zq7b9+czPjiQPXsfgluKd/o6tAdBD42ZEDN4qX0BbubHHtFzFP9h3KE+pki8EI/pk9/OjTd9l8VVguRDSnR1muLmli7wmg92ZN/rxs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728660251; c=relaxed/simple;
-	bh=A3N9Mkq30GPl1hwp0+TVudApr5l241CnTDu+mkjDc68=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LXoUR+2lEo7g5wSd5l5SfaHtLTuNpz0ZUfbt/7+HDoyitY4OrPcX+828pY7Oz/KqNxKHrVOOi4O6a0JvMdpMppcnoTqRWdX10cb6Y36XFQwSoeoE1XNyhOO4x3IRqFtFdg5nnaxpglY9o8NgKxd6LOyBUEsHPBfuxwldw1QLfcs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=fJy54j3r; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1728660432; c=relaxed/simple;
+	bh=sGWntrz3wIyVB8alp9rpncuZ1V1KDuURy3H+JpEcM7M=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=CAa0u1VNwrXu4AWZKa13D8IITkTYNjEqaH/NVcKmmUp4I8fo5VYBtH0NIRHn8EulJiUcpFARmVHXVfHwDHiDR88PG4O+8ffdm77bO6mNkpm0Mvg3O88kRLeQp+F1jx60uFQgATfnAX4GBglRAvAZhLwNq+p6eV29V/43Jrk2lDw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=I8L75zVt; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="fJy54j3r"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 39333C4CEC3;
-	Fri, 11 Oct 2024 15:23:24 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="I8L75zVt"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 64E81C4CEC7;
+	Fri, 11 Oct 2024 15:27:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1728660250;
-	bh=A3N9Mkq30GPl1hwp0+TVudApr5l241CnTDu+mkjDc68=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=fJy54j3rdRFfLY2A7N5cYYGCebcq3yQ7Nn3YpXPetQdckOI3xObxbldIKT/3sa4pY
-	 P0pMjlETYXgk5U9otowTN0tcgGSiHOnEA+T7brocFPuL7mxw8+lWpBc3d1IZg7QrTi
-	 yxcm1ahYN+C3XxkjCb7gQhnOAJW0mQ24ywsBTW+bD59i1djn7RcWzLwmMWi7FhGtRa
-	 f/Wlzo2/2dx4/+fXDKYXgOsTbpGfv868g7eBHtYCnd3ZTbC8zDts+Bjo0zvfstARrm
-	 Wu1+LOPZIdHy3rx7zi4/v+iynpsH50cr29F6HhEPLYf51ySyV+L1zOfHn1gFLPgizY
-	 WdZnrav+mlECA==
-Date: Fri, 11 Oct 2024 08:23:12 -0700
-From: Josh Poimboeuf <jpoimboe@kernel.org>
-To: Alice Ryhl <aliceryhl@google.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Jason Baron <jbaron@akamai.com>, Ard Biesheuvel <ardb@kernel.org>,
-	Miguel Ojeda <ojeda@kernel.org>,
-	Alex Gaynor <alex.gaynor@gmail.com>,
-	Wedson Almeida Filho <wedsonaf@gmail.com>,
-	Boqun Feng <boqun.feng@gmail.com>, Gary Guo <gary@garyguo.net>,
-	=?utf-8?B?QmrDtnJu?= Roy Baron <bjorn3_gh@protonmail.com>,
-	Benno Lossin <benno.lossin@proton.me>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	linux-trace-kernel@vger.kernel.org, rust-for-linux@vger.kernel.org,
-	linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	Sean Christopherson <seanjc@google.com>,
-	Uros Bizjak <ubizjak@gmail.com>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Marc Zyngier <maz@kernel.org>,
-	Oliver Upton <oliver.upton@linux.dev>,
-	Mark Rutland <mark.rutland@arm.com>,
-	Ryan Roberts <ryan.roberts@arm.com>, Fuad Tabba <tabba@google.com>,
-	linux-arm-kernel@lists.infradead.org,
-	Paul Walmsley <paul.walmsley@sifive.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Anup Patel <apatel@ventanamicro.com>,
-	Andrew Jones <ajones@ventanamicro.com>,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Conor Dooley <conor.dooley@microchip.com>,
-	Samuel Holland <samuel.holland@sifive.com>,
-	linux-riscv@lists.infradead.org,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>, Bibo Mao <maobibo@loongson.cn>,
-	Tiezhu Yang <yangtiezhu@loongson.cn>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Tianrui Zhao <zhaotianrui@loongson.cn>, loongarch@lists.linux.dev
-Subject: Re: [PATCH v10 5/5] rust: add arch_static_branch
-Message-ID: <20241011152312.r5sy7k7hsunmmbfo@treble>
-References: <20241011-tracepoint-v10-0-7fbde4d6b525@google.com>
- <20241011-tracepoint-v10-5-7fbde4d6b525@google.com>
+	s=k20201202; t=1728660431;
+	bh=sGWntrz3wIyVB8alp9rpncuZ1V1KDuURy3H+JpEcM7M=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=I8L75zVtrZx7w5SpRULZ/piL2MAHcg+XRpGLvOSuuaq79SJWN4Fma1eeimZ3TTbVB
+	 s3Tj07SktC4NyMlxdWrHxkP9B09QxKjTACbn46Lcb7EZmhdJiFuU6u5LM0LB+VOnwB
+	 ipxmM/V1tJE/lNo+oR0h67Z16lt34GSW47dbcRsA2Rcnm7hvFzitsQaVu0tDTBL7I1
+	 XrWK27pP7SdJ/JUMi4LEQxyVwYXTQYUn1hmQM2ozZex/gG6pI4W/jWyE7zsMYDHYlF
+	 b7b0dB6+vFHNuxfWZal17srhcGgebXOevLR69yA//3wjEvgTu0P9zbH1pTrGNR4W9m
+	 VsL6bpzNsWhgg==
+Date: Fri, 11 Oct 2024 08:27:07 -0700
+From: Jakub Kicinski <kuba@kernel.org>
+To: Mina Almasry <almasrymina@google.com>
+Cc: "Lai, Yi" <yi1.lai@linux.intel.com>, netdev@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-alpha@vger.kernel.org, linux-mips@vger.kernel.org,
+ linux-parisc@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-trace-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ bpf@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ linux-media@vger.kernel.org, dri-devel@lists.freedesktop.org, Donald Hunter
+ <donald.hunter@gmail.com>, "David S. Miller" <davem@davemloft.net>, Eric
+ Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, Jonathan
+ Corbet <corbet@lwn.net>, Richard Henderson <richard.henderson@linaro.org>,
+ Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner
+ <mattst88@gmail.com>, Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, Helge
+ Deller <deller@gmx.de>, Andreas Larsson <andreas@gaisler.com>, Jesper
+ Dangaard Brouer <hawk@kernel.org>, Ilias Apalodimas
+ <ilias.apalodimas@linaro.org>, Steven Rostedt <rostedt@goodmis.org>, Masami
+ Hiramatsu <mhiramat@kernel.org>, Mathieu Desnoyers
+ <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, Steffen
+ Klassert <steffen.klassert@secunet.com>, Herbert Xu
+ <herbert@gondor.apana.org.au>, David Ahern <dsahern@kernel.org>, Willem de
+ Bruijn <willemdebruijn.kernel@gmail.com>, =?UTF-8?B?QmrDtnJuIFTDtnBlbA==?=
+ <bjorn@kernel.org>, Magnus Karlsson <magnus.karlsson@intel.com>, Maciej
+ Fijalkowski <maciej.fijalkowski@intel.com>, Jonathan Lemon
+ <jonathan.lemon@gmail.com>, Shuah Khan <shuah@kernel.org>, Alexei
+ Starovoitov <ast@kernel.org>, Daniel Borkmann <daniel@iogearbox.net>, John
+ Fastabend <john.fastabend@gmail.com>, Sumit Semwal
+ <sumit.semwal@linaro.org>, Christian =?UTF-8?B?S8O2bmln?=
+ <christian.koenig@amd.com>, Pavel Begunkov <asml.silence@gmail.com>, David
+ Wei <dw@davidwei.uk>, Jason Gunthorpe <jgg@ziepe.ca>, Yunsheng Lin
+ <linyunsheng@huawei.com>, Shailend Chand <shailend@google.com>, Harshitha
+ Ramamurthy <hramamurthy@google.com>, Shakeel Butt <shakeel.butt@linux.dev>,
+ Jeroen de Borst <jeroendb@google.com>, Praveen Kaligineedi
+ <pkaligineedi@google.com>, Bagas Sanjaya <bagasdotme@gmail.com>, Christoph
+ Hellwig <hch@infradead.org>, Nikolay Aleksandrov <razor@blackwall.org>,
+ Taehee Yoo <ap420073@gmail.com>, Willem de Bruijn <willemb@google.com>,
+ Kaiyuan Zhang <kaiyuanz@google.com>, yi1.lai@intel.com
+Subject: Re: [PATCH net-next v25 10/13] net: add SO_DEVMEM_DONTNEED
+ setsockopt to release RX frags
+Message-ID: <20241011082707.5de66f15@kernel.org>
+In-Reply-To: <CAHS8izPuEUA20BDXvwq2vW-24ez36YFJFMQok-oBDbgk6bajSA@mail.gmail.com>
+References: <20240909054318.1809580-1-almasrymina@google.com>
+	<20240909054318.1809580-11-almasrymina@google.com>
+	<Zwe3lWTN36IUaIdd@ly-workstation>
+	<CAHS8izPuEUA20BDXvwq2vW-24ez36YFJFMQok-oBDbgk6bajSA@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20241011-tracepoint-v10-5-7fbde4d6b525@google.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Fri, Oct 11, 2024 at 10:13:38AM +0000, Alice Ryhl wrote:
-> +#[cfg(CONFIG_JUMP_LABEL)]
-> +#[cfg(not(CONFIG_HAVE_JUMP_LABEL_HACK))]
-> +macro_rules! arch_static_branch {
-> +    ($key:path, $keytyp:ty, $field:ident, $branch:expr) => {'my_label: {
-> +        $crate::asm!(
-> +            include!(concat!(env!("OBJTREE"), "/rust/kernel/arch_static_branch_asm.rs"));
-> +            l_yes = label {
-> +                break 'my_label true;
-> +            },
-> +            symb = sym $key,
-> +            off = const ::core::mem::offset_of!($keytyp, $field),
-> +            branch = const $crate::jump_label::bool_to_int($branch),
-> +        );
+On Thu, 10 Oct 2024 12:05:38 -0700 Mina Almasry wrote:
+> diff --git a/net/core/sock.c b/net/core/sock.c
+> index 083d438d8b6f..cb3d8b19de14 100644
+> --- a/net/core/sock.c
+> +++ b/net/core/sock.c
+> @@ -1071,11 +1071,11 @@ sock_devmem_dontneed(struct sock *sk,
+> sockptr_t optval, unsigned int optlen)
+>             optlen > sizeof(*tokens) * MAX_DONTNEED_TOKENS)
+>                 return -EINVAL;
+> 
+> -       tokens = kvmalloc_array(optlen, sizeof(*tokens), GFP_KERNEL);
+> +       num_tokens = optlen / sizeof(struct dmabuf_token);
+> +       tokens = kvmalloc_array(num_tokens, sizeof(*tokens), GFP_KERNEL);
+>         if (!tokens)
+>                 return -ENOMEM;
+> 
+> -       num_tokens = optlen / sizeof(struct dmabuf_token);
+>         if (copy_from_sockptr(tokens, optval, optlen)) {
+>                 kvfree(tokens);
+>                 return -EFAULT;
+> @@ -1083,6 +1083,10 @@ sock_devmem_dontneed(struct sock *sk, sockptr_t
+> optval, unsigned int optlen)
+> 
+>         xa_lock_bh(&sk->sk_user_frags);
+>         for (i = 0; i < num_tokens; i++) {
 > +
-> +        break 'my_label false;
-> +    }};
-> +}
-> +
-> +#[macro_export]
-> +#[doc(hidden)]
-> +#[cfg(CONFIG_JUMP_LABEL)]
-> +#[cfg(CONFIG_HAVE_JUMP_LABEL_HACK)]
-> +macro_rules! arch_static_branch {
-> +    ($key:path, $keytyp:ty, $field:ident, $branch:expr) => {'my_label: {
-> +        $crate::asm!(
-> +            include!(concat!(env!("OBJTREE"), "/rust/kernel/arch_static_branch_asm.rs"));
-> +            l_yes = label {
-> +                break 'my_label true;
-> +            },
-> +            symb = sym $key,
-> +            off = const ::core::mem::offset_of!($keytyp, $field),
-> +            branch = const 2 | $crate::jump_label::bool_to_int($branch),
-> +        );
-> +
-> +        break 'my_label false;
-> +    }};
+> +               if (tokens[i].token_count > MAX_DONTNEED_TOKENS)
+> +                       continue;
 
-Ouch... could we get rid of all this duplication by containing the hack
-bit to ARCH_STATIC_BRANCH_ASM() like so?
+For the real fix let's scan the tokens before we take the xa lock
+and return an error rather than silently skipping?
 
-diff --git a/arch/x86/include/asm/jump_label.h b/arch/x86/include/asm/jump_label.h
-index ffd0d1a1a4af..3f1c1d6c0da1 100644
---- a/arch/x86/include/asm/jump_label.h
-+++ b/arch/x86/include/asm/jump_label.h
-@@ -24,7 +24,7 @@
- #ifdef CONFIG_HAVE_JUMP_LABEL_HACK
- #define ARCH_STATIC_BRANCH_ASM(key, label)		\
- 	"1: jmp " label " # objtool NOPs this \n\t"	\
--	JUMP_TABLE_ENTRY(key, label)
-+	JUMP_TABLE_ENTRY(key " + 2", label)
- #else /* !CONFIG_HAVE_JUMP_LABEL_HACK */
- #define ARCH_STATIC_BRANCH_ASM(key, label)		\
- 	"1: .byte " __stringify(BYTES_NOP5) "\n\t"	\
-@@ -33,10 +33,8 @@
- 
- static __always_inline bool arch_static_branch(struct static_key * const key, const bool branch)
- {
--	int hack_bit = IS_ENABLED(CONFIG_HAVE_JUMP_LABEL_HACK) ? 2 : 0;
--
- 	asm goto(ARCH_STATIC_BRANCH_ASM("%c0 + %c1", "%l[l_yes]")
--		: :  "i" (key), "i" (hack_bit | branch) : : l_yes);
-+		: :  "i" (key), "i" (branch) : : l_yes);
- 
- 	return false;
- l_yes:
+>                 for (j = 0; j < tokens[i].token_count; j++) {
+
