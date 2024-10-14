@@ -1,66 +1,104 @@
-Received: from gentwo.org (gentwo.org [62.72.0.81])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lf1-f45.google.com (mail-lf1-f45.google.com [209.85.167.45])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BA1371BDABD;
-	Mon, 14 Oct 2024 17:20:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.72.0.81
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 23A621C2439
+	for <linux-arch@vger.kernel.org>; Mon, 14 Oct 2024 17:29:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1728926448; cv=none; b=p6OaTnB9rbXFE452f3vYm+rkj1xIgVtwMGonUqxvM/knTUcdynHZvdpKPa7i048FfP7U9/clvt0/5C3rKlIgLEGIoRo41Om0A2JsqXOxHCMXn2luEJehBYFWamOvGE3qnDx52nuUD4RrYSGvlwNgtwwtlZB2/93QOAP1BSVl/34=
+	t=1728926997; cv=none; b=OLGDKY6r5irkwhrfeznGgC4vKLH+vEq/zxJF7B1esLAcbCi5+1PHjxKc3XF+7Rqr66EgDbXOq6YgyXmDFiZSOpGUy/7bswFnP1kAazFy82Y1UtsjAQoXqZHGw2ANJ5K6V0gD2QLB8dJBBcasEnEZz7EAK+iqn9eTI7eIcT6BfBc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1728926448; c=relaxed/simple;
-	bh=x8pf8dv6TsP8JXdYfzHDLKge5Sr1VNwRTlf5smWntyw=;
-	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
-	 MIME-Version:Content-Type; b=sOt6dWUva/NSjSr+1R522I73w2cXqEdXXVp6ognKsp0r7t7ZzQ8f6mO8YgyxoLx7WASNp1Ryp9z0blG3Ji57JvxVaSo850X1AwCy1aDnXazOOCnYZ9N5ltntTdYbzqcro0G9wuPJE5kjtLhExmH1rySC1detiI7Aem6MqhNLI1I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=gentwo.org; spf=pass smtp.mailfrom=gentwo.org; dkim=pass (1024-bit key) header.d=gentwo.org header.i=@gentwo.org header.b=UDeAXkOh; arc=none smtp.client-ip=62.72.0.81
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=gentwo.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gentwo.org
+	s=arc-20240116; t=1728926997; c=relaxed/simple;
+	bh=CSNMcFDDijo4DbM019qkbO66k2XIx9LLGy8ogcn3trE=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=lvBk4zKkHBCS09Hrc2nmYDzzDXgWbhjs+AyLWnqt4LuiwZdRnf2Fwo5sUROXlhxQuxTd52SMBtH/9Mh8/xvB5rRI9NNhQt47V5Ldg6JTQmwJZM5kBL4j8gxRcvjWmk62cB0EavFP4Q+sMDu4yb5GkeGWsg7DspQQzcJsM7NybB8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org; spf=pass smtp.mailfrom=linuxfoundation.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=S+rmVU81; arc=none smtp.client-ip=209.85.167.45
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=gentwo.org header.i=@gentwo.org header.b="UDeAXkOh"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=gentwo.org;
-	s=default; t=1728924621;
-	bh=x8pf8dv6TsP8JXdYfzHDLKge5Sr1VNwRTlf5smWntyw=;
-	h=Date:From:To:cc:Subject:In-Reply-To:References:From;
-	b=UDeAXkOhC34P/2l1RSU7AY+bCJpczEZhKjdHGbeEmaF/xWT8iZpAPJIciPsJ+Iabi
-	 Zf3bTpAO7c/Md9XExJpUfQLL2+CD4MuwJ6SWAToxHIbFFYT2MbTaRt5FkNkyX6FfMD
-	 RONlruABvmO0uB9Gq9q5ARnHkbQm4I/2gdZje5xc=
-Received: by gentwo.org (Postfix, from userid 1003)
-	id 2DFA44040C; Mon, 14 Oct 2024 09:50:21 -0700 (PDT)
-Received: from localhost (localhost [127.0.0.1])
-	by gentwo.org (Postfix) with ESMTP id 2BD01401C9;
-	Mon, 14 Oct 2024 09:50:21 -0700 (PDT)
-Date: Mon, 14 Oct 2024 09:50:21 -0700 (PDT)
-From: "Christoph Lameter (Ampere)" <cl@gentwo.org>
-To: Ryan Roberts <ryan.roberts@arm.com>
-cc: Andrew Morton <akpm@linux-foundation.org>, 
-    Anshuman Khandual <anshuman.khandual@arm.com>, 
-    Ard Biesheuvel <ardb@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
-    Catalin Marinas <catalin.marinas@arm.com>, 
-    David Hildenbrand <david@redhat.com>, Dennis Zhou <dennis@kernel.org>, 
-    Greg Marsden <greg.marsden@oracle.com>, Ivan Ivanov <ivan.ivanov@suse.com>, 
-    Kalesh Singh <kaleshsingh@google.com>, Marc Zyngier <maz@kernel.org>, 
-    Mark Rutland <mark.rutland@arm.com>, Matthias Brugger <mbrugger@suse.com>, 
-    Miroslav Benes <mbenes@suse.cz>, Tejun Heo <tj@kernel.org>, 
-    Will Deacon <will@kernel.org>, linux-arch@vger.kernel.org, 
-    linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, 
-    linux-mm@kvack.org
-Subject: Re: [RFC PATCH v1 02/57] vmlinux: Align to PAGE_SIZE_MAX
-In-Reply-To: <20241014105912.3207374-2-ryan.roberts@arm.com>
-Message-ID: <0e7c6bd0-b4a0-4afe-22ff-73239bd86943@gentwo.org>
-References: <20241014105514.3206191-1-ryan.roberts@arm.com> <20241014105912.3207374-1-ryan.roberts@arm.com> <20241014105912.3207374-2-ryan.roberts@arm.com>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="S+rmVU81"
+Received: by mail-lf1-f45.google.com with SMTP id 2adb3069b0e04-539ebb5a20aso1883805e87.2
+        for <linux-arch@vger.kernel.org>; Mon, 14 Oct 2024 10:29:55 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google; t=1728926994; x=1729531794; darn=vger.kernel.org;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=jvsjTSFhK62MPvXHA5L9zbPkhQe3PYzLzcOgzWx9lrk=;
+        b=S+rmVU819F5HE6uIl+W3PJCCUqtgpCb7BVC2QPpk1rT9mr+e3oGzHQiHFekmdolY0e
+         h8sTtUVyDO4XSjinq2aQmmRHcX/XMdirHdmDiL5Ex9q8l9arqrGvbXVPTffC5gQT+AvZ
+         9v7oP8ec+xS/6pj8NsqUNMU1MfnQ5kOK6dxRU=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1728926994; x=1729531794;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=jvsjTSFhK62MPvXHA5L9zbPkhQe3PYzLzcOgzWx9lrk=;
+        b=Mnarfy4ahv3tcLMLPh6qpYIhgK34lFZhoHhjAgliJnRNiaEopCtJWKO5CZPFIbkC+w
+         tnl6x/TFWtrfdHQJgLUiiPSuEWneDJKW94b5xoZV8PEkcISm2CLLL97HAmH3e4Jd6DEE
+         va6TkMfcYppjYNskouk9KzVk9CVW7cI6St72vmpcer9ErCOCFAmfJGpuy/l6O/QX1r4P
+         YITshra+Mlxfr/Fz4lCflAWDAR1/1onMVnMC64m7Xke27reMDSaammv78UTNaKbLgMXn
+         d4Nz8dCVZLYpA7V6S95JTxrWQpZhUW25VQl0aTCiRwjTj0gERnt0rHwXEPZQg+pxZgBg
+         +/5w==
+X-Forwarded-Encrypted: i=1; AJvYcCUE3iBNGH6luTXZGEg4qthkTdTQTM1rzcs1c28GwUrr/bJo+2cLueUTNFCIofE+TLv6Un4wIK9LTSO+@vger.kernel.org
+X-Gm-Message-State: AOJu0YwJOC1Ib1lWen7sYbxXoc432SWtZ0XMLOaAsm7Zsz/MQDxP5JLp
+	SHxEz9APMnHfDOSQENWRBh4awkWKlZk5i4lU/jat9yAFDML0mIrrrt2XgJxhFVKUhf5d/U9eyQu
+	tgpyjNw==
+X-Google-Smtp-Source: AGHT+IF8nQFmSD6ZgKX/vnQohDgOwwgYrLx8YEhqzdtNPj1Ysf2jnPmfj5A0J70r0jg3eZU9/cdBIQ==
+X-Received: by 2002:ac2:4e07:0:b0:539:88f7:d3c4 with SMTP id 2adb3069b0e04-539e5514af3mr3034234e87.29.1728926993904;
+        Mon, 14 Oct 2024 10:29:53 -0700 (PDT)
+Received: from mail-ej1-f49.google.com (mail-ej1-f49.google.com. [209.85.218.49])
+        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-5c93729a687sm5195955a12.92.2024.10.14.10.29.52
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 14 Oct 2024 10:29:52 -0700 (PDT)
+Received: by mail-ej1-f49.google.com with SMTP id a640c23a62f3a-a9a0f198d38so201712766b.1
+        for <linux-arch@vger.kernel.org>; Mon, 14 Oct 2024 10:29:52 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCVw/n9BiYcQ0oIQYV1v7PZKCbzfoxEQxVrr0NFB4l0/k022lbU93Hvf7kn30LEjRVvkB5ZxdP5C9vzb@vger.kernel.org
+X-Received: by 2002:a17:907:3f23:b0:a9a:a32:bbe4 with SMTP id
+ a640c23a62f3a-a9a0a32bcb5mr437123266b.12.1728926991727; Mon, 14 Oct 2024
+ 10:29:51 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+References: <20241014125703.2287936-4-ardb+git@google.com>
+In-Reply-To: <20241014125703.2287936-4-ardb+git@google.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 14 Oct 2024 10:29:35 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wit+BLbbLPYOdoODvUYcZX_Gv8o-H7_usyEoAVO1YSJdg@mail.gmail.com>
+Message-ID: <CAHk-=wit+BLbbLPYOdoODvUYcZX_Gv8o-H7_usyEoAVO1YSJdg@mail.gmail.com>
+Subject: Re: [PATCH 0/2] Use dot prefixes for section names
+To: Ard Biesheuvel <ardb+git@google.com>
+Cc: linux-kernel@vger.kernel.org, Ard Biesheuvel <ardb@kernel.org>, 
+	Masahiro Yamada <masahiroy@kernel.org>, Nathan Chancellor <nathan@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Kent Overstreet <kent.overstreet@linux.dev>, 
+	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-mm@kvack.org, 
+	linux-kbuild@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-On Mon, 14 Oct 2024, Ryan Roberts wrote:
+On Mon, 14 Oct 2024 at 05:57, Ard Biesheuvel <ardb+git@google.com> wrote:
+>
+> Pre-existing code uses a dot prefix or double underscore to prefix ELF
+> section names. strip_relocs on x86 relies on this, and other out of tree
+> tools that mangle vmlinux (kexec or live patching) may rely on this as
+> well.
+>
+> So let's not deviate from this and use a dot prefix for runtime-const
+> and alloc_tags sections.
 
-> Increase alignment of structures requiring at least PAGE_SIZE alignment
-> to PAGE_SIZE_MAX. For compile-time PAGE_SIZE, PAGE_SIZE_MAX == PAGE_SIZE
-> so there is no change. For boot-time PAGE_SIZE, PAGE_SIZE_MAX is the
-> largest selectable page size.
+I'm not following what the actual problem is. Yes, I see that you
+report that it results in section names like ".relaalloc_tags", but
+what's the actual _issue_ with that? It seems entirely harmless.
 
-Can you verify that this works with the arch specific portions? This may
-also allow to to reduce some of the arch dependent stuff.
+In fact, when I was going the runtime sections, I was thinking how
+convenient it was for the linker to generate the start/stop symbols
+for us, and that we should perhaps *expand* on that pattern.
+
+So this seems a step backwards to me, with no real explanation of what
+the actual problem is.
+
+Yes, we have (two different) pre-existing patterns, but neither
+pattern seems to be an actual improvement.
+
+           Linus
