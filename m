@@ -1,274 +1,349 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE19D79F6;
-	Sun, 20 Oct 2024 15:46:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1729439180; cv=none; b=trKUMTswItE6W+k7JMGOxJoIKaPEwY6tKgdjsXIvTc/T6u8kh4BvSrC3r6lojRus7KtYlBntgX+Hf/OkM9rjFnp7pgk8jhf2ssYodRQSgboFfu55ZO/pEp20GpeYCkCJOy+7NUyQ8UXgyQFIJL1KTKtJy3cI0XBs1ShLsa5iJMQ=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1729439180; c=relaxed/simple;
-	bh=dybJvTIwydrLBvn1LcH/lZMry79zGiff5879XyIL0zg=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=KBYHnYFZQ/Bl2Ap7H+NuHFvLNDwccswBBdmoTRdjKxJGopIpM7CYSr8sPT/l+UjE4Dry5zkJR68G/w05aVpTutvsOLotaWhHlMqPha45RtmfxM4yY6oEuXkXsNF+WZXze2zZ3M+Vyq7v+XVTukghjwILFLy5qUO7AjbNPl4kV8w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=N6++6gGR; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B473A1370;
+	Sun, 20 Oct 2024 16:21:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1729441267; cv=fail; b=ewa0/qYg4m7xCjXKBb7fk/q2Y4f1ZDgvm9X+82uswHmsqo1EmEcz6p12MdSbvOFxZwoIBt4dnQETZtuK8GGdYVslhTPRAcmA5KshP4OvzfZ0I9HkBPG8LoyZ65sotLrJb9dtwmLGSe6V3PVBRajHPdKWUFe3J/5Cg6HIzGXKsXM=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1729441267; c=relaxed/simple;
+	bh=ACUNtPIZvF+aeRLwFmoU2XVPvNLugIa8fPicUy5I6K4=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=HtCulO5SG4m4xoyaGXMj6sIBaSUJeWFpqxyypOrKb+IqEBwXdedYE3/lPKY5sc1gTtfwOBtPYAoyW8g7mv28eCHQBpa3CWSdcM8YP6Kfexyu3uYQuJDsRhGr/1MLIBz1S8jI1PrhP5iYjMo4qfDn4mSAdYEAClyVP5Yy09S0aA4=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=Qbl1skzW; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=b70TdbEY; arc=fail smtp.client-ip=205.220.165.32
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="N6++6gGR"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2FA70C4CEED;
-	Sun, 20 Oct 2024 15:46:19 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1729439179;
-	bh=dybJvTIwydrLBvn1LcH/lZMry79zGiff5879XyIL0zg=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=N6++6gGRhYbOmKLkI0kMy8uxf1eJcK4QpzjTYHkL31hos9eglTtkadQEkZ/MKD9dr
-	 ODlp6brmU1BX7rahC8gGEnmNg+jtDeRSCKCdP8dPebFk5KdKlGZwNjW1ZYaJeKawvv
-	 dF3os4hhX8qDXh7kWjUaSVAE1tb9Frd/A3tjy4/H/eeHmhimSXVYCkMjgpLTkoooOz
-	 ZA3oYHjAEQeeUNiW2Ebyo0Sd0U0V3dALSCYWKi3K4KRTt9S0MWh+NlfZP+S9IE2k+D
-	 +RSFLyDtX8+SHqh6ElD5KtbS/b3eSO0EFV7XavmYBCAQrUyfvItQn4Cca1G4JqbmFG
-	 qdwFQn4fVrI7g==
-Received: by mail-lf1-f46.google.com with SMTP id 2adb3069b0e04-539e5c15fd3so3196283e87.3;
-        Sun, 20 Oct 2024 08:46:19 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AJvYcCUGqjOS0ZBono+H6G90YZ8lfFT0rfaOD4hKJS1dInh2Y3K/cfuMQ4pbktHkRaCQLWwrVvYC/4s7BMAL@vger.kernel.org, AJvYcCUfNeWToORR91pyjPvKlTBjxXuLZO9wC9YZLD4sbe3WQRfNJx5guZ2mkPnBR9j3JvX29W1P/rvUs77A@vger.kernel.org, AJvYcCWRIhObuqR5VCoDaAzXWXFbUbU+XI/1sGYqOy3w8NCxo72mxdYJNMtL9CuShM92HXBxrPwsgHcvlNxg@vger.kernel.org, AJvYcCXeXflE1soAtFmC4VSENPnCscf4Zfqdkh1JY9rkunotMvAKPtfPLxw76jQDROFzNYJ8omDoobUJ4moGwIgd@vger.kernel.org, AJvYcCXrsEES+YuvMDJnJqr+YdHB5suz9UvgBKHGL0X617M8QaJkJdIZ2L3kdzZe0/8kgqVyj2TMmEMwCFbLE8hc@vger.kernel.org
-X-Gm-Message-State: AOJu0Yws/O1VzMEbCyzlFG4/VB1RO3z4+mBlGOnjtdKFGvGi+qpBTCmT
-	4Wv+LFDMiLpH+DPK6Av+W8rbvczASBnFUkRLFFGbh/EL3i2IVMgf5ISPSvh5fFfEyREhRRqFXWs
-	NZZm8WW0y7b6tzURCKnF529YZhdM=
-X-Google-Smtp-Source: AGHT+IHVNEBd41mpXJ65nn09YsbsLIWj9/J956BaHSIAk6ZWD5G3zkZ2X2eav8p4dtbyv45AK6HMs6lPUuxyTCIJaXo=
-X-Received: by 2002:a05:6512:104a:b0:539:e0fa:6ee8 with SMTP id
- 2adb3069b0e04-53a1520b6a6mr4932543e87.6.1729439177507; Sun, 20 Oct 2024
- 08:46:17 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="Qbl1skzW";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="b70TdbEY"
+Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 49KEeO3W002389;
+	Sun, 20 Oct 2024 16:20:28 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=
+	corp-2023-11-20; bh=H8+OeiOA7LbXlMb4dJ93wFyuZQtE9inPfUq4/oA3sfE=; b=
+	Qbl1skzWIjCs2U2rqn+M/SaB6YfE8SV0vY7REqEyWh5EhLXmAFr84Wxjo8hZPbVp
+	ND7kDFe6Qk8OTWZ8p4hQSR/X0zOUga7Zm6SAj6N+kc3pcR/Vtp74bh3nrk+FxTJy
+	+PvO6l6wg/FbUEdhx5DMpNVnbhbdNDAFCdFcf0YWyk7G7izNw/Ryw+NS0XaNymvw
+	yhIp4/OY4u23e5/mHaC5d0sddjGo5dW+WQdZrecjr0uXE7KUNdX8DXmcFyzsWCcq
+	RqnvL6rc8B3OyGuM/IG+tMzLaJNmMmB8mQjn6MHM2pfzjBTE6AhxBHEsbHUdA4vQ
+	McXU6iq8guBxRd0PGlwGWw==
+Received: from phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta03.appoci.oracle.com [138.1.37.129])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 42c55ustxg-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Sun, 20 Oct 2024 16:20:28 +0000 (GMT)
+Received: from pps.filterd (phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 49KE3Tpg035552;
+	Sun, 20 Oct 2024 16:20:27 GMT
+Received: from nam11-co1-obe.outbound.protection.outlook.com (mail-co1nam11lp2171.outbound.protection.outlook.com [104.47.56.171])
+	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 42c3768fqb-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Sun, 20 Oct 2024 16:20:27 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=rXdfuzYabm0mIq96brROStUIdEHen6BpysgsPBPdjCtE1SvL/3RMm0AKjmHKCMdfpbID9eqa9gNzP5oguXKLKNMTG9UEdFI2ztS2Ku+aHhOlNIPFiyOTzPn37jB8IM96H//rBdtG6jAz3V7Uv5+MivGvUHZTZI36Cz9xp2DgWCv7WgZB13GCWX4q+5zXmiu0xhiWWsUtBBDrB5xZpR/UwLwYwC0555RsRuaHIbTSmOnMx7G1TyjdpgN+A4RWSKW9vHFw9FiUkbMyQnCwb3XtVXg0Zf1CwXHobp7RKMszFnFM9K9IYNWc+DHqV9fzTgQjVmVSLH5UtNcXo6bv+rEr+Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=H8+OeiOA7LbXlMb4dJ93wFyuZQtE9inPfUq4/oA3sfE=;
+ b=judN2HQzkswrA92dXhajFIyIBcnV/M1A/p90YMyTqYUTkPzingyxJ4VtLVfP2KTLBZOjQj5Zl3nbH7qQ7WTPO97nXVYiSrPMKrU0v3TpwkK0ic7/bxyQNSCV8dEvFa3qJ9Pdzl65ENdP2hWFvzWSfpFwYW+tCoM8LMKlOVL2N9fqJWp48k++fH7767tEHelIehc4VeiA1S49bvrB8vRJLOk8hrgaTpjKR6yWiG0VFbaW6L2L/qBtRIYgBwKoTFUYmTmofrWDJ0tcTqKiA8y+VnQT/93qzcmJFbkOqAQT7+Tj+od/kKv1XHMqlIaB07k2t0+V1zNtVPRIPW1Vnn9u4w==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=H8+OeiOA7LbXlMb4dJ93wFyuZQtE9inPfUq4/oA3sfE=;
+ b=b70TdbEYV7/Ifu9lQM3+dKj+egjgTeQ+nz4hgM4fSwEHGWZYtQaCwIbVI9B06fxwjsKYJnwrdzlROTFPsff3Z16vmuS1R8FUo+gb7yZ9Yu0ft3wLLdEXRi8OGGhtKuEhAVRstofPbXmi7uLAfEzB7DkxwtUrGkCmTGOOrtFHgDo=
+Received: from BYAPR10MB3366.namprd10.prod.outlook.com (2603:10b6:a03:14f::25)
+ by DS0PR10MB6703.namprd10.prod.outlook.com (2603:10b6:8:139::12) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.8069.27; Sun, 20 Oct
+ 2024 16:20:20 +0000
+Received: from BYAPR10MB3366.namprd10.prod.outlook.com
+ ([fe80::baf2:dff1:d471:1c9]) by BYAPR10MB3366.namprd10.prod.outlook.com
+ ([fe80::baf2:dff1:d471:1c9%6]) with mapi id 15.20.8069.024; Sun, 20 Oct 2024
+ 16:20:20 +0000
+From: Lorenzo Stoakes <lorenzo.stoakes@oracle.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Suren Baghdasaryan <surenb@google.com>,
+        "Liam R . Howlett" <Liam.Howlett@oracle.com>,
+        Matthew Wilcox <willy@infradead.org>, Vlastimil Babka <vbabka@suse.cz>,
+        "Paul E . McKenney" <paulmck@kernel.org>, Jann Horn <jannh@google.com>,
+        David Hildenbrand <david@redhat.com>, linux-mm@kvack.org,
+        linux-kernel@vger.kernel.org, Muchun Song <muchun.song@linux.dev>,
+        Richard Henderson <richard.henderson@linaro.org>,
+        Ivan Kokshaysky <ink@jurassic.park.msu.ru>,
+        Matt Turner <mattst88@gmail.com>,
+        Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+        "James E . J . Bottomley" <James.Bottomley@HansenPartnership.com>,
+        Helge Deller <deller@gmx.de>, Chris Zankel <chris@zankel.net>,
+        Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>,
+        linux-alpha@vger.kernel.org, linux-mips@vger.kernel.org,
+        linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org,
+        Shuah Khan <shuah@kernel.org>, Christian Brauner <brauner@kernel.org>,
+        linux-kselftest@vger.kernel.org,
+        Sidhartha Kumar <sidhartha.kumar@oracle.com>,
+        Jeff Xu <jeffxu@chromium.org>, Christoph Hellwig <hch@infradead.org>,
+        linux-api@vger.kernel.org, John Hubbard <jhubbard@nvidia.com>
+Subject: [PATCH v2 2/5] mm: add PTE_MARKER_GUARD PTE marker
+Date: Sun, 20 Oct 2024 17:20:02 +0100
+Message-ID: <081837b697a98c7fa5832542b20f603d49e0b557.1729440856.git.lorenzo.stoakes@oracle.com>
+X-Mailer: git-send-email 2.47.0
+In-Reply-To: <cover.1729440856.git.lorenzo.stoakes@oracle.com>
+References: <cover.1729440856.git.lorenzo.stoakes@oracle.com>
+Content-Transfer-Encoding: 8bit
+Content-Type: text/plain
+X-ClientProxiedBy: LO4P265CA0050.GBRP265.PROD.OUTLOOK.COM
+ (2603:10a6:600:2ac::16) To BYAPR10MB3366.namprd10.prod.outlook.com
+ (2603:10b6:a03:14f::25)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20241014213342.1480681-1-xur@google.com> <20241020033116.GA3653827@thelio-3990X>
-In-Reply-To: <20241020033116.GA3653827@thelio-3990X>
-From: Masahiro Yamada <masahiroy@kernel.org>
-Date: Mon, 21 Oct 2024 00:45:40 +0900
-X-Gmail-Original-Message-ID: <CAK7LNAQD7_iLo9SnQW0_KYx2vBoNSpi98yrgmn_Z0Yh8500tsg@mail.gmail.com>
-Message-ID: <CAK7LNAQD7_iLo9SnQW0_KYx2vBoNSpi98yrgmn_Z0Yh8500tsg@mail.gmail.com>
-Subject: Re: [PATCH v4 0/6] Add AutoFDO and Propeller support for Clang build
-To: Nathan Chancellor <nathan@kernel.org>
-Cc: Rong Xu <xur@google.com>, Andrew Morton <akpm@linux-foundation.org>, 
-	Alice Ryhl <aliceryhl@google.com>, Arnd Bergmann <arnd@arndb.de>, Bill Wendling <morbo@google.com>, 
-	Borislav Petkov <bp@alien8.de>, Breno Leitao <leitao@debian.org>, Brian Gerst <brgerst@gmail.com>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, David Li <davidxl@google.com>, 
-	Han Shen <shenhan@google.com>, Heiko Carstens <hca@linux.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, 
-	Ingo Molnar <mingo@redhat.com>, Jann Horn <jannh@google.com>, Jonathan Corbet <corbet@lwn.net>, 
-	Josh Poimboeuf <jpoimboe@kernel.org>, Juergen Gross <jgross@suse.com>, 
-	Justin Stitt <justinstitt@google.com>, Kees Cook <kees@kernel.org>, 
-	"Mike Rapoport (IBM)" <rppt@kernel.org>, Nick Desaulniers <ndesaulniers@google.com>, 
-	Nicolas Schier <nicolas@fjasle.eu>, "Paul E. McKenney" <paulmck@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Sami Tolvanen <samitolvanen@google.com>, 
-	Thomas Gleixner <tglx@linutronix.de>, Wei Yang <richard.weiyang@gmail.com>, 
-	workflows@vger.kernel.org, Miguel Ojeda <miguel.ojeda.sandonis@gmail.com>, 
-	Maksim Panchenko <max4bolt@gmail.com>, x86@kernel.org, linux-arch@vger.kernel.org, 
-	linux-doc@vger.kernel.org, linux-kbuild@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: BYAPR10MB3366:EE_|DS0PR10MB6703:EE_
+X-MS-Office365-Filtering-Correlation-Id: 452254f3-efb4-48c4-b0da-08dcf12317a2
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|10070799003|1800799024|7416014|376014|366016;
+X-Microsoft-Antispam-Message-Info:
+	=?us-ascii?Q?Is5Az2c4onPppbZN1/q6i4LLoPwhGu59ogzE7DZGh6CwzMvFUxR5A03skOik?=
+ =?us-ascii?Q?/ss35mKvtCJAVARxaZrdSczfJhPi38XcrnAuULvFOpnNubT6QkDItjLeUW71?=
+ =?us-ascii?Q?6Lui4lh3rLeEw3Be+32GS1BLTnXLsqIRvM1cL5X+hU+8nSZSb+wbpHq8Wwap?=
+ =?us-ascii?Q?2P8LvCPOMSOQzsLM4cDq2FEWQweS8IcExbfNYCVW8VbqmP5F7M7CM6cXsq0l?=
+ =?us-ascii?Q?EqIOF7YxAKWcLOFLG398ZkEq3s07w4//QkZnCNBtWgctRPSpi3WwVfh6FGem?=
+ =?us-ascii?Q?yeRlMV/s1pMECfs61toHPqL9ZS5llRNlf7XuK6mvsyD0MCdmwmcz4/O9Im1b?=
+ =?us-ascii?Q?WeFE6V+Fq/V/90q2GStw7qzr8YHPWGm/MHUfIGPQnFgJn3v6jyfBptiM3nae?=
+ =?us-ascii?Q?XDDqe+YgsYXwQHoAQ+cZp0jfcOuy59KLC4oFgQa1rlOOIsBI4OsL6w9VICWz?=
+ =?us-ascii?Q?vtcwWZr9hTEpYGn9lo0amWgOonAeK/9USS+rcfQmMJmG4jPwTKCKtRTJUnAN?=
+ =?us-ascii?Q?KJ7/Z9JLKSGOz4rhgBmHYVrRCCxtpnMG7XBx1yi+R/QuT6FSRGd3x/LNTeV6?=
+ =?us-ascii?Q?thPKuZebUd2ImaAJqjr/yhxTyM0aXp0eHERIYvNLHS1UorL23iqjRykJOIBy?=
+ =?us-ascii?Q?ETiJpsXmbkqz2aRsbfdxFPKfITvCJJtScbH4iIKc3MsMOLVPrL8/Gny4tsSc?=
+ =?us-ascii?Q?kLyqftYkHXr/oDIL6pUmPOs3h/gkeRX31rZFtWn+vDdpzgMoA4c2gf/Vu8Xp?=
+ =?us-ascii?Q?hP9OOOnGn6FpPwc0Svcfr6dLlVb63PbqIxp7CMwuXu1ZfxVW4noTk+f5x53z?=
+ =?us-ascii?Q?w3sjcUMn9OAUrYjdoGIuCE39FKxgYfAml6qA6/6xBfyY9jKfS4qDUZ7KR+kR?=
+ =?us-ascii?Q?eUZUlTRaS6D/+9zfmlfeVH7qeFKdWpwRBjaYLxGkdu+nuR/a195FAlXH3xTk?=
+ =?us-ascii?Q?Yc3PAPsQ+Wf6AtqRutYx82aiBjeL8+kyV4dtNiOJgKDu59ueN+3FVwagF7+j?=
+ =?us-ascii?Q?18OAVWrFKU4iWB517RusJB4JoPcxAwfyrxM7B2kvz+KRC4EDutUDh7Edzndc?=
+ =?us-ascii?Q?tcwvIRoNRxFoZkdd0zojQ1orXMBnPSVN+Z5atKlf5TW0ulhONQa/qxUQAzSQ?=
+ =?us-ascii?Q?kU4BJq77en7Hit12m3o9kQUIiVZ7ZxEGRPJeWwx15NUyuOaBHGqUOPbEYcUA?=
+ =?us-ascii?Q?rQ46aZmFOhjRimCQ0m05jvzKKFWD0t9bMejjdOGc/NpL1+B2TtmMuy6+zRuT?=
+ =?us-ascii?Q?sJ7XXCUQKqSCuddV4Q/Um7yCE7QTx/o5e+epeRkyFj7qUkRJ5BxX0Meuvujs?=
+ =?us-ascii?Q?alc=3D?=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:BYAPR10MB3366.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(10070799003)(1800799024)(7416014)(376014)(366016);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?2+siz7bM8do+NgkQnswhKBhf5ZsGCrBEJnBHJ08K/NqgT7ZJroZ6s6jAcMJR?=
+ =?us-ascii?Q?W38UoLib94vYgHkteY5VOUFpFN3HQvag34yENUFzqF7WOQkUT4icF78LP4uV?=
+ =?us-ascii?Q?1kmGURT9blUq6CKZmuu0kCRI2EmWFjaoRIndAd7o+9zNtifx7H+ht0wELV7n?=
+ =?us-ascii?Q?OAbbIu5w6kyHPx3Iw/xX3namDiMzKS2eCinP/Lu4q3p1dvnyE2OVOus7esYu?=
+ =?us-ascii?Q?kPjQPEqSC9dXg3+NIJRmZmLJj9jGF2L2LnXJHI49gJGvS3xU065eXkLSs8Fc?=
+ =?us-ascii?Q?DTERrY0z/d/X8aPqTLHY/u9XLBDJKpybGsWKLRa+s7zYa7iptN84L87K0Vp3?=
+ =?us-ascii?Q?+UK03P58A/j3EhHS+Cy1Klplvzkervu76zOLXXqVDb6rcc5YDU249y9+LuoL?=
+ =?us-ascii?Q?mpxnS31G2NARQ/xrdAxZJ/hEV7rZKBmh7yyuxhrkx9ArpMIU5Y3Wk0r2tQkx?=
+ =?us-ascii?Q?w4wZXrWRXhtWxIRZ4f49rI4ZZOLLKNV1X5MBpu2KujwW5iz5aL7idPSq7cdu?=
+ =?us-ascii?Q?pWXUawQyGowxxU72Ls02fTvbdisKCg3taU0gozPeJVs0aVSTySwrLC3Prqkc?=
+ =?us-ascii?Q?NoHcqPrN5SHH5jW1nvvA5oyYWvr5ar0OTyeyNUoGb13YWfbbkvaOKRTN3tWN?=
+ =?us-ascii?Q?Z6jli7iWgLNOZl8QOxXpV0PAMTPdryy/XAaK95sHTZJ3Ry/vL7dsVpvNcw6Q?=
+ =?us-ascii?Q?l4shkooAMUqLvWRs9d7eL+8YYvzSbcyVRslFcSS13KJxZm/uJ7O7f0MTuK6i?=
+ =?us-ascii?Q?aA7bPxeSqom9yS6ut6c6j2aroimjlGqmcONIzQbwJLX4jEAkwXWRQmnxv2y/?=
+ =?us-ascii?Q?TO4uG9N5qgR2zOzIZyVqMtuPpJWBqAZ4h+o1sqwTcWPMrqLRZpwWCMm5JTMR?=
+ =?us-ascii?Q?4DESQqovt5HJoUPFc3cKI0ewIT72YNfP4gPQjvu+iAk7prbG5qAwTQDuGUoh?=
+ =?us-ascii?Q?7Gn8QpBoUlkEBidItWRvhusfqaXE+Lh82ZEdESIDwEKvqm9Tr6v49J4l4P1m?=
+ =?us-ascii?Q?hUNegY0d8vLWxvsrLBZR4NI078Nv2HMc9eayzSYbOl0rmRNTihZG41HHPEHL?=
+ =?us-ascii?Q?3ExLqCEmuYGtmqwjdZfEeDbSK3xQG5+InXIvvH6d23P+N69EJec2k8fB4pAK?=
+ =?us-ascii?Q?rHZT9szwjnvoH+Jux7RaCwDjOveWiYK+otjfcDnepzA+TApqJjRqmFbmqpkY?=
+ =?us-ascii?Q?i+YmHIVY/gcVSaqsEg9ycqrigoft5vzvN+p6wRN9k7jMdzWxzF6kFNf8oexE?=
+ =?us-ascii?Q?3+vSrAefl5AyU27oLlAxEDnQtzWrXPBWhbSsGUTKHJ8zu/2y3iE5K9gFEk7g?=
+ =?us-ascii?Q?FEWR88QNNZlrZZRfvJitTyEsmIjFdcJzov3kyPZ00Ra3aF1qU55W+rwdVF6s?=
+ =?us-ascii?Q?Pk6cFonogZ561NaOTGN+u3fGTMCXkmqnt7wqX4gkvk/Pr68NW92mf5DBNI8M?=
+ =?us-ascii?Q?BLfLcxPJp/dg4CTSqjTTZv43IxWr3gkmYs0k5czEUMlwYk4XoVA2uI6tluNW?=
+ =?us-ascii?Q?XXC0mLUU6qU2Kk+0kUjhlb8DsfMcZDC9AFxwAB7GZWszbiwWSbbdnBUKPybQ?=
+ =?us-ascii?Q?tTm/0T/1ue/7j2Iy9LskVrXsef729AQEJZP2arJJhJ29Q/bXMEDFZJHqW4cs?=
+ =?us-ascii?Q?VFfgyKFcD7eH1iNCDSRaVN4Zl3AWnaqU3g4v/4Xijydq9UOjElhY3sSPHhoU?=
+ =?us-ascii?Q?UhFsRQ=3D=3D?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
+	8Bh9f2BmSEj9093E8wwVtwhrDCf+rsLoazHCJhiQpLn2KJ4YGIvv0ZV70PUH2hTMJyeFc7mBHQoTfTO3DDqdmv0pZV/qiwqAnw1Iqqwwc0LyN/7C3f7d87bjng/o7n5WxoAg/PZqEdCCu5XzwJOj5sN2RKQcnV8Be+WyFusuAlVMYrco/d4YiY/QEr5+MP7gs0zbh80FuC6El/3BmnFtAuL4wIs8xa1ZBOAW4tMYJVdW0yUKTWGO6mz5Rk2bY4zqgDNkdxwfpy6GSj4iv+3gu4vKTEdrFNUlhwt48nEHU8Rd+wwc97GmDE0DoA0w6wLi+DDhpKzcVKOoXaE9XAhWm41IjCWmtsPyYYNZkzF27ZbdhtIvdDI+ueh8H7beO47gKFXauLRSsf5LI70520DH8UKil63rrNix3tFuhMWOK3yBJAtsl5xE6sy5chjp2HV9zwowO+PpkKIAhDGZthCYAfrKDe+q8BvPeQSNYLVLDY2Ta6dBxvr2AcS3ckGpQGbGJMOnvm2DWePzpicbDHd8a+IMWhb8YKjAQo2e1zJ6VW5ARUOgu5wYyzTdn0s3RwD2hmQ5eyK3jl8QNZukp8Wgx8cPDmEiiBwfJ39JCZlCVdI=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 452254f3-efb4-48c4-b0da-08dcf12317a2
+X-MS-Exchange-CrossTenant-AuthSource: BYAPR10MB3366.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 20 Oct 2024 16:20:20.4874
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: db7Hjelck6q8W+dPWCIEi0SvAayclm1APxneG4okPM6fGM8s1ru75q7Y4NwFHhCTO/9cXG9ijfgK/vyiWyC6d2ZgIlH1ncC1jpZ/sFXaCpk=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS0PR10MB6703
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1051,Hydra:6.0.680,FMLib:17.12.62.30
+ definitions=2024-10-20_14,2024-10-17_01,2024-09-30_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 bulkscore=0 adultscore=0
+ mlxscore=0 spamscore=0 mlxlogscore=999 suspectscore=0 phishscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2409260000
+ definitions=main-2410200114
+X-Proofpoint-GUID: iX_W0srb_wC0cISVUGMtD1It4TYlLpxT
+X-Proofpoint-ORIG-GUID: iX_W0srb_wC0cISVUGMtD1It4TYlLpxT
 
-On Sun, Oct 20, 2024 at 12:31=E2=80=AFPM Nathan Chancellor <nathan@kernel.o=
-rg> wrote:
->
-> Hi Masahiro and Andrew,
->
-> Top posting only for visibility. Would it make more sense to have this
-> land via the Kbuild tree or -mm? The core of the series really touches
-> Kbuild and I think the x86 stuff can just land with Acks, unless the
-> -tip folks feel differently. I would like Rong to have a relatively
-> clear path forward to mainline once the requisite review and testing has
-> accomplished, which requires a shepherd :)
+Add a new PTE marker that results in any access causing the accessing
+process to segfault.
 
+This is preferable to PTE_MARKER_POISONED, which results in the same
+handling as hardware poisoned memory, and is thus undesirable for cases
+where we simply wish to 'soft' poison a range.
 
-I think I can pick it up if 2/6 gains Ack from an objtool maintainer.
+This is in preparation for implementing the ability to specify guard pages
+at the page table level, i.e. ranges that, when accessed, should cause
+process termination.
 
+Additionally, rename zap_drop_file_uffd_wp() to zap_drop_markers() - the
+function checks the ZAP_FLAG_DROP_MARKER flag so naming it for this single
+purpose was simply incorrect.
 
+We then reuse the same logic to determine whether a zap should clear a
+guard entry - this should only be performed on teardown and never on
+MADV_DONTNEED or the like.
 
+Signed-off-by: Lorenzo Stoakes <lorenzo.stoakes@oracle.com>
+---
+ include/linux/mm_inline.h |  2 +-
+ include/linux/swapops.h   | 26 ++++++++++++++++++++++++--
+ mm/hugetlb.c              |  3 +++
+ mm/memory.c               | 18 +++++++++++++++---
+ 4 files changed, 43 insertions(+), 6 deletions(-)
 
+diff --git a/include/linux/mm_inline.h b/include/linux/mm_inline.h
+index 355cf46a01a6..1b6a917fffa4 100644
+--- a/include/linux/mm_inline.h
++++ b/include/linux/mm_inline.h
+@@ -544,7 +544,7 @@ static inline pte_marker copy_pte_marker(
+ {
+ 	pte_marker srcm = pte_marker_get(entry);
+ 	/* Always copy error entries. */
+-	pte_marker dstm = srcm & PTE_MARKER_POISONED;
++	pte_marker dstm = srcm & (PTE_MARKER_POISONED | PTE_MARKER_GUARD);
+ 
+ 	/* Only copy PTE markers if UFFD register matches. */
+ 	if ((srcm & PTE_MARKER_UFFD_WP) && userfaultfd_wp(dst_vma))
+diff --git a/include/linux/swapops.h b/include/linux/swapops.h
+index cb468e418ea1..4d0606df0791 100644
+--- a/include/linux/swapops.h
++++ b/include/linux/swapops.h
+@@ -426,9 +426,15 @@ typedef unsigned long pte_marker;
+  * "Poisoned" here is meant in the very general sense of "future accesses are
+  * invalid", instead of referring very specifically to hardware memory errors.
+  * This marker is meant to represent any of various different causes of this.
++ *
++ * Note that, when encountered by the faulting logic, PTEs with this marker will
++ * result in VM_FAULT_HWPOISON and thus regardless trigger hardware memory error
++ * logic.
+  */
+ #define  PTE_MARKER_POISONED			BIT(1)
+-#define  PTE_MARKER_MASK			(BIT(2) - 1)
++/* Indicates that, on fault, this PTE will case a SIGSEGV signal to be sent. */
++#define  PTE_MARKER_GUARD			BIT(2)
++#define  PTE_MARKER_MASK			(BIT(3) - 1)
+ 
+ static inline swp_entry_t make_pte_marker_entry(pte_marker marker)
+ {
+@@ -461,9 +467,25 @@ static inline swp_entry_t make_poisoned_swp_entry(void)
+ }
+ 
+ static inline int is_poisoned_swp_entry(swp_entry_t entry)
++{
++	/*
++	 * We treat guard pages as poisoned too as these have the same semantics
++	 * as poisoned ranges, only with different fault handling.
++	 */
++	return is_pte_marker_entry(entry) &&
++		(pte_marker_get(entry) &
++		 (PTE_MARKER_POISONED | PTE_MARKER_GUARD));
++}
++
++static inline swp_entry_t make_guard_swp_entry(void)
++{
++	return make_pte_marker_entry(PTE_MARKER_GUARD);
++}
++
++static inline int is_guard_swp_entry(swp_entry_t entry)
+ {
+ 	return is_pte_marker_entry(entry) &&
+-	    (pte_marker_get(entry) & PTE_MARKER_POISONED);
++		(pte_marker_get(entry) & PTE_MARKER_GUARD);
+ }
+ 
+ /*
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 906294ac85dc..50e3f6ed73ac 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -6353,6 +6353,9 @@ vm_fault_t hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
+ 				ret = VM_FAULT_HWPOISON_LARGE |
+ 				      VM_FAULT_SET_HINDEX(hstate_index(h));
+ 				goto out_mutex;
++			} else if (marker & PTE_MARKER_GUARD) {
++				ret = VM_FAULT_SIGSEGV;
++				goto out_mutex;
+ 			}
+ 		}
+ 
+diff --git a/mm/memory.c b/mm/memory.c
+index 0f614523b9f4..551455cd453f 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1455,7 +1455,7 @@ static inline bool should_zap_folio(struct zap_details *details,
+ 	return !folio_test_anon(folio);
+ }
+ 
+-static inline bool zap_drop_file_uffd_wp(struct zap_details *details)
++static inline bool zap_drop_markers(struct zap_details *details)
+ {
+ 	if (!details)
+ 		return false;
+@@ -1476,7 +1476,7 @@ zap_install_uffd_wp_if_needed(struct vm_area_struct *vma,
+ 	if (vma_is_anonymous(vma))
+ 		return;
+ 
+-	if (zap_drop_file_uffd_wp(details))
++	if (zap_drop_markers(details))
+ 		return;
+ 
+ 	for (;;) {
+@@ -1671,7 +1671,15 @@ static unsigned long zap_pte_range(struct mmu_gather *tlb,
+ 			 * drop the marker if explicitly requested.
+ 			 */
+ 			if (!vma_is_anonymous(vma) &&
+-			    !zap_drop_file_uffd_wp(details))
++			    !zap_drop_markers(details))
++				continue;
++		} else if (is_guard_swp_entry(entry)) {
++			/*
++			 * Ordinary zapping should not remove guard PTE
++			 * markers. Only do so if we should remove PTE markers
++			 * in general.
++			 */
++			if (!zap_drop_markers(details))
+ 				continue;
+ 		} else if (is_hwpoison_entry(entry) ||
+ 			   is_poisoned_swp_entry(entry)) {
+@@ -4003,6 +4011,10 @@ static vm_fault_t handle_pte_marker(struct vm_fault *vmf)
+ 	if (marker & PTE_MARKER_POISONED)
+ 		return VM_FAULT_HWPOISON;
+ 
++	/* Hitting a guard page is always a fatal condition. */
++	if (marker & PTE_MARKER_GUARD)
++		return VM_FAULT_SIGSEGV;
++
+ 	if (pte_marker_entry_uffd_wp(entry))
+ 		return pte_marker_handle_uffd_wp(vmf);
+ 
+-- 
+2.47.0
 
-
-> Cheers,
-> Nathan
->
-> On Mon, Oct 14, 2024 at 02:33:34PM -0700, Rong Xu wrote:
-> > Hi,
-> >
-> > This patch series is to integrate AutoFDO and Propeller support into
-> > the Linux kernel. AutoFDO is a profile-guided optimization technique
-> > that leverages hardware sampling to enhance binary performance.
-> > Unlike Instrumentation-based FDO (iFDO), AutoFDO offers a user-friendly
-> > and straightforward application process. While iFDO generally yields
-> > superior profile quality and performance, our findings reveal that
-> > AutoFDO achieves remarkable effectiveness, bringing performance close
-> > to iFDO for benchmark applications.
-> >
-> > Propeller is a profile-guided, post-link optimizer that improves
-> > the performance of large-scale applications compiled with LLVM. It
-> > operates by relinking the binary based on an additional round of runtim=
-e
-> > profiles, enabling precise optimizations that are not possible at
-> > compile time.  Similar to AutoFDO, Propeller too utilizes hardware
-> > sampling to collect profiles and apply post-link optimizations to impro=
-ve
-> > the benchmark=E2=80=99s performance over and above AutoFDO.
-> >
-> > Our empirical data demonstrates significant performance improvements
-> > with AutoFDO and Propeller, up to 10% on microbenchmarks and up to 5%
-> > on large warehouse-scale benchmarks. This makes a strong case for their
-> > inclusion as supported features in the upstream kernel.
-> >
-> > Background
-> >
-> > A significant fraction of fleet processing cycles (excluding idle time)
-> > from data center workloads are attributable to the kernel. Ware-house
-> > scale workloads maximize performance by optimizing the production kerne=
-l
-> > using iFDO (a.k.a instrumented PGO, Profile Guided Optimization).
-> >
-> > iFDO can significantly enhance application performance but its use
-> > within the kernel has raised concerns. AutoFDO is a variant of FDO that
-> > uses the hardware=E2=80=99s Performance Monitoring Unit (PMU) to collec=
-t
-> > profiling data. While AutoFDO typically yields smaller performance
-> > gains than iFDO, it presents unique benefits for optimizing kernels.
-> >
-> > AutoFDO eliminates the need for instrumented kernels, allowing a single
-> > optimized kernel to serve both execution and profile collection. It als=
-o
-> > minimizes slowdown during profile collection, potentially yielding
-> > higher-fidelity profiling, especially for time-sensitive code, compared
-> > to iFDO. Additionally, AutoFDO profiles can be obtained from production
-> > environments via the hardware=E2=80=99s PMU whereas iFDO profiles requi=
-re
-> > carefully curated load tests that are representative of real-world
-> > traffic.
-> >
-> > AutoFDO facilitates profile collection across diverse targets.
-> > Preliminary studies indicate significant variation in kernel hot spots
-> > within Google=E2=80=99s infrastructure, suggesting potential performanc=
-e gains
-> > through target-specific kernel customization.
-> >
-> > Furthermore, other advanced compiler optimization techniques, including
-> > ThinLTO and Propeller can be stacked on top of AutoFDO, similar to iFDO=
-.
-> > ThinLTO achieves better runtime performance through whole-program
-> > analysis and cross module optimizations. The main difference between
-> > traditional LTO and ThinLTO is that the latter is scalable in time and
-> > memory.
-> >
-> > This patch series adds AutoFDO and Propeller support to the kernel. The
-> > actual solution comes in six parts:
-> >
-> > [P 1] Add the build support for using AutoFDO in Clang
-> >
-> >       Add the basic support for AutoFDO build and provide the
-> >       instructions for using AutoFDO.
-> >
-> > [P 2] Fix objtool for bogus warnings when -ffunction-sections is enable=
-d
-> >
-> > [P 3] Change the subsection ordering when -ffunction-sections is enable=
-d
-> >
-> > [P 4] Enable =E2=80=93ffunction-sections for the AutoFDO build
-> >
-> > [P 5] Enable Machine Function Split (MFS) optimization for AutoFDO
-> >
-> > [P 6] Add Propeller configuration to the kernel build
-> >
-> > Patch 1 provides basic AutoFDO build support. Patches 2 to 5 further
-> > enhance the performance of AutoFDO builds and are functionally dependen=
-t
-> > on Patch 1. Patch 6 enables support for Propeller and is dependent on
-> > patch 2 and patch 3.
-> >
-> > Caveats
-> >
-> > AutoFDO is compatible with both GCC and Clang, but the patches in this
-> > series are exclusively applicable to LLVM 17 or newer for AutoFDO and
-> > LLVM 19 or newer for Propeller. For profile conversion, two different
-> > tools could be used, llvm_profgen or create_llvm_prof. llvm_profgen
-> > needs to be the LLVM 19 or newer, or just the LLVM trunk. Alternatively=
-,
-> > create_llvm_prof v0.30.1 or newer can be used instead of llvm-profgen.
-> >
-> > Additionally, the build is only supported on x86 platforms equipped
-> > with PMU capabilities, such as LBR on Intel machines. More
-> > specifically:
-> >  * Intel platforms: works on every platform that supports LBR;
-> >    we have tested on Skylake.
-> >  * AMD platforms: tested on AMD Zen3 with the BRS feature. The kernel
-> >    needs to be configured with =E2=80=9CCONFIG_PERF_EVENTS_AMD_BRS=3Dy"=
-, To
-> >    check, use
-> >    $ cat /proc/cpuinfo | grep =E2=80=9C brs=E2=80=9D
-> >    For the AMD Zen4, AMD LBRV2 is supported, but we suspect a bug with
-> >    AMD LBRv2 implementation in Genoa which blocks the usage.
-> >
-> > Experiments and Results
-> >
-> > Experiments were conducted to compare the performance of AutoFDO-optimi=
-zed
-> > kernel images (version 6.9.x) against default builds.. The evaluation
-> > encompassed both open source microbenchmarks and real-world production
-> > services from Google and Meta. The selected microbenchmarks included Ne=
-per,
-> > a network subsystem benchmark, and UnixBench which is a comprehensive s=
-uite
-> > for assessing various kernel operations.
-> >
-> > For Neper, AutoFDO optimization resulted in a 6.1% increase in throughp=
-ut
-> > and a 10.6% reduction in latency. Unixbench saw a 2.2% improvement in i=
-ts
-> > index score under low system load and a 2.6% improvement under high sys=
-tem
-> > load.
-> >
-> > For further details on the improvements observed in Google and Meta's
-> > production services, please refer to the LLVM discourse post:
-> > https://discourse.llvm.org/t/optimizing-the-linux-kernel-with-autofdo-i=
-ncluding-thinlto-and-propeller/79108
-> ...
-> > Rong Xu (6):
-> >   Add AutoFDO support for Clang build
-> >   objtool: Fix unreachable instruction warnings for weak funcitons
-> >   Change the symbols order when --ffuntion-sections is enabled
-> >   AutoFDO: Enable -ffunction-sections for the AutoFDO build
-> >   AutoFDO: Enable machine function split optimization for AutoFDO
-> >   Add Propeller configuration for kernel build.
-> >
-> >  Documentation/dev-tools/autofdo.rst   | 165 ++++++++++++++++++++++++++
-> >  Documentation/dev-tools/index.rst     |   2 +
-> >  Documentation/dev-tools/propeller.rst | 161 +++++++++++++++++++++++++
-> >  MAINTAINERS                           |  14 +++
-> >  Makefile                              |   2 +
-> >  arch/Kconfig                          |  42 +++++++
-> >  arch/x86/Kconfig                      |   2 +
-> >  arch/x86/kernel/vmlinux.lds.S         |   4 +
-> >  include/asm-generic/vmlinux.lds.h     |  54 +++++++--
-> >  scripts/Makefile.autofdo              |  25 ++++
-> >  scripts/Makefile.lib                  |  20 ++++
-> >  scripts/Makefile.propeller            |  28 +++++
-> >  tools/objtool/check.c                 |   2 +
-> >  tools/objtool/elf.c                   |  15 ++-
-> >  14 files changed, 524 insertions(+), 12 deletions(-)
-> >  create mode 100644 Documentation/dev-tools/autofdo.rst
-> >  create mode 100644 Documentation/dev-tools/propeller.rst
-> >  create mode 100644 scripts/Makefile.autofdo
-> >  create mode 100644 scripts/Makefile.propeller
-> >
-> >
-> > base-commit: eb952c47d154ba2aac794b99c66c3c45eb4cc4ec
-> > --
-> > 2.47.0.rc1.288.g06298d1525-goog
-> >
-
-
-
---
-Best Regards
-Masahiro Yamada
