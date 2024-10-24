@@ -1,79 +1,74 @@
 Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 695661FC7EA;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 695B41FC7F6;
 	Thu, 24 Oct 2024 17:56:25 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.158.5
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1729792587; cv=none; b=KrUkGSRk6Wu2HWSP1Zzeiqt6Pwaa7caHwi3/dTwQEmnuRb0zubtZ2K+9b6fYTNsy6mfzN06tmTU7BNofVyvqAfrEYP/0My9/h+UxnkbiKWSZ+VtlXNRN4Lso31mKwyskN2JtGwFcSUWAQm14tGhnBslqtMl3JkElpg3Q2XsnQzA=
+	t=1729792587; cv=none; b=gF+cZ5YlGtY/rqXb0mlC8BP1lrZlF1uAoEPrNkGJ0YLcAEX4dnTd9TTOivZu9R1sWApdvQTp0BSfg9f/hwRY1cV+B+l6PVoQBGVSl/gtT8fNkzWeo83NkHdl62CjHdMCcmqRNhVRnfmNf8spTlk7wKoy2S07kreHx9unXiI0dg0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1729792587; c=relaxed/simple;
-	bh=pJfEvcklGNmMrN2u9QI22EkwnjUVJjMUQzN4oenrdnE=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=ZBfoywhXZVpACz+BfcF8zihlwfbZa/IUxrix6Dk85Sbg9a2e7rtXOa+WZ4qjYmZ7bhqZHYjA6QP/gOBXOmP/MCwLanMj/glcqYiuM+0rqCPMDs1p+Ee99hS+WI5zdimMCgxttr4EyKXDCX/qib0q0PTjXn99VbY9ys5NQuGWMgo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=IKA64ztA; arc=none smtp.client-ip=148.163.158.5
+	bh=dwa97Zv3mMxp89DjOwcC74hl8WXFjK0hXQS5Qkk1N/M=;
+	h=From:Subject:Date:Message-Id:Content-Type:To:Cc:MIME-Version; b=hzFcrNdPY9S0zswUr4s7/XduTW3PkpULFWwXvVFPY3MbgAnMNKpiwv8GdJnCC8MXCxzWS+7wHZJ6UvFgY+40a9dDJvmcuVMKoGAyEmSlrxseL0c/uX+rw00nPCa1Ds0ECabuqLFt+OUDVj7B+bTaluA12H+LPcKQ4c/dz7Bv1ew=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=D5Lv+pQ7; arc=none smtp.client-ip=148.163.158.5
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="IKA64ztA"
-Received: from pps.filterd (m0353725.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 49OGXrvJ016758;
-	Thu, 24 Oct 2024 17:56:06 GMT
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="D5Lv+pQ7"
+Received: from pps.filterd (m0356516.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 49OEUgn4025218;
+	Thu, 24 Oct 2024 17:55:57 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
-	:content-transfer-encoding:content-type:date:from:in-reply-to
-	:message-id:mime-version:references:subject:to; s=pp1; bh=3LyFLj
-	L8Yyakboki3xOWjFqUv3Ts5bBdNjMbUaQozo0=; b=IKA64ztAENOpVCqvn2BM4k
-	eBgbFd+u56QDHFQv3ekONODYNM+7Ogi/7RXgsqefSHbAHfXnQyAX1S5XSZYU57Oz
-	us7zB9rFluBG3qwXxwggZn0m6Mko0YP8r95du6ki05qPgAZGygiTk+A1f/ATG2vf
-	4h6qb9kjWTHjqJTdZpvS+MOqjx+GR8M8j2Nlzxl3HZW1pBO++1XF8fsXASy/HY+F
-	pQkLHolyhzgThdTqmgtluLo1IFK6BqV3MQ/k2JbsO8CwjGKqYYnt+s1oAY8uL2Cn
-	CZNZqqsSCbIuXjoM3Rz7BpaXRIGbHsOeV6PaklABZTr43w/ZCkrzLY/g3p17PW0w
-	==
+	:content-transfer-encoding:content-type:date:from:message-id
+	:mime-version:subject:to; s=pp1; bh=xnEGdyTnpg4xM+QjkDVMi2R9voLU
+	vQJVrDKuSvjiRtc=; b=D5Lv+pQ7rewYUy72gB3EE0/NM8xN1S8kqgsBD2M8c31t
+	X4AoKRl21BtN5j3SlHYHcpT7CtZwlwaiOJOuLr4XTp3jrsNnqH7Ail+31H2LWEpz
+	OggWto5gr21gA6ajFGQzOWurjCsQOB/vdhdl8wn6OOoCiOc5lVhc+kFTxVhjBSrz
+	LKJdnDSZDw2DV8YtrTMWhVrdJTXnQvZyf18YGkwWvPmf2VWSmQhKdlI9Dfy54X8E
+	xC5GryC4OijXnJprAGkdQThVUXQoQjcm+17uoT8ZyAI0caUfbYru5XNUTA6P4g1r
+	40jG/xK1b/56EbWF6KcC+P6rvSchWr6eQOKL60mt+Q==
 Received: from pps.reinject (localhost [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 42emajt2k6-1
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 42emaf21r2-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Thu, 24 Oct 2024 17:56:06 +0000 (GMT)
-Received: from m0353725.ppops.net (m0353725.ppops.net [127.0.0.1])
-	by pps.reinject (8.18.0.8/8.18.0.8) with ESMTP id 49OHrFRb028350;
-	Thu, 24 Oct 2024 17:56:05 GMT
-Received: from ppma11.dal12v.mail.ibm.com (db.9e.1632.ip4.static.sl-reverse.com [50.22.158.219])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 42emajt2k1-1
+	Thu, 24 Oct 2024 17:55:56 +0000 (GMT)
+Received: from m0356516.ppops.net (m0356516.ppops.net [127.0.0.1])
+	by pps.reinject (8.18.0.8/8.18.0.8) with ESMTP id 49OHttc3019270;
+	Thu, 24 Oct 2024 17:55:55 GMT
+Received: from ppma22.wdc07v.mail.ibm.com (5c.69.3da9.ip4.static.sl-reverse.com [169.61.105.92])
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 42emaf21qw-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Thu, 24 Oct 2024 17:56:05 +0000 (GMT)
-Received: from pps.filterd (ppma11.dal12v.mail.ibm.com [127.0.0.1])
-	by ppma11.dal12v.mail.ibm.com (8.18.1.2/8.18.1.2) with ESMTP id 49OEWT7C008796;
-	Thu, 24 Oct 2024 17:56:04 GMT
-Received: from smtprelay05.dal12v.mail.ibm.com ([172.16.1.7])
-	by ppma11.dal12v.mail.ibm.com (PPS) with ESMTPS id 42emkasq7q-1
+	Thu, 24 Oct 2024 17:55:55 +0000 (GMT)
+Received: from pps.filterd (ppma22.wdc07v.mail.ibm.com [127.0.0.1])
+	by ppma22.wdc07v.mail.ibm.com (8.18.1.2/8.18.1.2) with ESMTP id 49OHsDxE014565;
+	Thu, 24 Oct 2024 17:55:55 GMT
+Received: from smtprelay01.wdc07v.mail.ibm.com ([172.16.1.68])
+	by ppma22.wdc07v.mail.ibm.com (PPS) with ESMTPS id 42emk81pbp-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Thu, 24 Oct 2024 17:56:04 +0000
+	Thu, 24 Oct 2024 17:55:55 +0000
 Received: from smtpav03.wdc07v.mail.ibm.com (smtpav03.wdc07v.mail.ibm.com [10.39.53.230])
-	by smtprelay05.dal12v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 49OHu37837945732
+	by smtprelay01.wdc07v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 49OHtrAN49021382
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Thu, 24 Oct 2024 17:56:03 GMT
+	Thu, 24 Oct 2024 17:55:53 GMT
 Received: from smtpav03.wdc07v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 8469258054;
-	Thu, 24 Oct 2024 17:56:03 +0000 (GMT)
+	by IMSVA (Postfix) with ESMTP id A12885805D;
+	Thu, 24 Oct 2024 17:55:53 +0000 (GMT)
 Received: from smtpav03.wdc07v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id DD32A5805C;
-	Thu, 24 Oct 2024 17:55:58 +0000 (GMT)
+	by IMSVA (Postfix) with ESMTP id ECE5A5805C;
+	Thu, 24 Oct 2024 17:55:48 +0000 (GMT)
 Received: from tuxmaker.boeblingen.de.ibm.com (unknown [9.152.85.9])
 	by smtpav03.wdc07v.mail.ibm.com (Postfix) with ESMTP;
-	Thu, 24 Oct 2024 17:55:58 +0000 (GMT)
+	Thu, 24 Oct 2024 17:55:48 +0000 (GMT)
 From: Niklas Schnelle <schnelle@linux.ibm.com>
-Date: Thu, 24 Oct 2024 19:54:41 +0200
-Subject: [PATCH v9 2/5] Bluetooth: add HAS_IOPORT dependencies
-Precedence: bulk
-X-Mailing-List: linux-arch@vger.kernel.org
-List-Id: <linux-arch.vger.kernel.org>
-List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
-List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
+Subject: [PATCH v9 0/5] treewide: Remove I/O port accessors for
+ HAS_IOPORT=n
+Date: Thu, 24 Oct 2024 19:54:39 +0200
+Message-Id: <20241024-b4-has_ioport-v9-0-6a6668593f71@linux.ibm.com>
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20241024-b4-has_ioport-v9-2-6a6668593f71@linux.ibm.com>
-References: <20241024-b4-has_ioport-v9-0-6a6668593f71@linux.ibm.com>
-In-Reply-To: <20241024-b4-has_ioport-v9-0-6a6668593f71@linux.ibm.com>
+X-B4-Tracking: v=1; b=H4sIAN+JGmcC/33M0QqCMBiG4VuRHTeZurbZUfcREXP7zR/SyWZii
+ PfeFIKQ6PD94HtmEsAjBHJKZuJhxICui1EeEmIa3d2Boo1NcpbzjDFOK04bHW7oeucHKpg2wkB
+ moRIkfnoPNU6bd7nGbjAMzr82fhTr+pHkThoFZZQVtcw5s1rA8fzA7jmlWLWpcS1ZtVF+C2ovy
+ CgokXPDSs2tlL8E9VdQUZBlAUJp0NbqvbAsyxuhkJDsMgEAAA==
+X-Change-ID: 20241004-b4-has_ioport-60ac6ce1deb6
 To: Brian Cain <bcain@quicinc.com>, Marcel Holtmann <marcel@holtmann.org>,
         Luiz Augusto von Dentz <luiz.dentz@gmail.com>,
         Patrik Jakobsson <patrik.r.jakobsson@gmail.com>,
@@ -96,70 +91,125 @@ Cc: linux-kernel@vger.kernel.org, linux-hexagon@vger.kernel.org,
         linux-arch@vger.kernel.org, Niklas Schnelle <schnelle@linux.ibm.com>,
         Arnd Bergmann <arnd@kernel.org>
 X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1456;
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3956;
  i=schnelle@linux.ibm.com; h=from:subject:message-id;
- bh=pJfEvcklGNmMrN2u9QI22EkwnjUVJjMUQzN4oenrdnE=;
- b=owGbwMvMwCX2Wz534YHOJ2GMp9WSGNKlutgTrxtUX+lZbH1wZx+T9QTzgKp/ls9P7Fy6476zd
- 9XWvXNNOkpZGMS4GGTFFFkWdTn7rSuYYronqL8DZg4rE8gQBi5OAZjI63MMf6XLtcNtt/aeZElI
- bL7tf12zsV3y7A+WCRU7qqaX7l1a4srwT5tjp3uhqLGgQN6912btWprT70ekiXLxCcYf232LTfw
- 1GwA=
+ bh=dwa97Zv3mMxp89DjOwcC74hl8WXFjK0hXQS5Qkk1N/M=;
+ b=owGbwMvMwCX2Wz534YHOJ2GMp9WSGNKlOn/9Tc23s9+Ytnn2beaQUpMX53o17DdMPuE2uUGgZ
+ bHY3IvNHaUsDGJcDLJiiiyLupz91hVMMd0T1N8BM4eVCWQIAxenAEzEXIThf/Zd8bd1jy8tTfGt
+ P9MY+cfvW5DanO1/VpzuKCkyE/JMSWJkmKYevFJimtD5l0cvW2x349jvJy1859+vPwUzL3xxElx
+ 1hAsA
 X-Developer-Key: i=schnelle@linux.ibm.com; a=openpgp;
  fpr=9DB000B2D2752030A5F72DDCAFE43F15E8C26090
 X-TM-AS-GCONF: 00
-X-Proofpoint-ORIG-GUID: IIbcPKs_O30yPQ3Dbh1Y1ZKVphvQuY4m
-X-Proofpoint-GUID: QcsaUtEx0xSI6N2I4-IXLJ-TWCkGmNgg
+X-Proofpoint-GUID: ZzK5_Bh6ZhzA52n2zOUZDhguzOYUudTo
+X-Proofpoint-ORIG-GUID: oNqOtwFfRbanHLYgT_LLYcqw484r7CU5
+Content-Transfer-Encoding: 7bit
+X-Proofpoint-UnRewURL: 0 URL was un-rewritten
+Precedence: bulk
+X-Mailing-List: linux-arch@vger.kernel.org
+List-Id: <linux-arch.vger.kernel.org>
+List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
+List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.293,Aquarius:18.0.1051,Hydra:6.0.680,FMLib:17.12.62.30
  definitions=2024-10-15_01,2024-10-11_01,2024-09-30_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 clxscore=1015 malwarescore=0
- mlxscore=0 phishscore=0 priorityscore=1501 suspectscore=0 impostorscore=0
- lowpriorityscore=0 spamscore=0 mlxlogscore=929 bulkscore=0 adultscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.19.0-2409260000
- definitions=main-2410240145
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 malwarescore=0
+ lowpriorityscore=0 phishscore=0 spamscore=0 mlxscore=0 mlxlogscore=999
+ priorityscore=1501 suspectscore=0 clxscore=1011 impostorscore=0
+ bulkscore=0 adultscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.19.0-2409260000 definitions=main-2410240145
 
-In a future patch HAS_IOPORT=n will disable inb()/outb() and friends at
-compile time. We thus need to add HAS_IOPORT as dependency for those
-drivers using them.
+Hi All,
 
-Co-developed-by: Arnd Bergmann <arnd@kernel.org>
-Signed-off-by: Arnd Bergmann <arnd@kernel.org>
+This is a follow up in my long running effort of making inb()/outb() and
+similar I/O port accessors compile-time optional. After initially
+sending this as a treewide series with the latest revision at[0]
+we switched to per subsystem series. Now though as we're left with only
+5 patches left I'm going back to a single series with Arnd planning
+to take this via the the asm-generic tree.
+
+This series may also be viewed for your convenience on my git.kernel.org
+tree[1] under the b4/has_ioport branch. As for compile-time vs runtime
+see Linus' reply to my first attempt[2].
+
+Thanks,
+Niklas
+
+[0] https://lore.kernel.org/all/20230522105049.1467313-1-schnelle@linux.ibm.com/
+[1] https://git.kernel.org/pub/scm/linux/kernel/git/niks/linux.git
+[2] https://lore.kernel.org/lkml/CAHk-=wg80je=K7madF4e7WrRNp37e3qh6y10Svhdc7O8SZ_-8g@mail.gmail.com/
+
 Signed-off-by: Niklas Schnelle <schnelle@linux.ibm.com>
 ---
- drivers/bluetooth/Kconfig | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+Changes in v9:
+- In drm patch sort includes and reformat if (Thomas). Use IS_ENABELD()
+  and add a helper instead of #ifdef (Arnd, Thomas)
+- Rebased on v6.12-rc4
+- Compile tested applied to next. There are a few conflicts with drm
+  next but they're all just context changes
+- Link to v8: https://lore.kernel.org/r/20241008-b4-has_ioport-v8-0-793e68aeadda@linux.ibm.com
 
-diff --git a/drivers/bluetooth/Kconfig b/drivers/bluetooth/Kconfig
-index 18767b54df352e929692850dc789d9377839e094..4ab32abf0f48644715d4c27ec0d2fdaccef62b76 100644
---- a/drivers/bluetooth/Kconfig
-+++ b/drivers/bluetooth/Kconfig
-@@ -336,7 +336,7 @@ config BT_HCIBFUSB
- 
- config BT_HCIDTL1
- 	tristate "HCI DTL1 (PC Card) driver"
--	depends on PCMCIA
-+	depends on PCMCIA && HAS_IOPORT
- 	help
- 	  Bluetooth HCI DTL1 (PC Card) driver.
- 	  This driver provides support for Bluetooth PCMCIA devices with
-@@ -349,7 +349,7 @@ config BT_HCIDTL1
- 
- config BT_HCIBT3C
- 	tristate "HCI BT3C (PC Card) driver"
--	depends on PCMCIA
-+	depends on PCMCIA && HAS_IOPORT
- 	select FW_LOADER
- 	help
- 	  Bluetooth HCI BT3C (PC Card) driver.
-@@ -363,7 +363,7 @@ config BT_HCIBT3C
- 
- config BT_HCIBLUECARD
- 	tristate "HCI BlueCard (PC Card) driver"
--	depends on PCMCIA
-+	depends on PCMCIA && HAS_IOPORT
- 	help
- 	  Bluetooth HCI BlueCard (PC Card) driver.
- 	  This driver provides support for Bluetooth PCMCIA devices with
+Changes in v8:
+- Don't remove "depends on !S390" for SERIAL_8250
+- Link to v7: https://lore.kernel.org/r/20241008-b4-has_ioport-v7-0-8624c09a4d77@linux.ibm.com
 
+Changes in v7:
+- Renamed serial_8250_need_ioport() helper to
+  serial_8250_warn_need_ioport() and move it to 8250_pcilib.c so it can
+  be used in serial8250_pci_setup_port()
+- Flattened if in serial8250_pci_setup_port() (Maciej)
+- Removed gratuituous changes (Maciej)
+- Removed is_upf_fourport() helper in favor of zeroing UPF_FOURPORT
+  if CONFIG_HAS_IOPORT is not set (Maciej)
+- Link to v6: https://lore.kernel.org/r/20241007-b4-has_ioport-v6-0-03f7240da6e5@linux.ibm.com
+
+Changes since v5 / per subsystem patches:
+
+drm:
+- Add HAS_IOPORT dependency for GMA500
+tty: serial:
+- Make 8250 PCI driver emit an error message when trying to use devices
+  which require I/O ports without CONFIG_HAS_IOPORT (Maciej)
+- Use early returns + dead code elimination to skip inb()/outb() uses
+  in quirks (Arnd)
+- In 8250 PCI driver also handle fintek and moxi quirks
+- In 8250 ports code handle um's defined(__i385__) &&
+  defined(CONFIG_HAS_IOPORT) case
+- Use IS_ENABLED() early return also in is_upf_fourport()
+  __always_inline to force constant folding
+
+---
+Niklas Schnelle (5):
+      hexagon: Don't select GENERIC_IOMAP without HAS_IOPORT support
+      Bluetooth: add HAS_IOPORT dependencies
+      drm: handle HAS_IOPORT dependencies
+      tty: serial: handle HAS_IOPORT dependencies
+      asm-generic/io.h: Remove I/O port accessors for HAS_IOPORT=n
+
+ arch/hexagon/Kconfig                  |  1 -
+ drivers/bluetooth/Kconfig             |  6 ++--
+ drivers/gpu/drm/gma500/Kconfig        |  2 +-
+ drivers/gpu/drm/qxl/Kconfig           |  2 +-
+ drivers/gpu/drm/tiny/bochs.c          | 19 ++++++++---
+ drivers/gpu/drm/tiny/cirrus.c         |  2 ++
+ drivers/gpu/drm/xe/Kconfig            |  2 +-
+ drivers/tty/Kconfig                   |  4 +--
+ drivers/tty/serial/8250/8250_early.c  |  4 +++
+ drivers/tty/serial/8250/8250_pci.c    | 40 +++++++++++++++++++++++
+ drivers/tty/serial/8250/8250_pcilib.c | 12 ++++++-
+ drivers/tty/serial/8250/8250_pcilib.h |  2 ++
+ drivers/tty/serial/8250/8250_port.c   | 27 +++++++++++++---
+ drivers/tty/serial/8250/Kconfig       |  4 +--
+ drivers/tty/serial/Kconfig            |  2 +-
+ include/asm-generic/io.h              | 60 +++++++++++++++++++++++++++++++++++
+ include/linux/serial_core.h           |  4 +++
+ 17 files changed, 171 insertions(+), 22 deletions(-)
+---
+base-commit: 42f7652d3eb527d03665b09edac47f85fb600924
+change-id: 20241004-b4-has_ioport-60ac6ce1deb6
+
+Best regards,
 -- 
-2.45.2
+Niklas Schnelle
 
