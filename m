@@ -1,189 +1,123 @@
-Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lf1-f47.google.com (mail-lf1-f47.google.com [209.85.167.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B1B51D90B4;
-	Fri, 25 Oct 2024 09:41:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A99421BCA0C;
+	Fri, 25 Oct 2024 09:58:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1729849279; cv=none; b=fbdrSYqf4iiGeW3vi6NGAsWoQ4QPLuK9S8I2qPen0sT32MxmKh6ApGOyS75Dx/Y8PgBF4YRPTRG3B85k7LiZA4EEd0lxtELL6MnQGD3/RvNp69+TSX78sUd9mq5jxp96g/8Zvjbi4mQJ97a1/77aj8oyhFdclB9+n6jbnSekE9o=
+	t=1729850303; cv=none; b=H9XRGgDj/dpMqHnHzaQ9hDnmzwCkXUlr0TKKPngWrJphSHz21ZqWpSqbzq0WJpu41Eo7MSK5m94N4x7LyRrZaijIvhTg11dJd2sviVk8ACXSRhE7gnHgQ0p4ePzYYvazlaxlEqZ0f8hJEnVB8i91LGnFYDolJxtfHymxf36sAIg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1729849279; c=relaxed/simple;
-	bh=WKchFVXnj6SKM18yijVrqOA+u2bmi/cCI+xywo0KwFk=;
-	h=Message-Id:Date:From:To:Cc:Subject:References:MIME-Version:
-	 Content-Type; b=URTjYbtGYGr/TxY6vKJqLq9U3ysXyfjcSaWFWw/9Tdl11Hgmlas7Zt9OCJyFbLq/tTOJ48ot10zXLPQnwhWFsGdM7ptpBRZ9qlQcaTZc6lREhtDb2hxok45pdqNeDIXqwsHmJ4xJ11WB/qwWqTadQJMCQ6GJ60rPJNrZw+eGLx8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=mHf3VaB+; arc=none smtp.client-ip=90.155.92.199
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1729850303; c=relaxed/simple;
+	bh=m8kySb3Ln3L0rkCO67Dz3c9CR2j8I3dbStdCUIbsTbs=;
+	h=From:Date:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=ucWO8LdOJTMzucIQlbgX73RY812OBxv7b+DJh+50L1paIMlS2Hb658L6wuZzwhDJ4Ixb0maYB+Uer+h1CDp1uhjwL/a+jub3P90+c0DkaeAUBj3z4qP087njT5FhX+ZaD+5GfXNYPtH5GobDD+oivYyoKkSO+1m/9A8epZtat+M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=LKIvcOli; arc=none smtp.client-ip=209.85.167.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="mHf3VaB+"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=desiato.20200630; h=Content-Type:MIME-Version:References:
-	Subject:Cc:To:From:Date:Message-Id:Sender:Reply-To:Content-Transfer-Encoding:
-	Content-ID:Content-Description:In-Reply-To;
-	bh=U0D/97Jan/1h5/mHQt4BdsZRHtXtzjdUFE/GVa1R21M=; b=mHf3VaB+HmQHmxesCbnKkAMi2d
-	sZG3k9IRWCQW3O2HIyPWhAEPdZw/T3W1b/yG1wTuewo6QaSkAYvR++sMpfAZVuGx3gAFXcYqQzSQT
-	j4xVtIecla88uLIdFVu1LiFvwB4Cq782IvCH+uJzMi+7MndvdPq+OAGDQKLipcXDSxxMKBmDn/vdg
-	hZG4GTC4vYB7tQPNZKR62OMPaydbPwqbxB3+jfYTpnV+ZwwlH3kRgwWBYGKfLduwn6uwoNeHSNsHi
-	bSqf1vVyNKE51O8hMxkxgID8XJZpxqWOz/FjDNFHXb7tgBbBOe6zscEWeuaj1ox6NMer/4J3zvV/9
-	pd4m9big==;
-Received: from j130084.upc-j.chello.nl ([24.132.130.84] helo=noisy.programming.kicks-ass.net)
-	by desiato.infradead.org with esmtpsa (Exim 4.98 #2 (Red Hat Linux))
-	id 1t4GoU-00000008sa8-1mSU;
-	Fri, 25 Oct 2024 09:40:59 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 0)
-	id D5DAD301171; Fri, 25 Oct 2024 11:40:57 +0200 (CEST)
-Message-Id: <20241025093944.598921704@infradead.org>
-User-Agent: quilt/0.65
-Date: Fri, 25 Oct 2024 11:03:50 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-To: tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org,
- peterz@infradead.org,
- mingo@redhat.com,
- dvhart@infradead.org,
- dave@stgolabs.net,
- andrealmeid@igalia.com,
- Andrew Morton <akpm@linux-foundation.org>,
- urezki@gmail.com,
- hch@infradead.org,
- lstoakes@gmail.com,
- Arnd Bergmann <arnd@arndb.de>,
- linux-api@vger.kernel.org,
- linux-mm@kvack.org,
- linux-arch@vger.kernel.org,
- malteskarupke@web.de,
- cl@linux.com,
- llong@redhat.com
-Subject: [PATCH 3/6] futex: Propagate flags into futex_get_value_locked()
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="LKIvcOli"
+Received: by mail-lf1-f47.google.com with SMTP id 2adb3069b0e04-539e4b7409fso1958551e87.0;
+        Fri, 25 Oct 2024 02:58:21 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1729850300; x=1730455100; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:date:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=i5pjU6XgMUY2DW3lmDrsl6sxn45lVjUs8uVDSTfykzw=;
+        b=LKIvcOliuZpVmu5xnsG+fvCuayO2jIoqrt+fNZwHUWyKqaoy65MdllWO/GVE2VL8C9
+         rb5I2UHEh7TqeUHNhKX0vO1XUAZEOPWKB4E41gMIJUIOKNCddUqT/hqqcUPnAzn/LO60
+         2jAtEqRaRmRfP+etbTQltfHZk/u2KNN4RZfW0VfaIvyceTnOzEtmHqREOwMa4kQ9eq7m
+         buJPXyWXG0b2nheRzLN+d8zk3aNRVg/GwIQqk+ZWBcLpSkwYzRnM0/JUDjNHCV/dTxQj
+         nd//Fv2mvLgjJees2xMb+1M/A0WMEkzKa760o4ptdmIODBFZ3sB+s0rLw/cUcJPBfkPM
+         2A1Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1729850300; x=1730455100;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:date:from:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=i5pjU6XgMUY2DW3lmDrsl6sxn45lVjUs8uVDSTfykzw=;
+        b=SOrde25PjdKKQ8GJOuy/mGWjqzvK41VZiXvOluGYuXor3SlAv66dENf5xqX1tV9uaK
+         Id14kfcSPGkS3U9Rc1FBNCjHYLoPH45aVLSDB6984wiEDVkxPMOluIKhVcsiTOen3to5
+         wUEDZLjQPFbpbAmQr5GjfAUZ6JcZx91LZKaawfPNten6MuOq9YPS67v9SAy/0uOgnKgu
+         Tyv9cz7gXGjGppEwoJlhZkZFJVPGiwDVouQ6tdioGWpDcWT3IfeoKm00SPhZoZmo92TI
+         72ZvflfSdH1/8EvLH+IVcAMGEhWe31+bAR4rjAphzRhBEEfxJd8CydEVPV0R+EkOeFFJ
+         4ejw==
+X-Forwarded-Encrypted: i=1; AJvYcCUw6VAzkpRVdUieV8s89IfvgnA1eHKic1wcCRTiJgTyH4eQUOtw1SAXEWIBxbIP3I80EpNj9EzblKX1BQ==@vger.kernel.org, AJvYcCXN0thx98iOyq+UrkhV2w2gPvSyKy9VOF7z2fY0InRlp5Npe0Lz97VsoWLu62OETMUCZMUyjYt74Na0D6Mo@vger.kernel.org, AJvYcCXPFHS3/p9HIX3tK05j4F65UE7fFjF8v+sgy1g5MGCGBy1JljADfz0fEPt4FHxmMkYMfAIIbcFi8EM=@vger.kernel.org
+X-Gm-Message-State: AOJu0YwLbGoT/MgTNdilwCIzD2NVBQChK8/WVScg0k0lMpay46ybEvuR
+	T35ANwqK7ougJdQM3dAPa2iAmeH19GokZS9djovoIj4bHFeIHQjJ
+X-Google-Smtp-Source: AGHT+IGpDxS5G3/tgaKmgGoZuR4E+jQQ4DDYVIEthmTHaAuJDOjnX6dvesznCnpBiD5YPHb/6KyA4Q==
+X-Received: by 2002:a05:6512:3352:b0:533:415e:cd9a with SMTP id 2adb3069b0e04-53b2374cff5mr1325350e87.23.1729850299479;
+        Fri, 25 Oct 2024 02:58:19 -0700 (PDT)
+Received: from pc636 (host-90-233-221-2.mobileonline.telia.com. [90.233.221.2])
+        by smtp.gmail.com with ESMTPSA id 2adb3069b0e04-53b2e10a513sm119530e87.33.2024.10.25.02.58.17
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 25 Oct 2024 02:58:18 -0700 (PDT)
+From: Uladzislau Rezki <urezki@gmail.com>
+X-Google-Original-From: Uladzislau Rezki <urezki@pc636>
+Date: Fri, 25 Oct 2024 11:58:15 +0200
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, mingo@redhat.com,
+	dvhart@infradead.org, dave@stgolabs.net, andrealmeid@igalia.com,
+	Andrew Morton <akpm@linux-foundation.org>, urezki@gmail.com,
+	hch@infradead.org, lstoakes@gmail.com,
+	Arnd Bergmann <arnd@arndb.de>, linux-api@vger.kernel.org,
+	linux-mm@kvack.org, linux-arch@vger.kernel.org,
+	malteskarupke@web.de, cl@linux.com, llong@redhat.com,
+	Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 1/6] mm: Add vmalloc_huge_node()
+Message-ID: <Zxtrt7f8rFwIknbB@pc636>
 References: <20241025090347.244183920@infradead.org>
+ <20241025093944.372391936@infradead.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20241025093944.372391936@infradead.org>
 
-In order to facilitate variable sized futexes propagate the flags into
-futex_get_value_locked().
+On Fri, Oct 25, 2024 at 11:03:48AM +0200, Peter Zijlstra wrote:
+> To enable node specific hash-tables.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Reviewed-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  include/linux/vmalloc.h |    3 +++
+>  mm/vmalloc.c            |    7 +++++++
+>  2 files changed, 10 insertions(+)
+> 
+> --- a/include/linux/vmalloc.h
+> +++ b/include/linux/vmalloc.h
+> @@ -177,6 +177,9 @@ void *__vmalloc_node_noprof(unsigned lon
+>  void *vmalloc_huge_noprof(unsigned long size, gfp_t gfp_mask) __alloc_size(1);
+>  #define vmalloc_huge(...)	alloc_hooks(vmalloc_huge_noprof(__VA_ARGS__))
+>  
+> +void *vmalloc_huge_node_noprof(unsigned long size, gfp_t gfp_mask, int node) __alloc_size(1);
+> +#define vmalloc_huge_node(...)	alloc_hooks(vmalloc_huge_node_noprof(__VA_ARGS__))
+> +
+>  extern void *__vmalloc_array_noprof(size_t n, size_t size, gfp_t flags) __alloc_size(1, 2);
+>  #define __vmalloc_array(...)	alloc_hooks(__vmalloc_array_noprof(__VA_ARGS__))
+>  
+> --- a/mm/vmalloc.c
+> +++ b/mm/vmalloc.c
+> @@ -3948,6 +3948,13 @@ void *vmalloc_huge_noprof(unsigned long
+>  }
+>  EXPORT_SYMBOL_GPL(vmalloc_huge_noprof);
+>  
+> +void *vmalloc_huge_node_noprof(unsigned long size, gfp_t gfp_mask, int node)
+> +{
+> +	return __vmalloc_node_range(size, 1, VMALLOC_START, VMALLOC_END,
+> +				    gfp_mask, PAGE_KERNEL, VM_ALLOW_HUGE_VMAP,
+> +				    node, __builtin_return_address(0));
+> +}
+> +
+>  /**
+>   * vzalloc - allocate virtually contiguous memory with zero fill
+>   * @size:    allocation size
+> 
+> 
+Reviewed-by: Uladzislau Rezki (Sony) <urezki@gmail.com>
 
-No functional change intended.
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
----
- kernel/futex/core.c     |    4 ++--
- kernel/futex/futex.h    |    2 +-
- kernel/futex/pi.c       |    8 ++++----
- kernel/futex/requeue.c  |    4 ++--
- kernel/futex/waitwake.c |    4 ++--
- 5 files changed, 11 insertions(+), 11 deletions(-)
-
---- a/kernel/futex/core.c
-+++ b/kernel/futex/core.c
-@@ -528,12 +528,12 @@ int futex_cmpxchg_value_locked(u32 *curv
- 	return ret;
- }
- 
--int futex_get_value_locked(u32 *dest, u32 __user *from)
-+int futex_get_value_locked(u32 *dest, u32 __user *from, unsigned int flags)
- {
- 	int ret;
- 
- 	pagefault_disable();
--	ret = __get_user(*dest, from);
-+	ret = futex_get_value(dest, from, flags);
- 	pagefault_enable();
- 
- 	return ret ? -EFAULT : 0;
---- a/kernel/futex/futex.h
-+++ b/kernel/futex/futex.h
-@@ -239,7 +239,7 @@ extern void futex_wake_mark(struct wake_
- 
- extern int fault_in_user_writeable(u32 __user *uaddr);
- extern int futex_cmpxchg_value_locked(u32 *curval, u32 __user *uaddr, u32 uval, u32 newval);
--extern int futex_get_value_locked(u32 *dest, u32 __user *from);
-+extern int futex_get_value_locked(u32 *dest, u32 __user *from, unsigned int flags);
- extern struct futex_q *futex_top_waiter(struct futex_hash_bucket *hb, union futex_key *key);
- 
- extern void __futex_unqueue(struct futex_q *q);
---- a/kernel/futex/pi.c
-+++ b/kernel/futex/pi.c
-@@ -240,7 +240,7 @@ static int attach_to_pi_state(u32 __user
- 	 * still is what we expect it to be, otherwise retry the entire
- 	 * operation.
- 	 */
--	if (futex_get_value_locked(&uval2, uaddr))
-+	if (futex_get_value_locked(&uval2, uaddr, FLAGS_SIZE_32))
- 		goto out_efault;
- 
- 	if (uval != uval2)
-@@ -359,7 +359,7 @@ static int handle_exit_race(u32 __user *
- 	 * The same logic applies to the case where the exiting task is
- 	 * already gone.
- 	 */
--	if (futex_get_value_locked(&uval2, uaddr))
-+	if (futex_get_value_locked(&uval2, uaddr, FLAGS_SIZE_32))
- 		return -EFAULT;
- 
- 	/* If the user space value has changed, try again. */
-@@ -527,7 +527,7 @@ int futex_lock_pi_atomic(u32 __user *uad
- 	 * Read the user space value first so we can validate a few
- 	 * things before proceeding further.
- 	 */
--	if (futex_get_value_locked(&uval, uaddr))
-+	if (futex_get_value_locked(&uval, uaddr, FLAGS_SIZE_32))
- 		return -EFAULT;
- 
- 	if (unlikely(should_fail_futex(true)))
-@@ -750,7 +750,7 @@ static int __fixup_pi_state_owner(u32 __
- 	if (!pi_state->owner)
- 		newtid |= FUTEX_OWNER_DIED;
- 
--	err = futex_get_value_locked(&uval, uaddr);
-+	err = futex_get_value_locked(&uval, uaddr, FLAGS_SIZE_32);
- 	if (err)
- 		goto handle_err;
- 
---- a/kernel/futex/requeue.c
-+++ b/kernel/futex/requeue.c
-@@ -275,7 +275,7 @@ futex_proxy_trylock_atomic(u32 __user *p
- 	u32 curval;
- 	int ret;
- 
--	if (futex_get_value_locked(&curval, pifutex))
-+	if (futex_get_value_locked(&curval, pifutex, FLAGS_SIZE_32))
- 		return -EFAULT;
- 
- 	if (unlikely(should_fail_futex(true)))
-@@ -453,7 +453,7 @@ int futex_requeue(u32 __user *uaddr1, un
- 	if (likely(cmpval != NULL)) {
- 		u32 curval;
- 
--		ret = futex_get_value_locked(&curval, uaddr1);
-+		ret = futex_get_value_locked(&curval, uaddr1, FLAGS_SIZE_32);
- 
- 		if (unlikely(ret)) {
- 			double_unlock_hb(hb1, hb2);
---- a/kernel/futex/waitwake.c
-+++ b/kernel/futex/waitwake.c
-@@ -453,7 +453,7 @@ int futex_wait_multiple_setup(struct fut
- 		u32 val = vs[i].w.val;
- 
- 		hb = futex_q_lock(q);
--		ret = futex_get_value_locked(&uval, uaddr);
-+		ret = futex_get_value_locked(&uval, uaddr, FLAGS_SIZE_32);
- 
- 		if (!ret && uval == val) {
- 			/*
-@@ -621,7 +621,7 @@ int futex_wait_setup(u32 __user *uaddr,
- retry_private:
- 	*hb = futex_q_lock(q);
- 
--	ret = futex_get_value_locked(&uval, uaddr);
-+	ret = futex_get_value_locked(&uval, uaddr, FLAGS_SIZE_32);
- 
- 	if (ret) {
- 		futex_q_unlock(*hb);
-
-
+--
+Uladzislau Rezki
