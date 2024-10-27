@@ -1,23 +1,22 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id DE4D7178389
-	for <linux-arch@vger.kernel.org>; Sun, 27 Oct 2024 17:01:58 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 80B376FB6
+	for <linux-arch@vger.kernel.org>; Sun, 27 Oct 2024 17:10:16 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1730048521; cv=none; b=FTQScqGhEbwFZWf1gM3z4DFdY3cOz+J/fJWlRef9zfsrjN1y9qZWilpBFLMlkZPF1TDefZgd5XfpPKWSFDaw9GQhXDcmrNtttSjmGHS/8RT+TF9rHnQ4N25hQ+wslpRKZZ+4ozeKpvBYM/uqBQpOf57lBc5hUlLb3Mr2fE1szLY=
+	t=1730049019; cv=none; b=RqBT4J/fyhaqoAbyhpmYUM5iMWXRQ2BrheERJFPeJ/T1FYqaKbQLcf7ZtbPZUwGqOQGvN3M9b9ZsgJ1vmFJv3YgrOGd6Sn007tM6M9VRZkBDD29Tyr+Y0ek1ayjoO5bXcL+WGqvu0tIesASiSPZngOb0UMPRF3Nw9BmHiMkeIvI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1730048521; c=relaxed/simple;
-	bh=bvcWC3j578HXGYGBJJ1xvsFkG8kxenbcIq2GoLY+c6w=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=S9ZAhzx7dd3hkelyudrjv3JUkwkypAplHatz8iV7nriuH+i3nazb32YaYeaaaHcrkmDRyjSJ4bhX3OhXmyU1Gqy6HIbbBYSNQF071D15sEQ/ML7jHdSuxswMxR7fKdlfwaYvZpT4c0/hLIC2A0oxhuxMdgZjor5G9uevPt3Olr8=
+	s=arc-20240116; t=1730049019; c=relaxed/simple;
+	bh=5m8BWF2CD6xAaO4UDj+pOZ2Y1qZrz1sVoiupiF+E5hA=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=BvkPgDKWVlJ5Z7Nt7ydiqpOY7YLDgbBwAVMjDH7A4UBsAVjfofu1Vx3BDWv6yA5YRZOzhEg9jL954TXGbYgm4j6ZfKrREwxuIdnl4mTwv1EEb5kaxHOWZ4zFlE1WHWlQltygK0KxiRvOKMHs6+D7oXMHiyo4AJcy8aEPgvZ3EIA=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id EDFD3497;
-	Sun, 27 Oct 2024 10:02:27 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 45D36339;
+	Sun, 27 Oct 2024 10:01:10 -0700 (PDT)
 Received: from udebian.localdomain (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 142133F66E;
-	Sun, 27 Oct 2024 10:01:56 -0700 (PDT)
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 5EEC43F66E;
+	Sun, 27 Oct 2024 10:00:39 -0700 (PDT)
 From: Yury Khrustalev <yury.khrustalev@arm.com>
 To: linux-arch@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>,
@@ -28,12 +27,10 @@ Cc: Arnd Bergmann <arnd@arndb.de>,
 	Michael Ellerman <mpe@ellerman.id.au>,
 	nd@arm.com,
 	Yury Khrustalev <yury.khrustalev@arm.com>
-Subject: [PATCH v2 3/3] selftests/powerpc/mm: Use PKEY_UNRESTRICTED macro
-Date: Sun, 27 Oct 2024 17:00:06 +0000
-Message-Id: <20241027170006.464252-4-yury.khrustalev@arm.com>
+Subject: [PATCH v2 0/3] mm/pkey: Add PKEY_UNRESTRICTED macro
+Date: Sun, 27 Oct 2024 17:00:03 +0000
+Message-Id: <20241027170006.464252-1-yury.khrustalev@arm.com>
 X-Mailer: git-send-email 2.39.5
-In-Reply-To: <20241027170006.464252-1-yury.khrustalev@arm.com>
-References: <20241027170006.464252-1-yury.khrustalev@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -42,45 +39,45 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Replace literal 0 with macro PKEY_UNRESTRICTED where pkey_*() functions
-are used in mm selftests for memory protection keys for ppc target.
+Add PKEY_UNRESTRICTED macro to mman.h and use it in selftests.
 
-Note that I couldn't build these tests so I would appreciate if someone
-could check this patch. Thank you!
+For context, this change will also allow for more consistent update of the
+Glibc manual [1] which in turn will help with introducing memory protection
+keys on AArch64 targets [2].
+
+Applies to 42f7652d3eb5 (tag: v6.12-rc4).
+
+Note that I couldn't build ppc tests so I would appreciate if someone
+could check the 3rd patch. Thank you!
+
+[1] https://inbox.sourceware.org/libc-alpha/20241022073837.151355-1-yury.khrustalev@arm.com/
+[2] https://inbox.sourceware.org/libc-alpha/20241011153614.3189334-1-yury.khrustalev@arm.com/
 
 Signed-off-by: Yury Khrustalev <yury.khrustalev@arm.com>
-Suggested-by: Kevin Brodsky <kevin.brodsky@arm.com>
+
 ---
+Chages in v2:
+ - Update tools/include/uapi/asm-generic/mman-common.h as well
+ - Add usages of the new macro to selftests.
+
+Link to v1: https://lore.kernel.org/linux-arch/20241022120128.359652-1-yury.khrustalev@arm.com/
+
+---
+Yury Khrustalev (3):
+  mm/pkey: Add PKEY_UNRESTRICTED macro
+  selftests/mm: Use PKEY_UNRESTRICTED macro
+  selftests/powerpc/mm: Use PKEY_UNRESTRICTED macro
+
+ include/uapi/asm-generic/mman-common.h              | 1 +
+ tools/include/uapi/asm-generic/mman-common.h        | 1 +
+ tools/testing/selftests/mm/mseal_test.c             | 4 ++--
+ tools/testing/selftests/mm/pkey-helpers.h           | 3 ++-
+ tools/testing/selftests/mm/pkey_sighandler_tests.c  | 4 ++--
+ tools/testing/selftests/mm/protection_keys.c        | 2 +-
  tools/testing/selftests/powerpc/mm/pkey_exec_prot.c | 2 +-
  tools/testing/selftests/powerpc/mm/pkey_siginfo.c   | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ 8 files changed, 11 insertions(+), 8 deletions(-)
 
-diff --git a/tools/testing/selftests/powerpc/mm/pkey_exec_prot.c b/tools/testing/selftests/powerpc/mm/pkey_exec_prot.c
-index 0af4f02669a1..29b91b7456eb 100644
---- a/tools/testing/selftests/powerpc/mm/pkey_exec_prot.c
-+++ b/tools/testing/selftests/powerpc/mm/pkey_exec_prot.c
-@@ -72,7 +72,7 @@ static void segv_handler(int signum, siginfo_t *sinfo, void *ctx)
- 
- 		switch (fault_type) {
- 		case PKEY_DISABLE_ACCESS:
--			pkey_set_rights(fault_pkey, 0);
-+			pkey_set_rights(fault_pkey, PKEY_UNRESTRICTED);
- 			break;
- 		case PKEY_DISABLE_EXECUTE:
- 			/*
-diff --git a/tools/testing/selftests/powerpc/mm/pkey_siginfo.c b/tools/testing/selftests/powerpc/mm/pkey_siginfo.c
-index 2db76e56d4cb..e89a164c686b 100644
---- a/tools/testing/selftests/powerpc/mm/pkey_siginfo.c
-+++ b/tools/testing/selftests/powerpc/mm/pkey_siginfo.c
-@@ -83,7 +83,7 @@ static void segv_handler(int signum, siginfo_t *sinfo, void *ctx)
- 	    mprotect(pgstart, pgsize, PROT_EXEC))
- 		_exit(1);
- 	else
--		pkey_set_rights(pkey, 0);
-+		pkey_set_rights(pkey, PKEY_UNRESTRICTED);
- 
- 	fault_count++;
- }
 -- 
 2.39.5
 
