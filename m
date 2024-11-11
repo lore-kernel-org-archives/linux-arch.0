@@ -1,127 +1,128 @@
-Received: from smtp-out.freemail.hu (fmfe38.freemail.hu [46.107.16.243])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0932C1A706A;
-	Mon, 11 Nov 2024 16:53:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=46.107.16.243
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5D40197A7F;
+	Mon, 11 Nov 2024 16:54:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1731344000; cv=none; b=C1b+nxLGlBSPiPOj1MlR9ulWShXD+zkBqDq+OM+JaAx7Y80NQkXH3BKXvDlLT2q2lxe8gvZyDhPY/K0qylQz+jvzhXt8JhIkDOrVSPd7fV6ZRzbkPAiIaMXxV72tB1DVLFe3OzV99nb0/h1BqeyIoxiSEtg2KFzSzA3yjQ0S0EM=
+	t=1731344062; cv=none; b=EmWcYWx1AjiN7zYP8z8RLNLHmd4r5Wu+93B6WjMe4Rjk6yaLe8cv/Oyfi1Mcs+aHbz9jPf217jbE4PNl2LS9pCUo2BC9mEmWBQhFzQt8KwZmwvuVCdHYNcfor9z7A8UsYILsapbS/9STwnpSpeVm1sDKwB6QY6HFMJlKBsi/KPk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1731344000; c=relaxed/simple;
-	bh=my6kpv51R2cZYX7QWBuaiZ5YJ3cTY+lUC8c8KSMPStY=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=Fah51Ta2Nnhx/H9lxNWD98Sms2gippdZVknx3ceq+k8ioQDcQy+SB4N1+RZJlr/Wi03BOVb9E4jkW6dPh0qSS7svGwkzbkKpA6rINHDgRFqIi7uyrsGs5ZVpzC6yM7hy4jveWdtFlc0R/BMkpk3Ir39gVs8HsWwh0DAkCh2T3RQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=freemail.hu; spf=pass smtp.mailfrom=freemail.hu; dkim=fail (2048-bit key) header.d=freemail.hu header.i=@freemail.hu header.b=g52+/9sB reason="signature verification failed"; arc=none smtp.client-ip=46.107.16.243
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=freemail.hu
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=freemail.hu
+	s=arc-20240116; t=1731344062; c=relaxed/simple;
+	bh=mspEjnUL8FzcXKfpr+cohV5+ZL+sx/0/VOUfpAs6itc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=J9ZmKIJWSY6Z0IIM7P1MtF1iHO4TOFMvHNyvRMvfee+q3p7inL2tZRkS9IoHKCNIbogkRcmrqHB7s9r7cTDhMyD19hVgMojZxhiF9jD19fhkr57nKKFHNAgHu71Nn8PFa3J9FuccFBL65IZAuyyO+MvEQY2ZQJHw84emTcOCSj0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=e8GlLOdT; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=freemail.hu header.i=@freemail.hu header.b="g52+/9sB"
-Received: from localhost.localdomain (catv-178-48-208-49.catv.fixed.vodafone.hu [178.48.208.49])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp.freemail.hu (Postfix) with ESMTPSA id 4XnFlH3WNQzRRG;
-	Mon, 11 Nov 2024 17:44:59 +0100 (CET)
-From: egyszeregy@freemail.hu
-To: stern@rowland.harvard.edu,
-	parri.andrea@gmail.com,
-	will@kernel.org,
-	peterz@infradead.org,
-	boqun.feng@gmail.com,
-	npiggin@gmail.com,
-	dhowells@redhat.com,
-	j.alglave@ucl.ac.uk,
-	luc.maranget@inria.fr,
-	paulmck@kernel.org,
-	akiyks@gmail.com,
-	dlustig@nvidia.com,
-	joel@joelfernandes.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="e8GlLOdT"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6E08BC4CECF;
+	Mon, 11 Nov 2024 16:54:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1731344061;
+	bh=mspEjnUL8FzcXKfpr+cohV5+ZL+sx/0/VOUfpAs6itc=;
+	h=Date:From:To:Cc:Subject:Reply-To:References:In-Reply-To:From;
+	b=e8GlLOdTkBO988H1TU2ouEM5Kj/kaP26JWy4J+dCc1GEttNT7pfUzFIiQwq8osNuE
+	 bxgrEOn8OsFdXHWByAZQ7bEKatQUU+nNg9wHVze/IN0keTwYKNid4jYez5bii0Ez1x
+	 bU+Y1JwM3uJaiInGAX8xyhuKtqwbajdxOZXfQmjfeZxv5+hntEqlIqtRAMMgpYG+Y6
+	 Dupmr9supKCYeGqSVOlGK11n4ft4LBUPagCK1Ng8nRVuxJ6gea2kMfqWDRaARamWvg
+	 zjwxRHS6D50FX8c+5P4yf514hCUxQMqHM3W2RQX7w8Wl4Ci0EqeXZ/b782sFDnBCaj
+	 mopINpldTRSTg==
+Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
+	id 0B33ECE09DE; Mon, 11 Nov 2024 08:54:21 -0800 (PST)
+Date: Mon, 11 Nov 2024 08:54:21 -0800
+From: "Paul E. McKenney" <paulmck@kernel.org>
+To: egyszeregy@freemail.hu
+Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
+	peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
+	dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
+	akiyks@gmail.com, dlustig@nvidia.com, joel@joelfernandes.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
 	lkmm@lists.linux.dev
-Cc: =?UTF-8?q?Benjamin=20Sz=C5=91ke?= <egyszeregy@freemail.hu>
-Subject: [PATCH] tools/memory-model: Fix litmus-tests's file names for case-insensitive filesystem.
-Date: Mon, 11 Nov 2024 17:42:47 +0100
-Message-ID: <20241111164248.1060-1-egyszeregy@freemail.hu>
-X-Mailer: git-send-email 2.47.0.windows.2
+Subject: Re: [PATCH] tools/memory-model: Fix litmus-tests's file names for
+ case-insensitive filesystem.
+Message-ID: <69be42c9-331f-4fb5-a6ae-c2932ada0a47@paulmck-laptop>
+Reply-To: paulmck@kernel.org
+References: <20241111164248.1060-1-egyszeregy@freemail.hu>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=simple/relaxed; t=1731343500;
-	s=20181004; d=freemail.hu;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type:Content-Transfer-Encoding;
-	l=2944; bh=cCPkD+u0S/L0jyUmIwbYJI+sFNNB67K8RH+1NXOKewo=;
-	b=g52+/9sB+0+XIfF0eM+kfn7QoNqU6pZ5WWAYlEjZldfna8PP3uR+ZpL+Xq88znJA
-	R1wgMjAtIPHRGoDubremxQyfjfSZ8mrga88kBJ5bPbzkU5MmxSzMjBny1JSq8UJXtmP
-	YIDsuMD6G18niuEtkDOFrzEliBvtT/Zox6vNuEw6SP/JXE/BgoPhxnOXpqI475zwyUZ
-	5jB51etvXr6KBKnqd/PjC5ahZjC7N+f7S8seEzlRGP/WTNyhofonPGc1S5dXzIFwIZK
-	q88zFe8VflFmswH60Tl99g7dD2CA8sR7jjIH/gJe6EHsKhvuCsMrT6p6OvYGmgoW+Rh
-	rc/gAf/c2g==
+In-Reply-To: <20241111164248.1060-1-egyszeregy@freemail.hu>
 
-From: Benjamin Szőke <egyszeregy@freemail.hu>
+On Mon, Nov 11, 2024 at 05:42:47PM +0100, egyszeregy@freemail.hu wrote:
+> From: Benjamin Szőke <egyszeregy@freemail.hu>
+> 
+> The goal is to fix Linux repository for case-insensitive filesystem,
+> to able to clone it and editable on any operating systems.
+> 
+> Rename "Z6.0+pooncelock+poonceLock+pombonce.litmus" to
+> "Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus".
+> 
+> Signed-off-by: Benjamin Szőke <egyszeregy@freemail.hu>
 
-The goal is to fix Linux repository for case-insensitive filesystem,
-to able to clone it and editable on any operating systems.
+Ummm...  Really?
 
-Rename "Z6.0+pooncelock+poonceLock+pombonce.litmus" to
-"Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus".
+Just out of curiosity, which operating-system/filesystem combination are
+you working with?  And why not instead fix that combination to handle
+mixed case?
 
-Signed-off-by: Benjamin Szőke <egyszeregy@freemail.hu>
----
- tools/memory-model/Documentation/locking.txt                    | 2 +-
- tools/memory-model/Documentation/recipes.txt                    | 2 +-
- tools/memory-model/litmus-tests/README                          | 2 +-
- ...> Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus} | 0
- 4 files changed, 3 insertions(+), 3 deletions(-)
- rename tools/memory-model/litmus-tests/{Z6.0+pooncelock+poonceLock+pombonce.litmus => Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus} (100%)
+							Thanx, Paul
 
-diff --git a/tools/memory-model/Documentation/locking.txt b/tools/memory-model/Documentation/locking.txt
-index 65c898c64a93..42bc3efe2015 100644
---- a/tools/memory-model/Documentation/locking.txt
-+++ b/tools/memory-model/Documentation/locking.txt
-@@ -184,7 +184,7 @@ ordering properties.
- Ordering can be extended to CPUs not holding the lock by careful use
- of smp_mb__after_spinlock():
- 
--	/* See Z6.0+pooncelock+poonceLock+pombonce.litmus. */
-+	/* See Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus. */
- 	void CPU0(void)
- 	{
- 		spin_lock(&mylock);
-diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
-index 03f58b11c252..35996eb1b690 100644
---- a/tools/memory-model/Documentation/recipes.txt
-+++ b/tools/memory-model/Documentation/recipes.txt
-@@ -159,7 +159,7 @@ lock's ordering properties.
- Ordering can be extended to CPUs not holding the lock by careful use
- of smp_mb__after_spinlock():
- 
--	/* See Z6.0+pooncelock+poonceLock+pombonce.litmus. */
-+	/* See Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus. */
- 	void CPU0(void)
- 	{
- 		spin_lock(&mylock);
-diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
-index d311a0ff1ae6..e3d451346400 100644
---- a/tools/memory-model/litmus-tests/README
-+++ b/tools/memory-model/litmus-tests/README
-@@ -149,7 +149,7 @@ Z6.0+pooncelock+pooncelock+pombonce.litmus
- 	spin_lock() sufficient to make ordering apparent to accesses
- 	by a process not holding the lock?
- 
--Z6.0+pooncelock+poonceLock+pombonce.litmus
-+Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus
- 	As above, but with smp_mb__after_spinlock() immediately
- 	following the spin_lock().
- 
-diff --git a/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus b/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus
-similarity index 100%
-rename from tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
-rename to tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus
--- 
-2.47.0.windows.2
-
+> ---
+>  tools/memory-model/Documentation/locking.txt                    | 2 +-
+>  tools/memory-model/Documentation/recipes.txt                    | 2 +-
+>  tools/memory-model/litmus-tests/README                          | 2 +-
+>  ...> Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus} | 0
+>  4 files changed, 3 insertions(+), 3 deletions(-)
+>  rename tools/memory-model/litmus-tests/{Z6.0+pooncelock+poonceLock+pombonce.litmus => Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus} (100%)
+> 
+> diff --git a/tools/memory-model/Documentation/locking.txt b/tools/memory-model/Documentation/locking.txt
+> index 65c898c64a93..42bc3efe2015 100644
+> --- a/tools/memory-model/Documentation/locking.txt
+> +++ b/tools/memory-model/Documentation/locking.txt
+> @@ -184,7 +184,7 @@ ordering properties.
+>  Ordering can be extended to CPUs not holding the lock by careful use
+>  of smp_mb__after_spinlock():
+>  
+> -	/* See Z6.0+pooncelock+poonceLock+pombonce.litmus. */
+> +	/* See Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus. */
+>  	void CPU0(void)
+>  	{
+>  		spin_lock(&mylock);
+> diff --git a/tools/memory-model/Documentation/recipes.txt b/tools/memory-model/Documentation/recipes.txt
+> index 03f58b11c252..35996eb1b690 100644
+> --- a/tools/memory-model/Documentation/recipes.txt
+> +++ b/tools/memory-model/Documentation/recipes.txt
+> @@ -159,7 +159,7 @@ lock's ordering properties.
+>  Ordering can be extended to CPUs not holding the lock by careful use
+>  of smp_mb__after_spinlock():
+>  
+> -	/* See Z6.0+pooncelock+poonceLock+pombonce.litmus. */
+> +	/* See Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus. */
+>  	void CPU0(void)
+>  	{
+>  		spin_lock(&mylock);
+> diff --git a/tools/memory-model/litmus-tests/README b/tools/memory-model/litmus-tests/README
+> index d311a0ff1ae6..e3d451346400 100644
+> --- a/tools/memory-model/litmus-tests/README
+> +++ b/tools/memory-model/litmus-tests/README
+> @@ -149,7 +149,7 @@ Z6.0+pooncelock+pooncelock+pombonce.litmus
+>  	spin_lock() sufficient to make ordering apparent to accesses
+>  	by a process not holding the lock?
+>  
+> -Z6.0+pooncelock+poonceLock+pombonce.litmus
+> +Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus
+>  	As above, but with smp_mb__after_spinlock() immediately
+>  	following the spin_lock().
+>  
+> diff --git a/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus b/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus
+> similarity index 100%
+> rename from tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
+> rename to tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+after_spinlock+pombonce.litmus
+> -- 
+> 2.47.0.windows.2
+> 
