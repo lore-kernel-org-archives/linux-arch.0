@@ -1,35 +1,53 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from laurent.telenet-ops.be (laurent.telenet-ops.be [195.130.137.89])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 24D79195808;
-	Thu,  5 Dec 2024 03:30:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 081171D416A
+	for <linux-arch@vger.kernel.org>; Thu,  5 Dec 2024 13:20:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.130.137.89
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1733369433; cv=none; b=iVEIPE1kksytvRd8bjJSRKY0ITs5yfG33hgSYEF8phtPQR5CfX8W/wyPuetKu2syajzDSy5VUcXyDx9Un9rj8fi8tUAjdU1za17+9KHVZu2/WgMWFXiMqXlJJS5vKehhwSDdTrp0kJ1df0EM9IlgBx+C2/YtyvPXu4sTkhSrf4Y=
+	t=1733404857; cv=none; b=mtCEckEDxi+ZyPlAbFPwoDQUntxdSJmtBaGkXYPJ3L8gEca1QyvawbAiZSFJSbeIi06WPr0S8V8nADfoov6Zq0nebSLpWHQdt5fVDAse2/xjcQqZ//PxLzsC6kTTcXXwKuT9sJRE5fEoaz5TEvtSWD1B51lBLO2BtTvyBqUkq0A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1733369433; c=relaxed/simple;
-	bh=Aa2GA4zhNr+oEjhTpq81GxsJ6mHPH7Unii4uCLAeVwI=;
-	h=Content-Type:MIME-Version:Subject:From:Message-Id:Date:References:
-	 In-Reply-To:To:Cc; b=anPxtE9+q/OMbp8uKWQHKIHqvzlXyyhIGUJK3xzUB5fSQd0C35XAwf3ynOVh0HJAccBib8x4LANV+jZvOEWEYK3wccsfO3PyJQZngbW1R/jhQQhixkHBCRVFGvJ5t13n5hlH2lHMYgqfxXM5sYL1aQtPk73sUNXorPw+asIw87M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=QXGf+Rfn; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="QXGf+Rfn"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A084FC4CEE0;
-	Thu,  5 Dec 2024 03:30:32 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1733369432;
-	bh=Aa2GA4zhNr+oEjhTpq81GxsJ6mHPH7Unii4uCLAeVwI=;
-	h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
-	b=QXGf+RfneS13dJ0kYfhi4aVX4IbnxiRDI+81LrMGiUXrRHhTmOXloSvq0zhBVpTEc
-	 O3UTqtUZ8IdNCsMCblpPhzumPQMxZCl+7pNJQnpwsHIKUeT92GXzdxDhpk2tPr1BQa
-	 3NCCF843YAVh4Z7DgJ+SqYB7hx2/8CdwDhGMH+wh8+CxyvFcsDZtdDaEW70rHkNIT5
-	 lKfAhUgNz1JxiQlFYijeX7VOpbbabrH+iPmg9BBBj4QPXIJlRXkIWutqjoaqO1OqTz
-	 QHCTnHRNHYtr4U8sLqoQX7eFc4ZQ0i0omtm1V8eihHo1kRQTZpyD+thVQIwckmcwmu
-	 Grv5az+OUWz7Q==
-Received: from [10.30.226.235] (localhost [IPv6:::1])
-	by aws-us-west-2-korg-oddjob-rhel9-1.codeaurora.org (Postfix) with ESMTP id 70EFF380A94C;
-	Thu,  5 Dec 2024 03:30:48 +0000 (UTC)
-Content-Type: text/plain; charset="utf-8"
+	s=arc-20240116; t=1733404857; c=relaxed/simple;
+	bh=nysy/3YK1EuPFaum4/TbD/K8B3xCFjoGXHffLldvUOg=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=SqafpYMikxdaKmch627a8RkCSo+rRVo8mqZqv8vj2ExRm/G9jFkt7qseNYPQwaiazdSjHwdJy3+ol9vXsWZZ59kYZDjVOi3MUYVRqnTBko3HLvYnkbwJnPii+0ipG91WHpWe+X3Kc4y6UVx4a05wamiJNrzd9rDUIrtFnNA4DfY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=glider.be; spf=none smtp.mailfrom=linux-m68k.org; arc=none smtp.client-ip=195.130.137.89
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=glider.be
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
+Received: from ramsan.of.borg ([IPv6:2a02:1810:ac12:ed80:b16a:6561:fa1:2b32])
+	by laurent.telenet-ops.be with cmsmtp
+	id l1Lo2D00E3EEtj2011LoH4; Thu, 05 Dec 2024 14:20:54 +0100
+Received: from rox.of.borg ([192.168.97.57])
+	by ramsan.of.borg with esmtp (Exim 4.95)
+	(envelope-from <geert@linux-m68k.org>)
+	id 1tJBmh-000LQo-IZ;
+	Thu, 05 Dec 2024 14:20:48 +0100
+Received: from geert by rox.of.borg with local (Exim 4.95)
+	(envelope-from <geert@linux-m68k.org>)
+	id 1tJBmi-00EQdR-B4;
+	Thu, 05 Dec 2024 14:20:48 +0100
+From: Geert Uytterhoeven <geert+renesas@glider.be>
+To: Oleg Nesterov <oleg@redhat.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Yury Norov <yury.norov@gmail.com>,
+	Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+	Andy Whitcroft <apw@canonical.com>,
+	Joe Perches <joe@perches.com>,
+	Dwaipayan Ray <dwaipayanray1@gmail.com>,
+	Lukas Bulwahn <lukas.bulwahn@gmail.com>,
+	Masahiro Yamada <masahiroy@kernel.org>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Nicolas Schier <nicolas@fjasle.eu>
+Cc: linux-arch@vger.kernel.org,
+	linux-kbuild@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Geert Uytterhoeven <geert+renesas@glider.be>
+Subject: [PATCH 2/3] kbuild: Drop support for include/asm-<arch> in headers_check.pl
+Date: Thu,  5 Dec 2024 14:20:43 +0100
+Message-Id: <19fb5b49396239d28020015ba2640d77dacdb6c2.1733404444.git.geert+renesas@glider.be>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <cover.1733404444.git.geert+renesas@glider.be>
+References: <cover.1733404444.git.geert+renesas@glider.be>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -37,47 +55,31 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: Re: [PATCH net-next v2] selftests/net: call sendmmsg via udpgso_bench.sh
-From: patchwork-bot+netdevbpf@kernel.org
-Message-Id: 
- <173336944700.1431012.17616394394227408933.git-patchwork-notify@kernel.org>
-Date: Thu, 05 Dec 2024 03:30:47 +0000
-References: <20241203222843.26983-1-nakayamakenjiro@gmail.com>
-In-Reply-To: <20241203222843.26983-1-nakayamakenjiro@gmail.com>
-To: Kenjiro Nakayama <nakayamakenjiro@gmail.com>
-Cc: pablo@netfilter.org, kadlec@netfilter.org, davem@davemloft.net,
- edumazet@google.com, kuba@kernel.org, pabeni@redhat.com, horms@kernel.org,
- stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
- peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
- dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
- paulmck@kernel.org, akiyks@gmail.com, dlustig@nvidia.com,
- joel@joelfernandes.org, shuah@kernel.org, netfilter-devel@vger.kernel.org,
- coreteam@netfilter.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
- linux-arch@vger.kernel.org, lkmm@lists.linux.dev,
- linux-kselftest@vger.kernel.org
 
-Hello:
+"include/asm-<arch>" was replaced by "arch/<arch>/include/asm" a long
+time ago.  All assembler header files are now included using
+"#include <asm/*>", so there is no longer a need to rewrite paths.
 
-This patch was applied to netdev/net-next.git (main)
-by Jakub Kicinski <kuba@kernel.org>:
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ usr/include/headers_check.pl | 4 ----
+ 1 file changed, 4 deletions(-)
 
-On Wed,  4 Dec 2024 07:28:44 +0900 you wrote:
-> Currently, sendmmsg is implemented in udpgso_bench_tx.c,
-> but it is not called by any test script.
-> 
-> This patch adds a test for sendmmsg in udpgso_bench.sh.
-> This allows for basic API testing and benchmarking
-> comparisons with GSO.
-> 
-> [...]
-
-Here is the summary with links:
-  - [net-next,v2] selftests/net: call sendmmsg via udpgso_bench.sh
-    https://git.kernel.org/netdev/net-next/c/ac98b3132402
-
-You are awesome, thank you!
+diff --git a/usr/include/headers_check.pl b/usr/include/headers_check.pl
+index b6aec5e4365f9bf2..7070c891ea294b4d 100755
+--- a/usr/include/headers_check.pl
++++ b/usr/include/headers_check.pl
+@@ -54,10 +54,6 @@ sub check_include
+ 		my $inc = $1;
+ 		my $found;
+ 		$found = stat($dir . "/" . $inc);
+-		if (!$found) {
+-			$inc =~ s#asm/#asm-$arch/#;
+-			$found = stat($dir . "/" . $inc);
+-		}
+ 		if (!$found) {
+ 			printf STDERR "$filename:$lineno: included file '$inc' is not exported\n";
+ 			$ret = 1;
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/patchwork/pwbot.html
-
+2.34.1
 
