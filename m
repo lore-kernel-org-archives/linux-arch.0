@@ -1,55 +1,55 @@
 Received: from mail-wm1-f73.google.com (mail-wm1-f73.google.com [209.85.128.73])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0F8C214A65
-	for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2025 18:40:52 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 844762163A0
+	for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2025 18:41:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.73
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736534462; cv=none; b=cjrHxMeKgQQhjo4zxwrbZzr2eaxKE/G8arYYZb9bmc+Uw/5qESMEObs9NGLRTUY5WYvGgiTOOwVdvA8m3CVPdWohEfg+YGUGsacKlW59UW/7C9VJ9/0EmF9Ftm5zXlYKcLYP/tX2ZYL0L5CWtJqJNkvW9HPssxwSibp3x9QRLJ4=
+	t=1736534467; cv=none; b=h7zQtty8kya76LQuYptBRMtqvKRO1SrVcDapLQa1S5IzHVuph7IIMhdB3LEuTNmQZv+ooIeviIzzS1fddyCcdSUGsJdkdezq3//yPaNyQTcINDxzmkNPem2B26mBrowrvMsB4eYr/hJIXr00RLXSZGaPOcAp9Vtj8dfWBFw9hr0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1736534462; c=relaxed/simple;
-	bh=BPqqyfx5HZlXL3i5o+Z6h6xBC+zWAMx+gPf6PkTRMIQ=;
+	s=arc-20240116; t=1736534467; c=relaxed/simple;
+	bh=oS6NVhF+DSa3bfb0jLd+nVgq34roa9GfyJSa086VnQc=;
 	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=qBsFkJGVMK0nAtnnrvUpil487prvlZeOPlJ/Rx+0aWjvB7kesutpfWYUqKREg9s8s0ghWnekOhSLiUznT1SF4+LRURDAfIY2uask49LC4+/P3iIWqs9DxTHmWxNPbld43GP6BPiFZ9zrnheWdMsRNoLIoZ69FvDev0pDDa1klIQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--jackmanb.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=gdWzFfeq; arc=none smtp.client-ip=209.85.128.73
+	 To:Cc:Content-Type; b=ZR70oJuvwnPlOjpNRLJxYrUtmtbYA4CP0PJ4e7ca7ODRRgA/HCP5lshtkP5BvOW6aKbSyGRi80HwbRy5ZlooEETF0MzhSSjxolpjOs9bmSwNnIgJVc6RpUPFS9q6sibGwiaV4WXiJ1Qk13vJTymArD9nPkoNzJncEkYXn7dZp1I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--jackmanb.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=WN7IliZH; arc=none smtp.client-ip=209.85.128.73
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--jackmanb.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="gdWzFfeq"
-Received: by mail-wm1-f73.google.com with SMTP id 5b1f17b1804b1-4361a8fc3bdso12054425e9.2
-        for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2025 10:40:52 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="WN7IliZH"
+Received: by mail-wm1-f73.google.com with SMTP id 5b1f17b1804b1-43635895374so15646885e9.0
+        for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2025 10:40:59 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1736534450; x=1737139250; darn=vger.kernel.org;
+        d=google.com; s=20230601; t=1736534457; x=1737139257; darn=vger.kernel.org;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=LLeVb0ZgyFkqRQqFmxHZC1txeWSVEDEElINoAb1GRXw=;
-        b=gdWzFfeq2N4w6ax08IZbe+K8OoQYxSjbl/+XQzwCfqsh/bBoOrgeZ0QNO/sMdfPHFq
-         EhmD8xoHn1R0uucczFACqkwBTMd59Xu6ZiU3X+krHv414P6VkKA1RSuwBl6/pMitiPTg
-         s2rJqXUbw0XGQA82Q5zFYl5VuZGCihJux7GCOxa5Q+6/EgJ3CUoztRxgoLhkQdKzfp5o
-         aWcEx8X0HWnHqcrwHqxMYB30x0kBhI2R3EokaScQWdgQCCDfPH0EwtDGqvGzGCVp9ICL
-         6MulC4KP57wBKW7k8sfU3R7kM2vWTm8wLKNcOFfnHNpYzj1dkJXmAzufh/wPzYfT1nwg
-         fYHQ==
+        bh=06++54m2jQMoQajJn4JgiUDifyLkkN/hJfJdF7FjHRg=;
+        b=WN7IliZHdzltLjGkykvDndAYXef6RTj23O/ltqw5zDbJO6DTFI4qHrxY4wlUsgphXn
+         Flm78XaRinJNz9Og8hpPaaiVxGt3LX+zzMkt1bKLoluo0FOEXUCBaEK2fEwTdW1Mi1Ax
+         JjsFJ2fHCZqOlsm8vYuo4EmxIyQ3vGL4abIbb8eCU0+UsZqyt5cCsmONvUjAq3xOHoJf
+         1q4ehKmM49+x+5yHVzWSHp8ZN3BFa27gJszr2uxf73dag3RmADbRXfADPVZht0nuYhzn
+         9rbYq3bcTKHZcR/ERTe7r0RdYevZfYMEjNQ4n4C7IEcaumIah03Ic1tIXyqA96zhlRic
+         GQhg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1736534450; x=1737139250;
+        d=1e100.net; s=20230601; t=1736534457; x=1737139257;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=LLeVb0ZgyFkqRQqFmxHZC1txeWSVEDEElINoAb1GRXw=;
-        b=hTHhVz9El0eprzihN/d27KsBNaxgog+/Kq1uZEoP+DEpBhxQEa0FvYvBFjW72Nycgr
-         QHTDg40OYN7tCXrHM5XLOJs8Layo9XV/Gr6ZQJ4bcTLaxTbePLcHICBc9jpqIMBUIBMn
-         pYCQfLwSggwedTgJ0omtxs3fkvqwVSIrsBdaFPAiE/fepPUbrj2BGPUYKu6DTXrUyhNo
-         Z/zMcqGbzUgoQoIF1v+Vj9CypDpLPDmeFhuNnisgo85ap8tBIeQSukEiPQnALwf1DvGr
-         1YdLW9uGxFZqAXUEpO9orE7ACW4ah1Du1CsinsFE9pK4ZrbbN+Ajb3dtD6O5llm9o13H
-         wVWQ==
-X-Forwarded-Encrypted: i=1; AJvYcCWS75FMKvoE9zmfLXzNQHPdprrmCBZjT4UkkPOY7UF37k/cznxM/Z+zKSZ/UfbDfqVq7ZcR84xcb+PX@vger.kernel.org
-X-Gm-Message-State: AOJu0YymDcbIF9aH8rnvFjfvwF9/0mmxAU4XMATiTk7qDQYQxXCpl5xE
-	FvT8P/HM19aH1PscOsY42zRRHESzCiNYUwm5CUHe2zWCtkz8qspULnVVhcYvxq/3h8tFo/AdFJD
-	JjhZlIuyfqw==
-X-Google-Smtp-Source: AGHT+IEYbvktq49LdsReUEtwVFMZ4u0AErNwMdQm9eBuwPrj68sv++2uU8TAXJvwJwbpoJD68/9N90LfrlOyOw==
-X-Received: from wmbay14.prod.google.com ([2002:a05:600c:1e0e:b0:434:a8d7:e59b])
+        bh=06++54m2jQMoQajJn4JgiUDifyLkkN/hJfJdF7FjHRg=;
+        b=QTrTy6UcaMOXRM6ALD6NBqlXcB8E6TH7e4CxRWMMy/dGYy1h3E7NrQIoFMGvtPy5g5
+         93aX5tJyH9dZm5nKrr9br7Fi6VVWZWHtqhn/1X9LMF4eiNu9rQrUK65O8I86TKynRLML
+         O9jZio65yr1CxHIsZr0ttNoGj8JJqvMpUKTDVIAcVrXd8L9xhWaZVZpFQpV1arcop8GR
+         yUBEj6Xbwqmcjfqpgw5UCwLEypf1n3DQXz/U2eMeWPaIOIvsGbnguufZJD8IiBGGJtNR
+         /Tl8M+L8vDBBe5440To/IpauieijDFbAkU8pQwuhHcw755T2WpY7mFsFQ3xsm7Fd6I9G
+         fdiA==
+X-Forwarded-Encrypted: i=1; AJvYcCUc21/jtnvaJccoGhTxBqOEhY4Uy+NRiiNzZUrPsdyYPFGxtzZiEPStn4ljZrjRPNyUoI6yyZdgfuFD@vger.kernel.org
+X-Gm-Message-State: AOJu0YzYqUKAaD9C9D2Or4mBRFfe8/iSK2N8mxBfG4pyUYHLbHyh9ioi
+	WhoxUDTIYQa7q2fESqc8PZooBXUnGYtqLPNH1T0HJNKmNZPH69VqLVaEsbtSY3CQlDpr53DNp/t
+	nrSi6ZnGi6g==
+X-Google-Smtp-Source: AGHT+IGnlkbZgvto5V3RLsC0pJW1qd+uu81ptaoP4aB2W/3FKEzvBJWjRMlcB/euDId6QKmAnD2UbMWUf073rw==
+X-Received: from wmqd22.prod.google.com ([2002:a05:600c:34d6:b0:436:185e:c91d])
  (user=jackmanb job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:600c:1d07:b0:434:9934:575 with SMTP id 5b1f17b1804b1-436e26a8f4dmr128290085e9.16.1736534450259;
- Fri, 10 Jan 2025 10:40:50 -0800 (PST)
-Date: Fri, 10 Jan 2025 18:40:28 +0000
+ 2002:a05:600c:444a:b0:434:fe3c:c662 with SMTP id 5b1f17b1804b1-436e9d7b99cmr59996085e9.12.1736534456699;
+ Fri, 10 Jan 2025 10:40:56 -0800 (PST)
+Date: Fri, 10 Jan 2025 18:40:31 +0000
 In-Reply-To: <20250110-asi-rfc-v2-v2-0-8419288bc805@google.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -59,8 +59,8 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
 References: <20250110-asi-rfc-v2-v2-0-8419288bc805@google.com>
 X-Mailer: b4 0.15-dev
-Message-ID: <20250110-asi-rfc-v2-v2-2-8419288bc805@google.com>
-Subject: [PATCH RFC v2 02/29] x86: Create CONFIG_MITIGATION_ADDRESS_SPACE_ISOLATION
+Message-ID: <20250110-asi-rfc-v2-v2-5-8419288bc805@google.com>
+Subject: [PATCH RFC v2 05/29] mm: asi: ASI support in interrupts/exceptions
 From: Brendan Jackman <jackmanb@google.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
 	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, 
@@ -114,264 +114,426 @@ Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org,
 	Brendan Jackman <jackmanb@google.com>, Junaid Shahid <junaids@google.com>
 Content-Type: text/plain; charset="utf-8"
 
-Currently a nop config. Keeping as a separate commit for easy review of
-the boring bits. Later commits will use and enable this new config.
+Add support for potentially switching address spaces from within
+interrupts/exceptions/NMIs etc. An interrupt does not automatically
+switch to the unrestricted address space. It can switch if needed to
+access some memory not available in the restricted address space, using
+the normal asi_exit call.
 
-This config is only added for non-UML x86_64 as other architectures do
-not yet have pending implementations. It also has somewhat artificial
-dependencies on !PARAVIRT and !KASAN which are explained in the Kconfig
-file.
+On return from the outermost interrupt, if the target address space was
+the restricted address space (e.g. we were in the critical code path
+between ASI Enter and VM Enter), the restricted address space will be
+automatically restored. Otherwise, execution will continue in the
+unrestricted address space until the next explicit ASI Enter.
 
-Co-developed-by: Junaid Shahid <junaids@google.com>
+In order to keep track of when to restore the restricted address space,
+an interrupt/exception nesting depth counter is maintained per-task.
+An alternative implementation without needing this counter is also
+possible, but the counter unlocks an additional nice-to-have benefit by
+allowing detection of whether or not we are currently executing inside
+an exception context, which would be useful in a later patch.
+
+Note that for KVM on SVM, this is not actually necessary as NMIs are in
+fact maskable via CLGI. It's not clear to me if VMX has something
+equivalent but we will need this infrastructure in place for userspace
+support anyway.
+
+RFC: Once userspace ASI is implemented, this idtentry integration
+looks a bit heavy-handed. For example, we don't need this logic
+for INT 80 emulation, so having it in DEFINE_IDTENTRY_RAW is
+confusing. It could lead to a bug if the order of interrupter counter
+modifications and ASI transition logic gets flipped around somehow.
+
+checkpatch.pl SPACING is false positive. AVOID_BUG ignored for RFC.
+
+Checkpatch-args: --ignore=SPACING,AVOID_BUG
 Signed-off-by: Junaid Shahid <junaids@google.com>
 Signed-off-by: Brendan Jackman <jackmanb@google.com>
 ---
- arch/alpha/include/asm/Kbuild      |  1 +
- arch/arc/include/asm/Kbuild        |  1 +
- arch/arm/include/asm/Kbuild        |  1 +
- arch/arm64/include/asm/Kbuild      |  1 +
- arch/csky/include/asm/Kbuild       |  1 +
- arch/hexagon/include/asm/Kbuild    |  1 +
- arch/loongarch/include/asm/Kbuild  |  3 +++
- arch/m68k/include/asm/Kbuild       |  1 +
- arch/microblaze/include/asm/Kbuild |  1 +
- arch/mips/include/asm/Kbuild       |  1 +
- arch/nios2/include/asm/Kbuild      |  1 +
- arch/openrisc/include/asm/Kbuild   |  1 +
- arch/parisc/include/asm/Kbuild     |  1 +
- arch/powerpc/include/asm/Kbuild    |  1 +
- arch/riscv/include/asm/Kbuild      |  1 +
- arch/s390/include/asm/Kbuild       |  1 +
- arch/sh/include/asm/Kbuild         |  1 +
- arch/sparc/include/asm/Kbuild      |  1 +
- arch/um/include/asm/Kbuild         |  2 +-
- arch/x86/Kconfig                   | 14 ++++++++++++++
- arch/xtensa/include/asm/Kbuild     |  1 +
- include/asm-generic/asi.h          |  5 +++++
- 22 files changed, 41 insertions(+), 1 deletion(-)
+ arch/x86/include/asm/asi.h       | 68 ++++++++++++++++++++++++++++++++++++++--
+ arch/x86/include/asm/idtentry.h  | 50 ++++++++++++++++++++++++-----
+ arch/x86/include/asm/processor.h |  5 +++
+ arch/x86/kernel/process.c        |  2 ++
+ arch/x86/kernel/traps.c          | 22 +++++++++++++
+ arch/x86/mm/asi.c                |  7 ++++-
+ include/asm-generic/asi.h        | 10 ++++++
+ 7 files changed, 153 insertions(+), 11 deletions(-)
 
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index 396caece6d6d99c7a428f439322a0a18452e1a42..ca72ce3baca13a32913ac9e01a8f86ef42180b1c 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -5,3 +5,4 @@ generic-y += agp.h
- generic-y += asm-offsets.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
-+generic-y += asi.h
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index 49285a3ce2398cc7442bc44172de76367dc33dda..68604480864bbcb58d896da6bdf71591006ab2f6 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -6,3 +6,4 @@ generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += parport.h
- generic-y += user.h
-+generic-y += asi.h
-diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
-index 03657ff8fbe3d202563184b8902aa181e7474a5e..1e2c3d8dbbd99bdf95dbc6b47c2c78092c68b808 100644
---- a/arch/arm/include/asm/Kbuild
-+++ b/arch/arm/include/asm/Kbuild
-@@ -6,3 +6,4 @@ generic-y += parport.h
+diff --git a/arch/x86/include/asm/asi.h b/arch/x86/include/asm/asi.h
+index b9671ef2dd3278adceed18507fd260e21954d574..9a9a139518289fc65f26a4d1cd311aa52cc5357f 100644
+--- a/arch/x86/include/asm/asi.h
++++ b/arch/x86/include/asm/asi.h
+@@ -157,6 +157,11 @@ void asi_relax(void);
+ /* Immediately exit the restricted address space if in it */
+ void asi_exit(void);
  
- generated-y += mach-types.h
- generated-y += unistd-nr.h
-+generic-y += asi.h
-diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
-index 4e350df9a02dd8de387b912740af69035da93e34..15f8aaaa96b80b5657b789ecf3529b1f18d16d80 100644
---- a/arch/arm64/include/asm/Kbuild
-+++ b/arch/arm64/include/asm/Kbuild
-@@ -14,6 +14,7 @@ generic-y += qrwlock.h
- generic-y += qspinlock.h
- generic-y += parport.h
- generic-y += user.h
-+generic-y += asi.h
- 
- generated-y += cpucap-defs.h
- generated-y += sysreg-defs.h
-diff --git a/arch/csky/include/asm/Kbuild b/arch/csky/include/asm/Kbuild
-index 9a9bc65b57a9d73dadc9d597700d7229f8554ddf..4f497118fb172d1f2bf0f9e472479f24227f42f4 100644
---- a/arch/csky/include/asm/Kbuild
-+++ b/arch/csky/include/asm/Kbuild
-@@ -11,3 +11,4 @@ generic-y += qspinlock.h
- generic-y += parport.h
- generic-y += user.h
- generic-y += vmlinux.lds.h
-+generic-y += asi.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index 8c1a78c8f5271ebd47f1baad7b85e87220d1bbe8..b26f186bc03c2e135f8d125a4805b95a41513655 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -5,3 +5,4 @@ generic-y += extable.h
- generic-y += iomap.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
-+generic-y += asi.h
-diff --git a/arch/loongarch/include/asm/Kbuild b/arch/loongarch/include/asm/Kbuild
-index 5b5a6c90e6e20771b1074a6262230861cc51bcb4..dd3d0c6891369a9dfa35ccfb8b81c8697c2a3e90 100644
---- a/arch/loongarch/include/asm/Kbuild
-+++ b/arch/loongarch/include/asm/Kbuild
-@@ -11,3 +11,6 @@ generic-y += ioctl.h
- generic-y += mmzone.h
- generic-y += statfs.h
- generic-y += param.h
-+generic-y += asi.h
-+generic-y += posix_types.h
-+generic-y += resource.h
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 0dbf9c5c6faeb30eeb38bea52ab7fade99bbd44a..faf0f135df4ab946ef115f3a2fc363f370fc7491 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -4,3 +4,4 @@ generic-y += extable.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += spinlock.h
-+generic-y += asi.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index a055f5dbe00a31616592c3a848b49bbf9ead5d17..012e4bf83c13497dc296b66cd5e0fd519274306b 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -8,3 +8,4 @@ generic-y += parport.h
- generic-y += syscalls.h
- generic-y += tlb.h
- generic-y += user.h
-+generic-y += asi.h
-diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
-index 7ba67a0d6c97b2879fb710aca05ae1e2d47c8ce2..3191699298d80735920481eecc64dd2d1dbd2e54 100644
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -13,3 +13,4 @@ generic-y += parport.h
- generic-y += qrwlock.h
- generic-y += qspinlock.h
- generic-y += user.h
-+generic-y += asi.h
-diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
-index 0d09829ed14454f2f15a32bf713fa1eb213e85ea..03a5ec74e28b3679a5ef7271606af3c07bb7a198 100644
---- a/arch/nios2/include/asm/Kbuild
-+++ b/arch/nios2/include/asm/Kbuild
-@@ -7,3 +7,4 @@ generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += spinlock.h
- generic-y += user.h
-+generic-y += asi.h
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index cef49d60d74c0f46f01cf46cc35e1e52404185f3..6a81a58bf59e20cafa563c422df4dfa6f9f791ec 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -9,3 +9,4 @@ generic-y += spinlock.h
- generic-y += qrwlock_types.h
- generic-y += qrwlock.h
- generic-y += user.h
-+generic-y += asi.h
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 4fb596d94c8932dd1e12a765a21af5b5099fbafd..3cbb4eb14712c7bd6c248dd26ab91cc41da01825 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -5,3 +5,4 @@ generic-y += agp.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += user.h
-+generic-y += asi.h
-diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-index e5fdc336c9b22527f824ed30d06b5e8c0fa8a1ef..e86cc027f35564c7b301c283043bde0e5d2d3b6a 100644
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -7,3 +7,4 @@ generic-y += kvm_types.h
- generic-y += mcs_spinlock.h
- generic-y += qrwlock.h
- generic-y += early_ioremap.h
-+generic-y += asi.h
-diff --git a/arch/riscv/include/asm/Kbuild b/arch/riscv/include/asm/Kbuild
-index 1461af12da6e2bbbff6cf737a7babf33bd298cdd..82060ed50d9beb1ea72d3570ad236d1e08d9d8c6 100644
---- a/arch/riscv/include/asm/Kbuild
-+++ b/arch/riscv/include/asm/Kbuild
-@@ -13,3 +13,4 @@ generic-y += qrwlock.h
- generic-y += qrwlock_types.h
- generic-y += user.h
- generic-y += vmlinux.lds.h
-+generic-y += asi.h
-diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
-index 297bf7157968907d6e4c4ff8b65deeef02dbd630..e15c2a138392b57b186633738ddda913474aa8c4 100644
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -8,3 +8,4 @@ generic-y += asm-offsets.h
- generic-y += kvm_types.h
- generic-y += mcs_spinlock.h
- generic-y += mmzone.h
-+generic-y += asi.h
-diff --git a/arch/sh/include/asm/Kbuild b/arch/sh/include/asm/Kbuild
-index fc44d9c88b41915a7021042eb8b462517cfdbd2c..ea19e4515828552f436d67f764607dd5d15cb19f 100644
---- a/arch/sh/include/asm/Kbuild
-+++ b/arch/sh/include/asm/Kbuild
-@@ -3,3 +3,4 @@ generated-y += syscall_table.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
- generic-y += parport.h
-+generic-y += asi.h
-diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
-index 43b0ae4c2c2112d4d4d3cb3c60e787b175172dea..cb9062c9be17fe276cc92d2ac99d8b165f6297bf 100644
---- a/arch/sparc/include/asm/Kbuild
-+++ b/arch/sparc/include/asm/Kbuild
-@@ -4,3 +4,4 @@ generated-y += syscall_table_64.h
- generic-y += agp.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
-+generic-y += asi.h
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index 18f902da8e99769da857d34af43141ea97a0ca63..6054972f1babdaebae64040b05ab48893915cb04 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -27,4 +27,4 @@ generic-y += trace_clock.h
- generic-y += kprobes.h
- generic-y += mm_hooks.h
- generic-y += vga.h
--generic-y += video.h
-+generic-y += asi.h
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 7b9a7e8f39acc8e9aeb7d4213e87d71047865f5c..5a50582eb210e9d1309856a737d32b76fa1bfc85 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -2519,6 +2519,20 @@ config MITIGATION_PAGE_TABLE_ISOLATION
- 
- 	  See Documentation/arch/x86/pti.rst for more details.
- 
-+config MITIGATION_ADDRESS_SPACE_ISOLATION
-+	bool "Allow code to run with a reduced kernel address space"
-+	default n
-+	depends on X86_64 && !PARAVIRT && !UML
-+	help
-+	  This feature provides the ability to run some kernel code
-+	  with a reduced kernel address space. This can be used to
-+	  mitigate some speculative execution attacks.
++static inline void asi_init_thread_state(struct thread_struct *thread)
++{
++	thread->asi_state.intr_nest_depth = 0;
++}
 +
-+	  The !PARAVIRT dependency is only because of lack of testing; in theory
-+	  the code is written to work under paravirtualization. In practice
-+	  there are likely to be unhandled cases, in particular concerning TLB
-+	  flushes.
+ /* The target is the domain we'll enter when returning to process context. */
+ static __always_inline struct asi *asi_get_target(struct task_struct *p)
+ {
+@@ -197,9 +202,10 @@ static __always_inline bool asi_is_relaxed(void)
+ /*
+  * Is the current task in the critical section?
+  *
+- * This is just the inverse of !asi_is_relaxed(). We have both functions in order to
+- * help write intuitive client code. In particular, asi_is_tense returns false
+- * when ASI is disabled, which is judged to make user code more obvious.
++ * This is just the inverse of !asi_is_relaxed(). We have both functions in
++ * order to help write intuitive client code. In particular, asi_is_tense
++ * returns false when ASI is disabled, which is judged to make user code more
++ * obvious.
+  */
+ static __always_inline bool asi_is_tense(void)
+ {
+@@ -211,6 +217,62 @@ static __always_inline pgd_t *asi_pgd(struct asi *asi)
+ 	return asi ? asi->pgd : NULL;
+ }
+ 
++static __always_inline void asi_intr_enter(void)
++{
++	if (static_asi_enabled() && asi_is_tense()) {
++		current->thread.asi_state.intr_nest_depth++;
++		barrier();
++	}
++}
 +
- config MITIGATION_RETPOLINE
- 	bool "Avoid speculative indirect branches in kernel"
- 	select OBJTOOL if HAVE_OBJTOOL
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index fa07c686cbcc2153776a478ac4093846f01eddab..07cea6902f98053be244d026ed594fe7246755a6 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -8,3 +8,4 @@ generic-y += parport.h
- generic-y += qrwlock.h
- generic-y += qspinlock.h
- generic-y += user.h
-+generic-y += asi.h
++void __asi_enter(void);
++
++static __always_inline void asi_intr_exit(void)
++{
++	if (static_asi_enabled() && asi_is_tense()) {
++		/*
++		 * If an access to sensitive memory got reordered after the
++		 * decrement, the #PF handler for that access would see a value
++		 * of 0 for the counter and re-__asi_enter before returning to
++		 * the faulting access, triggering an infinite PF loop.
++		 */
++		barrier();
++
++		if (--current->thread.asi_state.intr_nest_depth == 0) {
++			/*
++			 * If the decrement got reordered after __asi_enter, an
++			 * interrupt that came between __asi_enter and the
++			 * decrement would always see a nonzero value for the
++			 * counter so it wouldn't call __asi_enter again and we
++			 * would return to process context in the wrong address
++			 * space.
++			 */
++			barrier();
++			__asi_enter();
++		}
++	}
++}
++
++/*
++ * Returns the nesting depth of interrupts/exceptions that have interrupted the
++ * ongoing critical section. If the current task is not in a critical section
++ * this is 0.
++ */
++static __always_inline int asi_intr_nest_depth(void)
++{
++	return current->thread.asi_state.intr_nest_depth;
++}
++
++/*
++ * Remember that interrupts/exception don't count as the critical section. If
++ * you want to know if the current task is in the critical section use
++ * asi_is_tense().
++ */
++static __always_inline bool asi_in_critical_section(void)
++{
++	return asi_is_tense() && !asi_intr_nest_depth();
++}
++
+ #define INIT_MM_ASI(init_mm) \
+ 	.asi_init_lock = __MUTEX_INITIALIZER(init_mm.asi_init_lock),
+ 
+diff --git a/arch/x86/include/asm/idtentry.h b/arch/x86/include/asm/idtentry.h
+index ad5c68f0509d4dfd0834303c0f9dabc93ef73aa4..9e00da0a3b08f83ca5e603dc2abbfd5fa3059811 100644
+--- a/arch/x86/include/asm/idtentry.h
++++ b/arch/x86/include/asm/idtentry.h
+@@ -12,6 +12,7 @@
+ #include <linux/hardirq.h>
+ 
+ #include <asm/irq_stack.h>
++#include <asm/asi.h>
+ 
+ typedef void (*idtentry_t)(struct pt_regs *regs);
+ 
+@@ -55,12 +56,15 @@ static __always_inline void __##func(struct pt_regs *regs);		\
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	irqentry_state_t state = irqentry_enter(regs);			\
++	irqentry_state_t state;						\
+ 									\
++	asi_intr_enter();						\
++	state = irqentry_enter(regs);					\
+ 	instrumentation_begin();					\
+ 	__##func (regs);						\
+ 	instrumentation_end();						\
+ 	irqentry_exit(regs, state);					\
++	asi_intr_exit();						\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs)
+@@ -102,12 +106,15 @@ static __always_inline void __##func(struct pt_regs *regs,		\
+ __visible noinstr void func(struct pt_regs *regs,			\
+ 			    unsigned long error_code)			\
+ {									\
+-	irqentry_state_t state = irqentry_enter(regs);			\
++	irqentry_state_t state;						\
+ 									\
++	asi_intr_enter();						\
++	state = irqentry_enter(regs);					\
+ 	instrumentation_begin();					\
+ 	__##func (regs, error_code);					\
+ 	instrumentation_end();						\
+ 	irqentry_exit(regs, state);					\
++	asi_intr_exit();						\
+ }									\
+ 									\
+ static __always_inline void __##func(struct pt_regs *regs,		\
+@@ -139,7 +146,16 @@ static __always_inline void __##func(struct pt_regs *regs,		\
+  * is required before the enter/exit() helpers are invoked.
+  */
+ #define DEFINE_IDTENTRY_RAW(func)					\
+-__visible noinstr void func(struct pt_regs *regs)
++static __always_inline void __##func(struct pt_regs *regs);		\
++									\
++__visible noinstr void func(struct pt_regs *regs)			\
++{									\
++	asi_intr_enter();						\
++	__##func (regs);						\
++	asi_intr_exit();						\
++}									\
++									\
++static __always_inline void __##func(struct pt_regs *regs)
+ 
+ /**
+  * DEFINE_FREDENTRY_RAW - Emit code for raw FRED entry points
+@@ -178,7 +194,18 @@ noinstr void fred_##func(struct pt_regs *regs)
+  * is required before the enter/exit() helpers are invoked.
+  */
+ #define DEFINE_IDTENTRY_RAW_ERRORCODE(func)				\
+-__visible noinstr void func(struct pt_regs *regs, unsigned long error_code)
++static __always_inline void __##func(struct pt_regs *regs,		\
++				     unsigned long error_code);		\
++									\
++__visible noinstr void func(struct pt_regs *regs, unsigned long error_code)\
++{									\
++	asi_intr_enter();						\
++	__##func (regs, error_code);					\
++	asi_intr_exit();						\
++}									\
++									\
++static __always_inline void __##func(struct pt_regs *regs,		\
++				     unsigned long error_code)
+ 
+ /**
+  * DECLARE_IDTENTRY_IRQ - Declare functions for device interrupt IDT entry
+@@ -209,14 +236,17 @@ static void __##func(struct pt_regs *regs, u32 vector);			\
+ __visible noinstr void func(struct pt_regs *regs,			\
+ 			    unsigned long error_code)			\
+ {									\
+-	irqentry_state_t state = irqentry_enter(regs);			\
++	irqentry_state_t state;						\
+ 	u32 vector = (u32)(u8)error_code;				\
+ 									\
++	asi_intr_enter();						\
++	state = irqentry_enter(regs);					\
+ 	kvm_set_cpu_l1tf_flush_l1d();                                   \
+ 	instrumentation_begin();					\
+ 	run_irq_on_irqstack_cond(__##func, regs, vector);		\
+ 	instrumentation_end();						\
+ 	irqentry_exit(regs, state);					\
++	asi_intr_exit();						\
+ }									\
+ 									\
+ static noinline void __##func(struct pt_regs *regs, u32 vector)
+@@ -255,13 +285,16 @@ static __always_inline void instr_##func(struct pt_regs *regs)		\
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	irqentry_state_t state = irqentry_enter(regs);			\
++	irqentry_state_t state;						\
+ 									\
++	asi_intr_enter();						\
++	state = irqentry_enter(regs);					\
+ 	kvm_set_cpu_l1tf_flush_l1d();                                   \
+ 	instrumentation_begin();					\
+ 	instr_##func (regs);						\
+ 	instrumentation_end();						\
+ 	irqentry_exit(regs, state);					\
++	asi_intr_exit();						\
+ }									\
+ 									\
+ void fred_##func(struct pt_regs *regs)					\
+@@ -294,13 +327,16 @@ static __always_inline void instr_##func(struct pt_regs *regs)		\
+ 									\
+ __visible noinstr void func(struct pt_regs *regs)			\
+ {									\
+-	irqentry_state_t state = irqentry_enter(regs);			\
++	irqentry_state_t state;						\
+ 									\
++	asi_intr_enter();						\
++	state = irqentry_enter(regs);					\
+ 	kvm_set_cpu_l1tf_flush_l1d();                                   \
+ 	instrumentation_begin();					\
+ 	instr_##func (regs);						\
+ 	instrumentation_end();						\
+ 	irqentry_exit(regs, state);					\
++	asi_intr_exit();						\
+ }									\
+ 									\
+ void fred_##func(struct pt_regs *regs)					\
+diff --git a/arch/x86/include/asm/processor.h b/arch/x86/include/asm/processor.h
+index f02220e6b4df911d87e2fee4b497eade61a27161..a32a53405f45e4c0473fe081e216029cf5bd0cdd 100644
+--- a/arch/x86/include/asm/processor.h
++++ b/arch/x86/include/asm/processor.h
+@@ -508,6 +508,11 @@ struct thread_struct {
+ 	struct {
+ 		/* Domain to enter when returning to process context. */
+ 		struct asi	*target;
++		/*
++		 * The depth of interrupt/exceptions interrupting an ASI
++		 * critical section
++		 */
++		int		intr_nest_depth;
+ 	} asi_state;
+ #endif
+ 
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index f63f8fd00a91f3d1171f307b92179556ba2d716d..44abc161820153b7f68664b97267658b8e011101 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -96,6 +96,8 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
+ #ifdef CONFIG_VM86
+ 	dst->thread.vm86 = NULL;
+ #endif
++	asi_init_thread_state(&dst->thread);
++
+ 	/* Drop the copied pointer to current's fpstate */
+ 	dst->thread.fpu.fpstate = NULL;
+ 
+diff --git a/arch/x86/kernel/traps.c b/arch/x86/kernel/traps.c
+index 2dbadf347b5f4f66625c4f49b76c41b412270d57..beea861da8d3e9a4e2afb3a92ed5f66f11d67bd6 100644
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@ -65,6 +65,7 @@
+ #include <asm/umip.h>
+ #include <asm/insn.h>
+ #include <asm/insn-eval.h>
++#include <asm/asi.h>
+ #include <asm/vdso.h>
+ #include <asm/tdx.h>
+ #include <asm/cfi.h>
+@@ -463,6 +464,27 @@ DEFINE_IDTENTRY_DF(exc_double_fault)
+ 	}
+ #endif
+ 
++	/*
++	 * Do an asi_exit() only here because a #DF usually indicates
++	 * the system is in a really bad state, and we don't want to
++	 * cause any additional issue that would prevent us from
++	 * printing a correct stack trace.
++	 *
++	 * The additional issues are not related to a possible triple
++	 * fault, which can only occurs if a fault is encountered while
++	 * invoking this handler, but here we are already executing it.
++	 * Instead, an ASI-induced #PF here could potentially end up
++	 * getting another #DF. For example, if there was some issue in
++	 * invoking the #PF handler. The handler for the second #DF
++	 * could then again cause an ASI-induced #PF leading back to the
++	 * same recursion.
++	 *
++	 * This is not needed in the espfix64 case above, since that
++	 * code is about turning a #DF into a #GP which is okay to
++	 * handle in the restricted domain. That's also why we don't
++	 * asi_exit() in the #GP handler.
++	 */
++	asi_exit();
+ 	irqentry_nmi_enter(regs);
+ 	instrumentation_begin();
+ 	notify_die(DIE_TRAP, str, regs, error_code, X86_TRAP_DF, SIGSEGV);
+diff --git a/arch/x86/mm/asi.c b/arch/x86/mm/asi.c
+index 5baf563a078f5b3a6cd4b9f5e92baaf81b0774c4..054315d566c082c0925a00ce3a0877624c8b9957 100644
+--- a/arch/x86/mm/asi.c
++++ b/arch/x86/mm/asi.c
+@@ -235,7 +235,7 @@ static __always_inline void maybe_flush_data(struct asi *next_asi)
+ 	this_cpu_and(asi_taints, ~ASI_TAINTS_DATA_MASK);
+ }
+ 
+-static noinstr void __asi_enter(void)
++noinstr void __asi_enter(void)
+ {
+ 	u64 asi_cr3;
+ 	struct asi *target = asi_get_target(current);
+@@ -250,6 +250,7 @@ static noinstr void __asi_enter(void)
+ 	 * disabling preemption should be fine.
+ 	 */
+ 	VM_BUG_ON(preemptible());
++	VM_BUG_ON(current->thread.asi_state.intr_nest_depth != 0);
+ 
+ 	if (!target || target == this_cpu_read(curr_asi))
+ 		return;
+@@ -290,6 +291,7 @@ noinstr void asi_enter(struct asi *asi)
+ 	if (!static_asi_enabled())
+ 		return;
+ 
++	VM_WARN_ON_ONCE(asi_intr_nest_depth());
+ 	VM_WARN_ON_ONCE(!asi);
+ 
+ 	/* Should not have an asi_enter() without a prior asi_relax(). */
+@@ -305,6 +307,7 @@ EXPORT_SYMBOL_GPL(asi_enter);
+ noinstr void asi_relax(void)
+ {
+ 	if (static_asi_enabled()) {
++		VM_WARN_ON_ONCE(asi_intr_nest_depth());
+ 		barrier();
+ 		asi_set_target(current, NULL);
+ 	}
+@@ -326,6 +329,8 @@ noinstr void asi_exit(void)
+ 
+ 	asi = this_cpu_read(curr_asi);
+ 	if (asi) {
++		WARN_ON_ONCE(asi_in_critical_section());
++
+ 		maybe_flush_control(NULL);
+ 
+ 		unrestricted_cr3 =
 diff --git a/include/asm-generic/asi.h b/include/asm-generic/asi.h
-new file mode 100644
-index 0000000000000000000000000000000000000000..c4d9a5ff860a96428422a15000c622aeecc2d664
---- /dev/null
+index eedc961ee916a9e1da631ca489ea4a7bc9e6089f..7f542c59c2b8a2b74432e4edb7199f9171db8a84 100644
+--- a/include/asm-generic/asi.h
 +++ b/include/asm-generic/asi.h
-@@ -0,0 +1,5 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __ASM_GENERIC_ASI_H
-+#define __ASM_GENERIC_ASI_H
+@@ -52,6 +52,8 @@ static inline bool asi_is_relaxed(void) { return true; }
+ 
+ static inline bool asi_is_tense(void) { return false; }
+ 
++static inline bool asi_in_critical_section(void) { return false; }
 +
-+#endif
+ static inline void asi_exit(void) { }
+ 
+ static inline bool asi_is_restricted(void) { return false; }
+@@ -65,6 +67,14 @@ static inline pgd_t *asi_pgd(struct asi *asi) { return NULL; }
+ 
+ static inline void asi_handle_switch_mm(void) { }
+ 
++static inline void asi_init_thread_state(struct thread_struct *thread) { }
++
++static inline void asi_intr_enter(void) { }
++
++static inline int asi_intr_nest_depth(void) { return 0; }
++
++static inline void asi_intr_exit(void) { }
++
+ #define static_asi_enabled() false
+ 
+ static inline void asi_check_boottime_disable(void) { }
 
 -- 
 2.47.1.613.gc27f4b7a9f-goog
