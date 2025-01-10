@@ -1,55 +1,55 @@
-Received: from mail-wm1-f73.google.com (mail-wm1-f73.google.com [209.85.128.73])
+Received: from mail-wr1-f74.google.com (mail-wr1-f74.google.com [209.85.221.74])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D9B98224891
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E311A224899
 	for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2025 18:41:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.73
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.74
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736534503; cv=none; b=bHUFhM2hE3BVZceXVRXYZzPK7XetBLwOUNRiz9JCo7Mt1kHSD78Upm1ePH1idb+mIUvvU/9B4r+4uCwqDLDsv5BjvuLsXok2u0lLsKGAAzN2K//SicVlljfglXqyuPXyXpgAg/PxKK6FMegBwzfgPdV/tEHHSCM/2+hwwb5KJPk=
+	t=1736534503; cv=none; b=uCb4BP3nPd8BaNrSYnPrXGPl84e2h9M4R3Bb+LJY957cA3jGhJetgUXxFbzM1IJnxU45JKG3/9Jurt6OBy0wuwwDzHTWzDEam9BV7WhotjFddokcQc7pzDYJJP+GBK1D4nROAJdl8ePtV5hA26atAlxsW9j0rQC8hcVeFeBUgec=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1736534503; c=relaxed/simple;
-	bh=ZTZcWQBF8tUo+J/JUKmX7ofVEYD/oEfP//Lw5p3vMVE=;
+	bh=SZWSB4xfWiJGdbbRiBIwnZ68GYA4NlfRz2uMWEeyAjw=;
 	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=oxiAR+uzz/rKCqO9USgA5eKj4dAE115kq/5meF8qTwtVvx0ZhN0mGR/ABn/oK3Ox+Le1i2eBL5LdESnh3vrVOFRVrtgvpJJ3X/tBUQccQJ6733JOxY2ZwDvDEDyTOvwn4h9PSHGXmfsnwMGVB2yf01HBBPfXCxwoOTmO0aIbxJk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--jackmanb.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=rN5YQ4Qg; arc=none smtp.client-ip=209.85.128.73
+	 To:Cc:Content-Type; b=YNFVmmmH1tonCSIn71mrfRrqWZG1H3QBblBLZU8j/Zsl/PGvrTSSdJ6vRf7uIXvcUQmWB8wKDiyxHb9CUVELJreXIYctFn0eyCVhgbn9wYADJi/ORn0WJWoDavr2c5exg8KFULvZAYmqFJw1nTyJlfYvEVkh/Xe/fNxrptf/+8o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--jackmanb.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=iDkGrgTK; arc=none smtp.client-ip=209.85.221.74
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--jackmanb.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="rN5YQ4Qg"
-Received: by mail-wm1-f73.google.com with SMTP id 5b1f17b1804b1-4361f371908so16547465e9.0
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="iDkGrgTK"
+Received: by mail-wr1-f74.google.com with SMTP id ffacd0b85a97d-3862b364578so1612480f8f.1
         for <linux-arch@vger.kernel.org>; Fri, 10 Jan 2025 10:41:23 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1736534475; x=1737139275; darn=vger.kernel.org;
+        d=google.com; s=20230601; t=1736534480; x=1737139280; darn=vger.kernel.org;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=DqQy0/uo7rp5xt5hxwNN280PfwFL6RX7EFGPCdWY0es=;
-        b=rN5YQ4Qgxne0RHdvEWxSnVWuekoLjrSgQpBMyjzlbrZYm1LmGg03rDRNufoGUgrqm1
-         fRjnJsRo1w7eHCzSXj/ofLjpXz7q/v85GiJkPwg3IvDMvefS2fIGQzD5bW6VBiKviLbO
-         87+Wrmprat2mQXyZjSWVadja9OF6qD1bXpO4ip73dKrL+K3EAHnaA+XbztJKV8wDoLON
-         kcfkxi0KRxH81TX31k3jtBEx+ylXA2d/tEqiEY55nTCW+7RKk5wNZbT1mqLmIsaWEQgn
-         GECj3ff34jj4uN41yAzH+erWgR/dDYYb5GbUFspw5BeL/Ys7QkcazE3NWX4+YNgn+7Cl
-         M3ig==
+        bh=Aw/CnxStV8mvixiIOCl4TLOf7+c8cjSAdFrfDhkuuHg=;
+        b=iDkGrgTKHVUa34+ZKmxOSc0xwlurss6RE8/r+LqYpqitJzMkpPySm7IZKpZHys9em2
+         pnj9244eqbH46mK1dAP3AIse9cR2NBErzZbkf2d9DcAGpNvZh7PiY4LCjtICGW9V/YRP
+         cJYr7hXel2n3RMuEQzGuA8h9TVs/fkUzZenWMztEJLjyxdwVOR7EjfUkybgTay/Xb+uk
+         Y/Tst3A3W6yIWuUi3EA2NI4A8NYG4KT/8HSFxSt79sr41pHhJciLC7MjYC3EhXz+on3e
+         fMuQWtQINtB6NLiLlGtQ9U3H3PCaK7LP5AhdGJvCvg46xw9SQTssN/MolzzES9pFiX54
+         /Wdw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1736534475; x=1737139275;
+        d=1e100.net; s=20230601; t=1736534480; x=1737139280;
         h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
          :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=DqQy0/uo7rp5xt5hxwNN280PfwFL6RX7EFGPCdWY0es=;
-        b=mSpI+3x055VzeQH6YVMaBzdqQWcR/gzSuEIZwqBkVbZ/vDidUV06pbTT/FJdDa1eVf
-         PfQudcD11XaMLLypx19W0+JTMNtyOgp93+I4+EO56qRolXL39xzFDP3lRTJwdU7clXlX
-         Lurz0RZr+JlOy9Ni4f9xW6oKJfAwIxXmH5j5qto0jhpgvjwz0TU+DKyBQNdMwppWYk2w
-         c6+DfZs/lCge2Rj80blNEf/FYijDLc3izmKvNKZpKKj3fhyQXTriSJeMyCz97UHXrsCt
-         9x6oDeBsKItQF74ZamE9fEldfrDwAKBc1pAHo08OkkY4KLUt1woUfC31I0goz8nTdiaM
-         tgbg==
-X-Forwarded-Encrypted: i=1; AJvYcCXIGP45dXhe1N4EEmAwRzhT8JiLNB7ktjWJoz5hKZrHNfItDKk8/9Ir+bwRL8651OkxNY6SDWI8iWqX@vger.kernel.org
-X-Gm-Message-State: AOJu0YxwOQ6jHr6eYH7xTerQbylgQIsUK2HwiIUG+Vf/wLJ38YCshw42
-	2569J+v+0qXbqSjQ3OYcDNynFVsTuP8BdbalXxjDO+k364TuaPDx3sstgQK5r+y4UFkVoX/6DWQ
-	U2ak9p/rCDQ==
-X-Google-Smtp-Source: AGHT+IEHMyjAf4Ii6uANDaoYyo5ZkF+D1/fwKOgm4kaaSXfegc+L5vVxTYn6WIEloGlJDmt93RFbSdb2jTZqKA==
-X-Received: from wmbjt19.prod.google.com ([2002:a05:600c:5693:b0:435:4bd2:1dcd])
+        bh=Aw/CnxStV8mvixiIOCl4TLOf7+c8cjSAdFrfDhkuuHg=;
+        b=CZ+8EOumNxBrLshByK+WVMR2aALkQOmbdac0x9w8YXKzvKkR1sHALuEX05dxIMWTCB
+         U/5k/OqqesIE9hqhGZVknFrUEn9MI9zgwM3Vbpda2kltXnrh1wYfRoMubV58DzARk0w9
+         j+osDENgYDEiQOY4WmhIPzciGS0Y/15bnpti1CHUf8+X7Vvmg1oiaRb0neEvvSh1CKPZ
+         UVp7l1zbcVL4PjAJanoeCEONORHgXgtSfiioCzLUqvJL08oFWTAV+yJHbXd5za8eRWRO
+         zoetYgWtX55e5kOqAziv+XLTDUsWNVgxhllxDp0280/hSbvlYbXDfQl01U+JK1YqfWfK
+         8llw==
+X-Forwarded-Encrypted: i=1; AJvYcCUY2wkS9iJ10YpEA+hmTemIk7YPrjKHUyhCfuiTDY8DElqqPe2kyK4JmZMe3Bbi9XdW+Z4KNweglBJr@vger.kernel.org
+X-Gm-Message-State: AOJu0YxqY3BA0NK/26nsw+UO6L3+AtLUjbpY1BCCg2hiSM/vbp8tpQo5
+	GILJ3SjS9XMsq+1fvigL3ljYVOIkGG/7QZlxN6w+pGmHOeU8gTXtiYxpOuJVrV+8J7xpa1yu6gG
+	Fgfn0987WVA==
+X-Google-Smtp-Source: AGHT+IEfIL+1aAzwB4pbtK9eyCgzXtWnxn8Tg5skOTY2l9Jdg/lcArfVr7lNF3vncmrBkENqt6o7go6KThD7+Q==
+X-Received: from wmqe1.prod.google.com ([2002:a05:600c:4e41:b0:434:a050:ddcf])
  (user=jackmanb job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:600c:4e44:b0:434:e9ee:c3d with SMTP id 5b1f17b1804b1-436e27070b1mr106983675e9.20.1736534474969;
- Fri, 10 Jan 2025 10:41:14 -0800 (PST)
-Date: Fri, 10 Jan 2025 18:40:39 +0000
+ 2002:a05:6000:1547:b0:386:34af:9bae with SMTP id ffacd0b85a97d-38a8b0b7fd0mr6975597f8f.4.1736534479521;
+ Fri, 10 Jan 2025 10:41:19 -0800 (PST)
+Date: Fri, 10 Jan 2025 18:40:41 +0000
 In-Reply-To: <20250110-asi-rfc-v2-v2-0-8419288bc805@google.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -59,8 +59,9 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
 References: <20250110-asi-rfc-v2-v2-0-8419288bc805@google.com>
 X-Mailer: b4 0.15-dev
-Message-ID: <20250110-asi-rfc-v2-v2-13-8419288bc805@google.com>
-Subject: [PATCH RFC v2 13/29] mm: Add __PAGEFLAG_FALSE
+Message-ID: <20250110-asi-rfc-v2-v2-15-8419288bc805@google.com>
+Subject: [PATCH TEMP WORKAROUND RFC v2 15/29] mm: asi: Workaround missing
+ partial-unmap support
 From: Brendan Jackman <jackmanb@google.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
 	Dave Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, 
@@ -114,39 +115,136 @@ Cc: x86@kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org,
 	Brendan Jackman <jackmanb@google.com>
 Content-Type: text/plain; charset="utf-8"
 
-__PAGEFLAG_FALSE is a non-atomic equivalent of PAGEFLAG_FALSE.
+This is a hack, no need to review it carefully. asi_unmap() doesn't
+currently work unless it corresponds exactly to an asi_map() of the
+exact same region.
 
-Checkpatch-args: --ignore=COMPLEX_MACRO
+This is mostly harmless (it's only a functional problem if you wanna
+touch those pages from the ASI critical section) but it's messy. For
+now, working around the only practical case that appears by moving the
+asi_map call up the call stack in the page allocator, to the place where
+we know the actual size the mapping is supposed to end up at.
+
+This just removes the main case where that happens. Later, a proper
+solution for partial unmaps will be needed.
+
 Signed-off-by: Brendan Jackman <jackmanb@google.com>
 ---
- include/linux/page-flags.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+ mm/page_alloc.c | 40 ++++++++++++++++++++++++++--------------
+ 1 file changed, 26 insertions(+), 14 deletions(-)
 
-diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
-index cc839e4365c18223e68c35efd0f67e7650708e8b..7ee9a0edc6d21708fc93dfa8913dc1ae9478dee3 100644
---- a/include/linux/page-flags.h
-+++ b/include/linux/page-flags.h
-@@ -484,6 +484,10 @@ static inline int Page##uname(const struct page *page) { return 0; }
- FOLIO_SET_FLAG_NOOP(lname)						\
- static inline void SetPage##uname(struct page *page) {  }
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 3e98fdfbadddb1f7d71e9e050b63255b2008d167..f96e95032450be90b6567f67915b0b941fc431d8 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -4604,22 +4604,20 @@ void __init page_alloc_init_asi(void)
+ 	}
+ }
  
-+#define __SETPAGEFLAG_NOOP(uname, lname)					\
-+static inline void __folio_set_##lname(struct folio *folio) { }		\
-+static inline void __SetPage##uname(struct page *page) {  }
-+
- #define CLEARPAGEFLAG_NOOP(uname, lname)				\
- FOLIO_CLEAR_FLAG_NOOP(lname)						\
- static inline void ClearPage##uname(struct page *page) {  }
-@@ -506,6 +510,9 @@ static inline int TestClearPage##uname(struct page *page) { return 0; }
- #define TESTSCFLAG_FALSE(uname, lname)					\
- 	TESTSETFLAG_FALSE(uname, lname) TESTCLEARFLAG_FALSE(uname, lname)
+-static int asi_map_alloced_pages(struct page *page, uint order, gfp_t gfp_mask)
++static int asi_map_alloced_pages(struct page *page, size_t size, gfp_t gfp_mask)
+ {
  
-+#define __PAGEFLAG_FALSE(uname, lname) TESTPAGEFLAG_FALSE(uname, lname)		\
-+	__SETPAGEFLAG_NOOP(uname, lname) __CLEARPAGEFLAG_NOOP(uname, lname)
+ 	if (!static_asi_enabled())
+ 		return 0;
+ 
+ 	if (!(gfp_mask & __GFP_SENSITIVE)) {
+-		int err = asi_map_gfp(
+-			ASI_GLOBAL_NONSENSITIVE, page_to_virt(page),
+-			PAGE_SIZE * (1 << order), gfp_mask);
++		int err = asi_map_gfp(ASI_GLOBAL_NONSENSITIVE, page_to_virt(page), size, gfp_mask);
+ 		uint i;
+ 
+ 		if (err)
+ 			return err;
+ 
+-		for (i = 0; i < (1 << order); i++)
++		for (i = 0; i < (size >> PAGE_SHIFT); i++)
+ 			__SetPageGlobalNonSensitive(page + i);
+ 	}
+ 
+@@ -4629,7 +4627,7 @@ static int asi_map_alloced_pages(struct page *page, uint order, gfp_t gfp_mask)
+ #else /* CONFIG_MITIGATION_ADDRESS_SPACE_ISOLATION */
+ 
+ static inline
+-int asi_map_alloced_pages(struct page *pages, uint order, gfp_t gfp_mask)
++int asi_map_alloced_pages(struct page *pages, size_t size, gfp_t gfp_mask)
+ {
+ 	return 0;
+ }
+@@ -4896,7 +4894,7 @@ struct page *__alloc_pages_noprof(gfp_t gfp, unsigned int order,
+ 	trace_mm_page_alloc(page, order, alloc_gfp, ac.migratetype);
+ 	kmsan_alloc_page(page, order, alloc_gfp);
+ 
+-	if (page && unlikely(asi_map_alloced_pages(page, order, gfp))) {
++	if (page && unlikely(asi_map_alloced_pages(page, PAGE_SIZE << order, gfp))) {
+ 		__free_pages(page, order);
+ 		page = NULL;
+ 	}
+@@ -5118,12 +5116,13 @@ void page_frag_free(void *addr)
+ }
+ EXPORT_SYMBOL(page_frag_free);
+ 
+-static void *make_alloc_exact(unsigned long addr, unsigned int order,
+-		size_t size)
++static void *finish_exact_alloc(unsigned long addr, unsigned int order,
++		size_t size, gfp_t gfp_mask)
+ {
+ 	if (addr) {
+ 		unsigned long nr = DIV_ROUND_UP(size, PAGE_SIZE);
+ 		struct page *page = virt_to_page((void *)addr);
++		struct page *first = page;
+ 		struct page *last = page + nr;
+ 
+ 		split_page_owner(page, order, 0);
+@@ -5132,9 +5131,22 @@ static void *make_alloc_exact(unsigned long addr, unsigned int order,
+ 		while (page < --last)
+ 			set_page_refcounted(last);
+ 
+-		last = page + (1UL << order);
++		last = page + (1 << order);
+ 		for (page += nr; page < last; page++)
+ 			__free_pages_ok(page, 0, FPI_TO_TAIL);
 +
- __PAGEFLAG(Locked, locked, PF_NO_TAIL)
- FOLIO_FLAG(waiters, FOLIO_HEAD_PAGE)
- FOLIO_FLAG(referenced, FOLIO_HEAD_PAGE)
++		/*
++		 * ASI doesn't support partially undoing calls to asi_map, so
++		 * we can only safely free sub-allocations if they were made
++		 * with __GFP_SENSITIVE in the first place. Users of this need
++		 * to map with forced __GFP_SENSITIVE and then here we'll make a
++		 * second asi_map_alloced_pages() call to do any mapping that's
++		 * necessary, but with the exact size.
++		 */
++		if (unlikely(asi_map_alloced_pages(first, nr << PAGE_SHIFT, gfp_mask))) {
++			free_pages_exact(first, size);
++			return NULL;
++		}
+ 	}
+ 	return (void *)addr;
+ }
+@@ -5162,8 +5174,8 @@ void *alloc_pages_exact_noprof(size_t size, gfp_t gfp_mask)
+ 	if (WARN_ON_ONCE(gfp_mask & (__GFP_COMP | __GFP_HIGHMEM)))
+ 		gfp_mask &= ~(__GFP_COMP | __GFP_HIGHMEM);
+ 
+-	addr = get_free_pages_noprof(gfp_mask, order);
+-	return make_alloc_exact(addr, order, size);
++	addr = get_free_pages_noprof(gfp_mask | __GFP_SENSITIVE, order);
++	return finish_exact_alloc(addr, order, size, gfp_mask);
+ }
+ EXPORT_SYMBOL(alloc_pages_exact_noprof);
+ 
+@@ -5187,10 +5199,10 @@ void * __meminit alloc_pages_exact_nid_noprof(int nid, size_t size, gfp_t gfp_ma
+ 	if (WARN_ON_ONCE(gfp_mask & (__GFP_COMP | __GFP_HIGHMEM)))
+ 		gfp_mask &= ~(__GFP_COMP | __GFP_HIGHMEM);
+ 
+-	p = alloc_pages_node_noprof(nid, gfp_mask, order);
++	p = alloc_pages_node_noprof(nid, gfp_mask | __GFP_SENSITIVE, order);
+ 	if (!p)
+ 		return NULL;
+-	return make_alloc_exact((unsigned long)page_address(p), order, size);
++	return finish_exact_alloc((unsigned long)page_address(p), order, size, gfp_mask);
+ }
+ 
+ /**
 
 -- 
 2.47.1.613.gc27f4b7a9f-goog
