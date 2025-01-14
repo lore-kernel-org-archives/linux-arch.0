@@ -1,177 +1,142 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from fout-b4-smtp.messagingengine.com (fout-b4-smtp.messagingengine.com [202.12.124.147])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ECCE11FCD12
-	for <linux-arch@vger.kernel.org>; Tue, 14 Jan 2025 17:56:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16A7520CCC2;
+	Tue, 14 Jan 2025 17:57:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.147
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1736877413; cv=none; b=o1a9IjFal4OZS3laH+21JsNguofLIpKLpwslRq7VgXhGH3i2IZxX8EntTcbFzzVXkkiIVWigXnsLaZl+b3vQKnDHcZWduX/e3f8tsnO7xTSY5m9no+4gPeJbIZcUxSbTW4VMTU/GvZ5muHw0PXuocR3/2vkbCDksDptHt8XX8I4=
+	t=1736877429; cv=none; b=Lz5C6pu9USuVdecw0xkgNcG/l8nFf3okSnIpvUY55xzBNFyXi3IX8px9lsIawqvORU9CzF0v7Hm2ZvCbGQJJfm/YfLFrAmeJ+Z8+Kgj75x8VJ3Y6TBgUIFTwXSNPU/kuNbY/ZtHHV4Ts9qMRzzVjoW/KYg+bCTscoetqq83wjjI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1736877413; c=relaxed/simple;
-	bh=K3L9yjrw1PQh+X1C/WFDO2tze/nTYT4N5r+HOOlN5aU=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Vo1shWvR0Rpt7nk42nPZJuZ4iEfGH4tT5O6oi2O9h/Z89AKmqTXoT93Qq4pQUO3vXD7K24HJMEwJ86cM4l9O32lBu8I/JdbXZ4pIiqOlhWFPYNshwG0gfxd6ZyCg6xWnRRHHQsfQuHgeQCX+OdIawRR1vmIis+BPhACT7esaBqM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=EIM4yOUw; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1736877429; c=relaxed/simple;
+	bh=IFCv8SicT6UMtekvIXRUQ5/mGj1YnsJSHGQdLlphHJ8=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=GZDB+2ZCqIwAg4MQZ8E/wjTaAWZ9hc4cPLnWN8cs9kZxokZGaPh3kdZD/JbGV8znneT+v/KWqbqRKz5K3wYDo3j6gf8gs/XD1kmr9f15Q7NI98tL+nOgb9WkNdHu7501YwaxL+A6gKRUGzPXrsOxkrN9aI//bpcUn4ALxrvnUPg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com; spf=pass smtp.mailfrom=flygoat.com; dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b=ZAvUl3TB; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=m/NO18h2; arc=none smtp.client-ip=202.12.124.147
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=flygoat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flygoat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="EIM4yOUw"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1736877411;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=a7Wvwh2A2o47NLG/+LsYYIZxdlkCdbCUHu9ph/pgaME=;
-	b=EIM4yOUweAtkFV8v2bXWr2FCV6bBZ8vtS8NMoVwZ8oMU3xf4rXGqwyGlqdwoqpe4bOT+bx
-	rasiQjuy83/3vN0j3gNVp7Tf2BPQkrn2RJ3biOqYNlfgeEY55k+LbFsPf0aF2EBeM5Vohq
-	Bjsv7hGOQgZDt32M7GIm4vGpGI3T2x4=
-Received: from mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-83-lu3mCN1QPVqlwCLkY5ofog-1; Tue,
- 14 Jan 2025 12:56:48 -0500
-X-MC-Unique: lu3mCN1QPVqlwCLkY5ofog-1
-X-Mimecast-MFC-AGG-ID: lu3mCN1QPVqlwCLkY5ofog
-Received: from mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.15])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 03C901955DCC;
-	Tue, 14 Jan 2025 17:56:45 +0000 (UTC)
-Received: from vschneid-thinkpadt14sgen2i.remote.csb (unknown [10.39.192.55])
-	by mx-prod-int-02.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 1AEB019560B7;
-	Tue, 14 Jan 2025 17:56:18 +0000 (UTC)
-From: Valentin Schneider <vschneid@redhat.com>
-To: linux-kernel@vger.kernel.org,
-	x86@kernel.org,
-	virtualization@lists.linux.dev,
-	linux-arm-kernel@lists.infradead.org,
-	loongarch@lists.linux.dev,
-	linux-riscv@lists.infradead.org,
-	linux-perf-users@vger.kernel.org,
-	xen-devel@lists.xenproject.org,
-	kvm@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	rcu@vger.kernel.org,
-	linux-hardening@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kselftest@vger.kernel.org,
-	bpf@vger.kernel.org,
-	bcm-kernel-feedback-list@broadcom.com
-Cc: Juergen Gross <jgross@suse.com>,
-	Ajay Kaher <ajay.kaher@broadcom.com>,
-	Alexey Makhalov <alexey.amakhalov@broadcom.com>,
-	Russell King <linux@armlinux.org.uk>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Paul Walmsley <paul.walmsley@sifive.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Arnaldo Carvalho de Melo <acme@kernel.org>,
-	Namhyung Kim <namhyung@kernel.org>,
-	Mark Rutland <mark.rutland@arm.com>,
-	Alexander Shishkin <alexander.shishkin@linux.intel.com>,
-	Jiri Olsa <jolsa@kernel.org>,
-	Ian Rogers <irogers@google.com>,
-	Adrian Hunter <adrian.hunter@intel.com>,
-	"Liang, Kan" <kan.liang@linux.intel.com>,
-	Boris Ostrovsky <boris.ostrovsky@oracle.com>,
-	Josh Poimboeuf <jpoimboe@kernel.org>,
-	Pawan Gupta <pawan.kumar.gupta@linux.intel.com>,
-	Sean Christopherson <seanjc@google.com>,
-	Paolo Bonzini <pbonzini@redhat.com>,
-	Andy Lutomirski <luto@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Frederic Weisbecker <frederic@kernel.org>,
-	"Paul E. McKenney" <paulmck@kernel.org>,
-	Jason Baron <jbaron@akamai.com>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Ard Biesheuvel <ardb@kernel.org>,
-	Neeraj Upadhyay <neeraj.upadhyay@kernel.org>,
-	Joel Fernandes <joel@joelfernandes.org>,
-	Josh Triplett <josh@joshtriplett.org>,
-	Boqun Feng <boqun.feng@gmail.com>,
-	Uladzislau Rezki <urezki@gmail.com>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Lai Jiangshan <jiangshanlai@gmail.com>,
-	Zqiang <qiang.zhang1211@gmail.com>,
-	Juri Lelli <juri.lelli@redhat.com>,
-	Clark Williams <williams@redhat.com>,
-	Yair Podemsky <ypodemsk@redhat.com>,
-	Tomas Glozar <tglozar@redhat.com>,
-	Vincent Guittot <vincent.guittot@linaro.org>,
-	Dietmar Eggemann <dietmar.eggemann@arm.com>,
-	Ben Segall <bsegall@google.com>,
-	Mel Gorman <mgorman@suse.de>,
-	Kees Cook <kees@kernel.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Christoph Hellwig <hch@infradead.org>,
-	Shuah Khan <shuah@kernel.org>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Miguel Ojeda <ojeda@kernel.org>,
-	Alice Ryhl <aliceryhl@google.com>,
-	"Mike Rapoport (Microsoft)" <rppt@kernel.org>,
-	Samuel Holland <samuel.holland@sifive.com>,
-	Rong Xu <xur@google.com>,
-	Nicolas Saenz Julienne <nsaenzju@redhat.com>,
-	Geert Uytterhoeven <geert@linux-m68k.org>,
-	Yosry Ahmed <yosryahmed@google.com>,
-	"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>,
-	"Masami Hiramatsu (Google)" <mhiramat@kernel.org>,
-	Jinghao Jia <jinghao7@illinois.edu>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Randy Dunlap <rdunlap@infradead.org>,
-	Tiezhu Yang <yangtiezhu@loongson.cn>
-Subject: [PATCH v4 09/30] x86/paravirt: Mark pv_steal_clock static call as __ro_after_init
-Date: Tue, 14 Jan 2025 18:51:22 +0100
-Message-ID: <20250114175143.81438-10-vschneid@redhat.com>
-In-Reply-To: <20250114175143.81438-1-vschneid@redhat.com>
-References: <20250114175143.81438-1-vschneid@redhat.com>
+	dkim=pass (2048-bit key) header.d=flygoat.com header.i=@flygoat.com header.b="ZAvUl3TB";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="m/NO18h2"
+Received: from phl-compute-09.internal (phl-compute-09.phl.internal [10.202.2.49])
+	by mailfout.stl.internal (Postfix) with ESMTP id EDAB61140158;
+	Tue, 14 Jan 2025 12:57:06 -0500 (EST)
+Received: from phl-imap-12 ([10.202.2.86])
+  by phl-compute-09.internal (MEProxy); Tue, 14 Jan 2025 12:57:07 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=flygoat.com; h=
+	cc:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1736877426;
+	 x=1736963826; bh=xH9KpNHPinJSXc+YOduyekwpfscBp5EMPUSMjmF8CbA=; b=
+	ZAvUl3TBy+lVbk12vJBPX8o1xYpGKxB4XalbO+EsFei2riCaKq9WJ7qb1924I1cl
+	3k+Z3Zt0SSh1VbTHNB9yEMSYzbbe9nG6Klp+4cs6iFY6bdh++YQa9o7Y148p3ckO
+	NET2ZUUpgy6yJtcjE9g6CIe/Oz4IjuZvlYcKuoygICTWJlJcvdRp9sfzingKSPti
+	l7syZGw3aMVIjKNWhHgE+msImVxcz0WjrQu2Ia4twLTSda+wLXInvPqm6wSrCBGv
+	ipSdeGvncCBhsFZaEkuXccG/k0gLbNw06dlR1qJWjH88fjtpb0Gn0BUeFCCPdAZ0
+	9s1YChqCpWcKcNv5Y2jdMQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1736877426; x=
+	1736963826; bh=xH9KpNHPinJSXc+YOduyekwpfscBp5EMPUSMjmF8CbA=; b=m
+	/NO18h2gnu9JI+iC8PVIrsiU5/zecSSSVSX3f5x3gLUS87mjhXTytI9vaKtMjCM3
+	EvKJWRiDnw85KS9X5agjOMRG+ZBe0EmpHxCBEXqJdC7DKS80GhWW/UOf6AqitMGZ
+	A109chbioVkr6wcrIrB0kHCafqnkjK79UTTaiopuyIQTOEKo1DsI4vRPJY0/8pn5
+	fHrTe8i2md9c91IPOUuuUdz67XccFPFcZlJUQSKCHTixZC7ywbZVKMpsQBwcy6yW
+	Ss4VJXPppNDdZKtGjh1fivBnM5AZ2vJrFO5b4fkzrf94ptWOyVY2h6+VaoI2oWqb
+	IgnWVpTTnmzxq2udApgoA==
+X-ME-Sender: <xms:caWGZ6trrWd0m4G6FVbunF8VYowCfhppg_eHLgk0fH0dVskULoF6KQ>
+    <xme:caWGZ_eVLMeFT1bAoJ7CytpcAtcONX2JM6PdAZtD0QNCVcII9yTuglm17hnS8dwH7
+    tgKsu8T2oa1fpb0dY0>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefuddrudehiedguddtiecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
+    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
+    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthhqredtredt
+    jeenucfhrhhomhepfdflihgrgihunhcujggrnhhgfdcuoehjihgrgihunhdrhigrnhhgse
+    hflhihghhorghtrdgtohhmqeenucggtffrrghtthgvrhhnpeejheefuddvtdfggfdvffek
+    teehhfelgfdvvedvkeeuffefkeehheegvefhveetjeenucevlhhushhtvghrufhiiigvpe
+    dtnecurfgrrhgrmhepmhgrihhlfhhrohhmpehjihgrgihunhdrhigrnhhgsehflhihghho
+    rghtrdgtohhmpdhnsggprhgtphhtthhopeduuddpmhhouggvpehsmhhtphhouhhtpdhrtg
+    hpthhtohepthhssghoghgvnhgusegrlhhphhgrrdhfrhgrnhhkvghnrdguvgdprhgtphht
+    thhopegrrhhnugesrghrnhgusgdruggvpdhrtghpthhtoheprghlvgigrghnughrvgdrsg
+    gvlhhlohhnihessghoohhtlhhinhdrtghomhdprhgtphhtthhopehgvggvrhhtsehlihhn
+    uhigqdhmieekkhdrohhrghdprhgtphhtthhopehrvghgrhgvshhsihhonhhssehlihhsth
+    hsrdhlihhnuhigrdguvghvpdhrtghpthhtohepmhgrthdrjhhonhgtiiihkhesohdvrdhp
+    lhdprhgtphhtthhopehmrggtrhhosehorhgtrghmrdhmvgdruhhkpdhrtghpthhtohepsg
+    hhvgesrhgvughhrghtrdgtohhmpdhrtghpthhtoheplhhinhhugidqrghrtghhsehvghgv
+    rhdrkhgvrhhnvghlrdhorhhg
+X-ME-Proxy: <xmx:caWGZ1wczEVAC2-tnqJbKSz8O6wJ3pIv9DXFspIck6YTJuZZBSxTig>
+    <xmx:caWGZ1MnFksrcKfPCs1ySsxO_a4ihHUE3w--RzxRoyPhUdKa_yeJFA>
+    <xmx:caWGZ68Ui1ZQwyQv3BXgvJR7gRUd0hW_34od-vdLVFLYUqJ197R10Q>
+    <xmx:caWGZ9WkByLzUcucWziNZhJweuTDz_0xPJRwGtx4wK4NoPs_8F3USg>
+    <xmx:cqWGZ70wLJ80zN1lB95PP9BZjYGKufsznzMUw0EBe6UI9hCPbmdDKsht>
+Feedback-ID: ifd894703:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id B96281C20068; Tue, 14 Jan 2025 12:57:05 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.15
+Date: Tue, 14 Jan 2025 17:56:46 +0000
+From: "Jiaxun Yang" <jiaxun.yang@flygoat.com>
+To: "Maciej W. Rozycki" <macro@orcam.me.uk>, "Arnd Bergmann" <arnd@arndb.de>
+Cc: "Geert Uytterhoeven" <geert@linux-m68k.org>,
+ =?UTF-8?Q?Mateusz_Jo=C5=84czyk?= <mat.jonczyk@o2.pl>,
+ "linux-mips@vger.kernel.org" <linux-mips@vger.kernel.org>,
+ Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
+ "Baoquan He" <bhe@redhat.com>,
+ "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
+ "Alexandre Belloni" <alexandre.belloni@bootlin.com>,
+ regressions@lists.linux.dev
+Message-Id: <ce65d897-7fa0-4796-a45a-997b38dc23b2@app.fastmail.com>
+In-Reply-To: <alpine.DEB.2.21.2501141605550.50458@angie.orcam.me.uk>
+References: <90b5b76d-25b6-4cdc-91ed-07ac930dc519@o2.pl>
+ <99f75c66-4c2d-45dc-a808-b5ba440c7551@app.fastmail.com>
+ <CAMuHMdXbuRLgDP2JtmdhnJF=AhpPa88356KU1yF1f8GMirWrcQ@mail.gmail.com>
+ <08fe1ebb-b9c4-46c7-a6ab-5a336ec3b771@app.fastmail.com>
+ <alpine.DEB.2.21.2501141605550.50458@angie.orcam.me.uk>
+Subject: Re: [REGRESSION] mipsel: no RTC CMOS on the Malta platform in QEMU
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-The static call is only ever updated in
 
-  __init pv_time_init()
-  __init xen_init_time_common()
-  __init vmware_paravirt_ops_setup()
-  __init xen_time_setup_guest(
 
-so mark it appropriately as __ro_after_init.
+=E5=9C=A82025=E5=B9=B41=E6=9C=8814=E6=97=A5=E4=B8=80=E6=9C=88 =E4=B8=8B=E5=
+=8D=884:11=EF=BC=8CMaciej W. Rozycki=E5=86=99=E9=81=93=EF=BC=9A
+> On Tue, 14 Jan 2025, Arnd Bergmann wrote:
+>
+>> >> A quick fix would be #undef PCI_IOBASE in arch/mips/include/asm/io=
+.h
+>> >> just after including #include <asm-generic/io.h>, with ralink and =
+loongson64
+>> >> as exception.
+>> >
+>> > Shouldn't arch/mips/include/asm/io.h do
+>> >
+>> >     #define PCI_IOBASE mips_io_port_base
+>> >
+>> > unconditionally, _before_ including  <asm-generic/io.h>?
+>>=20
+>> Yes, I think this would make the most sense, but the ordering
+>> with the PCI initialization needs to be done carefully,
+>> to ensure that PCI_IOBASE has its final value before the first
+>> call to pci_remap_iospace().
+>
+>  Is defining PCI_IOBASE going to do the right thing for non-PCI MIPS=20
+> platforms, or should the definition be #ifdef CONFIG_PCI rather than=20
+> unconditional?  FWIW I think all PCI MIPS platforms support port I/O.
 
-Signed-off-by: Valentin Schneider <vschneid@redhat.com>
----
- arch/x86/kernel/paravirt.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+I think the right thing to do is to unselect HAS_IOPORT for those
+platforms.
 
-diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
-index ae6675167877b..a19b0002b18d8 100644
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -72,7 +72,7 @@ static u64 native_steal_clock(int cpu)
- 	return 0;
- }
- 
--DEFINE_STATIC_CALL(pv_steal_clock, native_steal_clock);
-+DEFINE_STATIC_CALL_RO(pv_steal_clock, native_steal_clock);
- DEFINE_STATIC_CALL_RO(pv_sched_clock, native_sched_clock);
- 
- void paravirt_set_sched_clock(u64 (*func)(void))
--- 
-2.43.0
+Thanks
 
+>
+>   Maciej
+
+--=20
+- Jiaxun
