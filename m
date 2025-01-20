@@ -1,31 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C428A1EBFE4;
-	Mon, 20 Jan 2025 17:45:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8EF7314F9F7;
+	Mon, 20 Jan 2025 17:45:41 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1737395144; cv=none; b=MBZgNPrYDOWHC2Hz0WLWwlYifVBofCGrQG+msOMIdW4hdTeGkbXPOF2StmGtqj3jkoYxjpnPHoWG8YZw6nUXIHr2jLCM42pjwvZy6DrxcidhSYQsepkI2NmQM2y8WCXVhDGYsk8CKJ2khyLMmUOADbVQlBYjRCD+fu4olwskRKU=
+	t=1737395145; cv=none; b=vFqLwNmz5jhQbnLBaJwBEHme0sIbIcXU7C/oeeYPZ9xhR3/zHGJdnsv/JBfTE84VRz14oOxkjX8wOHuenS+JqpV98jAroZ1sijPQfpjlvmKD40/Uv0FXHt0bom8CDCN2JmHAtAXQay02IibuBtO8LfV20PECDe/uMkqJ+hnERpc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1737395144; c=relaxed/simple;
-	bh=HDDtbmikCEDSTHmKoHeEuCaqiT8pJK9CEVdCoy2Xjus=;
+	s=arc-20240116; t=1737395145; c=relaxed/simple;
+	bh=2c+/qat5XA+uZgTnXYB6U4MX9z83arDQnMX03CXPK+s=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=Re1L9BSR1q5JMkVLuVCbRdbXPWockOoCJ4yMd9uvmlGh5Stf557xcii30JbPLG2jXM/Y17M671OaJjzfHReAeEur55RpeSWIRdxKfVZWJhYNPPfUf1YiaqA2Z3e/NORXH0+uAvBcGCsmnOCLj4jcAtskUyu2x7P8Q+5ISyhHTOg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=UeX/PmWz; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=XZwlI/k8ItSESk6XZteU60tluwWl7yVnc939ITU+iiV/9J/VlVVTjaK2+ArtXOz8vGySrs+XBARNbNSLU/ySf4RvwS2IXbpgn7X6XdTP0Eoss71UdwvW24C449VpAM4W2mhyA4jjulNNhuRz1mFtMVmXj06a/8pUN5TIFBCzv+g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=D6vm50TG; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="UeX/PmWz"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="D6vm50TG"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1737395132;
-	bh=HDDtbmikCEDSTHmKoHeEuCaqiT8pJK9CEVdCoy2Xjus=;
+	bh=2c+/qat5XA+uZgTnXYB6U4MX9z83arDQnMX03CXPK+s=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=UeX/PmWztk+p/6ZQS9PW34KmIjbSktI1uzZkkxJMG1XJMyKXdUnhgds3FB0do7gzO
-	 jD7WSHxDhw9r8u0pHL1eziFZqr2kiBXU48DMiXcS8gu0K8y5zru30Ap7DcFg30jGhf
-	 6ovJYYzIEZHWvuT0cHFBLnoVUeKpIRzRtoPXJb7w=
+	b=D6vm50TGB1jQOvVpvu7AVmGxOJ8i/+4/65Bv6iluU7C8EYQQrOH39UaY6dC1AzjjP
+	 nWxk/HETwFk8oneQiIcS5MgkzElt8KvZXuW9ensotwXUSBbhx9yuzdA2lqQ4ICdLU6
+	 kNyY0jOVuXIMQbmqVfCDEYnsbZC54hg2XJA2TeTw=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Mon, 20 Jan 2025 18:44:20 +0100
-Subject: [PATCH v2 1/6] kbuild: add stamp file for vmlinux BTF data
+Date: Mon, 20 Jan 2025 18:44:22 +0100
+Subject: [PATCH v2 3/6] module: Move integrity checks into dedicated
+ function
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20250120-module-hashes-v2-1-ba1184e27b7f@weissschuh.net>
+Message-Id: <20250120-module-hashes-v2-3-ba1184e27b7f@weissschuh.net>
 References: <20250120-module-hashes-v2-0-ba1184e27b7f@weissschuh.net>
 In-Reply-To: <20250120-module-hashes-v2-0-ba1184e27b7f@weissschuh.net>
 To: Masahiro Yamada <masahiroy@kernel.org>, 
@@ -52,64 +53,88 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linux-doc@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1737395132; l=2248;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1737395132; l=2744;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=HDDtbmikCEDSTHmKoHeEuCaqiT8pJK9CEVdCoy2Xjus=;
- b=UYlaeR44AqJC7COzsLKEo6ELnaEGSvoeIBK0aU8S7+Y9eg7ng/SRYoAuLDiMtsQfEyTn2FD0g
- Ryo/YTiwBZEDrM2KhnQINuGzuatlDMCSKLEVfqboSmMjmD0/UWTMao2
+ bh=2c+/qat5XA+uZgTnXYB6U4MX9z83arDQnMX03CXPK+s=;
+ b=drJV/f5DoXRznw97YMXiSAlAgXD0xKYklcfG5wuaksgRDgol3GdfurQjp2Nlf05qIoH+7uhEQ
+ cHJr3OrmlnHCwOeUtuPxf13avRmM7nTITERDOcnenlp53V2e/zuXmmD
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-The upcoming module hashes functionality will build the modules in
-between the generation of the BTF data and the final link of vmlinux.
-Having a dependency from the modules on vmlinux would make this
-impossible as it would mean having a cyclic dependency.
-Break this cyclic dependency by introducing a new target.
+With the addition of hash-based integrity checking, the configuration
+matrix is easier to represent in a dedicated function and with explicit
+usage of IS_ENABLED().
+
+Drop the now unnecessary stub for module_sig_check().
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 ---
- scripts/Makefile.modfinal | 4 ++--
- scripts/link-vmlinux.sh   | 6 ++++++
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ kernel/module/internal.h |  7 -------
+ kernel/module/main.c     | 18 ++++++++++++++----
+ 2 files changed, 14 insertions(+), 11 deletions(-)
 
-diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
-index 542ba462ed3ec9607e0df10e26613a4c7ac318e8..5d01b553ec9a4565c8e5a6edd05665c409003bc1 100644
---- a/scripts/Makefile.modfinal
-+++ b/scripts/Makefile.modfinal
-@@ -52,8 +52,8 @@ if_changed_except = $(if $(call newer_prereqs_except,$(2))$(cmd-check),      \
- 	printf '%s\n' 'savedcmd_$@ := $(make-cmd)' > $(dot-target).cmd, @:)
+diff --git a/kernel/module/internal.h b/kernel/module/internal.h
+index daef2be8390222c22220e2f168baa8d35ad531b9..c30abeefa60b884c4a69b1eb4f1123a4bbee4b47 100644
+--- a/kernel/module/internal.h
++++ b/kernel/module/internal.h
+@@ -333,14 +333,7 @@ int module_enable_text_rox(const struct module *mod);
+ int module_enforce_rwx_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
+ 				char *secstrings, struct module *mod);
  
- # Re-generate module BTFs if either module's .ko or vmlinux changed
--%.ko: %.o %.mod.o .module-common.o $(objtree)/scripts/module.lds $(and $(CONFIG_DEBUG_INFO_BTF_MODULES),$(KBUILD_BUILTIN),$(objtree)/vmlinux) FORCE
--	+$(call if_changed_except,ld_ko_o,$(objtree)/vmlinux)
-+%.ko: %.o %.mod.o .module-common.o $(objtree)/scripts/module.lds $(and $(CONFIG_DEBUG_INFO_BTF_MODULES),$(KBUILD_BUILTIN),$(objtree)/.tmp_vmlinux_btf.stamp) FORCE
-+	+$(call if_changed_except,ld_ko_o,$(objtree)/.tmp_vmlinux_btf.stamp)
- ifdef CONFIG_DEBUG_INFO_BTF_MODULES
- 	+$(if $(newer-prereqs),$(call cmd,btf_ko))
- endif
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index d853ddb3b28c1238ec9079ebbbe77df26980a0a1..803c8d6f35a7f29fb68b29afa8546f4dde0bd4cb 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -112,6 +112,7 @@ vmlinux_link()
- gen_btf()
- {
- 	local btf_data=${1}.btf.o
-+	local btf_stamp=.tmp_vmlinux_btf.stamp
+-#ifdef CONFIG_MODULE_SIG
+ int module_sig_check(struct load_info *info, int flags);
+-#else /* !CONFIG_MODULE_SIG */
+-static inline int module_sig_check(struct load_info *info, int flags)
+-{
+-	return 0;
+-}
+-#endif /* !CONFIG_MODULE_SIG */
  
- 	info BTF "${btf_data}"
- 	LLVM_OBJCOPY="${OBJCOPY}" ${PAHOLE} -J ${PAHOLE_FLAGS} ${1}
-@@ -132,6 +133,11 @@ gen_btf()
- 	fi
- 	printf "${et_rel}" | dd of="${btf_data}" conv=notrunc bs=1 seek=16 status=none
- 
-+	info STAMP $btf_stamp
-+	if ! cmp --silent $btf_data $btf_stamp; then
-+		cp $btf_data $btf_stamp
-+	fi
-+
- 	btf_vmlinux_bin_o=${btf_data}
+ #ifdef CONFIG_DEBUG_KMEMLEAK
+ void kmemleak_load_module(const struct module *mod, const struct load_info *info);
+diff --git a/kernel/module/main.c b/kernel/module/main.c
+index 8aa593fee22a227a482466dceda4a6b657b956e0..c0ab5c37f9710a0091320c4d171275e63be9217e 100644
+--- a/kernel/module/main.c
++++ b/kernel/module/main.c
+@@ -3214,6 +3214,16 @@ static int early_mod_check(struct load_info *info, int flags)
+ 	return err;
  }
+ 
++static int module_integrity_check(struct load_info *info, int flags)
++{
++	int err = 0;
++
++	if (IS_ENABLED(CONFIG_MODULE_SIG))
++		err = module_sig_check(info, flags);
++
++	return err;
++}
++
+ /*
+  * Allocate and load the module: note that size of section 0 is always
+  * zero, and we rely on this for optional sections.
+@@ -3227,18 +3237,18 @@ static int load_module(struct load_info *info, const char __user *uargs,
+ 	char *after_dashes;
+ 
+ 	/*
+-	 * Do the signature check (if any) first. All that
+-	 * the signature check needs is info->len, it does
++	 * Do the integrity checks (if any) first. All that
++	 * they need is info->len, it does
+ 	 * not need any of the section info. That can be
+ 	 * set up later. This will minimize the chances
+ 	 * of a corrupt module causing problems before
+-	 * we even get to the signature check.
++	 * we even get to the integrity check.
+ 	 *
+ 	 * The check will also adjust info->len by stripping
+ 	 * off the sig length at the end of the module, making
+ 	 * checks against info->len more correct.
+ 	 */
+-	err = module_sig_check(info, flags);
++	err = module_integrity_check(info, flags);
+ 	if (err)
+ 		goto free_copy;
  
 
 -- 
