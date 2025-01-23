@@ -1,209 +1,110 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 71C42335C0;
-	Thu, 23 Jan 2025 01:47:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from fout-b3-smtp.messagingengine.com (fout-b3-smtp.messagingengine.com [202.12.124.146])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 991112010E1;
+	Thu, 23 Jan 2025 07:34:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.146
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1737596860; cv=none; b=iwnSQhlIkffoTXvpCfBjgVsG2jkA4+GDDMZAljQszndlK1XSDRbHxWpuued3JaSYp8yDTXJAVfOYxU8X4ap9vm39ubMQZh9jR1EhWcFw57pHhBjwhvzvA0UCZ0NS7lZj6Q2ouphFJMKyrRBXPEvPcyIASlAy+PvgZcDqIKJRpbY=
+	t=1737617649; cv=none; b=JI30i1UpGppVIdM7MhfN1IKzsd06zZw0gJyLWTarr1ee8X0lXBvafdZ0vw0vSTNrJMf6bpawCqNT9Jm7TEFXGeTvOt1uyl2kRdG1t1/7mE3exDer2sJv74mPCqOelmbg7LIlBQpNYB7/lQPUulIPCmmJLRtHlr3ii4FhS6bNXQg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1737596860; c=relaxed/simple;
-	bh=VRMUCX4mtMHNpggA8n+cpy27OhEvJ/bAb37lZNSudX4=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=NCADGPwj1Ef8iVxw90i2aSivVIFenq2udKAuB9Ast9EKpt5kwAoeMBbiLLI5udqH0oplwxNENrr1opjwrFABF0j+P78CWPBUb371kSS5NWO2ftzPAurmRtK8FxHjP+PN5meAPotsmRE6VwtK0/RFioWtZIpB2aUoN8Y5EDZJ/rg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=JxC0+PgQ; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1737617649; c=relaxed/simple;
+	bh=hgdBbTi6iC59E/Q39IqIOh81d9VnLRM9a40Ky10vnX0=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=hoMnEBe9ekkPmhd1vNp8Vsqrp0FQYGitIndsiRr7xrj2BLLImEpUeXgd/YW3XFa1/e2ALy/DznJ7/0FA5ZAjF3Rk/QgbtphOSpMeMvZwEk2xSQrajiI7EZY0XoPTRoEPSNiNQjjjAtzYHowMLNIKY3MYcjKhrx5m3F8S1+Sgdhs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=YWlIN4sc; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=lO07YF69; arc=none smtp.client-ip=202.12.124.146
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="JxC0+PgQ"
-Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
-	by linux.microsoft.com (Postfix) with ESMTPSA id BBB51204608E;
-	Wed, 22 Jan 2025 17:47:37 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com BBB51204608E
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1737596857;
-	bh=6NfCLWYjzohmjwKMnEJxLhyvdS+DcJjcJ204KGwB6cM=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=JxC0+PgQbFLyu5BN4cHStsTyVZgdXYCKoz+x4NJDXbrf/07eOHZ4FaTeqgPOJkLSN
-	 wP1yP7WVhbnjB2JCapFBmbjrrwAagiyH1BwSLg4kBoCubZj1XCRmdqZD8FT+/TYykm
-	 bNlYZ56H3KVOk6KVOZkek3MPc9LJGN+2yDCPXKUc=
-From: Nuno Das Neves <nunodasneves@linux.microsoft.com>
-To: linux-hyperv@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	wei.liu@kernel.org,
-	mhklinux@outlook.com
-Cc: kys@microsoft.com,
-	haiyangz@microsoft.com,
-	decui@microsoft.com,
-	catalin.marinas@arm.com,
-	will@kernel.org,
-	tglx@linutronix.de,
-	mingo@redhat.com,
-	bp@alien8.de,
-	dave.hansen@linux.intel.com,
-	x86@kernel.org,
-	hpa@zytor.com,
-	arnd@arndb.de,
-	jinankjain@linux.microsoft.com,
-	muminulrussell@gmail.com,
-	skinsburskii@linux.microsoft.com,
-	mukeshrathor@microsoft.com
-Subject: [PATCH v2 1/2] hyperv: Move hv_current_partition_id to arch-generic code
-Date: Wed, 22 Jan 2025 17:47:30 -0800
-Message-Id: <1737596851-29555-2-git-send-email-nunodasneves@linux.microsoft.com>
-X-Mailer: git-send-email 1.8.3.1
-In-Reply-To: <1737596851-29555-1-git-send-email-nunodasneves@linux.microsoft.com>
-References: <1737596851-29555-1-git-send-email-nunodasneves@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="YWlIN4sc";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="lO07YF69"
+Received: from phl-compute-10.internal (phl-compute-10.phl.internal [10.202.2.50])
+	by mailfout.stl.internal (Postfix) with ESMTP id 330AD1140136;
+	Thu, 23 Jan 2025 02:34:06 -0500 (EST)
+Received: from phl-imap-11 ([10.202.2.101])
+  by phl-compute-10.internal (MEProxy); Thu, 23 Jan 2025 02:34:06 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm2; t=1737617646;
+	 x=1737704046; bh=I5I1QNV++9Jk9n7Ca9xgDhJ5Nhz5AgwhkTf5BK5VZIM=; b=
+	YWlIN4scupYNojGrYp+tH1XkJJWcJylqER0woXB+c4QJQA82zZZsVYAC+zGyMAu0
+	ql87uRo5eLyv06B1AnUSdWmj9uJex37VuzbtaoxbeK/CCd4vPXECjFMCci161zVF
+	bsl8a0XSWWSXAt6/fu6CcMtdQlUU/Wnft2ldGpK1lA3XmbzrYYJ/AgtdbabwBCpm
+	U0MJiI3bUpUvGXoj5Lvf5Opg+Q0ZhfCVi+i/UszD2tIkaohcwiAh/g8Rcu9X2goL
+	v4BA5uEWCcyESgf6wWNmV3JbZV4K48eGVS2lYVgSozdJLlBS50lWByllhNFh3k0e
+	trpiBVETjYagJC4JYTS8yQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1737617646; x=
+	1737704046; bh=I5I1QNV++9Jk9n7Ca9xgDhJ5Nhz5AgwhkTf5BK5VZIM=; b=l
+	O07YF69aL5hFdsuDVmvmZPFX5TKieFueS13Qvjbnap6ZndF3RCWUU1k24+t1iAaM
+	J+xrn6HpGhpgFD58N9Vnkc8Bxu7aDtL69XTgAudKrqqhxDaZLij+T4yTb5Re6Kom
+	y79iYdxPoWfsFQch4QifaMIb2WluPVVCoQsQWObeGtmFCjVM39trUptuobNAdeLE
+	upkjYgi7bHvrc5hD2Rcg+tv5StmF8lK9k6s9GbfFTVeNHf60j8jzAzmGIqLS3emM
+	eIzx9wTrI8G+MfSL2VS3jgt+t2vquhfvrUY0up3Uwt5Qv7xaJ4mUkqs1qyZAZRqC
+	KVBdA8ySLxFGSU+/7O6Kw==
+X-ME-Sender: <xms:7fCRZ_Cvwzn-QoNnn1U4O71uBbjxIDzskHE0XnHJBkHNr726pIlNDQ>
+    <xme:7fCRZ1ilmQFP29GNX4M9sd295IfJnSBjQjHL3EpugLhPu5up602vqd33gxmaaI8Id
+    rM4WCTnjOOObU1hNHc>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefuddrudejgedguddtjecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
+    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
+    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthejredtredt
+    tdenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
+    druggvqeenucggtffrrghtthgvrhhnpeegfeehueejheegjefhheetudduueeltdeugeei
+    gfeiheelleefueeggeevtdelkeenucffohhmrghinhepkhgvrhhnvghlrdhorhhgpdhsoh
+    hurhgtvgifrghrvgdrohhrghenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhep
+    mhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopeduge
+    dpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepshgrmhesghgvnhhtohhordhorhhg
+    pdhrtghpthhtohepjhgrnhhnhhesghhoohhglhgvrdgtohhmpdhrtghpthhtohepshhhvg
+    hnhhgrnhesghhoohhglhgvrdgtohhmpdhrtghpthhtohepgihurhesghhoohhglhgvrdgt
+    ohhmpdhrtghpthhtoheprghruggssehkvghrnhgvlhdrohhrghdprhgtphhtthhopegrrh
+    hnugeskhgvrhhnvghlrdhorhhgpdhrtghpthhtohepkhgvvghssehkvghrnhgvlhdrohhr
+    ghdprhgtphhtthhopehmrghsrghhihhrohihsehkvghrnhgvlhdrohhrghdprhgtphhtth
+    hopehnrghthhgrnheskhgvrhhnvghlrdhorhhg
+X-ME-Proxy: <xmx:7fCRZ6nOeG0grD9rN4ehFDMptXg5HQg-ytLUY5MoZVM-IBYXmsx6jQ>
+    <xmx:7fCRZxxAy3ypYpbS_oSCBD4UCklI32DH4deoTpfjI-OlBS4V2zVTHA>
+    <xmx:7fCRZ0Q4N1yTw07KPgK229c-QNnkeT-UKSZM7BcvhX7Q8gAMKli_CA>
+    <xmx:7fCRZ0appjcd40YUqaqC_MPBFZHV0KZ4U2pIARWcWuyp3w7UiM0dww>
+    <xmx:7vCRZ2AUaEvF2mQhBfPCUK15JLsW3jXBrJMHEr8HsQ0lLmm4e_lTfhVL>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id BC9222220073; Thu, 23 Jan 2025 02:34:05 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
+Date: Thu, 23 Jan 2025 08:33:44 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Sam James" <sam@gentoo.org>, "Rong Xu" <xur@google.com>,
+ "Michael Matz" <matz@suse.de>
+Cc: "Ard Biesheuvel" <ardb@kernel.org>, "Arnd Bergmann" <arnd@kernel.org>,
+ "Jann Horn" <jannh@google.com>, "Kees Cook" <kees@kernel.org>,
+ Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild@vger.kernel.org,
+ linux-kernel@vger.kernel.org, "Masahiro Yamada" <masahiroy@kernel.org>,
+ "Nathan Chancellor" <nathan@kernel.org>, regressions@lists.linux.dev,
+ "Han Shen" <shenhan@google.com>
+Message-Id: <1ee17220-79ab-4449-a993-21789b80d95f@app.fastmail.com>
+In-Reply-To: <87frlaxuwo.fsf@gentoo.org>
+References: <87frlaxuwo.fsf@gentoo.org>
+Subject: Re: [PATCH] [RFC, DO NOT APPLY] vmlinux.lds: revert link speed regression
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-From: Nuno Das Neves <nudasnev@microsoft.com>
+On Thu, Jan 23, 2025, at 00:59, Sam James wrote:
+> Can you file a binutils bug please with that reproducer and the bisect
+> result? Something smaller would be nice but isn't required (at least for
+> an initial report).
+>
+> (CC'd matz, full thread at 
+> https://lore.kernel.org/linux-kbuild/20250120212839.1675696-1-arnd@kernel.org/).
 
-Move hv_current_partition_id and hv_get_partition_id() to hv_common.c.
-These aren't specific to x86_64 and will be needed by common code.
+I sent a report now, https://sourceware.org/bugzilla/show_bug.cgi?id=32584
 
-Set hv_current_partition_id to HV_PARTITION_ID_SELF by default.
-
-Use a stack variable for the output of the hypercall. This allows moving
-the call of hv_get_partition_id() to hv_common_init() before the percpu
-pages are initialized.
-
-Remove the BUG()s. Failing to get the id need not crash the machine.
-
-Signed-off-by: Nuno Das Neves <nudasnev@microsoft.com>
----
- arch/x86/hyperv/hv_init.c       | 26 --------------------------
- arch/x86/include/asm/mshyperv.h |  2 --
- drivers/hv/hv_common.c          | 23 +++++++++++++++++++++++
- include/asm-generic/mshyperv.h  |  1 +
- 4 files changed, 24 insertions(+), 28 deletions(-)
-
-diff --git a/arch/x86/hyperv/hv_init.c b/arch/x86/hyperv/hv_init.c
-index 173005e6a95d..6b9f6f9f704d 100644
---- a/arch/x86/hyperv/hv_init.c
-+++ b/arch/x86/hyperv/hv_init.c
-@@ -34,9 +34,6 @@
- #include <clocksource/hyperv_timer.h>
- #include <linux/highmem.h>
- 
--u64 hv_current_partition_id = ~0ull;
--EXPORT_SYMBOL_GPL(hv_current_partition_id);
--
- void *hv_hypercall_pg;
- EXPORT_SYMBOL_GPL(hv_hypercall_pg);
- 
-@@ -393,24 +390,6 @@ static void __init hv_stimer_setup_percpu_clockev(void)
- 		old_setup_percpu_clockev();
- }
- 
--static void __init hv_get_partition_id(void)
--{
--	struct hv_get_partition_id *output_page;
--	u64 status;
--	unsigned long flags;
--
--	local_irq_save(flags);
--	output_page = *this_cpu_ptr(hyperv_pcpu_output_arg);
--	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, output_page);
--	if (!hv_result_success(status)) {
--		/* No point in proceeding if this failed */
--		pr_err("Failed to get partition ID: %lld\n", status);
--		BUG();
--	}
--	hv_current_partition_id = output_page->partition_id;
--	local_irq_restore(flags);
--}
--
- #if IS_ENABLED(CONFIG_HYPERV_VTL_MODE)
- static u8 __init get_vtl(void)
- {
-@@ -605,11 +584,6 @@ void __init hyperv_init(void)
- 
- 	register_syscore_ops(&hv_syscore_ops);
- 
--	if (cpuid_ebx(HYPERV_CPUID_FEATURES) & HV_ACCESS_PARTITION_ID)
--		hv_get_partition_id();
--
--	BUG_ON(hv_root_partition && hv_current_partition_id == ~0ull);
--
- #ifdef CONFIG_PCI_MSI
- 	/*
- 	 * If we're running as root, we want to create our own PCI MSI domain.
-diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
-index f91ab1e75f9f..8d3ada3e8d0d 100644
---- a/arch/x86/include/asm/mshyperv.h
-+++ b/arch/x86/include/asm/mshyperv.h
-@@ -43,8 +43,6 @@ extern bool hyperv_paravisor_present;
- 
- extern void *hv_hypercall_pg;
- 
--extern u64 hv_current_partition_id;
--
- extern union hv_ghcb * __percpu *hv_ghcb_pg;
- 
- bool hv_isolation_type_snp(void);
-diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
-index af5d1dc451f6..1da19b64ef16 100644
---- a/drivers/hv/hv_common.c
-+++ b/drivers/hv/hv_common.c
-@@ -31,6 +31,9 @@
- #include <hyperv/hvhdk.h>
- #include <asm/mshyperv.h>
- 
-+u64 hv_current_partition_id = HV_PARTITION_ID_SELF;
-+EXPORT_SYMBOL_GPL(hv_current_partition_id);
-+
- /*
-  * hv_root_partition, ms_hyperv and hv_nested are defined here with other
-  * Hyper-V specific globals so they are shared across all architectures and are
-@@ -283,6 +286,23 @@ static inline bool hv_output_page_exists(void)
- 	return hv_root_partition || IS_ENABLED(CONFIG_HYPERV_VTL_MODE);
- }
- 
-+static void __init hv_get_partition_id(void)
-+{
-+	/*
-+	 * Note in this case the output can be on the stack because it is just
-+	 * a single u64 and hence won't cross a page boundary.
-+	 */
-+	struct hv_get_partition_id output;
-+	u64 status;
-+
-+	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, &output);
-+	if (!hv_result_success(status)) {
-+		pr_err("Hyper-V: failed to get partition ID: %#lx\n", status);
-+		return;
-+	}
-+	hv_current_partition_id = output.partition_id;
-+}
-+
- int __init hv_common_init(void)
- {
- 	int i;
-@@ -298,6 +318,9 @@ int __init hv_common_init(void)
- 	if (hv_is_isolation_supported())
- 		sysctl_record_panic_msg = 0;
- 
-+	if (ms_hyperv.priv_high & HV_ACCESS_PARTITION_ID)
-+		hv_get_partition_id();
-+
- 	/*
- 	 * Hyper-V expects to get crash register data or kmsg when
- 	 * crash enlightment is available and system crashes. Set
-diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index a7bbe504e4f3..98100466e0b2 100644
---- a/include/asm-generic/mshyperv.h
-+++ b/include/asm-generic/mshyperv.h
-@@ -58,6 +58,7 @@ struct ms_hyperv_info {
- };
- extern struct ms_hyperv_info ms_hyperv;
- extern bool hv_nested;
-+extern u64 hv_current_partition_id;
- 
- extern void * __percpu *hyperv_pcpu_input_arg;
- extern void * __percpu *hyperv_pcpu_output_arg;
--- 
-2.34.1
-
+     Arnd
