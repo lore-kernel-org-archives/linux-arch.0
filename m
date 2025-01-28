@@ -1,131 +1,184 @@
-Received: from mail.loongson.cn (mail.loongson.cn [114.242.206.163])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id BD44819F11B;
-	Tue, 28 Jan 2025 14:27:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=114.242.206.163
+Received: from pegase2.c-s.fr (pegase2.c-s.fr [93.17.235.10])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6DA221CAA8A;
+	Tue, 28 Jan 2025 15:20:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=93.17.235.10
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1738074445; cv=none; b=RPlEDOTdi9Vhdpqt+dAn+s9kvXKWyV0NOjjBMHbOBhM7xbavIu5ftFOWn/zh/6ciUP5hKYUFoeXm6HAVtfQxwRVd++rulq4oC5AYpvRTPAe3WcEQzySnKMSb1fkhL+wN7gewEG1Krsm3DJgpiR+094IVxnsraC2CwhsKkwVT67w=
+	t=1738077606; cv=none; b=bKX2WDqiVSv0JPhXg5fcXkqL+LukGlkoC2e7UZe857FITq/cMmchsoIEBSxI9O2Yf3RSkqSb9+NtD0eyy8buJdf5R1lqnmNrLAAKY/R6MjTKu4XtA/HWeA6eLImzf9jLQJ6d7rcivrgUuUSv+mINyxYwJ5lIVsph6BP4Zhd/+iY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1738074445; c=relaxed/simple;
-	bh=kOjuqxYeqG0BDEllG8TB03Q3Phj32ouj8K+NtIxP+Rw=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Au/KYsHgcv4TVnuTWkb5Hz2i8Je+81p/RjMh0C9JlKq5F2D01AX6TskSIJrezuUfCki/kj5SIsqdLbNe0MHOReeKegusoDZ+sv5kxrHxq9CEIHneg/7PPwNBegEZOxwNk+1Y5L1KiFcFP2o0DGrPQ+Vzy0CrV5lT/P/I+qxxGNg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=loongson.cn; spf=pass smtp.mailfrom=loongson.cn; arc=none smtp.client-ip=114.242.206.163
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=loongson.cn
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=loongson.cn
-Received: from loongson.cn (unknown [223.64.68.38])
-	by gateway (Coremail) with SMTP id _____8BxPOJB6ZhnwelpAA--.14508S3;
-	Tue, 28 Jan 2025 22:27:13 +0800 (CST)
-Received: from localhost.localdomain (unknown [223.64.68.38])
-	by front1 (Coremail) with SMTP id qMiowMBxUMY96ZhnXQowAA--.23741S2;
-	Tue, 28 Jan 2025 22:27:12 +0800 (CST)
-From: Huacai Chen <chenhuacai@loongson.cn>
-To: Linus Torvalds <torvalds@linux-foundation.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Huacai Chen <chenhuacai@kernel.org>
-Cc: loongarch@lists.linux.dev,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	Guo Ren <guoren@kernel.org>,
-	Xuerui Wang <kernel@xen0n.name>,
-	Jiaxun Yang <jiaxun.yang@flygoat.com>,
-	Huacai Chen <chenhuacai@loongson.cn>
-Subject: [GIT PULL] LoongArch changes for v6.14
-Date: Tue, 28 Jan 2025 22:26:54 +0800
-Message-ID: <20250128142654.301146-1-chenhuacai@loongson.cn>
-X-Mailer: git-send-email 2.47.1
+	s=arc-20240116; t=1738077606; c=relaxed/simple;
+	bh=gEEe3ytPfkoQKjM3T2pAQfISERlcVe7TiJOsIheAWfU=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Bc0n7h18QtTavdpJcQN+9NPcRheY3XAFSTILyNJrHKuTZ/IaTs6c3fDcG/Nd8ikR+EhW0jU3mk1fdM1T2AVujQqvCiIavBpYLbN5BA/rI+OwT0RrG20lHzarALIM6/Q8oTdtJvARfkg6S67sLByclCMSu2bn8lcrCs5EVXYGtQg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu; spf=pass smtp.mailfrom=csgroup.eu; arc=none smtp.client-ip=93.17.235.10
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=csgroup.eu
+Received: from localhost (mailhub3.si.c-s.fr [172.26.127.67])
+	by localhost (Postfix) with ESMTP id 4Yj82D1NL5z9sSh;
+	Tue, 28 Jan 2025 16:13:56 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase2.c-s.fr ([172.26.127.65])
+	by localhost (pegase2.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id 0cq2jNfGuglH; Tue, 28 Jan 2025 16:13:56 +0100 (CET)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+	by pegase2.c-s.fr (Postfix) with ESMTP id 4Yj82D06Ztz9sSX;
+	Tue, 28 Jan 2025 16:13:56 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+	by messagerie.si.c-s.fr (Postfix) with ESMTP id DE8B98B76C;
+	Tue, 28 Jan 2025 16:13:55 +0100 (CET)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+	by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+	with ESMTP id iuMElj2ydnSp; Tue, 28 Jan 2025 16:13:55 +0100 (CET)
+Received: from [192.168.235.99] (unknown [192.168.235.99])
+	by messagerie.si.c-s.fr (Postfix) with ESMTP id E34BB8B763;
+	Tue, 28 Jan 2025 16:13:52 +0100 (CET)
+Message-ID: <e76df471-1346-459a-9f24-fa053d7dcbe8@csgroup.eu>
+Date: Tue, 28 Jan 2025 16:13:52 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 3/6] syscall.h: introduce syscall_set_nr()
+To: "Dmitry V. Levin" <ldv@strace.io>, Oleg Nesterov <oleg@redhat.com>
+Cc: Alexey Gladkov <legion@kernel.org>, Charlie Jenkins
+ <charlie@rivosinc.com>, Eugene Syromyatnikov <evgsyr@gmail.com>,
+ Mike Frysinger <vapier@gentoo.org>, Renzo Davoli <renzo@cs.unibo.it>,
+ Davide Berardi <berardi.dav@gmail.com>, strace-devel@lists.strace.io,
+ Vineet Gupta <vgupta@kernel.org>, Russell King <linux@armlinux.org.uk>,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Brian Cain <bcain@quicinc.com>, Huacai Chen <chenhuacai@kernel.org>,
+ WANG Xuerui <kernel@xen0n.name>, Geert Uytterhoeven <geert@linux-m68k.org>,
+ Michal Simek <monstr@monstr.eu>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Dinh Nguyen <dinguyen@kernel.org>, Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>,
+ "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+ Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>,
+ Nicholas Piggin <npiggin@gmail.com>, Naveen N Rao <naveen@kernel.org>,
+ Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt
+ <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>,
+ Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>,
+ John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+ "David S. Miller" <davem@davemloft.net>,
+ Andreas Larsson <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>,
+ Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+ Johannes Berg <johannes@sipsolutions.net>,
+ Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
+ Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>,
+ Arnd Bergmann <arnd@arndb.de>, linux-snps-arc@lists.infradead.org,
+ linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-hexagon@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org,
+ linux-openrisc@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+ linux-s390@vger.kernel.org, linux-sh@vger.kernel.org,
+ sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+ linux-arch@vger.kernel.org
+References: <20250128091636.GC8601@strace.io>
+Content-Language: fr-FR
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+In-Reply-To: <20250128091636.GC8601@strace.io>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:qMiowMBxUMY96ZhnXQowAA--.23741S2
-X-CM-SenderInfo: hfkh0x5xdftxo6or00hjvr0hdfq/
-X-Coremail-Antispam: 1Uk129KBj93XoWxGr45XFyDWw4Utw17tFW5urX_yoW5Ar4fpF
-	9IvrnxJF48Gr1fJFnxt343ur98Jr97Gr12qanIyry8Cr15Zr1UXr1kGrykXFyUt3y5JrW0
-	qr1rGw1YgFyUJ3gCm3ZEXasCq-sJn29KB7ZKAUJUUUU7529EdanIXcx71UUUUU7KY7ZEXa
-	sCq-sGcSsGvfJ3Ic02F40EFcxC0VAKzVAqx4xG6I80ebIjqfuFe4nvWSU5nxnvy29KBjDU
-	0xBIdaVrnRJUUUBjb4IE77IF4wAFF20E14v26r1j6r4UM7CY07I20VC2zVCF04k26cxKx2
-	IYs7xG6rWj6s0DM7CIcVAFz4kK6r1Y6r17M28lY4IEw2IIxxk0rwA2F7IY1VAKz4vEj48v
-	e4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_Xr0_Ar1l84ACjcxK6xIIjxv20xvEc7CjxVAFwI
-	0_Gr0_Cr1l84ACjcxK6I8E87Iv67AKxVW0oVCq3wA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_
-	GcCE3s1ln4kS14v26r1Y6r17M2AIxVAIcxkEcVAq07x20xvEncxIr21l57IF6xkI12xvs2
-	x26I8E6xACxx1l5I8CrVACY4xI64kE6c02F40Ex7xfMcIj6xIIjxv20xvE14v26r126r1D
-	McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x0Yz7v_Jr0_Gr1lF7xvr2IYc2Ij64vIr4
-	1lc7CjxVAaw2AFwI0_JF0_Jw1l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_
-	Gr1l4IxYO2xFxVAFwI0_Jrv_JF1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67
-	AKxVWUGVWUWwC2zVAF1VAY17CE14v26r1q6r43MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8I
-	cVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I0E14v26r1j6r4UMIIF0xvE42xK8VAvwI
-	8IcIk0rVWUJVWUCwCI42IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v2
-	6r1j6r4UYxBIdaVFxhVjvjDU0xZFpf9x07jOiSdUUUUU=
 
-The following changes since commit ffd294d346d185b70e28b1a28abe367bbfe53c04:
 
-  Linux 6.13 (2025-01-19 15:51:45 -0800)
 
-are available in the Git repository at:
+Le 28/01/2025 à 10:16, Dmitry V. Levin a écrit :
+> Similar to syscall_set_arguments() that complements
+> syscall_get_arguments(), introduce syscall_set_nr()
+> that complements syscall_get_nr().
+> 
+> syscall_set_nr() is going to be needed along with
+> syscall_set_arguments() on all HAVE_ARCH_TRACEHOOK
+> architectures to implement PTRACE_SET_SYSCALL_INFO API.
+> 
+> Signed-off-by: Dmitry V. Levin <ldv@strace.io>
+> Tested-by: Charlie Jenkins <charlie@rivosinc.com>
+> Reviewed-by: Charlie Jenkins <charlie@rivosinc.com>
+> ---
+>   arch/arc/include/asm/syscall.h        | 11 +++++++++++
+>   arch/arm/include/asm/syscall.h        | 24 ++++++++++++++++++++++++
+>   arch/arm64/include/asm/syscall.h      | 16 ++++++++++++++++
+>   arch/hexagon/include/asm/syscall.h    |  7 +++++++
+>   arch/loongarch/include/asm/syscall.h  |  7 +++++++
+>   arch/m68k/include/asm/syscall.h       |  7 +++++++
+>   arch/microblaze/include/asm/syscall.h |  7 +++++++
+>   arch/mips/include/asm/syscall.h       | 14 ++++++++++++++
+>   arch/nios2/include/asm/syscall.h      |  5 +++++
+>   arch/openrisc/include/asm/syscall.h   |  6 ++++++
+>   arch/parisc/include/asm/syscall.h     |  7 +++++++
+>   arch/powerpc/include/asm/syscall.h    | 10 ++++++++++
+>   arch/riscv/include/asm/syscall.h      |  7 +++++++
+>   arch/s390/include/asm/syscall.h       | 12 ++++++++++++
+>   arch/sh/include/asm/syscall_32.h      | 12 ++++++++++++
+>   arch/sparc/include/asm/syscall.h      | 12 ++++++++++++
+>   arch/um/include/asm/syscall-generic.h |  5 +++++
+>   arch/x86/include/asm/syscall.h        |  7 +++++++
+>   arch/xtensa/include/asm/syscall.h     |  7 +++++++
+>   include/asm-generic/syscall.h         | 14 ++++++++++++++
+>   20 files changed, 197 insertions(+)
+> 
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/chenhuacai/linux-loongson.git tags/loongarch-6.14
+> diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/syscall.h
+> index 76020b66286b..712daa90e643 100644
+> --- a/arch/arm64/include/asm/syscall.h
+> +++ b/arch/arm64/include/asm/syscall.h
+> @@ -61,6 +61,22 @@ static inline void syscall_set_return_value(struct task_struct *task,
+>   	regs->regs[0] = val;
+>   }
+>   
+> +static inline void syscall_set_nr(struct task_struct *task,
+> +				  struct pt_regs *regs,
+> +				  int nr)
+> +{
+> +	regs->syscallno = nr;
+> +	if (nr == -1) {
+> +		/*
+> +		 * When the syscall number is set to -1, the syscall will be
+> +		 * skipped.  In this case the syscall return value has to be
+> +		 * set explicitly, otherwise the first syscall argument is
+> +		 * returned as the syscall return value.
+> +		 */
+> +		syscall_set_return_value(task, regs, -ENOSYS, 0);
+> +	}
+> +}
+> +
+>   #define SYSCALL_MAX_ARGS 6
+>   
+>   static inline void syscall_get_arguments(struct task_struct *task,
 
-for you to fetch changes up to 531936dee53e471a3ec668de3c94ca357f54b7e8:
+> diff --git a/arch/powerpc/include/asm/syscall.h b/arch/powerpc/include/asm/syscall.h
+> index 521f279e6b33..7505dcfed247 100644
+> --- a/arch/powerpc/include/asm/syscall.h
+> +++ b/arch/powerpc/include/asm/syscall.h
+> @@ -39,6 +39,16 @@ static inline int syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
+>   		return -1;
+>   }
+>   
+> +static inline void syscall_set_nr(struct task_struct *task, struct pt_regs *regs, int nr)
+> +{
+> +	/*
+> +	 * Unlike syscall_get_nr(), syscall_set_nr() can be called only when
+> +	 * the target task is stopped for tracing on entering syscall, so
+> +	 * there is no need to have the same check syscall_get_nr() has.
+> +	 */
+> +	regs->gpr[0] = nr;
 
-  LoongArch: Extend the maximum number of watchpoints (2025-01-26 21:49:59 +0800)
+Doesn't the same as for ARM64 apply here as well ?
 
-----------------------------------------------------------------
-LoongArch changes for v6.14
-
-1, Migrate to the generic rule for built-in DTB;
-2, Disable FIX_EARLYCON_MEM when ARCH_IOREMAP is enabled;
-3, Derive timer max_delta from PRCFG1's timer_bits;
-4, Correct the cacheinfo sharing information;
-5, Add pgprot_nx() implementation;
-6, Add debugfs entries to switch SFB/TSO state;
-7, Change the maximum number of watchpoints;
-8, Some bug fixes and other small changes.
-
-----------------------------------------------------------------
-Huacai Chen (8):
-      Merge tag 'irq-core-2025-01-21' into loongarch-next
-      LoongArch: Correct the cacheinfo sharing information
-      LoongArch: Correct the __switch_to() prototype in comments
-      LoongArch: Add pgprot_nx() implementation
-      LoongArch: Refactor bug_handler() implementation
-      LoongArch: Adjust SETUP_SLEEP and SETUP_WAKEUP
-      LoongArch: Fix warnings during S3 suspend
-      LoongArch: Add debugfs entries to switch SFB/TSO state
-
-Jiaxun Yang (2):
-      LoongArch: Disable FIX_EARLYCON_MEM when ARCH_IOREMAP is enabled
-      LoongArch: Derive timer max_delta from PRCFG1's timer_bits
-
-Masahiro Yamada (1):
-      LoongArch: Migrate to the generic rule for built-in DTB
-
-Tiezhu Yang (2):
-      LoongArch: Change 8 to 14 for LOONGARCH_MAX_{BRP,WRP}
-      LoongArch: Extend the maximum number of watchpoints
-
- arch/loongarch/Kbuild                      |   1 -
- arch/loongarch/Kconfig                     |   3 +-
- arch/loongarch/boot/dts/Makefile           |   2 -
- arch/loongarch/include/asm/acpi.h          |   2 +
- arch/loongarch/include/asm/cpu-info.h      |   1 +
- arch/loongarch/include/asm/hw_breakpoint.h |   4 +-
- arch/loongarch/include/asm/loongarch.h     |  76 ++++++++++++-
- arch/loongarch/include/asm/pgtable-bits.h  |   7 ++
- arch/loongarch/include/uapi/asm/ptrace.h   |  10 ++
- arch/loongarch/kernel/Makefile             |   2 +-
- arch/loongarch/kernel/cacheinfo.c          |   6 ++
- arch/loongarch/kernel/cpu-probe.c          |   1 +
- arch/loongarch/kernel/hw_breakpoint.c      |  16 ++-
- arch/loongarch/kernel/kdebugfs.c           | 168 +++++++++++++++++++++++++++++
- arch/loongarch/kernel/ptrace.c             |   6 +-
- arch/loongarch/kernel/switch.S             |   2 +-
- arch/loongarch/kernel/time.c               |   2 +-
- arch/loongarch/kernel/traps.c              |  13 ++-
- arch/loongarch/kernel/unaligned.c          |   8 +-
- arch/loongarch/power/platform.c            |   2 +-
- arch/loongarch/power/suspend_asm.S         |  10 +-
- 21 files changed, 313 insertions(+), 29 deletions(-)
- create mode 100644 arch/loongarch/kernel/kdebugfs.c
-
+> +}
+> +
+>   static inline void syscall_rollback(struct task_struct *task,
+>   				    struct pt_regs *regs)
+>   {
