@@ -1,70 +1,72 @@
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C8EBE145A0B;
-	Fri,  7 Feb 2025 01:21:29 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79A8EEAE7;
+	Fri,  7 Feb 2025 01:26:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1738891291; cv=fail; b=SR/5UBoP2TryDNE1hBQCJdIP8q5/qADkPe19keCXCyBKYFHlZrp7pAkdnA/gIdcmhYV27DVZNfXPB/5HNpILTobfEC1Zq+si/CQhVoH59iZFZfnpGwZaSEt+tO2pKZFbizpi+6IYHIs6n5i99+veT8bxJbXn7FR48On82r/mXto=
+	t=1738891585; cv=fail; b=EWGqyaD68YAfa/jy0Ryl+AigJSHRILNQe1UMoBEyWwsCSzChWAAvpX/Ul66pmatcI3RildDMvOnsZNq8+BVqXAq1iHskPF2o67ZZab3fcHCGN0KZ00pbUrbZdeERkF/O08W8ZlZZTlAquvlK1SLkkicHfziLIjh9wTbsGCsB6nU=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1738891291; c=relaxed/simple;
-	bh=duUBN6DSjldSXhtF3wj833SmCBK0G5GWzHZ7/BV4XPk=;
-	h=From:To:Cc:Subject:Date:Message-ID:Content-Type:MIME-Version; b=uWlo/Rkh10wHlO39B+GzeEKayRSwFf+vQ5Wwzz1OvEBfaqFSvZXz8vp+ymE23OBVpN27qU5DhSinu06Jq1JGfZdQTOcHOG4j/bNL16KEBkUg1zZH4UZ5gJkenm2CUvlFXyEuYK2Ip+w2SU0Mr5KS28Zk7vImUBweOiOoFZWcmf0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=RVm+U47O; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=nN+olkCX; arc=fail smtp.client-ip=205.220.177.32
+	s=arc-20240116; t=1738891585; c=relaxed/simple;
+	bh=hz4VRirex91+1rnir8uMyiNGI9KFBegb+PgT+OrrPPs=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=gOj39JEiD/lmwUCxtFZuSbRGi1rwx93mTQg2Ey3gtApyxIp0t6fU9b3VskGlaKXoPytWsu03wdLTWDtsbShdkgxp91zINO+Fa+ByKVVCAKT4OfpoXX9er0d6juE13++jvDW+6lHcvib1QG9hgGkjJhiBRv8x4mzF7INq2+pfWTk=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=ez5EJ0Fh; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=xucQzS6o; arc=fail smtp.client-ip=205.220.177.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="RVm+U47O";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="nN+olkCX"
-Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5170NNpv027223;
-	Fri, 7 Feb 2025 01:20:56 GMT
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="ez5EJ0Fh";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="xucQzS6o"
+Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5170MrIK028581;
+	Fri, 7 Feb 2025 01:20:59 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-transfer-encoding:content-type:date:from:message-id
-	:mime-version:subject:to; s=corp-2023-11-20; bh=So1lTruI/jhS8LmJ
-	jS7OYhwNfTWABr7xz/YNkdASmLw=; b=RVm+U47O1FYFbnihCkGjCtrHI1gosUDw
-	gR6C0QLq9XyLYFXznP0KD9aSA2CJIRg0vgDcKxInnpar2+4l9HNw7c49IsXcIO+7
-	z85MP4n1ZyhQHxRnL9fByscWQZaatAKj/Vzl9w7gmu3YGMglPVe2/oXl6EsZWK1A
-	069RjFqaD5I5+VaDLUqdermY0yDcLcys7RZgUvyj+gGXNqg44/cWobvRzMPfPYl5
-	xQ80FgbfnwpVa4/PDmIosFLJQaSvFie2PmhB+najrCQZjH2JkEq1iqmVj1V52AlD
-	YhvB2pfJNFt8qS23/i2DdsqcAmVZ2szR6fUBQhxvlKgMp1B5z8HzTw==
-Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 44mwwph8ye-1
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=
+	corp-2023-11-20; bh=EP2Hn/sXtrQW0bAJVVC0x2JYgmzmC82Aum6zXqoz0Ag=; b=
+	ez5EJ0FhXhGknxF7uahe8xvPiMTWXyo42DnYLSl2YmM+0yK9WAzp+84BaTt4WkyZ
+	L3+lMKVPKLwW9fHpKvxjPjoTTw31IPxvIUN85PsIEVjeu9D3N6ZBVlmUtcvPNxGx
+	2/M8bpkABcA4A4C0lOM9WSld3Q1yu/qQPKY7FG7NUPclyrd25SyhjxFcRE75UtOf
+	ikDpbDAghTqIR7jnflnLwGRUZEgphAUQUrS5nmfQLk1asgp38C0p0eN5/Uhncavc
+	+O60X8X9FoSBVVOVaNJlcG1B9j73tgoBoDpBr+eoABKzdnUDtAbwA2OCCw8UfSvl
+	fnuhmZ/+E92WUXqIsuPyow==
+Received: from iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta01.appoci.oracle.com [130.35.100.223])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 44kku4wses-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 07 Feb 2025 01:20:56 +0000 (GMT)
-Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5171DGah022556;
-	Fri, 7 Feb 2025 01:20:49 GMT
-Received: from nam02-sn1-obe.outbound.protection.outlook.com (mail-sn1nam02lp2045.outbound.protection.outlook.com [104.47.57.45])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 44j8ebae9f-1
+	Fri, 07 Feb 2025 01:20:58 +0000 (GMT)
+Received: from pps.filterd (iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
+	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5170p70U028002;
+	Fri, 7 Feb 2025 01:20:57 GMT
+Received: from nam12-mw2-obe.outbound.protection.outlook.com (mail-mw2nam12lp2048.outbound.protection.outlook.com [104.47.66.48])
+	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 44j8dqx72n-2
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 07 Feb 2025 01:20:49 +0000
+	Fri, 07 Feb 2025 01:20:57 +0000
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=u8FWbrGYlx0LUOjOMljWov8zcXz7DB+gaJJDUeWrGdWx1+Bwf/xvc6p6V2a2NGHt3kT1Gkg8jdb/54pvdRCC3o4iJ1Rvz1gsSoygDy0hvHK1wB2VwA61atNg7eGhtz+2SYsavowcxjHawsZchqbGELaPpldFX4+zbcujlneDY899QNyIT3TqjInAOhn/dVUOYnDGjACWCH1gs5y7eULVTrIgyp7jWLMENTJ0H6f/zuufJXO+vqYvEwRuVDU+X2+XksPLz8ubMAqLAHIMxE1ipiuGCOGdwRHfNFk2cHw1f5e+1zY1f63aYk4vG/ov44yP4bpEHuakZ1FXN2oeSgfAEQ==
+ b=x0E47fV3bU8dcY2aqWlGdxIiy+/YldDpc4KJZEjIXYRjksJLJHJtq/lufA3VWC6Ph5+UOHEPG4T9O4SSZRdFjMb0Vm8sEkr+sbPdAIvxHGJpYK28SyKuZgdqhLGonochh2I9VBRuEt78mtuld5KXd8LlNZ+FPirHOgcmSZxhmbCXJ6iVt693BzCOG4+0gSy/16WFtAbkdtyt5D/XMIpTeDLnRT2GwgOFzPISKm/yzokIuBmTJ7zsq59WNaM0Z+UEQT0TiN+E4D9OZq7rTdCN6MIbcH7ZIpF0EcAazixJcUOScaGKN94H+/Kt0WWUE/7E/F+xkDvX5oGLKA8yhrJLbg==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=So1lTruI/jhS8LmJjS7OYhwNfTWABr7xz/YNkdASmLw=;
- b=yFLMh7TNX9NZLQCxpTyNax9lEcZiCpNA6UP+euhhUGzcu8k7PLkKYauQmD8JQi16q6LE/KWBj4JgLkxrFPwHN0k8oegTvHRq6kfSvyIecA4xE1Q8Q4kRWo7tVRpyMyhOYTsfygbCPIwFJod3Oee+Nyxlj1TyD1SOf+5RhYLhfMd0/JhI6GC570+oMd9JEFCQQQD4GBZYtylzyiYUazpBaZS/LOTMEVE67gRpg9Epf/HbE2YkN+t8V9wTGpT0I6M0foxUGOHo3iYLb+oWdPHq+xFaloU8Htp4Hxi99/ILglESNU5HLU7IQwsft22+c7cvQ/oTeEYrnyUSy1SRUCNT0Q==
+ bh=EP2Hn/sXtrQW0bAJVVC0x2JYgmzmC82Aum6zXqoz0Ag=;
+ b=utMYLZni2Ptb2qnDOodesnr+YgTga1YwGzoeZj0MXGepY2dYj1YCqF+4DAP3N9IhZcx6bM3+61KRvha9plDS1ATf2Isr4hAEtYZRkgVGZ5hwUkHge9TA6JqOQN1IsjX4xDopAcxE33fJ4SQ9vSp0OZrsF4FQ9B8xI3nxF73CGh+wLkh8ivWEQ17rbEitCrbNGXhOH0E/Dggnmm6cX/cs3EfPBCuDxQ0p5TLp4RSOwzctd9VmDztpTCNvQghuehzhBakY8OkDLUUgbwkDuwaxYcqfmRxTborLyCNDBLqINA4uqB/UX8sJhgH5xnXbTO4JRq6UUDyG2xbn3CeblTSIpA==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
  dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
  d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=So1lTruI/jhS8LmJjS7OYhwNfTWABr7xz/YNkdASmLw=;
- b=nN+olkCXISy9ebODgtnao7km/WS8kbMJhvTfLKO+n8bIw5j10TRFcI0SorcJnvHc+x+CGjNKp2EpMzPasBiQU62ZYJ3KXeAvwp6OwYRwEKT1WMqMPZgCBI6NdHp8igZIe8gAc1wb/DEacWypcZ/GFCB33BWCYBcjy9q3Zr6o4/4=
+ bh=EP2Hn/sXtrQW0bAJVVC0x2JYgmzmC82Aum6zXqoz0Ag=;
+ b=xucQzS6ocEl0fw8B0cdISgVx79PikqS9B0Xz26byyNoaoAxd3CdgosTB6g7zkkIEzZQYOvEL7bTZiKScTlmP155K2V1OFAXr8QRJPHIwm0t+fowaF0qDzL6OI61w3FEKxKVqYUDCXC6YtebUt5u69zjLSa+ksRlKb74b2BD9BEo=
 Received: from PH8PR10MB6597.namprd10.prod.outlook.com (2603:10b6:510:226::20)
- by PH0PR10MB4647.namprd10.prod.outlook.com (2603:10b6:510:43::22) with
+ by MN2PR10MB4319.namprd10.prod.outlook.com (2603:10b6:208:1d0::21) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.8422.11; Fri, 7 Feb
- 2025 01:20:46 +0000
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.8422.10; Fri, 7 Feb
+ 2025 01:20:54 +0000
 Received: from PH8PR10MB6597.namprd10.prod.outlook.com
  ([fe80::6874:4af6:bf0a:6ca]) by PH8PR10MB6597.namprd10.prod.outlook.com
  ([fe80::6874:4af6:bf0a:6ca%4]) with mapi id 15.20.8422.010; Fri, 7 Feb 2025
- 01:20:46 +0000
+ 01:20:54 +0000
 From: Stephen Brennan <stephen.s.brennan@oracle.com>
-To: Masahiro Yamada <masahiroy@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Masahiro Yamada <masahiroy@kernel.org>
 Cc: Andrii Nakryiko <andrii@kernel.org>, Nicolas Schier <nicolas@fjasle.eu>,
         Kees Cook <kees@kernel.org>, KP Singh <kpsingh@kernel.org>,
         Stephen Brennan <stephen.s.brennan@oracle.com>,
@@ -80,17 +82,20 @@ Cc: Andrii Nakryiko <andrii@kernel.org>, Nicolas Schier <nicolas@fjasle.eu>,
         Yonghong Song <yonghong.song@linux.dev>, Hao Luo <haoluo@google.com>,
         Andrew Morton <akpm@linux-foundation.org>,
         linux-kbuild@vger.kernel.org, Daniel Borkmann <daniel@iogearbox.net>,
-        Nathan Chancellor <nathan@kernel.org>, linux-debuggers@vger.kernel.org,
-        Alexei Starovoitov <ast@kernel.org>, Song Liu <song@kernel.org>,
-        linux-kernel@vger.kernel.org, bpf@vger.kernel.org
-Subject: [PATCH 0/2] Add option for generating BTF types of global variables
-Date: Thu,  6 Feb 2025 17:20:42 -0800
-Message-ID: <20250207012045.2129841-1-stephen.s.brennan@oracle.com>
+        Arnd Bergmann <arnd@arndb.de>, Nathan Chancellor <nathan@kernel.org>,
+        linux-debuggers@vger.kernel.org, Alexei Starovoitov <ast@kernel.org>,
+        Song Liu <song@kernel.org>, linux-kernel@vger.kernel.org,
+        bpf@vger.kernel.org
+Subject: [PATCH 2/2] btf: Add the option to include global variable types
+Date: Thu,  6 Feb 2025 17:20:44 -0800
+Message-ID: <20250207012045.2129841-3-stephen.s.brennan@oracle.com>
 X-Mailer: git-send-email 2.43.5
+In-Reply-To: <20250207012045.2129841-1-stephen.s.brennan@oracle.com>
+References: <20250207012045.2129841-1-stephen.s.brennan@oracle.com>
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: BYAPR04CA0030.namprd04.prod.outlook.com
- (2603:10b6:a03:40::43) To PH8PR10MB6597.namprd10.prod.outlook.com
+X-ClientProxiedBy: BYAPR04CA0029.namprd04.prod.outlook.com
+ (2603:10b6:a03:40::42) To PH8PR10MB6597.namprd10.prod.outlook.com
  (2603:10b6:510:226::20)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -99,130 +104,166 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: PH8PR10MB6597:EE_|PH0PR10MB4647:EE_
-X-MS-Office365-Filtering-Correlation-Id: 2da5ba7d-5bf8-4abe-72eb-08dd4715a62a
+X-MS-TrafficTypeDiagnostic: PH8PR10MB6597:EE_|MN2PR10MB4319:EE_
+X-MS-Office365-Filtering-Correlation-Id: e7c335a4-4aad-491d-cd83-08dd4715aab8
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;ARA:13230040|1800799024|376014|7416014|366016;
+X-Microsoft-Antispam: BCL:0;ARA:13230040|7416014|366016|1800799024|376014;
 X-Microsoft-Antispam-Message-Info:
-	=?us-ascii?Q?KWUgtN3Zs4AcuSxSiQmjNngy87tSzOLXncZ0lI/oGiZL8FiRVC89ZOl4idXm?=
- =?us-ascii?Q?AFqIEoQQFj6jtwthP5jEo4zhZ1q02SIoR0toP1wZIrLlvm+ZMEEfRmAy3E+9?=
- =?us-ascii?Q?g5WL41RRUhVXyoUyfoxsaIN0EVG7n12Vwi0FyRTZZos047NmP/doc8gOII7n?=
- =?us-ascii?Q?pPY5SBtLRhwmv5jzPIzlSbMPzPxrIg7rMIdwJS5gyjrauLuHG8MRo+d/yQkr?=
- =?us-ascii?Q?gle8HYyLPf6d8ImsnB0qFJ8h3USpnebnGK42txi1mSqBM9Y/ef+9oq117IwU?=
- =?us-ascii?Q?Gbn/+4Bnf3IQyP619ICoebkF3zffYCx9zinlnTX1t41SovFzc6okEM7DCIsP?=
- =?us-ascii?Q?kDfB+jHe50Rgv7KeZUClbUh40Fa+PCy5oCxJq/+vfTa5cr3+4PDhTh0jWaJb?=
- =?us-ascii?Q?YfalltnQjg/MH+6kERdb0t5nlpm3CRhUC0s6zJQJsvAZ9eNyMMa90S371OYR?=
- =?us-ascii?Q?zOwltzbQY54BMgq6nVLIe8Zzp0IcJM353YHq7iIgbEOXxDDAzRInIcBIoOVQ?=
- =?us-ascii?Q?3ctLuJZcKaTfCKExTZa4K41uWyGuAbwS+d3PIL8n8HZuNfrLucNhJI3V5bZe?=
- =?us-ascii?Q?6Oeqq2ZqZhrBe6wycB+qjvEgktYjJ6T43PPwkxHMbBjjyoB+0FfRT+RP6pQW?=
- =?us-ascii?Q?73vPHPjXN1wLRxx6jNexi03RFDWIqig3Wd+6idJ3u4azNEcUn5dBds3j0jzW?=
- =?us-ascii?Q?F/VYU0ZLx+EKnhnbw5grxK/vXCDA+yYDLURTIlShrS6LyRZomNS9dUUuIJ0o?=
- =?us-ascii?Q?nycwOdhM9SF/xXXuaACn0feZfLLYCXPF03Y5t7TdyUiDQX59kLhVAdwRUgRX?=
- =?us-ascii?Q?DzntsY70EV4iz//PtcHcfkdPEsD9l27B0d+o8Eh6TIqEGUFNL64MIp+7fxqP?=
- =?us-ascii?Q?eIHgpbRrvx+Nrxm49Av/8vmc/H0UUneE0Vu1OSiAGoBk6PPkd9JW1ZNqcvQa?=
- =?us-ascii?Q?yTmx8DZGwxBrl8L3tez/raRueggE573sVMHPhVMlK12+s8WClHlpQT+qw+pO?=
- =?us-ascii?Q?liEmE/eyCZOtaxATwHzborl2e5U1214ju9YW4DVGCJzVKRQK0tUhCqOlbrQZ?=
- =?us-ascii?Q?+N5CRFc/YkspVu8Qkzr0RDTCV4+jfQrle/DkTsiSHVbWAD4bL85/vl9BeLxa?=
- =?us-ascii?Q?Z+eAgtCZl/td3qT8DzUzN0Qyjh+SKSAmGnmvUcVRZT6lcwlZPKLDL+E05PHp?=
- =?us-ascii?Q?gYk0cHNDwkqbsfkdbug10wPuDxYWY7w7d/scJgLfbfFAJ6qaqZMYZhxoxuAC?=
- =?us-ascii?Q?20IBI6VQOnk9++EGJZWtXmD5oIw/+B79po380pjowzlC3APL/7mPJCt/b7hl?=
- =?us-ascii?Q?UxGrzMTEBs89vAYi0EZM2aqiC74RAYjLrkUR1f6Ve0PHHA=3D=3D?=
+	=?us-ascii?Q?ubLKzUphzFU6PFB9V8JOZErU31Qs2fs20J9lMFCxXjhFBjXIl11gagisPKRU?=
+ =?us-ascii?Q?/KY95MFIMC2dk4zZep9HgaNYZfNcdI/MdCxqtKjhB6XIIyKPm05lVfboivEc?=
+ =?us-ascii?Q?oXkXhuoTCN55QKVhaKELlnCOz6O10kTCyIX/R6lje70LH0gSAGvnLmr4i7IZ?=
+ =?us-ascii?Q?JAmFrwnY33LbmTAELEygYe+oDErscpvduZnQsgtaC2sulyR/PSsi8KNvHT7J?=
+ =?us-ascii?Q?0E4Z78+bGPsWziqZHISc9nuYvC7O4P48/w8ef0ODgBNDG2S/l1KadQZn+vVH?=
+ =?us-ascii?Q?pQJGNypb8vYXsgjiaESEP520/yE5Zldfo7Zse62GBX+wkOlPMqNXLhrScGYm?=
+ =?us-ascii?Q?6xW9DioIkIc3L4xjsippP9/2hm9VMSNivHauuzPKKo3J9gYtR9MkRHUc/G1H?=
+ =?us-ascii?Q?SmK9tT13pfaAf/zFtgztS1C6vr0DGE9XkpNgfB6IwGfg4oS20oEt7YMBl1g+?=
+ =?us-ascii?Q?URqUSHT4GjvlCdy8taKmXSM5tu5IR7m6M0472YBQ1MarWKa1fLF+bmIbQ3qn?=
+ =?us-ascii?Q?Z2xmNi9TcgLBXcuGUWtBF3kNtDk0SUKPqTtXLznmRgVUglImPd8iG3S7dCH4?=
+ =?us-ascii?Q?QkC69spEMj+G/M5ZsT+LGyZvP962zxeuwp3UmNAk0NiXWJRacLvbGn2N4YZN?=
+ =?us-ascii?Q?5lg68gY59MimvsZ9THIT3aB8t68+jZqv2sPHBvICv9nH6PBR1mtjrqVXW+wV?=
+ =?us-ascii?Q?EF0gmmttiL3S1ZjfLBtd/PC9QPr/og9BGlthkLWXg8uoSEmdEE2vjh2dStu1?=
+ =?us-ascii?Q?e7aSwN8wCahmVdEdt7p/CaxM7bRvwS3VTVtIzq9BqPULCGQ/Oe0Ihd2yg4rF?=
+ =?us-ascii?Q?bxuvJH0hSGnNP5MHuVBzXFFAlpGoVGu9nfCh3agNL6UpBt6l0XRy+BUqMGcb?=
+ =?us-ascii?Q?gCq6YWorNE12IOf1sQ+1l+O6Lvest2BQjoBFZGDPP7WoBNVR/F/JPHvTkmlg?=
+ =?us-ascii?Q?VkrgQlJ7ONZra6ub4LU+XA7TY30TXjYO+UawW7E5zH3lyf8O5ykR3KjBo18U?=
+ =?us-ascii?Q?ngHhQjBNDVwQYwjIIKa9DbhShMetdVZbsHLaXsIq4mYDN4owKvnzDBQuQtw7?=
+ =?us-ascii?Q?j+ogcdakq1RDQav+tRg5ENd3bB+Z0Xjhab9DLlwsw3Oy2MtESiglxcGYoTZh?=
+ =?us-ascii?Q?DSR6eC7QlaypR3pYEC58kY5XxHN8BBjZbSkY7angx43XPDfC53J5Va1iqQE0?=
+ =?us-ascii?Q?AkDt/GLSfMc7+S2AYKyjd8flyfnlxADL+/R3ALMnWHqrCdiaQgm0aO7h80YQ?=
+ =?us-ascii?Q?HtBk802hfTJ4vjdjEgM2Au27fQkZzKHut1HiqHOWCYdWW+KFiTqPRcJ5gpnu?=
+ =?us-ascii?Q?NIElq4oSq8sutS2SwWIBQH4fEVXKTw1yMx3RdUu8MX9Mob9XHUi0NXy2ajTy?=
+ =?us-ascii?Q?QzEKQ/eBcFHkICggiBfzCBLOv3rBunpS/QZQDJAYZ57NA9C2Lw=3D=3D?=
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH8PR10MB6597.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(376014)(7416014)(366016);DIR:OUT;SFP:1101;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH8PR10MB6597.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(366016)(1800799024)(376014);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?NQ1AU3XDmvKj8xhbYgYJGmXGkrr0zNo1w5WTVBsztSKcmJ5KFIY3pCYwvCoD?=
- =?us-ascii?Q?EkjRl5BGsZIFsnw7abyjT+gPBRNxdjcxx4EBLp0eiKXZMYtwjUqnSm8nzBIs?=
- =?us-ascii?Q?Wy7Z/Ydf13ZtirrZpMJqKmomZxAAYvp9KEAYh4CWr+e1QtNfAo9IiuBt8NMm?=
- =?us-ascii?Q?RfWv8t1ZysjqLB7x0kRilHdkQ7Um26yWCczjBvJxicPURiNBSueeq3BeZKNG?=
- =?us-ascii?Q?lN79Pb3kyewGZWiDIACj1CguJsjvdj3TTTKooNgWpXEsZSCm5ScA9ws+e2p1?=
- =?us-ascii?Q?OiFu5y6LdcEgjMvt7dXZTTDzujTWz1cGazh213KkKvVuA8VXaATcKc0LOKHO?=
- =?us-ascii?Q?SOCNSlCqdiM0JgazKbXH28f/O1/G2903gc6oXzLEwOI7XTHQIjTfEl6wCIVK?=
- =?us-ascii?Q?7OiJRAJvo525cW5sSPwoKr6G+ENGqXbtflKhgQGCAu03sKz3styvl6r5h3YM?=
- =?us-ascii?Q?ZyS7qG9+XCXkeu+XnWaecA6m1oBynDpJPjelOkJnu9BGbEJS2h7t3AEF9dWE?=
- =?us-ascii?Q?kJURH8MfwZ1SvI2vypIvkGRrbZ4Ork6IxzWbVq4TCke9FpUUgEya8eZLwnmr?=
- =?us-ascii?Q?CKh4ER/XkKbPvkN6PkWw9fVCCwgUXv1pZoWH1zfuwF3/Gfaaomz9u55ZsizM?=
- =?us-ascii?Q?mnDSBE3CLJZneFJ8LXmXomEksRE4w4Uut987nmuR5guKXTDVwwlxO8JNoZUY?=
- =?us-ascii?Q?o/PW0QRB1mhn0wkbI75Hlfkk8gEgy0DxtP9BgeIAYoWpqoKAi6luYmaDBFPA?=
- =?us-ascii?Q?PlY73yE8L+EMB05oSXwvRYzLIMvD6LorQnvG/799sZEK0knRV1jZM3ZAVYHP?=
- =?us-ascii?Q?i0+JScTRiRQFv8iZRAtuuBBVitFA2GkNKlWvrVRT+vsR2T6essu0BxPXd0pW?=
- =?us-ascii?Q?sIxHbwTaLeS7s0AjNSeIpOXyh8yNUS+8bcY4v4u/zOEuIowZvdgWNtNJu1w9?=
- =?us-ascii?Q?oyVgEo3VxL+hOwJtK8m3AfLyJORAI6YT9CeuhbG2Es/4WKnoVGMbVQnHeN4D?=
- =?us-ascii?Q?+ZgOQAmZudpZeO48MbulJgr67r2tMpuAMdnoNXo1XvigdmhYXIPZQGNU085e?=
- =?us-ascii?Q?9Rlp3BGffFVAV6dc85oEWXDEBkDvfFCujDMzKXqp1BU+yuAdKUrTO2O7wo/P?=
- =?us-ascii?Q?gaIucSR7vNI/HEo7v2dyVK943nJRQzyLo9VttjRHr7X9pW+BdV5R1iUypw+a?=
- =?us-ascii?Q?KG2aO3PX0/w/v/wfW46zluaJiuTfUsU6pON6teC/G/d1iURQICCgIb8zRlF0?=
- =?us-ascii?Q?AhH9TyeyfWtplxrbD1P+LyNCM8POSpQ3z+8zajaKEMMnlkai52R76RG0QhU7?=
- =?us-ascii?Q?uhOKSuA0WS5QJiGYTkEAte+6euCP2uZvtspM0vXmgj6qCW7i937lYXL9W50f?=
- =?us-ascii?Q?K2scndaQesv+rAskIQfuf3C0e4WMW0cSQc/fPVGYjPV2AGPadc66o77eLgDL?=
- =?us-ascii?Q?qaPyIS2KlK9f8jcJXVmo9ifEmIf8y9O70zUqkfPCEoa5HfmQVx/sNdWxBLVW?=
- =?us-ascii?Q?6nAAG1+ETuWQPqPbbGziXgLuYUZpqJlqGhiVhxQZdsApsGVPTSa2iHwW2V0j?=
- =?us-ascii?Q?dvvxlgKvf83NLE2MK583ku70yWmtWB8KVw8yZQeLC70VtdCXJr3cjZFh/R84?=
- =?us-ascii?Q?xQ=3D=3D?=
+	=?us-ascii?Q?doOCtRuXLDH3PJggYdzdapfKUR1k+dWCC0t3n0cTJMtw1mXYBpOglyPkCv/D?=
+ =?us-ascii?Q?672QHlLZkVCmhRxjO5hIaRGGQBij4/K6CW9Qle27hKLW/TjZ7b64pLGuyozW?=
+ =?us-ascii?Q?0DpITDEc1OAsUFQ/cV6XJdhTyGg4YzVTbw93GFH0c29XN6hkf2iY4ka5o3v5?=
+ =?us-ascii?Q?epEZOAjLwo187915TzgjxxnzfE5RIA9K9vjHzPS9Lto5SDNvI6crTwRpOpIj?=
+ =?us-ascii?Q?ldwnp6WEj2E/pDXwowGDLD0hdDnEYmhrrcmU2Zcqldo2fdZht5UQn+hHDVuZ?=
+ =?us-ascii?Q?LlJ1B8PLjeLIPfaoyImLqGSH4MiprJcDZMlokkFOdXp0+ofpfk9PMWXn79qX?=
+ =?us-ascii?Q?zSmr9wed01B6BVwK9DHIy3lEFIkj/ni/RoCKEi6wAK+XDz5mp/fullW3U3O2?=
+ =?us-ascii?Q?vwGvqcm0vmEOo0b77EJZiL3D8bvg064J/pR3tq927jedYrk1T8j9NWhwa+Vb?=
+ =?us-ascii?Q?+epzbxgimGIQ2ckkR+Xk7CUl/WDwf8P7i4O4xdjLSCbjbdVAtMXExU0JDejk?=
+ =?us-ascii?Q?d6LtgNX/3d7oWqsqBXSznVeJN7W5eToP00ETr8RwyA67gCsT9YMFAezPzg6q?=
+ =?us-ascii?Q?5eTOkkc53uFdS0XOStvcPP8QkJOUaDUuykYtwxHrWjQMEx1x/n8aXlPdv1se?=
+ =?us-ascii?Q?6ccN+PV7NdyCoSkyfVLht9aVVXUye3Th5NbXog2plfL72k/jr9OLoTYY8Uno?=
+ =?us-ascii?Q?YsCY9Y6yUEKKxAfceAvQVlrFynLXDtVrjiPuVp84V/to7rT6/hBbZGrztsE4?=
+ =?us-ascii?Q?niEzvBoycpfgx3u5i4QDFowrky8cuVa7KA9V2E4w6vk4JomQN7eRJDHWUoUV?=
+ =?us-ascii?Q?I4SPBUD6YdTaBSNwJEq00DEGd9LRr5V5SByzrvdspe1oVKgMrNrcINhkdmRj?=
+ =?us-ascii?Q?CdeTZvNj4VTcKj086adA/+TBrqtpGSvKRuOCNeGqy3gcf9r6sqmAFv0GKf3n?=
+ =?us-ascii?Q?+PZNgdqaMPe9T7jIXUb38QdHln6JTaMXA72/5lE5R0e5M701A+p1wr06yphl?=
+ =?us-ascii?Q?L8qnyD4Hjk9TlOV4EGuNaH7Lyz1f9ucApFZYexWAlBDWMKgsriujqYxs9wvK?=
+ =?us-ascii?Q?8Ho+WHZ/1PhoHkW3LA2VAt2B1TMEimFpxNeKD7TQ11feNmlueekpDxTRMehD?=
+ =?us-ascii?Q?V2LTcgu6Fe0eEEw5XmCBifSmwQKG74bAEiVLm7EP61Kh6shlQi/TdoxJ46Q7?=
+ =?us-ascii?Q?eHkrJ1OfqtBrEX4iD///kC1IxTSg/BTZ1zLykprfeGpxytna5nmhTD5WcY83?=
+ =?us-ascii?Q?Eu7SL+Xv0TYPj/PuW5ebfD8j4KDvehQKXmW0Erz1qnGpKnbdeu9TxSY06eiw?=
+ =?us-ascii?Q?fKiyDsq4O93ivVlppow1t7+iizvoJVWW1h2ClcGqRa32yrx+FaR9FlTAcX2s?=
+ =?us-ascii?Q?4v1ud3HT4bys+HtzYPV/O8nZ6RInJPXOh3mMhYGVLVCccs0FCSodqsyRjmB1?=
+ =?us-ascii?Q?zh2VOPQMGDtKyAhOMQOlb1ozCYRr+QBmmG9zu+ef0rdDwRqA2YreuzwkEn2R?=
+ =?us-ascii?Q?53NHg5mW2z5ZP1WtJUXeSMBoYopRGWxDwhGrOUtPpwWomOZ3t2Weg/G2vw9E?=
+ =?us-ascii?Q?ffPrb7mOW5EAEtGSBe1444Ie/ZHnwCGqVyHpTTWEGWX7ypW37kYdJGnK+UnK?=
+ =?us-ascii?Q?4g=3D=3D?=
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	/k/aaLEGzDZuBT/k5WbAEafcZRQ3EimFIwvLlG5bRc2RsMik+hCbytgc0u0hnWU/a8SbD2EbjgmtWZ6dLVIqrgtwIQemrmFMuBuqO7/M5fJUSGkrsPixyaOW6bcVC/RMj0iIO0qcKHC09tw846C8NrMHjjRw2gPVcpQ+QLbmD2FFyrd9VkouPZWYNSgO2ssGdHavexv6mD/8MNtJWVzk14wHslkL+/f4zWrhGgefCdumvoneNk6XYxXuFN4lsTjb9b1u1YkfspzBjz2OqyfDvcP0pAQd56HslmyLBtCh8+OZ2aM8VT7kSvO5dSLeD/GAkHgVzMr0QVtjp2CFhSCJROBHPMkllnoNiv97c048VQ53hhhukP/iTNzGiWQGPtHO4BRSNbDtYkU8wYLQpmxg77B8mhs+hev/wf3jJgbZ108by+buig24SwjfUCrzt26LQ+teUh0XJTeqWhVy7lhnfy29SjDilR5nSwioiK3ZsmaCMSFjXCMWP3iRs6mGHuIqTSyD3MLt1DNm5Vwx3uzunbhk7ba8jYUVVXQAbI30vuGkEDnw0HvJzDLl/J8gqoDxUy6ef05uC4SZvaEozeTfTf/07YxKEjx5m3AI5xxcIr4=
+	Zfgm/vDnlqsrrYPJwQsp1dB0lZuAVBeP1Q13YPIl6KyUvsCiC/gnDZ3kKdSByvbp7jxKzW+uMZRPDnh7kk6u3loZbXHKMFLNFwr5SAj+NYxtwQuyL2u8kfG5qQat0HS6X1hLlUwai6+MZBUdhrJWMb++1MRxfefw9/ZiaIsmzBOhMkdi/UQHKf8hcvlxYlXCHekYVuD/Ula1sjlgVikPQEIlcTeyfsywGk99+mqRdrkGkZ11I+10fpP7mN/lVgjCXWdNbol0gxthemb9atHc6BUcPCN4frpf1t17wHrgKewXxXW3/WAwEFdfvUueq5CgFcunczpsCqac7fFtoiSf57qvxzdjKA8QoxsGCzU/fxgZ6KOcErlOy1vNS3ozlTwMsorxo2gIevoh5jOv53Kist/+z7IBBjCVVukcOX3UypB38z1QY9q55Vv12MGt2QXXcrYHpPNVFpqGSX2SHFdW6DFW7ncSrELsFCA2A4DpKkJxiKRce/C9rKbLcuttSTIcy1ikpST6QaYLzm29stwVz8Yx9QS7jNJ7HHGTFIHv+FugcELPNpqVnABhY45kTf7FGHmmHcQq8KZOBpqDW/abjSZt1KeFFJ9Jz0wapK+YxG8=
 X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 2da5ba7d-5bf8-4abe-72eb-08dd4715a62a
+X-MS-Exchange-CrossTenant-Network-Message-Id: e7c335a4-4aad-491d-cd83-08dd4715aab8
 X-MS-Exchange-CrossTenant-AuthSource: PH8PR10MB6597.namprd10.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Feb 2025 01:20:46.6050
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 07 Feb 2025 01:20:54.1989
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: QQonEjQi/H1QK2nodlRGNhQkzqZ3x9WWK32chRvS8JIL+y1AkJ9H7wMyqOA5OnJMWYfzToCw7OZgHp6L5cNlFgjCPehdAoO/9HVYsozmLds=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: PH0PR10MB4647
+X-MS-Exchange-CrossTenant-UserPrincipalName: V7GvahJSyX7O64+6xy3eyD3Z5FhB2pE70UJ2A6DCtTnTmw/5Yw3Yfwaf2tY0Em04wLB8FhozvX5HUcQ9D+VMK6m4Ulxgt53kvtME3H7fzUg=
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: MN2PR10MB4319
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.293,Aquarius:18.0.1057,Hydra:6.0.680,FMLib:17.12.68.34
  definitions=2025-02-07_01,2025-02-05_03,2024-11-22_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 mlxlogscore=999
- phishscore=0 adultscore=0 malwarescore=0 bulkscore=0 suspectscore=0
- mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2501170000 definitions=main-2502070008
-X-Proofpoint-ORIG-GUID: LpDIjldC_5wdt74Vw3Hymyedp6Qs5n3Y
-X-Proofpoint-GUID: LpDIjldC_5wdt74Vw3Hymyedp6Qs5n3Y
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 phishscore=0 bulkscore=0
+ mlxlogscore=999 adultscore=0 suspectscore=0 mlxscore=0 spamscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2501170000
+ definitions=main-2502070008
+X-Proofpoint-GUID: rIbtNf9CUdZ5l7EuMHTwbCPTfpixSnrU
+X-Proofpoint-ORIG-GUID: rIbtNf9CUdZ5l7EuMHTwbCPTfpixSnrU
 
-Hello everyone,
+Since pahole 1.28, BTF can now include types for all global variables.
+Previously, BTF has only included types for functions, as well as percpu
+variables.
 
-These patches add the CONFIG_DEBUG_INFO_BTF_GLOBAL_VARS option, which instructs
-pahole to include types of global variables. Pahole >= 1.28 is required. More
-context for what this feature enables can be seen in patch 2, as well as the
-series which introduced this feature to pahole [1].
+There are a few applications for this type information. For one, runtime
+debuggers like drgn[1] can consume it in the absence of DWARF debuginfo.
+The support in drgn is currently implemented and moving through the
+review process, see [2]. For distributions which don't distribute DWARF
+debuginfo, or for situations where it can't be made available, the
+compact BTF, combined with ORC for stack unwinding, and the kallsyms
+symbol table, can be used for simple runtime debugging and
+introspection.
 
-To demonstrate the functionality, my "btf_2024" branch of drgn (the current
-development branch for the BTF debugging feature, despite the name) can be used
-as below to debug a running kernel with these patches enabled.
+Another application is verifying types of ksyms in BPF programs. libbpf
+already supports resolving global variables with "__ksym", but they must
+be declared as void. For example, in
+tools/bpf/bpftool/skeleton/pid_iter.bpf.c we have:
 
-    git clone https://github.com/brenns10/drgn -b btf_2024
-    cd drgn
-    python setup.py build_ext -i
-    sudo python -m drgn --no-default-symbols --btf -k
+    extern const void bpf_map_fops __ksym;
 
-The "--no-default-symbols" ensures that drgn doesn't accidentially find & use
-your DWARF debuginfo :)
+With global variable information, declarations like these would be able
+to use the actual variable types, for example:
 
-The resulting debugging session supports a similar level of capability as drgn
-with DWARF debuginfo: variable & function types are available, stack traces may
-be unwound (using ORC), and the kallsyms symbol table is available. You can also
-try various drgn "contrib" scripts which implement useful utilities. All of the
-ones I could readily test are working with BTF, for example:
+    extern const struct file_operations bpf_map_fops __ksym;
 
-    sudo python -m drgn --no-default-symbols --btf -k contrib/slabinfo.py
+When the feature was implemented in pahole, my measurements indicated
+that vmlinux BTF size increased by about 25.8%, and module BTF size
+increased by 53.2%. Due to these increases, the feature is implemented
+behind a new config option, allowing users sensitive to increased memory
+usage to disable it.
 
-[1] https://lore.kernel.org/all/20241002235253.487251-1-stephen.s.brennan@oracle.com/#t
+[1]: https://github.com/osandov/drgn
+[2]: https://github.com/osandov/drgn/issues/176
 
-Stephen Brennan (2):
-  kallsyms: output rodata to ".kallsyms_rodata"
-  btf: Add the option to include global variable types
+Signed-off-by: Stephen Brennan <stephen.s.brennan@oracle.com>
+---
+ lib/Kconfig.debug    | 10 ++++++++++
+ scripts/Makefile.btf |  3 +++
+ 2 files changed, 13 insertions(+)
 
- include/asm-generic/vmlinux.lds.h |  1 +
- lib/Kconfig.debug                 | 10 ++++++++++
- scripts/Makefile.btf              |  3 +++
- scripts/kallsyms.c                |  2 +-
- 4 files changed, 15 insertions(+), 1 deletion(-)
-
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 1af972a92d06f..3fbdc5ba2d017 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -409,6 +409,16 @@ config PAHOLE_HAS_LANG_EXCLUDE
+ 	  otherwise it would emit malformed kernel and module binaries when
+ 	  using DEBUG_INFO_BTF_MODULES.
+ 
++config DEBUG_INFO_BTF_GLOBAL_VARS
++	bool "Generate BTF type information for all global variables"
++	default y
++	depends on DEBUG_INFO_BTF && PAHOLE_VERSION >= 128
++	help
++	  Include type information for all global variables in the BTF. This
++	  increases the size of the BTF information, which increases memory
++	  usage at runtime. With global variable types available, runtime
++	  debugging and tracers may be able to provide more detail.
++
+ config DEBUG_INFO_BTF_MODULES
+ 	bool "Generate BTF type information for kernel modules"
+ 	default y
+diff --git a/scripts/Makefile.btf b/scripts/Makefile.btf
+index c3cbeb13de503..ad3c05a96a010 100644
+--- a/scripts/Makefile.btf
++++ b/scripts/Makefile.btf
+@@ -31,5 +31,8 @@ endif
+ 
+ pahole-flags-$(CONFIG_PAHOLE_HAS_LANG_EXCLUDE)		+= --lang_exclude=rust
+ 
++# Requires v1.28 or later, enforced by KConfig
++pahole-flags-$(CONFIG_DEBUG_INFO_BTF_GLOBAL_VARS)	+= --btf_features=global_var
++
+ export PAHOLE_FLAGS := $(pahole-flags-y)
+ export MODULE_PAHOLE_FLAGS := $(module-pahole-flags-y)
 -- 
 2.43.5
 
