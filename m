@@ -1,116 +1,106 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from fhigh-a4-smtp.messagingengine.com (fhigh-a4-smtp.messagingengine.com [103.168.172.155])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5DF67215059;
-	Thu, 13 Feb 2025 12:06:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5F8C8227EB4;
+	Thu, 13 Feb 2025 12:17:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.155
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1739448388; cv=none; b=kVu37ZLcvZiFthsn3P01+pv2wFAqGefd9CR0GZRgOAtyGWIUy8PxFJNzCJnLw8X3N8TOFw4rU4Anms9VrH1rPZqrRM4Tfvu9W4R9gHOKXGnvDJWATIIYfoFBhlEdmVCyOiKRfK9MLaTDuZJn7vI3C+m0fa/zbu8c2rj7vZBZ6O8=
+	t=1739449029; cv=none; b=EhgSIJIkqlxN1V++c5J7HVVLeymcm4wleVG63U65TddQJ0w+A52deI/8he7OVoKbhqzq4xOxZalNKhJ8ZSHhBaSuJVX7YT9jPpzZQ+QWlZSPKhY5Zb+yNptZoDm2Qyzy3trT0ryR3UAB7PCOt+cXhzOYVWRcQsSWtrHMGhCclz0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1739448388; c=relaxed/simple;
-	bh=/wM8GJMjDr++3muLjDT+A1c8YGcYigrvRmRrvP2JhqM=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=s1I99PyVEArnCdZv42Eq00ryhk1aiuptCc9ieS5Um98ISLspmYimIzwtnpHm38mini9EJSn1SPWAUMcNKRNPSLA+NTsfrP7hWRhRTcjEURDYyMcxs45d3dzokWt23e5wZWsAcoc3VKrVEQUzE+nkCIwWJKPY0BMKdUA8i2w/4ik=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=KsakIyUP; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1739449029; c=relaxed/simple;
+	bh=vlhlBzSkIneMGWYQBwFyfnTl25nGWzLsKGHhhsEs/qs=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=E6jJV1M3iln5CXusHDIk+9L9WvHDN5ygQXtdHzwl0W3wVM+WYTLyxCGRuw1y2psA0eZcMN/LMQdSZvo6t4VYS5ValGruu9JRIOK9YPrcNuv7BIaaKQREU+KCuOVG4CkWXbZIoGJlzdp2h6djLJLHNaAM54Qhzg3r3A2TbBHhHEM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=gj50goYM; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=KGIXqOEX; arc=none smtp.client-ip=103.168.172.155
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="KsakIyUP"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DD2C2C4AF0B;
-	Thu, 13 Feb 2025 12:06:27 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1739448387;
-	bh=/wM8GJMjDr++3muLjDT+A1c8YGcYigrvRmRrvP2JhqM=;
-	h=From:To:Cc:Subject:Date:From;
-	b=KsakIyUP6InZZhoVKGUXXS+hqMFFVMUxosTtPp4R4ZmhZvyV0/tKDNcPIX0ai+fkR
-	 V3TyQlUUWJ6hL/fvH7DnXhmgaC49009azkIfXrPIcWVe6Tlq3n6XKphRmEXb31T2CW
-	 WChLAGQnxA4fOtxhBkJONZTZbJZkdGSI7pKJhlrEAOFp3kNg9ejGFMGxBK3Q+88Z+v
-	 qsDwzIzrPXDoWHGSRE8/hfiDQwfRDGngpCDjlbow9nCg8Lp9+unnXRsSeqqCg66Fbd
-	 XAz3+Mk2XT7f9gjFFZw1E67H17ooOLGcUn4/zZdGQYyIhSyJmodfHiAxM0LsHdlovK
-	 DnTnDKZ8W9RwA==
-Received: from mchehab by mail.kernel.org with local (Exim 4.98)
-	(envelope-from <mchehab+huawei@kernel.org>)
-	id 1tiXz7-0000000BIUz-1GYb;
-	Thu, 13 Feb 2025 13:06:25 +0100
-From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-To: Linux Doc Mailing List <linux-doc@vger.kernel.org>,
-	Jonathan Corbet <corbet@lwn.net>
-Cc: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
-	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
-	linux-kernel@vger.kernel.org,
-	"Gustavo A. R. Silva" <mchehab+huawei@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	linux-hardening@vger.kernel.org
-Subject: [PATCH RFCv2 0/5]Implement kernel-doc in Python
-Date: Thu, 13 Feb 2025 13:06:13 +0100
-Message-ID: <cover.1739447912.git.mchehab+huawei@kernel.org>
-X-Mailer: git-send-email 2.48.1
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="gj50goYM";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="KGIXqOEX"
+Received: from phl-compute-11.internal (phl-compute-11.phl.internal [10.202.2.51])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 4B8C811401A0;
+	Thu, 13 Feb 2025 07:17:05 -0500 (EST)
+Received: from phl-imap-11 ([10.202.2.101])
+  by phl-compute-11.internal (MEProxy); Thu, 13 Feb 2025 07:17:05 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1739449025;
+	 x=1739535425; bh=vlhlBzSkIneMGWYQBwFyfnTl25nGWzLsKGHhhsEs/qs=; b=
+	gj50goYMrgEWpERcjDoQkgN9f3pgpWRaH9UTa9EeXqLr+vNsHhkSI10rDN2pRbPs
+	0dMsVZxIK8KbQJ+T7z0GfbemKmz7GcdahAp3mx+r+hvixy8hF7f7FN4zuGEm0grg
+	+OIwutIYnvZv9OcE9iL+nhLx7OG2D2dV+ja54OB39VnqKVdjTR/Pl9L2ckVtpLYf
+	nTOuF3/3/bFKCEEYaN6BQIbqw6bhYP6BfvS50t7yqcgctyoWAG4ACjticINh6EMo
+	jyNIMqrJOUGp/xRm9Y81r2U55gJz7ysedkHH4N2Nmfocl6tineRAWXK30FfDarhb
+	QnVbj5L6tsNXrDuw38j+sQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1739449025; x=
+	1739535425; bh=vlhlBzSkIneMGWYQBwFyfnTl25nGWzLsKGHhhsEs/qs=; b=K
+	GIXqOEXDGqLOiIjohIg/UsrKcsUsFtJQspSxYVUbqFU2MmRVSknGiAGOdHheWGKY
+	OT68kTYQCcvgc1Hr+5SJm0XWij0WkkhrP9aALWDJRbpMpu57WwTp6Md0Os+bSZ5j
+	v4JCkkKw6HtLiEW7PR0PT8cfTKOV/bw9r3rakcK8c81GB/mO/vWNxso1AwNTIlVP
+	JoTeaL8Kx0XIW8t/zEDvWal1fNogVXF/1apPPdqNUX4KgrCrGwJj1SJAmdDwOT5S
+	+KZxke609KApqoVkYMmInLZvrCjdGUc3chIcZyGQr8gwMJ0BIzXc83ULenyZfDvg
+	edV28qdFhn7EjVVoUkxQA==
+X-ME-Sender: <xms:weKtZxZ2Jx0SogXKgrce2SjWTjH38dKFCmZc39GEp1sDVs3S0TbyhA>
+    <xme:weKtZ4YnIxba5f_D6pt-4Ddpe2s4Uw3nT0sCRfd8VgWa25I8OCEAy8cHqGhtfw3Z-
+    _-vVmtxmZuU-ScxE3g>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefvddrtddtgdegieejhecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
+    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
+    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthejredtredt
+    tdenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
+    druggvqeenucggtffrrghtthgvrhhnpefhtdfhvddtfeehudekteeggffghfejgeegteef
+    gffgvedugeduveelvdekhfdvieenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
+    epmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopeeh
+    pdhmohguvgepshhmthhpohhuthdprhgtphhtthhopehmtghhvghhrggsodhhuhgrfigvih
+    eskhgvrhhnvghlrdhorhhgpdhrtghpthhtoheptghorhgsvghtsehlfihnrdhnvghtpdhr
+    tghpthhtoheplhhinhhugidqrghrtghhsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtg
+    hpthhtoheplhhinhhugidqughotgesvhhgvghrrdhkvghrnhgvlhdrohhrghdprhgtphht
+    thhopehlihhnuhigqdhkvghrnhgvlhesvhhgvghrrdhkvghrnhgvlhdrohhrgh
+X-ME-Proxy: <xmx:weKtZz-QYp083JbvMAwwfYxmY3dIwwRyfVC1pJyvFu4paKpmoSO4jg>
+    <xmx:weKtZ_pwh3ESfCs4C12dD4F52BjHrnepmhkcN64rV-I_fx4sFyqDzw>
+    <xmx:weKtZ8p65zSwpqVmaWg9jlnDriUkxQ4bY-czD3PyRW4ZE5sYXgzvaA>
+    <xmx:weKtZ1Rg_13YwDOe9KgRY6eNSAXZxhNHKHsmkvGB94yG2QK4j3psMQ>
+    <xmx:weKtZ1k722L4lapCobovkiUcJ5fLaEUOUgSgs--Xdnd5DGEk9anU9dE->
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id EFD6F2220072; Thu, 13 Feb 2025 07:17:04 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Sender: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+Date: Thu, 13 Feb 2025 13:16:34 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Mauro Carvalho Chehab" <mchehab+huawei@kernel.org>,
+ "Linux Doc Mailing List" <linux-doc@vger.kernel.org>,
+ "Jonathan Corbet" <corbet@lwn.net>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org
+Message-Id: <607d3acb-0950-4ce3-b8b4-46fdeca3ce0d@app.fastmail.com>
+In-Reply-To: 
+ <6d69b25e9c720e0e7fc037928695ece7c8a35034.1739447912.git.mchehab+huawei@kernel.org>
+References: <cover.1739447912.git.mchehab+huawei@kernel.org>
+ <6d69b25e9c720e0e7fc037928695ece7c8a35034.1739447912.git.mchehab+huawei@kernel.org>
+Subject: Re: [PATCH RFCv2 1/5] include/asm-generic/io.h: fix kerneldoc markup
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-Hi Jon,
+On Thu, Feb 13, 2025, at 13:06, Mauro Carvalho Chehab wrote:
+> Kerneldoc requires a "-" after the name of a function for it
+> to be recognized as a function.
+>
+>
+> Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
-That's the second version of the Python kernel-doc tool.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-As the previous version, I tried to stay as close as possible of the original
-Perl implementation, as it helps to double check if each function was 
-properly translated to Python.  This have been helpful debugging troubles
-that happened during the conversion.
-
-On this version, the ReST output for the files included under Documentation
-is identical to the perl version, except for:
-
- - blank lines;
- - white spaces;
- - this version suppresses return (and description) sections on a few places
-   where this is left in blank.
-
-This version also replaces the old script by the new one for doc generation,
-to make easier to test its results.
-
-It should be noticed that  there are some sutile nuances on the way Perl 
-and Python handle  regular expressions. In particular, Perl compiled 
-expressions with qr{}  behaves as non-capturing groups, sometimes optional
-ones. I documented it on one place, but I had to use non-capturing groups
-on other parts of the logic to achieve the desired results.
-
-This version is on a minimal integration scenario: it just replaces the
-exec file to use the new one and gets rid of an obsolete parameter
-as on this version I didn't implement support for Sphinx < 3.1.
-
-On other words, it assumes that the patch requiring Sphinx >= 3.4
-will be merged.
-
-I also didn't remove on this series the old kernel-doc script, as this makes
-easier to test both variations, e. g. using:
-
-	make cleandocs && make KERNELDOC=scripts/kernel-doc htmldocs
-
-will make it use the original Perl version.
-
-Comments?
-
-Mauro Carvalho Chehab (5):
-  include/asm-generic/io.h: fix kerneldoc markup
-  scripts/kernel-doc: remove an obscure logic from kernel-doc
-  scripts/kernel-doc: don't add not needed new lines
-  scripts/kernel-doc.py: add a Python parser
-  docs: use kernel-doc.py script for kerneldoc output
-
- Documentation/Makefile            |    2 +-
- Documentation/conf.py             |    2 +-
- Documentation/sphinx/kerneldoc.py |    5 -
- include/asm-generic/io.h          |    6 +-
- scripts/kernel-doc                |   23 +-
- scripts/kernel-doc.py             | 2752 +++++++++++++++++++++++++++++
- 6 files changed, 2762 insertions(+), 28 deletions(-)
- create mode 100755 scripts/kernel-doc.py
-
--- 
-2.48.1
-
-
+I assume this will be merged through the documentation tree,
+let me know if you prefer me to add it to the asm-generic
+tree instead.
