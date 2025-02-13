@@ -1,201 +1,108 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 71A09126C05;
-	Wed, 12 Feb 2025 23:57:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5DEFB227EBD;
+	Thu, 13 Feb 2025 12:06:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1739404646; cv=none; b=jAVXgV6lcLsivtIzYFbFh1BB9HBxyZQi2uvgm3ai5NRVV+FKIEG/faE+ul+LrZ9c9kHCKjOplRjSj2QIwZpqpfagvQo8a0dneerW8LW239dBx5aslcJQqFiGAHvInZfPbKS2eoTpq1jgdEO9A/6k0WNyPR3bfe3k+DKLRkGiuM8=
+	t=1739448388; cv=none; b=rAsAOc6yw68C/47YgYSwuBCA8pcTzVilTsguq+R3jdRLlKi2IEAAal6h1ITcYZqXfH7Jemc9lm7vo/eqkZzIXsXUCiqJaJRUUI9q2ZTswzWN6qiygkHXNcj9B2G49+mjdDLUgpvXf2G/nqoCA4Dp89Vg29A2097ymSeZelJjbTM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1739404646; c=relaxed/simple;
-	bh=bceuig7AHvs+8cF63nsWXxEM673ylyOTryzj6s+vkL8=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=jCxHEYXXzIHFxYLB9/ZBRYxaxP3VkUxPN8RJTHrjZse8FBmKmW7KvMg8zC6oeaG9Q4yR3CAgwQyz5DppqTvb9Afg+JliVtKYOuliLwTU+I72bgla3wdLcJpLA098DxgcJk45il5OBPh43vEjCn4OWf6VJn7lvQVdqdapjpWyAgc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=SXLJJ4OF; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1739448388; c=relaxed/simple;
+	bh=heN5uzw9akfWGw1tZbJvgZxzr34v25wO2kkfWNOwXhI=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=TIaE/6LfkrUtv0HNO0QZa+dK9o8elWrgJwg0ou5U5YR07HZ3jDBCBxMN6mbtn0yQQQB/RgZHI/t7EYBRGl+6nPk+a1jJYr+jtCzWp0vvebeBaLMvuyFIIOYkir8cVnlORc2i/gp7DgFiXSw9rm95GvCllIce9jiRP70fp1VCA+I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=NAZcqoOc; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="SXLJJ4OF"
-Received: from [10.137.184.60] (unknown [131.107.160.188])
-	by linux.microsoft.com (Postfix) with ESMTPSA id A3E52203F3C9;
-	Wed, 12 Feb 2025 15:57:23 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com A3E52203F3C9
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1739404643;
-	bh=bF6ePzz3cN2y4GYtn1pyoRmQYzjv5ZNDww08RM/kA5w=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=SXLJJ4OFPJZkogD0StqTyUAgwfIJIPnY8/4TngSfN1c5mhPDJIm7aVYDdimj/oAnX
-	 Yd7w/OE1MVKPuIswlc5gyslqUL+d311wjoJ4MwCIU3B0b3BIqYgPZwXNs7GC9thVN3
-	 s91qYLYjt5mzVMS08XeoNubtxgKPcmd+OIFopIII=
-Message-ID: <bb863c8f-a92c-42d0-abc4-ff0b92f701c2@linux.microsoft.com>
-Date: Wed, 12 Feb 2025 15:57:23 -0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="NAZcqoOc"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D64DCC4CED1;
+	Thu, 13 Feb 2025 12:06:27 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1739448387;
+	bh=heN5uzw9akfWGw1tZbJvgZxzr34v25wO2kkfWNOwXhI=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=NAZcqoOc8qkNBk/QG3pFaUHHwH5J3tbsED7ru4bOKulXrw1JpJoaD0dCZ3kuw2g4w
+	 80FlRmvxafhzTCGgg1EsBDXcn3A84MEZQ9IVu+/ebbk3K+u50HPxFKI7A4VQnCBK0Z
+	 xEM9uJMd3d4LkvZwetBnQUgSHajHK5YD8Ywbn+o9Hi/iz+/TNcj287lWMowJl6zrmu
+	 iyYharUCVHxQ9hh4DN4sgb0lay5b7a28BUgrluK8XyYQAWTU7FJtpPC5o3W2c7vNm3
+	 aJqhwgJDE1ar0A9eq55bbNb1Y6kfv/lhVD8nXmr3lw/MEWcLLDLYMI5zh9JGCsXhdV
+	 n9VQ6aqKwR09A==
+Received: from mchehab by mail.kernel.org with local (Exim 4.98)
+	(envelope-from <mchehab+huawei@kernel.org>)
+	id 1tiXz7-0000000BIV3-1OV4;
+	Thu, 13 Feb 2025 13:06:25 +0100
+From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+To: Linux Doc Mailing List <linux-doc@vger.kernel.org>,
+	Jonathan Corbet <corbet@lwn.net>
+Cc: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
+	"Mauro Carvalho Chehab" <mchehab+huawei@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH RFCv2 1/5] include/asm-generic/io.h: fix kerneldoc markup
+Date: Thu, 13 Feb 2025 13:06:14 +0100
+Message-ID: <6d69b25e9c720e0e7fc037928695ece7c8a35034.1739447912.git.mchehab+huawei@kernel.org>
+X-Mailer: git-send-email 2.48.1
+In-Reply-To: <cover.1739447912.git.mchehab+huawei@kernel.org>
+References: <cover.1739447912.git.mchehab+huawei@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH hyperv-next v4 4/6] dt-bindings: microsoft,vmbus: Add GIC
- and DMA coherence to the example
-To: Krzysztof Kozlowski <krzk@kernel.org>
-Cc: arnd@arndb.de, bhelgaas@google.com, bp@alien8.de,
- catalin.marinas@arm.com, conor+dt@kernel.org, dave.hansen@linux.intel.com,
- decui@microsoft.com, haiyangz@microsoft.com, hpa@zytor.com,
- krzk+dt@kernel.org, kw@linux.com, kys@microsoft.com, lpieralisi@kernel.org,
- manivannan.sadhasivam@linaro.org, mingo@redhat.com, robh@kernel.org,
- ssengar@linux.microsoft.com, tglx@linutronix.de, wei.liu@kernel.org,
- will@kernel.org, devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, linux-hyperv@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, x86@kernel.org,
- benhill@microsoft.com, bperkins@microsoft.com, sunilmut@microsoft.com
-References: <20250212014321.1108840-1-romank@linux.microsoft.com>
- <20250212014321.1108840-5-romank@linux.microsoft.com>
- <20250212-rough-terrier-of-serendipity-68a0db@krzk-bin>
-Content-Language: en-US
-From: Roman Kisel <romank@linux.microsoft.com>
-In-Reply-To: <20250212-rough-terrier-of-serendipity-68a0db@krzk-bin>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+Sender: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
 
+Kerneldoc requires a "-" after the name of a function for it
+to be recognized as a function.
 
+Add it.
 
-On 2/11/2025 10:42 PM, Krzysztof Kozlowski wrote:
-> On Tue, Feb 11, 2025 at 05:43:19PM -0800, Roman Kisel wrote:
->> The existing example lacks the GIC interrupt controller property
->> making it not possible to boot on ARM64, and it lacks the DMA
-> 
-> GIC controller is not relevant to this binding.
-> 
+Fix those kernel-doc warnings:
 
-Will remove, thank you for pointing that out!
+include/asm-generic/io.h:1215: warning: This comment starts with '/**', but isn't a kernel-doc comment. Refer Documentation/doc-guide/kernel-doc.rst
+ * memset_io    Set a range of I/O memory to a constant value
+include/asm-generic/io.h:1227: warning: This comment starts with '/**', but isn't a kernel-doc comment. Refer Documentation/doc-guide/kernel-doc.rst
+ * memcpy_fromio        Copy a block of data from I/O memory
+include/asm-generic/io.h:1239: warning: This comment starts with '/**', but isn't a kernel-doc comment. Refer Documentation/doc-guide/kernel-doc.rst
+ * memcpy_toio          Copy a block of data into I/O memory
 
->> coherence property making the kernel do more work on maintaining
->> CPU caches on ARM64 although the VMBus trancations are cache-coherent.
->>
->> Add the GIC node, specify DMA coherence, and define interrupt-parent
->> and interrupts properties in the example to provide a complete reference
->> for platforms utilizing GIC-based interrupts, and add the DMA coherence
->> property to not do extra work on the architectures where DMA defaults to
->> non cache-coherent.
->>
->> Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
->> ---
->>   .../devicetree/bindings/bus/microsoft,vmbus.yaml      | 11 +++++++++++
->>   1 file changed, 11 insertions(+)
-> 
-> Last time I said: not tested by automation.
-> Now: I see automation build failures, although I do not see anything
-> incorrect in the code, so that's a bit surprising. Please confirm that
-> binding was tested on latest dtschema.
+Signed-off-by: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+---
+ include/asm-generic/io.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-They weren't for which I am sorry. Read through
-
-https://www.kernel.org/doc/html/v6.14-rc2/devicetree/bindings/writing-schema.html
-
-and was able to see and fix the break by bringing the YAML to [1].
-Getting now this
-
-/Documentation/devicetree/bindings/bus/microsoft,vmbus.example.dtb: 
-vmbus@ff0000000: 'dma-coherent', 'interrupts' do not match any of the 
-regexes: 'pinctrl-[0-9]+'
-         from schema $id: 
-http://devicetree.org/schemas/bus/microsoft,vmbus.yaml#
-
-so maybe I need to add some more to the "requires" section. Will follow
-other examples as you suggested.
-
-> 
->>
->> diff --git a/Documentation/devicetree/bindings/bus/microsoft,vmbus.yaml b/Documentation/devicetree/bindings/bus/microsoft,vmbus.yaml
->> index a8d40c766dcd..5ec69226ab85 100644
->> --- a/Documentation/devicetree/bindings/bus/microsoft,vmbus.yaml
->> +++ b/Documentation/devicetree/bindings/bus/microsoft,vmbus.yaml
->> @@ -44,11 +44,22 @@ examples:
->>               #size-cells = <1>;
->>               ranges;
->>   
->> +            gic: intc@fe200000 {
->> +              compatible = "arm,gic-v3";
->> +              reg = <0x0 0xfe200000 0x0 0x10000>,   /* GIC Dist */
->> +                    <0x0 0xfe280000 0x0 0x200000>;  /* GICR */
->> +              interrupt-controller;
->> +              #interrupt-cells = <3>;
->> +            }
-> 
-> I fail to see how this is relevant here. This is example only of vmbus.
-> Look how other bindings are done. Drop the example.
-
-The bus refers to the interrupt controller, and I didn't have it, so
-added it :) Now I in other examples that is not required, and the
-tooling generates fake intc's. Appreciate your advice very much!
-
-> 
-> 
->> +
->>               vmbus@ff0000000 {
->>                   compatible = "microsoft,vmbus";
->>                   #address-cells = <2>;
->>                   #size-cells = <1>;
->>                   ranges = <0x0f 0xf0000000 0x0f 0xf0000000 0x10000000>;
->> +                dma-coherent;
->> +                interrupt-parent = <&gic>;
->> +                interrupts = <1 2 1>;
-> 
-> Use proper defines for known constants.
-
-Will do as in [1], thank you!
-
-> 
-
-[1]
-
---- a/Documentation/devicetree/bindings/bus/microsoft,vmbus.yaml
-+++ b/Documentation/devicetree/bindings/bus/microsoft,vmbus.yaml
-@@ -28,6 +28,7 @@ properties:
-  required:
-    - compatible
-    - ranges
-+  - interrupts
-    - '#address-cells'
-    - '#size-cells'
-
-@@ -35,6 +36,8 @@ additionalProperties: false
-
-  examples:
-    - |
-+    #include <dt-bindings/interrupt-controller/irq.h>
-+    #include <dt-bindings/interrupt-controller/arm-gic.h>
-      soc {
-          #address-cells = <2>;
-          #size-cells = <1>;
-@@ -44,14 +47,6 @@ examples:
-              #size-cells = <1>;
-              ranges;
-
--            gic: intc@fe200000 {
--              compatible = "arm,gic-v3";
--              reg = <0x0 0xfe200000 0x0 0x10000>,   /* GIC Dist */
--                    <0x0 0xfe280000 0x0 0x200000>;  /* GICR */
--              interrupt-controller;
--              #interrupt-cells = <3>;
--            }
--
-              vmbus@ff0000000 {
-                  compatible = "microsoft,vmbus";
-                  #address-cells = <2>;
-@@ -59,7 +54,7 @@ examples:
-                  ranges = <0x0f 0xf0000000 0x0f 0xf0000000 0x10000000>;
-                  dma-coherent;
-                  interrupt-parent = <&gic>;
--                interrupts = <1 2 1>;
-+                interrupts = <GIC_PPI 2 IRQ_TYPE_EDGE_RISING>;
-              };
-          };
-      };
-
-> Best regards,
-> Krzysztof
-
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index a5cbbf3e26ec..3c61c29ff6ab 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -1212,7 +1212,7 @@ static inline void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+ 
+ #ifndef memset_io
+ /**
+- * memset_io	Set a range of I/O memory to a constant value
++ * memset_io -	Set a range of I/O memory to a constant value
+  * @addr:	The beginning of the I/O-memory range to set
+  * @val:	The value to set the memory to
+  * @count:	The number of bytes to set
+@@ -1224,7 +1224,7 @@ void memset_io(volatile void __iomem *addr, int val, size_t count);
+ 
+ #ifndef memcpy_fromio
+ /**
+- * memcpy_fromio	Copy a block of data from I/O memory
++ * memcpy_fromio -	Copy a block of data from I/O memory
+  * @dst:		The (RAM) destination for the copy
+  * @src:		The (I/O memory) source for the data
+  * @count:		The number of bytes to copy
+@@ -1236,7 +1236,7 @@ void memcpy_fromio(void *dst, const volatile void __iomem *src, size_t count);
+ 
+ #ifndef memcpy_toio
+ /**
+- * memcpy_toio		Copy a block of data into I/O memory
++ * memcpy_toio -	Copy a block of data into I/O memory
+  * @dst:		The (I/O memory) destination for the copy
+  * @src:		The (RAM) source for the data
+  * @count:		The number of bytes to copy
 -- 
-Thank you,
-Roman
+2.48.1
 
