@@ -1,148 +1,277 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.17])
+Received: from CY4PR05CU001.outbound.protection.outlook.com (mail-westcentralusazolkn19010007.outbound.protection.outlook.com [52.103.7.7])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6C565257438;
-	Wed, 19 Feb 2025 21:33:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.17
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740000820; cv=none; b=IHsdcOUQbu9HLejJL628TLc0ojQA0ALt6b5kDsSeVilE645PPwVw9Jr/ueWkgrhOqGv02pAIXfr6fENBHVhfjwJe3YggQXUXlqitOV86nvZ7ssCLf4miLh249Z6d4cOGaw5MAKsj62unXHuqX75RDgzJWQKbmTDq548u7+HgsWI=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1740000820; c=relaxed/simple;
-	bh=2SLbVXvUTul1P3Tb6G8KWZoREquyu8OU0BLz70QyvCY=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Moq+oNpgqHQAiZim7Xo9g35VjuQ/YkLCHIl49a3eHWX49u3aqR7Dg/cvWbPXDLZsd4pfaMB13FVGN9ian6QVhFynkiDn7MGcXf+gII+ACaCn1CPZKDnGZJn0b2P2tOrOgTyQoox/y5ial7DJVm5hRnB7JmA3FxQKFGhvWcrrurY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=hiivaTQr; arc=none smtp.client-ip=198.175.65.17
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02E6125D52A;
+	Wed, 19 Feb 2025 23:13:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.103.7.7
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1740006812; cv=fail; b=GlUibMAZwYQLbpV7eD6er8kFn/AqarqInzXbX+o1F7IVHUHNP4W1ztpGk/AMmLF9xcXVZKJbQe4sKaexQ5Uj4ECjNj1F85nlR6ErVZVr32+8cVzlkW6u18nJ3DiRk22/Yv7Sc6gof0alvNITNdCiJ9ypb+c/+6f765GUzv33uMU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1740006812; c=relaxed/simple;
+	bh=HUFyyxD1IWd+B7BSeW4TrbdoaJn6iKiV5NIz0qNXRc4=;
+	h=From:To:CC:Subject:Date:Message-ID:References:In-Reply-To:
+	 Content-Type:MIME-Version; b=NzX5TwaTr5TVK4xySaAEyc6QT3C/xsWijIglAqFvJ7kAgKVK2f4ThGOAAeLEWj47ur/sK0RHPB+Swv9+3eJyS/nDqnK5VTemVtybIre+M8TamTZzKMyH4bC7WsySsfScQl+Np/KDibMgXwM+//DMA9LdMLPRGx4O6uOe0VAkTxI=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com; spf=pass smtp.mailfrom=outlook.com; dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b=bEj06RRH; arc=fail smtp.client-ip=52.103.7.7
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=outlook.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=outlook.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="hiivaTQr"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1740000818; x=1771536818;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=2SLbVXvUTul1P3Tb6G8KWZoREquyu8OU0BLz70QyvCY=;
-  b=hiivaTQr+J/IpUhInUvd/77FLLaGsCI/zNZ18gtPrTigsultvxMIowk9
-   Di7HWirhCXp4z9iU3fUSpe0bY9AsZ3nnYpR/YhkKdgizYq2IlWWgK8Bih
-   VMZQOnI50V0//taYIOYlRWi2+V94AIoRB6pmUipqK8BfRqOrMbhB1kq/K
-   zTb3E+9sXcmhtPWA0dAHEAE1SWb7cT5828cLopciN3vLYbl/xoueIXSCT
-   6oL2jyrBMhtKwo+BtO2rKnR90EtaITCIvulPGyuO2/1tlQoWZ0hf+H6BF
-   wd7HG27M3qEDfLJXJr9DGPkca9iSGyvLEq5oaeGMBE5gR+3zp4Wz1KAFv
-   w==;
-X-CSE-ConnectionGUID: X76l41w7TxG0jeOHh5yRBw==
-X-CSE-MsgGUID: SgvV2W6eT2K404nGAt3LHA==
-X-IronPort-AV: E=McAfee;i="6700,10204,11350"; a="40775916"
-X-IronPort-AV: E=Sophos;i="6.13,299,1732608000"; 
-   d="scan'208";a="40775916"
-Received: from fmviesa010.fm.intel.com ([10.60.135.150])
-  by orvoesa109.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Feb 2025 13:33:37 -0800
-X-CSE-ConnectionGUID: XXneleheS8aI0f46QupHtw==
-X-CSE-MsgGUID: /zLq0WsCR86gtLTRzeJITg==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.13,299,1732608000"; 
-   d="scan'208";a="115370267"
-Received: from kinlongk-mobl1.amr.corp.intel.com (HELO [10.125.109.250]) ([10.125.109.250])
-  by fmviesa010-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 19 Feb 2025 12:53:45 -0800
-Message-ID: <940c4972-fad0-4d61-a7ce-1c5d52891a5e@intel.com>
-Date: Wed, 19 Feb 2025 12:53:41 -0800
+	dkim=pass (2048-bit key) header.d=outlook.com header.i=@outlook.com header.b="bEj06RRH"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=LMMfPEauNtIOvT11QP0FfJLq44dOv2m7b0uznSbcSovBH9IccuqzWaLpWsIxG28UvDHmFV+J1jxHh8l6Lu6YcrsTiMQ0qMEu9gjSSefFyop1TOezZCg0+Iz+XfF/4aTBmWnqAU4a0DyYs5MuPOfDfqri8RgQN2KDKNLMkUhXXM94XzhNhgrymxrA/N+zADDz4vtn+YaUJBtyYDT5QvOS3rTn7Xkl5Q9AIh1ykpc0KaI/bQvBJVZm7HKTqgKOQpue+kwNVtM9FwIsMsUxPtz+bnCdCFElnBbd04SNjmL6lQfviNArgHFNTnfcXhuGnojTJCBso+PnnbUkxPwp483/jQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=nwctZs3DT27tQZmgHdO5PT0gQumApz19iC+i5uhmAO8=;
+ b=Qs/e8YBhP5DR9tw+YIB9smJSnEbNYfHDc6k8W4HjH3565Cxb/HDy/MM+suMzKO+qCHsEgp+/Fa/RXrhD1aAl4fd+Yb4TPeQWEtFEjMc2MtCbFl43H5WZoLPB6Yk7gecHYcGv8TS8PqzdsY5BMxlAaRpz1PnMaTwNlnJwxOgstX1UEFvxkHxCE8YncgX0OO2RloYrZb5iTulTM5K55ybOpsqSf8KE3LrdOSBLdLjZYC3p6hoEZOmlTnRatg+X9MOApEwz/ykYSneYJtv2uXpAo6vIy78vlnObC49LoG7vnUcyJdKo/26OViF9KpM9bWBfjYFWTUxtQSm3nCZHRNn2IQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=none; dmarc=none;
+ dkim=none; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=outlook.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=nwctZs3DT27tQZmgHdO5PT0gQumApz19iC+i5uhmAO8=;
+ b=bEj06RRHU2TKsORMgl7exL4+RdZPgh5nb19xOWPDqrj92Su2fPkstFG3SmE/XtQwKTxpkwQJyN8iVUGbLI9a5MVXQlBgiG4lR/YDCR/T+ysX8ksKT+vLQIekiKwNwRtNIVc0+dqaMdnO0pYpQq7LPA1w6lMTHWPJn2PqCjbY7DCAiXtykQ3+b2FddZdRDLCWX81Tvsd9nCwy2ni18+oGfybqKw622whjsY4vtcHYfwpIjT9uyHcnmnEfXr98Iw1ei/V6JeXI3fNbg2cx2bE9Koh3LDCvQD2iBMqBNKvgM/iYPvFK5OXlipVWdSsVyXn1nhxYJ1rUqwHNYFH+dwiksA==
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com (2603:10b6:805:33::23)
+ by DM4PR02MB9192.namprd02.prod.outlook.com (2603:10b6:8:108::12) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.8445.18; Wed, 19 Feb
+ 2025 23:13:28 +0000
+Received: from SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::cedd:1e64:8f61:b9df]) by SN6PR02MB4157.namprd02.prod.outlook.com
+ ([fe80::cedd:1e64:8f61:b9df%4]) with mapi id 15.20.8466.013; Wed, 19 Feb 2025
+ 23:13:28 +0000
+From: Michael Kelley <mhklinux@outlook.com>
+To: Roman Kisel <romank@linux.microsoft.com>, "arnd@arndb.de" <arnd@arndb.de>,
+	"bhelgaas@google.com" <bhelgaas@google.com>, "bp@alien8.de" <bp@alien8.de>,
+	"catalin.marinas@arm.com" <catalin.marinas@arm.com>, "conor+dt@kernel.org"
+	<conor+dt@kernel.org>, "dave.hansen@linux.intel.com"
+	<dave.hansen@linux.intel.com>, "decui@microsoft.com" <decui@microsoft.com>,
+	"haiyangz@microsoft.com" <haiyangz@microsoft.com>, "hpa@zytor.com"
+	<hpa@zytor.com>, "krzk+dt@kernel.org" <krzk+dt@kernel.org>, "kw@linux.com"
+	<kw@linux.com>, "kys@microsoft.com" <kys@microsoft.com>,
+	"lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+	"manivannan.sadhasivam@linaro.org" <manivannan.sadhasivam@linaro.org>,
+	"mingo@redhat.com" <mingo@redhat.com>, "robh@kernel.org" <robh@kernel.org>,
+	"ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>,
+	"tglx@linutronix.de" <tglx@linutronix.de>, "wei.liu@kernel.org"
+	<wei.liu@kernel.org>, "will@kernel.org" <will@kernel.org>,
+	"devicetree@vger.kernel.org" <devicetree@vger.kernel.org>,
+	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+	"linux-arm-kernel@lists.infradead.org"
+	<linux-arm-kernel@lists.infradead.org>, "linux-hyperv@vger.kernel.org"
+	<linux-hyperv@vger.kernel.org>, "linux-kernel@vger.kernel.org"
+	<linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org"
+	<linux-pci@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>
+CC: "benhill@microsoft.com" <benhill@microsoft.com>, "bperkins@microsoft.com"
+	<bperkins@microsoft.com>, "sunilmut@microsoft.com" <sunilmut@microsoft.com>
+Subject: RE: [PATCH hyperv-next v4 1/6] arm64: hyperv: Use SMCCC to detect
+ hypervisor presence
+Thread-Topic: [PATCH hyperv-next v4 1/6] arm64: hyperv: Use SMCCC to detect
+ hypervisor presence
+Thread-Index: AQHbfO+k/PLWqmtG+UieQZ3kZhsVyrNPIuQA
+Date: Wed, 19 Feb 2025 23:13:28 +0000
+Message-ID:
+ <SN6PR02MB4157DB2F52501309D52D0870D4C52@SN6PR02MB4157.namprd02.prod.outlook.com>
+References: <20250212014321.1108840-1-romank@linux.microsoft.com>
+ <20250212014321.1108840-2-romank@linux.microsoft.com>
+In-Reply-To: <20250212014321.1108840-2-romank@linux.microsoft.com>
+Accept-Language: en-US
+Content-Language: en-US
+X-MS-Has-Attach:
+X-MS-TNEF-Correlator:
+x-ms-publictraffictype: Email
+x-ms-traffictypediagnostic: SN6PR02MB4157:EE_|DM4PR02MB9192:EE_
+x-ms-office365-filtering-correlation-id: 5b2c91f0-686f-4b99-02bb-08dd513b04ee
+x-microsoft-antispam:
+ BCL:0;ARA:14566002|8062599003|19110799003|461199028|8060799006|12121999004|15080799006|3412199025|440099028|41001999003|102099032;
+x-microsoft-antispam-message-info:
+ =?us-ascii?Q?X111zJCaJB8EktlEfT7lHiYPjoC/G4hAvx49DqZbi5Srlq/XmtPe+M69C2k+?=
+ =?us-ascii?Q?3NliNcY8Bfj5ayBix7hOVQGzRy8Be7qKXNETAo1YPa9MEEKB5SyQJ7+QJkEs?=
+ =?us-ascii?Q?813lCh8eMjuPGr8fQtUdku3+bzYRKDPeEX79XZGA3PCEpS5LFlYBdPXYfX7e?=
+ =?us-ascii?Q?qKpJKM05XUsycGvMBQYolPeOsNt70/DSW4nKIBB8Exm0/vJ/lXKsRAT+QfwG?=
+ =?us-ascii?Q?xeRArcr3xT8BCFxeD3AE+dMDM6gq6ZUkRtOOo7l5ViSi1RPqAu5h+MBtleu9?=
+ =?us-ascii?Q?UISnZvWJdNtmZTf2aWH1N3yYLXtMXijJo3rr55vtT7vY+rz/OIIejQBhWdms?=
+ =?us-ascii?Q?YKtHovgSXzQLq/ycp891S70sajvM5s1/QYxbvJ7KTINZmLFwh/PDhukYlzxw?=
+ =?us-ascii?Q?MJzjydgEl7Ke5rLOxjoRuWNSekSjf7aUSR7nO/fp2AvfIq+jixkbIAJ2OThI?=
+ =?us-ascii?Q?a4UQTdwoLSqLb7/BkarsQj1/w44GrzeR6NUrDU8zPzy6z6mGQU9K2g175LTA?=
+ =?us-ascii?Q?I+482j43rWO4/V2QXdj9sxCTwsj66LfWIcbIZVswnVSc4F2pz/4CZ99Z+bbp?=
+ =?us-ascii?Q?3Vu+WgysLNUg8BqilmcMO9gU+0OwZgPzn8NxvKB/w/xA1lXPBCip7YXzrLWs?=
+ =?us-ascii?Q?nR61A2vgKl8cDvzdXxR8mXuN5lj1Z1FmTl3QzBS7nAQCov3tFLjcTfNUH3q+?=
+ =?us-ascii?Q?rNTRy2Hw2o0sDApXt8z59m2ShiIW9mPxFFbbLBzVsIphejUQQfp0d/x4tq2z?=
+ =?us-ascii?Q?UFmYQE/0BqoETQI55dTLswopvXi1DQoOs6dPgZPnS382y9cvqdMlPVdgtBJ4?=
+ =?us-ascii?Q?svkMDnHYIP1byMzQb2XT52b7smCwRKqh5n9ZxJpvkH/CoxbgTDh/g5yjUwfI?=
+ =?us-ascii?Q?IOJi3YX5TDbCwLiaFwn0s4cj2b1qj4b9qqRdnvjLKNF34iaO18wG6gth+DEI?=
+ =?us-ascii?Q?fNOfElQ8itDmrXxjrUFqN368SClsSnpsGTFjxfAXMrWcnexl7xsmMZb8vvka?=
+ =?us-ascii?Q?Sj3yoVwu8hUGt22O1cTMEqiqqYoIuwhIRrmeuw6v7MIOYJr4NMFMbZO5Gc0Z?=
+ =?us-ascii?Q?ze/KboIQL/G10qH+Sekpa5U9N2cKExN06mRVMCSS49qufXFIsfU=3D?=
+x-ms-exchange-antispam-messagedata-chunkcount: 1
+x-ms-exchange-antispam-messagedata-0:
+ =?us-ascii?Q?4pT30ozoDsjhb+NZvEztcEZKb/HxYMoCNzmW6c/HnXHh7OTpL6NacRcIA71e?=
+ =?us-ascii?Q?x0dm8NWZ2auNrt77J+rYP7MpGGtE3YubcfimcWCyfdeNVL7neu72R9ypUuCj?=
+ =?us-ascii?Q?aaDgEZ6P3Z3UsGcNg25CLmChdtRqCzVwRtLs5aUyEJQiDut1K9W4NQNJCeso?=
+ =?us-ascii?Q?/OL0S0oAGy0O+MWm6CMzrGd5Yd1eAPliSG1pkie8Mux9X6YM6Ie1U0bXglB5?=
+ =?us-ascii?Q?mI28NgThoaCzQtTJuiHSG4Cacl3cAntI6Lil6tzUavHg8etZw1FtvNnOpPNp?=
+ =?us-ascii?Q?16/fTR0r/mXKhU8p8tp8b5v5adMzhIGXQ64KCiRMz4G3dzMCDHbvCGoTCDdY?=
+ =?us-ascii?Q?ny+27vP3wBwra/gCn5b50R+heMTm4mRfo8oJFJBfvpbMSH0twiyW6EZuYfxm?=
+ =?us-ascii?Q?sX8wLEZG2cvvb3lQvl791WqD5mnDa416She8nRuUnxCMejfWsaTRql/P13/p?=
+ =?us-ascii?Q?m62Ov2ReIiHFLcoHSpoX57SwEbzNHVdp3p0D9O32LXG7URH4BVCCZ8s8Khzj?=
+ =?us-ascii?Q?c2Sjpi+XAzTUOvMA9Pokro4Ttl8hE3pENGOiST1MLqKxOZeYNLaC9ii/Jygs?=
+ =?us-ascii?Q?v/FT8envmP2A0lWGkKz1cvZCZvwd6s9GnB64ZC8mqtu8iEhLx2sIhmDkjKYn?=
+ =?us-ascii?Q?bwvbrvPG+I30kbOLG95fFug8A6ocuNDYDRJmh9z1or2LPYICDeysCfrH24vu?=
+ =?us-ascii?Q?VG3W3Q4zx8DoMQGjyyo3NcXC29kASWmreh2xdxH9HisG+LrCiQvv6xWD9sAK?=
+ =?us-ascii?Q?Crd8cHKM8HcbVY41Yq4EugwUNejMN3yp1QTo7t0dP5SKOLJTxOdHfIWOaTns?=
+ =?us-ascii?Q?CwMleZlYsE/wEyy8DmRXIoYLdejUZByTUyceOp4Y6IdHugB3ZJ0vn7lmdMLB?=
+ =?us-ascii?Q?fdRFwSj4rg+XZwfmOA5vZ8MheNy7gtvk2djS3z9Z7yTZ1mKWPExyPAXS06cV?=
+ =?us-ascii?Q?AmWM+FGHz/DBLhJ3TlfT7WwCbpqqmBl4YzruXpmo2P7fhi7bQ0TthDpaKtqp?=
+ =?us-ascii?Q?VePgBfo/5uaIizBCgC1Y7TsURM458/+Cs9B5MYUBfaNxXC7YoRoePrCCVQ3c?=
+ =?us-ascii?Q?p4/aMe48yAV66rNcsLnByrO7UnzucaRa8sInMe1OlNOgPX1920z1Wc98VRIs?=
+ =?us-ascii?Q?vDJoYphAQX88wGYeyqYtWn6pPQ01FvHkUZgNToZc9LNTxj8b4c0HZ61TdU/Y?=
+ =?us-ascii?Q?/RUlEIWl7S2dLIyV4d6jqiilVZA+NxuAhdSEUv4rP+eJ4WAc2iTyR9b5cno?=
+ =?us-ascii?Q?=3D?=
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 4/7] x86: Remove custom definition of mk_pte()
-To: "Matthew Wilcox (Oracle)" <willy@infradead.org>, linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-s390@vger.kernel.org,
- sparclinux@vger.kernel.org, linux-um@lists.infradead.org
-References: <20250217190836.435039-1-willy@infradead.org>
- <20250217190836.435039-5-willy@infradead.org>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <20250217190836.435039-5-willy@infradead.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-OriginatorOrg: outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-AuthSource: SN6PR02MB4157.namprd02.prod.outlook.com
+X-MS-Exchange-CrossTenant-RMS-PersistedConsumerOrg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-CrossTenant-Network-Message-Id: 5b2c91f0-686f-4b99-02bb-08dd513b04ee
+X-MS-Exchange-CrossTenant-originalarrivaltime: 19 Feb 2025 23:13:28.3839
+ (UTC)
+X-MS-Exchange-CrossTenant-fromentityheader: Hosted
+X-MS-Exchange-CrossTenant-id: 84df9e7f-e9f6-40af-b435-aaaaaaaaaaaa
+X-MS-Exchange-CrossTenant-rms-persistedconsumerorg: 00000000-0000-0000-0000-000000000000
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM4PR02MB9192
 
-On 2/17/25 11:08, Matthew Wilcox (Oracle) wrote:
-> diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-> index 593f10aabd45..9f480bdafd20 100644
-> --- a/arch/x86/include/asm/pgtable.h
-> +++ b/arch/x86/include/asm/pgtable.h
-> @@ -784,6 +784,9 @@ static inline pgprotval_t check_pgprot(pgprot_t pgprot)
->  static inline pte_t pfn_pte(unsigned long page_nr, pgprot_t pgprot)
+From: Roman Kisel <romank@linux.microsoft.com> Sent: Tuesday, February 11, =
+2025 5:43 PM
+>=20
+> The arm64 Hyper-V startup path relies on ACPI to detect
+> running under a Hyper-V compatible hypervisor. That
+> doesn't work on non-ACPI systems.
+>=20
+> Hoist the ACPI detection logic into a separate function. Then
+> use the vendor-specific hypervisor service call (implemented
+> recently in Hyper-V) via SMCCC in the non-ACPI case.
+>=20
+> Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
+> ---
+>  arch/arm64/hyperv/mshyperv.c      | 43 +++++++++++++++++++++++++++----
+>  arch/arm64/include/asm/mshyperv.h |  5 ++++
+>  2 files changed, 43 insertions(+), 5 deletions(-)
+>=20
+> diff --git a/arch/arm64/hyperv/mshyperv.c b/arch/arm64/hyperv/mshyperv.c
+> index fc49949b7df6..fe6185bf3bf2 100644
+> --- a/arch/arm64/hyperv/mshyperv.c
+> +++ b/arch/arm64/hyperv/mshyperv.c
+> @@ -27,6 +27,36 @@ int hv_get_hypervisor_version(union
+> hv_hypervisor_version_info *info)
+>  	return 0;
+>  }
+>=20
+> +static bool hyperv_detect_via_acpi(void)
+> +{
+> +	if (acpi_disabled)
+> +		return false;
+> +#if IS_ENABLED(CONFIG_ACPI)
+> +	/* Hypervisor ID is only available in ACPI v6+. */
+
+The comment is correct, but to me doesn't tell the full story.
+I initially wondered why the revision test < 6 was being done,
+since Hyper-V for ARM64 always provides ACPI 6.x or greater.
+But the test is needed to catch running in some unknown
+non-Hyper-V environment that has ACPI 5.x or less. In such a
+case, it can't be Hyper-V, so just return false instead of testing
+a bogus hypervisor_id field. Maybe a comment would help
+explain it to someone like me who was confused. :-)
+
+> +	if (acpi_gbl_FADT.header.revision < 6)
+> +		return false;
+> +	return strncmp((char *)&acpi_gbl_FADT.hypervisor_id, "MsHyperV", 8) =3D=
+=3D 0;
+> +#else
+> +	return false;
+> +#endif
+> +}
+> +
+> +static bool hyperv_detect_via_smccc(void)
+> +{
+> +	struct arm_smccc_res res =3D {};
+> +
+> +	if (arm_smccc_1_1_get_conduit() !=3D SMCCC_CONDUIT_HVC)
+> +		return false;
+> +	arm_smccc_1_1_hvc(ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID, &res);
+> +	if (res.a0 =3D=3D SMCCC_RET_NOT_SUPPORTED)
+> +		return false;
+> +
+> +	return res.a0 =3D=3D ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_0 &&
+> +		res.a1 =3D=3D ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_1 &&
+> +		res.a2 =3D=3D ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_2 &&
+> +		res.a3 =3D=3D ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_3;
+> +}
+> +
+>  static int __init hyperv_init(void)
 >  {
->  	phys_addr_t pfn = (phys_addr_t)page_nr << PAGE_SHIFT;
-> +	/* This bit combination is used to mark shadow stacks */
-> +	WARN_ON_ONCE((pgprot_val(pgprot) & (_PAGE_DIRTY | _PAGE_RW)) ==
-> +			_PAGE_DIRTY);
+>  	struct hv_get_vp_registers_output	result;
+> @@ -35,13 +65,11 @@ static int __init hyperv_init(void)
+>=20
+>  	/*
+>  	 * Allow for a kernel built with CONFIG_HYPERV to be running in
+> -	 * a non-Hyper-V environment, including on DT instead of ACPI.
+> +	 * a non-Hyper-V environment.
+> +	 *
+>  	 * In such cases, do nothing and return success.
+>  	 */
+> -	if (acpi_disabled)
+> -		return 0;
+> -
+> -	if (strncmp((char *)&acpi_gbl_FADT.hypervisor_id, "MsHyperV", 8))
+> +	if (!hyperv_detect_via_acpi() && !hyperv_detect_via_smccc())
+>  		return 0;
+>=20
+>  	/* Setup the guest ID */
+> @@ -72,6 +100,11 @@ static int __init hyperv_init(void)
+>  		return ret;
+>  	}
+>=20
+> +	ms_hyperv.vtl =3D get_vtl();
 
-Looks sane to me. Good riddance to unnecessary arch-specific code.
+The above statement looks like it will fail to compile on
+arm64 since the get_vtl() function is entirely on the x86
+side until Patch 3 of this series. As of this Patch 1, there's
+no declaration of get_vtl() available to arm64.
 
-Acked-by: Dave Hansen <dave.hansen@linux.intel.com>
+> +	/* Report if non-default VTL */
+> +	if (ms_hyperv.vtl > 0)
+> +		pr_info("Linux runs in Hyper-V Virtual Trust Level\n");
 
-Just one note (in case anyone ever trips over that WARN_ON_ONCE()): This
-is a problem with the existing code and with your patch, but the
-'pgprot' going to mk_pte() or pfn_pte() probably can't come from a
-hardware PTE that has the dirty bit clear.
+Could this message include the VTL number as well? In the long
+run, I think there will be code at non-zero VTLs other than VTL 2.
 
-Old, pre-shadow-stack hardware could race between:
+> +
+>  	ms_hyperv_late_init();
+>=20
+>  	hyperv_initialized =3D true;
+> diff --git a/arch/arm64/include/asm/mshyperv.h
+> b/arch/arm64/include/asm/mshyperv.h
+> index 2e2f83bafcfb..a6d7eb9e167b 100644
+> --- a/arch/arm64/include/asm/mshyperv.h
+> +++ b/arch/arm64/include/asm/mshyperv.h
+> @@ -50,4 +50,9 @@ static inline u64 hv_get_msr(unsigned int reg)
+>=20
+>  #include <asm-generic/mshyperv.h>
+>=20
+> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_0	0x4d32ba58U
+> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_1	0xcd244764U
+> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_2	0x8eef6c75U
+> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_3	0x16597024U
+> +
+>  #endif
+> --
+> 2.43.0
+>=20
 
-	1. Software transitioning _PAGE_RW 1=>0
-	2. The CPU page walker trying to set
-	   _PAGE_DIRTY in response to a write
-
-and end up with a Write=0,Dirty=1 PTE.
-
-That doesn't happen for kernel memory because most or all of the PTEs
-that the kernel establishes have _PAGE_DIRTY=1 so the page walker never
-tries to set _PAGE_DIRTY. It's also generally some kind of a bug if one
-CPU is in the kernel trying to write to a page while another is making
-the page read-only.
-
-Anyway, I can basically see cases where this warning might trip, but
-it's very likely on older hardware when the kernel is doing something
-else silly.
