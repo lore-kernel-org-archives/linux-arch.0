@@ -1,235 +1,155 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1853211292;
-	Thu, 20 Feb 2025 16:14:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id D279320C034;
+	Thu, 20 Feb 2025 16:35:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740068046; cv=none; b=rd0irdzcPMmqJmXu0bPEWik3ewelOBARXI3j34mn/Ow0sS5CHA+5cyESh1BMH7g7svzqdSUHdfRMSAzeBEmB/DzL16bQQT1ukxY8qoNh3JKVxDspgnzpiBdVrG4XdVwcnXaudLEv+I1Cac+DdtapEqR912mhlSR7ECLYGZLsDIw=
+	t=1740069302; cv=none; b=nXctkDc+BVjyCcYji0tC+C3YT0inVUVdGh+xZOmsw939rpiYRKubSq5NFr+CDBwxXGaPJ1tVl0NU2NouSjcZAhADQWtPhdzFwsU3V4YiaR1YVIb+t+Q8OFyJqCKrXn86q8HlMxw38vhV7yl1JTKOaAs3e23K2C/uaGOUnuIb4tE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1740068046; c=relaxed/simple;
-	bh=TsvXbj8pt31jepIWyXRjFgkBXvYwvZCcef75PEq5V2U=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=hG9ZKzBAunYhW7AtJW/D5dHntEZ5TanB4XBpKpOmOTcunY3j2UDzH+PsjQ58ed+XjbF4kqAJVohynicaQJ7/81vQGDyVpLFUrBGkfrVXOXZBAMFu65L3hAe92L9zPAv4z0iSCBGuBtU2UNkC/Ls9WnWeUn61OrA9UAtPaqAMYl8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WlBavuS7; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1740069302; c=relaxed/simple;
+	bh=nKjCl1G2XWM1G1+RZhmlvTS4AT+mLpwU0ZzysKzfjOk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=IvKy8sEyoBPGwDPY1s+Fia9eAZ7zymtzAf/x0jhMySwdW9HVtNQofOab8J6mKtkAKSo+Yw3hK/0XJxP2PVpXgPL33M/n0WM28DazmgqgPxhRxnQfNWF8tBjFCCIWQ6lmwd23Sb0LUVQsPlbU3uIzqvsuVnLnEVPb1NpS6ZDAj2E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=FabHF0Pv; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WlBavuS7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5A7F8C4CEF4;
-	Thu, 20 Feb 2025 16:14:05 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1740068045;
-	bh=TsvXbj8pt31jepIWyXRjFgkBXvYwvZCcef75PEq5V2U=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=WlBavuS7Pm6ZbqBJFTktu4nmnnkmz+raAO0fuJW4NlW1+olnLq444kyKFyiOpLeVn
-	 ask3aK6su4JZlVdgpDNGZg3DZBa0XuzGwB+v+xuSr1B57Ji5KwDQCWkvv/uDR9xEf4
-	 tcRt1Lb1iX3fk6wRlW6Nb1n2rRRr115ZRoKeEyMxH3Yzd19oQUooY23cENPWJV7Qkl
-	 xhkionvIAl2QO6NY/aZo3b116xEuG1Fi6uOwIqRbBGdYunZ3VmMwRaJ+ysNflJPKMQ
-	 h6kC08r0C2rjoSR3uD7VtTLNT9PO9HTHLdc8LpReVfI8akMSDowrmKlmjR6V+jpbng
-	 hFsFGzWuMpd+A==
-Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id ACFEFCE0D8A; Thu, 20 Feb 2025 08:14:04 -0800 (PST)
-From: "Paul E. McKenney" <paulmck@kernel.org>
-To: linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	lkmm@lists.linux.dev,
-	kernel-team@meta.com,
-	mingo@kernel.org
-Cc: stern@rowland.harvard.edu,
-	parri.andrea@gmail.com,
-	will@kernel.org,
-	peterz@infradead.org,
-	boqun.feng@gmail.com,
-	npiggin@gmail.com,
-	dhowells@redhat.com,
-	j.alglave@ucl.ac.uk,
-	luc.maranget@inria.fr,
-	akiyks@gmail.com,
-	Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>,
-	Hernan Ponce de Leon <hernan.poncedeleon@huaweicloud.com>,
-	"Paul E . McKenney" <paulmck@kernel.org>
-Subject: [PATCH memory-model 6/7] tools/memory-model: Switch to softcoded herd7 tags
-Date: Thu, 20 Feb 2025 08:14:02 -0800
-Message-Id: <20250220161403.800831-6-paulmck@kernel.org>
-X-Mailer: git-send-email 2.40.1
-In-Reply-To: <8cfb51e3-9726-4285-b8ca-0d0abcacb07e@paulmck-laptop>
-References: <8cfb51e3-9726-4285-b8ca-0d0abcacb07e@paulmck-laptop>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="FabHF0Pv"
+Received: from [10.137.184.60] (unknown [131.107.160.188])
+	by linux.microsoft.com (Postfix) with ESMTPSA id F1D8920376F8;
+	Thu, 20 Feb 2025 08:34:59 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com F1D8920376F8
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1740069300;
+	bh=ll4MapV9YYQHwTCOG3xJfA+Sudr/vOAtL9iS2dtf3J0=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=FabHF0Pv9CtkRuEY+LxCxEqw+PX7OOBIDPKEL29N2aeyIMDHzhOQg1gf0RQO2lmoI
+	 CRtE1nDhCVV6idmCw6GqON120UCb0TBOM/r9zx91h9wa8UVVHQqcoz2IlXj6lCCtm7
+	 rQnELxtu7vmnEMRCugYJDyI4Tay8IR8t3zOiFDTo=
+Message-ID: <fa2d9e8d-7897-44eb-87e2-3a9118deb18a@linux.microsoft.com>
+Date: Thu, 20 Feb 2025 08:34:59 -0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH hyperv-next v4 1/6] arm64: hyperv: Use SMCCC to detect
+ hypervisor presence
+To: Michael Kelley <mhklinux@outlook.com>, "arnd@arndb.de" <arnd@arndb.de>,
+ "bhelgaas@google.com" <bhelgaas@google.com>, "bp@alien8.de" <bp@alien8.de>,
+ "catalin.marinas@arm.com" <catalin.marinas@arm.com>,
+ "conor+dt@kernel.org" <conor+dt@kernel.org>,
+ "dave.hansen@linux.intel.com" <dave.hansen@linux.intel.com>,
+ "decui@microsoft.com" <decui@microsoft.com>,
+ "haiyangz@microsoft.com" <haiyangz@microsoft.com>,
+ "hpa@zytor.com" <hpa@zytor.com>, "krzk+dt@kernel.org" <krzk+dt@kernel.org>,
+ "kw@linux.com" <kw@linux.com>, "kys@microsoft.com" <kys@microsoft.com>,
+ "lpieralisi@kernel.org" <lpieralisi@kernel.org>,
+ "manivannan.sadhasivam@linaro.org" <manivannan.sadhasivam@linaro.org>,
+ "mingo@redhat.com" <mingo@redhat.com>, "robh@kernel.org" <robh@kernel.org>,
+ "ssengar@linux.microsoft.com" <ssengar@linux.microsoft.com>,
+ "tglx@linutronix.de" <tglx@linutronix.de>,
+ "wei.liu@kernel.org" <wei.liu@kernel.org>, "will@kernel.org"
+ <will@kernel.org>, "devicetree@vger.kernel.org"
+ <devicetree@vger.kernel.org>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+ "linux-arm-kernel@lists.infradead.org"
+ <linux-arm-kernel@lists.infradead.org>,
+ "linux-hyperv@vger.kernel.org" <linux-hyperv@vger.kernel.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>,
+ "x86@kernel.org" <x86@kernel.org>
+Cc: "benhill@microsoft.com" <benhill@microsoft.com>,
+ "bperkins@microsoft.com" <bperkins@microsoft.com>,
+ "sunilmut@microsoft.com" <sunilmut@microsoft.com>
+References: <20250212014321.1108840-1-romank@linux.microsoft.com>
+ <20250212014321.1108840-2-romank@linux.microsoft.com>
+ <SN6PR02MB4157DB2F52501309D52D0870D4C52@SN6PR02MB4157.namprd02.prod.outlook.com>
+Content-Language: en-US
+From: Roman Kisel <romank@linux.microsoft.com>
+In-Reply-To: <SN6PR02MB4157DB2F52501309D52D0870D4C52@SN6PR02MB4157.namprd02.prod.outlook.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-From: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
 
-A new version of herd7 provides a -lkmmv2 switch which overrides the old herd7
-behavior of simply ignoring any softcoded tags in the .def and .bell files. We
-port LKMM to this version of herd7 by providing the switch in linux-kernel.cfg
-and reporting an error if the LKMM is used without this switch.
 
-To preserve the semantics of LKMM, we also softcode the Noreturn tag on atomic
-RMW which do not return a value and define atomic_add_unless with an Mb tag in
-linux-kernel.def.
+On 2/19/2025 3:13 PM, Michael Kelley wrote:
+> From: Roman Kisel <romank@linux.microsoft.com> Sent: Tuesday, February 11, 2025 5:43 PM
+>>
 
-We update the herd-representation.txt accordingly and clarify some of the
-resulting combinations.
+[...]
 
-Signed-off-by: Hernan Ponce de Leon <hernan.poncedeleon@huaweicloud.com>
-Signed-off-by: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
-Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
-Tested-by: Boqun Feng <boqun.feng@gmail.com>
----
- .../Documentation/herd-representation.txt     | 27 ++++++++++---------
- tools/memory-model/README                     |  2 +-
- tools/memory-model/linux-kernel.bell          |  3 +++
- tools/memory-model/linux-kernel.cfg           |  1 +
- tools/memory-model/linux-kernel.def           | 18 +++++++------
- 5 files changed, 30 insertions(+), 21 deletions(-)
+>>   }
+>>
+>> +static bool hyperv_detect_via_acpi(void)
+>> +{
+>> +	if (acpi_disabled)
+>> +		return false;
+>> +#if IS_ENABLED(CONFIG_ACPI)
+>> +	/* Hypervisor ID is only available in ACPI v6+. */
+> 
+> The comment is correct, but to me doesn't tell the full story.
+> I initially wondered why the revision test < 6 was being done,
+> since Hyper-V for ARM64 always provides ACPI 6.x or greater.
+> But the test is needed to catch running in some unknown
+> non-Hyper-V environment that has ACPI 5.x or less. In such a
+> case, it can't be Hyper-V, so just return false instead of testing
+> a bogus hypervisor_id field. Maybe a comment would help
+> explain it to someone like me who was confused. :-)
+> 
 
-diff --git a/tools/memory-model/Documentation/herd-representation.txt b/tools/memory-model/Documentation/herd-representation.txt
-index ed988906f2b71..7ae1ff3d3769e 100644
---- a/tools/memory-model/Documentation/herd-representation.txt
-+++ b/tools/memory-model/Documentation/herd-representation.txt
-@@ -18,6 +18,11 @@
- #
- # By convention, a blank line in a cell means "same as the preceding line".
- #
-+# Note that the syntactic representation does not always match the sets and
-+# relations in linux-kernel.cat, due to redefinitions in linux-kernel.bell and
-+# lock.cat. For example, the po link between LKR and LKW is upgraded to an rmw
-+# link, and W[acquire] are not included in the Acquire set.
-+#
- # Disclaimer.  The table includes representations of "add" and "and" operations;
- # corresponding/identical representations of "sub", "inc", "dec" and "or", "xor",
- # "andnot" operations are omitted.
-@@ -60,14 +65,13 @@
-     ------------------------------------------------------------------------------
-     |       RMW ops w/o return value |                                           |
-     ------------------------------------------------------------------------------
--    |                     atomic_add | R*[noreturn] ->rmw W*[once]               |
-+    |                     atomic_add | R*[noreturn] ->rmw W*[noreturn]           |
-     |                     atomic_and |                                           |
-     |                      spin_lock | LKR ->po LKW                              |
-     ------------------------------------------------------------------------------
-     |        RMW ops w/ return value |                                           |
-     ------------------------------------------------------------------------------
--    |              atomic_add_return | F[mb] ->po R*[once]                       |
--    |                                |     ->rmw W*[once] ->po F[mb]             |
-+    |              atomic_add_return | R*[mb] ->rmw W*[mb]                       |
-     |               atomic_fetch_add |                                           |
-     |               atomic_fetch_and |                                           |
-     |                    atomic_xchg |                                           |
-@@ -79,13 +83,13 @@
-     |            atomic_xchg_relaxed |                                           |
-     |                   xchg_relaxed |                                           |
-     |    atomic_add_negative_relaxed |                                           |
--    |      atomic_add_return_acquire | R*[acquire] ->rmw W*[once]                |
-+    |      atomic_add_return_acquire | R*[acquire] ->rmw W*[acquire]             |
-     |       atomic_fetch_add_acquire |                                           |
-     |       atomic_fetch_and_acquire |                                           |
-     |            atomic_xchg_acquire |                                           |
-     |                   xchg_acquire |                                           |
-     |    atomic_add_negative_acquire |                                           |
--    |      atomic_add_return_release | R*[once] ->rmw W*[release]                |
-+    |      atomic_add_return_release | R*[release] ->rmw W*[release]             |
-     |       atomic_fetch_add_release |                                           |
-     |       atomic_fetch_and_release |                                           |
-     |            atomic_xchg_release |                                           |
-@@ -94,17 +98,16 @@
-     ------------------------------------------------------------------------------
-     |            Conditional RMW ops |                                           |
-     ------------------------------------------------------------------------------
--    |                 atomic_cmpxchg | On success: F[mb] ->po R*[once]           |
--    |                                |                 ->rmw W*[once] ->po F[mb] |
--    |                                | On failure: R*[once]                      |
-+    |                 atomic_cmpxchg | On success: R*[mb] ->rmw W*[mb]           |
-+    |                                | On failure: R*[mb]                        |
-     |                        cmpxchg |                                           |
-     |              atomic_add_unless |                                           |
-     |         atomic_cmpxchg_relaxed | On success: R*[once] ->rmw W*[once]       |
-     |                                | On failure: R*[once]                      |
--    |         atomic_cmpxchg_acquire | On success: R*[acquire] ->rmw W*[once]    |
--    |                                | On failure: R*[once]                      |
--    |         atomic_cmpxchg_release | On success: R*[once] ->rmw W*[release]    |
--    |                                | On failure: R*[once]                      |
-+    |         atomic_cmpxchg_acquire | On success: R*[acquire] ->rmw W*[acquire] |
-+    |                                | On failure: R*[acquire]                   |
-+    |         atomic_cmpxchg_release | On success: R*[release] ->rmw W*[release] |
-+    |                                | On failure: R*[release]                   |
-     |                   spin_trylock | On success: LKR ->po LKW                  |
-     |                                | On failure: LF                            |
-     ------------------------------------------------------------------------------
-diff --git a/tools/memory-model/README b/tools/memory-model/README
-index dab38904206a0..59bc15edeb8ab 100644
---- a/tools/memory-model/README
-+++ b/tools/memory-model/README
-@@ -20,7 +20,7 @@ that litmus test to be exercised within the Linux kernel.
- REQUIREMENTS
- ============
- 
--Version 7.52 or higher of the "herd7" and "klitmus7" tools must be
-+Version 7.58 or higher of the "herd7" and "klitmus7" tools must be
- downloaded separately:
- 
-   https://github.com/herd/herdtools7
-diff --git a/tools/memory-model/linux-kernel.bell b/tools/memory-model/linux-kernel.bell
-index 7c9ae48b94377..8ae47545df978 100644
---- a/tools/memory-model/linux-kernel.bell
-+++ b/tools/memory-model/linux-kernel.bell
-@@ -94,3 +94,6 @@ let carry-dep = (data ; [~ Srcu-unlock] ; rfi)*
- let addr = carry-dep ; addr
- let ctrl = carry-dep ; ctrl
- let data = carry-dep ; data
-+
-+flag ~empty (if "lkmmv2" then 0 else _)
-+  as this-model-requires-variant-higher-than-lkmmv1
-diff --git a/tools/memory-model/linux-kernel.cfg b/tools/memory-model/linux-kernel.cfg
-index 3c8098e99f41d..69b04f3aad737 100644
---- a/tools/memory-model/linux-kernel.cfg
-+++ b/tools/memory-model/linux-kernel.cfg
-@@ -1,6 +1,7 @@
- macros linux-kernel.def
- bell linux-kernel.bell
- model linux-kernel.cat
-+variant lkmmv2
- graph columns
- squished true
- showevents noregs
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index a12b96c547b7a..d7279a357cba0 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -63,14 +63,14 @@ atomic_set(X,V) { WRITE_ONCE(*X,V); }
- atomic_read_acquire(X) smp_load_acquire(X)
- atomic_set_release(X,V) { smp_store_release(X,V); }
- 
--atomic_add(V,X) { __atomic_op(X,+,V); }
--atomic_sub(V,X) { __atomic_op(X,-,V); }
--atomic_and(V,X) { __atomic_op(X,&,V); }
--atomic_or(V,X)  { __atomic_op(X,|,V); }
--atomic_xor(V,X) { __atomic_op(X,^,V); }
--atomic_inc(X)   { __atomic_op(X,+,1); }
--atomic_dec(X)   { __atomic_op(X,-,1); }
--atomic_andnot(V,X) { __atomic_op(X,&~,V); }
-+atomic_add(V,X) { __atomic_op{noreturn}(X,+,V); }
-+atomic_sub(V,X) { __atomic_op{noreturn}(X,-,V); }
-+atomic_and(V,X) { __atomic_op{noreturn}(X,&,V); }
-+atomic_or(V,X)  { __atomic_op{noreturn}(X,|,V); }
-+atomic_xor(V,X) { __atomic_op{noreturn}(X,^,V); }
-+atomic_inc(X)   { __atomic_op{noreturn}(X,+,1); }
-+atomic_dec(X)   { __atomic_op{noreturn}(X,-,1); }
-+atomic_andnot(V,X) { __atomic_op{noreturn}(X,&~,V); }
- 
- atomic_add_return(V,X) __atomic_op_return{mb}(X,+,V)
- atomic_add_return_relaxed(V,X) __atomic_op_return{once}(X,+,V)
-@@ -144,3 +144,5 @@ atomic_fetch_andnot(V,X) __atomic_fetch_op{mb}(X,&~,V)
- atomic_fetch_andnot_acquire(V,X) __atomic_fetch_op{acquire}(X,&~,V)
- atomic_fetch_andnot_release(V,X) __atomic_fetch_op{release}(X,&~,V)
- atomic_fetch_andnot_relaxed(V,X) __atomic_fetch_op{once}(X,&~,V)
-+
-+atomic_add_unless(X,V,W) __atomic_add_unless{mb}(X,V,W)
+Thanks, I'll extend the comment to tell the whole story!
+
+[...]
+
+>> +	ms_hyperv.vtl = get_vtl();
+> 
+> The above statement looks like it will fail to compile on
+> arm64 since the get_vtl() function is entirely on the x86
+> side until Patch 3 of this series. As of this Patch 1, there's
+> no declaration of get_vtl() available to arm64.
+> 
+
+I used my working branch for testing
+https://github.com/romank-msft/linux-hyperv/tree/vtl_mode_arm64_v4
+and didn't move that code around when chunking into patches.
+Will fix the workflow, thanks for catching this!
+
+>> +	/* Report if non-default VTL */
+>> +	if (ms_hyperv.vtl > 0)
+>> +		pr_info("Linux runs in Hyper-V Virtual Trust Level\n");
+> 
+> Could this message include the VTL number as well? In the long
+> run, I think there will be code at non-zero VTLs other than VTL 2.
+> 
+
+Absolutely, will add!
+
+>> +
+>>   	ms_hyperv_late_init();
+>>
+>>   	hyperv_initialized = true;
+>> diff --git a/arch/arm64/include/asm/mshyperv.h
+>> b/arch/arm64/include/asm/mshyperv.h
+>> index 2e2f83bafcfb..a6d7eb9e167b 100644
+>> --- a/arch/arm64/include/asm/mshyperv.h
+>> +++ b/arch/arm64/include/asm/mshyperv.h
+>> @@ -50,4 +50,9 @@ static inline u64 hv_get_msr(unsigned int reg)
+>>
+>>   #include <asm-generic/mshyperv.h>
+>>
+>> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_0	0x4d32ba58U
+>> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_1	0xcd244764U
+>> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_2	0x8eef6c75U
+>> +#define ARM_SMCCC_VENDOR_HYP_UID_HYPERV_REG_3	0x16597024U
+>> +
+>>   #endif
+>> --
+>> 2.43.0
+>>
+
 -- 
-2.40.1
+Thank you,
+Roman
 
