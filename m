@@ -1,33 +1,33 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 291861FCCFD;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84F0F205E1A;
 	Thu, 20 Feb 2025 16:14:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740068045; cv=none; b=Pg+FI739a6yCHw7Ik/SEFjX0/sSZ4Z4VuGWj9U/Ev2boIf7+rS4vAqubS/CBkS9MXldLbsnCni9go4xhCGLV+iLZHF3a4JFPb/KT/l4WtcDNOeJVZ6c4mC4A/W0UTHEoqFY8cJae/Q65ZwiGBbuw313hFXE6FQajjrQkNFWtXHs=
+	t=1740068045; cv=none; b=ILGcD17Rvbb4Qs8Uy4ew65/Jej9hcw01+UtYSMDRVusLf/bFZA935vAAOkW/S4DGiW6d6N0GiZgmvAkJf9vWC8hkZYf1Fm37eeHXWvZVjggpZkiUgQ0402MeuthR9dMn6Km80lP7khwSyMN97ufoIhY0AFGGIV6SqRMgEcmbwtk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1740068045; c=relaxed/simple;
-	bh=01pGRoOVLm7FmVgPZ/DAaMBZsWrBo+heyMml9ojdBqE=;
+	bh=WmSxWReFRSxg3AIpXyHvnAtwkV29bRIzKRwaPkY52Og=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=I3teGjrtouVkBDEKKJMAPe4xdLG4BReN7AX9ytofBbDfkC8yMu5jYIFdwJpi1Z9ybhDn3o5PWB9vuWI1zLXsEcHWlBisEI9F7sjvpwb0LS07klwo6geFUxOplvJhl4ctxu3K2oMPVbKvFVbeguCORmM97t8ncdU2prAHuhzp00c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=IntIdG5T; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=XbEfI7PhaVGrNfdE/sqqvjSPIGIHXkq9kkNO0QNWYCKuIt5JvKQDdHo9PDB6ljcGJIuLB87KKkFF9uKChITXD21sSE68TGmtUTf1gT3MonwdQhSo/35CaemXplJIPARfhaM5f0PFMw7YkjOqOHZA3VsbbrhymltC01bPhRqUlj4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gZWU+yhr; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="IntIdG5T"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E25A1C4CED1;
-	Thu, 20 Feb 2025 16:14:04 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gZWU+yhr"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 27FD5C4CEEC;
+	Thu, 20 Feb 2025 16:14:05 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1740068045;
-	bh=01pGRoOVLm7FmVgPZ/DAaMBZsWrBo+heyMml9ojdBqE=;
+	bh=WmSxWReFRSxg3AIpXyHvnAtwkV29bRIzKRwaPkY52Og=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=IntIdG5TdZt9kIcE7uowpyd2fPl52hC1g4IeHUPC5ZQs7EIRUl+jdPeCLlM9cHrAW
-	 uh5rqBx+TIn0zTEAypeQk1ewg+2w//4/gqtihPpNmfQmwYfsqlHczMRwwRb5O7Idv/
-	 DV8xmW3bx2jQ2dJ5CpRNcDtoQfUK3rgrvH2Wn0WkwDxgGnJAXmw44sFOTBio7OBbiT
-	 MUHgqCGlTRAo6QnHLHUfGE8d1rF8aHZxv0jt/lLmlLBl9LOIcZHcFVSOKaLRWvIzht
-	 bxX+EktSzAaftCkMtZ1fonMbpBPLrYFLOdNLVm+qheSJzjVIPJ1BZPWagv4nXVYWn8
-	 wyKaQDFEIcmKA==
+	b=gZWU+yhrnnxWMvYCCs273LOHURrt8hQyzlnKBGN+wPxu5MUgxLfkmaA5uE56kDsfe
+	 MY/XrJYABDYExWTf10OE2qVpvcOUjv5aXvZBxwsl+MO0JxGTu/rU7J9pSNeO1p+9lb
+	 DRwbRn2+c4HxxFDTPdHcIdP1thvx1JYaq1P+O8T+0V8rEfizNH7g4hm2Cseqauu+Rw
+	 wPk+syUd7pxLdmSU5mU6NPD84gZ//fwdR4jvFUR4xJG5sSgWMAyeuz0UtKsNU5/34C
+	 l0J2owammTBx37a2ftwcLx3P1YIVdvkVuQhX1P8P1YwuOWs2ptzixUEik6H5lJkNf5
+	 wDmBf9KPGFHPA==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 9A69DCE0B34; Thu, 20 Feb 2025 08:14:04 -0800 (PST)
+	id A928ACE0C90; Thu, 20 Feb 2025 08:14:04 -0800 (PST)
 From: "Paul E. McKenney" <paulmck@kernel.org>
 To: linux-kernel@vger.kernel.org,
 	linux-arch@vger.kernel.org,
@@ -44,13 +44,12 @@ Cc: stern@rowland.harvard.edu,
 	j.alglave@ucl.ac.uk,
 	luc.maranget@inria.fr,
 	akiyks@gmail.com,
-	Puranjay Mohan <puranjay@kernel.org>,
-	"Paul E . McKenney" <paulmck@kernel.org>,
-	Daniel Lustig <dlustig@nvidia.com>,
-	Joel Fernandes <joel@joelfernandes.org>
-Subject: [PATCH memory-model 1/7] tools/memory-model: Add atomic_and()/or()/xor() and add_negative
-Date: Thu, 20 Feb 2025 08:13:57 -0800
-Message-Id: <20250220161403.800831-1-paulmck@kernel.org>
+	Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>,
+	Viktor Vafeiadis <viktor@mpi-sws.org>,
+	"Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH memory-model 5/7] tools/memory-model: Define effect of Mb tags on RMWs in tools/...
+Date: Thu, 20 Feb 2025 08:14:01 -0800
+Message-Id: <20250220161403.800831-5-paulmck@kernel.org>
 X-Mailer: git-send-email 2.40.1
 In-Reply-To: <8cfb51e3-9726-4285-b8ca-0d0abcacb07e@paulmck-laptop>
 References: <8cfb51e3-9726-4285-b8ca-0d0abcacb07e@paulmck-laptop>
@@ -62,81 +61,46 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Puranjay Mohan <puranjay@kernel.org>
+From: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
 
-Pull-849[1] added the support of '&', '|', and '^' to the herd7 tool's
-atomics operations.
+Herd7 transforms successful RMW with Mb tags by inserting smp_mb() fences
+around them. We emulate this by considering imaginary po-edges before the
+RMW read and before the RMW write, and extending the smp_mb() ordering
+rule, which currently only applies to real po edges that would be found
+around a really inserted smp_mb(), also to cases of the only imagined po
+edges.
 
-Use these in linux-kernel.def to implement atomic_and()/or()/xor() with
-all their ordering variants.
-
-atomic_add_negative() is already available so add its acquire, release,
-and relaxed ordering variants.
-
-[1] https://github.com/herd/herdtools7/pull/849
-
-Signed-off-by: Puranjay Mohan <puranjay@kernel.org>
-Acked-by: Andrea Parri <parri.andrea@gmail.com>
-Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
+Reported-by: Viktor Vafeiadis <viktor@mpi-sws.org>
+Suggested-by: Alan Stern <stern@rowland.harvard.edu>
+Signed-off-by: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
 Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
-Cc: Alan Stern <stern@rowland.harvard.edu>
-Cc: Will Deacon <will@kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Jade Alglave <j.alglave@ucl.ac.uk>
-Cc: Luc Maranget <luc.maranget@inria.fr>
-Cc: Akira Yokosawa <akiyks@gmail.com>
-Cc: Daniel Lustig <dlustig@nvidia.com>
-Cc: Joel Fernandes <joel@joelfernandes.org>
-Cc: <linux-arch@vger.kernel.org>
+Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
+Tested-by: Boqun Feng <boqun.feng@gmail.com>
 ---
- tools/memory-model/linux-kernel.def | 21 +++++++++++++++++++++
- 1 file changed, 21 insertions(+)
+ tools/memory-model/linux-kernel.cat | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/tools/memory-model/linux-kernel.def b/tools/memory-model/linux-kernel.def
-index 88a39601f5256..d1f11930ec512 100644
---- a/tools/memory-model/linux-kernel.def
-+++ b/tools/memory-model/linux-kernel.def
-@@ -65,6 +65,9 @@ atomic_set_release(X,V) { smp_store_release(X,V); }
- 
- atomic_add(V,X) { __atomic_op(X,+,V); }
- atomic_sub(V,X) { __atomic_op(X,-,V); }
-+atomic_and(V,X) { __atomic_op(X,&,V); }
-+atomic_or(V,X)  { __atomic_op(X,|,V); }
-+atomic_xor(V,X) { __atomic_op(X,^,V); }
- atomic_inc(X)   { __atomic_op(X,+,1); }
- atomic_dec(X)   { __atomic_op(X,-,1); }
- 
-@@ -77,6 +80,21 @@ atomic_fetch_add_relaxed(V,X) __atomic_fetch_op{once}(X,+,V)
- atomic_fetch_add_acquire(V,X) __atomic_fetch_op{acquire}(X,+,V)
- atomic_fetch_add_release(V,X) __atomic_fetch_op{release}(X,+,V)
- 
-+atomic_fetch_and(V,X) __atomic_fetch_op{mb}(X,&,V)
-+atomic_fetch_and_relaxed(V,X) __atomic_fetch_op{once}(X,&,V)
-+atomic_fetch_and_acquire(V,X) __atomic_fetch_op{acquire}(X,&,V)
-+atomic_fetch_and_release(V,X) __atomic_fetch_op{release}(X,&,V)
-+
-+atomic_fetch_or(V,X) __atomic_fetch_op{mb}(X,|,V)
-+atomic_fetch_or_relaxed(V,X) __atomic_fetch_op{once}(X,|,V)
-+atomic_fetch_or_acquire(V,X) __atomic_fetch_op{acquire}(X,|,V)
-+atomic_fetch_or_release(V,X) __atomic_fetch_op{release}(X,|,V)
-+
-+atomic_fetch_xor(V,X) __atomic_fetch_op{mb}(X,^,V)
-+atomic_fetch_xor_relaxed(V,X) __atomic_fetch_op{once}(X,^,V)
-+atomic_fetch_xor_acquire(V,X) __atomic_fetch_op{acquire}(X,^,V)
-+atomic_fetch_xor_release(V,X) __atomic_fetch_op{release}(X,^,V)
-+
- atomic_inc_return(X) __atomic_op_return{mb}(X,+,1)
- atomic_inc_return_relaxed(X) __atomic_op_return{once}(X,+,1)
- atomic_inc_return_acquire(X) __atomic_op_return{acquire}(X,+,1)
-@@ -117,3 +135,6 @@ atomic_sub_and_test(V,X) __atomic_op_return{mb}(X,-,V) == 0
- atomic_dec_and_test(X)  __atomic_op_return{mb}(X,-,1) == 0
- atomic_inc_and_test(X)  __atomic_op_return{mb}(X,+,1) == 0
- atomic_add_negative(V,X) __atomic_op_return{mb}(X,+,V) < 0
-+atomic_add_negative_relaxed(V,X) __atomic_op_return{once}(X,+,V) < 0
-+atomic_add_negative_acquire(V,X) __atomic_op_return{acquire}(X,+,V) < 0
-+atomic_add_negative_release(V,X) __atomic_op_return{release}(X,+,V) < 0
+diff --git a/tools/memory-model/linux-kernel.cat b/tools/memory-model/linux-kernel.cat
+index adf3c4f412296..d7e7bf13c831b 100644
+--- a/tools/memory-model/linux-kernel.cat
++++ b/tools/memory-model/linux-kernel.cat
+@@ -34,6 +34,16 @@ let R4rmb = R \ Noreturn	(* Reads for which rmb works *)
+ let rmb = [R4rmb] ; fencerel(Rmb) ; [R4rmb]
+ let wmb = [W] ; fencerel(Wmb) ; [W]
+ let mb = ([M] ; fencerel(Mb) ; [M]) |
++	(*
++	 * full-barrier RMWs (successful cmpxchg(), xchg(), etc.) act as
++	 * though there were enclosed by smp_mb().
++	 * The effect of these virtual smp_mb() is formalized by adding
++	 * Mb tags to the read and write of the operation, and providing
++	 * the same ordering as though there were additional po edges
++	 * between the Mb tag and the read resp. write.
++	 *)
++	([M] ; po ; [Mb & R]) |
++	([Mb & W] ; po ; [M]) |
+ 	([M] ; fencerel(Before-atomic) ; [RMW] ; po? ; [M]) |
+ 	([M] ; po? ; [RMW] ; fencerel(After-atomic) ; [M]) |
+ 	([M] ; po? ; [LKW] ; fencerel(After-spinlock) ; [M]) |
 -- 
 2.40.1
 
