@@ -1,194 +1,326 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3E7D6245015;
-	Mon, 24 Feb 2025 09:09:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66D912566D8
+	for <linux-arch@vger.kernel.org>; Mon, 24 Feb 2025 10:54:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740388143; cv=none; b=IaddgZF1UShkUUvEih75XIxNNOvokGWFoL429PNoHDW0MNy2T2BwJEsmHRuqD+TKfAlAu5wYc4aUI+iZ54tEtx5Io9YyyDR/NZ5dHpQ/QoHJ/eqDm18xBhZCVp1DobDQByxHjPDXB/J6iYgi5YFzRv38+7gt8aSxGk6YQQYyC0k=
+	t=1740394479; cv=none; b=FHkwsArGRH2UPg6d+sGoAgjRVgz2lsXL6mW5wjyCC7y28JSLWvgmE3rPmLep0yze0AF81ZCtQ5FiTo/L2ZuzsaWFkK5zjU9d2lh02HVdwP1If1mObhYUazT2ulPFAaqdwwJJxha6UnbvTwwuZLnDziJKUu1wAvIJp5lp7q9l/0M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1740388143; c=relaxed/simple;
-	bh=44L74dHmGe2TU7EQRUfkK0TjEkVHS2UIUGo5a4H4lz8=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=AedpQtMzoKUhPHnvunhHGBQu7tcwE1wwlvXSKECceMbW9RaQmHQa+9OXgGnzMJuHH8pEXLAU+u4K2KWtzoT3ZfcuaMfoOAs9imKQp9SNxJFlvHpPEBYdgXs3tU8Ld+DQ32Dngq4nCRHoEipUWulmwK3W+DWoETotjQJYDiTWIp0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=IknIikHH; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1740394479; c=relaxed/simple;
+	bh=167yThDNvGov9fjYCXY74PYz0T9DVf+w6k4ikUM5BsI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=n9XJQK8CzVuZSISyJHMNqwT6NfLb6raOC+cfvmQF0gXGwthMTDCEsqrZi8kiDRF+Cy+RR+R0hZQAsjQbieH+TRn3i8hxovYaEDye6PkNfT1iz5y8OFrOzPFVvklWRRuRZRr/V1xnuyGD/zc1L80W5yddpRsz4/zRtX72Cf+Il2g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=pLCojCI6; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=mI6wHxTt; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=pLCojCI6; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=mI6wHxTt; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="IknIikHH"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C3ADAC4CEE8;
-	Mon, 24 Feb 2025 09:09:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1740388142;
-	bh=44L74dHmGe2TU7EQRUfkK0TjEkVHS2UIUGo5a4H4lz8=;
-	h=From:To:Cc:Subject:Date:From;
-	b=IknIikHHAiNqRFJKwiAvsVwQK1WBhsAlo6h2pWfVvsEfYX3BBFpUeoraIWLKCBd8p
-	 wC7muDfBiORTJVrDugS6wOaso2nqSVhssZMGlITsVp5wL4xuc3GLUdz3oBWnYBr+eW
-	 aj4owju7TA2G27ISW9QBWMVRebWBdo4MMLqIMNlWZvuj4TgP0C4tH5lHwFPboF1sGb
-	 moNIlihBZUJ+2wkBViyrsQS8RrGh4+Mz8z1Wc7ZhwRarLBlFOPeAqytwQB2XmN1VDe
-	 NIfBXcEKNZBVAvjxZJADACwluVtE6iygQ2fPe+iG7Hq3Tnhcl+K1YiE3S7fL/qyDvp
-	 l9hNvTRd7m91Q==
-Received: from mchehab by mail.kernel.org with local (Exim 4.98)
-	(envelope-from <mchehab+huawei@kernel.org>)
-	id 1tmUSS-00000003p3R-3GJK;
-	Mon, 24 Feb 2025 10:09:00 +0100
-From: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
-To: Linux Doc Mailing List <linux-doc@vger.kernel.org>,
-	Jonathan Corbet <corbet@lwn.net>
-Cc: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
-	Mauro Carvalho Chehab <mchehab+huawei@kernel.org>,
-	linux-kernel@vger.kernel.org,
-	"Gustavo A. R. Silva" <mchehab+huawei@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Bingbu Cao <bingbu.cao@intel.com>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Kees Cook <mchehab+huawei@kernel.org>,
-	Sakari Ailus <sakari.ailus@linux.intel.com>,
-	Takashi Sakamoto <o-takashi@sakamocchi.jp>,
-	Tianshu Qiu <tian.shu.qiu@intel.com>,
-	linux-arch@vger.kernel.org,
-	linux-hardening@vger.kernel.org,
-	linux-media@vger.kernel.org,
-	linux-staging@lists.linux.dev,
-	linux1394-devel@lists.sourceforge.net
-Subject: [PATCH v2 00/39] Implement kernel-doc in Python
-Date: Mon, 24 Feb 2025 10:08:06 +0100
-Message-ID: <cover.1740387599.git.mchehab+huawei@kernel.org>
-X-Mailer: git-send-email 2.48.1
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="pLCojCI6";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="mI6wHxTt";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="pLCojCI6";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="mI6wHxTt"
+Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 8BA3E21181;
+	Mon, 24 Feb 2025 10:54:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1740394474; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=gIYv0/Q/Zeq48EvvOMQm6hO5YrgVHHe1Ef648QzRuwU=;
+	b=pLCojCI6Ndh8FwupTNlbbixAqjYHuxtVBB/wAhSI2CLqc5jJkopVnCJxSWHzaCKQwe2dH4
+	3x617lQVv51ilS4EsCYxVNEOhnsZqBjQfoVAZgBN29x/s5kbOz/dlsanhZegKzfgyXT5VC
+	cRDnBMZ9oK3wXeYa4tXtE7DdF72F96o=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1740394474;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=gIYv0/Q/Zeq48EvvOMQm6hO5YrgVHHe1Ef648QzRuwU=;
+	b=mI6wHxTt5f/7/t2PAluzL2HfiTQQw6hI/kg92M+8rMU6W15iP4rnG9oxLReHFFId8HEKpr
+	LHlaPGLupEhmG0Aw==
+Authentication-Results: smtp-out1.suse.de;
+	none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1740394474; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=gIYv0/Q/Zeq48EvvOMQm6hO5YrgVHHe1Ef648QzRuwU=;
+	b=pLCojCI6Ndh8FwupTNlbbixAqjYHuxtVBB/wAhSI2CLqc5jJkopVnCJxSWHzaCKQwe2dH4
+	3x617lQVv51ilS4EsCYxVNEOhnsZqBjQfoVAZgBN29x/s5kbOz/dlsanhZegKzfgyXT5VC
+	cRDnBMZ9oK3wXeYa4tXtE7DdF72F96o=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1740394474;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=gIYv0/Q/Zeq48EvvOMQm6hO5YrgVHHe1Ef648QzRuwU=;
+	b=mI6wHxTt5f/7/t2PAluzL2HfiTQQw6hI/kg92M+8rMU6W15iP4rnG9oxLReHFFId8HEKpr
+	LHlaPGLupEhmG0Aw==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 7247113929;
+	Mon, 24 Feb 2025 10:54:34 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id cgroG+pPvGddfwAAD6G6ig
+	(envelope-from <jack@suse.cz>); Mon, 24 Feb 2025 10:54:34 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 202B0A090D; Mon, 24 Feb 2025 11:54:34 +0100 (CET)
+Date: Mon, 24 Feb 2025 11:54:34 +0100
+From: Jan Kara <jack@suse.cz>
+To: Andrey Albershteyn <aalbersh@redhat.com>
+Cc: Richard Henderson <richard.henderson@linaro.org>, 
+	Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, 
+	Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
+	Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, 
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>, "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>, 
+	Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
+	Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
+	Christophe Leroy <christophe.leroy@csgroup.eu>, Naveen N Rao <naveen@kernel.org>, 
+	Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
+	Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>, 
+	Sven Schnelle <svens@linux.ibm.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, 
+	Rich Felker <dalias@libc.org>, John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
+	"David S. Miller" <davem@davemloft.net>, Andreas Larsson <andreas@gaisler.com>, 
+	Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
+	Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>, 
+	=?utf-8?Q?Micka=C3=ABl_Sala=C3=BCn?= <mic@digikod.net>, =?utf-8?Q?G=C3=BCnther?= Noack <gnoack@google.com>, 
+	Arnd Bergmann <arnd@arndb.de>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, linux-m68k@lists.linux-m68k.org, linux-mips@vger.kernel.org, 
+	linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, 
+	linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-security-module@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-xfs@vger.kernel.org
+Subject: Re: [PATCH v3] fs: introduce getfsxattrat and setfsxattrat syscalls
+Message-ID: <fyp7gcbeo3xlrh7zi7k6m5aa6h5otbufxq3kh5zvgr3sjdbxl3@4nkuwx46yajk>
+References: <20250211-xattrat-syscall-v3-1-a07d15f898b2@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-Sender: Mauro Carvalho Chehab <mchehab+huawei@kernel.org>
+In-Reply-To: <20250211-xattrat-syscall-v3-1-a07d15f898b2@kernel.org>
+X-Spam-Level: 
+X-Spamd-Result: default: False [-3.80 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	ARC_NA(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	MISSING_XM_UA(0.00)[];
+	MIME_TRACE(0.00)[0:+];
+	RCVD_COUNT_THREE(0.00)[3];
+	TO_DN_SOME(0.00)[];
+	FREEMAIL_ENVRCPT(0.00)[gmail.com,gmx.de];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	FUZZY_BLOCKED(0.00)[rspamd.com];
+	FROM_HAS_DN(0.00)[];
+	FREEMAIL_CC(0.00)[linaro.org,gmail.com,armlinux.org.uk,arm.com,kernel.org,linux-m68k.org,monstr.eu,alpha.franken.de,hansenpartnership.com,gmx.de,linux.ibm.com,ellerman.id.au,csgroup.eu,users.sourceforge.jp,libc.org,physik.fu-berlin.de,davemloft.net,gaisler.com,linutronix.de,redhat.com,alien8.de,linux.intel.com,zytor.com,zankel.net,zeniv.linux.org.uk,suse.cz,digikod.net,google.com,arndb.de,vger.kernel.org,lists.infradead.org,lists.linux-m68k.org,lists.ozlabs.org];
+	R_RATELIMIT(0.00)[to_ip_from(RLyerg7kx5bdf6cnfzf33td54o)];
+	FROM_EQ_ENVFROM(0.00)[];
+	RCVD_TLS_LAST(0.00)[];
+	TO_MATCH_ENVRCPT_SOME(0.00)[];
+	RCPT_COUNT_GT_50(0.00)[56];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,imap1.dmz-prg2.suse.org:helo]
+X-Spam-Score: -3.80
+X-Spam-Flag: NO
 
-Hi Jon,
+On Tue 11-02-25 18:22:47, Andrey Albershteyn wrote:
+> From: Andrey Albershteyn <aalbersh@redhat.com>
+> 
+> Introduce getfsxattrat and setfsxattrat syscalls to manipulate inode
+> extended attributes/flags. The syscalls take parent directory fd and
+> path to the child together with struct fsxattr.
+> 
+> This is an alternative to FS_IOC_FSSETXATTR ioctl with a difference
+> that file don't need to be open as we can reference it with a path
+> instead of fd. By having this we can manipulated inode extended
+> attributes not only on regular files but also on special ones. This
+> is not possible with FS_IOC_FSSETXATTR ioctl as with special files
+> we can not call ioctl() directly on the filesystem inode using fd.
+> 
+> This patch adds two new syscalls which allows userspace to get/set
+> extended inode attributes on special files by using parent directory
+> and a path - *at() like syscall.
+> 
+> Also, as vfs_fileattr_set() is now will be called on special files
+> too, let's forbid any other attributes except projid and nextents
+> (symlink can have an extent).
+> 
+> CC: linux-api@vger.kernel.org
+> CC: linux-fsdevel@vger.kernel.org
+> CC: linux-xfs@vger.kernel.org
+> Signed-off-by: Andrey Albershteyn <aalbersh@redhat.com>
 
-This changeset contains the kernel-doc.py script to replace the verable
-kernel-doc originally written in Perl. It replaces the first version and the
-second series I sent on the top of it.
+Some comments below:
 
-I tried to stay as close as possible of the original Perl implementation
-on the first patch introducing kernel-doc.py, as it helps to double check
-if each function was  properly translated to Python.  This have been 
-helpful debugging troubles that happened during the conversion.
+> +SYSCALL_DEFINE4(getfsxattrat, int, dfd, const char __user *, filename,
+> +		struct fsxattr __user *, fsx, unsigned int, at_flags)
+> +{
+> +	CLASS(fd, dir)(dfd);
+> +	struct fileattr fa;
+> +	struct path filepath;
+> +	int error;
+> +	unsigned int lookup_flags = 0;
+> +
+> +	if ((at_flags & ~(AT_SYMLINK_NOFOLLOW | AT_EMPTY_PATH)) != 0)
+> +		return -EINVAL;
+> +
+> +	if (at_flags & AT_SYMLINK_FOLLOW)
+	    ^^ This should be !(at_flags & AT_SYMLINK_NOFOLLOW)?
 
-I worked hard to make it bug-compatible with the original one. Still, its
-output has a couple of differences from the original one:
+In the check above you verify for AT_SYMLINK_NOFOLLOW and that also matches
+what setxattrat() does...
 
-- The tab expansion works better with the Python script. With that, some
-  outputs that contain tabs at kernel-doc markups are now different;
 
-- The new script  works better stripping blank lines. So, there are a couple
-  of empty new lines that are now stripped with this version;
+> +		lookup_flags |= LOOKUP_FOLLOW;
+> +
+> +	if (at_flags & AT_EMPTY_PATH)
+> +		lookup_flags |= LOOKUP_EMPTY;
+> +
+> +	if (fd_empty(dir))
+> +		return -EBADF;
 
-- There is a buggy logic at kernel-doc to strip empty description and
-  return sections. I was not able to replicate the exact behavior. So, I ended
-  adding an extra logic to strip empty sections with a different algorithm.
+This check is wrong and in fact the whole dfd handling looks buggy.
+openat(2) manpage describes the expected behavior:
 
-Yet, on my tests, the results are compatible with the venerable script
-output for all .. kernel-doc tags found in Documentation/. I double-checked
-this by adding support to output the kernel-doc commands when V=1, and
-then I ran a diff between kernel-doc.pl and kernel-doc.py for the same
-command lines.
+       The dirfd argument is used in conjunction with the pathname argument as
+       follows:
 
-On version 2, kerneldoc.py Sphinx extension now uses the Python classes
-if KERNELDOC  environment var ends with kernel-doc.py. It  keeps a cache
-of previously-parsed files to avoid performance penalties when the same
-file is added on multiple places.
+       •  If the pathname given in pathname is absolute,  then  dirfd  is  ig-
+          nored.
+	  ^^^^ This is what you break. If the pathname is absolute, you're
+not expected to touch dirfd.
 
-This series contains:
+       •  If  the pathname given in pathname is relative and dirfd is the spe-
+          cial value AT_FDCWD, then pathname is interpreted  relative  to  the
+          current working directory of the calling process (like open()).
+          ^^^ Also AT_FDCWD handling would be broken by the above check.
 
-- 4 patches fixing some kernel-doc issues. One of them is for media, but
-   I prefer to have this merged via your tree, as it suppresses a warning
-   that happens after the changes;
+       •  If  the  pathname  given  in pathname is relative, then it is inter-
+          preted relative to the directory referred to by the file  descriptor
+          dirfd  (rather than relative to the current working directory of the
+          calling process, as is done by open() for a relative pathname).   In
+          this  case,  dirfd  must  be a directory that was opened for reading
+          (O_RDONLY) or using the O_PATH flag.
 
-- 2 cleanup patches for Perl kernel-doc;
+       If the pathname given in pathname is relative, and dirfd is not a valid
+       file descriptor, an error (EBADF) results.  (Specifying an invalid file
+       descriptor number in dirfd can be used as a means to ensure that  path-
+       name is absolute.)
 
-- 2 patches renaming kernel-doc to kernel-doc.pl and adding a symlink.
-  I opted to have the symlink in separate to make easier to review, but
-  feel free to merge them on a single patch if you want.
+> +
+> +	error = user_path_at(dfd, filename, lookup_flags, &filepath);
+		^^^ And user_path_at() isn't quite what you need either
+because with AT_EMPTY_PATH we also want to allow for filename to be NULL
+(not just empty string) and user_path_at() does not support that. That's
+why I in my previous replies suggested you should follow what setxattrat()
+does and that sadly it is more painful than it should be. You need
+something like:
 
-The remaining patches add the new script, converts it into a library and
-addresses lots of minor compatibility issues. The last patch changes
-Sphinx extension to directly use the Python classes.
+	name = getname_maybe_null(filename, at_flags);
+	if (!name) {
+		CLASS(fd, f)(dfd);
 
-The only patch that doesn't belong to this series is a patch dropping
-kernel-doc.py. I opted to keep it for now, as it can help to better
-test the new tools.
+		if (fd_empty(f))
+			return -EBADF;
+		error = vfs_fileattr_get(file_dentry(fd_file(f)), &fa);
+	} else {
+		error = filename_lookup(dfd, filename, lookup_flags, &filepath,
+					NULL);
+		if (error)
+			goto out;
+		error = vfs_fileattr_get(filepath.dentry, &fa);
+		path_put(&filepath);
+	}
+	if (!error)
+		error = copy_fsxattr_to_user(&fa, fsx);
+out:
+	putname(name);
+	return error;
 
-With such changes, if one wants to build docs with the old script,
-all it is needed is to use KERNELDOC parameter, e.g.:
+Longer term, we need to provide user_path_maybe_null_at() for this but I
+don't want to drag you into this cleanup :)
 
-	$ make KERNELDOC=scripts/kernel-doc.pl htmldocs
+> +	if (error)
+> +		return error;
+> +
+> +	error = vfs_fileattr_get(filepath.dentry, &fa);
+> +	if (!error)
+> +		error = copy_fsxattr_to_user(&fa, fsx);
+> +
+> +	path_put(&filepath);
+> +	return error;
+> +}
+> +
+> +SYSCALL_DEFINE4(setfsxattrat, int, dfd, const char __user *, filename,
+> +		struct fsxattr __user *, fsx, unsigned int, at_flags)
+> +{
+> +	CLASS(fd, dir)(dfd);
+> +	struct fileattr fa;
+> +	struct path filepath;
+> +	int error;
+> +	unsigned int lookup_flags = 0;
+> +
+> +	if ((at_flags & ~(AT_SYMLINK_FOLLOW | AT_EMPTY_PATH)) != 0)
+> +		return -EINVAL;
+> +
+> +	if (at_flags & AT_SYMLINK_FOLLOW)
+> +		lookup_flags |= LOOKUP_FOLLOW;
 
-Mauro Carvalho Chehab (39):
-  include/asm-generic/io.h: fix kerneldoc markup
-  drivers: media: intel-ipu3.h: fix identation on a kernel-doc markup
-  drivers: firewire: firewire-cdev.h: fix identation on a kernel-doc
-    markup
-  docs: driver-api/infiniband.rst: fix Kerneldoc markup
-  scripts/kernel-doc: don't add not needed new lines
-  scripts/kernel-doc: drop dead code for Wcontents_before_sections
-  scripts/kernel-doc: rename it to scripts/kernel-doc.pl
-  scripts/kernel-doc: add a symlink to the Perl version of kernel-doc
-  scripts/kernel-doc.py: add a Python parser
-  scripts/kernel-doc.py: output warnings the same way as kerneldoc
-  scripts/kernel-doc.py: better handle empty sections
-  scripts/kernel-doc.py: properly handle struct_group macros
-  scripts/kernel-doc.py: move regex methods to a separate file
-  scripts/kernel-doc.py: move KernelDoc class to a separate file
-  scripts/kernel-doc.py: move KernelFiles class to a separate file
-  scripts/kernel-doc.py: move output classes to a separate file
-  scripts/kernel-doc.py: convert message output to an interactor
-  scripts/kernel-doc.py: move file lists to the parser function
-  scripts/kernel-doc.py: implement support for -no-doc-sections
-  scripts/kernel-doc.py: fix line number output
-  scripts/kernel-doc.py: fix handling of doc output check
-  scripts/kernel-doc.py: properly handle out_section for ReST
-  scripts/kernel-doc.py: postpone warnings to the output plugin
-  docs: add a .pylintrc file with sys path for docs scripts
-  docs: sphinx: kerneldoc: verbose kernel-doc command if V=1
-  docs: sphinx: kerneldoc: ignore "\" characters from options
-  docs: sphinx: kerneldoc: use kernel-doc.py script
-  scripts/kernel-doc.py: Set an output format for --none
-  scripts/kernel-doc.py: adjust some coding style issues
-  scripts/lib/kdoc/kdoc_parser.py: fix Python compat with < v3.13
-  scripts/kernel-doc.py: move modulename to man class
-  scripts/kernel-doc.py: properly handle KBUILD_BUILD_TIMESTAMP
-  scripts/lib/kdoc/kdoc_parser.py: remove a python 3.9 dependency
-  scripts/kernel-doc.py: Properly handle Werror and exit codes
-  scripts/kernel-doc.py: some coding style cleanups
-  scripts/kernel-doc: switch to use kernel-doc.py
-  scripts/lib/kdoc/kdoc_files.py: allow filtering output per fname
-  scripts/kernel_doc.py: better handle exported symbols
-  docs: sphinx: kerneldoc: Use python class if available
+I think using AT_SYMLINK_NOFOLLOW is actually more traditional and thus
+less surprising to users so I'd prefer that. Definitely this needs to be
+consistent with getfsxattrat().
 
- .pylintrc                                     |    2 +
- Documentation/Makefile                        |    2 +-
- Documentation/conf.py                         |    2 +-
- Documentation/driver-api/infiniband.rst       |   16 +-
- Documentation/sphinx/kerneldoc.py             |  183 +-
- .../media/ipu3/include/uapi/intel-ipu3.h      |    3 +-
- include/asm-generic/io.h                      |    6 +-
- include/uapi/linux/firewire-cdev.h            |    3 +-
- scripts/kernel-doc                            | 2447 +----------------
- scripts/kernel-doc.pl                         | 2439 ++++++++++++++++
- scripts/kernel-doc.py                         |  240 ++
- scripts/lib/kdoc/kdoc_files.py                |  281 ++
- scripts/lib/kdoc/kdoc_output.py               |  792 ++++++
- scripts/lib/kdoc/kdoc_parser.py               | 1714 ++++++++++++
- scripts/lib/kdoc/kdoc_re.py                   |  273 ++
- 15 files changed, 5930 insertions(+), 2473 deletions(-)
- create mode 100644 .pylintrc
- mode change 100755 => 120000 scripts/kernel-doc
- create mode 100755 scripts/kernel-doc.pl
- create mode 100755 scripts/kernel-doc.py
- create mode 100755 scripts/lib/kdoc/kdoc_files.py
- create mode 100755 scripts/lib/kdoc/kdoc_output.py
- create mode 100755 scripts/lib/kdoc/kdoc_parser.py
- create mode 100755 scripts/lib/kdoc/kdoc_re.py
+> +
+> +	if (at_flags & AT_EMPTY_PATH)
+> +		lookup_flags |= LOOKUP_EMPTY;
+> +
+> +	if (fd_empty(dir))
+> +		return -EBADF;
 
+Same comment regarding dfd handling as above.
+
+> +
+> +	if (copy_fsxattr_from_user(&fa, fsx))
+> +		return -EFAULT;
+> +
+> +	error = user_path_at(dfd, filename, lookup_flags, &filepath);
+> +	if (error)
+> +		return error;
+> +
+> +	error = mnt_want_write(filepath.mnt);
+> +	if (!error) {
+> +		error = vfs_fileattr_set(file_mnt_idmap(fd_file(dir)),
+> +					 filepath.dentry, &fa);
+> +		mnt_drop_write(filepath.mnt);
+> +	}
+> +
+> +	path_put(&filepath);
+> +	return error;
+> +}
+
+Otherwise the patch looks good to me.
+
+								Honza
 -- 
-2.48.1
-
-
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
