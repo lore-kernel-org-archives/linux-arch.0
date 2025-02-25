@@ -1,126 +1,205 @@
-Received: from frasgout11.his.huawei.com (frasgout11.his.huawei.com [14.137.139.23])
+Received: from flow-b6-smtp.messagingengine.com (flow-b6-smtp.messagingengine.com [202.12.124.141])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B5DE17DFF3;
-	Tue, 25 Feb 2025 07:59:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=14.137.139.23
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 378FB192B8F;
+	Tue, 25 Feb 2025 08:02:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740470366; cv=none; b=t03NM71/g0n8PQaPNiyBMW5DRDbaWKj5vOORKIHMt6SmNR72dra7hMjdcFh+omrLPnCPB3RzLJadBFmJqM5tyHRnh2dyBGfLMHzyHxdm3XagyStc1RNDrZ5iEnjv7VnblqtuOPUzYVlNAWvkA5KX4Bb/Hqs98hcRcgH7JqZjia4=
+	t=1740470553; cv=none; b=uCWBc33p7U3TpiWi/mH5p2IidpH+BOrpZ/uAoLuxVcdGPeMXLs8I0H41f8b0Ei5jjuXj12gicaQqhPXnJIwKVx9LaZzu3U0J9Zffvb4ff7Jzy3PxXkinF/DjTg/nWT5z0YGBovBgVPCN4eX9wHxwbr4OZtfUkBdsLBsS/Ar1vXU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1740470366; c=relaxed/simple;
-	bh=nu9yynYk0XIGZa52r+Naeo8gTBGfALG27Mv+5Wx/NJ0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=MdztTdE+0/myenkHg1y2ozlftHT9X5nSeqvDt3SsDGvuxwXCfxKMfWDgREcLqesrEImo3NVoW9FASxykruyNrw3fgopWZjODCkHKLyl9cX+lM9Dg43ZSiEHP+M5AE+8NaSylflLnqTPc7J03LYE4Ik6BRjgrO9g3Y1Y3dJo7Dqc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com; spf=pass smtp.mailfrom=huaweicloud.com; arc=none smtp.client-ip=14.137.139.23
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=huaweicloud.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huaweicloud.com
-Received: from mail.maildlp.com (unknown [172.18.186.29])
-	by frasgout11.his.huawei.com (SkyGuard) with ESMTP id 4Z288J41Lcz9v7N8;
-	Tue, 25 Feb 2025 15:18:08 +0800 (CST)
-Received: from mail02.huawei.com (unknown [7.182.16.27])
-	by mail.maildlp.com (Postfix) with ESMTP id 48FDB140361;
-	Tue, 25 Feb 2025 15:40:59 +0800 (CST)
-Received: from [10.221.99.159] (unknown [10.221.99.159])
-	by APP2 (Coremail) with SMTP id GxC2BwD3X+L9c71nhYEeAw--.47156S2;
-	Tue, 25 Feb 2025 08:40:58 +0100 (CET)
-Message-ID: <756aed25-f4de-4c2f-b6e8-5bf67c0fde69@huaweicloud.com>
-Date: Tue, 25 Feb 2025 08:40:43 +0100
+	s=arc-20240116; t=1740470553; c=relaxed/simple;
+	bh=k1leRad2ojzsetmQP/1iyqy9qsl2R22cOQijt9+MijA=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=ZIO+a0t8+4dHXOU7mjcv7QyHPdgtZKX1FpkrkNC0LBzUVhawRnYcTR0ukxKvazFjY6YmyefvQg4FtdH+rtcZjcgtirMGOhaDYAbtXJ03XcdPM+/5QAck6tahL/q5HHE/ipStWgfuZ9b+AfPNN++j3296gDXza+a3QrMa6MHkPmg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=nuB/bCA9; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=YPoIMkvS; arc=none smtp.client-ip=202.12.124.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="nuB/bCA9";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="YPoIMkvS"
+Received: from phl-compute-11.internal (phl-compute-11.phl.internal [10.202.2.51])
+	by mailflow.stl.internal (Postfix) with ESMTP id BC32C1D40DC7;
+	Tue, 25 Feb 2025 03:02:28 -0500 (EST)
+Received: from phl-imap-11 ([10.202.2.101])
+  by phl-compute-11.internal (MEProxy); Tue, 25 Feb 2025 03:02:30 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1740470548;
+	 x=1740477748; bh=QLBFywS7XyTxwPOejQif6z/28yCPC+NOlxqp7jJivgU=; b=
+	nuB/bCA9S1ItHoQccv5Gpf2mwvDce7RRcNcpwlxjDxO1holF+tGByrAapeP7OrFr
+	HAk3aSlywo6BQ3aIq3YD97bpYimQZCmCJzQVQ4J7/FjQNoffpOdztKN3jNMkLAsm
+	9VGEaeHYbe7aA1pwEwTc5Ly3uUaA5trnjhjeblm3R3qCmYh5gobnjqpCGnSMaJxH
+	Q4rT9xQzPWGhTDWs9MOLPKEFr4nLKLYdEEplecb0+f886EV6VW5atz2MXrJXfgSa
+	8nO2s+I0QTs8G0bnVObE2Z5vC+C/ADHfqNq9PLbtRtoWaqB9bL1p64n0kbx/qUFh
+	GI6t/ArRTPIDtTrox5TXCQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1740470548; x=
+	1740477748; bh=QLBFywS7XyTxwPOejQif6z/28yCPC+NOlxqp7jJivgU=; b=Y
+	PoIMkvS6Pmv9DRNik2ZIAlOAGJxA128xi+2AFbN1p4mZSMpWJvjWRKHZs4PLFfc6
+	1+aHv049YnYKEfVZEN+sir1Y3b3y0M5hJe6zr9DGoS6Mofb56X+snvlPvlUK0F+4
+	mXCUv/SVSH9ziGwDTAMYmz7Q5CpBKdy6teD7hFBcWYrwRSOU7VayJcaFf2MNpoPY
+	RwMyBak80wphhNQM/ZbdE2tRPYWKp2xSTpvayyVo+xrq2jkqVAoOaz4M/GmpQhDQ
+	GoohNCukP3A1YcdSedH7Ka31l79hVrCqcvm9Qig3waOu8sHkFMFBcxErO5OHkgJx
+	1CybiPzK73IGpPLVmfvxA==
+X-ME-Sender: <xms:EHm9Z5ksovKix4IxAYOa6NPEsSLcphOoyOjz8HC-1Dt-R6Vx9U_HmQ>
+    <xme:EHm9Z02PIBag6kVjBAxYukVUJEdGe04NJq4rDChWSx6WsgtBg87p-_V2omgoWP2jZ
+    _7Dx_WXLOJSuAYYKgM>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefvddrtddtgdekuddujecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpggftfghnshhusghstghrihgsvgdp
+    uffrtefokffrpgfnqfghnecuuegrihhlohhuthemuceftddtnecusecvtfgvtghiphhivg
+    hnthhsucdlqddutddtmdenucfjughrpefoggffhffvvefkjghfufgtgfesthhqredtredt
+    jeenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
+    druggvqeenucggtffrrghtthgvrhhnpedvhfdvkeeuudevfffftefgvdevfedvleehvddv
+    geejvdefhedtgeegveehfeeljeenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
+    epmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopeeh
+    tddpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepsghpsegrlhhivghnkedruggvpd
+    hrtghpthhtohepthhssghoghgvnhgusegrlhhphhgrrdhfrhgrnhhkvghnrdguvgdprhgt
+    phhtthhopegtrghtrghlihhnrdhmrghrihhnrghssegrrhhmrdgtohhmpdhrtghpthhtoh
+    eplhhinhhugiesrghrmhhlihhnuhigrdhorhhgrdhukhdprhgtphhtthhopegthhhrihhs
+    thhophhhvgdrlhgvrhhohiestghsghhrohhuphdrvghupdhrtghpthhtohepuggrvhgvmh
+    esuggrvhgvmhhlohhfthdrnhgvthdprhgtphhtthhopehmihgtseguihhgihhkohgurdhn
+    vghtpdhrtghpthhtohepmhhpvgesvghllhgvrhhmrghnrdhiugdrrghupdhrtghpthhtoh
+    eprghnughrvggrshesghgrihhslhgvrhdrtghomh
+X-ME-Proxy: <xmx:EHm9Z_qJ-ITA7HBjaqdXvk3f-nqGrbsu3fDpFPFh2RmK-q6S1Rh3pg>
+    <xmx:EHm9Z5nHJC0k8dToMBJ4l8OzwQT8BBLHg391079G2HLzyfUZiOWn0A>
+    <xmx:EHm9Z302TC_YPcv_Alc8uVIbhcs_m4NaqklpywGUw6d3uwcpJgO6qQ>
+    <xmx:EHm9Z4sdir4sphaNBGTPw7csAyqyoGjyjpv2MyJVBqSCdS8S2iGxGQ>
+    <xmx:FHm9Z9FhQ4LWTtKGSN8SQ9W8XolOVrCxrHfKpOz3hrDt-C_9ux6zE9sc>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id A3F4B2220072; Tue, 25 Feb 2025 03:02:24 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH memory-model 6/7] tools/memory-model: Switch to softcoded
- herd7 tags
-To: Akira Yokosawa <akiyks@gmail.com>, "Paul E. McKenney"
- <paulmck@kernel.org>, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, lkmm@lists.linux.dev, kernel-team@meta.com,
- mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
- peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
- dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
- Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
-References: <8cfb51e3-9726-4285-b8ca-0d0abcacb07e@paulmck-laptop>
- <20250220161403.800831-6-paulmck@kernel.org>
- <105532ce-a41d-4f14-8172-cd68bdffae1d@gmail.com>
-Content-Language: en-US
-From: Hernan Ponce de Leon <hernan.poncedeleon@huaweicloud.com>
-In-Reply-To: <105532ce-a41d-4f14-8172-cd68bdffae1d@gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-X-CM-TRANSID:GxC2BwD3X+L9c71nhYEeAw--.47156S2
-X-Coremail-Antispam: 1UD129KBjvJXoW7Zw47uF18Xr1xKw48tr4DXFb_yoW8uF4kpa
-	yrWa43KF1kJrWa9w1xWa1qvFy5Xan3Jr1UJrnrA3s5ZFy293WakrySg3WqqF9rA3yI9w4Y
-	yr1jg3WkC3s8Za7anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDU0xBIdaVrnRJUUUvjb4IE77IF4wAFF20E14v26ryj6rWUM7CY07I20VC2zVCF04k2
-	6cxKx2IYs7xG6rWj6s0DM7CIcVAFz4kK6r1j6r18M28lY4IEw2IIxxk0rwA2F7IY1VAKz4
-	vEj48ve4kI8wA2z4x0Y4vE2Ix0cI8IcVAFwI0_Jr0_JF4l84ACjcxK6xIIjxv20xvEc7Cj
-	xVAFwI0_Gr0_Cr1l84ACjcxK6I8E87Iv67AKxVWUJVW8JwA2z4x0Y4vEx4A2jsIEc7CjxV
-	AFwI0_Gr0_Gr1UM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40E
-	x7xfMcIj6xIIjxv20xvE14v26r1j6r18McIj6I8E87Iv67AKxVWUJVW8JwAm72CE4IkC6x
-	0Yz7v_Jr0_Gr1lF7xvr2IY64vIr41lFIxGxcIEc7CjxVA2Y2ka0xkIwI1lc7CjxVAaw2AF
-	wI0_GFv_Wryl42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7v_Jr0_Gr1lx2IqxVAqx4
-	xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF1VAY17CE14v26r4a6rW5
-	MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIxAIcVC0I7IYx2IY6xkF7I
-	0E14v26r4j6F4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E87Iv67AKxVWU
-	JVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r4j6r4UJbIYCTnIWIevJa73UjIFyTuYvjxUIa
-	0PDUUUU
-X-CM-SenderInfo: xkhu0tnqos00pfhgvzhhrqqx5xdzvxpfor3voofrz/
+Date: Tue, 25 Feb 2025 09:02:04 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Christian Brauner" <brauner@kernel.org>
+Cc: "Amir Goldstein" <amir73il@gmail.com>,
+ "Andrey Albershteyn" <aalbersh@redhat.com>,
+ "Darrick J. Wong" <djwong@kernel.org>,
+ "Richard Henderson" <richard.henderson@linaro.org>,
+ "Matt Turner" <mattst88@gmail.com>,
+ "Russell King" <linux@armlinux.org.uk>,
+ "Catalin Marinas" <catalin.marinas@arm.com>,
+ "Will Deacon" <will@kernel.org>,
+ "Geert Uytterhoeven" <geert@linux-m68k.org>,
+ "Michal Simek" <monstr@monstr.eu>,
+ "Thomas Bogendoerfer" <tsbogend@alpha.franken.de>,
+ "James E . J . Bottomley" <James.Bottomley@hansenpartnership.com>,
+ "Helge Deller" <deller@gmx.de>,
+ "Madhavan Srinivasan" <maddy@linux.ibm.com>,
+ "Michael Ellerman" <mpe@ellerman.id.au>,
+ "Nicholas Piggin" <npiggin@gmail.com>,
+ "Christophe Leroy" <christophe.leroy@csgroup.eu>,
+ "Naveen N Rao" <naveen@kernel.org>, "Heiko Carstens" <hca@linux.ibm.com>,
+ "Vasily Gorbik" <gor@linux.ibm.com>,
+ "Alexander Gordeev" <agordeev@linux.ibm.com>,
+ "Christian Borntraeger" <borntraeger@linux.ibm.com>,
+ "Sven Schnelle" <svens@linux.ibm.com>,
+ "Yoshinori Sato" <ysato@users.sourceforge.jp>,
+ "Rich Felker" <dalias@libc.org>,
+ "John Paul Adrian Glaubitz" <glaubitz@physik.fu-berlin.de>,
+ "David S . Miller" <davem@davemloft.net>,
+ "Andreas Larsson" <andreas@gaisler.com>,
+ "Andy Lutomirski" <luto@kernel.org>,
+ "Thomas Gleixner" <tglx@linutronix.de>, "Ingo Molnar" <mingo@redhat.com>,
+ "Borislav Petkov" <bp@alien8.de>,
+ "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, "Chris Zankel" <chris@zankel.net>,
+ "Max Filippov" <jcmvbkbc@gmail.com>,
+ "Alexander Viro" <viro@zeniv.linux.org.uk>, "Jan Kara" <jack@suse.cz>,
+ =?UTF-8?Q?Micka=C3=ABl_Sala=C3=BCn?= <mic@digikod.net>,
+ =?UTF-8?Q?G=C3=BCnther_Noack?= <gnoack@google.com>,
+ linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-m68k@lists.linux-m68k.org,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org,
+ linux-sh@vger.kernel.org, sparclinux@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org, linux-security-module@vger.kernel.org,
+ linux-api@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
+ linux-xfs@vger.kernel.org, =?UTF-8?Q?Pali_Roh=C3=A1r?= <pali@kernel.org>,
+ "Theodore Ts'o" <tytso@mit.edu>
+Message-Id: <6b51ffa2-9d67-4466-865e-e703c1243352@app.fastmail.com>
+In-Reply-To: <20250224-klinke-hochdekoriert-3f6be89005a8@brauner>
+References: <20250211-xattrat-syscall-v3-1-a07d15f898b2@kernel.org>
+ <20250221181135.GW21808@frogsfrogsfrogs>
+ <CAOQ4uxgyYBFqkq6cQsso4LxJsPJ4uECOdskXmz-nmGhhV5BQWg@mail.gmail.com>
+ <20250224-klinke-hochdekoriert-3f6be89005a8@brauner>
+Subject: Re: [PATCH v3] fs: introduce getfsxattrat and setfsxattrat syscalls
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On 2/25/2025 5:24 AM, Akira Yokosawa wrote:
-> On Thu, 20 Feb 2025 08:14:02 -0800, Paul E. McKenney wrote:
->> From: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
->>
->> A new version of herd7 provides a -lkmmv2 switch which overrides the old herd7
->> behavior of simply ignoring any softcoded tags in the .def and .bell files. We
->> port LKMM to this version of herd7 by providing the switch in linux-kernel.cfg
->> and reporting an error if the LKMM is used without this switch.
->>
->> To preserve the semantics of LKMM, we also softcode the Noreturn tag on atomic
->> RMW which do not return a value and define atomic_add_unless with an Mb tag in
->> linux-kernel.def.
->>
->> We update the herd-representation.txt accordingly and clarify some of the
->> resulting combinations.
->>
-> 
-> Having failed to hear from Jonas or Hernan in response to my question at:
-> 
->      https://lore.kernel.org/lkmm/ec97f28e-31ad-4a45-ac87-fab91e27d4ee@gmail.com/
+On Mon, Feb 24, 2025, at 12:32, Christian Brauner wrote:
+> On Fri, Feb 21, 2025 at 08:15:24PM +0100, Amir Goldstein wrote:
+>> On Fri, Feb 21, 2025 at 7:13=E2=80=AFPM Darrick J. Wong <djwong@kerne=
+l.org> wrote:
 
-Sorry Akira, I lost track of the thread and forgot to answer.
+>> > > @@ -23,6 +23,9 @@
+>> > >  #include <linux/rw_hint.h>
+>> > >  #include <linux/seq_file.h>
+>> > >  #include <linux/debugfs.h>
+>> > > +#include <linux/syscalls.h>
+>> > > +#include <linux/fileattr.h>
+>> > > +#include <linux/namei.h>
+>> > >  #include <trace/events/writeback.h>
+>> > >  #define CREATE_TRACE_POINTS
+>> > >  #include <trace/events/timestamp.h>
+>> > > @@ -2953,3 +2956,75 @@ umode_t mode_strip_sgid(struct mnt_idmap *=
+idmap,
+>> > >       return mode & ~S_ISGID;
+>> > >  }
+>> > >  EXPORT_SYMBOL(mode_strip_sgid);
+>> > > +
+>> > > +SYSCALL_DEFINE4(getfsxattrat, int, dfd, const char __user *, fil=
+ename,
+>> > > +             struct fsxattr __user *, fsx, unsigned int, at_flag=
+s)
+>> >
+>> > Should the kernel require userspace to pass the size of the fsx buf=
+fer?
+>> > That way we avoid needing to rev the interface when we decide to gr=
+ow
+>> > the structure.
+>
+> Please version the struct by size as we do for clone3(),
+> mount_setattr(), listmount()'s struct mnt_id_req, sched_setattr(), all
+> the new xattrat*() system calls and a host of others. So laying out the
+> struct 64bit and passing a size alongside it.
+>
+> This is all handled by copy_struct_from_user() and copy_struct_to_user=
+()
+> so nothing to reinvent. And it's easy to copy from existing system
+> calls.
 
-> 
-> , let me guess.  Past contributions strongly suggest that Hernan looks after
-> herd7 changes and Jonas takes care of LKMM side of changes.
+I don't think that works in this case, because 'struct fsxattr'
+is an existing structure that is defined with a fixed size of
+28 bytes. If we ever need more than 8 extra bytes, then the
+existing ioctl commands are also broken.
 
-Yes, this is correct.
+Replacing fsxattr with an extensible structure of the same contents
+would work, but I feel that just adds more complication for little
+gain.
 
-Hernan
+On the other hand, there is an open question about how unknown
+flags and fields in this structure. FS_IOC_FSSETXATTR/FS_IOC_FSGETXATTR
+treats them as optional and just ignores anything it doesn't
+understand, while copy_struct_from_user() would treat any unknown
+but set bytes as -E2BIG.
 
-> 
-> So my suggestion is to add a Co-developed-by tag of Hernan here:
-> 
-> Co-developed-by: Hernan Ponce de Leon <hernan.poncedeleon@huaweicloud.com>
->> Signed-off-by: Hernan Ponce de Leon <hernan.poncedeleon@huaweicloud.com>
->> Signed-off-by: Jonas Oberhauser <jonas.oberhauser@huaweicloud.com>
->> Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
->> Reviewed-by: Boqun Feng <boqun.feng@gmail.com>
->> Tested-by: Boqun Feng <boqun.feng@gmail.com>
-> 
-> , and let me add a Tested-by:
-> 
-> Tested-by: Akira Yokosawa <akiyks@gmail.com> # herdtools7.7.58
-> 
->          Thanks, Akira
-> 
->> ---
->>   .../Documentation/herd-representation.txt     | 27 ++++++++++---------
->>   tools/memory-model/README                     |  2 +-
->>   tools/memory-model/linux-kernel.bell          |  3 +++
->>   tools/memory-model/linux-kernel.cfg           |  1 +
->>   tools/memory-model/linux-kernel.def           | 18 +++++++------
->>   5 files changed, 30 insertions(+), 21 deletions(-)
+The ioctl interface relies on the existing behavior, see
+0a6eab8bd4e0 ("vfs: support FS_XFLAG_COWEXTSIZE and get/set of
+CoW extent size hint") for how it was previously extended
+with an optional flag/word. I think that is fine for the syscall
+as well, but should be properly documented since it is different
+from how most syscalls work.
 
+    Arnd
