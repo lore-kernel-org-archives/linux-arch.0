@@ -1,29 +1,29 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 46B84238D45;
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 870B125E82A;
 	Wed, 26 Feb 2025 23:08:59 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1740611340; cv=none; b=RG/xv5ZyQFmekJlnBGNcZbZ6RgOf6hgY4pvt596kdkB+Q5yD4jGu9KKXiCPYry2vBQKbsSIZGsebkqgb/zYrarD5Lw50tvuEFkv9TS+KSsw/fw3azqgy7VpVe9N/NaoMSPm3eiHT2by9k/5Vex4ARvRZWMAN+n15u9cvy+Yln1w=
+	t=1740611340; cv=none; b=HKzSOc9rNa1J46HaEgSuMn1eUCgME02QaLbDZIgPEyQeC+K7Vd+RuH3TRJGsmJktgQEI1b3uZ4yMoEXlppEN18NFSRU3h4AYb/jimn4E2cTyd+6MtcNHVaERE2InCeHRMN2lGfEcem6B2w54SyLZpXq70qQy1p1KJ2soIUUCyZE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1740611340; c=relaxed/simple;
-	bh=nPweVsLl7uIAYWjG+7vG9M1PuFnyS6nDv4NajuCdpkY=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=Ki4cjfg+Vbi2zGUSqZRbQkk7g8WfbZn7LG890xe0urWK1SZK8kdd4pW22yvxqn2EC8KfzIkn8YNGvoqn5je6DuIXTkxABGA1Rp+cCbS45xATVe/30kg9X3nw69SUVJhR0gP5OajZ9iZuB+9dCnc0/XDDi0RbefyABxCCZaNWhbw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=prsKrfTW; arc=none smtp.client-ip=13.77.154.182
+	bh=RWvwchN91OZfmV+T1rNIRgKSWPnCo8mxjvnyUuLObSE=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=d4rcf7uLM9ZvoQPUTOAd+VQ4L2W0PmxZFuo7RMyAgEjVL0p52oNHapa+jfeAd6mYkLJzCaKS6CRpyDdjisRiXGmecPtzd6oKV3XOvgQhPlT3N8XUpKvfmTzObxzxWU7iuTNYn3O5zizH1g4A88eh4mLS+zzKRROFUe+D+mAdTaI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=EJpPKERW; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="prsKrfTW"
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="EJpPKERW"
 Received: from linuxonhyperv3.guj3yctzbm1etfxqx2vob5hsef.xx.internal.cloudapp.net (linux.microsoft.com [13.77.154.182])
-	by linux.microsoft.com (Postfix) with ESMTPSA id B0CEC210EAC5;
+	by linux.microsoft.com (Postfix) with ESMTPSA id EAD3C210EAC9;
 	Wed, 26 Feb 2025 15:08:58 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com B0CEC210EAC5
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com EAD3C210EAC9
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1740611338;
-	bh=mdPAe0pP9QMjExtffSosvKieXECF/E8lF8sABw0TiKU=;
+	s=default; t=1740611339;
+	bh=tIVrfttD91JAtEfLmtb1QJhK1PICItl6xsHcfajlSko=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=prsKrfTW7xMSKGkMq0JEyI47ylrRB0iXXkgVITEgofJU7UnQ4YKUX7ub9f77xioyB
-	 3CyOtt1dTxF8lopX4jxKWJPhRG80QRZubcdPlfHbqSyleEOfyNiuhKnHOUhveoVIs/
-	 zbBcH0pyBGhjpGrYrY/QXGuLG1uvz1AQYa6Pi8Y4=
+	b=EJpPKERW1PefhigZxbH27ZOLBfjmlucD5ZZQ3SSUVqQFAALsU1H/JFCFyJIFfxmV5
+	 MVhhw3mXtZo8VuzmBtNQAAeUM20G0Ns727Cij61STDqXueDS6YhSqlSAlaZpqXJ8Tc
+	 yJGkiKBE1Lhxpy4BprrtKjjdgsM0brWc1Y2pHXzQ=
 From: Nuno Das Neves <nunodasneves@linux.microsoft.com>
 To: linux-hyperv@vger.kernel.org,
 	x86@kernel.org,
@@ -63,9 +63,9 @@ Cc: kys@microsoft.com,
 	rafael@kernel.org,
 	lenb@kernel.org,
 	corbet@lwn.net
-Subject: [PATCH v5 02/10] x86/mshyperv: Add support for extended Hyper-V features
-Date: Wed, 26 Feb 2025 15:07:56 -0800
-Message-Id: <1740611284-27506-3-git-send-email-nunodasneves@linux.microsoft.com>
+Subject: [PATCH v5 04/10] hyperv: Introduce hv_recommend_using_aeoi()
+Date: Wed, 26 Feb 2025 15:07:58 -0800
+Message-Id: <1740611284-27506-5-git-send-email-nunodasneves@linux.microsoft.com>
 X-Mailer: git-send-email 1.8.3.1
 In-Reply-To: <1740611284-27506-1-git-send-email-nunodasneves@linux.microsoft.com>
 References: <1740611284-27506-1-git-send-email-nunodasneves@linux.microsoft.com>
@@ -75,54 +75,62 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
+Factor out the check for enabling auto eoi, to be reused in root
+partition code.
 
-Extend the "ms_hyperv_info" structure to include a new field,
-"ext_features", for capturing extended Hyper-V features.
-Update the "ms_hyperv_init_platform" function to retrieve these features
-using the cpuid instruction and include them in the informational output.
-
-Signed-off-by: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
 Signed-off-by: Nuno Das Neves <nunodasneves@linux.microsoft.com>
 ---
- arch/x86/kernel/cpu/mshyperv.c | 6 ++++--
- include/asm-generic/mshyperv.h | 1 +
- 2 files changed, 5 insertions(+), 2 deletions(-)
+ drivers/hv/hv.c                | 12 +-----------
+ include/asm-generic/mshyperv.h | 13 +++++++++++++
+ 2 files changed, 14 insertions(+), 11 deletions(-)
 
-diff --git a/arch/x86/kernel/cpu/mshyperv.c b/arch/x86/kernel/cpu/mshyperv.c
-index 4f01f424ea5b..2c29dfd6de19 100644
---- a/arch/x86/kernel/cpu/mshyperv.c
-+++ b/arch/x86/kernel/cpu/mshyperv.c
-@@ -434,13 +434,15 @@ static void __init ms_hyperv_init_platform(void)
- 	 */
- 	ms_hyperv.features = cpuid_eax(HYPERV_CPUID_FEATURES);
- 	ms_hyperv.priv_high = cpuid_ebx(HYPERV_CPUID_FEATURES);
-+	ms_hyperv.ext_features = cpuid_ecx(HYPERV_CPUID_FEATURES);
- 	ms_hyperv.misc_features = cpuid_edx(HYPERV_CPUID_FEATURES);
- 	ms_hyperv.hints    = cpuid_eax(HYPERV_CPUID_ENLIGHTMENT_INFO);
+diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+index a38f84548bc2..308c8f279df8 100644
+--- a/drivers/hv/hv.c
++++ b/drivers/hv/hv.c
+@@ -313,17 +313,7 @@ void hv_synic_enable_regs(unsigned int cpu)
  
- 	hv_max_functions_eax = cpuid_eax(HYPERV_CPUID_VENDOR_AND_MAX_FUNCTIONS);
+ 	shared_sint.vector = vmbus_interrupt;
+ 	shared_sint.masked = false;
+-
+-	/*
+-	 * On architectures where Hyper-V doesn't support AEOI (e.g., ARM64),
+-	 * it doesn't provide a recommendation flag and AEOI must be disabled.
+-	 */
+-#ifdef HV_DEPRECATING_AEOI_RECOMMENDED
+-	shared_sint.auto_eoi =
+-			!(ms_hyperv.hints & HV_DEPRECATING_AEOI_RECOMMENDED);
+-#else
+-	shared_sint.auto_eoi = 0;
+-#endif
++	shared_sint.auto_eoi = hv_recommend_using_aeoi();
+ 	hv_set_msr(HV_MSR_SINT0 + VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
  
--	pr_info("Hyper-V: privilege flags low 0x%x, high 0x%x, hints 0x%x, misc 0x%x\n",
--		ms_hyperv.features, ms_hyperv.priv_high, ms_hyperv.hints,
-+	pr_info("Hyper-V: privilege flags low 0x%x, high 0x%x, ext 0x%x, hints 0x%x, misc 0x%x\n",
-+		ms_hyperv.features, ms_hyperv.priv_high,
-+		ms_hyperv.ext_features, ms_hyperv.hints,
- 		ms_hyperv.misc_features);
- 
- 	ms_hyperv.max_vp_index = cpuid_eax(HYPERV_CPUID_IMPLEMENT_LIMITS);
+ 	/* Enable the global synic bit */
 diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
-index dc4729dba9ef..c020d5d0ec2a 100644
+index 258034dfd829..1f46d19a16aa 100644
 --- a/include/asm-generic/mshyperv.h
 +++ b/include/asm-generic/mshyperv.h
-@@ -36,6 +36,7 @@ enum hv_partition_type {
- struct ms_hyperv_info {
- 	u32 features;
- 	u32 priv_high;
-+	u32 ext_features;
- 	u32 misc_features;
- 	u32 hints;
- 	u32 nested_features;
+@@ -77,6 +77,19 @@ extern u64 hv_do_fast_hypercall16(u16 control, u64 input1, u64 input2);
+ bool hv_isolation_type_snp(void);
+ bool hv_isolation_type_tdx(void);
+ 
++/*
++ * On architectures where Hyper-V doesn't support AEOI (e.g., ARM64),
++ * it doesn't provide a recommendation flag and AEOI must be disabled.
++ */
++static inline bool hv_recommend_using_aeoi(void)
++{
++#ifdef HV_DEPRECATING_AEOI_RECOMMENDED
++	return !(ms_hyperv.hints & HV_DEPRECATING_AEOI_RECOMMENDED);
++#else
++	return false;
++#endif
++}
++
+ static inline struct hv_proximity_domain_info hv_numa_node_to_pxm_info(int node)
+ {
+ 	struct hv_proximity_domain_info pxm_info = {};
 -- 
 2.34.1
 
