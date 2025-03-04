@@ -1,151 +1,138 @@
-Received: from beeline3.cc.itu.edu.tr (beeline3.cc.itu.edu.tr [160.75.25.117])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D0ED27C84F
-	for <linux-arch@vger.kernel.org>; Tue,  4 Mar 2025 18:22:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=160.75.25.117
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1741112553; cv=fail; b=cdFrd6TCMiHNyOmjIuB+P/f3u9um6vjDwJ3m/C6JA7j4/VGZVWeGHLXHE8MP68JTKLJwsXMSlpFap4CJ/GZsav7PayCQ0Li37MREntyt5iqo7xr9kcSDicx1yl+nel3A6at3OEcJHAfrMub+RYSSfJXzSVauiHGqdmJ0QiJe9ts=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1741112553; c=relaxed/simple;
-	bh=0xL0F9rdElvB+NQbmj2NrRU9PnlyhTsMf4tikqFVt+Q=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=Kw4JHYEX0CJPJzAgb5pm/e0OyM3qZ/uN8cIaXWjDE1GFcPNCwmOVjD7a/ycJ/g/LbxOgzdmaE4EiD0OHHqfYAUZHuKs4Krub4aRyrao5q8tC2X2tnNdL9tNHKfKYV3raNVHlR6w15ftyS2Eg3hxRhFr3qW89lETzdmyCiCi2ZC0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=linutronix.de; spf=none smtp.mailfrom=cc.itu.edu.tr; dkim=fail (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=J2PnJ8Er reason="signature verification failed"; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=GwBc4N7J; arc=none smtp.client-ip=193.142.43.55; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; arc=fail smtp.client-ip=160.75.25.117
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=cc.itu.edu.tr
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="J2PnJ8Er";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="GwBc4N7J"
-Received: from lesvatest1.cc.itu.edu.tr (lesvatest1.cc.itu.edu.tr [10.146.128.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (P-256) server-signature RSA-PSS (2048 bits))
-	(No client certificate requested)
-	by beeline3.cc.itu.edu.tr (Postfix) with ESMTPS id 6306440D1F5C
-	for <linux-arch@vger.kernel.org>; Tue,  4 Mar 2025 21:22:30 +0300 (+03)
-X-Envelope-From: <root@cc.itu.edu.tr>
-Authentication-Results: lesvatest1.cc.itu.edu.tr;
-	dkim=fail reason="signature verification failed" (2048-bit key, unprotected) header.d=linutronix.de header.i=@linutronix.de header.a=rsa-sha256 header.s=2020 header.b=J2PnJ8Er;
-	dkim=fail reason="signature verification failed" header.d=linutronix.de header.i=@linutronix.de header.a=ed25519-sha256 header.s=2020e header.b=GwBc4N7J
-Received: from lesva1.cc.itu.edu.tr (unknown [160.75.70.79])
-	by lesvatest1.cc.itu.edu.tr (Postfix) with ESMTP id 4Z6dCP3Hl7zFwP3
-	for <linux-arch@vger.kernel.org>; Tue,  4 Mar 2025 17:21:21 +0300 (+03)
-Received: by le1 (Postfix, from userid 0)
-	id 4DBB34278D; Tue,  4 Mar 2025 17:20:58 +0300 (+03)
-Authentication-Results: lesva1.cc.itu.edu.tr;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=J2PnJ8Er;
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=GwBc4N7J
-X-Envelope-From: <linux-kernel+bounces-541541-bozkiru=itu.edu.tr@vger.kernel.org>
-Authentication-Results: lesva2.cc.itu.edu.tr;
-	dkim=fail reason="signature verification failed" (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=J2PnJ8Er;
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=GwBc4N7J
-Received: from fgw1.itu.edu.tr (fgw1.itu.edu.tr [160.75.25.103])
-	by le2 (Postfix) with ESMTP id 0982542978
-	for <bozkiru@itu.edu.tr>; Mon,  3 Mar 2025 14:25:07 +0300 (+03)
-Received: from sv.mirrors.kernel.org (sv.mirrors.kernel.org [139.178.88.99])
-	by fgw1.itu.edu.tr (Postfix) with SMTP id 93E8C3063EFC
-	for <bozkiru@itu.edu.tr>; Mon,  3 Mar 2025 14:25:07 +0300 (+03)
-Received: from smtp.subspace.kernel.org (relay.kernel.org [52.25.139.140])
-	(using TLSv1.2 with cipher ECDHE-ECDSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by sv.mirrors.kernel.org (Postfix) with ESMTPS id 282E83BD09A
-	for <bozkiru@itu.edu.tr>; Mon,  3 Mar 2025 11:17:39 +0000 (UTC)
-Received: from localhost.localdomain (localhost.localdomain [127.0.0.1])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 225271F3FCB;
-	Mon,  3 Mar 2025 11:11:25 +0000 (UTC)
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4BCB41FBEAF;
-	Mon,  3 Mar 2025 11:11:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DDC1F1EE7AD;
+	Tue,  4 Mar 2025 19:15:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1741000281; cv=none; b=athv0CKh7zM7vFISJQg4WlOv7FrUaI0AwztdvCYwSMSOlZQ7HzVM4Sqa4yfo7XwngoE+tlfYy+KxcGi6bUZrnxIe3oe0gNBoGvcW1q879oVKg5SBMXlhlx2OCYM1SbSWXbwY6maJWwRqIJRavzHiKZ7/vDO5ZPrfJPv9yg8GQ4E=
+	t=1741115759; cv=none; b=Lx78yybCdE5YRoTjwN2S0Edz+DgDdYrCl4HPUr56ryosoXNRhs1Au1MYEp2yQvASyrtMCtiY3/SeKxuuhWtsjLTsqmT9guNfFmnwoEE97RQ2A0P41c4cHReaUg7j+y2KmK9JoIuk8x4z3XePCgYwH/CPl3WT04J/qlrZpJvXgRQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1741000281; c=relaxed/simple;
-	bh=98E4VrqWtF5AW/xLBGM4T2qtKg+zPc3dVoKozXn+hFA=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=TIzTo9XaJwaMXRDzZQRL78CEfCNqff3GbkRC9kVMhP+8V+9E1OfEJ/PeI/Gw9kIjz0pBdwmEJFRdU59JoThUL5ClfHJB04W4Wo6Eycj/hLM7mmSN1iJ3W/Omkir9y8/3HOabtAaLyFmi4IF/7ouBVjOwBXf9tiLgVesJGU+hqSc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=J2PnJ8Er; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=GwBc4N7J; arc=none smtp.client-ip=193.142.43.55
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
-From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1741000277;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=kZM1ca5Q9+J4hpNMdg9ysh15hAgKOmycAt5hVatLnOo=;
-	b=J2PnJ8ErcXhVIuRvqvkHXj7+dnNdS1EYL5YDEQZoOxgEkdIVKIFeg07b0VEIi3KThnzbt0
-	ah3FK8WH0SUuZVYvxjp9pmpwO9vjxDPFsKHVNT/DUtprc2AbKlrSe/944ut+VipnhpibNE
-	29SbO2Xuxo/jL/txmYAIO16qHVwJFP+bvw3QcgHJXU/FohbxePmQm/Y+7++xwQnw/Hws2/
-	Hfq0VCWqKAR6lbMcAGPJux4b9Ev4LSi4bIfjXBPTW28XOqHQejdiPSeTSjqNqMnc5FIwO/
-	uUO5w4RFlrbUUu8nnclDM2MIzMtXJU72CkI7ELp9NW9W5sVsPcqWIk3/EMh6Aw==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1741000277;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=kZM1ca5Q9+J4hpNMdg9ysh15hAgKOmycAt5hVatLnOo=;
-	b=GwBc4N7JUlvmihVy8GcCVvbKSPyE3aY+zPykltsPgrrIWLNMhdZU0VqRTlm2Ku0wvazGx9
-	XnuHfIQjnht8pgCw==
-Date: Mon, 03 Mar 2025 12:11:19 +0100
-Subject: [PATCH 17/19] powerpc/vdso: Prepare introduction of struct
- vdso_clock
-Precedence: bulk
+	s=arc-20240116; t=1741115759; c=relaxed/simple;
+	bh=EX2yCH5S4Sr+3vHjRGwcGccOr3tHhewaJmApX8U9vdA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=oekSEBM8dGSmvX0OpVq8azsUqwxDGU1qsqXX6eCHDF8pwhq9XY3tn4g+YUwwXwUxo1TfJwchRtNxagCv3so7q8LDTyDc0LJDw1q4hQiQARKFntM8hyynmOSUpFfB6pu3T4qKRQWtJlwYa7nSOnWOUaKM4bcKIM/gJyF609p9BrA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2C4CBC4CEE5;
+	Tue,  4 Mar 2025 19:15:57 +0000 (UTC)
+Date: Tue, 4 Mar 2025 19:15:54 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, arnd@arndb.de,
+	will@kernel.org, peterz@infradead.org, mark.rutland@arm.com,
+	harisokn@amazon.com, cl@gentwo.org, memxor@gmail.com,
+	zhenglifeng1@huawei.com, joao.m.martins@oracle.com,
+	boris.ostrovsky@oracle.com, konrad.wilk@oracle.com
+Subject: Re: [PATCH 1/4] asm-generic: barrier: Add
+ smp_cond_load_relaxed_timewait()
+Message-ID: <Z8dRalfxYcJIcLGj@arm.com>
+References: <20250203214911.898276-1-ankur.a.arora@oracle.com>
+ <20250203214911.898276-2-ankur.a.arora@oracle.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Message-ID: <20250303-vdso-clock-v1-17-c1b5c69a166f@linutronix.de>
-References: <20250303-vdso-clock-v1-0-c1b5c69a166f@linutronix.de>
-In-Reply-To: <20250303-vdso-clock-v1-0-c1b5c69a166f@linutronix.de>
-To: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, 
- Vincenzo Frascino <vincenzo.frascino@arm.com>, 
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
- Anna-Maria Behnsen <anna-maria@linutronix.de>, 
- Frederic Weisbecker <frederic@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
- Madhavan Srinivasan <maddy@linux.ibm.com>, 
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
- Christophe Leroy <christophe.leroy@csgroup.eu>, 
- Naveen N Rao <naveen@kernel.org>, Heiko Carstens <hca@linux.ibm.com>, 
- Vasily Gorbik <gor@linux.ibm.com>, 
- Alexander Gordeev <agordeev@linux.ibm.com>, 
- Christian Borntraeger <borntraeger@linux.ibm.com>, 
- Sven Schnelle <svens@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, 
- linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, 
- linux-arch@vger.kernel.org, Nam Cao <namcao@linutronix.de>, 
- =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1741000267; l=1274;
- i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
- bh=J/Meo4khXD/IuyjcSchvegknYNCvt5RiCWDXgeCNEuA=;
- b=ipqT0aYN+nLJcWWGgAiulZ2z34jv+h8RZjUb8zE4PSrDBBV3fg7CNnQswUAW4p7fvphbY9V95
- iF6oxWHwSrZAnFYXR+PzpHDR0Rb2CslyLmtoDfl4dn1AAze7BQJj/Ii
-X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
- pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
-Content-Transfer-Encoding: quoted-printable
-X-ITU-Libra-ESVA-Information: Please contact Istanbul Teknik Universitesi for more information
-X-ITU-Libra-ESVA-ID: 4Z6dCP3Hl7zFwP3
-X-ITU-Libra-ESVA: No virus found
-X-ITU-Libra-ESVA-From: root@cc.itu.edu.tr
-X-ITU-Libra-ESVA-Watermark: 1741717266.9988@BclCVsowTKNmlCAvj+GNtA
-X-ITU-MailScanner-SpamCheck: not spam
-Message-ID: <20250303111119.IeMj1tujvGtiA2MzY3Fk9g9_3s1HvO4HoGV7EPehlec@z>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20250203214911.898276-2-ankur.a.arora@oracle.com>
+X-TUID: lLrdoPZx9Q90
 
-From: Nam Cao <namcao@linutronix.de>
+On Mon, Feb 03, 2025 at 01:49:08PM -0800, Ankur Arora wrote:
+> Add smp_cond_load_relaxed_timewait(), a timed variant of
+> smp_cond_load_relaxed(). This is useful for cases where we want to
+> wait on a conditional variable but don't want to wait indefinitely.
 
-To support multiple PTP clocks, the VDSO data structure needs to be
-reworked. All clock specific data will end up in struct vdso_clock and in
-struct vdso_time_data there will be array of it. By now, vdso_clock is
-simply a define which maps vdso_clock to vdso_time_data.
+Bikeshedding: why not "timeout" rather than "timewait"?
 
-To prepare for the rework of the data structures, replace the struct
-vdso_time_data pointer with struct vdso_clock pointer whenever applicable=
+> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+> index d4f581c1e21d..31de8ed2a05e 100644
+> --- a/include/asm-generic/barrier.h
+> +++ b/include/asm-generic/barrier.h
+> @@ -273,6 +273,54 @@ do {									\
+>  })
+>  #endif
+>  
+> +#ifndef smp_cond_time_check_count
+> +/*
+> + * Limit how often smp_cond_load_relaxed_timewait() evaluates time_expr_ns.
+> + * This helps reduce the number of instructions executed while spin-waiting.
+> + */
+> +#define smp_cond_time_check_count	200
+> +#endif
+
+While this was indeed added to the poll_idle() loop, it feels completely
+random in a generic implementation. It's highly dependent on the
+time_expr_ns passed. Can the caller not move the loop in time_expr_ns
+before invoking this macro?
+
+> +
+> +/**
+> + * smp_cond_load_relaxed_timewait() - (Spin) wait for cond with no ordering
+> + * guarantees until a timeout expires.
+> + * @ptr: pointer to the variable to wait on
+> + * @cond: boolean expression to wait for
+> + * @time_expr_ns: evaluates to the current time
+> + * @time_limit_ns: compared against time_expr_ns
+> + *
+> + * Equivalent to using READ_ONCE() on the condition variable.
+> + *
+> + * Note that the time check in time_expr_ns can be synchronous or
+> + * asynchronous.
+> + * In the generic version the check is synchronous but kept coarse
+> + * to minimize instructions executed while spin-waiting.
+> + */
+
+Not sure exactly what synchronous vs asynchronous here mean. I see the
+latter more like an interrupt. I guess what you have in mind is the WFE
+wakeup events on arm64, though they don't interrupt the instruction
+flow. I'd not bother specifying this at all.
+
+> +#ifndef __smp_cond_load_relaxed_spinwait
+> +#define __smp_cond_load_relaxed_spinwait(ptr, cond_expr, time_expr_ns,	\
+> +					 time_limit_ns) ({		\
+> +	typeof(ptr) __PTR = (ptr);					\
+> +	__unqual_scalar_typeof(*ptr) VAL;				\
+> +	unsigned int __count = 0;					\
+> +	for (;;) {							\
+> +		VAL = READ_ONCE(*__PTR);				\
+> +		if (cond_expr)						\
+> +			break;						\
+> +		cpu_relax();						\
+> +		if (__count++ < smp_cond_time_check_count)		\
+> +			continue;					\
+> +		if ((time_expr_ns) >= (time_limit_ns))			\
+> +			break;						\
+> +		__count = 0;						\
+> +	}								\
+> +	(typeof(*ptr))VAL;						\
+> +})
+> +#endif
+> +
+> +#ifndef smp_cond_load_relaxed_timewait
+> +#define smp_cond_load_relaxed_timewait  __smp_cond_load_relaxed_spinwait
+> +#endif
+
+What I don't particularly like about this interface is (1) no idea of
+what time granularity it offers, how much it can slip past the deadline,
+even though there's some nanoseconds implied and (2) time_expr_ns leaves
+the caller to figure out why time function to use for tracking the time.
+Well, I can be ok with (2) if we make it a bit more generic.
+
+The way it is written, I guess the type of the time expression and limit
+no longer matters as long as you can compare them. The naming implies
+nanoseconds but we don't have such precision, especially with the WFE
+implementation for arm64. We could add a slack range argument like the
+delta_ns for some of the hrtimer API and let the arch code decide
+whether to honour it.
+
+What about we drop the time_limit_ns and build it into the time_expr_ns
+as a 'time_cond' argument? The latter would return the result of some
+comparison and the loop bails out if true. An additional argument would
+be the minimum granularity for checking the time_cond and the arch code
+may decide to fall back to busy loops if the granularity is larger than
+what the caller required.
+
+-- 
+Catalin
