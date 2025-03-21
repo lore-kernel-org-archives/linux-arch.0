@@ -1,220 +1,211 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86772230BD2
-	for <linux-arch@vger.kernel.org>; Fri, 21 Mar 2025 19:49:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3BDD51E7C0B;
+	Fri, 21 Mar 2025 20:11:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1742586566; cv=none; b=NCCFDVTcW1W7jElP+EkKo2l/IjD7/Y7tLP5spmX7cU9ZSXTH5hKJVJBHTAeyjvxt2UC/v6aq9yrXriaTMqCQdImOyOehbPshSTnolsdjKPOpt7nhKt7jOOR4WL7xRxj1seYLpACA9E+Uqkf0VDY7SXdEztUJQf8earmsMk0xP4w=
+	t=1742587890; cv=none; b=ctNwEECC6f6ZkxPUvgBk+qwCEs06U6UCvpdPHGIl/Qkc0olXNQIyTqs5MsD8pqp7EUaOX1yQ5Bko6T6vJULWJvgAi4ykB1vpnzfdHEbUqwvulkwvJMe+EhFt3dl8mmjcTLklMGzim1E6lIFr/j1Dkp/QF2EGniXCW58SgoOc8pg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1742586566; c=relaxed/simple;
-	bh=U65D6SohAEKFKir81pK5H51AE5x6/jUW8l5jaJk9nGM=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=a3qe38LOJTddvEzaruMhOX0sgXegRuPT0P00QB04hMyHQ7/K51wq2/n1aJvvrf/6Usjg7FXBYUjkHlAMGB18rQ6DowbPWlPM3HwjhNuMSqJiUY0nmtDN4BsoxMWAf1ShILJSTvfdUfalu/tU8Xq8aLwKPrKKGBlCgxat3vTsuMk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=AoVSmLWx; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1742587890; c=relaxed/simple;
+	bh=xsq4fMA9KErOYHpGLUUJOLylW+Xto3AugMKGT4drrrk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=hv1spOftKL4jFrnviB17lFMMxqKpD5utbYrs9bkfex/bMmKAiZrec0oS2fdJ8orAhST1/ahQF6+3rMwBFwSWqL9s8TtE1uiwTpLb025b7lK5E9HvFytk6YnYRLcr/QSVT0fBI8xaK6V6kiiC6G7VJyPMkSriMENBpVKZfsxtau4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=nvSStd5E; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="AoVSmLWx"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1742586562;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=P+CKY6hYnggEy5gDUo8IBcPB4aoVwWaaXqwhjqRQh5c=;
-	b=AoVSmLWx5YwJPEtLVi1Z6cNl8Jc31u1ef/LKGwe8yfwooSvSDGvrrvPoQ6wu3w1+HZU0Qy
-	y+YXTLPqu/ezYvYpytSKqXsT8DuC6fguSzCSQdjLb84vXphbZpLuZYQR+/3sojd2lQ1wKz
-	mMHgRmzcqVdO5xykTVNvjbQFrN0Ey54=
-Received: from mail-ej1-f71.google.com (mail-ej1-f71.google.com
- [209.85.218.71]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-209-Fcxpc3BQPsyLQypBkHbLmA-1; Fri, 21 Mar 2025 15:49:17 -0400
-X-MC-Unique: Fcxpc3BQPsyLQypBkHbLmA-1
-X-Mimecast-MFC-AGG-ID: Fcxpc3BQPsyLQypBkHbLmA_1742586556
-Received: by mail-ej1-f71.google.com with SMTP id a640c23a62f3a-ac297c79dabso213958066b.0
-        for <linux-arch@vger.kernel.org>; Fri, 21 Mar 2025 12:49:16 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1742586556; x=1743191356;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=P+CKY6hYnggEy5gDUo8IBcPB4aoVwWaaXqwhjqRQh5c=;
-        b=Jblt6Cu5puWjrE29XbYDsAZaypIR93UcLAAonJSdNnTczwXenmp8PIh/uhOBnV86F3
-         FYkti0Uh+5viqgsZQyG8mZnhsvveYvqh80zuzP5hHHpKLYFpUjvnWh08nhF9CFdcDN4K
-         N5XVILfIN9oeetSf2CdXHsoy3N95+K9pTjkjNqTG0Z7Ni0+CGvZxRpdIowFJUuqaeYx9
-         GxvD4I9YqXmZzGL0W5fasC47Na9U1j8En1s30RiE/34Ug2jHWbRNny9+SxoBR6LTHuNs
-         jC3x9RQ6n0Uz7zrF1L7OGmfXQmBJCYGnC4qQttswrRSkCttvKZvN6p13jXbt9umwXz+S
-         Ac4g==
-X-Forwarded-Encrypted: i=1; AJvYcCUWpN1fOpr5d6CGGjE04p4uQjArkhdJtIbQFTcuee9mlB+ZeRQWCniVF/X0hdlHWLLMincngUnonkGD@vger.kernel.org
-X-Gm-Message-State: AOJu0YxU9zeyZtLHhtQMMwDN1vLdjtSfebfrktBYwF4Oz6Ktgrb03wR+
-	X3KYN2ZdZDyfARMY8E9ZkjS2+YMVm5elDc6cV9NqSIURJPq/FCTEsl4LmnfaGCB1IvgBcdTw9BE
-	9CmFcoWoSgBDdBBazBGlxllk7Ja60+6eT7waTqkkdph22NpvehZEmR/DVMA==
-X-Gm-Gg: ASbGnct97YZhjXc3E9Eq3Cbh9YgBB9GAs6mybA65Ssvmjo6FuM78it+gqH9B8em/9UW
-	mtCgPj2RpSZ1jCYLal9CK0s+0anPeHPrlpQ8ds9YxUIGd/08+yaD80133uupKqps837ezDKl0rU
-	O3r/M6mpWPM9P2x3aB6AXBRkauL+Rl2oqXNGSWnIgXNtYL0N9mXMv/EWc+57tY4pGul08j5Fdku
-	WAnRvLWzePhX6sit0tZkRI7Jd2aiZix8SfBtp9iPWtXymN0IJmEGT5DtCryFOrLO1cQQ0QvEYsS
-	sVEuRV6Gw+lIDdjDs/zgZN/lN2u/Y4ENkIxgd0jOZA==
-X-Received: by 2002:a17:907:9482:b0:ac2:13f:338b with SMTP id a640c23a62f3a-ac3f2537a13mr417242166b.55.1742586555770;
-        Fri, 21 Mar 2025 12:49:15 -0700 (PDT)
-X-Google-Smtp-Source: AGHT+IE364/oBuyn+cE4ig5ONss+vPjSo5TWTy9RSOBlsLCFEbZLg0sVEvc8UiI6SNuN3e2vwFGwrA==
-X-Received: by 2002:a17:907:9482:b0:ac2:13f:338b with SMTP id a640c23a62f3a-ac3f2537a13mr417237066b.55.1742586555219;
-        Fri, 21 Mar 2025 12:49:15 -0700 (PDT)
-Received: from [127.0.0.2] (ip-217-030-074-039.aim-net.cz. [217.30.74.39])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-ac3ef8d3d38sm204412266b.39.2025.03.21.12.49.12
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 21 Mar 2025 12:49:13 -0700 (PDT)
-From: Andrey Albershteyn <aalbersh@redhat.com>
-X-Google-Original-From: Andrey Albershteyn <aalbersh@kernel.org>
-Date: Fri, 21 Mar 2025 20:48:41 +0100
-Subject: [PATCH v4 2/3] fs: split fileattr/fsxattr converters into helpers
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="nvSStd5E"
+Received: from [10.0.0.114] (c-67-182-156-199.hsd1.wa.comcast.net [67.182.156.199])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 353462025389;
+	Fri, 21 Mar 2025 13:11:28 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 353462025389
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1742587888;
+	bh=ITpL14RmT7jWiNjR2GtSe0m1zpsnePBZKTOpKhGLiCU=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=nvSStd5EIPUCS1lGHYZ0GWov/8+OkkDrMUoX+9aDmf6yrWik1ywMI7mldvkqbHeqH
+	 BD+PFvVYsttpY06YF2fI0tZLy2OPKopSoMrBwtFLAqFMr9glMVJxlbaaSnhB4EMn7B
+	 Zxb+lEKFL/oz3QDhZbbZ02k7poz0h5+SF7i/ukzo=
+Message-ID: <bae5bb62-d480-46fd-837c-9267c0a30fae@linux.microsoft.com>
+Date: Fri, 21 Mar 2025 13:11:22 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 4/6] Drivers: hv: Use hv_hvcall_*() to set up hypercall
+ arguments
+To: mhklinux@outlook.com, kys@microsoft.com, haiyangz@microsoft.com,
+ wei.liu@kernel.org, decui@microsoft.com, tglx@linutronix.de,
+ mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
+ lpieralisi@kernel.org, kw@linux.com, manivannan.sadhasivam@linaro.org,
+ robh@kernel.org, bhelgaas@google.com, arnd@arndb.de
+Cc: x86@kernel.org, linux-hyperv@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org,
+ linux-arch@vger.kernel.org
+References: <20250313061911.2491-1-mhklinux@outlook.com>
+ <20250313061911.2491-5-mhklinux@outlook.com>
+Content-Language: en-US
+From: Nuno Das Neves <nunodasneves@linux.microsoft.com>
+In-Reply-To: <20250313061911.2491-5-mhklinux@outlook.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Message-Id: <20250321-xattrat-syscall-v4-2-3e82e6fb3264@kernel.org>
-References: <20250321-xattrat-syscall-v4-0-3e82e6fb3264@kernel.org>
-In-Reply-To: <20250321-xattrat-syscall-v4-0-3e82e6fb3264@kernel.org>
-To: Richard Henderson <richard.henderson@linaro.org>, 
- Matt Turner <mattst88@gmail.com>, Russell King <linux@armlinux.org.uk>, 
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
- Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, 
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>, 
- "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>, 
- Helge Deller <deller@gmx.de>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
- Christophe Leroy <christophe.leroy@csgroup.eu>, 
- Naveen N Rao <naveen@kernel.org>, Heiko Carstens <hca@linux.ibm.com>, 
- Vasily Gorbik <gor@linux.ibm.com>, 
- Alexander Gordeev <agordeev@linux.ibm.com>, 
- Christian Borntraeger <borntraeger@linux.ibm.com>, 
- Sven Schnelle <svens@linux.ibm.com>, 
- Yoshinori Sato <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>, 
- John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>, 
- "David S. Miller" <davem@davemloft.net>, 
- Andreas Larsson <andreas@gaisler.com>, Andy Lutomirski <luto@kernel.org>, 
- Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>, 
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
- Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, 
- Alexander Viro <viro@zeniv.linux.org.uk>, 
- Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>, 
- =?utf-8?q?Micka=C3=ABl_Sala=C3=BCn?= <mic@digikod.net>, 
- =?utf-8?q?G=C3=BCnther_Noack?= <gnoack@google.com>, 
- Arnd Bergmann <arnd@arndb.de>, 
- =?utf-8?q?Pali_Roh=C3=A1r?= <pali@kernel.org>, 
- Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>, 
- "Serge E. Hallyn" <serge@hallyn.com>
-Cc: linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-arm-kernel@lists.infradead.org, linux-m68k@lists.linux-m68k.org, 
- linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org, 
- linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, 
- linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, 
- linux-fsdevel@vger.kernel.org, linux-security-module@vger.kernel.org, 
- linux-api@vger.kernel.org, linux-arch@vger.kernel.org, 
- Andrey Albershteyn <aalbersh@kernel.org>
-X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3102; i=aalbersh@kernel.org;
- h=from:subject:message-id; bh=U65D6SohAEKFKir81pK5H51AE5x6/jUW8l5jaJk9nGM=;
- b=owJ4nJvAy8zAJea2/JXEGuOHHIyn1ZIY0u8e2nhsqffE2qNHBdc56kpaBv10/G5zKMBMNU5Y1
- 7+08cOt3t6OUhYGMS4GWTFFlnXSWlOTiqTyjxjUyMPMYWUCGcLAxSkAF7Fl+MO39MOayUtjz0Xc
- Zf+S85RBZMPrQyk/IssaWQR3V917GlLI8D93Rvvtmb0TdxnrLdm5326CcYQxW4JKaaBU3XVFNfO
- V51kB1DlIeQ==
-X-Developer-Key: i=aalbersh@kernel.org; a=openpgp;
- fpr=AE1B2A9562721A6FC4307C1F46A7EA18AC33E108
 
-This will be helpful for get/setfsxattrat syscalls to convert
-between fileattr and fsxattr.
+On 3/12/2025 11:19 PM, mhkelley58@gmail.com wrote:
+> From: Michael Kelley <mhklinux@outlook.com>
+> 
+> Update hypercall call sites to use the new hv_hvcall_*() functions
+> to set up hypercall arguments. Since these functions zero the
+> fixed portion of input memory, remove now redundant zero'ing of
+> input fields.
+> 
+> hv_post_message() requires additional updates. The payload area is
+> treated as an array to avoid wasting cycles on zero'ing it and
+> then overwriting with memcpy(). To allow treatment as an array,
+> the corresponding payload[] field is updated to have zero size.
+> 
+I'd prefer to leave the payload field as a fixed-sized array.
+Changing it to a flexible array makes it look like that input is
+for a variable-sized or rep hypercall, and it makes the surrounding
+code in hv_post_message() more complex and inscrutable as a result.
 
-Signed-off-by: Andrey Albershteyn <aalbersh@kernel.org>
----
- fs/ioctl.c               | 32 +++++++++++++++++++++-----------
- include/linux/fileattr.h |  2 ++
- 2 files changed, 23 insertions(+), 11 deletions(-)
+I suggest leaving hv_post_message() alone, except for changing
+hyperv_pcpu_input_arg -> hyperv_pcpu_arg, and perhaps a comment
+explaining why hv_hvcall_input() isn't used there.
 
-diff --git a/fs/ioctl.c b/fs/ioctl.c
-index 4434c97bc5dff5a3e8635e28745cd99404ff353e..840283d8c406623d8d26790f89b62ebcbd39e2de 100644
---- a/fs/ioctl.c
-+++ b/fs/ioctl.c
-@@ -538,6 +538,16 @@ int vfs_fileattr_get(struct dentry *dentry, struct fileattr *fa)
- }
- EXPORT_SYMBOL(vfs_fileattr_get);
- 
-+void fileattr_to_fsxattr(const struct fileattr *fa, struct fsxattr *fsx)
-+{
-+	memset(fsx, 0, sizeof(struct fsxattr));
-+	fsx->fsx_xflags = fa->fsx_xflags;
-+	fsx->fsx_extsize = fa->fsx_extsize;
-+	fsx->fsx_nextents = fa->fsx_nextents;
-+	fsx->fsx_projid = fa->fsx_projid;
-+	fsx->fsx_cowextsize = fa->fsx_cowextsize;
-+}
-+
- /**
-  * copy_fsxattr_to_user - copy fsxattr to userspace.
-  * @fa:		fileattr pointer
-@@ -549,12 +559,7 @@ int copy_fsxattr_to_user(const struct fileattr *fa, struct fsxattr __user *ufa)
- {
- 	struct fsxattr xfa;
- 
--	memset(&xfa, 0, sizeof(xfa));
--	xfa.fsx_xflags = fa->fsx_xflags;
--	xfa.fsx_extsize = fa->fsx_extsize;
--	xfa.fsx_nextents = fa->fsx_nextents;
--	xfa.fsx_projid = fa->fsx_projid;
--	xfa.fsx_cowextsize = fa->fsx_cowextsize;
-+	fileattr_to_fsxattr(fa, &xfa);
- 
- 	if (copy_to_user(ufa, &xfa, sizeof(xfa)))
- 		return -EFAULT;
-@@ -563,6 +568,15 @@ int copy_fsxattr_to_user(const struct fileattr *fa, struct fsxattr __user *ufa)
- }
- EXPORT_SYMBOL(copy_fsxattr_to_user);
- 
-+void fsxattr_to_fileattr(const struct fsxattr *fsx, struct fileattr *fa)
-+{
-+	fileattr_fill_xflags(fa, fsx->fsx_xflags);
-+	fa->fsx_extsize = fsx->fsx_extsize;
-+	fa->fsx_nextents = fsx->fsx_nextents;
-+	fa->fsx_projid = fsx->fsx_projid;
-+	fa->fsx_cowextsize = fsx->fsx_cowextsize;
-+}
-+
- static int copy_fsxattr_from_user(struct fileattr *fa,
- 				  struct fsxattr __user *ufa)
- {
-@@ -571,11 +585,7 @@ static int copy_fsxattr_from_user(struct fileattr *fa,
- 	if (copy_from_user(&xfa, ufa, sizeof(xfa)))
- 		return -EFAULT;
- 
--	fileattr_fill_xflags(fa, xfa.fsx_xflags);
--	fa->fsx_extsize = xfa.fsx_extsize;
--	fa->fsx_nextents = xfa.fsx_nextents;
--	fa->fsx_projid = xfa.fsx_projid;
--	fa->fsx_cowextsize = xfa.fsx_cowextsize;
-+	fsxattr_to_fileattr(&xfa, fa);
- 
- 	return 0;
- }
-diff --git a/include/linux/fileattr.h b/include/linux/fileattr.h
-index 47c05a9851d0600964b644c9c7218faacfd865f8..31888fa2edf10050be134f587299256088344365 100644
---- a/include/linux/fileattr.h
-+++ b/include/linux/fileattr.h
-@@ -33,7 +33,9 @@ struct fileattr {
- 	bool	fsx_valid:1;
- };
- 
-+void fileattr_to_fsxattr(const struct fileattr *fa, struct fsxattr *fsx);
- int copy_fsxattr_to_user(const struct fileattr *fa, struct fsxattr __user *ufa);
-+void fsxattr_to_fileattr(const struct fsxattr *fsx, struct fileattr *fa);
- 
- void fileattr_fill_xflags(struct fileattr *fa, u32 xflags);
- void fileattr_fill_flags(struct fileattr *fa, u32 flags);
+> Signed-off-by: Michael Kelley <mhklinux@outlook.com>
+> ---
+>  drivers/hv/hv.c           | 9 ++++++---
+>  drivers/hv/hv_balloon.c   | 4 ++--
+>  drivers/hv/hv_common.c    | 2 +-
+>  drivers/hv/hv_proc.c      | 8 ++++----
+>  drivers/hv/hyperv_vmbus.h | 2 +-
+>  5 files changed, 14 insertions(+), 11 deletions(-)
+> 
+> diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+> index a38f84548bc2..e2dcbc816fc5 100644
+> --- a/drivers/hv/hv.c
+> +++ b/drivers/hv/hv.c
+> @@ -66,7 +66,8 @@ int hv_post_message(union hv_connection_id connection_id,
+>  	if (hv_isolation_type_tdx() && ms_hyperv.paravisor_present)
+>  		aligned_msg = this_cpu_ptr(hv_context.cpu_context)->post_msg_page;
+>  	else
+> -		aligned_msg = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +		hv_hvcall_in_array(&aligned_msg, sizeof(*aligned_msg),
+> +				   sizeof(aligned_msg->payload[0]));
+>  
+>  	aligned_msg->connectionid = connection_id;
+>  	aligned_msg->reserved = 0;
+> @@ -80,8 +81,10 @@ int hv_post_message(union hv_connection_id connection_id,
+>  						  virt_to_phys(aligned_msg), 0);
+>  		else if (hv_isolation_type_snp())
+>  			status = hv_ghcb_hypercall(HVCALL_POST_MESSAGE,
+> -						   aligned_msg, NULL,
+> -						   sizeof(*aligned_msg));
+> +						   aligned_msg,
+> +						   NULL,
+> +						   struct_size(aligned_msg, payload,
+> +							       HV_MESSAGE_PAYLOAD_QWORD_COUNT));
 
--- 
-2.47.2
+See my comment above, I'd prefer to leave this function mostly
+alone to maintain readability.
+
+>  		else
+>  			status = HV_STATUS_INVALID_PARAMETER;
+>  	} else {
+> diff --git a/drivers/hv/hv_balloon.c b/drivers/hv/hv_balloon.c
+> index fec2f18679e3..2def8b8794ee 100644
+> --- a/drivers/hv/hv_balloon.c
+> +++ b/drivers/hv/hv_balloon.c
+> @@ -1582,14 +1582,14 @@ static int hv_free_page_report(struct page_reporting_dev_info *pr_dev_info,
+>  	WARN_ON_ONCE(nents > HV_MEMORY_HINT_MAX_GPA_PAGE_RANGES);
+>  	WARN_ON_ONCE(sgl->length < (HV_HYP_PAGE_SIZE << page_reporting_order));
+>  	local_irq_save(flags);
+> -	hint = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +
+> +	hv_hvcall_in_array(&hint, sizeof(*hint), sizeof(hint->ranges[0]));
+
+We should ensure the returned batch size is large enough for
+"nents".
+
+>  	if (!hint) {
+>  		local_irq_restore(flags);
+>  		return -ENOSPC;
+>  	}
+>  
+>  	hint->heat_type = HV_EXTMEM_HEAT_HINT_COLD_DISCARD;
+> -	hint->reserved = 0;
+>  	for_each_sg(sgl, sg, nents, i) {
+>  		union hv_gpa_page_range *range;
+>  
+> diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+> index 9804adb4cc56..a6b1cdfbc8d4 100644
+> --- a/drivers/hv/hv_common.c
+> +++ b/drivers/hv/hv_common.c
+> @@ -293,7 +293,7 @@ void __init hv_get_partition_id(void)
+>  	u64 status, pt_id;
+>  
+>  	local_irq_save(flags);
+> -	output = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	hv_hvcall_inout(NULL, 0, &output, sizeof(*output));
+>  	status = hv_do_hypercall(HVCALL_GET_PARTITION_ID, NULL, &output);
+>  	pt_id = output->partition_id;
+>  	local_irq_restore(flags);
+> diff --git a/drivers/hv/hv_proc.c b/drivers/hv/hv_proc.c
+> index 2fae18e4f7d2..5c580ee1c23f 100644
+> --- a/drivers/hv/hv_proc.c
+> +++ b/drivers/hv/hv_proc.c
+> @@ -73,7 +73,8 @@ int hv_call_deposit_pages(int node, u64 partition_id, u32 num_pages)
+>  
+>  	local_irq_save(flags);
+>  
+> -	input_page = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +	hv_hvcall_in_array(&input_page, sizeof(*input_page),
+> +			   sizeof(input_page->gpa_page_list[0]));
+
+We should ensure the returned batch size is large enough.
+
+>  
+>  	input_page->partition_id = partition_id;
+>  
+> @@ -124,9 +125,8 @@ int hv_call_add_logical_proc(int node, u32 lp_index, u32 apic_id)
+>  	do {
+>  		local_irq_save(flags);
+>  
+> -		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+>  		/* We don't do anything with the output right now */
+> -		output = *this_cpu_ptr(hyperv_pcpu_output_arg);
+> +		hv_hvcall_inout(&input, sizeof(*input), &output, sizeof(*output));
+>  
+>  		input->lp_index = lp_index;
+>  		input->apic_id = apic_id;
+> @@ -167,7 +167,7 @@ int hv_call_create_vp(int node, u64 partition_id, u32 vp_index, u32 flags)
+>  	do {
+>  		local_irq_save(irq_flags);
+>  
+> -		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+> +		hv_hvcall_in(&input, sizeof(*input));
+>  
+>  		input->partition_id = partition_id;
+>  		input->vp_index = vp_index;
+> diff --git a/drivers/hv/hyperv_vmbus.h b/drivers/hv/hyperv_vmbus.h
+> index 29780f3a7478..44b5e8330d9d 100644
+> --- a/drivers/hv/hyperv_vmbus.h
+> +++ b/drivers/hv/hyperv_vmbus.h
+> @@ -101,7 +101,7 @@ struct hv_input_post_message {
+>  	u32 reserved;
+>  	u32 message_type;
+>  	u32 payload_size;
+> -	u64 payload[HV_MESSAGE_PAYLOAD_QWORD_COUNT];
+> +	u64 payload[];
+
+See my comment above, I'd prefer to keep this how it is.
+
+>  };
+>  
+>  
+
+Thanks
+Nuno
 
