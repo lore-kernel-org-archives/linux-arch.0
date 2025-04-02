@@ -1,42 +1,43 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CD70719D8BE
-	for <linux-arch@vger.kernel.org>; Wed,  2 Apr 2025 18:17:13 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EADA51D79A0
+	for <linux-arch@vger.kernel.org>; Wed,  2 Apr 2025 18:17:16 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743617837; cv=none; b=MZIpQO9igbE/r2/u7fKQazna4Bx+HKX/CLt/2+z6BpRvIMn+7QQVXtj/X/B8xWgQ51U0Ajj9V/p8jtPvUpwjN0BY+VQKBd0HeHl6fx1fOFSXhxrANTcmAb/6E7sAqNTVDD7hFH1WxUT29AZ9KDqrHUru7tzwsRRNG5iwx2i7Qls=
+	t=1743617838; cv=none; b=nWZsY2Pcbl3wR8iP00RePaEcAmUDYOpofI1ZhPZG9lTAv16E6lOFKlbsRQ9yQLoVNOGk5pwaxKIn0n5hi8ift59eXYM0tD+OsFIRfDU1rJ+qSGVxxY3BLgFRysH2tCa9eMWIOflFNXax8JJr5+SLOieBGgOPNwin9w0E8UamKME=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743617837; c=relaxed/simple;
-	bh=GDdB3Lcf/y1CNlAJSILPH3hK8z6SqjfKoTH8D6/tki0=;
+	s=arc-20240116; t=1743617838; c=relaxed/simple;
+	bh=KDzj05wvq00EInNuTTP10ot6S3YWAx6aOUSk1sCD7RM=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=EoOSKi2/ZdkQEhj46Pt7ljemMi5ISUI5Jbq1rylKA7xGoOCkuiXKFLxUZakWkZmPzdI+QeUYSOZnJgo/1u4RVue+A1Cc195mZco77/3YOCw5Vs8CQFBw3Sp67Z/gyGYr2rxT89GSVfyYj1VScEcNy8zPQ67kmwXgDaBdbmSOu1A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=QK/QZFk6; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=ZPMVZy/uq6yilBe9dqWiIBx5/prVhshf+NIAK4oy7byeUYSgQs5zvR6K7P4/uKnIkBZYbfxq9w8EoQst+nEj451bbXsqhqAaXC/41mOCD63fS8TVvN44kUB4Hoz1sCaY6rkV216dsUnqffHVtsnMja1J6GP9dnD8RfFxroSFV34=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=awmYQ8yE; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="QK/QZFk6"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="awmYQ8yE"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=TC2yKBXkWKOZQx81epWNSMRYD1pOXcRjkX0E8HuUhGM=; b=QK/QZFk6HxEr6OedWH+SCq4BWC
-	bgbgLXIDTvHDcE4mAWxdsZWn78kp4SHX0M3bD7+s8eDNqnKMKO5c8uyStYSObxMBhON2fJz4VKIq+
-	fcALIGc2g6KEl/5xhUphfJ31WvZHmEjMUq5tc63OgbSUma9f6rR1pmL2QsgjQO6aV+6omgzNyWHAL
-	2aDQBoyu5ArtRlU7mUOijUNjVnLVWAK6jgCyPR/NoLA/e0g/ivZ/8FF1hcEoFShxCV6wZZZYRukBK
-	dsCBmO1e3Tu73j6nVneBVMn3Sr/WepqmCco9qUpJX23E3Qn0VNg76LrvLW+Bq/snm2SQyAHzYIpd/
-	H8MHXklA==;
+	bh=qTiP2D3OrGMsSaRwxahGkUod//8qVelF/nv7EzuQ3uQ=; b=awmYQ8yEmw1Xbw+DXL1UpX4cf4
+	7g2FBet0xAZTYuMgfxIQPDUKNDEnYG1OojGXMU8dzq8v0Dm3Xg3bIZxZ8jUMHjYuLKpJaXjCPWDNj
+	+P50tTxGfQW8TlF4INZKosrHKKdTKnkDF68CNIfsChqxVOgk92zVkt8mqJGO8NGK/rUmK8+TUCIhb
+	E75NdS4YZUF7WIpVdxcrszpVRkKB+DuwbeD1pFngn1Pvl8oYcCadm7nkua9ReUvkYbuR3kNolwx1W
+	dj13ssBLhJrGdpSmvHqvjztT1dip9P2Iv/lTxyo8Evgs/vo05MpzggO07vRbTvtVJBZIVCnwoKpwm
+	g8QuymMA==;
 Received: from willy by casper.infradead.org with local (Exim 4.98.1 #2 (Red Hat Linux))
-	id 1u02eF-0000000A0im-3XGI;
+	id 1u02eF-0000000A0ig-2MTV;
 	Wed, 02 Apr 2025 18:17:11 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	linux-mm@kvack.org,
-	linux-arch@vger.kernel.org
-Subject: [PATCH v2 10/11] mm: Add folio_mk_pmd()
-Date: Wed,  2 Apr 2025 19:17:04 +0100
-Message-ID: <20250402181709.2386022-11-willy@infradead.org>
+	linux-arch@vger.kernel.org,
+	David Hildenbrand <david@redhat.com>
+Subject: [PATCH v2 07/11] mm: Add folio_mk_pte()
+Date: Wed,  2 Apr 2025 19:17:01 +0100
+Message-ID: <20250402181709.2386022-8-willy@infradead.org>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20250402181709.2386022-1-willy@infradead.org>
 References: <20250402181709.2386022-1-willy@infradead.org>
@@ -48,134 +49,85 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Removes five conversions from folio to page.  Also removes both callers
-of mk_pmd() that aren't part of mk_huge_pmd(), getting us a step closer to
-removing the confusion between mk_pmd(), mk_huge_pmd() and pmd_mkhuge().
+Removes a cast from folio to page in four callers of mk_pte().
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Acked-by: David Hildenbrand <david@redhat.com>
 ---
- fs/dax.c           |  3 +--
- include/linux/mm.h | 17 +++++++++++++++++
- mm/huge_memory.c   | 11 +++++------
- mm/khugepaged.c    |  2 +-
- mm/memory.c        |  2 +-
- 5 files changed, 25 insertions(+), 10 deletions(-)
+ include/linux/mm.h | 15 +++++++++++++++
+ mm/memory.c        |  6 +++---
+ mm/userfaultfd.c   |  2 +-
+ 3 files changed, 19 insertions(+), 4 deletions(-)
 
-diff --git a/fs/dax.c b/fs/dax.c
-index af5045b0f476..564e44a31e40 100644
---- a/fs/dax.c
-+++ b/fs/dax.c
-@@ -1421,8 +1421,7 @@ static vm_fault_t dax_pmd_load_hole(struct xa_state *xas, struct vm_fault *vmf,
- 		pgtable_trans_huge_deposit(vma->vm_mm, vmf->pmd, pgtable);
- 		mm_inc_nr_ptes(vma->vm_mm);
- 	}
--	pmd_entry = mk_pmd(&zero_folio->page, vmf->vma->vm_page_prot);
--	pmd_entry = pmd_mkhuge(pmd_entry);
-+	pmd_entry = folio_mk_pmd(zero_folio, vmf->vma->vm_page_prot);
- 	set_pmd_at(vmf->vma->vm_mm, pmd_addr, vmf->pmd, pmd_entry);
- 	spin_unlock(ptl);
- 	trace_dax_pmd_load_hole(inode, vmf, zero_folio, *entry);
 diff --git a/include/linux/mm.h b/include/linux/mm.h
-index d657815305f7..d910b6ffcbed 100644
+index 5dc097b5d646..d657815305f7 100644
 --- a/include/linux/mm.h
 +++ b/include/linux/mm.h
-@@ -2007,7 +2007,24 @@ static inline pte_t folio_mk_pte(struct folio *folio, pgprot_t pgprot)
+@@ -1992,6 +1992,21 @@ static inline pte_t mk_pte(struct page *page, pgprot_t pgprot)
  {
- 	return pfn_pte(folio_pfn(folio), pgprot);
+ 	return pfn_pte(page_to_pfn(page), pgprot);
  }
 +
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
 +/**
-+ * folio_mk_pmd - Create a PMD for this folio
-+ * @folio: The folio to create a PMD for
++ * folio_mk_pte - Create a PTE for this folio
++ * @folio: The folio to create a PTE for
 + * @pgprot: The page protection bits to use
 + *
 + * Create a page table entry for the first page of this folio.
-+ * This is suitable for passing to set_pmd_at().
++ * This is suitable for passing to set_ptes().
 + *
 + * Return: A page table entry suitable for mapping this folio.
 + */
-+static inline pmd_t folio_mk_pmd(struct folio *folio, pgprot_t pgprot)
++static inline pte_t folio_mk_pte(struct folio *folio, pgprot_t pgprot)
 +{
-+	return pmd_mkhuge(pfn_pmd(folio_pfn(folio), pgprot));
++	return pfn_pte(folio_pfn(folio), pgprot);
 +}
  #endif
-+#endif /* CONFIG_MMU */
  
  static inline bool folio_has_pincount(const struct folio *folio)
- {
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 2a47682d1ab7..28c87e0e036f 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1203,7 +1203,7 @@ static void map_anon_folio_pmd(struct folio *folio, pmd_t *pmd,
- {
- 	pmd_t entry;
- 
--	entry = mk_huge_pmd(&folio->page, vma->vm_page_prot);
-+	entry = folio_mk_pmd(folio, vma->vm_page_prot);
- 	entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
- 	folio_add_new_anon_rmap(folio, vma, haddr, RMAP_EXCLUSIVE);
- 	folio_add_lru_vma(folio, vma);
-@@ -1309,8 +1309,7 @@ static void set_huge_zero_folio(pgtable_t pgtable, struct mm_struct *mm,
- 		struct folio *zero_folio)
- {
- 	pmd_t entry;
--	entry = mk_pmd(&zero_folio->page, vma->vm_page_prot);
--	entry = pmd_mkhuge(entry);
-+	entry = folio_mk_pmd(zero_folio, vma->vm_page_prot);
- 	pgtable_trans_huge_deposit(mm, pmd, pgtable);
- 	set_pmd_at(mm, haddr, pmd, entry);
- 	mm_inc_nr_ptes(mm);
-@@ -2653,12 +2652,12 @@ int move_pages_huge_pmd(struct mm_struct *mm, pmd_t *dst_pmd, pmd_t *src_pmd, pm
- 		folio_move_anon_rmap(src_folio, dst_vma);
- 		src_folio->index = linear_page_index(dst_vma, dst_addr);
- 
--		_dst_pmd = mk_huge_pmd(&src_folio->page, dst_vma->vm_page_prot);
-+		_dst_pmd = folio_mk_pmd(src_folio, dst_vma->vm_page_prot);
- 		/* Follow mremap() behavior and treat the entry dirty after the move */
- 		_dst_pmd = pmd_mkwrite(pmd_mkdirty(_dst_pmd), dst_vma);
- 	} else {
- 		src_pmdval = pmdp_huge_clear_flush(src_vma, src_addr, src_pmd);
--		_dst_pmd = mk_huge_pmd(src_page, dst_vma->vm_page_prot);
-+		_dst_pmd = folio_mk_pmd(src_folio, dst_vma->vm_page_prot);
- 	}
- 	set_pmd_at(mm, dst_addr, dst_pmd, _dst_pmd);
- 
-@@ -4675,7 +4674,7 @@ void remove_migration_pmd(struct page_vma_mapped_walk *pvmw, struct page *new)
- 
- 	entry = pmd_to_swp_entry(*pvmw->pmd);
- 	folio_get(folio);
--	pmde = mk_huge_pmd(new, READ_ONCE(vma->vm_page_prot));
-+	pmde = folio_mk_pmd(folio, READ_ONCE(vma->vm_page_prot));
- 	if (pmd_swp_soft_dirty(*pvmw->pmd))
- 		pmde = pmd_mksoft_dirty(pmde);
- 	if (is_writable_migration_entry(entry))
-diff --git a/mm/khugepaged.c b/mm/khugepaged.c
-index cc945c6ab3bd..b8838ba8207a 100644
---- a/mm/khugepaged.c
-+++ b/mm/khugepaged.c
-@@ -1239,7 +1239,7 @@ static int collapse_huge_page(struct mm_struct *mm, unsigned long address,
- 	__folio_mark_uptodate(folio);
- 	pgtable = pmd_pgtable(_pmd);
- 
--	_pmd = mk_huge_pmd(&folio->page, vma->vm_page_prot);
-+	_pmd = folio_mk_pmd(folio, vma->vm_page_prot);
- 	_pmd = maybe_pmd_mkwrite(pmd_mkdirty(_pmd), vma);
- 
- 	spin_lock(pmd_ptl);
 diff --git a/mm/memory.c b/mm/memory.c
-index fc4d8152a2e4..e6e7abb83c0b 100644
+index 68bcf639a78c..fc4d8152a2e4 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
-@@ -5188,7 +5188,7 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
+@@ -929,7 +929,7 @@ copy_present_page(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma
+ 	rss[MM_ANONPAGES]++;
  
- 	flush_icache_pages(vma, page, HPAGE_PMD_NR);
+ 	/* All done, just insert the new page copy in the child */
+-	pte = mk_pte(&new_folio->page, dst_vma->vm_page_prot);
++	pte = folio_mk_pte(new_folio, dst_vma->vm_page_prot);
+ 	pte = maybe_mkwrite(pte_mkdirty(pte), dst_vma);
+ 	if (userfaultfd_pte_wp(dst_vma, ptep_get(src_pte)))
+ 		/* Uffd-wp needs to be delivered to dest pte as well */
+@@ -3523,7 +3523,7 @@ static vm_fault_t wp_page_copy(struct vm_fault *vmf)
+ 			inc_mm_counter(mm, MM_ANONPAGES);
+ 		}
+ 		flush_cache_page(vma, vmf->address, pte_pfn(vmf->orig_pte));
+-		entry = mk_pte(&new_folio->page, vma->vm_page_prot);
++		entry = folio_mk_pte(new_folio, vma->vm_page_prot);
+ 		entry = pte_sw_mkyoung(entry);
+ 		if (unlikely(unshare)) {
+ 			if (pte_soft_dirty(vmf->orig_pte))
+@@ -5013,7 +5013,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
+ 	 */
+ 	__folio_mark_uptodate(folio);
  
--	entry = mk_huge_pmd(page, vma->vm_page_prot);
-+	entry = folio_mk_pmd(folio, vma->vm_page_prot);
- 	if (write)
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
+-	entry = mk_pte(&folio->page, vma->vm_page_prot);
++	entry = folio_mk_pte(folio, vma->vm_page_prot);
+ 	entry = pte_sw_mkyoung(entry);
+ 	if (vma->vm_flags & VM_WRITE)
+ 		entry = pte_mkwrite(pte_mkdirty(entry), vma);
+diff --git a/mm/userfaultfd.c b/mm/userfaultfd.c
+index fbf2cf62ab9f..3d77c8254228 100644
+--- a/mm/userfaultfd.c
++++ b/mm/userfaultfd.c
+@@ -1063,7 +1063,7 @@ static int move_present_pte(struct mm_struct *mm,
+ 	folio_move_anon_rmap(src_folio, dst_vma);
+ 	src_folio->index = linear_page_index(dst_vma, dst_addr);
+ 
+-	orig_dst_pte = mk_pte(&src_folio->page, dst_vma->vm_page_prot);
++	orig_dst_pte = folio_mk_pte(src_folio, dst_vma->vm_page_prot);
+ 	/* Follow mremap() behavior and treat the entry dirty after the move */
+ 	orig_dst_pte = pte_mkwrite(pte_mkdirty(orig_dst_pte), dst_vma);
  
 -- 
 2.47.2
