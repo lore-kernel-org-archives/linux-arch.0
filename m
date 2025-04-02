@@ -1,157 +1,82 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3447321C167;
-	Tue,  1 Apr 2025 22:16:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 019A7F4E2;
+	Wed,  2 Apr 2025 03:42:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743545783; cv=none; b=eO+Zh/1XL6EzE7g6C25yR06PCKhX+EiQqamOmyeIWuoJKRYoXp312Xd7i8Qn38SVi/THECv1XgoNhqF8UL8ZvpFrJc1l5UYvj+eF0VbUGbxTAzptNp6ikNKujtO8qOWY1U7N/Zmfrpl2ZwJZyxLU4SPGFckYTZXTGvFk3XOHAxo=
+	t=1743565370; cv=none; b=aUZt7MoaGBGwk8NGq1JzYYlfUtJ96guGUjFZObFYpCPI1Tsx1+6RJTjGoYBHgyhDENjPHu9b/KQ7vbvD4tUcJMkOeJ/0tWQ83muErXDPCGN/vo6Wz5oLuuG9DX2TE2lFAueuqTCF5W5/vUwBLcv+QfYA0d5cc3+jS6YsgHIYxmw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743545783; c=relaxed/simple;
-	bh=tZ4f4oIS03YFlExpJPn1KRNKl8FMes2FWEzmVkaMISE=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=S0d5gu7vQgVNMoibhcIOhiDweaR7TQC1omoaOElI7a5SQl+xzf6FU7DrPRquUzWsrFweHTnXv7WBOR96GPOYjluU+QQjUCFSgGVR+59GBVEFpFQbT71D8/AQQCVOi9Llc0PM7nT8y3E5B9ARpUisMnCtZyHYGpybW7lst0uptps=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=CcdYx4PW; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1743565370; c=relaxed/simple;
+	bh=V2e2nwSbZeY0394xlWvihWRW0KwuglxPVjbYt+qSt5g=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=LW8FbG3fkJLMgLb8iEBHvZANnxlRnQ0Piqqu4Smpr2WospfMV7wf7QC/1ImkDUZ/NCpaZlCkZah3JSv4m8FcFGv9v4KNy1LlFIalwsPcwea4hVef1giF9/xmJim8z20DmCCiS1n1+CnPb23l038Qns9IGjATmaD9l9UgL6prr1s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=XDBAg03k; arc=none smtp.client-ip=90.155.92.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="CcdYx4PW"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A1C85C4CEF7;
-	Tue,  1 Apr 2025 22:16:22 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1743545782;
-	bh=tZ4f4oIS03YFlExpJPn1KRNKl8FMes2FWEzmVkaMISE=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=CcdYx4PWMzJrs8ZFUAVWQBRi2YL7hfeUsAIa1GgJL63qh5bg1IhsxKWFLfPQtMeU1
-	 vN24/OkRox4Obd11Y/rYpO8pm43bov+6jRDLPBj9QtAjIMpg9Xs3/OB4pKFYZr3h0I
-	 eCa3zFUy8WPUOoNj5BHzdxeW2n12hhVbHgb8bE/+AEdGZaFgjPOkQ9PL6zGD+xVHau
-	 THfQWepSLurUwd2n0pqRSUocJ3weSeuza7WGhuE4RJb0eULybrDdqaQW2lQJFloJCR
-	 1+ySSq6Vwn/EyGKtqpGHXkDozhih/4t35i0mPwSS/5UolDhElKP4z5Aa2qtrDl9Ifu
-	 mgwtvIaqKVUlA==
-From: Eric Biggers <ebiggers@kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Ard Biesheuvel <ardb@kernel.org>,
-	linux-crypto@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: [PATCH 6/7] lib/crc: document all the CRC library kconfig options
-Date: Tue,  1 Apr 2025 15:15:59 -0700
-Message-ID: <20250401221600.24878-7-ebiggers@kernel.org>
-X-Mailer: git-send-email 2.49.0
-In-Reply-To: <20250401221600.24878-1-ebiggers@kernel.org>
-References: <20250401221600.24878-1-ebiggers@kernel.org>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="XDBAg03k"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=desiato.20200630; h=Content-Transfer-Encoding:Content-Type
+	:In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:Message-ID:
+	Sender:Reply-To:Content-ID:Content-Description;
+	bh=CfNMzRI2XDl7ZbVtkTrjOHHTHVANpEi1cK2v4Rcq0rE=; b=XDBAg03ked4nw0XHPZ98s4MHCr
+	Ngz2X2G0KIo+tVsx3cIPzSXYRGF7UAsIAhPSbWFW7whz1EHcIGCEUSiqzrHipcuK2MzsEBxm9ibCD
+	1oPbYB60JlPeYk32G62MstD4ZaF5SgPWbKWf57Skmm2Em2Ugu86zZ6k9a5mJumWe/6EtyiFl+KnnB
+	4+BRuiXis6eEZtIlzwNNBYc0ciGHpqRukQybsokVYyrmf90atCAXtfkbn5ZDc81C7+m8tO++2paV4
+	OU0wJbeiq47WbpnvfvBEc4vsOohzMCS3BY2+LXJlzJ7DmnuNghrl3E7MXmZaT8aFC+klWYC4JA+uT
+	+hSuWttA==;
+Received: from [50.53.2.24] (helo=[192.168.254.17])
+	by desiato.infradead.org with esmtpsa (Exim 4.98.1 #2 (Red Hat Linux))
+	id 1tzp00-00000006xAn-3emH;
+	Wed, 02 Apr 2025 03:42:45 +0000
+Message-ID: <2c1cbb51-cc16-4292-ad30-482d93935d91@infradead.org>
+Date: Tue, 1 Apr 2025 20:42:41 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/7] lib/crc: remove unnecessary prompt for CONFIG_CRC32
+ and drop 'default y'
+To: Eric Biggers <ebiggers@kernel.org>, linux-kernel@vger.kernel.org
+Cc: Ard Biesheuvel <ardb@kernel.org>, linux-crypto@vger.kernel.org,
+ linux-arch@vger.kernel.org
+References: <20250401221600.24878-1-ebiggers@kernel.org>
+ <20250401221600.24878-2-ebiggers@kernel.org>
+Content-Language: en-US
+From: Randy Dunlap <rdunlap@infradead.org>
+In-Reply-To: <20250401221600.24878-2-ebiggers@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-From: Eric Biggers <ebiggers@google.com>
+Hi 
 
-Previous commits removed all the original CRC kconfig help text, since
-it was oriented towards people configuring the kernel, and the options
-are no longer user-selectable.  However, it's still useful for there to
-be help text for kernel developers.  Add this.
+On 4/1/25 3:15 PM, Eric Biggers wrote:
+> From: Eric Biggers <ebiggers@google.com>
+> 
+> All modules that need CONFIG_CRC32 already select it, so there is no
+> need to bother users about the option, nor to default it to y.
+> 
 
-Signed-off-by: Eric Biggers <ebiggers@google.com>
----
- lib/Kconfig | 27 +++++++++++++++++++++++++++
- 1 file changed, 27 insertions(+)
+My memory from 10-20 years ago could be foggy, but ISTR that someone made at least
+CRC16 and CRC32 user-selectable in order to support out-of-tree modules...
+FWIW.
+But they would not need to be default y.
 
-diff --git a/lib/Kconfig b/lib/Kconfig
-index 89470bb24519..4e796eaea2f4 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -138,63 +138,90 @@ config TRACE_MMIO_ACCESS
- 
- source "lib/crypto/Kconfig"
- 
- config CRC_CCITT
- 	tristate
-+	help
-+	  The CRC-CCITT library functions.  Select this if your module uses any
-+	  of the functions from <linux/crc-ccitt.h>.
- 
- config CRC16
- 	tristate
-+	help
-+	  The CRC16 library functions.  Select this if your module uses any of
-+	  the functions from <linux/crc16.h>.
- 
- config CRC_T10DIF
- 	tristate
-+	help
-+	  The CRC-T10DIF library functions.  Select this if your module uses
-+	  any of the functions from <linux/crc-t10dif.h>.
- 
- config ARCH_HAS_CRC_T10DIF
- 	bool
- 
- config CRC_T10DIF_ARCH
- 	tristate
- 	default CRC_T10DIF if ARCH_HAS_CRC_T10DIF && CRC_OPTIMIZATIONS
- 
- config CRC_ITU_T
- 	tristate
-+	help
-+	  The CRC-ITU-T library functions.  Select this if your module uses
-+	  any of the functions from <linux/crc-itu-t.h>.
- 
- config CRC32
- 	tristate
- 	select BITREVERSE
-+	help
-+	  The CRC32 library functions.  Select this if your module uses any of
-+	  the functions from <linux/crc32.h> or <linux/crc32c.h>.
- 
- config ARCH_HAS_CRC32
- 	bool
- 
- config CRC32_ARCH
- 	tristate
- 	default CRC32 if ARCH_HAS_CRC32 && CRC_OPTIMIZATIONS
- 
- config CRC64
- 	tristate
-+	help
-+	  The CRC64 library functions.  Select this if your module uses any of
-+	  the functions from <linux/crc64.h>.
- 
- config ARCH_HAS_CRC64
- 	bool
- 
- config CRC64_ARCH
- 	tristate
- 	default CRC64 if ARCH_HAS_CRC64 && CRC_OPTIMIZATIONS
- 
- config CRC4
- 	tristate
-+	help
-+	  The CRC4 library functions.  Select this if your module uses any of
-+	  the functions from <linux/crc4.h>.
- 
- config CRC7
- 	tristate
-+	help
-+	  The CRC7 library functions.  Select this if your module uses any of
-+	  the functions from <linux/crc7.h>.
- 
- config LIBCRC32C
- 	tristate
- 	select CRC32
- 	help
- 	  This option just selects CRC32 and is provided for compatibility
- 	  purposes until the users are updated to select CRC32 directly.
- 
- config CRC8
- 	tristate
-+	help
-+	  The CRC8 library functions.  Select this if your module uses any of
-+	  the functions from <linux/crc8.h>.
- 
- config CRC_OPTIMIZATIONS
- 	bool "Enable optimized CRC implementations" if EXPERT
- 	default y
- 	help
+
+> Signed-off-by: Eric Biggers <ebiggers@google.com>
+> ---
+>  arch/sh/configs/edosk7705_defconfig        | 1 -
+>  arch/sh/configs/kfr2r09-romimage_defconfig | 1 -
+>  arch/sh/configs/sh7724_generic_defconfig   | 1 -
+>  arch/sh/configs/sh7770_generic_defconfig   | 1 -
+>  lib/Kconfig                                | 8 +-------
+>  5 files changed, 1 insertion(+), 11 deletions(-)
+> 
+
 -- 
-2.49.0
+~Randy
 
