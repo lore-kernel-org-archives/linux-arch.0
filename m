@@ -1,42 +1,42 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 297851DB95E
-	for <linux-arch@vger.kernel.org>; Wed,  2 Apr 2025 18:17:19 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44C3B1D5ACF
+	for <linux-arch@vger.kernel.org>; Wed,  2 Apr 2025 18:17:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743617840; cv=none; b=QfgoeCJBtFz99PuGjHb+yGz4+YXGYT6z3tb4zr2BfY8qJGgv6PvVV+gBEIot3uSgHHxXmU0HGJn2ATT5avo9OPpFk6dBmLmfcVPEfR9t/B4LtTiSvMVyF0L6zodF8lfHj+INqolcW2qiMP0F3Nm+bxdDiFgorUrcJV5f4z16rWE=
+	t=1743617843; cv=none; b=B3DEo40tfpYMZJkaeFP4YI2Rt1uf/ncQUp2+rKswTuw3KVNb9GWYTsqkaARDXoYwKdv+Zee85F1J+LbtlUi0COD/eaiUey1dYRlEtYEVGPFRjVf8wcVY31ppIYy4XupC1j/jn4dipVm6oDwa60gp4cO3/OZoW/VrlUMo6E5f4Y0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743617840; c=relaxed/simple;
-	bh=N6lLtEtD5e3DUSEroe3nxqo3knEOvwGyImZBlGbS06c=;
+	s=arc-20240116; t=1743617843; c=relaxed/simple;
+	bh=TMlu7q35x8ePoU/AEfNcaTeRK9ethMI4E4nTTXvpeTk=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=NcUe26znWebYKzi+SeifkmVxSivsF+jr2LjGzPhzJBaX8OtHNGLnkhxvsuoxuv10nciuh6B8ToCtHgzAg4tXtbHNS4IHSAQNttPB8NEA/3be6SUO+yUzVCyTjqtq7bfOEjc7TMubCjhxcgE+QIWlrK2+veK8tJxT76gH5lMm3OQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=AGMdqYWW; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=Yvmst0jF80RX5PPZlNAfxUDk/4J9qfopuQv/J/zYl/Bkf/kTVrLhbxg1cHGpIALKnjFivi2ydcAbzSN4y0K2++4lSoIeeGN/2/Eb8hz5wi7JHiWnJ/zCbesQAL+yV+SfNp9Xl/WYBEJ33E2uWL7ZB7BQqC6AvT3PZ2FoqeYfTZA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=DiiWRSGF; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="AGMdqYWW"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="DiiWRSGF"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=j0C36cwE02tcp83xir3MVAFQIG4vvurnU5t2AtfKn0w=; b=AGMdqYWWGQSORj9lU/Z8Sy1eH9
-	tIHnQDCaBsu30kPuU4g0U+oHAqpw9pYvrGDhW+hJVCo4yCYZTURo4QuY1+owis/vl5TmOvxIiR+oc
-	N+v+tMBiZBS3VlUtABggFTeGRqBB//GTNzKGXykjmH+7cA2ti/VMfv/MYKRpfL7cktkEwRIDp+PhN
-	CdhSPOZ3gdcLjcYwq79JWFPRrfEndBSzLCrSwod1NGqavu3KNYLNi0bvEaa6+WY5xTnKwDlJXGVe2
-	/ld56D9mczQUqaFcYQYBh31qKiO2L0EuFhG2Na2FV580cZ9D6gzfanPPc4yvoXCF/IdcKwWaSWsKF
-	e3bbMJMQ==;
+	bh=irsUPCJDDf9sWPbOR5tfnHLkyAVI2ujQHmur4Rc6/5I=; b=DiiWRSGFkDv/1wb2fMATmgO0vc
+	GPHSBhKGsY40maSdYr53ANtoYmy+Q9JbmLRz6xIplGek+MQ/LURoGK9tpG7tAXsWIh/VZUClVjnxE
+	NS7WQlrkUv/c70EHHrj7ePkHPMs0QLCT29rmZwcJ2wCsen3CVmvie+eTBlaENziQMmwAOZSi+eZHT
+	ZytgqdauVNdVUj3q9U+y8YtSFQQ+ZbvJNGFRZDYi7A5VdTI4CUzMje6BlLAO6g2fQMV1Hngn5X5My
+	YG+ApHc+jeaNZXFOb2sCIKDGvmzY0sScCa5PVNe5JVe9qPQX6WNLDxAk+yIpKdrwjvEecqx0fHKij
+	Uf3znXEg==;
 Received: from willy by casper.infradead.org with local (Exim 4.98.1 #2 (Red Hat Linux))
-	id 1u02eF-0000000A0iY-0rHI;
+	id 1u02eF-0000000A0ic-1hFm;
 	Wed, 02 Apr 2025 18:17:11 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	linux-mm@kvack.org,
 	linux-arch@vger.kernel.org
-Subject: [PATCH v2 03/11] sparc32: Remove custom definition of mk_pte()
-Date: Wed,  2 Apr 2025 19:16:57 +0100
-Message-ID: <20250402181709.2386022-4-willy@infradead.org>
+Subject: [PATCH v2 05/11] um: Remove custom definition of mk_pte()
+Date: Wed,  2 Apr 2025 19:16:59 +0100
+Message-ID: <20250402181709.2386022-6-willy@infradead.org>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20250402181709.2386022-1-willy@infradead.org>
 References: <20250402181709.2386022-1-willy@infradead.org>
@@ -48,47 +48,81 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Instead of defining pfn_pte() in terms of mk_pte(), make pfn_pte() the
-base implementation.  That lets us use the generic definition of mk_pte().
+Move the pfn_pte() definitions from the 2level and 4level files to the
+generic pgtable.h and delete the custom definition of mk_pte() so that
+we use the central definition.
 
 Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 ---
- arch/sparc/include/asm/pgtable_32.h | 15 +++++----------
- 1 file changed, 5 insertions(+), 10 deletions(-)
+ arch/um/include/asm/pgtable-2level.h |  1 -
+ arch/um/include/asm/pgtable-4level.h |  9 ---------
+ arch/um/include/asm/pgtable.h        | 18 ++++++++----------
+ 3 files changed, 8 insertions(+), 20 deletions(-)
 
-diff --git a/arch/sparc/include/asm/pgtable_32.h b/arch/sparc/include/asm/pgtable_32.h
-index 62bcafe38b1f..1454ebe91539 100644
---- a/arch/sparc/include/asm/pgtable_32.h
-+++ b/arch/sparc/include/asm/pgtable_32.h
-@@ -255,7 +255,11 @@ static inline pte_t pte_mkyoung(pte_t pte)
+diff --git a/arch/um/include/asm/pgtable-2level.h b/arch/um/include/asm/pgtable-2level.h
+index ab0c8dd86564..14ec16f92ce4 100644
+--- a/arch/um/include/asm/pgtable-2level.h
++++ b/arch/um/include/asm/pgtable-2level.h
+@@ -37,7 +37,6 @@ static inline void pgd_mkuptodate(pgd_t pgd)	{ }
+ #define set_pmd(pmdptr, pmdval) (*(pmdptr) = (pmdval))
+ 
+ #define pte_pfn(x) phys_to_pfn(pte_val(x))
+-#define pfn_pte(pfn, prot) __pte(pfn_to_phys(pfn) | pgprot_val(prot))
+ #define pfn_pmd(pfn, prot) __pmd(pfn_to_phys(pfn) | pgprot_val(prot))
+ 
+ #endif
+diff --git a/arch/um/include/asm/pgtable-4level.h b/arch/um/include/asm/pgtable-4level.h
+index 0d279caee93c..7a271b7b83d2 100644
+--- a/arch/um/include/asm/pgtable-4level.h
++++ b/arch/um/include/asm/pgtable-4level.h
+@@ -102,15 +102,6 @@ static inline unsigned long pte_pfn(pte_t pte)
+ 	return phys_to_pfn(pte_val(pte));
  }
  
- #define PFN_PTE_SHIFT			(PAGE_SHIFT - 4)
--#define pfn_pte(pfn, prot)		mk_pte(pfn_to_page(pfn), prot)
-+
-+static inline pte_t pfn_pte(unsigned long pfn, pgprot_t pgprot)
-+{
-+	return __pte((pfn << PFN_PTE_SHIFT) | pgprot_val(pgprot));
-+}
- 
- static inline unsigned long pte_pfn(pte_t pte)
+-static inline pte_t pfn_pte(unsigned long page_nr, pgprot_t pgprot)
+-{
+-	pte_t pte;
+-	phys_t phys = pfn_to_phys(page_nr);
+-
+-	pte_set_val(pte, phys, pgprot);
+-	return pte;
+-}
+-
+ static inline pmd_t pfn_pmd(unsigned long page_nr, pgprot_t pgprot)
  {
-@@ -272,15 +276,6 @@ static inline unsigned long pte_pfn(pte_t pte)
- 
- #define pte_page(pte)	pfn_to_page(pte_pfn(pte))
+ 	return __pmd((page_nr << PAGE_SHIFT) | pgprot_val(pgprot));
+diff --git a/arch/um/include/asm/pgtable.h b/arch/um/include/asm/pgtable.h
+index 5601ca98e8a6..ca2a519d53ab 100644
+--- a/arch/um/include/asm/pgtable.h
++++ b/arch/um/include/asm/pgtable.h
+@@ -260,19 +260,17 @@ static inline int pte_same(pte_t pte_a, pte_t pte_b)
+ 	return !((pte_val(pte_a) ^ pte_val(pte_b)) & ~_PAGE_NEEDSYNC);
+ }
  
 -/*
 - * Conversion functions: convert a page and protection to a page entry,
 - * and a page entry and page directory to the page they refer to.
 - */
--static inline pte_t mk_pte(struct page *page, pgprot_t pgprot)
--{
--	return __pte((page_to_pfn(page) << (PAGE_SHIFT-4)) | pgprot_val(pgprot));
--}
 -
- static inline pte_t mk_pte_phys(unsigned long page, pgprot_t pgprot)
+ #define __virt_to_page(virt) phys_to_page(__pa(virt))
+ #define virt_to_page(addr) __virt_to_page((const unsigned long) addr)
+ 
+-#define mk_pte(page, pgprot) \
+-	({ pte_t pte;					\
+-							\
+-	pte_set_val(pte, page_to_phys(page), (pgprot));	\
+-	pte;})
++static inline pte_t pfn_pte(unsigned long pfn, pgprot_t pgprot)
++{
++	pte_t pte;
++
++	pte_set_val(pte, pfn_to_phys(pfn), pgprot);
++
++	return pte;
++}
+ 
+ static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
  {
- 	return __pte(((page) >> 4) | pgprot_val(pgprot));
 -- 
 2.47.2
 
