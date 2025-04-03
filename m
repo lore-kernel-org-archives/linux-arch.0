@@ -1,100 +1,157 @@
-Received: from mail-pj1-f74.google.com (mail-pj1-f74.google.com [209.85.216.74])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out-189.mta1.migadu.com (out-189.mta1.migadu.com [95.215.58.189])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 94552253323
-	for <linux-arch@vger.kernel.org>; Thu,  3 Apr 2025 16:57:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.74
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 710E01FCFF3
+	for <linux-arch@vger.kernel.org>; Thu,  3 Apr 2025 20:34:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.189
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743699442; cv=none; b=tyGmP0fS8SmdS2HJYF6D/uk08SyMdtIRPYk/PEvlYPnzKXpdWtN+wJxrERe93VnEhct+bmPBsyQyAiwQeUzQrCS45ZaOhuQE3whd0V583WqArcQw9ZJGPnbAosMAZUwOd6oYIhYQCPsXEbBqSO1cMW4lj+5TGz5TjfsMUd8Bjg4=
+	t=1743712485; cv=none; b=FtVVJTj5FIGwwUnTlwsJunzV64V94YThdaoBp6x/Vcb4wwH4Z/vxDQxJHpaDknFpEekmeIYaCED4zaDXISYvgDwul8X3/vuK6Lmc8GznISTs2kZ5d0TF6rrrH1DPevHDtG2drEsbHkXhbhhMnhD5uute+G5VlIO7hBEMEG0HduA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743699442; c=relaxed/simple;
-	bh=1GBMY/blDMm/pZBEDDJ7pMxBepJY1ykTDsdud2Ofj2U=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Content-Type; b=psDJrJXt8ZO64rax3V4OFogjmE6ST78i5WvDGzPWod3pt9cYd8dQyPNMFsw68qimTPL1V6Yr1GUfJvvNQYyrNHvUVptXl6RZ3JGhqmwbJylgDK3Qxg+bkf4NrVaGwCNNVGrQg+0TQXHbwiKdPaIIkqkhDUyEygjdCYca8ADU0a8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--irogers.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=yvc3WPSL; arc=none smtp.client-ip=209.85.216.74
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--irogers.bounces.google.com
+	s=arc-20240116; t=1743712485; c=relaxed/simple;
+	bh=vNjPf3P0PUxeTGKWeu+8t+D+VDii1FobxL9MZssx2m0=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=WbRo2cOLHwAEc9W8woCZvIBsVt0ytNMbauKSeibu4Ik8m1we5GkyLLVsp6ZxrRdkaJmhDTBzXLnI4YtYPJKvHzo2hJLQTsIdS/Q0g/P/sUehKUPVe0ak/RHjpgYFxX28rWN0ZkAm9pCfgRe4saQruLEnPIzWE0ccMAoaE5IpM8s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=iencinas.com; spf=pass smtp.mailfrom=iencinas.com; dkim=pass (2048-bit key) header.d=iencinas.com header.i=@iencinas.com header.b=FcMOfVC+; arc=none smtp.client-ip=95.215.58.189
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=iencinas.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=iencinas.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="yvc3WPSL"
-Received: by mail-pj1-f74.google.com with SMTP id 98e67ed59e1d1-2ff798e8c3bso1085770a91.2
-        for <linux-arch@vger.kernel.org>; Thu, 03 Apr 2025 09:57:18 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1743699438; x=1744304238; darn=vger.kernel.org;
-        h=to:from:subject:message-id:references:mime-version:in-reply-to:date
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=mNHCeBq+kt/FIoDgbEk42F0HhswOr1VLdQ14FXQaWQs=;
-        b=yvc3WPSL11RWLmG4EvleEX73gnbfC5u/aeOF1Dz7frXMQqQ36cKW8UD8MMzJKUIkhS
-         7ydB4D28QJ+r6RgOlgHZelz5/KrEURSnpbjE5pPfomPBjHsQhGDMRI+qboaQJKlGohMo
-         tvEKgEUyEW1Y1fXbRRoDFHceYS7Tp5WTiK1mxfgB8TxE4dcZUTi9qBSQv6OLXh+VAztZ
-         medFK4CIz0QAAJgcfOs6ZkbaMQQtlGNQ0SMr2lMQ1SyCm/onySe7ifE07GRf6nSoujGL
-         fg5nJUbPhElSlcugRCl0jU+UendNjeU0SJzbE53czloue6w6RP/bDEH8QyoyQEwSJrIY
-         thQQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1743699438; x=1744304238;
-        h=to:from:subject:message-id:references:mime-version:in-reply-to:date
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=mNHCeBq+kt/FIoDgbEk42F0HhswOr1VLdQ14FXQaWQs=;
-        b=QlgPoPOkXH5qEb6XHctTTL1NWN0DtX6E+/yVEFGJpwkMP58KKetFbt8tG+IGtHh4cd
-         iLdalXBSuUCZFh9V2zY3yLwmDALsbJZ3Q6XHeEKQMqAU4f+QuKQ0h1s33UWkpGMWprmN
-         PGQbPbVHvJm40+NksZAGksgGhQh/cIgbIBixKzmemLjQtR/l6IiiyXhINFlImbpZToKl
-         lKm9DildOsIVr4KymOBsWfw/xi5sCMUzjex3b3FJaCzMWL2ALw4Pptw0zdN4myvC2MJW
-         axsD7c6EtY1O5ujaI98yXwSOcGlCWd99mKgJDdgML4jmYf9ApotVoIMvdn3W6SVhvxPO
-         0ZOA==
-X-Forwarded-Encrypted: i=1; AJvYcCUZ0K5wBllFrSECcSgoll9SSSt6BT3vroQX2BnwNC856e34HcEEmLoPsjWVs7MXGWqXW6tpHlTkryTv@vger.kernel.org
-X-Gm-Message-State: AOJu0Yw3KZyLZxXmod2sYyzcQPOPKNN+TnPlt56CHc2PaEuamX4jbcXe
-	3ysrkHZaKJik6TMpw6DHkpuKmqt1nV7OLEj1kZZFyBQK+ZD7Wv8jiWbL1TCjtgiTK0zppOlqdis
-	pZpiCuQ==
-X-Google-Smtp-Source: AGHT+IHwAF9KgN3kBG96nyN/c70dCrvtSADqCvq2NC2KDP9UQWERHeR8jrgnBfjzks/VkiX6BY+HKFC/mvhS
-X-Received: from pjbpb6.prod.google.com ([2002:a17:90b:3c06:b0:2ff:5344:b54])
- (user=irogers job=prod-delivery.src-stubby-dispatcher) by 2002:a17:90b:574d:b0:2ef:67c2:4030
- with SMTP id 98e67ed59e1d1-306a4975c0cmr355393a91.27.1743699437820; Thu, 03
- Apr 2025 09:57:17 -0700 (PDT)
-Date: Thu,  3 Apr 2025 09:57:02 -0700
-In-Reply-To: <20250403165702.396388-1-irogers@google.com>
+	dkim=pass (2048-bit key) header.d=iencinas.com header.i=@iencinas.com header.b="FcMOfVC+"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=iencinas.com;
+	s=key1; t=1743712481;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=XottEP9+kxqN7k8r+CHXORR/CTolk7gMW8RtuPxzLJg=;
+	b=FcMOfVC+xU7hwwVLr0B5iWZuITi70KZBKm4qeHGCRW6+WbcUhz661oepH44LwuaDQ+9cKz
+	UTZij1H0QJGIb84cke/NAuBZGNbozLcHObxCyd2uvRVTfe5qfXpQKi6pkT9RLKuO4C5G0a
+	CIAEWfKq8W7hlph0Qg45iUfiPOVlF8YkX+PNZm6um6pt8/nqGvkktAEvCfZVvMtH6gZR47
+	xy9bCACXaHv0yOYcLSDjCNLGmzWwN1e35e7htTPw29Pi5yz4ws+xspnMXC3kO1j1gLznMz
+	EExAgTiLMZgzWo2QPxVkwazDq9zCDeQq0SAd0jE4czpD3i1GSQTt+eMMR/iPcg==
+From: Ignacio Encinas <ignacio@iencinas.com>
+Date: Thu, 03 Apr 2025 22:34:17 +0200
+Subject: [PATCH v3 1/2] include/uapi/linux/swab.h: move default
+ implementation for swab macros into asm-generic
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20250403165702.396388-1-irogers@google.com>
-X-Mailer: git-send-email 2.49.0.504.g3bcea36a83-goog
-Message-ID: <20250403165702.396388-6-irogers@google.com>
-Subject: [PATCH v1 5/5] hash.h: Silence a clang -Wshorten-64-to-32 warning
-From: Ian Rogers <irogers@google.com>
-To: Yury Norov <yury.norov@gmail.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, 
-	Arnd Bergmann <arnd@arndb.de>, Nathan Chancellor <nathan@kernel.org>, 
-	Nick Desaulniers <nick.desaulniers+lkml@gmail.com>, Bill Wendling <morbo@google.com>, 
-	Justin Stitt <justinstitt@google.com>, Ian Rogers <irogers@google.com>, 
-	Adrian Hunter <adrian.hunter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, 
-	Jakub Kicinski <kuba@kernel.org>, Jacob Keller <jacob.e.keller@intel.com>, linux-arch@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-Id: <20250403-riscv-swab-v3-1-3bf705d80e33@iencinas.com>
+References: <20250403-riscv-swab-v3-0-3bf705d80e33@iencinas.com>
+In-Reply-To: <20250403-riscv-swab-v3-0-3bf705d80e33@iencinas.com>
+To: Paul Walmsley <paul.walmsley@sifive.com>, 
+ Palmer Dabbelt <palmer@dabbelt.com>, Alexandre Ghiti <alex@ghiti.fr>, 
+ Arnd Bergmann <arnd@arndb.de>
+Cc: Eric Biggers <ebiggers@kernel.org>, linux-riscv@lists.infradead.org, 
+ linux-kernel@vger.kernel.org, linux-kernel-mentees@lists.linux.dev, 
+ skhan@linuxfoundation.org, Zhihang Shao <zhihang.shao.iscas@gmail.com>, 
+ =?utf-8?q?Bj=C3=B6rn_T=C3=B6pel?= <bjorn@kernel.org>, 
+ linux-arch@vger.kernel.org, Ignacio Encinas <ignacio@iencinas.com>
+X-Migadu-Flow: FLOW_OUT
 
-The clang warning -Wshorten-64-to-32 can be useful to catch
-inadvertent truncation. In some instances this truncation can lead to
-changing the sign of a result, for example, truncation to return an
-int to fit a sort routine. Silence the warning by making the implicit
-truncation explicit.
+Move the default byteswap implementation into asm-generic so that it can
+be included from arch code.
 
-Signed-off-by: Ian Rogers <irogers@google.com>
+This is required by RISC-V in order to have a fallback implementation
+without duplicating it.
+
+Signed-off-by: Ignacio Encinas <ignacio@iencinas.com>
 ---
- include/linux/hash.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/uapi/asm-generic/swab.h | 32 ++++++++++++++++++++++++++++++++
+ include/uapi/linux/swab.h       | 33 +--------------------------------
+ 2 files changed, 33 insertions(+), 32 deletions(-)
 
-diff --git a/include/linux/hash.h b/include/linux/hash.h
-index 38edaa08f862..ecc8296cb397 100644
---- a/include/linux/hash.h
-+++ b/include/linux/hash.h
-@@ -75,7 +75,7 @@ static __always_inline u32 hash_64_generic(u64 val, unsigned int bits)
- {
- #if BITS_PER_LONG == 64
- 	/* 64x64-bit multiply is efficient on all 64-bit processors */
--	return val * GOLDEN_RATIO_64 >> (64 - bits);
-+	return (u32)(val * GOLDEN_RATIO_64 >> (64 - bits));
- #else
- 	/* Hash 64 bits using only 32x32-bit multiply. */
- 	return hash_32((u32)val ^ __hash_32(val >> 32), bits);
+diff --git a/include/uapi/asm-generic/swab.h b/include/uapi/asm-generic/swab.h
+index f2da4e4fd4d1..43d83df007a6 100644
+--- a/include/uapi/asm-generic/swab.h
++++ b/include/uapi/asm-generic/swab.h
+@@ -16,4 +16,36 @@
+ #endif
+ #endif
+ 
++/*
++ * casts are necessary for constants, because we never know how for sure
++ * how U/UL/ULL map to __u16, __u32, __u64. At least not in a portable way.
++ */
++#define ___constant_swab16(x) ((__u16)(				\
++	(((__u16)(x) & (__u16)0x00ffU) << 8) |			\
++	(((__u16)(x) & (__u16)0xff00U) >> 8)))
++
++#define ___constant_swab32(x) ((__u32)(				\
++	(((__u32)(x) & (__u32)0x000000ffUL) << 24) |		\
++	(((__u32)(x) & (__u32)0x0000ff00UL) <<  8) |		\
++	(((__u32)(x) & (__u32)0x00ff0000UL) >>  8) |		\
++	(((__u32)(x) & (__u32)0xff000000UL) >> 24)))
++
++#define ___constant_swab64(x) ((__u64)(				\
++	(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) |	\
++	(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) |	\
++	(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) |	\
++	(((__u64)(x) & (__u64)0x00000000ff000000ULL) <<  8) |	\
++	(((__u64)(x) & (__u64)0x000000ff00000000ULL) >>  8) |	\
++	(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) |	\
++	(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) |	\
++	(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56)))
++
++#define ___constant_swahw32(x) ((__u32)(			\
++	(((__u32)(x) & (__u32)0x0000ffffUL) << 16) |		\
++	(((__u32)(x) & (__u32)0xffff0000UL) >> 16)))
++
++#define ___constant_swahb32(x) ((__u32)(			\
++	(((__u32)(x) & (__u32)0x00ff00ffUL) << 8) |		\
++	(((__u32)(x) & (__u32)0xff00ff00UL) >> 8)))
++
+ #endif /* _ASM_GENERIC_SWAB_H */
+diff --git a/include/uapi/linux/swab.h b/include/uapi/linux/swab.h
+index 01717181339e..ca808c492996 100644
+--- a/include/uapi/linux/swab.h
++++ b/include/uapi/linux/swab.h
+@@ -6,38 +6,7 @@
+ #include <linux/stddef.h>
+ #include <asm/bitsperlong.h>
+ #include <asm/swab.h>
+-
+-/*
+- * casts are necessary for constants, because we never know how for sure
+- * how U/UL/ULL map to __u16, __u32, __u64. At least not in a portable way.
+- */
+-#define ___constant_swab16(x) ((__u16)(				\
+-	(((__u16)(x) & (__u16)0x00ffU) << 8) |			\
+-	(((__u16)(x) & (__u16)0xff00U) >> 8)))
+-
+-#define ___constant_swab32(x) ((__u32)(				\
+-	(((__u32)(x) & (__u32)0x000000ffUL) << 24) |		\
+-	(((__u32)(x) & (__u32)0x0000ff00UL) <<  8) |		\
+-	(((__u32)(x) & (__u32)0x00ff0000UL) >>  8) |		\
+-	(((__u32)(x) & (__u32)0xff000000UL) >> 24)))
+-
+-#define ___constant_swab64(x) ((__u64)(				\
+-	(((__u64)(x) & (__u64)0x00000000000000ffULL) << 56) |	\
+-	(((__u64)(x) & (__u64)0x000000000000ff00ULL) << 40) |	\
+-	(((__u64)(x) & (__u64)0x0000000000ff0000ULL) << 24) |	\
+-	(((__u64)(x) & (__u64)0x00000000ff000000ULL) <<  8) |	\
+-	(((__u64)(x) & (__u64)0x000000ff00000000ULL) >>  8) |	\
+-	(((__u64)(x) & (__u64)0x0000ff0000000000ULL) >> 24) |	\
+-	(((__u64)(x) & (__u64)0x00ff000000000000ULL) >> 40) |	\
+-	(((__u64)(x) & (__u64)0xff00000000000000ULL) >> 56)))
+-
+-#define ___constant_swahw32(x) ((__u32)(			\
+-	(((__u32)(x) & (__u32)0x0000ffffUL) << 16) |		\
+-	(((__u32)(x) & (__u32)0xffff0000UL) >> 16)))
+-
+-#define ___constant_swahb32(x) ((__u32)(			\
+-	(((__u32)(x) & (__u32)0x00ff00ffUL) << 8) |		\
+-	(((__u32)(x) & (__u32)0xff00ff00UL) >> 8)))
++#include <asm-generic/swab.h>
+ 
+ /*
+  * Implement the following as inlines, but define the interface using
+
 -- 
-2.49.0.504.g3bcea36a83-goog
+2.49.0
 
