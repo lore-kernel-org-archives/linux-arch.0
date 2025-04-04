@@ -1,111 +1,130 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+Received: from fhigh-b7-smtp.messagingengine.com (fhigh-b7-smtp.messagingengine.com [202.12.124.158])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21A6A33993;
-	Fri,  4 Apr 2025 02:20:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.165.32
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F3EB61624DD;
+	Fri,  4 Apr 2025 05:43:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.158
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743733256; cv=none; b=Pv8Sk1fF1zzxCKpqLq58P53SIMHa/5+C5E61VWJDeWLEQ8jfofrAd8Ou+QHxkStcVNjBXkDvY33vEcoqthdLorTL/lIjIko97ftbogWozOOuyusfoirfq0lwJrBbUkHymvsClEfplmFX1X6VxuZoycTevpczY0YV1wr38ycHMfI=
+	t=1743745408; cv=none; b=jMIh8KCZkWGeDD0HKDbkd7Ztf1eGyzdw7x0HZVNdug2eRBwgxRZIpb7Yof9odR+0bKjSCGcHCYEky3BUHGybGVvVq1BYD0dkCEt+PfYNuUGiMUHjRq0MnDfh/pdd0qeqK7aZkZD8xDWDda92kMjd2kqsd7r7lquzY3/XiXM6ifg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743733256; c=relaxed/simple;
-	bh=0c6HNmTH664MrBmm5ZpFzSUVr5wtWMNENPOrdOvbctc=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=WvIJ6TGPI8fWe7jyKzGdhDfJdGD9KcdAy+7urw42Eq1yGdNug1GZAYxn6W0kyUTCvXpKWF2iqrCmHuO0SXMNtqI7HoCDBu9Wjx+5jFSi1UWCRvS1uawmbjEUbd40m2Nmeo9nP0uJNwBBaBlPZuzzJ617CCzXZVB4+5GwpdbGn5g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=P/L4jxDX; arc=none smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	s=arc-20240116; t=1743745408; c=relaxed/simple;
+	bh=qQFF/NBDKdDQ32P98GoBbGcFJst3gasRnlt/QSB7pbE=;
+	h=MIME-Version:Date:From:To:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=Q13C9SPKIeRS87fp+GP+jvRtNDT9o07A4rNS1iwXdDWh8tzwryF1WCR/GA76b+lsGUhqKuHkhAkZgoqx0v9JG7gWyyk+ffWS2/kGIfnSfoO+PxKZpGyIC3gwLHAQfLtjL7LdIzvZMQaXbVjSafhAZkUCneywr9zr8bIA057PuPU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=AsVS10ce; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=Yj5o5bYT; arc=none smtp.client-ip=202.12.124.158
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="P/L4jxDX"
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5341O27D030347;
-	Fri, 4 Apr 2025 02:19:33 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-transfer-encoding:date:from:in-reply-to:message-id
-	:mime-version:references:subject:to; s=corp-2023-11-20; bh=BdRPF
-	+sf/RDOZJ0I0WvcHOUgTUy24Kq80kPmQD17F1o=; b=P/L4jxDXxOgg0UV8cbnKo
-	CrLZxzligmPb4xbXzxI+mEBC9kJqicEJdvfbZg8GU0EA3/4yrLnjewlx0DZ54x8S
-	P7dInIod7uCRCUiR4rjuRlCrqS0rC0SZ1SCPWht6QKt3Jb4/bY6tEg7e/WbmmXT9
-	XNRbyBUD/bZrBJYUpnAdzGkwZoPiEsOuslIUz6c7N15L6jwZYa66n8airnQdEYyP
-	q/eqDpAJCOKzieY1Ap+seXCLsbcYCJhORymKJ5AgnUwnlEW5rwUiGKtwKnt536Zv
-	vzxWFf924qln/KyUa/QCzlkBomKwmolMusmnfxaY13nVUJJHX+2MVSux9K4SyB+L
-	Q==
-Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.appoci.oracle.com [147.154.18.20])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 45p7f0p1nv-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 04 Apr 2025 02:19:32 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5340hM7d017366;
-	Fri, 4 Apr 2025 02:19:31 GMT
-Received: from pps.reinject (localhost [127.0.0.1])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 45t2pspjdd-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 04 Apr 2025 02:19:31 +0000
-Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 5342H8gu030074;
-	Fri, 4 Apr 2025 02:19:30 GMT
-Received: from localhost.localdomain (ca-dev60.us.oracle.com [10.129.136.27])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 45t2pspj73-11;
-	Fri, 04 Apr 2025 02:19:30 +0000
-From: Anthony Yznaga <anthony.yznaga@oracle.com>
-To: akpm@linux-foundation.org, willy@infradead.org, markhemm@googlemail.com,
-        viro@zeniv.linux.org.uk, david@redhat.com, khalid@kernel.org
-Cc: anthony.yznaga@oracle.com, andreyknvl@gmail.com, dave.hansen@intel.com,
-        luto@kernel.org, brauner@kernel.org, arnd@arndb.de,
-        ebiederm@xmission.com, catalin.marinas@arm.com,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-mm@kvack.org, mhiramat@kernel.org, rostedt@goodmis.org,
-        vasily.averin@linux.dev, xhao@linux.alibaba.com, pcc@google.com,
-        neilb@suse.de, maz@kernel.org
-Subject: [PATCH v2 10/20] mm: add mmap_read_lock_killable_nested()
-Date: Thu,  3 Apr 2025 19:18:52 -0700
-Message-ID: <20250404021902.48863-11-anthony.yznaga@oracle.com>
-X-Mailer: git-send-email 2.43.5
-In-Reply-To: <20250404021902.48863-1-anthony.yznaga@oracle.com>
-References: <20250404021902.48863-1-anthony.yznaga@oracle.com>
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="AsVS10ce";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="Yj5o5bYT"
+Received: from phl-compute-12.internal (phl-compute-12.phl.internal [10.202.2.52])
+	by mailfhigh.stl.internal (Postfix) with ESMTP id 8EDFC2540178;
+	Fri,  4 Apr 2025 01:43:24 -0400 (EDT)
+Received: from phl-imap-11 ([10.202.2.101])
+  by phl-compute-12.internal (MEProxy); Fri, 04 Apr 2025 01:43:24 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:content-transfer-encoding:content-type:content-type:date:date
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1743745404;
+	 x=1743831804; bh=LCuXw9LIl6DwgqGPiNReP7BXBeSdI1Eyn50diesQm6s=; b=
+	AsVS10cef0cf59Jd7pQumIsdrtQRdmCGQRSJu9VlycrcnFzGFEVId8sGAkMhzyRD
+	LZ22MRe6xPxKi6n5BTAsSm2jJsjr8E0Ba7PDpeD3kJpTRaVlxo1BErDlTtHomqdD
+	/19fwmXXGhwOusTp+a/nDxeCXsWuYC38eAQVqiuQ6raj09z0czWRrclWEhSVTJLD
+	8/VVDobicF6PFLOrX2lZ8anmJrggo/CDwbmS8LZJlgAiTX3YZrwjgRSOpEn3tmgu
+	gBiQsGvN6X3rHMwIskUbF2DILJNH+aIh39tQoe3qltRCbzqJILdPKIZ99TcGxpQW
+	whX36viMS3oIHAzZm82Slw==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:content-transfer-encoding:content-type
+	:content-type:date:date:feedback-id:feedback-id:from:from
+	:in-reply-to:in-reply-to:message-id:mime-version:references
+	:reply-to:subject:subject:to:to:x-me-proxy:x-me-sender
+	:x-me-sender:x-sasl-enc; s=fm2; t=1743745404; x=1743831804; bh=L
+	CuXw9LIl6DwgqGPiNReP7BXBeSdI1Eyn50diesQm6s=; b=Yj5o5bYTIVdcpfUha
+	Cnpkm5RWLsR0L7RAxO433OjqImSSBMu5aPPelMPFaHfGlSEomirpChLqCSp0SB9j
+	m5vEFed4fEdfPgxLh7OG+yItunbirMiJGDDDpZlVwJUGO4PjjfH6bgCGMgN++0iq
+	vxHhzkL9gVN3ebSBh+gRBJwJ1XZMdyfPI4UMhsCPvbNxJJ6hdVNksaym+ImBXLdq
+	Bf74eE9K61WQGvDTAhPD5l1/Ho6lR1JMfri4xon63PDEVNSleB2Ljc5efl+LQ2EH
+	YOEDAmBADP/MqDI9o1Uk8UzNSFFaLHlC1/sXjfy4NUpW/8Yj9TiraNTdWnAYi8v6
+	lWn+Q==
+X-ME-Sender: <xms:e3HvZ76SxLg1rBu3YdACOaqy-HTL1y7njmJKXbF1nvzTJg0dgtpQrw>
+    <xme:e3HvZw5Lp5rgALjehglB-nValKHg9c51PT_5_dGeqZaeJhh86wzFB-hq8kb7OAAG1
+    jXVyfddoPKW7VhHfOM>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefvddrtddtgdduledtieefucetufdoteggodetrf
+    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdggtfgfnhhsuhgsshgtrhhisggv
+    pdfurfetoffkrfgpnffqhgenuceurghilhhouhhtmecufedttdenucesvcftvggtihhpih
+    gvnhhtshculddquddttddmnecujfgurhepofggfffhvffkjghfufgtgfesthejredtredt
+    tdenucfhrhhomhepfdetrhhnugcuuegvrhhgmhgrnhhnfdcuoegrrhhnugesrghrnhgusg
+    druggvqeenucggtffrrghtthgvrhhnpefhkeeltdfffefhgffhteetheeuhffgteeghfdt
+    ueefudeuleetgfehtdejieffhfenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
+    epmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphhtthhopedu
+    gedpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepnhhitghkrdguvghsrghulhhnih
+    gvrhhsodhlkhhmlhesghhmrghilhdrtghomhdprhgtphhtthhopeihuhhrhidrnhhorhho
+    vhesghhmrghilhdrtghomhdprhgtphhtthhopehirhhoghgvrhhssehgohhoghhlvgdrtg
+    homhdprhgtphhtthhopehjuhhsthhinhhsthhithhtsehgohhoghhlvgdrtghomhdprhgt
+    phhtthhopehmohhrsghosehgohhoghhlvgdrtghomhdprhgtphhtthhopegrughrihgrnh
+    drhhhunhhtvghrsehinhhtvghlrdgtohhmpdhrtghpthhtohepjhgrtghosgdrvgdrkhgv
+    lhhlvghrsehinhhtvghlrdgtohhmpdhrtghpthhtohepkhhusggrsehkvghrnhgvlhdroh
+    hrghdprhgtphhtthhopehnrghthhgrnheskhgvrhhnvghlrdhorhhg
+X-ME-Proxy: <xmx:e3HvZyfh8XL3pbftiatpqMEYP0e6fRFb846kVK0LtewGQOl0U8X4dQ>
+    <xmx:e3HvZ8JTHehgvno3DGBZfrBMKXTHC75kQPtSeFm2VI2rdOzdfja6sA>
+    <xmx:e3HvZ_K52Ny0vBwh4_yLwR5d-Una6FwD7uO2XDp5h_x3n5CIId7o7A>
+    <xmx:e3HvZ1w0VYc5e6OWEAx_7bXItkYEPEl9_X5oPlc6PEdItD8-D8TFyw>
+    <xmx:fHHvZznnM-PSMgKZAd_xXLk8i3m6InLreV1LxynEIBcb5rSjxkzEaqru>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 2F4852220073; Fri,  4 Apr 2025 01:43:23 -0400 (EDT)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1095,Hydra:6.0.680,FMLib:17.12.68.34
- definitions=2025-04-04_01,2025-04-03_03,2024-11-22_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 bulkscore=0 mlxscore=0
- spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=999 malwarescore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2502280000
- definitions=main-2504040014
-X-Proofpoint-ORIG-GUID: CJAr9j-c4aQzEF5Z5RSFuAWWQe2jfl-Y
-X-Proofpoint-GUID: CJAr9j-c4aQzEF5Z5RSFuAWWQe2jfl-Y
+X-ThreadId: Tbabee1c6d5c86beb
+Date: Fri, 04 Apr 2025 07:43:02 +0200
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Ian Rogers" <irogers@google.com>, "Yury Norov" <yury.norov@gmail.com>,
+ "Rasmus Villemoes" <linux@rasmusvillemoes.dk>,
+ "Nathan Chancellor" <nathan@kernel.org>,
+ "Nick Desaulniers" <nick.desaulniers+lkml@gmail.com>,
+ "Bill Wendling" <morbo@google.com>, "Justin Stitt" <justinstitt@google.com>,
+ "Adrian Hunter" <adrian.hunter@intel.com>,
+ "Thomas Gleixner" <tglx@linutronix.de>, "Jakub Kicinski" <kuba@kernel.org>,
+ "Jacob Keller" <jacob.e.keller@intel.com>,
+ Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
+ llvm@lists.linux.dev
+Message-Id: <48a734d3-0920-402c-afab-f4f205cd6b0d@app.fastmail.com>
+In-Reply-To: <20250403165702.396388-4-irogers@google.com>
+References: <20250403165702.396388-1-irogers@google.com>
+ <20250403165702.396388-4-irogers@google.com>
+Subject: Re: [PATCH v1 3/5] bitops: Silence a clang -Wshorten-64-to-32 warning
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-This will be used to support mshare functionality where the read
-lock on an mshare host mm is taken while holding the lock on a
-process mm.
+On Thu, Apr 3, 2025, at 18:57, Ian Rogers wrote:
+> The clang warning -Wshorten-64-to-32 can be useful to catch
+> inadvertent truncation. In some instances this truncation can lead to
+> changing the sign of a result, for example, truncation to return an
+> int to fit a sort routine. Silence the warning by making the implicit
+> truncation explicit.
 
-Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
----
- include/linux/mmap_lock.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+The fls64() function only seems to deal with unsigned values, so
+I don't see how it would change the sign.
 
-diff --git a/include/linux/mmap_lock.h b/include/linux/mmap_lock.h
-index 4706c6769902..a14d74822846 100644
---- a/include/linux/mmap_lock.h
-+++ b/include/linux/mmap_lock.h
-@@ -185,6 +185,13 @@ static inline void mmap_read_lock(struct mm_struct *mm)
- 	__mmap_lock_trace_acquire_returned(mm, false, true);
- }
- 
-+static inline void mmap_read_lock_nested(struct mm_struct *mm, int subclass)
-+{
-+	__mmap_lock_trace_start_locking(mm, false);
-+	down_read_nested(&mm->mmap_lock, subclass);
-+	__mmap_lock_trace_acquire_returned(mm, false, true);
-+}
-+
- static inline int mmap_read_lock_killable(struct mm_struct *mm)
- {
- 	int ret;
--- 
-2.43.5
+> diff --git a/include/asm-generic/bitops/fls64.h 
+> b/include/asm-generic/bitops/fls64.h
+> index 866f2b2304ff..9ad3ff12f454 100644
+> --- a/include/asm-generic/bitops/fls64.h
+> +++ b/include/asm-generic/bitops/fls64.h
+> @@ -21,7 +21,7 @@ static __always_inline int fls64(__u64 x)
+>  	__u32 h = x >> 32;
+>  	if (h)
+>  		return fls(h) + 32;
+> -	return fls(x);
+> +	return fls((__u32)x);
+>  }
 
+Maybe this would be clearer with an explicit upper_32_bits()/
+lower_32_bits() instead of the cast and the shift?
+
+      Arnd
