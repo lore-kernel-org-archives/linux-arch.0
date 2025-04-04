@@ -1,51 +1,51 @@
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 29BF213CA9C;
-	Fri,  4 Apr 2025 02:19:56 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6AEB3199252;
+	Fri,  4 Apr 2025 02:20:04 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.165.32
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743733199; cv=none; b=la4gdxq8Hb1pibdyBTv9tA/SnVK/h52pvgL59mCq5H3juIEJmiEd1yKhmfGuj3jrCBpAKtKt1Nyvg1mvS/mwB2rm1xU5xZh4k4b4CqOK+y/L8drEK3hgU9oaEJX4cQ/vGSod7k2IWz7s9zWrKR+hGSgK2lkRNaEhxCmIIXNB+pE=
+	t=1743733206; cv=none; b=IgUi6WPIdvQ6V/1F/KYxs97dHX1abbwUluT+eRATUXoqu3X64AXk03hW2ji3r8iZ2pakwptzfXSkOVq3KCTlLak7UQU8qeYtX1ppk0S5m+Gr05HjRrRQfj+trUkxX4W2KQGkbcfSonU6PgNnpUKw+oWwdw3tjSczcSogWH+RrtQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1743733199; c=relaxed/simple;
-	bh=SiyoxJ1X5XIAgrXKDBaL/qBu+xpWd/HBVR17s0PrL6k=;
+	s=arc-20240116; t=1743733206; c=relaxed/simple;
+	bh=NK510fjJEDWP6sFaqFNuJVo7eEdN0Dlqydjcx4gOIp8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=skfppGDHKgCLTbn/xwNFJ8jL1u9u2ZPHmvihdkp7iEGMQ1qsCqSTDF8uSIeumIqpWL5Bj1gAvnkSbStiE4uf+Q2aHjY6dshdD7jFOLIl+W3dApbeGqMVeRYGgw57UWLShbxDJb1Plqzmn7ATs7Orb3s6/SDCWUSbX+OLE8f96vg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=ZfgPtYYp; arc=none smtp.client-ip=205.220.165.32
+	 MIME-Version; b=PjRvrNt+FgLzmfOLywns2gIg5vzaqWAzrodujLH8St9Yz678wdYgBKU371WXUaMDv+Gy0v+t2b/mWOBfnBeGQdwvXOTTxT3/uye0KVtGvN66W6gEuD+k8NodJFsNKsBffWLrz0vnHfNmTUVw1znxuyGHE2LdXGe+FNKyOzXNuuM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=P5P7gOnH; arc=none smtp.client-ip=205.220.165.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="ZfgPtYYp"
-Received: from pps.filterd (m0333521.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5341N2KW003850;
-	Fri, 4 Apr 2025 02:19:10 GMT
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="P5P7gOnH"
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5341NVEe020022;
+	Fri, 4 Apr 2025 02:19:40 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
 	:content-transfer-encoding:date:from:in-reply-to:message-id
-	:mime-version:references:subject:to; s=corp-2023-11-20; bh=s3Be4
-	h3gS8mZLGO0ggl9ZrqQVZS1VM6QgX8fGTsPeZ0=; b=ZfgPtYYpoylzoJBqsSQeN
-	LUYLNPEY9WvV+15bBaK2cB95PXsUxqWAXwZmbBT/XnmmN/N5zvfkQQ//334Y4a6w
-	5B0GtTjwvqIizjHEbdwyhiMvk4+uHdw90DHrzc/jOOv/3m7rxJ8yrpo2loCL1xFK
-	PqtQcQz/DhjIMuYJsR6M3LRxQam9nSH6drJw9VyZl2WuXTU1QzkYKBrrpKsp3SPm
-	MHVQYHHxUBNEA0vKQCsEG8gRKyChBbmmWhyw+YDQyU53+D3Cf0jea5XhXTPEgHzg
-	lrBNzCH+KF50lCO1XMHs4dx5a1UkrdPqt/YXt0IIMFCxowfsem9GCj5Te+4aimnM
-	g==
+	:mime-version:references:subject:to; s=corp-2023-11-20; bh=7cpVy
+	KF4ZMd3LXxrpKacQ/zYRn5BM4QzMhn1LTBJNYE=; b=P5P7gOnHiFEynlnwbYemo
+	LF6MKgmZlq3ZINoC9Oxv0XiVLmwVef2WLfkNqFptvdl2faULOJ4/8cglbTnyWTWG
+	sX5DOqvXDPqwKsGonJiqksUjS1QpgFx53q3/EPpBmuPE4XzxIRecFyHerePfEFcY
+	5pT37h6Kf2Vg7SnIjYMbBMnlCGL8We33vWrSyLzwbfL1433bEmZuGCUQ23URynCO
+	jrkGs9pps47BS7oj/hL4rlCPUd6igpxbyG9Tc3XQ5K1Gn6xRkbAu7tzU8c+A7fbd
+	f3oOIgw7Gik9rSUHeMfpoxdnjoLVlvWRD2DeeYbfS0gOYR902+E1OY/KQSIV2WO9
+	Q==
 Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.appoci.oracle.com [147.154.18.20])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 45p7sax3x5-1
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 45p8r9ntk6-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 04 Apr 2025 02:19:09 +0000 (GMT)
+	Fri, 04 Apr 2025 02:19:40 +0000 (GMT)
 Received: from pps.filterd (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5340fjJl017569;
-	Fri, 4 Apr 2025 02:19:08 GMT
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5340fxgu017356;
+	Fri, 4 Apr 2025 02:19:38 GMT
 Received: from pps.reinject (localhost [127.0.0.1])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 45t2pspj8d-1
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 45t2pspjf9-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 04 Apr 2025 02:19:08 +0000
+	Fri, 04 Apr 2025 02:19:38 +0000
 Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 5342H8gc030074;
-	Fri, 4 Apr 2025 02:19:07 GMT
+	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 5342H8h2030074;
+	Fri, 4 Apr 2025 02:19:38 GMT
 Received: from localhost.localdomain (ca-dev60.us.oracle.com [10.129.136.27])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 45t2pspj73-2;
-	Fri, 04 Apr 2025 02:19:07 +0000
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 45t2pspj73-14;
+	Fri, 04 Apr 2025 02:19:37 +0000
 From: Anthony Yznaga <anthony.yznaga@oracle.com>
 To: akpm@linux-foundation.org, willy@infradead.org, markhemm@googlemail.com,
         viro@zeniv.linux.org.uk, david@redhat.com, khalid@kernel.org
@@ -56,9 +56,9 @@ Cc: anthony.yznaga@oracle.com, andreyknvl@gmail.com, dave.hansen@intel.com,
         linux-mm@kvack.org, mhiramat@kernel.org, rostedt@goodmis.org,
         vasily.averin@linux.dev, xhao@linux.alibaba.com, pcc@google.com,
         neilb@suse.de, maz@kernel.org
-Subject: [PATCH v2 01/20] mm: Add msharefs filesystem
-Date: Thu,  3 Apr 2025 19:18:43 -0700
-Message-ID: <20250404021902.48863-2-anthony.yznaga@oracle.com>
+Subject: [PATCH v2 13/20] x86/mm: enable page table sharing
+Date: Thu,  3 Apr 2025 19:18:55 -0700
+Message-ID: <20250404021902.48863-14-anthony.yznaga@oracle.com>
 X-Mailer: git-send-email 2.43.5
 In-Reply-To: <20250404021902.48863-1-anthony.yznaga@oracle.com>
 References: <20250404021902.48863-1-anthony.yznaga@oracle.com>
@@ -76,292 +76,151 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 bulk
  spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=999 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2502280000
  definitions=main-2504040014
-X-Proofpoint-GUID: idsw14QBE2ePZgxGjKQz5K2iLCV9N4Lh
-X-Proofpoint-ORIG-GUID: idsw14QBE2ePZgxGjKQz5K2iLCV9N4Lh
+X-Proofpoint-GUID: i6lZP0jsec5VQkf8qGzbwTeR86wApoN6
+X-Proofpoint-ORIG-GUID: i6lZP0jsec5VQkf8qGzbwTeR86wApoN6
 
-From: Khalid Aziz <khalid@kernel.org>
+Enable x86 support for handling page faults in an mshare region by
+redirecting page faults to operate on the mshare mm_struct and vmas
+contained in it.
+Some permissions checks are done using vma flags in architecture-specfic
+fault handling code so the actual vma needed to complete the handling
+is acquired before calling handle_mm_fault(). Because of this an
+ARCH_SUPPORTS_MSHARE config option is added.
 
-Add a pseudo filesystem that contains files and page table sharing
-information that enables processes to share page table entries.
-This patch adds the basic filesystem that can be mounted, a
-CONFIG_MSHARE option to enable the feature, and documentation.
-
-Signed-off-by: Khalid Aziz <khalid@kernel.org>
 Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
 ---
- Documentation/filesystems/index.rst    |  1 +
- Documentation/filesystems/msharefs.rst | 96 +++++++++++++++++++++++++
- include/uapi/linux/magic.h             |  1 +
- mm/Kconfig                             |  9 +++
- mm/Makefile                            |  4 ++
- mm/mshare.c                            | 97 ++++++++++++++++++++++++++
- 6 files changed, 208 insertions(+)
- create mode 100644 Documentation/filesystems/msharefs.rst
- create mode 100644 mm/mshare.c
+ arch/Kconfig        |  3 +++
+ arch/x86/Kconfig    |  1 +
+ arch/x86/mm/fault.c | 37 ++++++++++++++++++++++++++++++++++++-
+ mm/Kconfig          |  2 +-
+ 4 files changed, 41 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/filesystems/index.rst b/Documentation/filesystems/index.rst
-index a9cf8e950b15..573d7a05dbca 100644
---- a/Documentation/filesystems/index.rst
-+++ b/Documentation/filesystems/index.rst
-@@ -101,6 +101,7 @@ Documentation for filesystem implementations.
-    fuse-io-uring
-    inotify
-    isofs
-+   msharefs
-    nilfs2
-    nfs/index
-    ntfs3
-diff --git a/Documentation/filesystems/msharefs.rst b/Documentation/filesystems/msharefs.rst
-new file mode 100644
-index 000000000000..3e5b7d531821
---- /dev/null
-+++ b/Documentation/filesystems/msharefs.rst
-@@ -0,0 +1,96 @@
-+.. SPDX-License-Identifier: GPL-2.0
-+
-+=====================================================
-+Msharefs - A filesystem to support shared page tables
-+=====================================================
-+
-+What is msharefs?
-+-----------------
-+
-+msharefs is a pseudo filesystem that allows multiple processes to
-+share page table entries for shared pages. To enable support for
-+msharefs the kernel must be compiled with CONFIG_MSHARE set.
-+
-+msharefs is typically mounted like this::
-+
-+	mount -t msharefs none /sys/fs/mshare
-+
-+A file created on msharefs creates a new shared region where all
-+processes mapping that region will map it using shared page table
-+entries. Once the size of the region has been established via
-+ftruncate() or fallocate(), the region can be mapped into processes
-+and ioctls used to map and unmap objects within it. Note that an
-+msharefs file is a control file and accessing mapped objects within
-+a shared region through read or write of the file is not permitted.
-+
-+How to use mshare
-+-----------------
-+
-+Here are the basic steps for using mshare:
-+
-+  1. Mount msharefs on /sys/fs/mshare::
-+
-+	mount -t msharefs msharefs /sys/fs/mshare
-+
-+  2. mshare regions have alignment and size requirements. Start
-+     address for the region must be aligned to an address boundary and
-+     be a multiple of fixed size. This alignment and size requirement
-+     can be obtained by reading the file ``/sys/fs/mshare/mshare_info``
-+     which returns a number in text format. mshare regions must be
-+     aligned to this boundary and be a multiple of this size.
-+
-+  3. For the process creating an mshare region:
-+
-+    a. Create a file on /sys/fs/mshare, for example::
-+
-+        fd = open("/sys/fs/mshare/shareme",
-+                        O_RDWR|O_CREAT|O_EXCL, 0600);
-+
-+    b. Establish the size of the region::
-+
-+        fallocate(fd, 0, 0, BUF_SIZE);
-+
-+      or::
-+
-+        ftruncate(fd, BUF_SIZE);
-+
-+    c. Map some memory in the region::
-+
-+	struct mshare_create mcreate;
-+
-+	mcreate.region_offset = 0;
-+	mcreate.size = BUF_SIZE;
-+	mcreate.offset = 0;
-+	mcreate.prot = PROT_READ | PROT_WRITE;
-+	mcreate.flags = MAP_ANONYMOUS | MAP_SHARED | MAP_FIXED;
-+	mcreate.fd = -1;
-+
-+	ioctl(fd, MSHAREFS_CREATE_MAPPING, &mcreate);
-+
-+    d. Map the mshare region into the process::
-+
-+	mmap(NULL, BUF_SIZE,
-+		PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-+
-+    e. Write and read to mshared region normally.
-+
-+
-+  4. For processes attaching an mshare region:
-+
-+    a. Open the msharefs file, for example::
-+
-+	fd = open("/sys/fs/mshare/shareme", O_RDWR);
-+
-+    b. Get the size of the mshare region from the file::
-+
-+        fstat(fd, &sb);
-+        mshare_size = sb.st_size;
-+
-+    c. Map the mshare region into the process::
-+
-+	mmap(NULL, mshare_size,
-+		PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-+
-+  5. To delete the mshare region::
-+
-+		unlink("/sys/fs/mshare/shareme");
-diff --git a/include/uapi/linux/magic.h b/include/uapi/linux/magic.h
-index bb575f3ab45e..e53dd6063cba 100644
---- a/include/uapi/linux/magic.h
-+++ b/include/uapi/linux/magic.h
-@@ -103,5 +103,6 @@
- #define DEVMEM_MAGIC		0x454d444d	/* "DMEM" */
- #define SECRETMEM_MAGIC		0x5345434d	/* "SECM" */
- #define PID_FS_MAGIC		0x50494446	/* "PIDF" */
-+#define MSHARE_MAGIC		0x4d534852	/* "MSHR" */
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 9f6eb09ef12d..2e000fefe9b3 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -1652,6 +1652,9 @@ config HAVE_ARCH_PFN_VALID
+ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+ 	bool
  
- #endif /* __LINUX_MAGIC_H__ */
++config ARCH_SUPPORTS_MSHARE
++	bool
++
+ config ARCH_SUPPORTS_PAGE_TABLE_CHECK
+ 	bool
+ 
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 1502fd0c3c06..1f1779decb44 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -125,6 +125,7 @@ config X86
+ 	select ARCH_SUPPORTS_ACPI
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_SUPPORTS_DEBUG_PAGEALLOC
++	select ARCH_SUPPORTS_MSHARE		if X86_64
+ 	select ARCH_SUPPORTS_PAGE_TABLE_CHECK	if X86_64
+ 	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
+ 	select ARCH_SUPPORTS_KMAP_LOCAL_FORCE_MAP	if NR_CPUS <= 4096
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 296d294142c8..49659d2f9316 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -1216,6 +1216,8 @@ void do_user_addr_fault(struct pt_regs *regs,
+ 	struct mm_struct *mm;
+ 	vm_fault_t fault;
+ 	unsigned int flags = FAULT_FLAG_DEFAULT;
++	bool is_shared_vma;
++	unsigned long addr;
+ 
+ 	tsk = current;
+ 	mm = tsk->mm;
+@@ -1329,6 +1331,12 @@ void do_user_addr_fault(struct pt_regs *regs,
+ 	if (!vma)
+ 		goto lock_mmap;
+ 
++	/* mshare does not support per-VMA locks yet */
++	if (vma_is_mshare(vma)) {
++		vma_end_read(vma);
++		goto lock_mmap;
++	}
++
+ 	if (unlikely(access_error(error_code, vma))) {
+ 		bad_area_access_error(regs, error_code, address, NULL, vma);
+ 		count_vm_vma_lock_event(VMA_LOCK_SUCCESS);
+@@ -1357,17 +1365,38 @@ void do_user_addr_fault(struct pt_regs *regs,
+ lock_mmap:
+ 
+ retry:
++	addr = address;
++	is_shared_vma = false;
+ 	vma = lock_mm_and_find_vma(mm, address, regs);
+ 	if (unlikely(!vma)) {
+ 		bad_area_nosemaphore(regs, error_code, address);
+ 		return;
+ 	}
+ 
++	if (unlikely(vma_is_mshare(vma))) {
++		fault = find_shared_vma(&vma, &addr);
++
++		if (fault) {
++			mmap_read_unlock(mm);
++			goto done;
++		}
++
++		if (!vma) {
++			mmap_read_unlock(mm);
++			bad_area_nosemaphore(regs, error_code, address);
++			return;
++		}
++
++		is_shared_vma = true;
++	}
++
+ 	/*
+ 	 * Ok, we have a good vm_area for this memory access, so
+ 	 * we can handle it..
+ 	 */
+ 	if (unlikely(access_error(error_code, vma))) {
++		if (unlikely(is_shared_vma))
++			mmap_read_unlock(vma->vm_mm);
+ 		bad_area_access_error(regs, error_code, address, mm, vma);
+ 		return;
+ 	}
+@@ -1385,7 +1414,11 @@ void do_user_addr_fault(struct pt_regs *regs,
+ 	 * userland). The return to userland is identified whenever
+ 	 * FAULT_FLAG_USER|FAULT_FLAG_KILLABLE are both set in flags.
+ 	 */
+-	fault = handle_mm_fault(vma, address, flags, regs);
++	fault = handle_mm_fault(vma, addr, flags, regs);
++
++	if (unlikely(is_shared_vma) && ((fault & VM_FAULT_COMPLETED) ||
++	    (fault & VM_FAULT_RETRY) || fault_signal_pending(fault, regs)))
++		mmap_read_unlock(mm);
+ 
+ 	if (fault_signal_pending(fault, regs)) {
+ 		/*
+@@ -1413,6 +1446,8 @@ void do_user_addr_fault(struct pt_regs *regs,
+ 		goto retry;
+ 	}
+ 
++	if (unlikely(is_shared_vma))
++		mmap_read_unlock(vma->vm_mm);
+ 	mmap_read_unlock(mm);
+ done:
+ 	if (likely(!(fault & VM_FAULT_ERROR)))
 diff --git a/mm/Kconfig b/mm/Kconfig
-index d3fb3762887b..e6c90db83d01 100644
+index e6c90db83d01..8a5a159457f2 100644
 --- a/mm/Kconfig
 +++ b/mm/Kconfig
-@@ -1342,6 +1342,15 @@ config PT_RECLAIM
+@@ -1344,7 +1344,7 @@ config PT_RECLAIM
  
- 	  Note: now only empty user PTE page table pages will be reclaimed.
- 
-+config MSHARE
-+	bool "Mshare"
-+	depends on MMU
-+	help
-+	  Enable msharefs: A ram-based filesystem that allows multiple
-+	  processes to share page table entries for shared pages. A file
-+	  created on msharefs represents a shared region where all processes
-+	  mapping that region will map objects within it with shared PTEs.
-+	  Ioctls are used to configure and map objects into the shared region.
- 
- source "mm/damon/Kconfig"
- 
-diff --git a/mm/Makefile b/mm/Makefile
-index e7f6bbf8ae5f..b32aad62589b 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -48,6 +48,10 @@ ifdef CONFIG_64BIT
- mmu-$(CONFIG_MMU)	+= mseal.o
- endif
- 
-+ifdef CONFIG_MSHARE
-+mmu-$(CONFIG_MMU)	+= mshare.o
-+endif
-+
- obj-y			:= filemap.o mempool.o oom_kill.o fadvise.o \
- 			   maccess.o page-writeback.o folio-compat.o \
- 			   readahead.o swap.o truncate.o vmscan.o shrinker.o \
-diff --git a/mm/mshare.c b/mm/mshare.c
-new file mode 100644
-index 000000000000..f703af49ec81
---- /dev/null
-+++ b/mm/mshare.c
-@@ -0,0 +1,97 @@
-+// SPDX-License-Identifier: GPL-2.0-only
-+/*
-+ * Enable cooperating processes to share page table between
-+ * them to reduce the extra memory consumed by multiple copies
-+ * of page tables.
-+ *
-+ * This code adds an in-memory filesystem - msharefs.
-+ * msharefs is used to manage page table sharing
-+ *
-+ *
-+ * Copyright (C) 2024 Oracle Corp. All rights reserved.
-+ * Author:	Khalid Aziz <khalid@kernel.org>
-+ *
-+ */
-+
-+#include <linux/fs.h>
-+#include <linux/fs_context.h>
-+#include <uapi/linux/magic.h>
-+
-+static const struct file_operations msharefs_file_operations = {
-+	.open			= simple_open,
-+};
-+
-+static const struct super_operations mshare_s_ops = {
-+	.statfs		= simple_statfs,
-+};
-+
-+static int
-+msharefs_fill_super(struct super_block *sb, struct fs_context *fc)
-+{
-+	struct inode *inode;
-+
-+	sb->s_blocksize		= PAGE_SIZE;
-+	sb->s_blocksize_bits	= PAGE_SHIFT;
-+	sb->s_maxbytes		= MAX_LFS_FILESIZE;
-+	sb->s_magic		= MSHARE_MAGIC;
-+	sb->s_op		= &mshare_s_ops;
-+	sb->s_time_gran		= 1;
-+
-+	inode = new_inode(sb);
-+	if (!inode)
-+		return -ENOMEM;
-+
-+	inode->i_ino = 1;
-+	inode->i_mode = S_IFDIR | 0777;
-+	simple_inode_init_ts(inode);
-+	inode->i_op = &simple_dir_inode_operations;
-+	inode->i_fop = &simple_dir_operations;
-+	set_nlink(inode, 2);
-+
-+	sb->s_root = d_make_root(inode);
-+	if (!sb->s_root)
-+		return -ENOMEM;
-+
-+	return 0;
-+}
-+
-+static int
-+msharefs_get_tree(struct fs_context *fc)
-+{
-+	return get_tree_nodev(fc, msharefs_fill_super);
-+}
-+
-+static const struct fs_context_operations msharefs_context_ops = {
-+	.get_tree	= msharefs_get_tree,
-+};
-+
-+static int
-+mshare_init_fs_context(struct fs_context *fc)
-+{
-+	fc->ops = &msharefs_context_ops;
-+	return 0;
-+}
-+
-+static struct file_system_type mshare_fs = {
-+	.name			= "msharefs",
-+	.init_fs_context	= mshare_init_fs_context,
-+	.kill_sb		= kill_litter_super,
-+};
-+
-+static int __init
-+mshare_init(void)
-+{
-+	int ret;
-+
-+	ret = sysfs_create_mount_point(fs_kobj, "mshare");
-+	if (ret)
-+		return ret;
-+
-+	ret = register_filesystem(&mshare_fs);
-+	if (ret)
-+		sysfs_remove_mount_point(fs_kobj, "mshare");
-+
-+	return ret;
-+}
-+
-+core_initcall(mshare_init);
+ config MSHARE
+ 	bool "Mshare"
+-	depends on MMU
++	depends on MMU && ARCH_SUPPORTS_MSHARE
+ 	help
+ 	  Enable msharefs: A ram-based filesystem that allows multiple
+ 	  processes to share page table entries for shared pages. A file
 -- 
 2.43.5
 
