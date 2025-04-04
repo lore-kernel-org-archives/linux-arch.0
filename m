@@ -1,51 +1,51 @@
 Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EE11313B7B3;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EE15313BAE3;
 	Fri,  4 Apr 2025 02:19:56 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.165.32
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1743733198; cv=none; b=LFz8JkIWFikg8JFcOKXi5LG2VikqgXq52vzBUC3v7bHs7LovDcz4p+HzsNS0dVYng6WYZ3tW2EAEVE14CHBrh4oNWcSIoyZweCAcHlfhevf81/MjEo4cNvU3IWulvh9HDMBiOgi0YXimQgFO1eHqPBUXOfdTCPsXp0+e0/HqW4k=
+	t=1743733198; cv=none; b=ufLXPkUXcAh9EmfbU59PtBsAf60rguzwc0gTAB2Q8nnKse2QRHqAZK7JfKZ1VeDhD7pZsdqJB4bESuGTcj4LoP/KKKhMsHh84p52JlE/zRYtTZUe/7UukkIUgyrDKNCiVEmtXtz2Cj/SLqiFmvIKCgog8aQEJ/c0CvEmIlIkUp0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1743733198; c=relaxed/simple;
-	bh=quf9sIli/qbvYS3GzsCRvZf1MUj5XfcEkxwuAfgF1Lk=;
+	bh=UXcvp4I1qeYAVOV0ZjXs52eGRzk0AcCVDTeNcK4XcrA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=By+THeoF2fanc7hudDOtdOeI4w1bJjktSIc1sMs2b+/untf1scuG0+0zmZq4D/Hfwru2bozGiy27W2mRvFV+YEq6juLt7t+GXD9NMeU2Dj/GQoy9rYYGgLawWCyQCHANMCQ4KEem6mpq/f/CFRnykLK3xVugZoZqGAoCcKzool4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=NOZ3PWdA; arc=none smtp.client-ip=205.220.165.32
+	 MIME-Version; b=hxSUnTtn0mm9aiBavJRRDOBVu/lC9dltE5gA0jGwiXmq5LVyuph3xqrYTv9tTiMIUT8Idvg3Q7z+Wd9gVEWcUiKR7qkowBAB1xrGwpIU5HV9i3jYXFk963YJyWdj25UHxHhMKXAt5D0RGIZrmHPqpAdSAsgqE0nZhDSXIa2Krfc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=m14CeTB2; arc=none smtp.client-ip=205.220.165.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="NOZ3PWdA"
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="m14CeTB2"
 Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5341O27B030347;
-	Fri, 4 Apr 2025 02:19:15 GMT
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5341O0ar030247;
+	Fri, 4 Apr 2025 02:19:35 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
 	:content-transfer-encoding:date:from:in-reply-to:message-id
-	:mime-version:references:subject:to; s=corp-2023-11-20; bh=u/Ka2
-	4LgFH1mEp9+dOJpjfauIGm/1R9CiLlxElDfEpA=; b=NOZ3PWdAMVOTQS0+7aDuR
-	skwtgjrkJZAUfqyztFxUQRUHMd8XrW5jez6ggYlpafDPnj5vl+3tvAdIkeitH8/F
-	4fTizL12uMMCvYenkY3Aj/JpSFHtwJ6jmz1nJMRFlozv7NNy16r38P90LrM/nljX
-	oCUF+mdsc0PQfkuUDhn7rNFtFwnhj5/YAKU30n/vVuFAQ932dqXyyrEI5OPL/s1T
-	uJn+E2JG/YbS5G//Z30/xPl77vfDswZNL0WeohxrTgsPiBlm+cXEEBbWblivWGtw
-	CQZtcF8wb7Ure94mM1gATTmdMCQMSa47x4XxKnu5rNx20OgD+8uyIcuLrSK2BCm5
-	g==
+	:mime-version:references:subject:to; s=corp-2023-11-20; bh=qrrOK
+	BJ/3jCKhjqRR4yfWGx2+uS9oDf6jT20lWJ3iuQ=; b=m14CeTB2tu/LSvz0nrYD/
+	qagIzSxoh7Xc5bDEZd056ItzD0cuTb4GVd8WG8UbD38+n3OaT6ZLlMNRIQ7+HPZk
+	viQHg2frxvNYW3iuscXzofYtV/8gb5Q25cqJqcYMdnLkHGyeJNReDSx0Ws/3IWou
+	xnqJEHZfdMkSNPGnFVS+plxeUwrT3nQsZz5ix6XyOEQjdMccScT5dGEM1KAS1lu9
+	791hKsHciPkbIlYCt9+j6Ovt5Hv/DLnJ/+TnsHMlRiEe0h8H48OQFJWJLD84x+pl
+	WGJt+FITXkazEqnq9p82z5pL1BiZwu/Ub1tL52jpIgVguKiNFlE55cR80+9o+z4f
+	Q==
 Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.appoci.oracle.com [147.154.18.20])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 45p7f0p1nn-1
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 45p7f0p1nx-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 04 Apr 2025 02:19:15 +0000 (GMT)
+	Fri, 04 Apr 2025 02:19:35 +0000 (GMT)
 Received: from pps.filterd (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5340fY7x017359;
-	Fri, 4 Apr 2025 02:19:14 GMT
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 5340hocF017504;
+	Fri, 4 Apr 2025 02:19:33 GMT
 Received: from pps.reinject (localhost [127.0.0.1])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 45t2pspj9u-1
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 45t2pspje4-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 04 Apr 2025 02:19:14 +0000
+	Fri, 04 Apr 2025 02:19:33 +0000
 Received: from iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 5342H8gg030074;
-	Fri, 4 Apr 2025 02:19:13 GMT
+	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 5342H8gw030074;
+	Fri, 4 Apr 2025 02:19:33 GMT
 Received: from localhost.localdomain (ca-dev60.us.oracle.com [10.129.136.27])
-	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 45t2pspj73-4;
-	Fri, 04 Apr 2025 02:19:13 +0000
+	by iadpaimrmta02.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTP id 45t2pspj73-12;
+	Fri, 04 Apr 2025 02:19:32 +0000
 From: Anthony Yznaga <anthony.yznaga@oracle.com>
 To: akpm@linux-foundation.org, willy@infradead.org, markhemm@googlemail.com,
         viro@zeniv.linux.org.uk, david@redhat.com, khalid@kernel.org
@@ -56,9 +56,9 @@ Cc: anthony.yznaga@oracle.com, andreyknvl@gmail.com, dave.hansen@intel.com,
         linux-mm@kvack.org, mhiramat@kernel.org, rostedt@goodmis.org,
         vasily.averin@linux.dev, xhao@linux.alibaba.com, pcc@google.com,
         neilb@suse.de, maz@kernel.org
-Subject: [PATCH v2 03/20] mm/mshare: make msharefs writable and support directories
-Date: Thu,  3 Apr 2025 19:18:45 -0700
-Message-ID: <20250404021902.48863-4-anthony.yznaga@oracle.com>
+Subject: [PATCH v2 11/20] mm: add and use unmap_page_range vm_ops hook
+Date: Thu,  3 Apr 2025 19:18:53 -0700
+Message-ID: <20250404021902.48863-12-anthony.yznaga@oracle.com>
 X-Mailer: git-send-email 2.43.5
 In-Reply-To: <20250404021902.48863-1-anthony.yznaga@oracle.com>
 References: <20250404021902.48863-1-anthony.yznaga@oracle.com>
@@ -76,163 +76,190 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 phishscore=0 bulk
  spamscore=0 adultscore=0 suspectscore=0 mlxlogscore=999 malwarescore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2502280000
  definitions=main-2504040014
-X-Proofpoint-ORIG-GUID: uxvsTgFDon66oivjCAXUe9tYMbY1XvCl
-X-Proofpoint-GUID: uxvsTgFDon66oivjCAXUe9tYMbY1XvCl
+X-Proofpoint-ORIG-GUID: D3avib5KfJw9o7txOeLIIqumVBlsAqWD
+X-Proofpoint-GUID: D3avib5KfJw9o7txOeLIIqumVBlsAqWD
 
-From: Khalid Aziz <khalid@kernel.org>
+Special handling is needed when unmapping a hugetlb vma and will
+be needed when unmapping an msharefs vma once support is added for
+handling faults in an mshare region.
 
-Make msharefs filesystem writable and allow creating directories
-to support better access control to mshare'd regions defined in
-msharefs.
-
-Signed-off-by: Khalid Aziz <khalid@kernel.org>
 Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
 ---
- mm/mshare.c | 116 +++++++++++++++++++++++++++++++++++++++++++++++++++-
- 1 file changed, 115 insertions(+), 1 deletion(-)
+ include/linux/mm.h | 10 ++++++++++
+ ipc/shm.c          | 17 +++++++++++++++++
+ mm/hugetlb.c       | 25 +++++++++++++++++++++++++
+ mm/memory.c        | 36 +++++++++++++-----------------------
+ 4 files changed, 65 insertions(+), 23 deletions(-)
 
-diff --git a/mm/mshare.c b/mm/mshare.c
-index d666471bc94b..5d9e25da0244 100644
---- a/mm/mshare.c
-+++ b/mm/mshare.c
-@@ -19,14 +19,128 @@
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index f2f9d15213ab..d6cac2cca4da 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -40,6 +40,7 @@ struct anon_vma_chain;
+ struct user_struct;
+ struct pt_regs;
+ struct folio_batch;
++struct zap_details;
  
- const unsigned long mshare_align = P4D_SIZE;
- 
-+static const struct inode_operations msharefs_dir_inode_ops;
-+static const struct inode_operations msharefs_file_inode_ops;
-+
- static const struct file_operations msharefs_file_operations = {
- 	.open			= simple_open,
+ void arch_mm_preinit(void);
+ void mm_core_init(void);
+@@ -661,8 +662,17 @@ struct vm_operations_struct {
+ 	 */
+ 	struct page *(*find_special_page)(struct vm_area_struct *vma,
+ 					  unsigned long addr);
++	void (*unmap_page_range)(struct mmu_gather *tlb,
++				 struct vm_area_struct *vma,
++				 unsigned long addr, unsigned long end,
++				 struct zap_details *details);
  };
  
-+static struct inode
-+*msharefs_get_inode(struct mnt_idmap *idmap, struct super_block *sb,
-+			const struct inode *dir, umode_t mode)
++void __unmap_page_range(struct mmu_gather *tlb,
++			struct vm_area_struct *vma,
++			unsigned long addr, unsigned long end,
++			struct zap_details *details);
++
+ #ifdef CONFIG_NUMA_BALANCING
+ static inline void vma_numab_state_init(struct vm_area_struct *vma)
+ {
+diff --git a/ipc/shm.c b/ipc/shm.c
+index 99564c870084..cadd551e60b9 100644
+--- a/ipc/shm.c
++++ b/ipc/shm.c
+@@ -585,6 +585,22 @@ static struct mempolicy *shm_get_policy(struct vm_area_struct *vma,
+ }
+ #endif
+ 
++static void shm_unmap_page_range(struct mmu_gather *tlb,
++				 struct vm_area_struct *vma,
++				 unsigned long addr, unsigned long end,
++				 struct zap_details *details)
 +{
-+	struct inode *inode = new_inode(sb);
++	struct file *file = vma->vm_file;
++	struct shm_file_data *sfd = shm_file_data(file);
 +
-+	if (!inode)
-+		return ERR_PTR(-ENOMEM);
-+
-+	inode->i_ino = get_next_ino();
-+	inode_init_owner(&nop_mnt_idmap, inode, dir, mode);
-+	simple_inode_init_ts(inode);
-+
-+	switch (mode & S_IFMT) {
-+	case S_IFREG:
-+		inode->i_op = &msharefs_file_inode_ops;
-+		inode->i_fop = &msharefs_file_operations;
-+		break;
-+	case S_IFDIR:
-+		inode->i_op = &msharefs_dir_inode_ops;
-+		inode->i_fop = &simple_dir_operations;
-+		inc_nlink(inode);
-+		break;
-+	default:
-+		discard_new_inode(inode);
-+		return ERR_PTR(-EINVAL);
++	if (sfd->vm_ops->unmap_page_range) {
++		sfd->vm_ops->unmap_page_range(tlb, vma, addr, end, details);
++		return;
 +	}
 +
-+	return inode;
++	__unmap_page_range(tlb, vma, addr, end, details);
 +}
 +
-+static int
-+msharefs_mknod(struct mnt_idmap *idmap, struct inode *dir,
-+		struct dentry *dentry, umode_t mode)
-+{
-+	struct inode *inode;
-+
-+	inode = msharefs_get_inode(idmap, dir->i_sb, dir, mode);
-+	if (IS_ERR(inode))
-+		return PTR_ERR(inode);
-+
-+	d_instantiate(dentry, inode);
-+	dget(dentry);
-+	inode_set_mtime_to_ts(dir, inode_set_ctime_current(dir));
-+
-+	return 0;
-+}
-+
-+static int
-+msharefs_create(struct mnt_idmap *idmap, struct inode *dir,
-+		struct dentry *dentry, umode_t mode, bool excl)
-+{
-+	return msharefs_mknod(idmap, dir, dentry, mode | S_IFREG);
-+}
-+
-+static struct dentry *
-+msharefs_mkdir(struct mnt_idmap *idmap, struct inode *dir,
-+		struct dentry *dentry, umode_t mode)
-+{
-+	int ret = msharefs_mknod(idmap, dir, dentry, mode | S_IFDIR);
-+
-+	if (!ret)
-+		inc_nlink(dir);
-+	return ERR_PTR(ret);
-+}
-+
- struct msharefs_info {
- 	struct dentry *info_dentry;
+ static int shm_mmap(struct file *file, struct vm_area_struct *vma)
+ {
+ 	struct shm_file_data *sfd = shm_file_data(file);
+@@ -685,6 +701,7 @@ static const struct vm_operations_struct shm_vm_ops = {
+ 	.set_policy = shm_set_policy,
+ 	.get_policy = shm_get_policy,
+ #endif
++	.unmap_page_range = shm_unmap_page_range,
  };
  
-+static inline bool
-+is_msharefs_info_file(const struct dentry *dentry)
-+{
-+	struct msharefs_info *info = dentry->d_sb->s_fs_info;
-+
-+	return info->info_dentry == dentry;
-+}
-+
-+static int
-+msharefs_rename(struct mnt_idmap *idmap,
-+		struct inode *old_dir, struct dentry *old_dentry,
-+		struct inode *new_dir, struct dentry *new_dentry,
-+		unsigned int flags)
-+{
-+	if (is_msharefs_info_file(old_dentry) ||
-+	    is_msharefs_info_file(new_dentry))
-+		return -EPERM;
-+
-+	return simple_rename(idmap, old_dir, old_dentry, new_dir,
-+			     new_dentry, flags);
-+}
-+
-+static int
-+msharefs_unlink(struct inode *dir, struct dentry *dentry)
-+{
-+	if (is_msharefs_info_file(dentry))
-+		return -EPERM;
-+
-+	return simple_unlink(dir, dentry);
-+}
-+
-+static const struct inode_operations msharefs_file_inode_ops = {
-+	.setattr	= simple_setattr,
-+};
-+
-+static const struct inode_operations msharefs_dir_inode_ops = {
-+	.create		= msharefs_create,
-+	.lookup		= simple_lookup,
-+	.link		= simple_link,
-+	.unlink		= msharefs_unlink,
-+	.mkdir		= msharefs_mkdir,
-+	.rmdir		= simple_rmdir,
-+	.rename		= msharefs_rename,
-+};
-+
- static ssize_t
- mshare_info_read(struct file *file, char __user *buf, size_t nbytes,
- 		loff_t *ppos)
-@@ -106,7 +220,7 @@ msharefs_fill_super(struct super_block *sb, struct fs_context *fc)
- 	inode->i_ino = 1;
- 	inode->i_mode = S_IFDIR | 0777;
- 	simple_inode_init_ts(inode);
--	inode->i_op = &simple_dir_inode_operations;
-+	inode->i_op = &msharefs_dir_inode_ops;
- 	inode->i_fop = &simple_dir_operations;
- 	set_nlink(inode, 2);
+ /**
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 39f92aad7bd1..e4a516f458a0 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -5426,6 +5426,30 @@ static vm_fault_t hugetlb_vm_op_fault(struct vm_fault *vmf)
+ 	return 0;
+ }
  
++static void hugetlb_vm_op_unmap_page_range(struct mmu_gather *tlb,
++				struct vm_area_struct *vma,
++				unsigned long addr, unsigned long end,
++				struct zap_details *details)
++{
++	zap_flags_t zap_flags = details ?  details->zap_flags : 0;
++
++	/*
++	 * It is undesirable to test vma->vm_file as it
++	 * should be non-null for valid hugetlb area.
++	 * However, vm_file will be NULL in the error
++	 * cleanup path of mmap_region. When
++	 * hugetlbfs ->mmap method fails,
++	 * mmap_region() nullifies vma->vm_file
++	 * before calling this function to clean up.
++	 * Since no pte has actually been setup, it is
++	 * safe to do nothing in this case.
++	 */
++	if (!vma->vm_file)
++		return;
++
++	__unmap_hugepage_range(tlb, vma, addr, end, NULL, zap_flags);
++}
++
+ /*
+  * When a new function is introduced to vm_operations_struct and added
+  * to hugetlb_vm_ops, please consider adding the function to shm_vm_ops.
+@@ -5439,6 +5463,7 @@ const struct vm_operations_struct hugetlb_vm_ops = {
+ 	.close = hugetlb_vm_op_close,
+ 	.may_split = hugetlb_vm_op_split,
+ 	.pagesize = hugetlb_vm_op_pagesize,
++	.unmap_page_range = hugetlb_vm_op_unmap_page_range,
+ };
+ 
+ static pte_t make_huge_pte(struct vm_area_struct *vma, struct page *page,
+diff --git a/mm/memory.c b/mm/memory.c
+index 6ea3551eb2df..db558fe43088 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -1876,7 +1876,7 @@ static inline unsigned long zap_p4d_range(struct mmu_gather *tlb,
+ 	return addr;
+ }
+ 
+-void unmap_page_range(struct mmu_gather *tlb,
++void __unmap_page_range(struct mmu_gather *tlb,
+ 			     struct vm_area_struct *vma,
+ 			     unsigned long addr, unsigned long end,
+ 			     struct zap_details *details)
+@@ -1896,6 +1896,16 @@ void unmap_page_range(struct mmu_gather *tlb,
+ 	tlb_end_vma(tlb, vma);
+ }
+ 
++void unmap_page_range(struct mmu_gather *tlb,
++			     struct vm_area_struct *vma,
++			     unsigned long addr, unsigned long end,
++			     struct zap_details *details)
++{
++	if (vma->vm_ops && vma->vm_ops->unmap_page_range)
++		vma->vm_ops->unmap_page_range(tlb, vma, addr, end, details);
++	else
++		__unmap_page_range(tlb, vma, addr, end, details);
++}
+ 
+ static void unmap_single_vma(struct mmu_gather *tlb,
+ 		struct vm_area_struct *vma, unsigned long start_addr,
+@@ -1917,28 +1927,8 @@ static void unmap_single_vma(struct mmu_gather *tlb,
+ 	if (unlikely(vma->vm_flags & VM_PFNMAP))
+ 		untrack_pfn(vma, 0, 0, mm_wr_locked);
+ 
+-	if (start != end) {
+-		if (unlikely(is_vm_hugetlb_page(vma))) {
+-			/*
+-			 * It is undesirable to test vma->vm_file as it
+-			 * should be non-null for valid hugetlb area.
+-			 * However, vm_file will be NULL in the error
+-			 * cleanup path of mmap_region. When
+-			 * hugetlbfs ->mmap method fails,
+-			 * mmap_region() nullifies vma->vm_file
+-			 * before calling this function to clean up.
+-			 * Since no pte has actually been setup, it is
+-			 * safe to do nothing in this case.
+-			 */
+-			if (vma->vm_file) {
+-				zap_flags_t zap_flags = details ?
+-				    details->zap_flags : 0;
+-				__unmap_hugepage_range(tlb, vma, start, end,
+-							     NULL, zap_flags);
+-			}
+-		} else
+-			unmap_page_range(tlb, vma, start, end, details);
+-	}
++	if (start != end)
++		unmap_page_range(tlb, vma, start, end, details);
+ }
+ 
+ /**
 -- 
 2.43.5
 
