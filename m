@@ -1,178 +1,207 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id EDB4CBE49;
-	Wed,  9 Apr 2025 00:08:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from relay6-d.mail.gandi.net (relay6-d.mail.gandi.net [217.70.183.198])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F53C25B664;
+	Wed,  9 Apr 2025 08:03:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.70.183.198
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744157329; cv=none; b=u34UBEkVnXTxR92IjjIq3u4V5j95vjNZ5x9JcoV3zuTKxUfi9+vwgZd5YuAxSgYiKNc5/H2yU4gLAArKKMhkaGH4SzUkufHdZndPXMDmFvTW5RYVWHy7/Fcv+XOYXPYva8xoEAs2OJBL4RbFE6GyKKe+yLxYmFHAxCMyKtSuSAQ=
+	t=1744185801; cv=none; b=W0CqStIiyDw7VRFKcqubHHtE5Y3td+1q7o2s/HB2JC8wqC/9+CjnifcHJhPh/o429AXIgYbBnTcHJxnmze79fSX3UUfwagjqplUhEgkajABLr6q+QUa7kuZT8SXF4R9g407nl4bO8Y5l82DEbZJrAEfscjFHN8OfAx5WbFmAY/8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744157329; c=relaxed/simple;
-	bh=NlUylieq7zqtbJbgU5nAIJBTItP8sEwHTU+L22tHH2w=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Ud5m04cDmCImJpIMCCFfESI/iaSF7l7vjgOErPaxT9/y/+RDAOg4gv8D2aIYImTFycUHfFHjefRmR88VfmuSPp6cLK4bsukaHLhDDbv/fRSTWVNLgDPJ+VxQCpuEkkvSGxD/gOY7mGGSbvtep655iprDJmEwfyhSmKuzf76iTkc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=McGLXv4A; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="McGLXv4A"
-Received: from romank-3650.corp.microsoft.com (unknown [131.107.160.188])
-	by linux.microsoft.com (Postfix) with ESMTPSA id A01E62113E9C;
-	Tue,  8 Apr 2025 17:08:39 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com A01E62113E9C
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1744157319;
-	bh=ScAyHBVfs5HWRQcwNPAG1fCXHMLzKFfYfnZtLva146o=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=McGLXv4AovBaCa6ogzUN2QbkWjq82U9bygyOzdxyboM+WLaIEHEN+Ia0S8Ca4osN3
-	 081VZK6aLeK1NFOE/z9NdXVB2oiEouMbfcZ/idTfeY4xhVRysMWSvM6MC9aUJi+dvn
-	 xTq8hwe3HwPc6kMOXjjJKIwUkcfda/7qxlVcUWd4=
-From: Roman Kisel <romank@linux.microsoft.com>
-To: aleksander.lobakin@intel.com,
-	andriy.shevchenko@linux.intel.com,
-	arnd@arndb.de,
-	bp@alien8.de,
-	catalin.marinas@arm.com,
-	corbet@lwn.net,
-	dakr@kernel.org,
-	dan.j.williams@intel.com,
-	dave.hansen@linux.intel.com,
-	decui@microsoft.com,
-	gregkh@linuxfoundation.org,
-	haiyangz@microsoft.com,
-	hch@lst.de,
-	hpa@zytor.com,
-	James.Bottomley@HansenPartnership.com,
-	Jonathan.Cameron@huawei.com,
-	kys@microsoft.com,
-	leon@kernel.org,
-	lukas@wunner.de,
-	luto@kernel.org,
-	m.szyprowski@samsung.com,
-	martin.petersen@oracle.com,
-	mingo@redhat.com,
-	peterz@infradead.org,
-	quic_zijuhu@quicinc.com,
-	robin.murphy@arm.com,
-	tglx@linutronix.de,
-	wei.liu@kernel.org,
-	will@kernel.org,
-	iommu@lists.linux.dev,
-	linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	linux-doc@vger.kernel.org,
-	linux-hyperv@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-scsi@vger.kernel.org,
-	x86@kernel.org
-Cc: apais@microsoft.com,
-	benhill@microsoft.com,
-	bperkins@microsoft.com,
-	sunilmut@microsoft.com
-Subject: [PATCH hyperv-next 5/6] arch, drivers: Add device struct bitfield to not bounce-buffer
-Date: Tue,  8 Apr 2025 17:08:34 -0700
-Message-ID: <20250409000835.285105-6-romank@linux.microsoft.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20250409000835.285105-1-romank@linux.microsoft.com>
-References: <20250409000835.285105-1-romank@linux.microsoft.com>
+	s=arc-20240116; t=1744185801; c=relaxed/simple;
+	bh=FdMgKj0YSPnPCB+7xLuo7wAVHvoC/bo1CJdNh1P7+AQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=q+xlmr35LoJltYsV5D4T24e9BEoIZUeaRyI7WWfZ9A3jZqY3VJFPlLHlCdJuvJtBEr+TEgsgR1sSWRMFln71g2v+bmXHOrztdpykXF4AYkClE1F03nVnmxLqOLWB2XQ1Oz73QCeKX/AtE6JopuM2oZsecTKVIeJSPHrwL3vbQnQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ghiti.fr; spf=pass smtp.mailfrom=ghiti.fr; arc=none smtp.client-ip=217.70.183.198
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ghiti.fr
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ghiti.fr
+Received: by mail.gandi.net (Postfix) with ESMTPSA id DDCDC442BB;
+	Wed,  9 Apr 2025 08:03:06 +0000 (UTC)
+Message-ID: <fdf8f812-ae36-4327-b345-2df047b85e7a@ghiti.fr>
+Date: Wed, 9 Apr 2025 10:03:05 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v12 13/28] prctl: arch-agnostic prctl for indirect branch
+ tracking
+Content-Language: en-US
+To: Deepak Gupta <debug@rivosinc.com>, Thomas Gleixner <tglx@linutronix.de>,
+ Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+ Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>,
+ "Liam R. Howlett" <Liam.Howlett@oracle.com>, Vlastimil Babka
+ <vbabka@suse.cz>, Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,
+ Paul Walmsley <paul.walmsley@sifive.com>, Palmer Dabbelt
+ <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Conor Dooley <conor@kernel.org>, Rob Herring <robh@kernel.org>,
+ Krzysztof Kozlowski <krzk+dt@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+ Christian Brauner <brauner@kernel.org>, Peter Zijlstra
+ <peterz@infradead.org>, Oleg Nesterov <oleg@redhat.com>,
+ Eric Biederman <ebiederm@xmission.com>, Kees Cook <kees@kernel.org>,
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan <shuah@kernel.org>,
+ Jann Horn <jannh@google.com>, Conor Dooley <conor+dt@kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+ linux-mm@kvack.org, linux-riscv@lists.infradead.org,
+ devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ alistair.francis@wdc.com, richard.henderson@linaro.org, jim.shu@sifive.com,
+ andybnac@gmail.com, kito.cheng@sifive.com, charlie@rivosinc.com,
+ atishp@rivosinc.com, evan@rivosinc.com, cleger@rivosinc.com,
+ alexghiti@rivosinc.com, samitolvanen@google.com, broonie@kernel.org,
+ rick.p.edgecombe@intel.com
+References: <20250314-v5_user_cfi_series-v12-0-e51202b53138@rivosinc.com>
+ <20250314-v5_user_cfi_series-v12-13-e51202b53138@rivosinc.com>
+From: Alexandre Ghiti <alex@ghiti.fr>
+In-Reply-To: <20250314-v5_user_cfi_series-v12-13-e51202b53138@rivosinc.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-GND-State: clean
+X-GND-Score: -100
+X-GND-Cause: gggruggvucftvghtrhhoucdtuddrgeefvddrtddtgddvtdehgeehucetufdoteggodetrfdotffvucfrrhhofhhilhgvmecuifetpfffkfdpucggtfgfnhhsuhgsshgtrhhisggvnecuuegrihhlohhuthemuceftddunecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenucfjughrpefkffggfgfuvfevfhfhjggtgfesthejredttddvjeenucfhrhhomheptehlvgigrghnughrvgcuifhhihhtihcuoegrlhgvgiesghhhihhtihdrfhhrqeenucggtffrrghtthgvrhhnpedthfelfeejgeehveegleejleelgfevhfekieffkeeujeetfedvvefhledvgeegieenucfkphepvddttddumeekiedumeeffeekvdemvghfledtmeeiudeileemjedtledumegugehfkeemjegttgegnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehinhgvthepvddttddumeekiedumeeffeekvdemvghfledtmeeiudeileemjedtledumegugehfkeemjegttgegpdhhvghloheplgfkrfggieemvddttddumeekiedumeeffeekvdemvghfledtmeeiudeileemjedtledumegugehfkeemjegttgegngdpmhgrihhlfhhrohhmpegrlhgvgiesghhhihhtihdrfhhrpdhnsggprhgtphhtthhopeegkedprhgtphhtthhopeguvggsuhhgsehrihhvohhsihhntgdrtghomhdprhgtphhtthhopehtghhlgieslhhinhhuthhrohhnihigrdguvgdprhgtphhtthhopehmihhnghhosehrvgguhhgrthdrtghomhdprhgtphhtthhopegsp
+ hesrghlihgvnhekrdguvgdprhgtphhtthhopegurghvvgdrhhgrnhhsvghnsehlihhnuhigrdhinhhtvghlrdgtohhmpdhrtghpthhtohepgiekieeskhgvrhhnvghlrdhorhhgpdhrtghpthhtohephhhprgesiiihthhorhdrtghomhdprhgtphhtthhopegrkhhpmheslhhinhhugidqfhhouhhnuggrthhiohhnrdhorhhg
+X-GND-Sasl: alex@ghiti.fr
 
-Bounce-buffering makes the system spend more time copying
-I/O data. When the I/O transaction take place between
-a confidential and a non-confidential endpoints, there is
-no other way around.
+On 14/03/2025 22:39, Deepak Gupta wrote:
+> Three architectures (x86, aarch64, riscv) have support for indirect branch
+> tracking feature in a very similar fashion. On a very high level, indirect
+> branch tracking is a CPU feature where CPU tracks branches which uses
+> memory operand to perform control transfer in program. As part of this
+> tracking on indirect branches, CPU goes in a state where it expects a
+> landing pad instr on target and if not found then CPU raises some fault
+> (architecture dependent)
+>
+> x86 landing pad instr - `ENDBRANCH`
+> arch64 landing pad instr - `BTI`
+> riscv landing instr - `lpad`
+>
+> Given that three major arches have support for indirect branch tracking,
+> This patch makes `prctl` for indirect branch tracking arch agnostic.
+>
+> To allow userspace to enable this feature for itself, following prtcls are
+> defined:
+>   - PR_GET_INDIR_BR_LP_STATUS: Gets current configured status for indirect
+>     branch tracking.
+>   - PR_SET_INDIR_BR_LP_STATUS: Sets a configuration for indirect branch
+>     tracking.
+>     Following status options are allowed
+>         - PR_INDIR_BR_LP_ENABLE: Enables indirect branch tracking on user
+>           thread.
+>         - PR_INDIR_BR_LP_DISABLE; Disables indirect branch tracking on user
+>           thread.
+>   - PR_LOCK_INDIR_BR_LP_STATUS: Locks configured status for indirect branch
+>     tracking for user thread.
+>
+> Signed-off-by: Deepak Gupta <debug@rivosinc.com>
+> Reviewed-by: Mark Brown <broonie@kernel.org>
+> ---
+>   include/linux/cpu.h        |  4 ++++
+>   include/uapi/linux/prctl.h | 27 +++++++++++++++++++++++++++
+>   kernel/sys.c               | 30 ++++++++++++++++++++++++++++++
+>   3 files changed, 61 insertions(+)
+>
+> diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+> index 6a0a8f1c7c90..fb0c394430c6 100644
+> --- a/include/linux/cpu.h
+> +++ b/include/linux/cpu.h
+> @@ -204,4 +204,8 @@ static inline bool cpu_mitigations_auto_nosmt(void)
+>   }
+>   #endif
+>   
+> +int arch_get_indir_br_lp_status(struct task_struct *t, unsigned long __user *status);
+> +int arch_set_indir_br_lp_status(struct task_struct *t, unsigned long status);
+> +int arch_lock_indir_br_lp_status(struct task_struct *t, unsigned long status);
+> +
+>   #endif /* _LINUX_CPU_H_ */
+> diff --git a/include/uapi/linux/prctl.h b/include/uapi/linux/prctl.h
+> index 5c6080680cb2..6cd90460cbad 100644
+> --- a/include/uapi/linux/prctl.h
+> +++ b/include/uapi/linux/prctl.h
+> @@ -353,4 +353,31 @@ struct prctl_mm_map {
+>    */
+>   #define PR_LOCK_SHADOW_STACK_STATUS      76
+>   
+> +/*
+> + * Get the current indirect branch tracking configuration for the current
+> + * thread, this will be the value configured via PR_SET_INDIR_BR_LP_STATUS.
+> + */
+> +#define PR_GET_INDIR_BR_LP_STATUS      77
+> +
+> +/*
+> + * Set the indirect branch tracking configuration. PR_INDIR_BR_LP_ENABLE will
+> + * enable cpu feature for user thread, to track all indirect branches and ensure
+> + * they land on arch defined landing pad instruction.
+> + * x86 - If enabled, an indirect branch must land on `ENDBRANCH` instruction.
+> + * arch64 - If enabled, an indirect branch must land on `BTI` instruction.
+> + * riscv - If enabled, an indirect branch must land on `lpad` instruction.
+> + * PR_INDIR_BR_LP_DISABLE will disable feature for user thread and indirect
+> + * branches will no more be tracked by cpu to land on arch defined landing pad
+> + * instruction.
+> + */
+> +#define PR_SET_INDIR_BR_LP_STATUS      78
+> +# define PR_INDIR_BR_LP_ENABLE		   (1UL << 0)
 
-Introduce a device bitfield to indicate that the device
-doesn't need to perform bounce buffering. The capable
-device may employ it to save on copying data around.
 
-Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
----
- arch/x86/mm/mem_encrypt.c  | 3 +++
- include/linux/device.h     | 8 ++++++++
- include/linux/dma-direct.h | 3 +++
- include/linux/swiotlb.h    | 3 +++
- 4 files changed, 17 insertions(+)
+Are we missing PR_INDIR_BR_LP_DISABLE definition here?
 
-diff --git a/arch/x86/mm/mem_encrypt.c b/arch/x86/mm/mem_encrypt.c
-index 95bae74fdab2..6349a02a1da3 100644
---- a/arch/x86/mm/mem_encrypt.c
-+++ b/arch/x86/mm/mem_encrypt.c
-@@ -19,6 +19,9 @@
- /* Override for DMA direct allocation check - ARCH_HAS_FORCE_DMA_UNENCRYPTED */
- bool force_dma_unencrypted(struct device *dev)
- {
-+	if (dev->use_priv_pages_for_io)
-+		return false;
-+
- 	/*
- 	 * For SEV, all DMA must be to unencrypted addresses.
- 	 */
-diff --git a/include/linux/device.h b/include/linux/device.h
-index 80a5b3268986..4aa4a6fd9580 100644
---- a/include/linux/device.h
-+++ b/include/linux/device.h
-@@ -725,6 +725,8 @@ struct device_physical_location {
-  * @dma_skip_sync: DMA sync operations can be skipped for coherent buffers.
-  * @dma_iommu: Device is using default IOMMU implementation for DMA and
-  *		doesn't rely on dma_ops structure.
-+ * @use_priv_pages_for_io: Device is using private pages for I/O, no need to
-+ *		bounce-buffer.
-  *
-  * At the lowest level, every device in a Linux system is represented by an
-  * instance of struct device. The device structure contains the information
-@@ -843,6 +845,7 @@ struct device {
- #ifdef CONFIG_IOMMU_DMA
- 	bool			dma_iommu:1;
- #endif
-+	bool			use_priv_pages_for_io:1;
- };
- 
- /**
-@@ -1079,6 +1082,11 @@ static inline bool dev_removable_is_valid(struct device *dev)
- 	return dev->removable != DEVICE_REMOVABLE_NOT_SUPPORTED;
- }
- 
-+static inline bool dev_priv_pages_for_io(struct device *dev)
-+{
-+	return dev->use_priv_pages_for_io;
-+}
-+
- /*
-  * High level routines for use by the bus drivers
-  */
-diff --git a/include/linux/dma-direct.h b/include/linux/dma-direct.h
-index d7e30d4f7503..b096369f847e 100644
---- a/include/linux/dma-direct.h
-+++ b/include/linux/dma-direct.h
-@@ -94,6 +94,9 @@ static inline dma_addr_t phys_to_dma_unencrypted(struct device *dev,
-  */
- static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr)
- {
-+	if (dev_priv_pages_for_io(dev))
-+		return phys_to_dma_unencrypted(dev, paddr);
-+
- 	return __sme_set(phys_to_dma_unencrypted(dev, paddr));
- }
- 
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index 3dae0f592063..35ee10641b42 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -173,6 +173,9 @@ static inline bool is_swiotlb_force_bounce(struct device *dev)
- {
- 	struct io_tlb_mem *mem = dev->dma_io_tlb_mem;
- 
-+	if (dev_priv_pages_for_io(dev))
-+		return false;
-+
- 	return mem && mem->force_bounce;
- }
- 
--- 
-2.43.0
 
+> +
+> +/*
+> + * Prevent further changes to the specified indirect branch tracking
+> + * configuration.  All bits may be locked via this call, including
+> + * undefined bits.
+> + */
+> +#define PR_LOCK_INDIR_BR_LP_STATUS      79
+> +
+>   #endif /* _LINUX_PRCTL_H */
+> diff --git a/kernel/sys.c b/kernel/sys.c
+> index cb366ff8703a..f347f3518d0b 100644
+> --- a/kernel/sys.c
+> +++ b/kernel/sys.c
+> @@ -2336,6 +2336,21 @@ int __weak arch_lock_shadow_stack_status(struct task_struct *t, unsigned long st
+>   	return -EINVAL;
+>   }
+>   
+> +int __weak arch_get_indir_br_lp_status(struct task_struct *t, unsigned long __user *status)
+> +{
+> +	return -EINVAL;
+> +}
+> +
+> +int __weak arch_set_indir_br_lp_status(struct task_struct *t, unsigned long status)
+> +{
+> +	return -EINVAL;
+> +}
+> +
+> +int __weak arch_lock_indir_br_lp_status(struct task_struct *t, unsigned long status)
+> +{
+> +	return -EINVAL;
+> +}
+> +
+>   #define PR_IO_FLUSHER (PF_MEMALLOC_NOIO | PF_LOCAL_THROTTLE)
+>   
+>   #ifdef CONFIG_ANON_VMA_NAME
+> @@ -2811,6 +2826,21 @@ SYSCALL_DEFINE5(prctl, int, option, unsigned long, arg2, unsigned long, arg3,
+>   			return -EINVAL;
+>   		error = arch_lock_shadow_stack_status(me, arg2);
+>   		break;
+> +	case PR_GET_INDIR_BR_LP_STATUS:
+> +		if (arg3 || arg4 || arg5)
+> +			return -EINVAL;
+> +		error = arch_get_indir_br_lp_status(me, (unsigned long __user *)arg2);
+> +		break;
+> +	case PR_SET_INDIR_BR_LP_STATUS:
+> +		if (arg3 || arg4 || arg5)
+> +			return -EINVAL;
+> +		error = arch_set_indir_br_lp_status(me, arg2);
+> +		break;
+> +	case PR_LOCK_INDIR_BR_LP_STATUS:
+> +		if (arg3 || arg4 || arg5)
+> +			return -EINVAL;
+> +		error = arch_lock_indir_br_lp_status(me, arg2);
+> +		break;
+>   	default:
+>   		trace_task_prctl_unknown(option, arg2, arg3, arg4, arg5);
+>   		error = -EINVAL;
+>
