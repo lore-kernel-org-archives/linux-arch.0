@@ -1,74 +1,94 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7993C8F77;
-	Fri, 18 Apr 2025 17:29:54 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0CC6621ADC5;
+	Fri, 18 Apr 2025 17:30:03 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1744997394; cv=none; b=rTYlPw+Xx89rNJtE0bv3vt2sMJdqMpNC5hM+miPaRqHxWgCBbFB0lNHkb+/0anlS52RbZUhlTxHiNSSLrwc4D5UN/r6sQV7fCc9Gtu0kLoUNQ1dcXjXjPTk1SvERzNXYwGsCIOBe7WaKJa4VgGhbaiyb1Ydkz3TFVIOurIYS360=
+	t=1744997403; cv=none; b=T9pSVVA6YxgfrIxJI/oiiwhBdsELX6ynQOkDdWqCbC39GajqfAyb8S2skXp9/Z88qSOKQiZMb+A6IOp4O6SQWVFhxxYKxpY9hbyV7MszrvgbHgKsYFdoMQfLdDVGh9Uj74BESPDDq3i7h1o2Ubo6Ybvr5nOL27gg5lvm6ZjPwN8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1744997394; c=relaxed/simple;
-	bh=q/VMpMOrShaC4kIIzEW0+DiDJm2wb+w/RJEb0qX+gy0=;
-	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type:
-	 Content-Disposition; b=d4xDlCA4A5wz6n/El9ESfgTbnLOkvkt1Mtw9mmGlHy75oMqkovB2kiH5q9OkMoi5Aky1qM2xJmw/lO4AUDsZ9ogV1cKPjylnqfPA+e30jDcTy4Ashnp8ClaZS/gOA22HpSq4KA7V/CbdCnC4F+1/LBFoWc0I7n4UgT5RrvsNXCE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UoFCYTOr; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1744997403; c=relaxed/simple;
+	bh=jigIBvyZJZT7zaW2SNgxWJiDXAQDl7mSnIDxYmHZA6k=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=DHNS0MJThq3PwVDbdSryhqCFzXd1hSp/E6yiZTzsca0W5q9swRrAZW6uZZwIDtNGSlaJY3NoCISoEjcKNh52BfzxIEkY7tQuHGozyFBTQnxDzEk1mBD59J8lYEXT1Fb+N1bbBg1vSZXs7uK8Cy2U/W/C1eUJ8WVE4P3RQ4fOwnc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=LCoCSXiI; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UoFCYTOr"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E7D20C4CEF1;
-	Fri, 18 Apr 2025 17:29:53 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="LCoCSXiI"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CD32AC4CEE2;
+	Fri, 18 Apr 2025 17:30:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1744997394;
-	bh=q/VMpMOrShaC4kIIzEW0+DiDJm2wb+w/RJEb0qX+gy0=;
-	h=Date:From:To:Cc:Subject:Reply-To:From;
-	b=UoFCYTOrLg5dTsIxXrid7NOVRKb823ARyacpt2ubITP194DEgTCBaYUJl58eksBIA
-	 BXfb89ufdAwJgQ/S1tu9OosA4wBw+YGvB/hKoYG9cSArR6kFojSKU3fvZa7Iws+KVd
-	 YmqvNE4RLY85de6PQX/HYQU47AaMDUb95f5CDT6+cR5n8fcaZogvzykrQBD9SQdOfj
-	 jrmGV0tqL+Xut7fUsxWlYNNRwaz3nEcfyNfm8z3Sgr5ihMiHvh3/8A8PfBtrWFmkae
-	 31Vaz8rD+nhrC6Sh4CN63SKvOaj0YxMl6c3jBZqxfYeMA8UHU64U+XDV1q8cNwqE9T
-	 Cayx7d/wDQQEw==
+	s=k20201202; t=1744997402;
+	bh=jigIBvyZJZT7zaW2SNgxWJiDXAQDl7mSnIDxYmHZA6k=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=LCoCSXiIZY152OyQPerSLbLIL3sylyrp+Km0lpSWSJ330dfyi8f9JR+fT8Hz2bkLQ
+	 eARU7FubXB1nHO6NUwHHxs+oDC2rCzt41QnoaJTXBf0pU/w+wLoKEy81O7rsCVTWrc
+	 JLJms4b7NdQJBTBHJ5ry7BClb5eeXMDOzpPkilcfgN6eMBUzSlY3n3N92cSUmQsf3U
+	 +r8tO9d0OSQ0go65NvsyCW3ON8SRz02VsWOsfzmn9RzKCwkOZTEBqifuyGuuGnyBCp
+	 mg6C3LJbv/jDYz8fyCF5blYTPzn30kemZYxNJo7HHbHiNqhJmSepUXq//9uL90DtCO
+	 aB9BUICqiKEOQ==
 Received: by paulmck-ThinkPad-P17-Gen-1.home (Postfix, from userid 1000)
-	id 83434CE077B; Fri, 18 Apr 2025 10:29:53 -0700 (PDT)
-Date: Fri, 18 Apr 2025 10:29:53 -0700
+	id 7C4FCCE09FA; Fri, 18 Apr 2025 10:30:02 -0700 (PDT)
 From: "Paul E. McKenney" <paulmck@kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	lkmm@lists.linux.dev, kernel-team@meta.com, mingo@kernel.org
-Cc: stern@rowland.harvard.edu, parri.andrea@gmail.com, will@kernel.org,
-	peterz@infradead.org, boqun.feng@gmail.com, npiggin@gmail.com,
-	dhowells@redhat.com, j.alglave@ucl.ac.uk, luc.maranget@inria.fr,
-	akiyks@gmail.com
-Subject: [PATCH 0/4] LKMM documentation updates for v6.16
-Message-ID: <cd7fb2c4-1895-455c-84f8-8ed7252b93ff@paulmck-laptop>
-Reply-To: paulmck@kernel.org
+To: linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	lkmm@lists.linux.dev,
+	kernel-team@meta.com,
+	mingo@kernel.org
+Cc: stern@rowland.harvard.edu,
+	parri.andrea@gmail.com,
+	will@kernel.org,
+	peterz@infradead.org,
+	boqun.feng@gmail.com,
+	npiggin@gmail.com,
+	dhowells@redhat.com,
+	j.alglave@ucl.ac.uk,
+	luc.maranget@inria.fr,
+	akiyks@gmail.com,
+	"Paul E . McKenney" <paulmck@kernel.org>
+Subject: [PATCH 2/4] tools/memory-model: docs/simple.txt: Fix trivial typos
+Date: Fri, 18 Apr 2025 10:29:58 -0700
+Message-Id: <20250418173000.1188561-2-paulmck@kernel.org>
+X-Mailer: git-send-email 2.40.1
+In-Reply-To: <cd7fb2c4-1895-455c-84f8-8ed7252b93ff@paulmck-laptop>
+References: <cd7fb2c4-1895-455c-84f8-8ed7252b93ff@paulmck-laptop>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 
-Hello!
+From: Akira Yokosawa <akiyks@gmail.com>
 
-This series provides the following documentation updates, all courtesy
-of Akira Yokosawa:
+Signed-off-by: Akira Yokosawa <akiyks@gmail.com>
+Signed-off-by: Paul E. McKenney <paulmck@kernel.org>
+---
+ tools/memory-model/Documentation/simple.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-1.	docs/README: Update introduction of locking.txt.
+diff --git a/tools/memory-model/Documentation/simple.txt b/tools/memory-model/Documentation/simple.txt
+index 21f06c1d1b70d..2df148630cdcd 100644
+--- a/tools/memory-model/Documentation/simple.txt
++++ b/tools/memory-model/Documentation/simple.txt
+@@ -134,7 +134,7 @@ Packaged primitives: Sequence locking
+ Lockless programming is considered by many to be more difficult than
+ lock-based programming, but there are a few lockless design patterns that
+ have been built out into an API.  One of these APIs is sequence locking.
+-Although this APIs can be used in extremely complex ways, there are simple
++Although this API can be used in extremely complex ways, there are simple
+ and effective ways of using it that avoid the need to pay attention to
+ memory ordering.
+ 
+@@ -205,7 +205,7 @@ If you want to keep things simple, use the initialization and read-out
+ operations from the previous section only when there are no racing
+ accesses.  Otherwise, use only fully ordered operations when accessing
+ or modifying the variable.  This approach guarantees that code prior
+-to a given access to that variable will be seen by all CPUs has having
++to a given access to that variable will be seen by all CPUs as having
+ happened before any code following any later access to that same variable.
+ 
+ Please note that per-CPU functions are not atomic operations and
+-- 
+2.40.1
 
-2.	docs/simple.txt: Fix trivial typos.
-
-3.	docs/ordering: Fix trivial typos.
-
-4.	docs/references: Remove broken link to imgtec.com.
-
-						Thanx, Paul
-
-------------------------------------------------------------------------
-
- README         |    7 +++++--
- locking.txt    |    5 +++++
- ordering.txt   |   22 +++++++++++-----------
- recipes.txt    |    4 ++++
- references.txt |    3 +--
- simple.txt     |    4 ++--
- 6 files changed, 28 insertions(+), 17 deletions(-)
