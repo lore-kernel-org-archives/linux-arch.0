@@ -1,473 +1,198 @@
-Received: from mx0b-001b2d01.pphosted.com (mx0b-001b2d01.pphosted.com [148.163.158.5])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f176.google.com (mail-pl1-f176.google.com [209.85.214.176])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EAA019A2A3;
-	Fri, 25 Apr 2025 16:36:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.158.5
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A35E119A2A3
+	for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2025 16:39:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.176
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745599003; cv=none; b=cS5TwulQu84rBgDZOHZTchZORbmgywYmUSmeKlWsl5Cxk1UqBCAJuaYoDjHHUei4VxAKuGQo/wwo+mRvLuPo8S5MIDAnU4OTAocXyIo8VhMFXkRBgzOguh1LREIxO/N8GxshrNceyD2avC0aRDIrFfCxOWT+ZQ+DjpTrO5Ng2T0=
+	t=1745599164; cv=none; b=GIJONUihh5a1YUTbzBaCfKJ/AwVmmBwbMERpDtK6CyG3xLGEeP3jLavft30kvdGJvLjcWjV7URWkDtW6wITc2Nht+8c6xPe3x/oYxWfw75r6gANbHb9Q0l2jPnDdcFxt21Anzv2FYpyOPTdso9HknvRx+P/XFIs4jtFE7ez/i5U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1745599003; c=relaxed/simple;
-	bh=eDuPpVQfrrEHxYXwOVOoK73qECeDiWq8T7hCKEyeku0=;
+	s=arc-20240116; t=1745599164; c=relaxed/simple;
+	bh=qkCd8/HmV6AfmTU+1hru+x2meizjAEoGcJvos3klyC8=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=h9iZYDVAvDU4AFzNA9VZ6Rono2d6yDOcQmtP/+S1G2lG8lOD6YEcQytE/yUvrs0PQzAD3zm9BQ2NImszjjq/2OH2NKBKp2IzfiIC6jbeK2cCRnhue8cDrXMJd8G07JDNaISa1aN7u31FtIpes2x4jKwyUHrhAUpC+aGu1mEZMZ4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=I6iMPIIM; arc=none smtp.client-ip=148.163.158.5
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=J6LA6XQ4mPTpBVpscGWwNU3XGRyCBqKd+l4M2fqaEjy5Iq0i6CAE8Mf98iLNt693kwhGT+90xJKiZqvlDkB7qF5CIqYxSUvlJZBn0VhXBLklQD6HuRgeDipcw0aV931DCSLuc7LasSYn3L2aHNs+6Qi0Ns2ECWT8klxJKn+BN3k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=rivosinc.com; spf=pass smtp.mailfrom=rivosinc.com; dkim=pass (2048-bit key) header.d=rivosinc-com.20230601.gappssmtp.com header.i=@rivosinc-com.20230601.gappssmtp.com header.b=h5bB/9FH; arc=none smtp.client-ip=209.85.214.176
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=rivosinc.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=rivosinc.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="I6iMPIIM"
-Received: from pps.filterd (m0356516.ppops.net [127.0.0.1])
-	by mx0a-001b2d01.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 53PAftkV024809;
-	Fri, 25 Apr 2025 16:34:59 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=pp1; bh=UoSIWEZjnJvFHHJcidBd9gWqF1dgFi
-	YXT2UqixJzyRw=; b=I6iMPIIMKAA98kW3WEbpflVNtKf9Vf/3RXc49Xlyb+oaEO
-	DkFcwBa5NOK/Ijyze6TsMdgIA0BN/40a01sWV1hsCHNsSDOa2h5dvitFEfqfUy+6
-	xnSPfd68+Yf4rEik84JilejXUuMTVBn27suA16fX+VK3Qvb7ZxVo9PrcJiFCcATe
-	3j0R3EI/NZmCPfZbtJ+hdnnBSKxFw9cBbHuloJ8GR+C/wlKAFKUmgNarRhmrk/aJ
-	b4DdMyARsXJ8YAojaXQutX0wjRRap+GcrAu8FQt9LLj9NxNWLYifHEJbT3VHgAWR
-	BuiJxB4OSQ9f8fl8twYhwpLsrXMUxnr7vU4Akqiw==
-Received: from ppma22.wdc07v.mail.ibm.com (5c.69.3da9.ip4.static.sl-reverse.com [169.61.105.92])
-	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4688ushnap-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Fri, 25 Apr 2025 16:34:58 +0000 (GMT)
-Received: from pps.filterd (ppma22.wdc07v.mail.ibm.com [127.0.0.1])
-	by ppma22.wdc07v.mail.ibm.com (8.18.1.2/8.18.1.2) with ESMTP id 53PG9Iq6005861;
-	Fri, 25 Apr 2025 16:34:58 GMT
-Received: from smtprelay04.fra02v.mail.ibm.com ([9.218.2.228])
-	by ppma22.wdc07v.mail.ibm.com (PPS) with ESMTPS id 466jfxp49b-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Fri, 25 Apr 2025 16:34:58 +0000
-Received: from smtpav02.fra02v.mail.ibm.com (smtpav02.fra02v.mail.ibm.com [10.20.54.101])
-	by smtprelay04.fra02v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 53PGYunP34144900
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 25 Apr 2025 16:34:56 GMT
-Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 117B320043;
-	Fri, 25 Apr 2025 16:34:56 +0000 (GMT)
-Received: from smtpav02.fra02v.mail.ibm.com (unknown [127.0.0.1])
-	by IMSVA (Postfix) with ESMTP id 327C120040;
-	Fri, 25 Apr 2025 16:34:54 +0000 (GMT)
-Received: from li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com (unknown [9.111.73.111])
-	by smtpav02.fra02v.mail.ibm.com (Postfix) with ESMTPS;
-	Fri, 25 Apr 2025 16:34:54 +0000 (GMT)
-Date: Fri, 25 Apr 2025 18:34:52 +0200
-From: Alexander Gordeev <agordeev@linux.ibm.com>
-To: Kevin Brodsky <kevin.brodsky@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org,
-        Albert Ou <aou@eecs.berkeley.edu>,
-        Andreas Larsson <andreas@gaisler.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Catalin Marinas <catalin.marinas@arm.com>,
-        Dave Hansen <dave.hansen@linux.intel.com>,
-        "David S. Miller" <davem@davemloft.net>,
-        Geert Uytterhoeven <geert@linux-m68k.org>,
-        Linus Walleij <linus.walleij@linaro.org>,
-        Madhavan Srinivasan <maddy@linux.ibm.com>,
-        Mark Rutland <mark.rutland@arm.com>,
-        Matthew Wilcox <willy@infradead.org>,
-        Michael Ellerman <mpe@ellerman.id.au>,
-        "Mike Rapoport (IBM)" <rppt@kernel.org>,
-        Palmer Dabbelt <palmer@dabbelt.com>,
-        Paul Walmsley <paul.walmsley@sifive.com>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Qi Zheng <zhengqi.arch@bytedance.com>,
-        Ryan Roberts <ryan.roberts@arm.com>, Will Deacon <will@kernel.org>,
-        Yang Shi <yang@os.amperecomputing.com>, linux-arch@vger.kernel.org,
-        linux-arm-kernel@lists.infradead.org, linux-csky@vger.kernel.org,
-        linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
-        linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
-        linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org,
-        x86@kernel.org
-Subject: Re: [PATCH v2 01/12] mm: Pass mm down to pagetable_{pte,pmd}_ctor
-Message-ID: <aAu5rHSX7w9xjqg9@li-008a6a4c-3549-11b2-a85c-c5cc2836eea2.ibm.com>
-References: <20250408095222.860601-1-kevin.brodsky@arm.com>
- <20250408095222.860601-2-kevin.brodsky@arm.com>
+	dkim=pass (2048-bit key) header.d=rivosinc-com.20230601.gappssmtp.com header.i=@rivosinc-com.20230601.gappssmtp.com header.b="h5bB/9FH"
+Received: by mail-pl1-f176.google.com with SMTP id d9443c01a7336-22438c356c8so30031175ad.1
+        for <linux-arch@vger.kernel.org>; Fri, 25 Apr 2025 09:39:22 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rivosinc-com.20230601.gappssmtp.com; s=20230601; t=1745599162; x=1746203962; darn=vger.kernel.org;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :mime-version:references:message-id:subject:cc:to:from:date:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=uObhd6griCLVRMAdAUyHQB5JJqltVnuTe7FYQAThLL4=;
+        b=h5bB/9FH3uuFQB9MGVTFRuKmBfYMZdnWjj+zXWRTiOZToLNMdi+oX2MEW6t/ZPmpHl
+         GK73pGy/PVb8Si66FZz5Eggh9C//4G65TVGNbv3fntfkXlfc0s129oVt105q+Cu/CRpb
+         tFgk+8ge7Nb+LoWbSpKZ6lYgW4UZ7SkwTY4Fo0YkFowVFL4l2sYOvu+0dznaZqAwJx8R
+         bjcvRsADqsfd5g4IFp8kTTsUuYraRKKQxPOecO4EVAgr0w6lVTaVfvr1qPD6oA6FmfDY
+         gNmgDyjMTHFINntIJeebAXPqCkWqkdPr9JyZPeXeLQZ5pF5swa7F5BKEbsqj94LmDd0g
+         NngA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1745599162; x=1746203962;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :mime-version:references:message-id:subject:cc:to:from:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=uObhd6griCLVRMAdAUyHQB5JJqltVnuTe7FYQAThLL4=;
+        b=XCoYEuFtk4GWPyG/24Abeu0NzmiXJEBwunq45N0gzY/3B2VnSH/jsIU5wOzexKZm/A
+         LyVv0JVJhgdOpx4ARq2H67dPpb8HWKOhx5TmzfmtgY+nvz7zjtcxd3ddXgw4B7SPcpTM
+         LnGbF7aY//qNxsSkPQ521b7arGO0W6nt67kZ3XRgS4YkX3MV7ssZYyqO2HEWd44kro7O
+         t6P3/sq6uMTF9vQ3oVpx1l8/GmxqdWMgpLVB7mdKZSl18tFjnAc7+HshQmhhDbVTBf0x
+         zVwrl6oPQ6x+ip7Q20h6TYMlWwlu06vheTsRdXsX4P4gJWzpUzOrg8Qga5xqW7OePevY
+         yQzg==
+X-Forwarded-Encrypted: i=1; AJvYcCXz20X15aEfHKD9m01t4SJGHcrDZpCzkdJsPlwUEiFj76eih7KC+qZLlDmXHBp/qSRriDAIA5Fg58nJ@vger.kernel.org
+X-Gm-Message-State: AOJu0YyAl/BD4O9txlZyAlFv1s1u+HPeFvzCdI/h/wyq8tdAsvlB8BVS
+	gcgFV3B743QUtxYvT+X3j5iKXxTxbQXJpvv90RXZywdf/HcEeP/eh9c1hzBhBLY=
+X-Gm-Gg: ASbGncvEydots87SKP+cFmXvdtZymkQJylHaVcCyEWQ/sCintWfmctamSEF624XYA6m
+	O9HO49ltqj2W/YmMYC8+Fzfa84OKDAN2MnMOpmxbIDpMIx+Y7i4Xsw6DkPqOr5W6FBFhUsrl6Ua
+	gWJZXCM7WqV3OWx3bbCsPBmHGf4wLqlLsFyjm8f4iaRsSW3X0wFyC6ao2oC3RANUvv8J2dqeNDt
+	/GVa0gl/x/c6uSOZ7Y2opbKMmBkY39AnxckHqIzEBqmSlDBV3CPKn7d49K5QUhHnTH8XRq2kgxC
+	tSPz2nnQmWYvri0vauYLeF19yX7u567UTLASFdI9OPVA1RFSzjw=
+X-Google-Smtp-Source: AGHT+IFNazEr6ZYOzQGCXjgc58dYoHgOgILSppSPlOaxKyAejkPiwQZrkFFar4hARLXGCzwX+g5Izw==
+X-Received: by 2002:a17:903:40c9:b0:215:b9a6:5cb9 with SMTP id d9443c01a7336-22dbf4db64dmr47389315ad.5.1745599161894;
+        Fri, 25 Apr 2025 09:39:21 -0700 (PDT)
+Received: from debug.ba.rivosinc.com ([64.71.180.162])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-22db51028basm34556395ad.196.2025.04.25.09.39.19
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 25 Apr 2025 09:39:21 -0700 (PDT)
+Date: Fri, 25 Apr 2025 09:39:18 -0700
+From: Deepak Gupta <debug@rivosinc.com>
+To: Radim =?utf-8?B?S3LEjW3DocWZ?= <rkrcmar@ventanamicro.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>,
+	Vlastimil Babka <vbabka@suse.cz>,
+	Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,
+	Paul Walmsley <paul.walmsley@sifive.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Conor Dooley <conor@kernel.org>,
+	Rob Herring <robh@kernel.org>,
+	Krzysztof Kozlowski <krzk+dt@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Christian Brauner <brauner@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Eric Biederman <ebiederm@xmission.com>, Kees Cook <kees@kernel.org>,
+	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <shuah@kernel.org>,
+	Jann Horn <jannh@google.com>, Conor Dooley <conor+dt@kernel.org>,
+	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+	linux-mm@kvack.org, linux-riscv@lists.infradead.org,
+	devicetree@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org,
+	alistair.francis@wdc.com, richard.henderson@linaro.org,
+	jim.shu@sifive.com, andybnac@gmail.com, kito.cheng@sifive.com,
+	charlie@rivosinc.com, atishp@rivosinc.com, evan@rivosinc.com,
+	cleger@rivosinc.com, alexghiti@rivosinc.com,
+	samitolvanen@google.com, broonie@kernel.org,
+	rick.p.edgecombe@intel.com,
+	linux-riscv <linux-riscv-bounces@lists.infradead.org>
+Subject: Re: [PATCH v12 12/28] riscv: Implements arch agnostic shadow stack
+ prctls
+Message-ID: <aAu6toR4VkcPMTlH@debug.ba.rivosinc.com>
+References: <20250314-v5_user_cfi_series-v12-0-e51202b53138@rivosinc.com>
+ <20250314-v5_user_cfi_series-v12-12-e51202b53138@rivosinc.com>
+ <D92V2NPNZYV0.136MJ2HOK48HE@ventanamicro.com>
+ <aAnBmexbL4XmVxQk@debug.ba.rivosinc.com>
+ <D9EWR3RQK0FD.3GF55KNS53YSR@ventanamicro.com>
+ <aAp_87-Xr6gn_hD7@debug.ba.rivosinc.com>
+ <D9FOY8JACYTH.1FU7ZTEHFC5NI@ventanamicro.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8; format=flowed
 Content-Disposition: inline
-In-Reply-To: <20250408095222.860601-2-kevin.brodsky@arm.com>
-X-TM-AS-GCONF: 00
-X-Authority-Analysis: v=2.4 cv=dbeA3WXe c=1 sm=1 tr=0 ts=680bb9b3 cx=c_pps a=5BHTudwdYE3Te8bg5FgnPg==:117 a=5BHTudwdYE3Te8bg5FgnPg==:17 a=kj9zAlcOel0A:10 a=XR8D0OoHHMoA:10 a=7CQSdrXTAAAA:8 a=VnNF1IyMAAAA:8 a=7XQ_oYAFJgMplnqaJ0EA:9 a=CjuIK1q_8ugA:10
- a=a-qgeE7W1pNrGK8U0ZQC:22
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwNDI1MDExNCBTYWx0ZWRfX9h3njuqExHoJ HJja56Lsy6oDF9Y2PLpbY+BFxd+fFSA9eBOYUkRmoMsfaaEczHXT0eDuxVxlAIJlJaXl7Xv4svl xoD9EVVTCUr7G+SiAowO7thlblslz0QJVG0YZJ4LLob9P5jRE+9+FXgAlOa2WKV0mUz/rHhvjYU
- ZaYlhcCij+yfiw3l3u7HqsXe947Sd+mv7GgDjQ/XOdobx+p/ADROGya1SGkL7CQwpRfGrIsJeNQ SsjPFxupcxH7HW2700dNMXsuJM80DaxyYPS558iwl5L2yjVjkxzKDcnXaPT36gp6VICnX1ilHLD 17wtWOO+Bsz/H9E6NGBT7N7S3f5yQk0YK8qoc+FuXC5RN62KwcdDcYpG2DlQuYQ0y/a7g+0+cTX
- hkJE/E/TkWW9RaWs6WdeNkTOse1BsrO1K9sG/M2tJB/eJ4fHemqsaYVdBoroeLJ8IffsQG2U
-X-Proofpoint-ORIG-GUID: ySTbmFj0-W242HV95924LVB8DHS4YoGV
-X-Proofpoint-GUID: ySTbmFj0-W242HV95924LVB8DHS4YoGV
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1099,Hydra:6.0.736,FMLib:17.12.80.40
- definitions=2025-04-25_04,2025-04-24_02,2025-02-21_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0 phishscore=0 malwarescore=0
- suspectscore=0 priorityscore=1501 impostorscore=0 spamscore=0 mlxscore=0
- lowpriorityscore=0 bulkscore=0 adultscore=0 mlxlogscore=999 clxscore=1011
- classifier=spam authscore=0 authtc=n/a authcc= route=outbound adjust=0
- reason=mlx scancount=1 engine=8.19.0-2504070000
- definitions=main-2504250114
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <D9FOY8JACYTH.1FU7ZTEHFC5NI@ventanamicro.com>
 
-On Tue, Apr 08, 2025 at 10:52:11AM +0100, Kevin Brodsky wrote:
-> In preparation for calling constructors for all kernel page tables
-> while eliding unnecessary ptlock initialisation, let's pass down the
-> associated mm to the PTE/PMD level ctors. (These are the two levels
-> where ptlocks are used.)
-> 
-> In most cases the mm is already around at the point of calling the
-> ctor so we simply pass it down. This is however not the case for
-> special page table allocators:
-> 
-> * arch/arm/mm/mmu.c
-> * arch/arm64/mm/mmu.c
-> * arch/riscv/mm/init.c
-> 
-> In those cases, the page tables being allocated are either for
-> standard kernel memory (init_mm) or special page directories, which
-> may not be associated to any mm. For now let's pass NULL as mm; this
-> will be refined where possible in future patches.
-> 
-> No functional change in this patch.
-> 
-> Signed-off-by: Kevin Brodsky <kevin.brodsky@arm.com>
-> ---
->  arch/arm/mm/mmu.c                        |  2 +-
->  arch/arm64/mm/mmu.c                      |  4 ++--
->  arch/loongarch/include/asm/pgalloc.h     |  2 +-
->  arch/m68k/include/asm/mcf_pgalloc.h      |  2 +-
->  arch/m68k/include/asm/motorola_pgalloc.h | 10 +++++-----
->  arch/m68k/mm/motorola.c                  |  6 +++---
->  arch/mips/include/asm/pgalloc.h          |  2 +-
->  arch/parisc/include/asm/pgalloc.h        |  2 +-
->  arch/powerpc/mm/book3s64/pgtable.c       |  2 +-
->  arch/powerpc/mm/pgtable-frag.c           |  2 +-
->  arch/riscv/mm/init.c                     |  4 ++--
->  arch/s390/include/asm/pgalloc.h          |  2 +-
->  arch/s390/mm/pgalloc.c                   |  2 +-
->  arch/sparc/mm/init_64.c                  |  2 +-
->  arch/sparc/mm/srmmu.c                    |  2 +-
->  arch/x86/mm/pgtable.c                    |  2 +-
->  include/asm-generic/pgalloc.h            |  4 ++--
->  include/linux/mm.h                       |  6 ++++--
->  18 files changed, 30 insertions(+), 28 deletions(-)
-> 
-> diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
-> index f02f872ea8a9..edb7f56b7c91 100644
-> --- a/arch/arm/mm/mmu.c
-> +++ b/arch/arm/mm/mmu.c
-> @@ -735,7 +735,7 @@ static void *__init late_alloc(unsigned long sz)
->  	void *ptdesc = pagetable_alloc(GFP_PGTABLE_KERNEL & ~__GFP_HIGHMEM,
->  			get_order(sz));
->  
-> -	if (!ptdesc || !pagetable_pte_ctor(ptdesc))
-> +	if (!ptdesc || !pagetable_pte_ctor(NULL, ptdesc))
->  		BUG();
->  	return ptdesc_to_virt(ptdesc);
->  }
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index ea6695d53fb9..8c5c471cfb06 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -494,9 +494,9 @@ static phys_addr_t pgd_pgtable_alloc(int shift)
->  	 * folded, and if so pagetable_pte_ctor() becomes nop.
->  	 */
->  	if (shift == PAGE_SHIFT)
-> -		BUG_ON(!pagetable_pte_ctor(ptdesc));
-> +		BUG_ON(!pagetable_pte_ctor(NULL, ptdesc));
->  	else if (shift == PMD_SHIFT)
-> -		BUG_ON(!pagetable_pmd_ctor(ptdesc));
-> +		BUG_ON(!pagetable_pmd_ctor(NULL, ptdesc));
->  
->  	return pa;
->  }
-> diff --git a/arch/loongarch/include/asm/pgalloc.h b/arch/loongarch/include/asm/pgalloc.h
-> index b58f587f0f0a..1c63a9d9a6d3 100644
-> --- a/arch/loongarch/include/asm/pgalloc.h
-> +++ b/arch/loongarch/include/asm/pgalloc.h
-> @@ -69,7 +69,7 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->  	if (!ptdesc)
->  		return NULL;
->  
-> -	if (!pagetable_pmd_ctor(ptdesc)) {
-> +	if (!pagetable_pmd_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/m68k/include/asm/mcf_pgalloc.h b/arch/m68k/include/asm/mcf_pgalloc.h
-> index 4c648b51e7fd..465a71101b7d 100644
-> --- a/arch/m68k/include/asm/mcf_pgalloc.h
-> +++ b/arch/m68k/include/asm/mcf_pgalloc.h
-> @@ -48,7 +48,7 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
->  
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pte_ctor(ptdesc)) {
-> +	if (!pagetable_pte_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/m68k/include/asm/motorola_pgalloc.h b/arch/m68k/include/asm/motorola_pgalloc.h
-> index 5abe7da8ac5a..1091fb0affbe 100644
-> --- a/arch/m68k/include/asm/motorola_pgalloc.h
-> +++ b/arch/m68k/include/asm/motorola_pgalloc.h
-> @@ -15,7 +15,7 @@ enum m68k_table_types {
->  };
->  
->  extern void init_pointer_table(void *table, int type);
-> -extern void *get_pointer_table(int type);
-> +extern void *get_pointer_table(struct mm_struct *mm, int type);
->  extern int free_pointer_table(void *table, int type);
->  
->  /*
-> @@ -26,7 +26,7 @@ extern int free_pointer_table(void *table, int type);
->  
->  static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm)
->  {
-> -	return get_pointer_table(TABLE_PTE);
-> +	return get_pointer_table(mm, TABLE_PTE);
->  }
->  
->  static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-> @@ -36,7 +36,7 @@ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
->  
->  static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
->  {
-> -	return get_pointer_table(TABLE_PTE);
-> +	return get_pointer_table(mm, TABLE_PTE);
->  }
->  
->  static inline void pte_free(struct mm_struct *mm, pgtable_t pgtable)
-> @@ -53,7 +53,7 @@ static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pgtable,
->  
->  static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->  {
-> -	return get_pointer_table(TABLE_PMD);
-> +	return get_pointer_table(mm, TABLE_PMD);
->  }
->  
->  static inline int pmd_free(struct mm_struct *mm, pmd_t *pmd)
-> @@ -75,7 +75,7 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
->  
->  static inline pgd_t *pgd_alloc(struct mm_struct *mm)
->  {
-> -	return get_pointer_table(TABLE_PGD);
-> +	return get_pointer_table(mm, TABLE_PGD);
->  }
->  
->  
-> diff --git a/arch/m68k/mm/motorola.c b/arch/m68k/mm/motorola.c
-> index 73651e093c4d..6ab3ef39ba7a 100644
-> --- a/arch/m68k/mm/motorola.c
-> +++ b/arch/m68k/mm/motorola.c
-> @@ -139,7 +139,7 @@ void __init init_pointer_table(void *table, int type)
->  	return;
->  }
->  
-> -void *get_pointer_table(int type)
-> +void *get_pointer_table(struct mm_struct *mm, int type)
->  {
->  	ptable_desc *dp = ptable_list[type].next;
->  	unsigned int mask = list_empty(&ptable_list[type]) ? 0 : PD_MARKBITS(dp);
-> @@ -164,10 +164,10 @@ void *get_pointer_table(int type)
->  			 * m68k doesn't have SPLIT_PTE_PTLOCKS for not having
->  			 * SMP.
->  			 */
-> -			pagetable_pte_ctor(virt_to_ptdesc(page));
-> +			pagetable_pte_ctor(mm, virt_to_ptdesc(page));
->  			break;
->  		case TABLE_PMD:
-> -			pagetable_pmd_ctor(virt_to_ptdesc(page));
-> +			pagetable_pmd_ctor(mm, virt_to_ptdesc(page));
->  			break;
->  		case TABLE_PGD:
->  			pagetable_pgd_ctor(virt_to_ptdesc(page));
-> diff --git a/arch/mips/include/asm/pgalloc.h b/arch/mips/include/asm/pgalloc.h
-> index bbca420c96d3..942af87f1cdd 100644
-> --- a/arch/mips/include/asm/pgalloc.h
-> +++ b/arch/mips/include/asm/pgalloc.h
-> @@ -62,7 +62,7 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->  	if (!ptdesc)
->  		return NULL;
->  
-> -	if (!pagetable_pmd_ctor(ptdesc)) {
-> +	if (!pagetable_pmd_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
-> index 2ca74a56415c..3b84ee93edaa 100644
-> --- a/arch/parisc/include/asm/pgalloc.h
-> +++ b/arch/parisc/include/asm/pgalloc.h
-> @@ -39,7 +39,7 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
->  	ptdesc = pagetable_alloc(gfp, PMD_TABLE_ORDER);
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pmd_ctor(ptdesc)) {
-> +	if (!pagetable_pmd_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/powerpc/mm/book3s64/pgtable.c b/arch/powerpc/mm/book3s64/pgtable.c
-> index 8f7d41ce2ca1..a282233c8785 100644
-> --- a/arch/powerpc/mm/book3s64/pgtable.c
-> +++ b/arch/powerpc/mm/book3s64/pgtable.c
-> @@ -422,7 +422,7 @@ static pmd_t *__alloc_for_pmdcache(struct mm_struct *mm)
->  	ptdesc = pagetable_alloc(gfp, 0);
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pmd_ctor(ptdesc)) {
-> +	if (!pagetable_pmd_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/powerpc/mm/pgtable-frag.c b/arch/powerpc/mm/pgtable-frag.c
-> index 713268ccb1a0..387e9b1fe12c 100644
-> --- a/arch/powerpc/mm/pgtable-frag.c
-> +++ b/arch/powerpc/mm/pgtable-frag.c
-> @@ -61,7 +61,7 @@ static pte_t *__alloc_for_ptecache(struct mm_struct *mm, int kernel)
->  		ptdesc = pagetable_alloc(PGALLOC_GFP | __GFP_ACCOUNT, 0);
->  		if (!ptdesc)
->  			return NULL;
-> -		if (!pagetable_pte_ctor(ptdesc)) {
-> +		if (!pagetable_pte_ctor(mm, ptdesc)) {
->  			pagetable_free(ptdesc);
->  			return NULL;
->  		}
-> diff --git a/arch/riscv/mm/init.c b/arch/riscv/mm/init.c
-> index ab475ec6ca42..e5ef693fc778 100644
-> --- a/arch/riscv/mm/init.c
-> +++ b/arch/riscv/mm/init.c
-> @@ -442,7 +442,7 @@ static phys_addr_t __meminit alloc_pte_late(uintptr_t va)
->  {
->  	struct ptdesc *ptdesc = pagetable_alloc(GFP_KERNEL & ~__GFP_HIGHMEM, 0);
->  
-> -	BUG_ON(!ptdesc || !pagetable_pte_ctor(ptdesc));
-> +	BUG_ON(!ptdesc || !pagetable_pte_ctor(NULL, ptdesc));
->  	return __pa((pte_t *)ptdesc_address(ptdesc));
->  }
->  
-> @@ -522,7 +522,7 @@ static phys_addr_t __meminit alloc_pmd_late(uintptr_t va)
->  {
->  	struct ptdesc *ptdesc = pagetable_alloc(GFP_KERNEL & ~__GFP_HIGHMEM, 0);
->  
-> -	BUG_ON(!ptdesc || !pagetable_pmd_ctor(ptdesc));
-> +	BUG_ON(!ptdesc || !pagetable_pmd_ctor(NULL, ptdesc));
->  	return __pa((pmd_t *)ptdesc_address(ptdesc));
->  }
->  
-> diff --git a/arch/s390/include/asm/pgalloc.h b/arch/s390/include/asm/pgalloc.h
-> index 005497ffebda..5345398df653 100644
-> --- a/arch/s390/include/asm/pgalloc.h
-> +++ b/arch/s390/include/asm/pgalloc.h
-> @@ -97,7 +97,7 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long vmaddr)
->  	if (!table)
->  		return NULL;
->  	crst_table_init(table, _SEGMENT_ENTRY_EMPTY);
-> -	if (!pagetable_pmd_ctor(virt_to_ptdesc(table))) {
-> +	if (!pagetable_pmd_ctor(mm, virt_to_ptdesc(table))) {
->  		crst_table_free(mm, table);
->  		return NULL;
->  	}
-> diff --git a/arch/s390/mm/pgalloc.c b/arch/s390/mm/pgalloc.c
-> index e3a6f8ae156c..619d6917e3b7 100644
-> --- a/arch/s390/mm/pgalloc.c
-> +++ b/arch/s390/mm/pgalloc.c
-> @@ -145,7 +145,7 @@ unsigned long *page_table_alloc(struct mm_struct *mm)
->  	ptdesc = pagetable_alloc(GFP_KERNEL, 0);
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pte_ctor(ptdesc)) {
-> +	if (!pagetable_pte_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-> index 760818950464..5c8eabda1d17 100644
-> --- a/arch/sparc/mm/init_64.c
-> +++ b/arch/sparc/mm/init_64.c
-> @@ -2895,7 +2895,7 @@ pgtable_t pte_alloc_one(struct mm_struct *mm)
->  
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pte_ctor(ptdesc)) {
-> +	if (!pagetable_pte_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/arch/sparc/mm/srmmu.c b/arch/sparc/mm/srmmu.c
-> index dd32711022f5..f8fb4911d360 100644
-> --- a/arch/sparc/mm/srmmu.c
-> +++ b/arch/sparc/mm/srmmu.c
-> @@ -350,7 +350,7 @@ pgtable_t pte_alloc_one(struct mm_struct *mm)
->  	page = pfn_to_page(__nocache_pa((unsigned long)ptep) >> PAGE_SHIFT);
->  	spin_lock(&mm->page_table_lock);
->  	if (page_ref_inc_return(page) == 2 &&
-> -			!pagetable_pte_ctor(page_ptdesc(page))) {
-> +			!pagetable_pte_ctor(mm, page_ptdesc(page))) {
->  		page_ref_dec(page);
->  		ptep = NULL;
->  	}
-> diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
-> index a05fcddfc811..7930f234c5f6 100644
-> --- a/arch/x86/mm/pgtable.c
-> +++ b/arch/x86/mm/pgtable.c
-> @@ -205,7 +205,7 @@ static int preallocate_pmds(struct mm_struct *mm, pmd_t *pmds[], int count)
->  
->  		if (!ptdesc)
->  			failed = true;
-> -		if (ptdesc && !pagetable_pmd_ctor(ptdesc)) {
-> +		if (ptdesc && !pagetable_pmd_ctor(mm, ptdesc)) {
->  			pagetable_free(ptdesc);
->  			ptdesc = NULL;
->  			failed = true;
-> diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
-> index 892ece4558a2..e164ca66f0f6 100644
-> --- a/include/asm-generic/pgalloc.h
-> +++ b/include/asm-generic/pgalloc.h
-> @@ -70,7 +70,7 @@ static inline pgtable_t __pte_alloc_one_noprof(struct mm_struct *mm, gfp_t gfp)
->  	ptdesc = pagetable_alloc_noprof(gfp, 0);
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pte_ctor(ptdesc)) {
-> +	if (!pagetable_pte_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> @@ -137,7 +137,7 @@ static inline pmd_t *pmd_alloc_one_noprof(struct mm_struct *mm, unsigned long ad
->  	ptdesc = pagetable_alloc_noprof(gfp, 0);
->  	if (!ptdesc)
->  		return NULL;
-> -	if (!pagetable_pmd_ctor(ptdesc)) {
-> +	if (!pagetable_pmd_ctor(mm, ptdesc)) {
->  		pagetable_free(ptdesc);
->  		return NULL;
->  	}
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index b7f13f087954..f9b793cce2c1 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -3100,7 +3100,8 @@ static inline void pagetable_dtor_free(struct ptdesc *ptdesc)
->  	pagetable_free(ptdesc);
->  }
->  
-> -static inline bool pagetable_pte_ctor(struct ptdesc *ptdesc)
-> +static inline bool pagetable_pte_ctor(struct mm_struct *mm,
-> +				      struct ptdesc *ptdesc)
->  {
->  	if (!ptlock_init(ptdesc))
->  		return false;
-> @@ -3206,7 +3207,8 @@ static inline spinlock_t *pmd_lock(struct mm_struct *mm, pmd_t *pmd)
->  	return ptl;
->  }
->  
-> -static inline bool pagetable_pmd_ctor(struct ptdesc *ptdesc)
-> +static inline bool pagetable_pmd_ctor(struct mm_struct *mm,
-> +				      struct ptdesc *ptdesc)
->  {
->  	if (!pmd_ptlock_init(ptdesc))
->  		return false;
+On Fri, Apr 25, 2025 at 01:42:44PM +0200, Radim Krčmář wrote:
+>2025-04-24T11:16:19-07:00, Deepak Gupta <debug@rivosinc.com>:
+>> On Thu, Apr 24, 2025 at 03:36:54PM +0200, Radim Krčmář wrote:
+>>>2025-04-23T21:44:09-07:00, Deepak Gupta <debug@rivosinc.com>:
+>>>> On Thu, Apr 10, 2025 at 11:45:58AM +0200, Radim Krčmář wrote:
+>>>>>2025-03-14T14:39:31-07:00, Deepak Gupta <debug@rivosinc.com>:
+>>>>>> diff --git a/arch/riscv/include/asm/usercfi.h b/arch/riscv/include/asm/usercfi.h
+>>>>>> @@ -14,7 +15,8 @@ struct kernel_clone_args;
+>>>>>>  struct cfi_status {
+>>>>>>  	unsigned long ubcfi_en : 1; /* Enable for backward cfi. */
+>>>>>> -	unsigned long rsvd : ((sizeof(unsigned long) * 8) - 1);
+>>>>>> +	unsigned long ubcfi_locked : 1;
+>>>>>> +	unsigned long rsvd : ((sizeof(unsigned long) * 8) - 2);
+>>>>>
+>>>>>The rsvd field shouldn't be necessary as the container for the bitfield
+>>>>>is 'unsigned long' sized.
+>>>>>
+>>>>>Why don't we use bools here, though?
+>>>>>It might produce a better binary and we're not hurting for struct size.
+>>>>
+>>>> If you remember one of the previous patch discussion, this goes into
+>>>> `thread_info` Don't want to bloat it. Even if we end shoving into task_struct,
+>>>> don't want to bloat that either. I can just convert it into bitmask if
+>>>> bitfields are an eyesore here.
+>>>
+>>>  "unsigned long rsvd : ((sizeof(unsigned long) * 8) - 2);"
+>>>
+>>>is an eyesore that defines exactly the same as the two lines alone
+>>>
+>>>  unsigned long ubcfi_en : 1;
+>>>  unsigned long ubcfi_locked : 1;
+>>>
+>>>That one should be removed.
+>>>
+>>>If we have only 4 bits in 4/8 bytes, then bitfields do generate worse
+>>>code than 4 bools and a 0/4 byte hole.  The struct size stays the same.
+>>>
+>>>I don't care much about the switch to bools, though, because this code
+>>>is not called often.
+>>
+>> I'll remove the bitfields, have single `unsigned long cfi_control_state`
+>> And do `#define RISCV_UBCFI_EN 1` and so on.
+>
+>I might have seemed too much against the bitfieds, sorry.  I am against
+>the rsvd fields, because it is a pointless cognitive overhead and even
+>this series already had a bug in them.
 
-Reviewed-by: Alexander Gordeev <agordeev@linux.ibm.com>	# s390
+Aah got it.
+
+>
+>#defines should generate the same code as bitfields (worse than bools),
+>so the source code is really a matter of personal preference.
+>(I do prefer bitfields.)
+>
+>>>>>> @@ -262,3 +292,83 @@ void shstk_release(struct task_struct *tsk)
+>>>>>> +int arch_lock_shadow_stack_status(struct task_struct *task,
+>>>>>> +				  unsigned long arg)
+>>>>>> +{
+>>>>>> +	/* If shtstk not supported or not enabled on task, nothing to lock here */
+>>>>>> +	if (!cpu_supports_shadow_stack() ||
+>>>>>> +	    !is_shstk_enabled(task) || arg != 0)
+>>>>>> +		return -EINVAL;
+>>>>>
+>>>>>The task might want to prevent shadow stack from being enabled?
+>>>>
+>>>> But Why would it want to do that? Task can simply not issue the prctl. There
+>>>> are glibc tunables as well using which it can be disabled.
+>>>
+>>>The task might do it as some last resort to prevent a buggy code from
+>>>enabling shadow stacks that would just crash.  Or whatever complicated
+>>>reason userspace can think of.
+>>>
+>>>It's more the other way around.  I wonder why we're removing this option
+>>>when we don't really care what userspace does to itself.
+>>>I think it's complicating the kernel without an obvious gain.
+>>
+>> It just feels wierd. There isn't anything like this for other features lit-up
+>> via envcfg. Does hwprobe allow this on per-task basis? I'll look into it.
+>
+>I think PMM doesn't allow to lock and the rest don't seem configurable
+>from userspace.
+>
+>It's not that important and we hopefully won't be breaking any userspace
+>if we decided to allow it later, so I'm fine with this version.
