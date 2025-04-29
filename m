@@ -1,32 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B79632AE99;
-	Tue, 29 Apr 2025 13:04:44 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 22F2A130A54;
+	Tue, 29 Apr 2025 13:04:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745931887; cv=none; b=ZDWN2h6YuV0hTmTJKrw2CNCZzQymy7lSJEFx3x+LMCUkXCygbyW18Ozj6k9WdPhAuzMiroVK37Nd80eZ+iJQbmi6CEH9WD+4LCiVkF2IwKALrT3dsqG4O42N2YS+TRi5VEj/qt2cfIq+u6LyF6TR2TvcwhDPKu+koZmYSp6egZw=
+	t=1745931888; cv=none; b=HOXZjSq86ZFUf0AA4jRXjtudwL30Bh7yO+APmfcz6EBrFSibTAQjfbjbr/f7Dfh/V9gPhfLtbU5UV4TbvdwkydJiN0+SrRyyoRTEDPeoOG4dhxwBOlmGMhuwgKJqzozuYPrXreJxipEijcsneb5glqjrHQdrXUTiUfCzJEb9WV0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1745931887; c=relaxed/simple;
-	bh=7p5y09FCX6rw2O2dfz8EEXV5SO0K/mxanRFmD+rolvo=;
+	s=arc-20240116; t=1745931888; c=relaxed/simple;
+	bh=T0fD62G5Xd9JAdE1vJEHi+5qJb4+xZfzKULQbTpVsYY=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=hy2ugVhByKwO+6Q2a5Cr3BgOVkIeAApoFyHNFk2cICTwr0w1G58w2knl85QHxEp5TPugX/6Mzd6T/WbWxtI1qkXxj8PS2aut1w+KFjCfGv/w6xuQQ9DsuDo9VlFIJtVjHc7ruvIi+CiRpDOUguFqpUv7MbL8zD7AS/rXAlT6PQc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=jCf1FuP5; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=R//bTQ00ZnS7Bah6XiuHkBL0EtnGwbiqXKrfgwzTh+p3zpPd3N3zmx75SdFMOESl/c+sgHSCCUFFakv1iWKJAkYoQXpStBInUql9+q8bqyymfK/A+YNm292EDHB/P6PKR0bccF+2+wdENyMFvNNnvNnTFgdZ1Aj7qEffnHqu+HA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=VYryOxdF; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="jCf1FuP5"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="VYryOxdF"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1745931874;
-	bh=7p5y09FCX6rw2O2dfz8EEXV5SO0K/mxanRFmD+rolvo=;
+	bh=T0fD62G5Xd9JAdE1vJEHi+5qJb4+xZfzKULQbTpVsYY=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=jCf1FuP5gkPtpI2J67ZEwvsoQWovshmPXIJgnAgTkBIjwpAX1cl+SlZVdP8lbK0lF
-	 dyNCKAmz3jl+cPZP+UYIYCLHB6RTBAWzuBWHjoztasuuiDcmPKcQ+dykBBrB4W2yan
-	 boTg8x/zKJ/cA9QTJECHOvJd+ozubnscwmhseds8=
+	b=VYryOxdFWiuicUrPjgyis2zuZL8HUMkxBtaWkvPWWMgwx6fNX77ASJjeDFDpfyYHw
+	 KlP9XfRkBQRLrRP6PSNRiZKXU1e4Esjb2A29aFuLPFeS3riZO9QVkA9NNt7hZLeydC
+	 NcnvAzHlpyrHYLn4kkg+67KDunNeKerUN6ll+XQs=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 29 Apr 2025 15:04:35 +0200
-Subject: [PATCH v3 8/9] lockdown: Make the relationship to MODULE_SIG a
- dependency
+Date: Tue, 29 Apr 2025 15:04:31 +0200
+Subject: [PATCH v3 4/9] kbuild: generate module BTF based on
+ vmlinux.unstripped
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20250429-module-hashes-v3-8-00e9258def9e@weissschuh.net>
+Message-Id: <20250429-module-hashes-v3-4-00e9258def9e@weissschuh.net>
 References: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 In-Reply-To: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 To: Masahiro Yamada <masahiroy@kernel.org>, 
@@ -63,37 +63,45 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=874;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=1584;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=7p5y09FCX6rw2O2dfz8EEXV5SO0K/mxanRFmD+rolvo=;
- b=VEJ2A4fKzTy7xY465KgWvaT7a/7guBneskvjYaYxbUgOTu6Jt4JlWHRzWqSwnAXuU1vhyblv2
- VlDWfdgx/weB5GXKilK4USPkNpBPaQ/yG+9tO8d+lkpC1G8W1BSe/He
+ bh=T0fD62G5Xd9JAdE1vJEHi+5qJb4+xZfzKULQbTpVsYY=;
+ b=6lIaRg6590Hj4acqj1sln00p80ejNkYdhE8fd1gi5gYjFoau00uJEyqPoFekX25gQwNDezEKu
+ qEQc0ld+MXaAAf2/mWACbl7TSFfJDcOGbkpMK55cb7w/QH1GfpEOqS8
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-The new hash-based module integrity checking will also be able to
-satisfy the requirements of lockdown.
-Such an alternative is not representable with "select", so use
-"depends on" instead.
+The upcoming module hashes functionality will build the modules in
+between the generation of the BTF data and the final link of vmlinux.
+At this point vmlinux is not yet built and therefore can't be used for
+module BTF generation. vmlinux.unstripped however is usable and
+sufficient for BTF generation.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 ---
- security/lockdown/Kconfig | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ scripts/Makefile.modfinal | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/security/lockdown/Kconfig b/security/lockdown/Kconfig
-index e84ddf48401010bcc0829a32db58e6f12bfdedcb..155959205b8eac2c85897a8c4c8b7ec471156706 100644
---- a/security/lockdown/Kconfig
-+++ b/security/lockdown/Kconfig
-@@ -1,7 +1,7 @@
- config SECURITY_LOCKDOWN_LSM
- 	bool "Basic module for enforcing kernel lockdown"
- 	depends on SECURITY
--	select MODULE_SIG if MODULES
-+	depends on !MODULES || MODULE_SIG
- 	help
- 	  Build support for an LSM that enforces a coarse kernel lockdown
- 	  behaviour.
+diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
+index 5d01b553ec9a4565c8e5a6edd05665c409003bc1..527f6b27baff9db94d31c15447de445a05bc0634 100644
+--- a/scripts/Makefile.modfinal
++++ b/scripts/Makefile.modfinal
+@@ -36,11 +36,11 @@ quiet_cmd_ld_ko_o = LD [M]  $@
+ 
+ quiet_cmd_btf_ko = BTF [M] $@
+       cmd_btf_ko = 							\
+-	if [ ! -f $(objtree)/vmlinux ]; then				\
+-		printf "Skipping BTF generation for %s due to unavailability of vmlinux\n" $@ 1>&2; \
++	if [ ! -f $(objtree)/vmlinux.unstripped ]; then			\
++		printf "Skipping BTF generation for %s due to unavailability of vmlinux.unstripped\n" $@ 1>&2; \
+ 	else								\
+-		LLVM_OBJCOPY="$(OBJCOPY)" $(PAHOLE) -J $(PAHOLE_FLAGS) $(MODULE_PAHOLE_FLAGS) --btf_base $(objtree)/vmlinux $@; \
+-		$(RESOLVE_BTFIDS) -b $(objtree)/vmlinux $@;		\
++		LLVM_OBJCOPY="$(OBJCOPY)" $(PAHOLE) -J $(PAHOLE_FLAGS) $(MODULE_PAHOLE_FLAGS) --btf_base $(objtree)/vmlinux.unstripped $@; \
++		$(RESOLVE_BTFIDS) -b $(objtree)/vmlinux.unstripped $@;		\
+ 	fi;
+ 
+ # Same as newer-prereqs, but allows to exclude specified extra dependencies
 
 -- 
 2.49.0
