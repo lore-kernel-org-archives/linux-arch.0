@@ -1,162 +1,78 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 783E021147B;
-	Mon, 28 Apr 2025 21:07:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from pegase1.c-s.fr (pegase1.c-s.fr [93.17.236.30])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 76397279347;
+	Tue, 29 Apr 2025 08:50:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=93.17.236.30
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745874472; cv=none; b=LShYobNQe1tPuhJu3zjHCbwXEFPXe9bVD6A9MPuGm0j6hjGmkEYgiQ+Pfn4VdPnTYuPR64Q4YrkwUf3c2+xJfJYhmi0P5GRnXhpNTL06DoTiam/k2Oxsxhc3ceG5XeTjKp2fQWfk1Hv+Px1zv+yobgvzlpr8FTFN5M0x6rTpoes=
+	t=1745916638; cv=none; b=qOjqaDU0GMmEvO+mpcBbSVBbdnqP57twnfbAlRcP/+yOJ2DmgSbH/q0fBIHCfOrMOq3v3JR6g1F47qyip67t/FrABh6zRmk06Cu4xGAiPh5wH6Hs5dP4GR8JFhYpWX22/p1FJCdFmqgrCKkKD7FkeW0TSAtG09Ft38aCgw7IVGE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1745874472; c=relaxed/simple;
-	bh=SKdz72k2NkyXGdqtVsqW7yFxP3EnThWVkZ2UEaRCYAE=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=tmjjc5UeSVGnmpUqoNOin6E5U2xjhx+5v2uQKhTp3AnCPZEHPE/pf9UhZxzwez2sXOQHsKMYMu8H/sz5Bz6fQpPI/zP3sOzwNEWp5lscBiDzTUMGKxny0xs8RcDb8ugplobkMGWFOFOBg9HKfB4pGUwi4R0sn+amchBq5bvFbTs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Jwo1/Znv; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Jwo1/Znv"
-Received: from romank-3650.corp.microsoft.com (unknown [131.107.1.188])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 68E9E211AD1F;
-	Mon, 28 Apr 2025 14:07:47 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 68E9E211AD1F
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1745874467;
-	bh=6NhcoKa6JL1NM9sMn3gmj98XuhFiqjkn7M2jrThtdQE=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=Jwo1/Znv21DwhCwBkZB4bkCP3jGQY+BoKRyw9i0SnKH+c977NDRZA1JeslcM8DbHq
-	 d0gSlA/QJgMEoWGPIf6suAfT1E7CtJZ7rMQZtSBLnC1X++4Xdm7IDBonL6NldD89EM
-	 krWea9gXWRuVAAeJbQq9ZPvxkkv97n8QniJlU+8Y=
-From: Roman Kisel <romank@linux.microsoft.com>
-To: arnd@arndb.de,
-	bhelgaas@google.com,
-	bp@alien8.de,
-	catalin.marinas@arm.com,
-	conor+dt@kernel.org,
-	dave.hansen@linux.intel.com,
-	decui@microsoft.com,
-	haiyangz@microsoft.com,
-	hpa@zytor.com,
-	joey.gouly@arm.com,
-	krzk+dt@kernel.org,
-	kw@linux.com,
-	kys@microsoft.com,
-	lenb@kernel.org,
-	lpieralisi@kernel.org,
-	manivannan.sadhasivam@linaro.org,
-	mark.rutland@arm.com,
-	maz@kernel.org,
-	mingo@redhat.com,
-	oliver.upton@linux.dev,
-	rafael@kernel.org,
-	robh@kernel.org,
-	ssengar@linux.microsoft.com,
-	sudeep.holla@arm.com,
-	suzuki.poulose@arm.com,
-	tglx@linutronix.de,
-	wei.liu@kernel.org,
-	will@kernel.org,
-	yuzenghui@huawei.com,
-	linux-hyperv@vger.kernel.org,
-	devicetree@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	kvmarm@lists.linux.dev,
-	linux-acpi@vger.kernel.org,
-	linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	x86@kernel.org
-Cc: apais@microsoft.com,
-	benhill@microsoft.com,
-	bperkins@microsoft.com,
-	sunilmut@microsoft.com
-Subject: [PATCH hyperv-next v9 10/11] ACPI: irq: Introduce acpi_get_gsi_dispatcher()
-Date: Mon, 28 Apr 2025 14:07:41 -0700
-Message-ID: <20250428210742.435282-11-romank@linux.microsoft.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20250428210742.435282-1-romank@linux.microsoft.com>
-References: <20250428210742.435282-1-romank@linux.microsoft.com>
+	s=arc-20240116; t=1745916638; c=relaxed/simple;
+	bh=6C2TMS+n6qqj5M83V5ptzbHpW40e+AmDHnNCpPTAXdc=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=t5eoK39GHJVxFvL2PADcfoUMuOSQhG5sS2nzrD2nF681IPXkQa6QHRO7a7wwQzBK0Uu2W9TSHkWiwdIQtFI/MCL2iTQ5Mb3wD0OiUohQL6K/6Zq+UUmEvM7fQrYS4fhuIqorRqeRtwEvi2hAJzYin3cyUVXEn1GnghSkWfsXgRA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu; spf=pass smtp.mailfrom=csgroup.eu; arc=none smtp.client-ip=93.17.236.30
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=csgroup.eu
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=csgroup.eu
+Received: from localhost (mailhub3.si.c-s.fr [192.168.12.233])
+	by localhost (Postfix) with ESMTP id 4ZmtbH6JVvz9sFT;
+	Tue, 29 Apr 2025 10:22:19 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from pegase1.c-s.fr ([192.168.12.234])
+	by localhost (pegase1.c-s.fr [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id e30qWr8CZO0g; Tue, 29 Apr 2025 10:22:19 +0200 (CEST)
+Received: from messagerie.si.c-s.fr (messagerie.si.c-s.fr [192.168.25.192])
+	by pegase1.c-s.fr (Postfix) with ESMTP id 4ZmtbG0699z9sCk;
+	Tue, 29 Apr 2025 10:22:18 +0200 (CEST)
+Received: from localhost (localhost [127.0.0.1])
+	by messagerie.si.c-s.fr (Postfix) with ESMTP id F1CD98B766;
+	Tue, 29 Apr 2025 10:22:17 +0200 (CEST)
+X-Virus-Scanned: amavisd-new at c-s.fr
+Received: from messagerie.si.c-s.fr ([127.0.0.1])
+	by localhost (messagerie.si.c-s.fr [127.0.0.1]) (amavisd-new, port 10023)
+	with ESMTP id 2CpqnVV7VgEF; Tue, 29 Apr 2025 10:22:17 +0200 (CEST)
+Received: from [192.168.235.99] (unknown [192.168.235.99])
+	by messagerie.si.c-s.fr (Postfix) with ESMTP id 3E7F68B763;
+	Tue, 29 Apr 2025 10:22:17 +0200 (CEST)
+Message-ID: <df566157-5320-47cf-ae14-a2e578f68a35@csgroup.eu>
+Date: Tue, 29 Apr 2025 10:22:16 +0200
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 02/13] crypto: powerpc - drop redundant dependencies on
+ PPC
+To: Eric Biggers <ebiggers@kernel.org>, linux-crypto@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-mips@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+ linux-s390@vger.kernel.org, x86@kernel.org,
+ "Jason A . Donenfeld" <Jason@zx2c4.com>, Ard Biesheuvel <ardb@kernel.org>
+References: <20250422152716.5923-1-ebiggers@kernel.org>
+ <20250422152716.5923-3-ebiggers@kernel.org>
+Content-Language: fr-FR
+From: Christophe Leroy <christophe.leroy@csgroup.eu>
+In-Reply-To: <20250422152716.5923-3-ebiggers@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
-Using acpi_irq_create_hierarchy() in the cases where the code
-also handles OF leads to code duplication as the ACPI subsystem
-doesn't provide means to compute the IRQ domain parent whereas
-the OF does.
 
-Introduce acpi_get_gsi_dispatcher() so that the drivers relying
-on both ACPI and OF may use irq_domain_create_hierarchy() in the
-common code paths.
 
-No functional changes.
+Le 22/04/2025 à 17:27, Eric Biggers a écrit :
+> From: Eric Biggers <ebiggers@google.com>
+> 
+> arch/powerpc/crypto/Kconfig is sourced only when CONFIG_PPC=y, so there
+> is no need for the symbols defined inside it to depend on PPC.
+> 
+> Acked-by: Ard Biesheuvel <ardb@kernel.org>
+> Signed-off-by: Eric Biggers <ebiggers@google.com>
 
-Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
-Reviewed-by: Michael Kelley <mhklinux@outlook.com>
-Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
----
- drivers/acpi/irq.c   | 16 ++++++++++++++--
- include/linux/acpi.h |  5 ++++-
- 2 files changed, 18 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/acpi/irq.c b/drivers/acpi/irq.c
-index 1687483ff319..76a856c32c4d 100644
---- a/drivers/acpi/irq.c
-+++ b/drivers/acpi/irq.c
-@@ -12,7 +12,7 @@
- 
- enum acpi_irq_model_id acpi_irq_model;
- 
--static struct fwnode_handle *(*acpi_get_gsi_domain_id)(u32 gsi);
-+static acpi_gsi_domain_disp_fn acpi_get_gsi_domain_id;
- static u32 (*acpi_gsi_to_irq_fallback)(u32 gsi);
- 
- /**
-@@ -307,12 +307,24 @@ EXPORT_SYMBOL_GPL(acpi_irq_get);
-  *	for a given GSI
-  */
- void __init acpi_set_irq_model(enum acpi_irq_model_id model,
--			       struct fwnode_handle *(*fn)(u32))
-+			       acpi_gsi_domain_disp_fn fn)
- {
- 	acpi_irq_model = model;
- 	acpi_get_gsi_domain_id = fn;
- }
- 
-+/*
-+ * acpi_get_gsi_dispatcher() - Get the GSI dispatcher function
-+ *
-+ * Return the dispatcher function that computes the domain fwnode for
-+ * a given GSI.
-+ */
-+acpi_gsi_domain_disp_fn acpi_get_gsi_dispatcher(void)
-+{
-+	return acpi_get_gsi_domain_id;
-+}
-+EXPORT_SYMBOL_GPL(acpi_get_gsi_dispatcher);
-+
- /**
-  * acpi_set_gsi_to_irq_fallback - Register a GSI transfer
-  * callback to fallback to arch specified implementation.
-diff --git a/include/linux/acpi.h b/include/linux/acpi.h
-index 4e495b29c640..1917044dea72 100644
---- a/include/linux/acpi.h
-+++ b/include/linux/acpi.h
-@@ -336,8 +336,11 @@ int acpi_register_gsi (struct device *dev, u32 gsi, int triggering, int polarity
- int acpi_gsi_to_irq (u32 gsi, unsigned int *irq);
- int acpi_isa_irq_to_gsi (unsigned isa_irq, u32 *gsi);
- 
-+typedef struct fwnode_handle *(*acpi_gsi_domain_disp_fn)(u32);
-+
- void acpi_set_irq_model(enum acpi_irq_model_id model,
--			struct fwnode_handle *(*)(u32));
-+			acpi_gsi_domain_disp_fn fn);
-+acpi_gsi_domain_disp_fn acpi_get_gsi_dispatcher(void);
- void acpi_set_gsi_to_irq_fallback(u32 (*)(u32));
- 
- struct irq_domain *acpi_irq_create_hierarchy(unsigned int flags,
--- 
-2.43.0
+Reviewed-by: Christophe Leroy <christophe.leroy@csgroup.eu>
+
+Note that there are other redundancies in the file, for instance 
+CONFIG_VSX already depends on CONFIG_PPC64
+
+Christophe
 
