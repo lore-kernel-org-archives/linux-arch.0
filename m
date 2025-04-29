@@ -1,32 +1,31 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 22F2A130A54;
-	Tue, 29 Apr 2025 13:04:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 218692D29B8;
+	Tue, 29 Apr 2025 13:04:48 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745931888; cv=none; b=HOXZjSq86ZFUf0AA4jRXjtudwL30Bh7yO+APmfcz6EBrFSibTAQjfbjbr/f7Dfh/V9gPhfLtbU5UV4TbvdwkydJiN0+SrRyyoRTEDPeoOG4dhxwBOlmGMhuwgKJqzozuYPrXreJxipEijcsneb5glqjrHQdrXUTiUfCzJEb9WV0=
+	t=1745931891; cv=none; b=dKo40atZJSIykaGCaoo+WhFwvw0EBCXPEAXg3LOb5cErAJk5Z+QdC3uPC3rGwS2kabaQ/F4rJ9pYuUTaTrD9cDIlQeYggIIdPHA0GCslOt67PS/vLCbjiso8Pyl5xRtjeBTgAEoUQJnMth0wIsaby2JhekwmwdYbIe27b3g6iwM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1745931888; c=relaxed/simple;
-	bh=T0fD62G5Xd9JAdE1vJEHi+5qJb4+xZfzKULQbTpVsYY=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=R//bTQ00ZnS7Bah6XiuHkBL0EtnGwbiqXKrfgwzTh+p3zpPd3N3zmx75SdFMOESl/c+sgHSCCUFFakv1iWKJAkYoQXpStBInUql9+q8bqyymfK/A+YNm292EDHB/P6PKR0bccF+2+wdENyMFvNNnvNnTFgdZ1Aj7qEffnHqu+HA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=VYryOxdF; arc=none smtp.client-ip=159.69.126.157
+	s=arc-20240116; t=1745931891; c=relaxed/simple;
+	bh=Y+xLjK61Kdyaf5qG4FimETVDBBB3izTwQkrP8AuirI4=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=Q0qKgOfhrdVnz6OYLlgYLW1yXVhqYN+Bfh1EKN/dwsYY9xqIn22QF6vs3VYpPu82l/hpcAOdXlilAEt+vi291IRVDDWjEn32uP1x8bIeMMXLlmr3nGlaFowKz6tPvg5U9cmjpCnMQwhVDnVEk9b331AkT6USS8w8DuX8a+nadZw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=IRRJNLk+; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="VYryOxdF"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="IRRJNLk+"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1745931874;
-	bh=T0fD62G5Xd9JAdE1vJEHi+5qJb4+xZfzKULQbTpVsYY=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=VYryOxdFWiuicUrPjgyis2zuZL8HUMkxBtaWkvPWWMgwx6fNX77ASJjeDFDpfyYHw
-	 KlP9XfRkBQRLrRP6PSNRiZKXU1e4Esjb2A29aFuLPFeS3riZO9QVkA9NNt7hZLeydC
-	 NcnvAzHlpyrHYLn4kkg+67KDunNeKerUN6ll+XQs=
+	bh=Y+xLjK61Kdyaf5qG4FimETVDBBB3izTwQkrP8AuirI4=;
+	h=From:Subject:Date:To:Cc:From;
+	b=IRRJNLk+e7inQgG0GdySHCzALbfOkLdvGf9nPAyO84CiqXQO1UO0uUl/tT200tV6h
+	 t9zLXBXeJ6gdAnQbVxAEgBRjbrPzmpUaaDXzdsTg/s3ZAvFTqsHtb66hBTk8xURkCa
+	 s3CiPKXGBG51UzVaWwtvmbgx9fG90CgWNMI1hDFk=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 29 Apr 2025 15:04:31 +0200
-Subject: [PATCH v3 4/9] kbuild: generate module BTF based on
- vmlinux.unstripped
+Subject: [PATCH v3 0/9] module: Introduce hash-based integrity checking
+Date: Tue, 29 Apr 2025 15:04:27 +0200
+Message-Id: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,9 +34,11 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20250429-module-hashes-v3-4-00e9258def9e@weissschuh.net>
-References: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
-In-Reply-To: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
+X-B4-Tracking: v=1; b=H4sIAFvOEGgC/3XMQQrCMBCF4auUrI1kpi0RV96juEiTqQloK5k2K
+ qV3Ny24UVz+D943C6YYiMWxmEWkFDgMfY5yVwjrTX8hGVxugQorQKzlbXDTlaQ37ImlNrUy2lo
+ 0pRL5c4/UhefmNefcPvA4xNfGJ1jXf1ICqaTToCxpU3YOTg8KzGz95Pc9jWLlEn6IWgGqbwIz0
+ RqAQ0WoW939EMuyvAGqrA4I8gAAAA==
+X-Change-ID: 20241225-module-hashes-7a50a7cc2a30
 To: Masahiro Yamada <masahiroy@kernel.org>, 
  Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
  Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
@@ -63,46 +64,105 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=1584;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=4167;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=T0fD62G5Xd9JAdE1vJEHi+5qJb4+xZfzKULQbTpVsYY=;
- b=6lIaRg6590Hj4acqj1sln00p80ejNkYdhE8fd1gi5gYjFoau00uJEyqPoFekX25gQwNDezEKu
- qEQc0ld+MXaAAf2/mWACbl7TSFfJDcOGbkpMK55cb7w/QH1GfpEOqS8
+ bh=Y+xLjK61Kdyaf5qG4FimETVDBBB3izTwQkrP8AuirI4=;
+ b=EPx/fKWbgM9Vin3BDBMnBLPm+4MHXpOt4igmfsC24uEu/uUVs9r+4rDAXbDMhihK1CxXjLsGa
+ zLa8agdSfc0DAmg+2uNWPgMQwlyk4enmeazWuA4PLxnd5pszMLDhjHD
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-The upcoming module hashes functionality will build the modules in
-between the generation of the BTF data and the final link of vmlinux.
-At this point vmlinux is not yet built and therefore can't be used for
-module BTF generation. vmlinux.unstripped however is usable and
-sufficient for BTF generation.
+The current signature-based module integrity checking has some drawbacks
+in combination with reproducible builds:
+Either the module signing key is generated at build time, which makes
+the build unreproducible, or a static key is used, which precludes
+rebuilds by third parties and makes the whole build and packaging
+process much more complicated.
+Introduce a new mechanism to ensure only well-known modules are loaded
+by embedding a list of hashes of all modules built as part of the full
+kernel build into vmlinux.
+
+Interest has been proclaimed by NixOS, Arch Linux, Proxmox, SUSE and the
+general reproducible builds community.
+
+To properly test the reproducibility in combination with CONFIG_INFO_BTF
+another patch or pahole v1.29 is needed:
+"[PATCH bpf-next] kbuild, bpf: Enable reproducible BTF generation" [0]
+
+Questions for current patch:
+* Naming
+* Can the number of built-in modules be retrieved while building
+  kernel/module/hashes.o? This would remove the need for the
+  preallocation step in link-vmlinux.sh.
+* How should this interaction with IMA?
+
+Further improvements:
+* Use a LSM/IMA Keyring to store and validate hashes
+* Use MODULE_SIG_HASH for configuration
+* UAPI for discovery?
+* Currently has a permanent memory overhead
+
+[0] https://lore.kernel.org/lkml/20241211-pahole-reproducible-v1-1-22feae19bad9@weissschuh.net/
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 ---
- scripts/Makefile.modfinal | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+Changes in v3:
+- Rebase on v6.15-rc1
+- Use openssl to calculate hash
+- Avoid warning if no modules are built
+- Simplify module_integrity_check() a bit
+- Make incompatibility with INSTALL_MOD_STRIP explicit
+- Update docs
+- Add IMA cleanups
+- Link to v2: https://lore.kernel.org/r/20250120-module-hashes-v2-0-ba1184e27b7f@weissschuh.net
 
-diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
-index 5d01b553ec9a4565c8e5a6edd05665c409003bc1..527f6b27baff9db94d31c15447de445a05bc0634 100644
---- a/scripts/Makefile.modfinal
-+++ b/scripts/Makefile.modfinal
-@@ -36,11 +36,11 @@ quiet_cmd_ld_ko_o = LD [M]  $@
- 
- quiet_cmd_btf_ko = BTF [M] $@
-       cmd_btf_ko = 							\
--	if [ ! -f $(objtree)/vmlinux ]; then				\
--		printf "Skipping BTF generation for %s due to unavailability of vmlinux\n" $@ 1>&2; \
-+	if [ ! -f $(objtree)/vmlinux.unstripped ]; then			\
-+		printf "Skipping BTF generation for %s due to unavailability of vmlinux.unstripped\n" $@ 1>&2; \
- 	else								\
--		LLVM_OBJCOPY="$(OBJCOPY)" $(PAHOLE) -J $(PAHOLE_FLAGS) $(MODULE_PAHOLE_FLAGS) --btf_base $(objtree)/vmlinux $@; \
--		$(RESOLVE_BTFIDS) -b $(objtree)/vmlinux $@;		\
-+		LLVM_OBJCOPY="$(OBJCOPY)" $(PAHOLE) -J $(PAHOLE_FLAGS) $(MODULE_PAHOLE_FLAGS) --btf_base $(objtree)/vmlinux.unstripped $@; \
-+		$(RESOLVE_BTFIDS) -b $(objtree)/vmlinux.unstripped $@;		\
- 	fi;
- 
- # Same as newer-prereqs, but allows to exclude specified extra dependencies
+Changes in v2:
+- Drop RFC state
+- Mention interested parties in cover letter
+- Expand Kconfig description
+- Add compatibility with CONFIG_MODULE_SIG
+- Parallelize module-hashes.sh
+- Update Documentation/kbuild/reproducible-builds.rst
+- Link to v1: https://lore.kernel.org/r/20241225-module-hashes-v1-0-d710ce7a3fd1@weissschuh.net
 
+---
+Thomas Weißschuh (9):
+      powerpc/ima: Drop unnecessary check for CONFIG_MODULE_SIG
+      ima: efi: Drop unnecessary check for CONFIG_MODULE_SIG/CONFIG_KEXEC_SIG
+      kbuild: add stamp file for vmlinux BTF data
+      kbuild: generate module BTF based on vmlinux.unstripped
+      module: Make module loading policy usable without MODULE_SIG
+      module: Move integrity checks into dedicated function
+      module: Move lockdown check into generic module loader
+      lockdown: Make the relationship to MODULE_SIG a dependency
+      module: Introduce hash-based integrity checking
+
+ .gitignore                                   |  1 +
+ Documentation/kbuild/reproducible-builds.rst |  5 ++-
+ Makefile                                     |  8 +++-
+ arch/powerpc/kernel/ima_arch.c               |  3 +-
+ include/asm-generic/vmlinux.lds.h            | 11 ++++++
+ include/linux/module.h                       |  8 ++--
+ include/linux/module_hashes.h                | 17 +++++++++
+ kernel/module/Kconfig                        | 21 ++++++++++-
+ kernel/module/Makefile                       |  1 +
+ kernel/module/hashes.c                       | 56 ++++++++++++++++++++++++++++
+ kernel/module/internal.h                     |  8 +---
+ kernel/module/main.c                         | 51 ++++++++++++++++++++++---
+ kernel/module/signing.c                      | 24 +-----------
+ scripts/Makefile.modfinal                    | 18 ++++++---
+ scripts/Makefile.modinst                     |  4 ++
+ scripts/Makefile.vmlinux                     |  5 +++
+ scripts/link-vmlinux.sh                      | 31 ++++++++++++++-
+ scripts/module-hashes.sh                     | 26 +++++++++++++
+ security/integrity/ima/ima_efi.c             |  6 +--
+ security/lockdown/Kconfig                    |  2 +-
+ 20 files changed, 250 insertions(+), 56 deletions(-)
+---
+base-commit: 0af2f6be1b4281385b618cb86ad946eded089ac8
+change-id: 20241225-module-hashes-7a50a7cc2a30
+
+Best regards,
 -- 
-2.49.0
+Thomas Weißschuh <linux@weissschuh.net>
 
