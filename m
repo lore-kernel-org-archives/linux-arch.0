@@ -1,32 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 217F12D29B7;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8970B2D29C7;
 	Tue, 29 Apr 2025 13:04:49 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745931891; cv=none; b=DxQxlCiDzgp1E23dpJy5tdo3GwM8OGjWGOw5HGhbOxvXb4hsAyCgEE5n6yewTrPrw+h6HLnXQ753ubWRW0GTBukoojg+qapSMqhXlG4X0jhfLeD4HRg9kyDJJj4K8TCitK34JNcYShhMGdGKWzPWyLHk7RlAHSb53OOOnS7xJ9A=
+	t=1745931892; cv=none; b=F6mzS2a8/rxVzNosuGE2rRiaWjt9jznYf8y9Y+jFX4SF0+7iba5h78M313bXvM3Q7Yftn+4UEqjguWUZJ4uqynxUeQVtA6EO96kPcvw9cN1ks/mUTqDR7wjK5UhXcAOd2PFwi1XODqpvtMr0inCRh6hukyD0+EFzJydRpTp/i5A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1745931891; c=relaxed/simple;
-	bh=1xKcF/fZBhfU3Lws3Lfk6rUfxpZo4l0csYGo9PaBtCc=;
+	s=arc-20240116; t=1745931892; c=relaxed/simple;
+	bh=kmQUIW+5wYPfShUIrOsErGdMJNnQUWIZ+BIWQSkTJR8=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=KjK+lEEYb8jjXew+HYlH4aRZUhu/CACMaqvgybTTC/mGrEapXt7x3ay02Tym5v0ZuB98wUQ70XUIxOAt5evUAtFunpT39ecNfqqfSHbLwuVWe6PWvGcc0Ga2BSeWWVmUcH7pJuzn79mg6yp/ppLIKnzmuJlGRr0Li5oQkT76irI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=eiah1WdL; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=pfKHsZaSZwZpmPPv9xyzAsXAakQT1fK6cJOXBqozSPGeUoQMW/K1GEKDcWGqLmhGflzyR+GxpJFTBU673qCw5Uk2a1z5mmJwBjNXYP5hcF8X6qD/dc/sKCxhXISvz9b4tc0voWvl3JLemexvxrxx9uytLojfn4b1wsC1z4CNMes=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=WtCigX7B; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="eiah1WdL"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="WtCigX7B"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1745931874;
-	bh=1xKcF/fZBhfU3Lws3Lfk6rUfxpZo4l0csYGo9PaBtCc=;
+	bh=kmQUIW+5wYPfShUIrOsErGdMJNnQUWIZ+BIWQSkTJR8=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=eiah1WdL2eKnsF7tQ414dNOZY13u6Gw2P3IfbaT/10ayiN3HQ8kS3E/T1C3+5ggRb
-	 QEGUilTpabghS1t6UmwPDRzXag/l+pAotCjlPOcc2hoD4PWZyCCR/8Elaucqny/daz
-	 fuTcdZeyUfEffjQMxcQzOZWNYyc7eoBO/Ny43d14=
+	b=WtCigX7BHHuvjnDxDfwmcSBeyBTCRfjxFnCfp2BR4OAm8h26gm2cA1/Y41MLSAFgt
+	 1Lui6JugA7ZpyRc/IZB1OjD42wB3i+36XOrIwAmkctFHApWN8n8eNQWTRbRgCPvph3
+	 brq4Vp0mkbXBZ/i62ncTuTb5J/ZgYF05LkJovw2Q=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 29 Apr 2025 15:04:29 +0200
-Subject: [PATCH v3 2/9] ima: efi: Drop unnecessary check for
- CONFIG_MODULE_SIG/CONFIG_KEXEC_SIG
+Date: Tue, 29 Apr 2025 15:04:34 +0200
+Subject: [PATCH v3 7/9] module: Move lockdown check into generic module
+ loader
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20250429-module-hashes-v3-2-00e9258def9e@weissschuh.net>
+Message-Id: <20250429-module-hashes-v3-7-00e9258def9e@weissschuh.net>
 References: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 In-Reply-To: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 To: Masahiro Yamada <masahiroy@kernel.org>, 
@@ -63,45 +63,60 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=1247;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=1576;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=1xKcF/fZBhfU3Lws3Lfk6rUfxpZo4l0csYGo9PaBtCc=;
- b=a13h5wSKAMY2UUgKVrcvnkrp4Fl9Me3K/4ZYxUABDz23YhoCDCM9pCfUmG0fTL+//hJo5AEVV
- PMuGwyrVySpBCThOG9GBIP02IHEMR+SD7/hVSngRiTx+1Er+YuGCw/9
+ bh=kmQUIW+5wYPfShUIrOsErGdMJNnQUWIZ+BIWQSkTJR8=;
+ b=UeBVXcH7NmJEkR+38OyjzyfoU04GJpL9A/GpeD8/tUNbtYa0RNhFf/oUemhiWfy3i/HNqh5wb
+ 6448IhPkVJ2DZ12vw7Fz0/2aJ9GNQhLh065QNg6B4NkyTQK1vbDsDIR
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-When configuration settings are disabled the guarded functions are
-defined as empty stubs, so the check is unnecessary.
-The specific configuration option for set_module_sig_enforced() is
-about to change and removing the checks avoids some later churn.
+The lockdown check buried in module_sig_check() will not compose well
+with the introduction of hash-based module validation.
+Move it into module_integrity_check() which will work better.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
-
 ---
-This patch is not strictly necessary right now, but makes looking for
-usages of CONFIG_MODULE_SIG easier.
----
- security/integrity/ima/ima_efi.c | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+ kernel/module/main.c    | 6 +++++-
+ kernel/module/signing.c | 3 +--
+ 2 files changed, 6 insertions(+), 3 deletions(-)
 
-diff --git a/security/integrity/ima/ima_efi.c b/security/integrity/ima/ima_efi.c
-index 138029bfcce1e40ef37700c15e30909f6e9b4f2d..a35dd166ad47beb4a7d46cc3e8fc604f57e03ecb 100644
---- a/security/integrity/ima/ima_efi.c
-+++ b/security/integrity/ima/ima_efi.c
-@@ -68,10 +68,8 @@ static const char * const sb_arch_rules[] = {
- const char * const *arch_get_ima_policy(void)
- {
- 	if (IS_ENABLED(CONFIG_IMA_ARCH_POLICY) && arch_ima_get_secureboot()) {
--		if (IS_ENABLED(CONFIG_MODULE_SIG))
--			set_module_sig_enforced();
--		if (IS_ENABLED(CONFIG_KEXEC_SIG))
--			set_kexec_sig_enforced();
-+		set_module_sig_enforced();
-+		set_kexec_sig_enforced();
- 		return sb_arch_rules;
+diff --git a/kernel/module/main.c b/kernel/module/main.c
+index 0c88d443a3bc894b18a7aa230cadf396e585c415..1c353ece05fd1d2d709204e4d5fa44ecb8832bfa 100644
+--- a/kernel/module/main.c
++++ b/kernel/module/main.c
+@@ -3254,7 +3254,11 @@ static int module_integrity_check(struct load_info *info, int flags)
+ 	if (IS_ENABLED(CONFIG_MODULE_SIG))
+ 		err = module_sig_check(info, flags);
+ 
+-	return err;
++	if (err)
++		return err;
++	if (info->sig_ok)
++		return 0;
++	return security_locked_down(LOCKDOWN_MODULE_SIGNATURE);
+ }
+ 
+ /*
+diff --git a/kernel/module/signing.c b/kernel/module/signing.c
+index e51920605da14771601327ea596dad2e12400518..029e1ef6f0e369fd48e8c81154b6c697ad7a6249 100644
+--- a/kernel/module/signing.c
++++ b/kernel/module/signing.c
+@@ -11,7 +11,6 @@
+ #include <linux/module_signature.h>
+ #include <linux/string.h>
+ #include <linux/verification.h>
+-#include <linux/security.h>
+ #include <crypto/public_key.h>
+ #include <uapi/linux/module.h>
+ #include "internal.h"
+@@ -100,5 +99,5 @@ int module_sig_check(struct load_info *info, int flags)
+ 		return -EKEYREJECTED;
  	}
- 	return NULL;
+ 
+-	return security_locked_down(LOCKDOWN_MODULE_SIGNATURE);
++	return 0;
+ }
 
 -- 
 2.49.0
