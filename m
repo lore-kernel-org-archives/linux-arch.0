@@ -1,32 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86F642135DD;
-	Tue, 29 Apr 2025 13:04:43 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B79632AE99;
+	Tue, 29 Apr 2025 13:04:44 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1745931887; cv=none; b=rYA8g/EZm/WR4lPU2dxw0n6K5r2ztK4xa2YDV6rzkxgIyi93gHk2BF3OdNSElRrAUlbf7/mPTRqL3Al4c+V/0PI8nsdvLTI/YuJIZC31lsGhGe1ugZTfT56q3sUMBk1/WqMDm2t61OXZWoydF6tfSECQrw9/7ZdjMdONbs6COcU=
+	t=1745931887; cv=none; b=ZDWN2h6YuV0hTmTJKrw2CNCZzQymy7lSJEFx3x+LMCUkXCygbyW18Ozj6k9WdPhAuzMiroVK37Nd80eZ+iJQbmi6CEH9WD+4LCiVkF2IwKALrT3dsqG4O42N2YS+TRi5VEj/qt2cfIq+u6LyF6TR2TvcwhDPKu+koZmYSp6egZw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1745931887; c=relaxed/simple;
-	bh=UCCJkeYdVSKNrm9L/l2LgArwTnkqToFIXrGQtz775hQ=;
+	bh=7p5y09FCX6rw2O2dfz8EEXV5SO0K/mxanRFmD+rolvo=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=HUcIedCs4Q08POc4qPbckL2tsk38MlLHlnKDEtqBUaxEKNuvrm3/LY3NYQ0S5azbIVZnV4zSnUJBoDrMqmsLdi01Z0VBhCkBAzxDR+8MMue6fDidC3Z880kM11sUJPxdKE/tiEGMvU5hMQXU9Z8jvmqaODELyXoctpbyKVqC4eg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=InUYUEBx; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=hy2ugVhByKwO+6Q2a5Cr3BgOVkIeAApoFyHNFk2cICTwr0w1G58w2knl85QHxEp5TPugX/6Mzd6T/WbWxtI1qkXxj8PS2aut1w+KFjCfGv/w6xuQQ9DsuDo9VlFIJtVjHc7ruvIi+CiRpDOUguFqpUv7MbL8zD7AS/rXAlT6PQc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=jCf1FuP5; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="InUYUEBx"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="jCf1FuP5"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
 	s=mail; t=1745931874;
-	bh=UCCJkeYdVSKNrm9L/l2LgArwTnkqToFIXrGQtz775hQ=;
+	bh=7p5y09FCX6rw2O2dfz8EEXV5SO0K/mxanRFmD+rolvo=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=InUYUEBxzcaSdnkfyWEYs5gnGMDG+ZrErjBcXwVYAokpi9GEx8U1OAq8QYl2tMjVP
-	 1ekrjrvh9Kq4zyyJzkto/U4Kn8QLoXereQhuqEhHhjjsu1IS7NMnfsLI/u0MH1f9jK
-	 qMLc+34JpYBUgNoLb0o6WFDZy5UfMXBeZPj/wmy4=
+	b=jCf1FuP5gkPtpI2J67ZEwvsoQWovshmPXIJgnAgTkBIjwpAX1cl+SlZVdP8lbK0lF
+	 dyNCKAmz3jl+cPZP+UYIYCLHB6RTBAWzuBWHjoztasuuiDcmPKcQ+dykBBrB4W2yan
+	 boTg8x/zKJ/cA9QTJECHOvJd+ozubnscwmhseds8=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 29 Apr 2025 15:04:32 +0200
-Subject: [PATCH v3 5/9] module: Make module loading policy usable without
- MODULE_SIG
+Date: Tue, 29 Apr 2025 15:04:35 +0200
+Subject: [PATCH v3 8/9] lockdown: Make the relationship to MODULE_SIG a
+ dependency
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -35,7 +35,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20250429-module-hashes-v3-5-00e9258def9e@weissschuh.net>
+Message-Id: <20250429-module-hashes-v3-8-00e9258def9e@weissschuh.net>
 References: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 In-Reply-To: <20250429-module-hashes-v3-0-00e9258def9e@weissschuh.net>
 To: Masahiro Yamada <masahiroy@kernel.org>, 
@@ -63,157 +63,37 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.14.2
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=4529;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1745931873; l=874;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=UCCJkeYdVSKNrm9L/l2LgArwTnkqToFIXrGQtz775hQ=;
- b=FFTZUNwOflf9z+ryGT7IH9ClBV+Qgyns9jpZd219As5W1VpY2anGRlh//7RjRR1nc7E7upt8z
- nqLMla0XzUOAp/oDbt2x4NABjz1decy6MVywaUlDbU1LQpYgWKpemko
+ bh=7p5y09FCX6rw2O2dfz8EEXV5SO0K/mxanRFmD+rolvo=;
+ b=VEJ2A4fKzTy7xY465KgWvaT7a/7guBneskvjYaYxbUgOTu6Jt4JlWHRzWqSwnAXuU1vhyblv2
+ VlDWfdgx/weB5GXKilK4USPkNpBPaQ/yG+9tO8d+lkpC1G8W1BSe/He
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-The loading policy functionality will also be used by the hash-based
-module validation. Split it out from CONFIG_MODULE_SIG so it is usable
-by both.
+The new hash-based module integrity checking will also be able to
+satisfy the requirements of lockdown.
+Such an alternative is not representable with "select", so use
+"depends on" instead.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 ---
- include/linux/module.h  |  8 ++++----
- kernel/module/Kconfig   |  6 +++++-
- kernel/module/main.c    | 26 +++++++++++++++++++++++++-
- kernel/module/signing.c | 21 ---------------------
- 4 files changed, 34 insertions(+), 27 deletions(-)
+ security/lockdown/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/module.h b/include/linux/module.h
-index d94b196d5a34e104d81308df4b150452eb96cdc9..68aa8bbd33acc84e013dc575ee88bd4e3101f9f4 100644
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -453,7 +453,7 @@ struct module {
- 	const u32 *gpl_crcs;
- 	bool using_gplonly_symbols;
- 
--#ifdef CONFIG_MODULE_SIG
-+#ifdef CONFIG_MODULE_SIG_POLICY
- 	/* Signature was verified. */
- 	bool sig_ok;
- #endif
-@@ -921,14 +921,14 @@ static inline bool retpoline_module_ok(bool has_retpoline)
- }
- #endif
- 
--#ifdef CONFIG_MODULE_SIG
-+#ifdef CONFIG_MODULE_SIG_POLICY
- bool is_module_sig_enforced(void);
- 
- static inline bool module_sig_ok(struct module *module)
- {
- 	return module->sig_ok;
- }
--#else	/* !CONFIG_MODULE_SIG */
-+#else	/* !CONFIG_MODULE_SIG_POLICY */
- static inline bool is_module_sig_enforced(void)
- {
- 	return false;
-@@ -938,7 +938,7 @@ static inline bool module_sig_ok(struct module *module)
- {
- 	return true;
- }
--#endif	/* CONFIG_MODULE_SIG */
-+#endif	/* CONFIG_MODULE_SIG_POLICY */
- 
- #if defined(CONFIG_MODULES) && defined(CONFIG_KALLSYMS)
- int module_kallsyms_on_each_symbol(const char *modname,
-diff --git a/kernel/module/Kconfig b/kernel/module/Kconfig
-index c51f25538d0ea66e6486ad0be6684173cd0140b5..a3146e9378fcd3292a756a2a7ea5241524cbc408 100644
---- a/kernel/module/Kconfig
-+++ b/kernel/module/Kconfig
-@@ -265,9 +265,13 @@ config MODULE_SIG
- 	  debuginfo strip done by some packagers (such as rpmbuild) and
- 	  inclusion into an initramfs that wants the module size reduced.
- 
-+config MODULE_SIG_POLICY
-+	def_bool y
-+	depends on MODULE_SIG
-+
- config MODULE_SIG_FORCE
- 	bool "Require modules to be validly signed"
--	depends on MODULE_SIG
-+	depends on MODULE_SIG_POLICY
+diff --git a/security/lockdown/Kconfig b/security/lockdown/Kconfig
+index e84ddf48401010bcc0829a32db58e6f12bfdedcb..155959205b8eac2c85897a8c4c8b7ec471156706 100644
+--- a/security/lockdown/Kconfig
++++ b/security/lockdown/Kconfig
+@@ -1,7 +1,7 @@
+ config SECURITY_LOCKDOWN_LSM
+ 	bool "Basic module for enforcing kernel lockdown"
+ 	depends on SECURITY
+-	select MODULE_SIG if MODULES
++	depends on !MODULES || MODULE_SIG
  	help
- 	  Reject unsigned modules or signed modules for which we don't have a
- 	  key.  Without this, such modules will simply taint the kernel.
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index a2859dc3eea66ec19991e7e4afb5bbcae2c2d167..83c66205556fdde92152c131f1f58229c4f7f734 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -2432,7 +2432,7 @@ static void module_augment_kernel_taints(struct module *mod, struct load_info *i
- 				mod->name);
- 		add_taint_module(mod, TAINT_TEST, LOCKDEP_STILL_OK);
- 	}
--#ifdef CONFIG_MODULE_SIG
-+#ifdef CONFIG_MODULE_SIG_POLICY
- 	mod->sig_ok = info->sig_ok;
- 	if (!mod->sig_ok) {
- 		pr_notice_once("%s: module verification failed: signature "
-@@ -3808,3 +3808,27 @@ static int module_debugfs_init(void)
- }
- module_init(module_debugfs_init);
- #endif
-+
-+#ifdef CONFIG_MODULE_SIG_POLICY
-+
-+#undef MODULE_PARAM_PREFIX
-+#define MODULE_PARAM_PREFIX "module."
-+
-+static bool sig_enforce = IS_ENABLED(CONFIG_MODULE_SIG_FORCE);
-+module_param(sig_enforce, bool_enable_only, 0644);
-+
-+/*
-+ * Export sig_enforce kernel cmdline parameter to allow other subsystems rely
-+ * on that instead of directly to CONFIG_MODULE_SIG_FORCE config.
-+ */
-+bool is_module_sig_enforced(void)
-+{
-+	return sig_enforce;
-+}
-+EXPORT_SYMBOL(is_module_sig_enforced);
-+
-+void set_module_sig_enforced(void)
-+{
-+	sig_enforce = true;
-+}
-+#endif
-diff --git a/kernel/module/signing.c b/kernel/module/signing.c
-index a2ff4242e623d5d4e87d2f3d139d8620fb937579..e51920605da14771601327ea596dad2e12400518 100644
---- a/kernel/module/signing.c
-+++ b/kernel/module/signing.c
-@@ -16,27 +16,6 @@
- #include <uapi/linux/module.h>
- #include "internal.h"
- 
--#undef MODULE_PARAM_PREFIX
--#define MODULE_PARAM_PREFIX "module."
--
--static bool sig_enforce = IS_ENABLED(CONFIG_MODULE_SIG_FORCE);
--module_param(sig_enforce, bool_enable_only, 0644);
--
--/*
-- * Export sig_enforce kernel cmdline parameter to allow other subsystems rely
-- * on that instead of directly to CONFIG_MODULE_SIG_FORCE config.
-- */
--bool is_module_sig_enforced(void)
--{
--	return sig_enforce;
--}
--EXPORT_SYMBOL(is_module_sig_enforced);
--
--void set_module_sig_enforced(void)
--{
--	sig_enforce = true;
--}
--
- /*
-  * Verify the signature on a module.
-  */
+ 	  Build support for an LSM that enforces a coarse kernel lockdown
+ 	  behaviour.
 
 -- 
 2.49.0
