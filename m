@@ -1,143 +1,151 @@
-Received: from mail-il1-f182.google.com (mail-il1-f182.google.com [209.85.166.182])
+Received: from mail-pl1-f175.google.com (mail-pl1-f175.google.com [209.85.214.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A70F317DFE7
-	for <linux-arch@vger.kernel.org>; Fri,  2 May 2025 16:43:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4438C2609D0;
+	Fri,  2 May 2025 16:55:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1746204208; cv=none; b=RhcX8+6wD/cRRhN616PrFgNU56z2gEl9dGmHpoEoUHbG1+oAAomb4Vh/LZLeVi329GRvSkVukAouQ/Gy3+yd2rCQeAADo37EQiZkeITTJUvuAxC13pppPV8W7bVEj2CU8DDtLl3Ltn/H50OxIiPEiVXHRdxlDvB9bHJh1G19/RI=
+	t=1746204946; cv=none; b=Q+u1GptEfjlxuaebmaAv4baZ++nFRiH0WmIGQypJRtsJ99OAQ491RJOC9ZBUUTog7O4LY+NfLp3y8GetBC4dM1VzE4Hy6uhRxoSIPQqW078UBdEFHW3x7T3rzxqBqLTVr2IU3I+RElw4AtMVy8pfsvXaMcoBsSwHiKKeKMd5qoI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1746204208; c=relaxed/simple;
-	bh=HSWejsQUIC5AVkuX0S8B3IVpbNA6F4zhsZS0ah5X99o=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=MeLByKIWX/sdlzn0b98srOLxGw09Kh2bUrF//UTEdXPECugK5xdjd4YopfifqFJ2UZkQrro4ej28iFhUNHBmqAfRijVlEXD8s3mSuCxgOKz+kuXNXTHmz6dO2dMPl8uiNX7xWr5L98grwpCxsxkizGiQ2Zj4e2xhcXKc+90iPp8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=W4jAsoWx; arc=none smtp.client-ip=209.85.166.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	s=arc-20240116; t=1746204946; c=relaxed/simple;
+	bh=GNeGhze/d0IqBd35rQ7wW2xNehKHCmBz16mnzFHVYoM=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=NTj/ChvXsaGIOj8UgdZ770yMvJWPmnWNjrE5qtMhJCgJEaLmYEesV/OLZDMJ6Z9wFYC2y5qI+h//iAoVML3L4I9ZB/3+ibGUg/Uli/BUgun55e3wlns/OdAiTqT5vawp4y7wbYVL+vl/L6Iw2N8ALqiWD/Ia7h0BmM9IQwoaWsI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=WyBa23Gc; arc=none smtp.client-ip=209.85.214.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="W4jAsoWx"
-Received: by mail-il1-f182.google.com with SMTP id e9e14a558f8ab-3d91a45d148so295ab.1
-        for <linux-arch@vger.kernel.org>; Fri, 02 May 2025 09:43:25 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WyBa23Gc"
+Received: by mail-pl1-f175.google.com with SMTP id d9443c01a7336-22c3407a87aso35565105ad.3;
+        Fri, 02 May 2025 09:55:42 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1746204205; x=1746809005; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=tfhSF1OBdwUfsA1pakNcUwq7Cj4Gcs5LK2vK2irHdRY=;
-        b=W4jAsoWxAl2hQcwXwKhaxrR5OTdkXvIMnG65vu+uH9e4Uo74a/G0jAWzW6P19qaFyx
-         qk+u0KyQV9Id/WoB3zxf11uhqi56tHH2wHEpWP846hsOLXjBjCmdEBdcD6HK/OTnPS+y
-         uHBAYPTy5QyS04PNnK//ttWYwzwAeCmSfEp+KYuGr87yGzCpiraX63BFkvFr6yhMFAt7
-         eBJ54KhZFhv1aMaMW9T21BrDJR9DMBSvQ+ppluvftRF6hfqo5Q8Sy8Fajivp51V/hYgp
-         KFhKoda4OOP15zmSWGH4O36kpYPxk8KcqryX4vmNGxYsFrqKhmzKZMcMCVRH4cxvDvao
-         oYWQ==
+        d=gmail.com; s=20230601; t=1746204942; x=1746809742; darn=vger.kernel.org;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :mime-version:references:message-id:subject:cc:to:from:date:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=Ql3U/ewtiWig9aIL+QxIB2EPrqmH+OkPP9/cyas0+6M=;
+        b=WyBa23GcHRpZrgkypw3uWKaxCCcRX5mdnPQ9GSu+GDgMVAERJCRgVPl8qeDpFglWDK
+         j9D74H0EtFuSlnPkotxBRD/J5qXIUx231T5zzWEsfMszeI4bkGG9K/kGV3pmmGcN3t8y
+         /effOeETBMfHTm26kfumjqHrYawN7Bguc0/QZ6BQlHD0QJ/qsCi7zDNCTrmkNpn0EYLJ
+         8rlTlO4IGYMU1ww4zOQGGDHP74a3lkwLEtc+e2GJMRwkvh6ZPumVC5/ITNYAJ0waK6Rn
+         OGLTXvROPVkFVuU6b/UolKPYp64L3TQhNS2DRtxBLqrluaHtd6sXkHyU1oyQPW1l98tD
+         8FLw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1746204205; x=1746809005;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=tfhSF1OBdwUfsA1pakNcUwq7Cj4Gcs5LK2vK2irHdRY=;
-        b=p/uq9mUFk5DCRXiQkA9RsYjxU3g9Wq/+DtNPMqvcsjt6Okz+Ne0IcME9Abq0A2SaVY
-         3CY+2VUCsKeT8YHxC3ogASL42If5+XqodSbz2VGTYm2dBqJDSaAuH4ZMHSRJXouT5DjW
-         RnTvnGQTKC/AENrrtnDeucGKhgsCXfsW8c4kbHd1g6ZnJpA9whKOfA820eW8/BvXvivW
-         Z9KQBQrOeiZMhz3CGmQtaCNnxuA9z+g9s2bSvqTdCwn4/zNlhBmtcDwMTktqzE34iLlF
-         +lS/lEIAWXM4ubcxXQdMPGS+OkJjoQ9wyy4aNR9MJAr0BZYIErW73Da/IIUiM1vxzDlE
-         yVvA==
-X-Forwarded-Encrypted: i=1; AJvYcCXidBjxQGdefJHqxLMm21TP4ElXIPLQnAw72hELSNOgb8gradhQQ6q9krxny6zvQpDW+1GL+LsJ2TRm@vger.kernel.org
-X-Gm-Message-State: AOJu0YyJpqj1jp29Dn9bTKVvPYtrR61IhVwh4AR9SKGwbLB1Iz6TociY
-	+b9BCJY3Nfgay1IVsz6iGtfwRMZYvxUsLSfCEkVKk+rmqlDeUcqqDg6Y4c170cdfdKZJIZLihZ9
-	FEezPSa40VfYPL5LieQmTqQ/rOY3O8uxR83bw
-X-Gm-Gg: ASbGncu1lKESJboH5kyhcWPA3nsi8wx67JJ0e4FKeE+3ohgQZXLQYTMMGIw4DvM7rkI
-	6l+WedjD3T/oWweAmT6Fq5U+ShEAztwP9VRaZrUP9gJNSayjZDnW/6N7YOz/RKr2W5c1Ssha04Y
-	/lGARP9NdG9Ou188TrpEnrTjp5x9zWXlrb1g==
-X-Google-Smtp-Source: AGHT+IGl8Ey1mD7g9HdYk+68mf77nPG69tteIpFx6Qvv3ot7wI3HcIw7QJ3SYNwPij9nPcd00LD5BKx8PJeqjrdMYP8=
-X-Received: by 2002:a05:6e02:b4c:b0:3d9:6463:a8cd with SMTP id
- e9e14a558f8ab-3d96f2523dcmr6638415ab.14.1746204204424; Fri, 02 May 2025
- 09:43:24 -0700 (PDT)
+        d=1e100.net; s=20230601; t=1746204942; x=1746809742;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :mime-version:references:message-id:subject:cc:to:from:date
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=Ql3U/ewtiWig9aIL+QxIB2EPrqmH+OkPP9/cyas0+6M=;
+        b=NENHNpjus9c38hq028PLXqc5zLNYxLiaR0mh6FdAQsUgZ9ORP84SVCFSuf0MG8hs4/
+         RmXZTUSzG/xlNAwByQt6n2sk3RY8Sfu4QOySJ0blMuBAN3a/9UE116PN0OG8zPq/2NRY
+         lJOoC7ZYVjza2I5aBWsNAvTeks9Iv/zgb1BCfU5+MhtnFuWdEvliqLMrff4AWPcJQvns
+         J/U27Rq6Ta0vzeGpnm6rtK06gUBKWs6AGj371E+i3qY7LpZxhlEQjiMFFMfY0QU67eXQ
+         /o+OYOnKZtakomDda4uNjxnOP2X5Qh4rFZ6NVJDYoIK2UnHs4OqqgZJK0IV/fziRjvBx
+         ox1g==
+X-Forwarded-Encrypted: i=1; AJvYcCXCzPTw9X+XRkhu4EmngbD78bzrKccDFQo9KFZzfKfUUWgmfbL/5AF4ZV/Bfv8CycqmVBm197Y9OUQzbltx@vger.kernel.org, AJvYcCXyXJer47ctnLvz0AXHQsG4kM1w4w5VHjoMxh+Hx+yThdh1sRUMA3r678c4gql5wBmQssFPybP2JSQF@vger.kernel.org
+X-Gm-Message-State: AOJu0Yyi/zBXBF1+LYDbzB1Eksup+rPSwdGbtaJ4UkETgRegu0l5alHu
+	xqhgY8c21YSimv4k4/ayZhYYLdwEaweMG15GAQOLY+wCY96xbxfV
+X-Gm-Gg: ASbGncsys+LKdl3BQgOn/+7V4eIAEYl8AfeVnpW569qzpgJrfEenH564R8M8G5ZTIY1
+	GStbGtKtCoGiaoJ/JeJbwtJ/G55FsbN8zHjbORs1naeJVeAi67zNNcchYUSkmlNS+BhJ8txDheB
+	Me+AkHBtMsSJbZX++FZ8ASygdmygdZ6JWrFRw2N34nchf85f/lBFznyXuoGl8N7VgByiaGeabFD
+	dQe7fDnfEUZ4BHNXeHCI2wBB9YBDxT3tU3YJFtkOrUHdNOsnPfSnaBrCyIaebLqu3Gav8SIxTMp
+	4/y53nZ+Pz/sS1INUdB6nbIvc7GzyijXVfjoLzyN
+X-Google-Smtp-Source: AGHT+IFrgZtiF8mQ5Tt0e/TqukoCBkkID1wBp1Z9l7z0z8ByiPbU3GT3h0ptI6jfahNlhQtIGVLrww==
+X-Received: by 2002:a17:902:da89:b0:220:e5be:29c7 with SMTP id d9443c01a7336-22e10340202mr50409875ad.39.1746204942276;
+        Fri, 02 May 2025 09:55:42 -0700 (PDT)
+Received: from localhost ([216.228.127.130])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-22e152293casm9868055ad.205.2025.05.02.09.55.41
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 02 May 2025 09:55:41 -0700 (PDT)
+Date: Fri, 2 May 2025 12:55:39 -0400
+From: Yury Norov <yury.norov@gmail.com>
+To: Ian Rogers <irogers@google.com>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Nick Desaulniers <nick.desaulniers+lkml@gmail.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	Adrian Hunter <adrian.hunter@intel.com>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Jakub Kicinski <kuba@kernel.org>,
+	Jacob Keller <jacob.e.keller@intel.com>, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, llvm@lists.linux.dev,
+	Leo Yan <leo.yan@arm.com>
+Subject: Re: [PATCH v2 2/5] bitmap: Silence a clang -Wshorten-64-to-32 warning
+Message-ID: <aBT5C81se-z-eQMe@yury>
+References: <20250430171534.132774-1-irogers@google.com>
+ <20250430171534.132774-3-irogers@google.com>
+ <aBTs6yvKlCYYgU2O@yury>
+ <CAP-5=fXqLh7RdUok5oqVwyGOWCH3fktmVeECdi4ENBWnEHeJYQ@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20250430171534.132774-1-irogers@google.com> <20250430171534.132774-3-irogers@google.com>
- <aBTs6yvKlCYYgU2O@yury>
-In-Reply-To: <aBTs6yvKlCYYgU2O@yury>
-From: Ian Rogers <irogers@google.com>
-Date: Fri, 2 May 2025 09:43:12 -0700
-X-Gm-Features: ATxdqUEaNzyEBZLtUQ1jfImxKvfknBZnmDSgU_oST5gHw-xFYWsjcme0fXmFH_E
-Message-ID: <CAP-5=fXqLh7RdUok5oqVwyGOWCH3fktmVeECdi4ENBWnEHeJYQ@mail.gmail.com>
-Subject: Re: [PATCH v2 2/5] bitmap: Silence a clang -Wshorten-64-to-32 warning
-To: Yury Norov <yury.norov@gmail.com>
-Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, Arnd Bergmann <arnd@arndb.de>, 
-	Nathan Chancellor <nathan@kernel.org>, Nick Desaulniers <nick.desaulniers+lkml@gmail.com>, 
-	Bill Wendling <morbo@google.com>, Justin Stitt <justinstitt@google.com>, 
-	Adrian Hunter <adrian.hunter@intel.com>, Thomas Gleixner <tglx@linutronix.de>, 
-	Jakub Kicinski <kuba@kernel.org>, Jacob Keller <jacob.e.keller@intel.com>, linux-arch@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, llvm@lists.linux.dev, Leo Yan <leo.yan@arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAP-5=fXqLh7RdUok5oqVwyGOWCH3fktmVeECdi4ENBWnEHeJYQ@mail.gmail.com>
 
-On Fri, May 2, 2025 at 9:03=E2=80=AFAM Yury Norov <yury.norov@gmail.com> wr=
-ote:
->
-> Hi Ian,
->
-> On Wed, Apr 30, 2025 at 10:15:31AM -0700, Ian Rogers wrote:
-> > The clang warning -Wshorten-64-to-32 can be useful to catch
-> > inadvertent truncation. In some instances this truncation can lead to
-> > changing the sign of a result, for example, truncation to return an
-> > int to fit a sort routine. Silence the warning by making the implicit
-> > truncation explicit. This isn't to say the code is currently incorrect
-> > but without silencing the warning it is hard to spot the erroneous
-> > cases.
+On Fri, May 02, 2025 at 09:43:12AM -0700, Ian Rogers wrote:
+> On Fri, May 2, 2025 at 9:03 AM Yury Norov <yury.norov@gmail.com> wrote:
 > >
-> > Signed-off-by: Ian Rogers <irogers@google.com>
-> > ---
-> >  include/linux/bitmap.h | 2 +-
-> >  1 file changed, 1 insertion(+), 1 deletion(-)
+> > Hi Ian,
 > >
-> > diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-> > index 595217b7a6e7..4395e0a618f4 100644
-> > --- a/include/linux/bitmap.h
-> > +++ b/include/linux/bitmap.h
-> > @@ -442,7 +442,7 @@ static __always_inline
-> >  unsigned int bitmap_weight(const unsigned long *src, unsigned int nbit=
-s)
-> >  {
-> >       if (small_const_nbits(nbits))
-> > -             return hweight_long(*src & BITMAP_LAST_WORD_MASK(nbits));
-> > +             return (int)hweight_long(*src & BITMAP_LAST_WORD_MASK(nbi=
-ts));
->
-> This should return unsigned int, I guess?
-
-Hi Yury, I don't disagree. The issue there is that this could break
-printf flags, etc. reliant on the return type. I've tried to keep the
-patch minimal in this regard.
-
-> Also, most of the functions you touch here have their copies in tools.
-> Can you please keep them synchronized?
-
-Yes, I do most of my work on the perf tool in the tools directory and
-these patches come from adding -Wshorten-64-to-32 there due to a bug
-found in ARM code that -Wshorten-64-to-32 would have caught:
-https://lore.kernel.org/lkml/20250331172759.115604-1-leo.yan@arm.com/
-The most recent patch series for tools is:
-https://lore.kernel.org/linux-perf-users/20250430175036.184610-1-irogers@go=
-ogle.com/
-However, I wanted to get the kernel versions of these headers agreed
-before syncing them into the tools directory.
-
-Thanks,
-Ian
-
-
-
-> Thanks,
-> Yury
->
-> >       return __bitmap_weight(src, nbits);
-> >  }
+> > On Wed, Apr 30, 2025 at 10:15:31AM -0700, Ian Rogers wrote:
+> > > The clang warning -Wshorten-64-to-32 can be useful to catch
+> > > inadvertent truncation. In some instances this truncation can lead to
+> > > changing the sign of a result, for example, truncation to return an
+> > > int to fit a sort routine. Silence the warning by making the implicit
+> > > truncation explicit. This isn't to say the code is currently incorrect
+> > > but without silencing the warning it is hard to spot the erroneous
+> > > cases.
+> > >
+> > > Signed-off-by: Ian Rogers <irogers@google.com>
+> > > ---
+> > >  include/linux/bitmap.h | 2 +-
+> > >  1 file changed, 1 insertion(+), 1 deletion(-)
+> > >
+> > > diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
+> > > index 595217b7a6e7..4395e0a618f4 100644
+> > > --- a/include/linux/bitmap.h
+> > > +++ b/include/linux/bitmap.h
+> > > @@ -442,7 +442,7 @@ static __always_inline
+> > >  unsigned int bitmap_weight(const unsigned long *src, unsigned int nbits)
+> > >  {
+> > >       if (small_const_nbits(nbits))
+> > > -             return hweight_long(*src & BITMAP_LAST_WORD_MASK(nbits));
+> > > +             return (int)hweight_long(*src & BITMAP_LAST_WORD_MASK(nbits));
 > >
-> > --
-> > 2.49.0.906.g1f30a19c02-goog
+> > This should return unsigned int, I guess?
+> 
+> Hi Yury, I don't disagree. The issue there is that this could break
+> printf flags, etc. reliant on the return type. I've tried to keep the
+> patch minimal in this regard.
+
+Not sure I understand... 
+
+I mean just 
+        return (unsigned int)hweight_long(...);
+
+because the bitmap_weight return type is unsigned int. Do I miss
+something?
+ 
+> > Also, most of the functions you touch here have their copies in tools.
+> > Can you please keep them synchronized?
+> 
+> Yes, I do most of my work on the perf tool in the tools directory and
+> these patches come from adding -Wshorten-64-to-32 there due to a bug
+> found in ARM code that -Wshorten-64-to-32 would have caught:
+> https://lore.kernel.org/lkml/20250331172759.115604-1-leo.yan@arm.com/
+> The most recent patch series for tools is:
+> https://lore.kernel.org/linux-perf-users/20250430175036.184610-1-irogers@google.com/
+> However, I wanted to get the kernel versions of these headers agreed
+> before syncing them into the tools directory.
+
+Yes, I'm in CC for that series, but I didn't find the changes for
+bitmap_weight(), fls64() and other functions you touch in this series.
+Anyways, it would be logical to sync tools with the mother kernel in
+the same series.
