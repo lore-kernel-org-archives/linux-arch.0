@@ -1,28 +1,28 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D188229B27;
-	Fri, 20 Jun 2025 11:13:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EEC7A221260;
+	Fri, 20 Jun 2025 11:16:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1750417993; cv=none; b=gHgnj6/M9Ugx28/HV4yrPCmhmzJIfiaE9u8o9cFNVVCq8M2aIagETUjQ3b7k5U+AbYdCJtFD1Mrt7mUwWWYB37C8ycaRXQHiyq2ilHhipB9iyIAKIRRlmcArPLHUPU1UJmEiboQJh2I0l16hZ1PAPKxYT33yZN3/5IJ7tOJV9k0=
+	t=1750418213; cv=none; b=pVqbrdCEVCortInJrz4j1mE+WaMB2j/9HwXgMfnXB2w3kwek1JOMEs+O/8kCQsMKB9fcNtUpmWnOdwYPyBP6SaEvmBEfZ8uHTpvGLq9mrL1u8tOHc3YbTVT5UE17gYLpmGTpG8wh5G1DEUqn7wSQj1x7JASHO+cbXct7je3Hbho=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1750417993; c=relaxed/simple;
+	s=arc-20240116; t=1750418213; c=relaxed/simple;
 	bh=7FV8atmM6ULayl5/hDZbPvE1HWgIwwZOidLt2BkSKbQ=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=QmvZLtLmSrcZwgCD3K64qwG6ycc/110nsKR2+/DTd+CSxfxaeXymEfoi6J+0Lvto+LoKA+vQzQ91lKirj+RNkeKiCGQF3UQ3xum9sdNbTQQsjueY+A0CIMCptCTodlQwwoiWfkvaETvvzXDDHPodArqgzxtoq/pzAPmDkbkVLK0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=FFHfJz+Q; arc=none smtp.client-ip=115.124.30.130
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=cbMnB/HgClhsIAjgVYQd2ATyn+kzaTBSXe1WyugJ2Tb3VS47lFXtgJ8Oaw5Bravk9LDIXek85zaV/3weMWRhhEgpbpbTidgsCAx4Ml7K/QPIhIEo9ksdBXBZ4LBC+dUl3T8hRvWxXzkCDyQH8cVtSQnsDvGNwQWM60NFqPY02wc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=i5qQt3Oa; arc=none smtp.client-ip=115.124.30.118
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="FFHfJz+Q"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="i5qQt3Oa"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1750417982; h=From:To:Subject:Date:Message-ID:MIME-Version;
+	t=1750418202; h=From:To:Subject:Date:Message-ID:MIME-Version;
 	bh=7+9nhCOVGIzCFiDtp94CVoN8wnMB/5TEpBypcppi+RM=;
-	b=FFHfJz+QMFZe7kabqRSWET0QBvOSh15RWObRGaz8SeqrAO3xeEEP18tSlKXu4/aDy2EJHr/XgIE2QWXPMdgQfSM4i7kR+go8ACbD8WmtY1PqwLQ79v6QX/llBlTvr5Zv3fscp8Yf0QRmT9SbRaT1O7VEl3Z4JbdV9TwkyfGwbsk=
-Received: from DESKTOP-S9E58SO.localdomain(mailfrom:cp0613@linux.alibaba.com fp:SMTPD_---0WeKdP2w_1750417960 cluster:ay36)
+	b=i5qQt3OaXCB51bhe5MQbHz4GRPt2XmguQVrF2eG0mPYlI6arc/2rA+PaBLy8MC3rWgilSwP3g63QpgtajERmKnQcnyEj9WZ7kltXZ+vl1R/xKufZO7V8SIHHZ9vrp2zLm+ED4Mbwmm3m4NyIce17kkTTylZ9jpxQSG/sbOa2aBg=
+Received: from DESKTOP-S9E58SO.localdomain(mailfrom:cp0613@linux.alibaba.com fp:SMTPD_---0WeKdQHt_1750418195 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 20 Jun 2025 19:13:01 +0800
+          Fri, 20 Jun 2025 19:16:41 +0800
 From: cp0613@linux.alibaba.com
 To: yury.norov@gmail.com,
 	linux@rasmusvillemoes.dk,
@@ -36,8 +36,8 @@ Cc: linux-riscv@lists.infradead.org,
 	linux-kernel@vger.kernel.org,
 	Chen Pei <cp0613@linux.alibaba.com>
 Subject: [PATCH 0/2] Implementing bitops rotate using riscv Zbb extension
-Date: Fri, 20 Jun 2025 19:12:17 +0800
-Message-ID: <20250620111219.52182-1-cp0613@linux.alibaba.com>
+Date: Fri, 20 Jun 2025 19:16:08 +0800
+Message-ID: <20250620111610.52750-1-cp0613@linux.alibaba.com>
 X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
