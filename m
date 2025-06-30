@@ -1,120 +1,139 @@
-Received: from smtp-out3.simply.com (smtp-out3.simply.com [94.231.106.210])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DB7E28A1D4;
-	Mon, 30 Jun 2025 15:32:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=94.231.106.210
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F96B282FA;
+	Mon, 30 Jun 2025 15:50:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1751297571; cv=none; b=frCN7F50NT7Lv89lVHXybBDPqzHM5PfRkCJtQ1FX3LB4YYjS/1vIyOGY3qZUUChGhcO0nn9NnO0RiVE5JP+9erP4mTfjM0JNYU2xIOSjUpmgKyCgAM1YaKwqZDD2TPsxnegO0rkGxUeKRqQODfMAMsQueNT5mxqQNMN1nKNVt54=
+	t=1751298632; cv=none; b=tAZZj2fOqXOP5965E1rHOEl41IDbvN8P6+8n8gbixtq6qyGMNjVt6QiHt7z3g+gN61XqV2HJVwLeD8t2q4zKqDAeJoFFGSDj6gXAM2Ng9ZU7RJTbw119ELFs8shu6SY1R/hGmBRm9733YJ58Ym0Qsu7Eupe2P0yLHgttoWO0DTM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1751297571; c=relaxed/simple;
-	bh=T5lSKSr/aPOKJcx+aLJlz6q2pyOBR4NaNMddccYdZtk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=aUueSX0p8zAmrriGdCr46hY2Ucc/op8oaxFDSr3BakMRYCyasymAitSRisWrX+F+dy4h19rMEG0ez8sDJgYuDHT5loP8LMSqBvDAlxKuDjz8ussPNHdFO5Wt215UBNKlQ/dyWazqZDNQvVlyV445WZGGCxjzWwbxI7riKYp2RUs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gaisler.com; spf=pass smtp.mailfrom=gaisler.com; dkim=fail (0-bit key) header.d=gaisler.com header.i=@gaisler.com header.b=MnqXWOgg reason="key not found in DNS"; arc=none smtp.client-ip=94.231.106.210
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gaisler.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gaisler.com
+	s=arc-20240116; t=1751298632; c=relaxed/simple;
+	bh=CSJUGiOUWxP2VkzX3WWdpnoHSgKS/uHYmWqXozPe0A0=;
+	h=Mime-Version:Content-Type:Date:Message-Id:Cc:Subject:From:To:
+	 References:In-Reply-To; b=mvWJEY9f8mjCRm4VZQfZ5Zt1yej4AgaJjCZLeeWSqYwJKR55oHLeocLhmU6VUxh2bD2IIS5TAiUnuFzpVIBiUIMZiJbsCCpQxI1m6q6N9I2O1CZsiFr21C9GpJUIsiOMGDHWiSR8kt0PPtEoUWZPyf+zWPC1ToPPnatlqfWFQ2c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=O5WXWCDO; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="key not found in DNS" (0-bit key) header.d=gaisler.com header.i=@gaisler.com header.b="MnqXWOgg"
-Received: from localhost (localhost [127.0.0.1])
-	by smtp.simply.com (Simply.com) with ESMTP id 4bW91K5Vlnz1DDh0;
-	Mon, 30 Jun 2025 17:24:05 +0200 (CEST)
-Received: from [10.10.15.6] (h-98-128-223-123.NA.cust.bahnhof.se [98.128.223.123])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(Client did not present a certificate)
-	by smtp.simply.com (Simply.com) with ESMTPSA id 4bW91K1FcDz1DNGp;
-	Mon, 30 Jun 2025 17:24:05 +0200 (CEST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gaisler.com;
-	s=simplycom2; t=1751297045;
-	bh=TCuz8wYG0OMRJ5WGli0CVDLwlocoMhb5D/fgiqVnow0=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To;
-	b=MnqXWOgg+jJ+lZh0c5wrl4nReL6iOScU6lufaG3dZAGHiHfytBMOHPZqvRHbD2Ch+
-	 m3U5qEx3lGc07rftyLldqu3P2rEUhxMgpqRgnKbqNB6rbm8ZPGl7Z5GRnNFl54NULj
-	 cYGVNSDVLDwWcXicbCo0wu4QY5q7gNpubXjqI4du0EyF4EA2MUgnuuZsd5YJi0CMQO
-	 OI+x59rBYIg79jAvqHYkOBQrXlm9kSd8nSZSQW7LLcrL0TtyRDXliUDBjbg3ybYuXg
-	 MFrtWV18MT54DALHfihwuneTrj6shn+LnBXam7JCPVDFdqwVyx38JJRsKW+4/r+53h
-	 OSYvaYC3MnG0A==
-Message-ID: <dfd0a228-940d-4c30-b07e-9f3910e3aeaf@gaisler.com>
-Date: Mon, 30 Jun 2025 17:24:04 +0200
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="O5WXWCDO"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 249C5C4CEEF;
+	Mon, 30 Jun 2025 15:50:26 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1751298631;
+	bh=CSJUGiOUWxP2VkzX3WWdpnoHSgKS/uHYmWqXozPe0A0=;
+	h=Date:Cc:Subject:From:To:References:In-Reply-To:From;
+	b=O5WXWCDOFT9xSP7EWEdwiqrP7Z9E9l7zGxZxfrkYT5GuEWMZPY0D7Ldowf8OJqyIb
+	 pee1VEGR+F7Yl8GfOU5CLvIK+oyEz1snVp2S7fYvF8jcGwWh+8Hsh5ESbwzvyTjJr6
+	 6pw91zZp2zLnTb+y46ZGqVFt5zyKefQIFBSAkkmE/bLwgse+N83rMhCFGmfWsYXVL+
+	 QOqRftCDjuhmLkSDpEHipp32Qez57uoD1gw5m4DJMagYFWrrMqaUrzkqHYoKfcbmpb
+	 YNyPglDh9s1heE/I37Z3h3k4d2gghSx9mKKb+JDiVJSpGueo33Z/JgCOfZJt70ZNxx
+	 dfvIogoTSVm5Q==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: kernel/fork.c:3088:2: warning: clone3() entry point is missing,
- please fix
-To: Arnd Bergmann <arnd@arndb.de>,
- John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
- kernel test robot <lkp@intel.com>, Philip Li <philip.li@intel.com>
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
- linux-kernel@vger.kernel.org, linux-hexagon@vger.kernel.org,
- sparclinux@vger.kernel.org, linux-sh@vger.kernel.org,
- Dinh Nguyen <dinguyen@kernel.org>,
- Simon Schuster <schuster.simon+binutils@siemens-energy.com>,
- Linux-Arch <linux-arch@vger.kernel.org>,
- Christian Brauner <brauner@kernel.org>
-References: <202506282120.6vRwodm3-lkp@intel.com>
- <2ef5bc91-f56d-4c76-b12e-2797999cba72@app.fastmail.com>
- <57101e901013a8e6ff44e10c93d1689490c714bf.camel@physik.fu-berlin.de>
- <46c6b0f6-6155-4366-9cbf-9fbbfb95ce30@app.fastmail.com>
- <5375b5bb7221cf878d1f93e60e72807f66e26154.camel@physik.fu-berlin.de>
- <ccf937cb-a139-4a07-aa47-4006b880b025@app.fastmail.com>
-Content-Language: en-US
-From: Andreas Larsson <andreas@gaisler.com>
-In-Reply-To: <ccf937cb-a139-4a07-aa47-4006b880b025@app.fastmail.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: quoted-printable
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Date: Mon, 30 Jun 2025 17:50:25 +0200
+Message-Id: <DAZZJTOR5N3G.1ZC2DWWPP2YM5@kernel.org>
+Cc: <linux-kernel@vger.kernel.org>, <rust-for-linux@vger.kernel.org>,
+ <lkmm@lists.linux.dev>, <linux-arch@vger.kernel.org>, "Miguel Ojeda"
+ <ojeda@kernel.org>, "Alex Gaynor" <alex.gaynor@gmail.com>, "Gary Guo"
+ <gary@garyguo.net>, =?utf-8?q?Bj=C3=B6rn_Roy_Baron?=
+ <bjorn3_gh@protonmail.com>, "Andreas Hindborg" <a.hindborg@kernel.org>,
+ "Alice Ryhl" <aliceryhl@google.com>, "Trevor Gross" <tmgross@umich.edu>,
+ "Danilo Krummrich" <dakr@kernel.org>, "Will Deacon" <will@kernel.org>,
+ "Peter Zijlstra" <peterz@infradead.org>, "Mark Rutland"
+ <mark.rutland@arm.com>, "Wedson Almeida Filho" <wedsonaf@gmail.com>,
+ "Viresh Kumar" <viresh.kumar@linaro.org>, "Lyude Paul" <lyude@redhat.com>,
+ "Ingo Molnar" <mingo@kernel.org>, "Mitchell Levy"
+ <levymitchell0@gmail.com>, "Paul E. McKenney" <paulmck@kernel.org>, "Greg
+ Kroah-Hartman" <gregkh@linuxfoundation.org>, "Linus Torvalds"
+ <torvalds@linux-foundation.org>, "Thomas Gleixner" <tglx@linutronix.de>
+Subject: Re: [PATCH v5 05/10] rust: sync: atomic: Add atomic {cmp,}xchg
+ operations
+From: "Benno Lossin" <lossin@kernel.org>
+To: "Boqun Feng" <boqun.feng@gmail.com>
+X-Mailer: aerc 0.20.1
+References: <20250618164934.19817-1-boqun.feng@gmail.com>
+ <20250618164934.19817-6-boqun.feng@gmail.com>
+ <DAX6WZ87S99G.1CMIN6IQXJYPL@kernel.org> <aF6iXB6wiHcpAKIU@Mac.home>
+ <DAXY0EJHHDWM.1KRSSJLOTCZ8F@kernel.org> <aF-aS5FLX7QIiiPa@Mac.home>
+ <DAY0AZXDTCD3.OAWZ91IQJT2Q@kernel.org> <aGKsHZ0saC-XkQlA@tardis-2.local>
+In-Reply-To: <aGKsHZ0saC-XkQlA@tardis-2.local>
 
-On 2025-06-30 14:07, Arnd Bergmann wrote:
-> On Mon, Jun 30, 2025, at 12:45, John Paul Adrian Glaubitz wrote:
->> On Mon, 2025-06-30 at 12:02 +0200, Arnd Bergmann wrote:
->>> Some architectures have custom calling conventions for the
->>> fork/vfork/clone/clone3 syscalls, e.g. to handle copying all the
->>> registers correctly when the normal syscall entry doesn't do that,
->>> or to handle the changing stack correctly.
->>>
->>> I see that both sparc and hexagon have a custom clone() syscall,
->>> so they likely need a custom clone3() as well, while sh and
->>> nios2 probably don't.
->>>
->>> All four would need a custom assembler implementation in userspace
->>> for each libc, in order to test the userspace calling the clone3()
->>> function. For testing the kernel entry point itself, see Christian's
->>> original test case[1].
->>
->> Thanks for the explanation. So, I guess as long as a proposed implementation
->> of clone3() on sh would pass Arnd's test program, it should be good for merging?
-> 
-> Yes, Christian's test program should be enough for merging into
-> the kernel, though I would recommend also coming up with the matching
-> glibc patch, in order to ensure it can actually be regression tested
-> automatically, and to use the new features provided by glibc clone3().
-> 
-> Right now glibc assumes that clone3() is available on linux-5.3 or
-> higher and uses it to implement the normal clone() in that case,
-> except where the implementation is missing.
-> 
-> I see that at alpha, csky, parisc and microblaze have a kernel
-> implementation in modern Linux versions, but are missing the
-> glibc wrapper for it, as the kernel side was done later without
-> the glibc version. sparc and sh are the only ones with a glibc
-> port that are missing both the kernel and userspace side,
-> while hexagon and nios2 are not currently part of mainline glibc.
+On Mon Jun 30, 2025 at 5:24 PM CEST, Boqun Feng wrote:
+> On Sat, Jun 28, 2025 at 10:00:34AM +0200, Benno Lossin wrote:
+>> On Sat Jun 28, 2025 at 9:31 AM CEST, Boqun Feng wrote:
+>> > On Sat, Jun 28, 2025 at 08:12:42AM +0200, Benno Lossin wrote:
+>> >> On Fri Jun 27, 2025 at 3:53 PM CEST, Boqun Feng wrote:
+>> >> > As for naming, the reason I choose xchg() and cmpxchg() is because =
+they
+>> >> > are the name LKMM uses for a long time, to use another name, we hav=
+e to
+>> >> > have a very good reason to do so and I don't see a good reason
+>> >> > that the other names are better, especially, in our memory model, w=
+e use
+>> >> > xchg() and cmpxchg() a lot, and they are different than Rust versio=
+n
+>> >> > where you can specify orderings separately. Naming LKMM xchg()/cmpx=
+chg()
+>> >> > would cause more confusion I believe.
+>> >>=20
+>> >> I'm just not used to the name shortening from the kernel... I think i=
+t's
+>> >
+>> > I guess it's a bit curse of knowledge from my side...
+>> >
+>> >> fine to use them especially since the ordering parameters differ from
+>> >> std's atomics.
+>> >>=20
+>> >> Can you add aliases for the Rust names?
+>> >>=20
+>> >
+>> > I can, but I also want to see a real user request ;-) As a bi-model us=
+er
+>> > myself, I generally don't mind the name, as you can see C++ and Rust u=
+se
+>> > different names as well, what I usually do is just "tell me what's the
+>> > name of the function if I need to do this" ;-)
+>>=20
+>> I think learning Rust in the kernel is different from learning a new
+>> language. Yes you're learning a specific dialect of Rust, but that's
+>> what every project does.
+>>=20
+>> You also added aliases for the C versions, so let's also add the Rust
+>> ones :)
+>>=20
+>
+> Make senses, so added:
+>
+> --- a/rust/kernel/sync/atomic/generic.rs
+> +++ b/rust/kernel/sync/atomic/generic.rs
+> @@ -310,7 +310,7 @@ impl<T: AllowAtomic> Atomic<T>
+>      /// assert_eq!(42, x.xchg(52, Acquire));
+>      /// assert_eq!(52, x.load(Relaxed));
+>      /// ```
+> -    #[doc(alias("atomic_xchg", "atomic64_xchg"))]
+> +    #[doc(alias("atomic_xchg", "atomic64_xchg", "swap"))]
+>      #[inline(always)]
+>      pub fn xchg<Ordering: Any>(&self, v: T, _: Ordering) -> T {
+>          let v =3D T::into_repr(v);
+> @@ -382,6 +382,7 @@ pub fn xchg<Ordering: Any>(&self, v: T, _: Ordering) =
+-> T {
+>          "atomic64_cmpxchg",
+>          "atomic_try_cmpxchg",
+>          "atomic64_try_cmpxchg"
+> +        "compare_exchange"
+>      ))]
+>      #[inline(always)]
+>      pub fn cmpxchg<Ordering: Any>(&self, mut old: T, new: T, o: Ordering=
+) -> Result<T, T> {
+>
+> Seems good?
 
-Thanks for all the input Arnd! All this will be very good to have at
-hand when looking into implementing and testing it!
+Yeah, thanks!
 
-I was not aware that clone3 was used under the hood in glibc. Given that
-clone3 is not exposed by glibc to the outside I did not realize that
-glibc would actually use it, so it never got high enough up in the
-priority even though I have been well aware of it being missing.
-
-Stopping the testing of these architectures in lkp because of the
-missing clone3 would be unfortunate and a bit excessive in my view. That
-testing is and has been very useful!
-
+---
 Cheers,
-Andreas
+Benno
