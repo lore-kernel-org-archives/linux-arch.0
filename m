@@ -1,46 +1,46 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B529D26B09A;
-	Tue,  1 Jul 2025 08:58:11 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6920C270EC8;
+	Tue,  1 Jul 2025 08:58:12 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1751360293; cv=none; b=K1tlUSGldgTxZpSYQezJmH9ImcUO8tQ569ZJz+CUuEY12heee+R71EgBu8kcnKT6yUDSZOVpFcdX0jXO2edXi0Q8OK3QUbTxyyCbgEFlLj0gnICxmMkXzwQ+oKq8SpbOwcUKLyWH9THNqPtg6z4AvJzi04Kqn1SzK/swSqJ697Y=
+	t=1751360294; cv=none; b=aaco+A6DDZue1PGrAUCtja42Ighu5nLowswydKhNXKkIf+/bvdUCvHVJT5KVEjqcaU2Hb+H2QWr92lVFwuGIfxcQDxOqa9O8OGASVL47yBOteA03+Gih/sd25+1neqE7/1xvOTQ7R23cUDpVPHo4OQU8vkZJSCb6HXE8t0qBf6o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1751360293; c=relaxed/simple;
-	bh=CC5cQSfSGmKdKkeZa7p5tvupyfG2CLNGehREDf1mFcc=;
+	s=arc-20240116; t=1751360294; c=relaxed/simple;
+	bh=QLkkveUI/cyGTLTyApgh10OSDNXJ3sXYct42yO3P5B0=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=OHTF7f41mTwowO9YT0QktMOdR1R4Qc2iEd+ZugYFMeDh6hPSm13WDoyOOBtYuWA2mNa0pNCxhEHeT/Ysbp1rZKMv7qQtWEmnu2b5GBCqH0OCkYB/D/WGXX9Fci1idZXLsYGagL7XHgfVGeNWuzOYqs8KXAz+iFbTDrN15gNij5M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=wB37phIU; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=ZgZmCR6h; arc=none smtp.client-ip=193.142.43.55
+	 In-Reply-To:To:Cc; b=nBjSgUIUCYtdMbKgIb9+tNXSHZrJQlqkS904XRHrNTpUOn1eFanhXIIsBG6t6JzLpuhxgCjMrhk710YggIBFEF/U5Rq31lQgMRMwK9P8Rev+wrdXq4iFUp0knKqJPuo1kwu6SK31hGuX4m0yHfyUFposqzGfaLaXlqo6burvXvY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=OU0d6ovJ; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=+OMgzfx8; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="wB37phIU";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="ZgZmCR6h"
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="OU0d6ovJ";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="+OMgzfx8"
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1751360289;
+	s=2020; t=1751360291;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=VUv1tHn4Gb15SCtBOdwANRio4D/S8/QmhpZlRN18zW8=;
-	b=wB37phIU1cgHL9oe4WYfMGliy5jbaoTzF0DhUFJs/rOu6Z9k1d3vYlAoN9EKggIwQUdu7l
-	+TljAEBva1iFEhXtwj719UDDhlB7E7ALl8cwsgv8F+HUkIarv/qpDzLbPy7v4o/GeFoOFd
-	2R4a1ZFq2m8qwljdwSfFlnkniHuUtcqgGxU+sUvfvGw1lpcFjL8gkz81eCl3e1b7Pk8VKb
-	10dcpeqesAIzny9jyLb46PnxK5K9QIJu7XVW1XaC7Hw+NAvENeYfSx+DUhGLnd9jyQJXPU
-	ot0rpxGS270Y+z4vxiKynztpNbEmcLdOyJkwgdvYSvWmLEQ/LGbCnC4ntsmYTA==
+	bh=j01uzCoLVpnyze/ne4qVPEjweSMhaL+T/SfXMybPgVw=;
+	b=OU0d6ovJHnj+NG7timt9a2g47DdM/l6V8vNHRRCHU0tb2nmj/mxJLvc2WYicLFE0dYHx7E
+	hwPYnSCtm/lV/4RiGCJHaWu6Cvb2TR9CqYkIzIH4m+vQlgJl2BSB0nbKOCIVejdj8KCGzT
+	da+KlCNMsDAnY4ewAstftHZm7IeEIcHicbgF9R82bzPFPI5w4TxW1CAp4Vtt8m3JQZr+yg
+	m4LvZUNysPiTG4yFHMkx2hmmbKPygkdOQWpw8UkDPJJ2MetJ4TAJFWGIPqPtaQ0Y5YDc4j
+	blyqDuE3T54WX9MieaB2vFTe+3n+dyNIgYzbdEV6Q/y/teG8kXStt47xlurMOA==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1751360289;
+	s=2020e; t=1751360291;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=VUv1tHn4Gb15SCtBOdwANRio4D/S8/QmhpZlRN18zW8=;
-	b=ZgZmCR6hsNO6h+aAy42Sjmgm6zIioVVD4G5orMl9SniBw8do+p9kwhp5Mrhd+6o7spFRYw
-	zppOqtmG7rk7GaCA==
-Date: Tue, 01 Jul 2025 10:58:02 +0200
-Subject: [PATCH 08/14] vdso/gettimeofday: Introduce vdso_set_timespec()
+	bh=j01uzCoLVpnyze/ne4qVPEjweSMhaL+T/SfXMybPgVw=;
+	b=+OMgzfx8O8M8wqez+hCXg6yGhzfqiC+uJQrKAjMfTNDAfi78MoMpEL6m55UMJRKP2MKUdH
+	9mEWAnKVmsqUGUBA==
+Date: Tue, 01 Jul 2025 10:58:04 +0200
+Subject: [PATCH 10/14] vdso: Introduce aux_clock_resolution_ns()
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -49,7 +49,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20250701-vdso-auxclock-v1-8-df7d9f87b9b8@linutronix.de>
+Message-Id: <20250701-vdso-auxclock-v1-10-df7d9f87b9b8@linutronix.de>
 References: <20250701-vdso-auxclock-v1-0-df7d9f87b9b8@linutronix.de>
 In-Reply-To: <20250701-vdso-auxclock-v1-0-df7d9f87b9b8@linutronix.de>
 To: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, 
@@ -71,88 +71,66 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  Kurt Kanzenbach <kurt@linutronix.de>, Nam Cao <namcao@linutronix.de>, 
  Antoine Tenart <atenart@kernel.org>, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1751360285; l=2428;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1751360285; l=1617;
  i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
- bh=CC5cQSfSGmKdKkeZa7p5tvupyfG2CLNGehREDf1mFcc=;
- b=7doTRp//wkLzPlGHPeeVXsRB2rVPSQaX9szW5pOx13TUBMCDQh6Ba5Lm0uy/yEitK/NoNivtP
- C/e1SD9At+pB4f04mSGvpQui1WuaofZ+BHAxek5oRzMozDtD+tqbaLD
+ bh=QLkkveUI/cyGTLTyApgh10OSDNXJ3sXYct42yO3P5B0=;
+ b=R8Ek6dz1meGMCadr7lA0G0xaOobq5oTQx63iTTSrhy6xilDGAYn7vlT45j/KMLSiBBuaePOs8
+ f+1StZD0FpkDR8PTXaqwnWJ5w40lEfFP0WlKydEOKc/miaPfb697wmm
 X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
  pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
 
-This code is duplicated and with the introduction of auxiliary clocks will
-be duplicated even more.
-
-Introduce a helper.
+Move the constant resolution to a shared header,
+so the vDSO can use it and return it without going through a syscall.
 
 Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
 ---
- lib/vdso/gettimeofday.c | 32 ++++++++++++++------------------
- 1 file changed, 14 insertions(+), 18 deletions(-)
+ include/vdso/auxclock.h   | 13 +++++++++++++
+ kernel/time/timekeeping.c |  6 ++++--
+ 2 files changed, 17 insertions(+), 2 deletions(-)
 
-diff --git a/lib/vdso/gettimeofday.c b/lib/vdso/gettimeofday.c
-index 215151bd5a1320ee6edda8f334d47c739577f696..50611ba28abfcfc7841616e8787101ea1ffcb7d8 100644
---- a/lib/vdso/gettimeofday.c
-+++ b/lib/vdso/gettimeofday.c
-@@ -77,6 +77,16 @@ static __always_inline bool vdso_clockid_valid(clockid_t clock)
- 	return likely((u32) clock < MAX_CLOCKS);
- }
- 
-+/*
-+ * Must not be invoked within the sequence read section as a race inside
-+ * that loop could result in __iter_div_u64_rem() being extremely slow.
-+ */
-+static __always_inline void vdso_set_timespec(struct __kernel_timespec *ts, u64 sec, u64 ns)
+diff --git a/include/vdso/auxclock.h b/include/vdso/auxclock.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..6d6e74cbc400e7f5cd7194280759f5e5f3059900
+--- /dev/null
++++ b/include/vdso/auxclock.h
+@@ -0,0 +1,13 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _VDSO_AUXCLOCK_H
++#define _VDSO_AUXCLOCK_H
++
++#include <uapi/linux/time.h>
++#include <uapi/linux/types.h>
++
++static __always_inline u64 aux_clock_resolution_ns(void)
 +{
-+	ts->tv_sec = sec + __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
-+	ts->tv_nsec = ns;
++	return 1;
 +}
 +
- #ifdef CONFIG_TIME_NS
++#endif /* _VDSO_AUXCLOCK_H */
+diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
+index 6a61887eb87e364b3ef170939919a8d4046c0508..6a088378df54d561ecfeafb45a8b54333e11a9a7 100644
+--- a/kernel/time/timekeeping.c
++++ b/kernel/time/timekeeping.c
+@@ -26,6 +26,8 @@
+ #include <linux/audit.h>
+ #include <linux/random.h>
  
- #ifdef CONFIG_GENERIC_VDSO_DATA_STORE
-@@ -122,12 +132,7 @@ bool do_hres_timens(const struct vdso_time_data *vdns, const struct vdso_clock *
- 	sec += offs->sec;
- 	ns += offs->nsec;
- 
--	/*
--	 * Do this outside the loop: a race inside the loop could result
--	 * in __iter_div_u64_rem() being extremely slow.
--	 */
--	ts->tv_sec = sec + __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
--	ts->tv_nsec = ns;
-+	vdso_set_timespec(ts, sec, ns);
- 
- 	return true;
- }
-@@ -188,12 +193,7 @@ bool do_hres(const struct vdso_time_data *vd, const struct vdso_clock *vc,
- 		sec = vdso_ts->sec;
- 	} while (unlikely(vdso_read_retry(vc, seq)));
- 
--	/*
--	 * Do this outside the loop: a race inside the loop could result
--	 * in __iter_div_u64_rem() being extremely slow.
--	 */
--	ts->tv_sec = sec + __iter_div_u64_rem(ns, NSEC_PER_SEC, &ns);
--	ts->tv_nsec = ns;
-+	vdso_set_timespec(ts, sec, ns);
- 
- 	return true;
- }
-@@ -223,12 +223,8 @@ bool do_coarse_timens(const struct vdso_time_data *vdns, const struct vdso_clock
- 	sec += offs->sec;
- 	nsec += offs->nsec;
- 
--	/*
--	 * Do this outside the loop: a race inside the loop could result
--	 * in __iter_div_u64_rem() being extremely slow.
--	 */
--	ts->tv_sec = sec + __iter_div_u64_rem(nsec, NSEC_PER_SEC, &nsec);
--	ts->tv_nsec = nsec;
-+	vdso_set_timespec(ts, sec, nsec);
++#include <vdso/auxclock.h>
 +
- 	return true;
+ #include "tick-internal.h"
+ #include "ntp_internal.h"
+ #include "timekeeping_internal.h"
+@@ -2842,8 +2844,8 @@ static int aux_get_res(clockid_t id, struct timespec64 *tp)
+ 	if (!clockid_aux_valid(id))
+ 		return -ENODEV;
+ 
+-	tp->tv_sec = 0;
+-	tp->tv_nsec = 1;
++	tp->tv_sec = aux_clock_resolution_ns() / NSEC_PER_SEC;
++	tp->tv_nsec = aux_clock_resolution_ns() % NSEC_PER_SEC;
+ 	return 0;
  }
- #else
+ 
 
 -- 
 2.50.0
