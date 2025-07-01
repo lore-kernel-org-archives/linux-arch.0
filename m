@@ -1,44 +1,47 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8BCA246784;
-	Tue,  1 Jul 2025 08:58:07 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3364E269CE5;
+	Tue,  1 Jul 2025 08:58:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1751360289; cv=none; b=iQoIzJSIoDjJickPK7KfE6B8mp9vtGb9aPjr7EOhmcrxZP2zxwLoU4odWi41yEZN3cByXgvP9NSEBz2SCwC+RIirX3iB/cxeokq0GcxKug4Mmnp2m+vRCv8fb1lsnNWZejifbjhke9I3JbaJxVkVk2hewoxeV6wiptjkDY5juKk=
+	t=1751360289; cv=none; b=pqhchpC/Hnuidc9FTle4bCGgLiAJUyurHy6A3oRzIceBxh+x27RzGu5A7LhcxEZzs3waesG2ujtxClzSsUF80fKa67pD0KTl897yIJZ9bOJLXN9siaWyvvhyw6wyDgDdjDvqNK46st8+IJBFVgkqW/gcK+X0lJrabKcjZ1ADpdg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1751360289; c=relaxed/simple;
-	bh=xIfkmx4pDxXevXPAx1p1JGHwhxJQ6cisMgo/fbdsq6s=;
-	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=rcr3CvxZjpe0x8M2ylz/82W8TipT26DdPTFQUv4pF/mnA+HsNIvzgRLSixz9azGgycZveKM6sj6D/fIxEaesLePNwaNs1+lWpiyeKoFbDfGvGNalt5R83eEq5HJrdCI5NCDDpXV3Lr/g0bG6J75n3/1k8y6c8w8hHb6/DMOdTNk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=l7iG879W; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=P93PkXHf; arc=none smtp.client-ip=193.142.43.55
+	bh=O+pdqhovJ5sCWr6cbVQYxtHMRmPHnT/rOYl0Ec66rdg=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=Ag5fVhsu+aVFOHA1oYpyLDuoIEkgFpDSwOLYflO8N2HN0OROgn09BYkYbibARkODwCUktEbHX703HPc6zBf2wNBlsLKprlAOvr1wH9XOggt9GWFST6CoxJkrcVwC5xz5KS3MuRkeuM2YhOqs8Og70ve++rpXMe3Rxy9wIXGvyyg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=Cvfq+ShZ; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=sgmfuKLl; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="l7iG879W";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="P93PkXHf"
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="Cvfq+ShZ";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="sgmfuKLl"
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1751360285;
+	s=2020; t=1751360286;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=UWqa3o/KH1fxq5ngNTN1gEpoaEETkdHSnWpn0ajyl6w=;
-	b=l7iG879WE8+uil1trLDqTYeE4L9pM5Rf+pCxkms/shlWot8WLot8/sNpSdtNPVsnwrr6Y4
-	0/lkK/S1N/msIkgcDAUfBzAzjoo1QzvYBuAbM7redimuKHm4rfriBoa3eKMe6+qY6iA80i
-	gEYcERB04n7G5BSAAc2WF/07/i24sw4ClAXulcHGD61dPykQnd0RP80jrD6A3IOWEhKAEN
-	jigB72kmBcTvAsgSBuy9WSP8k8r4MXuazT6rS/YBgPVrN98xdXJTx5s2LV+MohLdjGHTfS
-	BGptH77ybmk7gX3RAWAQGAQZ7HXdTbBcxzHQ09Topg0XuTMypXkn8xDUl0H5fg==
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=6zypL7Z/iJT9pt/jkPKsLbW/urAL7A4U3k+sv3E7jTg=;
+	b=Cvfq+ShZBlRpqLEBOnn8FpMD0gK9w7CyXjIFIZyjrEoM5IoNGvRbep0gq3pyn8BIui/Kxk
+	A2ViNmKpkZH3NAdGzCMMSnEmMhFfJ7Duypk+z7Ll3zCgk+TAscf2ipjjyetPBEQXzSBbC+
+	080IcZD8bWfUkplxeUn94zbQD8NxbmiybQ5LND26COt6UwpdzUostFo8qh30YjPMwhRgKz
+	5V3+YoJ5WGXZnEhhocJjZ7gokZtoaqaU9m0iwvEHUGkqKJ2qY99XWY0Wdjb+Bhml8q+g9J
+	GhWElpAyu+wNRJ40rjxUxuo2hMiFJ4JDrZ8bg7wScZFxRqtQnamLnOpobO9X0g==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1751360285;
+	s=2020e; t=1751360286;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=UWqa3o/KH1fxq5ngNTN1gEpoaEETkdHSnWpn0ajyl6w=;
-	b=P93PkXHfKtHE62vs4BQWz1RAY3Uy++kBAAQbK9eCyc5MEUvNgJqebMmyPiuXGZtGEdYZ/x
-	wE1u/oTSisTMUCBA==
-Subject: [PATCH 00/14] vdso: Add support for auxiliary clocks
-Date: Tue, 01 Jul 2025 10:57:54 +0200
-Message-Id: <20250701-vdso-auxclock-v1-0-df7d9f87b9b8@linutronix.de>
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=6zypL7Z/iJT9pt/jkPKsLbW/urAL7A4U3k+sv3E7jTg=;
+	b=sgmfuKLl97WFPgJQ2Cl1kAqQzhUmEQJC6TCmpkh3zY+DwrRRPYl9zbjgCqmJcyT/Wiqf4S
+	jPoLsppETFf6eeBg==
+Date: Tue, 01 Jul 2025 10:57:56 +0200
+Subject: [PATCH 02/14] vdso/vsyscall: Introduce a helper to fill clock
+ configurations
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -47,10 +50,9 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-X-B4-Tracking: v=1; b=H4sIABKjY2gC/6tWKk4tykwtVrJSqFYqSi3LLM7MzwNyDHUUlJIzE
- vPSU3UzU4B8JSMDI1MDM2MD3bKU4nzdxNKK5Jz85GxdS/PEpJQ0i1QDE6NEJaCegqLUtMwKsHn
- RsbW1ANOskK9fAAAA
-X-Change-ID: 20250630-vdso-auxclock-97abdf8e042a
+Message-Id: <20250701-vdso-auxclock-v1-2-df7d9f87b9b8@linutronix.de>
+References: <20250701-vdso-auxclock-v1-0-df7d9f87b9b8@linutronix.de>
+In-Reply-To: <20250701-vdso-auxclock-v1-0-df7d9f87b9b8@linutronix.de>
 To: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, 
  Vincenzo Frascino <vincenzo.frascino@arm.com>, 
  Shuah Khan <shuah@kernel.org>, 
@@ -70,70 +72,69 @@ Cc: linux-kernel@vger.kernel.org, linux-kselftest@vger.kernel.org,
  Kurt Kanzenbach <kurt@linutronix.de>, Nam Cao <namcao@linutronix.de>, 
  Antoine Tenart <atenart@kernel.org>, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1751360285; l=2895;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1751360285; l=2069;
  i=thomas.weissschuh@linutronix.de; s=20240209; h=from:subject:message-id;
- bh=xIfkmx4pDxXevXPAx1p1JGHwhxJQ6cisMgo/fbdsq6s=;
- b=2ONxPG8pv+6YEU4JGQr/Cz0X4Yw33GMIFt1iZdAqeec5uo7jeOJouKKyrYKvl12fEyvfryPDt
- c2oLZ3iKm+XCT5R5Ibl/1mJbmxQgOg630sIJLuIcvqObiNdarbzu8KB
+ bh=O+pdqhovJ5sCWr6cbVQYxtHMRmPHnT/rOYl0Ec66rdg=;
+ b=p8vqvlzZbfPJuNB7hzPJj8dga3B+cwPmwh+UN2KNgYAAY1i/FYSqtwEPROhvYlPu5RH0FZzN+
+ FzVHcGeNczjCyKAn7W8w6ERqHRSTH7MY5nl/wpUomcMyoG9AGWRKpyy
 X-Developer-Key: i=thomas.weissschuh@linutronix.de; a=ed25519;
  pk=pfvxvpFUDJV2h2nY0FidLUml22uGLSjByFbM6aqQQws=
 
-Extend the vDSO for fast-path access to auxiliary clocks (CLOCK_AUX).
-The implementation is based on the generic vDSO infrastructure and works for
-all its supported architectures.
-Namely x86, arm, arm64, riscv, powerpc, loongarch and s390.
-No changes to userspace are necessary.
-
-Based on timers/ptp of tip.git.
-
-This also depends on v6.16-rc2 *exactly*.
-The specific dependency is commit 11fcf368506d ("uapi: bitops: use UAPI-safe variant of BITS_PER_LONG again"),
-which is available in v6.16-rc2.
-Unfortunately that got broken again in v6.16-rc3 by
-commit  fc92099902fb ("tools headers: Synchronize linux/bits.h with the kernel sources").
-Another fix for this is pending [0] and should make it into v6.16.
-
-[0] https://lore.kernel.org/lkml/20250630-uapi-genmask-v1-1-eb0ad956a83e@linutronix.de/
+The logic to configure a 'struct vdso_clock' from a
+'struct tk_read_base' is copied two times.
+Split it into a shared function to reduce the duplication,
+especially as another user will be added for auxiliary clocks.
 
 Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
 ---
-Thomas Weißschuh (14):
-      selftests/timers: Add testcase for auxiliary clocks
-      vdso/vsyscall: Introduce a helper to fill clock configurations
-      vdso/vsyscall: Split up __arch_update_vsyscall() into __arch_update_vdso_clock()
-      vdso/helpers: Add helpers for seqlocks of single vdso_clock
-      vdso/gettimeofday: Return bool from clock_getres() helpers
-      vdso/gettimeofday: Return bool from clock_gettime() helpers
-      vdso/gettimeofday: Introduce vdso_clockid_valid()
-      vdso/gettimeofday: Introduce vdso_set_timespec()
-      vdso/gettimeofday: Introduce vdso_get_timestamp()
-      vdso: Introduce aux_clock_resolution_ns()
-      vdso/vsyscall: Update auxiliary clock data in the datapage
-      vdso/gettimeofday: Add support for auxiliary clocks
-      Revert "selftests: vDSO: parse_vdso: Use UAPI headers instead of libc headers"
-      selftests/timers/auxclock: Test vDSO functionality
+ kernel/time/vsyscall.c | 27 +++++++++++++--------------
+ 1 file changed, 13 insertions(+), 14 deletions(-)
 
- arch/arm64/include/asm/vdso/vsyscall.h    |   7 +-
- include/asm-generic/vdso/vsyscall.h       |   6 +-
- include/linux/timekeeper_internal.h       |  13 +
- include/vdso/auxclock.h                   |  13 +
- include/vdso/datapage.h                   |   5 +
- include/vdso/helpers.h                    |  40 ++-
- kernel/time/namespace.c                   |   5 +
- kernel/time/timekeeping.c                 |  18 +-
- kernel/time/vsyscall.c                    |  70 ++++--
- lib/vdso/gettimeofday.c                   | 212 ++++++++++------
- tools/testing/selftests/timers/.gitignore |   1 +
- tools/testing/selftests/timers/Makefile   |   2 +-
- tools/testing/selftests/timers/auxclock.c | 406 ++++++++++++++++++++++++++++++
- tools/testing/selftests/vDSO/Makefile     |   2 -
- tools/testing/selftests/vDSO/parse_vdso.c |   3 +-
- 15 files changed, 683 insertions(+), 120 deletions(-)
----
-base-commit: 4e83b31e48cf2e62aeaed5cd9875c851e36a90d9
-change-id: 20250630-vdso-auxclock-97abdf8e042a
+diff --git a/kernel/time/vsyscall.c b/kernel/time/vsyscall.c
+index 32ef27c71b57aaa4ed898c0dbfdefcb73b8ff56a..d655df2597336f7305bfc74e2a87c651f314267b 100644
+--- a/kernel/time/vsyscall.c
++++ b/kernel/time/vsyscall.c
+@@ -15,26 +15,25 @@
+ 
+ #include "timekeeping_internal.h"
+ 
++static inline void fill_clock_configuration(struct vdso_clock *vc, const struct tk_read_base *base)
++{
++	vc->cycle_last	= base->cycle_last;
++#ifdef CONFIG_GENERIC_VDSO_OVERFLOW_PROTECT
++	vc->max_cycles	= base->clock->max_cycles;
++#endif
++	vc->mask	= base->mask;
++	vc->mult	= base->mult;
++	vc->shift	= base->shift;
++}
++
+ static inline void update_vdso_time_data(struct vdso_time_data *vdata, struct timekeeper *tk)
+ {
+ 	struct vdso_clock *vc = vdata->clock_data;
+ 	struct vdso_timestamp *vdso_ts;
+ 	u64 nsec, sec;
+ 
+-	vc[CS_HRES_COARSE].cycle_last	= tk->tkr_mono.cycle_last;
+-#ifdef CONFIG_GENERIC_VDSO_OVERFLOW_PROTECT
+-	vc[CS_HRES_COARSE].max_cycles	= tk->tkr_mono.clock->max_cycles;
+-#endif
+-	vc[CS_HRES_COARSE].mask		= tk->tkr_mono.mask;
+-	vc[CS_HRES_COARSE].mult		= tk->tkr_mono.mult;
+-	vc[CS_HRES_COARSE].shift	= tk->tkr_mono.shift;
+-	vc[CS_RAW].cycle_last		= tk->tkr_raw.cycle_last;
+-#ifdef CONFIG_GENERIC_VDSO_OVERFLOW_PROTECT
+-	vc[CS_RAW].max_cycles		= tk->tkr_raw.clock->max_cycles;
+-#endif
+-	vc[CS_RAW].mask			= tk->tkr_raw.mask;
+-	vc[CS_RAW].mult			= tk->tkr_raw.mult;
+-	vc[CS_RAW].shift		= tk->tkr_raw.shift;
++	fill_clock_configuration(&vc[CS_HRES_COARSE],	&tk->tkr_mono);
++	fill_clock_configuration(&vc[CS_RAW],		&tk->tkr_raw);
+ 
+ 	/* CLOCK_MONOTONIC */
+ 	vdso_ts		= &vc[CS_HRES_COARSE].basetime[CLOCK_MONOTONIC];
 
-Best regards,
 -- 
-Thomas Weißschuh <thomas.weissschuh@linutronix.de>
+2.50.0
 
