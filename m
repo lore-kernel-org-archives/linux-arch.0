@@ -1,70 +1,70 @@
 Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95DD82DD61E;
-	Wed,  9 Jul 2025 13:18:34 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0EBDA21CC74;
+	Wed,  9 Jul 2025 13:19:29 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1752067116; cv=fail; b=DhDrqNxRAzl91uC/oQDKkzNgF0MD0bFFnCuv4Vh3zDwBPKAQF7lLjkF1NiSQ1ai2IObIiir8j330cDLJ4sQV/gGimdqkpVp3M5Z1jTOz2WAvq6TeZxeKY1IHhPu6OWAVdrdIsXrowuTYeLQkCsyN1e3Fh2Ice2hWu+D7sSKSHpQ=
+	t=1752067171; cv=fail; b=jMPEaNsowqR2YVobBonweVAC2ViZmy7qSPTqmdA1FE9lKGEqFgd5/FO1maKDlvyw2cEgpwxw9PLYz647kyexxi38Z+F4yjkNxgpNICnfDT0vlvkIBuNB/0oIOj9KHpMWYeYJsovdtd9pmgHFv+MrR4u4L3cRUSQSf450jA5eA/8=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1752067116; c=relaxed/simple;
-	bh=Xez3db7sxvP0rJjI4ggGR67NBPx9QUKsJZ5DqbuinVY=;
+	s=arc-20240116; t=1752067171; c=relaxed/simple;
+	bh=ARKXm1ZD5lpudMuRjx1n4PolP9KJxI3y36f/UDwYlZQ=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=FV7StIxiXrLkNw7Qo3SM2VsosWIwPw7jdEyevMYH/9ZdXDX5vrbL8ZjoCWlpsIOG0oS0LpMH6nA3HasosiwASZ6RVEbXwCw/oe4nTuQyFxAWfDDgTe/bosQW1nQMQ2qbHKwatuo8CUKVCSlz2s//XJwRE4FD/5eTqcoss9Ft5K0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=E2aNvIzw; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=pt4LJ0ll; arc=fail smtp.client-ip=205.220.177.32
+	 Content-Type:MIME-Version; b=HwXfv4vCJ0D0QpK/3fREbf+qEXNUpsF/ZzwF5RvIRMH6AIu/+5G+W+eMBmI1WPKdMoiQfWRTvIZFlrjSqZzBgy74u2OcVoXXsgx9Ge5ajJP26eMqBCing0/eImrwlYV6wojFz31zN43zhW7GrNYCDgT9AIfxJmkTVa13jmLYOyQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=IpB86N8o; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=AM+1gRtX; arc=fail smtp.client-ip=205.220.177.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="E2aNvIzw";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="pt4LJ0ll"
-Received: from pps.filterd (m0333520.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 5699jLYx027022;
-	Wed, 9 Jul 2025 13:17:41 GMT
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="IpB86N8o";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="AM+1gRtX"
+Received: from pps.filterd (m0246632.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 569CKpsi009622;
+	Wed, 9 Jul 2025 13:17:32 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
 	:content-transfer-encoding:content-type:date:from:in-reply-to
 	:message-id:mime-version:references:subject:to; s=
-	corp-2025-04-25; bh=5PCRgJ5w/PyERCe5nZWe7dTn3YyJG3rnKdSAcKx1tFg=; b=
-	E2aNvIzwJPm+UhLlQXEY+DgkJxy5vAWA2BSndzzc1A6zuwZn1F7GmtTj/cROD7PG
-	mabXfJ5twoy6V4J0auDLHqQLgsqxxwU3j8ctA2FwR9RGeF47uv/YB5bZd8+BV83+
-	fKlvWi88sin2TgsseRYPUzsa/2vRButnrdGpPlH2y5YcXo0VFxSgUWjPAB+0jTWM
-	3nb7TkTyDE2+m25H4oaOcI8DiJ/m0UshF5eER9vbgeA8s2YkrGm+hZp01C62+rjc
-	vdO4woiPHeQXnsahGC9P/Y3Ni99Nxgkgxb1ajpcWSghTitvC6MUz6kz7X7+1yNek
-	4nhc4cKIq7GQh7Exo0wxOw==
-Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 47sp2rgbt6-1
+	corp-2025-04-25; bh=Qp0D0xzoPP3uN2AoFRYwBMBgyM5Bz8pwxCc9dk0b2dE=; b=
+	IpB86N8ogFkeHy7GtaJoCujvyUJCZ3YPxHSpUeEKO7ygEQGjf8hXbXRo6Ch4da8l
+	NczgEvrJf5NI896PT3NNk6Bg5n/bw9pAC5bH8RCGKRirj2SdmLU1+L9bVx7Uw4wu
+	l2MXEsSYkhBPYc/cPxg59Ul0mh43wjt/iN3DUTQ6H3KvyIpDveRP+w6xyDVVzedx
+	+a8gnWX/jyJNk85Ts+82PNlxDEArqVYPt+LcN+2tu0EDAhsCJMu9flGsDMhGX+vz
+	3He0mL6PXJIfnZ9M1gxBHiuFV8okHhNZ6GjiZmayuYhMNDLHGx7GP2GB3fn+NSKj
+	f74S7eutA99pF8tMaWCnmQ==
+Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.appoci.oracle.com [147.154.114.232])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 47srbqg3sm-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 09 Jul 2025 13:17:40 +0000 (GMT)
-Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 569CV2Ng040464;
-	Wed, 9 Jul 2025 13:17:39 GMT
-Received: from byapr05cu005.outbound.protection.outlook.com (mail-westusazon11010057.outbound.protection.outlook.com [52.101.85.57])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 47ptgb74r7-1
+	Wed, 09 Jul 2025 13:17:31 +0000 (GMT)
+Received: from pps.filterd (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 569D4Reo021505;
+	Wed, 9 Jul 2025 13:17:30 GMT
+Received: from cy4pr05cu001.outbound.protection.outlook.com (mail-westcentralusazon11010036.outbound.protection.outlook.com [40.93.198.36])
+	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 47ptgaxtar-2
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 09 Jul 2025 13:17:39 +0000
+	Wed, 09 Jul 2025 13:17:30 +0000
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=rfguE0NXpZD5g41TmgXMu8+5XRfaSAgYSmFAPa2t4xGYzwdfuZjCeX5mjzjIfFzRE8wVG0dsk8Z19ckPY1FBpUKDCmV36VD5e0LturXCcg8oG8iU3slqBb1ONZheCnA8yTehK27QHC6MB9lhsQnbfWV1PtI99JYP1gogKtux7VG39RE/frtvPRrVce4u0vvKsi0R3leVVJNuXUD5XrIO1oD+T2dP6dIsO6VVtlR8d4U3ZhejKV12FtmzadfhTEsrBrypDVGNmxPOgta+hB97zHAydXPx9E/EPutCtechJKgvEcLbyOGRe+5zBth793GuRPqXxN5loeEdaLvHNMUsZg==
+ b=iqmsirPXTYse8DKC5ZZOlJ7ggclth9Gfpr2TgO0929MdmCEB61FBr737BKV1aSNcDoVhCKSyWhQCMh8IPUyt5nrrcjX9W2m9xDHLNDyngZLeMyVYqVnAMcMoklYEi2l/ajBQ20PDBMWRa1/6OpHH0TtyWEElfIY0cWSeW6nUPuko8N0doheLUJHyXsrwSAZlfXvlPmg1UAMabuGZy4VZTCnJz7PPy7oRdH7nJl6LuDeANlwkLRB+J2kN5W+ZsIj3UjqUcTVOsxBCqQzzx8iuYKFR55dMXRMlkzBVvYJE5KsRPIzFGWxL1ElgxX+HkrK084bbwAGgOxbGLBvk8CDSmA==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=5PCRgJ5w/PyERCe5nZWe7dTn3YyJG3rnKdSAcKx1tFg=;
- b=a9tyLPtaCvK6qege6n7D+YYDaXziUKG2o7QfGE0S7k9oJwCex8X73LmqGGxux87K4UqOygTxCmDiY1sWIeco2M23OnBM16QcBbpBjkIut1gWmRPyXrCJjK+WeR1/LxugvOV55kFLMk7Q9bklFl2XHsfTsUSEUZX0eO6JjhHsL6caMqM/MlVqN9eP73rHfxtHyIuZQIqVvrG5t9BYVqJ97NId/DksQUkwE/gK5ZJXBPiXmKmbAHEYJggmcsdCEEKfPFrVtmHEmzEBYr+42eBMwU3Z0yNuw71Baw3R4Zp9upiizqGFqbYiLTQeG/CcRMMgD7mIIeiXnrjp89qGKDCEJQ==
+ bh=Qp0D0xzoPP3uN2AoFRYwBMBgyM5Bz8pwxCc9dk0b2dE=;
+ b=kzriFfrYU67qk1o7xN8C5C5nCdwphZHK1eUQbgn1wvMCRvog9ksBzQQz1RP+0U85e6cykiFoUaJ/+NlvyXcLAleqxJ3ijBxFK6vts2PHKP8Mup61i4qBbq5Xo6dA41P6dEnEJOjzlmZ1CQH9t0uDMIyAHofiKELNZ/3zSHpX14PpfwfOipQeqf15fdQjni7y781K0VWcEPUQIe69i4eqxaVzZpoJLZvP13oyVFnEaxCSfN7ab224i+Asz8F1wbq8U236JWQ1I56jJQlo2WQFjxy23cUSPAtUnPkMGERm+qZk+neitaVseleHd9zTT9V6CmB16qyKoxargBrQdCu6RA==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
  dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
  d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=5PCRgJ5w/PyERCe5nZWe7dTn3YyJG3rnKdSAcKx1tFg=;
- b=pt4LJ0llKZcBY+BaKQuSstrwl5OdwphV/XSRF9931I0/iPqrGmbmX2FvI/TJR6AgrNuyN7Qd/cPwxOlf87o3mT8vJtQJcfIYd6teeGivARNduU+ooN7KJaOTMOZr1iLjh1k7C0lmbMOcs/lByadp5d61hnyTgG499kXw/POoJgI=
+ bh=Qp0D0xzoPP3uN2AoFRYwBMBgyM5Bz8pwxCc9dk0b2dE=;
+ b=AM+1gRtX1zLCwuev5kChs+Ws1bOM6AiOp5NNOF+KH1UJbI0VDf/jkiBiN5q944fTybOhrQFb2wJIwb5YcgEM8z06pKPb99GP/oCmwbHLHp0D6+gIc4+glM8ibj+8vpHCl4cRE6PkTf0ZB++ptGQxQdZcF171gWHx8lN6lkEA1Bo=
 Received: from CH3PR10MB7329.namprd10.prod.outlook.com (2603:10b6:610:12c::16)
  by BLAPR10MB4914.namprd10.prod.outlook.com (2603:10b6:208:30d::17) with
  Microsoft SMTP Server (version=TLS1_2,
  cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.8901.21; Wed, 9 Jul
- 2025 13:17:35 +0000
+ 2025 13:17:27 +0000
 Received: from CH3PR10MB7329.namprd10.prod.outlook.com
  ([fe80::c2a4:fdda:f0c2:6f71]) by CH3PR10MB7329.namprd10.prod.outlook.com
  ([fe80::c2a4:fdda:f0c2:6f71%4]) with mapi id 15.20.8901.028; Wed, 9 Jul 2025
- 13:17:35 +0000
+ 13:17:27 +0000
 From: Harry Yoo <harry.yoo@oracle.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
         Borislav Petkov <bp@alien8.de>,
@@ -92,16 +92,16 @@ Cc: "H . Peter Anvin" <hpa@zytor.com>, Alexander Potapenko <glider@google.com>,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
         linux-mm@kvack.org, Harry Yoo <harry.yoo@oracle.com>,
         stable@vger.kernel.org
-Subject: [RFC V1 PATCH mm-hotfixes 3/3] x86/mm: convert {pgd,p4d}_populate{,_init} to _kernel variant
-Date: Wed,  9 Jul 2025 22:16:57 +0900
-Message-ID: <20250709131657.5660-4-harry.yoo@oracle.com>
+Subject: [RFC V1 PATCH mm-hotfixes 1/3] mm: introduce and use {pgd,p4d}_populate_kernel()
+Date: Wed,  9 Jul 2025 22:16:55 +0900
+Message-ID: <20250709131657.5660-2-harry.yoo@oracle.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20250709131657.5660-1-harry.yoo@oracle.com>
 References: <20250709131657.5660-1-harry.yoo@oracle.com>
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: SL2P216CA0143.KORP216.PROD.OUTLOOK.COM
- (2603:1096:101:1::22) To CH3PR10MB7329.namprd10.prod.outlook.com
+X-ClientProxiedBy: SL2PR01CA0003.apcprd01.prod.exchangelabs.com
+ (2603:1096:100:41::15) To CH3PR10MB7329.namprd10.prod.outlook.com
  (2603:10b6:610:12c::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -111,394 +111,237 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
 X-MS-TrafficTypeDiagnostic: CH3PR10MB7329:EE_|BLAPR10MB4914:EE_
-X-MS-Office365-Filtering-Correlation-Id: 818da0db-38a1-42b3-3d7f-08ddbeeaf7db
+X-MS-Office365-Filtering-Correlation-Id: a2c3f308-9ef7-4b1d-33e8-08ddbeeaf392
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
 X-Microsoft-Antispam:
 	BCL:0;ARA:13230040|1800799024|366016|376014|7416014|921020;
 X-Microsoft-Antispam-Message-Info:
-	=?us-ascii?Q?SSPVl2ayioItsEoc3COZlmLo2aCB8kGQoDWQosh0Bc8toB1sdtUsHrP2XUg3?=
- =?us-ascii?Q?CIjEHvjAXlqqOf5nh6+p9TTmoNwi5eO6kSzPe+cqldUONBPzlgy5SFE225g4?=
- =?us-ascii?Q?44+ByL9zMx5Ecc/Ks6F/sAf1QeJ+4ZldePzJd3RaRrYqaJHHtqkZp6zqRtqN?=
- =?us-ascii?Q?4buHMfLpLxJtzAhRSkQSCKIndE4x0CGpgKsG14qbtz/M7000LH/D3yne1khy?=
- =?us-ascii?Q?5mhtLx+KBdYhidF3tKiPON3q1saDeuX0qpfNQRntKkDHx+9U2b/qmuoH16zD?=
- =?us-ascii?Q?b8Tjcts4XKz2vvL65hZ+Kz2m2yBa+JZ1B5I8nvqz22YqbBPaJ2ziMPsIBAg3?=
- =?us-ascii?Q?h+noN1LSOsLlH258XyaQAtSPRxYve1XiLcFBEMI3bCIbIk9EUZePGMFfI3fp?=
- =?us-ascii?Q?UlP5nz4Qy3eau1d+rvSXLGBBbmVtTwZCv8bS3sktF+em6st/53pKD4tzdMOr?=
- =?us-ascii?Q?r8zMJ2UeulwF2Fb5VF20nbGizlt9VutuLXTW944oZ5M7Q3939S+4lRWK/4UN?=
- =?us-ascii?Q?rQiuP21FUxMbjhh3FY8sOxggQ1AhDCdqYiSSudC9VmQ/DuNJCCFcSMINVl/N?=
- =?us-ascii?Q?rHzSmHdh977mBXhpUNCX9P6WNSCG5dnLvQGcj1AuQEXDlxfIrHXTfEqdaAC/?=
- =?us-ascii?Q?8np22z4AsEiRM2I2RXKLHnU6lJpaiUyis0daK2CnUnUvapfuiVmTdDBQ3lZy?=
- =?us-ascii?Q?e+ej3NBj3z6izX3a9mv3AeIc14j2QFmz/mbtsyCjcJqoLFrafeWybMzWtbcc?=
- =?us-ascii?Q?ox04GAU2K5l8ZpCwxkcJ5BrnHLlHCTFuqbUnywdjBnTIw+5CzTg4OKy9Plfu?=
- =?us-ascii?Q?SpFllgTNY82ANtB8O/dXCZVNBTtcBZadldFt1t0De9QMckLko8nym1EVhft1?=
- =?us-ascii?Q?7VpsVNzKcoYNyvhO4Y1SWpho6M/hshc0PVhpgXFqx473lDkyZmA4V0IoeHtF?=
- =?us-ascii?Q?gDwUHtB/bNDJVAKZAbgaz7lsin/CvWj9xrMTRiw2XoePoa8xGrvaALXRu13l?=
- =?us-ascii?Q?pbSMBq1Kjwoo6KuN/HFzOb88iBKEIEkRA57F7dTJz1Obn5h5Krgmkl0IZaWk?=
- =?us-ascii?Q?wem7pNqHMWXoHej5ZcoFAgMVmFSdAzWaUKFlqQcIRGykTXDK6JCrXGbrI3k5?=
- =?us-ascii?Q?+FiZwEftV3Dmw0ZBX5LroQxVV7tVm/47/BwLPeVtnHnLO3hAu4O88Bd0OBs3?=
- =?us-ascii?Q?sbIUx6T5pPOB6Rrzp+zFd40VMdKI2LkfBhyUYXYQBTy7DD9N9Ta7NYwbzz47?=
- =?us-ascii?Q?XNZwoDYRHXEsLqWOVkb4330+AcBT9ayZ1OtpGH3UKkv62uBc8uKYUaH8kX/e?=
- =?us-ascii?Q?eQwKQFgCeS+ih28gWLN1oj2l1XKoxaFHAWEjIHmjqJdqshfqWhVeCAb/QFwk?=
- =?us-ascii?Q?kGR7s24KoyI8E0X4++wdi9S3frRPNUK0xHI82XS5Bf5TVQgr0Y7DSSmq0XuU?=
- =?us-ascii?Q?h45K2DU1nq/l05uOHavXxMsAi2/qTADOqtm/zLViHevkdaqgg/dbZQ=3D=3D?=
+	=?us-ascii?Q?byXlBAILZ6A7ilHUWkishmkO7a067ILSODa3ENaeBM8oNdX1f7zUKhXHZsqv?=
+ =?us-ascii?Q?Livbe+FLXGxmbr3DvIy7mLs/6kzxRMURrtIZuyLSSnOUUgnawR4HEkTY5xgc?=
+ =?us-ascii?Q?UIPV7pU4w7eNuqi68GjUPlHn3IE2LsnfdDCM6EgOo1r9RKPgIZcPkFm23Hc4?=
+ =?us-ascii?Q?MGHX8hgTnrR9tU30isDd/FT4b7klRF1B3DiunBt3Ll5Ae/QCm39Ia1+t3o1N?=
+ =?us-ascii?Q?O03JWsaPiwdiZzi5Lj/I04GExiTYfHhl7NET40nSAtbFKD7xKJMQpKX9xzkY?=
+ =?us-ascii?Q?EbyGZmx3dMCU95lFXzy8aDqyj/YhTMJ0Bs/VvsvEX36MTVxoJ9/M8W7k+xqa?=
+ =?us-ascii?Q?J9xXHxd6+9NHFElmvUcyUkHKaLpi/Y5+iqjMV4IkqF2wJxH5EpzZ/5jHMbux?=
+ =?us-ascii?Q?kMeBLandPSnyd0bYyCvdXzwceyyX01ZXuSKDb+pr6yXd21jrrpE0iaQsaFeX?=
+ =?us-ascii?Q?KtQLkcBYkxka7iHwuId4y/51/7G+Et/PvizcSoZf58if4ZCkP0jHAmXdXnce?=
+ =?us-ascii?Q?aLskV+Bbkj68cslMeFBKZzxaDtbgoFcZcLiKk+xOHyFXNFVNMI+DhiW7ZhdW?=
+ =?us-ascii?Q?w/pt6XzMBLUZoM4PCTJ0ZchirxAhEX3rQr9z3GZyftm9ekfnjM0exdbA8N9S?=
+ =?us-ascii?Q?02TxfhSagSgz64QBh14lQDTCYEsrlK/c+WeD184LpQ+Z+3bULYtgPDLVwS7U?=
+ =?us-ascii?Q?vJ/m4NhsTKPJPlhhF8ePW8v3gNhvBrXd5YZBImsSIg29naOKYwJrlo6mnlGt?=
+ =?us-ascii?Q?/KTDMuvIa9QsISjQ5W5CfUxj9D5X3hRCUQ4y0xiWRDSWYiosISuIvOOAxWwM?=
+ =?us-ascii?Q?pD2Jk1nEE0cdDC3WJNKBIIMlYVcDUt1XNqBi2qalY8UURCyntnW80XDA5dnK?=
+ =?us-ascii?Q?pzUKfM59vWe2xhOQo7/rY6HaDDc02akai54SsbNH35USqxEjuksm2A7jyvmO?=
+ =?us-ascii?Q?rnQaVo6LEGBkxy3IeQqjdPo0kvXh4LEMTuLLBpM+whM9oQxCqbcGVvzuT/zl?=
+ =?us-ascii?Q?8Shrk2GuQGBtKJVCiaDsZVlSDB5RNNBJSAQ6gO2NcFvY9ce64nTiQF40Sra0?=
+ =?us-ascii?Q?TvkTMu5IKKL8Qgn8uDXTZLSccGxOBAhfc7vGv4pf4UHULhJ+cmpN5uXnHrrB?=
+ =?us-ascii?Q?/LJHLZxTtEbi3Qmy9UiGuNk/Fg6SVkwfoBhEA2Qom8RAgXlKug77r5+kPVXA?=
+ =?us-ascii?Q?OlCgVMaAQBY55pv7oTorpILkKGvUkdSvmz2/i9CPXzJ+tzTn9Pb6Svxfxy1S?=
+ =?us-ascii?Q?fLTTdTRLzezqt8uhPa/0LfBCVbatgbYHDP7rzXBLA+ie3W5C6kjZn/23rgQG?=
+ =?us-ascii?Q?hTNMdlMQpSY8cbfnshdtwAAMWLba7U8AaR0Z2AE6ybc5WIea31hv25sqF9h0?=
+ =?us-ascii?Q?jwJfnIpAC4/Zgl73HNmd7jZDyAVIGVJHkCpUrMSaoIxmKkwYAoWifDZadWm9?=
+ =?us-ascii?Q?+WeUtO40C8kZmCvHh0NeBoV9ieId5XWdBX4S1xQcQwv3vH5g685dFw=3D=3D?=
 X-Forefront-Antispam-Report:
 	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR10MB7329.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(366016)(376014)(7416014)(921020);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?s5Fr6ZeQNLHSOsIgzzHLWX1qIL+7Te5V74J/kY3uNRqwXC5TTnDx8+FZTIf1?=
- =?us-ascii?Q?9HeK40W3OTcCo4VIWo0qaISeEvIJhp/ApQgZYDgcZ91t3rl8CRYyTiFWEjif?=
- =?us-ascii?Q?NZM5o0Qc6JZFetIX1FVzMykFmJb7w7q7XXUAXREROtE5/IDMhKV12ZxtTqIu?=
- =?us-ascii?Q?O4VzOiUNr5RbR5R4S83vikpcOTNt+1fmkbRV1C0dV/FOC0Z5nz5bK0ZOOVzz?=
- =?us-ascii?Q?Ir2WD3aPPR+FMhXkGk0EC2C0Wy0ZPi0uwkl4BDFjWmb2jFcm3j6B4IB+E4Te?=
- =?us-ascii?Q?pnLpby5qhq26ryDD1E1du7CjDfIHJSuK2x/1t7GP3byvMOcHo5bOmkPuFvWJ?=
- =?us-ascii?Q?IEhWOMnH7ZlBWRFXJmmS+pugA5o6vfZGaAFHEHXHpKOo7CLHjPk/+O1ERxby?=
- =?us-ascii?Q?5Z76ebDiAA7RV3PnJO72s7Iz6YQv0qhErUOSqlQajL2vSyfkoTACaheugfqz?=
- =?us-ascii?Q?jArtwDaapo1U0m9Qsmbt4YAbiQbO42cd3y5xJMmXF6xtq9N6XZ882selno+w?=
- =?us-ascii?Q?gqy16RjR5YV4o7Iw+5BHrv6fcV5Si4mWotN7SP13jRxyb9kXIawjZ3R8bpdA?=
- =?us-ascii?Q?KvdqjwUmLVUKgFrF0jJni2Z/0tgfR4VNGX7gOeBD1fj9HkBJGEO6V2jbfeN7?=
- =?us-ascii?Q?4m5I4BtkL1LIH2yIQD5Y5WxBCrXa16S0zTL2RexeVVtetWIgUgJzwIBXKQfq?=
- =?us-ascii?Q?rEX7GCKB+gUkxkhTEHP9QDwyQTjdmJ7u35JexU2TMN+QHGqGSUq92WfmtiFg?=
- =?us-ascii?Q?Nfqn/Ujz/Vjle/WedquH4Fr337M+4IOKv7Uqb0TwiCQp+gdziDZqnI+py85Y?=
- =?us-ascii?Q?iwzITgPGoGKoUMmjiJesLyHAsU7Y4l0tw9ctEzrcMQANy8SJaT1gl4sxxjHt?=
- =?us-ascii?Q?BnmR8Hvx34FuZN1k0vnITNwV9ThmaKIzQKNHaTPbrYYvxP8arIsuUjtobnO3?=
- =?us-ascii?Q?9H6rlPwn385X/j+PApdsItdp5dZUcfLxJmrtfNt5xEk0ArpAuHgA+EddviGT?=
- =?us-ascii?Q?cG1MUE+8vi+aSvE31s/IFzyy/1qCjpLX3CCuIMgB1iSdCUp2/PN0mRPmRLGz?=
- =?us-ascii?Q?dX2Kkl+YL8jyXKCLtOm+Kxy/yAQ48Qqt4OTgbzCdN/YaxvzTYQUv+A1C2MQt?=
- =?us-ascii?Q?nPHq1rI8D3fTVUvXAlcpr1d4N4LPDqOmxtAvWCboS+5rIoId21WbD1W20xKG?=
- =?us-ascii?Q?9eljdvjA7zg2j3CW7Alc2E2z1hm52gC2PyUD93zNMfv0qQAVjnRCHyCmi+sv?=
- =?us-ascii?Q?8Qn1dPdwZUFZl+dBZQwzz1BkmS2ek7Do3TkI0QfT2qauf/j5rCJRNmgpvttI?=
- =?us-ascii?Q?zVV9kmppmnKyKfHkjcyhHCb5i6DvRfMBvWPNtP3oU6FWCCnJm9HydnqfGnE6?=
- =?us-ascii?Q?uiUj3nPqXuKMUgNgw7CLyKm584Cp8p2omuJXNnsOH1WUDTZ6BEhJc61W6y7S?=
- =?us-ascii?Q?hOqyDftHT/Ys0DySfvYWMwBQ4ITIhB5vYOLtz8VdjBS0b0Fm6J29ebjDYLUq?=
- =?us-ascii?Q?LxzT+gaEfax/BMwxFg61odYXUYqdeHe27BFjq5bxiRAkgeRDYKd/sy0pXPd8?=
- =?us-ascii?Q?IqL5LAk+lp+15jKw3F9sBwbs2pVioeKhTX60FPyU?=
+	=?us-ascii?Q?jsy8WWu3A+ufjyowUqIqxGWWd0TPGAEyS998KlrynzfLQUyuq0Pxx4OM0XQ6?=
+ =?us-ascii?Q?v4zFzBFq/wZdG3X7vnISasXRJdeXnAmfD0YsdJr6eUOEl1VjCNLWUnwhBpxe?=
+ =?us-ascii?Q?ydOVY/amBogxq/Dt9v9iOfWORRS1r3i9LV/JAUGaYUQqxYRE3s97HLMCBUqS?=
+ =?us-ascii?Q?/XuSklZVI+WVKgVGTzcoXyXsPU9uS6n+2QXeWgC/Bkb4m9boe6iTaPBueDfr?=
+ =?us-ascii?Q?SKfXBZEHbx2IjLBlM0ZUY98qbjKr/JOCeit+6GeXeLI5NdE19QjF731uAYgt?=
+ =?us-ascii?Q?xzvSudX7GosOlUQB65UrSLv10zHDQKE4dLYapv/TBooD3+0mc4vYHG/ivbT+?=
+ =?us-ascii?Q?TRUfVwImU18EaCRRjvmZ1jnVKx/5PAjZH2R24MzBY7QkTp5wHDuJByo9F0gm?=
+ =?us-ascii?Q?s8GT0PglJUrJD914cBSQXgvqyociqAGuYpQhEeue7qB9m5dyJFs7SWJtXMRx?=
+ =?us-ascii?Q?Aw2AL2hUIlXWglWoZ57Ytr5OVcXkKAI9Hd5i6nVpfBiLmaNpzSy+apmklVMc?=
+ =?us-ascii?Q?VRYiWHtQ4YXustlgr6cnbR76dXjL6oQfST53/O4gfGAUj6Ee9ExJSZ12hK34?=
+ =?us-ascii?Q?FgrBDoBNaFx3+R10mf0ZWc+pAoy7UzJDAqqGNC4PMfrSNlktdUPoKYqAO6VM?=
+ =?us-ascii?Q?tiJSqdJzWGIF5SMZA57m1WIhvkyrnrU83OwZD+Y82qL//nRZkTgrIJ9n4K8M?=
+ =?us-ascii?Q?4vMFXqHssabsBQ0TFWKpCta8SOIzff/E9367mtAbMES1ryLb55IWos2GLD8t?=
+ =?us-ascii?Q?InnAkoPyl6LjLk6GwNUKl+gDnOMU9MV0IlrN0p2wNGsaaNXeNtTuewkg5uN3?=
+ =?us-ascii?Q?4xI4/ugTrq5ZB2C/A5tk5aNbh5YZgbpwIYfqqZDCbroBZWZxmGvZlFy9dsqw?=
+ =?us-ascii?Q?jwQ6IkoE9pbyiktaS+wO6kJnSWprPSZoTp8yeaELrltHQVs4j1KsZIA5ksm/?=
+ =?us-ascii?Q?0lG46zVRfzPDYn8d/QMQPrxoT0ya7DyrCK9RuelshSGDons80z8SS/VGjTdy?=
+ =?us-ascii?Q?onl9oH6WmQmxMEYwgNMTmeKC1x5Dd5IBB9icA7BBGHzCcK2Aicu+VS3TZS9D?=
+ =?us-ascii?Q?1zXs5fDUO2zV7oEKRDYj0ntunDSPsljeBXEtopBG47vcavG26v0bW2I5/a4j?=
+ =?us-ascii?Q?5B6QD/nsxFbruszOysiIeNCdOC0CejsTV2foHtPKjsY6F2ZMPydl3hEn4T+g?=
+ =?us-ascii?Q?2IynJcwjfM1ZvKqbwSgXy/Qf8b8/FaCFJGperT1t25Xzye0ZBxN+100+4vmk?=
+ =?us-ascii?Q?iDYA6FdmLvLR7c8IOcgoT+cklvB6flA8h5s6aKbOVnexhrxEeroQtpk8sVna?=
+ =?us-ascii?Q?Fg99m5axWhN4DMEgaKFGLBJzqmhHj0yDiJ8xSLFK9xjZSrP14GbLTZUvKoSK?=
+ =?us-ascii?Q?HuD3wBi1nF6fV65S/rW13RW/NfyY4WrrMEIdtylq3kxBPKm/S5kY1Bd4TRpO?=
+ =?us-ascii?Q?MPSlUB5PRjXWXMhuQKLKSPuCgfr6SoQxpfVVWxpqKPEORi+tDCfXzfmHUI8x?=
+ =?us-ascii?Q?2rHXiwkSVpMJJLZGCk9bHWWjiI+3eiyre1wLzakOnw5EAgNc8aeVUPU2mkJw?=
+ =?us-ascii?Q?KpgXnOKPyi8AwrVKXs/VPyfl2ftCXexNLmwhwnoh?=
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	JBRyhaqKOBtF4bCQobvY/0j/Qcxz87zzmQJsOIR8pqPSnhe4DGDycwSHZy01M9HsXYfmgM2hhfsNX9n/bAi6dCoP6R4ueBBQ+Dgbl0WPmKQNind38TBrJ5OlrzLCkEyV6j5NAHfIHNG9mBrRCVi/rnuqAuA2EAHrgVSxiAZVmq2OJ4Jl6xnF71XO+gMfFyKbN93RDEEITDmUbpYo2ZcqrtRg/2QhbSIzHNK1QMulz2OdYFywfC8gl3YaJKdMm/s/yvXQb3g2Y+vVERVXiNikLGL9fEEZOjuqunuoUld61TiZc/dcM3f0VBkLqw4SsBVlzSlMriWSA07YIGXpZRzpPgMFSAlepBV7ALwfpi4uTDkl28Bg9wfxNiL6k9XdmqoSBeLYFkFFFKX9Bj0AA14xzNezEswQGscaVCWqwipfSFJeFsYRaiykn/2aQj/P+VoI+SJ470H8l8ga4g5tOqEjuU/FIunwQ2T8mmxSz/Tk/pTf/RaoNeXy7Ef2T/OkVo1AkT3KxAlmKWk37cDRkh25KRlCADLUI25QC+hy0E3swjtgMjctrwCK+RrcXPQQjm57gbZpOfOujvLzuvbckF9QxuL1+9WhfR7si/eWpInAPvI=
+	gb+OIVWLQAPgplV5w2NdHyx0cEvLDMhubkTWtm6rNCKpJxgThTyZ+qSr6LYuxvNaezh2FLjLUrr2t6mkP7mmNfqNX3Ltq71GGNETvGj5X/MjqrfzjA3qLqnNDiPnCjsni29C5VNcyWSVP0eCoztkat5zHITJtgPkULUVVZoVNSdWxeyBf8vngSK7rzsFfTESPyjxF7Q6MdIm85XvN9iJDfZR5rlTFS8LEnQiF/OtEc9D18VUYjSY8Zi1P6x50onCYtJO0nC4ec7VqLgSV0u2BGJm/BtukLCA0jqYRj+yEPBkeZCXSZW1bnyws/ZQZcHP6xfk5gieK5FK3T/c819cWWSt2a9pNKRS5sawTad7cL0rtLMMmSlVHMlaKSrEFYetFxR8CZ+gvvu8HONvBCsr23NG2MOFmjwjlV7oELDRCycj70bPlWmgUZG6WQxLgGb1bgm6SO008T1471NAklVtIJnKeZoKAxIr8FNM9VRMN9YfsIBU5X3WTu/kwia15FnCn2PgfY/iM1mulQ4JPPTQPUOizQYYgoqAdsq0R5N1TNfCpKSL3VZPjlH3cO694ROuyMYPRcraKJ3KCJ9QdOnQ5/9luvOC2uPCeJpVcXnFVBI=
 X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 818da0db-38a1-42b3-3d7f-08ddbeeaf7db
+X-MS-Exchange-CrossTenant-Network-Message-Id: a2c3f308-9ef7-4b1d-33e8-08ddbeeaf392
 X-MS-Exchange-CrossTenant-AuthSource: CH3PR10MB7329.namprd10.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 09 Jul 2025 13:17:34.9296
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 09 Jul 2025 13:17:27.6249
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: 1TTgQVdn/m8nyOy1AH9IFNCUuLRZKEKH11n365jWfM+UaJKGoRLQF7btsQ0aSSefi21vq98jKtIAOPaMLK24og==
+X-MS-Exchange-CrossTenant-UserPrincipalName: CXHoYYSMRRB/XKP73dn3gQnWRmqO2u5ckAOCI4fxFCC94RG+fiGveEWCTYHdfGXkpvUFn46V6vw/Q7Uu95B11w==
 X-MS-Exchange-Transport-CrossTenantHeadersStamped: BLAPR10MB4914
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.293,Aquarius:18.0.1099,Hydra:6.1.7,FMLib:17.12.80.40
  definitions=2025-07-09_02,2025-07-08_01,2025-03-28_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0 malwarescore=0
- mlxlogscore=999 spamscore=0 phishscore=0 mlxscore=0 suspectscore=0
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 adultscore=0 suspectscore=0
+ mlxlogscore=999 phishscore=0 malwarescore=0 mlxscore=0 bulkscore=0
  classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2505160000
  definitions=main-2507090119
-X-Authority-Analysis: v=2.4 cv=e4EGSbp/ c=1 sm=1 tr=0 ts=686e6bf4 cx=c_pps a=XiAAW1AwiKB2Y8Wsi+sD2Q==:117 a=XiAAW1AwiKB2Y8Wsi+sD2Q==:17 a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=wKuvFiaSGQ0qltdbU6+NXLB8nM8=:19
- a=Ol13hO9ccFRV9qXi2t6ftBPywas=:19 a=xqWC_Br6kY4A:10 a=Wb1JkmetP80A:10 a=GoEa3M9JfhUA:10 a=VwQbUJbxAAAA:8 a=QyXUC8HyAAAA:8 a=yPCof4ZbAAAA:8 a=l4nx1uorHdEoQg2_gVUA:9
-X-Proofpoint-GUID: K8ySkQdBdLWrAksy_euHSsNTUK5RnThw
-X-Proofpoint-ORIG-GUID: K8ySkQdBdLWrAksy_euHSsNTUK5RnThw
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwNzA5MDExOSBTYWx0ZWRfXxCHkX6C6SAYt dSgrbY6AATMkTAxUdOgnTYiYfNafupWmRQP0fYpb79Mh3FfpZTYdrlh4+8ZHeLN+/Wyx88yInma 1P/+FT3DgMmey8v4NJcajhCU0NbPXtPVrxYISQjgAgmXs9LkL+jJLO02m0sqDfaSS6NtK1TchUJ
- 3EWRlr+aBhSAAWJICUL7HcFPDcEP7D+q3CLsABNoXEJfF2eHcpKjRTwXMTh+XRhnpAdqWqT1YQ+ VeLk1nlAcMGtYSpy5sHONZ5okKJs22XHXDOhj+CFFl9zB9gZvWtk2PGM6MrzpcdrKcfPXltJRyl SQTwuBY6v3lmFqcn47cjPhOD9xQtz00LgvBQ2twH8c+9FzuujV6I4gMan80zgpScSLQL2ZkogPc
- wl6/YgZwU6yraf7jwsGfEB1wM8FukITVKDEK8An9aTSAeRGNPRlsdHklMk7HNGzVGR/IT+Ng
+X-Proofpoint-ORIG-GUID: v5I45VHu9d3CI6rKOgBiYPvMdFMjw-6u
+X-Proofpoint-GUID: v5I45VHu9d3CI6rKOgBiYPvMdFMjw-6u
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwNzA5MDExOSBTYWx0ZWRfX3YQUqRpE3Za4 QLhwG5Z2sZA+Bu+uF0mUkMTiR36AV1bS1iIwWxMpYPGqRbSjTWLayPNPHu3H2VsUvwkPSMOSxP0 UELLWI6cQJcxvFB7Xa0CLQVTO/lQlpBJzvp4AU/9azhz42XBADsplkN6caMuTvHnvZ0QKajP5iY
+ m3fXQZkaVSTu95HmJZkGC0QMXWbK0V2eazFZA4CkNePj+3vbH5Wc7Y0XR/gRWkp0cyo9XPk5YhC 6xouSkYHZ4O17zOl6ld5MXzIzGv0FNlMiPsf0wmm1Y0gSYQvxhrsisA+NsT7Jhti/X2uDsME5kO e8NagF5gt27OTtWi9hv7Ii9nFInPnANznyPhd0F9DtXSb0XKEvGQYxStH9gp89lx6p5A6hxoAuI
+ n6NTiTOjMw+RhuFCJcARVGNRWOx2/EerLIjJtbyEb2MIHu0j+WxlB7+1DieU9OsP1W00RoEv
+X-Authority-Analysis: v=2.4 cv=A+dsP7WG c=1 sm=1 tr=0 ts=686e6bec cx=c_pps a=OOZaFjgC48PWsiFpTAqLcw==:117 a=OOZaFjgC48PWsiFpTAqLcw==:17 a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=wKuvFiaSGQ0qltdbU6+NXLB8nM8=:19
+ a=Ol13hO9ccFRV9qXi2t6ftBPywas=:19 a=xqWC_Br6kY4A:10 a=Wb1JkmetP80A:10 a=GoEa3M9JfhUA:10 a=VwQbUJbxAAAA:8 a=QyXUC8HyAAAA:8 a=yPCof4ZbAAAA:8 a=uSgV5WbZM76ynSUC4S8A:9 a=+jEqtf1s3R9VXZ0wqowq2kgwd+I=:19
 
-Introduce {pgd,p4d}_populate_kernel_safe() and convert
-{pgd,p4d}_populate{,_init}() to {pgd,p4d}_populate_kernel{,_init}().
+Intrdocue and use {pgd,p4d}_pouplate_kernel() in core MM code when
+populating PGD and P4D entries corresponding to the kernel address
+space. The main purpose of these helpers is to ensure synchronization of
+the kernel portion of the top-level page tables whenever such an entry
+is populated.
 
-By converting them, we no longer need to worry about forgetting to
-synchronize top level page tables.
+Until now, the kernel has relied on each architecture to handle
+synchronization of top-level page tables in an ad-hoc manner.
+For example, see commit 9b861528a801 ("x86-64, mem: Update all PGDs for
+direct mapping and vmemmap mapping changes").
 
-With all {pgd,p4d}_populate{,_init}() converted to
-{pgd,p4d}_populate_kernel{,_init}(), it is now safe to drop
-sync_global_pgds(). Let's remove it.
+However, this approach has proven fragile, as it's easy to forget to
+perform the necessary synchronization when introducing new changes.
+
+To address this, introduce _kernel() varients of the page table
+population helpers that invoke architecture-specific hooks to properly
+synchronize the page tables.
+
+For now, it only targets x86_64, so only PGD and P4D level helpers are
+introduced. In theory, PUD and PMD level helpers can be added later if
+needed by other architectures.
+
+Currently it is no-op as no arch defines __HAVE_ARCH_SYNC_KERNEL_PGTABLES.
 
 Cc: <stable@vger.kernel.org>
 Suggested-by: Dave Hansen <dave.hansen@linux.intel.com>
 Signed-off-by: Harry Yoo <harry.yoo@oracle.com>
 ---
- arch/x86/include/asm/pgalloc.h |  19 +++++
- arch/x86/mm/init_64.c          | 129 ++++++---------------------------
- arch/x86/mm/kasan_init_64.c    |   8 +-
- 3 files changed, 46 insertions(+), 110 deletions(-)
+ include/asm-generic/pgalloc.h |  4 ++++
+ include/linux/pgalloc.h       |  0
+ mm/kasan/init.c               | 10 +++++-----
+ mm/percpu.c                   |  4 ++--
+ mm/sparse-vmemmap.c           |  4 ++--
+ 5 files changed, 13 insertions(+), 9 deletions(-)
+ create mode 100644 include/linux/pgalloc.h
 
-diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
-index d66f2db54b16..98439b9ca293 100644
---- a/arch/x86/include/asm/pgalloc.h
-+++ b/arch/x86/include/asm/pgalloc.h
-@@ -132,6 +132,15 @@ static inline void p4d_populate_safe(struct mm_struct *mm, p4d_t *p4d, pud_t *pu
- 	set_p4d_safe(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
+diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
+index 3c8ec3bfea44..6cac1ce64e01 100644
+--- a/include/asm-generic/pgalloc.h
++++ b/include/asm-generic/pgalloc.h
+@@ -295,6 +295,10 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ 	__pgd_free(mm, pgd);
  }
+ #endif
++#ifndef __HAVE_ARCH_SYNC_KERNEL_PGTABLE
++#define pgd_populate_kernel(addr, pgd, p4d) pgd_populate(&init_mm, pgd, p4d)
++#define p4d_populate_kernel(addr, p4d, pud) p4d_populate(&init_mm, p4d, pud)
++#endif
  
-+static inline void p4d_populate_kernel_safe(unsigned long addr,
-+					    p4d_t *p4d, pud_t *pud)
-+{
-+	paravirt_alloc_pud(&init_mm, __pa(pud) >> PAGE_SHIFT);
-+	set_p4d_safe(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
-+	if (!pgtable_l5_enabled())
-+		arch_sync_kernel_pagetables(addr);
-+}
-+
- extern void ___pud_free_tlb(struct mmu_gather *tlb, pud_t *pud);
+ #endif /* CONFIG_MMU */
  
- static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
-@@ -167,6 +176,16 @@ static inline void pgd_populate_safe(struct mm_struct *mm, pgd_t *pgd, p4d_t *p4
- 	set_pgd_safe(pgd, __pgd(_PAGE_TABLE | __pa(p4d)));
- }
+diff --git a/include/linux/pgalloc.h b/include/linux/pgalloc.h
+new file mode 100644
+index 000000000000..e69de29bb2d1
+diff --git a/mm/kasan/init.c b/mm/kasan/init.c
+index ced6b29fcf76..43de820ee282 100644
+--- a/mm/kasan/init.c
++++ b/mm/kasan/init.c
+@@ -191,7 +191,7 @@ static int __ref zero_p4d_populate(pgd_t *pgd, unsigned long addr,
+ 			pud_t *pud;
+ 			pmd_t *pmd;
  
-+static inline void pgd_populate_kernel_safe(unsigned long addr,
-+				       pgd_t *pgd, p4d_t *p4d)
-+{
-+	if (!pgtable_l5_enabled())
-+		return;
-+	paravirt_alloc_p4d(&init_mm, __pa(p4d) >> PAGE_SHIFT);
-+	set_pgd_safe(pgd, __pgd(_PAGE_TABLE | __pa(p4d)));
-+	arch_sync_kernel_pagetables(addr);
-+}
-+
- extern void ___p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d);
+-			p4d_populate(&init_mm, p4d,
++			p4d_populate_kernel(addr, p4d,
+ 					lm_alias(kasan_early_shadow_pud));
+ 			pud = pud_offset(p4d, addr);
+ 			pud_populate(&init_mm, pud,
+@@ -212,7 +212,7 @@ static int __ref zero_p4d_populate(pgd_t *pgd, unsigned long addr,
+ 			} else {
+ 				p = early_alloc(PAGE_SIZE, NUMA_NO_NODE);
+ 				pud_init(p);
+-				p4d_populate(&init_mm, p4d, p);
++				p4d_populate_kernel(addr, p4d, p);
+ 			}
+ 		}
+ 		zero_pud_populate(p4d, addr, next);
+@@ -251,10 +251,10 @@ int __ref kasan_populate_early_shadow(const void *shadow_start,
+ 			 * puds,pmds, so pgd_populate(), pud_populate()
+ 			 * is noops.
+ 			 */
+-			pgd_populate(&init_mm, pgd,
++			pgd_populate_kernel(addr, pgd,
+ 					lm_alias(kasan_early_shadow_p4d));
+ 			p4d = p4d_offset(pgd, addr);
+-			p4d_populate(&init_mm, p4d,
++			p4d_populate_kernel(addr, p4d,
+ 					lm_alias(kasan_early_shadow_pud));
+ 			pud = pud_offset(p4d, addr);
+ 			pud_populate(&init_mm, pud,
+@@ -273,7 +273,7 @@ int __ref kasan_populate_early_shadow(const void *shadow_start,
+ 				if (!p)
+ 					return -ENOMEM;
+ 			} else {
+-				pgd_populate(&init_mm, pgd,
++				pgd_populate_kernel(addr, pgd,
+ 					early_alloc(PAGE_SIZE, NUMA_NO_NODE));
+ 			}
+ 		}
+diff --git a/mm/percpu.c b/mm/percpu.c
+index 782cc148b39c..57450a03c432 100644
+--- a/mm/percpu.c
++++ b/mm/percpu.c
+@@ -3134,13 +3134,13 @@ void __init __weak pcpu_populate_pte(unsigned long addr)
  
- static inline void __p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index cbddbef434d5..00608ab36936 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -75,6 +75,19 @@ DEFINE_POPULATE(pgd_populate, pgd, p4d, init)
- DEFINE_POPULATE(pud_populate, pud, pmd, init)
- DEFINE_POPULATE(pmd_populate_kernel, pmd, pte, init)
- 
-+#define DEFINE_POPULATE_KERNEL(fname, type1, type2, init)		\
-+static inline void fname##_init(unsigned long addr,		\
-+		type1##_t *arg1, type2##_t *arg2, bool init)	\
-+{								\
-+	if (init)						\
-+		fname##_safe(addr, arg1, arg2);			\
-+	else							\
-+		fname(addr, arg1, arg2);			\
-+}
-+
-+DEFINE_POPULATE_KERNEL(pgd_populate_kernel, pgd, p4d, init)
-+DEFINE_POPULATE_KERNEL(p4d_populate_kernel, p4d, pud, init)
-+
- #define DEFINE_ENTRY(type1, type2, init)			\
- static inline void set_##type1##_init(type1##_t *arg1,		\
- 			type2##_t arg2, bool init)		\
-@@ -130,99 +143,6 @@ static int __init nonx32_setup(char *str)
- }
- __setup("noexec32=", nonx32_setup);
- 
--static void sync_global_pgds_l5(unsigned long start, unsigned long end)
--{
--	unsigned long addr;
--
--	for (addr = start; addr <= end; addr = ALIGN(addr + 1, PGDIR_SIZE)) {
--		const pgd_t *pgd_ref = pgd_offset_k(addr);
--		struct page *page;
--
--		/* Check for overflow */
--		if (addr < start)
--			break;
--
--		if (pgd_none(*pgd_ref))
--			continue;
--
--		spin_lock(&pgd_lock);
--		list_for_each_entry(page, &pgd_list, lru) {
--			pgd_t *pgd;
--			spinlock_t *pgt_lock;
--
--			pgd = (pgd_t *)page_address(page) + pgd_index(addr);
--			/* the pgt_lock only for Xen */
--			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
--			spin_lock(pgt_lock);
--
--			if (!pgd_none(*pgd_ref) && !pgd_none(*pgd))
--				BUG_ON(pgd_page_vaddr(*pgd) != pgd_page_vaddr(*pgd_ref));
--
--			if (pgd_none(*pgd))
--				set_pgd(pgd, *pgd_ref);
--
--			spin_unlock(pgt_lock);
--		}
--		spin_unlock(&pgd_lock);
--	}
--}
--
--static void sync_global_pgds_l4(unsigned long start, unsigned long end)
--{
--	unsigned long addr;
--
--	for (addr = start; addr <= end; addr = ALIGN(addr + 1, PGDIR_SIZE)) {
--		pgd_t *pgd_ref = pgd_offset_k(addr);
--		const p4d_t *p4d_ref;
--		struct page *page;
--
--		/*
--		 * With folded p4d, pgd_none() is always false, we need to
--		 * handle synchronization on p4d level.
--		 */
--		MAYBE_BUILD_BUG_ON(pgd_none(*pgd_ref));
--		p4d_ref = p4d_offset(pgd_ref, addr);
--
--		if (p4d_none(*p4d_ref))
--			continue;
--
--		spin_lock(&pgd_lock);
--		list_for_each_entry(page, &pgd_list, lru) {
--			pgd_t *pgd;
--			p4d_t *p4d;
--			spinlock_t *pgt_lock;
--
--			pgd = (pgd_t *)page_address(page) + pgd_index(addr);
--			p4d = p4d_offset(pgd, addr);
--			/* the pgt_lock only for Xen */
--			pgt_lock = &pgd_page_get_mm(page)->page_table_lock;
--			spin_lock(pgt_lock);
--
--			if (!p4d_none(*p4d_ref) && !p4d_none(*p4d))
--				BUG_ON(p4d_pgtable(*p4d)
--				       != p4d_pgtable(*p4d_ref));
--
--			if (p4d_none(*p4d))
--				set_p4d(p4d, *p4d_ref);
--
--			spin_unlock(pgt_lock);
--		}
--		spin_unlock(&pgd_lock);
--	}
--}
--
--/*
-- * When memory was added make sure all the processes MM have
-- * suitable PGD entries in the local PGD level page.
-- */
--static void sync_global_pgds(unsigned long start, unsigned long end)
--{
--	if (pgtable_l5_enabled())
--		sync_global_pgds_l5(start, end);
--	else
--		sync_global_pgds_l4(start, end);
--}
--
- static void sync_kernel_pagetables_l4(unsigned long addr)
- {
- 	pgd_t *pgd_ref = pgd_offset_k(addr);
-@@ -295,6 +215,10 @@ static void sync_kernel_pagetables_l5(unsigned long addr)
- 	spin_unlock(&pgd_lock);
- }
- 
-+/*
-+ * When memory was added make sure all the processes MM have
-+ * suitable PGD entries in the local PGD level page.
-+ */
- void arch_sync_kernel_pagetables(unsigned long addr)
- {
- 	if (pgtable_l5_enabled())
-@@ -330,7 +254,7 @@ static p4d_t *fill_p4d(pgd_t *pgd, unsigned long vaddr)
- {
  	if (pgd_none(*pgd)) {
- 		p4d_t *p4d = (p4d_t *)spp_getpage();
+ 		p4d = memblock_alloc_or_panic(P4D_TABLE_SIZE, P4D_TABLE_SIZE);
 -		pgd_populate(&init_mm, pgd, p4d);
-+		pgd_populate_kernel(vaddr, pgd, p4d);
- 		if (p4d != p4d_offset(pgd, 0))
- 			printk(KERN_ERR "PAGETABLE BUG #00! %p <-> %p\n",
- 			       p4d, p4d_offset(pgd, 0));
-@@ -342,7 +266,7 @@ static pud_t *fill_pud(p4d_t *p4d, unsigned long vaddr)
- {
- 	if (p4d_none(*p4d)) {
- 		pud_t *pud = (pud_t *)spp_getpage();
--		p4d_populate(&init_mm, p4d, pud);
-+		p4d_populate_kernel(vaddr, p4d, pud);
- 		if (pud != pud_offset(p4d, 0))
- 			printk(KERN_ERR "PAGETABLE BUG #01! %p <-> %p\n",
- 			       pud, pud_offset(p4d, 0));
-@@ -795,7 +719,7 @@ phys_p4d_init(p4d_t *p4d_page, unsigned long paddr, unsigned long paddr_end,
- 					   page_size_mask, prot, init);
- 
- 		spin_lock(&init_mm.page_table_lock);
--		p4d_populate_init(&init_mm, p4d, pud, init);
-+		p4d_populate_kernel_init(vaddr, p4d, pud, init);
- 		spin_unlock(&init_mm.page_table_lock);
- 	}
- 
-@@ -808,7 +732,6 @@ __kernel_physical_mapping_init(unsigned long paddr_start,
- 			       unsigned long page_size_mask,
- 			       pgprot_t prot, bool init)
- {
--	bool pgd_changed = false;
- 	unsigned long vaddr, vaddr_start, vaddr_end, vaddr_next, paddr_last;
- 
- 	paddr_last = paddr_end;
-@@ -837,18 +760,14 @@ __kernel_physical_mapping_init(unsigned long paddr_start,
- 
- 		spin_lock(&init_mm.page_table_lock);
- 		if (pgtable_l5_enabled())
--			pgd_populate_init(&init_mm, pgd, p4d, init);
-+			pgd_populate_kernel_init(vaddr, pgd, p4d, init);
- 		else
--			p4d_populate_init(&init_mm, p4d_offset(pgd, vaddr),
--					  (pud_t *) p4d, init);
-+			p4d_populate_kernel_init(vaddr, p4d_offset(pgd, vaddr),
-+						 (pud_t *) p4d, init);
- 
- 		spin_unlock(&init_mm.page_table_lock);
--		pgd_changed = true;
- 	}
- 
--	if (pgd_changed)
--		sync_global_pgds(vaddr_start, vaddr_end - 1);
--
- 	return paddr_last;
- }
- 
-@@ -1642,8 +1561,6 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node,
- 		err = -ENOMEM;
- 	} else
- 		err = vmemmap_populate_basepages(start, end, node, NULL);
--	if (!err)
--		sync_global_pgds(start, end - 1);
- 	return err;
- }
- 
-diff --git a/arch/x86/mm/kasan_init_64.c b/arch/x86/mm/kasan_init_64.c
-index 0539efd0d216..e825952d25b2 100644
---- a/arch/x86/mm/kasan_init_64.c
-+++ b/arch/x86/mm/kasan_init_64.c
-@@ -108,7 +108,7 @@ static void __init kasan_populate_p4d(p4d_t *p4d, unsigned long addr,
- 	if (p4d_none(*p4d)) {
- 		void *p = early_alloc(PAGE_SIZE, nid, true);
- 
--		p4d_populate(&init_mm, p4d, p);
-+		p4d_populate_kernel(addr, p4d, p);
- 	}
- 
- 	pud = pud_offset(p4d, addr);
-@@ -128,7 +128,7 @@ static void __init kasan_populate_pgd(pgd_t *pgd, unsigned long addr,
- 
- 	if (pgd_none(*pgd)) {
- 		p = early_alloc(PAGE_SIZE, nid, true);
--		pgd_populate(&init_mm, pgd, p);
-+		pgd_populate_kernel(addr, pgd, p);
++		pgd_populate_kernel(addr, pgd, p4d);
  	}
  
  	p4d = p4d_offset(pgd, addr);
-@@ -255,7 +255,7 @@ static void __init kasan_shallow_populate_p4ds(pgd_t *pgd,
+ 	if (p4d_none(*p4d)) {
+ 		pud = memblock_alloc_or_panic(PUD_TABLE_SIZE, PUD_TABLE_SIZE);
+-		p4d_populate(&init_mm, p4d, pud);
++		p4d_populate_kernel(addr, p4d, pud);
+ 	}
  
- 		if (p4d_none(*p4d)) {
- 			p = early_alloc(PAGE_SIZE, NUMA_NO_NODE, true);
--			p4d_populate(&init_mm, p4d, p);
-+			p4d_populate_kernel(addr, p4d, p);
- 		}
- 	} while (p4d++, addr = next, addr != end);
+ 	pud = pud_offset(p4d, addr);
+diff --git a/mm/sparse-vmemmap.c b/mm/sparse-vmemmap.c
+index fd2ab5118e13..e275310ac708 100644
+--- a/mm/sparse-vmemmap.c
++++ b/mm/sparse-vmemmap.c
+@@ -229,7 +229,7 @@ p4d_t * __meminit vmemmap_p4d_populate(pgd_t *pgd, unsigned long addr, int node)
+ 		if (!p)
+ 			return NULL;
+ 		pud_init(p);
+-		p4d_populate(&init_mm, p4d, p);
++		p4d_populate_kernel(addr, p4d, p);
+ 	}
+ 	return p4d;
  }
-@@ -273,7 +273,7 @@ static void __init kasan_shallow_populate_pgds(void *start, void *end)
- 
- 		if (pgd_none(*pgd)) {
- 			p = early_alloc(PAGE_SIZE, NUMA_NO_NODE, true);
--			pgd_populate(&init_mm, pgd, p);
-+			pgd_populate_kernel(addr, pgd, p);
- 		}
- 
- 		/*
+@@ -241,7 +241,7 @@ pgd_t * __meminit vmemmap_pgd_populate(unsigned long addr, int node)
+ 		void *p = vmemmap_alloc_block_zero(PAGE_SIZE, node);
+ 		if (!p)
+ 			return NULL;
+-		pgd_populate(&init_mm, pgd, p);
++		pgd_populate_kernel(addr, pgd, p);
+ 	}
+ 	return pgd;
+ }
 -- 
 2.43.0
 
