@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2988C2F3C2D;
-	Fri, 11 Jul 2025 18:34:14 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE49C2E92D9;
+	Fri, 11 Jul 2025 18:35:32 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1752258855; cv=none; b=d87AlS+Q8+ZKc+H4NlqsS1pW7HsvpjydMKq7G6rMRnqNskGpc+tCJkNK98wWKHYRgiN9+02OSK0iPfxVC8qliHKKAMF5D3GaIIzoi195I4ZRoAH4obdSltLK8AQcB3lWx+xDisenWK50LHH0SL1tr0eYS3BmLjbjyUWy7Pa4f34=
+	t=1752258932; cv=none; b=bWhLyzP0iDlSITiuzvQEP0GHct2cLprXMSdVheJKWMjkWGiekiHP26WbJZGhUGIc0A7lMWT/yzvyiWCesib2RLv3liIjJla9wrekgCqBB5IQolM65qPa5eruD2IsHO1sKoETptA9A0ObPu2orXDYtPLbpyuGdGtBHd/84rYwcC0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1752258855; c=relaxed/simple;
-	bh=It/+GohocGAsvEMF/zvsp6BbZBv/a9T1VVszUI+GGqI=;
-	h=Mime-Version:Content-Type:Date:Message-Id:Cc:Subject:From:To:
-	 References:In-Reply-To; b=nVjs2n6T6nC0WwED+zmHoYHgSxD9TswfPtGu3fJkL2CfuCL0m4PsHftQdMUbhC+6AzW7gaasuYxEYMWw2ME0dFhvFEQMAXXR/gGjiDkMo73xfDCzh9mwBG1udDHxxfPNsRuY2FHg3lOan6vAoZ8iB2wb1Zl386ea9miNDqaWfoY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=JsTHyEQh; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1752258932; c=relaxed/simple;
+	bh=fkK5mrBlQnRoJ2IhD+uQlyziIqN01tapyYfzf2qJJnM=;
+	h=Mime-Version:Content-Type:Date:Message-Id:From:To:Cc:Subject:
+	 References:In-Reply-To; b=JrdI81o3h44JXmKY9CuH6DxRtkA4FtlNsefEPLKTVc3kT5LhoJ3O4gtuL7ktNrHbEuZxdE/FcKOimiXUbdYRyZ4FG65l35qGPVSPJUtLjuOQUSgz0kQzlS68yN/N2uyFp347RwZi+Reo7Bn5Ig3TiyF7I/46vlZaol9G0rGmZ/U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=feIkAqcH; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="JsTHyEQh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BDB14C4CEED;
-	Fri, 11 Jul 2025 18:34:09 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="feIkAqcH"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 76E2FC4CEED;
+	Fri, 11 Jul 2025 18:35:27 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1752258854;
-	bh=It/+GohocGAsvEMF/zvsp6BbZBv/a9T1VVszUI+GGqI=;
-	h=Date:Cc:Subject:From:To:References:In-Reply-To:From;
-	b=JsTHyEQh/g9uryvO7vC85leXnjShJBaLn/c0qEyKXapNFSZBWK28QrPQC+z+/46rw
-	 Cb3khfyxlUkHutoIbyWQXkYGuth3r+B449/hAeN0LMIg+Y1aIatDfs5RR482agUMlP
-	 33QxFBzc+rn6IuS9t4UiiJ+f2Fq9PF7aEbOqPqrmN8OYm8RzRqvkSi/ZCBFKd9pol9
-	 dgvBCQvLeXJT5Noy5QTMwZgCfJEWv0nviuchH5y/eJwtCmOhCdymNeWEHoPfp8d83z
-	 JkSnL0xg0G3edjfmscmc13ZeryWltqHfdnIWDd6/V5Te0g2iJAbj8moBLrhtR6HJOp
-	 9VEewnApye/Lg==
+	s=k20201202; t=1752258932;
+	bh=fkK5mrBlQnRoJ2IhD+uQlyziIqN01tapyYfzf2qJJnM=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=feIkAqcHhWZyEVDLlRU1khjIgmSxKdHspSi+vck2tF/LN12wYuT7DUD8FGi83/DTt
+	 vvz7/zbg4DcbkXGmmx/rCotrLMLWIMklLMywPFuSWJo0CbUYrovqMQDhAQ52Gn55lx
+	 WzN07CKoLJPNm/uoWUNVvRBXZKvGGO0Y8Xtg7+3GGrcXDlM+7OztoW1NW291SB/dec
+	 UPvXf2w8dYRpSG0HANRxaPeQoEpTmqpBHOe0FQxU7hfuGiS2LJmtsNon2YfiHxvfro
+	 pNqQQR/sUggBkviDGcfd/QfzsOQlpF81MpP36bJ4Bt9JIFg7XqOD9Za0pZ4ViKBngX
+	 8ntkFAEQ49QeQ==
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,8 +34,10 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
 Content-Type: text/plain; charset=UTF-8
-Date: Fri, 11 Jul 2025 20:34:07 +0200
-Message-Id: <DB9FX5XAK4JJ.3GTCC6Z5EHARV@kernel.org>
+Date: Fri, 11 Jul 2025 20:35:25 +0200
+Message-Id: <DB9FY5IYEKIH.3KRD160QZ8C54@kernel.org>
+From: "Benno Lossin" <lossin@kernel.org>
+To: "Boqun Feng" <boqun.feng@gmail.com>
 Cc: <linux-kernel@vger.kernel.org>, <rust-for-linux@vger.kernel.org>,
  <lkmm@lists.linux.dev>, <linux-arch@vger.kernel.org>, "Miguel Ojeda"
  <ojeda@kernel.org>, "Alex Gaynor" <alex.gaynor@gmail.com>, "Gary Guo"
@@ -52,120 +54,91 @@ Cc: <linux-kernel@vger.kernel.org>, <rust-for-linux@vger.kernel.org>,
  <torvalds@linux-foundation.org>, "Thomas Gleixner" <tglx@linutronix.de>,
  "Alan Stern" <stern@rowland.harvard.edu>
 Subject: Re: [PATCH v6 4/9] rust: sync: atomic: Add generic atomics
-From: "Benno Lossin" <lossin@kernel.org>
-To: "Boqun Feng" <boqun.feng@gmail.com>
 X-Mailer: aerc 0.20.1
 References: <20250710060052.11955-1-boqun.feng@gmail.com>
  <20250710060052.11955-5-boqun.feng@gmail.com>
- <DB92I10114UN.33MAFJVWIX4AB@kernel.org> <aHEQKBT68xvqIIjW@Mac.home>
- <DB99JZ3XMHZS.3N0GLG94JJSA9@kernel.org> <aHEWze8p40qeNBr_@Mac.home>
-In-Reply-To: <aHEWze8p40qeNBr_@Mac.home>
+ <DB92I10114UN.33MAFJVWIX4AB@kernel.org> <aHEYkg5K7koUohRo@Mac.home>
+In-Reply-To: <aHEYkg5K7koUohRo@Mac.home>
 
-On Fri Jul 11, 2025 at 3:51 PM CEST, Boqun Feng wrote:
-> On Fri, Jul 11, 2025 at 03:34:47PM +0200, Benno Lossin wrote:
->> On Fri Jul 11, 2025 at 3:22 PM CEST, Boqun Feng wrote:
->> > On Fri, Jul 11, 2025 at 10:03:07AM +0200, Benno Lossin wrote:
->> > [...]
->> >> > +
->> >> > +    /// Returns a pointer to the underlying atomic variable.
->> >> > +    ///
->> >> > +    /// Extra safety requirement on using the return pointer: the =
-operations done via the pointer
->> >> > +    /// cannot cause data races defined by [`LKMM`].
->> >>=20
->> >> I don't think this is correct. I could create an atomic and then shar=
-e
->> >> it with the C side via this function, since I have exclusive access, =
-the
->> >> writes to this pointer don't need to be atomic.
->> >>=20
->> >
->> > that's why it says "the operations done via the pointer cannot cause
->> > data races .." instead of saying "it must be atomic".
+On Fri Jul 11, 2025 at 3:58 PM CEST, Boqun Feng wrote:
+> On Fri, Jul 11, 2025 at 10:03:07AM +0200, Benno Lossin wrote:
+>> On Thu Jul 10, 2025 at 8:00 AM CEST, Boqun Feng wrote:
+>> > diff --git a/rust/kernel/sync/atomic/generic.rs b/rust/kernel/sync/ato=
+mic/generic.rs
+>> > new file mode 100644
+>> > index 000000000000..e044fe21b128
+>> > --- /dev/null
+>> > +++ b/rust/kernel/sync/atomic/generic.rs
+>> > @@ -0,0 +1,289 @@
+>> > +// SPDX-License-Identifier: GPL-2.0
+>> > +
+>> > +//! Generic atomic primitives.
+>> > +
+>> > +use super::ops::*;
+>> > +use super::ordering::*;
+>> > +use crate::build_error;
+>> > +use core::cell::UnsafeCell;
+>> > +
+>> > +/// A generic atomic variable.
+> [...]
 >>=20
->> Ah right I misread... But then the safety requirement is redundant? Data
->> races are already UB...
+>> > +///
+>> > +/// # Guarantees
+>> > +///
+>> > +/// Doing an atomic operation while holding a reference of [`Self`] w=
+on't cause a data race,
+>> > +/// this is guaranteed by the safety requirement of [`Self::from_ptr(=
+)`] and the extra safety
+>> > +/// requirement of the usage on pointers returned by [`Self::as_ptr()=
+`].
 >>=20
->> >> We also don't document additional postconditions like this... If you
->> >
->> > Please see how Rust std document their `as_ptr()`:
->> >
->> > 	https://doc.rust-lang.org/std/sync/atomic/struct.AtomicI32.html#metho=
-d.as_ptr
->> >
->> > It mentions that "Doing non-atomic reads and writes on the resulting
->> > integer can be a data race." (although the document is a bit out of
->> > date, since non-atomic read and atomic read are no longer data race no=
-w,
->> > see [1])
+>> I'd rather think we turn this into an invariant that says any operations
+>> on `self.0` through a shared reference is atomic.
 >>=20
->> That's very different from the comment you wrote though. It's not an
->> additional safety requirement, but rather a note to users of the API
->> that they should be careful with the returned pointer.
+> [...]
+>> > +/// unit-only enums:
 >>=20
->> > I think we can use the similar document structure here: providing more
->> > safety requirement on the returning pointers, and...
->> >
->> >> really would have to do it like this (which you shouldn't given the
->> >> example above), you would have to make this function `unsafe`, otherw=
-ise
->> >> there is no way to ensure that people adhere to it (since it isn't pa=
-rt
->> >> of the safety docs).
->> >>=20
->> >
->> > ...since dereferencing pointers is always `unsafe`, users need to avoi=
-d
->> > data races anyway, hence this is just additional information that help=
-s
->> > reasoning.
->>=20
->> I disagree.
->>=20
->> As mentioned above, data races are already forbidden for raw pointers.
->> We should indeed add a note that says that non-atomic operations might
->> result in data races. But that's very different from adding an
->> additional safety requirement for using the pointer.
->>=20
->> And I don't think that we can add additional safety requirements to
->> dereferencing a raw pointer without an additional `unsafe` block.
+>> What are "unit-only" enums? Do you mean enums that don't have associated
+>> data?
 >>=20
 >
-> So all your disagreement is about the "extra safety requirement" part?
-> How about I drop that:
+> Yes, I used the term mentioned at:
 >
->     /// Returns a pointer to the underlying atomic `T`.
->     pub const fn as_ptr(&self) -> *mut T {
->         self.0.get()
->     }
+> 	https://doc.rust-lang.org/reference/items/enumerations.html#r-items.enum=
+.unit-only
 
-Yes that's what I had in mind.
+Ahhh, never saw that before :)
 
-> ? I tried to add something additional information:
+>> > +///
+>> > +/// ```
+>> > +/// #[repr(i32)]
+>> > +/// enum State { Init =3D 0, Working =3D 1, Done =3D 2, }
+>> > +/// ```
+>> > +///
+>> > +/// # Safety
+>> > +///
+>> > +/// - [`Self`] must have the same size and alignment as [`Self::Repr`=
+].
+>> > +/// - [`Self`] and [`Self::Repr`] must have the [round-trip transmuta=
+bility].
+> [...]
+>> > +        let a =3D self.as_ptr().cast::<T::Repr>();
+>> > +
+>> > +        // SAFETY:
+>> > +        // - For calling the atomic_read*() function:
+>> > +        //   - `a` is a valid pointer for the function per the CAST j=
+ustification above.
+>> > +        //   - Per the type guarantees, the following atomic operatio=
+n won't cause data races.
+>>=20
+>> Which type guarantees? `Self`?
+>>=20
 >
-> /// Note that non-atomic reads and writes via the returned pointer may
-> /// cause data races if racing with atomic reads and writes per [LKMM].
->
-> but that seems redundant, because as you said, data races are UB anyway.
+> The above "# Guarantees" of `Atomic<T>`, but yeah I think it should be
+> "# Invariants".
 
-Yeah... I don't think the stdlib docs are too useful on this function:
-
-    Doing non-atomic reads and writes on the resulting integer can be a dat=
-a
-    race. This method is mostly useful for FFI, where the function signatur=
-e
-    may use *mut i32 instead of &AtomicI32.
-   =20
-    Returning an *mut pointer from a shared reference to this atomic is saf=
-e
-    because the atomic types work with interior mutability. All
-    modifications of an atomic change the value through a shared reference,
-    and can do so safely as long as they use atomic operations. Any use of
-    the returned raw pointer requires an unsafe block and still has to
-    uphold the same restriction: operations on it must be atomic.
-
-You can mention the use of this function for FFI. People might then be
-discouraged from using it for other things where it doesn't make sense.
+Yeah and if we use invariants/guarantees always mention the type that
+they are of and don't assume the reader will "know" :)
 
 ---
 Cheers,
