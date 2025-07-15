@@ -1,366 +1,178 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 9712E279DB3;
-	Mon, 14 Jul 2025 22:15:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9526D9460;
+	Tue, 15 Jul 2025 05:37:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1752531355; cv=none; b=ZW4UiQUp5deKHXZY7foRRhOhkUPZZj2FO6OuXOpwOpYA3rnxiPqLCnyemJGD39CiGFI1D92gZKn4r05VwsvTGMa2F7apyDUMgB/4cIw01uuv53lTWJ9TWiXPq90s9A8g5zC/rJgneO/C3mfCbR6vI2dEPuQEgHkSaqmvZrAMCHw=
+	t=1752557840; cv=none; b=BkjkvlFmc7ipMRdreq/sefIL+nfspa10FQRKJubaWeQN0irHvJFtLGMuhXvx3S68KnzmMQYLqzE+jEud7mGZFcQAKfrRDPQ9SwQzmEuUd8acTAPul035h45Q1tT5BfslTeedT8K6Wr9lrTy6PGmRAvMvtCRdx/HQ57/hCkxk5eY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1752531355; c=relaxed/simple;
-	bh=L0cEdguqIHIbUbQ6E6fS4wlEd7bciMBnSjOWK4P7KKk=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=JBem2szFVMOJfGu/aW8b5U4uzD7wWQU/nH7ka9X2FssWe40eAnFrEZRg2ZbRDt6evgUGGt98BwG6dnG3/02Y2wz0ovxtzoRzpMAehLkXA2SqHrbO4Kw3bIvaabY50ExKQ+jHay4jgL2LeCYt77mcEzdZAD8gct5e5IIaA5iC58s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=p1J/Gi1I; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1752557840; c=relaxed/simple;
+	bh=6J3hCrPuy++HUhp2ZStrBO9vMI6jCI0BvgNUFtgBHOI=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=V2aReAtwNHQlYSU87Y84psucLvrdkSN1qRLdXnddAuZVm28YmtzffoiSKJ6qgj2rjs5bvXnVmgCgHkyPuELj6L4PHfUErH3Pd0FjCFiQ6538zZMPOQj3YfxcVkOUhmqFxdvUmtnJ/tOzwSkca3a1WROOH6WDgwkMtC1DCWTaXuI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=OD3WsebZ; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="p1J/Gi1I"
-Received: from romank-3650.corp.microsoft.com (unknown [131.107.160.188])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 0A502201B1CD;
-	Mon, 14 Jul 2025 15:15:51 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 0A502201B1CD
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1752531351;
-	bh=W8J2zGpFifnp+H2iTJGi0AjmiMmoEjxacsnTVf87d8w=;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="OD3WsebZ"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0FCD8C4CEE3;
+	Tue, 15 Jul 2025 05:37:20 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1752557840;
+	bh=6J3hCrPuy++HUhp2ZStrBO9vMI6jCI0BvgNUFtgBHOI=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=p1J/Gi1IiywwemzamVJgSiFSarmYRsnA0lhfkUz2tcQ6qCnBETzKplaL9gRtwB5Z1
-	 V6m+bU89LbA6d7fnsGpvzi9u6tJiwvg6gs9ecnIyZ2AR39dxCtB6qJU0nqo/7AT5+F
-	 Q9M/9MGY7HovikLqcYri45wal+BMfOfvgmJZgAwQ=
-From: Roman Kisel <romank@linux.microsoft.com>
-To: alok.a.tiwari@oracle.com,
-	arnd@arndb.de,
-	bp@alien8.de,
-	corbet@lwn.net,
-	dave.hansen@linux.intel.com,
-	decui@microsoft.com,
-	haiyangz@microsoft.com,
-	hpa@zytor.com,
-	kys@microsoft.com,
-	mhklinux@outlook.com,
-	mingo@redhat.com,
-	rdunlap@infradead.org,
-	tglx@linutronix.de,
-	Tianyu.Lan@microsoft.com,
-	wei.liu@kernel.org,
+	b=OD3WsebZ74BNCweLXWK6ZDpiy1GYCnmXu2xh27/ENvLdsLSkrLFQ6mR5l1mP+HUMG
+	 MShniYJqNM1s31wMmQw8FxDkHjit4SvfyoI6wUc1GOv+6z5AyvmnmyD6drAojuQ7np
+	 fOs0Zsj44GMv/NBf25ahV1vQZSouQi2ASuXroB6TqmINioyqTPuLu3wfF4V0KxSSjK
+	 0PR45/X7hWdpadu6p9W0SgtO5vmgSyqWPe258S/Buu2TrZcJGDDU9K/fmM8I4Uoql0
+	 Hu69E3heOIAt/PsIe2m0WLAzWWr5PZ0Gr/ihpETockVthBQZ9NoB8xkXw0f93zawy2
+	 SFMRROjblWu6w==
+From: Kees Cook <kees@kernel.org>
+To: linux-kernel@vger.kernel.org,
+	Dave Martin <Dave.Martin@arm.com>
+Cc: Kees Cook <kees@kernel.org>,
+	"David S. Miller" <davem@davemloft.net>,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
+	Akihiko Odaki <akihiko.odaki@daynix.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Alexandre Ghiti <alex@ghiti.fr>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Brian Cain <bcain@kernel.org>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Chris Zankel <chris@zankel.net>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Christophe Leroy <christophe.leroy@csgroup.eu>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	Dinh Nguyen <dinguyen@kernel.org>,
+	Geert Uytterhoeven <geert@linux-m68k.org>,
+	Guo Ren <guoren@kernel.org>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Helge Deller <deller@gmx.de>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	Jonas Bonn <jonas@southpole.se>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Max Filippov <jcmvbkbc@gmail.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Paul Walmsley <paul.walmsley@sifive.com>,
+	Rich Felker <dalias@libc.org>,
+	Richard Weinberger <richard@nod.at>,
+	Russell King <linux@armlinux.org.uk>,
+	Stafford Horne <shorne@gmail.com>,
+	Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Vineet Gupta <vgupta@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Will Deacon <will@kernel.org>,
+	Yoshinori Sato <ysato@users.sourceforge.jp>,
 	linux-arch@vger.kernel.org,
-	linux-coco@lists.linux.dev,
-	linux-doc@vger.kernel.org,
-	linux-hyperv@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-csky@vger.kernel.org,
+	linux-hexagon@vger.kernel.org,
+	linux-m68k@lists.linux-m68k.org,
+	linux-mips@vger.kernel.org,
+	linux-openrisc@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linux-riscv@lists.infradead.org,
+	linux-s390@vger.kernel.org,
+	linux-sh@vger.kernel.org,
+	linux-snps-arc@lists.infradead.org,
+	linux-um@lists.infradead.org,
+	linuxppc-dev@lists.ozlabs.org,
+	loongarch@lists.linux.dev,
+	sparclinux@vger.kernel.org,
 	x86@kernel.org
-Cc: apais@microsoft.com,
-	benhill@microsoft.com,
-	bperkins@microsoft.com,
-	sunilmut@microsoft.com
-Subject: [PATCH hyperv-next v4 15/16] Drivers: hv: Support establishing the confidential VMBus connection
-Date: Mon, 14 Jul 2025 15:15:44 -0700
-Message-ID: <20250714221545.5615-16-romank@linux.microsoft.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20250714221545.5615-1-romank@linux.microsoft.com>
-References: <20250714221545.5615-1-romank@linux.microsoft.com>
+Subject: Re: [PATCH 00/23] binfmt_elf,arch/*: Use elf.h for coredump note names
+Date: Mon, 14 Jul 2025 22:37:11 -0700
+Message-Id: <175255782864.3413694.2008555655056311560.b4-ty@kernel.org>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20250701135616.29630-1-Dave.Martin@arm.com>
+References: <20250701135616.29630-1-Dave.Martin@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
 
-To establish the confidential VMBus connection the CoCo VM guest
-first attempts to connect to the VMBus server run by the paravisor.
-If that fails, the guest falls back to the non-confidential VMBus.
+On Tue, 01 Jul 2025 14:55:53 +0100, Dave Martin wrote:
+> This series aims to clean up an aspect of coredump generation:
+> 
+> ELF coredumps contain a set of notes describing the state of machine
+> registers and other information about the dumped process.
+> 
+> Notes are identified by a numeric identifier n_type and a "name"
+> string, although this terminology is somewhat misleading.  Officially,
+> the "name" of a note is really an "originator" or namespace identifier
+> that indicates how to interpret n_type [1], although in practice it is
+> often used more loosely.
+> 
+> [...]
 
-Implement that in the VMBus driver initialization.
+Applied to for-next/execve, thanks!
 
-Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
----
- drivers/hv/vmbus_drv.c | 189 ++++++++++++++++++++++++++++-------------
- 1 file changed, 130 insertions(+), 59 deletions(-)
+[01/23] regset: Fix kerneldoc for struct regset_get() in user_regset
+        https://git.kernel.org/kees/c/6fd9e1aa0784
+[02/23] regset: Add explicit core note name in struct user_regset
+        https://git.kernel.org/kees/c/85a7f9cbf8a8
+[03/23] binfmt_elf: Dump non-arch notes with strictly matching name and type
+        https://git.kernel.org/kees/c/9674a1be4dd5
+[04/23] ARC: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/237dc8d79627
+[05/23] ARM: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/49b849d11cd1
+[06/23] arm64: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/87b0d081dc98
+[07/23] csky: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/2c2fb861fc59
+[08/23] hexagon: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/55821111b1b3
+[09/23] LoongArch: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/1260e3b13584
+[10/23] m68k: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/e572168e8d2a
+[11/23] MIPS: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/18bd88faa246
+[12/23] nios2: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/8368cd0e4636
+[13/23] openrisc: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/10cd957a895f
+[14/23] parisc: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/92acdd819b5d
+[15/23] powerpc/ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/307035acefbd
+[16/23] riscv: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/c9502cc7bef5
+[17/23] s390/ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/d6a883cb40fc
+[18/23] sh: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/afe74eecd88f
+[19/23] sparc: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/c9d4cb25e94e
+[20/23] x86/ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/3de0414dec7b
+[21/23] um: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/40d3a88594b5
+[22/23] xtensa: ptrace: Use USER_REGSET_NOTE_TYPE() to specify regset note names
+        https://git.kernel.org/kees/c/cb32fb722f4b
+[23/23] binfmt_elf: Warn on missing or suspicious regset note names
+        https://git.kernel.org/kees/c/a55128d392e8
 
-diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index 13aca5abc7d8..53be3157e22c 100644
---- a/drivers/hv/vmbus_drv.c
-+++ b/drivers/hv/vmbus_drv.c
-@@ -1057,12 +1057,9 @@ static void vmbus_onmessage_work(struct work_struct *work)
- 	kfree(ctx);
- }
- 
--void vmbus_on_msg_dpc(unsigned long data)
-+static void __vmbus_on_msg_dpc(void *message_page_addr)
- {
--	struct hv_per_cpu_context *hv_cpu = (void *)data;
--	void *page_addr = hv_cpu->hyp_synic_message_page;
--	struct hv_message msg_copy, *msg = (struct hv_message *)page_addr +
--				  VMBUS_MESSAGE_SINT;
-+	struct hv_message msg_copy, *msg;
- 	struct vmbus_channel_message_header *hdr;
- 	enum vmbus_channel_message_type msgtype;
- 	const struct vmbus_channel_message_table_entry *entry;
-@@ -1070,6 +1067,10 @@ void vmbus_on_msg_dpc(unsigned long data)
- 	__u8 payload_size;
- 	u32 message_type;
- 
-+	if (!message_page_addr)
-+		return;
-+	msg = (struct hv_message *)message_page_addr + VMBUS_MESSAGE_SINT;
-+
- 	/*
- 	 * 'enum vmbus_channel_message_type' is supposed to always be 'u32' as
- 	 * it is being used in 'struct vmbus_channel_message_header' definition
-@@ -1195,6 +1196,14 @@ void vmbus_on_msg_dpc(unsigned long data)
- 	vmbus_signal_eom(msg, message_type);
- }
- 
-+void vmbus_on_msg_dpc(unsigned long data)
-+{
-+	struct hv_per_cpu_context *hv_cpu = (void *)data;
-+
-+	__vmbus_on_msg_dpc(hv_cpu->hyp_synic_message_page);
-+	__vmbus_on_msg_dpc(hv_cpu->para_synic_message_page);
-+}
-+
- #ifdef CONFIG_PM_SLEEP
- /*
-  * Fake RESCIND_CHANNEL messages to clean up hv_sock channels by force for
-@@ -1233,21 +1242,19 @@ static void vmbus_force_channel_rescinded(struct vmbus_channel *channel)
- #endif /* CONFIG_PM_SLEEP */
- 
- /*
-- * Schedule all channels with events pending
-+ * Schedule all channels with events pending.
-+ * The event page can be directly checked to get the id of
-+ * the channel that has the interrupt pending.
-  */
--static void vmbus_chan_sched(struct hv_per_cpu_context *hv_cpu)
-+static void vmbus_chan_sched(void *event_page_addr)
- {
- 	unsigned long *recv_int_page;
- 	u32 maxbits, relid;
-+	union hv_synic_event_flags *event;
- 
--	/*
--	 * The event page can be directly checked to get the id of
--	 * the channel that has the interrupt pending.
--	 */
--	void *page_addr = hv_cpu->hyp_synic_event_page;
--	union hv_synic_event_flags *event
--		= (union hv_synic_event_flags *)page_addr +
--					 VMBUS_MESSAGE_SINT;
-+	if (!event_page_addr)
-+		return;
-+	event = (union hv_synic_event_flags *)event_page_addr + VMBUS_MESSAGE_SINT;
- 
- 	maxbits = HV_EVENT_FLAGS_COUNT;
- 	recv_int_page = event->flags;
-@@ -1255,6 +1262,11 @@ static void vmbus_chan_sched(struct hv_per_cpu_context *hv_cpu)
- 	if (unlikely(!recv_int_page))
- 		return;
- 
-+	/*
-+	 * Suggested-by: Michael Kelley <mhklinux@outlook.com>
-+	 * One possible optimization would be to keep track of the largest relID that's in use,
-+	 * and only scan up to that relID.
-+	 */
- 	for_each_set_bit(relid, recv_int_page, maxbits) {
- 		void (*callback_fn)(void *context);
- 		struct vmbus_channel *channel;
-@@ -1318,26 +1330,35 @@ static void vmbus_chan_sched(struct hv_per_cpu_context *hv_cpu)
- 	}
- }
- 
--static void vmbus_isr(void)
-+static void vmbus_message_sched(struct hv_per_cpu_context *hv_cpu, void *message_page_addr)
- {
--	struct hv_per_cpu_context *hv_cpu
--		= this_cpu_ptr(hv_context.cpu_context);
--	void *page_addr;
- 	struct hv_message *msg;
- 
--	vmbus_chan_sched(hv_cpu);
--
--	page_addr = hv_cpu->hyp_synic_message_page;
--	msg = (struct hv_message *)page_addr + VMBUS_MESSAGE_SINT;
-+	if (!message_page_addr)
-+		return;
-+	msg = (struct hv_message *)message_page_addr + VMBUS_MESSAGE_SINT;
- 
- 	/* Check if there are actual msgs to be processed */
- 	if (msg->header.message_type != HVMSG_NONE) {
- 		if (msg->header.message_type == HVMSG_TIMER_EXPIRED) {
- 			hv_stimer0_isr();
- 			vmbus_signal_eom(msg, HVMSG_TIMER_EXPIRED);
--		} else
-+		} else {
- 			tasklet_schedule(&hv_cpu->msg_dpc);
-+		}
- 	}
-+}
-+
-+static void vmbus_isr(void)
-+{
-+	struct hv_per_cpu_context *hv_cpu
-+		= this_cpu_ptr(hv_context.cpu_context);
-+
-+	vmbus_chan_sched(hv_cpu->hyp_synic_event_page);
-+	vmbus_chan_sched(hv_cpu->para_synic_event_page);
-+
-+	vmbus_message_sched(hv_cpu, hv_cpu->hyp_synic_message_page);
-+	vmbus_message_sched(hv_cpu, hv_cpu->para_synic_message_page);
- 
- 	add_interrupt_randomness(vmbus_interrupt);
- }
-@@ -1355,6 +1376,59 @@ static void vmbus_percpu_work(struct work_struct *work)
- 	hv_synic_init(cpu);
- }
- 
-+static int vmbus_alloc_synic_and_connect(void)
-+{
-+	int ret, cpu;
-+	struct work_struct __percpu *works;
-+	int hyperv_cpuhp_online;
-+
-+	ret = hv_synic_alloc();
-+	if (ret < 0)
-+		goto err_alloc;
-+
-+	works = alloc_percpu(struct work_struct);
-+	if (!works) {
-+		ret = -ENOMEM;
-+		goto err_alloc;
-+	}
-+
-+	/*
-+	 * Initialize the per-cpu interrupt state and stimer state.
-+	 * Then connect to the host.
-+	 */
-+	cpus_read_lock();
-+	for_each_online_cpu(cpu) {
-+		struct work_struct *work = per_cpu_ptr(works, cpu);
-+
-+		INIT_WORK(work, vmbus_percpu_work);
-+		schedule_work_on(cpu, work);
-+	}
-+
-+	for_each_online_cpu(cpu)
-+		flush_work(per_cpu_ptr(works, cpu));
-+
-+	/* Register the callbacks for possible CPU online/offline'ing */
-+	ret = cpuhp_setup_state_nocalls_cpuslocked(CPUHP_AP_ONLINE_DYN, "hyperv/vmbus:online",
-+						   hv_synic_init, hv_synic_cleanup);
-+	cpus_read_unlock();
-+	free_percpu(works);
-+	if (ret < 0)
-+		goto err_alloc;
-+	hyperv_cpuhp_online = ret;
-+
-+	ret = vmbus_connect();
-+	if (ret)
-+		goto err_connect;
-+	return 0;
-+
-+err_connect:
-+	cpuhp_remove_state(hyperv_cpuhp_online);
-+	return -ENODEV;
-+err_alloc:
-+	hv_synic_free();
-+	return -ENOMEM;
-+}
-+
- /*
-  * vmbus_bus_init -Main vmbus driver initialization routine.
-  *
-@@ -1365,8 +1439,7 @@ static void vmbus_percpu_work(struct work_struct *work)
-  */
- static int vmbus_bus_init(void)
- {
--	int ret, cpu;
--	struct work_struct __percpu *works;
-+	int ret;
- 
- 	ret = hv_init();
- 	if (ret != 0) {
-@@ -1401,41 +1474,42 @@ static int vmbus_bus_init(void)
- 		}
- 	}
- 
--	ret = hv_synic_alloc();
--	if (ret)
--		goto err_alloc;
--
--	works = alloc_percpu(struct work_struct);
--	if (!works) {
--		ret = -ENOMEM;
--		goto err_alloc;
--	}
--
- 	/*
--	 * Initialize the per-cpu interrupt state and stimer state.
--	 * Then connect to the host.
-+	 * Attempt to establish the confidential VMBus connection first if this VM is
-+	 * a hardware confidential VM, and the paravisor is present.
-+	 *
-+	 * All scenarios here are:
-+	 *	1. No paravisor,
-+	 *  2. Paravisor without VMBus relay, no hardware isolation,
-+	 *  3. Paravisor without VMBus relay, with hardware isolation,
-+	 *  4. Paravisor with VMBus relay, no hardware isolation,
-+	 *  5. Paravisor with VMBus relay, with hardware isolation.
-+	 *
-+	 * In the cloud, scenarios 1, 4, 5 are most common, and outside the cloud,
-+	 * scenario 1 should be the most common at the moment. Detecting of the Confidential
-+	 * VMBus support below takes that into account running `vmbus_alloc_synic_and_connect()`
-+	 * only once (barring any faults not related to VMBus) in these cases. That is true
-+	 * for the scenario 2, too, albeit it might be not as feature-rich as 1, 4, 5.
-+	 *
-+	 * However, the code will be doing much more work in scenario 3 where it will have to
-+	 * first initialize lots of structures for every CPU only to likely tear them down later
-+	 * and start again, now without attempting to use Confidential VMBus, thus taking a
-+	 * performance hit. Such systems are rather uncomoon today, don't support more than
-+	 * ~300 CPUs, and are rarely used with many dozens of CPUs. As the time goes on, that
-+	 * will be even less common. Hence, the preference is to not specialize the code for
-+	 * that scenario.
- 	 */
--	cpus_read_lock();
--	for_each_online_cpu(cpu) {
--		struct work_struct *work = per_cpu_ptr(works, cpu);
-+	ret = -ENODEV;
-+	if (ms_hyperv.paravisor_present && (hv_isolation_type_tdx() || hv_isolation_type_snp())) {
-+		is_confidential = true;
-+		ret = vmbus_alloc_synic_and_connect();
-+		is_confidential = !ret;
- 
--		INIT_WORK(work, vmbus_percpu_work);
--		schedule_work_on(cpu, work);
-+		pr_info("VMBus is confidential: %d\n", is_confidential);
- 	}
- 
--	for_each_online_cpu(cpu)
--		flush_work(per_cpu_ptr(works, cpu));
--
--	/* Register the callbacks for possible CPU online/offline'ing */
--	ret = cpuhp_setup_state_nocalls_cpuslocked(CPUHP_AP_ONLINE_DYN, "hyperv/vmbus:online",
--						   hv_synic_init, hv_synic_cleanup);
--	cpus_read_unlock();
--	free_percpu(works);
--	if (ret < 0)
--		goto err_alloc;
--	hyperv_cpuhp_online = ret;
--
--	ret = vmbus_connect();
-+	if (!is_confidential)
-+		ret = vmbus_alloc_synic_and_connect();
- 	if (ret)
- 		goto err_connect;
- 
-@@ -1451,9 +1525,6 @@ static int vmbus_bus_init(void)
- 	return 0;
- 
- err_connect:
--	cpuhp_remove_state(hyperv_cpuhp_online);
--err_alloc:
--	hv_synic_free();
- 	if (vmbus_irq == -1) {
- 		hv_remove_vmbus_handler();
- 	} else {
+Take care,
+
 -- 
-2.43.0
+Kees Cook
 
