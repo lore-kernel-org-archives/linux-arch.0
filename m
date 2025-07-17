@@ -1,233 +1,259 @@
-Received: from r-passerv.ralfj.de (r-passerv.ralfj.de [109.230.236.95])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f175.google.com (mail-pl1-f175.google.com [209.85.214.175])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A39FD286D46;
-	Wed, 16 Jul 2025 19:42:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=109.230.236.95
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6DBC5277CBD;
+	Thu, 17 Jul 2025 08:07:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1752694955; cv=none; b=fAy2f/OD3Wu9s92Kz4bXFKjmazFqGSB9j89z+xY15VQd/Ga66oe5aw/0LG9GTMLlYh1CX9IliG5AOTegXPkX7ihYHqwJqQeFk8NaK++4PTYivnDo85vwej9Nyf8NEDd5BYQl6MuouwL0+8Fsxg6isYPVq3a4OXGKz00emS24am8=
+	t=1752739623; cv=none; b=ChuAyqu5L2zzjFq4vuq6izpCt0nw8XVe7z9JDbzea7zEQTF2LjICMohc7dALbBQ+WV8aRJ3URYFacqRzVqw+jAgjdr8Q6gQK8wO0QA4ruUuY8bgIsMRXULxSKlaMCpzP3lX4twXSbeiXEoVs/PhAhfyi7m/JjaSJQxdrmD19McE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1752694955; c=relaxed/simple;
-	bh=Pw1fBsv5/TECiWrU0V6LsQwsUBawWDhGo6/SS9Wf7zo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=kfxUdUarQsbEf2FnIccjYqddC6rc+qEj7CifX63hAOzfeSDlTWqNuinOFm3wYgaKvql5RXTmq8tH8XuqBpiuzHsOgd3z7TSSTbAfLeEJ9rrCtENOXhd92NmW4Cmiv3rZyo15HhJfK5f2hJkzdIf8dWgWOhr/YEuVcCqUWnzbTxA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ralfj.de; spf=pass smtp.mailfrom=ralfj.de; dkim=pass (1024-bit key) header.d=ralfj.de header.i=@ralfj.de header.b=ylVMaZtV; arc=none smtp.client-ip=109.230.236.95
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ralfj.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ralfj.de
+	s=arc-20240116; t=1752739623; c=relaxed/simple;
+	bh=U3rEHkMFDVqeYNM1YK+WP0qvm2uVyLOr+spTs97POZ4=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=WtYOGT78w9i67T19RT8j/W/iXLUH6MVnIDE5QzY75z3s3481uoZx3vD+f58UN/jB9czZ0nv6tmEM4jT1m7WKdgJTEZwZTPfSjfRaKmCg0avpI4Bivt1f2rSLEpZIwXo0Xjcd0AEaxER2NBIYfSNH/IqZ8+RfzfLZNhZ8oH9IxrM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=UuJZK+r0; arc=none smtp.client-ip=209.85.214.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ralfj.de header.i=@ralfj.de header.b="ylVMaZtV"
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=ralfj.de; s=mail;
-	t=1752694946; bh=Pw1fBsv5/TECiWrU0V6LsQwsUBawWDhGo6/SS9Wf7zo=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=ylVMaZtVIVVxtiHibKwBdHuJo51ETftah3+pTgLa5GYZznGt01W6s1+Nuv8au7AjZ
-	 Z5gl7LuPDtR7FNNBiOF6E8xVYUYkXKgJS4Uqz0BA2815O2t9gx5Wh2fajPpVp0biES
-	 7uvth2RvhoqRIM+aeIAuBb8QLQBK0SoznmiuuwIk=
-Received: from [192.168.178.20] (53.206.40.145.ftth.as8758.net [145.40.206.53])
-	by r-passerv.ralfj.de (Postfix) with ESMTPSA id EE21020513AF;
-	Wed, 16 Jul 2025 21:42:25 +0200 (CEST)
-Message-ID: <5ac8d7e3-d778-4ef8-a7d7-1296ffda5dae@ralfj.de>
-Date: Wed, 16 Jul 2025 21:42:25 +0200
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="UuJZK+r0"
+Received: by mail-pl1-f175.google.com with SMTP id d9443c01a7336-234f17910d8so5694295ad.3;
+        Thu, 17 Jul 2025 01:07:01 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1752739621; x=1753344421; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=9tsmt0+LF0mgELoIzcxHsmAHqp6eKZ3MWd8Pt639i0Q=;
+        b=UuJZK+r0CvJViRbZMiFvJE/YKPeo+l+r7t1/8LhSQRhAh3Bf0HJXcC2DkvxeqMgmMB
+         7syEOdSi53GypkoGuTTemhH/OlXmPrjM2zuoRbSETKdXtk9oUykuiBdJi7UERglB5nuU
+         IIFBHPAkobXM+/JOoDYiekcJR5D4AifobM9z1IkTFuBmdXCQbA1FIBwY8M4DzljgeDT4
+         5FH2c/XHUn3412wa3RT4pbVwHHXyfiBc4+C74SFVS8tw42tcmyVhfN19O0SJZG3sK8XX
+         jgMnzrgeGXlwonVdW7vUTW+fTpftXMg8DLtsK05cBoaPOoIB0KWWvpgqxYRBzfzY53Km
+         d40Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1752739621; x=1753344421;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=9tsmt0+LF0mgELoIzcxHsmAHqp6eKZ3MWd8Pt639i0Q=;
+        b=EvZGXC2TPpBFlMRk9iAsEkTUSw2WhPTQBXQzw0IkhLq/uZfUdVVsvoqTBil/s5gtSk
+         xpP3M51sNHXc8o7BMHTibG/gYDsR48c3h7/L1FmNpS89iSnHgrtNY8yescu++peMc4M8
+         3LVs/ILV9Wtg/EyEsVNtxppMJw0yq2IJWeuVj8p3avNwf+2fgK6WCmQv9ASxIwHU2GwO
+         ZdSS0oguHocPTjcFR8OsDE6XNCAUjP+dbuzY1nSHh2LoZe3rihdX9AHElOBtziV2z9UG
+         Sz82nWvxzOchN5m/2ENCyjawJOyHEQong6h388E8uMow8iZsU2xASBOUe3d7/I9vMex+
+         yayg==
+X-Forwarded-Encrypted: i=1; AJvYcCUZGTlJt7ef8HVRhoryuhEw7EM1nXLRaCZru2ruCPcdGegHugUX7rEtfqcx45KkK9QUS0P1@vger.kernel.org, AJvYcCVG8G25F4twLFqdLb/Fi86LeNHatVMnCaW8T6T2Jo3N9tagcK7fa2rkzhYnc7k3g1uxVplnO6zcGCMs@vger.kernel.org, AJvYcCVnTkFubW/nk5BcRQM/wT191bI45LnusyUSU3GQLCGPDpe7UdSSnb/lBCIQ82VZtNuO98eQ3i/6tbZI5A==@vger.kernel.org, AJvYcCX4fx1Pcn1qsCYfkpZz9Uu9khr3XyULiAcxlny5zsKfUeRBBDUqFfu//lxJY6QOVp4eZ1U=@vger.kernel.org
+X-Gm-Message-State: AOJu0Yx6ihvgvCYTE1iv6NYZHWkWVbHAjth2o7PR+6HWbEUclTlKtXEr
+	S2jTcK1qlyE4Odxm9TNT2Gc0DrlFX0EhPNkkZOb29gjynxZRN8w4IrVl
+X-Gm-Gg: ASbGncusT2i5J64zo/9qRAR+c1CkocvIEkBuC7u7AhnHG0sUQX5+Lxk8PXEO6luXick
+	bc9j3Ze4qceJcWl7xyYwS034xMfX3IKdkafz+rdZCKKw5K7ANLnMpFBkDYb0X+Ifam8ujt+iO4G
+	VY6sHXxV4A1IYAN7TjWNG6l365hVsGJtYuQU9lTaiD+FYi2+2Hr3wahib87hTI4dCai/ed8wsX4
+	ypF5BW4XSyNroqsVWHNIdqygkAYsY6Qt1jTGvyeJgRxDJcWkw1RxT8HoA452MqJRjI/l0e7Ywpj
+	pKjinD8pxuIuQOk0FgXuPFzm2fykUUxeQKD9vrt5Jns/6pP5bj0az51VH6jWPBbbLuy6SFfmxZ4
+	tJveXvO7GO0TSIFLIqB2P1w==
+X-Google-Smtp-Source: AGHT+IFDRHT5gKk69iHNgFOk4RqIEj9LmjlaBFo7IYhVrJNGWIeWcgsmkpyoZXnBkXuTx/sDripipA==
+X-Received: by 2002:a17:902:fc43:b0:234:f15b:f158 with SMTP id d9443c01a7336-23e24ed60f5mr73096245ad.13.1752739620354;
+        Thu, 17 Jul 2025 01:07:00 -0700 (PDT)
+Received: from archie.me ([103.124.138.155])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-23de433e527sm142131915ad.187.2025.07.17.01.06.58
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 17 Jul 2025 01:06:59 -0700 (PDT)
+Received: by archie.me (Postfix, from userid 1000)
+	id E0828401640C; Thu, 17 Jul 2025 15:06:53 +0700 (WIB)
+From: Bagas Sanjaya <bagasdotme@gmail.com>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>,
+	Linux Documentation <linux-doc@vger.kernel.org>,
+	Linux RCU <rcu@vger.kernel.org>,
+	Linux CPU Architectures Development <linux-arch@vger.kernel.org>,
+	Linux LKMM <lkmm@lists.linux.dev>,
+	Linux KVM <kvm@vger.kernel.org>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>,
+	Frederic Weisbecker <frederic@kernel.org>,
+	Neeraj Upadhyay <neeraj.upadhyay@kernel.org>,
+	Joel Fernandes <joelagnelf@nvidia.com>,
+	Josh Triplett <josh@joshtriplett.org>,
+	Boqun Feng <boqun.feng@gmail.com>,
+	Uladzislau Rezki <urezki@gmail.com>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Lai Jiangshan <jiangshanlai@gmail.com>,
+	Zqiang <qiang.zhang@linux.dev>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Alan Stern <stern@rowland.harvard.edu>,
+	Andrea Parri <parri.andrea@gmail.com>,
+	Will Deacon <will@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	David Howells <dhowells@redhat.com>,
+	Jade Alglave <j.alglave@ucl.ac.uk>,
+	Luc Maranget <luc.maranget@inria.fr>,
+	Akira Yokosawa <akiyks@gmail.com>,
+	Daniel Lustig <dlustig@nvidia.com>,
+	Mark Rutland <mark.rutland@arm.com>,
+	Ingo Molnar <mingo@redhat.com>,
+	Waiman Long <longman@redhat.com>,
+	Paolo Bonzini <pbonzini@redhat.com>,
+	Bagas Sanjaya <bagasdotme@gmail.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Tejun Heo <tj@kernel.org>,
+	"Mike Rapoport (Microsoft)" <rppt@kernel.org>,
+	Changyuan Lyu <changyuanl@google.com>,
+	Dan Williams <dan.j.williams@intel.com>,
+	Xavier <xavier_qy@163.com>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	Maarten Lankhorst <dev@lankhorst.se>,
+	Christian Brauner <brauner@kernel.org>
+Subject: [PATCH 2/4] Documentation: atomic_bitops: Convert to reST format
+Date: Thu, 17 Jul 2025 15:06:15 +0700
+Message-ID: <20250717080617.35577-3-bagasdotme@gmail.com>
+X-Mailer: git-send-email 2.50.1
+In-Reply-To: <20250717080617.35577-1-bagasdotme@gmail.com>
+References: <20250717080617.35577-1-bagasdotme@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v6 8/9] rust: sync: Add memory barriers
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Benno Lossin <lossin@kernel.org>, linux-kernel@vger.kernel.org,
- rust-for-linux@vger.kernel.org, lkmm@lists.linux.dev,
- linux-arch@vger.kernel.org, Miguel Ojeda <ojeda@kernel.org>,
- Alex Gaynor <alex.gaynor@gmail.com>, Gary Guo <gary@garyguo.net>,
- =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>,
- Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>,
- Trevor Gross <tmgross@umich.edu>, Danilo Krummrich <dakr@kernel.org>,
- Will Deacon <will@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Mark Rutland <mark.rutland@arm.com>,
- Wedson Almeida Filho <wedsonaf@gmail.com>,
- Viresh Kumar <viresh.kumar@linaro.org>, Lyude Paul <lyude@redhat.com>,
- Ingo Molnar <mingo@kernel.org>, Mitchell Levy <levymitchell0@gmail.com>,
- "Paul E. McKenney" <paulmck@kernel.org>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
- Linus Torvalds <torvalds@linux-foundation.org>,
- Thomas Gleixner <tglx@linutronix.de>, Alan Stern <stern@rowland.harvard.edu>
-References: <20250710060052.11955-1-boqun.feng@gmail.com>
- <20250710060052.11955-9-boqun.feng@gmail.com>
- <DB93NWEAK46D.2YW5P9MSAWVCN@kernel.org> <aHFWCsOfcGLSUPAP@tardis-2.local>
- <4d373b56-0f36-4f8a-9052-cee38b90f59b@ralfj.de> <aHZyC4xr7jgN6Mgv@Mac.home>
- <371882d2-3c31-4c5f-a12f-22945027ee33@ralfj.de> <aHZ6Rp4qdCXUoIZy@Mac.home>
-Content-Language: en-US, de-DE
-From: Ralf Jung <post@ralfj.de>
-In-Reply-To: <aHZ6Rp4qdCXUoIZy@Mac.home>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3923; i=bagasdotme@gmail.com; h=from:subject; bh=U3rEHkMFDVqeYNM1YK+WP0qvm2uVyLOr+spTs97POZ4=; b=owGbwMvMwCX2bWenZ2ig32LG02pJDBkVa5MTHyX29kj/kI2qCgg0q/lUFHmwhit6pT9jlmLez YUFX+d1lLIwiHExyIopskxK5Gs6vctI5EL7WkeYOaxMIEMYuDgFYCIp1xgZVvSb3tv6Zh3vIYZL 82sr7tezqahkng65dqrq902+n6fe7WNkOLPqpLfAjdMMlme+n+0JF5yQ7jrL5c61eUlnF5yfMm/ CXQYA
+X-Developer-Key: i=bagasdotme@gmail.com; a=openpgp; fpr=701B806FDCA5D3A58FFB8F7D7C276C64A5E44A1D
+Content-Transfer-Encoding: 8bit
 
-Hi Boqun,
+Convert atomic bitops documentation to reST syntax:
 
-On 15.07.25 17:56, Boqun Feng wrote:
-> On Tue, Jul 15, 2025 at 05:35:47PM +0200, Ralf Jung wrote:
->> Hi all,
->>
->> On 15.07.25 17:21, Boqun Feng wrote:
->>> On Mon, Jul 14, 2025 at 05:42:39PM +0200, Ralf Jung wrote:
->>>> Hi all,
->>>>
->>>> On 11.07.25 20:20, Boqun Feng wrote:
->>>>> On Fri, Jul 11, 2025 at 10:57:48AM +0200, Benno Lossin wrote:
->>>>>> On Thu Jul 10, 2025 at 8:00 AM CEST, Boqun Feng wrote:
->>>>>>> diff --git a/rust/kernel/sync/barrier.rs b/rust/kernel/sync/barrier.rs
->>>>>>> new file mode 100644
->>>>>>> index 000000000000..df4015221503
->>>>>>> --- /dev/null
->>>>>>> +++ b/rust/kernel/sync/barrier.rs
->>>>>>> @@ -0,0 +1,65 @@
->>>>>>> +// SPDX-License-Identifier: GPL-2.0
->>>>>>> +
->>>>>>> +//! Memory barriers.
->>>>>>> +//!
->>>>>>> +//! These primitives have the same semantics as their C counterparts: and the precise definitions
->>>>>>> +//! of semantics can be found at [`LKMM`].
->>>>>>> +//!
->>>>>>> +//! [`LKMM`]: srctree/tools/memory-model/
->>>>>>> +
->>>>>>> +/// A compiler barrier.
->>>>>>> +///
->>>>>>> +/// A barrier that prevents compiler from reordering memory accesses across the barrier.
->>>>>>> +pub(crate) fn barrier() {
->>>>>>> +    // By default, Rust inline asms are treated as being able to access any memory or flags, hence
->>>>>>> +    // it suffices as a compiler barrier.
->>>>>>
->>>>>> I don't know about this, but it also isn't my area of expertise... I
->>>>>> think I heard Ralf talk about this at Rust Week, but I don't remember...
->>>>>>
->>>>>
->>>>> Easy, let's Cc Ralf ;-)
->>>>>
->>>>> Ralf, I believe the question here is:
->>>>>
->>>>> In kernel C, we define a compiler barrier (barrier()), which is
->>>>> implemented as:
->>>>>
->>>>> # define barrier() __asm__ __volatile__("": : :"memory")
->>>>>
->>>>> Now we want to have a Rust version, and I think an empty `asm!()` should
->>>>> be enough as an equivalent as a barrier() in C, because an empty
->>>>> `asm!()` in Rust implies "memory" as the clobber:
->>>>>
->>>>> 	https://godbolt.org/z/3z3fnWYjs
->>>>>
->>>>> ?
->>>>>
->>>>> I know you have some opinions on C++ compiler_fence() [1]. But in LKMM,
->>>>> barrier() and other barriers work for all memory accesses not just
->>>>> atomics, so the problem "So, if your program contains no atomic
->>>>> accesses, but some atomic fences, those fences do nothing." doesn't
->>>>> exist for us. And our barrier() is strictly weaker than other barriers.
->>>>>
->>>>> And based on my understanding of the consensus on Rust vs LKMM, "do
->>>>> whatever kernel C does and rely on whatever kernel C relies" is the
->>>>> general suggestion, so I think an empty `asm!()` works here. Of course
->>>>> if in practice, we find an issue, I'm happy to look for solutions ;-)
->>>>>
->>>>> Thoughts?
->>>>>
->>>>> [1]: https://github.com/rust-lang/unsafe-code-guidelines/issues/347
->>>>
->>>> If I understood correctly, this is about using "compiler barriers" to order
->>>> volatile accesses that the LKMM uses in lieu of atomic accesses?
->>>> I can't give a principled answer here, unfortunately -- as you know, the
->>>> mapping of LKMM through the compiler isn't really in a state where we can
->>>> make principled formal statements. And making principled formal statements
->>>> is my main expertise so I am a bit out of my depth here. ;)
->>>>
->>>
->>> Understood ;-)
->>>
->>>> So I agree with your 2nd paragraph: I would say just like the fact that you
->>>> are using volatile accesses in the first place, this falls under "do
->>>> whatever the C code does, it shouldn't be any more broken in Rust than it is
->>>> in C".
->>>>
->>>> However, saying that it in general "prevents reordering all memory accesses"
->>>> is unlikely to be fully correct -- if the compiler can prove that the inline
->>>> asm block could not possibly have access to a local variable (e.g. because
->>>> it never had its address taken), its accesses can still be reordered. This
->>>> applies both to C compilers and Rust compilers. Extra annotations such as
->>>> `noalias` (or `restrict` in C) can also give rise to reorderings around
->>>> arbitrary code, including such barriers. This is not a problem for
->>>> concurrent code since it would anyway be wrong to claim that some pointer
->>>> doesn't have aliases when it is accessed by multiple threads, but it shows
->>>
->>> Right, it shouldn't be a problem for most of the concurrent code, and
->>> thank you for bringing this up. I believe we can rely on the barrier
->>> behavior if the memory accesses on both sides are done via aliased
->>> references/pointers, which should be the same as C code relies on.
->>>
->>> One thing though is we don't use much of `restrict` in kernel C, so I
->>> wonder the compiler's behavior in the following code:
->>>
->>>       let mut x = KBox::new_uninit(GFP_KERNEL)?;
->>>       // ^ KBox is our own Box implementation based on kmalloc(), and it
->>>       // accepts a flag in new*() functions for different allocation
->>>       // behavior (can sleep or not, etc), of course we want it to behave
->>>       // like an std Box in term of aliasing.
->>>
->>>       let x = KBox::write(x, foo); // A
->>>
->>>       smp_mb():
->>>         // using Rust asm!() for explanation, it's really implemented in
->>>         // C.
->>>         asm!("mfence");
->>>
->>>       let a: &Atomic<*mut Foo> = ...; // `a` was null initially.
->>>
->>>       a.store(KBox::into_raw(x), Relaxed); // B
->>>
->>> Now we obviously want A and B to be ordered, because smp_mb() is
->>> supposed to be stronger than Release ordering. So if another thread does
->>> an Acquire read or uses address dependency:
->>>
->>>       let a: &Atomic<*mut Foo> = ...;
->>>       let foo_ptr = a.load(Acquire); // or load(Relaxed);
->>>
->>>       if !foo_ptr.is_null() {
->>>           let y: KBox<Foo> = unsafe { KBox::from_raw(foo_ptr) };
->>> 	// ^ this should be safe.
->>>       }
->>>
->>> Is it something Rust AM could guarantee?
->>
->> If we pretend these are normal Rust atomics, and we look at the acquire
->> read, then yeah that should work -- the asm block can act like a release
->> fence. With the LKMM, it's not a "guarantee" in the same sense any more
->> since it lacks the formal foundations, but "it shouldn't be worse than in
->> C".
-> 
->>
->> The Rust/C/C++ memory models do not allow that last example with a relaxed
->> load and an address dependency. In C/C++ this requires "consume", which Rust
-> 
-> Sorry I wasn't clear, of course I wasn't going to start a discussion
-> about address dependency and formal guarantee about it ;-)
-> 
-> What I meant was the "prevent reordering A and B because of the asm!()"
-> at the release side, because normally we won't use a restrict pointer to
-> a kmalloc() result, so I'm curious whether Box make the behavior
-> different:
-> 
->      let mut b = Box::new_uninit(...);
->      let b = Box::write(b, ...); // <- this is a write done via noalias
->      asm!(...);
->      a.store(Box::from_raw(b), Relaxed);
-> 
-> But looks like we can just model the asm() as a Rust release fence, so
-> it should work. Thanks!
+* Sentence-case headings
+* List API functions and their semantics in bullet list
 
-Yeah... this is actually a subtle case and there are some adjacent compiler bugs 
-(when doing the same with local variables, not Box), but those are bugs (and 
-they affect both C and Rust).
+Signed-off-by: Bagas Sanjaya <bagasdotme@gmail.com>
+---
+ .../atomic_bitops.rst}                        | 39 +++++++++----------
+ Documentation/core-api/index.rst              |  2 +-
+ .../core-api/wrappers/atomic_bitops.rst       | 18 ---------
+ 3 files changed, 20 insertions(+), 39 deletions(-)
+ rename Documentation/{atomic_bitops.txt => core-api/atomic_bitops.rst} (60%)
+ delete mode 100644 Documentation/core-api/wrappers/atomic_bitops.rst
 
-Kind regards,
-Ralf
+diff --git a/Documentation/atomic_bitops.txt b/Documentation/core-api/atomic_bitops.rst
+similarity index 60%
+rename from Documentation/atomic_bitops.txt
+rename to Documentation/core-api/atomic_bitops.rst
+index edea4656c5c05f..b93c388fd9bdc4 100644
+--- a/Documentation/atomic_bitops.txt
++++ b/Documentation/core-api/atomic_bitops.rst
+@@ -1,3 +1,5 @@
++.. SPDX-License-Identifier: GPL-2.0
++
+ =============
+ Atomic bitops
+ =============
+@@ -11,53 +13,50 @@ API
+ 
+ The single bit operations are:
+ 
+-Non-RMW ops:
++* Non-RMW ops:
+ 
+-  test_bit()
++  * test_bit()
+ 
+-RMW atomic operations without return value:
++* RMW atomic operations without return value:
+ 
+-  {set,clear,change}_bit()
+-  clear_bit_unlock()
++  * {set,clear,change}_bit()
++  * clear_bit_unlock()
+ 
+-RMW atomic operations with return value:
++* RMW atomic operations with return value:
+ 
+-  test_and_{set,clear,change}_bit()
+-  test_and_set_bit_lock()
++  * test_and_{set,clear,change}_bit()
++  * test_and_set_bit_lock()
+ 
+-Barriers:
++* Barriers:
+ 
+-  smp_mb__{before,after}_atomic()
++  * smp_mb__{before,after}_atomic()
+ 
+ 
+ All RMW atomic operations have a '__' prefixed variant which is non-atomic.
+ 
+ 
+-SEMANTICS
++Semantics
+ ---------
+ 
+-Non-atomic ops:
++* Non-atomic ops:
+ 
+-In particular __clear_bit_unlock() suffers the same issue as atomic_set(),
+-which is why the generic version maps to clear_bit_unlock(), see atomic_t.txt.
++  In particular __clear_bit_unlock() suffers the same issue as atomic_set(),
++  which is why the generic version maps to clear_bit_unlock(), see atomic_t.txt.
+ 
+ 
+-RMW ops:
++* RMW ops:
+ 
+-The test_and_{}_bit() operations return the original value of the bit.
++  The test_and_{}_bit() operations return the original value of the bit.
+ 
+ 
+-ORDERING
++Ordering
+ --------
+ 
+ Like with atomic_t, the rule of thumb is:
+ 
+  - non-RMW operations are unordered;
+-
+  - RMW operations that have no return value are unordered;
+-
+  - RMW operations that have a return value are fully ordered.
+-
+  - RMW operations that are conditional are fully ordered.
+ 
+ Except for a successful test_and_set_bit_lock() which has ACQUIRE semantics,
+diff --git a/Documentation/core-api/index.rst b/Documentation/core-api/index.rst
+index a0c3749c655b05..4bc132fefaab7f 100644
+--- a/Documentation/core-api/index.rst
++++ b/Documentation/core-api/index.rst
+@@ -49,7 +49,7 @@ Library functionality that is used throughout the kernel.
+    timekeeping
+    errseq
+    wrappers/atomic_t
+-   wrappers/atomic_bitops
++   atomic_bitops
+    floating-point
+    union_find
+    min_heap
+diff --git a/Documentation/core-api/wrappers/atomic_bitops.rst b/Documentation/core-api/wrappers/atomic_bitops.rst
+deleted file mode 100644
+index bf24e4081a8f4c..00000000000000
+--- a/Documentation/core-api/wrappers/atomic_bitops.rst
++++ /dev/null
+@@ -1,18 +0,0 @@
+-.. SPDX-License-Identifier: GPL-2.0
+-   This is a simple wrapper to bring atomic_bitops.txt into the RST world
+-   until such a time as that file can be converted directly.
+-
+-=============
+-Atomic bitops
+-=============
+-
+-.. raw:: latex
+-
+-    \footnotesize
+-
+-.. include:: ../../atomic_bitops.txt
+-   :literal:
+-
+-.. raw:: latex
+-
+-    \normalsize
+-- 
+An old man doll... just what I always wanted! - Clara
 
