@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 572E228640E;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E12728688A;
 	Mon,  4 Aug 2025 16:44:18 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1754325858; cv=none; b=DHWx4yoot/jRfXqiz7Unh4IgWxChzOhcsc/PgCMAI8eEjJ6nTjNAwjFzF8PMBDIc7pqnk6QCIUR1zDMpd8f17UlbwxsxStxuJx59vso4pNeTtZhu6XmtGYrgUbJCJWZaIssV2oJzs+Yjsf0X9YiQDAw7gzlVc30+1JQrlZWrDag=
+	t=1754325858; cv=none; b=ZgN/ypstbjJoQpIDVTzwGNfqLJbRuNFHpePBERd5QcqdJ8RHmIkSKdLph0axEVYa0O1Bpk7n5ZClAP5dYrsRVDeGbVAo0RgfspBUK7RtsXvSwc1fcOfBcsFEc4r4NJ9iaXiggUn2dJnmxNv079861pA9UNsV+a0Eoiok9juN1SM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1754325858; c=relaxed/simple;
-	bh=adGs1kuuk4zPQI9OS9eVOvJux65kSL76tPiJyL+ncj8=;
+	bh=752sQmjr+WkEQIQTz2YsThA0XswYRbPSJznITLPZ8n0=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=qUyhuWnX/nP4K0C4p1aY1PYWWyxT/0y2OBxvXGR6uX9WZJbmezkpiXoCXGYJD84N14fXwFJUufjEJbhr7lS5fXd3mZnzj+r9AqQGNcJq/GNILQ4y2Iw4H/pP8HXNa41Fmlr8wvSAV42gjNluiEV6CaOeL06ElvQZ0z+3SRra5Uc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ZNX2f+uk; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=eRebaopn9sBpBuZzl2GUmhDvbabDJ9D+37myaZUWW+XSkdD1+InCO77+WvEyqZe+X0dleZuuAgPYPgLcSCn3KVwylTKQjTOuL0+Fa652arQGxsOVPA6QBr7F+YwyJz3SYWQN3oKUMV5cxB06z5wERK0cQ4wDqauKisZa4eEHjCw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DFYJDn3i; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ZNX2f+uk"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0E879C4CEFF;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DFYJDn3i"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 41AB4C113CF;
 	Mon,  4 Aug 2025 16:44:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1754325858;
-	bh=adGs1kuuk4zPQI9OS9eVOvJux65kSL76tPiJyL+ncj8=;
+	bh=752sQmjr+WkEQIQTz2YsThA0XswYRbPSJznITLPZ8n0=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=ZNX2f+ukbjZ1j6eu9fz/+prTtT0vGsnjndcPXpFpG7P0Ia1Ril8Zf05ioP7FLpyo+
-	 Mm2+aQHENVj0SHKpUPkPNDfgX5KBmrxkUcMnELWwkSRO5YI2iFCS8V36kFAf3sXzwz
-	 zIvsdeC0pDzY9IKgCqH+xjQqPw2s+/XGMq9xJey9eoC5Sun/SfxY85adcWU/9qVD5I
-	 Eh9+V8XR+/ZCwx0FSYMbTtEWnpevQ2WhcEQ/mvJoIbxn3Y2oVc+jESY8sptZ+6Y1E7
-	 hXKnvnLGQgbuK3ouTYEW2vnpMJujCrVf4XcvM08Nb1q67D1mup4HnPed6XG6GGawWY
-	 izdWDqT9JS+RA==
+	b=DFYJDn3iT6d1HFBeZ+4JC6ama4tupJDc2NxZKYp8ACnJ1iL3GmdJ4nU9J6Gxpz6zV
+	 ggkLZE5g33xSNghuW+/4AldAgkpmoHzVtp05Mm0Tk77p9FwqmOTo5KhNYbg7IGPo42
+	 Zaxz1NYG/MDOHO+D0u6LkCfsfIaxlPUFpaI3es/IGEblVRHWsEmsmx5qlouLXGxOO/
+	 jZURCEO+cG1tK5otFXKDXMarJRlXurVor/Uk6n4hK/Tfhs4SPDSIBIKjGx1Re9Gru2
+	 RayDn4/9xO/y4REx1nhEGhNAedTHIr/vlsv5X97wp/q8FQQMD03LxVviKNDFWQcU2I
+	 jhO6Ld2SN/XqA==
 From: Kees Cook <kees@kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Kees Cook <kees@kernel.org>,
@@ -45,9 +45,9 @@ Cc: Kees Cook <kees@kernel.org>,
 	sparclinux@vger.kernel.org,
 	llvm@lists.linux.dev,
 	linux-hardening@vger.kernel.org
-Subject: [PATCH 04/17] x86: Add __attribute_const__ to ffs()-family implementations
-Date: Mon,  4 Aug 2025 09:44:00 -0700
-Message-Id: <20250804164417.1612371-4-kees@kernel.org>
+Subject: [PATCH 07/17] alpha: Add __attribute_const__ to ffs()-family implementations
+Date: Mon,  4 Aug 2025 09:44:03 -0700
+Message-Id: <20250804164417.1612371-7-kees@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20250804163910.work.929-kees@kernel.org>
 References: <20250804163910.work.929-kees@kernel.org>
@@ -57,7 +57,7 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3280; i=kees@kernel.org; h=from:subject; bh=adGs1kuuk4zPQI9OS9eVOvJux65kSL76tPiJyL+ncj8=; b=owGbwMvMwCVmps19z/KJym7G02pJDBkTHkdcn9HKVsXGsIr7AKdfgqSU+aeIrz0tzpYr9wkum fXBvsyko5SFQYyLQVZMkSXIzj3OxeNte7j7XEWYOaxMIEMYuDgF4CbnMTJ099c09f3590OhLee3 kxnL/7s7bxwLjPFLUap6/mJdAGsII8MONcmt6pUnOeTOCVhKzbgjGJmr7T41n6lg2nSB8PZMR24 A
+X-Developer-Signature: v=1; a=openpgp-sha256; l=3242; i=kees@kernel.org; h=from:subject; bh=752sQmjr+WkEQIQTz2YsThA0XswYRbPSJznITLPZ8n0=; b=owGbwMvMwCVmps19z/KJym7G02pJDBkTHkeW55xweCLlqOjVdbHHOVIuePb3nVd3fpROS5YTs nc5WMrUUcrCIMbFICumyBJk5x7n4vG2Pdx9riLMHFYmkCEMXJwCMJEFFxkZZtwvav769fajq9di vywovGGe9+SBsdj3hDVaNi73rnRVSzAy/N3mv2O7ocl6bb0KjjvftqjJnWeQndM4JzZ/d2XXEZZ 33AA=
 X-Developer-Key: i=kees@kernel.org; a=openpgp; fpr=A5C3F68F229DD60F723E6E138972F4DFDC6DC026
 Content-Transfer-Encoding: 8bit
 
@@ -70,77 +70,83 @@ __attribute__const__, the compiler had to assume the function might
 change variable states as a side-effect (which is not true for ffs(),
 which provides deterministic math results).
 
-Add missing __attribute_const__ annotations to x86's implementations of
-variable__ffs(), variable_ffz(), __fls(), variable_ffs(), and fls() functions.
-These are pure mathematical functions that always return the same result for the same
-input with no side effects, making them eligible for compiler optimization.
+Add missing __attribute_const__ annotations to Alpha's implementations
+of __ffs(), ffs(), fls64(), __fls(), fls(), and ffz() functions. These
+are pure mathematical functions that always return the same result for
+the same input with no side effects, making them eligible for compiler
+optimization.
 
-Build tested ARCH=x86_64 defconfig with GCC gcc 14.2.0.
+Build tested ARCH=alpha defconfig with GCC alpha-linux-gnu 14.2.0.
 
 Link: https://github.com/KSPP/linux/issues/364 [1]
 Signed-off-by: Kees Cook <kees@kernel.org>
 ---
- arch/x86/include/asm/bitops.h | 12 ++++++------
- 1 file changed, 6 insertions(+), 6 deletions(-)
+ arch/alpha/include/asm/bitops.h | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
-index eebbc8889e70..a835f891164d 100644
---- a/arch/x86/include/asm/bitops.h
-+++ b/arch/x86/include/asm/bitops.h
-@@ -246,7 +246,7 @@ arch_test_bit_acquire(unsigned long nr, const volatile unsigned long *addr)
- 					  variable_test_bit(nr, addr);
+diff --git a/arch/alpha/include/asm/bitops.h b/arch/alpha/include/asm/bitops.h
+index 3e33621922c3..76e4343c090f 100644
+--- a/arch/alpha/include/asm/bitops.h
++++ b/arch/alpha/include/asm/bitops.h
+@@ -328,7 +328,7 @@ static inline unsigned long ffz_b(unsigned long x)
+ 	return sum;
  }
  
--static __always_inline unsigned long variable__ffs(unsigned long word)
-+static __always_inline __attribute_const__ unsigned long variable__ffs(unsigned long word)
+-static inline unsigned long ffz(unsigned long word)
++static inline unsigned long __attribute_const__ ffz(unsigned long word)
  {
- 	asm("tzcnt %1,%0"
- 		: "=r" (word)
-@@ -265,7 +265,7 @@ static __always_inline unsigned long variable__ffs(unsigned long word)
- 	 (unsigned long)__builtin_ctzl(word) :	\
- 	 variable__ffs(word))
+ #if defined(CONFIG_ALPHA_EV6) && defined(CONFIG_ALPHA_EV67)
+ 	/* Whee.  EV67 can calculate it directly.  */
+@@ -348,7 +348,7 @@ static inline unsigned long ffz(unsigned long word)
+ /*
+  * __ffs = Find First set bit in word.  Undefined if no set bit exists.
+  */
+-static inline unsigned long __ffs(unsigned long word)
++static inline __attribute_const__ unsigned long __ffs(unsigned long word)
+ {
+ #if defined(CONFIG_ALPHA_EV6) && defined(CONFIG_ALPHA_EV67)
+ 	/* Whee.  EV67 can calculate it directly.  */
+@@ -373,7 +373,7 @@ static inline unsigned long __ffs(unsigned long word)
+  * differs in spirit from the above __ffs.
+  */
  
--static __always_inline unsigned long variable_ffz(unsigned long word)
-+static __always_inline __attribute_const__ unsigned long variable_ffz(unsigned long word)
+-static inline int ffs(int word)
++static inline __attribute_const__ int ffs(int word)
  {
- 	return variable__ffs(~word);
+ 	int result = __ffs(word) + 1;
+ 	return word ? result : 0;
+@@ -383,14 +383,14 @@ static inline int ffs(int word)
+  * fls: find last bit set.
+  */
+ #if defined(CONFIG_ALPHA_EV6) && defined(CONFIG_ALPHA_EV67)
+-static inline int fls64(unsigned long word)
++static inline __attribute_const__ int fls64(unsigned long word)
+ {
+ 	return 64 - __kernel_ctlz(word);
  }
-@@ -287,7 +287,7 @@ static __always_inline unsigned long variable_ffz(unsigned long word)
-  *
-  * Undefined if no set bit exists, so code should check against 0 first.
-  */
--static __always_inline unsigned long __fls(unsigned long word)
-+static __always_inline __attribute_const__ unsigned long __fls(unsigned long word)
- {
- 	if (__builtin_constant_p(word))
- 		return BITS_PER_LONG - 1 - __builtin_clzl(word);
-@@ -301,7 +301,7 @@ static __always_inline unsigned long __fls(unsigned long word)
- #undef ADDR
+ #else
+ extern const unsigned char __flsm1_tab[256];
  
- #ifdef __KERNEL__
--static __always_inline int variable_ffs(int x)
-+static __always_inline __attribute_const__ int variable_ffs(int x)
+-static inline int fls64(unsigned long x)
++static inline __attribute_const__ int fls64(unsigned long x)
  {
- 	int r;
+ 	unsigned long t, a, r;
  
-@@ -355,7 +355,7 @@ static __always_inline int variable_ffs(int x)
-  * set bit if value is nonzero. The last (most significant) bit is
-  * at position 32.
-  */
--static __always_inline int fls(unsigned int x)
-+static __always_inline __attribute_const__ int fls(unsigned int x)
+@@ -403,12 +403,12 @@ static inline int fls64(unsigned long x)
+ }
+ #endif
+ 
+-static inline unsigned long __fls(unsigned long x)
++static inline __attribute_const__ unsigned long __fls(unsigned long x)
  {
- 	int r;
+ 	return fls64(x) - 1;
+ }
  
-@@ -400,7 +400,7 @@ static __always_inline int fls(unsigned int x)
-  * at position 64.
-  */
- #ifdef CONFIG_X86_64
--static __always_inline int fls64(__u64 x)
-+static __always_inline __attribute_const__ int fls64(__u64 x)
+-static inline int fls(unsigned int x)
++static inline __attribute_const__ int fls(unsigned int x)
  {
- 	int bitpos = -1;
- 
+ 	return fls64(x);
+ }
 -- 
 2.34.1
 
