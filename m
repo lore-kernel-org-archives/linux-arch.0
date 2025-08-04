@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E12728688A;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B3EE22868A1;
 	Mon,  4 Aug 2025 16:44:18 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1754325858; cv=none; b=ZgN/ypstbjJoQpIDVTzwGNfqLJbRuNFHpePBERd5QcqdJ8RHmIkSKdLph0axEVYa0O1Bpk7n5ZClAP5dYrsRVDeGbVAo0RgfspBUK7RtsXvSwc1fcOfBcsFEc4r4NJ9iaXiggUn2dJnmxNv079861pA9UNsV+a0Eoiok9juN1SM=
+	t=1754325858; cv=none; b=JWF/7nUhbcgxaJFefvdtfdqCczAGDMSNGG/RPgAGmF6V+ijZACHlAs1AD4pMyPadUghDemJRkVO3AwUHdhdiI7AGxcNZVV8btk/fGiD8Cr7foeA8zNbLQHutORIddQM/flMGbecTCZNrHRauKHRB3zHnQyB3H8a4zg9S4puNl/0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1754325858; c=relaxed/simple;
-	bh=752sQmjr+WkEQIQTz2YsThA0XswYRbPSJznITLPZ8n0=;
+	bh=WqXHH+IfirIk9LkIKK7Nl4nbWfgsz7d0eW6zTgrbVtU=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=eRebaopn9sBpBuZzl2GUmhDvbabDJ9D+37myaZUWW+XSkdD1+InCO77+WvEyqZe+X0dleZuuAgPYPgLcSCn3KVwylTKQjTOuL0+Fa652arQGxsOVPA6QBr7F+YwyJz3SYWQN3oKUMV5cxB06z5wERK0cQ4wDqauKisZa4eEHjCw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DFYJDn3i; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version; b=QviPmisWNfPMiN0a74SkoQgyNRka86nc/b2vShwiYXfM0gI3qxsHwSvZone4zcsBq0iHBUDfLRjx7kJ7dQ5uUxJNyRW0FLApUP6fKHtfslt0hTLJ2CS6jsoiti8Ef0ll25YDpTcRngB2A/ePSjn1XHorwBpNkj0Ary0P7CfQv7A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Uoz8nJLp; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DFYJDn3i"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 41AB4C113CF;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Uoz8nJLp"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 54FE0C116C6;
 	Mon,  4 Aug 2025 16:44:18 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1754325858;
-	bh=752sQmjr+WkEQIQTz2YsThA0XswYRbPSJznITLPZ8n0=;
+	bh=WqXHH+IfirIk9LkIKK7Nl4nbWfgsz7d0eW6zTgrbVtU=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=DFYJDn3iT6d1HFBeZ+4JC6ama4tupJDc2NxZKYp8ACnJ1iL3GmdJ4nU9J6Gxpz6zV
-	 ggkLZE5g33xSNghuW+/4AldAgkpmoHzVtp05Mm0Tk77p9FwqmOTo5KhNYbg7IGPo42
-	 Zaxz1NYG/MDOHO+D0u6LkCfsfIaxlPUFpaI3es/IGEblVRHWsEmsmx5qlouLXGxOO/
-	 jZURCEO+cG1tK5otFXKDXMarJRlXurVor/Uk6n4hK/Tfhs4SPDSIBIKjGx1Re9Gru2
-	 RayDn4/9xO/y4REx1nhEGhNAedTHIr/vlsv5X97wp/q8FQQMD03LxVviKNDFWQcU2I
-	 jhO6Ld2SN/XqA==
+	b=Uoz8nJLpEg7RJxFDS0SaUDuM3JC3++G29Vs6O3SIq0AlyDw/PtKWwF1Ek74YZtizN
+	 ekkMeDZWxmiNkJ5aPmGW7zltBAJVWret0M3QxnUJdR3SxNof1VjZ4TmJar71HRDHcq
+	 B+zcU7Vys78NH8p6reQ5SGIWBT2pUfK39dgXZLf/Ay+nfJf8ARpm2byEo1d/BEtLra
+	 cRvm5KLXsLdsqhKT3FSA6mH91RMS9AEoSb+vpfE2AY0ZiMOdTviO7cCLtBrLdWkl3F
+	 1gHFyE6a5/HGEDwdrlrj5ZEst307NwD/hZQKvss84KcsXukQxuTCU7N4W3s7jh1DJ+
+	 UJV5giwhSkI8g==
 From: Kees Cook <kees@kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Kees Cook <kees@kernel.org>,
@@ -45,9 +45,9 @@ Cc: Kees Cook <kees@kernel.org>,
 	sparclinux@vger.kernel.org,
 	llvm@lists.linux.dev,
 	linux-hardening@vger.kernel.org
-Subject: [PATCH 07/17] alpha: Add __attribute_const__ to ffs()-family implementations
-Date: Mon,  4 Aug 2025 09:44:03 -0700
-Message-Id: <20250804164417.1612371-7-kees@kernel.org>
+Subject: [PATCH 10/17] openrisc: Add __attribute_const__ to ffs()-family implementations
+Date: Mon,  4 Aug 2025 09:44:06 -0700
+Message-Id: <20250804164417.1612371-10-kees@kernel.org>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20250804163910.work.929-kees@kernel.org>
 References: <20250804163910.work.929-kees@kernel.org>
@@ -57,7 +57,7 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3242; i=kees@kernel.org; h=from:subject; bh=752sQmjr+WkEQIQTz2YsThA0XswYRbPSJznITLPZ8n0=; b=owGbwMvMwCVmps19z/KJym7G02pJDBkTHkeW55xweCLlqOjVdbHHOVIuePb3nVd3fpROS5YTs nc5WMrUUcrCIMbFICumyBJk5x7n4vG2Pdx9riLMHFYmkCEMXJwCMJEFFxkZZtwvav769fajq9di vywovGGe9+SBsdj3hDVaNi73rnRVSzAy/N3mv2O7ocl6bb0KjjvftqjJnWeQndM4JzZ/d2XXEZZ 33AA=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2965; i=kees@kernel.org; h=from:subject; bh=WqXHH+IfirIk9LkIKK7Nl4nbWfgsz7d0eW6zTgrbVtU=; b=owGbwMvMwCVmps19z/KJym7G02pJDBkTHkflff/nrZrjf/rkzv6m+Qd3bffrennIcv+d+/X3C wSz1gr/6ShlYRDjYpAVU2QJsnOPc/F42x7uPlcRZg4rE8gQBi5OAZiImC7DP/OJ8fypE74U3uRN eLGrj6P1bbxeg8jxiBUOnz7942gyYmH473XulIbBzg0OV94+C85feW9dXFGt1vywDWGtj4yvTa+ O4gMA
 X-Developer-Key: i=kees@kernel.org; a=openpgp; fpr=A5C3F68F229DD60F723E6E138972F4DFDC6DC026
 Content-Transfer-Encoding: 8bit
 
@@ -70,83 +70,74 @@ __attribute__const__, the compiler had to assume the function might
 change variable states as a side-effect (which is not true for ffs(),
 which provides deterministic math results).
 
-Add missing __attribute_const__ annotations to Alpha's implementations
-of __ffs(), ffs(), fls64(), __fls(), fls(), and ffz() functions. These
-are pure mathematical functions that always return the same result for
-the same input with no side effects, making them eligible for compiler
-optimization.
+Add missing __attribute_const__ annotations to OpenRISC's implementations of
+ffs(), __ffs(), fls(), and __fls() functions. These are pure mathematical
+functions that always return the same result for the same input with no
+side effects, making them eligible for compiler optimization.
 
-Build tested ARCH=alpha defconfig with GCC alpha-linux-gnu 14.2.0.
+Build tested ARCH=openrisc defconfig with GCC or1k-linux 15.1.0.
 
 Link: https://github.com/KSPP/linux/issues/364 [1]
 Signed-off-by: Kees Cook <kees@kernel.org>
 ---
- arch/alpha/include/asm/bitops.h | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/openrisc/include/asm/bitops/__ffs.h | 2 +-
+ arch/openrisc/include/asm/bitops/__fls.h | 2 +-
+ arch/openrisc/include/asm/bitops/ffs.h   | 2 +-
+ arch/openrisc/include/asm/bitops/fls.h   | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/alpha/include/asm/bitops.h b/arch/alpha/include/asm/bitops.h
-index 3e33621922c3..76e4343c090f 100644
---- a/arch/alpha/include/asm/bitops.h
-+++ b/arch/alpha/include/asm/bitops.h
-@@ -328,7 +328,7 @@ static inline unsigned long ffz_b(unsigned long x)
- 	return sum;
- }
+diff --git a/arch/openrisc/include/asm/bitops/__ffs.h b/arch/openrisc/include/asm/bitops/__ffs.h
+index 1e224b616fdf..4827b66530b2 100644
+--- a/arch/openrisc/include/asm/bitops/__ffs.h
++++ b/arch/openrisc/include/asm/bitops/__ffs.h
+@@ -11,7 +11,7 @@
  
--static inline unsigned long ffz(unsigned long word)
-+static inline unsigned long __attribute_const__ ffz(unsigned long word)
- {
- #if defined(CONFIG_ALPHA_EV6) && defined(CONFIG_ALPHA_EV67)
- 	/* Whee.  EV67 can calculate it directly.  */
-@@ -348,7 +348,7 @@ static inline unsigned long ffz(unsigned long word)
- /*
-  * __ffs = Find First set bit in word.  Undefined if no set bit exists.
-  */
--static inline unsigned long __ffs(unsigned long word)
-+static inline __attribute_const__ unsigned long __ffs(unsigned long word)
- {
- #if defined(CONFIG_ALPHA_EV6) && defined(CONFIG_ALPHA_EV67)
- 	/* Whee.  EV67 can calculate it directly.  */
-@@ -373,7 +373,7 @@ static inline unsigned long __ffs(unsigned long word)
-  * differs in spirit from the above __ffs.
-  */
+ #ifdef CONFIG_OPENRISC_HAVE_INST_FF1
  
--static inline int ffs(int word)
-+static inline __attribute_const__ int ffs(int word)
+-static inline unsigned long __ffs(unsigned long x)
++static inline __attribute_const__ unsigned long __ffs(unsigned long x)
  {
- 	int result = __ffs(word) + 1;
- 	return word ? result : 0;
-@@ -383,14 +383,14 @@ static inline int ffs(int word)
-  * fls: find last bit set.
-  */
- #if defined(CONFIG_ALPHA_EV6) && defined(CONFIG_ALPHA_EV67)
--static inline int fls64(unsigned long word)
-+static inline __attribute_const__ int fls64(unsigned long word)
- {
- 	return 64 - __kernel_ctlz(word);
- }
- #else
- extern const unsigned char __flsm1_tab[256];
+ 	int ret;
  
--static inline int fls64(unsigned long x)
-+static inline __attribute_const__ int fls64(unsigned long x)
- {
- 	unsigned long t, a, r;
+diff --git a/arch/openrisc/include/asm/bitops/__fls.h b/arch/openrisc/include/asm/bitops/__fls.h
+index 9658446ad141..637cc76fe4b7 100644
+--- a/arch/openrisc/include/asm/bitops/__fls.h
++++ b/arch/openrisc/include/asm/bitops/__fls.h
+@@ -11,7 +11,7 @@
  
-@@ -403,12 +403,12 @@ static inline int fls64(unsigned long x)
- }
- #endif
+ #ifdef CONFIG_OPENRISC_HAVE_INST_FL1
  
 -static inline unsigned long __fls(unsigned long x)
 +static inline __attribute_const__ unsigned long __fls(unsigned long x)
  {
- 	return fls64(x) - 1;
- }
+ 	int ret;
+ 
+diff --git a/arch/openrisc/include/asm/bitops/ffs.h b/arch/openrisc/include/asm/bitops/ffs.h
+index b4c835d6bc84..536a60ab9cc3 100644
+--- a/arch/openrisc/include/asm/bitops/ffs.h
++++ b/arch/openrisc/include/asm/bitops/ffs.h
+@@ -10,7 +10,7 @@
+ 
+ #ifdef CONFIG_OPENRISC_HAVE_INST_FF1
+ 
+-static inline int ffs(int x)
++static inline __attribute_const__ int ffs(int x)
+ {
+ 	int ret;
+ 
+diff --git a/arch/openrisc/include/asm/bitops/fls.h b/arch/openrisc/include/asm/bitops/fls.h
+index 6b77f6556fb9..77da7639bb3e 100644
+--- a/arch/openrisc/include/asm/bitops/fls.h
++++ b/arch/openrisc/include/asm/bitops/fls.h
+@@ -11,7 +11,7 @@
+ 
+ #ifdef CONFIG_OPENRISC_HAVE_INST_FL1
  
 -static inline int fls(unsigned int x)
 +static inline __attribute_const__ int fls(unsigned int x)
  {
- 	return fls64(x);
- }
+ 	int ret;
+ 
 -- 
 2.34.1
 
