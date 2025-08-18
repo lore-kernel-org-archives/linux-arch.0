@@ -1,94 +1,118 @@
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9AA961FBE87;
-	Sun, 17 Aug 2025 22:15:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A1C2235345;
+	Mon, 18 Aug 2025 02:14:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1755468912; cv=fail; b=TvvLC47cE9vqSoSV5SvtQ44VIHfS+tEkWBEUAkzxTESRc86jGLR8LzzUEZcT/QCwuAkWB/39Boa5ieJTR1cfYQs7G46YuaUg1OFlhWvPZ09Sk1gPNcjkAhyqonAWmiftiuyUth4cEIvUkMlwC3DhOAj1cyV9Wbh1DK9KJ+4PbwU=
+	t=1755483265; cv=fail; b=Tb2/+K536A3M14mbLsw1Ib08wdNYkFc7lMpswbFEM4k2+6g/X8llSMwxCy8NEpoea9728XMYaxRAtbKFPRBo9+P4ChSxU0ModpVXmXE48fWmmuDeOhhXdL1BbuaT5ldqJkAesg/9CLuM88Xj9yO2kNO/eRPI+tAPcYrQuvpGwCM=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1755468912; c=relaxed/simple;
-	bh=UtISSQD/FTLnnog/MH6+no323NyoCBsgTEbKe6ypFoQ=;
-	h=References:From:To:Cc:Subject:In-reply-to:Date:Message-ID:
-	 Content-Type:MIME-Version; b=cxhWL2lfD22sc8t+k8UgvVpcdkYrWQXlO4jedEv7tQ1dy0qsEqQ+mYDmlHDgONCcad+vM/LRgDFP/b3gXXU1Fsr3T+xQkm5k80Uqe/F3XocsHejkPNqJl3i/VSOOoZfGzjjg9Tq6z/gJM4jgoIRBI06SyCEUrmQ13CFau6sk8oA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=SOYlgtQY; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=uVmB/rbu; arc=fail smtp.client-ip=205.220.177.32
+	s=arc-20240116; t=1755483265; c=relaxed/simple;
+	bh=Qz4PQq0vk0YeryEUUlXyIT2GmecGtDn8IPtd6trgG+g=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=BrSy4wwuvfJDZQZ3wELlU0jxgLGijC4xJ5fRxWANj16eXaIAQumPGVJzoRKeusW13ZPUNcbg+SggO6QtFzaK1jXVlbURCJjEW0Lolw//6Bllsh6KejgDmuiolx/oHnWlc55WMAPWdhNWbE2JG+CC2hL45Shb834Naz9OIe8ueXE=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=iQQqOTXS; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=U6LruWY7; arc=fail smtp.client-ip=205.220.165.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="SOYlgtQY";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="uVmB/rbu"
-Received: from pps.filterd (m0333520.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 57H5PSa6000579;
-	Sun, 17 Aug 2025 22:14:35 GMT
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="iQQqOTXS";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="U6LruWY7"
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 57HNU3W3029042;
+	Mon, 18 Aug 2025 02:12:56 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=corp-2025-04-25; bh=vcS2l9ZELKCgC9Ikfi
-	31fJ9fvKDFH/4UQxlHl/V/iuc=; b=SOYlgtQYbdFjVGLv8IfaL6yZH4LRMqfyhF
-	0eoDSm2ka80oN3e8NxRiO5/7sMUCvBidE2dUxYzhgVJxN1fb+tfTGj2HOsQrTA5M
-	woQZ1+jHep9zW6vdyzAkJrYpORjcpc4UtxObvRP4CDqcFa7ycr8u3awVXMB9fmpC
-	aSstxbnZUyGKFIPKA+flIAjm5qkYcKRw9vmxZsr0V8UTNI86qTHbU/vEIR60iGzg
-	BDd/MO/eRJAxp2WGUqyGEUQ1w9/ESRNJu0BEsICUaH05G97a3m9PoT6cA0OZd85g
-	Pmd7oeHyb7HxXLhv2lEZSJwmywR/enC/FEMx1OFz+6XisGkJJ38A==
-Received: from iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta03.appoci.oracle.com [130.35.103.27])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 48jj1e1tcv-1
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=
+	corp-2025-04-25; bh=7QMCU6tWbOxm94zFQkovMYQ7C3m1XpCNRwTdxMxF43A=; b=
+	iQQqOTXSgrolq7C9dY6Jh05pkLNp7nKDBKPtP6ikYmaS1rT3vPl1e1dECdC5NlS9
+	/P6wZtX697nUgrl1BhBalUT98DzCTAvBa4R6JDZA1OVu9T1dKg8/uwXzltJdYOoW
+	d0hGG4pbeAppueZQXQQ94KN55WsiJuT+1yfwAtdT3WaXS+U+X00Ai8GxS6ervmNG
+	67ruhzER/uopdGAWnuQw0PQKbnK2r6p9bnFKrrDhrIUa9cfvSiTdCWaUKQEgawOf
+	pTPZ1UKzf4EjPJlCtb/Ky2Cr/2eM2glrbR71/9zZbqi7lc13WPaIdnnlZP6+fH8J
+	NNkWOXhhaIObcfqVz4EhhA==
+Received: from phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta03.appoci.oracle.com [138.1.37.129])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 48jhvd9xnf-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sun, 17 Aug 2025 22:14:35 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 57HJRvnS011699;
-	Sun, 17 Aug 2025 22:14:34 GMT
-Received: from nam12-dm6-obe.outbound.protection.outlook.com (mail-dm6nam12on2046.outbound.protection.outlook.com [40.107.243.46])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 48jge8fa7x-1
+	Mon, 18 Aug 2025 02:12:56 +0000 (GMT)
+Received: from pps.filterd (phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 57HLlWHH040164;
+	Mon, 18 Aug 2025 02:12:55 GMT
+Received: from nam10-bn7-obe.outbound.protection.outlook.com (mail-bn7nam10on2081.outbound.protection.outlook.com [40.107.92.81])
+	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 48jge8u1yg-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Sun, 17 Aug 2025 22:14:34 +0000
+	Mon, 18 Aug 2025 02:12:55 +0000
 ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=gL5X1dQY7mBdHZAUy5/lQlIXfbBPW7hVeT6wx+BbDORBYOwJjEpQ/uyAHvmT1ltSzmg171tWT7sdDlzM4th1vGSMyXePLfDOaojARTHopqHIpZ3v0KCqCN7Qt0ljSFAPz3VbH8ib9+MjCG4zeanz6TI/yQ5GQz82Y0bHpebUK9rmNIt7SI0sNZL4Jw4zuJqpESU07nBg9muqN4wjOlC9F5zCW8o+GhDnHFqz/diCJGccNyxOnsXki3cj1sskZzZ6Ai/bIhQC74aSsMn8AUiq8SjnFMtyQEx1qPcGQLS1yJHYmjwAGQGA9DP++TVL1lfPmIZ0BK7SbXoZCC9myySp6g==
+ b=cEQ1QmtFfa2Gxug82kyU7UVBjCYhdUAkD6XbhGoadc+SgVlValbTozZaOlpBosSilKp5Y4gR5j5xmXdjjh/mC1ySwNVnzeJgi8l9sqcQTGqOia7SppCxJo+2rwfRMKyHSLIdjtavYCbwALrH+sF4meA+n6TT9ZhapIXf2xTPsbkFj4DmQyT6Jlw0C4qOEoZtOdHw59Cyxw5bcBM25r7snKrgljUcAv+gPjMbuIpQBwNWUjdH3ddRTbhrxKFMvTK7oaO898LiE64vh45fJuUKdYE3HguFJ+i5+XB9HhAADtHUF1Uln0D4+6lssX5h36U5MOjjvdnV+8AecLULQAXslw==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
  s=arcselector10001;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=vcS2l9ZELKCgC9Ikfi31fJ9fvKDFH/4UQxlHl/V/iuc=;
- b=pbDNzEfe9TTXXHm0xukD3qs369A4JB6L10mgG2TMiJjATeMO4CTa9vYDPIONjFDwLrgbJsPfKdrTqnXlyDdOAJGq/p85UKJKSjBvRoHYhj8XJBZNBjqY4RIpggh8cdrEoGSAJVdMvXy/iAWxC7NrEVRQgbHlXSMBUVsTNkgpjIXqYuKRegaNwDsqngpLJNDO7VO4qsf5PO9YdHC0pc98rPDN9y9VozJpSKqg1nQ+MyBwz/VDfqBddagNEDWTPdMwvwTWEHEeksrU0gGQfXvmZx4rP4DzU/u73SCksMVr3vMUc/UtoWXkxb6o/XYStnxKGTIVREnTZFSbTs5sNSanLQ==
+ bh=7QMCU6tWbOxm94zFQkovMYQ7C3m1XpCNRwTdxMxF43A=;
+ b=cWAMpz6Ka/+MOepH2XhEx6Koo7f2yP+1Z6JvLmuhigzTUTLpAdB4q5tYlKwk4P/KSwCyFDqKWsoemtpnlcSHSIP3+VMvIbi4P8BnU5CAZY7zM5EBfdzCx3+qNUrCx7KpYD+f02qMUI1esCec3dgfCNBj/7rKXdINlllyY5p1i1Qi5LRW4XEL7FCldjNBD6b1TQ2dNfy8QAjsY0zQTkshnbAsdT2jNtRFc4A9o6V/GYYnedLKvjtIzJm8vzJrFk6RbqyfVj+Wi53TqZGj9HXqUHZLpF9m+riOKDtCvfGH1dnHcax7T6ABfGEOpIb9cqK59oIWyroKviCRztuhWBdXUQ==
 ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
  smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
  dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
  d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
  h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=vcS2l9ZELKCgC9Ikfi31fJ9fvKDFH/4UQxlHl/V/iuc=;
- b=uVmB/rbuHdPzjtj3+KAxkEvR/+zwsdJ9ikkiaVO9aO0ThshElxR34OukCEUwWJBgfCCgsewrOyvElepUlUEuzsQdyPeEp46KmCWSQxu8DZFN3vdLmJj5nbfwH/XNed7qFhnsz5sDxQV0RmeLeAeMcdhMHR1SARPdyDGYvOUYmqU=
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com (2603:10b6:5:357::14)
- by DS7PR10MB7297.namprd10.prod.outlook.com (2603:10b6:8:d8::20) with
+ bh=7QMCU6tWbOxm94zFQkovMYQ7C3m1XpCNRwTdxMxF43A=;
+ b=U6LruWY7W8sfsdiMHhDhBnBsnG6i0Z48HJA/+r+5msiimCL+7+X7p+dkUrE2+kWhCY2rOsm4RyEnGDRdyhv6fBhSNehUYix/IfSwFVIiJfOAkyqnmbAsf1t8wO+FZCATVWrV+RwSTQTgEAxRo+3/m7bYUi4VHVwWjKi7DedMdyA=
+Received: from CH3PR10MB7329.namprd10.prod.outlook.com (2603:10b6:610:12c::16)
+ by CO1PR10MB4690.namprd10.prod.outlook.com (2603:10b6:303:9f::17) with
  Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9031.19; Sun, 17 Aug
- 2025 22:14:31 +0000
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574]) by CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574%4]) with mapi id 15.20.9009.018; Sun, 17 Aug 2025
- 22:14:31 +0000
-References: <20250627044805.945491-1-ankur.a.arora@oracle.com>
- <20250627044805.945491-2-ankur.a.arora@oracle.com>
- <aJXWyxzkA3x61fKA@arm.com> <877bz98sqb.fsf@oracle.com>
- <aJy414YufthzC1nv@arm.com> <87bjoi2wdf.fsf@oracle.com>
- <aJ3K4tQCztOXF6hO@arm.com>
-User-agent: mu4e 1.4.10; emacs 27.2
-From: Ankur Arora <ankur.a.arora@oracle.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        bpf@vger.kernel.org, arnd@arndb.de, will@kernel.org,
-        peterz@infradead.org, akpm@linux-foundation.org, mark.rutland@arm.com,
-        harisokn@amazon.com, cl@gentwo.org, ast@kernel.org, memxor@gmail.com,
-        zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-        joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
-        konrad.wilk@oracle.com, rafael@kernel.org, daniel.lezcano@linaro.org
-Subject: Re: [PATCH v3 1/5] asm-generic: barrier: Add
- smp_cond_load_relaxed_timewait()
-In-reply-to: <aJ3K4tQCztOXF6hO@arm.com>
-Date: Sun, 17 Aug 2025 15:14:26 -0700
-Message-ID: <87plctwq7x.fsf@oracle.com>
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9009.21; Mon, 18 Aug
+ 2025 02:12:52 +0000
+Received: from CH3PR10MB7329.namprd10.prod.outlook.com
+ ([fe80::f238:6143:104c:da23]) by CH3PR10MB7329.namprd10.prod.outlook.com
+ ([fe80::f238:6143:104c:da23%7]) with mapi id 15.20.9031.019; Mon, 18 Aug 2025
+ 02:12:52 +0000
+From: Harry Yoo <harry.yoo@oracle.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+        Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
+        Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>,
+        Andy Lutomirski <luto@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>,
+        "H . Peter Anvin" <hpa@zyccr.com>
+Cc: Andrey Ryabinin <ryabinin.a.a@gmail.com>, Arnd Bergmann <arnd@arndb.de>,
+        Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+        Christoph Lameter <cl@gentwo.org>,
+        Alexander Potapenko <glider@google.com>,
+        Andrey Konovalov <andreyknvl@gmail.com>,
+        Dmitry Vyukov <dvyukov@google.com>,
+        Vincenzo Frascino <vincenzo.frascino@arm.com>,
+        Juergen Gross <jgross@suse.de>, Kevin Brodsky <kevin.brodsky@arm.com>,
+        Oscar Salvador <osalvador@suse.de>,
+        Joao Martins <joao.m.martins@oracle.com>,
+        Lorenzo Sccakes <lorenzo.stoakes@oracle.com>,
+        Jane Chu <jane.chu@oracle.com>, Alistair Popple <apopple@nvidia.com>,
+        Mike Rapoport <rppt@kernel.org>, David Hildenbrand <david@redhat.com>,
+        Gwan-gyeong Mun <gwan-gyeong.mun@intel.com>,
+        "Aneesh Kumar K . V" <aneesh.kumar@linux.ibm.com>,
+        Uladzislau Rezki <urezki@gmail.com>,
+        "Liam R . Howlett" <Liam.Howlett@oracle.com>,
+        Vlastimil Babka <vbabka@suse.cz>,
+        Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+        Qi Zheng <zhengqi.arch@bytedance.com>,
+        Ard Biesheuvel <ardb@kernel.org>, Thomas Huth <thuth@redhat.com>,
+        John Hubbard <jhubbard@nvidia.com>,
+        Ryan Roberts <ryan.roberts@arm.com>, Peter Xu <peterx@redhat.com>,
+        Dev Jain <dev.jain@arm.com>, Bibo Mao <maobibo@loongson.cn>,
+        Anshuman Khandual <anshuman.khandual@arm.com>,
+        Joerg Roedel <joro@8bytes.org>, x86@kernel.org,
+        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-mm@kvack.org, Harry Yoo <harry.yoo@oracle.com>,
+        stable@vger.kernel.org, Kiryl Shutsemau <kas@kernel.org>
+Subject: [PATCH V5 mm-hotfixes 3/3] x86/mm/64: define ARCH_PAGE_TABLE_SYNC_MASK and arch_sync_kernel_mappings()
+Date: Mon, 18 Aug 2025 11:02:06 +0900
+Message-ID: <20250818020206.4517-4-harry.yoo@oracle.com>
+X-Mailer: git-send-email 2.43.0
+In-Reply-To: <20250818020206.4517-1-harry.yoo@oracle.com>
+References: <20250818020206.4517-1-harry.yoo@oracle.com>
+Content-Transfer-Encoding: 8bit
 Content-Type: text/plain
-X-ClientProxiedBy: MW4PR04CA0218.namprd04.prod.outlook.com
- (2603:10b6:303:87::13) To CO6PR10MB5409.namprd10.prod.outlook.com
- (2603:10b6:5:357::14)
+X-ClientProxiedBy: SE2P216CA0047.KORP216.PROD.OUTLOOK.COM
+ (2603:1096:101:115::8) To CH3PR10MB7329.namprd10.prod.outlook.com
+ (2603:10b6:610:12c::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -96,263 +120,215 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CO6PR10MB5409:EE_|DS7PR10MB7297:EE_
-X-MS-Office365-Filtering-Correlation-Id: fde01bde-eef5-4dc2-6bd1-08dddddb6e81
+X-MS-TrafficTypeDiagnostic: CH3PR10MB7329:EE_|CO1PR10MB4690:EE_
+X-MS-Office365-Filtering-Correlation-Id: f13d4e32-9870-4f7c-2ae7-08ddddfcbc46
 X-MS-Exchange-SenderADCheck: 1
 X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|366016|1800799024|7416014|376014|7053199007;
+X-Microsoft-Antispam: BCL:0;ARA:13230040|366016|7416014|376014|1800799024;
 X-Microsoft-Antispam-Message-Info:
-	=?us-ascii?Q?oj5PRvUheXfJCmJdjeuyITU8QeyRthY1FHTPH3SZiM81FkdzqNOB7tZa8bOx?=
- =?us-ascii?Q?S63QtcwcATj3leOIMgQ06HuGTqxLiMCFu/ZB8uOfIDLkO4rd+F6lSakl+ZOc?=
- =?us-ascii?Q?wpEFiwN4W5wHjHr8y2H3GQ54IDyUE9FD1aZjCDuF7lp8fJt4SsbFspPMRf1K?=
- =?us-ascii?Q?CAKCBGTK5jiWEaICrez7ljc5igxhmcftAQ85BAjXJt+6MXkBLkWafd/6P1RP?=
- =?us-ascii?Q?Boaq/u53R5bTDvygaAd5vypQEzpZUQj5N8g29GXHJY1ahVbcE+m3FweJoLZf?=
- =?us-ascii?Q?lgd5CpyRFODqUwjNiLlMg1WytfDndAZkxC/XnBR9pU1VlfAqrIOX9n31mPl8?=
- =?us-ascii?Q?+T6In6TydITSHflC4MfXaBBaGpOfObBD413bfTeQpVGTqGimTI5ICG+t0B1d?=
- =?us-ascii?Q?2BAkUBP9tI6yuVWBePaM2UQiGuEa+VJL1Kg6gpNnpTnAacDMUn+h0Vnm2cJM?=
- =?us-ascii?Q?jbA8F1XCOykCa99THxrcFdW9JVheOYl4GelPPQwrq6AwkfQpVGm4bi24TrIL?=
- =?us-ascii?Q?A8D3yCUZ4kmdh0PyZAQyecv99rIrkrDZ+qKwWgUqdQhntpYg/pqaeNewgqqL?=
- =?us-ascii?Q?Qf4JW/SvpkCTNsk+10bMkYP4cntPtapc3pHEmTgAUmD7LqYF0Y7BEtJlHTqs?=
- =?us-ascii?Q?zP9HJqI9xlWlXikCQGJbRIrWgItSaHBTUl7qbhdpB7jnAw/YdC/CvuM3Vf22?=
- =?us-ascii?Q?BfWWPSIwnDb8vFbXJzvUrvPYPQZQUro/vrquiTEQtRULNBfz4Wxe929yvcfl?=
- =?us-ascii?Q?zhla+ikdCRM6UCybS3MtH75eJmCaAsJoIn5h/fKKa7siI9rNb5k1iXD6FQ+k?=
- =?us-ascii?Q?5ZtOD+7TBnmv0lgZobkdx4e5TJ6YbptWum5zo5RFUQ+iZkMg7OqpTyHNHwQm?=
- =?us-ascii?Q?XGPmU1rhIgWbQhhPDCjCnqcGZsp+SgI7p+mKYe4+JQadqJVR43V/9+zPrKx9?=
- =?us-ascii?Q?DSnDTfSNx6LzpqFbKezzMzbYpTzpZpEXUk586s8lrlrt2/QwM+IKckPM0QJ8?=
- =?us-ascii?Q?VQ7fzBiCxN5j0kW7Ph54yvQjUHUBwNQywsJSeco3wPpj5DnT7fQDZzzw0jQ7?=
- =?us-ascii?Q?NdkSJ45Sem5Rm7gi2z15nrI2e30SsTpcokNSiBCYX/0HaeQvARn/awF8h/UP?=
- =?us-ascii?Q?eGjNDBmek9lZgkcVp7u4lz8xy7atzMRu1cgEyvUrdRA4wXBi0sJl4bGwL2tT?=
- =?us-ascii?Q?9Qf7D83mWgVu6+hR6u7xZmmBejue0s8Y4aJhh/bcynHEeaHlLIFV3B0qoztm?=
- =?us-ascii?Q?gm/eAVchfJkIO7lVZdaPYwpByhHpkUfReEtz32ylvs53f7tf8tWt9Mccc7Ch?=
- =?us-ascii?Q?hsdqI6DCO8GOHH+uzqf+r7M2xR6MFES7kRSUCn5OEsn8Q60PMMnhmwoSOVkT?=
- =?us-ascii?Q?Q88MzLX6q5JXVGlwX/NgwaZZO0E5DPT0byzN6B/A3izVLt1vIg=3D=3D?=
+	=?us-ascii?Q?bn1nJ35HSGbSG3NvwMsmij0a1Tl1KoSijSuF+DH5nwh1o5miHCqZ+r3LnaYt?=
+ =?us-ascii?Q?wanOxCbo6LTTZD8KcFwQZ3LUkW9bCe8AGlyGFW9Q7RuNOxt/C9/W6xq4h7cm?=
+ =?us-ascii?Q?NptBmPPqyIa8ERV+drZGw0QKYmjdNOK51iBoSU/QN7WqNuU6xAjEOZDE6gWa?=
+ =?us-ascii?Q?DSc/eeVXhpCANlicrECS0kjh0qdjzDX0ll5l7erXYEA/J+KPz6ezwLabKcKM?=
+ =?us-ascii?Q?ZxfGKr/6ICeCReHQ005xWrRF00M3YiSOJ/e8CrF8TRvojh89Wk4w57c+UDI5?=
+ =?us-ascii?Q?FMKQR8OWoEwehMHrfYLgIVCWST2b/puMb44VBz3tSM6Onf9QVZGTV/Kre6BN?=
+ =?us-ascii?Q?NQUTueWl6S91fd9breu5FrrlSEEr4STAM/bWwaZ15gEmica1J/ptcg4BiqvU?=
+ =?us-ascii?Q?sbNGfFjQvbt8PE7JS/y2h9/sPQtw+mVUfsfIxiEfPB6UYrZnc1r3iHYkkU/b?=
+ =?us-ascii?Q?Ka6ZHInsPExEZwjZzBXini+4abwJOMu0sUVZvKidjC6dpRrP32AoQ+5iF78o?=
+ =?us-ascii?Q?ioGKdXYZoGhEQn94PvSZYlbXDNFywdip5tfq3Vit58J9bhBbcUFbpBbu4eWa?=
+ =?us-ascii?Q?mOwQ/hLs20tF2MYfiVy08TOyvDSGqEQyBwlT70r8w4iEDcgu9bW+aiAkkwb+?=
+ =?us-ascii?Q?W2WsW9dKEvlcQqwjRsqNmROUx1cslA3kueiHoHjjTfQFcM6z30vfl9bmeMOR?=
+ =?us-ascii?Q?DAzazg16vZu4TJmYRPbp2TQwI/E5C+O3zcMnY8xLDRoqR09E1c+1X7JKl5Vd?=
+ =?us-ascii?Q?NdKyaePbpOj/n/K3ESrq/VXeHF7kZAfs20kCUkgVxeqCkkzUVh2yMbUrC8dt?=
+ =?us-ascii?Q?wyA/+S14Fx6ZfxjHCBqgrr0aQHsIO3b/WIo7AzTO2mwysd7CHROShevA5ZYI?=
+ =?us-ascii?Q?28ZkS5DcC75t4Dro87Mu1TXGL83sRWu4mlpDkJyXG8EDCZCB8P6rzSl37Lgx?=
+ =?us-ascii?Q?1BtimKssJ5pMVDJSCDsbZkq/vH7gYfXCNhipDo6i9UHWivBrHXpf5SMz3PvB?=
+ =?us-ascii?Q?FDE97vlZg9jFQYyiO+SkrCIHsa4Lqn/foDUyhJPHEJOLibQEqOYDgd2lcqdy?=
+ =?us-ascii?Q?AHcboFU6AfuSXaVF2t/dzMgml4JYNXxwKhjOwi50N+m1Yb3ljZMkWUu/oFt0?=
+ =?us-ascii?Q?0AOdnzEzzChDrPQawuEJN9Vxl7kqaTeOm6tGWPCuzYvkKmv6HWhytdZOrXGE?=
+ =?us-ascii?Q?PudedhNf6Cir1zsfmIdhnzBY1cKywVBD80n5JUXIw7FsWFhKju0bWrAcdnWC?=
+ =?us-ascii?Q?gpgzWQLA5VhMMuajNV1YyXDCEFQWY/e7/dus5cwblpA85F8JvQVIQv0tNMWQ?=
+ =?us-ascii?Q?Zs2Cfplabcm0yx2n5TVPhhxMmF1O+r+xyJ+7S59m3LHeYv6SHTMt4A4bz18x?=
+ =?us-ascii?Q?Xzp7z38=3D?=
 X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CO6PR10MB5409.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(7416014)(376014)(7053199007);DIR:OUT;SFP:1101;
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR10MB7329.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(7416014)(376014)(1800799024);DIR:OUT;SFP:1101;
 X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?d4AEkMoSrVbwMKuZJUu33pM8MBAVgUhIQnECce2iZgR3MFWcq14k7rbT+DJ9?=
- =?us-ascii?Q?xhqco0L1mXtPB0VJWONripwj9VVhotxkT2lVoiEBHutRbqpj+eCVsGleXevS?=
- =?us-ascii?Q?eMulP1OZWmXaeVkrLfr7qTvS27DbkjgmAMtcNH5FT7ZBPZv6mmWwhLGlCGxm?=
- =?us-ascii?Q?qAc9/6jDDy69LB+7Z5vQ7IyXk59nYLZ+VfM8xIwViMtOf75ccLeckSycIr+/?=
- =?us-ascii?Q?OU04vbvWROtW2kAXIt3B+1AUbwBVD4cmqJ1phDGAeoGzl5A2GmeYe/wOLEAp?=
- =?us-ascii?Q?AKzXWa/byDXn2UF9faPv9sAcNXEh8ruv+Y68VPZl/3GKYy72KAr0zFSJAFLF?=
- =?us-ascii?Q?uPpzBJ9sM74b0ygaufcoUh2naskImGPEZQ/6e0q8dSTOo4+AxJgyZAfmAJ4+?=
- =?us-ascii?Q?rc/sBAeU3gPLEE0eYR787ARAP4Rzj2EDJ0EBkRkNGsMgkCd1tLBYvsH7AEly?=
- =?us-ascii?Q?jrc9jsf4gd91v+Sx3u5Xc/qw3lHr4GukHSHTlfHg1niij8Yy+VwscnNcPIAG?=
- =?us-ascii?Q?JCdTy6R9H7T1qTgFYxJnjqP2zeQwoW0hH0LexFGe+8s8AbPA13yiaWxph1Y+?=
- =?us-ascii?Q?B3SFzlfG0t9xgOmC5Qof931ve2MdaLFxCnnD6kQ75ofK+EXuWYzFmv9lm0ds?=
- =?us-ascii?Q?3kDBOW6ucywD0SXRE5twM+kGuIJ5CMp7HVhmIb6m+RU1fsaOoYUd4NU9ed6z?=
- =?us-ascii?Q?FjP7HZYnhKIiK/beW+UG4rgeNoAWXCXZBTjEOeFElOxR0jw4nidWQVNZMKyl?=
- =?us-ascii?Q?04uIx3/lexBqojYWyfVU2wovpbgy3dB2euvBUrIupO7MlyuqBWtwwZC4uABq?=
- =?us-ascii?Q?bn1S+j8a8QmkTkjUPGcgJ98UymcjiR7ZLdeou1eJ9WaHrGap8TfCeqYJy3se?=
- =?us-ascii?Q?QXlWmw7x5apqOjxPjRcJQGt6CoL5MNngDLawLm3XDXyVXhltQfvW+jh2fbGD?=
- =?us-ascii?Q?aprDNTjUjGq4PGV8Ci9kR8aTwiL9zoqDtvOYcGgaRWmGTzKRaoJGFyUmxyEU?=
- =?us-ascii?Q?G9U2kz7MQuRXB+ssFKc7LyZihJFtKZUlPnzg2NVY/tzqlxSeDJ1+Kz6Dz2hH?=
- =?us-ascii?Q?vwOTrbLB55c+EnxzFAzIaUQ1GjI9oSV8tm03jpO+fqWv1q+9B3Z7fzl1oTRb?=
- =?us-ascii?Q?ADbxhLJAZQeO/rWk68fYjQWiPMQqOSK3ZLRAfWY/4M1xdU5BrGBz19mzWCvE?=
- =?us-ascii?Q?7/HNvXaBRx1R8lX81gkrD+kTfD+q+yfwFJM8Ia8IE7ahIk8jjTJ7fspdzOSu?=
- =?us-ascii?Q?mUSU4Ye2laioelP8NX2MOLrOydSu7BLuMH4JPx3x9ry0lNp/HB35elgWthLT?=
- =?us-ascii?Q?5mUoXTYdRUMQAD05nrl+O5MBQqKEdoQbH3JFFhrYzcpDYWRfzsxM+Kk3SBJj?=
- =?us-ascii?Q?1JdAAdvM4N8RnV+W4qa2HYeaTgJcg9Gn4ZzUOJwK95QQ7qMuXOfKKniHaZWD?=
- =?us-ascii?Q?LH2GLa4uJ+5sWetvzRJwwRUG9zqFmCxsgh0d8WWn5pCJaM/t1Bq9vJivV40s?=
- =?us-ascii?Q?I1y4y1Q+2oyDAWHedWVUKDTyAaryB2JjWDtm8u6Jcc2p8on5ugWhQ9/pkp+K?=
- =?us-ascii?Q?muutu31RTPbzbkCIURAHITCtSo+m0tJBYX+WzSJo10brxQGAFHji0CrjIXW5?=
- =?us-ascii?Q?5Q=3D=3D?=
+	=?us-ascii?Q?drmQUIah0zvU2ya2gyFSyMg/O3QCoSODgzN2O1LhziTrZDdQXPJIhAvDQQQo?=
+ =?us-ascii?Q?GoZZPTAOQQraPAmvHsDJxsTdUAJhY510aBKnq/6LnAWSMasAPPyq/RT5CbzJ?=
+ =?us-ascii?Q?lPmBCe91wbkOtBYfO/ga93oqxcIA5SFOjDpTLY0u9zOhCxELnW3/LdyWTWc/?=
+ =?us-ascii?Q?ODbW80N9Erthv3Ua2leLi9kw6xXJwx21BM5W47yDMZ+MNDzNMP1vJYRsISJ3?=
+ =?us-ascii?Q?HkD6z6kKvJIttGR8z1OQXRcCw/NPWi4iGwvk6XkE7cdPIyIt5amQlkrZr6To?=
+ =?us-ascii?Q?Sthc1/TJiao4/XcRDhooFTxBzbt1TcEvDr9ONzPIN3K2PjcJDUEJuuFNYpDu?=
+ =?us-ascii?Q?+ihBDph27qD1HbnS01iXLbsnOAkF0Mnl7yZccWzP3yudtfOiyP1FvrSFU3Wz?=
+ =?us-ascii?Q?MwvzrXM85EJybirAzpOn1hKC0w2wXOOjaFMyUftzArI6/TIFHXzTZwWL2TsJ?=
+ =?us-ascii?Q?TQK5/rm/VEnLEM5Uxt3/C6T6AcRSTL5IX66z4H2MWssafH0BHxgk35S2tenB?=
+ =?us-ascii?Q?8m4dMCtJFXByF7UNcb+aecOHK+UJ4g98eqxhwgE1yhtKzSPTnVrm0RKMSJlb?=
+ =?us-ascii?Q?cflWxWO2Pj0e+rMTMYLl3jsnDh6d177ro2T+7LqJZmj9RCexbp2XHJvIfyeH?=
+ =?us-ascii?Q?YznDgluBcQ5n2HVIzpAyn445KThLaZWGwM3zn9EJC2cpYE9pHUYK96gV9zwQ?=
+ =?us-ascii?Q?RBqeDps1HkW5t9Ni0Mr291i6u4dpW4k1vOxLur1aXVGG64+nDQt3SgUgtCey?=
+ =?us-ascii?Q?Y4zWiYJZqx1ZLiuDYh/9hV1xLLHPF5s+SFtAkXNeJxcccvX9vschM6TkHsyi?=
+ =?us-ascii?Q?nWNWYM6YKM5JPBL4doxupnlx5Ith2y9CcDZ5sLfsBUX30iaOjaSQgP/kZQhP?=
+ =?us-ascii?Q?fn519cyKBgX9rNLUhw0ZCQxwRz50fgT7np4Pztg7Ovo6LYl/OaxnUFnDPr1d?=
+ =?us-ascii?Q?4WqOvj029d8kSxIq+FV5mIQ10LyAFxYYBothbdaNiybGzneLUmygATo8UIj1?=
+ =?us-ascii?Q?XX1ahR1BJ8iMr6cqMeBOIWGOlvDRY9hyT0GlaXTklIuLLeXK8GrxJ4xkkHut?=
+ =?us-ascii?Q?Lkoy2dxmvToa3ju5vBQ6++z46BUPCpy92m8o8QJv7+z3zv+8wt5VdlsIurX9?=
+ =?us-ascii?Q?yByAoy7eH+Wp72+Ov0fTH14llY8AmjR8jTddSZvxo3nQPJJyuLOmtcsDXG8X?=
+ =?us-ascii?Q?6B6n5vltvhKe8w2rn/4VXGLmmKL23Qsbt+LGIqiW3mp/k63DrOZQJZIU1qH7?=
+ =?us-ascii?Q?DD4HHFj5bC/MCBnGuC5aaQQCCw8utJnEIPbwa4IPeEyLuCER4L6gMRJepyR2?=
+ =?us-ascii?Q?t1cRB3Ytpo3VZxbYaDzTODtVRTg1HovHKYskCywoRZQX1b8gWw8WRZaZIMSX?=
+ =?us-ascii?Q?2js0ydcyw0YsHvvK/coAMc/IzCRszQHFDMs/Hrqq/IdF3RfIxdNfwlWBNRew?=
+ =?us-ascii?Q?AD2g//qjJL046ICGRKOViqCTMq3KIapRypXm6zbs6pbjGsJZaoq+fuAzzWMh?=
+ =?us-ascii?Q?uTM0YCN44BsyL9jpR0OR37dFS+CNah0a63JqC5oGTl0ckO5UojaRZ9Z2rNyF?=
+ =?us-ascii?Q?zjWGiJVuhoicgLrGy3Qn9iJbnd4ST4Cdq74ErQ/S?=
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
 X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	XQXAKUMqP/pFAFd4a/vzMxtAMswPIK0Crdqp4rkv+cWW1w9EUj0NMr7xwhU6moty3S8hjy81zwYHvDBiRDTVNpWliq5K5E7FA/ybnz7ggQv6aZennpATe61DQ4p8GaQDTxSsWe0nIqFMtcfHeFOC8OomDQBE51g07C6v0wK3a0Wdw1Lnd6PJ76mBts8pOgpfUN+zpBYj8zbJbiLO5mZP8fTwnB6qL03ZkHM6Gdjd/N+HCEquw6hGlFl7gqHRaLYXQzQimQ2tMqln+rOEejLp75wOGD7JDRkLOsWXMabgD2GU4RUuVjjzGhhvCug2Err8vZBwhBwpWNh1eo1KqQFP3T9KIlpl6KPYygLteVmnHnt/uWrUn5bjRpImtcTObaZqreJF4L8aP6fLFr9uQonL28ErEoKIQfrh0TLHX1Te6Qwa9YGLbR7KXveHlh350SNfY83e215Q/2Q4nGD2ymdzInzJlsn1SQODvSB8fJLDpqBC4fs5VUgCsWBToBv1zTb99C8AU9ZrDw7q/wHe/RhQZqmDMPoSm7xI9mWI2hd7G+HnWAxQnCXJdpinfEMbizXCzSlo7e+S6vaWu3vKvLsWSh5OGS9l3Gbmg6HSfW5FlEA=
+	ykEi9fD67nq89cytpvEFi+kXMFrOj0EZ0uJw/+Tnx6+/W5KZ85KHhqfy7o+hB8EoV2lWM+04cJJbWSRd2SYroxp2SoaaL9zy8Si0pjkMpdqchDJQNTgml3kZ57ROo72ZrO1h6PzGYT8K6ch7shUobte9h/jn//USBz33EKOr7xT06e4gM1lFoWgZ3e0VcRpvCIWoBvYiEbMh5OQzL1PD4L9kmXOsrPa6qwGdIMAHpoTw6UXSONY5IXSmkRs0hYHDT39QTlKAXItthd1yGoCvV1y1ZCDLCcHF3ofrXHdozykHpS372AC8BTg1apJmH2et4Yaqizuhg/GsBBhecs5chdmL0iazkBoAR45l4vIknuhALcA93FV8PZNlowTbbh12SSIMXAUvK27GYg8J+2/pLXwS1aWR9kqfs7AVYWlS/Eg9+za4NGOUKJ2BOVBcXgC9sH0ZePpr/5yKdKain7mmISR7Z2mJHAs0pjMOvY2AjZxdJLJRneOnDTBl1ee2GjIvup8SoMxAdvotLmi0eLmU7Pgvx5/Emq5j8FDq3YpoG9eWW0fB7M/DGqa1G5DIZG9UNVbIfR13P33Igl/uHRsFWWc+pGfBrQXa8UMBXLLQpyw=
 X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: fde01bde-eef5-4dc2-6bd1-08dddddb6e81
-X-MS-Exchange-CrossTenant-AuthSource: CO6PR10MB5409.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: f13d4e32-9870-4f7c-2ae7-08ddddfcbc46
+X-MS-Exchange-CrossTenant-AuthSource: CH3PR10MB7329.namprd10.prod.outlook.com
 X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 17 Aug 2025 22:14:31.3021
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 18 Aug 2025 02:12:52.0655
  (UTC)
 X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
 X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
 X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: mTceipUuqoOQyl6CQRg//yeTXNmct/M2TjLOOknNCiEha484oG1KjlQooMND3pC5JTIld456ds9BMqsKKw4p55csb6cVZxe1jVO8yKvdYVY=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS7PR10MB7297
+X-MS-Exchange-CrossTenant-UserPrincipalName: zDU0cQJO6HS/7MRBAgxwynONGUfBESwg3Y2k6uF+dqbF4OlsueVw3H+bmhWqgoe3XLm4JJuEOoct/KI9kmMnGw==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CO1PR10MB4690
 X-Proofpoint-Virus-Version: vendor=baseguard
  engine=ICAP:2.0.293,Aquarius:18.0.1099,Hydra:6.1.9,FMLib:17.12.80.40
- definitions=2025-08-17_09,2025-08-14_01,2025-03-28_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 malwarescore=0
- mlxlogscore=999 adultscore=0 phishscore=0 bulkscore=0 mlxscore=0
- spamscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2507300000 definitions=main-2508170231
-X-Proofpoint-GUID: nx6xLz4B6ryF8TukPodsM_C5eqXcXmFx
-X-Authority-Analysis: v=2.4 cv=dN2mmPZb c=1 sm=1 tr=0 ts=68a2544b b=1 cx=c_pps
- a=qoll8+KPOyaMroiJ2sR5sw==:117 a=qoll8+KPOyaMroiJ2sR5sw==:17
+ definitions=2025-08-18_01,2025-08-14_01,2025-03-28_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 spamscore=0 mlxscore=0 suspectscore=0
+ adultscore=0 bulkscore=0 mlxlogscore=999 phishscore=0 malwarescore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2507300000
+ definitions=main-2508180019
+X-Authority-Analysis: v=2.4 cv=TNZFS0la c=1 sm=1 tr=0 ts=68a28c28 b=1 cx=c_pps
+ a=WeWmnZmh0fydH62SvGsd2A==:117 a=WeWmnZmh0fydH62SvGsd2A==:17
  a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
  a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=wKuvFiaSGQ0qltdbU6+NXLB8nM8=:19
  a=Ol13hO9ccFRV9qXi2t6ftBPywas=:19 a=xqWC_Br6kY4A:10 a=2OwXVqhp2XgA:10
- a=GoEa3M9JfhUA:10 a=7CQSdrXTAAAA:8 a=BVWbUb0om5YRCFPiKCIA:9
- a=a-qgeE7W1pNrGK8U0ZQC:22 cc=ntf awl=host:12070
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwODE3MDIzMSBTYWx0ZWRfXzFd9uAxiuiR1
- 9BVTR0jx2AsptczyYzaMY0Dxu4qaOzkwCfN/v8M3em2DA2VPg4XlIYWdeIsltuJryaRLkpNdRhA
- 00ZuNfR6roonyS46/mmapZ1hOJ9VeMUZeJGNSliLCw2T3SinMRlHLo5u60DapUKdPZkpp+vwuu7
- 0aQlGknHB68tqB5vibjBi0Otj80G6YyHeNTvTzvXkeC6Mjev7eZw0I84nlMzvDr5ucmneCxJqpw
- dgClLaTINN5vxtnyHssHoleKsrC53xJ+4acczDslot8ptHhmlyeZMmN/2Js3dQZn2qIhp7VVi/m
- cY9gwIydqrtNk/+kEjSWF9rhIjnhP9Hspyc+Sw3SYjyZs942/j1sRMJZfY6FthXox1aOTwJYQxm
- znmWhQPf43cUZ+D+hMAtOcwTrcOAqS7aZJM+DeDlu75xSefSuWAxJ/9aWRCuvGqC/5xJrvLn
-X-Proofpoint-ORIG-GUID: nx6xLz4B6ryF8TukPodsM_C5eqXcXmFx
+ a=GoEa3M9JfhUA:10 a=VwQbUJbxAAAA:8 a=QyXUC8HyAAAA:8 a=yPCof4ZbAAAA:8
+ a=vcVFF7Jsdw0vqU_NxK0A:9
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwODE4MDAxOSBTYWx0ZWRfXyklC4Rqu9vcA
+ MX4Sv7ns/CN8BWtwMSTj8cQ/5ngkDaaMI8YXd7IqEGYNE3UvdNp4daR8wVMOj/CqsPhlrs8PxZB
+ tSYXxcm1n5D2YNqhYdBWU1Gyt87sEnKxA+erCVKs3odtaEVzLCWadGjNagO+8bPujnt4PSTibQS
+ hUjB5QCJjw5gOk1p2MOiV4DQD0dQgM9UQxCePKpyb3E6/v2yrWmJGdNbVugO+cvs3WZ3O8PWaeE
+ s4a0tIn9V/DQCnJyN4KoQw48qIgRNL5ZQ6x5qUOm8qr2O2zbMxlvSpSsO7aGP6uJQdohf0rmJL5
+ 0BzPMBqhjtwa4EElUe5qEE9slgp0LXoj53Fw9woAbRWO24Wyov1358wzzNN6lKOlpcFfwLtqbSe
+ uQXjeRAbKLdJK3IqaiIY9mBkxpObZfZHFk1mdUrEV6SFSbSYu9zT/IhsXLwz6v9T7eLUxCQ4
+X-Proofpoint-GUID: K8znfpKXwoAn-lhIKHqD7P_15AeNZQOK
+X-Proofpoint-ORIG-GUID: K8znfpKXwoAn-lhIKHqD7P_15AeNZQOK
 
+Define ARCH_PAGE_TABLE_SYNC_MASK and arch_sync_kernel_mappings() to ensure
+page tables are properly synchronized when calling
+p*d_populate_kernel().
 
-Catalin Marinas <catalin.marinas@arm.com> writes:
+For 5-level paging, synchronization is performed via
+pgd_populate_kernel(). In 4-level paging, pgd_populate() is a no-op,
+so synchronization is instead performed at the P4D level via
+p4d_populate_kernel().
 
-> On Thu, Aug 14, 2025 at 12:30:36AM -0700, Ankur Arora wrote:
->> Catalin Marinas <catalin.marinas@arm.com> writes:
->> > On Mon, Aug 11, 2025 at 02:15:56PM -0700, Ankur Arora wrote:
->> >> Catalin Marinas <catalin.marinas@arm.com> writes:
->> >> > Also I feel the spinning added to poll_idle() is more of an architecture
->> >> > choice as some CPUs could not cope with local_clock() being called too
->> >> > frequently.
->> >>
->> >> Just on the frequency point -- I think it might be a more general
->> >> problem that just on specific architectures.
->> >>
->> >> Architectures with GENERIC_SCHED_CLOCK could use a multitude of
->> >> clocksources and from a quick look some of them do iomem reads.
->> >> (AFAICT GENERIC_SCHED_CLOCK could also be selected by the clocksource
->> >> itself, so an architecture header might not need to be an arch choice
->> >> at  all.)
->> >>
->> >> Even for something like x86 which doesn't use GENERIC_SCHED_CLOCK,
->> >> we might be using tsc or jiffies or paravirt-clock all of which would
->> >> have very different performance characteristics. Or, just using a
->> >> clock more expensive than local_clock(); rqspinlock uses
->> >> ktime_get_mono_fast_ns().
->> >>
->> >> So, I feel we do need a generic rate limiter.
->> >
->> > That's a good point but the rate limiting is highly dependent on the
->> > architecture, what a CPU does in the loop, how fast a loop iteration is.
->> >
->> > That's why I'd keep it hidden in the arch code.
->>
->> Yeah, this makes sense. However, I would like to keep as much of the
->> code that does this common.
->
-> You can mimic what poll_idle() does for x86 in the generic
-> implementation, maybe with some comment referring to the poll_idle() CPU
-> usage of calling local_clock() in a loop. However, allow the arch code
-> to override the whole implementation and get rid of the policy. If an
-> arch wants to spin for some power reason, it can do it itself. The code
-> duplication for a while loop is much more readable than a policy setting
-> some spin/wait parameters just to have a single spin loop. If at some
-> point we see some pattern, we could revisit the common code.
->
-> For arm64, I doubt the extra spinning makes any difference. Our
-> cpu_relax() doesn't do anything (almost), it's probably about the same
-> cost as reading the monotonic clock. I also see a single definition
-> close enough to the logic in __delay() on arm64. It would be more
-> readable than a policy callback setting wait/spin with a separate call
-> for actually waiting. Well, gut feel, let's see how that would look
-> like.
+This fixes intermittent boot failures on systems using 4-level paging
+and a large amount of persistent memory:
 
-So, I tried to pare back the code and the following (untested) is
-what I came up with. Given the straight-forward rate-limiting, and the
-current users not needing accurate timekeeping, this uses a
-bool time_check_expr. Figured I'd keep it simple until someone actually
-needs greater complexity as you suggested.
+  BUG: unable to handle page fault for address: ffffe70000000034
+  #PF: supervisor write access in kernel mode
+  #PF: error_code(0x0002) - not-present page
+  PGD 0 P4D 0
+  Oops: 0002 [#1] SMP NOPTI
+  RIP: 0010:__init_single_page+0x9/0x6d
+  Call Trace:
+   <TASK>
+   __init_zone_device_page+0x17/0x5d
+   memmap_init_zone_device+0x154/0x1bb
+   pagemap_range+0x2e0/0x40f
+   memremap_pages+0x10b/0x2f0
+   devm_memremap_pages+0x1e/0x60
+   dev_dax_probe+0xce/0x2ec [device_dax]
+   dax_bus_probe+0x6d/0xc9
+   [... snip ...]
+   </TASK>
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index d4f581c1e21d..e8793347a395 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -273,6 +273,34 @@ do {                                                                       \
- })
- #endif
+It also fixes a crash in vmemmap_set_pmd() caused by accessing vmemmap
+before sync_global_pgds() [1]:
 
+  BUG: unable to handle page fault for address: ffffeb3ff1200000
+  #PF: supervisor write access in kernel mode
+  #PF: error_code(0x0002) - not-present page
+  PGD 0 P4D 0
+  Oops: Oops: 0002 [#1] PREEMPT SMP NOPTI
+  Tainted: [W]=WARN
+  RIP: 0010:vmemmap_set_pmd+0xff/0x230
+   <TASK>
+   vmemmap_populate_hugepages+0x176/0x180
+   vmemmap_populate+0x34/0x80
+   __populate_section_memmap+0x41/0x90
+   sparse_add_section+0x121/0x3e0
+   __add_pages+0xba/0x150
+   add_pages+0x1d/0x70
+   memremap_pages+0x3dc/0x810
+   devm_memremap_pages+0x1c/0x60
+   xe_devm_add+0x8b/0x100 [xe]
+   xe_tile_init_noalloc+0x6a/0x70 [xe]
+   xe_device_probe+0x48c/0x740 [xe]
+   [... snip ...]
+
+Cc: <stable@vger.kernel.org>
+Fixes: 8d400913c231 ("x86/vmemmap: handle unpopulated sub-pmd ranges")
+Closes: https://lore.kernel.org/linux-mm/20250311114420.240341-1-gwan-gyeong.mun@intel.com [1]
+Suggested-by: Dave Hansen <dave.hansen@linux.intel.com>
+Acked-by: Kiryl Shutsemau <kas@kernel.org>
+Reviewed-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+Reviewed-by: Lorenzo Stoakes <lorenzo.stoakes@oracle.com>
+Signed-off-by: Harry Yoo <harry.yoo@oracle.com>
+---
+ arch/x86/include/asm/pgtable_64_types.h |  3 +++
+ arch/x86/mm/init_64.c                   | 18 ++++++++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/arch/x86/include/asm/pgtable_64_types.h b/arch/x86/include/asm/pgtable_64_types.h
+index 4604f924d8b8..7eb61ef6a185 100644
+--- a/arch/x86/include/asm/pgtable_64_types.h
++++ b/arch/x86/include/asm/pgtable_64_types.h
+@@ -36,6 +36,9 @@ static inline bool pgtable_l5_enabled(void)
+ #define pgtable_l5_enabled() cpu_feature_enabled(X86_FEATURE_LA57)
+ #endif /* USE_EARLY_PGTABLE_L5 */
+ 
++#define ARCH_PAGE_TABLE_SYNC_MASK \
++	(pgtable_l5_enabled() ? PGTBL_PGD_MODIFIED : PGTBL_P4D_MODIFIED)
 +
-+#ifndef SMP_TIMEWAIT_SPIN_COUNT
-+#define SMP_TIMEWAIT_SPIN_COUNT                200
-+#endif
+ extern unsigned int pgdir_shift;
+ extern unsigned int ptrs_per_p4d;
+ 
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 76e33bd7c556..b9426fce5f3e 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -223,6 +223,24 @@ static void sync_global_pgds(unsigned long start, unsigned long end)
+ 		sync_global_pgds_l4(start, end);
+ }
+ 
++/*
++ * Make kernel mappings visible in all page tables in the system.
++ * This is necessary except when the init task populates kernel mappings
++ * during the boot process. In that case, all processes originating from
++ * the init task copies the kernel mappings, so there is no issue.
++ * Otherwise, missing synchronization could lead to kernel crashes due
++ * to missing page table entries for certain kernel mappings.
++ *
++ * Synchronization is performed at the top level, which is the PGD in
++ * 5-level paging systems. But in 4-level paging systems, however,
++ * pgd_populate() is a no-op, so synchronization is done at the P4D level.
++ * sync_global_pgds() handles this difference between paging levels.
++ */
++void arch_sync_kernel_mappings(unsigned long start, unsigned long end)
++{
++	sync_global_pgds(start, end);
++}
 +
-+#ifndef smp_cond_load_relaxed_timewait
-+#define smp_cond_load_relaxed_timewait(ptr, cond_expr,                 \
-+                                       time_check_expr)                \
-+({                                                                     \
-+       typeof(ptr) __PTR = (ptr);                                      \
-+       __unqual_scalar_typeof(*ptr) VAL;                               \
-+       u32 __n = 0, __spin = SMP_TIMEWAIT_SPIN_COUNT;                  \
-+                                                                       \
-+       for (;;) {                                                      \
-+               VAL = READ_ONCE(*__PTR);                                \
-+               if (cond_expr)                                          \
-+                       break;                                          \
-+               cpu_relax();                                            \
-+               if (++__n < __spin)                                     \
-+                       continue;                                       \
-+               if ((time_check_expr))                                  \
-+                       break;                                          \
-+               __n = 0;                                                \
-+       }                                                               \
-+       (typeof(*ptr))VAL;                                              \
-+})
-+#endif
-diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
-index f5801b0ba9e9..c9934ab68da2 100644
---- a/arch/arm64/include/asm/barrier.h
-+++ b/arch/arm64/include/asm/barrier.h
-@@ -219,6 +219,43 @@ do {                                                                       \
-        (typeof(*ptr))VAL;                                              \
- })
+ /*
+  * NOTE: This function is marked __ref because it calls __init function
+  * (alloc_bootmem_pages). It's safe to do it ONLY when after_bootmem == 0.
+-- 
+2.43.0
 
-+extern bool arch_timer_evtstrm_available(void);
-+
-+#ifndef SMP_TIMEWAIT_SPIN_COUNT
-+#define SMP_TIMEWAIT_SPIN_COUNT                200
-+#endif
-+
-+#define smp_cond_load_relaxed_timewait(ptr, cond_expr,                 \
-+                                         time_check_expr)              \
-+({                                                                     \
-+       typeof(ptr) __PTR = (ptr);                                      \
-+       __unqual_scalar_typeof(*ptr) VAL;                               \
-+       u32 __n = 0, __spin = 0;                                        \
-+       bool __wfet = alternative_has_cap_unlikely(ARM64_HAS_WFXT);     \
-+       bool __wfe = arch_timer_evtstrm_available();                    \
-+       bool __wait = false;                                            \
-+                                                                       \
-+       if (__wfet || __wfe)                                            \
-+               __wait = true;                                          \
-+       else                                                            \
-+               __spin = SMP_TIMEWAIT_SPIN_COUNT;                       \
-+                                                                       \
-+       for (;;) {                                                      \
-+               VAL = READ_ONCE(*__PTR);                                \
-+               if (cond_expr)                                          \
-+                       break;                                          \
-+               cpu_relax();                                            \
-+               if (++__n < __spin)                                     \
-+                       continue;                                       \
-+               if ((time_check_expr))                                  \
-+                       break;                                          \
-+               if (__wait)                                             \
-+                       __cmpwait_relaxed(__PTR, VAL);                  \
-+               __n = 0;                                                \
-+       }                                                               \
-+       (typeof(*ptr))VAL;                                              \
-+})
-+
- #include <asm-generic/barrier.h>
-
-__cmpwait_relaxed() will need adjustment to set a deadline for WFET.
-
-AFAICT the rqspinlock code should be able to work by specifying something
-like:
-  ((ktime_get_mono_fast_ns() > tval)) || (deadlock_check(&lock_context)))
-as the time_check_expr.
-
-I think they also want to rate limit how often deadlock_check() is
-called, so they can redefine SMP_TIMEWAIT_SPIN_COUNT to some large
-value for arm64.
-
-How does this look?
-
-
-Thanks
-
---
-ankur
