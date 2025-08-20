@@ -1,51 +1,51 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60A0E198A11;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC43719C558;
 	Wed, 20 Aug 2025 01:05:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.165.32
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.177.32
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1755651951; cv=none; b=kTT768bgO62jF1l6f1P6zJCb37ChI+CFACPzpfX6ieMwOV7LI22zPsqgHWCpXBsfc8JSYy3TBg3IyvlJsRdvorc/W6jsRpdtoxbCvCnoUhlp80clDvxTKqctKaRU4aOveZjSJDfo/Q3ahP59heDOP4CSfMa198S63PnM6Jfoh8c=
+	t=1755651952; cv=none; b=JRhnqmNfEs2S+MiuhZTrP/Nru/Wm2lQNtZn0hRw66ly07f2cSyDl3czmqDK+/raMer2buh1kfnNOfT4QlInsrR5a+FHkza+SEeSsWRqUudlTig2NrQjXPZekAFaNqqXu9veOmbNvYQ/uTz0nf/xGbt4Gb96WHpBCk5IzZmuGVX0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1755651951; c=relaxed/simple;
-	bh=DQs2lOKramlJfbiRxzUvOaOWr9Qs+1TYMmKTXcyFxA4=;
+	s=arc-20240116; t=1755651952; c=relaxed/simple;
+	bh=hxRffp3Ng6NjJf68DfwLew2B+T4koeIMJF7H56OM5JQ=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=trZQPa8YQm6L7nLsLC9Zz41ET05Ftx8aIYFLu9pLWnT/zckRzOl6q/c1RlId1POI3PU259ipyMAAXVBHtE09pdIVnDaa7bDpMv8tqAJrUE5+Aanpb+PtFA4VfXxwAFF5SzbPBhi5glcneU/Jh/NU1D8OuNqc43MGrKtyYGGjGXc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=ns4vnE04; arc=none smtp.client-ip=205.220.165.32
+	 MIME-Version; b=sG/N8Q7NvwDBXLZe3TRY97s56gVGiPZ7tX0kyq7te4SWTU40ouHr5q+URkw+XGxQQMXsxudlH1DwZhXFMgIjobP36Sg2EwaqR9RxDWStO8Mn97ArmaON7G0xRMFdBKnzw6zh0GzbOFSJhYuC+cEjrg8b5/2ZN3btq3CTAs1Yb7s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=OQOU23n/; arc=none smtp.client-ip=205.220.177.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="ns4vnE04"
-Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 57JLC5u6012018;
-	Wed, 20 Aug 2025 01:04:31 GMT
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="OQOU23n/"
+Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 57JLBrL3005739;
+	Wed, 20 Aug 2025 01:04:58 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
 	:content-transfer-encoding:date:from:in-reply-to:message-id
-	:mime-version:references:subject:to; s=corp-2025-04-25; bh=1LKCO
-	d90IuRKQUERNf3PP/AzsM6PPL8y1xaZdJTCpTY=; b=ns4vnE04MJGeAJTqH0K6w
-	cv3s0i36oCkYZGMO2ysoAJqeZ8dlAnPEUUeqvGA/XZu3tEZirCjo/hJLl2CtYlsY
-	WKG2EZKBDZ1IRNyqkzruIHctY9FZu0/UVtK0sfdAOZ0ZAwVgMcEGXjit2iLLx3ch
-	TGznPTXd1h3GMUWKYoYXZIBrN6g4FysgnB5b6mgsqwRTrEyapOQE6esT+Fv6p04q
-	gV3X/XA2r4o06kbm48fhpen9ByOVCmece6KJQVd/kttDOToWPX3tSlUart2el5HF
-	NgjcPpxsmOgFnAQgqVjPYYFyk0eBhVezTaqLHtQbv/EhfxIM8eXbvXGwgXjgIpFd
-	w==
+	:mime-version:references:subject:to; s=corp-2025-04-25; bh=aTCOK
+	Z54R6TXOK6l3PvLQlmdTpFS20mjQ2epoOBlYkw=; b=OQOU23n/RfYRKc5h5GRAy
+	yIy6JJ62m9PD4vdEPNvz8l1uBz0Y/6ULoHuZL38fTG/icIZqnxv9Ln+UrHJhhM0E
+	WQND59BPxaOIXfFJ0oR72Fb3HU9JxVhiEXs8KRbGO3BS95LSxVwWNaCu0eLkc36y
+	wJY89Kcp5fQXWgjg6tTgxWg/nqCpViyPKVxBAQOnWOZXhGrB0XIru7+2TA+PvE7u
+	CH+4Odzha0ejI2gVYDGQwac9RrW3XvTlpyfITZWlkxLq5sIHDYm1dpfztSEYgI2x
+	fz/bpktBJ0s3TyAqhkOuD2Iw0NHtPuhl1jOKrl049bFem3b0W3+q47h4De9VDUn8
+	g==
 Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 48n0trr8dj-1
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 48n0tsr84s-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Aug 2025 01:04:31 +0000 (GMT)
+	Wed, 20 Aug 2025 01:04:58 +0000 (GMT)
 Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 57K02ibF007205;
-	Wed, 20 Aug 2025 01:04:30 GMT
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 57K02PP9007367;
+	Wed, 20 Aug 2025 01:04:56 GMT
 Received: from pps.reinject (localhost [127.0.0.1])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 48my3q29pf-1
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 48my3q2a06-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Aug 2025 01:04:30 +0000
+	Wed, 20 Aug 2025 01:04:56 +0000
 Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 57K14Nd8011685;
-	Wed, 20 Aug 2025 01:04:29 GMT
+	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 57K14NdS011685;
+	Wed, 20 Aug 2025 01:04:55 GMT
 Received: from localhost.localdomain (ca-dev60.us.oracle.com [10.129.136.27])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTP id 48my3q29gw-3;
-	Wed, 20 Aug 2025 01:04:28 +0000
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTP id 48my3q29gw-13;
+	Wed, 20 Aug 2025 01:04:55 +0000
 From: Anthony Yznaga <anthony.yznaga@oracle.com>
 To: linux-mm@kvack.org
 Cc: akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de,
@@ -64,9 +64,9 @@ Cc: akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de,
         viro@zeniv.linux.org.uk, vschneid@redhat.com, willy@infradead.org,
         x86@kernel.org, xhao@linux.alibaba.com, linux-doc@vger.kernel.org,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH v3 02/22] mm/mshare: pre-populate msharefs with information file
-Date: Tue, 19 Aug 2025 18:03:55 -0700
-Message-ID: <20250820010415.699353-3-anthony.yznaga@oracle.com>
+Subject: [PATCH v3 12/22] mm: introduce PUD page table shared count
+Date: Tue, 19 Aug 2025 18:04:05 -0700
+Message-ID: <20250820010415.699353-13-anthony.yznaga@oracle.com>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20250820010415.699353-1-anthony.yznaga@oracle.com>
 References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
@@ -84,157 +84,168 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 malw
  phishscore=0 bulkscore=0 spamscore=0 suspectscore=0 mlxlogscore=999
  mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2508110000 definitions=main-2508200007
-X-Proofpoint-ORIG-GUID: kxNfsh9Q8YiSklUfYeZXOlaps9W-bKKp
-X-Proofpoint-GUID: kxNfsh9Q8YiSklUfYeZXOlaps9W-bKKp
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwODE5MDE5NyBTYWx0ZWRfX6YMrtj8XpWKS
- LcqBDDeWdu/UOBa9TA9CuJrKyr7WHxicnwTZFC8DVa6AshqREBW6ABAMPiVzHKDz2uyJt3w3jTx
- QSxgWMT0p3xYqUpgtUjHd3F+dulSIXl14yY9immgOvZCF6BRyhOvwGaka0Lqb7L3+plejJ9NYsE
- 6wVVY2xNLVfNWK6mMAgdKthgQr2y0O1GeAt8G81/czDVkqjdaEZv8F2/GOY5Z4BDiuanejVpVjn
- /qKPlN3qlLcUkvGbEGYZ/PwsWp668uD31YHbHpangz2ixwG/7kd3FtXH0zUMru4NXRhKNbuGeHT
- C1DKqsN0bAezloJGtQQf+/OAAEWeis0MCNb5PNMmLSEzZsWIqLRbu6hcKIfHlOjYVFytdls8gAq
- kKF+yHAgkGBhBxMnBiSBud6FnMQk4w==
-X-Authority-Analysis: v=2.4 cv=Qp4HHVyd c=1 sm=1 tr=0 ts=68a51f1f cx=c_pps
+X-Proofpoint-GUID: XkiUDz7QrV9JQbSS0E3iydrFNOELU_g0
+X-Authority-Analysis: v=2.4 cv=S6eAAIsP c=1 sm=1 tr=0 ts=68a51f3a cx=c_pps
  a=XiAAW1AwiKB2Y8Wsi+sD2Q==:117 a=XiAAW1AwiKB2Y8Wsi+sD2Q==:17
- a=2OwXVqhp2XgA:10 a=VwQbUJbxAAAA:8 a=yPCof4ZbAAAA:8 a=Nn8paf86YN4m1DmQybIA:9
+ a=2OwXVqhp2XgA:10 a=yPCof4ZbAAAA:8 a=wzGCPD0JsuPSr4ClS-4A:9
  a=UhEZJTgQB8St2RibIkdl:22 a=Z5ABNNGmrOfJ6cZ5bIyy:22 a=QOGEsqRv6VhmHaoFNykA:22
+X-Proofpoint-ORIG-GUID: XkiUDz7QrV9JQbSS0E3iydrFNOELU_g0
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwODE5MDE5NyBTYWx0ZWRfXx8FqyQ7+B2ay
+ bCJ7q/WZ++K45BiFIwOb/XZv2xR9mK6HAjlKdLED4YAI/qTI9Ep/xzvpUby2QFmqlCwg2Yrc1bp
+ BUvAhvVnxG92Fem7MaInikH2sff8NGy4WUGgxQ0VHAw2QIA2ZyFdzLYJ7OOulgShQ53V9VJL/t1
+ uMLaUU7CWk3PP6SnYn41CBbRMGKVQ1W2Fs3f0JuFktIRBWAywc3UG5d1xNRI/WhDLMxz0xBYvBA
+ Wg+PFdmM/0qQ2YzRoYfYXXwmrwoeskpyp0Zc9xXU31k2s6MyI/cIYgRREwlabHwG9MMTFVEQJQf
+ hworEMdy8ev8UiL4eTxOjFd9j4pcI6GIV/ebogIUMER5uhGHB+4cka2iwavhfZAOfT729ed7g6c
+ dYqaS4HXlwwAt9q8kyQOCBOoIxFsmg==
 
-From: Khalid Aziz <khalid@kernel.org>
+Once an mshare shared page table has been linked with one or more
+process page tables it becomes necessary to ensure that the shared
+page table is not completely freed when objects in it are unmapped
+in order to avoid a potential UAF bug. To do this, introduce and
+use a reference count for PUD pages.
 
-Users of mshare need to know the size and alignment requirement
-for shared regions. Pre-populate msharefs with a file, mshare_info,
-that provides this information. For now, pagetable sharing is
-hardcoded to be at the PUD level.
-
-Signed-off-by: Khalid Aziz <khalid@kernel.org>
 Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
 ---
- mm/mshare.c | 77 +++++++++++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 75 insertions(+), 2 deletions(-)
+ include/linux/mm.h       |  1 +
+ include/linux/mm_types.h | 36 ++++++++++++++++++++++++++++++++++--
+ mm/memory.c              | 21 +++++++++++++++++++--
+ 3 files changed, 54 insertions(+), 4 deletions(-)
 
-diff --git a/mm/mshare.c b/mm/mshare.c
-index f703af49ec81..d666471bc94b 100644
---- a/mm/mshare.c
-+++ b/mm/mshare.c
-@@ -17,18 +17,74 @@
- #include <linux/fs_context.h>
- #include <uapi/linux/magic.h>
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 96440082a633..c8dfa5c6e7d4 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -3217,6 +3217,7 @@ static inline spinlock_t *pud_lock(struct mm_struct *mm, pud_t *pud)
  
-+const unsigned long mshare_align = P4D_SIZE;
-+
- static const struct file_operations msharefs_file_operations = {
- 	.open			= simple_open,
- };
- 
-+struct msharefs_info {
-+	struct dentry *info_dentry;
-+};
-+
-+static ssize_t
-+mshare_info_read(struct file *file, char __user *buf, size_t nbytes,
-+		loff_t *ppos)
-+{
-+	char s[80];
-+
-+	sprintf(s, "%ld\n", mshare_align);
-+	return simple_read_from_buffer(buf, nbytes, ppos, s, strlen(s));
-+}
-+
-+static const struct file_operations mshare_info_ops = {
-+	.read	= mshare_info_read,
-+	.llseek	= noop_llseek,
-+};
-+
- static const struct super_operations mshare_s_ops = {
- 	.statfs		= simple_statfs,
- };
- 
-+static int
-+msharefs_create_mshare_info(struct super_block *sb)
-+{
-+	struct msharefs_info *info = sb->s_fs_info;
-+	struct dentry *root = sb->s_root;
-+	struct dentry *dentry;
-+	struct inode *inode;
-+	int ret;
-+
-+	ret = -ENOMEM;
-+	inode = new_inode(sb);
-+	if (!inode)
-+		goto out;
-+
-+	inode->i_ino = 2;
-+	simple_inode_init_ts(inode);
-+	inode_init_owner(&nop_mnt_idmap, inode, NULL, S_IFREG | 0444);
-+	inode->i_fop = &mshare_info_ops;
-+
-+	dentry = d_alloc_name(root, "mshare_info");
-+	if (!dentry)
-+		goto out;
-+
-+	info->info_dentry = dentry;
-+	d_add(dentry, inode);
-+
-+	return 0;
-+out:
-+	iput(inode);
-+
-+	return ret;
-+}
-+
- static int
- msharefs_fill_super(struct super_block *sb, struct fs_context *fc)
+ static inline void pagetable_pud_ctor(struct ptdesc *ptdesc)
  {
-+	struct msharefs_info *info;
- 	struct inode *inode;
-+	int ret;
- 
- 	sb->s_blocksize		= PAGE_SIZE;
- 	sb->s_blocksize_bits	= PAGE_SHIFT;
-@@ -37,6 +93,12 @@ msharefs_fill_super(struct super_block *sb, struct fs_context *fc)
- 	sb->s_op		= &mshare_s_ops;
- 	sb->s_time_gran		= 1;
- 
-+	info = kzalloc(sizeof(*info), GFP_KERNEL);
-+	if (!info)
-+		return -ENOMEM;
-+
-+	sb->s_fs_info = info;
-+
- 	inode = new_inode(sb);
- 	if (!inode)
- 		return -ENOMEM;
-@@ -52,7 +114,9 @@ msharefs_fill_super(struct super_block *sb, struct fs_context *fc)
- 	if (!sb->s_root)
- 		return -ENOMEM;
- 
--	return 0;
-+	ret = msharefs_create_mshare_info(sb);
-+
-+	return ret;
++	ptdesc_pud_pts_init(ptdesc);
+ 	__pagetable_ctor(ptdesc);
  }
  
- static int
-@@ -72,10 +136,19 @@ mshare_init_fs_context(struct fs_context *fc)
- 	return 0;
+diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
+index c8f4d2a2c60b..da5a7a31a81d 100644
+--- a/include/linux/mm_types.h
++++ b/include/linux/mm_types.h
+@@ -537,7 +537,7 @@ FOLIO_MATCH(compound_head, _head_3);
+  * @pt_index:         Used for s390 gmap.
+  * @pt_mm:            Used for x86 pgds.
+  * @pt_frag_refcount: For fragmented page table tracking. Powerpc only.
+- * @pt_share_count:   Used for HugeTLB PMD page table share count.
++ * @pt_share_count:   Used for HugeTLB PMD or Mshare PUD page table share count.
+  * @_pt_pad_2:        Padding to ensure proper alignment.
+  * @ptl:              Lock for the page table.
+  * @__page_type:      Same as page->page_type. Unused for page tables.
+@@ -564,7 +564,7 @@ struct ptdesc {
+ 		pgoff_t pt_index;
+ 		struct mm_struct *pt_mm;
+ 		atomic_t pt_frag_refcount;
+-#ifdef CONFIG_HUGETLB_PMD_PAGE_TABLE_SHARING
++#if defined(CONFIG_HUGETLB_PMD_PAGE_TABLE_SHARING) || defined(CONFIG_MSHARE)
+ 		atomic_t pt_share_count;
+ #endif
+ 	};
+@@ -638,6 +638,38 @@ static inline void ptdesc_pmd_pts_init(struct ptdesc *ptdesc)
  }
+ #endif
  
-+static void
-+msharefs_kill_super(struct super_block *sb)
++#ifdef CONFIG_MSHARE
++static inline void ptdesc_pud_pts_init(struct ptdesc *ptdesc)
 +{
-+	struct msharefs_info *info = sb->s_fs_info;
-+
-+	kfree(info);
-+	kill_litter_super(sb);
++	atomic_set(&ptdesc->pt_share_count, 0);
 +}
 +
- static struct file_system_type mshare_fs = {
- 	.name			= "msharefs",
- 	.init_fs_context	= mshare_init_fs_context,
--	.kill_sb		= kill_litter_super,
-+	.kill_sb		= msharefs_kill_super,
- };
++static inline void ptdesc_pud_pts_inc(struct ptdesc *ptdesc)
++{
++	atomic_inc(&ptdesc->pt_share_count);
++}
++
++static inline void ptdesc_pud_pts_dec(struct ptdesc *ptdesc)
++{
++	atomic_dec(&ptdesc->pt_share_count);
++}
++
++static inline int ptdesc_pud_pts_count(struct ptdesc *ptdesc)
++{
++	return atomic_read(&ptdesc->pt_share_count);
++}
++#else
++static inline void ptdesc_pud_pts_init(struct ptdesc *ptdesc)
++{
++}
++
++static inline int ptdesc_pud_pts_count(struct ptdesc *ptdesc)
++{
++	return 0;
++}
++#endif
++
++
+ /*
+  * Used for sizing the vmemmap region on some architectures
+  */
+diff --git a/mm/memory.c b/mm/memory.c
+index dbc299aa82c2..4e3bb49b95e2 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -228,9 +228,18 @@ static inline void free_pmd_range(struct mmu_gather *tlb, pud_t *pud,
+ 	mm_dec_nr_pmds(tlb->mm);
+ }
  
- static int __init
++static inline bool pud_range_is_shared(pud_t *pud)
++{
++	if (ptdesc_pud_pts_count(virt_to_ptdesc(pud)))
++		return true;
++
++	return false;
++}
++
+ static inline void free_pud_range(struct mmu_gather *tlb, p4d_t *p4d,
+ 				unsigned long addr, unsigned long end,
+-				unsigned long floor, unsigned long ceiling)
++				unsigned long floor, unsigned long ceiling,
++				bool *pud_is_shared)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+@@ -257,6 +266,10 @@ static inline void free_pud_range(struct mmu_gather *tlb, p4d_t *p4d,
+ 		return;
+ 
+ 	pud = pud_offset(p4d, start);
++	if (unlikely(pud_range_is_shared(pud))) {
++		*pud_is_shared = true;
++		return;
++	}
+ 	p4d_clear(p4d);
+ 	pud_free_tlb(tlb, pud, start);
+ 	mm_dec_nr_puds(tlb->mm);
+@@ -269,6 +282,7 @@ static inline void free_p4d_range(struct mmu_gather *tlb, pgd_t *pgd,
+ 	p4d_t *p4d;
+ 	unsigned long next;
+ 	unsigned long start;
++	bool pud_is_shared = false;
+ 
+ 	start = addr;
+ 	p4d = p4d_offset(pgd, addr);
+@@ -276,7 +290,8 @@ static inline void free_p4d_range(struct mmu_gather *tlb, pgd_t *pgd,
+ 		next = p4d_addr_end(addr, end);
+ 		if (p4d_none_or_clear_bad(p4d))
+ 			continue;
+-		free_pud_range(tlb, p4d, addr, next, floor, ceiling);
++		free_pud_range(tlb, p4d, addr, next, floor, ceiling,
++				&pud_is_shared);
+ 	} while (p4d++, addr = next, addr != end);
+ 
+ 	start &= PGDIR_MASK;
+@@ -290,6 +305,8 @@ static inline void free_p4d_range(struct mmu_gather *tlb, pgd_t *pgd,
+ 	if (end - 1 > ceiling - 1)
+ 		return;
+ 
++	if (unlikely(pud_is_shared))
++		return;
+ 	p4d = p4d_offset(pgd, start);
+ 	pgd_clear(pgd);
+ 	p4d_free_tlb(tlb, p4d, start);
 -- 
 2.47.1
 
