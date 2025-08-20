@@ -1,51 +1,51 @@
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00F851F3FE9;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 37A7F1F4161;
 	Wed, 20 Aug 2025 01:05:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.177.32
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.165.32
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1755651958; cv=none; b=IeObaxgo1USu3iHNX/rW2ZOC4B+OjPyAh0NcPAgwrfd05UQUXWzn/yhSuTv/lM62b1QeCTtfDaRskmJpDWwhGh1ndjA0CNIcrXBkodAg9/D80jsn2wfzVnO4WajZ744Jpa2sqVmDkcPcebOTHaM/snP8UXS51qilRKAYvN41470=
+	t=1755651959; cv=none; b=itdBuKd2y0L6cid3H2kjHE3Pi0UEPb+qIGqFJIX8U8CBmErLMZ8t/0kOaUdyMnnIpAbOKKIo6sdYJDbMMGT1K3+79xTjXIt0FADKS/V7/ZZJnv23aLOQqxECWoBOsdT9qkIDf6hFcKIH2ml4vNm9DMtCCYjgoHlcQjkUq5bo5fc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1755651958; c=relaxed/simple;
-	bh=auDFaT8uGobdi7ItBtUrOnjvKnEkCg1oarWevwcrdH4=;
+	s=arc-20240116; t=1755651959; c=relaxed/simple;
+	bh=O0ZKrrHX4tTjCQplZtJ1DpbnmSC1BfCawA8dp8HslY8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=XNMQ0XrE8YzazC5f6sbwNOAoc5zKzvZmSjV8zZMKZ6oqZU6s+P6GB101AtDIt0JRCNPHX5EJI24uD/JLpBTt/EduQkG6alggMTbiBfpT8aRsEQ+lR3XrkqCf8j1z3W2FYt1igSP731Kb+RTql5Bd4t0ALR+sGktXWFlMlze1UJE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=E1jkn6uc; arc=none smtp.client-ip=205.220.177.32
+	 MIME-Version; b=aQbwe+Dhvo5O88ay840z2Kly++o5hdXOSbC/8E9ZaQIGeLrC8gIlxEJ5o/UONlghsyk78xcELnVrQHWA5VLUNDvt3wfAYYA7LH4MZqQ/8MdSh2ODeYBS4HJv8/XAr45xgDXj1nsaF66QTgOXGlV68iCe75HxePiTcrnMgOHyJ84=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=Qx3zTwpE; arc=none smtp.client-ip=205.220.165.32
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="E1jkn6uc"
-Received: from pps.filterd (m0246630.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 57JLBqrS005563;
-	Wed, 20 Aug 2025 01:05:05 GMT
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="Qx3zTwpE"
+Received: from pps.filterd (m0246617.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.2/8.18.1.2) with ESMTP id 57JLCHN2012275;
+	Wed, 20 Aug 2025 01:04:36 GMT
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
 	:content-transfer-encoding:date:from:in-reply-to:message-id
-	:mime-version:references:subject:to; s=corp-2025-04-25; bh=HbYD1
-	l2iLYYzN9WowdlH5+feA7G9e6IFZDEjiJfik3M=; b=E1jkn6ucUK/gVVlsGu7QL
-	8EJjAOIUm/io6qbZVuaFtYjKvOiJZanHf+TEq7rELvmcp841H1MXmBYW3XSzqdUU
-	prrJUA44c6Xn7+DYjEe96ZyXBlBpo+mwhm7xH+WHjzb6O+ConDgg8WLSoGLY4/Ky
-	p8IprtksQIjnmh49p5oA9guZRzITYgdpGyM7S+5I703qOwYQzMfQ7qFyc0nEs+5x
-	wNGwh+8eQrDQPtKHLPBKiNHMiR3RNTWbB2+XUSecdVFH4TDKkFaVtqui5uY2+80Y
-	HJRTrVssfgLWvV9yalScIxCuoKouBruky2grh7d+qaS9g5Gk0AXft+eCUksKYKR9
-	Q==
+	:mime-version:references:subject:to; s=corp-2025-04-25; bh=fQFnq
+	88K9K4MmLcnD5W2me3DfjuW88ktErhJymD1WnQ=; b=Qx3zTwpEPQiJbr5opLwnj
+	wmakVtwduCmaE3tTazo7NJUMAQCEHfLwh7/zfEi1FrWDp2Vyff1swsmjQJBz87zj
+	OAfNy32xhgUU9kOHk8s7RpobXBdEdY+yOvJaWo/BNTS9HGwocgV6O8pXxTCChtrG
+	rZwz2r4wnyN571Uo8xFztiEtXDAyr+UK4OPRZBPzJzOBdObLKE8k4aVKjoXZVNQK
+	D8+MD8pxuZcp7k4rSuQSMC4a/t8pYWx5JOMI/iGx4wxkli24AaMDti/E0VD8F/a5
+	DYVCSKIqyRn8bJqVxiK9LodcEIykI2AC9sxpYuuS8CuEynLfXThTFnMotro2nkd1
+	A==
 Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.appoci.oracle.com [138.1.114.2])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 48n0tsr850-1
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 48n0trr8dq-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Aug 2025 01:05:05 +0000 (GMT)
+	Wed, 20 Aug 2025 01:04:36 +0000 (GMT)
 Received: from pps.filterd (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 57JNVOUF007290;
-	Wed, 20 Aug 2025 01:05:04 GMT
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 57JN314f007380;
+	Wed, 20 Aug 2025 01:04:36 GMT
 Received: from pps.reinject (localhost [127.0.0.1])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 48my3q2a3j-1
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 48my3q29rq-1
 	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 20 Aug 2025 01:05:04 +0000
+	Wed, 20 Aug 2025 01:04:35 +0000
 Received: from phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 57K14NdY011685;
-	Wed, 20 Aug 2025 01:05:03 GMT
+	by pps.reinject (8.17.1.5/8.17.1.5) with ESMTP id 57K14NdC011685;
+	Wed, 20 Aug 2025 01:04:34 GMT
 Received: from localhost.localdomain (ca-dev60.us.oracle.com [10.129.136.27])
-	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTP id 48my3q29gw-16;
-	Wed, 20 Aug 2025 01:05:03 +0000
+	by phxpaimrmta01.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTP id 48my3q29gw-5;
+	Wed, 20 Aug 2025 01:04:34 +0000
 From: Anthony Yznaga <anthony.yznaga@oracle.com>
 To: linux-mm@kvack.org
 Cc: akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de,
@@ -64,9 +64,9 @@ Cc: akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de,
         viro@zeniv.linux.org.uk, vschneid@redhat.com, willy@infradead.org,
         x86@kernel.org, xhao@linux.alibaba.com, linux-doc@vger.kernel.org,
         linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: [PATCH v3 15/22] mm: create __do_mmap() to take an mm_struct * arg
-Date: Tue, 19 Aug 2025 18:04:08 -0700
-Message-ID: <20250820010415.699353-16-anthony.yznaga@oracle.com>
+Subject: [PATCH v3 04/22] mm/mshare: allocate an mm_struct for msharefs files
+Date: Tue, 19 Aug 2025 18:03:57 -0700
+Message-ID: <20250820010415.699353-5-anthony.yznaga@oracle.com>
 X-Mailer: git-send-email 2.47.3
 In-Reply-To: <20250820010415.699353-1-anthony.yznaga@oracle.com>
 References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
@@ -84,172 +84,143 @@ X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 malw
  phishscore=0 bulkscore=0 spamscore=0 suspectscore=0 mlxlogscore=999
  mlxscore=0 classifier=spam adjust=0 reason=mlx scancount=1
  engine=8.12.0-2508110000 definitions=main-2508200007
-X-Proofpoint-GUID: TbbjLz4-bGRIkmOtv-lhbXkJ4biLIzYW
-X-Authority-Analysis: v=2.4 cv=S6eAAIsP c=1 sm=1 tr=0 ts=68a51f41 cx=c_pps
+X-Proofpoint-ORIG-GUID: cHfUWM3KGiFs7FJoiOuwHErwqfvdF0rU
+X-Proofpoint-GUID: cHfUWM3KGiFs7FJoiOuwHErwqfvdF0rU
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwODE5MDE5NyBTYWx0ZWRfX+V+sG7is/uC0
+ FR8t0L4s8S37T0jKbVUSzYW6Vn+KN5uC9PmxNS7i0HKw54PL2u8Qp/FFBHiTpwOsLkWb+9Mx9Q2
+ hJ6NgARxnInuZ+mJmpbVfRngMlyviPDYAmmiQTCNKzP0kHb38TJSe90pNUE77CtzcJGanBgACoD
+ SSWuuT6/F2qkhR2P3HcNz5zSvKYFy9KFBoT+Zxg+/1wQdGgb6K4Ckaz9o/owAOOcsUVZpOGBK6l
+ Kkz00FvgZWY2B9zMQSZOzcK5auVBWnCmmqu8Nq9YoO6P6xo5c3uJlYSlx+9a5iFb4Fm0o0UOCik
+ KqIHJhthilO7tzm7Ja7Co3S24Yy/AgarEGSvpi3RD3pTF5GHiqCZFJYn4JK6Ot/+VAVkCEOheFK
+ rAvygBTEBSS88CrUSVjGknuTdiV1/w==
+X-Authority-Analysis: v=2.4 cv=Qp4HHVyd c=1 sm=1 tr=0 ts=68a51f24 cx=c_pps
  a=XiAAW1AwiKB2Y8Wsi+sD2Q==:117 a=XiAAW1AwiKB2Y8Wsi+sD2Q==:17
- a=2OwXVqhp2XgA:10 a=yPCof4ZbAAAA:8 a=xDz22KVWXZV-ta6dUt0A:9
+ a=2OwXVqhp2XgA:10 a=VwQbUJbxAAAA:8 a=yPCof4ZbAAAA:8 a=eZrgD7rVaXJ09-4h1GUA:9
  a=UhEZJTgQB8St2RibIkdl:22 a=Z5ABNNGmrOfJ6cZ5bIyy:22 a=QOGEsqRv6VhmHaoFNykA:22
-X-Proofpoint-ORIG-GUID: TbbjLz4-bGRIkmOtv-lhbXkJ4biLIzYW
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjUwODE5MDE5NyBTYWx0ZWRfX+3aNG8/E6p++
- 4I/UAW+dDyT06eH24CC14bTvgSx5mYxM8Y+AUzyruJr/tjhFmWIipK63mm1MZ02txrWNMaWTECA
- E7J7AQDJXDp9fUfEGx1jQPkQp+egpAuC6wq8v1Y1+3DG59V87QlDoTXq2RdkoDBQAuxV9ZzhoLh
- 1EL4R+QRz1+ZWRcs7mTD+je5fjEV0dhb/HQMA3go5oYWey1bw2ULhLOpOLDhfnIi4OpbtFUJ0k5
- EmFCULWx4L36303shUuWSKyMvs+LDDYkxpXm8i4/FaWxv212zAKKn3rzcK455ySkWffkO7wUm/O
- XFNsF0bdfnya6u2B7wLG22BXzyq3+hlVi8ioefq+KQT86Qq8iAkdZoD2SUs3tGBPiGa49pc+9DR
- enx1eRCPQidAfCoO56Q8JlWO/+lq3w==
 
-In preparation for mapping objects into an mshare region, create
-__do_mmap() to allow mapping into a specified mm. There are no
-functional changes otherwise.
+When a new file is created under msharefs, allocate a new mm_struct
+to be associated with it for the lifetime of the file.
+The mm_struct will hold the VMAs and pagetables for the mshare region
+the file represents.
 
+Signed-off-by: Khalid Aziz <khalid@kernel.org>
 Signed-off-by: Anthony Yznaga <anthony.yznaga@oracle.com>
 ---
- include/linux/mm.h | 16 ++++++++++++++++
- mm/mmap.c          | 10 +++++-----
- mm/vma.c           | 12 ++++++------
- mm/vma.h           |  2 +-
- 4 files changed, 28 insertions(+), 12 deletions(-)
+ mm/mshare.c | 68 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 68 insertions(+)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 3a8dddb5925a..07e0a15a4618 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -3434,10 +3434,26 @@ get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
- 	return __get_unmapped_area(file, addr, len, pgoff, flags, 0);
- }
+diff --git a/mm/mshare.c b/mm/mshare.c
+index c43b53a7323a..400f198c0791 100644
+--- a/mm/mshare.c
++++ b/mm/mshare.c
+@@ -19,6 +19,11 @@
  
-+#ifdef CONFIG_MMU
-+unsigned long __do_mmap(struct file *file, unsigned long addr,
-+	unsigned long len, unsigned long prot, unsigned long flags,
-+	vm_flags_t vm_flags, unsigned long pgoff, unsigned long *populate,
-+	struct list_head *uf, struct mm_struct *mm);
-+static inline unsigned long do_mmap(struct file *file, unsigned long addr,
-+	unsigned long len, unsigned long prot, unsigned long flags,
-+	vm_flags_t vm_flags, unsigned long pgoff, unsigned long *populate,
-+	struct list_head *uf)
-+{
-+	return __do_mmap(file, addr, len, prot, flags, vm_flags, pgoff,
-+			 populate, uf, current->mm);
-+}
-+#else
- extern unsigned long do_mmap(struct file *file, unsigned long addr,
- 	unsigned long len, unsigned long prot, unsigned long flags,
- 	vm_flags_t vm_flags, unsigned long pgoff, unsigned long *populate,
- 	struct list_head *uf);
-+#endif
+ const unsigned long mshare_align = P4D_SIZE;
+ 
++struct mshare_data {
++	struct mm_struct *mm;
++	refcount_t ref;
++};
 +
- extern int do_vmi_munmap(struct vma_iterator *vmi, struct mm_struct *mm,
- 			 unsigned long start, size_t len, struct list_head *uf,
- 			 bool unlock);
-diff --git a/mm/mmap.c b/mm/mmap.c
-index 7a057e0e8da9..18f266a511e2 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -275,7 +275,7 @@ static inline bool file_mmap_ok(struct file *file, struct inode *inode,
- }
+ static const struct inode_operations msharefs_dir_inode_ops;
+ static const struct inode_operations msharefs_file_inode_ops;
  
- /**
-- * do_mmap() - Perform a userland memory mapping into the current process
-+ * __do_mmap() - Perform a userland memory mapping into the current process
-  * address space of length @len with protection bits @prot, mmap flags @flags
-  * (from which VMA flags will be inferred), and any additional VMA flags to
-  * apply @vm_flags. If this is a file-backed mapping then the file is specified
-@@ -327,17 +327,17 @@ static inline bool file_mmap_ok(struct file *file, struct inode *inode,
-  * @uf: An optional pointer to a list head to track userfaultfd unmap events
-  * should unmapping events arise. If provided, it is up to the caller to manage
-  * this.
-+ * @mm: The mm_struct
-  *
-  * Returns: Either an error, or the address at which the requested mapping has
-  * been performed.
-  */
--unsigned long do_mmap(struct file *file, unsigned long addr,
-+unsigned long __do_mmap(struct file *file, unsigned long addr,
- 			unsigned long len, unsigned long prot,
- 			unsigned long flags, vm_flags_t vm_flags,
- 			unsigned long pgoff, unsigned long *populate,
--			struct list_head *uf)
-+			struct list_head *uf, struct mm_struct *mm)
+@@ -26,11 +31,55 @@ static const struct file_operations msharefs_file_operations = {
+ 	.open			= simple_open,
+ };
+ 
++static int
++msharefs_fill_mm(struct inode *inode)
++{
++	struct mm_struct *mm;
++	struct mshare_data *m_data = NULL;
++	int ret = -ENOMEM;
++
++	mm = mm_alloc();
++	if (!mm)
++		return -ENOMEM;
++
++	mm->mmap_base = mm->task_size = 0;
++
++	m_data = kzalloc(sizeof(*m_data), GFP_KERNEL);
++	if (!m_data)
++		goto err_free;
++	m_data->mm = mm;
++
++	refcount_set(&m_data->ref, 1);
++	inode->i_private = m_data;
++	return 0;
++
++err_free:
++	mmput(mm);
++	kfree(m_data);
++	return ret;
++}
++
++static void
++msharefs_delmm(struct mshare_data *m_data)
++{
++	mmput(m_data->mm);
++	kfree(m_data);
++}
++
++static void mshare_data_putref(struct mshare_data *m_data)
++{
++	if (!refcount_dec_and_test(&m_data->ref))
++		return;
++
++	msharefs_delmm(m_data);
++}
++
+ static struct inode
+ *msharefs_get_inode(struct mnt_idmap *idmap, struct super_block *sb,
+ 			const struct inode *dir, umode_t mode)
  {
--	struct mm_struct *mm = current->mm;
- 	int pkey = 0;
+ 	struct inode *inode = new_inode(sb);
++	int ret;
  
- 	*populate = 0;
-@@ -555,7 +555,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
- 			vm_flags |= VM_NORESERVE;
- 	}
+ 	if (!inode)
+ 		return ERR_PTR(-ENOMEM);
+@@ -43,6 +92,11 @@ static struct inode
+ 	case S_IFREG:
+ 		inode->i_op = &msharefs_file_inode_ops;
+ 		inode->i_fop = &msharefs_file_operations;
++		ret = msharefs_fill_mm(inode);
++		if (ret) {
++			iput(inode);
++			inode = ERR_PTR(ret);
++		}
+ 		break;
+ 	case S_IFDIR:
+ 		inode->i_op = &msharefs_dir_inode_ops;
+@@ -141,6 +195,19 @@ static const struct inode_operations msharefs_dir_inode_ops = {
+ 	.rename		= msharefs_rename,
+ };
  
--	addr = mmap_region(file, addr, len, vm_flags, pgoff, uf);
-+	addr = mmap_region(file, addr, len, vm_flags, pgoff, uf, mm);
- 	if (!IS_ERR_VALUE(addr) &&
- 	    ((vm_flags & VM_LOCKED) ||
- 	     (flags & (MAP_POPULATE | MAP_NONBLOCK)) == MAP_POPULATE))
-diff --git a/mm/vma.c b/mm/vma.c
-index 3b12c7579831..a7fbd339d259 100644
---- a/mm/vma.c
-+++ b/mm/vma.c
-@@ -2637,9 +2637,8 @@ static bool can_set_ksm_flags_early(struct mmap_state *map)
++static void
++msharefs_evict_inode(struct inode *inode)
++{
++	struct mshare_data *m_data = inode->i_private;
++
++	if (!m_data)
++		goto out;
++
++	mshare_data_putref(m_data);
++out:
++	clear_inode(inode);
++}
++
+ static ssize_t
+ mshare_info_read(struct file *file, char __user *buf, size_t nbytes,
+ 		loff_t *ppos)
+@@ -158,6 +225,7 @@ static const struct file_operations mshare_info_ops = {
  
- static unsigned long __mmap_region(struct file *file, unsigned long addr,
- 		unsigned long len, vm_flags_t vm_flags, unsigned long pgoff,
--		struct list_head *uf)
-+		struct list_head *uf, struct mm_struct *mm)
- {
--	struct mm_struct *mm = current->mm;
- 	struct vm_area_struct *vma = NULL;
- 	int error;
- 	bool have_mmap_prepare = file && file->f_op->mmap_prepare;
-@@ -2706,18 +2705,19 @@ static unsigned long __mmap_region(struct file *file, unsigned long addr,
-  * the virtual page offset in memory of the anonymous mapping.
-  * @uf: Optionally, a pointer to a list head used for tracking userfaultfd unmap
-  * events.
-+ * @mm: The mm struct
-  *
-  * Returns: Either an error, or the address at which the requested mapping has
-  * been performed.
-  */
- unsigned long mmap_region(struct file *file, unsigned long addr,
- 			  unsigned long len, vm_flags_t vm_flags, unsigned long pgoff,
--			  struct list_head *uf)
-+			  struct list_head *uf, struct mm_struct *mm)
- {
- 	unsigned long ret;
- 	bool writable_file_mapping = false;
+ static const struct super_operations mshare_s_ops = {
+ 	.statfs		= simple_statfs,
++	.evict_inode	= msharefs_evict_inode,
+ };
  
--	mmap_assert_write_locked(current->mm);
-+	mmap_assert_write_locked(mm);
- 
- 	/* Check to see if MDWE is applicable. */
- 	if (map_deny_write_exec(vm_flags, vm_flags))
-@@ -2736,13 +2736,13 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
- 		writable_file_mapping = true;
- 	}
- 
--	ret = __mmap_region(file, addr, len, vm_flags, pgoff, uf);
-+	ret = __mmap_region(file, addr, len, vm_flags, pgoff, uf, mm);
- 
- 	/* Clear our write mapping regardless of error. */
- 	if (writable_file_mapping)
- 		mapping_unmap_writable(file->f_mapping);
- 
--	validate_mm(current->mm);
-+	validate_mm(mm);
- 	return ret;
- }
- 
-diff --git a/mm/vma.h b/mm/vma.h
-index bcdc261c5b15..20fc1c2a32fd 100644
---- a/mm/vma.h
-+++ b/mm/vma.h
-@@ -352,7 +352,7 @@ void mm_drop_all_locks(struct mm_struct *mm);
- 
- unsigned long mmap_region(struct file *file, unsigned long addr,
- 		unsigned long len, vm_flags_t vm_flags, unsigned long pgoff,
--		struct list_head *uf);
-+		struct list_head *uf, struct mm_struct *mm);
- 
- int do_brk_flags(struct vma_iterator *vmi, struct vm_area_struct *brkvma,
- 		 unsigned long addr, unsigned long request, unsigned long flags);
+ static int
 -- 
 2.47.1
 
