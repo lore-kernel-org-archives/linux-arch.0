@@ -1,86 +1,103 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D4EB38F80;
-	Mon,  8 Sep 2025 21:00:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 193A723535C;
+	Mon,  8 Sep 2025 21:01:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757365224; cv=none; b=cy3GuLftpkjisxEdTh+VHkqdYokdxEFE4C4DhmxQGuQS0MGutYkL9W9GlVulzpJ88w4ANbegh1NArKV0Dc8paZ/1q4SXolE4q6Kupnhvp99Wx7cUqFZUwIw99FeWxWcjBlL9UuNAYmDcNqovkkUbFdnb7mAo1hYbrxmI0FDZQN4=
+	t=1757365298; cv=none; b=pUp3oWz4JlSfISUoC0V1pck09J3s6UA6kCfg55HNXk2NsLo6YDo4Z6qPUdoDM7OTk7nmn7fOR4RwxmJ4puink8Iyjr4lk8DF6mELfZicU1tBwQtL5550gB5oAtsGzjlUJBw0g+2k9mzXlFYv+mFxLbasDpnUB7tSzclLaJ1huuo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757365224; c=relaxed/simple;
-	bh=ON8NUitiZVbCBSQ2lSjpU9xOwZIfOyaINwjZ5vrHO9Y=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ewKVFj3/Ed+IKltE9Fq/zdywrkionhVkvnAlFtuzicndYRgzfTgNPqbEwu03l1EyZBLG26Wwp05mP2FUprEw+BYCAwwlvAF6t7AXOlvrblUFfjrWkZ3hnOP1LGbey3eBd/hVh2KVVxAn3zD3kn26GeEHWy5bTL7cGzDuG2DjINE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=Z+xd2Nic; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1757365298; c=relaxed/simple;
+	bh=Qa3p4r1BGPTbg9JN8Jg7rYA6n7V+dwXJpFgMOWciwh0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=nTI5MBZ/GbljLix0oXPUdyl9GW/ws2RLl9u8ePKobhDrRZFNUCCXY3J2ZfS6mD8fjVoFUDUNGTOeFr4vQIdTiVkiCjEYxIWtL2xmWE+hoCQM6+8hw+96cfDKdq9eCrqmmtowRkRuXH3qs2L+ME3Qc+xHvLlgQGFGmqAIJBggKts=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=sZBDJtvF; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="Z+xd2Nic"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=8W7OV22si8PaHmNjeiI92VUYfmd2gxuh+1FV7aVnSGk=; b=Z+xd2NicQ2DByD7bGMjprgGPMX
-	SKT2BJDH/LasgqPAOPXPqwPpYDmgPDz0eSB7nN/nKHhP+QH+uH3zWsG3PK4s+RWMFPr2OTUSIRuEm
-	zCqEzsWGaYPi5Rm+rKou+Jh5MkQ4Ho3NWZ6xY5e9iDI36U0UmdJy984A/oQXMN4WL9iMkNRNpJPIv
-	xAicaKFMDQD9saIZpslJaMtrc6QlDwPyxZmnMzdYJ5+3CwenizlADAySpEff6iW0tId6T+Ow7pJcd
-	ltrpwoNZU4Qoqs4i+XtHIkUIqseck3yVgCm6PkV0Kj7/qxFrBVgKHfFekOytv5KytQYDVNIZaRJBh
-	VDkcu66g==;
-Received: from willy by casper.infradead.org with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1uvixU-0000000Cyxf-2WaL;
-	Mon, 08 Sep 2025 20:59:29 +0000
-Date: Mon, 8 Sep 2025 21:59:28 +0100
-From: Matthew Wilcox <willy@infradead.org>
-To: David Hildenbrand <david@redhat.com>
-Cc: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-mm@kvack.org,
-	akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de,
-	bp@alien8.de, brauner@kernel.org, bsegall@google.com,
-	corbet@lwn.net, dave.hansen@linux.intel.com,
-	dietmar.eggemann@arm.com, ebiederm@xmission.com, hpa@zytor.com,
-	jakub.wartak@mailbox.org, jannh@google.com, juri.lelli@redhat.com,
-	khalid@kernel.org, liam.howlett@oracle.com,
-	linyongting@bytedance.com, lorenzo.stoakes@oracle.com,
-	luto@kernel.org, markhemm@googlemail.com, maz@kernel.org,
-	mhiramat@kernel.org, mgorman@suse.de, mhocko@suse.com,
-	mingo@redhat.com, muchun.song@linux.dev, neilb@suse.de,
-	osalvador@suse.de, pcc@google.com, peterz@infradead.org,
-	pfalcato@suse.de, rostedt@goodmis.org, rppt@kernel.org,
-	shakeel.butt@linux.dev, surenb@google.com, tglx@linutronix.de,
-	vasily.averin@linux.dev, vbabka@suse.cz, vincent.guittot@linaro.org,
-	viro@zeniv.linux.org.uk, vschneid@redhat.com, x86@kernel.org,
-	xhao@linux.alibaba.com, linux-doc@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Subject: Re: [PATCH v3 00/22] Add support for shared PTEs across processes
-Message-ID: <aL9DsGR8KimEQ44H@casper.infradead.org>
-References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
- <5b7e71e8-4e31-4699-b656-c35dce678a80@redhat.com>
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="sZBDJtvF"
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 3AF8E2119388;
+	Mon,  8 Sep 2025 14:01:35 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3AF8E2119388
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1757365296;
+	bh=8OfRFbMGWhbwHqeXODOj/IPgEc3LWLOaJehvGyq5fVY=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=sZBDJtvFs9Ofj7nMAu5VU8L0L4nKeDGeNVmFwTGr5mm9ZPuuOp9UCj9Btu+E1vcfa
+	 HB/ifrMcHgdgWOwk/crvaI47rWI+1w94qYyPAZve41oYiMcu+vkaoDgD185Gry75ro
+	 Z7o4crQc3sp24xFFXTYFnxdnQ96IoHTX58i70aM8=
+Message-ID: <d7d7b23f-eaea-2dbc-9c9d-4bee082f6fe7@linux.microsoft.com>
+Date: Mon, 8 Sep 2025 14:01:34 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5b7e71e8-4e31-4699-b656-c35dce678a80@redhat.com>
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH v1 2/2] Drivers: hv: Make CONFIG_HYPERV bool
+Content-Language: en-US
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: dri-devel@lists.freedesktop.org, linux-kernel@vger.kernel.org,
+ linux-input@vger.kernel.org, linux-hyperv@vger.kernel.org,
+ netdev@vger.kernel.org, linux-pci@vger.kernel.org,
+ linux-scsi@vger.kernel.org, linux-fbdev@vger.kernel.org,
+ linux-arch@vger.kernel.org, virtualization@lists.linux.dev,
+ maarten.lankhorst@linux.intel.com, mripard@kernel.org, tzimmermann@suse.de,
+ airlied@gmail.com, simona@ffwll.ch, jikos@kernel.org, bentiss@kernel.org,
+ kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
+ decui@microsoft.com, dmitry.torokhov@gmail.com, andrew+netdev@lunn.ch,
+ davem@davemloft.net, edumazet@google.com, kuba@kernel.org,
+ pabeni@redhat.com, bhelgaas@google.com,
+ James.Bottomley@hansenpartnership.com, martin.petersen@oracle.com,
+ deller@gmx.de, arnd@arndb.de, sgarzare@redhat.com, horms@kernel.org
+References: <20250906010952.2145389-1-mrathor@linux.microsoft.com>
+ <20250906010952.2145389-3-mrathor@linux.microsoft.com>
+ <2025090621-rumble-cost-2c0d@gregkh>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <2025090621-rumble-cost-2c0d@gregkh>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Mon, Sep 08, 2025 at 10:32:22PM +0200, David Hildenbrand wrote:
-> In the context of this series, how do we handle VMA-modifying functions like
-> mprotect/some madvise/mlock/mempolicy/...? Are they currently blocked when
-> applied to a mshare VMA?
+On 9/6/25 04:36, Greg KH wrote:
+> On Fri, Sep 05, 2025 at 06:09:52PM -0700, Mukesh Rathor wrote:
+>> With CONFIG_HYPERV and CONFIG_HYPERV_VMBUS separated, change CONFIG_HYPERV
+>> to bool from tristate. CONFIG_HYPERV now becomes the core Hyper-V
+>> hypervisor support, such as hypercalls, clocks/timers, Confidential
+>> Computing setup, PCI passthru, etc. that doesn't involve VMBus or VMBus
+>> devices.
+> 
+> But why are you making it so that this can not be a module anymore?  You
+> are now forcing ALL Linux distro users to always have this code in their
+> system, despite not ever using the feature.  That feels like a waste to
+> me.
+> 
+> What is preventing this from staying as a module?  Why must you always
+> have this code loaded at all times for everyone?
 
-I haven't been following this series recently, so I'm not sure what
-Anthony will say.  My expectation is that the shared VMA is somewhat
-transparent to these operations; that is they are faulty if they span
-the boundary of the mshare VMA, but otherwise they pass through and
-affect the shared VMAs.
+This is currently not a module. I assume it was at the beginning. In
+drivers/Makefile today:
 
-That does raise the interesting question of how mlockall() affects
-an mshare VMA.  I'm tempted to say that it should affect the shared
-VMA, but reasonable people might well disagree with me and have
-excellent arguments.
+obj-$(subst m,y,$(CONFIG_HYPERV))       += hv/
 
-> And how are we handling other page table walkers that don't modify VMAs like
-> MADV_DONTNEED, smaps, migrate_pages, ... etc?
 
-I'd expect those to walk into the shared region too.
+More context: CONFIG_HYPERV doesn't really reflect one module. It is
+both for kernel built in code and building of stuff in drivers/hv.
+
+drivers/hv then builds 4 modules:
+
+obj-$(CONFIG_HYPERV)            += hv_vmbus.o
+obj-$(CONFIG_HYPERV_UTILS)      += hv_utils.o
+obj-$(CONFIG_HYPERV_BALLOON)    += hv_balloon.o
+obj-$(CONFIG_MSHV_ROOT)         += mshv_root.o
+
+Notice vmbus is using CONFIG_HYPERV because there is no 
+CONFIG_HYPERV_VMBUS. We are trying to fix that here.
+
+Thanks,
+-Mukesh
+
+> thanks,
+> 
+> greg k-h
+
