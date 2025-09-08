@@ -1,42 +1,43 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64DAD2EE29F;
-	Mon,  8 Sep 2025 22:59:53 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 963A82F28E3;
+	Mon,  8 Sep 2025 22:59:54 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757372395; cv=none; b=JeAb8p1tTJuVFne8GC31KV2eKRWRg+YnXDvTQiF1Jp1v5NyZi2VjEJKNELpXz4AIGx9PHWmHKz4KxTnYR6Mo/1vRn/Xit+lflCUvZ/GaI+hiKyVIhWwI5x8VVB847jZa5dz3Wo9ueoSm6ZfRUGLE0Zox9ZYrbxuoMHrLioPs3ME=
+	t=1757372397; cv=none; b=B4YGYObXyUIKDuXTStzxCwV7Bs5Q/yO/h//u/3SNXFJBN5l2GrRbB8cIWhd5115XRPJiNtahopupG4JVhVrhyIDp5b2ssrsyWfXy5XKIDMK58uuF9+YY7r0ONzl092nG/B/Ry3VuLSx7fYjDK3jOaTv4bjiCgkWUNW4/rr0nfeU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757372395; c=relaxed/simple;
-	bh=OhoCJiace39APLY9BORpuiClEw/tqSZuYxa6DA0/4Uk=;
-	h=Message-ID:From:To:Subject:cc:Date; b=mjDZYEdA4UyymynxMIb3Tr4IRZkvJXvCaFRxQu8q7vShb3+xd0QltBXGveqLDf5eZ81E+LVz0zXV8dukI0SmfYa9IpeKWvhi6aE2+QM8Wvb8olQCM9BZgpKMaAcMzsYvwcmaYG7kZJb/fk1VQ9/3uoAUjZJhnYQLrKrOVPxhALk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=sKig7PyC; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=NAwb8SPG; arc=none smtp.client-ip=193.142.43.55
+	s=arc-20240116; t=1757372397; c=relaxed/simple;
+	bh=sJUvIkOk7xRsZ8N1md77VtwlcW+xrqBYELwzAD9L3kc=;
+	h=Message-ID:From:To:Cc:Subject:References:MIME-Version:
+	 Content-Type:Date; b=RhZkxJ95j5Fi0LBy3dJaxQnTMTI/vTACppeExLM8YxhnqMmDLby+jkULrp0qlm3y/g7MZCvFa7P4nTxWdygAHd9Xc7SqsmM1RNz2NZhYQOSyOQy/i0rt19zhnrRDL1CaENFIOGPwv3fTvQNXtEJEr78ZES/ZUqM1gRd80ucS8mY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=tRUuKTO4; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=DYZJ+vQK; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="sKig7PyC";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="NAwb8SPG"
-Message-ID: <20250908225709.144709889@linutronix.de>
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="tRUuKTO4";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="DYZJ+vQK"
+Message-ID: <20250908225752.679815003@linutronix.de>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1757372388;
+	s=2020; t=1757372392;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc; bh=ffQK8V2HC9r6ZlSkKcj/pbF3WZFDnMYvI5kkxuc7stg=;
-	b=sKig7PyCMqUQ+TfYv2rSBbTktS/LsmHVilZJecgNVYODYwj9nkwXZiZxIMPcHYLlswtVZ4
-	V7deVBYK3IEBZmSxAZHKJ7CV+h0sest9pjYyPJ/PVPr7uWWBhYmPR8LFKtrQmxiv0j88t4
-	QJRNRy0128O4xaNoYtINJYTHu+s9NPekrPc7rwwiLLlGFQiZYLRsDhqfKFP375ZklomtNN
-	nHfDuQPWdaqXO6GeJCiHOYxbveMYyZFD3PtGIqMsgFg48qCZzwur0WKNPUV+95oWyu7GZy
-	B2y5t2hwIANMhXCzi5KmA9jKtCoT9pVDHk379iZrBleigpnTWreJKsHDlpeVFg==
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 references:references; bh=uJbTU9ygKfI6/zvyWU+Vow5hjTzjort0MMfsywsVYMk=;
+	b=tRUuKTO4XbAvXw+t88yT6uoUK8blCFEDcriT2OWhG3/G3zQ/Dw5CDcNNBJJ/kjQdCwS1T+
+	0Sza16lnAZWRl1HodpDm9sMKYRbDMRIAdUAHM92Uq9I0J99n8AgfksKLvyjrKoXyQXF/Em
+	sv3gYiet7TiwvEGnMPkivyaHmPzaOPbhLqysau7af2Icahzn+e/vO8xG8OwFzBP1nrsobG
+	KtfjZm+eN8cxx9YOYKthicJ+bKClpVVHHiSmzYP4UeAs9KVPM3+Zi+GRkAxUvikUwWhnIx
+	zpB/559RDzx6p8I5aghRtGQ2YerU0IpsFqM+rMD0q0olPJ5yFPbC2scV2e0ytw==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1757372388;
+	s=2020e; t=1757372392;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc; bh=ffQK8V2HC9r6ZlSkKcj/pbF3WZFDnMYvI5kkxuc7stg=;
-	b=NAwb8SPGA31KjMmlOz2OL7GG7Wkm4UOaToykFwtO+ahPJqQNHtXYW9qSzmgXaii/+0CAj0
-	Ndw3AeWQ1kDmnxAw==
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 references:references; bh=uJbTU9ygKfI6/zvyWU+Vow5hjTzjort0MMfsywsVYMk=;
+	b=DYZJ+vQKS75bOERhbPJx6LFHgjRAmaPzCDluZ5ObcXRVy7/8hgJhCTMll1mh47pEsnKwCb
+	5Js/8CGfj5FCDNBw==
 From: Thomas Gleixner <tglx@linutronix.de>
 To: LKML <linux-kernel@vger.kernel.org>
-Subject: [patch 00/12] rseq: Implement time slice extension mechanism
-cc: Peter Zilstra <peterz@infradead.org>,
- Peter Zijlstra <peterz@infradead.org>,
+Cc: Peter Zijlstra <peterz@infradead.org>,
  Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
  "Paul E. McKenney" <paulmck@kernel.org>,
  Boqun Feng <boqun.feng@gmail.com>,
@@ -46,194 +47,339 @@ cc: Peter Zilstra <peterz@infradead.org>,
  K Prateek Nayak <kprateek.nayak@amd.com>,
  Steven Rostedt <rostedt@goodmis.org>,
  Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+ Peter Zilstra <peterz@infradead.org>,
  Arnd Bergmann <arnd@arndb.de>,
  linux-arch@vger.kernel.org
-Date: Tue,  9 Sep 2025 00:59:47 +0200 (CEST)
+Subject: [patch 02/12] rseq: Add fields and constants for time slice extension
+References: <20250908225709.144709889@linutronix.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Date: Tue,  9 Sep 2025 00:59:51 +0200 (CEST)
 
-This is the proper implementation of the PoC code, which I posted in reply
-to the latest iteration of Prakash's time slice extension patches:
+Aside of a Kconfig knob add the following items:
 
-     https://lore.kernel.org/all/87o6smb3a0.ffs@tglx
+   - Two flag bits for the rseq user space ABI, which allow user space to
+     query the availability and enablement without a syscall.
 
-Time slice extensions are an attempt to provide opportunistic priority
-ceiling without the overhead of an actual priority ceiling protocol, but
-also without the guarantees such a protocol provides.
+   - A new member to the user space ABI struct rseq, which is going to be
+     used to communicate request and grant between kernel and user space.
 
-The intent is to avoid situations where a user space thread is interrupted
-in a critical section and scheduled out, while holding a resource on which
-the preempting thread or other threads in the system might block on. That
-obviously prevents those threads from making progress in the worst case for
-at least a full time slice. Especially in the context of user space
-spinlocks, which are a patently bad idea to begin with, but that's also
-true for other mechanisms.
+   - A rseq state struct to hold the kernel state of this
 
-This has been attempted to solve at least for a decade, but so far this
-went nowhere.  The recent attempts, which started to integrate with the
-already existing RSEQ mechanism, have been at least going into the right
-direction. The full history is partially in the above mentioned mail thread
-and it's ancestors, but also in various threads in the LKML archives, which
-require archaeological efforts to retrieve.
+   - Documentation of the new mechanism
 
-When trying to morph the PoC into actual mergeable code, I stumbled over
-various shortcomings in the RSEQ code, which have been addressed in a
-separate effort. The latest iteration can be found here:
-
-     https://lore.kernel.org/all/20250908212737.353775467@linutronix.de
-
-That is a prerequisite for this series as it allows a tight integration
-into the RSEQ code without inflicting a lot of extra overhead into the hot
-paths.
-
-The main change vs. the PoC and the previous attempts is that it utilizes a
-new field in the user space ABI rseq struct, which allows to reduce the
-atomic operations in user space to a bare minimum. If the architecture
-supports CPU local atomics, which protect against the obvious RMW race
-vs. an interrupt, then there is no actual overhead, e.g. LOCK prefix on
-x86, required.
-
-The kernel user space ABI consists only of two bits in this new field:
-
-	REQUEST and GRANTED
-
-User space sets REQUEST at the begin of the critical section. If it
-finishes the critical section without interruption then it can clear the
-bit and move on.
-
-If it is interrupted and the interrupt return path in the kernel observes a
-rescheduling request, then the kernel can grant a time slice extension. The
-kernel clears the REQUEST bit and sets the GRANTED bit with a simple
-non-atomic store operation. If it does not grant the extension only the
-REQUEST bit is cleared.
-
-If user space observes the REQUEST bit cleared, when it finished the
-critical section, then it has to check the GRANTED bit. If that is set,
-then it has to invoke the rseq_slice_yield() syscall to terminate the
-extension and yield the CPU.
-
-The code flow in user space is:
-
-   	  // Simple store as there is no concurrency vs. the GRANTED bit
-      	  rseq->slice_ctrl = REQUEST;
-
-	  critical_section();
-
-	  // CPU local atomic required here:
-	  if (!test_and_clear_bit(REQUEST, &rseq->slice_ctrl)) {
-	     	// Non-atomic check is sufficient as this can race
-		// against an interrupt, which revokes the grant
-		//
-		// If not set, then the request was either cleared by the kernel
-		// without grant or the grant was revoked.
-		//
-		// If set, tell the kernel that the critical section is done
-		// so it can reschedule
-	  	if (rseq->slice_ctrl & GRANTED)
-			rseq_slice_yield();
-	  }
-
-The other details, which differ from earlier attempts and the PoC, are:
-
-    - A separate syscall for terminating the extension to avoid side
-      effects and overloading of the already ill defined sched_yield(2)
-
-    - A separate per CPU timer, which again does not inflict side effects
-      on the scheduler internal hrtick timer. The hrtick timer can be
-      disabled at run-time and an expiry can cause interesting problems in
-      the scheduler code when it is unexpectedly invoked.
-
-    - Tight integration into the rseq exit to user mode code. It utilizes
-      the path when TIF_RESQ is not set at the end of exit_to_user_mode()
-      to arm the timer if an extension was granted. TIF_RSEQ indicates that
-      the task was scheduled and therefore would revoke the grant anyway.
-
-    - A futile attempt to make this "work" on the PREEMPT_LAZY preemption
-      model which is utilized by PREEMPT_RT.
-
-      It allows the extension to be granted when TIF_PREEMPT_LAZY is set,
-      but not TIF_PREEMPT.
-
-      Pretending that this can be made work for TIF_PREEMPT on a fully
-      preemptible kernel is just wishful thinking as the chance that
-      TIF_PREEMPT is set in exit_to_user_mode() is close to zero for
-      obvious reasons.
-
-      This only "works" by some definition of works, i.e. on a best effort
-      basis, for the PREEMPT_NONE model and nothing else. Though given the
-      problems PREEMPT_NONE and also PREEMPT_VOLUNTARY have vs. long
-      running code sections, the days of these models should be hopefully
-      numbered and everything consolidated on the LAZY model.
-
-      That makes this distinction moot and everything restricted to
-      TIF_PREEMPT_LAZY unless someone is crazy enough to inflict the slice
-      extension mechanism into the scheduler hotpath. I'm sure there will
-      be attempts to do that as there is no lack of crazy folks out
-      there...
-
-    - Actual documentation of the user space ABI and a initial self test.
-
-The RSEQ modifications on which this series is based can be found here:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git rseq/perf
-
-For your convenience all of it is also available as a conglomerate from
-git:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git rseq/slice
-
-Thanks,
-
-	tglx
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Prakash Sangappa <prakash.sangappa@oracle.com>
+Cc: Madadi Vineeth Reddy <vineethr@linux.ibm.com>
+Cc: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Steven Rostedt <rostedt@goodmis.org>
+Cc: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 ---
- Documentation/userspace-api/index.rst       |    1 
- Documentation/userspace-api/rseq.rst        |  129 ++++++++++++
- arch/alpha/kernel/syscalls/syscall.tbl      |    1 
- arch/arm/tools/syscall.tbl                  |    1 
- arch/arm64/tools/syscall_32.tbl             |    1 
- arch/m68k/kernel/syscalls/syscall.tbl       |    1 
- arch/microblaze/kernel/syscalls/syscall.tbl |    1 
- arch/mips/kernel/syscalls/syscall_n32.tbl   |    1 
- arch/mips/kernel/syscalls/syscall_n64.tbl   |    1 
- arch/mips/kernel/syscalls/syscall_o32.tbl   |    1 
- arch/parisc/kernel/syscalls/syscall.tbl     |    1 
- arch/powerpc/kernel/syscalls/syscall.tbl    |    1 
- arch/s390/kernel/syscalls/syscall.tbl       |    1 
- arch/s390/mm/pfault.c                       |    3 
- arch/sh/kernel/syscalls/syscall.tbl         |    1 
- arch/sparc/kernel/syscalls/syscall.tbl      |    1 
- arch/x86/entry/syscalls/syscall_32.tbl      |    1 
- arch/x86/entry/syscalls/syscall_64.tbl      |    1 
- arch/xtensa/kernel/syscalls/syscall.tbl     |    1 
- include/linux/entry-common.h                |    2 
- include/linux/rseq.h                        |   11 +
- include/linux/rseq_entry.h                  |  176 ++++++++++++++++
- include/linux/rseq_types.h                  |   28 ++
- include/linux/sched.h                       |    7 
- include/linux/syscalls.h                    |    1 
- include/linux/thread_info.h                 |   16 -
- include/uapi/asm-generic/unistd.h           |    5 
- include/uapi/linux/prctl.h                  |   10 
- include/uapi/linux/rseq.h                   |   28 ++
- init/Kconfig                                |   12 +
- kernel/entry/common.c                       |   14 +
- kernel/entry/syscall-common.c               |   11 -
- kernel/rcu/tiny.c                           |    8 
- kernel/rcu/tree.c                           |   14 -
- kernel/rcu/tree_exp.h                       |    3 
- kernel/rcu/tree_plugin.h                    |    9 
- kernel/rcu/tree_stall.h                     |    3 
- kernel/rseq.c                               |  293 ++++++++++++++++++++++++++++
- kernel/sys.c                                |    6 
- kernel/sys_ni.c                             |    1 
- scripts/syscall.tbl                         |    1 
- tools/testing/selftests/rseq/.gitignore     |    1 
- tools/testing/selftests/rseq/Makefile       |    5 
- tools/testing/selftests/rseq/rseq-abi.h     |    2 
- tools/testing/selftests/rseq/slice_test.c   |  217 ++++++++++++++++++++
- 45 files changed, 991 insertions(+), 42 deletions(-)
+ Documentation/userspace-api/index.rst |    1 
+ Documentation/userspace-api/rseq.rst  |  129 ++++++++++++++++++++++++++++++++++
+ include/linux/rseq_types.h            |   26 ++++++
+ include/uapi/linux/rseq.h             |   28 +++++++
+ init/Kconfig                          |   12 +++
+ kernel/rseq.c                         |    8 ++
+ 6 files changed, 204 insertions(+)
 
+--- a/Documentation/userspace-api/index.rst
++++ b/Documentation/userspace-api/index.rst
+@@ -21,6 +21,7 @@ System calls
+    ebpf/index
+    ioctl/index
+    mseal
++   rseq
+ 
+ Security-related interfaces
+ ===========================
+--- /dev/null
++++ b/Documentation/userspace-api/rseq.rst
+@@ -0,0 +1,129 @@
++=====================
++Restartable Sequences
++=====================
++
++Restartable Sequences allow to register a per thread userspace memory area
++to be used as an ABI between kernel and user-space for three purposes:
++
++ * user-space restartable sequences
++
++ * quick access to read the current CPU number, node ID from user-space
++
++ * scheduler time slice extensions
++
++Restartable sequences (per-cpu atomics)
++---------------------------------------
++
++Restartables sequences allow user-space to perform update operations on
++per-cpu data without requiring heavy-weight atomic operations. The actual
++ABI is unfortunately only available in the code and selftests.
++
++Quick access to CPU number, node ID
++-----------------------------------
++
++Allows to implement per CPU data efficiently. Documentation is in code and
++selftests. :(
++
++Scheduler time slice extensions
++-------------------------------
++
++This allows a thread to request a time slice extension when it enters a
++critical section to avoid contention on a resource when the thread is
++scheduled out inside of the critical section.
++
++The prerequisites for this functionality are:
++
++    * Enabled in Kconfig
++
++    * Enabled at boot time (default is enabled)
++
++    * A rseq user space pointer has been registered for the thread
++
++The thread has to enable the functionality via prctl(2)::
++
++    prctl(PR_RSEQ_SLICE_EXTENSION, PR_RSEQ_SLICE_EXTENSION_SET,
++          PR_RSEQ_SLICE_EXT_ENABLE, 0, 0);
++
++prctl() returns 0 on success and otherwise with the following error codes:
++
++========= ==============================================================
++Errorcode Meaning
++========= ==============================================================
++EINVAL	  Functionality not available or invalid function arguments.
++          Note: arg4 and arg5 must be zero
++ENOTSUPP  Functionality was disabled on the kernel command line
++ENXIO	  Available, but no rseq user struct registered
++========= ==============================================================
++
++The state can be also queried via prctl(2)::
++
++  prctl(PR_RSEQ_SLICE_EXTENSION, PR_RSEQ_SLICE_EXTENSION_GET, 0, 0, 0);
++
++prctl() returns ``PR_RSEQ_SLICE_EXT_ENABLE`` when it is enabled or 0 if
++disabled. Otherwise it returns with the following error codes:
++
++========= ==============================================================
++Errorcode Meaning
++========= ==============================================================
++EINVAL	  Functionality not available or invalid function arguments.
++          Note: arg3 and arg4 and arg5 must be zero
++========= ==============================================================
++
++The availability and status is also exposed via the rseq ABI struct flags
++field via the ``RSEQ_CS_FLAG_SLICE_EXT_AVAILABLE_BIT`` and the
++``RSEQ_CS_FLAG_SLICE_EXT_ENABLED_BIT``. These bits are read only for user
++space and only for informational purposes.
++
++If the mechanism was enabled via prctl(), the thread can request a time
++slice extension by setting the ``RSEQ_SLICE_EXT_REQUEST_BIT`` in the struct
++rseq slice_ctrl field. If the thread is interrupted and the interrupt
++results in a reschedule request in the kernel, then the kernel can grant a
++time slice extension and return to user space instead of scheduling
++out.
++
++The kernel indicates the grant by clearing ``RSEQ_SLICE_EXT_REQUEST_BIT``
++and setting ``RSEQ_SLICE_EXT_GRANTED_BIT`` in the rseq::slice_ctrl
++field. If there is a reschedule of the thread after granting the extension,
++the kernel clears the granted bit to indicate that to user space.
++
++If the request bit is still set when the leaving the critical section, user
++space can clear it and continue.
++
++If the granted bit is set, then user space has to invoke rseq_slice_yield()
++when leaving the critical section to relinquish the CPU. The kernel
++enforces this by arming a timer to prevent misbehaving user space from
++abusing this mechanism.
++
++If both the request bit and the granted bit are false when leaving the
++critical section, then this indicates that a grant was revoked and no
++further action is required by user space.
++
++The required code flow is as follows::
++
++    rseq->slice_ctrl = REQUEST;
++    critical_section();
++    if (!local_test_and_clear_bit(REQUEST, &rseq->slice_ctrl)) {
++        if (rseq->slice_ctrl & GRANTED)
++                rseq_slice_yield();
++    }
++
++local_test_and_clear_bit() has to be local CPU atomic to prevent the
++obvious RMW race versus an interrupt. On X86 this can be achieved with BTRL
++without LOCK prefix. On architectures, which do not provide lightweight CPU
++local atomics this needs to be implemented with regular atomic operations.
++
++Setting REQUEST has no atomicity requirements as there is no concurrency
++vs. the GRANTED bit.
++
++Checking the GRANTED has no atomicity requirements as there is obviously a
++race which cannot be avoided at all::
++
++    if (rseq->slice_ctrl & GRANTED)
++      -> Interrupt results in schedule and grant revocation
++        rseq_slice_yield();
++
++So there is no point in pretending that this might be solved by an atomic
++operation.
++
++The kernel enforces flag consistency and terminates the thread with SIGSEGV
++if it detects a violation.
+--- a/include/linux/rseq_types.h
++++ b/include/linux/rseq_types.h
+@@ -71,12 +71,35 @@ struct rseq_ids {
+ };
+ 
+ /**
++ * union rseq_slice_state - Status information for rseq time slice extension
++ * @state:	Compound to access the overall state
++ * @enabled:	Time slice extension is enabled for the task
++ * @granted:	Time slice extension was granted to the task
++ */
++union rseq_slice_state {
++	u16			state;
++	struct {
++		u8		enabled;
++		u8		granted;
++	};
++};
++
++/**
++ * struct rseq_slice - Status information for rseq time slice extension
++ * @state:	Time slice extension state
++ */
++struct rseq_slice {
++	union rseq_slice_state	state;
++};
++
++/**
+  * struct rseq_data - Storage for all rseq related data
+  * @usrptr:	Pointer to the registered user space RSEQ memory
+  * @len:	Length of the RSEQ region
+  * @sig:	Signature of critial section abort IPs
+  * @event:	Storage for event management
+  * @ids:	Storage for cached CPU ID and MM CID
++ * @slice:	Storage for time slice extension data
+  */
+ struct rseq_data {
+ 	struct rseq __user		*usrptr;
+@@ -84,6 +107,9 @@ struct rseq_data {
+ 	u32				sig;
+ 	struct rseq_event		event;
+ 	struct rseq_ids			ids;
++#ifdef CONFIG_RSEQ_SLICE_EXTENSION
++	struct rseq_slice		slice;
++#endif
+ };
+ 
+ #else /* CONFIG_RSEQ */
+--- a/include/uapi/linux/rseq.h
++++ b/include/uapi/linux/rseq.h
+@@ -23,9 +23,15 @@ enum rseq_flags {
+ };
+ 
+ enum rseq_cs_flags_bit {
++	/* Historical and unsupported bits */
+ 	RSEQ_CS_FLAG_NO_RESTART_ON_PREEMPT_BIT	= 0,
+ 	RSEQ_CS_FLAG_NO_RESTART_ON_SIGNAL_BIT	= 1,
+ 	RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE_BIT	= 2,
++	/* (3) Intentional gap to put new bits into a seperate byte */
++
++	/* User read only feature flags */
++	RSEQ_CS_FLAG_SLICE_EXT_AVAILABLE_BIT	= 4,
++	RSEQ_CS_FLAG_SLICE_EXT_ENABLED_BIT	= 5,
+ };
+ 
+ enum rseq_cs_flags {
+@@ -35,6 +41,22 @@ enum rseq_cs_flags {
+ 		(1U << RSEQ_CS_FLAG_NO_RESTART_ON_SIGNAL_BIT),
+ 	RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE	=
+ 		(1U << RSEQ_CS_FLAG_NO_RESTART_ON_MIGRATE_BIT),
++
++	RSEQ_CS_FLAG_SLICE_EXT_AVAILABLE	=
++		(1U << RSEQ_CS_FLAG_SLICE_EXT_AVAILABLE_BIT),
++	RSEQ_CS_FLAG_SLICE_EXT_ENABLED		=
++		(1U << RSEQ_CS_FLAG_SLICE_EXT_ENABLED_BIT),
++};
++
++enum rseq_slice_bits {
++	/* Time slice extension ABI bits */
++	RSEQ_SLICE_EXT_REQUEST_BIT		= 0,
++	RSEQ_SLICE_EXT_GRANTED_BIT		= 1,
++};
++
++enum rseq_slice_masks {
++	RSEQ_SLICE_EXT_REQUEST	= (1U << RSEQ_SLICE_EXT_REQUEST_BIT),
++	RSEQ_SLICE_EXT_GRANTED	= (1U << RSEQ_SLICE_EXT_GRANTED_BIT),
+ };
+ 
+ /*
+@@ -142,6 +164,12 @@ struct rseq {
+ 	__u32 mm_cid;
+ 
+ 	/*
++	 * Time slice extension control word. CPU local atomic updates from
++	 * kernel and user space.
++	 */
++	__u32 slice_ctrl;
++
++	/*
+ 	 * Flexible array member at end of structure, after last feature field.
+ 	 */
+ 	char end[];
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1908,6 +1908,18 @@ config RSEQ_DEBUG_DEFAULT_ENABLE
+ 
+ 	  If unsure, say N.
+ 
++config RSEQ_SLICE_EXTENSION
++	bool "Enable rseq based time slice extension mechanism"
++	depends on RSEQ && HIGH_RES_TIMERS && GENERIC_ENTRY && HAVE_GENERIC_TIF_BITS
++	help
++          Allows userspace to request a limited time slice extension when
++	  returning from an interrupt to user space via the RSEQ shared
++	  data ABI. If granted, that allows to complete a critical section,
++	  so that other threads are not stuck on a conflicted resource,
++	  while the task is scheduled out.
++
++	  If unsure, say N.
++
+ config DEBUG_RSEQ
+ 	default n
+ 	bool "Enable debugging of rseq() system call" if EXPERT
+--- a/kernel/rseq.c
++++ b/kernel/rseq.c
+@@ -387,6 +387,8 @@ static bool rseq_reset_ids(void)
+  */
+ SYSCALL_DEFINE4(rseq, struct rseq __user *, rseq, u32, rseq_len, int, flags, u32, sig)
+ {
++	u32 rseqfl = 0;
++
+ 	if (flags & RSEQ_FLAG_UNREGISTER) {
+ 		if (flags & ~RSEQ_FLAG_UNREGISTER)
+ 			return -EINVAL;
+@@ -448,6 +450,12 @@ SYSCALL_DEFINE4(rseq, struct rseq __user
+ 	if (put_user_masked_u64(0UL, &rseq->rseq_cs))
+ 		return -EFAULT;
+ 
++	if (IS_ENABLED(CONFIG_RSEQ_SLICE_EXTENSION))
++		rseqfl |= RSEQ_CS_FLAG_SLICE_EXT_AVAILABLE;
++
++	if (put_user_masked_u32(rseqfl, &rseq->flags))
++		return -EFAULT;
++
+ 	/*
+ 	 * Activate the registration by setting the rseq area address, length
+ 	 * and signature in the task struct.
 
