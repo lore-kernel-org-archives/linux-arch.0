@@ -1,138 +1,117 @@
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
+Received: from fhigh-b1-smtp.messagingengine.com (fhigh-b1-smtp.messagingengine.com [202.12.124.152])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD9EA2EC573;
-	Sat, 13 Sep 2025 13:02:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4E2401B6D08;
+	Sun, 14 Sep 2025 00:58:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.152
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1757768578; cv=none; b=cdg3mURsIODMkA1MhHp6RfN6Mf7zcaF1XRiozoW/xl7XaI2craPgR3pR7AXnjjzAxQjRBNsesEM7ACHEpXc1Wz0liwzpQy37W14ooaBO/x3PibcnpoHaorB80WEs2zCYEi71piEAHkYUoRfJWzIOc0IivlfMVOfLJT97iPVS660=
+	t=1757811516; cv=none; b=R0PRSE0ttqSgwdxPd7q92M1RiVK46g9SLvd7gR08e3yRGkeMWm0LWRvunTX0KuQQaCWCIQ4/lUM7d4tQ5+52ud6c+4hyU18oIUQ/tpvO7ehK+n6hBXUuaFBgGjBZXvlUZlMYBLHnDQ22kjr3bKDFQxixdzk+C1enJXRkKAazWJI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1757768578; c=relaxed/simple;
-	bh=cDcuciOscDOY7uYodziBIFL75IKyJ7hyqbGfVmH2k7A=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=fppBpTSnEaU5UABT/ooaP2qnk0q7w11hOQBRKx5KjMiQ7TkjfGF4m3wFuSH8HyPOrV/Vlja1zk/jC68Nu5h62Ue1+QXPgk/lvOtoCQgqFX3BF8OSq3mVMM/u1j2Np5fLcd0hf0TZS6LpczCESreckNCXUU325Ty+fjiiz5De3x0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=eflKHWT2; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=l3fg+FaN; arc=none smtp.client-ip=193.142.43.55
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
+	s=arc-20240116; t=1757811516; c=relaxed/simple;
+	bh=ir66o0pXRjHBVjrWNEo5dzT835FcKFxnUCFGo/I526w=;
+	h=Message-ID:From:Subject:Date:To:Cc; b=cZIpfwSA9nUUfxZowjqjHXBSN9vZ32hwAMNBvrfJLcjExeeCMLyBjX9cwu8uFAC+/8KbOZ+pjYPO7HS3a0lmdr2rS2reXvwkCbnGQ2BwHsaQUPIjoRhElx1Er6gydhSFk6wob7IZmKNgODbBjS/12/cSEChG6vEgpm3xCAz+osA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=XSwjvNXw; arc=none smtp.client-ip=202.12.124.152
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="eflKHWT2";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="l3fg+FaN"
-From: Thomas Gleixner <tglx@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1757768573;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=gHlVUt8kQbE8EGvUw4N1Vb7/dUYSjnr6TDf3RdqDsvE=;
-	b=eflKHWT2mKA33JFbvUzflkEUX9945+wAATCO0WQRQdrotfV/50s/uANua/s+EnS1Tnk+n+
-	rEXxS9PkoecL5RUl0Z/TAX1n9yPnkLRP57mj03K9CZPjvvrFTtkBW5Ls2NMIh9QInvKZNR
-	9UPSEUWEbyhD1eHZyBhY7ba4jdG7xMjV17UluBWH6qbAugmNM06nKdp13nP+AN8w99Q8nf
-	3Sc1eu361u+NVmieLMahDPBURU11E/7L0MriAA5ltgo5CTMmsgS52/SOo9g9KZpOhQvL5+
-	jzA/fPMp63fcmUiSjCoywL1sHsAWithAjYASYGMX/CqQNZNjGkT+2jaxXkuxnA==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1757768573;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=gHlVUt8kQbE8EGvUw4N1Vb7/dUYSjnr6TDf3RdqDsvE=;
-	b=l3fg+FaNgZGATP1yYXkmpRkrBkSm/F6v4PJM86dfiL1rRUednjMfOwBZomlGSYbq3XytOt
-	AE6VU5R8yRrmWfAg==
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, LKML
- <linux-kernel@vger.kernel.org>
-Cc: Peter Zilstra <peterz@infradead.org>, "Paul E. McKenney"
- <paulmck@kernel.org>, Boqun Feng <boqun.feng@gmail.com>, Jonathan Corbet
- <corbet@lwn.net>, Prakash Sangappa <prakash.sangappa@oracle.com>, Madadi
- Vineeth Reddy <vineethr@linux.ibm.com>, K Prateek Nayak
- <kprateek.nayak@amd.com>, Steven Rostedt <rostedt@goodmis.org>, Sebastian
- Andrzej Siewior <bigeasy@linutronix.de>, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, Florian Weimer <fweimer@redhat.com>,
- "carlos@redhat.com" <carlos@redhat.com>, libc-coord@lists.openwall.com
-Subject: Re: [patch 00/12] rseq: Implement time slice extension mechanism
-In-Reply-To: <a65dfd2c-b435-4d83-89d0-abc8002db7c7@efficios.com>
-References: <20250908225709.144709889@linutronix.de>
- <159c984d-37fc-4b63-acf3-d0409c9b57cd@efficios.com> <87plbwrbef.ffs@tglx>
- <3d16490f-e4d3-4e91-af17-62018e789da9@efficios.com> <87a52zr5sv.ffs@tglx>
- <a65dfd2c-b435-4d83-89d0-abc8002db7c7@efficios.com>
-Date: Sat, 13 Sep 2025 15:02:51 +0200
-Message-ID: <874it6qzd0.ffs@tglx>
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="XSwjvNXw"
+Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
+	by mailfhigh.stl.internal (Postfix) with ESMTP id DB7757A0089;
+	Sat, 13 Sep 2025 20:58:31 -0400 (EDT)
+Received: from phl-mailfrontend-02 ([10.202.2.163])
+  by phl-compute-01.internal (MEProxy); Sat, 13 Sep 2025 20:58:32 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
+	:feedback-id:from:from:in-reply-to:message-id:reply-to:subject
+	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm1; t=1757811511; x=1757897911; bh=WKuWOh9Nr25uJ/eG7zP6c69z1t/r
+	IXLyvt0ffxnVwpE=; b=XSwjvNXwduL2xTOaS6qWpL4mLjejsjcK8qkQXSUXwhAE
+	X7+2bSmJCCJZRxVHAB8yxN/ix4Fh4mIc3aupWJiPGlSTZt/AHYqPojWE4ASCUyRs
+	2DaVhBEZZtWjr9SaYgVOFxr87B+Tutv7WVVwTCpyq+0iVz4FKlB+Tzj2a+YPnngU
+	pch2XSEMtL/aNhnAZXZrmLPz/XlgkOTdkSCeO7ojStdd2guyisF3fNJZ0gpKgyOT
+	W8L6fHYU6hNU/hfehacuQoVuuUFRjVHknLjcnAh7VfvW3QbbXDEPLI2OhD0mujvh
+	j2oy6dDlVgHVMBxklBVvVGeDa4lFwJzj6OaUeOx51w==
+X-ME-Sender: <xms:NhPGaNEJSurp1ggmjTzZO1Kyi315diw3YvM9OO0HVX4O7oT7DFtoNQ>
+    <xme:NhPGaIQV9A1Q4dIvhq5RdXRefS8O8nV4XeVHknNNpkGYMVEvgx0pqISnoe3EeIY3i
+    05V1LwDdSDWhQUWvmk>
+X-ME-Received: <xmr:NhPGaMRgX--6lnrhS83FsW_KKa_13rZz1BPcrZJt8KzO3vmlj-91iK9oUaPAOaX1pR6VlFPz7egaE157PIiy8AW-u5Gp4oSWqyk>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeffedrtdeggdeffeegfecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpuffrtefokffrpgfnqfghnecuuegr
+    ihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenucfjug
+    hrpefkhffufffvveestddtredttddttdenucfhrhhomhephfhinhhnucfvhhgrihhnuceo
+    fhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhrgheqnecuggftrfgrthhtvghrnhephe
+    ffudekteffudetvdffffehgedtteekkeefvefgieethfevvddtlefhuddutedtnecuvehl
+    uhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomhepfhhthhgrihhnse
+    hlihhnuhigqdhmieekkhdrohhrghdpnhgspghrtghpthhtohepuddvpdhmohguvgepshhm
+    thhpohhuthdprhgtphhtthhopehpvghtvghriiesihhnfhhrrgguvggrugdrohhrghdprh
+    gtphhtthhopeifihhllheskhgvrhhnvghlrdhorhhgpdhrtghpthhtoheprghkphhmsehl
+    ihhnuhigqdhfohhunhgurghtihhonhdrohhrghdprhgtphhtthhopegrrhhnugesrghrnh
+    gusgdruggvpdhrtghpthhtohepsghoqhhunhdrfhgvnhhgsehgmhgrihhlrdgtohhmpdhr
+    tghpthhtoheptghorhgsvghtsehlfihnrdhnvghtpdhrtghpthhtohepghgvvghrtheslh
+    hinhhugidqmheikehkrdhorhhgpdhrtghpthhtoheplhhinhhugidqrghrtghhsehvghgv
+    rhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidqughotgesvhhgvghrrd
+    hkvghrnhgvlhdrohhrgh
+X-ME-Proxy: <xmx:NhPGaD1WJmJQW3FnS46ArHNX_jFMVG8t_UrlPj4tdwKHUELJKc4Epw>
+    <xmx:NhPGaOzRs68dpLpA2rP4rAMvGzIj8xyt1HbblO3NHgcD7sdc2anlTw>
+    <xmx:NhPGaHxMqAVmJKZya9OBoBuq2ThaKZh1xtykFFqFTQ4yZjlq8z46ag>
+    <xmx:NhPGaC_sdUVVi5IUAHDKyrGuqcz0_pCVhEogJ4jdrlBgFNy5tqs9xA>
+    <xmx:NxPGaIg-_IeEWLXkgiBvmVgIm4DIVxcHySXsvFUwqEOW9w7-z0tGUS1p>
+Feedback-ID: i58a146ae:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Sat,
+ 13 Sep 2025 20:58:27 -0400 (EDT)
+Message-ID: <cover.1757810729.git.fthain@linux-m68k.org>
+From: Finn Thain <fthain@linux-m68k.org>
+Subject: [RFC v2 0/3] Align atomic storage
+Date: Sun, 14 Sep 2025 10:45:29 +1000
+To: Peter Zijlstra <peterz@infradead.org>,
+    Will Deacon <will@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+    Arnd Bergmann <arnd@arndb.de>,
+    Boqun Feng <boqun.feng@gmail.com>,
+    Jonathan Corbet <corbet@lwn.net>,
+    Geert Uytterhoeven <geert@linux-m68k.org>,
+    linux-arch@vger.kernel.org,
+    linux-doc@vger.kernel.org,
+    linux-kernel@vger.kernel.org,
+    linux-m68k@vger.kernel.org,
+    Mark Rutland <mark.rutland@arm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain
 
-On Fri, Sep 12 2025 at 15:26, Mathieu Desnoyers wrote:
-> On 2025-09-12 12:31, Thomas Gleixner wrote:
->>> 2) Slice requests are a good fit for locking. Locking typically
->>>      has nesting ability.
->>>
->>>      We should consider making the slice request ABI a 8-bit
->>>      or 16-bit nesting counter to allow nesting of its users.
->> 
->> Making request a counter requires to keep request set when the
->> extension is granted. So the states would be:
->> 
->>       request    granted
->>       0          0               Neutral
->>       >0         0               Requested
->>       >=0        1               Granted
->
+This series adds the __aligned attribute to atomic_t and atomic64_t.
+It also adds a Kconfig option to enable a new runtime warning to help
+reveal misaligned atomic accesses on platforms which don't trap that.
 
-Second thoughts on this.
+Some people might assume scalars are aligned to 4-byte boundaries, while
+others might assume natural alignment. Best not to encourage such
+assumptions.
 
-Such a scheme means that slice_ctrl.request must be read only for the
-kernel because otherwise the user space decrement would need to be an
-atomic dec_if_not_zero(). We just argued the one atomic operation away. :)
+Moreover, being that locks are performance sensitive, and being that
+atomic operations tend to involve further assumptions, there seems to be
+room for improvement here.
 
-That means, the kernel can only set and clear Granted. That in turn
-loses the information whether a slice extension was denied or revoked,
-which was something the Oracle people wanted to have. I'm not sure
-whether that was a functional or more a instrumentation feature.
+Pertinent to this discussion are the section "Memory Efficiency" in
+Documentation/RCU/Design/Requirements/Requirements.rst
+and the section "GUARANTEES" in Documentation/memory-barriers.txt
 
-But what's worse: this is a receipe for disaster as it creates obviously
-subtle and hard to debug ways to leak an increment, which means the
-request would stay active forever defeating the whole purpose.
 
-And no, the kernel cannot keep track of the counter and observe whether
-it became zero at some point or not. You surely could come up with a
-convoluted scheme to work around that in form of sequence counters or
-whatever, but that just creates extra complexity for a very dubious
-value.
+Finn Thain (2):
+  documentation: Discourage alignment assumptions
+  atomic: Specify alignment for atomic_t and atomic64_t
 
-The point is that the time slice extension is just providing an
-opportunistic priority ceiling mechanism with low overhead and without
-guarantees.
+Peter Zijlstra (1):
+  atomic: Add alignment check to instrumented atomic operations
 
-Once a request is not granted or revoked, the performance of that
-particular operation goes south no matter what. Nesting does not help
-there at all, which is a strong argument for using KISS as the primary
-engineering principle here.
+ Documentation/core-api/unaligned-memory-access.rst |  7 -------
+ include/asm-generic/atomic64.h                     |  2 +-
+ include/linux/instrumented.h                       |  4 ++++
+ include/linux/types.h                              |  2 +-
+ lib/Kconfig.debug                                  | 10 ++++++++++
+ 5 files changed, 16 insertions(+), 9 deletions(-)
 
-The simple boolean request/granted pair is simple and very well
-defined. It does not suffer from any of those problems.
+-- 
+2.49.1
 
-If user space wants nesting, then it can do so on its own without
-creating an ill defined and fragile kernel/user ABI. We created enough
-of them in the past and all of them resulted in long term headaches.
-
-> Handling syscall within granted extension by killing the process
-
-I'm absolutely not opposed to lift the syscall restriction to make
-things easier, but this is the wrong argument for it:
-
-> will likely reserve this feature to the niche use-cases.
-
-Having this used only by people who actually know what they are doing is
-actually the preferred outcome.
-
-We've seen it over and over that supposedly "easy" features result in
-mindless overutilization because everyone and his dog thinks they need
-them just because and for the very wrong reasons. The unconditional
-usage of the most power hungry floating point extensions just because
-they are available, is only one example of many.
-
-Thanks,
-
-        tglx
