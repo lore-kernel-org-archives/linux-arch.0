@@ -1,60 +1,63 @@
-Received: from mail-pg1-f177.google.com (mail-pg1-f177.google.com [209.85.215.177])
+Received: from mail-pg1-f173.google.com (mail-pg1-f173.google.com [209.85.215.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 10A09214204
-	for <linux-arch@vger.kernel.org>; Thu, 18 Sep 2025 15:01:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B472E1C862F
+	for <linux-arch@vger.kernel.org>; Thu, 18 Sep 2025 15:01:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1758207668; cv=none; b=P/+XBEUpVMlPrW8Wn9IuU0rdmd5VnlOExvrlB4RCIMqhWWuGZthTpenJ6yF+3c0Xtok0/0Fn/4zyQcs8Elfmi8Dqt8QmTrzwex0yu3ZyYj25GZtr7jNufW6Ev9ZYB+pb8gjbK3hiZw3qn2+8aYkLBO/sE1APMaoh6VcS3Kq7uUA=
+	t=1758207669; cv=none; b=gdQMUUFLq3xDO7vrxX3NFtna6VEkfrChUjPNhnatYHsSVhywTUlLGhlCIhZ3QAC0GmD69HKgbTHwTcEKY2h01HkPEcJ3XnCVlm19aKTm5SRK8WpnPboVoswRiMTdIxjY2v6+dJJeNCX7X++vLjw68i2/DzFd5SzcSrNSizeMt2Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1758207668; c=relaxed/simple;
-	bh=AHhSMOoeWjfl0vFPCrm0Cux2fhk1nlNWkzKPRjm+gHs=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=VAf1Gi5lcEvjDNUvZa+DXY2kM8EVaBMuGZmK//JBK4S1vVnqfMXqEbi287ih6x6l2ewMQ8EjZCJMuOPaasxM4bcSW+mC4zmKSs7TsRJ5FynBlhheGM3bBAUSEjL4HWAlz8fDmPnK5P9Zm0Qpt5D6XAs+cLm9cS4FvNgHLKSEGyc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=JnbL51My; arc=none smtp.client-ip=209.85.215.177
+	s=arc-20240116; t=1758207669; c=relaxed/simple;
+	bh=BomCHCyONkZvBHRX7fF/vadDHImLxvWcM85cE0w357Q=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=ERDspn9HBirJ5dNKdrmtj3DC8RIE6h3nXPg11zplX7BSUZ+KGCpdOhVTDNnCzB8OPrH2b4M04eEE9RRP992OB7dvK+dMGE6/aUbJmixUEJFkzEs7wqzntmppsRx707+lGjWWl0jWcVkWQzLHrnkZRA24fNYxx+s1uKY7gUPCDO4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=V4yV3ogY; arc=none smtp.client-ip=209.85.215.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="JnbL51My"
-Received: by mail-pg1-f177.google.com with SMTP id 41be03b00d2f7-b54f57eb7c9so589400a12.3
-        for <linux-arch@vger.kernel.org>; Thu, 18 Sep 2025 08:01:05 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="V4yV3ogY"
+Received: by mail-pg1-f173.google.com with SMTP id 41be03b00d2f7-b5506b28c98so434016a12.1
+        for <linux-arch@vger.kernel.org>; Thu, 18 Sep 2025 08:01:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1758207665; x=1758812465; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=71og1L1moGnEtlU3hPRTvSfcrOKYYypZv/voq78BbaA=;
-        b=JnbL51Myep+r2FeN86BTbSqthH2ADfhbuRbB2eY0raq3hVyfIuglZPLWoE32xwOjGA
-         KsSgSITKcBajErxgHC/daZJJMEf+eXA4UF/+SyWq5f44S4tIOFTz97tEfd/Ig+FjeCAv
-         cnaMMfwXEIsw2+JX9mtCvLEksP82y98n5Xr+o8cMzT5pckYTWtw7SYr8bdwwF3Vfhxk1
-         VZV0N45ZBGfNQumG7zfm/G6fBFaeNzDd8YVIT5qPTHAiuzDBlR/XK+k5CAIpRAZaJj/z
-         0Xj2KCH3Q1Dww4odh5RAgTLmQfp0faSGqmSMNF9Kjjedu6w0HclhDuKqvrtCjxBZ0vFj
-         jokQ==
+        d=gmail.com; s=20230601; t=1758207667; x=1758812467; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=DenQSoys7kFN1y2c+XZsOBbsB+gNsAG+pNB/ZQfFlnk=;
+        b=V4yV3ogYSdOIJqwLNPxarnD0xpA1bdYwMk6kmWOGiKzYFXd6GGBTZy5ua+M2aoTJyZ
+         XFOJLo6/WkBANTEMuWqUmssFqulrsIEZ10K6YxRRxYnKHr5RnTY++eIJdc/UQQXHAwFI
+         QZdL1lTrDUd/CPWDIJEmzumqeKMEua5g31qCUpBZ2pcugQGTi/TWZL/ddv8rthnONgLq
+         ECWxntgKvdPXZfxNrboHQpVjb0XRn4AsJmlnN73RouPEvdFy7qmTpDJ5lMoeGmZNWLSQ
+         pZbeNALOLht/z9c8QEjv4UJKoIhqQ0cPdQF/WQUz15TqyqX6vJ3RiuB4HZ79hoIm3/Dm
+         onEA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1758207665; x=1758812465;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=71og1L1moGnEtlU3hPRTvSfcrOKYYypZv/voq78BbaA=;
-        b=FJyZpLFcFkEkFUdDWyiwvf0YPLl5/5eK5+khNfxP96ZrFCo7Y6x8QWle/6jGnXvq/L
-         NR93J63++oTmDF0ajKIVn3L5mLEPlIGKjg8jGRpicJtzt/WaekOupjZecHFhN43EQjCP
-         rWz022kbrGQ6RJElPBthl6Une2s55dMDM50XwKbjciTCXiYRe12v2tWcCox65e4G+l/h
-         ot5HwT3d8w5I161AAIBCRXywwOzSo7bf1KyFp/rM/PdO4jBzZPRazLssieo5+8/vKdvm
-         dnLU3wJbIb0h0DJ/aQ7ZnvwrmthtTSEtwb+VPIfJCmXjoJCD12yXq+lDd502ab2Hi4sL
-         EiAw==
-X-Gm-Message-State: AOJu0YyKH2iR8C+btR4ChBehhG3J7Q1kaRQJ+FS9cw2lE0meB3UILefw
-	A5ZbRlq8F5Cgf7OftXbNzksV0nxDgYQw+thWicjvxyw+L3k1uW2GX8yo
-X-Gm-Gg: ASbGnct77NG3SzsIHtHZphfArtHa8HYBT2VZNpMLLbbSm/9iQmOYuVJBz89IDJDIrHM
-	6NtX1IRSWBGJQHqQKkXeEyCI9xehMakBgRbN1Cm/V51sLY5RCzo4pPCPvnFCBNFLBdQ6a021SCg
-	kAmIRmhYSTrtuWI+0h1zierJIUrADLGQIkO0Bum1q7jSJIVZykjv+Pk0tMthPhptXzbfSnkeRGe
-	P0ZQLkizejSOaYZ6khLvgIQ9wQ772ymzBjfEWwc1IdxOuSg9DW9plN+bOHh/b4GA+QQJuVvROiD
-	E8Xts1eYwySnvzkSPG2CPviSn/bdDFQAFgE2qifr9s88HA4/nYOV41ImWa5R/A62DIXN1z3uSFF
-	0pjhHP7H+cZ0mGDsUROdcz7NRVqtkWsZ8719ZDxw8pej+kq5/fT+WYEE7j6D75bPfhg==
-X-Google-Smtp-Source: AGHT+IFF4QX2AbWB9fcEg1ekWHfAYk3ZX29fzrI+wOrqeGz5H2M50u4oTVO4eAHdSnCMCh9Ij/n/0w==
-X-Received: by 2002:a17:903:2c7:b0:267:4b13:c855 with SMTP id d9443c01a7336-2681217a94fmr72904825ad.14.1758207664287;
-        Thu, 18 Sep 2025 08:01:04 -0700 (PDT)
+        d=1e100.net; s=20230601; t=1758207667; x=1758812467;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=DenQSoys7kFN1y2c+XZsOBbsB+gNsAG+pNB/ZQfFlnk=;
+        b=W+EnPMU4NN9/njeye4P4eLLEfy0si34o8X9t5HSOLRiTr3X5T4W7XzhWT1nprU4qOJ
+         1rpOAFbA8wM3PkHaw2xsNDov4xMDXrku62229cIsd6Qovh1FCyNZobJNhSuWwGzTykks
+         uIV/JZHoevCvLQZQls4hmo6dDWW0TmTA/RTtZUyE8Foc3D/210FQ+thJ+5X/mjsKw+TM
+         qYcQm1L0Sp+syGVgTSxrSHZj8SCKLBAJSYGAI8JNzu3fs75KFNLwk+ArxT55oK2xAevD
+         p67GaPLPd1euChT91VTBI2RSjMdmcZ3Wy+7zwafIrZE30hk84iI6iM8EHdxre4OAwaJh
+         6qBw==
+X-Gm-Message-State: AOJu0YylwcdVH7lMftSLLKqaU2wDFGniiIFJiN5TeLIe/alnhrLRHnFX
+	12VI5/WIWdJSQIxW5TIsexmZIkzHIhE0Fqnr8wy0v3giBHU4CXiWc5Ac
+X-Gm-Gg: ASbGncsjT422fRkXA2Ibw4qBHmAFqigTFL0HwiMKOPLFji/rI6AHNocfy8XfdiPWFvG
+	kRaNGg2M9/x5wDq8jlj2EFrwTRTIv2t4CbY/AppB+6Fzqz519LdbOX8KoLhmgmdyo1C215cQaDA
+	AGNGUDMzMysUZWgKjbbB5JDdxZH//RyGvx+NAH9Q44/BUCuHBl/h0vwGjrOLFa8lNsvJFUkeTA/
+	8u5oAUON2vzwfV7cctlzoIZvqqzrlgjLQii2ixDd2kBK564pnh38fUke2hq+YW6GJnDYCoE/a5N
+	7PqwUtROUm1Y0NaNfxu8kjnHKtWNbhfdLvT/+e2tZH0pacM441iYykUhR197su2V3C8QWwMK/iJ
+	wyoxjh0o3/Xitw9Vz1yaJJ+i2ObrDd+DYJ3ptG1vI7bl+esZsplBCMfJ1XSP67wF+ZMlzh5lYOk
+	2q
+X-Google-Smtp-Source: AGHT+IE54DeGcjfuPrZxTsO8vNoW4uR5ohID4013e2OR7rn5+mNz+y3PAtrWVyE5FJja8m2BaQ/5oA==
+X-Received: by 2002:a17:902:d2ca:b0:264:5c06:4d7b with SMTP id d9443c01a7336-26813903208mr75482905ad.32.1758207666525;
+        Thu, 18 Sep 2025 08:01:06 -0700 (PDT)
 Received: from ubuntu-Virtual-Machine.mshome.net ([70.37.26.59])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-26980302b20sm28425005ad.101.2025.09.18.08.01.03
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-26980302b20sm28425005ad.101.2025.09.18.08.01.05
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 18 Sep 2025 08:01:03 -0700 (PDT)
+        Thu, 18 Sep 2025 08:01:05 -0700 (PDT)
 From: Tianyu Lan <ltykernel@gmail.com>
 X-Google-Original-From: Tianyu Lan <tiala@microsoft.com>
 To: kys@microsoft.com,
@@ -73,11 +76,15 @@ To: kys@microsoft.com,
 	kvijayab@amd.com,
 	romank@linux.microsoft.com
 Cc: linux-arch@vger.kernel.org,
-	linux-hyperv@vger.kernel.org
-Subject: [PATCH 0/5] x86/Hyper-V: Add AMD Secure AVIC for Hyper-V platform
-Date: Thu, 18 Sep 2025 11:00:18 -0400
-Message-Id: <20250918150023.474021-1-tiala@microsoft.com>
+	linux-hyperv@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Michael Kelley <mhklinux@outlook.com>
+Subject: [PATCH 2/5] drivers: hv: Allow vmbus message synic interrupt injected from Hyper-V
+Date: Thu, 18 Sep 2025 11:00:20 -0400
+Message-Id: <20250918150023.474021-3-tiala@microsoft.com>
 X-Mailer: git-send-email 2.25.1
+In-Reply-To: <20250918150023.474021-1-tiala@microsoft.com>
+References: <20250918150023.474021-1-tiala@microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -86,48 +93,84 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Secure AVIC is a new hardware feature in the AMD64
-architecture to allow SEV-SNP guests to prevent the
-hypervisor from generating unexpected interrupts to
-a vCPU or otherwise violate architectural assumptions
-around APIC behavior.
+When Secure AVIC is enabled, VMBus driver should
+call x2apic Secure AVIC interface to allow Hyper-V
+to inject VMBus message interrupt.
 
-Each vCPU has a guest-allocated APIC backing page of
-size 4K, which maintains APIC state for that vCPU.
-APIC backing page's ALLOWED_IRR field indicates the
-interrupt vectors which the guest allows the hypervisor
-to send.
+Reviewed-by: Michael Kelley <mhklinux@outlook.com>
+Reviewed-by: Neeraj Upadhyay <Neeraj.Upadhyay@amd.com>
+Signed-off-by: Tianyu Lan <tiala@microsoft.com>
+---
+ arch/x86/hyperv/hv_apic.c      | 5 +++++
+ drivers/hv/hv.c                | 2 ++
+ drivers/hv/hv_common.c         | 5 +++++
+ include/asm-generic/mshyperv.h | 1 +
+ 4 files changed, 13 insertions(+)
 
-This patchset is to enable the feature for Hyper-V
-platform. Patch "Drivers: hv: Allow vmbus message
-synic interrupt injected from Hyper-V" is to expose
-new fucntion hv_enable_coco_interrupt() and device
-driver and arch code may update AVIC backing page
-ALLOWED_IRR field to allow Hyper-V inject associated
-vector.
-
-The patchset is based on the tip tree commit 27a17e02418e
-(x86/sev: Indicate the SEV-SNP guest supports Secure AVIC)
-
-Tianyu Lan (5):
-  x86/hyperv: Don't use hv apic driver when Secure AVIC is available
-  drivers: hv: Allow vmbus message synic interrupt injected from Hyper-V
-  x86/hyperv: Don't use auto-eoi when Secure AVIC is available
-  x86/hyperv: Allow Hyper-V to inject STIMER0 interrupts
-  x86/Hyper-V: Add Hyper-V specific hvcall to set backing page
-
- arch/x86/hyperv/hv_apic.c           |  8 ++++++
- arch/x86/hyperv/hv_init.c           | 31 ++++++++++++++++++++++-
- arch/x86/hyperv/ivm.c               | 38 ++++++++++++++++++++++++++++
- arch/x86/include/asm/mshyperv.h     |  2 ++
- arch/x86/kernel/apic/x2apic_savic.c |  9 ++++++-
- arch/x86/kernel/cpu/mshyperv.c      |  3 +++
- drivers/hv/hv.c                     |  2 ++
- drivers/hv/hv_common.c              |  5 ++++
- include/asm-generic/mshyperv.h      |  1 +
- include/hyperv/hvgdk_mini.h         | 39 +++++++++++++++++++++++++++++
- 10 files changed, 136 insertions(+), 2 deletions(-)
-
+diff --git a/arch/x86/hyperv/hv_apic.c b/arch/x86/hyperv/hv_apic.c
+index e669053b637d..a8de503def37 100644
+--- a/arch/x86/hyperv/hv_apic.c
++++ b/arch/x86/hyperv/hv_apic.c
+@@ -53,6 +53,11 @@ static void hv_apic_icr_write(u32 low, u32 id)
+ 	wrmsrq(HV_X64_MSR_ICR, reg_val);
+ }
+ 
++void hv_enable_coco_interrupt(unsigned int cpu, unsigned int vector, bool set)
++{
++	apic_update_vector(cpu, vector, set);
++}
++
+ static u32 hv_apic_read(u32 reg)
+ {
+ 	u32 reg_val, hi;
+diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
+index b14c5f9e0ef2..ec5d10839e0f 100644
+--- a/drivers/hv/hv.c
++++ b/drivers/hv/hv.c
+@@ -307,6 +307,7 @@ void hv_synic_enable_regs(unsigned int cpu)
+ 	}
+ 
+ 	hv_set_msr(HV_MSR_SIEFP, siefp.as_uint64);
++	hv_enable_coco_interrupt(cpu, vmbus_interrupt, true);
+ 
+ 	/* Setup the shared SINT. */
+ 	if (vmbus_irq != -1)
+@@ -350,6 +351,7 @@ void hv_synic_disable_regs(unsigned int cpu)
+ 	/* Need to correctly cleanup in the case of SMP!!! */
+ 	/* Disable the interrupt */
+ 	hv_set_msr(HV_MSR_SINT0 + VMBUS_MESSAGE_SINT, shared_sint.as_uint64);
++	hv_enable_coco_interrupt(cpu, vmbus_interrupt, false);
+ 
+ 	simp.as_uint64 = hv_get_msr(HV_MSR_SIMP);
+ 	/*
+diff --git a/drivers/hv/hv_common.c b/drivers/hv/hv_common.c
+index 49898d10faff..0f024ab3d360 100644
+--- a/drivers/hv/hv_common.c
++++ b/drivers/hv/hv_common.c
+@@ -716,6 +716,11 @@ u64 __weak hv_tdx_hypercall(u64 control, u64 param1, u64 param2)
+ }
+ EXPORT_SYMBOL_GPL(hv_tdx_hypercall);
+ 
++void __weak hv_enable_coco_interrupt(unsigned int cpu, unsigned int vector, bool set)
++{
++}
++EXPORT_SYMBOL_GPL(hv_enable_coco_interrupt);
++
+ void hv_identify_partition_type(void)
+ {
+ 	/* Assume guest role */
+diff --git a/include/asm-generic/mshyperv.h b/include/asm-generic/mshyperv.h
+index a729b77983fa..7907c9878369 100644
+--- a/include/asm-generic/mshyperv.h
++++ b/include/asm-generic/mshyperv.h
+@@ -333,6 +333,7 @@ bool hv_is_isolation_supported(void);
+ bool hv_isolation_type_snp(void);
+ u64 hv_ghcb_hypercall(u64 control, void *input, void *output, u32 input_size);
+ u64 hv_tdx_hypercall(u64 control, u64 param1, u64 param2);
++void hv_enable_coco_interrupt(unsigned int cpu, unsigned int vector, bool set);
+ void hyperv_cleanup(void);
+ bool hv_query_ext_cap(u64 cap_query);
+ void hv_setup_dma_ops(struct device *dev, bool coherent);
 -- 
 2.25.1
 
