@@ -1,17 +1,17 @@
-Received: from invmail4.hynix.com (exvmail4.hynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id E403030F522;
+Received: from invmail4.hynix.com (exvmail4.skhynix.com [166.125.252.92])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id E703B30F526;
 	Thu,  2 Oct 2025 08:14:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759392846; cv=none; b=YzBjjIZ/dqyyh3mUbw8pJaonlOiueK6e2UG72i3JL8znCOd+edBI7GYSN8WnT157t3ASiOhXS0ytvzynpAOONMh19OFGqmHbbNBoPimS2cJ/HKsYJRzzhQegMpBzEusjh2FrYUlLUFoEhM4QfIbdTxarGmZJD8tEfYiE3AOaMss=
+	t=1759392845; cv=none; b=NbYf0SZEV71k5+Ixytld0g8yZKf+e/CunfSTBdcMHmzrHxS36WNThzxDMeqT11vwDHhobS/SsWhPd9SwAYHpCosKbdfN4TGfqGQOR9nZ+jd5WgxB9UnouRt1Pat52kRQ6oCuzmAIk9lgwScdl7c54q+UuroeTCxQTcMKCySkRKE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759392846; c=relaxed/simple;
-	bh=bAY3rt6aKAGfMJPQINH+hMkC8sTc5M1WU32fGvq/Um8=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=S9Eh/D1A3j3aH5Pfq/SB30nG/EX28pr9+g5CaB20ohHHXSgDTMPDYOEcaathAUg0z2Ws/JIa3/bhK2aRvGdX3U/tzy4GaeRzzs4uoALLW87ieaqnm+T1FhdRQDDshera3DplWT3pHMokyE4HidpW6dn/tSAVQQ2lr7A5EqsKhMs=
+	s=arc-20240116; t=1759392845; c=relaxed/simple;
+	bh=51wXDfJ/geJNTOX9kWjDa7gjFY+JiMiLA1OUeeWv4bs=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=Zn5ASmy5PvEXrsx9Vx3KX+M/3yhGAQ7z5lnRl9QC1fsBSSR6edBBK1X+x/Geu7s4eigxV3UW45Oz16kfK4SbyDm0DGckG/AkamjWmZizoTgqjzw7Y62ulaLTDIkwnBNcGLASn8hhkP3bNvQ93mbhOYebQH8+qzRYcE5y6NPywjo=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c45ff70000001609-a2-68de3413df26
+X-AuditID: a67dfc5b-c45ff70000001609-2a-68de34124c87
 From: Byungchul Park <byungchul@sk.com>
 To: linux-kernel@vger.kernel.org
 Cc: kernel_team@skhynix.com,
@@ -162,43 +162,43 @@ Cc: kernel_team@skhynix.com,
 	rcu@vger.kernel.org,
 	linux-nfs@vger.kernel.org,
 	linux-rt-devel@lists.linux.dev
-Subject: [PATCH v17 34/47] dept: make dept stop from working on debug_locks_off()
-Date: Thu,  2 Oct 2025 17:12:34 +0900
-Message-Id: <20251002081247.51255-35-byungchul@sk.com>
+Subject: [PATCH v17 30/47] fs/jbd2: use a weaker annotation in journal handling
+Date: Thu,  2 Oct 2025 17:12:30 +0900
+Message-Id: <20251002081247.51255-31-byungchul@sk.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20251002081247.51255-1-byungchul@sk.com>
 References: <20251002081247.51255-1-byungchul@sk.com>
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSa0hTcRjG+5+7q9VpSp0uUC1E0NQuGm8UFV1PUVHYh7Akhx7aSmfNS1oU
-	s7KW2U3y7nQmzuGWyVZpXnLaHZPUlUneck2zdAmlomUXZ/Ttx/P+nufTy+CSy+R8RqGMEVRK
-	WYSUEhEi54wCX/eALvnyjzYfaCo1Iuge0SAYHm+nwXQvEYOMz4kEDOlTEGT35dDg7K4i4U/n
-	Jwz0jt8YOKyXEBT0dOJgc8wEbU4qgvOFdylI15oJaB6YwMBo3g3j+hIa7IZsGiZ6VkCp8zUJ
-	L7taSRjoS6Wg+/lFEsrVH2jQVI4QkJXXQUF1zUsCnlXYMbBV5lKQUnafhBZjEwFF75oxsDS+
-	wuHO19sUDIzqcWix6jBIrCsk4H5tEgKzqZWCT9laDB6PDGJgv+ak4efY5MrXG8Mk5Dztojf6
-	80ktvyjelGdC/OPBIZwvahik+JpRHcHfbPTlH2Z30rzOHMtbDN58YfVnjDeXXKb4ZOcbjH+R
-	+ZPgC9RpOF+rNdF8vyUL7Z0TLFoXLkQo4gSV//pQkdx6pZg+3iOO77A4CDXSTk9GbgzHBnAX
-	3n/HkxEzxbcaz7piivXi2trGcRd7sIs5y9U+0sU427CQa21e5mJ3dh93Lql4yiFYT+6Jxk65
-	WMyu5todWuLf/CLOWGadctwmc1tPw1QuYQO5pKELWDISTToZblyaugr7V5jH1RnaiBtIrEPT
-	SpBEoYyLlCkiAvzkCUpFvF9YVKQZTT6I/szEwQr0rSmoHrEMks4QN3l2yiWkLC46IbIecQwu
-	9RCHGjrkEnG4LOGUoIo6rIqNEKLr0QKGkM4Vrxw9GS5hj8hihGOCcFxQ/b9ijNt8NULz1Jvw
-	tUFRsVtz25fs4LZXpl9VfQnZfDo1X7QnqNB7TX9br9WjVzG2YffamSdMs7YZf4QG2FM70J7Z
-	AwYfL7/9KZqjIe6KU4EH5uy69qAiMNeoLP821m4sHa30ZzRzdaqG/OBVw2cs03JjDqGgdNvO
-	Ldd/jYSdtr19lJe2CTKnL5US0XLZCm9cFS37C+jR00EcAwAA
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSa0hTYRjHe895z8XV6rCkDhkVAwvCLoLVg0VlBDsURX0pKCiXHdrQTdnM
-	MjK8jUZXG82lyzSlZc5sbRqZLIapUMtq2Y3cssnSIk0qp3hvE/ry8Hv+/9+H58PDkrImagmr
-	1maLOq0yQ05LsGTv5qI1C5O+qNa7nAg+FHgwhIeNGG4+qKfB6Cyj4E2DHUFP2IhgdMJKgqF5
-	BsOUqYOB4bFuBmbcHQhKfSYS6hsLCPjrmKbh57M/CMzBEA2WHwUYhmyXEJT3WRn40a6AwZ4W
-	CmYC/QR8HBlAYAtNExDynEcwVZoOldUuGiY6X5NgMb9BcDsYIOG7I1I2dnxB4K4tpOFbSRMJ
-	XaH58C48RMNz80UaBn03CfjloKGq0E1BhdWEoKjmAQ2lFU4MzV+fMOD7OUmAv9REgN25B3ps
-	fRi8JdVE5L6I9XAxWC1FRGR8J8B8v4WAMVsdAy9r/Bhs+fFg7eyioLe2nIHJYCLMVGVCh72f
-	gcBVM4aGwdfUdjMSRg1XsFDnekQIhrdTtFB/qx4JE+MmJAzfKSIFQ0lkfTYwRArFrlPCHe8A
-	LYyH39OCe6QKCy+qeeFa5xqhuTzACMVPPzP7kg9JthwXM9Q5om7d1lSJynPxLpMVlJ72u0I4
-	H1XMvYBYlueS+Oud5y6gGJbmVvGfPo2RUY7lVvCuy31UlEnOu5T/4EuI8kJuP19ouDvrYC6e
-	bzP20lGWchv57lAFjjLPLeftDs+sExPJu4Le2VzGbeANQ8VECZJUoTl1KFatzdEo1Rkb1urT
-	Vbla9em1aZkaJ4o8ky1v8tpjNNylaEUci+TzpL74gEpGKXP0uZpWxLOkPFaaWutXyaTHlbln
-	RF3mUd3JDFHfiuJYLF8s3XVQTJVxJ5TZYrooZom6/y3BxizJR0nSrBtUYtmxmuq9Z/ms5MxN
-	Sbf+7Fi5uXLr/jafc/e6e764w+N2g/Js3rJ34ZY0rX2uX73AO7LzkC/71cdFB47UNDnyfo+2
-	pban9bu6yZ0ewz5NwhNLXErOHk69zd/ubhKTKXNjg+bF1GBIobAqDqeEUhIsKyrxdG/ZSd08
-	4xY51quUiatJnV75DxGTf51IAwAA
+X-Brightmail-Tracker: H4sIAAAAAAAAAzXSa0hTYRgH8N5z3vPubLk4TMFjdmMkQRezsHo+RPQleAuiKKKoDzb10FbT
+	ZEvNqFjSzHQtG80uhs20WGqpWxfLotLoQjQV11q0mYZZlmtRTisr2rp8+/F/bl8enlVZuMm8
+	LneXZMjV6NVEgRWhuJp58em92rRrlcngO3AXQ2SkFEOp6xQHXZcbEPy0PZDBl+ZfBD50fEYQ
+	vmBBcHqwSgbPR4ej1codcPacm0BNf5CFnoFJ4I2ECTy2lxNwFN/moMG1Gk4MEahsSYTgUTuG
+	y6FODh73+jj4MGgjMOLtZ6D0ZgRDTUkdhlPVAQKW5qscmKrGOGh662eg8+YlDkatyeCveIPg
+	6h0zgkPv2gg8rfJwELC+x1BS18LAeWeIA1ejj0BHZJgBt8vOwmtrSAZmyzcZ2H+UEhj/eobA
+	x4oRbnkaHTNbMW2sbkR0/LsN0Y7hMEsPugvp7VEHpjdOB2XU4cqnbudsWntriKGu+sOEloW8
+	DP3o8cjoo5PjmA54TzC0xmRn1yZtVizNlvS6Askwf9lWhdbSWk7yvk7c7flUi01oTF6G5Lwo
+	pIvm+j72v4+Zy5iYiTBL9Pu//ckThBmi+8ggFzMrPJki+rrnxhwvrBE739XJYsZCinhuqJXE
+	rBQWi4G26n87p4sNzXf/WB7Ne/qf4JhVwiLRHD4YvaWI9tTKxcb2S8zfgSTxntOPK5DSgSbU
+	I5UutyBHo9Onp2qLcnW7U7N25rhQ9Ecu7PuxpRV97lrfjgQeqeOUXSlBrYrTFBiLctqRyLPq
+	BOVWZ0CrUmZrivZIhp0Zhny9ZGxHyTxWJyoXjhZmq4Rtml3SDknKkwz/qwwvn2xCqVkztie4
+	J1z3He/urs7fcIZ/ubJp4pX9A4t7p61IK4wj+2ZmbMwM267lvSxfV3VL/9B7cb9iJRRuLo5M
+	tc1Lw299GXsHV2X+9Fjd/IB/07G+irYpiSmvy40lvS9eOILzl8RrU5ZOX55VnNqXdHLOr0zP
+	fRp4Jt57FViV3AP3D5icamzUahbMZg1GzW9sirINHwMAAA==
+X-Brightmail-Tracker: H4sIAAAAAAAAAzXSa0xTdxQAcP/3/vu/paN6c0W5Qea0k5ksImpQj6ib/cSNiY99mtEP0uiN
+	rdCivcgsyQwFGomvQZeWjSoiaEOASaXqQEQZKolghVpFo1TEVB4BLFGQ8RJbjV9OfueRk/Ph
+	yGnuuixGrjNkiEaDJk1FFFixfWNuPJf4UrvKfhxDp7kJw9hoPoazNdUE8mv/lkHH5SoE3WP5
+	CManHDRY6mcxzFhbGBideMHAbGMLArvXSkP1VTMF710fCQzeeYfA1hMgUDRgxhB0nkJQ3Otg
+	YOBeMgx3N8hg1t9HwdMPQwicgY8UBJqOI5ixp8L5MjeBKU87DUW2DgQXevw09LtCzastLxE0
+	VuQQeFNwjQZfYC48HgsSuG87SWDYe5aCty4CpTmNMjjnsCLILa8hYD9Xi6H+1Q0GvIPTFHTZ
+	rRRU1W6DbmcvhraCMip0X2jqSjQ4inKpUOinwPZPAwUTzkoGHpR3YXBmx4HD45PB64piBqZ7
+	VsNsaTq0VPUx4P/DhuHycLtsiw0J45YzWKh0X6cEy6MZIlSXVCNhatKKhNFLubRgKQild4aC
+	tJDn/k241DZEhMmxJ0Ro/FCKhdYyXij0xAv1xX5GyLv1nNmZtFuxab+YpssUjQk/pSi0p+pO
+	kkP/f3P04Ug5zkbjESdQhJxnE/lCywkqbMIu5589m6DDjmKX8O7TvbKwabYtlu/0rgh7PruD
+	b++/yISN2Ti+bKCOhK1k1/FdDSX0l53f8VWups+OCNV9PW04bI5dy1uCeVQBUpSiOZUoSmfI
+	1Gt0aWtXSqlak0F3dOW+dH0tCn2T8/fpwjo06ktuRqwcqSKV3ji/lpNpMiWTvhnxcloVpUyp
+	6NJyyv0aU5ZoTN9rPJImSs1okRyropVbfxVTOPaAJkNMFcVDovFrl5JHxGSjJJ/58MGSxUZ1
+	xWLOpH6apfd0mmd2zb/3vfoH9cWRxEDrv4uIXTc4fT6HO3CsW/rv7pqdtGbiYcy3HfP2Jph6
+	I2/fGLd6FLH+IL0vWbvZ8Ocv6qWujPV7FNGTN9/U1P2VP9L3c4JbSnqxIFbHxetb/VKkQa3e
+	sEyK3JIV7U5ceESFJa1m9Y+0UdJ8AmP23a1JAwAA
 X-CFilter-Loop: Reflected
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -206,66 +206,43 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-For many reasons, debug_locks_off() is called to stop lock debuging
-feature e.g. on panic().  dept should also stop it in the conditions.
+jbd2 journal handling code doesn't want jbd2_might_wait_for_commit()
+to be placed between start_this_handle() and stop_this_handle().  So it
+marks the region with rwsem_acquire_read() and rwsem_release().
+
+However, the annotation is too strong for that purpose.  We don't have
+to use more than try lock annotation for that.
+
+rwsem_acquire_read() implies:
+
+   1. might be a waiter on contention of the lock.
+   2. enter to the critical section of the lock.
+
+All we need in here is to act 2, not 1.  So trylock version of
+annotation is sufficient for that purpose.  Now that dept partially
+relies on lockdep annotaions, dept interpets rwsem_acquire_read() as a
+potential wait and might report a deadlock by the wait.
+
+Replace it with trylock version of annotation.
 
 Signed-off-by: Byungchul Park <byungchul@sk.com>
 ---
- include/linux/dept.h     | 2 ++
- kernel/dependency/dept.c | 6 ++++++
- lib/debug_locks.c        | 2 ++
- 3 files changed, 10 insertions(+)
+ fs/jbd2/transaction.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/dept.h b/include/linux/dept.h
-index 8b4d97fc4627..b164f74e86e5 100644
---- a/include/linux/dept.h
-+++ b/include/linux/dept.h
-@@ -390,6 +390,7 @@ struct dept_ext_wgen {
- 	unsigned int wgen;
- };
+diff --git a/fs/jbd2/transaction.c b/fs/jbd2/transaction.c
+index c7867139af69..b4e65f51bf5e 100644
+--- a/fs/jbd2/transaction.c
++++ b/fs/jbd2/transaction.c
+@@ -441,7 +441,7 @@ static int start_this_handle(journal_t *journal, handle_t *handle,
+ 	read_unlock(&journal->j_state_lock);
+ 	current->journal_info = handle;
  
-+extern void dept_stop_emerg(void);
- extern void dept_on(void);
- extern void dept_off(void);
- extern void dept_init(void);
-@@ -442,6 +443,7 @@ struct dept_ext_wgen { };
- 
- #define DEPT_MAP_INITIALIZER(n, k) { }
- 
-+#define dept_stop_emerg()				do { } while (0)
- #define dept_on()					do { } while (0)
- #define dept_off()					do { } while (0)
- #define dept_init()					do { } while (0)
-diff --git a/kernel/dependency/dept.c b/kernel/dependency/dept.c
-index a0eb4b108de0..1de61306418b 100644
---- a/kernel/dependency/dept.c
-+++ b/kernel/dependency/dept.c
-@@ -187,6 +187,12 @@ static void dept_unlock(void)
- 	arch_spin_unlock(&dept_spin);
- }
- 
-+void dept_stop_emerg(void)
-+{
-+	WRITE_ONCE(dept_stop, 1);
-+}
-+EXPORT_SYMBOL_GPL(dept_stop_emerg);
-+
- enum bfs_ret {
- 	BFS_CONTINUE,
- 	BFS_DONE,
-diff --git a/lib/debug_locks.c b/lib/debug_locks.c
-index a75ee30b77cb..14a965914a8f 100644
---- a/lib/debug_locks.c
-+++ b/lib/debug_locks.c
-@@ -38,6 +38,8 @@ EXPORT_SYMBOL_GPL(debug_locks_silent);
-  */
- int debug_locks_off(void)
- {
-+	dept_stop_emerg();
-+
- 	if (debug_locks && __debug_locks_off()) {
- 		if (!debug_locks_silent) {
- 			console_verbose();
+-	rwsem_acquire_read(&journal->j_trans_commit_map, 0, 0, _THIS_IP_);
++	rwsem_acquire_read(&journal->j_trans_commit_map, 0, 1, _THIS_IP_);
+ 	jbd2_journal_free_transaction(new_transaction);
+ 	/*
+ 	 * Ensure that no allocations done while the transaction is open are
 -- 
 2.17.1
 
