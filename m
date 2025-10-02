@@ -1,17 +1,17 @@
-Received: from invmail4.hynix.com (exvmail4.hynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id E875730F529;
+Received: from invmail4.hynix.com (exvmail4.skhynix.com [166.125.252.92])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id BAB1E30F807;
 	Thu,  2 Oct 2025 08:14:00 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759392847; cv=none; b=Z+HsmZ5c4yaQOpOD2t98PhvS7ZsyPdXg2bmUw/gWWYVlIWPN3B7ECyMKL0Xga700Axt59ENszmaPoCLVwz5s2VRPSTfsjs7nLX/JCZQlTYqZw7hC9aIgB2SxeoWljaZu8IekKznv9jilVwkaTczkRd/9ON8b7UxJblvfKAG8o9c=
+	t=1759392849; cv=none; b=ex+QB8Iw8G1zQrcW3Y0Sw1RxIbewGjS/K26AyjWm1Pv7dtESUjLTdbwYygpvjVQcHikh9iBXqOMyJ3EQLMzo8Z3zw79reiQtWU08LSmwiwoy3aZoMei8A4xldzQQDBUcQRpE8y32s11c8pp2n0HbuNYTfAdJCUC2Rf7betQ5VLM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759392847; c=relaxed/simple;
-	bh=HQb+FieD5UTtfcyEdgT0lo4GMUWAEhmBX2C4Cisefmo=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=Ux5rCKrwDCHgOxJkaMOsPQu7RpLuZ9iYckmqDE3ZU9IDO7uQ1TrZ7ng1ZtDtZtrIMBHx2PIE22tOHG1Q6WsWZlQp+Cu1gATxOMxUujwPv9KRv2U7BHkfPLbTF32RguShyKbfwKN30iBkVP7n7ZOm9wT69RPYqj8/OI3dtqcnoQI=
+	s=arc-20240116; t=1759392849; c=relaxed/simple;
+	bh=wPgCGFth3sUpJztlYzWQSwfpstbJ+L/W/hvoYDKPCvA=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=qUvI2P5esdgB4ic+bq+OH6bWT5XqhhNMl+BmowQS+Z8JqB8deFpKUNpnfQ8tWc/Sc4zfquJJ9Zo2+5gRsIvA7GBZDQgMfBK6Rz2antpFZz5t64RXpMm5HH5ve15UCaPofGhsflfucLXdDj5Ois7NN3cBTuQPcIUHTzQGKJk/Bjw=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c2dff70000001609-47-68de3412f98a
+X-AuditID: a67dfc5b-c45ff70000001609-c0-68de3413dcb9
 From: Byungchul Park <byungchul@sk.com>
 To: linux-kernel@vger.kernel.org
 Cc: kernel_team@skhynix.com,
@@ -162,45 +162,43 @@ Cc: kernel_team@skhynix.com,
 	rcu@vger.kernel.org,
 	linux-nfs@vger.kernel.org,
 	linux-rt-devel@lists.linux.dev
-Subject: [PATCH v17 31/47] dept: assign dept map to mmu notifier invalidation synchronization
-Date: Thu,  2 Oct 2025 17:12:31 +0900
-Message-Id: <20251002081247.51255-32-byungchul@sk.com>
+Subject: [PATCH v17 35/47] i2c: rename wait_for_completion callback to wait_for_completion_cb
+Date: Thu,  2 Oct 2025 17:12:35 +0900
+Message-Id: <20251002081247.51255-36-byungchul@sk.com>
 X-Mailer: git-send-email 2.17.1
 In-Reply-To: <20251002081247.51255-1-byungchul@sk.com>
 References: <20251002081247.51255-1-byungchul@sk.com>
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSbUxTZxTH9zz3paXa7abidocumibEBYWJQXcSl7kPS7x+WLKNxMWhkWbc
-	2IZSXKFoTZbVABs63LCzEGk3QCZp6FUIBZzMIi9axAIWUdohrZQ4OoOsS9OWKRB2qfHLk9/z
-	P//zkpMjJRR/UmlSja6U1+tUWiUtI2UL65syN+QE1TtvDmVCPFZFgq1NoKGq4yIF3qsOBItL
-	VgJWzG4JxJ4/ksCqy42gdtxMgNB5GsP8YBSBJfSEhrqnp0mItFQjqJ+zir5AGIMv8QzBSm0h
-	LI3eI6DO4kXQFAoQ0OkOIvirpouAB/EIDcOWH2hYGLdh+KedhvLmNhquz/RIYLrWjMHR8Ql4
-	ai5hsQEN1rpyLD5/Y7Bc+QNDiykdrKMTFMza6yWwHMoGtyMsgcBPFhKGg5MUzM+ZabhmmhGH
-	fxDCIFTPEVDVEyfBNbUdmr77jYQbrmESqlZiCCZ6bDRUt3dREBRWKTBZF8UN9HkouO/wktAW
-	9mPwuO+QcNk3jiE046cg8eMm8J4/R31UwLU6uzEn/CogbumFGXGxy+UEV1kjfgefRQiuwnmC
-	exF/SHOuRCPJ3b3EctfrAxKuscPAVdxaoDinPYNrvvEUc03ROPVp1peyDwp4raaM17/3Yb5M
-	Pdbah4773j85NN1Am1Aw8yxKkbJMDjvVX0+94oD9XpJpZhvr9z8n1jiV2co6z80ldYLxbGYn
-	x3es8QbmCPuw90xSJ5l0tn/Em/TLmT3stcEGycuaW1hHe19STxH1iZCHXGMFs5utjFTgs0gm
-	eqwpbExoxy8T3mb77X6yBskb0WutSKHRlRWpNNqcLLVRpzmZ9VVxUQcSD67lm+W831HUmzuA
-	GClSrpd70wNqBaUqKzEWDSBWSihT5fn2abVCXqAynuL1xUf1Bi1fMoA2SUnlW/JdiRMFCuaY
-	qpQv5PnjvP5VFEtT0kxIWbeXmnzngou25w3+spD35qL08zd+HtUdODjrTXt9bF1Wv7GrtHl6
-	S88FpfF+xk7C+PHXT/69tXfq8JFTq/pc9nFk5Fvfxjxronf2s+7lL7ZpcXaO8K7vQPhQOFpc
-	ufnwVlv+lOe//UO5htuHLs73jlyNdhls+5ZXVYXCunzndkPD90qyRK3KziD0Jar/AcoK6aps
-	AwAA
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSeUiTcRjH+73nHC1eptGLFtXI7LL7eOgigvAtqPwjsAPJVW9teLaVR6em
-	SzvVwZSc5jIaMs3ZZqs1jKW1DjOdq+zYPGJpoSaUM7yyafTPw+f5fB8enj8eAS62kMECecIJ
-	XpEgjZNQQkK4a0NmuHh1m2z5JWsgvM+wE+AbyCGg2FhJQY7pBgnNVRUI2n05CH6PaHFQWccJ
-	GFM7aBgY+kzDeK0DQYFTjUNlTQYGv6r/UNBT/xOBptNLQeH3DAL69VcRFHVpafj+LAL62m0k
-	jHu6MWgd7EWg9/7BwGvPRjBWEAulZWYKRhqbcCjUNCO41enB4Vu1P6xxtCGoLb9Awde8+zi4
-	vNPgra+fgpeaKxT0OYsx+FFNge5CLQklWjWCzNtGCgpKTARYOx7R4OwZxcBdoMagwrQT2vVd
-	BDTklWH++/xT92aAtjAT85dvGGju2jAY0htoeH3bTYA+PRS0jS4SvpQX0TDauQLGdYngqOim
-	wZOrIaCqr4ncokHcb9V1gjOYLRinahmjuMqblYgbGVYjbuBOJs6p8vxtfW8/zmWZU7g7Db0U
-	N+x7R3G1gzqCe1XGcvmN4Zy1yENzWY8/0ZHr9ws3HuHj5Mm8YtnmGKHsjcGOklrXpT53l1Lp
-	qC38MgoQsMxq1lPeRE4wxYSxHz4M4RMcxMxhzde6Jj3ONMxk3zuXTHAgE82+e3xp0hNMKPvk
-	dfPkvIhZyz6oL6X/7ZzNVlTbJ32A37s6G4gJFjNrWFV/FpaHhDo0xYCC5AnJ8VJ53JqlylhZ
-	WoI8denhxHgT8n+T/uxo/kM04IqoQ4wASaaKnKEemZiUJivT4usQK8AlQaKYcrdMLDoiTTvF
-	KxIPKk7G8co6FCIgJDNEO6L4GDFzTHqCj+X5JF7xP8UEAcHpaFaJ/VhSyPytTuJwGDR3sDZL
-	7qbwQ1ZPYLbF1hI0+HHevp5I80JjVNjui4Gti1uCu3Sy0W0j2Wlf9p6hUlOYHwbLhpXH64/X
-	RESdXOmaPW3VMDw94z0dct2tNW1P2WNzFK76SB7NzVd8HjzPRYcuOJBz1djdMb343NxnVb4X
-	0cadEkIpk65YhCuU0r+So2tVSQMAAA==
+X-Brightmail-Tracker: H4sIAAAAAAAAAzXSeUiTcRgH8H7v7XD0Ms3eUihWEahph9VTSPRfb4JoSASG5Mi3ttRls5Yr
+	CiNnS6xMyDwqPGoe82IrvDLKY5aWObI5xZmr6DRHprNpVpvRfx+e6/vPw+CSHHIlo1CeFFRK
+	WYqUEhGib75lG/wixuQbC2cjYWZaR8BAvQHB7HwJDgv5Zhr+tJsRFFjycai9fwEDpz4XwZBr
+	AsFCQTIMzjgpmGyk4GJFAwWjBfkYGIzR4NbX0GA2fKSh/ttLEt70ZJNgHO5GoGudIaB9JAQy
+	S2ZJeFZcTYBj3EaC6cVzHFxXA6FuspyCry49DheeVBDw4XU2BubSAMj+8ZuES5/aPCFXvxAw
+	ONyG4JFuHANjrZWCj8W3Mei1/6DBZLyBw5y9mYS5Sk+eNtdNg8FCgK7LhcOD7lka5n/eonZv
+	5Gvv1CJ+fi4f8do8jzonnDifZTrN3+uboPiWYjvNZz0aoXlTVTBf8fAzxhtrLlP8qPUhxU/2
+	99N8i2MH/37wJsaXZd7AY7l4UWSSkKJQC6rwXYki+VtjPZ1Wx2WU6W14JnL45yCG4dgIrqJ6
+	fw7yWWR1Xg/ymmLXczabG/fan13Nma58IL3G2b4gzmoJ9dqPTeDKe4Zorwl2HfeuvAHzWsxu
+	48Z6i/B/N1dxhsbHi/bx1F85+givJexWTuvM8syLPDMlPly/2439W1jBPamyEXlIXIqW1CCJ
+	QqlOlSlSIsLkGqUiI+zw8VQj8nyI/tyvg81oaiCuA7EMkvqKB9bZ5RJSpk7XpHYgjsGl/uLE
+	qlG5RJwk05wRVMcPqU6lCOkdKJAhpMvFm12nkyTsUdlJIVkQ0gTV/y7G+KzMRNqwZWhki0U7
+	HZd8fqdy7+e7J3p3Nm3XhhZeFy9NjBwvCcJizpRHMSFr9jisCXvPBk+1rVXrnzVej/4Vmyb+
+	8ic0ICqg6+w13hoR3jpvs5o7GLXUZe3Uaaoj4yuPzBzjimMypl2yon2atZV2v+n1KxxTTQvf
+	DxzZXz/U/r6AeRolJdLlsk3BuCpd9hfDyDU/HQMAAA==
+X-Brightmail-Tracker: H4sIAAAAAAAAAzXSa0hTcRQA8P733t07V4vrHHgxoRjZi+wBGgezJ1G3oEgixCBy5aUNNx+b
+	rUwLTUf2nqMpuR66cJjvtrTMVqK4HlN0WTbKaatlVppUWphT24q+HH7nweF8OHxc1MgL48tT
+	MjhVilQhIQWEYNfavMiQqH7ZKlf7XOjNbSFgfKyAgKt11SQUWK7woLu2CsHAeAGCX5NGHLRN
+	MwRM6e0UjE28oWDGZkdQ5NTjUH0nF4Mf9dMkfGn7jsDg8ZJQ/CmXgFHzeQQlg0YKPrVvg5GB
+	Zh7MuD9i8OrnMAKzdxoDb8tpBFNFyXDDZCVhsrMLh2JDN4IyjxuHoXp/8469H4Gt4hQJH3QN
+	OPR458KL8VESnhrOkTDivIrB13oSSk/ZeHDNqEeQd7OOhKJrFgKa3t6nwPnFh0FfkR6DKstO
+	GDAPEuDQmTD/ff6p26FgLM7D/GEIA0NNMwYT5koKOm72EWDOiQBjZw8P3lWUUODzrIaZ0lSw
+	V32kwH3JQEDtSBdvowGxv7QXCbbS2oix2udTJFt9vRqxk7/1iB0rz8NZrc6ftg2P4my+9Shb
+	7hgm2d/jL0nW9rOUYJ+ZGLawM5JtKnFTbP7D19TumH2C2CROIddwqpXrEwWyd5ZaKq2GOVZm
+	duE5yCM+i4L4DB3F3NI9RgGT9GLG5ZrAAxbTCxjrhUFewDjtCGd6ncsDDqH3M6bHr6iACTqC
+	eW+qwwIW0muY/mdX8H875zNV9S1/HeSv93gcRMAiOprRjuZjOiQoRbMqkVieolFK5YroFepk
+	WWaK/NiKQ6lKC/J/k/mEr/AeGuvZ1opoPpLMEToj3DIRT6pRZypbEcPHJWJhYkWfTCRMkmYe
+	51SpB1RHFJy6Fc3jE5JQ4Y54LlFEH5ZmcMkcl8ap/ncxflBYDtpZ+UBhrwl7szDjQqEuoW3V
+	7KwnCYetrnXB3opZn38sQXHlJxuncgyPjp9Nt/E7CtKn4+bE6kuUxGnN8uy4lqyt2d2HOnzf
+	Y4bD1WKlJnRffNumzdtj1jr2Nmhysy4HBy2at6U3+q4eZYcEx5dtWPrNW5t817cnITz24LkO
+	VdKZ5nYJoZZJVy/DVWrpH7oHRxxJAwAA
 X-CFilter-Loop: Reflected
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -208,217 +206,77 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-Resolved the following false positive by introducing explicit dept map
-and annotations for dealing with this case:
+Functionally no change.  This patch is a preparation for DEPT(DEPendency
+Tracker) to track dependencies related to a scheduler API,
+wait_for_completion().
 
-   *** DEADLOCK ***
-   context A
-       [S] (unknown)(<sched>:0)
-       [W] lock(&mm->mmap_lock:0)
-       [E] try_to_wake_up(<sched>:0)
+Unfortunately, struct i2c_algo_pca_data has a callback member named
+wait_for_completion, that is the same as the scheduler API, which makes
+it hard to change the scheduler API to a macro form because of the
+ambiguity.
 
-   context B
-       [S] lock(&mm->mmap_lock:0)
-       [W] mmu_interval_read_begin(<sched>:0)
-       [E] unlock(&mm->mmap_lock:0)
-
-   [S]: start of the event context
-   [W]: the wait blocked
-   [E]: the event not reachable
-
-dept already tracks dependencies between scheduler sleep and ttwu based
-on internal timestamp called wgen.  However, in case that more than one
-event contexts are overwrapped, dept has chance to wrongly guess the
-start of the event context like the following:
-
-   <before this patch>
-
-   context A: lock L
-   context A: mmu_notifier_invalidate_range_start()
-
-   context B: lock L'
-   context B: mmu_interval_read_begin() : wait
-   <- here is the start of the event context of C.
-   context B: unlock L'
-
-   context C: lock L''
-   context C: mmu_notifier_invalidate_range_start()
-
-   context A: mmu_notifier_invalidate_range_end()
-   context A: unlock L
-
-   context C: mmu_notifier_invalidate_range_end() : ttwu
-   <- here is the end of the event context of C.  dept observes a wait,
-      lock L'' within the event context of C.  Which causes a false
-      positive dept report.
-
-   context C: unlock L''
-
-By explicitly annotating the interesting event context range, make dept
-work with more precise information like:
-
-   <after this patch>
-
-   context A: lock L
-   context A: mmu_notifier_invalidate_range_start()
-
-   context B: lock L'
-   context B: mmu_interval_read_begin() : wait
-   context B: unlock L'
-
-   context C: lock L''
-   context C: mmu_notifier_invalidate_range_start()
-   <- here is the start of the event context of C.
-
-   context A: mmu_notifier_invalidate_range_end()
-   context A: unlock L
-
-   context C: mmu_notifier_invalidate_range_end() : ttwu
-   <- here is the end of the event context of C.  dept doesn't observe
-      the wait, lock L'' within the event context of C.  context C is
-      responsible only for the range delimited by
-      mmu_notifier_invalidate_range_{start,end}().
-
-   context C: unlock L''
+Add a postfix _cb to the callback member to remove the ambiguity.
 
 Signed-off-by: Byungchul Park <byungchul@sk.com>
 ---
- include/linux/mmu_notifier.h | 26 ++++++++++++++++++++++++++
- mm/mmu_notifier.c            | 31 +++++++++++++++++++++++++++++--
- 2 files changed, 55 insertions(+), 2 deletions(-)
+ drivers/i2c/algos/i2c-algo-pca.c      | 2 +-
+ drivers/i2c/busses/i2c-pca-isa.c      | 2 +-
+ drivers/i2c/busses/i2c-pca-platform.c | 2 +-
+ include/linux/i2c-algo-pca.h          | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/mmu_notifier.h b/include/linux/mmu_notifier.h
-index d1094c2d5fb6..2b70dce149f0 100644
---- a/include/linux/mmu_notifier.h
-+++ b/include/linux/mmu_notifier.h
-@@ -428,6 +428,14 @@ static inline int mmu_notifier_test_young(struct mm_struct *mm,
- 	return 0;
- }
+diff --git a/drivers/i2c/algos/i2c-algo-pca.c b/drivers/i2c/algos/i2c-algo-pca.c
+index 74b66aec33d4..ee86df4cff4b 100644
+--- a/drivers/i2c/algos/i2c-algo-pca.c
++++ b/drivers/i2c/algos/i2c-algo-pca.c
+@@ -30,7 +30,7 @@ static int i2c_debug;
+ #define pca_clock(adap) adap->i2c_clock
+ #define pca_set_con(adap, val) pca_outw(adap, I2C_PCA_CON, val)
+ #define pca_get_con(adap) pca_inw(adap, I2C_PCA_CON)
+-#define pca_wait(adap) adap->wait_for_completion(adap->data)
++#define pca_wait(adap) adap->wait_for_completion_cb(adap->data)
  
-+#ifdef CONFIG_DEPT
-+void mmu_notifier_invalidate_dept_ecxt_start(struct mmu_notifier_range *range);
-+void mmu_notifier_invalidate_dept_ecxt_end(struct mmu_notifier_range *range);
-+#else
-+static inline void mmu_notifier_invalidate_dept_ecxt_start(struct mmu_notifier_range *range) {}
-+static inline void mmu_notifier_invalidate_dept_ecxt_end(struct mmu_notifier_range *range) {}
-+#endif
-+
- static inline void
- mmu_notifier_invalidate_range_start(struct mmu_notifier_range *range)
+ static void pca_reset(struct i2c_algo_pca_data *adap)
  {
-@@ -439,6 +447,12 @@ mmu_notifier_invalidate_range_start(struct mmu_notifier_range *range)
- 		__mmu_notifier_invalidate_range_start(range);
- 	}
- 	lock_map_release(&__mmu_notifier_invalidate_range_start_map);
-+
-+	/*
-+	 * From now on, waiters could be there by this start until
-+	 * mmu_notifier_invalidate_range_end().
-+	 */
-+	mmu_notifier_invalidate_dept_ecxt_start(range);
- }
- 
- /*
-@@ -459,6 +473,12 @@ mmu_notifier_invalidate_range_start_nonblock(struct mmu_notifier_range *range)
- 		ret = __mmu_notifier_invalidate_range_start(range);
- 	}
- 	lock_map_release(&__mmu_notifier_invalidate_range_start_map);
-+
-+	/*
-+	 * From now on, waiters could be there by this start until
-+	 * mmu_notifier_invalidate_range_end().
-+	 */
-+	mmu_notifier_invalidate_dept_ecxt_start(range);
- 	return ret;
- }
- 
-@@ -470,6 +490,12 @@ mmu_notifier_invalidate_range_end(struct mmu_notifier_range *range)
- 
- 	if (mm_has_notifiers(range->mm))
- 		__mmu_notifier_invalidate_range_end(range);
-+
-+	/*
-+	 * The event context that has been started by
-+	 * mmu_notifier_invalidate_range_start() ends.
-+	 */
-+	mmu_notifier_invalidate_dept_ecxt_end(range);
- }
- 
- static inline void mmu_notifier_arch_invalidate_secondary_tlbs(struct mm_struct *mm,
-diff --git a/mm/mmu_notifier.c b/mm/mmu_notifier.c
-index 8e0125dc0522..31af5ea54a0c 100644
---- a/mm/mmu_notifier.c
-+++ b/mm/mmu_notifier.c
-@@ -46,6 +46,7 @@ struct mmu_notifier_subscriptions {
- 	unsigned long active_invalidate_ranges;
- 	struct rb_root_cached itree;
- 	wait_queue_head_t wq;
-+	struct dept_map dmap;
- 	struct hlist_head deferred_list;
+diff --git a/drivers/i2c/busses/i2c-pca-isa.c b/drivers/i2c/busses/i2c-pca-isa.c
+index 85e8cf58e8bf..0cbf2f509527 100644
+--- a/drivers/i2c/busses/i2c-pca-isa.c
++++ b/drivers/i2c/busses/i2c-pca-isa.c
+@@ -95,7 +95,7 @@ static struct i2c_algo_pca_data pca_isa_data = {
+ 	/* .data intentionally left NULL, not needed with ISA */
+ 	.write_byte		= pca_isa_writebyte,
+ 	.read_byte		= pca_isa_readbyte,
+-	.wait_for_completion	= pca_isa_waitforcompletion,
++	.wait_for_completion_cb	= pca_isa_waitforcompletion,
+ 	.reset_chip		= pca_isa_resetchip,
  };
  
-@@ -165,6 +166,25 @@ static void mn_itree_inv_end(struct mmu_notifier_subscriptions *subscriptions)
- 	wake_up_all(&subscriptions->wq);
- }
+diff --git a/drivers/i2c/busses/i2c-pca-platform.c b/drivers/i2c/busses/i2c-pca-platform.c
+index 87da8241b927..c0f35ebbe37d 100644
+--- a/drivers/i2c/busses/i2c-pca-platform.c
++++ b/drivers/i2c/busses/i2c-pca-platform.c
+@@ -180,7 +180,7 @@ static int i2c_pca_pf_probe(struct platform_device *pdev)
+ 	}
  
-+#ifdef CONFIG_DEPT
-+void mmu_notifier_invalidate_dept_ecxt_start(struct mmu_notifier_range *range)
-+{
-+	struct mmu_notifier_subscriptions *subscriptions =
-+		range->mm->notifier_subscriptions;
-+
-+	if (subscriptions)
-+		sdt_ecxt_enter(&subscriptions->dmap);
-+}
-+void mmu_notifier_invalidate_dept_ecxt_end(struct mmu_notifier_range *range)
-+{
-+	struct mmu_notifier_subscriptions *subscriptions =
-+		range->mm->notifier_subscriptions;
-+
-+	if (subscriptions)
-+		sdt_ecxt_exit(&subscriptions->dmap);
-+}
-+#endif
-+
- /**
-  * mmu_interval_read_begin - Begin a read side critical section against a VA
-  *                           range
-@@ -246,9 +266,12 @@ mmu_interval_read_begin(struct mmu_interval_notifier *interval_sub)
- 	 */
- 	lock_map_acquire(&__mmu_notifier_invalidate_range_start_map);
- 	lock_map_release(&__mmu_notifier_invalidate_range_start_map);
--	if (is_invalidating)
-+	if (is_invalidating) {
-+		sdt_might_sleep_start(&subscriptions->dmap);
- 		wait_event(subscriptions->wq,
- 			   READ_ONCE(subscriptions->invalidate_seq) != seq);
-+		sdt_might_sleep_end();
-+	}
- 
- 	/*
- 	 * Notice that mmu_interval_read_retry() can already be true at this
-@@ -625,6 +648,7 @@ int __mmu_notifier_register(struct mmu_notifier *subscription,
- 
- 		INIT_HLIST_HEAD(&subscriptions->list);
- 		spin_lock_init(&subscriptions->lock);
-+		sdt_map_init(&subscriptions->dmap);
- 		subscriptions->invalidate_seq = 2;
- 		subscriptions->itree = RB_ROOT_CACHED;
- 		init_waitqueue_head(&subscriptions->wq);
-@@ -1070,9 +1094,12 @@ void mmu_interval_notifier_remove(struct mmu_interval_notifier *interval_sub)
- 	 */
- 	lock_map_acquire(&__mmu_notifier_invalidate_range_start_map);
- 	lock_map_release(&__mmu_notifier_invalidate_range_start_map);
--	if (seq)
-+	if (seq) {
-+		sdt_might_sleep_start(&subscriptions->dmap);
- 		wait_event(subscriptions->wq,
- 			   mmu_interval_seq_released(subscriptions, seq));
-+		sdt_might_sleep_end();
-+	}
- 
- 	/* pairs with mmgrab in mmu_interval_notifier_insert() */
- 	mmdrop(mm);
+ 	i2c->algo_data.data = i2c;
+-	i2c->algo_data.wait_for_completion = i2c_pca_pf_waitforcompletion;
++	i2c->algo_data.wait_for_completion_cb = i2c_pca_pf_waitforcompletion;
+ 	if (i2c->gpio)
+ 		i2c->algo_data.reset_chip = i2c_pca_pf_resetchip;
+ 	else
+diff --git a/include/linux/i2c-algo-pca.h b/include/linux/i2c-algo-pca.h
+index 7c522fdd9ea7..e305bf32e40a 100644
+--- a/include/linux/i2c-algo-pca.h
++++ b/include/linux/i2c-algo-pca.h
+@@ -71,7 +71,7 @@ struct i2c_algo_pca_data {
+ 	void 				*data;	/* private low level data */
+ 	void (*write_byte)		(void *data, int reg, int val);
+ 	int  (*read_byte)		(void *data, int reg);
+-	int  (*wait_for_completion)	(void *data);
++	int  (*wait_for_completion_cb)	(void *data);
+ 	void (*reset_chip)		(void *data);
+ 	/* For PCA9564, use one of the predefined frequencies:
+ 	 * 330000, 288000, 217000, 146000, 88000, 59000, 44000, 36000
 -- 
 2.17.1
 
