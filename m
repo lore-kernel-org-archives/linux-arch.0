@@ -1,30 +1,30 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 53A0327A454;
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id B3DAB27B4E5;
 	Fri,  3 Oct 2025 22:27:23 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759530445; cv=none; b=ofzUE1bCiFq5CLHbu3hjaW2Yxdc5MRDCCCicIrKS0OY32OuHVMS5PwATahnseVhDGSOxVYNMwud247V0J2w9czbYow6iKzZTvgj9nIhAB7eilAowgifoHG65HzCky/XKvCNyeU/nzM7oFiDod1m5jFcq773pHAxo+6CBSyCmB2s=
+	t=1759530445; cv=none; b=U/a/4+oyewAEZN/whYZMYpG2w2OqLrqgmV5BJVJHwxwRa54OOAGw00xLeDhlXcK3C/u1z1eM+4XKv2cCKAqMdifOE0tVB8F5N00G7wAXJsjeXKYJbb3WcT5CzQmhvIonOmxsf8EmZE6rJa4zbQdhcMtBEhq2Epn1SSzWs4gR7ek=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1759530445; c=relaxed/simple;
-	bh=yfJOYFcpcaft9gfk4TP1GboP8J7q/Uygy2ixjcvgtwc=;
+	bh=Fkn/javTiww3cFoTkMbsTMJizV3BWu9Hp9OMgATsTkM=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=W/cuyIYB76lNMhY2ww/t7TAJWTTNUzvKx35oFMUjChYkqWih7Fi09s8xzthTYGd7/mSh5t6MlWjtf+sv7uhmTd6xbZv6K5k5CQc3A7zJKFwqtVBjGFviiiDtj8u4SPU4zT3UBqErX7XM/cT3L2C5QJT3AFJSO4oxMcczQJ3Bb98=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=XG5q5ffV; arc=none smtp.client-ip=13.77.154.182
+	 MIME-Version; b=BetrW3MaOWn3Q7p6cwzoTkOib8ApUGjdmrmZJHMeRuT1xZ1H1YDKphWhOYNzy3PjUsmlqsmrSJtl8lZF2sYWk0GOGMVQAGtUp6p1Y7VuK/Y8m5JvGRla9y3B0c09syONWLAvImUJX0fwp/9ULpxq01cqxtoIgwHDZKf5fxa6pfo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=skGNtAaH; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="XG5q5ffV"
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="skGNtAaH"
 Received: from romank-3650.corp.microsoft.com (unknown [131.107.1.188])
-	by linux.microsoft.com (Postfix) with ESMTPSA id DF0D4211C279;
-	Fri,  3 Oct 2025 15:27:20 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DF0D4211C279
+	by linux.microsoft.com (Postfix) with ESMTPSA id 148E1211C27F;
+	Fri,  3 Oct 2025 15:27:23 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 148E1211C27F
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1759530441;
-	bh=8Mh8PV+ES1bK1a1G4y3sHqCiVkIAXlaKpbQtNpSOMQQ=;
+	s=default; t=1759530443;
+	bh=KOeZVTeTzRHNYVd4hRy4Pl2r3BRcW7MVMnUEOSxzTv8=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=XG5q5ffVudsGJdQBGGntPtaItzHtiBAlK0S1CjHsz3YXHuBMymwpu1ilfT5vsUpEF
-	 qwSkAgfO0+p64iVhjzcanrj3GZ/QcK8BvFNDfRjBvygJvWv3T70VSROn00snI1zb4d
-	 AuP6fTtJjF0W+duT83Jo4OIn2q1cCrWAYKT3r3TQ=
+	b=skGNtAaHOaCpeay5u6LSqN2AnKr0jPNhmYCorB9ZcOOETtmkl9Mk0nrEocN2vv726
+	 vcfTaPaaQqIl36uWX2Kwq9Ri+HucteE7M3NZm1AG27aymCDhvO78Fj9dUKtdFXYaZx
+	 tGuGhzRaOjw9JEjPL5vhx2cb6+wxLSO3fyP4BMJ0=
 From: Roman Kisel <romank@linux.microsoft.com>
 To: arnd@arndb.de,
 	bp@alien8.de,
@@ -48,9 +48,9 @@ Cc: benhill@microsoft.com,
 	bperkins@microsoft.com,
 	sunilmut@microsoft.com,
 	romank@linux.microsoft.com
-Subject: [PATCH hyperv-next v6 11/17] Drivers: hv: Rename the SynIC enable and disable routines
-Date: Fri,  3 Oct 2025 15:27:04 -0700
-Message-ID: <20251003222710.6257-12-romank@linux.microsoft.com>
+Subject: [PATCH hyperv-next v6 14/17] Drivers: hv: Free msginfo when the buffer fails to decrypt
+Date: Fri,  3 Oct 2025 15:27:07 -0700
+Message-ID: <20251003222710.6257-15-romank@linux.microsoft.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20251003222710.6257-1-romank@linux.microsoft.com>
 References: <20251003222710.6257-1-romank@linux.microsoft.com>
@@ -62,125 +62,78 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The confidential VMBus requires support for the both hypervisor
-facing SynIC and the paravisor one.
+The early failure path in __vmbus_establish_gpadl() doesn't deallocate
+msginfo if the buffer fails to decrypt.
 
-Rename the functions that enable and disable SynIC with the
-hypervisor. No functional changes.
+Fix the leak by breaking out the cleanup code into a separate function
+and calling it where required.
 
+Fixes: d4dccf353db80 ("Drivers: hv: vmbus: Mark vmbus ring buffer visible to host in Isolation VM")
+Reported-by: Michael Kelley <mkhlinux@outlook.com>
+Closes: https://lore.kernel.org/linux-hyperv/SN6PR02MB41573796F9787F67E0E97049D472A@SN6PR02MB4157.namprd02.prod.outlook.com
 Signed-off-by: Roman Kisel <romank@linux.microsoft.com>
-Reviewed-by: Tianyu Lan <tiala@microsoft.com>
 Reviewed-by: Michael Kelley <mhklinux@outlook.com>
 ---
- drivers/hv/channel_mgmt.c |  2 +-
- drivers/hv/hv.c           | 11 ++++++-----
- drivers/hv/hyperv_vmbus.h |  4 ++--
- drivers/hv/vmbus_drv.c    |  6 +++---
- 4 files changed, 12 insertions(+), 11 deletions(-)
+ drivers/hv/channel.c | 24 ++++++++++++++++++------
+ 1 file changed, 18 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/hv/channel_mgmt.c b/drivers/hv/channel_mgmt.c
-index 1a33c6944b3c..6d66cbc9030b 100644
---- a/drivers/hv/channel_mgmt.c
-+++ b/drivers/hv/channel_mgmt.c
-@@ -846,7 +846,7 @@ static void vmbus_wait_for_unload(void)
- 			/*
- 			 * In a CoCo VM the hyp_synic_message_page is not allocated
- 			 * in hv_synic_alloc(). Instead it is set/cleared in
--			 * hv_synic_enable_regs() and hv_synic_disable_regs()
-+			 * hv_hyp_synic_enable_regs() and hv_hyp_synic_disable_regs()
- 			 * such that it is set only when the CPU is online. If
- 			 * not all present CPUs are online, the message page
- 			 * might be NULL, so skip such CPUs.
-diff --git a/drivers/hv/hv.c b/drivers/hv/hv.c
-index 8e102bcc0be8..76138ebe7c0c 100644
---- a/drivers/hv/hv.c
-+++ b/drivers/hv/hv.c
-@@ -268,9 +268,10 @@ void hv_synic_free(void)
+diff --git a/drivers/hv/channel.c b/drivers/hv/channel.c
+index d69713201bef..88485d255a42 100644
+--- a/drivers/hv/channel.c
++++ b/drivers/hv/channel.c
+@@ -410,6 +410,21 @@ static int create_gpadl_header(enum hv_gpadl_type type, void *kbuffer,
+ 	return 0;
  }
  
++static void vmbus_free_channel_msginfo(struct vmbus_channel_msginfo *msginfo)
++{
++	struct vmbus_channel_msginfo *submsginfo, *tmp;
++
++	if (!msginfo)
++		return;
++
++	list_for_each_entry_safe(submsginfo, tmp, &msginfo->submsglist,
++				 msglistentry) {
++		kfree(submsginfo);
++	}
++
++	kfree(msginfo);
++}
++
  /*
-- * hv_synic_enable_regs - Initialize the Synthetic Interrupt Controller.
-+ * hv_hyp_synic_enable_regs - Initialize the Synthetic Interrupt Controller
-+ * with the hypervisor.
-  */
--void hv_synic_enable_regs(unsigned int cpu)
-+void hv_hyp_synic_enable_regs(unsigned int cpu)
- {
- 	struct hv_per_cpu_context *hv_cpu =
- 		per_cpu_ptr(hv_context.cpu_context, cpu);
-@@ -336,14 +337,14 @@ void hv_synic_enable_regs(unsigned int cpu)
+  * __vmbus_establish_gpadl - Establish a GPADL for a buffer or ringbuffer
+  *
+@@ -429,7 +444,7 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
+ 	struct vmbus_channel_gpadl_header *gpadlmsg;
+ 	struct vmbus_channel_gpadl_body *gpadl_body;
+ 	struct vmbus_channel_msginfo *msginfo = NULL;
+-	struct vmbus_channel_msginfo *submsginfo, *tmp;
++	struct vmbus_channel_msginfo *submsginfo;
+ 	struct list_head *curr;
+ 	u32 next_gpadl_handle;
+ 	unsigned long flags;
+@@ -459,6 +474,7 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
+ 			dev_warn(&channel->device_obj->device,
+ 				"Failed to set host visibility for new GPADL %d.\n",
+ 				ret);
++			vmbus_free_channel_msginfo(msginfo);
+ 			return ret;
+ 		}
+ 	}
+@@ -535,12 +551,8 @@ static int __vmbus_establish_gpadl(struct vmbus_channel *channel,
+ 	spin_lock_irqsave(&vmbus_connection.channelmsg_lock, flags);
+ 	list_del(&msginfo->msglistentry);
+ 	spin_unlock_irqrestore(&vmbus_connection.channelmsg_lock, flags);
+-	list_for_each_entry_safe(submsginfo, tmp, &msginfo->submsglist,
+-				 msglistentry) {
+-		kfree(submsginfo);
+-	}
  
- int hv_synic_init(unsigned int cpu)
- {
--	hv_synic_enable_regs(cpu);
-+	hv_hyp_synic_enable_regs(cpu);
+-	kfree(msginfo);
++	vmbus_free_channel_msginfo(msginfo);
  
- 	hv_stimer_legacy_init(cpu, VMBUS_MESSAGE_SINT);
- 
- 	return 0;
- }
- 
--void hv_synic_disable_regs(unsigned int cpu)
-+void hv_hyp_synic_disable_regs(unsigned int cpu)
- {
- 	struct hv_per_cpu_context *hv_cpu =
- 		per_cpu_ptr(hv_context.cpu_context, cpu);
-@@ -530,7 +531,7 @@ int hv_synic_cleanup(unsigned int cpu)
- always_cleanup:
- 	hv_stimer_legacy_cleanup(cpu);
- 
--	hv_synic_disable_regs(cpu);
-+	hv_hyp_synic_disable_regs(cpu);
- 
- 	return ret;
- }
-diff --git a/drivers/hv/hyperv_vmbus.h b/drivers/hv/hyperv_vmbus.h
-index 3c70051c0431..552ed782bcfc 100644
---- a/drivers/hv/hyperv_vmbus.h
-+++ b/drivers/hv/hyperv_vmbus.h
-@@ -190,10 +190,10 @@ extern int hv_synic_alloc(void);
- 
- extern void hv_synic_free(void);
- 
--extern void hv_synic_enable_regs(unsigned int cpu);
-+extern void hv_hyp_synic_enable_regs(unsigned int cpu);
- extern int hv_synic_init(unsigned int cpu);
- 
--extern void hv_synic_disable_regs(unsigned int cpu);
-+extern void hv_hyp_synic_disable_regs(unsigned int cpu);
- extern int hv_synic_cleanup(unsigned int cpu);
- 
- /* Interface */
-diff --git a/drivers/hv/vmbus_drv.c b/drivers/hv/vmbus_drv.c
-index e12f0ba0701f..2b5bf672c467 100644
---- a/drivers/hv/vmbus_drv.c
-+++ b/drivers/hv/vmbus_drv.c
-@@ -2810,7 +2810,7 @@ static void hv_crash_handler(struct pt_regs *regs)
- 	 */
- 	cpu = smp_processor_id();
- 	hv_stimer_cleanup(cpu);
--	hv_synic_disable_regs(cpu);
-+	hv_hyp_synic_disable_regs(cpu);
- };
- 
- static int hv_synic_suspend(void)
-@@ -2835,14 +2835,14 @@ static int hv_synic_suspend(void)
- 	 * interrupts-disabled context.
- 	 */
- 
--	hv_synic_disable_regs(0);
-+	hv_hyp_synic_disable_regs(0);
- 
- 	return 0;
- }
- 
- static void hv_synic_resume(void)
- {
--	hv_synic_enable_regs(0);
-+	hv_hyp_synic_enable_regs(0);
- 
- 	/*
- 	 * Note: we don't need to call hv_stimer_init(0), because the timer
+ 	if (ret) {
+ 		/*
 -- 
 2.43.0
 
