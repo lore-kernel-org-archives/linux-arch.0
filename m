@@ -1,98 +1,144 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 298551D90AD;
-	Tue,  7 Oct 2025 20:38:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from fout-b8-smtp.messagingengine.com (fout-b8-smtp.messagingengine.com [202.12.124.151])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CF3023F42D;
+	Tue,  7 Oct 2025 23:50:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.151
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759869488; cv=none; b=SHRYh3Hmsug4jBNkTL/Mz41ubwJHE0TZ45AZb5ZFiFA4j2MNVicxvC+j2rk9S3zpRKwmIt9uOThqqFdWlAtqFldzZKoB3eDYfxOpM9VYPA36oaCIkdWdw4wAEYpCtGWre4JMiAKNsa/1TPETcRwYwwThsf+LVFCzyfMkUOwV0FY=
+	t=1759881031; cv=none; b=HoXZcUAFtx6H3fM2I3Cg1i4GGLv0wRA1Yq8Ws0mcZUt3iLMtit+jW3NXXrVuvFLDZ2QfEn5moMkTkyl7hIi4iTy2iKrkL1UMnlyI6urcB5GAxohjfjYPK6cO5woa1DrON9B/Zr5SzJOtLmu153bJwxGaJdSI6PlqM9+t01KuBh4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759869488; c=relaxed/simple;
-	bh=4cYMjdMGETzW2Kdd5CvNRjREqsKnjK0Px2bK6XAAJAs=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=KgraX+wwdM01fpGV95B89eSr5ji/U1juvdRsTAxO4butePWs5S2rjW13IeVD4PivXP/RjXkYSNO9s6f6d4ZX+jg0YdVFcdWv9PawZruDiW6dQIo95dck4NKolHsq/EUJTVkdZXHoXIXtGDalB4B7MznjxeNc56j9mjeb2v9T4no=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=XjbWIs7y; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1759881031; c=relaxed/simple;
+	bh=lyl+Zp+wRGNGv5PQZ4By4Y0d+218NRT+TpI7ZmiPWMo=;
+	h=Message-ID:From:Subject:Date:To:Cc; b=JuZtQrGdvHlfAa/VG2j9/mu8mMRqp4Ro/+6EOI/hXr7hUmavlpFApD8nCejSolf5p3O9BqzLf8ZdIB3lsatysZrNHuMxGFlsj3jLvl4dij4yBkt07wKjivVUcjyuHdVXgWy9Sv3Cl323gcKCeFgCz1IhSN5eirIOJwvaCE4Kzcw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=tH93gk6S; arc=none smtp.client-ip=202.12.124.151
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="XjbWIs7y"
-Received: from [10.137.184.60] (unknown [131.107.1.188])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 1FC8C2038B49;
-	Tue,  7 Oct 2025 13:38:03 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 1FC8C2038B49
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1759869483;
-	bh=eBHded0+/fHmMsw247Acr2N9kOnPFP0ghuWlMwLlh9I=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=XjbWIs7yqUEUuk89rwVEKYjtz9w0OI1x9QOtMrCeGlfGKr59FGiRhYLgmjCxx/jJs
-	 i4X2hq7kfA5zIB7zlDvJSQ8lJ936wNhLNdg8UZa52fJI3DBEfRK8bdY/CxIBK2LT/b
-	 LFXyr2rJEXq2Y/UeKkg+ldfcNLDKCTKYH4eRyBEE=
-Message-ID: <273e0882-24f5-465a-be18-d67b4249ce12@linux.microsoft.com>
-Date: Tue, 7 Oct 2025 13:38:02 -0700
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="tH93gk6S"
+Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
+	by mailfout.stl.internal (Postfix) with ESMTP id 018191D0019A;
+	Tue,  7 Oct 2025 19:50:26 -0400 (EDT)
+Received: from phl-mailfrontend-02 ([10.202.2.163])
+  by phl-compute-03.internal (MEProxy); Tue, 07 Oct 2025 19:50:27 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
+	:feedback-id:from:from:in-reply-to:message-id:reply-to:subject
+	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm2; t=1759881026; x=1759967426; bh=cP/vkgZvwLgEDU6kBJJxJkqQv+9W
+	OYr9EfQhPjX+cK8=; b=tH93gk6S7kZVQ9b92s/Kh+6oSVT5Ngwa35FFDjogn3Ld
+	za3HNeU2/I2lHN7IKrsFBq33WPzEsOn9Bg/XV+EEzUr1n3BroM3GO1Yd8CLc13l+
+	BaMIaS3jCPgWNletAiVVg5N1lH3mrzJrbeEUSMGN+AMYiWP9B1K/b9sRXgM0oD8L
+	f9aE/2ZBv2dYU46t1ZgC2yEbOViAII+hUDFGC4Ehwmg3mlck8giTGiR4mHzsoBWi
+	+BKKqLqzlVwOR/ndq9L9A59CKI0OEyuazf/WiXusupGiekDkhJHbgg1TxAp63tZQ
+	0JA9G1CCZY3vMgCrLf/eFFR7IVFKmbIiffwSasMNSg==
+X-ME-Sender: <xms:QaflaFABHI_Bgxv1ZD66coBdY0UlFjzA6KedAJspYfeaM8gRM0FmfQ>
+    <xme:QaflaEkmi5X0RG3FZqjr4njWzc6RQTFQEUNoRiC3FYjlkbDxfiqUgn_EWbE8hXfS6
+    UguVFpLy6UFZM1Bck5sZrV0beyTx82GYjpOUAmD3JqfM3Pkkrb4Sto>
+X-ME-Received: <xmr:QaflaDi4eICCMxI1hpbCHtsM88-sPWkZWDlN3_Iwh3RZk_KAnI-qL7t3Y1hAOKYQVlJxP3x1jxw7BTA7swXWpiAxLb1R1-KlCAg>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeffedrtdeggddutddujeelucetufdoteggodetrf
+    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
+    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
+    gurhepkffhufffvfevsedttdertddttddtnecuhfhrohhmpefhihhnnhcuvfhhrghinhcu
+    oehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgqeenucggtffrrghtthgvrhhnpe
+    ehffdukeetffdutedvffffheegtdetkeekfeevgfeitefhvedvtdelhfduudettdenucev
+    lhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpehfthhhrghinh
+    eslhhinhhugidqmheikehkrdhorhhgpdhnsggprhgtphhtthhopedviedpmhhouggvpehs
+    mhhtphhouhhtpdhrtghpthhtoheprghnughrihhisehkvghrnhgvlhdrohhrghdprhgtph
+    htthhopegrshhtsehkvghrnhgvlhdrohhrghdprhgtphhtthhopegurghnihgvlhesihho
+    ghgvrghrsghogidrnhgvthdprhgtphhtthhopehpvghtvghriiesihhnfhhrrgguvggrug
+    drohhrghdprhgtphhtthhopeifihhllheskhgvrhhnvghlrdhorhhgpdhrtghpthhtohep
+    rghkphhmsehlihhnuhigqdhfohhunhgurghtihhonhdrohhrghdprhgtphhtthhopegrrh
+    hnugesrghrnhgusgdruggvpdhrtghpthhtohepsghoqhhunhdrfhgvnhhgsehgmhgrihhl
+    rdgtohhmpdhrtghpthhtohepsghpfhesvhhgvghrrdhkvghrnhgvlhdrohhrgh
+X-ME-Proxy: <xmx:QaflaNcFY9-d34JW1bnQGOT83yHqbltIOgwc1klMCWogRDh0o6OHrw>
+    <xmx:QaflaDBi7QbyJKVh3iqdeo45-irPxVwP3nuJ_W4RKk1Sw39bClhzvA>
+    <xmx:QaflaB6HzseO8OzGIEbbn5wPhC6UNe1i6XEHu6pF4XJylCJL61SpnA>
+    <xmx:QaflaAzUwF4lcix5M2nzUVIaKUbwkjveWPk15iWMTZ-0tQb7PuDydw>
+    <xmx:QqflaGvrZdCtK2ZIIySVfdt7xk5JOwwAFW-nTiIPISwhsmP-COEvLl8X>
+Feedback-ID: i58a146ae:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
+ 7 Oct 2025 19:50:22 -0400 (EDT)
+Message-ID: <cover.1759875560.git.fthain@linux-m68k.org>
+From: Finn Thain <fthain@linux-m68k.org>
+Subject: [RFC v3 0/5] Align atomic storage
+Date: Wed, 08 Oct 2025 09:19:20 +1100
+To: Andrii Nakryiko <andrii@kernel.org>,
+    Alexei Starovoitov <ast@kernel.org>,
+    Daniel Borkmann <daniel@iogearbox.net>,
+    Peter Zijlstra <peterz@infradead.org>,
+    Will Deacon <will@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+    Arnd Bergmann <arnd@arndb.de>,
+    Boqun Feng <boqun.feng@gmail.com>,
+    bpf@vger.kernel.org,
+    Jonathan Corbet <corbet@lwn.net>,
+    Eduard Zingerman <eddyz87@gmail.com>,
+    Geert Uytterhoeven <geert@linux-m68k.org>,
+    Hao Luo <haoluo@google.com>,
+    John Fastabend <john.fastabend@gmail.com>,
+    Jiri Olsa <jolsa@kernel.org>,
+    KP Singh <kpsingh@kernel.org>,
+    Lance Yang <lance.yang@linux.dev>,
+    linux-arch@vger.kernel.org,
+    linux-doc@vger.kernel.org,
+    linux-kernel@vger.kernel.org,
+    linux-m68k@vger.kernel.org,
+    Mark Rutland <mark.rutland@arm.com>,
+    Martin KaFai Lau <martin.lau@linux.dev>,
+    Stanislav Fomichev <sdf@fomichev.me>,
+    Song Liu <song@kernel.org>,
+    Yonghong Song <yonghong.song@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH hyperv-next v6 01/17] Documentation: hyperv: Confidential
- VMBus
-To: Bagas Sanjaya <bagasdotme@gmail.com>
-Cc: benhill@microsoft.com, bperkins@microsoft.com, sunilmut@microsoft.com,
- arnd@arndb.de, bp@alien8.de, corbet@lwn.net, dave.hansen@linux.intel.com,
- decui@microsoft.com, haiyangz@microsoft.com, hpa@zytor.com,
- kys@microsoft.com, mikelley@microsoft.com, mingo@redhat.com,
- tglx@linutronix.de, Tianyu.Lan@microsoft.com, wei.liu@kernel.org,
- x86@kernel.org, linux-hyperv@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20251003222710.6257-1-romank@linux.microsoft.com>
- <20251003222710.6257-2-romank@linux.microsoft.com>
- <aOR5juzHnsK2E40z@archie.me>
-Content-Language: en-US
-From: Roman Kisel <romank@linux.microsoft.com>
-In-Reply-To: <aOR5juzHnsK2E40z@archie.me>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
 
+This series adds the __aligned attribute to atomic_t and atomic64_t
+definitions in include/asm-generic.
 
+It also adds Kconfig options to enable a new runtime warning to help
+reveal misaligned atomic accesses on platforms which don't trap that.
 
-On 10/6/2025 7:23 PM, Bagas Sanjaya wrote:
-> On Fri, Oct 03, 2025 at 03:26:54PM -0700, Roman Kisel wrote:
->> +The data is transferred directly between the VM and a vPCI device (a.k.a.
->> +a PCI pass-thru device, see :doc:`vpci`) that is directly assigned to VTL2
->> +and that supports encrypted memory. In such a case, neither the host partition
-> 
-> Nit: You can also write the cross-reference simply as vpci.rst.
-> 
+Some people might assume scalars are aligned to 4-byte boundaries, while
+others might assume natural alignment. Best not to encourage such
+assumptions in the documentation.
 
-Thanks for helping out! I could not find that way of cross-referencing
-in the Sphinx documentation though:
-https://www.sphinx-doc.org/en/master/usage/referencing.html#cross-referencing-documents
+Moreover, being that locks are performance sensitive, and being that
+atomic operations tend to involve further assumptions, there seems to be
+room for improvement here.
 
-I tried it out anyway. The suggestion worked out only for the HTML
-documentation, and would not work for the PDF one. Options attempted:
+Pertinent to this discussion are the section "Memory Efficiency" in
+Documentation/RCU/Design/Requirements/Requirements.rst
+and the section "GUARANTEES" in Documentation/memory-barriers.txt
 
-1. vpci
-2. vpci.rst
-3. Documentation/virt/hyperv/vpci
-4. Documentation/virt/hyperv/vpci.rst
+---
+Changed since v2:
+ - Specify natural alignment for atomic64_t.
+ - CONFIG_DEBUG_ATOMIC checks for natural alignment again.
+ - New patch to add weakened alignment check.
+ - New patch for explicit alignment in BFP header.
 
-and neither would produce a hyperlink inside virt.pdf. Options 2 & 4
-generated a hyperlink in HTML.
+---
 
-The
+Finn Thain (4):
+  documentation: Discourage alignment assumptions
+  bpf: Explicitly align bpf_res_spin_lock
+  atomic: Specify alignment for atomic_t and atomic64_t
+  atomic: Add option for weaker alignment check
 
-| :doc:`vpci`
+Peter Zijlstra (1):
+  atomic: Add alignment check to instrumented atomic operations
 
-directive I've used produces a hyperlink both for HTML & PDF and is
-mentioned in the Sphinx documentation linked above.
-
-Please let me know if I misunderstood your suggestion and/or tested
-it in a wrong way. So far, it appears that it works only for HTML.
-
-> Thanks.
-> 
+ .../core-api/unaligned-memory-access.rst      |  7 -------
+ include/asm-generic/atomic64.h                |  2 +-
+ include/asm-generic/rqspinlock.h              |  2 +-
+ include/linux/instrumented.h                  | 12 ++++++++++++
+ include/linux/types.h                         |  2 +-
+ kernel/bpf/rqspinlock.c                       |  1 -
+ lib/Kconfig.debug                             | 19 +++++++++++++++++++
+ 7 files changed, 34 insertions(+), 11 deletions(-)
 
 -- 
-Thank you,
-Roman
+2.49.1
 
