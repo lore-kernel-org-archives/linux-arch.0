@@ -1,144 +1,121 @@
 Received: from fout-b8-smtp.messagingengine.com (fout-b8-smtp.messagingengine.com [202.12.124.151])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CF3023F42D;
-	Tue,  7 Oct 2025 23:50:28 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 721AF255E26;
+	Tue,  7 Oct 2025 23:50:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.151
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759881031; cv=none; b=HoXZcUAFtx6H3fM2I3Cg1i4GGLv0wRA1Yq8Ws0mcZUt3iLMtit+jW3NXXrVuvFLDZ2QfEn5moMkTkyl7hIi4iTy2iKrkL1UMnlyI6urcB5GAxohjfjYPK6cO5woa1DrON9B/Zr5SzJOtLmu153bJwxGaJdSI6PlqM9+t01KuBh4=
+	t=1759881042; cv=none; b=HqVBFkbGRyVrm8bGQnjCIRdyv0Br+EYAwfeBcRzQU0C+nX+XsZmOHVuEfNG2Y4wZDc6oXizmOZ+WB6qxnFFXFnLkvVuoB2oaZXowwUh0SgAJ+UXI8MXdhTdKYHS32Qsn2BR9m7KUgt5y0ArG3/H2veVF+Plpugcf83KdeLoA8lg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759881031; c=relaxed/simple;
-	bh=lyl+Zp+wRGNGv5PQZ4By4Y0d+218NRT+TpI7ZmiPWMo=;
-	h=Message-ID:From:Subject:Date:To:Cc; b=JuZtQrGdvHlfAa/VG2j9/mu8mMRqp4Ro/+6EOI/hXr7hUmavlpFApD8nCejSolf5p3O9BqzLf8ZdIB3lsatysZrNHuMxGFlsj3jLvl4dij4yBkt07wKjivVUcjyuHdVXgWy9Sv3Cl323gcKCeFgCz1IhSN5eirIOJwvaCE4Kzcw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=tH93gk6S; arc=none smtp.client-ip=202.12.124.151
+	s=arc-20240116; t=1759881042; c=relaxed/simple;
+	bh=o9lkQbbpBibFWvTNPnvl9IY8JEMBKOvXU3P9W52BYN8=;
+	h=To:Cc:Message-ID:In-Reply-To:References:From:Subject:Date; b=p3LqmQvzUCcxAtnItPaRefd31FttJoq9IiQtPWvcsUItKU4HsIFbVGVukx7Aj50qxQH4wCVY3I+GlCAggKepqluG21CvPhnSbtNa+cdyIqKSqSg6KEmxYkKsC3EYDu63/9JcbigaC9drMw3l6vbS0jAa4Ck9GA7fSKtpEo1iSEw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=ABj6y186; arc=none smtp.client-ip=202.12.124.151
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="tH93gk6S"
-Received: from phl-compute-03.internal (phl-compute-03.internal [10.202.2.43])
-	by mailfout.stl.internal (Postfix) with ESMTP id 018191D0019A;
-	Tue,  7 Oct 2025 19:50:26 -0400 (EDT)
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="ABj6y186"
+Received: from phl-compute-10.internal (phl-compute-10.internal [10.202.2.50])
+	by mailfout.stl.internal (Postfix) with ESMTP id 5C8B01D00112;
+	Tue,  7 Oct 2025 19:50:39 -0400 (EDT)
 Received: from phl-mailfrontend-02 ([10.202.2.163])
-  by phl-compute-03.internal (MEProxy); Tue, 07 Oct 2025 19:50:27 -0400
+  by phl-compute-10.internal (MEProxy); Tue, 07 Oct 2025 19:50:39 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
-	:feedback-id:from:from:in-reply-to:message-id:reply-to:subject
-	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
-	fm2; t=1759881026; x=1759967426; bh=cP/vkgZvwLgEDU6kBJJxJkqQv+9W
-	OYr9EfQhPjX+cK8=; b=tH93gk6S7kZVQ9b92s/Kh+6oSVT5Ngwa35FFDjogn3Ld
-	za3HNeU2/I2lHN7IKrsFBq33WPzEsOn9Bg/XV+EEzUr1n3BroM3GO1Yd8CLc13l+
-	BaMIaS3jCPgWNletAiVVg5N1lH3mrzJrbeEUSMGN+AMYiWP9B1K/b9sRXgM0oD8L
-	f9aE/2ZBv2dYU46t1ZgC2yEbOViAII+hUDFGC4Ehwmg3mlck8giTGiR4mHzsoBWi
-	+BKKqLqzlVwOR/ndq9L9A59CKI0OEyuazf/WiXusupGiekDkhJHbgg1TxAp63tZQ
-	0JA9G1CCZY3vMgCrLf/eFFR7IVFKmbIiffwSasMNSg==
-X-ME-Sender: <xms:QaflaFABHI_Bgxv1ZD66coBdY0UlFjzA6KedAJspYfeaM8gRM0FmfQ>
-    <xme:QaflaEkmi5X0RG3FZqjr4njWzc6RQTFQEUNoRiC3FYjlkbDxfiqUgn_EWbE8hXfS6
-    UguVFpLy6UFZM1Bck5sZrV0beyTx82GYjpOUAmD3JqfM3Pkkrb4Sto>
-X-ME-Received: <xmr:QaflaDi4eICCMxI1hpbCHtsM88-sPWkZWDlN3_Iwh3RZk_KAnI-qL7t3Y1hAOKYQVlJxP3x1jxw7BTA7swXWpiAxLb1R1-KlCAg>
+	:feedback-id:from:from:in-reply-to:in-reply-to:message-id
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1759881039; x=
+	1759967439; bh=deVHNxmHpB/t+ufTPYero2jLsQQUFKf8oNfpE3SPyRM=; b=A
+	Bj6y186vePPkbC31PDNQ+ZMcws/90bwULxcYHVuM0LMT2wFqZkFx2jrJk+kAgboo
+	3Gfo9YWdBlT02aLCAx0ViCacdpdrpV/Zx3fIAyge/5kCx2RtuR5sMj9jD4RCB9CV
+	ksAFY4cpbSZ4ek4+2lfepVj1MfzTbfcDrEggNUKBhM3zeHh5B8BlWcVfLPdu4jRV
+	wq3bh1ilU7Ao5VFmT8KBtFZZeycnaXPRIW1uRiQepwxGS5dB+wWSF+WR8HBzk1kZ
+	JjOe+q9uToejANPrXzuLP8lictMgrw8cXfrw+q09dJYGbGAZCXVHOponELLU78gY
+	9KfL8140vouhvAwHKLUJg==
+X-ME-Sender: <xms:TqflaIleFJNlqHj2l2M-j4jYPGZQtS8wOtzsOp7VFdPUo6Wh7T0mcg>
+    <xme:TqflaOPUUTMF9-KtoZnuDZIq4d43hSXikFbgjksbX4mNvurclnnVUz9wqFCjlOoFN
+    HZEetCyhekoRXFWXFS6tkUJ3FAfmIiQkln4-Md-lOuOQ_MOx7cerg>
+X-ME-Received: <xmr:TqflaC64T_f8yAf4YnAW3xC6aD18TCbiXQNqrkN_3RLh1ex1dp_JFjt0r28Z8LLqw0t7Ycw5gXjFq-JnR3Ah3K-N6tdc2xgkQrc>
 X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeffedrtdeggddutddujeelucetufdoteggodetrf
     dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
     rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepkffhufffvfevsedttdertddttddtnecuhfhrohhmpefhihhnnhcuvfhhrghinhcu
-    oehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgqeenucggtffrrghtthgvrhhnpe
-    ehffdukeetffdutedvffffheegtdetkeekfeevgfeitefhvedvtdelhfduudettdenucev
-    lhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpehfthhhrghinh
-    eslhhinhhugidqmheikehkrdhorhhgpdhnsggprhgtphhtthhopedviedpmhhouggvpehs
-    mhhtphhouhhtpdhrtghpthhtoheprghnughrihhisehkvghrnhgvlhdrohhrghdprhgtph
-    htthhopegrshhtsehkvghrnhgvlhdrohhrghdprhgtphhtthhopegurghnihgvlhesihho
-    ghgvrghrsghogidrnhgvthdprhgtphhtthhopehpvghtvghriiesihhnfhhrrgguvggrug
-    drohhrghdprhgtphhtthhopeifihhllheskhgvrhhnvghlrdhorhhgpdhrtghpthhtohep
-    rghkphhmsehlihhnuhigqdhfohhunhgurghtihhonhdrohhrghdprhgtphhtthhopegrrh
-    hnugesrghrnhgusgdruggvpdhrtghpthhtohepsghoqhhunhdrfhgvnhhgsehgmhgrihhl
-    rdgtohhmpdhrtghpthhtohepsghpfhesvhhgvghrrdhkvghrnhgvlhdrohhrgh
-X-ME-Proxy: <xmx:QaflaNcFY9-d34JW1bnQGOT83yHqbltIOgwc1klMCWogRDh0o6OHrw>
-    <xmx:QaflaDBi7QbyJKVh3iqdeo45-irPxVwP3nuJ_W4RKk1Sw39bClhzvA>
-    <xmx:QaflaB6HzseO8OzGIEbbn5wPhC6UNe1i6XEHu6pF4XJylCJL61SpnA>
-    <xmx:QaflaAzUwF4lcix5M2nzUVIaKUbwkjveWPk15iWMTZ-0tQb7PuDydw>
-    <xmx:QqflaGvrZdCtK2ZIIySVfdt7xk5JOwwAFW-nTiIPISwhsmP-COEvLl8X>
+    gurhepvfevkfgjfhfhufffsedttdertddttddtnecuhfhrohhmpefhihhnnhcuvfhhrghi
+    nhcuoehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgqeenucggtffrrghtthgvrh
+    hnpeevgffgtdfhhfefveeuudfgtdeugfeftedtveekieeggfduleetgeegueehgeffffen
+    ucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpehfthhhrg
+    hinheslhhinhhugidqmheikehkrdhorhhgpdhnsggprhgtphhtthhopeduvddpmhhouggv
+    pehsmhhtphhouhhtpdhrtghpthhtohepphgvthgvrhiisehinhhfrhgruggvrggurdhorh
+    hgpdhrtghpthhtohepfihilhhlsehkvghrnhgvlhdrohhrghdprhgtphhtthhopegrkhhp
+    mheslhhinhhugidqfhhouhhnuggrthhiohhnrdhorhhgpdhrtghpthhtohepsghoqhhunh
+    drfhgvnhhgsehgmhgrihhlrdgtohhmpdhrtghpthhtoheptghorhgsvghtsehlfihnrdhn
+    vghtpdhrtghpthhtohepmhgrrhhkrdhruhhtlhgrnhgusegrrhhmrdgtohhmpdhrtghpth
+    htoheprghrnhgusegrrhhnuggsrdguvgdprhgtphhtthhopehlihhnuhigqdhkvghrnhgv
+    lhesvhhgvghrrdhkvghrnhgvlhdrohhrghdprhgtphhtthhopehlihhnuhigqdgrrhgthh
+    esvhhgvghrrdhkvghrnhgvlhdrohhrgh
+X-ME-Proxy: <xmx:TqflaCZfQADNHX3JTcGuLbBUMCBZiZHltEMTsZEYChGdr16SyUwrRg>
+    <xmx:TqflaPex1jSIqytP_nu-IrZfayYxOiYBGFG_xwAWR16D0CimCqJQEg>
+    <xmx:TqflaB78q7Jdvx1IROcHo6JUrIYU2HOd8OXUa5chgdEv4qsJ3eRfoA>
+    <xmx:TqflaMYvU4EzEIf3VQhNvtS5e3oYgkoJEiLqpWADYBoRS1h6mnQNyQ>
+    <xmx:T6flaL524iOTGmMzdOKCgjYNSs-fLDd0gRfPlh41aHawVqTeB0XzC9RG>
 Feedback-ID: i58a146ae:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
- 7 Oct 2025 19:50:22 -0400 (EDT)
-Message-ID: <cover.1759875560.git.fthain@linux-m68k.org>
-From: Finn Thain <fthain@linux-m68k.org>
-Subject: [RFC v3 0/5] Align atomic storage
-Date: Wed, 08 Oct 2025 09:19:20 +1100
-To: Andrii Nakryiko <andrii@kernel.org>,
-    Alexei Starovoitov <ast@kernel.org>,
-    Daniel Borkmann <daniel@iogearbox.net>,
-    Peter Zijlstra <peterz@infradead.org>,
+ 7 Oct 2025 19:50:36 -0400 (EDT)
+To: Peter Zijlstra <peterz@infradead.org>,
     Will Deacon <will@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>,
-    Arnd Bergmann <arnd@arndb.de>,
     Boqun Feng <boqun.feng@gmail.com>,
-    bpf@vger.kernel.org,
     Jonathan Corbet <corbet@lwn.net>,
-    Eduard Zingerman <eddyz87@gmail.com>,
-    Geert Uytterhoeven <geert@linux-m68k.org>,
-    Hao Luo <haoluo@google.com>,
-    John Fastabend <john.fastabend@gmail.com>,
-    Jiri Olsa <jolsa@kernel.org>,
-    KP Singh <kpsingh@kernel.org>,
-    Lance Yang <lance.yang@linux.dev>,
-    linux-arch@vger.kernel.org,
-    linux-doc@vger.kernel.org,
-    linux-kernel@vger.kernel.org,
-    linux-m68k@vger.kernel.org,
     Mark Rutland <mark.rutland@arm.com>,
-    Martin KaFai Lau <martin.lau@linux.dev>,
-    Stanislav Fomichev <sdf@fomichev.me>,
-    Song Liu <song@kernel.org>,
-    Yonghong Song <yonghong.song@linux.dev>
+    Arnd Bergmann <arnd@arndb.de>,
+    linux-kernel@vger.kernel.org,
+    linux-arch@vger.kernel.org,
+    Geert Uytterhoeven <geert@linux-m68k.org>,
+    linux-m68k@vger.kernel.org,
+    linux-doc@vger.kernel.org
+Message-ID: <76571a0e5ed7716701650ec80b7a0cd1cf07fde6.1759875560.git.fthain@linux-m68k.org>
+In-Reply-To: <cover.1759875560.git.fthain@linux-m68k.org>
+References: <cover.1759875560.git.fthain@linux-m68k.org>
+From: Finn Thain <fthain@linux-m68k.org>
+Subject: [RFC v3 1/5] documentation: Discourage alignment assumptions
+Date: Wed, 08 Oct 2025 09:19:20 +1100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-This series adds the __aligned attribute to atomic_t and atomic64_t
-definitions in include/asm-generic.
-
-It also adds Kconfig options to enable a new runtime warning to help
-reveal misaligned atomic accesses on platforms which don't trap that.
-
-Some people might assume scalars are aligned to 4-byte boundaries, while
-others might assume natural alignment. Best not to encourage such
-assumptions in the documentation.
-
-Moreover, being that locks are performance sensitive, and being that
-atomic operations tend to involve further assumptions, there seems to be
-room for improvement here.
-
-Pertinent to this discussion are the section "Memory Efficiency" in
-Documentation/RCU/Design/Requirements/Requirements.rst
-and the section "GUARANTEES" in Documentation/memory-barriers.txt
-
+Discourage assumptions that simply don't hold for all Linux ABIs.
+Exceptions to the natural alignment rule for scalar types include
+long long on i386 and sh.
 ---
-Changed since v2:
- - Specify natural alignment for atomic64_t.
- - CONFIG_DEBUG_ATOMIC checks for natural alignment again.
- - New patch to add weakened alignment check.
- - New patch for explicit alignment in BFP header.
+ Documentation/core-api/unaligned-memory-access.rst | 7 -------
+ 1 file changed, 7 deletions(-)
 
----
-
-Finn Thain (4):
-  documentation: Discourage alignment assumptions
-  bpf: Explicitly align bpf_res_spin_lock
-  atomic: Specify alignment for atomic_t and atomic64_t
-  atomic: Add option for weaker alignment check
-
-Peter Zijlstra (1):
-  atomic: Add alignment check to instrumented atomic operations
-
- .../core-api/unaligned-memory-access.rst      |  7 -------
- include/asm-generic/atomic64.h                |  2 +-
- include/asm-generic/rqspinlock.h              |  2 +-
- include/linux/instrumented.h                  | 12 ++++++++++++
- include/linux/types.h                         |  2 +-
- kernel/bpf/rqspinlock.c                       |  1 -
- lib/Kconfig.debug                             | 19 +++++++++++++++++++
- 7 files changed, 34 insertions(+), 11 deletions(-)
-
+diff --git a/Documentation/core-api/unaligned-memory-access.rst b/Documentation/core-api/unaligned-memory-access.rst
+index 5ceeb80eb539..1390ce2b7291 100644
+--- a/Documentation/core-api/unaligned-memory-access.rst
++++ b/Documentation/core-api/unaligned-memory-access.rst
+@@ -40,9 +40,6 @@ The rule mentioned above forms what we refer to as natural alignment:
+ When accessing N bytes of memory, the base memory address must be evenly
+ divisible by N, i.e. addr % N == 0.
+ 
+-When writing code, assume the target architecture has natural alignment
+-requirements.
+-
+ In reality, only a few architectures require natural alignment on all sizes
+ of memory access. However, we must consider ALL supported architectures;
+ writing code that satisfies natural alignment requirements is the easiest way
+@@ -103,10 +100,6 @@ Therefore, for standard structure types you can always rely on the compiler
+ to pad structures so that accesses to fields are suitably aligned (assuming
+ you do not cast the field to a type of different length).
+ 
+-Similarly, you can also rely on the compiler to align variables and function
+-parameters to a naturally aligned scheme, based on the size of the type of
+-the variable.
+-
+ At this point, it should be clear that accessing a single byte (u8 or char)
+ will never cause an unaligned access, because all memory addresses are evenly
+ divisible by one.
 -- 
 2.49.1
 
