@@ -1,168 +1,149 @@
-Received: from fhigh-b8-smtp.messagingengine.com (fhigh-b8-smtp.messagingengine.com [202.12.124.159])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8884A224AF3;
-	Tue,  7 Oct 2025 23:51:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.159
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB8AC246799
+	for <linux-arch@vger.kernel.org>; Tue,  7 Oct 2025 23:56:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1759881090; cv=none; b=Xmfu5rFXyyZJAVnEtetUbd0ah3hC6yKURZnahLVjW8/j36EzL5aGjnPKBTfjI9cnGXua1SGalhK6FqlR7YgjIvjgacWwXsi24lQZr7Wfl3I0qXZqTQ20/P9AabImCkXBZW97OW5w54jCjjnC5VEfL2jTks+rCNZb3xoj8Ab2fyA=
+	t=1759881407; cv=none; b=aRrm4VmLJlGaAqxbQuISwhAzSptCmG+vPVjHszm32AL495H89WfveCYMEB5d/9NnsLwoNNeKSYf/BTAQ7kyjOf2EovUl4guoesX1JIhRTCT+wAsrepW8bVePvQEQDLxeIfAkJkTZw/atMKCKVZdq8YDd6/r2sEhlNISlcwkhmSI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1759881090; c=relaxed/simple;
-	bh=rNKE9ngzFrHTLxZ7ppLHn5u6VEyDnMzzG91YPYVvxwk=;
-	h=To:Cc:Message-ID:In-Reply-To:References:From:Subject:Date; b=YGgrgYbrVKVWUcf8gB6DoLGRXtl31mSad3iPWUvfcnDeMPHPTfjJsB+RTpXp9H3EPs8BdYoXg0H+UhcCuig8idhwlcyjM7FBcfxIiJ7PWgElk32S/fsT2gb+w29ALf8I6pQUDUBmkusvDNy2+7ZF+bqAtoErqccGAOs3lG75Kqw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=JHETawTw; arc=none smtp.client-ip=202.12.124.159
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
+	s=arc-20240116; t=1759881407; c=relaxed/simple;
+	bh=AqqqImyVX4Ca3i3a0FyZ/Awd7F5tA5oiYrQNUtG8eUA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=iFgLkygfjKZbVvc+yiPt8n3FQIKk8TJhX0gOXIve2Q5sKe6rjM7rYdirlbQCfR3IdyvD4V7C19Jkud3d82yQnEPvawXq1hU0YdDqaPzOJoyvtelqRNtjym5980+jecCoar1oaKb6+jX8JAj5txHm8qC5B1r0f2ia2dRWrWF0PWo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GLz8WOVG; arc=none smtp.client-ip=209.85.214.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="JHETawTw"
-Received: from phl-compute-10.internal (phl-compute-10.internal [10.202.2.50])
-	by mailfhigh.stl.internal (Postfix) with ESMTP id 7AFC37A0078;
-	Tue,  7 Oct 2025 19:51:27 -0400 (EDT)
-Received: from phl-mailfrontend-02 ([10.202.2.163])
-  by phl-compute-10.internal (MEProxy); Tue, 07 Oct 2025 19:51:27 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
-	:feedback-id:from:from:in-reply-to:in-reply-to:message-id
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1759881087; x=
-	1759967487; bh=0+AdSH1sg/8lok7qtu/8oSLYuGUe0/34ymLa0qtNzl8=; b=J
-	HETawTwt13D+PZ6+SnHOUkOkfOJixRcK2mEAmqGP9fpoGn44euJSdk/y6ZUdjCJa
-	Zu2nqtmiu4dUjKnK4Gv0OMaOLlqKB+wYcw52F4noBx6gmiLeoWEEQtM4Z/icdxyP
-	8AZjWUk9mf8kK+NxCH/bIHz4+Dgwe9yhN5q9jTGEzLbHlQLUnY1KJTjZre61HCF2
-	ojSmMhMJPsvQM+63pKCrHlQxmNcGM6dF6TvkcY1jbI4DKTq+wj0wT7banc71UaDX
-	6Zz7Lv22bvTQRnbPe/E7QGDoamgPSG2wGe16cMam/fCvmbZYIEHRMOmWpMBquu7H
-	xvsmi84AS8IS673L98zyw==
-X-ME-Sender: <xms:f6flaJvd7BrvdGXqVdvCLIj_CgzXm1_79r6xVFAZohn4mbAyjM7LDQ>
-    <xme:f6flaOVvvPFSQlitVnYppi0-QVdOfyeEBGoVh_GKzbi8b2DKmTld5nXaO5yl4wgTd
-    afAIPeQxDsVHu_DHl46P9fMUAt4h7OL0nxcMSGYT9QdDrKbzSmoDg>
-X-ME-Received: <xmr:f6flaJx9qsZZaL_zdd4sPVviEkUtdyt3dcWVwFmRl1bF3LP0NCFArUR6N12M6bbrjTSrxZdwHx9bjoFoWMi506drQPkc6BBj_YI>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeffedrtdeggddutddujeelucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepvfevkfgjfhfhufffsedttdertddttddtnecuhfhrohhmpefhihhnnhcuvfhhrghi
-    nhcuoehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgqeenucggtffrrghtthgvrh
-    hnpeevgffgtdfhhfefveeuudfgtdeugfeftedtveekieeggfduleetgeegueehgeffffen
-    ucevlhhushhtvghrufhiiigvpedvnecurfgrrhgrmhepmhgrihhlfhhrohhmpehfthhhrg
-    hinheslhhinhhugidqmheikehkrdhorhhgpdhnsggprhgtphhtthhopeduuddpmhhouggv
-    pehsmhhtphhouhhtpdhrtghpthhtohepphgvthgvrhiisehinhhfrhgruggvrggurdhorh
-    hgpdhrtghpthhtohepfihilhhlsehkvghrnhgvlhdrohhrghdprhgtphhtthhopegrkhhp
-    mheslhhinhhugidqfhhouhhnuggrthhiohhnrdhorhhgpdhrtghpthhtohepsghoqhhunh
-    drfhgvnhhgsehgmhgrihhlrdgtohhmpdhrtghpthhtoheptghorhgsvghtsehlfihnrdhn
-    vghtpdhrtghpthhtohepmhgrrhhkrdhruhhtlhgrnhgusegrrhhmrdgtohhmpdhrtghpth
-    htoheprghrnhgusegrrhhnuggsrdguvgdprhgtphhtthhopehlihhnuhigqdhkvghrnhgv
-    lhesvhhgvghrrdhkvghrnhgvlhdrohhrghdprhgtphhtthhopehlihhnuhigqdgrrhgthh
-    esvhhgvghrrdhkvghrnhgvlhdrohhrgh
-X-ME-Proxy: <xmx:f6flaFEOc5SyJhLVmqVkWcAcLBNa8f0_UthZVOAZjQdt6n6EgYOXrg>
-    <xmx:f6flaOsX18xVBHMTErTqi9R7G7hBEQTJRYW5oG2l5t2ycyOC8ZJrZg>
-    <xmx:f6flaFCOZIBezrdWTl8veOdG9OJm9Qw-tUeXtIRTkdUz5zH6RZENhg>
-    <xmx:f6flaJAO99rV-WjwKcKT7kQEQfwZwZygLLhyeKlapVoGAiOXzZ55OQ>
-    <xmx:f6flaA5W_ZUip7j3TxcHofm7zWfxJRP3-jNZLdX4AxXbnppvQv71x7sf>
-Feedback-ID: i58a146ae:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
- 7 Oct 2025 19:51:24 -0400 (EDT)
-To: Peter Zijlstra <peterz@infradead.org>,
-    Will Deacon <will@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
-    Boqun Feng <boqun.feng@gmail.com>,
-    Jonathan Corbet <corbet@lwn.net>,
-    Mark Rutland <mark.rutland@arm.com>,
-    Arnd Bergmann <arnd@arndb.de>,
-    linux-kernel@vger.kernel.org,
-    linux-arch@vger.kernel.org,
-    Geert Uytterhoeven <geert@linux-m68k.org>,
-    linux-m68k@vger.kernel.org
-Message-ID: <d4ab82f5646f901b7c556c4cb8f8adf4096f0c50.1759875560.git.fthain@linux-m68k.org>
-In-Reply-To: <cover.1759875560.git.fthain@linux-m68k.org>
-References: <cover.1759875560.git.fthain@linux-m68k.org>
-From: Finn Thain <fthain@linux-m68k.org>
-Subject: [RFC v3 5/5] atomic: Add option for weaker alignment check
-Date: Wed, 08 Oct 2025 09:19:20 +1100
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GLz8WOVG"
+Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-28e7cd34047so57201635ad.2
+        for <linux-arch@vger.kernel.org>; Tue, 07 Oct 2025 16:56:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1759881405; x=1760486205; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=AqqqImyVX4Ca3i3a0FyZ/Awd7F5tA5oiYrQNUtG8eUA=;
+        b=GLz8WOVGheFn3RBJaFY/U1JgK36OepF93uQJoRhispeXsiPtRsLqFhqs63Bjuk1uhM
+         ophSCnysgbBUxf6QEwtyqHSxrQCtEuio0YUPZ+P75xhXzgPaYq8etiLstBJaMxfEazRO
+         zfuWD1802NUI/eBlw3bkrVEP/DyiYAWp6rn8xoJEiJFUzxdCDUxGIU4quEP0CyJNfHzX
+         AudNZqvRYPeEFilDQ8X4nsblrn8i5dGS3ryDCX/NZ9Ve6p6s8c++4i7gfGTF/QfR5pl6
+         lFju8eVY8qejuOz/n7RtRApTpjUrMf9ZGDhBo9fhDg+wKnRsrC8zSWMNOUFuPrK7l+x3
+         kTXA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1759881405; x=1760486205;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=AqqqImyVX4Ca3i3a0FyZ/Awd7F5tA5oiYrQNUtG8eUA=;
+        b=qV3vxFDoI1xMH8fBziRgtuVmZR4Pouanswt4XS6tmW2O39NxbC1NUPl970OXe5ECZV
+         Be2lAgwPlMFpAnoYspBidDhDP5ZXjgeO3+BS0DpmYKBaLEK5hOeSYl8Ry/DHpgxyJj/2
+         len6I+sbR+gVN3PmfoVaFTfrBKYeZYm9bN+7qIF0Abt1NrouEI3FzoC/HY2O+Yy0aLwa
+         hbk3n3NvDCCpmBO5M7c4kYAA2eRPHjhTKH2c4qk2r6lLbhY/P125QeyT/E4Z21GUKX6G
+         owwT4AZBczCRkM0zkmw+JOqyscxe+TVNxv330PL/WZF4HgBTTBg3NUaDYCH0oKuwLpjD
+         YfGA==
+X-Forwarded-Encrypted: i=1; AJvYcCWkLkNmffvHFU6jsqMfuAy2hWSzx482i1PF+hiQuIdkuqS/wNXdC0CGd65wdSsHdyG9b1MkzBzusWlP@vger.kernel.org
+X-Gm-Message-State: AOJu0Ywo0zghjkMqQO579bKQxIvg8jnls2HBKTUFWvFYuWPuoqsFPbmb
+	MJ5uZddCkA+lf3lqoyNrKeCfcYYlXLtPD0MLZV1lAXTG+/YcCtUX3wyK
+X-Gm-Gg: ASbGncsRWA5m38Uu4wGdpbMwJkjey9ObXUtFxGf+7Jw8K6TZPs+VPjcGfBvJ/5Hbu3w
+	/Ph/xR+0anuTkjeJNTo/gK8o/xF/oKgaydu29HW05qg8u9OidCdtry7GEBCQsTH7UrlEYkRsKGu
+	fBfyyudSWp/0ItcBBE85w5YNkL3D303Ms5uvJrJTBf0SI2COPOD/Ve8UZBo5P94p2YDPDTzfX3H
+	rd7ZUzDNXZKNxsBHUvvPGeHMc2CwTVZ/Z0kLBkQh3INw0Vaw0wgcn0Esf2F5SJ/dVOGeE+GYPmj
+	4qw1oaqGEftIbm5nXeORTW33fawC6OaSxUEpRajirxB41dxVTcuC2uCyLIxzpu0cEnfyfysrTkp
+	3i/LbI2krayvhlepp/H4EqeBkZh7XEDZuAZ1v0lLGfq7gYahNIPs+rx0+28PG
+X-Google-Smtp-Source: AGHT+IECR12KH7zCTIlL8PskN4SIrX86zChxhzZyqyWEAG+eeOOhmLw/P52uED83EK633yo7c2PQsw==
+X-Received: by 2002:a17:903:298e:b0:26c:9b12:2b6d with SMTP id d9443c01a7336-290272b550dmr18677895ad.38.1759881405144;
+        Tue, 07 Oct 2025 16:56:45 -0700 (PDT)
+Received: from archie.me ([103.124.138.155])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-33b513ae7d9sm937031a91.24.2025.10.07.16.56.43
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 07 Oct 2025 16:56:44 -0700 (PDT)
+Received: by archie.me (Postfix, from userid 1000)
+	id 599D64233430; Wed, 08 Oct 2025 06:56:41 +0700 (WIB)
+Date: Wed, 8 Oct 2025 06:56:40 +0700
+From: Bagas Sanjaya <bagasdotme@gmail.com>
+To: Roman Kisel <romank@linux.microsoft.com>
+Cc: benhill@microsoft.com, bperkins@microsoft.com, sunilmut@microsoft.com,
+	arnd@arndb.de, bp@alien8.de, corbet@lwn.net,
+	dave.hansen@linux.intel.com, decui@microsoft.com,
+	haiyangz@microsoft.com, hpa@zytor.com, kys@microsoft.com,
+	mikelley@microsoft.com, mingo@redhat.com, tglx@linutronix.de,
+	Tianyu.Lan@microsoft.com, wei.liu@kernel.org, x86@kernel.org,
+	linux-hyperv@vger.kernel.org, linux-doc@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH hyperv-next v6 01/17] Documentation: hyperv: Confidential
+ VMBus
+Message-ID: <aOWouGarxf0FB7ZR@archie.me>
+References: <20251003222710.6257-1-romank@linux.microsoft.com>
+ <20251003222710.6257-2-romank@linux.microsoft.com>
+ <aOR5juzHnsK2E40z@archie.me>
+ <273e0882-24f5-465a-be18-d67b4249ce12@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha512;
+	protocol="application/pgp-signature"; boundary="DTXlXJKe31yrlnoK"
+Content-Disposition: inline
+In-Reply-To: <273e0882-24f5-465a-be18-d67b4249ce12@linux.microsoft.com>
 
-Add a new Kconfig symbol to make CONFIG_DEBUG_ATOMIC more useful on
-those architectures which do not align dynamic allocations to
-8-byte boundaries. Without this, CONFIG_DEBUG_ATOMIC produces excessive
-WARN splats.
----
- include/linux/instrumented.h | 14 +++++++++++---
- lib/Kconfig.debug            |  9 +++++++++
- 2 files changed, 20 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-index 402a999a0d6b..3c9a570dbfa7 100644
---- a/include/linux/instrumented.h
-+++ b/include/linux/instrumented.h
-@@ -8,11 +8,13 @@
- #define _LINUX_INSTRUMENTED_H
- 
- #include <linux/bug.h>
-+#include <linux/cache.h>
- #include <linux/compiler.h>
- #include <linux/kasan-checks.h>
- #include <linux/kcsan-checks.h>
- #include <linux/kmsan-checks.h>
- #include <linux/types.h>
-+#include <vdso/align.h>
- 
- /**
-  * instrument_read - instrument regular read access
-@@ -68,7 +70,9 @@ static __always_inline void instrument_atomic_read(const volatile void *v, size_
- {
- 	kasan_check_read(v, size);
- 	kcsan_check_atomic_read(v, size);
--	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
-+	if (IS_ENABLED(CONFIG_DEBUG_ATOMIC))
-+		WARN_ON_ONCE(v != PTR_ALIGN(v, IS_ENABLED(CONFIG_DEBUG_ATOMIC_LARGEST_ALIGN) ?
-+					       __LARGEST_ALIGN : size));
- }
- 
- /**
-@@ -83,7 +87,9 @@ static __always_inline void instrument_atomic_write(const volatile void *v, size
- {
- 	kasan_check_write(v, size);
- 	kcsan_check_atomic_write(v, size);
--	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
-+	if (IS_ENABLED(CONFIG_DEBUG_ATOMIC))
-+		WARN_ON_ONCE(v != PTR_ALIGN(v, IS_ENABLED(CONFIG_DEBUG_ATOMIC_LARGEST_ALIGN) ?
-+					       __LARGEST_ALIGN : size));
- }
- 
- /**
-@@ -98,7 +104,9 @@ static __always_inline void instrument_atomic_read_write(const volatile void *v,
- {
- 	kasan_check_write(v, size);
- 	kcsan_check_atomic_read_write(v, size);
--	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
-+	if (IS_ENABLED(CONFIG_DEBUG_ATOMIC))
-+		WARN_ON_ONCE(v != PTR_ALIGN(v, IS_ENABLED(CONFIG_DEBUG_ATOMIC_LARGEST_ALIGN) ?
-+					       __LARGEST_ALIGN : size));
- }
- 
- /**
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index d82626b7d6be..f81b8a9b9216 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -1373,6 +1373,15 @@ config DEBUG_ATOMIC
- 
- 	  This option has potentially significant overhead.
- 
-+config DEBUG_ATOMIC_LARGEST_ALIGN
-+	bool "Check alignment only up to __LARGEST_ALIGN"
-+	depends on DEBUG_ATOMIC
-+	help
-+	  Say Y here if you require natural alignment of atomic accesses
-+	  only up to long word boundaries. That is, char, short, int and long
-+	  will be checked for natural alignment but anything larger checked
-+	  only for alignment with a long word boundary.
-+
- menu "Lock Debugging (spinlocks, mutexes, etc...)"
- 
- config LOCK_DEBUGGING_SUPPORT
--- 
-2.49.1
+--DTXlXJKe31yrlnoK
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
+On Tue, Oct 07, 2025 at 01:38:02PM -0700, Roman Kisel wrote:
+>=20
+>=20
+> On 10/6/2025 7:23 PM, Bagas Sanjaya wrote:
+> > On Fri, Oct 03, 2025 at 03:26:54PM -0700, Roman Kisel wrote:
+> > > +The data is transferred directly between the VM and a vPCI device (a=
+=2Ek.a.
+> > > +a PCI pass-thru device, see :doc:`vpci`) that is directly assigned t=
+o VTL2
+> > > +and that supports encrypted memory. In such a case, neither the host=
+ partition
+> >=20
+> > Nit: You can also write the cross-reference simply as vpci.rst.
+> >=20
+>=20
+> Thanks for helping out! I could not find that way of cross-referencing
+> in the Sphinx documentation though:
+> https://www.sphinx-doc.org/en/master/usage/referencing.html#cross-referen=
+cing-documents
+
+That's kernel-specific extension (see Documentation/doc-guide/sphinx.rst).
+
+>=20
+> I tried it out anyway. The suggestion worked out only for the HTML
+> documentation, and would not work for the PDF one. Options attempted:
+>=20
+> 1. vpci
+> 2. vpci.rst
+> 3. Documentation/virt/hyperv/vpci
+> 4. Documentation/virt/hyperv/vpci.rst
+>=20
+> and neither would produce a hyperlink inside virt.pdf. Options 2 & 4
+> generated a hyperlink in HTML.
+
+That's it.
+
+Thanks.
+
+--=20
+An old man doll... just what I always wanted! - Clara
+
+--DTXlXJKe31yrlnoK
+Content-Type: application/pgp-signature; name=signature.asc
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEABYKAB0WIQSSYQ6Cy7oyFNCHrUH2uYlJVVFOowUCaOWotAAKCRD2uYlJVVFO
+o/pSAP9eXlQLoQODQqZ+A48QpAAsl+hf9OhLGhdndl6X6JStvAD+OSXtE5WfHadF
+FMFMiFdufdHXrrE7npbMx380tvu34Qs=
+=nx3N
+-----END PGP SIGNATURE-----
+
+--DTXlXJKe31yrlnoK--
