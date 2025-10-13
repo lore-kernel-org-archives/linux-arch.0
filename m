@@ -1,133 +1,221 @@
-Received: from mail-wr1-f73.google.com (mail-wr1-f73.google.com [209.85.221.73])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3878C31D374
-	for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2025 15:39:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.73
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D8EB430BBBD
+	for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2025 15:54:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760370000; cv=none; b=qktFaw3NugOfAnwLJ3NybX80JoD+2feU/qKm9sCy05ohMDKmUEe98tIcyRDaV+FSAG9ypWiyNeXt4AjVUdHwx/F9/wAEYfAvePoXaUyv0CMIzIgH9/mYxm2jrB9uqnWQFZyzAh1Tyd27xZRSiUs+is0Sn34NxOt9dCWVBD5zBcQ=
+	t=1760370851; cv=none; b=m8wsLBuqv9uN10/eNnKtQbTvYkMArqTwqnpD7DhOeNFHWGoqDd65sbChuD8XorgQl2SJBrhaAKMWq61umG4LcbK1kPYKzJquthxQPIo+it0Nm7ro5e8lTwdFsmyAUChfjCL2cK5nHU3Ax3fnAEYhj0ReKz5Vdvfg5cw8NLRIB+U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760370000; c=relaxed/simple;
-	bh=qWYTuEu4IG9GCT7DjS/hH5Ft/AQYcQO5Boog+C14wCc=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=W9VbNlJgKMTKOK9lJbTmnw73baz1/+At/XOMHjxrBRXGnbSjo2n/jukM0UZd5WnXoqyFA/m35MQ6hs6JRlICffPyOkuqXwsTOj6urDm4E/QCucJts13wbvggLPAZjS75ndmmWbxVpO6LZjxcMXnQVtsmXdNdT5qKZVtYXT9NkKU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--sidnayyar.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=wSTb07DZ; arc=none smtp.client-ip=209.85.221.73
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--sidnayyar.bounces.google.com
+	s=arc-20240116; t=1760370851; c=relaxed/simple;
+	bh=OvzJovNv1ctaRAi0qWxBvnsOPU9DoRZIj3SLiUKtWkA=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=PujwoHl8pfCa85zoz/vzLVjIZVPWrdGHGIZK3dq23krejYVUwrwcfvwX/lCFlwwSIzQ1kQwXVsP/ph6Hx5K6CS/R/F4+LZRAVNTwvTUZreMn7TIv0987ZKgUxVqW+N5fwHsemWvDe7BoEq+bCWu9piau9O6E4E/Nr/XkCdFoqv4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=AfYgJeQ1; arc=none smtp.client-ip=170.10.133.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="wSTb07DZ"
-Received: by mail-wr1-f73.google.com with SMTP id ffacd0b85a97d-3f924ae2a89so5372703f8f.3
-        for <linux-arch@vger.kernel.org>; Mon, 13 Oct 2025 08:39:58 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1760369996; x=1760974796; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=EWqoEOZl6L4UgifcuVH8Vvw1RztpD/4r7yVFa1CMC6A=;
-        b=wSTb07DZc1jMbUWpnaVe7yVdz6j3xUJ1419LXaEz6dFZd5WxEEo12pnpzqy8Gcu2VE
-         XZcCAkEBdNgt7PN5jszViZ9yhurTzR/wZkbmmSVUUMhIHXyMP7kNp4EvuCSkwUzxSnJI
-         +woNVO2taJvhNZQWQmZyGDGqQzy/5Pvcb2e96ieSn38Ch879Un/jMx4LaFvA7Vs9Bw8E
-         yM4XJxOUZCMGfMk6X/BZo1aurOlcCKQdP6h/HSMzHi+WU943VQUFMX5WLEoO9/T00A6g
-         82s7KTgl7q4Fttk5O7713NbiGLvPLNOIxGQt8qMpZtPF2bx/H0m8AiJ3fxjRVjomy/8D
-         r/RQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1760369996; x=1760974796;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=EWqoEOZl6L4UgifcuVH8Vvw1RztpD/4r7yVFa1CMC6A=;
-        b=wHmOdl8CK+LwjTJCtH16rs1m+dnkRlbHkloT7KuXxhiEOMN0qBt8LCRUCnVhTWCLfh
-         dpkd65fTo7i+CPrwHyMUOn3Dm6YSLMunTV6mEMgk6Y1go4NVXDbGPBRrRReFegVOauKB
-         aPTuZ3vn8JxxLkyH8mwBHGSXswegCVR+hzrbPxfQqCFvbYoDoZWc67ijd7EYpfjAAsgz
-         DkqKlHja2Ko0YOg2u8mxzLgp7+JiSMds4D3p4sdBGF9akvHwhUWwA/z7VJntiR8B5ktF
-         daNMR7FhMLCwC6S/PobzJDbVeSThDMM9n7sKCBvfqNji6YOoFgzv+KdNZK0j+TKYVnIM
-         xxRQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUSJdmNRIOrqorUNgL943eqMeBBHBPIoiE+NggdcvpMvRqp5fvQ7eMH9IiJGRfB/7QTcfxrJ/B9RChd@vger.kernel.org
-X-Gm-Message-State: AOJu0YyG3ERI+Wx0Z1XJ2B8Lm80MTA5vbRAyFOsbHW4PteYqnJWAb1fF
-	disrvRSIVEZJQ9CPML59WAYcHJYryYZxpNf6rCqv21T99s2afeotcNPQxlms24N3JzSkqRbYQ8J
-	TmJTKnyvf4HN50x+k6w==
-X-Google-Smtp-Source: AGHT+IHLek4r1lwro3GQIO4ppkzexXFiEHQSVL/Za4DDoRCAzgIf53fcpusHRbOINss/Tpngpku8rgJ4Go3IiS4=
-X-Received: from wrpk16.prod.google.com ([2002:adf:f5d0:0:b0:3fc:7d28:6438])
- (user=sidnayyar job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:6000:4901:b0:426:d51c:4d71 with SMTP id ffacd0b85a97d-426d51c4e7emr6015254f8f.8.1760369996504;
- Mon, 13 Oct 2025 08:39:56 -0700 (PDT)
-Date: Mon, 13 Oct 2025 15:39:18 +0000
-In-Reply-To: <20251013153918.2206045-1-sidnayyar@google.com>
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="AfYgJeQ1"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1760370849;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=wVWnS0RcSrifKORRkaxSlEBfAdbDlyJkXOwnKgyyCWE=;
+	b=AfYgJeQ1gC1GSNrKw12Ht1DOe7+ILg3nFS359qUVBJwtDgqQwdh+u2fNKSzgqrimsijcVY
+	8qu0jxMGntNhi4kskjdfuGyuF/B8X6qYDioQRubBvpysaD3c/ohTKAgtahT263pEffmAoC
+	k36bEfw+BujXUrRRup6zwid5o87oWCQ=
+Received: from mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-104-hoQr19x9MGeShnhZzexXCg-1; Mon,
+ 13 Oct 2025 11:54:05 -0400
+X-MC-Unique: hoQr19x9MGeShnhZzexXCg-1
+X-Mimecast-MFC-AGG-ID: hoQr19x9MGeShnhZzexXCg_1760370842
+Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mx-prod-mc-04.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id D86331954105;
+	Mon, 13 Oct 2025 15:54:01 +0000 (UTC)
+Received: from chopper.lan (unknown [10.22.81.1])
+	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 9BC8E30002D0;
+	Mon, 13 Oct 2025 15:53:56 +0000 (UTC)
+From: Lyude Paul <lyude@redhat.com>
+To: rust-for-linux@vger.kernel.org,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Boqun Feng <boqun.feng@gmail.com>,
+	linux-kernel@vger.kernel.org,
+	Daniel Almeida <daniel.almeida@collabora.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org (maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)),
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Jinjie Ruan <ruanjinjie@huawei.com>,
+	Ada Couprie Diaz <ada.coupriediaz@arm.com>,
+	Juergen Christ <jchrist@linux.ibm.com>,
+	Brian Gerst <brgerst@gmail.com>,
+	Uros Bizjak <ubizjak@gmail.com>,
+	linux-arm-kernel@lists.infradead.org (moderated list:ARM64 PORT (AARCH64 ARCHITECTURE)),
+	linux-s390@vger.kernel.org (open list:S390 ARCHITECTURE),
+	linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
+Subject: [PATCH v13 04/17] preempt: Introduce __preempt_count_{sub, add}_return()
+Date: Mon, 13 Oct 2025 11:48:06 -0400
+Message-ID: <20251013155205.2004838-5-lyude@redhat.com>
+In-Reply-To: <20251013155205.2004838-1-lyude@redhat.com>
+References: <20251013155205.2004838-1-lyude@redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20251013153918.2206045-1-sidnayyar@google.com>
-X-Mailer: git-send-email 2.51.0.740.g6adb054d12-goog
-Message-ID: <20251013153918.2206045-11-sidnayyar@google.com>
-Subject: [PATCH v2 10/10] module loader: enforce symbol import protection
-From: Siddharth Nayyar <sidnayyar@google.com>
-To: petr.pavlu@suse.com
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org, 
-	mcgrof@kernel.org, nathan@kernel.org, nicolas.schier@linux.dev, 
-	samitolvanen@google.com, sidnayyar@google.com, maennich@google.com, 
-	gprocida@google.com
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
 
-The module loader will reject unsigned modules from loading if such a
-module attempts to import a symbol which has the import protection bit
-set in the kflagstab entry for the symbol.
+From: Boqun Feng <boqun.feng@gmail.com>
 
-Signed-off-by: Siddharth Nayyar <sidnayyar@google.com>
-Reviewed-by: Petr Pavlu <petr.pavlu@suse.com>
+In order to use preempt_count() to tracking the interrupt disable
+nesting level, __preempt_count_{add,sub}_return() are introduced, as
+their name suggest, these primitives return the new value of the
+preempt_count() after changing it. The following example shows the usage
+of it in local_interrupt_disable():
+
+	// increase the HARDIRQ_DISABLE bit
+	new_count = __preempt_count_add_return(HARDIRQ_DISABLE_OFFSET);
+
+	// if it's the first-time increment, then disable the interrupt
+	// at hardware level.
+	if (new_count & HARDIRQ_DISABLE_MASK == HARDIRQ_DISABLE_OFFSET) {
+		local_irq_save(flags);
+		raw_cpu_write(local_interrupt_disable_state.flags, flags);
+	}
+
+Having these primitives will avoid a read of preempt_count() after
+changing preempt_count() on certain architectures.
+
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+
 ---
- kernel/module/internal.h |  1 +
- kernel/module/main.c     | 10 +++++++++-
- 2 files changed, 10 insertions(+), 1 deletion(-)
+V10:
+* Add commit message I forgot
+* Rebase against latest pcpu_hot changes
+V11:
+* Remove CONFIG_PROFILE_ALL_BRANCHES workaround from
+  __preempt_count_add_return()
 
-diff --git a/kernel/module/internal.h b/kernel/module/internal.h
-index 061161cc79d9..98faaf8900aa 100644
---- a/kernel/module/internal.h
-+++ b/kernel/module/internal.h
-@@ -108,6 +108,7 @@ struct find_symbol_arg {
- 	const u32 *crc;
- 	const struct kernel_symbol *sym;
- 	enum mod_license license;
-+	bool is_protected;
- };
- 
- /* modules using other modules */
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index f5f9872dc070..c27df62a68f5 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -380,6 +380,7 @@ static bool find_exported_symbol_in_section(const struct symsearch *syms,
- 	fsa->crc = symversion(syms->crcs, sym - syms->start);
- 	fsa->sym = sym;
- 	fsa->license = (sym_flags & KSYM_FLAG_GPL_ONLY) ? GPL_ONLY : NOT_GPL_ONLY;
-+	fsa->is_protected = sym_flags & KSYM_FLAG_PROTECTED;
- 
- 	return true;
+ arch/arm64/include/asm/preempt.h | 18 ++++++++++++++++++
+ arch/s390/include/asm/preempt.h  | 10 ++++++++++
+ arch/x86/include/asm/preempt.h   | 10 ++++++++++
+ include/asm-generic/preempt.h    | 14 ++++++++++++++
+ 4 files changed, 52 insertions(+)
+
+diff --git a/arch/arm64/include/asm/preempt.h b/arch/arm64/include/asm/preempt.h
+index 932ea4b620428..0dd8221d1bef7 100644
+--- a/arch/arm64/include/asm/preempt.h
++++ b/arch/arm64/include/asm/preempt.h
+@@ -55,6 +55,24 @@ static inline void __preempt_count_sub(int val)
+ 	WRITE_ONCE(current_thread_info()->preempt.count, pc);
  }
-@@ -1267,6 +1268,13 @@ static const struct kernel_symbol *resolve_symbol(struct module *mod,
- 		goto getname;
- 	}
  
-+	if (fsa.is_protected && !mod->sig_ok) {
-+		pr_warn("%s: Cannot use protected symbol %s\n",
-+			mod->name, name);
-+		fsa.sym = ERR_PTR(-EACCES);
-+		goto getname;
-+	}
++static inline int __preempt_count_add_return(int val)
++{
++	u32 pc = READ_ONCE(current_thread_info()->preempt.count);
++	pc += val;
++	WRITE_ONCE(current_thread_info()->preempt.count, pc);
 +
- 	err = ref_module(mod, fsa.owner);
- 	if (err) {
- 		fsa.sym = ERR_PTR(err);
-@@ -1550,7 +1558,7 @@ static int simplify_symbols(struct module *mod, const struct load_info *info)
- 				break;
++	return pc;
++}
++
++static inline int __preempt_count_sub_return(int val)
++{
++	u32 pc = READ_ONCE(current_thread_info()->preempt.count);
++	pc -= val;
++	WRITE_ONCE(current_thread_info()->preempt.count, pc);
++
++	return pc;
++}
++
+ static inline bool __preempt_count_dec_and_test(void)
+ {
+ 	struct thread_info *ti = current_thread_info();
+diff --git a/arch/s390/include/asm/preempt.h b/arch/s390/include/asm/preempt.h
+index 6ccd033acfe52..5ae366e26c57d 100644
+--- a/arch/s390/include/asm/preempt.h
++++ b/arch/s390/include/asm/preempt.h
+@@ -98,6 +98,16 @@ static __always_inline bool should_resched(int preempt_offset)
+ 	return unlikely(READ_ONCE(get_lowcore()->preempt_count) == preempt_offset);
+ }
  
- 			ret = PTR_ERR(ksym) ?: -ENOENT;
--			pr_warn("%s: Unknown symbol %s (err %d)\n",
-+			pr_warn("%s: Unresolved symbol %s (err %d)\n",
- 				mod->name, name, ret);
- 			break;
++static __always_inline int __preempt_count_add_return(int val)
++{
++	return val + __atomic_add(val, &get_lowcore()->preempt_count);
++}
++
++static __always_inline int __preempt_count_sub_return(int val)
++{
++	return __preempt_count_add_return(-val);
++}
++
+ #define init_task_preempt_count(p)	do { } while (0)
+ /* Deferred to CPU bringup time */
+ #define init_idle_preempt_count(p, cpu)	do { } while (0)
+diff --git a/arch/x86/include/asm/preempt.h b/arch/x86/include/asm/preempt.h
+index 578441db09f0b..1220656f3370b 100644
+--- a/arch/x86/include/asm/preempt.h
++++ b/arch/x86/include/asm/preempt.h
+@@ -85,6 +85,16 @@ static __always_inline void __preempt_count_sub(int val)
+ 	raw_cpu_add_4(__preempt_count, -val);
+ }
  
++static __always_inline int __preempt_count_add_return(int val)
++{
++	return raw_cpu_add_return_4(__preempt_count, val);
++}
++
++static __always_inline int __preempt_count_sub_return(int val)
++{
++	return raw_cpu_add_return_4(__preempt_count, -val);
++}
++
+ /*
+  * Because we keep PREEMPT_NEED_RESCHED set when we do _not_ need to reschedule
+  * a decrement which hits zero means we have no preempt_count and should
+diff --git a/include/asm-generic/preempt.h b/include/asm-generic/preempt.h
+index 51f8f3881523a..c8683c046615d 100644
+--- a/include/asm-generic/preempt.h
++++ b/include/asm-generic/preempt.h
+@@ -59,6 +59,20 @@ static __always_inline void __preempt_count_sub(int val)
+ 	*preempt_count_ptr() -= val;
+ }
+ 
++static __always_inline int __preempt_count_add_return(int val)
++{
++	*preempt_count_ptr() += val;
++
++	return *preempt_count_ptr();
++}
++
++static __always_inline int __preempt_count_sub_return(int val)
++{
++	*preempt_count_ptr() -= val;
++
++	return *preempt_count_ptr();
++}
++
+ static __always_inline bool __preempt_count_dec_and_test(void)
+ {
+ 	/*
 -- 
-2.51.0.740.g6adb054d12-goog
+2.51.0
 
