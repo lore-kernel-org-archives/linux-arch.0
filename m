@@ -1,27 +1,27 @@
-Received: from smtpbgbr1.qq.com (smtpbgbr1.qq.com [54.207.19.206])
+Received: from smtpbg154.qq.com (smtpbg154.qq.com [15.184.224.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 28CE230FC28;
-	Wed, 15 Oct 2025 06:19:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=54.207.19.206
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5F1DE30F93D;
+	Wed, 15 Oct 2025 06:19:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=15.184.224.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760509200; cv=none; b=FgVNBetfiFyMTTqgttdvVAszxtG/p4Ez3YPvVNICRh9y8zPW7jsTnEImf4tmp3OFF5XpXA3dal2fvixhuFNjeYOVntH7+edzjsp5zGqxsfR46RCewUViOBXhgbiSaeXzBVaaaAUAe+9Zr4m6bFvtPHz2bZ6qEswhNL/bYsb0aBY=
+	t=1760509204; cv=none; b=Pn7QPDi/7VkFUuD/rrbK6CFevMowrqg4tCe7+znkGrloePBkISiPw7/sUDVCK8nOevUHWyYNkS4jMz3Ghax8FW1DEr280MBFAgXkWWjQ9grJZA9OgugUWKuz9xI5Ezd6sE0OnOFt0JEQkrQuGoMogao4qmvPgexL8VVB9Fiubr4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760509200; c=relaxed/simple;
-	bh=00vkzuLktB6wmqLHFAXh0IaPTK1wbG12G/QsgWkAQr0=;
+	s=arc-20240116; t=1760509204; c=relaxed/simple;
+	bh=RxwC5QQd4Pu4UsQiyRL0qgIA5ynrbat01elQ0/SS+to=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=YCbi+K4S/zZfg3NiKk8dlB/zv/pLyQ12isLHkiOYfLYOScOFB/3mKaISxC6T8V66rOMi34yJ0SrwKG0CLG4IRGxAKUqV6lLJSC4KG6n2cA3G5gSgte6Q+VHYmBRp4Ef6ecnWB1Yd82MkVdr1uc4ovJWgZbOgZ6wsLtiR+26cLcs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=tinylab.org; spf=pass smtp.mailfrom=tinylab.org; arc=none smtp.client-ip=54.207.19.206
+	 MIME-Version; b=sURWmSlicsDenZFyG2U6Gpzo5JjszrED24zRYerGluox7jzBN03DYUxk4ihDj6IBeobSZR7mAkZ2JntzzaxOjcMoEzIDZpNLBUPL26KXbdHcWnE8bcV3hbhBQFmaoWVvrNXQNG9pTH5NNkBkvUfLAMpWgntmN0HzJ+j+XZDKsTA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=tinylab.org; spf=pass smtp.mailfrom=tinylab.org; arc=none smtp.client-ip=15.184.224.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=tinylab.org
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=tinylab.org
-X-QQ-mid: esmtpgz13t1760509078t710fc538
-X-QQ-Originating-IP: fKuI2SoLTPBzi9ZxhQ0J1CaSp3/phsZPssuIEn3Y994=
+X-QQ-mid: zesmtpsz3t1760509123t05cff719
+X-QQ-Originating-IP: nNfNQXy1/5EgLTlbfFU/BpAhqpvUPauMUCH0BNThics=
 Received: from GPU-Server-A6000.. ( [202.201.1.132])
 	by bizesmtp.qq.com (ESMTP) with 
-	id ; Wed, 15 Oct 2025 14:17:56 +0800 (CST)
+	id ; Wed, 15 Oct 2025 14:18:40 +0800 (CST)
 X-QQ-SSF: 0000000000000000000000000000000
 X-QQ-GoodBg: 0
-X-BIZMAIL-ID: 13976680870695852025
+X-BIZMAIL-ID: 17077304549723306376
 EX-QQ-RecipientCnt: 14
 From: Yuan Tan <tanyuan@tinylab.org>
 To: arnd@arndb.de,
@@ -38,9 +38,9 @@ Cc: linux-arch@vger.kernel.org,
 	ronbogo@outlook.com,
 	z1652074432@gmail.com,
 	lx24@stu.ynu.edu.cn
-Subject: [PATCH v2 2/8] scripts/syscalltbl.sh: add optional --used-syscalls argument for syscall trimming
-Date: Wed, 15 Oct 2025 14:17:49 +0800
-Message-ID: <B120EFEBD27B9B67+6751ec7c12d04aafe1de79502b984ed65013f6cf.1760463245.git.tanyuan@tinylab.org>
+Subject: [PATCH v2 4/8] riscv: enable HAVE_TRIM_UNUSED_SYSCALLS when toolchain supports DCE
+Date: Wed, 15 Oct 2025 14:18:31 +0800
+Message-ID: <DFBC1E41A1103B87+997a9aedbe0a9a779d0a463bcbfd13eb677d5f0a.1760463245.git.tanyuan@tinylab.org>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <cover.1760463245.git.tanyuan@tinylab.org>
 References: <cover.1760463245.git.tanyuan@tinylab.org>
@@ -52,99 +52,56 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-QQ-SENDSIZE: 520
-Feedback-ID: esmtpgz:tinylab.org:qybglogicsvrgz:qybglogicsvrgz5a-1
-X-QQ-XMAILINFO: Mp62enUr7azuivZrNzLe2z/QyVUzXCJedV2fP4VOoeilXfYsV4ZqRp1Q
-	SD9ja5G7fhijZ4fBz6IPzGcx+/2/RN+fUXyu6RRM3+kwfSq8xVoQYEmKb42i/o6CEGmbl+z
-	To0hGppWjxasmj0aOuYlQ94hFjwPtjp/8+PqLDWmQDk1ianxIuuosCgFrrcNXx5Hu5D0/se
-	q8P4oKE6Cbsm+CHm3Vlh7flu4gHdyJAEUgTADZ5E23In/V6nNQHwIFUJl+zoj4QsDiTH9Pq
-	Ixb64JmhoIjuZPxy4gaJ9BSTFZiHs9PxhbU3ynRhVWY0Yj0OL6mD4wyFOKMuGC9mtMTCLIb
-	s50UTOrSJNlgGDBQUHQJ1gAOrmsaOnjip2hsaKz/mDsutm4GeKh4YD7AiDp55AIESY57cQ2
-	OuM4SpL4gSLOHc+oxAzjn90bAjtBr+oAxkoavQ5/3XayUEN90Pjy4/T5ddFvT6aue81sMD+
-	QcvEPJpCg2wbXdBP8nlnTQGMnCwGd1vKI3L86g3mUWdS4akteT3r9JvDodYFBbjOouRzue4
-	jKcezTcwMnPEdvSEijmd6RbOu+r45pRe0LG58braY8sZX1p7TT+0bF/j/taEtIb9cBGQh/T
-	1G1+HYBe0baM5A8Qrh9a2xJl/Ic9lE7cHlljMvdaA/Env701QztSxNQkmqQPBI8MR+EmlZI
-	ZhTNpAEy2dq0sJzIZtbwNgYA7YXWE4fQdZtwbabZSKooos3qtt5xfaAPUObGoBazl0FKKxf
-	QmmI4rPm/EOVDHTovWaXe+UPRxx43hsnrSknJMBA+w/3hFzeCbesQAqFhNydgeClc8dO+jt
-	Mhv9lzHVDRa+Ovgvt8SY4AtgaA/XMvsRH0ZcYBFItl/1haX084VrS2zdc1GVncOHrzr3hTt
-	NSzGZ9c8CQr2mwYa62pHLSyhXFYgQGy1TicC3b9zkOMDRkmWxO3HURU1GEyAyhEJ/9Kp+hZ
-	FK3N6PEPP9bucFHDg775Nt2wlLa0ylEP2T84CXKHAkGpk2vrT0iDswE8zzm5laiYOpF0=
-X-QQ-XMRINFO: NS+P29fieYNw95Bth2bWPxk=
+Feedback-ID: zesmtpsz:tinylab.org:qybglogicsvrgz:qybglogicsvrgz5a-1
+X-QQ-XMAILINFO: Mpv6PNPPUmDu01OaIjV3/c9lP/+9l92EgFL6Up0MEq9OBV1ly0d0GAZH
+	nMBUt4qG6xMxRFmM0labnaCvSycP58RZy71c1VR+/Neqs2+z6gtDCKo4ElOvtZFriDOUOiU
+	pWCTMo3t6a/bdbCCOayMAqcWFK3G17PRM0WgvjpgXcMQw2t6xsn8foLu1Zr3lAr3eqXGACx
+	3+DnSDxjJvzkUW4epJJQvjjXaW3BLN6ICtTb0f+W05/qN4wPsWs6UObMPvyTgDUBgVKuS/h
+	9xzpk63Xnb6mR9UnpEwFXyqrzwybdECyAxC3ftAXIcF84kdFm80kgKDXVepDNWaWxxEALP1
+	flaI7ouj1yZ5cbeYc6xysCRZWtEu7tU1+rUXa7cN7HsAyAXN+zQYOqJuuVeYpm7X7KY36/n
+	5FckXbcHJGAx9wZalHQqecJ05JzY/1bJ0sj1FQNy4bH9m+0ejTGoUcVaztIft/TltR0xYha
+	24c97saY0zCwDjkPylGdHFn92swxaCcTeNSiTc7gQQTxk0b0P2Y9rC6X+n1oW26lWejroqf
+	ItMJcyMGaJkPJxLaaAlNKLeugvcNiRQaIkGawGFD4u9EmHQZzQ8hS1qdlF6CKCBxeZ/oQMr
+	/Wx9fqLKyuoxP9rAY7IbbL2Bvuhe7POTkyXDm7YTAymFahHiDsJNokghcvCIp2eUxlgkD25
+	RWI6V0pYw9iUjihkvGMZT7e3XTwZOPAUveuXHNwuBIjwQzaUHnxGjmRxHSmk2bNv1XEREsy
+	gok1SDmW3LTBeHOZB8AURCYvJgijz5cM5e/kU+A37nuHLROrS679XRcxqzHvf8syGBipHsl
+	GEAgzLFEh5+TX9oaub1gTZ+1NCnXM3xAXGPK8PQGvhOzjBXOrp7HD5W7gixHMfQ1mqnEDVX
+	buvtHwEJAWDgqvhn/P3zFk67YlnmgO/xTJpePEsIK+dCpnR3IODlo9hMAU5Je6sonJ2eij2
+	CGOLMid/TdK5Rzg/BLhBG32sP6j5x912TfLZxTUwJI1LFAA==
+X-QQ-XMRINFO: OJlEh3abS6gXi5NWrXbD0WI=
 X-QQ-RECHKSPAM: 0
 
 From: Yuhang Zheng <z1652074432@gmail.com>
 
-Add support for an optional `--used-syscalls` argument to
-scripts/syscalltbl.sh. When provided, the argument takes a comma-separated
-list of syscall names that should remain enabled in the generated syscall
-table. Any syscall not present in the list will be replaced with a
-`__SYSCALL(nr, sys_ni_syscall)` entry.
+Enable HAVE_TRIM_UNUSED_SYSCALLS on RISC-V when the toolchain supports dead
+code and data elimination.
 
-This enables selective system call table generation when
-CONFIG_TRIM_UNUSED_SYSCALLS is set.
+This allows the unused syscalls and related code to be trimmed at link time
+based on the list of actually used syscalls.
+
+While this enables per-syscall elimination, some syscall entries still
+cannot be fully discarded due to sections that are force-kept by the
+linker, such as ex_table, bug_table, jump_table, and .alternative.
 
 Signed-off-by: Yuhang Zheng <z1652074432@gmail.com>
 Signed-off-by: Yuan Tan <tanyuan@tinylab.org>
 Signed-off-by: Zhangjin Wu <falcon@tinylab.org>
 ---
- scripts/syscalltbl.sh | 19 ++++++++++++++++++-
- 1 file changed, 18 insertions(+), 1 deletion(-)
+ arch/riscv/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/scripts/syscalltbl.sh b/scripts/syscalltbl.sh
-index 6a903b87a7c2..27d8dfce5748 100755
---- a/scripts/syscalltbl.sh
-+++ b/scripts/syscalltbl.sh
-@@ -22,12 +22,14 @@ usage() {
- 	echo >&2 "  OUTFILE   output header file"
- 	echo >&2
- 	echo >&2 "options:"
--	echo >&2 "  --abis ABIS        ABI(s) to handle (By default, all lines are handled)"
-+	echo >&2 "  --abis ABIS                ABI(s) to handle (By default, all lines are handled)"
-+	echo >&2 "  --used-syscalls SYSCALLS   Keep only the specified syscall; trim others"
- 	exit 1
- }
- 
- # default unless specified by options
- abis=
-+used_syscalls=
- 
- while [ $# -gt 0 ]
- do
-@@ -35,6 +37,14 @@ do
- 	--abis)
- 		abis=$(echo "($2)" | tr ',' '|')
- 		shift 2;;
-+    --used-syscalls=*)
-+        used_syscalls_raw=${1#--used-syscalls=}
-+        if [ -z "$used_syscalls_raw" ]; then
-+            used_syscalls='^$'
-+        else
-+            used_syscalls=$(echo "$used_syscalls_raw" | tr ',' '|')
-+        fi
-+        shift;;
- 	-*)
- 		echo "$1: unknown option" >&2
- 		usage;;
-@@ -52,6 +62,7 @@ outfile="$2"
- 
- nxt=0
- 
-+
- grep -E "^[0-9]+[[:space:]]+$abis" "$infile" | {
- 
- 	while read nr abi name native compat noreturn; do
-@@ -66,6 +77,12 @@ grep -E "^[0-9]+[[:space:]]+$abis" "$infile" | {
- 			nxt=$((nxt + 1))
- 		done
- 
-+		if [ -n "$used_syscalls" ] && ! echo "$name" | grep -qwE "$used_syscalls"; then
-+			echo "__SYSCALL($nr, sys_ni_syscall)"
-+			nxt=$((nr + 1))
-+			continue
-+		fi
-+
- 		if [ "$compat" = "-" ]; then
- 			unset compat
- 		fi
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index 0c6038dc5dfd..697050ac8c62 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -198,6 +198,7 @@ config RISCV
+ 	select HAVE_SAMPLE_FTRACE_DIRECT_MULTI
+ 	select HAVE_STACKPROTECTOR
+ 	select HAVE_SYSCALL_TRACEPOINTS
++	select HAVE_TRIM_UNUSED_SYSCALLS
+ 	select HOTPLUG_CORE_SYNC_DEAD if HOTPLUG_CPU
+ 	select IRQ_DOMAIN
+ 	select IRQ_FORCED_THREADING
 -- 
 2.43.0
 
