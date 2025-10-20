@@ -1,66 +1,65 @@
 Received: from fout-b6-smtp.messagingengine.com (fout-b6-smtp.messagingengine.com [202.12.124.149])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB5692F39A4;
-	Mon, 20 Oct 2025 22:36:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3796D2F0C46;
+	Mon, 20 Oct 2025 22:36:54 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.149
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1760999804; cv=none; b=uLk0hVINuXXPmZcdyWhZC6peQSFJrAjj1g0bmXJLa0LfJigW5tVxc4LjoayXUOBJCXmUwlfFnbi6CeB4HRaE2L4yTSBTUTaJ9cgEjZU2ieLd9dFRaV7L1Y8MpjDlxDEMwFqhlQ6wYMIMsEnvNB0h8EojPBSDeZZiiqaYFKrhB9Y=
+	t=1760999815; cv=none; b=RSRlSu50PYT0mKYSKnS19pyYbnypbdoxKouqNMH8+dRYGSWdonIZGLxjpthivwp+BQtiLEvVBdUWGXk9FeS6PvvNlK9hOtQtTDzN80JmbN9LolRzdPefNRy88L5ATlsv2VGZvOfW77hxM5/6i+96gw2hvzmJEmnoE2s/a1WNDAs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1760999804; c=relaxed/simple;
-	bh=yybUSf5T3g/3w85klnU1zuJcnxM9ZRoEL4oq6VF0u5w=;
-	h=To:Cc:Message-ID:In-Reply-To:References:From:Subject:Date; b=IsbBhHGG7py5xJgaF5IIQ1/1RE1ZKKbUhk4istm8HPZfNOEgXpfznBJhw/n6y3drN3qjZy9Dt/gKarDnl+n3eiGWMQ2f8gK+vyRkFIpB+t2TN+Z5UbDgOI600S/Lfg6dPorut6GFN4GGm/Zdh2UYWM9PsZMOBYNrTGwCCeLZ2XA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=eWr514gx; arc=none smtp.client-ip=202.12.124.149
+	s=arc-20240116; t=1760999815; c=relaxed/simple;
+	bh=oAwsmojtKX1hlDXyiaKqg3VsPIxLw2dunAdcVhMc1Mo=;
+	h=To:Cc:Message-ID:In-Reply-To:References:From:Subject:Date; b=CdL23ckbIpBH6eC5x6Oqi34CEqNx0zoi2Qh5yBkK+WaWf0C6InGbC065cZGDZTnw12WyNCgBVSKPbde2umkUwCMoTXQQu/AYxgYCIvNOj3lFJI4PyyrwBryLYU0skEeTn+vUE0Ovu5W9a2WqJqMHP3Lg3eBjTrrPxB3k4IME8J8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=vZySVlpO; arc=none smtp.client-ip=202.12.124.149
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="eWr514gx"
-Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
-	by mailfout.stl.internal (Postfix) with ESMTP id D532A1D0013B;
-	Mon, 20 Oct 2025 18:36:41 -0400 (EDT)
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="vZySVlpO"
+Received: from phl-compute-06.internal (phl-compute-06.internal [10.202.2.46])
+	by mailfout.stl.internal (Postfix) with ESMTP id 036191D00149;
+	Mon, 20 Oct 2025 18:36:52 -0400 (EDT)
 Received: from phl-mailfrontend-02 ([10.202.2.163])
-  by phl-compute-05.internal (MEProxy); Mon, 20 Oct 2025 18:36:42 -0400
+  by phl-compute-06.internal (MEProxy); Mon, 20 Oct 2025 18:36:53 -0400
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
 	:feedback-id:from:from:in-reply-to:in-reply-to:message-id
 	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1760999801; x=
-	1761086201; bh=Of30O2Rz6y1OZ0rGOWsuDyxzWM+1+/UyDo323/R5FGA=; b=e
-	Wr514gxs7XHhxnXDx33HM79f8FpGzy11zZr8o58/ddhcZi+bIsKL17ERx0z6W+Ok
-	XSAC854j1ld8xfWEQlbJvu0/FTifGVo9hOKlT3D/zBSe4/6g8qJRMoL9c/7aWpau
-	Miv+EtNzVoDRJ+4j4W2mkDtDpZCoWSyMdhhOZm7fQR/hqql+NVYtFp9wYKksH8oJ
-	7hWjqZHAgNwbsEIJafBxX5J1fMQaD1i4GrYg5Rq0zcv33JcyIqYDhrW7TGekycx+
-	YHlheC3Qm1p4cKcH98AoEqgw0pYpj5el+7HJnamR4uLI4Xfw1yviOVicXn6ZUWPZ
-	ZOsy8wm/9YMA/1epwMB3g==
-X-ME-Sender: <xms:ebn2aJqe3wCQztty0Eg7JO0cBdpNkaBUi1NWvfg6myVjEqNuUgWvNg>
-    <xme:ebn2aBpbr-Lc7Qubd2DasScwikzAWyyRh-rmfb6chc0cCP3ydhRFkF0QhMUccAAi7
-    agI-C3tfJFa6eoWNkcrLrboD8gI8QDD4QPGSyQJRMIvhVYXRIEQlw>
-X-ME-Received: <xmr:ebn2aBCPOyzeLdxNoS7XgseyaSewb6ntphcd6mizRgq9q5AhR715HzR9FGS7c3d1zqDWAPb6YDEfKW-MHyeJGxoLwT0PWa6oSE4>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeffedrtdeggddufeeltdegucetufdoteggodetrf
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=1760999812; x=
+	1761086212; bh=xCzEtoNxSS71DBOWSJCr+vKOLnsVoIb0CZZ05NZm2s0=; b=v
+	ZySVlpOqjUr2UiuoNNKy0hKoVzCr47R5TPjuxzyezI0RG8okQ4l/K77vPWkRV9kX
+	VynGCYcR03rg9O4qc780NESiW7XQ81+hv1Y9lMhpRUieOxoBcTuKH4OOjTSGqYcb
+	OmnKyatZhwSXtl21/uIYgRFplnonxhigIfJoHBNLTL3x/PJIBievYtPQx9dPY0ni
+	pOMu4pbut+jgVSTg4TmlaW4KlOrXYz3ZEXwQeK8aZaRuGzUBApSEeGfzTW6SsJmh
+	eh0R5P+cPeKMMcLEdgG3fHpd73fOAkkAS9Akn7yS+R+kNrBzIxQYdaaY7DlyD9VA
+	cbKk1wAoEGYu6WQEPcQqg==
+X-ME-Sender: <xms:hLn2aFq-qDHfFWFbd-IGuayqTDfJ3KMmWnMaXvlHT2WpWHWKlHxiJw>
+    <xme:hLn2aNpf2B82xNVNRgEXAExJ8lPSP5qa0XBd3lDnBbppxctiolZuuojoG-jkRzTfJ
+    LMWoMw2YHVXZ7CJ30c5iCA9PJkTDAXUqYact8MfNRSY2VEUlit6IQ>
+X-ME-Received: <xmr:hLn2aNAU9_EJ5Dhj4grfw5cnAcdvYmo-60jTJSohZ7A7r2Fd0NBqhMRlbQkSiIWI7qceSyLy9HebvXj51-l8blO96SjzUzjxbo4>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeeffedrtdeggddufeeltdefucetufdoteggodetrf
     dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
     rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
     gurhepvfevkfgjfhfhufffsedttdertddttddtnecuhfhrohhmpefhihhnnhcuvfhhrghi
     nhcuoehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgqeenucggtffrrghtthgvrh
-    hnpeehkeduffehjedvieevkeelleegffeiuddvgeeluefhuedugeekkeehffekgffgheen
-    ucffohhmrghinhepkhgvrhhnvghlrdhorhhgnecuvehluhhsthgvrhfuihiivgeptdenuc
-    frrghrrghmpehmrghilhhfrhhomhepfhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhr
-    ghdpnhgspghrtghpthhtohepuddtpdhmohguvgepshhmthhpohhuthdprhgtphhtthhope
-    hpvghtvghriiesihhnfhhrrgguvggrugdrohhrghdprhgtphhtthhopeifihhllheskhgv
-    rhhnvghlrdhorhhgpdhrtghpthhtoheprghkphhmsehlihhnuhigqdhfohhunhgurghtih
-    honhdrohhrghdprhgtphhtthhopegrrhhnugesrghrnhgusgdruggvpdhrtghpthhtohep
-    sghoqhhunhdrfhgvnhhgsehgmhgrihhlrdgtohhmpdhrtghpthhtohepghgvvghrtheslh
-    hinhhugidqmheikehkrdhorhhgpdhrtghpthhtoheplhhinhhugidqrghrtghhsehvghgv
-    rhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidqkhgvrhhnvghlsehvgh
-    gvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidqmheikehksehvghgv
-    rhdrkhgvrhhnvghlrdhorhhg
-X-ME-Proxy: <xmx:ebn2aHtaFt3xcLClVGePvHw78UM2pz-tnMBVOLTuimkKvLnCNiafbw>
-    <xmx:ebn2aILKrdSWiX7_kIY0kSGTk29cuFV50PgPoNkRnVWPfFiWgpHGYg>
-    <xmx:ebn2aGaLQIADTMPb_fZ8HVXG-971zt9z7gM3IonV0_5ZlH69Pg8U2w>
-    <xmx:ebn2aCBCD4YtGT9_aUIKsolfx3BJ3cIaVWbEC2TRztzgOnaNazmpPA>
-    <xmx:ebn2aLLa9Rb_sgXBEtYgaSjLLmDM2o3mitZDR346egTg0hwtQdQVzkX6>
+    hnpeevgffgtdfhhfefveeuudfgtdeugfeftedtveekieeggfduleetgeegueehgeffffen
+    ucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpehfthhhrg
+    hinheslhhinhhugidqmheikehkrdhorhhgpdhnsggprhgtphhtthhopedutddpmhhouggv
+    pehsmhhtphhouhhtpdhrtghpthhtohepphgvthgvrhiisehinhhfrhgruggvrggurdhorh
+    hgpdhrtghpthhtohepfihilhhlsehkvghrnhgvlhdrohhrghdprhgtphhtthhopegrkhhp
+    mheslhhinhhugidqfhhouhhnuggrthhiohhnrdhorhhgpdhrtghpthhtoheprghrnhguse
+    grrhhnuggsrdguvgdprhgtphhtthhopegsohhquhhnrdhfvghnghesghhmrghilhdrtgho
+    mhdprhgtphhtthhopehgvggvrhhtsehlihhnuhigqdhmieekkhdrohhrghdprhgtphhtth
+    hopehlihhnuhigqdgrrhgthhesvhhgvghrrdhkvghrnhgvlhdrohhrghdprhgtphhtthho
+    pehlihhnuhigqdhkvghrnhgvlhesvhhgvghrrdhkvghrnhgvlhdrohhrghdprhgtphhtth
+    hopehlihhnuhigqdhmieekkhesvhhgvghrrdhkvghrnhgvlhdrohhrgh
+X-ME-Proxy: <xmx:hLn2aDvNGFVO4pG30D6KTfeP4KpaYanaAJuWp0AhCoCYCQPDOBWN7g>
+    <xmx:hLn2aEIm0Wl0H6Z2vo6UV--UOFyfU68a8dr-OdTAsb5wc66JYu16ng>
+    <xmx:hLn2aCYcvdm0NeKtG_hM8GOO9Yp_4hOJXzp0o-aQeTLjd053xbzW6w>
+    <xmx:hLn2aOBjJXvfElF1cy5N8nxjndzGTToJ_4sel92qcIMeD3QfS8onNw>
+    <xmx:hLn2aHKrTsi7w772Tt6cfSnUH5K6TuQlbOKXEZzXV35MwqnDHQGxbP1q>
 Feedback-ID: i58a146ae:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Mon,
- 20 Oct 2025 18:36:38 -0400 (EDT)
+ 20 Oct 2025 18:36:50 -0400 (EDT)
 To: Peter Zijlstra <peterz@infradead.org>,
     Will Deacon <will@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>,
@@ -71,12 +70,11 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
     linux-kernel@vger.kernel.org,
     linux-m68k@vger.kernel.org,
     Mark Rutland <mark.rutland@arm.com>
-Message-ID: <7943c7f0196171c918df671c68003e62b69c8509.1760999284.git.fthain@linux-m68k.org>
+Message-ID: <98018681b75da61108b992ab15ad455569863924.1760999284.git.fthain@linux-m68k.org>
 In-Reply-To: <cover.1760999284.git.fthain@linux-m68k.org>
 References: <cover.1760999284.git.fthain@linux-m68k.org>
 From: Finn Thain <fthain@linux-m68k.org>
-Subject: [RFC v4 4/5] atomic: Add alignment check to instrumented atomic
- operations
+Subject: [RFC v4 5/5] atomic: Add option for weaker alignment check
 Date: Tue, 21 Oct 2025 09:28:04 +1100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -84,79 +82,84 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-From: Peter Zijlstra <peterz@infradead.org>
-
-Add a Kconfig option for debug builds which logs a warning when an
-instrumented atomic operation takes place that's misaligned.
-Some platforms don't trap for this.
-
-Link: https://lore.kernel.org/lkml/20250901093600.GF4067720@noisy.programming.kicks-ass.net/
+Add a new Kconfig symbol to make CONFIG_DEBUG_ATOMIC more useful on
+those architectures which do not align dynamic allocations to 8-byte
+boundaries. Without this, CONFIG_DEBUG_ATOMIC produces excessive
+WARN splats.
 ---
-Changed since v2:
- - Always check for natural alignment.
+Changed since v3:
+ - Dropped #include <linux/cache.h> to avoid a build failure on arm64.
+ - Rewrote Kconfig help text to better describe preferred alignment.
+ - Refactored to avoid line-wrapping and duplication.
 ---
-To make this useful on those architectures that don't naturally align
-scalars (x86-32, m68k and sh come to mind), please also use
-"[PATCH] atomic: skip alignment check for try_cmpxchg() old arg"
-https://lore.kernel.org/all/20251006110740.468309-1-arnd@kernel.org/
----
- include/linux/instrumented.h |  4 ++++
- lib/Kconfig.debug            | 10 ++++++++++
- 2 files changed, 14 insertions(+)
+ include/linux/instrumented.h | 17 ++++++++++++++---
+ lib/Kconfig.debug            |  8 ++++++++
+ 2 files changed, 22 insertions(+), 3 deletions(-)
 
 diff --git a/include/linux/instrumented.h b/include/linux/instrumented.h
-index 711a1f0d1a73..402a999a0d6b 100644
+index 402a999a0d6b..ca946c5860be 100644
 --- a/include/linux/instrumented.h
 +++ b/include/linux/instrumented.h
-@@ -7,6 +7,7 @@
- #ifndef _LINUX_INSTRUMENTED_H
- #define _LINUX_INSTRUMENTED_H
+@@ -56,6 +56,17 @@ static __always_inline void instrument_read_write(const volatile void *v, size_t
+ 	kcsan_check_read_write(v, size);
+ }
  
-+#include <linux/bug.h>
- #include <linux/compiler.h>
- #include <linux/kasan-checks.h>
- #include <linux/kcsan-checks.h>
-@@ -67,6 +68,7 @@ static __always_inline void instrument_atomic_read(const volatile void *v, size_
++static __always_inline void instrument_atomic_check_alignment(const volatile void *v, size_t size)
++{
++	if (IS_ENABLED(CONFIG_DEBUG_ATOMIC)) {
++		unsigned int mask = size - 1;
++
++		if (IS_ENABLED(CONFIG_DEBUG_ATOMIC_LARGEST_ALIGN))
++			mask &= sizeof(struct { long x; } __aligned_largest) - 1;
++		WARN_ON_ONCE((unsigned long)v & mask);
++	}
++}
++
+ /**
+  * instrument_atomic_read - instrument atomic read access
+  * @v: address of access
+@@ -68,7 +79,7 @@ static __always_inline void instrument_atomic_read(const volatile void *v, size_
  {
  	kasan_check_read(v, size);
  	kcsan_check_atomic_read(v, size);
-+	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
+-	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
++	instrument_atomic_check_alignment(v, size);
  }
  
  /**
-@@ -81,6 +83,7 @@ static __always_inline void instrument_atomic_write(const volatile void *v, size
+@@ -83,7 +94,7 @@ static __always_inline void instrument_atomic_write(const volatile void *v, size
  {
  	kasan_check_write(v, size);
  	kcsan_check_atomic_write(v, size);
-+	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
+-	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
++	instrument_atomic_check_alignment(v, size);
  }
  
  /**
-@@ -95,6 +98,7 @@ static __always_inline void instrument_atomic_read_write(const volatile void *v,
+@@ -98,7 +109,7 @@ static __always_inline void instrument_atomic_read_write(const volatile void *v,
  {
  	kasan_check_write(v, size);
  	kcsan_check_atomic_read_write(v, size);
-+	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
+-	WARN_ON_ONCE(IS_ENABLED(CONFIG_DEBUG_ATOMIC) && ((unsigned long)v & (size - 1)));
++	instrument_atomic_check_alignment(v, size);
  }
  
  /**
 diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index dc0e0c6ed075..1c7e30cdfe04 100644
+index 1c7e30cdfe04..4d3ebe501d17 100644
 --- a/lib/Kconfig.debug
 +++ b/lib/Kconfig.debug
-@@ -1363,6 +1363,16 @@ config DEBUG_PREEMPT
- 	  depending on workload as it triggers debugging routines for each
- 	  this_cpu operation. It should only be used for debugging purposes.
+@@ -1373,6 +1373,14 @@ config DEBUG_ATOMIC
  
-+config DEBUG_ATOMIC
-+	bool "Debug atomic variables"
-+	depends on DEBUG_KERNEL
+ 	  This option has potentially significant overhead.
+ 
++config DEBUG_ATOMIC_LARGEST_ALIGN
++	bool "Check alignment only up to __aligned_largest"
++	depends on DEBUG_ATOMIC
 +	help
-+	  If you say Y here then the kernel will add a runtime alignment check
-+	  to atomic accesses. Useful for architectures that do not have trap on
-+	  mis-aligned access.
-+
-+	  This option has potentially significant overhead.
++	  If you say Y here then the check for natural alignment of
++	  atomic accesses will be constrained to the compiler's largest
++	  alignment for scalar types.
 +
  menu "Lock Debugging (spinlocks, mutexes, etc...)"
  
