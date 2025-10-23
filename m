@@ -1,37 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0899333CEB1;
-	Thu, 23 Oct 2025 16:51:09 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6084633F8C3;
+	Thu, 23 Oct 2025 16:51:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761238270; cv=none; b=Iei/fmhMSU/QU5ZHf0hviapbo/geXLdrW329iysFdYSjSR/6gbQEcQgka+Dj9mmzrtSJ/iQ/s5gcU7hUo2Eb2KNGxc5mtfQi6J9XzLmF9aEHVHd9qu08P2iPRab4n4Tal4fAQ7RYbqxupK5FJwFetilHbAhsEOxGRJDWMnil0Zg=
+	t=1761238270; cv=none; b=qAfJTorBVocfhsYk3ur3xCRPNP+JHharfRNklsm3zn+kugmGqmZxe7P/FmcZ8myX++5Iuwt5+SyKBOFGPkBKm6PCLfGA341xs+pQeCFprIWRRmHYZ/GqZEJifaCb8973bjPeS5gerIRsCZBnIFhFuIgVtqkUVq45vtC/chCPucc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1761238270; c=relaxed/simple;
-	bh=a58bONVF1hEXJcHKI9R0Y6L9RqhnS7srP5e66tDrhlU=;
+	bh=gh4nsTA1J+FtbBXbiS/i+dlW+2bjS5V1BMggpLU8Gvs=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=j2vZJtFqYoyH0Md4gHD6MZuHHaFu95GVBgIH0a6M698HTUQsRdGDMTQ6rD2gf6/hzGX7lhXJzBuY1/dyuq9t/X1ymQe7I+V50BzgJ7WkEoqfNr8VUQdxjePAbY+2RVxIJ7h5jye1+BA1CUyUZCBCpMLJKC+ns/29AhXZQOe5jfo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=SUn7ybvs; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=isiSlFxIGpPAPbUlvKRhYNN6DGoKhC8XnD+wN34kiWMnwtqGxYPGgpzCGIHIcg7kchZj66tsRjhROpocFZOb9QuhkAHzzU2pizCbCuUFFGf6taTb5vMwuBWTY6vA1rHv0hT52WA65q1bkEqyniecWIK4k5WzKX1TJHTZdHZODhk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=g0n/0MOy; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="SUn7ybvs"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 90FACC4CEFF;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="g0n/0MOy"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id DE804C19422;
 	Thu, 23 Oct 2025 16:51:09 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1761238269;
-	bh=a58bONVF1hEXJcHKI9R0Y6L9RqhnS7srP5e66tDrhlU=;
+	s=k20201202; t=1761238270;
+	bh=gh4nsTA1J+FtbBXbiS/i+dlW+2bjS5V1BMggpLU8Gvs=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=SUn7ybvsW2sSbfh5QDyOqiYItuRrVMBBoik2oR/X6jSwcw8xCzZNSyAH3kJuYQvAZ
-	 fIo6KUEZadxQPinmEALJmDOm3rVfShb47JolGUfcf+te3d9xJlswn8jZeW/8O8wLVy
-	 qVDuoLA3cNRlJnw5iW+8sXbg9y111abFquceknyyEmquq+BHDWZUCJyEbncq8Lp7FY
-	 DBOSPEacPYHcs2qLyHELmI5eHiRMdbV2uafK8wtCt+/1zu7kM9h7uIwxJ8RrozD936
-	 GUnXMp5w67haXA84AA0J+Tq1l4mt6rPFB7Oxr28WLlSg8fSnsYBNt5BX2iiOeYJtvm
-	 K15fjqJq3qDhQ==
+	b=g0n/0MOyIzXjTusHNj/asBvMbRm2x4ldzrdWe1ph/Bf1UvQclTLRrx2ffC6vSoyzU
+	 NL7ljZYSwpI9GXp0WBFN8gJoSgxhW+EKTdRUXbkbAz1ivpco9zMpn15xvT2lfcqKdQ
+	 qJMihoujOlzHWkMrHw7dRDnuvSyqNmdQjob/WIrEHh6gizDSpUMwl6maCRKE58oV2h
+	 wmZJfoLb1DkMFGazuatkJiNaXX/H7jCKYeYw2Glsh+Jbmb7UW/uXKMaSP6XIJf/Nrs
+	 RA00R9AZXs+XSy06K0vihYfLay5MNnpF3QRaFoh7UkR9dgKDwG6Sr71GRPh/oo2N9X
+	 7j1GFrLx6QGfw==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 7A904CCD1BE;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id CA876CCF9E4;
 	Thu, 23 Oct 2025 16:51:09 +0000 (UTC)
 From: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>
-Date: Thu, 23 Oct 2025 09:51:06 -0700
-Subject: [PATCH v22 01/28] mm: VM_SHADOW_STACK definition for riscv
+Date: Thu, 23 Oct 2025 09:51:09 -0700
+Subject: [PATCH v22 04/28] riscv: zicfiss / zicfilp extension csr and bit
+ definitions
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20251023-v5_user_cfi_series-v22-1-1935270f7636@rivosinc.com>
+Message-Id: <20251023-v5_user_cfi_series-v22-4-1935270f7636@rivosinc.com>
 References: <20251023-v5_user_cfi_series-v22-0-1935270f7636@rivosinc.com>
 In-Reply-To: <20251023-v5_user_cfi_series-v22-0-1935270f7636@rivosinc.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
@@ -73,14 +74,13 @@ Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  atishp@rivosinc.com, evan@rivosinc.com, cleger@rivosinc.com, 
  alexghiti@rivosinc.com, samitolvanen@google.com, broonie@kernel.org, 
  rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org, 
- Zong Li <zong.li@sifive.com>, David Hildenbrand <david@redhat.com>, 
  Deepak Gupta <debug@rivosinc.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1761238267; l=815;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1761238267; l=2296;
  i=debug@rivosinc.com; s=20251023; h=from:subject:message-id;
- bh=pkBAvc0IieGGas1vvYQtOkKUWHcQF724uRmRqVMGgPs=;
- b=VUBVVTDAkz7jwJ2C3jgClL9f8HO15z25YA/BhpcXvfbmCfho9WWkdfrHc1G5gnRgD+BziikYB
- zc+am72yislC9qPgWwy1p1oGuBPGxvwQo3I2eAaQqJILROv5diw4iqI
+ bh=kcKAh3qiYa6u+vavoC8VVP4XbgP0FdaLB3/LKiPnoo8=;
+ b=5abQ/8Fyb67brrslHsppHvVHhbfMSh362P9OdeCdOVQdtEtbY5fxaIbvhvl5q8aWJDf/FV0Fq
+ fHseZWEX8HbDzUjvYtlSnv7SPpsB46CG4aJqGJvIu5MxcK1mzpPlmzq
 X-Developer-Key: i=debug@rivosinc.com; a=ed25519;
  pk=O37GQv1thBhZToXyQKdecPDhtWVbEDRQ0RIndijvpjk=
 X-Endpoint-Received: by B4 Relay for debug@rivosinc.com/20251023 with
@@ -90,34 +90,66 @@ Reply-To: debug@rivosinc.com
 
 From: Deepak Gupta <debug@rivosinc.com>
 
-VM_HIGH_ARCH_5 is used for riscv
+zicfiss and zicfilp extension gets enabled via b3 and b2 in *envcfg CSR.
+menvcfg controls enabling for S/HS mode. henvcfg control enabling for VS
+while senvcfg controls enabling for U/VU mode.
 
-Reviewed-by: Zong Li <zong.li@sifive.com>
-Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
-Acked-by: David Hildenbrand <david@redhat.com>
+zicfilp extension extends *status CSR to hold `expected landing pad` bit.
+A trap or interrupt can occur between an indirect jmp/call and target
+instr. `expected landing pad` bit from CPU is recorded into xstatus CSR so
+that when supervisor performs xret, `expected landing pad` state of CPU can
+be restored.
+
+zicfiss adds one new CSR
+- CSR_SSP: CSR_SSP contains current shadow stack pointer.
+
 Signed-off-by: Deepak Gupta <debug@rivosinc.com>
+Reviewed-by: Charlie Jenkins <charlie@rivosinc.com>
 ---
- include/linux/mm.h | 7 +++++++
- 1 file changed, 7 insertions(+)
+ arch/riscv/include/asm/csr.h | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index d16b33bacc32..2032d3f195f1 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -380,6 +380,13 @@ extern unsigned int kobjsize(const void *objp);
- # define VM_SHADOW_STACK	VM_HIGH_ARCH_6
- #endif
+diff --git a/arch/riscv/include/asm/csr.h b/arch/riscv/include/asm/csr.h
+index 4a37a98398ad..78f573ab4c53 100644
+--- a/arch/riscv/include/asm/csr.h
++++ b/arch/riscv/include/asm/csr.h
+@@ -18,6 +18,15 @@
+ #define SR_MPP		_AC(0x00001800, UL) /* Previously Machine */
+ #define SR_SUM		_AC(0x00040000, UL) /* Supervisor User Memory Access */
  
-+#if defined(CONFIG_RISCV_USER_CFI)
-+/*
-+ * Following x86 and picking up the same bitpos.
-+ */
-+# define VM_SHADOW_STACK	VM_HIGH_ARCH_5
++/* zicfilp landing pad status bit */
++#define SR_SPELP	_AC(0x00800000, UL)
++#define SR_MPELP	_AC(0x020000000000, UL)
++#ifdef CONFIG_RISCV_M_MODE
++#define SR_ELP		SR_MPELP
++#else
++#define SR_ELP		SR_SPELP
 +#endif
 +
- #ifndef VM_SHADOW_STACK
- # define VM_SHADOW_STACK	VM_NONE
- #endif
+ #define SR_FS		_AC(0x00006000, UL) /* Floating-point Status */
+ #define SR_FS_OFF	_AC(0x00000000, UL)
+ #define SR_FS_INITIAL	_AC(0x00002000, UL)
+@@ -212,6 +221,8 @@
+ #define ENVCFG_PMM_PMLEN_16		(_AC(0x3, ULL) << 32)
+ #define ENVCFG_CBZE			(_AC(1, UL) << 7)
+ #define ENVCFG_CBCFE			(_AC(1, UL) << 6)
++#define ENVCFG_LPE			(_AC(1, UL) << 2)
++#define ENVCFG_SSE			(_AC(1, UL) << 3)
+ #define ENVCFG_CBIE_SHIFT		4
+ #define ENVCFG_CBIE			(_AC(0x3, UL) << ENVCFG_CBIE_SHIFT)
+ #define ENVCFG_CBIE_ILL			_AC(0x0, UL)
+@@ -230,6 +241,11 @@
+ #define SMSTATEEN0_HSENVCFG		(_ULL(1) << SMSTATEEN0_HSENVCFG_SHIFT)
+ #define SMSTATEEN0_SSTATEEN0_SHIFT	63
+ #define SMSTATEEN0_SSTATEEN0		(_ULL(1) << SMSTATEEN0_SSTATEEN0_SHIFT)
++/*
++ * zicfiss user mode csr
++ * CSR_SSP holds current shadow stack pointer.
++ */
++#define CSR_SSP                 0x011
+ 
+ /* mseccfg bits */
+ #define MSECCFG_PMM			ENVCFG_PMM
 
 -- 
 2.43.0
