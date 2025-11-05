@@ -1,190 +1,164 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qv1-f42.google.com (mail-qv1-f42.google.com [209.85.219.42])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5EE4686334
-	for <linux-arch@vger.kernel.org>; Wed,  5 Nov 2025 16:24:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D873D32ED3B
+	for <linux-arch@vger.kernel.org>; Wed,  5 Nov 2025 17:21:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762359879; cv=none; b=qCelsapfRGfjkhma1Ou8nTwiZk7DVMwe19Sqa5z9EuFBUsdE2rHWaqJTzSxorAkcJT6c/PjU9k28u10XELjVi6zKFq4uJiWvfVldOHIDR55Vm8B0JSHhKoU4qDHQymiRudD08U+OyY5JqEgKFhVqyTCwtSo42W/jQCWLaqKn4ZI=
+	t=1762363280; cv=none; b=dWwB1OS7bh1XkhgHV/U+T8d4qKfGL9VpeSMzUC8M9rnnqKqm7eXhxgFy61rC3kbih3Eo4KsYWEJUpVetUpcbcBBZK8wLtemJnw3abyz9tj1FRoXfqDOj/NsFLrVVyRgUW+1JSwTbKjfYZO6BbC3jwGqakR6SDPHNo2c1mwYdnzI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762359879; c=relaxed/simple;
-	bh=Fflidx7xTzSLnI3Prwh+YYynUZ15M7y2pcYRBHfDZ5k=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=KQDmMWLm9NVcgKXPHMFn2tFBWagt84sJHKfNE95NDikV1FOTiWxHu384kjWPdguBaCjR2y7R1JpBrLvOW3zHk56029SDDlGLhyRMUSuAVIOx57lrYbLQ4ANEoCenY7kspCECK8Y0dQ0fzU3ERPuNpCogWA/GRlEJ27FvfAJGs6Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=DmopsFdP; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=PKq1zyDD; arc=none smtp.client-ip=170.10.129.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1762363280; c=relaxed/simple;
+	bh=R+scxNFIJ7A2QKHZGih1Ehc3wdUpOLgJ/krGtFdCacU=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=kKEGu/heGmA5yJMmVOTx+8Ujmn+fFVfYN43p0hUtIxey48LGKPjcgQ8IMLjs6y2qrG3wGPZBzEF0OslOrOXVX4erAWNlLdJiGxX7pkEmZ6dE2YNlY5ZCrxvzfmCxAkxBapgFpZfk8uwZ5kLR/gqIklWjZn4mLltTEv3943jY5y8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca; spf=pass smtp.mailfrom=ziepe.ca; dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b=SH8jp2DI; arc=none smtp.client-ip=209.85.219.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=ziepe.ca
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziepe.ca
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="DmopsFdP";
-	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="PKq1zyDD"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1762359876;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=nPk6YcBuruLXQ/o+Uci3gsoXIOQlnGdWukNwLQbwsoc=;
-	b=DmopsFdP1EdJvoClL2S9EALuNLiB8sEYj6RifbSP342V8EqpKpo92ULT+JyUdn7Iw5/veS
-	bGzK1sb03J0NXHZb6wyERWVbWOPgPRCVsC63KkaOejukzp+hQUQNcmw2QFHgBwU1pw3aUX
-	bVc1JwRV53e/4rMfD5FTM7nbqzdG3PM=
-Received: from mail-wr1-f69.google.com (mail-wr1-f69.google.com
- [209.85.221.69]) by relay.mimecast.com with ESMTP with STARTTLS
- (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
- us-mta-617-yurvBqx0NxCtlkiVDDm25w-1; Wed, 05 Nov 2025 11:24:34 -0500
-X-MC-Unique: yurvBqx0NxCtlkiVDDm25w-1
-X-Mimecast-MFC-AGG-ID: yurvBqx0NxCtlkiVDDm25w_1762359873
-Received: by mail-wr1-f69.google.com with SMTP id ffacd0b85a97d-429c8d07874so5587f8f.3
-        for <linux-arch@vger.kernel.org>; Wed, 05 Nov 2025 08:24:34 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=ziepe.ca header.i=@ziepe.ca header.b="SH8jp2DI"
+Received: by mail-qv1-f42.google.com with SMTP id 6a1803df08f44-87bb66dd224so1173456d6.3
+        for <linux-arch@vger.kernel.org>; Wed, 05 Nov 2025 09:21:17 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=redhat.com; s=google; t=1762359873; x=1762964673; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:references
-         :in-reply-to:subject:cc:to:from:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=nPk6YcBuruLXQ/o+Uci3gsoXIOQlnGdWukNwLQbwsoc=;
-        b=PKq1zyDDMhJz7TMdiLUGglU4RMfHBVbkqi6/8Gah/5D1lbA96wM/quVmfjDNhtPEGW
-         QlAFYeYHPzY2g7qgUkta3iTK+znskcZL9S5Ih9Sz2D/ogoU9rC8/O6uDEzbbUNzkqzvA
-         9D+Vj/Gc0IkvfEXKz2CMawAzkGR22bpqb1S0B/G3+Sp9VFmk73dElJOFjDyGSWERagWc
-         zU6YamwJXDnRvN6sI/FSRPN260fQUPYZuNIeXaV/iHuWNVhjf528TnDyXdJ48+/vAAHA
-         zlT17Xl4V0N9tF0ujowitHIYj9GKzGloATTxMP0xd3OGkJwHs6STVgiwv8Ai0TdRl8TO
-         ssdA==
+        d=ziepe.ca; s=google; t=1762363277; x=1762968077; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=2cq2mS+yWhZev0zm4YEm/j+lSP0FbcQSTW4gUm6tSNU=;
+        b=SH8jp2DIufEX3vRN+bltek/lJi75b+p+z6AIN9nyUDWTVYCvATPDIaqoM3LESvI4FD
+         8nquf5IVH6r6cI33uAXnizUpTqbHvleYQT9kAAY4b0ZbCwQlwYzE3GQuW2Y6sut/vNOW
+         o3iLPOiHZJM+c3dlQjap/e5ySWpcEqF+1Rfwrb/26DtOzWcSjuSoveArv3xqAA9c56eX
+         Wf8nxoHDCzeCmeLzkzXWAQ7WhGjvqn8Wk7ZgL3TfZvDJRS8xIeJ2VQMyPMS2Q/xKQqPz
+         hHDtgt+7wOO5Flg+YPcQTR+oqDeKyusFE0U4bnVdqJ4pi9l3rGcyGzEmTGvr1ZnLdMkg
+         U/QQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1762359873; x=1762964673;
-        h=content-transfer-encoding:mime-version:message-id:date:references
-         :in-reply-to:subject:cc:to:from:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=nPk6YcBuruLXQ/o+Uci3gsoXIOQlnGdWukNwLQbwsoc=;
-        b=XtfL+Ena2j6Bm/s/L+3wFbuztMaAKSNJh7PKeanmj5A6UcLVBr8zDK49TMBJU2HeBF
-         UQviVC2tQRO/MXgKfm+fE/YGJVdZktojNvZfin9Lgq20S+0Bf1+RPbxUjA98ue/VZn9w
-         1GeOp/O6ZxDd4+V8TRumw3Mmx+Q/oxelnfJzwi67r/SGI28KrTdP8Ry3BFSxkA2MAf4k
-         uPWhCGq+lUcQktjMDYLtfCyKMPghKa1x6fu7R2oRU3n+fCnWHnXylo4lr79HOoPcYkac
-         X+LoHwLZCIdt7lAqJ2XXDJBCJ+P+zXZkT8yYMnDkUo9urfEYt0PeghQOC5Xrsht8AU3S
-         3hzQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVN6W59dZhAdA/7H37GVSAgldLEg3kmH+MnPu3Ho+vg/UgwU1kV6dhwsEq6hE6p0iiBoL9/f3gaCNl3@vger.kernel.org
-X-Gm-Message-State: AOJu0YwM1KGz6mJSkyE90GaAQMGeefLJjuFMesxOCB9Gq+72HHvzvBya
-	XlZlO7HaCDaPiOrH9/N/UF70yX1Gyy2e1eefJrdcCyyDSjCLcN2g/MEbkvaj+6HqhEKkmgwSzBg
-	rFxH6E1mCmpjdiuRQoE9+Y4NA/YBHXor4/2y5Gj15hLQZ9FphNtJ/lZLghQTKZyc=
-X-Gm-Gg: ASbGncvh8VsmPQA8FTWq/CbE9S2Wm+tnTac+mT+AaWIw60dlIeTU/lpYJx0UmWyBaFb
-	IffH9Q5U1i9h4Y/2fQZ+qpd56R90x/qZh8d7QNjgzLheXbecS2YiROPzFa/r55QqF4LFc7QNERl
-	KVWiEDDiTL9jtWKZxF6Kta18lM8LBKgS+tfmlkdA/sJjrP31Y27ToYlH4tqW2D+QxdRmFgOZERm
-	YMdvKPE9MGXyZ3kRci+Ve8KHCPz6PsHLoH17hc8w1/1TvuHHUdUHTwQ389H0ehUPlWTD6yoQR0l
-	q6WGzM6vPNrmZv06hy/fqMobGblGQ4eGbK3BYbuN52+LakQ1AkAYP21Fov0XfkYu1qAKzoInSWx
-	7FIpQw1lVVzQgeAxTguTtMSw0Yn18F02t6xkyAAFiN7UtODwSgrU+LEQrD2Lo
-X-Received: by 2002:a05:6000:2907:b0:429:d4c2:cadb with SMTP id ffacd0b85a97d-429e3311ac6mr3563196f8f.58.1762359873174;
-        Wed, 05 Nov 2025 08:24:33 -0800 (PST)
-X-Google-Smtp-Source: AGHT+IEL75fsQ0H2l1YahgWByyszuFW6670iMBa0il80FwPsU0pgmLcV2khMdpXTiSamLH801kgv9g==
-X-Received: by 2002:a05:6000:2907:b0:429:d4c2:cadb with SMTP id ffacd0b85a97d-429e3311ac6mr3563132f8f.58.1762359872637;
-        Wed, 05 Nov 2025 08:24:32 -0800 (PST)
-Received: from vschneid-thinkpadt14sgen2i.remote.csb (213-44-135-146.abo.bbox.fr. [213.44.135.146])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-429dc1fd2a7sm11003113f8f.39.2025.11.05.08.24.30
+        d=1e100.net; s=20230601; t=1762363277; x=1762968077;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=2cq2mS+yWhZev0zm4YEm/j+lSP0FbcQSTW4gUm6tSNU=;
+        b=iMoFz6IIofZBfsVNl2+xM1vOY1VnyRvjWmD8zsyPIp0XPINoMAC/7M2pWIz0NCwOHw
+         wLDyqljU1tzx+62zK+mDGcOk2fNiqJuc6Rq3vsUcoFiLpefJjW8rHBpSbK96DHOTYr/N
+         eLFpd0AxbAyEHbZDZTqZvNrCgIfSGwkaQjEB+0PdgFstl3PV15fqD3lne6gxnudIqXpA
+         pjJS9bcNcl0HcLQkHHZOwwHFZ+zbT5BvlWiq1Lrb2eU96PpdODkb8/AtAnhu+v7/pc68
+         G62BehBJymD2u6b61lRVVr6hiYCpfxWO7RklU/ibUb5eyT14tbnXqWxSeG+ePQR0fFQ2
+         V1wg==
+X-Forwarded-Encrypted: i=1; AJvYcCXSBKmsGJmU0edrPgj0Yij1f8mmr0nitrLBKa2VnRSxaxDtEaTdMAjp2f6/X3IpgxCBHNpKkKvUqp6X@vger.kernel.org
+X-Gm-Message-State: AOJu0YzP8yU40fACXGUfzmLTE+wOcszQOsCvjMluwVsGK0igLu+co0Gn
+	3h8HIiENhL/SL6o3caKeMyR9+LIDvyhW2gpY+L2tiMK7Ealb3wfV0g5RC+PKzhDxFRs=
+X-Gm-Gg: ASbGncsfu6bCcPEKJJLa/sQ+ykl+93Q2NO5L0sDgGtdxHZm5YQEsxM1kqyhOIwnP35c
+	bzycb1IWnbnpe3BZ1tisr0wkZVmM+md5rtRKOxBQzrmYieScczIhP6xzvB+oZMebowX6/UuFZoN
+	G8lXXmRUNqIem8uVy6jZnqquKu3Lbp7Jp+Lw7V76IR7yB41KE/MqS0cwMvD70NIEMNvuxGBe9Ym
+	wDT3MsmpNS2B0GApfJKu/C+dk4uuSDRbTLkIRxoaa0oGslL7MJEL+u7cTyVx+zDbWgUcjeb5qbu
+	RHUkw0WIZA8ruLLwB605gggz0HWODACJ8rgAqlyFkZDQm/XdRPKvspdFWog9xZ2Hl3v2MnPtDcD
+	06i7e5mHjSUCOnlcbfR/H4n0dDvpsgoyXq6+VLnDsgbH3CDJXJ/N9q4OUwD2si+hhm7o450n04C
+	udkNC/ZSAW5HfmdwcijNVV57fdCk2b5hHGf7mYMrXjjF7Tbw==
+X-Google-Smtp-Source: AGHT+IGCK5Ht7P6eoqM7YgVZ6ef4jlofMTj5LlbxF9x0JfdkYp0y/H774e8UOGf7CmqXFow5BgQdlA==
+X-Received: by 2002:ad4:576e:0:b0:880:5779:d489 with SMTP id 6a1803df08f44-88071095623mr52524556d6.3.1762363276490;
+        Wed, 05 Nov 2025 09:21:16 -0800 (PST)
+Received: from ziepe.ca (hlfxns017vw-47-55-120-4.dhcp-dynamic.fibreop.ns.bellaliant.net. [47.55.120.4])
+        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-880828c457bsm996916d6.5.2025.11.05.09.21.15
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 05 Nov 2025 08:24:31 -0800 (PST)
-From: Valentin Schneider <vschneid@redhat.com>
-To: Frederic Weisbecker <frederic@kernel.org>
-Cc: Phil Auld <pauld@redhat.com>, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, rcu@vger.kernel.org, x86@kernel.org,
- linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
- linux-riscv@lists.infradead.org, linux-arch@vger.kernel.org,
- linux-trace-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>,
- Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave
- Hansen <dave.hansen@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>,
- Andy Lutomirski <luto@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Arnaldo Carvalho de Melo <acme@kernel.org>, Josh Poimboeuf
- <jpoimboe@kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Arnd Bergmann
- <arnd@arndb.de>, "Paul E. McKenney" <paulmck@kernel.org>, Jason Baron
- <jbaron@akamai.com>, Steven Rostedt <rostedt@goodmis.org>, Ard Biesheuvel
- <ardb@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, "David S.
- Miller" <davem@davemloft.net>, Neeraj Upadhyay
- <neeraj.upadhyay@kernel.org>, Joel Fernandes <joelagnelf@nvidia.com>, Josh
- Triplett <josh@joshtriplett.org>, Boqun Feng <boqun.feng@gmail.com>,
- Uladzislau Rezki <urezki@gmail.com>, Mathieu Desnoyers
- <mathieu.desnoyers@efficios.com>, Mel Gorman <mgorman@suse.de>, Andrew
- Morton <akpm@linux-foundation.org>, Masahiro Yamada
- <masahiroy@kernel.org>, Han Shen <shenhan@google.com>, Rik van Riel
- <riel@surriel.com>, Jann Horn <jannh@google.com>, Dan Carpenter
- <dan.carpenter@linaro.org>, Oleg Nesterov <oleg@redhat.com>, Juri Lelli
- <juri.lelli@redhat.com>, Clark Williams <williams@redhat.com>, Yair
- Podemsky <ypodemsk@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>,
- Daniel Wagner <dwagner@suse.de>, Petr Tesarik <ptesarik@suse.com>
-Subject: Re: [PATCH v6 00/29] context_tracking,x86: Defer some IPIs until a
- user->kernel transition
-In-Reply-To: <aQJLpSYz3jdazzdb@localhost.localdomain>
-References: <20251010153839.151763-1-vschneid@redhat.com>
- <aQDuY3rgOK-L8D04@localhost.localdomain>
- <xhsmhzf9aov51.mognet@vschneid-thinkpadt14sgen2i.remote.csb>
- <aQJLpSYz3jdazzdb@localhost.localdomain>
-Date: Wed, 05 Nov 2025 17:24:29 +0100
-Message-ID: <xhsmh8qgk5txe.mognet@vschneid-thinkpadt14sgen2i.remote.csb>
+        Wed, 05 Nov 2025 09:21:15 -0800 (PST)
+Received: from jgg by wakko with local (Exim 4.97)
+	(envelope-from <jgg@ziepe.ca>)
+	id 1vGhC7-00000007Bv7-1e20;
+	Wed, 05 Nov 2025 13:21:15 -0400
+Date: Wed, 5 Nov 2025 13:21:15 -0400
+From: Jason Gunthorpe <jgg@ziepe.ca>
+To: Gregory Price <gourry@gourry.net>
+Cc: Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Janosch Frank <frankja@linux.ibm.com>,
+	Claudio Imbrenda <imbrenda@linux.ibm.com>,
+	David Hildenbrand <david@redhat.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Gerald Schaefer <gerald.schaefer@linux.ibm.com>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>, Peter Xu <peterx@redhat.com>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
+	Arnd Bergmann <arnd@arndb.de>, Zi Yan <ziy@nvidia.com>,
+	Baolin Wang <baolin.wang@linux.alibaba.com>,
+	"Liam R . Howlett" <Liam.Howlett@oracle.com>,
+	Nico Pache <npache@redhat.com>, Ryan Roberts <ryan.roberts@arm.com>,
+	Dev Jain <dev.jain@arm.com>, Barry Song <baohua@kernel.org>,
+	Lance Yang <lance.yang@linux.dev>,
+	Muchun Song <muchun.song@linux.dev>,
+	Oscar Salvador <osalvador@suse.de>,
+	Vlastimil Babka <vbabka@suse.cz>, Mike Rapoport <rppt@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>,
+	Matthew Brost <matthew.brost@intel.com>,
+	Joshua Hahn <joshua.hahnjy@gmail.com>, Rakie Kim <rakie.kim@sk.com>,
+	Byungchul Park <byungchul@sk.com>,
+	Ying Huang <ying.huang@linux.alibaba.com>,
+	Alistair Popple <apopple@nvidia.com>,
+	Axel Rasmussen <axelrasmussen@google.com>,
+	Yuanchu Xie <yuanchu@google.com>, Wei Xu <weixugc@google.com>,
+	Kemeng Shi <shikemeng@huaweicloud.com>,
+	Kairui Song <kasong@tencent.com>, Nhat Pham <nphamcs@gmail.com>,
+	Baoquan He <bhe@redhat.com>, Chris Li <chrisl@kernel.org>,
+	SeongJae Park <sj@kernel.org>, Matthew Wilcox <willy@infradead.org>,
+	Leon Romanovsky <leon@kernel.org>, Xu Xin <xu.xin16@zte.com.cn>,
+	Chengming Zhou <chengming.zhou@linux.dev>,
+	Jann Horn <jannh@google.com>, Miaohe Lin <linmiaohe@huawei.com>,
+	Naoya Horiguchi <nao.horiguchi@gmail.com>,
+	Pedro Falcato <pfalcato@suse.de>,
+	Pasha Tatashin <pasha.tatashin@soleen.com>,
+	Rik van Riel <riel@surriel.com>, Harry Yoo <harry.yoo@oracle.com>,
+	Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org,
+	kvm@vger.kernel.org, linux-s390@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+	linux-arch@vger.kernel.org, damon@lists.linux.dev
+Subject: Re: [PATCH 02/16] mm: introduce leaf entry type and use to simplify
+ leaf entry logic
+Message-ID: <20251105172115.GQ1204670@ziepe.ca>
+References: <cover.1762171281.git.lorenzo.stoakes@oracle.com>
+ <2c75a316f1b91a502fad718de9b1bb151aafe717.1762171281.git.lorenzo.stoakes@oracle.com>
+ <aQtiUPwhY5brDrna@gourry-fedora-PF4VCD3F>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aQtiUPwhY5brDrna@gourry-fedora-PF4VCD3F>
 
-On 29/10/25 18:15, Frederic Weisbecker wrote:
-> Le Wed, Oct 29, 2025 at 11:32:58AM +0100, Valentin Schneider a =C3=A9crit=
- :
->> I need to have a think about that one; one pain point I see is the conte=
-xt
->> tracking work has to be NMI safe since e.g. an NMI can take us out of
->> userspace. Another is that NOHZ-full CPUs need to be special cased in the
->> stop machine queueing / completion.
->>
->> /me goes fetch a new notebook
->
-> Something like the below (untested) ?
->
+On Wed, Nov 05, 2025 at 09:42:24AM -0500, Gregory Price wrote:
+> On Mon, Nov 03, 2025 at 12:31:43PM +0000, Lorenzo Stoakes wrote:
+> > +typedef swp_entry_t leaf_entry_t;
+> > +
+> > +#ifdef CONFIG_MMU
+> > +
+> > +/* Temporary until swp_entry_t eliminated. */
+> > +#define LEAF_TYPE_SHIFT SWP_TYPE_SHIFT
+> > +
+> > +enum leaf_entry_type {
+> > +	/* Fundamental types. */
+> > +	LEAFENT_NONE,
+> > +	LEAFENT_SWAP,
+> > +	/* Migration types. */
+> > +	LEAFENT_MIGRATION_READ,
+> > +	LEAFENT_MIGRATION_READ_EXCLUSIVE,
+> > +	LEAFENT_MIGRATION_WRITE,
+> > +	/* Device types. */
+> > +	LEAFENT_DEVICE_PRIVATE_READ,
+> > +	LEAFENT_DEVICE_PRIVATE_WRITE,
+> > +	LEAFENT_DEVICE_EXCLUSIVE,
+> > +	/* H/W posion types. */
+> > +	LEAFENT_HWPOISON,
+> > +	/* Marker types. */
+> > +	LEAFENT_MARKER,
+> > +};
+> > +
+> 
+> Have been browsing the patch set again, will get around a deeper review,
+> but just wanted to say this is a thing of beauty :]
 
-Some minor nits below but otherwise that looks promising.
++1 I thought the same thing. So much clearer what is going on here,
+and I didn't realize we had so many types already..
 
-One problem I'm having however is reasoning about the danger zone; what
-forbidden actions could a NO_HZ_FULL CPU take when entering the kernel
-while take_cpu_down() is happening?
-
-I'm actually not familiar with why we actually use stop_machine() for CPU
-hotplug; I see things like CPUHP_AP_SMPCFD_DYING::smpcfd_dying_cpu() or
-CPUHP_AP_TICK_DYING::tick_cpu_dying() expect other CPUs to be patiently
-spinning in multi_cpu_stop(), and I *think* nothing in the entry code up to
-context_tracking entry would disrupt that, but it's not a small thing to
-reason about.
-
-AFAICT we need to reason about every .teardown callback from
-CPUHP_TEARDOWN_CPU to CPUHP_AP_OFFLINE and their explicit & implicit
-dependencies on other CPUs being STOP'd.
-
-> @@ -176,6 +177,68 @@ struct multi_stop_data {
->       atomic_t		thread_ack;
->  };
->
-> +static DEFINE_PER_CPU(int, stop_machine_poll);
-> +
-> +void stop_machine_poll_wait(void)
-
-That needs to be noinstr, and AFAICT there's no problem with doing just tha=
-t.
-
-> +{
-> +	int *poll =3D this_cpu_ptr(&stop_machine_poll);
-> +
-> +	while (*poll)
-> +		cpu_relax();
-> +	/* Enforce the work in stop machine to be visible */
-> +	smp_mb();
-> +}
-> +
-> +static void stop_machine_poll_start(struct multi_stop_data *msdata)
-> +{
-> +	int cpu;
-> +
-> +	if (housekeeping_enabled(HK_TYPE_KERNEL_NOISE))
-
-I think that wants a negation
-
-> +		return;
-> +
-> +	/* Random target can't be known in advance */
-> +	if (!msdata->active_cpus)
-> +		return;
-
+Jason
