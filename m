@@ -1,108 +1,216 @@
-Received: from szxga01-in.huawei.com (szxga01-in.huawei.com [45.249.212.187])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ej1-f48.google.com (mail-ej1-f48.google.com [209.85.218.48])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DFFB22951B3;
-	Wed, 12 Nov 2025 01:59:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.249.212.187
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7057572617
+	for <linux-arch@vger.kernel.org>; Wed, 12 Nov 2025 02:19:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762912743; cv=none; b=SMKf0yMC6INthkel04O2tTSrYuG3eXbXWIk+Vuiuqh1I1RNvGaaErlsvsaHtaGMkrxSWBZ9w5pwgS4c0J8oW2/V34QYS25L2XqfdGVMgdzRmEgQprN7V/1nFu02k9S1+zW2OOvHlEptJ5+I8UinivhAE7ehhsrsVsTX8GAFKP7Y=
+	t=1762913979; cv=none; b=Ryd8eaWDBRp6Y8Oyt7gARq0kRZqboxzuBGd/kLPtPvIbJ4VqHoMUoyfFUgzWgr1SSlz0YinylJsMDH0qWcGts3Hq0xOolW12JwaVn5T9Cn5vw1+DXdKyOwgnXSyS6iaWt/DdwDZB8cBvgn77KCcwIudRAxjS6rz0YkupHpTtRL4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762912743; c=relaxed/simple;
-	bh=VGlN7vVe2hkC/tx36jnpELpV0RtmhQbUr5kiaBGYMw4=;
-	h=From:To:CC:Subject:Date:Message-ID:MIME-Version:Content-Type; b=DjA8KNBxA4uCbG3O1T2wWQ2yVJ//THWxpPfJ2OAwj0zIUso1zd8GdqGKffF5ts1Ve5SGyiq3Bl+4MSS93ZKhGnwijjouAxI/6PYsCEkY/ReJcFOUN4OL6MLRQF3eJU7A+c3qEcF57sPNCpd2s2qaZD3fQjrwHuYL+ru9MTLCblU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=nf6racO2; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=nf6racO2; arc=none smtp.client-ip=45.249.212.187
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
+	s=arc-20240116; t=1762913979; c=relaxed/simple;
+	bh=x2aGuz+zJKZnZZkXzCTVvYZ2ScR1g8KD1+E5T+TcHbg=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=rcgIVsNNcK5786Aru6UWOz3fiR3Pl9Yw45lQO5vmyUmv1D343xwV1aOCDOHBTcmL812nhOU8YlkyslcMDHUdWousmmic9aaQUmNy7HqtKMnkSQmEY9bQ8cV6lKW9qOP2cmhAndljFgvGv45SrEVqyNFo96JXw1vMd1amK49c1XU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com; spf=pass smtp.mailfrom=sifive.com; dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b=gk2VSwhX; arc=none smtp.client-ip=209.85.218.48
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sifive.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="nf6racO2";
-	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="nf6racO2"
-dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
-	c=relaxed/relaxed; q=dns/txt;
-	h=From;
-	bh=wuX5r28VaexWnYhOLnt7f93j+3rz9YK+PcJBP/DbyyY=;
-	b=nf6racO2ksupU9wnn7MfavGg5x+g9M7INfJAy2o3q9Itvw5SbuaeUa0L2xgDo5LTzma7YBj6a
-	2tOcS8MpWNvVWvo7OTjD4FW4TnG/HXjnAciTL84eHGp7WasyyJ5J8KwQhG85pKW6pHTMaVNMc9N
-	aNat5F8LjTaYTJ9S9WAzOkE=
-Received: from canpmsgout11.his.huawei.com (unknown [172.19.92.148])
-	by szxga01-in.huawei.com (SkyGuard) with ESMTPS id 4d5mlb08ftz1BFpZ;
-	Wed, 12 Nov 2025 09:58:35 +0800 (CST)
-dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
-	c=relaxed/relaxed; q=dns/txt;
-	h=From;
-	bh=wuX5r28VaexWnYhOLnt7f93j+3rz9YK+PcJBP/DbyyY=;
-	b=nf6racO2ksupU9wnn7MfavGg5x+g9M7INfJAy2o3q9Itvw5SbuaeUa0L2xgDo5LTzma7YBj6a
-	2tOcS8MpWNvVWvo7OTjD4FW4TnG/HXjnAciTL84eHGp7WasyyJ5J8KwQhG85pKW6pHTMaVNMc9N
-	aNat5F8LjTaYTJ9S9WAzOkE=
-Received: from mail.maildlp.com (unknown [172.19.88.214])
-	by canpmsgout11.his.huawei.com (SkyGuard) with ESMTPS id 4d5mjy0VhLzKm7C;
-	Wed, 12 Nov 2025 09:57:10 +0800 (CST)
-Received: from dggemv706-chm.china.huawei.com (unknown [10.3.19.33])
-	by mail.maildlp.com (Postfix) with ESMTPS id 00E0A1A0174;
-	Wed, 12 Nov 2025 09:58:50 +0800 (CST)
-Received: from kwepemq200001.china.huawei.com (7.202.195.16) by
- dggemv706-chm.china.huawei.com (10.3.19.33) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1544.11; Wed, 12 Nov 2025 09:58:48 +0800
-Received: from localhost.huawei.com (10.90.31.46) by
- kwepemq200001.china.huawei.com (7.202.195.16) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1544.11; Wed, 12 Nov 2025 09:58:48 +0800
-From: Chenghai Huang <huangchenghai2@huawei.com>
-To: <arnd@arndb.de>, <catalin.marinas@arm.com>, <will@kernel.org>,
-	<akpm@linux-foundation.org>, <anshuman.khandual@arm.com>,
-	<ryan.roberts@arm.com>, <andriy.shevchenko@linux.intel.com>,
-	<herbert@gondor.apana.org.au>, <linux-kernel@vger.kernel.org>,
-	<linux-arch@vger.kernel.org>, <linux-arm-kernel@lists.infradead.org>,
-	<linux-crypto@vger.kernel.org>, <linux-api@vger.kernel.org>
-CC: <fanghao11@huawei.com>, <shenyang39@huawei.com>, <liulongfang@huawei.com>,
-	<qianweili@huawei.com>
-Subject: [PATCH RFC 0/4] Introduce 128-bit IO access
-Date: Wed, 12 Nov 2025 09:58:42 +0800
-Message-ID: <20251112015846.1842207-1-huangchenghai2@huawei.com>
-X-Mailer: git-send-email 2.33.0
+	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="gk2VSwhX"
+Received: by mail-ej1-f48.google.com with SMTP id a640c23a62f3a-b72bf7e703fso67155366b.2
+        for <linux-arch@vger.kernel.org>; Tue, 11 Nov 2025 18:19:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=sifive.com; s=google; t=1762913976; x=1763518776; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=ugAQKBkBrsHecB9x8Cs9RwnH0DI2WGTlcIm1Ae1jyr0=;
+        b=gk2VSwhXpuPtX/Fqzr3AwXz1gHhLb2kLLml9g1FsMGgyXn031gl4T+NmBIirL00dD2
+         Kn5SVvCG4YbujGvs0sw0/Ek0BLiKDcxnbKnN3cZnvW2NcSnpT9L7MSbY1LwKTnhA3Pek
+         8uRkUEuzFAz4MUVdwJCKZFJTianz3jU7wwVhB3CmB5SddXuo+Rvyb/M8bkCia5+DCzDz
+         /jkYGUraJHhlC7RXmQ/BuF2Ef/CUfgTuYn6dMW9UlYw0kEw/KyOnpyd81swGrQPScQKM
+         GBysQAUuvVA1EpDUhYpI2mVYSlBC1BvGL3yZ5VDHxAu+T2VmAp/3aG3ixPQNjs/JSpAz
+         /thg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1762913976; x=1763518776;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=ugAQKBkBrsHecB9x8Cs9RwnH0DI2WGTlcIm1Ae1jyr0=;
+        b=xIkGIUYKeNmW8xnzfB6/3AwyT3sWsuCe1bz24+rrW+t/RKtTBUMhYvAGdQevBf/SVg
+         01RKGzqiNVy+o9o1fAfnSQATLKkSYImQjy/Zyg2Yy7Cs5YKvz5HiczgC+MeDYvg3IjBV
+         7zop0Gi8q6AyWLvtE9JGMZWzZ8AjRxPh3btPFRBhKu8RnUk0E6Xx6s5RpKXTz7t0geTg
+         M0vD8S1DcG4KZvAimahjI13PjTmfEjkcz4aWaB9No5H0AYRraG2TLMApv/jZQUYOL0YQ
+         VvPZwM8V87Vd0T2yRfBxh3Rl4NP5NuovlvQ4LmrDvKlR9zLD6usx4WQohVwpVfIh1uxD
+         fwQA==
+X-Forwarded-Encrypted: i=1; AJvYcCVi8api3pombKGw7sh3ymysy1XEgPIgcKEsGfKw5sEkrPm556m8iHpGm1YSE/HHkyQeTlo71u+yqhOP@vger.kernel.org
+X-Gm-Message-State: AOJu0YyZ/T7hdhmTlZDujQo+L7/o4DZTa5AtXDlJgLVtRnVoi/f9JEdg
+	vvKVDqK/lUFc4L5Yv+6iqdXMm0f7Bbab2A3BVibihdCJKPPzLRiYo/BDXESLbBXVHApGQDfoE0g
+	fhUgbmndV0Efv9L9FuUOHMM3UtHGZIOMas7sP/mkeqQ==
+X-Gm-Gg: ASbGncvrd320ubfcFPMGYxijLekL17l8wuJFT4KXhDU4SEHc2Avo7p2KlvAicptudWO
+	5FhFzdB/nerA/MzTUrkWd3HW3Px+o8emsndRTGTL9jFR9nb21hsoolVWLKFJ2EK7GyMUz0w0dJO
+	oYKbWeNz+03PUoECimOubVSJjZy6UzLgPJS3b1VpW5O6/tGQ/oeBmm+bcxAitOLqxWR3xjHyPU/
+	yE8vl47i+oLNNm3B5bsU4Hif6hxFscwKgWwHCeW6r0L+70klU0sLwsfey+gPIE=
+X-Google-Smtp-Source: AGHT+IE+yEBTlwHkenGiGwu5UyXnAf6gT3RkSyNE+10D+a3qX/UN5XaT1J5EAZetmYd9Vh7p3GgyT6IZWxgqCbtm2x0=
+X-Received: by 2002:a17:907:3daa:b0:b72:52c2:b8ca with SMTP id
+ a640c23a62f3a-b7331aec193mr102047266b.59.1762913975653; Tue, 11 Nov 2025
+ 18:19:35 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain
-X-ClientProxiedBy: kwepems200002.china.huawei.com (7.221.188.68) To
- kwepemq200001.china.huawei.com (7.202.195.16)
+References: <20251023-v5_user_cfi_series-v22-0-1935270f7636@rivosinc.com>
+ <20251023-v5_user_cfi_series-v22-25-1935270f7636@rivosinc.com>
+ <CANXhq0oEpCow0G+KsJ6ZPuwsxmAFVqoKGEzygiwSmxFsmntiWg@mail.gmail.com> <aRN-0Z9MNeJ9IZf2@debug.ba.rivosinc.com>
+In-Reply-To: <aRN-0Z9MNeJ9IZf2@debug.ba.rivosinc.com>
+From: Zong Li <zong.li@sifive.com>
+Date: Wed, 12 Nov 2025 10:19:23 +0800
+X-Gm-Features: AWmQ_bmKovRTmE80-MSruF1BPvDQmZ8Z-ahD6_kAC3IOhiFoglBht7EGrzIY3bI
+Message-ID: <CANXhq0ryrNUoBvACX9hh-=FVOe+L6_6beXrZQn2e1P6eWgcUiA@mail.gmail.com>
+Subject: Re: [PATCH v22 25/28] riscv: create a config for shadow stack and
+ landing pad instr support
+To: Deepak Gupta <debug@rivosinc.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
+	"H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, 
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>, Vlastimil Babka <vbabka@suse.cz>, 
+	Lorenzo Stoakes <lorenzo.stoakes@oracle.com>, Paul Walmsley <paul.walmsley@sifive.com>, 
+	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
+	Conor Dooley <conor@kernel.org>, Rob Herring <robh@kernel.org>, 
+	Krzysztof Kozlowski <krzk+dt@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
+	Christian Brauner <brauner@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Eric Biederman <ebiederm@xmission.com>, Kees Cook <kees@kernel.org>, 
+	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <shuah@kernel.org>, Jann Horn <jannh@google.com>, 
+	Conor Dooley <conor+dt@kernel.org>, Miguel Ojeda <ojeda@kernel.org>, 
+	Alex Gaynor <alex.gaynor@gmail.com>, Boqun Feng <boqun.feng@gmail.com>, 
+	Gary Guo <gary@garyguo.net>, =?UTF-8?Q?Bj=C3=B6rn_Roy_Baron?= <bjorn3_gh@protonmail.com>, 
+	Andreas Hindborg <a.hindborg@kernel.org>, Alice Ryhl <aliceryhl@google.com>, 
+	Trevor Gross <tmgross@umich.edu>, Benno Lossin <lossin@kernel.org>, linux-kernel@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, 
+	linux-riscv@lists.infradead.org, devicetree@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, alistair.francis@wdc.com, 
+	richard.henderson@linaro.org, jim.shu@sifive.com, andybnac@gmail.com, 
+	kito.cheng@sifive.com, charlie@rivosinc.com, atishp@rivosinc.com, 
+	evan@rivosinc.com, cleger@rivosinc.com, alexghiti@rivosinc.com, 
+	samitolvanen@google.com, broonie@kernel.org, rick.p.edgecombe@intel.com, 
+	rust-for-linux@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-These patches introduce 128-bit IO access functionality. The reason
-is that the current HiSilicon cryptographic devices need to
-maintain atomic operations when accessing 128-bit MMIO across
-physical and virtual functions.
+On Wed, Nov 12, 2025 at 2:22=E2=80=AFAM Deepak Gupta <debug@rivosinc.com> w=
+rote:
+>
+> On Tue, Nov 11, 2025 at 01:58:37PM +0800, Zong Li wrote:
+> >On Fri, Oct 24, 2025 at 12:51=E2=80=AFAM Deepak Gupta via B4 Relay
+> ><devnull+debug.rivosinc.com@kernel.org> wrote:
+> >>
+> >> From: Deepak Gupta <debug@rivosinc.com>
+> >>
+> >> This patch creates a config for shadow stack support and landing pad i=
+nstr
+> >> support. Shadow stack support and landing instr support can be enabled=
+ by
+> >> selecting `CONFIG_RISCV_USER_CFI`. Selecting `CONFIG_RISCV_USER_CFI` w=
+ires
+> >> up path to enumerate CPU support and if cpu support exists, kernel wil=
+l
+> >> support cpu assisted user mode cfi.
+> >>
+> >> If CONFIG_RISCV_USER_CFI is selected, select `ARCH_USES_HIGH_VMA_FLAGS=
+`,
+> >> `ARCH_HAS_USER_SHADOW_STACK` and DYNAMIC_SIGFRAME for riscv.
+> >>
+> >> Reviewed-by: Zong Li <zong.li@sifive.com>
+> >> Signed-off-by: Deepak Gupta <debug@rivosinc.com>
+> >> ---
+> >>  arch/riscv/Kconfig                  | 22 ++++++++++++++++++++++
+> >>  arch/riscv/configs/hardening.config |  4 ++++
+> >>  2 files changed, 26 insertions(+)
+> >>
+> >> diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+> >> index 0c6038dc5dfd..4f9f9358e6e3 100644
+> >> --- a/arch/riscv/Kconfig
+> >> +++ b/arch/riscv/Kconfig
+> >> @@ -1146,6 +1146,28 @@ config RANDOMIZE_BASE
+> >>
+> >>            If unsure, say N.
+> >>
+> >> +config RISCV_USER_CFI
+> >> +       def_bool y
+> >> +       bool "riscv userspace control flow integrity"
+> >> +       depends on 64BIT && $(cc-option,-mabi=3Dlp64 -march=3Drv64ima_=
+zicfiss) && \
+> >> +                           $(cc-option,-fcf-protection=3Dfull)
+> >
+> >Hi Deepak,
+> >I noticed that you added a $(cc-option,-fcf-protection=3Dfull) check in
+> >this version. I think this check will fail by a cc1 warning when using
+> >a newer toolchain, because -fcf-protection cannot be used alone, it
+> >must be specified together with the appropriate -march option.
+> >For example:
+> >  1. -fcf-protection=3Dbranch requires -march=3D..._zicfilp
+> >  2. -fcf-protection=3Dreturn requires -march=3D..._zicfiss
+> >  3. -fcf-protection=3Dfull requires -march=3D..._zicfilp_zicfiss
+>
+> toolchain that I have from June doesn't require -march=3D..._zicfilp_zicf=
+iss
+> for -fcf-protection=3Dfull. If that has changed, I think this will need a
+> revision.
 
-Currently, 128-bit atomic writes have already been implemented in
-the device driver, and the driver also depends on a 128-bit atomic
-read access interface. Therefore, we have introduced a generic
-128-bit IO access interface to replace the implementation of
-128-bit read and write IO interfaces using instructions in the
-device driver. When the architecture does not support 128-bit
-atomic operations, non-atomic 128-bit read and write interfaces can
-be used to make the driver functional.
+Yes, that=E2=80=99s what I=E2=80=99ve learned from the toolchain guys so fa=
+r, perhaps
+we can double check with them. If it is right, I guess we might merge
+them into one check as follows:
+$(cc-option,-mabi=3Dlp64 -march=3Drv64ima_zicfilp_zicfiss -fcf-protection=
+=3Dfull)
+or
+$(cc-option,-mabi=3Dlp64 -march=3Drv64ima_zicfiss -fcf-protection=3Dreturn)
 
-Weili Qian (4):
-  UAPI: Introduce 128-bit types and byteswap operations
-  asm-generic/io.h: add io{read,write}128 accessors
-  io-128-nonatomic: introduce io{read|write}128_{lo_hi|hi_lo}
-  arm64/io: Add {__raw_read|__raw_write}128 support
-
- arch/arm64/include/asm/io.h                  | 21 +++++++++
- include/asm-generic/io.h                     | 48 ++++++++++++++++++++
- include/linux/io-128-nonatomic-hi-lo.h       | 35 ++++++++++++++
- include/linux/io-128-nonatomic-lo-hi.h       | 34 ++++++++++++++
- include/uapi/linux/byteorder/big_endian.h    |  6 +++
- include/uapi/linux/byteorder/little_endian.h |  6 +++
- include/uapi/linux/swab.h                    | 10 ++++
- include/uapi/linux/types.h                   |  3 ++
- 8 files changed, 163 insertions(+)
- create mode 100644 include/linux/io-128-nonatomic-hi-lo.h
- create mode 100644 include/linux/io-128-nonatomic-lo-hi.h
-
--- 
-2.33.0
-
+>
+> >
+> >
+> >> +       depends on RISCV_ALTERNATIVE
+> >> +       select RISCV_SBI
+> >> +       select ARCH_HAS_USER_SHADOW_STACK
+> >> +       select ARCH_USES_HIGH_VMA_FLAGS
+> >> +       select DYNAMIC_SIGFRAME
+> >> +       help
+> >> +         Provides CPU assisted control flow integrity to userspace ta=
+sks.
+> >> +         Control flow integrity is provided by implementing shadow st=
+ack for
+> >> +         backward edge and indirect branch tracking for forward edge =
+in program.
+> >> +         Shadow stack protection is a hardware feature that detects f=
+unction
+> >> +         return address corruption. This helps mitigate ROP attacks.
+> >> +         Indirect branch tracking enforces that all indirect branches=
+ must land
+> >> +         on a landing pad instruction else CPU will fault. This mitig=
+ates against
+> >> +         JOP / COP attacks. Applications must be enabled to use it, a=
+nd old user-
+> >> +         space does not get protection "for free".
+> >> +         default y.
+> >> +
+> >>  endmenu # "Kernel features"
+> >>
+> >>  menu "Boot options"
+> >> diff --git a/arch/riscv/configs/hardening.config b/arch/riscv/configs/=
+hardening.config
+> >> new file mode 100644
+> >> index 000000000000..089f4cee82f4
+> >> --- /dev/null
+> >> +++ b/arch/riscv/configs/hardening.config
+> >> @@ -0,0 +1,4 @@
+> >> +# RISCV specific kernel hardening options
+> >> +
+> >> +# Enable control flow integrity support for usermode.
+> >> +CONFIG_RISCV_USER_CFI=3Dy
+> >>
+> >> --
+> >> 2.43.0
+> >>
+> >>
