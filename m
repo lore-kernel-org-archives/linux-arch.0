@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 712BB2147FB;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8A4CC273D7B;
 	Thu, 13 Nov 2025 00:43:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762994622; cv=none; b=ajYtvC7Ytle833zrw17+OaeN6eh0tI+avfh995+VwhT56WkFDUEaAzyRLx3PHeWiEQYWTGUCmEt/J8PzydkWmJ/xJzwqTj0i4VmVUOWLwYx2WR+7+6EEDomPXzay67BSAPvPH8oIckHLoEZmi4wrw492NiUYe0nfQe/kv0i3hq0=
+	t=1762994622; cv=none; b=ptlXFJZwXOqYqI0e6UyBtN09M1dz0QnSi3R4Gn3dI2UEpF0N2CyQaqsE2f2/Exu5P5Wv0NhC8UkaZM0j6mgQa+vb1ICQgULShXEVnJw9xfWNMh4U4PV2YPVLbolKwU0irQSFIfbCkozD+9aQe/g48uAfgzDlaOnxwGqdVmUDFTI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1762994622; c=relaxed/simple;
-	bh=B6oYBetl6TQXfW1dNsiK6ccjw9VFfFfmPrPyliUaQyM=;
+	bh=gh4nsTA1J+FtbBXbiS/i+dlW+2bjS5V1BMggpLU8Gvs=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=QgwhpITFFDLSH5IADg6Of3lUcQUX8OJZQTYTsGrZN9aZx8aht4lb3PVNxlauYW4v3XQmLfKY5zDWaf0rhghq1SoJ0BcvYmupr/nXbNStZ6rgqrCo17JZlpJRpYhPXhEft2+awr/9f6nrlbR+qEF+V5wro+oKiC8LZeG0pIjv6fI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=feYpVEt5; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=n0KDrJBX1SNDq9SmdjkTLtupCCbsb/bL7fzTTvBVKptuT6Lmn4ixbhMEIQuw3dOd8Xknt5lUtmh1k9QpCAtcLpokSAeoho7mWECTwing85RBinlQv88wfWzWn+BmN9iWa1JjxWnNso1aF14YsC8HzCAY+LyMZVncDeNdL2qIaM4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lEqwruGe; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="feYpVEt5"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id C74ECC2BCB5;
-	Thu, 13 Nov 2025 00:43:41 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lEqwruGe"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 024B9C2BCF5;
+	Thu, 13 Nov 2025 00:43:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1762994621;
-	bh=B6oYBetl6TQXfW1dNsiK6ccjw9VFfFfmPrPyliUaQyM=;
+	s=k20201202; t=1762994622;
+	bh=gh4nsTA1J+FtbBXbiS/i+dlW+2bjS5V1BMggpLU8Gvs=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=feYpVEt5T6Pt6mtjJ2lbU3mQ02+3hD+t3XYKC3ke4n79qNkv8EevgsZfxjjBoUohk
-	 0cF9/zjyktU78jI7tzLQbKJ6WekCa4hMHiTYQSVD6RDD5CsnojJf5zurLnKF99J5WY
-	 /zlm5soAE+eP41XOpYdN52gjHm5BwUATyYTnUUaKxfz+onSkAD5ocXHES/hpQNIJdn
-	 iKWTYnQzcn05lmVCc99NMoiboaB0zQ/yAH9iIog0ds57/a/hiyhnaQGJbuefHNMXJ9
-	 ajFABArm6CgOvJhujF2tSzAsLE7+OiQj/Ot7sV2eZ409DQjRijDiJ2r7QSI98ZiBog
-	 W95PacosRmKWg==
+	b=lEqwruGeI1bBegZIfTYRUvLPrdzF24FozZJ3yCi3c0LV15MOwAMnLMa/ftTHudy2d
+	 tvwecIIP3IxwJIh4V+TtGmmY5feIi27nuOCkvGvoHs1vh1O2JVgkw4kyr/Ni8cBXgA
+	 VD3qfM8CHSH9cq1nNgjXSpdCb9q4r9aQ7VUUmitK2VgtnAImeSQqq27lNBisqz7w+j
+	 8ETfESbnBQ/8uKNvswVJ1hWx3MUqbiv/6l046DQVHQlSOf5XFyHW1PzXen75as2iWl
+	 pIHfYVDodbgDbCAB9GsIUlY3Bnworwiv2Qsf9C3F8ZNPCZhJKYZHzqhdwuQtdgDxyx
+	 +f1iH5qUhR7Ow==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id B1F7DCD3445;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DE2BECD4F29;
 	Thu, 13 Nov 2025 00:43:41 +0000 (UTC)
 From: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>
-Date: Wed, 12 Nov 2025 16:43:00 -0800
-Subject: [PATCH v23 02/28] dt-bindings: riscv: zicfilp and zicfiss in
- dt-bindings (extensions.yaml)
+Date: Wed, 12 Nov 2025 16:43:02 -0800
+Subject: [PATCH v23 04/28] riscv: zicfiss / zicfilp extension csr and bit
+ definitions
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20251112-v5_user_cfi_series-v23-2-b55691eacf4f@rivosinc.com>
+Message-Id: <20251112-v5_user_cfi_series-v23-4-b55691eacf4f@rivosinc.com>
 References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
 In-Reply-To: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
@@ -76,11 +76,11 @@ Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org, 
  Deepak Gupta <debug@rivosinc.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1762994618; l=1500;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1762994618; l=2296;
  i=debug@rivosinc.com; s=20251023; h=from:subject:message-id;
- bh=onQZPDO/5PI+EGQWomoauY3V7EJZG9au2H7fkbOgnBs=;
- b=OnT/qV3NRR+X1tWh8ldGuMTLiLCvfigqvKHaNt+5sZqvMoTbXTa23m7SnLPqA3vEWfUvkZtqO
- Qi9cVcJvwN5BhFiBc3Ochx1g8K5SeWHMPQklKtSvMY87j+SRFEATuoC
+ bh=kcKAh3qiYa6u+vavoC8VVP4XbgP0FdaLB3/LKiPnoo8=;
+ b=IO3ZkwMEkhU9nwQna7hisw4yCYONtsFfyC+757gMDMv03Q9yxRHzmwGPV6/GwOXkPkBahd+fQ
+ MedqRF7lCa/DbccTTnTqZB7XGnHdACjasm1zWJj+OhzF1TslAhshFVt
 X-Developer-Key: i=debug@rivosinc.com; a=ed25519;
  pk=O37GQv1thBhZToXyQKdecPDhtWVbEDRQ0RIndijvpjk=
 X-Endpoint-Received: by B4 Relay for debug@rivosinc.com/20251023 with
@@ -90,39 +90,66 @@ Reply-To: debug@rivosinc.com
 
 From: Deepak Gupta <debug@rivosinc.com>
 
-Make an entry for cfi extensions in extensions.yaml.
+zicfiss and zicfilp extension gets enabled via b3 and b2 in *envcfg CSR.
+menvcfg controls enabling for S/HS mode. henvcfg control enabling for VS
+while senvcfg controls enabling for U/VU mode.
+
+zicfilp extension extends *status CSR to hold `expected landing pad` bit.
+A trap or interrupt can occur between an indirect jmp/call and target
+instr. `expected landing pad` bit from CPU is recorded into xstatus CSR so
+that when supervisor performs xret, `expected landing pad` state of CPU can
+be restored.
+
+zicfiss adds one new CSR
+- CSR_SSP: CSR_SSP contains current shadow stack pointer.
 
 Signed-off-by: Deepak Gupta <debug@rivosinc.com>
-Acked-by: Rob Herring (Arm) <robh@kernel.org>
+Reviewed-by: Charlie Jenkins <charlie@rivosinc.com>
 ---
- Documentation/devicetree/bindings/riscv/extensions.yaml | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
+ arch/riscv/include/asm/csr.h | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/riscv/extensions.yaml b/Documentation/devicetree/bindings/riscv/extensions.yaml
-index 543ac94718e8..3222326e32eb 100644
---- a/Documentation/devicetree/bindings/riscv/extensions.yaml
-+++ b/Documentation/devicetree/bindings/riscv/extensions.yaml
-@@ -444,6 +444,20 @@ properties:
-             The standard Zicboz extension for cache-block zeroing as ratified
-             in commit 3dd606f ("Create cmobase-v1.0.pdf") of riscv-CMOs.
+diff --git a/arch/riscv/include/asm/csr.h b/arch/riscv/include/asm/csr.h
+index 4a37a98398ad..78f573ab4c53 100644
+--- a/arch/riscv/include/asm/csr.h
++++ b/arch/riscv/include/asm/csr.h
+@@ -18,6 +18,15 @@
+ #define SR_MPP		_AC(0x00001800, UL) /* Previously Machine */
+ #define SR_SUM		_AC(0x00040000, UL) /* Supervisor User Memory Access */
  
-+        - const: zicfilp
-+          description: |
-+            The standard Zicfilp extension for enforcing forward edge
-+            control-flow integrity as ratified in commit 3f8e450 ("merge
-+            pull request #227 from ved-rivos/0709") of riscv-cfi
-+            github repo.
++/* zicfilp landing pad status bit */
++#define SR_SPELP	_AC(0x00800000, UL)
++#define SR_MPELP	_AC(0x020000000000, UL)
++#ifdef CONFIG_RISCV_M_MODE
++#define SR_ELP		SR_MPELP
++#else
++#define SR_ELP		SR_SPELP
++#endif
 +
-+        - const: zicfiss
-+          description: |
-+            The standard Zicfiss extension for enforcing backward edge
-+            control-flow integrity as ratified in commit 3f8e450 ("merge
-+            pull request #227 from ved-rivos/0709") of riscv-cfi
-+            github repo.
-+
-         - const: zicntr
-           description:
-             The standard Zicntr extension for base counters and timers, as
+ #define SR_FS		_AC(0x00006000, UL) /* Floating-point Status */
+ #define SR_FS_OFF	_AC(0x00000000, UL)
+ #define SR_FS_INITIAL	_AC(0x00002000, UL)
+@@ -212,6 +221,8 @@
+ #define ENVCFG_PMM_PMLEN_16		(_AC(0x3, ULL) << 32)
+ #define ENVCFG_CBZE			(_AC(1, UL) << 7)
+ #define ENVCFG_CBCFE			(_AC(1, UL) << 6)
++#define ENVCFG_LPE			(_AC(1, UL) << 2)
++#define ENVCFG_SSE			(_AC(1, UL) << 3)
+ #define ENVCFG_CBIE_SHIFT		4
+ #define ENVCFG_CBIE			(_AC(0x3, UL) << ENVCFG_CBIE_SHIFT)
+ #define ENVCFG_CBIE_ILL			_AC(0x0, UL)
+@@ -230,6 +241,11 @@
+ #define SMSTATEEN0_HSENVCFG		(_ULL(1) << SMSTATEEN0_HSENVCFG_SHIFT)
+ #define SMSTATEEN0_SSTATEEN0_SHIFT	63
+ #define SMSTATEEN0_SSTATEEN0		(_ULL(1) << SMSTATEEN0_SSTATEEN0_SHIFT)
++/*
++ * zicfiss user mode csr
++ * CSR_SSP holds current shadow stack pointer.
++ */
++#define CSR_SSP                 0x011
+ 
+ /* mseccfg bits */
+ #define MSECCFG_PMM			ENVCFG_PMM
 
 -- 
 2.43.0
