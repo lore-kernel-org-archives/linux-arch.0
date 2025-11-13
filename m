@@ -1,37 +1,37 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE33E279903;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB1CC28032D;
 	Thu, 13 Nov 2025 00:43:42 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762994622; cv=none; b=uFziN5QdNJ4AYljlwMS1uPTXwZS77/c8eJLum3fIq1ySF38D9JNDnkL6tTYdPUkoPoseIgG4CXgr+/g7pKbJLMOgW8EpgSHwLqu1LqST4u+qABWn8cCPVLR8DX0Bf1L0FyAA/NxiX0HiRn0gMSA9CX2I1lFRMKl/tH9RI73vyok=
+	t=1762994623; cv=none; b=d5buWVzwqPznv6y+XCGQJtJBJO3fg4gxaIF7B9/YToKsQsll1svFAbupioH6vnfIfwMr6ARUOPg1BLtgr5DqccrmUp90ImCH6+LfzT6hSvjeKQ72LwcLobfwmsoh75Oj10DiEuLb0e5LvNVBVgL4FsffOHFxZeSeXZQ5KsN96kg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762994622; c=relaxed/simple;
-	bh=JzYM+AFpLozg0DQ31UnaFL3ZRNHAmvEstbFF5dbOdbc=;
+	s=arc-20240116; t=1762994623; c=relaxed/simple;
+	bh=F5ju6oKJAylkflMB3tXqXcd6vIuwrr/MPiKJ+B9Ss3Y=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=DGow73vuVknXIV123TS+T94uthAMcrQU6oHyXYbtl3YP2hZeUklJsdtsR/EEEJYYlWoTb+pMplueaVfAZmfA8YnfaL85wwXvKFR4IieI3jvJ5RZmXxKN32BEThmvzygfegQ1PgCdA8Co3/QGiJxh3bWYKLCUELhVzZtKYO9DG9Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=jH7WepM2; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=cXWrY/T74/RFkh8sIMkipi5+4Kg6SdMU6Sdzs/tX7MFp7I2xaNH2vQnQy+V4FgVindgNYzkYNG4Hbhsz14qh1SmLBTuwK+ztQrknmNWv7h+PYiMbN528voc7wlTXoa4CcEW1RgBAUwAw99cRMBI/xfkVT8a5Mbfww92zN1rATgU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=YMuwT3cc; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="jH7WepM2"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 5426BC4AF1C;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="YMuwT3cc"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 7CF79C4AF48;
 	Thu, 13 Nov 2025 00:43:42 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1762994622;
-	bh=JzYM+AFpLozg0DQ31UnaFL3ZRNHAmvEstbFF5dbOdbc=;
+	bh=F5ju6oKJAylkflMB3tXqXcd6vIuwrr/MPiKJ+B9Ss3Y=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=jH7WepM2OrZT2VFYWKIai3VMfvyVc5faMlEUtDbpGlrX/kreymCoeP+7tVnAFxCMI
-	 YhMmg6Ps2qvjHttj9Dt6aKPNlCZxqfiXmssPcb++LrnKi32ysGKDkQO+Bsg+HMiYLd
-	 1RIBKmXr9zSjQGU3ATEUfavNKEBuzDkV6G2rgmHhkTPIzYYbaYLw2inv8SA8wk+eLf
-	 2DyPr6bqaEcpVlbXrSMIBcYDo49XYPzDFK2FxcYZ241Z9mMRA0b5nPXMlA+ITmMXFi
-	 4EMuVE96QbpdeklYXRGdqg/Nc1UB8vDcR4hLLWBFRWTMgui2sqEsC/17SPfl2vrJ2T
-	 36w+lacv2RmhQ==
+	b=YMuwT3ccAGn0u94CHF+Dx9y5fzq2N4QZ3u7VGH54jLyGVP1ev7QZI8ZEh4nkyLKO+
+	 p0mQZN/yUsnIxkUNM9h4P/RTvkBk2RXTg2vStbLxTiP9eJq5glde/IyjdOYtfv4YEL
+	 0m/liAHgiLcw6ZUo2e8JKgESdTgYIsYDEDW5WzIBWlJqtU46re9ZfsqHyL6z9Hcw2w
+	 AJql1n6Mz64ps2hgiFYcGNIKlGxAG5xW8zkAANtsdvjB9pBM7wut30sj34Bkn5sMPO
+	 Sbxsc5sEEZEF4quIoFWl/3dnT6X9Nc8ul1bQAZHlioXLIiAFcfZW3GfK6o70pLvNfP
+	 F7Geb4960u3jw==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 38BAFCD3445;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 626F1CD342D;
 	Thu, 13 Nov 2025 00:43:42 +0000 (UTC)
 From: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>
-Date: Wed, 12 Nov 2025 16:43:05 -0800
-Subject: [PATCH v23 07/28] riscv/mm: manufacture shadow stack pte
+Date: Wed, 12 Nov 2025 16:43:07 -0800
+Subject: [PATCH v23 09/28] riscv/mm: write protect and shadow stack
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,7 +40,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20251112-v5_user_cfi_series-v23-7-b55691eacf4f@rivosinc.com>
+Message-Id: <20251112-v5_user_cfi_series-v23-9-b55691eacf4f@rivosinc.com>
 References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
 In-Reply-To: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
@@ -75,11 +75,11 @@ Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org, 
  Zong Li <zong.li@sifive.com>, Deepak Gupta <debug@rivosinc.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1762994618; l=1304;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1762994618; l=2474;
  i=debug@rivosinc.com; s=20251023; h=from:subject:message-id;
- bh=9AtWvDKQ9q5op9YLRgkrDiWaHEAhrRbEgloHu05lQww=;
- b=klt8FiZPtlr/9l1uIpe6uypjZ3LdfZ4nkj2HhX1JBpitvUPsAmMBqSFJCjrw2ItTc70FqbyRf
- EmJ0QGprDlqAyinY17aFb/UtNArFl3GazG3sK1Pnfa6dOuuCyY84CGG
+ bh=zG1PvbsubgVB7UstpLjRtN915FxsRLFbcnYegAn0YwA=;
+ b=FKCr3/Ui4FXG2aRjLaj7Bx4a0kox4VrWj2DzwCIF5I6cf+LNdrUU6Tjg4LTlaGBDZSKei5O+X
+ pJPHCn/esEyBeMzey62D/9z3ZrS2EQL16Q0b1ugcS2Q1NuwOLduJLd0
 X-Developer-Key: i=debug@rivosinc.com; a=ed25519;
  pk=O37GQv1thBhZToXyQKdecPDhtWVbEDRQ0RIndijvpjk=
 X-Endpoint-Received: by B4 Relay for debug@rivosinc.com/20251023 with
@@ -89,44 +89,61 @@ Reply-To: debug@rivosinc.com
 
 From: Deepak Gupta <debug@rivosinc.com>
 
-This patch implements creating shadow stack pte (on riscv). Creating
-shadow stack PTE on riscv means that clearing RWX and then setting W=1.
+`fork` implements copy on write (COW) by making pages readonly in child
+and parent both.
+
+ptep_set_wrprotect and pte_wrprotect clears _PAGE_WRITE in PTE.
+Assumption is that page is readable and on fault copy on write happens.
+
+To implement COW on shadow stack pages, clearing up W bit makes them XWR =
+000. This will result in wrong PTE setting which says no perms but V=1 and
+PFN field pointing to final page. Instead desired behavior is to turn it
+into a readable page, take an access (load/store) fault on sspush/sspop
+(shadow stack) and then perform COW on such pages. This way regular reads
+would still be allowed and not lead to COW maintaining current behavior
+of COW on non-shadow stack but writeable memory.
+
+On the other hand it doesn't interfere with existing COW for read-write
+memory. Assumption is always that _PAGE_READ must have been set and thus
+setting _PAGE_READ is harmless.
 
 Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
 Reviewed-by: Zong Li <zong.li@sifive.com>
 Signed-off-by: Deepak Gupta <debug@rivosinc.com>
 ---
- arch/riscv/include/asm/pgtable.h | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ arch/riscv/include/asm/pgtable.h | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
 
 diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
-index 4c4057a2550e..e4eb4657e1b6 100644
+index b03e8f85221f..df4a04b64944 100644
 --- a/arch/riscv/include/asm/pgtable.h
 +++ b/arch/riscv/include/asm/pgtable.h
-@@ -425,6 +425,11 @@ static inline pte_t pte_mkwrite_novma(pte_t pte)
- 	return __pte(pte_val(pte) | _PAGE_WRITE);
- }
+@@ -415,7 +415,7 @@ static inline int pte_special(pte_t pte)
  
-+static inline pte_t pte_mkwrite_shstk(pte_t pte)
-+{
-+	return __pte((pte_val(pte) & ~(_PAGE_LEAF)) | _PAGE_WRITE);
-+}
-+
- /* static inline pte_t pte_mkexec(pte_t pte) */
- 
- static inline pte_t pte_mkdirty(pte_t pte)
-@@ -765,6 +770,11 @@ static inline pmd_t pmd_mkwrite_novma(pmd_t pmd)
- 	return pte_pmd(pte_mkwrite_novma(pmd_pte(pmd)));
- }
- 
-+static inline pmd_t pmd_mkwrite_shstk(pmd_t pte)
-+{
-+	return __pmd((pmd_val(pte) & ~(_PAGE_LEAF)) | _PAGE_WRITE);
-+}
-+
- static inline pmd_t pmd_wrprotect(pmd_t pmd)
+ static inline pte_t pte_wrprotect(pte_t pte)
  {
- 	return pte_pmd(pte_wrprotect(pmd_pte(pmd)));
+-	return __pte(pte_val(pte) & ~(_PAGE_WRITE));
++	return __pte((pte_val(pte) & ~(_PAGE_WRITE)) | (_PAGE_READ));
+ }
+ 
+ /* static inline pte_t pte_mkread(pte_t pte) */
+@@ -611,7 +611,15 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
+ static inline void ptep_set_wrprotect(struct mm_struct *mm,
+ 				      unsigned long address, pte_t *ptep)
+ {
+-	atomic_long_and(~(unsigned long)_PAGE_WRITE, (atomic_long_t *)ptep);
++	pte_t read_pte = READ_ONCE(*ptep);
++	/*
++	 * ptep_set_wrprotect can be called for shadow stack ranges too.
++	 * shadow stack memory is XWR = 010 and thus clearing _PAGE_WRITE will lead to
++	 * encoding 000b which is wrong encoding with V = 1. This should lead to page fault
++	 * but we dont want this wrong configuration to be set in page tables.
++	 */
++	atomic_long_set((atomic_long_t *)ptep,
++			((pte_val(read_pte) & ~(unsigned long)_PAGE_WRITE) | _PAGE_READ));
+ }
+ 
+ #define __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
 
 -- 
 2.43.0
