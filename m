@@ -1,47 +1,47 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 18FD432BF43
-	for <linux-arch@vger.kernel.org>; Fri, 14 Nov 2025 15:06:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0013B32E74E
+	for <linux-arch@vger.kernel.org>; Fri, 14 Nov 2025 15:06:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763132786; cv=none; b=OAeNjQTCFTkXeKRrewXlQ2S6HYQPKhuTeMr3ySCfYuOJU6c+xpdt97S4jMH1/DjjNXXaye/3lNKGLxwwrJ3hNp23jKQUmyETNuWQQbiP5OtPVVNd8j7YysO71dXs2umiw2h5vrZBfUoVQNwV/tAD59A71JXVyqNZO6Kz/eWDg6c=
+	t=1763132798; cv=none; b=u98yWf9vggd2m/Jrvn9IAAPoeMJ2a1xLY197se6TDcpSc49VIQ2zrMCqqPuQa7lcNy7QXAuOUHam3CYh+E9VI21eN4pQvstxXlT09OPYr0l3RAxCZrbaToVPd1IMMUK1KSRMg4T6IDOEDfsFq7+uAk2TyjDDp+P8uev0K4YLxLc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763132786; c=relaxed/simple;
-	bh=LsiJO6bn0Il9eUWGMvseELuZx5+sZ+NO7YPbdeK+kaE=;
+	s=arc-20240116; t=1763132798; c=relaxed/simple;
+	bh=HrXid4rFcLKsbwJAAXBJ1FHcFf0N5jAhis38Mj/DeC8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=FHn7RIA39i1HLfMdr3QJWHo49Buv1i7kBT8ZIKSYwnSU1Ufor0B6OsTODds52sui69TMeO+xLzHvVabCTUClzD4HfV9AUKOuV6ItuBRzjJHgwFATcdgDvy240EtFeAjWFkK9xcvuFPObKYFLWYPpIkbN75Y6Dh+TXgSkA6GdaqA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=UaRZPuR9; arc=none smtp.client-ip=170.10.129.124
+	 MIME-Version; b=LSS8Mbb9odPkMVS+OLLqcSEbQBczTxBCNUZDEp+DVmRW4ll4UhXur20WNjkcyu+cQ1ORlu+gIxKfvS4QZn5KEumpbH4FFL5Aa7d/P6X6Ian6OHhI6xnQTbVu/lX3uIHSUOjr8oDc/UspLUi2syskAUfi11VqKeSbmQTbWxFd/6w=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=HMeKA2bX; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="UaRZPuR9"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="HMeKA2bX"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1763132784;
+	s=mimecast20190719; t=1763132796;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=FsW1nZftMuTt/QMj2LpkXoZxukhojZ+9zXL0gHIBS/o=;
-	b=UaRZPuR9x9/YDAGPj+lNb/e35Bd8j9xdfJ9PTWtVpwDOZRJAiz2nUben/6mIhIKL4rC8tm
-	XfbIbI8UCoJ8wMjAoPo1PwCdxEx+sILuhsYgAP2k8feHrdmKqm1bqGsgifRTJfua1wt1OD
-	qe5a9DR4VjFvDSigkbhxOEn+kTfKVIw=
-Received: from mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
+	bh=0EVYMqufOoIHV82nAeE2u6YNjD+PUPB4KvH6NE2Jsio=;
+	b=HMeKA2bXI5bLuwlR8Qqp200aCArDqB1wusjkCkodJXsYEThzGBP4xoKWcAUEtj/veVJyCj
+	EA+8uUG840dC+H2flTe70a0ZZiBH+uVVn2fVupLoQ7XJvwqjciOXytYP99esuuoGaU1/3i
+	0PvqD8qzlyobsDi6BDoQgdYjxX7Y0A8=
+Received: from mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
  relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-397-mKrJmDmGOguRh1Y052DobQ-1; Fri,
- 14 Nov 2025 10:06:19 -0500
-X-MC-Unique: mKrJmDmGOguRh1Y052DobQ-1
-X-Mimecast-MFC-AGG-ID: mKrJmDmGOguRh1Y052DobQ_1763132772
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-404-cI01Fc2gNgiloAaXk9-ykA-1; Fri,
+ 14 Nov 2025 10:06:33 -0500
+X-MC-Unique: cI01Fc2gNgiloAaXk9-ykA-1
+X-Mimecast-MFC-AGG-ID: cI01Fc2gNgiloAaXk9-ykA_1763132786
 Received: from mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.12])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
 	(No client certificate requested)
-	by mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 82E521800372;
-	Fri, 14 Nov 2025 15:06:12 +0000 (UTC)
+	by mx-prod-mc-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 4213318AB432;
+	Fri, 14 Nov 2025 15:06:26 +0000 (UTC)
 Received: from vschneid-thinkpadt14sgen2i.remote.csb (unknown [10.45.226.10])
-	by mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 07E3B19560B9;
-	Fri, 14 Nov 2025 15:05:58 +0000 (UTC)
+	by mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 0671519560B9;
+	Fri, 14 Nov 2025 15:06:12 +0000 (UTC)
 From: Valentin Schneider <vschneid@redhat.com>
 To: linux-kernel@vger.kernel.org,
 	linux-mm@kvack.org,
@@ -52,8 +52,7 @@ To: linux-kernel@vger.kernel.org,
 	linux-riscv@lists.infradead.org,
 	linux-arch@vger.kernel.org,
 	linux-trace-kernel@vger.kernel.org
-Cc: Sean Christopherson <seanjc@google.com>,
-	Thomas Gleixner <tglx@linutronix.de>,
+Cc: Thomas Gleixner <tglx@linutronix.de>,
 	Ingo Molnar <mingo@redhat.com>,
 	Borislav Petkov <bp@alien8.de>,
 	Dave Hansen <dave.hansen@linux.intel.com>,
@@ -92,9 +91,9 @@ Cc: Sean Christopherson <seanjc@google.com>,
 	Daniel Wagner <dwagner@suse.de>,
 	Petr Tesarik <ptesarik@suse.com>,
 	Shrikanth Hegde <sshegde@linux.ibm.com>
-Subject: [PATCH v7 16/31] KVM: VMX: Mark __kvm_is_using_evmcs static key as __ro_after_init
-Date: Fri, 14 Nov 2025 16:01:18 +0100
-Message-ID: <20251114150133.1056710-17-vschneid@redhat.com>
+Subject: [PATCH v7 17/31] x86/bugs: Mark cpu_buf_vm_clear key as allowed in .noinstr
+Date: Fri, 14 Nov 2025 16:01:19 +0100
+Message-ID: <20251114150133.1056710-18-vschneid@redhat.com>
 In-Reply-To: <20251114150133.1056710-1-vschneid@redhat.com>
 References: <20251114150133.1056710-1-vschneid@redhat.com>
 Precedence: bulk
@@ -106,32 +105,34 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Scanned-By: MIMEDefang 3.0 on 10.30.177.12
 
-The static key is only ever enabled in
+The static key is only ever updated in
 
-  __init hv_init_evmcs()
+  __init mmio_apply_mitigation
 
-so mark it appropriately as __ro_after_init.
+Mark it to let objtool know not to warn about it.
 
-Reported-by: Sean Christopherson <seanjc@google.com>
 Signed-off-by: Valentin Schneider <vschneid@redhat.com>
-Acked-by: Sean Christopherson <seanjc@google.com>
 ---
- arch/x86/kvm/vmx/vmx_onhyperv.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/x86/kernel/cpu/bugs.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/arch/x86/kvm/vmx/vmx_onhyperv.c b/arch/x86/kvm/vmx/vmx_onhyperv.c
-index b9a8b91166d02..ff3d80c9565bb 100644
---- a/arch/x86/kvm/vmx/vmx_onhyperv.c
-+++ b/arch/x86/kvm/vmx/vmx_onhyperv.c
-@@ -3,7 +3,7 @@
- #include "capabilities.h"
- #include "vmx_onhyperv.h"
+diff --git a/arch/x86/kernel/cpu/bugs.c b/arch/x86/kernel/cpu/bugs.c
+index d7fa03bf51b45..a2d7dc4d2a4a3 100644
+--- a/arch/x86/kernel/cpu/bugs.c
++++ b/arch/x86/kernel/cpu/bugs.c
+@@ -196,8 +196,11 @@ DEFINE_STATIC_KEY_FALSE(switch_mm_cond_l1d_flush);
+  * Controls CPU Fill buffer clear before VMenter. This is a subset of
+  * X86_FEATURE_CLEAR_CPU_BUF, and should only be enabled when KVM-only
+  * mitigation is required.
++ *
++ * NOINSTR: This static key is only updated during init, so it can't be
++ * a cause of post-init interference.
+  */
+-DEFINE_STATIC_KEY_FALSE(cpu_buf_vm_clear);
++DEFINE_STATIC_KEY_FALSE_NOINSTR(cpu_buf_vm_clear);
+ EXPORT_SYMBOL_GPL(cpu_buf_vm_clear);
  
--DEFINE_STATIC_KEY_FALSE(__kvm_is_using_evmcs);
-+DEFINE_STATIC_KEY_FALSE_RO(__kvm_is_using_evmcs);
- 
- /*
-  * KVM on Hyper-V always uses the latest known eVMCSv1 revision, the assumption
+ #undef pr_fmt
 -- 
 2.51.0
 
