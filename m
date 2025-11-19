@@ -1,173 +1,238 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 29EFA26CE35;
-	Wed, 19 Nov 2025 14:37:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08A5526ED59;
+	Wed, 19 Nov 2025 14:43:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763563064; cv=none; b=MEb1VyNN+3zwooImA2UHzlcJhIzXxLdj1zEJvmbdyCcagczvtr25p7BGevQdAI0Etl7Qk3iN9+2C87k3LovicKyKQKPir/R5ofSjztCwGC7zWPfu0nFReb3ux63YmB8iNgUbOcRB4bIbIyn3y3a8cgxqGjWT+XoyY78F79p81ZM=
+	t=1763563415; cv=none; b=TVtNwUfSm37SBIrJy5Gz6EXuL0o+5vuzoHl8zXBHab8MIj99m4XaP41nEygrCNxtyH7Ik89FYlfv2rMHLZsWiJUMbTj2feeAvYHMyNROi/KTXmydysfmgSgx/I0lejv9rz+n0mydeysKDfdHAi5j1dTYa9XoNlEGR0UxHW7/EOE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763563064; c=relaxed/simple;
-	bh=XA0GeBzOpYEaSWCWCd+wnDlU6Fk5J/oBFNuaUBe2OAU=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=C8T4hiOCvJo/H+Wu+A6wh1wtVdlLYdueGrf7T2SeECN6RWlqai7gTb/h/ginYBLeNmcUDjI8TEPai2RRp7S+wOreqh+unTamMtNDWIOwjLtGZtTi35v4mQWSCOmAkkkS7LvxQhO2jeDYu2fkFUP1lF+557wPgV7EGnj1yDg+tVE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=nBP5qgac; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1763563415; c=relaxed/simple;
+	bh=tVO9kV9AwzxvenDeQq8fqTEEg5ilbkzdL5cHN/SIOig=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=Mns19zZ515l/M6fo29FS8IzbmxObS05M6Q27bZvDunzsai94okWnMgQu/cjdkBi38+IutIUHlq/62Fn1Rc7+K3uFx97snt/oLVseWk804FA8TbpbHXzr+DtyfZpenqAcYcZYvLltzrjc7onaSfkbzp77VhFP2oUMN6o5FiWuefQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=aCVzVBzQ; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=AqY7n8rR; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="nBP5qgac"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=jrEBjc2npjUKEbY4i9jofzcj/5yPuOiFOP9lZOX0tsI=; b=nBP5qgacID7pPb1N+57YvHaH6U
-	G7JzO5pEUGdhuUMMNn3k9NaEbTv68dj0hY9UW4pHZq6L+RoVGX93qIlWtLYoQytGKMPvLJ/D1KqKX
-	GV6hrdcPub9oX2YzpcjTtacFWku+OtVVTd6+pFYjSu6527+53NKY32Lj/L974tmHv3ScDp3gXp1L+
-	iFJ2wJM/Lmo71iZAxzafzKq22ZOt8sC31Kd10ep+n2MvqtEeikI1sljZ8uMGCqsNpyKZSf9jdYI8B
-	dZo+n/E+UO2Xtx516smblcWCers9IJLf4xYNhwJApoxEs2EHlQuoj0F7yrGXeee4kL13PJKFJYviX
-	pvBttZDA==;
-Received: from willy by casper.infradead.org with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vLjJ8-0000000HDmA-0XUa;
-	Wed, 19 Nov 2025 14:37:18 +0000
-Date: Wed, 19 Nov 2025 14:37:17 +0000
-From: Matthew Wilcox <willy@infradead.org>
-To: Byungchul Park <byungchul@sk.com>
-Cc: linux-kernel@vger.kernel.org, kernel_team@skhynix.com,
-	torvalds@linux-foundation.org, damien.lemoal@opensource.wdc.com,
-	linux-ide@vger.kernel.org, adilger.kernel@dilger.ca,
-	linux-ext4@vger.kernel.org, mingo@redhat.com, peterz@infradead.org,
-	will@kernel.org, tglx@linutronix.de, rostedt@goodmis.org,
-	joel@joelfernandes.org, sashal@kernel.org, daniel.vetter@ffwll.ch,
-	duyuyang@gmail.com, johannes.berg@intel.com, tj@kernel.org,
-	tytso@mit.edu, david@fromorbit.com, amir73il@gmail.com,
-	gregkh@linuxfoundation.org, kernel-team@lge.com, linux-mm@kvack.org,
-	akpm@linux-foundation.org, mhocko@kernel.org, minchan@kernel.org,
-	hannes@cmpxchg.org, vdavydov.dev@gmail.com, sj@kernel.org,
-	jglisse@redhat.com, dennis@kernel.org, cl@linux.com,
-	penberg@kernel.org, rientjes@google.com, vbabka@suse.cz,
-	ngupta@vflare.org, linux-block@vger.kernel.org,
-	josef@toxicpanda.com, linux-fsdevel@vger.kernel.org, jack@suse.cz,
-	jlayton@kernel.org, dan.j.williams@intel.com, hch@infradead.org,
-	djwong@kernel.org, dri-devel@lists.freedesktop.org,
-	rodrigosiqueiramelo@gmail.com, melissa.srw@gmail.com,
-	hamohammed.sa@gmail.com, harry.yoo@oracle.com,
-	chris.p.wilson@intel.com, gwan-gyeong.mun@intel.com,
-	max.byungchul.park@gmail.com, boqun.feng@gmail.com,
-	longman@redhat.com, yunseong.kim@ericsson.com, ysk@kzalloc.com,
-	yeoreum.yun@arm.com, netdev@vger.kernel.org,
-	matthew.brost@intel.com, her0gyugyu@gmail.com, corbet@lwn.net,
-	catalin.marinas@arm.com, bp@alien8.de, dave.hansen@linux.intel.com,
-	x86@kernel.org, hpa@zytor.com, luto@kernel.org,
-	sumit.semwal@linaro.org, gustavo@padovan.org,
-	christian.koenig@amd.com, andi.shyti@kernel.org, arnd@arndb.de,
-	lorenzo.stoakes@oracle.com, Liam.Howlett@oracle.com,
-	rppt@kernel.org, surenb@google.com, mcgrof@kernel.org,
-	petr.pavlu@suse.com, da.gomez@kernel.org, samitolvanen@google.com,
-	paulmck@kernel.org, frederic@kernel.org, neeraj.upadhyay@kernel.org,
-	joelagnelf@nvidia.com, josh@joshtriplett.org, urezki@gmail.com,
-	mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
-	qiang.zhang@linux.dev, juri.lelli@redhat.com,
-	vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
-	bsegall@google.com, mgorman@suse.de, vschneid@redhat.com,
-	chuck.lever@oracle.com, neil@brown.name, okorniev@redhat.com,
-	Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
-	anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
-	clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
-	kristina.martsenko@arm.com, wangkefeng.wang@huawei.com,
-	broonie@kernel.org, kevin.brodsky@arm.com, dwmw@amazon.co.uk,
-	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
-	yuzhao@google.com, baolin.wang@linux.alibaba.com,
-	usamaarif642@gmail.com, joel.granados@kernel.org,
-	richard.weiyang@gmail.com, geert+renesas@glider.be,
-	tim.c.chen@linux.intel.com, linux@treblig.org,
-	alexander.shishkin@linux.intel.com, lillian@star-ark.net,
-	chenhuacai@kernel.org, francesco@valla.it,
-	guoweikang.kernel@gmail.com, link@vivo.com, jpoimboe@kernel.org,
-	masahiroy@kernel.org, brauner@kernel.org,
-	thomas.weissschuh@linutronix.de, oleg@redhat.com, mjguzik@gmail.com,
-	andrii@kernel.org, wangfushuai@baidu.com, linux-doc@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-media@vger.kernel.org,
-	linaro-mm-sig@lists.linaro.org, linux-i2c@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	rcu@vger.kernel.org, linux-nfs@vger.kernel.org,
-	linux-rt-devel@lists.linux.dev
-Subject: Re: [PATCH v17 44/47] dept: introduce APIs to set page usage and use
- subclasses_evt for the usage
-Message-ID: <aR3WHf9QZ_dizNun@casper.infradead.org>
-References: <20251002081247.51255-1-byungchul@sk.com>
- <20251002081247.51255-45-byungchul@sk.com>
- <20251119105312.GA11582@system.software.com>
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="aCVzVBzQ";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="AqY7n8rR"
+From: Thomas Gleixner <tglx@linutronix.de>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1763563411;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Ja2pUTuXbJ63M63VaK3IkNS+HRzlmMnwqHhvzRy7/rA=;
+	b=aCVzVBzQ3xIYKMfRzJBAQ2zJTq6B/1m6L2/NtZO/OSBmqrBPNEPNnKdMC1cD1SS8Zo0uWv
+	0GaJKMQIHQB4qX+GZPPC5bIkg6eSPLvV1q+FZ03uEhCcVeZ2Z194E0Tkbhm5QMdCUtUXJH
+	/jxJpIr7avdbNb6cziQzxIeNVglfYOBPm6CR8bA5YOB34ulUIxjE3jhr2dldu8TcO2Mi19
+	H1tq/mGyT4qG/vgHbcR2NswkjqLxZgYeOB18DJlR/PCpfvISCdtKdq3WFB0yPGEPmlVg4f
+	td3GxaJB89L8iKqtTFytxrGQhx42WPXOKKzewTvWUDUguSa38irqLpp4RsdImA==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1763563411;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Ja2pUTuXbJ63M63VaK3IkNS+HRzlmMnwqHhvzRy7/rA=;
+	b=AqY7n8rRWOS5OdPI85rS62vJegAPsX9Lsdd8m/b7to0KIT+Ckv2qjFmdExEgkDcM9XABWq
+	xRks92AYQkV7AkBw==
+To: Luigi Rizzo <lrizzo@google.com>
+Cc: Marc Zyngier <maz@kernel.org>, Luigi Rizzo <rizzo.unipi@gmail.com>,
+ Paolo Abeni <pabeni@redhat.com>, Andrew Morton
+ <akpm@linux-foundation.org>, Sean Christopherson <seanjc@google.com>,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Bjorn Helgaas
+ <bhelgaas@google.com>, Willem de Bruijn <willemb@google.com>
+Subject: Re: [PATCH v2 3/8] genirq: soft_moderation: implement fixed moderation
+In-Reply-To: <CAMOZA0Jj=BYXx1QYxFQRbtmFYfZeQBySqDS6n1skHFEYD=1EZQ@mail.gmail.com>
+References: <20251116182839.939139-1-lrizzo@google.com>
+ <20251116182839.939139-4-lrizzo@google.com> <87seec78yf.ffs@tglx>
+ <87bjl06yij.ffs@tglx>
+ <CAMOZA0+rA-ys1JSb=GxpPEFS7W8TJGz23gSuUWi0Kv7TX2FfSg@mail.gmail.com>
+ <878qg37n8p.ffs@tglx>
+ <CAMOZA0+K73YbPqq_vTS2sMkbV-0Fh5GSCt3ABfReV3DYk1CO2g@mail.gmail.com>
+ <87pl9fmhe5.ffs@tglx>
+ <CAMOZA0JXv1ERyGOJ8fmwefnc6XKbGGy-E4p_d+BFr6KPzoOUZw@mail.gmail.com>
+ <CAMOZA0Jj=BYXx1QYxFQRbtmFYfZeQBySqDS6n1skHFEYD=1EZQ@mail.gmail.com>
+Date: Wed, 19 Nov 2025 15:43:29 +0100
+Message-ID: <877bvmm6b2.ffs@tglx>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251119105312.GA11582@system.software.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Nov 19, 2025 at 07:53:12PM +0900, Byungchul Park wrote:
-> On Thu, Oct 02, 2025 at 05:12:44PM +0900, Byungchul Park wrote:
-> > False positive reports have been observed since dept works with the
-> > assumption that all the pages have the same dept class, but the class
-> > should be split since the problematic call paths are different depending
-> > on what the page is used for.
-> > 
-> > At least, ones in block device's address_space and ones in regular
-> > file's address_space have exclusively different usages.
-> > 
-> > Thus, define usage candidates like:
-> > 
-> >    DEPT_PAGE_REGFILE_CACHE /* page in regular file's address_space */
-> >    DEPT_PAGE_BDEV_CACHE    /* page in block device's address_space */
-> >    DEPT_PAGE_DEFAULT       /* the others */
-> 
-> 1. I'd like to annotate a page to DEPT_PAGE_REGFILE_CACHE when the page
->    starts to be associated with a page cache for fs data.
-> 
-> 2. And I'd like to annotate a page to DEPT_PAGE_BDEV_CACHE when the page
->    starts to be associated with meta data of fs e.g. super block.
-> 
-> 3. Lastly, I'd like to reset the annotated value if any, that has been
->    set in the page, when the page ends the assoication with either page
->    cache or meta block of fs e.g. freeing the page.
-> 
-> Can anyone suggest good places in code for the annotation 1, 2, 3?  It'd
-> be totally appreciated. :-)
+On Wed, Nov 19 2025 at 00:06, Luigi Rizzo wrote:
+> On Tue, Nov 18, 2025 at 7:25=E2=80=AFPM Luigi Rizzo <lrizzo@google.com> w=
+rote:
+>> > That's kinda true for the per interrupt accounting, but if you look at
+>> > it from a per CPU accounting perspective then you still can handle them
+>> > individually and mask them when they arrive within or trigger a delay
+>> > window. That means:
+>>
+>> ok, so to sum up, what are the correct methods to do the masking
+>> you suggest, should i use mask_irq()/unmask_irq() ?
+>
+> I tried the following instead of disable_irq()/enable_irq().
+> This seems to work also for posted_msi with no arch-specific code, as
+> you suggested.
 
-I don't think it makes sense to track lock state in the page (nor
-folio).  Partly bcause there's just so many of them, but also because
-the locking rules don't really apply to individual folios so much as
-they do to the mappings (or anon_vmas) that contain folios.
+:)
 
-If you're looking to find deadlock scenarios, I think it makes more
-sense to track all folio locks in a given mapping as the same lock
-type rather than track each folio's lock status.
+> The drain_desc_list() function below should be usable directly with
+> hotplug remove callbacks.
 
-For example, let's suppose we did something like this in the
-page fault path:
+Emphasis on *should*.
 
-Look up and lock a folio (we need folios locked to insert them into
-the page tables to avoid a race with truncate)
-Try to allocate a page table
-Go into reclaim, attempt to reclaim a folio from this mapping
+> I still need to figure out if there is anything special needed when
+> an interrupt is removed, or the system goes into suspend,
+> while irq_desc's are in the moderation list.
 
-We ought to detect that as a potential deadlock, regardless of which
-folio in the mapping we attempt to reclaim.  So can we track folio
-locking at the mapping/anon_vma level instead?
+Yes quite some and you forgot to mention affinity changes, interrupt
+disable/enable semantics, synchronization, state consistency ...
 
----
+> /* run this to mask and moderate an interrupt */
+> void irq_mod_mask(struct irq_desc *desc)
+> {
+>         scoped_irqdesc_get_and_buslock(desc->irq_data.irq,
+> IRQ_GET_DESC_CHECK_GLOBAL) {
 
-My current understanding of folio locking rules:
+Seriously? Why do you want to look up the descriptor again when you
+already have the pointer? Copying random code together does not qualify
+as programming.
 
-If you hold a lock on folio A, you can take a lock on folio B if:
+>                 struct irq_mod_state *ms =3D this_cpu_ptr(&irq_mod_state);
+>
+>                 /* Add to list of moderated desc on this CPU */
+>                 list_add(&desc->mod.ms_node, &ms->descs);
+>                 mask_irq(scoped_irqdesc);
+>                 ms->mask_irq++;
+>                 if (!hrtimer_is_queued(&ms->timer))
+>                         irq_moderation_start_timer(ms);
+>         }
 
-1. A->mapping == B->mapping and A->index < B->index
-   (for example writeback; we take locks on all folios to be written
-    back in order)
-2. !S_ISBLK(A->mapping->host) and S_ISBLK(B->mapping->host)
-3. S_ISREG(A->mapping->host) and S_ISREG(B->mapping->host) with
-   inode_lock() held on both and A->index < B->index
-   (the remap_range code)
+Assuming you still invoke this from handle_irq_event(), which I think is
+the wrong place, then I really have to ask how that is supposed to work
+correctly especially with handle_fasteoi_irq(), which is used on
+ARM64. Why?
 
+handle_fasteoi_irq()
+        ....
+        handle_irq_event() {
+             ...
+             moderation()
+                mask();
+        }
+=20=20=20=20=20=20=20=20
+        cond_unmask_eoi_irq()
+             unmask();
+
+You need state to prevent that. There is a similar, but more subtle
+issue in handle_edge_irq(), which is used on x86.
+
+You got away with this so far due to the disable_irq() abuse and with
+your unmask PoC you didn't notice the rare issue on x86, but with
+handle_fasteoi_irq() this clearly can't ever work.
+
+> /* run this on the timer callback */
+> static int drain_desc_list(struct irq_mod_state *ms)
+> {
+>         struct irq_desc *desc, *next;
+>         uint srcs =3D 0;
+>
+>         /* Last round, remove from list and unmask_irq(). */
+>         list_for_each_entry_safe(desc, next, &ms->descs, mod.ms_node) {
+>                 list_del_init(&desc->mod.ms_node);
+>                 srcs++;
+>                 ms->unmask_irq++;
+>                 scoped_irqdesc_get_and_buslock(desc->irq_data.irq,
+> IRQ_GET_DESC_CHECK_GLOBAL) {
+>                         unmask_irq(scoped_irqdesc);
+
+That's broken vs. state changes which occured while the descriptor was
+queued. This cannot unconditionally unmask for bloody obvious reasons.
+
+There is also the opposite: Interrupt is moderated, masked, queued and
+some management code unmasks. Is that correct while it is still in the
+list and marked moderated? It probably is, but only if done right and
+clearly documented.
+
+While talking about mask/unmask. You need to ensure that the interrupt
+is actually maskable to be elegible for moderation. MSI does not
+guarantee that, which is not an issue on ARM64 as that can mask at the
+CPU level, but it is an issue on x86 which does not provide such a
+mechanism.
+
+You need to understand the intricacies of interrupt handling and
+interrupt management first instead of jumping again to "works for me and
+should be usable" conclusions.
+
+Now that you know that the mask approach "works", you can stop this
+"hack it into submission" frenzy and take a step back and really study
+the overall problem space to come up with a proper design and
+integration for this.
+
+What you really want is to define the semantics and requirements of this
+moderation mechanism versus (no particular order):
+
+    1) The existing semantics of handle_edge_irq() and
+       handle_fasteoi_irq(), which need to be guaranteed.
+
+       That's one of the most crucial points because edge type
+       interrupts have fire and forget semantics on the device side and
+       there is no guarantee that the device will send another one in
+       time. People including me wasted tons of time to decode such
+       problems in the past.
+
+    2) The existing semantics of disable/enable_irq(), irq_shutdown(),
+       synchronize_irq(), which need to be preserved.
+
+    3) Teardown of an interrupt, which also relates to shutdown and
+       synchronizing.
+
+    4) Interrupts coming in while in moderated state and "masked". That
+       can be spurious interrupts or happen due to unmasking by
+       management code, e.g. enable_irq().
+
+    5) CPU hotunplug. Define the exact point where the list has to be
+       cleaned out and the timer canceled and it's guaranteed that
+       there can't be interrupts added back to the moderation list.
+
+    6) Affinity changes. Are there any implications when the descriptor
+       is enqueued on the old target and waiting for the timer to unmask
+       it? That assumes that CPU hotunplug related affinity changes are
+       not affected because those interrupts are guaranteed not to be
+       moderated.
+
+    7) Suspend/resume. That needs some deep analysis of the potential
+       state space.
+
+    8) Eligibility beyond edge, single target, etc. That might need
+       actual opt-in support from the interrupt chip hierarchy as
+       otherwise this is going to end up in a continous stream of
+       undecodable bug reports, which others have to deal with :(
+       See my remark vs. unmaskable MSI above.
+
+Once you figured all of that out, it becomes pretty clear how the
+implementation has to look like and you can start building it up piece
+wise by doing the necessary refactoring and preparatory changes first so
+that the actual functionality falls into place at the end.
+
+If you start the other way round by glueing the functionality somewhere
+into interrupt handling first and then trying to address the resulting
+fallout, you'll get nowhere. Trust me that a lot of smart people have
+failed that way.
+
+That said, I'm happy to answer _informed_ questions about semantics,
+rules and requirements if they are not obvious from the code.
+
+Good luck!
+
+Thanks,
+
+        tglx
