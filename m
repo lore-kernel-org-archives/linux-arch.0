@@ -1,105 +1,131 @@
-Received: from mailbox.box.xen0n.name (mail.xen0n.name [115.28.160.31])
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A40672FDC4C;
-	Thu, 20 Nov 2025 10:49:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.28.160.31
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6380D2F60A1;
+	Thu, 20 Nov 2025 11:31:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763635761; cv=none; b=fMiqY9Fd/8a29AXw+DOXWLEUsG22BCZwCay26DjeaX6oSNmBXiar8FkBEgP3hM6dj12aQuF5eO9f7KV38lSd5ZZEQdNPkoQJdLiMCZ51oM81TwNVyHgAT4Ly+L7LtyGf7adoDjJiCbfJlfXwdY6PNAcMW7+OH0uM1TG90sCbKA8=
+	t=1763638318; cv=none; b=SWtJyfMO3YkK/0jVBawntkrA6vl5oUWhcvwdanF54aRtjWIIUOuSkDEJe3hXM9I7IMrpCFrjagZoLCYu9vgMK7hE4KJ7D/Pvo7/kZ+8Qaax3tgcJErfgoBPC4F2/lUDb/76vkmhQQCAFBXN+CbY+zI64tKBBTM2nhPa2fjzHkPA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763635761; c=relaxed/simple;
-	bh=Dpo93d0Xn+a2sO/3PRWqEkPL1WIkgkdVNVES7XVrkBw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=tRfotkte4BrDPJEOjDI7YS7Yspg8Z64wu2U71eu16cmcw/7O73ZWIzM1CmI/C7+2D1yqNs5wnXoblfMe6WJjEFpUgHW6nCzyMxmVi+vBrillI7+LX8lE13wreZn/MnKyC6QQbBiXKnm3zO8KlpCeS7IPPWiUqTHgkjde8tC+LeU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=xen0n.name; spf=pass smtp.mailfrom=xen0n.name; dkim=pass (1024-bit key) header.d=xen0n.name header.i=@xen0n.name header.b=BIl5qm13; arc=none smtp.client-ip=115.28.160.31
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=xen0n.name
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xen0n.name
+	s=arc-20240116; t=1763638318; c=relaxed/simple;
+	bh=PeIQpskFOZFmQuo5SFxYpSkiWfgwGhPROs1dmExTBhE=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=MvjuWc3kB3QEOIVi1vjcPXfOOuOUYIHASUp6u+Hw4m6TlG+4/Fi3up67onLPwwiZRfldQ+ABQgLZeJf0ZMXVua2ni3+AAB8DzKbl/1VkVlGxE9oAiWxPwkOYXqdk4M5KeRas6YYf+VvbxeClOiVJrH1erwnQn3l+SRYV/hPRQ40=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=G6VdTrHm; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=S7uHKcKC; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=xen0n.name header.i=@xen0n.name header.b="BIl5qm13"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=xen0n.name; s=mail;
-	t=1763635230; bh=Dpo93d0Xn+a2sO/3PRWqEkPL1WIkgkdVNVES7XVrkBw=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=BIl5qm13f9EggIypAr7VBGYAcW0f9aAPjnCyB3gxVJe8Poh/T2Jr977E4RPjWUoKT
-	 UWxvfoiT2wNx4DFUl+USw2LuVsZnwnaeqXfDyjEajxunjyxmLftwmf0vcFDpGuN2tR
-	 IDGQgbdAV6WZ7A9kokiVRSDEj2MLP1d4/T4z9v94=
-Received: from [28.0.0.1] (unknown [IPv6:240e:30f:307:db01:18aa:f52:2bb9:3])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mailbox.box.xen0n.name (Postfix) with ESMTPSA id BF756600F4;
-	Thu, 20 Nov 2025 18:40:29 +0800 (CST)
-Message-ID: <a13a5f0b-49ca-4116-8654-5bc57c0ca6a0@xen0n.name>
-Date: Thu, 20 Nov 2025 18:40:28 +0800
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="G6VdTrHm";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="S7uHKcKC"
+From: Thomas Gleixner <tglx@linutronix.de>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1763638315;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=6p41dAesVOIVU+GBWhMIXO9dH9yVLIF4rvzn044K02w=;
+	b=G6VdTrHmc47c3H6nRRQ+Raakfenh0a92d7UoUC1gOYEYzaRhSQy1e/JEgYYVMT/5/U6CBF
+	zGRvaNe+1cK5uwObln0UK66eyA0C1BJ9w+YY8hpPAnzqBR4kuS/3KYR0ZSVhdiNKlmt5tC
+	Pl7crnXp+dlxiaTjYIigArmEhm19/4ZBlgO1XzfqkZaBt+DFDPmIX4+fHTc3V/D0w6iAcw
+	d8BpEnibMq/3YJsebjZH9gZ56gu2k4tnwdPr/6RpHK1XWhIVBZ9w3IrG7hOGibDiN9KM1D
+	WO+eY2+m184mF36U2giw4iQXJVnI9TheelIByKDKe9Ef1hJrLgqPTPL7jKKYTA==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1763638315;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=6p41dAesVOIVU+GBWhMIXO9dH9yVLIF4rvzn044K02w=;
+	b=S7uHKcKCwASuxgAPm59MxcS31h5uQq++09QUstcSXwQBV0WxlpHrHBzpHircw02ECqRYvp
+	NxyxWc6gFqXPSDDw==
+To: Prakash Sangappa <prakash.sangappa@oracle.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra
+ <peterz@infradead.org>, Mathieu Desnoyers
+ <mathieu.desnoyers@efficios.com>, "Paul E. McKenney" <paulmck@kernel.org>,
+ Boqun Feng <boqun.feng@gmail.com>, Jonathan Corbet <corbet@lwn.net>,
+ Madadi Vineeth Reddy <vineethr@linux.ibm.com>, K Prateek Nayak
+ <kprateek.nayak@amd.com>, Steven
+ Rostedt <rostedt@goodmis.org>, Sebastian Andrzej Siewior
+ <bigeasy@linutronix.de>, Arnd Bergmann <arnd@arndb.de>,
+ "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Subject: Re: [patch V3 07/12] rseq: Implement syscall entry work for time
+ slice extensions
+In-Reply-To: <C9D3DC1A-CBF5-4AB3-B500-C932A6868B13@oracle.com>
+References: <20251029125514.496134233@linutronix.de>
+ <20251029130403.860155882@linutronix.de>
+ <261A8604-DA8D-468A-83BB-F530D5639A43@oracle.com> <874iqqm4dr.ffs@tglx>
+ <C9D3DC1A-CBF5-4AB3-B500-C932A6868B13@oracle.com>
+Date: Thu, 20 Nov 2025 12:31:54 +0100
+Message-ID: <874iqpkkid.ffs@tglx>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH V2 09/14] LoongArch: Adjust system call for 32BIT/64BIT
-To: Huacai Chen <chenhuacai@loongson.cn>, Arnd Bergmann <arnd@arndb.de>,
- Huacai Chen <chenhuacai@kernel.org>
-Cc: loongarch@lists.linux.dev, linux-arch@vger.kernel.org,
- Xuefeng Li <lixuefeng@loongson.cn>, Guo Ren <guoren@kernel.org>,
- Jiaxun Yang <jiaxun.yang@flygoat.com>, linux-kernel@vger.kernel.org
-References: <20251118112728.571869-1-chenhuacai@loongson.cn>
- <20251118112728.571869-10-chenhuacai@loongson.cn>
-Content-Language: en-US
-From: WANG Xuerui <kernel@xen0n.name>
-In-Reply-To: <20251118112728.571869-10-chenhuacai@loongson.cn>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
 
-On 11/18/25 19:27, Huacai Chen wrote:
-> Adjust system call for both 32BIT and 64BIT, including: add the uapi
-> unistd_{32,64}.h and syscall_table_{32,64}.h inclusion, add sys_mmap2()
-> definition, change the system call entry routines, etc.
-> 
-> Signed-off-by: Jiaxun Yang <jiaxun.yang@flygoat.com>
-> Signed-off-by: Huacai Chen <chenhuacai@loongson.cn>
-> ---
->   arch/loongarch/include/asm/Kbuild        |  1 +
->   arch/loongarch/include/uapi/asm/Kbuild   |  1 +
->   arch/loongarch/include/uapi/asm/unistd.h |  6 ++++++
->   arch/loongarch/kernel/Makefile.syscalls  |  1 +
->   arch/loongarch/kernel/entry.S            | 22 +++++++++++-----------
->   arch/loongarch/kernel/syscall.c          | 13 +++++++++++++
->   6 files changed, 33 insertions(+), 11 deletions(-)
-> 
-> [snip]
-> diff --git a/arch/loongarch/kernel/syscall.c b/arch/loongarch/kernel/syscall.c
-> index ab94eb5ce039..1249d82c1cd0 100644
-> --- a/arch/loongarch/kernel/syscall.c
-> +++ b/arch/loongarch/kernel/syscall.c
-> @@ -34,9 +34,22 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len, unsigned long,
->   	return ksys_mmap_pgoff(addr, len, prot, flags, fd, offset >> PAGE_SHIFT);
->   }
->   
-> +SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len, unsigned long,
-> +		 prot, unsigned long, flags, unsigned long, fd, unsigned long, offset)
-> +{
-> +	if (offset & (~PAGE_MASK >> 12))
-> +		return -EINVAL;
-> +
-> +	return ksys_mmap_pgoff(addr, len, prot, flags, fd, offset >> (PAGE_SHIFT - 12));
-> +}
-> +
+On Thu, Nov 20 2025 at 07:37, Prakash Sangappa wrote:
+>> On Nov 19, 2025, at 7:25=E2=80=AFAM, Thomas Gleixner <tglx@linutronix.de=
+> wrote:
+>> Something like the uncompiled and untested below should work. Though I
+>> hate it with a passion.
+>
+> That works. It addresses DB issue.
+>
+> With this change, here are the =E2=80=99swingbench=E2=80=99 performance r=
+esults I received from our Database team.
+> https://www.dominicgiles.com/swingbench/
+>
+> Kernel based on rseq/slice v3 + above change.
+> System: 2 socket AMD.
+> Cached DB config - i.e DB files cached on tmpfs.
+>
+> Response from Database performance engineer:-
+>
+> Overall the results are very positive and consistent with the earlier
+> findings, we see a clear benefit from the optimization running the
+> same tests as earlier.
+>
+> =E2=80=A2 The sgrant figure in /sys/kernel/debug/rseq/stats increases wit=
+h the
+>   DB side optimization enabled, while it stays flat when disabled.  I
+>   believe this indicates that both the kernel-side code & the DB side
+>   triggers are working as expected.
 
-Why not guard this with #ifdef CONFIG_32BIT?
+Correct.
 
->   void *sys_call_table[__NR_syscalls] = {
->   	[0 ... __NR_syscalls - 1] = sys_ni_syscall,
-> +#ifdef CONFIG_32BIT
-> +#include <asm/syscall_table_32.h>
-> +#else
->   #include <asm/syscall_table_64.h>
-> +#endif
->   };
->   
->   typedef long (*sys_call_fn)(unsigned long, unsigned long,
+> =E2=80=A2 Due to the contentious nature of the workload these tests produ=
+ce
+>   highly erratic results, but the optimization is showing improved
+>   performance across 3x tests with/without use of time slice extension.
+>
+> =E2=80=A2 Swingbench throughput with use of time slice optimization
+> 	=E2=80=A2 Run 1: 50,008.10
+> 	=E2=80=A2 Run 2: 59,160.60
+> 	=E2=80=A2 Run 3: 67,342.70
+> =E2=80=A2 Swingbench throughput without use of time slice optimization
+> 	=E2=80=A2 Run 1: 36,422.80
+> 	=E2=80=A2 Run 2: 33,186.00
+> 	=E2=80=A2 Run 3: 44,309.80
+> =E2=80=A2 The application performs 55% better on average with the optimiz=
+ation.
 
--- 
-WANG "xen0n" Xuerui
+55% is insane.
 
-Linux/LoongArch mailing list: https://lore.kernel.org/loongarch/
+Could you please ask your performance guys to provide numbers for the
+below configurations to see how the different parts of this work are
+affecting the overall result:
+
+ 1) Linux 6.17 (no rseq rework, no slice)
+
+ 2) Linux 6.17 + your initial attempt to enable slice extension
+
+We already have the numbers for the full new stack above (with and
+without slice), so that should give us the full picture.
+
+Thanks,
+
+        tglx
