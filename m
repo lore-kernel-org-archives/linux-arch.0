@@ -1,148 +1,202 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 517E134D392
-	for <linux-arch@vger.kernel.org>; Fri, 21 Nov 2025 10:01:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 512F930E823
+	for <linux-arch@vger.kernel.org>; Fri, 21 Nov 2025 10:07:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763719300; cv=none; b=Ev/u+S9Dy/i1MuoOTiWghxTB32J0VhlQ1f47Q0EPiu4kYyqCfKYpiyS3h9y4cXrAuFZd4vQ3yLxKl+KNe0/ULq+Fz1vhgGcf9FVXFC8/azXXP5yTlmGeoCqr4QkexO605tOziTntD1f/KfsnDjnhmmJSDL7dRDbGWuGrEagfzb8=
+	t=1763719641; cv=none; b=PCHq7qbWQW+uHIE4eBEPcI4sH1ZdnS3t6Qx+Y2ih9cACHoTdsFIb0f3PyNcyA0wjdh4bZMDU1bPPwNzJCi/kNjQIjGMg3pollvuUV5zIxStzdU8+kXNy0KGNIQ0mA6OuvxLfyYoCX1KT0CKL44MJKvZM97/aY1D/OgSXTuaL58I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763719300; c=relaxed/simple;
-	bh=9/Ql+dAsUXEs4tc/9oTf/8u6Gf7/hz+bXrR8WKKb1cA=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=MMEhVkP28wkRqEexMz1bzK6g+fvtNLzi7JyMAZVvYKv1KhDRD0yoYd+73Xr9a9/b0DIpDZ3G3mMVO65iPUE+4r8u0VuJchx6W8uANxgSUDMAmQeVzr9x/a9Ou/t7Priz0MH955TZXoMKsBp/ahoh84ATSlBVSkwL8NEMhNlHT3w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=ebk9NsO6; arc=none smtp.client-ip=170.10.129.124
+	s=arc-20240116; t=1763719641; c=relaxed/simple;
+	bh=WphRJGGfukQrYBcMZ5MWr7QgRRKzcp/3Uhc7FhEdO5c=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=rRHa+iCRq6hJmdpwzat7nxL1Gt28AVlokorjOgGX8HbsW9jAIx/5u0kOym3+KYZwk8Og+3uqqEYt09hlm3+Go5pk9iq703hnlpvh7xalFiaw0XSQ3XUtWdjRHn8QMBPDXN9vvreKi8269WAMubQbzlHZhKOdyH/7lew5omOLk9U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=IRddzQfc; dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b=hVIKI4iu; arc=none smtp.client-ip=170.10.133.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="ebk9NsO6"
+	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="IRddzQfc";
+	dkim=pass (2048-bit key) header.d=redhat.com header.i=@redhat.com header.b="hVIKI4iu"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1763719296;
+	s=mimecast20190719; t=1763719638;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=HzjekNmgRaAQ18lyWUzsEgEEJcD+Pamj+FUs+1j6mw8=;
-	b=ebk9NsO6KsMHZdTPCBlbDOS4GilXwLDzrgqFtdtkf8usI/xq2jAl0k77mtnDzWbEl2BItl
-	Vl9Bq9Lu+oP5vVv6LrsQIPruXR1ykW3eSEYFiI3fDAf+umQYhxfMoUSyPbY+kKTPpx1rBS
-	DzEA7Ce7SgPl1wCiI+AE5akAEhjQkS8=
-Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-147-KhGOA54LO2idn1_FQ3SIiw-1; Fri,
- 21 Nov 2025 05:01:27 -0500
-X-MC-Unique: KhGOA54LO2idn1_FQ3SIiw-1
-X-Mimecast-MFC-AGG-ID: KhGOA54LO2idn1_FQ3SIiw_1763719284
-Received: from mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.12])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id A83221954B1B;
-	Fri, 21 Nov 2025 10:01:24 +0000 (UTC)
-Received: from thuth-p1g4.redhat.com (unknown [10.44.32.78])
-	by mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 9142E1955F66;
-	Fri, 21 Nov 2025 10:01:22 +0000 (UTC)
-From: Thomas Huth <thuth@redhat.com>
-To: Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org,
-	linux-kbuild@vger.kernel.org,
-	Thomas Huth <thuth@redhat.com>
-Subject: [PATCH v4 8/9] x86/headers: Replace __ASSEMBLY__ stragglers with __ASSEMBLER__
-Date: Fri, 21 Nov 2025 11:00:43 +0100
-Message-ID: <20251121100044.282684-9-thuth@redhat.com>
-In-Reply-To: <20251121100044.282684-1-thuth@redhat.com>
-References: <20251121100044.282684-1-thuth@redhat.com>
+	 in-reply-to:in-reply-to:references:references:autocrypt:autocrypt;
+	bh=SwO77VZOzFTjZAvBz0g5FmwChhtiApIbRQIotLVXRho=;
+	b=IRddzQfcMg47UPY9F+7clkPXS5V2tilmIM87MVoj1XSjYjlhqEQmLhtwJcO6/Yt2ROEh8u
+	e69FTHxyYZlDowZWwvReDcHa4Dix36q6F9+TskezNms9yWQd1P8b7ZRFmC9skgRqWBX3k9
+	svcvf6kweOmksUoMe+yJ6QW5zv6iZdU=
+Received: from mail-wm1-f71.google.com (mail-wm1-f71.google.com
+ [209.85.128.71]) by relay.mimecast.com with ESMTP with STARTTLS
+ (version=TLSv1.3, cipher=TLS_AES_256_GCM_SHA384) id
+ us-mta-146-iC5gh858OsOa6gFssA2YUA-1; Fri, 21 Nov 2025 05:07:16 -0500
+X-MC-Unique: iC5gh858OsOa6gFssA2YUA-1
+X-Mimecast-MFC-AGG-ID: iC5gh858OsOa6gFssA2YUA_1763719635
+Received: by mail-wm1-f71.google.com with SMTP id 5b1f17b1804b1-4779b432aecso14110995e9.0
+        for <linux-arch@vger.kernel.org>; Fri, 21 Nov 2025 02:07:16 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=redhat.com; s=google; t=1763719635; x=1764324435; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:autocrypt:content-language
+         :from:references:cc:to:subject:user-agent:mime-version:date
+         :message-id:from:to:cc:subject:date:message-id:reply-to;
+        bh=SwO77VZOzFTjZAvBz0g5FmwChhtiApIbRQIotLVXRho=;
+        b=hVIKI4iuK5NWJCr9/kIV+fzptT4/Aps74k/m9+Azou06vV0isxURee2qIG85Ct6Emg
+         J0G6Wb4DPs6S61KDbhXwMo4OPWlinfuRWbYMrlhfQpEfqinVLXc1eSW+XnJbrWv3Z2Ov
+         2HVCq1KBthR3ghCACrNhesyJKu5NOS76oWn6YrgKMS8XcXxRpSaB1O1Q0upJu9fiyxiF
+         JMJTy+HZVo0avowdsRhfNdHivII/Ay/z9Dzj+iljMzURFUoG6bwBFUbDFEnIOdgzkwyZ
+         ByfysJ+5d18rrzjv5bud4k1lGWpftHa4sop5KfzvSb3eW6pFQWxtXffCvAqHj5elFmgZ
+         0X/Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1763719635; x=1764324435;
+        h=content-transfer-encoding:in-reply-to:autocrypt:content-language
+         :from:references:cc:to:subject:user-agent:mime-version:date
+         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=SwO77VZOzFTjZAvBz0g5FmwChhtiApIbRQIotLVXRho=;
+        b=BAICqefjdk/L6fqeyn4f7RQeKYXMmqYP2sy+s1r4xEkRVgvNw8K6sCavz4NvG03v34
+         UmmtwusWEOwQngTSu70w0Z+5UT6E7zObrUsQCWPHhkW81/yivBFN6PNM7lBHJixpb43m
+         a8dRea3tn+zbcdXlme1NrKDKnoeRQaHpiFhBPOXDSAKz2YGuOGaGsI41VVT1zcK7IMB6
+         Faz73uZP1MAv+tkUd/YwFjnkL1epNpUavDU4SHKngFj7klm0+Nz3LYLysl5HbcURfGfv
+         xCXEVxrdewE1wRg8zX7yNWHsHI3C5hHQf7QreHGVjhdB+Y9ZjXAJXTkRo6yzwEK5L204
+         A+gw==
+X-Forwarded-Encrypted: i=1; AJvYcCX+2OyCJsj8rdRkr17rP6xHS/90E1wxtNkNTMboHfzrZlXyHAMXQIquzySy62ZPtnuKtxKV7Qy1u9x8@vger.kernel.org
+X-Gm-Message-State: AOJu0YxKCS6c1I5j7rdI51QdjLHnB1GV8GxlOoVjpdeFyGTIVvfEgVmz
+	13JK3KLcH9EkjjenED9on+euy2p1gZkt7PDD73riXasmY/lSFDgAToVDXXdzHQ+hfTmRjG9gJiz
+	LZn0FgDhqJj9c1rY8K6iXNQ9Zt/1MHMDyNZdtQhyg7M967A43mXag/MMZ0vt45kM=
+X-Gm-Gg: ASbGncvgHp99Ml/RHYmJ7sBeRrTFpZpDlNdYqdiAnUPhQLdgfrWOWypTRxYONNYmT/y
+	Eh4YUqNLB+4mOK3N2O3JsbUtets7Uq3wQZtEAQudjcDBgZ4QgrGQPjLo++fyjQaQI6RxRaHpdfl
+	1gsbHdqpIT0mRucLYbV+K5/r1BBcufj0HR+HyCLO1cqmUlhrRMtpz9xm5FJ7YAG9gb+RR8H42Fr
+	PpBYAGksKYyd4FjhqZm4Povzb8gjJ5herd0QeAO/uh99kHb42XSGJ0pNu0ivUNiVomYwp3Q0qeB
+	MXvDfIas4DJSjA6BjCUZSY8/vgmzEhWuuSbLa0tMuuuyd7cZwRvIe/pbHSqeU3qmKuQLlhprigE
+	ah0WFNQ==
+X-Received: by 2002:a05:600c:1d0d:b0:475:dd9a:f791 with SMTP id 5b1f17b1804b1-477c1126d1emr15010465e9.28.1763719635368;
+        Fri, 21 Nov 2025 02:07:15 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IFqoMD153kz/c03aS70gHVzf/BnaKJUbZBoP7k9YyW4edzStSR45m5QJCTapcyKzEEWA+6bGQ==
+X-Received: by 2002:a05:600c:1d0d:b0:475:dd9a:f791 with SMTP id 5b1f17b1804b1-477c1126d1emr15010165e9.28.1763719634864;
+        Fri, 21 Nov 2025 02:07:14 -0800 (PST)
+Received: from [192.168.0.5] ([47.64.114.57])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-477a97213b8sm81828235e9.1.2025.11.21.02.07.14
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 21 Nov 2025 02:07:14 -0800 (PST)
+Message-ID: <ba1499c3-47ca-42ed-a0d7-74c5ee768132@redhat.com>
+Date: Fri, 21 Nov 2025 11:07:13 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Scanned-By: MIMEDefang 3.0 on 10.30.177.12
-
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v4 0/9] treewide: Replace __ASSEMBLY__ with __ASSEMBLER__
+ in header files
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+ linux-kernel@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org
+References: <20251121100044.282684-1-thuth@redhat.com>
 From: Thomas Huth <thuth@redhat.com>
+Content-Language: en-US
+Autocrypt: addr=thuth@redhat.com; keydata=
+ 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
+In-Reply-To: <20251121100044.282684-1-thuth@redhat.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-After converting the __ASSEMBLY__ statements to __ASSEMBLER__ in
-commit 24a295e4ef1ca ("x86/headers: Replace __ASSEMBLY__ with
-__ASSEMBLER__ in non-UAPI headers"), some new code has been
-added that uses __ASSEMBLY__ again. Convert these stragglers, too.
+On 21/11/2025 11.00, Thomas Huth wrote:
+>   Hi Arnd!
+> 
+> Could you please help to get the remaining patches of this macro
+> renaming series merged? I already got most patches from the initial
+> version merged through the architecture specific trees (thanks to every
+> maintainer who helped me here!), but for alpha and arm 32-bit, I did
+> not manage to get the attention of the maintainers. Hexagon got an
+> Acked-by by Brian, but the patches did not get merged yet.
 
-This is a mechanical patch, done with a simple "sed -i" command.
+Sorry, forgot to mention: csky and arm64 are still in linux-next and not in 
+Linus' master branch yet, so they need to get merged first.
 
-Signed-off-by: Thomas Huth <thuth@redhat.com>
----
- arch/x86/include/asm/irqflags.h      | 4 ++--
- arch/x86/include/asm/percpu.h        | 2 +-
- arch/x86/include/asm/runtime-const.h | 6 +++---
- 3 files changed, 6 insertions(+), 6 deletions(-)
+  Thomas
 
-diff --git a/arch/x86/include/asm/irqflags.h b/arch/x86/include/asm/irqflags.h
-index b30e5474c18e1..5feaac1d235f0 100644
---- a/arch/x86/include/asm/irqflags.h
-+++ b/arch/x86/include/asm/irqflags.h
-@@ -77,7 +77,7 @@ static __always_inline void native_local_irq_restore(unsigned long flags)
- #endif
- 
- #ifndef CONFIG_PARAVIRT
--#ifndef __ASSEMBLY__
-+#ifndef __ASSEMBLER__
- /*
-  * Used in the idle loop; sti takes one instruction cycle
-  * to complete:
-@@ -95,7 +95,7 @@ static __always_inline void halt(void)
- {
- 	native_halt();
- }
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- #endif /* CONFIG_PARAVIRT */
- 
- #ifdef CONFIG_PARAVIRT_XXL
-diff --git a/arch/x86/include/asm/percpu.h b/arch/x86/include/asm/percpu.h
-index 725d0eff7acdf..50f73a8df7f6c 100644
---- a/arch/x86/include/asm/percpu.h
-+++ b/arch/x86/include/asm/percpu.h
-@@ -20,7 +20,7 @@
- 
- #define PER_CPU_VAR(var)	__percpu(var)__percpu_rel
- 
--#else /* !__ASSEMBLY__: */
-+#else /* !__ASSEMBLER__: */
- 
- #include <linux/args.h>
- #include <linux/bits.h>
-diff --git a/arch/x86/include/asm/runtime-const.h b/arch/x86/include/asm/runtime-const.h
-index e5a13dc8816e2..4cd94fdcb45e2 100644
---- a/arch/x86/include/asm/runtime-const.h
-+++ b/arch/x86/include/asm/runtime-const.h
-@@ -6,7 +6,7 @@
-   #error "Cannot use runtime-const infrastructure from modules"
- #endif
- 
--#ifdef __ASSEMBLY__
-+#ifdef __ASSEMBLER__
- 
- .macro RUNTIME_CONST_PTR sym reg
- 	movq	$0x0123456789abcdef, %\reg
-@@ -16,7 +16,7 @@
- 	.popsection
- .endm
- 
--#else /* __ASSEMBLY__ */
-+#else /* __ASSEMBLER__ */
- 
- #define runtime_const_ptr(sym) ({				\
- 	typeof(sym) __ret;					\
-@@ -74,5 +74,5 @@ static inline void runtime_const_fixup(void (*fn)(void *, unsigned long),
- 	}
- }
- 
--#endif /* __ASSEMBLY__ */
-+#endif /* __ASSEMBLER__ */
- #endif
--- 
-2.51.1
+
+> Anyway, original patch series description follows:
+> 
+> The kernel Makefiles define the __ASSEMBLY__ macro to provide
+> a way to use headers in both, assembly and C source code.
+> However, all the supported versions of the GCC and Clang compilers
+> also define the macro __ASSEMBLER__ automatically already when compiling
+> assembly code, so some kernel headers are using __ASSEMBLER__ instead.
+> With regards to userspace code, this seems also to be constant source
+> of confusion, see for example these links here:
+> 
+>   https://lore.kernel.org/kvm/20250222014526.2302653-1-seanjc@google.com/
+>   https://stackoverflow.com/questions/28924355/gcc-assembler-preprocessor-not-compatible-with-standard-headers
+>   https://forums.raspberrypi.com/viewtopic.php?p=1652944#p1653834
+>   https://github.com/riscv-software-src/opensbi/issues/199
+> 
+> To avoid confusion in the future, it would make sense to standardize
+> on the macro that gets defined by the compiler, so this patch series
+> changes all occurances of __ASSEMBLY__ into __ASSEMBLER__ and
+> finally removes the -D__ASSEMBLY__ from the Makefiles.
+> 
+> I split the patches per architecture to ease the review, and I also
+> split the uapi headers from the normal ones in case we decide that
+> uapi needs to be treated differently from the normal headers here.
+> 
+> v4:
+> - Most patches from the original series got already merged via the
+>    tree of the individual architectures, so the amount of patches here
+>    has been greatly reduced
+> - Rebased patches on top of linux-next, fixed conflicts and new
+>    occurances
+> 
+> Thomas Huth (9):
+>    alpha: Replace __ASSEMBLY__ with __ASSEMBLER__ in the alpha headers
+>    arm: Replace __ASSEMBLY__ with __ASSEMBLER__ in uapi headers
+>    arm: Replace __ASSEMBLY__ with __ASSEMBLER__ in non-uapi headers
+>    hexagon: Replace __ASSEMBLY__ with __ASSEMBLER__ in uapi headers
+>    hexagon: Replace __ASSEMBLY__ with __ASSEMBLER__ in non-uapi headers
+>    uapi: Replace __ASSEMBLY__ with __ASSEMBLER__ in uapi headers
+>    include: Replace __ASSEMBLY__ with __ASSEMBLER__ in non-uapi headers
+>    x86/headers: Replace __ASSEMBLY__ stragglers with __ASSEMBLER__
+>    treewide: Stop defining __ASSEMBLY__ for assembler files
 
