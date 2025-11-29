@@ -1,143 +1,219 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f44.google.com (mail-ed1-f44.google.com [209.85.208.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5515C770FE;
-	Thu, 27 Nov 2025 21:14:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F48072623
+	for <linux-arch@vger.kernel.org>; Sat, 29 Nov 2025 23:00:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764278050; cv=none; b=M4jzvk+AOKyB8+xVmO+bQTqF9PgW1FOwrgFKo1OA9f83lnNaWAmwHGuK026evj72mtDjEXIOrVIiJAFmgLl+7Fpt7hlDyPxUgNbAawN0VdCQ5Ln38+oP/9uC0NySvHzKe7cMJSUHMOQj1XNF3fNHavOUF7NVFGYsUvRMNBSqq7I=
+	t=1764457248; cv=none; b=bMyyHWsg1GDPR79EJ0NnhESlX7ruGGvE1jgJ0+wvQg2mdmciLcnxHu0QkXP8Ly7Vxi1ZkUmx8oGJNNb6qYSA40Ce79x23YAdaIfz9+JntGvk8YpOJKnOIqpRt0z5dZo785/kcH+mTAHGx15MfimVjwVyOxYdY41oUKvwBsOQqnw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764278050; c=relaxed/simple;
-	bh=Fi9uBpjCD9vm8iluPdYQEZRrTQxH47uO4POYpNrObW4=;
-	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
-	 MIME-Version:Content-Type; b=IWU72LE3VW5wKl0TjsBgjSmJITKR9+8tAg+WddshZs4oZUlxNqyq7eaUUZvcsaUCzopisIbolI6rEmfqbiP39Soyi+Wi7zzxKc96lRJhuzNGyXWMErO33zyGbUvjwlZlPNuemZ8cRCbxpfI6Mbhr1myZOZDldyERvdc+1rmXFt4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=khkgOJ3j; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1764457248; c=relaxed/simple;
+	bh=ahbrlVHUyjKynsmUn0eg1wukhIGIxV/YCSxXPxWxPkg=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=fQ7klfFrUCRcOZeZW+60SrVAemA4socw+XyglLNq2Shg1PPjUb5oWT1ru2DNXWeiFhO4Bo+Rxx9xsDBP5GDgw6uFZKumuyW83MrEVZC9JLJR5JU/DF3WnsLE8YEDhrGLcv7SNIwYkbTT5TwJsbfykJilnkfkEcGEi9/DFuHhXZw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=a7ayhB0a; arc=none smtp.client-ip=209.85.208.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="khkgOJ3j"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CDA79C4CEF8;
-	Thu, 27 Nov 2025 21:14:06 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1764278049;
-	bh=Fi9uBpjCD9vm8iluPdYQEZRrTQxH47uO4POYpNrObW4=;
-	h=Date:From:To:cc:Subject:In-Reply-To:References:From;
-	b=khkgOJ3jyY5Z1bRFubXx8+PfzwwpzTLhKmfop/KpcKgOZsNorgafnpms8HWthBlZm
-	 Qjd+fBibf2KNWHwA60kRIHSzeqjIvG22F7oj5vdloc93fv9hv4l8KaBkJrRVc+ix3A
-	 qNW9H3ZKe0qRJMBV3nBa8qM1pz0GxGYSnGlezZ1NnfqTcyE8nX44WgR2tKPkYUEgbJ
-	 3hnD1zdApuKj+qKpcUvRaPdSb99IEx4ut3J/Re5H872dPTVyRnff2sxsVeH6S+e7Jz
-	 l8F4gH+/wnKZ+XCg81W1LX+OH0VsQa/DCQaWbyYoHg+PnmOL68kDGpGTByinNHagPP
-	 od+aoTIJWdbgg==
-Date: Thu, 27 Nov 2025 14:14:03 -0700 (MST)
-From: Paul Walmsley <pjw@kernel.org>
-To: linux-riscv@lists.infradead.org
-cc: Deepak Gupta <debug@rivosinc.com>, tglx@linutronix.de, mingo@redhat.com, 
-    bp@alien8.de, dave.hansen@linux.intel.com, x86@kernel.org, hpa@zytor.com, 
-    akpm@linux-foundation.org, Liam.Howlett@oracle.com, vbabka@suse.cz, 
-    lorenzo.stoakes@oracle.com, paul.walmsley@sifive.com, palmer@dabbelt.com, 
-    aou@eecs.berkeley.edu, conor@kernel.org, robh@kernel.org, 
-    krzk+dt@kernel.org, arnd@arndb.de, brauner@kernel.org, 
-    peterz@infradead.org, oleg@redhat.com, ebiederm@xmission.com, 
-    kees@kernel.org, corbet@lwn.net, shuah@kernel.org, jannh@google.com, 
-    conor+dt@kernel.org, ojeda@kernel.org, alex.gaynor@gmail.com, 
-    boqun.feng@gmail.com, gary@garyguo.net, bjorn3_gh@protonmail.com, 
-    a.hindborg@kernel.org, aliceryhl@google.com, tmgross@umich.edu, 
-    lossin@kernel.org, linux-kernel@vger.kernel.org, 
-    linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, 
-    devicetree@vger.kernel.org, linux-arch@vger.kernel.org, 
-    linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, 
-    alistair.francis@wdc.com, richard.henderson@linaro.org, jim.shu@sifive.com, 
-    andybnac@gmail.com, kito.cheng@sifive.com, charlie@rivosinc.com, 
-    atishp@rivosinc.com, evan@rivosinc.com, cleger@rivosinc.com, 
-    alexghiti@rivosinc.com, samitolvanen@google.com, broonie@kernel.org, 
-    rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org, 
-    zong.li@sifive.com, david@redhat.com, cmirabil@redhat.com
-Subject: Re: [PATCH v23 00/28] riscv control-flow integrity for usermode
-In-Reply-To: <176423222224.2476283.17736612090314280039.git-patchwork-notify@kernel.org>
-Message-ID: <b82ffcca-3173-8c07-4a8a-c42d8d092a72@kernel.org>
-References: <20251112-v5_user_cfi_series-v23-0-b55691eacf4f@rivosinc.com> <176423222224.2476283.17736612090314280039.git-patchwork-notify@kernel.org>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="a7ayhB0a"
+Received: by mail-ed1-f44.google.com with SMTP id 4fb4d7f45d1cf-645a13e2b17so4692511a12.2
+        for <linux-arch@vger.kernel.org>; Sat, 29 Nov 2025 15:00:46 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1764457245; x=1765062045; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=o7abD6XH4eHcxEiWpbo/4uwSFXjdFhqX7mjZwLL/Fl0=;
+        b=a7ayhB0a8mVesvDqyRPRfbj1qe5w2GyPPN0KTnT0F08k6+kCSI2gBADzePtfn/h//m
+         EbiyixkVPtyiLEjuxSW2SrgTzw1DsjZbsU9Kff0xrpWmR06aaslxioPuT7Gqn9mqgSVE
+         mzE2+ZQCFFUh4/vORTyqyTJ4SpwAG66swkMrIHXbo1U9lCx5oSkvw+7HPscncaVevLvz
+         DNFi6eXZmzLa+2wGh63XhZNuSvGvfg6Ma3eg9uTKZtmZLIloEfUiAYy3Hx3a/stjxfl7
+         VPTYzWDYkFPqKS7iOZm8mV4u9bsxfK/5cq0/LTDdBhDtICz32Ek6NlTMzpCq4qCefmQt
+         shzA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1764457245; x=1765062045;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=o7abD6XH4eHcxEiWpbo/4uwSFXjdFhqX7mjZwLL/Fl0=;
+        b=sWupaqPaBrt9RGYh4kmcM1xKTORQp237HT2CuLO75A0teM0d1ek1H27JeqmSb6GTgg
+         JpCar7feRy/CUbcxrvRH3sUlrkuJo1SLMdkPo+KhK3fxVrRdE1/3nGJP1wGrvTsNLOcs
+         Fn2UEuLF7b3qvK052/dGO6aDsgvCXVkRJeU2D61AssmbcnTLt7R37RNIYxl8UvnTJ3jj
+         XJs7Pg3uzVl9SgPz7rKKOrSiDi3OZbZp3eE079btUke2YSoDd9dy+2f5LECgS8808T3T
+         +hgQmJhaU8eOA3aK2X5aey0U/gXkyngosssrKGNHvQdwCxeXFWMwGWVgA87PIrhCiq7U
+         mdFQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXh3/eYZt2kJtc3NkjuJwIRbuGyddHZTzhtBb3cp8o/spOeAya93DRKfPGuhgw3gDI+EdwaLntoSBHl@vger.kernel.org
+X-Gm-Message-State: AOJu0YxxHYMhNufh21XT52/LoG8v5JhDR7QRgQSGIFNxtMmzhKywMvxA
+	aHGV+w0BbeFI7CZWR/b8mH6tfpXFJ4x8eLw/PqMTpVPXqljA9ztT8ZfthhX0dp14oAMfDhRUM5H
+	S98Bvvj+KIksHyQ9VsaZHMMpH7GPnPjA=
+X-Gm-Gg: ASbGncuZygHQaHrLtuvcihlfT0Nd1wfDGwXn4KgkTJtn7uSy3BvQ0WXFy0rrGcwBGhJ
+	uyvlh8enK1yGkA9lG1hzrKWpfz7a8YdloNm4B2CMYBgx803wzM1Y7a85PAhzh8GaEXN5AY4Cn1T
+	1Ci2oPptHEJCldm8Uk/SaVmMC+OElnmZZhDFwh8apFUH0NhoqGqH1wIubf7H46lYPZksLwQEA3c
+	niYUyMN69Fuw+CzYmmWrl3B2E3+VUJxh8orwHFmM6FzWEMvWqN9qhcwTzXDwPTetbb5vHaG
+X-Google-Smtp-Source: AGHT+IFraZxIxArC6ZRLXa5g7OneQiuIwggV1ggNXIteOyfynnk9uYcAtUhHJonNAod2bu5yo5u0XI1eptsrAOVctRM=
+X-Received: by 2002:a05:6402:50d2:b0:633:d0b7:d6d2 with SMTP id
+ 4fb4d7f45d1cf-645eb2a9007mr18043484a12.18.1764457245181; Sat, 29 Nov 2025
+ 15:00:45 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+References: <20251121100044.282684-1-thuth@redhat.com> <20251121100044.282684-2-thuth@redhat.com>
+In-Reply-To: <20251121100044.282684-2-thuth@redhat.com>
+From: Magnus Lindholm <linmag7@gmail.com>
+Date: Sun, 30 Nov 2025 00:00:33 +0100
+X-Gm-Features: AWmQ_bkDTkRArCOJtRA_LXcLs7nIqPHlR48Siu-A5cxKCr76Y6aVmGcQU7u8Tko
+Message-ID: <CA+=Fv5SPuYyZ2ASzz3oVMCRQNP-G+0pbW58o32ryXrm_RBfqSA@mail.gmail.com>
+Subject: Re: [PATCH v4 1/9] alpha: Replace __ASSEMBLY__ with __ASSEMBLER__ in
+ the alpha headers
+To: Thomas Huth <thuth@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org, 
+	Richard Henderson <richard.henderson@linaro.org>, Matt Turner <mattst88@gmail.com>, 
+	linux-alpha@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Thu, 27 Nov 2025, patchwork-bot+linux-riscv@kernel.org wrote:
+On Fri, Nov 21, 2025 at 11:10=E2=80=AFAM Thomas Huth <thuth@redhat.com> wro=
+te:
+>
+> From: Thomas Huth <thuth@redhat.com>
+>
+> While the GCC and Clang compilers already define __ASSEMBLER__
+> automatically when compiling assembly code, __ASSEMBLY__ is a
+> macro that only gets defined by the Makefiles in the kernel.
+> This can be very confusing when switching between userspace
+> and kernelspace coding, or when dealing with uapi headers that
+> rather should use __ASSEMBLER__ instead. So let's standardize now
+> on the __ASSEMBLER__ macro that is provided by the compilers.
+>
+> This is a completely mechanical patch (done with a simple "sed -i"
+> statement).
+>
+> Cc: Richard Henderson <richard.henderson@linaro.org>
+> Cc: Matt Turner <mattst88@gmail.com>
+> Cc: linux-alpha@vger.kernel.org
+> Signed-off-by: Thomas Huth <thuth@redhat.com>
+> ---
+>  arch/alpha/include/asm/console.h     | 4 ++--
+>  arch/alpha/include/asm/page.h        | 4 ++--
+>  arch/alpha/include/asm/pal.h         | 4 ++--
+>  arch/alpha/include/asm/thread_info.h | 8 ++++----
+>  4 files changed, 10 insertions(+), 10 deletions(-)
+>
+> diff --git a/arch/alpha/include/asm/console.h b/arch/alpha/include/asm/co=
+nsole.h
+> index 088b7b9eb15ae..1cabdb6064bbe 100644
+> --- a/arch/alpha/include/asm/console.h
+> +++ b/arch/alpha/include/asm/console.h
+> @@ -4,7 +4,7 @@
+>
+>  #include <uapi/asm/console.h>
+>
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  extern long callback_puts(long unit, const char *s, long length);
+>  extern long callback_getc(long unit);
+>  extern long callback_open_console(void);
+> @@ -26,5 +26,5 @@ struct crb_struct;
+>  struct hwrpb_struct;
+>  extern int callback_init_done;
+>  extern void * callback_init(void *);
+> -#endif /* __ASSEMBLY__ */
+> +#endif /* __ASSEMBLER__ */
+>  #endif /* __AXP_CONSOLE_H */
+> diff --git a/arch/alpha/include/asm/page.h b/arch/alpha/include/asm/page.=
+h
+> index 5ec4c77e432e0..d2c6667d73e9e 100644
+> --- a/arch/alpha/include/asm/page.h
+> +++ b/arch/alpha/include/asm/page.h
+> @@ -6,7 +6,7 @@
+>  #include <asm/pal.h>
+>  #include <vdso/page.h>
+>
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>
+>  #define STRICT_MM_TYPECHECKS
+>
+> @@ -74,7 +74,7 @@ typedef struct page *pgtable_t;
+>  #define PAGE_OFFSET            0xfffffc0000000000
+>  #endif
+>
+> -#endif /* !__ASSEMBLY__ */
+> +#endif /* !__ASSEMBLER__ */
+>
+>  #define __pa(x)                        ((unsigned long) (x) - PAGE_OFFSE=
+T)
+>  #define __va(x)                        ((void *)((unsigned long) (x) + P=
+AGE_OFFSET))
+> diff --git a/arch/alpha/include/asm/pal.h b/arch/alpha/include/asm/pal.h
+> index db2b3b18b34c7..799a64c051984 100644
+> --- a/arch/alpha/include/asm/pal.h
+> +++ b/arch/alpha/include/asm/pal.h
+> @@ -4,7 +4,7 @@
+>
+>  #include <uapi/asm/pal.h>
+>
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>
+>  extern void halt(void) __attribute__((noreturn));
+>  #define __halt() __asm__ __volatile__ ("call_pal %0 #halt" : : "i" (PAL_=
+halt))
+> @@ -183,5 +183,5 @@ qemu_get_vmtime(void)
+>         return v0;
+>  }
+>
+> -#endif /* !__ASSEMBLY__ */
+> +#endif /* !__ASSEMBLER__ */
+>  #endif /* __ALPHA_PAL_H */
+> diff --git a/arch/alpha/include/asm/thread_info.h b/arch/alpha/include/as=
+m/thread_info.h
+> index 4a4d00b37986e..98ccbca64984c 100644
+> --- a/arch/alpha/include/asm/thread_info.h
+> +++ b/arch/alpha/include/asm/thread_info.h
+> @@ -4,14 +4,14 @@
+>
+>  #ifdef __KERNEL__
+>
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  #include <asm/processor.h>
+>  #include <asm/types.h>
+>  #include <asm/hwrpb.h>
+>  #include <asm/sysinfo.h>
+>  #endif
+>
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  struct thread_info {
+>         struct pcb_struct       pcb;            /* palcode state */
+>
+> @@ -44,7 +44,7 @@ register struct thread_info *__current_thread_info __as=
+m__("$8");
+>
+>  register unsigned long *current_stack_pointer __asm__ ("$30");
+>
+> -#endif /* __ASSEMBLY__ */
+> +#endif /* __ASSEMBLER__ */
+>
+>  /* Thread information allocation.  */
+>  #define THREAD_SIZE_ORDER 1
+> @@ -110,7 +110,7 @@ register unsigned long *current_stack_pointer __asm__=
+ ("$30");
+>         put_user(res, (int __user *)(value));                           \
+>         })
+>
+> -#ifndef __ASSEMBLY__
+> +#ifndef __ASSEMBLER__
+>  extern void __save_fpu(void);
+>
+>  static inline void save_fpu(void)
+> --
+> 2.51.1
+>
 
-> This series was applied to riscv/linux.git (for-next)
-> by Paul Walmsley <pjw@kernel.org>:
-> 
-
-[ the RISC-V CFI patch series ]
-
-> 
-> Here is the summary with links:
->   - [v23,01/28] mm: VM_SHADOW_STACK definition for riscv
->     https://git.kernel.org/riscv/c/ae8460ac9db2
->   - [v23,02/28] dt-bindings: riscv: zicfilp and zicfiss in dt-bindings (extensions.yaml)
->     https://git.kernel.org/riscv/c/b32ccfc268db
->   - [v23,03/28] riscv: zicfiss / zicfilp enumeration
->     https://git.kernel.org/riscv/c/55a811a7f304
->   - [v23,04/28] riscv: zicfiss / zicfilp extension csr and bit definitions
->     https://git.kernel.org/riscv/c/92c96b16548e
->   - [v23,05/28] riscv: usercfi state for task and save/restore of CSR_SSP on trap entry/exit
->     https://git.kernel.org/riscv/c/7720cdd21962
->   - [v23,06/28] riscv/mm : ensure PROT_WRITE leads to VM_READ | VM_WRITE
->     https://git.kernel.org/riscv/c/e60eb198b13d
->   - [v23,07/28] riscv/mm: manufacture shadow stack pte
->     https://git.kernel.org/riscv/c/f8fcb7b5bf30
->   - [v23,08/28] riscv/mm: teach pte_mkwrite to manufacture shadow stack PTEs
->     https://git.kernel.org/riscv/c/0276a5ea1105
->   - [v23,09/28] riscv/mm: write protect and shadow stack
->     https://git.kernel.org/riscv/c/ae615676bc37
->   - [v23,10/28] riscv/mm: Implement map_shadow_stack() syscall
->     https://git.kernel.org/riscv/c/d291fd38f841
->   - [v23,11/28] riscv/shstk: If needed allocate a new shadow stack on clone
->     https://git.kernel.org/riscv/c/d209ea2fa4bb
->   - [v23,12/28] riscv: Implements arch agnostic shadow stack prctls
->     https://git.kernel.org/riscv/c/8b49f512abc2
->   - [v23,13/28] prctl: arch-agnostic prctl for indirect branch tracking
->     https://git.kernel.org/riscv/c/3363a8d1044e
->   - [v23,14/28] riscv: Implements arch agnostic indirect branch tracking prctls
->     https://git.kernel.org/riscv/c/0177891ccdb7
->   - [v23,15/28] riscv/traps: Introduce software check exception and uprobe handling
->     https://git.kernel.org/riscv/c/6f71171a7448
->   - [v23,16/28] riscv: signal: abstract header saving for setup_sigcontext
->     (no matching commit)
->   - [v23,17/28] riscv/signal: save and restore of shadow stack for signal
->     https://git.kernel.org/riscv/c/4f9da7ad3478
->   - [v23,18/28] riscv/kernel: update __show_regs to print shadow stack register
->     https://git.kernel.org/riscv/c/320c96a55d73
->   - [v23,19/28] riscv/ptrace: riscv cfi status and state via ptrace and in core files
->     https://git.kernel.org/riscv/c/7a39f89a817e
->   - [v23,20/28] riscv/hwprobe: zicfilp / zicfiss enumeration in hwprobe
->     https://git.kernel.org/riscv/c/c09b490a9267
->   - [v23,21/28] riscv: kernel command line option to opt out of user cfi
->     https://git.kernel.org/riscv/c/6e0dc40ceb45
->   - [v23,22/28] riscv: enable kernel access to shadow stack memory via FWFT sbi call
->     https://git.kernel.org/riscv/c/dfd087078357
->   - [v23,23/28] arch/riscv: compile vdso with landing pad and shadow stack note
->     https://git.kernel.org/riscv/c/2cfe57e3bd9b
->   - [v23,24/28] arch/riscv: dual vdso creation logic and select vdso based on hw
->     https://git.kernel.org/riscv/c/418316aa61e8
->   - [v23,25/28] riscv: create a config for shadow stack and landing pad instr support
->     https://git.kernel.org/riscv/c/c5f5ce714457
->   - [v23,26/28] riscv: Documentation for landing pad / indirect branch tracking
->     https://git.kernel.org/riscv/c/73d0ccec35b8
->   - [v23,27/28] riscv: Documentation for shadow stack on riscv
->     https://git.kernel.org/riscv/c/6b8214c8cbd6
->   - [v23,28/28] kselftest/riscv: kselftest for user mode cfi
->     https://git.kernel.org/riscv/c/0f226cf6026f
-
-As I noted with the SSE series (before we removed it from for-next), I may 
-not ultimately send this in a PR this merge window, for several reasons.  
-The series has been around for a while, and although I know some vendors 
-have tested it privately, I'd really like to have more public testing of 
-this code, particularly on hardware emulation platforms or unreleased 
-silicon.  It would be good to see some Tested-by:s. 
-
-Thanks to everyone who has helped test this so far over the past few weeks 
-- particularly Joel Stanley of TensTorrent.
-
-
-- Paul
+Reviewed-by: Magnus Lindholm <linmag7@gmail.com>
