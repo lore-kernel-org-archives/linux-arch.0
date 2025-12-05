@@ -1,68 +1,68 @@
-Received: from mail-pg1-f173.google.com (mail-pg1-f173.google.com [209.85.215.173])
+Received: from mail-dy1-f181.google.com (mail-dy1-f181.google.com [74.125.82.181])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1B02435293C
-	for <linux-arch@vger.kernel.org>; Fri,  5 Dec 2025 18:37:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D374A3271E0
+	for <linux-arch@vger.kernel.org>; Fri,  5 Dec 2025 18:37:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.181
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764959867; cv=none; b=JccrjdPmdwCggbYD6i0gmMFtgNYmTh9tPu9tOmWDLiJr62abb2NFRzcbUYN0CecosJX6yoqIpj5sxVrngnZQ9VgF2qhaF7bW97f7Peh7S7uKZDimc4aamOPZg7oElEEkQ1+hk6DK43xI57nU+B//KNTRTCIY8xFkOxeWvMh61ng=
+	t=1764959868; cv=none; b=aSiYzaiqecaCIXCchLDAV8ZHL8oY77KEYHsV4hAQnM0MAwZMI6zBYAarcwIxHSQAibbwlh+wsGDyjxJ4kQFh/9EPvqjHyR3UlvAd8b84F8QnU6Ot5pLHYSJE+m+L+wBFLMPZEP1aqkB121/Rv092Mi6Gz+NQw6CDx8kXETQp8qg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764959867; c=relaxed/simple;
-	bh=s7aGrFdVNwwtkxcsJPpFVS+aOTes7FH9SYpSNwarzgE=;
+	s=arc-20240116; t=1764959868; c=relaxed/simple;
+	bh=u9G6TPtiGi38yXd+dxnDW5DlwNt/4/a115JDne5gaTk=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=csiL19T4XywHmxKkPdYw5wHLHUdtxhTUuQcFcRa7ABgaT84RyRVe3RIaGx4yUZGq42Rck7EfJnfQHSVc/nwitOKmoThsk/oXVjyaIU0OyxEU0KaO7cAJTRSePAxhN1lheny2DMwtubHs2SRslO64Gfnb95JZkDjui7tCMhw2MuU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com; spf=pass smtp.mailfrom=rivosinc.com; dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b=Sjbh2Bfl; arc=none smtp.client-ip=209.85.215.173
+	 In-Reply-To:To:Cc; b=PIfbx9F7AawTV2sZlkHDTlqLkNR4LC7BJAqiDyURFXThdz75jQTGfN/HVnpkMbWh9bcZThulh20TQDQrpep8RO06n946D2NXrH9QGG/JmpmD/UXyJnShvf92yOhBfebRebkFE2Azm/WVQje9caVNMOHRdNA8vs9FQrczAn39iic=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com; spf=pass smtp.mailfrom=rivosinc.com; dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b=VfVmuk4x; arc=none smtp.client-ip=74.125.82.181
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=rivosinc.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b="Sjbh2Bfl"
-Received: by mail-pg1-f173.google.com with SMTP id 41be03b00d2f7-bc0d7255434so1367580a12.0
-        for <linux-arch@vger.kernel.org>; Fri, 05 Dec 2025 10:37:32 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b="VfVmuk4x"
+Received: by mail-dy1-f181.google.com with SMTP id 5a478bee46e88-2a45877bd5eso4568355eec.0
+        for <linux-arch@vger.kernel.org>; Fri, 05 Dec 2025 10:37:39 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=rivosinc.com; s=google; t=1764959851; x=1765564651; darn=vger.kernel.org;
+        d=rivosinc.com; s=google; t=1764959854; x=1765564654; darn=vger.kernel.org;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=mBQdVJcI43GOmFo6ZJhh3xrAwK5rYOL/dPt9oIjyNSI=;
-        b=Sjbh2BflYLL5NuYzkpmv/eeLWZiKu9wZ4cNb39mx+rZ484/ceN2HOn07Py/IoJKSAc
-         c8ICx0s4Hitzdgrecpm5syCFvdYGJlD6048UsF7oQ76P0WN2dOo/2M+ttcfGgL8Lg60n
-         ZMl8G/UM5ZVyKBR2KoOw6tiiyz93q5o5ieXOxn2Cn6LLWAJ+PxhA/TDCt34Vff15+QiM
-         U2UD2Z0zFDEHVQxWmrWGhSeXglF17FMcatuIKphU3bdYm5YtI/Ie4lbhntqjJE8zTUOt
-         olDxHtRxaSACZ2EAtfp/kuqor96fymGOIOpLsK7jKb1YQkwKQwPnYRROhqEAayMHP7Hy
-         xd9g==
+        bh=Lf00JiW6xSRH4nKpJE2Wt9C2ia6JwPjEocHrM3GZrHQ=;
+        b=VfVmuk4xIu2IWkTUb8kFPhHvvLUNW0To8CWcVPyD1lEQKTHx/3f22jovM1xN4zyV8l
+         h2r8zIO9iigsUh2q5Yo1quwHEbQKWv71D9VkU7qrUfJnm8AoBVp1vDmINRjEnnensJ3Y
+         b2aroY5rjqfyrLYIwY1A2/9Je08fzi2wEcRPfh/hxNOAyZRm2Bz/4rM5+R+xM4agMaid
+         A8PcJIbMpm65FohKks39CK/H2U7Fh4qHy0XjEUNL4CV7j42X9Iyiwx1wX6vzOSDNWNG3
+         jmXGMVSw30xHwqcL0AcUyPVSZJ2guKjuMEpYaBy2Ptx6RXVKGN0pM17y3G5MlfHao4Td
+         B2hg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764959851; x=1765564651;
+        d=1e100.net; s=20230601; t=1764959854; x=1765564654;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to;
-        bh=mBQdVJcI43GOmFo6ZJhh3xrAwK5rYOL/dPt9oIjyNSI=;
-        b=tEXA7UI0nvB/fa6Snkw3J03yDYMmA2LHBQTNUNLHRMCyag8wW3BA/CsO/+haRvohy2
-         4VSJ4S+roDsFDdiekSxNB6rVYCeuyBFBy6GWJ1m0/Xt3IVPvEYlwV9uAAXA2pg0pZkYx
-         ASITlkguzOrVGOMROJ74zTFGoCaTQBILoiXcJ0VhgktZRzL/lY/CO1lGjKH95LBOSUo3
-         6w7wJndgEOa2XrUmYODNls8CF2VUCRTcVkbucj/l00JUI8BXkJJsnsn3U2u/lXq747mF
-         sV4SoND8JigPboiTTWGX9pHugZTSdg4jBBE9NqXAxY/kd0e+E8W976EOIhE4CZ3qjiX+
-         yTnQ==
-X-Forwarded-Encrypted: i=1; AJvYcCWTXwFECqU4Q36enYI/dhROeqCY0/SGMYdqCEBQ/10sfansvHuOsZVMYwphPOoQq6akPyXADOUvy/kX@vger.kernel.org
-X-Gm-Message-State: AOJu0YxVywK327kpTXfQPx54RvWWX3kWzTvYHuskYyureYK9aEAAhU5G
-	6xXsi8kQWnJLwC/WUbZRaervi/LFqEGQz+Em7RX8YILub+IWDPrPUQLPbabbu6OBq9s=
-X-Gm-Gg: ASbGncteXa9iqI2c/QJ8SHJ7nNa72fQY68qAWvWL27jKPf7UakzY4mzU6Dd35q/z2N/
-	ZnLDpLBaaQZtva8jDefuHfN3PXgnVHzz8PadUbw2rbtr7BVD1S+GPmzc7l+Hs0mhZZ+2WBF2lQH
-	wwyRI2ukLX9J+WKSmUUkzZwXY1ckSFUmGoYNovZssYqTrsSqE417ZGuNU26EhnuJuDQLCFwjj0N
-	z+rogRBOoOkC6YOhnygyhFouNS36nTFvXubRuS4wtsINklNpkGpw+skRipYoFbzE5vbMDWTI9up
-	PdTdQ8Ji7RPxV/tM5KZBC9B8cdL+l5dUpVSaDH22bcnJjni9LOoXM/ZB7v+vx5bkkM8qV+Ma25Q
-	ToxB2/V2RrkEq6io2OGtN9MvdTLitwVTtxexErt7nRtINr3K94LfK90+SpBLzYbFDvhhBcKDRPF
-	hw04tAjvJqYLsYNtoQvm73
-X-Google-Smtp-Source: AGHT+IGp7iqVIbgReIe349M57zcaAwAAqbXZ75PoD/aRxoEr7PBLcgs9PCnxDJDHIhkmKsY+feG43g==
-X-Received: by 2002:a05:7301:da8b:b0:2a4:3593:4689 with SMTP id 5a478bee46e88-2abc725a729mr63051eec.37.1764959850655;
-        Fri, 05 Dec 2025 10:37:30 -0800 (PST)
+        bh=Lf00JiW6xSRH4nKpJE2Wt9C2ia6JwPjEocHrM3GZrHQ=;
+        b=v1mmq+xlIvILYVYlz3S4+Clc3oT90fwS6Jzfrp508z+3x0F+GgFCa26ol6sXMOgLmA
+         89QSIGXnbrnytvKsjHoFb91RHVQN3EFB/iDnxVISo7E+XzNnCJb5ZefDuCtsQC0B2fJK
+         Q97XlsHKlqJPNrtn/mKHS1F5cLZmemFvHn9SCfjTNB93wYPmYxvXYUoi2rtbgB5iN8gl
+         79avlMYJO6OI8whKEP03Mo6BK9XtRjru3OKa2e9zmpiWZL27GOpfgVYJuR8FUjLLK8nk
+         7Xrb4DtSzs/uHHiS3HJGXCcpaBiW4TVTTzH1NQwW9rBnY7ob6nV2iqZoI8TWHzGbdlup
+         Na/g==
+X-Forwarded-Encrypted: i=1; AJvYcCWQf4tXi0bw3V5ImNBQ23r50CDo9CGC/vJ416M25iXNSozrV4HqDtC7wV9+PdZgcN94W8SK/uNX3dlc@vger.kernel.org
+X-Gm-Message-State: AOJu0Yx+BmvODhYJCd2saM3Yd8U7Q1/4eubEzgTBscErMCbNzOsl2eyd
+	+wtNjwEksW+IcRedmypSbGJouy5qWYWBVcSQBwfg0MMYXHSBANiGsYHnmcy2QfIL7T4=
+X-Gm-Gg: ASbGncs52IqVq6jGdKg8sX66pWBgUaDZWd5A0df/8viVncv9aQvTaAXAqOTuGac14Eh
+	wkCkSt8RVjkA1KnUvAN5upev8sakfRmho+aZpKG6l1SOWDO3I4sEeMYYr4J2ZNvwqQSCfsBn7B5
+	ZdkrkU5DDR0EgANd+FGmAYGyraqKynavygun9Q6yezwxirimt/xrjJ9CQSdz0RajBkYOBznXFoD
+	sDzP0/D2L/PVRJVzz2OFHGwah8kmD5+x7wuBCcR5MOvGVB8N+N2ds8ATFyfyllm6OJfJu/YI+vP
+	+1DKH0t9EiepnHYGY0beDwYAhWDPh5UHueK+uhRgEmSkgcdUNVbaKWWcOX0gaBmRsQT8ifhEH5C
+	U7ZHEv4Omg17Yh9HKZya86i6BmoNocp4IiJ/p7Y7rVXtTjiXnoEBlWUiXXMVI7xF4iCjg/fLk2g
+	myY4dHy6jMiQsuvY2CjcU1
+X-Google-Smtp-Source: AGHT+IGuu4ieAoskSnK0aRmIGPqN2OyEA89eLPHGbA3PzgHJnK9CeRThHGgT7ns/KwOFsLnXFzdSBw==
+X-Received: by 2002:a05:7301:1698:b0:2ab:bd9c:284c with SMTP id 5a478bee46e88-2abc6ddb229mr172482eec.5.1764959854278;
+        Fri, 05 Dec 2025 10:37:34 -0800 (PST)
 Received: from debug.ba.rivosinc.com ([64.71.180.162])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-2aba8395d99sm23933342eec.1.2025.12.05.10.37.29
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-2aba8395d99sm23933342eec.1.2025.12.05.10.37.32
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 05 Dec 2025 10:37:30 -0800 (PST)
+        Fri, 05 Dec 2025 10:37:33 -0800 (PST)
 From: Deepak Gupta <debug@rivosinc.com>
-Date: Fri, 05 Dec 2025 10:37:07 -0800
-Subject: [PATCH v25 21/28] riscv: kernel command line option to opt out of
- user cfi
+Date: Fri, 05 Dec 2025 10:37:09 -0800
+Subject: [PATCH v25 23/28] arch/riscv: compile vdso with landing pad and
+ shadow stack note
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -71,7 +71,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20251205-v5_user_cfi_series-v25-21-8a3570c3e145@rivosinc.com>
+Message-Id: <20251205-v5_user_cfi_series-v25-23-8a3570c3e145@rivosinc.com>
 References: <20251205-v5_user_cfi_series-v25-0-8a3570c3e145@rivosinc.com>
 In-Reply-To: <20251205-v5_user_cfi_series-v25-0-8a3570c3e145@rivosinc.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
@@ -104,274 +104,285 @@ Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  atishp@rivosinc.com, evan@rivosinc.com, cleger@rivosinc.com, 
  alexghiti@rivosinc.com, samitolvanen@google.com, broonie@kernel.org, 
  rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org, 
- Paul Walmsley <pjw@kernel.org>, 
+ Zong Li <zong.li@sifive.com>, 
+ Andreas Korb <andreas.korb@aisec.fraunhofer.de>, 
  Valentin Haudiquet <valentin.haudiquet@canonical.com>, 
  Deepak Gupta <debug@rivosinc.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1764959808; l=8783;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1764959808; l=8747;
  i=debug@rivosinc.com; s=20251023; h=from:subject:message-id;
- bh=s7aGrFdVNwwtkxcsJPpFVS+aOTes7FH9SYpSNwarzgE=;
- b=m/Gqbo+50xmCBVFhWkamN3oTwOFuohPMg61Uh32kauHlEdUzHUvSIWPOUnhy6ADpZ0VjLaNrm
- a2t7DdOS17lA9NTo0Ck3sbSQSWIclrIDlQw3HlOH4vAtvLIUycoGCtx
+ bh=0Fk/r+Qv6bmSDhChMXIRunw7/t9Xkhow9/FCLfzokMQ=;
+ b=NQ0IgVRZKBbtE3ARBerBM7eNrrIEceCW3FYcRTtR7NpcGipR+2h5NHqcQRuWVj9t8bdjQHyWY
+ r0CEcknxKdXA1RWqROX8tMSnmbh2tDn4b3tkzGvVj+ETzO4Gwc566gj
 X-Developer-Key: i=debug@rivosinc.com; a=ed25519;
  pk=O37GQv1thBhZToXyQKdecPDhtWVbEDRQ0RIndijvpjk=
 
-This commit adds a kernel command line option to disable part or all of
-user cfi. User backward cfi and forward cfi can be controlled
-independently. Kernel command line parameter "riscv_nousercfi" can take
-the following values:
- - "all" : Disable forward and backward cfi both.
- - "bcfi" : Disable backward cfi.
- - "fcfi" : Disable forward cfi
+From: Jim Shu <jim.shu@sifive.com>
 
-Signed-off-by: Paul Walmsley <pjw@kernel.org>
+user mode tasks compiled with zicfilp may call indirectly into vdso (like
+hwprobe indirect calls). Add landing pad compile support in vdso. vdso
+with landing pad in it will be nop for tasks which have not enabled
+landing pad. Furthermore, adding support for C sources of vdso to be
+compiled with shadow stack and landing pad enabled as well.
+
+Landing pad and shadow stack instructions are emitted only when VDSO_CFI
+cflags option is defined during compile.
+
+Signed-off-by: Jim Shu <jim.shu@sifive.com>
+Reviewed-by: Zong Li <zong.li@sifive.com>
+Tested-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
 Tested-by: Valentin Haudiquet <valentin.haudiquet@canonical.com>
 Signed-off-by: Deepak Gupta <debug@rivosinc.com>
 ---
- Documentation/admin-guide/kernel-parameters.txt |  8 ++++
- arch/riscv/include/asm/usercfi.h                |  9 ++++
- arch/riscv/kernel/cpufeature.c                  |  7 ++-
- arch/riscv/kernel/usercfi.c                     | 59 ++++++++++++++++++++-----
- 4 files changed, 70 insertions(+), 13 deletions(-)
+ arch/riscv/Makefile                        |  5 +++-
+ arch/riscv/include/asm/assembler.h         | 44 ++++++++++++++++++++++++++++++
+ arch/riscv/kernel/vdso/Makefile            | 11 +++++++-
+ arch/riscv/kernel/vdso/flush_icache.S      |  4 +++
+ arch/riscv/kernel/vdso/getcpu.S            |  4 +++
+ arch/riscv/kernel/vdso/note.S              |  3 ++
+ arch/riscv/kernel/vdso/rt_sigreturn.S      |  4 +++
+ arch/riscv/kernel/vdso/sys_hwprobe.S       |  4 +++
+ arch/riscv/kernel/vdso/vgetrandom-chacha.S |  5 +++-
+ 9 files changed, 81 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 6c42061ca20e..a72bf9fc6f06 100644
---- a/Documentation/admin-guide/kernel-parameters.txt
-+++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -6453,6 +6453,14 @@
- 			replacement properties are not found. See the Kconfig
- 			entry for RISCV_ISA_FALLBACK.
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
+index ecf2fcce2d92..f60c2de0ca08 100644
+--- a/arch/riscv/Makefile
++++ b/arch/riscv/Makefile
+@@ -81,9 +81,12 @@ riscv-march-$(CONFIG_TOOLCHAIN_HAS_ZACAS) := $(riscv-march-y)_zacas
+ # Check if the toolchain supports Zabha
+ riscv-march-$(CONFIG_TOOLCHAIN_HAS_ZABHA) := $(riscv-march-y)_zabha
  
-+	riscv_nousercfi=
-+		all	Disable user cfi ABI to userspace even if cpu extensions
-+			are available.
-+		bcfi	Disable user backward cfi ABI to userspace even if
-+			shadow stack extension is available.
-+		fcfi	Disable user forward cfi ABI to userspace even if landing
-+			pad extension is available.
++KBUILD_BASE_ISA = -march=$(shell echo $(riscv-march-y) | sed -E 's/(rv32ima|rv64ima)fd([^v_]*)v?/\1\2/')
++export KBUILD_BASE_ISA
 +
- 	ro		[KNL] Mount root device read-only on boot
+ # Remove F,D,V from isa string for all. Keep extensions between "fd" and "v" by
+ # matching non-v and non-multi-letter extensions out with the filter ([^v_]*)
+-KBUILD_CFLAGS += -march=$(shell echo $(riscv-march-y) | sed -E 's/(rv32ima|rv64ima)fd([^v_]*)v?/\1\2/')
++KBUILD_CFLAGS += $(KBUILD_BASE_ISA)
  
- 	rodata=		[KNL,EARLY]
-diff --git a/arch/riscv/include/asm/usercfi.h b/arch/riscv/include/asm/usercfi.h
-index ec4b8a53eb74..f7fa9d602aae 100644
---- a/arch/riscv/include/asm/usercfi.h
-+++ b/arch/riscv/include/asm/usercfi.h
-@@ -5,6 +5,10 @@
- #ifndef _ASM_RISCV_USERCFI_H
- #define _ASM_RISCV_USERCFI_H
+ KBUILD_AFLAGS += -march=$(riscv-march-y)
  
-+#define CMDLINE_DISABLE_RISCV_USERCFI_FCFI	1
-+#define CMDLINE_DISABLE_RISCV_USERCFI_BCFI	2
-+#define CMDLINE_DISABLE_RISCV_USERCFI		3
+diff --git a/arch/riscv/include/asm/assembler.h b/arch/riscv/include/asm/assembler.h
+index 16931712beab..f449c4392c29 100644
+--- a/arch/riscv/include/asm/assembler.h
++++ b/arch/riscv/include/asm/assembler.h
+@@ -80,3 +80,47 @@
+ 	.endm
+ 
+ #endif	/* __ASM_ASSEMBLER_H */
 +
- #ifndef __ASSEMBLER__
- #include <linux/types.h>
- #include <linux/prctl.h>
-@@ -12,8 +16,10 @@
- 
- struct task_struct;
- struct kernel_clone_args;
-+extern unsigned long riscv_nousercfi;
- 
- #ifdef CONFIG_RISCV_USER_CFI
++#if defined(VDSO_CFI) && (__riscv_xlen == 64)
++.macro vdso_lpad, label = 0
++lpad \label
++.endm
++#else
++.macro vdso_lpad, label = 0
++.endm
++#endif
 +
- struct cfi_state {
- 	unsigned long ubcfi_en : 1; /* Enable for backward cfi. */
- 	unsigned long ubcfi_locked : 1;
-@@ -83,6 +89,9 @@ void set_indir_lp_lock(struct task_struct *task);
- 
- #endif /* CONFIG_RISCV_USER_CFI */
- 
-+bool is_user_shstk_enabled(void);
-+bool is_user_lpad_enabled(void);
++/*
++ * This macro emits a program property note section identifying
++ * architecture features which require special handling, mainly for
++ * use in assembly files included in the VDSO.
++ */
++#define NT_GNU_PROPERTY_TYPE_0  5
++#define GNU_PROPERTY_RISCV_FEATURE_1_AND 0xc0000000
 +
- #endif /* __ASSEMBLER__ */
- 
- #endif /* _ASM_RISCV_USERCFI_H */
-diff --git a/arch/riscv/kernel/cpufeature.c b/arch/riscv/kernel/cpufeature.c
-index 17b9e77bafc3..32ad463545fa 100644
---- a/arch/riscv/kernel/cpufeature.c
-+++ b/arch/riscv/kernel/cpufeature.c
-@@ -28,6 +28,7 @@
- #include <asm/vector.h>
- #include <asm/vendor_extensions.h>
- #include <asm/vendor_extensions/thead.h>
-+#include <asm/usercfi.h>
- 
- #define NUM_ALPHA_EXTS ('z' - 'a' + 1)
- 
-@@ -277,7 +278,8 @@ static int riscv_ext_svadu_validate(const struct riscv_isa_ext_data *data,
- static int riscv_cfilp_validate(const struct riscv_isa_ext_data *data,
- 				const unsigned long *isa_bitmap)
- {
--	if (!IS_ENABLED(CONFIG_RISCV_USER_CFI))
-+	if (!IS_ENABLED(CONFIG_RISCV_USER_CFI) ||
-+	    (riscv_nousercfi & CMDLINE_DISABLE_RISCV_USERCFI_FCFI))
- 		return -EINVAL;
- 
- 	return 0;
-@@ -286,7 +288,8 @@ static int riscv_cfilp_validate(const struct riscv_isa_ext_data *data,
- static int riscv_cfiss_validate(const struct riscv_isa_ext_data *data,
- 				const unsigned long *isa_bitmap)
- {
--	if (!IS_ENABLED(CONFIG_RISCV_USER_CFI))
-+	if (!IS_ENABLED(CONFIG_RISCV_USER_CFI) ||
-+	    (riscv_nousercfi & CMDLINE_DISABLE_RISCV_USERCFI_BCFI))
- 		return -EINVAL;
- 
- 	return 0;
-diff --git a/arch/riscv/kernel/usercfi.c b/arch/riscv/kernel/usercfi.c
-index 7f01befabd11..27b36034ea85 100644
---- a/arch/riscv/kernel/usercfi.c
-+++ b/arch/riscv/kernel/usercfi.c
-@@ -17,6 +17,8 @@
- #include <asm/csr.h>
- #include <asm/usercfi.h>
- 
-+unsigned long riscv_nousercfi;
++#define GNU_PROPERTY_RISCV_FEATURE_1_ZICFILP      (1U << 0)
++#define GNU_PROPERTY_RISCV_FEATURE_1_ZICFISS      (1U << 1)
 +
- #define SHSTK_ENTRY_SIZE sizeof(void *)
++#if defined(VDSO_CFI) && (__riscv_xlen == 64)
++#define GNU_PROPERTY_RISCV_FEATURE_1_DEFAULT \
++	(GNU_PROPERTY_RISCV_FEATURE_1_ZICFILP | GNU_PROPERTY_RISCV_FEATURE_1_ZICFISS)
++#endif
++
++#ifdef GNU_PROPERTY_RISCV_FEATURE_1_DEFAULT
++.macro emit_riscv_feature_1_and, feat = GNU_PROPERTY_RISCV_FEATURE_1_DEFAULT
++	.pushsection .note.gnu.property, "a"
++	.p2align        3
++	.word           4
++	.word           16
++	.word           NT_GNU_PROPERTY_TYPE_0
++	.asciz          "GNU"
++	.word           GNU_PROPERTY_RISCV_FEATURE_1_AND
++	.word           4
++	.word           \feat
++	.word           0
++	.popsection
++.endm
++#else
++.macro emit_riscv_feature_1_and, feat = 0
++.endm
++#endif
+diff --git a/arch/riscv/kernel/vdso/Makefile b/arch/riscv/kernel/vdso/Makefile
+index 9ebb5e590f93..272f1d837a80 100644
+--- a/arch/riscv/kernel/vdso/Makefile
++++ b/arch/riscv/kernel/vdso/Makefile
+@@ -17,6 +17,11 @@ ifdef CONFIG_VDSO_GETRANDOM
+ vdso-syms += getrandom
+ endif
  
- bool is_shstk_enabled(struct task_struct *task)
-@@ -59,7 +61,7 @@ unsigned long get_active_shstk(struct task_struct *task)
++ifdef VDSO_CFI_BUILD
++CFI_MARCH = _zicfilp_zicfiss
++CFI_FULL = -fcf-protection=full
++endif
++
+ # Files to link into the vdso
+ obj-vdso = $(patsubst %, %.o, $(vdso-syms)) note.o
  
- void set_shstk_status(struct task_struct *task, bool enable)
- {
--	if (!cpu_supports_shadow_stack())
-+	if (!is_user_shstk_enabled())
- 		return;
+@@ -27,6 +32,10 @@ endif
+ ccflags-y := -fno-stack-protector
+ ccflags-y += -DDISABLE_BRANCH_PROFILING
+ ccflags-y += -fno-builtin
++ccflags-y += $(KBUILD_BASE_ISA)$(CFI_MARCH)
++ccflags-y += $(CFI_FULL)
++asflags-y += $(KBUILD_BASE_ISA)$(CFI_MARCH)
++asflags-y += $(CFI_FULL)
  
- 	task->thread_info.user_cfi_state.ubcfi_en = enable ? 1 : 0;
-@@ -89,7 +91,7 @@ bool is_indir_lp_locked(struct task_struct *task)
+ ifneq ($(c-gettimeofday-y),)
+   CFLAGS_vgettimeofday.o += -fPIC -include $(c-gettimeofday-y)
+@@ -79,7 +88,7 @@ include/generated/vdso-offsets.h: $(obj)/vdso.so.dbg FORCE
+ # The DSO images are built using a special linker script
+ # Make sure only to export the intended __vdso_xxx symbol offsets.
+ quiet_cmd_vdsold_and_check = VDSOLD  $@
+-      cmd_vdsold_and_check = $(LD) $(ld_flags) -T $(filter-out FORCE,$^) -o $@.tmp && \
++      cmd_vdsold_and_check = $(LD) $(CFI_FULL) $(ld_flags) -T $(filter-out FORCE,$^) -o $@.tmp && \
+                    $(OBJCOPY) $(patsubst %, -G __vdso_%, $(vdso-syms)) $@.tmp $@ && \
+                    rm $@.tmp && \
+                    $(cmd_vdso_check)
+diff --git a/arch/riscv/kernel/vdso/flush_icache.S b/arch/riscv/kernel/vdso/flush_icache.S
+index 8f884227e8bc..e4c56970905e 100644
+--- a/arch/riscv/kernel/vdso/flush_icache.S
++++ b/arch/riscv/kernel/vdso/flush_icache.S
+@@ -5,11 +5,13 @@
  
- void set_indir_lp_status(struct task_struct *task, bool enable)
- {
--	if (!cpu_supports_indirect_br_lp_instr())
-+	if (!is_user_lpad_enabled())
- 		return;
+ #include <linux/linkage.h>
+ #include <asm/unistd.h>
++#include <asm/assembler.h>
  
- 	task->thread_info.user_cfi_state.ufcfi_en = enable ? 1 : 0;
-@@ -259,7 +261,7 @@ SYSCALL_DEFINE3(map_shadow_stack, unsigned long, addr, unsigned long, size, unsi
- 	bool set_tok = flags & SHADOW_STACK_SET_TOKEN;
- 	unsigned long aligned_size = 0;
+ 	.text
+ /* int __vdso_flush_icache(void *start, void *end, unsigned long flags); */
+ SYM_FUNC_START(__vdso_flush_icache)
+ 	.cfi_startproc
++	vdso_lpad
+ #ifdef CONFIG_SMP
+ 	li a7, __NR_riscv_flush_icache
+ 	ecall
+@@ -20,3 +22,5 @@ SYM_FUNC_START(__vdso_flush_icache)
+ 	ret
+ 	.cfi_endproc
+ SYM_FUNC_END(__vdso_flush_icache)
++
++emit_riscv_feature_1_and
+diff --git a/arch/riscv/kernel/vdso/getcpu.S b/arch/riscv/kernel/vdso/getcpu.S
+index 9c1bd531907f..5c1ecc4e1465 100644
+--- a/arch/riscv/kernel/vdso/getcpu.S
++++ b/arch/riscv/kernel/vdso/getcpu.S
+@@ -5,14 +5,18 @@
  
--	if (!cpu_supports_shadow_stack())
-+	if (!is_user_shstk_enabled())
- 		return -EOPNOTSUPP;
+ #include <linux/linkage.h>
+ #include <asm/unistd.h>
++#include <asm/assembler.h>
  
- 	/* Anything other than set token should result in invalid param */
-@@ -306,7 +308,7 @@ unsigned long shstk_alloc_thread_stack(struct task_struct *tsk,
- 	unsigned long addr, size;
+ 	.text
+ /* int __vdso_getcpu(unsigned *cpu, unsigned *node, void *unused); */
+ SYM_FUNC_START(__vdso_getcpu)
+ 	.cfi_startproc
++	vdso_lpad
+ 	/* For now, just do the syscall. */
+ 	li a7, __NR_getcpu
+ 	ecall
+ 	ret
+ 	.cfi_endproc
+ SYM_FUNC_END(__vdso_getcpu)
++
++emit_riscv_feature_1_and
+diff --git a/arch/riscv/kernel/vdso/note.S b/arch/riscv/kernel/vdso/note.S
+index 2a956c942211..3d92cc956b95 100644
+--- a/arch/riscv/kernel/vdso/note.S
++++ b/arch/riscv/kernel/vdso/note.S
+@@ -6,7 +6,10 @@
  
- 	/* If shadow stack is not supported, return 0 */
--	if (!cpu_supports_shadow_stack())
-+	if (!is_user_shstk_enabled())
- 		return 0;
+ #include <linux/elfnote.h>
+ #include <linux/version.h>
++#include <asm/assembler.h>
  
+ ELFNOTE_START(Linux, 0, "a")
+ 	.long LINUX_VERSION_CODE
+ ELFNOTE_END
++
++emit_riscv_feature_1_and
+diff --git a/arch/riscv/kernel/vdso/rt_sigreturn.S b/arch/riscv/kernel/vdso/rt_sigreturn.S
+index 3dc022aa8931..e82987dc3739 100644
+--- a/arch/riscv/kernel/vdso/rt_sigreturn.S
++++ b/arch/riscv/kernel/vdso/rt_sigreturn.S
+@@ -5,12 +5,16 @@
+ 
+ #include <linux/linkage.h>
+ #include <asm/unistd.h>
++#include <asm/assembler.h>
+ 
+ 	.text
+ SYM_FUNC_START(__vdso_rt_sigreturn)
+ 	.cfi_startproc
+ 	.cfi_signal_frame
++	vdso_lpad
+ 	li a7, __NR_rt_sigreturn
+ 	ecall
+ 	.cfi_endproc
+ SYM_FUNC_END(__vdso_rt_sigreturn)
++
++emit_riscv_feature_1_and
+diff --git a/arch/riscv/kernel/vdso/sys_hwprobe.S b/arch/riscv/kernel/vdso/sys_hwprobe.S
+index 77e57f830521..f1694451a60c 100644
+--- a/arch/riscv/kernel/vdso/sys_hwprobe.S
++++ b/arch/riscv/kernel/vdso/sys_hwprobe.S
+@@ -3,13 +3,17 @@
+ 
+ #include <linux/linkage.h>
+ #include <asm/unistd.h>
++#include <asm/assembler.h>
+ 
+ .text
+ SYM_FUNC_START(riscv_hwprobe)
+ 	.cfi_startproc
++	vdso_lpad
+ 	li a7, __NR_riscv_hwprobe
+ 	ecall
+ 	ret
+ 
+ 	.cfi_endproc
+ SYM_FUNC_END(riscv_hwprobe)
++
++emit_riscv_feature_1_and
+diff --git a/arch/riscv/kernel/vdso/vgetrandom-chacha.S b/arch/riscv/kernel/vdso/vgetrandom-chacha.S
+index 5f0dad8f2373..916ab30a88f7 100644
+--- a/arch/riscv/kernel/vdso/vgetrandom-chacha.S
++++ b/arch/riscv/kernel/vdso/vgetrandom-chacha.S
+@@ -7,6 +7,7 @@
+ 
+ #include <asm/asm.h>
+ #include <linux/linkage.h>
++#include <asm/assembler.h>
+ 
+ .text
+ 
+@@ -74,7 +75,7 @@ SYM_FUNC_START(__arch_chacha20_blocks_nostack)
+ #define _20		20, 20, 20, 20
+ #define _24		24, 24, 24, 24
+ #define _25		25, 25, 25, 25
+-
++	vdso_lpad
  	/*
-@@ -352,7 +354,7 @@ void shstk_release(struct task_struct *tsk)
- {
- 	unsigned long base = 0, size = 0;
- 	/* If shadow stack is not supported or not enabled, nothing to release */
--	if (!cpu_supports_shadow_stack() || !is_shstk_enabled(tsk))
-+	if (!is_user_shstk_enabled() || !is_shstk_enabled(tsk))
- 		return;
+ 	 * The ABI requires s0-s9 saved.
+ 	 * This does not violate the stack-less requirement: no sensitive data
+@@ -247,3 +248,5 @@ SYM_FUNC_START(__arch_chacha20_blocks_nostack)
  
- 	/*
-@@ -381,7 +383,7 @@ int arch_get_shadow_stack_status(struct task_struct *t, unsigned long __user *st
- {
- 	unsigned long bcfi_status = 0;
- 
--	if (!cpu_supports_shadow_stack())
-+	if (!is_user_shstk_enabled())
- 		return -EINVAL;
- 
- 	/* this means shadow stack is enabled on the task */
-@@ -395,7 +397,7 @@ int arch_set_shadow_stack_status(struct task_struct *t, unsigned long status)
- 	unsigned long size = 0, addr = 0;
- 	bool enable_shstk = false;
- 
--	if (!cpu_supports_shadow_stack())
-+	if (!is_user_shstk_enabled())
- 		return -EINVAL;
- 
- 	/* Reject unknown flags */
-@@ -448,7 +450,7 @@ int arch_lock_shadow_stack_status(struct task_struct *task,
- 				  unsigned long arg)
- {
- 	/* If shtstk not supported or not enabled on task, nothing to lock here */
--	if (!cpu_supports_shadow_stack() ||
-+	if (!is_user_shstk_enabled() ||
- 	    !is_shstk_enabled(task) || arg != 0)
- 		return -EINVAL;
- 
-@@ -461,7 +463,7 @@ int arch_get_indir_br_lp_status(struct task_struct *t, unsigned long __user *sta
- {
- 	unsigned long fcfi_status = 0;
- 
--	if (!cpu_supports_indirect_br_lp_instr())
-+	if (!is_user_lpad_enabled())
- 		return -EINVAL;
- 
- 	/* indirect branch tracking is enabled on the task or not */
-@@ -474,7 +476,7 @@ int arch_set_indir_br_lp_status(struct task_struct *t, unsigned long status)
- {
- 	bool enable_indir_lp = false;
- 
--	if (!cpu_supports_indirect_br_lp_instr())
-+	if (!is_user_lpad_enabled())
- 		return -EINVAL;
- 
- 	/* indirect branch tracking is locked and further can't be modified by user */
-@@ -498,7 +500,7 @@ int arch_lock_indir_br_lp_status(struct task_struct *task,
- 	 * If indirect branch tracking is not supported or not enabled on task,
- 	 * nothing to lock here
- 	 */
--	if (!cpu_supports_indirect_br_lp_instr() ||
-+	if (!is_user_lpad_enabled() ||
- 	    !is_indir_lp_enabled(task) || arg != 0)
- 		return -EINVAL;
- 
-@@ -506,3 +508,38 @@ int arch_lock_indir_br_lp_status(struct task_struct *task,
- 
- 	return 0;
- }
+ 	ret
+ SYM_FUNC_END(__arch_chacha20_blocks_nostack)
 +
-+bool is_user_shstk_enabled(void)
-+{
-+	return (cpu_supports_shadow_stack() &&
-+		!(riscv_nousercfi & CMDLINE_DISABLE_RISCV_USERCFI_BCFI));
-+}
-+
-+bool is_user_lpad_enabled(void)
-+{
-+	return (cpu_supports_indirect_br_lp_instr() &&
-+		!(riscv_nousercfi & CMDLINE_DISABLE_RISCV_USERCFI_FCFI));
-+}
-+
-+static int __init setup_global_riscv_enable(char *str)
-+{
-+	if (strcmp(str, "all") == 0)
-+		riscv_nousercfi = CMDLINE_DISABLE_RISCV_USERCFI;
-+
-+	if (strcmp(str, "fcfi") == 0)
-+		riscv_nousercfi |= CMDLINE_DISABLE_RISCV_USERCFI_FCFI;
-+
-+	if (strcmp(str, "bcfi") == 0)
-+		riscv_nousercfi |= CMDLINE_DISABLE_RISCV_USERCFI_BCFI;
-+
-+	if (riscv_nousercfi)
-+		pr_info("riscv user cfi disabled via cmdline "
-+			"shadow stack status : %s, landing pad status : %s\n",
-+			(riscv_nousercfi & CMDLINE_DISABLE_RISCV_USERCFI_BCFI) ? "disabled" :
-+			"enabled", (riscv_nousercfi & CMDLINE_DISABLE_RISCV_USERCFI_FCFI) ?
-+			"disabled" : "enabled");
-+
-+	return 1;
-+}
-+
-+__setup("riscv_nousercfi=", setup_global_riscv_enable);
++emit_riscv_feature_1_and
 
 -- 
 2.45.0
