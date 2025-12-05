@@ -1,334 +1,240 @@
-Received: from invmail4.hynix.com (exvmail4.hynix.com [166.125.252.92])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 48DD9335561;
-	Fri,  5 Dec 2025 07:21:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B926E3164D3;
+	Fri,  5 Dec 2025 09:28:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764919333; cv=none; b=LM+NOiknp4rgl2TcXzn0STI7S61oakYJMovPTzmeo9zoUmEd2q2COCbgZasnQhiD/jrbaK/mYyP//GYnHjgsjHGoWastgtQGPXCdJOejFYjLXQLHfjduv4Z0SJ4Ue7jNoVwRTD0ifZtrtqIsIn2CCUj2xyiq4rhawOvd1WGr6Fo=
+	t=1764926887; cv=none; b=BG46cNz3JwOs33ZpLgEv3YkN197PiWn4c0jY6s3ZndW0iTKepVbKLm0yUkpNS1b+Sq2cISr2yR4sH5CVLTUFsCsmNOv/J+aLK70saXpEh9/2fwlfZ0qNkLotjyjk3EQLYugBBTcKzlV/zfA8YXoruIMjwn8SXDmFZsd7DU/ZnRE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764919333; c=relaxed/simple;
-	bh=BKdTduih/1l/oeBZ8PU6DuY+E9HBd565xkElM5qpN+o=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References; b=d8bAP67iZ+qcBCE1IPX2iV1tN+x3i5gcMDlgiAo/AYwpRkfSFimZNVhxJmh9HcjAjwZraNfXw3CmK+2DLlmu7ZEjp/Ap20VLrl9GYnxjQS+jM5K7C9lj+p2MTSAI8Ipgu1zhIjTgBtQGkZL9FqAOeXMqDxuxAtvM2cnNnBMShAs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
-X-AuditID: a67dfc5b-c45ff70000001609-c0-693287765fe5
-From: Byungchul Park <byungchul@sk.com>
-To: linux-kernel@vger.kernel.org
-Cc: kernel_team@skhynix.com,
-	torvalds@linux-foundation.org,
-	damien.lemoal@opensource.wdc.com,
-	linux-ide@vger.kernel.org,
-	adilger.kernel@dilger.ca,
-	linux-ext4@vger.kernel.org,
-	mingo@redhat.com,
-	peterz@infradead.org,
-	will@kernel.org,
-	tglx@linutronix.de,
-	rostedt@goodmis.org,
-	joel@joelfernandes.org,
-	sashal@kernel.org,
-	daniel.vetter@ffwll.ch,
-	duyuyang@gmail.com,
-	johannes.berg@intel.com,
-	tj@kernel.org,
-	tytso@mit.edu,
-	willy@infradead.org,
-	david@fromorbit.com,
-	amir73il@gmail.com,
-	gregkh@linuxfoundation.org,
-	kernel-team@lge.com,
-	linux-mm@kvack.org,
-	akpm@linux-foundation.org,
-	mhocko@kernel.org,
-	minchan@kernel.org,
-	hannes@cmpxchg.org,
-	vdavydov.dev@gmail.com,
-	sj@kernel.org,
-	jglisse@redhat.com,
-	dennis@kernel.org,
-	cl@linux.com,
-	penberg@kernel.org,
-	rientjes@google.com,
-	vbabka@suse.cz,
-	ngupta@vflare.org,
-	linux-block@vger.kernel.org,
-	josef@toxicpanda.com,
-	linux-fsdevel@vger.kernel.org,
-	jack@suse.cz,
-	jlayton@kernel.org,
-	dan.j.williams@intel.com,
-	hch@infradead.org,
-	djwong@kernel.org,
-	dri-devel@lists.freedesktop.org,
-	rodrigosiqueiramelo@gmail.com,
-	melissa.srw@gmail.com,
-	hamohammed.sa@gmail.com,
-	harry.yoo@oracle.com,
-	chris.p.wilson@intel.com,
-	gwan-gyeong.mun@intel.com,
-	max.byungchul.park@gmail.com,
-	boqun.feng@gmail.com,
-	longman@redhat.com,
-	yunseong.kim@ericsson.com,
-	ysk@kzalloc.com,
-	yeoreum.yun@arm.com,
-	netdev@vger.kernel.org,
-	matthew.brost@intel.com,
-	her0gyugyu@gmail.com,
-	corbet@lwn.net,
-	catalin.marinas@arm.com,
-	bp@alien8.de,
-	x86@kernel.org,
-	hpa@zytor.com,
-	luto@kernel.org,
-	sumit.semwal@linaro.org,
-	gustavo@padovan.org,
-	christian.koenig@amd.com,
-	andi.shyti@kernel.org,
-	arnd@arndb.de,
-	lorenzo.stoakes@oracle.com,
-	Liam.Howlett@oracle.com,
-	rppt@kernel.org,
-	surenb@google.com,
-	mcgrof@kernel.org,
-	petr.pavlu@suse.com,
-	da.gomez@kernel.org,
-	samitolvanen@google.com,
-	paulmck@kernel.org,
-	frederic@kernel.org,
-	neeraj.upadhyay@kernel.org,
-	joelagnelf@nvidia.com,
-	josh@joshtriplett.org,
-	urezki@gmail.com,
-	mathieu.desnoyers@efficios.com,
-	jiangshanlai@gmail.com,
-	qiang.zhang@linux.dev,
-	juri.lelli@redhat.com,
-	vincent.guittot@linaro.org,
-	dietmar.eggemann@arm.com,
-	bsegall@google.com,
-	mgorman@suse.de,
-	vschneid@redhat.com,
-	chuck.lever@oracle.com,
-	neil@brown.name,
-	okorniev@redhat.com,
-	Dai.Ngo@oracle.com,
-	tom@talpey.com,
-	trondmy@kernel.org,
-	anna@kernel.org,
-	kees@kernel.org,
-	bigeasy@linutronix.de,
-	clrkwllms@kernel.org,
-	mark.rutland@arm.com,
-	ada.coupriediaz@arm.com,
-	kristina.martsenko@arm.com,
-	wangkefeng.wang@huawei.com,
-	broonie@kernel.org,
-	kevin.brodsky@arm.com,
-	dwmw@amazon.co.uk,
-	shakeel.butt@linux.dev,
-	ast@kernel.org,
-	ziy@nvidia.com,
-	yuzhao@google.com,
-	baolin.wang@linux.alibaba.com,
-	usamaarif642@gmail.com,
-	joel.granados@kernel.org,
-	richard.weiyang@gmail.com,
-	geert+renesas@glider.be,
-	tim.c.chen@linux.intel.com,
-	linux@treblig.org,
-	alexander.shishkin@linux.intel.com,
-	lillian@star-ark.net,
-	chenhuacai@kernel.org,
-	francesco@valla.it,
-	guoweikang.kernel@gmail.com,
-	link@vivo.com,
-	jpoimboe@kernel.org,
-	masahiroy@kernel.org,
-	brauner@kernel.org,
-	thomas.weissschuh@linutronix.de,
-	oleg@redhat.com,
-	mjguzik@gmail.com,
-	andrii@kernel.org,
-	wangfushuai@baidu.com,
-	linux-doc@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org,
-	linux-media@vger.kernel.org,
-	linaro-mm-sig@lists.linaro.org,
-	linux-i2c@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-modules@vger.kernel.org,
-	rcu@vger.kernel.org,
-	linux-nfs@vger.kernel.org,
-	linux-rt-devel@lists.linux.dev,
-	2407018371@qq.com,
-	dakr@kernel.org,
-	miguel.ojeda.sandonis@gmail.com,
-	neilb@ownmail.net,
-	bagasdotme@gmail.com,
-	wsa+renesas@sang-engineering.com,
-	dave.hansen@intel.com,
-	geert@linux-m68k.org,
-	ojeda@kernel.org,
-	alex.gaynor@gmail.com,
-	gary@garyguo.net,
-	bjorn3_gh@protonmail.com,
-	lossin@kernel.org,
-	a.hindborg@kernel.org,
-	aliceryhl@google.com,
-	tmgross@umich.edu,
-	rust-for-linux@vger.kernel.org
-Subject: [PATCH v18 40/42] dept: track PG_writeback with dept
-Date: Fri,  5 Dec 2025 16:18:53 +0900
-Message-Id: <20251205071855.72743-41-byungchul@sk.com>
-X-Mailer: git-send-email 2.17.1
-In-Reply-To: <20251205071855.72743-1-byungchul@sk.com>
+	s=arc-20240116; t=1764926887; c=relaxed/simple;
+	bh=/3K8i488KBtohoPjUWcmwxOuPxkVYp8UF2/iPAPxq7Y=;
+	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=lKw9+O+uy/86AULuO8cYBWv9WjJg32FgE8adnVGu+x0KUkv8vXjCALTH7R7Qm2KLjVWDLmFzt0F0BZ1i6zm90WF8asFEd0AwxKHzVhJ73sTnKBIVACqtPjRmrsj/H6mFSEtB3dD6YP6YWZkbDDBmU0QnuKPuZVuE0deb7pwnMgQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=YRrD1Ibi; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="YRrD1Ibi"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E3F54C4CEF1;
+	Fri,  5 Dec 2025 09:27:53 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1764926885;
+	bh=/3K8i488KBtohoPjUWcmwxOuPxkVYp8UF2/iPAPxq7Y=;
+	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
+	b=YRrD1IbijzZtM+qkYdKqMCtJSY7HW/b2RS+RGwoFe9bPK/qWFg3n6jePfSjkEJ252
+	 CAstxESV1t5hIfHaNpivukj3cMXOpAMg0/UqoCgsIZzotoaILL21oKFa9ikkMb7YNl
+	 qqNVditrpYtGa7rGlqrjiS8gpKMFlw9u1U78kVXNQ6fZ18DGyDH2qOcSrxYOJtk1WN
+	 dF0rZn265IWR71TmnUtnGq8SAs1Q/6QTETPixkqjPtVt06ZheKAgeGXqIyF47v2gee
+	 2OnhEW5m8+31fx4RYUVZM3XYN7ukMj5estutAcl9/Ron0WYtClPzGLKIvzh03vv/vR
+	 FOpwVUcjkVvvA==
+Message-ID: <cd65b963dd4edade3afb2e7d27eb33af1c62682e.camel@kernel.org>
+Subject: Re: [PATCH v18 41/42] SUNRPC: relocate struct rcu_head to the first
+ field of struct rpc_xprt
+From: Jeff Layton <jlayton@kernel.org>
+To: Byungchul Park <byungchul@sk.com>, linux-kernel@vger.kernel.org
+Cc: kernel_team@skhynix.com, torvalds@linux-foundation.org, 
+	damien.lemoal@opensource.wdc.com, linux-ide@vger.kernel.org, 
+	adilger.kernel@dilger.ca, linux-ext4@vger.kernel.org, mingo@redhat.com, 
+	peterz@infradead.org, will@kernel.org, tglx@linutronix.de,
+ rostedt@goodmis.org, 	joel@joelfernandes.org, sashal@kernel.org,
+ daniel.vetter@ffwll.ch, 	duyuyang@gmail.com, johannes.berg@intel.com,
+ tj@kernel.org, tytso@mit.edu, 	willy@infradead.org, david@fromorbit.com,
+ amir73il@gmail.com, 	gregkh@linuxfoundation.org, kernel-team@lge.com,
+ linux-mm@kvack.org, 	akpm@linux-foundation.org, mhocko@kernel.org,
+ minchan@kernel.org, 	hannes@cmpxchg.org, vdavydov.dev@gmail.com,
+ sj@kernel.org, jglisse@redhat.com, 	dennis@kernel.org, cl@linux.com,
+ penberg@kernel.org, rientjes@google.com, 	vbabka@suse.cz,
+ ngupta@vflare.org, linux-block@vger.kernel.org, 	josef@toxicpanda.com,
+ linux-fsdevel@vger.kernel.org, jack@suse.cz, 	dan.j.williams@intel.com,
+ hch@infradead.org, djwong@kernel.org, 	dri-devel@lists.freedesktop.org,
+ rodrigosiqueiramelo@gmail.com, 	melissa.srw@gmail.com,
+ hamohammed.sa@gmail.com, harry.yoo@oracle.com, 	chris.p.wilson@intel.com,
+ gwan-gyeong.mun@intel.com, 	max.byungchul.park@gmail.com,
+ boqun.feng@gmail.com, longman@redhat.com, 	yunseong.kim@ericsson.com,
+ ysk@kzalloc.com, yeoreum.yun@arm.com, 	netdev@vger.kernel.org,
+ matthew.brost@intel.com, her0gyugyu@gmail.com, 	corbet@lwn.net,
+ catalin.marinas@arm.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com, 
+	luto@kernel.org, sumit.semwal@linaro.org, gustavo@padovan.org, 
+	christian.koenig@amd.com, andi.shyti@kernel.org, arnd@arndb.de, 
+	lorenzo.stoakes@oracle.com, Liam.Howlett@oracle.com, rppt@kernel.org, 
+	surenb@google.com, mcgrof@kernel.org, petr.pavlu@suse.com,
+ da.gomez@kernel.org, 	samitolvanen@google.com, paulmck@kernel.org,
+ frederic@kernel.org, 	neeraj.upadhyay@kernel.org, joelagnelf@nvidia.com,
+ josh@joshtriplett.org, 	urezki@gmail.com, mathieu.desnoyers@efficios.com,
+ jiangshanlai@gmail.com, 	qiang.zhang@linux.dev, juri.lelli@redhat.com,
+ vincent.guittot@linaro.org, 	dietmar.eggemann@arm.com, bsegall@google.com,
+ mgorman@suse.de, vschneid@redhat.com, 	chuck.lever@oracle.com,
+ neil@brown.name, okorniev@redhat.com, Dai.Ngo@oracle.com, 	tom@talpey.com,
+ trondmy@kernel.org, anna@kernel.org, kees@kernel.org, 
+	bigeasy@linutronix.de, clrkwllms@kernel.org, mark.rutland@arm.com, 
+	ada.coupriediaz@arm.com, kristina.martsenko@arm.com,
+ wangkefeng.wang@huawei.com, 	broonie@kernel.org, kevin.brodsky@arm.com,
+ dwmw@amazon.co.uk, 	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
+ yuzhao@google.com, 	baolin.wang@linux.alibaba.com, usamaarif642@gmail.com,
+ joel.granados@kernel.org, 	richard.weiyang@gmail.com,
+ geert+renesas@glider.be, tim.c.chen@linux.intel.com, 	linux@treblig.org,
+ alexander.shishkin@linux.intel.com, lillian@star-ark.net, 
+	chenhuacai@kernel.org, francesco@valla.it, guoweikang.kernel@gmail.com, 
+	link@vivo.com, jpoimboe@kernel.org, masahiroy@kernel.org,
+ brauner@kernel.org, 	thomas.weissschuh@linutronix.de, oleg@redhat.com,
+ mjguzik@gmail.com, 	andrii@kernel.org, wangfushuai@baidu.com,
+ linux-doc@vger.kernel.org, 	linux-arm-kernel@lists.infradead.org,
+ linux-media@vger.kernel.org, 	linaro-mm-sig@lists.linaro.org,
+ linux-i2c@vger.kernel.org, 	linux-arch@vger.kernel.org,
+ linux-modules@vger.kernel.org, rcu@vger.kernel.org, 
+	linux-nfs@vger.kernel.org, linux-rt-devel@lists.linux.dev,
+ 2407018371@qq.com, 	dakr@kernel.org, miguel.ojeda.sandonis@gmail.com,
+ neilb@ownmail.net, 	bagasdotme@gmail.com, wsa+renesas@sang-engineering.com,
+ dave.hansen@intel.com, 	geert@linux-m68k.org, ojeda@kernel.org,
+ alex.gaynor@gmail.com, gary@garyguo.net, 	bjorn3_gh@protonmail.com,
+ lossin@kernel.org, a.hindborg@kernel.org, 	aliceryhl@google.com,
+ tmgross@umich.edu, rust-for-linux@vger.kernel.org
+Date: Fri, 05 Dec 2025 04:27:52 -0500
+In-Reply-To: <20251205071855.72743-42-byungchul@sk.com>
 References: <20251205071855.72743-1-byungchul@sk.com>
-X-Brightmail-Tracker: H4sIAAAAAAAAAzXSbUxTZxQH8D3Pfe7Tl9jsWkl6QTNm1WDw3el2ks3FL0tuYvaSTL/oEq30
-	ZnSUYopQWTSrbgzGGDCStoEyoKIdYAVsVbTQWDBzIUgoQ6EgHWJIHatl2NFqcYQJxm+/nP85
-	/09HyiiDbJpUZzgpGg0avZrKiTy6yrGtsGS3budCxQYoLf4GRs76CcTnSwnUtbsoLNo7JRBo
-	u4Tg2Qs7A0u+OwisQ9UMBAO3GHBdPYshcjuGwDI1TeEfZzmC2rBdAtHJLhaWQo8xjCaeIJj2
-	lyBYtOZAw3kPhYh1jsKLgUEGbJYAAsdUiIE+y48UokN1GGY7KPxir0YQHvdh+LapncLNh14J
-	TFirMUw6wwT6q85jsM1QsF5Rgd32FwbL5S4Md5smCDjNm2CpMQ9ClRYCbdFBFvr+HGEhEq6m
-	0Gl+KAH32G8I5u9NYSj1xgn4xreA4/sLBGrqJyh0+/oI3LnxCMOwt45Cecc1FgL+fhbaHwcx
-	9NW2EHgwUCmBQe9lFi6ODmFIVKzdrxVaPdexUPzHIhVc9S4kfOcxCQvx+1TwJRqJ8PPANuFm
-	bUgiNLoLBE9zptDUPYMFRyzOCuORfYK79QcqlEXvYWFipJt+lnlY/oFW1OsKReOOD4/Js9tm
-	m9GJ5Funpq5XYDNKppYhmZTn9vD1VRH02raWIbJsymXwwWCSWXYK9zbv+SnMliG5lOGG0/mS
-	ZMVKsIbbx1vbbrPLJtwmPjZ3Cy9bwb3L1/wbI69K0/lLHf6VfdnLuWV0YcVKbi/fUPZspZTn
-	7DL+ymgl8+ogle9pDpIqpGhEb7Qipc5QmKvR6fdszy4y6E5tz8rLdaOX/+Y889+RGygW+LwX
-	cVKkXqXwm3bplKymML8otxfxUkadonii36lTKrSaoq9FY95RY4FezO9Fa6VErVLsTpi0Su5L
-	zUkxRxRPiMbXKZbK0szozNODV/u3bmQSNarK4XhBw1y6TJwVTv9q2//34kwLu2QyNHllyTVZ
-	nOt+r/nuV4G0Nw8cnF63bmx1z4X3tc9tsYGNJXmZORnOHc3HJ02Hus+Nf6p6/sk7qWOP6t47
-	YKBkPtlTHMpY31X+0e8PDm/YaryYtf5jR2dsc7/qSNTm/iJltZrkZ2t2ZTLGfM3/WzAWfmsD
-	AAA=
-X-Brightmail-Tracker: H4sIAAAAAAAAAzWSe0hTcRTH+923o8VtSd0MykYRBNoDixM9qD+qS5D0V0UEOfKWN+eDzUdG
-	YdMumpas2Sa5fGQ5TE3XZqnZaChJ75xWSrVMmpa5tHw2l9o0+ufwOef7PV/OH4fBFQ1kCCPG
-	JwmaeJVaSckIWeTWzLDkrI3i+jIpArKldPjY7SHhnc5JwNhoNgHXa6spmDLX05Btu0bCk84M
-	AtpqqhB0j2UjmPCbcZAaZwiYMrTSMOr7QINRh2DG0YrA5DLg0NX2CIfqOh0GI9ZpCgZahhEY
-	ezwUFPTrCBiyXEJQ2Gemof/xXvjR3UTCjPsrBp3jXgQWzzQGHmcWgilTLJSU2QPrpp8U+F++
-	xqHA2IbgRo8bh+H+zwjqWj8hcFRkUNCrv4dDh2cBvBkbouCpMZeCH67rGAxaKSjNcJDgejGA
-	oMhsQND33oFB5s1aCkxFNgIaPz+gwTXwB4OPJgMGVbb90G3pI+C5vgwLnBtw3V0C5oJMLFC+
-	YWC804SBz1JJ7yxH/ISUR/CV9vsYL7VPUXx1cTXi/ZMGxI+WZ+K8pA+0Ld4hnL9gT+XLn3sp
-	fnLsLcU7xksJ/lkZx9+6OInxV16G8Y2FbvrAriOybdGCWkwRNOt2RMliagYrUKJv+eme+3nY
-	eeRbmoOCGI6N4Apuu4hZptg1XFeXD5/lYDaUs1/uI3OQjMHZjhVcli9vTljEbudMNS3kLBPs
-	am745yNsluXsZu7ayDDxL3QFV2V1zvmDAnNj5+QcK9hNXEnOBKlHslI0rxIFi/EpcSpRvSlc
-	GxuTFi+eDj+eEGdDgX+ynPtzpQGNduxtRiyDlPPlztQNooJUpWjT4poRx+DKYLlXvV5UyKNV
-	aWcETcIxTbJa0DajZQyhXCLfd0iIUrAnVUlCrCAkCpr/KsYEhZxHxQ11Cekq84lDBze/Ct1z
-	tPhUVMdjjTnfeXehfW14mGQ1rEwvKuEGv+yIfvXQpZOW+UMdqx6KjZ25bfvIXmd707OkX78X
-	aw7HJRfLdkcOzUt1WrxifVaFtHQkVKxPFPVnS9cZr85vWZC/hSmMzHf3br0ZQee4u/wv/O++
-	76Yz2pWENka1YS2u0ar+AkgIPJZLAwAA
-X-CFilter-Loop: Reflected
+	 <20251205071855.72743-42-byungchul@sk.com>
+Autocrypt: addr=jlayton@kernel.org; prefer-encrypt=mutual;
+ keydata=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
+ QZIQXVeAA+smfTT0tDrisj1U5x6ZB9b3nBg65kc=
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.58.2 (3.58.2-1.fc43) 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
 
-Makes dept able to track PG_writeback waits and events, which will be
-useful in practice.
+On Fri, 2025-12-05 at 16:18 +0900, Byungchul Park wrote:
+> While compiling Linux kernel with DEPT on, the following error was
+> observed:
+>=20
+>    ./include/linux/rcupdate.h:1084:17: note: in expansion of macro
+>    =E2=80=98BUILD_BUG_ON=E2=80=99
+>    1084 | BUILD_BUG_ON(offsetof(typeof(*(ptr)), rhf) >=3D 4096);	\
+>         | ^~~~~~~~~~~~
+>    ./include/linux/rcupdate.h:1047:29: note: in expansion of macro
+>    'kvfree_rcu_arg_2'
+>    1047 | #define kfree_rcu(ptr, rhf) kvfree_rcu_arg_2(ptr, rhf)
+>         |                             ^~~~~~~~~~~~~~~~
+>    net/sunrpc/xprt.c:1856:9: note: in expansion of macro 'kfree_rcu'
+>    1856 | kfree_rcu(xprt, rcu);
+>         | ^~~~~~~~~
+>     CC net/kcm/kcmproc.o
+>    make[4]: *** [scripts/Makefile.build:203: net/sunrpc/xprt.o] Error 1
+>=20
+> Since kfree_rcu() assumes 'offset of struct rcu_head in a rcu-managed
+> struct < 4096', the offest of struct rcu_head in struct rpc_xprt should
+> not exceed 4096 but does, due to the debug information added by DEPT.
+>=20
+> Relocate struct rcu_head to the first field of struct rpc_xprt from an
+> arbitrary location to avoid the issue and meet the assumption.
+>=20
+> Reported-by: Yunseong Kim <ysk@kzalloc.com>
+> Signed-off-by: Byungchul Park <byungchul@sk.com>
+> ---
+>  include/linux/sunrpc/xprt.h | 9 ++++++++-
+>  1 file changed, 8 insertions(+), 1 deletion(-)
+>=20
+> diff --git a/include/linux/sunrpc/xprt.h b/include/linux/sunrpc/xprt.h
+> index f46d1fb8f71a..666e42a17a31 100644
+> --- a/include/linux/sunrpc/xprt.h
+> +++ b/include/linux/sunrpc/xprt.h
+> @@ -211,6 +211,14 @@ enum xprt_transports {
+> =20
+>  struct rpc_sysfs_xprt;
+>  struct rpc_xprt {
+> +	/*
+> +	 * Place struct rcu_head within the first 4096 bytes of struct
+> +	 * rpc_xprt if sizeof(struct rpc_xprt) > 4096, so that
+> +	 * kfree_rcu() can simply work assuming that.  See the comment
+> +	 * in kfree_rcu().
+> +	 */
+> +	struct rcu_head		rcu;
+> +
+>  	struct kref		kref;		/* Reference count */
+>  	const struct rpc_xprt_ops *ops;		/* transport methods */
+>  	unsigned int		id;		/* transport id */
+> @@ -317,7 +325,6 @@ struct rpc_xprt {
+>  #if IS_ENABLED(CONFIG_SUNRPC_DEBUG)
+>  	struct dentry		*debugfs;		/* debugfs directory */
+>  #endif
+> -	struct rcu_head		rcu;
+>  	const struct xprt_class	*xprt_class;
+>  	struct rpc_sysfs_xprt	*xprt_sysfs;
+>  	bool			main; /*mark if this is the 1st transport */
 
-Signed-off-by: Byungchul Park <byungchul@sk.com>
----
- include/linux/mm_types.h   | 1 +
- include/linux/page-flags.h | 7 +++++++
- mm/filemap.c               | 6 +++++-
- mm/mm_init.c               | 1 +
- 4 files changed, 14 insertions(+), 1 deletion(-)
+Seems fine to me.
 
-diff --git a/include/linux/mm_types.h b/include/linux/mm_types.h
-index 85d06073d37b..fa6ba4196e0d 100644
---- a/include/linux/mm_types.h
-+++ b/include/linux/mm_types.h
-@@ -222,6 +222,7 @@ struct page {
- #endif
- 	struct dept_page_usage usage;
- 	struct dept_ext_wgen pg_locked_wgen;
-+	struct dept_ext_wgen pg_writeback_wgen;
- } _struct_page_alignment;
- 
- /*
-diff --git a/include/linux/page-flags.h b/include/linux/page-flags.h
-index 0b0655354b08..ec736811a2c6 100644
---- a/include/linux/page-flags.h
-+++ b/include/linux/page-flags.h
-@@ -203,6 +203,7 @@ enum pageflags {
- #include <linux/dept.h>
- 
- extern struct dept_map pg_locked_map;
-+extern struct dept_map pg_writeback_map;
- 
- static inline void dept_set_page_usage(struct page *p,
- 		unsigned int new_type)
-@@ -292,6 +293,8 @@ static inline void dept_page_set_bit(struct page *p, int bit_nr)
- 
- 	if (bit_nr == PG_locked)
- 		dept_request_event(&pg_locked_map, &p->pg_locked_wgen);
-+	else if (bit_nr == PG_writeback)
-+		dept_request_event(&pg_writeback_map, &p->pg_writeback_wgen);
- }
- 
- static inline void dept_page_clear_bit(struct page *p, int bit_nr)
-@@ -300,6 +303,8 @@ static inline void dept_page_clear_bit(struct page *p, int bit_nr)
- 
- 	if (bit_nr == PG_locked)
- 		dept_event(&pg_locked_map, evt_f, _RET_IP_, __func__, &p->pg_locked_wgen);
-+	else if (bit_nr == PG_writeback)
-+		dept_event(&pg_writeback_map, evt_f, _RET_IP_, __func__, &p->pg_writeback_wgen);
- }
- 
- static inline void dept_page_wait_on_bit(struct page *p, int bit_nr)
-@@ -311,6 +316,8 @@ static inline void dept_page_wait_on_bit(struct page *p, int bit_nr)
- 
- 	if (bit_nr == PG_locked)
- 		dept_wait(&pg_locked_map, evt_f, _RET_IP_, __func__, 0, -1L);
-+	else if (bit_nr == PG_writeback)
-+		dept_wait(&pg_writeback_map, evt_f, _RET_IP_, __func__, 0, -1L);
- }
- 
- static inline void dept_folio_set_bit(struct folio *f, int bit_nr)
-diff --git a/mm/filemap.c b/mm/filemap.c
-index d7e567af3261..0ce3f9307582 100644
---- a/mm/filemap.c
-+++ b/mm/filemap.c
-@@ -1191,7 +1191,7 @@ static void folio_wake_bit(struct folio *folio, int bit_nr)
- 	 * dept_page_clear_bit() being called multiple times is harmless.
- 	 * The worst case is to miss some dependencies but it's okay.
- 	 */
--	if (bit_nr == PG_locked)
-+	if (bit_nr == PG_locked || bit_nr == PG_writeback)
- 		dept_page_clear_bit(&folio->page, bit_nr);
- 
- 	spin_lock_irqsave(&q->lock, flags);
-@@ -1248,6 +1248,9 @@ static inline bool folio_trylock_flag(struct folio *folio, int bit_nr,
- struct dept_map __maybe_unused pg_locked_map = DEPT_MAP_INITIALIZER(pg_locked_map, NULL);
- EXPORT_SYMBOL(pg_locked_map);
- 
-+struct dept_map __maybe_unused pg_writeback_map = DEPT_MAP_INITIALIZER(pg_writeback_map, NULL);
-+EXPORT_SYMBOL(pg_writeback_map);
-+
- static inline int folio_wait_bit_common(struct folio *folio, int bit_nr,
- 		int state, enum behavior behavior)
- {
-@@ -1686,6 +1689,7 @@ void folio_end_writeback_no_dropbehind(struct folio *folio)
- 		folio_rotate_reclaimable(folio);
- 	}
- 
-+	dept_page_clear_bit(&folio->page, PG_writeback);
- 	if (__folio_end_writeback(folio))
- 		folio_wake_bit(folio, PG_writeback);
- 
-diff --git a/mm/mm_init.c b/mm/mm_init.c
-index f1d3e4afd43b..9f99eeb99ca3 100644
---- a/mm/mm_init.c
-+++ b/mm/mm_init.c
-@@ -589,6 +589,7 @@ void __meminit __init_single_page(struct page *page, unsigned long pfn,
- 	page_cpupid_reset_last(page);
- 	page_kasan_tag_reset(page);
- 	dept_ext_wgen_init(&page->pg_locked_wgen);
-+	dept_ext_wgen_init(&page->pg_writeback_wgen);
- 
- 	INIT_LIST_HEAD(&page->lru);
- #ifdef WANT_PAGE_VIRTUAL
--- 
-2.17.1
-
+Reviewed-by: Jeff Layton <jlayton@kernel.org>
