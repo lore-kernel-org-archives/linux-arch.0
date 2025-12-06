@@ -1,29 +1,29 @@
 Received: from frasgout.his.huawei.com (frasgout.his.huawei.com [185.176.79.56])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 488532F069D;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 487902F0686;
 	Fri,  5 Dec 2025 22:58:20 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.176.79.56
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764975502; cv=none; b=ternPQq1E3xqfrkmW0tURdA8qYAPVS5NzO7baJh+SYwdXBm5omc4XXNuZS0Vw2Ta3YtQmu0jVDcdLHSgoJGQaZlroCrKH7A9+B1mm+1dUKTC48Gqy4j1X0aVNpaAUQLKRKf3gGBN8sqri+M5d3FdlTqE6TJFe5Le36ZaqVSFoDc=
+	t=1764975503; cv=none; b=OHzs1FwkZmPzeeQMlaEIz+/Ei6i56yxMLwYgYgOKDQQTov1n/5GeZFcT9pQcAt+08c4Z5KzfH8Dh+QEdHj0nXCMGNHXep6rQig14VG7xoZ3azB1PZlUdJMrK2W6V4dHnt11I2e0eWke3i+5o/GDLGb8jwjjxf75XjMvq08S9TfU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764975502; c=relaxed/simple;
-	bh=YtujnNaI4qdEQnCWht2sddTydCGelUqClJ7dV8ifLmI=;
+	s=arc-20240116; t=1764975503; c=relaxed/simple;
+	bh=f7DggEDyOr0Hvgy8XNaD4mspXM9hIMXiTx0EDoOudE8=;
 	h=From:To:CC:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=cd7j6Sb/RZERZVWd3ZOwxmdi4A17lS09fbvxsLacnyyvRc3LeJ9aVoagIcfqKTkj/aeQ0ZEZeJFkUHNUYKSZYv4u1kydnGr27G/5ZyOnWmFwFWbQo4c088BH9N5KrvTkE6dXnojIAqvmenZdqoZGfKnWSU34KSCwLHOC09xODQM=
+	 MIME-Version:Content-Type; b=k31OGswQ5L5NE4Dq4L+HT+NB/E+L58SKCJS2NrI+kpL8wwEf3RS0AuIbpTMGFPD7SBfH9rym1gk5ozyAlb9eV9hpe06/GELiQf4vLx8tLTDKLFgPfV7LyOT1orXDSF2eyL2f/u19yA9XhtNTjQFKIjFidsENyEb47bA3a+TFbao=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; arc=none smtp.client-ip=185.176.79.56
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Received: from mail.maildlp.com (unknown [172.18.224.150])
-	by frasgout.his.huawei.com (SkyGuard) with ESMTPS id 4dNRBZ2xQGzHnGcx;
-	Sat,  6 Dec 2025 06:39:18 +0800 (CST)
+	by frasgout.his.huawei.com (SkyGuard) with ESMTPS id 4dNRBg1FQczHnGfH;
+	Sat,  6 Dec 2025 06:39:23 +0800 (CST)
 Received: from mscpeml500003.china.huawei.com (unknown [7.188.49.51])
-	by mail.maildlp.com (Postfix) with ESMTPS id C89B040539;
-	Sat,  6 Dec 2025 06:39:20 +0800 (CST)
+	by mail.maildlp.com (Postfix) with ESMTPS id 8F89840539;
+	Sat,  6 Dec 2025 06:39:25 +0800 (CST)
 Received: from localhost.localdomain (10.123.70.40) by
  mscpeml500003.china.huawei.com (7.188.49.51) with Microsoft SMTP Server
  (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.1544.11; Sat, 6 Dec 2025 01:39:20 +0300
+ 15.2.1544.11; Sat, 6 Dec 2025 01:39:25 +0300
 From: Anatoly Stepanov <stepanov.anatoly@huawei.com>
 To: <peterz@infradead.org>, <boqun.feng@gmail.com>, <longman@redhat.com>,
 	<catalin.marinas@arm.com>, <will@kernel.org>, <mingo@redhat.com>,
@@ -35,12 +35,13 @@ CC: <linux-kernel@vger.kernel.org>, <linux-arch@vger.kernel.org>,
 	<weiyongjun1@huawei.com>, <yusongping@huawei.com>, <leijitang@huawei.com>,
 	<artem.kuzin@huawei.com>, <fedorov.nikita@h-partners.com>,
 	<kang.sun@huawei.com>, Anatoly Stepanov <stepanov.anatoly@huawei.com>
-Subject: [RFC PATCH v2 0/5] Introduce Hierarchical Queued NUMA-aware spinlock
-Date: Sat, 6 Dec 2025 14:21:01 +0800
-Message-ID: <20251206062106.2109014-1-stepanov.anatoly@huawei.com>
+Subject: [RFC PATCH v2 2/5] hq-spinlock: proc tunables and debug stats
+Date: Sat, 6 Dec 2025 14:21:03 +0800
+Message-ID: <20251206062106.2109014-3-stepanov.anatoly@huawei.com>
 X-Mailer: git-send-email 2.34.1
-In-Reply-To: <aad84044-a9d3-4806-a966-4770a3634b03@redhat.com>
+In-Reply-To: <20251206062106.2109014-1-stepanov.anatoly@huawei.com>
 References: <aad84044-a9d3-4806-a966-4770a3634b03@redhat.com>
+ <20251206062106.2109014-1-stepanov.anatoly@huawei.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,82 +53,113 @@ Content-Type: text/plain
 X-ClientProxiedBy: mscpeml500004.china.huawei.com (7.188.26.250) To
  mscpeml500003.china.huawei.com (7.188.49.51)
 
-[Introduction & Motivation]
+- tunable for handoff threshold
+- tunable for lock-mode switching
+- debug stats
 
-In a high contention case, existing Linux kernel spinlock implementations can become
-inefficient on modern NUMA-systems due to frequent and expensive
-cross-NUMA cache-line transfers.
+Signed-off-by: Anatoly Stepanov <stepanov.anatoly@huawei.com>
 
-This might happen due to following reasons:
- - on "contender enqueue" each lock contender updates a shared lock structure
- - on "MCS handoff" cross-NUMA cache-line transfer occurs when
-two contenders are from different NUMA nodes.
-
-We introduce new NUMA-aware spinlock in the kernel - Hierarchical Queued
-spinlock (HQ-spinlock).
-
-Previous work regarding NUMA-aware spinlock in Linux kernel is CNA-lock:
-https://lore.kernel.org/lkml/20210514200743.3026725-1-alex.kogan@oracle.com/
-
-Despite being better than default qspinlock (handoff-wise), CNA still has
-shared-lock variable modification on every new contender arrival.
-
-HQ-lock has completely different design concept: kind of cohort-lock and
-queued-spinlock hybrid.
-
-Which is of course bulkier, but at the same time outperforms CNA in high-contention cases.
-
-Locktorture on "Kunpeng 920" for example:
-+-------------------------+--------------+
-| HQ-lock vs CNA-lock     |              |
-+-------------------------+--------------+
-| Kunpeng 920 (arm64)     |              |
-| 96 cores (no MT)        |              |
-| 2 sockets, 4 NUMA nodes |              |
-|                         |              |
-| Locktorture             |              |
-| Threads                 | HQ-lock gain |
-| 32                      | 26%          |
-| 64                      | 32%          |
-| 80                      | 35%          |
-| 96                      | 31%          |
-+-------------------------+--------------+
-
- All other design and implementation details can be found in following
-patches.
-
-Anatoly Stepanov, Nikita Fedorov (5):
-  kernel: introduce Hierarchical Queued spinlock
-  hq-spinlock: proc tunables and debug stats
-  kernel: introduce general hq-lock support
-  lockref: use hq-spinlock
-  kernel: futex: use HQ-spinlock for hash-buckets
-
- arch/arm64/include/asm/qspinlock.h    |  37 ++
- arch/x86/include/asm/qspinlock.h      |  38 +-
- include/asm-generic/qspinlock.h       |  23 +-
- include/asm-generic/qspinlock_types.h |  54 +-
- include/linux/lockref.h               |   2 +-
- include/linux/spinlock.h              |  26 +
- include/linux/spinlock_types.h        |  26 +
- include/linux/spinlock_types_raw.h    |  20 +
- init/main.c                           |   4 +
- kernel/Kconfig.locks                  |  29 +
- kernel/futex/core.c                   |   2 +-
- kernel/locking/hqlock_core.h          | 812 ++++++++++++++++++++++++++
- kernel/locking/hqlock_meta.h          | 477 +++++++++++++++
- kernel/locking/hqlock_proc.h          |  88 +++
- kernel/locking/hqlock_types.h         | 118 ++++
- kernel/locking/qspinlock.c            |  65 ++-
- kernel/locking/qspinlock.h            |   4 +-
- kernel/locking/spinlock_debug.c       |  20 +
- 18 files changed, 1816 insertions(+), 29 deletions(-)
- create mode 100644 arch/arm64/include/asm/qspinlock.h
- create mode 100644 kernel/locking/hqlock_core.h
- create mode 100644 kernel/locking/hqlock_meta.h
+Co-authored-by: Stepanov Anatoly <stepanov.anatoly@huawei.com>
+Co-authored-by: Fedorov Nikita <fedorov.nikita@h-partners.com>
+---
+ kernel/locking/hqlock_proc.h | 88 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 88 insertions(+)
  create mode 100644 kernel/locking/hqlock_proc.h
- create mode 100644 kernel/locking/hqlock_types.h
 
+diff --git a/kernel/locking/hqlock_proc.h b/kernel/locking/hqlock_proc.h
+new file mode 100644
+index 000000000..5e9ed0446
+--- /dev/null
++++ b/kernel/locking/hqlock_proc.h
+@@ -0,0 +1,88 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _GEN_HQ_SPINLOCK_SLOWPATH
++#error "Do not include this file!"
++#endif
++
++#include <linux/sysctl.h>
++
++/*
++ * Local handoffs threshold to maintain global fairness,
++ * perform remote handoff if it's reached
++ */
++unsigned long hqlock_fairness_threshold = 1000;
++
++/*
++ * Minimal amount of handoffs in LOCK_MODE_QSPINLOCK
++ * to enable NUMA-awareness
++ */
++unsigned long hqlock_general_handoffs_turn_numa = 50;
++
++static unsigned long long_zero;
++static unsigned long long_max = LONG_MAX;
++
++static const struct ctl_table hqlock_settings[] = {
++	{
++		.procname		= "hqlock_fairness_threshold",
++		.data			= &hqlock_fairness_threshold,
++		.maxlen			= sizeof(hqlock_fairness_threshold),
++		.mode			= 0644,
++		.proc_handler	= proc_doulongvec_minmax
++	},
++	{
++		.procname		= "hqlock_general_handoffs_turn_numa",
++		.data			= &hqlock_general_handoffs_turn_numa,
++		.maxlen			= sizeof(hqlock_general_handoffs_turn_numa),
++		.mode			= 0644,
++		.proc_handler	= proc_doulongvec_minmax,
++		.extra1		= &long_zero,
++		.extra2		= &long_max,
++	},
++};
++static int __init init_numa_spinlock_sysctl(void)
++{
++	if (!register_sysctl("kernel", hqlock_settings))
++		return -EINVAL;
++	return 0;
++}
++core_initcall(init_numa_spinlock_sysctl);
++
++
++#ifdef CONFIG_HQSPINLOCKS_DEBUG
++static int max_buckets_in_use;
++static int max_general_handoffs;
++static atomic_t cur_buckets_in_use = ATOMIC_INIT(0);
++
++static int print_hqlock_stats(struct seq_file *file, void *v)
++{
++	seq_printf(file, "Max dynamic metada in use after previous print: %d\n",
++		   READ_ONCE(max_buckets_in_use));
++	WRITE_ONCE(max_buckets_in_use, 0);
++
++	seq_printf(file, "Max MCS handoffs after previous print: %d\n",
++		   READ_ONCE(max_general_handoffs));
++	WRITE_ONCE(max_general_handoffs, 0);
++
++	return 0;
++}
++
++
++static int stats_open(struct inode *inode, struct file *file)
++{
++	return single_open(file, print_hqlock_stats, NULL);
++}
++
++static const struct proc_ops stats_ops = {
++	.proc_open  = stats_open,
++	.proc_read  = seq_read,
++	.proc_lseek = seq_lseek,
++};
++
++static int __init stats_init(void)
++{
++	proc_create("hqlock_stats", 0444, NULL, &stats_ops);
++	return 0;
++}
++
++core_initcall(stats_init);
++
++#endif // HQSPINLOCKS_DEBUG
 -- 
 2.34.1
 
