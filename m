@@ -1,37 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C2A7B31691C;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8B423168F2;
 	Thu, 11 Dec 2025 17:21:07 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765473667; cv=none; b=i8Lxn6Af2lJP989XTN02cBfhTuot89nqeGMdRKp4WPXsWVjG39fmggy0mfwl/3zvHZ6WdJgR0d9lnvJYHsPbfClkSY9u8xMK+NJ4bbCxLucu7GsU1JWPiSjhtijqXTqynZZcP5PslpT1KucP3Ep+FvUbeAZvmOHVr2FiNGicLq8=
+	t=1765473667; cv=none; b=SPhEI7msKkmaCeiSR4774fMMply8kGzzzWPuO4Koe8uUAZ2HkQSnY0IeZnw+mzgrvGGiNgyPgxYaZl/fF4+1tvubv99+FlfgrOTKw626qsFGcxhvuyZcicG/1WP5l5RL6ST4cejb/W2pN/cVQxxGLLcxfCOqco9DESA4AizqVC4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1765473667; c=relaxed/simple;
-	bh=QbH4U9WsnCS4LKZRC8bN7+fGRQLAKu+WMoAcfVBmy2o=;
+	bh=04gVJXOYw7Ju2c/7DpEHB2s0kbuucyi2foZBfgP2tHg=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=ib7YowfPJMdGJoj3xZZFo79iMgEne6RUiwicmf0TKufhrqRqKaXxF1veItehBEanI4scERHrzNPOccbin4ikUGAD6Oxu6mI91NSBAiVs8av6rFnA81Yw/UXDA8Woc0pjiLk7FvFkD7zUkZBfd+/80ERfyIdlWZVErO+sm40pLa0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=S3echqbA; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=aMMHdK0a63/2kWwh/td6dbeHzw+OlzseBAXN6R6vBZVjA9KZqu+Okq3hFi/n41wI9fu8GEfPs5aEN0s5mATj2a1eHeKfmiibJHXiwGgF4UhfnzC0i9cJaxd1bBaqAjtpNxxh7M2/EPoBGAgIdkOfH21ydhQS40uMCu73plQrySc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=OCpAsr1O; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="S3echqbA"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 6D7CEC4DDE8;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="OCpAsr1O"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 3E56DC2BCAF;
 	Thu, 11 Dec 2025 17:21:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
 	s=k20201202; t=1765473667;
-	bh=QbH4U9WsnCS4LKZRC8bN7+fGRQLAKu+WMoAcfVBmy2o=;
+	bh=04gVJXOYw7Ju2c/7DpEHB2s0kbuucyi2foZBfgP2tHg=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=S3echqbA2Vu6bl+MOtKWQZ/zJrVCu/d7al+n+2p7RiRk1CDxiqp1OETVLoUdW0dqG
-	 G+KzHIakFCT+RQmuyUlz/elOO12+oXtf+YepL/HHxHb3YqwXr/7q+rCPYGFP0aNm9h
-	 900cfqdZaDVdxPwu5tbcQe8V1d5ufxO2J4Eegve6EaFt3sSCvl66OO9QiKEtYhvFzz
-	 slZ/8Mci0IwTJgcVTjWRpYlY2BZFqmpYppx/mgThxI2gmMFPl5r2bG4DpQ1tOK1f63
-	 z7uuQ0qezZosvKi3PPgxq7BFy3ASIjH1i+Bg2JPqy4cXb3NKKAlVFm8gHpEpQFw/j5
-	 ew5/h7tD0oy7A==
+	b=OCpAsr1Oah2IC1WUiR+F+qmoVx03kfKjO5ul4TmrKjdNWt19LHqvTST4ZB2RUq1CR
+	 NEtzlpt+tbK/vkBJH0OA2icZt4KiJe10Ga7WLcHVbiJw8lXe4haTFNISBchUT8Ebj+
+	 XnBvRjgRnEYVnit1J0yPzGqQWyOQRE2EMwcOBL6y0Pl02vaxZbe9z8guMNqjZHZQqH
+	 W0oW7Xs3l+QoWhJETZ/gXR695ia2e2aFysYWXbliVb4Cj0jIiIKo0eNIdWHAxmDn/Q
+	 3egHFl7g9dZTsUeUVzj8ot9W/2oexpllzYecP6QUqxo8+QagY3fcPHzeJwKp4yRwwU
+	 t1IlUnZxHNvCw==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 56643D41D72;
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 255D5D41D6D;
 	Thu, 11 Dec 2025 17:21:07 +0000 (UTC)
 From: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>
-Date: Thu, 11 Dec 2025 09:20:43 -0800
-Subject: [PATCH v26 10/28] riscv/mm: Implement map_shadow_stack() syscall
+Date: Thu, 11 Dec 2025 09:20:41 -0800
+Subject: [PATCH v26 08/28] riscv/mm: teach pte_mkwrite to manufacture
+ shadow stack PTEs
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -40,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20251211-v5_user_cfi_series-v26-10-f0f419e81ac0@rivosinc.com>
+Message-Id: <20251211-v5_user_cfi_series-v26-8-f0f419e81ac0@rivosinc.com>
 References: <20251211-v5_user_cfi_series-v26-0-f0f419e81ac0@rivosinc.com>
 In-Reply-To: <20251211-v5_user_cfi_series-v26-0-f0f419e81ac0@rivosinc.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
@@ -78,11 +79,11 @@ Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  Valentin Haudiquet <valentin.haudiquet@canonical.com>, 
  Deepak Gupta <debug@rivosinc.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1765473664; l=5985;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1765473664; l=2371;
  i=debug@rivosinc.com; s=20251023; h=from:subject:message-id;
- bh=2itqViQexaOTmpRjpWR4wDqh6fiZE0fHduuB5yNYi2Q=;
- b=UXInGKtAUDENobkdalJfcFJmYzOp9dlfW+t5jfHDAv3IkcNPTwftB97uQh/mdOvXAqa7qrDie
- 2/TftOmJFGgB6em7gArLLhLq4+y4a92zvauxSX6mxQhTyJiVzlA+jX1
+ bh=t88tD6h5jGJWywn6Tz9bzXAVcX1Z5iY6bKQeGfJKelY=;
+ b=2eVX9clVHze7ulKPpPv+R2k2xcoyYfboAVjhbcXbqF72Iv1e7pp49F2bHxf0gP5GgR/QmHs4n
+ ILGolFzplBOBXJnDxgwDpdGNoU+rmmyqKLAJdAaQWB5pGIXvIhx5d7p
 X-Developer-Key: i=debug@rivosinc.com; a=ed25519;
  pk=O37GQv1thBhZToXyQKdecPDhtWVbEDRQ0RIndijvpjk=
 X-Endpoint-Received: by B4 Relay for debug@rivosinc.com/20251023 with
@@ -92,184 +93,71 @@ Reply-To: debug@rivosinc.com
 
 From: Deepak Gupta <debug@rivosinc.com>
 
-As discussed extensively in the changelog for the addition of this
-syscall on x86 ("x86/shstk: Introduce map_shadow_stack syscall") the
-existing mmap() and madvise() syscalls do not map entirely well onto the
-security requirements for shadow stack memory since they lead to windows
-where memory is allocated but not yet protected or stacks which are not
-properly and safely initialised. Instead a new syscall map_shadow_stack()
-has been defined which allocates and initialises a shadow stack page.
+pte_mkwrite creates PTEs with WRITE encodings for underlying arch.
+Underlying arch can have two types of writeable mappings. One that can be
+written using regular store instructions. Another one that can only be
+written using specialized store instructions (like shadow stack stores).
+pte_mkwrite can select write PTE encoding based on VMA range (i.e.
+VM_SHADOW_STACK)
 
-This patch implements this syscall for riscv. riscv doesn't require token
-to be setup by kernel because user mode can do that by itself. However to
-provide compatibility and portability with other architectues, user mode
-can specify token set flag.
-
+Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
 Reviewed-by: Zong Li <zong.li@sifive.com>
 Tested-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
 Tested-by: Valentin Haudiquet <valentin.haudiquet@canonical.com>
 Signed-off-by: Deepak Gupta <debug@rivosinc.com>
 ---
- arch/riscv/kernel/Makefile  |   1 +
- arch/riscv/kernel/usercfi.c | 142 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 143 insertions(+)
+ arch/riscv/include/asm/pgtable.h |  7 +++++++
+ arch/riscv/mm/pgtable.c          | 16 ++++++++++++++++
+ 2 files changed, 23 insertions(+)
 
-diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
-index f60fce69b725..2d0e0dcedbd3 100644
---- a/arch/riscv/kernel/Makefile
-+++ b/arch/riscv/kernel/Makefile
-@@ -125,3 +125,4 @@ obj-$(CONFIG_ACPI)		+= acpi.o
- obj-$(CONFIG_ACPI_NUMA)	+= acpi_numa.o
+diff --git a/arch/riscv/include/asm/pgtable.h b/arch/riscv/include/asm/pgtable.h
+index e4eb4657e1b6..b03e8f85221f 100644
+--- a/arch/riscv/include/asm/pgtable.h
++++ b/arch/riscv/include/asm/pgtable.h
+@@ -420,6 +420,10 @@ static inline pte_t pte_wrprotect(pte_t pte)
  
- obj-$(CONFIG_GENERIC_CPU_VULNERABILITIES) += bugs.o
-+obj-$(CONFIG_RISCV_USER_CFI) += usercfi.o
-diff --git a/arch/riscv/kernel/usercfi.c b/arch/riscv/kernel/usercfi.c
-new file mode 100644
-index 000000000000..251c3faccbf8
---- /dev/null
-+++ b/arch/riscv/kernel/usercfi.c
-@@ -0,0 +1,142 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Copyright (C) 2024 Rivos, Inc.
-+ * Deepak Gupta <debug@rivosinc.com>
-+ */
+ /* static inline pte_t pte_mkread(pte_t pte) */
+ 
++struct vm_area_struct;
++pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma);
++#define pte_mkwrite pte_mkwrite
 +
-+#include <linux/sched.h>
-+#include <linux/bitops.h>
-+#include <linux/types.h>
-+#include <linux/mm.h>
-+#include <linux/mman.h>
-+#include <linux/uaccess.h>
-+#include <linux/sizes.h>
-+#include <linux/user.h>
-+#include <linux/syscalls.h>
-+#include <linux/prctl.h>
-+#include <asm/csr.h>
-+#include <asm/usercfi.h>
+ static inline pte_t pte_mkwrite_novma(pte_t pte)
+ {
+ 	return __pte(pte_val(pte) | _PAGE_WRITE);
+@@ -765,6 +769,9 @@ static inline pmd_t pmd_mkyoung(pmd_t pmd)
+ 	return pte_pmd(pte_mkyoung(pmd_pte(pmd)));
+ }
+ 
++pmd_t pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma);
++#define pmd_mkwrite pmd_mkwrite
 +
-+#define SHSTK_ENTRY_SIZE sizeof(void *)
+ static inline pmd_t pmd_mkwrite_novma(pmd_t pmd)
+ {
+ 	return pte_pmd(pte_mkwrite_novma(pmd_pte(pmd)));
+diff --git a/arch/riscv/mm/pgtable.c b/arch/riscv/mm/pgtable.c
+index 8b6c0a112a8d..17a4bd05a02f 100644
+--- a/arch/riscv/mm/pgtable.c
++++ b/arch/riscv/mm/pgtable.c
+@@ -165,3 +165,19 @@ pud_t pudp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ 	return old;
+ }
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 +
-+/*
-+ * Writes on shadow stack can either be `sspush` or `ssamoswap`. `sspush` can happen
-+ * implicitly on current shadow stack pointed to by CSR_SSP. `ssamoswap` takes pointer to
-+ * shadow stack. To keep it simple, we plan to use `ssamoswap` to perform writes on shadow
-+ * stack.
-+ */
-+static noinline unsigned long amo_user_shstk(unsigned long *addr, unsigned long val)
++pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma)
 +{
-+	/*
-+	 * Never expect -1 on shadow stack. Expect return addresses and zero
-+	 */
-+	unsigned long swap = -1;
++	if (vma->vm_flags & VM_SHADOW_STACK)
++		return pte_mkwrite_shstk(pte);
 +
-+	__enable_user_access();
-+	asm goto(".option push\n"
-+		".option arch, +zicfiss\n"
-+		"1: ssamoswap.d %[swap], %[val], %[addr]\n"
-+		_ASM_EXTABLE(1b, %l[fault])
-+		".option pop\n"
-+		: [swap] "=r" (swap), [addr] "+A" (*addr)
-+		: [val] "r" (val)
-+		: "memory"
-+		: fault
-+		);
-+	__disable_user_access();
-+	return swap;
-+fault:
-+	__disable_user_access();
-+	return -1;
++	return pte_mkwrite_novma(pte);
 +}
 +
-+/*
-+ * Create a restore token on the shadow stack.  A token is always XLEN wide
-+ * and aligned to XLEN.
-+ */
-+static int create_rstor_token(unsigned long ssp, unsigned long *token_addr)
++pmd_t pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
 +{
-+	unsigned long addr;
++	if (vma->vm_flags & VM_SHADOW_STACK)
++		return pmd_mkwrite_shstk(pmd);
 +
-+	/* Token must be aligned */
-+	if (!IS_ALIGNED(ssp, SHSTK_ENTRY_SIZE))
-+		return -EINVAL;
-+
-+	/* On RISC-V we're constructing token to be function of address itself */
-+	addr = ssp - SHSTK_ENTRY_SIZE;
-+
-+	if (amo_user_shstk((unsigned long __user *)addr, (unsigned long)ssp) == -1)
-+		return -EFAULT;
-+
-+	if (token_addr)
-+		*token_addr = addr;
-+
-+	return 0;
-+}
-+
-+static unsigned long allocate_shadow_stack(unsigned long addr, unsigned long size,
-+					   unsigned long token_offset, bool set_tok)
-+{
-+	int flags = MAP_ANONYMOUS | MAP_PRIVATE;
-+	struct mm_struct *mm = current->mm;
-+	unsigned long populate, tok_loc = 0;
-+
-+	if (addr)
-+		flags |= MAP_FIXED_NOREPLACE;
-+
-+	mmap_write_lock(mm);
-+	addr = do_mmap(NULL, addr, size, PROT_READ, flags,
-+		       VM_SHADOW_STACK | VM_WRITE, 0, &populate, NULL);
-+	mmap_write_unlock(mm);
-+
-+	if (!set_tok || IS_ERR_VALUE(addr))
-+		goto out;
-+
-+	if (create_rstor_token(addr + token_offset, &tok_loc)) {
-+		vm_munmap(addr, size);
-+		return -EINVAL;
-+	}
-+
-+	addr = tok_loc;
-+
-+out:
-+	return addr;
-+}
-+
-+SYSCALL_DEFINE3(map_shadow_stack, unsigned long, addr, unsigned long, size, unsigned int, flags)
-+{
-+	bool set_tok = flags & SHADOW_STACK_SET_TOKEN;
-+	unsigned long aligned_size = 0;
-+
-+	if (!cpu_supports_shadow_stack())
-+		return -EOPNOTSUPP;
-+
-+	/* Anything other than set token should result in invalid param */
-+	if (flags & ~SHADOW_STACK_SET_TOKEN)
-+		return -EINVAL;
-+
-+	/*
-+	 * Unlike other architectures, on RISC-V, SSP pointer is held in CSR_SSP and is available
-+	 * CSR in all modes. CSR accesses are performed using 12bit index programmed in instruction
-+	 * itself. This provides static property on register programming and writes to CSR can't
-+	 * be unintentional from programmer's perspective. As long as programmer has guarded areas
-+	 * which perform writes to CSR_SSP properly, shadow stack pivoting is not possible. Since
-+	 * CSR_SSP is writeable by user mode, it itself can setup a shadow stack token subsequent
-+	 * to allocation. Although in order to provide portablity with other architecture (because
-+	 * `map_shadow_stack` is arch agnostic syscall), RISC-V will follow expectation of a token
-+	 * flag in flags and if provided in flags, setup a token at the base.
-+	 */
-+
-+	/* If there isn't space for a token */
-+	if (set_tok && size < SHSTK_ENTRY_SIZE)
-+		return -ENOSPC;
-+
-+	if (addr && (addr & (PAGE_SIZE - 1)))
-+		return -EINVAL;
-+
-+	aligned_size = PAGE_ALIGN(size);
-+	if (aligned_size < size)
-+		return -EOVERFLOW;
-+
-+	return allocate_shadow_stack(addr, aligned_size, size, set_tok);
++	return pmd_mkwrite_novma(pmd);
 +}
 
 -- 
