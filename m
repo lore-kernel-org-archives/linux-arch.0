@@ -1,38 +1,38 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5FB2C31BCA4;
-	Thu, 11 Dec 2025 17:21:09 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E28231A7FA;
+	Thu, 11 Dec 2025 17:21:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765473669; cv=none; b=FWF/+eIw7DCFWAEZdjztGMcOL8H0GRkeacjSgsGNzOmfM0wvzzYuCHvod20C0V207eoF7wLmQ+TGfMU2pmvejdAXWy7LoeANPXmchbUusgvpJuaqN+3tJfqOPa555FoPtfFOpbikHea4e9FmR8a3GsaE3g974p7tX2ePa9zhEd8=
+	t=1765473668; cv=none; b=utK8WeWM2vOenbLTGruDiyb4tNzyeeLMWJ+QfUhf9FNUN0EnZuq3xlfkLOotbIRTP/lBZpSYwdvxJi6KqXUgCMee8YYf5yRLpZD83n70C541wY3p5EOIZ0B6tvG/9mY+/nvtzMiBod4ppFkpSZWPQ+0w2Qg4xmLL+hXYhkoajkA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765473669; c=relaxed/simple;
-	bh=8y/E1znlbCd1q689Ofc4VYyPkZptg1swcCnlIJzmUAs=;
+	s=arc-20240116; t=1765473668; c=relaxed/simple;
+	bh=gKj05EfXWRzFgsdHcGDwkowJM1p6i+3gIjza9qiTqkA=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=X3p1wOZNm/+huNDxfB2Q2dYsNRDEvJvAfRFOfmPSTb/lZ9p0f8+1ycGBDcgWieSAigOtwtApjydeHhhNKGLniBqztAANIyCEJ4DMQ9hWSzLo1GubX3RvFzlbrEbC0n7EPcvcB7b26m+vRFsPBdH7e8g7VyIxv4jWh/msP58tcLg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=M93GKUwm; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:To:Cc; b=qrVQgtjPIHjlD8WH2OMKKgyqAgYP6pF0vRzuVMquZf71XEv7UOUErUqMu6sWgh77IIPmf4SS0JdpVR8zb7s6UgQoOJ7W22CVi3Urjc51OgRQ0oQcTChu/DI06/KxH8I+kl4lFUEdHYJxiKoQL+jQqG4bepEbIfhCzj4GwjVqkYc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=joQ2+ocZ; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="M93GKUwm"
-Received: by smtp.kernel.org (Postfix) with ESMTPS id 4231CC16AAE;
-	Thu, 11 Dec 2025 17:21:09 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="joQ2+ocZ"
+Received: by smtp.kernel.org (Postfix) with ESMTPS id 4845AC16AAE;
+	Thu, 11 Dec 2025 17:21:08 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1765473669;
-	bh=8y/E1znlbCd1q689Ofc4VYyPkZptg1swcCnlIJzmUAs=;
+	s=k20201202; t=1765473668;
+	bh=gKj05EfXWRzFgsdHcGDwkowJM1p6i+3gIjza9qiTqkA=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:Reply-To:From;
-	b=M93GKUwmFTHOsLCO5lG36Dd/p12pIKWTqNHW/n+E3qyDLN22+8TXTMoa3Kc6k8l2e
-	 vZW257WO67bVboMVN5RwT4IMCXN3Zpkr7yxy3h0Y+rVLfiLCGatUp+yM1/jxDwu+J8
-	 R42BYirRuPQHm381MbPl4yhEjEIUvylqbcLY4LfyUwscZLCCg7mFzduJLU0icnAYR7
-	 avP5R7LzHpW0FBnrN6PsR0Kz4KlVgR9p8BM6P9XbBquLDk433zandvUPIAEEe/5DTm
-	 HX/ujj8qHrRb7wQAnIqhvUktthBiT9Tian2utjH6IMb2xx/DdCsv0B2ukjGozebPFm
-	 iS/pgN2nqnutg==
+	b=joQ2+ocZmDicQ/80iOJxvajr3vmQx4nRpb5ckojsPu9lwQzjp2YDYvIE6QPlou39S
+	 1LyZ38WVb7YMa9Q2dDAoDbm8Jz3srPtLnoz7tCa06SEtQ7HR1Bmz5yP8PPpW7r/XDW
+	 6h0Pdg4Rz3ZLJePZb5Ot2w1Eyt8+YSWpd58FNbQ9jwcga3ZvmJPQlQrwGgb2YH+c8C
+	 6QqHZ19S7Ci9j3mXfGa7saRyW+J7ogeQFtTROVd+1VLtpzQ+nWl5ODpw3hfqCr/A/0
+	 L2u7qGMhTmdgbmQyMnh+EVZ+T2UZig3h9TiMl+5edoeKSUDJVrxtaxYnAEB4lJoy2t
+	 i9/3zDcuyxMAw==
 Received: from aws-us-west-2-korg-lkml-1.web.codeaurora.org (localhost.localdomain [127.0.0.1])
-	by smtp.lore.kernel.org (Postfix) with ESMTP id 2EDB8D41D6B;
-	Thu, 11 Dec 2025 17:21:09 +0000 (UTC)
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 3810AD41D6F;
+	Thu, 11 Dec 2025 17:21:08 +0000 (UTC)
 From: Deepak Gupta via B4 Relay <devnull+debug.rivosinc.com@kernel.org>
-Date: Thu, 11 Dec 2025 09:20:58 -0800
-Subject: [PATCH v26 25/28] riscv: create a config for shadow stack and
- landing pad instr support
+Date: Thu, 11 Dec 2025 09:20:51 -0800
+Subject: [PATCH v26 18/28] riscv/kernel: update __show_regs to print shadow
+ stack register
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,7 +41,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20251211-v5_user_cfi_series-v26-25-f0f419e81ac0@rivosinc.com>
+Message-Id: <20251211-v5_user_cfi_series-v26-18-f0f419e81ac0@rivosinc.com>
 References: <20251211-v5_user_cfi_series-v26-0-f0f419e81ac0@rivosinc.com>
 In-Reply-To: <20251211-v5_user_cfi_series-v26-0-f0f419e81ac0@rivosinc.com>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, 
@@ -74,16 +74,15 @@ Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
  atishp@rivosinc.com, evan@rivosinc.com, cleger@rivosinc.com, 
  alexghiti@rivosinc.com, samitolvanen@google.com, broonie@kernel.org, 
  rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org, 
- Zong Li <zong.li@sifive.com>, 
  Andreas Korb <andreas.korb@aisec.fraunhofer.de>, 
  Valentin Haudiquet <valentin.haudiquet@canonical.com>, 
  Deepak Gupta <debug@rivosinc.com>
 X-Mailer: b4 0.13.0
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1765473664; l=2526;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1765473664; l=1182;
  i=debug@rivosinc.com; s=20251023; h=from:subject:message-id;
- bh=SpjXI/Sv2cms4/hPyvTpnR3A92e6omNkXvivaJVRwUg=;
- b=7/1Vo594BlTsNwHQrxEPTE7D01oSiid2N0KsylGoMm2neqMQJHVHRKOKvAPiaTMwtZpW320hO
- BXvd/dzz6YeDNqhItgEUfqFoN1nMiV1fWpYfT+iHK5l3z3s1Hs+UDTa
+ bh=XI4ppsK62Fegg41RmjuRUH5R6YykPAMiGtdfLotNIGk=;
+ b=ettTKylRb+21RNIE6aRXlLKnCuNPUmzGJLadoF6KC5Cj1C8lsSzyz6HZsSQgomqLUbggJk4kI
+ 9bhNG1WlOXtB6CRw8iiWSpE8JrYyW2IuNIAq4YQ5fBFrO1eV7PpQecT
 X-Developer-Key: i=debug@rivosinc.com; a=ed25519;
  pk=O37GQv1thBhZToXyQKdecPDhtWVbEDRQ0RIndijvpjk=
 X-Endpoint-Received: by B4 Relay for debug@rivosinc.com/20251023 with
@@ -93,68 +92,32 @@ Reply-To: debug@rivosinc.com
 
 From: Deepak Gupta <debug@rivosinc.com>
 
-This patch creates a config for shadow stack support and landing pad instr
-support. Shadow stack support and landing instr support can be enabled by
-selecting `CONFIG_RISCV_USER_CFI`. Selecting `CONFIG_RISCV_USER_CFI` wires
-up path to enumerate CPU support and if cpu support exists, kernel will
-support cpu assisted user mode cfi.
+Updating __show_regs to print captured shadow stack pointer as well.
+On tasks where shadow stack is disabled, it'll simply print 0.
 
-If CONFIG_RISCV_USER_CFI is selected, select `ARCH_USES_HIGH_VMA_FLAGS`,
-`ARCH_HAS_USER_SHADOW_STACK` and DYNAMIC_SIGFRAME for riscv.
-
-Reviewed-by: Zong Li <zong.li@sifive.com>
+Reviewed-by: Alexandre Ghiti <alexghiti@rivosinc.com>
 Tested-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
 Tested-by: Valentin Haudiquet <valentin.haudiquet@canonical.com>
 Signed-off-by: Deepak Gupta <debug@rivosinc.com>
 ---
- arch/riscv/Kconfig                  | 23 +++++++++++++++++++++++
- arch/riscv/configs/hardening.config |  4 ++++
- 2 files changed, 27 insertions(+)
+ arch/riscv/kernel/process.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 0c6038dc5dfd..4612a99cb387 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -1146,6 +1146,29 @@ config RANDOMIZE_BASE
+diff --git a/arch/riscv/kernel/process.c b/arch/riscv/kernel/process.c
+index 49f527e3acfd..aacb23978f93 100644
+--- a/arch/riscv/kernel/process.c
++++ b/arch/riscv/kernel/process.c
+@@ -93,8 +93,8 @@ void __show_regs(struct pt_regs *regs)
+ 		regs->s8, regs->s9, regs->s10);
+ 	pr_cont(" s11: " REG_FMT " t3 : " REG_FMT " t4 : " REG_FMT "\n",
+ 		regs->s11, regs->t3, regs->t4);
+-	pr_cont(" t5 : " REG_FMT " t6 : " REG_FMT "\n",
+-		regs->t5, regs->t6);
++	pr_cont(" t5 : " REG_FMT " t6 : " REG_FMT " ssp : " REG_FMT "\n",
++		regs->t5, regs->t6, get_active_shstk(current));
  
-           If unsure, say N.
- 
-+config RISCV_USER_CFI
-+	def_bool y
-+	bool "riscv userspace control flow integrity"
-+	depends on 64BIT && \
-+		$(cc-option,-mabi=lp64 -march=rv64ima_zicfiss_zicfilp -fcf-protection=full)
-+	depends on RISCV_ALTERNATIVE
-+	depends on MMU
-+	select RISCV_SBI
-+	select ARCH_HAS_USER_SHADOW_STACK
-+	select ARCH_USES_HIGH_VMA_FLAGS
-+	select DYNAMIC_SIGFRAME
-+	help
-+	  Provides CPU-assisted control flow integrity to userspace tasks.
-+	  Control flow integrity is provided by implementing shadow stack for
-+	  backward edge and indirect branch tracking for forward edge in program.
-+	  Shadow stack protection is a hardware feature that detects function
-+	  return address corruption. This helps mitigate ROP attacks.
-+	  Indirect branch tracking enforces that all indirect branches must land
-+	  on a landing pad instruction else CPU will fault. This mitigates against
-+	  JOP / COP attacks. Applications must be enabled to use it, and old user-
-+	  space does not get protection "for free".
-+	  default y.
-+
- endmenu # "Kernel features"
- 
- menu "Boot options"
-diff --git a/arch/riscv/configs/hardening.config b/arch/riscv/configs/hardening.config
-new file mode 100644
-index 000000000000..089f4cee82f4
---- /dev/null
-+++ b/arch/riscv/configs/hardening.config
-@@ -0,0 +1,4 @@
-+# RISCV specific kernel hardening options
-+
-+# Enable control flow integrity support for usermode.
-+CONFIG_RISCV_USER_CFI=y
+ 	pr_cont("status: " REG_FMT " badaddr: " REG_FMT " cause: " REG_FMT "\n",
+ 		regs->status, regs->badaddr, regs->cause);
 
 -- 
 2.43.0
