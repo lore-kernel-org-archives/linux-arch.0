@@ -1,37 +1,40 @@
 Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 979431ACEDF;
-	Mon, 15 Dec 2025 18:24:37 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2576C2EC571;
+	Mon, 15 Dec 2025 18:24:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765823079; cv=none; b=MNQ0+H/gG4ifXDKkwq/BvOreaGPHlTSqx6S/vW4+4TVM+IU14U5C1LXi0Y4LgnPMcMjozWQt015SC/1XcG+lr6w2/0gk1/6gi+ZDhsydAeal6jHmG2S37d26RiIIG8b121MlTCtx8BbIW3KEyeMwRo4SZON4t+OZZYA/nea+OS0=
+	t=1765823082; cv=none; b=bVCrVglYkITZ166NcSTf4XU4TX1sU3JBe64ocEoG9VB5HdBVfyrHgTOUmVSG2013fjAiPFTI8nF4KjseJc1cNgCKyEtJ0/4JyktAtGk7HhQVt+sEUHzV8m+x+7HvzEFxboJd8wVoXlAN3+sFi1owJQOTnhTbBDhd/XqAbIoBQIo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765823079; c=relaxed/simple;
-	bh=qMC/3WaPWPsEC8GpkNEeJ/+onzOIu61ZnRMKgIhJqWs=;
-	h=Message-ID:From:To:Cc:Subject:Date; b=ipVfjT+KbqCRXpi9+wVfQNNxXr3pYVsiwup0oLl7jfe/vM7/pNWw+MTPD29U8fnBzJ096pJfhRZ5fGr4JhsjuMQplG6RwUvsU47OaEe5Pyqq3+JImv4Jh7qpmVEoxr4eAWrTZ4uGXzXXtP4HdCN3XkdwzSZqaJ/Fi1ub8lB6Y/Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=bU0vWHk7; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=jgIDXhtN; arc=none smtp.client-ip=193.142.43.55
+	s=arc-20240116; t=1765823082; c=relaxed/simple;
+	bh=TA7lrT53WU79dKJyoMSPjS4BGsGO5jf1PbfErdOpEYA=;
+	h=Message-ID:From:To:Cc:Subject:References:MIME-Version:
+	 Content-Type:Date; b=UStxlO/MXPdEt/cdAZ47g4iNrhxOtlD6H+mRVZcd730NtXQxqCS6bIA5NmXY4QFuTnK+sEGm1EMeOLuKzfkPIvCY1xKkHcoHojhk87sLlV3d77IRepsTk8tdBDjIwHJkV5WVgxVSmVMIYOUR7WM3Uit+TNYpkbVBEi/e/v9u5/4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=G3Vs9pnF; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=FZdRgF9b; arc=none smtp.client-ip=193.142.43.55
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="bU0vWHk7";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="jgIDXhtN"
-Message-ID: <20251215155615.870031952@linutronix.de>
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="G3Vs9pnF";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="FZdRgF9b"
+Message-ID: <20251215155708.733429292@linutronix.de>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1765823074;
+	s=2020; t=1765823079;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc; bh=4dTT3aJAqWsVF4pZKsCUZEHviWLQKtu1DpUBLD2IFv0=;
-	b=bU0vWHk7OyPo10w95SZQ43KVTDuobHID84tPcbamZ7dCVtDXHqARupRM3Ftyxrj+jAYGe9
-	4jQa+8gZ8Ie4PmNK+xhw+Ik6OtzBAx4nF68ZmmWqoL9pI0tiaMVu9972PZVLYzHByfFGfE
-	4NnZMG8COi55vsAAnr6N1efp+OSh26Lz+hxVuKHPkX6DxLBlbYy8O/MzJH8Ag508C1Rwu1
-	P3Ey01w6bzTxk+7GydFlVYivlCAeLiPpbbBx90sxk+0pvlr52SCZ/JftB1DtFYbAvaxtf9
-	PoWQ3UMRNMIgA4DSH+tiqc38U0X0vVWhPG+1JtDEkyXD//b91eFulMfiNNuSDg==
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 references:references; bh=30E4+htDTDGTIapY14XtOT+E3N9EWJok6h6ZJqVhSd4=;
+	b=G3Vs9pnFOudPUKEWwRbfqRRa4n83AS5XzPYET18aFdciPIEddRTviaB/74htMbdLWNPZJE
+	RfoUjkWL8AB+wmiRbgqQ2ciayXqb3h5iTngPU+LzZal0RRGo22hLP/zqQ8Q0BWsXHotQrx
+	ZUQXCkuhCYx3XYdACf7VWRiUWoLB5lSVw3aEJgQA4c4sVFgMRrClOUNKJWT+wZ9y6a/9k8
+	DsZYE//OudZXEDrbttKmb63NbcmgXU7X4aqme9nK7uDapqMzin79KnTwebM4vQUtpta2TA
+	U00Bb+u2DG2nLt3Eni9/wBfcao0Zf1b5DvyJiE+hOL3tmjEHN4zoaCtfHlg0PQ==
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1765823074;
+	s=2020e; t=1765823079;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc; bh=4dTT3aJAqWsVF4pZKsCUZEHviWLQKtu1DpUBLD2IFv0=;
-	b=jgIDXhtNsjOzNN3/7mREKkZ1wsORur0dcqQYA39B0B0ZK45CU+gF68ftLOdIy0fAMreEQo
-	VhktQEhzph02MaDw==
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 references:references; bh=30E4+htDTDGTIapY14XtOT+E3N9EWJok6h6ZJqVhSd4=;
+	b=FZdRgF9bj9ZtSo6xNceC+y3R4pz+gBX6dzjF3g+xydtyL0x4DaGkserxzSgx6rD6XphMzl
+	ZRG6qVMkVypoSWDQ==
 From: Thomas Gleixner <tglx@linutronix.de>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
@@ -49,49 +52,92 @@ Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
  Peter Zijlstra <peterz@infradead.org>,
  Ron Geva <rongevarg@gmail.com>,
  Waiman Long <longman@redhat.com>
-Subject: [patch V6 00/11] rseq: Implement time slice extension mechanism
-Date: Mon, 15 Dec 2025 19:24:33 +0100 (CET)
+Subject: [patch V6 02/11] rseq: Provide static branch for time slice
+ extensions
+References: <20251215155615.870031952@linutronix.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Message-ID: <20251215182433.ThuILoHeXrfPhXA-M540okhjfoy2z2NyOz_9fXotSN0@z>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Date: Mon, 15 Dec 2025 19:24:38 +0100 (CET)
+Message-ID: <20251215182438.NI0vHU1rBwHz0ni5EdeJCw4DhehcBt5eVRsYYzh4dwg@z>
 
-This is a follow up on the V5 version:
+Guard the time slice extension functionality with a static key, which can
+be disabled on the kernel command line.
 
-     https://lore.kernel.org/20251128225931.959481199@linutronix.de
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@kernel.org>
+Cc: Boqun Feng <boqun.feng@gmail.com>
+---
+V4: Return 0 on error in __setup() - Randy
+V3: Document command line parameter - Sebastian
+V2: Return 1 from __setup() - Prateek
+---
+ Documentation/admin-guide/kernel-parameters.txt |    5 +++++
+ include/linux/rseq_entry.h                      |   11 +++++++++++
+ kernel/rseq.c                                   |   17 +++++++++++++++++
+ 3 files changed, 33 insertions(+)
 
-V1 contains a detailed explanation:
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -6482,6 +6482,11 @@
+ 
+ 	rootflags=	[KNL] Set root filesystem mount option string
+ 
++	rseq_slice_ext= [KNL] RSEQ based time slice extension
++			Format: boolean
++			Control enablement of RSEQ based time slice extension.
++			Default is 'on'.
++
+ 	initramfs_options= [KNL]
+                         Specify mount options for for the initramfs mount.
+ 
+--- a/include/linux/rseq_entry.h
++++ b/include/linux/rseq_entry.h
+@@ -75,6 +75,17 @@ DECLARE_STATIC_KEY_MAYBE(CONFIG_RSEQ_DEB
+ #define rseq_inline __always_inline
+ #endif
+ 
++#ifdef CONFIG_RSEQ_SLICE_EXTENSION
++DECLARE_STATIC_KEY_TRUE(rseq_slice_extension_key);
++
++static __always_inline bool rseq_slice_extension_enabled(void)
++{
++	return static_branch_likely(&rseq_slice_extension_key);
++}
++#else /* CONFIG_RSEQ_SLICE_EXTENSION */
++static inline bool rseq_slice_extension_enabled(void) { return false; }
++#endif /* !CONFIG_RSEQ_SLICE_EXTENSION */
++
+ bool rseq_debug_update_user_cs(struct task_struct *t, struct pt_regs *regs, unsigned long csaddr);
+ bool rseq_debug_validate_ids(struct task_struct *t);
+ 
+--- a/kernel/rseq.c
++++ b/kernel/rseq.c
+@@ -483,3 +483,20 @@ SYSCALL_DEFINE4(rseq, struct rseq __user
+ efault:
+ 	return -EFAULT;
+ }
++
++#ifdef CONFIG_RSEQ_SLICE_EXTENSION
++DEFINE_STATIC_KEY_TRUE(rseq_slice_extension_key);
++
++static int __init rseq_slice_cmdline(char *str)
++{
++	bool on;
++
++	if (kstrtobool(str, &on))
++		return 0;
++
++	if (!on)
++		static_branch_disable(&rseq_slice_extension_key);
++	return 1;
++}
++__setup("rseq_slice_ext=", rseq_slice_cmdline);
++#endif /* CONFIG_RSEQ_SLICE_EXTENSION */
 
-     https://lore.kernel.org/20250908225709.144709889@linutronix.de
-
-TLDR: Time slice extensions are an attempt to provide opportunistic
-priority ceiling without the overhead of an actual priority ceiling
-protocol, but also without the guarantees such a protocol provides.
-
-The intent is to avoid situations where a user space thread is interrupted
-in a critical section and scheduled out, while holding a resource on which
-the preempting thread or other threads in the system might block on. That
-obviously prevents those threads from making progress in the worst case for
-at least a full time slice. Especially in the context of user space
-spinlocks, which are a patently bad idea to begin with, but that's also
-true for other mechanisms.
-
-This series uses the existing RSEQ user memory to implement it.
-
-Changes vs. V5:
-
-   - Rebase on v6.19-rc1
-
-   - Fold typo fixes - Sebastian
-
-   - Switch to syscall number 471
-
-The series is based on v6.19-rc1 and is also available from git:
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git rseq/slice
-
-Thanks,
-
-	tglx
