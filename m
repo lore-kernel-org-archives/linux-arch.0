@@ -1,146 +1,140 @@
-Received: from fhigh-b1-smtp.messagingengine.com (fhigh-b1-smtp.messagingengine.com [202.12.124.152])
+Received: from fout-b1-smtp.messagingengine.com (fout-b1-smtp.messagingengine.com [202.12.124.144])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CEC16241691;
-	Tue, 16 Dec 2025 06:38:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.152
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C0CB1DF261;
+	Tue, 16 Dec 2025 06:38:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.144
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765867120; cv=none; b=cBcGGw36r3zBZiYiLpEvLPJipV8y0BQg/i1ix7dkfYGdXPQfUGrd3K/+D8YZZGYXaT6AMwjtHfdIpzKwOZg6owIDfLV2MPD+noIYX5ZEiUR6gGhte+U2hxLyj/bFc9kqdikR3m8XoDlyjCqJ/vwkD6gHvqKJaHQqugV0UQ6wEsY=
+	t=1765867127; cv=none; b=YZJnX0zFyBM5SPuit2qJR4xzJOlOUWflBHq5c4XHpDRDmjIz5Uw4bXsi8JxU9GvO9S+oNEfoYQiaixlXla9r46gqhuXps4RdB8/lRcHcG/lGZ2M94ZKF5pBcXvVb5sIc/RVP+qNg9fxEiy3VPA5aRc/H1Sf6ViZGQXspYdv5wJI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765867120; c=relaxed/simple;
-	bh=+m9ugDvP8DldppU+Xne3BpzGk7erpZucQQE5LNo8A2E=;
-	h=Message-ID:From:Subject:Date:To:Cc; b=RNU+7FsotGdNSDFaH/+tvbvUbCVkdp+3wUNoMJpNrPIXKhVyOmmUna49Wi0WuRlmqae4/13vUbNZvLKBtDqtRivBzAtjbPycX/Zcht5KCF7jo9kWQ1IuQcY8veQ3ZJ+JAgfn2LdRIeIKrbREFqw1zyoSImy0r+vR5TFvFjOYeZU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=XpOQ7fR4; arc=none smtp.client-ip=202.12.124.152
+	s=arc-20240116; t=1765867127; c=relaxed/simple;
+	bh=SuCvINbuPVMXqb9QjLD98WOoklSkHkfDpJ3rDwet8XQ=;
+	h=To:Cc:Message-ID:In-Reply-To:References:From:Subject:Date; b=JoUP5jo+ghLjN3Q4cML/DAT9wR3HRY9pTA6vptU0v/eYpuI6oL3H31Pyu0qw6uzT/txvC8PHhEH6lT6C94XIlABIhkhzKImRKlxJX/qa/U674FqzHbzRB8wW/LlO2OV7icwJYEH/OSzys3TM3piDu3BdgOjMClFjQiAyCWZgImQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=l+rvyd1T; arc=none smtp.client-ip=202.12.124.144
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="XpOQ7fR4"
-Received: from phl-compute-06.internal (phl-compute-06.internal [10.202.2.46])
-	by mailfhigh.stl.internal (Postfix) with ESMTP id CA7DB7A00FC;
-	Tue, 16 Dec 2025 01:38:25 -0500 (EST)
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="l+rvyd1T"
+Received: from phl-compute-07.internal (phl-compute-07.internal [10.202.2.47])
+	by mailfout.stl.internal (Postfix) with ESMTP id E8A131D00105;
+	Tue, 16 Dec 2025 01:38:36 -0500 (EST)
 Received: from phl-frontend-02 ([10.202.2.161])
-  by phl-compute-06.internal (MEProxy); Tue, 16 Dec 2025 01:38:26 -0500
+  by phl-compute-07.internal (MEProxy); Tue, 16 Dec 2025 01:38:37 -0500
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
 	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
-	:feedback-id:from:from:in-reply-to:message-id:reply-to:subject
-	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
-	fm1; t=1765867105; x=1765953505; bh=9AoWIhfivy4UOmlDhOIXxucmgxZr
-	f7I6w7HEi8HnW/4=; b=XpOQ7fR4p5tZHtVqK9hezAwN0iR7Ej3xwfmj6h2wl0PT
-	u9MuVU8odNVKLPmTejjbR9tm0tLsMfB2gQR4Y1taeNrLGJ4J9RmtfIa+EN/Ke2kf
-	mXVUOLpq287yxZR0HSgr0D3IdsmOTHe75czX6R5lkMHqw6RvbLHuDio2Y0gft2tB
-	R1bbXYMr1fDxRH2qSafqByoj2xw4jUxlLvsJON4NynBzSqjLrn4PO67T6a0T5frP
-	LTUCD3jDrT1pyDjgL38j5INN4ETiXILU3RLti2Sg9Ka1Ze34q7dzdCf4jyk+fHpw
-	KyLi88ojCydxBJ916IRT6r7PHahEgmz9gom0qrq8zA==
-X-ME-Sender: <xms:X_5Aaar7URYpNmvxdK7vDqbW6R6P7_oaHf2HJTdnCKikVNCUkPhVyQ>
-    <xme:X_5AaahLqfjIcpa1rNTqZg6H4cZP5ZQ9Ok8cEjBLC758rOxuczwaDz9ZT7ajmecQ9
-    m46yAMJ73rKxderSDT7kYnFjyEdwqJSNWgtxyLUB5ZsEYztcSf7Cw>
-X-ME-Received: <xmr:X_5AaT1jrnOfUKl0vjVSC-UvATqSRSGwo_-LnF1h1avenvg_DZBpj3eb0eHNLF0ckb1WWH-YzxUiQw7KkJKmdHzbv59Zdo0Sh80>
+	:feedback-id:from:from:in-reply-to:in-reply-to:message-id
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1765867116; x=
+	1765953516; bh=mcxXvS3cm1F0WmCqE3WMidSQEcc6TanLc8CP39ib5i4=; b=l
+	+rvyd1TIBWr7y3uNUW1dqjrjaj577UiCABj6C2hjE+oTIAo35dOQmqUbf+Aj3kcJ
+	Iivr/OUuAM83fOTbJYjoJjwaBczygWQ2edkvmLeTN5O0hM3naRT+FhrgaG7j/5DP
+	vpEBEWJZA5xkSJ0hPgC3mWbkV2hCp4pn/X356MVI8tyXNbTfYi/Le5iPNwlk8XFx
+	+Ru01U22KhLjde9Xbb0RNTyBFTTBvv6u8HGPVn1mwoiRdiQFrRguHN8Q//ppySxp
+	V4C5IV5YxZt9ttLK2C3QD5sSBnlIeonaMpDtOxcj0g8LnEA5b6JsM5AqP4cedk27
+	Plix2vTxZRzJAeK45rh/g==
+X-ME-Sender: <xms:bP5AaSGSd6JlwDUZcqEIjyNiXRBxUD34rV0P73hSD7GlK0LNxblIGA>
+    <xme:bP5AaXQlybwhXXI5bgd2sDD532I28mgE639V34CYUpCFIN4jvxM2GxwxRHvhSfMfJ
+    h4bFvZ9uGgAx2nntY2FC0c18M--pVUiESzNgOSymSxKEk-t9Ab_4Uc>
+X-ME-Received: <xmr:bP5AaUpq-IC4Vv6X1hHTulu3n_uACAqh7cUfj_WbFn3u_z77ZSzQFfd4CaXnhrRywMwyLsMdk3xvEgU7lmYNQBN4QcDZw1dnNZ4>
 X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgdefkeellecutefuodetggdotefrod
     ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpuffrtefokffrpgfnqfghnecuuegr
     ihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenucfjug
-    hrpefkhffufffvveestddtredttddttdenucfhrhhomhephfhinhhnucfvhhgrihhnuceo
-    fhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhrgheqnecuggftrfgrthhtvghrnhepud
-    evtdeiveefvdffteduheetieehtdekhfekiedvledvtdehkeetieeuuddufeeunecuffho
-    mhgrihhnpedujedrqdhnvgifnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpe
-    hmrghilhhfrhhomhepfhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhrghdpnhgspghr
-    tghpthhtohepfeehpdhmohguvgepshhmthhpohhuthdprhgtphhtthhopehpvghtvghrii
-    esihhnfhhrrgguvggrugdrohhrghdprhgtphhtthhopeifihhllheskhgvrhhnvghlrdho
-    rhhgpdhrtghpthhtoheprghkphhmsehlihhnuhigqdhfohhunhgurghtihhonhdrohhrgh
-    dprhgtphhtthhopegrnhgurhhiiheskhgvrhhnvghlrdhorhhgpdhrtghpthhtoheprghr
-    nhgusegrrhhnuggsrdguvgdprhgtphhtthhopegrshhtsehkvghrnhgvlhdrohhrghdprh
-    gtphhtthhopegsohhquhhnrdhfvghnghesghhmrghilhdrtghomhdprhgtphhtthhopegs
-    phhfsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtohepuggrlhhirghssehlih
-    gstgdrohhrgh
-X-ME-Proxy: <xmx:X_5AaYZXDuSyF6P66w92xvicPXnobpN8Xpw5UGL-SoWpNjcJ6kN9xA>
-    <xmx:X_5AaZ4d0tEF2QN-dZ0E5ohtaW8NEzkP2qNW-oNMvzebmpvRD2rBDQ>
-    <xmx:X_5AaWIxt82httcCmTeewHLxbx1ppXqQb7IYiWVXXXYLltDHk8pHQg>
-    <xmx:X_5AacqnFu4MPU9Ce6YZ9yUpOSrR6jJZL6j6pWyYsLHxyd_SYhYKxg>
-    <xmx:Yf5AaboFQo-iNoPfBejvSJoR0jFweEV6XUdV6-NzhTGNDN6TTNAzEWwQ>
+    hrpefvvefkjghfhffuffestddtredttddttdenucfhrhhomhephfhinhhnucfvhhgrihhn
+    uceofhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhrgheqnecuggftrfgrthhtvghrnh
+    epvefggfdthffhfeevuedugfdtuefgfeettdevkeeigefgudelteeggeeuheegffffnecu
+    vehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomhepfhhthhgrih
+    hnsehlihhnuhigqdhmieekkhdrohhrghdpnhgspghrtghpthhtohepvdegpdhmohguvgep
+    shhmthhpohhuthdprhgtphhtthhopehpvghtvghriiesihhnfhhrrgguvggrugdrohhrgh
+    dprhgtphhtthhopeifihhllheskhgvrhhnvghlrdhorhhgpdhrtghpthhtoheprghkphhm
+    sehlihhnuhigqdhfohhunhgurghtihhonhdrohhrghdprhgtphhtthhopegrrhhnugesrg
+    hrnhgusgdruggvpdhrtghpthhtohepsghoqhhunhdrfhgvnhhgsehgmhgrihhlrdgtohhm
+    pdhrtghpthhtohepghgrrhihsehgrghrhihguhhordhnvghtpdhrtghpthhtohepmhgrrh
+    hkrdhruhhtlhgrnhgusegrrhhmrdgtohhmpdhrtghpthhtoheplhhinhhugidqrghrtghh
+    sehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidqkhgvrhhnvg
+    hlsehvghgvrhdrkhgvrhhnvghlrdhorhhg
+X-ME-Proxy: <xmx:bP5AaVrOV7N2BAIlg0s4O8tKXmiTgKpauuol07v8NqESXsk5O9632Q>
+    <xmx:bP5Aaf0KiFUDH9E6Z6DSBGnYb-phvoUwfa_T4Zydh4Uk-m0LhczAEA>
+    <xmx:bP5AaZgNUSv-f4NPasT7Sapm4Zy2iqFN1rZ_AG9h3BlgUC46MKp3jA>
+    <xmx:bP5Aael_yusUIwPsbrTJHhklWSKurKBTLV3D4jb0LPaEhVelqZQN8w>
+    <xmx:bP5AaSJjiheOZd2B4-Gzek8fxPTofqQizSNnYm-FdzraX_ZkPCz5a7XE>
 Feedback-ID: i58a146ae:Fastmail
 Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
- 16 Dec 2025 01:38:21 -0500 (EST)
-Message-ID: <cover.1765866665.git.fthain@linux-m68k.org>
-From: Finn Thain <fthain@linux-m68k.org>
-Subject: [PATCH v5 0/4] Align atomic storage
-Date: Tue, 16 Dec 2025 17:31:05 +1100
+ 16 Dec 2025 01:38:34 -0500 (EST)
 To: Peter Zijlstra <peterz@infradead.org>,
     Will Deacon <will@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>,
-    Andrii Nakryiko <andrii@kernel.org>,    Arnd Bergmann <arnd@arndb.de>,
+    Arnd Bergmann <arnd@arndb.de>,
+    Boqun Feng <boqun.feng@gmail.com>,
+    Gary Guo <gary@garyguo.net>,
+    Mark Rutland <mark.rutland@arm.com>,
+    linux-arch@vger.kernel.org,
+    linux-kernel@vger.kernel.org,
+    linux-m68k@lists.linux-m68k.org,
     Alexei Starovoitov <ast@kernel.org>,
-    Boqun Feng <boqun.feng@gmail.com>,    bpf@vger.kernel.org,
-    Rich Felker <dalias@libc.org>,
     Daniel Borkmann <daniel@iogearbox.net>,
-    Dinh Nguyen <dinguyen@kernel.org>,
-    Eduard Zingerman <eddyz87@gmail.com>,    Gary Guo <gary@garyguo.net>,
-    Geert Uytterhoeven <geert@linux-m68k.org>,
-    John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
-    Guo Ren <guoren@kernel.org>,    Hao Luo <haoluo@google.com>,
-    John Fastabend <john.fastabend@gmail.com>,
-    Jiri Olsa <jolsa@kernel.org>,    Jonas Bonn <jonas@southpole.se>,
-    KP Singh <kpsingh@kernel.org>,    linux-arch@vger.kernel.org,
-    linux-csky@vger.kernel.org,    linux-kernel@vger.kernel.org,
-    linux-m68k@lists.linux-m68k.org,    linux-openrisc@vger.kernel.org,
-    linux-sh@vger.kernel.org,    Mark Rutland <mark.rutland@arm.com>,
+    Andrii Nakryiko <andrii@kernel.org>,
     Martin KaFai Lau <martin.lau@linux.dev>,
-    Stanislav Fomichev <sdf@fomichev.me>,
-    Stafford Horne <shorne@gmail.com>,    Song Liu <song@kernel.org>,
-    Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+    Eduard Zingerman <eddyz87@gmail.com>,
+    Song Liu <song@kernel.org>,
     Yonghong Song <yonghong.song@linux.dev>,
-    Yoshinori Sato <ysato@users.sourceforge.jp>
+    John Fastabend <john.fastabend@gmail.com>,
+    KP Singh <kpsingh@kernel.org>,
+    Stanislav Fomichev <sdf@fomichev.me>,
+    Hao Luo <haoluo@google.com>,
+    Jiri Olsa <jolsa@kernel.org>,
+    Geert Uytterhoeven <geert@linux-m68k.org>,
+    bpf@vger.kernel.org
+Message-ID: <4ff540deaf87eb24ba11bbac95bdbea68d22a129.1765866665.git.fthain@linux-m68k.org>
+In-Reply-To: <cover.1765866665.git.fthain@linux-m68k.org>
+References: <cover.1765866665.git.fthain@linux-m68k.org>
+From: Finn Thain <fthain@linux-m68k.org>
+Subject: [PATCH v5 1/4] bpf: Explicitly align bpf_res_spin_lock
+Date: Tue, 16 Dec 2025 17:31:05 +1100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 
-This series adds the __aligned attribute to atomic_t and atomic64_t
-definitions in include/linux and include/asm-generic (respectively)
-to get natural alignment of both types on csky, m68k, microblaze,
-nios2, openrisc and sh.
+Align bpf_res_spin_lock to avoid a BUILD_BUG_ON() when the alignment
+changes, as it will do on m68k when, in a subsequent patch, the minimum
+alignment of the atomic_t member of struct rqspinlock gets increased
+from 2 to 4. Drop the BUILD_BUG_ON() as it becomes redundant.
 
-This series also adds Kconfig options to enable a new run-time warning
-to help reveal misaligned atomic accesses on platforms which don't
-trap that.
-
-The performance impact is expected to vary across platforms and workloads.
-The measurements I made on m68k show that some workloads run faster and
-others slower.
-
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-m68k@lists.linux-m68k.org
+Acked-by: Alexei Starovoitov <ast@kernel.org>
+Signed-off-by: Finn Thain <fthain@linux-m68k.org>
 ---
+ include/asm-generic/rqspinlock.h | 2 +-
+ kernel/bpf/rqspinlock.c          | 1 -
+ 2 files changed, 1 insertion(+), 2 deletions(-)
 
-Changed since v4:
- - Dropped parisc header file patch as it's been merged already.
- - Submitted as PATCH instead of RFC.
-
-Changed since v3:
- - Rebased on v6.17.
- - New patch to resolve header dependency issue on parisc.
- - Dropped documentation patch.
-
-Changed since v2:
- - Specify natural alignment for atomic64_t.
- - CONFIG_DEBUG_ATOMIC checks for natural alignment again.
- - New patch to add weakened alignment check.
- - New patch for explicit alignment in BPF header.
-
----
-
-Finn Thain (3):
-  bpf: Explicitly align bpf_res_spin_lock
-  atomic: Specify alignment for atomic_t and atomic64_t
-  atomic: Add option for weaker alignment check
-
-Peter Zijlstra (1):
-  atomic: Add alignment check to instrumented atomic operations
-
- include/asm-generic/atomic64.h   |  2 +-
- include/asm-generic/rqspinlock.h |  2 +-
- include/linux/instrumented.h     | 15 +++++++++++++++
- include/linux/types.h            |  2 +-
- kernel/bpf/rqspinlock.c          |  1 -
- lib/Kconfig.debug                | 18 ++++++++++++++++++
- 6 files changed, 36 insertions(+), 4 deletions(-)
-
+diff --git a/include/asm-generic/rqspinlock.h b/include/asm-generic/rqspinlock.h
+index 6d4244d643df..eac2dcd31b83 100644
+--- a/include/asm-generic/rqspinlock.h
++++ b/include/asm-generic/rqspinlock.h
+@@ -28,7 +28,7 @@ struct rqspinlock {
+  */
+ struct bpf_res_spin_lock {
+ 	u32 val;
+-};
++} __aligned(__alignof__(struct rqspinlock));
+ 
+ struct qspinlock;
+ #ifdef CONFIG_QUEUED_SPINLOCKS
+diff --git a/kernel/bpf/rqspinlock.c b/kernel/bpf/rqspinlock.c
+index a00561b1d3e5..02f1f671e624 100644
+--- a/kernel/bpf/rqspinlock.c
++++ b/kernel/bpf/rqspinlock.c
+@@ -692,7 +692,6 @@ __bpf_kfunc int bpf_res_spin_lock(struct bpf_res_spin_lock *lock)
+ 	int ret;
+ 
+ 	BUILD_BUG_ON(sizeof(rqspinlock_t) != sizeof(struct bpf_res_spin_lock));
+-	BUILD_BUG_ON(__alignof__(rqspinlock_t) != __alignof__(struct bpf_res_spin_lock));
+ 
+ 	preempt_disable();
+ 	ret = res_spin_lock((rqspinlock_t *)lock);
 -- 
 2.49.1
+
