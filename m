@@ -1,114 +1,146 @@
-Received: from mail-wr1-f48.google.com (mail-wr1-f48.google.com [209.85.221.48])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fhigh-b1-smtp.messagingengine.com (fhigh-b1-smtp.messagingengine.com [202.12.124.152])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C41341C63
-	for <linux-arch@vger.kernel.org>; Mon, 15 Dec 2025 21:40:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CEC16241691;
+	Tue, 16 Dec 2025 06:38:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.152
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765834820; cv=none; b=VvGD8T8tx6ebcP6trysh3Ijig00aua4jbueaO542ovz/ZffsRq/mmuvsZavn3HWH+R12Aw8QY1BuSimTetcY8otaUlqFNyrBABj5MfFcTyzI4zjer1PUj/6mC2gq993NZfi/P0zzkb8bkVeWXgMsGetMdrLwE/gJvIaiUjkw77s=
+	t=1765867120; cv=none; b=cBcGGw36r3zBZiYiLpEvLPJipV8y0BQg/i1ix7dkfYGdXPQfUGrd3K/+D8YZZGYXaT6AMwjtHfdIpzKwOZg6owIDfLV2MPD+noIYX5ZEiUR6gGhte+U2hxLyj/bFc9kqdikR3m8XoDlyjCqJ/vwkD6gHvqKJaHQqugV0UQ6wEsY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765834820; c=relaxed/simple;
-	bh=Y9B0PrO7eep9Md2S3cwjSR2T7fsBiwkpWkQ81Zxh7oM=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=eeNXNV/dP1V19XuUOwApc8GaBMRi0UXZVh4Y0i+N72pPBjCk0mikWN9H5cDAwTR0b6MFpteXlNcTV4alR45tQZY5vJ7Yp7uzb1JXz6s4b43z6o4XS5XIc9g9Pkfg+lBYBwqQnxIphz+/wjR8bA6QdYFwt3NhcLDh+mUiEcnZ5AU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=QQLrXJ5J; arc=none smtp.client-ip=209.85.221.48
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1765867120; c=relaxed/simple;
+	bh=+m9ugDvP8DldppU+Xne3BpzGk7erpZucQQE5LNo8A2E=;
+	h=Message-ID:From:Subject:Date:To:Cc; b=RNU+7FsotGdNSDFaH/+tvbvUbCVkdp+3wUNoMJpNrPIXKhVyOmmUna49Wi0WuRlmqae4/13vUbNZvLKBtDqtRivBzAtjbPycX/Zcht5KCF7jo9kWQ1IuQcY8veQ3ZJ+JAgfn2LdRIeIKrbREFqw1zyoSImy0r+vR5TFvFjOYeZU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=XpOQ7fR4; arc=none smtp.client-ip=202.12.124.152
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="QQLrXJ5J"
-Received: by mail-wr1-f48.google.com with SMTP id ffacd0b85a97d-42fbc305914so2265965f8f.0
-        for <linux-arch@vger.kernel.org>; Mon, 15 Dec 2025 13:40:18 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1765834817; x=1766439617; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=PtrYjcDo8W8ENLiooSwtuxxlBPD0y00FacSVPre/Faw=;
-        b=QQLrXJ5JAUOzJ8Yt1jyd5kWZKLwJD6LCSRU0Tj/6IcYefX0Ty+qXaOOCXoVzD161Hm
-         oz1eXEiyEZs1Db+2tRL0QVbtnLpASsry3v+lyOkqjtXFqQabduvZnaDnAunDTa7qJ4uP
-         isD3IBOOlgDrc4PazKAYDV0GyoixAfeSmaHIZHKU3IJMZfasrCR9xa4SepsW9x1uuZZD
-         GEHl9BIInSVE/5ZEdpq/SmJoxLGSqd2AAQgzRqUxhsbx3x9kt9KPJR977m/JDxTY8LTx
-         Btuo/BDu9wLR4eu9NOnrxRc6XFAqYzAHNUMPU/Ql/xAVuXNFaz+oquG5jC0STwf0D3Nu
-         p1TQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765834817; x=1766439617;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=PtrYjcDo8W8ENLiooSwtuxxlBPD0y00FacSVPre/Faw=;
-        b=K5icIvI+Awf6AZ67qFTB4MxhxqxRlRx8dfwbLsFsxMAlRjyf3+6MFDaqyx1UWTcKjA
-         CzB4h2VtljdxFr/fyuDwYBlWKaBy+jW1KKZYL3JT4n6IexnNbu9yFKkp/Zw9A7khCLCA
-         xNOycibi46K6u6YGP4VfnbERmolMWENwtxd2YRdd4uWQH01Xew+LNzm8KdP/WIpbNdzW
-         nI6BexlpOepnRSo7Lxi+A7Z6fCepf3uEUjQxYnJmsnJRe8lnDMS1uWFJvxXhKHTSXSlA
-         SCno5JyMLzP/i3fUAYPZBp/rTmijOxhQ9yqXLF4VrO/2F3iLwon+XOY6j579GdFE1au+
-         bNNg==
-X-Forwarded-Encrypted: i=1; AJvYcCX2cJ8mzYZ4g9B9GJXFm0LIBm4utRkagj0h+gW6ArQ+IvJdj3h7+uiF8Rqy+NBU7O3dOLn+9KWbtdMb@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy+ei27QFPkYZXa/QJ3zBotQh87DVESR5rwENPVwjultLIcHCiT
-	5Wqt1DEG++2RcNswy1zDS5w46pAlTQZzgc8aiP1OvE1z01s5R/kByr3Ix4qncs6qXJ7kT/eFuU0
-	uMTi9gXjfDndmEXmtHQk7c+GZGIfOMTs=
-X-Gm-Gg: AY/fxX6x0u0PyWsH3f1/M1zk0ZZ6SnoHV0RvLHawwudk8VpFhdxY0ap0b633zZfpym9
-	N1MFZeTK8/bysTrZABKWAqdYQ9p+a/ggTlJVQC64U/t9+iBCanI0swh5UGzfnOlvH0eBf5W4LUQ
-	fmq0ityYTXqydi+x7C0FeLxaVv0ymWGNPIpNZ3NCNitIyw5rSuWRE2078lDwwWhOT/BGXkOJOQD
-	mVNMnhIqpne4qVxs7UQzAs+jmk2miZ7uX3+wrjHKkbemLaQs6RelAm9o0ReonJSvIIB/nU7sRN0
-	7SyVKIknmKVcSYP/zML8bzFs6K/M
-X-Google-Smtp-Source: AGHT+IFLwg9qrtGIR+KKSJwR/7/cX3U7rq6rlbIqE5QA9N+Q5KZyJ8O41sxw+c2I52/X9p3wPLvNSGsFlF/3a+MqKoo=
-X-Received: by 2002:a5d:5f82:0:b0:430:fd0f:28fe with SMTP id
- ffacd0b85a97d-430fd0f2a7bmr4935997f8f.31.1765834817292; Mon, 15 Dec 2025
- 13:40:17 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="XpOQ7fR4"
+Received: from phl-compute-06.internal (phl-compute-06.internal [10.202.2.46])
+	by mailfhigh.stl.internal (Postfix) with ESMTP id CA7DB7A00FC;
+	Tue, 16 Dec 2025 01:38:25 -0500 (EST)
+Received: from phl-frontend-02 ([10.202.2.161])
+  by phl-compute-06.internal (MEProxy); Tue, 16 Dec 2025 01:38:26 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
+	:feedback-id:from:from:in-reply-to:message-id:reply-to:subject
+	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm1; t=1765867105; x=1765953505; bh=9AoWIhfivy4UOmlDhOIXxucmgxZr
+	f7I6w7HEi8HnW/4=; b=XpOQ7fR4p5tZHtVqK9hezAwN0iR7Ej3xwfmj6h2wl0PT
+	u9MuVU8odNVKLPmTejjbR9tm0tLsMfB2gQR4Y1taeNrLGJ4J9RmtfIa+EN/Ke2kf
+	mXVUOLpq287yxZR0HSgr0D3IdsmOTHe75czX6R5lkMHqw6RvbLHuDio2Y0gft2tB
+	R1bbXYMr1fDxRH2qSafqByoj2xw4jUxlLvsJON4NynBzSqjLrn4PO67T6a0T5frP
+	LTUCD3jDrT1pyDjgL38j5INN4ETiXILU3RLti2Sg9Ka1Ze34q7dzdCf4jyk+fHpw
+	KyLi88ojCydxBJ916IRT6r7PHahEgmz9gom0qrq8zA==
+X-ME-Sender: <xms:X_5Aaar7URYpNmvxdK7vDqbW6R6P7_oaHf2HJTdnCKikVNCUkPhVyQ>
+    <xme:X_5AaahLqfjIcpa1rNTqZg6H4cZP5ZQ9Ok8cEjBLC758rOxuczwaDz9ZT7ajmecQ9
+    m46yAMJ73rKxderSDT7kYnFjyEdwqJSNWgtxyLUB5ZsEYztcSf7Cw>
+X-ME-Received: <xmr:X_5AaT1jrnOfUKl0vjVSC-UvATqSRSGwo_-LnF1h1avenvg_DZBpj3eb0eHNLF0ckb1WWH-YzxUiQw7KkJKmdHzbv59Zdo0Sh80>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgdefkeellecutefuodetggdotefrod
+    ftvfcurfhrohhfihhlvgemucfhrghsthforghilhdpuffrtefokffrpgfnqfghnecuuegr
+    ihhlohhuthemuceftddtnecusecvtfgvtghiphhivghnthhsucdlqddutddtmdenucfjug
+    hrpefkhffufffvveestddtredttddttdenucfhrhhomhephfhinhhnucfvhhgrihhnuceo
+    fhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhrgheqnecuggftrfgrthhtvghrnhepud
+    evtdeiveefvdffteduheetieehtdekhfekiedvledvtdehkeetieeuuddufeeunecuffho
+    mhgrihhnpedujedrqdhnvgifnecuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpe
+    hmrghilhhfrhhomhepfhhthhgrihhnsehlihhnuhigqdhmieekkhdrohhrghdpnhgspghr
+    tghpthhtohepfeehpdhmohguvgepshhmthhpohhuthdprhgtphhtthhopehpvghtvghrii
+    esihhnfhhrrgguvggrugdrohhrghdprhgtphhtthhopeifihhllheskhgvrhhnvghlrdho
+    rhhgpdhrtghpthhtoheprghkphhmsehlihhnuhigqdhfohhunhgurghtihhonhdrohhrgh
+    dprhgtphhtthhopegrnhgurhhiiheskhgvrhhnvghlrdhorhhgpdhrtghpthhtoheprghr
+    nhgusegrrhhnuggsrdguvgdprhgtphhtthhopegrshhtsehkvghrnhgvlhdrohhrghdprh
+    gtphhtthhopegsohhquhhnrdhfvghnghesghhmrghilhdrtghomhdprhgtphhtthhopegs
+    phhfsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtohepuggrlhhirghssehlih
+    gstgdrohhrgh
+X-ME-Proxy: <xmx:X_5AaYZXDuSyF6P66w92xvicPXnobpN8Xpw5UGL-SoWpNjcJ6kN9xA>
+    <xmx:X_5AaZ4d0tEF2QN-dZ0E5ohtaW8NEzkP2qNW-oNMvzebmpvRD2rBDQ>
+    <xmx:X_5AaWIxt82httcCmTeewHLxbx1ppXqQb7IYiWVXXXYLltDHk8pHQg>
+    <xmx:X_5AacqnFu4MPU9Ce6YZ9yUpOSrR6jJZL6j6pWyYsLHxyd_SYhYKxg>
+    <xmx:Yf5AaboFQo-iNoPfBejvSJoR0jFweEV6XUdV6-NzhTGNDN6TTNAzEWwQ>
+Feedback-ID: i58a146ae:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
+ 16 Dec 2025 01:38:21 -0500 (EST)
+Message-ID: <cover.1765866665.git.fthain@linux-m68k.org>
+From: Finn Thain <fthain@linux-m68k.org>
+Subject: [PATCH v5 0/4] Align atomic storage
+Date: Tue, 16 Dec 2025 17:31:05 +1100
+To: Peter Zijlstra <peterz@infradead.org>,
+    Will Deacon <will@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+    Andrii Nakryiko <andrii@kernel.org>,    Arnd Bergmann <arnd@arndb.de>,
+    Alexei Starovoitov <ast@kernel.org>,
+    Boqun Feng <boqun.feng@gmail.com>,    bpf@vger.kernel.org,
+    Rich Felker <dalias@libc.org>,
+    Daniel Borkmann <daniel@iogearbox.net>,
+    Dinh Nguyen <dinguyen@kernel.org>,
+    Eduard Zingerman <eddyz87@gmail.com>,    Gary Guo <gary@garyguo.net>,
+    Geert Uytterhoeven <geert@linux-m68k.org>,
+    John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+    Guo Ren <guoren@kernel.org>,    Hao Luo <haoluo@google.com>,
+    John Fastabend <john.fastabend@gmail.com>,
+    Jiri Olsa <jolsa@kernel.org>,    Jonas Bonn <jonas@southpole.se>,
+    KP Singh <kpsingh@kernel.org>,    linux-arch@vger.kernel.org,
+    linux-csky@vger.kernel.org,    linux-kernel@vger.kernel.org,
+    linux-m68k@lists.linux-m68k.org,    linux-openrisc@vger.kernel.org,
+    linux-sh@vger.kernel.org,    Mark Rutland <mark.rutland@arm.com>,
+    Martin KaFai Lau <martin.lau@linux.dev>,
+    Stanislav Fomichev <sdf@fomichev.me>,
+    Stafford Horne <shorne@gmail.com>,    Song Liu <song@kernel.org>,
+    Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+    Yonghong Song <yonghong.song@linux.dev>,
+    Yoshinori Sato <ysato@users.sourceforge.jp>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-References: <20251215044919.460086-1-ankur.a.arora@oracle.com> <20251215044919.460086-11-ankur.a.arora@oracle.com>
-In-Reply-To: <20251215044919.460086-11-ankur.a.arora@oracle.com>
-From: Alexei Starovoitov <alexei.starovoitov@gmail.com>
-Date: Mon, 15 Dec 2025 13:40:06 -0800
-X-Gm-Features: AQt7F2rQ1ApFWmx4BVk_0MGk_PcVWn8dueHeO96jKZChfmmCmjnf-YqQHmYoFps
-Message-ID: <CAADnVQKYoE85HFAOE5OBFpKbXej=h12m4DVvHuPViJSjAncK4A@mail.gmail.com>
-Subject: Re: [PATCH v8 10/12] bpf/rqspinlock: Use smp_cond_load_acquire_timeout()
-To: Ankur Arora <ankur.a.arora@oracle.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, 
-	linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, 
-	Linux Power Management <linux-pm@vger.kernel.org>, bpf <bpf@vger.kernel.org>, 
-	Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
-	Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, 
-	Mark Rutland <mark.rutland@arm.com>, harisokn@amazon.com, 
-	Christoph Lameter <cl@gentwo.org>, Alexei Starovoitov <ast@kernel.org>, "Rafael J. Wysocki" <rafael@kernel.org>, 
-	Daniel Lezcano <daniel.lezcano@linaro.org>, Kumar Kartikeya Dwivedi <memxor@gmail.com>, zhenglifeng1@huawei.com, 
-	xueshuai@linux.alibaba.com, joao.m.martins@oracle.com, 
-	Boris Ostrovsky <boris.ostrovsky@oracle.com>, konrad.wilk@oracle.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Sun, Dec 14, 2025 at 8:51=E2=80=AFPM Ankur Arora <ankur.a.arora@oracle.c=
-om> wrote:
->
->  /**
->   * resilient_queued_spin_lock_slowpath - acquire the queued spinlock
->   * @lock: Pointer to queued spinlock structure
-> @@ -415,7 +415,9 @@ int __lockfunc resilient_queued_spin_lock_slowpath(rq=
-spinlock_t *lock, u32 val)
->          */
->         if (val & _Q_LOCKED_MASK) {
->                 RES_RESET_TIMEOUT(ts, RES_DEF_TIMEOUT);
-> -               res_smp_cond_load_acquire(&lock->locked, !VAL || RES_CHEC=
-K_TIMEOUT(ts, timeout_err, _Q_LOCKED_MASK) < 0);
-> +               smp_cond_load_acquire_timeout(&lock->locked, !VAL,
-> +                                             (timeout_err =3D clock_dead=
-lock(lock, _Q_LOCKED_MASK, &ts)),
-> +                                             ts.duration);
+This series adds the __aligned attribute to atomic_t and atomic64_t
+definitions in include/linux and include/asm-generic (respectively)
+to get natural alignment of both types on csky, m68k, microblaze,
+nios2, openrisc and sh.
 
-I'm pretty sure we already discussed this and pointed out that
-this approach is not acceptable.
-We cannot call ktime_get_mono_fast_ns() first.
-That's why RES_CHECK_TIMEOUT() exists and it does
-if (!(ts).spin++)
-before doing the first check_timeout() that will do ktime_get_mono_fast_ns(=
-).
-Above is a performance critical lock acquisition path where
-pending is spinning on the lock word waiting for the owner to
-release the lock.
-Adding unconditional ktime_get_mono_fast_ns() will destroy
-performance for quick critical section.
+This series also adds Kconfig options to enable a new run-time warning
+to help reveal misaligned atomic accesses on platforms which don't
+trap that.
+
+The performance impact is expected to vary across platforms and workloads.
+The measurements I made on m68k show that some workloads run faster and
+others slower.
+
+---
+
+Changed since v4:
+ - Dropped parisc header file patch as it's been merged already.
+ - Submitted as PATCH instead of RFC.
+
+Changed since v3:
+ - Rebased on v6.17.
+ - New patch to resolve header dependency issue on parisc.
+ - Dropped documentation patch.
+
+Changed since v2:
+ - Specify natural alignment for atomic64_t.
+ - CONFIG_DEBUG_ATOMIC checks for natural alignment again.
+ - New patch to add weakened alignment check.
+ - New patch for explicit alignment in BPF header.
+
+---
+
+Finn Thain (3):
+  bpf: Explicitly align bpf_res_spin_lock
+  atomic: Specify alignment for atomic_t and atomic64_t
+  atomic: Add option for weaker alignment check
+
+Peter Zijlstra (1):
+  atomic: Add alignment check to instrumented atomic operations
+
+ include/asm-generic/atomic64.h   |  2 +-
+ include/asm-generic/rqspinlock.h |  2 +-
+ include/linux/instrumented.h     | 15 +++++++++++++++
+ include/linux/types.h            |  2 +-
+ kernel/bpf/rqspinlock.c          |  1 -
+ lib/Kconfig.debug                | 18 ++++++++++++++++++
+ 6 files changed, 36 insertions(+), 4 deletions(-)
+
+-- 
+2.49.1
