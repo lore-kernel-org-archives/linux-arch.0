@@ -1,80 +1,91 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out-170.mta1.migadu.com (out-170.mta1.migadu.com [95.215.58.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 10A0B2EC557;
-	Tue, 16 Dec 2025 19:49:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D198F33C528;
+	Wed, 17 Dec 2025 09:46:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765914587; cv=none; b=A/M8GZffg0EbAjvlSESAlqBSlqHWyRxQQEA1htrAQ4DD6NArqnxChrcWpJEUyTJ65M5v3yWZHpEGShB91/YeFTP00UFvxCgZEzKOaGOwOE03pTu+Ttqp/UYEXLut5M2ebg7DqvA1/H96fzuQ8ooYI0tgZmW+jvtZOSQjaG2t/D0=
+	t=1765964822; cv=none; b=ew4vSBAlvfzpjcdEUAbTL9qHQYykogM4bA8/cEHJDL6e8pqQVl9DnOPJ8+wWRFPi4BUyzPd3r+AuIiCsWFHhhI4iCbFoCuXKgDfWTgIdAghVS8/298HaEWtgOuO8/uq8tyuhpMt+LWCJabiXgeUz/7UmYekYXubo7bmNeE1gv2Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765914587; c=relaxed/simple;
-	bh=3FmpwD62IJUHDHR/I5ZYeJX9OsU87aYBt8XiqHww6dc=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=nqAcJLd/XnQ8Vi1gP02lw1o1DvYKWMo3M6F6VSbiFq+7hFxxo4EoigQ14LmIzpXWC/nHjIPASbeOztEXx3BOOEjlj06rYvD2s3VbIRZOCSDepKgI3F2+WGTgdrObmqj5dZArVGTj6WNGoru243Ab5J5e2ws7aWaWYc9rNekIHF0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=wRGHMtmb; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1765964822; c=relaxed/simple;
+	bh=JhxM1xZytB9dQTFt30KTFN8eef9XC2zTXIh3BIBrr74=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=iXKz1JHColWM+NVSz/QL+XFafhw8i5dCRTfNPODM1c8Ak/mC0bQzdIqzBWiSaGsJXVBhSyZjBYeTp3VjjBdxrNzq4vsffzNL4xOKyFNxvYutIathra7H1yXefXMBRzX/LTtwFH4SoXYX5kMd7lpv6yK+PwwZFr5do5YZOoseFTw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=ly15AwCg; arc=none smtp.client-ip=95.215.58.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="wRGHMtmb"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B246DC4CEF1;
-	Tue, 16 Dec 2025 19:49:45 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1765914586;
-	bh=3FmpwD62IJUHDHR/I5ZYeJX9OsU87aYBt8XiqHww6dc=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=wRGHMtmbERcpA6VCd7VdIJSxWeMMV3MufiaICwJM2JxmUckd4/ZDamGIp98xLnU7Z
-	 uebteatGutNpSVaCbIbB+LV6ZmqtugE23SVf1F34zvnJxpCPzgUWlQUA1tUgyCpZP6
-	 5X1mflTa7f2NerKLz8PKwSVTiVXS5dHxJMQ76kh8=
-Date: Tue, 16 Dec 2025 11:49:45 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Finn Thain <fthain@linux-m68k.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>,
- Andrii Nakryiko <andrii@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Alexei
- Starovoitov <ast@kernel.org>, Boqun Feng <boqun.feng@gmail.com>,
- bpf@vger.kernel.org, Rich Felker <dalias@libc.org>, Daniel Borkmann
- <daniel@iogearbox.net>, Dinh Nguyen <dinguyen@kernel.org>, Eduard Zingerman
- <eddyz87@gmail.com>, Gary Guo <gary@garyguo.net>, Geert Uytterhoeven
- <geert@linux-m68k.org>, John Paul Adrian Glaubitz
- <glaubitz@physik.fu-berlin.de>, Guo Ren <guoren@kernel.org>, Hao Luo
- <haoluo@google.com>, John Fastabend <john.fastabend@gmail.com>, Jiri Olsa
- <jolsa@kernel.org>, Jonas Bonn <jonas@southpole.se>, KP Singh
- <kpsingh@kernel.org>, linux-arch@vger.kernel.org,
- linux-csky@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-m68k@lists.linux-m68k.org, linux-openrisc@vger.kernel.org,
- linux-sh@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Martin KaFai
- Lau <martin.lau@linux.dev>, Stanislav Fomichev <sdf@fomichev.me>, Stafford
- Horne <shorne@gmail.com>, Song Liu <song@kernel.org>, Stefan Kristiansson
- <stefan.kristiansson@saunalahti.fi>, Yonghong Song
- <yonghong.song@linux.dev>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: Re: [PATCH v5 0/4] Align atomic storage
-Message-Id: <20251216114945.df117ce1f176dd7752244cfb@linux-foundation.org>
-In-Reply-To: <cover.1765866665.git.fthain@linux-m68k.org>
-References: <cover.1765866665.git.fthain@linux-m68k.org>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="ly15AwCg"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1765964817;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=bw+1Lau4jkXgNGH1w/oSy1pnIcM7wv7myPLVDHR+sFs=;
+	b=ly15AwCgeTCvVgfKEAGM4N6+Qr/3bm4QCI+29u9WGu6pcYXwgBs1OKy52f7HilHkjkHMPR
+	sHiouE4YFfRjE5AAkAK/J8ELyx11QzPsbKV6xCapoiF96UFCkEGY/h6yJrWtaXJGp1y3sT
+	pxSpzXa0XWo0t7W7DaurMYa8P4nGSAc=
+From: Qi Zheng <qi.zheng@linux.dev>
+To: will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	peterz@infradead.org,
+	dev.jain@arm.com,
+	akpm@linux-foundation.org,
+	david@kernel.org,
+	ioworker0@gmail.com,
+	linmag7@gmail.com
+Cc: linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-alpha@vger.kernel.org,
+	loongarch@lists.linux.dev,
+	linux-mips@vger.kernel.org,
+	linux-parisc@vger.kernel.org,
+	linux-um@lists.infradead.org,
+	Qi Zheng <zhengqi.arch@bytedance.com>
+Subject: [PATCH v3 1/7] mm: change mm/pt_reclaim.c to use asm/tlb.h instead of asm-generic/tlb.h
+Date: Wed, 17 Dec 2025 17:45:42 +0800
+Message-ID: <67a0725081c82cdc2debce6cbdb9273412039553.1765963770.git.zhengqi.arch@bytedance.com>
+In-Reply-To: <cover.1765963770.git.zhengqi.arch@bytedance.com>
+References: <cover.1765963770.git.zhengqi.arch@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On Tue, 16 Dec 2025 17:31:05 +1100 Finn Thain <fthain@linux-m68k.org> wrote:
+From: Qi Zheng <zhengqi.arch@bytedance.com>
 
-> This series adds the __aligned attribute to atomic_t and atomic64_t
-> definitions in include/linux and include/asm-generic (respectively)
-> to get natural alignment of both types on csky, m68k, microblaze,
-> nios2, openrisc and sh.
-> 
-> This series also adds Kconfig options to enable a new run-time warning
-> to help reveal misaligned atomic accesses on platforms which don't
-> trap that.
-> 
-> The performance impact is expected to vary across platforms and workloads.
-> The measurements I made on m68k show that some workloads run faster and
-> others slower.
+Generally, the asm/tlb.h will include asm-generic/tlb.h, so change
+mm/pt_reclaim.c to use asm/tlb.h instead of asm-generic/tlb.h. This is a
+preparation for enabling CONFIG_PT_RECLAIM on other architectures, such as
+alpha.
 
-Looks nice, thanks.
+Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
+Acked-by: David Hildenbrand (Red Hat) <david@kernel.org>
+---
+ mm/pt_reclaim.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-I don't know which tree this is aimed at.  I grabbed a copy for
-mm.git's mm-nonmm-unstable tree, can drop it again if this pops up in
-linux-next via another route.
+diff --git a/mm/pt_reclaim.c b/mm/pt_reclaim.c
+index 0d9cfbf4fe5d8..46771cfff8239 100644
+--- a/mm/pt_reclaim.c
++++ b/mm/pt_reclaim.c
+@@ -2,7 +2,7 @@
+ #include <linux/hugetlb.h>
+ #include <linux/pgalloc.h>
+ 
+-#include <asm-generic/tlb.h>
++#include <asm/tlb.h>
+ 
+ #include "internal.h"
+ 
+-- 
+2.20.1
+
