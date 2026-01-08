@@ -1,248 +1,181 @@
-Received: from mail-yw1-f178.google.com (mail-yw1-f178.google.com [209.85.128.178])
+Received: from mail-yw1-f173.google.com (mail-yw1-f173.google.com [209.85.128.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 20C8C21767D
-	for <linux-arch@vger.kernel.org>; Thu,  8 Jan 2026 00:58:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1063923D7FD
+	for <linux-arch@vger.kernel.org>; Thu,  8 Jan 2026 02:23:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767833928; cv=none; b=JyYlV+dw20sY4VRKriplsDy8WKs+mcdPwG9yHtoMXlv6AajRBOROgTXEn7W+RaXxXCKwN+iw3oFKNRufgS8sPDQQlX31cCLA58s0FqOa99eIdd2R05/6hYSFHkcqzHPbehsZ1+G8/sm0NxUjse1Diy08o77nl3Jol/R/t2r/EbE=
+	t=1767839033; cv=none; b=DeLLf3e/B1Vt9BQHhXcfo7IrCY7fgklFNosskHx+2VYC3BXKdUE3l5EmSQRXKyyCxoeMPU2IOCkqQ464OKpw+U3psU+jqQvJ5BVmukbwGaf0RhhyEUQGeY1DoxfSNgknQmY0q1j6SNlLapEcxHvcc15ejUZduHjwE4DTVgmJBGM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767833928; c=relaxed/simple;
-	bh=9zuoNqEVnt8pH9cLp3BgUGvaCFtzCDZEoS7OzsXWbGc=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=nYwYua7j57oYBiSZiA712PbZzogojMLDoH9+/cf0SB87RULtGN9Nu0jRv87mL3weKLcoIyDAcBOWTyT3p0H4m7RZNKjYHJ+d/TWlISGCZUD8MqoFa42A/29kCxuaFNpftS2joVlwiEtZCbBOM02FT4VAVb/BnfJJyI7wKBys3tA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fyTuC3E4; arc=none smtp.client-ip=209.85.128.178
+	s=arc-20240116; t=1767839033; c=relaxed/simple;
+	bh=ZDpPQWr5z3NT2bQ1AQqz7QtzavFPv5XMuiJ4qVKOIms=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=IT53UAkba+IuF8WEcEnk3dA6MphWPqaYV+LyNczQZPJnb68WE724xd5QabMge/Zp1ExbfXko3UdEJ5fVGeoucu4JfSrApHqgTlwMP7PXF9aHtxXg0+B/IuS5wSjAjhwsI9FpJfIQrEKckfWVB1rWshrN1X3Lec9iG8fHBHqDidk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MGb3dmaD; arc=none smtp.client-ip=209.85.128.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fyTuC3E4"
-Received: by mail-yw1-f178.google.com with SMTP id 00721157ae682-78fc84772abso30791147b3.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Jan 2026 16:58:44 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MGb3dmaD"
+Received: by mail-yw1-f173.google.com with SMTP id 00721157ae682-78c66bdf675so27815637b3.2
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jan 2026 18:23:49 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1767833923; x=1768438723; darn=vger.kernel.org;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=dJperMXwTkIXRHW5+8MJDDWuaQbzVhWP/yMQKYVBdM8=;
-        b=fyTuC3E4pezY9BYDbGJ1KJwuJzpO/0BJsMEn2b1waW5fV3U5gkWaQ9d8qluUr4S7yJ
-         5YjoCto2c2c+p0SGQJZ4zTZZx7j+ShCnw5mBUrXFg9fbcrOd04vViPPZjVZajz+ZgCss
-         tzQUi4nFVNhMbScvNgXlI7Y9iPCL0W7+z57FsDKzWCjPliNGT64dMBfqchGx7h/VfNQ+
-         2awR3xKwEGP3jY2EFCOa180o6qD4F1Kof4BYn8AKw24vIDKCWPzQcCeAE8LYpJ6jbJgD
-         /XVNguyt/7Yw4aIHoVeNInuF29U4sT7r07iqBswfm15aiSWTPKymT2PUjCTs/6Zf5Ryg
-         GSpw==
+        d=gmail.com; s=20230601; t=1767839029; x=1768443829; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=6WPMqEgbiq/1nCGoqJgHIPGVbxZP1MvEMarO5Hdi07w=;
+        b=MGb3dmaDQKsX//2UaMn18UEyPEVVOrwpxvgc2plAE81AZgWHrrAgPjTatOAPslaTB5
+         EfQ5rgoTupA4yNHOh7kI082eN62vYdquEf+7Cxn9HonhYZ2JfJOVkG+0GqmUlWz4+R0q
+         NShQVulSEA7CR8bEiX2zr4wBM4g55McgeeGcJbmFP+GlF3NxbnNvA0pz9vdS54zmM5ZY
+         fP2HHaeUXBjYV20GVogADu5n3l11A34uA+a+JZUmfBKNg9s7AtPxn875jkeRmjVgxqWl
+         4QO129EL8ru8/vAukdfLmGvUSTHOsynYrp8RzC4QWYZwB5sFp2xWTbnboRzQofpJDx8p
+         cWVQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1767833923; x=1768438723;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=dJperMXwTkIXRHW5+8MJDDWuaQbzVhWP/yMQKYVBdM8=;
-        b=fmVBqIF8gHhB8JbvzRAAY7CRyULrzUDfwAPWRVHJzvvbKigbTB6WCOYKArNT644lew
-         B/zD1e2haWqdby6PjMLYdqhOESnQd2fvwsMi81v420HW3Migpw1+TeZF5OIYwbjva20K
-         6nnABe/PYmBhdAaaeUcwnbpFXWqml6UwvBzGVK1jVf4984880Vp5CWX83SupXbHVuMYO
-         4EfTvk6Q2X4YkKaXV9AMcEX97tsULWj5Nb8m+Jk0+WMJj7YmXOFwelYjEKfhAhFyhnDm
-         MITNNmnO9VW2lr7fO6ibfacPJ8pnLBQlc+tjhieDGvDFYhNOKPP09lTcl62HX3uF7ak2
-         shXQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVtC2uh+NwyMCHidMmQh4Ga31HB/gG+xBIdOoLFxyrIYqIWX16trPj49/ZTJ4hfQc9mOr9FanH/Uuq6@vger.kernel.org
-X-Gm-Message-State: AOJu0YyTiGdlO3i8cYvX6wp8S7lKb3uM5mmAAG+8tj1S+XBM4AQqZvid
-	7Ziw/wU3qUDTPgsg/rBFrjf2qXi/tpTxClqupwwdRMbtZtWBneLU9Dtr
-X-Gm-Gg: AY/fxX7FPOfn5tbqkRNp+OuLXwfspsOGWPU8iIdmyEOlK10vy2/o0oceGO7ccpGYQBs
-	U4QABc9KQWAoQC8aWPfnYk7ifGSrZMR/2Kve91KsGhBHLudpg5cHOxD5axgLk5uP0Tg8GEuc54a
-	RXOEPJnhGV1NRFi7p8a5zLAEaF2BS7IRMnBY/3rAj7PztURk0B9TxL2QZrFBG7cfilnTDKCtxAE
-	bSyQNWymYXv/dOXVORJsLD1tgn2n23kErIv0Ghd2LqiTXhVz7ABVete/HC7/7s5x8Jp2Pf7Pz04
-	VYxO6LdVnA3WeDjUmcLOKZD8xgy/v5EKJG1L4ct4rKUICtWgCnd1o23ijTDmTN8KOSgmaJ/rkrY
-	+TCNvx+RklVi8MTl0nSxEeouKdZAjlitg+JbAeTlKxPaxER8IMWdMbK/cI4DpdPxxiJjODqACDn
-	fneEcFoRLX6UvvWIZ16E4i
-X-Google-Smtp-Source: AGHT+IH/YnHPsvQ1x53oyPoX/9tw6AKgXdHarFn5R1WyPsLd/nAJHMzuOnxNXLvoQ3gkbQA3OMlgNg==
-X-Received: by 2002:a05:690c:630a:b0:78c:65e7:d226 with SMTP id 00721157ae682-790b567cda7mr46405997b3.32.1767833923479;
-        Wed, 07 Jan 2026 16:58:43 -0800 (PST)
-Received: from localhost ([2a03:2880:25ff:74::])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-790aa55c77bsm24532427b3.3.2026.01.07.16.58.43
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 07 Jan 2026 16:58:43 -0800 (PST)
-From: Bobby Eshleman <bobbyeshleman@gmail.com>
-Date: Wed, 07 Jan 2026 16:57:39 -0800
-Subject: [PATCH net-next v8 5/5] selftests: drv-net: devmem: add
- autorelease test
+        d=1e100.net; s=20230601; t=1767839029; x=1768443829;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=6WPMqEgbiq/1nCGoqJgHIPGVbxZP1MvEMarO5Hdi07w=;
+        b=dmxT7B9qct99H0MGKBcA+XYT+yrxDtKsHj1oPu0JnrL6GDzXsB9w9iXnL5EKcR9VmL
+         uBeCr/aKKW9KZtpmDC3Ez9JYx0S7MOvSSsR89y/V4Z3pSj/ieF2bNVQEc6xcn3Yf/B4D
+         IdPoAi+cRagJLMhKzqEpBUHLmoYRW6iIZfx6zXc2KHqAV0BBd1O07YJAgZOc855rx1vC
+         Jf7xLdcK971YaCQt2mLtWcaQUguiRthkbl7Hz7O1/sWLzWbsp4PoGMAyOlUjbCqetC/f
+         Zzus/oU13h4H0df/FCJhQY1EeUNMVXr3z+sDPDS9aXSwTrBEMHqtJ2Pr6qJIwdIYGPEq
+         AvaQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXW/FH5wO69+/7Hs+0YVLZL79VGoVU7JFCnnmITGXRuROkajM1HebP1YZq69kgsL7d06r6sJ+LvhymG@vger.kernel.org
+X-Gm-Message-State: AOJu0YxfkTLA3PRr4hVWwL0qpQ7/PLl7/f3yBx9kgFuP/S7yWS4bPNg9
+	ol1AezbQ3hl41F4e+5m5CQdgkT5j5k0kfzwNgmZofO0t1RbM8Sbs2KJl
+X-Gm-Gg: AY/fxX5IKYd4HGRGM39ryYQfz1O831VqqFTpQTDG5MQyWXB1L3YGGrk1oSTkrtAmZIw
+	uToEMG1A1BP90Q/ZEwGueL7Czq7W6tq5me7LXEvFp90hmZmxNx/8JG2NmSMaaC4k/2HPu1LWDuo
+	OYt2KGHmSid45DgQOj8oJ0BKv01asUq89RHa87MOUpB3hoaF/DAxmqTqRR35LXoxt4CUtLhfVBb
+	fQnLEU0u3akBVJVytaEFOzWCKTnYLQD5/1pkyQCw0cVL0Qf6FrPi3hAhjZMgEVFfdWuyfVGhVKA
+	Nqrdl8u46IaajDF4RKIUenIOzJruAgzyH+gOGk+9SGK//dtRCcBowp4YmK3VPtOJX2XVpUV2gTg
+	GmQJPq/z1m++OL4Kcd2xRyQb6OWyisstbO/Oy/IyZzKpyeXwa32LtaNoeeVvUoqaLmqql6EpIM2
+	w3NhEZYwdvJeCXi6OXbjnGVh9gmDJIPU5tQznixg==
+X-Google-Smtp-Source: AGHT+IGgMpL+kZMdvF4ADTgetvjR8KjnRPwe3Xe2CKlVvJLk69qHA2NQZ4MxPPVQYhnVGWyKjWzQjw==
+X-Received: by 2002:a05:690e:1c06:b0:644:6b68:f126 with SMTP id 956f58d0204a3-64716cacb29mr3927712d50.77.1767839028925;
+        Wed, 07 Jan 2026 18:23:48 -0800 (PST)
+Received: from [192.168.2.226] (104.194.78.75.16clouds.com. [104.194.78.75])
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-790ae603282sm21321087b3.13.2026.01.07.18.23.24
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 07 Jan 2026 18:23:48 -0800 (PST)
+Message-ID: <1d110134-89ab-474b-bca6-cfbfd4b5057f@gmail.com>
+Date: Thu, 8 Jan 2026 10:23:19 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20260107-scratch-bobbyeshleman-devmem-tcp-token-upstream-v8-5-92c968631496@meta.com>
-References: <20260107-scratch-bobbyeshleman-devmem-tcp-token-upstream-v8-0-92c968631496@meta.com>
-In-Reply-To: <20260107-scratch-bobbyeshleman-devmem-tcp-token-upstream-v8-0-92c968631496@meta.com>
-To: "David S. Miller" <davem@davemloft.net>, 
- Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, 
- Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
- Kuniyuki Iwashima <kuniyu@google.com>, 
- Willem de Bruijn <willemb@google.com>, Neal Cardwell <ncardwell@google.com>, 
- David Ahern <dsahern@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
- Jonathan Corbet <corbet@lwn.net>, Andrew Lunn <andrew+netdev@lunn.ch>, 
- Shuah Khan <shuah@kernel.org>, Donald Hunter <donald.hunter@gmail.com>, 
- Mina Almasry <almasrymina@google.com>
-Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, 
- linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, 
- linux-kselftest@vger.kernel.org, Stanislav Fomichev <sdf@fomichev.me>, 
- asml.silence@gmail.com, matttbe@kernel.org, skhawaja@google.com, 
- Bobby Eshleman <bobbyeshleman@meta.com>
-X-Mailer: b4 0.14.3
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] mm/pgtable: convert pgtable_t to ptdesc pointer
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Mike Rapoport <rppt@kernel.org>, alexs@kernel.org,
+ Richard Henderson <richard.henderson@linaro.org>,
+ Matt Turner <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>,
+ Vineet Gupta <vgupta@kernel.org>, Russell King <linux@armlinux.org.uk>,
+ Will Deacon <will@kernel.org>, "Aneesh Kumar K.V" <aneesh.kumar@kernel.org>,
+ Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@gmail.com>,
+ Peter Zijlstra <peterz@infradead.org>,
+ Catalin Marinas <catalin.marinas@arm.com>, Guo Ren <guoren@kernel.org>,
+ Brian Cain <bcain@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+ WANG Xuerui <kernel@xen0n.name>, Geert Uytterhoeven <geert@linux-m68k.org>,
+ Michal Simek <monstr@monstr.eu>,
+ Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+ Dinh Nguyen <dinguyen@kernel.org>, Jonas Bonn <jonas@southpole.se>,
+ Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+ Stafford Horne <shorne@gmail.com>,
+ "James E.J. Bottomley" <James.Bottomley@hansenpartnership.com>,
+ Helge Deller <deller@gmx.de>, Paul Walmsley <pjw@kernel.org>,
+ Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
+ Alexandre Ghiti <alex@ghiti.fr>, Yoshinori Sato
+ <ysato@users.sourceforge.jp>, Rich Felker <dalias@libc.org>,
+ John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+ Richard Weinberger <richard@nod.at>,
+ Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+ Johannes Berg <johannes@sipsolutions.net>,
+ Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
+ Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
+ "maintainer:X86 ARCHITECTURE (32-BIT AND 64-BIT)" <x86@kernel.org>,
+ "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>,
+ Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>,
+ Arnd Bergmann <arnd@arndb.de>, David Hildenbrand <david@kernel.org>,
+ Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,
+ "Liam R. Howlett" <Liam.Howlett@oracle.com>, Vlastimil Babka
+ <vbabka@suse.cz>, Suren Baghdasaryan <surenb@google.com>,
+ Michal Hocko <mhocko@suse.com>,
+ "open list:ALPHA PORT" <linux-alpha@vger.kernel.org>,
+ open list <linux-kernel@vger.kernel.org>,
+ "open list:SYNOPSYS ARC ARCHITECTURE" <linux-snps-arc@lists.infradead.org>,
+ "moderated list:ARM PORT" <linux-arm-kernel@lists.infradead.org>,
+ "open list:MMU GATHER AND TLB INVALIDATION" <linux-arch@vger.kernel.org>,
+ "open list:MMU GATHER AND TLB INVALIDATION" <linux-mm@kvack.org>,
+ "open list:C-SKY ARCHITECTURE" <linux-csky@vger.kernel.org>,
+ "open list:QUALCOMM HEXAGON ARCHITECTURE" <linux-hexagon@vger.kernel.org>,
+ "open list:LOONGARCH" <loongarch@lists.linux.dev>,
+ "open list:M68K ARCHITECTURE" <linux-m68k@lists.linux-m68k.org>,
+ "open list:MIPS" <linux-mips@vger.kernel.org>,
+ "open list:OPENRISC ARCHITECTURE" <linux-openrisc@vger.kernel.org>,
+ "open list:PARISC ARCHITECTURE" <linux-parisc@vger.kernel.org>,
+ "open list:RISC-V ARCHITECTURE" <linux-riscv@lists.infradead.org>,
+ "open list:SUPERH" <linux-sh@vger.kernel.org>,
+ "open list:USER-MODE LINUX (UML)" <linux-um@lists.infradead.org>
+References: <20260107064642.15771-1-alexs@kernel.org>
+ <aV4h5vQUNXn5cpMY@kernel.org>
+ <080e493a-e4f1-4c97-a3e1-f76f126b5213@gmail.com>
+ <aV5yIuGi9Ni5YP5E@casper.infradead.org>
+Content-Language: en-US
+From: Alex Shi <seakeel@gmail.com>
+In-Reply-To: <aV5yIuGi9Ni5YP5E@casper.infradead.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-From: Bobby Eshleman <bobbyeshleman@meta.com>
 
-Add test case for autorelease.
 
-THe test case is the same as the RX test, but enables autorelease.  The
-original RX test is changed to use the -a 0 flag to disable autorelease.
+On 2026/1/7 22:48, Matthew Wilcox wrote:
+> On Wed, Jan 07, 2026 at 05:28:36PM +0800, Alex Shi wrote:
+>> Right, I will fix this. and sent the 2nd version.
+> No, the patch is stupid and wrong.  Don't send a v2.  You seem to have a
+> hairtrigger resend, so I'm trying to prevent a v2 being sent instead of
+> sending a patient reply.
 
-TAP version 13
-1..4
-ok 1 devmem.check_rx
-ok 2 devmem.check_rx_autorelease
-ok 3 devmem.check_tx
-ok 4 devmem.check_tx_chunks
+Hi Matthew,
 
-Signed-off-by: Bobby Eshleman <bobbyeshleman@meta.com>
----
-Changes in v8:
-- removed stale/missing tests
+I hear you—no v2 will be sent.
+but sorry for a bit confusing, what's your expected fix? is the too 
+quick resenting? or the direction to alignment pgtable_t with ptdesc is 
+wrong?
 
-Changes in v7:
-- use autorelease netlink
-- remove sockopt tests
----
- tools/testing/selftests/drivers/net/hw/devmem.py  | 21 +++++++++++++++++++--
- tools/testing/selftests/drivers/net/hw/ncdevmem.c | 19 +++++++++++++------
- 2 files changed, 32 insertions(+), 8 deletions(-)
+If it's the first. the new change for review address Mike's concern.
+diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
+index a17f01235c29..a204c3ac800a 100644
+--- a/arch/arm/include/asm/pgalloc.h
++++ b/arch/arm/include/asm/pgalloc.h
+@@ -94,13 +94,13 @@ pte_alloc_one_kernel(struct mm_struct *mm)
+  static inline pgtable_t
+  pte_alloc_one(struct mm_struct *mm)
+  {
+-       struct page *pte;
++       struct ptdesc *pte;
 
-diff --git a/tools/testing/selftests/drivers/net/hw/devmem.py b/tools/testing/selftests/drivers/net/hw/devmem.py
-index 45c2d49d55b6..dbe696a445bd 100755
---- a/tools/testing/selftests/drivers/net/hw/devmem.py
-+++ b/tools/testing/selftests/drivers/net/hw/devmem.py
-@@ -25,7 +25,24 @@ def check_rx(cfg) -> None:
- 
-     port = rand_port()
-     socat = f"socat -u - TCP{cfg.addr_ipver}:{cfg.baddr}:{port},bind={cfg.remote_baddr}:{port}"
--    listen_cmd = f"{cfg.bin_local} -l -f {cfg.ifname} -s {cfg.addr} -p {port} -c {cfg.remote_addr} -v 7"
-+    listen_cmd = f"{cfg.bin_local} -l -f {cfg.ifname} -s {cfg.addr} -p {port} -c {cfg.remote_addr} -v 7 -a 0"
-+
-+    with bkg(listen_cmd, exit_wait=True) as ncdevmem:
-+        wait_port_listen(port)
-+        cmd(f"yes $(echo -e \x01\x02\x03\x04\x05\x06) | \
-+            head -c 1K | {socat}", host=cfg.remote, shell=True)
-+
-+    ksft_eq(ncdevmem.ret, 0)
-+
-+
-+@ksft_disruptive
-+def check_rx_autorelease(cfg) -> None:
-+    require_devmem(cfg)
-+
-+    port = rand_port()
-+    socat = f"socat -u - TCP{cfg.addr_ipver}:{cfg.baddr}:{port},bind={cfg.remote_baddr}:{port}"
-+    listen_cmd = f"{cfg.bin_local} -l -f {cfg.ifname} -s {cfg.addr} -p {port} \
-+                  -c {cfg.remote_addr} -v 7 -a 1"
- 
-     with bkg(listen_cmd, exit_wait=True) as ncdevmem:
-         wait_port_listen(port)
-@@ -68,7 +85,7 @@ def main() -> None:
-         cfg.bin_local = path.abspath(path.dirname(__file__) + "/ncdevmem")
-         cfg.bin_remote = cfg.remote.deploy(cfg.bin_local)
- 
--        ksft_run([check_rx, check_tx, check_tx_chunks],
-+        ksft_run([check_rx, check_rx_autorelease, check_tx, check_tx_chunks],
-                  args=(cfg, ))
-     ksft_exit()
- 
-diff --git a/tools/testing/selftests/drivers/net/hw/ncdevmem.c b/tools/testing/selftests/drivers/net/hw/ncdevmem.c
-index 3288ed04ce08..406f1771d9ec 100644
---- a/tools/testing/selftests/drivers/net/hw/ncdevmem.c
-+++ b/tools/testing/selftests/drivers/net/hw/ncdevmem.c
-@@ -92,6 +92,7 @@ static char *port;
- static size_t do_validation;
- static int start_queue = -1;
- static int num_queues = -1;
-+static int devmem_autorelease;
- static char *ifname;
- static unsigned int ifindex;
- static unsigned int dmabuf_id;
-@@ -679,7 +680,8 @@ static int configure_flow_steering(struct sockaddr_in6 *server_sin)
- 
- static int bind_rx_queue(unsigned int ifindex, unsigned int dmabuf_fd,
- 			 struct netdev_queue_id *queues,
--			 unsigned int n_queue_index, struct ynl_sock **ys)
-+			 unsigned int n_queue_index, struct ynl_sock **ys,
-+			 int autorelease)
- {
- 	struct netdev_bind_rx_req *req = NULL;
- 	struct netdev_bind_rx_rsp *rsp = NULL;
-@@ -695,6 +697,7 @@ static int bind_rx_queue(unsigned int ifindex, unsigned int dmabuf_fd,
- 	req = netdev_bind_rx_req_alloc();
- 	netdev_bind_rx_req_set_ifindex(req, ifindex);
- 	netdev_bind_rx_req_set_fd(req, dmabuf_fd);
-+	netdev_bind_rx_req_set_autorelease(req, autorelease);
- 	__netdev_bind_rx_req_set_queues(req, queues, n_queue_index);
- 
- 	rsp = netdev_bind_rx(*ys, req);
-@@ -872,7 +875,8 @@ static int do_server(struct memory_buffer *mem)
- 		goto err_reset_rss;
- 	}
- 
--	if (bind_rx_queue(ifindex, mem->fd, create_queues(), num_queues, &ys)) {
-+	if (bind_rx_queue(ifindex, mem->fd, create_queues(), num_queues, &ys,
-+			  devmem_autorelease)) {
- 		pr_err("Failed to bind");
- 		goto err_reset_flow_steering;
- 	}
-@@ -1092,7 +1096,7 @@ int run_devmem_tests(void)
- 		goto err_reset_headersplit;
- 	}
- 
--	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys)) {
-+	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys, 0)) {
- 		pr_err("Binding empty queues array should have failed");
- 		goto err_unbind;
- 	}
-@@ -1108,7 +1112,7 @@ int run_devmem_tests(void)
- 		goto err_reset_headersplit;
- 	}
- 
--	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys)) {
-+	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys, 0)) {
- 		pr_err("Configure dmabuf with header split off should have failed");
- 		goto err_unbind;
- 	}
-@@ -1124,7 +1128,7 @@ int run_devmem_tests(void)
- 		goto err_reset_headersplit;
- 	}
- 
--	if (bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys)) {
-+	if (bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys, 0)) {
- 		pr_err("Failed to bind");
- 		goto err_reset_headersplit;
- 	}
-@@ -1397,7 +1401,7 @@ int main(int argc, char *argv[])
- 	int is_server = 0, opt;
- 	int ret, err = 1;
- 
--	while ((opt = getopt(argc, argv, "ls:c:p:v:q:t:f:z:")) != -1) {
-+	while ((opt = getopt(argc, argv, "ls:c:p:v:q:t:f:z:a:")) != -1) {
- 		switch (opt) {
- 		case 'l':
- 			is_server = 1;
-@@ -1426,6 +1430,9 @@ int main(int argc, char *argv[])
- 		case 'z':
- 			max_chunk = atoi(optarg);
- 			break;
-+		case 'a':
-+			devmem_autorelease = atoi(optarg);
-+			break;
- 		case '?':
- 			fprintf(stderr, "unknown option: %c\n", optopt);
- 			break;
+         pte = __pte_alloc_one(mm, GFP_PGTABLE_USER | PGTABLE_HIGHMEM);
+         if (!pte)
+                 return NULL;
+-       if (!PageHighMem(pte))
+-               clean_pte_table(page_address(pte));
++       if (!PageHighMem(ptdesc_page(pte)))
++               clean_pte_table(ptdesc_address(pte));
+         return pte;
+  }
 
--- 
-2.47.3
+@@ -141,7 +141,7 @@ pmd_populate(struct mm_struct *mm, pmd_t *pmdp, 
+pgtable_t ptep)
+         else
+                 prot = _PAGE_USER_TABLE;
 
+-       __pmd_populate(pmdp, page_to_phys(ptep), prot);
++       __pmd_populate(pmdp, page_to_phys(ptdesc_page(ptep)), prot);
+  }
+
+  #endif /* CONFIG_MMU */
