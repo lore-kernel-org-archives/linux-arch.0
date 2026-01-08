@@ -1,74 +1,98 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj1-f45.google.com (mail-pj1-f45.google.com [209.85.216.45])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1D2D281503;
-	Thu,  8 Jan 2026 03:30:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 50F16254841
+	for <linux-arch@vger.kernel.org>; Thu,  8 Jan 2026 05:17:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767843016; cv=none; b=EmlIoVY5nmt5d/idjV10J7QGsdyaAFqcAm7gmNsXGT6lWZwxKwVS5MEtZoMpZdPxFEPvFTJsqxoCXXVB3awdH9/enkxFuMiiJiAfzPmpf6O9rZ4VLesMoyWP7Z/VNHwE5KFRFWOzavR/uODizZtrUlXO4emfCfmH0qhFPb00apw=
+	t=1767849474; cv=none; b=k7t1LhreP7/zA84PdfgyMLzhWjlpTHEZtSXfyHiv5gcTVa8mhYQBouSm7BQJ6fL3dfMVs+DsWIFpHcmQoL1yTX1G2f4DNCJlvJH7vqxTw/iQGzyG4lm+rbxwmO+oKIQURfd5IGQoswOa3D3Rd4Cu0Yu1PSwQ8LaL1QX2inYkkE4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767843016; c=relaxed/simple;
-	bh=DSALUKMrHcObpEc4DihJ+nhGxXcRhoYI8ee1KKX83Es=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=sdTX5LdCzWppp9J8+XFQkP+rx4KWtniB2S8q7t0MxabEtipNWtMwdNxcX9Zu7biRaPuJ+SBBk2T3BO5ocmlbitwKUHhR2bAgA2xyJdOUddBCwZVpvfVG9a30pIXeCCyPvNpZzEOnG6dne5Z+qXGSYsV/Bj+CMtZRbxzAasqN3jg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Dqrt1PBx; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1767849474; c=relaxed/simple;
+	bh=zfaWPieax6RU5tc9kXenF3uSle8+R4n2eeM43ti+8dc=;
+	h=Date:Message-Id:To:Cc:Subject:From:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=kUjDnA9ybJK7VZiVpcsiofPtSReMihqKdo41NL3u4/XiDnGHM1QT60e4DGlfICYY4TSXmZX7NCQK/KYifVEYY/huD2dr+l9twjuZdrR0L9AsqqbJuY4PGAvvlqhdgSf1EkafuSRJ7mEymhUBG+i6GhETDoVxaac3QQXPFDZjG2Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GOJdckbg; arc=none smtp.client-ip=209.85.216.45
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Dqrt1PBx"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5ABC6C116C6;
-	Thu,  8 Jan 2026 03:30:14 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1767843015;
-	bh=DSALUKMrHcObpEc4DihJ+nhGxXcRhoYI8ee1KKX83Es=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=Dqrt1PBxIzl3uvgfegE/S6bgdgUvs+Eh8XSIZ9T8tXXi2g2lZSSasduqJSWsvnRKv
-	 kbblKK/vPEhq9Iu8ezZ3AQdenRqg0fwhJYKbqftem7XwTZ+sQ3oJxyJmxhQKW2kseD
-	 4EbdcGroVQBWaPBSfmAXQ0g8nJc7aPyfbZZIgqraRxblKK20SJCTrxp5Ndllzxu5cC
-	 jh/vvn7zZyvnYWcfzej38sHojL7Dd3LE+KYvaKQ6b0EEZvGh8K2vmwHPQY/v1E0gcB
-	 gp+YBgVA3CXw+7fOK9ZKn893/1uVSBVlb2IThNIPkTeGYQq9Sf7tBi5pobHY/7/+GA
-	 RxjEJRVDc4qDQ==
-Date: Wed, 7 Jan 2026 19:30:13 -0800
-From: Jakub Kicinski <kuba@kernel.org>
-To: Bobby Eshleman <bobbyeshleman@gmail.com>
-Cc: "David S. Miller" <davem@davemloft.net>, Eric Dumazet
- <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, Simon Horman
- <horms@kernel.org>, Kuniyuki Iwashima <kuniyu@google.com>, Willem de Bruijn
- <willemb@google.com>, Neal Cardwell <ncardwell@google.com>, David Ahern
- <dsahern@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet
- <corbet@lwn.net>, Andrew Lunn <andrew+netdev@lunn.ch>, Shuah Khan
- <shuah@kernel.org>, Donald Hunter <donald.hunter@gmail.com>, Mina Almasry
- <almasrymina@google.com>, netdev@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org, Stanislav
- Fomichev <sdf@fomichev.me>, asml.silence@gmail.com, matttbe@kernel.org,
- skhawaja@google.com, Bobby Eshleman <bobbyeshleman@meta.com>
-Subject: Re: [PATCH net-next v8 0/5] net: devmem: improve cpu cost of RX
- token management
-Message-ID: <20260107193013.0984ab97@kernel.org>
-In-Reply-To: <20260107-scratch-bobbyeshleman-devmem-tcp-token-upstream-v8-0-92c968631496@meta.com>
-References: <20260107-scratch-bobbyeshleman-devmem-tcp-token-upstream-v8-0-92c968631496@meta.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GOJdckbg"
+Received: by mail-pj1-f45.google.com with SMTP id 98e67ed59e1d1-34c565b888dso2441343a91.0
+        for <linux-arch@vger.kernel.org>; Wed, 07 Jan 2026 21:17:53 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1767849473; x=1768454273; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to:from
+         :subject:cc:to:message-id:date:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=zfaWPieax6RU5tc9kXenF3uSle8+R4n2eeM43ti+8dc=;
+        b=GOJdckbgrwovKu7QZNYc45CZO4h6dYiJi114Kprv+6KXmPvzH120ej0WhvDOcpqRjh
+         0CCoaJat85cMi2kv18bCY/QRGmuPQkslQvCJ9lhrU2sXaribDk1uaKw5z6nr6q0sE6Pm
+         YpVZcjiBnEVOt8BDMGgmZm9S44YUuMUoW2UyT8DQj2u19QgQrLHAGa6N4Wv7c05P7maN
+         XZwqOp+hIVAmbxx78q9G/UaG1um8dhbBPVYeU2LHwoaM3Z5EG5hjtadgNzRy3NHNm+2T
+         JrwDgcF7hzMkzXpKGYsMS8tigBz/I/wRolHo5oZZvcXJL1lPmu1QbTucVlOa1hl9A9yC
+         qnIA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1767849473; x=1768454273;
+        h=content-transfer-encoding:mime-version:references:in-reply-to:from
+         :subject:cc:to:message-id:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=zfaWPieax6RU5tc9kXenF3uSle8+R4n2eeM43ti+8dc=;
+        b=WO52gn6EJ+LG5GRq1gFl99pfGTcyO8GajAJ/PqFPb1DK5hIHnYIXD2DZ6+x7lhxsg4
+         IC81s4qlb4uKvRGREybHpJWGPA2GnSeUkmA/UeE2PwAxi3RcC5TV3Nm+tIYkTxU1aqg4
+         WPabOiB1vViKqxfzkM4+xVkDnIVCaDW5q31hQ21cNOWS44zbuhfpIoytxs8AcrRHxFFz
+         j0AXpMqiqSZ74mYZN3BfCKEwGOnazmWoi70luNEA4cEBx3/aZTil/bKAZn2glxSCB2L/
+         aryyPfXW6cjoMY81L8/BZpHImzcRHLDgLVJEcBble7cOAkdOvwYwdKTeI5JgeEV1vLIN
+         mC3Q==
+X-Forwarded-Encrypted: i=1; AJvYcCXeEbCMk1zzR7+hbFl6BBlFUMFXGOyyzLNR96CBOCBb7Y2AO2/waJenLRu3RcRrJjABH2ZE7fL0/kg2@vger.kernel.org
+X-Gm-Message-State: AOJu0YzdE1VV4l6t2rUi/MXQ4hrHdY1JidSY15PXCu/g58e70DzUViYE
+	MljKXFWRHyYq6JuOltFpveOtRprkppqprnIIPI1czxYZFiGni9E/B7lp
+X-Gm-Gg: AY/fxX7gvCuikRbpoOVXJYekPdkZStsno1MuQYtAi3GAlx7FTu0UM0Oe0Qsm+HbPQQV
+	ZALOCK+WHiPUi3WBC3Sy7QaMQm/OazAQ+mgpPlyN8BVtQl6xeXIagJH0lzsXpoyhrF0oXZOV/+G
+	+u8XOTfo3BLC5zvewBUFPX/uDwjqDOpGafFRhviRL3YCLI6/owNpdRuyhfhgMP8D4aL7hKRVIYF
+	8VkeHySed/yBgNZA6rMVi7WZeEceQ3EdMBvLeVjfsSq2IWPrUdgC99WmvniH36sE4vsXclVqCul
+	TDCbubQsuUusL9v6pnx5HCPiJC4wIn+CcWtBYTG9XztsUcnTG7PKAw6PrAi17Kz9DykikyMg3wq
+	Axes6+eHe6xfuJTorh5EdK3D5z2JXqOnQU/B1R/TUSzkRcBOogqlWnLkNUabV/p1mAqcmVhMNae
+	7QX9S/UDzqSkNGEDaPVyrbyFxTgYkksyR6YWnWUaNwN7JZpP04U1AtcrxeUSYI5i0ZnL8=
+X-Google-Smtp-Source: AGHT+IFqdc9Sd7yWqiw47jt+H/HlOGVUHh9gcMNodk0QnAMZEsYFII0+WLMvRHm2kVCJFhGfJZZobw==
+X-Received: by 2002:a17:90b:3905:b0:340:776d:f4ca with SMTP id 98e67ed59e1d1-34f68c621c8mr5149473a91.26.1767849472591;
+        Wed, 07 Jan 2026 21:17:52 -0800 (PST)
+Received: from localhost (p5342157-ipxg23901hodogaya.kanagawa.ocn.ne.jp. [180.39.242.157])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c4cbfd27953sm6624573a12.11.2026.01.07.21.17.49
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 07 Jan 2026 21:17:51 -0800 (PST)
+Date: Thu, 08 Jan 2026 14:17:40 +0900 (JST)
+Message-Id: <20260108.141740.733187589346821469.fujita.tomonori@gmail.com>
+To: miguel.ojeda.sandonis@gmail.com
+Cc: fujita.tomonori@gmail.com, boqun.feng@gmail.com, ojeda@kernel.org,
+ a.hindborg@kernel.org, aliceryhl@google.com, bjorn3_gh@protonmail.com,
+ dakr@kernel.org, gary@garyguo.net, lossin@kernel.org, tmgross@umich.edu,
+ acourbot@nvidia.com, rust-for-linux@vger.kernel.org,
+ linux-arch@vger.kernel.org
+Subject: Re: [PATCH v1] rust: sync: atomic: Add i32-backed Flag for atomic
+ booleans
+From: FUJITA Tomonori <fujita.tomonori@gmail.com>
+In-Reply-To: <CANiq72kRipkW-djNqUy3hSb9Dy5LJOr1QgFAaY8vT6KjrMcDEg@mail.gmail.com>
+References: <20260101102718.2073674-1-fujita.tomonori@gmail.com>
+	<CANiq72kRipkW-djNqUy3hSb9Dy5LJOr1QgFAaY8vT6KjrMcDEg@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=utf-8
+Content-Transfer-Encoding: base64
 
-On Wed, 07 Jan 2026 16:57:34 -0800 Bobby Eshleman wrote:
-> This series improves the CPU cost of RX token management by adding an
-> attribute to NETDEV_CMD_BIND_RX that configures sockets using the
-> binding to avoid the xarray allocator and instead use a per-binding niov
-> array and a uref field in niov.
-
-net/ipv4/tcp.c:2600:41: error: implicit declaration of function =E2=80=98ne=
-t_devmem_dmabuf_binding_get=E2=80=99; did you mean =E2=80=98net_devmem_dmab=
-uf_binding_put=E2=80=99? [-Wimplicit-function-declaration]
- 2600 |                                         net_devmem_dmabuf_binding_g=
-et(binding);
-      |                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~=
-~~
-      |                                         net_devmem_dmabuf_binding_p=
-ut
---=20
-pw-bot: cr
+T24gU3VuLCA0IEphbiAyMDI2IDEzOjA3OjI2ICswMTAwDQpNaWd1ZWwgT2plZGEgPG1pZ3VlbC5v
+amVkYS5zYW5kb25pc0BnbWFpbC5jb20+IHdyb3RlOg0KDQo+IE9uIFRodSwgSmFuIDEsIDIwMjYg
+YXQgMTE6MjfigK9BTSBGVUpJVEEgVG9tb25vcmkNCj4gPGZ1aml0YS50b21vbm9yaUBnbWFpbC5j
+b20+IHdyb3RlOg0KPj4NCj4+ICsvLy8gQW4gYXRvbWljIGZsYWcgdHlwZSBiYWNrZWQgYnkgYGkz
+MmAuDQo+IA0KPiBBIGZldyBuaXRzIEkgbm90aWNlZCB3aGlsZSByZWFkaW5nIHRoZSB0aHJlYWQ6
+IGludHJhLWRvYyBsaW5rcyB3aGVyZQ0KPiBwb3NzaWJsZS9zaW1wbGUsIGkuZS4gaWYgc29tZSBv
+ZiB0aGVtIHJlcXVpcmUgc29tZXRoaW5nIGludm9sdmVkIHRvDQo+IG1ha2UgdGhlbSB3b3JrLCBw
+bGVhc2UgaWdub3JlIGl0IQ0KDQpBaCwgZ29vZCBjYXRjaC4gSSBvdmVybG9va2VkIHRoYXQuIEkn
+bGwgZml4Lg0KDQoNCj4+ICsvLy8gIyMgRXhhbXBsZXMNCj4gDQo+IEZpcnN0IGxldmVsIGhlYWRl
+ciwgaS5lLiBgI2AuDQoNClNvcnJ5LCB3aWxsIGZpeC4NCg0KPj4gKy8vLyB1c2Uga2VybmVsOjpz
+eW5jOjphdG9taWM6OntBdG9taWMsIEZsYWcsIFJlbGF4ZWR9Ow0KPj4gKy8vLyBsZXQgZmxhZyA9
+IEF0b21pYzo6bmV3KEZsYWc6OkNsZWFyKTsNCj4gDQo+IEdlbmVyYWxseSB3ZSBsZWF2ZSBhIG5l
+d2xpbmUgYWZ0ZXIgdGhlIGB1c2VgcyBibG9jayBpbiBleGFtcGxlcy4NCg0KVW5kZXJzdG9vZCwg
+d2lsbCBhZGQgYSBibGFuayBsaW5lLg0KDQpUaGFua3MgZm9yIHRoZSByZXZpZXchDQo=
