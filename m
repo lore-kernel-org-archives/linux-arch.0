@@ -1,68 +1,68 @@
-Received: from mail-yw1-f172.google.com (mail-yw1-f172.google.com [209.85.128.172])
+Received: from mail-yw1-f177.google.com (mail-yw1-f177.google.com [209.85.128.177])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F244624A046
-	for <linux-arch@vger.kernel.org>; Sat, 10 Jan 2026 02:19:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.172
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 461832561AB
+	for <linux-arch@vger.kernel.org>; Sat, 10 Jan 2026 02:19:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768011548; cv=none; b=sljq5e/WMMBB/4okY7seTnnq/N+0/ftkQ3IMO5IPor1MK7o/mifrnhAx+AwxhZrRsg4Zw/YUJuhxLx3fAMe9kSQHxeHG6sUCxMs5Wok5JMlYA8kEnXCTizA+jtlrC7OvpoZtEQMLG8Naghni1es/gokXlHBNkmRlV7g2D67qNEg=
+	t=1768011550; cv=none; b=C20XpRpfJzx3MnJ3lYZvGqi2YOLvMy0aJQlOjthx7U/DsrxzRFejNT5SBF+YmWJQ1hMNs2sOyVxnATkVJnxiMQb127i+iwdAV9qdaWbvCyNgaw0reevHnONMdMvn7REVu2ffYcKoOnuzn8lKS0qqy+Saz/WJNMz+Y5JSrhd9avM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768011548; c=relaxed/simple;
-	bh=P4d8UqC2nKeC0YQ+a7bgME0cFVqMsz/ydYLiYy8NQ78=;
+	s=arc-20240116; t=1768011550; c=relaxed/simple;
+	bh=dy8VSMAomXo21WIjaY0wYi9sSGnjr0Ji79ClfNkKMS0=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=cNSbzRK/tbaJcJ1pgR1wYdJ77l0BHbw815xSO0Y6b6MnCwxihcH3+P3P71vJj3TigjzO9dtCd/n+D63WObX58XwfeaQvxqZtXcgDVHFAzLsLg/+LknZUtjHLnSKpBy0+/SJpS5YKpKuqU9GhQeAq2DLYDl8JKsiY1yi6qUBWAzM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=IEcwGwAc; arc=none smtp.client-ip=209.85.128.172
+	 In-Reply-To:To:Cc; b=YyFTejsibguwreN4g1i27mP94hqoPlX404tRuitpbQZTIPwv8Cb0cxkvki4GxYtiKfQR9vkNCcp+M4PWF6gtft/XjLqRlgRMpRkWdXnVSlgAqoq/VYEeY8WV2TVOa8YuXbfcqH5efTu8qARIMNuhUj6Eea6DnwjkPiFkNwjLgkk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=dbSdeyIe; arc=none smtp.client-ip=209.85.128.177
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="IEcwGwAc"
-Received: by mail-yw1-f172.google.com with SMTP id 00721157ae682-790647da8cbso54781597b3.1
-        for <linux-arch@vger.kernel.org>; Fri, 09 Jan 2026 18:19:03 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="dbSdeyIe"
+Received: by mail-yw1-f177.google.com with SMTP id 00721157ae682-78d6a3c3b77so41152247b3.0
+        for <linux-arch@vger.kernel.org>; Fri, 09 Jan 2026 18:19:05 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1768011543; x=1768616343; darn=vger.kernel.org;
+        d=gmail.com; s=20230601; t=1768011545; x=1768616345; darn=vger.kernel.org;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:from:to:cc:subject:date:message-id
          :reply-to;
-        bh=arzqbQXlNacdWL74Y2JXdnYTGjM1CMB+bcw7bQGNPJc=;
-        b=IEcwGwAcy8SpujoBI6ZYumo5RItcS6LNZu5t0C6aTPGy5eaXbLkKV6RHUzCG2G2zYO
-         E+lH83d4Tm58KORcQxVsibd+RgtAYzOMgqhu4763xmcbSMug6kXkqV7ogKaV+g4XD1Fl
-         ugDmup+chut6/Q2SsY7QiZwVk/TRzryyDk3btP57Y/SAiOmRjZ/DmJ6XxiAElpDFvkuH
-         DCZDliHbfti6NX+WZ2iAbZjj39hm/qheGQGMEOcS9dy4SjzQOBB9wYsOrjJQNY0NhNE2
-         60N73RSCbERvMRCR6UdMq8jD368cB9xqfLfEK/0wSma87Rh3kIPiRAnfuMMaZ6dArLoG
-         3XPg==
+        bh=rU6cZCgpG9GOAbb+tnZ37tmEGId4jQzirW7dllLFVzU=;
+        b=dbSdeyIeAwAgxNNYNEDkqR8EXlFXsTZ9CREiQJKB5PWtVkDsYqfNVmR7Wb7r0mggPt
+         0+25HsBymcm0EslWSBUCUm0a3syuNkPm19jvll/ptLCtYwDrAMabAg1hZuspSaDBY6WE
+         TuDZ6o/VO+MjX5oFJg38+IqCnsYrzmPc31Mwvf5UpiLGzkr4fDNq5TYXRITjR6PRaV6J
+         FRnhqUQ7zK4e0aqQpF/Vc7rqfsSvl12OqYwxdAsiDsr2igDtBGTPDi0Zhja7Zug61Xep
+         //mg63YrPzT/sLp81eG7aRzq4eiOOqkfXqGfDHNY1loZWvcgX+lOMslJE5Mpl8dEWCc1
+         4gKg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1768011543; x=1768616343;
+        d=1e100.net; s=20230601; t=1768011545; x=1768616345;
         h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
          :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
          :cc:subject:date:message-id:reply-to;
-        bh=arzqbQXlNacdWL74Y2JXdnYTGjM1CMB+bcw7bQGNPJc=;
-        b=kwRNUq9x4lOyp4oAl8lQocg/Qgbp2bfOU/3kBMZAVL758nwpgp/KRmMeCoYr6oJmlU
-         L2r3XMXLbhIMUs5sZCZnOmg9IBShRth63u/TD0i1R3/KReFBj47uNFqyffLP7SJuEnsJ
-         9Mi5AEIBvZSSeIwgghScQeyY+WZIRupBYG0xRD7SxK5L6ZMwo7Bg5SKJHWpgmZ7K4Qrm
-         eeZfAyCSDVtDYEiPOtFanTzrqOMcH+HKs7n5xGBXOvM7UEMrmpjNGldgkb1h+FoXyBAO
-         ymEI0BJAIsO9d1KwtiQEMjJq6K1XEPw0+rjXW6y5vw7YLIXg1PucENqObxC9JarUuYZB
-         c1ig==
-X-Forwarded-Encrypted: i=1; AJvYcCWND12daX+11LIridaOG+g5s5kDZhSFRxFg/nqLsa1ENu3S9v+8E+kV/z8DP7lF2pU78RmTbF74fg4B@vger.kernel.org
-X-Gm-Message-State: AOJu0YyipUbaFqVLP81nw6NXPd3A04FgztvA3HwfeWqKQoIhbBO7lD0X
-	A83L0McQS5fPE1lKFVDDYmG9EC7umBD/nF8kAFubm1TXcLbMCavzCEbh
-X-Gm-Gg: AY/fxX5Zt4pUG2ktMoXYtsHdOm/0P/qqKwn78ds/rrTPrtImDbqWEQGTMebyxLEgg9A
-	BpC1v7IzYDHe3ZCOFHPkgQCSLX/XUQnI75nF0v/z88Ti8XUH6X8lThlAZ8GZ3y7SwQdggdKUpap
-	ndrzeSGesWRxOjEdvDGKxhDFf5VSxwa1nerAlFq/tkVLFEeoRPCLUlcND0ItSk8TiwTSQqhSbIV
-	3Tq1V67i5Hm7LOFpTzkI/sBBSiim9CkHYaHiP5g8h5VPrLOfaA8MhQp2/xgDjDoz9HWzhHu+RDv
-	wvC4UVRxrhDMqp8jL1cSumkunWUkJCKA3SOXy1b7Q8Qu3z3usPqk+FXwbOdMhxNhpfcvPkufM/M
-	FscmRSqBQb6FLMrwsWRo/DDhiLlDiont8rKR//5j8MrMq0UcWt7c4i46OLkO3oPyfOMOAPsshrT
-	kYzGSdYiWbaA==
-X-Google-Smtp-Source: AGHT+IHLsLyVl2pa2JrSVd4sJ2IpcPmz1uN7KAItpcWVK3gHr7UzOLhB8xFQ0R4gUz+9ez73pmt2tA==
-X-Received: by 2002:a05:690e:11cb:b0:63f:b444:da92 with SMTP id 956f58d0204a3-64716b1f9e3mr10153697d50.31.1768011542884;
-        Fri, 09 Jan 2026 18:19:02 -0800 (PST)
-Received: from localhost ([2a03:2880:25ff:41::])
-        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-6470d89d4c9sm5232466d50.14.2026.01.09.18.19.02
+        bh=rU6cZCgpG9GOAbb+tnZ37tmEGId4jQzirW7dllLFVzU=;
+        b=EoDWo60SNCaScFhaBep+aFATjTsvBi5hcHJuULBkAb0lFkvxUf22CThWa+7FT46IGT
+         zVP+Pb8Na8mxfbNTCrPtqDHzOvVR7nDmoiTRMP0Yje1YA8ddHspVz5FxDUqpjaxbmWw/
+         4PE0BvkrXiaDk0lrOft+mwq0poRtWUFrlT9U/9ySfzB+3oJ1+48X5enlqsBQF6/9JdLX
+         C+gnLv6EWUAyqI/tCnBPpYqhCYcRuMq4oRS8xJw7sYp6YKRfwcwWwm21WLy+gS6th88w
+         QQMYJCEXiyfwffUoiJXlgKQWSovOU4eP14CGJGdcH+QtvBVx/xYgVGCOax7vIlZPENF3
+         yxNQ==
+X-Forwarded-Encrypted: i=1; AJvYcCUo9rVoPk8oF4ZZQmbu5JNPOIZRaXLjiFMLjpTBGC1llxAAy4+hHubTuANF955ez9mFH0ooG7bL8Wf1@vger.kernel.org
+X-Gm-Message-State: AOJu0Ywe8M15BvHz5yRunCrMrX2n9kesLoBoAa+d1anJXI7OzmD76jOM
+	JcOCramrS+J0DYxpzfEmAFt6ETsboB3EtK7CWD7/pWLrs00oEFnoDfuW
+X-Gm-Gg: AY/fxX4Ma/TAFvjZQ4Xas4I6+W3qrFOI+yTIKYfJdz+JujCwLe9tfw4Cl/xrCd7o0M4
+	y7E+P87piTzCVCAjEZJiVdEjaXyofTgOy+u2niThNFfPJo/LnfpyUrghE4d1qD/Uqip5qOfkYJA
+	/U4lqV62s+39zbeD43HgdwU8SnG1Jt3dOpGQbaGMc7ag3/X4L8PHVWUJ2siXEwtzT2XSzkijRMU
+	zfWqv2nlu3U/Y/iyMZuEGICmkphENV6h2yejosF91OJg+Hz2NnQmslloNVdOloWJ+k6/KHCVUrA
+	jRjVkvX12EAj6iw2i05ldHzV48dPqFq+oFa8uZTSnAnR3Up/2LUr0EYY2Sw/2zQ4fI5TXMzJHyZ
+	IAYbjyPX/SJ5Xp/Nf0GbignrwWDao6ZWlV32XH0VP3EqDMmR1i3l1rmaJze/BZ6hMWJy/KCu+6h
+	TsKknrEcWt
+X-Google-Smtp-Source: AGHT+IFqAUeGS3fSoQYRClaCLLvuhBszFYipmE9EIxwk8GX5j0l3xuZmsLsWYJV8IBz3HNxIn50cwg==
+X-Received: by 2002:a05:690e:b85:b0:641:f5bc:692e with SMTP id 956f58d0204a3-6470d2f4d8emr10686850d50.39.1768011544827;
+        Fri, 09 Jan 2026 18:19:04 -0800 (PST)
+Received: from localhost ([2a03:2880:25ff:c::])
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-790aa67999fsm47779197b3.37.2026.01.09.18.19.04
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 09 Jan 2026 18:19:02 -0800 (PST)
+        Fri, 09 Jan 2026 18:19:04 -0800 (PST)
 From: Bobby Eshleman <bobbyeshleman@gmail.com>
-Date: Fri, 09 Jan 2026 18:18:17 -0800
-Subject: [PATCH net-next v9 3/5] net: devmem: implement autorelease token
- management
+Date: Fri, 09 Jan 2026 18:18:19 -0800
+Subject: [PATCH net-next v9 5/5] selftests: drv-net: devmem: add
+ autorelease test
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -71,7 +71,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-3-8042930d00d7@meta.com>
+Message-Id: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-5-8042930d00d7@meta.com>
 References: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-0-8042930d00d7@meta.com>
 In-Reply-To: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-0-8042930d00d7@meta.com>
 To: "David S. Miller" <davem@davemloft.net>, 
@@ -92,860 +92,156 @@ X-Mailer: b4 0.14.3
 
 From: Bobby Eshleman <bobbyeshleman@meta.com>
 
-Add support for autorelease toggling of tokens using a static branch to
-control system-wide behavior. This allows applications to choose between
-two memory management modes:
+Add test case for autorelease.
 
-1. Autorelease on: Leaked tokens are automatically released when the
-   socket closes.
+The test case is the same as the RX test, but enables autorelease.  The
+original RX test is changed to use the -a 0 flag to disable autorelease.
 
-2. Autorelease off: Leaked tokens are released during dmabuf unbind.
-
-The autorelease mode is requested via the NETDEV_A_DMABUF_AUTORELEASE
-attribute of the NETDEV_CMD_BIND_RX message. Having separate modes per
-binding is disallowed and is rejected by netlink. The system will be
-"locked" into the mode that the first binding is set to. It can only be
-changed again once there are zero bindings on the system.
-
-Disabling autorelease offers ~13% improvement in CPU utilization.
-
-Static branching is used to limit the system to one mode or the other.
+TAP version 13
+1..4
+ok 1 devmem.check_rx
+ok 2 devmem.check_rx_autorelease
+ok 3 devmem.check_tx
+ok 4 devmem.check_tx_chunks
 
 Signed-off-by: Bobby Eshleman <bobbyeshleman@meta.com>
 ---
-Changes in v9:
-- Add missing stub for net_devmem_dmabuf_binding_get() when NET_DEVMEM=n
-- Add wrapper around tcp_devmem_ar_key accesses so that it may be
-  stubbed out when NET_DEVMEM=n
-- only dec rx binding count for rx bindings in free (v8 did not exclude
-  TX bindings)
-
 Changes in v8:
-- Only reset static key when bindings go to zero, defaulting back to
-  disabled (Stan).
-- Fix bad usage of xarray spinlock for sleepy static branch switching,
-  use mutex instead.
-- Access pp_ref_count via niov->desc instead of niov directly.
-- Move reset of static key to __net_devmem_dmabuf_binding_free() so that
-  the static key can not be changed while there are outstanding tokens
-  (free is only called when reference count reaches zero).
-- Add net_devmem_dmabuf_rx_bindings_count because tokens may be active
-  even after xa_erase(), so static key changes must wait until all
-  RX bindings are finally freed (not just when xarray is empty). A
-  counter is a simple way to track this.
-- socket takes reference on the binding, to avoid use-after-free on
-  sk_devmem_info.binding in the case that user releases all tokens,
-  unbinds, then issues SO_DEVMEM_DONTNEED again (with bad token).
-- removed some comments that were unnecessary
+- removed stale/missing tests
 
 Changes in v7:
-- implement autorelease with static branch (Stan)
-- use netlink instead of sockopt (Stan)
-- merge uAPI and implementation patches into one patch (seemed less
-  confusing)
-
-Changes in v6:
-- remove sk_devmem_info.autorelease, using binding->autorelease instead
-- move binding->autorelease check to outside of
-  net_devmem_dmabuf_binding_put_urefs() (Mina)
-- remove overly defensive net_is_devmem_iov() (Mina)
-- add comment about multiple urefs mapping to a single netmem ref (Mina)
-- remove overly defense netmem NULL and netmem_is_net_iov checks (Mina)
-- use niov without casting back and forth with netmem (Mina)
-- move the autorelease flag from per-binding to per-socket (Mina)
-- remove the batching logic in sock_devmem_dontneed_manual_release()
-  (Mina)
-- move autorelease check inside tcp_xa_pool_commit() (Mina)
-- remove single-binding restriction for autorelease mode (Mina)
-- unbind always checks for leaked urefs
-
-Changes in v5:
-- remove unused variables
-- introduce autorelease flag, preparing for future patch toggle new
-  behavior
-
-Changes in v3:
-- make urefs per-binding instead of per-socket, reducing memory
-  footprint
-- fallback to cleaning up references in dmabuf unbind if socket leaked
-  tokens
-- drop ethtool patch
-
-Changes in v2:
-- always use GFP_ZERO for binding->vec (Mina)
-- remove WARN for changed binding (Mina)
-- remove extraneous binding ref get (Mina)
-- remove WARNs on invalid user input (Mina)
-- pre-assign niovs in binding->vec for RX case (Mina)
-- use atomic_set(, 0) to initialize sk_user_frags.urefs
-- fix length of alloc for urefs
+- use autorelease netlink
+- remove sockopt tests
 ---
- Documentation/netlink/specs/netdev.yaml |  12 ++++
- include/net/netmem.h                    |   1 +
- include/net/sock.h                      |   7 ++-
- include/uapi/linux/netdev.h             |   1 +
- net/core/devmem.c                       | 104 ++++++++++++++++++++++++++++----
- net/core/devmem.h                       |  27 ++++++++-
- net/core/netdev-genl-gen.c              |   5 +-
- net/core/netdev-genl.c                  |  10 ++-
- net/core/sock.c                         |  57 +++++++++++++++--
- net/ipv4/tcp.c                          |  76 ++++++++++++++++++-----
- net/ipv4/tcp_ipv4.c                     |  11 +++-
- net/ipv4/tcp_minisocks.c                |   3 +-
- tools/include/uapi/linux/netdev.h       |   1 +
- 13 files changed, 269 insertions(+), 46 deletions(-)
+ tools/testing/selftests/drivers/net/hw/devmem.py  | 21 +++++++++++++++++++--
+ tools/testing/selftests/drivers/net/hw/ncdevmem.c | 19 +++++++++++++------
+ 2 files changed, 32 insertions(+), 8 deletions(-)
 
-diff --git a/Documentation/netlink/specs/netdev.yaml b/Documentation/netlink/specs/netdev.yaml
-index 596c306ce52b..7cbe9e7b9ee5 100644
---- a/Documentation/netlink/specs/netdev.yaml
-+++ b/Documentation/netlink/specs/netdev.yaml
-@@ -562,6 +562,17 @@ attribute-sets:
-         type: u32
-         checks:
-           min: 1
-+      -
-+        name: autorelease
-+        doc: |
-+          Token autorelease mode. If true (1), leaked tokens are automatically
-+          released when the socket closes. If false (0), leaked tokens are only
-+          released when the dmabuf is unbound. Once a binding is created with a
-+          specific mode, all subsequent bindings system-wide must use the same
-+          mode.
+diff --git a/tools/testing/selftests/drivers/net/hw/devmem.py b/tools/testing/selftests/drivers/net/hw/devmem.py
+index 45c2d49d55b6..dbe696a445bd 100755
+--- a/tools/testing/selftests/drivers/net/hw/devmem.py
++++ b/tools/testing/selftests/drivers/net/hw/devmem.py
+@@ -25,7 +25,24 @@ def check_rx(cfg) -> None:
+ 
+     port = rand_port()
+     socat = f"socat -u - TCP{cfg.addr_ipver}:{cfg.baddr}:{port},bind={cfg.remote_baddr}:{port}"
+-    listen_cmd = f"{cfg.bin_local} -l -f {cfg.ifname} -s {cfg.addr} -p {port} -c {cfg.remote_addr} -v 7"
++    listen_cmd = f"{cfg.bin_local} -l -f {cfg.ifname} -s {cfg.addr} -p {port} -c {cfg.remote_addr} -v 7 -a 0"
 +
-+          Optional. Defaults to false if not specified.
-+        type: u8
- 
- operations:
-   list:
-@@ -769,6 +780,7 @@ operations:
-             - ifindex
-             - fd
-             - queues
-+            - autorelease
-         reply:
-           attributes:
-             - id
-diff --git a/include/net/netmem.h b/include/net/netmem.h
-index 9e10f4ac50c3..80d2263ba4ed 100644
---- a/include/net/netmem.h
-+++ b/include/net/netmem.h
-@@ -112,6 +112,7 @@ struct net_iov {
- 	};
- 	struct net_iov_area *owner;
- 	enum net_iov_type type;
-+	atomic_t uref;
- };
- 
- struct net_iov_area {
-diff --git a/include/net/sock.h b/include/net/sock.h
-index aafe8bdb2c0f..9d3d5bde15e9 100644
---- a/include/net/sock.h
-+++ b/include/net/sock.h
-@@ -352,7 +352,7 @@ struct sk_filter;
-   *	@sk_scm_rights: flagged by SO_PASSRIGHTS to recv SCM_RIGHTS
-   *	@sk_scm_unused: unused flags for scm_recv()
-   *	@ns_tracker: tracker for netns reference
--  *	@sk_user_frags: xarray of pages the user is holding a reference on.
-+  *	@sk_devmem_info: the devmem binding information for the socket
-   *	@sk_owner: reference to the real owner of the socket that calls
-   *		   sock_lock_init_class_and_name().
-   */
-@@ -584,7 +584,10 @@ struct sock {
- 	struct numa_drop_counters *sk_drop_counters;
- 	struct rcu_head		sk_rcu;
- 	netns_tracker		ns_tracker;
--	struct xarray		sk_user_frags;
-+	struct {
-+		struct xarray				frags;
-+		struct net_devmem_dmabuf_binding	*binding;
-+	} sk_devmem_info;
- 
- #if IS_ENABLED(CONFIG_PROVE_LOCKING) && IS_ENABLED(CONFIG_MODULES)
- 	struct module		*sk_owner;
-diff --git a/include/uapi/linux/netdev.h b/include/uapi/linux/netdev.h
-index e0b579a1df4f..1e5c209cb998 100644
---- a/include/uapi/linux/netdev.h
-+++ b/include/uapi/linux/netdev.h
-@@ -207,6 +207,7 @@ enum {
- 	NETDEV_A_DMABUF_QUEUES,
- 	NETDEV_A_DMABUF_FD,
- 	NETDEV_A_DMABUF_ID,
-+	NETDEV_A_DMABUF_AUTORELEASE,
- 
- 	__NETDEV_A_DMABUF_MAX,
- 	NETDEV_A_DMABUF_MAX = (__NETDEV_A_DMABUF_MAX - 1)
-diff --git a/net/core/devmem.c b/net/core/devmem.c
-index 05a9a9e7abb9..05c16df657c7 100644
---- a/net/core/devmem.c
-+++ b/net/core/devmem.c
-@@ -11,6 +11,7 @@
- #include <linux/genalloc.h>
- #include <linux/mm.h>
- #include <linux/netdevice.h>
-+#include <linux/skbuff_ref.h>
- #include <linux/types.h>
- #include <net/netdev_queues.h>
- #include <net/netdev_rx_queue.h>
-@@ -28,6 +29,19 @@
- 
- static DEFINE_XARRAY_FLAGS(net_devmem_dmabuf_bindings, XA_FLAGS_ALLOC1);
- 
-+/* If the user unbinds before releasing all tokens, the static key must not
-+ * change until all tokens have been released (to avoid calling the wrong
-+ * SO_DEVMEM_DONTNEED handler). We prevent this by making static key changes
-+ * and binding alloc/free atomic with regards to each other, using the
-+ * devmem_ar_lock. This works because binding free does not occur until all of
-+ * the outstanding token's references on the binding are dropped.
-+ */
-+static DEFINE_MUTEX(devmem_ar_lock);
++    with bkg(listen_cmd, exit_wait=True) as ncdevmem:
++        wait_port_listen(port)
++        cmd(f"yes $(echo -e \x01\x02\x03\x04\x05\x06) | \
++            head -c 1K | {socat}", host=cfg.remote, shell=True)
 +
-+DEFINE_STATIC_KEY_FALSE(tcp_devmem_ar_key);
-+EXPORT_SYMBOL(tcp_devmem_ar_key);
-+static int net_devmem_dmabuf_rx_bindings_count;
++    ksft_eq(ncdevmem.ret, 0)
 +
- static const struct memory_provider_ops dmabuf_devmem_ops;
++
++@ksft_disruptive
++def check_rx_autorelease(cfg) -> None:
++    require_devmem(cfg)
++
++    port = rand_port()
++    socat = f"socat -u - TCP{cfg.addr_ipver}:{cfg.baddr}:{port},bind={cfg.remote_baddr}:{port}"
++    listen_cmd = f"{cfg.bin_local} -l -f {cfg.ifname} -s {cfg.addr} -p {port} \
++                  -c {cfg.remote_addr} -v 7 -a 1"
  
- bool net_is_devmem_iov(struct net_iov *niov)
-@@ -60,6 +74,14 @@ void __net_devmem_dmabuf_binding_free(struct work_struct *wq)
+     with bkg(listen_cmd, exit_wait=True) as ncdevmem:
+         wait_port_listen(port)
+@@ -68,7 +85,7 @@ def main() -> None:
+         cfg.bin_local = path.abspath(path.dirname(__file__) + "/ncdevmem")
+         cfg.bin_remote = cfg.remote.deploy(cfg.bin_local)
  
- 	size_t size, avail;
+-        ksft_run([check_rx, check_tx, check_tx_chunks],
++        ksft_run([check_rx, check_rx_autorelease, check_tx, check_tx_chunks],
+                  args=(cfg, ))
+     ksft_exit()
  
-+	if (binding->direction == DMA_FROM_DEVICE) {
-+		mutex_lock(&devmem_ar_lock);
-+		net_devmem_dmabuf_rx_bindings_count--;
-+		if (net_devmem_dmabuf_rx_bindings_count == 0)
-+			static_branch_disable(&tcp_devmem_ar_key);
-+		mutex_unlock(&devmem_ar_lock);
-+	}
-+
- 	gen_pool_for_each_chunk(binding->chunk_pool,
- 				net_devmem_dmabuf_free_chunk_owner, NULL);
+diff --git a/tools/testing/selftests/drivers/net/hw/ncdevmem.c b/tools/testing/selftests/drivers/net/hw/ncdevmem.c
+index 3288ed04ce08..406f1771d9ec 100644
+--- a/tools/testing/selftests/drivers/net/hw/ncdevmem.c
++++ b/tools/testing/selftests/drivers/net/hw/ncdevmem.c
+@@ -92,6 +92,7 @@ static char *port;
+ static size_t do_validation;
+ static int start_queue = -1;
+ static int num_queues = -1;
++static int devmem_autorelease;
+ static char *ifname;
+ static unsigned int ifindex;
+ static unsigned int dmabuf_id;
+@@ -679,7 +680,8 @@ static int configure_flow_steering(struct sockaddr_in6 *server_sin)
  
-@@ -116,6 +138,24 @@ void net_devmem_free_dmabuf(struct net_iov *niov)
- 	gen_pool_free(binding->chunk_pool, dma_addr, PAGE_SIZE);
- }
- 
-+static void
-+net_devmem_dmabuf_binding_put_urefs(struct net_devmem_dmabuf_binding *binding)
-+{
-+	int i;
-+
-+	for (i = 0; i < binding->dmabuf->size / PAGE_SIZE; i++) {
-+		struct net_iov *niov;
-+		netmem_ref netmem;
-+
-+		niov = binding->vec[i];
-+		netmem = net_iov_to_netmem(niov);
-+
-+		/* Multiple urefs map to only a single netmem ref. */
-+		if (atomic_xchg(&niov->uref, 0) > 0)
-+			WARN_ON_ONCE(!napi_pp_put_page(netmem));
-+	}
-+}
-+
- void net_devmem_unbind_dmabuf(struct net_devmem_dmabuf_binding *binding)
+ static int bind_rx_queue(unsigned int ifindex, unsigned int dmabuf_fd,
+ 			 struct netdev_queue_id *queues,
+-			 unsigned int n_queue_index, struct ynl_sock **ys)
++			 unsigned int n_queue_index, struct ynl_sock **ys,
++			 int autorelease)
  {
- 	struct netdev_rx_queue *rxq;
-@@ -143,6 +183,7 @@ void net_devmem_unbind_dmabuf(struct net_devmem_dmabuf_binding *binding)
- 		__net_mp_close_rxq(binding->dev, rxq_idx, &mp_params);
+ 	struct netdev_bind_rx_req *req = NULL;
+ 	struct netdev_bind_rx_rsp *rsp = NULL;
+@@ -695,6 +697,7 @@ static int bind_rx_queue(unsigned int ifindex, unsigned int dmabuf_fd,
+ 	req = netdev_bind_rx_req_alloc();
+ 	netdev_bind_rx_req_set_ifindex(req, ifindex);
+ 	netdev_bind_rx_req_set_fd(req, dmabuf_fd);
++	netdev_bind_rx_req_set_autorelease(req, autorelease);
+ 	__netdev_bind_rx_req_set_queues(req, queues, n_queue_index);
+ 
+ 	rsp = netdev_bind_rx(*ys, req);
+@@ -872,7 +875,8 @@ static int do_server(struct memory_buffer *mem)
+ 		goto err_reset_rss;
  	}
  
-+	net_devmem_dmabuf_binding_put_urefs(binding);
- 	net_devmem_dmabuf_binding_put(binding);
- }
- 
-@@ -179,8 +220,10 @@ struct net_devmem_dmabuf_binding *
- net_devmem_bind_dmabuf(struct net_device *dev,
- 		       struct device *dma_dev,
- 		       enum dma_data_direction direction,
--		       unsigned int dmabuf_fd, struct netdev_nl_sock *priv,
--		       struct netlink_ext_ack *extack)
-+		       unsigned int dmabuf_fd,
-+		       struct netdev_nl_sock *priv,
-+		       struct netlink_ext_ack *extack,
-+		       bool autorelease)
- {
- 	struct net_devmem_dmabuf_binding *binding;
- 	static u32 id_alloc_next;
-@@ -231,14 +274,12 @@ net_devmem_bind_dmabuf(struct net_device *dev,
- 		goto err_detach;
+-	if (bind_rx_queue(ifindex, mem->fd, create_queues(), num_queues, &ys)) {
++	if (bind_rx_queue(ifindex, mem->fd, create_queues(), num_queues, &ys,
++			  devmem_autorelease)) {
+ 		pr_err("Failed to bind");
+ 		goto err_reset_flow_steering;
+ 	}
+@@ -1092,7 +1096,7 @@ int run_devmem_tests(void)
+ 		goto err_reset_headersplit;
  	}
  
--	if (direction == DMA_TO_DEVICE) {
--		binding->vec = kvmalloc_array(dmabuf->size / PAGE_SIZE,
--					      sizeof(struct net_iov *),
--					      GFP_KERNEL);
--		if (!binding->vec) {
--			err = -ENOMEM;
--			goto err_unmap;
--		}
-+	binding->vec = kvmalloc_array(dmabuf->size / PAGE_SIZE,
-+				      sizeof(struct net_iov *),
-+				      GFP_KERNEL | __GFP_ZERO);
-+	if (!binding->vec) {
-+		err = -ENOMEM;
-+		goto err_unmap;
+-	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys)) {
++	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys, 0)) {
+ 		pr_err("Binding empty queues array should have failed");
+ 		goto err_unbind;
+ 	}
+@@ -1108,7 +1112,7 @@ int run_devmem_tests(void)
+ 		goto err_reset_headersplit;
  	}
  
- 	/* For simplicity we expect to make PAGE_SIZE allocations, but the
-@@ -292,25 +333,62 @@ net_devmem_bind_dmabuf(struct net_device *dev,
- 			niov = &owner->area.niovs[i];
- 			niov->type = NET_IOV_DMABUF;
- 			niov->owner = &owner->area;
-+			atomic_set(&niov->uref, 0);
- 			page_pool_set_dma_addr_netmem(net_iov_to_netmem(niov),
- 						      net_devmem_get_dma_addr(niov));
--			if (direction == DMA_TO_DEVICE)
--				binding->vec[owner->area.base_virtual / PAGE_SIZE + i] = niov;
-+			binding->vec[owner->area.base_virtual / PAGE_SIZE + i] = niov;
- 		}
- 
- 		virtual += len;
+-	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys)) {
++	if (!bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys, 0)) {
+ 		pr_err("Configure dmabuf with header split off should have failed");
+ 		goto err_unbind;
+ 	}
+@@ -1124,7 +1128,7 @@ int run_devmem_tests(void)
+ 		goto err_reset_headersplit;
  	}
  
-+	mutex_lock(&devmem_ar_lock);
-+
-+	if (direction == DMA_FROM_DEVICE) {
-+		if (net_devmem_dmabuf_rx_bindings_count > 0) {
-+			bool mode;
-+
-+			mode = static_key_enabled(&tcp_devmem_ar_key);
-+
-+			/* When bindings exist, enforce that the mode does not
-+			 * change.
-+			 */
-+			if (mode != autorelease) {
-+				NL_SET_ERR_MSG_FMT(extack,
-+						   "System already configured with autorelease=%d",
-+						   mode);
-+				err = -EINVAL;
-+				goto err_unlock_mutex;
-+			}
-+		} else if (autorelease) {
-+			/* First binding with autorelease enabled sets the
-+			 * mode.  If autorelease is false, the key is already
-+			 * disabled by default so no action is needed.
-+			 */
-+			static_branch_enable(&tcp_devmem_ar_key);
-+		}
-+
-+		net_devmem_dmabuf_rx_bindings_count++;
-+	}
-+
- 	err = xa_alloc_cyclic(&net_devmem_dmabuf_bindings, &binding->id,
- 			      binding, xa_limit_32b, &id_alloc_next,
- 			      GFP_KERNEL);
- 	if (err < 0)
--		goto err_free_chunks;
-+		goto err_dec_binding_count;
-+
-+	mutex_unlock(&devmem_ar_lock);
- 
- 	list_add(&binding->list, &priv->bindings);
- 
- 	return binding;
- 
-+err_dec_binding_count:
-+	if (direction == DMA_FROM_DEVICE)
-+		net_devmem_dmabuf_rx_bindings_count--;
-+
-+err_unlock_mutex:
-+	mutex_unlock(&devmem_ar_lock);
- err_free_chunks:
- 	gen_pool_for_each_chunk(binding->chunk_pool,
- 				net_devmem_dmabuf_free_chunk_owner, NULL);
-diff --git a/net/core/devmem.h b/net/core/devmem.h
-index 1ea6228e4f40..8c586f30e371 100644
---- a/net/core/devmem.h
-+++ b/net/core/devmem.h
-@@ -12,9 +12,13 @@
- 
- #include <net/netmem.h>
- #include <net/netdev_netlink.h>
-+#include <linux/jump_label.h>
- 
- struct netlink_ext_ack;
- 
-+/* static key for TCP devmem autorelease */
-+extern struct static_key_false tcp_devmem_ar_key;
-+
- struct net_devmem_dmabuf_binding {
- 	struct dma_buf *dmabuf;
- 	struct dma_buf_attachment *attachment;
-@@ -61,7 +65,7 @@ struct net_devmem_dmabuf_binding {
- 
- 	/* Array of net_iov pointers for this binding, sorted by virtual
- 	 * address. This array is convenient to map the virtual addresses to
--	 * net_iovs in the TX path.
-+	 * net_iovs.
- 	 */
- 	struct net_iov **vec;
- 
-@@ -88,7 +92,7 @@ net_devmem_bind_dmabuf(struct net_device *dev,
- 		       struct device *dma_dev,
- 		       enum dma_data_direction direction,
- 		       unsigned int dmabuf_fd, struct netdev_nl_sock *priv,
--		       struct netlink_ext_ack *extack);
-+		       struct netlink_ext_ack *extack, bool autorelease);
- struct net_devmem_dmabuf_binding *net_devmem_lookup_dmabuf(u32 id);
- void net_devmem_unbind_dmabuf(struct net_devmem_dmabuf_binding *binding);
- int net_devmem_bind_dmabuf_to_queue(struct net_device *dev, u32 rxq_idx,
-@@ -138,6 +142,11 @@ net_devmem_dmabuf_binding_put(struct net_devmem_dmabuf_binding *binding)
- 	schedule_work(&binding->unbind_w);
- }
- 
-+static inline bool net_devmem_autorelease_enabled(void)
-+{
-+	return static_branch_unlikely(&tcp_devmem_ar_key);
-+}
-+
- void net_devmem_get_net_iov(struct net_iov *niov);
- void net_devmem_put_net_iov(struct net_iov *niov);
- 
-@@ -155,6 +164,12 @@ net_devmem_get_niov_at(struct net_devmem_dmabuf_binding *binding, size_t addr,
- #else
- struct net_devmem_dmabuf_binding;
- 
-+static inline bool
-+net_devmem_dmabuf_binding_get(struct net_devmem_dmabuf_binding *binding)
-+{
-+	return false;
-+}
-+
- static inline void
- net_devmem_dmabuf_binding_put(struct net_devmem_dmabuf_binding *binding)
- {
-@@ -174,7 +189,8 @@ net_devmem_bind_dmabuf(struct net_device *dev,
- 		       enum dma_data_direction direction,
- 		       unsigned int dmabuf_fd,
- 		       struct netdev_nl_sock *priv,
--		       struct netlink_ext_ack *extack)
-+		       struct netlink_ext_ack *extack,
-+		       bool autorelease)
- {
- 	return ERR_PTR(-EOPNOTSUPP);
- }
-@@ -241,6 +257,11 @@ net_devmem_iov_binding(const struct net_iov *niov)
- {
- 	return NULL;
- }
-+
-+static inline bool net_devmem_autorelease_enabled(void)
-+{
-+	return false;
-+}
- #endif
- 
- #endif /* _NET_DEVMEM_H */
-diff --git a/net/core/netdev-genl-gen.c b/net/core/netdev-genl-gen.c
-index ba673e81716f..01b7765e11ec 100644
---- a/net/core/netdev-genl-gen.c
-+++ b/net/core/netdev-genl-gen.c
-@@ -86,10 +86,11 @@ static const struct nla_policy netdev_qstats_get_nl_policy[NETDEV_A_QSTATS_SCOPE
- };
- 
- /* NETDEV_CMD_BIND_RX - do */
--static const struct nla_policy netdev_bind_rx_nl_policy[NETDEV_A_DMABUF_FD + 1] = {
-+static const struct nla_policy netdev_bind_rx_nl_policy[NETDEV_A_DMABUF_AUTORELEASE + 1] = {
- 	[NETDEV_A_DMABUF_IFINDEX] = NLA_POLICY_MIN(NLA_U32, 1),
- 	[NETDEV_A_DMABUF_FD] = { .type = NLA_U32, },
- 	[NETDEV_A_DMABUF_QUEUES] = NLA_POLICY_NESTED(netdev_queue_id_nl_policy),
-+	[NETDEV_A_DMABUF_AUTORELEASE] = { .type = NLA_U8, },
- };
- 
- /* NETDEV_CMD_NAPI_SET - do */
-@@ -188,7 +189,7 @@ static const struct genl_split_ops netdev_nl_ops[] = {
- 		.cmd		= NETDEV_CMD_BIND_RX,
- 		.doit		= netdev_nl_bind_rx_doit,
- 		.policy		= netdev_bind_rx_nl_policy,
--		.maxattr	= NETDEV_A_DMABUF_FD,
-+		.maxattr	= NETDEV_A_DMABUF_AUTORELEASE,
- 		.flags		= GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
- 	},
- 	{
-diff --git a/net/core/netdev-genl.c b/net/core/netdev-genl.c
-index 470fabbeacd9..c742bb34865e 100644
---- a/net/core/netdev-genl.c
-+++ b/net/core/netdev-genl.c
-@@ -939,6 +939,7 @@ int netdev_nl_bind_rx_doit(struct sk_buff *skb, struct genl_info *info)
- 	struct netdev_nl_sock *priv;
- 	struct net_device *netdev;
- 	unsigned long *rxq_bitmap;
-+	bool autorelease = false;
- 	struct device *dma_dev;
- 	struct sk_buff *rsp;
- 	int err = 0;
-@@ -952,6 +953,10 @@ int netdev_nl_bind_rx_doit(struct sk_buff *skb, struct genl_info *info)
- 	ifindex = nla_get_u32(info->attrs[NETDEV_A_DEV_IFINDEX]);
- 	dmabuf_fd = nla_get_u32(info->attrs[NETDEV_A_DMABUF_FD]);
- 
-+	if (info->attrs[NETDEV_A_DMABUF_AUTORELEASE])
-+		autorelease =
-+			!!nla_get_u8(info->attrs[NETDEV_A_DMABUF_AUTORELEASE]);
-+
- 	priv = genl_sk_priv_get(&netdev_nl_family, NETLINK_CB(skb).sk);
- 	if (IS_ERR(priv))
- 		return PTR_ERR(priv);
-@@ -1002,7 +1007,8 @@ int netdev_nl_bind_rx_doit(struct sk_buff *skb, struct genl_info *info)
+-	if (bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys)) {
++	if (bind_rx_queue(ifindex, mem->fd, queues, num_queues, &ys, 0)) {
+ 		pr_err("Failed to bind");
+ 		goto err_reset_headersplit;
  	}
+@@ -1397,7 +1401,7 @@ int main(int argc, char *argv[])
+ 	int is_server = 0, opt;
+ 	int ret, err = 1;
  
- 	binding = net_devmem_bind_dmabuf(netdev, dma_dev, DMA_FROM_DEVICE,
--					 dmabuf_fd, priv, info->extack);
-+					 dmabuf_fd, priv, info->extack,
-+					 autorelease);
- 	if (IS_ERR(binding)) {
- 		err = PTR_ERR(binding);
- 		goto err_rxq_bitmap;
-@@ -1097,7 +1103,7 @@ int netdev_nl_bind_tx_doit(struct sk_buff *skb, struct genl_info *info)
- 
- 	dma_dev = netdev_queue_get_dma_dev(netdev, 0);
- 	binding = net_devmem_bind_dmabuf(netdev, dma_dev, DMA_TO_DEVICE,
--					 dmabuf_fd, priv, info->extack);
-+					 dmabuf_fd, priv, info->extack, false);
- 	if (IS_ERR(binding)) {
- 		err = PTR_ERR(binding);
- 		goto err_unlock_netdev;
-diff --git a/net/core/sock.c b/net/core/sock.c
-index f6526f43aa6e..6355c2ccfb8a 100644
---- a/net/core/sock.c
-+++ b/net/core/sock.c
-@@ -87,6 +87,7 @@
- 
- #include <linux/unaligned.h>
- #include <linux/capability.h>
-+#include <linux/dma-buf.h>
- #include <linux/errno.h>
- #include <linux/errqueue.h>
- #include <linux/types.h>
-@@ -151,6 +152,7 @@
- #include <uapi/linux/pidfd.h>
- 
- #include "dev.h"
-+#include "devmem.h"
- 
- static DEFINE_MUTEX(proto_list_mutex);
- static LIST_HEAD(proto_list);
-@@ -1081,6 +1083,44 @@ static int sock_reserve_memory(struct sock *sk, int bytes)
- #define MAX_DONTNEED_TOKENS 128
- #define MAX_DONTNEED_FRAGS 1024
- 
-+static noinline_for_stack int
-+sock_devmem_dontneed_manual_release(struct sock *sk,
-+				    struct dmabuf_token *tokens,
-+				    unsigned int num_tokens)
-+{
-+	struct net_iov *niov;
-+	unsigned int i, j;
-+	netmem_ref netmem;
-+	unsigned int token;
-+	int num_frags = 0;
-+	int ret = 0;
-+
-+	if (!sk->sk_devmem_info.binding)
-+		return -EINVAL;
-+
-+	for (i = 0; i < num_tokens; i++) {
-+		for (j = 0; j < tokens[i].token_count; j++) {
-+			size_t size = sk->sk_devmem_info.binding->dmabuf->size;
-+
-+			token = tokens[i].token_start + j;
-+			if (token >= size / PAGE_SIZE)
-+				break;
-+
-+			if (++num_frags > MAX_DONTNEED_FRAGS)
-+				return ret;
-+
-+			niov = sk->sk_devmem_info.binding->vec[token];
-+			if (atomic_dec_and_test(&niov->uref)) {
-+				netmem = net_iov_to_netmem(niov);
-+				WARN_ON_ONCE(!napi_pp_put_page(netmem));
-+			}
-+			ret++;
-+		}
-+	}
-+
-+	return ret;
-+}
-+
- static noinline_for_stack int
- sock_devmem_dontneed_autorelease(struct sock *sk, struct dmabuf_token *tokens,
- 				 unsigned int num_tokens)
-@@ -1089,32 +1129,33 @@ sock_devmem_dontneed_autorelease(struct sock *sk, struct dmabuf_token *tokens,
- 	int ret = 0, num_frags = 0;
- 	netmem_ref netmems[16];
- 
--	xa_lock_bh(&sk->sk_user_frags);
-+	xa_lock_bh(&sk->sk_devmem_info.frags);
- 	for (i = 0; i < num_tokens; i++) {
- 		for (j = 0; j < tokens[i].token_count; j++) {
- 			if (++num_frags > MAX_DONTNEED_FRAGS)
- 				goto frag_limit_reached;
- 
- 			netmem_ref netmem = (__force netmem_ref)__xa_erase(
--				&sk->sk_user_frags, tokens[i].token_start + j);
-+				&sk->sk_devmem_info.frags,
-+				tokens[i].token_start + j);
- 
- 			if (!netmem || WARN_ON_ONCE(!netmem_is_net_iov(netmem)))
- 				continue;
- 
- 			netmems[netmem_num++] = netmem;
- 			if (netmem_num == ARRAY_SIZE(netmems)) {
--				xa_unlock_bh(&sk->sk_user_frags);
-+				xa_unlock_bh(&sk->sk_devmem_info.frags);
- 				for (k = 0; k < netmem_num; k++)
- 					WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
- 				netmem_num = 0;
--				xa_lock_bh(&sk->sk_user_frags);
-+				xa_lock_bh(&sk->sk_devmem_info.frags);
- 			}
- 			ret++;
- 		}
- 	}
- 
- frag_limit_reached:
--	xa_unlock_bh(&sk->sk_user_frags);
-+	xa_unlock_bh(&sk->sk_devmem_info.frags);
- 	for (k = 0; k < netmem_num; k++)
- 		WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
- 
-@@ -1145,7 +1186,11 @@ sock_devmem_dontneed(struct sock *sk, sockptr_t optval, unsigned int optlen)
- 		return -EFAULT;
- 	}
- 
--	ret = sock_devmem_dontneed_autorelease(sk, tokens, num_tokens);
-+	if (net_devmem_autorelease_enabled())
-+		ret = sock_devmem_dontneed_autorelease(sk, tokens, num_tokens);
-+	else
-+		ret = sock_devmem_dontneed_manual_release(sk, tokens,
-+							  num_tokens);
- 
- 	kvfree(tokens);
- 	return ret;
-diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
-index d5319ebe2452..a8a4af552909 100644
---- a/net/ipv4/tcp.c
-+++ b/net/ipv4/tcp.c
-@@ -260,6 +260,7 @@
- #include <linux/memblock.h>
- #include <linux/highmem.h>
- #include <linux/cache.h>
-+#include <linux/dma-buf.h>
- #include <linux/err.h>
- #include <linux/time.h>
- #include <linux/slab.h>
-@@ -492,7 +493,8 @@ void tcp_init_sock(struct sock *sk)
- 
- 	set_bit(SOCK_SUPPORT_ZC, &sk->sk_socket->flags);
- 	sk_sockets_allocated_inc(sk);
--	xa_init_flags(&sk->sk_user_frags, XA_FLAGS_ALLOC1);
-+	xa_init_flags(&sk->sk_devmem_info.frags, XA_FLAGS_ALLOC1);
-+	sk->sk_devmem_info.binding = NULL;
- }
- EXPORT_IPV6_MOD(tcp_init_sock);
- 
-@@ -2424,11 +2426,12 @@ static void tcp_xa_pool_commit_locked(struct sock *sk, struct tcp_xa_pool *p)
- 
- 	/* Commit part that has been copied to user space. */
- 	for (i = 0; i < p->idx; i++)
--		__xa_cmpxchg(&sk->sk_user_frags, p->tokens[i], XA_ZERO_ENTRY,
--			     (__force void *)p->netmems[i], GFP_KERNEL);
-+		__xa_cmpxchg(&sk->sk_devmem_info.frags, p->tokens[i],
-+			     XA_ZERO_ENTRY, (__force void *)p->netmems[i],
-+			     GFP_KERNEL);
- 	/* Rollback what has been pre-allocated and is no longer needed. */
- 	for (; i < p->max; i++)
--		__xa_erase(&sk->sk_user_frags, p->tokens[i]);
-+		__xa_erase(&sk->sk_devmem_info.frags, p->tokens[i]);
- 
- 	p->max = 0;
- 	p->idx = 0;
-@@ -2436,14 +2439,18 @@ static void tcp_xa_pool_commit_locked(struct sock *sk, struct tcp_xa_pool *p)
- 
- static void tcp_xa_pool_commit(struct sock *sk, struct tcp_xa_pool *p)
- {
-+	/* Skip xarray operations if autorelease is disabled (manual mode) */
-+	if (!net_devmem_autorelease_enabled())
-+		return;
-+
- 	if (!p->max)
- 		return;
- 
--	xa_lock_bh(&sk->sk_user_frags);
-+	xa_lock_bh(&sk->sk_devmem_info.frags);
- 
- 	tcp_xa_pool_commit_locked(sk, p);
- 
--	xa_unlock_bh(&sk->sk_user_frags);
-+	xa_unlock_bh(&sk->sk_devmem_info.frags);
- }
- 
- static int tcp_xa_pool_refill(struct sock *sk, struct tcp_xa_pool *p,
-@@ -2454,24 +2461,41 @@ static int tcp_xa_pool_refill(struct sock *sk, struct tcp_xa_pool *p,
- 	if (p->idx < p->max)
- 		return 0;
- 
--	xa_lock_bh(&sk->sk_user_frags);
-+	xa_lock_bh(&sk->sk_devmem_info.frags);
- 
- 	tcp_xa_pool_commit_locked(sk, p);
- 
- 	for (k = 0; k < max_frags; k++) {
--		err = __xa_alloc(&sk->sk_user_frags, &p->tokens[k],
-+		err = __xa_alloc(&sk->sk_devmem_info.frags, &p->tokens[k],
- 				 XA_ZERO_ENTRY, xa_limit_31b, GFP_KERNEL);
- 		if (err)
+-	while ((opt = getopt(argc, argv, "ls:c:p:v:q:t:f:z:")) != -1) {
++	while ((opt = getopt(argc, argv, "ls:c:p:v:q:t:f:z:a:")) != -1) {
+ 		switch (opt) {
+ 		case 'l':
+ 			is_server = 1;
+@@ -1426,6 +1430,9 @@ int main(int argc, char *argv[])
+ 		case 'z':
+ 			max_chunk = atoi(optarg);
  			break;
- 	}
- 
--	xa_unlock_bh(&sk->sk_user_frags);
-+	xa_unlock_bh(&sk->sk_devmem_info.frags);
- 
- 	p->max = k;
- 	p->idx = 0;
- 	return k ? 0 : err;
- }
- 
-+static void tcp_xa_pool_inc_pp_ref_count(struct tcp_xa_pool *tcp_xa_pool,
-+					 skb_frag_t *frag)
-+{
-+	struct net_iov *niov;
-+
-+	niov = skb_frag_net_iov(frag);
-+
-+	if (net_devmem_autorelease_enabled()) {
-+		atomic_long_inc(&niov->desc.pp_ref_count);
-+		tcp_xa_pool->netmems[tcp_xa_pool->idx++] =
-+			skb_frag_netmem(frag);
-+	} else {
-+		if (atomic_inc_return(&niov->uref) == 1)
-+			atomic_long_inc(&niov->desc.pp_ref_count);
-+	}
-+}
-+
- /* On error, returns the -errno. On success, returns number of bytes sent to the
-  * user. May not consume all of @remaining_len.
-  */
-@@ -2533,6 +2557,7 @@ static int tcp_recvmsg_dmabuf(struct sock *sk, const struct sk_buff *skb,
- 		 * sequence of cmsg
- 		 */
- 		for (i = 0; i < skb_shinfo(skb)->nr_frags; i++) {
-+			struct net_devmem_dmabuf_binding *binding = NULL;
- 			skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
- 			struct net_iov *niov;
- 			u64 frag_offset;
-@@ -2568,13 +2593,35 @@ static int tcp_recvmsg_dmabuf(struct sock *sk, const struct sk_buff *skb,
- 					      start;
- 				dmabuf_cmsg.frag_offset = frag_offset;
- 				dmabuf_cmsg.frag_size = copy;
--				err = tcp_xa_pool_refill(sk, &tcp_xa_pool,
--							 skb_shinfo(skb)->nr_frags - i);
--				if (err)
-+
-+				binding = net_devmem_iov_binding(niov);
-+
-+				if (!sk->sk_devmem_info.binding) {
-+					net_devmem_dmabuf_binding_get(binding);
-+					sk->sk_devmem_info.binding = binding;
-+				}
-+
-+				if (sk->sk_devmem_info.binding != binding) {
-+					err = -EFAULT;
- 					goto out;
-+				}
-+
-+				if (net_devmem_autorelease_enabled()) {
-+					err = tcp_xa_pool_refill(sk,
-+								 &tcp_xa_pool,
-+								 skb_shinfo(skb)->nr_frags - i);
-+					if (err)
-+						goto out;
-+
-+					dmabuf_cmsg.frag_token =
-+						tcp_xa_pool.tokens[tcp_xa_pool.idx];
-+				} else {
-+					dmabuf_cmsg.frag_token =
-+						net_iov_virtual_addr(niov) >> PAGE_SHIFT;
-+				}
-+
- 
- 				/* Will perform the exchange later */
--				dmabuf_cmsg.frag_token = tcp_xa_pool.tokens[tcp_xa_pool.idx];
- 				dmabuf_cmsg.dmabuf_id = net_devmem_iov_binding_id(niov);
- 
- 				offset += copy;
-@@ -2587,8 +2634,7 @@ static int tcp_recvmsg_dmabuf(struct sock *sk, const struct sk_buff *skb,
- 				if (err)
- 					goto out;
- 
--				atomic_long_inc(&niov->desc.pp_ref_count);
--				tcp_xa_pool.netmems[tcp_xa_pool.idx++] = skb_frag_netmem(frag);
-+				tcp_xa_pool_inc_pp_ref_count(&tcp_xa_pool, frag);
- 
- 				sent += copy;
- 
-diff --git a/net/ipv4/tcp_ipv4.c b/net/ipv4/tcp_ipv4.c
-index f8a9596e8f4d..7b1b5a17002f 100644
---- a/net/ipv4/tcp_ipv4.c
-+++ b/net/ipv4/tcp_ipv4.c
-@@ -89,6 +89,9 @@
- 
- #include <crypto/md5.h>
- 
-+#include <linux/dma-buf.h>
-+#include "../core/devmem.h"
-+
- #include <trace/events/tcp.h>
- 
- #ifdef CONFIG_TCP_MD5SIG
-@@ -2492,7 +2495,7 @@ static void tcp_release_user_frags(struct sock *sk)
- 	unsigned long index;
- 	void *netmem;
- 
--	xa_for_each(&sk->sk_user_frags, index, netmem)
-+	xa_for_each(&sk->sk_devmem_info.frags, index, netmem)
- 		WARN_ON_ONCE(!napi_pp_put_page((__force netmem_ref)netmem));
- #endif
- }
-@@ -2503,7 +2506,11 @@ void tcp_v4_destroy_sock(struct sock *sk)
- 
- 	tcp_release_user_frags(sk);
- 
--	xa_destroy(&sk->sk_user_frags);
-+	xa_destroy(&sk->sk_devmem_info.frags);
-+	if (sk->sk_devmem_info.binding) {
-+		net_devmem_dmabuf_binding_put(sk->sk_devmem_info.binding);
-+		sk->sk_devmem_info.binding = NULL;
-+	}
- 
- 	trace_tcp_destroy_sock(sk);
- 
-diff --git a/net/ipv4/tcp_minisocks.c b/net/ipv4/tcp_minisocks.c
-index bd5462154f97..2aec977f5c12 100644
---- a/net/ipv4/tcp_minisocks.c
-+++ b/net/ipv4/tcp_minisocks.c
-@@ -662,7 +662,8 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
- 
- 	__TCP_INC_STATS(sock_net(sk), TCP_MIB_PASSIVEOPENS);
- 
--	xa_init_flags(&newsk->sk_user_frags, XA_FLAGS_ALLOC1);
-+	xa_init_flags(&newsk->sk_devmem_info.frags, XA_FLAGS_ALLOC1);
-+	newsk->sk_devmem_info.binding = NULL;
- 
- 	return newsk;
- }
-diff --git a/tools/include/uapi/linux/netdev.h b/tools/include/uapi/linux/netdev.h
-index e0b579a1df4f..1e5c209cb998 100644
---- a/tools/include/uapi/linux/netdev.h
-+++ b/tools/include/uapi/linux/netdev.h
-@@ -207,6 +207,7 @@ enum {
- 	NETDEV_A_DMABUF_QUEUES,
- 	NETDEV_A_DMABUF_FD,
- 	NETDEV_A_DMABUF_ID,
-+	NETDEV_A_DMABUF_AUTORELEASE,
- 
- 	__NETDEV_A_DMABUF_MAX,
- 	NETDEV_A_DMABUF_MAX = (__NETDEV_A_DMABUF_MAX - 1)
++		case 'a':
++			devmem_autorelease = atoi(optarg);
++			break;
+ 		case '?':
+ 			fprintf(stderr, "unknown option: %c\n", optopt);
+ 			break;
 
 -- 
 2.47.3
