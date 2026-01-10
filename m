@@ -1,68 +1,67 @@
-Received: from mail-yx1-f65.google.com (mail-yx1-f65.google.com [74.125.224.65])
+Received: from mail-ua1-f44.google.com (mail-ua1-f44.google.com [209.85.222.44])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0820825C809
-	for <linux-arch@vger.kernel.org>; Sat, 10 Jan 2026 02:19:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.65
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B625D2580DE
+	for <linux-arch@vger.kernel.org>; Sat, 10 Jan 2026 03:44:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768011551; cv=none; b=uNai6q+XnP4/f0rjtHQhGrISYUquNnMPcVW7X5PTq78LrvY/6ZyHZl0NQqKNr2mnKkkMN922fIvDTGgXy7g2MvK73U2CX8Fzto6O1QMyhLCh0SbzVb7dvZpgCCjr4Kr38nUVoBxPXtX4JqeHozyWZbJ6LaMt3VLEqwPU+LKOdiM=
+	t=1768016647; cv=none; b=PxBMas/MTVYL6q59Ko4Y8RlvfLXLOAI9PTtrSeb4W5detvuxVwCdFln+bPRUUIfEb6glOwGoce06MVkqwpfGmEVHf8Lu79RJP22kba4PQ/fCHZVe9Z5qlxbN7xf9PY8+qqlIHl21q/jSQ54yc3fjYJIrvaf5qqpFRSg+1wBybcI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768011551; c=relaxed/simple;
-	bh=6tucM9ZQ59G0xrDfMuItsfF1GTt7N8xzYil/t1gA1PQ=;
-	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=lNzZjok8WQ9hy4MnHYKA/i/ILcHW5x9OACEJkAtKPFtV79x/P8vFtjqPtJciIR0IK1pJJQHGZBHi1WAU8kzj3/MKygZewG8VWOl/oAc9uUDa3oWzXSMJcQIg48+WgQVt9GeWlYFbkUaN/zUo8bZiuUEAEDFV2gAhYyzoJrZVy+Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=RRZ//9XF; arc=none smtp.client-ip=74.125.224.65
+	s=arc-20240116; t=1768016647; c=relaxed/simple;
+	bh=zRMaG2UZoaDAk8JWg4Py4arxiWvpQFKHkL9OU1MsMMQ=;
+	h=From:Subject:Date:Message-Id:MIME-Version:Content-Type:To:Cc; b=SyGesxrdIfrSgDwX0wZQOHNst72c7tLFDel4djkXn4hsqqaKd2gbmcC1hL9Hoz/bac4tfbUmySvWiAPKfg+5HdC+iCL517zj3iT6SmvOhVAwOgesdzSnjHGH53qrD+D1Lr+Sb4jlFPLNBd23luWTd5nwY9J/x2AynbWnbqy8vrM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=SpI2QtAA; arc=none smtp.client-ip=209.85.222.44
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="RRZ//9XF"
-Received: by mail-yx1-f65.google.com with SMTP id 956f58d0204a3-646d9eb45afso4577670d50.2
-        for <linux-arch@vger.kernel.org>; Fri, 09 Jan 2026 18:19:04 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="SpI2QtAA"
+Received: by mail-ua1-f44.google.com with SMTP id a1e0cc1a2514c-93f523bba52so2577062241.1
+        for <linux-arch@vger.kernel.org>; Fri, 09 Jan 2026 19:44:05 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1768011544; x=1768616344; darn=vger.kernel.org;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=DXRdbOnUYiudn9GxHVVfvuR3By+3aRth8g9ruHEmquY=;
-        b=RRZ//9XFWutooYFdB4GTmpzjV5zZXDbguHHvTNrat3+JjePN7DsXSBz2YEoc1sBUNr
-         CWu19+T0PsjbWWn41lO6qbwbaQCFgEKUdQZRxI6vEVYheN8zDQV/QhDWt1gK53qaLMxV
-         wBg6p4gCF9VZK3tj0a7cQ2ddG+jgbuShYTP4Ijfwm9A1A7+pU9pml2geDMy4xT0YWuZG
-         BqjWeoJXTdjafCZrbOD/GX980Rkv6SR8HuaMHHTTdDLCdIlDx+KBx2QN4XIEAeFvTfW7
-         5usfQLENdof2Bu2Z7IWiVc121bGmVIZb6qnKORdhNx18h83RXKnRXKU7JJn4RmFRM0vI
-         zrVQ==
+        d=gmail.com; s=20230601; t=1768016644; x=1768621444; darn=vger.kernel.org;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=lzuCZ10ab2Iorj0lcSOmaTCThwhF5YTUtr2Jp++0Xa0=;
+        b=SpI2QtAAsEgZ5Jy35o7YD+1mYIFWDYCjPyybJXjaZoJhgmQ+3qnmmnnhqo1TvwySVZ
+         i1eHtqqeh8dyLvFecN2OW7O0fN6+CpYEBtHD5N9yweMecKh0m3pyuaCymOVSlxWOehyW
+         3zVUf2vDBquHL0x5LKLa0E9keNIzksglA2t3go0j4bjZkDW4fSv62Ch02KgdBerZcr8g
+         KuTk2vuKtkEup+pEaQ2cPPd5kcEFz9xCKgwV5YLxb1Wu7ozGObth1fCtYWhhbc5yigOw
+         57PAT0td+SmB5m0x4W75ghb21/jjhHTP6N1+EmDDdPKHYXCJkbFKMNVhApYD14sT51uH
+         qBNg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1768011544; x=1768616344;
-        h=cc:to:in-reply-to:references:message-id:content-transfer-encoding
-         :mime-version:subject:date:from:x-gm-gg:x-gm-message-state:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=DXRdbOnUYiudn9GxHVVfvuR3By+3aRth8g9ruHEmquY=;
-        b=t4u1c5Jfykbj9ks3+9X6BgTSOG6aPHdywn340JxuSaEFdmVQIuRLI9n+PvLZBQ62e9
-         +TMk/3OnmaXgW1HXkv97e1jKghyqccEZAakZWSijAcIDO8E4YLOnNYL2IbU722892vNY
-         hGx1hq43+02GpBCT9t0txt72xhaC8rhudr0kNK/c3b88V5BHbpFJ/ARlXlsm1jvvAsr4
-         6yPknWnIG79WmJCsYW5swz1+Mq7rQOgIT3h5C8giYaUOr9P5K256VAKIYXLzy7klJDe4
-         yH/0VGkkhHmTsq7FkjpheCw1tppVKtJiucra8ZLH8NbGQFexbt1zOhqkyzRq1fDNSlgd
-         2ERQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUDYIZ+4ns4fCirQob42OGWEvVZCENhjwkJyWWxXLah7ovcgpBlB8H8mCQPHHiE9OmOS68fnNwK4B7g@vger.kernel.org
-X-Gm-Message-State: AOJu0YwMUHOIH4lsdg61Wy9flgzy+s4aS3lzR7p0fId/l84QVO0DgGeC
-	JdNNJLYb7meyRQQqmYjT9/yrq3GyV/hI6j8J8HRfYLx6P4DTXySzZIV+
-X-Gm-Gg: AY/fxX4UuoZtFvgpB/e+EqK0iA0UZJ19poTeuxrgFJ7OGkeugwDj8rWvr5zBGnqdJmQ
-	SulQS79Gba5fDskjGttf60qVKHuW7vUU+TA0X344E9U1+uazbM9LPiB+fkbK2aqmD5z9MG/X4cb
-	JZvbeXijNH/cVHoyco1Fck+Z1Id0qUK1X+SjgPxUfdPFWnI7i3wpSeFD/wtB81wBXeFlMl0rLls
-	z7fMmwC3R4tAv5sre5ZWF86XVLXpDG9vG6PxDApQJUl1tmw/fULQbFi9Oxyp6/miS8s97sQA+3K
-	/lyc3iybcjrWcL64unkr3W52rT6XbhmiAtjIMgHFq5x8Q+TE1iuiAYSLLDRh6rRg1YXycElE8Ky
-	ucAYvvS7qcBaBjJ7S+nbSXn765AemoUHupt+LDOoQiTnOonFAOlr+6yw2Czc1441+/pgJsMZ7we
-	WKYDfNugIBcA==
-X-Google-Smtp-Source: AGHT+IGzRizbGlIsAZwDp+VnMT+8idkBjcUWkmHJRYK1pkT2bOkNYQhUeyud4a1V268OgPfep68gmw==
-X-Received: by 2002:a05:690e:400a:b0:646:a3cf:a2e8 with SMTP id 956f58d0204a3-64716ba374amr9762926d50.40.1768011543796;
-        Fri, 09 Jan 2026 18:19:03 -0800 (PST)
-Received: from localhost ([2a03:2880:25ff:53::])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-790aa672725sm47421447b3.34.2026.01.09.18.19.03
+        d=1e100.net; s=20230601; t=1768016644; x=1768621444;
+        h=cc:to:content-transfer-encoding:mime-version:message-id:date
+         :subject:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=lzuCZ10ab2Iorj0lcSOmaTCThwhF5YTUtr2Jp++0Xa0=;
+        b=qNkA9K8K0lmvKFtu19lzOrLgmwcq0RUJgSXfWLVVUW49YB4T/efrXBKx14ZkLnhD2M
+         WjIcx3oV4idctSpgNCu7F0CsdrYyMc3T2iBTaLrZNQebfiZDCmdsX+R6aVJ5SVZTqzvo
+         E5sgJ1zldfBrVhnENaM7Ql/5sMRnXDMG+Qwrbd8LiVfRsZMf6HOB9WEHZkmenVluv0bN
+         jN27+Nw1mbM4Lpe8akCmjMd6aMltUUR+UBtj2WALfiKkt/gxamHlXizgQBm+i2g3Lf1v
+         JeV7SfLwDiFSp4Okpb5mBjHDlXWOLQdVrmXhe4ElPXGeAPb5cVSmUEjCmcDPRtZ81LJq
+         GzJg==
+X-Forwarded-Encrypted: i=1; AJvYcCVrH5n8AiIQwbLke77eLbRl9JBWJUx6/sZ+hsinwWl+PGTivoOKCX6Jp54tyz+O6YbPPhOUF+74ZL+g@vger.kernel.org
+X-Gm-Message-State: AOJu0YxIkbTu9j4kDKrRKB3eUSIfJpRF4xe7vk4VvGXedh8Xx/zkSOmA
+	38OntIvZcD6NEC5aq8wDqgsVA5jeUUf5IAmit1Im0SJrau44UWlbIW41VI5fIA==
+X-Gm-Gg: AY/fxX48eNqihgOXzN3hYeATdhi8rgPZnZ/cdtPRibr29fy9wFDjS+0D9so/rmxTEmg
+	d8PQfK/+LKtQjv5n4bZdde4KWDpJ240dZGOEhCQTQt8at2P72H5axpB9k7uKQqOXfh9ZY/Gsfwn
+	d+vXYxgbXy3UT1eNT1JyhwpKNCSAbLFQmRCGX5s3v9oPWrBD8yNwk7t2c4BfI+4+R9xDbwQ8alk
+	7no6ssPq+fb6iwuCvEbeU+D+cwPsCGKLp4ZF4z4Y8ePQNpKF+KFHyjs803WzrPpgCqWKK7ufcY5
+	6tAw4IAE1oXO6tnRiqNKcCyZ3Rbz7iSm7HrXPhvYvBBWSIH1nmWVcSXsBs7xXz3gE7DzyhrrKcg
+	BRzX+lYk3SWzaD0wTSQt+Ue/8AG3FNfkvsRbNPJpHnnhYWPydFbpHXJeebgWKbyrFPVPdLuTRtc
+	wGFkfyqVeaLA==
+X-Google-Smtp-Source: AGHT+IEz37L2wQQJA4qX8j5KYwrwN9NH1ecV7Azu8uWOr9xF8kdhENvXLiTeJfu5CUWtgau8Fq/JnA==
+X-Received: by 2002:a53:d005:0:b0:645:5297:3e5d with SMTP id 956f58d0204a3-6470d31648fmr10030592d50.46.1768011539825;
+        Fri, 09 Jan 2026 18:18:59 -0800 (PST)
+Received: from localhost ([2a03:2880:25ff:42::])
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-790ae603282sm43469157b3.13.2026.01.09.18.18.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 09 Jan 2026 18:19:03 -0800 (PST)
+        Fri, 09 Jan 2026 18:18:59 -0800 (PST)
 From: Bobby Eshleman <bobbyeshleman@gmail.com>
-Date: Fri, 09 Jan 2026 18:18:18 -0800
-Subject: [PATCH net-next v9 4/5] net: devmem: document
- NETDEV_A_DMABUF_AUTORELEASE netlink attribute
+Subject: [PATCH net-next v9 0/5] net: devmem: improve cpu cost of RX token
+ management
+Date: Fri, 09 Jan 2026 18:18:14 -0800
+Message-Id: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-0-8042930d00d7@meta.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -71,9 +70,13 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-4-8042930d00d7@meta.com>
-References: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-0-8042930d00d7@meta.com>
-In-Reply-To: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-0-8042930d00d7@meta.com>
+X-B4-Tracking: v=1; b=H4sIAOi2YWkC/5XSS2rEMAyA4asEr0dFfttZ9R6lCz+UJrRJhtgNM
+ wxz90Kgbcgua8H3C6EHK7QMVFjbPNhC61CGeWJt4y8NS32YPgiGzNqGCRQanfBQ0hJq6iHOMd6
+ p9F80hgkyrSONUNMV6vxJE3xfS10ojCC8iMStyholuzTsulA33LbiG5uowkS3yt4vDeuHUuflv
+ q2y8m2+VT2K09WVA0L2ynDjo9YaX0eq4SXN45ZaxY7n/DwvACE5zFbqmJWWB17ueGHO8xIQ0Km
+ oTMzBue7A6z+eo5DneQ0IyqbodKeF9nTgzT/PUZ3nDSBQ8C51KiuMx+PYHc/PP9RqAYGHmJwyV
+ mqVDrz75Q1ytOd5BwheJG+ckVx5s+Ofz+cPGcVR5jEDAAA=
+X-Change-ID: 20250829-scratch-bobbyeshleman-devmem-tcp-token-upstream-292be174d503
 To: "David S. Miller" <davem@davemloft.net>, 
  Eric Dumazet <edumazet@google.com>, Jakub Kicinski <kuba@kernel.org>, 
  Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
@@ -90,110 +93,116 @@ Cc: Stanislav Fomichev <sdf@fomichev.me>, netdev@vger.kernel.org,
  Bobby Eshleman <bobbyeshleman@meta.com>
 X-Mailer: b4 0.14.3
 
-From: Bobby Eshleman <bobbyeshleman@meta.com>
+This series improves the CPU cost of RX token management by adding an
+attribute to NETDEV_CMD_BIND_RX that configures sockets using the
+binding to avoid the xarray allocator and instead use a per-binding niov
+array and a uref field in niov.
 
-Update devmem.rst documentation to describe the autorelease netlink
-attribute used during RX dmabuf binding.
+Improvement is ~13% cpu util per RX user thread.
 
-The autorelease attribute is specified at bind-time via the netlink API
-(NETDEV_CMD_BIND_RX) and controls what happens to outstanding tokens
-when the socket closes.
+Using kperf, the following results were observed:
 
-Document the two token release modes (automatic vs manual), how to
-configure the binding for autorelease, the perf benefits, new caveats
-and restrictions, and the way the mode is enforced system-wide.
+Before:
+	Average RX worker idle %: 13.13, flows 4, test runs 11
+After:
+	Average RX worker idle %: 26.32, flows 4, test runs 11
+
+Two other approaches were tested, but with no improvement. Namely, 1)
+using a hashmap for tokens and 2) keeping an xarray of atomic counters
+but using RCU so that the hotpath could be mostly lockless. Neither of
+these approaches proved better than the simple array in terms of CPU.
+
+The attribute NETDEV_A_DMABUF_AUTORELEASE is added to toggle the
+optimization. It is an optional attribute and defaults to 0 (i.e.,
+optimization on).
 
 Signed-off-by: Bobby Eshleman <bobbyeshleman@meta.com>
----
+
+Changes in v9:
+- fixed build with NET_DEVMEM=n
+- fixed bug in rx bindings count logic
+- Link to v8: https://lore.kernel.org/r/20260107-scratch-bobbyeshleman-devmem-tcp-token-upstream-v8-0-92c968631496@meta.com
+
+Changes in v8:
+- change static branch logic (only set when enabled, otherwise just
+  always revert back to disabled)
+- fix missing tests
+- Link to v7: https://lore.kernel.org/r/20251119-scratch-bobbyeshleman-devmem-tcp-token-upstream-v7-0-1abc8467354c@meta.com
+
 Changes in v7:
-- Document netlink instead of sockopt
-- Mention system-wide locked to one mode
+- use netlink instead of sockopt (Stan)
+- restrict system to only one mode, dmabuf bindings can not co-exist
+  with different modes (Stan)
+- use static branching to enforce single system-wide mode (Stan)
+- Link to v6: https://lore.kernel.org/r/20251104-scratch-bobbyeshleman-devmem-tcp-token-upstream-v6-0-ea98cf4d40b3@meta.com
+
+Changes in v6:
+- renamed 'net: devmem: use niov array for token management' to refer to
+  optionality of new config
+- added documentation and tests
+- make autorelease flag per-socket sockopt instead of binding
+  field / sysctl
+- many per-patch changes (see Changes sections per-patch)
+- Link to v5: https://lore.kernel.org/r/20251023-scratch-bobbyeshleman-devmem-tcp-token-upstream-v5-0-47cb85f5259e@meta.com
+
+Changes in v5:
+- add sysctl to opt-out of performance benefit, back to old token release
+- Link to v4: https://lore.kernel.org/all/20250926-scratch-bobbyeshleman-devmem-tcp-token-upstream-v4-0-39156563c3ea@meta.com
+
+Changes in v4:
+- rebase to net-next
+- Link to v3: https://lore.kernel.org/r/20250926-scratch-bobbyeshleman-devmem-tcp-token-upstream-v3-0-084b46bda88f@meta.com
+
+Changes in v3:
+- make urefs per-binding instead of per-socket, reducing memory
+  footprint
+- fallback to cleaning up references in dmabuf unbind if socket
+  leaked tokens
+- drop ethtool patch
+- Link to v2: https://lore.kernel.org/r/20250911-scratch-bobbyeshleman-devmem-tcp-token-upstream-v2-0-c80d735bd453@meta.com
+
+Changes in v2:
+- net: ethtool: prevent user from breaking devmem single-binding rule
+  (Mina)
+- pre-assign niovs in binding->vec for RX case (Mina)
+- remove WARNs on invalid user input (Mina)
+- remove extraneous binding ref get (Mina)
+- remove WARN for changed binding (Mina)
+- always use GFP_ZERO for binding->vec (Mina)
+- fix length of alloc for urefs
+- use atomic_set(, 0) to initialize sk_user_frags.urefs
+- Link to v1: https://lore.kernel.org/r/20250902-scratch-bobbyeshleman-devmem-tcp-token-upstream-v1-0-d946169b5550@meta.com
+
 ---
- Documentation/networking/devmem.rst | 70 +++++++++++++++++++++++++++++++++++++
- 1 file changed, 70 insertions(+)
+Bobby Eshleman (5):
+      net: devmem: rename tx_vec to vec in dmabuf binding
+      net: devmem: refactor sock_devmem_dontneed for autorelease split
+      net: devmem: implement autorelease token management
+      net: devmem: document NETDEV_A_DMABUF_AUTORELEASE netlink attribute
+      selftests: drv-net: devmem: add autorelease test
 
-diff --git a/Documentation/networking/devmem.rst b/Documentation/networking/devmem.rst
-index a6cd7236bfbd..67c63bc5a7ae 100644
---- a/Documentation/networking/devmem.rst
-+++ b/Documentation/networking/devmem.rst
-@@ -235,6 +235,76 @@ can be less than the tokens provided by the user in case of:
- (a) an internal kernel leak bug.
- (b) the user passed more than 1024 frags.
- 
-+
-+Autorelease Control
-+~~~~~~~~~~~~~~~~~~~
-+
-+The autorelease mode controls what happens to outstanding tokens (tokens not
-+released via SO_DEVMEM_DONTNEED) when the socket closes. Autorelease is
-+configured per-binding at binding creation time via the netlink API::
-+
-+	struct netdev_bind_rx_req *req;
-+	struct netdev_bind_rx_rsp *rsp;
-+	struct ynl_sock *ys;
-+	struct ynl_error yerr;
-+
-+	ys = ynl_sock_create(&ynl_netdev_family, &yerr);
-+
-+	req = netdev_bind_rx_req_alloc();
-+	netdev_bind_rx_req_set_ifindex(req, ifindex);
-+	netdev_bind_rx_req_set_fd(req, dmabuf_fd);
-+	netdev_bind_rx_req_set_autorelease(req, 0); /* 0 = manual, 1 = auto */
-+	__netdev_bind_rx_req_set_queues(req, queues, n_queues);
-+
-+	rsp = netdev_bind_rx(ys, req);
-+
-+	dmabuf_id = rsp->id;
-+
-+When autorelease is disabled (0):
-+
-+- Outstanding tokens are NOT released when the socket closes
-+- Outstanding tokens are only released when the dmabuf is unbound
-+- Provides better performance by eliminating xarray overhead (~13% CPU reduction)
-+- Kernel tracks tokens via atomic reference counters in net_iov structures
-+
-+When autorelease is enabled (1):
-+
-+- Outstanding tokens are automatically released when the socket closes
-+- Backwards compatible behavior
-+- Kernel tracks tokens in an xarray per socket
-+
-+The default is autorelease disabled.
-+
-+Important: In both modes, applications should call SO_DEVMEM_DONTNEED to
-+return tokens as soon as they are done processing. The autorelease setting only
-+affects what happens to tokens that are still outstanding when close() is called.
-+
-+The mode is enforced system-wide. Once a binding is created with a specific
-+autorelease mode, all subsequent bindings system-wide must use the same mode.
-+
-+
-+Performance Considerations
-+~~~~~~~~~~~~~~~~~~~~~~~~~~
-+
-+Disabling autorelease provides approximately ~13% CPU utilization improvement
-+in RX workloads. That said, applications must ensure all tokens are released
-+via SO_DEVMEM_DONTNEED before closing the socket, otherwise the backing pages
-+will remain pinned until the dmabuf is unbound.
-+
-+
-+Caveats
-+~~~~~~~
-+
-+- Once a system-wide autorelease mode is selected (via the first binding),
-+  all subsequent bindings must use the same mode. Attempts to create bindings
-+  with a different mode will be rejected with -EINVAL.
-+
-+- Applications using manual release mode (autorelease=0) must ensure all tokens
-+  are returned via SO_DEVMEM_DONTNEED before socket close to avoid resource
-+  leaks during the lifetime of the dmabuf binding. Tokens not released before
-+  close() will only be freed when the dmabuf is unbound.
-+
-+
- TX Interface
- ============
- 
+ Documentation/netlink/specs/netdev.yaml           |  12 +++
+ Documentation/networking/devmem.rst               |  70 +++++++++++++
+ include/net/netmem.h                              |   1 +
+ include/net/sock.h                                |   7 +-
+ include/uapi/linux/netdev.h                       |   1 +
+ net/core/devmem.c                                 | 116 ++++++++++++++++++----
+ net/core/devmem.h                                 |  29 +++++-
+ net/core/netdev-genl-gen.c                        |   5 +-
+ net/core/netdev-genl.c                            |  10 +-
+ net/core/sock.c                                   | 103 ++++++++++++++-----
+ net/ipv4/tcp.c                                    |  76 +++++++++++---
+ net/ipv4/tcp_ipv4.c                               |  11 +-
+ net/ipv4/tcp_minisocks.c                          |   3 +-
+ tools/include/uapi/linux/netdev.h                 |   1 +
+ tools/testing/selftests/drivers/net/hw/devmem.py  |  21 +++-
+ tools/testing/selftests/drivers/net/hw/ncdevmem.c |  19 ++--
+ 16 files changed, 407 insertions(+), 78 deletions(-)
+---
+base-commit: 6ad078fa0ababa8de2a2b39f476d2abd179a3cf6
+change-id: 20250829-scratch-bobbyeshleman-devmem-tcp-token-upstream-292be174d503
 
+Best regards,
 -- 
-2.47.3
+Bobby Eshleman <bobbyeshleman@meta.com>
 
