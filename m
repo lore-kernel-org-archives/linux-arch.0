@@ -1,32 +1,32 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 755B438A28E;
-	Tue, 13 Jan 2026 12:37:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2149238F225;
+	Tue, 13 Jan 2026 12:37:46 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768307866; cv=none; b=YqnzGoxvUI46dqQ5IFQsHsHM4sPfl7wf/+qf1W+EDbIV6x4NzO8P7ixU2p8wrPoT9vgnaBC4XLCjl0omENfGXVK7VFQNFv+DUyl+OYd3iDDnPbDOpnlYPPt+3muu5NfiLYymrbYcXmCOjUf52O1ZDhltXSIxOzraVz+iy+gLKV8=
+	t=1768307867; cv=none; b=JE85qp0j3he9c4Gk37vpzdnnTgtptqU6t+ABu+9PPwHL3wU6ByhQfg2gx6IC8LR3RQGr5SHvcazwSUs4ggcT7p/vU2UOAU3szcrkGFnDC5FhkZmSorJmfrQKCYuYeXN8jpKJjTUyTLIAPEv/AE7amcNRqdHNzwvaiNmkh7Nv/q8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768307866; c=relaxed/simple;
-	bh=cH9hJBEevnJ49scFzUyUrs+duB8iThavsLBCgzxemds=;
+	s=arc-20240116; t=1768307867; c=relaxed/simple;
+	bh=3mMY1GM1VQS8nWhP55kjhRmx1RnZj3EJmp3vjjgzg8M=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=Deq0KnchX4QfI5187BAtuE5iq1ikbvIsSEdRQws5xGgbNmZs+KHMVpDlZhwdYnP+AUD8WWomH50eitYq81AtaRbgJcryeB8W9YpIt0kktHnyrGgbf5BcYL+dezdvspbeStbi/HjN9Os3lv4JwC7M1P5eyOXPjsFjX3Gyh7NKPFU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=m5ECJ6X/; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=b0zVOnlEvyDXwXDmmy5movXenHs4Yge/6PyZ35V9jpWIMCHd/QOVpIMvBky8hkZP4C/k/ilAqZHbTQSIKulbopqBIl1fP4muyGHcRT2bZVnSFmohpEa8KsxNhS98DmsWbJzPLKdtRmGe8BIAbDjLq9vxDUxeaK3Eq3OfC74Rydc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=rKo9Ainu; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="m5ECJ6X/"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="rKo9Ainu"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1768307860;
-	bh=cH9hJBEevnJ49scFzUyUrs+duB8iThavsLBCgzxemds=;
+	s=mail; t=1768307859;
+	bh=3mMY1GM1VQS8nWhP55kjhRmx1RnZj3EJmp3vjjgzg8M=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=m5ECJ6X/QaGYYVd8gwsKPP3oGytpVyG0r3Uure3LqKvDfD7fS93swFK2vKC7qzTnO
-	 zFYbmk4LuDfRARPYZL9g9jAh2pluAJo1Spu3BdNBCB4MygUV9lYuGjf6mh3vf9gxTp
-	 x7hqYzB44ciHVigcRi1d+0nk8Ev05d0JMTMoOKLo=
+	b=rKo9Ainu3XohS3vDOhDSBVDMKqoArsw3k6VH6Rq2OcD6WPWA0c6vsb0GoDtVSXluv
+	 sgo/XicYHPxC7xBe5EgzHnfehmzjKt4EAac0PhhkT1cn/koDo8ejH70xmQx3KomGYL
+	 /OfN167o6WiGNK2fmRsgBoWzSVQABRqeZL7Ntj6U=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 13 Jan 2026 13:28:47 +0100
-Subject: [PATCH v4 03/17] ima: efi: Drop unnecessary check for
- CONFIG_MODULE_SIG/CONFIG_KEXEC_SIG
+Date: Tue, 13 Jan 2026 13:28:45 +0100
+Subject: [PATCH v4 01/17] module: Only declare set_module_sig_enforced when
+ CONFIG_MODULE_SIG=y
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,8 +34,8 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
-Message-Id: <20260113-module-hashes-v4-3-0b932db9b56b@weissschuh.net>
+Content-Transfer-Encoding: 7bit
+Message-Id: <20260113-module-hashes-v4-1-0b932db9b56b@weissschuh.net>
 References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
 In-Reply-To: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
 To: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
@@ -65,43 +65,97 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
  linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org, 
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
- =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+ =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>, 
+ Coiby Xu <coxu@redhat.com>, kernel test robot <lkp@intel.com>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1768307859; l=1076;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1768307859; l=2701;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=cH9hJBEevnJ49scFzUyUrs+duB8iThavsLBCgzxemds=;
- b=CON7x2gCVyCQfJTzLvPSJLu+RVHaHl90Rmo7S6bsrPvzOetmH8vys3eBJrk7ccHlghC7itUU1
- 0QyuXSdksdyD+ykU1MTXaHxR9OmHct0jSB8PawQ2bRSqkoOkmuG6Y9X
+ bh=LKgyKjITAXJ1z3S+DyfR5AT2mA+k6KdtH/VMhlJUCys=;
+ b=5Saf759AOy7OgxG9vCafXOFEi9YsNl9IxQ4NXimYkvoPD101bf62Qlcvkk3kzegkDK+79KIxZ
+ R78B0PNlMSPDAG06hzuwwcndV6Fs1j6RV8THFOsAFuXJ+B/Q/fJxYAR
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-When configuration settings are disabled the guarded functions are
-defined as empty stubs, so the check is unnecessary.
-The specific configuration option for set_module_sig_enforced() is
-about to change and removing the checks avoids some later churn.
+From: Coiby Xu <coxu@redhat.com>
 
-Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
+Currently if set_module_sig_enforced is called with CONFIG_MODULE_SIG=n
+e.g. [1], it can lead to a linking error,
+
+    ld: security/integrity/ima/ima_appraise.o: in function `ima_appraise_measurement':
+    security/integrity/ima/ima_appraise.c:587:(.text+0xbbb): undefined reference to `set_module_sig_enforced'
+
+This happens because the actual implementation of
+set_module_sig_enforced comes from CONFIG_MODULE_SIG but both the
+function declaration and the empty stub definition are tied to
+CONFIG_MODULES.
+
+So bind set_module_sig_enforced to CONFIG_MODULE_SIG instead. This
+allows (future) users to call set_module_sig_enforced directly without
+the "if IS_ENABLED(CONFIG_MODULE_SIG)" safeguard.
+
+Note this issue hasn't caused a real problem because all current callers
+of set_module_sig_enforced e.g. security/integrity/ima/ima_efi.c
+use "if IS_ENABLED(CONFIG_MODULE_SIG)" safeguard.
+
+[1] https://lore.kernel.org/lkml/20250928030358.3873311-1-coxu@redhat.com/
+
+Reported-by: kernel test robot <lkp@intel.com>
+Closes: https://lore.kernel.org/oe-kbuild-all/202510030029.VRKgik99-lkp@intel.com/
+Reviewed-by: Aaron Tomlin <atomlin@atomlin.com>
+Reviewed-by: Daniel Gomez <da.gomez@samsung.com>
+Signed-off-by: Coiby Xu <coxu@redhat.com>
+Signed-off-by: Sami Tolvanen <samitolvanen@google.com>
+
 ---
- security/integrity/ima/ima_efi.c | 6 ++----
- 1 file changed, 2 insertions(+), 4 deletions(-)
+From modules/modules-next
+---
+ include/linux/module.h | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/security/integrity/ima/ima_efi.c b/security/integrity/ima/ima_efi.c
-index 138029bfcce1..a35dd166ad47 100644
---- a/security/integrity/ima/ima_efi.c
-+++ b/security/integrity/ima/ima_efi.c
-@@ -68,10 +68,8 @@ static const char * const sb_arch_rules[] = {
- const char * const *arch_get_ima_policy(void)
+diff --git a/include/linux/module.h b/include/linux/module.h
+index d80c3ea57472..f288ca5cd95b 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -770,8 +770,6 @@ static inline bool is_livepatch_module(struct module *mod)
+ #endif
+ }
+ 
+-void set_module_sig_enforced(void);
+-
+ void module_for_each_mod(int(*func)(struct module *mod, void *data), void *data);
+ 
+ #else /* !CONFIG_MODULES... */
+@@ -866,10 +864,6 @@ static inline bool module_requested_async_probing(struct module *module)
+ }
+ 
+ 
+-static inline void set_module_sig_enforced(void)
+-{
+-}
+-
+ /* Dereference module function descriptor */
+ static inline
+ void *dereference_module_function_descriptor(struct module *mod, void *ptr)
+@@ -925,6 +919,8 @@ static inline bool retpoline_module_ok(bool has_retpoline)
+ #ifdef CONFIG_MODULE_SIG
+ bool is_module_sig_enforced(void);
+ 
++void set_module_sig_enforced(void);
++
+ static inline bool module_sig_ok(struct module *module)
  {
- 	if (IS_ENABLED(CONFIG_IMA_ARCH_POLICY) && arch_ima_get_secureboot()) {
--		if (IS_ENABLED(CONFIG_MODULE_SIG))
--			set_module_sig_enforced();
--		if (IS_ENABLED(CONFIG_KEXEC_SIG))
--			set_kexec_sig_enforced();
-+		set_module_sig_enforced();
-+		set_kexec_sig_enforced();
- 		return sb_arch_rules;
- 	}
- 	return NULL;
+ 	return module->sig_ok;
+@@ -935,6 +931,10 @@ static inline bool is_module_sig_enforced(void)
+ 	return false;
+ }
+ 
++static inline void set_module_sig_enforced(void)
++{
++}
++
+ static inline bool module_sig_ok(struct module *module)
+ {
+ 	return true;
 
 -- 
 2.52.0
