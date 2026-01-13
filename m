@@ -1,31 +1,31 @@
 Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E9583904DE;
-	Tue, 13 Jan 2026 12:37:49 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0068D38E5F1;
+	Tue, 13 Jan 2026 12:37:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768307873; cv=none; b=RTmimWMVKfxXk4zXiYLHG47bnaBU2yhB9C5MLCaQgN72stTQY6waq+qOsViehefEiOCZtQoaTeXiZ4cN9EAZs6O40Ok+Fs6i5bOHw8GAOGzjZBMKKtjLE3VhTi8PajWpBMO0OuRmnCfrlXzeimV0dzFE0twnVDcqLvhXQmj3+Gc=
+	t=1768307875; cv=none; b=atG6cychtFTHt07oNHLVMJeDBC+V+Tv5rSPsTAqtvK2yam3fiPH37Ty0HrAi4eJBXhF5/oAfmZBO7w+xtA2I4kVqyzk/H4gaU5mMnIwSKhjVnezuVbz8TK0vcgmELZoGHqrXk53AXp8YFbAJNZ9QJao8piLZk0ye1b/TsnbKPDs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768307873; c=relaxed/simple;
-	bh=mjGdw2yxzWxgtsTNEl1bBGcD2Uicfy0x+S+3g1xrhKs=;
+	s=arc-20240116; t=1768307875; c=relaxed/simple;
+	bh=ffsEg3AzeAOjcEOKQgQ3fDyvlrqj0lZ8Wi7Qp/6UEEQ=;
 	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
-	 In-Reply-To:To:Cc; b=IUqZMOzqnhhFFfBnEw7r6WY8f1DOvGls1MuM3g8+Tdj/Avi5xfufA3yGptkUMoqV5weU8xtJH1vl9bTnlxcaf1mELbvsG4xjFUTwDtm5TJx3WD8OwDRR3wjcCh7MEkkVskRL43zICWthSGh0NTDTWscQegmTuXm8Oa9YT/AONNw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=WFMGTKFM; arc=none smtp.client-ip=159.69.126.157
+	 In-Reply-To:To:Cc; b=LjZAieF9t65Y31kMN4St+Y9zPJfg/+dGStmKZUd4wjtzTWOb2Lr7CBN/rPxtFpl76Kx//bFgTXUe+oTqm3/g+89HaUgIZCjLP3gIV4HgiaswROPa+c8i0JkhsvwV1u+RkPFbaO2tszJzQl//33bu26Bg5hlrfWLdw0dhHS+3HHo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=IYN9eaFO; arc=none smtp.client-ip=159.69.126.157
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="WFMGTKFM"
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="IYN9eaFO"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
-	s=mail; t=1768307861;
-	bh=mjGdw2yxzWxgtsTNEl1bBGcD2Uicfy0x+S+3g1xrhKs=;
+	s=mail; t=1768307860;
+	bh=ffsEg3AzeAOjcEOKQgQ3fDyvlrqj0lZ8Wi7Qp/6UEEQ=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc:From;
-	b=WFMGTKFMSCsakSKivcHT5zu72mKHJYU+l6hZ0Ds8YZP6nlir5oVmNph2sjIDlclnG
-	 +y3O47iXttG/2e2trcAME/dynWcEVSqoRVgGfwQn4M071eJAIdD7sx4q2lIzsfxZ8h
-	 SEtYLkde87SzPAkZ9Mq72QmsJzaGe7nQdHrm0Q20=
+	b=IYN9eaFOHeqMdGkaTGB+TVa+imZW+KJUTkVyaop8E7fOAlzwCN4yYsDEsaCUKMvJb
+	 BJ7+ic09FhUq56ePuK99CKjQ1kPB5mB/3SA0LORNRAOl75FlxxZsJAFWdv6uc+Is5a
+	 jSr+kStLLuMEj2vMFjoKX/2WZjWeuYceLKDQ3AOM=
 From: =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Date: Tue, 13 Jan 2026 13:28:56 +0100
-Subject: [PATCH v4 12/17] module: Move signature splitting up
+Date: Tue, 13 Jan 2026 13:28:50 +0100
+Subject: [PATCH v4 06/17] kbuild: add stamp file for vmlinux BTF data
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -34,7 +34,7 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
-Message-Id: <20260113-module-hashes-v4-12-0b932db9b56b@weissschuh.net>
+Message-Id: <20260113-module-hashes-v4-6-0b932db9b56b@weissschuh.net>
 References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
 In-Reply-To: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
 To: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>, 
@@ -66,103 +66,65 @@ Cc: =?utf-8?q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
  linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org, 
  =?utf-8?q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
 X-Mailer: b4 0.14.3
-X-Developer-Signature: v=1; a=ed25519-sha256; t=1768307859; l=3025;
+X-Developer-Signature: v=1; a=ed25519-sha256; t=1768307859; l=2136;
  i=linux@weissschuh.net; s=20221212; h=from:subject:message-id;
- bh=mjGdw2yxzWxgtsTNEl1bBGcD2Uicfy0x+S+3g1xrhKs=;
- b=awMfsURUOFCD2iZVVxJ0L7EbCCDNlOcWxUEUE7J742mmPYLUEoPlh9tuteXrcLXkmbAsJ5IEp
- W8BKKGMM5JdC9G+RCkMV/mRthjFNtlf97D2xKTMLMHkvxfe/OH8pPvq
+ bh=ffsEg3AzeAOjcEOKQgQ3fDyvlrqj0lZ8Wi7Qp/6UEEQ=;
+ b=b4EDQNJ82epRfEGaJ/hp28TeOBgtAEcqVjtkr3ZVEIkCclYbVB5JmexdIWsJA9Fnwm23h6Qpt
+ k9oimKRiUl5DMEFJmFf+vUyh81OfbtZAcHsW0m3IjftklL33x2aCRzb
 X-Developer-Key: i=linux@weissschuh.net; a=ed25519;
  pk=KcycQgFPX2wGR5azS7RhpBqedglOZVgRPfdFSPB1LNw=
 
-The signature splitting will also be used by CONFIG_MODULE_HASHES.
-
-Move it up the callchain, so the result can be reused.
+The upcoming module hashes functionality will build the modules in
+between the generation of the BTF data and the final link of vmlinux.
+Having a dependency from the modules on vmlinux would make this
+impossible as it would mean having a cyclic dependency.
+Break this cyclic dependency by introducing a new target.
 
 Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
 ---
- kernel/module/internal.h |  2 +-
- kernel/module/main.c     | 13 ++++++++++++-
- kernel/module/signing.c  | 21 +++++++--------------
- 3 files changed, 20 insertions(+), 16 deletions(-)
+ scripts/Makefile.modfinal | 4 ++--
+ scripts/link-vmlinux.sh   | 6 ++++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/module/internal.h b/kernel/module/internal.h
-index e053c29a5d08..e2d49122c2a1 100644
---- a/kernel/module/internal.h
-+++ b/kernel/module/internal.h
-@@ -337,7 +337,7 @@ int module_enforce_rwx_sections(const Elf_Ehdr *hdr, const Elf_Shdr *sechdrs,
- void module_mark_ro_after_init(const Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
- 			       const char *secstrings);
+diff --git a/scripts/Makefile.modfinal b/scripts/Makefile.modfinal
+index 149e12ff5700..adfef1e002a9 100644
+--- a/scripts/Makefile.modfinal
++++ b/scripts/Makefile.modfinal
+@@ -56,8 +56,8 @@ if_changed_except = $(if $(call newer_prereqs_except,$(2))$(cmd-check),      \
+ 	printf '%s\n' 'savedcmd_$@ := $(make-cmd)' > $(dot-target).cmd, @:)
  
--int module_sig_check(struct load_info *info, int flags);
-+int module_sig_check(struct load_info *info, const u8 *sig, size_t sig_len);
- 
- #ifdef CONFIG_DEBUG_KMEMLEAK
- void kmemleak_load_module(const struct module *mod, const struct load_info *info);
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index c09b25c0166a..d65bc300a78c 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -3346,10 +3346,21 @@ static int early_mod_check(struct load_info *info, int flags)
- 
- static int module_integrity_check(struct load_info *info, int flags)
+ # Re-generate module BTFs if either module's .ko or vmlinux changed
+-%.ko: %.o %.mod.o .module-common.o $(objtree)/scripts/module.lds $(and $(CONFIG_DEBUG_INFO_BTF_MODULES),$(KBUILD_BUILTIN),$(objtree)/vmlinux) FORCE
+-	+$(call if_changed_except,ld_ko_o,$(objtree)/vmlinux)
++%.ko: %.o %.mod.o .module-common.o $(objtree)/scripts/module.lds $(and $(CONFIG_DEBUG_INFO_BTF_MODULES),$(KBUILD_BUILTIN),$(objtree)/.tmp_vmlinux_btf.stamp) FORCE
++	+$(call if_changed_except,ld_ko_o,$(objtree)/.tmp_vmlinux_btf.stamp)
+ ifdef CONFIG_DEBUG_INFO_BTF_MODULES
+ 	+$(if $(newer-prereqs),$(call cmd,btf_ko))
+ endif
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 4ab44c73da4d..8c98f8645a5c 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -111,6 +111,7 @@ vmlinux_link()
+ gen_btf()
  {
-+	bool mangled_module = flags & (MODULE_INIT_IGNORE_MODVERSIONS |
-+				       MODULE_INIT_IGNORE_VERMAGIC);
-+	size_t sig_len;
-+	const u8 *sig;
- 	int err = 0;
+ 	local btf_data=${1}.btf.o
++	local btf_stamp=.tmp_vmlinux_btf.stamp
  
-+	if (IS_ENABLED(CONFIG_MODULE_SIG_POLICY)) {
-+		err = mod_split_sig(info->hdr, &info->len, mangled_module,
-+				    &sig_len, &sig, "module");
-+		if (err)
-+			return err;
-+	}
+ 	info BTF "${btf_data}"
+ 	LLVM_OBJCOPY="${OBJCOPY}" ${PAHOLE} -J ${PAHOLE_FLAGS} ${1}
+@@ -131,6 +132,11 @@ gen_btf()
+ 	fi
+ 	printf "${et_rel}" | dd of="${btf_data}" conv=notrunc bs=1 seek=16 status=none
+ 
++	info STAMP $btf_stamp
++	if ! cmp --silent $btf_data $btf_stamp; then
++		cp $btf_data $btf_stamp
++	fi
 +
- 	if (IS_ENABLED(CONFIG_MODULE_SIG))
--		err = module_sig_check(info, flags);
-+		err = module_sig_check(info, sig, sig_len);
+ 	btf_vmlinux_bin_o=${btf_data}
+ }
  
- 	if (err)
- 		return err;
-diff --git a/kernel/module/signing.c b/kernel/module/signing.c
-index 8a5f66389116..86164761cac7 100644
---- a/kernel/module/signing.c
-+++ b/kernel/module/signing.c
-@@ -15,26 +15,19 @@
- #include <uapi/linux/module.h>
- #include "internal.h"
- 
--int module_sig_check(struct load_info *info, int flags)
-+int module_sig_check(struct load_info *info, const u8 *sig, size_t sig_len)
- {
- 	int err;
- 	const char *reason;
- 	const void *mod = info->hdr;
--	size_t sig_len;
--	const u8 *sig;
--	bool mangled_module = flags & (MODULE_INIT_IGNORE_MODVERSIONS |
--				       MODULE_INIT_IGNORE_VERMAGIC);
- 
--	err = mod_split_sig(info->hdr, &info->len, mangled_module, &sig_len, &sig, "module");
-+	err = verify_pkcs7_signature(mod, info->len, sig, sig_len,
-+				     VERIFY_USE_SECONDARY_KEYRING,
-+				     VERIFYING_MODULE_SIGNATURE,
-+				     NULL, NULL);
- 	if (!err) {
--		err = verify_pkcs7_signature(mod, info->len, sig, sig_len,
--					     VERIFY_USE_SECONDARY_KEYRING,
--					     VERIFYING_MODULE_SIGNATURE,
--					     NULL, NULL);
--		if (!err) {
--			info->sig_ok = true;
--			return 0;
--		}
-+		info->sig_ok = true;
-+		return 0;
- 	}
- 
- 	/*
 
 -- 
 2.52.0
