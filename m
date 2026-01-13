@@ -1,156 +1,158 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from flow-b5-smtp.messagingengine.com (flow-b5-smtp.messagingengine.com [202.12.124.140])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 671B621773F;
-	Tue, 13 Jan 2026 04:01:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CD4DB2343C0;
+	Tue, 13 Jan 2026 05:37:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768276868; cv=none; b=XDkboXnRW+DezBtP7Y6N5Ydv9qD05fSv89eS36kKsN3o2TgC0Rh5IZ+WI17ELsrMmHHGPmWJiPmrUwYnBmSl40sTfLzuSwVF2BxYhzTf7n+dVJXg14X20uDpLy0KHxsgaRKxzK0e7NPO93uDLAjUu5aV3mSMU/TV5tyWe+/otis=
+	t=1768282680; cv=none; b=au6FPa2818T7diEsa4FSYDbqvH99KhlEvuidKdwyDWWQCiMvgyElRrQ5z6wd1FfyX2uaiOOWCmiT+kqOJLOefMxg7UtQmmEb0bSiYATSk9sTqKZonNeUSt0/5KaMDcbudbnuBhJPjaHstwLEQAEH5IFLqHSqmmLW72bThTVj8Wc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768276868; c=relaxed/simple;
-	bh=zeKl7hyNxZwIHJcgtp1F5TMvGZu6CxehegF23qeqIqo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=D38ebNNG2a6Gw9lxPtEOV7ojePx6wuTFWJIfDIEoKPEV5yEnqGD5tNbPx8MXEjvTtJ9DKF9soXVgNz7jRRfqn/4kvRPWwdNKTtGv8R9Y69WXHyiibvSPziZjgQSufNQNzMyXr4WKWc8w6G5jqNNNi7g4dBAJmmNeCGZj2uBai3A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=i1TDpylX; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1768282680; c=relaxed/simple;
+	bh=puNEXADyslbCDUE/v5uUZSgeX6mBadwDTQUGSLFJl80=;
+	h=Message-ID:From:Subject:Date:To:Cc; b=R01mAg630skoJzIhstX1+y7KNQhgmM0y5c0K8HhXos6Pe2qKw8wu7gD27a8zFsP8F8vRCgAumwRc5gwtFIuoRU6RnFgnaxZUjtLpTeV199Hwm04/TXp9vu0yXk2d7uXfuUh68qtFliAi6MOJ0yjRkOeBItsab114z8/nmZAmpPo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=none smtp.mailfrom=linux-m68k.org; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=cVkF3omA; arc=none smtp.client-ip=202.12.124.140
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="i1TDpylX"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C65DEC116C6;
-	Tue, 13 Jan 2026 04:01:06 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1768276867;
-	bh=zeKl7hyNxZwIHJcgtp1F5TMvGZu6CxehegF23qeqIqo=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=i1TDpylXu6DyoRUGdArfaYVao79IWJYNZvr3gvJxT608pHMK2CLlDLAgtY7k2P7yw
-	 q6bhzQGINdxS/gTQ9Ze/g30RcCmh9/xyHzcuyzRJLSOphbYRtwHjgK7pM0BO8OwGCP
-	 Gby9KdMrotoUWeeMilkOPBfe4oBqiXlf7nloc4lYG23eQkbCDS8enrdkq5gJzzZ0Nd
-	 rSRwLwQyBPe7x3kplpHpPhIyhsUr3Xd3BH1lHQVhqUz7zJWTLZVnvqaqJ9CYcf43wm
-	 ugeEaazyF+qjhgkQkqCud0N08zeuSmaMTd7EJKyJKnoThNWKiBaH41HhXqJNoqz39G
-	 g3PvVi4qpCJUg==
-From: Jakub Kicinski <kuba@kernel.org>
-To: bobbyeshleman@gmail.com
-Cc: Jakub Kicinski <kuba@kernel.org>,
-	horms@kernel.org,
-	linux-arch@vger.kernel.org,
-	pabeni@redhat.com,
-	willemb@google.com,
-	davem@davemloft.net,
-	linux-doc@vger.kernel.org,
-	donald.hunter@gmail.com,
-	matttbe@kernel.org,
-	linux-kernel@vger.kernel.org,
-	asml.silence@gmail.com,
-	arnd@arndb.de,
-	netdev@vger.kernel.org,
-	almasrymina@google.com,
-	linux-kselftest@vger.kernel.org,
-	skhawaja@google.com,
-	bobbyeshleman@meta.com,
-	ncardwell@google.com,
-	andrew+netdev@lunn.ch,
-	kuniyu@google.com,
-	edumazet@google.com,
-	sdf@fomichev.me,
-	corbet@lwn.net,
-	dsahern@kernel.org,
-	shuah@kernel.org
-Subject: Re: [net-next,v9,3/5] net: devmem: implement autorelease token management
-Date: Mon, 12 Jan 2026 20:00:27 -0800
-Message-ID: <20260113040027.409308-1-kuba@kernel.org>
-X-Mailer: git-send-email 2.52.0
-In-Reply-To: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-3-8042930d00d7@meta.com>
-References: <20260109-scratch-bobbyeshleman-devmem-tcp-token-upstream-v9-3-8042930d00d7@meta.com>
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="cVkF3omA"
+Received: from phl-compute-12.internal (phl-compute-12.internal [10.202.2.52])
+	by mailflow.stl.internal (Postfix) with ESMTP id BE8EF1300343;
+	Tue, 13 Jan 2026 00:37:56 -0500 (EST)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-12.internal (MEProxy); Tue, 13 Jan 2026 00:37:57 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:date:date:feedback-id
+	:feedback-id:from:from:in-reply-to:message-id:reply-to:subject
+	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm2; t=1768282676; x=1768289876; bh=SIZTTLX4L6b0H0FhsrLfjIbPTzJy
+	CXQADM2Gtk5KlLg=; b=cVkF3omA6kRd1qDwlC/QjBcG/sNoji8l1VMwZh5ITsAj
+	IQH6XZmZbiJVGHRbZNI1spqePSMKyrqoDMwwPKT9X9TMQdtXMcjAsyEdPy0ukA+L
+	ZDMfLblW0EcIBWBADvSLA/TyX2BJ76a1kqJzcx0V7tJNb+YJgWt26WyVbIZNDovh
+	+KfxQIQ8/tQiKcSqZ7RT5cyIeTi3y45MAu/acBvX6U89CV4q8v+CTVDg9HJQiU7y
+	GsWTn9e7YKSKZdta713rl4jdQ6gbpZqw0svYrmk0r8Kv7cn5uW0qkBsKgYOlexTe
+	z/U9BUOXaf/dlsiRUJjnncK0nDS/gBUsTG2khjBzTQ==
+X-ME-Sender: <xms:MdplabFx4HZLJLMziJHDEDG2yjqQPhBzPJXL-QYtHWol7NNEGN-ELQ>
+    <xme:MdplafnUsZUQBoeF4TMLPpNBbeOMJ1EI4E5B6pqf71NlUXdjIBACyqf3r5lar53ES
+    kQixSPNrmZK3JHIUbpBN6BwF7966HMzXYNKP-5kfaZIR9mRcF-WtWw>
+X-ME-Received: <xmr:MdplaVvGJrSgw57AxEir5QXbr8Hf3KarYkVry3b_CgvoDAadbXaqc0rtPWQ1dJj85bqGsM5mKXFgei277sEuAWPiCdT86ugL6OI>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgdduudelgeelucetufdoteggodetrf
+    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
+    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
+    gurhepkffhufffvfevsedttdertddttddtnecuhfhrohhmpefhihhnnhcuvfhhrghinhcu
+    oehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgqeenucggtffrrghtthgvrhhnpe
+    duvedtieevfedvffetudehteeihedtkefhkeeivdelvddtheekteeiueduudefueenucff
+    ohhmrghinhepudejrddqnhgvfienucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmh
+    epmhgrihhlfhhrohhmpehfthhhrghinheslhhinhhugidqmheikehkrdhorhhgpdhnsggp
+    rhgtphhtthhopeegvddpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtoheprghkphhmse
+    hlihhnuhigqdhfohhunhgurghtihhonhdrohhrghdprhgtphhtthhopehpvghtvghriies
+    ihhnfhhrrgguvggrugdrohhrghdprhgtphhtthhopeifihhllheskhgvrhhnvghlrdhorh
+    hgpdhrtghpthhtoheprghnughrihhisehkvghrnhgvlhdrohhrghdprhgtphhtthhopegr
+    rhgusgeskhgvrhhnvghlrdhorhhgpdhrtghpthhtoheprghrnhgusegrrhhnuggsrdguvg
+    dprhgtphhtthhopegrshhtsehkvghrnhgvlhdrohhrghdprhgtphhtthhopegsohhquhhn
+    rdhfvghnghesghhmrghilhdrtghomhdprhgtphhtthhopegsphesrghlihgvnhekrdguvg
+X-ME-Proxy: <xmx:MdplaWfWDzJqylD0Q-inIpIDSD06wMZgNgisba95LM8ZqH9j-8puIA>
+    <xmx:MdplaZapD7buZRwzH-snNYQesF6AwmfpTygoHl_WtRd6-frTzgudew>
+    <xmx:MdplabwrPZ6kLZY2A-42jyKbCsUSAnXHPnvAEOkJND4oDJMMrkh70A>
+    <xmx:MdplaZuJDr6dR3rUZhQyV3fs-ebQXLUJaLVhJ_WlTWsWT4gY7leaQQ>
+    <xmx:NNplaVbhFZWckmFtSGQdtiTPrkO2GI3Doh1qH3ZXcq4wglQsyizSWuJI>
+Feedback-ID: i58a146ae:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Tue,
+ 13 Jan 2026 00:37:46 -0500 (EST)
+Message-ID: <cover.1768281748.git.fthain@linux-m68k.org>
+From: Finn Thain <fthain@linux-m68k.org>
+Subject: [PATCH v7 0/4] Align atomic storage
+Date: Tue, 13 Jan 2026 16:22:28 +1100
+To: Andrew Morton <akpm@linux-foundation.org>,
+    Peter Zijlstra <peterz@infradead.org>,
+    Will Deacon <will@kernel.org>
+Cc: Andrii Nakryiko <andrii@kernel.org>,    Ard Biesheuvel <ardb@kernel.org>,
+    Arnd Bergmann <arnd@arndb.de>,    Alexei Starovoitov <ast@kernel.org>,
+    Boqun Feng <boqun.feng@gmail.com>,    Borislav Petkov <bp@alien8.de>,
+    bpf@vger.kernel.org,    Rich Felker <dalias@libc.org>,
+    Daniel Borkmann <daniel@iogearbox.net>,
+    Dave Hansen <dave.hansen@linux.intel.com>,
+    Dinh Nguyen <dinguyen@kernel.org>,
+    Eduard Zingerman <eddyz87@gmail.com>,    Gary Guo <gary@garyguo.net>,
+    Geert Uytterhoeven <geert@linux-m68k.org>,
+    John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+    Guo Ren <guoren@kernel.org>,    Hao Luo <haoluo@google.com>,
+    "H. Peter Anvin" <hpa@zytor.com>,
+    John Fastabend <john.fastabend@gmail.com>,
+    Jiri Olsa <jolsa@kernel.org>,    Jonas Bonn <jonas@southpole.se>,
+    KP Singh <kpsingh@kernel.org>,    linux-arch@vger.kernel.org,
+    linux-csky@vger.kernel.org,    linux-kernel@vger.kernel.org,
+    linux-m68k@lists.linux-m68k.org,    linux-openrisc@vger.kernel.org,
+    linux-sh@vger.kernel.org,    Mark Rutland <mark.rutland@arm.com>,
+    Martin KaFai Lau <martin.lau@linux.dev>,
+    Ingo Molnar <mingo@redhat.com>,    Sasha Levin <sashal@kernel.org>,
+    Stanislav Fomichev <sdf@fomichev.me>,
+    Stafford Horne <shorne@gmail.com>,    Song Liu <song@kernel.org>,
+    Stefan Kristiansson <stefan.kristiansson@saunalahti.fi>,
+    Thomas Gleixner <tglx@linutronix.de>,
+    Yonghong Song <yonghong.song@linux.dev>,
+    Yoshinori Sato <ysato@users.sourceforge.jp>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
 
-This is an AI-generated review of your patch. The human sending this
-email has considered the AI review valid, or at least pausible.
+This series adds the __aligned attribute to atomic_t and atomic64_t
+definitions in include/linux and include/asm-generic (respectively)
+to get natural alignment of both types on csky, m68k, microblaze,
+nios2, openrisc and sh.
 
-For local reproduction steps see https://netdev-ai.bots.linux.dev/ai-local.html
+This series also adds Kconfig options to enable a new run-time warning
+to help reveal misaligned atomic accesses on platforms which don't
+trap that.
+
+The performance impact is expected to vary across platforms and workloads.
+The measurements I made on m68k show that some workloads run faster and
+others slower.
+
 ---
-net: devmem: implement autorelease token management
 
-This commit adds autorelease mode toggling for devmem tokens using a
-static branch. The system is locked into the mode set by the first
-binding and can only change when all bindings are released.
+Changed since v6
+ - Test for __DISABLE_EXPORTS macro instead of __DISABLE_BUG_TABLE macro.
 
-> diff --git a/net/core/devmem.c b/net/core/devmem.c
-> index 05a9a9e7abb9..05c16df657c7 100644
-> --- a/net/core/devmem.c
-> +++ b/net/core/devmem.c
+Changed since v5:
+ - Added acked-by and revewed-by tags.
+ - Added a new macro to inhibit emission of __bug_table section, for the
+ benefit of pre-boot code like the EFI stub loader.
 
-[ ... ]
+Changed since v4:
+ - Dropped parisc header file patch as it's been merged already.
+ - Submitted as PATCH instead of RFC.
 
-> @@ -292,25 +333,62 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+Changed since v3:
+ - Rebased on v6.17.
+ - New patch to resolve header dependency issue on parisc.
+ - Dropped documentation patch.
 
-[ ... ]
+Changed since v2:
+ - Specify natural alignment for atomic64_t.
+ - CONFIG_DEBUG_ATOMIC checks for natural alignment again.
+ - New patch to add weakened alignment check.
+ - New patch for explicit alignment in BPF header.
 
-> +	mutex_lock(&devmem_ar_lock);
-> +
-> +	if (direction == DMA_FROM_DEVICE) {
-> +		if (net_devmem_dmabuf_rx_bindings_count > 0) {
-> +			bool mode;
-> +
-> +			mode = static_key_enabled(&tcp_devmem_ar_key);
-> +
-> +			/* When bindings exist, enforce that the mode does not
-> +			 * change.
-> +			 */
-> +			if (mode != autorelease) {
-> +				NL_SET_ERR_MSG_FMT(extack,
-> +						   "System already configured with autorelease=%d",
-> +						   mode);
-> +				err = -EINVAL;
-> +				goto err_unlock_mutex;
-> +			}
-> +		} else if (autorelease) {
-> +			/* First binding with autorelease enabled sets the
-> +			 * mode.  If autorelease is false, the key is already
-> +			 * disabled by default so no action is needed.
-> +			 */
-> +			static_branch_enable(&tcp_devmem_ar_key);
-> +		}
-> +
-> +		net_devmem_dmabuf_rx_bindings_count++;
-> +	}
-> +
-> +	err = xa_alloc_cyclic(&net_devmem_dmabuf_bindings, &binding->id,
-> +			      binding, xa_limit_32b, &id_alloc_next,
-> +			      GFP_KERNEL);
-> +	if (err < 0)
-> +		goto err_dec_binding_count;
-> +
-> +	mutex_unlock(&devmem_ar_lock);
-> +
-> +	list_add(&binding->list, &priv->bindings);
-> +
-> +	return binding;
-> +
-> +err_dec_binding_count:
-> +	if (direction == DMA_FROM_DEVICE)
-> +		net_devmem_dmabuf_rx_bindings_count--;
-                ^^^
+---
 
-If xa_alloc_cyclic() fails after the first binding with autorelease=true,
-the static branch tcp_devmem_ar_key remains enabled even though
-net_devmem_dmabuf_rx_bindings_count is decremented back to zero. Should
-the error path also call static_branch_disable() when the count returns
-to zero, similar to what __net_devmem_dmabuf_binding_free() does?
+Finn Thain (3):
+  bpf: Explicitly align bpf_res_spin_lock
+  atomic: Specify alignment for atomic_t and atomic64_t
+  atomic: Add option for weaker alignment check
 
-This appears to leave the system in an inconsistent state where a
-subsequent binding with autorelease=false would succeed (since count is
-zero) but the static branch is still enabled from the failed attempt.
-The SO_DEVMEM_DONTNEED handler would then call the wrong function
-(autorelease path instead of manual release path).
+Peter Zijlstra (1):
+  atomic: Add alignment check to instrumented atomic operations
 
-> +
-> +err_unlock_mutex:
-> +	mutex_unlock(&devmem_ar_lock);
+ include/asm-generic/atomic64.h   |  2 +-
+ include/asm-generic/rqspinlock.h |  2 +-
+ include/linux/instrumented.h     | 17 +++++++++++++++++
+ include/linux/types.h            |  2 +-
+ kernel/bpf/rqspinlock.c          |  1 -
+ lib/Kconfig.debug                | 18 ++++++++++++++++++
+ 6 files changed, 38 insertions(+), 4 deletions(-)
 
-[ ... ]
 -- 
-pw-bot: cr
+2.49.1
+
