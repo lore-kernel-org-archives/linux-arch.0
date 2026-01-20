@@ -1,30 +1,30 @@
 Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2E39F39A808;
-	Tue, 20 Jan 2026 06:43:52 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id C2F8E3904D1;
+	Tue, 20 Jan 2026 06:43:49 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768891439; cv=none; b=CBZ/Lq9U7EMfcIslagKnc93PUcJBQbb4zbp5BiGs0G7YKObVB+Eo7YQd6PakzcdxJUCcZ8FlHDRjWHZn+dkkmUzaDYlzoHXm1CY4C51P0gvXLD+38dCAYWLVHxGWzN0aryjCrlHh+V/7QWKStHGqXJoDFQ98bVa/pOPdLEdExW4=
+	t=1768891439; cv=none; b=fIRyP/lqd6OOGZ92EouxBhJusctg8zEndotvLBrqZxVs318NaEz3K3ZEYpTjDOjQ+Zx4Ak2LbshVryDMK+u9PKtpe80Dx8j59Lvt/nbbDwn4eTJYZQ6JkbGeDdTCKcHrh/dxCuzcMOvPYYR91jPsxlXZJsZVZQ6rKzZyiL9ezAE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1768891439; c=relaxed/simple;
-	bh=lFCdL+6ojHEEiti/5oEEzqcHgGMBpFffGSnL89hXCKs=;
+	bh=tdSEMC7gqv6tHPycbN0VEeX7mwVJnRgh+dC2FHoxyF8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=qxZlcLg2Wr0qLWDvrQaALZ36fBW02RT7W0VVjtMf9dPxu8RAi5ODLdxPbFq6n2wPqWdcXN8hhoHNhSp0JV+fYKkxm5HQT4gvO610c12OrzDkjK22tK0ShswihaAFdveyU8LUS9k8sIwkSCzJnXrKNI4jji54/ZRxrKx0GHhJcuU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=nPKgQKZQ; arc=none smtp.client-ip=13.77.154.182
+	 MIME-Version; b=LlcKXkxwPNHW9gLVVNVKWjhVzF3gs8KSBY0yn1xOBnVa3WsFy/0GZiJQg9t9QFlH0DoHjEbqKTYu481AoFIRkc8/TW9wiheI4Eh7J9WjkYAPJ2mvHSw9gOYI0bMRi7O5zd8EJFrKFVVvt2i6JDI5C9w0qq/p2Xu/N6FnJom6A+E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=WUo4duFo; arc=none smtp.client-ip=13.77.154.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="nPKgQKZQ"
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="WUo4duFo"
 Received: from mrdev.corp.microsoft.com (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 795D320B716D;
-	Mon, 19 Jan 2026 22:43:50 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 795D320B716D
+	by linux.microsoft.com (Postfix) with ESMTPSA id C34CF20B716A;
+	Mon, 19 Jan 2026 22:43:47 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com C34CF20B716A
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1768891431;
-	bh=vwKC6HwtuqTh63I/EcCnX9kz02TP/FLMLkDGVcBN5Jg=;
+	s=default; t=1768891428;
+	bh=lrCNvS0KTmv8uGW/3D9TXCk8n/kSy8BeNKs2VH+PdxU=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=nPKgQKZQP36at7Pw9ekyrrLYOUWnS9INVzf/0p/e0spMOrWzbrSFIdbBIYmCgu9Yl
-	 48+3TE7z+OgQ6l8v5rUbjC5ExL0L5TS/agbqGuSQ32EEIyWVA0e4BzSdoH7oe9rgAX
-	 6TseUo1oxO/Z0ZpmEfj8TIL4CIuSoguKL/aCkpmA=
+	b=WUo4duFom3CBzDyCu19ZnRecBUYp8n0SeTqWk9J+CY0/pdnqPS79j+NLppPdZJHRH
+	 AgkHKXVNd8Pos+JSoPunRIWjLiVBK8ZjDR3Xnzl72PCd0aZd3RD7TjhUxCD6EdDM0R
+	 RmI6/gSwPyF2Doi2co/U/mf/wzj6eRWLF83CoH7A=
 From: Mukesh R <mrathor@linux.microsoft.com>
 To: linux-kernel@vger.kernel.org,
 	linux-hyperv@vger.kernel.org,
@@ -54,9 +54,9 @@ Cc: kys@microsoft.com,
 	nunodasneves@linux.microsoft.com,
 	mhklinux@outlook.com,
 	romank@linux.microsoft.com
-Subject: [PATCH v0 15/15] mshv: Populate mmio mappings for PCI passthru
-Date: Mon, 19 Jan 2026 22:42:30 -0800
-Message-ID: <20260120064230.3602565-16-mrathor@linux.microsoft.com>
+Subject: [PATCH v0 13/15] x86/hyperv: Basic interrupt support for direct attached devices
+Date: Mon, 19 Jan 2026 22:42:28 -0800
+Message-ID: <20260120064230.3602565-14-mrathor@linux.microsoft.com>
 X-Mailer: git-send-email 2.51.2.vfs.0.1
 In-Reply-To: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
 References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
@@ -70,164 +70,363 @@ Content-Transfer-Encoding: 8bit
 
 From: Mukesh Rathor <mrathor@linux.microsoft.com>
 
-Upon guest access, in case of missing mmio mapping, the hypervisor
-generates an unmapped gpa intercept. In this path, lookup the PCI
-resource pfn for the guest gpa, and ask the hypervisor to map it
-via hypercall. The PCI resource pfn is maintained by the VFIO driver,
-and obtained via fixup_user_fault call (similar to KVM).
+As mentioned previously, a direct attached device must be referenced
+via logical device id which is formed in the initial attach hypercall.
+Interrupt mapping paths for direct attached devices are almost same,
+except we must use logical device ids instead of the PCI device ids.
+
+L1VH only supports direct attaches for passing thru devices to its guests,
+and devices on L1VH are VMBus based. However, the interrupts are mapped
+via the map interrupt hypercall and not the traditional method of VMBus
+messages.
+
+Partition id for the relevant hypercalls is tricky. This because a device
+could be moving from root to guest and then back to the root. In case
+of L1VH, it could be moving from system host to L1VH root to a guest,
+then back to the L1VH root. So, it is carefully crafted by keeping
+track of whether the call is on behalf of a VMM process, whether the
+device is attached device (as opposed to mapped), and whether we are in
+an L1VH root/parent. If VMM process, we assume it is on behalf of a
+guest. Otherwise, the device is being attached or detached during boot
+or shutdown of the privileged partition.
+
+Lastly, a dummy cpu and vector is used to map interrupt for a direct
+attached device. This because, once a device is marked for direct attach,
+hypervisor will not let any interrupts be mapped to host. So it is mapped
+to guest dummy cpu and dummy vector. This is then correctly mapped during
+guest boot via the retarget paths.
 
 Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
 ---
- drivers/hv/mshv_root_main.c | 115 ++++++++++++++++++++++++++++++++++++
- 1 file changed, 115 insertions(+)
+ arch/arm64/include/asm/mshyperv.h   | 15 +++++
+ arch/x86/hyperv/irqdomain.c         | 57 +++++++++++++-----
+ arch/x86/include/asm/mshyperv.h     |  4 ++
+ drivers/pci/controller/pci-hyperv.c | 91 +++++++++++++++++++++++++----
+ 4 files changed, 142 insertions(+), 25 deletions(-)
 
-diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
-index 03f3aa9f5541..4c8bc7cd0888 100644
---- a/drivers/hv/mshv_root_main.c
-+++ b/drivers/hv/mshv_root_main.c
-@@ -56,6 +56,14 @@ struct hv_stats_page {
- 	};
- } __packed;
- 
-+bool hv_nofull_mmio;   /* don't map entire mmio region upon fault */
-+static int __init setup_hv_full_mmio(char *str)
-+{
-+	hv_nofull_mmio = true;
-+	return 0;
-+}
-+__setup("hv_nofull_mmio", setup_hv_full_mmio);
-+
- struct mshv_root mshv_root;
- 
- enum hv_scheduler_type hv_scheduler_type;
-@@ -612,6 +620,109 @@ mshv_partition_region_by_gfn(struct mshv_partition *partition, u64 gfn)
+diff --git a/arch/arm64/include/asm/mshyperv.h b/arch/arm64/include/asm/mshyperv.h
+index b721d3134ab6..27da480f94f6 100644
+--- a/arch/arm64/include/asm/mshyperv.h
++++ b/arch/arm64/include/asm/mshyperv.h
+@@ -53,6 +53,21 @@ static inline u64 hv_get_non_nested_msr(unsigned int reg)
+ 	return hv_get_msr(reg);
  }
  
- #ifdef CONFIG_X86_64
-+
-+/*
-+ * Check if uaddr is for mmio range. If yes, return 0 with mmio_pfn filled in
-+ * else just return -errno.
-+ */
-+static int mshv_chk_get_mmio_start_pfn(struct mshv_partition *pt, u64 gfn,
-+				       u64 *mmio_pfnp)
++struct irq_data;
++struct msi_msg;
++struct pci_dev;
++static inline void hv_irq_compose_msi_msg(struct irq_data *data,
++					  struct msi_msg *msg) {};
++static inline int hv_unmap_msi_interrupt(struct pci_dev *pdev,
++					struct hv_interrupt_entry *hvirqe)
 +{
-+	struct vm_area_struct *vma;
-+	bool is_mmio;
-+	u64 uaddr;
-+	struct mshv_mem_region *mreg;
-+	struct follow_pfnmap_args pfnmap_args;
-+	int rc = -EINVAL;
++	return -EOPNOTSUPP;
++}
++static inline bool hv_pcidev_is_attached_dev(struct pci_dev *pdev)
++{
++	return false;
++}
 +
-+	/*
-+	 * Do not allow mem region to be deleted beneath us. VFIO uses
-+	 * useraddr vma to lookup pci bar pfn.
-+	 */
-+	spin_lock(&pt->pt_mem_regions_lock);
+ /* SMCCC hypercall parameters */
+ #define HV_SMCCC_FUNC_NUMBER	1
+ #define HV_FUNC_ID	ARM_SMCCC_CALL_VAL(			\
+diff --git a/arch/x86/hyperv/irqdomain.c b/arch/x86/hyperv/irqdomain.c
+index 33017aa0caa4..e6eb457f791e 100644
+--- a/arch/x86/hyperv/irqdomain.c
++++ b/arch/x86/hyperv/irqdomain.c
+@@ -13,6 +13,16 @@
+ #include <linux/irqchip/irq-msi-lib.h>
+ #include <asm/mshyperv.h>
+ 
++/*
++ * For direct attached devices (which use logical device ids), hypervisor will
++ * not allow mappings to host. But VFIO needs to bind the interrupt at the very
++ * start before the guest cpu/vector is known. So we use dummy cpu and vector
++ * to bind in such case, and later when the guest starts, retarget will move it
++ * to correct guest cpu and vector.
++ */
++#define HV_DDA_DUMMY_CPU      0
++#define HV_DDA_DUMMY_VECTOR  32
 +
-+	/* Get the region again under the lock */
-+	mreg = mshv_partition_region_by_gfn(pt, gfn);
-+	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-+		goto unlock_pt_out;
-+
-+	uaddr = mreg->start_uaddr +
-+		((gfn - mreg->start_gfn) << HV_HYP_PAGE_SHIFT);
-+
-+	mmap_read_lock(current->mm);
-+	vma = vma_lookup(current->mm, uaddr);
-+	is_mmio = vma ? !!(vma->vm_flags & (VM_IO | VM_PFNMAP)) : 0;
-+	if (!is_mmio)
-+		goto unlock_mmap_out;
-+
-+	pfnmap_args.vma = vma;
-+	pfnmap_args.address = uaddr;
-+
-+	rc = follow_pfnmap_start(&pfnmap_args);
-+	if (rc) {
-+		rc = fixup_user_fault(current->mm, uaddr, FAULT_FLAG_WRITE,
-+				      NULL);
-+		if (rc)
-+			goto unlock_mmap_out;
-+
-+		rc = follow_pfnmap_start(&pfnmap_args);
-+		if (rc)
-+			goto unlock_mmap_out;
+ static u64 hv_map_interrupt_hcall(u64 ptid, union hv_device_id hv_devid,
+ 				  bool level, int cpu, int vector,
+ 				  struct hv_interrupt_entry *ret_entry)
+@@ -24,6 +34,11 @@ static u64 hv_map_interrupt_hcall(u64 ptid, union hv_device_id hv_devid,
+ 	u64 status;
+ 	int nr_bank, var_size;
+ 
++	if (hv_devid.device_type == HV_DEVICE_TYPE_LOGICAL) {
++		cpu = HV_DDA_DUMMY_CPU;
++		vector = HV_DDA_DUMMY_VECTOR;
 +	}
 +
-+	*mmio_pfnp = pfnmap_args.pfn;
-+	follow_pfnmap_end(&pfnmap_args);
-+
-+unlock_mmap_out:
-+	mmap_read_unlock(current->mm);
-+unlock_pt_out:
-+	spin_unlock(&pt->pt_mem_regions_lock);
-+	return rc;
-+}
-+
-+/*
-+ * At present, the only unmapped gpa is mmio space. Verify if it's mmio
-+ * and resolve if possible.
-+ * Returns: True if valid mmio intercept and it was handled, else false
-+ */
-+static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp)
-+{
-+	struct hv_message *hvmsg = vp->vp_intercept_msg_page;
-+	struct hv_x64_memory_intercept_message *msg;
-+	union hv_x64_memory_access_info accinfo;
-+	u64 gfn, mmio_spa, numpgs;
-+	struct mshv_mem_region *mreg;
-+	int rc;
-+	struct mshv_partition *pt = vp->vp_partition;
-+
-+	msg = (struct hv_x64_memory_intercept_message *)hvmsg->u.payload;
-+	accinfo = msg->memory_access_info;
-+
-+	if (!accinfo.gva_gpa_valid)
-+		return false;
-+
-+	/* Do a fast check and bail if non mmio intercept */
-+	gfn = msg->guest_physical_address >> HV_HYP_PAGE_SHIFT;
-+	mreg = mshv_partition_region_by_gfn(pt, gfn);
-+	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-+		return false;
-+
-+	rc = mshv_chk_get_mmio_start_pfn(pt, gfn, &mmio_spa);
-+	if (rc)
-+		return false;
-+
-+	if (!hv_nofull_mmio) {		/* default case */
-+		gfn = mreg->start_gfn;
-+		mmio_spa = mmio_spa - (gfn - mreg->start_gfn);
-+		numpgs = mreg->nr_pages;
-+	} else
-+		numpgs = 1;
-+
-+	rc = hv_call_map_mmio_pages(pt->pt_id, gfn, mmio_spa, numpgs);
-+
-+	return rc == 0;
-+}
-+
- static struct mshv_mem_region *
- mshv_partition_region_by_gfn_get(struct mshv_partition *p, u64 gfn)
- {
-@@ -666,13 +777,17 @@ static bool mshv_handle_gpa_intercept(struct mshv_vp *vp)
+ 	local_irq_save(flags);
  
- 	return ret;
+ 	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+@@ -95,7 +110,8 @@ static int hv_map_interrupt(u64 ptid, union hv_device_id device_id, bool level,
+ 	return hv_result_to_errno(status);
  }
-+
- #else  /* CONFIG_X86_64 */
-+static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp) { return false; }
- static bool mshv_handle_gpa_intercept(struct mshv_vp *vp) { return false; }
- #endif /* CONFIG_X86_64 */
  
- static bool mshv_vp_handle_intercept(struct mshv_vp *vp)
+-static int hv_unmap_interrupt(u64 id, struct hv_interrupt_entry *irq_entry)
++static int hv_unmap_interrupt(union hv_device_id hv_devid,
++			      struct hv_interrupt_entry *irq_entry)
  {
- 	switch (vp->vp_intercept_msg_page->header.message_type) {
-+	case HVMSG_UNMAPPED_GPA:
-+		return mshv_handle_unmapped_gpa(vp);
- 	case HVMSG_GPA_INTERCEPT:
- 		return mshv_handle_gpa_intercept(vp);
+ 	unsigned long flags;
+ 	struct hv_input_unmap_device_interrupt *input;
+@@ -103,10 +119,14 @@ static int hv_unmap_interrupt(u64 id, struct hv_interrupt_entry *irq_entry)
+ 
+ 	local_irq_save(flags);
+ 	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+-
+ 	memset(input, 0, sizeof(*input));
+-	input->partition_id = hv_current_partition_id;
+-	input->device_id = id;
++
++	if (hv_devid.device_type == HV_DEVICE_TYPE_LOGICAL)
++		input->partition_id = hv_iommu_get_curr_partid();
++	else
++		input->partition_id = hv_current_partition_id;
++
++	input->device_id = hv_devid.as_uint64;
+ 	input->interrupt_entry = *irq_entry;
+ 
+ 	status = hv_do_hypercall(HVCALL_UNMAP_DEVICE_INTERRUPT, input, NULL);
+@@ -263,6 +283,7 @@ static u64 hv_build_irq_devid(struct pci_dev *pdev)
+ int hv_map_msi_interrupt(struct irq_data *data,
+ 			 struct hv_interrupt_entry *out_entry)
+ {
++	u64 ptid;
+ 	struct irq_cfg *cfg = irqd_cfg(data);
+ 	struct hv_interrupt_entry dummy;
+ 	union hv_device_id hv_devid;
+@@ -275,8 +296,17 @@ int hv_map_msi_interrupt(struct irq_data *data,
+ 	hv_devid.as_uint64 = hv_build_irq_devid(pdev);
+ 	cpu = cpumask_first(irq_data_get_effective_affinity_mask(data));
+ 
+-	return hv_map_interrupt(hv_current_partition_id, hv_devid, false, cpu,
+-				cfg->vector, out_entry ? out_entry : &dummy);
++	if (hv_devid.device_type == HV_DEVICE_TYPE_LOGICAL)
++		if (hv_pcidev_is_attached_dev(pdev))
++			ptid = hv_iommu_get_curr_partid();
++		else
++			/* Device actually on l1vh root, not passthru'd to vm */
++			ptid = hv_current_partition_id;
++	else
++		ptid = hv_current_partition_id;
++
++	return hv_map_interrupt(ptid, hv_devid, false, cpu, cfg->vector,
++				out_entry ? out_entry : &dummy);
+ }
+ EXPORT_SYMBOL_GPL(hv_map_msi_interrupt);
+ 
+@@ -289,10 +319,7 @@ static void entry_to_msi_msg(struct hv_interrupt_entry *entry,
+ 	msg->data = entry->msi_entry.data.as_uint32;
+ }
+ 
+-static int hv_unmap_msi_interrupt(struct pci_dev *pdev,
+-				  struct hv_interrupt_entry *irq_entry);
+-
+-static void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
++void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+ {
+ 	struct hv_interrupt_entry *stored_entry;
+ 	struct irq_cfg *cfg = irqd_cfg(data);
+@@ -341,16 +368,18 @@ static void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+ 	data->chip_data = stored_entry;
+ 	entry_to_msi_msg(data->chip_data, msg);
+ }
++EXPORT_SYMBOL_GPL(hv_irq_compose_msi_msg);
+ 
+-static int hv_unmap_msi_interrupt(struct pci_dev *pdev,
+-				  struct hv_interrupt_entry *irq_entry)
++int hv_unmap_msi_interrupt(struct pci_dev *pdev,
++			   struct hv_interrupt_entry *irq_entry)
+ {
+ 	union hv_device_id hv_devid;
+ 
+ 	hv_devid.as_uint64 = hv_build_irq_devid(pdev);
+ 
+-	return hv_unmap_interrupt(hv_devid.as_uint64, irq_entry);
++	return hv_unmap_interrupt(hv_devid, irq_entry);
+ }
++EXPORT_SYMBOL_GPL(hv_unmap_msi_interrupt);
+ 
+ /* NB: during map, hv_interrupt_entry is saved via data->chip_data */
+ static void hv_teardown_msi_irq(struct pci_dev *pdev, struct irq_data *irqd)
+@@ -486,7 +515,7 @@ int hv_unmap_ioapic_interrupt(int ioapic_id, struct hv_interrupt_entry *entry)
+ 	hv_devid.device_type = HV_DEVICE_TYPE_IOAPIC;
+ 	hv_devid.ioapic.ioapic_id = (u8)ioapic_id;
+ 
+-	return hv_unmap_interrupt(hv_devid.as_uint64, entry);
++	return hv_unmap_interrupt(hv_devid, entry);
+ }
+ EXPORT_SYMBOL_GPL(hv_unmap_ioapic_interrupt);
+ 
+diff --git a/arch/x86/include/asm/mshyperv.h b/arch/x86/include/asm/mshyperv.h
+index e4ccdbbf1d12..b6facd3a0f5e 100644
+--- a/arch/x86/include/asm/mshyperv.h
++++ b/arch/x86/include/asm/mshyperv.h
+@@ -204,11 +204,15 @@ static inline u64 hv_iommu_get_curr_partid(void)
+ #endif	/* CONFIG_HYPERV_IOMMU */
+ 
+ u64 hv_pci_vmbus_device_id(struct pci_dev *pdev);
++void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg);
++extern bool hv_no_attdev;
+ 
+ struct irq_domain *hv_create_pci_msi_domain(void);
+ 
+ int hv_map_msi_interrupt(struct irq_data *data,
+ 			 struct hv_interrupt_entry *out_entry);
++int hv_unmap_msi_interrupt(struct pci_dev *dev,
++			   struct hv_interrupt_entry *hvirqe);
+ int hv_map_ioapic_interrupt(int ioapic_id, bool level, int vcpu, int vector,
+ 		struct hv_interrupt_entry *entry);
+ int hv_unmap_ioapic_interrupt(int ioapic_id, struct hv_interrupt_entry *entry);
+diff --git a/drivers/pci/controller/pci-hyperv.c b/drivers/pci/controller/pci-hyperv.c
+index 40f0b06bb966..71d1599dc4a8 100644
+--- a/drivers/pci/controller/pci-hyperv.c
++++ b/drivers/pci/controller/pci-hyperv.c
+@@ -660,15 +660,17 @@ static void hv_irq_retarget_interrupt(struct irq_data *data)
+ 
+ 	params = *this_cpu_ptr(hyperv_pcpu_input_arg);
+ 	memset(params, 0, sizeof(*params));
+-	params->partition_id = HV_PARTITION_ID_SELF;
++
++	if (hv_pcidev_is_attached_dev(pdev))
++		params->partition_id = hv_iommu_get_curr_partid();
++	else
++		params->partition_id = HV_PARTITION_ID_SELF;
++
+ 	params->int_entry.source = HV_INTERRUPT_SOURCE_MSI;
+-	params->int_entry.msi_entry.address.as_uint32 = int_desc->address & 0xffffffff;
++	params->int_entry.msi_entry.address.as_uint32 =
++						int_desc->address & 0xffffffff;
+ 	params->int_entry.msi_entry.data.as_uint32 = int_desc->data;
+-	params->device_id = (hbus->hdev->dev_instance.b[5] << 24) |
+-			   (hbus->hdev->dev_instance.b[4] << 16) |
+-			   (hbus->hdev->dev_instance.b[7] << 8) |
+-			   (hbus->hdev->dev_instance.b[6] & 0xf8) |
+-			   PCI_FUNC(pdev->devfn);
++	params->device_id = hv_pci_vmbus_device_id(pdev);
+ 	params->int_target.vector = hv_msi_get_int_vector(data);
+ 
+ 	if (hbus->protocol_version >= PCI_PROTOCOL_VERSION_1_2) {
+@@ -1263,6 +1265,15 @@ static void _hv_pcifront_read_config(struct hv_pci_dev *hpdev, int where,
+ 			mb();
+ 		}
+ 		spin_unlock_irqrestore(&hbus->config_lock, flags);
++		/*
++		 * Make sure PCI_INTERRUPT_PIN is hard-wired to 0 since it may
++		 * be read using a 32bit read which is skipped by the above
++		 * emulation.
++		 */
++		if (PCI_INTERRUPT_PIN >= where &&
++		    PCI_INTERRUPT_PIN <= (where + size)) {
++			*((char *)val + PCI_INTERRUPT_PIN - where) = 0;
++		}
+ 	} else {
+ 		dev_err(dev, "Attempt to read beyond a function's config space.\n");
  	}
+@@ -1731,14 +1742,22 @@ static void hv_msi_free(struct irq_domain *domain, unsigned int irq)
+ 	if (!int_desc)
+ 		return;
+ 
+-	irq_data->chip_data = NULL;
+ 	hpdev = get_pcichild_wslot(hbus, devfn_to_wslot(pdev->devfn));
+ 	if (!hpdev) {
++		irq_data->chip_data = NULL;
+ 		kfree(int_desc);
+ 		return;
+ 	}
+ 
+-	hv_int_desc_free(hpdev, int_desc);
++	if (hv_pcidev_is_attached_dev(pdev)) {
++		hv_unmap_msi_interrupt(pdev, irq_data->chip_data);
++		kfree(irq_data->chip_data);
++		irq_data->chip_data = NULL;
++	} else {
++		irq_data->chip_data = NULL;
++		hv_int_desc_free(hpdev, int_desc);
++	}
++
+ 	put_pcichild(hpdev);
+ }
+ 
+@@ -2139,6 +2158,56 @@ static void hv_vmbus_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+ 	msg->data = 0;
+ }
+ 
++/* Compose an msi message for a directly attached device */
++static void hv_dda_compose_msi_msg(struct irq_data *irq_data,
++				   struct msi_desc *msi_desc,
++				   struct msi_msg *msg)
++{
++	bool multi_msi;
++	struct hv_pcibus_device *hbus;
++	struct hv_pci_dev *hpdev;
++	struct pci_dev *pdev = msi_desc_to_pci_dev(msi_desc);
++
++	multi_msi = !msi_desc->pci.msi_attrib.is_msix &&
++		    msi_desc->nvec_used > 1;
++
++	if (multi_msi) {
++		dev_err(&hbus->hdev->device,
++			"Passthru direct attach does not support multi msi\n");
++		goto outerr;
++	}
++
++	hbus = container_of(pdev->bus->sysdata, struct hv_pcibus_device,
++			    sysdata);
++
++	hpdev = get_pcichild_wslot(hbus, devfn_to_wslot(pdev->devfn));
++	if (!hpdev)
++		goto outerr;
++
++	/* will unmap if needed and also update irq_data->chip_data */
++	hv_irq_compose_msi_msg(irq_data, msg);
++
++	put_pcichild(hpdev);
++	return;
++
++outerr:
++	memset(msg, 0, sizeof(*msg));
++}
++
++static void hv_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
++{
++	struct pci_dev *pdev;
++	struct msi_desc *msi_desc;
++
++	msi_desc = irq_data_get_msi_desc(data);
++	pdev = msi_desc_to_pci_dev(msi_desc);
++
++	if (hv_pcidev_is_attached_dev(pdev))
++		hv_dda_compose_msi_msg(data, msi_desc, msg);
++	else
++		hv_vmbus_compose_msi_msg(data, msg);
++}
++
+ static bool hv_pcie_init_dev_msi_info(struct device *dev, struct irq_domain *domain,
+ 				      struct irq_domain *real_parent, struct msi_domain_info *info)
+ {
+@@ -2177,7 +2246,7 @@ static const struct msi_parent_ops hv_pcie_msi_parent_ops = {
+ /* HW Interrupt Chip Descriptor */
+ static struct irq_chip hv_msi_irq_chip = {
+ 	.name			= "Hyper-V PCIe MSI",
+-	.irq_compose_msi_msg	= hv_vmbus_compose_msi_msg,
++	.irq_compose_msi_msg	= hv_compose_msi_msg,
+ 	.irq_set_affinity	= irq_chip_set_affinity_parent,
+ 	.irq_ack		= irq_chip_ack_parent,
+ 	.irq_eoi		= irq_chip_eoi_parent,
+@@ -4096,7 +4165,7 @@ static int hv_pci_restore_msi_msg(struct pci_dev *pdev, void *arg)
+ 		irq_data = irq_get_irq_data(entry->irq);
+ 		if (WARN_ON_ONCE(!irq_data))
+ 			return -EINVAL;
+-		hv_vmbus_compose_msi_msg(irq_data, &entry->msg);
++		hv_compose_msi_msg(irq_data, &entry->msg);
+ 	}
+ 	return 0;
+ }
 -- 
 2.51.2.vfs.0.1
 
