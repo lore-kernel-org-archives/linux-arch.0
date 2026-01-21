@@ -1,136 +1,225 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.19])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 535EC2DC32B;
-	Wed, 21 Jan 2026 00:54:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.19
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 368C42EFDA4;
+	Wed, 21 Jan 2026 01:00:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768956862; cv=none; b=O1t3WfSUvxWh0tWQszdwqP76Cb0OvkeI8e7/wH0SN7Dhv9TaZOmbbT73ahUr/h/5xo4HqGXLyf8Uk/W7xgrXkewbAUaOHK5/ebyDtPgDbECQmo2ILXEqIF+DYUjFl+jl9st8CGlGRTw3l+KRD67ezw71Lj1J9gO/113ippvG6jo=
+	t=1768957245; cv=none; b=GXQHDjsHLbJQJFUdaBk9CEQwhRIYhB0QF2LNn8ngP1TUi5cQ3DgLA7z+puj2bc6MSlwM35DcnGoeV2hPOxHVFTb7ZH/L3lUspoFpW1JjKDxbodOoC9m2qI8WV3Q0JEeANif5N1jAH3GxwFt0Tu9C6vSOr3jtJjrJO6EmjHnTGMI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768956862; c=relaxed/simple;
-	bh=69IQMwe9upLzgpC2oBZtZFsOB+a5jIJ7cJY12DniSbA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=mihTInssFszNXj3hBBOOOsInBGmJx9lFoPyUke4l/ajw0/P77MrA5poK1s3BVQUUfjICUZHApFxPXQ3h2vrM13IqgpCUzSNEXPA6E2Yc//C/CQI82RWusMbEFrT2dNdLxVPQ4FjnvanMbWEuXMQ6MC9Vhda3FrBF8EQOahQwDXk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=WLLvlzZF; arc=none smtp.client-ip=198.175.65.19
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1768957245; c=relaxed/simple;
+	bh=MzDub15kx4+RkZmXdG0ckPzuS4X8/fxg9oHWd/CC8aU=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=GUMNYaQ4tVPKed3870sdbW2lWzt5gLFQDc4/YpzFNP8JyQFQx7uBsiZHqNAHYPPV66QNgFy9D58VyXzmm7sdS0N++TYM5Wyq/SdYKEj6oHfA5dfb3zfRTQFeH31AXNdKd/H60fMXZKhSLasRvI/j5B49n6tZyZoPf401ADcWLQA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=NA0bYyp2; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="WLLvlzZF"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1768956862; x=1800492862;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=69IQMwe9upLzgpC2oBZtZFsOB+a5jIJ7cJY12DniSbA=;
-  b=WLLvlzZF8Z98Zf+FIvg/1nSPusiHGpQTU5O5p5SHLyBPDpQz1VCUY6l7
-   6OVNGMpd2UwGN7bPZZTbpUkbPnyN49HFSexfSWDEPZm95u0HGmOvgVtw1
-   Lz7j90mbicDdiyXCSBJV+4afEH6M/w20y5KRIOCxm8XF/EAoEG2yNV51j
-   hlcwG/qktwJV/FWK5WXRU6v5Z4uaDd95BMZtkH1sO79Yn4WSj0argPmF6
-   LZzOSF0tkAjKUs0gyXBPhPkEm4aPMHsIUNLmxaY9Lmc2Fk7k8ppYCGj27
-   JVGd8OEuS4wgOewWa+WXcq2b7ng4lVyv2S4Rpkew7Qrd8vVF0+VYcxpfD
-   Q==;
-X-CSE-ConnectionGUID: KR7CHNliRiG0XEKKP3EfJQ==
-X-CSE-MsgGUID: 4E+izE2DSYyLGgN7ZQ/+RA==
-X-IronPort-AV: E=McAfee;i="6800,10657,11677"; a="70083916"
-X-IronPort-AV: E=Sophos;i="6.21,242,1763452800"; 
-   d="scan'208";a="70083916"
-Received: from orviesa002.jf.intel.com ([10.64.159.142])
-  by orvoesa111.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 20 Jan 2026 16:54:21 -0800
-X-CSE-ConnectionGUID: cZWcoejfSjeisQa/O17UuQ==
-X-CSE-MsgGUID: m8tR31AxS6mJ9HycUVnXaQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,242,1763452800"; 
-   d="scan'208";a="236942661"
-Received: from lkp-server01.sh.intel.com (HELO 765f4a05e27f) ([10.239.97.150])
-  by orviesa002.jf.intel.com with ESMTP; 20 Jan 2026 16:54:14 -0800
-Received: from kbuild by 765f4a05e27f with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1viMU7-00000000Pmv-2DUO;
-	Wed, 21 Jan 2026 00:54:11 +0000
-Date: Wed, 21 Jan 2026 08:53:50 +0800
-From: kernel test robot <lkp@intel.com>
-To: Mukesh R <mrathor@linux.microsoft.com>, linux-kernel@vger.kernel.org,
-	linux-hyperv@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	iommu@lists.linux.dev, linux-pci@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Cc: oe-kbuild-all@lists.linux.dev, kys@microsoft.com,
-	haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
-	longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org,
-	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
-	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
-	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
-	nunodasneves@linux.microsoft.com, mhklinux@outlook.com,
-	romank@linux.microsoft.com
-Subject: Re: [PATCH v0 03/15] x86/hyperv: add insufficient memory support in
- irqdomain.c
-Message-ID: <202601210731.f1WLdgcO-lkp@intel.com>
-References: <20260120064230.3602565-4-mrathor@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="NA0bYyp2"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B1341C16AAE;
+	Wed, 21 Jan 2026 01:00:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1768957244;
+	bh=MzDub15kx4+RkZmXdG0ckPzuS4X8/fxg9oHWd/CC8aU=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=NA0bYyp26JiVXF0eYyObuC0gPdk1ee4LW4sfuZck23GtJ/MDaYOYqdfRwjYX83tVC
+	 AsdbEgLPqW8veMWqeP50f3nV7dOuAc4gmpGRQly+dOFUB8XJdNwOrCHiqB1GpJE3hp
+	 mT0oEiS3lWC33E8NcydJ3kC3V/V9pQ1POXw02EMqzbhmnUm53fY6wgEVFEOWHwRYGt
+	 jaXxtp+RqWv7Jtf+zTVpaN5W6jh4KpGJlI4ayO5v2SnYpzEbpsPaAZTkuAmNOrOJvU
+	 eUmWZHT4/2Zd1no1GV6M1mmGt0XFNeopCyePXD+GdniF9f/9PFf7VWQaHSdPR0iQiM
+	 l9Vt2tr3n9Bdg==
+Date: Tue, 20 Jan 2026 17:00:42 -0800
+From: Jakub Kicinski <kuba@kernel.org>
+To: Bobby Eshleman <bobbyeshleman@gmail.com>
+Cc: "David S. Miller" <davem@davemloft.net>, Eric Dumazet
+ <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>, Simon Horman
+ <horms@kernel.org>, Kuniyuki Iwashima <kuniyu@google.com>, Willem de Bruijn
+ <willemb@google.com>, Neal Cardwell <ncardwell@google.com>, David Ahern
+ <dsahern@kernel.org>, Mina Almasry <almasrymina@google.com>, Arnd Bergmann
+ <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Andrew Lunn
+ <andrew+netdev@lunn.ch>, Shuah Khan <shuah@kernel.org>, Donald Hunter
+ <donald.hunter@gmail.com>, Stanislav Fomichev <sdf@fomichev.me>,
+ netdev@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kselftest@vger.kernel.org, asml.silence@gmail.com,
+ matttbe@kernel.org, skhawaja@google.com, Bobby Eshleman
+ <bobbyeshleman@meta.com>
+Subject: Re: [PATCH net-next v10 3/5] net: devmem: implement autorelease
+ token management
+Message-ID: <20260120170042.43f038a2@kernel.org>
+In-Reply-To: <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-3-686d0af71978@meta.com>
+References: <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-0-686d0af71978@meta.com>
+	<20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-3-686d0af71978@meta.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260120064230.3602565-4-mrathor@linux.microsoft.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 
-Hi Mukesh,
+On Thu, 15 Jan 2026 21:02:14 -0800 Bobby Eshleman wrote:
+> diff --git a/Documentation/netlink/specs/netdev.yaml b/Documentation/netl=
+ink/specs/netdev.yaml
+> index 596c306ce52b..a5301b150663 100644
+> --- a/Documentation/netlink/specs/netdev.yaml
+> +++ b/Documentation/netlink/specs/netdev.yaml
+> @@ -562,6 +562,17 @@ attribute-sets:
+>          type: u32
+>          checks:
+>            min: 1
+> +      -
+> +        name: autorelease
+> +        doc: |
+> +          Token autorelease mode. If true (1), leaked tokens are automat=
+ically
+> +          released when the socket closes. If false (0), leaked tokens a=
+re only
+> +          released when the dmabuf is torn down. Once a binding is creat=
+ed with
+> +          a specific mode, all subsequent bindings system-wide must use =
+the
+> +          same mode.
+> +
+> +          Optional. Defaults to false if not specified.
+> +        type: u8
 
-kernel test robot noticed the following build warnings:
+if you plan to have more values - u32, if not - flag
+u8 is 8b value + 24b of padding, it's only useful for proto fields
 
-[auto build test WARNING on tip/x86/core]
-[also build test WARNING on pci/next pci/for-linus arm64/for-next/core clk/clk-next soc/for-next linus/master v6.19-rc6 next-20260120]
-[cannot apply to arnd-asm-generic/master]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+>  operations:
+>    list:
+> @@ -769,6 +780,7 @@ operations:
+>              - ifindex
+>              - fd
+>              - queues
+> +            - autorelease
+>          reply:
+>            attributes:
+>              - id
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Mukesh-R/iommu-hyperv-rename-hyperv-iommu-c-to-hyperv-irq-c/20260120-145832
-base:   tip/x86/core
-patch link:    https://lore.kernel.org/r/20260120064230.3602565-4-mrathor%40linux.microsoft.com
-patch subject: [PATCH v0 03/15] x86/hyperv: add insufficient memory support in irqdomain.c
-config: i386-randconfig-053-20260120 (https://download.01.org/0day-ci/archive/20260121/202601210731.f1WLdgcO-lkp@intel.com/config)
-compiler: gcc-14 (Debian 14.2.0-19) 14.2.0
+>  static DEFINE_XARRAY_FLAGS(net_devmem_dmabuf_bindings, XA_FLAGS_ALLOC1);
+> +static DEFINE_MUTEX(devmem_ar_lock);
+> +DEFINE_STATIC_KEY_FALSE(tcp_devmem_ar_key);
+> +EXPORT_SYMBOL(tcp_devmem_ar_key);
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202601210731.f1WLdgcO-lkp@intel.com/
+I don't think you need the export, perhaps move the helper in here in
+the first place (while keeping the static inline wrapper when devmem=3Dn)?
 
-cocci warnings: (new ones prefixed by >>)
->> arch/x86/hyperv/irqdomain.c:90:2-3: Unneeded semicolon
+> +	if (autorelease)
+> +		static_branch_enable(&tcp_devmem_ar_key);
 
-vim +90 arch/x86/hyperv/irqdomain.c
+This is user-controlled (non-root), right? So I think we need=20
+the deferred version of key helpers.=20
 
-    72	
-    73	static int hv_map_interrupt(u64 ptid, union hv_device_id device_id, bool level,
-    74				    int cpu, int vector,
-    75				    struct hv_interrupt_entry *ret_entry)
-    76	{
-    77		u64 status;
-    78		int rc, deposit_pgs = 16;		/* don't loop forever */
-    79	
-    80		while (deposit_pgs--) {
-    81			status = hv_map_interrupt_hcall(ptid, device_id, level, cpu,
-    82							vector, ret_entry);
-    83	
-    84			if (hv_result(status) != HV_STATUS_INSUFFICIENT_MEMORY)
-    85				break;
-    86	
-    87			rc = hv_call_deposit_pages(NUMA_NO_NODE, ptid, 1);
-    88			if (rc)
-    89				break;
-  > 90		};
-    91	
-    92		if (!hv_result_success(status))
-    93			hv_status_err(status, "\n");
-    94	
-    95		return hv_result_to_errno(status);
-    96	}
-    97	
+> -	if (direction =3D=3D DMA_TO_DEVICE) {
+> -		binding->vec =3D kvmalloc_array(dmabuf->size / PAGE_SIZE,
+> -					      sizeof(struct net_iov *),
+> -					      GFP_KERNEL);
+> -		if (!binding->vec) {
+> -			err =3D -ENOMEM;
+> -			goto err_unmap;
+> -		}
+> +	binding->vec =3D kvmalloc_array(dmabuf->size / PAGE_SIZE,
+> +				      sizeof(struct net_iov *),
+> +				      GFP_KERNEL | __GFP_ZERO);
 
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+make it a kvcalloc() while we're touching it, pls
+
+> +	if (!binding->vec) {
+> +		err =3D -ENOMEM;
+> +		goto err_unmap;
+>  	}
+> =20
+>  	/* For simplicity we expect to make PAGE_SIZE allocations, but the
+> @@ -306,25 +386,41 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+>  			niov =3D &owner->area.niovs[i];
+>  			niov->type =3D NET_IOV_DMABUF;
+>  			niov->owner =3D &owner->area;
+> +			atomic_set(&niov->uref, 0);
+
+Isn't it zero'ed during alloc?
+
+>  			page_pool_set_dma_addr_netmem(net_iov_to_netmem(niov),
+>  						      net_devmem_get_dma_addr(niov));
+> -			if (direction =3D=3D DMA_TO_DEVICE)
+> -				binding->vec[owner->area.base_virtual / PAGE_SIZE + i] =3D niov;
+> +			binding->vec[owner->area.base_virtual / PAGE_SIZE + i] =3D niov;
+>  		}
+> =20
+>  		virtual +=3D len;
+>  	}
+> =20
+
+> +	if (info->attrs[NETDEV_A_DMABUF_AUTORELEASE])
+> +		autorelease =3D
+> +			!!nla_get_u8(info->attrs[NETDEV_A_DMABUF_AUTORELEASE]);
+
+nla_get_u8_default()=20
+
+>  	priv =3D genl_sk_priv_get(&netdev_nl_family, NETLINK_CB(skb).sk);
+>  	if (IS_ERR(priv))
+>  		return PTR_ERR(priv);
+
+> +static noinline_for_stack int
+> +sock_devmem_dontneed_manual_release(struct sock *sk,
+> +				    struct dmabuf_token *tokens,
+> +				    unsigned int num_tokens)
+> +{
+> +	struct net_iov *niov;
+> +	unsigned int i, j;
+> +	netmem_ref netmem;
+> +	unsigned int token;
+> +	int num_frags =3D 0;
+> +	int ret =3D 0;
+> +
+> +	if (!sk->sk_devmem_info.binding)
+> +		return -EINVAL;
+> +
+> +	for (i =3D 0; i < num_tokens; i++) {
+> +		for (j =3D 0; j < tokens[i].token_count; j++) {
+> +			size_t size =3D sk->sk_devmem_info.binding->dmabuf->size;
+> +
+> +			token =3D tokens[i].token_start + j;
+> +			if (token >=3D size / PAGE_SIZE)
+> +				break;
+> +
+> +			if (++num_frags > MAX_DONTNEED_FRAGS)
+> +				return ret;
+> +
+> +			niov =3D sk->sk_devmem_info.binding->vec[token];
+> +			if (atomic_dec_and_test(&niov->uref)) {
+
+Don't you need something like "atomic dec non zero and test" ?
+refcount has refcount_dec_not_one() =F0=9F=A4=94=EF=B8=8F
+
+> +				netmem =3D net_iov_to_netmem(niov);
+> +				WARN_ON_ONCE(!napi_pp_put_page(netmem));
+> +			}
+> +			ret++;
+> +		}
+
+>  frag_limit_reached:
+> -	xa_unlock_bh(&sk->sk_user_frags);
+> +	xa_unlock_bh(&sk->sk_devmem_info.frags);
+
+may be worth separating the sk_devmem_info change out for clarity
+
+>  	for (k =3D 0; k < netmem_num; k++)
+>  		WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
+
+> @@ -2503,7 +2506,15 @@ void tcp_v4_destroy_sock(struct sock *sk)
+> =20
+>  	tcp_release_user_frags(sk);
+> =20
+> -	xa_destroy(&sk->sk_user_frags);
+> +	if (!net_devmem_autorelease_enabled() && sk->sk_devmem_info.binding) {
+> +		net_devmem_dmabuf_binding_user_put(sk->sk_devmem_info.binding);
+> +		net_devmem_dmabuf_binding_put(sk->sk_devmem_info.binding);
+> +		sk->sk_devmem_info.binding =3D NULL;
+> +		WARN_ONCE(!xa_empty(&sk->sk_devmem_info.frags),
+> +			  "non-empty xarray discovered in autorelease off mode");
+> +	}
+> +
+> +	xa_destroy(&sk->sk_devmem_info.frags);
+
+Let's wrap this up in a helper that'll live in devmem.c
