@@ -1,42 +1,42 @@
 Received: from mailtransmit05.runbox.com (mailtransmit05.runbox.com [185.226.149.38])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C2D4548C40B
-	for <linux-arch@vger.kernel.org>; Wed, 21 Jan 2026 14:58:00 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 09F9046AF08;
+	Wed, 21 Jan 2026 14:58:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.226.149.38
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769007483; cv=none; b=aRcqX0sciqV58A5ev6Hjtemyc7BJc/qFEOUvB0b91VwTXkbv+5txQUubzHKe1iJ8tSw2eDoQUEKXaSlziyYU3541b3tEYzPfiHdre0q8GnBWc6wK0a8kmVKj3ZDBNDmP/lRV/aTjifR9yCDpqNsonRn/qZ8ifibYV+XE7BNPwcQ=
+	t=1769007488; cv=none; b=D3t3ZXRXr1ZazuhKl8XcfcrGuEeEw31RpFjFJLUmJIPhW6LeLVWZDf+tQoboYwEhqhE4uIP7AlevCOchwwvKN4XqgnqSQwZVSFv6U+ahr0UXDbu6tbQC2tIEtm+gZfAwGl2uJ9CMy/Q4XIEuXC8vkY3uFXDKr8FU0sg/84e5sGo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769007483; c=relaxed/simple;
-	bh=KnD6lUbvGcRchKcNZZh/x1v8Ivn5Z3m9i5iGppglY/M=;
+	s=arc-20240116; t=1769007488; c=relaxed/simple;
+	bh=OA02ELFmnpBDdrGrXQuvFuiTkYOKMCAqIO8bG+Pl/e4=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=h7jmP+47ph0eOhp7Re0EqoxH2wOwf6h6PIggi7rIYdh6FBdTrY7dExTz1+jWw/p7VX/XM5zZOl1myb4fRGn/0kWD727h82nUgHjPVLQcpOH335PpCp/A/JCthLQRkpfwSEsUvY3KvYs5oxQ+j+ROVLTJqw64EeERO3TkyyhKLcc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=runbox.com; dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b=qLagF0dg; arc=none smtp.client-ip=185.226.149.38
+	 MIME-Version; b=iSQHQM4D4B0goLSxV4R6xUTzYPkp4Y12WxFrIdzu+kYiqxQ7Ffcc5kWJYKAjI3eA7dSUhtr4XS5BPi1QtgtyD0nDT5l0PlSosbSNyNGDQilMCQKIhRqEkOhMdXUg7wVy2T3DkunigO17iQR8+FOYwxyYadAjGZG/WgmuAB06WrM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=runbox.com; dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b=bwCgj4UW; arc=none smtp.client-ip=185.226.149.38
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=runbox.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b="qLagF0dg"
+	dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b="bwCgj4UW"
 Received: from mailtransmit03.runbox ([10.9.9.163] helo=aibo.runbox.com)
 	by mailtransmit05.runbox.com with esmtps  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 	(Exim 4.93)
 	(envelope-from <david.laight.linux_spam@runbox.com>)
-	id 1viZeV-008Pd2-AA; Wed, 21 Jan 2026 15:57:47 +0100
+	id 1viZeV-008Pd7-QC; Wed, 21 Jan 2026 15:57:47 +0100
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=runbox.com;
 	 s=selector2; h=Content-Transfer-Encoding:MIME-Version:References:In-Reply-To
 	:Message-Id:Date:Subject:Cc:To:From;
-	bh=woWiGteby0nhO3keCjO/XMIhwTt+aq04kL0xpr3EbPg=; b=qLagF0dgYYDg8S2PrryXBn9dXe
-	u01E9/j0t8fFoNRWbmP4RGYkd+TC6D6c5H6/89a7J07kehtzHK9KPDgjicbrvupq9p2WeZOTS3gaE
-	kcgsBJE76RHSrMnfXTMapxfAYRhqcrhwA74jf0EMi5cpiQh8PIZow/HG88vb2LC6H/p6JGH4chQsp
-	ajzohJd8YBsMuEGeJt9KFxBCf8ZxeIOuugeVNYtV0bkLkwIuJSjzg4eIHRg5Ii23WljRXk2eLmkZR
-	Q6EA0su+3xNKD1hrJTN12c43hYnK0Rz5EDTzk7TGUnbSbtq3SqggCVYiQFo2d7IRQHGu9KldnK+9S
-	h4Dx+60Q==;
+	bh=DxIhPg/CrbU4/R5zWg9CgbE9VAZfvxZOQr4uB5RIp+Y=; b=bwCgj4UWCr20Pxcet9xGPzvypg
+	+FG6Vowg31CoGVzLsFmzg2bfeYiVSbUioPFODND4CYg3RaFQ2U8W5eGeuHvkUeNSpHQ9gNFm0JiSA
+	KB9EydKlS6hMTlAJVMsxsp71OFE0+eo1S2p/EqVnlExVTz0NE9yqMkuigo/nlN0KMimQONboeJIqO
+	/lCOsCHR6jl9pzizM7Jtm1jI8nxXHYMV254l1UnM1CY1iE2SFWOKCxXsbS0xbnBBN/y0PhGG2P9SZ
+	nkBIAbcSXpPUHCJBDi+XeieoT3FSskZiTer2osCLW3evkvRCzYO8jKeADssVvy9H3bREo7xRGGgJP
+	jmP9tE9w==;
 Received: from [10.9.9.72] (helo=submission01.runbox)
 	by mailtransmit03.runbox with esmtp (Exim 4.86_2)
 	(envelope-from <david.laight.linux_spam@runbox.com>)
-	id 1viZeU-0006kD-JG; Wed, 21 Jan 2026 15:57:47 +0100
+	id 1viZeV-0006kf-Bf; Wed, 21 Jan 2026 15:57:47 +0100
 Received: by submission01.runbox with esmtpsa  [Authenticated ID (1493616)]  (TLS1.2:ECDHE_SECP256R1__RSA_PSS_RSAE_SHA256__AES_256_GCM:256)
 	(Exim 4.93)
-	id 1viZeT-00GH6h-4t; Wed, 21 Jan 2026 15:57:45 +0100
+	id 1viZeS-00GH6h-IM; Wed, 21 Jan 2026 15:57:44 +0100
 From: david.laight.linux@gmail.com
 To: Nathan Chancellor <nathan@kernel.org>,
 	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
@@ -55,9 +55,9 @@ To: Nathan Chancellor <nathan@kernel.org>,
 	Kees Cook <keescook@chromium.org>,
 	Andrew Morton <akpm@linux-foundation.org>
 Cc: David Laight <david.laight.linux@gmail.com>
-Subject: [PATCH next 02/14] kbuild: Add W=c for additional compile time checks
-Date: Wed, 21 Jan 2026 14:57:19 +0000
-Message-Id: <20260121145731.3623-3-david.laight.linux@gmail.com>
+Subject: [PATCH next 01/14] overflow: Reduce expansion of __type_max()
+Date: Wed, 21 Jan 2026 14:57:18 +0000
+Message-Id: <20260121145731.3623-2-david.laight.linux@gmail.com>
 X-Mailer: git-send-email 2.39.5
 In-Reply-To: <20260121145731.3623-1-david.laight.linux@gmail.com>
 References: <20260121145731.3623-1-david.laight.linux@gmail.com>
@@ -71,51 +71,27 @@ Content-Transfer-Encoding: 8bit
 
 From: David Laight <david.laight.linux@gmail.com>
 
-Some compile time checks significantly bloat the pre-processor output
-(particularly when the get nested).
-Since the checks aren't really needed on every compilation enable with
-W=c (adds -DKBUILD_EXTRA_WARNc) so the checks can be enabled per-build.
-Make W=1 imply W=c so the build-bot includes the checks.
-
-As well as reducing the bloat from existing checks (like those in
-GENMASK() and FIELD_PREP()) it lets additional checks be added
-while there are still 'false positives' without breaking normal builds.
+Change '(x - 1) + x' to '2 * (x - 1) + 1' to avoid expanding the
+non-trivial __type_half_max() twice.
 
 Signed-off-by: David Laight <david.laight.linux@gmail.com>
 ---
- scripts/Makefile.warn | 12 ++++++++++--
- 1 file changed, 10 insertions(+), 2 deletions(-)
+ include/linux/overflow.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/scripts/Makefile.warn b/scripts/Makefile.warn
-index 68e6fafcb80c..e8a799850973 100644
---- a/scripts/Makefile.warn
-+++ b/scripts/Makefile.warn
-@@ -2,8 +2,9 @@
- # ==========================================================================
- # make W=... settings
- #
--# There are four warning groups enabled by W=1, W=2, W=3, and W=e
--# They are independent, and can be combined like W=12 or W=123e.
-+# There are five warning groups enabled by W=c, W=1, W=2, W=3, and W=e
-+# They are independent, and can be combined like W=12 or W=123e,
-+# except that W=1 implies W=c.
- # ==========================================================================
- 
- # Default set of warnings, always enabled
-@@ -109,6 +110,13 @@ KBUILD_CFLAGS += $(call cc-option,-Wenum-conversion)
- 
- KBUILD_CFLAGS += -Wunused
- 
-+#
-+# W=c - Expensive compile-time checks, implied by W=1
-+#
-+ifneq ($(findstring c, $(KBUILD_EXTRA_WARN))$(findstring 1, $(KBUILD_EXTRA_WARN)),)
-+KBUILD_CPPFLAGS += -DKBUILD_EXTRA_WARNc
-+endif
-+
- #
- # W=1 - warnings which may be relevant and do not occur too often
- #
+diff --git a/include/linux/overflow.h b/include/linux/overflow.h
+index 736f633b2d5f..4f014d55ab25 100644
+--- a/include/linux/overflow.h
++++ b/include/linux/overflow.h
+@@ -31,7 +31,7 @@
+  * credit to Christian Biere.
+  */
+ #define __type_half_max(type) ((type)1 << (8*sizeof(type) - 1 - is_signed_type(type)))
+-#define __type_max(T) ((T)((__type_half_max(T) - 1) + __type_half_max(T)))
++#define __type_max(T) ((T)(2 * (__type_half_max(T) - 1) + 1))
+ #define type_max(t)	__type_max(typeof(t))
+ #define __type_min(T) ((T)((T)-type_max(T)-(T)1))
+ #define type_min(t)	__type_min(typeof(t))
 -- 
 2.39.5
 
