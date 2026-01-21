@@ -1,48 +1,86 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 69F3F321F5E;
-	Wed, 21 Jan 2026 01:53:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-yw1-f170.google.com (mail-yw1-f170.google.com [209.85.128.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 147ED3E9F73
+	for <linux-arch@vger.kernel.org>; Wed, 21 Jan 2026 05:29:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768960420; cv=none; b=AK6xRfCWIf+vb3RJvdN5jFWCe3iV+8CQxT5QztvWEVSqi9jSdPxYr9y49ooMHcfFnIKsnTdcVKdl81Hjq+VkKnQecCwbqtsuOVmtx0RkSeYiPSSW4pN3/QluoQdFDO8ie4Ng26bOfJJB6F/U6SbyTmAhA80Pzld72YgrXWk9uTE=
+	t=1768973381; cv=none; b=YOSd1RYDFvf1weShk4Wo3gJt9WJskyK1locn8jcjT3bqUBHUsKS8R84vkDrC6p+YNhKveiikehsEDy8WNh/AjW8CDFrMLVYtmk/LrviNmgeSjmn50nGowwgzXL1WEUlUXJcuVucGQVnujnEppMjoy/mbuF9ECAWNIqvIjZLJudU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768960420; c=relaxed/simple;
-	bh=GWd3kE5nzbALiYd9w/RRKzSE7RaI32EBz0diWTgONxE=;
+	s=arc-20240116; t=1768973381; c=relaxed/simple;
+	bh=uQc7kvpnr3eWQJ+H7RqNdRd5OZKaD9lrnlN+V2TeZpw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=R7IoqbaMMfech09OTtsoECUmhPMME/dQpHQTKjewK6UXIrR05KXC1oHezrQT38t3iCSM//aMDniag5NRTlccYv9x26RCmIEw/vSm+6G7ZHWHTtZeSkyrxCFMXCs5i9yd3aDueBhu+7uZTSa4GCtb9mfaySEahDH3RWhkLHwFH3w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=IbluBz1J; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=sUD0KcjebuHt+ICo7EUdSdHe+ejANV5RsLFSVVLLuLrVcxZV4ZrzsOPLHTbnQ8g8dvyaFUL2GqpPbKV3MYqdnIr6IyWCBYc3cL0p6Hw6Ws1ub38QdvKEJYNdYM6ONxGoXYKSbKRoHYN7NlC90ek/TdjaHtbQNIQHL+2jup33/6o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=N5Mlk7u9; arc=none smtp.client-ip=209.85.128.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="IbluBz1J"
-Received: from skinsburskii.localdomain (unknown [20.236.10.163])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 916ED20B7167;
-	Tue, 20 Jan 2026 17:53:30 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 916ED20B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1768960411;
-	bh=Ymw6zhgGVeFVyXTu0csGpSjrM5/LURY8dThwT1pHr1g=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=IbluBz1JLfnfdfGrhKQDQkff+no9Xt61GmK/MxRcADLiMlxt2AFu4VsDIxwK/r8KE
-	 1M36jL8WfIMUbzlGyoMAAOTNsz1rZ2bN/HcHJMHK30JunRpnZLI6AxGsKP7ofA5SNG
-	 prJ3EYaLv9L0r0x5imz0gAe5MPs+pN/qtNn09OHE=
-Date: Tue, 20 Jan 2026 17:53:29 -0800
-From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
-	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com,
-	will@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
-	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
-	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
-	nunodasneves@linux.microsoft.com, mhklinux@outlook.com,
-	romank@linux.microsoft.com
-Subject: Re: [PATCH v0 15/15] mshv: Populate mmio mappings for PCI passthru
-Message-ID: <aXAxmYm4zbOzGztz@skinsburskii.localdomain>
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120064230.3602565-16-mrathor@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="N5Mlk7u9"
+Received: by mail-yw1-f170.google.com with SMTP id 00721157ae682-79028cb7f92so51564377b3.2
+        for <linux-arch@vger.kernel.org>; Tue, 20 Jan 2026 21:29:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1768973379; x=1769578179; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=Xj8z6sgYRSc2zcxSy7UyhR6bNJrDd7gH3jcOHm2KVdE=;
+        b=N5Mlk7u9FDtv8iuzab4wtE//XR4wWyXKvWvfNWKiMhMYaY2hk90IsgZpkX9QxE5r5W
+         E+qUf/NIq8OaJIc13eE5mtj6u9w7AAHIIoWzH5gg9L15O6Gpkq0vl64BijAuY+dpdn1l
+         Cd3MmbfbEGxleWpjm6Qz/UbSFqFOZ9oFZnKUfmoKwvefd+DUMatAKmC7j6CtXDqMy3wb
+         oKDTDIyRwiIuvQvjbjA3GujyM2WPByE0MUuc7FrndL7Og6k87i8CnbJAosSKeGKiJjob
+         4tZXjTKNqik++zdsjhNAQVzTeWVwaTbOEpfXcEJp4VjS9nLKnffIbWsvhZN+tSimS6Rr
+         upOA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1768973379; x=1769578179;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Xj8z6sgYRSc2zcxSy7UyhR6bNJrDd7gH3jcOHm2KVdE=;
+        b=cEs3IP1A+DkS8dsl7Jg9V6Pb9LyX3ZSQzwG8wuSpzUAQjYgE4noKWZeVuAKo5OIsYV
+         EBb4fG6a9tI6GQa7nDIzB1fd0/jxirXGHsI7OwLSbDnlQ/j+j6jsmOOwPMamIm1GzeUL
+         UN8Q5jx9/N/Slv65EbFIOIGvGR0pW6tIQ6gA0ovi+1mG7Z80tX9AU+kQuMMhyoXLh+pt
+         hiUG3vE7Vg6TsT9MJNQ7SDJcb48T20O2NyguO/XtmHjSkB9KaN2SN+kSNw/obQdmGsru
+         yFbaFSykDUc0KVEIyig51AD/Ep7mGNOyupii2O821Mmh496y6BoQb99Ijcf08OxAUW4h
+         7FtQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWWMdwCm+fQZOvUe1oVc3g08bZvbdQMBfZS96uKRrhg2AYuYD7Tips6otMEpYjIkqVNtZh5Q20PO37b@vger.kernel.org
+X-Gm-Message-State: AOJu0YxPugJeY5sKB59L+J0R+o0c+yKN0ndpFTYiEgy8YclX+k+l/74N
+	Tpfcg7DKwVQVYye57Z0ECuDLXi64N/AgsPj++2xUPr/K+M/6czHKhjA0
+X-Gm-Gg: AZuq6aJfYGFciVBltzOVv9SYP7AWH2syHOHs5OqJ+gi6w+jICex3CZ8/RNaK6BmOGTe
+	Zek68IiwoE0O0VN8A2fqAPsT04nYUO9ZS73xEnlQP9SeBSP2Iar51oZ3dbFIKtt5FfMZnmIU0bR
+	5VcilPoypZudv8D1s+fpheY68CkPR2HNNZfkeNx6fqb2m8xsJqYIZ+2W2MTmMWLW9UPrfF0IWxo
+	OCRsQG9aWkWPNNrqsnzBSriON9z4CcPu8c7L2vzk5uAqtZEnZaiI8i6fYSjNoK3IvpjzqwjacAS
+	1EhGhDwdrXiNtE1OmALGUnQSbW4FtXBMxZ/tYN0joF6gx6zzMLKSho9we0DJJ4ZDlRK1LyXsRLq
+	TlsolYR/Xj2cHaW9QqbUcz1zVjyWeLI0GRi3EBWGVBZ57j0ypMGFxWkuzQ3XMQJDElmIniTUJAX
+	zDDN4TkzShqrzh60WglM+LOVhVFc6Vm9QAeQ==
+X-Received: by 2002:a05:690c:f09:b0:78d:b1e9:85f0 with SMTP id 00721157ae682-793c6831d0dmr118307367b3.47.1768973378948;
+        Tue, 20 Jan 2026 21:29:38 -0800 (PST)
+Received: from devvm11784.nha0.facebook.com ([2a03:2880:25ff:9::])
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-793c6888b83sm61022937b3.48.2026.01.20.21.29.38
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 20 Jan 2026 21:29:38 -0800 (PST)
+Date: Tue, 20 Jan 2026 21:29:36 -0800
+From: Bobby Eshleman <bobbyeshleman@gmail.com>
+To: Jakub Kicinski <kuba@kernel.org>
+Cc: "David S. Miller" <davem@davemloft.net>,
+	Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>,
+	Simon Horman <horms@kernel.org>,
+	Kuniyuki Iwashima <kuniyu@google.com>,
+	Willem de Bruijn <willemb@google.com>,
+	Neal Cardwell <ncardwell@google.com>,
+	David Ahern <dsahern@kernel.org>,
+	Mina Almasry <almasrymina@google.com>,
+	Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>,
+	Andrew Lunn <andrew+netdev@lunn.ch>, Shuah Khan <shuah@kernel.org>,
+	Donald Hunter <donald.hunter@gmail.com>,
+	Stanislav Fomichev <sdf@fomichev.me>, netdev@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org,
+	asml.silence@gmail.com, matttbe@kernel.org, skhawaja@google.com,
+	Bobby Eshleman <bobbyeshleman@meta.com>
+Subject: Re: [PATCH net-next v10 0/5] net: devmem: improve cpu cost of RX
+ token management
+Message-ID: <aXBkQErscGzJwh2i@devvm11784.nha0.facebook.com>
+References: <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-0-686d0af71978@meta.com>
+ <20260120170749.101e8bcc@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -51,184 +89,44 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260120064230.3602565-16-mrathor@linux.microsoft.com>
+In-Reply-To: <20260120170749.101e8bcc@kernel.org>
 
-On Mon, Jan 19, 2026 at 10:42:30PM -0800, Mukesh R wrote:
-> From: Mukesh Rathor <mrathor@linux.microsoft.com>
+On Tue, Jan 20, 2026 at 05:07:49PM -0800, Jakub Kicinski wrote:
+> On Thu, 15 Jan 2026 21:02:11 -0800 Bobby Eshleman wrote:
+> > This series improves the CPU cost of RX token management by adding an
+> > attribute to NETDEV_CMD_BIND_RX that configures sockets using the
+> > binding to avoid the xarray allocator and instead use a per-binding niov
+> > array and a uref field in niov.
+> > 
+> > Improvement is ~13% cpu util per RX user thread.
+> > 
+> > Using kperf, the following results were observed:
+> > 
+> > Before:
+> > 	Average RX worker idle %: 13.13, flows 4, test runs 11
+> > After:
+> > 	Average RX worker idle %: 26.32, flows 4, test runs 11
+> > 
+> > Two other approaches were tested, but with no improvement. Namely, 1)
+> > using a hashmap for tokens and 2) keeping an xarray of atomic counters
+> > but using RCU so that the hotpath could be mostly lockless. Neither of
+> > these approaches proved better than the simple array in terms of CPU.
+> > 
+> > The attribute NETDEV_A_DMABUF_AUTORELEASE is added to toggle the
+> > optimization. It is an optional attribute and defaults to 0 (i.e.,
+> > optimization on).
 > 
-> Upon guest access, in case of missing mmio mapping, the hypervisor
-> generates an unmapped gpa intercept. In this path, lookup the PCI
-> resource pfn for the guest gpa, and ask the hypervisor to map it
-> via hypercall. The PCI resource pfn is maintained by the VFIO driver,
-> and obtained via fixup_user_fault call (similar to KVM).
-> 
-> Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
-> ---
->  drivers/hv/mshv_root_main.c | 115 ++++++++++++++++++++++++++++++++++++
->  1 file changed, 115 insertions(+)
-> 
-> diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
-> index 03f3aa9f5541..4c8bc7cd0888 100644
-> --- a/drivers/hv/mshv_root_main.c
-> +++ b/drivers/hv/mshv_root_main.c
-> @@ -56,6 +56,14 @@ struct hv_stats_page {
->  	};
->  } __packed;
->  
-> +bool hv_nofull_mmio;   /* don't map entire mmio region upon fault */
-> +static int __init setup_hv_full_mmio(char *str)
-> +{
-> +	hv_nofull_mmio = true;
-> +	return 0;
-> +}
-> +__setup("hv_nofull_mmio", setup_hv_full_mmio);
-> +
->  struct mshv_root mshv_root;
->  
->  enum hv_scheduler_type hv_scheduler_type;
-> @@ -612,6 +620,109 @@ mshv_partition_region_by_gfn(struct mshv_partition *partition, u64 gfn)
->  }
->  
->  #ifdef CONFIG_X86_64
-> +
-> +/*
-> + * Check if uaddr is for mmio range. If yes, return 0 with mmio_pfn filled in
-> + * else just return -errno.
-> + */
-> +static int mshv_chk_get_mmio_start_pfn(struct mshv_partition *pt, u64 gfn,
-> +				       u64 *mmio_pfnp)
-> +{
-> +	struct vm_area_struct *vma;
-> +	bool is_mmio;
-> +	u64 uaddr;
-> +	struct mshv_mem_region *mreg;
-> +	struct follow_pfnmap_args pfnmap_args;
-> +	int rc = -EINVAL;
-> +
-> +	/*
-> +	 * Do not allow mem region to be deleted beneath us. VFIO uses
-> +	 * useraddr vma to lookup pci bar pfn.
-> +	 */
-> +	spin_lock(&pt->pt_mem_regions_lock);
-> +
-> +	/* Get the region again under the lock */
-> +	mreg = mshv_partition_region_by_gfn(pt, gfn);
-> +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-> +		goto unlock_pt_out;
-> +
-> +	uaddr = mreg->start_uaddr +
-> +		((gfn - mreg->start_gfn) << HV_HYP_PAGE_SHIFT);
-> +
-> +	mmap_read_lock(current->mm);
+> IDK if the cmsg approach is still right for this flow TBH.
+> IIRC when Stan talked about this a while back we were considering doing
+> this via Netlink. Anything that proves that the user owns the binding
+> would work. IIUC the TCP socket in this design just proves that socket
+> has received a token from a given binding right?
 
-Semaphore can't be taken under spinlock.
-Get it instead.
+In both designs the owner of the binding starts of as the netlink opener,
+and then ownership spreads out to TCP sockets as packets are steered to
+them. Tokens are received by the user which gives them a share in the
+form of references on the pp and binding. This design follows the same
+approach... but I may be misinterpreting what you mean by ownership?
 
-> +	vma = vma_lookup(current->mm, uaddr);
-> +	is_mmio = vma ? !!(vma->vm_flags & (VM_IO | VM_PFNMAP)) : 0;
-
-Why this check is needed again?
-The region type is stored on the region itself.
-And the type is checked on the caller side.
-
-> +	if (!is_mmio)
-> +		goto unlock_mmap_out;
-> +
-> +	pfnmap_args.vma = vma;
-> +	pfnmap_args.address = uaddr;
-> +
-> +	rc = follow_pfnmap_start(&pfnmap_args);
-> +	if (rc) {
-> +		rc = fixup_user_fault(current->mm, uaddr, FAULT_FLAG_WRITE,
-> +				      NULL);
-> +		if (rc)
-> +			goto unlock_mmap_out;
-> +
-> +		rc = follow_pfnmap_start(&pfnmap_args);
-> +		if (rc)
-> +			goto unlock_mmap_out;
-> +	}
-> +
-> +	*mmio_pfnp = pfnmap_args.pfn;
-> +	follow_pfnmap_end(&pfnmap_args);
-> +
-> +unlock_mmap_out:
-> +	mmap_read_unlock(current->mm);
-> +unlock_pt_out:
-> +	spin_unlock(&pt->pt_mem_regions_lock);
-> +	return rc;
-> +}
-> +
-> +/*
-> + * At present, the only unmapped gpa is mmio space. Verify if it's mmio
-> + * and resolve if possible.
-> + * Returns: True if valid mmio intercept and it was handled, else false
-> + */
-> +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp)
-> +{
-> +	struct hv_message *hvmsg = vp->vp_intercept_msg_page;
-> +	struct hv_x64_memory_intercept_message *msg;
-> +	union hv_x64_memory_access_info accinfo;
-> +	u64 gfn, mmio_spa, numpgs;
-> +	struct mshv_mem_region *mreg;
-> +	int rc;
-> +	struct mshv_partition *pt = vp->vp_partition;
-> +
-> +	msg = (struct hv_x64_memory_intercept_message *)hvmsg->u.payload;
-> +	accinfo = msg->memory_access_info;
-> +
-> +	if (!accinfo.gva_gpa_valid)
-> +		return false;
-> +
-> +	/* Do a fast check and bail if non mmio intercept */
-> +	gfn = msg->guest_physical_address >> HV_HYP_PAGE_SHIFT;
-> +	mreg = mshv_partition_region_by_gfn(pt, gfn);
-
-This call needs to be protected by the spinlock.
-
-Thanks,
-Stanislav 
-
-> +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-> +		return false;
-> +
-> +	rc = mshv_chk_get_mmio_start_pfn(pt, gfn, &mmio_spa);
-> +	if (rc)
-> +		return false;
-> +
-> +	if (!hv_nofull_mmio) {		/* default case */
-> +		gfn = mreg->start_gfn;
-> +		mmio_spa = mmio_spa - (gfn - mreg->start_gfn);
-> +		numpgs = mreg->nr_pages;
-> +	} else
-> +		numpgs = 1;
-> +
-> +	rc = hv_call_map_mmio_pages(pt->pt_id, gfn, mmio_spa, numpgs);
-> +
-> +	return rc == 0;
-> +}
-> +
->  static struct mshv_mem_region *
->  mshv_partition_region_by_gfn_get(struct mshv_partition *p, u64 gfn)
->  {
-> @@ -666,13 +777,17 @@ static bool mshv_handle_gpa_intercept(struct mshv_vp *vp)
->  
->  	return ret;
->  }
-> +
->  #else  /* CONFIG_X86_64 */
-> +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp) { return false; }
->  static bool mshv_handle_gpa_intercept(struct mshv_vp *vp) { return false; }
->  #endif /* CONFIG_X86_64 */
->  
->  static bool mshv_vp_handle_intercept(struct mshv_vp *vp)
->  {
->  	switch (vp->vp_intercept_msg_page->header.message_type) {
-> +	case HVMSG_UNMAPPED_GPA:
-> +		return mshv_handle_unmapped_gpa(vp);
->  	case HVMSG_GPA_INTERCEPT:
->  		return mshv_handle_gpa_intercept(vp);
->  	}
-> -- 
-> 2.51.2.vfs.0.1
-> 
+Best,
+Bobby
