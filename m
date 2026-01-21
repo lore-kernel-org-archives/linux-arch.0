@@ -1,221 +1,142 @@
-Received: from mailtransmit05.runbox.com (mailtransmit05.runbox.com [185.226.149.38])
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3C714A33F9;
-	Wed, 21 Jan 2026 14:58:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.226.149.38
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DD38A425CF7;
+	Wed, 21 Jan 2026 15:17:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769007500; cv=none; b=OwPsyxPnFjw7MnCHBFMdg5HQm/frv5aPFAlAM5130uufB0470xWrZSG3ezl0yDnPF7+bnG8KmYNfP3pKmkOm+e12LR2KmymvQax4P9DNe2XA6xfvv4OEVzF8ZVijDMkZytH6+k35JKk4Zsx9Fng3SMyfpwaykx1c3VEB5ucX3Rg=
+	t=1769008642; cv=none; b=Lg0Vf5OqizWNCaxmT+4wEFB70UfDhzk4WN4X3pIK+0ybb8ltRmn89GCLQObQ2A5PfnZ0pziktdz6v410AvAmd0Ga3n+zweCuXhO7fH/0DX8liG5dFgQKnlO+MubKZhxBT1VO3abjmGOBoWKt/pUDIAI/mS+X+3upQ++I9n95z0I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769007500; c=relaxed/simple;
-	bh=GrU5G25/P99RLLNQ7KSbxlvGQaNMjUwXFB4EvQMlbdY=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=hCYJpqQPjVrjMy5ESACaFoxEOzan6HX3ByEnM1C3rSgf8O9hIIrfpWd7OGSc9CdEzQ88IGVRREzG4XpAidgx5Xw0p8v2bHE3WxnBanGYrforWa8QT+5XQaouMBdOeRo2MLs5R2EPbYh/L9sMOeGnUdze+i6WygLLGMrBW5Ni8Q4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=runbox.com; dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b=mumsnJE3; arc=none smtp.client-ip=185.226.149.38
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=runbox.com
+	s=arc-20240116; t=1769008642; c=relaxed/simple;
+	bh=Qg6w4OVSreD2AIKSV9AIgAKktndpxrPtuvgkmk8diGg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=LWI/R/frXZhW2hjNFlMYMvXNj5l/6nLbfHTd3rxNsfHC8IkaD+n/SIKoVPNHE/1ESFHNW9+kqNNipml0GcqJQqwKKeuVKfNnB3n4vjA+AvyuM5Ifc7/NPoSC++mnj2DnqoIcLJXNPFsnMr7b6P7eh6QIGjzdkYrhKKe04ll/uCc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=zn11SwTx; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=PhK2zk3w; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b="mumsnJE3"
-Received: from mailtransmit02.runbox ([10.9.9.162] helo=aibo.runbox.com)
-	by mailtransmit05.runbox.com with esmtps  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	(Exim 4.93)
-	(envelope-from <david.laight.linux_spam@runbox.com>)
-	id 1viZet-008Pjm-DL; Wed, 21 Jan 2026 15:58:11 +0100
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=runbox.com;
-	 s=selector2; h=Content-Transfer-Encoding:MIME-Version:References:In-Reply-To
-	:Message-Id:Date:Subject:Cc:To:From;
-	bh=IMLT+9LEWzpcaNrLe+KYWU3xSE5AFfmLcg7xui5sLPw=; b=mumsnJE3uG328eoTonga0q7XW6
-	YfxKMj4TyOcRNmcEom1hQhXoXBkDtQJu67uXD+e6W/e3KOT/1MalE7MCaGuQK/8u/AEkbuxda2HHT
-	LZfVxqkJIlusPga7K1VSy/+CuaFF+ZiA4GfpPYtAgnVNcCG9/WEZ5yGVRzcgdyaG6rY+G1wK2Jf7w
-	78dhBKJBBpTGGbdUyGJ3tfUzOdyJDMtcXt5+N6AMhNCsqGPBSIN7Pn76W+JivjdCDplOkc11JweDB
-	NbWmJf6JRbCnVRg0slt8LFoU+ehGPwqntj1KNg+urxtMk28oyxwHFvC3eK+dCu+jr+BNAK5xm0nC/
-	3m/rHDYg==;
-Received: from [10.9.9.72] (helo=submission01.runbox)
-	by mailtransmit02.runbox with esmtp (Exim 4.86_2)
-	(envelope-from <david.laight.linux_spam@runbox.com>)
-	id 1viZes-0001sq-Lm; Wed, 21 Jan 2026 15:58:11 +0100
-Received: by submission01.runbox with esmtpsa  [Authenticated ID (1493616)]  (TLS1.2:ECDHE_SECP256R1__RSA_PSS_RSAE_SHA256__AES_256_GCM:256)
-	(Exim 4.93)
-	id 1viZeZ-00GH6h-QD; Wed, 21 Jan 2026 15:57:51 +0100
-From: david.laight.linux@gmail.com
-To: Nathan Chancellor <nathan@kernel.org>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Ingo Molnar <mingo@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	Yury Norov <yury.norov@gmail.com>,
-	Lucas De Marchi <lucas.demarchi@intel.com>,
-	Jani Nikula <jani.nikula@intel.com>,
-	Vincent Mailhol <mailhol.vincent@wanadoo.fr>,
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-	Kees Cook <keescook@chromium.org>,
-	Andrew Morton <akpm@linux-foundation.org>
-Cc: David Laight <david.laight.linux@gmail.com>
-Subject: [PATCH next 13/14] test_bits: Change all the tests to be compile-time tests
-Date: Wed, 21 Jan 2026 14:57:30 +0000
-Message-Id: <20260121145731.3623-14-david.laight.linux@gmail.com>
-X-Mailer: git-send-email 2.39.5
-In-Reply-To: <20260121145731.3623-1-david.laight.linux@gmail.com>
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="zn11SwTx";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="PhK2zk3w"
+Date: Wed, 21 Jan 2026 16:17:18 +0100
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1769008639;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=RpD1oY6H4Z9JLEfU3gatE0wEruTfdDl56dLhid56PyE=;
+	b=zn11SwTxAG+I2No5pd10CRrHG9zHkNKFg6QDP0HekSetRc/aZZruAN0SlCcxoY+SNTEdcC
+	1yXgrVp0nfu3TFPhGzC5ektzTu5/dx8U8lWW14eR8ZgaDKz2sHQ78y0urpa64q3nQHELkm
+	wFkYEg4zjlmqX3kfjTTphI1mMclV9jBQSSwHU70DWdFIhaN7MTpmaV8MI9HSF/TBaMh8DU
+	ggjjiWWqQN+sVcCauOKroKFljUBZqWnSsqqX4MvIl2WU9Dp/jf99Rjbb5ohNTiq226zavv
+	QtkcXiXv4DQ44Ka+qMElvKyaPPJHqrCQhAG238gtr9QNycD0eUbfm1ROqavjlA==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1769008639;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=RpD1oY6H4Z9JLEfU3gatE0wEruTfdDl56dLhid56PyE=;
+	b=PhK2zk3wsiSFvr3ocXjEOAoUr/JAx5XoUnxq49scIaQ7jtlQtJ5ZUSm6d2STuo98meFFva
+	UUC2F0ySqwgF4xBg==
+From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
+To: david.laight.linux@gmail.com
+Cc: Nathan Chancellor <nathan@kernel.org>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, 
+	Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, 
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, Yury Norov <yury.norov@gmail.com>, 
+	Lucas De Marchi <lucas.demarchi@intel.com>, Jani Nikula <jani.nikula@intel.com>, 
+	Vincent Mailhol <mailhol.vincent@wanadoo.fr>, Andy Shevchenko <andriy.shevchenko@linux.intel.com>, 
+	Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH next 12/14] bits: move the defitions of BIT() and
+ BIT_ULL() back to linux/bits.h
+Message-ID: <20260121160912-cafca67d-bfc0-414a-adaa-80c863acd93a@linutronix.de>
 References: <20260121145731.3623-1-david.laight.linux@gmail.com>
+ <20260121145731.3623-13-david.laight.linux@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260121145731.3623-13-david.laight.linux@gmail.com>
 
-From: David Laight <david.laight.linux@gmail.com>
+On Wed, Jan 21, 2026 at 02:57:29PM +0000, david.laight.linux@gmail.com wrote:
+> From: David Laight <david.laight.linux@gmail.com>
+> 
+> The definition of BIT() was moved from linux/bits.h to vdso/bits.h to
+> isolate the vdso from 'normal' kernel headers.
+> BIT_ULL() was then moved to be defined in the same place for consistency.
+> 
+> Since then linux/bits.h had gained BIT_Unn() and it really makes sense
+> for BIT() and BIT_ULL() to be defined in the same place.
+> 
+> Move BIT_ULL() and make code that include both headers use the definition
+> of BIT() from linux/bits.h
+> Add BIT_U128() for completness.
+> 
+> This lets BIT() pick up the extra compile time checks for W=[1c] builds
+> that detect errors like:
+> 	long foo(void) { int x = 64; return BIT(x); }
+> For which clang (silently) just generates a 'return' instruction.
+> 
+> Note that nothing the the x86-64 build relies on the definition in
+> vdso/bits.h, linux/bits.h is always included.
+> 
+> Signed-off-by: David Laight <david.laight.linux@gmail.com>
+> ---
+>  include/linux/bits.h | 7 ++++++-
+>  include/vdso/bits.h  | 2 +-
+>  2 files changed, 7 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/linux/bits.h b/include/linux/bits.h
+> index 0f559038981d..3dd32b9eef35 100644
+> --- a/include/linux/bits.h
+> +++ b/include/linux/bits.h
+> @@ -2,7 +2,6 @@
+>  #ifndef __LINUX_BITS_H
+>  #define __LINUX_BITS_H
+>  
+> -#include <vdso/bits.h>
+>  #include <uapi/linux/bits.h>
+>  
+>  #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
+> @@ -89,10 +88,16 @@ int BIT_INPUT_CHECK_FAIL(void) __compiletime_error("Bit number out of range");
+>  	((unsigned int)BIT_INPUT_CHECK(+(nr), BITS_PER_TYPE(type)) + ((type)1 << (nr)))
+>  #endif /* defined(__ASSEMBLY__) */
+>  
+> +/* Prefer this definition of BIT() to the one in vdso/bits.h */
+> +#undef BIT
+> +#define __VDSO_BITS_H
 
-Since all the GENMASK() values are compile-time constants they can
-be tested with BUILD_BUG_ON() rather than KUNIT_EXPECT_EQ().
+This is ugly.
 
-Signed-off-by: David Laight <david.laight.linux@gmail.com>
----
- lib/tests/test_bits.c | 90 +++++++++++++++++++++----------------------
- 1 file changed, 45 insertions(+), 45 deletions(-)
+Why can't the vDSO code make use of those checks, too?
+Or use _BITUL() from the UAPI in the vDSO and remove vdso/bits.h.
 
-diff --git a/lib/tests/test_bits.c b/lib/tests/test_bits.c
-index 36eb4661e78b..4d3a895f490c 100644
---- a/lib/tests/test_bits.c
-+++ b/lib/tests/test_bits.c
-@@ -32,30 +32,30 @@ static_assert(assert_type(u64, GENMASK_U64(63, 0)) == U64_MAX);
- 
- static void __genmask_test(struct kunit *test)
- {
--	KUNIT_EXPECT_EQ(test, 1ul, __GENMASK(0, 0));
--	KUNIT_EXPECT_EQ(test, 3ul, __GENMASK(1, 0));
--	KUNIT_EXPECT_EQ(test, 6ul, __GENMASK(2, 1));
--	KUNIT_EXPECT_EQ(test, 0xFFFFFFFFul, __GENMASK(31, 0));
-+	BUILD_BUG_ON(__GENMASK(0, 0) != 1ul);
-+	BUILD_BUG_ON(__GENMASK(1, 0) != 3ul);
-+	BUILD_BUG_ON(__GENMASK(2, 1) != 6ul);
-+	BUILD_BUG_ON(__GENMASK(31, 0) != 0xFFFFFFFFul);
- }
- 
- static void __genmask_ull_test(struct kunit *test)
- {
--	KUNIT_EXPECT_EQ(test, 1ull, __GENMASK_ULL(0, 0));
--	KUNIT_EXPECT_EQ(test, 3ull, __GENMASK_ULL(1, 0));
--	KUNIT_EXPECT_EQ(test, 0x000000ffffe00000ull, __GENMASK_ULL(39, 21));
--	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, __GENMASK_ULL(63, 0));
-+	BUILD_BUG_ON(__GENMASK_ULL(0, 0) != 1ull);
-+	BUILD_BUG_ON(__GENMASK_ULL(1, 0) != 3ull);
-+	BUILD_BUG_ON(__GENMASK_ULL(39, 21) != 0x000000ffffe00000ull);
-+	BUILD_BUG_ON(__GENMASK_ULL(63, 0) != 0xffffffffffffffffull);
- }
- 
- static void genmask_test(struct kunit *test)
- {
--	KUNIT_EXPECT_EQ(test, 1ul, GENMASK(0, 0));
--	KUNIT_EXPECT_EQ(test, 3ul, GENMASK(1, 0));
--	KUNIT_EXPECT_EQ(test, 6ul, GENMASK(2, 1));
--	KUNIT_EXPECT_EQ(test, 0xFFFFFFFFul, GENMASK(31, 0));
-+	BUILD_BUG_ON(GENMASK(0, 0) != 1ul);
-+	BUILD_BUG_ON(GENMASK(1, 0) != 3ul);
-+	BUILD_BUG_ON(GENMASK(2, 1) != 6ul);
-+	BUILD_BUG_ON(GENMASK(31, 0) != 0xFFFFFFFFul);
- 
--	KUNIT_EXPECT_EQ(test, 1u, GENMASK_U8(0, 0));
--	KUNIT_EXPECT_EQ(test, 3u, GENMASK_U16(1, 0));
--	KUNIT_EXPECT_EQ(test, 0x10000, GENMASK_U32(16, 16));
-+	BUILD_BUG_ON(GENMASK_U8(0, 0) != 1u);
-+	BUILD_BUG_ON(GENMASK_U16(1, 0) != 3u);
-+	BUILD_BUG_ON(GENMASK_U32(16, 16) != 0x10000);
- 
- #ifdef TEST_GENMASK_FAILURES
- 	/* these should fail compilation */
-@@ -75,10 +75,10 @@ static void genmask_test(struct kunit *test)
- 
- static void genmask_ull_test(struct kunit *test)
- {
--	KUNIT_EXPECT_EQ(test, 1ull, GENMASK_ULL(0, 0));
--	KUNIT_EXPECT_EQ(test, 3ull, GENMASK_ULL(1, 0));
--	KUNIT_EXPECT_EQ(test, 0x000000ffffe00000ull, GENMASK_ULL(39, 21));
--	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_ULL(63, 0));
-+	BUILD_BUG_ON(GENMASK_ULL(0, 0) != 1ull);
-+	BUILD_BUG_ON(GENMASK_ULL(1, 0) != 3ull);
-+	BUILD_BUG_ON(GENMASK_ULL(39, 21) != 0x000000ffffe00000ull);
-+	BUILD_BUG_ON(GENMASK_ULL(63, 0) != 0xffffffffffffffffull);
- 
- #ifdef TEST_GENMASK_FAILURES
- 	/* these should fail compilation */
-@@ -92,23 +92,23 @@ static void genmask_u128_test(struct kunit *test)
- {
- #ifdef CONFIG_ARCH_SUPPORTS_INT128
- 	/* Below 64 bit masks */
--	KUNIT_EXPECT_EQ(test, 0x0000000000000001ull, GENMASK_U128(0, 0));
--	KUNIT_EXPECT_EQ(test, 0x0000000000000003ull, GENMASK_U128(1, 0));
--	KUNIT_EXPECT_EQ(test, 0x0000000000000006ull, GENMASK_U128(2, 1));
--	KUNIT_EXPECT_EQ(test, 0x00000000ffffffffull, GENMASK_U128(31, 0));
--	KUNIT_EXPECT_EQ(test, 0x000000ffffe00000ull, GENMASK_U128(39, 21));
--	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_U128(63, 0));
-+	BUILD_BUG_ON(GENMASK_U128(0, 0) != 0x0000000000000001ull);
-+	BUILD_BUG_ON(GENMASK_U128(1, 0) != 0x0000000000000003ull);
-+	BUILD_BUG_ON(GENMASK_U128(2, 1) != 0x0000000000000006ull);
-+	BUILD_BUG_ON(GENMASK_U128(31, 0) != 0x00000000ffffffffull);
-+	BUILD_BUG_ON(GENMASK_U128(39, 21) != 0x000000ffffe00000ull);
-+	BUILD_BUG_ON(GENMASK_U128(63, 0) != 0xffffffffffffffffull);
- 
- 	/* Above 64 bit masks - only 64 bit portion can be validated once */
--	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_U128(64, 0) >> 1);
--	KUNIT_EXPECT_EQ(test, 0x00000000ffffffffull, GENMASK_U128(81, 50) >> 50);
--	KUNIT_EXPECT_EQ(test, 0x0000000000ffffffull, GENMASK_U128(87, 64) >> 64);
--	KUNIT_EXPECT_EQ(test, 0x0000000000ff0000ull, GENMASK_U128(87, 80) >> 64);
--
--	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, GENMASK_U128(127, 0) >> 64);
--	KUNIT_EXPECT_EQ(test, 0xffffffffffffffffull, (u64)GENMASK_U128(127, 0));
--	KUNIT_EXPECT_EQ(test, 0x0000000000000003ull, GENMASK_U128(127, 126) >> 126);
--	KUNIT_EXPECT_EQ(test, 0x0000000000000001ull, GENMASK_U128(127, 127) >> 127);
-+	BUILD_BUG_ON(GENMASK_U128(64, 0) >> 1 != 0xffffffffffffffffull);
-+	BUILD_BUG_ON(GENMASK_U128(81, 50) >> 50 != 0x00000000ffffffffull);
-+	BUILD_BUG_ON(GENMASK_U128(87, 64) >> 64 != 0x0000000000ffffffull);
-+	BUILD_BUG_ON(GENMASK_U128(87, 80) >> 64 != 0x0000000000ff0000ull);
-+
-+	BUILD_BUG_ON(GENMASK_U128(127, 0) >> 64 != 0xffffffffffffffffull);
-+	BUILD_BUG_ON((u64)GENMASK_U128(127, 0) != 0xffffffffffffffffull);
-+	BUILD_BUG_ON(GENMASK_U128(127, 126) >> 126 != 0x0000000000000003ull);
-+	BUILD_BUG_ON(GENMASK_U128(127, 127) >> 127 != 0x0000000000000001ull);
- #ifdef TEST_GENMASK_FAILURES
- 	/* these should fail compilation */
- 	GENMASK_U128(0, 1);
-@@ -129,21 +129,21 @@ static void genmask_input_check_test(struct kunit *test)
- 	OPTIMIZER_HIDE_VAR(w);
- 
- 	/* Unknown input */
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, 0, 32));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, x, 32));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, y, 32));
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(x, 0, 32) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(0, x, 32) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(x, y, 32) != 0);
- 
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, 0, 32));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, z, 32));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, w, 32));
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(z, 0, 32) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(0, z, 32) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(z, w, 32) != 0);
- 
- 	/* Valid input */
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(1, 1, 32));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(39, 21, 64));
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(1, 1, 32) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(39, 21, 64) != 0);
- 
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(100, 80, 128));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(110, 65, 128));
--	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(127, 0, 128));
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(100, 80, 128) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(110, 65, 128) != 0);
-+	BUILD_BUG_ON(GENMASK_INPUT_CHECK(127, 0, 128) != 0);
- }
- 
- 
--- 
-2.39.5
-
+> +#define BIT(nr)		BIT_TYPE(unsigned long, nr)
+> +#define BIT_ULL(nr)	BIT_TYPE(unsigned long long, nr)
+>  #define BIT_U8(nr)	BIT_TYPE(u8, nr)
+>  #define BIT_U16(nr)	BIT_TYPE(u16, nr)
+>  #define BIT_U32(nr)	BIT_TYPE(u32, nr)
+>  #define BIT_U64(nr)	BIT_TYPE(u64, nr)
+> +#define BIT_U128(nr)	BIT_TYPE(u128, nr)
+>  
+>  #if defined(__ASSEMBLY__)
+>  
+> diff --git a/include/vdso/bits.h b/include/vdso/bits.h
+> index 388b212088ea..a6ac1e6b637c 100644
+> --- a/include/vdso/bits.h
+> +++ b/include/vdso/bits.h
+> @@ -4,7 +4,7 @@
+>  >  #include <vdso/const.h>
+>  
+> +/* Most code picks up BIT() from linux/bits.h */
+>  #define BIT(nr)			(UL(1) << (nr))
+> -#define BIT_ULL(nr)		(ULL(1) << (nr))
+>  
+>  #endif	/* __VDSO_BITS_H */
+> -- 
+> 2.39.5
+> 
