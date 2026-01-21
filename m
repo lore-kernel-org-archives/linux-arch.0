@@ -1,42 +1,42 @@
 Received: from mailtransmit04.runbox.com (mailtransmit04.runbox.com [185.226.149.37])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B44514D98EF
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 032594A1394
 	for <linux-arch@vger.kernel.org>; Wed, 21 Jan 2026 14:58:14 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=185.226.149.37
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769007496; cv=none; b=uZF9wHcUgVYXuQ5RMnpK4HktMVUlX8MNjSF3VukuYfohcwVof3fw1bWHLPIUVsrAveOJdjt6aCs6hu7+cXEhd9xO8giEWUULhjtuVdfqkIrVohJxNwSPe5vgjN9c7uUd+Wz/Jrxk+gQnCflTGXpdhUeM60Xk9uyroUI2hjfhcZo=
+	t=1769007497; cv=none; b=hSns6r50t2lwuEOyqhhzqhPD76EkuwlpFGNOiLKKNPClv39SeKMPEc86QqkuRv+mvysvpJ9a4vO7mBOZT5IGLLKPM47lhTWC9UAqPTWDOotBLswhnKo2OF7vZG1JLnsVfSSMuV0GOHwFMkecjh3oHaQt6qdjgBcBucKjjUJbc1A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769007496; c=relaxed/simple;
-	bh=x2rrcpb/s3mTtuY4bVsmxaUW1vje9Nqmah8JcL8MUHw=;
+	s=arc-20240116; t=1769007497; c=relaxed/simple;
+	bh=9z932AX2THRzZwBiCjTQT1xPsk/txnKGYIBFuNTbx7E=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=erV3Yp0kJXHMvtab52jT4UIgclqJtAAXzEMioDjRH1a2Xum9KztaLEzs1gWBGzmlqyC01s/e0h2hTcAJ2CHugqmHNZOU5Ow4MjJtKBI3HkjPyc+gZ9oalOWWICe86jk7h/X5kmUz+h/Li0YL5s1XKjdOnSiuHneMXCbM4WCTQF4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=runbox.com; dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b=Cy3l9jVF; arc=none smtp.client-ip=185.226.149.37
+	 MIME-Version; b=IsFkF4jCeMnjf9VleqJNCJw1743hk2FSTM7UoKGbla94H0ksmEzQU9OTFzODDkNNemITajTBi0Tb4dmGR3aB5NEYEGeNLb0FNhEP/ng7xixnQkEAyGviMqxQmZylESguJmuWpOQdInCibQo+/+9up/NUfBSszvIBHgt6qkpmuj8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=runbox.com; dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b=fsOrgJpJ; arc=none smtp.client-ip=185.226.149.37
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=runbox.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b="Cy3l9jVF"
-Received: from mailtransmit02.runbox ([10.9.9.162] helo=aibo.runbox.com)
+	dkim=pass (2048-bit key) header.d=runbox.com header.i=@runbox.com header.b="fsOrgJpJ"
+Received: from mailtransmit03.runbox ([10.9.9.163] helo=aibo.runbox.com)
 	by mailtransmit04.runbox.com with esmtps  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 	(Exim 4.93)
 	(envelope-from <david.laight.linux_spam@runbox.com>)
-	id 1viZer-008XEN-9f; Wed, 21 Jan 2026 15:58:09 +0100
+	id 1viZer-008XEU-M2; Wed, 21 Jan 2026 15:58:09 +0100
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=runbox.com;
 	 s=selector2; h=Content-Transfer-Encoding:MIME-Version:References:In-Reply-To
 	:Message-Id:Date:Subject:Cc:To:From;
-	bh=lR0OR/0w0VcAlZlqORMKFUweAPjLQDsHqvIpq/QZ4pI=; b=Cy3l9jVF89F6ACDblSUg/2W7ve
-	a2y+ET6ZC7cQ25S/v6wkfuI5QmSAGwZXrHkLqhDl/950/lMtzcbBRW9BhessiMnCygAH2AnkK4fwY
-	eSoSkjIP/8SPAfENToSx175Bo6E2paKFi1uEebo0PVJEcBjF/vAOAliOdWu4hOUnc+tPP6Wy05vWl
-	8zVcGnSeJoGeJFEdvUZMl+HDD0TRnDQ1K9nTOh/iLpFc/Q/NQ8qbsdN03qVDCEAueeOBfaLlHs2JT
-	Q0lv6a2v+oEpO1qxh/FO2JWv6qBvwl/wr6bRDi9duYHNwAlHZj8ZoKnZHcYgbqfwjw28r/neszQr2
-	L9Zh/CLg==;
+	bh=QBokfTpeY0lxQBhpa1t9vMqhCgqf0zlOgr8/cK4ZzTI=; b=fsOrgJpJ+OWxKof8tKg1CULuIU
+	RiOlBCcNZdh/QGshYZWiOrLMlIzY0Yi28GgGtZ5EvEnDWfn8r5h5o6usvOuF82Mytsq+ji8XX536b
+	c1P63guvEelUI6+NvfQufYMT/4CRVAf+AcUR1McKNKzQ+AUNbc+uXb7JCxMbIgwAmvgesXvspjLRC
+	22pjGzx1Qli7bWJ2fXOvObf85SxzKAfoNoIjT0NsJmu4LivO4FNFVaps9GxeydToqc5gqrnPvrXi6
+	q6fUrB1aVjNx3dpLi65AJlChUcdFBRSlMmh+CFXC/MpRRFJGoSvNq9p/rxcM09o//UigU6LoiqGs2
+	DdtzJItA==;
 Received: from [10.9.9.72] (helo=submission01.runbox)
-	by mailtransmit02.runbox with esmtp (Exim 4.86_2)
+	by mailtransmit03.runbox with esmtp (Exim 4.86_2)
 	(envelope-from <david.laight.linux_spam@runbox.com>)
-	id 1viZeq-0001sa-KN; Wed, 21 Jan 2026 15:58:08 +0100
+	id 1viZer-0006qe-8s; Wed, 21 Jan 2026 15:58:09 +0100
 Received: by submission01.runbox with esmtpsa  [Authenticated ID (1493616)]  (TLS1.2:ECDHE_SECP256R1__RSA_PSS_RSAE_SHA256__AES_256_GCM:256)
 	(Exim 4.93)
-	id 1viZeY-00GH6h-0s; Wed, 21 Jan 2026 15:57:50 +0100
+	id 1viZeY-00GH6h-KG; Wed, 21 Jan 2026 15:57:50 +0100
 From: david.laight.linux@gmail.com
 To: Nathan Chancellor <nathan@kernel.org>,
 	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
@@ -55,9 +55,9 @@ To: Nathan Chancellor <nathan@kernel.org>,
 	Kees Cook <keescook@chromium.org>,
 	Andrew Morton <akpm@linux-foundation.org>
 Cc: David Laight <david.laight.linux@gmail.com>
-Subject: [PATCH next 10/14] bits: Fix assmebler expansions of GENMASK_Uxx() and BIT_Uxx()
-Date: Wed, 21 Jan 2026 14:57:27 +0000
-Message-Id: <20260121145731.3623-11-david.laight.linux@gmail.com>
+Subject: [PATCH next 11/14] bit: Strengthen compile-time tests in GENMASK() and BIT()
+Date: Wed, 21 Jan 2026 14:57:28 +0000
+Message-Id: <20260121145731.3623-12-david.laight.linux@gmail.com>
 X-Mailer: git-send-email 2.39.5
 In-Reply-To: <20260121145731.3623-1-david.laight.linux@gmail.com>
 References: <20260121145731.3623-1-david.laight.linux@gmail.com>
@@ -71,95 +71,171 @@ Content-Transfer-Encoding: 8bit
 
 From: David Laight <david.laight.linux@gmail.com>
 
-The assembler only supports one type of signed integers, so expressions
-using BITS_PER_LONG (etc) cannot be guaranteed to be correct.
+The current checks in GENMASK/BIT (eg reversed high/low) only work
+for 'integer constant expressions' not 'compile-time constants'.
+This is true for const_true() and -Wshift-count-overflow/negative.
+While compile-time constants may be unusual, they can happen through
+function inlining.
 
-Use ((2 << (h)) - (1 << (l))) for all assembler GENMASK() expansions and
-add definitions of BIT_Uxx() as (1 << (nr)).
+This isn't too bad with gcc, but if clang detects a negative/over-large
+shift it treats it as 'undefined behaviour' and silently discards all
+code that would use the result, so:
+int f(u32 x) {int n = 32; return x >> n; }
+generates a function that just contains a 'return' instruction.
+If 'n' was a variable that happened to be 32, most modern cpu mask
+the count - so would return 'x', some might return 0.
 
-Note that 64bit results are (probably) only correct for 64bit builds
-and 128bits results will never be valid.
+Add extra checks for arguments that pass __builtin_constant_p()
+but are not 'integer constant expressions.
+__builtin_choose_expr() isn't strong enough to allow
+_Static_assert() or ({ ... }) in the other branch so non-standard
+schemes are used to report the errors.
+
+To reduce pre-processor bloat the checks are only enabled for W=c
+(implied by W=1) builds (where they are errors).
+
+Update the unit tests to match.
 
 Signed-off-by: David Laight <david.laight.linux@gmail.com>
 ---
- include/linux/bits.h | 33 +++++++++++++++++----------------
- 1 file changed, 17 insertions(+), 16 deletions(-)
+ include/linux/bits.h  | 45 +++++++++++++++++++++++++++++++++----------
+ lib/tests/test_bits.c | 34 +++++++++++++++++++-------------
+ 2 files changed, 56 insertions(+), 23 deletions(-)
 
 diff --git a/include/linux/bits.h b/include/linux/bits.h
-index 23bc94815569..43631a334314 100644
+index 43631a334314..0f559038981d 100644
 --- a/include/linux/bits.h
 +++ b/include/linux/bits.h
-@@ -19,14 +19,6 @@
-  */
- #if !defined(__ASSEMBLY__)
- 
--/*
-- * Missing asm support
-- *
-- * GENMASK_U*() and BIT_U*() depend on BITS_PER_TYPE() which relies on sizeof(),
-- * something not available in asm. Nevertheless, fixed width integers is a C
-- * concept. Assembly code can rely on the long and long long versions instead.
-- */
--
- #include <linux/build_bug.h>
+@@ -23,20 +23,35 @@
  #include <linux/compiler.h>
  #include <linux/overflow.h>
-@@ -46,6 +38,7 @@
- #define GENMASK_TYPE(t, h, l)					\
- 	((unsigned int)GENMASK_INPUT_CHECK(h, l) +		\
- 	 ((t)-1 << (l) & (t)-1 >> (BITS_PER_TYPE(t) - 1 - (h))))
+ 
+-#define GENMASK_INPUT_CHECK(h, l) BUILD_BUG_ON_ZERO(const_true((l) > (h)))
++#ifndef KBUILD_EXTRA_WARNc
++#define GENMASK_INPUT_CHECK(h, l, width) 0
++#else
++int GENMASK_INPUT_CHECK_FAIL(void) __compiletime_error("Invalid bit numbers");
++#define GENMASK_INPUT_CHECK(h, l, width)				\
++	(__builtin_choose_expr(__is_constexpr((l) > (h)),		\
++		sizeof(struct { char low_bit_greater_than_high[-((l) > (h))];}), \
++		__builtin_constant_p((l) | (h)) &&			\
++			((l) < 0 || (l) > (h) || (h) >= width) &&	\
++			GENMASK_INPUT_CHECK_FAIL()))
 +#endif
  
- #define GENMASK(h, l)		GENMASK_TYPE(unsigned long, h, l)
- #define GENMASK_ULL(h, l)	GENMASK_TYPE(unsigned long long, h, l)
-@@ -56,9 +49,10 @@
- #define GENMASK_U64(h, l)	GENMASK_TYPE(u64, h, l)
- #define GENMASK_U128(h, l)	GENMASK_TYPE(u128, h, l)
- 
-+#if !defined(__ASSEMBLY__)
  /*
-- * Fixed-type variants of BIT(), with additional checks like GENMASK_TYPE(). The
-- * following examples generate compiler warnings due to -Wshift-count-overflow:
-+ * Fixed-type variants of BIT(), with additional checks like GENMASK_TYPE().
-+ * The following examples generate compiler warnings from BIT_INPUT_CHECK().
+- * Generate a mask for the specified type @t. Additional checks are made to
+- * guarantee the value returned fits in that type, relying on
+- * -Wshift-count-overflow compiler check to detect incompatible arguments.
++ * Generate a mask for the specified type @t.
++ * Checks are made to guarantee the value returned fits in that type.
++ * The compiler's -Wshift-count-overflow/negative check detects invalid values
++ * from 'constant integer expressions' but not other compile time constants.
++ * Clang treats out of value constants as 'undefined behaviour' and stops
++ * generating code - so explicit checks are needed.
++ * Neither BUILD_BUG() nor BUILD_BUG_ON_ZERO() can be used.
++ *
+  * For example, all these create build errors or warnings:
+  *
+  * - GENMASK(15, 20): wrong argument order
+  * - GENMASK(72, 15): doesn't fit unsigned long
+  * - GENMASK_U32(33, 15): doesn't fit in a u32
+  */
+-#define GENMASK_TYPE(t, h, l)					\
+-	((unsigned int)GENMASK_INPUT_CHECK(h, l) +		\
++#define GENMASK_TYPE(t, h, l)						\
++	((unsigned int)GENMASK_INPUT_CHECK(h, l, BITS_PER_TYPE(t)) +	\
+ 	 ((t)-1 << (l) & (t)-1 >> (BITS_PER_TYPE(t) - 1 - (h))))
+ #endif
+ 
+@@ -52,16 +67,26 @@
+ #if !defined(__ASSEMBLY__)
+ /*
+  * Fixed-type variants of BIT(), with additional checks like GENMASK_TYPE().
+- * The following examples generate compiler warnings from BIT_INPUT_CHECK().
++ * The following examples generate compiler errors from BIT_INPUT_CHECK().
   *
   * - BIT_U8(8)
   * - BIT_U32(-1)
-@@ -68,21 +62,28 @@
- 	BUILD_BUG_ON_ZERO(const_true((nr) >= BITS_PER_TYPE(type)))
+  * - BIT_U32(40)
+  */
+-#define BIT_INPUT_CHECK(type, nr) \
+-	BUILD_BUG_ON_ZERO(const_true((nr) >= BITS_PER_TYPE(type)))
  
- #define BIT_TYPE(type, nr) ((unsigned int)BIT_INPUT_CHECK(type, nr) + ((type)1 << (nr)))
-+#endif /* defined(__ASSEMBLY__) */
+-#define BIT_TYPE(type, nr) ((unsigned int)BIT_INPUT_CHECK(type, nr) + ((type)1 << (nr)))
++#ifndef KBUILD_EXTRA_WARNc
++#define BIT_INPUT_CHECK(nr, width) 0
++#else
++int BIT_INPUT_CHECK_FAIL(void) __compiletime_error("Bit number out of range");
++#define BIT_INPUT_CHECK(nr, width)						\
++	(__builtin_choose_expr(__is_constexpr(nr),				\
++		sizeof(struct { char bit_number_too_big[-((nr) >= (width))];}),	\
++		__builtin_constant_p(nr) && ((nr) < 0 || (nr) >= width) &&	\
++			BIT_INPUT_CHECK_FAIL()))
++#endif
++
++#define BIT_TYPE(type, nr) \
++	((unsigned int)BIT_INPUT_CHECK(+(nr), BITS_PER_TYPE(type)) + ((type)1 << (nr)))
+ #endif /* defined(__ASSEMBLY__) */
  
  #define BIT_U8(nr)	BIT_TYPE(u8, nr)
- #define BIT_U16(nr)	BIT_TYPE(u16, nr)
- #define BIT_U32(nr)	BIT_TYPE(u32, nr)
- #define BIT_U64(nr)	BIT_TYPE(u64, nr)
- 
--#else /* defined(__ASSEMBLY__) */
-+#if defined(__ASSEMBLY__)
- 
- /*
-- * BUILD_BUG_ON_ZERO is not available in h files included from asm files,
-- * disable the input check if that is the case.
-+ * The assmebler only supports one size of signed integer rather than
-+ * the fixed width integer types of C.
-+ * There is also no method for reported invalid input.
-+ * Error in .h files will usually be picked up when compiled into C files.
-+ *
-+ * Define type-size agnostic definitions that generate the correct value
-+ * provided it can be represented by the assembler.
+diff --git a/lib/tests/test_bits.c b/lib/tests/test_bits.c
+index 55be8230f9e7..36eb4661e78b 100644
+--- a/lib/tests/test_bits.c
++++ b/lib/tests/test_bits.c
+@@ -3,6 +3,8 @@
+  * Test cases for functions and macros in bits.h
   */
--#define GENMASK(h, l)		__GENMASK(h, l)
--#define GENMASK_ULL(h, l)	__GENMASK_ULL(h, l)
  
--#endif /* !defined(__ASSEMBLY__) */
-+#define GENMASK_TYPE(t, h, l)	((2 << (h)) - (1 << (l)))
-+#define BIT_TYPE(type, nr)	(1 << (nr))
++#define KBUILD_EXTRA_WARNc 1
 +
-+#endif /* defined(__ASSEMBLY__) */
+ #include <kunit/test.h>
+ #include <linux/bits.h>
+ #include <linux/types.h>
+@@ -118,24 +120,30 @@ static void genmask_u128_test(struct kunit *test)
  
- #endif	/* __LINUX_BITS_H */
+ static void genmask_input_check_test(struct kunit *test)
+ {
+-	unsigned int x, y;
+-	int z, w;
++	unsigned int x = 1, y = 2;
++	int z = 1, w = 2;
++
++	OPTIMIZER_HIDE_VAR(x);
++	OPTIMIZER_HIDE_VAR(y);
++	OPTIMIZER_HIDE_VAR(z);
++	OPTIMIZER_HIDE_VAR(w);
+ 
+ 	/* Unknown input */
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, 0));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, x));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, y));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, 0, 32));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, x, 32));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(x, y, 32));
+ 
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, 0));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, z));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, w));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, 0, 32));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(0, z, 32));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(z, w, 32));
+ 
+ 	/* Valid input */
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(1, 1));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(39, 21));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(100, 80));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(110, 65));
+-	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(127, 0));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(1, 1, 32));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(39, 21, 64));
++
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(100, 80, 128));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(110, 65, 128));
++	KUNIT_EXPECT_EQ(test, 0, GENMASK_INPUT_CHECK(127, 0, 128));
+ }
+ 
+ 
 -- 
 2.39.5
 
