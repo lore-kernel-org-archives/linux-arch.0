@@ -1,84 +1,70 @@
-Received: from mail-ej1-f53.google.com (mail-ej1-f53.google.com [209.85.218.53])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.10])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 33732346AC1
-	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 14:00:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D4CE633C503;
+	Thu, 22 Jan 2026 14:26:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.10
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769090440; cv=none; b=JhvgSKG3OlrydE0d1vericjNY0FHqwwD/JkIHSsPFFA91cGuD1et4q7y2fOwQjDOM6Byx3l6wncvCL4EKcTjKZf0lDuHEmqv2euz7NFr4D5GQrdLY6MtjyHA5kBEpitfYiZT0SqWLdPcxspu34U720eVAEUSYGssdVOuY5Srif0=
+	t=1769092013; cv=none; b=Al957G189HhWJE+7aYV1wnIdhi2rVDZhcBCWJM23hR/UHr+8+iJ4cEWhnlvtr7hy8w7kKVsUItnu2g+m2OrBqVblr7wW1BjDioq55u28qz6MQ4HbWkaYoaXyPFytdnq3EWdml4+JG+s3C7Bgr+N96WPS7ePqqkfCd9ITkkOT+JY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769090440; c=relaxed/simple;
-	bh=AHSBEaRYfStLiqJd2Yrr0EQ+tzb5DiwinzVPHKX4hIs=;
+	s=arc-20240116; t=1769092013; c=relaxed/simple;
+	bh=QB5NUK4YOqUArNa5QXuw5NpYDg4DBBZDL0+JySd5Y7w=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=TRccx2mpHHAr8bwESTaHYGMzHv1gDF2xYpHG13Ki4k0+e07iWD/Ukl81jPr5DmqOQ7lQTU4B32FKZjdg9ma9n73T/4vOzDu9X6P1pmK3vzXLdqoRVmbm7u7eHmgWaqNE1JaixLsEN5zhrY8Eii4SxEri42G0PwJKUUYjZ9X1n30=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=mE3JzZyS; arc=none smtp.client-ip=209.85.218.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=i8sjmbvQSkfLW4gzMLB3/XTGv3xVbFQBp5U4U/WH9KjIwnI9ATKvGKkVsxw1azGW9bUblCxwZ9ymYN+Mg2GDvy3K4T+e+0Gd6zmEqKgqkZh94FrxEKxxEHZxatwqTgd4sm4d2rjN8x8aXuRDUmt5yAHNQtcZHqwMKjosIdbVVfA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com; spf=pass smtp.mailfrom=linux.intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=UjsnGsro; arc=none smtp.client-ip=192.198.163.10
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="mE3JzZyS"
-Received: by mail-ej1-f53.google.com with SMTP id a640c23a62f3a-b8837152db5so89784666b.0
-        for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 06:00:37 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1769090436; x=1769695236; darn=vger.kernel.org;
-        h=user-agent:in-reply-to:content-disposition:mime-version:references
-         :reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=KXXllTpn+4j3DQ+o0FpmjiZEdWUg34VA5GPm+3TDwac=;
-        b=mE3JzZySbsZNFXrazHRmfkLgXK1G6CICo/45BaSEMmri8qoPvELmkqlJUJuLq8r/cR
-         BZuBE98d600tezPM1Ev3Lv6/wgj1maHQPUX5UMH0X7Bb1TL3sUzOm4dc6Ly1PPaTjaqs
-         hDxR1qZKtGXBH67ziEpREgFLFgUdSeobUOgLHgZlfBxr0178fS+J4nD8OTVboWYl3pQt
-         VfUZvZP7nVL41fRWgaHUJ4aLvHkvxOcT8JiNj8YivRx/Teoe0yOHaPjpxbMoqspGXGs4
-         vz+mawD5KrfuWoRGegQ0STZROYkcYTyB9Mb6z3UbWWha+b7zhPD0i037Q32eJSQYTC72
-         KJtw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769090436; x=1769695236;
-        h=user-agent:in-reply-to:content-disposition:mime-version:references
-         :reply-to:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=KXXllTpn+4j3DQ+o0FpmjiZEdWUg34VA5GPm+3TDwac=;
-        b=FQFf3ryfvt+1y+tpsGmjBWfu32bZFvAtRDgkDs6VZCXEyfMeAp7cT/SGkjCLDHtefG
-         nYIUVPEU0EpV29QC9zl8us7kNgyHt/q1e/VMRAVVLKq1Zk5ArIdHn5Pi1/4msqLWrPMM
-         4imVmLrEuLcmR3BZlyor7X6BAeZL3ffJc/VkyiAMAeTdKKsVi+nNFZX1VGD276muZfW8
-         XAJunhr2oQdvI8Q61cEicKaK3kThKXTg+CInwKjWbC8dkDAn0Go009NF+4bKqjHo+W6e
-         7WYe/cJvj4YNKl/Xbzb6I/pU0I5fTingiORcsMdfpfQmkTLKh+iNHjPsLmuKlPiVgKK0
-         WmuA==
-X-Forwarded-Encrypted: i=1; AJvYcCX0QHDfHDa/WwWUseI5rvxtqyuDbxbpT0hGUIGFOzptnpyv6NTRTz+hkMPpvNpdoijaZYy3vQyi3O5m@vger.kernel.org
-X-Gm-Message-State: AOJu0Yx88mI3vszH0hM9Y0AHE4napyCBid987ckD0dAiirgfWWM1Xh0I
-	HP9G7KagUuWFPp78sRSnsXyi0JawngdH4uqm/HebRn7+3DwA2WBZwJT3
-X-Gm-Gg: AZuq6aJi/QCFlqUqXJ5poAuVOixg78piTltE+wQ9MPV5hv31ch/7Q/JDQXNO7mrmtWb
-	L6Ybmw4tQr3yFFhZ9VInj6VqXWD3XcTajrwCXBVpoEAyWtFns9MKvJHOULpjmDbLTfXT56Kob4j
-	av6qQoe+MLPJZ2ZcyBv7wOGWfv9VEGYUSbJLC/8Pm+ejA4x62RyJo6Y+owbF6OAl15JLoTy1bNT
-	d/1i+0EuwpcIRmS6yLsQc5dUyYsExAlgK1uUtE6WZ2rbAD8Wz178WqFE85TG9hFvbB3zP8iIkJR
-	XcLc6uj4LY6fbOqZhPxj+qvDdFz00zDP4n5u2HfMyaiaZenU8fQG/oDGx1j6ekiFcf5GSf2XJO9
-	eyFdZmhG3wyoe0HiRYGcLpd73TCo0Z8MKR89TjbfoHwWvfKa55F8PZosfjsok/QKqYfoYwOuXZ8
-	iajTUbrIM7sg==
-X-Received: by 2002:a17:907:84e:b0:b87:33f3:6042 with SMTP id a640c23a62f3a-b8792d3be6dmr1826205366b.9.1769090435585;
-        Thu, 22 Jan 2026 06:00:35 -0800 (PST)
-Received: from localhost ([185.92.221.13])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b884006d3bbsm68748466b.32.2026.01.22.06.00.34
-        (version=TLS1_2 cipher=ECDHE-ECDSA-CHACHA20-POLY1305 bits=256/256);
-        Thu, 22 Jan 2026 06:00:35 -0800 (PST)
-Date: Thu, 22 Jan 2026 14:00:34 +0000
-From: Wei Yang <richard.weiyang@gmail.com>
-To: "David Hildenbrand (Red Hat)" <david@kernel.org>
-Cc: Wei Yang <richard.weiyang@gmail.com>, Qi Zheng <qi.zheng@linux.dev>,
-	will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
-	peterz@infradead.org, dev.jain@arm.com, akpm@linux-foundation.org,
-	ioworker0@gmail.com, linmag7@gmail.com, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org,
-	linux-alpha@vger.kernel.org, loongarch@lists.linux.dev,
-	linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
-	linux-um@lists.infradead.org, Qi Zheng <zhengqi.arch@bytedance.com>
-Subject: Re: [PATCH v3 7/7] mm: make PT_RECLAIM depends on
- MMU_GATHER_RCU_TABLE_FREE
-Message-ID: <20260122140034.ymigrfppzwvmcjkr@master>
-Reply-To: Wei Yang <richard.weiyang@gmail.com>
-References: <cover.1765963770.git.zhengqi.arch@bytedance.com>
- <ac2bdb2a66da1edb24f60d1da1099e2a0b734880.1765963770.git.zhengqi.arch@bytedance.com>
- <20251231094243.zmjs7kgflm7q6k73@master>
- <a3a60bbb-70b7-49ed-abc6-937e6c13d681@linux.dev>
- <20260101020715.45wqnjgcklvjcth3@master>
- <d38fcbe5-8b4a-40bc-b8c8-1c49ccaa9964@kernel.org>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="UjsnGsro"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1769092011; x=1800628011;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=QB5NUK4YOqUArNa5QXuw5NpYDg4DBBZDL0+JySd5Y7w=;
+  b=UjsnGsro7s8y4EceQdpz9oHHh4Y/tZwExJFP/whWzoVTfqqPJrHoYWB7
+   1HYFnGOrkTPMahVcHBlaYjCBvGZxzgyI9YMqgfdLZ1rLnGESJsgOBORUm
+   sbykrEcjdmrMJ0S686Lk0l9kP7bQ/ShD50YG5KEZ2dZEiCr/4GIvroypS
+   PWjvyWg/fsX4Ckpet+t0MfGcNqCgMF3Gu6QWVD2Vbmd/AdO0mVfJkN/P8
+   lsqx2fqjjFwMp8eU+g2OBa5BSpTp+eSSsvNxgu6q0qmNG8SUL99P4e3u+
+   bPwJVpSWYVjpX4/R14e9MVDKIbWKE5Mxv+P9/JPHNm3FaG0LOJPUAUeS8
+   A==;
+X-CSE-ConnectionGUID: l6c5DOs9R1ON7Xtz6JPO8w==
+X-CSE-MsgGUID: yJxDvZplSHaPHN1UszJ+Yw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11679"; a="81705807"
+X-IronPort-AV: E=Sophos;i="6.21,246,1763452800"; 
+   d="scan'208";a="81705807"
+Received: from fmviesa003.fm.intel.com ([10.60.135.143])
+  by fmvoesa104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jan 2026 06:26:50 -0800
+X-CSE-ConnectionGUID: urOX2XhJQJG4sCfejh0tog==
+X-CSE-MsgGUID: dSn0a2/0SCi8GKyD8LZLQA==
+X-ExtLoop1: 1
+Received: from smoticic-mobl1.ger.corp.intel.com (HELO localhost) ([10.245.245.225])
+  by fmviesa003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jan 2026 06:26:46 -0800
+Date: Thu, 22 Jan 2026 16:26:44 +0200
+From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+To: David Laight <david.laight.linux@gmail.com>
+Cc: kernel test robot <lkp@intel.com>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Ingo Molnar <mingo@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, Yury Norov <yury.norov@gmail.com>,
+	Jani Nikula <jani.nikula@intel.com>,
+	Vincent Mailhol <mailhol.vincent@wanadoo.fr>,
+	Kees Cook <keescook@chromium.org>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	oe-kbuild-all@lists.linux.dev,
+	Linux Memory Management List <linux-mm@kvack.org>
+Subject: Re: [PATCH next 11/14] bit: Strengthen compile-time tests in
+ GENMASK() and BIT()
+Message-ID: <aXIzpC6wpdv47cSH@smile.fi.intel.com>
+References: <20260121145731.3623-12-david.laight.linux@gmail.com>
+ <202601221237.soiAkwkN-lkp@intel.com>
+ <20260122103337.26473d1c@pumpkin>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -87,126 +73,26 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <d38fcbe5-8b4a-40bc-b8c8-1c49ccaa9964@kernel.org>
-User-Agent: NeoMutt/20170113 (1.7.2)
+In-Reply-To: <20260122103337.26473d1c@pumpkin>
+Organization: Intel Finland Oy - BIC 0357606-4 - c/o Alberga Business Park, 6
+ krs, Bertel Jungin Aukio 5, 02600 Espoo
 
-On Mon, Jan 19, 2026 at 11:18:52AM +0100, David Hildenbrand (Red Hat) wrote:
->On 1/1/26 03:07, Wei Yang wrote:
->> On Wed, Dec 31, 2025 at 05:52:57PM +0800, Qi Zheng wrote:
->> > 
->> > 
->> > On 12/31/25 5:42 PM, Wei Yang wrote:
->> > > On Wed, Dec 17, 2025 at 05:45:48PM +0800, Qi Zheng wrote:
->> > > > From: Qi Zheng <zhengqi.arch@bytedance.com>
->> > > > 
->> > > > The PT_RECLAIM can work on all architectures that support
->> > > > MMU_GATHER_RCU_TABLE_FREE, so make PT_RECLAIM depends on
->> > > > MMU_GATHER_RCU_TABLE_FREE.
->> > > > 
->> > > > BTW, change PT_RECLAIM to be enabled by default, since nobody should want
->> > > > to turn it off.
->> > > > 
->> > > > Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
->> > > > ---
->> > > > arch/x86/Kconfig | 1 -
->> > > > mm/Kconfig       | 9 ++-------
->> > > > 2 files changed, 2 insertions(+), 8 deletions(-)
->> > > > 
->> > > > diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->> > > > index 80527299f859a..0d22da56a71b0 100644
->> > > > --- a/arch/x86/Kconfig
->> > > > +++ b/arch/x86/Kconfig
->> > > > @@ -331,7 +331,6 @@ config X86
->> > > > 	select FUNCTION_ALIGNMENT_4B
->> > > > 	imply IMA_SECURE_AND_OR_TRUSTED_BOOT    if EFI
->> > > > 	select HAVE_DYNAMIC_FTRACE_NO_PATCHABLE
->> > > > -	select ARCH_SUPPORTS_PT_RECLAIM		if X86_64
->> > > > 	select ARCH_SUPPORTS_SCHED_SMT		if SMP
->> > > > 	select SCHED_SMT			if SMP
->> > > > 	select ARCH_SUPPORTS_SCHED_CLUSTER	if SMP
->> > > > diff --git a/mm/Kconfig b/mm/Kconfig
->> > > > index bd0ea5454af82..fc00b429b7129 100644
->> > > > --- a/mm/Kconfig
->> > > > +++ b/mm/Kconfig
->> > > > @@ -1447,14 +1447,9 @@ config ARCH_HAS_USER_SHADOW_STACK
->> > > > 	  The architecture has hardware support for userspace shadow call
->> > > >             stacks (eg, x86 CET, arm64 GCS or RISC-V Zicfiss).
->> > > > 
->> > > > -config ARCH_SUPPORTS_PT_RECLAIM
->> > > > -	def_bool n
->> > > > -
->> > > > config PT_RECLAIM
->> > > > -	bool "reclaim empty user page table pages"
->> > > > -	default y
->> > > > -	depends on ARCH_SUPPORTS_PT_RECLAIM && MMU && SMP
->> > > > -	select MMU_GATHER_RCU_TABLE_FREE
->> > > > +	def_bool y
->> > > > +	depends on MMU_GATHER_RCU_TABLE_FREE
->> > > > 	help
->> > > > 	  Try to reclaim empty user page table pages in paths other than munmap
->> > > > 	  and exit_mmap path.
->> > > 
->> > > Hi, Qi
->> > > 
->> > > I am new to PT_RECLAIM, when reading related code I got one question.
->> > > 
->> > > Before this patch,  we could have this config combination:
->> > > 
->> > >       CONFIG_MMU_GATHER_RCU_TABLE_FREE & !CONFIG_PT_RECLAIM
->> > > 
->> > > This means tlb_remove_table_free() is rcu version while tlb_remove_table_one()
->> > > is semi rcu version.
->> > > 
->> > > I am curious could we use rcu version tlb_remove_table_one() for this case?
->> > > Use rcu version tlb_remove_table_one() if CONFIG_MMU_GATHER_RCU_TABLE_FREE. Is
->> > > there some limitation here?
->> > 
->> > I think there's no problem. The rcu version can also ensure that the
->> > fast GUP works well.
->> > 
->> 
->> Thanks for your quick response :-)
->> 
->> And Happy New Year
->> 
->> So my little suggestion is move the definition of __tlb_remove_table_one()
->> under CONFIG_MMU_GATHER_RCU_TABLE_FREE. Do you thinks this would be more
->> clear?
->
->
->Do you mean
->
->diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
->index 2faa23d7f8d42..6aeba4bae68d2 100644
->--- a/mm/mmu_gather.c
->+++ b/mm/mmu_gather.c
->@@ -319,7 +319,7 @@ static inline void tlb_table_invalidate(struct mmu_gather
->*tlb)
->        }
-> }
->
->-#ifdef CONFIG_PT_RECLAIM
->+#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE
-> static inline void __tlb_remove_table_one_rcu(struct rcu_head *head)
-> {
->        struct ptdesc *ptdesc;
->
->?
+On Thu, Jan 22, 2026 at 10:33:37AM +0000, David Laight wrote:
+> On Thu, 22 Jan 2026 12:41:22 +0800
+> kernel test robot <lkp@intel.com> wrote:
 
-Sorry for the late reply.
+> > sparse warnings: (new ones prefixed by >>)
+> >    kernel/kthread.c: note: in included file (through include/linux/bitmap.h, include/linux/cpumask.h, arch/mips/include/asm/processor.h, ...):
+> > >> include/linux/find.h:209:45: sparse: sparse: Variable length array is used.  
+> 
+> Can we stop sparse complaining about sizeof(VLA) ?
 
-Yes, and maybe we can move the definition to the 
-#ifdef CONFIG_MMU_GATHER_RCU_TABLE_FREE code block above, then to be next to
-tlb_remove_table_free().
-
-So that we always have rcu version when CONFIG_MMU_GATHER_RCU_TABLE_FREE.
-
->
->-- 
->Cheers
->
->David
+First of all, the LKP should install the fork of sparse by Al Viro. That will
+fix tons of warnings that are related to modules and speed up the process
+itself.
 
 -- 
-Wei Yang
-Help you, Help me
+With Best Regards,
+Andy Shevchenko
+
+
