@@ -1,64 +1,64 @@
-Received: from mail-ed1-f43.google.com (mail-ed1-f43.google.com [209.85.208.43])
+Received: from mail-ed1-f50.google.com (mail-ed1-f50.google.com [209.85.208.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF14D3396EE
-	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 12:25:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.43
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 03D532165EA
+	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 12:26:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769084710; cv=none; b=adkbIE9qIzzHpIGOE8zE8WlG2xh3hDz1mvL7WUKdFCIYAjkL74sjWAqsMfdBKYfLOqlz7IVebIy9L3LhXEFTWfy35BU1WM2PYZhN7jpDaHrDxj0RHJe8rl6yshTZYYaxenxWEaj0ovuQLZINZFFvwa72PceD9F8KYB2QMrzbEbA=
+	t=1769084768; cv=none; b=C3Nm0ratZSHkKAK2askiGIBVPdTS1E8vHDjrs7QCL6KRgWzr9eFuYLDkcLQa6VGtS7RPQEP5B4aT9YBy8cExUAXyUBidq9o6JnTbGDP0+Kz7rhkmBDpCwJv5hny5bGTB5ezY3NWtn3ufF+z5bc3b05itlEUzi+Ie3lb7KWMhBZc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769084710; c=relaxed/simple;
-	bh=Luz8B2TwJRarH7eRwBAhfKkOBXwfgblGcy0Dgye670E=;
+	s=arc-20240116; t=1769084768; c=relaxed/simple;
+	bh=o1a0s6yqxdzNssBJ8GLz4MYX+xieOSENOccN8XZK4Xc=;
 	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=lMWREBifY2VY0vctHUam8Dk2CPUg2/9wd5hInvzi1g2QEs7FlwzLCUDOcKt3fXcZT3O2aXsMv6NkXRG06MzSohebcP3irzXvKa0dB3xt+rYOrOQsN1CCs6E91sgwpzjAZQpI3Wc/Te909nUHmr0XRGezEOu1PCd7WFIAFsOBi5U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Kp+w34uA; arc=none smtp.client-ip=209.85.208.43
+	 MIME-Version:Content-Type; b=ZZrErnG2Wl6XWThusRTYcS4sQVu56Q+sqjvMei9+IfjJNb1OsbKhfCNiFiqxykAh8aCHvWm1sl2WwOmtij4bt6vfnj1n4MYO6/qqUi+tQDXl73IcVgeONLCl+4GSGie8UYMtrHMMI5RnYRR9+41+jyjL9+qHE02cbe1cPnShsB8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=UWKtGnql; arc=none smtp.client-ip=209.85.208.50
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Kp+w34uA"
-Received: by mail-ed1-f43.google.com with SMTP id 4fb4d7f45d1cf-65807a2012fso1540063a12.0
-        for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 04:25:05 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="UWKtGnql"
+Received: by mail-ed1-f50.google.com with SMTP id 4fb4d7f45d1cf-64b9dfc146fso1528608a12.0
+        for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 04:26:04 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1769084704; x=1769689504; darn=vger.kernel.org;
+        d=gmail.com; s=20230601; t=1769084763; x=1769689563; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:subject:cc:to:from:date:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=30EptBzNKREQjciAE94dkKi4CBlW2pcTBovWP9se6eo=;
-        b=Kp+w34uAtcYrEhCqYDioEhtcL8czNgzV2alt5oBX7puHp/ZO5uZPyA7eT9LWM3Wd/I
-         MyQnSpfp2SsxY/GMmeQjZaQiJ15nxcrh2B0i26QS60CbfmH3Xldh1ijKVnmj7rnZMQBA
-         vtxFeR3+XBcQmsRDHwGCd+NvA1SgNAUJdAPOwXe0aHQqNAcWJorC9VxVmW+6c+ydD3lF
-         TgY3+iUq9OYpPhf6Fz0+qSLQsqAT+n3qcCnQB97sqZluMINvof/ROCYokWzRX5OHfOFZ
-         5eQE3sdk0LceHIoeAmYjwEAIqHoTP6HFaS0d2yJn0y/hdE8CNn/0n2cQKj6pHmDWeuKA
-         QuuQ==
+        bh=UvVMyc7Izyekg4erNbUiI7MR1H3oQdShyZ4b768kWrQ=;
+        b=UWKtGnqlWshNPMDBU1v55/4f+yf0INk6Nmy3YKYrSFm1TCof0PMAe6eOQI8mTszuQo
+         VHXaVqzrNO1Ylc0JilhPBV2ZaZ48Z4p1jkiZ2YwzZD2S2oTZEfoG7ld3jLj8nxjjDyNN
+         XRxTxFKWMaXimFBlrNmW2smn7imjZ+jGa90s1K+K0W2YHqxBqcV+mtFnDOwbtKjpvS4G
+         kBW8SzruUmKSisKOZL7C0MEp6T669Mp/cFf/zSUDCSiXv5zAaz8XWxDNj2BxHzJGKkc4
+         qlcEC8mDhlcJkW6JmA0XvxTYwmWSECDMEe5QmuiqylNui2S4wTY2mpBDMsphHPfEI9i6
+         lo9A==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769084704; x=1769689504;
+        d=1e100.net; s=20230601; t=1769084763; x=1769689563;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=30EptBzNKREQjciAE94dkKi4CBlW2pcTBovWP9se6eo=;
-        b=tFPLW5ysjCC9nTQyOZvUIRUjT0c/VZxY9u04f5kF1T3nEpp0JHROBLLHCVJ4KVF0he
-         oekoMQffIm63VjTJFVQBwxpsUWEMOjmXfAqLVVI7mLB3oldB13qi26q6ICMCEDrBUAIj
-         XmSTxbzfZTnHn/eEKpgBkjPgln+i7m5Jq1ofkpvkjFsa8DHkRKkfW/1cvQNXnfDBIVIr
-         ew+cjOFd2BepRW+a9P3Ys/wLgE8z+3mzs9p0LDPopY0QGo1jAENSxB4lz40asnQVwEZP
-         zR9QCOyytNYOERxkJLVUy3dJB5IsgCF6wXSnFxJm8jbA+RgoQYhjGmk89KzEApZHZL45
-         JiEA==
-X-Forwarded-Encrypted: i=1; AJvYcCVnQ/dKrk1Fylrsc2qMeLzvcS8OVGOjDeA0DNPtJbUp6bgAuXts3JoskZvjqNbu59opgT2jtwzSvlUy@vger.kernel.org
-X-Gm-Message-State: AOJu0Yyv1pqTv7dGJvurUkwXywbogRiQuWgwkNaF4gZMrjEKv1cIc++b
-	ze5PCkw0RAEA/NGQrPHSnhGW7eXKm88R+QV9QsNXaUUk33kB/86oXvx522gYpw==
-X-Gm-Gg: AZuq6aLJbBO3lxEsXltsGayLm3ozDdJAnO1wOYUgxlBo5P+r6C596ZY4WqCnoxp6Pqe
-	3MJyPdwbN1DIPPsiepzTKklUlZizZkB4PR7WmfJ9vmgikZg97uUguDD0Tp/IW3ZFu69hBIj9VaQ
-	djDRPphL1ramyM9AkNcN8+NP618p9QCJKbiEvLaKfQkpu9rlb2bRZyy2YZ4NXke1pRA8dksC80i
-	MEss8ImWfiKQ1IfDfjQ1xrlTsOIA5rmmpHavOLwvMKKxVimAo9KGZXjHnw4aGDhsetT/INWyk3k
-	3BhGJ5vmlD0X4DMfsAnUaZpa0ORyJiDVHUSXMQVzBZyrYP88O9R0aTzdDTZi/SicXjsfMOkVdJK
-	kJs9iL30bDTtEGqTHAt/F0xDugO0C0orwTSDpf9yFEGlQeyHOFtUF42FXKi3aWq7YtLpKMVL9Un
-	dVegubzePs4zjF3UYQfAzpBWH5gCpItzNiE5E8fmb7hl5zkuxXydOw
-X-Received: by 2002:a05:600c:5299:b0:477:a9e:859a with SMTP id 5b1f17b1804b1-4803e7e859dmr122557745e9.22.1769077556776;
-        Thu, 22 Jan 2026 02:25:56 -0800 (PST)
+        bh=UvVMyc7Izyekg4erNbUiI7MR1H3oQdShyZ4b768kWrQ=;
+        b=HQS3SbuBr9d7cZmiCj/YA4AeMyt32nWljffYFVsjk10w+YnXRV/hyaQEBjCnZSsFwI
+         joWa0yVCzTnzQGkqSlWD9/9znr9tWRLkjOMGdvdrqrQbQQ/UfVWvhZLuz7AvDl4caGOW
+         zb+iwFCGucXnUFBChRyFj1rvN5ezx30+yROLKVQOew+CNuMQfJ9rF12V5ZdHnCjrAHZQ
+         ikw5sZLvceYY9vJenvS+8xJx2EF5chnSTeeJMnrshtokW5SPEi//vqezH2OCT1QZE+pe
+         1nIdjoHGFtNkaaKL4dS/TCydVW3HeKfAS5+uInETBJ5g00QX9gzw6Mkt8+Pl/EqC0ruw
+         caqQ==
+X-Forwarded-Encrypted: i=1; AJvYcCVsJWHa0kXiaGdVZZ1atLX79JDBh21cOzOIvCFdWJ/WTp8ghy1bFqA6A5UzwBI0EOOhK8283f2Pu+wq@vger.kernel.org
+X-Gm-Message-State: AOJu0YyCZA1ll4cqyCgtCJqpAEhqCr3ICDzRpAEihS93WMk7CLOhSPiw
+	dEMB/16Dy63Zyaxiah7sODIPVy5Op5G38z7gEmgs+Ezt3Zah1mc/T4yMcQ/njQ==
+X-Gm-Gg: AZuq6aJustp/DHjHLRkFK90aPKtLJtv87lZ+t6Geur32yTcAEDi6IdXGZ0V9tpZVzPl
+	qR8Rppa3vXALoFEUHJk/ooLwDNypduaSOQtDlFMn0OuGbTlImthHlIs6jX7qwM9nvlDnElY4892
+	Qd/jGzwBRykf2EGYftGYBpUItWhjg+RAx05m7xbI31PXsLSoG98e5G8QsqBNuHtN+kKINNtKDfe
+	+S0WuwYPl+lB8x69YwkC1q37KhmLLzFPdJ+9k65eIB8WW0pLFuVWYlb3J7vdYXWulH9H2iNdntC
+	c0WsCyMPNDnGtq6CgBRARFc6w19wPdV7EXbXxOmjNpd4p9rNSUHSgPDHu3IC1X90i2C4xGAQRG2
+	3lFGbihUEF3cuyQ0mZM/LP8gDLDebUS/nfPcLr7dI+chmnMCjRGf48m3jBVNKHtY7XAWL/pU8vP
+	dOr6xvhB1MEGEQSoU09jk0JrZbJPFj6immqKMghH1XKkolFca5abMQ
+X-Received: by 2002:a05:6000:40c9:b0:3ea:6680:8fb9 with SMTP id ffacd0b85a97d-435a5f4da63mr4516285f8f.3.1769078019504;
+        Thu, 22 Jan 2026 02:33:39 -0800 (PST)
 Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4804706ef6csm51088835e9.15.2026.01.22.02.25.56
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4356997e6dasm45262285f8f.32.2026.01.22.02.33.38
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 22 Jan 2026 02:25:56 -0800 (PST)
-Date: Thu, 22 Jan 2026 10:25:54 +0000
+        Thu, 22 Jan 2026 02:33:39 -0800 (PST)
+Date: Thu, 22 Jan 2026 10:33:37 +0000
 From: David Laight <david.laight.linux@gmail.com>
 To: kernel test robot <lkp@intel.com>
 Cc: Nathan Chancellor <nathan@kernel.org>, Greg Kroah-Hartman
@@ -73,10 +73,10 @@ Cc: Nathan Chancellor <nathan@kernel.org>, Greg Kroah-Hartman
  Linux Memory Management List <linux-mm@kvack.org>
 Subject: Re: [PATCH next 11/14] bit: Strengthen compile-time tests in
  GENMASK() and BIT()
-Message-ID: <20260122102554.1cc7a2a3@pumpkin>
-In-Reply-To: <202601220829.MgTMeqqN-lkp@intel.com>
+Message-ID: <20260122103337.26473d1c@pumpkin>
+In-Reply-To: <202601221237.soiAkwkN-lkp@intel.com>
 References: <20260121145731.3623-12-david.laight.linux@gmail.com>
-	<202601220829.MgTMeqqN-lkp@intel.com>
+	<202601221237.soiAkwkN-lkp@intel.com>
 X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -87,76 +87,32 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On Thu, 22 Jan 2026 09:11:53 +0800
+On Thu, 22 Jan 2026 12:41:22 +0800
 kernel test robot <lkp@intel.com> wrote:
 
 > Hi,
 > 
-> kernel test robot noticed the following build errors:
+> kernel test robot noticed the following build warnings:
 > 
-> [auto build test ERROR on next-20260120]
+> [auto build test WARNING on next-20260120]
 > 
 > url:    https://github.com/intel-lab-lkp/linux/commits/david-laight-linux-gmail-com/overflow-Reduce-expansion-of-__type_max/20260122-013456
 > base:   next-20260120
 > patch link:    https://lore.kernel.org/r/20260121145731.3623-12-david.laight.linux%40gmail.com
 > patch subject: [PATCH next 11/14] bit: Strengthen compile-time tests in GENMASK() and BIT()
-> config: s390-randconfig-001-20260122 (https://download.01.org/0day-ci/archive/20260122/202601220829.MgTMeqqN-lkp@intel.com/config)
-> compiler: s390-linux-gcc (GCC) 8.5.0
-> reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260122/202601220829.MgTMeqqN-lkp@intel.com/reproduce)
+> config: mips-randconfig-r132-20260122 (https://download.01.org/0day-ci/archive/20260122/202601221237.soiAkwkN-lkp@intel.com/config)
+> compiler: mips64-linux-gcc (GCC) 10.5.0
+> reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260122/202601221237.soiAkwkN-lkp@intel.com/reproduce)
 > 
 > If you fix the issue in a separate patch/commit (i.e. not just a new version of
 > the same patch/commit), kindly add following tags
 > | Reported-by: kernel test robot <lkp@intel.com>
-> | Closes: https://lore.kernel.org/oe-kbuild-all/202601220829.MgTMeqqN-lkp@intel.com/
+> | Closes: https://lore.kernel.org/oe-kbuild-all/202601221237.soiAkwkN-lkp@intel.com/
 > 
-> All errors (new ones prefixed by >>):
-> 
->    In file included from arch/s390/include/asm/bug.h:60,
->                     from include/linux/bug.h:5,
->                     from include/linux/mmdebug.h:5,
->                     from arch/s390/include/asm/cmpxchg.h:11,
->                     from arch/s390/include/asm/atomic.h:16,
->                     from include/linux/atomic.h:7,
->                     from include/asm-generic/bitops/atomic.h:5,
->                     from arch/s390/include/asm/bitops.h:75,
->                     from include/linux/bitops.h:67,
->                     from include/linux/kernel.h:23,
->                     from net/core/page_pool.c:10:
->    In function 'netmem_clear_pp_magic',
->        inlined from 'page_pool_clear_pp_info' at net/core/page_pool.c:721:2:
-> >> include/linux/bits.h:35:4: error: call to 'GENMASK_INPUT_CHECK_FAIL' declared with attribute error: Invalid bit numbers  
-...
->    include/linux/mm.h:4641:27: note: in expansion of macro 'GENMASK'
->     #define PP_DMA_INDEX_MASK GENMASK(PP_DMA_INDEX_BITS + PP_DMA_INDEX_SHIFT - 1, \
+> sparse warnings: (new ones prefixed by >>)
+>    kernel/kthread.c: note: in included file (through include/linux/bitmap.h, include/linux/cpumask.h, arch/mips/include/asm/processor.h, ...):
+> >> include/linux/find.h:209:45: sparse: sparse: Variable length array is used.  
 
-This might be a real bug.
-
-The bit of mm.h is:
-
-#define PP_DMA_INDEX_SHIFT (1 + __fls(PP_SIGNATURE - POISON_POINTER_DELTA))
-#if POISON_POINTER_DELTA > 0
-/* PP_SIGNATURE includes POISON_POINTER_DELTA, so limit the size of the DMA
- * index to not overlap with that if set
- */
-#define PP_DMA_INDEX_BITS MIN(32, __ffs(POISON_POINTER_DELTA) - PP_DMA_INDEX_SHIFT)
-#else
-/* Use the lowest bit of PAGE_OFFSET if there's at least 8 bits available; see above */
-#define PP_DMA_INDEX_MIN_OFFSET (1 << (PP_DMA_INDEX_SHIFT + 8))
-#define PP_DMA_INDEX_BITS ((__builtin_constant_p(PAGE_OFFSET) && \
-			    PAGE_OFFSET >= PP_DMA_INDEX_MIN_OFFSET && \
-			    !(PAGE_OFFSET & (PP_DMA_INDEX_MIN_OFFSET - 1))) ? \
-			      MIN(32, __ffs(PAGE_OFFSET) - PP_DMA_INDEX_SHIFT) : 0)
-
-#endif
-
-#define PP_DMA_INDEX_MASK GENMASK(PP_DMA_INDEX_BITS + PP_DMA_INDEX_SHIFT - 1, \
-				  PP_DMA_INDEX_SHIFT)
-
-I've no idea what the values are, but the 'hi' bit number must exceed that
-of 'long'.
-The __ffs() probably stop it being an 'integer constant expression'
-making it just a 'compile time constant' - which I added a test for.
+Can we stop sparse complaining about sizeof(VLA) ?
 
 	David
-
-
