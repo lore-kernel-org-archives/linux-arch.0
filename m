@@ -1,64 +1,64 @@
-Received: from mail-ed1-f50.google.com (mail-ed1-f50.google.com [209.85.208.50])
+Received: from mail-ed1-f52.google.com (mail-ed1-f52.google.com [209.85.208.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 03D532165EA
-	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 12:26:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.50
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E112266576
+	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 12:31:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769084768; cv=none; b=C3Nm0ratZSHkKAK2askiGIBVPdTS1E8vHDjrs7QCL6KRgWzr9eFuYLDkcLQa6VGtS7RPQEP5B4aT9YBy8cExUAXyUBidq9o6JnTbGDP0+Kz7rhkmBDpCwJv5hny5bGTB5ezY3NWtn3ufF+z5bc3b05itlEUzi+Ie3lb7KWMhBZc=
+	t=1769085076; cv=none; b=oYXvqXwEJimblNougU2txHClF/e3yHzex2+s5Q+hFUFh70m4lbmos9p/yxzE8GUdMlviVZMK4iy66JgobVkEULAPkHzjJcFPN/vV4uxJjz8daF8JWXCxDVDeKDMMij5qkcwns5jd2vsz5k43RNejzciN3xK5KzUaZDEvnruOx2o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769084768; c=relaxed/simple;
-	bh=o1a0s6yqxdzNssBJ8GLz4MYX+xieOSENOccN8XZK4Xc=;
+	s=arc-20240116; t=1769085076; c=relaxed/simple;
+	bh=7hrihdavUKSRBk1sLsO+Hg6KhwRPOnr3OMEgf2c2K3A=;
 	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=ZZrErnG2Wl6XWThusRTYcS4sQVu56Q+sqjvMei9+IfjJNb1OsbKhfCNiFiqxykAh8aCHvWm1sl2WwOmtij4bt6vfnj1n4MYO6/qqUi+tQDXl73IcVgeONLCl+4GSGie8UYMtrHMMI5RnYRR9+41+jyjL9+qHE02cbe1cPnShsB8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=UWKtGnql; arc=none smtp.client-ip=209.85.208.50
+	 MIME-Version:Content-Type; b=SNvYCqBsR2im6lmsVSoFr8RjIyxHbvwHBmZ9/9ObAGfFdCdC8wXXiC2MYyLUV/kFvBj559Say53shYW29vFiY0ZSAxcCh/7+Ovqfb+B7NgwpC4kjkDQqOFFtqa+CrA75yLDzkJgzTDUdZRK+U2kAm2yK9bjBIRCr25XS913dLto=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=nmLw9DXI; arc=none smtp.client-ip=209.85.208.52
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="UWKtGnql"
-Received: by mail-ed1-f50.google.com with SMTP id 4fb4d7f45d1cf-64b9dfc146fso1528608a12.0
-        for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 04:26:04 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="nmLw9DXI"
+Received: by mail-ed1-f52.google.com with SMTP id 4fb4d7f45d1cf-64b9dfc146fso1535899a12.0
+        for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 04:31:13 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1769084763; x=1769689563; darn=vger.kernel.org;
+        d=gmail.com; s=20230601; t=1769085071; x=1769689871; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:subject:cc:to:from:date:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=UvVMyc7Izyekg4erNbUiI7MR1H3oQdShyZ4b768kWrQ=;
-        b=UWKtGnqlWshNPMDBU1v55/4f+yf0INk6Nmy3YKYrSFm1TCof0PMAe6eOQI8mTszuQo
-         VHXaVqzrNO1Ylc0JilhPBV2ZaZ48Z4p1jkiZ2YwzZD2S2oTZEfoG7ld3jLj8nxjjDyNN
-         XRxTxFKWMaXimFBlrNmW2smn7imjZ+jGa90s1K+K0W2YHqxBqcV+mtFnDOwbtKjpvS4G
-         kBW8SzruUmKSisKOZL7C0MEp6T669Mp/cFf/zSUDCSiXv5zAaz8XWxDNj2BxHzJGKkc4
-         qlcEC8mDhlcJkW6JmA0XvxTYwmWSECDMEe5QmuiqylNui2S4wTY2mpBDMsphHPfEI9i6
-         lo9A==
+        bh=0WniyRiiurCuuasCidSwYbmBfTajQvRsR2qN3REFSig=;
+        b=nmLw9DXINwO0fT8nRSECHf8YSkLFYBOt36dxWZcPy/BiGisjKQUUprYTONfOuwsXMq
+         zRm41hvIlIo9waMEDy1/jdQF/ViWlJ1RWtorcFTDey5YvMf5wjuPfWkCvsEqHpzqhd3X
+         dEqrpifbXZiwMMMAZcZ7Zi7ndUajas78WZxO4YuPZoTb7MvnqLd+UEyHh1RFrX0LbDfG
+         phS5L5ON8NeSWwHNAxx+RPmVAXKcq2DsBKtArRj44x7Iqe1haasGrfjqLHx6MAdoKm7D
+         MiE8voxBGyaikpcyu7Gz3N/KDIhajfHz6/uqo2x0gVFgU+Lh5r0FnFluEXO7DqcoYBFs
+         pR6Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769084763; x=1769689563;
+        d=1e100.net; s=20230601; t=1769085071; x=1769689871;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=UvVMyc7Izyekg4erNbUiI7MR1H3oQdShyZ4b768kWrQ=;
-        b=HQS3SbuBr9d7cZmiCj/YA4AeMyt32nWljffYFVsjk10w+YnXRV/hyaQEBjCnZSsFwI
-         joWa0yVCzTnzQGkqSlWD9/9znr9tWRLkjOMGdvdrqrQbQQ/UfVWvhZLuz7AvDl4caGOW
-         zb+iwFCGucXnUFBChRyFj1rvN5ezx30+yROLKVQOew+CNuMQfJ9rF12V5ZdHnCjrAHZQ
-         ikw5sZLvceYY9vJenvS+8xJx2EF5chnSTeeJMnrshtokW5SPEi//vqezH2OCT1QZE+pe
-         1nIdjoHGFtNkaaKL4dS/TCydVW3HeKfAS5+uInETBJ5g00QX9gzw6Mkt8+Pl/EqC0ruw
-         caqQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVsJWHa0kXiaGdVZZ1atLX79JDBh21cOzOIvCFdWJ/WTp8ghy1bFqA6A5UzwBI0EOOhK8283f2Pu+wq@vger.kernel.org
-X-Gm-Message-State: AOJu0YyCZA1ll4cqyCgtCJqpAEhqCr3ICDzRpAEihS93WMk7CLOhSPiw
-	dEMB/16Dy63Zyaxiah7sODIPVy5Op5G38z7gEmgs+Ezt3Zah1mc/T4yMcQ/njQ==
-X-Gm-Gg: AZuq6aJustp/DHjHLRkFK90aPKtLJtv87lZ+t6Geur32yTcAEDi6IdXGZ0V9tpZVzPl
-	qR8Rppa3vXALoFEUHJk/ooLwDNypduaSOQtDlFMn0OuGbTlImthHlIs6jX7qwM9nvlDnElY4892
-	Qd/jGzwBRykf2EGYftGYBpUItWhjg+RAx05m7xbI31PXsLSoG98e5G8QsqBNuHtN+kKINNtKDfe
-	+S0WuwYPl+lB8x69YwkC1q37KhmLLzFPdJ+9k65eIB8WW0pLFuVWYlb3J7vdYXWulH9H2iNdntC
-	c0WsCyMPNDnGtq6CgBRARFc6w19wPdV7EXbXxOmjNpd4p9rNSUHSgPDHu3IC1X90i2C4xGAQRG2
-	3lFGbihUEF3cuyQ0mZM/LP8gDLDebUS/nfPcLr7dI+chmnMCjRGf48m3jBVNKHtY7XAWL/pU8vP
-	dOr6xvhB1MEGEQSoU09jk0JrZbJPFj6immqKMghH1XKkolFca5abMQ
-X-Received: by 2002:a05:6000:40c9:b0:3ea:6680:8fb9 with SMTP id ffacd0b85a97d-435a5f4da63mr4516285f8f.3.1769078019504;
-        Thu, 22 Jan 2026 02:33:39 -0800 (PST)
+        bh=0WniyRiiurCuuasCidSwYbmBfTajQvRsR2qN3REFSig=;
+        b=rnN617K+hFROWhK28ccQJgSv/vdoVdwGod5GpM/Wv/+cXk1qgoOZ58b+oJ2tWpG4ZQ
+         twW/tFiYVQj0LKnM3ksVt5Quu1vfbJJXDpoDC3c4KaxHWn6kEgyJJwh1f65/+n8T34jR
+         fEB3uKB+EZJXV4zkizZ96cW/Fcd8MHDNf2K2BC0vAf/nxhD1CaGVqLBOkZudG//5Wugq
+         Uq0dTvxdr7jtfcnk1ZGqS0y7IJbRXUhfpV6zEA8TWErNDQqnq09JjNbfbjyhvC/hW+VT
+         BVmDBA0WALPnbzAIbs6cPX66vIYl8yrDurYAwiFJOJEWk0c7rJ+uXIg8yir/xE4WweWI
+         G/0w==
+X-Forwarded-Encrypted: i=1; AJvYcCVZyYGXj09U98JUoRTicfSIRtC10dNYi2GqnzawmmJg4iUhND+KLxj4lGjEwlVlKw8HRaF1UP/+7Qvi@vger.kernel.org
+X-Gm-Message-State: AOJu0YxfkMwQQNVNooQ+YmkOsZUqFMC19af56LrJriVzKOIiS77M6dEc
+	i26p7qj+gD13sAOrMeMvyjGVanqDDZAnTZNVbHTCRwhs0Saawme8a8xFV2Mcvw==
+X-Gm-Gg: AZuq6aIGfbO4i5gjHEEVKFjOKogXBfNxh17HtnSYm8UzRuE+iGk7U5iewPiwlvppbxB
+	lzNkY+zViDKrnk9/1ZMAB3uzYIM1+xv8mtXgKPH7DLS7xRSc+VWQC5DyMHisOTXObg/ItLgSDp/
+	ePAXVKbtJIjyRsQ3NMyzu22916efJ1swv+yaV7FraQU0qJnvZ1KlemBDkTaFJmrK/kfXC1XRFg4
+	/Uv+OYgLNfm2GK0cflc5vz4S2bkQvs88hcmKF2uMyGF5kBQbLbgyBmunjFbMUKqH3o4HnL8pS83
+	5k4CcdayP2yKXRVHhRhl4x/4AURRlen4VnAlSEAYVhqb5GjgdB49tNh1jo3JEVTOnf93yG0ALc/
+	qBPxuSecdCXWsX8bdolsFlj3HWvQubXSpRbALAF+F5SS2agHX/UzSP9rH2Rbdn4aD7SGQX8gHdn
+	onnthyctePcOTeiIPJfZW+yuPLvx5B4zuxFUo56PEh8Sdeao+VG9UC
+X-Received: by 2002:a05:600c:2d92:b0:47d:87ac:73ef with SMTP id 5b1f17b1804b1-480470c7513mr21530765e9.13.1769077831210;
+        Thu, 22 Jan 2026 02:30:31 -0800 (PST)
 Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4356997e6dasm45262285f8f.32.2026.01.22.02.33.38
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48048b49880sm44067865e9.11.2026.01.22.02.30.30
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 22 Jan 2026 02:33:39 -0800 (PST)
-Date: Thu, 22 Jan 2026 10:33:37 +0000
+        Thu, 22 Jan 2026 02:30:30 -0800 (PST)
+Date: Thu, 22 Jan 2026 10:30:29 +0000
 From: David Laight <david.laight.linux@gmail.com>
 To: kernel test robot <lkp@intel.com>
 Cc: Nathan Chancellor <nathan@kernel.org>, Greg Kroah-Hartman
@@ -69,14 +69,15 @@ Cc: Nathan Chancellor <nathan@kernel.org>, Greg Kroah-Hartman
  <yury.norov@gmail.com>, Jani Nikula <jani.nikula@intel.com>, Vincent
  Mailhol <mailhol.vincent@wanadoo.fr>, Andy Shevchenko
  <andriy.shevchenko@linux.intel.com>, Kees Cook <keescook@chromium.org>,
- Andrew Morton <akpm@linux-foundation.org>, oe-kbuild-all@lists.linux.dev,
- Linux Memory Management List <linux-mm@kvack.org>
-Subject: Re: [PATCH next 11/14] bit: Strengthen compile-time tests in
- GENMASK() and BIT()
-Message-ID: <20260122103337.26473d1c@pumpkin>
-In-Reply-To: <202601221237.soiAkwkN-lkp@intel.com>
-References: <20260121145731.3623-12-david.laight.linux@gmail.com>
-	<202601221237.soiAkwkN-lkp@intel.com>
+ Andrew Morton <akpm@linux-foundation.org>, llvm@lists.linux.dev,
+ oe-kbuild-all@lists.linux.dev, Linux Memory Management List
+ <linux-mm@kvack.org>
+Subject: Re: [PATCH next 12/14] bits: move the defitions of BIT() and
+ BIT_ULL() back to linux/bits.h
+Message-ID: <20260122103029.255b3dd3@pumpkin>
+In-Reply-To: <202601220951.7C4YG7hB-lkp@intel.com>
+References: <20260121145731.3623-13-david.laight.linux@gmail.com>
+	<202601220951.7C4YG7hB-lkp@intel.com>
 X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -87,32 +88,46 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On Thu, 22 Jan 2026 12:41:22 +0800
+On Thu, 22 Jan 2026 09:23:16 +0800
 kernel test robot <lkp@intel.com> wrote:
 
 > Hi,
 > 
-> kernel test robot noticed the following build warnings:
+> kernel test robot noticed the following build errors:
 > 
-> [auto build test WARNING on next-20260120]
+> [auto build test ERROR on next-20260120]
 > 
 > url:    https://github.com/intel-lab-lkp/linux/commits/david-laight-linux-gmail-com/overflow-Reduce-expansion-of-__type_max/20260122-013456
 > base:   next-20260120
-> patch link:    https://lore.kernel.org/r/20260121145731.3623-12-david.laight.linux%40gmail.com
-> patch subject: [PATCH next 11/14] bit: Strengthen compile-time tests in GENMASK() and BIT()
-> config: mips-randconfig-r132-20260122 (https://download.01.org/0day-ci/archive/20260122/202601221237.soiAkwkN-lkp@intel.com/config)
-> compiler: mips64-linux-gcc (GCC) 10.5.0
-> reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260122/202601221237.soiAkwkN-lkp@intel.com/reproduce)
+> patch link:    https://lore.kernel.org/r/20260121145731.3623-13-david.laight.linux%40gmail.com
+> patch subject: [PATCH next 12/14] bits: move the defitions of BIT() and BIT_ULL() back to linux/bits.h
+> config: arm64-allmodconfig (https://download.01.org/0day-ci/archive/20260122/202601220951.7C4YG7hB-lkp@intel.com/config)
+> compiler: clang version 19.1.7 (https://github.com/llvm/llvm-project cd708029e0b2869e80abe31ddb175f7c35361f90)
+> reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260122/202601220951.7C4YG7hB-lkp@intel.com/reproduce)
 > 
 > If you fix the issue in a separate patch/commit (i.e. not just a new version of
 > the same patch/commit), kindly add following tags
 > | Reported-by: kernel test robot <lkp@intel.com>
-> | Closes: https://lore.kernel.org/oe-kbuild-all/202601221237.soiAkwkN-lkp@intel.com/
+> | Closes: https://lore.kernel.org/oe-kbuild-all/202601220951.7C4YG7hB-lkp@intel.com/
 > 
-> sparse warnings: (new ones prefixed by >>)
->    kernel/kthread.c: note: in included file (through include/linux/bitmap.h, include/linux/cpumask.h, arch/mips/include/asm/processor.h, ...):
-> >> include/linux/find.h:209:45: sparse: sparse: Variable length array is used.  
+> All error/warnings (new ones prefixed by >>):
+> 
+>    In file included from kernel/bounds.c:14:
+>    In file included from include/linux/log2.h:12:
+>    In file included from include/linux/bitops.h:28:
+>    In file included from include/asm-generic/bitops/generic-non-atomic.h:7:
+>    In file included from arch/arm64/include/asm/barrier.h:14:
+> >> arch/arm64/include/asm/alternative-macros.h:18:20: warning: 'unsigned' is not defined, evaluates to 0 [-Wundef]  
+>       18 | #if ARM64_NCAPS >= ARM64_CB_BIT
+...
+> 
+> 4c0bd995d73ed8 Mark Rutland 2022-09-12  17  
+> 4c0bd995d73ed8 Mark Rutland 2022-09-12 @18  #if ARM64_NCAPS >= ARM64_CB_BIT
+> 4c0bd995d73ed8 Mark Rutland 2022-09-12  19  #error "cpucaps have overflown ARM64_CB_BIT"
+> 4c0bd995d73ed8 Mark Rutland 2022-09-12  20  #endif
+> 7cda23da52ad79 Will Deacon  2020-06-30  21  
 
-Can we stop sparse complaining about sizeof(VLA) ?
+Unless I change BIT() back I'll change that to a static_assert().
 
 	David
+
