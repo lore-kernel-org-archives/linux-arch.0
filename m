@@ -1,1203 +1,1155 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 816F02C2365;
-	Thu, 22 Jan 2026 05:18:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-yx1-f54.google.com (mail-yx1-f54.google.com [74.125.224.54])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF9DF4779AC
+	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 05:18:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769059094; cv=none; b=KNHZmU0dUZpUDXLzev4f+rgGrDvzXbv+Z6INmHI9dZANb6IWhzUYnzAI9Vfso09YuiQDMZHuLpSYPT2Gf4SfyixNYnDpx4YGiYlo6Fpl9fj0g/7QSjG3NBjTQNcaq+f0YYadeB/qvPQQvJbX2Q8+vta9+O5HmcvXIMQcjrzbwLc=
+	t=1769059124; cv=none; b=YSsow0rVsDl4ohag5Ty3GHIwH+C1Vs/l5t1U4eJGfIuZt9eY5bNyTXL1j+o6bttePob1BX14nolc3G+d3jNBNBjcrS6ebi9EhllEwxO8/Cu7GAI/WVOAahJxCyVcTJG09DGAdap9DZx+TEOXVRwEWPTrycC+KswTUeGcz5SH44g=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769059094; c=relaxed/simple;
-	bh=KxMN2P35ssC12/ITtML8M4amh8B3GovjaDeTi+VOV5o=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=jKTubyqCDbuS1YX8A9/sr/KSa5RJ1Dn6C7kUw5JlzcBIIZ9Mzy+uL2zBp7urWdRMj43MKEH74HRKpsGeeg2iwBfJT4gPYj3I4GSjKeF0K+edhnHDLVe7dDcsIOWIRNiyi3TvcYTB7PFkDDI3UrTmX5ri5+u80U/UnkZUSRexcdc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Ym7TkZEk; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1769059124; c=relaxed/simple;
+	bh=fBc3lFvG00VaN5TGXf0atLgNuzGkZzULjII+rIAbWQw=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=EqRt6koRJsOFdwsoqrzjyw/YqN3PNFV92wYv1Awi65ZQda/X+43pdgX4It1GFwUvr2soJKoR/1ppa3v0GW9gq8fgeBmYsXmXVXdTBo2ZUUo1E8br6yfDBwMrPaw+5qNMgsEh6cga7/fgicm/qoDNFJWfGG0qW7DCbHLb949+ICs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Vf19SM/v; arc=none smtp.client-ip=74.125.224.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Ym7TkZEk"
-Received: from localhost (unknown [20.236.11.185])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 4E8E620B7167;
-	Wed, 21 Jan 2026 21:18:08 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 4E8E620B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1769059089;
-	bh=tjRDxhu+vHzvmbRjPr0YVLOIZ6mxkCNMhlLheHSkx+k=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=Ym7TkZEkbp6JRy8zu3dvv5Ew0npzKVTLnb/o2It4RNas6oJ+cDI16B8oMGpx6vber
-	 ZhVBW/1GGY7sqR1xjls8Ytxh6DxBuLGDgsAkxjWtC0hpib+jahRSbP2ugdWg0wPNoK
-	 Mu1Fi+hqE1iFsC9L+0GqQgworcavmdQMtRN1JhaE=
-Date: Wed, 21 Jan 2026 21:18:06 -0800
-From: Jacob Pan <jacob.pan@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
- linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, kys@microsoft.com,
- haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
- longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org,
- tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
- dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
- lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
- robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
- nunodasneves@linux.microsoft.com, mhklinux@outlook.com, Jacob Pan
- <jacob.pan@linux.microsoft.com>
-Subject: Re: [PATCH v0 12/15] x86/hyperv: Implement hyperv virtual iommu
-Message-ID: <20260121211806.000006aa@linux.microsoft.com>
-In-Reply-To: <20260120064230.3602565-13-mrathor@linux.microsoft.com>
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
-	<20260120064230.3602565-13-mrathor@linux.microsoft.com>
-Organization: LSG
-X-Mailer: Claws Mail 3.21.0 (GTK+ 2.24.33; x86_64-w64-mingw32)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Vf19SM/v"
+Received: by mail-yx1-f54.google.com with SMTP id 956f58d0204a3-649523de91fso404843d50.2
+        for <linux-arch@vger.kernel.org>; Wed, 21 Jan 2026 21:18:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1769059117; x=1769663917; darn=vger.kernel.org;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :mime-version:references:message-id:subject:cc:to:from:date:from:to
+         :cc:subject:date:message-id:reply-to;
+        bh=AO8EA/DC8dWEgtSsLQDjFEdaL7T5CjryTDTrF4yRA3E=;
+        b=Vf19SM/vFZAVGDgrYdX59JlWHLYgnDyQOw2V0fN+r+8wtyBxFFBw/J1M+fSkMTNhNH
+         mS+9pmU3CZXmv53fMaA4ilf405U4ftqbdqzCCrW//tqtbZWGEj/rmpJs/2C9vYwY8MJ3
+         BsX2iXstnfZCL7uasC2lhMhzgxnLBhlS5pLaYYqmQQalooCKAShmUZFLe5aMrxPbZZwV
+         Km7Sm7oIg78cE1nG33FhHWwfEiZs6d36onpD//FHRXjMO2dcBKVyFcfg+s3Gxhzo14tL
+         ePHClISIGN7zhgwqTSQdNTsyo8vmdlSy+SpKxle7aE8sCLAogApCazXR98mkJng30MBe
+         8gHQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1769059117; x=1769663917;
+        h=in-reply-to:content-transfer-encoding:content-disposition
+         :mime-version:references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=AO8EA/DC8dWEgtSsLQDjFEdaL7T5CjryTDTrF4yRA3E=;
+        b=wmB5RXlHDbl2A9q5M5GziBWNK7caeZHiTKuXjzYu2kaOkNF/ti/IjymKJ6Vpg3fxfi
+         6GMYDpEf9p3LSo5BQ7q1efqf3AbS4BmH5/TdQy4J9E/NyOvTeHOIIbzoywGE1U/akAMj
+         YYvhaPFlBYEzS4tArkfaHUe1fht2q5AgZkCIhe8mDxpPiZA8cnybWZSXAMg5dvv2ZeDq
+         WvPtliKM7J5gos3FVt663wKaCJxrfHb6DQezb0XPsaHaInu7SpXyZ7rs60omykH4dYg3
+         ri/3VQsFNYP5UXhV5HT2I+mf+G8ISP8ajeP1TOy/texO2HJJJNs/WJfLTuttIALcw7yJ
+         HNQQ==
+X-Forwarded-Encrypted: i=1; AJvYcCUoyKJp4h++K+3mfTfE8Ye5pSNzRz9Coot1XrGqkuyA33wkrZ9wNnEEm94ey8d60OwUv8yj8214u0mj@vger.kernel.org
+X-Gm-Message-State: AOJu0Yx6yUt9lKSfcVpG1fU7lXC5Uu4o2P970hQ04VmqVIgip0g5iARs
+	4L+FUHN3w60qDcBIam0p+r0a2dNvBLjcgt+NDF/Dupgzc8wT8o+pLKzo
+X-Gm-Gg: AZuq6aIRUqKgjefU1hX+4CQszkDE4goZWvjMalK2vGKF2rfPs7YQHWqLburmWCOZieT
+	H35I/P1uYq2Fw4Kg6/S6DngUIhmpSlIzlyKtDHsIDbgupGpp6SjDo3+s36iw+niuX53PL5+Ycan
+	sH+BfYL0cSinGOVeFUsBEWzTc55vxi2H2tW597/S9LtCuYcESVmWKmAKxe6JSvIWLAv60TC/iIS
+	cXfNeTPJoMyZdynlGrsHRzeqJlScnreSmNwGPV201Snsu08DUivqf24RY8XJswvijKmwz6duMHi
+	Ekx80ya1dNkvnyB/gNT/CXy2Cz3Dr7tYCBQ5lowKlXpyja/ocjbwqPdV9ozfpt1QuoWjIBzhNhm
+	RhP9obCSSGY3VJHA3+JNxte5YU2hE6XcjjFAkNgxyBDZonBPzsGFfI2LS0P9hrztb18LcjN809L
+	VB8Lw6mIneUUNf/ezH33tTBSYjmWVfsrlrPac=
+X-Received: by 2002:a05:690e:120b:b0:646:e643:d14e with SMTP id 956f58d0204a3-649164f1d0fmr14892285d50.53.1769059116833;
+        Wed, 21 Jan 2026 21:18:36 -0800 (PST)
+Received: from devvm11784.nha0.facebook.com ([2a03:2880:25ff:5d::])
+        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-6493dcbcce6sm3259068d50.24.2026.01.21.21.18.36
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 21 Jan 2026 21:18:36 -0800 (PST)
+Date: Wed, 21 Jan 2026 21:18:34 -0800
+From: Bobby Eshleman <bobbyeshleman@gmail.com>
+To: Mina Almasry <almasrymina@google.com>
+Cc: "David S. Miller" <davem@davemloft.net>,
+	Eric Dumazet <edumazet@google.com>,
+	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>,
+	Simon Horman <horms@kernel.org>,
+	Kuniyuki Iwashima <kuniyu@google.com>,
+	Willem de Bruijn <willemb@google.com>,
+	Neal Cardwell <ncardwell@google.com>,
+	David Ahern <dsahern@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Andrew Lunn <andrew+netdev@lunn.ch>, Shuah Khan <shuah@kernel.org>,
+	Donald Hunter <donald.hunter@gmail.com>,
+	Stanislav Fomichev <sdf@fomichev.me>, netdev@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org,
+	asml.silence@gmail.com, matttbe@kernel.org, skhawaja@google.com,
+	Bobby Eshleman <bobbyeshleman@meta.com>
+Subject: Re: [PATCH net-next v10 3/5] net: devmem: implement autorelease
+ token management
+Message-ID: <aXGzKo4McQ4nllum@devvm11784.nha0.facebook.com>
+References: <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-0-686d0af71978@meta.com>
+ <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-3-686d0af71978@meta.com>
+ <CAHS8izP+7bnYhtSMVZ-_KrxSXd=R5-7MUaV15vs98Rk2aimQVg@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAHS8izP+7bnYhtSMVZ-_KrxSXd=R5-7MUaV15vs98Rk2aimQVg@mail.gmail.com>
 
-Hi Mukesh,
-
-On Mon, 19 Jan 2026 22:42:27 -0800
-Mukesh R <mrathor@linux.microsoft.com> wrote:
-
-> From: Mukesh Rathor <mrathor@linux.microsoft.com>
+On Wed, Jan 21, 2026 at 08:15:23PM -0800, Mina Almasry wrote:
+> On Thu, Jan 15, 2026 at 9:03 PM Bobby Eshleman <bobbyeshleman@gmail.com> wrote:
+> >
+> > From: Bobby Eshleman <bobbyeshleman@meta.com>
+> >
+> > Add support for autorelease toggling of tokens using a static branch to
+> > control system-wide behavior. This allows applications to choose between
+> > two memory management modes:
+> >
+> > 1. Autorelease on: Leaked tokens are automatically released when the
+> >    socket closes.
+> >
+> > 2. Autorelease off: Leaked tokens are released during dmabuf unbind.
+> >
+> > The autorelease mode is requested via the NETDEV_A_DMABUF_AUTORELEASE
+> > attribute of the NETDEV_CMD_BIND_RX message. Having separate modes per
+> > binding is disallowed and is rejected by netlink. The system will be
+> > "locked" into the mode that the first binding is set to. It can only be
+> > changed again once there are zero bindings on the system.
+> >
+> > Disabling autorelease offers ~13% improvement in CPU utilization.
+> >
+> > Static branching is used to limit the system to one mode or the other.
+> >
+> > The xa_erase(&net_devmem_dmabuf_bindings, ...) call is moved into
+> > __net_devmem_dmabuf_binding_free(...). The result is that it becomes
+> > possible to switch static branches atomically with regards to xarray
+> > state. In the time window between unbind and free the socket layer can
+> > still find the binding in the xarray, but it will fail to acquire
+> > binding->ref (if unbind decremented to zero). This change preserves
+> > correct behavior and allows us to avoid more complicated counting
+> > schemes for bindings.
+> >
+> > Signed-off-by: Bobby Eshleman <bobbyeshleman@meta.com>
+> > ---
+> > Changes in v10:
+> > - add binding->users to track socket and rxq users of binding, defer
+> >   release of urefs until binding->users hits zero to guard users from
+> >   incrementing urefs *after* net_devmem_dmabuf_binding_put_urefs()
+> >   is called. (Mina)
+> > - fix error failing to restore static key state when xarray alloc fails
+> >   (Jakub)
+> > - add wrappers for setting/unsetting mode that captures the static key +
+> >   rx binding count logic.
+> > - move xa_erase() into __net_devmem_dmabuf_binding_free()
+> > - remove net_devmem_rx_bindings_count, change xarray management to be
+> >   to avoid the same race as net_devmem_rx_bindings_count did
+> > - check return of net_devmem_dmabuf_binding_get() in
+> >   tcp_recvmsg_dmabuf()
+> > - move sk_devmem_info.binding fiddling into autorelease=off static path
+> >
+> > Changes in v9:
+> > - Add missing stub for net_devmem_dmabuf_binding_get() when NET_DEVMEM=n
+> > - Add wrapper around tcp_devmem_ar_key accesses so that it may be
+> >   stubbed out when NET_DEVMEM=n
+> > - only dec rx binding count for rx bindings in free (v8 did not exclude
+> >   TX bindings)
+> >
+> > Changes in v8:
+> > - Only reset static key when bindings go to zero, defaulting back to
+> >   disabled (Stan).
+> > - Fix bad usage of xarray spinlock for sleepy static branch switching,
+> >   use mutex instead.
+> > - Access pp_ref_count via niov->desc instead of niov directly.
+> > - Move reset of static key to __net_devmem_dmabuf_binding_free() so that
+> >   the static key can not be changed while there are outstanding tokens
+> >   (free is only called when reference count reaches zero).
+> > - Add net_devmem_dmabuf_rx_bindings_count because tokens may be active
+> >   even after xa_erase(), so static key changes must wait until all
+> >   RX bindings are finally freed (not just when xarray is empty). A
+> >   counter is a simple way to track this.
+> > - socket takes reference on the binding, to avoid use-after-free on
+> >   sk_devmem_info.binding in the case that user releases all tokens,
+> >   unbinds, then issues SO_DEVMEM_DONTNEED again (with bad token).
+> > - removed some comments that were unnecessary
+> >
+> > Changes in v7:
+> > - implement autorelease with static branch (Stan)
+> > - use netlink instead of sockopt (Stan)
+> > - merge uAPI and implementation patches into one patch (seemed less
+> >   confusing)
+> >
+> > Changes in v6:
+> > - remove sk_devmem_info.autorelease, using binding->autorelease instead
+> > - move binding->autorelease check to outside of
+> >   net_devmem_dmabuf_binding_put_urefs() (Mina)
+> > - remove overly defensive net_is_devmem_iov() (Mina)
+> > - add comment about multiple urefs mapping to a single netmem ref (Mina)
+> > - remove overly defense netmem NULL and netmem_is_net_iov checks (Mina)
+> > - use niov without casting back and forth with netmem (Mina)
+> > - move the autorelease flag from per-binding to per-socket (Mina)
+> > - remove the batching logic in sock_devmem_dontneed_manual_release()
+> >   (Mina)
+> > - move autorelease check inside tcp_xa_pool_commit() (Mina)
+> > - remove single-binding restriction for autorelease mode (Mina)
+> > - unbind always checks for leaked urefs
+> >
+> > Changes in v5:
+> > - remove unused variables
+> > - introduce autorelease flag, preparing for future patch toggle new
+> >   behavior
+> >
+> > Changes in v3:
+> > - make urefs per-binding instead of per-socket, reducing memory
+> >   footprint
+> > - fallback to cleaning up references in dmabuf unbind if socket leaked
+> >   tokens
+> > - drop ethtool patch
+> >
+> > Changes in v2:
+> > - always use GFP_ZERO for binding->vec (Mina)
+> > - remove WARN for changed binding (Mina)
+> > - remove extraneous binding ref get (Mina)
+> > - remove WARNs on invalid user input (Mina)
+> > - pre-assign niovs in binding->vec for RX case (Mina)
+> > - use atomic_set(, 0) to initialize sk_user_frags.urefs
+> > - fix length of alloc for urefs
+> > ---
+> >  Documentation/netlink/specs/netdev.yaml |  12 +++
+> >  include/net/netmem.h                    |   1 +
+> >  include/net/sock.h                      |   7 +-
+> >  include/uapi/linux/netdev.h             |   1 +
+> >  net/core/devmem.c                       | 136 +++++++++++++++++++++++++++-----
+> >  net/core/devmem.h                       |  64 ++++++++++++++-
+> >  net/core/netdev-genl-gen.c              |   5 +-
+> >  net/core/netdev-genl.c                  |  10 ++-
+> >  net/core/sock.c                         |  57 +++++++++++--
+> >  net/ipv4/tcp.c                          |  87 ++++++++++++++++----
+> >  net/ipv4/tcp_ipv4.c                     |  15 +++-
+> >  net/ipv4/tcp_minisocks.c                |   3 +-
+> >  tools/include/uapi/linux/netdev.h       |   1 +
+> >  13 files changed, 345 insertions(+), 54 deletions(-)
+> >
+> > diff --git a/Documentation/netlink/specs/netdev.yaml b/Documentation/netlink/specs/netdev.yaml
+> > index 596c306ce52b..a5301b150663 100644
+> > --- a/Documentation/netlink/specs/netdev.yaml
+> > +++ b/Documentation/netlink/specs/netdev.yaml
+> > @@ -562,6 +562,17 @@ attribute-sets:
+> >          type: u32
+> >          checks:
+> >            min: 1
+> > +      -
+> > +        name: autorelease
+> > +        doc: |
+> > +          Token autorelease mode. If true (1), leaked tokens are automatically
+> > +          released when the socket closes. If false (0), leaked tokens are only
+> > +          released when the dmabuf is torn down. Once a binding is created with
+> > +          a specific mode, all subsequent bindings system-wide must use the
+> > +          same mode.
+> > +
+> > +          Optional. Defaults to false if not specified.
 > 
-> Add a new file to implement management of device domains, mapping and
-> unmapping of iommu memory, and other iommu_ops to fit within the VFIO
-> framework for PCI passthru on Hyper-V running Linux as root or L1VH
-> parent. This also implements direct attach mechanism for PCI passthru,
-> and it is also made to work within the VFIO framework.
+> Ooof. Defaults to false if not specified.
+
+I thought we wanted to default to the optimization on?
+
 > 
-> At a high level, during boot the hypervisor creates a default identity
-> domain and attaches all devices to it. This nicely maps to Linux iommu
-> subsystem IOMMU_DOMAIN_IDENTITY domain. As a result, Linux does not
-> need to explicitly ask Hyper-V to attach devices and do maps/unmaps
-> during boot. As mentioned previously, Hyper-V supports two ways to do
-> PCI passthru:
+> My anxiety with this patch is that running an actual ML training job
+> involves many layers of middleware where we may not be able to enforce
+> the "must don'tneeding before closing the socket" requirement. I'm
+> curious if you have ML jobs or NCCL tests running on this and passing?
+
+I can run NCCL on it, but haven't this rev.
+
 > 
->   1. Device Domain: root must create a device domain in the
-> hypervisor, and do map/unmap hypercalls for mapping and unmapping
-> guest RAM. All hypervisor communications use device id of type PCI for
->      identifying and referencing the device.
+> > +        type: u8
+> >
+> >  operations:
+> >    list:
+> > @@ -769,6 +780,7 @@ operations:
+> >              - ifindex
+> >              - fd
+> >              - queues
+> > +            - autorelease
+> >          reply:
+> >            attributes:
+> >              - id
+> > diff --git a/include/net/netmem.h b/include/net/netmem.h
+> > index 9e10f4ac50c3..80d2263ba4ed 100644
+> > --- a/include/net/netmem.h
+> > +++ b/include/net/netmem.h
+> > @@ -112,6 +112,7 @@ struct net_iov {
+> >         };
+> >         struct net_iov_area *owner;
+> >         enum net_iov_type type;
+> > +       atomic_t uref;
+> >  };
+> >
+> >  struct net_iov_area {
+> > diff --git a/include/net/sock.h b/include/net/sock.h
+> > index aafe8bdb2c0f..9d3d5bde15e9 100644
+> > --- a/include/net/sock.h
+> > +++ b/include/net/sock.h
+> > @@ -352,7 +352,7 @@ struct sk_filter;
+> >    *    @sk_scm_rights: flagged by SO_PASSRIGHTS to recv SCM_RIGHTS
+> >    *    @sk_scm_unused: unused flags for scm_recv()
+> >    *    @ns_tracker: tracker for netns reference
+> > -  *    @sk_user_frags: xarray of pages the user is holding a reference on.
+> > +  *    @sk_devmem_info: the devmem binding information for the socket
+> >    *    @sk_owner: reference to the real owner of the socket that calls
+> >    *               sock_lock_init_class_and_name().
+> >    */
+> > @@ -584,7 +584,10 @@ struct sock {
+> >         struct numa_drop_counters *sk_drop_counters;
+> >         struct rcu_head         sk_rcu;
+> >         netns_tracker           ns_tracker;
+> > -       struct xarray           sk_user_frags;
+> > +       struct {
+> > +               struct xarray                           frags;
+> > +               struct net_devmem_dmabuf_binding        *binding;
+> > +       } sk_devmem_info;
+> >
+> >  #if IS_ENABLED(CONFIG_PROVE_LOCKING) && IS_ENABLED(CONFIG_MODULES)
+> >         struct module           *sk_owner;
+> > diff --git a/include/uapi/linux/netdev.h b/include/uapi/linux/netdev.h
+> > index e0b579a1df4f..1e5c209cb998 100644
+> > --- a/include/uapi/linux/netdev.h
+> > +++ b/include/uapi/linux/netdev.h
+> > @@ -207,6 +207,7 @@ enum {
+> >         NETDEV_A_DMABUF_QUEUES,
+> >         NETDEV_A_DMABUF_FD,
+> >         NETDEV_A_DMABUF_ID,
+> > +       NETDEV_A_DMABUF_AUTORELEASE,
+> >
+> >         __NETDEV_A_DMABUF_MAX,
+> >         NETDEV_A_DMABUF_MAX = (__NETDEV_A_DMABUF_MAX - 1)
+> > diff --git a/net/core/devmem.c b/net/core/devmem.c
+> > index 9dee697a28ee..1264d8ee40e3 100644
+> > --- a/net/core/devmem.c
+> > +++ b/net/core/devmem.c
+> > @@ -11,6 +11,7 @@
+> >  #include <linux/genalloc.h>
+> >  #include <linux/mm.h>
+> >  #include <linux/netdevice.h>
+> > +#include <linux/skbuff_ref.h>
+> >  #include <linux/types.h>
+> >  #include <net/netdev_queues.h>
+> >  #include <net/netdev_rx_queue.h>
+> > @@ -27,6 +28,9 @@
+> >  /* Device memory support */
+> >
+> >  static DEFINE_XARRAY_FLAGS(net_devmem_dmabuf_bindings, XA_FLAGS_ALLOC1);
+> > +static DEFINE_MUTEX(devmem_ar_lock);
+> > +DEFINE_STATIC_KEY_FALSE(tcp_devmem_ar_key);
+> > +EXPORT_SYMBOL(tcp_devmem_ar_key);
+> >
+> >  static const struct memory_provider_ops dmabuf_devmem_ops;
+> >
+> > @@ -63,12 +67,71 @@ static void net_devmem_dmabuf_binding_release(struct percpu_ref *ref)
+> >         schedule_work(&binding->unbind_w);
+> >  }
+> >
+> > +static bool net_devmem_has_rx_bindings(void)
+> > +{
+> > +       struct net_devmem_dmabuf_binding *binding;
+> > +       unsigned long index;
+> > +
+> > +       lockdep_assert_held(&devmem_ar_lock);
+> > +
+> > +       xa_for_each(&net_devmem_dmabuf_bindings, index, binding) {
+> > +               if (binding->direction == DMA_FROM_DEVICE)
+> > +                       return true;
+> > +       }
+> > +       return false;
+> > +}
+> > +
+> > +/* caller must hold devmem_ar_lock */
+> > +static int
+> > +__net_devmem_dmabuf_binding_set_mode(enum dma_data_direction direction,
+> > +                                    bool autorelease)
+> > +{
+> > +       lockdep_assert_held(&devmem_ar_lock);
+> > +
+> > +       if (direction != DMA_FROM_DEVICE)
+> > +               return 0;
+> > +
+> > +       if (net_devmem_has_rx_bindings() &&
+> > +           static_key_enabled(&tcp_devmem_ar_key) != autorelease)
+> > +               return -EBUSY;
+> > +
+> > +       if (autorelease)
+> > +               static_branch_enable(&tcp_devmem_ar_key);
+> > +
+> > +       return 0;
+> > +}
+> > +
+> > +/* caller must hold devmem_ar_lock */
+> > +static void
+> > +__net_devmem_dmabuf_binding_unset_mode(enum dma_data_direction direction)
+> > +{
+> > +       lockdep_assert_held(&devmem_ar_lock);
+> > +
+> > +       if (direction != DMA_FROM_DEVICE)
+> > +               return;
+> > +
+> > +       if (net_devmem_has_rx_bindings())
+> > +               return;
+> > +
+> > +       static_branch_disable(&tcp_devmem_ar_key);
+> > +}
+> > +
+> >  void __net_devmem_dmabuf_binding_free(struct work_struct *wq)
+> >  {
+> >         struct net_devmem_dmabuf_binding *binding = container_of(wq, typeof(*binding), unbind_w);
+> >
+> >         size_t size, avail;
+> >
+> > +       mutex_lock(&devmem_ar_lock);
+> > +       xa_erase(&net_devmem_dmabuf_bindings, binding->id);
+> > +       __net_devmem_dmabuf_binding_unset_mode(binding->direction);
+> > +       mutex_unlock(&devmem_ar_lock);
+> > +
+> > +       /* Ensure no tx net_devmem_lookup_dmabuf() are in flight after the
+> > +        * erase.
+> > +        */
+> > +       synchronize_net();
+> > +
 > 
->   2. Direct Attach: the hypervisor will simply use the guest's HW
->      page table for mappings, thus the host need not do map/unmap
->      device memory hypercalls. As such, direct attach passthru setup
->      during guest boot is extremely fast. A direct attached device
->      must be referenced via logical device id and not via the PCI
->      device id.
+> I'm sorry I could not wrap my head around moving this block of code to
+> the _free(), even though you mention it in the commit message. Why is
+> removing the the binding from net_devmem_dmabuf_bindings on unbind not
+> work for you? If the binding is not active on any rx queues then there
+> cannot be new data received on it. Unless I'm missing something it
+> should be fine to leave this where it is.
+
+Hmmm... actually now that recvmsg gets a binding->ref, the race I was
+trying to avoid can't happen (that is, dontneed using the wrong static
+branch after unbind but before free). Thanks for catching that.
+
 > 
-> At present, L1VH root/parent only supports direct attaches. Also
-> direct attach is default in non-L1VH cases because there are some
-> significant performance issues with device domain implementation
-> currently for guests with higher RAM (say more than 8GB), and that
-> unfortunately cannot be addressed in the short term.
 > 
-> Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
-> ---
->  MAINTAINERS                     |   1 +
->  arch/x86/include/asm/mshyperv.h |   7 +-
->  arch/x86/kernel/pci-dma.c       |   2 +
->  drivers/iommu/Makefile          |   2 +-
->  drivers/iommu/hyperv-iommu.c    | 876
-> ++++++++++++++++++++++++++++++++ include/linux/hyperv.h          |
-> 6 + 6 files changed, 890 insertions(+), 4 deletions(-)
->  create mode 100644 drivers/iommu/hyperv-iommu.c
+> >         gen_pool_for_each_chunk(binding->chunk_pool,
+> >                                 net_devmem_dmabuf_free_chunk_owner, NULL);
+> >
+> > @@ -126,19 +189,30 @@ void net_devmem_free_dmabuf(struct net_iov *niov)
+> >         gen_pool_free(binding->chunk_pool, dma_addr, PAGE_SIZE);
+> >  }
+> >
+> > +void
+> > +net_devmem_dmabuf_binding_put_urefs(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +       int i;
+> > +
+> > +       for (i = 0; i < binding->dmabuf->size / PAGE_SIZE; i++) {
+> > +               struct net_iov *niov;
+> > +               netmem_ref netmem;
+> > +
+> > +               niov = binding->vec[i];
+> > +               netmem = net_iov_to_netmem(niov);
+> > +
+> > +               /* Multiple urefs map to only a single netmem ref. */
+> > +               if (atomic_xchg(&niov->uref, 0) > 0)
+> > +                       WARN_ON_ONCE(!napi_pp_put_page(netmem));
+> > +       }
+> > +}
+> > +
+> >  void net_devmem_unbind_dmabuf(struct net_devmem_dmabuf_binding *binding)
+> >  {
+> >         struct netdev_rx_queue *rxq;
+> >         unsigned long xa_idx;
+> >         unsigned int rxq_idx;
+> >
+> > -       xa_erase(&net_devmem_dmabuf_bindings, binding->id);
+> > -
+> > -       /* Ensure no tx net_devmem_lookup_dmabuf() are in flight after the
+> > -        * erase.
+> > -        */
+> > -       synchronize_net();
+> > -
+> >         if (binding->list.next)
+> >                 list_del(&binding->list);
+> >
+> > @@ -151,6 +225,8 @@ void net_devmem_unbind_dmabuf(struct net_devmem_dmabuf_binding *binding)
+> >                 rxq_idx = get_netdev_rx_queue_index(rxq);
+> >
+> >                 __net_mp_close_rxq(binding->dev, rxq_idx, &mp_params);
+> > +
+> > +               net_devmem_dmabuf_binding_user_put(binding);
+> >         }
+> >
+> >         percpu_ref_kill(&binding->ref);
+> > @@ -178,6 +254,8 @@ int net_devmem_bind_dmabuf_to_queue(struct net_device *dev, u32 rxq_idx,
+> >         if (err)
+> >                 goto err_close_rxq;
+> >
+> > +       atomic_inc(&binding->users);
+> > +
 > 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index 381a0e086382..63160cee942c 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -11741,6 +11741,7 @@ F:	drivers/hid/hid-hyperv.c
->  F:	drivers/hv/
->  F:	drivers/infiniband/hw/mana/
->  F:	drivers/input/serio/hyperv-keyboard.c
-> +F:	drivers/iommu/hyperv-iommu.c
-Given we are also developing a guest iommu driver on hyperv, I think it
-is more clear to name them accordingly. Perhaps, hyperv-iommu-root.c?
+> nit: feels wrong that we have _binding_user_put() but open code the
+> get(). Either open code both or helper both, maybe?
 
->  F:	drivers/iommu/hyperv-irq.c
->  F:	drivers/net/ethernet/microsoft/
->  F:	drivers/net/hyperv/
-> diff --git a/arch/x86/include/asm/mshyperv.h
-> b/arch/x86/include/asm/mshyperv.h index 97477c5a8487..e4ccdbbf1d12
-> 100644 --- a/arch/x86/include/asm/mshyperv.h
-> +++ b/arch/x86/include/asm/mshyperv.h
-> @@ -189,16 +189,17 @@ static inline void hv_apic_init(void) {}
->  #endif
->  
->  #if IS_ENABLED(CONFIG_HYPERV_IOMMU)
-> -static inline bool hv_pcidev_is_attached_dev(struct pci_dev *pdev)
-> -{ return false; }       /* temporary */
-> +bool hv_pcidev_is_attached_dev(struct pci_dev *pdev);
->  u64 hv_build_devid_oftype(struct pci_dev *pdev, enum hv_device_type
-> type); +u64 hv_iommu_get_curr_partid(void);
->  #else	/* CONFIG_HYPERV_IOMMU */
->  static inline bool hv_pcidev_is_attached_dev(struct pci_dev *pdev)
->  { return false; }
-> -
->  static inline u64 hv_build_devid_oftype(struct pci_dev *pdev,
->  				       enum hv_device_type type)
->  { return 0; }
-> +static inline u64 hv_iommu_get_curr_partid(void)
-> +{ return HV_PARTITION_ID_INVALID; }
->  
->  #endif	/* CONFIG_HYPERV_IOMMU */
->  
-> diff --git a/arch/x86/kernel/pci-dma.c b/arch/x86/kernel/pci-dma.c
-> index 6267363e0189..cfeee6505e17 100644
-> --- a/arch/x86/kernel/pci-dma.c
-> +++ b/arch/x86/kernel/pci-dma.c
-> @@ -8,6 +8,7 @@
->  #include <linux/gfp.h>
->  #include <linux/pci.h>
->  #include <linux/amd-iommu.h>
-> +#include <linux/hyperv.h>
->  
->  #include <asm/proto.h>
->  #include <asm/dma.h>
-> @@ -105,6 +106,7 @@ void __init pci_iommu_alloc(void)
->  	gart_iommu_hole_init();
->  	amd_iommu_detect();
->  	detect_intel_iommu();
-> +	hv_iommu_detect();
-Will this driver be x86 only?
+I had the same though, but the issue is that for the first queue
+atomic_inc_not_zero() (the helper) will fail.
 
->  	swiotlb_init(x86_swiotlb_enable, x86_swiotlb_flags);
->  }
->  
-> diff --git a/drivers/iommu/Makefile b/drivers/iommu/Makefile
-> index 598c39558e7d..cc9774864b00 100644
-> --- a/drivers/iommu/Makefile
-> +++ b/drivers/iommu/Makefile
-> @@ -30,7 +30,7 @@ obj-$(CONFIG_TEGRA_IOMMU_SMMU) += tegra-smmu.o
->  obj-$(CONFIG_EXYNOS_IOMMU) += exynos-iommu.o
->  obj-$(CONFIG_FSL_PAMU) += fsl_pamu.o fsl_pamu_domain.o
->  obj-$(CONFIG_S390_IOMMU) += s390-iommu.o
-> -obj-$(CONFIG_HYPERV_IOMMU) += hyperv-irq.o
-> +obj-$(CONFIG_HYPERV_IOMMU) += hyperv-irq.o hyperv-iommu.o
-DMA and IRQ remapping should be separate
+> 
+> >         return 0;
+> >
+> >  err_close_rxq:
+> > @@ -189,8 +267,10 @@ struct net_devmem_dmabuf_binding *
+> >  net_devmem_bind_dmabuf(struct net_device *dev,
+> >                        struct device *dma_dev,
+> >                        enum dma_data_direction direction,
+> > -                      unsigned int dmabuf_fd, struct netdev_nl_sock *priv,
+> > -                      struct netlink_ext_ack *extack)
+> > +                      unsigned int dmabuf_fd,
+> > +                      struct netdev_nl_sock *priv,
+> > +                      struct netlink_ext_ack *extack,
+> > +                      bool autorelease)
+> >  {
+> >         struct net_devmem_dmabuf_binding *binding;
+> >         static u32 id_alloc_next;
+> > @@ -225,6 +305,8 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+> >         if (err < 0)
+> >                 goto err_free_binding;
+> >
+> > +       atomic_set(&binding->users, 0);
+> > +
+> >         mutex_init(&binding->lock);
+> >
+> >         binding->dmabuf = dmabuf;
+> > @@ -245,14 +327,12 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+> >                 goto err_detach;
+> >         }
+> >
+> > -       if (direction == DMA_TO_DEVICE) {
+> > -               binding->vec = kvmalloc_array(dmabuf->size / PAGE_SIZE,
+> > -                                             sizeof(struct net_iov *),
+> > -                                             GFP_KERNEL);
+> > -               if (!binding->vec) {
+> > -                       err = -ENOMEM;
+> > -                       goto err_unmap;
+> > -               }
+> > +       binding->vec = kvmalloc_array(dmabuf->size / PAGE_SIZE,
+> > +                                     sizeof(struct net_iov *),
+> > +                                     GFP_KERNEL | __GFP_ZERO);
+> > +       if (!binding->vec) {
+> > +               err = -ENOMEM;
+> > +               goto err_unmap;
+> >         }
+> >
+> >         /* For simplicity we expect to make PAGE_SIZE allocations, but the
+> > @@ -306,25 +386,41 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+> >                         niov = &owner->area.niovs[i];
+> >                         niov->type = NET_IOV_DMABUF;
+> >                         niov->owner = &owner->area;
+> > +                       atomic_set(&niov->uref, 0);
+> >                         page_pool_set_dma_addr_netmem(net_iov_to_netmem(niov),
+> >                                                       net_devmem_get_dma_addr(niov));
+> > -                       if (direction == DMA_TO_DEVICE)
+> > -                               binding->vec[owner->area.base_virtual / PAGE_SIZE + i] = niov;
+> > +                       binding->vec[owner->area.base_virtual / PAGE_SIZE + i] = niov;
+> >                 }
+> >
+> >                 virtual += len;
+> >         }
+> >
+> > +       mutex_lock(&devmem_ar_lock);
+> > +
+> > +       err = __net_devmem_dmabuf_binding_set_mode(direction, autorelease);
+> > +       if (err < 0) {
+> > +               NL_SET_ERR_MSG_FMT(extack,
+> > +                                  "System already configured with autorelease=%d",
+> > +                                  static_key_enabled(&tcp_devmem_ar_key));
+> > +               goto err_unlock_mutex;
+> > +       }
+> > +
+> 
+> Unless I've misread something, this looks very incorrect. TX bindings
+> will accidentally set the system to autorelease=false mode, no? You
+> need to make sure you only set the mode in rx-bindings only, right?
 
->  obj-$(CONFIG_VIRTIO_IOMMU) += virtio-iommu.o
->  obj-$(CONFIG_IOMMU_SVA) += iommu-sva.o
->  obj-$(CONFIG_IOMMU_IOPF) += io-pgfault.o
-> diff --git a/drivers/iommu/hyperv-iommu.c
-> b/drivers/iommu/hyperv-iommu.c new file mode 100644
-> index 000000000000..548483fec6b1
-> --- /dev/null
-> +++ b/drivers/iommu/hyperv-iommu.c
-> @@ -0,0 +1,876 @@
-> +// SPDX-License-Identifier: GPL-2.0
-> +/*
-> + * Hyper-V root vIOMMU driver.
-> + * Copyright (C) 2026, Microsoft, Inc.
-> + */
-> +
-> +#include <linux/module.h>
-I don't think this is needed since this driver cannot be a module
+Maybe the context you missed is that
+__net_devmem_dmabuf_binding_set_mode() no-ops for TX (DMA_FROM_DEVICE)?
 
-> +#include <linux/pci.h>
-> +#include <linux/dmar.h>
-should not depend on Intel's DMAR
-
-> +#include <linux/dma-map-ops.h>
-> +#include <linux/interval_tree.h>
-> +#include <linux/hyperv.h>
-> +#include "dma-iommu.h"
-> +#include <asm/iommu.h>
-> +#include <asm/mshyperv.h>
-> +
-> +/* We will not claim these PCI devices, eg hypervisor needs it for
-> debugger */ +static char *pci_devs_to_skip;
-> +static int __init hv_iommu_setup_skip(char *str)
-> +{
-> +	pci_devs_to_skip = str;
-> +
-> +	return 0;
-> +}
-> +/* hv_iommu_skip=(SSSS:BB:DD.F)(SSSS:BB:DD.F) */
-> +__setup("hv_iommu_skip=", hv_iommu_setup_skip);
-> +
-> +bool hv_no_attdev;	 /* disable direct device attach for
-> passthru */ +EXPORT_SYMBOL_GPL(hv_no_attdev);
-> +static int __init setup_hv_no_attdev(char *str)
-> +{
-> +	hv_no_attdev = true;
-> +	return 0;
-> +}
-> +__setup("hv_no_attdev", setup_hv_no_attdev);
-> +
-> +/* Iommu device that we export to the world. HyperV supports max of
-> one */ +static struct iommu_device hv_virt_iommu;
-> +
-> +struct hv_domain {
-> +	struct iommu_domain iommu_dom;
-> +	u32 domid_num;			      /* as opposed to
-> domain_id.type */
-> +	u32 num_attchd;		      /* number of currently
-> attached devices */
-rename to num_dev_attached?
-
-> +	bool attached_dom;		      /* is this direct
-> attached dom? */
-> +	spinlock_t mappings_lock;	      /* protects
-> mappings_tree */
-> +	struct rb_root_cached mappings_tree;  /* iova to pa lookup
-> tree */ +};
-> +
-> +#define to_hv_domain(d) container_of(d, struct hv_domain, iommu_dom)
-> +
-> +struct hv_iommu_mapping {
-> +	phys_addr_t paddr;
-> +	struct interval_tree_node iova;
-> +	u32 flags;
-> +};
-> +
-> +/*
-> + * By default, during boot the hypervisor creates one Stage 2 (S2)
-> default
-> + * domain. Stage 2 means that the page table is controlled by the
-> hypervisor.
-> + *   S2 default: access to entire root partition memory. This for us
-> easily
-> + *		 maps to IOMMU_DOMAIN_IDENTITY in the iommu
-> subsystem, and
-> + *		 is called HV_DEVICE_DOMAIN_ID_S2_DEFAULT in the
-> hypervisor.
-> + *
-> + * Device Management:
-> + *   There are two ways to manage device attaches to domains:
-> + *     1. Domain Attach: A device domain is created in the
-> hypervisor, the
-> + *			 device is attached to this domain, and
-> then memory
-> + *			 ranges are mapped in the map callbacks.
-> + *     2. Direct Attach: No need to create a domain in the
-> hypervisor for direct
-> + *			 attached devices. A hypercall is made to
-> tell the
-> + *			 hypervisor to attach the device to a
-> guest. There is
-> + *			 no need for explicit memory mappings
-> because the
-> + *			 hypervisor will just use the guest HW
-> page table.
-> + *
-> + * Since a direct attach is much faster, it is the default. This can
-> be
-> + * changed via hv_no_attdev.
-> + *
-> + * L1VH: hypervisor only supports direct attach.
-> + */
-> +
-> +/*
-> + * Create dummy domain to correspond to hypervisor prebuilt default
-> identity
-> + * domain (dummy because we do not make hypercall to create them).
-> + */
-> +static struct hv_domain hv_def_identity_dom;
-> +
-> +static bool hv_special_domain(struct hv_domain *hvdom)
-> +{
-> +	return hvdom == &hv_def_identity_dom;
-> +}
-> +
-> +struct iommu_domain_geometry default_geometry = (struct
-> iommu_domain_geometry) {
-> +	.aperture_start = 0,
-> +	.aperture_end = -1UL,
-> +	.force_aperture = true,
-> +};
-> +
-> +/*
-> + * Since the relevant hypercalls can only fit less than 512 PFNs in
-> the pfn
-> + * array, report 1M max.
-> + */
-> +#define HV_IOMMU_PGSIZES (SZ_4K | SZ_1M)
-> +
-> +static u32 unique_id;	      /* unique numeric id of a new
-> domain */ +
-> +static void hv_iommu_detach_dev(struct iommu_domain *immdom,
-> +				struct device *dev);
-> +static size_t hv_iommu_unmap_pages(struct iommu_domain *immdom,
-> ulong iova,
-> +				   size_t pgsize, size_t pgcount,
-> +				   struct iommu_iotlb_gather
-> *gather); +
-> +/*
-> + * If the current thread is a VMM thread, return the partition id of
-> the VM it
-> + * is managing, else return HV_PARTITION_ID_INVALID.
-> + */
-> +u64 hv_iommu_get_curr_partid(void)
-> +{
-> +	u64 (*fn)(pid_t pid);
-> +	u64 partid;
-> +
-> +	fn = symbol_get(mshv_pid_to_partid);
-> +	if (!fn)
-> +		return HV_PARTITION_ID_INVALID;
-> +
-> +	partid = fn(current->tgid);
-> +	symbol_put(mshv_pid_to_partid);
-> +
-> +	return partid;
-> +}
-This function is not iommu specific. Maybe move it to mshv code?
-
-> +
-> +/* If this is a VMM thread, then this domain is for a guest VM */
-> +static bool hv_curr_thread_is_vmm(void)
-> +{
-> +	return hv_iommu_get_curr_partid() != HV_PARTITION_ID_INVALID;
-> +}
-> +
-> +static bool hv_iommu_capable(struct device *dev, enum iommu_cap cap)
-> +{
-> +	switch (cap) {
-> +	case IOMMU_CAP_CACHE_COHERENCY:
-> +		return true;
-> +	default:
-> +		return false;
-> +	}
-> +	return false;
-> +}
-> +
-> +/*
-> + * Check if given pci device is a direct attached device. Caller
-> must have
-> + * verified pdev is a valid pci device.
-> + */
-> +bool hv_pcidev_is_attached_dev(struct pci_dev *pdev)
-> +{
-> +	struct iommu_domain *iommu_domain;
-> +	struct hv_domain *hvdom;
-> +	struct device *dev = &pdev->dev;
-> +
-> +	iommu_domain = iommu_get_domain_for_dev(dev);
-> +	if (iommu_domain) {
-> +		hvdom = to_hv_domain(iommu_domain);
-> +		return hvdom->attached_dom;
-> +	}
-> +
-> +	return false;
-> +}
-> +EXPORT_SYMBOL_GPL(hv_pcidev_is_attached_dev);
-Attached domain can change anytime, what guarantee does the caller have?
-
-> +
-> +/* Create a new device domain in the hypervisor */
-> +static int hv_iommu_create_hyp_devdom(struct hv_domain *hvdom)
-> +{
-> +	u64 status;
-> +	unsigned long flags;
-> +	struct hv_input_device_domain *ddp;
-> +	struct hv_input_create_device_domain *input;
-nit: use consistent coding style, inverse Christmas tree.
-
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	ddp = &input->device_domain;
-> +	ddp->partition_id = HV_PARTITION_ID_SELF;
-> +	ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +	ddp->domain_id.id = hvdom->domid_num;
-> +
-> +	input->create_device_domain_flags.forward_progress_required
-> = 1;
-> +	input->create_device_domain_flags.inherit_owning_vtl = 0;
-> +
-> +	status = hv_do_hypercall(HVCALL_CREATE_DEVICE_DOMAIN, input,
-> NULL); +
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +/* During boot, all devices are attached to this */
-> +static struct iommu_domain *hv_iommu_domain_alloc_identity(struct
-> device *dev) +{
-> +	return &hv_def_identity_dom.iommu_dom;
-> +}
-> +
-> +static struct iommu_domain *hv_iommu_domain_alloc_paging(struct
-> device *dev) +{
-> +	struct hv_domain *hvdom;
-> +	int rc;
-> +
-> +	if (hv_l1vh_partition() && !hv_curr_thread_is_vmm() &&
-> !hv_no_attdev) {
-> +		pr_err("Hyper-V: l1vh iommu does not support host
-> devices\n");
-why is this an error if user input choose not to do direct attach?
-
-> +		return NULL;
-> +	}
-> +
-> +	hvdom = kzalloc(sizeof(struct hv_domain), GFP_KERNEL);
-> +	if (hvdom == NULL)
-> +		goto out;
-> +
-> +	spin_lock_init(&hvdom->mappings_lock);
-> +	hvdom->mappings_tree = RB_ROOT_CACHED;
-> +
-> +	if (++unique_id == HV_DEVICE_DOMAIN_ID_S2_DEFAULT)   /* ie,
-> 0 */
-This is true only when unique_id wraps around, right? Then this driver
-stops working?
-
-can you use an IDR for the unique_id and free it as you detach instead
-of doing this cyclic allocation?
-
-> +		goto out_free;
-> +
-> +	hvdom->domid_num = unique_id;
-> +	hvdom->iommu_dom.geometry = default_geometry;
-> +	hvdom->iommu_dom.pgsize_bitmap = HV_IOMMU_PGSIZES;
-> +
-> +	/* For guests, by default we do direct attaches, so no
-> domain in hyp */
-> +	if (hv_curr_thread_is_vmm() && !hv_no_attdev)
-> +		hvdom->attached_dom = true;
-> +	else {
-> +		rc = hv_iommu_create_hyp_devdom(hvdom);
-> +		if (rc)
-> +			goto out_free_id;
-> +	}
-> +
-> +	return &hvdom->iommu_dom;
-> +
-> +out_free_id:
-> +	unique_id--;
-> +out_free:
-> +	kfree(hvdom);
-> +out:
-> +	return NULL;
-> +}
-> +
-> +static void hv_iommu_domain_free(struct iommu_domain *immdom)
-> +{
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	unsigned long flags;
-> +	u64 status;
-> +	struct hv_input_delete_device_domain *input;
-> +
-> +	if (hv_special_domain(hvdom))
-> +		return;
-> +
-> +	if (hvdom->num_attchd) {
-> +		pr_err("Hyper-V: can't free busy iommu domain
-> (%p)\n", immdom);
-> +		return;
-> +	}
-> +
-> +	if (!hv_curr_thread_is_vmm() || hv_no_attdev) {
-> +		struct hv_input_device_domain *ddp;
-> +
-> +		local_irq_save(flags);
-> +		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +		ddp = &input->device_domain;
-> +		memset(input, 0, sizeof(*input));
-> +
-> +		ddp->partition_id = HV_PARTITION_ID_SELF;
-> +		ddp->domain_id.type = HV_DEVICE_DOMAIN_TYPE_S2;
-> +		ddp->domain_id.id = hvdom->domid_num;
-> +
-> +		status =
-> hv_do_hypercall(HVCALL_DELETE_DEVICE_DOMAIN, input,
-> +					 NULL);
-> +		local_irq_restore(flags);
-> +
-> +		if (!hv_result_success(status))
-> +			hv_status_err(status, "\n");
-> +	}
-you could free the domid here, no?
-
-> +
-> +	kfree(hvdom);
-> +}
-> +
-> +/* Attach a device to a domain previously created in the hypervisor
-> */ +static int hv_iommu_att_dev2dom(struct hv_domain *hvdom, struct
-> pci_dev *pdev) +{
-> +	unsigned long flags;
-> +	u64 status;
-> +	enum hv_device_type dev_type;
-> +	struct hv_input_attach_device_domain *input;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_domain.domain_id.type =
-> HV_DEVICE_DOMAIN_TYPE_S2;
-> +	input->device_domain.domain_id.id = hvdom->domid_num;
-> +
-> +	/* NB: Upon guest shutdown, device is re-attached to the
-> default domain
-> +	 * without explicit detach.
-> +	 */
-> +	if (hv_l1vh_partition())
-> +		dev_type = HV_DEVICE_TYPE_LOGICAL;
-> +	else
-> +		dev_type = HV_DEVICE_TYPE_PCI;
-> +
-> +	input->device_id.as_uint64 = hv_build_devid_oftype(pdev,
-> dev_type); +
-> +	status = hv_do_hypercall(HVCALL_ATTACH_DEVICE_DOMAIN, input,
-> NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +/* Caller must have validated that dev is a valid pci dev */
-> +static int hv_iommu_direct_attach_device(struct pci_dev *pdev)
-> +{
-> +	struct hv_input_attach_device *input;
-> +	u64 status;
-> +	int rc;
-> +	unsigned long flags;
-> +	union hv_device_id host_devid;
-> +	enum hv_device_type dev_type;
-> +	u64 ptid = hv_iommu_get_curr_partid();
-> +
-> +	if (ptid == HV_PARTITION_ID_INVALID) {
-> +		pr_err("Hyper-V: Invalid partition id in direct
-> attach\n");
-> +		return -EINVAL;
-> +	}
-> +
-> +	if (hv_l1vh_partition())
-> +		dev_type = HV_DEVICE_TYPE_LOGICAL;
-> +	else
-> +		dev_type = HV_DEVICE_TYPE_PCI;
-> +
-> +	host_devid.as_uint64 = hv_build_devid_oftype(pdev, dev_type);
-> +
-> +	do {
-> +		local_irq_save(flags);
-> +		input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +		memset(input, 0, sizeof(*input));
-> +		input->partition_id = ptid;
-> +		input->device_id = host_devid;
-> +
-> +		/* Hypervisor associates logical_id with this
-> device, and in
-> +		 * some hypercalls like retarget interrupts,
-> logical_id must be
-> +		 * used instead of the BDF. It is a required
-> parameter.
-> +		 */
-> +		input->attdev_flags.logical_id = 1;
-> +		input->logical_devid =
-> +			   hv_build_devid_oftype(pdev,
-> HV_DEVICE_TYPE_LOGICAL); +
-> +		status = hv_do_hypercall(HVCALL_ATTACH_DEVICE,
-> input, NULL);
-> +		local_irq_restore(flags);
-> +
-> +		if (hv_result(status) ==
-> HV_STATUS_INSUFFICIENT_MEMORY) {
-> +			rc = hv_call_deposit_pages(NUMA_NO_NODE,
-> ptid, 1);
-> +			if (rc)
-> +				break;
-> +		}
-> +	} while (hv_result(status) == HV_STATUS_INSUFFICIENT_MEMORY);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +/* This to attach a device to both host app (like DPDK) and a guest
-> VM */
-The IOMMU driver should be agnostic to the type of consumer, whether a
-userspace driver or a VM. This comment is not necessary.
-
-> +static int hv_iommu_attach_dev(struct iommu_domain *immdom,
-> struct device *dev,
-> +			       struct iommu_domain *old)
-This does not match upstream kernel prototype, which kernel version is
-this based on? I will stop here for now.
-
-struct iommu_domain_ops {
-	int (*attach_dev)(struct iommu_domain *domain, struct device
-	*dev);
-
-> +{
-> +	struct pci_dev *pdev;
-> +	int rc;
-> +	struct hv_domain *hvdom_new = to_hv_domain(immdom);
-> +	struct hv_domain *hvdom_prev = dev_iommu_priv_get(dev);
-> +
-> +	/* Only allow PCI devices for now */
-> +	if (!dev_is_pci(dev))
-> +		return -EINVAL;
-> +
-> +	pdev = to_pci_dev(dev);
-> +
-> +	/* l1vh does not support host device (eg DPDK) passthru */
-> +	if (hv_l1vh_partition() && !hv_special_domain(hvdom_new) &&
-> +	    !hvdom_new->attached_dom)
-> +		return -EINVAL;
-> +
-> +	/*
-> +	 * VFIO does not do explicit detach calls, hence check first
-> if we need
-> +	 * to detach first. Also, in case of guest shutdown, it's
-> the VMM
-> +	 * thread that attaches it back to the hv_def_identity_dom,
-> and
-> +	 * hvdom_prev will not be null then. It is null during boot.
-> +	 */
-> +	if (hvdom_prev)
-> +		if (!hv_l1vh_partition() ||
-> !hv_special_domain(hvdom_prev))
-> +			hv_iommu_detach_dev(&hvdom_prev->iommu_dom,
-> dev); +
-> +	if (hv_l1vh_partition() && hv_special_domain(hvdom_new)) {
-> +		dev_iommu_priv_set(dev, hvdom_new);  /* sets
-> "private" field */
-> +		return 0;
-> +	}
-> +
-> +	if (hvdom_new->attached_dom)
-> +		rc = hv_iommu_direct_attach_device(pdev);
-> +	else
-> +		rc = hv_iommu_att_dev2dom(hvdom_new, pdev);
-> +
-> +	if (rc && hvdom_prev) {
-> +		int rc1;
-> +
-> +		if (hvdom_prev->attached_dom)
-> +			rc1 = hv_iommu_direct_attach_device(pdev);
-> +		else
-> +			rc1 = hv_iommu_att_dev2dom(hvdom_prev, pdev);
-> +
-> +		if (rc1)
-> +			pr_err("Hyper-V: iommu could not restore
-> orig device state.. dev:%s\n",
-> +			       dev_name(dev));
-> +	}
-> +
-> +	if (rc == 0) {
-> +		dev_iommu_priv_set(dev, hvdom_new);  /* sets
-> "private" field */
-> +		hvdom_new->num_attchd++;
-> +	}
-> +
-> +	return rc;
-> +}
-> +
-> +static void hv_iommu_det_dev_from_guest(struct hv_domain *hvdom,
-> +					struct pci_dev *pdev)
-> +{
-> +	struct hv_input_detach_device *input;
-> +	u64 status, log_devid;
-> +	unsigned long flags;
-> +
-> +	log_devid = hv_build_devid_oftype(pdev,
-> HV_DEVICE_TYPE_LOGICAL); +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->partition_id = hv_iommu_get_curr_partid();
-> +	input->logical_devid = log_devid;
-> +	status = hv_do_hypercall(HVCALL_DETACH_DEVICE, input, NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +}
-> +
-> +static void hv_iommu_det_dev_from_dom(struct hv_domain *hvdom,
-> +				      struct pci_dev *pdev)
-> +{
-> +	u64 status, devid;
-> +	unsigned long flags;
-> +	struct hv_input_detach_device_domain *input;
-> +
-> +	devid = hv_build_devid_oftype(pdev, HV_DEVICE_TYPE_PCI);
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_id.as_uint64 = devid;
-> +	status = hv_do_hypercall(HVCALL_DETACH_DEVICE_DOMAIN, input,
-> NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +}
-> +
-> +static void hv_iommu_detach_dev(struct iommu_domain *immdom, struct
-> device *dev) +{
-> +	struct pci_dev *pdev;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +
-> +	/* See the attach function, only PCI devices for now */
-> +	if (!dev_is_pci(dev))
-> +		return;
-> +
-> +	if (hvdom->num_attchd == 0)
-> +		pr_warn("Hyper-V: num_attchd is zero (%s)\n",
-> dev_name(dev)); +
-> +	pdev = to_pci_dev(dev);
-> +
-> +	if (hvdom->attached_dom) {
-> +		hv_iommu_det_dev_from_guest(hvdom, pdev);
-> +
-> +		/* Do not reset attached_dom, hv_iommu_unmap_pages
-> happens
-> +		 * next.
-> +		 */
-> +	} else {
-> +		hv_iommu_det_dev_from_dom(hvdom, pdev);
-> +	}
-> +
-> +	hvdom->num_attchd--;
-> +}
-> +
-> +static int hv_iommu_add_tree_mapping(struct hv_domain *hvdom,
-> +				     unsigned long iova, phys_addr_t
-> paddr,
-> +				     size_t size, u32 flags)
-> +{
-> +	unsigned long irqflags;
-> +	struct hv_iommu_mapping *mapping;
-> +
-> +	mapping = kzalloc(sizeof(*mapping), GFP_ATOMIC);
-> +	if (!mapping)
-> +		return -ENOMEM;
-> +
-> +	mapping->paddr = paddr;
-> +	mapping->iova.start = iova;
-> +	mapping->iova.last = iova + size - 1;
-> +	mapping->flags = flags;
-> +
-> +	spin_lock_irqsave(&hvdom->mappings_lock, irqflags);
-> +	interval_tree_insert(&mapping->iova, &hvdom->mappings_tree);
-> +	spin_unlock_irqrestore(&hvdom->mappings_lock, irqflags);
-> +
-> +	return 0;
-> +}
-> +
-> +static size_t hv_iommu_del_tree_mappings(struct hv_domain *hvdom,
-> +					unsigned long iova, size_t
-> size) +{
-> +	unsigned long flags;
-> +	size_t unmapped = 0;
-> +	unsigned long last = iova + size - 1;
-> +	struct hv_iommu_mapping *mapping = NULL;
-> +	struct interval_tree_node *node, *next;
-> +
-> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
-> +	next = interval_tree_iter_first(&hvdom->mappings_tree, iova,
-> last);
-> +	while (next) {
-> +		node = next;
-> +		mapping = container_of(node, struct
-> hv_iommu_mapping, iova);
-> +		next = interval_tree_iter_next(node, iova, last);
-> +
-> +		/* Trying to split a mapping? Not supported for now.
-> */
-> +		if (mapping->iova.start < iova)
-> +			break;
-> +
-> +		unmapped += mapping->iova.last - mapping->iova.start
-> + 1; +
-> +		interval_tree_remove(node, &hvdom->mappings_tree);
-> +		kfree(mapping);
-> +	}
-> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
-> +
-> +	return unmapped;
-> +}
-> +
-> +/* Return: must return exact status from the hypercall without
-> changes */ +static u64 hv_iommu_map_pgs(struct hv_domain *hvdom,
-> +			    unsigned long iova, phys_addr_t paddr,
-> +			    unsigned long npages, u32 map_flags)
-> +{
-> +	u64 status;
-> +	int i;
-> +	struct hv_input_map_device_gpa_pages *input;
-> +	unsigned long flags, pfn = paddr >> HV_HYP_PAGE_SHIFT;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_domain.domain_id.type =
-> HV_DEVICE_DOMAIN_TYPE_S2;
-> +	input->device_domain.domain_id.id = hvdom->domid_num;
-> +	input->map_flags = map_flags;
-> +	input->target_device_va_base = iova;
-> +
-> +	pfn = paddr >> HV_HYP_PAGE_SHIFT;
-> +	for (i = 0; i < npages; i++, pfn++)
-> +		input->gpa_page_list[i] = pfn;
-> +
-> +	status = hv_do_rep_hypercall(HVCALL_MAP_DEVICE_GPA_PAGES,
-> npages, 0,
-> +				     input, NULL);
-> +
-> +	local_irq_restore(flags);
-> +	return status;
-> +}
-> +
-> +/*
-> + * The core VFIO code loops over memory ranges calling this function
-> with
-> + * the largest size from HV_IOMMU_PGSIZES. cond_resched() is in
-> vfio_iommu_map.
-> + */
-> +static int hv_iommu_map_pages(struct iommu_domain *immdom, ulong
-> iova,
-> +			      phys_addr_t paddr, size_t pgsize,
-> size_t pgcount,
-> +			      int prot, gfp_t gfp, size_t *mapped)
-> +{
-> +	u32 map_flags;
-> +	int ret;
-> +	u64 status;
-> +	unsigned long npages, done = 0;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	size_t size = pgsize * pgcount;
-> +
-> +	map_flags = HV_MAP_GPA_READABLE;	/* required */
-> +	map_flags |= prot & IOMMU_WRITE ? HV_MAP_GPA_WRITABLE : 0;
-> +
-> +	ret = hv_iommu_add_tree_mapping(hvdom, iova, paddr, size,
-> map_flags);
-> +	if (ret)
-> +		return ret;
-> +
-> +	if (hvdom->attached_dom) {
-> +		*mapped = size;
-> +		return 0;
-> +	}
-> +
-> +	npages = size >> HV_HYP_PAGE_SHIFT;
-> +	while (done < npages) {
-> +		ulong completed, remain = npages - done;
-> +
-> +		status = hv_iommu_map_pgs(hvdom, iova, paddr, remain,
-> +					  map_flags);
-> +
-> +		completed = hv_repcomp(status);
-> +		done = done + completed;
-> +		iova = iova + (completed << HV_HYP_PAGE_SHIFT);
-> +		paddr = paddr + (completed << HV_HYP_PAGE_SHIFT);
-> +
-> +		if (hv_result(status) ==
-> HV_STATUS_INSUFFICIENT_MEMORY) {
-> +			ret = hv_call_deposit_pages(NUMA_NO_NODE,
-> +
-> hv_current_partition_id,
-> +						    256);
-> +			if (ret)
-> +				break;
-> +		}
-> +		if (!hv_result_success(status))
-> +			break;
-> +	}
-> +
-> +	if (!hv_result_success(status)) {
-> +		size_t done_size = done << HV_HYP_PAGE_SHIFT;
-> +
-> +		hv_status_err(status, "pgs:%lx/%lx iova:%lx\n",
-> +			      done, npages, iova);
-> +		/*
-> +		 * lookup tree has all mappings [0 - size-1]. Below
-> unmap will
-> +		 * only remove from [0 - done], we need to remove
-> second chunk
-> +		 * [done+1 - size-1].
-> +		 */
-> +		hv_iommu_del_tree_mappings(hvdom, iova, size -
-> done_size);
-> +		hv_iommu_unmap_pages(immdom, iova - done_size,
-> pgsize,
-> +				     done, NULL);
-> +		if (mapped)
-> +			*mapped = 0;
-> +	} else
-> +		if (mapped)
-> +			*mapped = size;
-> +
-> +	return hv_result_to_errno(status);
-> +}
-> +
-> +static size_t hv_iommu_unmap_pages(struct iommu_domain *immdom,
-> ulong iova,
-> +				   size_t pgsize, size_t pgcount,
-> +				   struct iommu_iotlb_gather *gather)
-> +{
-> +	unsigned long flags, npages;
-> +	struct hv_input_unmap_device_gpa_pages *input;
-> +	u64 status;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +	size_t unmapped, size = pgsize * pgcount;
-> +
-> +	unmapped = hv_iommu_del_tree_mappings(hvdom, iova, size);
-> +	if (unmapped < size)
-> +		pr_err("%s: could not delete all mappings
-> (%lx:%lx/%lx)\n",
-> +		       __func__, iova, unmapped, size);
-> +
-> +	if (hvdom->attached_dom)
-> +		return size;
-> +
-> +	npages = size >> HV_HYP_PAGE_SHIFT;
-> +
-> +	local_irq_save(flags);
-> +	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
-> +	memset(input, 0, sizeof(*input));
-> +
-> +	input->device_domain.partition_id = HV_PARTITION_ID_SELF;
-> +	input->device_domain.domain_id.type =
-> HV_DEVICE_DOMAIN_TYPE_S2;
-> +	input->device_domain.domain_id.id = hvdom->domid_num;
-> +	input->target_device_va_base = iova;
-> +
-> +	status = hv_do_rep_hypercall(HVCALL_UNMAP_DEVICE_GPA_PAGES,
-> npages,
-> +				     0, input, NULL);
-> +	local_irq_restore(flags);
-> +
-> +	if (!hv_result_success(status))
-> +		hv_status_err(status, "\n");
-> +
-> +	return unmapped;
-> +}
-> +
-> +static phys_addr_t hv_iommu_iova_to_phys(struct iommu_domain *immdom,
-> +					 dma_addr_t iova)
-> +{
-> +	u64 paddr = 0;
-> +	unsigned long flags;
-> +	struct hv_iommu_mapping *mapping;
-> +	struct interval_tree_node *node;
-> +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> +
-> +	spin_lock_irqsave(&hvdom->mappings_lock, flags);
-> +	node = interval_tree_iter_first(&hvdom->mappings_tree, iova,
-> iova);
-> +	if (node) {
-> +		mapping = container_of(node, struct
-> hv_iommu_mapping, iova);
-> +		paddr = mapping->paddr + (iova -
-> mapping->iova.start);
-> +	}
-> +	spin_unlock_irqrestore(&hvdom->mappings_lock, flags);
-> +
-> +	return paddr;
-> +}
-> +
-> +/*
-> + * Currently, hypervisor does not provide list of devices it is using
-> + * dynamically. So use this to allow users to manually specify
-> devices that
-> + * should be skipped. (eg. hypervisor debugger using some network
-> device).
-> + */
-> +static struct iommu_device *hv_iommu_probe_device(struct device *dev)
-> +{
-> +	if (!dev_is_pci(dev))
-> +		return ERR_PTR(-ENODEV);
-> +
-> +	if (pci_devs_to_skip && *pci_devs_to_skip) {
-> +		int rc, pos = 0;
-> +		int parsed;
-> +		int segment, bus, slot, func;
-> +		struct pci_dev *pdev = to_pci_dev(dev);
-> +
-> +		do {
-> +			parsed = 0;
-> +
-> +			rc = sscanf(pci_devs_to_skip + pos, "
-> (%x:%x:%x.%x) %n",
-> +				    &segment, &bus, &slot, &func,
-> &parsed);
-> +			if (rc)
-> +				break;
-> +			if (parsed <= 0)
-> +				break;
-> +
-> +			if (pci_domain_nr(pdev->bus) == segment &&
-> +			    pdev->bus->number == bus &&
-> +			    PCI_SLOT(pdev->devfn) == slot &&
-> +			    PCI_FUNC(pdev->devfn) == func) {
-> +
-> +				dev_info(dev, "skipped by Hyper-V
-> IOMMU\n");
-> +				return ERR_PTR(-ENODEV);
-> +			}
-> +			pos += parsed;
-> +
-> +		} while (pci_devs_to_skip[pos]);
-> +	}
-> +
-> +	/* Device will be explicitly attached to the default domain,
-> so no need
-> +	 * to do dev_iommu_priv_set() here.
-> +	 */
-> +
-> +	return &hv_virt_iommu;
-> +}
-> +
-> +static void hv_iommu_probe_finalize(struct device *dev)
-> +{
-> +	struct iommu_domain *immdom = iommu_get_domain_for_dev(dev);
-> +
-> +	if (immdom && immdom->type == IOMMU_DOMAIN_DMA)
-> +		iommu_setup_dma_ops(dev);
-> +	else
-> +		set_dma_ops(dev, NULL);
-> +}
-> +
-> +static void hv_iommu_release_device(struct device *dev)
-> +{
-> +	struct hv_domain *hvdom = dev_iommu_priv_get(dev);
-> +
-> +	/* Need to detach device from device domain if necessary. */
-> +	if (hvdom)
-> +		hv_iommu_detach_dev(&hvdom->iommu_dom, dev);
-> +
-> +	dev_iommu_priv_set(dev, NULL);
-> +	set_dma_ops(dev, NULL);
-> +}
-> +
-> +static struct iommu_group *hv_iommu_device_group(struct device *dev)
-> +{
-> +	if (dev_is_pci(dev))
-> +		return pci_device_group(dev);
-> +	else
-> +		return generic_device_group(dev);
-> +}
-> +
-> +static int hv_iommu_def_domain_type(struct device *dev)
-> +{
-> +	/* The hypervisor always creates this by default during boot
-> */
-> +	return IOMMU_DOMAIN_IDENTITY;
-> +}
-> +
-> +static struct iommu_ops hv_iommu_ops = {
-> +	.capable	    = hv_iommu_capable,
-> +	.domain_alloc_identity	=
-> hv_iommu_domain_alloc_identity,
-> +	.domain_alloc_paging	= hv_iommu_domain_alloc_paging,
-> +	.probe_device	    = hv_iommu_probe_device,
-> +	.probe_finalize     = hv_iommu_probe_finalize,
-> +	.release_device     = hv_iommu_release_device,
-> +	.def_domain_type    = hv_iommu_def_domain_type,
-> +	.device_group	    = hv_iommu_device_group,
-> +	.default_domain_ops = &(const struct iommu_domain_ops) {
-> +		.attach_dev   = hv_iommu_attach_dev,
-> +		.map_pages    = hv_iommu_map_pages,
-> +		.unmap_pages  = hv_iommu_unmap_pages,
-> +		.iova_to_phys = hv_iommu_iova_to_phys,
-> +		.free	      = hv_iommu_domain_free,
-> +	},
-> +	.owner		    = THIS_MODULE,
-> +};
-> +
-> +static void __init hv_initialize_special_domains(void)
-> +{
-> +	hv_def_identity_dom.iommu_dom.geometry = default_geometry;
-> +	hv_def_identity_dom.domid_num =
-> HV_DEVICE_DOMAIN_ID_S2_DEFAULT; /* 0 */ +}
-This could be initialized statically.
-
-> +
-> +static int __init hv_iommu_init(void)
-> +{
-> +	int ret;
-> +	struct iommu_device *iommup = &hv_virt_iommu;
-> +
-> +	if (!hv_is_hyperv_initialized())
-> +		return -ENODEV;
-> +
-> +	ret = iommu_device_sysfs_add(iommup, NULL, NULL, "%s",
-> "hyperv-iommu");
-> +	if (ret) {
-> +		pr_err("Hyper-V: iommu_device_sysfs_add failed:
-> %d\n", ret);
-> +		return ret;
-> +	}
-> +
-> +	/* This must come before iommu_device_register because the
-> latter calls
-> +	 * into the hooks.
-> +	 */
-> +	hv_initialize_special_domains();
-> +
-> +	ret = iommu_device_register(iommup, &hv_iommu_ops, NULL);
-> +	if (ret) {
-> +		pr_err("Hyper-V: iommu_device_register failed:
-> %d\n", ret);
-> +		goto err_sysfs_remove;
-> +	}
-> +
-> +	pr_info("Hyper-V IOMMU initialized\n");
-> +
-> +	return 0;
-> +
-> +err_sysfs_remove:
-> +	iommu_device_sysfs_remove(iommup);
-> +	return ret;
-> +}
-> +
-> +void __init hv_iommu_detect(void)
-> +{
-> +	if (no_iommu || iommu_detected)
-> +		return;
-> +
-> +	/* For l1vh, always expose an iommu unit */
-> +	if (!hv_l1vh_partition())
-> +		if (!(ms_hyperv.misc_features &
-> HV_DEVICE_DOMAIN_AVAILABLE))
-> +			return;
-> +
-> +	iommu_detected = 1;
-> +	x86_init.iommu.iommu_init = hv_iommu_init;
-> +
-> +	pci_request_acs();
-> +}
-> diff --git a/include/linux/hyperv.h b/include/linux/hyperv.h
-> index dfc516c1c719..2ad111727e82 100644
-> --- a/include/linux/hyperv.h
-> +++ b/include/linux/hyperv.h
-> @@ -1767,4 +1767,10 @@ static inline unsigned long virt_to_hvpfn(void
-> *addr) #define HVPFN_DOWN(x)	((x) >> HV_HYP_PAGE_SHIFT)
->  #define page_to_hvpfn(page)	(page_to_pfn(page) *
-> NR_HV_HYP_PAGES_IN_PAGE) 
-> +#ifdef CONFIG_HYPERV_IOMMU
-> +void __init hv_iommu_detect(void);
-> +#else
-> +static inline void hv_iommu_detect(void) { }
-> +#endif /* CONFIG_HYPERV_IOMMU */
-> +
->  #endif /* _HYPERV_H */
-
+> 
+> >         err = xa_alloc_cyclic(&net_devmem_dmabuf_bindings, &binding->id,
+> >                               binding, xa_limit_32b, &id_alloc_next,
+> >                               GFP_KERNEL);
+> >         if (err < 0)
+> > -               goto err_free_chunks;
+> > +               goto err_unset_mode;
+> > +
+> > +       mutex_unlock(&devmem_ar_lock);
+> >
+> >         list_add(&binding->list, &priv->bindings);
+> >
+> >         return binding;
+> >
+> > +err_unset_mode:
+> > +       __net_devmem_dmabuf_binding_unset_mode(direction);
+> > +err_unlock_mutex:
+> > +       mutex_unlock(&devmem_ar_lock);
+> >  err_free_chunks:
+> >         gen_pool_for_each_chunk(binding->chunk_pool,
+> >                                 net_devmem_dmabuf_free_chunk_owner, NULL);
+> > diff --git a/net/core/devmem.h b/net/core/devmem.h
+> > index 94874b323520..284f0ad5f381 100644
+> > --- a/net/core/devmem.h
+> > +++ b/net/core/devmem.h
+> > @@ -12,9 +12,13 @@
+> >
+> >  #include <net/netmem.h>
+> >  #include <net/netdev_netlink.h>
+> > +#include <linux/jump_label.h>
+> >
+> >  struct netlink_ext_ack;
+> >
+> > +/* static key for TCP devmem autorelease */
+> > +extern struct static_key_false tcp_devmem_ar_key;
+> > +
+> >  struct net_devmem_dmabuf_binding {
+> >         struct dma_buf *dmabuf;
+> >         struct dma_buf_attachment *attachment;
+> > @@ -43,6 +47,12 @@ struct net_devmem_dmabuf_binding {
+> >          */
+> >         struct percpu_ref ref;
+> >
+> > +       /* Counts sockets and rxqs that are using the binding. When this
+> > +        * reaches zero, all urefs are drained and new sockets cannot join the
+> > +        * binding.
+> > +        */
+> > +       atomic_t users;
+> > +
+> >         /* The list of bindings currently active. Used for netlink to notify us
+> >          * of the user dropping the bind.
+> >          */
+> > @@ -61,7 +71,7 @@ struct net_devmem_dmabuf_binding {
+> >
+> >         /* Array of net_iov pointers for this binding, sorted by virtual
+> >          * address. This array is convenient to map the virtual addresses to
+> > -        * net_iovs in the TX path.
+> > +        * net_iovs.
+> >          */
+> >         struct net_iov **vec;
+> >
+> > @@ -88,7 +98,7 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+> >                        struct device *dma_dev,
+> >                        enum dma_data_direction direction,
+> >                        unsigned int dmabuf_fd, struct netdev_nl_sock *priv,
+> > -                      struct netlink_ext_ack *extack);
+> > +                      struct netlink_ext_ack *extack, bool autorelease);
+> >  struct net_devmem_dmabuf_binding *net_devmem_lookup_dmabuf(u32 id);
+> >  void net_devmem_unbind_dmabuf(struct net_devmem_dmabuf_binding *binding);
+> >  int net_devmem_bind_dmabuf_to_queue(struct net_device *dev, u32 rxq_idx,
+> > @@ -134,6 +144,26 @@ net_devmem_dmabuf_binding_put(struct net_devmem_dmabuf_binding *binding)
+> >         percpu_ref_put(&binding->ref);
+> >  }
+> >
+> > +void net_devmem_dmabuf_binding_put_urefs(struct net_devmem_dmabuf_binding *binding);
+> > +
+> > +static inline bool
+> > +net_devmem_dmabuf_binding_user_get(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +       return atomic_inc_not_zero(&binding->users);
+> > +}
+> > +
+> > +static inline void
+> > +net_devmem_dmabuf_binding_user_put(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +       if (atomic_dec_and_test(&binding->users))
+> > +               net_devmem_dmabuf_binding_put_urefs(binding);
+> > +}
+> > +
+> > +static inline bool net_devmem_autorelease_enabled(void)
+> > +{
+> > +       return static_branch_unlikely(&tcp_devmem_ar_key);
+> > +}
+> > +
+> >  void net_devmem_get_net_iov(struct net_iov *niov);
+> >  void net_devmem_put_net_iov(struct net_iov *niov);
+> >
+> > @@ -151,11 +181,38 @@ net_devmem_get_niov_at(struct net_devmem_dmabuf_binding *binding, size_t addr,
+> >  #else
+> >  struct net_devmem_dmabuf_binding;
+> >
+> > +static inline bool
+> > +net_devmem_dmabuf_binding_get(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +       return false;
+> > +}
+> > +
+> >  static inline void
+> >  net_devmem_dmabuf_binding_put(struct net_devmem_dmabuf_binding *binding)
+> >  {
+> >  }
+> >
+> > +static inline void
+> > +net_devmem_dmabuf_binding_put_urefs(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +}
+> > +
+> > +static inline bool
+> > +net_devmem_dmabuf_binding_user_get(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +       return false;
+> > +}
+> > +
+> > +static inline void
+> > +net_devmem_dmabuf_binding_user_put(struct net_devmem_dmabuf_binding *binding)
+> > +{
+> > +}
+> > +
+> > +static inline bool net_devmem_autorelease_enabled(void)
+> > +{
+> > +       return false;
+> > +}
+> > +
+> >  static inline void net_devmem_get_net_iov(struct net_iov *niov)
+> >  {
+> >  }
+> > @@ -170,7 +227,8 @@ net_devmem_bind_dmabuf(struct net_device *dev,
+> >                        enum dma_data_direction direction,
+> >                        unsigned int dmabuf_fd,
+> >                        struct netdev_nl_sock *priv,
+> > -                      struct netlink_ext_ack *extack)
+> > +                      struct netlink_ext_ack *extack,
+> > +                      bool autorelease)
+> >  {
+> >         return ERR_PTR(-EOPNOTSUPP);
+> >  }
+> > diff --git a/net/core/netdev-genl-gen.c b/net/core/netdev-genl-gen.c
+> > index ba673e81716f..01b7765e11ec 100644
+> > --- a/net/core/netdev-genl-gen.c
+> > +++ b/net/core/netdev-genl-gen.c
+> > @@ -86,10 +86,11 @@ static const struct nla_policy netdev_qstats_get_nl_policy[NETDEV_A_QSTATS_SCOPE
+> >  };
+> >
+> >  /* NETDEV_CMD_BIND_RX - do */
+> > -static const struct nla_policy netdev_bind_rx_nl_policy[NETDEV_A_DMABUF_FD + 1] = {
+> > +static const struct nla_policy netdev_bind_rx_nl_policy[NETDEV_A_DMABUF_AUTORELEASE + 1] = {
+> >         [NETDEV_A_DMABUF_IFINDEX] = NLA_POLICY_MIN(NLA_U32, 1),
+> >         [NETDEV_A_DMABUF_FD] = { .type = NLA_U32, },
+> >         [NETDEV_A_DMABUF_QUEUES] = NLA_POLICY_NESTED(netdev_queue_id_nl_policy),
+> > +       [NETDEV_A_DMABUF_AUTORELEASE] = { .type = NLA_U8, },
+> 
+> This patch in the series is proving complicated to review. Any changes
+> you can refactor out of it for ease of review would be very welcome.
+> Things like the variable renames, netlink api changes, and any
+> refactors can be pulled into their own patches would ease review of
+> the core functionality.
+> 
+> >  };
+> >
+> >  /* NETDEV_CMD_NAPI_SET - do */
+> > @@ -188,7 +189,7 @@ static const struct genl_split_ops netdev_nl_ops[] = {
+> >                 .cmd            = NETDEV_CMD_BIND_RX,
+> >                 .doit           = netdev_nl_bind_rx_doit,
+> >                 .policy         = netdev_bind_rx_nl_policy,
+> > -               .maxattr        = NETDEV_A_DMABUF_FD,
+> > +               .maxattr        = NETDEV_A_DMABUF_AUTORELEASE,
+> >                 .flags          = GENL_ADMIN_PERM | GENL_CMD_CAP_DO,
+> >         },
+> >         {
+> > diff --git a/net/core/netdev-genl.c b/net/core/netdev-genl.c
+> > index 470fabbeacd9..c742bb34865e 100644
+> > --- a/net/core/netdev-genl.c
+> > +++ b/net/core/netdev-genl.c
+> > @@ -939,6 +939,7 @@ int netdev_nl_bind_rx_doit(struct sk_buff *skb, struct genl_info *info)
+> >         struct netdev_nl_sock *priv;
+> >         struct net_device *netdev;
+> >         unsigned long *rxq_bitmap;
+> > +       bool autorelease = false;
+> >         struct device *dma_dev;
+> >         struct sk_buff *rsp;
+> >         int err = 0;
+> > @@ -952,6 +953,10 @@ int netdev_nl_bind_rx_doit(struct sk_buff *skb, struct genl_info *info)
+> >         ifindex = nla_get_u32(info->attrs[NETDEV_A_DEV_IFINDEX]);
+> >         dmabuf_fd = nla_get_u32(info->attrs[NETDEV_A_DMABUF_FD]);
+> >
+> > +       if (info->attrs[NETDEV_A_DMABUF_AUTORELEASE])
+> > +               autorelease =
+> > +                       !!nla_get_u8(info->attrs[NETDEV_A_DMABUF_AUTORELEASE]);
+> > +
+> >         priv = genl_sk_priv_get(&netdev_nl_family, NETLINK_CB(skb).sk);
+> >         if (IS_ERR(priv))
+> >                 return PTR_ERR(priv);
+> > @@ -1002,7 +1007,8 @@ int netdev_nl_bind_rx_doit(struct sk_buff *skb, struct genl_info *info)
+> >         }
+> >
+> >         binding = net_devmem_bind_dmabuf(netdev, dma_dev, DMA_FROM_DEVICE,
+> > -                                        dmabuf_fd, priv, info->extack);
+> > +                                        dmabuf_fd, priv, info->extack,
+> > +                                        autorelease);
+> >         if (IS_ERR(binding)) {
+> >                 err = PTR_ERR(binding);
+> >                 goto err_rxq_bitmap;
+> > @@ -1097,7 +1103,7 @@ int netdev_nl_bind_tx_doit(struct sk_buff *skb, struct genl_info *info)
+> >
+> >         dma_dev = netdev_queue_get_dma_dev(netdev, 0);
+> >         binding = net_devmem_bind_dmabuf(netdev, dma_dev, DMA_TO_DEVICE,
+> > -                                        dmabuf_fd, priv, info->extack);
+> > +                                        dmabuf_fd, priv, info->extack, false);
+> >         if (IS_ERR(binding)) {
+> >                 err = PTR_ERR(binding);
+> >                 goto err_unlock_netdev;
+> > diff --git a/net/core/sock.c b/net/core/sock.c
+> > index f6526f43aa6e..6355c2ccfb8a 100644
+> > --- a/net/core/sock.c
+> > +++ b/net/core/sock.c
+> > @@ -87,6 +87,7 @@
+> >
+> >  #include <linux/unaligned.h>
+> >  #include <linux/capability.h>
+> > +#include <linux/dma-buf.h>
+> >  #include <linux/errno.h>
+> >  #include <linux/errqueue.h>
+> >  #include <linux/types.h>
+> > @@ -151,6 +152,7 @@
+> >  #include <uapi/linux/pidfd.h>
+> >
+> >  #include "dev.h"
+> > +#include "devmem.h"
+> >
+> >  static DEFINE_MUTEX(proto_list_mutex);
+> >  static LIST_HEAD(proto_list);
+> > @@ -1081,6 +1083,44 @@ static int sock_reserve_memory(struct sock *sk, int bytes)
+> >  #define MAX_DONTNEED_TOKENS 128
+> >  #define MAX_DONTNEED_FRAGS 1024
+> >
+> > +static noinline_for_stack int
+> > +sock_devmem_dontneed_manual_release(struct sock *sk,
+> > +                                   struct dmabuf_token *tokens,
+> > +                                   unsigned int num_tokens)
+> > +{
+> > +       struct net_iov *niov;
+> > +       unsigned int i, j;
+> > +       netmem_ref netmem;
+> > +       unsigned int token;
+> > +       int num_frags = 0;
+> > +       int ret = 0;
+> > +
+> > +       if (!sk->sk_devmem_info.binding)
+> > +               return -EINVAL;
+> > +
+> > +       for (i = 0; i < num_tokens; i++) {
+> > +               for (j = 0; j < tokens[i].token_count; j++) {
+> > +                       size_t size = sk->sk_devmem_info.binding->dmabuf->size;
+> > +
+> > +                       token = tokens[i].token_start + j;
+> > +                       if (token >= size / PAGE_SIZE)
+> > +                               break;
+> > +
+> > +                       if (++num_frags > MAX_DONTNEED_FRAGS)
+> > +                               return ret;
+> > +
+> > +                       niov = sk->sk_devmem_info.binding->vec[token];
+> > +                       if (atomic_dec_and_test(&niov->uref)) {
+> > +                               netmem = net_iov_to_netmem(niov);
+> > +                               WARN_ON_ONCE(!napi_pp_put_page(netmem));
+> > +                       }
+> > +                       ret++;
+> > +               }
+> > +       }
+> > +
+> > +       return ret;
+> > +}
+> > +
+> >  static noinline_for_stack int
+> >  sock_devmem_dontneed_autorelease(struct sock *sk, struct dmabuf_token *tokens,
+> >                                  unsigned int num_tokens)
+> > @@ -1089,32 +1129,33 @@ sock_devmem_dontneed_autorelease(struct sock *sk, struct dmabuf_token *tokens,
+> >         int ret = 0, num_frags = 0;
+> >         netmem_ref netmems[16];
+> >
+> > -       xa_lock_bh(&sk->sk_user_frags);
+> > +       xa_lock_bh(&sk->sk_devmem_info.frags);
+> >         for (i = 0; i < num_tokens; i++) {
+> >                 for (j = 0; j < tokens[i].token_count; j++) {
+> >                         if (++num_frags > MAX_DONTNEED_FRAGS)
+> >                                 goto frag_limit_reached;
+> >
+> >                         netmem_ref netmem = (__force netmem_ref)__xa_erase(
+> > -                               &sk->sk_user_frags, tokens[i].token_start + j);
+> > +                               &sk->sk_devmem_info.frags,
+> > +                               tokens[i].token_start + j);
+> >
+> >                         if (!netmem || WARN_ON_ONCE(!netmem_is_net_iov(netmem)))
+> >                                 continue;
+> >
+> >                         netmems[netmem_num++] = netmem;
+> >                         if (netmem_num == ARRAY_SIZE(netmems)) {
+> > -                               xa_unlock_bh(&sk->sk_user_frags);
+> > +                               xa_unlock_bh(&sk->sk_devmem_info.frags);
+> >                                 for (k = 0; k < netmem_num; k++)
+> >                                         WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
+> >                                 netmem_num = 0;
+> > -                               xa_lock_bh(&sk->sk_user_frags);
+> > +                               xa_lock_bh(&sk->sk_devmem_info.frags);
+> >                         }
+> >                         ret++;
+> >                 }
+> >         }
+> >
+> >  frag_limit_reached:
+> > -       xa_unlock_bh(&sk->sk_user_frags);
+> > +       xa_unlock_bh(&sk->sk_devmem_info.frags);
+> >         for (k = 0; k < netmem_num; k++)
+> >                 WARN_ON_ONCE(!napi_pp_put_page(netmems[k]));
+> >
+> > @@ -1145,7 +1186,11 @@ sock_devmem_dontneed(struct sock *sk, sockptr_t optval, unsigned int optlen)
+> >                 return -EFAULT;
+> >         }
+> >
+> > -       ret = sock_devmem_dontneed_autorelease(sk, tokens, num_tokens);
+> > +       if (net_devmem_autorelease_enabled())
+> > +               ret = sock_devmem_dontneed_autorelease(sk, tokens, num_tokens);
+> > +       else
+> > +               ret = sock_devmem_dontneed_manual_release(sk, tokens,
+> > +                                                         num_tokens);
+> >
+> >         kvfree(tokens);
+> >         return ret;
+> > diff --git a/net/ipv4/tcp.c b/net/ipv4/tcp.c
+> > index d5319ebe2452..73a577bd8765 100644
+> > --- a/net/ipv4/tcp.c
+> > +++ b/net/ipv4/tcp.c
+> > @@ -260,6 +260,7 @@
+> >  #include <linux/memblock.h>
+> >  #include <linux/highmem.h>
+> >  #include <linux/cache.h>
+> > +#include <linux/dma-buf.h>
+> >  #include <linux/err.h>
+> >  #include <linux/time.h>
+> >  #include <linux/slab.h>
+> > @@ -492,7 +493,8 @@ void tcp_init_sock(struct sock *sk)
+> >
+> >         set_bit(SOCK_SUPPORT_ZC, &sk->sk_socket->flags);
+> >         sk_sockets_allocated_inc(sk);
+> > -       xa_init_flags(&sk->sk_user_frags, XA_FLAGS_ALLOC1);
+> > +       xa_init_flags(&sk->sk_devmem_info.frags, XA_FLAGS_ALLOC1);
+> > +       sk->sk_devmem_info.binding = NULL;
+> >  }
+> >  EXPORT_IPV6_MOD(tcp_init_sock);
+> >
+> > @@ -2424,11 +2426,12 @@ static void tcp_xa_pool_commit_locked(struct sock *sk, struct tcp_xa_pool *p)
+> >
+> >         /* Commit part that has been copied to user space. */
+> >         for (i = 0; i < p->idx; i++)
+> > -               __xa_cmpxchg(&sk->sk_user_frags, p->tokens[i], XA_ZERO_ENTRY,
+> > -                            (__force void *)p->netmems[i], GFP_KERNEL);
+> > +               __xa_cmpxchg(&sk->sk_devmem_info.frags, p->tokens[i],
+> > +                            XA_ZERO_ENTRY, (__force void *)p->netmems[i],
+> > +                            GFP_KERNEL);
+> >         /* Rollback what has been pre-allocated and is no longer needed. */
+> >         for (; i < p->max; i++)
+> > -               __xa_erase(&sk->sk_user_frags, p->tokens[i]);
+> > +               __xa_erase(&sk->sk_devmem_info.frags, p->tokens[i]);
+> >
+> >         p->max = 0;
+> >         p->idx = 0;
+> > @@ -2436,14 +2439,17 @@ static void tcp_xa_pool_commit_locked(struct sock *sk, struct tcp_xa_pool *p)
+> >
+> >  static void tcp_xa_pool_commit(struct sock *sk, struct tcp_xa_pool *p)
+> >  {
+> > +       if (!net_devmem_autorelease_enabled())
+> > +               return;
+> > +
+> >         if (!p->max)
+> >                 return;
+> >
+> > -       xa_lock_bh(&sk->sk_user_frags);
+> > +       xa_lock_bh(&sk->sk_devmem_info.frags);
+> >
+> >         tcp_xa_pool_commit_locked(sk, p);
+> >
+> > -       xa_unlock_bh(&sk->sk_user_frags);
+> > +       xa_unlock_bh(&sk->sk_devmem_info.frags);
+> >  }
+> >
+> >  static int tcp_xa_pool_refill(struct sock *sk, struct tcp_xa_pool *p,
+> > @@ -2454,24 +2460,41 @@ static int tcp_xa_pool_refill(struct sock *sk, struct tcp_xa_pool *p,
+> >         if (p->idx < p->max)
+> >                 return 0;
+> >
+> > -       xa_lock_bh(&sk->sk_user_frags);
+> > +       xa_lock_bh(&sk->sk_devmem_info.frags);
+> >
+> >         tcp_xa_pool_commit_locked(sk, p);
+> >
+> >         for (k = 0; k < max_frags; k++) {
+> > -               err = __xa_alloc(&sk->sk_user_frags, &p->tokens[k],
+> > +               err = __xa_alloc(&sk->sk_devmem_info.frags, &p->tokens[k],
+> >                                  XA_ZERO_ENTRY, xa_limit_31b, GFP_KERNEL);
+> >                 if (err)
+> >                         break;
+> >         }
+> >
+> > -       xa_unlock_bh(&sk->sk_user_frags);
+> > +       xa_unlock_bh(&sk->sk_devmem_info.frags);
+> >
+> >         p->max = k;
+> >         p->idx = 0;
+> >         return k ? 0 : err;
+> >  }
+> >
+> > +static void tcp_xa_pool_inc_pp_ref_count(struct tcp_xa_pool *tcp_xa_pool,
+> > +                                        skb_frag_t *frag)
+> > +{
+> > +       struct net_iov *niov;
+> > +
+> > +       niov = skb_frag_net_iov(frag);
+> > +
+> > +       if (net_devmem_autorelease_enabled()) {
+> > +               atomic_long_inc(&niov->desc.pp_ref_count);
+> > +               tcp_xa_pool->netmems[tcp_xa_pool->idx++] =
+> > +                       skb_frag_netmem(frag);
+> > +       } else {
+> > +               if (atomic_inc_return(&niov->uref) == 1)
+> > +                       atomic_long_inc(&niov->desc.pp_ref_count);
+> > +       }
+> > +}
+> > +
+> >  /* On error, returns the -errno. On success, returns number of bytes sent to the
+> >   * user. May not consume all of @remaining_len.
+> >   */
+> > @@ -2533,6 +2556,7 @@ static int tcp_recvmsg_dmabuf(struct sock *sk, const struct sk_buff *skb,
+> >                  * sequence of cmsg
+> >                  */
+> >                 for (i = 0; i < skb_shinfo(skb)->nr_frags; i++) {
+> > +                       struct net_devmem_dmabuf_binding *binding = NULL;
+> >                         skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
+> >                         struct net_iov *niov;
+> >                         u64 frag_offset;
+> > @@ -2568,13 +2592,45 @@ static int tcp_recvmsg_dmabuf(struct sock *sk, const struct sk_buff *skb,
+> >                                               start;
+> >                                 dmabuf_cmsg.frag_offset = frag_offset;
+> >                                 dmabuf_cmsg.frag_size = copy;
+> > -                               err = tcp_xa_pool_refill(sk, &tcp_xa_pool,
+> > -                                                        skb_shinfo(skb)->nr_frags - i);
+> > -                               if (err)
+> > -                                       goto out;
+> > +
+> > +                               binding = net_devmem_iov_binding(niov);
+> > +
+> > +                               if (net_devmem_autorelease_enabled()) {
+> > +                                       err = tcp_xa_pool_refill(sk,
+> > +                                                                &tcp_xa_pool,
+> > +                                                                skb_shinfo(skb)->nr_frags - i);
+> > +                                       if (err)
+> > +                                               goto out;
+> > +
+> > +                                       dmabuf_cmsg.frag_token =
+> > +                                               tcp_xa_pool.tokens[tcp_xa_pool.idx];
+> > +                               } else {
+> > +                                       if (!sk->sk_devmem_info.binding) {
+> > +                                               if (!net_devmem_dmabuf_binding_user_get(binding)) {
+> > +                                                       err = -ENODEV;
+> > +                                                       goto out;
+> > +                                               }
+> > +
+> > +                                               if (!net_devmem_dmabuf_binding_get(binding)) {
+> > +                                                       net_devmem_dmabuf_binding_user_put(binding);
+> > +                                                       err = -ENODEV;
+> > +                                                       goto out;
+> > +                                               }
+> > +
+> > +                                               sk->sk_devmem_info.binding = binding;
+> > +                                       }
+> > +
+> > +                                       if (sk->sk_devmem_info.binding != binding) {
+> > +                                               err = -EFAULT;
+> > +                                               goto out;
+> > +                                       }
+> > +
+> > +                                       dmabuf_cmsg.frag_token =
+> > +                                               net_iov_virtual_addr(niov) >> PAGE_SHIFT;
+> > +                               }
+> > +
+> >
+> >                                 /* Will perform the exchange later */
+> > -                               dmabuf_cmsg.frag_token = tcp_xa_pool.tokens[tcp_xa_pool.idx];
+> >                                 dmabuf_cmsg.dmabuf_id = net_devmem_iov_binding_id(niov);
+> >
+> >                                 offset += copy;
+> > @@ -2587,8 +2643,7 @@ static int tcp_recvmsg_dmabuf(struct sock *sk, const struct sk_buff *skb,
+> >                                 if (err)
+> >                                         goto out;
+> >
+> > -                               atomic_long_inc(&niov->desc.pp_ref_count);
+> > -                               tcp_xa_pool.netmems[tcp_xa_pool.idx++] = skb_frag_netmem(frag);
+> > +                               tcp_xa_pool_inc_pp_ref_count(&tcp_xa_pool, frag);
+> >
+> >                                 sent += copy;
+> >
+> > diff --git a/net/ipv4/tcp_ipv4.c b/net/ipv4/tcp_ipv4.c
+> > index f8a9596e8f4d..420e8c8ebf6d 100644
+> > --- a/net/ipv4/tcp_ipv4.c
+> > +++ b/net/ipv4/tcp_ipv4.c
+> > @@ -89,6 +89,9 @@
+> >
+> >  #include <crypto/md5.h>
+> >
+> > +#include <linux/dma-buf.h>
+> > +#include "../core/devmem.h"
+> > +
+> >  #include <trace/events/tcp.h>
+> >
+> >  #ifdef CONFIG_TCP_MD5SIG
+> > @@ -2492,7 +2495,7 @@ static void tcp_release_user_frags(struct sock *sk)
+> >         unsigned long index;
+> >         void *netmem;
+> >
+> > -       xa_for_each(&sk->sk_user_frags, index, netmem)
+> > +       xa_for_each(&sk->sk_devmem_info.frags, index, netmem)
+> >                 WARN_ON_ONCE(!napi_pp_put_page((__force netmem_ref)netmem));
+> >  #endif
+> >  }
+> > @@ -2503,7 +2506,15 @@ void tcp_v4_destroy_sock(struct sock *sk)
+> >
+> >         tcp_release_user_frags(sk);
+> >
+> > -       xa_destroy(&sk->sk_user_frags);
+> > +       if (!net_devmem_autorelease_enabled() && sk->sk_devmem_info.binding) {
+> > +               net_devmem_dmabuf_binding_user_put(sk->sk_devmem_info.binding);
+> > +               net_devmem_dmabuf_binding_put(sk->sk_devmem_info.binding);
+> > +               sk->sk_devmem_info.binding = NULL;
+> > +               WARN_ONCE(!xa_empty(&sk->sk_devmem_info.frags),
+> > +                         "non-empty xarray discovered in autorelease off mode");
+> > +       }
+> > +
+> > +       xa_destroy(&sk->sk_devmem_info.frags);
+> >
+> >         trace_tcp_destroy_sock(sk);
+> >
+> > diff --git a/net/ipv4/tcp_minisocks.c b/net/ipv4/tcp_minisocks.c
+> > index bd5462154f97..2aec977f5c12 100644
+> > --- a/net/ipv4/tcp_minisocks.c
+> > +++ b/net/ipv4/tcp_minisocks.c
+> > @@ -662,7 +662,8 @@ struct sock *tcp_create_openreq_child(const struct sock *sk,
+> >
+> >         __TCP_INC_STATS(sock_net(sk), TCP_MIB_PASSIVEOPENS);
+> >
+> > -       xa_init_flags(&newsk->sk_user_frags, XA_FLAGS_ALLOC1);
+> > +       xa_init_flags(&newsk->sk_devmem_info.frags, XA_FLAGS_ALLOC1);
+> > +       newsk->sk_devmem_info.binding = NULL;
+> >
+> >         return newsk;
+> >  }
+> > diff --git a/tools/include/uapi/linux/netdev.h b/tools/include/uapi/linux/netdev.h
+> > index e0b579a1df4f..1e5c209cb998 100644
+> > --- a/tools/include/uapi/linux/netdev.h
+> > +++ b/tools/include/uapi/linux/netdev.h
+> > @@ -207,6 +207,7 @@ enum {
+> >         NETDEV_A_DMABUF_QUEUES,
+> >         NETDEV_A_DMABUF_FD,
+> >         NETDEV_A_DMABUF_ID,
+> > +       NETDEV_A_DMABUF_AUTORELEASE,
+> >
+> >         __NETDEV_A_DMABUF_MAX,
+> >         NETDEV_A_DMABUF_MAX = (__NETDEV_A_DMABUF_MAX - 1)
+> >
+> > --
+> > 2.47.3
+> >
+> 
+> 
+> -- 
+> Thanks,
+> Mina
