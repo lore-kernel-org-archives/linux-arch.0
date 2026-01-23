@@ -1,184 +1,220 @@
-Received: from mail-ed1-f50.google.com (mail-ed1-f50.google.com [209.85.208.50])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.14])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B3893318B99
-	for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 21:52:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.50
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769118768; cv=none; b=W440Blo1TmZutCeCDeSWe7WxeZI6+nBGmJRkVljC/KZ3aTrPrh0FqCaBmdLM90eYGRsLiI8HVIfUdzZn5J/0qlqBmBSLOk2GIhrvaXl5IlCeNpYPD0veByR22JilPGh3h1SdSIwmC3uMEM3r2ZwIfPvNIeyBL4rucO+vRsMIXQ0=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769118768; c=relaxed/simple;
-	bh=h8BIrhqP8PrnWBOOHldJrVM51Gi+ox30172uyTExrUE=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=Tx58/d8SDthiPIfhxIjOze8cVYj5O2I8xdmsLGMiKcJIUQ5BLPqpMhp+HO3V5Zsmm46k8ciKndHohZMIqEOBcwrXsbruAeCgcL+TSYwluiGtTD4WRkbiuPGb2uWXFvxA6+hcckBdSDi+T662m3UJ5Q3HobNEwzwvWVSP/ALS2iY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=gdzd7fjM; arc=none smtp.client-ip=209.85.208.50
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6AAAC322A0A;
+	Fri, 23 Jan 2026 01:25:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=198.175.65.14
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1769131524; cv=fail; b=OaeX3e6rG0qEBJL0tkAo9h5RIi7OCtL63MZd3CVuc4H6RiovMJUNdu4V32rEGhu+qhseLvKmxZNxo+zu53QXTqploeetISR1TupYRjiYuqm03kCpZS+vQHAx0hJESnqfXMZcpeB60bBbxfeFMmOoWnDgcYqrlDkf92E0cXu7tLQ=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1769131524; c=relaxed/simple;
+	bh=6trf7U7kLVEhHfciocSLItkF8Uw+DSQrsF7Jc3kn260=;
+	h=Date:From:To:CC:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=mkxNSQqJDU+nMAnnfZ7OmJrxBIfL4GseIw9R/4Cp0y/+jMuQifDbOriydpaE7hsgxNq68dylps/fcY/y86d/8p9j0vHCjQh1rO1H8x6oO0YdQEjUIzDqxcAuEkJtUkIveJnl3F6qHb5uV2vNwKLnTz2nJHeY7+J257BLZHM7ADk=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=KolooYj5; arc=fail smtp.client-ip=198.175.65.14
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gdzd7fjM"
-Received: by mail-ed1-f50.google.com with SMTP id 4fb4d7f45d1cf-64b9dfc146fso2623878a12.0
-        for <linux-arch@vger.kernel.org>; Thu, 22 Jan 2026 13:52:44 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1769118762; x=1769723562; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=+Sju0/uBNJAFaT2N2jcYw51V21Jpb0sazE7YFwzTXAw=;
-        b=gdzd7fjMahlii5Xb6qGOHD81zgiVVGHOUX4kjT2GzUi8Yg0NGx6lC8PPoM91O62OBx
-         9AqwcK/UBYo4ZR809tA2oqdgVvH4hZU7fSz2yGleH6Cu/UH2yIbMr4XdK3A11+qtzDgM
-         Bd0fTY0MRS4ijohfSrhHCTXnlMENhrVbDABNzC5BnehLssyiUD0KKa3AvS2fYHPvsC5O
-         DXyq73ti+9fLB85n6eEa/pasNZtoDXutABCoCWED3no0iA4yXloBnL8MWyhridaDzsPh
-         HAJXY7W1PzGixkanF0tQ0ZEB+qHp1zjEw87rQ3D9VjbRSlWj4BuAYDHnQqIHwxa0DNAv
-         9WCg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769118762; x=1769723562;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=+Sju0/uBNJAFaT2N2jcYw51V21Jpb0sazE7YFwzTXAw=;
-        b=qBilHVsM9FbWelXQdXeYAZz0sniBEgsoy9zgto+GtTwzFsgAV2ix7YLOZF0f5fNBX0
-         +eFCUSYLP1Ytk99poyIzWU8be8kaBqsaCSVsbwItvjhN0ZarWJVEBJ3ZRefHyaz2USKF
-         Pq3RwsvoE3Tc61UjuC2KpN9RjjeIn8sZVEWIehpPSV2qsQJexy4PcDzRWg4ogA531r7y
-         kymS56f5715NxhXQHotv2pWvBvr4rJ+WiluW50Qk1APDWQTNPqR4fXEnqMD+epPDyCLT
-         tlCHaWydfw4H4q8rVqjMeUpPqxirvrjTtE8eM4KB4MCss0b8+AUZnL/R87W6r7k6Q/0W
-         DFTg==
-X-Forwarded-Encrypted: i=1; AJvYcCWH+nmY/nyryBMvyEI8h1kTSxq8htGnxpDYoDQ7KQ9xLOcOd5vfKq5IEbB/J5ouzKwe+kGZeZ5tHfqf@vger.kernel.org
-X-Gm-Message-State: AOJu0Yzxz3ykznI7OyNEkzFzZvuxW/I1Z3ZuzmB1PzJoD9xyC5mQn4Au
-	LUtNtcl9RRGUO8ZG89HENf09Z+vIU/YCuZNTQaC4mVENKnemIZMEKC4JO2e3Jw==
-X-Gm-Gg: AZuq6aLKVQ8Xtbdqwsniy4yMofeI0AQ12SSdjzEqJnbZTqTOEZqMO3QNc5LactPqAVx
-	mlHHx148833jEHANgXsA8oIBrx/pudvvLwAslCFfnB7VocjiX56vhmYItG68Jyz9tRY22/mk6+R
-	r3K9ZjfRF5gKA7DFHLzu6XjRJJ4lA0dJx2iDWcy+yDtXomq83gKOmjaivVi5ED0AEpFdmqOdk3d
-	5kltaippm+TH6eYKJ//cqYkIbkJHpS0l+3Sg/XWBUFQekx+4oFQ7Br/B5EZzUKgZTPkmJF4kWPF
-	UFNDZwD94GNOtAUnvYvX0Qi8/VYdIG6NTI6DiCmN1r1ROgaNwmOvUTH2Z7FsKgK8AXXA78iTGD7
-	qbi6NRRn5MUxDTCkVNeH8Rh14WXcRyxPKg5+4TbcbWBCiiF7NHpau1sZm+eDB1C0sj9SM3cHQtR
-	WBtuL9fct4THSS5SMyz+Hfg3002xeIaqRaym9XzCrkSCG/p5RNQHQz
-X-Received: by 2002:a05:600c:1914:b0:479:13e9:3d64 with SMTP id 5b1f17b1804b1-4804d2f6b5amr9565905e9.15.1769112622797;
-        Thu, 22 Jan 2026 12:10:22 -0800 (PST)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4804dbb6315sm676845e9.4.2026.01.22.12.10.22
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 22 Jan 2026 12:10:22 -0800 (PST)
-Date: Thu, 22 Jan 2026 20:10:20 +0000
-From: David Laight <david.laight.linux@gmail.com>
-To: kernel test robot <lkp@intel.com>
-Cc: Nathan Chancellor <nathan@kernel.org>, Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter
- Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Mathieu
- Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yury Norov
- <yury.norov@gmail.com>, Jani Nikula <jani.nikula@intel.com>, Vincent
- Mailhol <mailhol.vincent@wanadoo.fr>, Andy Shevchenko
- <andriy.shevchenko@linux.intel.com>, Kees Cook <keescook@chromium.org>,
- Andrew Morton <akpm@linux-foundation.org>, oe-kbuild-all@lists.linux.dev,
- Linux Memory Management List <linux-mm@kvack.org>
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="KolooYj5"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1769131521; x=1800667521;
+  h=date:from:to:cc:subject:message-id:references:
+   in-reply-to:mime-version;
+  bh=6trf7U7kLVEhHfciocSLItkF8Uw+DSQrsF7Jc3kn260=;
+  b=KolooYj5VhkbzTZOCuOZ1ZqfLN9pB16rf4sk49IP+HJ5Q/OTaagT6wlz
+   vWXBwDJ9spG5njkNUXboeZEevO4xdHoh2f/+BFH3zB7LnC5zPTuDYQyXs
+   yNrWylhkHxuEMPH5ne7pkOvt8GVyyw0Wre4e92v6ZLeTCXCVyjmalW/VS
+   HBSlyDdfMt+lveQhzbPpk2Z2dQUR7ndbKAhNixwdMAu/FXVWh4T6IYL6u
+   /nJ9Jpu/58EjXpVkRSPNEYMoG3FOq6DCE+L/blsSr0kpSVZH22aPhg84p
+   g4S4kkUXSwX8zFq65aWNwKDpHzBp0hkQXmj7WpMhJ5qhBUlOm9eBsQ2BO
+   w==;
+X-CSE-ConnectionGUID: 2cq+fk/pT1ukcwxjx4TfaQ==
+X-CSE-MsgGUID: hT3r/icmSeOpiZawEcLamQ==
+X-IronPort-AV: E=McAfee;i="6800,10657,11679"; a="74236570"
+X-IronPort-AV: E=Sophos;i="6.21,247,1763452800"; 
+   d="scan'208";a="74236570"
+Received: from fmviesa009.fm.intel.com ([10.60.135.149])
+  by orvoesa106.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jan 2026 17:25:14 -0800
+X-CSE-ConnectionGUID: uSsav1eeQmapjwRkPMKVDg==
+X-CSE-MsgGUID: V/T4G2mXSuW8cRRNUpTxwA==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.21,247,1763452800"; 
+   d="scan'208";a="207313530"
+Received: from orsmsx901.amr.corp.intel.com ([10.22.229.23])
+  by fmviesa009.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 22 Jan 2026 17:25:14 -0800
+Received: from ORSMSX902.amr.corp.intel.com (10.22.229.24) by
+ ORSMSX901.amr.corp.intel.com (10.22.229.23) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.35; Thu, 22 Jan 2026 17:25:12 -0800
+Received: from ORSEDG902.ED.cps.intel.com (10.7.248.12) by
+ ORSMSX902.amr.corp.intel.com (10.22.229.24) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.35 via Frontend Transport; Thu, 22 Jan 2026 17:25:12 -0800
+Received: from DM1PR04CU001.outbound.protection.outlook.com (52.101.61.10) by
+ edgegateway.intel.com (134.134.137.112) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.2562.35; Thu, 22 Jan 2026 17:25:12 -0800
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=G168vl3KvhUUk9bHld70IdqPwaHjQCdcWAwH5pVUgnxPCvoaVVXozG6rTijp1wfblndosVxB0Ubw9888ScAmzuo4JltcUVdKL2EFC4jFRTius9At3+uTdM7Py/MeQoc032HsVNkUgVypioD1dnU8kifCimhBlDHtswKoy5eWR3Mit4ORonCQkOch5x2cJ4cdwym+hTwgH/U71WYAjzV5vbS+FTwJwHIjf5QCKqVWDUhXeoKvRSnntd6Tu/4kavNya9sKuxyPvfJojlyXa1tKYbK/IOojPtZB99Q3InQEMbXy278dUONazl4A5kRsBYumf3Y7RQz6nomRXlEmRxQztA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=Yy6+Yk+pE8k0E4cQNfGzs5+qQ24Uyp4WI7aZ7isNDRw=;
+ b=zFVhIT9esURN+hrTYbcGMBNxqC57kaLlSfi40GDEYvHSGY6H9NG4LjbGSPFTNiYBT+47OkfLGE92hXstId5yeIKR5Hn1TYFrFCBtKFUArB0A4EHACIipOR0k+sBI8gfoDeRr1ngfBX3LVAgU1xci7/ewd+AUT7IzeEetvUgyTBDbfZ275U6YzBnVEf3zYYl+hh9QqcsSaOz/xnL9l9xF6k29k3w1k6vS45poXFTVPwEURIRTNcU6oKERsLIOBJ8tqeqrAfuUdSmaVsUJ1kyLfXKP2c0e14hb9CPXbyBYW3t5fp44nZH/7pJJdnuDPMdmYcki++skDMCISBnkvYnnPg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=intel.com; dmarc=pass action=none header.from=intel.com;
+ dkim=pass header.d=intel.com; arc=none
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=intel.com;
+Received: from CH3PR11MB8468.namprd11.prod.outlook.com (2603:10b6:610:1ba::19)
+ by SA2PR11MB5161.namprd11.prod.outlook.com (2603:10b6:806:fa::24) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9542.11; Fri, 23 Jan
+ 2026 01:25:04 +0000
+Received: from CH3PR11MB8468.namprd11.prod.outlook.com
+ ([fe80::8188:d688:bbca:2394]) by CH3PR11MB8468.namprd11.prod.outlook.com
+ ([fe80::8188:d688:bbca:2394%5]) with mapi id 15.20.9542.009; Fri, 23 Jan 2026
+ 01:25:04 +0000
+Date: Fri, 23 Jan 2026 09:24:50 +0800
+From: Philip Li <philip.li@intel.com>
+To: David Laight <david.laight.linux@gmail.com>
+CC: kernel test robot <lkp@intel.com>, Nathan Chancellor <nathan@kernel.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Thomas Gleixner
+	<tglx@linutronix.de>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar
+	<mingo@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, "Arnd
+ Bergmann" <arnd@arndb.de>, <linux-arch@vger.kernel.org>,
+	<linux-kernel@vger.kernel.org>, Yury Norov <yury.norov@gmail.com>, "Jani
+ Nikula" <jani.nikula@intel.com>, Vincent Mailhol
+	<mailhol.vincent@wanadoo.fr>, Andy Shevchenko
+	<andriy.shevchenko@linux.intel.com>, Kees Cook <keescook@chromium.org>,
+	Andrew Morton <akpm@linux-foundation.org>, <oe-kbuild-all@lists.linux.dev>,
+	Linux Memory Management List <linux-mm@kvack.org>
 Subject: Re: [PATCH next 11/14] bit: Strengthen compile-time tests in
  GENMASK() and BIT()
-Message-ID: <20260122201020.2479d180@pumpkin>
-In-Reply-To: <20260122102554.1cc7a2a3@pumpkin>
+Message-ID: <aXLN4iUVMczH042p@rli9-mobl>
 References: <20260121145731.3623-12-david.laight.linux@gmail.com>
-	<202601220829.MgTMeqqN-lkp@intel.com>
-	<20260122102554.1cc7a2a3@pumpkin>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+ <202601221237.soiAkwkN-lkp@intel.com>
+ <20260122103337.26473d1c@pumpkin>
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <20260122103337.26473d1c@pumpkin>
+X-ClientProxiedBy: SG2PR04CA0162.apcprd04.prod.outlook.com (2603:1096:4::24)
+ To PH7PR11MB8479.namprd11.prod.outlook.com (2603:10b6:510:30c::22)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CH3PR11MB8468:EE_|SA2PR11MB5161:EE_
+X-MS-Office365-Filtering-Correlation-Id: 22831885-2373-455f-e4c5-08de5a1e3c08
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;ARA:13230040|376014|7416014|1800799024|366016;
+X-Microsoft-Antispam-Message-Info: =?us-ascii?Q?AI2+TGk3e4biGK2ng/tq2i8G9Nx9ZjC+LS6EVufvJ8TkBPvwQFtd7w7+HF88?=
+ =?us-ascii?Q?paNmEUgGcSZCX6qgsFGVl7pWmLE2BfkVHT1suWnqrdHctsmucYnmD7nDH6kG?=
+ =?us-ascii?Q?yXLdB5YQIXJap9JK+2lVPUaXZSKLAMLfXZsePwNu3wS+FisMOPl5NYbdpbxZ?=
+ =?us-ascii?Q?cJ9tYMZaMz8dLnOOvliaSowEzCz1KrhZHqLz8oM7r8Xp/+d04vKNSoaWcwY9?=
+ =?us-ascii?Q?N7rMV9gR3B0JnFhpduH2jhto1F7q1TSDk+tfDYs8Z723E8NIi7CgVOlPF/7T?=
+ =?us-ascii?Q?uKoAXRtOhZORf46uxc1lZrbXqEgh01maIEExvqnk7cabM9POkQe0EU2bmyGt?=
+ =?us-ascii?Q?5Np/eKMeL1G+xqk5AkH3iu3q3eyANsOoMnkYjntppoq7vvZXrMe0EI6omXcz?=
+ =?us-ascii?Q?5drd5CBTWYhpwqacQVvR1KehKN/Qmg9Fcto/HKycsU2OBK0EgU96d7T7DhmH?=
+ =?us-ascii?Q?Kh87BxB+uD8+021o8rtpoAIAIiroAcwuD7xG7RParWMglvRl3OQTvxI7rp3x?=
+ =?us-ascii?Q?J88lvLLNSyvmzXF2JZefRabrhignwrRLL1wsbs/bE1T5SQlKWWlwU20817Aq?=
+ =?us-ascii?Q?6FzVTw5csz3JQ+MulR/pjggTtN6QxIMJ8GpM3kit04OpZFjlVU0Iq3r4qW7R?=
+ =?us-ascii?Q?42VcQ82UQqvM0NQjD9cjb60z8Ib3Yn24TBpuV1QNEGFLCqWMunJJyrbl/Btu?=
+ =?us-ascii?Q?vYKO1OnSdqfRnJUgUrO+/SUG8Amp+POtX8CV2vlme+/FCc0LZMnntYZ8nx4J?=
+ =?us-ascii?Q?8YFZRA5WsDr41F1mDxg/WtAQAn3sdmgNK+Y2cmiG4lNUadg6s4MkQIhvn8+I?=
+ =?us-ascii?Q?aVqsk9T0KzO6++i8apNxO0kgR/lGaoCmYej4ZRw9+eHfMnQrQ8fj2N0tdwPS?=
+ =?us-ascii?Q?PFHvcVy6TspJUTyF07ZwgPuViQCPw2l8BjrlwNTgcnAOBr29agG4bsuRWRbI?=
+ =?us-ascii?Q?zZSi7HHBxoBXcuiwzrG0TYwW7BF5XSdeQf+NWLFlI52UZFQVv89Ps2pmCFcP?=
+ =?us-ascii?Q?ODKSPCbMAyHTeuBCbGqhK5BErPSh37PhynrDFP4gEXcIIw4357o7ddGeWQaQ?=
+ =?us-ascii?Q?tssAg4VlTfP88cs4SEbJ65B4fBJjuMdu/IaOjj9GUySyPQZIW2qMPU1JA+1p?=
+ =?us-ascii?Q?pzn7TMj8cbyAVEu/wtJwWl4azGY38FbMT8iAAb+AU20xzzP5XQgde4lwaKhP?=
+ =?us-ascii?Q?/2OADhA7cZTa99tvf0bG7O55dJifEJB2Ik6dGNRxBPiVgm1dezZP5TgSL6xD?=
+ =?us-ascii?Q?VrJ1adNZ+7xsZfuw1yHRN6qvSshQH1VJ9Q9SLQp5vLwPVhvpukHVUY8L/S7i?=
+ =?us-ascii?Q?nl35mFJDf2uZzJCs2RgiwPdCiy67fmnW4nRXnmgnlgtPvhNgZ7URt9iyHaR+?=
+ =?us-ascii?Q?K5ag/FWVRm5yD/EJbP1IkBjSV1z1n6Pau9L85qJvrldm1qtKigknuvwhSkGm?=
+ =?us-ascii?Q?q5/H1/69YCOcduxrorM3DVr/jXMPykueaH3KJdscdlfl8YDj/H1/fS+WrXEC?=
+ =?us-ascii?Q?xYDOcPM9nwN38L2ofk8Sx1W4W/iX+ik67xGuxaJ64yITty7z4Qj2EG3r0Q8L?=
+ =?us-ascii?Q?dCdVOgYYTz+HgQg7otEZ/WeL/1PELbN/fvX9IDaA?=
+X-Forefront-Antispam-Report: CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR11MB8468.namprd11.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(1800799024)(366016);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0: =?us-ascii?Q?SkMSKvAq0bSXwZnrEbLWslcHoJDTBlLkbsP6gIM7HgzwKDpE0MqO56ypp5I0?=
+ =?us-ascii?Q?ijQfM1BLDn2FY174oDj2nrWvnpmSUT1JmMlxAWaSOI1HbxDNJ7DC6IcSo1eC?=
+ =?us-ascii?Q?fIevfBUgeEjk5qM8A3sXhZrU49PX1P8nVClWN7wgn+34sKq4dRhdtpjWpbb8?=
+ =?us-ascii?Q?IsMuiFp4N+ig9nTvg9Vlo/33Nrg6le4uASS47geAZD4/xjBTyycGrYyf0naE?=
+ =?us-ascii?Q?wzIisI/2PoJB6UA+IwKLCud4k4zZCO9Cw58z9ZdcOguHc9jN3W7QVRBIzacF?=
+ =?us-ascii?Q?9Ymg0/O5zJfca7iRXNJFKFYz+CWMYiE7oiOXaZwc+ZdC6GmAtajt7KB+ZHns?=
+ =?us-ascii?Q?Ul3ICI5PQ339xxaoMPpEDf4+DjcDsMLtopaoCbBmbV3PCmrNuFe18eggHeAW?=
+ =?us-ascii?Q?brXjny/vZ7pCddSV8WSGtAPNkSR1XlTMCS0p+w7n00tkTCvjJtGgP72LhsVr?=
+ =?us-ascii?Q?d1ymTBUB9rHeSvFupfQOmYUHMWiNtbOfjDs/PGqz/z3VneChNdV8xtpLQc9e?=
+ =?us-ascii?Q?JxAGL8e5irz5bUEZJS0jE+zlTDBM5ZMRA4246fHihV5HB9SyyWI6jbydLpr+?=
+ =?us-ascii?Q?8U5UemFR8myXKfV+klxMwi88Wtc28uohYC2669n7JEOaTEYj4KVl8vNhEbn/?=
+ =?us-ascii?Q?orK9VvxLTlO80jI8/L9J0ppgdWIVBEvIgelAB+VuHX3XAe7iu4JAnYiSdknJ?=
+ =?us-ascii?Q?5zXEScXN7/S20t1F2nz3r/EQd620WjJhDrIUA0JTdkRZf0ntPXYihw2ZaLTW?=
+ =?us-ascii?Q?9+/pmbYwKjkWVbzkYL1q6BwhmzRyJGrfn4AfqmZTzw6Oxt2Q/jaeK3I1Lbag?=
+ =?us-ascii?Q?m3kbFBZyuAak9DVvd5Jd31PmtgY1T4Lr6+ujossab15J7H89WZk4NZjMtAZX?=
+ =?us-ascii?Q?KeNKiKbUYT5nuq0uX3XF7YHB9E4XIS7xeihFm19Zp1ODMlqEPnpLP+/Xx9AK?=
+ =?us-ascii?Q?fDX0vsHyqGy7gbJml5k61zLLQf1yI6QbRNSiSVRm/vbJHaFrMi3G/tY4Qnnl?=
+ =?us-ascii?Q?A/zLk1UXZKGqbNP9Oy4iEb8vxyptejcTfcN92q6YOPWXh5M0Plexh1+dAtTf?=
+ =?us-ascii?Q?Em2d87R8GvNe9eYzTRz/NG4xlu9VFbGN8BvIKurShXUO75x/fBDH0hA7dS8Y?=
+ =?us-ascii?Q?Qlm4bUzifovt7nzwth973PA44TZmWiCVLiv1yhUI2CtOWcpyXnywWLhGx+Vi?=
+ =?us-ascii?Q?ad2YqmZbVr0dDGqtZWAO4FLQEeYtyGzIqW5A4QgyVWM2zl7uh9Kt49/8FMec?=
+ =?us-ascii?Q?A0XpdwAVV5BRIssX+QZg0iSlBVQABce5jBqj696fAkhVkEFckfhL1EiBz6go?=
+ =?us-ascii?Q?KwMLhgjOXSyML5Po/ko42zO/zCfq8ofsnwZBLP6S8dw3Xg/buw6jKwK6tGFL?=
+ =?us-ascii?Q?EE7YeCtsO6UsasW5hIUKyVhKzdE73HRU37omj60DhhAQHynlrM4QJsTb08U8?=
+ =?us-ascii?Q?ubHYUK7gzncfwMyfORvRjGDoxxjO6hGFPZlKtzmAOdyEGZklPz/+E+5+pPPH?=
+ =?us-ascii?Q?5qXxe6PKs6ogXT15sXYc2ZHuGYa9bazIC2Yj7CskrmgleKd6fdxVJM0+f2km?=
+ =?us-ascii?Q?dlwc/HTIJU/6Tg+0lGU2i32CefwRLtRMIC1qgPD5l8OI7ncZ1g5DZxCX1N/m?=
+ =?us-ascii?Q?Y3xmsgkVDC2GinVSac0wmYOXck4Ad57l9+nDttMP24mTIkcQ4hGVgLu6zkow?=
+ =?us-ascii?Q?S8pGIkuU8UgDU7shsIYF4K/oZPIDm+5WK8hBL4MopUQyc1LKdHjpuz8RvBvk?=
+ =?us-ascii?Q?vc4fXLDK6A=3D=3D?=
+X-MS-Exchange-CrossTenant-Network-Message-Id: 22831885-2373-455f-e4c5-08de5a1e3c08
+X-MS-Exchange-CrossTenant-AuthSource: PH7PR11MB8479.namprd11.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 23 Jan 2026 01:25:04.5269
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 46c98d88-e344-4ed4-8496-4ed7712e255d
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: P0e7vtB+x+K8T61YTan0TExnuE1HGaJ7Ck5ryjrG/6CYKiUg9+g2qP2K7onoWhUEbtGKRrnPfwTHorO7E9RaQg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SA2PR11MB5161
+X-OriginatorOrg: intel.com
 
-On Thu, 22 Jan 2026 10:25:54 +0000
-David Laight <david.laight.linux@gmail.com> wrote:
-
-> On Thu, 22 Jan 2026 09:11:53 +0800
+On Thu, Jan 22, 2026 at 10:33:37AM +0000, David Laight wrote:
+> On Thu, 22 Jan 2026 12:41:22 +0800
 > kernel test robot <lkp@intel.com> wrote:
 > 
 > > Hi,
 > > 
-> > kernel test robot noticed the following build errors:
+> > kernel test robot noticed the following build warnings:
 > > 
-> > [auto build test ERROR on next-20260120]
+> > [auto build test WARNING on next-20260120]
 > > 
 > > url:    https://github.com/intel-lab-lkp/linux/commits/david-laight-linux-gmail-com/overflow-Reduce-expansion-of-__type_max/20260122-013456
 > > base:   next-20260120
 > > patch link:    https://lore.kernel.org/r/20260121145731.3623-12-david.laight.linux%40gmail.com
 > > patch subject: [PATCH next 11/14] bit: Strengthen compile-time tests in GENMASK() and BIT()
-> > config: s390-randconfig-001-20260122 (https://download.01.org/0day-ci/archive/20260122/202601220829.MgTMeqqN-lkp@intel.com/config)
-> > compiler: s390-linux-gcc (GCC) 8.5.0
-> > reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260122/202601220829.MgTMeqqN-lkp@intel.com/reproduce)
+> > config: mips-randconfig-r132-20260122 (https://download.01.org/0day-ci/archive/20260122/202601221237.soiAkwkN-lkp@intel.com/config)
+> > compiler: mips64-linux-gcc (GCC) 10.5.0
+> > reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260122/202601221237.soiAkwkN-lkp@intel.com/reproduce)
 > > 
 > > If you fix the issue in a separate patch/commit (i.e. not just a new version of
 > > the same patch/commit), kindly add following tags
 > > | Reported-by: kernel test robot <lkp@intel.com>
-> > | Closes: https://lore.kernel.org/oe-kbuild-all/202601220829.MgTMeqqN-lkp@intel.com/
+> > | Closes: https://lore.kernel.org/oe-kbuild-all/202601221237.soiAkwkN-lkp@intel.com/
 > > 
-> > All errors (new ones prefixed by >>):
-> > 
-> >    In file included from arch/s390/include/asm/bug.h:60,
-> >                     from include/linux/bug.h:5,
-> >                     from include/linux/mmdebug.h:5,
-> >                     from arch/s390/include/asm/cmpxchg.h:11,
-> >                     from arch/s390/include/asm/atomic.h:16,
-> >                     from include/linux/atomic.h:7,
-> >                     from include/asm-generic/bitops/atomic.h:5,
-> >                     from arch/s390/include/asm/bitops.h:75,
-> >                     from include/linux/bitops.h:67,
-> >                     from include/linux/kernel.h:23,
-> >                     from net/core/page_pool.c:10:
-> >    In function 'netmem_clear_pp_magic',
-> >        inlined from 'page_pool_clear_pp_info' at net/core/page_pool.c:721:2:  
-> > >> include/linux/bits.h:35:4: error: call to 'GENMASK_INPUT_CHECK_FAIL' declared with attribute error: Invalid bit numbers    
-> ...
-> >    include/linux/mm.h:4641:27: note: in expansion of macro 'GENMASK'
-> >     #define PP_DMA_INDEX_MASK GENMASK(PP_DMA_INDEX_BITS + PP_DMA_INDEX_SHIFT - 1, \  
+> > sparse warnings: (new ones prefixed by >>)
+> >    kernel/kthread.c: note: in included file (through include/linux/bitmap.h, include/linux/cpumask.h, arch/mips/include/asm/processor.h, ...):
+> > >> include/linux/find.h:209:45: sparse: sparse: Variable length array is used.  
 > 
-> This might be a real bug.
-> 
-> The bit of mm.h is:
-> 
-> #define PP_DMA_INDEX_SHIFT (1 + __fls(PP_SIGNATURE - POISON_POINTER_DELTA))
-> #if POISON_POINTER_DELTA > 0
-> /* PP_SIGNATURE includes POISON_POINTER_DELTA, so limit the size of the DMA
->  * index to not overlap with that if set
->  */
-> #define PP_DMA_INDEX_BITS MIN(32, __ffs(POISON_POINTER_DELTA) - PP_DMA_INDEX_SHIFT)
-> #else
-> /* Use the lowest bit of PAGE_OFFSET if there's at least 8 bits available; see above */
-> #define PP_DMA_INDEX_MIN_OFFSET (1 << (PP_DMA_INDEX_SHIFT + 8))
-> #define PP_DMA_INDEX_BITS ((__builtin_constant_p(PAGE_OFFSET) && \
-> 			    PAGE_OFFSET >= PP_DMA_INDEX_MIN_OFFSET && \
-> 			    !(PAGE_OFFSET & (PP_DMA_INDEX_MIN_OFFSET - 1))) ? \
-> 			      MIN(32, __ffs(PAGE_OFFSET) - PP_DMA_INDEX_SHIFT) : 0)
-> 
-> #endif
-> 
-> #define PP_DMA_INDEX_MASK GENMASK(PP_DMA_INDEX_BITS + PP_DMA_INDEX_SHIFT - 1, \
-> 				  PP_DMA_INDEX_SHIFT)
+> Can we stop sparse complaining about sizeof(VLA) ?
 
-I've managed to do an s390 cross build.
-It is all quite obvious really.
-For s390 PAGE_OFFSET is usually zero (I think kernel and user mappings are separate?).
-This make PP_DMA_INDEX_BITS 0.
-PP_SIGNATURE is 64 - so PP_DMA_INDEX_SHIFT is 7.
-So it is doing GENMASK(6, 7) and, I think, expecting to get zero.
-But that is taken a mistyped GENMASK(7, 6) and treated as an error.
+Got it, we will avoid the direct report this 'sparse: Variable length array is used' warning.
 
-If I rewrite __fls() and __ffs() to return 'integer constant expressions'
-when the input is one I think it would always have failed.
-
-A comment a few lines higher suggests that the code expects the mask to
-be zero in this case - and handles it properly.
-
-	David
-
-> 
-> I've no idea what the values are, but the 'hi' bit number must exceed that
-> of 'long'.
-> The __ffs() probably stop it being an 'integer constant expression'
-> making it just a 'compile time constant' - which I added a test for.
 > 
 > 	David
 > 
-> 
-
