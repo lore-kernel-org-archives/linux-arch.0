@@ -1,134 +1,168 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.17])
+Received: from smtp-out3.simply.com (smtp-out3.simply.com [94.231.106.210])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8E3BF22759C;
-	Fri, 23 Jan 2026 08:46:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.17
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B7D192737FC;
+	Fri, 23 Jan 2026 15:16:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=94.231.106.210
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769158007; cv=none; b=apoclVip7dUav7jDgq/tTdDBWuq8Jw+WrzpYWJaqCOrc6EL15Q98aaK8dgXzn777sr2fwxEQ4sdC64KJ1i1BJwb+WlPFYcllAeb5C/c/N+uKevDuXHe4DhxiI9rhv/5J3mSkOYE1HAkyLpW01P5HiagG9N9+0kk+MaqBScilzD8=
+	t=1769181366; cv=none; b=Yx1G86mcpJq9y/it/MyZfuCPYXJcx7uBLXK0bjhnvf28qKRWQ+Rlo4xt4D2FdfXOr0TTS03e0B150YNqw+syKO+4tYFcDsXLcwLhg4/XqomVHxt77FMEpANzr+FwwwitTCyUpnYW4tlA0WpsBTq3vSmNWOgAkuAo/2RZgE0ulZw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769158007; c=relaxed/simple;
-	bh=yxLPZsI3BlaCXSYy3VRdvRI8ej/dhsqIiU79HyiDkSY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ZHdrxDmiAiblKDjg8O3YgoEQP2ms7eaRfbdkcuIKX77+y5EsHfMGU8QcZobamSgTW/aTGD9hYAHw5O3d1vN8t/NItOOLEgrvEAgKXU7P2E0PJwkbtU88KLkz+kWgDUCqRY18XcvJeOgjZbIG5X06pbX+ESvy0lrdy4IXVdCRNUA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com; spf=pass smtp.mailfrom=linux.intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=FafuA+8K; arc=none smtp.client-ip=192.198.163.17
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.intel.com
+	s=arc-20240116; t=1769181366; c=relaxed/simple;
+	bh=rXpme69WV3lZbMqXo4BPlwMSPALTvMzyYlkYjeNanmI=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=auV1HukBw4WzomRHrBleG82TZOD5Fy0+u9VfGq1HCAXCKKLJl8fSrqXLviORIoaF5FRfhQg5ygBXnKCVSSdijGq/cnmlfLXX/AH7HVxGUQ8M67n5Qcs4BiyFNjPbkCt61gM5lLw+ovQ/VOPjt39CpuQQLKDR8l13dpslH+1bnco=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gaisler.com; spf=pass smtp.mailfrom=gaisler.com; dkim=fail (0-bit key) header.d=gaisler.com header.i=@gaisler.com header.b=ag1WRAWJ reason="key not found in DNS"; arc=none smtp.client-ip=94.231.106.210
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gaisler.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gaisler.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="FafuA+8K"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1769158005; x=1800694005;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=yxLPZsI3BlaCXSYy3VRdvRI8ej/dhsqIiU79HyiDkSY=;
-  b=FafuA+8KDRE+3wBDCjgD+llxnqdnFhQOv5qQKue6kJYv0AUIhMhfY1py
-   eMj97Rddt4oinZ22RkapQ9DySqimmHNTd4Nj6oEzzwIXKDye40wOgBOA5
-   37r5ONq5w1hy0d+6NhV10nTgkHxoVPl/Utcb5XfwU6mYyQ4NzdJLKwcfr
-   raMSBYoaFabzAKfF5wzjbNrLOOKiRrM106uMzviRCpH5tMpJlTfLnR7h5
-   5hub2BqzLU3KbVFV91Kk3sJrECAV6Rq3keYx4JurLiZ9N5SeOX/ns2Lxw
-   AHKzU2iz3CLkaQmcbL00mRectRP5OeW89U6hJiJkabfxoHc5kzAh59cUk
-   A==;
-X-CSE-ConnectionGUID: yqH57tYOQSy3+SbIJBLgLA==
-X-CSE-MsgGUID: tT5uHhPVRayYkaNvhVCthw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11679"; a="70310696"
-X-IronPort-AV: E=Sophos;i="6.21,248,1763452800"; 
-   d="scan'208";a="70310696"
-Received: from orviesa002.jf.intel.com ([10.64.159.142])
-  by fmvoesa111.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Jan 2026 00:46:45 -0800
-X-CSE-ConnectionGUID: I0uBEMeHRLq8+KZyIRqqfA==
-X-CSE-MsgGUID: fUlz+CFyRPexsZDcn7SC4Q==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,248,1763452800"; 
-   d="scan'208";a="237621745"
-Received: from rvuia-mobl.ger.corp.intel.com (HELO localhost) ([10.245.244.112])
-  by orviesa002-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Jan 2026 00:46:40 -0800
-Date: Fri, 23 Jan 2026 10:46:37 +0200
-From: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
-To: Vincent Mailhol <mailhol@kernel.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Chris Li <sparse@chrisli.org>,
-	Philip Li <philip.li@intel.com>,
-	David Laight <david.laight.linux@gmail.com>,
-	kernel test robot <lkp@intel.com>,
-	Nathan Chancellor <nathan@kernel.org>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Ingo Molnar <mingo@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, Yury Norov <yury.norov@gmail.com>,
-	Jani Nikula <jani.nikula@intel.com>,
-	Kees Cook <keescook@chromium.org>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	oe-kbuild-all@lists.linux.dev,
-	Linux Memory Management List <linux-mm@kvack.org>
-Subject: Re: [PATCH next 11/14] bit: Strengthen compile-time tests in
- GENMASK() and BIT()
-Message-ID: <aXM1bWepP2sVy9qA@smile.fi.intel.com>
-References: <20260121145731.3623-12-david.laight.linux@gmail.com>
- <202601221237.soiAkwkN-lkp@intel.com>
- <20260122103337.26473d1c@pumpkin>
- <aXIzpC6wpdv47cSH@smile.fi.intel.com>
- <aXLOELiIG8MHKcIO@rli9-mobl>
- <b49c9993-7676-4d33-a2d6-9f6b77b0fd34@kernel.org>
- <aXMtJ_JurQjvN4tU@smile.fi.intel.com>
- <20260123082027.GJ3183987@ZenIV>
- <aXMwIcH7Zh-1yNq3@smile.fi.intel.com>
- <f9fcd1c6-373c-4345-b413-9bb6c1cd2d3a@kernel.org>
+	dkim=fail reason="key not found in DNS" (0-bit key) header.d=gaisler.com header.i=@gaisler.com header.b="ag1WRAWJ"
+Received: from localhost (localhost [127.0.0.1])
+	by smtp.simply.com (Simply.com) with ESMTP id 4dyM2M6CZPz1DHVR;
+	Fri, 23 Jan 2026 16:15:55 +0100 (CET)
+Received: from [10.10.15.21] (h-98-128-223-123.NA.cust.bahnhof.se [98.128.223.123])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(Client did not present a certificate)
+	by smtp.simply.com (Simply.com) with ESMTPSA id 4dyM2M10Vkz1FDXX;
+	Fri, 23 Jan 2026 16:15:55 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gaisler.com;
+	s=simplycom2; t=1769181355;
+	bh=bZOD1qxujIU3XqsrT9Q0is3A3LXGMfjZia6aaXxikQM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To;
+	b=ag1WRAWJtsN0/+CXBOsevJVeLpSL3/UnOj7eGnW5g7r2ql6jKEN6uMQEFz39jpWTj
+	 70hB6mp8Ve1s6Wp5eFrGmiH/PwtssmQd+OO1x2dJ25+zQ8YZn2M7a8oa0nbx1j6rlf
+	 1jVZ+eG2KhetS8xTd2rubzhycPTOvv5H3QVv5BOpKDJUbmQFZnHbjmifqmRJK+rcmN
+	 m8LMVMH5b3JJXy0dqOhyCLj8N4ZpFxTGlppCWijPb5T9bTpg9tndXUgxZ+8Iusk4Vm
+	 o7IvTCBgZd7VuKCb0Zw5Xn08LvlpLoHpw8Ts3iS9q1RU+69VDDLKM0eepskCzawiEl
+	 rXuEIPQaRFOug==
+Message-ID: <9199f28e-e2b7-48c8-b61f-0b787e322443@gaisler.com>
+Date: Fri, 23 Jan 2026 16:15:54 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <f9fcd1c6-373c-4345-b413-9bb6c1cd2d3a@kernel.org>
-Organization: Intel Finland Oy - BIC 0357606-4 - c/o Alberga Business Park, 6
- krs, Bertel Jungin Aukio 5, 02600 Espoo
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3 7/7] mm: make PT_RECLAIM depends on
+ MMU_GATHER_RCU_TABLE_FREE
+To: Qi Zheng <qi.zheng@linux.dev>, will@kernel.org, aneesh.kumar@kernel.org,
+ npiggin@gmail.com, peterz@infradead.org, dev.jain@arm.com,
+ akpm@linux-foundation.org, david@kernel.org, ioworker0@gmail.com,
+ linmag7@gmail.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, linux-alpha@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linux-um@lists.infradead.org, Qi Zheng <zhengqi.arch@bytedance.com>,
+ sparclinux <sparclinux@vger.kernel.org>
+References: <cover.1765963770.git.zhengqi.arch@bytedance.com>
+ <ac2bdb2a66da1edb24f60d1da1099e2a0b734880.1765963770.git.zhengqi.arch@bytedance.com>
+Content-Language: en-US
+From: Andreas Larsson <andreas@gaisler.com>
+In-Reply-To: <ac2bdb2a66da1edb24f60d1da1099e2a0b734880.1765963770.git.zhengqi.arch@bytedance.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Jan 23, 2026 at 09:32:39AM +0100, Vincent Mailhol wrote:
-> On 23/01/2026 at 09:24, Andy Shevchenko wrote:
-> > On Fri, Jan 23, 2026 at 08:20:27AM +0000, Al Viro wrote:
-> >> On Fri, Jan 23, 2026 at 10:11:19AM +0200, Andy Shevchenko wrote:
+On 2025-12-17 10:45, Qi Zheng wrote:
+> From: Qi Zheng <zhengqi.arch@bytedance.com>
+> 
+> The PT_RECLAIM can work on all architectures that support
+> MMU_GATHER_RCU_TABLE_FREE, so make PT_RECLAIM depends on
+> MMU_GATHER_RCU_TABLE_FREE.
+> 
+> BTW, change PT_RECLAIM to be enabled by default, since nobody should want
+> to turn it off.
+> 
+> Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
+> ---
+>  arch/x86/Kconfig | 1 -
+>  mm/Kconfig       | 9 ++-------
+>  2 files changed, 2 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 80527299f859a..0d22da56a71b0 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -331,7 +331,6 @@ config X86
+>  	select FUNCTION_ALIGNMENT_4B
+>  	imply IMA_SECURE_AND_OR_TRUSTED_BOOT    if EFI
+>  	select HAVE_DYNAMIC_FTRACE_NO_PATCHABLE
+> -	select ARCH_SUPPORTS_PT_RECLAIM		if X86_64
+>  	select ARCH_SUPPORTS_SCHED_SMT		if SMP
+>  	select SCHED_SMT			if SMP
+>  	select ARCH_SUPPORTS_SCHED_CLUSTER	if SMP
+> diff --git a/mm/Kconfig b/mm/Kconfig
+> index bd0ea5454af82..fc00b429b7129 100644
+> --- a/mm/Kconfig
+> +++ b/mm/Kconfig
+> @@ -1447,14 +1447,9 @@ config ARCH_HAS_USER_SHADOW_STACK
+>  	  The architecture has hardware support for userspace shadow call
+>            stacks (eg, x86 CET, arm64 GCS or RISC-V Zicfiss).
+>  
+> -config ARCH_SUPPORTS_PT_RECLAIM
+> -	def_bool n
+> -
+>  config PT_RECLAIM
+> -	bool "reclaim empty user page table pages"
+> -	default y
+> -	depends on ARCH_SUPPORTS_PT_RECLAIM && MMU && SMP
+> -	select MMU_GATHER_RCU_TABLE_FREE
+> +	def_bool y
+> +	depends on MMU_GATHER_RCU_TABLE_FREE
+>  	help
+>  	  Try to reclaim empty user page table pages in paths other than munmap
+>  	  and exit_mmap path.
 
+Hi,
+
+This patch unfortunately results in a WARN_ON_ONCE and unaligned
+accesses on sparc64:
+
+$ stress-ng --mmaphuge 20 -t 60
+stress-ng: info:  [559] setting to a 1 min run per stressor
+stress-ng: info:  [559] dispatching hogs: 20 mmaphuge
+[  560.592569] ------------[ cut here ]------------
+[  560.592663] WARNING: kernel/rcu/tree.c:3098 at __call_rcu_common.constprop.0+0x200/0x760, CPU#4: stress-ng-mmaph/568
+[  560.592777] CPU: 4 UID: 1000 PID: 568 Comm: stress-ng-mmaph Not tainted 6.19.0-rc5-00127-g62fc9f6ccb97 #8 VOLUNTARY
+[  560.592805] Call Trace:
+[  560.592812] [<00000000004368b8>] dump_stack+0x8/0x60
+[  560.592844] [<0000000000482a60>] __warn+0xe0/0x140
+[  560.592878] [<0000000000482b64>] warn_slowpath_fmt+0xa4/0x120
+[  560.592901] [<0000000000526a40>] __call_rcu_common.constprop.0+0x200/0x760
+[  560.592931] [<0000000000526fd0>] call_rcu+0x10/0x20
+[  560.592954] [<0000000000730838>] tlb_remove_table+0x98/0xc0
+[  560.592986] [<000000000071bec4>] free_pgd_range+0x224/0x4c0
+[  560.593021] [<000000000071c35c>] free_pgtables+0x1fc/0x240
+[  560.593042] [<000000000074a6f0>] vms_clear_ptes+0x110/0x140
+[  560.593068] [<000000000074c3dc>] vms_complete_munmap_vmas+0x5c/0x280
+[  560.593094] [<000000000074de5c>] do_vmi_align_munmap+0x1dc/0x260
+[  560.593117] [<000000000074df80>] do_vmi_munmap+0xa0/0x140
+[  560.593142] [<000000000074fb2c>] __vm_munmap+0x8c/0x160
+[  560.593168] [<000000000072cfd4>] vm_munmap+0x14/0x40
+[  560.593190] [<00000000004402a8>] sys_64_munmap+0x88/0xa0
+[  560.593221] [<0000000000406274>] linux_sparc_syscall+0x34/0x44
+[  560.593274] ---[ end trace 0000000000000000 ]---
+[  560.593960] log_unaligned: 209 callbacks suppressed
+[  560.593979] Kernel unaligned access at TPC[526a4c] __call_rcu_common.constprop.0+0x20c/0x760
+[  560.594121] Kernel unaligned access at TPC[526864] __call_rcu_common.constprop.0+0x24/0x760
+[  560.594198] Kernel unaligned access at TPC[52b3c4] rcu_segcblist_enqueue+0x24/0x40
+[  560.594275] Kernel unaligned access at TPC[526860] __call_rcu_common.constprop.0+0x20/0x760
+[  560.594360] Kernel unaligned access at TPC[526864] __call_rcu_common.constprop.0+0x24/0x760
+[  567.054127] log_unaligned: 1105 callbacks suppressed
+[  567.054167] Kernel unaligned access at TPC[526860] __call_rcu_common.constprop.0+0x20/0x760
+[  567.054331] Kernel unaligned access at TPC[526864] __call_rcu_common.constprop.0+0x24/0x760
+[  567.054410] Kernel unaligned access at TPC[52b3c4] rcu_segcblist_enqueue+0x24/0x40
 ...
 
-> >>>> Al Viro's fork just adds 8 commit on top of the upstream sparse repo.
-> >>>> Wouldn't it be possible to just merge those?
-> >>>
-> >>> Ideally yes, but you also should kick the distro's asses to update it, and
-> >>> the sparse should bump its version...
-> >>>
-> >>>> That would be much less confusing.
-> >>>
-> >>> Seems Al become a sparse maintainer de facto :-)
-> >>
-> >> Huh?  What happened to Chris?
-> 
-> After the project hiatus, I can imagine that there is some confusion :)
-> 
-> But Chris is back in his role of maintainer since September 2025. See:
-> 
->   - https://lore.kernel.org/linux-sparse/CACePvbXDO1ZybDu3RaFhED9D-9gC6LTMpWrxoh5xD+ZO5SLdzA@mail.gmail.com/
->   - https://git.kernel.org/pub/scm/devel/sparse/sparse.git/commit/?id=67f0a03cee4637e495151c48a02be642a158cbbb
-> 
-> > I don't know, but upstream sparse haven't applied any solution for
-> > MODULE*("FOO") stuff, nor reaction on my ping in that discussion
-> > (I did it like week or so ago).
+I bisected to this one on mm-unstable from approximately 2026-01-12.
 
-My ping: https://lore.kernel.org/all/aV9vo7_turBr84bs@black.igk.intel.com/
-But now I realised that there was another version of the series, and Chris
-seems active there.
-https://lore.kernel.org/all/CACePvbU5Pqo=bw_j8arOq16o1JBOSwPtuMZBVozy4FV7YsSLGw@mail.gmail.com/
+The warning is from 
 
-> I am out of context here, but were the correct people CCed?
+	/* Misaligned rcu_head! */
+	WARN_ON_ONCE((unsigned long)head & (sizeof(void *) - 1));
 
-I dunno.
+in __call_rcu_common() and the unaligned accesses follows from there.
 
--- 
-With Best Regards,
-Andy Shevchenko
-
+Regards,
+Andreas
 
