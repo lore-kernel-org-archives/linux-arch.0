@@ -1,156 +1,228 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8AD4D2AE8D;
-	Sat, 24 Jan 2026 02:27:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mout.gmx.net (mout.gmx.net [212.227.17.22])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 584C5229B36;
+	Sat, 24 Jan 2026 12:05:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.227.17.22
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769221657; cv=none; b=SlaorXOii+z91GnC+2GEAIpT6B6C5btcMtDQnuardEP9iLfLsirugVcCfB7+VfWbU34wGKR83nD2jbQJFdYfdn4NW/PMlBY1HHUfyfDZxd1NkPUXuAWsP1o3WMTPuP4WHYTKy7vFTqVn3vAyLtZPu98gSBKFiKpNXkOg1Divyas=
+	t=1769256320; cv=none; b=Ibgmsa7nvwc06oYM1BP+9UB8NcFSzdOPLe5r/sjE1Q4s9xpJczjEyi3frEQ3fZ3qlS3uFzpE31XbBJ8nDXjenApjhs6suRK5KUyjMOmLDYOEkYSOD4rhVA4pgjaXl58sUHPq+t5FyCX2nqmLLa9h4o8ywo8M7pJcXxh6fym3HVs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769221657; c=relaxed/simple;
-	bh=6QoxWTLvgZMqmlC876KlJ3u6SCCBvsx0O80CrSJNRg0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=ilrYMZOaWomTnjrtrJ5AEg+QHsZVYERmPDQSItpRFgtY1AFneltJWURfzjhRck2/CkAn9Wg2n/SjTrKyjWcD5v1rONQ2IqRLLP9OFWGLxx6v0iTj0iKOgwO5yrT1HoLtxO/FmAoPPJ5ZCAL45SNroj8Wid7wy74dMsezR4N2YX4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=mm3uS6ln; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1769256320; c=relaxed/simple;
+	bh=3Uye4ztg8b5UHDRMTSJrnc2+SJ8QMczi1xXCDcJDASc=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=oQo7ZxjRZ0o6IwOGeE2B9X8BQp3V0SGHlESPi/oaavbQv+ZiBPDwVdz/LlhcCxgUxNp8HzirfVPZHnAYRx3YD3GTZhk49NEU8ZVjS1NSBc5ry5dd6o1UO2VA2GF5WYRERWu0Yo/UjmI0sIi4uDQvByG5KGSr9y+pcgydStuM+u8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=gmx.de; spf=pass smtp.mailfrom=gmx.de; dkim=pass (2048-bit key) header.d=gmx.de header.i=svenjoac@gmx.de header.b=c6TcB37a; arc=none smtp.client-ip=212.227.17.22
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=gmx.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmx.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="mm3uS6ln"
-Received: from [100.75.32.59] (unknown [40.78.13.147])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 238F120B7167;
-	Fri, 23 Jan 2026 18:27:35 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 238F120B7167
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1769221655;
-	bh=kCVqDvHy5B6w0DimA3jf1nqis+n/ymqDPTFfWJQ9xCQ=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=mm3uS6lnYTE7qJBLr9zU/W/yLV8ymPsdbCUmrntTDqIEQnaCgtahGfq6XhrFvBXLb
-	 NdvnxrCtd4vngwf37xU01YelLuRbT3RZ7JhQvpfoZueaI4h3cScWInpsmJZbzOoNE7
-	 1ryZR0dNAUUaomPkj6zTA1NLy2Korhz2Ht/j9OCI=
-Message-ID: <8300a3b5-873c-4911-689f-cd3ab2d9d7e4@linux.microsoft.com>
-Date: Fri, 23 Jan 2026 18:27:34 -0800
+	dkim=pass (2048-bit key) header.d=gmx.de header.i=svenjoac@gmx.de header.b="c6TcB37a"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=gmx.de;
+	s=s31663417; t=1769256298; x=1769861098; i=svenjoac@gmx.de;
+	bh=+PJwupJ3jmzry11XtyInCSt3rZ3u2ecLDqkyHEXPHrI=;
+	h=X-UI-Sender-Class:From:To:Cc:Subject:In-Reply-To:References:Date:
+	 Message-ID:MIME-Version:Content-Type:Content-Transfer-Encoding:cc:
+	 content-transfer-encoding:content-type:date:from:message-id:
+	 mime-version:reply-to:subject:to;
+	b=c6TcB37az/doU8M9NmNE6xvFSuvVOTVwrEmEmPtekPXd/FV7C9bwAeNsZ3xBdQ3h
+	 Md9l2MVjG9LcpY00a/4hpGE2VJlasRHmo56r6Zx+ns40MvzORnJpyYlGeOFCh6+Pe
+	 y/za/RoFNgx/Y4A34NCfsXDuKQG2ixfjmKK9C2kGRyO5Sy1R/0drIcUK+QSxls9Dp
+	 DKUTIEwmoYadBCwZ/B9kJHoV3TY75xlO2vTgsAkWRet/qMGczQRZnGl1mJ/J90GzI
+	 uauDJSac26MuCelqRHiEmJbzyQHYQmllYV3NSem1v2HBE2evK3tQOpaVdH/o5YEaE
+	 06KEjXzmSenAJfNFUQ==
+X-UI-Sender-Class: 724b4f7f-cbec-4199-ad4e-598c01a50d3a
+Received: from localhost.localdomain ([87.145.214.198]) by mail.gmx.net
+ (mrgmx105 [212.227.17.168]) with ESMTPSA (Nemesis) id
+ 1N7zBb-1voivx0aQN-010cQN; Sat, 24 Jan 2026 13:04:58 +0100
+Received: by localhost.localdomain (Postfix, from userid 1000)
+	id 491D780087; Sat, 24 Jan 2026 13:04:56 +0100 (CET)
+From: Sven Joachim <svenjoac@gmx.de>
+To: Josh Poimboeuf <jpoimboe@kernel.org>
+Cc: Sebastian Andrzej Siewior <bigeasy@linutronix.de>,  Matthias Klose
+ <doko@debian.org>,  linux-arch@vger.kernel.org,
+  linux-kernel@vger.kernel.org,  linux-kbuild@vger.kernel.org,  Arnd
+ Bergmann <arnd@arndb.de>,  Peter Zijlstra <peterz@infradead.org>,  Nathan
+ Chancellor <nathan@kernel.org>,  Nicolas Schier
+ <nicolas.schier@linux.dev>,  Binutils <binutils@sourceware.org>,  Steven
+ Rostedt <rostedt@goodmis.org>
+Subject: Re: [RFC] Don't create sframes during build
+In-Reply-To: <jdw2iyr2dd6fzasbiwbzsaqohbi46hwd7wb3ze6qhztje2b6ld@qnween3ajj5e>
+	(Josh Poimboeuf's message of "Thu, 4 Sep 2025 10:14:09 -0700")
+References: <20250904131835.sfcG19NV@linutronix.de>
+	<b3db475e-e84d-4056-9420-bc0acc8b9fe5@debian.org>
+	<20250904163404.QMU7nfbA@linutronix.de>
+	<jdw2iyr2dd6fzasbiwbzsaqohbi46hwd7wb3ze6qhztje2b6ld@qnween3ajj5e>
+Date: Sat, 24 Jan 2026 13:04:56 +0100
+Message-ID: <87343vdxnb.fsf@turtle.gmx.de>
+User-Agent: Gnus/5.13 (Gnus v5.13)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v0 00/15] PCI passthru on Hyper-V (Part I)
-Content-Language: en-US
-To: Jacob Pan <jacob.pan@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
- linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, kys@microsoft.com,
- haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
- longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org,
- tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
- dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
- lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
- robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
- nunodasneves@linux.microsoft.com, mhklinux@outlook.com
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120134933.00004f2a@linux.microsoft.com>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <20260120134933.00004f2a@linux.microsoft.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+X-Provags-ID: V03:K1:sIuBcAc81apZF9GxbyUD9V9l6W3lubT2aqLbHx9wYbVoscjBvMD
+ tE185AX4BrEAwpufYxM2Xvv70A07d60ib/TJer+fYc2t33ULhlClFwifr03vQRpvnp58x0F
+ Cc0h9fLCBSomXQbjdJraCkaIDrkS9F24PieWs6ty5EIV1Q3/24dZ/OVebsPJ3HvWjBbuLfp
+ WyEtT4aR6iCYNtZQmLYPA==
+X-Spam-Flag: NO
+UI-OutboundReport: notjunk:1;M01:P0:9Q7wO8xADcU=;2L71d+jrx6Vwkipi4lneBtxn4Za
+ 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
+ NLinLTCf6IsQFA8GgdcldPfZGGRR7
 
-On 1/20/26 13:50, Jacob Pan wrote:
-> Hi Mukesh,
-> 
-> On Mon, 19 Jan 2026 22:42:15 -0800
-> Mukesh R <mrathor@linux.microsoft.com> wrote:
-> 
->> From: Mukesh Rathor <mrathor@linux.microsoft.com>
->>
->> Implement passthru of PCI devices to unprivileged virtual machines
->> (VMs) when Linux is running as a privileged VM on Microsoft Hyper-V
->> hypervisor. This support is made to fit within the workings of VFIO
->> framework, and any VMM needing to use it must use the VFIO subsystem.
->> This supports both full device passthru and SR-IOV based VFs.
->>
->> There are 3 cases where Linux can run as a privileged VM (aka MSHV):
->>    Baremetal root (meaning Hyper-V+Linux), L1VH, and Nested.
->>
-> I think some introduction/background to L1VH would help.
+On 2025-09-04 10:14 -0700, Josh Poimboeuf wrote:
 
-Ok, i can add something, but l1vh was very well introduced if you
-search the mshv commits for "l1vh".
+> On Thu, Sep 04, 2025 at 06:34:04PM +0200, Sebastian Andrzej Siewior wrote:
+>> On 2025-09-04 16:02:42 [+0200], Matthias Klose wrote:
+>> > [ CCing binutils@sourceware.org ]
+>> >=20
+>> > On 9/4/25 15:18, Sebastian Andrzej Siewior wrote:
+>> > > Hi,
+>> > >=20
+>> > > gcc in Debian, starting with 15.2.0-2, 14.3.0-6 enables sframe
+>> > > generation. Unless options like -ffreestanding are passed. Since this
+>> > > isn't done, there are a few warnings during compile
+>> >=20
+>> > If there are other options when sframe shouldn't be enabled, please te=
+ll.
+>>=20
+>> No, I think this is okay.
+>>=20
+>> =E2=80=A6
+>> > > We could drop the sframe during the final link but this does not get=
+ rid
+>> > > of the objtool warnings so we would have to ignore them. But we don't
+>> > > need it. So what about the following:
+>> > >=20
+>> > > diff --git a/Makefile b/Makefile
+>> > > --- a/Makefile
+>> > > +++ b/Makefile
+>> > > @@ -886,6 +886,8 @@ ifdef CONFIG_CC_IS_GCC
+>> > >   KBUILD_CFLAGS	+=3D $(call cc-option,--param=3Dallow-store-data-rac=
+es=3D0)
+>> > >   KBUILD_CFLAGS	+=3D $(call cc-option,-fno-allow-store-data-races)
+>> > >   endif
+>> > > +# No sframe generation for kernel if enabled by default
+>> > > +KBUILD_CFLAGS	+=3D $(call cc-option,-Xassembler --gsframe=3Dno)
+>> > >   ifdef CONFIG_READABLE_ASM
+>> > >   # Disable optimizations that make assembler listings hard to read.
+>> > This is what I chose for package builds that need disablement of sfram=
+e.
+>>=20
+>> I think this would work for now. Longterm we would have to allow sframe
+>> creation and keep section if an architecture decides to use it for its
+>> backtracing. While orc seems fine on x86, there are arm64 patches to use
+>> for as a stack unwinder.
+>
+> This is probably fine, but... how does this interact with other kernel
+> makefiles enabling sframe?  For example, x86 will soon have a patch to
+> enable sframe generation for vdso.  And as you mentioned, arm64 will
+> enable it kernel-wide.
+>
+> Removing the objtool !ENDBR warnings would be trivial (and is a good
+> thing to do regardless).
 
->> At a high level, the hypervisor supports traditional mapped iommu
->> domains that use explicit map and unmap hypercalls for mapping and
->> unmapping guest RAM into the iommu subsystem.
-> It may be clearer to state that the hypervisor supports Linux IOMMU
-> paging domains through map/unmap hypercalls, mapping GPAs to HPAs using
-> stage?2 I/O page tables.
+What is the status of sframe support in the kernel?  With current
+binutils (version 2.45.50.20260119-1) from Debian I could not build
+Linux 6.18.7:
 
-sure.
+,----
+| # LD      arch/x86/boot/compressed/vmlinux
+|   ld -m elf_x86_64 --no-ld-generated-unwind-info  -pie  --no-dynamic-link=
+er --orphan-handling=3Derror -z noexecstack --no-warn-rwx-segments -T arch/=
+x86/boot/compressed/vmlinux.lds arch/x86/boot/compressed/kernel_info.o arch=
+/x86/boot/compressed/head_64.o arch/x86/boot/compressed/misc.o arch/x86/boo=
+t/compressed/string.o arch/x86/boot/compressed/cmdline.o arch/x86/boot/comp=
+ressed/error.o arch/x86/boot/compressed/piggy.o arch/x86/boot/compressed/cp=
+uflags.o arch/x86/boot/compressed/early_serial_console.o arch/x86/boot/comp=
+ressed/kaslr.o arch/x86/boot/compressed/ident_map_64.o arch/x86/boot/compre=
+ssed/idt_64.o arch/x86/boot/compressed/idt_handlers_64.o arch/x86/boot/comp=
+ressed/pgtable_64.o arch/x86/boot/compressed/acpi.o arch/x86/boot/startup/l=
+ib.a -o arch/x86/boot/compressed/vmlinux
+| /usr/bin/x86_64-linux-gnu-ld.bfd: error: unplaced orphan section `.sframe=
+' from `arch/x86/boot/compressed/kernel_info.o'
+| /usr/bin/x86_64-linux-gnu-ld.bfd: error: unplaced orphan section `.sframe=
+' from `arch/x86/boot/compressed/kernel_info.o'
+| make[6]: *** [arch/x86/boot/compressed/Makefile:116: arch/x86/boot/compre=
+ssed/vmlinux] Error 1
+| make[5]: *** [arch/x86/boot/Makefile:96: arch/x86/boot/compressed/vmlinux=
+] Error 2
+`----
 
->> Hyper-V also has a
->> concept of direct attach devices whereby the iommu subsystem simply
->> uses the guest HW page table (ept/npt/..). This series adds support
->> for both, and both are made to work in VFIO type1 subsystem.
->>
-> This may warrant introducing a new IOMMU domain feature flag, as it
-> performs mappings but does not support map/unmap semantics in the same
-> way as a paging domain.
+Did not test mainline yet, but "git log --grep=3Dsframe master" does not
+show anything interesting.
 
-Yeah, I was hoping we can get by for now without it. At least in case of
-the cloud hypervisor, entire guest ram is mapped anyways. We can document
-it and work on enhancements which are much easier once we have a baseline.
-For now, it's a paging domain will all pages pinned.. :).
-
->> While this Part I focuses on memory mappings, upcoming Part II
->> will focus on irq bypass along with some minor irq remapping
->> updates.
->>
->> This patch series was tested using Cloud Hypervisor verion 48. Qemu
->> support of MSHV is in the works, and that will be extended to include
->> PCI passthru and SR-IOV support also in near future.
->>
->> Based on: 8f0b4cce4481 (origin/hyperv-next)
->>
->> Thanks,
->> -Mukesh
->>
->> Mukesh Rathor (15):
->>    iommu/hyperv: rename hyperv-iommu.c to hyperv-irq.c
->>    x86/hyperv: cosmetic changes in irqdomain.c for readability
->>    x86/hyperv: add insufficient memory support in irqdomain.c
->>    mshv: Provide a way to get partition id if running in a VMM process
->>    mshv: Declarations and definitions for VFIO-MSHV bridge device
->>    mshv: Implement mshv bridge device for VFIO
->>    mshv: Add ioctl support for MSHV-VFIO bridge device
->>    PCI: hv: rename hv_compose_msi_msg to hv_vmbus_compose_msi_msg
->>    mshv: Import data structs around device domains and irq remapping
->>    PCI: hv: Build device id for a VMBus device
->>    x86/hyperv: Build logical device ids for PCI passthru hcalls
->>    x86/hyperv: Implement hyperv virtual iommu
->>    x86/hyperv: Basic interrupt support for direct attached devices
->>    mshv: Remove mapping of mmio space during map user ioctl
->>    mshv: Populate mmio mappings for PCI passthru
->>
->>   MAINTAINERS                         |    1 +
->>   arch/arm64/include/asm/mshyperv.h   |   15 +
->>   arch/x86/hyperv/irqdomain.c         |  314 ++++++---
->>   arch/x86/include/asm/mshyperv.h     |   21 +
->>   arch/x86/kernel/pci-dma.c           |    2 +
->>   drivers/hv/Makefile                 |    3 +-
->>   drivers/hv/mshv_root.h              |   24 +
->>   drivers/hv/mshv_root_main.c         |  296 +++++++-
->>   drivers/hv/mshv_vfio.c              |  210 ++++++
->>   drivers/iommu/Kconfig               |    1 +
->>   drivers/iommu/Makefile              |    2 +-
->>   drivers/iommu/hyperv-iommu.c        | 1004
->> +++++++++++++++++++++------ drivers/iommu/hyperv-irq.c          |
->> 330 +++++++++ drivers/pci/controller/pci-hyperv.c |  207 ++++--
->>   include/asm-generic/mshyperv.h      |    1 +
->>   include/hyperv/hvgdk_mini.h         |   11 +
->>   include/hyperv/hvhdk_mini.h         |  112 +++
->>   include/linux/hyperv.h              |    6 +
->>   include/uapi/linux/mshv.h           |   31 +
->>   19 files changed, 2182 insertions(+), 409 deletions(-)
->>   create mode 100644 drivers/hv/mshv_vfio.c
->>   create mode 100644 drivers/iommu/hyperv-irq.c
->>
-
+Cheers,
+       Sven
