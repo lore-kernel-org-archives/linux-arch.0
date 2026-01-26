@@ -1,157 +1,338 @@
-Received: from mail-yx1-f49.google.com (mail-yx1-f49.google.com [74.125.224.49])
+Received: from mail-dy1-f195.google.com (mail-dy1-f195.google.com [74.125.82.195])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16B70286A4
-	for <linux-arch@vger.kernel.org>; Mon, 26 Jan 2026 18:45:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6316F2D73BD
+	for <linux-arch@vger.kernel.org>; Mon, 26 Jan 2026 20:40:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.195
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769453126; cv=none; b=Rv51XabSyFX7qMJTmYIZdp7rKZb7amqqO+Dteb58+rdRxqwUvNf0/WR0EgLLQfsAXg0pq2b7zZwXtS1Cj6PZ434KrTIm63aBIFHrj9Bzdmjj4fuwokW5MaFmyFUmayFKbwk5K+YDQCP/00AIzCnE5tHPchdk295AXlqqqdaf4mw=
+	t=1769460035; cv=none; b=qVVf0mMQVOfMU9xwA05wfdplvvWZl+rpD1v3F0jsY3I0aH5ehskSBStl3UYpgY/guiuhewmLs5YwrLdth75//WKKD+msexIkAB5wBIg9WZE1xRWsyVzdaWLtgn9G4uj5STTgUOphNw+MSeVjvxWBPuGrKAIed+bWbAKdGiLb3XI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769453126; c=relaxed/simple;
-	bh=idn99UPqC0nF9uZDjKf0+iVfU/oqm91JSUXz9Edt4Tw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=QtZ5EkoCUC25g2NmZg3eHF/S+Z5DVUcLj9bO36BkfES4RVZCYfgmq67VM1+H7X9CIEfLOSybsIv8alhyWt5etnW8YyM0z2wN6UR2zj3znNqybFAQjicx8hqNxrONM9uBgjBoOyZeMDwN2hK5SYjChy2TmfMT0JZKE4+VDMtho+o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=eXrxGeME; arc=none smtp.client-ip=74.125.224.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1769460035; c=relaxed/simple;
+	bh=aoGpvrsYD8w5a452qvKD8qfj7v0SBwYk6GvPHlbXAj4=;
+	h=Date:From:To:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=rWltkHIf2ZklUeT6QBMbJfZt6vDuyQly/zZwJggKyKeneYlalgpf+s55XU0yqVybH9Skw/iYOpNh0uwVrgPqO1iaYCWhi2B5Gg+OHbEkC0B7ZM+OiWfhC7Pcy07GDw1CjrPtkR/XqIbxCH+rvNSNdA/79VmZ99As5h2HtAgd97c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com; spf=pass smtp.mailfrom=rivosinc.com; dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b=M9u6mR3/; arc=none smtp.client-ip=74.125.82.195
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rivosinc.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=rivosinc.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="eXrxGeME"
-Received: by mail-yx1-f49.google.com with SMTP id 956f58d0204a3-649523df010so4288800d50.0
-        for <linux-arch@vger.kernel.org>; Mon, 26 Jan 2026 10:45:24 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=rivosinc.com header.i=@rivosinc.com header.b="M9u6mR3/"
+Received: by mail-dy1-f195.google.com with SMTP id 5a478bee46e88-2b74f839bdfso1544693eec.1
+        for <linux-arch@vger.kernel.org>; Mon, 26 Jan 2026 12:40:32 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1769453124; x=1770057924; darn=vger.kernel.org;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:from:to
-         :cc:subject:date:message-id:reply-to;
-        bh=LzUUHM37iqxpGKoml5d9xTIQ0EByiMn/P+sNGyQg1IY=;
-        b=eXrxGeMEXsjtWZ7u4xag9aNbizPGsfEfHTeHM2cN9OQjuh6B498ItE+xKomXNtnBRB
-         Oyt+/FtSaAseuhh3ByClTKY0G4OJ+oo8qPRSlf+rFJqluiLnKrLW5NdVbJnZP8PZwGP7
-         zX+RbnjSR9TtLFlcy5FzIkEdINbkCY2XllR/v8c1OaByJVEiljsZdF/rvufl1q4y0XOO
-         7s2k1RNRF90F18kXWUZ0mzGP7zdNpSceOafOnc754kGut2cCB5NdnfrnGxf8aJl+Icqc
-         5v87V4AiIAhlh4vIPVdMyyfQtCJpeEdkv5szcBofZeYMMjcaZUOVyUfOf5nRtLGxuZ8j
-         cDbA==
+        d=rivosinc.com; s=google; t=1769460031; x=1770064831; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=EUBpOm0QvKE2389W2MiwDwXvLMg/CnIs37/EZYwRaJU=;
+        b=M9u6mR3/aNK8BZmBX78WRAbvwN6YX+AmG7e/U+MCt8zXKX1hABGR7GOGFerBOXgjZX
+         77/CVaYNuKSne6efVmMpmK+r+QQdDY2SzRWBMaogGde05d4ZyQmWmMfdavW7+M1fSmdl
+         g0F4nSB2D+NWEb7n4HSJOZUTbT0PrY/zD5giiSQns9V4Cuu4eWsyymBYrq0D8CxWDXY8
+         eaDPWrkOwbiB0Iukb/pte+2ncblEALdrNUbm7ImZktGVZjzquWfB/mhaCPL29vnyAWQm
+         v3nRGDzCeYlc3rShPpFbmwuZAPuk/xNUCrv7u4OmGEtpPAJPyhY3ABcNashxgffl+32X
+         2niw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769453124; x=1770057924;
-        h=in-reply-to:content-transfer-encoding:content-disposition
-         :mime-version:references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=LzUUHM37iqxpGKoml5d9xTIQ0EByiMn/P+sNGyQg1IY=;
-        b=nhIDfL8d3ZDqoeMXFTVe9ku5STZp3u+ficqGDDNlhPxvkgBian4bk3srfyUnMDbKJn
-         LHlWYbHq8mDNudX+ORqwBecAbYfxpApLZ8OTznMRmMRflp+6SoptH4Wqu8PMpOE43J8B
-         kT7h0fMS6KsXbyadFlI6VjaHbH0TGwT5CYfhR07mGJzaYyCx3s9+BCvTFl0XVsD3PA3f
-         Gh2X+7ahfl90oDgyJWQi8YG7njRTe4t3IAtJ0CRkYPFKevXQqdzYDNAhAw7yaML3fdRP
-         sIjKufgefiRrifDcrDCM/pmaEYn6KmPSjoLyHUvvVjNldAWBmfbIfgSUfxD/eI8f0WmR
-         MQuw==
-X-Forwarded-Encrypted: i=1; AJvYcCWOss0/6OIClZB2kNWdSBJAhGzgvAjwtZ4hV7joJzP29Y+L9FYybXthN7/0m+GO3s0GfpvfT9GqecyE@vger.kernel.org
-X-Gm-Message-State: AOJu0YwbE4rRIRC2YLTDP6cn9XfrOODfZAymjm4TWkWQ/5vDFLMgxjUy
-	/wV8oHiKOx/woYnq6sFfdyTT5MH9e7hmuLgFf6OhyoOce6/JydmsC0FV
-X-Gm-Gg: AZuq6aJURt35fFtg8A8gSCU2VJZ9OTeU5/hVzsXwJaEGilOdN/uMBAEdkcJuYqqnpXh
-	+rOqTv4qTzUnQZZYQgVou0B/kSrMbIt+N/GqQw6sC9TbZOl4ayFPAZSAfgV+BpE+JI8aekG2QHV
-	3wk10Gf/cRlbOWBVdEUQfd7taDA5c05cV5i+PJEToWH97tbaPAKM5AIsnYmIsmEBSVibqQvxFiy
-	GBh4sqnlhxvjDjfFI1IZL5P+XMOjkH9FoF3nW4osQVkPOe+eHhjL5AGIVunZjSg3Zmu+xfBp0eq
-	vn8GjNPcNye+ui2Cpm+lBnpbzhN+RkGy6y4IcgvWCk88I6j6PgQ4ct4ROAGg68V+UxWMB43cY8a
-	vKsQjwgGDgkZIC9zd4ULvwRVCYVCrv2NryHeK9e6cT9CHtmcQ9kzedBTEk8VbkrlKoFCOFwOPF5
-	QSyb9oGSsZl5crxTjvUL20eUOKRqDkp1oykQ==
-X-Received: by 2002:a05:690e:11ce:b0:635:4ecd:5fcc with SMTP id 956f58d0204a3-64970c03363mr4264419d50.41.1769453124075;
-        Mon, 26 Jan 2026 10:45:24 -0800 (PST)
-Received: from devvm11784.nha0.facebook.com ([2a03:2880:25ff:3::])
-        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-6495ce752f2sm5613399d50.1.2026.01.26.10.45.23
+        d=1e100.net; s=20230601; t=1769460031; x=1770064831;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=EUBpOm0QvKE2389W2MiwDwXvLMg/CnIs37/EZYwRaJU=;
+        b=EhFhs3UWzL4hX8zIjKofqYpWttgw26whXZNJPZ1nuOox1DcMCXH2XZx9Nr4FGR0nMm
+         ZUAGbEunPbJYCVCPmml6Bz9ZajFN0Xa+TvQaELmt492q3VpicSQZeT9j35QGusGtweHK
+         rJ5EfdtZpX5lSZnGegtNR+rvtqcmWXpZRHJnbRukwOVlR0CN2hFGt/i+6eBnjTpz5/py
+         7HFHghGQYyVouHZaWp3RQ1JKE4cLIaOnOIpAoUmVIZiLAQoOKQruNdrmGwoPYwmfp59S
+         vzpi7IdZ5iT0/Pd0enMSBcrszlAejJEgVvGAC6cOWV/dW+9xEPDi/q97qOtU8/5swUlC
+         i8tg==
+X-Forwarded-Encrypted: i=1; AJvYcCUBSCudUf/yVD4oR8cnZqTT8MAg+TyGbkY3XySTS19Zvw5XjRx5qSRjJq+/yUR72YBqN4lLRfAXi7YP@vger.kernel.org
+X-Gm-Message-State: AOJu0YzLjg0l0jg8zf54B9pqGjR9lfsn3gOAwS1wKDvUZvF2bhMJgs0e
+	FZGHmK4GH0EP9ypjBYVJKSs23Cy1fyldhK2yyfSh+uPLDflhDcTTf04GuarXURxrjcs=
+X-Gm-Gg: AZuq6aIevEe8pBCOdaIBFpoOaJIOOwnln5L7UISpRzPoPaYIiKd3PwUF5TeTWnJgzAe
+	LxosjhpdssWJk3AU3enS7oybufaOB43O4I011NuWcbbU95bxedga8iCS+zM68/wqhossMZY541R
+	3uOtcK51JIHlHvTrhy7W7PxrsGDEWU54QOrx8Xa4m1EGE3XBhUXRoUt0i2TK1lRPdIH4hqORwhC
+	Kh1+Ht4g0hkCBXHiqxzuc89S7SWsG4q2MzX3qdOoQJDuauBqtG0p/JbOY6t5rOmgrU1yRooRYnC
+	z7yM0yD6aoPwIAJy76JCJ1GllgX/+0Hp7oKrbyt0j+w2GIrUN4yaaM0ugmSvmWDGi6tiSD5Uf+T
+	/GvyecwZONHtObXaenjUFOZLwsgNVmpgSnfgiZ6gQZ9YIKFT5FmG9DXzsIWuLs4+g2ntxE22hti
+	bE9kiCmnyXzSoduyvvUCms6WMQ3eSRExc=
+X-Received: by 2002:a05:693c:6218:b0:2ae:5a2e:de70 with SMTP id 5a478bee46e88-2b7638d6573mr2604064eec.8.1769460031398;
+        Mon, 26 Jan 2026 12:40:31 -0800 (PST)
+Received: from debug.ba.rivosinc.com ([64.71.180.162])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-2b73aa03fd0sm15037214eec.23.2026.01.26.12.40.29
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 26 Jan 2026 10:45:23 -0800 (PST)
-Date: Mon, 26 Jan 2026 10:45:22 -0800
-From: Bobby Eshleman <bobbyeshleman@gmail.com>
-To: Mina Almasry <almasrymina@google.com>
-Cc: Jakub Kicinski <kuba@kernel.org>,
-	"David S. Miller" <davem@davemloft.net>,
-	Eric Dumazet <edumazet@google.com>, Paolo Abeni <pabeni@redhat.com>,
-	Simon Horman <horms@kernel.org>,
-	Kuniyuki Iwashima <kuniyu@google.com>,
-	Willem de Bruijn <willemb@google.com>,
-	Neal Cardwell <ncardwell@google.com>,
-	David Ahern <dsahern@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Andrew Lunn <andrew+netdev@lunn.ch>, Shuah Khan <shuah@kernel.org>,
-	Donald Hunter <donald.hunter@gmail.com>,
-	Stanislav Fomichev <sdf@fomichev.me>, netdev@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org,
-	asml.silence@gmail.com, matttbe@kernel.org, skhawaja@google.com,
-	Bobby Eshleman <bobbyeshleman@meta.com>
-Subject: Re: [PATCH net-next v10 0/5] net: devmem: improve cpu cost of RX
- token management
-Message-ID: <aXe2QhzL4DoVbesQ@devvm11784.nha0.facebook.com>
-References: <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-0-686d0af71978@meta.com>
- <20260120170749.101e8bcc@kernel.org>
- <CAHS8izMZxM6rcF+7Lfw=KFv4dmbHGSUrQBPmxO+sYj=V3TRuwQ@mail.gmail.com>
+        Mon, 26 Jan 2026 12:40:30 -0800 (PST)
+Date: Mon, 26 Jan 2026 12:40:28 -0800
+From: Deepak Gupta <debug@rivosinc.com>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>,
+	Vlastimil Babka <vbabka@suse.cz>,
+	Lorenzo Stoakes <lorenzo.stoakes@oracle.com>,
+	Paul Walmsley <paul.walmsley@sifive.com>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Conor Dooley <conor@kernel.org>,
+	Rob Herring <robh@kernel.org>,
+	Krzysztof Kozlowski <krzk+dt@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Christian Brauner <brauner@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Eric Biederman <ebiederm@xmission.com>, Kees Cook <kees@kernel.org>,
+	Jonathan Corbet <corbet@lwn.net>, Shuah Khan <shuah@kernel.org>,
+	Jann Horn <jannh@google.com>, Conor Dooley <conor+dt@kernel.org>,
+	Miguel Ojeda <ojeda@kernel.org>,
+	Alex Gaynor <alex.gaynor@gmail.com>,
+	Boqun Feng <boqun.feng@gmail.com>, Gary Guo <gary@garyguo.net>,
+	=?iso-8859-1?Q?Bj=F6rn?= Roy Baron <bjorn3_gh@protonmail.com>,
+	Andreas Hindborg <a.hindborg@kernel.org>,
+	Alice Ryhl <aliceryhl@google.com>, Trevor Gross <tmgross@umich.edu>,
+	Benno Lossin <lossin@kernel.org>, linux-kernel@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org, linux-mm@kvack.org,
+	linux-riscv@lists.infradead.org, devicetree@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-doc@vger.kernel.org,
+	linux-kselftest@vger.kernel.org, alistair.francis@wdc.com,
+	richard.henderson@linaro.org, jim.shu@sifive.com,
+	andybnac@gmail.com, kito.cheng@sifive.com, charlie@rivosinc.com,
+	atishp@rivosinc.com, evan@rivosinc.com, cleger@rivosinc.com,
+	alexghiti@rivosinc.com, samitolvanen@google.com, broonie@kernel.org,
+	rick.p.edgecombe@intel.com, rust-for-linux@vger.kernel.org,
+	Zong Li <zong.li@sifive.com>,
+	Andreas Korb <andreas.korb@aisec.fraunhofer.de>,
+	Valentin Haudiquet <valentin.haudiquet@canonical.com>
+Subject: Re: [PATCH v26 10/28] riscv/mm: Implement map_shadow_stack() syscall
+Message-ID: <aXfRPJvoSsOW8AwM@debug.ba.rivosinc.com>
+References: <20251211-v5_user_cfi_series-v26-0-f0f419e81ac0@rivosinc.com>
+ <20251211-v5_user_cfi_series-v26-10-f0f419e81ac0@rivosinc.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAHS8izMZxM6rcF+7Lfw=KFv4dmbHGSUrQBPmxO+sYj=V3TRuwQ@mail.gmail.com>
+In-Reply-To: <20251211-v5_user_cfi_series-v26-10-f0f419e81ac0@rivosinc.com>
 
-On Wed, Jan 21, 2026 at 08:21:36PM -0800, Mina Almasry wrote:
-> On Tue, Jan 20, 2026 at 5:07 PM Jakub Kicinski <kuba@kernel.org> wrote:
-> >
-> > On Thu, 15 Jan 2026 21:02:11 -0800 Bobby Eshleman wrote:
-> > > This series improves the CPU cost of RX token management by adding an
-> > > attribute to NETDEV_CMD_BIND_RX that configures sockets using the
-> > > binding to avoid the xarray allocator and instead use a per-binding niov
-> > > array and a uref field in niov.
-> > >
-> > > Improvement is ~13% cpu util per RX user thread.
-> > >
-> > > Using kperf, the following results were observed:
-> > >
-> > > Before:
-> > >       Average RX worker idle %: 13.13, flows 4, test runs 11
-> > > After:
-> > >       Average RX worker idle %: 26.32, flows 4, test runs 11
-> > >
-> > > Two other approaches were tested, but with no improvement. Namely, 1)
-> > > using a hashmap for tokens and 2) keeping an xarray of atomic counters
-> > > but using RCU so that the hotpath could be mostly lockless. Neither of
-> > > these approaches proved better than the simple array in terms of CPU.
-> > >
-> > > The attribute NETDEV_A_DMABUF_AUTORELEASE is added to toggle the
-> > > optimization. It is an optional attribute and defaults to 0 (i.e.,
-> > > optimization on).
-> >
-> > IDK if the cmsg approach is still right for this flow TBH.
-> > IIRC when Stan talked about this a while back we were considering doing
-> > this via Netlink. Anything that proves that the user owns the binding
-> > would work. IIUC the TCP socket in this design just proves that socket
-> > has received a token from a given binding right?
-> 
-> Doesn't 'doing this via netlink' imply it's a control path operation
-> that acquires rtnl_lock or netdev_lock or some heavy lock expecting
-> you to do some config change? Returning tokens is a data-path
-> operation, IIRC we don't even lock the socket to do it in the
-> setsockopt.
-> 
-> Is there precedent/path to doing fast data-path operations via netlink?
-> There may be value in not biting more than we can chew in one series.
-> Maybe an alternative non-setsockopt dontneeding scheme should be its
-> own patch series.
-> 
+Hi Paul/Zong,
 
-I'm onboard with improving what we have since it helps all of us
-currently using this API, though I'm not opposed to discussing a
-redesign in another thread/RFC. I do see the attraction to locating the
-core logic in one place and possibly reducing some complexity around
-socket/binding relationships.
+Can you apply following diff on `allocate_shadow_stack` function in this patch.
+This fixes the bug that I earlier mentioned. We shouldn't be returning location
+to token and instead return base address of shadow stack. Userspace consumer
+should be determining token location itself. This matches the ABI of other
+arches. Sorry for being late on this.
 
-FWIW regarding nl, I do see it supports rtnl lock-free operations via
-'62256f98f244 rtnetlink: add RTNL_FLAG_DOIT_UNLOCKED' and routing was
-recently made lockless with that. I don't see / know of any fast path
-precedent. I'm aware there are some things I'm not sure about being
-relevant performance-wise, like hitting skb alloc an additional time
-every release batch. I'd want to do some minimal latency comparisons
-between that path and sockopt before diving head-first.
+diff --git a/arch/riscv/kernel/usercfi.c b/arch/riscv/kernel/usercfi.c
+index 27b36034ea85..a8530e6afb1e 100644
+--- a/arch/riscv/kernel/usercfi.c
++++ b/arch/riscv/kernel/usercfi.c
+@@ -232,7 +232,7 @@ static unsigned long allocate_shadow_stack(unsigned long addr, unsigned long siz
+  {
+         int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+         struct mm_struct *mm = current->mm;
+-       unsigned long populate, tok_loc = 0;
++       unsigned long populate;
 
-Best,
-Bobby
+         if (addr)
+                 flags |= MAP_FIXED_NOREPLACE;
+@@ -245,13 +245,11 @@ static unsigned long allocate_shadow_stack(unsigned long addr, unsigned long siz
+         if (!set_tok || IS_ERR_VALUE(addr))
+                 goto out;
+
+-       if (create_rstor_token(addr + token_offset, &tok_loc)) {
++       if (create_rstor_token(addr + token_offset, NULL)) {
+                 vm_munmap(addr, size);
+                 return -EINVAL;
+         }
+
+-       addr = tok_loc;
+-
+  out:
+         return addr;
+  }
+
+On Thu, Dec 11, 2025 at 09:20:43AM -0800, Deepak Gupta via B4 Relay wrote:
+>From: Deepak Gupta <debug@rivosinc.com>
+>
+>As discussed extensively in the changelog for the addition of this
+>syscall on x86 ("x86/shstk: Introduce map_shadow_stack syscall") the
+>existing mmap() and madvise() syscalls do not map entirely well onto the
+>security requirements for shadow stack memory since they lead to windows
+>where memory is allocated but not yet protected or stacks which are not
+>properly and safely initialised. Instead a new syscall map_shadow_stack()
+>has been defined which allocates and initialises a shadow stack page.
+>
+>This patch implements this syscall for riscv. riscv doesn't require token
+>to be setup by kernel because user mode can do that by itself. However to
+>provide compatibility and portability with other architectues, user mode
+>can specify token set flag.
+>
+>Reviewed-by: Zong Li <zong.li@sifive.com>
+>Tested-by: Andreas Korb <andreas.korb@aisec.fraunhofer.de>
+>Tested-by: Valentin Haudiquet <valentin.haudiquet@canonical.com>
+>Signed-off-by: Deepak Gupta <debug@rivosinc.com>
+>---
+> arch/riscv/kernel/Makefile  |   1 +
+> arch/riscv/kernel/usercfi.c | 142 ++++++++++++++++++++++++++++++++++++++++++++
+> 2 files changed, 143 insertions(+)
+>
+>diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
+>index f60fce69b725..2d0e0dcedbd3 100644
+>--- a/arch/riscv/kernel/Makefile
+>+++ b/arch/riscv/kernel/Makefile
+>@@ -125,3 +125,4 @@ obj-$(CONFIG_ACPI)		+= acpi.o
+> obj-$(CONFIG_ACPI_NUMA)	+= acpi_numa.o
+>
+> obj-$(CONFIG_GENERIC_CPU_VULNERABILITIES) += bugs.o
+>+obj-$(CONFIG_RISCV_USER_CFI) += usercfi.o
+>diff --git a/arch/riscv/kernel/usercfi.c b/arch/riscv/kernel/usercfi.c
+>new file mode 100644
+>index 000000000000..251c3faccbf8
+>--- /dev/null
+>+++ b/arch/riscv/kernel/usercfi.c
+>@@ -0,0 +1,142 @@
+>+// SPDX-License-Identifier: GPL-2.0
+>+/*
+>+ * Copyright (C) 2024 Rivos, Inc.
+>+ * Deepak Gupta <debug@rivosinc.com>
+>+ */
+>+
+>+#include <linux/sched.h>
+>+#include <linux/bitops.h>
+>+#include <linux/types.h>
+>+#include <linux/mm.h>
+>+#include <linux/mman.h>
+>+#include <linux/uaccess.h>
+>+#include <linux/sizes.h>
+>+#include <linux/user.h>
+>+#include <linux/syscalls.h>
+>+#include <linux/prctl.h>
+>+#include <asm/csr.h>
+>+#include <asm/usercfi.h>
+>+
+>+#define SHSTK_ENTRY_SIZE sizeof(void *)
+>+
+>+/*
+>+ * Writes on shadow stack can either be `sspush` or `ssamoswap`. `sspush` can happen
+>+ * implicitly on current shadow stack pointed to by CSR_SSP. `ssamoswap` takes pointer to
+>+ * shadow stack. To keep it simple, we plan to use `ssamoswap` to perform writes on shadow
+>+ * stack.
+>+ */
+>+static noinline unsigned long amo_user_shstk(unsigned long *addr, unsigned long val)
+>+{
+>+	/*
+>+	 * Never expect -1 on shadow stack. Expect return addresses and zero
+>+	 */
+>+	unsigned long swap = -1;
+>+
+>+	__enable_user_access();
+>+	asm goto(".option push\n"
+>+		".option arch, +zicfiss\n"
+>+		"1: ssamoswap.d %[swap], %[val], %[addr]\n"
+>+		_ASM_EXTABLE(1b, %l[fault])
+>+		".option pop\n"
+>+		: [swap] "=r" (swap), [addr] "+A" (*addr)
+>+		: [val] "r" (val)
+>+		: "memory"
+>+		: fault
+>+		);
+>+	__disable_user_access();
+>+	return swap;
+>+fault:
+>+	__disable_user_access();
+>+	return -1;
+>+}
+>+
+>+/*
+>+ * Create a restore token on the shadow stack.  A token is always XLEN wide
+>+ * and aligned to XLEN.
+>+ */
+>+static int create_rstor_token(unsigned long ssp, unsigned long *token_addr)
+>+{
+>+	unsigned long addr;
+>+
+>+	/* Token must be aligned */
+>+	if (!IS_ALIGNED(ssp, SHSTK_ENTRY_SIZE))
+>+		return -EINVAL;
+>+
+>+	/* On RISC-V we're constructing token to be function of address itself */
+>+	addr = ssp - SHSTK_ENTRY_SIZE;
+>+
+>+	if (amo_user_shstk((unsigned long __user *)addr, (unsigned long)ssp) == -1)
+>+		return -EFAULT;
+>+
+>+	if (token_addr)
+>+		*token_addr = addr;
+>+
+>+	return 0;
+>+}
+>+
+>+static unsigned long allocate_shadow_stack(unsigned long addr, unsigned long size,
+>+					   unsigned long token_offset, bool set_tok)
+>+{
+>+	int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+>+	struct mm_struct *mm = current->mm;
+>+	unsigned long populate, tok_loc = 0;
+>+
+>+	if (addr)
+>+		flags |= MAP_FIXED_NOREPLACE;
+>+
+>+	mmap_write_lock(mm);
+>+	addr = do_mmap(NULL, addr, size, PROT_READ, flags,
+>+		       VM_SHADOW_STACK | VM_WRITE, 0, &populate, NULL);
+>+	mmap_write_unlock(mm);
+>+
+>+	if (!set_tok || IS_ERR_VALUE(addr))
+>+		goto out;
+>+
+>+	if (create_rstor_token(addr + token_offset, &tok_loc)) {
+>+		vm_munmap(addr, size);
+>+		return -EINVAL;
+>+	}
+>+
+>+	addr = tok_loc;
+>+
+>+out:
+>+	return addr;
+>+}
+>+
+>+SYSCALL_DEFINE3(map_shadow_stack, unsigned long, addr, unsigned long, size, unsigned int, flags)
+>+{
+>+	bool set_tok = flags & SHADOW_STACK_SET_TOKEN;
+>+	unsigned long aligned_size = 0;
+>+
+>+	if (!cpu_supports_shadow_stack())
+>+		return -EOPNOTSUPP;
+>+
+>+	/* Anything other than set token should result in invalid param */
+>+	if (flags & ~SHADOW_STACK_SET_TOKEN)
+>+		return -EINVAL;
+>+
+>+	/*
+>+	 * Unlike other architectures, on RISC-V, SSP pointer is held in CSR_SSP and is available
+>+	 * CSR in all modes. CSR accesses are performed using 12bit index programmed in instruction
+>+	 * itself. This provides static property on register programming and writes to CSR can't
+>+	 * be unintentional from programmer's perspective. As long as programmer has guarded areas
+>+	 * which perform writes to CSR_SSP properly, shadow stack pivoting is not possible. Since
+>+	 * CSR_SSP is writeable by user mode, it itself can setup a shadow stack token subsequent
+>+	 * to allocation. Although in order to provide portablity with other architecture (because
+>+	 * `map_shadow_stack` is arch agnostic syscall), RISC-V will follow expectation of a token
+>+	 * flag in flags and if provided in flags, setup a token at the base.
+>+	 */
+>+
+>+	/* If there isn't space for a token */
+>+	if (set_tok && size < SHSTK_ENTRY_SIZE)
+>+		return -ENOSPC;
+>+
+>+	if (addr && (addr & (PAGE_SIZE - 1)))
+>+		return -EINVAL;
+>+
+>+	aligned_size = PAGE_ALIGN(size);
+>+	if (aligned_size < size)
+>+		return -EOVERFLOW;
+>+
+>+	return allocate_shadow_stack(addr, aligned_size, size, set_tok);
+>+}
+>
+>-- 
+>2.43.0
+>
+>
