@@ -1,246 +1,180 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out-178.mta0.migadu.com (out-178.mta0.migadu.com [91.218.175.178])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 136849476;
-	Sun, 25 Jan 2026 06:39:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 32C022550D7
+	for <linux-arch@vger.kernel.org>; Mon, 26 Jan 2026 07:00:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769323200; cv=none; b=Qu46DO0ITkgIg9VMf5uGP3wRqIBGlTsrZLl1eKe0vhGRs9FdN6cAGXgmHYDrL+shTjosYlrumprouj2p865/lGyM6qztGASbEUFJrvG1GVdCHt2Th7e09PVyM1auC5prO1A7GwPrT0GqGMoVcdH9Zu1JcM0gjrcxFP0ZL+zcHvQ=
+	t=1769410817; cv=none; b=dCkaoTgPgBvb+YckWSxNP0F2hjRhM9p2ukF53xaKxW5S+Bq98rj1b8HtxrMEPWGanvJlpMn12ozKCdLjB3Z5P9sIc6U//1CCNjHkiuxivoFFZekBadZApbi/51B/BtWKtIwSkj6+YjVVmMh1jvih552G4K4RgJahut6AAE8CLYs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769323200; c=relaxed/simple;
-	bh=ADeHaXDK0thOJ05SkfkUfNIBfmE8Eht9dXL468PyMvY=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=dqNYlhmtw9ErDt5fxu+pNNUXaZiK5PsSJOuTY/wiZktKHOPF9HdCYLd1vxlJfKoqK9Ip8zxnlkeRJllomaG9Jb6uWRB+cRVtYZCmxpEix8TFmfo7U9vpqJHZ4bdPzBo5j6xVOpuOQwrKrJhri3NZJWJKgqF01H5YfSVEeCXNjv4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gBCwEPdf; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1769410817; c=relaxed/simple;
+	bh=hIVMICCOrwOEHb7O10TcOjpQqCQ90wHru/xyyTPnNZQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Gl/BUXxfXn5csTgmEUCyKbd1yZEgcjq08yw+eMbUgI/GPJTmHugh6nUSdUD7NOpybQColXEoqYeTx6HC5MlnYlUd9FncRITpU95QL6j8Oif7lv/N6j+hOdAJ9np5Dq6h35PF2/v0BPpYvDgeuhoOOn3zD90fSPEAKT6HvgShKis=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=io0Jn+3N; arc=none smtp.client-ip=91.218.175.178
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gBCwEPdf"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 409D2C4CEF1;
-	Sun, 25 Jan 2026 06:39:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1769323199;
-	bh=ADeHaXDK0thOJ05SkfkUfNIBfmE8Eht9dXL468PyMvY=;
-	h=From:To:Cc:Subject:Date:From;
-	b=gBCwEPdfSAAVLxPoFTySU+IJVpeBOK1ZG1tJMNNeTdNCpQEPD1qy7Rz/HbJL4QSVo
-	 PL8PtDJH3ALWxojCdwq/CSjWZS2ax//P00CpIQnaNjin5i1JAPWrS/dFK8R74QVdJo
-	 Ee49zv5nkJJP67f8vYoTmOtPn8djEmkti8L2J/jvsoTSUSa7K3FYo1d6l5K97gRBXi
-	 4Z9ZK9sz+SNcrMLj3QOkCbc1TqAYwEgxktsZbjF2KcQAuacVkAff4p9r8J879UzYOr
-	 UKnFjLfGcWag4yww/wjkrJU2OR6QmkCJDIBsmSlqg3QrCnPHXxZckZO72+VWKxaD5b
-	 /fib0MdMC84Jw==
-From: guoren@kernel.org
-To: paul.walmsley@sifive.com,
-	palmer@dabbelt.com,
-	guoren@kernel.org,
-	alex@ghiti.fr,
-	leobras@redhat.com,
-	djordje.todorovic@htecgroup.com,
-	aleksa.paunovic@htecgroup.com,
-	arnd@arndb.de,
-	rabenda.cn@gmail.com
-Cc: linux-riscv@lists.infradead.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	Han Gao <gaohan@iscas.ac.cn>,
-	Yao Zi <me@ziyao.cc>,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Paul Walmsley <pjw@kernel.org>
-Subject: [PATCH V3] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
-Date: Sun, 25 Jan 2026 01:39:41 -0500
-Message-Id: <20260125063941.443777-1-guoren@kernel.org>
-X-Mailer: git-send-email 2.40.1
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="io0Jn+3N"
+Message-ID: <646d9b5c-453c-4db8-b578-0f343e170379@linux.dev>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1769410802;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=hybAGJDtwUTQyBJLSE6cgT3x4CprzyvIGdy1i62DoMg=;
+	b=io0Jn+3NajuPHPI4XjqNt9sYHPn2FyPfP/1eLMYG5oEK9p8YQ2ayv0ii4eZsQi7AY5Kxh/
+	8bRt82NClUXSKr1V31d6I/GqCfQd+DB4Ux8EDoCg31zgpyKNNatRAU/WP75QWfFgYjHG7n
+	Oc4aJiIqhIpd+iDcwrxRH5wDMzgILbU=
+Date: Mon, 26 Jan 2026 14:59:43 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v3 7/7] mm: make PT_RECLAIM depends on
+ MMU_GATHER_RCU_TABLE_FREE
+To: Andreas Larsson <andreas@gaisler.com>, david@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, linux-alpha@vger.kernel.org, loongarch@lists.linux.dev,
+ linux-mips@vger.kernel.org, linux-parisc@vger.kernel.org,
+ linux-um@lists.infradead.org, Qi Zheng <zhengqi.arch@bytedance.com>,
+ sparclinux <sparclinux@vger.kernel.org>, will@kernel.org,
+ peterz@infradead.org, akpm@linux-foundation.org, aneesh.kumar@kernel.org,
+ npiggin@gmail.com, dev.jain@arm.com, ioworker0@gmail.com, linmag7@gmail.com
+References: <cover.1765963770.git.zhengqi.arch@bytedance.com>
+ <ac2bdb2a66da1edb24f60d1da1099e2a0b734880.1765963770.git.zhengqi.arch@bytedance.com>
+ <9199f28e-e2b7-48c8-b61f-0b787e322443@gaisler.com>
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Qi Zheng <qi.zheng@linux.dev>
+In-Reply-To: <9199f28e-e2b7-48c8-b61f-0b787e322443@gaisler.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-Migadu-Flow: FLOW_OUT
 
-From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
 
-The early version of XuanTie C910 core has a store merge buffer
-delay problem. The store merge buffer could improve the store queue
-performance by merging multi-store requests, but when there are not
-continued store requests, the prior single store request would be
-waiting in the store queue for a long time. That would cause
-significant problems for communication between multi-cores. This
-problem was found on sg2042 & th1520 platforms with the qspinlock
-lock torture test.
 
-So appending a fence w.o could immediately flush the store merge
-buffer and let other cores see the write result.
+On 1/23/26 11:15 PM, Andreas Larsson wrote:
+> On 2025-12-17 10:45, Qi Zheng wrote:
+>> From: Qi Zheng <zhengqi.arch@bytedance.com>
+>>
+>> The PT_RECLAIM can work on all architectures that support
+>> MMU_GATHER_RCU_TABLE_FREE, so make PT_RECLAIM depends on
+>> MMU_GATHER_RCU_TABLE_FREE.
+>>
+>> BTW, change PT_RECLAIM to be enabled by default, since nobody should want
+>> to turn it off.
+>>
+>> Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
+>> ---
+>>   arch/x86/Kconfig | 1 -
+>>   mm/Kconfig       | 9 ++-------
+>>   2 files changed, 2 insertions(+), 8 deletions(-)
+>>
+>> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+>> index 80527299f859a..0d22da56a71b0 100644
+>> --- a/arch/x86/Kconfig
+>> +++ b/arch/x86/Kconfig
+>> @@ -331,7 +331,6 @@ config X86
+>>   	select FUNCTION_ALIGNMENT_4B
+>>   	imply IMA_SECURE_AND_OR_TRUSTED_BOOT    if EFI
+>>   	select HAVE_DYNAMIC_FTRACE_NO_PATCHABLE
+>> -	select ARCH_SUPPORTS_PT_RECLAIM		if X86_64
+>>   	select ARCH_SUPPORTS_SCHED_SMT		if SMP
+>>   	select SCHED_SMT			if SMP
+>>   	select ARCH_SUPPORTS_SCHED_CLUSTER	if SMP
+>> diff --git a/mm/Kconfig b/mm/Kconfig
+>> index bd0ea5454af82..fc00b429b7129 100644
+>> --- a/mm/Kconfig
+>> +++ b/mm/Kconfig
+>> @@ -1447,14 +1447,9 @@ config ARCH_HAS_USER_SHADOW_STACK
+>>   	  The architecture has hardware support for userspace shadow call
+>>             stacks (eg, x86 CET, arm64 GCS or RISC-V Zicfiss).
+>>   
+>> -config ARCH_SUPPORTS_PT_RECLAIM
+>> -	def_bool n
+>> -
+>>   config PT_RECLAIM
+>> -	bool "reclaim empty user page table pages"
+>> -	default y
+>> -	depends on ARCH_SUPPORTS_PT_RECLAIM && MMU && SMP
+>> -	select MMU_GATHER_RCU_TABLE_FREE
+>> +	def_bool y
+>> +	depends on MMU_GATHER_RCU_TABLE_FREE
+>>   	help
+>>   	  Try to reclaim empty user page table pages in paths other than munmap
+>>   	  and exit_mmap path.
+> 
+> Hi,
+> 
+> This patch unfortunately results in a WARN_ON_ONCE and unaligned
+> accesses on sparc64:
+> 
+> $ stress-ng --mmaphuge 20 -t 60
+> stress-ng: info:  [559] setting to a 1 min run per stressor
+> stress-ng: info:  [559] dispatching hogs: 20 mmaphuge
+> [  560.592569] ------------[ cut here ]------------
+> [  560.592663] WARNING: kernel/rcu/tree.c:3098 at __call_rcu_common.constprop.0+0x200/0x760, CPU#4: stress-ng-mmaph/568
+> [  560.592777] CPU: 4 UID: 1000 PID: 568 Comm: stress-ng-mmaph Not tainted 6.19.0-rc5-00127-g62fc9f6ccb97 #8 VOLUNTARY
+> [  560.592805] Call Trace:
+> [  560.592812] [<00000000004368b8>] dump_stack+0x8/0x60
+> [  560.592844] [<0000000000482a60>] __warn+0xe0/0x140
+> [  560.592878] [<0000000000482b64>] warn_slowpath_fmt+0xa4/0x120
+> [  560.592901] [<0000000000526a40>] __call_rcu_common.constprop.0+0x200/0x760
+> [  560.592931] [<0000000000526fd0>] call_rcu+0x10/0x20
+> [  560.592954] [<0000000000730838>] tlb_remove_table+0x98/0xc0
+> [  560.592986] [<000000000071bec4>] free_pgd_range+0x224/0x4c0
+> [  560.593021] [<000000000071c35c>] free_pgtables+0x1fc/0x240
+> [  560.593042] [<000000000074a6f0>] vms_clear_ptes+0x110/0x140
+> [  560.593068] [<000000000074c3dc>] vms_complete_munmap_vmas+0x5c/0x280
+> [  560.593094] [<000000000074de5c>] do_vmi_align_munmap+0x1dc/0x260
+> [  560.593117] [<000000000074df80>] do_vmi_munmap+0xa0/0x140
+> [  560.593142] [<000000000074fb2c>] __vm_munmap+0x8c/0x160
+> [  560.593168] [<000000000072cfd4>] vm_munmap+0x14/0x40
+> [  560.593190] [<00000000004402a8>] sys_64_munmap+0x88/0xa0
+> [  560.593221] [<0000000000406274>] linux_sparc_syscall+0x34/0x44
+> [  560.593274] ---[ end trace 0000000000000000 ]---
+> [  560.593960] log_unaligned: 209 callbacks suppressed
+> [  560.593979] Kernel unaligned access at TPC[526a4c] __call_rcu_common.constprop.0+0x20c/0x760
+> [  560.594121] Kernel unaligned access at TPC[526864] __call_rcu_common.constprop.0+0x24/0x760
+> [  560.594198] Kernel unaligned access at TPC[52b3c4] rcu_segcblist_enqueue+0x24/0x40
+> [  560.594275] Kernel unaligned access at TPC[526860] __call_rcu_common.constprop.0+0x20/0x760
+> [  560.594360] Kernel unaligned access at TPC[526864] __call_rcu_common.constprop.0+0x24/0x760
+> [  567.054127] log_unaligned: 1105 callbacks suppressed
+> [  567.054167] Kernel unaligned access at TPC[526860] __call_rcu_common.constprop.0+0x20/0x760
+> [  567.054331] Kernel unaligned access at TPC[526864] __call_rcu_common.constprop.0+0x24/0x760
+> [  567.054410] Kernel unaligned access at TPC[52b3c4] rcu_segcblist_enqueue+0x24/0x40
 
-This will apply the WRITE_ONCE errata to handle the non-standard
-behavior via appending a fence w.o instruction for WRITE_ONCE().
+Thanks for your report!
 
-This problem is only observed on the sg2042 hardware platform by
-running the lock_torture test program for half an hour. The problem
-was not found in the user space application, because interrupt can
-break the livelock.
+On sparc64, pmd and pud levels are not of struct page:
 
-Reviewed-by: Leonardo Bras <leobras@redhat.com>
-Tested-by: Han Gao <gaohan@iscas.ac.cn>
-Cc: Yao Zi <me@ziyao.cc>
-Cc: Alexandre Ghiti <alexghiti@rivosinc.com>
-Cc: Paul Walmsley <pjw@kernel.org>
-Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
----
-Changelog
+__pmd_free_tlb/__pud_free_tlb
+--> pgtable_free_tlb(tlb, pud/pmd, false). <=== is_page == false
+     --> tlb_remove_table
 
-v3:
- - Rebase on 6.19-rc6.
- - Remove errata_list_vendors patch which has been merged.
- - Add Tested-by tag.
+So in __tlb_remove_table_one(), the table cannot be treated as
+ptdesc because it does not have an pt_rcu_head member.
 
-v2:
-https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel.org/
- - Add new header file for errata_list_vendors.
- - Rebase newest kernel version.
+Hi David, it seems we still need to keep ARCH_SUPPORTS_PT_RECLAIM?
 
-v1:
-https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
----
- arch/riscv/Kconfig.errata                    | 17 ++++++++++
- arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
- arch/riscv/include/asm/errata_list_vendors.h |  3 +-
- arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
- include/asm-generic/rwonce.h                 |  2 ++
- 5 files changed, 75 insertions(+), 1 deletion(-)
- create mode 100644 arch/riscv/include/asm/rwonce.h
+Thanks,
+Qi
 
-diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
-index 3c945d086c7d..4d3f13522da6 100644
---- a/arch/riscv/Kconfig.errata
-+++ b/arch/riscv/Kconfig.errata
-@@ -154,4 +154,21 @@ config ERRATA_THEAD_GHOSTWRITE
- 
- 	  If you don't know what to do here, say "Y".
- 
-+config ERRATA_THEAD_WRITE_ONCE
-+	bool "Apply T-Head WRITE_ONCE errata"
-+	depends on ERRATA_THEAD
-+	default y
-+	help
-+	  The early version of T-Head C9xx cores of sg2042 & th1520 have a store
-+	  merge buffer delay problem. The store merge buffer could improve the
-+	  store queue performance by merging multi-store requests, but when there
-+	  are no continued store requests, the prior single store request would be
-+	  waiting in the store queue for a long time. That would cause signifi-
-+	  cant problems for communication between multi-cores. Appending a
-+	  fence w.o could immediately flush the store merge buffer and let other
-+	  cores see the write result.
-+
-+	  This will apply the WRITE_ONCE errata to handle the non-standard beh-
-+	  avior via appending a fence w.o instruction for WRITE_ONCE().
-+
- endmenu # "CPU errata selection"
-diff --git a/arch/riscv/errata/thead/errata.c b/arch/riscv/errata/thead/errata.c
-index 0b942183f708..fbe46f2fa8fb 100644
---- a/arch/riscv/errata/thead/errata.c
-+++ b/arch/riscv/errata/thead/errata.c
-@@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int stage,
- 	return true;
- }
- 
-+static bool errata_probe_write_once(unsigned int stage,
-+				    unsigned long arch_id, unsigned long impid)
-+{
-+	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
-+		return false;
-+
-+	/* target-c9xx cores report arch_id and impid as 0 */
-+	if (arch_id != 0 || impid != 0)
-+		return false;
-+
-+	if (stage == RISCV_ALTERNATIVES_BOOT ||
-+	    stage == RISCV_ALTERNATIVES_MODULE)
-+		return true;
-+
-+	return false;
-+}
-+
- static u32 thead_errata_probe(unsigned int stage,
- 			      unsigned long archid, unsigned long impid)
- {
-@@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
- 
- 	errata_probe_ghostwrite(stage, archid, impid);
- 
-+	if (errata_probe_write_once(stage, archid, impid))
-+		cpu_req_errata |= BIT(ERRATA_THEAD_WRITE_ONCE);
-+
- 	return cpu_req_errata;
- }
- 
-diff --git a/arch/riscv/include/asm/errata_list_vendors.h b/arch/riscv/include/asm/errata_list_vendors.h
-index ec7eba373437..8fd7c36307e2 100644
---- a/arch/riscv/include/asm/errata_list_vendors.h
-+++ b/arch/riscv/include/asm/errata_list_vendors.h
-@@ -18,7 +18,8 @@
- #define	ERRATA_THEAD_MAE 0
- #define	ERRATA_THEAD_PMU 1
- #define	ERRATA_THEAD_GHOSTWRITE 2
--#define	ERRATA_THEAD_NUMBER 3
-+#define	ERRATA_THEAD_WRITE_ONCE 3
-+#define	ERRATA_THEAD_NUMBER 4
- #endif
- 
- #ifdef CONFIG_ERRATA_MIPS
-diff --git a/arch/riscv/include/asm/rwonce.h b/arch/riscv/include/asm/rwonce.h
-new file mode 100644
-index 000000000000..081793d4d772
---- /dev/null
-+++ b/arch/riscv/include/asm/rwonce.h
-@@ -0,0 +1,34 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+
-+#ifndef __ASM_RWONCE_H
-+#define __ASM_RWONCE_H
-+
-+#include <linux/compiler_types.h>
-+#include <asm/alternative-macros.h>
-+#include <asm/vendorid_list.h>
-+#include <asm/errata_list_vendors.h>
-+
-+#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE)
-+
-+#define write_once_fence()				\
-+do {							\
-+	asm volatile(ALTERNATIVE(			\
-+		"nop",					\
-+		"fence w, o",				\
-+		THEAD_VENDOR_ID,			\
-+		ERRATA_THEAD_WRITE_ONCE,		\
-+		CONFIG_ERRATA_THEAD_WRITE_ONCE)		\
-+		: : : "memory");			\
-+} while (0)
-+
-+#define __WRITE_ONCE(x, val)				\
-+do {							\
-+	*(volatile typeof(x) *)&(x) = (val);		\
-+	write_once_fence();				\
-+} while (0)
-+
-+#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && !defined(NO_ALTERNATIVE) */
-+
-+#include <asm-generic/rwonce.h>
-+
-+#endif	/* __ASM_RWONCE_H */
-diff --git a/include/asm-generic/rwonce.h b/include/asm-generic/rwonce.h
-index 52b969c7cef9..4e2d941f15a1 100644
---- a/include/asm-generic/rwonce.h
-+++ b/include/asm-generic/rwonce.h
-@@ -50,10 +50,12 @@
- 	__READ_ONCE(x);							\
- })
- 
-+#ifndef __WRITE_ONCE
- #define __WRITE_ONCE(x, val)						\
- do {									\
- 	*(volatile typeof(x) *)&(x) = (val);				\
- } while (0)
-+#endif
- 
- #define WRITE_ONCE(x, val)						\
- do {									\
--- 
-2.40.1
+> ...
+> 
+> I bisected to this one on mm-unstable from approximately 2026-01-12.
+> 
+> The warning is from
+> 
+> 	/* Misaligned rcu_head! */
+> 	WARN_ON_ONCE((unsigned long)head & (sizeof(void *) - 1));
+> 
+> in __call_rcu_common() and the unaligned accesses follows from there.
+> 
+> Regards,
+> Andreas
+> 
 
