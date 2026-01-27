@@ -1,349 +1,340 @@
-Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CB3B6366553
-	for <linux-arch@vger.kernel.org>; Tue, 27 Jan 2026 15:20:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769527223; cv=none; b=W9E0yykIj04fB6x/nglEsofDZkvon3F5vqjT5R5e+OS18gRXru1kkTCSDDQaeXXNtGcFdeQScnptlpMvTszUff/43oIzdcWCzNTtKiwwoyR18Qtwrp1DNIF9bG+ORxkYB58CBS9fEt7uCPd3NRIYbHbNSlwv6K2buFsBxUwdnmM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769527223; c=relaxed/simple;
-	bh=ablOwMKQd22Q+KZBq9y4BMZVnNaLiD0FFqi08v9XFCk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=PJELlHwPi29plor0963F4bNm9q8cFu6hmBm8i5ZgldRsHhUgPSM1jXkArkrSziRvu75G5UtGsgJwQapuNzUUsr0NtBve5EwqBCclivWSP/apF0pRjf9ZJuN3azrahwgu27UOTg1pCW1f7o1MITrxgj6TPjBigVxgFfWn5Ydrp3o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=PS49/Xt+; arc=none smtp.client-ip=209.85.128.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8A7222D7B9;
+	Tue, 27 Jan 2026 18:23:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1769538203; cv=fail; b=CW4imN2Ubl171Ev6WFErBTTR61VUss3NIzPzdWTtS4Bywub8GJyJCtoM3EfSEHf3b3U59wHoq3n33J0zXLQzAsjx8l7K7pOnTGUDGLJO7lLRb2ajo0NpyvTgsBurjWZKWtv5Zf1yOVrz/+7BwVdQ6d+BwJ9/32SrKF2S0gCtXNM=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1769538203; c=relaxed/simple;
+	bh=6zcsabZn+WPQYiKpxdHi9nVQ8m3/M+us4SOzQ7v0zA8=;
+	h=Message-ID:Date:Subject:From:To:Cc:References:In-Reply-To:
+	 Content-Type:MIME-Version; b=hrRtbNPg+m/yuCY9/Vuz5C614AkDfXRbtogpXQ1Kg8+7qmiHpHtFvlzL5obuEiTFrARr/CkJBXWpRtGGu0lT1jsnnyAQnZ9YpuTxL8tfGLMkL37SUCfDO2XMuX6l1elLZ8jgMLVWK8WDuu9UvXABrLI84nOxX0MjFSCzS1HVM9A=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=C3Q0SCYj; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=khUmdGi/; arc=fail smtp.client-ip=205.220.165.32
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="PS49/Xt+"
-Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4801d98cf39so44214505e9.1
-        for <linux-arch@vger.kernel.org>; Tue, 27 Jan 2026 07:20:20 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="C3Q0SCYj";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="khUmdGi/"
+Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 60RBELc73713718;
+	Tue, 27 Jan 2026 18:22:37 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=
+	corp-2025-04-25; bh=kD151slLoxldC16k3D8ATQnf8fnVTGA0iYHXvCdbgvQ=; b=
+	C3Q0SCYjP7KW0Vb5+jOJdCCP/5/kCcElir9vji9kx3uykKpAyf5xP6MdT0b+inXe
+	U4zkelmnbUg0wXavkfS0SzT9c9TUqnzxlPPThzLAkcbvbyYrpjQO60vHbD7arNRE
+	w6kT5M9XCApMouUXQgzMohsmqQly38Q/J0ssKOmtp8DaMFPwIGugKq6Kqvq2Y0Wd
+	cqjmYg59fupU9aawldxDRr4CIdVoX9Pxqfg10nUiC+n9ESLbxdT5j/hz10YxYVf1
+	N0+cs0XeXTe907yJ7p1424GVQwEjS5/S3zQwNyfmd2RWTrGjulA3DObwMSfgQArQ
+	BIGvuI/xh59QK4Q7l1s0oQ==
+Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.appoci.oracle.com [147.154.114.232])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4bvny6vhhp-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Tue, 27 Jan 2026 18:22:36 +0000 (GMT)
+Received: from pps.filterd (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 60RHQ10i009958;
+	Tue, 27 Jan 2026 18:22:36 GMT
+Received: from sn4pr2101cu001.outbound.protection.outlook.com (mail-southcentralusazon11012053.outbound.protection.outlook.com [40.93.195.53])
+	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 4bvmh9tkkh-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Tue, 27 Jan 2026 18:22:35 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=drtJt+dVPIyo28c7GbYuUcIHukv7VQzVe+g8p/sOXPfPnSp+UO0fBDwsMPWaa3TJFFCgSuvDn0bp2UAfEeacKKNauMb/7kqTCCwD/vWn5I0WQ6lHlS/BzOvxulcYLT+UxxK9DJKKjaI7e3+VwbgRAW2qtth8L4UTtUXrX84k2Sl4DC7yuQg5KyfYyirkTQEP9VW7+QUwLdwpuiXcKFcd90n1VVD/w92wRSIJoQUl3B9ZrlmOkDjiuNh2/4nJTYhgUaee2Di9tW4hU6Dn/6rV07ce44O4xPq3ZFNdEh08RpPJLFH3vVGLC3iy2BM2Nc9SPHHIDrXvYakZse98NxpEOQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=kD151slLoxldC16k3D8ATQnf8fnVTGA0iYHXvCdbgvQ=;
+ b=asxxSHkMsGhIf2kO1qiAbwtEKuWN9F14dMpQPiPu3AH2qYgAEownWCZA2WHsYaDu/qRPu7fXm7Nq/eA1aD+fWNRRI3OaG11Z9vHo6AX5D4G00RGT1DhkKNZmG2Z+5d5ioPfjGcsqyXfdyDHFx9ScxPcnk70a9BN0jz9BbH5ZD49MxiY6Tr83F2/cO2sk+FW6e9hBFctee7sW0Pm2Ve2vpFbJRLiGwo06We3V2kS3QUAIBQczonDYgB5mg6cPAG6PMEV7DFNYlaG3TxS+4gO3dzMCxvnQmzYqt93ZfTe/pWZoYyMQ4IbPfGBad8CmR4doOSLjG6vNCoJXlx66YDOINw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1769527219; x=1770132019; darn=vger.kernel.org;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=TpVju2z52ieKZ9g+UW8bQZ3qR3Ja1fAXqmPTBm/6Msg=;
-        b=PS49/Xt+XBkvPmyiu7HuoN/+FQbWne3GuGTRt8FAgjemU+g0VSDoY5YDNkCt6aPhh8
-         +YUL+8WHWYyYN+Bfzf6Pb0YJ/eJTEXSMMLpfDcGqiMJjA5X18sig1ycBF1++bPuhOW0j
-         +06gCjnCrxJDM2e5OOUp/H47tgjuQ4ybDtjc7grIkF0qtmGWnhXBmUc88b/8E4BowpFq
-         sDFKtZ0UGspdRgOnkYrDNKpiBX6UZA9bVhZgKyXsU9wLNmWgEr7+FzeQJYFFU4gqwTr5
-         QbDKPSeDpC4WeQHTkReLy7m2xU4YFUCmweL0PWjLUqMn3CMaftJBwZwhsAGRenzh51WC
-         biVA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769527219; x=1770132019;
-        h=content-transfer-encoding:in-reply-to:from:content-language
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=TpVju2z52ieKZ9g+UW8bQZ3qR3Ja1fAXqmPTBm/6Msg=;
-        b=QHDOETRu6mJUCKUccAxCZVN0KrolTeOlTDMds8KRw4i78+GczdAliyPesFH/Rwb3x/
-         geZswwMBq2YwOPZ9E7Wc04GUQ/zJLCKx8BXjIzgJTSxvoaIFsBc5ZncSTNEd3612M7OF
-         zAsNsEeKUYISuVCygLvVkAANcFnNmaCLLUO2blaItcYd7lA38cZPOxrAw/bKCPXmAO8h
-         OOhiXGkXPNhO6kAzPPYu1Gt0Cxtq10GUcLXEwlcBcJyJOGErwhYIuss23du2UxnmcBuC
-         LH2vRMEEKTcP8ZpMvR8azLlYYgU00KOwzp4qPW1XXhp9GoRVy/6PNSBunW4HFcZk1WU1
-         y+2g==
-X-Forwarded-Encrypted: i=1; AJvYcCWtWq7MUt+oiUuRJX/KA7fPIcRAFq54kPun7uHUo2UCbrLqqn52HGwkCGuaXSkae3Rn23+2rEHxpXzj@vger.kernel.org
-X-Gm-Message-State: AOJu0YzOQllmAQiVdkQ/R+qeSD5ZLQ0OjjUo+UVxao5hzI5fWqi0jdlk
-	rm8q39x0PGO5c/edDU1LxYmk14B1+oZMKlH0zm7e5OXe8OPoYQjCPRzhk/sXJ77Gquo=
-X-Gm-Gg: AZuq6aLew7L2vz/Fni0WpLuVZRU4vAdbkp80wRihbuwXsrVGEHD7yS2Hx2jFWcYHngg
-	/QE3NV+3Nywp8ZzOAHgqzU1Mjrhck1pNX9BqG5jy03EZ0f7Y4tkEVQ76XBGxFHjWizaOPvOQHe4
-	N9FE89YjzuhvHP54uAmdaSWdDvQliZi28IqXoT+nor64mwRG3lI812jZj3cFUXhir076YAZQ77Q
-	EZJXDbaG38to6krb1MvtR8jc+2H2//vvY2Al9IZ32ETj3pfVscSeT9P/KLGg93i2arhZ1ErDKMp
-	7qCeoOPGa6LW01TKP+Ugcsvd7AjXp0c5horEs070OMV36Bzuy+yfTd3khNPQQ5J5SNA/08d4um5
-	maFkZ+3++fvbaGS0pR5NSTb+GtTDZchKfAlYHSwV9SVLpohkn7LD6SG5ZKu88QJ0is9GHT1LqMH
-	ci2WJSAw3hIkjNVPA6/qHPFhLoLSLQm0cDAc+FBsb9
-X-Received: by 2002:a05:600c:5553:b0:480:1c53:2085 with SMTP id 5b1f17b1804b1-4806a313f35mr20307595e9.19.1769527219144;
-        Tue, 27 Jan 2026 07:20:19 -0800 (PST)
-Received: from [10.0.1.22] (109-81-1-107.rct.o2.cz. [109.81.1.107])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48066c034dfsm67200105e9.10.2026.01.27.07.20.17
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 27 Jan 2026 07:20:18 -0800 (PST)
-Message-ID: <52cbbccf-d5b6-4a33-b16a-4a09fe5e64d3@suse.com>
-Date: Tue, 27 Jan 2026 16:20:15 +0100
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=kD151slLoxldC16k3D8ATQnf8fnVTGA0iYHXvCdbgvQ=;
+ b=khUmdGi/y+UHJbS/NDYbO/0vWNBCTE3cOUXRz4Ga9iJVJVbouyaagATlCelGIbNYYzI/N+w0sE4IxaHwZGmu7F/8lvWEyzkJS3qc/sUp+Mv5sj1aZZBUELdZrIaF5szji8OxOTBts5AbpeHvq0OMdQE6AMU17kWV0Nl4vC2eem0=
+Received: from SA1PR10MB6365.namprd10.prod.outlook.com (2603:10b6:806:255::12)
+ by SJ5PPFDE7085185.namprd10.prod.outlook.com (2603:10b6:a0f:fc02::7d6) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9564.7; Tue, 27 Jan
+ 2026 18:22:32 +0000
+Received: from SA1PR10MB6365.namprd10.prod.outlook.com
+ ([fe80::e842:361f:d030:1ec1]) by SA1PR10MB6365.namprd10.prod.outlook.com
+ ([fe80::e842:361f:d030:1ec1%4]) with mapi id 15.20.9542.010; Tue, 27 Jan 2026
+ 18:22:32 +0000
+Message-ID: <427ca212-c046-4d78-8111-2a19e7f2b700@oracle.com>
+Date: Tue, 27 Jan 2026 10:22:29 -0800
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC] Don't create sframes during build
+From: Indu Bhagat <indu.bhagat@oracle.com>
+To: Sven Joachim <svenjoac@gmx.de>, Josh Poimboeuf <jpoimboe@kernel.org>
+Cc: Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+        Matthias Klose <doko@debian.org>, linux-arch@vger.kernel.org,
+        linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org,
+        Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>,
+        Nathan Chancellor <nathan@kernel.org>,
+        Nicolas Schier <nicolas.schier@linux.dev>,
+        Binutils
+ <binutils@sourceware.org>,
+        Steven Rostedt <rostedt@goodmis.org>
+References: <20250904131835.sfcG19NV@linutronix.de>
+ <b3db475e-e84d-4056-9420-bc0acc8b9fe5@debian.org>
+ <20250904163404.QMU7nfbA@linutronix.de>
+ <jdw2iyr2dd6fzasbiwbzsaqohbi46hwd7wb3ze6qhztje2b6ld@qnween3ajj5e>
+ <87343vdxnb.fsf@turtle.gmx.de>
+ <4f62add4-85af-46c2-ac33-d68368c5bdb6@oracle.com>
+Content-Language: en-US
+In-Reply-To: <4f62add4-85af-46c2-ac33-d68368c5bdb6@oracle.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
+X-ClientProxiedBy: MW3PR05CA0017.namprd05.prod.outlook.com
+ (2603:10b6:303:2b::22) To SA1PR10MB6365.namprd10.prod.outlook.com
+ (2603:10b6:806:255::12)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 08/17] module: Deduplicate signature extraction
-To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
-Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
- Luis Chamberlain <mcgrof@kernel.org>, Sami Tolvanen
- <samitolvanen@google.com>, Daniel Gomez <da.gomez@samsung.com>,
- Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
- "Serge E. Hallyn" <serge@hallyn.com>, Jonathan Corbet <corbet@lwn.net>,
- Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
- Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
- Roberto Sassu <roberto.sassu@huawei.com>,
- Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
- Eric Snowberg <eric.snowberg@oracle.com>,
- Nicolas Schier <nicolas.schier@linux.dev>, Daniel Gomez
- <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>,
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
- Nicolas Schier <nsc@kernel.org>,
- Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
- Xiu Jianfeng <xiujianfeng@huawei.com>,
- =?UTF-8?Q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
- Arnout Engelen <arnout@bzzt.net>, Mattia Rizzolo <mattia@mapreri.org>,
- kpcyrd <kpcyrd@archlinux.org>, Christian Heusel <christian@heusel.eu>,
- =?UTF-8?Q?C=C3=A2ju_Mihai-Drosi?= <mcaju95@gmail.com>,
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
- linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
- linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
-References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
- <20260113-module-hashes-v4-8-0b932db9b56b@weissschuh.net>
-Content-Language: en-US
-From: Petr Pavlu <petr.pavlu@suse.com>
-In-Reply-To: <20260113-module-hashes-v4-8-0b932db9b56b@weissschuh.net>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: SA1PR10MB6365:EE_|SJ5PPFDE7085185:EE_
+X-MS-Office365-Filtering-Correlation-Id: 3b609e2a-78e3-47e1-ce07-08de5dd10982
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|376014|7416014|366016|10070799003|1800799024;
+X-Microsoft-Antispam-Message-Info:
+	=?utf-8?B?R3h4YkVKMUNxV2ZQN3JPaTN3VmJOd0szMDRJWWV5RCsvSi9RRnNMbTJ6OFZv?=
+ =?utf-8?B?WEdxeG0waDQ1Q0hjcFhVUXlySXBtUnBLNnVodFJKT2FoOVVFNlpobXFZZUh1?=
+ =?utf-8?B?QmJUNUF4aHhId2dQVnJyazMxT0RqSGt5RjZ5ZVd1VHAwQ05rVXFJVEFBbGZo?=
+ =?utf-8?B?djZSTUQ2T1EvSHA1aHI5cUNGZWRXZlN3N0FVQUx0clNqcHRMem9DRmVIUkpW?=
+ =?utf-8?B?MVBlR2xGdHl2RDZ2UVp3YXJKVzlmckxGS0w0R1ljdUhlVkVBOTl4bnRFSFh4?=
+ =?utf-8?B?Z3BLbUlTS0dpcW9COHZOWC9BSlpZVDhRRFVPUmZMdlR4cVVrQlp2YVdjVW1U?=
+ =?utf-8?B?UEhyUjVwZ2Y5elExQ2RyWmg4QnY2MFNiUVRlemlYZzVnQTdtRjhqWitUTVRq?=
+ =?utf-8?B?NXJaRmJHaW9BVXFRRmRGc2liMStpYjk1N29xRFFIdzJwS01EQzkwRFMzMGFL?=
+ =?utf-8?B?UjllZTN3MTZPQUFCTzJFM29PMW8xMGtXeXhIaDB4MzVOaTZKdVNLaHVKbE5o?=
+ =?utf-8?B?WC9iTFR0NWg2SjdRMUNyWnAvVDJ1NGl2SWp3c0NYekhoVElON2U3ay90YUt5?=
+ =?utf-8?B?M1ZaNGtNTDZKY2xSVWpWSHVobEdPRldhbDNKZ0N0QzhEeVRzMDBIc0tMTWxx?=
+ =?utf-8?B?T21HeUcyTm1jSnMxa1E2T2JubS93WVk5TURFUEFDVFlnbGtaM0l2N0dHWUJ0?=
+ =?utf-8?B?anNaRGlFMFd2OWE4UnBIVURUQTFaK1hTSXNBeWpTVG91UG5WaFQrMjVZaVlX?=
+ =?utf-8?B?a1c3cTFNbTdmd3NtSnFSamxQSG1RMGZUSHBhdXJQQ3UrOWo3Rm5WMjNEVDM5?=
+ =?utf-8?B?OEx1MGsvMWwrbSsvQ0ZRa080WlhCWERZVkw0QzFSdzZPNTdVUGN4ZXVLeUZ6?=
+ =?utf-8?B?YmZZRkxTQkZPTXVwemZQcGxUOEFYVitnRGVKbW1SaUhJNGREWXNjSE5HU0dh?=
+ =?utf-8?B?bGk5M2xaSjRMMDVPTGZKRUVQYmRWUWN3TVRvTGxtellpMzhhNWFPeXQwUkdh?=
+ =?utf-8?B?aGJOSm1mRjJzdzNZbURoTWVXNlBQWTU3K2xMZW9nbW1yenZnczhWS3ZPWVdm?=
+ =?utf-8?B?aFNJdXBoTE1MbG53Z0FZT3Y0dExlT1ZNTEVQbkVCRnFDTndFVmp1aEJhMEw4?=
+ =?utf-8?B?Wk85bnlETVBTUEtDNUtDVGtGVVpHOVJ3cU9heE1JcWZPMnFxbDErOUM5N3Fs?=
+ =?utf-8?B?c2NVTHZpczNvdVU4SEh5TWxoZE55MUo4Q0xpNFdMWlkwQ2Z2eGtMdUlHM05k?=
+ =?utf-8?B?OGR3bjNqVm41NlRHbzM2c1N6blBld2djVmlUTkFTbmRPaTdGeFQ3NE4rQ0hh?=
+ =?utf-8?B?MjJONWpUcjhjQUFoQTJPUXJDZTdkK1Ria25ldVI0bVVEQkdRQWI2cS9oVVlX?=
+ =?utf-8?B?TXhsQmxDUTIrWm0zREp6ZXFhZkR3NnFsMy9UeVdsTHl4RzZZeVlNSUhiQ0dF?=
+ =?utf-8?B?Um9sRFB5c0w2ZUJXVGFkMFhDenBRdm5DZ3l6Zmd6eGo2UEJ4S2NheUdaOUVK?=
+ =?utf-8?B?ZG9DejZ3d3RaRjQwWGhUNVZ2NjBQUUM3N2hyTlVEOTNKVEQ0Wld0czluQmxk?=
+ =?utf-8?B?dVNxc0ZpTU5RR3JkcFNpSlB1WTQ1bkxiTGljcHVQMGlqcTg4T3ZWUGt4Y0tM?=
+ =?utf-8?B?SE4vQXhLSUxFc245aHRwTmdSVVNpMFBLUTQ2elV5REFNRW4wTjR3T0w4L0pO?=
+ =?utf-8?B?Ym4vVGp0cTB2TTFiWmgvcU0zeitKV1h5ZzFoczJ5QkwwSU11ZUJmOVFHdWhz?=
+ =?utf-8?B?eEg0TG9mUlJtbndUWkNpRmM1RlN5NVFHQlhjY2dEUFJkbXBrc1BySFBZeEZo?=
+ =?utf-8?B?cEY5d0R5VHRQM0tqYXE3dVNjOEd0b0lSK1A3dW1EYTNtQ1drSlJ4WFVsUVlv?=
+ =?utf-8?B?akw2NElUZlZGNTcybzRGQ0l3L0ZyeW56WjVZUHh0djI5aDJQTDhMeUVwSks2?=
+ =?utf-8?B?cUVXTXNpS3RKMHd1RHN4aEJxdjNhaTRCYUYyNU4yVklsdURLNzNZK1hwa2Jw?=
+ =?utf-8?B?U25JaHB1Qk5ldXhMcDZvU3lxWnNFT3IrTkN0QWdZUzBlL0lsNlo5anJyeUJR?=
+ =?utf-8?B?ZWJZcFJkajhZRHhyZ3BWWVkzKzEvOC91bmF5Z1I0UFg3UVZtVjRYZ0NIVzhu?=
+ =?utf-8?Q?Zdu5UjirqZe0rk7RsMm5Sst69?=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SA1PR10MB6365.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(366016)(10070799003)(1800799024);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?utf-8?B?K1ZJVTZNc3ZkTzRoS0tkZW5Zc21JNVpPL2FHbzRyd0p5UkttS25maStHL1di?=
+ =?utf-8?B?dHVIdUIvVGRYR1R5MzdIdGNFSlhoMW5CQTRCb1RmK3NxS2UvNC8yWkM4elhr?=
+ =?utf-8?B?TTVMaFBIRkw2YXpSSlFhZmFHSXZPbktrZVhNS09tYnFUNXNwRVRtVlZabjlQ?=
+ =?utf-8?B?NCtHek1HZDJieTNYdkthYzhmSy90ZTI1ZUdUc0JIaUs0UDMyZytLM3IybzFs?=
+ =?utf-8?B?Sy90M21vVUViMUh0VlJ4VHJtdVc2clVSWVVzcyswTUQzc2xBNksyWVB2Ti9F?=
+ =?utf-8?B?Nk5hUHBuNjh3aUlWdGlQUDJvRDhjbnFaeVFBN1krU2hhVkc4bHR6d1M1TmdB?=
+ =?utf-8?B?aUtLOG5pQTVpZDZmUXFmMy9lQmxUTE5vS0FEeFZPaHdRZTdoeVoyaXB2T0lj?=
+ =?utf-8?B?T2FobzVQQVZ1TkhuWEZKdFp1dVo0My9YQy9senBDU3BBRE1VdTlHZlIwcDJD?=
+ =?utf-8?B?UzcyYzE1NjQrVkVSNmpaRzgvWFVrVGpwZnY0V1Ywb08yUVlBNm0wbTZmK2hU?=
+ =?utf-8?B?bDJyWitaRXg4UkJMeDU0K3RqVXJWekZFaUhTekZIWUk3V01QYTZkeFpweFBk?=
+ =?utf-8?B?QzM0VGZDckovendBdCtXQmdTUytXb1l3MHdWQkdDS1hFSTBFVzFNUVcrNGMw?=
+ =?utf-8?B?ME0zTnlRQnRWbSt5YVp5WmxzNWR5NzdQVjE3SEJSMEZtZmlUdE5rcVNERnQx?=
+ =?utf-8?B?ZDRIeFUzTmduMllOWVhNR3JlQU5sdnc3UGMzY3ZWQTgrU29CSkFKQVlEeURJ?=
+ =?utf-8?B?ZWxzZUtOV1h0OTRBY3ZyTGxKQ1RBOFRMaW5ENCtLaUFRWjJJbE9XVTdOWHpH?=
+ =?utf-8?B?ZisvSEhrcVAycStocUdoVzRVNkpGaG5vM1pIZmtldzZyckh6WHZCMi9FSzBR?=
+ =?utf-8?B?NWdlYUZtSnI5d1JHTUdta2hMTjJmNWlObE1Zb1VlYnpZSXJiR3g2RzF4Rmo1?=
+ =?utf-8?B?TEFReEJDVXgxbUNSbHZ4NHJtb0EvQ3NNQlkrdWVvZG83NEt4OFc1SlkxUnND?=
+ =?utf-8?B?N3BDc2svN3krQ0c2Yit0WnhLRlBrZEJvZkRXUE90aVNIUjNaZ0FzTmVQVHRE?=
+ =?utf-8?B?VHpCUXk2UEhNRU5LZGNBei9JWTlybjRLdWU5MDNTcVA3WkFVZU5yb3JYaHNt?=
+ =?utf-8?B?N0ZjUzliWERuaEI3SFZmRzE3dGx6RVdnWHgxYThoZVA4NW9vL2FKN0dwTmw2?=
+ =?utf-8?B?WlRsV1o3em15NHNMWmtsdkNUakR3bERCT1I3WEJTeXFVRDBuVU9sMmp3T1hL?=
+ =?utf-8?B?NlNkMkk1UVZjQXZPUmlnT0tyeTZmVzFodWpsQ0dUM01XUEpGM0lEWkdDa0tv?=
+ =?utf-8?B?NXpJa0tJaDRNc2xiRFFwRk0xWFBvYXRGOTZhZWh2d1dPMHR6dTM3WlBOZjdl?=
+ =?utf-8?B?cld1R01aQ015YzRaM2VTL1VqWXF5SDhvOGhnWm9NYjRDdTlFRUdZdU9IWklk?=
+ =?utf-8?B?QWxvS0lTUGk3dUVsSkNUYUxlTG5YMWs5bnJ1QW5WNlM4QUpsT1hsdUk4N2g0?=
+ =?utf-8?B?bjdBNVlpZFhyajlXaklFOExvOGxFb056RDRqRjVBUTlNN09KaDZNRHBQVW5t?=
+ =?utf-8?B?eHg0RHMzek1BRlVSZTFqNDNlNWZzdEh1emJibU5lK29raTI0cWdiV0hyM2ZM?=
+ =?utf-8?B?cFI5dytKOHVFcHZSK2FYZXR6MHBObFlxOUdaMGRvMHVpbHVDL3ZTSWl4TGl0?=
+ =?utf-8?B?bWF4bFAzMXhBVnpDTlVaMzlGczFkaU5ZU0RUcXNDc0l4N01sRDkwQVhCVDNQ?=
+ =?utf-8?B?SXd4Z3MwVk11YUpFS0J0aG5ERFRFYWVqVzNuRTRNemduNXlraGxDMnNqVGgx?=
+ =?utf-8?B?bkU1VkVvaEdPSEh0TkJpcTdsR2RWRDRYTWNmd0NwWkE2eWZtWlEwaUd2M1M4?=
+ =?utf-8?B?Z2U5Sjl5TWRzaFJTV0dvVk9XeldSdzhpa3p1cUdQNzNQVTBTcmt1dFJvT0ZI?=
+ =?utf-8?B?bU1ZUWNydkFMeFNmdlhWdmFMVk5kL05qR3VOMDh3dlhNSVhsejh0ckxWZ3VX?=
+ =?utf-8?B?dXlLNGJQSHVoRXZGc1RFSGxRM2l1V0NIZ2JNYUpJMFVFRmFWM0hOZVdhNS9Y?=
+ =?utf-8?B?aHpWWXUrMUlodkQzdE9qMzc0eGdjMGo4NFFOR3FZOHg2K0hOSDFiYWhIeHVh?=
+ =?utf-8?B?Ty95UThjRittVEI0S2J4OEFqTFdMcWZxQU5OeTZwa1dPa09mcG56SGZ1OFpV?=
+ =?utf-8?B?em5kRXNleW4yUGV0OTlrT3BqQ0tRUWplbi9PSXZyZ0JpMHpGT2ZDYzMzMnh2?=
+ =?utf-8?B?dGdrbWpWVHhDWEFwQVNrN1lBZDJ5alkzOC9IamtzaHVrcWM3Zjk3SjZ1dktl?=
+ =?utf-8?B?a0ZKWDFJcjREQ3RYUy8reTRrdFR0dUZmdHdZL1dFcW1sRlV3S2xoNjJEUnE2?=
+ =?utf-8?Q?Fr5/YB4zbzKDw8ncMbOrIThXGqy8/Bio7/H6s?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
+	tbOZI5akiQepvqzzSc8rne4cq+msukWIoF+H6L1o3RfZErGllX+a0utaRK6899Gekr4pF53bzhZ+BNXGzUCNdgpip0vNqH1p7knewfkqWEjDNqR5BKajke8F0I7Cj3F8DJsfZR9rm9jpqsrAuzG4Et9pNAIy572EBk3xlVzBZNLBRqpjwdmSPEwxkWvztyy1u28wX8jx1/dl0mbSiAXM8Clei8ordJ7fE7IKc+yFgGPHrcmJVpHTzhg4H7FfgmwfQcg7+E/VT1FBxQPhTwlaxhmC3qQjaCOdN5LMLp6MzFCxNanhdmiwmkqvxXYuWchkHpwMZpDC/8ZLgUGmGPR8r6ZGiw02OZ6t+SuEFocIFzOKs0sB+iEixgf97gEcSdMByoOpVgaeRwIuOeWnc4rcudlL87d7D7XHhNNK2zJ3XC3JkH3HVuH20q9vup4ujM0vZvu7T4yRvjsV5FMVMXtsbf519TmmovrmJIkx6/rSo2UXl2aN7Gywa5/IqQi0xtmYnK+SqTXU2GlPslUHvQYHj7KcKNckQ3ioHjyuUg0agq1Xk0xsWNAhD9Sij7obJhrLAHn9qh3NM3g7WiIF5I2m5LPoSrXpNEY+TfDae54/QKM=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 3b609e2a-78e3-47e1-ce07-08de5dd10982
+X-MS-Exchange-CrossTenant-AuthSource: SA1PR10MB6365.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 27 Jan 2026 18:22:32.3546
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: HZGKVFo+YYJV7htnlot5Xl3ZUUAoeDfOgg/TqZOzlSVYqqiFr7mdLqJCsh2t6Y+dZnizQbaAB1Hi6H7e5k4YVA==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ5PPFDE7085185
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1121,Hydra:6.1.51,FMLib:17.12.100.49
+ definitions=2026-01-27_04,2026-01-27_03,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 malwarescore=0 mlxlogscore=999
+ bulkscore=0 mlxscore=0 spamscore=0 phishscore=0 adultscore=0
+ suspectscore=0 classifier=spam adjust=0 reason=mlx scancount=1
+ engine=8.12.0-2601150000 definitions=main-2601270149
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMTI3MDE0OSBTYWx0ZWRfX2Snzj2+N/rCk
+ 3452eK2XssLXc3mwl/Ca6uA2RCSCNa7AeS+VvQkZbb+JwknRvuLflUeP3ctR4HEbpoilJqIqqFp
+ mGYdvcBVWCWuHIq4WwhDgRwY68Y/Q4Y55qFjPYfI/+CxjLaNSRt9S2J8WYnBo9dPGblmfNRTsb4
+ CQfRt2w9URlR+J1sEzfVM1IblMDmWalTzNvlWz0ruphyGZpIKvs48S8XvTTb8cPwYo3FA525L/6
+ RSlPbmdKFuHHPzjst7sbWKYzBk9TxvZ6KUSM4g/p6E8SpQiGBaeSyXR/gyoPT2OouiTUvDjBt3a
+ TS6HR6ZO1AdgwkxNGajCXyKhzObpIkro0/+llGh1hABZ0Ezg7yV4vYNDUicJHq15ciC/SgIxo92
+ fT9KzWmYvFNtK/ndG0R62+fnlyqf9s61mBzzhWW1Sl+Qio4Q49f+yrF2JjWphn8R8ruEG88bxpJ
+ rsp+i+yX1QbsGejwtwA==
+X-Authority-Analysis: v=2.4 cv=C+XkCAP+ c=1 sm=1 tr=0 ts=6979026d cx=c_pps
+ a=OOZaFjgC48PWsiFpTAqLcw==:117 a=OOZaFjgC48PWsiFpTAqLcw==:17
+ a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
+ a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=IkcTkHD0fZMA:10
+ a=vUbySO9Y5rIA:10 a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=CCpqsmhAAAAA:8 a=1xVkdAxSaCYjHWcmkeoA:9 a=3ZKOabzyN94A:10 a=QEXdDO2ut3YA:10
+ a=Ii-NqtrWvMUA:10 a=ul9cdbp4aOFLsgKbc677:22
+X-Proofpoint-GUID: ZZ2fH_36vmXorDkH43mSTISLujrEHjW1
+X-Proofpoint-ORIG-GUID: ZZ2fH_36vmXorDkH43mSTISLujrEHjW1
 
-On 1/13/26 1:28 PM, Thomas Weißschuh wrote:
-> The logic to extract the signature bits from a module file are
-> duplicated between the module core and IMA modsig appraisal.
+On 1/24/26 11:08 AM, Indu wrote:
+> On 2026-01-24 4:04 a.m., Sven Joachim wrote:
+>> On 2025-09-04 10:14 -0700, Josh Poimboeuf wrote:
+>>
+>>> On Thu, Sep 04, 2025 at 06:34:04PM +0200, Sebastian Andrzej Siewior 
+>>> wrote:
+>>>> On 2025-09-04 16:02:42 [+0200], Matthias Klose wrote:
+>>>>> [ CCing binutils@sourceware.org ]
+>>>>>
+>>>>> On 9/4/25 15:18, Sebastian Andrzej Siewior wrote:
+>>>>>> Hi,
+>>>>>>
+>>>>>> gcc in Debian, starting with 15.2.0-2, 14.3.0-6 enables sframe
+>>>>>> generation. Unless options like -ffreestanding are passed. Since this
+>>>>>> isn't done, there are a few warnings during compile
+>>>>>
+>>>>> If there are other options when sframe shouldn't be enabled, please 
+>>>>> tell.
+>>>>
+>>>> No, I think this is okay.
+>>>>
+>>>> …
+>>>>>> We could drop the sframe during the final link but this does not 
+>>>>>> get rid
+>>>>>> of the objtool warnings so we would have to ignore them. But we don't
+>>>>>> need it. So what about the following:
+>>>>>>
+>>>>>> diff --git a/Makefile b/Makefile
+>>>>>> --- a/Makefile
+>>>>>> +++ b/Makefile
+>>>>>> @@ -886,6 +886,8 @@ ifdef CONFIG_CC_IS_GCC
+>>>>>>    KBUILD_CFLAGS    += $(call cc-option,--param=allow-store-data- 
+>>>>>> races=0)
+>>>>>>    KBUILD_CFLAGS    += $(call cc-option,-fno-allow-store-data-races)
+>>>>>>    endif
+>>>>>> +# No sframe generation for kernel if enabled by default
+>>>>>> +KBUILD_CFLAGS    += $(call cc-option,-Xassembler --gsframe=no)
+>>>>>>    ifdef CONFIG_READABLE_ASM
+>>>>>>    # Disable optimizations that make assembler listings hard to read.
+>>>>> This is what I chose for package builds that need disablement of 
+>>>>> sframe.
+>>>>
+>>>> I think this would work for now. Longterm we would have to allow sframe
+>>>> creation and keep section if an architecture decides to use it for its
+>>>> backtracing. While orc seems fine on x86, there are arm64 patches to 
+>>>> use
+>>>> for as a stack unwinder.
+>>>
+>>> This is probably fine, but... how does this interact with other kernel
+>>> makefiles enabling sframe?  For example, x86 will soon have a patch to
+>>> enable sframe generation for vdso.  And as you mentioned, arm64 will
+>>> enable it kernel-wide.
+>>>
+>>> Removing the objtool !ENDBR warnings would be trivial (and is a good
+>>> thing to do regardless).
+>>
+>> What is the status of sframe support in the kernel?  With current
+>> binutils (version 2.45.50.20260119-1) from Debian I could not build
+>> Linux 6.18.7:
+>>
+>> ,----
+>> | # LD      arch/x86/boot/compressed/vmlinux
+>> |   ld -m elf_x86_64 --no-ld-generated-unwind-info  -pie  --no- 
+>> dynamic-linker --orphan-handling=error -z noexecstack --no-warn-rwx- 
+>> segments -T arch/x86/boot/compressed/vmlinux.lds arch/x86/boot/ 
+>> compressed/kernel_info.o arch/x86/boot/compressed/head_64.o arch/x86/ 
+>> boot/compressed/misc.o arch/x86/boot/compressed/string.o arch/x86/ 
+>> boot/compressed/cmdline.o arch/x86/boot/compressed/error.o arch/x86/ 
+>> boot/compressed/piggy.o arch/x86/boot/compressed/cpuflags.o arch/x86/ 
+>> boot/compressed/early_serial_console.o arch/x86/boot/compressed/ 
+>> kaslr.o arch/x86/boot/compressed/ident_map_64.o arch/x86/boot/ 
+>> compressed/idt_64.o arch/x86/boot/compressed/idt_handlers_64.o arch/ 
+>> x86/boot/compressed/pgtable_64.o arch/x86/boot/compressed/acpi.o arch/ 
+>> x86/boot/startup/lib.a -o arch/x86/boot/compressed/vmlinux
+>> | /usr/bin/x86_64-linux-gnu-ld.bfd: error: unplaced orphan section 
+>> `.sframe' from `arch/x86/boot/compressed/kernel_info.o'
+>> | /usr/bin/x86_64-linux-gnu-ld.bfd: error: unplaced orphan section 
+>> `.sframe' from `arch/x86/boot/compressed/kernel_info.o'
+>> | make[6]: *** [arch/x86/boot/compressed/Makefile:116: arch/x86/boot/ 
+>> compressed/vmlinux] Error 1
+>> | make[5]: *** [arch/x86/boot/Makefile:96: arch/x86/boot/compressed/ 
+>> vmlinux] Error 2
+>> `----
+>>
 > 
-> Unify the implementation.
+> Sorry for the breakage.
 > 
-> Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
-> ---
->  include/linux/module_signature.h    |  4 +--
->  kernel/module/signing.c             | 52 +++++++------------------------------
->  kernel/module_signature.c           | 41 +++++++++++++++++++++++++++--
->  security/integrity/ima/ima_modsig.c | 24 ++++-------------
->  4 files changed, 56 insertions(+), 65 deletions(-)
+> There is a patch that needs to make it upstream
+> https://sourceware.org/pipermail/binutils/2026-January/147664.html
+> (Its a part of a series under review..)
 > 
-> diff --git a/include/linux/module_signature.h b/include/linux/module_signature.h
-> index 7eb4b00381ac..186a55effa30 100644
-> --- a/include/linux/module_signature.h
-> +++ b/include/linux/module_signature.h
-> @@ -40,7 +40,7 @@ struct module_signature {
->  	__be32	sig_len;	/* Length of signature data */
->  };
->  
-> -int mod_check_sig(const struct module_signature *ms, size_t file_len,
-> -		  const char *name);
-> +int mod_split_sig(const void *buf, size_t *buf_len, bool mangled,
-> +		  size_t *sig_len, const u8 **sig, const char *name);
->  
->  #endif /* _LINUX_MODULE_SIGNATURE_H */
-> diff --git a/kernel/module/signing.c b/kernel/module/signing.c
-> index fe3f51ac6199..6d64c0d18d0a 100644
-> --- a/kernel/module/signing.c
-> +++ b/kernel/module/signing.c
-> @@ -37,54 +37,22 @@ void set_module_sig_enforced(void)
->  	sig_enforce = true;
->  }
->  
-> -/*
-> - * Verify the signature on a module.
-> - */
-> -static int mod_verify_sig(const void *mod, struct load_info *info)
-> -{
-> -	struct module_signature ms;
-> -	size_t sig_len, modlen = info->len;
-> -	int ret;
-> -
-> -	pr_devel("==>%s(,%zu)\n", __func__, modlen);
-> -
-> -	if (modlen <= sizeof(ms))
-> -		return -EBADMSG;
-> -
-> -	memcpy(&ms, mod + (modlen - sizeof(ms)), sizeof(ms));
-> -
-> -	ret = mod_check_sig(&ms, modlen, "module");
-> -	if (ret)
-> -		return ret;
-> -
-> -	sig_len = be32_to_cpu(ms.sig_len);
-> -	modlen -= sig_len + sizeof(ms);
-> -	info->len = modlen;
-> -
-> -	return verify_pkcs7_signature(mod, modlen, mod + modlen, sig_len,
-> -				      VERIFY_USE_SECONDARY_KEYRING,
-> -				      VERIFYING_MODULE_SIGNATURE,
-> -				      NULL, NULL);
-> -}
-> -
->  int module_sig_check(struct load_info *info, int flags)
->  {
-> -	int err = -ENODATA;
-> -	const unsigned long markerlen = sizeof(MODULE_SIG_STRING) - 1;
-> +	int err;
->  	const char *reason;
->  	const void *mod = info->hdr;
-> +	size_t sig_len;
-> +	const u8 *sig;
->  	bool mangled_module = flags & (MODULE_INIT_IGNORE_MODVERSIONS |
->  				       MODULE_INIT_IGNORE_VERMAGIC);
-> -	/*
-> -	 * Do not allow mangled modules as a module with version information
-> -	 * removed is no longer the module that was signed.
-> -	 */
-> -	if (!mangled_module &&
-> -	    info->len > markerlen &&
-> -	    memcmp(mod + info->len - markerlen, MODULE_SIG_STRING, markerlen) == 0) {
-> -		/* We truncate the module to discard the signature */
-> -		info->len -= markerlen;
-> -		err = mod_verify_sig(mod, info);
-> +
-> +	err = mod_split_sig(info->hdr, &info->len, mangled_module, &sig_len, &sig, "module");
-> +	if (!err) {
-> +		err = verify_pkcs7_signature(mod, info->len, sig, sig_len,
-> +					     VERIFY_USE_SECONDARY_KEYRING,
-> +					     VERIFYING_MODULE_SIGNATURE,
-> +					     NULL, NULL);
->  		if (!err) {
->  			info->sig_ok = true;
->  			return 0;
-
-The patch looks to modify the behavior when mangled_module is true.
-
-Previously, module_sig_check() didn't attempt to extract the signature
-in such a case and treated the module as unsigned. The err remained set
-to -ENODATA and the function subsequently consulted module_sig_check()
-and security_locked_down() to determine an appropriate result.
-
-Newly, module_sig_check() calls mod_split_sig(), which skips the
-extraction of the marker ("~Module signature appended~\n") from the end
-of the module and instead attempts to read it as an actual
-module_signature. The value is then passed to mod_check_sig() which
-should return -EBADMSG. The error is propagated to module_sig_check()
-and treated as fatal, without consulting module_sig_check() and
-security_locked_down().
-
-I think the mangled_module flag should not be passed to mod_split_sig()
-and it should be handled solely by module_sig_check().
-
-> diff --git a/kernel/module_signature.c b/kernel/module_signature.c
-> index 00132d12487c..b2384a73524c 100644
-> --- a/kernel/module_signature.c
-> +++ b/kernel/module_signature.c
-> @@ -8,6 +8,7 @@
->  
->  #include <linux/errno.h>
->  #include <linux/printk.h>
-> +#include <linux/string.h>
->  #include <linux/module_signature.h>
->  #include <asm/byteorder.h>
->  
-> @@ -18,8 +19,8 @@
->   * @file_len:	Size of the file to which @ms is appended.
->   * @name:	What is being checked. Used for error messages.
->   */
-> -int mod_check_sig(const struct module_signature *ms, size_t file_len,
-> -		  const char *name)
-> +static int mod_check_sig(const struct module_signature *ms, size_t file_len,
-> +			 const char *name)
->  {
->  	if (be32_to_cpu(ms->sig_len) >= file_len - sizeof(*ms))
->  		return -EBADMSG;
-> @@ -44,3 +45,39 @@ int mod_check_sig(const struct module_signature *ms, size_t file_len,
->  
->  	return 0;
->  }
-> +
-> +int mod_split_sig(const void *buf, size_t *buf_len, bool mangled,
-> +		  size_t *sig_len, const u8 **sig, const char *name)
-> +{
-> +	const unsigned long markerlen = sizeof(MODULE_SIG_STRING) - 1;
-> +	struct module_signature ms;
-> +	size_t modlen = *buf_len;
-> +	int ret;
-> +
-> +	/*
-> +	 * Do not allow mangled modules as a module with version information
-> +	 * removed is no longer the module that was signed.
-> +	 */
-> +	if (!mangled &&
-> +	    *buf_len > markerlen &&
-> +	    memcmp(buf + modlen - markerlen, MODULE_SIG_STRING, markerlen) == 0) {
-> +		/* We truncate the module to discard the signature */
-> +		modlen -= markerlen;
-> +	}
-> +
-> +	if (modlen <= sizeof(ms))
-> +		return -EBADMSG;
-> +
-> +	memcpy(&ms, buf + (modlen - sizeof(ms)), sizeof(ms));
-> +
-> +	ret = mod_check_sig(&ms, modlen, name);
-> +	if (ret)
-> +		return ret;
-> +
-> +	*sig_len = be32_to_cpu(ms.sig_len);
-> +	modlen -= *sig_len + sizeof(ms);
-> +	*buf_len = modlen;
-> +	*sig = buf + modlen;
-> +
-> +	return 0;
-> +}
-> diff --git a/security/integrity/ima/ima_modsig.c b/security/integrity/ima/ima_modsig.c
-> index 3265d744d5ce..a57342d39b07 100644
-> --- a/security/integrity/ima/ima_modsig.c
-> +++ b/security/integrity/ima/ima_modsig.c
-> @@ -40,44 +40,30 @@ struct modsig {
->  int ima_read_modsig(enum ima_hooks func, const void *buf, loff_t buf_len,
->  		    struct modsig **modsig)
->  {
-> -	const size_t marker_len = strlen(MODULE_SIG_STRING);
-> -	const struct module_signature *sig;
-> +	size_t buf_len_sz = buf_len;
->  	struct modsig *hdr;
->  	size_t sig_len;
-> -	const void *p;
-> +	const u8 *sig;
->  	int rc;
->  
-> -	if (buf_len <= marker_len + sizeof(*sig))
-> -		return -ENOENT;
-> -
-> -	p = buf + buf_len - marker_len;
-> -	if (memcmp(p, MODULE_SIG_STRING, marker_len))
-> -		return -ENOENT;
-> -
-> -	buf_len -= marker_len;
-> -	sig = (const struct module_signature *)(p - sizeof(*sig));
-> -
-> -	rc = mod_check_sig(sig, buf_len, func_tokens[func]);
-> +	rc = mod_split_sig(buf, &buf_len_sz, true, &sig_len, &sig, func_tokens[func]);
-
-Passing mangled=true to mod_split_sig() seems incorrect here. It causes
-that the function doesn't properly extract the signature marker at the
-end of the module, no?
-
->  	if (rc)
->  		return rc;
->  
-> -	sig_len = be32_to_cpu(sig->sig_len);
-> -	buf_len -= sig_len + sizeof(*sig);
-> -
->  	/* Allocate sig_len additional bytes to hold the raw PKCS#7 data. */
->  	hdr = kzalloc(struct_size(hdr, raw_pkcs7, sig_len), GFP_KERNEL);
->  	if (!hdr)
->  		return -ENOMEM;
->  
->  	hdr->raw_pkcs7_len = sig_len;
-> -	hdr->pkcs7_msg = pkcs7_parse_message(buf + buf_len, sig_len);
-> +	hdr->pkcs7_msg = pkcs7_parse_message(sig, sig_len);
->  	if (IS_ERR(hdr->pkcs7_msg)) {
->  		rc = PTR_ERR(hdr->pkcs7_msg);
->  		kfree(hdr);
->  		return rc;
->  	}
->  
-> -	memcpy(hdr->raw_pkcs7, buf + buf_len, sig_len);
-> +	memcpy(hdr->raw_pkcs7, sig, sig_len);
->  
->  	/* We don't know the hash algorithm yet. */
->  	hdr->hash_algo = HASH_ALGO__LAST;
+> I will work on getting this patch committed.
+> 
+> For immediate relief, please use the new ld option --discard-sframe 
+> meanwhile.
 > 
 
--- 
-Thanks,
-Petr
+This was being tracked via 
+https://www.sourceware.org/bugzilla/show_bug.cgi?id=33830.
+
+Should be fixed now on Binutils master and 2.46 branch.
+
+Thanks
+
+>> Did not test mainline yet, but "git log --grep=sframe master" does not
+>> show anything interesting.
+>>
+>> Cheers,
+>>         Sven
+> 
+> 
+
