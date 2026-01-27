@@ -1,32 +1,32 @@
-Received: from out-186.mta1.migadu.com (out-186.mta1.migadu.com [95.215.58.186])
+Received: from out-178.mta1.migadu.com (out-178.mta1.migadu.com [95.215.58.178])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3388730AAB0
-	for <linux-arch@vger.kernel.org>; Tue, 27 Jan 2026 12:16:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.186
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4BF6430FF20
+	for <linux-arch@vger.kernel.org>; Tue, 27 Jan 2026 12:17:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769516221; cv=none; b=anRBxUO10IUQdGiZe3ZGiTgbCZaQBedde00hZDJCyQ0RWkWOf//zKZsHbn+HAC6ZkwsCK9+0tPAzZfw9eYSvH9rxvlgFXC7fD+g3mOEbPd9Q+GRe7b4UAL0hqmX3UZzq7KSdP/pNdFR50pTvg4iA2x2+AiC0JOJlYeMDyn3YYos=
+	t=1769516229; cv=none; b=VvA+lUzb6popeCt6m2+9/tiACMP3GZBnU2OoFoaOAMLlL+DXam1yQxkNhnOIALOb7SHBfbZ2GhP27prEdKRT8shcLhHhZt3DSePWdXhr74l97OTF5537qgCNrojP/MY0vQ+sknq3BsDTQ9GR7AI72mXn9oee/5vFrv6liRQ2U1I=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769516221; c=relaxed/simple;
-	bh=l4vn0jafzOH48gJFS9ZbmhoGcYGN1pHeTBN6xc8KkEs=;
+	s=arc-20240116; t=1769516229; c=relaxed/simple;
+	bh=VLhAYRab+uCXbMXmi0FAQowbk8oZ+0XrtFLxtQv6uEM=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=BGz/3EV5kZca4m6PXuCC2ljMtbDrxsvsH7vY7z8VmsH4nFHY98ujb2ULWPbpBoH4MWyXhVHssOOSSSZTXVcDlLosI22sjAbZCAPlcWbeT7UDMyfNiTMvhjQ57IsexCyJYgHZmnLmZ5q+WzJaMnu4o4Tk7jGMKQi9nEXXs4QyrZQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=jSGS7Oe7; arc=none smtp.client-ip=95.215.58.186
+	 MIME-Version; b=J1ywQDVbFVqJmFl9ZT32OJWBN0MxOBQqJhKCjvQidF16c+R3NBLF/91yenJLCs4uJZMD/WQ0Gk+RD8PQ5wRW1vZPr2w5WNV2HbtSd94FTzJHiexjL66lZFUoMyEFit9jIH9FWynfWSIr/qwYglYUsFkk1PUnkoPu3dC+eU1SC8M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=PPUTXLwM; arc=none smtp.client-ip=95.215.58.178
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="jSGS7Oe7"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="PPUTXLwM"
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1769516217;
+	t=1769516225;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=cQBzLGwNWLhDwXoP+ZRSwxq1ZRzbrKmRMjKOPlq54sI=;
-	b=jSGS7Oe7flEf1a3jjawW71oBSQhZPtzIf1jHxOLDpEaGXg/8H0JQMtgOEgm1lxSI0nFjif
-	CMLoz1yjkN0nwmCjWOwy4dWfqN8+bvppy0gq8toChP4Uc6ASbK4hQf7zJ4fTJfyy7Xu7HL
-	RfqIvb9PoL98f2B3qx4iqWkzECkNTi0=
+	bh=9S/xSrdX3PQNdvGeiuAn8WfyMx/Wvh3tfYwOBKYci1k=;
+	b=PPUTXLwMU1duEHyeudBnwMgqeL0QFNpFSjT+IpgiJrSgmVNwexEAjm3B23aqu5g9VcrKTg
+	Aaw90cmNk5t7rMZujqg3RHg4NK585jt1GbWmBoHuCc2OwJwlcNbfr9XVJ72IPkS44CiySj
+	6Y7MLvU/JazKo2G7NgIk8Lrczju32XY=
 From: Qi Zheng <qi.zheng@linux.dev>
 To: david@kernel.org,
 	andreas@gaisler.com,
@@ -49,9 +49,9 @@ Cc: linux-arch@vger.kernel.org,
 	linux-um@lists.infradead.org,
 	sparclinux@vger.kernel.org,
 	Qi Zheng <zhengqi.arch@bytedance.com>
-Subject: [PATCH v4 7/8] mm: convert __HAVE_ARCH_TLB_REMOVE_TABLE to CONFIG_HAVE_ARCH_TLB_REMOVE_TABLE config
-Date: Tue, 27 Jan 2026 20:13:00 +0800
-Message-ID: <5ebfa3d4b56e63c6906bda5eccaa9f7194d3a86b.1769515122.git.zhengqi.arch@bytedance.com>
+Subject: [PATCH v4 8/8] mm: make PT_RECLAIM depends on MMU_GATHER_RCU_TABLE_FREE
+Date: Tue, 27 Jan 2026 20:13:01 +0800
+Message-ID: <83b034810935a9ff18e425b085e065bb0acb28f3.1769515122.git.zhengqi.arch@bytedance.com>
 In-Reply-To: <cover.1769515122.git.zhengqi.arch@bytedance.com>
 References: <cover.1769515122.git.zhengqi.arch@bytedance.com>
 Precedence: bulk
@@ -65,100 +65,54 @@ X-Migadu-Flow: FLOW_OUT
 
 From: Qi Zheng <zhengqi.arch@bytedance.com>
 
-For architectures that define __HAVE_ARCH_TLB_REMOVE_TABLE, the page
-tables at the pmd/pud level are generally not of struct ptdesc type, and
-do not have pt_rcu_head member, thus these architectures cannot support
-PT_RECLAIM.
+The PT_RECLAIM can work on all architectures that support
+MMU_GATHER_RCU_TABLE_FREE, except for those that have selected
+HAVE_ARCH_TLB_REMOVE_TABLE,so make PT_RECLAIM depends on
+MMU_GATHER_RCU_TABLE_FREE && !HAVE_ARCH_TLB_REMOVE_TABLE.
 
-In preparation for enabling PT_RECLAIM on more architectures, convert
-__HAVE_ARCH_TLB_REMOVE_TABLE to CONFIG_HAVE_ARCH_TLB_REMOVE_TABLE config,
-so that we can make conditional judgments in Kconfig.
+BTW, change PT_RECLAIM to be enabled by default, since nobody should want
+to turn it off.
 
 Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
+Acked-by: David Hildenbrand (Red Hat) <david@kernel.org>
 ---
- arch/powerpc/Kconfig            | 1 +
- arch/powerpc/include/asm/tlb.h  | 1 -
- arch/sparc/Kconfig              | 1 +
- arch/sparc/include/asm/tlb_64.h | 1 -
- include/asm-generic/tlb.h       | 2 +-
- mm/Kconfig                      | 3 +++
- 6 files changed, 6 insertions(+), 3 deletions(-)
+ arch/x86/Kconfig | 1 -
+ mm/Kconfig       | 9 ++-------
+ 2 files changed, 2 insertions(+), 8 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 9537a61ebae02..b47aa8fd62742 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -304,6 +304,7 @@ config PPC
- 	select LOCK_MM_AND_FIND_VMA
- 	select MMU_GATHER_PAGE_SIZE
- 	select MMU_GATHER_RCU_TABLE_FREE
-+	select HAVE_ARCH_TLB_REMOVE_TABLE
- 	select MMU_GATHER_MERGE_VMAS
- 	select MMU_LAZY_TLB_SHOOTDOWN		if PPC_BOOK3S_64
- 	select MODULES_USE_ELF_RELA
-diff --git a/arch/powerpc/include/asm/tlb.h b/arch/powerpc/include/asm/tlb.h
-index 2058e8d3e0138..1ca7d4c4b90db 100644
---- a/arch/powerpc/include/asm/tlb.h
-+++ b/arch/powerpc/include/asm/tlb.h
-@@ -37,7 +37,6 @@ extern void tlb_flush(struct mmu_gather *tlb);
-  */
- #define tlb_needs_table_invalidate()	radix_enabled()
- 
--#define __HAVE_ARCH_TLB_REMOVE_TABLE
- /* Get the generic bits... */
- #include <asm-generic/tlb.h>
- 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index a630d373e6453..25fa2908d6152 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -74,6 +74,7 @@ config SPARC64
- 	select HAVE_KRETPROBES
- 	select HAVE_KPROBES
- 	select MMU_GATHER_RCU_TABLE_FREE if SMP
-+	select HAVE_ARCH_TLB_REMOVE_TABLE if SMP
- 	select MMU_GATHER_MERGE_VMAS
- 	select MMU_GATHER_NO_FLUSH_CACHE
- 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
-diff --git a/arch/sparc/include/asm/tlb_64.h b/arch/sparc/include/asm/tlb_64.h
-index 1a6e694418e39..3037187482db7 100644
---- a/arch/sparc/include/asm/tlb_64.h
-+++ b/arch/sparc/include/asm/tlb_64.h
-@@ -33,7 +33,6 @@ void flush_tlb_pending(void);
- #define tlb_needs_table_invalidate()	(false)
- #endif
- 
--#define __HAVE_ARCH_TLB_REMOVE_TABLE
- #include <asm-generic/tlb.h>
- 
- #endif /* _SPARC64_TLB_H */
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 4d679d2a206b4..3427b8036ba33 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -213,7 +213,7 @@ struct mmu_table_batch {
- #define MAX_TABLE_BATCH		\
- 	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
- 
--#ifndef __HAVE_ARCH_TLB_REMOVE_TABLE
-+#ifndef CONFIG_HAVE_ARCH_TLB_REMOVE_TABLE
- static inline void __tlb_remove_table(void *table)
- {
- 	struct ptdesc *ptdesc = (struct ptdesc *)table;
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 80527299f859a..0d22da56a71b0 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -331,7 +331,6 @@ config X86
+ 	select FUNCTION_ALIGNMENT_4B
+ 	imply IMA_SECURE_AND_OR_TRUSTED_BOOT    if EFI
+ 	select HAVE_DYNAMIC_FTRACE_NO_PATCHABLE
+-	select ARCH_SUPPORTS_PT_RECLAIM		if X86_64
+ 	select ARCH_SUPPORTS_SCHED_SMT		if SMP
+ 	select SCHED_SMT			if SMP
+ 	select ARCH_SUPPORTS_SCHED_CLUSTER	if SMP
 diff --git a/mm/Kconfig b/mm/Kconfig
-index a992f2203eb91..456e9eaedca39 100644
+index 456e9eaedca39..1f3109b164d86 100644
 --- a/mm/Kconfig
 +++ b/mm/Kconfig
-@@ -1451,6 +1451,9 @@ config ARCH_HAS_USER_SHADOW_STACK
- 	  The architecture has hardware support for userspace shadow call
-           stacks (eg, x86 CET, arm64 GCS or RISC-V Zicfiss).
- 
-+config HAVE_ARCH_TLB_REMOVE_TABLE
-+	def_bool n
-+
- config ARCH_SUPPORTS_PT_RECLAIM
+@@ -1454,14 +1454,9 @@ config ARCH_HAS_USER_SHADOW_STACK
+ config HAVE_ARCH_TLB_REMOVE_TABLE
  	def_bool n
  
+-config ARCH_SUPPORTS_PT_RECLAIM
+-	def_bool n
+-
+ config PT_RECLAIM
+-	bool "reclaim empty user page table pages"
+-	default y
+-	depends on ARCH_SUPPORTS_PT_RECLAIM && MMU && SMP
+-	select MMU_GATHER_RCU_TABLE_FREE
++	def_bool y
++	depends on MMU_GATHER_RCU_TABLE_FREE && !HAVE_ARCH_TLB_REMOVE_TABLE
+ 	help
+ 	  Try to reclaim empty user page table pages in paths other than munmap
+ 	  and exit_mmap path.
 -- 
 2.20.1
 
