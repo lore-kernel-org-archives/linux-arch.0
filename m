@@ -1,32 +1,32 @@
-Received: from out-173.mta1.migadu.com (out-173.mta1.migadu.com [95.215.58.173])
+Received: from out-180.mta1.migadu.com (out-180.mta1.migadu.com [95.215.58.180])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 29A9230AAB0
-	for <linux-arch@vger.kernel.org>; Tue, 27 Jan 2026 12:16:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72B2030DD24;
+	Tue, 27 Jan 2026 12:16:51 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769516206; cv=none; b=BrsIMOpZWg/7u9oYtZCtfRkWiVjnTncS7iLBNjy7nWwatbN6DHyZa1v88IwBLXks174nOtD8DXFCAdXhY48kinh1ivLLEYqEmgKkg4WCabsVIe5pG0n1Le6Yu2AXtND5NaZM8F1TxVRhy1KsAMhZCJ5Vks69gmLy+jD7Xv7mQ0Q=
+	t=1769516212; cv=none; b=a6eizgsFCNjKccoNADcAW+mQ/g7ieh3kr3SVtL8Rn6UtWjbOuhdhLTepwkpy7B96FATqAjG4Uo3TZvNDWMIg76eFkL8KuUzpCU0FVlmtRTC7wxcEIIc0Q8yDapUuHVg4uvR55VaGa3bQxxwbnCIDrCpOdFUz7xuaJcwesUD9gOw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769516206; c=relaxed/simple;
-	bh=JBGvtd6lIDpE88cwSn1qvAi5ZYQhW95obYt/hFyoa6o=;
+	s=arc-20240116; t=1769516212; c=relaxed/simple;
+	bh=RY9iG5O6CRC3b3IlwlQVEJmAqDrdvdhuqhPIwDBxGks=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=SeBsFi5+Y+yq0B4FkF3tO2CHgloP/K9EVa06HAgvhP3I2rLsSxQtdHAjhVLd9QBOL4fcRhxeVsFs/KbxpzwF0th5ZQWCg44wJej/WvjjsN61w7BR9rRig9JFf2fE7Ltm7i0waHltuyl+bXHhfS5CQ544/eZv0iDWkYD9lWjZRxk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=FIbdx3Kz; arc=none smtp.client-ip=95.215.58.173
+	 MIME-Version; b=guixxTow5IgLdWUq4jo0MmOCzA4Dhn4an2VX+sWglmTnXLUTYdei7Fe5RKfNhqdNETkM9aZZMflfeXdP6m47bBlXJY/n7yP9URkGNVwoBrorsbNIadNEhc/TcbKEji1zl90TnXSLj9E4VjMnQY7q0XXhmolg+Sd6Q9GwYaoUyjM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=wc/LzcSY; arc=none smtp.client-ip=95.215.58.180
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="FIbdx3Kz"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="wc/LzcSY"
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1769516203;
+	t=1769516209;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=8PNYJl+4luznSu7Qs41hn6BnOWw9fSYJ1f3qY5qKkjU=;
-	b=FIbdx3KzT3ZzuPWcHXh6lZeu0knjRgXOY2FCQKsdr3pHR7oc/n8z24+0bCjEsSNByQL3i0
-	6SwoaMgXgtfA9BWg4CrNy8gMxJBXcNgtiljra9XdM5cxUx+WSsUy2hZfxCkH+JPhZqVh5a
-	kHtoJcZoWzF8ijbWfD8mCP8Ts6pi/D4=
+	bh=e0pQYHM1jhSwp9PHWAhzAtLgw7dAo1EQ0j0b9Rhu8lM=;
+	b=wc/LzcSY84XUN/M01s5VcIBtD1/lXhQlVZzRwxMLJY1XGT2wxJOzGUzWA5oPCfbPCsb1/O
+	ht9YXkU/ZBWYV/j9FZpfqWjqnjxWaip5QHGmFskLEMQc1kWqyHjiSkHOF+suDP3tIX1G7K
+	JeMpI6zZYGFo3G12ozp0269DFGB3g9I=
 From: Qi Zheng <qi.zheng@linux.dev>
 To: david@kernel.org,
 	andreas@gaisler.com,
@@ -49,11 +49,12 @@ Cc: linux-arch@vger.kernel.org,
 	linux-um@lists.infradead.org,
 	sparclinux@vger.kernel.org,
 	Qi Zheng <zhengqi.arch@bytedance.com>,
-	"James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>,
-	Helge Deller <deller@gmx.de>
-Subject: [PATCH v4 5/8] parisc: mm: enable MMU_GATHER_RCU_TABLE_FREE
-Date: Tue, 27 Jan 2026 20:12:58 +0800
-Message-ID: <b827939046dbc94bc7c585cdbed8522baab75b15.1769515122.git.zhengqi.arch@bytedance.com>
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>
+Subject: [PATCH v4 6/8] um: mm: enable MMU_GATHER_RCU_TABLE_FREE
+Date: Tue, 27 Jan 2026 20:12:59 +0800
+Message-ID: <e2217546504668b8a87a39eb0e378839339a1bb4.1769515122.git.zhengqi.arch@bytedance.com>
 In-Reply-To: <cover.1769515122.git.zhengqi.arch@bytedance.com>
 References: <cover.1769515122.git.zhengqi.arch@bytedance.com>
 Precedence: bulk
@@ -73,40 +74,25 @@ first enable MMU_GATHER_RCU_TABLE_FREE to prepare for enabling the
 PT_RECLAIM feature, which resolves this problem.
 
 Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
-Cc: "James E.J. Bottomley" <James.Bottomley@HansenPartnership.com>
-Cc: Helge Deller <deller@gmx.de>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: Anton Ivanov <anton.ivanov@cambridgegreys.com>
+Cc: Johannes Berg <johannes@sipsolutions.net>
 ---
- arch/parisc/Kconfig           | 1 +
- arch/parisc/include/asm/tlb.h | 4 ++--
- 2 files changed, 3 insertions(+), 2 deletions(-)
+ arch/um/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index 47fd9662d8005..62d5a89d5c7bc 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -79,6 +79,7 @@ config PARISC
- 	select GENERIC_CLOCKEVENTS
- 	select CPU_NO_EFFICIENT_FFS
+diff --git a/arch/um/Kconfig b/arch/um/Kconfig
+index 8415d39b0d430..098cda44db225 100644
+--- a/arch/um/Kconfig
++++ b/arch/um/Kconfig
+@@ -42,6 +42,7 @@ config UML
+ 	select HAVE_SYSCALL_TRACEPOINTS
  	select THREAD_INFO_IN_TASK
+ 	select SPARSE_IRQ
 +	select MMU_GATHER_RCU_TABLE_FREE
- 	select NEED_DMA_MAP_STATE
- 	select NEED_SG_DMA_LENGTH
- 	select HAVE_ARCH_KGDB
-diff --git a/arch/parisc/include/asm/tlb.h b/arch/parisc/include/asm/tlb.h
-index 44235f367674d..4501fee0a8fa4 100644
---- a/arch/parisc/include/asm/tlb.h
-+++ b/arch/parisc/include/asm/tlb.h
-@@ -5,8 +5,8 @@
- #include <asm-generic/tlb.h>
  
- #if CONFIG_PGTABLE_LEVELS == 3
--#define __pmd_free_tlb(tlb, pmd, addr)	pmd_free((tlb)->mm, pmd)
-+#define __pmd_free_tlb(tlb, pmd, addr)	tlb_remove_ptdesc((tlb), virt_to_ptdesc(pmd))
- #endif
--#define __pte_free_tlb(tlb, pte, addr)	pte_free((tlb)->mm, pte)
-+#define __pte_free_tlb(tlb, pte, addr)	tlb_remove_ptdesc((tlb), page_ptdesc(pte))
- 
- #endif
+ config MMU
+ 	bool
 -- 
 2.20.1
 
