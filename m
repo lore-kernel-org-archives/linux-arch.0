@@ -1,52 +1,60 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8FEDC329E53;
-	Tue, 27 Jan 2026 18:46:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4A7B0309DAF;
+	Tue, 27 Jan 2026 18:48:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769539614; cv=none; b=inqZ/J3S/RCk1R8EV17HI0cThIb4pwgbZKIMgPZs3Ydb8ZIn/MkWNbbmpxAyA+/4LWWnbk/wVxtxA3g/Wq/0hYCs7ORges1y9JEUXjD75USCGSozxQl4YesRMaqoQmKtbbYQDApjo2o+HO9Yn1umkrW7ADBDdxMzac/Fkjt12dk=
+	t=1769539719; cv=none; b=WyfCamuyAlgDaaLPgSLrR4HFTvbsb/YEgxLzvK7n2bDVbS3U+UX+mKPFqMKO457+RDi87SkwPLQPHeurRPFzNRdCxzPvnMka7XewDvrt1HPtxdNnzpQde5DPftyWGQng/F0Ql8jRNe3vVjiyy1Tl1mwuEsMnCr7XMGVTxOHDKtQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769539614; c=relaxed/simple;
-	bh=mC/iqwtZCuKzewIUkFzu/ACz1juL0mSJrn1dp0Vj+CA=;
+	s=arc-20240116; t=1769539719; c=relaxed/simple;
+	bh=9Kb41GNzFdnMC+EFq433D0Buo8fGVFgZu1BYS4b9488=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=CDPX55r9h2GFH/KzHXrB9hL6IDGj/y65Jm/47DJc72oJqNkUsMW6Zl4F4h5xkwUupROtk9ZlqkI7A4ghjIWjgYWVLoJbtYjgmBhDvbXKHVd7i4E88QPBPGkOfBPMlE3zL9Peb0Hz4bUFmpyIvK+7HZHKzrE4uJzF7QBFzYFJAqs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=KfA8t0yc; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=T2oZBXaOl77Ojh12QcwuaaHF+XegB+zctAJfcHxzOahBn8u+fekGhO+Cicpp1Ocl81frjymcgYyxcHjtuP3K2nAHSi7m24twNZ3l2cAW2pllLzOtzGPzp8wu51YfVQmaCeLGqOwZyuHuZFye0cl/COCLYJ+N/Ck23LmmJ+jF9dE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=X2XQH8xm; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="KfA8t0yc"
-Received: from skinsburskii.localdomain (c-98-225-44-182.hsd1.wa.comcast.net [98.225.44.182])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 87A2D20B7165;
-	Tue, 27 Jan 2026 10:46:51 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 87A2D20B7165
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1769539612;
-	bh=1e4oSHFrcFoT6MCe9M2loFr8ezu3DpCgZa4h2G9Bg+c=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=KfA8t0ycPr0ZXVV61FD2wHGv1yA+vaVu70mo5o6KiWjFcAr+6XBmpjL8fPsaWPagS
-	 dTjjYbjChgBB8NMthtRP4QM/ttne2XxdMchgBZKeeF8Cwn1hxRNkEx3JK56tLSu8i/
-	 +rmmRqnHQgLPb7G0Q49P0YjegKtxxCjcCd9Laclw=
-Date: Tue, 27 Jan 2026 10:46:49 -0800
-From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
-	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com,
-	will@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
-	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
-	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
-	nunodasneves@linux.microsoft.com, mhklinux@outlook.com,
-	romank@linux.microsoft.com
-Subject: Re: [PATCH v0 12/15] x86/hyperv: Implement hyperv virtual iommu
-Message-ID: <aXkIGfos4l0kv_lF@skinsburskii.localdomain>
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120064230.3602565-13-mrathor@linux.microsoft.com>
- <aXAZ-r1PeUBAHwaK@skinsburskii.localdomain>
- <54fd73b9-ade6-f1bb-08fc-17571aeadb20@linux.microsoft.com>
- <aXeO7wh7bpacJ1Sk@skinsburskii.localdomain>
- <c40e6dc8-8e42-b0f3-f8e5-3c637adb7f13@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="X2XQH8xm"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=obdC9iXBZdS6X6d26P7qD6oiizDlQ0sUiMP+WtFKBeM=; b=X2XQH8xmsnFy17u8Wtukg1lls0
+	cCSpQfIIHvvQzC8rb0ntZFmRy9i3NLmxkQwZUgIIXuaggogve2YG2VV0Uxo5PphWN3QqF7VoSj/sL
+	1XkPKIc7jKeFnirKiuNCp9rRD4UpqZQEjd17OVQNf8kDeKCjcHAYdy8WNt/yLM9TBNiJ1GX8sEM6b
+	Yo5nLuV7oY5/77a8c0e5BzW+nD8WBAFIXeWsHwk5DRh3V9g51aVT0DPzSQCkPtdSnExaxCWR1Y24a
+	0TPi+oKuFALaJJuqyYSz51tWhMdJ5EdI/RSqDXcyvCWJ4SXZUVjlLXg+dsAt3USinCubcf9rQOs5S
+	k35eD8BA==;
+Received: from 77-249-17-252.cable.dynamic.v4.ziggo.nl ([77.249.17.252] helo=noisy.programming.kicks-ass.net)
+	by casper.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1vko6w-00000007rWg-1HVN;
+	Tue, 27 Jan 2026 18:48:22 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id 117F5303076; Tue, 27 Jan 2026 19:48:20 +0100 (CET)
+Date: Tue, 27 Jan 2026 19:48:20 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+To: Prakash Sangappa <prakash.sangappa@oracle.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>,
+	LKML <linux-kernel@vger.kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	"Paul E. McKenney" <paulmck@kernel.org>,
+	Boqun Feng <boqun.feng@gmail.com>, Jonathan Corbet <corbet@lwn.net>,
+	Madadi Vineeth Reddy <vineethr@linux.ibm.com>,
+	K Prateek Nayak <kprateek.nayak@amd.com>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	Arnd Bergmann <arnd@arndb.de>,
+	"linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>,
+	Randy Dunlap <rdunlap@infradead.org>,
+	Ron Geva <rongevarg@gmail.com>, Waiman Long <longman@redhat.com>
+Subject: Re: [patch V6 07/11] rseq: Implement time slice extension
+ enforcement timer
+Message-ID: <20260127184820.GC3372621@noisy.programming.kicks-ass.net>
+References: <20251215155615.870031952@linutronix.de>
+ <20251215155709.068329497@linutronix.de>
+ <20260117095737.GG1890602@noisy.programming.kicks-ass.net>
+ <3FF1C1CB-ACE5-485A-8BFB-AFE561CA6EC1@oracle.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -55,102 +63,85 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <c40e6dc8-8e42-b0f3-f8e5-3c637adb7f13@linux.microsoft.com>
+In-Reply-To: <3FF1C1CB-ACE5-485A-8BFB-AFE561CA6EC1@oracle.com>
 
-On Mon, Jan 26, 2026 at 07:02:29PM -0800, Mukesh R wrote:
-> On 1/26/26 07:57, Stanislav Kinsburskii wrote:
-> > On Fri, Jan 23, 2026 at 05:26:19PM -0800, Mukesh R wrote:
-> > > On 1/20/26 16:12, Stanislav Kinsburskii wrote:
-> > > > On Mon, Jan 19, 2026 at 10:42:27PM -0800, Mukesh R wrote:
-> > > > > From: Mukesh Rathor <mrathor@linux.microsoft.com>
-> > > > > 
-> > > > > Add a new file to implement management of device domains, mapping and
-> > > > > unmapping of iommu memory, and other iommu_ops to fit within the VFIO
-> > > > > framework for PCI passthru on Hyper-V running Linux as root or L1VH
-> > > > > parent. This also implements direct attach mechanism for PCI passthru,
-> > > > > and it is also made to work within the VFIO framework.
-> > > > > 
-> > > > > At a high level, during boot the hypervisor creates a default identity
-> > > > > domain and attaches all devices to it. This nicely maps to Linux iommu
-> > > > > subsystem IOMMU_DOMAIN_IDENTITY domain. As a result, Linux does not
-> > > > > need to explicitly ask Hyper-V to attach devices and do maps/unmaps
-> > > > > during boot. As mentioned previously, Hyper-V supports two ways to do
-> > > > > PCI passthru:
-> > > > > 
-> > > > >     1. Device Domain: root must create a device domain in the hypervisor,
-> > > > >        and do map/unmap hypercalls for mapping and unmapping guest RAM.
-> > > > >        All hypervisor communications use device id of type PCI for
-> > > > >        identifying and referencing the device.
-> > > > > 
-> > > > >     2. Direct Attach: the hypervisor will simply use the guest's HW
-> > > > >        page table for mappings, thus the host need not do map/unmap
-> > > > >        device memory hypercalls. As such, direct attach passthru setup
-> > > > >        during guest boot is extremely fast. A direct attached device
-> > > > >        must be referenced via logical device id and not via the PCI
-> > > > >        device id.
-> > > > > 
-> > > > > At present, L1VH root/parent only supports direct attaches. Also direct
-> > > > > attach is default in non-L1VH cases because there are some significant
-> > > > > performance issues with device domain implementation currently for guests
-> > > > > with higher RAM (say more than 8GB), and that unfortunately cannot be
-> > > > > addressed in the short term.
-> > > > > 
-> > > > 
-> > > > <snip>
-> > > > 
-> > 
-> > <snip>
-> > 
-> > > > > +static void hv_iommu_detach_dev(struct iommu_domain *immdom, struct device *dev)
-> > > > > +{
-> > > > > +	struct pci_dev *pdev;
-> > > > > +	struct hv_domain *hvdom = to_hv_domain(immdom);
-> > > > > +
-> > > > > +	/* See the attach function, only PCI devices for now */
-> > > > > +	if (!dev_is_pci(dev))
-> > > > > +		return;
-> > > > > +
-> > > > > +	if (hvdom->num_attchd == 0)
-> > > > > +		pr_warn("Hyper-V: num_attchd is zero (%s)\n", dev_name(dev));
-> > > > > +
-> > > > > +	pdev = to_pci_dev(dev);
-> > > > > +
-> > > > > +	if (hvdom->attached_dom) {
-> > > > > +		hv_iommu_det_dev_from_guest(hvdom, pdev);
-> > > > > +
-> > > > > +		/* Do not reset attached_dom, hv_iommu_unmap_pages happens
-> > > > > +		 * next.
-> > > > > +		 */
-> > > > > +	} else {
-> > > > > +		hv_iommu_det_dev_from_dom(hvdom, pdev);
-> > > > > +	}
-> > > > > +
-> > > > > +	hvdom->num_attchd--;
-> > > > 
-> > > > Shouldn't this be modified iff the detach succeeded?
-> > > 
-> > > We want to still free the domain and not let it get stuck. The purpose
-> > > is more to make sure detach was called before domain free.
-> > > 
-> > 
-> > How can one debug subseqent errors if num_attchd is decremented
-> > unconditionally? In reality the device is left attached, but the related
-> > kernel metadata is gone.
+On Fri, Jan 23, 2026 at 05:41:16PM +0000, Prakash Sangappa wrote:
+
+> The database setup is on an older environment. The python script provided does not run as is.
+> So, modified it to gather the stats by parsing trace-cmd report output.
+
+I 'wrote' it against this thing:
+
+  https://github.com/rostedt/trace-cmd/blob/master/python/tracecmd.py
+
+
+> ========================================
+> RSEQ SLICE HISTOGRAM (us)
+> ========================================
 > 
-> Error is printed in case of failed detach. If there is panic, at least
-> you can get some info about the device. Metadata in hypervisor is
-> around if failed.
+> Task: ora_dbwr_lmb-666257    Mean: 1593.058 ns
+>   Latency (us)    | Count
+>   ------------------------------
+>   EXPIRED         | 3
+>   0 us            | 8
+>   1 us            | 116
+>   2 us            | 25
+>   3 us            | 2
+>   4 us            | 1
+>   7 us            | 1
 > 
+> Task: ora_dbwd_lmb-666196    Mean: 1548.641 ns
+>   Latency (us)    | Count
+>   ------------------------------
+>   EXPIRED         | 6
+>   0 us            | 19
+>   1 us            | 203
+>   2 us            | 33
+>   4 us            | 2
+>   5 us            | 1
+> 
+> 
+> [..]
+> 
+> Task: oracle_668951_l-668951    Mean: 1797.796 ns
+>   Latency (us)    | Count
+>   ------------------------------
+>   1 us            | 5
+>   2 us            | 1
+>   3 us            | 2
+> 
+> Task: oracle_671571_l-671571    Mean: 3285.425 ns
+>   Latency (us)    | Count
+>   ------------------------------
+>   1 us            | 1
+>   3 us            | 1
+>   5 us            | 1
+>   6 us            | 1
+>   10 us           | 1
+> 
+> Task: oracle_672277_l-672277    Mean: 2361.600 ns
+>   Latency (us)    | Count
+>   ------------------------------
+>   1 us            | 4
+>   2 us            | 3
+>   5 us            | 1
+>   7 us            | 1
+>   9 us            | 1
+>   11 us           | 1
+> 
+> Task: ora_dbwb_lmb-666192    Mean: 1548.157 ns
+>   Latency (us)    | Count
+>   ------------------------------
+>   EXPIRED         | 10
+>   0 us            | 24
+>   1 us            | 182
+>   2 us            | 39
+>   3 us            | 2
+>   4 us            | 4
+>   5 us            | 1
+>   14 us           | 1
 
-With this approach the only thing left is a kernel message.
-But if the state is kept intact, one could collect a kernel core and
-analyze it.
+Thanks! that seems to confirm that 5us should be good enough for you
+guys too.
 
-And note, that there won't be a hypervisor core by default: our main
-context with the usptreamed version of the driver is L1VH and a kernel
-core is the only thing a third party customer can provide for our
-analysis.
-
-Thanks,
-Stanislav
 
