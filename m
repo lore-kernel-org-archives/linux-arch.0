@@ -1,317 +1,146 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f42.google.com (mail-wr1-f42.google.com [209.85.221.42])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5D9D22E6CBF;
-	Fri, 30 Jan 2026 01:00:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769734803; cv=fail; b=HDX4SHOlDzYu04OfdpUmF4I1Ig84JZlG8HyjxYo0VUc8e4TioV9vKrw0k9kA37c1YggK+XMFHAzxhK41tySmTXnYajP1ChZZe3fASO4BaE+mIlKm1ef/lWjkJj7C1qAbIAuz7gpbh/wA7HOoT+C2X2glReNx8pnAbZ5uwaAwe60=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769734803; c=relaxed/simple;
-	bh=0+bVn/WlHjSFZMZ/vHaBlr698+v+UMfJvvNNROLDb5A=;
-	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=Pp4SLDsUgwqFtwNNSCoA/5KZSAqvdcqVmLSfKwIoZjbQ5qJWdXz5vdmiDngT5SDn5zfaSStR2Rz8xTsVRHjchtZa3JwWjqLrPzKY5UniYceAsQSyRJxtR9qA7pBp90hfEme9E1eizWlgGhryOsVToTLMt8CZ+1LpIvGKpl/NEbQ=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=DnDPpIJ9; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=JJgqDGCr; arc=fail smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 685AE3469F8
+	for <linux-arch@vger.kernel.org>; Fri, 30 Jan 2026 11:13:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.42
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1769771629; cv=none; b=B1Vz1DkNVNQAYzBP48LgrYbrCI4NdiM+dCPp96dZMNJ+250XaMmaRg3e8ASFO+sSE+r5KDL+oB+0KIz3Qh0GGVU+WhqqDBapp5W4V26qvp22gtbV7zIELFGyZLEj0Ab/XuVk57iBCVDlHwXuDBJQ4xWVIGJM9U/eltT+0YKxcpE=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1769771629; c=relaxed/simple;
+	bh=TCis+rQCC6z7XYAkYemlUIoHru5jgaTIrUqt6t+FWY4=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=nwiimgnbhE9zvgSNO2MLkJ0qwNMmTva03Hv2d45AkRCuRZmCV2EH6KSR0t8l5SJj8kOqY3/qhOOo9S4bsOklDuF19E1NeoIET8hqUnIeFHuqmBK/eL4CFfEm5nn+vio6e7/+Cyv/dwJp9L/xFb+m2zgTgN5PhEBWdmrFUIWzADQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=bijCiHCD; arc=none smtp.client-ip=209.85.221.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="DnDPpIJ9";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="JJgqDGCr"
-Received: from pps.filterd (m0246627.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 60TM4S8R367543;
-	Fri, 30 Jan 2026 00:59:15 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-transfer-encoding:content-type:date:from:in-reply-to
-	:message-id:mime-version:references:subject:to; s=
-	corp-2025-04-25; bh=xRZw0thCnfFXpcXXALwAKv4JtnVLu/EHXSpKLkFLlQQ=; b=
-	DnDPpIJ9W3yRpwRJmkrGR/4l0Ku5Z3dVv06vHSli+rDBW+LrX8CwLfVTGYwdHs1F
-	VIJjUhp/wAlV4+UGCLFyq4ziaUTSSoksvbdNg+ARBio3SWbDmZxZuH3mmNwP84w3
-	FEGtANJWW/OC3z9kyznNbLKsQD/nmRJ6CU0lS1pgJGKBVDga/j8bw/bchvXj3GrO
-	+QPUELJ7J3k674bmleZu7cEA30eRPC/jVUS5OMMlc1jgBWtJ+Qya9lXl+o1EWJ+w
-	vppZczbbZzqF4U/oMxcH4rJPyOdRo6jcHX0pU0LWCOjFEBE3djK9mjxuWbOrG2q3
-	Xt2LtXqkOSI+9LgU7EmB6w==
-Received: from iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta01.appoci.oracle.com [130.35.100.223])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4by378mdu4-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 30 Jan 2026 00:59:15 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 60U0s2Ne019762;
-	Fri, 30 Jan 2026 00:59:14 GMT
-Received: from sa9pr02cu001.outbound.protection.outlook.com (mail-southcentralusazon11013062.outbound.protection.outlook.com [40.93.196.62])
-	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 4bvmhjcj54-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 30 Jan 2026 00:59:14 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=dddVJ+BkjpoNgrbi4XGkS7gofYz7po0ZWB2zCEmEVLjgjstAxWvV1A9s+xgaKSJ6ABoBTyK+JbGRQbRKx85mydSx03/ALuVowxmfGUm15OJbOkZD1rgzW8RdxEKabtMOgUHUoel/WBqfkUp3TbY4DxqPLIYMfo+mMEOHY6Yaly36fVTN5S/aoKfmWiNP0isbMsZa+Wpb18a6ErNeDtG+gPnXg1o0QtiyuWyc/H9ypKFYZrdYbSO8uPCzSXB6q33OMwJM7ZeMvuiMOOzm5n6tIe9SEfoEy0/4W93WVGwlHwDvXsrO5id5wI3yE3Pq1d1eJa8raPxPm6ab6bvcci68tQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=xRZw0thCnfFXpcXXALwAKv4JtnVLu/EHXSpKLkFLlQQ=;
- b=vo9+WmXTnlc0bKa+UWZNJ4229okedhTeul+XHhvflbXK0SBP9jIUxLCkMwJfndgfQnYcCFAiWvVYbNkAFhCx3KQEJt43Lr97p9uUGOEm+5ti05ZvfyhGOXCZBWUwCJwYofqRU0dM1IdAvEHheIy2hzQidZJDVH+Nnc/DB3MyR+Dqef+3tY8M8dth6gYJ3/3UmzlbVGlRfprWFFOJfQtQJxXPbT/fb/ZKGzd8YTbZcQb9hvjQOYq3tJ61y/cmqCiviyT1a0qHFpDW9Tgb2XX7uIGRC+6pMa14yKcZmaSDLGzRG7hOF6EJPX7H3xaykQ8AcBTY9ApAsCEkn0njDFNBcw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="bijCiHCD"
+Received: by mail-wr1-f42.google.com with SMTP id ffacd0b85a97d-42fb2314f52so1225765f8f.0
+        for <linux-arch@vger.kernel.org>; Fri, 30 Jan 2026 03:13:48 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=xRZw0thCnfFXpcXXALwAKv4JtnVLu/EHXSpKLkFLlQQ=;
- b=JJgqDGCr8VJamr36pvgBa3XA09Qsllv0kzOLYXYC+2Kxw9k2YVJWtLzUZEphRsbiaPT7UFkAhsTIra2Z25bnlhRxNq4tiNsZZ9XmcvaHveOf1Qg2ngst7unD7pGA6EjlwZHGxQTEjwJfGNkXb6NpT1kleD8i99jcMyUqwrSsTHs=
-Received: from SA1PR10MB6365.namprd10.prod.outlook.com (2603:10b6:806:255::12)
- by CH3PR10MB6714.namprd10.prod.outlook.com (2603:10b6:610:142::7) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9564.7; Fri, 30 Jan
- 2026 00:59:11 +0000
-Received: from SA1PR10MB6365.namprd10.prod.outlook.com
- ([fe80::e842:361f:d030:1ec1]) by SA1PR10MB6365.namprd10.prod.outlook.com
- ([fe80::e842:361f:d030:1ec1%4]) with mapi id 15.20.9542.010; Fri, 30 Jan 2026
- 00:59:11 +0000
-Message-ID: <59805735-5e41-44b7-a250-5bedcb80a75e@oracle.com>
-Date: Thu, 29 Jan 2026 16:58:49 -0800
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC] Don't create sframes during build
-To: Nathan Chancellor <nathan@kernel.org>, Jens Remus <jremus@linux.ibm.com>
-Cc: Matthias Klose <doko@debian.org>,
-        Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-kbuild@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>,
-        Josh Poimboeuf <jpoimboe@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Nicolas Schier <nicolas.schier@linux.dev>,
-        Binutils
- <binutils@sourceware.org>,
-        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
-        Frederik Schwan <freswa@archlinux.org>
-References: <20250904131835.sfcG19NV@linutronix.de>
- <b3db475e-e84d-4056-9420-bc0acc8b9fe5@debian.org>
- <7b45d196-063e-4e76-b08b-ec2bcc111328@linux.ibm.com>
- <20260129222357.GA493990@ax162>
-Content-Language: en-US
-From: Indu Bhagat <indu.bhagat@oracle.com>
-In-Reply-To: <20260129222357.GA493990@ax162>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-X-ClientProxiedBy: MW4PR04CA0188.namprd04.prod.outlook.com
- (2603:10b6:303:86::13) To SA1PR10MB6365.namprd10.prod.outlook.com
- (2603:10b6:806:255::12)
+        d=gmail.com; s=20230601; t=1769771627; x=1770376427; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=w+yjYwZ7RDCJlqlGtt5ChUntZSWDd8aPFqDlY3AniEk=;
+        b=bijCiHCDiDsrfYSkVIjAqtFdXK0pP3y5v8itW4VnLqZB29KGa2STuu35LNttVG3FeD
+         3c42LD0VN3OVZl0OwXHeg2zrB8V3YNvwyL0HXxsDzB1qcEZ+YwhJ7CMckfyeQ+x5xU72
+         s2CrtAtfxPINwcj5teHNx/VBE9F7lnSx4sGwHfirvj88paMTt7kmu14fQ0auD7MuVxvX
+         8DnEgXkyvEy22rxA+B3tXASXH4HcS+Nki6mWmlmUFHjtWbY57ac9OYUKL90KW9PJMiLN
+         AunrO3J9F9L/zmEkvl+41y/JuzskrpStPTww79WkogBJh0QU+QarB0Sj1xg+1k9NaeNx
+         ZBRw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1769771627; x=1770376427;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=w+yjYwZ7RDCJlqlGtt5ChUntZSWDd8aPFqDlY3AniEk=;
+        b=KPZD1arFbXNALZfs3vu119NjekjVoRNqKGyamsf7Mwwjmbz/vTmMDxSWNqNDuM+meW
+         9GWAXSlEgJuWSdyy8aam6TEHtCei21uBZi+268ePfWQtaZgi2+RO2eTKFbOm5XQ2amRx
+         j94Cw47LWdtBNOke+NKmuirS/sbIR5QIPi2h1yOULvtTkG3KVqzGY8hRHA/1lN0A7Prh
+         zWgAD/jIzZQnKiPgtRpic/ooRpsurgabyXBWmk9X8Vsq+O6ZCgt02NyNcZn+bJVJ6yKL
+         tOw/luV+J5FZvwmSVp503bDg0XIoSQdZ8rMUpJWDDkKMcaRnK383Y8wlya4pA99wjwDP
+         JcNQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXV7I7nfZvkOBdhWSWA8olHUixevg6WIwTehZ8dd5oWDaKNdANeEvYKsUQVK2/rqTIyDQ7wFVhHLEAX@vger.kernel.org
+X-Gm-Message-State: AOJu0YxzlBgr9TxD4QSi6TO2oe7uNGkm/iXr4J6dQyC1OQdhBx+XBUhV
+	GAMpVvA2iueQPcMs0PzQD5gOt01RR4grDtDp8Rw9BVDVaLn+WE9/5+DR
+X-Gm-Gg: AZuq6aJzXa6jMwlVCsToBvwObTSFqctr/oprDQi/XA28NfwUr6B7nU/CmVNhCAL1yC/
+	TrVJ/6dbxonyQBVj80hVBLTocNhomTAJIjaVr/TOF/3DIIlJOGdN/ApJNFyCw1BwAXLbpGS2JzO
+	0M256sQhfkUzlSn3Hbfp9tCjTpNplLlYogh4UVs/B1ISZLKcm4H31CPYSZg55hp7m1cF7Bl1a5n
+	3NlNEq4ABgmGd/ml7+Z9Kx1j/s3lM+FhrLYznu2R9Qz8WcHKm37doyzFjesmGBeeSVwvtfPowkv
+	EQ5MOwwUec5gf97o7LHrcDkHi4kCTTky3uKiulb1rk2oCXwFgXhHoYNhyD7MKkDlPl45mbgSis9
+	sUWBk7Gc9mkZmEGk99QwJVAwe9LOa2ZC3ZFWekuxEoGXYXqATZWDmnhFTlHK/bFzoXjpZoAOvFY
+	Qn5MR6/BjqaLZfo5RZVl+GmzWZTks9ytlRB+2O2z4gcTVV7IqwapUKeb+HtSu+3FPLnf+wf0w0H
+	QfS/AnEsS8yPckbf5HG5mFhBo6sF1S5GciKYNWd3qc7/vE=
+X-Received: by 2002:a05:6000:2905:b0:431:16d:63d1 with SMTP id ffacd0b85a97d-435f3aaf59dmr4092783f8f.44.1769771626677;
+        Fri, 30 Jan 2026 03:13:46 -0800 (PST)
+Received: from ?IPV6:2620:10d:c096:325:77fd:1068:74c8:af87? ([2620:10d:c092:600::1:99eb])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-435e131cfc9sm21437487f8f.21.2026.01.30.03.13.45
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 30 Jan 2026 03:13:46 -0800 (PST)
+Message-ID: <c37ae03d-2b0e-4179-ac22-7d0c01ff601d@gmail.com>
+Date: Fri, 30 Jan 2026 11:13:35 +0000
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: SA1PR10MB6365:EE_|CH3PR10MB6714:EE_
-X-MS-Office365-Filtering-Correlation-Id: 86911d90-ccc1-462f-cee7-08de5f9ac780
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|7416014|376014|366016|10070799003|1800799024;
-X-Microsoft-Antispam-Message-Info:
-	=?utf-8?B?OFQwbDNqMk8zSDZmVmlWVUhwTFQ5L2xDVExoZzZkRmpqTmJ4Z0hnR2dNSSt1?=
- =?utf-8?B?djhQdnVDV0hLKzhrVVdaa1U3WVlkY2dLbExCeDg1di9sSERhQ0d4YnBwWHVS?=
- =?utf-8?B?azlTcnFzLzRFMlF5Y0Iza0ZmdDBXZTFMTE9rUzJUM09SVDUzZkZnUVdjYytG?=
- =?utf-8?B?QjV1WEtOaE02WjA4c3BRRDMwcGI3UUIweGhzMDU2RmxzTG1PWEtXWnFHMDFG?=
- =?utf-8?B?NVYxK2I2OGppQXE2WkNxcFA3YkZmaUJaMGpIbEhYV3dERUhIeDdVazJXSEhh?=
- =?utf-8?B?M240NXFHbUNib0IvbnpDVW5mMlVyemhBa2tzK1lsTklRclBzSytxSzJWN0Yr?=
- =?utf-8?B?TU0wUjBjWDhSMVVBSEZrQW9BNUNqU3ZEVHJQM3Q4YnRvM0w5T2o1aHBXdHRU?=
- =?utf-8?B?OVlKK1NEQlNoTE4vYVBDVW9LcTBsWFVaRExQV3hnL0pvK1ZQWWZteDdwcmlT?=
- =?utf-8?B?c09SNHJQNHhKQ215bmV4akp6K04ydE5kZ1ZsWS92bXM3b1BMTWVKbUVVUkQw?=
- =?utf-8?B?d1pHR2NNR3ArRXRUVTJBaUZRdHUzZmw4KzJ2YkEwUys2aUlRT3ozVzl0dDZS?=
- =?utf-8?B?ejhIRWR6QmRNRzROVGVUT1IvVFVhN0h2SEhyRG11VTBPT3RlSTFQS1R6Z1VX?=
- =?utf-8?B?YkwzR2pmTlBhSnZ0dzRBUlRJZHNjSG9DL2pOTFBHV2R1ZjJubS8yK24zdXBK?=
- =?utf-8?B?VXROVXBjbWFzRHBmSXpJQTVlNU9nUlRoQ1dGNmlDd1pEMDdNaXU0UjUvNmg4?=
- =?utf-8?B?UkhiZXgxd25oS0NxaWxlYXkydnhHUHRCSXAxYURtLzc3TUc1dndUVEJJZU9o?=
- =?utf-8?B?NVBGTUdFQ0hBVHE5dGcyeE8vYW13RWxjczRrMi9VTkZyckM5aUlYZzhxVDJG?=
- =?utf-8?B?SVM5QUROTk00eVlrMG9KeTRad2NNaGYwZXgzaFZFcDNIWGJ5QUpPNDRtd2Ft?=
- =?utf-8?B?ZWd0cjhMeitBdmhxbU43clRXb0lEazQ1OHN5c3RoZ0pnYjVyZXV5YWdiV0xr?=
- =?utf-8?B?M1JzUm9ZK1BUb0pMZkFLUlppMlJXeERmMFVXa1FLOUtmUkd6akFHVjBnOFdr?=
- =?utf-8?B?WUNodmltUWNPTXgrbTMwYUJHOGphQnpqNUpMZ25EcHR6d2hRZ2RMMmdaMlEw?=
- =?utf-8?B?WmhYWCtZVHduVE9sUitlVHg5NW82aUVkZG5Oa1lCWGhsWU1vNUFabWlkV3Ry?=
- =?utf-8?B?aFcySTViOEtSWXBCeUpWVzdLOHJNSlI3eE9TVUZQeFVmZmVzOElNQ0hKcmFW?=
- =?utf-8?B?ckpLOU9MT3EwMHdCK1NkaWd0NHNGcSt3bHEzcGVLTEhvOXNsa0VIa0QxdWw0?=
- =?utf-8?B?a3NyMGNEUTc2eGtzcmVWemhFZXdpNGtwRmpjN2ZpNTlyeUVOOE9ER1Vic05E?=
- =?utf-8?B?aVZ1T2VaNU5xU1Q5OFZWUC8reDZjamJSUlFldUVpSjJISlVac2V4QWs3bWd6?=
- =?utf-8?B?b2FPb25CUm1Yb0lpRVV6R3BzN1BzMVJxMk9UQUpMWWFEN0ZCbXFqUkRXenVZ?=
- =?utf-8?B?UUlzVnVsbXhHeGZEaXhpUE9rb0JxK0Q4TE85MU5EMk5rc3oxSnRVMzdqTWll?=
- =?utf-8?B?RnhOQzRrODEveTFXRWRYV3ZuVHFBdVY1MTQ3eVNsWU9pd00va2xjOE9WNFhk?=
- =?utf-8?B?T1oxSXdpK093Z1AwTGR6eitRMHlXYVRjMFBhREpXSG5sbS9WNlJjS2pqWGZV?=
- =?utf-8?B?cVc4MVJ6NXhzZC9wMjUwY2dyWHcxNUg4Y285d240SmFoeTNXUFpSRVRpaFF1?=
- =?utf-8?B?dlhVZ1NsT0sxeklobE5wMDBKcG1iK1JDU2l4Z3BFVHF0NWhZcUZXYUh4Tngx?=
- =?utf-8?B?emhFRysweU5qa2JTQjY4enlyYVNQSkhYUEtIaldQcmc2YVRTR204Wlc2S3hZ?=
- =?utf-8?B?MXJaMDhSMG5hdmRNR1ozbVBYWWptSG5BNWFSUWNaZFJYRDRJcEFmZll5bTh5?=
- =?utf-8?B?cFhFY3ZxbmdxTU50cmJ1bW9vRnpqMzU1ZXIvbE1wZm5TU0RuYjhEbEhIVndT?=
- =?utf-8?B?QmZsVzVmTlhVdFB1bFlvT0JHQ2NMcWoxbEhaZTRwMjBQM0ZZQXFDRnhRYnlJ?=
- =?utf-8?B?NjBJYkRFUHJiK1pGZWJrR1EwcWNJQXI1eUZQbU9QVVJpRGpnM3p4WTdpMERR?=
- =?utf-8?Q?/jjA=3D?=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:SA1PR10MB6365.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(366016)(10070799003)(1800799024);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?N0NYc3JKdlpwOFlseWs1bldmclFiY2I1REZWd0l3UG5rdTlIWTgwdGFCQ21a?=
- =?utf-8?B?bDJHVGVUNU9pUzVXRlZZWVdnV2hkM0xzbk1QS1Jad2VKd1VyVTliM3NvQ0M0?=
- =?utf-8?B?ZEdwYktsQi9yOUVmZHZIUDB5YmE3RDZOdVFTaE5ENHZmbVlEci9MbjdYcmhP?=
- =?utf-8?B?TXRCTmR3RmFiNFZWZm80MWc5UHorSVMvOXB4TW1TN2xzTDFqN0VCditWbTY5?=
- =?utf-8?B?UVkwbGRJakV3Mkp1Ukk4UVBibkFZUzBQUHE2V01sSnIwR1JuNjNSKzNaQXZG?=
- =?utf-8?B?aFBQQ3RVWG1iWExmekVoUzhXOXBmRUdBOHlFZjJkMlNrL1RkUzUrNzZOQ21o?=
- =?utf-8?B?VzhVYUJ2YXVUNWNkNEMwNkszU3dib1kvTXZiUHlTUkRaM0ZzZUxkb01vWmtS?=
- =?utf-8?B?aEdGM0VvaWQxdC84eTFrRUFBcWlBSVQ0NUI5QjVuZEhpMHQ3VHVwUFl0Qm9m?=
- =?utf-8?B?UGRRR2djMUFSRm1HSkhENlVuZlIvYmZwbW1YSzdpdHdXam1adVRMek10RHF3?=
- =?utf-8?B?MzdTS0REU29DQTQvQnhuTzdqdTFKclNMR2RJOHZxM1Y5b3A0dkR6S0I0Rjdy?=
- =?utf-8?B?aCtNWTdwOGUrZ1FCNlJHcUp5VGQzTTI5Vnp6RkE3SUNlaFFTUWxmRGcyQlJi?=
- =?utf-8?B?ZlRGdTg1aVpDMU9GVUNyS2xOdE1DMUYyazk1MVRoN012UTNjK1NHcndCWmxL?=
- =?utf-8?B?aUtSTUxaYWNRbjFaRzhhc3RYc2NJY1c5RE1hMFRVckZkL09uQXpxbWgxZkJt?=
- =?utf-8?B?RjczZTlqRUdVT1NQQitwVUxTdWkzMU1zUWVsVysyTG1tdUpjajZlSWloYVBt?=
- =?utf-8?B?ZkRoalFLNjV0ZUgvWkFycGhGajF3L3RDQjA0Nnl6MUZPdFEyM0NQSFBVNGJv?=
- =?utf-8?B?SmpJV0t3V1h3b29EaUwyUStSanliVXNPQVdyQUJzWlhrSFU1RE8vSUE4c1BE?=
- =?utf-8?B?eW5oWFY5eFJRRTVKcGM2ekdwVHYzU0IxeTRFVW1WeENiWm1ISTlVVXozT2pC?=
- =?utf-8?B?WFBKZHp5S3FCQkprQUdoUXZnNDY1OXhRZHJ4azF6Mk5xak5IVjJqY2lOMTFz?=
- =?utf-8?B?SWJVSS9ESjJsYU9tK215SWE5bVIwN1orSmtQNkNPWnczMzZ1NnQ0UnVCZ24r?=
- =?utf-8?B?MFVZejlTT1V6MWJ3VkJxT2UxQldiOUVHckpHYTlaVkFQUHdjaTNETFc5UExU?=
- =?utf-8?B?clA5YjlGYWoxZTNjL1V4R1JRNzRlVmJHSGxLdURHMHE1bWFrVEVHeGJNWmJy?=
- =?utf-8?B?TzNLZUtubm5MN2xzcDZxei9hcGVRU3R5RmVIc3pZMjhiOWlSTSsxVXpsTHJN?=
- =?utf-8?B?WTN0TWsxSTdrZk9DS0JwaWpQNlN0ZW93WmZ3TkUxYzBkK2xtRk9GQlVkOWRx?=
- =?utf-8?B?WUFIMmhnckx6Sit2cVFaUmdTUnR5MW4vbWtkb2w1dmdNelVETXZpcGlIQ2Rx?=
- =?utf-8?B?Zkp4VXFCbFVSSjlkL2ZLS3BBQStYdEgyUER5YnpEMU92KzlsSEFZbnFHM08y?=
- =?utf-8?B?TlJsdGprYkFweWlodHNTMDJ3VG9rSmZJMkdUdkp6ZVl2aHdBbEdaa3VnYmdV?=
- =?utf-8?B?TERiUkdlZHlGOTVBY2lwQVA5VnR6MW4zUkRvbkQwdEwvODR3TVNPWElRdzFt?=
- =?utf-8?B?Z3BqdjEva2FQMVNqZ1FNb0pYNHhINVljTGJTejQ3a21GTEJvZ1ZQUXNYQTJ6?=
- =?utf-8?B?a080K1hXWkY5ZWlLQm0xN2JFeS9kajVzOTNnQVc0dWIxMGRjeTZSRHRkZ3h2?=
- =?utf-8?B?ck1XOGJnSkhiM2dnWHdHMlNrbkF4MXBGdVpSYTRxdXZWczJkQzBvRXZxeDZp?=
- =?utf-8?B?clhEbmp0KzFpeWZaNkpKbkxZUmxPd0U1b0VJVEprejU4bSsvOWduVzVNY2M4?=
- =?utf-8?B?L3ZzMXlJTHdHSjJiUTJ0NWlFckVtQnI4bldVVjlPWFZiYXhwQlBsajF4TlN1?=
- =?utf-8?B?MjNMSHRGNllDNk5XcER0R1VNdnArQjBxcTdYZ3R6NjFicHFUVjRRMTdxUHNQ?=
- =?utf-8?B?Ym94a0ZxUmpXWmg2ZTdWdWZ6emp3c3lBUzNTZUNWRDdhaU9rZlk4TE5QNlFT?=
- =?utf-8?B?d1hYTUdlbnJreURHeUJNVEkvakxoV2RBbS9EYzVSQURCbUR5NXdoQmk4M2xu?=
- =?utf-8?B?ZmN6U0xPNjM2OUc0NENSUmlmdFE3TnRhVnhvZndqbFU2bFNERitoWFcvcGJp?=
- =?utf-8?B?TTJDTzJtOVo0OHJTQVNNelRRd05OSTUvZ1Y2WGlqZEdQUHg3MXJGVlhmMDdX?=
- =?utf-8?B?TGFudDhUaVZDTStBUGg4d3RQdU84QWVmaktsb3h6bHdiYjBVVUxhSEUyRjBl?=
- =?utf-8?B?SStwM1hUdG1lVzNtVXlPWmNQbG5rSUx2VXZCZitMRlgwYlV0dTl5Ulc3a2Iv?=
- =?utf-8?Q?bzlDuVMAjvn5eZDNh9TIY7B5eyypqalNXWaEh?=
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	/TrNOi0xlz9rh60GYqy+m2nmkAYvdA7nmRTZy9Jx/hkKcE7RBjbXIuI0z482bVIsvfUJIQxxUiuI3aYOx8O8Y5HBMh695AMBPijJvBlLhXWcYN2y5JKCn8MJ6SorhBoVCWOp7RcrwmDQ7b2bnVRqs8ua/fE9MI/GjlyJxweA/GQoJ0e39THoFr43ulUai2ske5cZrUKSHJDpc/GrQpeLe/WYGSpQYnTE2YuuAftYZmtYy8FkY9r1teCqw+XI1l2fDgPqGzUAkwLL+/eHgRH+3SLSCt6cZIVW6m1uyaVKtKd9gO7xitCLmAbl62EX2evR8E/Iefs7Z8VN4n9WWrPOWYmtGCgb5YNhLK1wwkh2OqXQJbDLz0V+kJ7pDVvkLZhhLlbLZE6qfK6DSv1pcvUT97G/zm74lwu7fAxhGzs6WjsT933SzA7H9fFJ8zmo9v76JYfGcM7uzysU6aywUCj3d4hvlKaaXhDFC4fCOMfyUHWO/9LQ+1omk3oSWe65dGe5a7uJ9IbJtrs3Axymee1/v6Zah4PNHABNALpIej2K68IdkTChyk8R0x4A2svaHTvcJij3uDbMz/4nud1ZAH7Lz1mDZZINlGU9ii1/9w+kxkE=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 86911d90-ccc1-462f-cee7-08de5f9ac780
-X-MS-Exchange-CrossTenant-AuthSource: SA1PR10MB6365.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 30 Jan 2026 00:59:11.0879
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: E432ZCQQdok6RjdfflSw/7suBpcu5bf6truamBAEm6h1lMU+GFb62ZKVa9x4ipPwxeL3k34krJVr50uvNWcoZg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH3PR10MB6714
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1121,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-01-29_03,2026-01-29_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 adultscore=0 bulkscore=0 phishscore=0
- mlxlogscore=999 mlxscore=0 spamscore=0 suspectscore=0 malwarescore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2601150000
- definitions=main-2601300005
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMTMwMDAwNSBTYWx0ZWRfX4/xXc1osv2mE
- GlLRPN1GWM1QQLYMXxdDcMS5toROwBWZ8xiRuF4L3dGXp/EjzflcmZfE6AJnCrZOA8hX5+HR1KN
- FARGNp7kBiMomE0IhUFcZeGOe9TlFIh4/RDJqVjREQZe2lQb5LuDvJnn/nQb3dAZvfxXWmuhkx5
- ncW0qpV6DNvno8UIvOHX+fCzw8DkfOs931ASLfgJgZpHSXfrx+drxykA480UaR9ZAnJpNW8cueX
- /MaYcxTw6mArhHT2VO2GjQBIs9jmpXRRKkEPrZ41SC1E+FE3Mb9/MHE2CnrpQ+0ZoNLaJKPmOpf
- C2I8bmET2J9mtBUN87yNKnu1B3A1n168RSSjCN3P/ATxWxC5oMZ0jq3140DUR/xx7gR+gCIEZsw
- eD+fSjd2SUnPg7c/GuoLyIIh18UIN7jYVhgn12XeCNgZGiKJTmBsChuLzkx0IQ/+lAeVGp3Tn1Y
- dxpsw1NB/uVIbgLqAtrLEiwluazueDI09O3kXjtQ=
-X-Authority-Analysis: v=2.4 cv=a/o9NESF c=1 sm=1 tr=0 ts=697c0263 b=1 cx=c_pps
- a=zPCbziy225d3KhSqZt3L1A==:117 a=zPCbziy225d3KhSqZt3L1A==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=IkcTkHD0fZMA:10
- a=vUbySO9Y5rIA:10 a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=StaHx6bPi2kq8xTtaMwA:9 a=QEXdDO2ut3YA:10 cc=ntf awl=host:12103
-X-Proofpoint-GUID: Zx9AnIFoNecqISxuiMwgeHA8yobdDwWc
-X-Proofpoint-ORIG-GUID: Zx9AnIFoNecqISxuiMwgeHA8yobdDwWc
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH net-next v10 0/5] net: devmem: improve cpu cost of RX
+ token management
+To: Bobby Eshleman <bobbyeshleman@gmail.com>,
+ Stanislav Fomichev <stfomichev@gmail.com>
+Cc: Jakub Kicinski <kuba@kernel.org>, Mina Almasry <almasrymina@google.com>,
+ "David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>,
+ Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>,
+ Kuniyuki Iwashima <kuniyu@google.com>, Willem de Bruijn
+ <willemb@google.com>, Neal Cardwell <ncardwell@google.com>,
+ David Ahern <dsahern@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+ Jonathan Corbet <corbet@lwn.net>, Andrew Lunn <andrew+netdev@lunn.ch>,
+ Shuah Khan <shuah@kernel.org>, Donald Hunter <donald.hunter@gmail.com>,
+ Stanislav Fomichev <sdf@fomichev.me>, netdev@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-doc@vger.kernel.org, linux-kselftest@vger.kernel.org,
+ matttbe@kernel.org, skhawaja@google.com,
+ Bobby Eshleman <bobbyeshleman@meta.com>
+References: <20260115-scratch-bobbyeshleman-devmem-tcp-token-upstream-v10-0-686d0af71978@meta.com>
+ <20260120170749.101e8bcc@kernel.org>
+ <CAHS8izMZxM6rcF+7Lfw=KFv4dmbHGSUrQBPmxO+sYj=V3TRuwQ@mail.gmail.com>
+ <aXe2QhzL4DoVbesQ@devvm11784.nha0.facebook.com>
+ <20260126173124.1f0bb98e@kernel.org> <aXhUfC7ZyYge1jti@mini-arch>
+ <CAKB00G3p9_VUTEW_KQvS1JAd+Ju_pjrU5r-v_p+K8Y=vH__mTQ@mail.gmail.com>
+Content-Language: en-US
+From: Pavel Begunkov <asml.silence@gmail.com>
+In-Reply-To: <CAKB00G3p9_VUTEW_KQvS1JAd+Ju_pjrU5r-v_p+K8Y=vH__mTQ@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-On 1/29/26 2:23 PM, Nathan Chancellor wrote:
-> On Thu, Jan 29, 2026 at 10:13:03AM +0100, Jens Remus wrote:
->> Instead of dropping .sframe for kernel during final link it would be
->> better not to generate it to save some CPU cycles and disk space.
-> ...
->> What about:
+On 1/27/26 06:48, Bobby Eshleman wrote:
+> On Mon, Jan 26, 2026 at 10:00 PM Stanislav Fomichev
+> <stfomichev@gmail.com> wrote:
 >>
->> diff --git a/Makefile b/Makefile
->> --- a/Makefile
->> +++ b/Makefile
->> @@ -906,6 +906,11 @@ KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
->>   KBUILD_CFLAGS	+= $(call cc-option,-fno-allow-store-data-races)
->>   endif
+>> On 01/26, Jakub Kicinski wrote:
+>>> On Mon, 26 Jan 2026 10:45:22 -0800 Bobby Eshleman wrote:
+>>>> I'm onboard with improving what we have since it helps all of us
+>>>> currently using this API, though I'm not opposed to discussing a
+>>>> redesign in another thread/RFC. I do see the attraction to locating the
+>>>> core logic in one place and possibly reducing some complexity around
+>>>> socket/binding relationships.
+>>>>
+>>>> FWIW regarding nl, I do see it supports rtnl lock-free operations via
+>>>> '62256f98f244 rtnetlink: add RTNL_FLAG_DOIT_UNLOCKED' and routing was
+>>>> recently made lockless with that. I don't see / know of any fast path
+>>>> precedent. I'm aware there are some things I'm not sure about being
+>>>> relevant performance-wise, like hitting skb alloc an additional time
+>>>> every release batch. I'd want to do some minimal latency comparisons
+>>>> between that path and sockopt before diving head-first.
+>>>
+>>> FTR I'm not really pushing Netlink specifically, it may work it
+>>> may not. Perhaps some other ioctl-y thing exists. Just in general
+>>> setsockopt() on a specific socket feels increasingly awkward for
+>>> buffer flow. Maybe y'all disagree.
+>>>
+>>> I thought I'd clarify since I may be seen as "Mr Netlink Everywhere" :)
 >>
->> +# No .sframe generation for kernel if enabled in assembler by default
->> +CC_FLAGS_SFRAME	:= $(call as-option,-Wa$(comma)--gsframe=no)
->> +KBUILD_CFLAGS	+= $(CC_FLAGS_SFRAME)
->> +KBUILD_AFLAGS	+= $(CC_FLAGS_SFRAME)
->> +
->>   ifdef CONFIG_READABLE_ASM
->>   # Disable optimizations that make assembler listings hard to read.
->>   # reorder blocks reorders the control in the function
+>>  From my side, if we do a completely new uapi, my preference would be on
+>> an af_xdp like mapped rings (presumably on a netlink socket?) to completely
+>> avoid the user-kernel copies.
 > 
-> This seems like a good start for the main kernel build. I still have an
-> issue with bleeding edge binutils with mismatched .sframe input
-> sections, which does not appear to disappear with -Wa,--gsframe=no.
-> 
->    $ cat test.c
->    void atexit();
->    void main() { atexit(); }
-> 
->    $ gcc --version | head -1
->    gcc (GCC) 15.2.1 20260103
-> 
->    $ ld --version | head -1
->    GNU ld (GNU Binutils) 2.45.50.20260128
-> 
->    $ gcc -o /dev/null test.c
->    .../binutils/2.45.50-2026-01-27_18-02-52-e8108cc5e6fe1748dc6033a297dd2c1c6234de78/bin/ld: input SFrame sections with different format versions prevent .sframe generation
->    .../binutils/2.45.50-2026-01-27_18-02-52-e8108cc5e6fe1748dc6033a297dd2c1c6234de78/bin/ld: final link failed
->    collect2: error: ld returned 1 exit status
-> 
->    $ gcc -o /dev/null -Wa,--gsframe=no test.c
->    .../binutils/2.45.50-2026-01-27_18-02-52-e8108cc5e6fe1748dc6033a297dd2c1c6234de78/bin/ld: input SFrame sections with different format versions prevent .sframe generation
->    .../binutils/2.45.50-2026-01-27_18-02-52-e8108cc5e6fe1748dc6033a297dd2c1c6234de78/bin/ld: final link failed
->    collect2: error: ld returned 1 exit status
-> 
->    $ gcc -o /dev/null -Wl,--discard-sframe test.c
-> 
-> This was extracted from an error I see while building libiberty in
-> binutils due to the atexit() configure test failing then the fallback to
-> on_exit() resulting in an error but I also notice it when building
-> tools/objtool, which is a host tool:
-> 
->    $ make -skj"$(nproc)" ARCH=x86_64 mrproper defconfig prepare
->    .../binutils/2.45.50-2026-01-27_18-02-52-e8108cc5e6fe1748dc6033a297dd2c1c6234de78/bin/ld: input SFrame sections with different format versions prevent .sframe generation
->    .../binutils/2.45.50-2026-01-27_18-02-52-e8108cc5e6fe1748dc6033a297dd2c1c6234de78/bin/ld: final link failed
->    collect2: error: ld returned 1 exit status
->    make[5]: *** [Makefile:127: tools/objtool/objtool] Error 1
->    ...
-> 
-> It looks like several distribution ELF objects and libraries on my
-> system (Arch Linux) have .sframe sections in them, so maybe we still
-> need -Wl,--discard-sframe? They all appear to be SFrame v2 objects so if
-> no objects in the build have SFrame v3 sections from -Wa,--gsframe=no,
-> it seems odd that there is an error but maybe there is something else
-> going on?
-> 
+> I second liking that approach. No put_cmsg() and or token alloc overhead (both
+> jump up in my profiling).
 
-As to whats going on:
+Hmm, makes me wonder why not use zcrx instead of reinventing it? It
+doesn't bind net_iov to sockets just as you do in this series. And it
+also returns buffers back via a shared ring. Otherwise you'll be facing
+same issues, like rings running out of space, and so you will need to
+have a fallback path. And user space will need to synchronise the ring
+if it's shared with other threads, and there will be a question of how
+to scale it next, possibly by creating multiple rings as I'll likely to
+do soon for zcrx.
 
-Some Arch Linux releases seem to have glibc configured with 
---enable-sframe, which is likely the cause of the SFrame V2 objects on 
-your system.  Frederick (from ArchLinux is in CC) is planning to roll 
-out a release with a glibc built without --enable-sframe.
+-- 
+Pavel Begunkov
 
-Next, GNU ld creates linker-generated .sframe for the (linker-generated) 
-.plt sections (on x86_64 and s390x), if GNU ld sees any input objects 
-have .sframe in them[*], unless --discard-sframe is specified.  These 
-are now SFrame V3 (after Jan 15 when SFrame V3 was merged).  The choice 
-to drop the support for V2/V3 object mixing in the GNU ld was made to 
-save implementation complexity in linkers and (WIP) stacktracers 
-supporting SFrame, by adopting SFrame V3 and above.
-
-So, --discard-sframe is the remedy if you have V2 sections lying around.
-
-[*] The bug in the GNU Binutils snapshots between Jan 15 and Jan 24 was 
-that these linker-generated .sframe for .plt were enthusiastically 
-created even when _none_ of the inputs had .sframe in them (for x86_64 
-and s390x), unless --discard-sframe was specified.
