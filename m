@@ -1,283 +1,166 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.19])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC47978C9C
-	for <linux-arch@vger.kernel.org>; Sat, 31 Jan 2026 06:58:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.19
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 96CE732D0FC
+	for <linux-arch@vger.kernel.org>; Sat, 31 Jan 2026 07:36:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769842734; cv=none; b=qOuNxIBW3e+Mwco4t83yjVtFcO9+H0dS7ekJYaJTG0I+6WzadEjmJafoSBoUT5xHGgGUIh+PG2gOzKT9BBc8mx+vTQanzpHMZSQIjpyEaDSja5hVBQfexWUsWxdUVKBaBi0n9y9ZHCpw1fPZU7NLjC4iLD+ryWfAhS1FoMEcmkM=
+	t=1769844999; cv=none; b=KGR97B6zRzr4Jzngu1+H5BZV3i1RBGCs9BCBgt90PhdnFhJ1y9UF15mY1nTyGOjM1cJ4yTs+j+lt6ePQa19D/Lo3J6HuEoHJatxiIN7sY3Iau3JTDkdQ+PeTsVvE4EQHT0avfIHJCZE+7B3xixy4ZUDwb2a03CWXlYfUGUfiSe4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769842734; c=relaxed/simple;
-	bh=KqSMe8/gF1R9Hgq09Vvh+BP120Ca8BDSjznh6Cuhlzo=;
-	h=Date:From:To:Cc:Subject:Message-ID; b=ReSJuPTdM6pG42OVDTZrI8Y3miD6RZMONwQFxGxcvW4DaMA8N8giY7NbjixVOdkK58/uEonqJ0Oovaj1Ytokrr+1phexBX5D0zpLLJvc5fOsb6drtFXG30K0ZRr60KWKP1Qgt8eo5EKL3tut/W1dWhKfpkSdR5EvtDLoMaKu7VA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=A+VAoj9g; arc=none smtp.client-ip=192.198.163.19
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1769844999; c=relaxed/simple;
+	bh=nY7lzQOVExn4AJ6nTUtW8NcMqjv6w/dyQWietm+R40w=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=Z5kj68If0S7myroPmhqUI8/y0tMjU9GgwPYgzFIhUylJIYV9Nvkm1NiQFEgYapVpD3152HOrMCc8/FJ4asMO+npjgH6XwJvYskc6qda5W9C+fPfmydkCW3fspRAOmM3/AZUKAvMQ4iUzpKHt/1mWx2tH1uVXPxxUW/qZpwZkPjk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fxUD/sd8; arc=none smtp.client-ip=209.85.128.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="A+VAoj9g"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1769842733; x=1801378733;
-  h=date:from:to:cc:subject:message-id;
-  bh=KqSMe8/gF1R9Hgq09Vvh+BP120Ca8BDSjznh6Cuhlzo=;
-  b=A+VAoj9gAET1gzo1XQeMaZoySTxY40pQVgAdouxnRBD8Y5WpPwhNmy4Y
-   2Cnklp9GS5GnwVcbkKIGzkCaM2ncZdcZNhOyeOxHov6H3L5w4YWiatXjg
-   5+KR6VC2sBOFA4mtnesRTUgyDjWzccjxNMAyPtSExiviLz0I1hNTYPR5u
-   0WVefbpDA/vXr9x9pI9rMfj9lgr0tjGysAYSzIjT1PZ/aEH+YtM+YPfoD
-   aOHIayn6gus6b1PZj/L9x6XVr+YpsdpEc+9HrXpEehOnDQB1HHUrCUM3J
-   b66t6oKR3vJX/sCgAZJCtarX2IRVxe9JAueEVvwC3J9ATQ1jaZbmt1lYE
-   A==;
-X-CSE-ConnectionGUID: 3ugKWda/THWiR8WobacZjA==
-X-CSE-MsgGUID: xf6qkYBfQMuOGR7k+ZsU0Q==
-X-IronPort-AV: E=McAfee;i="6800,10657,11687"; a="70104854"
-X-IronPort-AV: E=Sophos;i="6.21,264,1763452800"; 
-   d="scan'208";a="70104854"
-Received: from fmviesa001.fm.intel.com ([10.60.135.141])
-  by fmvoesa113.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 30 Jan 2026 22:58:52 -0800
-X-CSE-ConnectionGUID: O3C8bhaDQBKNNSi9y/eZqg==
-X-CSE-MsgGUID: lb8YrUNIRgmPPATiziXUnw==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,264,1763452800"; 
-   d="scan'208";a="240304848"
-Received: from lkp-server01.sh.intel.com (HELO 765f4a05e27f) ([10.239.97.150])
-  by fmviesa001.fm.intel.com with ESMTP; 30 Jan 2026 22:58:50 -0800
-Received: from kbuild by 765f4a05e27f with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1vm4wS-00000000dk4-24dB;
-	Sat, 31 Jan 2026 06:58:48 +0000
-Date: Sat, 31 Jan 2026 14:57:56 +0800
-From: kernel test robot <lkp@intel.com>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Subject: [arnd-asm-generic:asm-generic] BUILD SUCCESS
- adbbd9714f8058730f93c8df5c5bf1679456424b
-Message-ID: <202601311451.ENab0uPL-lkp@intel.com>
-User-Agent: s-nail v14.9.25
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fxUD/sd8"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-480706554beso29983855e9.1
+        for <linux-arch@vger.kernel.org>; Fri, 30 Jan 2026 23:36:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1769844996; x=1770449796; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=5n1UjayTk0hO0b45clVXSkBxo9hRuWG9N3/vJ5awb1g=;
+        b=fxUD/sd8b3wQtQ+1lw6r6s407RaqfpNZfgGyYQigk6ugXox9dM52OaDnYiwwSqTzEl
+         jEGEvibHs+f7Nqnaq7YuFS/JiIXWagxLk3hEhwz0ojyd/vHsiFtDQtX2FIKM4/RVsAzz
+         F9HuybNgpagi9qIePKl/lGazzR8F4CR0P39bGKtsdeiqz1Z8AFU/nO9vMJgWj6OH/Cj9
+         OyXk8Ln5zM7eieL5kmwj4GykrH3XxYSC/fe1Sh3xnK5tSExP682QdF4rTbYwfBxi6EqC
+         7Wy1jeugDsSMWF22gL3pZV85LiwP9vGES3tElukotgVzSbOCKcBDDnCy2Glk5svSwHEE
+         SZXg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1769844996; x=1770449796;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=5n1UjayTk0hO0b45clVXSkBxo9hRuWG9N3/vJ5awb1g=;
+        b=pDbCmZ2g0jPKqxOCrwsMl6BhwnhVsBOT4RT4pO2TZObBWPgPfasPcKcDoBLOKqg3jc
+         UFFmNup925yW1WYMWOHYqy6mZXn5imAXbsjlryYuo5b+UdfDJLKtCSDtaGpSRcSPLDMa
+         ys3Nt6URFxEH4rkNrqBKvay8sXHy+97FjXXasv+hI5qSejWc8ueNQs4QFMiPV0XQ6zKT
+         StP6cqhR3lqzhqWwiMOcR19XkvMlfit1Y6Kwk59z+0X/+cCaAdzqHJBdGbt0C5/nC3Hg
+         musp8l+1LU4f8k7HF4WkdWKnOvMtcdhyAOMHM3IkbSIMXjMGgJW4Z7Orm/SfuAd1i7Ru
+         L9Ow==
+X-Forwarded-Encrypted: i=1; AJvYcCW2wWIpycczHRmugPgbitciymCtytc4+d7FqqNTxV1bD0p2v6x3IG6kJtbtcuVOKtynPYeoqYa4iI+u@vger.kernel.org
+X-Gm-Message-State: AOJu0Yyq5jHzVpI1McaMeETW7iwMvBOelAkfeiNXD3+4oFfo1mb3qXA0
+	OgtkXzyvu7vIa+hun/3sWK9Fg4Kih1aBHicLfaw2/dWXzaug/0EW6okg
+X-Gm-Gg: AZuq6aJLbNd9Pd65RHpKcJspq46UvKiOeAINCrJtHn1OI3OQlxGFHJjN47W5WDR8Jnf
+	tQ3lYk58DPPTj+3FM3fItTN27xU1q7aUCPi3nRLN3xriR6NVHts8Y0TRJ+yIe83U80dbxU3nwnL
+	S1vbNIy02MGZ6RgdZLWEIwjVQUo50pWw9YZD4XOlPq9bXxzqWRVZqAqoVDUjskzlS5/1HchnSpv
+	4nPr3rBOQ0157c2qlGqPaFdFPj6wZs47wr99eGl83RYdV4FOzSIQpc/8HycFj/tFpNq0udUh8ru
+	f4TGct/Efug0KjxGeaMXSI0TPdVLcxa06KTqAd5z0CSyFcqRohgSYw1xOaAhi14rpb6Z27xM34q
+	CaHgHMtyLefg0ZW4gupzgJRAMl9REXKEWI+cl/c/cMeTYCOCx4h8a1IFI/knO5N1XqRGXBfUech
+	LF
+X-Received: by 2002:a05:600c:1e89:b0:47a:9560:5944 with SMTP id 5b1f17b1804b1-482db4ac0f4mr57301605e9.34.1769844995600;
+        Fri, 30 Jan 2026 23:36:35 -0800 (PST)
+Received: from legion.lan ([2a02:a58:9200:ea00::700])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4806cd8fadfsm248952145e9.0.2026.01.30.23.36.32
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 30 Jan 2026 23:36:35 -0800 (PST)
+From: =?UTF-8?q?Mihai-Drosi=20C=C3=A2ju?= <mcaju95@gmail.com>
+To: linux@weissschuh.net
+Cc: arnd@arndb.de,
+	arnout@bzzt.net,
+	atomlin@atomlin.com,
+	bigeasy@linutronix.de,
+	chleroy@kernel.org,
+	christian@heusel.eu,
+	corbet@lwn.net,
+	coxu@redhat.com,
+	da.gomez@kernel.org,
+	da.gomez@samsung.com,
+	dmitry.kasatkin@gmail.com,
+	eric.snowberg@oracle.com,
+	f.gruenbichler@proxmox.com,
+	jmorris@namei.org,
+	kpcyrd@archlinux.org,
+	linux-arch@vger.kernel.org,
+	linux-doc@vger.kernel.org,
+	linux-integrity@vger.kernel.org,
+	linux-kbuild@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org,
+	lkp@intel.com,
+	maddy@linux.ibm.com,
+	mattia@mapreri.org,
+	mcaju95@gmail.com,
+	mcgrof@kernel.org,
+	mpe@ellerman.id.au,
+	nathan@kernel.org,
+	naveen@kernel.org,
+	nicolas.bouchinet@oss.cyber.gouv.fr,
+	nicolas.schier@linux.dev,
+	npiggin@gmail.com,
+	nsc@kernel.org,
+	paul@paul-moore.com,
+	petr.pavlu@suse.com,
+	roberto.sassu@huawei.com,
+	samitolvanen@google.com,
+	serge@hallyn.com,
+	xiujianfeng@huawei.com,
+	zohar@linux.ibm.com
+Subject: Re: [PATCH v4 00/17] module: Introduce hash-based integrity checking
+Date: Sat, 31 Jan 2026 09:36:36 +0200
+Message-ID: <20260131073636.65494-1-mcaju95@gmail.com>
+X-Mailer: git-send-email 2.52.0
+In-Reply-To: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 
-tree/branch: https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git asm-generic
-branch HEAD: adbbd9714f8058730f93c8df5c5bf1679456424b  scripts: headers_install.sh: Remove config leak ignore machinery
+> The current signature-based module integrity checking has some drawbacks
+in combination with reproducible builds. Either the module signing key
+is generated at build time, which makes the build unreproducible, or a
+static signing key is used, which precludes rebuilds by third parties
+and makes the whole build and packaging process much more complicated.
 
-elapsed time: 901m
+I think there is a middle ground where the module signing key is generated
+using a key derivation function that has as an input a deterministic value
+on the build host, such as /etc/machine-id . The problem with this approach
+is that only hosts knowing the value will be able to reproduce the build.
 
-configs tested: 206
-configs skipped: 2
+Maybe this is a solution to NixOS secret management? Introduce minimal
+impurity as a cryptographic seed and derive the rest of the secrets using
+something like Argon2(seed, key_uuid).
 
-The following configs have been built successfully.
-More configs may be tested in the coming days.
+There might be another approach to code integrity rather than step-by-step
+reproducibility. One may exploit the very cryptographic primitives that make
+reproducibility hard to ensure that reproducibility is most  likely valid.
 
-tested configs:
-alpha                            alldefconfig    gcc-15.2.0
-alpha                             allnoconfig    gcc-15.2.0
-alpha                            allyesconfig    gcc-15.2.0
-alpha                               defconfig    gcc-15.2.0
-arc                              allmodconfig    clang-16
-arc                               allnoconfig    gcc-15.2.0
-arc                              allyesconfig    clang-22
-arc                              allyesconfig    gcc-15.2.0
-arc                                 defconfig    gcc-15.2.0
-arc                     haps_hs_smp_defconfig    gcc-14
-arc                   randconfig-001-20260131    gcc-8.5.0
-arc                   randconfig-002-20260131    gcc-8.5.0
-arm                               allnoconfig    clang-22
-arm                               allnoconfig    gcc-15.2.0
-arm                              allyesconfig    clang-16
-arm                       aspeed_g4_defconfig    gcc-15.2.0
-arm                         bcm2835_defconfig    gcc-15.2.0
-arm                                 defconfig    gcc-15.2.0
-arm                            hisi_defconfig    gcc-14
-arm                        mvebu_v5_defconfig    gcc-15.2.0
-arm                   randconfig-001-20260131    gcc-8.5.0
-arm                   randconfig-002-20260131    gcc-8.5.0
-arm                   randconfig-003-20260131    gcc-8.5.0
-arm                   randconfig-004-20260131    gcc-8.5.0
-arm                         vf610m4_defconfig    gcc-15.2.0
-arm64                            allmodconfig    clang-19
-arm64                            allmodconfig    clang-22
-arm64                             allnoconfig    gcc-15.2.0
-arm64                               defconfig    gcc-15.2.0
-arm64                 randconfig-001-20260131    clang-22
-arm64                 randconfig-001-20260131    gcc-12.5.0
-arm64                 randconfig-002-20260131    clang-22
-arm64                 randconfig-003-20260131    clang-22
-arm64                 randconfig-004-20260131    clang-22
-arm64                 randconfig-004-20260131    gcc-11.5.0
-csky                             allmodconfig    gcc-15.2.0
-csky                              allnoconfig    gcc-15.2.0
-csky                                defconfig    gcc-15.2.0
-csky                  randconfig-001-20260131    clang-22
-csky                  randconfig-001-20260131    gcc-14.3.0
-csky                  randconfig-002-20260131    clang-22
-csky                  randconfig-002-20260131    gcc-15.2.0
-hexagon                          allmodconfig    gcc-15.2.0
-hexagon                           allnoconfig    clang-22
-hexagon                           allnoconfig    gcc-15.2.0
-hexagon                             defconfig    gcc-15.2.0
-hexagon               randconfig-001-20260131    gcc-11.5.0
-hexagon               randconfig-002-20260131    gcc-11.5.0
-i386                             allmodconfig    clang-20
-i386                             allmodconfig    gcc-14
-i386                              allnoconfig    gcc-14
-i386                              allnoconfig    gcc-15.2.0
-i386                             allyesconfig    clang-20
-i386                             allyesconfig    gcc-14
-i386        buildonly-randconfig-001-20260131    clang-20
-i386        buildonly-randconfig-002-20260131    clang-20
-i386        buildonly-randconfig-003-20260131    clang-20
-i386        buildonly-randconfig-004-20260131    clang-20
-i386        buildonly-randconfig-005-20260131    clang-20
-i386        buildonly-randconfig-006-20260131    clang-20
-i386                                defconfig    gcc-15.2.0
-i386                  randconfig-001-20260131    gcc-14
-i386                  randconfig-002-20260131    gcc-14
-i386                  randconfig-003-20260131    gcc-14
-i386                  randconfig-004-20260131    gcc-14
-i386                  randconfig-005-20260131    gcc-14
-i386                  randconfig-006-20260131    gcc-14
-i386                  randconfig-007-20260131    gcc-14
-i386                  randconfig-011-20260131    gcc-14
-i386                  randconfig-012-20260131    gcc-14
-i386                  randconfig-013-20260131    gcc-14
-i386                  randconfig-014-20260131    gcc-14
-i386                  randconfig-015-20260131    gcc-14
-i386                  randconfig-016-20260131    gcc-14
-i386                  randconfig-017-20260131    gcc-14
-loongarch                        allmodconfig    clang-19
-loongarch                        allmodconfig    clang-22
-loongarch                         allnoconfig    clang-22
-loongarch                         allnoconfig    gcc-15.2.0
-loongarch                           defconfig    clang-19
-loongarch             randconfig-001-20260131    gcc-11.5.0
-loongarch             randconfig-002-20260131    gcc-11.5.0
-m68k                             allmodconfig    gcc-15.2.0
-m68k                              allnoconfig    gcc-15.2.0
-m68k                             allyesconfig    clang-16
-m68k                                defconfig    clang-19
-m68k                       m5275evb_defconfig    gcc-15.2.0
-m68k                        m5407c3_defconfig    gcc-14
-m68k                          sun3x_defconfig    gcc-15.2.0
-microblaze                        allnoconfig    gcc-15.2.0
-microblaze                       allyesconfig    gcc-15.2.0
-microblaze                          defconfig    clang-19
-mips                             allmodconfig    gcc-15.2.0
-mips                              allnoconfig    gcc-15.2.0
-mips                             allyesconfig    gcc-15.2.0
-mips                          ath25_defconfig    gcc-15.2.0
-mips                      loongson1_defconfig    gcc-14
-nios2                            allmodconfig    clang-22
-nios2                             allnoconfig    clang-22
-nios2                               defconfig    clang-19
-nios2                 randconfig-001-20260131    gcc-11.5.0
-nios2                 randconfig-002-20260131    gcc-11.5.0
-openrisc                         allmodconfig    clang-22
-openrisc                          allnoconfig    clang-22
-openrisc                            defconfig    gcc-15.2.0
-parisc                           allmodconfig    gcc-15.2.0
-parisc                            allnoconfig    clang-22
-parisc                           allyesconfig    clang-19
-parisc                           allyesconfig    gcc-15.2.0
-parisc                              defconfig    gcc-15.2.0
-parisc                randconfig-001-20260131    gcc-8.5.0
-parisc                randconfig-002-20260131    gcc-8.5.0
-parisc64                            defconfig    clang-19
-powerpc                          allmodconfig    gcc-15.2.0
-powerpc                           allnoconfig    clang-22
-powerpc                 mpc8313_rdb_defconfig    gcc-15.2.0
-powerpc                     mpc83xx_defconfig    gcc-15.2.0
-powerpc                      pmac32_defconfig    gcc-15.2.0
-powerpc               randconfig-001-20260131    gcc-8.5.0
-powerpc               randconfig-002-20260131    gcc-8.5.0
-powerpc                     tqm5200_defconfig    gcc-15.2.0
-powerpc                      tqm8xx_defconfig    gcc-15.2.0
-powerpc64             randconfig-001-20260131    gcc-8.5.0
-powerpc64             randconfig-002-20260131    gcc-8.5.0
-riscv                            allmodconfig    clang-22
-riscv                             allnoconfig    clang-22
-riscv                            allyesconfig    clang-16
-riscv                               defconfig    gcc-15.2.0
-riscv                    nommu_k210_defconfig    gcc-15.2.0
-riscv                 randconfig-001-20260131    gcc-8.5.0
-riscv                 randconfig-002-20260131    gcc-8.5.0
-s390                             allmodconfig    clang-18
-s390                             allmodconfig    clang-19
-s390                              allnoconfig    clang-22
-s390                             allyesconfig    gcc-15.2.0
-s390                                defconfig    gcc-15.2.0
-s390                  randconfig-001-20260131    gcc-8.5.0
-s390                  randconfig-002-20260131    gcc-8.5.0
-sh                               allmodconfig    gcc-15.2.0
-sh                                allnoconfig    clang-22
-sh                               allyesconfig    clang-19
-sh                               allyesconfig    gcc-15.2.0
-sh                                  defconfig    gcc-14
-sh                    randconfig-001-20260131    gcc-8.5.0
-sh                    randconfig-002-20260131    gcc-8.5.0
-sh                           se7750_defconfig    gcc-14
-sh                     sh7710voipgw_defconfig    gcc-15.2.0
-sh                   sh7770_generic_defconfig    gcc-14
-sparc                             allnoconfig    clang-22
-sparc                               defconfig    gcc-15.2.0
-sparc                 randconfig-001-20260131    gcc-14
-sparc                 randconfig-002-20260131    gcc-14
-sparc64                          allmodconfig    clang-22
-sparc64                             defconfig    gcc-14
-sparc64               randconfig-001-20260131    gcc-14
-sparc64               randconfig-002-20260131    gcc-14
-um                               alldefconfig    gcc-15.2.0
-um                               allmodconfig    clang-19
-um                                allnoconfig    clang-22
-um                               allyesconfig    gcc-15.2.0
-um                                  defconfig    gcc-14
-um                             i386_defconfig    gcc-14
-um                    randconfig-001-20260131    gcc-14
-um                    randconfig-002-20260131    gcc-14
-um                           x86_64_defconfig    gcc-14
-x86_64                           allmodconfig    clang-20
-x86_64                            allnoconfig    clang-22
-x86_64                           allyesconfig    clang-20
-x86_64      buildonly-randconfig-001-20260131    gcc-14
-x86_64      buildonly-randconfig-002-20260131    gcc-14
-x86_64      buildonly-randconfig-003-20260131    gcc-14
-x86_64      buildonly-randconfig-004-20260131    gcc-14
-x86_64      buildonly-randconfig-005-20260131    gcc-14
-x86_64      buildonly-randconfig-006-20260131    gcc-14
-x86_64                              defconfig    gcc-14
-x86_64                                  kexec    clang-20
-x86_64                randconfig-001-20260131    clang-20
-x86_64                randconfig-002-20260131    clang-20
-x86_64                randconfig-003-20260131    clang-20
-x86_64                randconfig-004-20260131    clang-20
-x86_64                randconfig-004-20260131    gcc-13
-x86_64                randconfig-005-20260131    clang-20
-x86_64                randconfig-006-20260131    clang-20
-x86_64                randconfig-011-20260131    clang-20
-x86_64                randconfig-012-20260131    clang-20
-x86_64                randconfig-013-20260131    clang-20
-x86_64                randconfig-014-20260131    clang-20
-x86_64                randconfig-015-20260131    clang-20
-x86_64                randconfig-016-20260131    clang-20
-x86_64                randconfig-071-20260131    gcc-14
-x86_64                randconfig-072-20260131    gcc-14
-x86_64                randconfig-073-20260131    gcc-14
-x86_64                randconfig-074-20260131    gcc-14
-x86_64                randconfig-075-20260131    gcc-14
-x86_64                randconfig-076-20260131    gcc-14
-x86_64                               rhel-9.4    clang-20
-x86_64                           rhel-9.4-bpf    gcc-14
-x86_64                          rhel-9.4-func    clang-20
-x86_64                    rhel-9.4-kselftests    clang-20
-x86_64                         rhel-9.4-kunit    gcc-14
-x86_64                           rhel-9.4-ltp    gcc-14
-x86_64                          rhel-9.4-rust    clang-20
-xtensa                            allnoconfig    clang-22
-xtensa                           allyesconfig    clang-22
-xtensa                randconfig-001-20260131    gcc-14
-xtensa                randconfig-002-20260131    gcc-14
+For example, the module signing issue, the build host publishes four artifacts:
+* The source-code
+* The compiled and signed binary
+* The build environment
+* Its public key
 
---
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Now, we don't need to sign with the private key to know that building the source
+code using the specific build environment and signing the result with the private
+key will result in the claimed binary. We can just compile and verify with the
+public key.
+
+So a traditional workflow would be:
+compiled_module + module_signature == module
+
+In this case we build the module, sign it with whatever key, distribute the
+builds and the private key to whoever wants to reproduce the build. Or we build
+locally and the key stays with the end-user.
+
+While the cryptographic approach would be:
+verify(compiled_code, module.signature) is True
+
+In this case we distribute the builds, source code and the public key. While
+everyone can ensure that the compiled code is the result of the build
+environment and source code. The signature is verified using cryptographic
+means.
+
+As long as no one cracks RSA or an algorithm of our choosing/has an absurd
+amount of luck, the cryptographic approach would be just as good as the traditional
+approach at ensuring that a program has stopped with a certain output.
