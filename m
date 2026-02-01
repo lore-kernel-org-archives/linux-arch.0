@@ -1,110 +1,108 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 078561DF74F
-	for <linux-arch@vger.kernel.org>; Sat, 31 Jan 2026 08:50:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC511261B8F;
+	Sun,  1 Feb 2026 16:22:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769849440; cv=none; b=plGmoeZ+WMCpmk05SQRvZNi9PXz2eTXe64bNLWdJQsg1F4+N72BXcTsdwXFrCrL1CzOQgMZohip6chFpa//qZr6SuKr1avb1t27PC4xsaac9zrKCI9eIJmy7KROCqU0IGMDwoSR7/oH+pM0Im7eENa8XSuP5iuT4CyHFFYqNCiw=
+	t=1769962944; cv=none; b=WtrGi4yPv3bQaqLAL0d6U4yNWI+8xuiOgc/FeFhUABp/qVLVj5cxi31JtmhRwcxsy7j342RRCnLnin0UdnKTNAZUdXm5tpye82XTK+DbfCdHG5v8mMvu3PM4mtckwPxfIQlpk8eBjJV7aEGgg3SAfBri0TExBc/3kG8ngbTAzvo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769849440; c=relaxed/simple;
-	bh=vySMPrpBYcsqqqwyb0Y73rGsGAGij0QBUJZITGVwK9Q=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Yctm4ySUGo04e3o9ma0DchfICfJzhhhBy7jD48WpljKOXeFoaSeitTJWGVLxi4gnJnpDOd5rot9O6Ok1u9WSuMPkgCWh6iYIiet5BxWD95Ac9uzCSF2yaOCF6zSiKwMhgAs623PXqRd8w0UkHUwXjLRkPX9nP5QI9H3VUlBkAHk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=esJUYmz9; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1769962944; c=relaxed/simple;
+	bh=xlStmTRMhWVPt3fGtyXwEEDK5QLc9ZLigiHpsUvTOrc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=QLHvyBQsrAQffTN7zZEXGg+NczdAqElK85oRg10p691IeqYUVqETZWC6gKQPCV0difis/p77bupvKeiE5n4V9jn4RARDzx3QFR6K4EIxgyqID9R6GHf/PBgzsUmN7gCYfgBEwCFe1189hNJk8jE0V98u12+Td13MKoYIzUv6JjU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=bEfjssX6; arc=none smtp.client-ip=159.69.126.157
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="esJUYmz9"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id CA3D0C19425
-	for <linux-arch@vger.kernel.org>; Sat, 31 Jan 2026 08:50:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1769849439;
-	bh=vySMPrpBYcsqqqwyb0Y73rGsGAGij0QBUJZITGVwK9Q=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=esJUYmz9Q5O44tgApY1/1BxRYv7xVun0m3XRvWhWJLpOl3BEn15dcJSJEDM3/pPze
-	 0AzJ9IjsFkQknp/imMoryUnu0exO0nOCp7ZjSxe7vdO4s5NTqkKCgdN9ND/upEWXym
-	 70SITA0utNz9CdYgbmr23k1IxEoenwmQ8sPgzkI2xuxqdCxv+qgtrLMIyugE/SrSNg
-	 6Hq8r3uJuM+RoTLj3jZCLg6lMNZPbTBEDKAirPx7Jd4y+0JGbkMmhpXbRakshBUf0R
-	 jV/Hj95aVQyZK46soCTy4gz/9hcBgMXp4qCQvFtkP4UrdhIpZoXKSBhxuozftjO11c
-	 jq5p50+0G4Ibw==
-Received: by mail-ed1-f47.google.com with SMTP id 4fb4d7f45d1cf-6505cac9879so4373589a12.1
-        for <linux-arch@vger.kernel.org>; Sat, 31 Jan 2026 00:50:39 -0800 (PST)
-X-Forwarded-Encrypted: i=1; AJvYcCVCIHIedqPh6H+AsbXmydrpIllhPfyEfnAUrPTghfMnIsZWFz1L8pRVFWOsjUfOVUggl3EUAuYAg4Qt@vger.kernel.org
-X-Gm-Message-State: AOJu0YwkIfnfOV3D6jFS4/0WmECRadFhMtk/jGFThLoaksRl0ZCpdepg
-	f6GbiCNAwAGOwkjYVr8Ock8mLO8dDm1INWdJhZp+y+gCL5Owh7Fi7IfLArueBgoq1dbN/nKW9SE
-	h1ZYpspRKLvgTlYlZ7d5Qr6t3/FUxRz8=
-X-Received: by 2002:a17:906:7946:b0:b84:2fe8:b5d8 with SMTP id
- a640c23a62f3a-b8dff5cbdb3mr333334566b.14.1769849438443; Sat, 31 Jan 2026
- 00:50:38 -0800 (PST)
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="bEfjssX6"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
+	s=mail; t=1769962934;
+	bh=xlStmTRMhWVPt3fGtyXwEEDK5QLc9ZLigiHpsUvTOrc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=bEfjssX6nVvGGJYCjRv1Hgum2HvUXJPGA7CgYPlDg4pNFEnfuqh6BJNVd4xzoEnb/
+	 ZMmAJGEOHpCghTNwc5ybR5xqiScFWUgOJvwITdq0n0q7Kv6pPqNjU99FoLxmpQ1ILY
+	 /UCNvFIurX5sZ1rKb2ccqszu5PRz2lLOVB+DzJaQ=
+Date: Sun, 1 Feb 2026 17:22:12 +0100
+From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
+To: Mihai-Drosi =?utf-8?B?Q8OianU=?= <mcaju95@gmail.com>
+Cc: arnd@arndb.de, arnout@bzzt.net, atomlin@atomlin.com, 
+	bigeasy@linutronix.de, chleroy@kernel.org, christian@heusel.eu, corbet@lwn.net, 
+	coxu@redhat.com, da.gomez@kernel.org, da.gomez@samsung.com, 
+	dmitry.kasatkin@gmail.com, eric.snowberg@oracle.com, f.gruenbichler@proxmox.com, 
+	jmorris@namei.org, kpcyrd@archlinux.org, linux-arch@vger.kernel.org, 
+	linux-doc@vger.kernel.org, linux-integrity@vger.kernel.org, linux-kbuild@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-modules@vger.kernel.org, 
+	linux-security-module@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, lkp@intel.com, 
+	maddy@linux.ibm.com, mattia@mapreri.org, mcgrof@kernel.org, mpe@ellerman.id.au, 
+	nathan@kernel.org, naveen@kernel.org, nicolas.bouchinet@oss.cyber.gouv.fr, 
+	nicolas.schier@linux.dev, npiggin@gmail.com, nsc@kernel.org, paul@paul-moore.com, 
+	petr.pavlu@suse.com, roberto.sassu@huawei.com, samitolvanen@google.com, 
+	serge@hallyn.com, xiujianfeng@huawei.com, zohar@linux.ibm.com
+Subject: Re: [PATCH v4 00/17] module: Introduce hash-based integrity checking
+Message-ID: <1ff0f085-fe89-48b4-bae3-559777a56a0d@t-8ch.de>
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260131073636.65494-1-mcaju95@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260107094007.966496-1-john.g.garry@oracle.com>
- <20260107094007.966496-3-john.g.garry@oracle.com> <CAAhV-H6qAtsBF3jwxbYGEUytZXH2ZRPfzPtUZRBnXOiZ_K5bYg@mail.gmail.com>
- <59101a15-fa63-4948-9169-3db6596bf618@oracle.com>
-In-Reply-To: <59101a15-fa63-4948-9169-3db6596bf618@oracle.com>
-From: Huacai Chen <chenhuacai@kernel.org>
-Date: Sat, 31 Jan 2026 16:50:26 +0800
-X-Gmail-Original-Message-ID: <CAAhV-H5Y-FzdhaNNPUa+P0Enk5hvPxJYAduQGvRUXwDuBaR+HA@mail.gmail.com>
-X-Gm-Features: AZwV_Qiwi5AAaKPHw38sH3q4aPAGkPNUvDXGj5Ir4MfEEmod4jV1jrLep1qAkhY
-Message-ID: <CAAhV-H5Y-FzdhaNNPUa+P0Enk5hvPxJYAduQGvRUXwDuBaR+HA@mail.gmail.com>
-Subject: Re: [PATCH v2 2/4] LoongArch: Make cpumask_of_node() robust against NUMA_NO_NODE
-To: John Garry <john.g.garry@oracle.com>
-Cc: kernel@xen0n.name, jiaxun.yang@flygoat.com, tsbogend@alpha.franken.de, 
-	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, 
-	dave.hansen@linux.intel.com, hpa@zytor.com, luto@kernel.org, 
-	peterz@infradead.org, arnd@arndb.de, x86@kernel.org, 
-	loongarch@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	linux-mips@vger.kernel.org, linux-arch@vger.kernel.org, vulab@iscas.ac.cn, 
-	gregkh@linuxfoundation.org, rafael@kernel.org, dakr@kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260131073636.65494-1-mcaju95@gmail.com>
 
-On Fri, Jan 30, 2026 at 8:21=E2=80=AFPM John Garry <john.g.garry@oracle.com=
-> wrote:
->
-> On 25/01/2026 03:55, Huacai Chen wrote:
-> > Reviewed-by: Huacai Chen <chenhuacai@loongson.cn>
->
-> Thanks
->
-> So can a loongarch maintainer pick this up please?
-OK, applied.
+Hi Mihai-Drosi,
 
-Huacai
+thanks for taking an interest into these patches!
 
->
-> >
-> > On Wed, Jan 7, 2026 at 5:48=E2=80=AFPM John Garry <john.g.garry@oracle.=
-com> wrote:
-> >>
-> >> The arch definition of cpumask_of_node() cannot handle NUMA_NO_NODE - =
-which
-> >> is a valid index - so add a check for this.
-> >>
-> >> Signed-off-by: John Garry <john.g.garry@oracle.com>
-> >> ---
-> >>   arch/loongarch/include/asm/topology.h | 2 +-
-> >>   1 file changed, 1 insertion(+), 1 deletion(-)
-> >>
-> >> diff --git a/arch/loongarch/include/asm/topology.h b/arch/loongarch/in=
-clude/asm/topology.h
-> >> index f06e7ff25bb7c..6b79d6183085a 100644
-> >> --- a/arch/loongarch/include/asm/topology.h
-> >> +++ b/arch/loongarch/include/asm/topology.h
-> >> @@ -12,7 +12,7 @@
-> >>
-> >>   extern cpumask_t cpus_on_node[];
-> >>
-> >> -#define cpumask_of_node(node)  (&cpus_on_node[node])
-> >> +#define cpumask_of_node(node)  ((node) =3D=3D NUMA_NO_NODE ? cpu_all_=
-mask : &cpus_on_node[node])
-> >>
-> >>   struct pci_bus;
-> >>   extern int pcibus_to_node(struct pci_bus *);
-> >> --
-> >> 2.43.5
-> >>
->
+On 2026-01-31 09:36:36+0200, Mihai-Drosi Câju wrote:
+> > The current signature-based module integrity checking has some drawbacks
+> > in combination with reproducible builds. Either the module signing key
+> > is generated at build time, which makes the build unreproducible, or a
+> > static signing key is used, which precludes rebuilds by third parties
+> > and makes the whole build and packaging process much more complicated.
+> 
+> I think there is a middle ground where the module signing key is generated
+> using a key derivation function that has as an input a deterministic value
+> on the build host, such as /etc/machine-id . The problem with this approach
+> is that only hosts knowing the value will be able to reproduce the build.
+
+The goal is to make the distro kernel packages rebuildable by the
+general public. Any involvement of secret values will break this goal.
+
+> Maybe this is a solution to NixOS secret management? Introduce minimal
+> impurity as a cryptographic seed and derive the rest of the secrets using
+> something like Argon2(seed, key_uuid).
+
+I am not familiar with NixOS and its secret management.
+This patchset serves a wider audience.
+
+> There might be another approach to code integrity rather than step-by-step
+> reproducibility. One may exploit the very cryptographic primitives that make
+> reproducibility hard to ensure that reproducibility is most  likely valid.
+> 
+> For example, the module signing issue, the build host publishes four artifacts:
+> * The source-code
+> * The compiled and signed binary
+> * The build environment
+> * Its public key
+> 
+> Now, we don't need to sign with the private key to know that building the source
+> code using the specific build environment and signing the result with the private
+> key will result in the claimed binary. We can just compile and verify with the
+> public key.
+
+This could work if the goal is only to verify the reproducibility of a
+single, signed-en-bloc artifact. But we also need to handle vmlinux which
+contains the corresponding public key. It would need different handling.
+We can add some special logic to strip that public key before
+comparision. But then vmlinux might be compressed or wrapped in some
+other format. Another whole collection of special logic.
+
+(...)
+
+
+Thomas
