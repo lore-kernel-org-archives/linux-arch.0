@@ -1,326 +1,189 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3073E36CDE4;
-	Mon,  2 Feb 2026 16:30:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770049852; cv=none; b=FWtJF+immIwbhPYlo/lGti3oxaFwNgFE6jC5pNu2QqvBCnmQyWyX67u1d+LtHWgy8dZXFcKz+H7RN859El0WRfByeLX+35CmDyY9/ExKnwX+hMUV9YfNCCfbqC/jodfb6dvSkLUaQzFdy4wizDJf32Zsdl5slcQt7tacAGBeU6s=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770049852; c=relaxed/simple;
-	bh=e+sL7xjSdtYMch2wBB4F/TSCcC7Q9ExJNIRdKTYKiZ0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=WnxzAZlwGvrgf3qIJgpSaPifyJkSough4Sm8/2+SjAUlvxeS3+Nsbud1UoeBtAtlGD3MWByks9SsQb5PIYn/FTWAzB6TJ6FYSVmrs6fKYM7PlCP1GoItqe58T1yeC3vcZDqHyYFKqaLDpJGw5rrfscXN82HzvWWQ87Tk5w4oobg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=K2mn7P1u; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Received: from BN1PR04CU002.outbound.protection.outlook.com (mail-eastus2azon11010032.outbound.protection.outlook.com [52.101.56.32])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8934537E310;
+	Mon,  2 Feb 2026 16:50:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.56.32
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1770051012; cv=fail; b=U2e3P/p/7KWKG2RVtCrz7w34JSeg6giH00gsfP9i9Yf6zG0dABht+E5q3bxRSs+RZGZIGMKnympqJqlGvgOLNZcw/+P+bKUibKN3BpKd61eK5XCpDbNGhHLdr8qXtQP1CgEyobIMu4TyTJ9WTl9bKQspIgp5lnBteVzfRCDISng=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1770051012; c=relaxed/simple;
+	bh=umTImyEekGa5O/T+0FdxryIy6Jkhav8+Y2HWu17I3aM=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=BVHKZ3Fw6RPxczxX5/vnToVofzKfWdr73sdGLL6x50/mukxVpsi9dI7BIWE7XaKML1ci05uV0xA8O/XK8xmbQUjUYv5Qhsgnww8atfZERj0t0F+qsr8kG2N1Kt2lE/YMYxl1j2oAbyPNqH+o0zLcLh1KUsHCGrzb80/FiCKBFYE=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=DbRWEQY8; arc=fail smtp.client-ip=52.101.56.32
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="K2mn7P1u"
-Received: from skinsburskii.localdomain (unknown [20.236.11.42])
-	by linux.microsoft.com (Postfix) with ESMTPSA id CEDFF20B7168;
-	Mon,  2 Feb 2026 08:30:49 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com CEDFF20B7168
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1770049850;
-	bh=MGEIREbkRORRlX/UFhgD2UbUNLOeroCoAu9upbjPkpI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=K2mn7P1uS73YAeKCX5WXygKOP+YH3UwkcbARVlYVQuwsmB6ncELtBlgHyJg6WIx/q
-	 KeFgeMai+7k8SaBLb3DmQh0xtupsk+1FyrUE+kZjU4qHokvLw37R0rxcf1/EkULz+R
-	 ufn4U7aokCdFN5YVuOhnQsHuqx1ImSaiyeGqqRIU=
-Date: Mon, 2 Feb 2026 08:30:49 -0800
-From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
-	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com,
-	will@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
-	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
-	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
-	nunodasneves@linux.microsoft.com, mhklinux@outlook.com
-Subject: Re: [PATCH v0 15/15] mshv: Populate mmio mappings for PCI passthru
-Message-ID: <aYDROXpR5kvlylGG@skinsburskii.localdomain>
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120064230.3602565-16-mrathor@linux.microsoft.com>
- <aXAxmYm4zbOzGztz@skinsburskii.localdomain>
- <45e7a4c0-f1d8-b8b4-8c03-56d06845323b@linux.microsoft.com>
- <aXevWXolgNrrLltF@skinsburskii.localdomain>
- <f39a501e-478f-66ff-26c8-229ca3991f4f@linux.microsoft.com>
- <aXkKhGvpaHUGclI-@skinsburskii.localdomain>
- <8d798da6-1720-ceea-f1b0-62ca675085c8@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="DbRWEQY8"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=lVuSe11FfJzLB207dJZsgDa+2ddn+rf9ulH2rISJgZwu2STwQPn8aEnEf/vzBRlyvxwoMN0EnWbpkkl07r/z6H7jgzwaI1KStLvCyN4u44oLomf6JCHtSWupFgahSdm0BQyE8Y5xnpz5hr2eDSklS7XoKdA/i72kxw9Y9zN6Y5Pjz3xte9M6ET5FofGOThdO3dgmrvMrbe4cmv8/bleMG5B2Jpnfv+HUp2INWZSWYS16m00jTsnqrF41uaeMVf5fg7HblZFlkPV8gsQKZpI95PAQvkLrAinmbMrb933kaKUHanWIYy1dyUQ2LffPTFQWocdGnvRu/zM9eggLrKEVjQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=87fcOiEo60x6OsDqkuIUaoouzR7Uzn5ij/47k1L7QjM=;
+ b=MA1nb+dyKxQX3gwvWSrwRzy1atTcfMB3pv7c3slaQ/snqt8MYXDIfcLY1k8yVamt+IBFQmdrDrw31tBUJYLLFdq3HXoquapr7Elx7K26tUzMhwgXcUOjtreVvYeZbXZJIJmvWWwpTyOtN82aVtd1u73lpG/VvCJzfsE/A2pDfhzq6cJe8sEzjpXkN1rLLjqmTh6MSw8vkUczpqwgkufk8KctG4ceKYq2/bBSjE3yXrM7PsvpqHxUtemhQ1eSYX5PdOpG/b3nOj6ZYsEbnaI5QgZzCDJ0Pvqq7+/6yYYenOB5Gb7Ff4Z6BHtuGxt/nm+2irORMYYv/RCqZjnGGaCw0Q==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=87fcOiEo60x6OsDqkuIUaoouzR7Uzn5ij/47k1L7QjM=;
+ b=DbRWEQY894WFC6yDtx+K0cPTiY+baFUcYq9QQJOukiEci0dihL5qBY636ao7dzKmHYzmIssbqLI+yk57iL3I21EXKMIZw0C3/nT4R2Bh3cBzR+jRdt7XjnE77WhE/dJBsWZffmT32sHDoRECAUkcrZWF2LmOlKKMYmVgg8tc2d3uT5mRaKgE/G7WNZK/K18NW9RB6aPTHLmsCAjOtzAF0TV5NAiHV/nDyMdk2eSK/iwutnWyknPRcsd9T1FiAoDLTdVcjYLD4vUDNcVhPAwMStPxVUs419t0O6f9n8VEMOD2g2e+XXmjRPWtqpboMYcNBS0AUEeELAP4bBjpUTNTlw==
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from PH0PR12MB8800.namprd12.prod.outlook.com (2603:10b6:510:26f::12)
+ by CH1PPF189669351.namprd12.prod.outlook.com (2603:10b6:61f:fc00::608) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9564.16; Mon, 2 Feb
+ 2026 16:50:06 +0000
+Received: from PH0PR12MB8800.namprd12.prod.outlook.com
+ ([fe80::f79d:ddc5:2ad7:762d]) by PH0PR12MB8800.namprd12.prod.outlook.com
+ ([fe80::f79d:ddc5:2ad7:762d%4]) with mapi id 15.20.9564.016; Mon, 2 Feb 2026
+ 16:50:06 +0000
+Date: Mon, 2 Feb 2026 11:45:28 -0500
+From: Yury Norov <ynorov@nvidia.com>
+To: david.laight.linux@gmail.com
+Cc: Nathan Chancellor <nathan@kernel.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Ingo Molnar <mingo@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, Yury Norov <yury.norov@gmail.com>,
+	Lucas De Marchi <lucas.demarchi@intel.com>,
+	Jani Nikula <jani.nikula@intel.com>,
+	Vincent Mailhol <mailhol.vincent@wanadoo.fr>,
+	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+	Kees Cook <keescook@chromium.org>,
+	Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH next 01/14] overflow: Reduce expansion of __type_max()
+Message-ID: <aYDUqBEnevBJLU53@yury>
+References: <20260121145731.3623-1-david.laight.linux@gmail.com>
+ <20260121145731.3623-2-david.laight.linux@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260121145731.3623-2-david.laight.linux@gmail.com>
+X-ClientProxiedBy: BL1PR13CA0176.namprd13.prod.outlook.com
+ (2603:10b6:208:2bd::31) To PH0PR12MB8800.namprd12.prod.outlook.com
+ (2603:10b6:510:26f::12)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8d798da6-1720-ceea-f1b0-62ca675085c8@linux.microsoft.com>
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: PH0PR12MB8800:EE_|CH1PPF189669351:EE_
+X-MS-Office365-Filtering-Correlation-Id: c9336e8a-93a4-4050-23f8-08de627b1d57
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|7416014|376014|1800799024|366016|10070799003|7053199007;
+X-Microsoft-Antispam-Message-Info:
+	=?us-ascii?Q?k4zRVK6xzE5d9BAGmurEwCT/gmxkF5qaUefLkCGoGUJ5pWI11DG1MUv4X/6V?=
+ =?us-ascii?Q?fpIxesZoYLNmRgvvRsSC8zToDBLNFpIftySWNO6ZMYyJY5FSh1pYf/JaDbtA?=
+ =?us-ascii?Q?AuvFWsTzbdvoWdQs4L57Pv3oHlI438c4chehzZykJCDXApoHDAcaqoTM8mjb?=
+ =?us-ascii?Q?+Pn5Yr+Kt6AJMliESLx/D0wChwJ2q1oUj08tm/M/D6hhGzRYO5wBa/UCuyYu?=
+ =?us-ascii?Q?GMuUU8y+Sbs3Lc907Hd2awpuJLxpgFzYXapaQT/IWvBBo6YaowMHXVT6OBez?=
+ =?us-ascii?Q?JX8lYZOhSX79a3DeCNE0avPdOtt6YThPdwVNrusu6CFpBh8HdhHo671ccKXb?=
+ =?us-ascii?Q?bCb9j+2PaLoTSLkGKE8NbleH6qjeZNre9OTgBJmTKoRSbIv7bWOcwlARx5uG?=
+ =?us-ascii?Q?YqsjPXedrK3keaOoFyLhlCImGKnB1HTdhnbH8dIKDU/dgo886ljrbDXYBVKG?=
+ =?us-ascii?Q?+eM3GNEO4noN9z43aY3/d4SHr8wToEsH/xrOcBodvGsltM5bJuBziQPVOT61?=
+ =?us-ascii?Q?vmqwyu7eO1ajEEnaNQxhMVp+TmMsQ9ox6Ovd/w/XT1HdxocSkbFOouQk2zpQ?=
+ =?us-ascii?Q?61CO6Ge4Ig95ntY4+lLcn3GfcWlp86Ilpk2Jzto6kfKc3kz+DWwOgUPep7QD?=
+ =?us-ascii?Q?FVo0Sr90Ony0ZP1tEOsqk1IKHN4hsTcLqtUpr0jGqukPWGKXYzXsK4Z+ExUT?=
+ =?us-ascii?Q?a7ZlfiwtKHBa76fnzlveUX3WHoPLVXoIOZDd3QRysDaqZJVCIeg72zD7zU7G?=
+ =?us-ascii?Q?yJ1XaK+JZLPyLVHy1YhYFnJ3C3hw/ILdvWJ/xu2M19Numbil5U1tA0WmHkE8?=
+ =?us-ascii?Q?22bWjk0eb/vs8D3ZaeOPvZI1vmLxIup3+4y7mxPSXtWyIi6djIRWlvSrKsxU?=
+ =?us-ascii?Q?aUC7NCrCe1AWmA64agruGbYg7p7Y0OQZOvrpgbpkygVfHhpvspE03gmvuYpR?=
+ =?us-ascii?Q?pYPLexNuzt2i+HgzWI9PyTcFP/Qntrji3RUHaV4EJ0Fw6wHTZByJ6p1qRTgq?=
+ =?us-ascii?Q?MkA2ab3BarCgVX9ZUNv9L3Y6rNXwFFo7suNjsA3xf4XtfWed+et4RpeT1Occ?=
+ =?us-ascii?Q?exa/2/0lK+PUTi0wZmp11xNWkK4UdqDsnDOgLH1trAmyo1j3offJMMg4AdeP?=
+ =?us-ascii?Q?Zyq8W+AhjLGkSaviAO5ogrojHSxN2TzsiZDtmBME+azjA/WHeBVivL+11OPw?=
+ =?us-ascii?Q?eVlxqesJgofd2++llaMbnYn6iVcmZ0iTWY8BAqOLjvOw1w5hrcLU1cdTYnE3?=
+ =?us-ascii?Q?DAu7LZZugcHiOksJb5T5PPkR5oITEqR0rvM4lPdrmmpSAWthEP4z7MHwQXgv?=
+ =?us-ascii?Q?tPWhpRRZSUgp7wIcmQ4jOQNRpYKeYu+YfF2eUwT1u5yEqfcEvUROVpuH+aIr?=
+ =?us-ascii?Q?KsnuwgGc1BMOHpQ3Z4M+bWdYRKGj12QSWwLd6aqmkOhEJedxAOXDmXa1FJWN?=
+ =?us-ascii?Q?H3433D+AXBEFAYbSh3foJJ22XWhx3HQoTgJqTunBxvDwLRl/V/AFO0HIA5fN?=
+ =?us-ascii?Q?N/T7OvAEd+VcDc6iTSrpMY+zHOHqFIMoHeeu8yI/t94NEYhONYQaQIN15plb?=
+ =?us-ascii?Q?OTNJi+DuimerNdKp5e8=3D?=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH0PR12MB8800.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(7416014)(376014)(1800799024)(366016)(10070799003)(7053199007);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?uLNg/lOlwokNyYtlNSXs8HXVoyeD9uVxkrSjtmJ7+Epbeu47bbEHKZk+mN49?=
+ =?us-ascii?Q?ag0eKqf7oAWCTf27SJ6Rj0t60b4Wu4LjgzemraoY5tZXqjUtXP9e6e9r69K8?=
+ =?us-ascii?Q?KlUTUxAr8jjNeiyqUNuW4Qsky8pzDH+KixFR8PZgJdCSzLVPCHRLXrFB/q1H?=
+ =?us-ascii?Q?BuN4TnNGe4O4FR8kS6OSE2S6n4soim2i7yoE5zvnF6rgTLH+d26RJTMKAqad?=
+ =?us-ascii?Q?XO5mQBFWAcFENLgSIDJOyDlhimsz0fFGW2xqTFVWFEy0Z3pxgIDhuGfle/bI?=
+ =?us-ascii?Q?OJ86fxPOqSwfsLu/AWQRPa1ulGdoiXckqXv8xDMH3JgrcYMZwVVYfx7lMjuN?=
+ =?us-ascii?Q?3X1DzIfB7p+aQ3IWHmufltgcrBa5z6KPC3CS315IA52XwqrNuu2Fuq2PsLi+?=
+ =?us-ascii?Q?MvO0674oc+dFzvPyKiByd5LppuPWYZHmlJZLoC4ceLEdieM+rv+0qE5r8KcP?=
+ =?us-ascii?Q?CHryCKl1k5D2iZ2KqzFxXp6lxSzd9uW8kyhtYPkSz642fPdLzAPabUE7BgVE?=
+ =?us-ascii?Q?xRTdroyE+nfXZ5xQbX9ojGEz3tKUrXEyKkK18edS5X+fKQoJ+z0ScBgScnSW?=
+ =?us-ascii?Q?TELIQ6bPmnQIY3AeoSJwOFP5x7ZJtioedR8aLCMYCqaUV6zFRc/hTotmFS5W?=
+ =?us-ascii?Q?7qxyKNZJrKjmOZ/sspQHbRv2gQnAqyMix8KCyEzfGeO8t6aUoWQqhKZ79fmS?=
+ =?us-ascii?Q?yYSNIic6nhckPq38zuXlt1o5Dj3XHSgym0+Xr2eZGEglLadCiFZRLVBdjBn/?=
+ =?us-ascii?Q?dMa50SQRhtlD7ClM2nj8unDpm679Bv8TCmu9a3N4qd3MLDyxrXfovkIBhX/8?=
+ =?us-ascii?Q?Nhr2m+k1iY1kTadbrnfd4aMnohh6W0sHtc92kkHW/vYs0YtrgOLwx8T4VD/A?=
+ =?us-ascii?Q?h2DI3Edyfa4X+wNyJN9yb+E1EMFTgW6JR56BmITZMlhzdAlNJfurS4Y4AZsd?=
+ =?us-ascii?Q?5SP2TO51grxJeAAqP0umcMATTss719eCV0Is7TQrWKkCN2XI5vQKqPJNYDFQ?=
+ =?us-ascii?Q?xiFW2KcPqpRBjRbzRyd40AKT0niDznn+nJ72R990M/zE1Yz7OyTJVPQixr3b?=
+ =?us-ascii?Q?z9QCV07VFj+686JjY5wGZNom9tVMcxS4Q57UMh53t356QArsf0wwWS/HrP+o?=
+ =?us-ascii?Q?gCXOzEY+/d2zBXOVqUiykMrDTd7YpqBaunh3TRkqp7K6pFK7rxSC8uUNu+AX?=
+ =?us-ascii?Q?fWeTXh29Jocd8ktDymRseLd/5he5dnf1xTuqWj4FSzGNO5vWI92buFNtvBVu?=
+ =?us-ascii?Q?mLut70GF6zSFCA9KqkdAd81XNhas+3fnnRL9l91ayI8wLwaypEE0kuG0o2KW?=
+ =?us-ascii?Q?TiEk+jc0ZNoCcOLp8OsBbEYRettoPSy+yXtDgL+PflCDmus7WikVsK1tkFJX?=
+ =?us-ascii?Q?8ThzRPjx7zZ7KMDAoaJKwLBFu8n2zRb3XmhOxcO1qhLyFZZrMgr813G6chsr?=
+ =?us-ascii?Q?k56hTpHy6g6KNZE6iyNkboyh0+l3ELnSlbt3bfl+LkPQ3Ufy6+3hW7MODPXF?=
+ =?us-ascii?Q?GWWsF+5ZALyR4t4yxUbCI5wxXCqK2arlBamkjZkATfTdZXipeZ3TsCbc9gsT?=
+ =?us-ascii?Q?77IF6i+DG7YyPWyE24Ili+Eo85xFPFAyWSp14bMfRBA0ibplQ539LoQ537kK?=
+ =?us-ascii?Q?x3IvtsQ8KYKIc5gXg92GP3B0epLalSHYZJXzCMN98pA3EGZSd7ATv/mUTQuG?=
+ =?us-ascii?Q?IhijBuaD53LFiqtGc1EpCxSatKO1vLVSMB2yTH/FSFxJHsRcWUWJ0vKXVxYe?=
+ =?us-ascii?Q?jwjvjtwCGYXjCyj2jdeDKd0F6P+h1GOKDX37lW0/Rlzvr2AxR7lq?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: c9336e8a-93a4-4050-23f8-08de627b1d57
+X-MS-Exchange-CrossTenant-AuthSource: PH0PR12MB8800.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 02 Feb 2026 16:50:05.6362
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: ssKDKs8W/wbjlNk9hfIl1vDfFctOVUkN3OMHq4jjYaCqeA5cFHHQkTLBt4ty6HfQ7x6t3wgSNJi3MViS2/B+Eg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: CH1PPF189669351
 
-On Fri, Jan 30, 2026 at 02:17:24PM -0800, Mukesh R wrote:
-> On 1/27/26 10:57, Stanislav Kinsburskii wrote:
-> > On Mon, Jan 26, 2026 at 07:07:22PM -0800, Mukesh R wrote:
-> > > On 1/26/26 10:15, Stanislav Kinsburskii wrote:
-> > > > On Fri, Jan 23, 2026 at 06:19:15PM -0800, Mukesh R wrote:
-> > > > > On 1/20/26 17:53, Stanislav Kinsburskii wrote:
-> > > > > > On Mon, Jan 19, 2026 at 10:42:30PM -0800, Mukesh R wrote:
-> > > > > > > From: Mukesh Rathor <mrathor@linux.microsoft.com>
-> > > > > > > 
-> > > > > > > Upon guest access, in case of missing mmio mapping, the hypervisor
-> > > > > > > generates an unmapped gpa intercept. In this path, lookup the PCI
-> > > > > > > resource pfn for the guest gpa, and ask the hypervisor to map it
-> > > > > > > via hypercall. The PCI resource pfn is maintained by the VFIO driver,
-> > > > > > > and obtained via fixup_user_fault call (similar to KVM).
-> > > > > > > 
-> > > > > > > Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
-> > > > > > > ---
-> > > > > > >     drivers/hv/mshv_root_main.c | 115 ++++++++++++++++++++++++++++++++++++
-> > > > > > >     1 file changed, 115 insertions(+)
-> > > > > > > 
-> > > > > > > diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
-> > > > > > > index 03f3aa9f5541..4c8bc7cd0888 100644
-> > > > > > > --- a/drivers/hv/mshv_root_main.c
-> > > > > > > +++ b/drivers/hv/mshv_root_main.c
-> > > > > > > @@ -56,6 +56,14 @@ struct hv_stats_page {
-> > > > > > >     	};
-> > > > > > >     } __packed;
-> > > > > > > +bool hv_nofull_mmio;   /* don't map entire mmio region upon fault */
-> > > > > > > +static int __init setup_hv_full_mmio(char *str)
-> > > > > > > +{
-> > > > > > > +	hv_nofull_mmio = true;
-> > > > > > > +	return 0;
-> > > > > > > +}
-> > > > > > > +__setup("hv_nofull_mmio", setup_hv_full_mmio);
-> > > > > > > +
-> > > > > > >     struct mshv_root mshv_root;
-> > > > > > >     enum hv_scheduler_type hv_scheduler_type;
-> > > > > > > @@ -612,6 +620,109 @@ mshv_partition_region_by_gfn(struct mshv_partition *partition, u64 gfn)
-> > > > > > >     }
-> > > > > > >     #ifdef CONFIG_X86_64
-> > > > > > > +
-> > > > > > > +/*
-> > > > > > > + * Check if uaddr is for mmio range. If yes, return 0 with mmio_pfn filled in
-> > > > > > > + * else just return -errno.
-> > > > > > > + */
-> > > > > > > +static int mshv_chk_get_mmio_start_pfn(struct mshv_partition *pt, u64 gfn,
-> > > > > > > +				       u64 *mmio_pfnp)
-> > > > > > > +{
-> > > > > > > +	struct vm_area_struct *vma;
-> > > > > > > +	bool is_mmio;
-> > > > > > > +	u64 uaddr;
-> > > > > > > +	struct mshv_mem_region *mreg;
-> > > > > > > +	struct follow_pfnmap_args pfnmap_args;
-> > > > > > > +	int rc = -EINVAL;
-> > > > > > > +
-> > > > > > > +	/*
-> > > > > > > +	 * Do not allow mem region to be deleted beneath us. VFIO uses
-> > > > > > > +	 * useraddr vma to lookup pci bar pfn.
-> > > > > > > +	 */
-> > > > > > > +	spin_lock(&pt->pt_mem_regions_lock);
-> > > > > > > +
-> > > > > > > +	/* Get the region again under the lock */
-> > > > > > > +	mreg = mshv_partition_region_by_gfn(pt, gfn);
-> > > > > > > +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-> > > > > > > +		goto unlock_pt_out;
-> > > > > > > +
-> > > > > > > +	uaddr = mreg->start_uaddr +
-> > > > > > > +		((gfn - mreg->start_gfn) << HV_HYP_PAGE_SHIFT);
-> > > > > > > +
-> > > > > > > +	mmap_read_lock(current->mm);
-> > > > > > 
-> > > > > > Semaphore can't be taken under spinlock.
-> > > > 
-> > > > > 
-> > > > > Yeah, something didn't feel right here and I meant to recheck, now regret
-> > > > > rushing to submit the patch.
-> > > > > 
-> > > > > Rethinking, I think the pt_mem_regions_lock is not needed to protect
-> > > > > the uaddr because unmap will properly serialize via the mm lock.
-> > > > > 
-> > > > > 
-> > > > > > > +	vma = vma_lookup(current->mm, uaddr);
-> > > > > > > +	is_mmio = vma ? !!(vma->vm_flags & (VM_IO | VM_PFNMAP)) : 0;
-> > > > > > 
-> > > > > > Why this check is needed again?
-> > > > > 
-> > > > > To make sure region did not change. This check is under lock.
-> > > > > 
-> > > > 
-> > > > How can this happen? One can't change VMA type without unmapping it
-> > > > first. And unmapping it leads to a kernel MMIO region state dangling
-> > > > around without corresponding user space mapping.
-> > > 
-> > > Right, and vm_flags would not be mmio expected then.
-> > > 
-> > > > This is similar to dangling pinned regions and should likely be
-> > > > addressed the same way by utilizing MMU notifiers to destpoy memoty
-> > > > regions is VMA is detached.
-> > > 
-> > > I don't think we need that. Either it succeeds if the region did not
-> > > change at all, or just fails.
-> > > 
-> > 
-> > I'm afraid we do, as if the driver mapped a page with the previous
-> > memory region, and then the region is unmapped, the page will stay
-> > mapped in the hypervisor, but will be considered free by kernel, which
-> > in turn will lead to GPF upn next allocation.
+On Wed, Jan 21, 2026 at 02:57:18PM +0000, david.laight.linux@gmail.com wrote:
+> From: David Laight <david.laight.linux@gmail.com>
 > 
-> There are no ram pages for mmio regions. Also, we don't do much with
-> mmio regions other than tell the hyp about it.
+> Change '(x - 1) + x' to '2 * (x - 1) + 1' to avoid expanding the
+> non-trivial __type_half_max() twice.
 > 
+> Signed-off-by: David Laight <david.laight.linux@gmail.com>
 
-So, are you saying that the hypervisor does not use these pages and only
-tracks them? That would make things easier.
-However, if we later try to map a GPA that is already mapped, will the
-hypervisor return an error?
+Thanks!
 
-Thanks,
-Stanislav
+Reviewed-by: Yury Norov <ynorov@nvidia.com>
 
-> Thanks,
-> -Mukesh
+> ---
+>  include/linux/overflow.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> 
-> > With pinned regions we issue is similar but less impacting: pages can't
-> > be released by user space unmapping and thus will be simply leaked, but
-> > the system stays intact.
-> > 
-> > MMIO regions are simila to movable region in this regard: they don't
-> > reference the user pages, and thus this guest region replaement is a
-> > stright wat to kernel panic.
-> > 
-> > > 
-> > > > > > The region type is stored on the region itself.
-> > > > > > And the type is checked on the caller side.
-> > > > > > 
-> > > > > > > +	if (!is_mmio)
-> > > > > > > +		goto unlock_mmap_out;
-> > > > > > > +
-> > > > > > > +	pfnmap_args.vma = vma;
-> > > > > > > +	pfnmap_args.address = uaddr;
-> > > > > > > +
-> > > > > > > +	rc = follow_pfnmap_start(&pfnmap_args);
-> > > > > > > +	if (rc) {
-> > > > > > > +		rc = fixup_user_fault(current->mm, uaddr, FAULT_FLAG_WRITE,
-> > > > > > > +				      NULL);
-> > > > > > > +		if (rc)
-> > > > > > > +			goto unlock_mmap_out;
-> > > > > > > +
-> > > > > > > +		rc = follow_pfnmap_start(&pfnmap_args);
-> > > > > > > +		if (rc)
-> > > > > > > +			goto unlock_mmap_out;
-> > > > > > > +	}
-> > > > > > > +
-> > > > > > > +	*mmio_pfnp = pfnmap_args.pfn;
-> > > > > > > +	follow_pfnmap_end(&pfnmap_args);
-> > > > > > > +d
-> > > > > > > +unlock_mmap_out:
-> > > > > > > +	mmap_read_unlock(current->mm);
-> > > > > > > +unlock_pt_out:
-> > > > > > > +	spin_unlock(&pt->pt_mem_regions_lock);
-> > > > > > > +	return rc;
-> > > > > > > +}
-> > > > > > > +
-> > > > > > > +/*
-> > > > > > > + * At present, the only unmapped gpa is mmio space. Verify if it's mmio
-> > > > > > > + * and resolve if possible.
-> > > > > > > + * Returns: True if valid mmio intercept and it was handled, else false
-> > > > > > > + */
-> > > > > > > +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp)
-> > > > > > > +{
-> > > > > > > +	struct hv_message *hvmsg = vp->vp_intercept_msg_page;
-> > > > > > > +	struct hv_x64_memory_intercept_message *msg;
-> > > > > > > +	union hv_x64_memory_access_info accinfo;
-> > > > > > > +	u64 gfn, mmio_spa, numpgs;
-> > > > > > > +	struct mshv_mem_region *mreg;
-> > > > > > > +	int rc;
-> > > > > > > +	struct mshv_partition *pt = vp->vp_partition;
-> > > > > > > +
-> > > > > > > +	msg = (struct hv_x64_memory_intercept_message *)hvmsg->u.payload;
-> > > > > > > +	accinfo = msg->memory_access_info;
-> > > > > > > +
-> > > > > > > +	if (!accinfo.gva_gpa_valid)
-> > > > > > > +		return false;
-> > > > > > > +
-> > > > > > > +	/* Do a fast check and bail if non mmio intercept */
-> > > > > > > +	gfn = msg->guest_physical_address >> HV_HYP_PAGE_SHIFT;
-> > > > > > > +	mreg = mshv_partition_region_by_gfn(pt, gfn);
-> > > > > > 
-> > > > > > This call needs to be protected by the spinlock.
-> > > > > 
-> > > > > This is sorta fast path to bail. We recheck under partition lock above.
-> > > > > 
-> > > > 
-> > > > Accessing the list of regions without lock is unsafe.
-> > > 
-> > > I am not sure why? This check is done by a vcpu thread, so regions
-> > > will not have just gone away.
-> > > 
-> > 
-> > This is shared resources. Multiple VP thread get into this function
-> > simultaneously, so there is a race already. But this one we can live
-> > with without locking as they don't mutate the list of the regions.
-> > 
-> > The issue happens when VMM adds or removed another region as it mutates
-> > the list and races with VP threads doing this lookup.
-> > 
-> > Thanks,
-> > Stanislav
-> > 
-> > 
-> > > Thanks,
-> > > -Mukesh
-> > > 
-> > > 
-> > > > Thanks,
-> > > > Stanislav
-> > > > 
-> > > > > Thanks,
-> > > > > -Mukesh
-> > > > > 
-> > > > > 
-> > > > > > Thanks,
-> > > > > > Stanislav
-> > > > > > 
-> > > > > > > +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-> > > > > > > +		return false;
-> > > > > > > +
-> > > > > > > +	rc = mshv_chk_get_mmio_start_pfn(pt, gfn, &mmio_spa);
-> > > > > > > +	if (rc)
-> > > > > > > +		return false;
-> > > > > > > +
-> > > > > > > +	if (!hv_nofull_mmio) {		/* default case */
-> > > > > > > +		gfn = mreg->start_gfn;
-> > > > > > > +		mmio_spa = mmio_spa - (gfn - mreg->start_gfn);
-> > > > > > > +		numpgs = mreg->nr_pages;
-> > > > > > > +	} else
-> > > > > > > +		numpgs = 1;
-> > > > > > > +
-> > > > > > > +	rc = hv_call_map_mmio_pages(pt->pt_id, gfn, mmio_spa, numpgs);
-> > > > > > > +
-> > > > > > > +	return rc == 0;
-> > > > > > > +}
-> > > > > > > +
-> > > > > > >     static struct mshv_mem_region *
-> > > > > > >     mshv_partition_region_by_gfn_get(struct mshv_partition *p, u64 gfn)
-> > > > > > >     {
-> > > > > > > @@ -666,13 +777,17 @@ static bool mshv_handle_gpa_intercept(struct mshv_vp *vp)
-> > > > > > >     	return ret;
-> > > > > > >     }
-> > > > > > > +
-> > > > > > >     #else  /* CONFIG_X86_64 */
-> > > > > > > +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp) { return false; }
-> > > > > > >     static bool mshv_handle_gpa_intercept(struct mshv_vp *vp) { return false; }
-> > > > > > >     #endif /* CONFIG_X86_64 */
-> > > > > > >     static bool mshv_vp_handle_intercept(struct mshv_vp *vp)
-> > > > > > >     {
-> > > > > > >     	switch (vp->vp_intercept_msg_page->header.message_type) {
-> > > > > > > +	case HVMSG_UNMAPPED_GPA:
-> > > > > > > +		return mshv_handle_unmapped_gpa(vp);
-> > > > > > >     	case HVMSG_GPA_INTERCEPT:
-> > > > > > >     		return mshv_handle_gpa_intercept(vp);
-> > > > > > >     	}
-> > > > > > > -- 
-> > > > > > > 2.51.2.vfs.0.1
-> > > > > > > 
+> diff --git a/include/linux/overflow.h b/include/linux/overflow.h
+> index 736f633b2d5f..4f014d55ab25 100644
+> --- a/include/linux/overflow.h
+> +++ b/include/linux/overflow.h
+> @@ -31,7 +31,7 @@
+>   * credit to Christian Biere.
+>   */
+>  #define __type_half_max(type) ((type)1 << (8*sizeof(type) - 1 - is_signed_type(type)))
+> -#define __type_max(T) ((T)((__type_half_max(T) - 1) + __type_half_max(T)))
+> +#define __type_max(T) ((T)(2 * (__type_half_max(T) - 1) + 1))
+>  #define type_max(t)	__type_max(typeof(t))
+>  #define __type_min(T) ((T)((T)-type_max(T)-(T)1))
+>  #define type_min(t)	__type_min(typeof(t))
+> -- 
+> 2.39.5
