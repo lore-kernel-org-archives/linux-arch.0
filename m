@@ -1,96 +1,219 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from desiato.infradead.org (desiato.infradead.org [90.155.92.199])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6EA842C08D0
-	for <linux-arch@vger.kernel.org>; Mon,  2 Feb 2026 09:21:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 259B921FF48;
+	Mon,  2 Feb 2026 09:43:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.92.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770024110; cv=none; b=eyI+hlvq8vQHkOhYIKdD960AZCQAir5cupTjhj6zdnnx3juq0wQONEbGFIgalduH4xBu0D+ShcvgZ/0TCmU0VnPrhgEKljWaQy9PchaIh7dzqBEyFVlgi6KfC2lMJYhR2GOzxvi3tzS+0i+a7EYuj3Qy7PNE2RpflAov5aBvKpQ=
+	t=1770025386; cv=none; b=kTPbV/umljbqKmbs9rNLTwkLO7U8S0iQJvtZrUvZBVHdvn+Ywhds8qmy8FI9B7nWMC2e4fuSJgwE1alEJL+gVsjyMURDfJZgHCy/tAkGCO8QIbmQ4T5MKSdLEsrfivEC4hyA9u6s6ooRzIjZfiwKCURNSzKPKcEL/cNU+Biluls=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770024110; c=relaxed/simple;
-	bh=bwnBNgHbFIW/GKpzdSfu0j1YrOO311FSebJ7+HObXGE=;
-	h=From:In-Reply-To:References:To:Cc:Subject:MIME-Version:
-	 Content-Type:Date:Message-ID; b=rzhgR1kNWcibWiTAa1/ka3QANx86UwONVdlWWWx7NirlmkC+XTIif7/cLVpaVzW7KfbawOmBgt2Majhmr+g3XWxL1WwPtwQYKF8xojCboU+fyD0QOO+uDe8I1VKjRU3hzgGsRR+xRgsVBMIvOu13jJblRHGQB42g3aloooCGtVc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=FCk+LTr4; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1770025386; c=relaxed/simple;
+	bh=tLA+tzw5u4QKG+h1GZMJP0ghvsHnZtO9Od7wqNAsb/E=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=ALH0Uz1Ryl8k052f0hEu0LLW30cqqWbi0xeItquCG3JoH5D8/QrNMW2A0C3yJ4gPQbhrNwJ0TsyH9TE07b4OosL7k3RFqmwVvL7Zaz3ZS4TO0eqvUmA5CFVCzegiw9TB9pXmaNVZDEWCSGk+9t5K63+9bnQJWC7q4ACa/puoJs0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=fkusEo0w; arc=none smtp.client-ip=90.155.92.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="FCk+LTr4"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1770024108;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=5lbDw7o/RaxnPFlRJ1INa0R+IZJyXDgWQKuA97onDkQ=;
-	b=FCk+LTr4gjK7LkEHi6UdqIgQnGLaigDF2h0J/laO2AXfI9/gkQCsOSqaTiV0898QDuYCwU
-	VscYl5Yjtq5YD2idbjiXH/cirDqO9wDeom6vwCY3GCya/3vuWakzcmowBNm+VKnjqmzOnL
-	JC9PuX1ihlWlWR00Tqs/CQf7Z2KP4ck=
-Received: from mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-35-165-154-97.us-west-2.compute.amazonaws.com [35.165.154.97]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-346-vRYKonroPPacvPvXG9Mi7g-1; Mon,
- 02 Feb 2026 04:21:43 -0500
-X-MC-Unique: vRYKonroPPacvPvXG9Mi7g-1
-X-Mimecast-MFC-AGG-ID: vRYKonroPPacvPvXG9Mi7g_1770024097
-Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-08.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 468A818002CE;
-	Mon,  2 Feb 2026 09:21:35 +0000 (UTC)
-Received: from warthog.procyon.org.uk (unknown [10.44.33.164])
-	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 77AA43001DB7;
-	Mon,  2 Feb 2026 09:21:20 +0000 (UTC)
-Organization: Red Hat UK Ltd. Registered Address: Red Hat UK Ltd, Amberley
-	Place, 107-111 Peascod Street, Windsor, Berkshire, SI4 1TE, United
-	Kingdom.
-	Registered in England and Wales under Company Registration No. 3798903
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20260201201218.GA15755@quark>
-References: <20260201201218.GA15755@quark> <20260131073636.65494-1-mcaju95@gmail.com> <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net> <2316630.1769965788@warthog.procyon.org.uk>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: dhowells@redhat.com,
-    =?us-ascii?B?PT9VVEYtOD9xP01paGFpLURyb3NpPTIwQz1DMz1BMmp1Pz0=?= <mcaju95@gmail.com>,
-    linux@weissschuh.net, arnd@arndb.de, arnout@bzzt.net,
-    atomlin@atomlin.com, bigeasy@linutronix.de, chleroy@kernel.org,
-    christian@heusel.eu, corbet@lwn.net, coxu@redhat.com,
-    da.gomez@kernel.org, da.gomez@samsung.com, dmitry.kasatkin@gmail.com,
-    eric.snowberg@oracle.com, f.gruenbichler@proxmox.com,
-    jmorris@namei.org, kpcyrd@archlinux.org, linux-arch@vger.kernel.org,
-    linux-doc@vger.kernel.org, linux-integrity@vger.kernel.org,
-    linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-    linux-modules@vger.kernel.org, linux-security-module@vger.kernel.org,
-    linuxppc-dev@lists.ozlabs.org, lkp@intel.com, maddy@linux.ibm.com,
-    mattia@mapreri.org, mcgrof@kernel.org, mpe@ellerman.id.au,
-    nathan@kernel.org, naveen@kernel.org,
-    nicolas.bouchinet@oss.cyber.gouv.fr, nicolas.schier@linux.dev,
-    npiggin@gmail.com, nsc@kernel.org, paul@paul-moore.com,
-    petr.pavlu@suse.com, roberto.sassu@huawei.com,
-    samitolvanen@google.com, serge@hallyn.com, xiujianfeng@huawei.com,
-    zohar@linux.ibm.com
-Subject: Re: [PATCH v4 00/17] module: Introduce hash-based integrity checking
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="fkusEo0w"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=desiato.20200630; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=oA2mTx9XxUiJSxogtOuiyEA+2ImHcX6vZMJQITNKwPc=; b=fkusEo0wd83Wa+L6nS30Qd162p
+	ooargwvzx45CzCG/9menBx8zHXd/kf6ILBhmg/+4byhOZPPH5/5T229MsFqHRvyq8F3qMK625FUKz
+	YCh8TbBO0DrR1CYh+BQbEsCLhgDP0yLcCtPQCHQt/yiKFVDA5ABlds80znO+r3NqzqNtmQ6R8ibD1
+	5mPJJ+k2cYE8/eek30ShsvYFdJhMh9rAVO8BY6GgcdSxiCpNAkjyyWAr1MyHaJHJv3ZOBFlygNuD6
+	OY/ALWvrbTQ9kSq3L/XI6B77BZk5qppABWQ1pt4kPrw+SE2tjjbeAZwxzfuezIZS1NeTUS1MLI6gY
+	/cypfgGw==;
+Received: from 2001-1c00-8d85-5700-266e-96ff-fe07-7dcc.cable.dynamic.v6.ziggo.nl ([2001:1c00:8d85:5700:266e:96ff:fe07:7dcc] helo=noisy.programming.kicks-ass.net)
+	by desiato.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1vmqSE-0000000EBfi-1iKT;
+	Mon, 02 Feb 2026 09:42:46 +0000
+Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
+	id 3A4FC303047; Mon, 02 Feb 2026 10:42:45 +0100 (CET)
+Date: Mon, 2 Feb 2026 10:42:45 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+To: Lance Yang <lance.yang@linux.dev>
+Cc: akpm@linux-foundation.org, david@kernel.org, dave.hansen@intel.com,
+	dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com,
+	will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
+	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, x86@kernel.org,
+	hpa@zytor.com, arnd@arndb.de, lorenzo.stoakes@oracle.com,
+	ziy@nvidia.com, baolin.wang@linux.alibaba.com,
+	Liam.Howlett@oracle.com, npache@redhat.com, ryan.roberts@arm.com,
+	dev.jain@arm.com, baohua@kernel.org, shy828301@gmail.com,
+	riel@surriel.com, jannh@google.com, jgross@suse.com,
+	seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
+	virtualization@lists.linux.dev, kvm@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org, ioworker0@gmail.com
+Subject: Re: [PATCH v4 1/3] mm: use targeted IPIs for TLB sync with lockless
+ page table walkers
+Message-ID: <20260202094245.GD2995752@noisy.programming.kicks-ass.net>
+References: <20260202074557.16544-1-lance.yang@linux.dev>
+ <20260202074557.16544-2-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <2339368.1770024079.1@warthog.procyon.org.uk>
-Date: Mon, 02 Feb 2026 09:21:19 +0000
-Message-ID: <2339369.1770024079@warthog.procyon.org.uk>
-X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260202074557.16544-2-lance.yang@linux.dev>
 
-Eric Biggers <ebiggers@kernel.org> wrote:
+On Mon, Feb 02, 2026 at 03:45:55PM +0800, Lance Yang wrote:
+> From: Lance Yang <lance.yang@linux.dev>
+> 
+> Currently, tlb_remove_table_sync_one() broadcasts IPIs to all CPUs to wait
+> for any concurrent lockless page table walkers (e.g., GUP-fast). This is
+> inefficient on systems with many CPUs, especially for RT workloads[1].
+> 
+> This patch introduces a per-CPU tracking mechanism to record which CPUs are
+> actively performing lockless page table walks for a specific mm_struct.
+> When freeing/unsharing page tables, we can now send IPIs only to the CPUs
+> that are actually walking that mm, instead of broadcasting to all CPUs.
+> 
+> In preparation for targeted IPIs; a follow-up will switch callers to
+> tlb_remove_table_sync_mm().
+> 
+> Note that the tracking adds ~3% latency to GUP-fast, as measured on a
+> 64-core system.
 
-> With that being the case, why is there still effort being put into
-> adding more features to module signing?  I would think efforts should be
-> focused on hash-based module authentication, i.e. this patchset.
+What architecture, and that is acceptable?
 
-Because it's not just signing of modules and it's not just modules built with
-the kernel.  Also a hash table just of module hashes built into the core
-kernel image will increase the size of the kernel by around a third of a meg
-(on Fedora 43 and assuming SHA512) with uncompressible data.
+> +/*
+> + * Track CPUs doing lockless page table walks to avoid broadcast IPIs
+> + * during TLB flushes.
+> + */
+> +DECLARE_PER_CPU(struct mm_struct *, active_lockless_pt_walk_mm);
+> +
+> +static inline void pt_walk_lockless_start(struct mm_struct *mm)
+> +{
+> +	lockdep_assert_irqs_disabled();
+> +
+> +	/*
+> +	 * Tell other CPUs we're doing lockless page table walk.
+> +	 *
+> +	 * Full barrier needed to prevent page table reads from being
+> +	 * reordered before this write.
+> +	 *
+> +	 * Pairs with smp_rmb() in tlb_remove_table_sync_mm().
+> +	 */
+> +	this_cpu_write(active_lockless_pt_walk_mm, mm);
+> +	smp_mb();
 
-David
+One thing to try is something like:
 
+	xchg(this_cpu_ptr(&active_lockless_pt_walk_mm), mm);
+
+That *might* be a little better on x86_64, on anything else you really
+don't want to use this_cpu_() ops when you *know* IRQs are already
+disabled.
+
+> +}
+> +
+> +static inline void pt_walk_lockless_end(void)
+> +{
+> +	lockdep_assert_irqs_disabled();
+> +
+> +	/*
+> +	 * Clear the pointer so other CPUs no longer see this CPU as walking
+> +	 * the mm. Use smp_store_release to ensure page table reads complete
+> +	 * before the clear is visible to other CPUs.
+> +	 */
+> +	smp_store_release(this_cpu_ptr(&active_lockless_pt_walk_mm), NULL);
+> +}
+> +
+>  int get_user_pages_fast(unsigned long start, int nr_pages,
+>  			unsigned int gup_flags, struct page **pages);
+>  int pin_user_pages_fast(unsigned long start, int nr_pages,
+
+> diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+> index 2faa23d7f8d4..35c89e4b6230 100644
+> --- a/mm/mmu_gather.c
+> +++ b/mm/mmu_gather.c
+> @@ -285,6 +285,56 @@ void tlb_remove_table_sync_one(void)
+>  	smp_call_function(tlb_remove_table_smp_sync, NULL, 1);
+>  }
+>  
+> +DEFINE_PER_CPU(struct mm_struct *, active_lockless_pt_walk_mm);
+> +EXPORT_PER_CPU_SYMBOL_GPL(active_lockless_pt_walk_mm);
+
+Why the heck is this exported? Both users are firmly core code.
+
+> +/**
+> + * tlb_remove_table_sync_mm - send IPIs to CPUs doing lockless page table
+> + * walk for @mm
+> + *
+> + * @mm: target mm; only CPUs walking this mm get an IPI.
+> + *
+> + * Like tlb_remove_table_sync_one() but only targets CPUs in
+> + * active_lockless_pt_walk_mm.
+> + */
+> +void tlb_remove_table_sync_mm(struct mm_struct *mm)
+> +{
+> +	cpumask_var_t target_cpus;
+> +	bool found_any = false;
+> +	int cpu;
+> +
+> +	if (WARN_ONCE(!mm, "NULL mm in %s\n", __func__)) {
+> +		tlb_remove_table_sync_one();
+> +		return;
+> +	}
+> +
+> +	/* If we can't, fall back to broadcast. */
+> +	if (!alloc_cpumask_var(&target_cpus, GFP_ATOMIC)) {
+> +		tlb_remove_table_sync_one();
+> +		return;
+> +	}
+> +
+> +	cpumask_clear(target_cpus);
+> +
+> +	/* Pairs with smp_mb() in pt_walk_lockless_start(). */
+
+Pairs how? The start thing does something like:
+
+	[W] active_lockless_pt_walk_mm = mm
+	MB
+	[L] page-tables
+
+So this is:
+
+	[L] page-tables
+	RMB
+	[L] active_lockless_pt_walk_mm
+
+?
+
+> +	smp_rmb();
+> +
+> +	/* Find CPUs doing lockless page table walks for this mm */
+> +	for_each_online_cpu(cpu) {
+> +		if (per_cpu(active_lockless_pt_walk_mm, cpu) == mm) {
+> +			cpumask_set_cpu(cpu, target_cpus);
+
+You really don't need this to be atomic.
+
+> +			found_any = true;
+> +		}
+> +	}
+> +
+> +	/* Only send IPIs to CPUs actually doing lockless walks */
+> +	if (found_any)
+> +		smp_call_function_many(target_cpus, tlb_remove_table_smp_sync,
+> +				       NULL, 1);
+
+Coding style wants { } here. Also, isn't this what we have
+smp_call_function_many_cond() for?
+
+> +	free_cpumask_var(target_cpus);
+> +}
+> +
+>  static void tlb_remove_table_rcu(struct rcu_head *head)
+>  {
+>  	__tlb_remove_table_free(container_of(head, struct mmu_table_batch, rcu));
+> -- 
+> 2.49.0
+> 
