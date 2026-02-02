@@ -1,151 +1,188 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.14])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 04EE32248B4;
-	Mon,  2 Feb 2026 16:20:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.14
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0DA7426E6FA;
+	Mon,  2 Feb 2026 16:20:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770049218; cv=none; b=mo+0MtTJRAaY/PkSYBrZuQMb8m4exmNmYyhHtmyHPE4KYgV9/fkWKugd+sYqu1zdXXxOlM8M4hY3oXP3tPe71Wl0NI6D5zFxK2GM7L8iv+lbJO/abku5YALvPx//uTVH2fIUnTC5SnJ/kZy9CO6yIiMcU6HRQi41hXWicFa09ZY=
+	t=1770049240; cv=none; b=BQxXkzc33C0fYRBqEyJxuOQP3miqpWB5ZuD5/w5Geu0oPGcDulVPiKHSvJho040iCA+Jd7owEc8vWj1nVDsQyIEtSSZsQrArhvHkdd2j5hrKus8c5Pr/YKkR2eQWVd59oUEt4RWvFEMKHGq0Oc/sW6P2CVCM/fNoZKCvHmX+vzc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770049218; c=relaxed/simple;
-	bh=BqUNHuuS4fu5iC8Ie1ZyL9H3NYhFXNxYeGHx9tpVVrQ=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=dH4Df2iu6KRy/YJTgQXQKRIPu6jLhGtue57NHTMVj/LNap95+xeBj6Az2IopcYJiePvZwlFlCZvh93GskbhcjYwUeRhhRIYvkfQHpY3GrZxn5DameWVoPf1RCc8rPtkzPDk1yZdPhjr0FqzgaHDa4jsAdDT4BMAkdTuce1VjrM0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=E9kcZ6wP; arc=none smtp.client-ip=192.198.163.14
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1770049240; c=relaxed/simple;
+	bh=bUuCyUPTcAsCcUf0UxDuRNkkh7lksoj1hSCzT0+E6HU=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Gbp1XhXO+hHBYxkXmlzklpBKoF+Yjs56Md1qlVhWmVki9rmvBYvqV7ws15mINu3rqMvUp//CrdOVYKGsR8/0/257pmVTr0XylA/4hVywn9UkP7ap+dpjQPGjAI/qhUQog1YAsS6yjiMCCzdQ7qSmNj0OX7yLzIyVLFsfj3k1E/g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=KRfw5N8/; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="E9kcZ6wP"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1770049216; x=1801585216;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=BqUNHuuS4fu5iC8Ie1ZyL9H3NYhFXNxYeGHx9tpVVrQ=;
-  b=E9kcZ6wPeC/EFTMPP9CpMPv82n/6gAS2yrn5oXmjviajnBRWHpiGL59B
-   qtsUf9MBuBClv2jIyDAUnEnWTjdTYBWLML34KVEbGiNNF/vB8YncXvn2z
-   F/pwEVaxeEGggVZwTzL4WB1LRATKmE1fsaAR5QSyki1k3DhHChzDuD+OF
-   cpfZMv8ZuJxzW1mOlIiPMmP53rMWPqjpw6Gg5YH4V5qqhVB1b/0dfCgig
-   qq/3zSBT6borQDcn2isxH+JPZrybOAvumPQNS41GlKIuByiwRafrkVies
-   N2wJJSFYDU1RVyzGl+rZHVHKgbE2OduO7Kr8gDcq7IHE9Nr5g02gHYe3e
-   g==;
-X-CSE-ConnectionGUID: evbRGF5jQLG2HTsNFfv1Fw==
-X-CSE-MsgGUID: KBM5HgcbQhiZh4QC1mWSSw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11690"; a="71263367"
-X-IronPort-AV: E=Sophos;i="6.21,269,1763452800"; 
-   d="scan'208";a="71263367"
-Received: from orviesa004.jf.intel.com ([10.64.159.144])
-  by fmvoesa108.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Feb 2026 08:20:15 -0800
-X-CSE-ConnectionGUID: vGtb2QeURBqmGgaBVcjwTA==
-X-CSE-MsgGUID: AHy1YBBZQ3e5qR8b6S8+Ww==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,269,1763452800"; 
-   d="scan'208";a="214089413"
-Received: from spandruv-desk1.amr.corp.intel.com (HELO [10.125.110.145]) ([10.125.110.145])
-  by orviesa004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Feb 2026 08:20:15 -0800
-Message-ID: <be38af98-e344-4552-a77b-b5345135e382@intel.com>
-Date: Mon, 2 Feb 2026 08:20:13 -0800
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="KRfw5N8/"
+Received: from skinsburskii.localdomain (c-98-225-44-182.hsd1.wa.comcast.net [98.225.44.182])
+	by linux.microsoft.com (Postfix) with ESMTPSA id D5C9020B7167;
+	Mon,  2 Feb 2026 08:20:37 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com D5C9020B7167
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1770049238;
+	bh=kmJOTjW25jCERLEzVtuof6EFwFlGRPjslBeg6kwpqRI=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=KRfw5N8/WMl6FFewcvTfzhNLYXNyvLXm25xMe3oAUvNxPHExpL8Tva4eg5lOd+m6E
+	 6cFaoQ/UM+s0Sd2GUAy4NyH/DKG4PeieMvps0dPNHSkjgiJtrr9F8R3jV4bdLHFiar
+	 P9iGy28LlNBvpyXYkdyh3To9yaUoeO7yH6QtHT+A=
+Date: Mon, 2 Feb 2026 08:20:37 -0800
+From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
+	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
+	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com,
+	will@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
+	dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
+	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
+	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
+	nunodasneves@linux.microsoft.com, mhklinux@outlook.com,
+	romank@linux.microsoft.com
+Subject: Re: [PATCH v0 12/15] x86/hyperv: Implement hyperv virtual iommu
+Message-ID: <aYDO1S3DdUSHNkEY@skinsburskii.localdomain>
+References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
+ <20260120064230.3602565-13-mrathor@linux.microsoft.com>
+ <aXAZ-r1PeUBAHwaK@skinsburskii.localdomain>
+ <54fd73b9-ade6-f1bb-08fc-17571aeadb20@linux.microsoft.com>
+ <aXeO7wh7bpacJ1Sk@skinsburskii.localdomain>
+ <c40e6dc8-8e42-b0f3-f8e5-3c637adb7f13@linux.microsoft.com>
+ <aXkIGfos4l0kv_lF@skinsburskii.localdomain>
+ <8298de1d-648c-bbc6-b3c9-1cbc9b5d7e72@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 1/3] mm: use targeted IPIs for TLB sync with lockless
- page table walkers
-To: Lance Yang <lance.yang@linux.dev>, Peter Zijlstra <peterz@infradead.org>
-Cc: akpm@linux-foundation.org, david@kernel.org, dave.hansen@linux.intel.com,
- ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
- aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
- mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
- arnd@arndb.de, lorenzo.stoakes@oracle.com, ziy@nvidia.com,
- baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
- ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
- shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
- seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
- virtualization@lists.linux.dev, kvm@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, ioworker0@gmail.com
-References: <20260202074557.16544-1-lance.yang@linux.dev>
- <20260202074557.16544-2-lance.yang@linux.dev>
- <20260202094245.GD2995752@noisy.programming.kicks-ass.net>
- <0f44dfb7-fce3-44c1-ab25-b013ba18a59b@linux.dev>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <0f44dfb7-fce3-44c1-ab25-b013ba18a59b@linux.dev>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <8298de1d-648c-bbc6-b3c9-1cbc9b5d7e72@linux.microsoft.com>
 
-On 2/2/26 04:14, Lance Yang wrote:
->>> Note that the tracking adds ~3% latency to GUP-fast, as measured on a
->>> 64-core system.
->>
->> What architecture, and that is acceptable?
+On Fri, Jan 30, 2026 at 02:51:19PM -0800, Mukesh R wrote:
+> On 1/27/26 10:46, Stanislav Kinsburskii wrote:
+> > On Mon, Jan 26, 2026 at 07:02:29PM -0800, Mukesh R wrote:
+> > > On 1/26/26 07:57, Stanislav Kinsburskii wrote:
+> > > > On Fri, Jan 23, 2026 at 05:26:19PM -0800, Mukesh R wrote:
+> > > > > On 1/20/26 16:12, Stanislav Kinsburskii wrote:
+> > > > > > On Mon, Jan 19, 2026 at 10:42:27PM -0800, Mukesh R wrote:
+> > > > > > > From: Mukesh Rathor <mrathor@linux.microsoft.com>
+> > > > > > > 
+> > > > > > > Add a new file to implement management of device domains, mapping and
+> > > > > > > unmapping of iommu memory, and other iommu_ops to fit within the VFIO
+> > > > > > > framework for PCI passthru on Hyper-V running Linux as root or L1VH
+> > > > > > > parent. This also implements direct attach mechanism for PCI passthru,
+> > > > > > > and it is also made to work within the VFIO framework.
+> > > > > > > 
+> > > > > > > At a high level, during boot the hypervisor creates a default identity
+> > > > > > > domain and attaches all devices to it. This nicely maps to Linux iommu
+> > > > > > > subsystem IOMMU_DOMAIN_IDENTITY domain. As a result, Linux does not
+> > > > > > > need to explicitly ask Hyper-V to attach devices and do maps/unmaps
+> > > > > > > during boot. As mentioned previously, Hyper-V supports two ways to do
+> > > > > > > PCI passthru:
+> > > > > > > 
+> > > > > > >      1. Device Domain: root must create a device domain in the hypervisor,
+> > > > > > >         and do map/unmap hypercalls for mapping and unmapping guest RAM.
+> > > > > > >         All hypervisor communications use device id of type PCI for
+> > > > > > >         identifying and referencing the device.
+> > > > > > > 
+> > > > > > >      2. Direct Attach: the hypervisor will simply use the guest's HW
+> > > > > > >         page table for mappings, thus the host need not do map/unmap
+> > > > > > >         device memory hypercalls. As such, direct attach passthru setup
+> > > > > > >         during guest boot is extremely fast. A direct attached device
+> > > > > > >         must be referenced via logical device id and not via the PCI
+> > > > > > >         device id.
+> > > > > > > 
+> > > > > > > At present, L1VH root/parent only supports direct attaches. Also direct
+> > > > > > > attach is default in non-L1VH cases because there are some significant
+> > > > > > > performance issues with device domain implementation currently for guests
+> > > > > > > with higher RAM (say more than 8GB), and that unfortunately cannot be
+> > > > > > > addressed in the short term.
+> > > > > > > 
+> > > > > > 
+> > > > > > <snip>
+> > > > > > 
+> > > > 
+> > > > <snip>
+> > > > 
+> > > > > > > +static void hv_iommu_detach_dev(struct iommu_domain *immdom, struct device *dev)
+> > > > > > > +{
+> > > > > > > +	struct pci_dev *pdev;
+> > > > > > > +	struct hv_domain *hvdom = to_hv_domain(immdom);
+> > > > > > > +
+> > > > > > > +	/* See the attach function, only PCI devices for now */
+> > > > > > > +	if (!dev_is_pci(dev))
+> > > > > > > +		return;
+> > > > > > > +
+> > > > > > > +	if (hvdom->num_attchd == 0)
+> > > > > > > +		pr_warn("Hyper-V: num_attchd is zero (%s)\n", dev_name(dev));
+> > > > > > > +
+> > > > > > > +	pdev = to_pci_dev(dev);
+> > > > > > > +
+> > > > > > > +	if (hvdom->attached_dom) {
+> > > > > > > +		hv_iommu_det_dev_from_guest(hvdom, pdev);
+> > > > > > > +
+> > > > > > > +		/* Do not reset attached_dom, hv_iommu_unmap_pages happens
+> > > > > > > +		 * next.
+> > > > > > > +		 */
+> > > > > > > +	} else {
+> > > > > > > +		hv_iommu_det_dev_from_dom(hvdom, pdev);
+> > > > > > > +	}
+> > > > > > > +
+> > > > > > > +	hvdom->num_attchd--;
+> > > > > > 
+> > > > > > Shouldn't this be modified iff the detach succeeded?
+> > > > > 
+> > > > > We want to still free the domain and not let it get stuck. The purpose
+> > > > > is more to make sure detach was called before domain free.
+> > > > > 
+> > > > 
+> > > > How can one debug subseqent errors if num_attchd is decremented
+> > > > unconditionally? In reality the device is left attached, but the related
+> > > > kernel metadata is gone.
+> > > 
+> > > Error is printed in case of failed detach. If there is panic, at least
+> > > you can get some info about the device. Metadata in hypervisor is
+> > > around if failed.
+> > > 
+> > 
+> > With this approach the only thing left is a kernel message.
+> > But if the state is kept intact, one could collect a kernel core and
+> > analyze it.
 > 
-> x86-64.
+> Again, most of linux stuff is cleaned up, the only state is in
+> hypervisor, and hypervisor can totally protect itself and devices.
+> So there is not much in kernel core as it got cleaned up already.
+> Think of this as additional check, we can remove in future after
+> it stands the test of time, until then, every debugging bit helps.
 > 
-> I ran ./gup_bench which spawns 60 threads, each doing 500k GUP-fast
-> operations (pinning 8 pages per call) via the gup_test ioctl.
+
+Again, the hypervisor state is not accessible from the kernel core in
+L1VH.
+
+> > And note, that there won't be a hypervisor core by default: our main
+> > context with the usptreamed version of the driver is L1VH and a kernel
+> > core is the only thing a third party customer can provide for our
+> > analysis.
 > 
-> Results for pin pages:
-> - Before: avg 1.489s (10 runs)
-> - After:  avg 1.533s (10 runs)
+> Wei can correct me, but we are not only l1vh focused here. There is
+> work going on on all fronts.
 > 
-> Given we avoid broadcast IPIs on large systems, I think this is a
-> reasonable trade-off 🙂
 
-I thought the big databases were really sensitive to GUP-fast latency.
-They like big systems, too. Won't they howl when this finally hits their
-testing?
+In upstream, it does not matter what the work is focused on. The only
+thing that matters is that the functionality is merged and available.
+Once the code is merged upstream, it becomes available to third-party
+customers. They can use it in any way they see fit.
+The only product we support with upstream code is L1VH. We should keep
+it crisp, clear, and easy to debug.
+This change does not help debugging. It only sweeps the issue under the
+carpet, with no justification.
 
-Also, two of the "write" side here are:
+Thanks,
+Stanislav
 
- * collapse_huge_page() (khugepaged)
- * tlb_remove_table() (in an "-ENOMEM" path)
-
-Those are quite slow paths, right? Shouldn't the design here favor
-keeping gup-fast as fast as possible as opposed to impacting those?
+> Thanks,
+> -Mukesh
+> 
+> > Thanks,
+> > Stanislav
