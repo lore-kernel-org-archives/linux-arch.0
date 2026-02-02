@@ -1,30 +1,32 @@
-Received: from out-178.mta0.migadu.com (out-178.mta0.migadu.com [91.218.175.178])
+Received: from out-188.mta0.migadu.com (out-188.mta0.migadu.com [91.218.175.188])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B368D2BDC10
-	for <linux-arch@vger.kernel.org>; Mon,  2 Feb 2026 07:46:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B72531195B
+	for <linux-arch@vger.kernel.org>; Mon,  2 Feb 2026 07:46:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.188
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770018392; cv=none; b=sCEPOdV4WZxfRlTbv6CoOh5xkjo5kAim2L6cfpskoOlQMxFX9JC/pJn+Xd205Qe6P+MZqh/d4Oiiobi1O6EdNCVsjPduUeeasQfMoazejsxw3HguXKw18C03ZQOPH7skFKzu6VO6tTnwuLXcNEX5kn5BO+qDlI9YP/mEkkJuvfg=
+	t=1770018420; cv=none; b=C19VZTGUT1kOYb5ml1LFRLUmM+xkvXGUC8WP21cK3RBb9zWoqxWkD9WcCBhTmv3IkZpXXEkh1eNwwVwCCuIA7SMoxlFKdnaWyN69kLw8Bmgc06ez3RNC5MQ+uO3OmzDQTET0mgB2wv7240854gr43S5sK7NhJIMHIDv4pIOJzIc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770018392; c=relaxed/simple;
-	bh=gF4zFDW2PehmZJWhDlu3AKfkUoaA8TXz36nx5WblA30=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=o+5NzNGQVrZHQ38eMpKsYOwuQ4vxkeXPJ/HltNyu+aXKZQrkg0U5mOvep2+Sp9rhK1uNRwiP/K6RyIFS0Ar9PgC99bni3Liqfs6PuPlCDguSN7TOJfBQJNPWfh3h6od0oKsqMiouBIy4UhbxW1GBqX+PhL/yLwR0vjpk+MfAZbI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=wosxrHeY; arc=none smtp.client-ip=91.218.175.178
+	s=arc-20240116; t=1770018420; c=relaxed/simple;
+	bh=fWLHMnr2RM+kDuq4tIuO7SAeaOX2KgxCRWbH6i9QeLI=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=N5AJpyZgHSM3X0y/3kDEjTdQl1P9fzK6/YA5FnE3tamwryCpxEBxme+34ILwrveU1Y2MemLO5eq/HscGPioKxbm6mZ3csPp+Jr71ZGAX0C60shcEwsWKCJM6lfJMj3ge7h0JomPx7b7PGHin6G1o+DxzT2RdyqHMBDNf1FQG68c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=pdjfUjRg; arc=none smtp.client-ip=91.218.175.188
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="wosxrHeY"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="pdjfUjRg"
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1770018388;
+	t=1770018415;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=YYvAr2zSKhz9oURt6YezfDRfsalBr4ckW+gKtHKbiDk=;
-	b=wosxrHeYuzwDZibEFFnXesvD5X7Y36t3WcKsgiDyoJ2SLGHe1hgNHCCdxP+y1kkOmpUxuA
-	ne4uNUPl7BldrNTKnxZey7beFJS2CLXaR6wQX3nM0I3kAsyzGEv9vQkbHRFw3xVf7CIkzp
-	OkP3H2EUOnHpoEgzNH1DFhkFAlP2nGs=
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=ic7TrnN6sGlm3l1wxhH2nfdOKdVnIN7B0hP0aUO2aOY=;
+	b=pdjfUjRgbpxEevSg5ni8YXtztpS1GezhbgKFAamXf1e+YuJlVEd442UU8eyB74Flpb+8jl
+	b7x8L4yO0lU1g9rOZipEkWSVE/vqgsI+7A37FZZZxk48NTkJmLeQED7u46+9MTI0gptwG5
+	WMDJBHLqce/JaxPiVm1gYjFcmWeJ99A=
 From: Lance Yang <lance.yang@linux.dev>
 To: akpm@linux-foundation.org
 Cc: david@kernel.org,
@@ -62,10 +64,13 @@ Cc: david@kernel.org,
 	linux-arch@vger.kernel.org,
 	linux-mm@kvack.org,
 	linux-kernel@vger.kernel.org,
-	ioworker0@gmail.com
-Subject: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table walkers
-Date: Mon,  2 Feb 2026 15:45:54 +0800
-Message-ID: <20260202074557.16544-1-lance.yang@linux.dev>
+	ioworker0@gmail.com,
+	Lance Yang <lance.yang@linux.dev>
+Subject: [PATCH v4 2/3] mm: switch callers to tlb_remove_table_sync_mm()
+Date: Mon,  2 Feb 2026 15:45:56 +0800
+Message-ID: <20260202074557.16544-3-lance.yang@linux.dev>
+In-Reply-To: <20260202074557.16544-1-lance.yang@linux.dev>
+References: <20260202074557.16544-1-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -75,84 +80,120 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Migadu-Flow: FLOW_OUT
 
-When freeing or unsharing page tables we send an IPI to synchronize with
-concurrent lockless page table walkers (e.g. GUP-fast). Today we broadcast
-that IPI to all CPUs, which is costly on large machines and hurts RT
-workloads[1].
+From: Lance Yang <lance.yang@linux.dev>
 
-This series makes those IPIs targeted. We track which CPUs are currently
-doing a lockless page table walk for a given mm (per-CPU
-active_lockless_pt_walk_mm). When we need to sync, we only IPI those CPUs.
-GUP-fast and perf_get_page_size() set/clear the tracker around their walk;
-tlb_remove_table_sync_mm() uses it and replaces the previous broadcast in
-the free/unshare paths.
+Now that we have tlb_remove_table_sync_mm(), convert callers from
+tlb_remove_table_sync_one() to enable targeted IPIs instead of broadcast.
 
-On x86, when the TLB flush path already sends IPIs (native without INVLPGB,
-or KVM), the extra sync IPI is redundant. We add a property on pv_mmu_ops
-so each backend can declare whether its flush_tlb_multi sends real IPIs; if
-so, tlb_remove_table_sync_mm() is a no-op. We also have tlb_flush() pass
-both freed_tables and unshared_tables so lazy-TLB CPUs get IPIs during
-hugetlb unshare.
+Three callers updated:
 
-David Hildenbrand did the initial implementation. I built on his work and
-relied on off-list discussions to push it further - thanks a lot David!
+1) collapse_huge_page() - after flushing the old PMD, only IPIs CPUs
+   walking this mm instead of all CPUs.
 
-[1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+2) tlb_flush_unshared_tables() - when unsharing hugetlb page tables,
+   use tlb->mm for targeted IPIs.
 
-v3 -> v4:
-- Rework based on David's two-step direction and per-CPU idea:
-  1) Targeted IPIs: per-CPU variable when entering/leaving lockless page
-     table walk; tlb_remove_table_sync_mm() IPIs only those CPUs.
-  2) On x86, pv_mmu_ops property set at init to skip the extra sync when
-     flush_tlb_multi() already sends IPIs.
-  https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
-- https://lore.kernel.org/linux-mm/20260106120303.38124-1-lance.yang@linux.dev/
+3) __tlb_remove_table_one() - updated to take mmu_gather parameter so
+   it can use tlb->mm when batch allocation fails.
 
-v2 -> v3:
-- Complete rewrite: use dynamic IPI tracking instead of static checks
-  (per Dave Hansen, thanks!)
-- Track IPIs via mmu_gather: native_flush_tlb_multi() sets flag when
-  actually sending IPIs
-- Motivation for skipping redundant IPIs explained by David:
-  https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
-- https://lore.kernel.org/linux-mm/20251229145245.85452-1-lance.yang@linux.dev/
+Note that pmdp_get_lockless_sync() (PAE only) also calls
+tlb_remove_table_sync_one() under PTL to ensure all ongoing PMD split-reads
+complete between pmdp_get_lockless_{start,end}; the critical section is
+very short. I'm inclined not to convert it since PAE systems typically
+don't have many cores.
 
-v1 -> v2:
-- Fix cover letter encoding to resolve send-email issues. Apologies for
-  any email flood caused by the failed send attempts :(
+Suggested-by: David Hildenbrand (Red Hat) <david@kernel.org>
+Signed-off-by: Lance Yang <lance.yang@linux.dev>
+---
+ include/asm-generic/tlb.h | 11 ++++++-----
+ mm/khugepaged.c           |  2 +-
+ mm/mmu_gather.c           | 12 ++++++------
+ 3 files changed, 13 insertions(+), 12 deletions(-)
 
-RFC -> v1:
-- Use a callback function in pv_mmu_ops instead of comparing function
-  pointers (per David)
-- Embed the check directly in tlb_remove_table_sync_one() instead of
-  requiring every caller to check explicitly (per David)
-- Move tlb_table_flush_implies_ipi_broadcast() outside of
-  CONFIG_MMU_GATHER_RCU_TABLE_FREE to fix build error on architectures
-  that don't enable this config.
-  https://lore.kernel.org/oe-kbuild-all/202512142156.cShiu6PU-lkp@intel.com/
-- https://lore.kernel.org/linux-mm/20251213080038.10917-1-lance.yang@linux.dev/
-
-Lance Yang (3):
-  mm: use targeted IPIs for TLB sync with lockless page table walkers
-  mm: switch callers to tlb_remove_table_sync_mm()
-  x86/tlb: add architecture-specific TLB IPI optimization support
-
- arch/x86/hyperv/mmu.c                 |  5 ++
- arch/x86/include/asm/paravirt.h       |  5 ++
- arch/x86/include/asm/paravirt_types.h |  6 +++
- arch/x86/include/asm/tlb.h            | 20 +++++++-
- arch/x86/kernel/kvm.c                 |  6 +++
- arch/x86/kernel/paravirt.c            | 18 +++++++
- arch/x86/kernel/smpboot.c             |  1 +
- arch/x86/xen/mmu_pv.c                 |  2 +
- include/asm-generic/tlb.h             | 28 +++++++++--
- include/linux/mm.h                    | 34 +++++++++++++
- kernel/events/core.c                  |  2 +
- mm/gup.c                              |  2 +
- mm/khugepaged.c                       |  2 +-
- mm/mmu_gather.c                       | 69 ++++++++++++++++++++++++---
- 14 files changed, 187 insertions(+), 13 deletions(-)
-
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index b6b06e6b879f..40eb74b28f9d 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -831,17 +831,18 @@ static inline void tlb_flush_unshared_tables(struct mmu_gather *tlb)
+ 	/*
+ 	 * Similarly, we must make sure that concurrent GUP-fast will not
+ 	 * walk previously-shared page tables that are getting modified+reused
+-	 * elsewhere. So broadcast an IPI to wait for any concurrent GUP-fast.
++	 * elsewhere. So send an IPI to wait for any concurrent GUP-fast.
+ 	 *
+-	 * We only perform this when we are the last sharer of a page table,
+-	 * as the IPI will reach all CPUs: any GUP-fast.
++	 * We only perform this when we are the last sharer of a page table.
++	 * Use targeted IPI to CPUs actively walking this mm instead of
++	 * broadcast.
+ 	 *
+-	 * Note that on configs where tlb_remove_table_sync_one() is a NOP,
++	 * Note that on configs where tlb_remove_table_sync_mm() is a NOP,
+ 	 * the expectation is that the tlb_flush_mmu_tlbonly() would have issued
+ 	 * required IPIs already for us.
+ 	 */
+ 	if (tlb->fully_unshared_tables) {
+-		tlb_remove_table_sync_one();
++		tlb_remove_table_sync_mm(tlb->mm);
+ 		tlb->fully_unshared_tables = false;
+ 	}
+ }
+diff --git a/mm/khugepaged.c b/mm/khugepaged.c
+index fa1e57fd2c46..7781d6628649 100644
+--- a/mm/khugepaged.c
++++ b/mm/khugepaged.c
+@@ -1173,7 +1173,7 @@ static enum scan_result collapse_huge_page(struct mm_struct *mm, unsigned long a
+ 	_pmd = pmdp_collapse_flush(vma, address, pmd);
+ 	spin_unlock(pmd_ptl);
+ 	mmu_notifier_invalidate_range_end(&range);
+-	tlb_remove_table_sync_one();
++	tlb_remove_table_sync_mm(mm);
+ 
+ 	pte = pte_offset_map_lock(mm, &_pmd, address, &pte_ptl);
+ 	if (pte) {
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index 35c89e4b6230..76573ec454e5 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -378,7 +378,7 @@ static inline void __tlb_remove_table_one_rcu(struct rcu_head *head)
+ 	__tlb_remove_table(ptdesc);
+ }
+ 
+-static inline void __tlb_remove_table_one(void *table)
++static inline void __tlb_remove_table_one(struct mmu_gather *tlb, void *table)
+ {
+ 	struct ptdesc *ptdesc;
+ 
+@@ -386,16 +386,16 @@ static inline void __tlb_remove_table_one(void *table)
+ 	call_rcu(&ptdesc->pt_rcu_head, __tlb_remove_table_one_rcu);
+ }
+ #else
+-static inline void __tlb_remove_table_one(void *table)
++static inline void __tlb_remove_table_one(struct mmu_gather *tlb, void *table)
+ {
+-	tlb_remove_table_sync_one();
++	tlb_remove_table_sync_mm(tlb->mm);
+ 	__tlb_remove_table(table);
+ }
+ #endif /* CONFIG_PT_RECLAIM */
+ 
+-static void tlb_remove_table_one(void *table)
++static void tlb_remove_table_one(struct mmu_gather *tlb, void *table)
+ {
+-	__tlb_remove_table_one(table);
++	__tlb_remove_table_one(tlb, table);
+ }
+ 
+ static void tlb_table_flush(struct mmu_gather *tlb)
+@@ -417,7 +417,7 @@ void tlb_remove_table(struct mmu_gather *tlb, void *table)
+ 		*batch = (struct mmu_table_batch *)__get_free_page(GFP_NOWAIT);
+ 		if (*batch == NULL) {
+ 			tlb_table_invalidate(tlb);
+-			tlb_remove_table_one(table);
++			tlb_remove_table_one(tlb, table);
+ 			return;
+ 		}
+ 		(*batch)->nr = 0;
 -- 
 2.49.0
 
