@@ -1,159 +1,158 @@
-Received: from mail-ed1-f44.google.com (mail-ed1-f44.google.com [209.85.208.44])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out-178.mta0.migadu.com (out-178.mta0.migadu.com [91.218.175.178])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79958125A0
-	for <linux-arch@vger.kernel.org>; Sun,  1 Feb 2026 22:01:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.44
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769983305; cv=pass; b=uwJzYvmKMfDfiUcF/p5vaKUgBjvzIcJMt+ioZIuyFduAJcleykm982v80qv7lNGI0EzFZNTJz+ow+4XmyNreZzHYnhsXdF6BzOjTFmz2AVkC+4xckEV+KX0slswrs2kLqcZk3sO0S6Vk7FXqB47HFppqSmz5Or2X/gVogGGKt5c=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769983305; c=relaxed/simple;
-	bh=wl7Jk6JsU5yKG4duQoEsXxxYC+OIwiJhzlKIg8HfxyQ=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=MsMc6oZA8MqTkv/AdA8BOEGynhKoLzgs5jNt1dE//ORQajjBo2Jzd9QzZmn5hxBYWuQFy3ubTB8+XFyqQeUaxiWhK8FQJdjhzJs64Vv//3NFKUxW+9fhzo1UqDHwD4oMtOlCiocntf2wgMqoZoMt2x91EPrLD8HCBC+WyPL9vqY=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=YUP16xwB; arc=pass smtp.client-ip=209.85.208.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B368D2BDC10
+	for <linux-arch@vger.kernel.org>; Mon,  2 Feb 2026 07:46:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.178
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1770018392; cv=none; b=sCEPOdV4WZxfRlTbv6CoOh5xkjo5kAim2L6cfpskoOlQMxFX9JC/pJn+Xd205Qe6P+MZqh/d4Oiiobi1O6EdNCVsjPduUeeasQfMoazejsxw3HguXKw18C03ZQOPH7skFKzu6VO6tTnwuLXcNEX5kn5BO+qDlI9YP/mEkkJuvfg=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1770018392; c=relaxed/simple;
+	bh=gF4zFDW2PehmZJWhDlu3AKfkUoaA8TXz36nx5WblA30=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=o+5NzNGQVrZHQ38eMpKsYOwuQ4vxkeXPJ/HltNyu+aXKZQrkg0U5mOvep2+Sp9rhK1uNRwiP/K6RyIFS0Ar9PgC99bni3Liqfs6PuPlCDguSN7TOJfBQJNPWfh3h6od0oKsqMiouBIy4UhbxW1GBqX+PhL/yLwR0vjpk+MfAZbI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=wosxrHeY; arc=none smtp.client-ip=91.218.175.178
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="YUP16xwB"
-Received: by mail-ed1-f44.google.com with SMTP id 4fb4d7f45d1cf-65808d08423so5662557a12.1
-        for <linux-arch@vger.kernel.org>; Sun, 01 Feb 2026 14:01:43 -0800 (PST)
-ARC-Seal: i=1; a=rsa-sha256; t=1769983302; cv=none;
-        d=google.com; s=arc-20240605;
-        b=acfJuyNiyBaUiNkEp5E7IlUgVFTs0KpX1Lh5cparZNmGn7yvKoyEXJCWz20QdO+VpU
-         PpvkfSmWztoPbnjPh7YVnPIKn88bC1jG5cUqHhCNPNI4rwbj/nWPbskAu9wyi1w9iIdC
-         Nlrv5+zhWdwRlk+8/JQIPvtmG9gQ4e7LEZXOyU/9k1LIGB+hneS+ISB9MVn32W5HrC9l
-         Orwfc0wng2LnezDvlB396S7qP3tNpsGnM/L7aotICm4WmnzAQZD2IudimLVAxwNYeB9Q
-         amJKY0jN0UfhWvKBG2xMUshwuVmdmjr3e//V77Fa//ExsBMIb0aWbESXvUEC02MQHkN6
-         CTaQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=nxxXeMZ2Mj2NhEcakAGevZjWJ8Zk/OwUaMBA61xjWow=;
-        fh=UOaL/IYvKU8blJVq9yLXI+8gTEVd0hOCjueoHAFez4g=;
-        b=NRl6knbCoNoo7bfw0u9EwU4kKVi4hVe08k/m73h1AWxboEQuEAZYtGbgpgFUimjvjg
-         XIl2eZqrby0cHi/tIfZnw4GOWnor1W4yRGsEdQwZWrzVUW9OjRB2tyRLKjDEjIeplcH0
-         2drOamWPvR1TTyMGwZni3UiWauuMFU8I9IJ7xqdQuzCgmBkXrWXqtO6SqUX7xbRqnKo1
-         czx6wN1LOtYvtLXzL8B9EEZW2MOttT52ZiS38Aap5TVJxIvTmz9YbmNKcI/PIbRd2mW/
-         U3tBxVz4+WFIk/E16zXKfcirwqqsyC1ZoGWi3xhndLSL8RLuH6UBwJMfpd+rsducTrYS
-         xU6A==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1769983302; x=1770588102; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=nxxXeMZ2Mj2NhEcakAGevZjWJ8Zk/OwUaMBA61xjWow=;
-        b=YUP16xwBByuCeANUpL+tqGPZtwW0ekBJQXjxvYHrQ+BVuJhzXlLPUbdngsjT9o0vf6
-         uYUmzrEUKPWDyYwqImODBU03rkq/5q2r1ZRse77/5jbzZ2ZbdPfRWoEgDFXi7tvZQDib
-         KKiwOMyTyPNTlE6DbDFUXbRkge9P5LbCelPWFufvSIQsld51sSM4Eb+aQDvPUDu+HqZ5
-         c/EuzGYP26bua1tM6AhlMjxuishxSbB0C/tRmJtMEllP01kG1m4La3rFduj7FChnHhy9
-         DMXci+K0JH5BarH9OsbnSb+egVIt1mbKSHqf6Rg3thvWSqfOWPIJWg6A+uJuZWSkOoYT
-         3FYg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769983302; x=1770588102;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=nxxXeMZ2Mj2NhEcakAGevZjWJ8Zk/OwUaMBA61xjWow=;
-        b=f4+SsWc13XokHi20EYAcVyyA8aR8+KwZ+DEzQpSPJQfQsEXC4UcRh6fiAC72bauFy+
-         fPGurxYaygZgwC5gyDUy98iwh6onSncHddwB9bArhfT1uB0zEUJ5Mf9OqV+Qpgbq6im6
-         KSgWsr8x2zPb/E/d4T3vqlEE6BEtN2vc5sKoVIJYXfDloR2hhUS6ldEaOTqNslNp1bUl
-         6waiok8zqX1pay1yYQQNOgg+CYAdYW5YQoLxX2coKElVdKj4zDUZ7r0T4aW8+8ZAfOo3
-         cdtGTxdbqVhy5ZiphGNB9FOwltF7w3NsEB+fj2/zPujOSb5yewZX9svjDXSLM514trkM
-         mUTw==
-X-Forwarded-Encrypted: i=1; AJvYcCUmlklOezjxOCYRpCd+GjoMK/M3d7k6IzItvPoACKikhy7PwHjCOOewL6/GB381odmy7PGqlsRW5nZm@vger.kernel.org
-X-Gm-Message-State: AOJu0Yz2PySJedrCEhfL8gpMpW4iySIAFQa7tbAqFT0hBTbe/nic+/D/
-	8Y1jOl5CA3o4ze7jidoa3r8yepBSsEmayNUgAKlxzUxMUoDkdE2TxDo09S+l2xF5MbF2P+L30l/
-	bZVD+w0uxqaIhCj2cFNXC6VrF6C2W6Gw=
-X-Gm-Gg: AZuq6aJ0d7Qb772C/VAgv6ax7bTUjvsW9YaxboTEFwRJmfHpa/VBBtz6q1HN50GpHyh
-	uC7+jK4dmyntAfc66DMDDHTdPN9ZFsrQTHZo4n7EFU5/0JtXl8wWAn1XhGJ9zZJfddNp6ozPQBQ
-	nAnrFiNPjbxoA0GMSqm4ohUzUfRSbdDfyzrVeWGpnBqyyXfqrHoVeXDeeUZZYfmlmQNAb8XhJAn
-	Un1JUOeOV4CAr7MvxwQJQL2UM8GfQ+2XLOYTYMV0/MT3iI2HzT7aoWlAoFBCY3Yqgf7V5qtUYzT
-	P0lU8orXz7dHemNP5w/HWL4HbZXZ
-X-Received: by 2002:a05:6402:90b:b0:64c:9e19:9858 with SMTP id
- 4fb4d7f45d1cf-658de58d61fmr5598076a12.22.1769983301701; Sun, 01 Feb 2026
- 14:01:41 -0800 (PST)
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="wosxrHeY"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1770018388;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=YYvAr2zSKhz9oURt6YezfDRfsalBr4ckW+gKtHKbiDk=;
+	b=wosxrHeYuzwDZibEFFnXesvD5X7Y36t3WcKsgiDyoJ2SLGHe1hgNHCCdxP+y1kkOmpUxuA
+	ne4uNUPl7BldrNTKnxZey7beFJS2CLXaR6wQX3nM0I3kAsyzGEv9vQkbHRFw3xVf7CIkzp
+	OkP3H2EUOnHpoEgzNH1DFhkFAlP2nGs=
+From: Lance Yang <lance.yang@linux.dev>
+To: akpm@linux-foundation.org
+Cc: david@kernel.org,
+	dave.hansen@intel.com,
+	dave.hansen@linux.intel.com,
+	ypodemsk@redhat.com,
+	hughd@google.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	peterz@infradead.org,
+	tglx@linutronix.de,
+	mingo@redhat.com,
+	bp@alien8.de,
+	x86@kernel.org,
+	hpa@zytor.com,
+	arnd@arndb.de,
+	lorenzo.stoakes@oracle.com,
+	ziy@nvidia.com,
+	baolin.wang@linux.alibaba.com,
+	Liam.Howlett@oracle.com,
+	npache@redhat.com,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	baohua@kernel.org,
+	shy828301@gmail.com,
+	riel@surriel.com,
+	jannh@google.com,
+	jgross@suse.com,
+	seanjc@google.com,
+	pbonzini@redhat.com,
+	boris.ostrovsky@oracle.com,
+	virtualization@lists.linux.dev,
+	kvm@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	ioworker0@gmail.com
+Subject: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table walkers
+Date: Mon,  2 Feb 2026 15:45:54 +0800
+Message-ID: <20260202074557.16544-1-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <cover.1769515122.git.zhengqi.arch@bytedance.com> <3380f40a89b73c488202c85f9a8abf99fb08543b.1769515122.git.zhengqi.arch@bytedance.com>
-In-Reply-To: <3380f40a89b73c488202c85f9a8abf99fb08543b.1769515122.git.zhengqi.arch@bytedance.com>
-From: Magnus Lindholm <linmag7@gmail.com>
-Date: Sun, 1 Feb 2026 23:01:30 +0100
-X-Gm-Features: AZwV_Qj9VNkT5OuGD6ka3IvGbnZ780_iMCZkDjCZeudKZ-RrGhxplhYBmunMjcY
-Message-ID: <CA+=Fv5RhxvyxKr2t+pHd1tbGrK57P-+b3pGe1nVaK_OLiFt2wg@mail.gmail.com>
-Subject: Re: [PATCH v4 2/8] alpha: mm: enable MMU_GATHER_RCU_TABLE_FREE
-To: Qi Zheng <qi.zheng@linux.dev>
-Cc: david@kernel.org, andreas@gaisler.com, richard.weiyang@gmail.com, 
-	will@kernel.org, peterz@infradead.org, aneesh.kumar@kernel.org, 
-	npiggin@gmail.com, dev.jain@arm.com, ioworker0@gmail.com, 
-	akpm@linux-foundation.org, linux-arch@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-alpha@vger.kernel.org, 
-	loongarch@lists.linux.dev, linux-mips@vger.kernel.org, 
-	linux-parisc@vger.kernel.org, linux-um@lists.infradead.org, 
-	sparclinux@vger.kernel.org, Qi Zheng <zhengqi.arch@bytedance.com>, 
-	Richard Henderson <richard.henderson@linaro.org>, Matt Turner <mattst88@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On Tue, Jan 27, 2026 at 1:16=E2=80=AFPM Qi Zheng <qi.zheng@linux.dev> wrote=
-:
->
-> From: Qi Zheng <zhengqi.arch@bytedance.com>
->
-> On a 64-bit system, madvise(MADV_DONTNEED) may cause a large number of
-> empty PTE page table pages (such as 100GB+). To resolve this problem,
-> first enable MMU_GATHER_RCU_TABLE_FREE to prepare for enabling the
-> PT_RECLAIM feature, which resolves this problem.
->
-> Signed-off-by: Qi Zheng <zhengqi.arch@bytedance.com>
-> Cc: Richard Henderson <richard.henderson@linaro.org>
-> Cc: Matt Turner <mattst88@gmail.com>
-> ---
->  arch/alpha/Kconfig           | 1 +
->  arch/alpha/include/asm/tlb.h | 6 +++---
->  2 files changed, 4 insertions(+), 3 deletions(-)
->
-> diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
-> index 80367f2cf821c..6c7dbf0adad62 100644
-> --- a/arch/alpha/Kconfig
-> +++ b/arch/alpha/Kconfig
-> @@ -38,6 +38,7 @@ config ALPHA
->         select OLD_SIGSUSPEND
->         select CPU_NO_EFFICIENT_FFS if !ALPHA_EV67
->         select MMU_GATHER_NO_RANGE
-> +       select MMU_GATHER_RCU_TABLE_FREE
->         select SPARSEMEM_EXTREME if SPARSEMEM
->         select ZONE_DMA
->         help
-> diff --git a/arch/alpha/include/asm/tlb.h b/arch/alpha/include/asm/tlb.h
-> index 4f79e331af5ea..ad586b898fd6b 100644
-> --- a/arch/alpha/include/asm/tlb.h
-> +++ b/arch/alpha/include/asm/tlb.h
-> @@ -4,7 +4,7 @@
->
->  #include <asm-generic/tlb.h>
->
-> -#define __pte_free_tlb(tlb, pte, address)              pte_free((tlb)->m=
-m, pte)
-> -#define __pmd_free_tlb(tlb, pmd, address)              pmd_free((tlb)->m=
-m, pmd)
-> -
-> +#define __pte_free_tlb(tlb, pte, address)      tlb_remove_ptdesc((tlb), =
-page_ptdesc(pte))
-> +#define __pmd_free_tlb(tlb, pmd, address)      tlb_remove_ptdesc((tlb), =
-virt_to_ptdesc(pmd))
-> +
->  #endif
-> --
-> 2.20.1
->
+When freeing or unsharing page tables we send an IPI to synchronize with
+concurrent lockless page table walkers (e.g. GUP-fast). Today we broadcast
+that IPI to all CPUs, which is costly on large machines and hurts RT
+workloads[1].
 
-Looks good from an Alpha perspective.
+This series makes those IPIs targeted. We track which CPUs are currently
+doing a lockless page table walk for a given mm (per-CPU
+active_lockless_pt_walk_mm). When we need to sync, we only IPI those CPUs.
+GUP-fast and perf_get_page_size() set/clear the tracker around their walk;
+tlb_remove_table_sync_mm() uses it and replaces the previous broadcast in
+the free/unshare paths.
 
-Acked-by: Magnus Lindholm <linmag7@gmail.com>
+On x86, when the TLB flush path already sends IPIs (native without INVLPGB,
+or KVM), the extra sync IPI is redundant. We add a property on pv_mmu_ops
+so each backend can declare whether its flush_tlb_multi sends real IPIs; if
+so, tlb_remove_table_sync_mm() is a no-op. We also have tlb_flush() pass
+both freed_tables and unshared_tables so lazy-TLB CPUs get IPIs during
+hugetlb unshare.
+
+David Hildenbrand did the initial implementation. I built on his work and
+relied on off-list discussions to push it further - thanks a lot David!
+
+[1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+
+v3 -> v4:
+- Rework based on David's two-step direction and per-CPU idea:
+  1) Targeted IPIs: per-CPU variable when entering/leaving lockless page
+     table walk; tlb_remove_table_sync_mm() IPIs only those CPUs.
+  2) On x86, pv_mmu_ops property set at init to skip the extra sync when
+     flush_tlb_multi() already sends IPIs.
+  https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+- https://lore.kernel.org/linux-mm/20260106120303.38124-1-lance.yang@linux.dev/
+
+v2 -> v3:
+- Complete rewrite: use dynamic IPI tracking instead of static checks
+  (per Dave Hansen, thanks!)
+- Track IPIs via mmu_gather: native_flush_tlb_multi() sets flag when
+  actually sending IPIs
+- Motivation for skipping redundant IPIs explained by David:
+  https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+- https://lore.kernel.org/linux-mm/20251229145245.85452-1-lance.yang@linux.dev/
+
+v1 -> v2:
+- Fix cover letter encoding to resolve send-email issues. Apologies for
+  any email flood caused by the failed send attempts :(
+
+RFC -> v1:
+- Use a callback function in pv_mmu_ops instead of comparing function
+  pointers (per David)
+- Embed the check directly in tlb_remove_table_sync_one() instead of
+  requiring every caller to check explicitly (per David)
+- Move tlb_table_flush_implies_ipi_broadcast() outside of
+  CONFIG_MMU_GATHER_RCU_TABLE_FREE to fix build error on architectures
+  that don't enable this config.
+  https://lore.kernel.org/oe-kbuild-all/202512142156.cShiu6PU-lkp@intel.com/
+- https://lore.kernel.org/linux-mm/20251213080038.10917-1-lance.yang@linux.dev/
+
+Lance Yang (3):
+  mm: use targeted IPIs for TLB sync with lockless page table walkers
+  mm: switch callers to tlb_remove_table_sync_mm()
+  x86/tlb: add architecture-specific TLB IPI optimization support
+
+ arch/x86/hyperv/mmu.c                 |  5 ++
+ arch/x86/include/asm/paravirt.h       |  5 ++
+ arch/x86/include/asm/paravirt_types.h |  6 +++
+ arch/x86/include/asm/tlb.h            | 20 +++++++-
+ arch/x86/kernel/kvm.c                 |  6 +++
+ arch/x86/kernel/paravirt.c            | 18 +++++++
+ arch/x86/kernel/smpboot.c             |  1 +
+ arch/x86/xen/mmu_pv.c                 |  2 +
+ include/asm-generic/tlb.h             | 28 +++++++++--
+ include/linux/mm.h                    | 34 +++++++++++++
+ kernel/events/core.c                  |  2 +
+ mm/gup.c                              |  2 +
+ mm/khugepaged.c                       |  2 +-
+ mm/mmu_gather.c                       | 69 ++++++++++++++++++++++++---
+ 14 files changed, 187 insertions(+), 13 deletions(-)
+
+-- 
+2.49.0
+
