@@ -1,138 +1,151 @@
-Received: from out-174.mta0.migadu.com (out-174.mta0.migadu.com [91.218.175.174])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.14])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BB8F726B2AD
-	for <linux-arch@vger.kernel.org>; Mon,  2 Feb 2026 15:52:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.174
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 04EE32248B4;
+	Mon,  2 Feb 2026 16:20:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.14
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770047570; cv=none; b=VVklyg/bPo8A56lq17LU2P1IxV0mLUlfPKgC8U+6eRRrSQtDt2FxeYZksX9ONrPDk2l+4E29Fuw8vuN51kcsJY9QLtKdHWJSh+1GJYzcuWJkwD/xG3Ntcnz2djmorIgMSWb1I1kiu8r4cMcKHKt6GDs3tHrQq8jlpdqWl7cVrXI=
+	t=1770049218; cv=none; b=mo+0MtTJRAaY/PkSYBrZuQMb8m4exmNmYyhHtmyHPE4KYgV9/fkWKugd+sYqu1zdXXxOlM8M4hY3oXP3tPe71Wl0NI6D5zFxK2GM7L8iv+lbJO/abku5YALvPx//uTVH2fIUnTC5SnJ/kZy9CO6yIiMcU6HRQi41hXWicFa09ZY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770047570; c=relaxed/simple;
-	bh=+2Jc+VhLkXt3QqoavVsTTpgtI4ILB8bGtNf8GUb/dGc=;
+	s=arc-20240116; t=1770049218; c=relaxed/simple;
+	bh=BqUNHuuS4fu5iC8Ie1ZyL9H3NYhFXNxYeGHx9tpVVrQ=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=tKl5+RX47P2UAZ1IigTr0/vPSb5hLsJS5qy8ClJgX8gUmlVH2g1gr77O88WMt2nSBK9qKXebVsdOj6TYnJHLWDB7sW6Unz6v8O0xyGGRC9ov8MVj+ZKWiSCQMB2Bp5e2+jVJEIENGYlf8gU94wCXpbG5PmExBPsJzAKzitseDVs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=LHO+UJ4a; arc=none smtp.client-ip=91.218.175.174
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	 In-Reply-To:Content-Type; b=dH4Df2iu6KRy/YJTgQXQKRIPu6jLhGtue57NHTMVj/LNap95+xeBj6Az2IopcYJiePvZwlFlCZvh93GskbhcjYwUeRhhRIYvkfQHpY3GrZxn5DameWVoPf1RCc8rPtkzPDk1yZdPhjr0FqzgaHDa4jsAdDT4BMAkdTuce1VjrM0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=E9kcZ6wP; arc=none smtp.client-ip=192.198.163.14
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="LHO+UJ4a"
-Message-ID: <d6944cd8-d3b7-4b16-ab52-a61e7dc2221c@linux.dev>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1770047565;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=PduxyDODlH9YHL0rneveZmMdter31WXHAeGzrsiCre4=;
-	b=LHO+UJ4aR+t9zhuFaEeNktv85tisbUgqgGP+452qgxwu8pe3VAbJyWwRwIMkIkhrW3CiiU
-	amX509lg1rXTP7Wtltg3TnQsfApgqjp0Blp35vsPn2YE5n3hsGAPY5Q6ckZZXKljWJkLo7
-	a+vSwZ8/xCaiyucTyGL4QbFRUgmLY+s=
-Date: Mon, 2 Feb 2026 23:52:31 +0800
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="E9kcZ6wP"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1770049216; x=1801585216;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=BqUNHuuS4fu5iC8Ie1ZyL9H3NYhFXNxYeGHx9tpVVrQ=;
+  b=E9kcZ6wPeC/EFTMPP9CpMPv82n/6gAS2yrn5oXmjviajnBRWHpiGL59B
+   qtsUf9MBuBClv2jIyDAUnEnWTjdTYBWLML34KVEbGiNNF/vB8YncXvn2z
+   F/pwEVaxeEGggVZwTzL4WB1LRATKmE1fsaAR5QSyki1k3DhHChzDuD+OF
+   cpfZMv8ZuJxzW1mOlIiPMmP53rMWPqjpw6Gg5YH4V5qqhVB1b/0dfCgig
+   qq/3zSBT6borQDcn2isxH+JPZrybOAvumPQNS41GlKIuByiwRafrkVies
+   N2wJJSFYDU1RVyzGl+rZHVHKgbE2OduO7Kr8gDcq7IHE9Nr5g02gHYe3e
+   g==;
+X-CSE-ConnectionGUID: evbRGF5jQLG2HTsNFfv1Fw==
+X-CSE-MsgGUID: KBM5HgcbQhiZh4QC1mWSSw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11690"; a="71263367"
+X-IronPort-AV: E=Sophos;i="6.21,269,1763452800"; 
+   d="scan'208";a="71263367"
+Received: from orviesa004.jf.intel.com ([10.64.159.144])
+  by fmvoesa108.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Feb 2026 08:20:15 -0800
+X-CSE-ConnectionGUID: vGtb2QeURBqmGgaBVcjwTA==
+X-CSE-MsgGUID: AHy1YBBZQ3e5qR8b6S8+Ww==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.21,269,1763452800"; 
+   d="scan'208";a="214089413"
+Received: from spandruv-desk1.amr.corp.intel.com (HELO [10.125.110.145]) ([10.125.110.145])
+  by orviesa004-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 02 Feb 2026 08:20:15 -0800
+Message-ID: <be38af98-e344-4552-a77b-b5345135e382@intel.com>
+Date: Mon, 2 Feb 2026 08:20:13 -0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v4 1/3] mm: use targeted IPIs for TLB sync with lockless
+ page table walkers
+To: Lance Yang <lance.yang@linux.dev>, Peter Zijlstra <peterz@infradead.org>
+Cc: akpm@linux-foundation.org, david@kernel.org, dave.hansen@linux.intel.com,
+ ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
+ aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
+ mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
+ arnd@arndb.de, lorenzo.stoakes@oracle.com, ziy@nvidia.com,
+ baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
+ ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
+ shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
+ seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
+ virtualization@lists.linux.dev, kvm@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, ioworker0@gmail.com
+References: <20260202074557.16544-1-lance.yang@linux.dev>
+ <20260202074557.16544-2-lance.yang@linux.dev>
+ <20260202094245.GD2995752@noisy.programming.kicks-ass.net>
+ <0f44dfb7-fce3-44c1-ab25-b013ba18a59b@linux.dev>
+From: Dave Hansen <dave.hansen@intel.com>
 Content-Language: en-US
-To: Peter Zijlstra <peterz@infradead.org>, david@kernel.org
-Cc: Liam.Howlett@oracle.com, akpm@linux-foundation.org,
- aneesh.kumar@kernel.org, arnd@arndb.de, baohua@kernel.org,
- baolin.wang@linux.alibaba.com, boris.ostrovsky@oracle.com, bp@alien8.de,
- dave.hansen@intel.com, dave.hansen@linux.intel.com, dev.jain@arm.com,
- hpa@zytor.com, hughd@google.com, ioworker0@gmail.com, jannh@google.com,
- jgross@suse.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org,
- lorenzo.stoakes@oracle.com, mingo@redhat.com, npache@redhat.com,
- npiggin@gmail.com, pbonzini@redhat.com, riel@surriel.com,
- ryan.roberts@arm.com, seanjc@google.com, shy828301@gmail.com,
- tglx@linutronix.de, virtualization@lists.linux.dev, will@kernel.org,
- x86@kernel.org, ypodemsk@redhat.com, ziy@nvidia.com
-References: <20260202095414.GE2995752@noisy.programming.kicks-ass.net>
- <20260202110329.74397-1-lance.yang@linux.dev>
- <20260202125030.GB1395266@noisy.programming.kicks-ass.net>
- <c6fda7c2-ad54-416a-a869-1499c97c7bd7@linux.dev>
- <4700e7ba-8456-4a93-9e28-7e5a3ca2a1be@linux.dev>
- <20260202133713.GF1395266@noisy.programming.kicks-ass.net>
- <540adec9-c483-460a-a682-f2076cf015c2@linux.dev>
- <20260202150957.GD1282955@noisy.programming.kicks-ass.net>
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Lance Yang <lance.yang@linux.dev>
-In-Reply-To: <20260202150957.GD1282955@noisy.programming.kicks-ass.net>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+In-Reply-To: <0f44dfb7-fce3-44c1-ab25-b013ba18a59b@linux.dev>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-X-Migadu-Flow: FLOW_OUT
 
-
-
-On 2026/2/2 23:09, Peter Zijlstra wrote:
-> On Mon, Feb 02, 2026 at 10:37:39PM +0800, Lance Yang wrote:
+On 2/2/26 04:14, Lance Yang wrote:
+>>> Note that the tracking adds ~3% latency to GUP-fast, as measured on a
+>>> 64-core system.
 >>
->>
->> On 2026/2/2 21:37, Peter Zijlstra wrote:
->>> On Mon, Feb 02, 2026 at 09:07:10PM +0800, Lance Yang wrote:
->>>
->>>>>> Right, but if we can use full RCU for PT_RECLAIM, why can't we do so
->>>>>> unconditionally and not add overhead?
->>>>>
->>>>> The sync (IPI) is mainly needed for unshare (e.g. hugetlb) and collapse
->>>>> (khugepaged) paths, regardless of whether table free uses RCU, IIUC.
->>>>
->>>> In addition: We need the sync when we modify page tables (e.g. unshare,
->>>> collapse), not only when we free them. RCU can defer freeing but does
->>>> not prevent lockless walkers from seeing concurrent in-place
->>>> modifications, so we need the IPI to synchronize with those walkers
->>>> first.
->>>
->>> Currently PT_RECLAIM=y has no IPI; are you saying that is broken? If
->>> not, then why do we need this at all?
->>
->> PT_RECLAIM=y does have IPI for unshare/collapse — those paths call
->> tlb_flush_unshared_tables() (for hugetlb unshare) and collapse_huge_page()
->> (in khugepaged collapse), which already send IPIs today (broadcast to all
->> CPUs via tlb_remove_table_sync_one()).
->>
->> What PT_RECLAIM=y doesn't need IPI for is table freeing (
->> __tlb_remove_table_one() uses call_rcu() instead). But table modification
->> (unshare, collapse) still needs IPI to synchronize with lockless walkers,
->> regardless of PT_RECLAIM.
->>
->> So PT_RECLAIM=y is not broken; it already has IPI where needed. This series
->> just makes those IPIs targeted instead of broadcast. Does that clarify?
+>> What architecture, and that is acceptable?
 > 
-> Oh bah, reading is hard. I had missed they had more table_sync_one() calls,
-> rather than remove_table_one().
+> x86-64.
 > 
-> So you *can* replace table_sync_one() with rcu_sync(), that will provide
-> the same guarantees. Its just a 'little' bit slower on the update side,
-> but does not incur the read side cost.
-
-Yep, we could replace the IPI with synchronize_rcu() on the sync side:
-
-- Currently: TLB flush → send IPI → wait for walkers to finish
-- With synchronize_rcu(): TLB flush → synchronize_rcu() -> waits for 
-grace period
-
-Lockless walkers (e.g. GUP-fast) use local_irq_disable(); 
-synchronize_rcu() also
-waits for regions with preemption/interrupts disabled, so it should 
-work, IIUC.
-
-And then, the trade-off would be:
-- Read side: zero cost (no per-CPU tracking)
-- Write side: wait for RCU grace period (potentially slower)
-
-For collapse/unshare, that write-side latency might be acceptable :)
-
-@David, what do you think?
-
+> I ran ./gup_bench which spawns 60 threads, each doing 500k GUP-fast
+> operations (pinning 8 pages per call) via the gup_test ioctl.
 > 
-> I really think anything here needs to better explain the various
-> requirements. Because now everybody gets to pay the price for hugetlb
-> shared crud, while 'nobody' will actually use that.
+> Results for pin pages:
+> - Before: avg 1.489s (10 runs)
+> - After:  avg 1.533s (10 runs)
+> 
+> Given we avoid broadcast IPIs on large systems, I think this is a
+> reasonable trade-off 🙂
 
-Right. If we go with synchronize_rcu(), the read-side cost goes away ...
+I thought the big databases were really sensitive to GUP-fast latency.
+They like big systems, too. Won't they howl when this finally hits their
+testing?
 
-Thanks,
-Lance
+Also, two of the "write" side here are:
+
+ * collapse_huge_page() (khugepaged)
+ * tlb_remove_table() (in an "-ENOMEM" path)
+
+Those are quite slow paths, right? Shouldn't the design here favor
+keeping gup-fast as fast as possible as opposed to impacting those?
