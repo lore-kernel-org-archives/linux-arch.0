@@ -1,240 +1,744 @@
-Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+Received: from mail-wm1-f66.google.com (mail-wm1-f66.google.com [209.85.128.66])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 37F842F39C2
-	for <linux-arch@vger.kernel.org>; Tue,  3 Feb 2026 11:14:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DD0A33D51A
+	for <linux-arch@vger.kernel.org>; Tue,  3 Feb 2026 12:19:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.66
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770117258; cv=none; b=U4k0MT49NuhBbHj1pmUaYsNctzHg+PKR4B1YlXAGcGM4TTaxN9C9C6P2pqfCgYgOXx+amEy6bY7bSrAoojGEYvAMIy/QLxMzZ3o8KrbnyhBSktSAFFlbQBUGVTkugrws7MMhnp8iuyZfGwnlvifqygunaHDyPBEdKmV1xaxpTnM=
+	t=1770121168; cv=none; b=M8EFxOVFBTKKKQ9R8WNCsWpkPM8nKNvQ4+gEWnmz/WmO4ldRqqKQeA7KjAXP8pts7zr+YYCA8GRnuWdDJJkWv6qSscrhNIxrqjavULPapMv109q6Gd6Xm0g4a71f/uNmPdIBSiNQhuul878lC66zh7HJRNDekyn++ugdBDnPSiQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770117258; c=relaxed/simple;
-	bh=TGZHFs+y5PZEiI0dxc1o5jYsv5t57JErrTDo5l+CpR8=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=rZU/Taldo4NucxDGk9aD5r/YtQ1u/QdbDWSDF5E4RP1kizqp1Xp9JyPBWDa/i4I7PARiF9IXEIKFtxPCINX7xK/avfUKDv6zGtQFkVV0aZ1ZngYHsxa46xmlMnIdDT43C4zIJsPGNFTS3lkDhUZRiWZWb6jbKEUgAWyhdzlRo3Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Tom3Y4nY; arc=none smtp.client-ip=209.85.128.42
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1770121168; c=relaxed/simple;
+	bh=mPLHFnGAiJZDNVZ0+nBky+Y2dBrJVcYPEEc9prrXLSk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=mMQLwm9lEp0nnBEYh5uI2VhW3x97WHBRFSCvOM/GzbAtVn0KSuJNLZuqk/0XmRRdgMPCXTaqitBzTyQa+CYHwmA9FptR2QSNWJ1eukDHu8eBnwP57mc1P4Jf/433x+Tb8TDv1yTjXkzw83HukBN6DndEoKPR3D3R4PHRBEqpA0w=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=S6jqY5Ov; arc=none smtp.client-ip=209.85.128.66
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Tom3Y4nY"
-Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-47ee07570deso45944005e9.1
-        for <linux-arch@vger.kernel.org>; Tue, 03 Feb 2026 03:14:17 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="S6jqY5Ov"
+Received: by mail-wm1-f66.google.com with SMTP id 5b1f17b1804b1-482f454be5bso6026685e9.0
+        for <linux-arch@vger.kernel.org>; Tue, 03 Feb 2026 04:19:24 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1770117256; x=1770722056; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=adwbTe5M7kxA5p3EcIAVpKLTNbIPukeDa7ym8Wf5u6g=;
-        b=Tom3Y4nYl7ndjmQl1+HY0MiEtYUfF8aY0Gvv7QlUBU3GfdbIVeG9V/Y7UVYmnljRp1
-         PURDcD+fytyNzEPJT4bPzpMltxrAvWQRtq2aIA+oYH9fvRPYrd4RKLPyfrUGKrtozM1k
-         4bHKMJmx4EFyO9GDrlujAyFOVpe2NtFq2jWyBip8OD1FCAuFKqj2Cl/FarHhJCCm9bHG
-         g/C4fDVZZhMVLy9aM76A5gBJPOVsZ4TkOM8l9xLCpLqdAl4GQnTu4Sm7sVKWagMHCYoj
-         SxpinmrjCob0FuDFZ7vwjfTV5tv4C2T81EfCZqbiirH+BRFcE+DY87ydDJjfHucjm+dL
-         Nobw==
+        d=suse.com; s=google; t=1770121163; x=1770725963; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=c6MzBps8jkAvm9TbR+DQoEBSa7zCEs2ceIfky0NJtjA=;
+        b=S6jqY5OvID7eAjHD1GMyte32Kq7NKfuH3rMGB0kRO6f6uAhpS+tac8RS3pkoHvBa5N
+         SIFWP9qvH8rsk4QHvl0qzGMzH5FbXrhCrTeZS8FCWmfL6SBEQ7dfSvmXkcUQx546Eu7H
+         M/b8Ebfm05YHeLqfyA7PFjERblgYCF25eqLOch3EGua+g9focfisbx/7eEd5mtJxVEwH
+         Dz8guhzjht+vOwEgQfAtYF87NWCTJM4HNBzHhvNxfEhbsUBgt0tVFQDUR4hl0x/pT3rr
+         M59odhU80Eyu4A2GPhzJ4ddploWCqHW4TWmK8pRE/DvY0tyY/4HS/BmZNvFOQU95e4DE
+         NDbg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1770117256; x=1770722056;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=adwbTe5M7kxA5p3EcIAVpKLTNbIPukeDa7ym8Wf5u6g=;
-        b=wH+ZWKQo3JXfdtsSlCkeTz+KmJkJN46UloJtfd5g2IiNvXJZ+aBa/YKjmmHrZcEcFG
-         rbuR9t45sLq55A7mC9ZKY8oZ+cxlzsjdgZ9PVc9ho+7W+Co/rv3asKw/Pr/aeQ94aGTd
-         ueE4T5Kn43hz7D0Q2hyZ8d84TT3vXjy9+9CEOWyRAfYyRgxz8XZALbfOTHswaVpe9Yis
-         Mw122erKftRnHBF2Gab2gtidqYqZlptW/ybcWkKOmhJC0tqtv/uamO/nOvXlcZy9yTGP
-         3CP9FF6j1mC95vA8pgGMYU2PB5IkZ0bDVhC80ywI7E2W6INc9o9mWzxruz88sj/bBqmD
-         WuNA==
-X-Forwarded-Encrypted: i=1; AJvYcCV7wE4XiuA9ejTisHxZ90RFJlOKpyI0jxHadwkAFvzy6LE1NMuMXzAVUiBA4JpOM9ObN5cRDjorFHcq@vger.kernel.org
-X-Gm-Message-State: AOJu0Yz27gbfjFYXY3i0GkWohXyieWMK/nNRarRyUbaTEYnn1V3FpFnZ
-	/4Do77MJ4mQTMr/+YvgXA2bgEqRLTK0tkX6LVErwAoGx+Ou92hXddwkH
-X-Gm-Gg: AZuq6aKE60otEHZqjC0GyVCrJBjTapiYKtTNomdU+9bpmyWLiaH3dyP1xpFkDlBQFUn
-	o98JiUDJWtj5/glfEUm0H8cpg4j9g+XlRe4exhSF4Do7uTzQHTilwyR21YAT/PxoJyn0k4jROOA
-	yIiMtWNGEtkhO0MFf2y4/cWc5iE+IIXShVUViBnHUkeK67Ckalhu6/t/jmMiE6c1aVBkTQAdSRW
-	iz5McF2xZqCYRab1C6W7GM9+kYOye1G2XqRyNjkbZrmDp56teqKNKGI3t28dlUxTFg3tnEnfd+e
-	l5UcJkeklnjaM2EyuPvXanDBgZ6DKt8uVX2SyYpOcAzmsobngdYHUapiYHyA8mHQfW8YiG3xVoX
-	lSEH48IQTm2H1/a8y6Z56IaO8PSVSK3GPY4dkXh2IcJQe9dRsWSNk7g22nmP9ZMBvvQDfBvdP1V
-	Nb3TcLzWgSU6mn+vIXMUZWGGt3gu/KZfqlAEE4Q4GhjSF7un3+qiag
-X-Received: by 2002:a05:600c:a00e:b0:477:63db:c718 with SMTP id 5b1f17b1804b1-482db4bda8dmr203947335e9.16.1770117255417;
-        Tue, 03 Feb 2026 03:14:15 -0800 (PST)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-435e10f82aesm53083817f8f.19.2026.02.03.03.14.14
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 03 Feb 2026 03:14:15 -0800 (PST)
-Date: Tue, 3 Feb 2026 11:14:13 +0000
-From: David Laight <david.laight.linux@gmail.com>
-To: Nathan Chancellor <nathan@kernel.org>
-Cc: Yury Norov <ynorov@nvidia.com>, Greg Kroah-Hartman
- <gregkh@linuxfoundation.org>, Thomas Gleixner <tglx@linutronix.de>, Peter
- Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Mathieu
- Desnoyers <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yury Norov
- <yury.norov@gmail.com>, Lucas De Marchi <lucas.demarchi@intel.com>, Jani
- Nikula <jani.nikula@intel.com>, Vincent Mailhol
- <mailhol.vincent@wanadoo.fr>, Andy Shevchenko
- <andriy.shevchenko@linux.intel.com>, Kees Cook <keescook@chromium.org>,
- Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH next 02/14] kbuild: Add W=c for additional compile time
- checks
-Message-ID: <20260203111413.7cf29fa3@pumpkin>
-In-Reply-To: <20260203044726.GA3049363@ax162>
-References: <20260121145731.3623-1-david.laight.linux@gmail.com>
-	<20260121145731.3623-3-david.laight.linux@gmail.com>
-	<aYDt8gLSRbFHwVpn@yury>
-	<20260202200743.6182eb60@pumpkin>
-	<20260203044726.GA3049363@ax162>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+        d=1e100.net; s=20230601; t=1770121163; x=1770725963;
+        h=content-transfer-encoding:in-reply-to:from:content-language
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=c6MzBps8jkAvm9TbR+DQoEBSa7zCEs2ceIfky0NJtjA=;
+        b=WstEQVpagMw8f499sYaACO+Fp6s6RKjMDNFgOh8Ambu6paG0f4AIe5meieFJH1VALY
+         cefFlaV+kvEiRR3IaDzOYp33gpIEE+Fv2+Mnb4dEjDXbQ8nKly9WsK1x32HClZfTOaGU
+         8BO6O+X2D+ElapbJhp2n0li+cUwSgaCun5Gd2AxaInB2FpyWSxdRjCgP9rDhwOLvqLbd
+         vbcR5ka88J5s9oN7NifLNAroyD1H6IFp/rOm+AyNgbZ0JbBeyBVxjVX7BUv9sZ/agFn+
+         pMvuSiaO7qK4FRziuYMHCDocVR4NoRxr/P7DyulQI7XUf4W1rm5uDxdT6ZPQ9YrBYw1/
+         NDJw==
+X-Forwarded-Encrypted: i=1; AJvYcCX4vT3JK/6fN/hBy9PMeOTzEvlQ6utIWhqRPTjJ9ws9zUqHlgL2AS0c+tCx+7k7DMblHEWjb5L5is/2@vger.kernel.org
+X-Gm-Message-State: AOJu0Yw6lwsoqEVc52Ij1kDHs9TfmwB2P+cZH+t1noLQB9yUpZnKDXv+
+	B1x99N4FV/lJFwuU72NHQnRQ55SAkHcFx5EhYH+qYtCX1wcPg/cQLzyX5E3wFPMn6hw=
+X-Gm-Gg: AZuq6aII6i8r0rWG1iEmDhntxP3uMJwPtdIHekAMsLb6+4/TnM24Pok9isWRNAVdCco
+	Rx7OiZja+HaEe3yv4q4xm0TWgSWXI5Cuo+NZUsmosJ6aa1ZdGFBNhG8ZpQzoTkJo4TWRQvAnnjU
+	LYHO+dnw9CQZQA77igNS+cpbOrPu6OQEMh8VHb+rwIMd0qhS9FJ1GYEN6qDllASkP0Hh66965yc
+	Yh+VwYLpbN1fRiKgQyBBn1rXM0GN/4kLnM4fB4HjUyN7Q8lGQGRXA3LTlFGT+V3Ftx+tEGBAiI8
+	Am0A8XMb5+ChRbn2fkMhJo8WBYw8X5qSHUZdzpfRTNT0Xzv9JG+apgShq1LHbhNpmozsPDwPlYf
+	7NgtyUK5j1fB03o/I4BFdMKdZeexbLtOq2JkWA5/0Uw0MhQzodHWxi9fWeUApiNwdhKKAwBcLAd
+	myupoGjVkjkHHoc7MLEeKZ3fXTCG6A0A==
+X-Received: by 2002:a05:600c:4f4f:b0:47d:6c36:a125 with SMTP id 5b1f17b1804b1-483051553a4mr44296785e9.17.1770121162686;
+        Tue, 03 Feb 2026 04:19:22 -0800 (PST)
+Received: from [10.0.1.22] (109-81-1-107.rct.o2.cz. [109.81.1.107])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-483051287cfsm96086105e9.6.2026.02.03.04.19.21
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 03 Feb 2026 04:19:22 -0800 (PST)
+Message-ID: <fab2af64-e396-45f9-8876-feff4002e04b@suse.com>
+Date: Tue, 3 Feb 2026 13:19:20 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
+To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <linux@weissschuh.net>
+Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+ Luis Chamberlain <mcgrof@kernel.org>, Sami Tolvanen
+ <samitolvanen@google.com>, Daniel Gomez <da.gomez@samsung.com>,
+ Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+ "Serge E. Hallyn" <serge@hallyn.com>, Jonathan Corbet <corbet@lwn.net>,
+ Madhavan Srinivasan <maddy@linux.ibm.com>,
+ Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
+ Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+ Roberto Sassu <roberto.sassu@huawei.com>,
+ Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+ Eric Snowberg <eric.snowberg@oracle.com>,
+ Nicolas Schier <nicolas.schier@linux.dev>, Daniel Gomez
+ <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+ Nicolas Schier <nsc@kernel.org>,
+ Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+ Xiu Jianfeng <xiujianfeng@huawei.com>,
+ =?UTF-8?Q?Fabian_Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
+ Arnout Engelen <arnout@bzzt.net>, Mattia Rizzolo <mattia@mapreri.org>,
+ kpcyrd <kpcyrd@archlinux.org>, Christian Heusel <christian@heusel.eu>,
+ =?UTF-8?Q?C=C3=A2ju_Mihai-Drosi?= <mcaju95@gmail.com>,
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+ linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+ linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Mon, 2 Feb 2026 21:47:26 -0700
-Nathan Chancellor <nathan@kernel.org> wrote:
-
-> On Mon, Feb 02, 2026 at 08:07:43PM +0000, David Laight wrote:
-> > On Mon, 2 Feb 2026 13:33:22 -0500
-> > Yury Norov <ynorov@nvidia.com> wrote:
-> >   
-> > > On Wed, Jan 21, 2026 at 02:57:19PM +0000, david.laight.linux@gmail.com wrote:  
-> > > > From: David Laight <david.laight.linux@gmail.com>
-> > > > 
-> > > > Some compile time checks significantly bloat the pre-processor output
-> > > > (particularly when the get nested).
-> > > > Since the checks aren't really needed on every compilation enable with
-> > > > W=c (adds -DKBUILD_EXTRA_WARNc) so the checks can be enabled per-build.
-> > > > Make W=1 imply W=c so the build-bot includes the checks.
-> > > > 
-> > > > As well as reducing the bloat from existing checks (like those in
-> > > > GENMASK() and FIELD_PREP()) it lets additional checks be added
-> > > > while there are still 'false positives' without breaking normal builds.
-> > > > 
-> > > > Signed-off-by: David Laight <david.laight.linux@gmail.com>    
-> > > 
-> > > Honestly I don't understand this. AFAIU, you've outlined a list of
-> > > compiler warnings that slow the compilation down, and you group them
-> > > under 'W=c' option.
-> > > 
-> > > What is the use case for it outside of your series. I think, a typical
-> > > user would find more value in an option that enables some warnings but
-> > > doesn't sacrifices performance.  
-> > 
-> > All the compile-time warnings slow down the compilation.
-> > Even apparently trivial ones (like the check in the generic READ_ONCE()
-> > that the size is 1, 2, 4 or 8 bytes) have a measurable effect.    
+On 1/13/26 1:28 PM, Thomas Weißschuh wrote:
+> The current signature-based module integrity checking has some drawbacks
+> in combination with reproducible builds. Either the module signing key
+> is generated at build time, which makes the build unreproducible, or a
+> static signing key is used, which precludes rebuilds by third parties
+> and makes the whole build and packaging process much more complicated.
 > 
-> What kind of difference are we talking about here across a regular
-> build?
-
-IIRC a couple of %.
-I repeated a few builds with/without and it was much greater than the
-variation between the builds.
-That is a pretty trivial test, but there are a lot of READ_ONCE().
-Find a few of those and the difference is significant.
-
+> The goal is to reach bit-for-bit reproducibility. Excluding certain
+> parts of the build output from the reproducibility analysis would be
+> error-prone and force each downstream consumer to introduce new tooling.
 > 
-> > The code a typical user compiles won't have anything that trips any of
-> > the compile-time asserts.
-> > They only really happen when compiling new code or adding new checks.
-> >   
-> > > Can you consider flipping the 'W=c' behavior?  
-> > 
-> > Why, most of the time you don't want the checks because the code is
-> > known to pass them all.
-> > 
-> > It also means it can be used for new checks before all the bugs (and
-> > false positives) have been fixed.
-> > I did think of just enabling the checks for W=1 builds, but that makes
-> > it far to hard to enable them.
-> > As it is you can use W=ce to enable them and stop on warnings and errors.
-> > 
-> > Also W=xxx can only really add checks (there are some checks for it being
-> > non-empty). Documenting that W=x stopped the 'x' checks being done
-> > would be painful.  
+> Introduce a new mechanism to ensure only well-known modules are loaded
+> by embedding a merkle tree root of all modules built as part of the full
+> kernel build into vmlinux.
 > 
-> Yeah, I don't think we should be overloading the meaning of W=.
-
-I did thing of supporting W=-e so that you can do W=1-e on a config
-that enables WERROR, since there isn't much chance of a W=1e build
-succeeding any time soon.
-
-> > > Can you please explicitly mention warnings included in W=c vs W=1? Can
-> > > you report compilation time for W=0, W=1 and W=c? What if one needs to
-> > > enable fast/slow warnings from 2nd or 3rd level? Would W=2c or W=3c
-> > > work in this case?  
-> > 
-> > The W=123 options are all completely independent, my W=c is the same.
-> > I'm not sure it is sane to run W=2 rather than W=12, but it is allowed.
-> > 
-> > I made W=1 imply W=1c so that the build bot would pick up the extra checks.
-> > Apart from that all the 'W' flags are independent.
-> > W=123 fiddle with the command line -W options and set -DKBUILD_EXTRA_WARN[123]
-> > so that files can include extra checks.
-> > W=c just sets the equivalent -D option.  
+> Non-builtin modules can be validated as before through signatures.
 > 
-> Why even have a different option then? You mention above placing the
-> checks in W=1 makes them too hard to enable but then you say that you
-> made W=1 imply W=c?
-
-What I meant was it is hard to see the errors in a W=1 build.
-So I wanted the enable the checks without picking up W=1.
-
+> Normally the .ko module files depend on a fully built vmlinux to be
+> available for modpost validation and BTF generation. With
+> CONFIG_MODULE_HASHES, vmlinux now depends on the modules
+> to build a merkle tree. This introduces a dependency cycle which is
+> impossible to satisfy. Work around this by building the modules during
+> link-vmlinux.sh, after vmlinux is complete enough for modpost and BTF
+> but before the final module hashes are
 > 
-> > > What does this 'c' stands for?  
-> > 
-> > Anything you want it to :-)
-> > Discussion session arranged for 2pm-5pm by the bike shed.  
-> 
-> W=c already exists, it is documented as enabling extra Kconfig checks in
-> 'make help'. Maybe W=x for "ex"pensive checks? Or maybe if we really
-> want W=c, maybe rename W=c to W=k for Kconfig? I do not really have a
-> strong preference.
+> The PKCS7 format which is used for regular module signatures can not
+> represent Merkle proofs, so a new kind of module signature is
+> introduced. As this signature type is only ever used for builtin
+> modules, no compatibility issues can arise.
 
-It was 'c' for Compile time (a bit silly - but they are source 'compile-time'
-tests rather then 'run-time' ones).
-I'd only looked in makefile.warn for other uses.
+Nit: The description uses the term "builtin modules" in a misleading
+way. Typically, "builtin modules" refers to modules that are linked
+directly into vmlinux. However, this text uses the term to refer to
+loadable modules that are built together with the main kernel image,
+which is something different.
 
-> > In some sense it is 'more warnings than default, but not as many as W=1'.
-> > Like a lot of the W=1 warnings I wanted to be able to pick up 'code quality'
-> > issues without breaking the build for normal people.  
-> 
-> So something like a W=0.5? :)
+> diff --git a/scripts/modules-merkle-tree.c b/scripts/modules-merkle-tree.c
+> new file mode 100644
+> index 000000000000..a6ec0e21213b
+> --- /dev/null
+> +++ b/scripts/modules-merkle-tree.c
+> @@ -0,0 +1,467 @@
+> +// SPDX-License-Identifier: GPL-2.0-or-later
+> +/*
+> + * Compute hashes for modules files and build a merkle tree.
+> + *
+> + * Copyright (C) 2025 Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+> + * Copyright (C) 2025 Thomas Weißschuh <linux@weissschuh.net>
+> + *
+> + */
+> +#define _GNU_SOURCE 1
+> +#include <arpa/inet.h>
+> +#include <err.h>
+> +#include <unistd.h>
+> +#include <fcntl.h>
+> +#include <stdarg.h>
+> +#include <stdio.h>
+> +#include <string.h>
+> +#include <stdbool.h>
+> +#include <stdlib.h>
+> +
+> +#include <sys/stat.h>
+> +#include <sys/mman.h>
+> +
+> +#include <openssl/evp.h>
+> +#include <openssl/err.h>
+> +
+> +#include "ssl-common.h"
+> +
+> +static int hash_size;
+> +static EVP_MD_CTX *ctx;
+> +
+> +struct module_signature {
+> +	uint8_t		algo;		/* Public-key crypto algorithm [0] */
+> +	uint8_t		hash;		/* Digest algorithm [0] */
+> +	uint8_t		id_type;	/* Key identifier type [PKEY_ID_PKCS7] */
+> +	uint8_t		signer_len;	/* Length of signer's name [0] */
+> +	uint8_t		key_id_len;	/* Length of key identifier [0] */
+> +	uint8_t		__pad[3];
+> +	uint32_t	sig_len;	/* Length of signature data */
+> +};
+> +
+> +#define PKEY_ID_MERKLE 3
+> +
+> +static const char magic_number[] = "~Module signature appended~\n";
 
-That is really what I was looking for.
-Perhaps setting -DKBUILD_WARN_LEVEL=level*10 would do?
-So W=1 would set 10, W=2 20 (etc) with some scheme for setting intermediate
-values (or at least (say) 5).
+It might make sense to put these common structures into a file under
+scripts/include/ so they can be shared by both scripts/sign-file.c and
+scripts/modules-merkle-tree.c.
 
-> > There are definitely some other checks that could be relegated to W=c
-> > once it has been added.
-> > 
-> > I'd also like to add some checks to min_t/max_t/clamp_t to pick up the
-> > worst of the dodgy/broken code without having to get all the patches
-> > accepted before the test itself is committed.
-> > Tests for code like clamp_t(u32, u64_val, 0, ~0u) (yes there are some)
-> > tend to get very long and may be problematic if enabled by default
-> > (I got burnt by the 10MB expansion of nested min().)  
-> 
-> I do not have a super strong opinion about this overall but it feels
-> like this is a bit of a slippery slope with warning fragmentation. I
-> think I would rather see these be treated like regular compiler warnings
-> where the majority of instances are cleaned up then it is added to W=1
-> to keep the tree clean.
+> +
+> +struct file_entry {
+> +	char *name;
+> +	unsigned int pos;
+> +	unsigned char hash[EVP_MAX_MD_SIZE];
+> +};
+> +
+> +static struct file_entry *fh_list;
+> +static size_t num_files;
+> +
+> +struct leaf_hash {
+> +	unsigned char hash[EVP_MAX_MD_SIZE];
+> +};
+> +
+> +struct mtree {
+> +	struct leaf_hash **l;
+> +	unsigned int *entries;
+> +	unsigned int levels;
+> +};
+> +
+> +static inline void *xcalloc(size_t n, size_t size)
+> +{
+> +	void *p;
+> +
+> +	p = calloc(n, size);
+> +	if (!p)
+> +		errx(1, "Memory allocation failed");
+> +
+> +	return p;
+> +}
+> +
+> +static void *xmalloc(size_t size)
+> +{
+> +	void *p;
+> +
+> +	p = malloc(size);
+> +	if (!p)
+> +		errx(1, "Memory allocation failed");
+> +
+> +	return p;
+> +}
+> +
+> +static inline void *xreallocarray(void *oldp, size_t n, size_t size)
+> +{
+> +	void *p;
+> +
+> +	p = reallocarray(oldp, n, size);
+> +	if (!p)
+> +		errx(1, "Memory allocation failed");
+> +
+> +	return p;
+> +}
+> +
+> +static inline char *xasprintf(const char *fmt, ...)
+> +{
+> +	va_list ap;
+> +	char *strp;
+> +	int ret;
+> +
+> +	va_start(ap, fmt);
+> +	ret = vasprintf(&strp, fmt, ap);
+> +	va_end(ap);
+> +	if (ret == -1)
+> +		err(1, "Memory allocation failed");
+> +
+> +	return strp;
+> +}
 
-That is slightly different because (mostly) they are warnings from a
-new compiler version so are picked up by people running the new compiler
-before they break things and then added to W=1.
-Adding an extra check to an existing header needs the change committing
-to get test coverage somewhat earlier - maybe to force some reluctant
-maintainers to actually fix their code.
+I believe it is preferable to use xmalloc() and related functions from
+scripts/include/xalloc.h, instead of defining your own variants. If
+something is missing in xalloc.h, it can be extended.
 
-I definitely needed to conditionally include the checks with W=e but
-without W=1, this seemed the best way to do it.
+> +
+> +static unsigned int get_pow2(unsigned int val)
+> +{
+> +	return 31 - __builtin_clz(val);
+> +}
+> +
+> +static unsigned int roundup_pow2(unsigned int val)
+> +{
+> +	return 1 << (get_pow2(val - 1) + 1);
+> +}
+> +
+> +static unsigned int log2_roundup(unsigned int val)
+> +{
+> +	return get_pow2(roundup_pow2(val));
+> +}
 
-	David
+In the edge case when the kernel is built with only one module, the code
+calls log2_roundup(1) -> roundup_pow2(1) -> get_pow2(0) ->
+__builtin_clz(0). The return value of __builtin_clz() is undefined if
+the input is zero.
 
-> 
-> Cheers,
-> Nathan
+> +
+> +static void hash_data(void *p, unsigned int pos, size_t size, void *ret_hash)
+> +{
+> +	unsigned char magic = 0x01;
+> +	unsigned int pos_be;
+> +
+> +	pos_be = htonl(pos);
+> +
+> +	ERR(EVP_DigestInit_ex(ctx, NULL, NULL) != 1, "EVP_DigestInit_ex()");
+> +	ERR(EVP_DigestUpdate(ctx, &magic, sizeof(magic)) != 1, "EVP_DigestUpdate(magic)");
+> +	ERR(EVP_DigestUpdate(ctx, &pos_be, sizeof(pos_be)) != 1, "EVP_DigestUpdate(pos)");
+> +	ERR(EVP_DigestUpdate(ctx, p, size) != 1, "EVP_DigestUpdate(data)");
+> +	ERR(EVP_DigestFinal_ex(ctx, ret_hash, NULL) != 1, "EVP_DigestFinal_ex()");
+> +}
+> +
+> +static void hash_entry(void *left, void *right, void *ret_hash)
+> +{
+> +	int hash_size = EVP_MD_CTX_get_size_ex(ctx);
 
+Nit: The local variable hash_size can be removed, as the static variable
+with the same name should hold the same value.
+
+> +	unsigned char magic = 0x02;
+> +
+> +	ERR(EVP_DigestInit_ex(ctx, NULL, NULL) != 1, "EVP_DigestInit_ex()");
+> +	ERR(EVP_DigestUpdate(ctx, &magic, sizeof(magic)) != 1, "EVP_DigestUpdate(magic)");
+> +	ERR(EVP_DigestUpdate(ctx, left, hash_size) != 1, "EVP_DigestUpdate(left)");
+> +	ERR(EVP_DigestUpdate(ctx, right, hash_size) != 1, "EVP_DigestUpdate(right)");
+> +	ERR(EVP_DigestFinal_ex(ctx, ret_hash, NULL) != 1, "EVP_DigestFinal_ex()");
+> +}
+> +
+> +static void hash_file(struct file_entry *fe)
+> +{
+> +	struct stat sb;
+> +	int fd, ret;
+> +	void *mem;
+> +
+> +	fd = open(fe->name, O_RDONLY);
+> +	if (fd < 0)
+> +		err(1, "Failed to open %s", fe->name);
+> +
+> +	ret = fstat(fd, &sb);
+> +	if (ret)
+> +		err(1, "Failed to stat %s", fe->name);
+> +
+> +	mem = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+> +	close(fd);
+> +
+> +	if (mem == MAP_FAILED)
+> +		err(1, "Failed to mmap %s", fe->name);
+
+Nit: The err() call should be moved immediately after mmap(). In theory,
+the interleaving close() could change the errno value, resulting in
+err() printing a misleading error message.
+
+> +
+> +	hash_data(mem, fe->pos, sb.st_size, fe->hash);
+> +
+> +	munmap(mem, sb.st_size);
+> +}
+> +
+> +static struct mtree *build_merkle(struct file_entry *fh, size_t num)
+> +{
+> +	struct mtree *mt;
+> +	unsigned int le;
+> +
+> +	if (!num)
+> +		return NULL;
+> +
+> +	mt = xmalloc(sizeof(*mt));
+> +	mt->levels = log2_roundup(num);
+> +
+> +	mt->l = xcalloc(sizeof(*mt->l), mt->levels);
+> +
+> +	mt->entries = xcalloc(sizeof(*mt->entries), mt->levels);
+> +	le = num / 2;
+> +	if (num & 1)
+> +		le++;
+> +	mt->entries[0] = le;
+> +	mt->l[0] = xcalloc(sizeof(**mt->l), le);
+> +
+> +	/* First level of pairs */
+> +	for (unsigned int i = 0; i < num; i += 2) {
+> +		if (i == num - 1) {
+> +			/* Odd number of files, no pair. Hash with itself */
+> +			hash_entry(fh[i].hash, fh[i].hash, mt->l[0][i / 2].hash);
+> +		} else {
+> +			hash_entry(fh[i].hash, fh[i + 1].hash, mt->l[0][i / 2].hash);
+> +		}
+> +	}
+> +	for (unsigned int i = 1; i < mt->levels; i++) {
+> +		int odd = 0;
+> +
+> +		if (le & 1) {
+> +			le++;
+> +			odd++;
+> +		}
+> +
+> +		mt->entries[i] = le / 2;
+> +		mt->l[i] = xcalloc(sizeof(**mt->l), le);
+
+l[i] is overallocated. It needs only 'le / 2' entries.
+
+> +
+> +		for (unsigned int n = 0; n < le; n += 2) {
+> +			if (n == le - 2 && odd) {
+> +				/* Odd number of pairs, no pair. Hash with itself */
+> +				hash_entry(mt->l[i - 1][n].hash, mt->l[i - 1][n].hash,
+> +					   mt->l[i][n / 2].hash);
+> +			} else {
+> +				hash_entry(mt->l[i - 1][n].hash, mt->l[i - 1][n + 1].hash,
+> +					   mt->l[i][n / 2].hash);
+> +			}
+> +		}
+> +		le =  mt->entries[i];
+
+Nit: It might be helpful to write both the first-level and other-level
+loops in the same style to make them easier to understand, perhaps by
+clearly separating the number of entries at each level. I suggest
+something like the following:
+
+static struct mtree *build_merkle(struct file_entry *fh, size_t num_files)
+{
+	struct mtree *mt;
+	unsigned int num_cur_le, num_prev_le;
+
+	if (!num_files)
+		return NULL;
+
+	mt = xmalloc(sizeof(*mt));
+	mt->levels = log2_roundup(num_files);
+
+	mt->l = xcalloc(sizeof(*mt->l), mt->levels);
+
+	mt->entries = xcalloc(sizeof(*mt->entries), mt->levels);
+	num_cur_le = (num_files + 1) / 2;
+	mt->entries[0] = num_cur_le;
+	mt->l[0] = xcalloc(sizeof(**mt->l), num_cur_le);
+
+	/* First level of pairs */
+	for (unsigned int i = 0; i < num_files; i += 2) {
+		/* Hash the pair, or the last file with itself if it's odd. */
+		void *right = i + 1 < num_files ? fh[i + 1].hash : fh[i].hash;
+		hash_entry(fh[i].hash, right, mt->l[0][i / 2].hash);
+	}
+
+	for (unsigned int i = 1; i < mt->levels; i++) {
+		num_prev_le = num_cur_le;
+
+		num_cur_le = (num_prev_le + 1) / 2;
+		mt->entries[i] = num_cur_le;
+		mt->l[i] = xcalloc(sizeof(**mt->l), num_cur_le);
+
+		for (unsigned int n = 0; n < num_prev_le; n += 2) {
+			/* Hash the pair, or the last with itself if it's odd. */
+			void *right = n + 1 < num_prev_le ?
+					      mt->l[i - 1][n + 1].hash :
+					      mt->l[i - 1][n].hash;
+			hash_entry(mt->l[i - 1][n].hash, right,
+				   mt->l[i][n / 2].hash);
+		}
+	}
+	return mt;
+}
+
+> +	}
+> +	return mt;
+> +}
+> +
+> +static void free_mtree(struct mtree *mt)
+> +{
+> +	if (!mt)
+> +		return;
+> +
+> +	for (unsigned int i = 0; i < mt->levels; i++)
+> +		free(mt->l[i]);
+> +
+> +	free(mt->l);
+> +	free(mt->entries);
+> +	free(mt);
+> +}
+> +
+> +static void write_be_int(int fd, unsigned int v)
+> +{
+> +	unsigned int be_val = htonl(v);
+> +
+> +	if (write(fd, &be_val, sizeof(be_val)) != sizeof(be_val))
+> +		err(1, "Failed writing to file");
+> +}
+> +
+> +static void write_hash(int fd, const void *h)
+> +{
+> +	ssize_t wr;
+> +
+> +	wr = write(fd, h, hash_size);
+> +	if (wr != hash_size)
+> +		err(1, "Failed writing to file");
+> +}
+
+Nit: This could be
+
+if (write(fd, h, hash_size) != hash_size)
+
+to keep the style of write_be_int() and write_hash() consistent.
+
+> +
+> +static void build_proof(struct mtree *mt, unsigned int n, int fd)
+> +{
+> +	unsigned char cur[EVP_MAX_MD_SIZE];
+> +	unsigned char tmp[EVP_MAX_MD_SIZE];
+> +	struct file_entry *fe, *fe_sib;
+> +
+> +	fe = &fh_list[n];
+> +
+> +	if ((n & 1) == 0) {
+> +		/* No pair, hash with itself */
+> +		if (n + 1 == num_files)
+> +			fe_sib = fe;
+> +		else
+> +			fe_sib = &fh_list[n + 1];
+> +	} else {
+> +		fe_sib = &fh_list[n - 1];
+> +	}
+> +	/* First comes the node position into the file */
+> +	write_be_int(fd, n);
+> +
+> +	if ((n & 1) == 0)
+> +		hash_entry(fe->hash, fe_sib->hash, cur);
+> +	else
+> +		hash_entry(fe_sib->hash, fe->hash, cur);
+> +
+> +	/* Next is the sibling hash, followed by hashes in the tree */
+> +	write_hash(fd, fe_sib->hash);
+> +
+> +	for (unsigned int i = 0; i < mt->levels - 1; i++) {
+> +		n >>= 1;
+> +		if ((n & 1) == 0) {
+> +			void *h;
+> +
+> +			/* No pair, hash with itself */
+> +			if (n + 1 == mt->entries[i])
+> +				h = cur;
+> +			else
+> +				h = mt->l[i][n + 1].hash;
+> +
+> +			hash_entry(cur, h, tmp);
+> +			write_hash(fd, h);
+> +		} else {
+> +			hash_entry(mt->l[i][n - 1].hash, cur, tmp);
+> +			write_hash(fd, mt->l[i][n - 1].hash);
+> +		}
+> +		memcpy(cur, tmp, hash_size);
+> +	}
+> +
+> +	 /* After all that, the end hash should match the root hash */
+> +	if (memcmp(cur, mt->l[mt->levels - 1][0].hash, hash_size))
+> +		errx(1, "hash mismatch");
+> +}
+> +
+> +static void append_module_signature_magic(int fd, unsigned int sig_len)
+> +{
+> +	struct module_signature sig_info = {
+> +		.id_type	= PKEY_ID_MERKLE,
+> +		.sig_len	= htonl(sig_len),
+> +	};
+> +
+> +	if (write(fd, &sig_info, sizeof(sig_info)) < 0)
+> +		err(1, "write(sig_info) failed");
+> +
+> +	if (write(fd, &magic_number, sizeof(magic_number) - 1) < 0)
+> +		err(1, "write(magic_number) failed");
+
+Nit: Checking that the written size exactly matches the size of the
+input data would be safer and consistent with other uses of write() in
+write_be_int() and write_hash(). Additionally, it would be good to make
+the error messages consistent in all cases.
+
+> +}
+> +
+> +static void write_merkle_root(struct mtree *mt, const char *fp)
+> +{
+> +	char buf[1024];
+> +	unsigned int levels;
+> +	unsigned char *h;
+> +	FILE *f;
+> +
+> +	if (mt) {
+> +		levels = mt->levels;
+> +		h = mt->l[mt->levels - 1][0].hash;
+> +	} else {
+> +		levels = 0;
+> +		h = xcalloc(1, hash_size);
+> +	}
+> +
+> +	f = fopen(fp, "w");
+> +	if (!f)
+> +		err(1, "Failed to create %s", buf);
+
+The last parameter to err() should be fp. The buf variable is then
+unused and can be removed.
+
+> +
+> +	fprintf(f, "#include <linux/module_hashes.h>\n\n");
+> +	fprintf(f, "const struct module_hashes_root module_hashes_root __module_hashes_section = {\n");
+> +
+> +	fprintf(f, "\t.levels = %u,\n", levels);
+> +	fprintf(f, "\t.hash = {");
+> +	for (unsigned int i = 0; i < hash_size; i++) {
+> +		char *space = "";
+> +
+> +		if (!(i % 8))
+> +			fprintf(f, "\n\t\t");
+> +
+> +		if ((i + 1) % 8)
+> +			space = " ";
+> +
+> +		fprintf(f, "0x%02x,%s", h[i], space);
+> +	}
+> +	fprintf(f, "\n\t},");
+> +
+> +	fprintf(f, "\n};\n");
+> +	fclose(f);
+
+Is it ok not to check the return values when writing to this output
+file? Other code checks that its output was successful.
+
+> +
+> +	if (!mt)
+> +		free(h);
+> +}
+> +
+> +static char *xstrdup_replace_suffix(const char *str, const char *new_suffix)
+> +{
+> +	const char *current_suffix;
+> +	size_t base_len;
+> +
+> +	current_suffix = strchr(str, '.');
+
+It is safer to use strrchr() in case the module path happens to contain
+a dot.
+
+> +	if (!current_suffix)
+> +		errx(1, "No existing suffix in '%s'", str);
+> +
+> +	base_len = current_suffix - str;
+> +
+> +	return xasprintf("%.*s%s", (int)base_len, str, new_suffix);
+> +}
+> +
+> +static void read_modules_order(const char *fname, const char *suffix)
+> +{
+> +	char line[PATH_MAX];
+
+<limits.h> should be included at the top to provide the definition of
+PATH_MAX.
+
+> +	FILE *in;
+> +
+> +	in = fopen(fname, "r");
+> +	if (!in)
+> +		err(1, "fopen(%s)", fname);
+
+Nit: The error message could be "Failed to open %s" to maintain
+consistency with a similar error in write_merkle_root().
+
+> +
+> +	while (fgets(line, PATH_MAX, in)) {
+> +		struct file_entry *entry;
+> +
+> +		fh_list = xreallocarray(fh_list, num_files + 1, sizeof(*fh_list));
+
+It might be useful to not reallocate this array for each file, although
+I don't immediately see that it contributes any significant time to the
+runtime.
+
+> +		entry = &fh_list[num_files];
+> +
+> +		entry->pos = num_files;
+> +		entry->name = xstrdup_replace_suffix(line, suffix);
+> +		hash_file(entry);
+> +
+> +		num_files++;
+> +	}
+> +
+> +	fclose(in);
+> +}
+> +
+> +static __attribute__((noreturn))
+> +void format(void)
+> +{
+> +	fprintf(stderr,
+> +		"Usage: scripts/modules-merkle-tree <root definition>\n");
+
+The usage string should mention the second parameter, which is the
+module suffix.
+
+> +	exit(2);
+> +}
+> +
+> +int main(int argc, char *argv[])
+> +{
+> +	const EVP_MD *hash_evp;
+> +	struct mtree *mt;
+> +
+> +	if (argc != 3)
+> +		format();
+> +
+> +	hash_evp = EVP_get_digestbyname("sha256");
+> +	ERR(!hash_evp, "EVP_get_digestbyname");
+> +
+> +	ctx = EVP_MD_CTX_new();
+> +	ERR(!ctx, "EVP_MD_CTX_new()");
+> +
+> +	hash_size = EVP_MD_get_size(hash_evp);
+> +	ERR(hash_size <= 0, "EVP_get_digestbyname");
+> +
+> +	if (EVP_DigestInit_ex(ctx, hash_evp, NULL) != 1)
+> +		ERR(1, "EVP_DigestInit_ex()");
+> +
+> +	read_modules_order("modules.order", argv[2]);
+> +
+> +	mt = build_merkle(fh_list, num_files);
+> +	write_merkle_root(mt, argv[1]);
+> +	for (unsigned int i = 0; i < num_files; i++) {
+> +		char *signame;
+> +		int fd;
+> +
+> +		signame = xstrdup_replace_suffix(fh_list[i].name, ".merkle");
+> +
+> +		fd = open(signame, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+> +		if (fd < 0)
+> +			err(1, "Can't create %s", signame);
+> +
+> +		build_proof(mt, i, fd);
+> +		append_module_signature_magic(fd, lseek(fd, 0, SEEK_CUR));
+> +		close(fd);
+
+The return code of close() should be checked, otherwise it is
+meaningless to check the write() calls in
+append_module_signature_magic().
+
+> +	}
+> +
+> +	free_mtree(mt);
+> +	for (unsigned int i = 0; i < num_files; i++)
+> +		free(fh_list[i].name);
+> +	free(fh_list);
+> +
+> +	EVP_MD_CTX_free(ctx);
+> +	return 0;
+> +}
+
+-- 
+Thanks,
+Petr
