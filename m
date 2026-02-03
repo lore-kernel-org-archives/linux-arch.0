@@ -1,169 +1,97 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from lamorak.hansenpartnership.com (lamorak.hansenpartnership.com [198.37.111.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DF68533E7;
-	Tue,  3 Feb 2026 04:47:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E005D2DC336;
+	Tue,  3 Feb 2026 08:18:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.37.111.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770094053; cv=none; b=I/xWb1JUcAxWkAfQIFR9vOC6u9Llcv0h+6xm+lAsXFrLNkwsGI96kOVyoeLmLdmng7AKFoVY82aVX6DCHzzvluomdriLEp5tikg+G2pFxn5ZXwCjKs6o2yGrrI0Scv2E8CcRjBH5aUeDRE4TTjpJ0HxB1aog2s5qac8eyea1BE0=
+	t=1770106706; cv=none; b=jHAHIksqopkiMv85p3kk9b2KPEQZYYguxcjfFACEMEEjjLaa0a8mFzHhCcEYd6xN3ansut/2qETzQug7mH3xFb2x+8SSrAQ96Qh0kchURp8ycHfu3fckwnOUnn8k6PmYXFCvhBfOLVsoLwK/vm5Zzep+kJVbQ5lhbSylE3xjszE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770094053; c=relaxed/simple;
-	bh=Wr1uGsWHXX2Bf+BETc6ZRbu2auK4MLlOIpi4rtyzTmI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=WwvnAVzTnl/QZ+8DQf2Ndr2YWdoYutMaWIb5qoQWak0wStK6F+nINxfuMxNj7OtywEIT895mgx7JN+SK7JN/+pesaZ0ek+SYhVQFgqknjNobPp6YQRc91vE0/mAqDI/co7eQUSUL1zsXne+tfZM18DsfQvQxzztf1/Otyqh+dw8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=dNCx7Riw; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1770106706; c=relaxed/simple;
+	bh=5rqqjsLuw5JA2sTQ/3twqQMctI8v/ml7Q4w1kuVcdd4=;
+	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=qaZ9fDW77OPbPj2B6V2rwkOyraI8MyK3EB7LqXBfk0OzoUHKpHFP32CJw+lT33dfcw8dFl9kr0I4F1IAO3ky5dSrmFuGGXw7jJtyvCPxuXMLntFFnqx2dxW43RcEH+3kWjNZ5MdDVpxbyYNFnqbZexPJrp0TIZGaM9oliewnAcU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=HansenPartnership.com; spf=pass smtp.mailfrom=HansenPartnership.com; dkim=pass (1024-bit key) header.d=hansenpartnership.com header.i=@hansenpartnership.com header.b=n/vfRxg6; arc=none smtp.client-ip=198.37.111.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=HansenPartnership.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=HansenPartnership.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="dNCx7Riw"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0DEEAC116D0;
-	Tue,  3 Feb 2026 04:47:28 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1770094052;
-	bh=Wr1uGsWHXX2Bf+BETc6ZRbu2auK4MLlOIpi4rtyzTmI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=dNCx7RiwyWSk7Fsk1k+S0GWbSqI2Rcy/FPUQbC7RHnyHjkwzgNbLXDcGSXkbzc6dR
-	 O4Mw1qD5saPZYlzJbZWES6FCTDaMTjlhQs3XTor/6RKXCVgr573N5FYmAn2m8/LrHt
-	 +4hmqZlKigXKJ3U2IwoAbD5XQHvCJo/29GR7eA5a+eZ9GY4H2jswJH9rFuKEHsQ+1/
-	 ca32iN6LAmH5eTA47ZJBispuwnpOJXdhLzQXC/V3QRJjlwH5rIbQD01n8Mi6FhdZmR
-	 boWSYfaPfXjylwh5sXJyNihx3Qg+8rg4OA8jGLprg88iTQ0y32nqNei2AKac9n/daR
-	 VRfFn0YqCuWcw==
-Date: Mon, 2 Feb 2026 21:47:26 -0700
-From: Nathan Chancellor <nathan@kernel.org>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Yury Norov <ynorov@nvidia.com>,
-	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Ingo Molnar <mingo@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, Yury Norov <yury.norov@gmail.com>,
-	Lucas De Marchi <lucas.demarchi@intel.com>,
-	Jani Nikula <jani.nikula@intel.com>,
-	Vincent Mailhol <mailhol.vincent@wanadoo.fr>,
-	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
-	Kees Cook <keescook@chromium.org>,
-	Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH next 02/14] kbuild: Add W=c for additional compile time
- checks
-Message-ID: <20260203044726.GA3049363@ax162>
-References: <20260121145731.3623-1-david.laight.linux@gmail.com>
- <20260121145731.3623-3-david.laight.linux@gmail.com>
- <aYDt8gLSRbFHwVpn@yury>
- <20260202200743.6182eb60@pumpkin>
+	dkim=pass (1024-bit key) header.d=hansenpartnership.com header.i=@hansenpartnership.com header.b="n/vfRxg6"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+	d=hansenpartnership.com; s=20151216; t=1770106696;
+	bh=5rqqjsLuw5JA2sTQ/3twqQMctI8v/ml7Q4w1kuVcdd4=;
+	h=Message-ID:Subject:From:To:Date:In-Reply-To:References:From;
+	b=n/vfRxg6Mx5/kpRzWSjV+TvC+W8NSHQJEUS/jKVzgxv6MW9uqbaBEj7SdXD6bINIY
+	 a2cT8EgsdnGD4uvVSlmp3OchX1UaNyCxsecs9F0V0WeT0cCPuturmPv7d6VYPZCPZj
+	 84hzM8xKoedT9KUlynJg5BXImWAwfOvukxNdWCFY=
+Received: from [10.10.7.5] (unknown [51.52.16.146])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange x25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by lamorak.hansenpartnership.com (Postfix) with ESMTPSA id 83D871C02EC;
+	Tue, 03 Feb 2026 03:18:11 -0500 (EST)
+Message-ID: <8b12f1d28d3859467c3b5f6bc352038ce7627e54.camel@HansenPartnership.com>
+Subject: Re: [PATCH v4 00/17] module: Introduce hash-based integrity checking
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+To: David Howells <dhowells@redhat.com>, Mihai-Drosi =?ISO-8859-1?Q?C=E2ju?=
+	 <mcaju95@gmail.com>
+Cc: linux@weissschuh.net, arnd@arndb.de, arnout@bzzt.net,
+ atomlin@atomlin.com,  bigeasy@linutronix.de, chleroy@kernel.org,
+ christian@heusel.eu, corbet@lwn.net,  coxu@redhat.com, da.gomez@kernel.org,
+ da.gomez@samsung.com,  dmitry.kasatkin@gmail.com, eric.snowberg@oracle.com,
+ f.gruenbichler@proxmox.com,  jmorris@namei.org, kpcyrd@archlinux.org,
+ linux-arch@vger.kernel.org,  linux-doc@vger.kernel.org,
+ linux-integrity@vger.kernel.org,  linux-kbuild@vger.kernel.org,
+ linux-kernel@vger.kernel.org,  linux-modules@vger.kernel.org,
+ linux-security-module@vger.kernel.org,  linuxppc-dev@lists.ozlabs.org,
+ lkp@intel.com, maddy@linux.ibm.com,  mattia@mapreri.org, mcgrof@kernel.org,
+ mpe@ellerman.id.au, nathan@kernel.org,  naveen@kernel.org,
+ nicolas.bouchinet@oss.cyber.gouv.fr, nicolas.schier@linux.dev, 
+ npiggin@gmail.com, nsc@kernel.org, paul@paul-moore.com,
+ petr.pavlu@suse.com,  roberto.sassu@huawei.com, samitolvanen@google.com,
+ serge@hallyn.com,  xiujianfeng@huawei.com, zohar@linux.ibm.com
+Date: Tue, 03 Feb 2026 08:18:09 +0000
+In-Reply-To: <2316630.1769965788@warthog.procyon.org.uk>
+References: <20260131073636.65494-1-mcaju95@gmail.com>
+	 <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+	 <2316630.1769965788@warthog.procyon.org.uk>
+Autocrypt: addr=James.Bottomley@HansenPartnership.com;
+ prefer-encrypt=mutual;
+ keydata=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
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.50.3 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260202200743.6182eb60@pumpkin>
 
-On Mon, Feb 02, 2026 at 08:07:43PM +0000, David Laight wrote:
-> On Mon, 2 Feb 2026 13:33:22 -0500
-> Yury Norov <ynorov@nvidia.com> wrote:
-> 
-> > On Wed, Jan 21, 2026 at 02:57:19PM +0000, david.laight.linux@gmail.com wrote:
-> > > From: David Laight <david.laight.linux@gmail.com>
-> > > 
-> > > Some compile time checks significantly bloat the pre-processor output
-> > > (particularly when the get nested).
-> > > Since the checks aren't really needed on every compilation enable with
-> > > W=c (adds -DKBUILD_EXTRA_WARNc) so the checks can be enabled per-build.
-> > > Make W=1 imply W=c so the build-bot includes the checks.
-> > > 
-> > > As well as reducing the bloat from existing checks (like those in
-> > > GENMASK() and FIELD_PREP()) it lets additional checks be added
-> > > while there are still 'false positives' without breaking normal builds.
-> > > 
-> > > Signed-off-by: David Laight <david.laight.linux@gmail.com>  
-> > 
-> > Honestly I don't understand this. AFAIU, you've outlined a list of
-> > compiler warnings that slow the compilation down, and you group them
-> > under 'W=c' option.
-> > 
-> > What is the use case for it outside of your series. I think, a typical
-> > user would find more value in an option that enables some warnings but
-> > doesn't sacrifices performance.
-> 
-> All the compile-time warnings slow down the compilation.
-> Even apparently trivial ones (like the check in the generic READ_ONCE()
-> that the size is 1, 2, 4 or 8 bytes) have a measurable effect.  
+On Sun, 2026-02-01 at 17:09 +0000, David Howells wrote:
+> Mihai-Drosi C=C3=A2ju <mcaju95@gmail.com> wrote:
+>=20
+> > > The current signature-based module integrity checking has some
+> > > drawbacks
+> > in combination with reproducible builds. Either the module signing
+> > key is generated at build time, which makes the build
+> > unreproducible, or a static signing key is used, which precludes
+> > rebuilds by third parties and makes the whole build and packaging
+> > process much more complicated.
+>=20
+> There is another issue too: If you have a static private key that you
+> use to sign modules (and probably other things), someone will likely
+> give you a GPL request to get it.
 
-What kind of difference are we talking about here across a regular
-build?
+The SFC just lost that exact point in the Vizio trial, so I think
+you're wrong on this under US law at least.  There's no general ability
+under GPLv2 to demand long lived signing keys.
 
-> The code a typical user compiles won't have anything that trips any of
-> the compile-time asserts.
-> They only really happen when compiling new code or adding new checks.
-> 
-> > Can you consider flipping the 'W=c' behavior?
-> 
-> Why, most of the time you don't want the checks because the code is
-> known to pass them all.
-> 
-> It also means it can be used for new checks before all the bugs (and
-> false positives) have been fixed.
-> I did think of just enabling the checks for W=1 builds, but that makes
-> it far to hard to enable them.
-> As it is you can use W=ce to enable them and stop on warnings and errors.
-> 
-> Also W=xxx can only really add checks (there are some checks for it being
-> non-empty). Documenting that W=x stopped the 'x' checks being done
-> would be painful.
+Regards,
 
-Yeah, I don't think we should be overloading the meaning of W=.
+James
 
-> > Can you please explicitly mention warnings included in W=c vs W=1? Can
-> > you report compilation time for W=0, W=1 and W=c? What if one needs to
-> > enable fast/slow warnings from 2nd or 3rd level? Would W=2c or W=3c
-> > work in this case?
-> 
-> The W=123 options are all completely independent, my W=c is the same.
-> I'm not sure it is sane to run W=2 rather than W=12, but it is allowed.
-> 
-> I made W=1 imply W=1c so that the build bot would pick up the extra checks.
-> Apart from that all the 'W' flags are independent.
-> W=123 fiddle with the command line -W options and set -DKBUILD_EXTRA_WARN[123]
-> so that files can include extra checks.
-> W=c just sets the equivalent -D option.
-
-Why even have a different option then? You mention above placing the
-checks in W=1 makes them too hard to enable but then you say that you
-made W=1 imply W=c?
-
-> > What does this 'c' stands for?
-> 
-> Anything you want it to :-)
-> Discussion session arranged for 2pm-5pm by the bike shed.
-
-W=c already exists, it is documented as enabling extra Kconfig checks in
-'make help'. Maybe W=x for "ex"pensive checks? Or maybe if we really
-want W=c, maybe rename W=c to W=k for Kconfig? I do not really have a
-strong preference.
-
-> In some sense it is 'more warnings than default, but not as many as W=1'.
-> Like a lot of the W=1 warnings I wanted to be able to pick up 'code quality'
-> issues without breaking the build for normal people.
-
-So something like a W=0.5? :)
-
-> There are definitely some other checks that could be relegated to W=c
-> once it has been added.
-> 
-> I'd also like to add some checks to min_t/max_t/clamp_t to pick up the
-> worst of the dodgy/broken code without having to get all the patches
-> accepted before the test itself is committed.
-> Tests for code like clamp_t(u32, u64_val, 0, ~0u) (yes there are some)
-> tend to get very long and may be problematic if enabled by default
-> (I got burnt by the 10MB expansion of nested min().)
-
-I do not have a super strong opinion about this overall but it feels
-like this is a bit of a slippery slope with warning fragmentation. I
-think I would rather see these be treated like regular compiler warnings
-where the majority of instances are cleaned up then it is added to W=1
-to keep the tree clean.
-
-Cheers,
-Nathan
