@@ -1,212 +1,336 @@
-Received: from omta038.useast.a.cloudfilter.net (omta038.useast.a.cloudfilter.net [44.202.169.37])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B90701BD035
-	for <linux-arch@vger.kernel.org>; Wed,  4 Feb 2026 21:32:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=44.202.169.37
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id BBFAE318ED3;
+	Wed,  4 Feb 2026 22:52:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770240735; cv=none; b=aIxe4sOeMgnsxmfpgd8hUx4w4pbANOqlPdlsNBgQ6skmkHQLQbk4DY2Bcg57Jk7cV96xvEoDzUlShuFRKfOCwCIrcC7v+NPlsUIzMO25iCegbQG0mTb629VOgFW4hqDhZICxga0IvdWlFNvWpuaUIf6/xgV4cQfLHLxArRZIE44=
+	t=1770245576; cv=none; b=ODY1Dhk9OplT1lx8Z9plXldRFgfMUKJh4USneriBWDnF11CFljR3rZRAHuiqOcTS2jM+ojdTg6pfXKgz7Dqa6hHMFYkcxk1+gk22cY8xbuaxeuBL1W62VCldNQmpHSo7c5M+J1JlGHU6aCkk4BkUOcDWndbMUrufdBdhqSd0JhI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770240735; c=relaxed/simple;
-	bh=q/30h0yEPcWEiedOGg5w9e2G3+3wkVS5kXJ48vtVSbs=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Xm19HOWZGteT6Reotcygk7lib+z7aTJVtFh/vnw9VRqp+5Xh4nosL3cFZ7hTZTSy0b2A8ijQ1EW5bEyOwXGF2jjHVFpNb2CCEXf9mGWdfsPUUMAgH70AczuphfhY1lZtwvSCdi0MTSht/fJuqzcmjzZAEDIo6HYqpjCTrUo/j+0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=sony.com; spf=fail smtp.mailfrom=sony.com; arc=none smtp.client-ip=44.202.169.37
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=sony.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=sony.com
-Received: from eig-obgw-5001b.ext.cloudfilter.net ([10.0.29.181])
-	by cmsmtp with ESMTPS
-	id njiLvq3gvSkcfnkTovxO55; Wed, 04 Feb 2026 21:32:08 +0000
-Received: from host2044.hostmonster.com ([67.20.76.238])
-	by cmsmtp with ESMTPS
-	id nkTnv1M4vSqlVnkTnvRY5Q; Wed, 04 Feb 2026 21:32:08 +0000
-X-Authority-Analysis: v=2.4 cv=I7FlRMgg c=1 sm=1 tr=0 ts=6983bad8
- a=O1AQXT3IpLm5MaED65xONQ==:117 a=uc9KWs4yn0V/JYYSH7YHpg==:17
- a=HzLeVaNsDn8A:10 a=z6gsHLkEAAAA:8 a=20KFwNOVAAAA:8 a=Xie9NPzdAAAA:8
- a=pwlSjyV6AAAA:8 a=SwvnC8opRPVetA8u2xwA:9 a=vUoOGYJDS1_Kmot3Fv_X:22
- a=J9--6epWBKc4EL46Yp3Y:22 a=iekntanDnrheIxGr1pkv:22
-Received: from [66.118.46.62] (port=46610 helo=timdesk..)
-	by host2044.hostmonster.com with esmtpsa  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-	(Exim 4.99.1)
-	(envelope-from <tim.bird@sony.com>)
-	id 1vnkTf-000000003WL-3RQZ;
-	Wed, 04 Feb 2026 14:31:59 -0700
-From: Tim Bird <tim.bird@sony.com>
-To: kbusch@kernel.org,
-	willy@infradead.org,
-	kirill@shutemov.name,
-	aneesh.kumar@kernel.org,
-	mike.kravetz@oracle.com,
-	peterz@infradead.org,
-	akpm@linux-foundation.org,
-	riel@surriel.com,
-	torvalds@linuxfoundation.org,
-	david@kernel.org,
-	muchun.sony@linux.dev,
-	osalvador@suse.de,
-	hughd@google.com,
-	will@kernel.org,
-	npiggin@gmail.com
-Cc: linux-spdx@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	Tim Bird <tim.bird@sony.com>
-Subject: [PATCH] mm: Add SPDX id lines to some mm source files
-Date: Wed,  4 Feb 2026 14:31:01 -0700
-Message-ID: <20260204213101.1754183-1-tim.bird@sony.com>
-X-Mailer: git-send-email 2.43.0
+	s=arc-20240116; t=1770245576; c=relaxed/simple;
+	bh=ftUtmsJ9Q5hpWfJkx+uWmMz4M7B1LmLSVmrZMNUPDLM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=WNsaMc56Tr0EXLutPatnpoDy4DLnolRr1C2+Zr5M4CLuMDF9N7+BA93Rtk3NvG1ZlyWJ7JL3Kl0b8rA+iqqgjjDV6IDyyBn7MxwmqIPB8kkERaLSiSrcIOXON5odlj2ctJCnKNxpkQD+FEJL3Sk6OWzCLh9KhuUz/O5VojpRgoQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=WRTdZ9uJ; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="WRTdZ9uJ"
+Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
+	by linux.microsoft.com (Postfix) with ESMTPSA id DEE1A20B7165;
+	Wed,  4 Feb 2026 14:52:54 -0800 (PST)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com DEE1A20B7165
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1770245576;
+	bh=Z5UzvzLmALW/J/GE++S3i6d2Iky9+XfaKNKG7mM9WtE=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=WRTdZ9uJTVLymkfOfIxV/mdTmRbSBVGTmX/jmPPeEgCSDSMH26Wilz0a29fQ/3wuF
+	 26O87PUBnkruF1dKfqxHH2BIxDaX71xJllhukTXd6Mau/w0rxZIJGj7z8MlW8YNMoU
+	 mMKyyrmq2O3XbDNK0EssAoX5zLZd7QsVX4EGmAzo=
+Message-ID: <596c9549-9edc-91f3-7473-e206ddc68e76@linux.microsoft.com>
+Date: Wed, 4 Feb 2026 14:52:54 -0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-AntiAbuse: This header was added to track abuse, please include it with any abuse report
-X-AntiAbuse: Primary Hostname - host2044.hostmonster.com
-X-AntiAbuse: Original Domain - vger.kernel.org
-X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
-X-AntiAbuse: Sender Address Domain - sony.com
-X-BWhitelist: no
-X-Source-IP: 66.118.46.62
-X-Source-L: No
-X-Exim-ID: 1vnkTf-000000003WL-3RQZ
-X-Source: 
-X-Source-Args: 
-X-Source-Dir: 
-X-Source-Sender: (timdesk..) [66.118.46.62]:46610
-X-Source-Auth: tim@bird.org
-X-Email-Count: 3
-X-Org: HG=bhshared_hm;ORG=bluehost;
-X-Source-Cap: YmlyZG9yZztiaXJkb3JnO2hvc3QyMDQ0Lmhvc3Rtb25zdGVyLmNvbQ==
-X-Local-Domain: no
-X-CMAE-Envelope: MS4xfCTjgdXHx0rEyB/SfED/lL/aMhbyKj049NOif5bpuX5kq8BumXCQorXySxIqrVShh3aHcD3AZCgwCtPTq8YLEMvJtFaJgUQeY6XdXgBd2lkiaKFYW8NB
- MbuVikc8ysjkgx9tsKHiszT7wN+3GvZDHmlOXaFJ+y/I4aPYVztiMX+2sRUVNlSvpLyDrKzlI+sCbeDNkjOaCezeIgAHiaL3bLA=
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
+ Thunderbird/91.13.1
+Subject: Re: [PATCH v0 15/15] mshv: Populate mmio mappings for PCI passthru
+Content-Language: en-US
+To: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
+ linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, kys@microsoft.com,
+ haiyangz@microsoft.com, wei.liu@kernel.org, decui@microsoft.com,
+ longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org,
+ tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
+ lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
+ robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
+ nunodasneves@linux.microsoft.com, mhklinux@outlook.com
+References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
+ <20260120064230.3602565-16-mrathor@linux.microsoft.com>
+ <aXAxmYm4zbOzGztz@skinsburskii.localdomain>
+ <45e7a4c0-f1d8-b8b4-8c03-56d06845323b@linux.microsoft.com>
+ <aXevWXolgNrrLltF@skinsburskii.localdomain>
+ <f39a501e-478f-66ff-26c8-229ca3991f4f@linux.microsoft.com>
+ <aXkKhGvpaHUGclI-@skinsburskii.localdomain>
+ <8d798da6-1720-ceea-f1b0-62ca675085c8@linux.microsoft.com>
+ <aYDROXpR5kvlylGG@skinsburskii.localdomain>
+From: Mukesh R <mrathor@linux.microsoft.com>
+In-Reply-To: <aYDROXpR5kvlylGG@skinsburskii.localdomain>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Some of the memory management source files are missing
-SPDX-License-Identifier lines.  Add appropriate IDs
-to these files (mostly GPL-2.0, but one LGPL-2.1).
+On 2/2/26 08:30, Stanislav Kinsburskii wrote:
+> On Fri, Jan 30, 2026 at 02:17:24PM -0800, Mukesh R wrote:
+>> On 1/27/26 10:57, Stanislav Kinsburskii wrote:
+>>> On Mon, Jan 26, 2026 at 07:07:22PM -0800, Mukesh R wrote:
+>>>> On 1/26/26 10:15, Stanislav Kinsburskii wrote:
+>>>>> On Fri, Jan 23, 2026 at 06:19:15PM -0800, Mukesh R wrote:
+>>>>>> On 1/20/26 17:53, Stanislav Kinsburskii wrote:
+>>>>>>> On Mon, Jan 19, 2026 at 10:42:30PM -0800, Mukesh R wrote:
+>>>>>>>> From: Mukesh Rathor <mrathor@linux.microsoft.com>
+>>>>>>>>
+>>>>>>>> Upon guest access, in case of missing mmio mapping, the hypervisor
+>>>>>>>> generates an unmapped gpa intercept. In this path, lookup the PCI
+>>>>>>>> resource pfn for the guest gpa, and ask the hypervisor to map it
+>>>>>>>> via hypercall. The PCI resource pfn is maintained by the VFIO driver,
+>>>>>>>> and obtained via fixup_user_fault call (similar to KVM).
+>>>>>>>>
+>>>>>>>> Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
+>>>>>>>> ---
+>>>>>>>>      drivers/hv/mshv_root_main.c | 115 ++++++++++++++++++++++++++++++++++++
+>>>>>>>>      1 file changed, 115 insertions(+)
+>>>>>>>>
+>>>>>>>> diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
+>>>>>>>> index 03f3aa9f5541..4c8bc7cd0888 100644
+>>>>>>>> --- a/drivers/hv/mshv_root_main.c
+>>>>>>>> +++ b/drivers/hv/mshv_root_main.c
+>>>>>>>> @@ -56,6 +56,14 @@ struct hv_stats_page {
+>>>>>>>>      	};
+>>>>>>>>      } __packed;
+>>>>>>>> +bool hv_nofull_mmio;   /* don't map entire mmio region upon fault */
+>>>>>>>> +static int __init setup_hv_full_mmio(char *str)
+>>>>>>>> +{
+>>>>>>>> +	hv_nofull_mmio = true;
+>>>>>>>> +	return 0;
+>>>>>>>> +}
+>>>>>>>> +__setup("hv_nofull_mmio", setup_hv_full_mmio);
+>>>>>>>> +
+>>>>>>>>      struct mshv_root mshv_root;
+>>>>>>>>      enum hv_scheduler_type hv_scheduler_type;
+>>>>>>>> @@ -612,6 +620,109 @@ mshv_partition_region_by_gfn(struct mshv_partition *partition, u64 gfn)
+>>>>>>>>      }
+>>>>>>>>      #ifdef CONFIG_X86_64
+>>>>>>>> +
+>>>>>>>> +/*
+>>>>>>>> + * Check if uaddr is for mmio range. If yes, return 0 with mmio_pfn filled in
+>>>>>>>> + * else just return -errno.
+>>>>>>>> + */
+>>>>>>>> +static int mshv_chk_get_mmio_start_pfn(struct mshv_partition *pt, u64 gfn,
+>>>>>>>> +				       u64 *mmio_pfnp)
+>>>>>>>> +{
+>>>>>>>> +	struct vm_area_struct *vma;
+>>>>>>>> +	bool is_mmio;
+>>>>>>>> +	u64 uaddr;
+>>>>>>>> +	struct mshv_mem_region *mreg;
+>>>>>>>> +	struct follow_pfnmap_args pfnmap_args;
+>>>>>>>> +	int rc = -EINVAL;
+>>>>>>>> +
+>>>>>>>> +	/*
+>>>>>>>> +	 * Do not allow mem region to be deleted beneath us. VFIO uses
+>>>>>>>> +	 * useraddr vma to lookup pci bar pfn.
+>>>>>>>> +	 */
+>>>>>>>> +	spin_lock(&pt->pt_mem_regions_lock);
+>>>>>>>> +
+>>>>>>>> +	/* Get the region again under the lock */
+>>>>>>>> +	mreg = mshv_partition_region_by_gfn(pt, gfn);
+>>>>>>>> +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
+>>>>>>>> +		goto unlock_pt_out;
+>>>>>>>> +
+>>>>>>>> +	uaddr = mreg->start_uaddr +
+>>>>>>>> +		((gfn - mreg->start_gfn) << HV_HYP_PAGE_SHIFT);
+>>>>>>>> +
+>>>>>>>> +	mmap_read_lock(current->mm);
+>>>>>>>
+>>>>>>> Semaphore can't be taken under spinlock.
+>>>>>
+>>>>>>
+>>>>>> Yeah, something didn't feel right here and I meant to recheck, now regret
+>>>>>> rushing to submit the patch.
+>>>>>>
+>>>>>> Rethinking, I think the pt_mem_regions_lock is not needed to protect
+>>>>>> the uaddr because unmap will properly serialize via the mm lock.
+>>>>>>
+>>>>>>
+>>>>>>>> +	vma = vma_lookup(current->mm, uaddr);
+>>>>>>>> +	is_mmio = vma ? !!(vma->vm_flags & (VM_IO | VM_PFNMAP)) : 0;
+>>>>>>>
+>>>>>>> Why this check is needed again?
+>>>>>>
+>>>>>> To make sure region did not change. This check is under lock.
+>>>>>>
+>>>>>
+>>>>> How can this happen? One can't change VMA type without unmapping it
+>>>>> first. And unmapping it leads to a kernel MMIO region state dangling
+>>>>> around without corresponding user space mapping.
+>>>>
+>>>> Right, and vm_flags would not be mmio expected then.
+>>>>
+>>>>> This is similar to dangling pinned regions and should likely be
+>>>>> addressed the same way by utilizing MMU notifiers to destpoy memoty
+>>>>> regions is VMA is detached.
+>>>>
+>>>> I don't think we need that. Either it succeeds if the region did not
+>>>> change at all, or just fails.
+>>>>
+>>>
+>>> I'm afraid we do, as if the driver mapped a page with the previous
+>>> memory region, and then the region is unmapped, the page will stay
+>>> mapped in the hypervisor, but will be considered free by kernel, which
+>>> in turn will lead to GPF upn next allocation.
+>>
+>> There are no ram pages for mmio regions. Also, we don't do much with
+>> mmio regions other than tell the hyp about it.
+>>
+> 
+> So, are you saying that the hypervisor does not use these pages and only
+> tracks them? That would make things easier.
+> However, if we later try to map a GPA that is already mapped, will the
+> hypervisor return an error?
 
-Signed-off-by: Tim Bird <tim.bird@sony.com>
----
- mm/dmapool_test.c   | 1 +
- mm/folio-compat.c   | 1 +
- mm/gup_test.c       | 1 +
- mm/hugetlb_cgroup.c | 9 +--------
- mm/memfd.c          | 3 +--
- mm/mmu_gather.c     | 1 +
- mm/rmap.c           | 2 +-
- mm/shmem.c          | 3 +--
- 8 files changed, 8 insertions(+), 13 deletions(-)
+Hypervisor does not return an error.
 
-diff --git a/mm/dmapool_test.c b/mm/dmapool_test.c
-index 54b1fd1ccfbb..e8172d708308 100644
---- a/mm/dmapool_test.c
-+++ b/mm/dmapool_test.c
-@@ -1,3 +1,4 @@
-+// SPDX-License-Identifier: GPL-2.0
- #include <linux/device.h>
- #include <linux/dma-map-ops.h>
- #include <linux/dma-mapping.h>
-diff --git a/mm/folio-compat.c b/mm/folio-compat.c
-index 45540942d148..a02179a0bded 100644
---- a/mm/folio-compat.c
-+++ b/mm/folio-compat.c
-@@ -1,3 +1,4 @@
-+// SPDX-License-Identifier: GPL-2.0
- /*
-  * Compatibility functions which bloat the callers too much to make inline.
-  * All of the callers of these functions should be converted to use folios
-diff --git a/mm/gup_test.c b/mm/gup_test.c
-index eeb3f4d87c51..9dd48db897b9 100644
---- a/mm/gup_test.c
-+++ b/mm/gup_test.c
-@@ -1,3 +1,4 @@
-+// SPDX-License-Identifier: GPL-2.0
- #include <linux/kernel.h>
- #include <linux/mm.h>
- #include <linux/slab.h>
-diff --git a/mm/hugetlb_cgroup.c b/mm/hugetlb_cgroup.c
-index 58e895f3899a..0a87cbbeeed9 100644
---- a/mm/hugetlb_cgroup.c
-+++ b/mm/hugetlb_cgroup.c
-@@ -1,3 +1,4 @@
-+// SPDX-License-Identifier: LGPL-2.1
- /*
-  *
-  * Copyright IBM Corporation, 2012
-@@ -7,14 +8,6 @@
-  * Copyright (C) 2019 Red Hat, Inc.
-  * Author: Giuseppe Scrivano <gscrivan@redhat.com>
-  *
-- * This program is free software; you can redistribute it and/or modify it
-- * under the terms of version 2.1 of the GNU Lesser General Public License
-- * as published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it would be useful, but
-- * WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-- *
-  */
- 
- #include <linux/cgroup.h>
-diff --git a/mm/memfd.c b/mm/memfd.c
-index ab5312aff14b..8f1f26de92f0 100644
---- a/mm/memfd.c
-+++ b/mm/memfd.c
-@@ -1,10 +1,9 @@
-+// SPDX-License-Identifier: GPL-2.0
- /*
-  * memfd_create system call and file sealing support
-  *
-  * Code was originally included in shmem.c, and broken out to facilitate
-  * use by hugetlbfs as well as tmpfs.
-- *
-- * This file is released under the GPL.
-  */
- 
- #include <linux/fs.h>
-diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
-index 247e3f9db6c7..fccba879f056 100644
---- a/mm/mmu_gather.c
-+++ b/mm/mmu_gather.c
-@@ -1,3 +1,4 @@
-+// SPDX-License-Identifier: GPL-2.0
- #include <linux/gfp.h>
- #include <linux/highmem.h>
- #include <linux/kernel.h>
-diff --git a/mm/rmap.c b/mm/rmap.c
-index f955f02d570e..a91282020e77 100644
---- a/mm/rmap.c
-+++ b/mm/rmap.c
-@@ -1,8 +1,8 @@
-+// SPDX-License-Identifier: GPL-2.0
- /*
-  * mm/rmap.c - physical to virtual reverse mappings
-  *
-  * Copyright 2001, Rik van Riel <riel@conectiva.com.br>
-- * Released under the General Public License (GPL).
-  *
-  * Simple, low overhead reverse mapping scheme.
-  * Please try to keep this thing as modular as possible.
-diff --git a/mm/shmem.c b/mm/shmem.c
-index ec6c01378e9d..e460f41d26b9 100644
---- a/mm/shmem.c
-+++ b/mm/shmem.c
-@@ -1,3 +1,4 @@
-+// SPDX-License-Identifier: GPL-2.0
- /*
-  * Resizable virtual memory filesystem for Linux.
-  *
-@@ -17,8 +18,6 @@
-  *
-  * tiny-shmem:
-  * Copyright (c) 2004, 2008 Matt Mackall <mpm@selenic.com>
-- *
-- * This file is released under the GPL.
-  */
- 
- #include <linux/fs.h>
--- 
-2.43.0
+
+
+> Thanks,
+> Stanislav
+> 
+>> Thanks,
+>> -Mukesh
+>>
+>>
+>>> With pinned regions we issue is similar but less impacting: pages can't
+>>> be released by user space unmapping and thus will be simply leaked, but
+>>> the system stays intact.
+>>>
+>>> MMIO regions are simila to movable region in this regard: they don't
+>>> reference the user pages, and thus this guest region replaement is a
+>>> stright wat to kernel panic.
+>>>
+>>>>
+>>>>>>> The region type is stored on the region itself.
+>>>>>>> And the type is checked on the caller side.
+>>>>>>>
+>>>>>>>> +	if (!is_mmio)
+>>>>>>>> +		goto unlock_mmap_out;
+>>>>>>>> +
+>>>>>>>> +	pfnmap_args.vma = vma;
+>>>>>>>> +	pfnmap_args.address = uaddr;
+>>>>>>>> +
+>>>>>>>> +	rc = follow_pfnmap_start(&pfnmap_args);
+>>>>>>>> +	if (rc) {
+>>>>>>>> +		rc = fixup_user_fault(current->mm, uaddr, FAULT_FLAG_WRITE,
+>>>>>>>> +				      NULL);
+>>>>>>>> +		if (rc)
+>>>>>>>> +			goto unlock_mmap_out;
+>>>>>>>> +
+>>>>>>>> +		rc = follow_pfnmap_start(&pfnmap_args);
+>>>>>>>> +		if (rc)
+>>>>>>>> +			goto unlock_mmap_out;
+>>>>>>>> +	}
+>>>>>>>> +
+>>>>>>>> +	*mmio_pfnp = pfnmap_args.pfn;
+>>>>>>>> +	follow_pfnmap_end(&pfnmap_args);
+>>>>>>>> +d
+>>>>>>>> +unlock_mmap_out:
+>>>>>>>> +	mmap_read_unlock(current->mm);
+>>>>>>>> +unlock_pt_out:
+>>>>>>>> +	spin_unlock(&pt->pt_mem_regions_lock);
+>>>>>>>> +	return rc;
+>>>>>>>> +}
+>>>>>>>> +
+>>>>>>>> +/*
+>>>>>>>> + * At present, the only unmapped gpa is mmio space. Verify if it's mmio
+>>>>>>>> + * and resolve if possible.
+>>>>>>>> + * Returns: True if valid mmio intercept and it was handled, else false
+>>>>>>>> + */
+>>>>>>>> +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp)
+>>>>>>>> +{
+>>>>>>>> +	struct hv_message *hvmsg = vp->vp_intercept_msg_page;
+>>>>>>>> +	struct hv_x64_memory_intercept_message *msg;
+>>>>>>>> +	union hv_x64_memory_access_info accinfo;
+>>>>>>>> +	u64 gfn, mmio_spa, numpgs;
+>>>>>>>> +	struct mshv_mem_region *mreg;
+>>>>>>>> +	int rc;
+>>>>>>>> +	struct mshv_partition *pt = vp->vp_partition;
+>>>>>>>> +
+>>>>>>>> +	msg = (struct hv_x64_memory_intercept_message *)hvmsg->u.payload;
+>>>>>>>> +	accinfo = msg->memory_access_info;
+>>>>>>>> +
+>>>>>>>> +	if (!accinfo.gva_gpa_valid)
+>>>>>>>> +		return false;
+>>>>>>>> +
+>>>>>>>> +	/* Do a fast check and bail if non mmio intercept */
+>>>>>>>> +	gfn = msg->guest_physical_address >> HV_HYP_PAGE_SHIFT;
+>>>>>>>> +	mreg = mshv_partition_region_by_gfn(pt, gfn);
+>>>>>>>
+>>>>>>> This call needs to be protected by the spinlock.
+>>>>>>
+>>>>>> This is sorta fast path to bail. We recheck under partition lock above.
+>>>>>>
+>>>>>
+>>>>> Accessing the list of regions without lock is unsafe.
+>>>>
+>>>> I am not sure why? This check is done by a vcpu thread, so regions
+>>>> will not have just gone away.
+>>>>
+>>>
+>>> This is shared resources. Multiple VP thread get into this function
+>>> simultaneously, so there is a race already. But this one we can live
+>>> with without locking as they don't mutate the list of the regions.
+>>>
+>>> The issue happens when VMM adds or removed another region as it mutates
+>>> the list and races with VP threads doing this lookup.
+>>>
+>>> Thanks,
+>>> Stanislav
+>>>
+>>>
+>>>> Thanks,
+>>>> -Mukesh
+>>>>
+>>>>
+>>>>> Thanks,
+>>>>> Stanislav
+>>>>>
+>>>>>> Thanks,
+>>>>>> -Mukesh
+>>>>>>
+>>>>>>
+>>>>>>> Thanks,
+>>>>>>> Stanislav
+>>>>>>>
+>>>>>>>> +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
+>>>>>>>> +		return false;
+>>>>>>>> +
+>>>>>>>> +	rc = mshv_chk_get_mmio_start_pfn(pt, gfn, &mmio_spa);
+>>>>>>>> +	if (rc)
+>>>>>>>> +		return false;
+>>>>>>>> +
+>>>>>>>> +	if (!hv_nofull_mmio) {		/* default case */
+>>>>>>>> +		gfn = mreg->start_gfn;
+>>>>>>>> +		mmio_spa = mmio_spa - (gfn - mreg->start_gfn);
+>>>>>>>> +		numpgs = mreg->nr_pages;
+>>>>>>>> +	} else
+>>>>>>>> +		numpgs = 1;
+>>>>>>>> +
+>>>>>>>> +	rc = hv_call_map_mmio_pages(pt->pt_id, gfn, mmio_spa, numpgs);
+>>>>>>>> +
+>>>>>>>> +	return rc == 0;
+>>>>>>>> +}
+>>>>>>>> +
+>>>>>>>>      static struct mshv_mem_region *
+>>>>>>>>      mshv_partition_region_by_gfn_get(struct mshv_partition *p, u64 gfn)
+>>>>>>>>      {
+>>>>>>>> @@ -666,13 +777,17 @@ static bool mshv_handle_gpa_intercept(struct mshv_vp *vp)
+>>>>>>>>      	return ret;
+>>>>>>>>      }
+>>>>>>>> +
+>>>>>>>>      #else  /* CONFIG_X86_64 */
+>>>>>>>> +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp) { return false; }
+>>>>>>>>      static bool mshv_handle_gpa_intercept(struct mshv_vp *vp) { return false; }
+>>>>>>>>      #endif /* CONFIG_X86_64 */
+>>>>>>>>      static bool mshv_vp_handle_intercept(struct mshv_vp *vp)
+>>>>>>>>      {
+>>>>>>>>      	switch (vp->vp_intercept_msg_page->header.message_type) {
+>>>>>>>> +	case HVMSG_UNMAPPED_GPA:
+>>>>>>>> +		return mshv_handle_unmapped_gpa(vp);
+>>>>>>>>      	case HVMSG_GPA_INTERCEPT:
+>>>>>>>>      		return mshv_handle_gpa_intercept(vp);
+>>>>>>>>      	}
+>>>>>>>> -- 
+>>>>>>>> 2.51.2.vfs.0.1
+>>>>>>>>
 
