@@ -1,48 +1,49 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out-183.mta1.migadu.com (out-183.mta1.migadu.com [95.215.58.183])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C3E93C1969;
-	Thu,  5 Feb 2026 13:25:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5A6021E1A17
+	for <linux-arch@vger.kernel.org>; Thu,  5 Feb 2026 15:01:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.183
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770297915; cv=none; b=d0kEYNvFgWW06j+sHa2sfAy7Yvhxrq8tq2ITy9VKFVHpdH3wffr2N0r/CUbfWq/3AC0lAkUszngp8eSr1GDFoS3p00jb2jJm9PIX6ok8zOy38Cm2GdcgF0+9UX5olBsbaTbCZ/SHFdLuY4U+SCm8WtXVNoxer5/jVHRgi8VJCRI=
+	t=1770303711; cv=none; b=s6Q1eKsQDQ/CFghmRIG/9wW5Zfbvo4SJPapSDIKOVaLQaTlmrHmTygw2Zju9ybaYodd5Voo2HMoBdnUREhbk6Bgrri0nzN6ZhwfZlaYQ4WzaLg4NJyz5uCylW3fIBj9Z0eevrTuL9mZ9f/MkSQDFqhDjidOkzhuwRBjnWrTj4zA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770297915; c=relaxed/simple;
-	bh=ZNnRI00WuKNETmTvhJmd7z3KdSrnG1/LdsurzwSvMV8=;
+	s=arc-20240116; t=1770303711; c=relaxed/simple;
+	bh=z7DlHGRAWqmVCDGHT8bYe/0iOwwIf+tGe2De5QVYgmk=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=kcRGNNABNSWqV9uhBdPMZje+g/vuvBH0KzDqA4aa10c1gQcLwS/yANNJBsKv/karWYHm/qil3koT5aRlVBRTpy46rXZRGE1bYQ0Nf8Uu59/FeWJwBm4oZJvhxzQqfJsvU2MsX/zZDeRqaST/OZ2EgIru7mttKfTD3Gh3FvebQcc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=syUPtY6w; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:Content-Type; b=cqa94PYNBHnAp5Hbd/w+4Egkh9FeJRjxK8EjbuL+5TFvvkC2rWLoLz5DwUVXFsm7xSJ/+dDK86vouAkX+99yXB9dwzCJonB9C1+FKmNolhhvhWy7vdavXsnvwTvMwie2UlcLx3mFQQuiVaBS1z0HbLvI+t60a2dZ6f60DyT/L4o=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=R1OGaVme; arc=none smtp.client-ip=95.215.58.183
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="syUPtY6w"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D0607C4CEF7;
-	Thu,  5 Feb 2026 13:25:06 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1770297915;
-	bh=ZNnRI00WuKNETmTvhJmd7z3KdSrnG1/LdsurzwSvMV8=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=syUPtY6w30APzE75pzBQSESfdtrxIxyU+Wb4bl5STSoesRAQgZAS+B+O+5/jpmJ/U
-	 dwYjT+SAXdf+ZZni8ujBAnmCclEaVM5dBvrXYnIhbsKNPU3gtHi5r4sGtLP1weUGYy
-	 hzyqogeLtiOPBgN0XJ/SYMRW08nXrLGWMBCvKNhLMHwPDQKpEarWGo6DTaRt4zpimH
-	 crT8snBDtzAZtyRImNdKI6ysnP2zgsFZlir3ohopfVbsA1xQ2YaEQWoVE5ZzRzzz2A
-	 lSg5p4stvb3eFmwiaADNk+wNfUJ/QbF67gqJowQTAQ+JAgHWbYza83XTiqoRQKKqkH
-	 HNeqrs7dTvAhA==
-Message-ID: <06d48a52-e4ec-47cd-b3fb-0fccd4dc49f4@kernel.org>
-Date: Thu, 5 Feb 2026 14:25:04 +0100
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="R1OGaVme"
+Message-ID: <3026ad8d-92ad-4683-8c3e-733d4070d033@linux.dev>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1770303707;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=oeEv7fnd0NPkK8yO5EsGkSZ8yT0L8dwlwYeRPZ0uSkk=;
+	b=R1OGaVmeCDAWYZLObcFuiWzoPWWNt28v4igYWupPC//Zz1G0EDHuFGPWKTGAtHEUZLW2Fy
+	3v4fmgvc2ba3Usxdf4CZjRo+kqepU2FyfthjVzh8xwyIbi026D1Signk4cST/7CbkfmxUI
+	4G4+Ec/ufy2updDebH445fX0FG0OzlE=
+Date: Thu, 5 Feb 2026 23:01:11 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table
-To: Lance Yang <lance.yang@linux.dev>, Peter Zijlstra <peterz@infradead.org>
+Content-Language: en-US
+To: "David Hildenbrand (Arm)" <david@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>, dave.hansen@intel.com
 Cc: Liam.Howlett@oracle.com, akpm@linux-foundation.org,
  aneesh.kumar@kernel.org, arnd@arndb.de, baohua@kernel.org,
  baolin.wang@linux.alibaba.com, boris.ostrovsky@oracle.com, bp@alien8.de,
- dave.hansen@intel.com, dave.hansen@linux.intel.com, dev.jain@arm.com,
- hpa@zytor.com, hughd@google.com, ioworker0@gmail.com, jannh@google.com,
- jgross@suse.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org,
+ dave.hansen@linux.intel.com, dev.jain@arm.com, hpa@zytor.com,
+ hughd@google.com, ioworker0@gmail.com, jannh@google.com, jgross@suse.com,
+ kvm@vger.kernel.org, linux-arch@vger.kernel.org,
  linux-kernel@vger.kernel.org, linux-mm@kvack.org,
  lorenzo.stoakes@oracle.com, mingo@redhat.com, npache@redhat.com,
  npiggin@gmail.com, pbonzini@redhat.com, riel@surriel.com,
@@ -58,119 +59,89 @@ References: <20260202095414.GE2995752@noisy.programming.kicks-ass.net>
  <540adec9-c483-460a-a682-f2076cf015c2@linux.dev>
  <20260202150957.GD1282955@noisy.programming.kicks-ass.net>
  <d6944cd8-d3b7-4b16-ab52-a61e7dc2221c@linux.dev>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
-Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <d6944cd8-d3b7-4b16-ab52-a61e7dc2221c@linux.dev>
+ <06d48a52-e4ec-47cd-b3fb-0fccd4dc49f4@kernel.org>
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Lance Yang <lance.yang@linux.dev>
+In-Reply-To: <06d48a52-e4ec-47cd-b3fb-0fccd4dc49f4@kernel.org>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On 2/2/26 16:52, Lance Yang wrote:
-> 
-> 
-> On 2026/2/2 23:09, Peter Zijlstra wrote:
->> On Mon, Feb 02, 2026 at 10:37:39PM +0800, Lance Yang wrote:
->>>
->>>
->>>
->>> PT_RECLAIM=y does have IPI for unshare/collapse — those paths call
->>> tlb_flush_unshared_tables() (for hugetlb unshare) and 
->>> collapse_huge_page()
->>> (in khugepaged collapse), which already send IPIs today (broadcast to 
->>> all
->>> CPUs via tlb_remove_table_sync_one()).
->>>
->>> What PT_RECLAIM=y doesn't need IPI for is table freeing (
->>> __tlb_remove_table_one() uses call_rcu() instead). But table 
->>> modification
->>> (unshare, collapse) still needs IPI to synchronize with lockless 
->>> walkers,
->>> regardless of PT_RECLAIM.
->>>
->>> So PT_RECLAIM=y is not broken; it already has IPI where needed. This 
->>> series
->>> just makes those IPIs targeted instead of broadcast. Does that clarify?
+
+
+On 2026/2/5 21:25, David Hildenbrand (Arm) wrote:
+> On 2/2/26 16:52, Lance Yang wrote:
 >>
->> Oh bah, reading is hard. I had missed they had more table_sync_one() 
->> calls,
->> rather than remove_table_one().
 >>
->> So you *can* replace table_sync_one() with rcu_sync(), that will provide
->> the same guarantees. Its just a 'little' bit slower on the update side,
->> but does not incur the read side cost.
+>> On 2026/2/2 23:09, Peter Zijlstra wrote:
+>>> On Mon, Feb 02, 2026 at 10:37:39PM +0800, Lance Yang wrote:
+>>>>
+>>>>
+>>>>
+>>>> PT_RECLAIM=y does have IPI for unshare/collapse — those paths call
+>>>> tlb_flush_unshared_tables() (for hugetlb unshare) and 
+>>>> collapse_huge_page()
+>>>> (in khugepaged collapse), which already send IPIs today (broadcast 
+>>>> to all
+>>>> CPUs via tlb_remove_table_sync_one()).
+>>>>
+>>>> What PT_RECLAIM=y doesn't need IPI for is table freeing (
+>>>> __tlb_remove_table_one() uses call_rcu() instead). But table 
+>>>> modification
+>>>> (unshare, collapse) still needs IPI to synchronize with lockless 
+>>>> walkers,
+>>>> regardless of PT_RECLAIM.
+>>>>
+>>>> So PT_RECLAIM=y is not broken; it already has IPI where needed. This 
+>>>> series
+>>>> just makes those IPIs targeted instead of broadcast. Does that clarify?
+>>>
+>>> Oh bah, reading is hard. I had missed they had more table_sync_one() 
+>>> calls,
+>>> rather than remove_table_one().
+>>>
+>>> So you *can* replace table_sync_one() with rcu_sync(), that will provide
+>>> the same guarantees. Its just a 'little' bit slower on the update side,
+>>> but does not incur the read side cost.
+>>
+>> Yep, we could replace the IPI with synchronize_rcu() on the sync side:
+>>
+>> - Currently: TLB flush → send IPI → wait for walkers to finish
+>> - With synchronize_rcu(): TLB flush → synchronize_rcu() -> waits for 
+>> grace period
+>>
+>> Lockless walkers (e.g. GUP-fast) use local_irq_disable(); 
+>> synchronize_rcu() also
+>> waits for regions with preemption/interrupts disabled, so it should 
+>> work, IIUC.
+>>
+>> And then, the trade-off would be:
+>> - Read side: zero cost (no per-CPU tracking)
+>> - Write side: wait for RCU grace period (potentially slower)
+>>
+>> For collapse/unshare, that write-side latency might be acceptable :)
+>>
+>> @David, what do you think?
 > 
-> Yep, we could replace the IPI with synchronize_rcu() on the sync side:
-> 
-> - Currently: TLB flush → send IPI → wait for walkers to finish
-> - With synchronize_rcu(): TLB flush → synchronize_rcu() -> waits for 
-> grace period
-> 
-> Lockless walkers (e.g. GUP-fast) use local_irq_disable(); 
-> synchronize_rcu() also
-> waits for regions with preemption/interrupts disabled, so it should 
-> work, IIUC.
-> 
-> And then, the trade-off would be:
-> - Read side: zero cost (no per-CPU tracking)
-> - Write side: wait for RCU grace period (potentially slower)
-> 
-> For collapse/unshare, that write-side latency might be acceptable :)
-> 
-> @David, what do you think?
+> Given that we just fixed the write-side latency from breaking Oracle's 
+> databases completely, we have to be a bit careful here :)
 
-Given that we just fixed the write-side latency from breaking Oracle's 
-databases completely, we have to be a bit careful here :)
+Yep, agreed.
 
-The thing is: on many x86 configs we don't need *any* TLB flushed or RCU 
-syncs.
+> 
+> The thing is: on many x86 configs we don't need *any* TLB flushed or RCU 
+> syncs.
 
-So "how much slower" are we talking about, especially on bigger/loaded 
-systems?
+Right. Looks like that is low-hanging fruit. I'll send that out 
+separately :)
 
--- 
-Cheers,
+> 
+> So "how much slower" are we talking about, especially on bigger/loaded 
+> systems?
 
-David
+Unfortunately the numbers are pretry bad. On an x86-64 64-core system
+under high load, each synchronize_rcu() is about *22.9* ms on average ...
+
+So for now, neither approach looks good: tracking on the read side adss
+cost to GUP-fast, and syncing on the write side e.g. synchronize_rcu()
+is too slow on large systems.
