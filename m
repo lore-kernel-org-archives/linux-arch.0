@@ -1,157 +1,498 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.17])
+Received: from sender4-of-o54.zoho.com (sender4-of-o54.zoho.com [136.143.188.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 510512FF154;
-	Thu,  5 Feb 2026 18:36:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.17
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770316603; cv=none; b=q5XMZfg2VDZr74UQoNk9ZYKRe5LP/yCYGbdX7xzplKbmbMDSECA20I2Gf/CiMQv1YGETHCwwBErV1RtI/RyKfDIFnf6Uuv256jOotfq134KrmhgWBlMx7qflaPo2y+Jkx5AL3ZPDUa8C5C99Iy1yuFS5f1wAqLjqvtS1ZuedFO8=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770316603; c=relaxed/simple;
-	bh=BRoiTGDD1DPstl6jjIry5OxGDVXQrFg9V+c5bc7ZNDo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=igD8tTZHh3qcPGyYS9TcjquLl6U/E/0HhM8cS3WTq4EP2jfJDnVGp0Ck4I+3oapFCGdBciM2qQSdoMNnbxF1af7+uJYfTU2MywPOO9axPTKXz/4JyH2Y4bfo5FWmg6GiiimNS49gKN7ctNmt1AnKdqeFYTdUzGNm92iS0Q+EkV0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=mMnk50vF; arc=none smtp.client-ip=198.175.65.17
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC2AF30649C;
+	Thu,  5 Feb 2026 18:49:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.54
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1770317343; cv=pass; b=spV1Mzod0qR/fA51NR9uPTCj6b00pkb5a7/Rr3uNbYt0gwCdyczS0ERkBeK+7fxU/QyX4lKDLMPxs+fO0wUWU5tanKygverQZYWafHJLQmrswH20JDzt0xGh7CQ7mcahbGFeZfbWVvyPwLZ+YUbPU2FnxayhJkQQogN92IaqOkU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1770317343; c=relaxed/simple;
+	bh=Vh2oP1Cm03rchO4Ng4g1WIm/z+mD9qqktuyHYR0W5EA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=csSp4Jrr0cv1d8MTLYchRZbRKgR5PEoe8ivky7hWAq2zfm8dTB7NF+UcTtF5esGNHUWLPVWL3zvebI5hAeHMW5ROV4LN994EBfoPPFZg0D4cW1LPebvQQFcQL9P+yaGwALvskMaE++aK7SyJE2LkG+UeHhseG7llE3rEB7FnDXM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=QKUYfyuc; arc=pass smtp.client-ip=136.143.188.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=anirudhrb.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="mMnk50vF"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1770316603; x=1801852603;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=BRoiTGDD1DPstl6jjIry5OxGDVXQrFg9V+c5bc7ZNDo=;
-  b=mMnk50vFZNSNjVxBTV+g5JDRBsbv5dCUEJvvTCN5BrQlfHjjU43F0D20
-   c7LIzhG8e0ToeulirHU+KJbIGDZHjcwcSqlJSJPWJ6Jq2kYQGIyeNRA9J
-   aGOq8VQ/G7Za2n9Q1//T8Sd8NKM3j1NRvCyLO1AG3APjS2u6hGjP/fVzD
-   5zsXCdfyEXIANGF7NQOCHfxxLArDhkoBoZOWnY5JWmOOzu+wif2cCnyEk
-   gcE2JH/a/kJyKqcJFhBbNZLL0yqhZg9xYcRszC6X846FAeAroHCDHzZBV
-   XqQN+SX5ayDNwSDXzJCuS4bxio1fSD+u+9VjF4AZyTfLiEI+GPz6PwVvK
-   Q==;
-X-CSE-ConnectionGUID: juuLh3FbQuKMSF8oTvv+dw==
-X-CSE-MsgGUID: j3MOu1EmQ8m68+xNhp48ZA==
-X-IronPort-AV: E=McAfee;i="6800,10657,11692"; a="71514781"
-X-IronPort-AV: E=Sophos;i="6.21,275,1763452800"; 
-   d="scan'208";a="71514781"
-Received: from orviesa009.jf.intel.com ([10.64.159.149])
-  by orvoesa109.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Feb 2026 10:36:42 -0800
-X-CSE-ConnectionGUID: gXKa7sqmSK6D/KjxOc4B2g==
-X-CSE-MsgGUID: wizrHLKHQe6FZo0fvb0otQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,275,1763452800"; 
-   d="scan'208";a="210428597"
-Received: from tfalcon-desk.amr.corp.intel.com (HELO [10.125.111.86]) ([10.125.111.86])
-  by orviesa009-auth.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Feb 2026 10:36:40 -0800
-Message-ID: <dfdfeac9-5cd5-46fc-a5c1-9ccf9bd3502a@intel.com>
-Date: Thu, 5 Feb 2026 10:36:40 -0800
+	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="QKUYfyuc"
+ARC-Seal: i=1; a=rsa-sha256; t=1770317290; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=VxxiQZ8Si+cWrV870ZJYhAOLbxYCPc2kvxRJmkTJj9ac5/p5vkop8LbvtPVmvPqh32nFOfmDlxg1VfLPYNoQXM4+gepkfurb+m2l4IF4QaTLNJXGI414AmKUIU5Mn1CP+P76OqXQtnB+uUwdIOaE6S9Au5tS0Kz68v6Wj8tdvhI=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1770317290; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=KO0xB+xmzULqqY6PqjNDWqiMvaiTGN2sWMUiGRmryfU=; 
+	b=R6uSDm0mWdBb5+zuOI2gdSwhzoxgvyLdgPpsFfhVhjvQmUVa4PdgcxuP6CNJKwa/A/WliUL1PPDeKatnsbZGa4lBOTOWecRzRgfpnIlK4Z/Dw78pHq/xSES8Vxdev+teat4Xm9FbYyGjwFGLgMbVt7AoyrGAdXeUxyHlomUKFMg=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=anirudhrb.com;
+	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
+	dmarc=pass header.from=<anirudh@anirudhrb.com>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1770317289;
+	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
+	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
+	bh=KO0xB+xmzULqqY6PqjNDWqiMvaiTGN2sWMUiGRmryfU=;
+	b=QKUYfyucCzTIaEgwNQ1g8534g9sEp095La2jtIZYHo7xgMTPibicMfizIFkdXFC5
+	kaSBXaKEcllmiPGx5snT87wtn971gQiHEkwospHXlcBhJ3SGqWwkXnAgTpUhQB1fJ+i
+	dA34i/fLky8JJj0NuE7xXx8beuP60bE/UxrLRCYc=
+Received: by mx.zohomail.com with SMTPS id 1770317286060380.11045380201017;
+	Thu, 5 Feb 2026 10:48:06 -0800 (PST)
+Date: Fri, 6 Feb 2026 00:17:54 +0530
+From: Anirudh Rayabharam <anirudh@anirudhrb.com>
+To: Mukesh R <mrathor@linux.microsoft.com>
+Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
+	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev, linux-pci@vger.kernel.org, 
+	linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org, 
+	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org, 
+	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, 
+	hpa@zytor.com, joro@8bytes.org, lpieralisi@kernel.org, kwilczynski@kernel.org, 
+	mani@kernel.org, robh@kernel.org, bhelgaas@google.com, arnd@arndb.de, 
+	nunodasneves@linux.microsoft.com, mhklinux@outlook.com, romank@linux.microsoft.com
+Subject: Re: [PATCH v0 02/15] x86/hyperv: cosmetic changes in irqdomain.c for
+ readability
+Message-ID: <d7kv4dlv34ieh6o4wyb53wxwbiphbtlnn65g3tnxzjxilrdxu5@zrxlmhx2lye6>
+References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
+ <20260120064230.3602565-3-mrathor@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table
-To: "David Hildenbrand (Arm)" <david@kernel.org>,
- Matthew Wilcox <willy@infradead.org>, Lance Yang <lance.yang@linux.dev>
-Cc: Peter Zijlstra <peterz@infradead.org>, Liam.Howlett@oracle.com,
- akpm@linux-foundation.org, aneesh.kumar@kernel.org, arnd@arndb.de,
- baohua@kernel.org, baolin.wang@linux.alibaba.com,
- boris.ostrovsky@oracle.com, bp@alien8.de, dave.hansen@linux.intel.com,
- dev.jain@arm.com, hpa@zytor.com, hughd@google.com, ioworker0@gmail.com,
- jannh@google.com, jgross@suse.com, kvm@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, lorenzo.stoakes@oracle.com, mingo@redhat.com,
- npache@redhat.com, npiggin@gmail.com, pbonzini@redhat.com, riel@surriel.com,
- ryan.roberts@arm.com, seanjc@google.com, shy828301@gmail.com,
- tglx@linutronix.de, virtualization@lists.linux.dev, will@kernel.org,
- x86@kernel.org, ypodemsk@redhat.com, ziy@nvidia.com
-References: <20260202133713.GF1395266@noisy.programming.kicks-ass.net>
- <540adec9-c483-460a-a682-f2076cf015c2@linux.dev>
- <20260202150957.GD1282955@noisy.programming.kicks-ass.net>
- <d6944cd8-d3b7-4b16-ab52-a61e7dc2221c@linux.dev>
- <06d48a52-e4ec-47cd-b3fb-0fccd4dc49f4@kernel.org>
- <3026ad8d-92ad-4683-8c3e-733d4070d033@linux.dev>
- <64f3a75a-30ff-4bee-833c-be5dba05f72b@intel.com>
- <c985a8ed-37ad-415e-b7b4-18a66b4da3fe@linux.dev>
- <647cbe2e-a034-4a75-9492-21ea1708eccc@intel.com>
- <99237729-f2b0-4a7a-8213-65a2f1c57744@linux.dev>
- <aYTJzft5cuqD9akC@casper.infradead.org>
- <6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260120064230.3602565-3-mrathor@linux.microsoft.com>
+X-ZohoMailClient: External
 
-On 2/5/26 09:06, David Hildenbrand (Arm) wrote:
->> But can't we RCU-free the page table?  Why do we need to wait for the
->> RCU readers to finish?
+On Mon, Jan 19, 2026 at 10:42:17PM -0800, Mukesh R wrote:
+> From: Mukesh Rathor <mrathor@linux.microsoft.com>
 > 
-> For unsharing hugetlb PMD tables the problem is not the freeing but the
-> reuse of the PMD table for other purposes in the last remaining user.
-> It's complicated.
+> Make cosmetic changes:
+>  o Rename struct pci_dev *dev to *pdev since there are cases of
+>    struct device *dev in the file and all over the kernel
+>  o Rename hv_build_pci_dev_id to hv_build_devid_type_pci in anticipation
+>    of building different types of device ids
+>  o Fix checkpatch.pl issues with return and extraneous printk
+>  o Replace spaces with tabs
+>  o Rename struct hv_devid *xxx to struct hv_devid *hv_devid given code
+>    paths involve many types of device ids
+>  o Fix indentation in a large if block by using goto.
+> 
+> There are no functional changes.
+> 
+> Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
+> ---
+>  arch/x86/hyperv/irqdomain.c | 197 +++++++++++++++++++-----------------
+>  1 file changed, 103 insertions(+), 94 deletions(-)
+> 
+> diff --git a/arch/x86/hyperv/irqdomain.c b/arch/x86/hyperv/irqdomain.c
+> index c3ba12b1bc07..f6b61483b3b8 100644
+> --- a/arch/x86/hyperv/irqdomain.c
+> +++ b/arch/x86/hyperv/irqdomain.c
+> @@ -1,5 +1,4 @@
+>  // SPDX-License-Identifier: GPL-2.0
+> -
+>  /*
+>   * Irqdomain for Linux to run as the root partition on Microsoft Hypervisor.
+>   *
+> @@ -14,8 +13,8 @@
+>  #include <linux/irqchip/irq-msi-lib.h>
+>  #include <asm/mshyperv.h>
+>  
+> -static int hv_map_interrupt(union hv_device_id device_id, bool level,
+> -		int cpu, int vector, struct hv_interrupt_entry *entry)
+> +static int hv_map_interrupt(union hv_device_id hv_devid, bool level,
+> +		int cpu, int vector, struct hv_interrupt_entry *ret_entry)
+>  {
+>  	struct hv_input_map_device_interrupt *input;
+>  	struct hv_output_map_device_interrupt *output;
+> @@ -32,7 +31,7 @@ static int hv_map_interrupt(union hv_device_id device_id, bool level,
+>  	intr_desc = &input->interrupt_descriptor;
+>  	memset(input, 0, sizeof(*input));
+>  	input->partition_id = hv_current_partition_id;
+> -	input->device_id = device_id.as_uint64;
+> +	input->device_id = hv_devid.as_uint64;
+>  	intr_desc->interrupt_type = HV_X64_INTERRUPT_TYPE_FIXED;
+>  	intr_desc->vector_count = 1;
+>  	intr_desc->target.vector = vector;
+> @@ -44,7 +43,7 @@ static int hv_map_interrupt(union hv_device_id device_id, bool level,
+>  
+>  	intr_desc->target.vp_set.valid_bank_mask = 0;
+>  	intr_desc->target.vp_set.format = HV_GENERIC_SET_SPARSE_4K;
+> -	nr_bank = cpumask_to_vpset(&(intr_desc->target.vp_set), cpumask_of(cpu));
+> +	nr_bank = cpumask_to_vpset(&intr_desc->target.vp_set, cpumask_of(cpu));
+>  	if (nr_bank < 0) {
+>  		local_irq_restore(flags);
+>  		pr_err("%s: unable to generate VP set\n", __func__);
+> @@ -61,7 +60,7 @@ static int hv_map_interrupt(union hv_device_id device_id, bool level,
+>  
+>  	status = hv_do_rep_hypercall(HVCALL_MAP_DEVICE_INTERRUPT, 0, var_size,
+>  			input, output);
+> -	*entry = output->interrupt_entry;
+> +	*ret_entry = output->interrupt_entry;
+>  
+>  	local_irq_restore(flags);
+>  
+> @@ -71,21 +70,19 @@ static int hv_map_interrupt(union hv_device_id device_id, bool level,
+>  	return hv_result_to_errno(status);
+>  }
+>  
+> -static int hv_unmap_interrupt(u64 id, struct hv_interrupt_entry *old_entry)
+> +static int hv_unmap_interrupt(u64 id, struct hv_interrupt_entry *irq_entry)
+>  {
+>  	unsigned long flags;
+>  	struct hv_input_unmap_device_interrupt *input;
+> -	struct hv_interrupt_entry *intr_entry;
+>  	u64 status;
+>  
+>  	local_irq_save(flags);
+>  	input = *this_cpu_ptr(hyperv_pcpu_input_arg);
+>  
+>  	memset(input, 0, sizeof(*input));
+> -	intr_entry = &input->interrupt_entry;
+>  	input->partition_id = hv_current_partition_id;
+>  	input->device_id = id;
+> -	*intr_entry = *old_entry;
+> +	input->interrupt_entry = *irq_entry;
+>  
+>  	status = hv_do_hypercall(HVCALL_UNMAP_DEVICE_INTERRUPT, input, NULL);
+>  	local_irq_restore(flags);
+> @@ -115,67 +112,71 @@ static int get_rid_cb(struct pci_dev *pdev, u16 alias, void *data)
+>  	return 0;
+>  }
+>  
+> -static union hv_device_id hv_build_pci_dev_id(struct pci_dev *dev)
+> +static union hv_device_id hv_build_devid_type_pci(struct pci_dev *pdev)
+>  {
+> -	union hv_device_id dev_id;
+> +	int pos;
+> +	union hv_device_id hv_devid;
+>  	struct rid_data data = {
+>  		.bridge = NULL,
+> -		.rid = PCI_DEVID(dev->bus->number, dev->devfn)
+> +		.rid = PCI_DEVID(pdev->bus->number, pdev->devfn)
+>  	};
+>  
+> -	pci_for_each_dma_alias(dev, get_rid_cb, &data);
+> +	pci_for_each_dma_alias(pdev, get_rid_cb, &data);
+>  
+> -	dev_id.as_uint64 = 0;
+> -	dev_id.device_type = HV_DEVICE_TYPE_PCI;
+> -	dev_id.pci.segment = pci_domain_nr(dev->bus);
+> +	hv_devid.as_uint64 = 0;
+> +	hv_devid.device_type = HV_DEVICE_TYPE_PCI;
+> +	hv_devid.pci.segment = pci_domain_nr(pdev->bus);
+>  
+> -	dev_id.pci.bdf.bus = PCI_BUS_NUM(data.rid);
+> -	dev_id.pci.bdf.device = PCI_SLOT(data.rid);
+> -	dev_id.pci.bdf.function = PCI_FUNC(data.rid);
+> -	dev_id.pci.source_shadow = HV_SOURCE_SHADOW_NONE;
+> +	hv_devid.pci.bdf.bus = PCI_BUS_NUM(data.rid);
+> +	hv_devid.pci.bdf.device = PCI_SLOT(data.rid);
+> +	hv_devid.pci.bdf.function = PCI_FUNC(data.rid);
+> +	hv_devid.pci.source_shadow = HV_SOURCE_SHADOW_NONE;
+>  
+> -	if (data.bridge) {
+> -		int pos;
+> +	if (data.bridge == NULL)
+> +		goto out;
+>  
+> -		/*
+> -		 * Microsoft Hypervisor requires a bus range when the bridge is
+> -		 * running in PCI-X mode.
+> -		 *
+> -		 * To distinguish conventional vs PCI-X bridge, we can check
+> -		 * the bridge's PCI-X Secondary Status Register, Secondary Bus
+> -		 * Mode and Frequency bits. See PCI Express to PCI/PCI-X Bridge
+> -		 * Specification Revision 1.0 5.2.2.1.3.
+> -		 *
+> -		 * Value zero means it is in conventional mode, otherwise it is
+> -		 * in PCI-X mode.
+> -		 */
+> +	/*
+> +	 * Microsoft Hypervisor requires a bus range when the bridge is
+> +	 * running in PCI-X mode.
+> +	 *
+> +	 * To distinguish conventional vs PCI-X bridge, we can check
+> +	 * the bridge's PCI-X Secondary Status Register, Secondary Bus
+> +	 * Mode and Frequency bits. See PCI Express to PCI/PCI-X Bridge
+> +	 * Specification Revision 1.0 5.2.2.1.3.
+> +	 *
+> +	 * Value zero means it is in conventional mode, otherwise it is
+> +	 * in PCI-X mode.
+> +	 */
+>  
+> -		pos = pci_find_capability(data.bridge, PCI_CAP_ID_PCIX);
+> -		if (pos) {
+> -			u16 status;
+> +	pos = pci_find_capability(data.bridge, PCI_CAP_ID_PCIX);
+> +	if (pos) {
+> +		u16 status;
+>  
+> -			pci_read_config_word(data.bridge, pos +
+> -					PCI_X_BRIDGE_SSTATUS, &status);
+> +		pci_read_config_word(data.bridge, pos + PCI_X_BRIDGE_SSTATUS,
+> +				     &status);
+>  
+> -			if (status & PCI_X_SSTATUS_FREQ) {
+> -				/* Non-zero, PCI-X mode */
+> -				u8 sec_bus, sub_bus;
+> +		if (status & PCI_X_SSTATUS_FREQ) {
+> +			/* Non-zero, PCI-X mode */
+> +			u8 sec_bus, sub_bus;
+>  
+> -				dev_id.pci.source_shadow = HV_SOURCE_SHADOW_BRIDGE_BUS_RANGE;
+> +			hv_devid.pci.source_shadow =
+> +					     HV_SOURCE_SHADOW_BRIDGE_BUS_RANGE;
+>  
+> -				pci_read_config_byte(data.bridge, PCI_SECONDARY_BUS, &sec_bus);
+> -				dev_id.pci.shadow_bus_range.secondary_bus = sec_bus;
+> -				pci_read_config_byte(data.bridge, PCI_SUBORDINATE_BUS, &sub_bus);
+> -				dev_id.pci.shadow_bus_range.subordinate_bus = sub_bus;
+> -			}
+> +			pci_read_config_byte(data.bridge, PCI_SECONDARY_BUS,
+> +					     &sec_bus);
+> +			hv_devid.pci.shadow_bus_range.secondary_bus = sec_bus;
+> +			pci_read_config_byte(data.bridge, PCI_SUBORDINATE_BUS,
+> +					     &sub_bus);
+> +			hv_devid.pci.shadow_bus_range.subordinate_bus = sub_bus;
+>  		}
+>  	}
+>  
+> -	return dev_id;
+> +out:
+> +	return hv_devid;
+>  }
+>  
+> -/**
+> - * hv_map_msi_interrupt() - "Map" the MSI IRQ in the hypervisor.
+> +/*
+> + * hv_map_msi_interrupt() - Map the MSI IRQ in the hypervisor.
+>   * @data:      Describes the IRQ
+>   * @out_entry: Hypervisor (MSI) interrupt entry (can be NULL)
+>   *
+> @@ -188,22 +189,23 @@ int hv_map_msi_interrupt(struct irq_data *data,
+>  {
+>  	struct irq_cfg *cfg = irqd_cfg(data);
+>  	struct hv_interrupt_entry dummy;
+> -	union hv_device_id device_id;
+> +	union hv_device_id hv_devid;
+>  	struct msi_desc *msidesc;
+> -	struct pci_dev *dev;
+> +	struct pci_dev *pdev;
+>  	int cpu;
+>  
+>  	msidesc = irq_data_get_msi_desc(data);
+> -	dev = msi_desc_to_pci_dev(msidesc);
+> -	device_id = hv_build_pci_dev_id(dev);
+> +	pdev = msi_desc_to_pci_dev(msidesc);
+> +	hv_devid = hv_build_devid_type_pci(pdev);
+>  	cpu = cpumask_first(irq_data_get_effective_affinity_mask(data));
+>  
+> -	return hv_map_interrupt(device_id, false, cpu, cfg->vector,
+> +	return hv_map_interrupt(hv_devid, false, cpu, cfg->vector,
+>  				out_entry ? out_entry : &dummy);
+>  }
+>  EXPORT_SYMBOL_GPL(hv_map_msi_interrupt);
+>  
+> -static inline void entry_to_msi_msg(struct hv_interrupt_entry *entry, struct msi_msg *msg)
+> +static void entry_to_msi_msg(struct hv_interrupt_entry *entry,
+> +			     struct msi_msg *msg)
+>  {
+>  	/* High address is always 0 */
+>  	msg->address_hi = 0;
+> @@ -211,17 +213,19 @@ static inline void entry_to_msi_msg(struct hv_interrupt_entry *entry, struct msi
+>  	msg->data = entry->msi_entry.data.as_uint32;
+>  }
+>  
+> -static int hv_unmap_msi_interrupt(struct pci_dev *dev, struct hv_interrupt_entry *old_entry);
+> +static int hv_unmap_msi_interrupt(struct pci_dev *pdev,
+> +				  struct hv_interrupt_entry *irq_entry);
+> +
+>  static void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+>  {
+>  	struct hv_interrupt_entry *stored_entry;
+>  	struct irq_cfg *cfg = irqd_cfg(data);
+>  	struct msi_desc *msidesc;
+> -	struct pci_dev *dev;
+> +	struct pci_dev *pdev;
+>  	int ret;
+>  
+>  	msidesc = irq_data_get_msi_desc(data);
+> -	dev = msi_desc_to_pci_dev(msidesc);
+> +	pdev = msi_desc_to_pci_dev(msidesc);
+>  
+>  	if (!cfg) {
+>  		pr_debug("%s: cfg is NULL", __func__);
+> @@ -240,7 +244,7 @@ static void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+>  		stored_entry = data->chip_data;
+>  		data->chip_data = NULL;
+>  
+> -		ret = hv_unmap_msi_interrupt(dev, stored_entry);
+> +		ret = hv_unmap_msi_interrupt(pdev, stored_entry);
+>  
+>  		kfree(stored_entry);
+>  
+> @@ -249,10 +253,8 @@ static void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+>  	}
+>  
+>  	stored_entry = kzalloc(sizeof(*stored_entry), GFP_ATOMIC);
+> -	if (!stored_entry) {
+> -		pr_debug("%s: failed to allocate chip data\n", __func__);
+> +	if (!stored_entry)
+>  		return;
+> -	}
+>  
+>  	ret = hv_map_msi_interrupt(data, stored_entry);
+>  	if (ret) {
+> @@ -262,18 +264,21 @@ static void hv_irq_compose_msi_msg(struct irq_data *data, struct msi_msg *msg)
+>  
+>  	data->chip_data = stored_entry;
+>  	entry_to_msi_msg(data->chip_data, msg);
+> -
+> -	return;
+>  }
+>  
+> -static int hv_unmap_msi_interrupt(struct pci_dev *dev, struct hv_interrupt_entry *old_entry)
+> +static int hv_unmap_msi_interrupt(struct pci_dev *pdev,
+> +				  struct hv_interrupt_entry *irq_entry)
+>  {
+> -	return hv_unmap_interrupt(hv_build_pci_dev_id(dev).as_uint64, old_entry);
+> +	union hv_device_id hv_devid;
+> +
+> +	hv_devid = hv_build_devid_type_pci(pdev);
+> +	return hv_unmap_interrupt(hv_devid.as_uint64, irq_entry);
+>  }
+>  
+> -static void hv_teardown_msi_irq(struct pci_dev *dev, struct irq_data *irqd)
+> +/* NB: during map, hv_interrupt_entry is saved via data->chip_data */
+> +static void hv_teardown_msi_irq(struct pci_dev *pdev, struct irq_data *irqd)
+>  {
+> -	struct hv_interrupt_entry old_entry;
+> +	struct hv_interrupt_entry irq_entry;
+>  	struct msi_msg msg;
+>  
+>  	if (!irqd->chip_data) {
+> @@ -281,13 +286,13 @@ static void hv_teardown_msi_irq(struct pci_dev *dev, struct irq_data *irqd)
+>  		return;
+>  	}
+>  
+> -	old_entry = *(struct hv_interrupt_entry *)irqd->chip_data;
+> -	entry_to_msi_msg(&old_entry, &msg);
+> +	irq_entry = *(struct hv_interrupt_entry *)irqd->chip_data;
+> +	entry_to_msi_msg(&irq_entry, &msg);
+>  
+>  	kfree(irqd->chip_data);
+>  	irqd->chip_data = NULL;
+>  
+> -	(void)hv_unmap_msi_interrupt(dev, &old_entry);
+> +	(void)hv_unmap_msi_interrupt(pdev, &irq_entry);
+>  }
+>  
+>  /*
+> @@ -302,7 +307,8 @@ static struct irq_chip hv_pci_msi_controller = {
+>  };
+>  
+>  static bool hv_init_dev_msi_info(struct device *dev, struct irq_domain *domain,
+> -				 struct irq_domain *real_parent, struct msi_domain_info *info)
+> +				 struct irq_domain *real_parent,
+> +				 struct msi_domain_info *info)
+>  {
+>  	struct irq_chip *chip = info->chip;
+>  
+> @@ -317,7 +323,8 @@ static bool hv_init_dev_msi_info(struct device *dev, struct irq_domain *domain,
+>  }
+>  
+>  #define HV_MSI_FLAGS_SUPPORTED	(MSI_GENERIC_FLAGS_MASK | MSI_FLAG_PCI_MSIX)
+> -#define HV_MSI_FLAGS_REQUIRED	(MSI_FLAG_USE_DEF_DOM_OPS | MSI_FLAG_USE_DEF_CHIP_OPS)
+> +#define HV_MSI_FLAGS_REQUIRED	(MSI_FLAG_USE_DEF_DOM_OPS |	\
+> +				 MSI_FLAG_USE_DEF_CHIP_OPS)
+>  
+>  static struct msi_parent_ops hv_msi_parent_ops = {
+>  	.supported_flags	= HV_MSI_FLAGS_SUPPORTED,
+> @@ -329,14 +336,13 @@ static struct msi_parent_ops hv_msi_parent_ops = {
+>  	.init_dev_msi_info	= hv_init_dev_msi_info,
+>  };
+>  
+> -static int hv_msi_domain_alloc(struct irq_domain *d, unsigned int virq, unsigned int nr_irqs,
+> -			       void *arg)
+> +static int hv_msi_domain_alloc(struct irq_domain *d, unsigned int virq,
+> +			       unsigned int nr_irqs, void *arg)
+>  {
+>  	/*
+> -	 * TODO: The allocation bits of hv_irq_compose_msi_msg(), i.e. everything except
+> -	 * entry_to_msi_msg() should be in here.
+> +	 * TODO: The allocation bits of hv_irq_compose_msi_msg(), i.e.
+> +	 *	 everything except entry_to_msi_msg() should be in here.
+>  	 */
+> -
+>  	int ret;
+>  
+>  	ret = irq_domain_alloc_irqs_parent(d, virq, nr_irqs, arg);
+> @@ -344,13 +350,15 @@ static int hv_msi_domain_alloc(struct irq_domain *d, unsigned int virq, unsigned
+>  		return ret;
+>  
+>  	for (int i = 0; i < nr_irqs; ++i) {
+> -		irq_domain_set_info(d, virq + i, 0, &hv_pci_msi_controller, NULL,
+> -				    handle_edge_irq, NULL, "edge");
+> +		irq_domain_set_info(d, virq + i, 0, &hv_pci_msi_controller,
+> +				    NULL, handle_edge_irq, NULL, "edge");
+>  	}
+> +
+>  	return 0;
+>  }
+>  
+> -static void hv_msi_domain_free(struct irq_domain *d, unsigned int virq, unsigned int nr_irqs)
+> +static void hv_msi_domain_free(struct irq_domain *d, unsigned int virq,
+> +			       unsigned int nr_irqs)
+>  {
+>  	for (int i = 0; i < nr_irqs; ++i) {
+>  		struct irq_data *irqd = irq_domain_get_irq_data(d, virq);
+> @@ -362,6 +370,7 @@ static void hv_msi_domain_free(struct irq_domain *d, unsigned int virq, unsigned
+>  
+>  		hv_teardown_msi_irq(to_pci_dev(desc->dev), irqd);
+>  	}
+> +
+>  	irq_domain_free_irqs_top(d, virq, nr_irqs);
+>  }
+>  
+> @@ -394,25 +403,25 @@ struct irq_domain * __init hv_create_pci_msi_domain(void)
+>  
+>  int hv_unmap_ioapic_interrupt(int ioapic_id, struct hv_interrupt_entry *entry)
+>  {
+> -	union hv_device_id device_id;
+> +	union hv_device_id hv_devid;
+>  
+> -	device_id.as_uint64 = 0;
+> -	device_id.device_type = HV_DEVICE_TYPE_IOAPIC;
+> -	device_id.ioapic.ioapic_id = (u8)ioapic_id;
+> +	hv_devid.as_uint64 = 0;
+> +	hv_devid.device_type = HV_DEVICE_TYPE_IOAPIC;
+> +	hv_devid.ioapic.ioapic_id = (u8)ioapic_id;
+>  
+> -	return hv_unmap_interrupt(device_id.as_uint64, entry);
+> +	return hv_unmap_interrupt(hv_devid.as_uint64, entry);
+>  }
+>  EXPORT_SYMBOL_GPL(hv_unmap_ioapic_interrupt);
+>  
+>  int hv_map_ioapic_interrupt(int ioapic_id, bool level, int cpu, int vector,
+>  		struct hv_interrupt_entry *entry)
+>  {
+> -	union hv_device_id device_id;
+> +	union hv_device_id hv_devid;
+>  
+> -	device_id.as_uint64 = 0;
+> -	device_id.device_type = HV_DEVICE_TYPE_IOAPIC;
+> -	device_id.ioapic.ioapic_id = (u8)ioapic_id;
+> +	hv_devid.as_uint64 = 0;
+> +	hv_devid.device_type = HV_DEVICE_TYPE_IOAPIC;
+> +	hv_devid.ioapic.ioapic_id = (u8)ioapic_id;
+>  
+> -	return hv_map_interrupt(device_id, level, cpu, vector, entry);
+> +	return hv_map_interrupt(hv_devid, level, cpu, vector, entry);
+>  }
+>  EXPORT_SYMBOL_GPL(hv_map_ioapic_interrupt);
+> -- 
+> 2.51.2.vfs.0.1
+> 
 
-Letting the previously-shared table get released to everything else in
-the system sounds like a fixable problem. tlb_flush_unshared_tables()
-talks about this, and it makes sense that once locks get dropped that
-something else could get mapped in and start using the PMD.
-
-The RCU way of fixing that would be to allocate new page table, replace
-the old one, and RCU-free the old one. Read, Copy, Update. :)
-
-It does temporarily eat up an extra page, and cost an extra copy. But
-neither of those seems expensive compared to IPI'ing the world.
-
-> For page table freeing, we only do it if we fail to allocate memory --
-> if we cannot use RCU IIRC.
-
-But that case is fine to be slow and use synchronize_rcu(). If you're
-failing to allocate a single page, you're in a way slow path anyway.
-
-> khugepaged, no idea.
-Sounds like Lance has some homework to do there. :)
+Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
