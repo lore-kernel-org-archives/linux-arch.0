@@ -1,147 +1,144 @@
-Received: from sender4-of-o55.zoho.com (sender4-of-o55.zoho.com [136.143.188.55])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A354267B07;
-	Thu,  5 Feb 2026 18:50:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.55
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770317409; cv=pass; b=mK0EV5KFV32HFvXhvmGuWe3piDt/DhzkWKDDWzWU/LlPeWXDAna6tuTUPbeYeYE9+HX8EI7EqPTZNDp8uVcHJT8ZFD3/+2339ktJlCj+x6twpkfj5sP3TuDhGcw/93XR6ueoSdQAheuwqwTRWbucV2SBlmjaWObf2jslg4fKz7s=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770317409; c=relaxed/simple;
-	bh=ebQfONrzVZnk56V1w8DGKsIG66VsIGGNTmswm/SYNUo=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Zq79/zXDW6UTGUzS/PhlbdnzKCUxW9vA1g85q448S3LlZnz/NniZYHqaljuT8QeU8XqW5MFZspz8/onl7QzyMt9Bl2W/5Mmt6639o9cE2Xjn+NI7e1u2EzgmMDWJ1iTCvZDIapZ0CRRdw/gZkb3jVBMyO0fDCe1lVckiWuQu/GM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=anirudhrb.com; spf=pass smtp.mailfrom=anirudhrb.com; dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b=zJELxluK; arc=pass smtp.client-ip=136.143.188.55
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=anirudhrb.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=anirudhrb.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DA6C232E6B8;
+	Thu,  5 Feb 2026 21:30:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1770327026; cv=none; b=ZhlPQ9/dsCe/pNW8ckOy977uKeoxNM2jlAM+LRPXk61+tsyttJwq51l2acmhA4EzRGUwrm1RjPLrWc5NLxd62TYa1CDcPhW6WgKIlUYtp0u8tb8+TIQwFuba2NVqqSJKC29eebqAQQE5/HewnkS6XHOlrc7Dx5/bFaEBr1ybPd4=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1770327026; c=relaxed/simple;
+	bh=Lx+GDw84ajKkD7Q7e2YiWEUXDPohIGrcgs1E8NQihRE=;
+	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
+	 In-Reply-To:Content-Type; b=ijsDdFrGBh+HK8E5p0j1B8/NSnWsSP0bLOu1q/XWjJOXx6rYCozTPr8viLIi5JjFgYCKE6cJigrrTM0UK+vTvTd3D75yGQ/hjzP59uIN8wedrOqOWQkh+MRbLkBKsoTknVyxTlGRZFHRyuVvR55Qn2WUUNxC6fpJ8mZs+knMc/g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=UWJa58im; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=anirudhrb.com header.i=anirudh@anirudhrb.com header.b="zJELxluK"
-ARC-Seal: i=1; a=rsa-sha256; t=1770317326; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=DLjgTy2wycUhNlMH3U19kIj6Pw/2ydCYHIl9vZTP7LPpf8mXzsOifu6giHW/ehqqYejFF8hNUztBGkMvfG3gnPdwXF7xAmCLOy0m3cWe8Sb2mt+8kNwXRVcNuoNhh0n6UFkak8SOpXnvnwcuCoPkNHS/QYRt+EkEIRHTUcUXVjc=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1770317326; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=RJdbNFsY9TlOa05vzFHONREoEz/o2CSPjvLyu9KhCYc=; 
-	b=C2h8MkmruQAlRleDlRtFISSjbIMlmMEVEFnSjLKnMXeFBiDtWYuFtgiJ7L5qjJ52ClIgGQ4Nz/G8h7abgSs8Bm9ImfDjyG7IeU18fLYKp6I6Q6F94rTxI/Q+lrts+NnpeYm6KqtEXUn8Bl4QRR9Tzjz5IMm6h30mYhPL4snfdsI=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=anirudhrb.com;
-	spf=pass  smtp.mailfrom=anirudh@anirudhrb.com;
-	dmarc=pass header.from=<anirudh@anirudhrb.com>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1770317326;
-	s=zoho; d=anirudhrb.com; i=anirudh@anirudhrb.com;
-	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
-	bh=RJdbNFsY9TlOa05vzFHONREoEz/o2CSPjvLyu9KhCYc=;
-	b=zJELxluK7gj9saqdX+6tFXDkCkEScqN7AkKaoIUhtO4Hq5bsmyRuGmhqZvZsjDXK
-	3yhV7O73n1cS0lMPeXSnbbRrgzwaxWp14SUP3XOyQ4uWp/RNV8T0/heFwrBkAcMrDdR
-	LeMmcSn10zrVK2IGSRCamsedJZH6dpdb0gz/z8C4=
-Received: by mx.zohomail.com with SMTPS id 1770317322465939.1179981344242;
-	Thu, 5 Feb 2026 10:48:42 -0800 (PST)
-Date: Fri, 6 Feb 2026 00:18:31 +0530
-From: Anirudh Rayabharam <anirudh@anirudhrb.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev, linux-pci@vger.kernel.org, 
-	linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org, 
-	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com, will@kernel.org, 
-	tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, 
-	hpa@zytor.com, joro@8bytes.org, lpieralisi@kernel.org, kwilczynski@kernel.org, 
-	mani@kernel.org, robh@kernel.org, bhelgaas@google.com, arnd@arndb.de, 
-	nunodasneves@linux.microsoft.com, mhklinux@outlook.com, romank@linux.microsoft.com
-Subject: Re: [PATCH v0 01/15] iommu/hyperv: rename hyperv-iommu.c to
- hyperv-irq.c
-Message-ID: <ekeis5txhdipwwjlgywonvi43rbut2szihvzl4wkrdqkmh5mlt@udamdt7ff3vo>
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120064230.3602565-2-mrathor@linux.microsoft.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="UWJa58im"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3CF3DC4CEF7;
+	Thu,  5 Feb 2026 21:30:16 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1770327026;
+	bh=Lx+GDw84ajKkD7Q7e2YiWEUXDPohIGrcgs1E8NQihRE=;
+	h=Date:Subject:From:To:Cc:References:In-Reply-To:From;
+	b=UWJa58imC0523bdHUwOv4s43hDkqXGIQPMlrIIoBFoNK5Q4WIDQtxwtXe9LRgv7C3
+	 1QOhGsuqa7ynp1ftSHwRBc4UYKNQPQHilUoIRYBu6uIlD7s6MVOdVRrnDVQMKnA0lt
+	 e6+/I/RmUZ3ndJGVodsAmXmCGSnYIDW3QpvPkGhYuqgaC5hXHneSYbLeskpQPGHxZ2
+	 IwNCwiebzbU5H7TgTuurErSwRhUQVzMASWNT0ykO2LdV0Co4UK752mykmHWViMd30t
+	 Z7FcWNRAjEhgh2CYvI6dF9duOwmDfMiuXG3HQsi8YuTLX66jVqQuIVP3rADGoClRKg
+	 7odoQAFZkaeLQ==
+Message-ID: <2cb4503d-3a3f-4f6c-8038-7b3d1c74b3c2@kernel.org>
+Date: Thu, 5 Feb 2026 22:30:14 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260120064230.3602565-2-mrathor@linux.microsoft.com>
-X-ZohoMailClient: External
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+To: Matthew Wilcox <willy@infradead.org>, Lance Yang <lance.yang@linux.dev>
+Cc: Dave Hansen <dave.hansen@intel.com>, Peter Zijlstra
+ <peterz@infradead.org>, Liam.Howlett@oracle.com, akpm@linux-foundation.org,
+ aneesh.kumar@kernel.org, arnd@arndb.de, baohua@kernel.org,
+ baolin.wang@linux.alibaba.com, boris.ostrovsky@oracle.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, dev.jain@arm.com, hpa@zytor.com,
+ hughd@google.com, ioworker0@gmail.com, jannh@google.com, jgross@suse.com,
+ kvm@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+ lorenzo.stoakes@oracle.com, mingo@redhat.com, npache@redhat.com,
+ npiggin@gmail.com, pbonzini@redhat.com, riel@surriel.com,
+ ryan.roberts@arm.com, seanjc@google.com, shy828301@gmail.com,
+ tglx@linutronix.de, virtualization@lists.linux.dev, will@kernel.org,
+ x86@kernel.org, ypodemsk@redhat.com, ziy@nvidia.com
+References: <20260202133713.GF1395266@noisy.programming.kicks-ass.net>
+ <540adec9-c483-460a-a682-f2076cf015c2@linux.dev>
+ <20260202150957.GD1282955@noisy.programming.kicks-ass.net>
+ <d6944cd8-d3b7-4b16-ab52-a61e7dc2221c@linux.dev>
+ <06d48a52-e4ec-47cd-b3fb-0fccd4dc49f4@kernel.org>
+ <3026ad8d-92ad-4683-8c3e-733d4070d033@linux.dev>
+ <64f3a75a-30ff-4bee-833c-be5dba05f72b@intel.com>
+ <c985a8ed-37ad-415e-b7b4-18a66b4da3fe@linux.dev>
+ <647cbe2e-a034-4a75-9492-21ea1708eccc@intel.com>
+ <99237729-f2b0-4a7a-8213-65a2f1c57744@linux.dev>
+ <aYTJzft5cuqD9akC@casper.infradead.org>
+ <6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 
-On Mon, Jan 19, 2026 at 10:42:16PM -0800, Mukesh R wrote:
-> From: Mukesh Rathor <mrathor@linux.microsoft.com>
+On 2/5/26 18:06, David Hildenbrand (Arm) wrote:
+> On 2/5/26 17:48, Matthew Wilcox wrote:
+>> On Fri, Feb 06, 2026 at 12:30:56AM +0800, Lance Yang wrote:
+>>>
+>>> The issue is we're about to free the page table (e.g.
+>>> pmdp_collapse_flush()).
+>>>
+>>> We have to ensure no walker is still doing a lockless page-table walk
+>>> when the page directories are freed, otherwise we get use-after-free.
+>>
+>> But can't we RCU-free the page table?  Why do we need to wait for the
+>> RCU readers to finish?
 > 
-> This file actually implements irq remapping, so rename to more appropriate
-> hyperv-irq.c. A new file named hyperv-iommu.c will be introduced later.
-> Also, move CONFIG_IRQ_REMAP out of the file and add to Makefile.
+> For unsharing hugetlb PMD tables the problem is not the freeing but the 
+> reuse of the PMD table for other purposes in the last remaining user. 
+> It's complicated.
 > 
-> Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
+> For page table freeing, we only do it if we fail to allocate memory -- 
+> if we cannot use RCU IIRC.
+> 
+> khugepaged, no idea.
 
-Reviewed-by: Anirudh Rayabharam (Microsoft) <anirudh@anirudhrb.com>
+Now that I had dinner my memory comes back: for khugepaged, we have to 
+make sure there is no concurrent GUP-fast before collapsing and 
+(possibly) freeing the page table / re-depositing it.
 
-> ---
->  MAINTAINERS                                    | 2 +-
->  drivers/iommu/Kconfig                          | 1 +
->  drivers/iommu/Makefile                         | 2 +-
->  drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} | 4 ----
->  4 files changed, 3 insertions(+), 6 deletions(-)
->  rename drivers/iommu/{hyperv-iommu.c => hyperv-irq.c} (99%)
-> 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index 5b11839cba9d..381a0e086382 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -11741,7 +11741,7 @@ F:	drivers/hid/hid-hyperv.c
->  F:	drivers/hv/
->  F:	drivers/infiniband/hw/mana/
->  F:	drivers/input/serio/hyperv-keyboard.c
-> -F:	drivers/iommu/hyperv-iommu.c
-> +F:	drivers/iommu/hyperv-irq.c
->  F:	drivers/net/ethernet/microsoft/
->  F:	drivers/net/hyperv/
->  F:	drivers/pci/controller/pci-hyperv-intf.c
-> diff --git a/drivers/iommu/Kconfig b/drivers/iommu/Kconfig
-> index 99095645134f..b4cc2b42b338 100644
-> --- a/drivers/iommu/Kconfig
-> +++ b/drivers/iommu/Kconfig
-> @@ -355,6 +355,7 @@ config HYPERV_IOMMU
->  	bool "Hyper-V IRQ Handling"
->  	depends on HYPERV && X86
->  	select IOMMU_API
-> +	select IRQ_REMAP
->  	default HYPERV
->  	help
->  	  Stub IOMMU driver to handle IRQs to support Hyper-V Linux
-> diff --git a/drivers/iommu/Makefile b/drivers/iommu/Makefile
-> index 8e8843316c4b..598c39558e7d 100644
-> --- a/drivers/iommu/Makefile
-> +++ b/drivers/iommu/Makefile
-> @@ -30,7 +30,7 @@ obj-$(CONFIG_TEGRA_IOMMU_SMMU) += tegra-smmu.o
->  obj-$(CONFIG_EXYNOS_IOMMU) += exynos-iommu.o
->  obj-$(CONFIG_FSL_PAMU) += fsl_pamu.o fsl_pamu_domain.o
->  obj-$(CONFIG_S390_IOMMU) += s390-iommu.o
-> -obj-$(CONFIG_HYPERV_IOMMU) += hyperv-iommu.o
-> +obj-$(CONFIG_HYPERV_IOMMU) += hyperv-irq.o
->  obj-$(CONFIG_VIRTIO_IOMMU) += virtio-iommu.o
->  obj-$(CONFIG_IOMMU_SVA) += iommu-sva.o
->  obj-$(CONFIG_IOMMU_IOPF) += io-pgfault.o
-> diff --git a/drivers/iommu/hyperv-iommu.c b/drivers/iommu/hyperv-irq.c
-> similarity index 99%
-> rename from drivers/iommu/hyperv-iommu.c
-> rename to drivers/iommu/hyperv-irq.c
-> index 0961ac805944..1944440a5004 100644
-> --- a/drivers/iommu/hyperv-iommu.c
-> +++ b/drivers/iommu/hyperv-irq.c
-> @@ -24,8 +24,6 @@
->  
->  #include "irq_remapping.h"
->  
-> -#ifdef CONFIG_IRQ_REMAP
-> -
->  /*
->   * According 82093AA IO-APIC spec , IO APIC has a 24-entry Interrupt
->   * Redirection Table. Hyper-V exposes one single IO-APIC and so define
-> @@ -330,5 +328,3 @@ static const struct irq_domain_ops hyperv_root_ir_domain_ops = {
->  	.alloc = hyperv_root_irq_remapping_alloc,
->  	.free = hyperv_root_irq_remapping_free,
->  };
-> -
-> -#endif
-> -- 
-> 2.51.2.vfs.0.1
-> 
+-- 
+Cheers,
+
+David
