@@ -1,341 +1,116 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 1F52D1A9FBA;
-	Thu,  5 Feb 2026 16:28:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from out-178.mta1.migadu.com (out-178.mta1.migadu.com [95.215.58.178])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7CB9742EEDD
+	for <linux-arch@vger.kernel.org>; Thu,  5 Feb 2026 16:31:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770308903; cv=none; b=HlUsD2bEQMyh8BNoegxPzOuvLoPTYCgjUrdN0JNg+xGyT3jeXEjRRuPiBlZzxAtK6OUfZZdYz9zoOnhupRUBwhJcoF3696uAkLgLPkBropCucT9EM4dF+of99GodBmMdmH2UBdph5BEEPOnBXMCT+4sQjVd6lbnB4jImGMh8nZo=
+	t=1770309073; cv=none; b=Af+A8qrjJvIkAv/0b5I+Q2sRVtvLz7QHM+wDSX2RjzMf4gNTFaNd9Y3bhlgbI2+SzMBThlB62IKBDmQ5zwppb/QmbSDB0Dygl733kWcQlmIGq7az9II1RfUB0TqEiyVvQBXS+ZMgIbCEAMGBitn4nFQBpT1cJZVLu+aNmLP0iME=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770308903; c=relaxed/simple;
-	bh=W8VlNfO2JHo/bnCgKOOJvg7DmWY2z2lpGn5jTY2Nj30=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=XNGmXqY08gXPoDtyovDQYadIWaSXKoGAE4nkU6wamU0bZHWZ4XwwWDxndQ4pR3Y42Ku7Kx1DRSbQMd1fN69Fyfc2zOYv9lJ5UCk4SWtZXgTzXzpo8EBuTWNYyi9q40wOd4wwz+PXfReYijrRxVNsEw7gYJCiFosGyU2qTsvOSok=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=H0SyIUB8; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1770309073; c=relaxed/simple;
+	bh=RgYjy/FS3gKarTqUKXeh64DjCJJ1+NOM6TVLekmHaUo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=lSoGBiz7e41dnh44vSkooqMNEu07jKnVGTy25ttentFgyXng4Nld1rssXfyIS2M1V0hGmrwSxvUsxv7/zqbyMldDL46fmbPxu+NUXNvYw0AcUX92bew3oAqqDyeqArSMSU5MtEXB9WkIHvz9jW1nmzUNzkeCPmmpV+Wz/3pvBzI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=l1TzN3rS; arc=none smtp.client-ip=95.215.58.178
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="H0SyIUB8"
-Received: from skinsburskii.localdomain (unknown [52.148.138.235])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 3899820B7168;
-	Thu,  5 Feb 2026 08:28:21 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3899820B7168
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1770308902;
-	bh=hEKNI4pc8JGeBxj0hB9EVA+YavUvMccFeARgB1ErhQ8=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=H0SyIUB8WvuLjuLyMvCF5pJe/r3PpXQFAtQ4RP+Y9O1+KKvMLZLZKhF1o3XchbQAu
-	 FMtriiJF20YerGvVCKXLbgTG14HA1BwdWo6N9LN20iEqQr9zRBh+odMGZXCucIqMYO
-	 HdIxlXCrX9Yk/MCa5HO0J6hHgIZtHLKC3vPhnFiI=
-Date: Thu, 5 Feb 2026 08:28:20 -0800
-From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-To: Mukesh R <mrathor@linux.microsoft.com>
-Cc: linux-kernel@vger.kernel.org, linux-hyperv@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, iommu@lists.linux.dev,
-	linux-pci@vger.kernel.org, linux-arch@vger.kernel.org,
-	kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
-	decui@microsoft.com, longli@microsoft.com, catalin.marinas@arm.com,
-	will@kernel.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
-	dave.hansen@linux.intel.com, hpa@zytor.com, joro@8bytes.org,
-	lpieralisi@kernel.org, kwilczynski@kernel.org, mani@kernel.org,
-	robh@kernel.org, bhelgaas@google.com, arnd@arndb.de,
-	nunodasneves@linux.microsoft.com, mhklinux@outlook.com
-Subject: Re: [PATCH v0 15/15] mshv: Populate mmio mappings for PCI passthru
-Message-ID: <aYTFJB4UcRkL2NwG@skinsburskii.localdomain>
-References: <20260120064230.3602565-1-mrathor@linux.microsoft.com>
- <20260120064230.3602565-16-mrathor@linux.microsoft.com>
- <aXAxmYm4zbOzGztz@skinsburskii.localdomain>
- <45e7a4c0-f1d8-b8b4-8c03-56d06845323b@linux.microsoft.com>
- <aXevWXolgNrrLltF@skinsburskii.localdomain>
- <f39a501e-478f-66ff-26c8-229ca3991f4f@linux.microsoft.com>
- <aXkKhGvpaHUGclI-@skinsburskii.localdomain>
- <8d798da6-1720-ceea-f1b0-62ca675085c8@linux.microsoft.com>
- <aYDROXpR5kvlylGG@skinsburskii.localdomain>
- <596c9549-9edc-91f3-7473-e206ddc68e76@linux.microsoft.com>
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="l1TzN3rS"
+Message-ID: <99237729-f2b0-4a7a-8213-65a2f1c57744@linux.dev>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1770309071;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=IbZHvzzZjCNHqfw2Za1VcDxMPMr4DhRUSdKJcr9E8gk=;
+	b=l1TzN3rSqTHJAvlDtvSYCjaDB4zHST0ryzOd0kL2Ys4/vjxmH2+LAUikMM571gueD62OzJ
+	VhGD/7n8hlqhrRpZlPJIyvs0jsS8km8JF9zNNTaZ41HqkE2adsSo3LB7bY52C6Du4BCLNi
+	4YVw83ojYxp2S5dWu1dipTU3aJVgcIU=
+Date: Fri, 6 Feb 2026 00:30:56 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <596c9549-9edc-91f3-7473-e206ddc68e76@linux.microsoft.com>
+Subject: Re: [PATCH v4 0/3] targeted TLB sync IPIs for lockless page table
+Content-Language: en-US
+To: Dave Hansen <dave.hansen@intel.com>,
+ "David Hildenbrand (Arm)" <david@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>
+Cc: Liam.Howlett@oracle.com, akpm@linux-foundation.org,
+ aneesh.kumar@kernel.org, arnd@arndb.de, baohua@kernel.org,
+ baolin.wang@linux.alibaba.com, boris.ostrovsky@oracle.com, bp@alien8.de,
+ dave.hansen@linux.intel.com, dev.jain@arm.com, hpa@zytor.com,
+ hughd@google.com, ioworker0@gmail.com, jannh@google.com, jgross@suse.com,
+ kvm@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org,
+ lorenzo.stoakes@oracle.com, mingo@redhat.com, npache@redhat.com,
+ npiggin@gmail.com, pbonzini@redhat.com, riel@surriel.com,
+ ryan.roberts@arm.com, seanjc@google.com, shy828301@gmail.com,
+ tglx@linutronix.de, virtualization@lists.linux.dev, will@kernel.org,
+ x86@kernel.org, ypodemsk@redhat.com, ziy@nvidia.com
+References: <20260202095414.GE2995752@noisy.programming.kicks-ass.net>
+ <20260202110329.74397-1-lance.yang@linux.dev>
+ <20260202125030.GB1395266@noisy.programming.kicks-ass.net>
+ <c6fda7c2-ad54-416a-a869-1499c97c7bd7@linux.dev>
+ <4700e7ba-8456-4a93-9e28-7e5a3ca2a1be@linux.dev>
+ <20260202133713.GF1395266@noisy.programming.kicks-ass.net>
+ <540adec9-c483-460a-a682-f2076cf015c2@linux.dev>
+ <20260202150957.GD1282955@noisy.programming.kicks-ass.net>
+ <d6944cd8-d3b7-4b16-ab52-a61e7dc2221c@linux.dev>
+ <06d48a52-e4ec-47cd-b3fb-0fccd4dc49f4@kernel.org>
+ <3026ad8d-92ad-4683-8c3e-733d4070d033@linux.dev>
+ <64f3a75a-30ff-4bee-833c-be5dba05f72b@intel.com>
+ <c985a8ed-37ad-415e-b7b4-18a66b4da3fe@linux.dev>
+ <647cbe2e-a034-4a75-9492-21ea1708eccc@intel.com>
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Lance Yang <lance.yang@linux.dev>
+In-Reply-To: <647cbe2e-a034-4a75-9492-21ea1708eccc@intel.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On Wed, Feb 04, 2026 at 02:52:54PM -0800, Mukesh R wrote:
-> On 2/2/26 08:30, Stanislav Kinsburskii wrote:
-> > On Fri, Jan 30, 2026 at 02:17:24PM -0800, Mukesh R wrote:
-> > > On 1/27/26 10:57, Stanislav Kinsburskii wrote:
-> > > > On Mon, Jan 26, 2026 at 07:07:22PM -0800, Mukesh R wrote:
-> > > > > On 1/26/26 10:15, Stanislav Kinsburskii wrote:
-> > > > > > On Fri, Jan 23, 2026 at 06:19:15PM -0800, Mukesh R wrote:
-> > > > > > > On 1/20/26 17:53, Stanislav Kinsburskii wrote:
-> > > > > > > > On Mon, Jan 19, 2026 at 10:42:30PM -0800, Mukesh R wrote:
-> > > > > > > > > From: Mukesh Rathor <mrathor@linux.microsoft.com>
-> > > > > > > > > 
-> > > > > > > > > Upon guest access, in case of missing mmio mapping, the hypervisor
-> > > > > > > > > generates an unmapped gpa intercept. In this path, lookup the PCI
-> > > > > > > > > resource pfn for the guest gpa, and ask the hypervisor to map it
-> > > > > > > > > via hypercall. The PCI resource pfn is maintained by the VFIO driver,
-> > > > > > > > > and obtained via fixup_user_fault call (similar to KVM).
-> > > > > > > > > 
-> > > > > > > > > Signed-off-by: Mukesh Rathor <mrathor@linux.microsoft.com>
-> > > > > > > > > ---
-> > > > > > > > >      drivers/hv/mshv_root_main.c | 115 ++++++++++++++++++++++++++++++++++++
-> > > > > > > > >      1 file changed, 115 insertions(+)
-> > > > > > > > > 
-> > > > > > > > > diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
-> > > > > > > > > index 03f3aa9f5541..4c8bc7cd0888 100644
-> > > > > > > > > --- a/drivers/hv/mshv_root_main.c
-> > > > > > > > > +++ b/drivers/hv/mshv_root_main.c
-> > > > > > > > > @@ -56,6 +56,14 @@ struct hv_stats_page {
-> > > > > > > > >      	};
-> > > > > > > > >      } __packed;
-> > > > > > > > > +bool hv_nofull_mmio;   /* don't map entire mmio region upon fault */
-> > > > > > > > > +static int __init setup_hv_full_mmio(char *str)
-> > > > > > > > > +{
-> > > > > > > > > +	hv_nofull_mmio = true;
-> > > > > > > > > +	return 0;
-> > > > > > > > > +}
-> > > > > > > > > +__setup("hv_nofull_mmio", setup_hv_full_mmio);
-> > > > > > > > > +
-> > > > > > > > >      struct mshv_root mshv_root;
-> > > > > > > > >      enum hv_scheduler_type hv_scheduler_type;
-> > > > > > > > > @@ -612,6 +620,109 @@ mshv_partition_region_by_gfn(struct mshv_partition *partition, u64 gfn)
-> > > > > > > > >      }
-> > > > > > > > >      #ifdef CONFIG_X86_64
-> > > > > > > > > +
-> > > > > > > > > +/*
-> > > > > > > > > + * Check if uaddr is for mmio range. If yes, return 0 with mmio_pfn filled in
-> > > > > > > > > + * else just return -errno.
-> > > > > > > > > + */
-> > > > > > > > > +static int mshv_chk_get_mmio_start_pfn(struct mshv_partition *pt, u64 gfn,
-> > > > > > > > > +				       u64 *mmio_pfnp)
-> > > > > > > > > +{
-> > > > > > > > > +	struct vm_area_struct *vma;
-> > > > > > > > > +	bool is_mmio;
-> > > > > > > > > +	u64 uaddr;
-> > > > > > > > > +	struct mshv_mem_region *mreg;
-> > > > > > > > > +	struct follow_pfnmap_args pfnmap_args;
-> > > > > > > > > +	int rc = -EINVAL;
-> > > > > > > > > +
-> > > > > > > > > +	/*
-> > > > > > > > > +	 * Do not allow mem region to be deleted beneath us. VFIO uses
-> > > > > > > > > +	 * useraddr vma to lookup pci bar pfn.
-> > > > > > > > > +	 */
-> > > > > > > > > +	spin_lock(&pt->pt_mem_regions_lock);
-> > > > > > > > > +
-> > > > > > > > > +	/* Get the region again under the lock */
-> > > > > > > > > +	mreg = mshv_partition_region_by_gfn(pt, gfn);
-> > > > > > > > > +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-> > > > > > > > > +		goto unlock_pt_out;
-> > > > > > > > > +
-> > > > > > > > > +	uaddr = mreg->start_uaddr +
-> > > > > > > > > +		((gfn - mreg->start_gfn) << HV_HYP_PAGE_SHIFT);
-> > > > > > > > > +
-> > > > > > > > > +	mmap_read_lock(current->mm);
-> > > > > > > > 
-> > > > > > > > Semaphore can't be taken under spinlock.
-> > > > > > 
-> > > > > > > 
-> > > > > > > Yeah, something didn't feel right here and I meant to recheck, now regret
-> > > > > > > rushing to submit the patch.
-> > > > > > > 
-> > > > > > > Rethinking, I think the pt_mem_regions_lock is not needed to protect
-> > > > > > > the uaddr because unmap will properly serialize via the mm lock.
-> > > > > > > 
-> > > > > > > 
-> > > > > > > > > +	vma = vma_lookup(current->mm, uaddr);
-> > > > > > > > > +	is_mmio = vma ? !!(vma->vm_flags & (VM_IO | VM_PFNMAP)) : 0;
-> > > > > > > > 
-> > > > > > > > Why this check is needed again?
-> > > > > > > 
-> > > > > > > To make sure region did not change. This check is under lock.
-> > > > > > > 
-> > > > > > 
-> > > > > > How can this happen? One can't change VMA type without unmapping it
-> > > > > > first. And unmapping it leads to a kernel MMIO region state dangling
-> > > > > > around without corresponding user space mapping.
-> > > > > 
-> > > > > Right, and vm_flags would not be mmio expected then.
-> > > > > 
-> > > > > > This is similar to dangling pinned regions and should likely be
-> > > > > > addressed the same way by utilizing MMU notifiers to destpoy memoty
-> > > > > > regions is VMA is detached.
-> > > > > 
-> > > > > I don't think we need that. Either it succeeds if the region did not
-> > > > > change at all, or just fails.
-> > > > > 
-> > > > 
-> > > > I'm afraid we do, as if the driver mapped a page with the previous
-> > > > memory region, and then the region is unmapped, the page will stay
-> > > > mapped in the hypervisor, but will be considered free by kernel, which
-> > > > in turn will lead to GPF upn next allocation.
-> > > 
-> > > There are no ram pages for mmio regions. Also, we don't do much with
-> > > mmio regions other than tell the hyp about it.
-> > > 
-> > 
-> > So, are you saying that the hypervisor does not use these pages and only
-> > tracks them? That would make things easier.
-> > However, if we later try to map a GPA that is already mapped, will the
-> > hypervisor return an error?
-> 
-> Hypervisor does not return an error.
-> 
 
-So, what happenes if we map a GPA that is already mapped? Does it just
-remap it to the new PFN?
+
+On 2026/2/5 23:41, Dave Hansen wrote:
+> On 2/5/26 07:31, Lance Yang wrote:
+>> On 2026/2/5 23:09, Dave Hansen wrote:
+>>> On 2/5/26 07:01, Lance Yang wrote:
+>>>> So for now, neither approach looks good: tracking on the read side adss
+>>>> cost to GUP-fast, and syncing on the write side e.g. synchronize_rcu()
+>>>> is too slow on large systems.
+>>>
+>>> Which of the writers truly *need* synchronize_rcu()?
+>>>
+>>> What are they doing with the memory that they can't move forward unless
+>>> it's quiescent *now*?
+>>
+>> Without IPIs or synchronize_rcu(), IIUC, we have no way to know if there
+>> are ongoing concurrent lockless page-table walks — the walkers just disable
+>> IRQs and walk.
+> 
+> Yeah, but one aim of RCU is ensuring that readers see valid data but not
+> necessarily the most up to date data.
+> 
+> Are there cases where ongoing concurrent lockless page-table walks need
+> to see the writes and they can't tolerate seeing valid but slightly
+> stale data?
+
+The issue is we're about to free the page table (e.g. 
+pmdp_collapse_flush()).
+
+We have to ensure no walker is still doing a lockless page-table walk
+when the page directories are freed, otherwise we get use-after-free.
+
+> Don't forget that we also have pesky concurrent lockless page-table
+> walkers called CPUs. They're extra pesky in that they don't even stop
+> for IPIs. ;)
+
+I assume those walkers that don't disable IRQs only read the PMD and
+don't walk into the table; otherwise the current sync wouldn't work
+for them.
 
 Thanks,
-Stanislav
-
-> 
-> 
-> > Thanks,
-> > Stanislav
-> > 
-> > > Thanks,
-> > > -Mukesh
-> > > 
-> > > 
-> > > > With pinned regions we issue is similar but less impacting: pages can't
-> > > > be released by user space unmapping and thus will be simply leaked, but
-> > > > the system stays intact.
-> > > > 
-> > > > MMIO regions are simila to movable region in this regard: they don't
-> > > > reference the user pages, and thus this guest region replaement is a
-> > > > stright wat to kernel panic.
-> > > > 
-> > > > > 
-> > > > > > > > The region type is stored on the region itself.
-> > > > > > > > And the type is checked on the caller side.
-> > > > > > > > 
-> > > > > > > > > +	if (!is_mmio)
-> > > > > > > > > +		goto unlock_mmap_out;
-> > > > > > > > > +
-> > > > > > > > > +	pfnmap_args.vma = vma;
-> > > > > > > > > +	pfnmap_args.address = uaddr;
-> > > > > > > > > +
-> > > > > > > > > +	rc = follow_pfnmap_start(&pfnmap_args);
-> > > > > > > > > +	if (rc) {
-> > > > > > > > > +		rc = fixup_user_fault(current->mm, uaddr, FAULT_FLAG_WRITE,
-> > > > > > > > > +				      NULL);
-> > > > > > > > > +		if (rc)
-> > > > > > > > > +			goto unlock_mmap_out;
-> > > > > > > > > +
-> > > > > > > > > +		rc = follow_pfnmap_start(&pfnmap_args);
-> > > > > > > > > +		if (rc)
-> > > > > > > > > +			goto unlock_mmap_out;
-> > > > > > > > > +	}
-> > > > > > > > > +
-> > > > > > > > > +	*mmio_pfnp = pfnmap_args.pfn;
-> > > > > > > > > +	follow_pfnmap_end(&pfnmap_args);
-> > > > > > > > > +d
-> > > > > > > > > +unlock_mmap_out:
-> > > > > > > > > +	mmap_read_unlock(current->mm);
-> > > > > > > > > +unlock_pt_out:
-> > > > > > > > > +	spin_unlock(&pt->pt_mem_regions_lock);
-> > > > > > > > > +	return rc;
-> > > > > > > > > +}
-> > > > > > > > > +
-> > > > > > > > > +/*
-> > > > > > > > > + * At present, the only unmapped gpa is mmio space. Verify if it's mmio
-> > > > > > > > > + * and resolve if possible.
-> > > > > > > > > + * Returns: True if valid mmio intercept and it was handled, else false
-> > > > > > > > > + */
-> > > > > > > > > +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp)
-> > > > > > > > > +{
-> > > > > > > > > +	struct hv_message *hvmsg = vp->vp_intercept_msg_page;
-> > > > > > > > > +	struct hv_x64_memory_intercept_message *msg;
-> > > > > > > > > +	union hv_x64_memory_access_info accinfo;
-> > > > > > > > > +	u64 gfn, mmio_spa, numpgs;
-> > > > > > > > > +	struct mshv_mem_region *mreg;
-> > > > > > > > > +	int rc;
-> > > > > > > > > +	struct mshv_partition *pt = vp->vp_partition;
-> > > > > > > > > +
-> > > > > > > > > +	msg = (struct hv_x64_memory_intercept_message *)hvmsg->u.payload;
-> > > > > > > > > +	accinfo = msg->memory_access_info;
-> > > > > > > > > +
-> > > > > > > > > +	if (!accinfo.gva_gpa_valid)
-> > > > > > > > > +		return false;
-> > > > > > > > > +
-> > > > > > > > > +	/* Do a fast check and bail if non mmio intercept */
-> > > > > > > > > +	gfn = msg->guest_physical_address >> HV_HYP_PAGE_SHIFT;
-> > > > > > > > > +	mreg = mshv_partition_region_by_gfn(pt, gfn);
-> > > > > > > > 
-> > > > > > > > This call needs to be protected by the spinlock.
-> > > > > > > 
-> > > > > > > This is sorta fast path to bail. We recheck under partition lock above.
-> > > > > > > 
-> > > > > > 
-> > > > > > Accessing the list of regions without lock is unsafe.
-> > > > > 
-> > > > > I am not sure why? This check is done by a vcpu thread, so regions
-> > > > > will not have just gone away.
-> > > > > 
-> > > > 
-> > > > This is shared resources. Multiple VP thread get into this function
-> > > > simultaneously, so there is a race already. But this one we can live
-> > > > with without locking as they don't mutate the list of the regions.
-> > > > 
-> > > > The issue happens when VMM adds or removed another region as it mutates
-> > > > the list and races with VP threads doing this lookup.
-> > > > 
-> > > > Thanks,
-> > > > Stanislav
-> > > > 
-> > > > 
-> > > > > Thanks,
-> > > > > -Mukesh
-> > > > > 
-> > > > > 
-> > > > > > Thanks,
-> > > > > > Stanislav
-> > > > > > 
-> > > > > > > Thanks,
-> > > > > > > -Mukesh
-> > > > > > > 
-> > > > > > > 
-> > > > > > > > Thanks,
-> > > > > > > > Stanislav
-> > > > > > > > 
-> > > > > > > > > +	if (mreg == NULL || mreg->type != MSHV_REGION_TYPE_MMIO)
-> > > > > > > > > +		return false;
-> > > > > > > > > +
-> > > > > > > > > +	rc = mshv_chk_get_mmio_start_pfn(pt, gfn, &mmio_spa);
-> > > > > > > > > +	if (rc)
-> > > > > > > > > +		return false;
-> > > > > > > > > +
-> > > > > > > > > +	if (!hv_nofull_mmio) {		/* default case */
-> > > > > > > > > +		gfn = mreg->start_gfn;
-> > > > > > > > > +		mmio_spa = mmio_spa - (gfn - mreg->start_gfn);
-> > > > > > > > > +		numpgs = mreg->nr_pages;
-> > > > > > > > > +	} else
-> > > > > > > > > +		numpgs = 1;
-> > > > > > > > > +
-> > > > > > > > > +	rc = hv_call_map_mmio_pages(pt->pt_id, gfn, mmio_spa, numpgs);
-> > > > > > > > > +
-> > > > > > > > > +	return rc == 0;
-> > > > > > > > > +}
-> > > > > > > > > +
-> > > > > > > > >      static struct mshv_mem_region *
-> > > > > > > > >      mshv_partition_region_by_gfn_get(struct mshv_partition *p, u64 gfn)
-> > > > > > > > >      {
-> > > > > > > > > @@ -666,13 +777,17 @@ static bool mshv_handle_gpa_intercept(struct mshv_vp *vp)
-> > > > > > > > >      	return ret;
-> > > > > > > > >      }
-> > > > > > > > > +
-> > > > > > > > >      #else  /* CONFIG_X86_64 */
-> > > > > > > > > +static bool mshv_handle_unmapped_gpa(struct mshv_vp *vp) { return false; }
-> > > > > > > > >      static bool mshv_handle_gpa_intercept(struct mshv_vp *vp) { return false; }
-> > > > > > > > >      #endif /* CONFIG_X86_64 */
-> > > > > > > > >      static bool mshv_vp_handle_intercept(struct mshv_vp *vp)
-> > > > > > > > >      {
-> > > > > > > > >      	switch (vp->vp_intercept_msg_page->header.message_type) {
-> > > > > > > > > +	case HVMSG_UNMAPPED_GPA:
-> > > > > > > > > +		return mshv_handle_unmapped_gpa(vp);
-> > > > > > > > >      	case HVMSG_GPA_INTERCEPT:
-> > > > > > > > >      		return mshv_handle_gpa_intercept(vp);
-> > > > > > > > >      	}
-> > > > > > > > > -- 
-> > > > > > > > > 2.51.2.vfs.0.1
-> > > > > > > > > 
+Lance
