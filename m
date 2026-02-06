@@ -1,108 +1,126 @@
-Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.133.124])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D4D6348477
-	for <linux-arch@vger.kernel.org>; Fri,  6 Feb 2026 08:19:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.133.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 22AA628D8ED;
+	Fri,  6 Feb 2026 08:27:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770365960; cv=none; b=LBj73LVBWZi8EE6SLTTprEgfAeNcRYqcFEs17qkQBeu94D/GZ+4WNNuOMdJ1N7OBeFHL5zkH61bzAzUOW5DekrHUrxYO2qo6ATAll+9QdfDTslOtjIFpBkRKq9S/cQrEfP9y/YSVPHIm1h5AG9j9CciRA2DYp/jA35q8QotWdcU=
+	t=1770366442; cv=none; b=ccghKuxuEevpCkxqXpSOwJ2N0P1DjdoC85NU9nHE9MQNTUhX8bKKIuAM+UT/dW35sOhhqslHtYjraFPK7ffpIsjJFwmGxz4eWqFb7wtrf8aDd+336ThN/zmG9crKIerxyepC56ynZnfUt4i4dWTOZqtxdZgAGczk5EU4kaKuWfM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770365960; c=relaxed/simple;
-	bh=bCriBhlazS/0HXIrSjYBexp6X65YIc7sYJB9i7mUNXQ=;
-	h=From:In-Reply-To:References:To:Cc:Subject:MIME-Version:
-	 Content-Type:Date:Message-ID; b=PbhESvpv/WEs7XjHrO1raOfGzfvNHlKhu1eiEv6brY75p51tVKJFLejchiwnFJmWTtwznow1cxSZX0cl8ogj6PMV5eXrXd4c/B4nxRAqAoyJp9ahPI/u4jKQahV4+lX7tZzNzN49hHw2kZ+K5flNVl3lbiJL/pNBo50dlGJDiUM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=Z2EMrjfP; arc=none smtp.client-ip=170.10.133.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+	s=arc-20240116; t=1770366442; c=relaxed/simple;
+	bh=6e7p1qCz54y5wDRapBqImlS91+0yzFO3lLbD4g+DIb8=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=I8AAXc5qeHOjK4nndfn1Tj5AFvE6s8FRAhdmoj1DRIYMm67YiMFZ3jlfpauvTKP0TGsEmnvaf+q6VpZeyf/4AtTTEKnV9Zf+BBZcI4fjVa0cwMuzIDdk3FyGSPwPKd2UoP8u9bzlPDbAews8TxevrbXjd1RTwgQYUCtq/nOEbpU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DAc68wDe; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="Z2EMrjfP"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
-	s=mimecast20190719; t=1770365959;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=bCriBhlazS/0HXIrSjYBexp6X65YIc7sYJB9i7mUNXQ=;
-	b=Z2EMrjfPot0ak00tiDkn1mmvOvpcgDFbVDQpk3j6mtgxbGRyHFlsh+7E0UgKpJkQkm9/0C
-	8TpaeAmk+Imbn4JOqAguaGa14AJbhSJnSddkSMLUTzScG1ZZduHm3x+Df3kw/Xmv6wmTQx
-	drhbZUpsUlaXgmrJ2VDhl1GhoH6KbFc=
-Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
- (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
- relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
- cipher=TLS_AES_256_GCM_SHA384) id us-mta-516--zY-X-rwO-qBHh21bdBLDA-1; Fri,
- 06 Feb 2026 03:19:15 -0500
-X-MC-Unique: -zY-X-rwO-qBHh21bdBLDA-1
-X-Mimecast-MFC-AGG-ID: -zY-X-rwO-qBHh21bdBLDA_1770365951
-Received: from mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.4])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
-	(No client certificate requested)
-	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id ABCD01956095;
-	Fri,  6 Feb 2026 08:19:08 +0000 (UTC)
-Received: from warthog.procyon.org.uk (unknown [10.44.33.164])
-	by mx-prod-int-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id C245A3000707;
-	Fri,  6 Feb 2026 08:18:54 +0000 (UTC)
-Organization: Red Hat UK Ltd. Registered Address: Red Hat UK Ltd, Amberley
-	Place, 107-111 Peascod Street, Windsor, Berkshire, SI4 1TE, United
-	Kingdom.
-	Registered in England and Wales under Company Registration No. 3798903
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20260113-module-hashes-v4-5-0b932db9b56b@weissschuh.net>
-References: <20260113-module-hashes-v4-5-0b932db9b56b@weissschuh.net> <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
-To: =?us-ascii?Q?=3D=3Futf-8=3Fq=3FThomas=5FWei=3DC3=3D9Fschuh=3F=3D?= <linux@weissschuh.net>
-Cc: dhowells@redhat.com, Nathan Chancellor <nathan@kernel.org>,
-    Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
-    Petr Pavlu <petr.pavlu@suse.com>,
-    Sami Tolvanen <samitolvanen@google.com>,
-    Daniel Gomez <da.gomez@samsung.com>,
-    Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-    "Serge E.
- Hallyn" <serge@hallyn.com>,
-    Jonathan Corbet <corbet@lwn.net>,
-    Madhavan Srinivasan <maddy@linux.ibm.com>,
-    Michael Ellerman <mpe@ellerman.id.au>,
-    Nicholas Piggin <npiggin@gmail.com>,
-    Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
-    Roberto Sassu <roberto.sassu@huawei.com>,
-    Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
-    Eric Snowberg <eric.snowberg@oracle.com>,
-    Nicolas Schier <nicolas.schier@linux.dev>,
-    Daniel Gomez <da.gomez@kernel.org>,
-    Aaron Tomlin <atomlin@atomlin.com>,
-    "Christophe
- Leroy (CS GROUP)" <chleroy@kernel.org>,
-    Nicolas Schier <nsc@kernel.org>,
-    Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
-    Xiu Jianfeng <xiujianfeng@huawei.com>,
-    Fabian =?utf-8?Q?Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
-    Arnout Engelen <arnout@bzzt.net>,
-    Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
-    Christian Heusel <christian@heusel.eu>,
-    =?utf-8?Q?C=C3=A2ju?= Mihai-Drosi <mcaju95@gmail.com>,
-    Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-    linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-    linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-    linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
-    linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
-Subject: Re: [PATCH v4 05/17] module: Switch load_info::len to size_t
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DAc68wDe"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 30E4AC116C6;
+	Fri,  6 Feb 2026 08:27:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1770366441;
+	bh=6e7p1qCz54y5wDRapBqImlS91+0yzFO3lLbD4g+DIb8=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=DAc68wDe8UdvAgUWQgzsX4BjVYAkxl/hkFNmaatmDAU9VqCnSQHOnfjMrU7i6qaU5
+	 Ct4O155Ozv/T8HIs7CmdEZALZzfvroTNPij7UNkZtWWH6yxvDYgdwIjBYKgEvyuZ9l
+	 9iOCeN70Ou546nw3TCRb2+la/NGsYHZevqmGFO3zzA9Rq1JWBCsWLRkV/6TQXbJ4bL
+	 SaXeEl9WZWzO/srb35SDhF/yXH6dfTG2Z2Q72GLdqhUoRSk312qM9R8XmHaGSWPtfJ
+	 A8LsQVlQYdLq4VZ6dX0AEoF9zxx2AvdNvmSHyuNcVme338WY/r5ARPt/hCt/uzi1bc
+	 zoEXVyiNHhwJA==
+Date: Fri, 6 Feb 2026 09:25:24 +0100
+From: Nicolas Schier <nsc@kernel.org>
+To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
+Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+Subject: Re: [PATCH v4 02/17] powerpc/ima: Drop unnecessary check for
+ CONFIG_MODULE_SIG
+Message-ID: <aYWldK8Mb2oND7lH@levanger>
+Mail-Followup-To: Nicolas Schier <nsc@kernel.org>,
+	Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-2-0b932db9b56b@weissschuh.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-Date: Fri, 06 Feb 2026 08:18:53 +0000
-Message-ID: <2919071.1770365933@warthog.procyon.org.uk>
-X-Scanned-By: MIMEDefang 3.4.1 on 10.30.177.4
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260113-module-hashes-v4-2-0b932db9b56b@weissschuh.net>
+X-TUID: fOHvpqQWrsRR
 
-Thomas Wei=C3=9Fschuh <linux@weissschuh.net> wrote:
+On Tue, Jan 13, 2026 at 01:28:46PM +0100, Thomas Weiﬂschuh wrote:
+> When CONFIG_MODULE_SIG is disabled set_module_sig_enforced() is defined
+> as an empty stub, so the check is unnecessary.
+> The specific configuration option for set_module_sig_enforced() is
+> about to change and removing the check avoids some later churn.
+> 
+> Signed-off-by: Thomas Weiﬂschuh <linux@weissschuh.net>
+> ---
+>  arch/powerpc/kernel/ima_arch.c | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
 
-> As both 'size_t' and 'unsigned int' are always the same size, this
-> should be risk-free.
+Reviewed-by: Nicolas Schier <nsc@kernel.org>
 
-Did you mean 'unsigned long'?
-
-David
-
+-- 
+Nicolas
