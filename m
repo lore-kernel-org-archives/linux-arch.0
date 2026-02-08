@@ -1,402 +1,190 @@
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
+Received: from SJ2PR03CU001.outbound.protection.outlook.com (mail-westusazon11012040.outbound.protection.outlook.com [52.101.43.40])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C279430F930;
-	Sat,  7 Feb 2026 22:40:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770504046; cv=none; b=eK4WiwvNZGgkTdwc2N0WxP2/O8xKp1x1W0XUQxXdokHA6wWei8N19l6XLqTTtgBYij9jut6CFGOWwIR3zc60aGna7go5G/hLNt97G0HLHqltFpxvUPecaYvGieP7+a6BUsraIvCPrNcNa+1pQjAxeDepV7uYAcE6JTBY9lGMhhQ=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770504046; c=relaxed/simple;
-	bh=SXoaglSV4NEHhID4PsRIxokDHi/rawIRGOnEFp1vsG4=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=JvWZ4/DSfc6coxZIooj2peC2NRVa3v6xQ+3vRGjHwmMVYE3BgCvMiDRmFR28wbx+ELQdtWQ1M4Gl5wuc7OX3jymWxbiVMLBNe0Pcb4ry0L1riathi97qaBzlThTNpg01gwILctxN8H4nDex3qKxJrNlh47uKps9+46GEhsexBNw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=dA7cEzoT; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=GefQAsrG; arc=none smtp.client-ip=193.142.43.55
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6171314E2F2;
+	Sun,  8 Feb 2026 02:37:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.43.40
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1770518226; cv=fail; b=h0Bal3JfOf1EqHcOF2z5MRAvJB73Xt1/73lcGrDaV+AbgltEa8UK/4NFW5WhLb8l77+okoCH6ed8fYAac/JxLHH/6UwaO9bbsia1VpjbVYW5WXk0McNmgsto5t1pfksTE7bSOao/Kl2x08vpYG7I/ylGXWMvhhXRIb4u6yoejRw=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1770518226; c=relaxed/simple;
+	bh=IoKSDT9vTcOtGgRMedEsaGoSDooiiEoKAKrtd9yegL0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
+	 Content-Disposition:In-Reply-To:MIME-Version; b=jL7o/PWi5dySnpeRQ3cWskoVLK6kQ0jZvvPD5k+yCf7KxgJnSy+KK3Nd2p7OR8YLlSVpFmUz7MN067wGVa2kIPS2K3Cr2+3y12ezMyUAbvAh8mFix/jozfgkfahAzfaqtt3UVLRg6c3S1HC4OHRm4cPVCz4DRO6zMcOJR3VFxcA=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com; spf=fail smtp.mailfrom=nvidia.com; dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b=f8NxVf6i; arc=fail smtp.client-ip=52.101.43.40
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=nvidia.com
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nvidia.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="dA7cEzoT";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="GefQAsrG"
-From: Thomas Gleixner <tglx@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1770504043;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=26zukAnyaZ7+GEOYV49xEESgd7uXEfmA9qbLmnd6rDg=;
-	b=dA7cEzoTgwdKKV/muUajapRw863cCms5sJnj1oZS+bi0ULe6ir18x/IZKeMtk8oDPxLK2q
-	Q1Xokl19E9eQ2Jo/D8zO2YH+mZLwYRy9h1h7Z781VW9m/ocKhWXBjYwc3lIPQo4eOqF3io
-	5zJkY7Q7GqsUsD6BKcy3qjF2xPrYsYYcF9Dc+fGV5KGKDuDrwoIQH/xZzVCakr/AwIlx1q
-	RHpz/uuVxn+B+wL1Npr/fJ+5B/HHVTh+ZKPJXfHtC4nVjnH9BW5bD16vodYomGbBXzqLMy
-	oWjUgBSyS22xEPvOMe2LzBLds0CrP7Wx7VO1/pXTydZ7k4Ijfkd5UolNNKW/0A==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1770504043;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=26zukAnyaZ7+GEOYV49xEESgd7uXEfmA9qbLmnd6rDg=;
-	b=GefQAsrGKRbeCGLHJaaoQcXdLzUewzzp8kLDvq23on3zyhIL/iXRe/0MNhyIbDDlvtKOaS
-	FU1E17zn+BsImcBA==
-To: david.laight.linux@gmail.com, Nathan Chancellor <nathan@kernel.org>,
- Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Peter Zijlstra
- <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Mathieu Desnoyers
- <mathieu.desnoyers@efficios.com>, Arnd Bergmann <arnd@arndb.de>,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Yury Norov
- <yury.norov@gmail.com>, Lucas De Marchi <lucas.demarchi@intel.com>, Jani
- Nikula <jani.nikula@intel.com>, Vincent Mailhol
- <mailhol.vincent@wanadoo.fr>, Andy Shevchenko
- <andriy.shevchenko@linux.intel.com>, Kees Cook <keescook@chromium.org>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: David Laight <david.laight.linux@gmail.com>
-Subject: Re: [PATCH next 12/14] bits: move the defitions of BIT() and
- BIT_ULL() back to linux/bits.h
-In-Reply-To: <20260121145731.3623-13-david.laight.linux@gmail.com>
+	dkim=pass (2048-bit key) header.d=Nvidia.com header.i=@Nvidia.com header.b="f8NxVf6i"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=xFFlXP7gKbqIYIgxD4KmHlOPp6w1KYSO/h4m8vqBrKBxkfcawCzOPJMw1Q7ZdaAerUcRgPnWTQazLGgVZD6iHXudJ0nFxkFVE2huliO11t3Y+otcbcCwE9hI+aWh8lL+hKgDyQByFuFWUmavPn9Urcf1sU8TR7vhI/MegoLIqnZFAJswu7Ron6J4s96LeUllmAQ33l5uzweZUHaF3YK3qzbZ7gbHWqUqitlTxAG5njixv4FeUnlnYR7jSexdHmP6K4ogIZxXn3skTqvt3xt4Lxb4YQc2jWxipxnbvguQV4NdhG3lRuihOXEK3Q4pyGrCT1CFEoLxlWLEVerNywiJXw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=5fvceqiVJtxHCLjr4jJZdl97jQlyGDDVwX78pK7rZMg=;
+ b=TlCMjG+rQIldOTOmz0kcea0pxwgwqvujaZCPMxeBL70wI3H4W3GB2tLZ5gHiYIrYiebExvh6nPlxgaxw0mGn7ByTKC7KNEpdIidt+25p3w8gzbarP/w7i/YBXB2y8R7Ht6/DA9BB7maS26RX6jC0NdXa1UXQY9NKqc2T4lDaQvsONxLWTOHCWc/GY7q+nS9V8/UDvjUWWogU1KTMczkXv6iS/6EGSRiRrwqIeBkxezbX8znrWzSHOFQ8LPsGvXT7ouVYL3HbLxUlj3O4yJA6FLQ3rwcuhsEe1RM/bLrc28gAcTMB1o5m3S1aPGq9lCR+Ax6OK+MT3S+/Lp8Efkxukw==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=nvidia.com; dmarc=pass action=none header.from=nvidia.com;
+ dkim=pass header.d=nvidia.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=Nvidia.com;
+ s=selector2;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=5fvceqiVJtxHCLjr4jJZdl97jQlyGDDVwX78pK7rZMg=;
+ b=f8NxVf6iMh8Lezw1QXvHkoInvWCJIwQcebZmUJoor+BSMp+0R1hHsRUZd1rEci/8QrVJsC2+ZQxavnh04SWxyPy4YU7czFlCrCwE1Ztbdpnh2zQi7cSso1PyNTSbuGZjs8rqv1DGYu2jGi+ye4CsV3MVAcwnsy7mN3vhlLqnz+lTv6Hwpg/QTlaOkoKyvf+MPIeGTtrxjiUH2QJAdheGjZPJVxv1z8xUt4euntVufQ5yK4kFn9sBY8JtIJfwA8qOUpX4RR5u72uCO75CqVp/xLsJnFNTZdCAI+e4OXQ/ZkHmucn8bsMPL1W+WnxxEt9ANY2tXhMpzY6AuLhcy2e/Qw==
+Authentication-Results: dkim=none (message not signed)
+ header.d=none;dmarc=none action=none header.from=nvidia.com;
+Received: from PH0PR12MB8800.namprd12.prod.outlook.com (2603:10b6:510:26f::12)
+ by DS7PR12MB6095.namprd12.prod.outlook.com (2603:10b6:8:9c::19) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9587.18; Sun, 8 Feb
+ 2026 02:36:59 +0000
+Received: from PH0PR12MB8800.namprd12.prod.outlook.com
+ ([fe80::f79d:ddc5:2ad7:762d]) by PH0PR12MB8800.namprd12.prod.outlook.com
+ ([fe80::f79d:ddc5:2ad7:762d%4]) with mapi id 15.20.9587.013; Sun, 8 Feb 2026
+ 02:36:59 +0000
+Date: Sat, 7 Feb 2026 21:36:57 -0500
+From: Yury Norov <ynorov@nvidia.com>
+To: david.laight.linux@gmail.com
+Cc: Nathan Chancellor <nathan@kernel.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	Thomas Gleixner <tglx@linutronix.de>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Ingo Molnar <mingo@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, Yury Norov <yury.norov@gmail.com>,
+	Lucas De Marchi <lucas.demarchi@intel.com>,
+	Jani Nikula <jani.nikula@intel.com>,
+	Vincent Mailhol <mailhol.vincent@wanadoo.fr>,
+	Andy Shevchenko <andriy.shevchenko@linux.intel.com>,
+	Kees Cook <keescook@chromium.org>,
+	Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH next 08/14] bits: simplify GENMASK_TYPE()
+Message-ID: <aYf2yUazqVJBeWZb@yury>
 References: <20260121145731.3623-1-david.laight.linux@gmail.com>
- <20260121145731.3623-13-david.laight.linux@gmail.com>
-Date: Sat, 07 Feb 2026 23:40:41 +0100
-Message-ID: <87cy2gb2ja.ffs@tglx>
+ <20260121145731.3623-9-david.laight.linux@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260121145731.3623-9-david.laight.linux@gmail.com>
+X-ClientProxiedBy: BN9PR03CA0043.namprd03.prod.outlook.com
+ (2603:10b6:408:fb::18) To PH0PR12MB8800.namprd12.prod.outlook.com
+ (2603:10b6:510:26f::12)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: PH0PR12MB8800:EE_|DS7PR12MB6095:EE_
+X-MS-Office365-Filtering-Correlation-Id: 962635ed-f857-48f7-66d8-08de66baef0e
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|366016|1800799024|376014|7416014|7053199007;
+X-Microsoft-Antispam-Message-Info:
+	=?us-ascii?Q?Z8dNOdEsVUh7T3dfGz6KlI41yPKbI2VQtke4xA0meU6vZuU8/S+LJZiXNpK5?=
+ =?us-ascii?Q?IYFLwZyvCuYFhur0AgnseXfX7/ikfbqyvelunBYZYFyg0z1lB8m9JLvpf4GM?=
+ =?us-ascii?Q?G/FVaypapSvMsIQK81NWnM3iGJ44gbLwnugAsuTgM1JtOYfMnFytR7ORBf+3?=
+ =?us-ascii?Q?by1NaNPSKkG1XJlfJsNaeoj81Tb+ZMg98osopncaQ5crrhdRvS2rapG/UqkB?=
+ =?us-ascii?Q?mppkInAEt7a1Z//rCqFsfPZGqwHi0wIJIthEgTdjw71Id9VcF3ME9nmklAm7?=
+ =?us-ascii?Q?gU7hwXVCRLmKzlCJGqSQVFPHjIsAtRBKqJUO75UAOaATRles248xAqM327H+?=
+ =?us-ascii?Q?93BaOYtSxI5U00kTAH51FWJKRiOEeF0ublInJHRYVd1kro32y3BLkOmEg86S?=
+ =?us-ascii?Q?+oiOzLySMKIQnROh14Wkpd5/oRaXzsCBx0y72MMGEiRLVxPaBps6nu8CtZ/0?=
+ =?us-ascii?Q?ediflB//0UJUerE5nuspaVyDYLEr4UVd9SGJNqa35NSz/ysMRxHEQLqpNnQ0?=
+ =?us-ascii?Q?6sQXnCq5zMViSEGZtmxJNl+7K/dkEGxD1dnRH/2HgOYAqodHe2OidFEGD56+?=
+ =?us-ascii?Q?tIBzUKjx2lcmYBUorEt5wIxTETwT+BCp6mTUyN/wi1sd2lcNmJ7kjVp/HVzQ?=
+ =?us-ascii?Q?4dkLrWbh5dwUCv/IO8yGk729v1Feen+w3mxMqUzi3A1rNmCe3HO602KMATBm?=
+ =?us-ascii?Q?jp/AMq3rIM78jmfNPOmTDy2bgFoltBg4nCt5N1eiaRQ5wMT+InI84wgCWb2G?=
+ =?us-ascii?Q?GkbUp6U4xfhMqzgC0wfGa0HAdVcFs2GWMbZSQNnWBQgAs16HvzasZ8DcpODK?=
+ =?us-ascii?Q?JGRkC9JP5ZAuPv2idQIqo2/fnm0/1UOzkEpTEa0FE/I6R4Cw7Uh0ZGpQ5YOz?=
+ =?us-ascii?Q?x8CSyOAk2uTpW5b3C9z45LOC/yhT3LeetCsS/mEyiYUOBCqJg7rPD6LNQlCy?=
+ =?us-ascii?Q?AzE9O2GZQZMgDLOzhyKj7dqEz8ZzIzu7l9TlsavBZi7XHU4kkQiHyLF9xT6y?=
+ =?us-ascii?Q?tfGX7hy2BBvjdmUNcp1XFad3XYNQFmr/34578HCQls6lWp58Jnuh0vcTAzK+?=
+ =?us-ascii?Q?nh/F9W31Hj/j0IkWmjZ6QOjb7/LK+lrxLhmGkPqN8qsvProkGvEjG5RpVU18?=
+ =?us-ascii?Q?K/2eIy/A4kULoM3MUAuNz/yT/nK87V+RLEcsBysgAHx/wXAqt1EQr6n+lqEN?=
+ =?us-ascii?Q?LEL/sAUEuAD8G++u3j3koohaPbLmvDmDRENQ/4Q9V6qkpSTJl/5Mngoc1sHY?=
+ =?us-ascii?Q?LDUxy4Kxi/+MXZSOwMFSZfYql+k6PjiGDNUVUP7dIgBhQTIOU43E+yejZk+v?=
+ =?us-ascii?Q?sTqcF24+i5qD6YaUj+Lhj8ZL5MGWMXbknP4oVcbMFB3XniRPEZdeQqAceURw?=
+ =?us-ascii?Q?hf309QLLQPf8Skp75gA7hrlwIBhadb1lz9VY7mRvjcCaK6sYK860VpTccx0A?=
+ =?us-ascii?Q?2nCVKS4Rsx29GcabgyEncTpYm+muKQD4dfxQRl+BLaLUc6SGblr6tDiPbiLv?=
+ =?us-ascii?Q?LS4FJ6E3dzYbrWPEuygpcU/qd4IZVoBIQ/qJlm/dThjunSji05vxeCrWlMzt?=
+ =?us-ascii?Q?8/LX4U9irMx5hhrdgnk=3D?=
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:PH0PR12MB8800.namprd12.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(376014)(7416014)(7053199007);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?TvHF/REHwp7Ghl2Qo8O5MBP+tQ7JRv9nRMwCPYKCGr7PgSeZEx+w31XJ2ALe?=
+ =?us-ascii?Q?ExwiINdMRAUDdtmEOUx2CQJ+8epjdb8Aj6yOjUeuaMgtF7ZqHOr+7dLTcWiD?=
+ =?us-ascii?Q?/7/JvSgQkVtwoQNWcTDu1MeNvzaHRC+2UG+SvpmqUPGZhXPrT6jVM0YCzl7y?=
+ =?us-ascii?Q?3Yya6K86Jx5x0xPDcVrsFwWYdZ+zmkld4fByPxHLoyteSzq4fZBxqPECbxGx?=
+ =?us-ascii?Q?NH4JT6pmK/LzN0xBJBH8L9/VEqs6oSZsqWi2m6RIvrsDbL8dvSjW1muNm1fH?=
+ =?us-ascii?Q?zeucLxAPFtMaJ9v1UNFdrzVFhsfYAdHiZJ6ejZePvI/KWXSu/uFxzV3lvDMN?=
+ =?us-ascii?Q?Qq2r1WeTzFEYfAlbfCEvU4PL+YdNMm1vDL5lkOairtfp46WqZjH6ZL9Lzj5q?=
+ =?us-ascii?Q?TjlM2cL7zhHoJcHafKa4o7dwd0eQ0mS+UnSBJ2fFaJwN0cZf5zHjhT1Ccp5q?=
+ =?us-ascii?Q?Wy87A/tOeOdXt2hCwITplAU4CMHA6hXhuxlN4UGo/kJet8oJEj8gBEEmTxyR?=
+ =?us-ascii?Q?R2TW/v7cgk7nQcOyM8UC2Plcc0dt2azaDQlowsOR+rPSUkw/loR/rOBZhh+p?=
+ =?us-ascii?Q?qGN8S7iR5z0DFiaFdKKGL49o7grmSd7cGpLpPLMzVs2XT+2uwsGt97bk8yiC?=
+ =?us-ascii?Q?1UebJLQcYpvtzfMy2ULDkcCrS5J/9tKsYIuOATKU/bWyWAcsCc0inn75eWH2?=
+ =?us-ascii?Q?N111EFqz9FhK8nVWMJtO9y6MmZB9xjp3655Kvp7rEfF/fL3Rwm8aV9xBbCrL?=
+ =?us-ascii?Q?nG+fANxJ+lJP678Ind23Q/DncOdJW5xs/4c64lhoBNw64tnccnGqXJWEL01h?=
+ =?us-ascii?Q?te5WN00u7gy5d03216ZkMQrw2MHOJWOG0h4r6ah8stSp5eyhCUhwaixVeDGq?=
+ =?us-ascii?Q?CX8iRNt6Ex+ynVWT5Fzs3sz8RCclWh8ZH4ajutTTw648YqBg+vewtTGrbssi?=
+ =?us-ascii?Q?qKhqE7bijEmfGYKGCWbQPtDpZFBhKcJ//s0uehLz/M9OxVtvSABG22RhIFPl?=
+ =?us-ascii?Q?KGUCOTmhic7hgqz6wL7f/QUPYZB9/eVZmZ2qoFoNqxJSE4M6YDtEXGJM05ne?=
+ =?us-ascii?Q?8qQlglCtoxP/hSMG/lJs8ziTa9tiZDLagaevRN+BwoxvRroftLhuDcQJuE4Y?=
+ =?us-ascii?Q?ITxlNLCPS76sHK10/CEIZyvbd9Oyfzs2ZOk0MXE5/1DYK76hXqbmdr1SGuUs?=
+ =?us-ascii?Q?Wa5xLLbevYkgXpZ/uBrhW6THm1e6+3irqCYDFJXJh+S3IO/4Hy1JBi2snb+9?=
+ =?us-ascii?Q?gBIDxH7JJ7zjwaqUvPTk4hFFHb0Xf9MJtKF5BChV27upFrIS46HS9wLf/Zlv?=
+ =?us-ascii?Q?p0uPm+nOIH6o7biYMqvQkN111mkMlJRWvQE+ZBf9cCyQQjM/WfFOebfbIP4v?=
+ =?us-ascii?Q?svqQaFLQ1Gs9xCHQ+KrowxcCHuQsJ6kqkYD+jKzfhD9TfymCnifZopMu/f7T?=
+ =?us-ascii?Q?Vji4/WMrcAjSLNGC3656BmmbtDrGQIbuMdoc5C2ORsruRnXK0gC9O7W7miev?=
+ =?us-ascii?Q?mn8jCqDiNAhDzn5ZjV01Arx6c2nuKhhQXKbNZ8INx4yhZkxWpiJB+zNnCNQY?=
+ =?us-ascii?Q?PZCsBIWhl0Xp+v01GWf+OH/BacirDZShDvDmFlq8Y7eIm30PQE25ya0nP5ZM?=
+ =?us-ascii?Q?WClmWFcmVUdV4iiqrtmqfxNYVvWMRL5hHjnLN8KEBplaLN5bJrsLOYR0uzKY?=
+ =?us-ascii?Q?HCCfxRPHKjHHiZWgQNIKOkg/PhKP9simc0YZrdDaP8+GHxd4XOBOMhIk/Tgh?=
+ =?us-ascii?Q?PKWUTjttgg=3D=3D?=
+X-OriginatorOrg: Nvidia.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 962635ed-f857-48f7-66d8-08de66baef0e
+X-MS-Exchange-CrossTenant-AuthSource: PH0PR12MB8800.namprd12.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 08 Feb 2026 02:36:59.5156
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 43083d15-7273-40c1-b7db-39efd9ccc17a
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: TxmCCV2CYXfdISEyP9EX+S8AbMQDB3u9M7Yhk0gYncIMYupmvTx7VzCkJLgW/JZd6TN5zupXJhLU5Ftt+fpLeQ==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: DS7PR12MB6095
 
-On Wed, Jan 21 2026 at 14:57, david laight linux wrote:
+On Wed, Jan 21, 2026 at 02:57:25PM +0000, david.laight.linux@gmail.com wrote:
+> From: David Laight <david.laight.linux@gmail.com>
+> 
+> Since the type is always unsigned (T)-1 is always the correct value
+> so there is no need to use type_max().
+> 
+> Signed-off-by: David Laight <david.laight.linux@gmail.com>
 
-TLDR: Not going to happen. Period.
+Here you implicitly add a new restriction that all types passed in
+GENMASK_TYPE() must be unsigned. Can you enforce it with
+is_signed_type(), or at lease with a corresponding comment?
 
-> Move BIT_ULL() and make code that include both headers use the definition
-> of BIT() from linux/bits.h
-> Add BIT_U128() for completness.
-
-1) How is that related to $Subject?
-
-2) It's clearly documented that patches should not do different things
-   at once.
-
-3) It's also documented that stuff is only added when there is a use
-   case. I can't find one.
-
-> Note that nothing the the x86-64 build relies on the definition in
-> vdso/bits.h, linux/bits.h is always included.
-
-Wrong. The x86-64 build includes vdso/bits.h for the VDSO build.
-
-> @@ -2,7 +2,6 @@
->  #ifndef __LINUX_BITS_H
->  #define __LINUX_BITS_H
+> ---
+>  include/linux/bits.h | 3 +--
+>  1 file changed, 1 insertion(+), 2 deletions(-)
+> 
+> diff --git a/include/linux/bits.h b/include/linux/bits.h
+> index a40cc861b3a7..697318f2a47d 100644
+> --- a/include/linux/bits.h
+> +++ b/include/linux/bits.h
+> @@ -45,8 +45,7 @@
+>   */
+>  #define GENMASK_TYPE(t, h, l)					\
+>  	((t)(GENMASK_INPUT_CHECK(h, l) +			\
+> -	     (type_max(t) << (l) &				\
+> -	      type_max(t) >> (BITS_PER_TYPE(t) - 1 - (h)))))
+> +	     ((t)-1 << (l) & (t)-1 >> (BITS_PER_TYPE(t) - 1 - (h)))))
 >  
-> -#include <vdso/bits.h>
->  #include <uapi/linux/bits.h>
->  
->  #define BIT_MASK(nr)		(UL(1) << ((nr) % BITS_PER_LONG))
-> @@ -89,10 +88,16 @@ int BIT_INPUT_CHECK_FAIL(void) __compiletime_error("Bit number out of range");
->  	((unsigned int)BIT_INPUT_CHECK(+(nr), BITS_PER_TYPE(type)) + ((type)1 << (nr)))
->  #endif /* defined(__ASSEMBLY__) */
->  
-> +/* Prefer this definition of BIT() to the one in vdso/bits.h */
-> +#undef BIT
-
-That's a horrible sloppy hack.
-
-> +#define __VDSO_BITS_H
-
-And this even more so.
-
-> +#define BIT(nr)		BIT_TYPE(unsigned long, nr)
-> +#define BIT_ULL(nr)	BIT_TYPE(unsigned long long, nr)
-
-Aside of that you sloppily kept the comment above all of this intact,
-which does not make any sense at all after this change. It says:
-
-/*
- * Fixed-type variants of BIT(), with additional checks like GENMASK_TYPE(). The
- * following examples generate compiler warnings due to -Wshift-count-overflow:
- *
- * - BIT_U8(8)
- * - BIT_U32(-1)
- * - BIT_U32(40)
- */
-
-I have to admit that you are at least consistently sloppy.
-
->  #define BIT_U8(nr)	BIT_TYPE(u8, nr)
->  #define BIT_U16(nr)	BIT_TYPE(u16, nr)
->  #define BIT_U32(nr)	BIT_TYPE(u32, nr)
->  #define BIT_U64(nr)	BIT_TYPE(u64, nr)
-> +#define BIT_U128(nr)	BIT_TYPE(u128, nr)
-
-What's wrong with the obvious solution of moving all this BIT_XX() muck
-into vdso/bit.h?
-
-Especially as you say in your changelog word salad:
-
-> This lets BIT() pick up the extra compile time checks for W=[1c] builds
-> that detect errors like:
-> 	long foo(void) { int x = 64; return BIT(x); }
-> For which clang (silently) just generates a 'return' instruction.
-
-Letting the VDSO build have the same checks with a W=1 build would be
-too sensible, right?
-
-It's not rocket science to achieve that. See below.
-
-That's admittedly a hack too, but a more palatable hack and I'm just
-including it for illustration.
-
-Just for the record: I definitely spent less time hacking that up than I
-wasted reviewing and replying to your slop.
-
-The proper thing to do is to move all the stuff which is neither vdso
-nor kernel specific into a separate include/$BIKESHEDTHENAME/ directory
-and sort out that ever recurring problem of VDSO vs. kernel builds once
-and forever. That's not rocket science either.
-
-That'd be too reasonable and tasteful, but not convoluted and sloppy
-enough, right?
-
-Thanks,
-
-        tglx
----
- include/vdso/compiler.h   |   76 ++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/bits.h      |   20 ------------
- include/linux/compiler.h  |   71 ------------------------------------------
- include/vdso/bits.h       |   23 ++++++++++++-
- 4 files changed, 97 insertions(+), 93 deletions(-)
-
----
---- a/include/linux/bits.h
-+++ b/include/linux/bits.h
-@@ -9,8 +9,6 @@
- #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
- #define BIT_ULL_MASK(nr)	(ULL(1) << ((nr) % BITS_PER_LONG_LONG))
- #define BIT_ULL_WORD(nr)	((nr) / BITS_PER_LONG_LONG)
--#define BITS_PER_BYTE		8
--#define BITS_PER_TYPE(type)	(sizeof(type) * BITS_PER_BYTE)
- 
- /*
-  * Create a contiguous bitmask starting at bit position @l and ending at
-@@ -57,24 +55,6 @@
- #define GENMASK_U64(h, l)	GENMASK_TYPE(u64, h, l)
- #define GENMASK_U128(h, l)	GENMASK_TYPE(u128, h, l)
- 
--/*
-- * Fixed-type variants of BIT(), with additional checks like GENMASK_TYPE(). The
-- * following examples generate compiler warnings due to -Wshift-count-overflow:
-- *
-- * - BIT_U8(8)
-- * - BIT_U32(-1)
-- * - BIT_U32(40)
-- */
--#define BIT_INPUT_CHECK(type, nr) \
--	BUILD_BUG_ON_ZERO(const_true((nr) >= BITS_PER_TYPE(type)))
--
--#define BIT_TYPE(type, nr) ((type)(BIT_INPUT_CHECK(type, nr) + BIT_ULL(nr)))
--
--#define BIT_U8(nr)	BIT_TYPE(u8, nr)
--#define BIT_U16(nr)	BIT_TYPE(u16, nr)
--#define BIT_U32(nr)	BIT_TYPE(u32, nr)
--#define BIT_U64(nr)	BIT_TYPE(u64, nr)
--
- #else /* defined(__ASSEMBLY__) */
- 
- /*
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -279,53 +279,6 @@ static inline void *offset_to_ptr(const
- 	___ADDRESSABLE(sym, __section(".discard.addressable"))
- 
- /*
-- * This returns a constant expression while determining if an argument is
-- * a constant expression, most importantly without evaluating the argument.
-- * Glory to Martin Uecker <Martin.Uecker@med.uni-goettingen.de>
-- *
-- * Details:
-- * - sizeof() return an integer constant expression, and does not evaluate
-- *   the value of its operand; it only examines the type of its operand.
-- * - The results of comparing two integer constant expressions is also
-- *   an integer constant expression.
-- * - The first literal "8" isn't important. It could be any literal value.
-- * - The second literal "8" is to avoid warnings about unaligned pointers;
-- *   this could otherwise just be "1".
-- * - (long)(x) is used to avoid warnings about 64-bit types on 32-bit
-- *   architectures.
-- * - The C Standard defines "null pointer constant", "(void *)0", as
-- *   distinct from other void pointers.
-- * - If (x) is an integer constant expression, then the "* 0l" resolves
-- *   it into an integer constant expression of value 0. Since it is cast to
-- *   "void *", this makes the second operand a null pointer constant.
-- * - If (x) is not an integer constant expression, then the second operand
-- *   resolves to a void pointer (but not a null pointer constant: the value
-- *   is not an integer constant 0).
-- * - The conditional operator's third operand, "(int *)8", is an object
-- *   pointer (to type "int").
-- * - The behavior (including the return type) of the conditional operator
-- *   ("operand1 ? operand2 : operand3") depends on the kind of expressions
-- *   given for the second and third operands. This is the central mechanism
-- *   of the macro:
-- *   - When one operand is a null pointer constant (i.e. when x is an integer
-- *     constant expression) and the other is an object pointer (i.e. our
-- *     third operand), the conditional operator returns the type of the
-- *     object pointer operand (i.e. "int *"). Here, within the sizeof(), we
-- *     would then get:
-- *       sizeof(*((int *)(...))  == sizeof(int)  == 4
-- *   - When one operand is a void pointer (i.e. when x is not an integer
-- *     constant expression) and the other is an object pointer (i.e. our
-- *     third operand), the conditional operator returns a "void *" type.
-- *     Here, within the sizeof(), we would then get:
-- *       sizeof(*((void *)(...)) == sizeof(void) == 1
-- * - The equality comparison to "sizeof(int)" therefore depends on (x):
-- *     sizeof(int) == sizeof(int)     (x) was a constant expression
-- *     sizeof(int) != sizeof(void)    (x) was not a constant expression
-- */
--#define __is_constexpr(x) \
--	(sizeof(int) == sizeof(*(8 ? ((void *)((long)(x) * 0l)) : (int *)8)))
--
--/*
-  * Whether 'type' is a signed type or an unsigned type. Supports scalar types,
-  * bool and also pointer types.
-  */
-@@ -342,28 +295,6 @@ static inline void *offset_to_ptr(const
- #define statically_true(x) (__builtin_constant_p(x) && (x))
- 
- /*
-- * Similar to statically_true() but produces a constant expression
-- *
-- * To be used in conjunction with macros, such as BUILD_BUG_ON_ZERO(),
-- * which require their input to be a constant expression and for which
-- * statically_true() would otherwise fail.
-- *
-- * This is a trade-off: const_true() requires all its operands to be
-- * compile time constants. Else, it would always returns false even on
-- * the most trivial cases like:
-- *
-- *   true || non_const_var
-- *
-- * On the opposite, statically_true() is able to fold more complex
-- * tautologies and will return true on expressions such as:
-- *
-- *   !(non_const_var * 8 % 4)
-- *
-- * For the general case, statically_true() is better.
-- */
--#define const_true(x) __builtin_choose_expr(__is_constexpr(x), x, false)
--
--/*
-  * This is needed in functions which generate the stack canary, see
-  * arch/x86/kernel/smpboot.c::start_secondary() for an example.
-  */
---- a/include/vdso/bits.h
-+++ b/include/vdso/bits.h
-@@ -2,9 +2,26 @@
- #ifndef __VDSO_BITS_H
- #define __VDSO_BITS_H
- 
-+#include <vdso/compiler.h>
- #include <vdso/const.h>
- 
--#define BIT(nr)			(UL(1) << (nr))
--#define BIT_ULL(nr)		(ULL(1) << (nr))
-+#if !defined(__ASSEMBLY__)
- 
--#endif	/* __VDSO_BITS_H */
-+#define BITS_PER_BYTE		8
-+#define BITS_PER_TYPE(type)	(sizeof(type) * BITS_PER_BYTE)
-+
-+/* Check for BIT() similar to GENMASK_TYPE() to catch shift count overflow at compile time */
-+#define BIT_INPUT_CHECK(type, nr) \
-+	BUILD_BUG_ON_ZERO(const_true((nr) >= BITS_PER_TYPE(type)))
-+
-+#define BIT_TYPE(type, nr) ((type)(BIT_INPUT_CHECK(type, nr) + (ULL(1) << (nr))))
-+
-+#define BIT(nr)		BIT_TYPE(unsigned long, nr)
-+#define BIT_ULL(nr)	BIT_TYPE(unsigned long long, nr)
-+#define BIT_U8(nr)	BIT_TYPE(u8, nr)
-+#define BIT_U16(nr)	BIT_TYPE(u16, nr)
-+#define BIT_U32(nr)	BIT_TYPE(u32, nr)
-+#define BIT_U64(nr)	BIT_TYPE(u64, nr)
-+
-+#endif /* !__ASSEMBLY__ */
-+#endif /* __VDSO_BITS_H */
---- /dev/null
-+++ b/include/vdso/compiler.h
-@@ -0,0 +1,76 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef __VDSO_COMPILER_H
-+#define __VDSO_COMPILER_H
-+
-+#include <linux/compiler_types.h>
-+
-+/*
-+ * This returns a constant expression while determining if an argument is
-+ * a constant expression, most importantly without evaluating the argument.
-+ * Glory to Martin Uecker <Martin.Uecker@med.uni-goettingen.de>
-+ *
-+ * Details:
-+ * - sizeof() return an integer constant expression, and does not evaluate
-+ *   the value of its operand; it only examines the type of its operand.
-+ * - The results of comparing two integer constant expressions is also
-+ *   an integer constant expression.
-+ * - The first literal "8" isn't important. It could be any literal value.
-+ * - The second literal "8" is to avoid warnings about unaligned pointers;
-+ *   this could otherwise just be "1".
-+ * - (long)(x) is used to avoid warnings about 64-bit types on 32-bit
-+ *   architectures.
-+ * - The C Standard defines "null pointer constant", "(void *)0", as
-+ *   distinct from other void pointers.
-+ * - If (x) is an integer constant expression, then the "* 0l" resolves
-+ *   it into an integer constant expression of value 0. Since it is cast to
-+ *   "void *", this makes the second operand a null pointer constant.
-+ * - If (x) is not an integer constant expression, then the second operand
-+ *   resolves to a void pointer (but not a null pointer constant: the value
-+ *   is not an integer constant 0).
-+ * - The conditional operator's third operand, "(int *)8", is an object
-+ *   pointer (to type "int").
-+ * - The behavior (including the return type) of the conditional operator
-+ *   ("operand1 ? operand2 : operand3") depends on the kind of expressions
-+ *   given for the second and third operands. This is the central mechanism
-+ *   of the macro:
-+ *   - When one operand is a null pointer constant (i.e. when x is an integer
-+ *     constant expression) and the other is an object pointer (i.e. our
-+ *     third operand), the conditional operator returns the type of the
-+ *     object pointer operand (i.e. "int *"). Here, within the sizeof(), we
-+ *     would then get:
-+ *       sizeof(*((int *)(...))  == sizeof(int)  == 4
-+ *   - When one operand is a void pointer (i.e. when x is not an integer
-+ *     constant expression) and the other is an object pointer (i.e. our
-+ *     third operand), the conditional operator returns a "void *" type.
-+ *     Here, within the sizeof(), we would then get:
-+ *       sizeof(*((void *)(...)) == sizeof(void) == 1
-+ * - The equality comparison to "sizeof(int)" therefore depends on (x):
-+ *     sizeof(int) == sizeof(int)     (x) was a constant expression
-+ *     sizeof(int) != sizeof(void)    (x) was not a constant expression
-+ */
-+#define __is_constexpr(x) \
-+	(sizeof(int) == sizeof(*(8 ? ((void *)((long)(x) * 0l)) : (int *)8)))
-+
-+/*
-+ * Similar to statically_true() but produces a constant expression
-+ *
-+ * To be used in conjunction with macros, such as BUILD_BUG_ON_ZERO(),
-+ * which require their input to be a constant expression and for which
-+ * statically_true() would otherwise fail.
-+ *
-+ * This is a trade-off: const_true() requires all its operands to be
-+ * compile time constants. Else, it would always returns false even on
-+ * the most trivial cases like:
-+ *
-+ *   true || non_const_var
-+ *
-+ * On the opposite, statically_true() is able to fold more complex
-+ * tautologies and will return true on expressions such as:
-+ *
-+ *   !(non_const_var * 8 % 4)
-+ *
-+ * For the general case, statically_true() is better.
-+ */
-+#define const_true(x) __builtin_choose_expr(__is_constexpr(x), x, false)
-+
-+#endif
+>  #define GENMASK(h, l)		GENMASK_TYPE(unsigned long, h, l)
+>  #define GENMASK_ULL(h, l)	GENMASK_TYPE(unsigned long long, h, l)
+> -- 
+> 2.39.5
