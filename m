@@ -1,67 +1,100 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DA042EAD10;
-	Mon,  9 Feb 2026 03:05:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 649082F5A3D;
+	Mon,  9 Feb 2026 03:05:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770606346; cv=none; b=jZFZ6CU3lzDxhYfbM+jzgt8I9YJQ/IJ22+UmHOYX4lm84KM0CfRUEEqGrPERq9M9XfFvqEJjJcPJbJQqmJoNBZspBPTAIJaGGV2hKWdFlYMhi0tXlnyplOD85nRakCvToxco/ltz+yMXw/ZhKoWUpjZH93whi6DeeotlzRZYrPQ=
+	t=1770606347; cv=none; b=FJq5quzX/LXyuTbYCu19HOzmsEKs6QF1iN3CLflesnT3cTV7mRUOQ649oB7UHSVZuBZMxe4HBZS3f/TOkzA3eVpdKVe382TxbkMqq0y7cd8gZnL02Mmrm+fJbPHPX1Jg1qEHNSRo74U6Fh8C3Wi7142p+t8nLlfGpsAtXRzwcHo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770606346; c=relaxed/simple;
-	bh=Bi0BkSU0X7luO/eNKUDTo3OAk9c0hNwnUFQEUKPEsfw=;
+	s=arc-20240116; t=1770606347; c=relaxed/simple;
+	bh=vvMHAN6L2tVEAL6dEZf2ykF+FEIUVDPhLofe2WZoOhg=;
 	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
-	 Subject:From:To:Cc:Date; b=DXZuBi1BfyPBXXhrKZQOpZ3ovP9f9KnHKbACzYjnvjEd6X9wBdLIuYQxH0xWTZH7xMFcwqucdL7aDVXiMc0kEAi/yX9xL+JsZczBXpBc2oVsu0GiKnu34m28sGlmD/H67wiK3osA7/YfjAikuT826XUIOC5QxBcibPiUEYRpD4g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=cG+sAeWy; arc=none smtp.client-ip=10.30.226.201
+	 Subject:From:To:Cc:Date; b=pFqBBXW0ApfAGJE8P9yRUfikwedVM2EwCe/HUzmeTdGYywkDpXmpPHan/lW3mEHxt13onHsaYlfq+el/K4BWY61/MAJRGZT11kxjwQXB/nka1/OOc3zODwIMRxuRhKXNXXwy2Tpm/PpQDmyUWDxH429a5UUnXYvrt+0Qc8xFx5Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=EGqniBRk; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="cG+sAeWy"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4C193C4CEF7;
-	Mon,  9 Feb 2026 03:05:44 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="EGqniBRk"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B8C1CC4CEF7;
+	Mon,  9 Feb 2026 03:05:46 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1770606345;
-	bh=Bi0BkSU0X7luO/eNKUDTo3OAk9c0hNwnUFQEUKPEsfw=;
+	s=k20201202; t=1770606347;
+	bh=vvMHAN6L2tVEAL6dEZf2ykF+FEIUVDPhLofe2WZoOhg=;
 	h=In-Reply-To:References:Subject:From:To:Cc:Date:From;
-	b=cG+sAeWyJWGwC/Aap7um1mW3FVa/saSM/1E0r2PdRfdLfatSgunijyvKcqeRKABt1
-	 9whi9FzkNVfIQ+TvxlYTn5HAgF+pnqN7B8G8sc+cq0+vrZ+IEjN+w4XE6xDPQAIE76
-	 VCBslV3UB40R6f+l6hQkpoi7dGX88W9ej+jud/nTyIyGgpW5ZUQ7/KHhJRu8mS6Qpp
-	 EnokLaUHyDKEkGtmoD/kh+zpbfxMklkxNIbByo8g1VXDH13xuzaw1WlHs/rN/ouozD
-	 p1xmIGCBlZlHOlA081oGTvSijWr3XLkgIlwuC/KeTiuT9PICZR1onuWPwB2nPtMzR5
-	 uvHk2B6DOXtIA==
-Content-Type: multipart/mixed; boundary="===============3409934204227450896=="
+	b=EGqniBRkII1k0v2zEcVrgvvp1RGHn5x1yku3AM9oRO7ltwSd5Hx059aku8TzQeA5W
+	 Qech1D2jNbTI4/325eLAAXom6FCOlYZut+9bStgMtdLJOV9O5BhHILXPRU/JaVF6d0
+	 AMUp8sVEARuZCxKCUKBocVqb1Aa6yj5ahcuieRxTofBIcolX83w4wZoJCf+TKGqwgS
+	 2/Q2gEalcidmAAo3hl0K3PUaqvs4p8eZlUe6CqzRqnNPIpKDO6vEQeO40QBXDdq2XX
+	 7f38PNlJA0ANID1SeUCXuf5sBcXt9QOkZ2t0MSuXg7uX92J5oxYIF3knEBsUWh0J5G
+	 GKj9WATL7YBlg==
+Content-Type: multipart/mixed; boundary="===============6771391642254911456=="
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Message-Id: <7d3944c1d8ffe5ee6d52907d7227f8eb8b91f5aa2b705fe3eb0af23454b8b072@mail.kernel.org>
-In-Reply-To: <20260209023153.2661784-12-ankur.a.arora@oracle.com>
-References: <20260209023153.2661784-12-ankur.a.arora@oracle.com>
-Subject: Re: [PATCH v9 11/12] sched: add need-resched timed wait interface
+Message-Id: <48114f7cb5d9dbe88299056f69a43708f29f4f4569aa0c04d4411d5140e932c3@mail.kernel.org>
+In-Reply-To: <20260209023153.2661784-10-ankur.a.arora@oracle.com>
+References: <20260209023153.2661784-10-ankur.a.arora@oracle.com>
+Subject: Re: [PATCH v9 09/12] bpf/rqspinlock: switch check_timeout() to a clock interface
 From: bot+bpf-ci@kernel.org
 To: ankur.a.arora@oracle.com,linux-kernel@vger.kernel.org,linux-arch@vger.kernel.org,linux-arm-kernel@lists.infradead.org,linux-pm@vger.kernel.org,bpf@vger.kernel.org
-Cc: arnd@arndb.de,catalin.marinas@arm.com,will@kernel.org,peterz@infradead.org,akpm@linux-foundation.org,mark.rutland@arm.com,harisokn@amazon.com,cl@gentwo.org,ast@kernel.org,rafael@kernel.org,daniel.lezcano@linaro.org,memxor@gmail.com,zhenglifeng1@huawei.com,xueshuai@linux.alibaba.com,joao.m.martins@oracle.com,boris.ostrovsky@oracle.com,konrad.wilk@oracle.com,ankur.a.arora@oracle.com,mingo@kernel.org,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
-Date: Mon,  9 Feb 2026 03:05:44 +0000 (UTC)
+Cc: arnd@arndb.de,catalin.marinas@arm.com,will@kernel.org,peterz@infradead.org,akpm@linux-foundation.org,mark.rutland@arm.com,harisokn@amazon.com,cl@gentwo.org,ast@kernel.org,rafael@kernel.org,daniel.lezcano@linaro.org,memxor@gmail.com,zhenglifeng1@huawei.com,xueshuai@linux.alibaba.com,joao.m.martins@oracle.com,boris.ostrovsky@oracle.com,konrad.wilk@oracle.com,ankur.a.arora@oracle.com,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
+Date: Mon,  9 Feb 2026 03:05:46 +0000 (UTC)
 
---===============3409934204227450896==
+--===============6771391642254911456==
 Content-Type: text/plain; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
-> The wait is implemented via smp_cond_load_relaxed_timeout().
+> diff --git a/kernel/bpf/rqspinlock.c b/kernel/bpf/rqspinlock.c
+> index 2fdfa828e3d3..f02b1c5f0222 100644
+> --- a/kernel/bpf/rqspinlock.c
+> +++ b/kernel/bpf/rqspinlock.c
+
+[ ... ]
+
+> @@ -340,6 +349,7 @@ int __lockfunc resilient_queued_spin_lock_slowpath(rqspinlock_t *lock, u32 val)
+> {
+> 	struct mcs_spinlock *prev, *next, *node;
+> 	struct rqspinlock_timeout ts;
+> +	s64 timeout_err = 0;
+> 	int idx, ret = 0;
+> 	u32 old, tail;
+
+[ ... ]
+
+In arch_mcs_spin_lock_contended(), when a waiter in the MCS queue receives
+a timeout signal (RES_TIMEOUT_VAL) from the previous waiter:
+
+> 	if (old & _Q_TAIL_MASK) {
+> 		int val;
 >
-> smp_cond_load_acquire_timeout() essentially provides the pattern used
-> in poll_idle() where we spin in a loop waiting for the flag to change
-> until a timeout occurs.
+> 		prev = decode_tail(old, rqnodes);
+>
+> 		/* Link @node into the waitqueue. */
+> 		WRITE_ONCE(prev->next, node);
+>
+> 		val = arch_mcs_spin_lock_contended(&node->locked);
+> 		if (val == RES_TIMEOUT_VAL) {
+> 			ret = -ETIMEDOUT;
+> 			goto waitq_timeout;
+> 		}
 
-This isn't a bug, but the commit message mentions smp_cond_load_acquire_timeout()
-when describing the poll_idle() pattern.
+This sets ret = -ETIMEDOUT but does not set timeout_err. When execution
+reaches the waitq_timeout label:
 
-However, the code uses smp_cond_load_relaxed_timeout(), and the subsequent
-poll_idle() conversion (patch 12/12) also uses the relaxed variant via
-tif_need_resched_relaxed_wait().
+> waitq_timeout:
+> -	if (ret) {
+> +	if (timeout_err < 0) {
 
-Should this say smp_cond_load_relaxed_timeout() instead of
-smp_cond_load_acquire_timeout() for consistency with the implementation?
+The condition evaluates to false since timeout_err is still 0. This causes
+the timeout handling to be skipped entirely, and execution falls through
+to the lock acquisition path. If the lock is acquired, the function
+returns ret (which is -ETIMEDOUT), making the caller believe the lock was
+not acquired when it actually was. This appears to be a lock leak.
+
+Should the goto waitq_timeout path also set timeout_err = -ETIMEDOUT?
 
 
 ---
@@ -71,9 +104,9 @@ See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 CI run summary: https://github.com/kernel-patches/bpf/actions/runs/21810635323
 
 AI-authorship-score: low
-AI-authorship-explanation: The commit follows standard kernel style with iterative improvements across 9 versions and reviewer feedback, consistent with human authorship.
+AI-authorship-explanation: The commit shows typical human developer patterns including a missed edge case during refactoring, which is a common human error rather than systematic AI-generated code issues.
 issues-found: 1
-issue-severity-score: low
-issue-severity-explanation: Minor commit message inaccuracy referencing wrong function name, no impact on code correctness or runtime behavior.
+issue-severity-score: high
+issue-severity-explanation: Lock leak bug where the function may acquire a lock but return an error code, causing callers to think acquisition failed when it actually succeeded.
 
---===============3409934204227450896==--
+--===============6771391642254911456==--
