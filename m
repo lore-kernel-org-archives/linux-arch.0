@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED5AC2DC76F;
-	Tue, 10 Feb 2026 23:31:35 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 11BB919ABD8;
+	Tue, 10 Feb 2026 23:31:51 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770766296; cv=none; b=FCSnrKUrSqUr9/LhPatyAMAOKTgmPLsvaIgKisxRhmdrwHiWdc2Oh1SK6tKTkwI+1rjoTNY5q8HIsxJFbAFGCkXofWzu/yX3qOWnYKsps6vfv+hV7vQ/co+5H6rDHmWsLS1PIuq5SKyTSH6uYnhtIrVxUpkRHetP8gp995gLvnw=
+	t=1770766311; cv=none; b=IN/sVXtZJwf8oSrwMt9J6WqQHXG4/hob6oPoMjA+Bwu/tNeQa7Ww5AERwBDjvKObTR15zs/0T2t4xmAO2qCfcA0y3TWumPvOxyMHpopfpxf13aLcO8ZkTHycsLk/rjjTYhhCNl9XhT3/poQS9WvX2EobwYUJTN5ID7BvPGq8G+4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770766296; c=relaxed/simple;
-	bh=G7lFiqCbS5JysXbiUO7LMjyUbMqhN7WZBgBKt2lUoqw=;
+	s=arc-20240116; t=1770766311; c=relaxed/simple;
+	bh=MgNuV77btrx43G0ydFkyKy6erseXeXfn63J80fZlm0c=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=i52OzcOZ4knS+uJqgUf4IXKV21tASLhk6VHMyMrwZpj8pBU44HcXrY0nZAwy2FUd7ccn8xEbiVICCWZDOWMJzMd5TXhOsjj1ZiWNaM40wu2qL59pl8rMWh1ng1D2Z/Ju5q093iQdL2IHLpSJ7oPcpSMVqix5oYKJZ8j+XFwYiJ0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=u0TUXOj/; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version:Content-Type; b=JgiLdyCsoDsUKIVxCq2Nc4YdejUS5wpM+ul738xotoDmGM0NbKPaP9ST3A39TcJULEJZaBFCMtGLZv8JJWf+g/HbHpfptto9zAU+D4Ej7cnCpzB8WyyANJ0/jYLn/cNrfRgVXFwsWW+stMYlPreyuH1ELza1pNSp8lixcWMMNBQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=EdK65lKd; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="u0TUXOj/"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BC73DC19423;
-	Tue, 10 Feb 2026 23:31:34 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="EdK65lKd"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 22153C116C6;
+	Tue, 10 Feb 2026 23:31:50 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1770766295;
-	bh=G7lFiqCbS5JysXbiUO7LMjyUbMqhN7WZBgBKt2lUoqw=;
+	s=k20201202; t=1770766310;
+	bh=MgNuV77btrx43G0ydFkyKy6erseXeXfn63J80fZlm0c=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=u0TUXOj/TdVe3k8ZPheR5hPBuM3LvcJfTtXXne52xklNBHZTwPOosA+huprYkxR4z
-	 RsxjpTU7Z/sFW+zByqFpv95nFHc2VO63QNTxVEHdVYL5ZpG15TEEUN8yVBSRPegULE
-	 yDw1CS6BgrFN4yTH/NRWI18bJ+iHleP+RT7xIH7eUCGRz43rl/unvqijcbLvw1zSY6
-	 K6ME7MJ/NnoeFqDiyU5NssEUq6fg2QKiL+X1+U4mRPBh5bpIVOHqFNoZX+FhqmXD76
-	 pLLZd82YRmle0iEuljl/Fd19cnSo+5J82SBZyzkftbryYWSABicdD1hb3WUYOXi7Al
-	 2AHl94IdDzGIA==
+	b=EdK65lKdA5w0yWcd78sq8TdTdZkpxG5ayvDFlAzsvKeN7Y2Mqi0WkuhHrh59H4rYv
+	 pNJcxDuobJxz5bJNkUQG1hvZ3mkVAdL4FwWvX8krSnGc4oFSY1dD2c/n/osyIz4Z+s
+	 uClhHMjuK8HU6N7K1EP67/uUYrpk87IPRq/CJ87H93LIPniTHc2tPFnt0MxwAOVcq5
+	 KRWXeOAa9cDH7XP8juWWNABtULgs2Kr7l7MbQ49OJ7GFjHvRBVb6aS0K5fJ9Cab9zL
+	 60AlHiHsYNKZ3dDR8s8Xew9y4mxzYNbJurQ3sZma9ge3VC/FAWmVrN5vA0bZZoFzJ3
+	 sWIYcmv/xdSRw==
 From: Sasha Levin <sashal@kernel.org>
 To: patches@lists.linux.dev,
 	stable@vger.kernel.org
@@ -35,9 +35,9 @@ Cc: Jeffrey Bencteux <jeff@bencteux.fr>,
 	eparis@redhat.com,
 	audit@vger.kernel.org,
 	linux-arch@vger.kernel.org
-Subject: [PATCH AUTOSEL 6.19-5.10] audit: add fchmodat2() to change attributes class
-Date: Tue, 10 Feb 2026 18:30:51 -0500
-Message-ID: <20260210233123.2905307-6-sashal@kernel.org>
+Subject: [PATCH AUTOSEL 6.19-5.10] audit: add missing syscalls to read class
+Date: Tue, 10 Feb 2026 18:31:02 -0500
+Message-ID: <20260210233123.2905307-17-sashal@kernel.org>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260210233123.2905307-1-sashal@kernel.org>
 References: <20260210233123.2905307-1-sashal@kernel.org>
@@ -55,16 +55,15 @@ Content-Transfer-Encoding: 8bit
 
 From: Jeffrey Bencteux <jeff@bencteux.fr>
 
-[ Upstream commit 4f493a6079b588cf1f04ce5ed6cdad45ab0d53dc ]
+[ Upstream commit bcb90a2834c7393c26df9609b889a3097b7700cd ]
 
-fchmodat2(), introduced in version 6.6 is currently not in the change
-attribute class of audit. Calling fchmodat2() to change a file
-attribute in the same fashion than chmod() or fchmodat() will bypass
-audit rules such as:
+The "at" variant of getxattr() and listxattr() are missing from the
+audit read class. Calling getxattrat() or listxattrat() on a file to
+read its extended attributes will bypass audit rules such as:
 
 -w /tmp/test -p rwa -k test_rwa
 
-The current patch adds fchmodat2() to the change attributes class.
+The current patch adds missing syscalls to the audit read class.
 
 Signed-off-by: Jeffrey Bencteux <jeff@bencteux.fr>
 Signed-off-by: Paul Moore <paul@paul-moore.com>
@@ -73,186 +72,122 @@ Signed-off-by: Sasha Levin <sashal@kernel.org>
 
 LLM Generated explanations, may be completely bogus:
 
-Now I have a complete picture. Let me write up the full analysis.
+Now I have a complete understanding. Let me summarize the analysis.
 
----
+## Analysis
 
-## Detailed Analysis
+### 1. Commit Message Analysis
 
-### 1. COMMIT MESSAGE ANALYSIS
+The commit is clear: it adds `getxattrat` and `listxattrat` syscalls to
+the audit "read" class. The commit message explains the concrete
+consequence — calling these syscalls will **bypass** audit rules like
+`-w /tmp/test -p rwa -k test_rwa`, which is a security monitoring gap.
 
-The commit message is clear and explicit about the bug:
+### 2. Code Change Analysis
 
-- **Problem**: `fchmodat2()`, introduced in kernel v6.6, was never added
-  to the audit subsystem's "change attributes" (chattr) class. This
-  means that any process calling `fchmodat2()` to change a file's
-  permissions **completely bypasses audit rules** that monitor attribute
-  changes (the `-p a` permission in audit rules, e.g., `-w /tmp/test -p
-  rwa -k test_rwa`).
+The change is only to `include/asm-generic/audit_read.h` — it adds 6
+lines (two `#ifdef`-guarded entries). This file defines the
+`read_class[]` array used by `audit_match_perm()` in `kernel/auditsc.c`
+to determine whether a given syscall matches the "read" permission
+class. The matching code:
 
-- **Impact**: This is a **security audit bypass**. Users who deploy
-  audit rules to track attribute changes on sensitive files (a standard
-  security and compliance practice) will miss `fchmodat2()` calls
-  entirely. An attacker or any process using `fchmodat2()` instead of
-  `chmod()`/`fchmodat()` can change file permissions without triggering
-  any audit record.
-
-- **Author**: Jeffrey Bencteux, signed off by Paul Moore (the audit
-  subsystem maintainer), which is a strong indicator of correctness.
-
-### 2. CODE CHANGE ANALYSIS
-
-The patch is **3 lines** in a single file:
-
-```c
-#ifdef __NR_fchmodat2
-__NR_fchmodat2,
-#endif
+```151:170:kernel/auditsc.c
+static int audit_match_perm(struct audit_context *ctx, int mask)
+{
+        unsigned n;
+        // ...
+        if ((mask & AUDIT_PERM_READ) &&
+             audit_match_class(AUDIT_CLASS_READ, n))
+                return 1;
+        // ...
+}
 ```
 
-Added to `include/asm-generic/audit_change_attr.h`, right after the
-existing `__NR_fchmodat` entry. This is the header file that is
-`#include`d by the `chattr_class[]` arrays across all architectures
-(x86, sparc, s390, powerpc, parisc, alpha, and generic lib/audit.c +
-compat_audit.c). These arrays define which syscall numbers are in the
-"change attributes" audit class.
+Without `getxattrat` and `listxattrat` in the read class,
+`audit_match_perm()` returns 0 for these syscalls when checking
+`AUDIT_PERM_READ`, meaning audit watch rules with read (`r`) permission
+never fire for these syscalls.
 
-The mechanism is straightforward:
-- The `audit_match_perm()` function in `kernel/auditsc.c` (line 167-169)
-  checks if a syscall number (`ctx->major`) matches `AUDIT_CLASS_CHATTR`
-  when the audit rule has `AUDIT_PERM_ATTR` set.
-- Without `fchmodat2` in the `chattr_class[]` array,
-  `audit_match_class(AUDIT_CLASS_CHATTR, __NR_fchmodat2)` returns 0, so
-  the rule never fires for `fchmodat2()`.
+### 3. Root Cause — Omission in Original Syscall Introduction
 
-Critically, `fchmodat2()` (defined in `fs/open.c` line 704-708) calls
-the same `do_fchmodat()` function as `fchmodat()` (line 710-714). They
-are functionally identical for attribute changes - the only difference
-is `fchmodat2` adds a `flags` parameter. So there's no question that
-`fchmodat2` belongs in the chattr class.
+The original commit `6140be90ec70c` ("fs/xattr: add *at family
+syscalls") introduced all four `*xattrat` syscalls. It correctly added
+`setxattrat` and `removexattrat` to `audit_change_attr.h` (the
+attribute-change class), but **forgot** to add `getxattrat` and
+`listxattrat` to `audit_read.h` (the read class). This is an
+oversight/bug in the original commit.
 
-### 3. CLASSIFICATION
+### 4. Affected Stable Trees
 
-This is a **security bug fix** — specifically, an audit bypass. It is
-NOT a new feature. The `fchmodat2` syscall already exists; this merely
-ensures the audit subsystem correctly classifies it alongside the
-equivalent `fchmodat` syscall.
+- The `*xattrat` syscalls were introduced in **v6.13**.
+- Stable trees **6.13.y through 6.18.y** all have these syscalls defined
+  but are **missing** the audit read class entries.
+- Stable trees **6.12.y and older** do not have the syscalls, so the
+  `#ifdef` guards make this a safe no-op.
+- I verified that 6.14.y has the syscalls AND is missing the audit
+  entries, confirming the bug is present.
 
-This fits squarely into the category of fixes that are critical for
-stable:
-- Environments running Linux audit (virtually all enterprise
-  deployments, compliance-regulated systems) are silently missing
-  attribute change events
-- This is a **compliance gap** (PCI-DSS, HIPAA, SOX, FedRAMP all require
-  file integrity monitoring via audit)
-- The `#ifdef __NR_fchmodat2` guard ensures it compiles safely on older
-  architectures where the syscall might not be defined
+### 5. Security Impact
 
-### 4. SCOPE AND RISK ASSESSMENT
+This is a **security audit bypass**. Linux audit is a critical security
+feature used for:
+- Compliance monitoring (PCI-DSS, HIPAA, SOX)
+- Intrusion detection
+- Forensics
 
-- **Size**: 3 lines added, 1 file changed — the smallest possible change
-- **Risk**: Near zero. The change only adds a syscall number to an
-  existing list. The `#ifdef` guard protects against the case where
-  `__NR_fchmodat2` is not defined. There is no behavioral change to any
-  existing code path.
-- **Could this break anything?**: No. Adding a new entry to the
-  chattr_class array only means that `fchmodat2` syscalls will now
-  correctly trigger audit rules with attribute-change permissions.
-  There's no way this causes a regression — at worst, users would see
-  additional (correct) audit records they were previously missing.
+The `getxattrat()` syscall can read security-relevant extended
+attributes (like `security.selinux` labels) without triggering audit
+rules. An attacker or unauthorized user could use
+`getxattrat()`/`listxattrat()` instead of `getxattr()`/`listxattr()` to
+enumerate or read extended attributes while evading audit monitoring.
+This is a concrete bypass of security controls.
 
-### 5. USER IMPACT
+### 6. Fix Quality
 
-- **Who is affected**: Every single system running Linux audit with
-  attribute-change monitoring rules on kernels 6.6+. This includes
-  enterprise distributions (RHEL, SLES, Ubuntu), compliance-critical
-  infrastructure, and security-sensitive deployments.
-- **Severity**: HIGH — this is a silent security audit bypass. Users
-  believe they are monitoring attribute changes, but `fchmodat2()` slips
-  through undetected.
-- **Real-world trigger**: glibc and other C libraries may route
-  `chmod()`-like calls through `fchmodat2()` if available. The commit
-  message explicitly gives an example of the audit rule being bypassed.
+- **Trivially small**: 6 lines added, no lines removed, no logic changes
+- **Obviously correct**: Follows the exact same `#ifdef __NR_xxx /
+  __NR_xxx, / #endif` pattern used by every other conditional entry in
+  the file
+- **Safe**: The `#ifdef` guards mean it compiles cleanly even if the
+  syscall numbers don't exist
+- **No dependencies**: This is a self-contained fix
+- **Signed off by Paul Moore**: The audit subsystem maintainer
+- **Zero risk of regression**: Adding entries to the read class array
+  cannot break anything; it only makes the audit matching more complete
 
-### 6. DEPENDENCY CHECK
+### 7. Risk vs Benefit
 
-- **fchmodat2 syscall exists in v6.6**: Confirmed — `__NR_fchmodat2` is
-  defined as syscall 452 in `include/uapi/asm-generic/unistd.h` since
-  v6.6.
-- **Clean application to v6.6**: Confirmed — the context lines
-  (`__NR_fchownat`, `__NR_fchmodat`, `#endif`, `#ifdef __NR_chown32`)
-  are identical in v6.6's version of the file.
-- **No other dependencies**: The patch is completely self-contained. It
-  doesn't depend on any other commit. The `setxattrat`/`removexattrat`
-  additions from commit 6140be90ec70c are in different positions in the
-  file and don't affect the context.
-- **Applicable to**: 6.6.y, 6.1.y (if fchmodat2 was backported there —
-  it wasn't since fchmodat2 was introduced in 6.6), and all stable trees
-  ≥6.6.
-
-### 7. STABILITY INDICATORS
-
-- Signed off by Paul Moore, the audit subsystem maintainer
-- The pattern is well-established — the same file has entries for every
-  attribute-changing syscall, each guarded by `#ifdef __NR_*`
-- The commit is in the `security-next` tree, in the pipeline for
-  mainline
-
-### 8. COMPARISON WITH PRECEDENT
-
-The same file has been modified before for identical reasons:
-- `262fd3aad6110` ("audit: Modify a set of system calls in audit class
-  definitions") — added syscalls to audit classes
-- `af2951325bd6c` ("audit: make link()/linkat() match 'attribute change'
-  predicate") — added `link`/`linkat` to the same class
-- `6140be90ec70c` ("fs/xattr: add *at family syscalls") — added
-  `setxattrat`/`removexattrat` to the same header
-
-All of these follow the exact same pattern of adding a syscall number to
-an audit class list.
-
-### Summary
-
-This is a textbook stable backport candidate:
-
-1. **Obviously correct**: It adds 3 lines that are structurally
-   identical to the existing `fchmodat` entry, guarded by `#ifdef`
-2. **Fixes a real bug**: Silent audit bypass of attribute changes via
-   `fchmodat2()`
-3. **Security impact**: Allows processes to bypass audit monitoring —
-   this is a security-relevant gap
-4. **Small and contained**: 3 lines, 1 file, no behavioral side effects
-5. **No new features**: Just ensures existing audit infrastructure
-   correctly covers an existing syscall
-6. **Applies cleanly to stable**: Context matches v6.6 exactly; no
-   dependencies
-7. **Signed off by subsystem maintainer**: Paul Moore (audit maintainer)
-
-The fix addresses a security audit bypass that has existed since v6.6
-(when `fchmodat2` was introduced) — roughly 2+ years of every stable
-kernel silently failing to audit attribute changes made via
-`fchmodat2()`. This is particularly critical for enterprise and
-compliance-regulated environments.
+- **Risk**: Essentially zero. The change is trivially small, obviously
+  correct, guarded by `#ifdef`, and touches only a static array
+  initializer.
+- **Benefit**: Closes a security audit bypass gap for all users of audit
+  on kernels 6.13+.
 
 **YES**
 
- include/asm-generic/audit_change_attr.h | 3 +++
- 1 file changed, 3 insertions(+)
+ include/asm-generic/audit_read.h | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/include/asm-generic/audit_change_attr.h b/include/asm-generic/audit_change_attr.h
-index cc840537885fb..ddd90bbe40dfc 100644
---- a/include/asm-generic/audit_change_attr.h
-+++ b/include/asm-generic/audit_change_attr.h
-@@ -26,6 +26,9 @@ __NR_fremovexattr,
- __NR_fchownat,
- __NR_fchmodat,
+diff --git a/include/asm-generic/audit_read.h b/include/asm-generic/audit_read.h
+index 7bb7b5a83ae2e..fb9991f53fb6f 100644
+--- a/include/asm-generic/audit_read.h
++++ b/include/asm-generic/audit_read.h
+@@ -4,9 +4,15 @@ __NR_readlink,
  #endif
-+#ifdef __NR_fchmodat2
-+__NR_fchmodat2,
+ __NR_quotactl,
+ __NR_listxattr,
++#ifdef __NR_listxattrat
++__NR_listxattrat,
 +#endif
- #ifdef __NR_chown32
- __NR_chown32,
- __NR_fchown32,
+ __NR_llistxattr,
+ __NR_flistxattr,
+ __NR_getxattr,
++#ifdef __NR_getxattrat
++__NR_getxattrat,
++#endif
+ __NR_lgetxattr,
+ __NR_fgetxattr,
+ #ifdef __NR_readlinkat
 -- 
 2.51.0
 
