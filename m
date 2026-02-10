@@ -1,416 +1,258 @@
-Received: from fout-b7-smtp.messagingengine.com (fout-b7-smtp.messagingengine.com [202.12.124.150])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B623931B114;
-	Tue, 10 Feb 2026 17:03:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.150
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED5AC2DC76F;
+	Tue, 10 Feb 2026 23:31:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770742985; cv=none; b=Xlv333jBWGKkgrs5ky23xOoL0Rs/R0h0d9x9oeO24R/8LCf5jss8VwizscP2L3cMPD/Z1KEO38p5de4U+vVDcdsu8qMPauUyRgR9gJBZegsegz664sAx5fWOTigQy3RIjOONsx80fRdDAT4EfqPAzpjr//ZvYbLzns32dmMclfM=
+	t=1770766296; cv=none; b=FCSnrKUrSqUr9/LhPatyAMAOKTgmPLsvaIgKisxRhmdrwHiWdc2Oh1SK6tKTkwI+1rjoTNY5q8HIsxJFbAFGCkXofWzu/yX3qOWnYKsps6vfv+hV7vQ/co+5H6rDHmWsLS1PIuq5SKyTSH6uYnhtIrVxUpkRHetP8gp995gLvnw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770742985; c=relaxed/simple;
-	bh=stPxOkgbO1jeBz9CXCloRLRAQOM7pP6vBZNW0yyqfeg=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:Subject:Content-Type; b=d5uMmnFNDy/EJP1pFjJZIfEM87RzXhUoO286FQORqxhgFt6NVDEhYzIS38goyjJ8ZLnwch1n+/1U/M9SQblUU/ME6yyh4mZEf79cz3l85rA6QNvzaqTA8Sm5tDBlj/WlInM6RTjpw7ov7KfsQOujVFAGSYTs9ycjkBsxQiex8RM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=eHCnZIrm; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=L54FpaJv; arc=none smtp.client-ip=202.12.124.150
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1770766296; c=relaxed/simple;
+	bh=G7lFiqCbS5JysXbiUO7LMjyUbMqhN7WZBgBKt2lUoqw=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=i52OzcOZ4knS+uJqgUf4IXKV21tASLhk6VHMyMrwZpj8pBU44HcXrY0nZAwy2FUd7ccn8xEbiVICCWZDOWMJzMd5TXhOsjj1ZiWNaM40wu2qL59pl8rMWh1ng1D2Z/Ju5q093iQdL2IHLpSJ7oPcpSMVqix5oYKJZ8j+XFwYiJ0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=u0TUXOj/; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="eHCnZIrm";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="L54FpaJv"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailfout.stl.internal (Postfix) with ESMTP id CCB261D0002A;
-	Tue, 10 Feb 2026 12:03:02 -0500 (EST)
-Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-04.internal (MEProxy); Tue, 10 Feb 2026 12:03:03 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:message-id:mime-version:reply-to
-	:subject:subject:to:to; s=fm2; t=1770742982; x=1770829382; bh=Lt
-	kBbfwxVwRXO8FBLfGRvqyTfc4xuFOhN2AraliA2kU=; b=eHCnZIrmc3TA6CeuB9
-	ZnGerFyEBTs/ZUC4APwTkgSMBEaqh1Y7Ii3Es7LpTSh2iwmBMWCpbJuU9p1WeXMB
-	qRiT7R6V8M0bZhuqJWk6dtF6XZhP8qXXPB3QLoJbpesUAowEtYnp1dvW01gXYYgo
-	WIuvIB1B6IOGqB/1C95apay3kSBTs1TTeHnFnQ/7ZVAcXsy8ZhUPLeBX6zFo3Si5
-	KsGnowPNGM/2C5dkXnZxWeL8XdC/PAbNvU9m21O80RJi8XcScpBPnSM/FQI0d5HV
-	gWbe8X9lHgVKbJe2cVUULhW7yti/V/lXuH46EPCC2FvUlxcKAdRuh59v7t3k8ekl
-	6KHA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:message-id:mime-version:reply-to:subject
-	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
-	fm3; t=1770742982; x=1770829382; bh=LtkBbfwxVwRXO8FBLfGRvqyTfc4x
-	uFOhN2AraliA2kU=; b=L54FpaJvw/CMQfX6I4vTb4Dlp3vGH7HJF5dc0YAqfs5I
-	4qiUPzcSZCWAdfcHi70GBucKFd7y/FzkORnwYzcsyHd7j37NdnKP/uZ4VJinUPzu
-	RtwadAb69ucyfIcth+c8k+8NZulu92wqHIhB4gkaLsm7Q66okd/QkGcAWf8njpJE
-	Z6j/1X031LnauG236hKvGBreQRJlbd0YibXcUj6SpZRBa18/CCM0ErF5D938ANo+
-	JqFFQx729kvULwI6DQOZrhJ506wq1g5CxD9frrnaNhxi5tfOSo4OBT1JODS3hxUC
-	xU/ET3iL6dlgqrv42U7PMvMzhcf5i201t7s/SHUUPw==
-X-ME-Sender: <xms:xGSLaacwokSefzO97-uoLtxPWRzI7QdAexrD6BWLw_F9pX0RBMQmNw>
-    <xme:xGSLafCUR3iwv6-9CNBkFcLPVklhXKyMdqtnKPKTwPJh4bTCN5y-DDHRteXCrIQRf
-    pFrC6_FEnPx7PsQ74lhJDvOydRR4Y8STCVTUzE2z_1o7R_XBrpMJcql>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgddvtddtvdefucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvfevkffutgfgsehtqhertdertdejnecuhfhrohhmpedftehrnhguuceu
-    vghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrthhtvghrnh
-    epvdeigeeghffhhffguedvvdelvdfftdfgvdfftddvgfeggefhkedtfeeutddvuefgnecu
-    ffhomhgrihhnpehkvghrnhgvlhdrohhrghenucevlhhushhtvghrufhiiigvpedtnecurf
-    grrhgrmhepmhgrihhlfhhrohhmpegrrhhnugesrghrnhgusgdruggvpdhnsggprhgtphht
-    thhopeegpdhmohguvgepshhmthhpohhuthdprhgtphhtthhopehthhhomhgrshdrfigvih
-    hsshhstghhuhhhsehlihhnuhhtrhhonhhigidruggvpdhrtghpthhtohepthhorhhvrghl
-    ughssehlihhnuhigqdhfohhunhgurghtihhonhdrohhrghdprhgtphhtthhopehlihhnuh
-    igqdgrphhisehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidq
-    rghrtghhsehvghgvrhdrkhgvrhhnvghlrdhorhhg
-X-ME-Proxy: <xmx:xGSLaanGMmok0MA0NQVZt4MmaJahxb7aO6cUAg_LplUdslenjugnyA>
-    <xmx:xGSLadS5fNbdWuPC8Py5xTdJxd5Xn0Zu3DuFjP_Op_8jgrWFT44RsA>
-    <xmx:xGSLacKqahEJp3DbsrVC01qFEMhwBYFtzXlnANx2VjnmXs4-hFi62w>
-    <xmx:xGSLaTDn2QF1A1zKEqc8SvDJcNfHjT3m2gvtlLiSWCbcQPX8_oi25w>
-    <xmx:xmSLaeLEFdqoCfDRXbL2PbnW0QxSQIqM8Z8eMrh6j5IolofVVGSS3WKW>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id A6F5370006F; Tue, 10 Feb 2026 12:03:00 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="u0TUXOj/"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BC73DC19423;
+	Tue, 10 Feb 2026 23:31:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1770766295;
+	bh=G7lFiqCbS5JysXbiUO7LMjyUbMqhN7WZBgBKt2lUoqw=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=u0TUXOj/TdVe3k8ZPheR5hPBuM3LvcJfTtXXne52xklNBHZTwPOosA+huprYkxR4z
+	 RsxjpTU7Z/sFW+zByqFpv95nFHc2VO63QNTxVEHdVYL5ZpG15TEEUN8yVBSRPegULE
+	 yDw1CS6BgrFN4yTH/NRWI18bJ+iHleP+RT7xIH7eUCGRz43rl/unvqijcbLvw1zSY6
+	 K6ME7MJ/NnoeFqDiyU5NssEUq6fg2QKiL+X1+U4mRPBh5bpIVOHqFNoZX+FhqmXD76
+	 pLLZd82YRmle0iEuljl/Fd19cnSo+5J82SBZyzkftbryYWSABicdD1hb3WUYOXi7Al
+	 2AHl94IdDzGIA==
+From: Sasha Levin <sashal@kernel.org>
+To: patches@lists.linux.dev,
+	stable@vger.kernel.org
+Cc: Jeffrey Bencteux <jeff@bencteux.fr>,
+	Paul Moore <paul@paul-moore.com>,
+	Sasha Levin <sashal@kernel.org>,
+	eparis@redhat.com,
+	audit@vger.kernel.org,
+	linux-arch@vger.kernel.org
+Subject: [PATCH AUTOSEL 6.19-5.10] audit: add fchmodat2() to change attributes class
+Date: Tue, 10 Feb 2026 18:30:51 -0500
+Message-ID: <20260210233123.2905307-6-sashal@kernel.org>
+X-Mailer: git-send-email 2.51.0
+In-Reply-To: <20260210233123.2905307-1-sashal@kernel.org>
+References: <20260210233123.2905307-1-sashal@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Date: Tue, 10 Feb 2026 18:02:40 +0100
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Linus Torvalds" <torvalds@linux-foundation.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-api@vger.kernel.org,
- =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-Message-Id: <836fc2ce-751f-4eb0-bdb4-f43f83401b89@app.fastmail.com>
-Subject: [GIT PULL] asm-generic header updates for 7.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+X-stable: review
+X-Patchwork-Hint: Ignore
+X-stable-base: Linux 6.19
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-The following changes since commit 0f61b1860cc3f52aef9036d7235ed1f017632=
-193:
+From: Jeffrey Bencteux <jeff@bencteux.fr>
 
-  Linux 6.19-rc5 (2026-01-11 17:03:14 -1000)
+[ Upstream commit 4f493a6079b588cf1f04ce5ed6cdad45ab0d53dc ]
 
-are available in the Git repository at:
+fchmodat2(), introduced in version 6.6 is currently not in the change
+attribute class of audit. Calling fchmodat2() to change a file
+attribute in the same fashion than chmod() or fchmodat() will bypass
+audit rules such as:
 
-  https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git t=
-ags/asm-generic-7.0
+-w /tmp/test -p rwa -k test_rwa
 
-for you to fetch changes up to adbbd9714f8058730f93c8df5c5bf1679456424b:
+The current patch adds fchmodat2() to the change attributes class.
 
-  scripts: headers_install.sh: Remove config leak ignore machinery (2026=
--01-30 16:46:17 +0100)
+Signed-off-by: Jeffrey Bencteux <jeff@bencteux.fr>
+Signed-off-by: Paul Moore <paul@paul-moore.com>
+Signed-off-by: Sasha Levin <sashal@kernel.org>
+---
 
-----------------------------------------------------------------
-asm-generic header updates for 7.0
+LLM Generated explanations, may be completely bogus:
 
-A series from Thomas Wei=C3=9Fschuh cleans up the UAPI header files to no
-longer contain any references to Kconfig symbols, as these make no sense
-in userspace. The build-time check for these was originally added by Sam
-Ravnborg in linux-2.6.28, and a later version started warning for all
-newly added CONFIG_* checks here but kept a list of known exceptions. Wi=
-th
-the last exceptions gone from that list, the warning is now unconditional
-in 'make headers_install'.
+Now I have a complete picture. Let me write up the full analysis.
 
-John Garry contributed a cleanup of cpumask_of_node().
+---
 
-----------------------------------------------------------------
-John Garry (1):
-      include/asm-generic/topology.h: Remove unused definition of cpumas=
-k_of_node()
+## Detailed Analysis
 
-Thomas Wei=C3=9Fschuh (5):
-      ARC: Always use SWAPE instructions for __arch_swab32()
-      ARM: uapi: Drop PSR_ENDSTATE
-      nios2: uapi: Remove custom asm/swab.h from UAPI
-      x86/uapi: Stop leaking kconfig references to userspace
-      scripts: headers_install.sh: Remove config leak ignore machinery
+### 1. COMMIT MESSAGE ANALYSIS
 
- arch/arc/Kconfig                         |  5 ---
- arch/arc/Makefile                        |  3 +-
- arch/arc/include/uapi/asm/swab.h         | 63 -------------------------=
--------
- arch/arm/include/asm/processor.h         |  3 +-
- arch/arm/include/uapi/asm/ptrace.h       |  9 -----
- arch/arm/kernel/signal.c                 |  3 +-
- arch/nios2/include/{uapi =3D> }/asm/swab.h |  0
- arch/x86/include/uapi/asm/auxvec.h       |  2 +-
- include/asm-generic/topology.h           |  8 +---
- scripts/headers_install.sh               | 30 +--------------
- 10 files changed, 10 insertions(+), 116 deletions(-)
- rename arch/nios2/include/{uapi =3D> }/asm/swab.h (100%)
+The commit message is clear and explicit about the bug:
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index f27e6b90428e..2ed7186c81c5 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -121,7 +121,6 @@ choice
- config ARC_CPU_770
- 	bool "ARC770"
- 	depends on ISA_ARCOMPACT
--	select ARC_HAS_SWAPE
- 	help
- 	  Support for ARC770 core introduced with Rel 4.10 (Summer 2011)
- 	  This core has a bunch of cool new features:
-@@ -340,10 +339,6 @@ config ARC_HAS_LLSC
- 	default y
- 	depends on !ARC_CANT_LLSC
-=20
--config ARC_HAS_SWAPE
--	bool "Insn: SWAPE (endian-swap)"
--	default y
--
- if ISA_ARCV2
-=20
- config ARC_USE_UNALIGNED_MEM_ACCESS
-diff --git a/arch/arc/Makefile b/arch/arc/Makefile
-index 0c5e6e6314f2..868805ffcfea 100644
---- a/arch/arc/Makefile
-+++ b/arch/arc/Makefile
-@@ -9,7 +9,7 @@ ifeq ($(CROSS_COMPILE),)
- CROSS_COMPILE :=3D $(call cc-cross-prefix, arc-linux- arceb-linux- arc-=
-linux-gnu-)
- endif
-=20
--cflags-y	+=3D -fno-common -pipe -fno-builtin -mmedium-calls -D__linux__
-+cflags-y	+=3D -fno-common -pipe -fno-builtin -mmedium-calls -mswape -D_=
-_linux__
-=20
- tune-mcpu-def-$(CONFIG_ISA_ARCOMPACT)	:=3D -mcpu=3Darc700
- tune-mcpu-def-$(CONFIG_ISA_ARCV2)	:=3D -mcpu=3Dhs38
-@@ -41,7 +41,6 @@ endif
- cflags-y				+=3D -fsection-anchors
-=20
- cflags-$(CONFIG_ARC_HAS_LLSC)		+=3D -mlock
--cflags-$(CONFIG_ARC_HAS_SWAPE)		+=3D -mswape
-=20
- ifdef CONFIG_ISA_ARCV2
-=20
-diff --git a/arch/arc/include/uapi/asm/swab.h b/arch/arc/include/uapi/as=
-m/swab.h
-index 8d1f1ef44ba7..417ea30f29f5 100644
---- a/arch/arc/include/uapi/asm/swab.h
-+++ b/arch/arc/include/uapi/asm/swab.h
-@@ -19,9 +19,6 @@
-=20
- #include <linux/types.h>
-=20
--/* Native single cycle endian swap insn */
--#ifdef CONFIG_ARC_HAS_SWAPE
--
- #define __arch_swab32(x)		\
- ({					\
- 	unsigned int tmp =3D x;		\
-@@ -32,66 +29,6 @@
- 	tmp;				\
- })
-=20
--#else
--
--/* Several ways of Endian-Swap Emulation for ARC
-- * 0: kernel generic
-- * 1: ARC optimised "C"
-- * 2: ARC Custom instruction
-- */
--#define ARC_BSWAP_TYPE	1
--
--#if (ARC_BSWAP_TYPE =3D=3D 1)		/******* Software only ********/
--
--/* The kernel default implementation of htonl is
-- *		return  x<<24 | x>>24 |
-- *		 (x & (__u32)0x0000ff00UL)<<8 | (x & (__u32)0x00ff0000UL)>>8;
-- *
-- * This generates 9 instructions on ARC (excluding the ld/st)
-- *
-- * 8051fd8c:	ld     r3,[r7,20]	; Mem op : Get the value to be swapped
-- * 8051fd98:	asl    r5,r3,24		; get  3rd Byte
-- * 8051fd9c:	lsr    r2,r3,24		; get  0th Byte
-- * 8051fda0:	and    r4,r3,0xff00
-- * 8051fda8:	asl    r4,r4,8		; get 1st Byte
-- * 8051fdac:	and    r3,r3,0x00ff0000
-- * 8051fdb4:	or     r2,r2,r5		; combine 0th and 3rd Bytes
-- * 8051fdb8:	lsr    r3,r3,8		; 2nd Byte at correct place in Dst Reg
-- * 8051fdbc:	or     r2,r2,r4		; combine 0,3 Bytes with 1st Byte
-- * 8051fdc0:	or     r2,r2,r3		; combine 0,3,1 Bytes with 2nd Byte
-- * 8051fdc4:	st     r2,[r1,20]	; Mem op : save result back to mem
-- *
-- * Joern suggested a better "C" algorithm which is great since
-- * (1) It is portable to any architecture
-- * (2) At the same time it takes advantage of ARC ISA (rotate intrns)
-- */
--
--#define __arch_swab32(x)					\
--({	unsigned long __in =3D (x), __tmp;			\
--	__tmp =3D __in << 8 | __in >> 24; /* ror tmp,in,24 */	\
--	__in =3D __in << 24 | __in >> 8; /* ror in,in,8 */	\
--	__tmp ^=3D __in;						\
--	__tmp &=3D 0xff00ff;					\
--	__tmp ^ __in;						\
--})
--
--#elif (ARC_BSWAP_TYPE =3D=3D 2)	/* Custom single cycle bswap instructio=
-n */
--
--#define __arch_swab32(x)						\
--({									\
--	unsigned int tmp =3D x;						\
--	__asm__(							\
--	"	.extInstruction	bswap, 7, 0x00, SUFFIX_NONE, SYNTAX_2OP	\n"\
--	"	bswap  %0, %1						\n"\
--	: "=3Dr" (tmp)							\
--	: "r" (tmp));							\
--	tmp;								\
--})
--
--#endif /* ARC_BSWAP_TYPE=3Dzzz */
--
--#endif /* CONFIG_ARC_HAS_SWAPE */
--
- #if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
- #define __SWAB_64_THRU_32__
+- **Problem**: `fchmodat2()`, introduced in kernel v6.6, was never added
+  to the audit subsystem's "change attributes" (chattr) class. This
+  means that any process calling `fchmodat2()` to change a file's
+  permissions **completely bypasses audit rules** that monitor attribute
+  changes (the `-p a` permission in audit rules, e.g., `-w /tmp/test -p
+  rwa -k test_rwa`).
+
+- **Impact**: This is a **security audit bypass**. Users who deploy
+  audit rules to track attribute changes on sensitive files (a standard
+  security and compliance practice) will miss `fchmodat2()` calls
+  entirely. An attacker or any process using `fchmodat2()` instead of
+  `chmod()`/`fchmodat()` can change file permissions without triggering
+  any audit record.
+
+- **Author**: Jeffrey Bencteux, signed off by Paul Moore (the audit
+  subsystem maintainer), which is a strong indicator of correctness.
+
+### 2. CODE CHANGE ANALYSIS
+
+The patch is **3 lines** in a single file:
+
+```c
+#ifdef __NR_fchmodat2
+__NR_fchmodat2,
+#endif
+```
+
+Added to `include/asm-generic/audit_change_attr.h`, right after the
+existing `__NR_fchmodat` entry. This is the header file that is
+`#include`d by the `chattr_class[]` arrays across all architectures
+(x86, sparc, s390, powerpc, parisc, alpha, and generic lib/audit.c +
+compat_audit.c). These arrays define which syscall numbers are in the
+"change attributes" audit class.
+
+The mechanism is straightforward:
+- The `audit_match_perm()` function in `kernel/auditsc.c` (line 167-169)
+  checks if a syscall number (`ctx->major`) matches `AUDIT_CLASS_CHATTR`
+  when the audit rule has `AUDIT_PERM_ATTR` set.
+- Without `fchmodat2` in the `chattr_class[]` array,
+  `audit_match_class(AUDIT_CLASS_CHATTR, __NR_fchmodat2)` returns 0, so
+  the rule never fires for `fchmodat2()`.
+
+Critically, `fchmodat2()` (defined in `fs/open.c` line 704-708) calls
+the same `do_fchmodat()` function as `fchmodat()` (line 710-714). They
+are functionally identical for attribute changes - the only difference
+is `fchmodat2` adds a `flags` parameter. So there's no question that
+`fchmodat2` belongs in the chattr class.
+
+### 3. CLASSIFICATION
+
+This is a **security bug fix** — specifically, an audit bypass. It is
+NOT a new feature. The `fchmodat2` syscall already exists; this merely
+ensures the audit subsystem correctly classifies it alongside the
+equivalent `fchmodat` syscall.
+
+This fits squarely into the category of fixes that are critical for
+stable:
+- Environments running Linux audit (virtually all enterprise
+  deployments, compliance-regulated systems) are silently missing
+  attribute change events
+- This is a **compliance gap** (PCI-DSS, HIPAA, SOX, FedRAMP all require
+  file integrity monitoring via audit)
+- The `#ifdef __NR_fchmodat2` guard ensures it compiles safely on older
+  architectures where the syscall might not be defined
+
+### 4. SCOPE AND RISK ASSESSMENT
+
+- **Size**: 3 lines added, 1 file changed — the smallest possible change
+- **Risk**: Near zero. The change only adds a syscall number to an
+  existing list. The `#ifdef` guard protects against the case where
+  `__NR_fchmodat2` is not defined. There is no behavioral change to any
+  existing code path.
+- **Could this break anything?**: No. Adding a new entry to the
+  chattr_class array only means that `fchmodat2` syscalls will now
+  correctly trigger audit rules with attribute-change permissions.
+  There's no way this causes a regression — at worst, users would see
+  additional (correct) audit records they were previously missing.
+
+### 5. USER IMPACT
+
+- **Who is affected**: Every single system running Linux audit with
+  attribute-change monitoring rules on kernels 6.6+. This includes
+  enterprise distributions (RHEL, SLES, Ubuntu), compliance-critical
+  infrastructure, and security-sensitive deployments.
+- **Severity**: HIGH — this is a silent security audit bypass. Users
+  believe they are monitoring attribute changes, but `fchmodat2()` slips
+  through undetected.
+- **Real-world trigger**: glibc and other C libraries may route
+  `chmod()`-like calls through `fchmodat2()` if available. The commit
+  message explicitly gives an example of the audit rule being bypassed.
+
+### 6. DEPENDENCY CHECK
+
+- **fchmodat2 syscall exists in v6.6**: Confirmed — `__NR_fchmodat2` is
+  defined as syscall 452 in `include/uapi/asm-generic/unistd.h` since
+  v6.6.
+- **Clean application to v6.6**: Confirmed — the context lines
+  (`__NR_fchownat`, `__NR_fchmodat`, `#endif`, `#ifdef __NR_chown32`)
+  are identical in v6.6's version of the file.
+- **No other dependencies**: The patch is completely self-contained. It
+  doesn't depend on any other commit. The `setxattrat`/`removexattrat`
+  additions from commit 6140be90ec70c are in different positions in the
+  file and don't affect the context.
+- **Applicable to**: 6.6.y, 6.1.y (if fchmodat2 was backported there —
+  it wasn't since fchmodat2 was introduced in 6.6), and all stable trees
+  ≥6.6.
+
+### 7. STABILITY INDICATORS
+
+- Signed off by Paul Moore, the audit subsystem maintainer
+- The pattern is well-established — the same file has entries for every
+  attribute-changing syscall, each guarded by `#ifdef __NR_*`
+- The commit is in the `security-next` tree, in the pipeline for
+  mainline
+
+### 8. COMPARISON WITH PRECEDENT
+
+The same file has been modified before for identical reasons:
+- `262fd3aad6110` ("audit: Modify a set of system calls in audit class
+  definitions") — added syscalls to audit classes
+- `af2951325bd6c` ("audit: make link()/linkat() match 'attribute change'
+  predicate") — added `link`/`linkat` to the same class
+- `6140be90ec70c` ("fs/xattr: add *at family syscalls") — added
+  `setxattrat`/`removexattrat` to the same header
+
+All of these follow the exact same pattern of adding a syscall number to
+an audit class list.
+
+### Summary
+
+This is a textbook stable backport candidate:
+
+1. **Obviously correct**: It adds 3 lines that are structurally
+   identical to the existing `fchmodat` entry, guarded by `#ifdef`
+2. **Fixes a real bug**: Silent audit bypass of attribute changes via
+   `fchmodat2()`
+3. **Security impact**: Allows processes to bypass audit monitoring —
+   this is a security-relevant gap
+4. **Small and contained**: 3 lines, 1 file, no behavioral side effects
+5. **No new features**: Just ensures existing audit infrastructure
+   correctly covers an existing syscall
+6. **Applies cleanly to stable**: Context matches v6.6 exactly; no
+   dependencies
+7. **Signed off by subsystem maintainer**: Paul Moore (audit maintainer)
+
+The fix addresses a security audit bypass that has existed since v6.6
+(when `fchmodat2` was introduced) — roughly 2+ years of every stable
+kernel silently failing to audit attribute changes made via
+`fchmodat2()`. This is particularly critical for enterprise and
+compliance-regulated environments.
+
+**YES**
+
+ include/asm-generic/audit_change_attr.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/asm-generic/audit_change_attr.h b/include/asm-generic/audit_change_attr.h
+index cc840537885fb..ddd90bbe40dfc 100644
+--- a/include/asm-generic/audit_change_attr.h
++++ b/include/asm-generic/audit_change_attr.h
+@@ -26,6 +26,9 @@ __NR_fremovexattr,
+ __NR_fchownat,
+ __NR_fchmodat,
  #endif
-diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/pro=
-cessor.h
-index 326864f79d18..bba83228bc22 100644
---- a/arch/arm/include/asm/processor.h
-+++ b/arch/arm/include/asm/processor.h
-@@ -73,7 +73,8 @@ static inline void arch_thread_struct_whitelist(unsign=
-ed long *offset,
- 		regs->ARM_cpsr =3D USR26_MODE;				\
- 	if (elf_hwcap & HWCAP_THUMB && pc & 1)				\
- 		regs->ARM_cpsr |=3D PSR_T_BIT;				\
--	regs->ARM_cpsr |=3D PSR_ENDSTATE;					\
-+	if (IS_ENABLED(CONFIG_CPU_ENDIAN_BE8))				\
-+		regs->ARM_cpsr |=3D PSR_E_BIT;				\
- 	regs->ARM_pc =3D pc & ~1;		/* pc */			\
- 	regs->ARM_sp =3D sp;		/* sp */			\
- })
-diff --git a/arch/arm/include/uapi/asm/ptrace.h b/arch/arm/include/uapi/=
-asm/ptrace.h
-index 8896c23ccba7..2ef917957005 100644
---- a/arch/arm/include/uapi/asm/ptrace.h
-+++ b/arch/arm/include/uapi/asm/ptrace.h
-@@ -102,15 +102,6 @@
- #define PSR_IT_MASK	0x0600fc00	/* If-Then execution state mask */
- #define PSR_ENDIAN_MASK	0x00000200	/* Endianness state mask */
-=20
--/*
-- * Default endianness state
-- */
--#ifdef CONFIG_CPU_ENDIAN_BE8
--#define PSR_ENDSTATE	PSR_E_BIT
--#else
--#define PSR_ENDSTATE	0
--#endif
--
- /*=20
-  * These are 'magic' values for PTRACE_PEEKUSR that return info about w=
-here a
-  * process is located in memory.
-diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
-index 79a6730fa0eb..7be9188d83d9 100644
---- a/arch/arm/kernel/signal.c
-+++ b/arch/arm/kernel/signal.c
-@@ -337,7 +337,8 @@ setup_return(struct pt_regs *regs, struct ksignal *k=
-sig,
- 			return 1;
- 	}
-=20
--	cpsr |=3D PSR_ENDSTATE;
-+	if (IS_ENABLED(CONFIG_CPU_ENDIAN_BE8))
-+		cpsr |=3D PSR_E_BIT;
-=20
- 	/*
- 	 * Maybe we need to deliver a 32-bit signal to a 26-bit task.
-diff --git a/arch/nios2/include/uapi/asm/swab.h b/arch/nios2/include/asm=
-/swab.h
-similarity index 100%
-rename from arch/nios2/include/uapi/asm/swab.h
-rename to arch/nios2/include/asm/swab.h
-diff --git a/arch/x86/include/uapi/asm/auxvec.h b/arch/x86/include/uapi/=
-asm/auxvec.h
-index 6beb55bbefa4..bdde9e18f94e 100644
---- a/arch/x86/include/uapi/asm/auxvec.h
-+++ b/arch/x86/include/uapi/asm/auxvec.h
-@@ -11,7 +11,7 @@
- #define AT_SYSINFO_EHDR		33
-=20
- /* entries in ARCH_DLINFO: */
--#if defined(CONFIG_IA32_EMULATION) || !defined(CONFIG_X86_64)
-+#if defined(__KERNEL__) && (defined(CONFIG_IA32_EMULATION) || !defined(=
-CONFIG_X86_64))
- # define AT_VECTOR_SIZE_ARCH 3
- #else /* else it's non-compat x86-64 */
- # define AT_VECTOR_SIZE_ARCH 2
-diff --git a/include/asm-generic/topology.h b/include/asm-generic/topolo=
-gy.h
-index 4dbe715be65b..9865ba48c5b1 100644
---- a/include/asm-generic/topology.h
-+++ b/include/asm-generic/topology.h
-@@ -45,11 +45,7 @@
- #endif
-=20
- #ifndef cpumask_of_node
--  #ifdef CONFIG_NUMA
--    #define cpumask_of_node(node)	((node) =3D=3D 0 ? cpu_online_mask : =
-cpu_none_mask)
--  #else
--    #define cpumask_of_node(node)	((void)(node), cpu_online_mask)
--  #endif
-+#define cpumask_of_node(node)	((void)(node), cpu_online_mask)
- #endif
- #ifndef pcibus_to_node
- #define pcibus_to_node(bus)	((void)(bus), -1)
-@@ -61,7 +57,7 @@
- 				 cpumask_of_node(pcibus_to_node(bus)))
- #endif
-=20
--#endif	/* CONFIG_NUMA */
-+#endif	/* !CONFIG_NUMA */
-=20
- #if !defined(CONFIG_NUMA) || !defined(CONFIG_HAVE_MEMORYLESS_NODES)
-=20
-diff --git a/scripts/headers_install.sh b/scripts/headers_install.sh
-index 0e4e939efc94..9c15e748761c 100755
---- a/scripts/headers_install.sh
-+++ b/scripts/headers_install.sh
-@@ -64,36 +64,10 @@ configs=3D$(sed -e '
- 	d
- ' $OUTFILE)
-=20
--# The entries in the following list do not result in an error.
--# Please do not add a new entry. This list is only for existing ones.
--# The list will be reduced gradually, and deleted eventually. (hopefull=
-y)
--#
--# The format is <file-name>:<CONFIG-option> in each line.
--config_leak_ignores=3D"
--arch/arc/include/uapi/asm/swab.h:CONFIG_ARC_HAS_SWAPE
--arch/arm/include/uapi/asm/ptrace.h:CONFIG_CPU_ENDIAN_BE8
--arch/nios2/include/uapi/asm/swab.h:CONFIG_NIOS2_CI_SWAB_NO
--arch/nios2/include/uapi/asm/swab.h:CONFIG_NIOS2_CI_SWAB_SUPPORT
--arch/x86/include/uapi/asm/auxvec.h:CONFIG_IA32_EMULATION
--arch/x86/include/uapi/asm/auxvec.h:CONFIG_X86_64
--"
--
- for c in $configs
- do
--	leak_error=3D1
--
--	for ignore in $config_leak_ignores
--	do
--		if echo "$INFILE:$c" | grep -q "$ignore$"; then
--			leak_error=3D
--			break
--		fi
--	done
--
--	if [ "$leak_error" =3D 1 ]; then
--		echo "error: $INFILE: leak $c to user-space" >&2
--		exit 1
--	fi
-+	echo "error: $INFILE: leak $c to user-space" >&2
-+	exit 1
- done
-=20
- rm -f $TMPFILE
++#ifdef __NR_fchmodat2
++__NR_fchmodat2,
++#endif
+ #ifdef __NR_chown32
+ __NR_chown32,
+ __NR_fchown32,
+-- 
+2.51.0
+
