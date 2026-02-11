@@ -1,24 +1,24 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 2B23B31AA83;
-	Wed, 11 Feb 2026 15:54:34 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 24D6B3EBF17;
+	Wed, 11 Feb 2026 16:01:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770825276; cv=none; b=przGpAKW5gPv0XxL6KuWZxXkQYuC8fMhNtaEFIPj9BQ765ElJXJtGVyrjIOY+D/cU+VCR58+tkY/hxRC68CbyKhuVgvT/ztQqELsfHMQfsgWhrN+5JW2P9jnKVWfVjyY3KsyHErYOVpkJsPsVCKdr03jrN68sxyFZnTVDkpfPr8=
+	t=1770825670; cv=none; b=e6DGE2tjNkXnyYEVW0Jkz75nVXgGEUi858y5b0iENT31jVLfOeZ0wPbRzXP3Nv16L4r0zHuNnYixJk+WBChFL3KJUQB9LQy89FPofs3qv9dXCdOOfuM+71lZnSKDsgWdIHVcHTLp71CqviN+93EGgY0KXYbTX6KiJR17BYjAOns=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770825276; c=relaxed/simple;
-	bh=ycFotHEW/fi/WroyOipF6qRF/y98s9seCh6iBR1U6PI=;
+	s=arc-20240116; t=1770825670; c=relaxed/simple;
+	bh=u08AD1YbiNVGYI3Y2C3r8qA3ry88SvQe0E3MD2DYfZU=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=sVsMfqI2jwK43JZeKNyp/QFBWSJEcq4BcMDKfnrFQgzVTYMrGbyVjJEWphk76PGq/kIvmZFccvlTXywU5MGL1Lo42ZIFC7WpNuEU8ZIm7r9stN8n9mLefiRPBv8mj5wTQ+Q3d95osSB413yzblWI9HzCA8HEi8CHhmL9OpD1tJw=
+	 Content-Type:Content-Disposition:In-Reply-To; b=Jm3nvTY5YoI2lVgMLmilJlalZTzjjnR1MkdEPMl8wOS7ia1NBMOaTzndRiEbgyVVxNnviIXj5vMnt31wkbidvLbH+dIrYIQluzff0ECWEHVKDeemOt9gtcRzcv1qhsK2MqgTJfHjq6kxN02j9TRy4oUbjR5nlRTv7qF3kqcIpsI=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 1AA07339;
-	Wed, 11 Feb 2026 07:54:28 -0800 (PST)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id F1CBF339;
+	Wed, 11 Feb 2026 08:01:01 -0800 (PST)
 Received: from arm.com (arrakis.cambridge.arm.com [10.1.197.46])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id AC3FB3F632;
-	Wed, 11 Feb 2026 07:54:30 -0800 (PST)
-Date: Wed, 11 Feb 2026 15:54:27 +0000
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 1A8943F632;
+	Wed, 11 Feb 2026 08:01:03 -0800 (PST)
+Date: Wed, 11 Feb 2026 16:01:01 +0000
 From: Catalin Marinas <catalin.marinas@arm.com>
 To: Ankur Arora <ankur.a.arora@oracle.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
@@ -29,12 +29,15 @@ Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
 	ast@kernel.org, rafael@kernel.org, daniel.lezcano@linaro.org,
 	memxor@gmail.com, zhenglifeng1@huawei.com,
 	xueshuai@linux.alibaba.com, joao.m.martins@oracle.com,
-	boris.ostrovsky@oracle.com, konrad.wilk@oracle.com
-Subject: Re: [PATCH v9 02/12] arm64: barrier: Support
- smp_cond_load_relaxed_timeout()
-Message-ID: <aYymMze6Vchxe6jK@arm.com>
+	boris.ostrovsky@oracle.com, konrad.wilk@oracle.com,
+	Bjorn Andersson <andersson@kernel.org>,
+	Konrad Dybcio <konradybcio@kernel.org>,
+	Christoph Lameter <cl@linux.com>
+Subject: Re: [PATCH v9 03/12] arm64/delay: move some constants out to a
+ separate header
+Message-ID: <aYynvZXsuZlcxyZX@arm.com>
 References: <20260209023153.2661784-1-ankur.a.arora@oracle.com>
- <20260209023153.2661784-3-ankur.a.arora@oracle.com>
+ <20260209023153.2661784-4-ankur.a.arora@oracle.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -43,26 +46,21 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260209023153.2661784-3-ankur.a.arora@oracle.com>
+In-Reply-To: <20260209023153.2661784-4-ankur.a.arora@oracle.com>
 
-On Sun, Feb 08, 2026 at 06:31:43PM -0800, Ankur Arora wrote:
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 93173f0a09c7..239fdca8e2cf 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -22,6 +22,7 @@ config ARM64
->  	select ARCH_HAS_CACHE_LINE_SIZE
->  	select ARCH_HAS_CC_PLATFORM
->  	select ARCH_HAS_CPU_CACHE_INVALIDATE_MEMREGION
-> +	select ARCH_HAS_CPU_RELAX
+On Sun, Feb 08, 2026 at 06:31:44PM -0800, Ankur Arora wrote:
+> Moves some constants and functions related to xloops, cycles computation
+> out to a new header. Also rename some macros in qcom/rpmh-rsc.c which
+> were occupying the same namespace.
+> 
+> No functional change.
+> 
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Bjorn Andersson <andersson@kernel.org>
+> Cc: Konrad Dybcio <konradybcio@kernel.org>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Reviewed-by: Christoph Lameter <cl@linux.com>
+> Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
 
-AFAICT, ARCH_HAS_CPU_RELAX is only defined for x86. You can't just
-select it here. Either make the definition global somewhere or add this
-to arm64 Kconfig:
-
-config ARCH_HAS_CPU_RELAX
-	def_bool y
-
-Otherwise,
-
-Reviewed-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
