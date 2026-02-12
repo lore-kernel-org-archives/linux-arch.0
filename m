@@ -1,245 +1,228 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 739D0357714;
-	Wed, 11 Feb 2026 23:14:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770851649; cv=fail; b=dx1qexfAO07nxmLnZr56LEeW9YJYAG55Lki4ApkDUxsKermDgV7YyhZgwosdlF/iy3ZO/FSbGiYgZ5KvMjy3rwDb4BiYEeF9zs373O0/BDU24vjl9XxMz/e8iHDd0r3dD1VvRVqw4St2o5a2ujGm7hRZYUQsBQb7B1mgWbFyn0E=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770851649; c=relaxed/simple;
-	bh=/Pm25qx1PzNY0AoSNIL1PLaEmAr/43yDOL+L/3qz2Mc=;
-	h=References:From:To:Cc:Subject:In-reply-to:Date:Message-ID:
-	 Content-Type:MIME-Version; b=S7xr6IlAz28cOXzTwcI1fPPLgEPRCscbOSVqXtX7uX86cHDA+kB/yht0eNavsLWgUJiPjgHChtxe5FNy4swGYwAstm71X2W19eOOWw9k/CqMXW96+EPdQJ56AfssO9lxpLq1wHSmwf8JVRTl8OSXiQBQZbwgGh1Ovwp+BUpI7iI=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=j92n3MxA; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=vXpmvYXH; arc=fail smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E7D52BEC44
+	for <linux-arch@vger.kernel.org>; Thu, 12 Feb 2026 09:56:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1770890186; cv=none; b=ieRm5WCuXsCfghwk+lB9XWU4TYCFOtUmxmazfI7Z4R88w6Q7qIG8bpccdnUyUMjLZph+L4Gj6wcAUJ2eyryeWU7Z41TqGn7Ii12JmU6dpo8sbJh74EwZ0040A+JaCj9m9Y9Qg+yPqEUpa1YdTek9MGcA6PxiO2ykIW09FaA+tvk=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1770890186; c=relaxed/simple;
+	bh=bm5c2DB94uUyrmyglOpsvupAxM8sAv2B1xXqGM1GJFs=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=skOf7fj9ismJY498zTDM9JdPRkskkfkeFeA3kju2G4G2rbh+YDtsnbLeqiC48gxYVSZ8vHrjEDzHm2lfaYytRmU6Gt3PevWPLYopamh+6SRtO9165fzgMQwTOUqu0s2ryjZCFREh3tbDuiBAyDN4+jb8CRao5t44A6/6174tDwQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NBX1+q3s; arc=none smtp.client-ip=209.85.128.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="j92n3MxA";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="vXpmvYXH"
-Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 61BNDYrq3163450;
-	Wed, 11 Feb 2026 23:13:37 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=corp-2025-04-25; bh=AbWPnRL3pLZCPD3w7K
-	yMooYhIQcW5qi7viiYLsJM9ZE=; b=j92n3MxAuVMxSxeIwcF5tJcgX2VWR5nSr4
-	etzJSxJqCTAmXIx0Aanuj3MQSoTN1/wt5iVSCSkOamtA/bnUI8rXlppJp1lGQWnO
-	Tg+b/phdaHeK57FhXugYp/PKtIDa+RuEWRtkqea2ULc7oO6yMMV/22dwlOI7UHxH
-	EGqhRFobCT1RruvTGruTqbcOHCbAT2fEJhvFjYV3cwRz+ZhE2AipxF/89AGSmdur
-	VPWNZoEGJe5RrX6gozfuRR+IH1E3HhzaV4x8Va7nSB9PUCooChH13aueHgO+Puwo
-	oXpFEQjqCg1x8sXbxLFEqkC1+DOWb070mvoc4WBOlt0rpfgts7xw==
-Received: from iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta03.appoci.oracle.com [130.35.103.27])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4c5xh8xw3a-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 11 Feb 2026 23:13:37 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 61BLDn1r022690;
-	Wed, 11 Feb 2026 23:13:35 GMT
-Received: from ph0pr06cu001.outbound.protection.outlook.com (mail-westus3azon11011019.outbound.protection.outlook.com [40.107.208.19])
-	by iadpaimrmta03.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 4c828c69p5-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Wed, 11 Feb 2026 23:13:35 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=qgKzYxf59/0Dnf0CpgB+J10bA6ImFycROdI9t2B3mXhv7puJaYL3dyWZT67RHLrMICAb/9QHrdEGFL7B1nX36ErcpkOnpg70d0PmN3BbcWs2xmp2OQowbnQ9r9Cf23BAWD4UYANZ6LJhcEAxw9wI4LLpFfK8jITJ8gK8h7tKjVoVlLPOnA0OkymLjJpjHQtuEWhUAmbOCcRRjdJlmAVxnc10odsiqwSHsT4J77eggdPjnYRWdgPNJ8R4lXkdwgHdmqlplLOCnC0Lx3yOfKejIHpJrqs2HVCzxtIshWugbXtA8gJPjd8tjeWyLW/dpzCOIYLFAR8PFdGGDxlFSRX3dA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=AbWPnRL3pLZCPD3w7KyMooYhIQcW5qi7viiYLsJM9ZE=;
- b=XYIICNSnrK/rxZtq2IKPT07mK9d29HLE8ifMw23oLm7bD3l+ResY6xW3tVYuQfcyKWkjlu5tMYth2uOBFSpnYsC0dQ25ZChfZtHifrlfWKGnscR/uh634Wi9kBt+mvfFZcWnfBU2No/4sEK4+kpVNROWCa8iIq3byj/zU/bKU+04xnPHG7WhVWvk60zXy5Ci/f4OwjSXawT9iRf06IJ2Ab2+uNXXhIj+HVsyY5z/zHmllv/kQo0YUZsEEy8yK2vqNMgrRGgRvDgUx7hooB9G22ETdnSdrKuyBIKBxrx1K6b5+sssZSPfTk55zB/+A+EN3aMGAdy6SxpW8Z20UDE/iA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NBX1+q3s"
+Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-47ee0291921so60194795e9.3
+        for <linux-arch@vger.kernel.org>; Thu, 12 Feb 2026 01:56:24 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=AbWPnRL3pLZCPD3w7KyMooYhIQcW5qi7viiYLsJM9ZE=;
- b=vXpmvYXH/GFRkYHqHmSHETY7PrpZVZByTBm9YoEsGi8wSjobdKQTS2dwo6ojOWgN4qMRQvRZ8rW77wOXeq6IlZv8Ky8dEf5dBTOGuXkRHRciWUtHQrPk487N/qiga5XfQz5hw6C11PzVfsZX/28wW7/5CuWoXD9DSh2Cz/UrRsI=
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com (2603:10b6:5:357::14)
- by SJ0PR10MB5598.namprd10.prod.outlook.com (2603:10b6:a03:3d9::18) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9587.19; Wed, 11 Feb
- 2026 23:13:16 +0000
-Received: from CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574]) by CO6PR10MB5409.namprd10.prod.outlook.com
- ([fe80::3c92:21f3:96a:b574%4]) with mapi id 15.20.9611.008; Wed, 11 Feb 2026
- 23:13:16 +0000
-References: <20260209023153.2661784-1-ankur.a.arora@oracle.com>
- <20260209023153.2661784-5-ankur.a.arora@oracle.com>
- <aYy4O66B6T63tRaa@arm.com>
-User-agent: mu4e 1.4.10; emacs 27.2
-From: Ankur Arora <ankur.a.arora@oracle.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-        linux-pm@vger.kernel.org, bpf@vger.kernel.org, arnd@arndb.de,
-        will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
-        mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org,
-        ast@kernel.org, rafael@kernel.org, daniel.lezcano@linaro.org,
-        memxor@gmail.com, zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-        joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
-        konrad.wilk@oracle.com
-Subject: Re: [PATCH v9 04/12] arm64: support WFET in
+        d=gmail.com; s=20230601; t=1770890183; x=1771494983; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Phtp8Z4ei388aKllZFARYn5zwlBsIT6J1/fUx6EVP8E=;
+        b=NBX1+q3sG3mz5yo+4PTok6RS0Rp9dEpR09+Y/JRk3u6e/64D04ue1Vm9XVkCusdVXu
+         NU3WJvXA/Q+dK+oBZz+2re44DDJ0aNRgUR8oq0glWiZvELc11mKMFW0ZNXaRiz1FwbDl
+         3kum0bbwFJHel7oltVfP+rxyeZEgtlPDoU9m4kCOJ1mKK/Rx/N9WnOd74jf+d8M7g2au
+         yscatCcL8N2Ntt7JN2wdoT5baluHz8sx6Y751dwHYyRknl84qrPr/ABBiYzpydA2evGn
+         5l4w9ak5lIPOuSfe8gbBTLD9GwhQ7CX8KHMX2+xVE9uTBBISVe4xnzhgArj9Ln1esdZF
+         yFYA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1770890183; x=1771494983;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=Phtp8Z4ei388aKllZFARYn5zwlBsIT6J1/fUx6EVP8E=;
+        b=rIenYTtNze9cijnf/qR+sNDal6nl5+WqQDEW6M1HsX1T+K8ezbh0+2ueFJSsH1LXju
+         NaPtGcDekyVBJ28kzafAxw4Hj96hK50lzRUPi4al/0AjnLErCanV3/cJWBXxEeW2MDoG
+         S4gAF6FzujsTFhwSrF+UItIxj2hL6qpvQGlWFwWSoggauL8qTcW/5YG262mrc9Y7nXtz
+         6GlPRftGB+PKFhPCdWvaOqYAZUNnI16CTOl+92WHxoM8rdFNsVd6Ems3GQYiu8Gn0cev
+         lDHea0Ss4t6X6qdDn4B6U65umHVRepfdwvazXL11ZeV93tOyMPDqVLoOi1QoBWtpSIeA
+         CT7A==
+X-Forwarded-Encrypted: i=1; AJvYcCXlqkMzEClCkVbN8J+rUKr35wiKpEsW/xl4gGSMBVbtpdZ1Kth5Bckn2vr7ahcHAX41Xpv1A/DOl2sK@vger.kernel.org
+X-Gm-Message-State: AOJu0YzGQplJIBXKovuTeIFUZqZLuiCAfVg1e2+wXOXZY6wyY7JexxUI
+	n77+t7d8qSvaxAvW7BjPwtWo/vo4R3nExspYI7KtvfSZGWqhBdlR7kNt
+X-Gm-Gg: AZuq6aIjySc3kIm7cTafBanknmhjXRkqHl1kHDFRE+1NNMMMknuXAlDBHiIJE8m1fy9
+	OdceW3DhZjFL52+ktF1e14uiQoyB5+tgkIfdsqCb9mNA7P+0dvp47I+02Iq+RxekirOyNYDlv+2
+	6BBqLJxiS539HiLG+SYoOZJAshrsf0BOzGBindfuqBzP8qfQbbuHHq07yj73IOWmbB7qmoNw3dn
+	1Zn9BA0fF1nFhoCoMPrvI3X4ecILFoN+iakf8QKDkAVQLD1od4qTzTovzfCnZc4VGPBIGfeBwlW
+	z1sF1Vd5M5XsDgYOc24DSrXLoZ+cP7dWy9pklz0cuSxeXBtTaWwg2WhVwzDSX2vJEvr5Fc48TP7
+	6k5iHn/ylZ8I4RjuSSSDlgBRLbHIXUoLkfrHpk//oKeNvkpxfjoTPDYE1Czu01M49NTXqabPoYQ
+	GGBmB2iNECrj/YKGvH5FVcQVSngtJgGJBZHhby+skzH2ElPnWPvWaWSiSioxTRFOLr
+X-Received: by 2002:a05:600c:4fcb:b0:480:1a9a:e571 with SMTP id 5b1f17b1804b1-4836570e48amr25658585e9.22.1770890183038;
+        Thu, 12 Feb 2026 01:56:23 -0800 (PST)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4834d82a4c4sm330608855e9.10.2026.02.12.01.56.22
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 12 Feb 2026 01:56:22 -0800 (PST)
+Date: Thu, 12 Feb 2026 09:56:21 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
+ bpf@vger.kernel.org, arnd@arndb.de, catalin.marinas@arm.com,
+ will@kernel.org, peterz@infradead.org, akpm@linux-foundation.org,
+ mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org, ast@kernel.org,
+ rafael@kernel.org, daniel.lezcano@linaro.org, memxor@gmail.com,
+ zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
+ joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
+ konrad.wilk@oracle.com
+Subject: Re: [PATCH v9 01/12] asm-generic: barrier: Add
  smp_cond_load_relaxed_timeout()
-In-reply-to: <aYy4O66B6T63tRaa@arm.com>
-Date: Wed, 11 Feb 2026 15:13:14 -0800
-Message-ID: <878qcy98mt.fsf@oracle.com>
-Content-Type: text/plain
-X-ClientProxiedBy: MW4PR04CA0227.namprd04.prod.outlook.com
- (2603:10b6:303:87::22) To CO6PR10MB5409.namprd10.prod.outlook.com
- (2603:10b6:5:357::14)
+Message-ID: <20260212095621.4d99317b@pumpkin>
+In-Reply-To: <20260209023153.2661784-2-ankur.a.arora@oracle.com>
+References: <20260209023153.2661784-1-ankur.a.arora@oracle.com>
+	<20260209023153.2661784-2-ankur.a.arora@oracle.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CO6PR10MB5409:EE_|SJ0PR10MB5598:EE_
-X-MS-Office365-Filtering-Correlation-Id: 436599f1-4eaf-45e6-ed29-08de69c32300
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|376014|7416014|366016|1800799024|7053199007;
-X-Microsoft-Antispam-Message-Info:
-	=?us-ascii?Q?splDYnEbYAnfNlnrtYAixW6suDf1rpk6jHe4hDtr2xW64TjnEfRdSQ8M7dL1?=
- =?us-ascii?Q?z1QPX4QKzvk0RVRVbwQgrZNUiYgj+zGzwP6Ac5y3ivFY48uXz1do9iQkS32w?=
- =?us-ascii?Q?5byoXV52olxh0peloXj8moE9U6S720YtV3/wDZ38jxPjWn5nEgyuStQ8Lom4?=
- =?us-ascii?Q?UWiIAc+pU+WUmiyCKrEWXl4///XmmbcoVHeNfzJzNnbkHdJ+6gIu8JC5zaqh?=
- =?us-ascii?Q?MlTzcBF2RQWa5LMwybEioA5nt8oSqO0tocTLXBiaEr3vlr8QSnZ0GcZf95ET?=
- =?us-ascii?Q?3yJdiStt529SQLxnRDgENIECazaSSgEhXCc8fkTtzeFk/XsXHRVHzveDA5hU?=
- =?us-ascii?Q?iOXHhcbT+aX5xy0q1mxos16yICXTl5g3T0CV7wTmP144bW72FgrvWv+kfa5B?=
- =?us-ascii?Q?QJu6Ha+bJvy1if9Wwsv9ruk7FEqRwCucOgyw/5L8gtbuno4dKHTBvRnT01G3?=
- =?us-ascii?Q?xVsaF226BmRd635xUuabmPmA5+EFyNQOUHSkMTssIi4tTuW7T4VwjAskAhau?=
- =?us-ascii?Q?SLR4Zbmp2Ee1HHJdn3VawJZLd0rLJXUfAWvSqyOyilTZ/pZDOd2XGo7pP8jP?=
- =?us-ascii?Q?oK5TwuOSU5c5qloVx/M7SNhc1DBqvw4pwDZHP5whi8/7Y4bOXpcdls1zbOVE?=
- =?us-ascii?Q?2j4YcmDKfJ9qAAVU54DfNqBLa0mMsEuRl1sMjuaP2NX7mno5ryh+qLOn+Ksr?=
- =?us-ascii?Q?l6DZc6jdAxsjacA9oxC7y3DOByG0sAg7ND65EHdxmhwx0TuCqQk190aO2K2f?=
- =?us-ascii?Q?wle+P4qjEOWDxDy6UV7VgarADLQHZNeN1WwF4uZ0C2wkMR23IdEYI5y3wtRW?=
- =?us-ascii?Q?HVtO8tQtLTwBZNX3D2D63S7Cw+7go673Vy7K+JbcEM7+RranPn1ewUgmZxU6?=
- =?us-ascii?Q?h8yoP15DfxFl3o3+K5/aCU9S8qMKPU67UjfkR6jUpFnGVWffa5ENPV/qM4YL?=
- =?us-ascii?Q?O7Pv4GpVd5IeDwbSGQeJ8wS8a117ydit95mAPcn3YHoopU//fIuuofz7Cs98?=
- =?us-ascii?Q?JjYN+chWf9tdklRNX002LoEzyvf/BfHT85NlrKfvJAXrjTxTqGYDJAGPnBl8?=
- =?us-ascii?Q?R57vv+P38JniRli4GsQt06gl33a1gXy0TMoa9byuBUX9+RRIohwAenI1iuqn?=
- =?us-ascii?Q?ZyT9iKUib2kIGHsstO9MPegT9dmCw+ApS0JBVIR6316Jxo+U9C/5tO4O8qk6?=
- =?us-ascii?Q?bjgnx8G8wEzo6yova45kG0ZuhVutWuUO7vouPJKT9ttID+xm6oOgQWY/2skI?=
- =?us-ascii?Q?e9BD5Q8IwC5AtvCcw41RizDlGXhcTl5MewiOcKyqvn94JZxLBXov1ktQxGCu?=
- =?us-ascii?Q?HpQqTMlU1nU9lWLltva1QovON6G1qWLjaHamjs3gPbfBa1LxGaWKEq2DbZnt?=
- =?us-ascii?Q?2c9FSLzzr5Gg7taKpXtKqV+9PUwnYakhJy16/mFqjEZhydkWxs1xX/lt9XVM?=
- =?us-ascii?Q?TxFCoApBNDOlbyxA7ommvPeSa786e7yrXYlKWCZzVMA+vVVbjkZkvP0TAbkm?=
- =?us-ascii?Q?LzxyBe13bX2MjAMjW+eVILbWTX9Agn7LuCik?=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CO6PR10MB5409.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(366016)(1800799024)(7053199007);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?5qSU2gslv3uMBXiutLPq1L7G/1Xp81tSJD1odV8uPUPE9Fk/F+7HAILCNW7b?=
- =?us-ascii?Q?QyXaphtH4zmZI323GRwK6nE07w1IcS/pQb7xflrUZqe6pVQUUhZPOLczjwzP?=
- =?us-ascii?Q?RSbRCNjD8BAj5nHSyMgQgYtZ0WOJoMCQZc8QOzgp1Khx/HuhIqMyOW17/Ewj?=
- =?us-ascii?Q?FQGu4OBRsXlgshhFF+RnXkj+2VTEYA4SUTSFfT0wPL8cZmyd6BF6OsFcOVCt?=
- =?us-ascii?Q?oqasBkyoGuqORy9xBQLYx8/hupdY57/INuvihRctv7mVZgS381/mDmhO+eMP?=
- =?us-ascii?Q?D6tnQEFXbHer7cgE/fNXOvT+p/YjfTQ8Rk3Uas39U/lngckqR26vacW22req?=
- =?us-ascii?Q?pCEFrWbOSf+QGqnFFrI+LNJVArU/ARCQw4fMst23gT14YpyXdLrsTTsnOuh7?=
- =?us-ascii?Q?Vy5XPl0bJPrvA3S2l+ZMy/sf4IUXcnUgpd+osqOXD6UuwzVKWKutrWJENpFQ?=
- =?us-ascii?Q?oKnMUAQWChmvsTyRuAdSB1RTeTDiMviD3/fLqJlx3HowZNwSqr5QFkrb8PZh?=
- =?us-ascii?Q?Ut7Ej0SRFu20XjpevklRG4/effmBxOMQCdjxK3H1jHQj1PT9cdT/ENrgBQoV?=
- =?us-ascii?Q?qLHueZcjb4KgGZXaCgQ6/6oV5Qs0U9aVwq1lpGD2bzldamyrR+XR6htmVX/q?=
- =?us-ascii?Q?lNcDgo8i89vTGn20dX9qYYoKiJmR+nFtQAXGFA7LG0Lydf3R6pCtg6CAb8Q6?=
- =?us-ascii?Q?YJ0CkXInfupCkImhWRDBt5pIMBXjQMCSlFJ7Lbr/SbNLcOlfUTZlXwkyqFBz?=
- =?us-ascii?Q?HjyuMcB1jPY270SMEUk8InQsIgTxEnb7JMGl0cgT9/CI8bKmSOJEofWmPStD?=
- =?us-ascii?Q?Hud20GccQljDdT9sfM4yRK+kDXA/oTlOn0j4Bz190r+FvkF/0gvT8icmjxCD?=
- =?us-ascii?Q?maEWlY4EoJXzu/X1Q6Bp/vyUfnqDK2oys3vtwRERwYFpBuXvOlwvezSgjThz?=
- =?us-ascii?Q?UqL2Trgb7Pufy+zieVw3vdJWuH/Xv/SXSzxGabgEoPiHbbon6aLz3Bj4Or+A?=
- =?us-ascii?Q?iASe23nvgTv7dXlxlsHTnSXywByvx3fF6R0UUOdHPWqpOajLX67AF7BAg44d?=
- =?us-ascii?Q?OpNKWoROrJITl7NS5P5GO67BYUrLPHuHHTtbORlbcjC3M/O8KS7ISvOZG1ye?=
- =?us-ascii?Q?RiUBOBFFWFzIZmjEUv+aLOUyaNl5dEPWZqfS1ZiCstxbKA323HgZvTOtEwB6?=
- =?us-ascii?Q?uMz74Z7qteWNR1Ev0t6062htmUo++vct1hS5kE68ix76O7ZKuig6vJNE+Q/4?=
- =?us-ascii?Q?B3dk9pvEf/Eoz+bfzKk/XwCtIt27RGeTx59Mpu9LkghSKblp7ELTRWzOq+KF?=
- =?us-ascii?Q?+BReTrPwj6/cDN0wL3JFhBdl953Ht4yoUBtuKXXycWVJdqW5BbyUT/0J7Bb3?=
- =?us-ascii?Q?NW1bUoUCdy3XhdyLZPUyU4qk1NsP5qOY5HSTFbrIpsIsgt5hT++mG4tsBVal?=
- =?us-ascii?Q?72K+clcjftXzMEmnjbf1GEooLg+TfQHuN4mhxdEbRkzESoylUOz+Ii6BwNaw?=
- =?us-ascii?Q?JHdfes0tIeSCanieDutTn8xEhu83HfI0alYJqjtpIfa+5XkaPFvSmJ6ojbdt?=
- =?us-ascii?Q?VcVntpiBhEOdkV1s5btkC6XKgvFcV8onupSs4MQ4MJtK+yIoTdlPrqjM+WWU?=
- =?us-ascii?Q?IgsvtlYKXf58JwmZbyfxGnje+dlS16IMUid+mITTFSmsx5JXzSc/6E8dRlJ1?=
- =?us-ascii?Q?q4nGgb5HdCC4uHPIeFz4CzmIN+LxhB5mu7UW5z3uLF+n57JtCy5iXT9OBKmS?=
- =?us-ascii?Q?YHbZl/LMeBBEXpC/bYCPFBoBDwcq9ws=3D?=
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	9E3BRFLVdfmdaPmP/fNajsa+PKIvBuvkiUuF9cJd8jpLSH1yGvzrDgM1Ps1ZVW+jR9GG6P16VDg/IUVDsqDZxBFMQK2q2R+e8T6GXyID7BGIxMNZtrI7YRvevngFwIVV1nIUBx7eR5nR/acOV4swQkL6yeeQ9K7Pyzuycd5KOsIcGGOfFHprvEMTJPPodKRZffd9zQo3jGQvJn+jRK3VfJhlzPQg0NNNCDjSv5UOVJr8JDNoRqMkxnVBVRC/OLTjKlIOx/6cEX7o4GTakcNyzv7Rb4pYtOfwjqR5pqfYvlOErxs/5/WSc5DruTDf8NvPcxjvgf/TK/zKcvF1VpCDvHh6wAAvB3GaFnrfIsNuP+HhpV8AzTpkevuHceyCVs3Ch0A/EKprF7wGTak4rj7DCNFh7w1OkLXUlHduMIJN/v2frtAz793jEQxGQGEdtKeVS0EX5P5CFkEGj6HHd8KiTy0/tTCvidTscBxJprI2k2PVnirdN5GTzjAE9axw831wnSDW5u3lfsMMnFhkF4BGltzFSU0wqRznBMPmGZvpEXOD14XVpwCVkap07AEC2AsjMgD0ZVxj5QaDQpHFg7uvb0r/v78wdN8Z06R17mQp5fY=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 436599f1-4eaf-45e6-ed29-08de69c32300
-X-MS-Exchange-CrossTenant-AuthSource: CO6PR10MB5409.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 11 Feb 2026 23:13:16.1085
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: 4OHJ7Ptxgw2jCYzwZ+LyAbwCSZu1Z1uX7bEQTkbYbiiB8K6ZEMuY7DDq9y+z5o8QK5K7CY6Gnua8mAf3hL9acwvumu4CV94BCcWi2pYx+bM=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ0PR10MB5598
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1121,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-02-11_03,2026-02-11_04,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 bulkscore=0 adultscore=0 phishscore=0
- malwarescore=0 mlxscore=0 spamscore=0 mlxlogscore=868 suspectscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2601150000
- definitions=main-2602110180
-X-Authority-Analysis: v=2.4 cv=YbOwJgRf c=1 sm=1 tr=0 ts=698d0d21 b=1 cx=c_pps
- a=qoll8+KPOyaMroiJ2sR5sw==:117 a=qoll8+KPOyaMroiJ2sR5sw==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=HzLeVaNsDn8A:10
- a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22 a=Mpw57Om8IfrbqaoTuvik:22
- a=GgsMoib0sEa3-_RKJdDe:22 a=VwQbUJbxAAAA:8 a=7CQSdrXTAAAA:8
- a=FD818APFoX7DtmaT_24A:9 a=a-qgeE7W1pNrGK8U0ZQC:22 cc=ntf awl=host:12149
-X-Proofpoint-ORIG-GUID: msQHM7ZTiDtOrAWb_IP1LI0dmKpJkpAF
-X-Proofpoint-GUID: msQHM7ZTiDtOrAWb_IP1LI0dmKpJkpAF
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMjExMDE3OSBTYWx0ZWRfXz/q8l1j046wf
- XlyNrFzcFhwuA2d9UpwIGMqghD35ANaiClI/415+yQs9A29cY66T0C+6T1XIDXByKOVuid6xw3x
- I9VCJSvQa+8xvmNv/wmNq6QA1dbXybGKUDE7G9wPGL4vohQf1oKAcdjO3f10v7x1zCTopB823dy
- YE5W4oitQqnZJCLiXj0sK9Ofp+h4mtxhfWaWC1V7libnxsyM3R98VV35oBiy4pztESeqN+8nHX+
- 7AyCcCwnFAJB3fPQiV1n4sF4mGZE0D+EwwbUJIAHSQ2unfShehE5ojQmbzmshihj5Rxm4+ep95B
- Nut/3aoDS/lrDsj4I+tZSp9LZrFW0kxSOTu4dpjWsuzeRQVnQUvEjmQ+Bc6SGyJXtK9q0PDekqG
- 8iQwMNFZ5faX50Wwc5IeX1sU7v1wkPVboYLKv1r6AxVHxYqwzWcgzjlbXCtstVMlpHAQ3rlUUse
- 9NFvJwb6Ukhfk8+yeRMpwu+fNptGDOue8epL4IAM=
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
+On Sun,  8 Feb 2026 18:31:42 -0800
+Ankur Arora <ankur.a.arora@oracle.com> wrote:
 
-Catalin Marinas <catalin.marinas@arm.com> writes:
+> Add smp_cond_load_relaxed_timeout(), which extends
+> smp_cond_load_relaxed() to allow waiting for a duration.
+> 
+> We loop around waiting for the condition variable to change while
+> peridically doing a time-check. The loop uses cpu_poll_relax() to slow
+> down the busy-waiting, which, unless overridden by the architecture
+> code, amounts to a cpu_relax().
+> 
+> Note that there are two ways for the time-check to fail: the usual
+> timeout case or, @time_expr_ns returning an invalid value (negative
+> or zero). The second failure mode allows for clocks attached to the
+> clock-domain of @cond_expr, which might cease to operate meaningfully
+> once some state internal to @cond_expr has changed.
+> 
+> Evaluation of @time_expr_ns: in the fastpath we want to keep the
+> performance close to smp_cond_load_relaxed(). To do that we defer
+> evaluation of the potentially costly @time_expr_ns to when we hit
+> the slowpath.
+> 
+> This also means that there will always be some hardware dependent
+> duration that has passed in cpu_poll_relax() iterations at the time of
+> first evaluation. Additionally cpu_poll_relax() is not guaranteed to
+> return at timeout boundary. In sum, expect timeout overshoot when we
+> exit due to expiration of the timeout.
+> 
+> The number of spin iterations before time-check, SMP_TIMEOUT_POLL_COUNT
+> is chosen to be 200 by default. With a cpu_poll_relax() iteration
+> taking ~20-30 cycles (measured on a variety of x86 platforms), we expect
+> a tim-check every ~4000-6000 cycles.
+    ^ time-check
 
-> On Sun, Feb 08, 2026 at 06:31:45PM -0800, Ankur Arora wrote:
->> diff --git a/arch/arm64/include/asm/cmpxchg.h b/arch/arm64/include/asm/cmpxchg.h
->> index d7a540736741..dfb7d10a18be 100644
->> --- a/arch/arm64/include/asm/cmpxchg.h
->> +++ b/arch/arm64/include/asm/cmpxchg.h
->> @@ -12,6 +12,7 @@
->>
->>  #include <asm/barrier.h>
->>  #include <asm/lse.h>
->> +#include <asm/delay-const.h>
->>
->>  /*
->>   * We need separate acquire parameters for ll/sc and lse, since the full
->> @@ -208,9 +209,13 @@ __CMPXCHG_GEN(_mb)
->>  	__cmpxchg128((ptr), (o), (n));						\
->>  })
->>
->> +/* Re-declared here to avoid include dependency. */
->> +extern u64 (*arch_timer_read_counter)(void);
->
-> We have a bug in udelay() because the above might read the physical
-> counter while WFET uses the virtual one. See this thread:
->
-> https://lore.kernel.org/all/ktosachvft2cgqd5qkukn275ugmhy6xrhxur4zqpdxlfr3qh5h@o3zrfnsq63od/
+Plus the cost of evaluating cond_expr 200 times.
+I guess that isn't expected to contain a PCIe read :-)
 
-Oh that looks painful. Thanks for linking it.
+	David
 
-> We could use __arch_counter_get_cntvct_stable() as in Marc's suggestion
-> for the udelay() fix (or just wait to see the outcome of the above
-> thread).
+> 
+> The outer limit of the overshoot is double that when working with the
+> parameters above. This might be higher or lower depending on the
+> implementation of cpu_poll_relax() across architectures.
+> 
+> Lastly, config option ARCH_HAS_CPU_RELAX indicates availability of a
+> cpu_poll_relax() that is cheaper than polling. This might be relevant
+> for cases with a prolonged timeout.
+> 
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Ankur Arora <ankur.a.arora@oracle.com>
+> ---
+> Notes:
+>   - Defer evaluation of @time_expr_ns to when we hit the slowpath.
+>   - This also helps get rid of the labelled gotos which were used to
+>     handle the early failure case (since now there's no early init
+>     to be concerned with.)
+>   - Add a comment mentioning that the cpu_poll_relax() implementation
+>     is better than polling if ARCH_HAS_CPU_RELAX.
+> 
+>  include/asm-generic/barrier.h | 72 +++++++++++++++++++++++++++++++++++
+>  1 file changed, 72 insertions(+)
+> 
+> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+> index d4f581c1e21d..2738fe35c1df 100644
+> --- a/include/asm-generic/barrier.h
+> +++ b/include/asm-generic/barrier.h
+> @@ -273,6 +273,68 @@ do {									\
+>  })
+>  #endif
+>  
+> +/*
+> + * Number of times we iterate in the loop before doing the time check.
+> + */
+> +#ifndef SMP_TIMEOUT_POLL_COUNT
+> +#define SMP_TIMEOUT_POLL_COUNT		200
+> +#endif
+> +
+> +/*
+> + * Platforms with ARCH_HAS_CPU_RELAX have a cpu_poll_relax() implementation
+> + * that is expected to be cheaper (lower power) than pure polling.
+> + */
+> +#ifndef cpu_poll_relax
+> +#define cpu_poll_relax(ptr, val, timeout_ns)	cpu_relax()
+> +#endif
+> +
+> +/**
+> + * smp_cond_load_relaxed_timeout() - (Spin) wait for cond with no ordering
+> + * guarantees until a timeout expires.
+> + * @ptr: pointer to the variable to wait on.
+> + * @cond: boolean expression to wait for.
+> + * @time_expr_ns: expression that evaluates to monotonic time (in ns) or,
+> + *  on failure, returns a negative value.
+> + * @timeout_ns: timeout value in ns
+> + * Both of the above are assumed to be compatible with s64; the signed
+> + * value is used to handle the failure case in @time_expr_ns.
+> + *
+> + * Equivalent to using READ_ONCE() on the condition variable.
+> + *
+> + * Callers that expect to wait for prolonged durations might want to
+> + * take into account the availability of ARCH_HAS_CPU_RELAX.
+> + */
+> +#ifndef smp_cond_load_relaxed_timeout
+> +#define smp_cond_load_relaxed_timeout(ptr, cond_expr,			\
+> +				      time_expr_ns, timeout_ns)		\
+> +({									\
+> +	typeof(ptr) __PTR = (ptr);					\
+> +	__unqual_scalar_typeof(*ptr) VAL;				\
+> +	u32 __n = 0, __spin = SMP_TIMEOUT_POLL_COUNT;			\
+> +	s64 __timeout = (s64)timeout_ns;				\
+> +	s64 __time_now, __time_end = 0;					\
+> +									\
+> +	for (;;) {							\
+> +		VAL = READ_ONCE(*__PTR);				\
+> +		if (cond_expr) 						\
+> +			break;						\
+> +		cpu_poll_relax(__PTR, VAL, (u64)__timeout);		\
+> +		if (++__n < __spin)					\
+> +			continue;					\
+> +		__time_now = (s64)(time_expr_ns);			\
+> +		if (unlikely(__time_end == 0))				\
+> +			__time_end = __time_now + __timeout;		\
+> +		__timeout = __time_end - __time_now;			\
+> +		if (__time_now <= 0 || __timeout <= 0) {		\
+> +			VAL = READ_ONCE(*__PTR);			\
+> +			break;						\
+> +		}							\
+> +		__n = 0;						\
+> +	}								\
+> +	(typeof(*ptr))VAL;						\
+> +})
+> +#endif
+> +
+>  /*
+>   * pmem_wmb() ensures that all stores for which the modification
+>   * are written to persistent storage by preceding instructions have
 
-Yeah will follow where that goes.
-
-> The rest looks fine.
-
-Great. Thanks!
-
---
-ankur
