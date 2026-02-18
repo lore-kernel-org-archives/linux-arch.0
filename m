@@ -1,288 +1,345 @@
-Received: from cstnet.cn (smtp21.cstnet.cn [159.226.251.21])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 56B78302779;
-	Wed, 18 Feb 2026 12:07:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.21
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D12033E36A
+	for <linux-arch@vger.kernel.org>; Wed, 18 Feb 2026 15:08:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771416426; cv=none; b=cvfBJ+CpIu8Yi/xpvKev+jFqTXQ6cuCTzqGp6H5d2rmZ6vDo/dbNw3H7BmJe9YB8lYNJ/Hque1sOUotAtf4/fjq6P54En3FUsD0bYrtVVDGaAwZoN1bW1slmKobKLRBULUAbd5NTW2EiTykEwtEXoxf8rXbIvp5zg3mlzw8CbiM=
+	t=1771427314; cv=none; b=ANud8IxU/DiJNdgzyNvxYmLfeNtzwYRuNgkY+WLQ+gJzWwC8llhVgnx1tMS0V5uHD4t44RGWIy+mWz7rFR5KTZevJjYaspj0m4Pm3zZqLLoxBZLwRMHOnX2Mo84aoXzHcCCLgjCFKXvDexdGX5cS6pvi8YHJw/jcoAXtj0lEE7s=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771416426; c=relaxed/simple;
-	bh=JJMJGb5i+iHg8m+rXVti4oKM42dl/LwMw4HCw3cPHhc=;
-	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
-	 Message-Id:References:To; b=QJ6G5GumjcnXgsGtXvZjzkGOpq8bUSQXNNsFUA75a3iEKzr/0UkgGXQXpVsxyDGF2GS7gmXTyEQ9IK/TD4B9uz0yRShKZqFbjs1EPCy7yGggj3kwEaO84zvBy9++SdysKZGZSTyTeY+4NkJEdj2VpJ9ON7GzKTrsEj6jnay4938=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=iscas.ac.cn; spf=pass smtp.mailfrom=iscas.ac.cn; arc=none smtp.client-ip=159.226.251.21
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=iscas.ac.cn
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=iscas.ac.cn
-Received: from smtpclient.apple (unknown [58.38.117.196])
-	by APP-01 (Coremail) with SMTP id qwCowAA33WhJq5Vp5ZUzCA--.1761S2;
-	Wed, 18 Feb 2026 20:06:34 +0800 (CST)
-Content-Type: text/plain;
-	charset=us-ascii
+	s=arc-20240116; t=1771427314; c=relaxed/simple;
+	bh=2fr/OCZ8cFVBHcDNDyV5zLQo4aqIHZtJeIp6unn02Vg=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=P4oU2NccOAkR9+kON95UijOWbqjJyKVp11kvHpLq5xYu2cnvs6RskfdTJnMaOpYh1pJareA45D+ruOUReiYXClWxVGGuaKVrnyn7Bfjxg9M5VjI5LvaYzrDqsePppZ2shEzUw/SWZMkQJZMBYprlTYOpHpg3HK+aFMQL8pokPHQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b=gldyKQL6; dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b=gldyKQL6; arc=none smtp.client-ip=195.135.223.131
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b="gldyKQL6";
+	dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.b="gldyKQL6"
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out2.suse.de (Postfix) with ESMTPS id 36DB15BD20;
+	Wed, 18 Feb 2026 15:08:28 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+	t=1771427308; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=5lyt323+HbZYpoX64Rl3vcxfunKzUx7dWbFHruMcR5o=;
+	b=gldyKQL6ACDQdncmwMAad+Z99WShbTJgDNbsPhcbC0DQiA3KedeIyVic93hD8vv78dtV5k
+	mpXWOEOKQDyHkeA1GRi52v9RwnG2zVxhkBv7o7JMU+8dwRIwmS7XltK2XFgm+L7TqcdAoi
+	1nUoIbVbEo1ghf+4y8+Ad7p6+tMf3RI=
+Authentication-Results: smtp-out2.suse.de;
+	dkim=pass header.d=suse.com header.s=susede1 header.b=gldyKQL6
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
+	t=1771427308; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=5lyt323+HbZYpoX64Rl3vcxfunKzUx7dWbFHruMcR5o=;
+	b=gldyKQL6ACDQdncmwMAad+Z99WShbTJgDNbsPhcbC0DQiA3KedeIyVic93hD8vv78dtV5k
+	mpXWOEOKQDyHkeA1GRi52v9RwnG2zVxhkBv7o7JMU+8dwRIwmS7XltK2XFgm+L7TqcdAoi
+	1nUoIbVbEo1ghf+4y8+Ad7p6+tMf3RI=
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 8B3DA3EA65;
+	Wed, 18 Feb 2026 15:08:27 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id 4AnNIevVlWkRRwAAD6G6ig
+	(envelope-from <petr.pavlu@suse.com>); Wed, 18 Feb 2026 15:08:27 +0000
+Message-ID: <7765df86-b08a-4f70-900d-4b4d85c07d49@suse.com>
+Date: Wed, 18 Feb 2026 16:08:19 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.400.21\))
-Subject: Re: [PATCH V3] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
-From: Han Gao <gaohan@iscas.ac.cn>
-In-Reply-To: <20260125063941.443777-1-guoren@kernel.org>
-Date: Wed, 18 Feb 2026 20:06:23 +0800
-Cc: Han Gao <gaohan@iscas.ac.cn>,
- paul.walmsley@sifive.com,
- palmer@dabbelt.com,
- alex@ghiti.fr,
- leobras@redhat.com,
- djordje.todorovic@htecgroup.com,
- aleksa.paunovic@htecgroup.com,
- arnd@arndb.de,
- rabenda.cn@gmail.com,
- linux-riscv@lists.infradead.org,
- linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org,
- Yao Zi <me@ziyao.cc>,
- Alexandre Ghiti <alexghiti@rivosinc.com>,
- Paul Walmsley <pjw@kernel.org>,
- Guo Ren <guoren@kernel.org>
-Content-Transfer-Encoding: quoted-printable
-Message-Id: <3F85D6ED-6C47-46D0-96A3-165F4DE0D1E7@iscas.ac.cn>
-References: <20260125063941.443777-1-guoren@kernel.org>
-To: Paul Walmsley <pjw@kernel.org>
-X-Mailer: Apple Mail (2.3864.400.21)
-X-CM-TRANSID:qwCowAA33WhJq5Vp5ZUzCA--.1761S2
-X-Coremail-Antispam: 1UD129KBjvJXoWxuFW8tFykXF13tF45Wr1DAwb_yoWxZryfpF
-	Z0kF4FkFZ5GFn7A3srCw45urn8J3yfGr13K3s7uw18ArsFqrs8Jr1vg3yjqr9FvFs7Wr18
-	GrZ3uFy2k39Fq37anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDU0xBIdaVrnRJUUU9E14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-	rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
-	1l84ACjcxK6xIIjxv20xvE14v26r1I6r4UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
-	6F4UM28EF7xvwVC2z280aVAFwI0_Cr1j6rxdM28EF7xvwVC2z280aVCY1x0267AKxVWxJr
-	0_GcWle2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xvF2IEw4CE5I8CrVC2j2WlYx0E
-	2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r1j6r4UMcvjeVCFs4IE7xkEbVWUJV
-	W8JwACjcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I648v4I1lFIxGxcIEc7CjxVA2
-	Y2ka0xkIwI1lc7CjxVAaw2AFwI0_Jw0_GFylc2xSY4AK67AK6ryUMxAIw28IcxkI7VAKI4
-	8JMxC20s026xCaFVCjc4AY6r1j6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xv
-	wVAFwI0_JrI_JrWlx4CE17CEb7AF67AKxVW8ZVWrXwCIc40Y0x0EwIxGrwCI42IY6xIIjx
-	v20xvE14v26r1j6r1xMIIF0xvE2Ix0cI8IcVCY1x0267AKxVW8JVWxJwCI42IY6xAIw20E
-	Y4v20xvaj40_Jr0_JF4lIxAIcVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267
-	AKxVW8JVW8JrUvcSsGvfC2KfnxnUUI43ZEXa7VUbbo7tUUUUU==
-X-CM-SenderInfo: xjdrxt3q6l2u1dvotugofq/1tbiCRECDGmVUIGCHgAAsn
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v18 34/42] dept: add module support for struct
+ dept_event_site and dept_event_site_dep
+To: Byungchul Park <byungchul@sk.com>
+Cc: kernel_team@skhynix.com, torvalds@linux-foundation.org,
+ damien.lemoal@opensource.wdc.com, linux-ide@vger.kernel.org,
+ adilger.kernel@dilger.ca, linux-ext4@vger.kernel.org, mingo@redhat.com,
+ peterz@infradead.org, will@kernel.org, tglx@linutronix.de,
+ rostedt@goodmis.org, joel@joelfernandes.org, sashal@kernel.org,
+ daniel.vetter@ffwll.ch, duyuyang@gmail.com, johannes.berg@intel.com,
+ tj@kernel.org, tytso@mit.edu, willy@infradead.org, david@fromorbit.com,
+ amir73il@gmail.com, gregkh@linuxfoundation.org, kernel-team@lge.com,
+ linux-mm@kvack.org, akpm@linux-foundation.org, mhocko@kernel.org,
+ minchan@kernel.org, hannes@cmpxchg.org, vdavydov.dev@gmail.com,
+ sj@kernel.org, jglisse@redhat.com, dennis@kernel.org, cl@linux.com,
+ penberg@kernel.org, rientjes@google.com, vbabka@suse.cz, ngupta@vflare.org,
+ linux-block@vger.kernel.org, josef@toxicpanda.com,
+ linux-fsdevel@vger.kernel.org, jack@suse.cz, jlayton@kernel.org,
+ dan.j.williams@intel.com, hch@infradead.org, djwong@kernel.org,
+ dri-devel@lists.freedesktop.org, rodrigosiqueiramelo@gmail.com,
+ melissa.srw@gmail.com, hamohammed.sa@gmail.com, harry.yoo@oracle.com,
+ chris.p.wilson@intel.com, gwan-gyeong.mun@intel.com,
+ max.byungchul.park@gmail.com, boqun.feng@gmail.com, longman@redhat.com,
+ yunseong.kim@ericsson.com, ysk@kzalloc.com, yeoreum.yun@arm.com,
+ netdev@vger.kernel.org, matthew.brost@intel.com, her0gyugyu@gmail.com,
+ corbet@lwn.net, catalin.marinas@arm.com, bp@alien8.de, x86@kernel.org,
+ hpa@zytor.com, luto@kernel.org, sumit.semwal@linaro.org,
+ gustavo@padovan.org, christian.koenig@amd.com, andi.shyti@kernel.org,
+ arnd@arndb.de, lorenzo.stoakes@oracle.com, Liam.Howlett@oracle.com,
+ rppt@kernel.org, surenb@google.com, mcgrof@kernel.org, da.gomez@kernel.org,
+ samitolvanen@google.com, paulmck@kernel.org, frederic@kernel.org,
+ neeraj.upadhyay@kernel.org, joelagnelf@nvidia.com, josh@joshtriplett.org,
+ urezki@gmail.com, mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
+ qiang.zhang@linux.dev, juri.lelli@redhat.com, vincent.guittot@linaro.org,
+ dietmar.eggemann@arm.com, bsegall@google.com, mgorman@suse.de,
+ vschneid@redhat.com, chuck.lever@oracle.com, neil@brown.name,
+ okorniev@redhat.com, Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
+ anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
+ clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
+ kristina.martsenko@arm.com, wangkefeng.wang@huawei.com, broonie@kernel.org,
+ kevin.brodsky@arm.com, dwmw@amazon.co.uk, shakeel.butt@linux.dev,
+ ast@kernel.org, ziy@nvidia.com, yuzhao@google.com,
+ baolin.wang@linux.alibaba.com, usamaarif642@gmail.com,
+ joel.granados@kernel.org, richard.weiyang@gmail.com,
+ geert+renesas@glider.be, tim.c.chen@linux.intel.com, linux@treblig.org,
+ alexander.shishkin@linux.intel.com, lillian@star-ark.net,
+ chenhuacai@kernel.org, francesco@valla.it, guoweikang.kernel@gmail.com,
+ link@vivo.com, jpoimboe@kernel.org, masahiroy@kernel.org,
+ brauner@kernel.org, thomas.weissschuh@linutronix.de, oleg@redhat.com,
+ mjguzik@gmail.com, andrii@kernel.org, wangfushuai@baidu.com,
+ linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-media@vger.kernel.org, linaro-mm-sig@lists.linaro.org,
+ linux-i2c@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-modules@vger.kernel.org, rcu@vger.kernel.org,
+ linux-nfs@vger.kernel.org, linux-rt-devel@lists.linux.dev,
+ 2407018371@qq.com, dakr@kernel.org, miguel.ojeda.sandonis@gmail.com,
+ neilb@ownmail.net, bagasdotme@gmail.com, wsa+renesas@sang-engineering.com,
+ dave.hansen@intel.com, geert@linux-m68k.org, ojeda@kernel.org,
+ alex.gaynor@gmail.com, gary@garyguo.net, bjorn3_gh@protonmail.com,
+ lossin@kernel.org, a.hindborg@kernel.org, aliceryhl@google.com,
+ tmgross@umich.edu, rust-for-linux@vger.kernel.org,
+ linux-kernel@vger.kernel.org
+References: <20251205071855.72743-1-byungchul@sk.com>
+ <20251205071855.72743-35-byungchul@sk.com>
+ <7afb6666-43b6-4d17-b875-e585c7a5ac99@suse.com>
+ <20260213055006.GA55430@system.software.com>
+Content-Language: en-US
+From: Petr Pavlu <petr.pavlu@suse.com>
+In-Reply-To: <20260213055006.GA55430@system.software.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-Spamd-Result: default: False [-1.01 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	FORGED_RECIPIENTS(2.00)[m:adilger.kernel@dilger.ca,m:peterz@infradead.org,m:will@kernel.org,m:rostedt@goodmis.org,m:joel@joelfernandes.org,m:sashal@kernel.org,m:daniel.vetter@ffwll.ch,m:duyuyang@gmail.com,m:johannes.berg@intel.com,m:tj@kernel.org,m:willy@infradead.org,m:david@fromorbit.com,m:amir73il@gmail.com,m:kernel-team@lge.com,m:linux-mm@kvack.org,m:mhocko@kernel.org,m:minchan@kernel.org,m:hannes@cmpxchg.org,m:vdavydov.dev@gmail.com,m:sj@kernel.org,m:dennis@kernel.org,m:penberg@kernel.org,m:rientjes@google.com,m:jlayton@kernel.org,m:dan.j.williams@intel.com,m:hch@infradead.org,m:djwong@kernel.org,m:rodrigosiqueiramelo@gmail.com,m:melissa.srw@gmail.com,m:hamohammed.sa@gmail.com,m:chris.p.wilson@intel.com,m:gwan-gyeong.mun@intel.com,m:max.byungchul.park@gmail.com,m:boqun.feng@gmail.com,m:yunseong.kim@ericsson.com,m:ysk@kzalloc.com,m:yeoreum.yun@arm.com,m:matthew.brost@intel.com,m:her0gyugyu@gmail.com,m:catalin.marinas@arm.com,m:bp@alien8.de,m:x86@kernel.org,m:hpa@zytor.com,m:luto
+ @kernel.org,m:sumit.semwal@linaro.org,m:christian.koenig@amd.com,m:andi.shyti@kernel.org,m:arnd@arndb.de,m:rppt@kernel.org,m:surenb@google.com,m:mcgrof@kernel.org,m:da.gomez@kernel.org,m:samitolvanen@google.com,m:paulmck@kernel.org,m:frederic@kernel.org,m:neeraj.upadhyay@kernel.org,m:josh@joshtriplett.org,m:urezki@gmail.com,m:mathieu.desnoyers@efficios.com,m:jiangshanlai@gmail.com,m:vincent.guittot@linaro.org,m:dietmar.eggemann@arm.com,m:bsegall@google.com,m:neil@brown.name,s:geert@linux-m68k.org,s:baolin.wang@linux.alibaba.com,s:shakeel.butt@linux.dev,s:alexander.shishkin@linux.intel.com,s:tim.c.chen@linux.intel.com,s:linux-arm-kernel@lists.infradead.org,s:linaro-mm-sig@lists.linaro.org,s:linux-rt-devel@lists.linux.dev,s:ziy@nvidia.com,s:neilb@ownmail.net,s:bjorn3_gh@protonmail.com,s:2407018371@qq.com,s:oleg@redhat.com,s:wsa@sang-engineering.com,s:lillian@star-ark.net,s:tom@talpey.com,s:linux@treblig.org,s:tmgross@umich.edu,s:francesco@valla.it];
+	SUSPICIOUS_RECIPS(1.50)[];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	R_DKIM_ALLOW(-0.20)[suse.com:s=susede1];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MX_GOOD(-0.01)[];
+	DKIM_SIGNED(0.00)[suse.com:s=susede1];
+	FREEMAIL_ENVRCPT(0.00)[ownmail.net,protonmail.com,qq.com];
+	ARC_NA(0.00)[];
+	FUZZY_RATELIMITED(0.00)[rspamd.com];
+	TO_DN_SOME(0.00)[];
+	MIME_TRACE(0.00)[0:+];
+	FREEMAIL_CC(0.00)[skhynix.com,linux-foundation.org,opensource.wdc.com,vger.kernel.org,dilger.ca,redhat.com,infradead.org,kernel.org,linutronix.de,goodmis.org,joelfernandes.org,ffwll.ch,gmail.com,intel.com,mit.edu,fromorbit.com,linuxfoundation.org,lge.com,kvack.org,cmpxchg.org,linux.com,google.com,suse.cz,vflare.org,toxicpanda.com,lists.freedesktop.org,oracle.com,ericsson.com,kzalloc.com,arm.com,lwn.net,alien8.de,zytor.com,linaro.org,padovan.org,amd.com,arndb.de,nvidia.com,joshtriplett.org,efficios.com,linux.dev,suse.de,brown.name,talpey.com,huawei.com,amazon.co.uk,linux.alibaba.com,glider.be,linux.intel.com,treblig.org,star-ark.net,valla.it,vivo.com,baidu.com,lists.infradead.org,lists.linaro.org,lists.linux.dev,qq.com,ownmail.net,sang-engineering.com,linux-m68k.org,garyguo.net,protonmail.com,umich.edu];
+	DKIM_TRACE(0.00)[suse.com:+];
+	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
+	RCVD_COUNT_TWO(0.00)[2];
+	TO_MATCH_ENVRCPT_SOME(0.00)[];
+	FROM_EQ_ENVFROM(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	RCVD_TLS_ALL(0.00)[];
+	RCPT_COUNT_GT_50(0.00)[165];
+	TAGGED_RCPT(0.00)[renesas];
+	MID_RHS_MATCH_FROM(0.00)[];
+	R_RATELIMIT(0.00)[to_ip_from(RL8a3nofbere1sopdi15kx9y35)];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[sk.com:email,imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,suse.com:dkim,suse.com:mid]
+X-Rspamd-Action: no action
+X-Spam-Flag: NO
+X-Spam-Score: -1.01
+X-Spam-Level: 
+X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
+X-Rspamd-Queue-Id: 36DB15BD20
 
-Hi, Paul
+On 2/13/26 6:50 AM, Byungchul Park wrote:
+> On Wed, Jan 07, 2026 at 01:19:00PM +0100, Petr Pavlu wrote:
+>> On 12/5/25 8:18 AM, Byungchul Park wrote:
+>>> struct dept_event_site and struct dept_event_site_dep have been
+>>> introduced to track dependencies between multi event sites for a single
+>>> wait, that will be loaded to data segment.  Plus, a custom section,
+>>> '.dept.event_sites', also has been introduced to keep pointers to the
+>>> objects to make sure all the event sites defined exist in code.
+>>>
+>>> dept should work with the section and segment of module.  Add the
+>>> support to handle the section and segment properly whenever modules are
+>>> loaded and unloaded.
+>>>
+>>> Signed-off-by: Byungchul Park <byungchul@sk.com>
+>>
+>> Below are a few comments from the module loader perspective.
+> 
+> Sorry about the late reply.  I've been going through some major life
+> changes lately. :(
+> 
+> Thank you sooooo~ much for your helpful feedback.  I will leave my
+> opinion below.
+> 
+[...]
+>>> diff --git a/kernel/dependency/dept.c b/kernel/dependency/dept.c
+>>> index b14400c4f83b..07d883579269 100644
+>>> --- a/kernel/dependency/dept.c
+>>> +++ b/kernel/dependency/dept.c
+>>> @@ -984,6 +984,9 @@ static void bfs(void *root, struct bfs_ops *ops, void *in, void **out)
+>>>   * event sites.
+>>>   */
+>>>
+>>> +static LIST_HEAD(dept_event_sites);
+>>> +static LIST_HEAD(dept_event_site_deps);
+>>> +
+>>>  /*
+>>>   * Print all events in the circle.
+>>>   */
+>>> @@ -2043,6 +2046,33 @@ static void del_dep_rcu(struct rcu_head *rh)
+>>>       preempt_enable();
+>>>  }
+>>>
+>>> +/*
+>>> + * NOTE: Must be called with dept_lock held.
+>>> + */
+>>> +static void disconnect_event_site_dep(struct dept_event_site_dep *esd)
+>>> +{
+>>> +     list_del_rcu(&esd->dep_node);
+>>> +     list_del_rcu(&esd->dep_rev_node);
+>>> +}
+>>> +
+>>> +/*
+>>> + * NOTE: Must be called with dept_lock held.
+>>> + */
+>>> +static void disconnect_event_site(struct dept_event_site *es)
+>>> +{
+>>> +     struct dept_event_site_dep *esd, *next_esd;
+>>> +
+>>> +     list_for_each_entry_safe(esd, next_esd, &es->dep_head, dep_node) {
+>>> +             list_del_rcu(&esd->dep_node);
+>>> +             list_del_rcu(&esd->dep_rev_node);
+>>> +     }
+>>> +
+>>> +     list_for_each_entry_safe(esd, next_esd, &es->dep_rev_head, dep_rev_node) {
+>>> +             list_del_rcu(&esd->dep_node);
+>>> +             list_del_rcu(&esd->dep_rev_node);
+>>> +     }
+>>> +}
+>>> +
+>>>  /*
+>>>   * NOTE: Must be called with dept_lock held.
+>>>   */
+>>> @@ -2384,6 +2414,8 @@ void dept_free_range(void *start, unsigned int sz)
+>>>  {
+>>>       struct dept_task *dt = dept_task();
+>>>       struct dept_class *c, *n;
+>>> +     struct dept_event_site_dep *esd, *next_esd;
+>>> +     struct dept_event_site *es, *next_es;
+>>>       unsigned long flags;
+>>>
+>>>       if (unlikely(!dept_working()))
+>>> @@ -2405,6 +2437,24 @@ void dept_free_range(void *start, unsigned int sz)
+>>>       while (unlikely(!dept_lock()))
+>>>               cpu_relax();
+>>>
+>>> +     list_for_each_entry_safe(esd, next_esd, &dept_event_site_deps, all_node) {
+>>> +             if (!within((void *)esd, start, sz))
+>>> +                     continue;
+>>> +
+>>> +             disconnect_event_site_dep(esd);
+>>> +             list_del(&esd->all_node);
+>>> +     }
+>>> +
+>>> +     list_for_each_entry_safe(es, next_es, &dept_event_sites, all_node) {
+>>> +             if (!within((void *)es, start, sz) &&
+>>> +                 !within(es->name, start, sz) &&
+>>> +                 !within(es->func_name, start, sz))
+>>> +                     continue;
+>>> +
+>>> +             disconnect_event_site(es);
+>>> +             list_del(&es->all_node);
+>>> +     }
+>>> +
+>>>       list_for_each_entry_safe(c, n, &dept_classes, all_node) {
+>>>               if (!within((void *)c->key, start, sz) &&
+>>>                   !within(c->name, start, sz))
+>>> @@ -3337,6 +3387,7 @@ void __dept_recover_event(struct dept_event_site_dep *esd,
+>>>
+>>>       list_add(&esd->dep_node, &es->dep_head);
+>>>       list_add(&esd->dep_rev_node, &rs->dep_rev_head);
+>>> +     list_add(&esd->all_node, &dept_event_site_deps);
+>>>       check_recover_dl_bfs(esd);
+>>>  unlock:
+>>>       dept_unlock();
+>>> @@ -3347,6 +3398,23 @@ EXPORT_SYMBOL_GPL(__dept_recover_event);
+>>>
+>>>  #define B2KB(B) ((B) / 1024)
+>>>
+>>> +void dept_mark_event_site_used(void *start, void *end)
+>>
+>> Nit: I suggest that dept_mark_event_site_used() take pointers to
+>> dept_event_site_init, which would catch the type mismatch with
+> 
+> IMO, this is the easiest way to get all the pointers from start to the
+> end, or I can't get the number of the pointers.  It's similar to the
+> initcalls section for device drivers.
 
-There was a response to this patch in Patch V2, but no further action =
-has been taken.
+This was a minor suggestion.. The idea is to simply change the function
+signature to:
 
-I'd like to ask if there are any other issues with this patch, or if it =
-lacks sufficient review feedback or testing.
+void dept_mark_event_site_used(struct dept_event_site_init **start,
+			       struct dept_event_site_init **end))
 
-> On Jan 25, 2026, at 14:39, guoren@kernel.org wrote:
->=20
-> From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
->=20
-> The early version of XuanTie C910 core has a store merge buffer
-> delay problem. The store merge buffer could improve the store queue
-> performance by merging multi-store requests, but when there are not
-> continued store requests, the prior single store request would be
-> waiting in the store queue for a long time. That would cause
-> significant problems for communication between multi-cores. This
-> problem was found on sg2042 & th1520 platforms with the qspinlock
-> lock torture test.
->=20
-> So appending a fence w.o could immediately flush the store merge
-> buffer and let other cores see the write result.
->=20
-> This will apply the WRITE_ONCE errata to handle the non-standard
-> behavior via appending a fence w.o instruction for WRITE_ONCE().
->=20
-> This problem is only observed on the sg2042 hardware platform by
-> running the lock_torture test program for half an hour. The problem
-> was not found in the user space application, because interrupt can
-> break the livelock.
->=20
-> Reviewed-by: Leonardo Bras <leobras@redhat.com>
-> Tested-by: Han Gao <gaohan@iscas.ac.cn>
-> Cc: Yao Zi <me@ziyao.cc>
-> Cc: Alexandre Ghiti <alexghiti@rivosinc.com>
-> Cc: Paul Walmsley <pjw@kernel.org>
-> Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
-> ---
-> Changelog
->=20
-> v3:
-> - Rebase on 6.19-rc6.
-> - Remove errata_list_vendors patch which has been merged.
-> - Add Tested-by tag.
->=20
-> v2:
-> =
-https://lore.kernel.org/linux-riscv/20250713155321.2064856-1-guoren@kernel=
-.org/
-> - Add new header file for errata_list_vendors.
-> - Rebase newest kernel version.
->=20
-> v1:
-> =
-https://lore.kernel.org/all/20241214143039.4139398-1-guoren@kernel.org/
-> ---
-> arch/riscv/Kconfig.errata                    | 17 ++++++++++
-> arch/riscv/errata/thead/errata.c             | 20 ++++++++++++
-> arch/riscv/include/asm/errata_list_vendors.h |  3 +-
-> arch/riscv/include/asm/rwonce.h              | 34 ++++++++++++++++++++
-> include/asm-generic/rwonce.h                 |  2 ++
-> 5 files changed, 75 insertions(+), 1 deletion(-)
-> create mode 100644 arch/riscv/include/asm/rwonce.h
->=20
-> diff --git a/arch/riscv/Kconfig.errata b/arch/riscv/Kconfig.errata
-> index 3c945d086c7d..4d3f13522da6 100644
-> --- a/arch/riscv/Kconfig.errata
-> +++ b/arch/riscv/Kconfig.errata
-> @@ -154,4 +154,21 @@ config ERRATA_THEAD_GHOSTWRITE
->=20
->  If you don't know what to do here, say "Y".
->=20
-> +config ERRATA_THEAD_WRITE_ONCE
-> + bool "Apply T-Head WRITE_ONCE errata"
-> + depends on ERRATA_THEAD
-> + default y
-> + help
-> +  The early version of T-Head C9xx cores of sg2042 & th1520 have a =
-store
-> +  merge buffer delay problem. The store merge buffer could improve =
-the
-> +  store queue performance by merging multi-store requests, but when =
-there
-> +  are no continued store requests, the prior single store request =
-would be
-> +  waiting in the store queue for a long time. That would cause =
-signifi-
-> +  cant problems for communication between multi-cores. Appending a
-> +  fence w.o could immediately flush the store merge buffer and let =
-other
-> +  cores see the write result.
-> +
-> +  This will apply the WRITE_ONCE errata to handle the non-standard =
-beh-
-> +  avior via appending a fence w.o instruction for WRITE_ONCE().
-> +
-> endmenu # "CPU errata selection"
-> diff --git a/arch/riscv/errata/thead/errata.c =
-b/arch/riscv/errata/thead/errata.c
-> index 0b942183f708..fbe46f2fa8fb 100644
-> --- a/arch/riscv/errata/thead/errata.c
-> +++ b/arch/riscv/errata/thead/errata.c
-> @@ -168,6 +168,23 @@ static bool errata_probe_ghostwrite(unsigned int =
-stage,
-> return true;
-> }
->=20
-> +static bool errata_probe_write_once(unsigned int stage,
-> +    unsigned long arch_id, unsigned long impid)
-> +{
-> + if (!IS_ENABLED(CONFIG_ERRATA_THEAD_WRITE_ONCE))
-> + return false;
-> +
-> + /* target-c9xx cores report arch_id and impid as 0 */
-> + if (arch_id !=3D 0 || impid !=3D 0)
-> + return false;
-> +
-> + if (stage =3D=3D RISCV_ALTERNATIVES_BOOT ||
-> +    stage =3D=3D RISCV_ALTERNATIVES_MODULE)
-> + return true;
-> +
-> + return false;
-> +}
-> +
-> static u32 thead_errata_probe(unsigned int stage,
->      unsigned long archid, unsigned long impid)
-> {
-> @@ -183,6 +200,9 @@ static u32 thead_errata_probe(unsigned int stage,
->=20
-> errata_probe_ghostwrite(stage, archid, impid);
->=20
-> + if (errata_probe_write_once(stage, archid, impid))
-> + cpu_req_errata |=3D BIT(ERRATA_THEAD_WRITE_ONCE);
-> +
-> return cpu_req_errata;
-> }
->=20
-> diff --git a/arch/riscv/include/asm/errata_list_vendors.h =
-b/arch/riscv/include/asm/errata_list_vendors.h
-> index ec7eba373437..8fd7c36307e2 100644
-> --- a/arch/riscv/include/asm/errata_list_vendors.h
-> +++ b/arch/riscv/include/asm/errata_list_vendors.h
-> @@ -18,7 +18,8 @@
-> #define ERRATA_THEAD_MAE 0
-> #define ERRATA_THEAD_PMU 1
-> #define ERRATA_THEAD_GHOSTWRITE 2
-> -#define ERRATA_THEAD_NUMBER 3
-> +#define ERRATA_THEAD_WRITE_ONCE 3
-> +#define ERRATA_THEAD_NUMBER 4
-> #endif
->=20
-> #ifdef CONFIG_ERRATA_MIPS
-> diff --git a/arch/riscv/include/asm/rwonce.h =
-b/arch/riscv/include/asm/rwonce.h
-> new file mode 100644
-> index 000000000000..081793d4d772
-> --- /dev/null
-> +++ b/arch/riscv/include/asm/rwonce.h
-> @@ -0,0 +1,34 @@
-> +/* SPDX-License-Identifier: GPL-2.0 */
-> +
-> +#ifndef __ASM_RWONCE_H
-> +#define __ASM_RWONCE_H
-> +
-> +#include <linux/compiler_types.h>
-> +#include <asm/alternative-macros.h>
-> +#include <asm/vendorid_list.h>
-> +#include <asm/errata_list_vendors.h>
-> +
-> +#if defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && =
-!defined(NO_ALTERNATIVE)
-> +
-> +#define write_once_fence() \
-> +do { \
-> + asm volatile(ALTERNATIVE( \
-> + "nop", \
-> + "fence w, o", \
-> + THEAD_VENDOR_ID, \
-> + ERRATA_THEAD_WRITE_ONCE, \
-> + CONFIG_ERRATA_THEAD_WRITE_ONCE) \
-> + : : : "memory"); \
-> +} while (0)
-> +
-> +#define __WRITE_ONCE(x, val) \
-> +do { \
-> + *(volatile typeof(x) *)&(x) =3D (val); \
-> + write_once_fence(); \
-> +} while (0)
-> +
-> +#endif /* defined(CONFIG_ERRATA_THEAD_WRITE_ONCE) && =
-!defined(NO_ALTERNATIVE) */
-> +
-> +#include <asm-generic/rwonce.h>
-> +
-> +#endif /* __ASM_RWONCE_H */
-> diff --git a/include/asm-generic/rwonce.h =
-b/include/asm-generic/rwonce.h
-> index 52b969c7cef9..4e2d941f15a1 100644
-> --- a/include/asm-generic/rwonce.h
-> +++ b/include/asm-generic/rwonce.h
-> @@ -50,10 +50,12 @@
-> __READ_ONCE(x); \
-> })
->=20
-> +#ifndef __WRITE_ONCE
-> #define __WRITE_ONCE(x, val) \
-> do { \
-> *(volatile typeof(x) *)&(x) =3D (val); \
-> } while (0)
-> +#endif
->=20
-> #define WRITE_ONCE(x, val) \
-> do { \
-> --=20
-> 2.40.1
+This way, the compiler can provide proper type checking to ensure that
+correct pointers are passed to dept_mark_event_site_used(). It would
+catch the type mismatch with module::dept_event_sites.
 
+> 
+>> module::dept_event_sites.
+>>
+>>> +{
+>>> +     struct dept_event_site_init **evtinitpp;
+>>> +
+>>> +     for (evtinitpp = (struct dept_event_site_init **)start;
+>>> +          evtinitpp < (struct dept_event_site_init **)end;
+>>> +          evtinitpp++) {
+>>> +             (*evtinitpp)->evt_site->used = true;
+>>> +             (*evtinitpp)->evt_site->func_name = (*evtinitpp)->func_name;
+>>> +             list_add(&(*evtinitpp)->evt_site->all_node, &dept_event_sites);
+>>> +
+>>> +             pr_info("dept_event_site %s@%s is initialized.\n",
+>>> +                             (*evtinitpp)->evt_site->name,
+>>> +                             (*evtinitpp)->evt_site->func_name);
+>>> +     }
+>>> +}
+>>> +
+>>>  extern char __dept_event_sites_start[], __dept_event_sites_end[];
+>>
+>> Related to the above, __dept_event_sites_start and
+>> __dept_event_sites_end can already be properly typed here.
+> 
+> How can I get the number of the pointers?
+
+Similarly here, changing the code to:
+
+extern struct dept_event_site_init *__dept_event_sites_start[], *__dept_event_sites_end[];
+
+It is the same for the initcalls you mentioned. The declarations of
+their start/end symbols are also already properly typed as
+initcall_entry_t[] in include/linux/init.h.
+
+-- 
+Thanks,
+Petr
