@@ -1,98 +1,156 @@
-Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3BD8A2222B2;
-	Thu, 19 Feb 2026 08:05:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771488324; cv=pass; b=glFkp3Luc+2h3AV2OSEsDiR6u6/zzqpj7j1fz9x7U4m8x7uZkilVKhWRk5QxgAK+JU4zM3OYeUo30p3MI2wx+/yO6WrZNY43y51QRNVsRL27RoT5BTgjPdGteupxiQOcJF6CnPZONaY1FKlGHuO4Ry7qeAr1fRgN6zfr/+KCNE0=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771488324; c=relaxed/simple;
-	bh=mZ1okY8wh3/E7KclMIJhob/eOJu2zzwpAoIKVt+HodI=;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F10C4199920;
+	Thu, 19 Feb 2026 15:36:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1771515393; cv=none; b=R8VgNODAZE0cUyAK5+fppQdmUvKtGDmMWbt+K+sYmCn/SKEAl6C63O3p5rajmvvHf4VTsvEaMT8AHKg7/XJn4YZ+rJzhM6Xfkwixk5lZitcnifATnoZEe5xAKvIz5Ki7qi3wdW9BtYKYRxvb2Xxp6KYFHIaxTZS7nzkRANO4X9I=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1771515393; c=relaxed/simple;
+	bh=xvGScHjuinZ0ATzJQB4XWDn+7FfGiPuiuds790maVJM=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=UeH4LLYuRTSc58ogxW8YPNcf/ODMeg1ejviqbav6r8mcopQgrfnPTSzMjYbcmUaoER9ka9n7kPfa/gCKXHD0Eof1uLyzDmUDbhahuL6g54EH5QUomURJs5l5AOMrd+jASumGewFFYJePT1piZIGrBtC0doYIyfLoY1UCJNSiM48=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=ziyao.cc; spf=pass smtp.mailfrom=ziyao.cc; dkim=pass (1024-bit key) header.d=ziyao.cc header.i=me@ziyao.cc header.b=QevocWd9; arc=pass smtp.client-ip=136.143.188.15
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=ziyao.cc
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziyao.cc
+	 Content-Type:Content-Disposition:In-Reply-To; b=i7sWn0jm99MR6P+3O/mWsftjTZwxoTw0GUmasEgn2q0BAfoR1us1GepskVekNBO4fI+I6gm8+7g6ZKRhrwtndNTcYaEhw5aIbNQC0qIkucgSwuqKBi5jEMAkbIgTlCxLqKeMwuoP0snYrQ+eK7DtluI3Da4z15eL7e4+At+mWWc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=X9Y8eQbd; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ziyao.cc header.i=me@ziyao.cc header.b="QevocWd9"
-ARC-Seal: i=1; a=rsa-sha256; t=1771488293; cv=none; 
-	d=zohomail.com; s=zohoarc; 
-	b=ikjtOb3oX1EgHtdw2QAxqKYlVneQSwVpL0ucVwHo2BOn3HB/94myWhKMGQINXwdpOZK3npc4LWXT0YMSrQirMOoIz+sEXFjEdql88wfXp64KGkhIeNFuy7DLDj9rvmm2PWm5g2SNYv/JXH3pBME1YFe7gkhQJ6g4f2N7Z6ohgeM=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1771488293; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=kYQ5NkddKGLVG7KXnc5tVWiA8oqeInGD+WTRnEtYdQ0=; 
-	b=ca1PRjshbgl0kblWXlxZYjxLz4+EjGHd7r3vw5HoWB6wxiDrLsM3QC5vaKvKz7Clyg5R1kKeapY94Kb4FWBEyZbGPhhgYGjlOgmQXF9gU2aPZ0B26sB778xsKw693Dk8mkTwyV8ivBeFNMZc7EYzJJ10UxCBdOWLTdQ+Sh0piFk=
-ARC-Authentication-Results: i=1; mx.zohomail.com;
-	dkim=pass  header.i=ziyao.cc;
-	spf=pass  smtp.mailfrom=me@ziyao.cc;
-	dmarc=pass header.from=<me@ziyao.cc>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1771488293;
-	s=zmail; d=ziyao.cc; i=me@ziyao.cc;
-	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
-	bh=kYQ5NkddKGLVG7KXnc5tVWiA8oqeInGD+WTRnEtYdQ0=;
-	b=QevocWd9wnFpbz6v8KCBM++Ys6nV8e156lzrioDP5AuZwNKDcNaawITAAg98QsGk
-	Kb2uKNno6Tg11FVRfVCyTILiEQN1MdAM79iW7HpvdQ+22Qf+5kenHshvDOppuegxWjr
-	7d1YgfTJOZuj6xEGdtMUB56dClW92AivaTYOIfLU=
-Received: by mx.zohomail.com with SMTPS id 1771488291848192.88439580319414;
-	Thu, 19 Feb 2026 00:04:51 -0800 (PST)
-Date: Thu, 19 Feb 2026 08:04:42 +0000
-From: Yao Zi <me@ziyao.cc>
-To: guoren@kernel.org, paul.walmsley@sifive.com, palmer@dabbelt.com,
-	alex@ghiti.fr, leobras@redhat.com, djordje.todorovic@htecgroup.com,
-	aleksa.paunovic@htecgroup.com, arnd@arndb.de, rabenda.cn@gmail.com
-Cc: linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, Han Gao <gaohan@iscas.ac.cn>,
-	Alexandre Ghiti <alexghiti@rivosinc.com>,
-	Paul Walmsley <pjw@kernel.org>
-Subject: Re: [PATCH V3] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
-Message-ID: <aZbEGsqXSQzORQ__@pie>
-References: <20260125063941.443777-1-guoren@kernel.org>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="X9Y8eQbd"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1105BC4CEF7;
+	Thu, 19 Feb 2026 15:36:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1771515392;
+	bh=xvGScHjuinZ0ATzJQB4XWDn+7FfGiPuiuds790maVJM=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=X9Y8eQbdJ27k5PgYNvucYbCou7PyhGWqSaSw5zQ9BMp5TfRnUEdlq6LpQNPShYF5f
+	 5+FQ33fjy0j5phsKwCSp4c7vnv/kHZcBDSSjYmZlxE1Rtj1KPTdsrqJGBOt45xASBq
+	 44TBES2c3aRoJck462y43Jn27YvOo7ETxGA06SfCErH9+rqHx3PFjCIsihwiliYBCg
+	 veM9FYkRpCNI2Sz3gH5imjY0d+gVJfxUt6b95uJIf9Q9ucaEOWthJTA5KvIjlhbXNZ
+	 UhYdrRsiVZ56wQU95sEc+CesXOgk3pKmiLRxYkB6wDl85KBhED/TFJPanXaK4uOKHr
+	 DM1nWzuo7fGxA==
+Date: Thu, 19 Feb 2026 15:27:56 +0100
+From: Nicolas Schier <nsc@kernel.org>
+To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
+Cc: Petr Pavlu <petr.pavlu@suse.com>, Nathan Chancellor <nathan@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
+Message-ID: <aZcd7PpetL8J6CM4@derry.ads.avm.de>
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+ <db1ed045-d7b6-49dc-b111-9fea7c30f8ab@suse.com>
+ <28cf8d51-7530-41d5-a47b-cad5ecabd269@t-8ch.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <20260125063941.443777-1-guoren@kernel.org>
-X-ZohoMailClient: External
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <28cf8d51-7530-41d5-a47b-cad5ecabd269@t-8ch.de>
 
-On Sun, Jan 25, 2026 at 01:39:41AM -0500, guoren@kernel.org wrote:
-> From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
+On Tue, Feb 03, 2026 at 01:55:05PM +0100, Thomas Weißschuh wrote:
+> On 2026-01-30 18:06:20+0100, Petr Pavlu wrote:
+> > On 1/13/26 1:28 PM, Thomas Weißschuh wrote:
+> > > Normally the .ko module files depend on a fully built vmlinux to be
+> > > available for modpost validation and BTF generation. With
+> > > CONFIG_MODULE_HASHES, vmlinux now depends on the modules
+> > > to build a merkle tree. This introduces a dependency cycle which is
+> > > impossible to satisfy. Work around this by building the modules during
+> > > link-vmlinux.sh, after vmlinux is complete enough for modpost and BTF
+> > > but before the final module hashes are
+> > 
+> > I wonder if this dependency cycle could be resolved by utilizing the
+> > split into vmlinux.unstripped and vmlinux that occurred last year.
+> > 
+> > The idea is to create the following ordering: vmlinux.unstripped ->
+> > modules -> vmlinux, and to patch in .module_hashes only when building
+> > the final vmlinux.
+> > 
+> > This would require the following:
+> > * Split scripts/Makefile.vmlinux into two Makefiles, one that builds the
+> >   current vmlinux.unstripped and the second one that builds the final
+> >   vmlinux from it.
+> > * Modify the top Makefile to recognize vmlinux.unstripped and update the
+> >   BTF generation rule 'modules: vmlinux' to
+> >   'modules: vmlinux.unstripped'.
+> > * Add the 'vmlinux: modules' ordering in the top Makefile for
+> >   CONFIG_MODULE_HASHES=y.
+> > * Remove the patching of vmlinux.unstripped in scripts/link-vmlinux.sh
+> >   and instead move it into scripts/Makefile.vmlinux when running objcopy
+> >   to produce the final vmlinux.
+> > 
+> > I think this approach has two main advantages:
+> > * CONFIG_MODULE_HASHES can be made orthogonal to
+> >   CONFIG_DEBUG_INFO_BTF_MODULES.
+> > * All dependencies are expressed at the Makefile level instead of having
+> >   scripts/link-vmlinux.sh invoke 'make -f Makefile modules'.
+> > 
+> > Below is a rough prototype that applies on top of this series. It is a
+> > bit verbose due to the splitting of part of scripts/Makefile.vmlinux
+> > into scripts/Makefile.vmlinux_unstripped.
 > 
-> The early version of XuanTie C910 core has a store merge buffer
-> delay problem. The store merge buffer could improve the store queue
-> performance by merging multi-store requests, but when there are not
-> continued store requests, the prior single store request would be
-> waiting in the store queue for a long time. That would cause
-> significant problems for communication between multi-cores. This
-> problem was found on sg2042 & th1520 platforms with the qspinlock
-> lock torture test.
+> That looks like a feasible alternative. Before adopting it, I'd like to
+> hear the preference of the kbuild folks.
 > 
-> So appending a fence w.o could immediately flush the store merge
-> buffer and let other cores see the write result.
+> > diff --git a/Makefile b/Makefile
+> > index 841772a5a260..19a3beb82fa7 100644
+> > --- a/Makefile
+> > +++ b/Makefile
+> > @@ -1259,7 +1259,7 @@ vmlinux_o: vmlinux.a $(KBUILD_VMLINUX_LIBS)
+> >  vmlinux.o modules.builtin.modinfo modules.builtin: vmlinux_o
+> >  	@:
+> >  
+> > -PHONY += vmlinux
+> > +PHONY += vmlinux.unstripped vmlinux
+> >  # LDFLAGS_vmlinux in the top Makefile defines linker flags for the top vmlinux,
+> >  # not for decompressors. LDFLAGS_vmlinux in arch/*/boot/compressed/Makefile is
+> >  # unrelated; the decompressors just happen to have the same base name,
+> > @@ -1270,9 +1270,11 @@ PHONY += vmlinux
+> >  #   https://savannah.gnu.org/bugs/?61463
+> >  # For Make > 4.4, the following simple code will work:
+> >  #  vmlinux: private export LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
+> > -vmlinux: private _LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
+> > -vmlinux: export LDFLAGS_vmlinux = $(_LDFLAGS_vmlinux)
+> > -vmlinux: vmlinux.o $(KBUILD_LDS) modpost
+> > +vmlinux.unstripped: private _LDFLAGS_vmlinux := $(LDFLAGS_vmlinux)
+> > +vmlinux.unstripped: export LDFLAGS_vmlinux = $(_LDFLAGS_vmlinux)
+> > +vmlinux.unstripped: vmlinux.o $(KBUILD_LDS) modpost
+> > +	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux_unstripped
+> > +vmlinux: vmlinux.unstripped
+> >  	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.vmlinux
 > 
-> This will apply the WRITE_ONCE errata to handle the non-standard
-> behavior via appending a fence w.o instruction for WRITE_ONCE().
+> Maybe we could keep them together in a single Makefile,
+> and instead have different targets in it.
 > 
-> This problem is only observed on the sg2042 hardware platform by
-> running the lock_torture test program for half an hour. The problem
-> was not found in the user space application, because interrupt can
-> break the livelock.
-> 
-> Reviewed-by: Leonardo Bras <leobras@redhat.com>
-> Tested-by: Han Gao <gaohan@iscas.ac.cn>
-> Cc: Yao Zi <me@ziyao.cc>
-> Cc: Alexandre Ghiti <alexghiti@rivosinc.com>
-> Cc: Paul Walmsley <pjw@kernel.org>
-> Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
 
-With the patch, I've run heavy multi-core compilation load on SG2042 for
-more than 12 hours, and observed no stability issues.
+yes, I think so, too.  I like the Petr's alternative.
 
-Tested-by: Yao Zi <me@ziyao.cc>
-
-Thanks,
-Yao Zi
+Kind regards,
+Nicolas
