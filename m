@@ -1,137 +1,98 @@
-Received: from mail-qt1-f177.google.com (mail-qt1-f177.google.com [209.85.160.177])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D43AC30ACE5
-	for <linux-arch@vger.kernel.org>; Wed, 18 Feb 2026 21:15:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3BD8A2222B2;
+	Thu, 19 Feb 2026 08:05:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771449338; cv=pass; b=HxaZaQuOS7uqBv1qwsc5MYBTQFYJ7gCH7yARGWh/GTc6msJU7KhNCl7u1624A7Ix5MGibfHjk1XbOKusWxYzlQIx0Ab5uFZq/2dlqWaQQ7huu5Nl4fXs1sGHrbvjvOmVFyDjton5BMvTEc1PTGK1EISck65Np4sxUyoKfJkQajY=
+	t=1771488324; cv=pass; b=glFkp3Luc+2h3AV2OSEsDiR6u6/zzqpj7j1fz9x7U4m8x7uZkilVKhWRk5QxgAK+JU4zM3OYeUo30p3MI2wx+/yO6WrZNY43y51QRNVsRL27RoT5BTgjPdGteupxiQOcJF6CnPZONaY1FKlGHuO4Ry7qeAr1fRgN6zfr/+KCNE0=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771449338; c=relaxed/simple;
-	bh=rRj0SenJpAN0RnMZyyCNlY0gXCkcdwamr0et6XOE3Fs=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=DmDyeg5SqP1/tquds0UIWOmhHUMCXqHu+sOZXea0Z77cTy9xgI+TGdDfqnWzoZ8JKGM+yxidc4xj1aX2c9k7UHU6N6uDYKej5ciS8mbum22lVTMsQgt8POYKyChd6mU/qdsRTBbw/5ot/LsyH/MB1Dga3hEt+m5rn4ixpKUxWAs=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=aZQEZMAf; arc=pass smtp.client-ip=209.85.160.177
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	s=arc-20240116; t=1771488324; c=relaxed/simple;
+	bh=mZ1okY8wh3/E7KclMIJhob/eOJu2zzwpAoIKVt+HodI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=UeH4LLYuRTSc58ogxW8YPNcf/ODMeg1ejviqbav6r8mcopQgrfnPTSzMjYbcmUaoER9ka9n7kPfa/gCKXHD0Eof1uLyzDmUDbhahuL6g54EH5QUomURJs5l5AOMrd+jASumGewFFYJePT1piZIGrBtC0doYIyfLoY1UCJNSiM48=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=ziyao.cc; spf=pass smtp.mailfrom=ziyao.cc; dkim=pass (1024-bit key) header.d=ziyao.cc header.i=me@ziyao.cc header.b=QevocWd9; arc=pass smtp.client-ip=136.143.188.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=ziyao.cc
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ziyao.cc
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="aZQEZMAf"
-Received: by mail-qt1-f177.google.com with SMTP id d75a77b69052e-505d3baf1a7so28191cf.1
-        for <linux-arch@vger.kernel.org>; Wed, 18 Feb 2026 13:15:36 -0800 (PST)
-ARC-Seal: i=1; a=rsa-sha256; t=1771449336; cv=none;
-        d=google.com; s=arc-20240605;
-        b=Xd9R0fnKhRgaqj+sydbYeYNDbwCPHyJAOyaXo4+8jQmrTnFwwU5CQee80p7stPzFGA
-         JcXaF8QVHUvHi3oh+ITQJP23sd7pjFxNXWTDMYaz3HA/JLuDIogGBFBGBvxv07nmMecr
-         Jr5zWUezDWZ7jb1GVMptUQuBxnnKEMrCE9SancsYyofLe000j2GcwpUNodYsgfDIqPsk
-         mqeMI+cspk08CFeA61ms2+nzD4WwbVJvAKzbS4YH5HsNUgin3J32M/nePwxe8/v0XfpD
-         CEu1RVdPN9UKVF/hS8+M04FZinbNy2xDclcz8LBZ6QZbt2GW6BRAh2toyhBzIVGABO2R
-         6M7w==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=nyWt6jmpEpxbIxUbwWSq7xGhP3q5AL79DAaw4TBVJcI=;
-        fh=bNzxyWv/uh5GpMrreJARJcIo53b5ycVUCoL8qVcb+Uc=;
-        b=QNOUC0mc06mjhI4fyOQGDfRfG2VDy46RzIIYjb4vaJhQI/5L6ijPxzJeZEFSe55sx7
-         jclpwHQdhYxI3Q+/N3JedkOa7CGAfeyZxOeShWRM5sPIxwpAcSwP0wygKloLfoLQJIeO
-         DFe3zdNmL6QEnZLgRROV9A+qx3JsLh4pkNa+odNS8bS6D0EPUnarD9/yfdA0BmIkEnX7
-         RZQEa5DGMXPWmXobajc9ZD+JtDehHN1+BCHr8rocW5Oru/Yo2b0UNH7/8p1YZQ/NWLXd
-         jtLgQw6uSyn9h+ZGo9rX9/33p1Z8TVwaiZchYgw9yDjUY47oEt1+9WL8+PH/BVzSuhKp
-         /o6A==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1771449336; x=1772054136; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=nyWt6jmpEpxbIxUbwWSq7xGhP3q5AL79DAaw4TBVJcI=;
-        b=aZQEZMAf7BzoZva2V+mZkzaFaMGn2rpb3mK5m53CyOmRRNGGJVp0yVilq7qrApzHDi
-         pqo+m03MIlnLWmZ/U7MpegwG+YLCL7jD07KuKfHTbZA79Ou1ojGg4iiOKAkWo7qJEV/z
-         Ay59IdzzKzIw7rq6Zh07XQbv03ITfN4uZz/KU01jRacCW07UtZjKGHNzRObLXeFiHkwr
-         XDZEX8tI1Mcer9IX5GqVF7E9zLlti41UASmemOdr+JqV3vIc0a2CZUTyz2/OfUFwEh5W
-         z6QuHjEXCxs3qw2AsUyQzGL/lajDAXAHfS2CFZjC54EcltCV7Y/zaJHKkstSBvDvKf6m
-         GfyQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1771449336; x=1772054136;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=nyWt6jmpEpxbIxUbwWSq7xGhP3q5AL79DAaw4TBVJcI=;
-        b=e6CKOecmr+D3NhEKli+MlTWRu2VHj3B09owgrDIlo8uR+fkUWoW9oy5iBacphW33di
-         V8dQ/YNE4x0XcUWbKCxPQNzBzW92F/dHE7ShrjcSie2VBjdVOFKT8wpwTcuRIotmhvuC
-         AC4WeoAYI0+GFNDdL5SGJrKmT33VFjo872GyfvtlckAy2mdNpnuZSr6co0qpYSrdYzql
-         z+NNVnwCJxZ0xvRXRV3WEZcfQ+ZgGlgorIVN9OtHCma2cRirYA0lLo67tjET9X1ihnH6
-         HlV1Cp+7WwaGI2ZZQnFWhls7B6xd27rwng+teyc2H06KKdCqMeuEWYLk4I2iHS04tye7
-         k9MA==
-X-Forwarded-Encrypted: i=1; AJvYcCWV0AB4eDjEyPF19LRLG/PjqHdTTHYGna27Hyna/OVhTpM7YRrKdPvA411eLSLsj7dVbM0jva0Y0By3@vger.kernel.org
-X-Gm-Message-State: AOJu0YxSSJhF/V1oV2TMrPtd1a98JBIhY3xx/nequ7jgJ5q7K/jre3je
-	OJNO5wTAemGMIt6ffu9iisn6FQ+bnc2gdtjPm0LIMgrx6pykGX1ms+6iB8B7AZdBADq71s+Gztb
-	yWZ2eWMwPtigUigsAP2sNID1J/x7fOWQiGtvXInQ3
-X-Gm-Gg: AZuq6aIV99oGW/mP5cWxZC5z7JfY6anm2PlSz9m1SpHkXFYhgz07JVhyWQopNZRvImN
-	vFYAppDONOZpKlGKKPU/CPJ/MozJQbQlvEsXZIMy0Kh7ukE2NABFU2gkBvJZyGEL6rPEFkMRimY
-	JX9Pb3hCbynIHkHNepvLjpgK8gKp/P80ODT/awI8pOA2LAzBiVTuhlmEJ1EswQn/jNy5BYU2xbl
-	T8Rmw2JK+EaRxcrKsiXZhg37qz6tzuQUMudOLJZDSjOvSnFfUy1anz73uWcTS3woFrraWxFSBNI
-	X/hoFKLq
-X-Received: by 2002:a05:622a:110a:b0:4f1:a61a:1e8 with SMTP id
- d75a77b69052e-506f1e5f40emr156951cf.10.1771449335076; Wed, 18 Feb 2026
- 13:15:35 -0800 (PST)
+	dkim=pass (1024-bit key) header.d=ziyao.cc header.i=me@ziyao.cc header.b="QevocWd9"
+ARC-Seal: i=1; a=rsa-sha256; t=1771488293; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=ikjtOb3oX1EgHtdw2QAxqKYlVneQSwVpL0ucVwHo2BOn3HB/94myWhKMGQINXwdpOZK3npc4LWXT0YMSrQirMOoIz+sEXFjEdql88wfXp64KGkhIeNFuy7DLDj9rvmm2PWm5g2SNYv/JXH3pBME1YFe7gkhQJ6g4f2N7Z6ohgeM=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1771488293; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=kYQ5NkddKGLVG7KXnc5tVWiA8oqeInGD+WTRnEtYdQ0=; 
+	b=ca1PRjshbgl0kblWXlxZYjxLz4+EjGHd7r3vw5HoWB6wxiDrLsM3QC5vaKvKz7Clyg5R1kKeapY94Kb4FWBEyZbGPhhgYGjlOgmQXF9gU2aPZ0B26sB778xsKw693Dk8mkTwyV8ivBeFNMZc7EYzJJ10UxCBdOWLTdQ+Sh0piFk=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=ziyao.cc;
+	spf=pass  smtp.mailfrom=me@ziyao.cc;
+	dmarc=pass header.from=<me@ziyao.cc>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1771488293;
+	s=zmail; d=ziyao.cc; i=me@ziyao.cc;
+	h=Date:Date:From:From:To:To:Cc:Cc:Subject:Subject:Message-ID:References:MIME-Version:Content-Type:In-Reply-To:Message-Id:Reply-To;
+	bh=kYQ5NkddKGLVG7KXnc5tVWiA8oqeInGD+WTRnEtYdQ0=;
+	b=QevocWd9wnFpbz6v8KCBM++Ys6nV8e156lzrioDP5AuZwNKDcNaawITAAg98QsGk
+	Kb2uKNno6Tg11FVRfVCyTILiEQN1MdAM79iW7HpvdQ+22Qf+5kenHshvDOppuegxWjr
+	7d1YgfTJOZuj6xEGdtMUB56dClW92AivaTYOIfLU=
+Received: by mx.zohomail.com with SMTPS id 1771488291848192.88439580319414;
+	Thu, 19 Feb 2026 00:04:51 -0800 (PST)
+Date: Thu, 19 Feb 2026 08:04:42 +0000
+From: Yao Zi <me@ziyao.cc>
+To: guoren@kernel.org, paul.walmsley@sifive.com, palmer@dabbelt.com,
+	alex@ghiti.fr, leobras@redhat.com, djordje.todorovic@htecgroup.com,
+	aleksa.paunovic@htecgroup.com, arnd@arndb.de, rabenda.cn@gmail.com
+Cc: linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, Han Gao <gaohan@iscas.ac.cn>,
+	Alexandre Ghiti <alexghiti@rivosinc.com>,
+	Paul Walmsley <pjw@kernel.org>
+Subject: Re: [PATCH V3] riscv: errata: Add ERRATA_THEAD_WRITE_ONCE fixup
+Message-ID: <aZbEGsqXSQzORQ__@pie>
+References: <20260125063941.443777-1-guoren@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <CAMOZA0Kp29dCbj2KsX3XcuA77ghoxR1ANiOGdW-jDttFrYaKGw@mail.gmail.com>
- <87qzqjw01o.ffs@tglx> <87o6llwzd8.ffs@tglx>
-In-Reply-To: <87o6llwzd8.ffs@tglx>
-From: Luigi Rizzo <lrizzo@google.com>
-Date: Wed, 18 Feb 2026 22:14:57 +0100
-X-Gm-Features: AaiRm53YPA6RL6wNKKmAYIIAHTENXvhnl7I09kKTOPBbdyvI_HBSmTLOqVxRm4A
-Message-ID: <CAMOZA0+HL=4WDZcZbLKybuiRZVJJj6XnfwmcB1P5RaoJb_C45Q@mail.gmail.com>
-Subject: Re: [QUESTION] is vector_lock needed in apic_retrigger_irq() ?
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Marc Zyngier <maz@kernel.org>, Luigi Rizzo <rizzo.unipi@gmail.com>, 
-	linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260125063941.443777-1-guoren@kernel.org>
+X-ZohoMailClient: External
 
-On Wed, Feb 18, 2026 at 9:49=E2=80=AFPM Thomas Gleixner <tglx@linutronix.de=
-> wrote:
->
-> On Tue, Feb 17 2026 at 22:08, Thomas Gleixner wrote:
-> > On Mon, Feb 16 2026 at 21:44, Luigi Rizzo wrote:
-> >> apic_retrigger_irq() grabs vector_lock, see code below.
-> >>
-> >> I am not sure if this is needed, because the function
-> >> is called with a lock held on irqdesc, so I think the CPU and
-> >> vector should be stable.
-> >>
-> >> Comments ?
-> >
-> > You're right. Any action which would change apcid->vector has to hold
-> > the descriptor lock.
->
-> I did some archaeology. This is a leftover from the v2.6 times where it
-> was truly required. That never got cleaned up after the whole vector
-> management got rewritten and the reason for the locking went away in
-> v4.15. Nobody noticed :)
->
-> How did you find that?
+On Sun, Jan 25, 2026 at 01:39:41AM -0500, guoren@kernel.org wrote:
+> From: "Guo Ren (Alibaba DAMO Academy)" <guoren@kernel.org>
+> 
+> The early version of XuanTie C910 core has a store merge buffer
+> delay problem. The store merge buffer could improve the store queue
+> performance by merging multi-store requests, but when there are not
+> continued store requests, the prior single store request would be
+> waiting in the store queue for a long time. That would cause
+> significant problems for communication between multi-cores. This
+> problem was found on sg2042 & th1520 platforms with the qspinlock
+> lock torture test.
+> 
+> So appending a fence w.o could immediately flush the store merge
+> buffer and let other cores see the write result.
+> 
+> This will apply the WRITE_ONCE errata to handle the non-standard
+> behavior via appending a fence w.o instruction for WRITE_ONCE().
+> 
+> This problem is only observed on the sg2042 hardware platform by
+> running the lock_torture test program for half an hour. The problem
+> was not found in the user space application, because interrupt can
+> break the livelock.
+> 
+> Reviewed-by: Leonardo Bras <leobras@redhat.com>
+> Tested-by: Han Gao <gaohan@iscas.ac.cn>
+> Cc: Yao Zi <me@ziyao.cc>
+> Cc: Alexandre Ghiti <alexghiti@rivosinc.com>
+> Cc: Paul Walmsley <pjw@kernel.org>
+> Signed-off-by: Guo Ren (Alibaba DAMO Academy) <guoren@kernel.org>
 
-perf showed high lock contention while stress testing moderation with 12SSD
-(96 vectors and a total of 20 MIOPs).  Then it was just a matter of
-understanding
-whether that global lock was really needed.
+With the patch, I've run heavy multi-core compilation load on SG2042 for
+more than 12 hours, and observed no stability issues.
 
-As for why my test caused high contention:
-NVME does not self disable interrupts, unlike NICs, so by the time the
-handler runs
-there is a high probability that another interrupt has arrived,
-requiring a reinject.
-When moderation timers fire (they are independent, but  probably they end u=
-p
-being relatively close in time) all these reinject are called close to
-each other.
+Tested-by: Yao Zi <me@ziyao.cc>
 
-cheers
-luigi
+Thanks,
+Yao Zi
