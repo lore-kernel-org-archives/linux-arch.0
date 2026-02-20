@@ -1,337 +1,98 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ej1-f74.google.com (mail-ej1-f74.google.com [209.85.218.74])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED0FA31B123;
-	Fri, 20 Feb 2026 13:52:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D1EEB24A069
+	for <linux-arch@vger.kernel.org>; Fri, 20 Feb 2026 15:12:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.74
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771595569; cv=none; b=V4fzHgdosyn0iaNvm1Bhz0VRQkUwpNjcUl4cJoAhRCzb7yiXS41cEF+x0L5Zej5fR/ri874bHWXpeuHVyYIAbd9rCMZgsSOVmJvtF8fyVijGEM0V3C/HxNC89R2UcQH/V+jiF/RlSH7Pc15jVRqudOCq2BGuuVFdLwmqqaIjbIw=
+	t=1771600343; cv=none; b=j40Jffy6Xkn38t6WCm7abrgY0eSE+SDUk0ydUJCr7B7cBMvv+xGHpTOg/HbA7S4zVepxuTydBvlWn7rUWLtJNHKSQ9eJ1+N3JYhr7Wat5ga5kjeCYINNCSbNCVt8IwSW4J1Klrs0lJbHSnzY1KEh90m5zfrCXhxtxxtxVerLx0o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771595569; c=relaxed/simple;
-	bh=aJGPw6xiAsZTtMPiPneO1+9rWvTeQEo9/V119zgzdQI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=rXSK+/4r26DUxvhf5xyMszbhgd3y4Mv2lhUXbGkb6EGNarDFMfmhLi8FAnx9UoQK41zMJFAU6bp0aB6z8GVoCAuE9gktM8TSCIfk7P3JqjEAoVEagwmxjzHWBbYSoqs5m0nI2ZrBCgH4cQP4ddMsElw1LRuHYQ29zL2JHw0yH+c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=qlprimWh; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1771600343; c=relaxed/simple;
+	bh=DzlOWW6aB7lpJ/SzjzXXIUpoY1JoPREbSjUZUop8aYU=;
+	h=Date:Mime-Version:Message-ID:Subject:From:To:Cc:Content-Type; b=rpcXXa7G2Beo1HeCkcdPP7TgO+0LvuM70Xi+zqwT6OGiz43yK+tdk2q8aFFG7nMuEjAsjgRZ5JeM8SzzApOEJbT1MSK313RHuDsTq8+xoTDvTAkmraiGrB0DhE3nLGrhlV0HniCpyap8s+mdliAjTjoImOS2PrXT8srJhYEq9GA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--lrizzo.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=gViqR9hf; arc=none smtp.client-ip=209.85.218.74
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--lrizzo.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="qlprimWh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 641F9C116D0;
-	Fri, 20 Feb 2026 13:52:43 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1771595568;
-	bh=aJGPw6xiAsZTtMPiPneO1+9rWvTeQEo9/V119zgzdQI=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=qlprimWhb4kQEKZDGi7XLSDwdRunTxR1cv0GBpYcShzsfNy+KhKEBUCZmWOYh3uPk
-	 uWxZCIjnDSZTcJ9hk7EDBb0EROaBxaJqvJBZO0LmObsZALxa35hDpEOFn41nhvzsa0
-	 /hoxG4Jwf4SwRIDqCdA0vFiZ7AUQKC1y2WmVZ0U4e/cw9FkCkA3ba+XE5rXjydLBO5
-	 fLy+MZS16WTJ0873myGAdlx//NOrrRS6zd7S7XZcXhUHGPi42hY5t6Z3u3qWvS+anD
-	 FxSycZGAlEJhwVnPJlOc2wBKfCQ1GTTU7rplN8sPIC/Izg3EBuw5M0/6RNrDZYSDgD
-	 0LyGqNCIYILng==
-Date: Fri, 20 Feb 2026 21:34:14 +0800
-From: Jisheng Zhang <jszhang@kernel.org>
-To: Leo Yan <leo.yan@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Thomas Gleixner <tglx@kernel.org>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Guo Ren <guoren@kernel.org>, linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org
-Subject: Re: [PATCH 3/3] arm64: use runtime constant to optimize
- handle_arch_irq access
-Message-ID: <aZhi1p0NJH5ug8CA@xhacker>
-References: <20260220090922.1506-1-jszhang@kernel.org>
- <20260220090922.1506-4-jszhang@kernel.org>
- <20260220123414.GF136967@e132581.arm.com>
- <aZheqINXslxlrmTt@xhacker>
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="gViqR9hf"
+Received: by mail-ej1-f74.google.com with SMTP id a640c23a62f3a-b885979bfa9so200403166b.1
+        for <linux-arch@vger.kernel.org>; Fri, 20 Feb 2026 07:12:21 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1771600340; x=1772205140; darn=vger.kernel.org;
+        h=cc:to:from:subject:message-id:mime-version:date:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=BglHJbHO05XrjVy7Kw1qhRY3apE6BRfv6ldh6GG9pCo=;
+        b=gViqR9hfGaz/0iH8l5leUkk+vkKI2njGZMY+dh0xdduAze8wT+elzkZWl44uK11ZT7
+         YyrUxaexiG/mOmsHJDfhRSniUNE8kKMSypnd6UJkmbkeZ7i16waH8VP1Wxo2gyYK1esc
+         B+XxqENtTQ/ByqspzNg1Bvvw2CXEM00Rdjkexa6nKhsKhAP9PfX8kwZljELJUnPZAqZY
+         SyfoPXMLrVUXppzpuTUq25Lhqk/qagFNM8FBFq3sI/g4C1EWd476wcydm5DA7FaRB5t8
+         +TqW10Ra6J5Ma6Ia/bnuQqLDyEYnyaQrkfXKC7WvXUBW/s4YYq+gp6h3l7VjQY7sShbE
+         ZM/w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1771600340; x=1772205140;
+        h=cc:to:from:subject:message-id:mime-version:date:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=BglHJbHO05XrjVy7Kw1qhRY3apE6BRfv6ldh6GG9pCo=;
+        b=Yqx14O/HtzQ/aKx6Vo33Zm6IHMK5uIbfYQWmU1E5PYR8qeGJyij0LKauU/ObqDBdXQ
+         s9KhEawTmpYlkE2bp7KbyntcEAq0bNIXJ2D9dNbD6NHfZ2Ioy59ZXTifeJsazOl+hLeS
+         9JCVxa2UVvOO+m0LPhBZVlZPXz5ZoNouLJiJfwwMGIHDZ+HEX0NnRn9UhgVVC6jWaaBO
+         KRHn8WeEGnx0b9BRIV1ys9i1AUXZ/c2+rPNNRMB/VKoe/pjR4ZBp6K6Pvxk/6CO8Ofqy
+         0v8RxZsJmKb6uIwP5NDrQ1AIh1KY9IxMQ6boyLGORJt4WqcLERRzlAoFvDBXdQ/YgovY
+         3r+g==
+X-Forwarded-Encrypted: i=1; AJvYcCUb0cLVwIShe5+cNZJNri5sUa863sOposYR9Z4OS3mq46UooV08+yDKmt4EYCpY2Jhul695pURdeKuD@vger.kernel.org
+X-Gm-Message-State: AOJu0YyOfcZi6V9ddUICaPgLUnFiAPHKsG7xZNz29rnUugvSK9Nir/Se
+	5HTyyzD44WxgSZoE+qZRD2vKDXXsSvGGGHZmkVlsc6NJoiK7xqvZNGP3wOt/FccrEQ2S7j3HeLu
+	J1vbiag==
+X-Received: from ejcqy30.prod.google.com ([2002:a17:907:689e:b0:b8d:e68c:f9b4])
+ (user=lrizzo job=prod-delivery.src-stubby-dispatcher) by 2002:a17:906:7311:b0:b89:9631:2425
+ with SMTP id a640c23a62f3a-b903db149cfmr547363066b.19.1771600339889; Fri, 20
+ Feb 2026 07:12:19 -0800 (PST)
+Date: Fri, 20 Feb 2026 15:12:16 +0000
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <aZheqINXslxlrmTt@xhacker>
+Mime-Version: 1.0
+X-Mailer: git-send-email 2.53.0.345.g96ddfc5eaa-goog
+Message-ID: <20260220151216.873182-1-lrizzo@google.com>
+Subject: [PATCH] x86/apic: remove vector_lock from apic_retrigger_irq()
+From: Luigi Rizzo <lrizzo@google.com>
+To: Thomas Gleixner <tglx@linutronix.de>, Marc Zyngier <maz@kernel.org>, 
+	Luigi Rizzo <rizzo.unipi@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	Luigi Rizzo <lrizzo@google.com>
+Content-Type: text/plain; charset="UTF-8"
 
-On Fri, Feb 20, 2026 at 09:16:24PM +0800, Jisheng Zhang wrote:
-> On Fri, Feb 20, 2026 at 12:34:14PM +0000, Leo Yan wrote:
-> > Hi Jisheng,
-> 
-> Hi Leo,
-> 
-> > 
-> > On Fri, Feb 20, 2026 at 05:09:22PM +0800, Jisheng Zhang wrote:
-> > > Currently, on arm64 platforms, the handle_arch_irq is a pointer which
-> > > is set during booting, and every irq processing needs to access it,
-> > > so it sits in hot code path. We can use the runtime constant mechanism
-> > > which was introduced by Linus to speed up its accessing.
-> > > 
-> > > Tested on Quad CA55 platform, the perf sched benchmark is improved
-> > > by ~6.5%
-> > 
-> > 6.5% is a quite high margin, especially for only one pointer's change.
-> > Maybe it is good to share more info for which compiler you are using,
-> > how you tested and the detailed results.
-> 
-> Sure. 
-> aarch64-linux-gnu-gcc version 15.2.0
-> 
-> my kernel defconfig is a minimal arm64 version which disables most
-> drivers, only keep timer, gic, pll/clk, uart, regulator and i2c controller
-> The reason is to avoid OS noise as much as possible.
-> It's also put at the end of the email for reference.
-> 
-> testing cmd:
-> perf bench sched pipe
-> 
-> testing steps:
-> booting into a buildroot minimal initramfs
-> force cpufreq governor as performance
-> run above cmd
-> 
-> testing resuls:
-> before the patch:
-> 9.471988 usecs/op
->   105574 ops/sec
-> 
-> after the patch:
-> 8.896280 usecs/op
->   112406 ops/sec
-> 
-> (112406 - 105574) * 100 / 105574 = ~6.5 %
-> 
-> Let me know if you need more details
-> 
-> 
-> > 
-> > I played a bit on my juno board on CA73 cores with the command:
-> 
-> IIRC, Juno is powered by a big.little SoC, then we need to ensure
-> the benchmark is always running on big or little cores when testing, to
-> ensure apple to apple comparison.
-> 
-> I also have a CA73 platform, but can't access it now. I'll test the
-> patch next week.
-> > 
-> >   perf bench sched all
-> > 
-> > Run 3 iterations, and measures three metrics (messaging/pipe/seccomp)
-> > and results in seconds. Less is better.
-> > 
-> >   +---------------------+--------+--------+--------+--------+
-> >   |Without change       |   run1 |   run2 |   run3 |    avg |
-> >   +---------------------+--------+--------+--------+--------+
-> >   |messaging (sec)      |  4.546 |  4.508 |  4.591 |  4.548 |
-> >   |pipe (sec)           | 24.258 | 24.224 | 24.017 | 24.166 |
-> >   |seccomp-notify (sec) | 48.393 | 48.457 | 48.232 | 48.361 |
-> >   +---------------------+--------+--------+--------+--------+
-> > 
-> >   +---------------------+--------+--------+--------+--------+--------+
-> >   |With change          |   run1 |   run2 |   run3 |    avg |   diff |
-> >   +---------------------+--------+--------+--------+--------+--------+
-> >   |messaging (sec)      |  4.493 |  4.523 |  4.556 |  4.524 | +0.52% |
-> >   |pipe (sec)           | 23.159 | 23.702 | 28.649 | 25.170 | -4.15% |
-> 
-> If you check the result, this result variance is abnormal, it means
-> your OS is noiser.
+apic_retrigger_irq() grabs vector_lock, but this is not needed because
+any caller of this function holds the irqdesc lock, and that suffices to
+protect apicd->vector.
 
-BTW: if you remove the abnormal run3 result, you'll find that the
-benchmark is improved by ~3.5% on CA73:
-(23.159 + 23.702) / 2 = 23.43
-(24.258 + 24.224) / 2 = 24.24
-(24.24 - 23.43)*100 / 23.43 = ~3.5
+Remove the unnecessary lock.
 
-> 
-> >   |seccomp-notify (sec) | 46.848 | 46.938 | 46.973 | 46.920 | +2.98% |
-> >   +---------------------+--------+--------+--------+--------+--------+
-> > 
-> > With this patch, the messaging test shows a minor improvement (0.52%).
-> > 
-> > The pipe test performs worse (-4.15%) after applying the patch. However,
-> > one positive signal is that the minimum latency is 23.159, which is
-> > lower than without the change (24.017).
-> 
-> The perf bench is sensitive to OS noise, so I disable most devices, only
-> uart, timer, irq chip, i2c and regulator is kept,  and stop all daemons
-> only keep a usespace process bash shell.
-> 
-> defconfig for reference:
-> 
-> # CONFIG_LOCALVERSION_AUTO is not set
-> CONFIG_SYSVIPC=y
-> CONFIG_NO_HZ_IDLE=y
-> CONFIG_HIGH_RES_TIMERS=y
-> CONFIG_PREEMPT=y
-> # CONFIG_CPU_ISOLATION is not set
-> CONFIG_BLK_DEV_INITRD=y
-> # CONFIG_RD_GZIP is not set
-> # CONFIG_RD_BZIP2 is not set
-> # CONFIG_RD_LZMA is not set
-> # CONFIG_RD_XZ is not set
-> # CONFIG_RD_LZO is not set
-> # CONFIG_RD_LZ4 is not set
-> # CONFIG_INITRAMFS_PRESERVE_MTIME is not set
-> CONFIG_EXPERT=y
-> # CONFIG_UID16 is not set
-> # CONFIG_SYSFS_SYSCALL is not set
-> CONFIG_PROFILING=y
-> CONFIG_ARCH_BERLIN=y
-> # CONFIG_ARM64_ERRATUM_826319 is not set
-> # CONFIG_ARM64_ERRATUM_827319 is not set
-> # CONFIG_ARM64_ERRATUM_824069 is not set
-> # CONFIG_ARM64_ERRATUM_819472 is not set
-> # CONFIG_ARM64_ERRATUM_832075 is not set
-> # CONFIG_ARM64_ERRATUM_845719 is not set
-> # CONFIG_ARM64_ERRATUM_843419 is not set
-> # CONFIG_ARM64_ERRATUM_1418040 is not set
-> # CONFIG_ARM64_ERRATUM_1165522 is not set
-> # CONFIG_ARM64_ERRATUM_1463225 is not set
-> # CONFIG_CAVIUM_ERRATUM_22375 is not set
-> # CONFIG_CAVIUM_ERRATUM_23154 is not set
-> # CONFIG_CAVIUM_ERRATUM_27456 is not set
-> # CONFIG_CAVIUM_ERRATUM_30115 is not set
-> # CONFIG_CAVIUM_TX2_ERRATUM_219 is not set
-> # CONFIG_FUJITSU_ERRATUM_010001 is not set
-> # CONFIG_HISILICON_ERRATUM_161600802 is not set
-> # CONFIG_QCOM_FALKOR_ERRATUM_1003 is not set
-> # CONFIG_QCOM_FALKOR_ERRATUM_1009 is not set
-> # CONFIG_QCOM_QDF2400_ERRATUM_0065 is not set
-> # CONFIG_QCOM_FALKOR_ERRATUM_E1041 is not set
-> # CONFIG_SOCIONEXT_SYNQUACER_PREITS is not set
-> CONFIG_NR_CPUS=4
-> CONFIG_HOTPLUG_CPU=y
-> CONFIG_HZ_100=y
-> # CONFIG_UNMAP_KERNEL_AT_EL0 is not set
-> CONFIG_COMPAT=y
-> CONFIG_ARMV8_DEPRECATED=y
-> CONFIG_SWP_EMULATION=y
-> CONFIG_CP15_BARRIER_EMULATION=y
-> CONFIG_SETEND_EMULATION=y
-> # CONFIG_ARM64_HW_AFDBM is not set
-> # CONFIG_ARM64_PTR_AUTH is not set
-> # CONFIG_ARM64_AMU_EXTN is not set
-> # CONFIG_ARM64_SVE is not set
-> # CONFIG_EFI is not set
-> # CONFIG_SUSPEND is not set
-> CONFIG_CPU_IDLE=y
-> CONFIG_CPU_IDLE_GOV_TEO=y
-> CONFIG_ARM_PSCI_CPUIDLE=y
-> CONFIG_CPU_FREQ=y
-> CONFIG_CPU_FREQ_GOV_USERSPACE=y
-> CONFIG_CPUFREQ_DT=y
-> CONFIG_JUMP_LABEL=y
-> # CONFIG_VMAP_STACK is not set
-> # CONFIG_BLOCK is not set
-> # CONFIG_COMPAT_BRK is not set
-> # CONFIG_COMPACTION is not set
-> CONFIG_CMA=y
-> # CONFIG_ZONE_DMA32 is not set
-> # CONFIG_VM_EVENT_COUNTERS is not set
-> CONFIG_SYNA_DOLPHIN_PLL=y
-> CONFIG_SYNA_CLK_BASE=y
-> CONFIG_SYNA_MYNA2_CLK=y
-> CONFIG_PINCTRL_MYNA2=y
-> CONFIG_USB_DWC3_SYNA=y
-> # CONFIG_SYNAPTICS_PCIE is not set
-> CONFIG_REGULATOR_HL7593=y
-> CONFIG_PHY_SYNA_USB=y
-> # CONFIG_SYNAPTICS_I2C is not set
-> CONFIG_BERLIN_CHIPID=y
-> CONFIG_BERLIN_AXI_METER=y
-> # CONFIG_SYNAPTICS_NET is not set
-> # CONFIG_SYNAPTICS_VIDEO is not set
-> # CONFIG_SYNAPTICS_SOUND is not set
-> # CONFIG_SYNAPTICS_DEVFREQ is not set
-> # CONFIG_SYNAPTICS_DMABUF is not set
-> # CONFIG_SYNAPTICS_IRQCHIP is not set
-> # CONFIG_SYNAPTICS_INPUT is not set
-> # CONFIG_SYNAPTICS_BLUETOOTH is not set
-> # CONFIG_SYNAPTICS_CLOCKSOURCE is not set
-> # CONFIG_SYNAPTICS_DMA is not set
-> # CONFIG_SYNAPTICS_TTY is not set
-> # CONFIG_SYNAPTICS_LEDS is not set
-> # CONFIG_SYNAPTICS_MFD is not set
-> # CONFIG_SYNAPTICS_MISC is not set
-> # CONFIG_SYNAPTICS_MTD is not set
-> # CONFIG_SYNAPTICS_PWM is not set
-> # CONFIG_SYNAPTICS_RTC is not set
-> # CONFIG_SYNAPTICS_SPI is not set
-> # CONFIG_SYNAPTICS_STAGING is not set
-> # CONFIG_SYNAPTICS_WATCHDOG is not set
-> # CONFIG_SYNAPTICS_MAILBOX is not set
-> # CONFIG_SYNAPTICS_RPMSG is not set
-> # CONFIG_SYNAPTICS_CRYPTO is not set
-> CONFIG_UEVENT_HELPER=y
-> CONFIG_DEVTMPFS=y
-> CONFIG_DEVTMPFS_MOUNT=y
-> # CONFIG_ALLOW_DEV_COREDUMP is not set
-> CONFIG_INPUT_EVDEV=y
-> # CONFIG_INPUT_KEYBOARD is not set
-> # CONFIG_INPUT_MOUSE is not set
-> # CONFIG_SERIO is not set
-> # CONFIG_VT is not set
-> # CONFIG_LEGACY_PTYS is not set
-> # CONFIG_LEGACY_TIOCSTI is not set
-> CONFIG_SERIAL_8250=y
-> # CONFIG_SERIAL_8250_DEPRECATED_OPTIONS is not set
-> CONFIG_SERIAL_8250_CONSOLE=y
-> CONFIG_SERIAL_8250_NR_UARTS=2
-> CONFIG_SERIAL_8250_RUNTIME_UARTS=2
-> CONFIG_SERIAL_8250_DW=y
-> # CONFIG_HW_RANDOM is not set
-> # CONFIG_DEVPORT is not set
-> CONFIG_I2C=y
-> CONFIG_I2C_CHARDEV=y
-> CONFIG_I2C_DESIGNWARE_CORE=y
-> CONFIG_GPIO_SYSFS=y
-> CONFIG_GPIO_DWAPB=y
-> CONFIG_GPIO_FXL6408=y
-> # CONFIG_HWMON is not set
-> CONFIG_MFD_SYSCON=y
-> CONFIG_REGULATOR=y
-> CONFIG_REGULATOR_FIXED_VOLTAGE=y
-> CONFIG_REGULATOR_GPIO=y
-> CONFIG_REGULATOR_TPS6286X=y
-> # CONFIG_HID_SUPPORT is not set
-> # CONFIG_USB_SUPPORT is not set
-> CONFIG_DMABUF_HEAPS=y
-> CONFIG_DMABUF_SYSFS_STATS=y
-> CONFIG_DMABUF_HEAPS_CMA=y
-> # CONFIG_VIRTIO_MENU is not set
-> # CONFIG_VHOST_MENU is not set
-> # CONFIG_SURFACE_PLATFORMS is not set
-> # CONFIG_ARM64_PLATFORM_DEVICES is not set
-> # CONFIG_ARM_ARCH_TIMER_EVTSTREAM is not set
-> # CONFIG_FSL_ERRATUM_A008585 is not set
-> # CONFIG_HISILICON_ERRATUM_161010101 is not set
-> # CONFIG_ARM64_ERRATUM_858921 is not set
-> # CONFIG_IOMMU_SUPPORT is not set
-> CONFIG_RESET_CONTROLLER=y
-> # CONFIG_DNOTIFY is not set
-> # CONFIG_PROC_PAGE_MONITOR is not set
-> CONFIG_TMPFS=y
-> CONFIG_CONFIGFS_FS=y
-> # CONFIG_MISC_FILESYSTEMS is not set
-> CONFIG_DMA_CMA=y
-> CONFIG_PRINTK_TIME=y
-> # CONFIG_SECTION_MISMATCH_WARN_ONLY is not set
-> CONFIG_DEBUG_FS=y
-> # CONFIG_SLUB_DEBUG is not set
-> CONFIG_SOFTLOCKUP_DETECTOR=y
-> CONFIG_DEBUG_ATOMIC_SLEEP=y
-> CONFIG_STACKTRACE=y
-> # CONFIG_RCU_TRACE is not set
-> # CONFIG_FTRACE is not set
-> # CONFIG_STRICT_DEVMEM is not set
-> # CONFIG_RUNTIME_TESTING_MENU is not set
-> > 
-> > For seccomp, the results indicate a benefit (2.98%) from the change.
-> > 
-> > Hope this is helpful for maintainers to judge the change.
-> > 
-> > I'd leave maintainers to review the code.
-> > 
-> > Thanks,
-> > Leo
-> 
+Thomas found this is a leftover from v2.6 when it was truly needed.
+
+Signed-off-by: Luigi Rizzo <lrizzo@google.com>
+---
+ arch/x86/kernel/apic/vector.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.c
+index bddc544653999..fd0f133b379fd 100644
+--- a/arch/x86/kernel/apic/vector.c
++++ b/arch/x86/kernel/apic/vector.c
+@@ -1002,11 +1002,8 @@ static void apic_force_complete_move(struct irq_data *irqd)
+ static int apic_retrigger_irq(struct irq_data *irqd)
+ {
+ 	struct apic_chip_data *apicd = apic_chip_data(irqd);
+-	unsigned long flags;
+ 
+-	raw_spin_lock_irqsave(&vector_lock, flags);
+ 	__apic_send_IPI(apicd->cpu, apicd->vector);
+-	raw_spin_unlock_irqrestore(&vector_lock, flags);
+ 
+ 	return 1;
+ }
+-- 
+2.53.0.345.g96ddfc5eaa-goog
+
