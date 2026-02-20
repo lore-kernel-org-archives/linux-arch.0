@@ -1,129 +1,98 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6CC77320CCF;
-	Fri, 20 Feb 2026 09:28:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 91BD033F8C7;
+	Fri, 20 Feb 2026 12:34:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771579685; cv=none; b=p355v7iV25JSs0MOWx+xiE0OmtT8xWRkt6lMdHlFMxV4sPsyAgX2Y+E2dPT8ZL+TTHFt+KtlPQF5i0D2JPWv4mhPNGGor0f1piRYBbYSvrqvGXDHCo+i79tWDZqzw5AHLaziO6UubD21a9k3q7KkAt3+kKoRA4Co+eEBlJBXfM0=
+	t=1771590860; cv=none; b=FmLWqY+Gqx0BDBg4Sf90BhpsmLcQjiiLR5vPtt3sXi7loWS57ol0yqI26Dli199AbtBINiWsRAAshKlDVOJMstrE29Vc9i7Kut/NBnnecyhkOBAdXCjGxsfR8B5ZtCTh/LYRr3dKHKX2pdjpgjBB/iM7Vk7spVs0IoAvSfpWUR0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771579685; c=relaxed/simple;
-	bh=htfspmM2c2lNeKPl/xvf7/POAscvMhM4d53l5UdNqHY=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=EmfF3TbPm+KaM8NgjiyFKxCbhH8n/3otxkENOtKbE7cwQBWy4sUqL1N3UM9t9apZfU9RlaGmAiXdU4i5OObYiWuV1YF6k3sjZAROrNsUA/okxlKpp7U6XEWNiyFAyZBGrll2dAnFtMQIqcWbvUXc0QPcRfRWy9cIHW5M00uYpFA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=uYglDSix; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="uYglDSix"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D62EEC2BC86;
-	Fri, 20 Feb 2026 09:28:01 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1771579685;
-	bh=htfspmM2c2lNeKPl/xvf7/POAscvMhM4d53l5UdNqHY=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=uYglDSixsNUrAmuwCgveh4mBOgWjV3rCGsvEgcAo2JG6cWg5ST0cMdR+Y5OpzFpRr
-	 Xzk4bBmQjUML2gaVx8vx8YaRUHecU26WL5il+lNeN2Hh6b2GYZ+nu6RX1qM691GZx5
-	 8U9i9oRaZIhogxn0kbVZAVm3ds+Rpd0EAlL5RaaGjszPlKzu+CHMfrgyT2WrtawJp1
-	 806WlvtV4K8r2u3cEReoDaJnSonYmwOB5grfTr8tq16mIhno4jKefmRAhaASEYp8eh
-	 U0EuzBHBSFF//URpHX8b1V0N0wBs3FbN3Ie0kGXHF55yVCzS7TmgQtSADxYhpY/aPY
-	 noCuvd/dn+UXA==
-From: Jisheng Zhang <jszhang@kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Thomas Gleixner <tglx@kernel.org>,
-	Paul Walmsley <pjw@kernel.org>,
+	s=arc-20240116; t=1771590860; c=relaxed/simple;
+	bh=KAZwEbjwCWpM69PmGYgz9CiXHIrMnTAbgB16BaijiKw=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=HV6IYyVglibtPZ2LsN2Dchdpe9HPhdutheMKHPbD0Og4bwcwHvin2MH3NpgayzBA03AYGmV4KyJc+bu1nxG5PiHZXkG9o8jt0uCRx+MVNc1HjZ9zqmcPJHmETENKb0MAzCxNfLmEGxwb8tyJgpa6NmZoC/F+nJ2HrMvMp/qMjNU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 65805339;
+	Fri, 20 Feb 2026 04:34:10 -0800 (PST)
+Received: from localhost (e132581.arm.com [10.1.196.87])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 41B0F3F62B;
+	Fri, 20 Feb 2026 04:34:16 -0800 (PST)
+Date: Fri, 20 Feb 2026 12:34:14 +0000
+From: Leo Yan <leo.yan@arm.com>
+To: Jisheng Zhang <jszhang@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Thomas Gleixner <tglx@kernel.org>, Paul Walmsley <pjw@kernel.org>,
 	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Alexandre Ghiti <alex@ghiti.fr>,
-	Guo Ren <guoren@kernel.org>
-Cc: linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org,
-	linux-csky@vger.kernel.org
-Subject: [PATCH 3/3] arm64: use runtime constant to optimize handle_arch_irq access
-Date: Fri, 20 Feb 2026 17:09:22 +0800
-Message-ID: <20260220090922.1506-4-jszhang@kernel.org>
-X-Mailer: git-send-email 2.51.0
-In-Reply-To: <20260220090922.1506-1-jszhang@kernel.org>
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Guo Ren <guoren@kernel.org>, linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org
+Subject: Re: [PATCH 3/3] arm64: use runtime constant to optimize
+ handle_arch_irq access
+Message-ID: <20260220123414.GF136967@e132581.arm.com>
 References: <20260220090922.1506-1-jszhang@kernel.org>
+ <20260220090922.1506-4-jszhang@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260220090922.1506-4-jszhang@kernel.org>
 
-Currently, on arm64 platforms, the handle_arch_irq is a pointer which
-is set during booting, and every irq processing needs to access it,
-so it sits in hot code path. We can use the runtime constant mechanism
-which was introduced by Linus to speed up its accessing.
+Hi Jisheng,
 
-Tested on Quad CA55 platform, the perf sched benchmark is improved
-by ~6.5%
+On Fri, Feb 20, 2026 at 05:09:22PM +0800, Jisheng Zhang wrote:
+> Currently, on arm64 platforms, the handle_arch_irq is a pointer which
+> is set during booting, and every irq processing needs to access it,
+> so it sits in hot code path. We can use the runtime constant mechanism
+> which was introduced by Linus to speed up its accessing.
+> 
+> Tested on Quad CA55 platform, the perf sched benchmark is improved
+> by ~6.5%
 
-Signed-off-by: Jisheng Zhang <jszhang@kernel.org>
----
- arch/arm64/kernel/entry-common.c | 4 +++-
- arch/arm64/kernel/irq.c          | 9 ++++++---
- 2 files changed, 9 insertions(+), 4 deletions(-)
+6.5% is a quite high margin, especially for only one pointer's change.
+Maybe it is good to share more info for which compiler you are using,
+how you tested and the detailed results.
 
-diff --git a/arch/arm64/kernel/entry-common.c b/arch/arm64/kernel/entry-common.c
-index 3625797e9ee8..46a4c012e15f 100644
---- a/arch/arm64/kernel/entry-common.c
-+++ b/arch/arm64/kernel/entry-common.c
-@@ -25,6 +25,7 @@
- #include <asm/kprobes.h>
- #include <asm/mmu.h>
- #include <asm/processor.h>
-+#include <asm/runtime-const.h>
- #include <asm/sdei.h>
- #include <asm/stacktrace.h>
- #include <asm/sysreg.h>
-@@ -139,7 +140,8 @@ static void do_interrupt_handler(struct pt_regs *regs,
- 	set_irq_regs(old_regs);
- }
- 
--extern void (*handle_arch_irq)(struct pt_regs *);
-+extern void (*_handle_arch_irq)(struct pt_regs *);
-+#define handle_arch_irq runtime_const_ptr(_handle_arch_irq)
- extern void (*handle_arch_fiq)(struct pt_regs *);
- 
- static void noinstr __panic_unhandled(struct pt_regs *regs, const char *vector,
-diff --git a/arch/arm64/kernel/irq.c b/arch/arm64/kernel/irq.c
-index 15dedb385b9e..30629c183606 100644
---- a/arch/arm64/kernel/irq.c
-+++ b/arch/arm64/kernel/irq.c
-@@ -23,6 +23,7 @@
- #include <asm/daifflags.h>
- #include <asm/exception.h>
- #include <asm/numa.h>
-+#include <asm/runtime-const.h>
- #include <asm/softirq_stack.h>
- #include <asm/stacktrace.h>
- #include <asm/vmap_stack.h>
-@@ -84,15 +85,17 @@ static void default_handle_fiq(struct pt_regs *regs)
- 	panic("FIQ taken without a root FIQ handler\n");
- }
- 
--void (*handle_arch_irq)(struct pt_regs *) __ro_after_init = default_handle_irq;
-+void (*_handle_arch_irq)(struct pt_regs *) __ro_after_init = default_handle_irq;
-+#define handle_arch_irq runtime_const_ptr(_handle_arch_irq)
- void (*handle_arch_fiq)(struct pt_regs *) __ro_after_init = default_handle_fiq;
- 
- int __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
- {
--	if (handle_arch_irq != default_handle_irq)
-+	if (_handle_arch_irq != default_handle_irq)
- 		return -EBUSY;
- 
--	handle_arch_irq = handle_irq;
-+	_handle_arch_irq = handle_irq;
-+	runtime_const_init(ptr, _handle_arch_irq);
- 	pr_info("Root IRQ handler: %ps\n", handle_irq);
- 	return 0;
- }
--- 
-2.51.0
+I played a bit on my juno board on CA73 cores with the command:
 
+  perf bench sched all
+
+Run 3 iterations, and measures three metrics (messaging/pipe/seccomp)
+and results in seconds. Less is better.
+
+  +---------------------+--------+--------+--------+--------+
+  |Without change       |   run1 |   run2 |   run3 |    avg |
+  +---------------------+--------+--------+--------+--------+
+  |messaging (sec)      |  4.546 |  4.508 |  4.591 |  4.548 |
+  |pipe (sec)           | 24.258 | 24.224 | 24.017 | 24.166 |
+  |seccomp-notify (sec) | 48.393 | 48.457 | 48.232 | 48.361 |
+  +---------------------+--------+--------+--------+--------+
+
+  +---------------------+--------+--------+--------+--------+--------+
+  |With change          |   run1 |   run2 |   run3 |    avg |   diff |
+  +---------------------+--------+--------+--------+--------+--------+
+  |messaging (sec)      |  4.493 |  4.523 |  4.556 |  4.524 | +0.52% |
+  |pipe (sec)           | 23.159 | 23.702 | 28.649 | 25.170 | -4.15% |
+  |seccomp-notify (sec) | 46.848 | 46.938 | 46.973 | 46.920 | +2.98% |
+  +---------------------+--------+--------+--------+--------+--------+
+
+With this patch, the messaging test shows a minor improvement (0.52%).
+
+The pipe test performs worse (-4.15%) after applying the patch. However,
+one positive signal is that the minimum latency is 23.159, which is
+lower than without the change (24.017).
+
+For seccomp, the results indicate a benefit (2.98%) from the change.
+
+Hope this is helpful for maintainers to judge the change.
+
+I'd leave maintainers to review the code.
+
+Thanks,
+Leo
