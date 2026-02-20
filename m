@@ -1,98 +1,85 @@
-Received: from mail-ej1-f74.google.com (mail-ej1-f74.google.com [209.85.218.74])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D1EEB24A069
-	for <linux-arch@vger.kernel.org>; Fri, 20 Feb 2026 15:12:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.74
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 751DE221FCD;
+	Fri, 20 Feb 2026 16:47:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771600343; cv=none; b=j40Jffy6Xkn38t6WCm7abrgY0eSE+SDUk0ydUJCr7B7cBMvv+xGHpTOg/HbA7S4zVepxuTydBvlWn7rUWLtJNHKSQ9eJ1+N3JYhr7Wat5ga5kjeCYINNCSbNCVt8IwSW4J1Klrs0lJbHSnzY1KEh90m5zfrCXhxtxxtxVerLx0o=
+	t=1771606062; cv=none; b=YN9IwJjclFhEPbTOryC+zgxcavmqYeevQZv7OB/Wz7mN9RmVbVjRBFSXEFk1o73lTFgWMETu+O/zEM/sVsiSluuROqBrDmjt95DLALU89hhUqekcip/t5tIxjjNr+jZZVUYoxwDJghyM9UIXPBiJturF2ZqL+2ZQTTUym0svMG8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771600343; c=relaxed/simple;
-	bh=DzlOWW6aB7lpJ/SzjzXXIUpoY1JoPREbSjUZUop8aYU=;
-	h=Date:Mime-Version:Message-ID:Subject:From:To:Cc:Content-Type; b=rpcXXa7G2Beo1HeCkcdPP7TgO+0LvuM70Xi+zqwT6OGiz43yK+tdk2q8aFFG7nMuEjAsjgRZ5JeM8SzzApOEJbT1MSK313RHuDsTq8+xoTDvTAkmraiGrB0DhE3nLGrhlV0HniCpyap8s+mdliAjTjoImOS2PrXT8srJhYEq9GA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--lrizzo.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=gViqR9hf; arc=none smtp.client-ip=209.85.218.74
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--lrizzo.bounces.google.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="gViqR9hf"
-Received: by mail-ej1-f74.google.com with SMTP id a640c23a62f3a-b885979bfa9so200403166b.1
-        for <linux-arch@vger.kernel.org>; Fri, 20 Feb 2026 07:12:21 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1771600340; x=1772205140; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:mime-version:date:from:to:cc:subject
-         :date:message-id:reply-to;
-        bh=BglHJbHO05XrjVy7Kw1qhRY3apE6BRfv6ldh6GG9pCo=;
-        b=gViqR9hfGaz/0iH8l5leUkk+vkKI2njGZMY+dh0xdduAze8wT+elzkZWl44uK11ZT7
-         YyrUxaexiG/mOmsHJDfhRSniUNE8kKMSypnd6UJkmbkeZ7i16waH8VP1Wxo2gyYK1esc
-         B+XxqENtTQ/ByqspzNg1Bvvw2CXEM00Rdjkexa6nKhsKhAP9PfX8kwZljELJUnPZAqZY
-         SyfoPXMLrVUXppzpuTUq25Lhqk/qagFNM8FBFq3sI/g4C1EWd476wcydm5DA7FaRB5t8
-         +TqW10Ra6J5Ma6Ia/bnuQqLDyEYnyaQrkfXKC7WvXUBW/s4YYq+gp6h3l7VjQY7sShbE
-         ZM/w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1771600340; x=1772205140;
-        h=cc:to:from:subject:message-id:mime-version:date:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=BglHJbHO05XrjVy7Kw1qhRY3apE6BRfv6ldh6GG9pCo=;
-        b=Yqx14O/HtzQ/aKx6Vo33Zm6IHMK5uIbfYQWmU1E5PYR8qeGJyij0LKauU/ObqDBdXQ
-         s9KhEawTmpYlkE2bp7KbyntcEAq0bNIXJ2D9dNbD6NHfZ2Ioy59ZXTifeJsazOl+hLeS
-         9JCVxa2UVvOO+m0LPhBZVlZPXz5ZoNouLJiJfwwMGIHDZ+HEX0NnRn9UhgVVC6jWaaBO
-         KRHn8WeEGnx0b9BRIV1ys9i1AUXZ/c2+rPNNRMB/VKoe/pjR4ZBp6K6Pvxk/6CO8Ofqy
-         0v8RxZsJmKb6uIwP5NDrQ1AIh1KY9IxMQ6boyLGORJt4WqcLERRzlAoFvDBXdQ/YgovY
-         3r+g==
-X-Forwarded-Encrypted: i=1; AJvYcCUb0cLVwIShe5+cNZJNri5sUa863sOposYR9Z4OS3mq46UooV08+yDKmt4EYCpY2Jhul695pURdeKuD@vger.kernel.org
-X-Gm-Message-State: AOJu0YyOfcZi6V9ddUICaPgLUnFiAPHKsG7xZNz29rnUugvSK9Nir/Se
-	5HTyyzD44WxgSZoE+qZRD2vKDXXsSvGGGHZmkVlsc6NJoiK7xqvZNGP3wOt/FccrEQ2S7j3HeLu
-	J1vbiag==
-X-Received: from ejcqy30.prod.google.com ([2002:a17:907:689e:b0:b8d:e68c:f9b4])
- (user=lrizzo job=prod-delivery.src-stubby-dispatcher) by 2002:a17:906:7311:b0:b89:9631:2425
- with SMTP id a640c23a62f3a-b903db149cfmr547363066b.19.1771600339889; Fri, 20
- Feb 2026 07:12:19 -0800 (PST)
-Date: Fri, 20 Feb 2026 15:12:16 +0000
+	s=arc-20240116; t=1771606062; c=relaxed/simple;
+	bh=fdZT2EuWOSNtQ/ikYUtpmLQSIkQ5edy+knz/3z/tq8I=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=gVKRd4DYRAIJBpjs8uwZODfTbiJ+PHlvD9X/qEVFAsBZ9v7H3p1Pr11h7rbarPgms0DF8JlZ6m1q7dIFYQ32aDgTXxGZoqnt18ghxyf1/H3F62Kn/K/lnJrqM50WZaxtp4yPWSw2K3ni18ZbnRlJ86gAmlvJ+EvwdosjQhBsM9c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 542A4339;
+	Fri, 20 Feb 2026 08:47:34 -0800 (PST)
+Received: from localhost (e132581.arm.com [10.1.196.87])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 2DEE53F62B;
+	Fri, 20 Feb 2026 08:47:40 -0800 (PST)
+Date: Fri, 20 Feb 2026 16:47:38 +0000
+From: Leo Yan <leo.yan@arm.com>
+To: Jisheng Zhang <jszhang@kernel.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Thomas Gleixner <tglx@kernel.org>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Guo Ren <guoren@kernel.org>, linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org
+Subject: Re: [PATCH 3/3] arm64: use runtime constant to optimize
+ handle_arch_irq access
+Message-ID: <20260220164738.GH136967@e132581.arm.com>
+References: <20260220090922.1506-1-jszhang@kernel.org>
+ <20260220090922.1506-4-jszhang@kernel.org>
+ <20260220123414.GF136967@e132581.arm.com>
+ <aZheqINXslxlrmTt@xhacker>
+ <aZhi1p0NJH5ug8CA@xhacker>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Mailer: git-send-email 2.53.0.345.g96ddfc5eaa-goog
-Message-ID: <20260220151216.873182-1-lrizzo@google.com>
-Subject: [PATCH] x86/apic: remove vector_lock from apic_retrigger_irq()
-From: Luigi Rizzo <lrizzo@google.com>
-To: Thomas Gleixner <tglx@linutronix.de>, Marc Zyngier <maz@kernel.org>, 
-	Luigi Rizzo <rizzo.unipi@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	Luigi Rizzo <lrizzo@google.com>
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aZhi1p0NJH5ug8CA@xhacker>
 
-apic_retrigger_irq() grabs vector_lock, but this is not needed because
-any caller of this function holds the irqdesc lock, and that suffices to
-protect apicd->vector.
+On Fri, Feb 20, 2026 at 09:34:14PM +0800, Jisheng Zhang wrote:
 
-Remove the unnecessary lock.
+[...]
 
-Thomas found this is a leftover from v2.6 when it was truly needed.
+> > > Run 3 iterations, and measures three metrics (messaging/pipe/seccomp)
+> > > and results in seconds. Less is better.
+> > > 
+> > >   +---------------------+--------+--------+--------+--------+
+> > >   |Without change       |   run1 |   run2 |   run3 |    avg |
+> > >   +---------------------+--------+--------+--------+--------+
+> > >   |messaging (sec)      |  4.546 |  4.508 |  4.591 |  4.548 |
+> > >   |pipe (sec)           | 24.258 | 24.224 | 24.017 | 24.166 |
+> > >   |seccomp-notify (sec) | 48.393 | 48.457 | 48.232 | 48.361 |
+> > >   +---------------------+--------+--------+--------+--------+
+> > > 
+> > >   +---------------------+--------+--------+--------+--------+--------+
+> > >   |With change          |   run1 |   run2 |   run3 |    avg |   diff |
+> > >   +---------------------+--------+--------+--------+--------+--------+
+> > >   |messaging (sec)      |  4.493 |  4.523 |  4.556 |  4.524 | +0.52% |
+> > >   |pipe (sec)           | 23.159 | 23.702 | 28.649 | 25.170 | -4.15% |
+> > 
+> > If you check the result, this result variance is abnormal, it means
+> > your OS is noiser.
+> 
+> BTW: if you remove the abnormal run3 result, you'll find that the
+> benchmark is improved by ~3.5% on CA73:
+> (23.159 + 23.702) / 2 = 23.43
+> (24.258 + 24.224) / 2 = 24.24
+> (24.24 - 23.43)*100 / 23.43 = ~3.5
 
-Signed-off-by: Luigi Rizzo <lrizzo@google.com>
----
- arch/x86/kernel/apic/vector.c | 3 ---
- 1 file changed, 3 deletions(-)
+TBH, I don't think we should subjectively select data.  But I agree a
+clean test env is important to avoid noise, and I also agree that the
+current results already show positive signals.
 
-diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.c
-index bddc544653999..fd0f133b379fd 100644
---- a/arch/x86/kernel/apic/vector.c
-+++ b/arch/x86/kernel/apic/vector.c
-@@ -1002,11 +1002,8 @@ static void apic_force_complete_move(struct irq_data *irqd)
- static int apic_retrigger_irq(struct irq_data *irqd)
- {
- 	struct apic_chip_data *apicd = apic_chip_data(irqd);
--	unsigned long flags;
- 
--	raw_spin_lock_irqsave(&vector_lock, flags);
- 	__apic_send_IPI(apicd->cpu, apicd->vector);
--	raw_spin_unlock_irqrestore(&vector_lock, flags);
- 
- 	return 1;
- }
--- 
-2.53.0.345.g96ddfc5eaa-goog
-
+Thanks,
+Leo
