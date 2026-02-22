@@ -1,350 +1,179 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f50.google.com (mail-ed1-f50.google.com [209.85.208.50])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E14A1EA7F4;
-	Sat, 21 Feb 2026 21:38:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6DC003EBF3C
+	for <linux-arch@vger.kernel.org>; Sun, 22 Feb 2026 00:45:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771709923; cv=none; b=FzIFG6chbEw1B36TMZMorLGRY4L9gz0XFzyS2ffDjcLHKkO/9Nvl35Or7keNqBdgvq7h6X7f/ESrq5XZ4R7SeX3hk0BwJaMA8nyaH9tuSQT6RRiPnrPWFL2oJ4bcq6/06HfKgvrXS3Xbly9FozmOmP3CRR7Rd3uZ8vGf5Py1j+Q=
+	t=1771721132; cv=none; b=psdeucncR4P/ebuqYC28ar3DrOS5ApyTb0UJkGcbKa1XMAqTlM3QNjSfWWSWlc3erDSu7ebFlk3XJ+NueNAC8k1TnLOkluERoELMc4YhEf7VvZrc3GL95xM/UHJwvwvG6gdrzLwemb8HY0HN6Slgqo8Hb9zRDcavHcYe89F6ehw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771709923; c=relaxed/simple;
-	bh=6f/BlOCaBHYHn12tHM4Bu5uqu60c5HeyFZykyfi11cE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=n/xA0e5gnMlJW2RyAOeV5YEU4Rv+w5HMPhQARfoM6zKP9OnpCJ+8ve/5PV+VgvIvMFPD4uaWkDxfzsrqcjDz+aAqc8lZgkDCYvrG/+fgn46tOvxCLpzJsjufxYqp+YaExwV0OTYhTgOngaOosjh+XICu4bgilmFgX6CYa6V5tGo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=RpvIeLgC; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1771721132; c=relaxed/simple;
+	bh=BPbTal8l0cA6sV2OI7saRg0ii8m0Wn1YaxqEWJeOVzA=;
+	h=From:To:Cc:Subject:Date:Message-Id; b=QyUAyWrJjn8g6cbMfuW+sdpZYAeBT7HUjO9FQzaovYq8c9tCXXTm2WcLsmfjqI9Sh76zNoxxuXqLP7E090k7sIBnTibd+bZAoZ0X54WbuWfLfi0rXLsfA5n1XDdCBvpBvvy10SgIGCFLdeCkyKDaZYmBpGcMIXUAz0xUiFZFOkk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=RdqbNnm9; arc=none smtp.client-ip=209.85.208.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="RpvIeLgC"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4F1BAC4CEF7;
-	Sat, 21 Feb 2026 21:38:42 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1771709923;
-	bh=6f/BlOCaBHYHn12tHM4Bu5uqu60c5HeyFZykyfi11cE=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=RpvIeLgCkECuxu/6gXgTQN2VJvSNRxp9H8NYfUdN96cKwgGi5TbrmXVpqRCoCmv0U
-	 8OmVb/vAvTcOeCQNkRiA6vTqRcn92yFQi7lxqql889K9VGxhBd2S3Lrj2uruF0W3N1
-	 q3LW64Hu0Jzi9dPzsRlC27O5F+KqMpmiiRlL3h9J6chn3swUA+7qCqSMMa9Du9alRE
-	 n1uxljy0MYxcWwo+BPYiNoKWc70PEpCrYmTd15UI34v+JYgQMoWBOrCxOrEnrqaV3n
-	 FPWWMoa5bu7H3KoDUUcK3RIt06OjrYY/5chzuNfvAD15oxT3h127uPEAVN2/0On/Hr
-	 JnQUEuIrWpOoA==
-Date: Sat, 21 Feb 2026 22:38:29 +0100
-From: Nicolas Schier <nsc@kernel.org>
-To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
-Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Petr Pavlu <petr.pavlu@suse.com>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Daniel Gomez <da.gomez@samsung.com>,
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-	"Serge E. Hallyn" <serge@hallyn.com>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
-	Roberto Sassu <roberto.sassu@huawei.com>,
-	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
-	Eric Snowberg <eric.snowberg@oracle.com>,
-	Daniel Gomez <da.gomez@kernel.org>,
-	Aaron Tomlin <atomlin@atomlin.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
-	Xiu Jianfeng <xiujianfeng@huawei.com>,
-	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
-	Arnout Engelen <arnout@bzzt.net>,
-	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
-	Christian Heusel <christian@heusel.eu>,
-	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
-	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
-Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
-Message-ID: <aZol1Rsa2tX-WNaZ@derry.ads.avm.de>
-References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
- <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="RdqbNnm9"
+Received: by mail-ed1-f50.google.com with SMTP id 4fb4d7f45d1cf-65a2fea1a1eso6924435a12.0
+        for <linux-arch@vger.kernel.org>; Sat, 21 Feb 2026 16:45:31 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1771721130; x=1772325930; darn=vger.kernel.org;
+        h=message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=yYGTIc7SD018JpENXhjw0YCEQOJiW9k0ZXQAJAzD2ns=;
+        b=RdqbNnm9p8mfb0yzcrBrNErwh+cRzL48VSEJUCBr8/9+TY9+FQva77sS6XXGKt0N11
+         Z5DQOjzvrHNZqyeZlehrb/HeZCAXNMeUgIbKtiwAhhhzCX85p8VhvCCe6vdTRG5lmRtH
+         fzpYTGaTkIwySJUBEQHUu1ToCkr42A8cEN13khwZ+gBJLYmlZ+fB4iYzyUyxXaQcYM6D
+         ZfmLZKzdkLK8/t0InJEg1I1W6iAdWBqdLFBHmLopUM/sQ/JYS+QJK8g7GiWALU4HmnKP
+         W/6FKZyT0cFuDfJdADjHIPYhRbsApJUL4rKhBfGnrJHmPf3QyNA8/P4rGpI55697Dojp
+         wWxQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1771721130; x=1772325930;
+        h=message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=yYGTIc7SD018JpENXhjw0YCEQOJiW9k0ZXQAJAzD2ns=;
+        b=QYqw6vwiWMYUNxukFTxMsCa9AfenmbXMCO/t30uLX4oDsbf4UIpcYIEAIqWG9yarji
+         KsKwxcT6GGV5c2inclxqupTwUvDT7dc0/6YmI+pDLeno9OzGj8h6xHwXLYc9ihv40nOA
+         WTEVgugDL0fG7grsYMMsdGCMEUYu9jpcoG6kCUoNx9M3QH3owbguRkJJ3Yu59elJQdH4
+         q9Xa9m80JJCOV2rBOySxx4F21splTiYpK71nU19ML+M0SHKipc3RUSshAXoeVGymK5n1
+         47fzi3CtyPKTAsSMWhVje6IP971ve7T+0aU2yzxnx4zyH7YKf9XwG/+F1l4FDE0TRVuH
+         bf9w==
+X-Gm-Message-State: AOJu0Yws9R/izagx1kjFIbC1ceI77CbkrPuzeTsHFphwFsaIlvuQ7qQ9
+	1+pXE9SMTtCZDA54VDbl4r4v9D09vuyDp04lSZ0souCz8TE0EElKj8t6
+X-Gm-Gg: AZuq6aJgCh31d0ZXQte3qUHyU9vfHSfqgQunYwIrL2JHneMqM2l1+ApWUInHoFsh6z+
+	Se5JC1xF6DX+WiVa1DI6jw/P4kwLiIaTLzRdl0MSWESgCLD2OwMMP8RjjoluGNrYo+yp4IRH/2U
+	c6g+TdwIR0x+z4YwGH3rL+/GMV19e+8pxOnClBvn8LgxZp53kYW3qqhyNQFsgJTegO7ORY9GRSA
+	SVtmNx14Evlkrry7q3+avVa8U7GhpSv30wxqWQGlhPMcrWUVL8K3L+3pSsVtTGdd2MhpFsbIrxa
+	xPNGgi5MyAH8VLYKaEY/d8hY8rjwtarAJ1+sEzerK4LaZKNESyX0UZhivWtTfkdtp5Z9peCGMpr
+	lSymFSaj8Ih/Sm4ItEs2p29z0pDLFPtb3tN/c27mEKayGHlR9ae9vM1LVrDxpCP2tilQ963c0lT
+	P5Rm2ohXfvXTsA1KPeRtAj4Q==
+X-Received: by 2002:a17:907:1ca2:b0:b8f:e992:3fc9 with SMTP id a640c23a62f3a-b905415c02bmr661118366b.6.1771721129445;
+        Sat, 21 Feb 2026 16:45:29 -0800 (PST)
+Received: from localhost ([185.92.221.13])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b9084c824aesm157564466b.19.2026.02.21.16.45.28
+        (version=TLS1_2 cipher=ECDHE-ECDSA-CHACHA20-POLY1305 bits=256/256);
+        Sat, 21 Feb 2026 16:45:28 -0800 (PST)
+From: Wei Yang <richard.weiyang@gmail.com>
+To: will@kernel.org,
+	aneesh.kumar@kernel.org,
+	akpm@linux-foundation.org,
+	npiggin@gmail.com,
+	peterz@infradead.org
+Cc: linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	Wei Yang <richard.weiyang@gmail.com>,
+	Qi Zheng <qi.zheng@linux.dev>,
+	"David Hildenbrand (Arm)" <david@kernel.org>
+Subject: [PATCH] mm/mmu_gather: define RCU version tlb_remove_table_one() in CONFIG_MMU_GATHER_RCU_TABLE_FREE
+Date: Sun, 22 Feb 2026 00:45:12 +0000
+Message-Id: <20260222004512.839-1-richard.weiyang@gmail.com>
+X-Mailer: git-send-email 2.11.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
 
-Hi Thomas,
+Before commit 718b13861d22 ("x86: mm: free page table pages by RCU
+instead of semi RCU"), the page table pages will be freed by semi RCU,
+that is:
 
-On Tue, Jan 13, 2026 at 01:28:59PM +0100, Thomas Weiﬂschuh wrote:
-> The current signature-based module integrity checking has some drawbacks
-> in combination with reproducible builds. Either the module signing key
-> is generated at build time, which makes the build unreproducible, or a
-> static signing key is used, which precludes rebuilds by third parties
-> and makes the whole build and packaging process much more complicated.
-> 
-> The goal is to reach bit-for-bit reproducibility. Excluding certain
-> parts of the build output from the reproducibility analysis would be
-> error-prone and force each downstream consumer to introduce new tooling.
-> 
-> Introduce a new mechanism to ensure only well-known modules are loaded
-> by embedding a merkle tree root of all modules built as part of the full
-> kernel build into vmlinux.
-> 
-> Non-builtin modules can be validated as before through signatures.
-> 
-> Normally the .ko module files depend on a fully built vmlinux to be
-> available for modpost validation and BTF generation. With
-> CONFIG_MODULE_HASHES, vmlinux now depends on the modules
-> to build a merkle tree. This introduces a dependency cycle which is
-> impossible to satisfy. Work around this by building the modules during
-> link-vmlinux.sh, after vmlinux is complete enough for modpost and BTF
-> but before the final module hashes are
-> 
-> The PKCS7 format which is used for regular module signatures can not
-> represent Merkle proofs, so a new kind of module signature is
-> introduced. As this signature type is only ever used for builtin
-> modules, no compatibility issues can arise.
-> 
-> Signed-off-by: Thomas Weiﬂschuh <linux@weissschuh.net>
-> ---
->  .gitignore                                   |   1 +
->  Documentation/kbuild/reproducible-builds.rst |   5 +-
->  Makefile                                     |   8 +-
->  include/asm-generic/vmlinux.lds.h            |  11 +
->  include/linux/module_hashes.h                |  25 ++
->  include/linux/module_signature.h             |   1 +
->  kernel/module/Kconfig                        |  21 +-
->  kernel/module/Makefile                       |   1 +
->  kernel/module/hashes.c                       |  92 ++++++
->  kernel/module/hashes_root.c                  |   6 +
->  kernel/module/internal.h                     |   1 +
->  kernel/module/main.c                         |   4 +-
->  scripts/.gitignore                           |   1 +
->  scripts/Makefile                             |   3 +
->  scripts/Makefile.modfinal                    |  11 +
->  scripts/Makefile.modinst                     |  13 +
->  scripts/Makefile.vmlinux                     |   5 +
->  scripts/link-vmlinux.sh                      |  14 +-
->  scripts/modules-merkle-tree.c                | 467 +++++++++++++++++++++++++++
->  security/lockdown/Kconfig                    |   2 +-
->  20 files changed, 685 insertions(+), 7 deletions(-)
-> 
-[...]
+  - batch table freeing: asynchronous free by RCU
+  - single table freeing: IPI + synchronous free
 
-> diff --git a/kernel/module/hashes_root.c b/kernel/module/hashes_root.c
-> new file mode 100644
-> index 000000000000..1abfcd3aa679
-> --- /dev/null
-> +++ b/kernel/module/hashes_root.c
-> @@ -0,0 +1,6 @@
-> +// SPDX-License-Identifier: GPL-2.0-or-later
-> +
-> +#include <linux/module_hashes.h>
-> +
-> +/* Blank dummy data. Will be overridden by link-vmlinux.sh */
-> +const struct module_hashes_root module_hashes_root __module_hashes_section = {};
-> diff --git a/kernel/module/internal.h b/kernel/module/internal.h
-> index e2d49122c2a1..e22837d3ac76 100644
-> --- a/kernel/module/internal.h
-> +++ b/kernel/module/internal.h
-> @@ -338,6 +338,7 @@ void module_mark_ro_after_init(const Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
->  			       const char *secstrings);
->  
->  int module_sig_check(struct load_info *info, const u8 *sig, size_t sig_len);
-> +int module_hash_check(struct load_info *info, const u8 *sig, size_t sig_len);
->  
->  #ifdef CONFIG_DEBUG_KMEMLEAK
->  void kmemleak_load_module(const struct module *mod, const struct load_info *info);
-> diff --git a/kernel/module/main.c b/kernel/module/main.c
-> index 2a28a0ece809..fa30b6387936 100644
-> --- a/kernel/module/main.c
-> +++ b/kernel/module/main.c
-> @@ -3362,8 +3362,10 @@ static int module_integrity_check(struct load_info *info, int flags)
->  
->  	if (IS_ENABLED(CONFIG_MODULE_SIG) && sig_type == PKEY_ID_PKCS7) {
->  		err = module_sig_check(info, sig, sig_len);
-> +	} else if (IS_ENABLED(CONFIG_MODULE_HASHES) && sig_type == PKEY_ID_MERKLE) {
-> +		err = module_hash_check(info, sig, sig_len);
->  	} else {
-> -		pr_err("module: not signed with expected PKCS#7 message\n");
-> +		pr_err("module: not signed with signature mechanism\n");
->  		err = -ENOPKG;
+This commit introduce a RCU version for single table freeing to support
+PT_RECLAIM. While it is not necessary to limit the RCU version only in
+CONFIG_PT_RECLAIM. It is reasonable to asynchronous free single table by
+RCU if CONFIG_MMU_GATHER_RCU_TABLE_FREE.
 
-To prevent others from running into the same issue:
+This patch moves the definition of single table freeing in
+CONFIG_MMU_GATHER_RCU_TABLE_FREE, so we have both RCU version
+batch/single table freeing if CONFIG_MMU_GATHER_RCU_TABLE_FREE.
 
-My first test got stuck here, as I tested with virtme-ng, which symlinks
-modules from build tree to /lib/modules/$(uname -r)/..., resulting in
+Signed-off-by: Wei Yang <richard.weiyang@gmail.com>
+Cc: Qi Zheng <qi.zheng@linux.dev>
+Cc: "David Hildenbrand (Arm)" <david@kernel.org>
+---
+ mm/mmu_gather.c | 51 +++++++++++++++++++++----------------------------
+ 1 file changed, 22 insertions(+), 29 deletions(-)
 
-    [   15.956855] module: not signed with signature mechanism
-    modprobe: ERROR: could not insert 'efivarfs': Package not installed
-
-As the modules_install step was missing, modules were not being signed.
-
-
-[...]
-> diff --git a/scripts/modules-merkle-tree.c b/scripts/modules-merkle-tree.c
-> new file mode 100644
-> index 000000000000..a6ec0e21213b
-> --- /dev/null
-> +++ b/scripts/modules-merkle-tree.c
-> @@ -0,0 +1,467 @@
-> +// SPDX-License-Identifier: GPL-2.0-or-later
-> +/*
-> + * Compute hashes for modules files and build a merkle tree.
-> + *
-> + * Copyright (C) 2025 Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
-> + * Copyright (C) 2025 Thomas Weiﬂschuh <linux@weissschuh.net>
-> + *
-> + */
-> +#define _GNU_SOURCE 1
-> +#include <arpa/inet.h>
-> +#include <err.h>
-> +#include <unistd.h>
-> +#include <fcntl.h>
-> +#include <stdarg.h>
-> +#include <stdio.h>
-> +#include <string.h>
-> +#include <stdbool.h>
-> +#include <stdlib.h>
-> +
-> +#include <sys/stat.h>
-> +#include <sys/mman.h>
-> +
-> +#include <openssl/evp.h>
-> +#include <openssl/err.h>
-> +
-> +#include "ssl-common.h"
-> +
-> +static int hash_size;
-> +static EVP_MD_CTX *ctx;
-> +
-> +struct module_signature {
-> +	uint8_t		algo;		/* Public-key crypto algorithm [0] */
-> +	uint8_t		hash;		/* Digest algorithm [0] */
-> +	uint8_t		id_type;	/* Key identifier type [PKEY_ID_PKCS7] */
-> +	uint8_t		signer_len;	/* Length of signer's name [0] */
-> +	uint8_t		key_id_len;	/* Length of key identifier [0] */
-> +	uint8_t		__pad[3];
-> +	uint32_t	sig_len;	/* Length of signature data */
-> +};
-> +
-> +#define PKEY_ID_MERKLE 3
-> +
-> +static const char magic_number[] = "~Module signature appended~\n";
-
-This here will be the forth definition of struct module_signature,
-increasing the risk of unwanted diversion.  I second Petr's suggestion
-to reuse a _common_ definition instead.
-
-(Here, even include/linux/module_signature.h could be included itself.)
-
-> +
-> +struct file_entry {
-> +	char *name;
-> +	unsigned int pos;
-> +	unsigned char hash[EVP_MAX_MD_SIZE];
-> +};
-> +
-> +static struct file_entry *fh_list;
-> +static size_t num_files;
-> +
-> +struct leaf_hash {
-> +	unsigned char hash[EVP_MAX_MD_SIZE];
-> +};
-> +
-> +struct mtree {
-> +	struct leaf_hash **l;
-> +	unsigned int *entries;
-> +	unsigned int levels;
-> +};
-> +
-> +static inline void *xcalloc(size_t n, size_t size)
-> +{
-> +	void *p;
-> +
-> +	p = calloc(n, size);
-> +	if (!p)
-> +		errx(1, "Memory allocation failed");
-> +
-> +	return p;
-> +}
-> +
-> +static void *xmalloc(size_t size)
-> +{
-> +	void *p;
-> +
-> +	p = malloc(size);
-> +	if (!p)
-> +		errx(1, "Memory allocation failed");
-> +
-> +	return p;
-> +}
-> +
-> +static inline void *xreallocarray(void *oldp, size_t n, size_t size)
-> +{
-> +	void *p;
-> +
-> +	p = reallocarray(oldp, n, size);
-> +	if (!p)
-> +		errx(1, "Memory allocation failed");
-> +
-> +	return p;
-> +}
-> +
-> +static inline char *xasprintf(const char *fmt, ...)
-> +{
-> +	va_list ap;
-> +	char *strp;
-> +	int ret;
-> +
-> +	va_start(ap, fmt);
-> +	ret = vasprintf(&strp, fmt, ap);
-> +	va_end(ap);
-> +	if (ret == -1)
-> +		err(1, "Memory allocation failed");
-> +
-> +	return strp;
-> +}
-
-Please consider moving these x* functions into scripts/include/xalloc.h
-for reuse.  (I am sure someone else wrote this already, but I can't find
-it...)
-
-> 
-> 
-
-thanks for all your efforts for reproducibility!
-
-As I have no clue about that:  Is the patent for merkle trees [1] a
-problem when integrating that here?
-
-Can you verify if I get the mechanics roughly correct?
-
-  * Modules are merkle tree leaves.  Modules are built and logically
-    paired by the order from modules.order; a single left-over module is
-    paired with itself.
-
-  * Hashes of paired modules are hashed again (branch node hash);
-    hashes of pairs of branch nodes' hashes are hashed again;
-    repeat until we reach the single merkle tree root hash
-
-  * The final merkle tree root hash (and the count of tree levels) is
-    included in vmlinux
-
-
-'make && find . -name '*.ko' -exec rm {} \; && make' does not rebuild
-the in-tree modules.  Shifting the module-hashes support from
-scripts/link-vmlinux.sh to scripts/Makefile.vmlinux might (make it
-easier) to fix this again.
-
-Kind regards,
-Nicolas
-
-
-
-[1]: https://worldwide.espacenet.com/patent/search/family/022107098/publication/US4309569A?q=pn%3DUS4309569
-
-
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index fe5b6a031717..6c1cbd9c717b 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -296,6 +296,22 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+ 	call_rcu(&batch->rcu, tlb_remove_table_rcu);
+ }
+ 
++static inline void __tlb_remove_table_one_rcu(struct rcu_head *head)
++{
++	struct ptdesc *ptdesc;
++
++	ptdesc = container_of(head, struct ptdesc, pt_rcu_head);
++	__tlb_remove_table(ptdesc);
++}
++
++static inline void tlb_remove_table_one(void *table)
++{
++	struct ptdesc *ptdesc;
++
++	ptdesc = table;
++	call_rcu(&ptdesc->pt_rcu_head, __tlb_remove_table_one_rcu);
++}
++
+ #else /* !CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+ 
+ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+@@ -303,6 +319,12 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+ 	__tlb_remove_table_free(batch);
+ }
+ 
++static inline void tlb_remove_table_one(void *table)
++{
++	tlb_remove_table_sync_one();
++	__tlb_remove_table(table);
++}
++
+ #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+ 
+ /*
+@@ -320,35 +342,6 @@ static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+ 	}
+ }
+ 
+-#ifdef CONFIG_PT_RECLAIM
+-static inline void __tlb_remove_table_one_rcu(struct rcu_head *head)
+-{
+-	struct ptdesc *ptdesc;
+-
+-	ptdesc = container_of(head, struct ptdesc, pt_rcu_head);
+-	__tlb_remove_table(ptdesc);
+-}
+-
+-static inline void __tlb_remove_table_one(void *table)
+-{
+-	struct ptdesc *ptdesc;
+-
+-	ptdesc = table;
+-	call_rcu(&ptdesc->pt_rcu_head, __tlb_remove_table_one_rcu);
+-}
+-#else
+-static inline void __tlb_remove_table_one(void *table)
+-{
+-	tlb_remove_table_sync_one();
+-	__tlb_remove_table(table);
+-}
+-#endif /* CONFIG_PT_RECLAIM */
+-
+-static void tlb_remove_table_one(void *table)
+-{
+-	__tlb_remove_table_one(table);
+-}
+-
+ static void tlb_table_flush(struct mmu_gather *tlb)
+ {
+ 	struct mmu_table_batch **batch = &tlb->batch;
 -- 
-Nicolas
+2.34.1
+
