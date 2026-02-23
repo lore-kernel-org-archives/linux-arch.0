@@ -1,253 +1,368 @@
-Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 04272314D14
-	for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 17:43:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.214.173
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771868599; cv=pass; b=hnspuOb2onKj0gtu+ZacaUHvDeGye99QZz4ReHnVUvCIgL9N9wf8DAURJaSqcRgGLwWuF2Grs07PonXLlMbtqDI3r/Y58JK8/WOEbTOTT6KBS/L9qHh2CYq+VuMetOU7mkULRjP9VaZVsiAkYxIuHXcX85HYiqsxn1ap4dRNApQ=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771868599; c=relaxed/simple;
-	bh=UpLPt/oB8+XkGfOx/1ojVQnuH+pIsA+hVmjvI/oayfA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Na5ceKi6jip5eWXorqfnTXSqMfRpFa1shVQuXowdYucNEZeIxFJ7k7qzZKH/uU/diRb9+/EM8Uo9jS4ztBT0rNCZwgzEp7hkJDjeAiS5b5oR/jC+3RHqy0JuwvmtYPs9qK68KnVWa2esAXNtdOgz/0s7tDr0v0wS0W/ctRwP07I=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=oU7sspAc; arc=pass smtp.client-ip=209.85.214.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 559FD30DD22;
+	Mon, 23 Feb 2026 18:42:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1771872132; cv=none; b=FUxaZkREEU01lWl2fCAHhx6GkWnUI+l9yvzFMxnH4UvKtZsQh/YX9o3PsT0QieSkI92rzdFZ8ox2ae+ZRXqBD8GGFVROBhpuEQYF25L0m1/XG3YZUzLyRZYUD7wN7v6+hbMlFHsAZBmc7YfFexNPIN99drlfXb+7wO9RoixDCt8=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1771872132; c=relaxed/simple;
+	bh=rCHmm/zok/ZHYhXcvb3BF39F3olQG5YTVbanELl+Bew=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=c7l8HQrLPMKg39v9o714OkOzuveT/8XrREaQfH4Jc/9xXG6W+Zgo2npQdiTu/9JQ5K8bmlMottfT389CGc0Mnyi3WbBX58yKcEZfPjky0Kp1sKkzo7KzyAGYhQYDVxp5bzK96sy887D2w1+FkyAF/d3VjtOgVisP1d9ie8LFdMY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DK8QjHK0; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="oU7sspAc"
-Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-2a964077671so3045ad.0
-        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 09:43:17 -0800 (PST)
-ARC-Seal: i=1; a=rsa-sha256; t=1771868597; cv=none;
-        d=google.com; s=arc-20240605;
-        b=YSfM9ZadnynBnCl/0BS/FM8wf0fyUTQSH2Ra/uidiWDOBqRfIc9DR5pFDbmenCs3Hy
-         Z3tUp1VPIpM7A/1wLKS/G1LpamQSX5X87AOuLTyaNXlbb1GipOWBmDpFqosn1iID/Ewr
-         SnpqTRYMjHWMa67oGXJv2BRwWdrwIrlx171SR8iQcBVRWRga88t/Bx28iDr9CueSRVal
-         m8048sqiTRo1LFBW/CQbmcL2MHY9vff8OANrNNN38kqGbPf2Iq6MqWym0xn9+ZKziniA
-         gIUHj+IfBvEymm4GA7F+nlR/quscat7PfTE7cQw5gos7dLVYwszTJFPZJ9FE9vtOM9Hm
-         ktog==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=nchrh37I6wEN3HEejFjQWq3au44qPr6w+TKeLWlYsk4=;
-        fh=G8xhl5OfVyBQYNJTG1qEpd1ZiEc21IiB46ELSxAmWwY=;
-        b=f3VhHYgbVV5Zhdc7ZGcxbJHZ4gO2SvbFd483VE1Fjjj8Rz9WOxG0jQGM+daatDJ0iS
-         uQowjqdx6W+q+PvS8zP5htBRDXs43MA0HB8PAjI670D2d8qggYedKQnv4GOUjV2eUMuc
-         E3i37L17AHcIkIwLCRy7ibuQ9i/zb4NOZIAliIw4L+zbtR2VGzXTOijjk6RKLr419O4Q
-         KQYRo6PLFMduSRFhFbwF4SP7aSJ6RoRoqqtUTrl6I2BFB7HSMu3XBHDswm/5b2XCofSM
-         OAjjv9k9/huuPWB39GJIoGMcci0G0LbZKmcfHzt9J01A7FJyr9iC/ffuHY6D+tnBPP/U
-         QriA==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1771868597; x=1772473397; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=nchrh37I6wEN3HEejFjQWq3au44qPr6w+TKeLWlYsk4=;
-        b=oU7sspAck7q1pvjMGUrZdRlERrBobRxNJZi7LJnBFhNdpx9agMPji5/xUBYW4d2l3G
-         y8ChJcUXkTNRJ05LIgpEu6cfBV8JR+97GPv13w9qGcGRqOZRAFYyev9KjgJuTr6wZyU6
-         R3dyG+01wu5S7a8El8Oe7Qne4SgBYkouMVQBHAbrhE+YN2awOrs+ddt++ETLt2GQPfCS
-         Ejzab//HHSv4+qWbpoBvRqQt4Aw3Jz46JGjWRuaS+2RFUBKWtvJEU3kPsn/Lwz0kxDsb
-         SchTAE7RrRB13iT/f4ZDiHE/N+97RVPggzCERjexkBQGZqaDephNN7lf92jHxMSi3PZd
-         5RDA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1771868597; x=1772473397;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=nchrh37I6wEN3HEejFjQWq3au44qPr6w+TKeLWlYsk4=;
-        b=w/EqGY48PLG8E6aVgTKYK4Eaj03anNMC7ovYT5zCz2hEk0dWKsyUvAw2jz093vw35j
-         E3JO0POyiHUCIQcXeUXmcgokZrk8p3UobDfPoIdNOVBqKt7gPNN1qeuB1oeb6Oa/5BI4
-         QIMvqYn7xEBm3RuCCYxonadvz7XedmmjRFGdFPRa5mKgkAcJQjOrJnZRUu/FtdumcqvF
-         4KUko7bBeC1petvztaLf+6QTBB+boMBgpohOackay7O30WbsTIj0HgccGFNSaFtI9BhX
-         Wv5DjAMze65qRmOsLxagfuSiEDXYeRD8u9DkxxsT5bDT+t5XGmUgKCEFi8Medj7TpeXj
-         /rmQ==
-X-Forwarded-Encrypted: i=1; AJvYcCUJJunISTJODzzTwQBQ2ou330QN3QR1Tf2xkkeH/3+EjVOQVp9HiFmkquidGoGhUjoQbZs2NroUN9ep@vger.kernel.org
-X-Gm-Message-State: AOJu0YxJGZbH8sd5fAGvrf5taw8/7pNccaKfHDjUbUB9ZAWYDtgC2NUO
-	RM92BZKaPx5V+lECkP4dZ4A8vnNnvMfNS7vEcgcmv3fe5npv0tz6at3iH3JfSvR0MHHZdC7LJyN
-	vI7NIbApc6RQMW5TATVcmQm+GPz5URF2VwgpXGgFM
-X-Gm-Gg: ATEYQzyCWVlCUXTMznMJN6ei/0UCvFp+vgG74E1Ah2ew+ByB6XxzpCGK2jIUpK7Fy7i
-	bbPdOuiU1XFYwCJC7NuDgKaVzPRM619mccfj6L16PkmV1Zcp1nvJ2aBlL2e2WRCfxUvwethSvIq
-	wwStNwwJe9iFUn131Us8OA5f6Hcbt4hRyMpZsc1eKPzrNTfCHLVjITvhE/XvnBY4QXWEweFi/kt
-	B1VlKrusUimGctmic3yfvly+Xc6TzNjwf1Wy00bjq5Bgik4QIhHmIULZ7/RrcoEBQtKr1vT3b9O
-	TC4xQTTQB+jusENL3h7juNJzMEiBrvNEvs0=
-X-Received: by 2002:a17:903:1746:b0:2a3:cd98:f07 with SMTP id
- d9443c01a7336-2ad75ce8893mr2648175ad.3.1771868596848; Mon, 23 Feb 2026
- 09:43:16 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DK8QjHK0"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 709E6C116C6;
+	Mon, 23 Feb 2026 18:42:11 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1771872132;
+	bh=rCHmm/zok/ZHYhXcvb3BF39F3olQG5YTVbanELl+Bew=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=DK8QjHK0ArTdo0esgtiCQsgDKxZaepF19ebhrRv6gpMnFJmkZCUOY/vBwLWk4S0Hr
+	 jeE98gLGcP4Ym2xfc5E0GjYCF7QA4hl2VSMouUR0B0gX7MBSqWFfe3Dv5RT/06FG7k
+	 pOYexreZSggTeyisgt2W7jyCfdEf0q8MOj8/XK/IX7x2+LGL00UVWk7MhGMWy2u/VD
+	 FKEVZdxFzPp3vAbavWlo04c/BnGbugnbetDM37BSzKhHz6mH4PUbnePbGYFQjNZLvK
+	 Tvsoyfb0adJkDjOy4pnS6Uq/oZLqlCqjKueb+LTn1Z9620sBfpD62Ed4clE8B5gBoZ
+	 8aXhrmCuJp56w==
+Date: Mon, 23 Feb 2026 19:41:52 +0100
+From: Nicolas Schier <nsc@kernel.org>
+To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
+Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
+Message-ID: <aZyfcDCWOBJJztQ2@levanger>
+Mail-Followup-To: Nicolas Schier <nsc@kernel.org>,
+	Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+ <aZol1Rsa2tX-WNaZ@derry.ads.avm.de>
+ <0d70db8d-702b-46ec-a010-298fe6515aab@t-8ch.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
- <CAC_TJvcaJdEzK8n9BK0qgEXdzjzXtbA_Zk-ybfmG8kjNExVCzw@mail.gmail.com> <fqabaahjjlmoc2xh4cwh4ykbqyu3rnzvjw5epxi5wwpmgqth7f@d3mqpjozwmo4>
-In-Reply-To: <fqabaahjjlmoc2xh4cwh4ykbqyu3rnzvjw5epxi5wwpmgqth7f@d3mqpjozwmo4>
-From: Kalesh Singh <kaleshsingh@google.com>
-Date: Mon, 23 Feb 2026 09:43:03 -0800
-X-Gm-Features: AaiRm50m9UYvsRrMNZGeDJldRqqXCjwlRuVa1vgsK31xKBtD7H4yIH2DN8vqIDQ
-Message-ID: <CAC_TJvdRsfzYohiKW=82N8Ofi5V26rX1GS0M8HeaX6CEsgc+PA@mail.gmail.com>
-Subject: Re: [PATCH v3 00/22] Add support for shared PTEs across processes
-To: Pedro Falcato <pfalcato@suse.de>
-Cc: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-mm@kvack.org, 
-	akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de, bp@alien8.de, 
-	brauner@kernel.org, bsegall@google.com, corbet@lwn.net, 
-	dave.hansen@linux.intel.com, david@redhat.com, dietmar.eggemann@arm.com, 
-	ebiederm@xmission.com, hpa@zytor.com, jakub.wartak@mailbox.org, 
-	jannh@google.com, juri.lelli@redhat.com, khalid@kernel.org, 
-	liam.howlett@oracle.com, linyongting@bytedance.com, 
-	lorenzo.stoakes@oracle.com, luto@kernel.org, markhemm@googlemail.com, 
-	maz@kernel.org, mhiramat@kernel.org, mgorman@suse.de, mhocko@suse.com, 
-	mingo@redhat.com, muchun.song@linux.dev, neilb@suse.de, osalvador@suse.de, 
-	pcc@google.com, peterz@infradead.org, rostedt@goodmis.org, rppt@kernel.org, 
-	shakeel.butt@linux.dev, surenb@google.com, tglx@linutronix.de, 
-	vasily.averin@linux.dev, vbabka@suse.cz, vincent.guittot@linaro.org, 
-	viro@zeniv.linux.org.uk, vschneid@redhat.com, willy@infradead.org, 
-	x86@kernel.org, xhao@linux.alibaba.com, linux-doc@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <0d70db8d-702b-46ec-a010-298fe6515aab@t-8ch.de>
 
-On Sat, Feb 21, 2026 at 4:40=E2=80=AFAM Pedro Falcato <pfalcato@suse.de> wr=
-ote:
->
-> On Fri, Feb 20, 2026 at 01:35:58PM -0800, Kalesh Singh wrote:
-> > On Tue, Aug 19, 2025 at 6:57=E2=80=AFPM Anthony Yznaga
-> > <anthony.yznaga@oracle.com> wrote:
-> > >
-> > > Memory pages shared between processes require page table entries
-> > > (PTEs) for each process. Each of these PTEs consume some of
-> > > the memory and as long as the number of mappings being maintained
-> > > is small enough, this space consumed by page tables is not
-> > > objectionable. When very few memory pages are shared between
-> > > processes, the number of PTEs to maintain is mostly constrained by
-> > > the number of pages of memory on the system. As the number of shared
-> > > pages and the number of times pages are shared goes up, amount of
-> > > memory consumed by page tables starts to become significant. This
-> > > issue does not apply to threads. Any number of threads can share the
-> > > same pages inside a process while sharing the same PTEs. Extending
-> > > this same model to sharing pages across processes can eliminate this
-> > > issue for sharing across processes as well.
-> > >
-> > > <snip>
-> > Hi Anthony,
-> >
-> > Thanks for continuing to push this forward, and apologies for joining
-> > this discussion late. I am likely missing some context from the
-> > various previous iterations of this feature, but I'd like to throw
-> > another use case into the mix to be considered around the design of
-> > the sharing API.
-> >
-> > We are exploring a similar optimization for Android to reduce page
-> > table overhead. In Android, we preload many ELF mappings in the Zygote
-> > process to help application launch times. Since the Zygote model is
-> > fork-but-no-exec, all applications inherit these mappings, which can
-> > result in upwards of 200 MB of redundant page table overhead per
-> > device.
->
-> This can be solved by simply not using the Zygote model :p Or perhaps
-> MADV_DONTNEED/straight up unmapping libraries you don't need in the child=
-'s
-> side.
+On Mon, Feb 23, 2026 at 08:53:29AM +0100, Thomas Weiﬂschuh wrote:
+> On 2026-02-21 22:38:29+0100, Nicolas Schier wrote:
+> > On Tue, Jan 13, 2026 at 01:28:59PM +0100, Thomas Weiﬂschuh wrote:
+> > > The current signature-based module integrity checking has some drawbacks
+> > > in combination with reproducible builds. Either the module signing key
+> > > is generated at build time, which makes the build unreproducible, or a
+> > > static signing key is used, which precludes rebuilds by third parties
+> > > and makes the whole build and packaging process much more complicated.
+> > > 
+> > > The goal is to reach bit-for-bit reproducibility. Excluding certain
+> > > parts of the build output from the reproducibility analysis would be
+> > > error-prone and force each downstream consumer to introduce new tooling.
+> > > 
+> > > Introduce a new mechanism to ensure only well-known modules are loaded
+> > > by embedding a merkle tree root of all modules built as part of the full
+> > > kernel build into vmlinux.
+> > > 
+> > > Non-builtin modules can be validated as before through signatures.
+> > > 
+> > > Normally the .ko module files depend on a fully built vmlinux to be
+> > > available for modpost validation and BTF generation. With
+> > > CONFIG_MODULE_HASHES, vmlinux now depends on the modules
+> > > to build a merkle tree. This introduces a dependency cycle which is
+> > > impossible to satisfy. Work around this by building the modules during
+> > > link-vmlinux.sh, after vmlinux is complete enough for modpost and BTF
+> > > but before the final module hashes are
+> > > 
+> > > The PKCS7 format which is used for regular module signatures can not
+> > > represent Merkle proofs, so a new kind of module signature is
+> > > introduced. As this signature type is only ever used for builtin
+> > > modules, no compatibility issues can arise.
+> > > 
+> > > Signed-off-by: Thomas Weiﬂschuh <linux@weissschuh.net>
+> > > ---
+> > >  .gitignore                                   |   1 +
+> > >  Documentation/kbuild/reproducible-builds.rst |   5 +-
+> > >  Makefile                                     |   8 +-
+> > >  include/asm-generic/vmlinux.lds.h            |  11 +
+> > >  include/linux/module_hashes.h                |  25 ++
+> > >  include/linux/module_signature.h             |   1 +
+> > >  kernel/module/Kconfig                        |  21 +-
+> > >  kernel/module/Makefile                       |   1 +
+> > >  kernel/module/hashes.c                       |  92 ++++++
+> > >  kernel/module/hashes_root.c                  |   6 +
+> > >  kernel/module/internal.h                     |   1 +
+> > >  kernel/module/main.c                         |   4 +-
+> > >  scripts/.gitignore                           |   1 +
+> > >  scripts/Makefile                             |   3 +
+> > >  scripts/Makefile.modfinal                    |  11 +
+> > >  scripts/Makefile.modinst                     |  13 +
+> > >  scripts/Makefile.vmlinux                     |   5 +
+> > >  scripts/link-vmlinux.sh                      |  14 +-
+> > >  scripts/modules-merkle-tree.c                | 467 +++++++++++++++++++++++++++
+> > >  security/lockdown/Kconfig                    |   2 +-
+> > >  20 files changed, 685 insertions(+), 7 deletions(-)
+> > > 
+> > [...]
+> > 
+> > > diff --git a/kernel/module/hashes_root.c b/kernel/module/hashes_root.c
+> > > new file mode 100644
+> > > index 000000000000..1abfcd3aa679
+> > > --- /dev/null
+> > > +++ b/kernel/module/hashes_root.c
+> > > @@ -0,0 +1,6 @@
+> > > +// SPDX-License-Identifier: GPL-2.0-or-later
+> > > +
+> > > +#include <linux/module_hashes.h>
+> > > +
+> > > +/* Blank dummy data. Will be overridden by link-vmlinux.sh */
+> > > +const struct module_hashes_root module_hashes_root __module_hashes_section = {};
+> > > diff --git a/kernel/module/internal.h b/kernel/module/internal.h
+> > > index e2d49122c2a1..e22837d3ac76 100644
+> > > --- a/kernel/module/internal.h
+> > > +++ b/kernel/module/internal.h
+> > > @@ -338,6 +338,7 @@ void module_mark_ro_after_init(const Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
+> > >  			       const char *secstrings);
+> > >  
+> > >  int module_sig_check(struct load_info *info, const u8 *sig, size_t sig_len);
+> > > +int module_hash_check(struct load_info *info, const u8 *sig, size_t sig_len);
+> > >  
+> > >  #ifdef CONFIG_DEBUG_KMEMLEAK
+> > >  void kmemleak_load_module(const struct module *mod, const struct load_info *info);
+> > > diff --git a/kernel/module/main.c b/kernel/module/main.c
+> > > index 2a28a0ece809..fa30b6387936 100644
+> > > --- a/kernel/module/main.c
+> > > +++ b/kernel/module/main.c
+> > > @@ -3362,8 +3362,10 @@ static int module_integrity_check(struct load_info *info, int flags)
+> > >  
+> > >  	if (IS_ENABLED(CONFIG_MODULE_SIG) && sig_type == PKEY_ID_PKCS7) {
+> > >  		err = module_sig_check(info, sig, sig_len);
+> > > +	} else if (IS_ENABLED(CONFIG_MODULE_HASHES) && sig_type == PKEY_ID_MERKLE) {
+> > > +		err = module_hash_check(info, sig, sig_len);
+> > >  	} else {
+> > > -		pr_err("module: not signed with expected PKCS#7 message\n");
+> > > +		pr_err("module: not signed with signature mechanism\n");
+> > >  		err = -ENOPKG;
+> > 
+> > To prevent others from running into the same issue:
+> > 
+> > My first test got stuck here, as I tested with virtme-ng, which symlinks
+> > modules from build tree to /lib/modules/$(uname -r)/..., resulting in
+> > 
+> >     [   15.956855] module: not signed with signature mechanism
+> >     modprobe: ERROR: could not insert 'efivarfs': Package not installed
+> > 
+> > As the modules_install step was missing, modules were not being signed.
+> 
+> Currently the signing is deferred to installation time to keep in sync
+> with regular module signing and to keep the logic simpler by not having
+> to gracefully handle previously-signed files.
+> But this could be changed.
 
-I think that's a separate topic, but that model is used on billions of
-client devices :) The common runtime for apps and other core system
-code is preloaded to significantly reduce app startup latencies.
+I did not want to suggest changing the behaviour, that would make things
+more complicated to prevent needless rebuilds.  I just wanted to mention
+it here to prevent others from burning time.
 
->
-> >
-> > I believe that managing a pseudo-filesystem (msharefs) and mapping via
-> > ioctl during process creation could introduce overhead that impacts
-> > app startup latency. Ideally, child apps shouldn't be aware of this
-> > sharing or need to manage the pseudo-filesystem on their end. To
-> > achieve this "transparent" sharing, I would prefer Khalid's previous
-> > API from his 2022 RFC [1]. By attaching the shared mm directly to the
-> > file's address_space and exposing a MAP_SHARED_PT flag, child apps
-> > could transparently inherit the shared page tables during fork().
->
-> So, we've discussed this before. I initially liked this idea a lot more.
-> However, there are a couple of problems here:
->
-> 1) mshare (as in the mshare feature) isn't really aiming for transparent =
-here.
-> There is e.g a specific need to setup an mshare region, with a few files/=
-anon
-> there, and then later mprotect/munmap parts of the region - and have it a=
-pply
-> on every process that has it mapped. This is why we're aiming for differe=
-nt
-> system calls (not ioctls anymore), doing munmap(mshare_reg, 4096) is ambi=
-guous
-> as to whether you want to unmap the mshare VMA, or a VMA inside the mshar=
-e mm.
+> > [...]
+> > > diff --git a/scripts/modules-merkle-tree.c b/scripts/modules-merkle-tree.c
+> > > new file mode 100644
+> > > index 000000000000..a6ec0e21213b
+> > > --- /dev/null
+> > > +++ b/scripts/modules-merkle-tree.c
+> > > @@ -0,0 +1,467 @@
+> > > +// SPDX-License-Identifier: GPL-2.0-or-later
+> > > +/*
+> > > + * Compute hashes for modules files and build a merkle tree.
+> > > + *
+> > > + * Copyright (C) 2025 Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+> > > + * Copyright (C) 2025 Thomas Weiﬂschuh <linux@weissschuh.net>
+> > > + *
+> > > + */
+> > > +#define _GNU_SOURCE 1
+> > > +#include <arpa/inet.h>
+> > > +#include <err.h>
+> > > +#include <unistd.h>
+> > > +#include <fcntl.h>
+> > > +#include <stdarg.h>
+> > > +#include <stdio.h>
+> > > +#include <string.h>
+> > > +#include <stdbool.h>
+> > > +#include <stdlib.h>
+> > > +
+> > > +#include <sys/stat.h>
+> > > +#include <sys/mman.h>
+> > > +
+> > > +#include <openssl/evp.h>
+> > > +#include <openssl/err.h>
+> > > +
+> > > +#include "ssl-common.h"
+> > > +
+> > > +static int hash_size;
+> > > +static EVP_MD_CTX *ctx;
+> > > +
+> > > +struct module_signature {
+> > > +	uint8_t		algo;		/* Public-key crypto algorithm [0] */
+> > > +	uint8_t		hash;		/* Digest algorithm [0] */
+> > > +	uint8_t		id_type;	/* Key identifier type [PKEY_ID_PKCS7] */
+> > > +	uint8_t		signer_len;	/* Length of signer's name [0] */
+> > > +	uint8_t		key_id_len;	/* Length of key identifier [0] */
+> > > +	uint8_t		__pad[3];
+> > > +	uint32_t	sig_len;	/* Length of signature data */
+> > > +};
+> > > +
+> > > +#define PKEY_ID_MERKLE 3
+> > > +
+> > > +static const char magic_number[] = "~Module signature appended~\n";
+> > 
+> > This here will be the forth definition of struct module_signature,
+> > increasing the risk of unwanted diversion.  I second Petr's suggestion
+> > to reuse a _common_ definition instead.
+> 
+> Ack.
+> 
+> > (Here, even include/linux/module_signature.h could be included itself.)
+> 
+> I'd like to avoid including internal headers from other components.
+> We could move it to an UAPI header. Various other subsystems use those
+> for not-really-UAPI but still ABI definitions.
 
-Since we are interested in sharing text here, how does this play with
-stuff like symbolization for call stacks? I believe this is another
-reason where we might want to avoid mapping the pseudo mshare file
-wrapper?
+Yeah, ack.
 
->
-> 2) Sharing the page table at all (even worse so, Transparently(tm)) is a =
-huge
-> pain. TLB shootdown becomes much harder, and rmap as-is isn't suited to d=
-eal
-> with this case. The way things are going with mshare, the container mm wi=
-ll
-> have one single entry in rmap, and then actually doing the shootdown is a
-> huuuuge pain (which, fwiw, will probably need a per-mshare TLB workaround=
-),
-> because you need to find out and shoot down _every_ mm that has these tab=
-les
+> (...)
+> 
+> > > +static inline char *xasprintf(const char *fmt, ...)
+> > > +{
+> > > +	va_list ap;
+> > > +	char *strp;
+> > > +	int ret;
+> > > +
+> > > +	va_start(ap, fmt);
+> > > +	ret = vasprintf(&strp, fmt, ap);
+> > > +	va_end(ap);
+> > > +	if (ret == -1)
+> > > +		err(1, "Memory allocation failed");
+> > > +
+> > > +	return strp;
+> > > +}
+> > 
+> > Please consider moving these x* functions into scripts/include/xalloc.h
+> > for reuse.  (I am sure someone else wrote this already, but I can't find
+> > it...)
+> 
+> Petr suggested it somewhere, it is done for the next revision.
+> 
+> > thanks for all your efforts for reproducibility!
+> > 
+> > As I have no clue about that:  Is the patent for merkle trees [1] a
+> > problem when integrating that here?
+> 
+> That should have expired a long time ago [2].
+> And fs-verity is also using merkle trees.
 
-I agree the TLB shootdowns would be a pain. Perhaps, if there was a
-concept of a shared ASID/PCID in the hardware, that would make things
-less so ...
+Great, thanks.
 
-> mapped. And then, naturally, since you're sharing page tables, doing A/D =
-bit
-> collection on these becomes extremely useless - and that will naturally p=
-ose
-> problems to the reclaim process if you abuse it.
 
-I think in the use case I described, it would mostly be sharing
-MAP_PRIVATE stuff, and the access bit should still apply for global
-reclaim. However, I agree it becomes difficult to reason especially if
-you throw memcgs into the mix.
+> > Can you verify if I get the mechanics roughly correct?
+> > 
+> >   * Modules are merkle tree leaves.  Modules are built and logically
+> >     paired by the order from modules.order; a single left-over module is
+> >     paired with itself.
+> > 
+> >   * Hashes of paired modules are hashed again (branch node hash);
+> >     hashes of pairs of branch nodes' hashes are hashed again;
+> >     repeat until we reach the single merkle tree root hash
+> > 
+> >   * The final merkle tree root hash (and the count of tree levels) is
+> >     included in vmlinux
+> 
+> The merkle tree code was written by Sebastian so he will have the best
+> knowledge about it. But this is also my understanding.
 
-Thanks,
-Kalesh
+I'd like to see some (rough) description in Documentation or in a commit
+message at least, otherwise future me will have to ask that again.
 
->
-> 3) other misc problems that make it hard to work transparently (VMA align=
-ment,
-> levels which you may or may not want to share, you need to revisit most p=
-age
-> table walkers in the kernel to get a completely transparent feature, etc)
->
-> >
-> > Regarding David's and Matthew's discussion on VMA-modifying functions,
-> > I would lean towards the standard VMA manipulating APIs should be
-> > preferred over custom ioctls to preserve transparency for user-space.
-> > Perhaps whether or not these modifications persist across all sharing
-> > processes needs to be configurable? It seems that for database
-> > workloads, having the updates reflected everywhere would be the
-> > desired behavior. In the use case described for Android, we don't want
-> > apps to be able to modify these shared ELF mappings. To handle this,
-> > it's likely we would do something like mseal() the VMAs in the dynamic
-> > loader before forking.
->
-> mshare_mseal!
->
-> >
-> > Perhaps we could decouple the core sharing logic from the sharing API
-> > itself? Since the sharing interface seems one of  the main areas where
-> > we don't have a good consensus yet, perhaps we could land the core
-> > sharing logic first. Keeping the core infrastructure generic would
->
-> I think the core infrastructure is relatively generic (at least the
-> small core mm modifications to get this to even work) already, but
-> perhaps Anthony can comment on that.
->
-> --
-> Pedro
+
+> > 'make && find . -name '*.ko' -exec rm {} \; && make' does not rebuild
+> > the in-tree modules.  Shifting the module-hashes support from
+> > scripts/link-vmlinux.sh to scripts/Makefile.vmlinux might (make it
+> > easier) to fix this again.
+> 
+> I'll take a look at it.
+
+Thanks!
+
+Kind regards,
+Nicolas
+
+
+
+> > [1]: https://worldwide.espacenet.com/patent/search/family/022107098/publication/US4309569A?q=pn%3DUS4309569
+> 
+> [2] https://patents.stackexchange.com/questions/17901/validity-of-patent-on-merkle-trees
+> 
+> 
+> Thomas
+
+-- 
+Nicolas
