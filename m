@@ -1,141 +1,140 @@
-Received: from out-174.mta1.migadu.com (out-174.mta1.migadu.com [95.215.58.174])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.13])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0FCC313543
-	for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 16:30:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.174
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5271B313539;
+	Mon, 23 Feb 2026 16:33:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.13
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771864230; cv=none; b=m515JxA4GHoxlonndTeVAJyzFzs1MTTToktaZ9VaQUCJDgXEa1D6v1SFkFNndIZR5+dhoss5yiqFb/SkRungecO5Nnip0YimVjHMJYLAYVRJ82N/nvmWIdQnKT9s4m65wLp1yyyOqXTx8gNAS3GnXVQVKwFHTmNf8vV6axCq5v0=
+	t=1771864395; cv=none; b=UtDXxBQyUV3lNYWg5lGtDOkzM3aWkjCURoCyeG6jpUOHIPVJx9XPBPuUvQJWmWHtBkoDzSdz62smZwTu9OU5wyBv32qcVHuYdQuZZL8k5/dZMxS9xb2IypCSNtsgfgO2eQM9wWvFAvpzEDKADrItmUMUWZ9bsXNVgNXzqS3GzJQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771864230; c=relaxed/simple;
-	bh=scfm+VtYnK2rI2ku6ej5GIPYPo5Ncct3We+3xFtsKao=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=M62RHYo9O+Simho69zF1xoqDIod1bkgtduBQDk6XP2vyg4FOU/ZNnGp9gFswr9WO+b+TT+RH7pbDoBsJeobKFG+QLMVvtRXvBZX+VLeJEjRua92nRnVd9nFz0Y5URUHqo6pWvaU94LzRiVez7sPzBUt+9Qogtum9oTgRAfSJPpI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=LyOU3zaz; arc=none smtp.client-ip=95.215.58.174
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1771864395; c=relaxed/simple;
+	bh=Lx3d4xCCjQqM4hNnnOHqhZ8wgehpmy9M0RqpkyDnTVI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=tq6xcnQ8yfEVqHYjENDXHpbmMw6nlHYgXgCCTKmEaGcS1EMuYYxt9+wL0l3UMNkDdDFq1uH9g/40Zji/ja94/jbWzxTuY6mMY0MS0JD/jUzKywiPdI+7xUv4BfwqpLVmpTttk2G8Ke2xulA8seKCQnt7vB56BsKv/bbbVFiILU0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=RbVgKdin; arc=none smtp.client-ip=192.198.163.13
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="LyOU3zaz"
-Message-ID: <1373db93-3977-425f-ad59-5970e7e50b48@linux.dev>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1771864226;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=ARqOYR9ga5SHWqbWk98YZPj49IHJaMAkP4feff8FaFI=;
-	b=LyOU3zazNaudEi4Z5JNNsUHEUe1xivKzD5sznztk3Sd2AXdXKzTXp3uS54+r+pYexQEYNZ
-	Mpiv8YDQm0nICVFPgZtHj/ozvxeDFIkzs/FuBiu36EdcaluQG+q8cTLVsMMFg0RxomVQ/2
-	2kWQhdLcAzKl3aM+QOwTK0nDBUcG1yw=
-Date: Tue, 24 Feb 2026 00:29:29 +0800
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="RbVgKdin"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1771864393; x=1803400393;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=Lx3d4xCCjQqM4hNnnOHqhZ8wgehpmy9M0RqpkyDnTVI=;
+  b=RbVgKdin5k0nOa4HFFL1/iWa1oHoI6xfuA880M76MiopqObWHb9LekNB
+   n16nRFCeVZKEV9L+h8XdBiQiuhhkOhBbLUaGHd+Sg4PWx8EHdeKckE8Dn
+   kTVZSXiBOvEIxeh7prWkiQnXD5beRv/ditPdlE01dRUTsD9OyWxmE7+Uz
+   FqS1IQ89m5QmRwT+xik/aFtGRoMFmhV3x5Y6JZFDltnAZamtA+7/ncwPy
+   wEtkRFpr5dizWPsgquliSfx+XZHHd9D5HMxzhgstLfVhs7de8NvTxYyHF
+   Nh8Vxh4Jkx5lldPkSOnKdSnO37SNN3ROML+WCQjtGpDf6kVZV3bRFcTgJ
+   g==;
+X-CSE-ConnectionGUID: Cr+AFm8URAq2RF3kH4o7bw==
+X-CSE-MsgGUID: 68ALZjEXTDCpWzNUgVKNPg==
+X-IronPort-AV: E=McAfee;i="6800,10657,11710"; a="75473023"
+X-IronPort-AV: E=Sophos;i="6.21,307,1763452800"; 
+   d="scan'208";a="75473023"
+Received: from fmviesa010.fm.intel.com ([10.60.135.150])
+  by fmvoesa107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 08:33:13 -0800
+X-CSE-ConnectionGUID: 5eDstWmVSTuQYmT8trOspg==
+X-CSE-MsgGUID: xW3CMIadS5CwrtommhN3PQ==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.21,307,1763452800"; 
+   d="scan'208";a="213951680"
+Received: from lkp-server02.sh.intel.com (HELO a3936d6a266d) ([10.239.97.151])
+  by fmviesa010.fm.intel.com with ESMTP; 23 Feb 2026 08:33:10 -0800
+Received: from kbuild by a3936d6a266d with local (Exim 4.98.2)
+	(envelope-from <lkp@intel.com>)
+	id 1vuYrr-000000000XF-2ez3;
+	Mon, 23 Feb 2026 16:33:07 +0000
+Date: Tue, 24 Feb 2026 00:32:45 +0800
+From: kernel test robot <lkp@intel.com>
+To: Jori Koolstra <jkoolstra@xs4all.nl>, jlayton@kernel.org,
+	chuck.lever@oracle.com, alex.aring@gmail.com,
+	viro@zeniv.linux.org.uk, brauner@kernel.org, jack@suse.cz,
+	arnd@arndb.de, linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: oe-kbuild-all@lists.linux.dev, jkoolstra@xs4all.nl
+Subject: Re: [PATCH] Add support for empty path in openat and openat2 syscalls
+Message-ID: <202602240038.MTqLbuRR-lkp@intel.com>
+References: <20260223151652.582048-1-jkoolstra@xs4all.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
- when batch allocation fails
-Content-Language: en-US
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org,
- will@kernel.org, david@kernel.org
-References: <2a6c4e62-1663-4a98-9adc-406a6a1ebfd3@kernel.org>
- <20260223125826.28207-1-lance.yang@linux.dev>
- <a0c434c4-ec65-4a37-9422-5614249124bc@intel.com>
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Lance Yang <lance.yang@linux.dev>
-In-Reply-To: <a0c434c4-ec65-4a37-9422-5614249124bc@intel.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-X-Migadu-Flow: FLOW_OUT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260223151652.582048-1-jkoolstra@xs4all.nl>
+
+Hi Jori,
+
+kernel test robot noticed the following build errors:
+
+[auto build test ERROR on brauner-vfs/vfs.all]
+[also build test ERROR on linus/master v7.0-rc1 next-20260220]
+[cannot apply to arnd-asm-generic/master]
+[If your patch is applied to the wrong git tree, kindly drop us a note.
+And when submitting patch, we suggest to use '--base' as documented in
+https://git-scm.com/docs/git-format-patch#_base_tree_information]
+
+url:    https://github.com/intel-lab-lkp/linux/commits/Jori-Koolstra/Add-support-for-empty-path-in-openat-and-openat2-syscalls/20260223-232002
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git vfs.all
+patch link:    https://lore.kernel.org/r/20260223151652.582048-1-jkoolstra%40xs4all.nl
+patch subject: [PATCH] Add support for empty path in openat and openat2 syscalls
+config: alpha-allnoconfig (https://download.01.org/0day-ci/archive/20260224/202602240038.MTqLbuRR-lkp@intel.com/config)
+compiler: alpha-linux-gcc (GCC) 15.2.0
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260224/202602240038.MTqLbuRR-lkp@intel.com/reproduce)
+
+If you fix the issue in a separate patch/commit (i.e. not just a new version of
+the same patch/commit), kindly add following tags
+| Reported-by: kernel test robot <lkp@intel.com>
+| Closes: https://lore.kernel.org/oe-kbuild-all/202602240038.MTqLbuRR-lkp@intel.com/
+
+All errors (new ones prefixed by >>):
+
+   In file included from <command-line>:
+   fs/fcntl.c: In function 'fcntl_init':
+>> include/linux/compiler_types.h:705:45: error: call to '__compiletime_assert_393' declared with attribute error: BUILD_BUG_ON failed: 21 - 1 != HWEIGHT32( (VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) | __FMODE_EXEC)
+     705 |         _compiletime_assert(condition, msg, __compiletime_assert_, __COUNTER__)
+         |                                             ^
+   include/linux/compiler_types.h:686:25: note: in definition of macro '__compiletime_assert'
+     686 |                         prefix ## suffix();                             \
+         |                         ^~~~~~
+   include/linux/compiler_types.h:705:9: note: in expansion of macro '_compiletime_assert'
+     705 |         _compiletime_assert(condition, msg, __compiletime_assert_, __COUNTER__)
+         |         ^~~~~~~~~~~~~~~~~~~
+   include/linux/build_bug.h:39:37: note: in expansion of macro 'compiletime_assert'
+      39 | #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
+         |                                     ^~~~~~~~~~~~~~~~~~
+   include/linux/build_bug.h:50:9: note: in expansion of macro 'BUILD_BUG_ON_MSG'
+      50 |         BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
+         |         ^~~~~~~~~~~~~~~~
+   fs/fcntl.c:1172:9: note: in expansion of macro 'BUILD_BUG_ON'
+    1172 |         BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
+         |         ^~~~~~~~~~~~
 
 
+vim +/__compiletime_assert_393 +705 include/linux/compiler_types.h
 
-On 2026/2/23 23:31, Dave Hansen wrote:
-> On 2/23/26 04:58, Lance Yang wrote:
-> ...
->> +/**
->> + * tlb_remove_table_sync_rcu() - synchronize with software page-table walkers
->> + *
->> + * Like tlb_remove_table_sync_one() but uses RCU grace period instead of IPI
->> + * broadcast. Should be used in slow paths where sleeping is acceptable.
-> 
-> Just a nit on comments: Use imperative voice:
-> 
-> 	... Use in slow paths where sleeping is acceptable.
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  691  
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  692  #define _compiletime_assert(condition, msg, prefix, suffix) \
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  693  	__compiletime_assert(condition, msg, prefix, suffix)
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  694  
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  695  /**
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  696   * compiletime_assert - break build and emit msg if condition is false
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  697   * @condition: a compile-time constant condition to check
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  698   * @msg:       a message to emit if condition is false
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  699   *
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  700   * In tradition of POSIX assert, this macro will break the build if the
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  701   * supplied condition is *false*, emitting the supplied error message if the
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  702   * compiler has support to do so.
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  703   */
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  704  #define compiletime_assert(condition, msg) \
+eb5c2d4b45e3d2d Will Deacon 2020-07-21 @705  	_compiletime_assert(condition, msg, __compiletime_assert_, __COUNTER__)
+eb5c2d4b45e3d2d Will Deacon 2020-07-21  706  
 
-Okay, thanks.
-
->> + * Software/Lockless page-table walkers use local_irq_disable(), which is also
->> + * an RCU read-side critical section. synchronize_rcu() waits for all such
->> + * sections, providing the same guarantee as tlb_remove_table_sync_one() but
->> + * without disrupting all CPUs with IPIs.
-> 
-> Yep, synchronize_rcu() is likely slower (longer wall clock time) but
-> less disruptive to other CPUs.
-> 
-> Is it worth explaining here that this should be used when code really
-> needs to _wait_ and *not* for freeing memory? Freeing memory should use
-> RCU callbacks that don't cause latency spikes in this thread, not this.
-
-Good point! Worth clarifying. Something like:
-
-Note: Use this when code really needs to wait for synchronization,
-*not* for freeing memory. Memory freeing should use RCU callbacks
-that don't cause latency spikes in this thread.
-
->> + * Context: Can sleep/block. Cannot be called from any atomic context.
-> 
-> As a general rule, expressing constraints like this is best done in
-> code, not comments, so:
-> 
-> 	might_sleep();
-> or
-> 	WARN_ON_ONCE(!in_atomic());
-> 
-> seem appropriate.
-> 
-> I didn't see any obvious warning like that in the top levels of
-> synchronize_rcu().
-
-Yep, synchronize_rcu() does call might_sleep() internally:
-
-synchronize_rcu()
-   -> synchronize_rcu_normal()
-     -> wait_rcu_gp()      -> __wait_rcu_gp()
-         -> might_sleep()
-But adding an explicit might_sleep() here makes the constraint
-more obvious. I'll add it :)
-
->> +static void tlb_remove_table_sync_rcu(void)
->> +{
->> +	synchronize_rcu();
->> +}
->> +
->>   #else /* !CONFIG_MMU_GATHER_RCU_TABLE_FREE */
->>
->>   static void tlb_remove_table_free(struct mmu_table_batch *batch)
->> @@ -303,6 +321,10 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
->>   	__tlb_remove_table_free(batch);
->>   }
->>
->> +static void tlb_remove_table_sync_rcu(void)
->> +{
->> +}
->> +
->>   #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
-> This seems a _little_ dangerous to even define. We don't want this
-> sneaking into use when it doesn't do anything.
-
-This follows the same pattern as tlb_remove_table_sync_one(), which
-also has an empty stub in the !CONFIG_MMU_GATHER_RCU_TABLE_FREE path.
-
-It should be in tlb.h like tlb_remove_table_sync_one(). Will put
-it there.
-
-
-Thanks,
-Lance
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
