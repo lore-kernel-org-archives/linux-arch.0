@@ -1,77 +1,94 @@
-Received: from mail-ej1-f53.google.com (mail-ej1-f53.google.com [209.85.218.53])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EAF5535FF6E
-	for <linux-arch@vger.kernel.org>; Sun, 22 Feb 2026 23:51:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.53
+Received: from invmail4.hynix.com (exvmail4.skhynix.com [166.125.252.92])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id D3ED626ADC;
+	Mon, 23 Feb 2026 00:33:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=166.125.252.92
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771804267; cv=none; b=SKaVFPln+bULJfOV/ug4qkSlhemLefqbn6slH/l8WU28UQNkBr7B7jEHDGQCsr1yGYibpDltfJsIn4CExpt18Jfec/hNgOJgRElD1Bt3X9jcu7y7G6yt50l4WMsQ4IFXv/1t7TKXzbI8iCmC5EnY5weaun92Ww83Xtiz6ygKDdY=
+	t=1771806823; cv=none; b=MouFHGiR8wU4OwkYjBcYdextIjodswNe5/oc7kS7Lo6DHFIaoGSZgF5lqWCetde1dERstTxFIpSVLOG8YhqsebRFoqzbvURpa2NdI8yDAiBtM3gKCDd6W9tIrqSDmRURomPWpyePg8URvEQhey+8y8Ehwg70z6UUx0IqG6CWYoI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771804267; c=relaxed/simple;
-	bh=yoNlxJY0XAmABPdtJI93ljCjOK0bXGtkNbiu+bg8Mvg=;
+	s=arc-20240116; t=1771806823; c=relaxed/simple;
+	bh=Empke4UdsPxxKAiOLj2ALTMJhcJk2XqsTNT04XmtesE=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=RPuOs1RvWHK9he23ctykQI99jx3/P3h9FP2JyqM6Tpy00QVZJedwyS1xQdBlEZRTvl64B6E97qv2wepKQLUnIH/E13o5tqb39kKE+4txc/+9HZ3izPft7zpUanid98h2/At22+528dN9L8TtUGgZahUtzb8srZajrYcrA24sxnY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=lEAmGaoh; arc=none smtp.client-ip=209.85.218.53
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="lEAmGaoh"
-Received: by mail-ej1-f53.google.com with SMTP id a640c23a62f3a-b8f8f2106f1so515509166b.2
-        for <linux-arch@vger.kernel.org>; Sun, 22 Feb 2026 15:51:05 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1771804264; x=1772409064; darn=vger.kernel.org;
-        h=user-agent:in-reply-to:content-disposition:mime-version:references
-         :reply-to:message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=a3DenEUfvzZ4Gn6BP0nDuZ8nQgEdkOBl43ceISWkWLE=;
-        b=lEAmGaoh3oh6X+hwTOBbw8e/UJBBEnDMO1KTFfEk7+BXNQyZsq1l3Hr3l2w3AG9YUk
-         rg78KILVK0VW66D5N+xp7kZq5eOrMrE85lQW1/BPY9GPN9I4Qs5XXCBMK7Z+tByLEiNP
-         unGSc2yybWceX8dHbwgMMD3QNo0w7gUDcnvcP3pBxVBETza4nZTmHxbH20lLqio8zh+q
-         gsJTBOEtX3fZ2KEH0ZKmjny/hXOxVP2Rub4kmEtBjntSIr5nFMM3OIMGJDI6FuSePVJ0
-         cDIh8lPgk4BUkVkxGFYZUiK2uaSjom78s3moEhv9xKYzkJ1glz6uPn66v45KyrDnu6PM
-         hhnw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1771804264; x=1772409064;
-        h=user-agent:in-reply-to:content-disposition:mime-version:references
-         :reply-to:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=a3DenEUfvzZ4Gn6BP0nDuZ8nQgEdkOBl43ceISWkWLE=;
-        b=O3uKW/rUekmZEQpFX/f7hI1Hsj95x0trhqYEQHKr40Nd7P8AFr3G2AWeE9hxS4lc77
-         c1pxY2CFigyHSlvhVAxNczAMZH+1PWZQmwz6sv6FTHL4cNlmEIFxNrs0RnL1nuOpw+6T
-         C+5sU3wjOA1LEmat4sQf7YDkPL+Z/rq/WhgxfoDK/eo4TnuIk6XG39AEeVUGuFyoVifH
-         dANEaCCLHBOIwYsYjNI41fHq/qTWpqb8wHQSycvE7WdfDiptFnq4y8ofJo2akEbBArDY
-         o0kydMPwWQvWKxgDD8VO7c7r0nfJFH0XRgrA/sOCxMGixn5s3/8RA7sr2ITIkqv4Mo31
-         YJsg==
-X-Forwarded-Encrypted: i=1; AJvYcCXc96HUs90H+NSMADPhfWRkE4nqcqCXmatib9/NwKsMg5reCafTwVJn+VLhZd/wG/tCNJCZgDrXT5qG@vger.kernel.org
-X-Gm-Message-State: AOJu0YzoIcN0BLUTv002NW6hcoUmHggmqskerwz58L87I2ZUDhxbfOwG
-	dHs34+hvV3qzF5m7St1G9E593lN8UBWIPI84Kxa/zadXIx8ObTKad5p8wqzPmQ==
-X-Gm-Gg: AZuq6aKQAWJhZFOyUVjeatJlsVShcoqaJkD8ZjZ9MGq6jCJf7uK/wha2DfjVQVWlGp1
-	tqXGilmOL1g5TmeTw06sO0DRb74CnDQ0S4FvgPh0VV2uttBfmH6ZCrGMhD58zY97YQ15ZdO6b8d
-	h0S9/v3wTJk9zcEY+SO4q/9EPGQjcPlV1/oHDycocgCKzcLsbLn7DNbf4vU5doXKJ960kyTTJFW
-	J6+/ja2KkxsGnXNW9ykk83Gioc6E04p5YcyaADjWXM7Mw3fCgXNOPW6zSD3yymr89cXE1VlpAgr
-	JnDLsQZYkS1PmV0c25CPfXmXEFbH5pNEGAhMrBI/hg8q+meTUv+aYxtsGQic2xobrOSkpzPlzy/
-	fCDyn1COShgWKjT6a7PtxoyEtYq1Bc54LqnlnpJpaYBvatjyHukudYkBvMjozaFOosOzgUEM9QD
-	qbR/mKIvZ25wzt7syhmzJR0g==
-X-Received: by 2002:a17:907:1ca5:b0:b8f:a32d:b90e with SMTP id a640c23a62f3a-b9096709ef4mr238666166b.34.1771804264073;
-        Sun, 22 Feb 2026 15:51:04 -0800 (PST)
-Received: from localhost ([185.92.221.13])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b9084c824a3sm263031566b.21.2026.02.22.15.51.03
-        (version=TLS1_2 cipher=ECDHE-ECDSA-CHACHA20-POLY1305 bits=256/256);
-        Sun, 22 Feb 2026 15:51:03 -0800 (PST)
-Date: Sun, 22 Feb 2026 23:51:03 +0000
-From: Wei Yang <richard.weiyang@gmail.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Wei Yang <richard.weiyang@gmail.com>, will@kernel.org,
-	aneesh.kumar@kernel.org, npiggin@gmail.com, peterz@infradead.org,
-	linux-arch@vger.kernel.org, linux-mm@kvack.org,
-	Qi Zheng <qi.zheng@linux.dev>,
-	"David Hildenbrand (Arm)" <david@kernel.org>
-Subject: Re: [PATCH] mm/mmu_gather: define RCU version tlb_remove_table_one()
- in CONFIG_MMU_GATHER_RCU_TABLE_FREE
-Message-ID: <20260222235103.firb34hgaddqsc2i@master>
-Reply-To: Wei Yang <richard.weiyang@gmail.com>
-References: <20260222004512.839-1-richard.weiyang@gmail.com>
- <20260222114201.095379dd766b68dcecbab1c5@linux-foundation.org>
+	 Content-Type:Content-Disposition:In-Reply-To; b=VOIIM7tZIEohDCqt6ehbSZ6OzD3nE2rp4C5B8iPHcMMUzA8xqc6H6WaTAPIruSSdPEUbzHyAP3OLZjFzd8pXCuY6FzBHOMua2V6AhXIC/e8Y1BDSkzc3Yu4E840qlHWzy603GnGWL7Bng4QP6VAAMCkCWGbdARJl7uxi8HddCUo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com; spf=pass smtp.mailfrom=sk.com; arc=none smtp.client-ip=166.125.252.92
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=sk.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sk.com
+X-AuditID: a67dfc5b-c45ff70000001609-4c-699ba05f2957
+Date: Mon, 23 Feb 2026 09:33:30 +0900
+From: Byungchul Park <byungchul@sk.com>
+To: Petr Pavlu <petr.pavlu@suse.com>
+Cc: kernel_team@skhynix.com, torvalds@linux-foundation.org,
+	damien.lemoal@opensource.wdc.com, linux-ide@vger.kernel.org,
+	adilger.kernel@dilger.ca, linux-ext4@vger.kernel.org,
+	mingo@redhat.com, peterz@infradead.org, will@kernel.org,
+	tglx@linutronix.de, rostedt@goodmis.org, joel@joelfernandes.org,
+	sashal@kernel.org, daniel.vetter@ffwll.ch, duyuyang@gmail.com,
+	johannes.berg@intel.com, tj@kernel.org, tytso@mit.edu,
+	willy@infradead.org, david@fromorbit.com, amir73il@gmail.com,
+	gregkh@linuxfoundation.org, kernel-team@lge.com, linux-mm@kvack.org,
+	akpm@linux-foundation.org, mhocko@kernel.org, minchan@kernel.org,
+	hannes@cmpxchg.org, vdavydov.dev@gmail.com, sj@kernel.org,
+	jglisse@redhat.com, dennis@kernel.org, cl@linux.com,
+	penberg@kernel.org, rientjes@google.com, vbabka@suse.cz,
+	ngupta@vflare.org, linux-block@vger.kernel.org,
+	josef@toxicpanda.com, linux-fsdevel@vger.kernel.org, jack@suse.cz,
+	jlayton@kernel.org, dan.j.williams@intel.com, hch@infradead.org,
+	djwong@kernel.org, dri-devel@lists.freedesktop.org,
+	rodrigosiqueiramelo@gmail.com, melissa.srw@gmail.com,
+	hamohammed.sa@gmail.com, harry.yoo@oracle.com,
+	chris.p.wilson@intel.com, gwan-gyeong.mun@intel.com,
+	max.byungchul.park@gmail.com, boqun.feng@gmail.com,
+	longman@redhat.com, yunseong.kim@ericsson.com, ysk@kzalloc.com,
+	yeoreum.yun@arm.com, netdev@vger.kernel.org,
+	matthew.brost@intel.com, her0gyugyu@gmail.com, corbet@lwn.net,
+	catalin.marinas@arm.com, bp@alien8.de, x86@kernel.org,
+	hpa@zytor.com, luto@kernel.org, sumit.semwal@linaro.org,
+	gustavo@padovan.org, christian.koenig@amd.com,
+	andi.shyti@kernel.org, arnd@arndb.de, lorenzo.stoakes@oracle.com,
+	Liam.Howlett@oracle.com, rppt@kernel.org, surenb@google.com,
+	mcgrof@kernel.org, da.gomez@kernel.org, samitolvanen@google.com,
+	paulmck@kernel.org, frederic@kernel.org, neeraj.upadhyay@kernel.org,
+	joelagnelf@nvidia.com, josh@joshtriplett.org, urezki@gmail.com,
+	mathieu.desnoyers@efficios.com, jiangshanlai@gmail.com,
+	qiang.zhang@linux.dev, juri.lelli@redhat.com,
+	vincent.guittot@linaro.org, dietmar.eggemann@arm.com,
+	bsegall@google.com, mgorman@suse.de, vschneid@redhat.com,
+	chuck.lever@oracle.com, neil@brown.name, okorniev@redhat.com,
+	Dai.Ngo@oracle.com, tom@talpey.com, trondmy@kernel.org,
+	anna@kernel.org, kees@kernel.org, bigeasy@linutronix.de,
+	clrkwllms@kernel.org, mark.rutland@arm.com, ada.coupriediaz@arm.com,
+	kristina.martsenko@arm.com, wangkefeng.wang@huawei.com,
+	broonie@kernel.org, kevin.brodsky@arm.com, dwmw@amazon.co.uk,
+	shakeel.butt@linux.dev, ast@kernel.org, ziy@nvidia.com,
+	yuzhao@google.com, baolin.wang@linux.alibaba.com,
+	usamaarif642@gmail.com, joel.granados@kernel.org,
+	richard.weiyang@gmail.com, geert+renesas@glider.be,
+	tim.c.chen@linux.intel.com, linux@treblig.org,
+	alexander.shishkin@linux.intel.com, lillian@star-ark.net,
+	chenhuacai@kernel.org, francesco@valla.it,
+	guoweikang.kernel@gmail.com, link@vivo.com, jpoimboe@kernel.org,
+	masahiroy@kernel.org, brauner@kernel.org,
+	thomas.weissschuh@linutronix.de, oleg@redhat.com, mjguzik@gmail.com,
+	andrii@kernel.org, wangfushuai@baidu.com, linux-doc@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-media@vger.kernel.org,
+	linaro-mm-sig@lists.linaro.org, linux-i2c@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	rcu@vger.kernel.org, linux-nfs@vger.kernel.org,
+	linux-rt-devel@lists.linux.dev, 2407018371@qq.com, dakr@kernel.org,
+	miguel.ojeda.sandonis@gmail.com, neilb@ownmail.net,
+	bagasdotme@gmail.com, wsa+renesas@sang-engineering.com,
+	dave.hansen@intel.com, geert@linux-m68k.org, ojeda@kernel.org,
+	alex.gaynor@gmail.com, gary@garyguo.net, bjorn3_gh@protonmail.com,
+	lossin@kernel.org, a.hindborg@kernel.org, aliceryhl@google.com,
+	tmgross@umich.edu, rust-for-linux@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v18 34/42] dept: add module support for struct
+ dept_event_site and dept_event_site_dep
+Message-ID: <20260223003330.GB44876@system.software.com>
+References: <20251205071855.72743-1-byungchul@sk.com>
+ <20251205071855.72743-35-byungchul@sk.com>
+ <7afb6666-43b6-4d17-b875-e585c7a5ac99@suse.com>
+ <20260213055006.GA55430@system.software.com>
+ <7765df86-b08a-4f70-900d-4b4d85c07d49@suse.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -80,37 +97,220 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260222114201.095379dd766b68dcecbab1c5@linux-foundation.org>
-User-Agent: NeoMutt/20170113 (1.7.2)
+In-Reply-To: <7765df86-b08a-4f70-900d-4b4d85c07d49@suse.com>
+User-Agent: Mutt/1.9.4 (2018-02-28)
+X-Brightmail-Tracker: H4sIAAAAAAAAA02SbUxbVRjHPffce3tpqLnWLR4h0a1ojOjQ6WKebI26D8b7ZZHMxWwzy9bJ
+	zWhWXiwMh/GFkTE7XBBLKK4MZei6SkvGypi8j9EA1tEUSp1lg7UspbVhgHZjhLSAvRjjvjz5
+	5X9++T/Ph8NhZQObxmnzi0V9vkanYuW0fC61acuhxnrtq1c6N8FkIMTAuUt2FgKLBgRL8XoM
+	FZ1rNDxYvi0D05gRg3/0Gob7rasszDpjCOqiJ2hYsJxBEB18F+YC3QysTUUosIRWKVgxHYUf
+	mtqSqukvFuJuD4a62lEEsWgQQa+1nIWZ6nYM46HHwVX7NQvzrSw0lvcy0FBvRNAZ7JLB2GyC
+	gkmTkQKbYxcELGEablQ3UVDb0k3BsqVZBvXucQYS01vBdecmA7NhY/L44VMM/FIWlIFjYhDB
+	A980BYauRRp6b70E50/9RENPr4uGoY67FIx3nWPhTGs7A3fsawx4baM0XIr4KXCZf6bhtvsb
+	GXi6Whi48McYBdNBPwNt7hEMLfNNLNTMhxHMPrTgt3OEpYoqWqjwrrCC/Xs7Eiqqk8N5bwEL
+	F27cY4Vv3VuETvOUTDjZd0smNDqOCW3WTOHHniglOJpPs4IjZpQJ5+N/YqFyzkdlZ+6Xq3NE
+	nbZE1L/y5iF5brjqMi6ceON4x2R2GfruxUqUwhF+G/mqz05VIm6dR5ycFNP888TWV4UkZvkX
+	iN+/jCVlA/8c8d7dWYnkHOZNzxBXm4GRnCd5HXHW/L1eo+CB2GMbpVjJLyLinnhPYgX/BHGd
+	DdESYz6T+Fej6zrm08nFVU7CFF5N5gaflYyNfAbpvzpMSZsIH04hM2dj6N+DnybXrX66GvHm
+	R1rNj7Sa/29tRLgZKbX5JXkarW5bVm5pvvZ41kcFeQ6U/LSWzxMfdqDY6PsDiOeQKlXRv2DW
+	KhlNSVFp3gAiHFZtUMTjyUiRoyn9VNQXHNQf04lFAyido1VPKV57+EmOkj+iKRaPimKhqP/v
+	leJS0spQzcXI6Z0a9UrDO+URT6jQMLX5A+Tbv08ZGPY4bTvSfAePBKeyjCM96ScHUq/byIli
+	9b7X72//LD6z6ctd1w7Evyioae5+2fqYujbbuofvX0lEfmUMDsvu3Ycz9k7u3X7TGPmNqTJ4
+	NzMRQ6Juj29HyONVfuxsX4rHhtIPDGW89buKLsrVbM3E+iLNP7WxGd+wAwAA
+X-Brightmail-Tracker: H4sIAAAAAAAAA02SfUwbdRjHfe53vR6NZ86ubOeImnU2TsxejM48iXNxxrhzZnPinHFZ3Kq7
+	SEMpWzvZGDECtVrREKhpGe3QilIXqG5rGY4tVUIdAweRDiegvGym1hFgnUBZoJTaMzHunyff
+	53k+n+T542GJel6xkjWYDktmk96oZVS0asdT1rX7vB7Dhrn4/Wi3vYfDY1EF/lreTmNi1k7j
+	iVN+BlOe75RoD9QpsGuggsa+b5sBxxJ2wNtJD0FbW5rGlKNTibPzvyvRWQ6YDnUCuiIOgoN9
+	PxD0t5RTOHN6icGJ8DSg83qUwdrxchrjvk8A3TGPEscvbsWpsQsKTI/8ReHA3CSgL7pEYbT9
+	Q8CUqwA/bwhmdNctBpO9PxOsdfYBfnF9hOD0+DXAls5RwNDJCgb/rD5LsD96D/6SiDPY7fyY
+	wanICQpvnmbQWxFSYKRnArDe4wCM/Rai0PrlKQZd9QEa266dV2JkYpHCYZeDwubAdhzzxWi8
+	XN1AZc7NUGdWoKfWSmXKDQqd31ygcN7XpHymEcTbtipabAq2UqLtSooR/Z/5QUwuOECcbbQS
+	0VadacOTcSK+HzwiNl6eZMSFxFVGDM15afGnBkH86qMFSqzpXSu2uUeUO7fsUW06IBkNxZJ5
+	/eb9qvxY1RlycOjJo+eGd5bB8UcqgWUF/gmhJ8xWQhZL8zqh+fsqkDPDPywMDs4TGdHwDwlX
+	/thSCSqW8K4HhO6gXSEzy3ijEP70b0pmOB4F/3S2PFbzCRB6h16SM8ffK3TXRWk5Ez5XGFwa
+	/xcnfI7w9RIrxyx+kzB18UGZyOZXC+2tl6hq4Nx3yO47ZPf/shdIE2gMpuJCvcG4cZ2lIL/E
+	ZDi67q2iwgBkHtL37mLNOZjt39oBPAvau7lb93kMaoW+2FJS2AECS7QaLpl0G9TcAX3JMclc
+	tM/8jlGydEAOS2tXcNtek/ar+bf1h6UCSToomf/bUmzWyjJ481i6LLZo1nj7D63GILf8lR6z
+	LlTwslN/12R6d9zZ0jXQym6eXnboyO6hIrixUTHzqu+F0tIPXr/KWbcnt+19uk633vNjIO/x
+	Ndl5nGn5s6N7F3TdeaZHzz9X6grtmtmVU3Pp+eNrVrV0rdqjC2t6TcWjG07mvng2MpBqrLe9
+	kU7f1NKWfP1jucRs0f8DOc5IfIwDAAA=
+X-CFilter-Loop: Reflected
 
-On Sun, Feb 22, 2026 at 11:42:01AM -0800, Andrew Morton wrote:
->On Sun, 22 Feb 2026 00:45:12 +0000 Wei Yang <richard.weiyang@gmail.com> wrote:
->
->> Before commit 718b13861d22 ("x86: mm: free page table pages by RCU
->> instead of semi RCU"), the page table pages will be freed by semi RCU,
->> that is:
->> 
->>   - batch table freeing: asynchronous free by RCU
->>   - single table freeing: IPI + synchronous free
->> 
->> This commit introduce a RCU version for single table freeing to support
->> PT_RECLAIM. While it is not necessary to limit the RCU version only in
->> CONFIG_PT_RECLAIM. It is reasonable to asynchronous free single table by
->> RCU if CONFIG_MMU_GATHER_RCU_TABLE_FREE.
->> 
->> This patch moves the definition of single table freeing in
->> CONFIG_MMU_GATHER_RCU_TABLE_FREE, so we have both RCU version
->> batch/single table freeing if CONFIG_MMU_GATHER_RCU_TABLE_FREE.
->
->What are the expected (and measured!) benefits of this?
->
+On Wed, Feb 18, 2026 at 04:08:19PM +0100, Petr Pavlu wrote:
+> On 2/13/26 6:50 AM, Byungchul Park wrote:
+> > On Wed, Jan 07, 2026 at 01:19:00PM +0100, Petr Pavlu wrote:
+> >> On 12/5/25 8:18 AM, Byungchul Park wrote:
+> >>> struct dept_event_site and struct dept_event_site_dep have been
+> >>> introduced to track dependencies between multi event sites for a single
+> >>> wait, that will be loaded to data segment.  Plus, a custom section,
+> >>> '.dept.event_sites', also has been introduced to keep pointers to the
+> >>> objects to make sure all the event sites defined exist in code.
+> >>>
+> >>> dept should work with the section and segment of module.  Add the
+> >>> support to handle the section and segment properly whenever modules are
+> >>> loaded and unloaded.
+> >>>
+> >>> Signed-off-by: Byungchul Park <byungchul@sk.com>
+> >>
+> >> Below are a few comments from the module loader perspective.
+> >
+> > Sorry about the late reply.  I've been going through some major life
+> > changes lately. :(
+> >
+> > Thank you sooooo~ much for your helpful feedback.  I will leave my
+> > opinion below.
+> >
+> [...]
+> >>> diff --git a/kernel/dependency/dept.c b/kernel/dependency/dept.c
+> >>> index b14400c4f83b..07d883579269 100644
+> >>> --- a/kernel/dependency/dept.c
+> >>> +++ b/kernel/dependency/dept.c
+> >>> @@ -984,6 +984,9 @@ static void bfs(void *root, struct bfs_ops *ops, void *in, void **out)
+> >>>   * event sites.
+> >>>   */
+> >>>
+> >>> +static LIST_HEAD(dept_event_sites);
+> >>> +static LIST_HEAD(dept_event_site_deps);
+> >>> +
+> >>>  /*
+> >>>   * Print all events in the circle.
+> >>>   */
+> >>> @@ -2043,6 +2046,33 @@ static void del_dep_rcu(struct rcu_head *rh)
+> >>>       preempt_enable();
+> >>>  }
+> >>>
+> >>> +/*
+> >>> + * NOTE: Must be called with dept_lock held.
+> >>> + */
+> >>> +static void disconnect_event_site_dep(struct dept_event_site_dep *esd)
+> >>> +{
+> >>> +     list_del_rcu(&esd->dep_node);
+> >>> +     list_del_rcu(&esd->dep_rev_node);
+> >>> +}
+> >>> +
+> >>> +/*
+> >>> + * NOTE: Must be called with dept_lock held.
+> >>> + */
+> >>> +static void disconnect_event_site(struct dept_event_site *es)
+> >>> +{
+> >>> +     struct dept_event_site_dep *esd, *next_esd;
+> >>> +
+> >>> +     list_for_each_entry_safe(esd, next_esd, &es->dep_head, dep_node) {
+> >>> +             list_del_rcu(&esd->dep_node);
+> >>> +             list_del_rcu(&esd->dep_rev_node);
+> >>> +     }
+> >>> +
+> >>> +     list_for_each_entry_safe(esd, next_esd, &es->dep_rev_head, dep_rev_node) {
+> >>> +             list_del_rcu(&esd->dep_node);
+> >>> +             list_del_rcu(&esd->dep_rev_node);
+> >>> +     }
+> >>> +}
+> >>> +
+> >>>  /*
+> >>>   * NOTE: Must be called with dept_lock held.
+> >>>   */
+> >>> @@ -2384,6 +2414,8 @@ void dept_free_range(void *start, unsigned int sz)
+> >>>  {
+> >>>       struct dept_task *dt = dept_task();
+> >>>       struct dept_class *c, *n;
+> >>> +     struct dept_event_site_dep *esd, *next_esd;
+> >>> +     struct dept_event_site *es, *next_es;
+> >>>       unsigned long flags;
+> >>>
+> >>>       if (unlikely(!dept_working()))
+> >>> @@ -2405,6 +2437,24 @@ void dept_free_range(void *start, unsigned int sz)
+> >>>       while (unlikely(!dept_lock()))
+> >>>               cpu_relax();
+> >>>
+> >>> +     list_for_each_entry_safe(esd, next_esd, &dept_event_site_deps, all_node) {
+> >>> +             if (!within((void *)esd, start, sz))
+> >>> +                     continue;
+> >>> +
+> >>> +             disconnect_event_site_dep(esd);
+> >>> +             list_del(&esd->all_node);
+> >>> +     }
+> >>> +
+> >>> +     list_for_each_entry_safe(es, next_es, &dept_event_sites, all_node) {
+> >>> +             if (!within((void *)es, start, sz) &&
+> >>> +                 !within(es->name, start, sz) &&
+> >>> +                 !within(es->func_name, start, sz))
+> >>> +                     continue;
+> >>> +
+> >>> +             disconnect_event_site(es);
+> >>> +             list_del(&es->all_node);
+> >>> +     }
+> >>> +
+> >>>       list_for_each_entry_safe(c, n, &dept_classes, all_node) {
+> >>>               if (!within((void *)c->key, start, sz) &&
+> >>>                   !within(c->name, start, sz))
+> >>> @@ -3337,6 +3387,7 @@ void __dept_recover_event(struct dept_event_site_dep *esd,
+> >>>
+> >>>       list_add(&esd->dep_node, &es->dep_head);
+> >>>       list_add(&esd->dep_rev_node, &rs->dep_rev_head);
+> >>> +     list_add(&esd->all_node, &dept_event_site_deps);
+> >>>       check_recover_dl_bfs(esd);
+> >>>  unlock:
+> >>>       dept_unlock();
+> >>> @@ -3347,6 +3398,23 @@ EXPORT_SYMBOL_GPL(__dept_recover_event);
+> >>>
+> >>>  #define B2KB(B) ((B) / 1024)
+> >>>
+> >>> +void dept_mark_event_site_used(void *start, void *end)
+> >>
+> >> Nit: I suggest that dept_mark_event_site_used() take pointers to
+> >> dept_event_site_init, which would catch the type mismatch with
+> >
+> > IMO, this is the easiest way to get all the pointers from start to the
+> > end, or I can't get the number of the pointers.  It's similar to the
+> > initcalls section for device drivers.
+> 
+> This was a minor suggestion.. The idea is to simply change the function
+> signature to:
+> 
+> void dept_mark_event_site_used(struct dept_event_site_init **start,
+>                                struct dept_event_site_init **end))
 
-No, this is just a cleanup.
+I got what you meant.  I will.  Thanks.
 
-Last time checked with Qi and thought it worth a formal patch. [1]
+	Byungchul
 
-[1]: http://lkml.kernel.org/r/fd90c84b-9829-4699-b7df-c43020519ec9@linux.dev
-
--- 
-Wei Yang
-Help you, Help me
+> This way, the compiler can provide proper type checking to ensure that
+> correct pointers are passed to dept_mark_event_site_used(). It would
+> catch the type mismatch with module::dept_event_sites.
+> 
+> >
+> >> module::dept_event_sites.
+> >>
+> >>> +{
+> >>> +     struct dept_event_site_init **evtinitpp;
+> >>> +
+> >>> +     for (evtinitpp = (struct dept_event_site_init **)start;
+> >>> +          evtinitpp < (struct dept_event_site_init **)end;
+> >>> +          evtinitpp++) {
+> >>> +             (*evtinitpp)->evt_site->used = true;
+> >>> +             (*evtinitpp)->evt_site->func_name = (*evtinitpp)->func_name;
+> >>> +             list_add(&(*evtinitpp)->evt_site->all_node, &dept_event_sites);
+> >>> +
+> >>> +             pr_info("dept_event_site %s@%s is initialized.\n",
+> >>> +                             (*evtinitpp)->evt_site->name,
+> >>> +                             (*evtinitpp)->evt_site->func_name);
+> >>> +     }
+> >>> +}
+> >>> +
+> >>>  extern char __dept_event_sites_start[], __dept_event_sites_end[];
+> >>
+> >> Related to the above, __dept_event_sites_start and
+> >> __dept_event_sites_end can already be properly typed here.
+> >
+> > How can I get the number of the pointers?
+> 
+> Similarly here, changing the code to:
+> 
+> extern struct dept_event_site_init *__dept_event_sites_start[], *__dept_event_sites_end[];
+> 
+> It is the same for the initcalls you mentioned. The declarations of
+> their start/end symbols are also already properly typed as
+> initcall_entry_t[] in include/linux/init.h.
+> 
+> --
+> Thanks,
+> Petr
