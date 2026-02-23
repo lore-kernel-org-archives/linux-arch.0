@@ -1,104 +1,160 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8AA0313D891;
-	Mon, 23 Feb 2026 09:15:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0DBD034D922;
+	Mon, 23 Feb 2026 09:30:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771838154; cv=none; b=UrG//AVgasHwMznC9GOOTzJMXDGzSVJM2WbsZLS/hyvGP8nMOCq1xR/vMvgyqKHcYU7j0XE80PdIYOSgWlEs58M79I+l/2ngOIrT7Kqs7wlfAokMAIcrFXIZOJqbmYpzSFEbLiKggaTRjEV5Yr0Mnu3FQwXTXpmr7stmYpqsRu0=
+	t=1771839001; cv=none; b=dd2F5PKK1sr46yT8nUXA7tW+jo9Kh7uOom/om9f/TBdaU+J8qNdpqWlnIYxlzSDjhxvOf/WPJ3WQtjyIyvig1fmG2YQ6TmEC3EnE7m836Edl6rZGFdE3TtXYoykN7+57jA8etNePJrKWSh1AprTZt8ikXKNlLpdOKXpX6sZUYVE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771838154; c=relaxed/simple;
-	bh=6udqOftI4y08g8IexuZmqUZ6jWyjJMTADJKWbvH4DqY=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=WrygEw1yE0KVG6oBU34atxaAlvCrTE2pJm60IQk2DUbTtC9nWh6BXkYjeEK7RsQMqFa93/jx41aiGcNhqDGqXqEjaokebuAGTrsY/c1RCrmWNMsJ7YOlKVkQZwwKe9HywBg24LyajPGsOjGYcZJV4Q6xvPTYEsqkLg/QifFvM/g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 04162339;
-	Mon, 23 Feb 2026 01:15:44 -0800 (PST)
-Received: from localhost (e132581.arm.com [10.1.196.87])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id D54243F62B;
-	Mon, 23 Feb 2026 01:15:49 -0800 (PST)
-Date: Mon, 23 Feb 2026 09:15:47 +0000
-From: Leo Yan <leo.yan@arm.com>
-To: Jisheng Zhang <jszhang@kernel.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Thomas Gleixner <tglx@kernel.org>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Guo Ren <guoren@kernel.org>, linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org
-Subject: Re: [PATCH 3/3] arm64: use runtime constant to optimize
- handle_arch_irq access
-Message-ID: <20260223091547.GJ136967@e132581.arm.com>
-References: <20260220090922.1506-1-jszhang@kernel.org>
- <20260220090922.1506-4-jszhang@kernel.org>
- <20260220123414.GF136967@e132581.arm.com>
- <aZheqINXslxlrmTt@xhacker>
- <aZhi1p0NJH5ug8CA@xhacker>
- <20260220164738.GH136967@e132581.arm.com>
- <aZj42cyIHADECszW@xhacker>
+	s=arc-20240116; t=1771839001; c=relaxed/simple;
+	bh=7xweq4QPzkHbowTO2WGH3oP2m634ztmNkQ98oA7FLfM=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=QKMWrrxC2LUT4Z2x99UE8zq2pqwzWrIYYgjW/Ugv9HRh6II2MdUr9gnRLNOT1v3quMFX7y/DuPXhy+jIQ/XNJMTvFTvj+B/Of4bDD9a6WhxB3Gp5cJom49jIoRGjKZPf221tpvBYMNWYONMdFj1W5UJOP3y6CiE5KiBAkiiJnyM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=oMu/GVUU; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="oMu/GVUU"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 41CBCC19424;
+	Mon, 23 Feb 2026 09:29:58 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1771839000;
+	bh=7xweq4QPzkHbowTO2WGH3oP2m634ztmNkQ98oA7FLfM=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=oMu/GVUU6uQTbTnA3N5QZm1YoJdWSwp2y2Ppr3BjSDBcgiarwHhEPTKnPq4pD2aDL
+	 wAU2NvoPEaawuI0ElZdzfBm6lxouNgaks13uuiAa8uvMPmHi5lypzmDf7tpROoh/w5
+	 WQeiSvTp1jwNgsqOJCVp3+ITBKxQgjamnHTOL8CJHeEZNJTCbXePq82/jeZHMu90rF
+	 qalNBfPvrytS1Wv+AMPRdGxRxiFOpTXMs+xCOPghWFk8vRevnikM2YIaiM4/iT1g2g
+	 iYaNuoNUVqKZcOhu6LZhIQF4nYyxnnFpFW/m1F2wYyDUT1j53NcyBSrjgS3zJCURGt
+	 GNQ03kjrHUfTw==
+Message-ID: <2a6c4e62-1663-4a98-9adc-406a6a1ebfd3@kernel.org>
+Date: Mon, 23 Feb 2026 10:29:56 +0100
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aZj42cyIHADECszW@xhacker>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
+ when batch allocation fails
+To: Lance Yang <lance.yang@linux.dev>, akpm@linux-foundation.org,
+ peterz@infradead.org
+Cc: dave.hansen@intel.com, will@kernel.org, aneesh.kumar@kernel.org,
+ npiggin@gmail.com, linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org
+References: <20260223033604.10198-1-lance.yang@linux.dev>
+From: "David Hildenbrand (Arm)" <david@kernel.org>
+Content-Language: en-US
+Autocrypt: addr=david@kernel.org; keydata=
+ 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
+ qIws/H2t
+In-Reply-To: <20260223033604.10198-1-lance.yang@linux.dev>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-On Sat, Feb 21, 2026 at 08:14:17AM +0800, Jisheng Zhang wrote:
-
-[...]
-
-> On Fri, Feb 20, 2026 at 04:47:38PM +0000, Leo Yan wrote:
-> > On Fri, Feb 20, 2026 at 09:34:14PM +0800, Jisheng Zhang wrote:
-> > 
-> > [...]
-> > 
-> > > > > Run 3 iterations, and measures three metrics (messaging/pipe/seccomp)
-> > > > > and results in seconds. Less is better.
-> > > > > 
-> > > > >   +---------------------+--------+--------+--------+--------+
-> > > > >   |Without change       |   run1 |   run2 |   run3 |    avg |
-> > > > >   +---------------------+--------+--------+--------+--------+
-> > > > >   |messaging (sec)      |  4.546 |  4.508 |  4.591 |  4.548 |
-> > > > >   |pipe (sec)           | 24.258 | 24.224 | 24.017 | 24.166 |
-> > > > >   |seccomp-notify (sec) | 48.393 | 48.457 | 48.232 | 48.361 |
-> > > > >   +---------------------+--------+--------+--------+--------+
-> > > > > 
-> > > > >   +---------------------+--------+--------+--------+--------+--------+
-> > > > >   |With change          |   run1 |   run2 |   run3 |    avg |   diff |
-> > > > >   +---------------------+--------+--------+--------+--------+--------+
-> > > > >   |messaging (sec)      |  4.493 |  4.523 |  4.556 |  4.524 | +0.52% |
-> > > > >   |pipe (sec)           | 23.159 | 23.702 | 28.649 | 25.170 | -4.15% |
-> > > > 
-> > > > If you check the result, this result variance is abnormal, it means
-> > > > your OS is noiser.
-> > > 
-> > > BTW: if you remove the abnormal run3 result, you'll find that the
-> > > benchmark is improved by ~3.5% on CA73:
-> > > (23.159 + 23.702) / 2 = 23.43
-> > > (24.258 + 24.224) / 2 = 24.24
-> > > (24.24 - 23.43)*100 / 23.43 = ~3.5
-> > 
-> > TBH, I don't think we should subjectively select data.  But I agree a
+On 2/23/26 04:36, Lance Yang wrote:
+> From: Lance Yang <lance.yang@linux.dev>
 > 
-> The precondition of this is testing the benchmark properly. And I just
-> tried perf bench sched in noisy OS, I didn't get the similar abnormal
-> variance as you got, so I think your run3 result was CA53's result.
-> This isn't an apple-to-apple comparison.
-
-Not true.  As said, I tested on CA73.  I should say explicitly that I
-have hotplugged off CA53 CPUs and run test only on CA73 CPUs.
-
-> If possible, could you plz test after forcing CA53 offline or test on
-> non big.little platform. Anyway, I will test CA73 next week too.
+> When freeing page tables, we try to batch them. If batch allocation fails
+> (GFP_NOWAIT), __tlb_remove_table_one() immediately frees the one without
+> batching.
 > 
-> > clean test env is important to avoid noise, and I also agree that the
-> > current results already show positive signals.
-> > 
-> > Thanks,
-> > Leo
+> On !CONFIG_PT_RECLAIM, the fallback sends an IPI to all CPUs via
+> tlb_remove_table_sync_one(). It disrupts all CPUs even when only a single
+> process is unmapping memory. IPI broadcast was reported to hurt RT
+> workloads[1].
+> 
+> tlb_remove_table_sync_one() synchronizes with lockless page-table walkers
+> (e.g. GUP-fast) that rely on IRQ disabling. These walkers use
+> local_irq_disable(), which is also an RCU read-side critical section.
+> synchronize_rcu() waits for all such sections to complete, providing the
+> same guarantee as IPI but without disrupting all CPUs.
+> 
+> Since batch allocation already failed, we are in a way slow path, so
+> replacing the IPI with synchronize_rcu() is fine.
+> 
+> We are in process context (unmap_region, exit_mmap) with only mmap_lock
+> held, a sleeping lock. synchronize_rcu() will catch any invalid context
+> via might_sleep().
+> 
+> [1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+> 
+> Link: https://lore.kernel.org/linux-mm/20260202150957.GD1282955@noisy.programming.kicks-ass.net/
+> Link: https://lore.kernel.org/linux-mm/dfdfeac9-5cd5-46fc-a5c1-9ccf9bd3502a@intel.com/
+> Link: https://lore.kernel.org/linux-mm/bc489455-bb18-44dc-8518-ae75abda6bec@kernel.org/
+> Suggested-by: Peter Zijlstra <peterz@infradead.org>
+> Suggested-by: Dave Hansen <dave.hansen@intel.com>
+> Suggested-by: David Hildenbrand (Arm) <david@kernel.org>
+
+I think it was primarily Peter and Dave suggesting that :)
+
+> Signed-off-by: Lance Yang <lance.yang@linux.dev>
+> ---
+>   mm/mmu_gather.c | 3 ++-
+>   1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+> index fe5b6a031717..df670c219260 100644
+> --- a/mm/mmu_gather.c
+> +++ b/mm/mmu_gather.c
+> @@ -339,7 +339,8 @@ static inline void __tlb_remove_table_one(void *table)
+>   #else
+>   static inline void __tlb_remove_table_one(void *table)
+>   {
+> -	tlb_remove_table_sync_one();
+> +	if (IS_ENABLED(CONFIG_MMU_GATHER_RCU_TABLE_FREE))
+> +		synchronize_rcu();
+
+That should work.
+
+Reading all the comments for tlb_remove_table_smp_sync(), I wonder 
+whether we should wrap that in a tlb_remove_table_sync_rcu() function, 
+with a proper kerneldoc for the CONFIG_MMU_GATHER_RCU_TABLE_FREE variant 
+where we discuss how this relates to tlb_remove_table_sync_one (and 
+tlb_remove_table_smp_sync() .
+
+-- 
+Cheers,
+
+David
