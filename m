@@ -1,366 +1,278 @@
-Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+Received: from todd.t-8ch.de (todd.t-8ch.de [159.69.126.157])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40E25374752;
-	Mon, 23 Feb 2026 20:00:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771876852; cv=fail; b=l6Ll0a3p7/ZyDiS7BwYN32q/+M6AbVp2iLuUR7xdBTTxpXwVsHTAwMvWFFwhsQKx/P8p0nHwRP4rFdmewWWEmswR7o/g/WWwyZtJlZXaKNrnnXUnbhu1FcR+/XjhdqN3n0JiAYacFae4/u53oU8P9lnUecWlGh8JR5JsuyiEjn8=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771876852; c=relaxed/simple;
-	bh=lE1EXCO4x4W+EYV+s3eyBOSG6DUoLYSfUK+U1k4XGQE=;
-	h=Message-ID:Date:Subject:To:Cc:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=k/eW2D00Gn6lvSVI8FuEXZ3zdf9mQx8qA6EWgeRen7/N0kc0pyC1yM70Aqth+bhAV9wvN/hFYej5TsF2j0gG9Uplp9WtiDW/9COvq2GrXuthU8jQma6N8bQJhjMpu+6NQjTh6Kzif5n0tq1aSVbh0E6gU3mfi+OlhV2wi+t6acs=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=r9HMiM2i; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=AavaBqI/; arc=fail smtp.client-ip=205.220.177.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AA5A437881C;
+	Mon, 23 Feb 2026 21:43:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.69.126.157
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1771883015; cv=none; b=E2nMgB4w8hch24c6olU98JA5Z7yiYIBxokDuOygNfT3Ka184xSOR8CsUheA3EfKW39c7i2J8GzAZPN6e0bY0K1VAC8Ovl5g+vOsX+zs0TVQGVc1HDzpbndreX6BhQ9H+s7iivWqO7cVQeHh3nIaOLaTVS99oGdJGIjvfdp3l0mI=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1771883015; c=relaxed/simple;
+	bh=f/RGyyEjxiTV1HAvGsXVhUhx0QauEA+D4aTLJ9rlFUY=;
+	h=Date:From:To:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=eRrsUiW8FOeSFiwNooKAceXfJyKZ3mfpxO97Xf3Dba1qZ7m6LHmB64kFfnfOTQH+HX0R54taKipg7aBaaGi8Jn9gMmX+d77Wd32inYY9ZBn3yq/1elk0desqj/JfJLRQqkPU+E6p/RUS4q7kgE/jZ5YNLpLY9X6SHsT6arrcNNE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net; spf=pass smtp.mailfrom=weissschuh.net; dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b=DtNafl26; arc=none smtp.client-ip=159.69.126.157
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=weissschuh.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=weissschuh.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="r9HMiM2i";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="AavaBqI/"
-Received: from pps.filterd (m0246631.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 61NEuxFB1959001;
-	Mon, 23 Feb 2026 19:55:18 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-transfer-encoding:content-type:date:from:in-reply-to
-	:message-id:mime-version:references:subject:to; s=
-	corp-2025-04-25; bh=FlwcTEU15t9/fokiPpiNiyFhEqeMycKoedl7ZXcpY38=; b=
-	r9HMiM2iBnyV+FAPGLFCxeeDqUdGNbih3vdBVUxXnHg2PCjsk7BWZkt2p8U0FQLa
-	vm2CEed7snjzvroNebr09hFJtLxjihxoBINwfvw8+tWx1Zy4Y3IbSPa7g222ItBn
-	Nm/L86/2kEd6wsJgR6l4c9jKTqHPRrNKzLbAWn2I8ZMeA9afhFrrofzo+z/nz3Hh
-	E6OLSN/ygiwtcX/1ZUFdJssHrO3kG3CE/neEnGjJA5xojdOU9AH/biKX/Ir0pfPn
-	/Y9UzMNBKIvGTO1aZsgOd7lpyqNxliHox3KaKcTVhjD8MlRVdEOeNLED6htKDAtl
-	6iwFSHER5Qdvlfz5mhnEDw==
-Received: from phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta02.appoci.oracle.com [147.154.114.232])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4cf3g3k2j1-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 23 Feb 2026 19:55:18 +0000 (GMT)
-Received: from pps.filterd (phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
-	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 61NIc1Lp015659;
-	Mon, 23 Feb 2026 19:55:17 GMT
-Received: from bl2pr02cu003.outbound.protection.outlook.com (mail-eastusazon11011000.outbound.protection.outlook.com [52.101.52.0])
-	by phxpaimrmta02.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 4cf3592gh1-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Mon, 23 Feb 2026 19:55:17 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=DXVzvTjJ8ZlVLdV0KjS5mRV8e/XMXMwXFB6B1b3b0k6p0eM9Yy+vSDd7erVCd0DP2X1oJ8UP+bKXGKeuHhQ5cYrtyxWjp+/KUHdwDJrmhDZPXSql6XNb+tJCvbO4ZmLEW2yJV0xpVMVxBSQReF71XTfJIX5jqLPG9Vwe2FzZ3D4LDsga1Mj0fuyuwxO77HZZBeJa1M4l55L2QVjelY3niPKptwh/UiuqYbCCzuCUBrCNmKbRBq3JrI59no+3kkMOO61tgDEWyDtUEeIOCAAtyL7qKjPIH+yZIg6qBHWqJXE1T9ZUGfEw3vXcpZ/yFC0mlKYcJnXy7aLL8oH+qFnnxg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=FlwcTEU15t9/fokiPpiNiyFhEqeMycKoedl7ZXcpY38=;
- b=v5zK4QULaoOdtqKgr6WPe0ksWXGKhGMdJHbnoNIzZr/xt/z/FLFcoSC0Uuj0NPUyYt0sBtI19e0Dxdigt6nVJ5kquUT3Gr4OHkHULO5yXKBPWjFtjbCY8oIAP+SIfZAgYuEOBMLwb7zF1pXEm6MzeBTuKE22abDV0GSs6vYJw1KIAjnK832vFnKDujDCPuQUQuxK4ZwNx2WJsAxkDmd+YkgTvzbxu4iS8gytna30sQIT8norvSQIHp1OdpSSFATCRHVgYUKlMeOFfuKy5f0WsiJQOCgT6YKmpa3ifRLXQn4cV/I1qtJa8IaE2ySCGZnXqlydWNqnJEoXrc/ZPNkY9w==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=FlwcTEU15t9/fokiPpiNiyFhEqeMycKoedl7ZXcpY38=;
- b=AavaBqI/irCV7PTpAeK2jkjaZ7hAmBXeDEFoqtAgqMCFTh/yRHqqZ2s62ghrQESC93qS6krLZ+y6rlhve2ZRFAYWJv/TlwaMyIHHyb/c8Pu2Vk12m6hVMXNY+XImMjkC4d+DR4ZH+tIgT/x+/CkXd8uJjpa/AOyHMaI7qOmXyi4=
-Received: from MW6PR10MB7660.namprd10.prod.outlook.com (2603:10b6:303:24b::12)
- by BY5PR10MB4289.namprd10.prod.outlook.com (2603:10b6:a03:20c::10) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9632.21; Mon, 23 Feb
- 2026 19:55:11 +0000
-Received: from MW6PR10MB7660.namprd10.prod.outlook.com
- ([fe80::c2dc:a34f:6987:1230]) by MW6PR10MB7660.namprd10.prod.outlook.com
- ([fe80::c2dc:a34f:6987:1230%5]) with mapi id 15.20.9632.017; Mon, 23 Feb 2026
- 19:55:10 +0000
-Message-ID: <7302e25b-dfcb-4117-85f9-870632999dc3@oracle.com>
-Date: Mon, 23 Feb 2026 11:55:06 -0800
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 00/22] Add support for shared PTEs across processes
-To: Kalesh Singh <kaleshsingh@google.com>, Pedro Falcato <pfalcato@suse.de>
-Cc: linux-mm@kvack.org, akpm@linux-foundation.org, andreyknvl@gmail.com,
-        arnd@arndb.de, bp@alien8.de, brauner@kernel.org, bsegall@google.com,
-        corbet@lwn.net, dave.hansen@linux.intel.com, david@redhat.com,
-        dietmar.eggemann@arm.com, ebiederm@xmission.com, hpa@zytor.com,
-        jakub.wartak@mailbox.org, jannh@google.com, juri.lelli@redhat.com,
-        khalid@kernel.org, liam.howlett@oracle.com, linyongting@bytedance.com,
-        lorenzo.stoakes@oracle.com, luto@kernel.org, markhemm@googlemail.com,
-        maz@kernel.org, mhiramat@kernel.org, mgorman@suse.de, mhocko@suse.com,
-        mingo@redhat.com, muchun.song@linux.dev, neilb@suse.de,
-        osalvador@suse.de, pcc@google.com, peterz@infradead.org,
-        rostedt@goodmis.org, rppt@kernel.org, shakeel.butt@linux.dev,
-        surenb@google.com, tglx@linutronix.de, vasily.averin@linux.dev,
-        vbabka@suse.cz, vincent.guittot@linaro.org, viro@zeniv.linux.org.uk,
-        vschneid@redhat.com, willy@infradead.org, x86@kernel.org,
-        xhao@linux.alibaba.com, linux-doc@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
- <CAC_TJvcaJdEzK8n9BK0qgEXdzjzXtbA_Zk-ybfmG8kjNExVCzw@mail.gmail.com>
- <fqabaahjjlmoc2xh4cwh4ykbqyu3rnzvjw5epxi5wwpmgqth7f@d3mqpjozwmo4>
- <CAC_TJvdRsfzYohiKW=82N8Ofi5V26rX1GS0M8HeaX6CEsgc+PA@mail.gmail.com>
-Content-Language: en-US
-From: anthony.yznaga@oracle.com
-In-Reply-To: <CAC_TJvdRsfzYohiKW=82N8Ofi5V26rX1GS0M8HeaX6CEsgc+PA@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
-X-ClientProxiedBy: SJ0PR03CA0022.namprd03.prod.outlook.com
- (2603:10b6:a03:33a::27) To MW6PR10MB7660.namprd10.prod.outlook.com
- (2603:10b6:303:24b::12)
+	dkim=pass (1024-bit key) header.d=weissschuh.net header.i=@weissschuh.net header.b="DtNafl26"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=weissschuh.net;
+	s=mail; t=1771883011;
+	bh=f/RGyyEjxiTV1HAvGsXVhUhx0QauEA+D4aTLJ9rlFUY=;
+	h=Date:From:To:Subject:References:In-Reply-To:From;
+	b=DtNafl26QWwqrEhxfMVJt7qi0VOQ+517xajhYFHcF+PGQBS3hyDAm0AZBdaYhEIV0
+	 BPTveOVyjJh7AzZ2ede0B0Zo9hAemmvCqhanqT/ftLkbYfKvroulfGOCMEty+YjZ/s
+	 N4rhaBsvNOn/4HeDhUervVSBgCJam9Inr6UpFbdI=
+Date: Mon, 23 Feb 2026 22:43:30 +0100
+From: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>
+To: Nicolas Schier <nsc@kernel.org>, Nathan Chancellor <nathan@kernel.org>, 
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>, 
+	Petr Pavlu <petr.pavlu@suse.com>, Sami Tolvanen <samitolvanen@google.com>, 
+	Daniel Gomez <da.gomez@samsung.com>, Paul Moore <paul@paul-moore.com>, 
+	James Morris <jmorris@namei.org>, "Serge E. Hallyn" <serge@hallyn.com>, 
+	Jonathan Corbet <corbet@lwn.net>, Madhavan Srinivasan <maddy@linux.ibm.com>, 
+	Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>, 
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>, 
+	Roberto Sassu <roberto.sassu@huawei.com>, Dmitry Kasatkin <dmitry.kasatkin@gmail.com>, 
+	Eric Snowberg <eric.snowberg@oracle.com>, Daniel Gomez <da.gomez@kernel.org>, 
+	Aaron Tomlin <atomlin@atomlin.com>, "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, 
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>, Xiu Jianfeng <xiujianfeng@huawei.com>, 
+	Fabian =?utf-8?Q?Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>, Arnout Engelen <arnout@bzzt.net>, 
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>, 
+	Christian Heusel <christian@heusel.eu>, =?utf-8?B?Q8OianU=?= Mihai-Drosi <mcaju95@gmail.com>, 
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org, 
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, 
+	linux-integrity@vger.kernel.org
+Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
+Message-ID: <06054e9a-2b7a-4063-98b8-7d6c539e543f@t-8ch.de>
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+ <aZol1Rsa2tX-WNaZ@derry.ads.avm.de>
+ <0d70db8d-702b-46ec-a010-298fe6515aab@t-8ch.de>
+ <aZyfcDCWOBJJztQ2@levanger>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: MW6PR10MB7660:EE_|BY5PR10MB4289:EE_
-X-MS-Office365-Filtering-Correlation-Id: 651c1f4f-a83a-42d8-458c-08de731573ac
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;ARA:13230040|1800799024|7416014|376014|366016;
-X-Microsoft-Antispam-Message-Info:
-	=?utf-8?B?TjR0TlkyWVlaNnVVVHNlaDJCWm5FUGZUWkdCeklMczE2WDVtbUZKVStHcUhL?=
- =?utf-8?B?VU0zcDhldlRxUFV1SGJOd2trbkJoS01EaENPMStwRGs3SWxtMnpHdjFtNHBV?=
- =?utf-8?B?OVUySXAvVWdJNERZMHJZNmliU1hHYTJLVUVpUWpGVEFoeDhrMFppa0w1M3Yw?=
- =?utf-8?B?R0FQY0g5U0R2N0xlNGgvRlk5SmdNWFBtZHJoVzVQcUxnOG92MTdscDNZV2hw?=
- =?utf-8?B?dERCcjdtbFFrcHFPemxBbW14cU40QU5tNitET3AxbjVMOFk0NTlpUlBSMm5n?=
- =?utf-8?B?THIyQnJVN2pyQ0xZSWZyYzhLZjQ4YWxnejRYREpEZmlGWVQzYWkydmJqTU5E?=
- =?utf-8?B?RUltMUMvUnNON2R4WE92WnVWNGQ3N25zeC9BUTc4ZmtuMlMvQXA2VC91aXJZ?=
- =?utf-8?B?aHBrUzZvVHdWdStBbm5ub1VMQ2ZaYlZVU2FCd3puNHBydkF4ZjAwRFRscjJ0?=
- =?utf-8?B?YkVCWFZLNVJDRXRrd0xyeXFRc3VRbDFJT3l3dnZrM0JBa21ldHBrY25GQU00?=
- =?utf-8?B?WlRhU25Wek4vTTZERE9xSTcwWVd3MVAwU0VEcUdBNlBxUytFUUVBcnU4NWVK?=
- =?utf-8?B?clMvOXpkQnM1TnFuNjFEZDUxVDRyYzAzNFBHVURsL3BGSWhDZHNLTkFTUUl0?=
- =?utf-8?B?b2pRU29wd3ZUa0lUL3l1bC9QNXdxSUxLTXlXMEFrbVFFTlpNQitqZWp5NWlh?=
- =?utf-8?B?VUsrS2lpUHd4RmY5azJtWE1XTjRlZGVkVWxJU0o1R0tRR1BOb0xQN1FoYlBl?=
- =?utf-8?B?WGRCRSt3UkVMa0hyV2dDMVJReHN1K2J5S3p6ZEtqaTlheTZFdGZoMzQvamVx?=
- =?utf-8?B?ZjJtSUVJSXdvc0dnc1VLcFlaajI4OThqU0tPSkdGMW14eVNqT29GcmV6VnpP?=
- =?utf-8?B?YTRBUWc2emlPSUlNMUdJRUZNLzdkNThMeUF2b3Jzb1VlSnNwbzB6bzN5Q3VO?=
- =?utf-8?B?eFdydGJhM05nV0orRHZIL1dwM1E4RCtPVmw0ZGJKU3RLbjVveUhwWldIR1lm?=
- =?utf-8?B?S3Y1T1czTDBtQWgyZ282OVNOMWJqUGRkM29QSHJDUWZzeURFd0R0Q3l4aXUz?=
- =?utf-8?B?RE9mbS9VSjBKT1YrNEVMSGJhU0JOcjBuSDhrVm8wUGlNbU9yVXFsVWFrb0VJ?=
- =?utf-8?B?S3MvZlk0MEc2ZjladllLK1hRbElOWFppTzA2SkkyalVjSEliN0NnRWtoS0ZJ?=
- =?utf-8?B?Mmx0QzhwNGlLeWJpbHIrOWJTRytYSFI4OTlnYlVFQUlrZzRQWUJHZG9FWUhN?=
- =?utf-8?B?b0dLUUk2Zk9rM2h2aS9DYkRCUlNtbHdTMmJYc2dnU0dSSHlBN0F3cmd1eEh5?=
- =?utf-8?B?UXkwTE9LS2N5YWlVVWkrQUdVWEZNRGU2cnNNOWowRUlWQWxxVHltRTlkUFFa?=
- =?utf-8?B?eW02T24vMVFjbElpS1ByQ0Zvbi9JSzJaMkw5cHZsbVJHY0J6WDdyS1VrV1ds?=
- =?utf-8?B?Q2IwRTF2QWQ4ZzRPUElBeldBQm9qeWFVd3p3MW53dHNBSUp1YmxSVmFzZU01?=
- =?utf-8?B?ZVZjK1pLZEk5Vmlkc3RDMUw1YUt6dWl4bVppeVNTaTVRdEJWWXJSVDNEdHlz?=
- =?utf-8?B?b3k3bWt2V080TDg3SUlLTzYyRHh0WkxEd21SNUpUOXN3Mnk1ZzVDMFhmNkdU?=
- =?utf-8?B?a2llVHJSRHZYMEFYekRrL2tJeVU4ODhCTm9pOUIwSDFNRHdXWGlQRVlZYzVX?=
- =?utf-8?B?UGU0QXJUaW9pUkQ1OXV3Y0puUEN1LzR0VTlSZjRSMnBhTzREWTk3d2dJOTF0?=
- =?utf-8?B?NkYyNCtOMGJncys2UVpaVDlNR0x1bGEzQkNLdkRkQVVIR3M3R2VScDlKK1dI?=
- =?utf-8?B?YmtQTndtMmI3dkFRN090Y1I4U1FzN2V0OCsrdlNCU0NvNUN6dmR0QzZwdy93?=
- =?utf-8?B?dlhFRU9GVDE2QlkwZThvYnFxY1ZoendoZXBlaW9HVFdudnJPWklZUWpvSWJC?=
- =?utf-8?B?WitoRlovUHdjMWNhUms4cGtCRlpZU2pYODFKVGtnZnpaZ3djZDFVdEVxeHVz?=
- =?utf-8?B?NUpRUC9rVDJQeHdPZmU1ZHFra0hpeTcvbTN6bm1TbXBhSlhVNTQ5YlBWNUUw?=
- =?utf-8?B?REtvYURFRnVWaFNUYVp0VGVPaGtKYkluTVNxenNqVlVMUnBGaWgyVU9nOWpr?=
- =?utf-8?Q?871Q=3D?=
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:MW6PR10MB7660.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(7416014)(376014)(366016);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?utf-8?B?ZkdlNzJnbHNENXZCQ085a1d4ODY5aUlwNTEyYWhwNW1qRmpnOWl3dndnRml2?=
- =?utf-8?B?RDVQakVDc3ZpcG9tUFlJWTVjS1E3SVMwZHB6MFpQNjhsVmw5ekxVSEJQSElM?=
- =?utf-8?B?R01hNlB4V0FmOFJBdkNvZDNHZklOQ1FBa2lxZXErZW11bTZQTEVYV29wOHd4?=
- =?utf-8?B?dTNXL0UrM3ZPTjV0b0g4MFpjSHkwYzcxK2pWeHJGWDJtajdpREpQN3ZadXRB?=
- =?utf-8?B?VGJIUFBiMkpZSWd1YTFRY3luc3I2M1VkSGNpK3g3RHpoTUZtbTV2R3pkekxh?=
- =?utf-8?B?VytXKzRGa2h6dG1GWmdzT2lTOUtwMkRaeTNXdWRueVJ4ZHdmTzA0V2owMkdP?=
- =?utf-8?B?ZW1nWGNPSjlWVzl3RVlncTd1UG1hMGYxRVRqbFA0cExrQ1ZrL2svOHVYaTlL?=
- =?utf-8?B?YndHajBkd091TGl1WVp3UDBzcWlld0Fvem16WDFHcHVKNzJzM2hxZGRBMG1k?=
- =?utf-8?B?Y1J0K0l1ZnVSZzNJRE8wZ0RWOGFES3o5NzI2UEFnZjZjVDFyOWVBM0lleGFE?=
- =?utf-8?B?UHBYcVBmd2RSSjExUHZUZkFFamJYek80Z0EzQU5HZWF6Z2xGdnhMWUQ3Q3Fh?=
- =?utf-8?B?NnRhSXdaVXlQZ3RPRFZEWXFudHhwWTFSS3BwNlVUdFpGSC9RSkdqRDRQRVdG?=
- =?utf-8?B?YkU1NDVySnk5cW9MRXd2SXJMZUJmVVNmcExlY01Jc0JLbDlhb2hmUURlVm96?=
- =?utf-8?B?SGNObmIwYURYbUFvMEU4ZkJXaHI1dlVSWlR2ZmxGcHJRWG85NFY1N0VrVjZE?=
- =?utf-8?B?eTYzYmUrUHk4Rys5UXhDSWlrMythV0tibkFWVldzdVpWeCtKTi8wa0t0SVBl?=
- =?utf-8?B?WjkvWTRMTHNCN1Q0UzdDa2JzSVkxYXhOU3c2OVdGOS9pZTl3RHRZaTE4VFl2?=
- =?utf-8?B?REI4UlFTUG01WWFmUW0wMmczMVlyQ3h6UFVDUnRrWm9kQ0J6a3FhY29GbUZk?=
- =?utf-8?B?N053UndRQmp2dkR2Q0hlOXF2TW90T3NYTW81U1YyUCsrYTZmdWhjYjh6S1dL?=
- =?utf-8?B?ckFYSmtLUUpybWZuZ1kwSXN5VlhRak5oUm9uditZdW4yUHpnVVhMUmsyTGJa?=
- =?utf-8?B?Vmw2dlV3ZytseWdSTUxYVzRMdkNZWm5Wd2kvUGh1YVJlK001dWVFb3dHWHlm?=
- =?utf-8?B?bWpUS2dRclR5YlBQSVlJZ0diTDl2SlFzYTBsbm40cXdua0F2cWVTaFFURnNH?=
- =?utf-8?B?N3RRTXVSZUFLNDNuREE3MEd1S1BEbzVYSlpuMFRvWmZKNEFnb2ZBYnExaEJp?=
- =?utf-8?B?Uk1hMXZ6RGNLZndKaGdGakM2aWJoTlZvbWIyZjhkL0hMbEE1OExCN0NnYUd1?=
- =?utf-8?B?cHJONWJGZWF2MVNTSzBRbHpwanU0eU0vcUdjRzF4a1A2VGZmKzE4S1Z2MHBZ?=
- =?utf-8?B?RzhGVlg2Z1UvQTJFa0tRMmFvUUZhNi92cHJySTFxVzZHMmlRQmFlL003NXlJ?=
- =?utf-8?B?RkJQa2cyT3VnbG9sQWx1VkZDaXFkVDVod2djdU9taWpDVHdjUG1vaVNUeDMy?=
- =?utf-8?B?Z3U3N3pJVE93b25hc0NnMEF2anMxSit0cGtobWFyZVM4V0FsYVExN3MyL3Ux?=
- =?utf-8?B?VEN5azdJcWtOQ01GQnRMdzJhMXRXZmhzOFBOTC9IWUQ1MUJNeVBlOEJTRng0?=
- =?utf-8?B?MktSK2EzY0RDYVJXajhJenNvN1l6Mm5hWmlWTlNUWXprVnFEdll2K2doNFdH?=
- =?utf-8?B?L1dOTFRnMEFzQVVSY09vdXZPVE1xbUhsdHJSRVhLSGNUTStGdUtvZmx6UGh6?=
- =?utf-8?B?RTZHUEt4ME01RERLaTU1WU9VTFJodkdiY2VXanhvRUh0TlZ1OWxLelplT3J3?=
- =?utf-8?B?OVJXczJsekZBekZMYnp4di96dVlzSEZCUVBvbHI3dC9JYmh1VnBseHJFY0Rl?=
- =?utf-8?B?YWorcEFhYTRlSGRZQTl5cHdEWFRra2NsRHhSUHYydFlvNk9SS0E4YzY1dU1m?=
- =?utf-8?B?Sk9iY2tXeExjazBBdlMrVDJSUUtvMmRZbGVCS2Y5QS9xZTgwQ2hBWmZ3eVYr?=
- =?utf-8?B?YzQvZDdOb0d3OCs0dUwwMlR3eXFhTWVhcFYyTlBTZ3NadXpVYXRlbGZhVkVJ?=
- =?utf-8?B?ekxzMXhyY1FCdGRjckt1aitvREJ2bTlac0taNDdyL2EySVVDQUo1SWVVUXF3?=
- =?utf-8?B?SzRVWWdHM3RwNW5mQnpPOFllcVFXMGhzblAzRFBFVCtTSmtuVzBjMDh6OXFG?=
- =?utf-8?B?bG9ndm1jR25nYW9MQkU1VDErQitkUmZ5K2lEQWNmVHpXZjFndlY4STk0eFZi?=
- =?utf-8?B?WTlqQURiekMyQ1J5WjlYenBNSFVUSE9SQkczSzFESXJKNHh1WW53c0dqdXVF?=
- =?utf-8?B?bHlEYWp3SVdYOE1Wc1c2aFdidTEwUXpORzJacytmK0FvUEYxS2FmaWxpK0dV?=
- =?utf-8?Q?r2qjbzj+eh8XmEdM=3D?=
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	XD2eMUxg0SiBOE53NUruFbQrs4tsBUHIcnY2HvGRjE48n1oYF7x5Jw14AdljroBB7ILTGSZvVuicjz1SG3E2OtBFUbXoAuRVnNZYUlmz1f0g8iROaZ2IWm2EhpRsmmFjrvIoB5Rr3Y+1dbR6r7tDQ7pQ1kmrdsf7Qij/haX6t0s6Yfjoq+drwe98+0nUsiRGVAoDRDLARZtIHd+GplV++UmP53FkotFbe8ooBecVtxfshf3v50mgTfUi0XhSq2XToVDS8PBL8wGqaOma4rQbPbabYRg5xuPK5DmSw9JAxyjm2d/VDh70v4D90YLUisTsuuYyRogjrAbeXIaKJBZalt13MogG+bUQrocEZqlAQbs4fpsqf7I1PkRV//Viz54PyyPaw6WQX+x0tN0On5DVJfhNbVcR2SJBv5fn9q2JPIl6G7J8WvNgXvNOYcEMo4qX5AUeN6U52HT8gEaqyjP6stRJisYczbffVPIs95P3N8ZZicvwoQ6tkccwCoix+l2InyMDvM3Z4l/k+hi+wQOFJZ8HKVzMqMirTo4OA3Jmej7xmsAUOi7QkdqcvAaXMIE3UxrFi2ElHmy3AAs/BuaViCHEWixzE1NPA2hARCFZ+W4=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 651c1f4f-a83a-42d8-458c-08de731573ac
-X-MS-Exchange-CrossTenant-AuthSource: MW6PR10MB7660.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 23 Feb 2026 19:55:10.6898
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: uOynaGTAhSDnMQJ7C2DiJ/HEEi2afJlxQ3lY/iVbZhRSCd5jSbXMH5Qc4wFFSjfsGRxokDKsQhDcGPftNdSAsTX+bWPCE0iVLobSdl5X9Mo=
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: BY5PR10MB4289
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1121,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-02-23_04,2026-02-23_03,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 phishscore=0 malwarescore=0
- spamscore=0 bulkscore=0 mlxlogscore=999 suspectscore=0 adultscore=0
- classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2602130000
- definitions=main-2602230173
-X-Authority-Analysis: v=2.4 cv=Y6r1cxeN c=1 sm=1 tr=0 ts=699cb0a6 cx=c_pps
- a=OOZaFjgC48PWsiFpTAqLcw==:117 a=OOZaFjgC48PWsiFpTAqLcw==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=IkcTkHD0fZMA:10
- a=HzLeVaNsDn8A:10 a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=Mpw57Om8IfrbqaoTuvik:22 a=GgsMoib0sEa3-_RKJdDe:22 a=yPCof4ZbAAAA:8
- a=aErTLmgu16iPnjBBIpoA:9 a=3ZKOabzyN94A:10 a=QEXdDO2ut3YA:10
-X-Proofpoint-ORIG-GUID: 6PIU1LrYgTr_kR6tNYx1zdoNMoSAi8oS
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMjIzMDE3MyBTYWx0ZWRfX4qKnKJbui7a4
- vnw5H8s+25gep/FOoeNyNgY7HPmM+TEtWNx9t9tBGKUtUw28Gjf7XKoOUPQkh/oisk6yfqVSoRN
- DB5fOncBAB0fhAT0B7mw6ouO0BR7uNA/3bC3dvou4vcdboi3/Ep1irfl4B45yaRL8an2s7Lpr4F
- o+KKn5NZPvK/yyT5eM1G/izwn4ScgxcY2m/+WoBf4+DugRw3CM6evMNU1LaFgnK+rApyTD588HE
- EbDI3JeEt2wLyOFBV3AgN52e8D4gPh0RJgaGQNzWN6qHSRxe/MfCkHUoA7ylQfkbjrUZFhuceiH
- 0uO5NBMa7551teH7rir2IELn08LKbo22LPp5XB13LaGIM+zJ7Evd0kkzvdam05EoWZDGjCc3vLF
- 2c5RqeflMBhqL93aXxfgqOBEG+/6fs2+9k97HlVgRYMKprVFRS9dIlFutYlhsGz0SiNxQn7+cUY
- T6e6eVB5ywzTyn8jb4w==
-X-Proofpoint-GUID: 6PIU1LrYgTr_kR6tNYx1zdoNMoSAi8oS
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <aZyfcDCWOBJJztQ2@levanger>
+
+On 2026-02-23 19:41:52+0100, Nicolas Schier wrote:
+> On Mon, Feb 23, 2026 at 08:53:29AM +0100, Thomas Weißschuh wrote:
+> > On 2026-02-21 22:38:29+0100, Nicolas Schier wrote:
+> > > On Tue, Jan 13, 2026 at 01:28:59PM +0100, Thomas Weißschuh wrote:
+> > > > The current signature-based module integrity checking has some drawbacks
+> > > > in combination with reproducible builds. Either the module signing key
+> > > > is generated at build time, which makes the build unreproducible, or a
+> > > > static signing key is used, which precludes rebuilds by third parties
+> > > > and makes the whole build and packaging process much more complicated.
+> > > > 
+> > > > The goal is to reach bit-for-bit reproducibility. Excluding certain
+> > > > parts of the build output from the reproducibility analysis would be
+> > > > error-prone and force each downstream consumer to introduce new tooling.
+> > > > 
+> > > > Introduce a new mechanism to ensure only well-known modules are loaded
+> > > > by embedding a merkle tree root of all modules built as part of the full
+> > > > kernel build into vmlinux.
+> > > > 
+> > > > Non-builtin modules can be validated as before through signatures.
+> > > > 
+> > > > Normally the .ko module files depend on a fully built vmlinux to be
+> > > > available for modpost validation and BTF generation. With
+> > > > CONFIG_MODULE_HASHES, vmlinux now depends on the modules
+> > > > to build a merkle tree. This introduces a dependency cycle which is
+> > > > impossible to satisfy. Work around this by building the modules during
+> > > > link-vmlinux.sh, after vmlinux is complete enough for modpost and BTF
+> > > > but before the final module hashes are
+> > > > 
+> > > > The PKCS7 format which is used for regular module signatures can not
+> > > > represent Merkle proofs, so a new kind of module signature is
+> > > > introduced. As this signature type is only ever used for builtin
+> > > > modules, no compatibility issues can arise.
+> > > > 
+> > > > Signed-off-by: Thomas Weißschuh <linux@weissschuh.net>
+> > > > ---
+> > > >  .gitignore                                   |   1 +
+> > > >  Documentation/kbuild/reproducible-builds.rst |   5 +-
+> > > >  Makefile                                     |   8 +-
+> > > >  include/asm-generic/vmlinux.lds.h            |  11 +
+> > > >  include/linux/module_hashes.h                |  25 ++
+> > > >  include/linux/module_signature.h             |   1 +
+> > > >  kernel/module/Kconfig                        |  21 +-
+> > > >  kernel/module/Makefile                       |   1 +
+> > > >  kernel/module/hashes.c                       |  92 ++++++
+> > > >  kernel/module/hashes_root.c                  |   6 +
+> > > >  kernel/module/internal.h                     |   1 +
+> > > >  kernel/module/main.c                         |   4 +-
+> > > >  scripts/.gitignore                           |   1 +
+> > > >  scripts/Makefile                             |   3 +
+> > > >  scripts/Makefile.modfinal                    |  11 +
+> > > >  scripts/Makefile.modinst                     |  13 +
+> > > >  scripts/Makefile.vmlinux                     |   5 +
+> > > >  scripts/link-vmlinux.sh                      |  14 +-
+> > > >  scripts/modules-merkle-tree.c                | 467 +++++++++++++++++++++++++++
+> > > >  security/lockdown/Kconfig                    |   2 +-
+> > > >  20 files changed, 685 insertions(+), 7 deletions(-)
+> > > > 
+> > > [...]
+> > > 
+> > > > diff --git a/kernel/module/hashes_root.c b/kernel/module/hashes_root.c
+> > > > new file mode 100644
+> > > > index 000000000000..1abfcd3aa679
+> > > > --- /dev/null
+> > > > +++ b/kernel/module/hashes_root.c
+> > > > @@ -0,0 +1,6 @@
+> > > > +// SPDX-License-Identifier: GPL-2.0-or-later
+> > > > +
+> > > > +#include <linux/module_hashes.h>
+> > > > +
+> > > > +/* Blank dummy data. Will be overridden by link-vmlinux.sh */
+> > > > +const struct module_hashes_root module_hashes_root __module_hashes_section = {};
+> > > > diff --git a/kernel/module/internal.h b/kernel/module/internal.h
+> > > > index e2d49122c2a1..e22837d3ac76 100644
+> > > > --- a/kernel/module/internal.h
+> > > > +++ b/kernel/module/internal.h
+> > > > @@ -338,6 +338,7 @@ void module_mark_ro_after_init(const Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
+> > > >  			       const char *secstrings);
+> > > >  
+> > > >  int module_sig_check(struct load_info *info, const u8 *sig, size_t sig_len);
+> > > > +int module_hash_check(struct load_info *info, const u8 *sig, size_t sig_len);
+> > > >  
+> > > >  #ifdef CONFIG_DEBUG_KMEMLEAK
+> > > >  void kmemleak_load_module(const struct module *mod, const struct load_info *info);
+> > > > diff --git a/kernel/module/main.c b/kernel/module/main.c
+> > > > index 2a28a0ece809..fa30b6387936 100644
+> > > > --- a/kernel/module/main.c
+> > > > +++ b/kernel/module/main.c
+> > > > @@ -3362,8 +3362,10 @@ static int module_integrity_check(struct load_info *info, int flags)
+> > > >  
+> > > >  	if (IS_ENABLED(CONFIG_MODULE_SIG) && sig_type == PKEY_ID_PKCS7) {
+> > > >  		err = module_sig_check(info, sig, sig_len);
+> > > > +	} else if (IS_ENABLED(CONFIG_MODULE_HASHES) && sig_type == PKEY_ID_MERKLE) {
+> > > > +		err = module_hash_check(info, sig, sig_len);
+> > > >  	} else {
+> > > > -		pr_err("module: not signed with expected PKCS#7 message\n");
+> > > > +		pr_err("module: not signed with signature mechanism\n");
+> > > >  		err = -ENOPKG;
+> > > 
+> > > To prevent others from running into the same issue:
+> > > 
+> > > My first test got stuck here, as I tested with virtme-ng, which symlinks
+> > > modules from build tree to /lib/modules/$(uname -r)/..., resulting in
+> > > 
+> > >     [   15.956855] module: not signed with signature mechanism
+> > >     modprobe: ERROR: could not insert 'efivarfs': Package not installed
+> > > 
+> > > As the modules_install step was missing, modules were not being signed.
+> > 
+> > Currently the signing is deferred to installation time to keep in sync
+> > with regular module signing and to keep the logic simpler by not having
+> > to gracefully handle previously-signed files.
+> > But this could be changed.
+> 
+> I did not want to suggest changing the behaviour, that would make things
+> more complicated to prevent needless rebuilds.  I just wanted to mention
+> it here to prevent others from burning time.
+
+Understood.
+
+> > > [...]
+> > > > diff --git a/scripts/modules-merkle-tree.c b/scripts/modules-merkle-tree.c
+> > > > new file mode 100644
+> > > > index 000000000000..a6ec0e21213b
+> > > > --- /dev/null
+> > > > +++ b/scripts/modules-merkle-tree.c
+> > > > @@ -0,0 +1,467 @@
+> > > > +// SPDX-License-Identifier: GPL-2.0-or-later
+> > > > +/*
+> > > > + * Compute hashes for modules files and build a merkle tree.
+> > > > + *
+> > > > + * Copyright (C) 2025 Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+> > > > + * Copyright (C) 2025 Thomas Weißschuh <linux@weissschuh.net>
+> > > > + *
+> > > > + */
+> > > > +#define _GNU_SOURCE 1
+> > > > +#include <arpa/inet.h>
+> > > > +#include <err.h>
+> > > > +#include <unistd.h>
+> > > > +#include <fcntl.h>
+> > > > +#include <stdarg.h>
+> > > > +#include <stdio.h>
+> > > > +#include <string.h>
+> > > > +#include <stdbool.h>
+> > > > +#include <stdlib.h>
+> > > > +
+> > > > +#include <sys/stat.h>
+> > > > +#include <sys/mman.h>
+> > > > +
+> > > > +#include <openssl/evp.h>
+> > > > +#include <openssl/err.h>
+> > > > +
+> > > > +#include "ssl-common.h"
+> > > > +
+> > > > +static int hash_size;
+> > > > +static EVP_MD_CTX *ctx;
+> > > > +
+> > > > +struct module_signature {
+> > > > +	uint8_t		algo;		/* Public-key crypto algorithm [0] */
+> > > > +	uint8_t		hash;		/* Digest algorithm [0] */
+> > > > +	uint8_t		id_type;	/* Key identifier type [PKEY_ID_PKCS7] */
+> > > > +	uint8_t		signer_len;	/* Length of signer's name [0] */
+> > > > +	uint8_t		key_id_len;	/* Length of key identifier [0] */
+> > > > +	uint8_t		__pad[3];
+> > > > +	uint32_t	sig_len;	/* Length of signature data */
+> > > > +};
+> > > > +
+> > > > +#define PKEY_ID_MERKLE 3
+> > > > +
+> > > > +static const char magic_number[] = "~Module signature appended~\n";
+> > > 
+> > > This here will be the forth definition of struct module_signature,
+> > > increasing the risk of unwanted diversion.  I second Petr's suggestion
+> > > to reuse a _common_ definition instead.
+> > 
+> > Ack.
+> > 
+> > > (Here, even include/linux/module_signature.h could be included itself.)
+> > 
+> > I'd like to avoid including internal headers from other components.
+> > We could move it to an UAPI header. Various other subsystems use those
+> > for not-really-UAPI but still ABI definitions.
+> 
+> Yeah, ack.
+
+What exactly is the 'ack' for?
+* Avoiding to include internal headers?
+* Moving the definition to UAPI headers?
+
+(...)
+
+> > > Can you verify if I get the mechanics roughly correct?
+> > > 
+> > >   * Modules are merkle tree leaves.  Modules are built and logically
+> > >     paired by the order from modules.order; a single left-over module is
+> > >     paired with itself.
+> > > 
+> > >   * Hashes of paired modules are hashed again (branch node hash);
+> > >     hashes of pairs of branch nodes' hashes are hashed again;
+> > >     repeat until we reach the single merkle tree root hash
+> > > 
+> > >   * The final merkle tree root hash (and the count of tree levels) is
+> > >     included in vmlinux
+> > 
+> > The merkle tree code was written by Sebastian so he will have the best
+> > knowledge about it. But this is also my understanding.
+> 
+> I'd like to see some (rough) description in Documentation or in a commit
+> message at least, otherwise future me will have to ask that again.
+
+Ack in general. I'd prefer to document it in a source code comment,
+though. That feels like the best fit to me.
 
 
-On 2/23/26 9:43 AM, Kalesh Singh wrote:
-> On Sat, Feb 21, 2026 at 4:40 AM Pedro Falcato <pfalcato@suse.de> wrote:
->> On Fri, Feb 20, 2026 at 01:35:58PM -0800, Kalesh Singh wrote:
->>> On Tue, Aug 19, 2025 at 6:57 PM Anthony Yznaga
->>> <anthony.yznaga@oracle.com> wrote:
->>>> Memory pages shared between processes require page table entries
->>>> (PTEs) for each process. Each of these PTEs consume some of
->>>> the memory and as long as the number of mappings being maintained
->>>> is small enough, this space consumed by page tables is not
->>>> objectionable. When very few memory pages are shared between
->>>> processes, the number of PTEs to maintain is mostly constrained by
->>>> the number of pages of memory on the system. As the number of shared
->>>> pages and the number of times pages are shared goes up, amount of
->>>> memory consumed by page tables starts to become significant. This
->>>> issue does not apply to threads. Any number of threads can share the
->>>> same pages inside a process while sharing the same PTEs. Extending
->>>> this same model to sharing pages across processes can eliminate this
->>>> issue for sharing across processes as well.
->>>>
->>>> <snip>
->>> Hi Anthony,
->>>
->>> Thanks for continuing to push this forward, and apologies for joining
->>> this discussion late. I am likely missing some context from the
->>> various previous iterations of this feature, but I'd like to throw
->>> another use case into the mix to be considered around the design of
->>> the sharing API.
->>>
->>> We are exploring a similar optimization for Android to reduce page
->>> table overhead. In Android, we preload many ELF mappings in the Zygote
->>> process to help application launch times. Since the Zygote model is
->>> fork-but-no-exec, all applications inherit these mappings, which can
->>> result in upwards of 200 MB of redundant page table overhead per
->>> device.
->> This can be solved by simply not using the Zygote model :p Or perhaps
->> MADV_DONTNEED/straight up unmapping libraries you don't need in the child's
->> side.
-> I think that's a separate topic, but that model is used on billions of
-> client devices :) The common runtime for apps and other core system
-> code is preloaded to significantly reduce app startup latencies.
->
->>> I believe that managing a pseudo-filesystem (msharefs) and mapping via
->>> ioctl during process creation could introduce overhead that impacts
->>> app startup latency. Ideally, child apps shouldn't be aware of this
->>> sharing or need to manage the pseudo-filesystem on their end. To
->>> achieve this "transparent" sharing, I would prefer Khalid's previous
->>> API from his 2022 RFC [1]. By attaching the shared mm directly to the
->>> file's address_space and exposing a MAP_SHARED_PT flag, child apps
->>> could transparently inherit the shared page tables during fork().
->> So, we've discussed this before. I initially liked this idea a lot more.
->> However, there are a couple of problems here:
->>
->> 1) mshare (as in the mshare feature) isn't really aiming for transparent here.
->> There is e.g a specific need to setup an mshare region, with a few files/anon
->> there, and then later mprotect/munmap parts of the region - and have it apply
->> on every process that has it mapped. This is why we're aiming for different
->> system calls (not ioctls anymore), doing munmap(mshare_reg, 4096) is ambiguous
->> as to whether you want to unmap the mshare VMA, or a VMA inside the mshare mm.
-> Since we are interested in sharing text here, how does this play with
-> stuff like symbolization for call stacks? I believe this is another
-> reason where we might want to avoid mapping the pseudo mshare file
-> wrapper?
-
-I haven't explored shared text, yet. There may be dragons there.
-
-
->
->> 2) Sharing the page table at all (even worse so, Transparently(tm)) is a huge
->> pain. TLB shootdown becomes much harder, and rmap as-is isn't suited to deal
->> with this case. The way things are going with mshare, the container mm will
->> have one single entry in rmap, and then actually doing the shootdown is a
->> huuuuge pain (which, fwiw, will probably need a per-mshare TLB workaround),
->> because you need to find out and shoot down _every_ mm that has these tables
-> I agree the TLB shootdowns would be a pain. Perhaps, if there was a
-> concept of a shared ASID/PCID in the hardware, that would make things
-> less so ...
-
-That would certainly help. sparc64 has a secondary context, but that 
-doesn't do us any good here. :-)
-
-
->
->> mapped. And then, naturally, since you're sharing page tables, doing A/D bit
->> collection on these becomes extremely useless - and that will naturally pose
->> problems to the reclaim process if you abuse it.
-> I think in the use case I described, it would mostly be sharing
-> MAP_PRIVATE stuff, and the access bit should still apply for global
-> reclaim. However, I agree it becomes difficult to reason especially if
-> you throw memcgs into the mix.
-
-mshare won't support mapping objects in it with MAP_PRIVATE. Sharing 
-PTEs to memory that can be COW'd is problematic. If it's something that 
-can be adapted to use MAP_SHARED then maybe things can work.
-
-As for memcgs, the current idea is to have an owner associated with an 
-mshare region. Currently this is the process that creates the region. 
-Mappings in an mshare region will be evaluated against the mem cgroup 
-the owner is a part of.
-
-Thanks,
-Anthony
-
-
->
-> Thanks,
-> Kalesh
->
->> 3) other misc problems that make it hard to work transparently (VMA alignment,
->> levels which you may or may not want to share, you need to revisit most page
->> table walkers in the kernel to get a completely transparent feature, etc)
->>
->>> Regarding David's and Matthew's discussion on VMA-modifying functions,
->>> I would lean towards the standard VMA manipulating APIs should be
->>> preferred over custom ioctls to preserve transparency for user-space.
->>> Perhaps whether or not these modifications persist across all sharing
->>> processes needs to be configurable? It seems that for database
->>> workloads, having the updates reflected everywhere would be the
->>> desired behavior. In the use case described for Android, we don't want
->>> apps to be able to modify these shared ELF mappings. To handle this,
->>> it's likely we would do something like mseal() the VMAs in the dynamic
->>> loader before forking.
->> mshare_mseal!
->>
->>> Perhaps we could decouple the core sharing logic from the sharing API
->>> itself? Since the sharing interface seems one of  the main areas where
->>> we don't have a good consensus yet, perhaps we could land the core
->>> sharing logic first. Keeping the core infrastructure generic would
->> I think the core infrastructure is relatively generic (at least the
->> small core mm modifications to get this to even work) already, but
->> perhaps Anthony can comment on that.
->>
->> --
->> Pedro
+Thomas
