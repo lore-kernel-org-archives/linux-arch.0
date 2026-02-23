@@ -1,125 +1,185 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.10])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 67D30322B8C;
-	Mon, 23 Feb 2026 16:35:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.10
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C7B39314B6A
+	for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 16:45:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771864542; cv=none; b=MaeEgmUkFV5OIyNmgxmtPyRrvAw/ATI7c28nxDJ36OsknAxi49u5f6yPHHSRpUP2991JQVq01/QwUeoMFHvCcgsaHN2TSmBRz/zCIu5WatmouAT+SgnLe6/ZvoqBzTxdSaR1nWDYgF5RTZlaZTBRJq4WEt321PO5MvfDvKsP5h0=
+	t=1771865116; cv=none; b=F1ok1rh16opI3HZVaOhnFB7t7TMgO0kIek8Kv9RJZIftKKdADiC8bGA0vdlqTj853LigsAWOQau8hthKtOMCioTw7jCa/CuJyS5feZu0i32bZKqqgQKyStME7nfsr6BhbiIGZdt20GMYSfaO1jEapYg1aZI5/cCiG4ftCvrPsRs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771864542; c=relaxed/simple;
-	bh=INgbWi1LfXN0Ez9j66pRQryu6hcLX3HbDIxmBmoNo/A=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=tex6in6NaIRSL2waUoi7R8H5x0zRZo/YbqESxi1dlgmUlI0M8L5Jp8Upagw/pzBbjyeaKfqZtq4jY4qxJ7zdje/blRt4w8srOIILN3EXvmKExY7v/QRM8HO97AGTkebiS5XmnAz9TGZA89y7l/8MVxrNbSft4l3DX0dDJL3YW98=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=UMqhh+0f; arc=none smtp.client-ip=192.198.163.10
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1771865116; c=relaxed/simple;
+	bh=FRgYciD93kMWv+pd/N0cNJUUA8/s04jNUGla2stAuNQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=fMH268vaiGjXcR0UaAT+ACHJocpdhFbrEWZbsur5GOvLa1YOp8A1C/SZhmvJa/BTSTFIG3mI0qD1R/p7fgRrLVsAb2p7757+GTdZS9NadZkyHo36Wr4AigIQsiAuNDffPRi0Mb+CTbMhRgDvyX66r1/AgO6gxp5PJwwIYe8698c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MWjWYghN; arc=none smtp.client-ip=209.85.128.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="UMqhh+0f"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1771864539; x=1803400539;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=INgbWi1LfXN0Ez9j66pRQryu6hcLX3HbDIxmBmoNo/A=;
-  b=UMqhh+0f8PxcCZeTsU9TNGRepU9uoBoIrFs5+sTCZnCi7cTPG2fOdBUe
-   UzuTYFW4AnL5C4kbtEWhVTWa3YfgXgSiBSjF3jfMuyCe+R6bAhwL4Q7d4
-   /ZvX3GompJzgptgEhHMajdmrnOD4rxZVzZZkoInZ9EaZ0EKeT3KHNdueY
-   pwDASOMcF0F2qmZyqczy48foDuS9217A/8aYprePgV1x3kF35Xgk8sxkT
-   IdQdmKZO01f5MELAlbyA9xm7t5YNTw2wRWdNYq5wAY08oF9RcT7tNzwGY
-   A0+ocBcIdyWk8GO3VFQmg19NnT2sm/TOhDbFmQ0y+8jWZeReiXnQe1ty4
-   A==;
-X-CSE-ConnectionGUID: YRT1yPS9T/W4fezZMksk+Q==
-X-CSE-MsgGUID: C9Bq0m0bRCK/o3HJ5NgHpw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11710"; a="84225327"
-X-IronPort-AV: E=Sophos;i="6.21,307,1763452800"; 
-   d="scan'208";a="84225327"
-Received: from fmviesa003.fm.intel.com ([10.60.135.143])
-  by fmvoesa104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 08:35:38 -0800
-X-CSE-ConnectionGUID: lndfx9ZQRBO9VCQx+Jnnlw==
-X-CSE-MsgGUID: GAw/SMTaRk2P18vPFA03VQ==
-X-ExtLoop1: 1
-Received: from dnelso2-mobl.amr.corp.intel.com (HELO [10.125.110.205]) ([10.125.110.205])
-  by fmviesa003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 08:35:37 -0800
-Message-ID: <c348453a-6a1f-43e4-acbb-02bbeb2ce805@intel.com>
-Date: Mon, 23 Feb 2026 08:35:39 -0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MWjWYghN"
+Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-48372efa020so36218115e9.2
+        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 08:45:14 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1771865113; x=1772469913; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=l3x6z9F/c9hGbEoQPXVnk/KQJsAibMZOJ/jrJV/lD14=;
+        b=MWjWYghNaV3dzHo2Lg5VgR/1dpCLsIo/YgmE7nQ0kwYPXQKRjNOn1j6YEM5h5OqXJk
+         N2Huvcr/yl2vneB/QhrMn0MwZMkohzXpbs0X9g61+YdKBaYkqj5sloG/XYt5yKiDoRsH
+         /WgrQ6Sg1zWYmywQ/sA06KWk4StNL79rgoBT/eSzqS5PlvXWkQV2yJObqmVcyBPzQ9L3
+         KbNa5UiMk7A7e2S6Rra4GiN6Z+B6rZ1AH8mInP7hrpBH8Owy0aMMuE+E3EGbVIZcqQA7
+         Scy8nSLT0WhWZJp9ZUK6hcfgDoDnI4FzPO9P3BDW5jkRCHuUnQQtAy89a7DUQIIZ7I/s
+         UH9Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1771865113; x=1772469913;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=l3x6z9F/c9hGbEoQPXVnk/KQJsAibMZOJ/jrJV/lD14=;
+        b=s1zMaBliWZ0QR05v0lYS5cgobxkzFcc7AZbKznYvaak9o2hVUId2MsGfDxc8jKnDbu
+         rNhdQWHOCZF8DXnYkYX+6iUy5zjlALxvY+DxlzGWfdaqeTnuXOA0YCLAP5oTHq5xKEQh
+         TQsl7xWp2iiKBhmyB1qv6h1fNWsFL+pBmzTtbuj8jwtftq0wXV0Ul/3YoQa/xK4uQTPA
+         DwZCzQ/1QwF7dzk0wA6MRxLJG7xJttrIIlCPqcf4oRBWq0VblHwXm/W+xfh9PR08qPvr
+         hQEdvSbjVJMh5eRLItivUxSNunzTzhvoJvdiRdjLovuexJwzA11JfcHh+4EUTGJ6tURg
+         fvkQ==
+X-Forwarded-Encrypted: i=1; AJvYcCVeijHmtFo00Tmc5D5VSL58uKCLn8axSE42pUaEKKoYOgwcclvbwuSXAi0w+5tPUl2LvipBp5ldaFyF@vger.kernel.org
+X-Gm-Message-State: AOJu0YxjcL/SpMgJfwMNE3mPGAbPNv75JUA0NLCa0Oc1RBNDz/MwbT1M
+	2anxDj52Cnz8ZD2pe5Host22H0OM49N/snHjRuaj87U2t/9p+t09+mSm
+X-Gm-Gg: AZuq6aI0rPGPrFjYR/KJ0KIL9YbLEvonUmI/ZU99HJCsiGChSswuyeW+jq8qiMPwdyh
+	UOLdKTz1y0p84ie7EBkQ3Vx/x9Xq+FYuaa2sOCa+QOOTCM1obQWd60pVk9vAJpJVkU/XukGXJgY
+	zgeK8zCFqtBfOXQTGs379NByKZXFEFhUwqLO/2PtSFQlJh/Cx9UrKvT1fkb0adeonnQ8UtP+mCF
+	9KNtUgtgjVg1K829TzeTCbSyTK/EPNzvEsZ/ir2AiL8AcaTgth0Ct4XlK23tfmV/VyNHK89R78c
+	hSHW8DAc5ooL/nqHDAHjY/F9VJaH6/bph0e1bz4MB3l2uIZ2hJqDsmufKxtXCG2Ljkrrz82LHH7
+	dSEpBjDxZU+8uQ8UDobthTniq1jKPkfyJgE24zm9k6+Cah7q+sOM0dyoFGPWIRlsdEOwxZ1+iiu
+	rrNqdvZ4HVbRIazM7X673ttcJcUV2nKgcxaJXqnAS8gKK7hilbCOFLun5ZcQg8gFhbqvq/jNCzU
+	co=
+X-Received: by 2002:a05:600c:3516:b0:483:7783:5373 with SMTP id 5b1f17b1804b1-483a963588bmr140388075e9.23.1771865112715;
+        Mon, 23 Feb 2026 08:45:12 -0800 (PST)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-483b8196ae0sm447875e9.0.2026.02.23.08.45.12
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 23 Feb 2026 08:45:12 -0800 (PST)
+Date: Mon, 23 Feb 2026 16:45:11 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: jlayton@kernel.org, chuck.lever@oracle.com, alex.aring@gmail.com,
+ viro@zeniv.linux.org.uk, brauner@kernel.org, jack@suse.cz, arnd@arndb.de,
+ linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org
+Subject: Re: [PATCH] Add support for empty path in openat and openat2
+ syscalls
+Message-ID: <20260223164511.525762fb@pumpkin>
+In-Reply-To: <20260223151652.582048-1-jkoolstra@xs4all.nl>
+References: <20260223151652.582048-1-jkoolstra@xs4all.nl>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
- when batch allocation fails
-To: Lance Yang <lance.yang@linux.dev>
-Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org,
- will@kernel.org, david@kernel.org
-References: <2a6c4e62-1663-4a98-9adc-406a6a1ebfd3@kernel.org>
- <20260223125826.28207-1-lance.yang@linux.dev>
- <a0c434c4-ec65-4a37-9422-5614249124bc@intel.com>
- <1373db93-3977-425f-ad59-5970e7e50b48@linux.dev>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <1373db93-3977-425f-ad59-5970e7e50b48@linux.dev>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
-On 2/23/26 08:29, Lance Yang wrote:
+On Mon, 23 Feb 2026 16:16:52 +0100
+Jori Koolstra <jkoolstra@xs4all.nl> wrote:
+
+> To get an operable version of an O_PATH file descriptors, it is possible
+> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
+> currently require going through open("/proc/<pid>/fd/<nr>") which
+> depends on a functioning procfs.
+
+What do you want the fd for?
+There are good reasons for wanting an fd for a directory that you don't
+have access permissions for, but what is the use case for a file?
+
+It all gets very close to letting you do things that the 'security model'
+should reject.
+
+	David
+
 > 
-> Note: Use this when code really needs to wait for synchronization,
-> *not* for freeing memory. Memory freeing should use RCU callbacks
-> that don't cause latency spikes in this thread.
+> This patch adds the O_EMPTY_PATH flag to openat and openat2. If passed
+> LOOKUP_EMPTY is set at path resolve time.
+> 
+> Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
+> ---
+>  fs/fcntl.c                       | 2 +-
+>  fs/open.c                        | 6 ++++--
+>  include/linux/fcntl.h            | 2 +-
+>  include/uapi/asm-generic/fcntl.h | 4 ++++
+>  4 files changed, 10 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/fcntl.c b/fs/fcntl.c
+> index f93dbca08435..62ab4ad2b6f5 100644
+> --- a/fs/fcntl.c
+> +++ b/fs/fcntl.c
+> @@ -1169,7 +1169,7 @@ static int __init fcntl_init(void)
+>  	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+>  	 * is defined as O_NONBLOCK on some platforms and not on others.
+>  	 */
+> -	BUILD_BUG_ON(20 - 1 /* for O_RDONLY being 0 */ !=
+> +	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
+>  		HWEIGHT32(
+>  			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
+>  			__FMODE_EXEC));
+> diff --git a/fs/open.c b/fs/open.c
+> index 91f1139591ab..32865822ca1c 100644
+> --- a/fs/open.c
+> +++ b/fs/open.c
+> @@ -1160,7 +1160,7 @@ struct file *kernel_file_open(const struct path *path, int flags,
+>  EXPORT_SYMBOL_GPL(kernel_file_open);
+>  
+>  #define WILL_CREATE(flags)	(flags & (O_CREAT | __O_TMPFILE))
+> -#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC)
+> +#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC | O_EMPTY_PATH)
+>  
+>  inline struct open_how build_open_how(int flags, umode_t mode)
+>  {
+> @@ -1277,6 +1277,8 @@ inline int build_open_flags(const struct open_how *how, struct open_flags *op)
+>  		}
+>  	}
+>  
+> +	if (flags & O_EMPTY_PATH)
+> +		lookup_flags |= LOOKUP_EMPTY;
+>  	if (flags & O_DIRECTORY)
+>  		lookup_flags |= LOOKUP_DIRECTORY;
+>  	if (!(flags & O_NOFOLLOW))
+> @@ -1362,7 +1364,7 @@ static int do_sys_openat2(int dfd, const char __user *filename,
+>  	if (unlikely(err))
+>  		return err;
+>  
+> -	CLASS(filename, name)(filename);
+> +	CLASS(filename_flags, name)(filename, op.lookup_flags);
+>  	return FD_ADD(how->flags, do_file_open(dfd, name, &op));
+>  }
+>  
+> diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
+> index a332e79b3207..ce742f67bf60 100644
+> --- a/include/linux/fcntl.h
+> +++ b/include/linux/fcntl.h
+> @@ -10,7 +10,7 @@
+>  	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC | \
+>  	 O_APPEND | O_NDELAY | O_NONBLOCK | __O_SYNC | O_DSYNC | \
+>  	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
+> -	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
+> +	 O_NOATIME | O_CLOEXEC | O_PATH | O_EMPTY_PATH | __O_TMPFILE)
+>  
+>  /* List of all valid flags for the how->resolve argument: */
+>  #define VALID_RESOLVE_FLAGS \
+> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+> index 613475285643..8e4e796ad212 100644
+> --- a/include/uapi/asm-generic/fcntl.h
+> +++ b/include/uapi/asm-generic/fcntl.h
+> @@ -88,6 +88,10 @@
+>  #define __O_TMPFILE	020000000
+>  #endif
+>  
+> +#ifndef O_EMPTY_PATH
+> +#define O_EMPTY_PATH	0100000000
+> +#endif
+> +
+>  /* a horrid kludge trying to make sure that this will fail on old kernels */
+>  #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+>  
 
-Yeah, but I'd probably mix it in with the other chit chat about
-non-atomic contexts. I'd also make it something like:
-
-	Do not use for freeing memory. Use RCU callbacks instead to
-	avoid latency spikes.
-
-to make the commands clear.
