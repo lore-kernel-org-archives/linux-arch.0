@@ -1,140 +1,125 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.13])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.10])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5271B313539;
-	Mon, 23 Feb 2026 16:33:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.13
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 67D30322B8C;
+	Mon, 23 Feb 2026 16:35:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.10
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771864395; cv=none; b=UtDXxBQyUV3lNYWg5lGtDOkzM3aWkjCURoCyeG6jpUOHIPVJx9XPBPuUvQJWmWHtBkoDzSdz62smZwTu9OU5wyBv32qcVHuYdQuZZL8k5/dZMxS9xb2IypCSNtsgfgO2eQM9wWvFAvpzEDKADrItmUMUWZ9bsXNVgNXzqS3GzJQ=
+	t=1771864542; cv=none; b=MaeEgmUkFV5OIyNmgxmtPyRrvAw/ATI7c28nxDJ36OsknAxi49u5f6yPHHSRpUP2991JQVq01/QwUeoMFHvCcgsaHN2TSmBRz/zCIu5WatmouAT+SgnLe6/ZvoqBzTxdSaR1nWDYgF5RTZlaZTBRJq4WEt321PO5MvfDvKsP5h0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771864395; c=relaxed/simple;
-	bh=Lx3d4xCCjQqM4hNnnOHqhZ8wgehpmy9M0RqpkyDnTVI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=tq6xcnQ8yfEVqHYjENDXHpbmMw6nlHYgXgCCTKmEaGcS1EMuYYxt9+wL0l3UMNkDdDFq1uH9g/40Zji/ja94/jbWzxTuY6mMY0MS0JD/jUzKywiPdI+7xUv4BfwqpLVmpTttk2G8Ke2xulA8seKCQnt7vB56BsKv/bbbVFiILU0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=RbVgKdin; arc=none smtp.client-ip=192.198.163.13
+	s=arc-20240116; t=1771864542; c=relaxed/simple;
+	bh=INgbWi1LfXN0Ez9j66pRQryu6hcLX3HbDIxmBmoNo/A=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=tex6in6NaIRSL2waUoi7R8H5x0zRZo/YbqESxi1dlgmUlI0M8L5Jp8Upagw/pzBbjyeaKfqZtq4jY4qxJ7zdje/blRt4w8srOIILN3EXvmKExY7v/QRM8HO97AGTkebiS5XmnAz9TGZA89y7l/8MVxrNbSft4l3DX0dDJL3YW98=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=UMqhh+0f; arc=none smtp.client-ip=192.198.163.10
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="RbVgKdin"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="UMqhh+0f"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1771864393; x=1803400393;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=Lx3d4xCCjQqM4hNnnOHqhZ8wgehpmy9M0RqpkyDnTVI=;
-  b=RbVgKdin5k0nOa4HFFL1/iWa1oHoI6xfuA880M76MiopqObWHb9LekNB
-   n16nRFCeVZKEV9L+h8XdBiQiuhhkOhBbLUaGHd+Sg4PWx8EHdeKckE8Dn
-   kTVZSXiBOvEIxeh7prWkiQnXD5beRv/ditPdlE01dRUTsD9OyWxmE7+Uz
-   FqS1IQ89m5QmRwT+xik/aFtGRoMFmhV3x5Y6JZFDltnAZamtA+7/ncwPy
-   wEtkRFpr5dizWPsgquliSfx+XZHHd9D5HMxzhgstLfVhs7de8NvTxYyHF
-   Nh8Vxh4Jkx5lldPkSOnKdSnO37SNN3ROML+WCQjtGpDf6kVZV3bRFcTgJ
-   g==;
-X-CSE-ConnectionGUID: Cr+AFm8URAq2RF3kH4o7bw==
-X-CSE-MsgGUID: 68ALZjEXTDCpWzNUgVKNPg==
-X-IronPort-AV: E=McAfee;i="6800,10657,11710"; a="75473023"
+  t=1771864539; x=1803400539;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=INgbWi1LfXN0Ez9j66pRQryu6hcLX3HbDIxmBmoNo/A=;
+  b=UMqhh+0f8PxcCZeTsU9TNGRepU9uoBoIrFs5+sTCZnCi7cTPG2fOdBUe
+   UzuTYFW4AnL5C4kbtEWhVTWa3YfgXgSiBSjF3jfMuyCe+R6bAhwL4Q7d4
+   /ZvX3GompJzgptgEhHMajdmrnOD4rxZVzZZkoInZ9EaZ0EKeT3KHNdueY
+   pwDASOMcF0F2qmZyqczy48foDuS9217A/8aYprePgV1x3kF35Xgk8sxkT
+   IdQdmKZO01f5MELAlbyA9xm7t5YNTw2wRWdNYq5wAY08oF9RcT7tNzwGY
+   A0+ocBcIdyWk8GO3VFQmg19NnT2sm/TOhDbFmQ0y+8jWZeReiXnQe1ty4
+   A==;
+X-CSE-ConnectionGUID: YRT1yPS9T/W4fezZMksk+Q==
+X-CSE-MsgGUID: C9Bq0m0bRCK/o3HJ5NgHpw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11710"; a="84225327"
 X-IronPort-AV: E=Sophos;i="6.21,307,1763452800"; 
-   d="scan'208";a="75473023"
-Received: from fmviesa010.fm.intel.com ([10.60.135.150])
-  by fmvoesa107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 08:33:13 -0800
-X-CSE-ConnectionGUID: 5eDstWmVSTuQYmT8trOspg==
-X-CSE-MsgGUID: xW3CMIadS5CwrtommhN3PQ==
+   d="scan'208";a="84225327"
+Received: from fmviesa003.fm.intel.com ([10.60.135.143])
+  by fmvoesa104.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 08:35:38 -0800
+X-CSE-ConnectionGUID: lndfx9ZQRBO9VCQx+Jnnlw==
+X-CSE-MsgGUID: GAw/SMTaRk2P18vPFA03VQ==
 X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,307,1763452800"; 
-   d="scan'208";a="213951680"
-Received: from lkp-server02.sh.intel.com (HELO a3936d6a266d) ([10.239.97.151])
-  by fmviesa010.fm.intel.com with ESMTP; 23 Feb 2026 08:33:10 -0800
-Received: from kbuild by a3936d6a266d with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1vuYrr-000000000XF-2ez3;
-	Mon, 23 Feb 2026 16:33:07 +0000
-Date: Tue, 24 Feb 2026 00:32:45 +0800
-From: kernel test robot <lkp@intel.com>
-To: Jori Koolstra <jkoolstra@xs4all.nl>, jlayton@kernel.org,
-	chuck.lever@oracle.com, alex.aring@gmail.com,
-	viro@zeniv.linux.org.uk, brauner@kernel.org, jack@suse.cz,
-	arnd@arndb.de, linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: oe-kbuild-all@lists.linux.dev, jkoolstra@xs4all.nl
-Subject: Re: [PATCH] Add support for empty path in openat and openat2 syscalls
-Message-ID: <202602240038.MTqLbuRR-lkp@intel.com>
-References: <20260223151652.582048-1-jkoolstra@xs4all.nl>
+Received: from dnelso2-mobl.amr.corp.intel.com (HELO [10.125.110.205]) ([10.125.110.205])
+  by fmviesa003-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 08:35:37 -0800
+Message-ID: <c348453a-6a1f-43e4-acbb-02bbeb2ce805@intel.com>
+Date: Mon, 23 Feb 2026 08:35:39 -0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260223151652.582048-1-jkoolstra@xs4all.nl>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
+ when batch allocation fails
+To: Lance Yang <lance.yang@linux.dev>
+Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org,
+ will@kernel.org, david@kernel.org
+References: <2a6c4e62-1663-4a98-9adc-406a6a1ebfd3@kernel.org>
+ <20260223125826.28207-1-lance.yang@linux.dev>
+ <a0c434c4-ec65-4a37-9422-5614249124bc@intel.com>
+ <1373db93-3977-425f-ad59-5970e7e50b48@linux.dev>
+From: Dave Hansen <dave.hansen@intel.com>
+Content-Language: en-US
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+In-Reply-To: <1373db93-3977-425f-ad59-5970e7e50b48@linux.dev>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-Hi Jori,
+On 2/23/26 08:29, Lance Yang wrote:
+> 
+> Note: Use this when code really needs to wait for synchronization,
+> *not* for freeing memory. Memory freeing should use RCU callbacks
+> that don't cause latency spikes in this thread.
 
-kernel test robot noticed the following build errors:
+Yeah, but I'd probably mix it in with the other chit chat about
+non-atomic contexts. I'd also make it something like:
 
-[auto build test ERROR on brauner-vfs/vfs.all]
-[also build test ERROR on linus/master v7.0-rc1 next-20260220]
-[cannot apply to arnd-asm-generic/master]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+	Do not use for freeing memory. Use RCU callbacks instead to
+	avoid latency spikes.
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Jori-Koolstra/Add-support-for-empty-path-in-openat-and-openat2-syscalls/20260223-232002
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git vfs.all
-patch link:    https://lore.kernel.org/r/20260223151652.582048-1-jkoolstra%40xs4all.nl
-patch subject: [PATCH] Add support for empty path in openat and openat2 syscalls
-config: alpha-allnoconfig (https://download.01.org/0day-ci/archive/20260224/202602240038.MTqLbuRR-lkp@intel.com/config)
-compiler: alpha-linux-gcc (GCC) 15.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260224/202602240038.MTqLbuRR-lkp@intel.com/reproduce)
-
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202602240038.MTqLbuRR-lkp@intel.com/
-
-All errors (new ones prefixed by >>):
-
-   In file included from <command-line>:
-   fs/fcntl.c: In function 'fcntl_init':
->> include/linux/compiler_types.h:705:45: error: call to '__compiletime_assert_393' declared with attribute error: BUILD_BUG_ON failed: 21 - 1 != HWEIGHT32( (VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) | __FMODE_EXEC)
-     705 |         _compiletime_assert(condition, msg, __compiletime_assert_, __COUNTER__)
-         |                                             ^
-   include/linux/compiler_types.h:686:25: note: in definition of macro '__compiletime_assert'
-     686 |                         prefix ## suffix();                             \
-         |                         ^~~~~~
-   include/linux/compiler_types.h:705:9: note: in expansion of macro '_compiletime_assert'
-     705 |         _compiletime_assert(condition, msg, __compiletime_assert_, __COUNTER__)
-         |         ^~~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:39:37: note: in expansion of macro 'compiletime_assert'
-      39 | #define BUILD_BUG_ON_MSG(cond, msg) compiletime_assert(!(cond), msg)
-         |                                     ^~~~~~~~~~~~~~~~~~
-   include/linux/build_bug.h:50:9: note: in expansion of macro 'BUILD_BUG_ON_MSG'
-      50 |         BUILD_BUG_ON_MSG(condition, "BUILD_BUG_ON failed: " #condition)
-         |         ^~~~~~~~~~~~~~~~
-   fs/fcntl.c:1172:9: note: in expansion of macro 'BUILD_BUG_ON'
-    1172 |         BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=
-         |         ^~~~~~~~~~~~
-
-
-vim +/__compiletime_assert_393 +705 include/linux/compiler_types.h
-
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  691  
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  692  #define _compiletime_assert(condition, msg, prefix, suffix) \
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  693  	__compiletime_assert(condition, msg, prefix, suffix)
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  694  
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  695  /**
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  696   * compiletime_assert - break build and emit msg if condition is false
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  697   * @condition: a compile-time constant condition to check
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  698   * @msg:       a message to emit if condition is false
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  699   *
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  700   * In tradition of POSIX assert, this macro will break the build if the
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  701   * supplied condition is *false*, emitting the supplied error message if the
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  702   * compiler has support to do so.
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  703   */
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  704  #define compiletime_assert(condition, msg) \
-eb5c2d4b45e3d2d Will Deacon 2020-07-21 @705  	_compiletime_assert(condition, msg, __compiletime_assert_, __COUNTER__)
-eb5c2d4b45e3d2d Will Deacon 2020-07-21  706  
-
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+to make the commands clear.
