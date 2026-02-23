@@ -1,231 +1,168 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.12])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3062E1D61BC;
-	Mon, 23 Feb 2026 15:28:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 065DB1D54FA;
+	Mon, 23 Feb 2026 15:31:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.12
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771860507; cv=none; b=IT5wT91iJMGur02/wRuSWKFpJkMYgXW9mmckuDGTdUJvsc4KCrli1io0woiDcMgmVFLfcr4szyFLimayCuqAYQLeVOnW/PEqYedcK7Rz6IkoBP9CHksvgt761X99aTY7SxobMHDIuLCUHffLIrMexetSYQNHM4RQPyfO4EhupOg=
+	t=1771860670; cv=none; b=Ctxl+hQE2X+DKUnxpD9ec5Xbru3UwreKIcNz230pS9E/UxgVV0g0rg+6kcd2K3GmzZHtJ1Fz+0p1lynSGuwTT81/ppzm/j2pVCNUlzEp2M8dYEUpZs53rwwG2RF6KGVViZoHX0QkZQuWiiD8y2MHHCdDGYRRGQCk1OcSKiYwgek=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771860507; c=relaxed/simple;
-	bh=PGP7WOGc2Qqza/CvvG12J0wQHxz8BsqdnfnxTIM0+b4=;
-	h=Message-ID:Subject:From:To:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=kJLH5dd5Lih8w9lDNX8S8JdXF6sY2L0WkWuIT6Dch6b8VEttrZLq+CJJyYW1zvqt1lrv6rp+dFkbJpZX+SNAGPetJ4NLZfIlGB2zxxXvZ+nukFiwx0CRZ6OrPvB4rXPSI8Uhu37d8c/IXIAIXKHAV4H3tGRKzcLR9onO3p/OKMU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=aUH6k1rs; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1771860670; c=relaxed/simple;
+	bh=SXZbasoq/CXrbVuU7cwQOSmYwvFlNuPnKTKASQS2bPo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=R5UjXTEiGsgbJdXmAeRAMiAuwMx5RNVVd1XXzfiSqkBmWwRaFlhJMkxO2NhhyNUQbvXSj4LDN9m5jHsM54lTfZ7R39XpyZGkMjk7OQLRaM22H3DoZvJkRSunTsFNktO4STSDcCC+VH8ItlZvV0HBZl7xwmVJYQFgPKDJAMBDnCA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=FoA8KAg+; arc=none smtp.client-ip=192.198.163.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="aUH6k1rs"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 02C6FC19424;
-	Mon, 23 Feb 2026 15:28:25 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1771860506;
-	bh=PGP7WOGc2Qqza/CvvG12J0wQHxz8BsqdnfnxTIM0+b4=;
-	h=Subject:From:To:Date:In-Reply-To:References:From;
-	b=aUH6k1rsrvTFAVZV5iku4RIJdrzHZzz0ry0auWV9TAysN7G5KAiQNe6MMLIETyIlU
-	 U2/+9r7FD6hgs81F2SEJjIsMrkaZhfP3YwnV2yy8PrmEhvVDRmJ0o8Y1s/pV5y4Qeq
-	 YuHQ0fI5rl5UTpaLfHA4g2juDfk3VN/saElukA2bVAwx4sr8r1LudeQy9GjTYlxSSn
-	 zXT1LJnFcmIKRgJNUubLILqRNeNHHyrTLtc3utiFt92ayikrON9OSQY+0OThDYQ0j6
-	 kCuaXvgU69c1lNtPeABkhQlNJcwZVepd1uq9ZcA3/Wpmq8jgWWIo1HhWvcDnzwWH72
-	 fNMcfcY9a07lw==
-Message-ID: <44a2111e33631d78aded73e4b79908db6237227f.camel@kernel.org>
-Subject: Re: [PATCH] Add support for empty path in openat and openat2
- syscalls
-From: Jeff Layton <jlayton@kernel.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>, chuck.lever@oracle.com, 
-	alex.aring@gmail.com, viro@zeniv.linux.org.uk, brauner@kernel.org,
- jack@suse.cz, 	arnd@arndb.de, linux-fsdevel@vger.kernel.org,
- linux-kernel@vger.kernel.org, 	linux-arch@vger.kernel.org
-Date: Mon, 23 Feb 2026 10:28:24 -0500
-In-Reply-To: <20260223151652.582048-1-jkoolstra@xs4all.nl>
-References: <20260223151652.582048-1-jkoolstra@xs4all.nl>
-Autocrypt: addr=jlayton@kernel.org; prefer-encrypt=mutual;
- keydata=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
- QZIQXVeAA+smfTT0tDrisj1U5x6ZB9b3nBg65kc=
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.58.3 (3.58.3-1.fc43) 
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="FoA8KAg+"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1771860668; x=1803396668;
+  h=message-id:date:mime-version:subject:to:cc:references:
+   from:in-reply-to:content-transfer-encoding;
+  bh=SXZbasoq/CXrbVuU7cwQOSmYwvFlNuPnKTKASQS2bPo=;
+  b=FoA8KAg+/6cKGQclK0dISB9c53XAZ4LXspOr2ZwPemcnC4uv7KUhYu2p
+   PFVi2lfTiPN/1U4yo/WKcDIQknxG6iMojBpYRzTHnF17VfIayPLlmUCUp
+   vz9EI9rtcK3bqVcAyJTAu8llktnio7X6lZ+hfpV4XYlQl6zHEzANTN4dg
+   zptSthdLwVbiSj2Vm58sNgVTmBgfSyQUjPqdfBCktc/Y6pXhXbLZu42p0
+   ixD2Ie1z9cl8JbLIlKmX4CtWQmbPf/OmFvTeY0Et47NZhUctswcB9Zymk
+   vEXR2XSHnJwPzgn1TbbVJoEYykGaPzcwnrk+xrnHU/3W83NwSxNG35Xx4
+   Q==;
+X-CSE-ConnectionGUID: dk1B2pe+RJOmWaP/wutw3g==
+X-CSE-MsgGUID: DRDbDNAxQ7CCDDcCQ+mEFQ==
+X-IronPort-AV: E=McAfee;i="6800,10657,11710"; a="76722062"
+X-IronPort-AV: E=Sophos;i="6.21,306,1763452800"; 
+   d="scan'208";a="76722062"
+Received: from fmviesa005.fm.intel.com ([10.60.135.145])
+  by fmvoesa106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 07:31:07 -0800
+X-CSE-ConnectionGUID: 3RdSeWRtQ1OGmwABwOqOQQ==
+X-CSE-MsgGUID: HpkJ5mxMT22hY3yqnfnyyg==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.21,306,1763452800"; 
+   d="scan'208";a="220144437"
+Received: from dnelso2-mobl.amr.corp.intel.com (HELO [10.125.110.205]) ([10.125.110.205])
+  by fmviesa005-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 23 Feb 2026 07:31:07 -0800
+Message-ID: <a0c434c4-ec65-4a37-9422-5614249124bc@intel.com>
+Date: Mon, 23 Feb 2026 07:31:08 -0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
+ when batch allocation fails
+To: Lance Yang <lance.yang@linux.dev>, david@kernel.org
+Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org, will@kernel.org
+References: <2a6c4e62-1663-4a98-9adc-406a6a1ebfd3@kernel.org>
+ <20260223125826.28207-1-lance.yang@linux.dev>
+Content-Language: en-US
+From: Dave Hansen <dave.hansen@intel.com>
+Autocrypt: addr=dave.hansen@intel.com; keydata=
+ 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
+In-Reply-To: <20260223125826.28207-1-lance.yang@linux.dev>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Mon, 2026-02-23 at 16:16 +0100, Jori Koolstra wrote:
-> To get an operable version of an O_PATH file descriptors, it is possible
-> to use openat(fd, ".", O_DIRECTORY) for directories, but other files
-> currently require going through open("/proc/<pid>/fd/<nr>") which
-> depends on a functioning procfs.
->=20
-> This patch adds the O_EMPTY_PATH flag to openat and openat2. If passed
-> LOOKUP_EMPTY is set at path resolve time.
->=20
+On 2/23/26 04:58, Lance Yang wrote:
+...
+> +/**
+> + * tlb_remove_table_sync_rcu() - synchronize with software page-table walkers
+> + *
+> + * Like tlb_remove_table_sync_one() but uses RCU grace period instead of IPI
+> + * broadcast. Should be used in slow paths where sleeping is acceptable.
 
-This sounds valuable, but there was recent discussion around the
-O_REGULAR flag that said that we shouldn't be adding new flags to older
-syscalls [1]. Should this only be an OPENAT2_* flag instead?
+Just a nit on comments: Use imperative voice:
 
-[1]: https://lore.kernel.org/linux-fsdevel/20260129-siebzehn-adler-efe74ff8=
-f1a9@brauner/
+	... Use in slow paths where sleeping is acceptable.
 
+> + * Software/Lockless page-table walkers use local_irq_disable(), which is also
+> + * an RCU read-side critical section. synchronize_rcu() waits for all such
+> + * sections, providing the same guarantee as tlb_remove_table_sync_one() but
+> + * without disrupting all CPUs with IPIs.
 
-> Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
-> ---
->  fs/fcntl.c                       | 2 +-
->  fs/open.c                        | 6 ++++--
->  include/linux/fcntl.h            | 2 +-
->  include/uapi/asm-generic/fcntl.h | 4 ++++
->  4 files changed, 10 insertions(+), 4 deletions(-)
->=20
-> diff --git a/fs/fcntl.c b/fs/fcntl.c
-> index f93dbca08435..62ab4ad2b6f5 100644
-> --- a/fs/fcntl.c
-> +++ b/fs/fcntl.c
-> @@ -1169,7 +1169,7 @@ static int __init fcntl_init(void)
->  	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
->  	 * is defined as O_NONBLOCK on some platforms and not on others.
->  	 */
-> -	BUILD_BUG_ON(20 - 1 /* for O_RDONLY being 0 */ !=3D
-> +	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ !=3D
->  		HWEIGHT32(
->  			(VALID_OPEN_FLAGS & ~(O_NONBLOCK | O_NDELAY)) |
->  			__FMODE_EXEC));
-> diff --git a/fs/open.c b/fs/open.c
-> index 91f1139591ab..32865822ca1c 100644
-> --- a/fs/open.c
-> +++ b/fs/open.c
-> @@ -1160,7 +1160,7 @@ struct file *kernel_file_open(const struct path *pa=
-th, int flags,
->  EXPORT_SYMBOL_GPL(kernel_file_open);
-> =20
->  #define WILL_CREATE(flags)	(flags & (O_CREAT | __O_TMPFILE))
-> -#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC)
-> +#define O_PATH_FLAGS		(O_DIRECTORY | O_NOFOLLOW | O_PATH | O_CLOEXEC | O=
-_EMPTY_PATH)
-> =20
->  inline struct open_how build_open_how(int flags, umode_t mode)
->  {
-> @@ -1277,6 +1277,8 @@ inline int build_open_flags(const struct open_how *=
-how, struct open_flags *op)
->  		}
->  	}
-> =20
-> +	if (flags & O_EMPTY_PATH)
-> +		lookup_flags |=3D LOOKUP_EMPTY;
->  	if (flags & O_DIRECTORY)
->  		lookup_flags |=3D LOOKUP_DIRECTORY;
->  	if (!(flags & O_NOFOLLOW))
-> @@ -1362,7 +1364,7 @@ static int do_sys_openat2(int dfd, const char __use=
-r *filename,
->  	if (unlikely(err))
->  		return err;
-> =20
-> -	CLASS(filename, name)(filename);
-> +	CLASS(filename_flags, name)(filename, op.lookup_flags);
->  	return FD_ADD(how->flags, do_file_open(dfd, name, &op));
->  }
-> =20
-> diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
-> index a332e79b3207..ce742f67bf60 100644
-> --- a/include/linux/fcntl.h
-> +++ b/include/linux/fcntl.h
-> @@ -10,7 +10,7 @@
->  	(O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_EXCL | O_NOCTTY | O_TRUNC |=
- \
->  	 O_APPEND | O_NDELAY | O_NONBLOCK | __O_SYNC | O_DSYNC | \
->  	 FASYNC	| O_DIRECT | O_LARGEFILE | O_DIRECTORY | O_NOFOLLOW | \
-> -	 O_NOATIME | O_CLOEXEC | O_PATH | __O_TMPFILE)
-> +	 O_NOATIME | O_CLOEXEC | O_PATH | O_EMPTY_PATH | __O_TMPFILE)
-> =20
->  /* List of all valid flags for the how->resolve argument: */
->  #define VALID_RESOLVE_FLAGS \
-> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/=
-fcntl.h
-> index 613475285643..8e4e796ad212 100644
-> --- a/include/uapi/asm-generic/fcntl.h
-> +++ b/include/uapi/asm-generic/fcntl.h
-> @@ -88,6 +88,10 @@
->  #define __O_TMPFILE	020000000
->  #endif
-> =20
-> +#ifndef O_EMPTY_PATH
-> +#define O_EMPTY_PATH	0100000000
-> +#endif
+Yep, synchronize_rcu() is likely slower (longer wall clock time) but
+less disruptive to other CPUs.
+
+Is it worth explaining here that this should be used when code really
+needs to _wait_ and *not* for freeing memory? Freeing memory should use
+RCU callbacks that don't cause latency spikes in this thread, not this.
+
+> + * Context: Can sleep/block. Cannot be called from any atomic context.
+
+As a general rule, expressing constraints like this is best done in
+code, not comments, so:
+
+	might_sleep();
+or
+	WARN_ON_ONCE(!in_atomic());
+
+seem appropriate.
+
+I didn't see any obvious warning like that in the top levels of
+synchronize_rcu().
+
+> +static void tlb_remove_table_sync_rcu(void)
+> +{
+> +	synchronize_rcu();
+> +}
 > +
->  /* a horrid kludge trying to make sure that this will fail on old kernel=
-s */
->  #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
-> =20
-
---=20
-Jeff Layton <jlayton@kernel.org>
+>  #else /* !CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+> 
+>  static void tlb_remove_table_free(struct mmu_table_batch *batch)
+> @@ -303,6 +321,10 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+>  	__tlb_remove_table_free(batch);
+>  }
+> 
+> +static void tlb_remove_table_sync_rcu(void)
+> +{
+> +}
+> +
+>  #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+This seems a _little_ dangerous to even define. We don't want this
+sneaking into use when it doesn't do anything.
