@@ -1,56 +1,54 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E4A97212542
-	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 01:59:25 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8370616A956
+	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 02:02:11 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771898366; cv=none; b=VW7TjR4jNjQxSOyDfQd38MakILwR+DGm96I0o+a8TjAan9QJDO8bf5m3VLkF5FD8R9zmoaq5twAV54Q34jQs3Hbv2mMPvTTmHIWg3otvxlWkC0L9FLlJ38Kpn1TBxzL/g5roN2h7WS7PwwjO6bcFo2++HQu/VjOritU+mvBgtlg=
+	t=1771898531; cv=none; b=pSihWT8mPIDAWLt6TvMgVdRCR2O213PVOOIHw+EfIIos9XHjnFiRcket/2dYntfOxpG+utfzJ3iS2ngqBF9cT2rPLUs4ury5H3dcfrEOBrIeayqz/gNIQkh9XUpBmFRRCxU+nsoXzPLL02/FIWKQ3Y2TYYE4Beq+ycbXL7gtZfQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771898366; c=relaxed/simple;
-	bh=HUSNu0qCdup046cMKoUH8b6Lgd4CUue87zXyU4Qz5t8=;
+	s=arc-20240116; t=1771898531; c=relaxed/simple;
+	bh=HI15qPZpODUUYmT3koZ5s3kfYeK07PPTFU7DvVv4qdc=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=ucKwzVydxqB2pForaXUL4ugJNSrzKBn/Od/ueeK5wlE4EgMP51ZwQ2eqU8gQXaYWvzj08/JZ/bXNAfSZf1rClFRGhztIJQulmfh2eigCxd8Sh48f5qnqYYLg+LSQpzvWP3jblvACaqxbVfMNLzQVvywUyR6d193MZureCVbwnRM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=QXz6fZKx; arc=none smtp.client-ip=10.30.226.201
+	 To:Cc:Content-Type; b=Z7Nivx+1Z5MEf4h7NzNi4MjdicadtWCekIYafismlgDJlekgFFz/6dy3NgVa02IyTvZWSgPX7rC+2E8ZtgAjYXlacen0NbeCUi2gXQhC9IiT8QvxOgcwm+2nKhcj6bOZXJG9pdn3+D4JkikbyfdHV0yHZ6XXjIV96VUQ24hq8HY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=GjSAE+Gz; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="QXz6fZKx"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 98AA9C19421
-	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 01:59:25 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="GjSAE+Gz"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3AD86C4AF09
+	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 02:02:11 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1771898365;
-	bh=HUSNu0qCdup046cMKoUH8b6Lgd4CUue87zXyU4Qz5t8=;
+	s=k20201202; t=1771898531;
+	bh=HI15qPZpODUUYmT3koZ5s3kfYeK07PPTFU7DvVv4qdc=;
 	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=QXz6fZKxw+h8NdK0FPv0o7u2Bq6/p1li3kUuFhFtIZY/L0QkK1Y+ZY5NyhmKRwp+T
-	 U87tJPnbJCIpF6L0QWtaSCivPTz40kWk86F6tnouWqcCeItcEZZs9tZ0beu7RxZhsw
-	 ANeviFXdu477c9blcCZSYUtlfsmxgJVHFxoYppbp93s4ieFNvVdviKwKHwEARFiG7U
-	 plQT65mYRa1qSZuusMTVzo4iYv+3m1Mnu4vfqV/PBeeeiX5I7M3W6BKWXwnYsV1/xD
-	 3cN4HUg+NSC6ueW9C1QnOr4wmqhrC+I81RAMYVehZkVh4BMOEkX0tme+XfRhbtj342
-	 0383/BKzVYEKA==
-Received: by mail-wr1-f41.google.com with SMTP id ffacd0b85a97d-436234ef0f0so3207847f8f.1
-        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 17:59:25 -0800 (PST)
-X-Forwarded-Encrypted: i=1; AJvYcCUD7dvp8rDn4M9cxgByQoq3nrzZba4YkSbxwAGHKaFgrkQLYVlufQTdetuQagv2kmlx8v4o+Ra42mHi@vger.kernel.org
-X-Gm-Message-State: AOJu0YxNIUFgk9y3/on5dmy7WFJU95j4OXyZInLuVnHBO53M+dieVfKH
-	aIJ9NFCIr4QBwNkL+BHbe7lvMRhoq6rWCetNqsZ/y1wH4aj4eTRjMStvEVDE0BQNV/B1fViKOds
-	2TgaB2DrJWjBGv3Y7md0GOC+NTQMePmI=
-X-Received: by 2002:a5d:5d0f:0:b0:432:dc1f:6982 with SMTP id
- ffacd0b85a97d-4396f166a56mr20299830f8f.16.1771898364140; Mon, 23 Feb 2026
- 17:59:24 -0800 (PST)
+	b=GjSAE+Gzvl7MTKyXrXtFonZmUs9umZp2h+IMq3fABO4JJCL1aoEZElxco7fD7vQRn
+	 fGUnZwCnZAujrJY8Czuc1Meo7Mo/EDCH9oysx1oTesTFcA4hg9hJXUqfz3UfFujXXk
+	 3DZbodxSpPhUywtjZ8xtXY7ik3H5N2dcgpQGY/2diAtPqtp/W+ajXsF2CPkKnRK9lG
+	 tC/1KhyBGXh9nKWRSC3AnogrQsvf/c6r0MvKOpQbgE8zGHb0+/jntXgRIsayK2iqJh
+	 zjjbPgkyhAijWs0ICN+FAEGdrgwoX+DopxZ1wyxAszLPv5JcT/NZIhQP5Z69haxY0u
+	 IotkJQWZUIPSg==
+Received: by mail-wr1-f50.google.com with SMTP id ffacd0b85a97d-4376c0bffc1so3729387f8f.0
+        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2026 18:02:11 -0800 (PST)
+X-Forwarded-Encrypted: i=1; AJvYcCWdB9nxAhlJoGV5b5WEg87GkiG/C24R6Uq1kqH7MJEJMd3Kd9Nt62ubPWvnE1uPYfNo1MeBDmajdCt5@vger.kernel.org
+X-Gm-Message-State: AOJu0Yzw2MXtGF3+/bBpLw5gdFbUsvGVkF+JoYMAm5kkDdIjbnwcRnf2
+	PlW7HnUCi5RWwysR5DukNfBhQJ2FLHnzFOLBBIeQHFzcN7kDttdrBMeXMk+wdwKNzZL2Vxydb+O
+	AfXSQfruhK8p0IrZUyjqghzmE9K3mb80=
+X-Received: by 2002:a05:6000:4201:b0:3ec:db87:e5f4 with SMTP id
+ ffacd0b85a97d-4396f15d10cmr18428515f8f.7.1771898529711; Mon, 23 Feb 2026
+ 18:02:09 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260220090922.1506-1-jszhang@kernel.org> <20260220090922.1506-3-jszhang@kernel.org>
- <CAJF2gTTG849M7mmWo+sri0xoGYkKYxMwSEDhVr-OedMfMWC0Kw@mail.gmail.com>
-In-Reply-To: <CAJF2gTTG849M7mmWo+sri0xoGYkKYxMwSEDhVr-OedMfMWC0Kw@mail.gmail.com>
+References: <20260220090922.1506-1-jszhang@kernel.org> <20260220090922.1506-2-jszhang@kernel.org>
+In-Reply-To: <20260220090922.1506-2-jszhang@kernel.org>
 From: Guo Ren <guoren@kernel.org>
-Date: Tue, 24 Feb 2026 09:59:11 +0800
-X-Gmail-Original-Message-ID: <CAJF2gTS=K5xGC4-QmfkeDqUm9NnPeW+W1iXygtbdyyue6mE4cA@mail.gmail.com>
-X-Gm-Features: AaiRm53aHGtNOtCoyPrAzHoJqBMoFTvGVjdue5H2QAZd3FSX-1Ad_VdzKLg1NNg
-Message-ID: <CAJF2gTS=K5xGC4-QmfkeDqUm9NnPeW+W1iXygtbdyyue6mE4cA@mail.gmail.com>
-Subject: Re: [PATCH 2/3] genirq: use runtime constant to optimize
- handle_arch_irq access
+Date: Tue, 24 Feb 2026 10:01:57 +0800
+X-Gmail-Original-Message-ID: <CAJF2gTRq+Pp0AC4jFDQdSsQv8x_XWV4o1UrRGcrkAJD2238MSg@mail.gmail.com>
+X-Gm-Features: AaiRm51r629qqEXKS58ilHPH1EHwU6F6qXM6VgeaCXkG7tSCgEZ_ZRupW9dwMWo
+Message-ID: <CAJF2gTRq+Pp0AC4jFDQdSsQv8x_XWV4o1UrRGcrkAJD2238MSg@mail.gmail.com>
+Subject: Re: [PATCH 1/3] vmlinux.lds.h: add _handle_arch_irq RUNTIME_CONST section
 To: Jisheng Zhang <jszhang@kernel.org>
 Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, 
 	Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@kernel.org>, Paul Walmsley <pjw@kernel.org>, 
@@ -61,120 +59,37 @@ Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Tue, Feb 24, 2026 at 9:40=E2=80=AFAM Guo Ren <guoren@kernel.org> wrote:
+On Fri, Feb 20, 2026 at 5:27=E2=80=AFPM Jisheng Zhang <jszhang@kernel.org> =
+wrote:
 >
-> On Fri, Feb 20, 2026 at 5:28=E2=80=AFPM Jisheng Zhang <jszhang@kernel.org=
-> wrote:
-> >
-> > Currently, on GENERIC_IRQ_MULTI_HANDLER platforms, the handle_arch_irq
-> > is a pointer which is set during booting, and every irq processing need=
-s
-> > to access it, so it sits in hot code path. We can use the
-> > runtime constant mechanism which was introduced by Linus to speed up
-> > its accessing.
-> >
-> > Tested on Sipeed Lichee Pi 4A (riscv64) board, the perf sched benchmark=
- is
-> > improved by ~5.8%
-> Thx for the work. It's a visible improvement.
+> We will use the runtime constant to optimize the handle_arch_irq
+> accessing. This is preparation patch.
 >
-> Compared to the original handler pointer approach, this solution
-> introduces no observable drawbacks. Since the static_call alternative
-> requires further analysis and consensus, adopting this implementation
-> serves as a pragmatic interim step.
+> Signed-off-by: Jisheng Zhang <jszhang@kernel.org>
+> ---
+>  include/asm-generic/vmlinux.lds.h | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
 >
-> So, I give:
-> Reviewed-by: Guo Ren (Alibaba Damo Academy) <guoren@kernel.org>
-
-Oh, don't forget Mark's suggestion for the uninitialized handler,
-which is also suitable for genirq:
-
-"That means that if set_handle_irq() isn't called, an IRQ will result in
-a call to that bogus address rather than default_handle_irq(), ..."
-
-Maybe we need an empty _handle_arch_irq instance as a default for the
-early stage.
-
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmli=
+nux.lds.h
+> index eeb070f330bd..c4af2c7d0eed 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -973,7 +973,8 @@
+>                 RUNTIME_CONST(shift, d_hash_shift)                      \
+>                 RUNTIME_CONST(ptr, dentry_hashtable)                    \
+>                 RUNTIME_CONST(ptr, __dentry_cache)                      \
+> -               RUNTIME_CONST(ptr, __names_cache)
+> +               RUNTIME_CONST(ptr, __names_cache)                       \
+> +               RUNTIME_CONST(ptr, _handle_arch_irq)
 >
-> >
-> > Signed-off-by: Jisheng Zhang <jszhang@kernel.org>
-> > ---
-> >  include/linux/irq.h | 4 +++-
-> >  kernel/irq/handle.c | 8 +++++---
-> >  2 files changed, 8 insertions(+), 4 deletions(-)
-> >
-> > diff --git a/include/linux/irq.h b/include/linux/irq.h
-> > index 951acbdb9f84..2ba4a8afb71e 100644
-> > --- a/include/linux/irq.h
-> > +++ b/include/linux/irq.h
-> > @@ -1274,6 +1274,7 @@ void ipi_mux_process(void);
-> >  int ipi_mux_create(unsigned int nr_ipi, void (*mux_send)(unsigned int =
-cpu));
-> >
-> >  #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
-> > +#include <asm/runtime-const.h>
-> >  /*
-> >   * Registers a generic IRQ handling function as the top-level IRQ hand=
-ler in
-> >   * the system, which is generally the first C code called from an asse=
-mbly
-> > @@ -1288,7 +1289,8 @@ int __init set_handle_irq(void (*handle_irq)(stru=
-ct pt_regs *));
-> >   * Allows interrupt handlers to find the irqchip that's been registere=
-d as the
-> >   * top-level IRQ handler.
-> >   */
-> > -extern void (*handle_arch_irq)(struct pt_regs *) __ro_after_init;
-> > +extern void (*_handle_arch_irq)(struct pt_regs *) __ro_after_init;
-> > +#define handle_arch_irq runtime_const_ptr(_handle_arch_irq)
-> >  asmlinkage void generic_handle_arch_irq(struct pt_regs *regs);
-> >  #else
-> >  #ifndef set_handle_irq
-> > diff --git a/kernel/irq/handle.c b/kernel/irq/handle.c
-> > index b7d52821837b..aac9e7b1301e 100644
-> > --- a/kernel/irq/handle.c
-> > +++ b/kernel/irq/handle.c
-> > @@ -15,13 +15,14 @@
-> >  #include <linux/kernel_stat.h>
-> >
-> >  #include <asm/irq_regs.h>
-> > +#include <asm/runtime-const.h>
-> >
-> >  #include <trace/events/irq.h>
-> >
-> >  #include "internals.h"
-> >
-> >  #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
-> > -void (*handle_arch_irq)(struct pt_regs *) __ro_after_init;
-> > +void (*_handle_arch_irq)(struct pt_regs *) __ro_after_init;
-> >  #endif
-> >
-> >  /**
-> > @@ -270,10 +271,11 @@ irqreturn_t handle_irq_event(struct irq_desc *des=
-c)
-> >  #ifdef CONFIG_GENERIC_IRQ_MULTI_HANDLER
-> >  int __init set_handle_irq(void (*handle_irq)(struct pt_regs *))
-> >  {
-> > -       if (handle_arch_irq)
-> > +       if (_handle_arch_irq)
-> >                 return -EBUSY;
-> >
-> > -       handle_arch_irq =3D handle_irq;
-> > +       _handle_arch_irq =3D handle_irq;
-> > +       runtime_const_init(ptr, _handle_arch_irq);
-> >         return 0;
-> >  }
-> >
-> > --
-> > 2.51.0
-> >
->
->
+>  /* Alignment must be consistent with (kunit_suite *) in include/kunit/te=
+st.h */
+>  #define KUNIT_TABLE()                                                  \
 > --
-> Best Regards
->  Guo Ren
-
-
+> 2.51.0
+>
+Reviewed by: Guo Ren (Alibaba Damo Academy) <guoren@kernel.org>
 
 --=20
 Best Regards
