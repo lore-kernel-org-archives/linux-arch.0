@@ -1,74 +1,165 @@
-Received: from out-172.mta1.migadu.com (out-172.mta1.migadu.com [95.215.58.172])
+Received: from out-187.mta1.migadu.com (out-187.mta1.migadu.com [95.215.58.187])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6BD0D1C5D44
-	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 02:06:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.172
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DA412207A20
+	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 02:09:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.187
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771898789; cv=none; b=deRKXYbLcsN0lh5Xoef/KGihjO5/Z94kDq+b4K0w2ha4MB2Idnvk3gHEcBVsYmQS1IvltNoRdc/iJRGgz3xHiaj5w5L/7VbCnzmouYK6MxTPVyxpYYSinPvTtZFYh1zWXENJIBfA5vDy+8QmRmX3w8gYpwUFH5gbkz+r2ns8X4g=
+	t=1771898984; cv=none; b=haKDe955mlA/DQlSf26Jj5jyF3jrWd8mkn/zBsSZIXI89LtrhfhtAaqIkMoPH4G0rF8TfTL2phhS79cACMO9xN+2esIKSVnmlDnmUk1ZOUl628SPj5Ock8CBq9ov9lRLeuFxBBLN0Pz0/SG02ojK+5jAWMoQ9mlEY20V4/JDMlo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771898789; c=relaxed/simple;
-	bh=9cmN57YEF/nHPX0nb+nzMP1y9QEZjX8MK7/oUFRKFeE=;
+	s=arc-20240116; t=1771898984; c=relaxed/simple;
+	bh=f/qGJtwL6q7IM52E3wmiBMD2ZuskxAjnIsT38xAk5ek=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=I7JcK3/UpiZ1vFPbCPF26tvlF4PIsYE7GD/rnNdj/9B5RqTuJVUkBQWMytGv4/klwpK/9zljReci/XqpVO1uY9sKwTCz5rdrj/1vln5nvffg94mRO0JdYMErKDK6r/IuWBIo426YaF+f7o3S6I1rKHOKge7w8TkU8txw3CwAs5g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=G0ds5akF; arc=none smtp.client-ip=95.215.58.172
+	 In-Reply-To:Content-Type; b=SW8RVimoy7SoXzdgaf7MRmkXpXIgy2l5qqBRFgPCYJssrgypM9ln+C1NImEiWsPgfqWuoXFyyBW/rds/9sn1jRNegFTN+TRYi/sWKqW18gbcwjnwZDYS+ZlHCXnWWVZmIxmRWwpmVqu8G5X6Jq1W0kkQFdjWExWfJFmLIVKuep0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=r1AsSxEi; arc=none smtp.client-ip=95.215.58.187
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="G0ds5akF"
-Message-ID: <26ffb92e-1e62-4e1a-b31b-465a882c2ec4@linux.dev>
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="r1AsSxEi"
+Message-ID: <f44fac08-771f-4619-b8a4-6ea740df424f@linux.dev>
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1771898786;
+	t=1771898979;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=pGujA8hS1VQqUbv75LvcnfS357Yi5nLYG7BGVulGCoI=;
-	b=G0ds5akFrIA0kgIZ2TZoxRkmowm+ZNSacUP47Irv3kLMysJFvnDZftaxaHKh2dE6U+NnpP
-	7ZFsSIjaM4xzt/2/0qIRBSqHS9pHEfEftOm+ah+xqpMHoIjm7AHkAfNJnJz3lG19xt0g/w
-	ncDUJzbnENjBnHnqWzlDZ1arS7Cqw9g=
-Date: Tue, 24 Feb 2026 10:06:13 +0800
+	bh=MsOHJFJbnSTxPZLSbT4LkMBTkNe2O/zQhx5vUKRpKF4=;
+	b=r1AsSxEiipWjSEiJDqxsxjbymAD2ieCd5isZWeDQIQEJ4s/D5zIfTHoZQQ18x5YpcHtvJy
+	weiniOLhq/1vfl2Tn4Y+zxwjjyGgn0YOreYsPY0MNVI6sw9FE8BrBg4ReKO8tTXUzhmgE2
+	vi3pC+gTkxw7dIgPN6pMx8ODLDFtgUc=
+Date: Tue, 24 Feb 2026 10:09:18 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
- when batch allocation fails
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: akpm@linux-foundation.org, aneesh.kumar@kernel.org,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, npiggin@gmail.com, peterz@infradead.org,
- will@kernel.org, david@kernel.org
-References: <2a6c4e62-1663-4a98-9adc-406a6a1ebfd3@kernel.org>
- <20260223125826.28207-1-lance.yang@linux.dev>
- <a0c434c4-ec65-4a37-9422-5614249124bc@intel.com>
- <1373db93-3977-425f-ad59-5970e7e50b48@linux.dev>
- <c348453a-6a1f-43e4-acbb-02bbeb2ce805@intel.com>
-Content-Language: en-US
+Subject: Re: [PATCH] mm/mmu_gather: define RCU version tlb_remove_table_one()
+ in CONFIG_MMU_GATHER_RCU_TABLE_FREE
+To: Wei Yang <richard.weiyang@gmail.com>, akpm@linux-foundation.org
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ "David Hildenbrand (Arm)" <david@kernel.org>, will@kernel.org,
+ aneesh.kumar@kernel.org, peterz@infradead.org, npiggin@gmail.com
+References: <20260222004512.839-1-richard.weiyang@gmail.com>
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Lance Yang <lance.yang@linux.dev>
-In-Reply-To: <c348453a-6a1f-43e4-acbb-02bbeb2ce805@intel.com>
+From: Qi Zheng <qi.zheng@linux.dev>
+In-Reply-To: <20260222004512.839-1-richard.weiyang@gmail.com>
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 X-Migadu-Flow: FLOW_OUT
 
+Hi Wei,
 
+On 2/22/26 8:45 AM, Wei Yang wrote:
+> Before commit 718b13861d22 ("x86: mm: free page table pages by RCU
+> instead of semi RCU"), the page table pages will be freed by semi RCU,
+> that is:
+> 
+>    - batch table freeing: asynchronous free by RCU
+>    - single table freeing: IPI + synchronous free
+> 
+> This commit introduce a RCU version for single table freeing to support
+> PT_RECLAIM. While it is not necessary to limit the RCU version only in
+> CONFIG_PT_RECLAIM. It is reasonable to asynchronous free single table by
+> RCU if CONFIG_MMU_GATHER_RCU_TABLE_FREE.
+> 
+> This patch moves the definition of single table freeing in
+> CONFIG_MMU_GATHER_RCU_TABLE_FREE, so we have both RCU version
+> batch/single table freeing if CONFIG_MMU_GATHER_RCU_TABLE_FREE.
 
-On 2026/2/24 00:35, Dave Hansen wrote:
-> On 2/23/26 08:29, Lance Yang wrote:
->>
->> Note: Use this when code really needs to wait for synchronization,
->> *not* for freeing memory. Memory freeing should use RCU callbacks
->> that don't cause latency spikes in this thread.
-> 
-> Yeah, but I'd probably mix it in with the other chit chat about
-> non-atomic contexts. I'd also make it something like:
-> 
-> 	Do not use for freeing memory. Use RCU callbacks instead to
-> 	avoid latency spikes.
-> 
-> to make the commands clear.
+Thank you for doing this, but we can't do it right now.
 
-Got it, thanks. I'll update it in v2.
+See the latest version: 
+https://github.com/torvalds/linux/commit/9c8c02df3f8742f6db927e787ab971fd0b5ac08a, 
+when the
+HAVE_ARCH_TLB_REMOVE_TABLE is selected, the pt_rcu_head member
+cannot be used.
+
+Thanks,
+Qi
+
+> 
+> Signed-off-by: Wei Yang <richard.weiyang@gmail.com>
+> Cc: Qi Zheng <qi.zheng@linux.dev>
+> Cc: "David Hildenbrand (Arm)" <david@kernel.org>
+> ---
+>   mm/mmu_gather.c | 51 +++++++++++++++++++++----------------------------
+>   1 file changed, 22 insertions(+), 29 deletions(-)
+> 
+> diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+> index fe5b6a031717..6c1cbd9c717b 100644
+> --- a/mm/mmu_gather.c
+> +++ b/mm/mmu_gather.c
+> @@ -296,6 +296,22 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+>   	call_rcu(&batch->rcu, tlb_remove_table_rcu);
+>   }
+>   
+> +static inline void __tlb_remove_table_one_rcu(struct rcu_head *head)
+> +{
+> +	struct ptdesc *ptdesc;
+> +
+> +	ptdesc = container_of(head, struct ptdesc, pt_rcu_head);
+> +	__tlb_remove_table(ptdesc);
+> +}
+> +
+> +static inline void tlb_remove_table_one(void *table)
+> +{
+> +	struct ptdesc *ptdesc;
+> +
+> +	ptdesc = table;
+> +	call_rcu(&ptdesc->pt_rcu_head, __tlb_remove_table_one_rcu);
+> +}
+> +
+>   #else /* !CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+>   
+>   static void tlb_remove_table_free(struct mmu_table_batch *batch)
+> @@ -303,6 +319,12 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+>   	__tlb_remove_table_free(batch);
+>   }
+>   
+> +static inline void tlb_remove_table_one(void *table)
+> +{
+> +	tlb_remove_table_sync_one();
+> +	__tlb_remove_table(table);
+> +}
+> +
+>   #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+>   
+>   /*
+> @@ -320,35 +342,6 @@ static inline void tlb_table_invalidate(struct mmu_gather *tlb)
+>   	}
+>   }
+>   
+> -#ifdef CONFIG_PT_RECLAIM
+> -static inline void __tlb_remove_table_one_rcu(struct rcu_head *head)
+> -{
+> -	struct ptdesc *ptdesc;
+> -
+> -	ptdesc = container_of(head, struct ptdesc, pt_rcu_head);
+> -	__tlb_remove_table(ptdesc);
+> -}
+> -
+> -static inline void __tlb_remove_table_one(void *table)
+> -{
+> -	struct ptdesc *ptdesc;
+> -
+> -	ptdesc = table;
+> -	call_rcu(&ptdesc->pt_rcu_head, __tlb_remove_table_one_rcu);
+> -}
+> -#else
+> -static inline void __tlb_remove_table_one(void *table)
+> -{
+> -	tlb_remove_table_sync_one();
+> -	__tlb_remove_table(table);
+> -}
+> -#endif /* CONFIG_PT_RECLAIM */
+> -
+> -static void tlb_remove_table_one(void *table)
+> -{
+> -	__tlb_remove_table_one(table);
+> -}
+> -
+>   static void tlb_table_flush(struct mmu_gather *tlb)
+>   {
+>   	struct mmu_table_batch **batch = &tlb->batch;
+
