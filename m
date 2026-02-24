@@ -1,127 +1,219 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.19])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 09FD13A1A31;
-	Tue, 24 Feb 2026 15:04:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.19
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2466915C158;
+	Tue, 24 Feb 2026 16:17:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771945453; cv=none; b=mfxa4x45ZPcXB0u/sNafhByV60bqhJUA3/u77vOkCrrBxCn8LeUqh9tyFcJ8FDcdPEsrsvLdd4cARsI+uuv8zl71KKZ7h/hZdyMWFjGFk9yfCiyvZ4qxpQRpAGxbg11QqrMqqh0+k94OTZPkXRbqIKBd5hUkFB91Y2nqc1SlY4I=
+	t=1771949829; cv=none; b=S6qMwrriie1roBXeAN6pfx93S3G3cfxaarWgWwbBzIGv8Be1YOkrY+dxcPJLFsTSUwu8XL/a8v2fQAb1y0LJX7F9l5DQdLqgZZo+rbXYPT3+zr4WT/Q7HREA7zwF5kkRd5kPTggDd5T6pJVmVVEQGQNezDZtmQCZ/s7JMWYbmeM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771945453; c=relaxed/simple;
-	bh=z/jf03sDuM+aLmtAS2IPqspByq2IXQxOxu8sCxuWR2U=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=rJC1UyQAVHhhRkZ+/4/AtfTWBVwEb6l6mY0nuUCOVmNeRKqLgfIP0sVlAXeW6axQH7aFwXoemktQYNGDgKZnkscj5wTsktRGlL5ipWbVCb/Hw2bKOh1/Eyt8C63x+Ip8YGvivtV6XWzWrLM4zkKL4NPyRLVZxpZH5BQ7ZE6stP4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=WlLMkDVT; arc=none smtp.client-ip=198.175.65.19
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1771949829; c=relaxed/simple;
+	bh=SXv8kNok4zxMnc5pPBCN8E77XIiooRBkXlI+BOUS8Dc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=p07QnTuF645xLHf2PmQ5IVhPmAv5mAsEqXWd5g48U2457vAqOASgk6w9PF7uzLT6JSp/YrKxt9Ab0KErPXgqUs0EtrQhLMg1/pNVHsefvIpVpMeLSpx3IB2eTx0ImjkMhiLZnrptPC5lF+jm5RfbtNoROh/7Fxd6WKmh6k6iS+k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=dE5DsgJe; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="WlLMkDVT"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1771945452; x=1803481452;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=z/jf03sDuM+aLmtAS2IPqspByq2IXQxOxu8sCxuWR2U=;
-  b=WlLMkDVTWG8KuDsS0yxit+S0oxVI6Z9ASSDv+Jz5LjQNdXotq0RzJkkj
-   zFRax66+HHv4UckNRjjstKllcEBNMNRTkq3i3oktiMzm3t6do3csiXJ2m
-   2E+ViLiQjeCDICVcw2Bt2bJPzbN1kAI76uarXHz3MQ6ZusbRc/cJlQCjR
-   8pvD8+ius3Ck0uxrfU5HN59ohvgFOs/3+HUk4wUV1yiF7thoEOzECOtgR
-   xUtoXujw6bYT4/Ij2dLeVAI3Acww3Hy96SxhMNGVgqibWZH4VIQ5MrDq1
-   T+B1HZo0P96j/GetAAnmZq7Mh6WzhG1YxXLbrN33++ZYJJMGPcSrBV3ME
-   g==;
-X-CSE-ConnectionGUID: KVxUIq4PQWabD+flKreYgw==
-X-CSE-MsgGUID: YX9+/J13T4yjuZn0Ya/m9g==
-X-IronPort-AV: E=McAfee;i="6800,10657,11711"; a="72865530"
-X-IronPort-AV: E=Sophos;i="6.21,308,1763452800"; 
-   d="scan'208";a="72865530"
-Received: from fmviesa009.fm.intel.com ([10.60.135.149])
-  by orvoesa111.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Feb 2026 07:04:11 -0800
-X-CSE-ConnectionGUID: dRHuQAc+RVCWEUEFFqIq3w==
-X-CSE-MsgGUID: XmJNjA2GSgeSBLo9G/u1dw==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,308,1763452800"; 
-   d="scan'208";a="213159563"
-Received: from gabaabhi-mobl2.amr.corp.intel.com (HELO [10.125.110.247]) ([10.125.110.247])
-  by fmviesa009-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 24 Feb 2026 07:04:10 -0800
-Message-ID: <95c65dab-8a48-4449-aa96-3928f035b07b@intel.com>
-Date: Tue, 24 Feb 2026 07:04:10 -0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="dE5DsgJe"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3D2CAC116D0;
+	Tue, 24 Feb 2026 16:17:08 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1771949828;
+	bh=SXv8kNok4zxMnc5pPBCN8E77XIiooRBkXlI+BOUS8Dc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=dE5DsgJe4eWwAhLUkc52afWpncNFQHm3ITfjxXTQs8pZ3HAdZoxX3E9+yw84PuWfc
+	 8hv0jBSBocClUd7acb2nBgtY0uf3R+6IJ9CaSBzL6ITcI6T+FBM4oFlesEeJM8ib+K
+	 5uZ/5NDfic7g+vqbPRCzSUckWiK+3QDVPDhtTPlOjE84675xU/g2iZz6oR/8YvKW4l
+	 4AL1i725kN9lXS1UU2SngsrbrekRgSdTqNC7/UOua/J6J9V+z4azuGI6LX2qWBuTwE
+	 SZwRe4f0R4aadCnfUfk4peBnSm5w+WJWSP6gTO15tqNeDIuiLzQBAAPazq1vUyzKiJ
+	 dizgCboB6pIOA==
+Date: Tue, 24 Feb 2026 17:14:52 +0100
+From: Nicolas Schier <nsc@kernel.org>
+To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
+Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
+Message-ID: <aZ3OfJJSJgfOb0rJ@levanger>
+Mail-Followup-To: Nicolas Schier <nsc@kernel.org>,
+	Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
+	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+ <aZol1Rsa2tX-WNaZ@derry.ads.avm.de>
+ <0d70db8d-702b-46ec-a010-298fe6515aab@t-8ch.de>
+ <aZyfcDCWOBJJztQ2@levanger>
+ <06054e9a-2b7a-4063-98b8-7d6c539e543f@t-8ch.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 1/1] mm/mmu_gather: replace IPI with synchronize_rcu()
- when batch allocation fails
-To: Peter Zijlstra <peterz@infradead.org>, Lance Yang <lance.yang@linux.dev>
-Cc: akpm@linux-foundation.org, david@kernel.org, will@kernel.org,
- aneesh.kumar@kernel.org, npiggin@gmail.com, linux-arch@vger.kernel.org,
- linux-mm@kvack.org, linux-kernel@vger.kernel.org
-References: <20260224030700.35857-1-lance.yang@linux.dev>
- <20260224114152.GX1395266@noisy.programming.kicks-ass.net>
-From: Dave Hansen <dave.hansen@intel.com>
-Content-Language: en-US
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <20260224114152.GX1395266@noisy.programming.kicks-ass.net>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <06054e9a-2b7a-4063-98b8-7d6c539e543f@t-8ch.de>
 
-On 2/24/26 03:41, Peter Zijlstra wrote:
->> +void tlb_remove_table_sync_rcu(void)
->> +{
->> +	might_sleep();
->> +	synchronize_rcu();
-> synchronize_rcu() should end up in a might_sleep() at some point if it
-> blocks (which it typically will).
+On Mon, Feb 23, 2026 at 10:43:30PM +0100, Thomas Weiﬂschuh wrote:
+> On 2026-02-23 19:41:52+0100, Nicolas Schier wrote:
+> > On Mon, Feb 23, 2026 at 08:53:29AM +0100, Thomas Weiﬂschuh wrote:
+> > > On 2026-02-21 22:38:29+0100, Nicolas Schier wrote:
+> > > > On Tue, Jan 13, 2026 at 01:28:59PM +0100, Thomas Weiﬂschuh wrote:
+[...]
+> > > > [...]
+> > > > > diff --git a/scripts/modules-merkle-tree.c b/scripts/modules-merkle-tree.c
+> > > > > new file mode 100644
+> > > > > index 000000000000..a6ec0e21213b
+> > > > > --- /dev/null
+> > > > > +++ b/scripts/modules-merkle-tree.c
+> > > > > @@ -0,0 +1,467 @@
+> > > > > +// SPDX-License-Identifier: GPL-2.0-or-later
+> > > > > +/*
+> > > > > + * Compute hashes for modules files and build a merkle tree.
+> > > > > + *
+> > > > > + * Copyright (C) 2025 Sebastian Andrzej Siewior <sebastian@breakpoint.cc>
+> > > > > + * Copyright (C) 2025 Thomas Weiﬂschuh <linux@weissschuh.net>
+> > > > > + *
+> > > > > + */
+> > > > > +#define _GNU_SOURCE 1
+> > > > > +#include <arpa/inet.h>
+> > > > > +#include <err.h>
+> > > > > +#include <unistd.h>
+> > > > > +#include <fcntl.h>
+> > > > > +#include <stdarg.h>
+> > > > > +#include <stdio.h>
+> > > > > +#include <string.h>
+> > > > > +#include <stdbool.h>
+> > > > > +#include <stdlib.h>
+> > > > > +
+> > > > > +#include <sys/stat.h>
+> > > > > +#include <sys/mman.h>
+> > > > > +
+> > > > > +#include <openssl/evp.h>
+> > > > > +#include <openssl/err.h>
+> > > > > +
+> > > > > +#include "ssl-common.h"
+> > > > > +
+> > > > > +static int hash_size;
+> > > > > +static EVP_MD_CTX *ctx;
+> > > > > +
+> > > > > +struct module_signature {
+> > > > > +	uint8_t		algo;		/* Public-key crypto algorithm [0] */
+> > > > > +	uint8_t		hash;		/* Digest algorithm [0] */
+> > > > > +	uint8_t		id_type;	/* Key identifier type [PKEY_ID_PKCS7] */
+> > > > > +	uint8_t		signer_len;	/* Length of signer's name [0] */
+> > > > > +	uint8_t		key_id_len;	/* Length of key identifier [0] */
+> > > > > +	uint8_t		__pad[3];
+> > > > > +	uint32_t	sig_len;	/* Length of signature data */
+> > > > > +};
+> > > > > +
+> > > > > +#define PKEY_ID_MERKLE 3
+> > > > > +
+> > > > > +static const char magic_number[] = "~Module signature appended~\n";
+> > > > 
+> > > > This here will be the forth definition of struct module_signature,
+> > > > increasing the risk of unwanted diversion.  I second Petr's suggestion
+> > > > to reuse a _common_ definition instead.
+> > > 
+> > > Ack.
+> > > 
+> > > > (Here, even include/linux/module_signature.h could be included itself.)
+> > > 
+> > > I'd like to avoid including internal headers from other components.
+> > > We could move it to an UAPI header. Various other subsystems use those
+> > > for not-really-UAPI but still ABI definitions.
+> > 
+> > Yeah, ack.
+> 
+> What exactly is the 'ack' for?
+> * Avoiding to include internal headers?
+> * Moving the definition to UAPI headers?
 
-FWIW, I do prefer the explicit might_sleep() rather than leaving it to
-just the documentation. It just makes it easier to find bugs. I'm sure
-there's some crazy RCU variant that doesn't often sleep in
-synchronize_rcu(). ;)
+ah, sorry.  I think reduction of duplicated definitions is good; moving
+these definitions to UAPI headers sounds like a valid compromise to me.
 
-If it's worth adding a line of comment, it's worth adding a line of code
-to actually keep folks honest. This is also going to be a pretty darn
-slow path so it shouldn't bloat anything too much.
+
+> (...)
+> 
+> > > > Can you verify if I get the mechanics roughly correct?
+> > > > 
+> > > >   * Modules are merkle tree leaves.  Modules are built and logically
+> > > >     paired by the order from modules.order; a single left-over module is
+> > > >     paired with itself.
+> > > > 
+> > > >   * Hashes of paired modules are hashed again (branch node hash);
+> > > >     hashes of pairs of branch nodes' hashes are hashed again;
+> > > >     repeat until we reach the single merkle tree root hash
+> > > > 
+> > > >   * The final merkle tree root hash (and the count of tree levels) is
+> > > >     included in vmlinux
+> > > 
+> > > The merkle tree code was written by Sebastian so he will have the best
+> > > knowledge about it. But this is also my understanding.
+> > 
+> > I'd like to see some (rough) description in Documentation or in a commit
+> > message at least, otherwise future me will have to ask that again.
+> 
+> Ack in general. I'd prefer to document it in a source code comment,
+> though. That feels like the best fit to me.
+
+Great, thanks.
+
+-- 
+Nicolas
