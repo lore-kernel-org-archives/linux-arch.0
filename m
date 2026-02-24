@@ -1,97 +1,173 @@
-Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.184])
+Received: from out-186.mta1.migadu.com (out-186.mta1.migadu.com [95.215.58.186])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D19439E162
-	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 13:36:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.184
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 70BBE3A0B13
+	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2026 14:21:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.186
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771940170; cv=none; b=ZhyakChlEx+edh+lemHR0AS0xr2wpkvPACHG99G1RZbGy7/eCJA9CFp6kKmLeiRu1D8qXoBf+w7fcdkZoVRy/WSO+sAAW2Mcvv8gkrQzJAhp3H7EZy4mqGdwpHQwvYjG7zXeJmZ0C+oJvZMpDNOs9cq5jm1I+ZUdtDdkBADk5lo=
+	t=1771942901; cv=none; b=apgLwI7lUGmYFvIFC13jo/6BBgrtmj2z1Ei2y6DtW0gTCvTlSMD/rGpFifODv//PMjQ72F+FyRwHrUEs5MkmINIHRSmop+SuJ38wKON0T421EyvgCbcQEOfgL9NBSOnfLVGNQJc9Ehtl7M/2CE4UwMQzryZ1hTAYTqXesSIMZh4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771940170; c=relaxed/simple;
-	bh=OoD7JAHwm9O36mk6PbNskGpkXMgV9cyxrrozT+uNL2g=;
-	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type; b=F6lHdQTxKYfz+gF/aVGY7gqutRfEJT5jqIvCNwy5AE6+QKTc2JbB3F/wKrjWCvmF0/FjDMOWbKTtvr6/35JTYCgLDCk5DTUlZXvXJFyfgpBJEk4NS1f8kfhfs5t+il6Xw/XoCNCyYcXkLGslZOMTXm1AN/qUzdAfLJljN60eu8Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=NzfOE5Xy; arc=none smtp.client-ip=195.121.94.184
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
+	s=arc-20240116; t=1771942901; c=relaxed/simple;
+	bh=vyL2dF9NFe0Q60hskWLNLpvSB/oWQKt4my2BoJD+LJo=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=qENiCVbru6gMOwJ5U1r2KaF3JBKDcVpKcjlxeNxSsc78AHZcdjtxI2/7Rqp4IghU9ZJuabvSXbQTT5j0ECSj83/5p/xmHy0/Z0XGY/tWW4LeRK1E8Y08dG7BwpWbAg24CKUqGFRlLfQ241/bEnrOrcNsn9rSlucB3xmDRpRI6cE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=o9jlh0Mr; arc=none smtp.client-ip=95.215.58.186
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="NzfOE5Xy"
-X-KPN-MessageId: 9e560ea5-1185-11f1-afd4-005056994fde
-Received: from mta.kpnmail.nl (unknown [10.31.161.188])
-	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
-	id 9e560ea5-1185-11f1-afd4-005056994fde;
-	Tue, 24 Feb 2026 14:35:01 +0100 (CET)
-Received: from mtaoutbound.kpnmail.nl (unknown [10.128.135.189])
-	by mta.kpnmail.nl (Halon) with ESMTP
-	id 9e54fa9c-1185-11f1-80e7-00505699693e;
-	Tue, 24 Feb 2026 14:35:00 +0100 (CET)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=xs4all.nl; s=xs4all01;
-	h=content-type:mime-version:subject:message-id:to:from:date;
-	bh=MGMbcjG9yWINyKUjmmh5Y/Q4xHGot+ypOWnbV7Xk/xg=;
-	b=NzfOE5Xy+wCDQ+63wDZc5o3gsbOH7qHgGDutKD0sar2SBB6Q+MocUVxZ9geVtFkML0sRg9Q0+u964
-	 sc1ubeycxv/ZoLdLJ+pnoisDJG8z+2pXKmnxEJXaAZksAn5MYE9e2ewIczLhDwV1gfmiheRNseufan
-	 oUGfCghLISATELfbmFWlfzRmpyvALjECh+TJSHhRdPE4qKP7xPFLJqTQ4bHH6Dtx1QR6TzUOrgilKF
-	 P71RfQpbLXxKjroOyBWxCfxl8BwI+WxKygPIYoPDF9E0V0F2z7a2axQ01q6tnLQ0MMbuNh+cVDFvuv
-	 t8fjTG7Il1Dfdlgkd8qVi2+w35fRtxQ==
-X-KPN-MID: 33|+3gTJu8PmtJ2GJE3YqX4nz+uwXyydx9ulTKgQuTw87z7vFgOOy3f58t66cMB0D2
- gN4XUHMjAM4OjEZO8eqN7aIRl9SrZA1aQGTpz5vveSgA=
-X-CMASSUN: 33|xHrH2hb1Q/0iV1uxKpkYGgHDBJwIPuU/+H5UoCx1OC5tVfBjHmPkUzqP2O15MFV
- BlFoQfIlDUIGwba4xKLB9pw==
-X-KPN-VerifiedSender: Yes
-Received: from cpxoxapps-mh03 (cpxoxapps-mh03.personalcloud.so.kpn.org [10.128.135.209])
-	by mtaoutbound.kpnmail.nl (Halon) with ESMTPSA
-	id 9e453f50-1185-11f1-94b1-00505699eff2;
-	Tue, 24 Feb 2026 14:35:00 +0100 (CET)
-Date: Tue, 24 Feb 2026 14:35:00 +0100 (CET)
-From: Jori Koolstra <jkoolstra@xs4all.nl>
-To: Christian Brauner <brauner@kernel.org>, Jeff Layton <jlayton@kernel.org>
-Cc: chuck.lever@oracle.com, alex.aring@gmail.com, viro@zeniv.linux.org.uk,
-	jack@suse.cz, arnd@arndb.de, linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <695828658.1952887.1771940100883@kpc.webmail.kpnmail.nl>
-In-Reply-To: <20260224-karotten-wegnimmt-79410ef99aeb@brauner>
-References: <20260223151652.582048-1-jkoolstra@xs4all.nl>
- <44a2111e33631d78aded73e4b79908db6237227f.camel@kernel.org>
- <20260224-karotten-wegnimmt-79410ef99aeb@brauner>
-Subject: Re: [PATCH] Add support for empty path in openat and openat2
- syscalls
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="o9jlh0Mr"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1771942886;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=ftf+6nHpcHnhVbfQle8ikpkQkfjTgGA5SgbWctBAI1k=;
+	b=o9jlh0MrC64et33agy4TtOcDGNAFpq2a66jieTkh92Zy8afHt05hHjGDJwNcJKNYR4e21O
+	gNfaOQW8MhrWaXg36XkSLhomJaJAfDM5MPtM19OEdRVyidiwfQLb74cVCdhEPA3zyvoFfS
+	GudLn86DitzE+qdGtFPZSPayaA2D0DE=
+From: Lance Yang <lance.yang@linux.dev>
+To: akpm@linux-foundation.org,
+	peterz@infradead.org
+Cc: david@kernel.org,
+	dave.hansen@intel.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	Lance Yang <lance.yang@linux.dev>
+Subject: [PATCH v3 1/1] mm/mmu_gather: replace IPI with synchronize_rcu() when batch allocation fails
+Date: Tue, 24 Feb 2026 22:21:01 +0800
+Message-ID: <20260224142101.20500-1-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-Priority: 3
-Importance: Normal
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
+From: Lance Yang <lance.yang@linux.dev>
 
-> Op 24-02-2026 11:10 CET schreef Christian Brauner <brauner@kernel.org>:
-> 
->  
-> On Mon, Feb 23, 2026 at 10:28:24AM -0500, Jeff Layton wrote:
-> > On Mon, 2026-02-23 at 16:16 +0100, Jori Koolstra wrote:
-> > > To get an operable version of an O_PATH file descriptors, it is possible
-> > > to use openat(fd, ".", O_DIRECTORY) for directories, but other files
-> > > currently require going through open("/proc/<pid>/fd/<nr>") which
-> > > depends on a functioning procfs.
-> > > 
-> > > This patch adds the O_EMPTY_PATH flag to openat and openat2. If passed
-> > > LOOKUP_EMPTY is set at path resolve time.
-> > > 
-> > 
-> > This sounds valuable, but there was recent discussion around the
-> > O_REGULAR flag that said that we shouldn't be adding new flags to older
-> > syscalls [1]. Should this only be an OPENAT2_* flag instead?
-> > 
-> > [1]: https://lore.kernel.org/linux-fsdevel/20260129-siebzehn-adler-efe74ff8f1a9@brauner/
-> 
-> I do like restricting it to openat2() as well.
+When freeing page tables, we try to batch them. If batch allocation fails
+(GFP_NOWAIT), __tlb_remove_table_one() immediately frees the one without
+batching.
 
-So would you want to filter the O_EMPTY_PATH flag from openat(), or maybe add
-a RESOLVE_EMPTY flag to the resolve options?
+On !CONFIG_PT_RECLAIM, the fallback sends an IPI to all CPUs via
+tlb_remove_table_sync_one(). It disrupts all CPUs even when only a single
+process is unmapping memory. IPI broadcast was reported to hurt RT
+workloads[1].
 
-Thanks,
-Jori.
+tlb_remove_table_sync_one() synchronizes with lockless page-table walkers
+(e.g. GUP-fast) that rely on IRQ disabling. These walkers use
+local_irq_disable(), which is also an RCU read-side critical section.
+
+This patch introduces tlb_remove_table_sync_rcu() which uses RCU grace
+period (synchronize_rcu()) instead of IPI broadcast. This provides the
+same guarantee as IPI but without disrupting all CPUs. Since batch
+allocation already failed, we are in a slow path where sleeping is
+acceptable - we are in process context (unmap_region, exit_mmap) with only
+mmap_lock held.
+
+tlb_remove_table_sync_one() is retained for other callers (e.g., khugepaged
+after pmdp_collapse_flush(), tlb_finish_mmu() when
+tlb->fully_unshared_tables) that are not slow paths. Converting those may
+require different approaches such as targeted IPIs.
+
+[1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+
+Link: https://lore.kernel.org/linux-mm/20260202150957.GD1282955@noisy.programming.kicks-ass.net/
+Link: https://lore.kernel.org/linux-mm/dfdfeac9-5cd5-46fc-a5c1-9ccf9bd3502a@intel.com/
+Link: https://lore.kernel.org/linux-mm/bc489455-bb18-44dc-8518-ae75abda6bec@kernel.org/
+Suggested-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Suggested-by: Dave Hansen <dave.hansen@intel.com>
+Suggested-by: David Hildenbrand (Arm) <david@kernel.org>
+Acked-by: David Hildenbrand (Arm) <david@kernel.org>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Lance Yang <lance.yang@linux.dev>
+---
+v2 -> v3:
+- Remove explicit might_sleep() as synchronize_rcu() already has it
+  (per Peter)
+- Add changelog explanation for why tlb_remove_table_sync_one() is retained
+  (per Peter)
+- Collect Acked-by from David and Peter, thanks!
+- https://lore.kernel.org/linux-mm/20260224030700.35857-1-lance.yang@linux.dev/
+
+v1 -> v2:
+- Wrap synchronize_rcu() in tlb_remove_table_sync_rcu() with proper
+  kerneldoc (per David)
+- Add might_sleep() to make sleeping constraint explicit (per Dave)
+- Clarify this is for synchronization, not memory freeing (per Dave)
+- https://lore.kernel.org/linux-mm/20260223033604.10198-1-lance.yang@linux.dev/
+
+ include/asm-generic/tlb.h |  4 ++++
+ mm/mmu_gather.c           | 21 ++++++++++++++++++++-
+ 2 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 4aeac0c3d3f0..bdcc2778ac64 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -251,6 +251,8 @@ static inline void tlb_remove_table(struct mmu_gather *tlb, void *table)
+ 
+ void tlb_remove_table_sync_one(void);
+ 
++void tlb_remove_table_sync_rcu(void);
++
+ #else
+ 
+ #ifdef tlb_needs_table_invalidate
+@@ -259,6 +261,8 @@ void tlb_remove_table_sync_one(void);
+ 
+ static inline void tlb_remove_table_sync_one(void) { }
+ 
++static inline void tlb_remove_table_sync_rcu(void) { }
++
+ #endif /* CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+ 
+ 
+diff --git a/mm/mmu_gather.c b/mm/mmu_gather.c
+index fe5b6a031717..3985d856de7f 100644
+--- a/mm/mmu_gather.c
++++ b/mm/mmu_gather.c
+@@ -296,6 +296,25 @@ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+ 	call_rcu(&batch->rcu, tlb_remove_table_rcu);
+ }
+ 
++/**
++ * tlb_remove_table_sync_rcu - synchronize with software page-table walkers
++ *
++ * Like tlb_remove_table_sync_one() but uses RCU grace period instead of IPI
++ * broadcast. Use in slow paths where sleeping is acceptable.
++ *
++ * Software/Lockless page-table walkers use local_irq_disable(), which is also
++ * an RCU read-side critical section. synchronize_rcu() waits for all such
++ * sections, providing the same guarantee as tlb_remove_table_sync_one() but
++ * without disrupting all CPUs with IPIs.
++ *
++ * Do not use for freeing memory. Use RCU callbacks instead to avoid latency
++ * spikes.
++ */
++void tlb_remove_table_sync_rcu(void)
++{
++	synchronize_rcu();
++}
++
+ #else /* !CONFIG_MMU_GATHER_RCU_TABLE_FREE */
+ 
+ static void tlb_remove_table_free(struct mmu_table_batch *batch)
+@@ -339,7 +358,7 @@ static inline void __tlb_remove_table_one(void *table)
+ #else
+ static inline void __tlb_remove_table_one(void *table)
+ {
+-	tlb_remove_table_sync_one();
++	tlb_remove_table_sync_rcu();
+ 	__tlb_remove_table(table);
+ }
+ #endif /* CONFIG_PT_RECLAIM */
+-- 
+2.49.0
+
