@@ -1,148 +1,315 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 11694330642;
-	Wed, 25 Feb 2026 22:28:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772058482; cv=none; b=msc1Y/g1qRHYNhnEBhnJHxLsylkrvXe16wZ8yTrE4v0MWVmNJkm+cHA6mnG3+p0Ve5rDix1YwO6+5kmOqdcgJLRWdQyDE8+0F9MFvjlxclWgzy8AfEDraGbP5U9KjsvpHRrJldn7Y6vTdBJBGcrtDaOlin9cStnKcW8x+z+mNeM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772058482; c=relaxed/simple;
-	bh=uZMGg6Sbk52Mepkr+C/FTt7KiuFYuuw9qSDXF9S7sv0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=MemM4JV2oAc4Uri6oN/Hd2oHwoOto0FnP53k8g2Q+a1b4MYPEWx6mtoD43Hsl7Kv56Rw+6hZhztqvBlXTjmtjEa4HWJBkrohI5YbXTY6o9QO+JhXknOGjcIGiePTNMVmKhFNshx8CgPfvZ/D8VhgBvOuRsbXMh8ZsD6urF+KjRc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=E//yCjqu; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3382236655A
+	for <linux-arch@vger.kernel.org>; Wed, 25 Feb 2026 22:54:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.214.180
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1772060044; cv=pass; b=ZMvBJp5qhnnVGNSDIgnK1Jgex7KkxnH9jgFmkGXpHPQX1vBqkcYgZqc+qoXcI1p/sksinQ/lzXCSn+4wREFqcO+MQqoeYFZzYuGW488adhUB3wxKbGLwSHEr/MoXqTIeyZIERkoUpKBSMftca3zeZq1bW7UisztnD7ATDA4Jekw=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1772060044; c=relaxed/simple;
+	bh=AA8Dha/bfnPZLgD3DchzKVXjebkJkUtPW4e/jFBhSi0=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=Lji0K6q1CM/JGypynhPeopC8R1yj1RemYRRWY66anfRhQp/44063ZYR8xSSQ+RIfRc/gKOPqqGweKSprOIALAXo3UgDSthMovWwPzOaIimgNHF4pCzfsy2/fLddKK79JXTJaq9cFc+666ztXe93DAVWP4iYyGfIppK8D1a2u9BI=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=n0lPkRCn; arc=pass smtp.client-ip=209.85.214.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="E//yCjqu"
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 142F820B6F02;
-	Wed, 25 Feb 2026 14:28:00 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 142F820B6F02
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1772058480;
-	bh=jKs9O/kn+8kDs6GYjOO7oHC0D3maA5sh2FYyEo9tbuE=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=E//yCjquSSKRYaxs70pr05IUqIzcVhavx9HeWgQesoC9FXfwr8rlvDNHlYlFqWj1N
-	 VkyMyCX8x/6TPOWRz5UbuQN8NWDOV2dBYGveWZxKz49G8zB/kqBrkMKxdUG42ot1bC
-	 T+O50wnZD4klTq8wvuhODQneKEq1IfYJlhFHR7Gg=
-Message-ID: <f8199494-0c42-5eb0-f99e-cc6f6e304d40@linux.microsoft.com>
-Date: Wed, 25 Feb 2026 14:27:59 -0800
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="n0lPkRCn"
+Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-2adb1c1f9d4so35155ad.0
+        for <linux-arch@vger.kernel.org>; Wed, 25 Feb 2026 14:54:03 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1772060043; cv=none;
+        d=google.com; s=arc-20240605;
+        b=HHbp9fhBzOj3zqfmeDqtGy3OPlTmxNlCaNgcndSPikoVi/Tm1MxV/dHxUXwI3AfMtB
+         SUB8tAmh3HoeiC6645820vj4h0bxW85Qo1S4X1u8j4WrrMALQPJQWR2PQiQs3qid0LPM
+         oRKBmr5yeFwDhvT6bN6BfIo9H9Hv9BTHD+XDrWyW62nHi2znHlWxomOlcadeMwVJp1iU
+         gHEyujGP0Ss1eNtcqI977SIEHl4ZZ5tTiFW0E6aje+uJShxZWy8QXMEd8HaKiSj3upyI
+         Way1gpzXxRhEJVSVZjCr3ZA3O0it1u6znOGCV9FITMspxjo844jjckoTcGc2AMwh3cza
+         iIKw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=4HuRDvA6p5zItbneJew7P4gaYb7aavWFbfaGOQjNc2g=;
+        fh=SnE0XUKwREL6UigigMgxF1ZkxqYf8K4MqfPZr6BaYIg=;
+        b=YKtEHSHgFXG0Te7zsfNWEMflJYtOChUe6qPDosPiYq3ygMyACAc1itZ2wQhQbmnMiC
+         SoY3OapIWYh5LczVCRLzd/a9rkNYztptNnAjiNqEQH0ySiq/eMRtpPuhYB3ZxMZmhRFp
+         lV7an6pRyWL5X0DrsAbXDy42MiUPC/n9ftkzPZKYQq8XvRK7NXpAHXzWNVNLM9+89Mfj
+         Yk0rd2MGS7fV4Ctq8tK0CgB/TshC7Lx2kKXelRFpSkTENDE5j9B3DpaampK3O7ntoG87
+         QlNfkjXGrMs9zFekQ80rutpDJXvpAIjV9c7mTnKWuIAiHE0eErKDfYVPA89CCxm5V9nF
+         Swxw==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1772060043; x=1772664843; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=4HuRDvA6p5zItbneJew7P4gaYb7aavWFbfaGOQjNc2g=;
+        b=n0lPkRCnlaKPc31W+Ixe9a5yrxUPeK30kELXwBMMBSlsBGacPr38z18oyIJHAvLju7
+         UpvZl4VEMou7fB9uCdA2oRI9F2OcwqwhSn83G/ECf/9d1Iu9gGVVy1iXfvK4WsMYRemG
+         R+0QprEZbE/i4+aBOa3jRjwW6+/Hbq79BLV8eVrs8SxKhUL4+6p3aLcAiWktBbOJmvU6
+         AChCGJ/M2XvJliLlEFfO2OzJ9+msQzDr6PIeLvKtNqS4+C4R+2bzKm9RbwZnKwQi3w5K
+         6zObqdYNGjpMA/9TVMBT31x2MuEL3xksxZ0UGOcwCvL8lbo+hzpWpznit0s+6O9dq/rX
+         Jt3A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772060043; x=1772664843;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=4HuRDvA6p5zItbneJew7P4gaYb7aavWFbfaGOQjNc2g=;
+        b=KnCcHi7I7qWn37R2F/acFosQnQnJvmm5SzY+HjA8xVfvSi62gkzPIPfHK+2Xg1uWfx
+         RKyW8je5ZTWnJb/tXGhnzUJYppNNlVrZG5FGFRBC5HSTlWDmRK9h+kUvz2bZwKsJFnMh
+         Hn457CunaU7KPPwXkhLfgeEihreYYBrmnfBOsv9tZJI7lH2Q11v9yt32b3foDNvmPuYi
+         qvOJV8Cdj9E4kHC2VJKd609pRcFhaLiru+QjZ2rc90UkHSuGddrOzQiDVTokBMqGk2ky
+         jWyjyav6a84nd/ipH0pIcTjO4t/EI5hNbIQhB6bsvSzzntlco93eCVoV6kftu0hZu6cF
+         oj7g==
+X-Forwarded-Encrypted: i=1; AJvYcCXRlngxTR9AFzYlmNQat561jqTHLAlAUWnU3EdORIpHmSZVsjcvgJ8rtY+vHJ16X9e2ilzCW09oH6WH@vger.kernel.org
+X-Gm-Message-State: AOJu0Yxp4Uwi3htowzbpJExYhCdifDRkQtsBR0w+nhNhXK29LuSw7Y7C
+	MEljggu1bosJ/pLpMw5oY0OOHb5a0Mh/mX/aRYTBO1OpuaJg8bw+f+LEYZ84eBHgTJYpt5XTPQi
+	5Mf1QDfsrlNQFsneLg6zHMHZWt/MZmy2SyJPjoS5y
+X-Gm-Gg: ATEYQzzkXJgfjWucAkdlBUKjw7RuGr0TRoEMSgxr29DfxfkkVvZKdUQXaIyC+qKU+bg
+	4g+IFB2xYUB8n0rhxtbNs3b/dUFmONEZ0CAOTLI+/WZzgSkuByZUGaE0spmayVtENt6fLZdFsia
+	Slpkk7+xgB9jic94QLDpPWm3T4NT3c4xsA9f/xo65/uHy0lVjmfIwGkUqU+EpBBDXOzAKFWBgyq
+	ZA/3FfFhxBmsON136aq3j0Ovyh+5b3lwgDAs4j7SG2/G4e6Iph7HmnjNBLM3x7jvm/n/pdU6jq6
+	8RRXXH2DcwJ2sg6hmkj/vSPbrx1Whqhrjh4YwQ==
+X-Received: by 2002:a17:903:8c4:b0:2a8:ffed:4663 with SMTP id
+ d9443c01a7336-2adf7738436mr799085ad.12.1772060041893; Wed, 25 Feb 2026
+ 14:54:01 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v1 5/6] x86/hyperv: Implement hypervisor ram collection
- into vmcore
-Content-Language: en-US
-To: Ard Biesheuvel <ardb@kernel.org>, linux-hyperv@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
- decui@microsoft.com, Thomas Gleixner <tglx@linutronix.de>,
- Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
- dave.hansen@linux.intel.com, x86@kernel.org, "H . Peter Anvin"
- <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-References: <20250910001009.2651481-1-mrathor@linux.microsoft.com>
- <20250910001009.2651481-6-mrathor@linux.microsoft.com>
- <38cdec03-889e-43dd-9dad-e621aba9dc8d@app.fastmail.com>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <38cdec03-889e-43dd-9dad-e621aba9dc8d@app.fastmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
+ <CAC_TJvcaJdEzK8n9BK0qgEXdzjzXtbA_Zk-ybfmG8kjNExVCzw@mail.gmail.com>
+ <fqabaahjjlmoc2xh4cwh4ykbqyu3rnzvjw5epxi5wwpmgqth7f@d3mqpjozwmo4>
+ <CAC_TJvdRsfzYohiKW=82N8Ofi5V26rX1GS0M8HeaX6CEsgc+PA@mail.gmail.com> <7302e25b-dfcb-4117-85f9-870632999dc3@oracle.com>
+In-Reply-To: <7302e25b-dfcb-4117-85f9-870632999dc3@oracle.com>
+From: Kalesh Singh <kaleshsingh@google.com>
+Date: Wed, 25 Feb 2026 14:53:49 -0800
+X-Gm-Features: AaiRm5115WEriTEwyOL6pAVEQGUSdPho0h6nJ0kCy4aKIpi-RiI2rNOQ4qeMtvg
+Message-ID: <CAC_TJvc+Ld19MrqQbTLkLXbLe3D8nYNP2DkD0knv+u7mjRC++A@mail.gmail.com>
+Subject: Re: [PATCH v3 00/22] Add support for shared PTEs across processes
+To: anthony.yznaga@oracle.com, 
+	"David Hildenbrand (Red Hat)" <david@kernel.org>
+Cc: Pedro Falcato <pfalcato@suse.de>, linux-mm@kvack.org, akpm@linux-foundation.org, 
+	andreyknvl@gmail.com, arnd@arndb.de, bp@alien8.de, brauner@kernel.org, 
+	bsegall@google.com, corbet@lwn.net, dave.hansen@linux.intel.com, 
+	david@redhat.com, dietmar.eggemann@arm.com, ebiederm@xmission.com, 
+	hpa@zytor.com, jakub.wartak@mailbox.org, jannh@google.com, 
+	juri.lelli@redhat.com, khalid@kernel.org, liam.howlett@oracle.com, 
+	linyongting@bytedance.com, lorenzo.stoakes@oracle.com, luto@kernel.org, 
+	markhemm@googlemail.com, maz@kernel.org, mhiramat@kernel.org, mgorman@suse.de, 
+	mhocko@suse.com, mingo@redhat.com, muchun.song@linux.dev, neilb@suse.de, 
+	osalvador@suse.de, pcc@google.com, peterz@infradead.org, rostedt@goodmis.org, 
+	rppt@kernel.org, shakeel.butt@linux.dev, surenb@google.com, 
+	tglx@linutronix.de, vasily.averin@linux.dev, vbabka@suse.cz, 
+	vincent.guittot@linaro.org, viro@zeniv.linux.org.uk, vschneid@redhat.com, 
+	willy@infradead.org, x86@kernel.org, xhao@linux.alibaba.com, 
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, android-mm <android-mm@google.com>, 
+	"T.J. Mercier" <tjmercier@google.com>, Isaac Manjarres <isaacmanjarres@google.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On 2/21/26 08:43, Ard Biesheuvel wrote:
-> Just spotted this code in v7.0-rc
-> 
-> On Wed, 10 Sep 2025, at 02:10, Mukesh Rathor wrote:
-> ...
-> 
->> +static asmlinkage void __noreturn hv_crash_c_entry(void)
-> 
-> 'asmlinkage' means that the function may be called from another compilation unit written in assembler, but it doesn't actually evaluate to anything in most cases. Combining it with 'static' makes no sense whatsoever.
+On Mon, Feb 23, 2026 at 11:59=E2=80=AFAM <anthony.yznaga@oracle.com> wrote:
+>
+>
+> On 2/23/26 9:43 AM, Kalesh Singh wrote:
+> > On Sat, Feb 21, 2026 at 4:40=E2=80=AFAM Pedro Falcato <pfalcato@suse.de=
+> wrote:
+> >> On Fri, Feb 20, 2026 at 01:35:58PM -0800, Kalesh Singh wrote:
+> >>> On Tue, Aug 19, 2025 at 6:57=E2=80=AFPM Anthony Yznaga
+> >>> <anthony.yznaga@oracle.com> wrote:
+> >>>> Memory pages shared between processes require page table entries
+> >>>> (PTEs) for each process. Each of these PTEs consume some of
+> >>>> the memory and as long as the number of mappings being maintained
+> >>>> is small enough, this space consumed by page tables is not
+> >>>> objectionable. When very few memory pages are shared between
+> >>>> processes, the number of PTEs to maintain is mostly constrained by
+> >>>> the number of pages of memory on the system. As the number of shared
+> >>>> pages and the number of times pages are shared goes up, amount of
+> >>>> memory consumed by page tables starts to become significant. This
+> >>>> issue does not apply to threads. Any number of threads can share the
+> >>>> same pages inside a process while sharing the same PTEs. Extending
+> >>>> this same model to sharing pages across processes can eliminate this
+> >>>> issue for sharing across processes as well.
+> >>>>
+> >>>> <snip>
+> >>> Hi Anthony,
+> >>>
+> >>> Thanks for continuing to push this forward, and apologies for joining
+> >>> this discussion late. I am likely missing some context from the
+> >>> various previous iterations of this feature, but I'd like to throw
+> >>> another use case into the mix to be considered around the design of
+> >>> the sharing API.
+> >>>
+> >>> We are exploring a similar optimization for Android to reduce page
+> >>> table overhead. In Android, we preload many ELF mappings in the Zygot=
+e
+> >>> process to help application launch times. Since the Zygote model is
+> >>> fork-but-no-exec, all applications inherit these mappings, which can
+> >>> result in upwards of 200 MB of redundant page table overhead per
+> >>> device.
+> >> This can be solved by simply not using the Zygote model :p Or perhaps
+> >> MADV_DONTNEED/straight up unmapping libraries you don't need in the ch=
+ild's
+> >> side.
+> > I think that's a separate topic, but that model is used on billions of
+> > client devices :) The common runtime for apps and other core system
+> > code is preloaded to significantly reduce app startup latencies.
+> >
+> >>> I believe that managing a pseudo-filesystem (msharefs) and mapping vi=
+a
+> >>> ioctl during process creation could introduce overhead that impacts
+> >>> app startup latency. Ideally, child apps shouldn't be aware of this
+> >>> sharing or need to manage the pseudo-filesystem on their end. To
+> >>> achieve this "transparent" sharing, I would prefer Khalid's previous
+> >>> API from his 2022 RFC [1]. By attaching the shared mm directly to the
+> >>> file's address_space and exposing a MAP_SHARED_PT flag, child apps
+> >>> could transparently inherit the shared page tables during fork().
+> >> So, we've discussed this before. I initially liked this idea a lot mor=
+e.
+> >> However, there are a couple of problems here:
+> >>
+> >> 1) mshare (as in the mshare feature) isn't really aiming for transpare=
+nt here.
+> >> There is e.g a specific need to setup an mshare region, with a few fil=
+es/anon
+> >> there, and then later mprotect/munmap parts of the region - and have i=
+t apply
+> >> on every process that has it mapped. This is why we're aiming for diff=
+erent
+> >> system calls (not ioctls anymore), doing munmap(mshare_reg, 4096) is a=
+mbiguous
+> >> as to whether you want to unmap the mshare VMA, or a VMA inside the ms=
+hare mm.
+> > Since we are interested in sharing text here, how does this play with
+> > stuff like symbolization for call stacks? I believe this is another
+> > reason where we might want to avoid mapping the pseudo mshare file
+> > wrapper?
+>
+> I haven't explored shared text, yet. There may be dragons there.
+>
+>
+> >
+> >> 2) Sharing the page table at all (even worse so, Transparently(tm)) is=
+ a huge
+> >> pain. TLB shootdown becomes much harder, and rmap as-is isn't suited t=
+o deal
+> >> with this case. The way things are going with mshare, the container mm=
+ will
+> >> have one single entry in rmap, and then actually doing the shootdown i=
+s a
+> >> huuuuge pain (which, fwiw, will probably need a per-mshare TLB workaro=
+und),
+> >> because you need to find out and shoot down _every_ mm that has these =
+tables
+> > I agree the TLB shootdowns would be a pain. Perhaps, if there was a
+> > concept of a shared ASID/PCID in the hardware, that would make things
+> > less so ...
+>
+> That would certainly help. sparc64 has a secondary context, but that
+> doesn't do us any good here. :-)
+>
+>
+> >
+> >> mapped. And then, naturally, since you're sharing page tables, doing A=
+/D bit
+> >> collection on these becomes extremely useless - and that will naturall=
+y pose
+> >> problems to the reclaim process if you abuse it.
+> > I think in the use case I described, it would mostly be sharing
+> > MAP_PRIVATE stuff, and the access bit should still apply for global
+> > reclaim. However, I agree it becomes difficult to reason especially if
+> > you throw memcgs into the mix.
+>
+> mshare won't support mapping objects in it with MAP_PRIVATE. Sharing
+> PTEs to memory that can be COW'd is problematic. If it's something that
+> can be adapted to use MAP_SHARED then maybe things can work.
 
-'static' means scope is limited to the file. Common in cases where function
-pointers are used, like here in this file way below.
+I can see how mapping .text and .rodata as MAP_SHARED could
+technically work, assuming the sharing process strictly mseals them to
+guarantee they remain immutable. However, RELRO (.data.rel.ro) is a
+different story. It must initially be mapped MAP_PRIVATE and writable
+so that the dynamic linker can resolve relocations. Because these
+modified pages cannot be written back to the backing file, they become
+private anonymous pages.
 
-Like the comment says:
-     "This is the C entry point from the asm glue code after...."
+If there was a way to allow an initially RW MAP_PRIVATE mapping to
+resolve its relocations, be write-protected, mseal'd, and then have
+its page tables shared, that would solve the RELRO issue. In the
+Android Zygote model, this works perfectly because relocations resolve
+before forking, meaning the resolutions are identical for all
+children.
 
-IOW, called from assembly function (asm == assembly).
+But how would we express this in the msharefs model? Transitioning a
+post-CoW MAP_PRIVATE VMA into a shared page table structure seems
+fundamentally at odds with a strictly MAP_SHARED file-backed
+pseudo-filesystem approach.
 
-> 
->> +{
->> +	struct hv_crash_ctxt *ctxt = &hv_crash_ctxt;
->> +
->> +	/* first thing, restore kernel gdt */
->> +	native_load_gdt(&ctxt->gdtr);
->> +
->> +	asm volatile("movw %%ax, %%ss" : : "a"(ctxt->ss));
->> +	asm volatile("movq %0, %%rsp" : : "m"(ctxt->rsp));
->> +
-> 
-> This code is truly very broken. You cannot enter a C function without a stack, and assign RSP half way down the function. Especially after allocating local variables and/or calling other functions - it may happen to work in most cases, but it is very fragile. (Other architectures have the concept of 'naked' functions for this purpose but x86 does not)
+>
+> As for memcgs, the current idea is to have an owner associated with an
+> mshare region. Currently this is the process that creates the region.
+> Mappings in an mshare region will be evaluated against the mem cgroup
+> the owner is a part of.
 
-Local variable refers to static bss struct. IOW,
+I'd also like to think a bit about what happens to other standard
+memory metrics. Should accounting that actively walks the page tables
+(like /proc/pid/smaps) still work correctly and see the mappings?
 
-       asm volatile("movq %0, %%rsp" : : "m"(ctxt->rsp));
+What happens with the counter-based metrics tied directly to the
+mm_struct rss stats?
 
-same as:
-       asm volatile("movq %0, %%rsp" : : "m"(&hv_crash_ctxt.rsp));
+Since msharefs manages its own detached mm_struct, should we include
+those RSS counts across all sharing processes when reporting in
+/proc/*/status? Or will we need to introduce a new UAPI to
+independently expose and understand the RSS of each msharefs
+mm_struct?
 
+Thanks,
+Kalesh
 
-> IOW, this whole function should be written in asm.
->> +	asm volatile("movw %%ax, %%ds" : : "a"(ctxt->ds));
->> +	asm volatile("movw %%ax, %%es" : : "a"(ctxt->es));
->> +	asm volatile("movw %%ax, %%fs" : : "a"(ctxt->fs));
->> +	asm volatile("movw %%ax, %%gs" : : "a"(ctxt->gs));
->> +
->> +	native_wrmsrq(MSR_IA32_CR_PAT, ctxt->pat);
->> +	asm volatile("movq %0, %%cr0" : : "r"(ctxt->cr0));
->> +
->> +	asm volatile("movq %0, %%cr8" : : "r"(ctxt->cr8));
->> +	asm volatile("movq %0, %%cr4" : : "r"(ctxt->cr4));
->> +	asm volatile("movq %0, %%cr2" : : "r"(ctxt->cr4));
->> +
->> +	native_load_idt(&ctxt->idtr);
->> +	native_wrmsrq(MSR_GS_BASE, ctxt->gsbase);
->> +	native_wrmsrq(MSR_EFER, ctxt->efer);
->> +
->> +	/* restore the original kernel CS now via far return */
->> +	asm volatile("movzwq %0, %%rax\n\t"
->> +		     "pushq %%rax\n\t"
->> +		     "pushq $1f\n\t"
->> +		     "lretq\n\t"
->> +		     "1:nop\n\t" : : "m"(ctxt->cs) : "rax");
->> +
->> +	/* We are in asmlinkage without stack frame,
-> 
-> You just switched to __KERNEL_CS via the stack.
-
-compiler doesn't know that.
-
->> hence make a C function
->> +	 * call which will buy stack frame to restore the tss or clear PT
->> entry.
->> +	 */
-> 
-> Where does one buy a stack frame?
-
-A stack market :).  Callee will create stack frame now that rsp is
-setup.
-
->> +	hv_crash_restore_tss();
->> +	hv_crash_clear_kernpt();
->> +
->> +	/* we are now fully in devirtualized normal kernel mode */
->> +	__crash_kexec(NULL);
->> +
->> +	for (;;)
->> +		cpu_relax();
->> +}
->> +/* Tell gcc we are using lretq long jump in the above function
->> intentionally */
->> +STACK_FRAME_NON_STANDARD(hv_crash_c_entry);
->> +
-
+>
+> Thanks,
+> Anthony
+>
+>
+> >
+> > Thanks,
+> > Kalesh
+> >
+> >> 3) other misc problems that make it hard to work transparently (VMA al=
+ignment,
+> >> levels which you may or may not want to share, you need to revisit mos=
+t page
+> >> table walkers in the kernel to get a completely transparent feature, e=
+tc)
+> >>
+> >>> Regarding David's and Matthew's discussion on VMA-modifying functions=
+,
+> >>> I would lean towards the standard VMA manipulating APIs should be
+> >>> preferred over custom ioctls to preserve transparency for user-space.
+> >>> Perhaps whether or not these modifications persist across all sharing
+> >>> processes needs to be configurable? It seems that for database
+> >>> workloads, having the updates reflected everywhere would be the
+> >>> desired behavior. In the use case described for Android, we don't wan=
+t
+> >>> apps to be able to modify these shared ELF mappings. To handle this,
+> >>> it's likely we would do something like mseal() the VMAs in the dynami=
+c
+> >>> loader before forking.
+> >> mshare_mseal!
+> >>
+> >>> Perhaps we could decouple the core sharing logic from the sharing API
+> >>> itself? Since the sharing interface seems one of  the main areas wher=
+e
+> >>> we don't have a good consensus yet, perhaps we could land the core
+> >>> sharing logic first. Keeping the core infrastructure generic would
+> >> I think the core infrastructure is relatively generic (at least the
+> >> small core mm modifications to get this to even work) already, but
+> >> perhaps Anthony can comment on that.
+> >>
+> >> --
+> >> Pedro
