@@ -1,69 +1,117 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f202.google.com (mail-pl1-f202.google.com [209.85.214.202])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F18627A45C;
-	Wed, 25 Feb 2026 17:24:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5D71C2E2DDD
+	for <linux-arch@vger.kernel.org>; Wed, 25 Feb 2026 20:11:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.202
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772040299; cv=none; b=bbcSLaQdZCtWSKOFE3QgMBmR1Pczdnsf5TrNu/4bCvyVZ4RNH+jhlSyc1Nd0RUQ6sQXpvN8GI2JPzi5SmPtSZtWGyjO/iOWYRkLGdiC5656VuPAMIcRYwGJNwIGEqze0m9tWWvoBDrHHsfKFeUtyN3YafWgKFCRbC4ix1rx15nA=
+	t=1772050295; cv=none; b=AEfkawSLT87urOuhLNEiDqEgZeUdb8pj0C8A6vwZ8a3jjcNyAfnBF9p21QVa9hCwaYE5DAC4hTVbYFOeAqandHAo2lVHlOU30XWD/gty80MtvKTxQJ9p/okkyHwzMTNoiee3MTKbe3A7Ps3dtiaPxvMRXjOxp7SKg1oCWbTVeQw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772040299; c=relaxed/simple;
-	bh=0e9SqD/+hsqTFerGrgoY6o2/NOjfpeueLYEdBPSeVd0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=miMTAn9wkxFOUJHsoAuzuSiwCW1wqL5Vz324jiv5TiWCiTA7qcWRJ48/Tnz66CbH5/Sr7eRxS+jrSZ4wAgXLRXywHyMMS5mN6tsH11/1E30XjKO1xCXfyF4EnL9bNpcitKN8F6By5PB2SFCWkyW25S+Iuqe49YDZ97xzNoVs5tk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Z8KCP8v6; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772050295; c=relaxed/simple;
+	bh=xb240UHeJZUpSheryUetfPnHX+Or5u1jl7cIe9qLxno=;
+	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
+	 To:Cc:Content-Type; b=U2j/FtbDkKnScuyYChduNBxW640DRVDFFK2mX0hAobpDLQRrpb3BqMBLMZpb2thMuJ5faMp2fuptUyq1vUNtQG/ieqawodPKnHByWGDzdLCb0IEcyQcdmTldJqsZV5ncnK6Tis0CTHyxnbiALVsp08hfQVaTerpIHRkY6zl1BSk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=A+5JWYKQ; arc=none smtp.client-ip=209.85.214.202
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Z8KCP8v6"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B5A62C116D0;
-	Wed, 25 Feb 2026 17:24:58 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772040298;
-	bh=0e9SqD/+hsqTFerGrgoY6o2/NOjfpeueLYEdBPSeVd0=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Z8KCP8v6TEvoD4b7UR2NbIKZtY7/aATfjB9fLWp+hTa1yD1GCa2wR3uamUDLFnp6b
-	 kDTbNJOo2MW6F07WGx0jIn7SHchNDIjhST9sAxGkzBiGjVWJo4bQuOLOc5ki4ESp1w
-	 dRncP9MtgjNt6sPdMI+AHo+oIOjnXl8zfQvDq/5RNDYWLO6LoXsh+8raIQpcU0CA3m
-	 rfJGb3Km64g/F/ZKDrScLwC12P77UCAHYXF5lfA//yAfl55IRy+89t3X5oo7pEI41k
-	 T36F4bX28KIRRg3bl0BB7doDbrT1RUuDjGp57P0cRI8LzLGnlagLKLipxstIEk5Z7i
-	 XoehDrvcOfyog==
-Date: Wed, 25 Feb 2026 09:24:58 -0800
-From: Kees Cook <kees@kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Thomas Gleixner <tglx@kernel.org>,
-	Vincenzo Frascino <vincenzo.frascino@arm.com>,
-	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>, Paul Walmsley <pjw@kernel.org>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Jiaxun Yang <jiaxun.yang@flygoat.com>,
-	Jingwei Wang <wangjingwei@iscas.ac.cn>,
-	linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
-	linux-riscv@lists.infradead.org, linux-hardening@vger.kernel.org
-Subject: Re: [PATCH] vdso/datapage: Define vdso data pointers as arrays
-Message-ID: <202602250924.B0A6F658ED@keescook>
-References: <20260225024716.work.043-kees@kernel.org>
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="A+5JWYKQ"
+Received: by mail-pl1-f202.google.com with SMTP id d9443c01a7336-2aad5fec176so185405ad.2
+        for <linux-arch@vger.kernel.org>; Wed, 25 Feb 2026 12:11:33 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1772050293; x=1772655093; darn=vger.kernel.org;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:from:to:cc:subject:date:message-id:reply-to;
+        bh=l12W4BbMOvS46dH8NvG0bfSFtU9wMtIxMN8ZzhevNqI=;
+        b=A+5JWYKQxnVD5EXVFIur1MWNAwKcG9bCb8KIfudNJB8x0qwjHebgxy/crsMHdJS24L
+         DRcQrW5JWjwpIrdX3ETKgM7lz1RAl1c88RBgO0nXmcuqQvL0k+IgQLKfjxAO/s8PGzkr
+         8l0dP8jzHoDSTvbWPf+rn08l4cDvJ7msSoYWUwT3i5jOoowTFyFzam2Yfj3rlrdBH2ws
+         YGnPh9CVxlIRbawpGDzLKdqUi23IJXk9psAhftBDBxwUfm7LZeN7/4mUP2WuDNwW094x
+         lPjVHmBp/j/bVXqjtiKRH9l6YS5B6XVkHKxfltIjKCsTJDhAxYj971NXDZaTwW1vAa5u
+         z9Vg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772050293; x=1772655093;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=l12W4BbMOvS46dH8NvG0bfSFtU9wMtIxMN8ZzhevNqI=;
+        b=Ochb/Q13hOrxh7vxuXv/9d8hdvGpeWLPBKqNG8dwjMi9T/08v79jQujqgMAsE3YjiB
+         m2MDZSU/CBHgCZjPOqX5ZF9x+bCiRdSo7XXWXIRC6cQ1QLkPvIdIgUl+m+c0G52w0Rvn
+         ofIB3Hg7zipccq7oismq3OS9HOLl0N9GFp2AeRfB8ux+ADhWLgOzOtjpulgA5PuRSuZb
+         sdSqEexedf1QFOEGy8GleZoWuEiJHADpusKJgoI2n19qNAv2uF1sG1QaT0AvK2pmm7LS
+         9PSS7t+uVRyrcbiZzzXMQjwJDDeQa3qSYw42stF4JIr1NnGDiWnbacJAjs35ROjPS11U
+         lxPw==
+X-Forwarded-Encrypted: i=1; AJvYcCXJJDMstOBPU0wFjkRxl/4IwrqcQMCZ8s2R8pDgvOZwmeUJkk1Ov4x0Bco7prmcrI8nMTQvgTzKLJP2@vger.kernel.org
+X-Gm-Message-State: AOJu0Yzzd5ef93eC8DpSAuIg//X4r+jDf2o4a/+sQewGer1Kao5u3S4C
+	IwXU7rYcLVizPRS/2CujeDT3Yx1F3d6tBh/vXaGp2vw3ThKfJ4j0nHuQJICfhwcE+5GzVZgGTs0
+	QoxRbmg==
+X-Received: from pghq22.prod.google.com ([2002:a63:e216:0:b0:c6e:700a:2902])
+ (user=seanjc job=prod-delivery.src-stubby-dispatcher) by 2002:a05:6a20:72a3:b0:371:53a7:a4aa
+ with SMTP id adf61e73a8af0-39545ebb5a6mr14949603637.29.1772050292456; Wed, 25
+ Feb 2026 12:11:32 -0800 (PST)
+Date: Wed, 25 Feb 2026 12:11:30 -0800
+In-Reply-To: <20260202074557.16544-4-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260225024716.work.043-kees@kernel.org>
+Mime-Version: 1.0
+References: <20260202074557.16544-1-lance.yang@linux.dev> <20260202074557.16544-4-lance.yang@linux.dev>
+Message-ID: <aZ9Xcgxa0_ouGr31@google.com>
+Subject: Re: [PATCH v4 3/3] x86/tlb: add architecture-specific TLB IPI
+ optimization support
+From: Sean Christopherson <seanjc@google.com>
+To: Lance Yang <lance.yang@linux.dev>
+Cc: akpm@linux-foundation.org, david@kernel.org, dave.hansen@intel.com, 
+	dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com, 
+	will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com, 
+	peterz@infradead.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, 
+	x86@kernel.org, hpa@zytor.com, arnd@arndb.de, lorenzo.stoakes@oracle.com, 
+	ziy@nvidia.com, baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, 
+	npache@redhat.com, ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org, 
+	shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com, 
+	pbonzini@redhat.com, boris.ostrovsky@oracle.com, 
+	virtualization@lists.linux.dev, kvm@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+	ioworker0@gmail.com
+Content-Type: text/plain; charset="us-ascii"
 
-On Tue, Feb 24, 2026 at 06:47:20PM -0800, Kees Cook wrote:
-> The vdso_u_time_data, vdso_u_rng_data, and vdso_u_arch_data arrays
-> are seen by GCC as single instances (due to their declarations in
-> include/vdso/datapage.h). When the vdso data pointers are dereferenced
-> with an offset, GCC thinks there is an access beyond the returned single
-> instance. These are actually arrays constructed at link time, so declare
-> them as such.
+On Mon, Feb 02, 2026, Lance Yang wrote:
+> diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+> index 37dc8465e0f5..6a5e47ee4eb6 100644
+> --- a/arch/x86/kernel/kvm.c
+> +++ b/arch/x86/kernel/kvm.c
+> @@ -856,6 +856,12 @@ static void __init kvm_guest_init(void)
+>  #ifdef CONFIG_SMP
+>  	if (pv_tlb_flush_supported()) {
+>  		pv_ops.mmu.flush_tlb_multi = kvm_flush_tlb_multi;
+> +		/*
+> +		 * KVM's flush implementation calls native_flush_tlb_multi(),
+> +		 * which sends real IPIs when INVLPGB is not available.
 
-I found 2 more places I needed to make "&var" to "var" changes. I'll
-send a v2...
+Not on all (virtual) CPUs.  The entire point of KVM's PV TLB flush is to elide
+the IPIs.  If a vCPU was scheduled out by the host, the guest sets a flag and
+relies on the host to flush the TLB on behalf of the guest prior to the next
+VM-Enter.
 
--- 
-Kees Cook
+	for_each_cpu(cpu, flushmask) {
+		/*
+		 * The local vCPU is never preempted, so we do not explicitly
+		 * skip check for local vCPU - it will never be cleared from
+		 * flushmask.
+		 */
+		src = &per_cpu(steal_time, cpu);
+		state = READ_ONCE(src->preempted);
+		if ((state & KVM_VCPU_PREEMPTED)) {
+			if (try_cmpxchg(&src->preempted, &state,
+					state | KVM_VCPU_FLUSH_TLB))
+				__cpumask_clear_cpu(cpu, flushmask);  <=== removes CPU from the IPI set
+		}
+	}
+
+	native_flush_tlb_multi(flushmask, info);
+
+> +		if (!cpu_feature_enabled(X86_FEATURE_INVLPGB))
+> +			pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast = true;
+>  		pr_info("KVM setup pv remote TLB flush\n");
+>  	}
