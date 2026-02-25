@@ -1,119 +1,69 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F16D395D99;
-	Wed, 25 Feb 2026 14:58:36 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F18627A45C;
+	Wed, 25 Feb 2026 17:24:58 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772031516; cv=none; b=WgxCqZ+UTb30C3V4M+MJSSaeaFb2/QDdcKxtaCfoDF8YTJdRVCwBcYOJ+0xVg4C0d38yxi5aKoSfbWHQoBvQn/mSaYTuvPSPCdQaEVk/AZsMzDjcHOYX32zWbaYMsJYlFsn+tazbuvjHiw9wDeGPQH1nuB3tMirWdwr0qqfbgH4=
+	t=1772040299; cv=none; b=bbcSLaQdZCtWSKOFE3QgMBmR1Pczdnsf5TrNu/4bCvyVZ4RNH+jhlSyc1Nd0RUQ6sQXpvN8GI2JPzi5SmPtSZtWGyjO/iOWYRkLGdiC5656VuPAMIcRYwGJNwIGEqze0m9tWWvoBDrHHsfKFeUtyN3YafWgKFCRbC4ix1rx15nA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772031516; c=relaxed/simple;
-	bh=DKswOemgE0o8dLAbtbgTdWvG4rdX6n55NSS0972JIdc=;
+	s=arc-20240116; t=1772040299; c=relaxed/simple;
+	bh=0e9SqD/+hsqTFerGrgoY6o2/NOjfpeueLYEdBPSeVd0=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=hVjEExkC1Kdkl35Vbei9SgBXHDAXV9b8s/mGYx8rV8Bp3Mw2xtQwN0z/qg0SxmeG+3pHbDMNC6eWOHHTASsV+mKSkJ+mpvUQLvbua2u+mB7C6avEhm39yZ7nlDeL0NfWJB1gNsJA0dVjBRB4e35ZcG6fnx2HwmxHLeh1Y2oRzrs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Mdh6iujj; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=miMTAn9wkxFOUJHsoAuzuSiwCW1wqL5Vz324jiv5TiWCiTA7qcWRJ48/Tnz66CbH5/Sr7eRxS+jrSZ4wAgXLRXywHyMMS5mN6tsH11/1E30XjKO1xCXfyF4EnL9bNpcitKN8F6By5PB2SFCWkyW25S+Iuqe49YDZ97xzNoVs5tk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Z8KCP8v6; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Mdh6iujj"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 910B6C116D0;
-	Wed, 25 Feb 2026 14:58:31 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Z8KCP8v6"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B5A62C116D0;
+	Wed, 25 Feb 2026 17:24:58 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772031516;
-	bh=DKswOemgE0o8dLAbtbgTdWvG4rdX6n55NSS0972JIdc=;
+	s=k20201202; t=1772040298;
+	bh=0e9SqD/+hsqTFerGrgoY6o2/NOjfpeueLYEdBPSeVd0=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=Mdh6iujjSWp6SFz+JwLy4nalaRpHoytaT2mXrTErJdY8ripQ/GKKYsH1b4yAf+HN4
-	 bt2suB/55pPPBWFpqHeD5Wf39lqMh8j/eCfpQ/7ZSOTdklaPGnXI+6N/ciFXt5w7l6
-	 K+AkIiooofhvA2kywZtHdb++EyS59f+F8KnRSR+E2QCR71eqiPfOz0zxuodScZsQkH
-	 wYrCJuQhJlMi/x81lK+QlxaMf2EwoNJ8O50o9wHLMBYStJitsqpCEgdFsRfVcbwA/O
-	 5uR2Pq84gRkLCyKcI0lNk99ypfPbGi9rQ6KJc5K/xZf00J+9lmkqkfdjqbP46f6P3S
-	 IsjdrQZRFnTNA==
-Date: Wed, 25 Feb 2026 22:40:00 +0800
-From: Jisheng Zhang <jszhang@kernel.org>
-To: Leo Yan <leo.yan@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Thomas Gleixner <tglx@kernel.org>, Paul Walmsley <pjw@kernel.org>,
+	b=Z8KCP8v6TEvoD4b7UR2NbIKZtY7/aATfjB9fLWp+hTa1yD1GCa2wR3uamUDLFnp6b
+	 kDTbNJOo2MW6F07WGx0jIn7SHchNDIjhST9sAxGkzBiGjVWJo4bQuOLOc5ki4ESp1w
+	 dRncP9MtgjNt6sPdMI+AHo+oIOjnXl8zfQvDq/5RNDYWLO6LoXsh+8raIQpcU0CA3m
+	 rfJGb3Km64g/F/ZKDrScLwC12P77UCAHYXF5lfA//yAfl55IRy+89t3X5oo7pEI41k
+	 T36F4bX28KIRRg3bl0BB7doDbrT1RUuDjGp57P0cRI8LzLGnlagLKLipxstIEk5Z7i
+	 XoehDrvcOfyog==
+Date: Wed, 25 Feb 2026 09:24:58 -0800
+From: Kees Cook <kees@kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Thomas Gleixner <tglx@kernel.org>,
+	Vincenzo Frascino <vincenzo.frascino@arm.com>,
+	Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>, Paul Walmsley <pjw@kernel.org>,
 	Palmer Dabbelt <palmer@dabbelt.com>,
 	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Guo Ren <guoren@kernel.org>, linux-arm-kernel@lists.infradead.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org, linux-csky@vger.kernel.org
-Subject: Re: [PATCH 3/3] arm64: use runtime constant to optimize
- handle_arch_irq access
-Message-ID: <aZ8JwB2vJ98uab2V@xhacker>
-References: <20260220090922.1506-1-jszhang@kernel.org>
- <20260220090922.1506-4-jszhang@kernel.org>
- <20260220123414.GF136967@e132581.arm.com>
- <aZheqINXslxlrmTt@xhacker>
- <aZhi1p0NJH5ug8CA@xhacker>
- <20260220164738.GH136967@e132581.arm.com>
- <aZj42cyIHADECszW@xhacker>
- <20260223091547.GJ136967@e132581.arm.com>
+	Thomas Gleixner <tglx@linutronix.de>,
+	Jiaxun Yang <jiaxun.yang@flygoat.com>,
+	Jingwei Wang <wangjingwei@iscas.ac.cn>,
+	linux-kernel@vger.kernel.org, loongarch@lists.linux.dev,
+	linux-riscv@lists.infradead.org, linux-hardening@vger.kernel.org
+Subject: Re: [PATCH] vdso/datapage: Define vdso data pointers as arrays
+Message-ID: <202602250924.B0A6F658ED@keescook>
+References: <20260225024716.work.043-kees@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260223091547.GJ136967@e132581.arm.com>
+In-Reply-To: <20260225024716.work.043-kees@kernel.org>
 
-On Mon, Feb 23, 2026 at 09:15:47AM +0000, Leo Yan wrote:
-> On Sat, Feb 21, 2026 at 08:14:17AM +0800, Jisheng Zhang wrote:
-> 
-> [...]
-> 
-> > On Fri, Feb 20, 2026 at 04:47:38PM +0000, Leo Yan wrote:
-> > > On Fri, Feb 20, 2026 at 09:34:14PM +0800, Jisheng Zhang wrote:
-> > > 
-> > > [...]
-> > > 
-> > > > > > Run 3 iterations, and measures three metrics (messaging/pipe/seccomp)
-> > > > > > and results in seconds. Less is better.
-> > > > > > 
-> > > > > >   +---------------------+--------+--------+--------+--------+
-> > > > > >   |Without change       |   run1 |   run2 |   run3 |    avg |
-> > > > > >   +---------------------+--------+--------+--------+--------+
-> > > > > >   |messaging (sec)      |  4.546 |  4.508 |  4.591 |  4.548 |
-> > > > > >   |pipe (sec)           | 24.258 | 24.224 | 24.017 | 24.166 |
-> > > > > >   |seccomp-notify (sec) | 48.393 | 48.457 | 48.232 | 48.361 |
-> > > > > >   +---------------------+--------+--------+--------+--------+
-> > > > > > 
-> > > > > >   +---------------------+--------+--------+--------+--------+--------+
-> > > > > >   |With change          |   run1 |   run2 |   run3 |    avg |   diff |
-> > > > > >   +---------------------+--------+--------+--------+--------+--------+
-> > > > > >   |messaging (sec)      |  4.493 |  4.523 |  4.556 |  4.524 | +0.52% |
-> > > > > >   |pipe (sec)           | 23.159 | 23.702 | 28.649 | 25.170 | -4.15% |
-> > > > > 
-> > > > > If you check the result, this result variance is abnormal, it means
-> > > > > your OS is noiser.
-> > > > 
-> > > > BTW: if you remove the abnormal run3 result, you'll find that the
-> > > > benchmark is improved by ~3.5% on CA73:
-> > > > (23.159 + 23.702) / 2 = 23.43
-> > > > (24.258 + 24.224) / 2 = 24.24
-> > > > (24.24 - 23.43)*100 / 23.43 = ~3.5
-> > > 
-> > > TBH, I don't think we should subjectively select data.  But I agree a
-> > 
-> > The precondition of this is testing the benchmark properly. And I just
-> > tried perf bench sched in noisy OS, I didn't get the similar abnormal
-> > variance as you got, so I think your run3 result was CA53's result.
-> > This isn't an apple-to-apple comparison.
-> 
-> Not true.  As said, I tested on CA73.  I should say explicitly that I
-> have hotplugged off CA53 CPUs and run test only on CA73 CPUs.
+On Tue, Feb 24, 2026 at 06:47:20PM -0800, Kees Cook wrote:
+> The vdso_u_time_data, vdso_u_rng_data, and vdso_u_arch_data arrays
+> are seen by GCC as single instances (due to their declarations in
+> include/vdso/datapage.h). When the vdso data pointers are dereferenced
+> with an offset, GCC thinks there is an access beyond the returned single
+> instance. These are actually arrays constructed at link time, so declare
+> them as such.
 
-I tested on quad CA73 platform, I can reproduce the abnormal variance
-as you got. This means the series may not alway improve performance
-as I expected for *all* CPUs. So I'd like to drop it now.
+I found 2 more places I needed to make "&var" to "var" changes. I'll
+send a v2...
 
-> 
-> > If possible, could you plz test after forcing CA53 offline or test on
-> > non big.little platform. Anyway, I will test CA73 next week too.
-> > 
-> > > clean test env is important to avoid noise, and I also agree that the
-> > > current results already show positive signals.
-> > > 
-> > > Thanks,
-> > > Leo
+-- 
+Kees Cook
