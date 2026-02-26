@@ -1,157 +1,151 @@
-Received: from flow-a8-smtp.messagingengine.com (flow-a8-smtp.messagingengine.com [103.168.172.143])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qk1-f177.google.com (mail-qk1-f177.google.com [209.85.222.177])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40E7B3F23D7;
-	Thu, 26 Feb 2026 15:43:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.143
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7AB78387581
+	for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 15:46:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772120637; cv=none; b=exhMYR5bVN8UZgvJSA5f+PegLIJHmhGAHGggwdTb+8sgyz9kx3Q8c5PWsnl9mDux5wRAuWqLm0YD1PtKj8AjpcSDLDlarY9rR556lgkxJ+KvLeKh9OJ84p5OpgmA/V+4ldXaNoae24g5nP/sf2a5ZycqZplnJH+DATwvgiQmuJc=
+	t=1772120761; cv=none; b=heMyjiu53K7MRuCQox9qCvKImyqguOkF0vowbEFjUUNSAdZkwvpI1SNjdTy7TemD73PUzSMqg9KXtA4Ii4oFt6C5h0l9BaXY6y332brMgoL6NJv7ccQDdbLz61LMjLHrvPYDkXr+FR26YtL32JcvdjOw+QISf1JioR0R05c2sIw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772120637; c=relaxed/simple;
-	bh=zaIt+6c5Z6aF5nOzcYBB7QJkaXuFxNxAQjsZxA8CeFs=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=g+6q2aNlB2JwDgGhAh/NfCTcvMCUSyFcfJn+E2sTopOVyXh/fRZ7nKXEqeCZKtcHAkSFXogZKe1+BxlTVCPlAUFzsGt/6Z1yuuTWQCn11Bm9t6wUdokmgaI99e0UGasH//0Msd/TyR2Y3EcaqDi1fo+ujYsDSHznm2QzYeSBfS8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=BFOz5yqx; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=Fc2ByHch; arc=none smtp.client-ip=103.168.172.143
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1772120761; c=relaxed/simple;
+	bh=YWHQ3hb1ArwIbRQ89q9zG+CqmiOK4wPfERQK4NQHajI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=aetGxp/V3zLQ8MtN9criX81dPfqT+zz3tuivarqPG1my6KJrF7GQBzaYvetqU89EAEhZugElwCvheX4jH3oTKbFYBqig7F5ViQvvTizjqWy9C7zNad8o32JLMO57Uf1RhbKgnPzcck+JigTbBYp9PyDZntY/fSS6YuxQp9/3WhQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rowland.harvard.edu; spf=fail smtp.mailfrom=g.harvard.edu; dkim=pass (2048-bit key) header.d=rowland.harvard.edu header.i=@rowland.harvard.edu header.b=vbyLVJ3W; arc=none smtp.client-ip=209.85.222.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rowland.harvard.edu
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=g.harvard.edu
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="BFOz5yqx";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="Fc2ByHch"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailflow.phl.internal (Postfix) with ESMTP id 702FC1380BA9;
-	Thu, 26 Feb 2026 10:43:55 -0500 (EST)
-Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-04.internal (MEProxy); Thu, 26 Feb 2026 10:43:55 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1772120635;
-	 x=1772127835; bh=5NKb8s5uQsJxGoQ2AVBEtObpQ/CvaKcz4OqTIpIkbmc=; b=
-	BFOz5yqxSmg9S50IsSdLRGyQHw6zGY1eOdKa+Po1ZziBbN2GJ+4j9GfSK2vBzpb8
-	jke/0DjjeJ1N27rCrrDV17hYarBNm1Yv5Ef3DpswEsW5lXmy5P2MpCy6/j4n03oF
-	6AXtPA/NP2OgKRV62bfh5y074ZgZyuVK80kBotJiI5viaax3nK4TDXtsz7/fmWKi
-	Idb44puvspjnRxIVW8rRiXroKSe3UOJgw6SBDrDW/b4nrdVt9gRrGH0VYyTCCFI+
-	MaLql0ByGC1lAPGvtsNQy7knHDrJrYmiw6Z0TH7LP/fMQ/mbjchvlBUub+fpzM0z
-	AwgDVPMDWtHsSHNybdc70Q==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm3; t=1772120635; x=
-	1772127835; bh=5NKb8s5uQsJxGoQ2AVBEtObpQ/CvaKcz4OqTIpIkbmc=; b=F
-	c2ByHch3ij59MUwgdS2tUPIb02ImNYf+PdWdDaqtx5ATw62eUpliVMY8iV5D7hR3
-	wYi0CHEzfkgh/mmBuCbJYAChbEOC/Yi8PJeN5l62Iy2psmFsZrqPUq0n/+vZEsQO
-	qYjytQD72iqh1ghXwEeBJ+WUnvc4Fp1Jeo/4mgECJRniva5kBNFlm6iANF8sqab6
-	oNPUlMV1dQUyv+GQi7/PfCZFIvgRRn3B9r6NcepO1/wYvQBeHCR1LEsGxh1+Og4p
-	FYPE0U4hjheq9evedYJAexwrwIPKQjOD7fllTYCzxyIBPwHANOFBQd6w9WsyZAmJ
-	opoR4yIXQlrQwxqExmjlA==
-X-ME-Sender: <xms:N2qgaaQjbD4lDTTpYYJW04n5-N_REynhDJNOjDcAsLpq8XoFDTIP1Q>
-    <xme:N2qgaalYz6oAwIkXti0ilmTZ4SAWzxEhI78J-NBiOcz8jBnpIMTvnyc8aM72hc_ES
-    ARSAHBEQvzfvqva9WEslWopqCs96M2xP3m79vrzlriTC5w2htjwEyM>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgddvgeeigeefucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrnhgu
-    uceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrthhtvg
-    hrnhephfdthfdvtdefhedukeetgefggffhjeeggeetfefggfevudegudevledvkefhvdei
-    necuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprghrnh
-    gusegrrhhnuggsrdguvgdpnhgspghrtghpthhtohephedtpdhmohguvgepshhmthhpohhu
-    thdprhgtphhtthhopegsphesrghlihgvnhekrdguvgdprhgtphhtthhopegtrghtrghlih
-    hnrdhmrghrihhnrghssegrrhhmrdgtohhmpdhrtghpthhtoheplhhinhhugiesrghrmhhl
-    ihhnuhigrdhorhhgrdhukhdprhgtphhtthhopegrnhhtohhnrdhivhgrnhhovhestggrmh
-    gsrhhiughgvghgrhgvhihsrdgtohhmpdhrtghpthhtohepphgrlhhmvghrsegurggssggv
-    lhhtrdgtohhmpdhrtghpthhtohepuggrvhgvmhesuggrvhgvmhhlohhfthdrnhgvthdprh
-    gtphhtthhopegrohhusegvvggtshdrsggvrhhkvghlvgihrdgvughupdhrtghpthhtohep
-    mhhpvgesvghllhgvrhhmrghnrdhiugdrrghupdhrtghpthhtoheptghlmhesfhgsrdgtoh
-    hm
-X-ME-Proxy: <xmx:N2qgaUJWUEXUlLEjkxtJWtWBvZvargLkJYDYLT1WCObuQQIhrpl4jg>
-    <xmx:N2qgabuNvv7e3NmdoP0u_IPqZN1TMDnyqD0tO35lBUa_NaOCzbSmCg>
-    <xmx:N2qgaRqz5OOPUoSW-rsw8dZEHVicCLZG3p0s42DHReFDaNuct761aw>
-    <xmx:N2qgafV0jsQUaX0mdJgZVSo50cBCHJXR9outsNs-5KBrOO1PzPsRXw>
-    <xmx:O2qgafUJmIOfDaRuA5FfQ3utukV1YK4slK3UAvn21GEOucPhAX52tGfc>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id A0F9D700065; Thu, 26 Feb 2026 10:43:51 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=rowland.harvard.edu header.i=@rowland.harvard.edu header.b="vbyLVJ3W"
+Received: by mail-qk1-f177.google.com with SMTP id af79cd13be357-8cbb6d5f780so99169085a.1
+        for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 07:46:00 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=rowland.harvard.edu; s=google; t=1772120759; x=1772725559; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=wuTxE1p/1rypYy1lij4BdYhQVDSEtiYhB76DoENLIhw=;
+        b=vbyLVJ3Wp5g355/EWwwRRqEl8xwl4FavfNRArcM7+ZJQrG3rMCqnFw+dH1deNfTm9Z
+         zi9uQSujEDvEV1FfdyeXtJdBcz80mhztWVwDw3mL0Dno8Ak5O2uq4r7YFKboGhd+gYoo
+         uCsmyfzZWBm3u6Yf3lSSaK9w00q69ohHAQjb1ioKqlufu4nKNPmETYEqquisjHET3QV8
+         +vDZ63rccbfTQZ9YLcF6oJ5JrcvHThBlNc3RhudhvC7jRq9gIdiFKalfEZ4hiDBPoK8F
+         ocdiIrAOIqMa4iyBF0Hrx4zHEnlIhQ+IehbyCB6rk2jqXbsefbsrwadO2br/2t4CJQp5
+         Jp3Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772120759; x=1772725559;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=wuTxE1p/1rypYy1lij4BdYhQVDSEtiYhB76DoENLIhw=;
+        b=BzEPbYoW/aQ0ZfU+gaRFuGpbjDRJGJ9GHcDmHKzlwTElqvq7ubuxZtPxgwVX7AK++G
+         2maKMHZLUjnCG7IP7IPsqwhQhXvRczuKK8Lomx1DqY1YxQmS7l2Xbvpr9H6x+QekMbgI
+         xkp2uFGr7/afHEBPwkUHqZKRAqPpTaEnw0t4YUdnB/zsRvgJW7c/GFYUMYVo6QwLpqC5
+         uXmSrPGtVN5PHgT+l4tALI6QvJBp1NsiC2FPNSFc6R0AOth79A8hQ14bl4DMETklfaWK
+         cXFFJEaJAkc1hbf0DYcP5Mbwob12t9DYjN42D04PeTMqqecsXo2BeEyG6sCqHLv8FgSk
+         sqkA==
+X-Forwarded-Encrypted: i=1; AJvYcCWGtMbjxixdbShDCkYdXTH4ZoqrJYxWBKyw/zflYTASaoH88Fa8hxLhD51meRI92RH7/HY7XDrdInbG@vger.kernel.org
+X-Gm-Message-State: AOJu0Yy1yHwNWhCm5F2DWpT0vUI/XnKA5vRIw90nSF7BmwcdkiI2El69
+	F0dxjHVjuuvZl7G3rajw/9XuEO84UQav6cutwDReDQzV6y/3rgI0J984tSLoxPV1Iw==
+X-Gm-Gg: ATEYQzzgNR6BVj1bbpzapsrluUj9tsMqfRUnk40eqAL8RQyAckJbKVGPuOV98zsw1vn
+	tzhNMMN3ruJUdXrY+/lfxBFWotPnHMhNWXMnYWZcnbvqYNRR34JvdjC4yRpVn6xhqmi04IEvGYa
+	S+sdO19lMJfpwLILCcaR7ZnS16+wA9ueEI0vYVFgFKLz+tSe8Uq89D7vUO0UnomC7v36taOb+fH
+	ydnFvkhrmCKgd366PbE3fv/zB7twhn4xeagkT217hO4ILOmQMDZeBz36dj99784O6NPUSsCwr34
+	In90enO+ohF9uL+uemdHA8BWGJNZYDBNzOe8ij9i1FZpQ1TzrXdIcbGjxPQdFRub1ApYNqP9eps
+	uQci+b0FadkX2hjKRcw/HzO9Zz8vkJ/v4wxw+MJHXQGIaUehGq3NKz5QGbyMwQm1vD5DyRBdbWg
+	RRpU7aGYR//eGfXkHg2L6+Qtb7EYmJ4LHIojtjeyNGyP3Oxi7a/xiP
+X-Received: by 2002:a05:620a:1a9b:b0:8cb:4289:6c1a with SMTP id af79cd13be357-8cbbd05ff45mr585156785a.75.1772120759113;
+        Thu, 26 Feb 2026 07:45:59 -0800 (PST)
+Received: from rowland.harvard.edu ([140.247.181.15])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-8cbbf67814bsm272731985a.17.2026.02.26.07.45.57
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 26 Feb 2026 07:45:58 -0800 (PST)
+Date: Thu, 26 Feb 2026 10:45:55 -0500
+From: Alan Stern <stern@rowland.harvard.edu>
+To: Harry Yoo <harry.yoo@oracle.com>
+Cc: linux-mm@kvack.org, Dmitry Vyukov <dvyukov@google.com>,
+	lkmm@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	Joel Fernandes <joelagnelf@nvidia.com>,
+	Daniel Lustig <dlustig@nvidia.com>,
+	Akira Yokosawa <akiyks@gmail.com>,
+	"Paul E. McKenney" <paulmck@kernel.org>,
+	Luc Maranget <luc.maranget@inria.fr>,
+	Jade Alglave <j.alglave@ucl.ac.uk>,
+	David Howells <dhowells@redhat.com>,
+	Nicholas Piggin <npiggin@gmail.com>, Boqun Feng <boqun@kernel.org>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Will Deacon <will@kernel.org>,
+	Andrea Parri <parri.andrea@gmail.com>,
+	Pedro Falcato <pfalcato@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
+	Christoph Lameter <cl@gentwo.org>,
+	David Rientjes <rientjes@google.com>,
+	Roman Gushchin <roman.gushchin@linux.dev>,
+	Hao Li <hao.li@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
+	Venkat Rao Bagalkote <venkat88@linux.ibm.com>,
+	Mateusz Guzik <mjguzik@gmail.com>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Marco Elver <elver@google.com>
+Subject: Re: [BUG] Memory ordering between kmalloc() and kfree()? it's
+ confusing!
+Message-ID: <9dcd02b9-42da-455d-aa08-165e6ff0b921@rowland.harvard.edu>
+References: <aZ_lJAqxh_hNGr_v@hyeyoo>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AQu7KcbS869J
-Date: Thu, 26 Feb 2026 16:40:21 +0100
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Christoph Hellwig" <hch@lst.de>,
- "Andrew Morton" <akpm@linux-foundation.org>
-Cc: "Richard Henderson" <richard.henderson@linaro.org>,
- "Matt Turner" <mattst88@gmail.com>,
- "Magnus Lindholm" <linmag7@gmail.com>,
- "Russell King" <linux@armlinux.org.uk>,
- "Catalin Marinas" <catalin.marinas@arm.com>,
- "Will Deacon" <will@kernel.org>, "Huacai Chen" <chenhuacai@kernel.org>,
- "WANG Xuerui" <kernel@xen0n.name>,
- "Madhavan Srinivasan" <maddy@linux.ibm.com>,
- "Michael Ellerman" <mpe@ellerman.id.au>,
- "Nicholas Piggin" <npiggin@gmail.com>,
- "Christophe Leroy" <chleroy@kernel.org>,
- "Paul Walmsley" <pjw@kernel.org>, "Palmer Dabbelt" <palmer@dabbelt.com>,
- "Albert Ou" <aou@eecs.berkeley.edu>, "Alexandre Ghiti" <alex@ghiti.fr>,
- "Heiko Carstens" <hca@linux.ibm.com>,
- "Vasily Gorbik" <gor@linux.ibm.com>,
- "Alexander Gordeev" <agordeev@linux.ibm.com>,
- "Christian Borntraeger" <borntraeger@linux.ibm.com>,
- "Sven Schnelle" <svens@linux.ibm.com>,
- "David S . Miller" <davem@davemloft.net>,
- "Andreas Larsson" <andreas@gaisler.com>,
- "Richard Weinberger" <richard@nod.at>,
- "Anton Ivanov" <anton.ivanov@cambridgegreys.com>,
- "Johannes Berg" <johannes@sipsolutions.net>,
- "Thomas Gleixner" <tglx@kernel.org>, "Ingo Molnar" <mingo@redhat.com>,
- "Borislav Petkov" <bp@alien8.de>,
- "Dave Hansen" <dave.hansen@linux.intel.com>, x86@kernel.org,
- "H. Peter Anvin" <hpa@zytor.com>,
- "Herbert Xu" <herbert@gondor.apana.org.au>,
- "Dan Williams" <dan.j.williams@intel.com>, "Chris Mason" <clm@fb.com>,
- "David Sterba" <dsterba@suse.com>, "Song Liu" <song@kernel.org>,
- "Yu Kuai" <yukuai@fnnas.com>, "Li Nan" <linan122@huawei.com>,
- linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
- linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, sparclinux@vger.kernel.org,
- linux-um@lists.infradead.org, linux-crypto@vger.kernel.org,
- linux-btrfs@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>,
- linux-raid@vger.kernel.org
-Message-Id: <29afa24a-f659-481b-b5a8-7b8b9e009755@app.fastmail.com>
-In-Reply-To: <20260226151106.144735-10-hch@lst.de>
-References: <20260226151106.144735-1-hch@lst.de>
- <20260226151106.144735-10-hch@lst.de>
-Subject: Re: [PATCH 09/25] xor: move generic implementations out of asm-generic/xor.h
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aZ_lJAqxh_hNGr_v@hyeyoo>
 
-On Thu, Feb 26, 2026, at 16:10, Christoph Hellwig wrote:
-> Move the generic implementations from asm-generic/xor.h to
-> per-implementaion .c files in lib/raid.
->
-> Note that this would cause the second xor_block_8regs instance created by
-> arch/arm/lib/xor-neon.c to be generated instead of discarded as dead
-> code, so add a NO_TEMPLATE symbol to disable it for this case.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-
-Acked-by: Arnd Bergmann <arnd@arndb.de> # for asm-generic
+On Thu, Feb 26, 2026 at 03:35:08PM +0900, Harry Yoo wrote:
+> Hello, SLAB, LKMM, and KCSAN folks!
 > 
-> -#pragma GCC diagnostic ignored "-Wunused-variable"
-> -#include <asm-generic/xor.h>
-> +#define NO_TEMPLATE
-> +#include "../../../lib/raid/xor/xor-8regs.c"
+> I'd like to discuss slab's assumption on users regarding memory ordering.
+> 
+> Recently, I've been investigating an interesting slab memory ordering
+> issue [3] [4] in v7.0-rc1, which made me think about memory ordering
+> for slab objects.
+> 
+> But without answering "What does slab expect users to do for correct
+> operation?", I kept getting puzzled, and my brain hurt too much :/
+> I'm writing things down to stop getting confused :)
+> 
+> Since I have never thought about this before, my reasoning could be
+> partially or entirely incorrect. If so, please kindly let me know.
+> 
+> # Slab's assumption: Stores to object, its metadata, or struct slab
+> # must be visible to the CPU that frees the object, when it is
+> # passed to kfree(). It's users' responsibility to guarantee that.
+> 
+> When the slab allocator allocates an object, it updates its metadata and
+> struct slab fields. After allocation, the user of slab updates object's
+> content. As long as the object is freed on the same CPU that it was
+> allocated, kfree() can see those stores (A CPU must be able to see
+> what's in its store buffer), so no problem!
+> 
+> However, when e.g.) the pointer to object is stored in a shared variable
+> and then freed on a different CPU, things become trickier.
+> 
+> In this case, I think it's fair for the slab allocator to assume that:
+> 
+>   1) Such stores must involve _at least_ a release barrier
+>      (for example, via {cmp,}xchg{,_release}, or smp_store_release())
+>      to ensure preceding stores are visible to other CPUs before
+>      the pointer store becomes visible, and
+> 
+>   2) The CPU that frees an object must invoke at least an acquire
+>      barrier to ensure that stores to object content / metadata, etc.,
+>      are visible to the freeing CPU when it calls kfree().
+> 
+> Because the slab allocator itself doesn't guarantee that such
+> barriers are invoked within the allocator, it relies on users to
+> do this when needed.
 
-The #include is slightly ugly, but I see it gets better in a later patch,
-and is clearly worth it either way.
+It doesn't?  Then how does the slab allocator guarantee that two 
+different CPUs won't try to perform allocations or deallocations from 
+the same slab at the same time, messing everything up?
 
-The rest of the series looks good to me as well. I had a brief
-look at each patch, but nothing to complain about.
+Can you explain how this is meant to work, for those of us who don't 
+know anything about the slab allocator's internal mechanism?
 
-     Arnd
+Alan Stern
