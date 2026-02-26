@@ -1,185 +1,206 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from lf-1-130.ptr.blmpb.com (lf-1-130.ptr.blmpb.com [103.149.242.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A759C3921C9;
-	Thu, 26 Feb 2026 07:46:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 018C4393DED
+	for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 08:28:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.149.242.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772091972; cv=none; b=IE9v9GjRdVPVPej3vqe2BTrD14ow/BiYZ5fita+fzK+Tw+6PRgG1CaetfA03OS2tbJPtTMXP6mUhy8yrGcGWMq+PAYN4jj02sq2JaqCihE99tlfVm5kdOrFH6ebbjW9Gc8wnArMBnz/DSWQvcPR4zFmj9n9fnQUGeqsocVP7CEM=
+	t=1772094535; cv=none; b=jvk7QeQ8bNaBXawVx4IWE5M87unuM/2LWb/K0HRkkadOulEBgTADy1JOM5T7Ik2imrKZQxQnYIQsiJEgwy+eyFNk6flmMlG1xoaxRKbhaCn3Te5U34DpAxSh4Yc4J4kBbHyjLSWcC5pWSURyGCXZszMhjIE7o3nSmYj7TAF90/0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772091972; c=relaxed/simple;
-	bh=8rF5K/Ao47rfUmEx+Ps1mmhI+24bcrG8/kevhQmsoCQ=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=Z+H96GjTJzgumegt2gkjmr20CYQBUB75tWrpoL3yEb++jSv2VyGI4WYsUtLQMAJlkfYwT6dB92z3fcn0JdcPQWFMIrghsisBDFB1n6EbDMLJP2THeVO23BHj+VU32rOb0tQM+/oIYezEIt7hHf061+BB0KNJWQpluGXXUmRPtrA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=AGL7b/7k; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772094535; c=relaxed/simple;
+	bh=ulQthRyIAK9yeGna1ksb119LKas/18cDexk9WzdBREc=;
+	h=Subject:Content-Type:To:Cc:From:Date:Message-Id:Mime-Version; b=u9kBR3nXMp7075c5d+wtzHvMk69zPDnTT2Ve/HiASyvpoxkvkr3Rc01elYIfngbV+DXp0AX8ZQjdM46GlF+oV1lwEzYY75Jh1j+NfpjDybI4oqE4Yr7xWstsBD3ZvEPtH3sP3vfuChMXukOwdR5pInLYmraexs3GtoPJs1l5JYo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=ViJjUsg4; arc=none smtp.client-ip=103.149.242.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="AGL7b/7k"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A28CFC2BCB4;
-	Thu, 26 Feb 2026 07:46:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772091972;
-	bh=8rF5K/Ao47rfUmEx+Ps1mmhI+24bcrG8/kevhQmsoCQ=;
-	h=Date:From:To:Cc:In-Reply-To:References:Subject:From;
-	b=AGL7b/7kINL5ceVMZ24rdnFoEWEZgN1vnLo5XexSO9uhdKH1gawSIJ/tUd2pCpXxe
-	 x0LTdxTuZoaWAHzNt9/uvxSFNV7HkyKuGKTppjSjS6T12/gRbq8cjzmDzBbPoWTUti
-	 /1favtqMRKOg1CZHIQ9TuTIXn93Nbb/DA8n0fhltpC5k8zGj0ldZLgnhJVKxFrncvr
-	 8rJLg9+j8n1yCulVNb+osym+9M12nWf6Pi7+yqyX3sRbvX+1ura6RDtwJlL+fjpBIJ
-	 yz5HzhrGr+JhvKGWuGAcILlQz4ZSeO4OA80/GI5+rMkZUBgzxZFaXMHeNzW0qkR8iC
-	 BglmHDzCZXS+g==
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.phl.internal (Postfix) with ESMTP id A70B1F40068;
-	Thu, 26 Feb 2026 02:46:10 -0500 (EST)
-Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-01.internal (MEProxy); Thu, 26 Feb 2026 02:46:10 -0500
-X-ME-Sender: <xms:QvqfaS45-LhO2YbNoD7td_Nn691d95J7SBwiMbbciR9wuG6AqWEviw>
-    <xme:QvqfaWuABjsraTQBU_wyKrBtiA88f4lYMiDvwkJ5GYwyCavNS37TKEGSJ-Xmc7SMu
-    flosps_UZrYS2eWaJO8wLxao5w6yINGVk5klXLQwlvjNpLWueYzZec>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgddvgeehgeeiucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrugcu
-    uehivghshhgvuhhvvghlfdcuoegrrhgusgeskhgvrhhnvghlrdhorhhgqeenucggtffrrg
-    htthgvrhhnpedvueehiedtvedtleekuddutefgffdtleetfeetveejveejieehfefhjeei
-    jeefudenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpe
-    grrhguodhmvghsmhhtphgruhhthhhpvghrshhonhgrlhhithihqdduieejtdehtddtjeel
-    qdeffedvudeigeduhedqrghruggspeepkhgvrhhnvghlrdhorhhgseifohhrkhhofhgrrh
-    gurdgtohhmpdhnsggprhgtphhtthhopeduhedpmhhouggvpehsmhhtphhouhhtpdhrtghp
-    thhtohepsghpsegrlhhivghnkedruggvpdhrtghpthhtoheprghrnhgusegrrhhnuggsrd
-    guvgdprhgtphhtthhopeifvghirdhlihhusehkvghrnhgvlhdrohhrghdprhgtphhtthho
-    peigkeeisehkvghrnhgvlhdrohhrghdprhgtphhtthhopehtghhlgieslhhinhhuthhroh
-    hnihigrdguvgdprhgtphhtthhopegurghvvgdrhhgrnhhsvghnsehlihhnuhigrdhinhht
-    vghlrdgtohhmpdhrtghpthhtohepmhhrrghthhhorheslhhinhhugidrmhhitghrohhsoh
-    hfthdrtghomhdprhgtphhtthhopeguvggtuhhisehmihgtrhhoshhofhhtrdgtohhmpdhr
-    tghpthhtohephhgrihihrghnghiisehmihgtrhhoshhofhhtrdgtohhm
-X-ME-Proxy: <xmx:QvqfaV-Z0iBB23v2e2fCaiJc3ZT-wbl4ttw4hx3MD2EB9a160UKQmw>
-    <xmx:QvqfafQGvqh2MZ-rxCiWZnOF9ZEl2G6aaaeHFMInEB3x-q_Vz88MCw>
-    <xmx:Qvqfacm1aagKmmFjlPabdKL8Tycqf-nyfJIYFcv3q5syNu-bdC4aug>
-    <xmx:QvqfaaU6J3G5DONCluueCLczj4YwlaHzdMPKSmMhmdxVnC2goHj3Eg>
-    <xmx:QvqfaRdSfAgHuPZx5LtO0DSBBnqylFkLT-AI2O1gUTR1EfKtKvTu2mrj>
-Feedback-ID: ice86485a:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 76112700065; Thu, 26 Feb 2026 02:46:10 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="ViJjUsg4"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+ s=2212171451; d=bytedance.com; t=1772094479; h=from:subject:
+ mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
+ mime-version:in-reply-to:message-id;
+ bh=YX4HotLpgLzmICZWnqayQwB2/3zVuyZwxBVhPxFXqpw=;
+ b=ViJjUsg4BhMT0Sr2PEFFO6UNXOb9xTcEIxNWC6g72/x/krHvoK9rdAmvCmLBp63EIz/6DR
+ RC5Wbd5qGLM8C12F7ll4tQpH3a7ZrF4C7UJPxL2oJyxkgWYobn7mlzrAUvZ5OeaW89+04D
+ IKYoOBF/b6C+Xms6VYy8DylMmDYzITpwIdt02ZhYiFcnxAme6WqBa0FLJG4bYTDJ9S7400
+ LioXDr3kiQjy6/KxmP2mop0aVXpl7CFYD7EC/lc2I/kTaraxhb0v7k9KQJ6B57FO5/p+it
+ oZfPtO7HOuU9XNHFeyEpdlgTZDHeofK8lKVGQDOzJiDuwd2W4mRz0hJepzT2GA==
+Subject: [PATCH] riscv: add system error interrupt handler support
+X-Mailer: git-send-email 2.52.0
+Content-Type: text/plain; charset=UTF-8
+X-Original-From: Rui Qi <qirui.001@bytedance.com>
+X-Lms-Return-Path: <lba+269a0040d+904615+vger.kernel.org+qirui.001@bytedance.com>
+To: <paul.walmsley@sifive.com>, <palmer@dabbelt.com>, 
+	<aou@eecs.berkeley.edu>, <alex@ghiti.fr>, <cyrilbur@tenstorrent.com>, 
+	<tglx@kernel.org>, <peterz@infradead.org>, <debug@rivosinc.com>, 
+	<andybnac@gmail.com>, <charlie@rivosinc.com>, <geomatsi@gmail.com>, 
+	<thuth@redhat.com>, <bjorn@rivosinc.com>, <songshuaishuai@tinylab.org>, 
+	<martin@kaiser.cx>, <masahiroy@kernel.org>, <kees@kernel.org>
+Cc: <linux-arch@vger.kernel.org>, <linux-riscv@lists.infradead.org>, 
+	<linux-kernel@vger.kernel.org>, "Rui Qi" <qirui.001@bytedance.com>
+From: "Rui Qi" <qirui.001@bytedance.com>
+Date: Thu, 26 Feb 2026 16:27:35 +0800
+Message-Id: <20260226082735.56108-1-qirui.001@bytedance.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Date: Thu, 26 Feb 2026 08:44:39 +0100
-From: "Ard Biesheuvel" <ardb@kernel.org>
-To: "Mukesh Rathor" <mrathor@linux.microsoft.com>,
- linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org
-Cc: kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
- decui@microsoft.com, "Thomas Gleixner" <tglx@linutronix.de>,
- "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
- dave.hansen@linux.intel.com, x86@kernel.org,
- "H . Peter Anvin" <hpa@zytor.com>, "Arnd Bergmann" <arnd@arndb.de>
-Message-Id: <eb1c44d7-2664-4269-8824-e90e5a8494b2@app.fastmail.com>
-In-Reply-To: <f8199494-0c42-5eb0-f99e-cc6f6e304d40@linux.microsoft.com>
-References: <20250910001009.2651481-1-mrathor@linux.microsoft.com>
- <20250910001009.2651481-6-mrathor@linux.microsoft.com>
- <38cdec03-889e-43dd-9dad-e621aba9dc8d@app.fastmail.com>
- <f8199494-0c42-5eb0-f99e-cc6f6e304d40@linux.microsoft.com>
-Subject: Re: [PATCH v1 5/6] x86/hyperv: Implement hypervisor ram collection into vmcore
-Content-Type: text/plain
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 
+Add a system error interrupt handler for RISC-V that panics
+the system when hardware errors are detected. The implementation includes:
 
-On Wed, 25 Feb 2026, at 23:27, Mukesh R wrote:
-> On 2/21/26 08:43, Ard Biesheuvel wrote:
->> Just spotted this code in v7.0-rc
->> 
->> On Wed, 10 Sep 2025, at 02:10, Mukesh Rathor wrote:
->> ...
->> 
->>> +static asmlinkage void __noreturn hv_crash_c_entry(void)
->> 
->> 'asmlinkage' means that the function may be called from another compilation unit written in assembler, but it doesn't actually evaluate to anything in most cases. Combining it with 'static' makes no sense whatsoever.
->
-> 'static' means scope is limited to the file. Common in cases where function
-> pointers are used, like here in this file way below.
->
-> Like the comment says:
->      "This is the C entry point from the asm glue code after...."
->
-> IOW, called from assembly function (asm == assembly).
->
+- Add IRQ_SYS_ERROR (23) interrupt definition to CSR header
+- Implement sys_error.c module with panic handler
+- Register per-CPU interrupt handler for system error interrupts
+- Add module to kernel build system
 
-I wasn't asking you to explain what 'static' means. I was explaining to you that asmlinkage means 'external linkage' whereas 'static' means the opposite, and so combining them makes no sense.
+When a system error interrupt occurs, the handler immediately panics
+the system with a descriptive message to ensure the error is properly
+captured and the system is halted safely.
 
+Signed-off-by: Rui Qi <qirui.001@bytedance.com>
+---
+ arch/riscv/include/asm/csr.h  |  4 +-
+ arch/riscv/kernel/Makefile    |  1 +
+ arch/riscv/kernel/sys_error.c | 80 +++++++++++++++++++++++++++++++++++
+ include/linux/cpuhotplug.h    |  1 +
+ 4 files changed, 85 insertions(+), 1 deletion(-)
+ create mode 100644 arch/riscv/kernel/sys_error.c
 
->> 
->>> +{
->>> +	struct hv_crash_ctxt *ctxt = &hv_crash_ctxt;
->>> +
->>> +	/* first thing, restore kernel gdt */
->>> +	native_load_gdt(&ctxt->gdtr);
->>> +
->>> +	asm volatile("movw %%ax, %%ss" : : "a"(ctxt->ss));
->>> +	asm volatile("movq %0, %%rsp" : : "m"(ctxt->rsp));
->>> +
->> 
->> This code is truly very broken. You cannot enter a C function without a stack, and assign RSP half way down the function. Especially after allocating local variables and/or calling other functions - it may happen to work in most cases, but it is very fragile. (Other architectures have the concept of 'naked' functions for this purpose but x86 does not)
->
-> Local variable refers to static bss struct. IOW,
->
->        asm volatile("movq %0, %%rsp" : : "m"(ctxt->rsp));
->
-> same as:
->        asm volatile("movq %0, %%rsp" : : "m"(&hv_crash_ctxt.rsp));
->
->
-
-No, it is *not* the same. In practice, the compiler might perform this substitution, but there is no guarantee that this happens.
-
-
->> IOW, this whole function should be written in asm.
->>> +	asm volatile("movw %%ax, %%ds" : : "a"(ctxt->ds));
->>> +	asm volatile("movw %%ax, %%es" : : "a"(ctxt->es));
->>> +	asm volatile("movw %%ax, %%fs" : : "a"(ctxt->fs));
->>> +	asm volatile("movw %%ax, %%gs" : : "a"(ctxt->gs));
->>> +
->>> +	native_wrmsrq(MSR_IA32_CR_PAT, ctxt->pat);
->>> +	asm volatile("movq %0, %%cr0" : : "r"(ctxt->cr0));
->>> +
->>> +	asm volatile("movq %0, %%cr8" : : "r"(ctxt->cr8));
->>> +	asm volatile("movq %0, %%cr4" : : "r"(ctxt->cr4));
->>> +	asm volatile("movq %0, %%cr2" : : "r"(ctxt->cr4));
->>> +
->>> +	native_load_idt(&ctxt->idtr);
->>> +	native_wrmsrq(MSR_GS_BASE, ctxt->gsbase);
->>> +	native_wrmsrq(MSR_EFER, ctxt->efer);
->>> +
->>> +	/* restore the original kernel CS now via far return */
->>> +	asm volatile("movzwq %0, %%rax\n\t"
->>> +		     "pushq %%rax\n\t"
->>> +		     "pushq $1f\n\t"
->>> +		     "lretq\n\t"
->>> +		     "1:nop\n\t" : : "m"(ctxt->cs) : "rax");
->>> +
->>> +	/* We are in asmlinkage without stack frame,
->> 
->> You just switched to __KERNEL_CS via the stack.
->
-> compiler doesn't know that.
->
-
-So? But does it means to 'be in asmlinkage' in your interpretation? Did you check what 'asmlinkage' actually evaluates to?
-
-I am not asking you to justify why this broken code works in practice, I am asking you to fix it.
-
->>> hence make a C function
->>> +	 * call which will buy stack frame to restore the tss or clear PT
->>> entry.
->>> +	 */
->> 
->> Where does one buy a stack frame?
->
-> A stack market :).  Callee will create stack frame now that rsp is
-> setup.
->
-
-This code is beyond broken. Please propose fixes rather than try to argue why carrying broken code like this is acceptable.
-
+diff --git a/arch/riscv/include/asm/csr.h b/arch/riscv/include/asm/csr.h
+index 31b8988f4488..1f43c25b07ed 100644
+--- a/arch/riscv/include/asm/csr.h
++++ b/arch/riscv/include/asm/csr.h
+@@ -99,7 +99,8 @@
+ #define IRQ_M_EXT		11
+ #define IRQ_S_GEXT		12
+ #define IRQ_PMU_OVF		13
+-#define IRQ_LOCAL_MAX		(IRQ_PMU_OVF + 1)
++#define IRQ_SYS_ERROR		23
++#define IRQ_LOCAL_MAX		(IRQ_SYS_ERROR + 1)
+ #define IRQ_LOCAL_MASK		GENMASK((IRQ_LOCAL_MAX - 1), 0)
+ 
+ /* Exception causes */
+@@ -535,6 +536,7 @@
+ # define RV_IRQ_TIMER	IRQ_S_TIMER
+ # define RV_IRQ_EXT		IRQ_S_EXT
+ # define RV_IRQ_PMU	IRQ_PMU_OVF
++# define RV_IRQ_SYS_ERROR	IRQ_SYS_ERROR
+ # define SIP_LCOFIP     (_AC(0x1, UL) << IRQ_PMU_OVF)
+ 
+ #endif /* !CONFIG_RISCV_M_MODE */
+diff --git a/arch/riscv/kernel/Makefile b/arch/riscv/kernel/Makefile
+index cabb99cadfb6..3aaf16c75d6e 100644
+--- a/arch/riscv/kernel/Makefile
++++ b/arch/riscv/kernel/Makefile
+@@ -72,6 +72,7 @@ obj-y	+= vendor_extensions.o
+ obj-y	+= vendor_extensions/
+ obj-y	+= probes/
+ obj-y	+= tests/
++obj-y	+= sys_error.o
+ obj-$(CONFIG_MMU) += vdso.o vdso/
+ obj-$(CONFIG_RISCV_USER_CFI) += vdso_cfi/
+ 
+diff --git a/arch/riscv/kernel/sys_error.c b/arch/riscv/kernel/sys_error.c
+new file mode 100644
+index 000000000000..5b88ff4a0e84
+--- /dev/null
++++ b/arch/riscv/kernel/sys_error.c
+@@ -0,0 +1,80 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Bytedance, Inc.
++ */
++#define pr_fmt(fmt) "riscv-sys-error: " fmt
++
++#include <linux/kernel.h>
++#include <linux/irq.h>
++#include <linux/irqdomain.h>
++#include <linux/interrupt.h>
++#include <linux/percpu.h>
++#include <linux/module.h>
++#include <asm/irq.h>
++#include <linux/cpuhotplug.h>
++#include <asm/csr.h>
++
++static unsigned int riscv_sys_error_irq;
++static DEFINE_PER_CPU_READ_MOSTLY(int, sys_error_dummy_dev);
++
++static irqreturn_t sys_error_irq_handler(int irq, void *dev)
++{
++	panic("RISC-V System Error Interrupt - System Error Detected");
++	return IRQ_HANDLED;
++}
++
++static int riscv_serror_starting_cpu(unsigned int cpu)
++{
++	csr_set(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
++	enable_percpu_irq(riscv_sys_error_irq, irq_get_trigger_type(riscv_sys_error_irq));
++	return 0;
++}
++
++static int riscv_serror_dying_cpu(unsigned int cpu)
++{
++	csr_clear(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
++	disable_percpu_irq(riscv_sys_error_irq);
++	return 0;
++}
++
++static int __init sys_error_init(void)
++{
++	int ret;
++	struct irq_domain *domain = NULL;
++
++	domain = irq_find_matching_fwnode(riscv_get_intc_hwnode(),
++					  DOMAIN_BUS_ANY);
++	if (!domain) {
++		pr_err("Failed to find INTC IRQ root domain\n");
++		return -ENODEV;
++	}
++
++	riscv_sys_error_irq = irq_create_mapping(domain, RV_IRQ_SYS_ERROR);
++	if (!riscv_sys_error_irq) {
++		pr_err("Failed to map PMU interrupt for node\n");
++		return -ENODEV;
++	}
++
++	ret = request_percpu_irq(riscv_sys_error_irq, sys_error_irq_handler,
++				 "riscv-syserror", &sys_error_dummy_dev);
++	if (ret) {
++		pr_err("registering percpu irq failed [%d]\n", ret);
++		return ret;
++	}
++
++	ret = cpuhp_setup_state(CPUHP_AP_RISCV_SERROR_STARTING,
++			 "riscv/sys_error:starting",
++			 riscv_serror_starting_cpu, riscv_serror_dying_cpu);
++	if (ret) {
++		pr_err("cpuhp setup state failed [%d]\n", ret);
++		goto fail_free_irq;
++	}
++
++	return 0;
++
++fail_free_irq:
++	free_percpu_irq(riscv_sys_error_irq, &sys_error_dummy_dev);
++	return ret;
++}
++
++arch_initcall(sys_error_init)
+diff --git a/include/linux/cpuhotplug.h b/include/linux/cpuhotplug.h
+index 62cd7b35a29c..f6d0c05f72df 100644
+--- a/include/linux/cpuhotplug.h
++++ b/include/linux/cpuhotplug.h
+@@ -174,6 +174,7 @@ enum cpuhp_state {
+ 	CPUHP_AP_REALTEK_TIMER_STARTING,
+ 	CPUHP_AP_RISCV_TIMER_STARTING,
+ 	CPUHP_AP_CLINT_TIMER_STARTING,
++	CPUHP_AP_RISCV_SERROR_STARTING,
+ 	CPUHP_AP_CSKY_TIMER_STARTING,
+ 	CPUHP_AP_TI_GP_TIMER_STARTING,
+ 	CPUHP_AP_HYPERV_TIMER_STARTING,
+-- 
+2.20.1
