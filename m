@@ -1,154 +1,358 @@
-Received: from mail-pl1-f182.google.com (mail-pl1-f182.google.com [209.85.214.182])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mx0b-00069f02.pphosted.com (mx0b-00069f02.pphosted.com [205.220.177.32])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8BCA337472D
-	for <linux-arch@vger.kernel.org>; Wed, 25 Feb 2026 23:06:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.214.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 05EDD223DD4;
+	Thu, 26 Feb 2026 06:36:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.177.32
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772060785; cv=pass; b=nkAzGDgk1LDqKsvdUzZwvzf9EnnDYV9//09pPravQBPaHCiCLSQY3TeGmihhnxJh960l7v5j5T2FehgyOzHbtIzqMBFvMdSORXkuVnwHJ1tPCTENnws/QOj4GPJF2L/s0hHWD2z3QNzA0/0wX+CXa9A8ckJ571Tt6zXTaZE81Rc=
+	t=1772087786; cv=fail; b=VxwK62z5nMD/QOUvw+furKutD6MVJXaNJ7xC+hM09Dz/F4dnT+Hf5vHigUMKmCraBIjKOHAUTcSw86bWXggNsSaDgphqRgCenjt+vP2dBmZ5te3UHVmSHiEL+J2gEkuUKOjLusPkk5ukp1sxUCmzYBvwxudA9dIw8MLyt9eXVxY=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772060785; c=relaxed/simple;
-	bh=W9lyoMsne8FGHHrjNNek3nZgafGdJjKzjxdCf0mXseM=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=LumJ8wewQR2wM4+xES+Q85mNCoBWqOjajs8lrQU8Q+yCn2MJ2Xo4TVzuP/Xu4XX0Ba2w6OR927R7vn8qEx24s05DouImCughtu217nmE0ZkUpG52bi9EyFc8tR5MVoJvrXcx7Ld6YzfZRcYBUZeAzIGYF9ldp5pqvNWscako2P4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=mNKSYhCo; arc=pass smtp.client-ip=209.85.214.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	s=arc-20240116; t=1772087786; c=relaxed/simple;
+	bh=puPJ7JSR7XxmFMXRqHMck+hVzT+meDFZtIfCG0OBmSI=;
+	h=Date:From:To:Cc:Subject:Message-ID:Content-Type:
+	 Content-Disposition:MIME-Version; b=V4D13TKECFJVbue0Ug72cAW8Ao1GAb1btW1GplJC9+acItnX7QSPHvbhqS0TtznMkGvCF6xGXMDsRhvVUysZVUOQVSfqOjUCZxQWhT4nR1TwX9ABZJjGfxg5WNnB2kFmJWD50olCUfVC13oIUuA3wwdyPTE4NM/7APYzLIySLm0=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=dwHCA6jT; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=ZXIvLJkc; arc=fail smtp.client-ip=205.220.177.32
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="mNKSYhCo"
-Received: by mail-pl1-f182.google.com with SMTP id d9443c01a7336-2a964077671so32895ad.0
-        for <linux-arch@vger.kernel.org>; Wed, 25 Feb 2026 15:06:24 -0800 (PST)
-ARC-Seal: i=1; a=rsa-sha256; t=1772060784; cv=none;
-        d=google.com; s=arc-20240605;
-        b=U9nBm5fazYILmZb+2kU2zoztRmZ+eh0iUIwpGustdxBT+f2vrYKp0gH8nfTOKdHdLi
-         JKzGngpvsZIxNoEPz7DSKCi38ffluMCfEN4IT+8LzsKeDeQEU80ZdbA81kGzLvsgAJof
-         UORDedhhYqIdjMWUglrO9VeseUVA2wDr7voWQdzHFNPPZBiPXVSto/n9AffLsr3kVkvA
-         yJesTsWYpnrN/JOKOtwu3XPJQi3lU/OvwSDB6BbReQlWE1V9Qp6P0+9tVn1L/EUKPSl5
-         0zFmnXwtccsSSpskbbVXeBJNxXfEILxGyxhw9+0VI2QmyFd0HxLgY5CJCORl8vHeKsrF
-         ikTQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=OCcej487YgFKOPTEV46nBBjzZMXcrtqh5hw60mHgWDA=;
-        fh=sKLu2xHg+BQeSW9W7mMAtLHzM9h7OhqAJi6wf9kUAs4=;
-        b=Jekv38JLDf+O5BW8QYEzqoWkazZWG4BNcRVi8iWF8xfgnlg8DlnjhrWN6P5OMkS+Cv
-         l1yYsGxyXNv+XJzFLWNFfwEIHp75oGrM+2xnCHAELfy8fpxeDzeMPEb9iq3VgeiSwgfq
-         cD+IRMw4QEc3NQyj4mGQUYOZv+iduPgxLfR8t4Prjm+jKmI9DhLw2jJrRfwVatHgA2WE
-         RTLEgLOktY+oTjqNnjILRUnX5W/iizu5dDo444wCet2dy/Fz/WCXXoGyhJfMvX4ChKWr
-         F5lN5I6awDn6HihBCSnYaQOhHtMTluGmbO1dPhD/4OAmFBeZUJTfZSfzCon+/Rn1Kyjx
-         VtLQ==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="dwHCA6jT";
+	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="ZXIvLJkc"
+Received: from pps.filterd (m0333520.ppops.net [127.0.0.1])
+	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 61Q6GffA1271739;
+	Thu, 26 Feb 2026 06:35:27 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
+	:content-type:date:from:message-id:mime-version:subject:to; s=
+	corp-2025-04-25; bh=IvktclLrCJr233caf0dvhnH9VqWuJrecq5oRcVhQJA4=; b=
+	dwHCA6jTNH++mVr0MZUFKTmDrI0CjkImlDRfOKKQfwtKwJ8IcCiVZJBfKq04JQtQ
+	WGmQpZxHqmiljQzKPSWB/WyeBxddq5IHEujrAyLqF4LCWgWDDH8D/rszo5i4N69b
+	YpRBwTV9ORBojfFeuDRtWmAH2hQIGTe38i0wYEAPgvtp10VAW5dY2VFcPT/34kmj
+	y5qkspHKbVoc5KwVh1WVY1Wc8MNTKNoHL1LRXbLARrZycZ4xJJ8t/YgS8hDrrJ4x
+	dtq9AhTGR6DSTZyFPFeTkxvyX+in6nrS9k817pSTiZjcx6Ep1C4CNfvuxLReLYwV
+	Sa4VgFTCeQYsgpCQKCdSrA==
+Received: from phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (phxpaimrmta03.appoci.oracle.com [138.1.37.129])
+	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4cjgs000hx-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Thu, 26 Feb 2026 06:35:26 +0000 (GMT)
+Received: from pps.filterd (phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com [127.0.0.1])
+	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 61Q5K71G006267;
+	Thu, 26 Feb 2026 06:35:25 GMT
+Received: from sn4pr2101cu001.outbound.protection.outlook.com (mail-southcentralusazon11012047.outbound.protection.outlook.com [40.93.195.47])
+	by phxpaimrmta03.imrmtpd1.prodappphxaev1.oraclevcn.com (PPS) with ESMTPS id 4cf35cbq46-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Thu, 26 Feb 2026 06:35:25 +0000
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=Z0DTSRB8XYUmW5OX4G46bPggd+Qvp34cZ9qFSMQY0+Y+9cg6cNR81fFW/ocjUJemO+R6/hCofl9M+U5SNXWEOHbaLm53XbnSaHgOa2Ff2Uu7tWd28KsS8VwH71bR9Sx1faMi9DFlLbgwg/f/pafWOiIBaUm8GAK3RaEyXEjVgDyF/udpwsTLOfEdtjsRTv1zP4a5zff5W9j30jOqNOqLzynBgxzlwliYDODmWS3YNppRhgM7Cs+CJ4JVeulcdUP/YYciwHX/Q9Hh7QeG7xEYAL0ukSSPi0FR2ShzBqSTFvYrpi8AzEdukre1AG/DljXR+Tqo+iswP1GFZjiSHh/35Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=IvktclLrCJr233caf0dvhnH9VqWuJrecq5oRcVhQJA4=;
+ b=x9EEUJqfnfis+Ldgw7gXNq2IsP8duRJKrBgywkteNT62+hCKM+NmtFF7GPjFccTlc6oOTZ+gXBwXPDwPRWuP8Q03QAUtVmCCzhA+FKqPFVXYgsyTwGPAakYiuckLXv4fGCunYW4ziUjIy8LEuq6I517sEhRPPth3SUpIRkJVjp1GQUfl/wZrPWWO0kG+hhqmwdUCFhL01RyuPb4kvq3PdrFlmesTQWMYUR8BqWt/sseyKpxtBRUxVj8IaCafT4V0f1zlZabmOJulGkwukEmZrUomDZv5tNWr/2aXbebdmRuiSEAvWS+VDg/tdlPgvqU7xbN/aWrzGSooNdwTHm77hg==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
+ smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
+ dkim=pass header.d=oracle.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1772060784; x=1772665584; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=OCcej487YgFKOPTEV46nBBjzZMXcrtqh5hw60mHgWDA=;
-        b=mNKSYhCoR7SxKucy/Yh3pA3CvcKRSJO0SZQka7+dRnFeYEBHJhuxHRK5K4guqPK3Tx
-         ZPNS/ge079zhRd4l2+Ax41E0gZViPZFcdnopLoBctPZXyjnmcoKC64Q5IrGiEhT7jue/
-         V018R6YpDBlvhkbmNL8gKl81qVDrrODrA17hOUlFDLXrIR/JMyZgzt3SJvH1UZeTNbno
-         ZV9cPKcqgPe9YpcWXn6iIN7VyzkOjBLt5oIIFVlTLluR99TidfG0fvtr6g4LdR9b4UZk
-         9b+poH6zkvu8mPZgnusqpzAK7MsRYJfkR+EHAsgv6skPoYQ3UY6BDlAzAeHqT62HBC+l
-         93LQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1772060784; x=1772665584;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=OCcej487YgFKOPTEV46nBBjzZMXcrtqh5hw60mHgWDA=;
-        b=cl083UVE57gasUvm35H6AMIFZ6z1VzWH49Wgh/tSgSuzRFcXgUrJqpBbB2Ugy54rU2
-         QYBenjXghlxYFFgIVRIMf9vtFnDixXrSLJgHpdyONnJWnlm7TupW7JvUK4gKaxjV7Y+n
-         B+r0d/yN71ZCeLfFRTs2tkBr8spT8EvQ6SYtX6itYdmsIupvsjW4Z3OXJ9AO5BoY3I5J
-         fG2yqSY/avC6OkIKamHIgZhOMo+GMRssTCiCeEG/4VO0ISCwgOj6ZJNg7h8sD5NCqrns
-         DDBQ5q095O9QyCvYgTxbtRjweTGgWR5T5WMmaK0X0OgrIdDil9EB8c/Rmq75WTqz1DJr
-         i3fw==
-X-Forwarded-Encrypted: i=1; AJvYcCVVdWGInbW0bG/uYr54d/Fd7hexzdtGbnHpDnEi+gQmwlnmfKgXS32zQxJCYGVurrx84ZzmPbory2xG@vger.kernel.org
-X-Gm-Message-State: AOJu0Yz/e+fR/N3P9XND5MuUPs3BDdaQNXwZeU7DjyNxkWjAkouk5z9m
-	AXaM9B3nGgMDe5YyTfZ4Ti1l3eqM6PMgdD9qV3kZr6X0LdByOm5u1mnp9W6uuLHe0lIf5dhsCnq
-	HIxjW0x6jaYAZ1H732QhYyF7wjf2dAOrEhmcdeqIx
-X-Gm-Gg: ATEYQzzv6NS61e+1LAEDZybPHXRr9gvGOLKzwFKkhmA+WJptj+iWvwe4/0MVEvhfJ+B
-	WTWShvmgLbKrH3D5f9DnXqb8uVvAA3CtvKtkXFzVxDzcVbbtEHaXS7gqAxpEUCykZExeIqPPk6V
-	Af9f9eqHxgyp1D7uATwhYuBqbJVpLMaitxiklsgKvKCCoMqCD3rnlj4+/V/UE5ekdD8x60PSC6y
-	VGvm3pv/hG/J+m1y9hPKSuw6cy3LVqFp641KYSdCGGs8gvvTRKylmPWF7XaIqlGIJOoXgdQnyQ9
-	w1uVA9ybHdrgLIrhpxmPD1Vj1WVHhQ3aobMEfg==
-X-Received: by 2002:a17:902:ec83:b0:299:c368:6b1f with SMTP id
- d9443c01a7336-2adf77829e3mr890095ad.18.1772060783430; Wed, 25 Feb 2026
- 15:06:23 -0800 (PST)
+ d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=IvktclLrCJr233caf0dvhnH9VqWuJrecq5oRcVhQJA4=;
+ b=ZXIvLJkcpHccYsGC9FWUApSY1YgmerS5iFs1mP7xIqFDDtVTc9QFoj+j+qWzj3+sMZGP5YQlPr5eLrPL8TTWXFgYh1fN2gzA4khrFNp0fNmklTR1R6kAecFfD6cuKYY6U4TizG5Rupc0x+e68flleTY5WUqhuiutDZ+9+d4ycs4=
+Received: from CH3PR10MB7329.namprd10.prod.outlook.com (2603:10b6:610:12c::16)
+ by PH0PR10MB4710.namprd10.prod.outlook.com (2603:10b6:510:3e::17) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9654.11; Thu, 26 Feb
+ 2026 06:35:21 +0000
+Received: from CH3PR10MB7329.namprd10.prod.outlook.com
+ ([fe80::c2a4:fdda:f0c2:6f71]) by CH3PR10MB7329.namprd10.prod.outlook.com
+ ([fe80::c2a4:fdda:f0c2:6f71%7]) with mapi id 15.20.9654.014; Thu, 26 Feb 2026
+ 06:35:20 +0000
+Date: Thu, 26 Feb 2026 15:35:08 +0900
+From: Harry Yoo <harry.yoo@oracle.com>
+To: linux-mm@kvack.org
+Cc: Dmitry Vyukov <dvyukov@google.com>, lkmm@lists.linux.dev,
+        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+        Joel Fernandes <joelagnelf@nvidia.com>,
+        Daniel Lustig <dlustig@nvidia.com>, Akira Yokosawa <akiyks@gmail.com>,
+        "Paul E. McKenney" <paulmck@kernel.org>,
+        Luc Maranget <luc.maranget@inria.fr>,
+        Jade Alglave <j.alglave@ucl.ac.uk>,
+        David Howells <dhowells@redhat.com>,
+        Nicholas Piggin <npiggin@gmail.com>, Boqun Feng <boqun@kernel.org>,
+        Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>,
+        Andrea Parri <parri.andrea@gmail.com>,
+        Alan Stern <stern@rowland.harvard.edu>,
+        Pedro Falcato <pfalcato@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
+        Christoph Lameter <cl@gentwo.org>,
+        David Rientjes <rientjes@google.com>,
+        Roman Gushchin <roman.gushchin@linux.dev>, Hao Li <hao.li@linux.dev>,
+        Shakeel Butt <shakeel.butt@linux.dev>,
+        Venkat Rao Bagalkote <venkat88@linux.ibm.com>,
+        Mateusz Guzik <mjguzik@gmail.com>,
+        Suren Baghdasaryan <surenb@google.com>, Marco Elver <elver@google.com>
+Subject: [BUG] Memory ordering between kmalloc() and kfree()? it's confusing!
+Message-ID: <aZ_lJAqxh_hNGr_v@hyeyoo>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+X-ClientProxiedBy: SL2P216CA0222.KORP216.PROD.OUTLOOK.COM
+ (2603:1096:101:18::7) To CH3PR10MB7329.namprd10.prod.outlook.com
+ (2603:10b6:610:12c::16)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
- <CAC_TJvcaJdEzK8n9BK0qgEXdzjzXtbA_Zk-ybfmG8kjNExVCzw@mail.gmail.com> <b82a5ac3-33e9-4cbf-892a-f0c7f6fe0c20@kernel.org>
-In-Reply-To: <b82a5ac3-33e9-4cbf-892a-f0c7f6fe0c20@kernel.org>
-From: Kalesh Singh <kaleshsingh@google.com>
-Date: Wed, 25 Feb 2026 15:06:10 -0800
-X-Gm-Features: AaiRm53L_V-Oqt0aKWGxGR-IMY7YR8csbAzuy6C894gHyFaSj1OZXeEBVl8_aWU
-Message-ID: <CAC_TJvdgvyjyJsU4v6W+3tHKx_2e8UMJU3RT2HKLSngcC+yH3Q@mail.gmail.com>
-Subject: Re: [PATCH v3 00/22] Add support for shared PTEs across processes
-To: "David Hildenbrand (Arm)" <david@kernel.org>
-Cc: Anthony Yznaga <anthony.yznaga@oracle.com>, linux-mm@kvack.org, 
-	akpm@linux-foundation.org, andreyknvl@gmail.com, arnd@arndb.de, bp@alien8.de, 
-	brauner@kernel.org, bsegall@google.com, corbet@lwn.net, 
-	dave.hansen@linux.intel.com, dietmar.eggemann@arm.com, ebiederm@xmission.com, 
-	hpa@zytor.com, jakub.wartak@mailbox.org, jannh@google.com, 
-	juri.lelli@redhat.com, khalid@kernel.org, liam.howlett@oracle.com, 
-	linyongting@bytedance.com, lorenzo.stoakes@oracle.com, luto@kernel.org, 
-	markhemm@googlemail.com, maz@kernel.org, mhiramat@kernel.org, mgorman@suse.de, 
-	mhocko@suse.com, mingo@redhat.com, muchun.song@linux.dev, neilb@suse.de, 
-	osalvador@suse.de, pcc@google.com, peterz@infradead.org, pfalcato@suse.de, 
-	rostedt@goodmis.org, rppt@kernel.org, shakeel.butt@linux.dev, 
-	surenb@google.com, tglx@linutronix.de, vasily.averin@linux.dev, 
-	vbabka@suse.cz, vincent.guittot@linaro.org, viro@zeniv.linux.org.uk, 
-	vschneid@redhat.com, willy@infradead.org, x86@kernel.org, 
-	xhao@linux.alibaba.com, linux-doc@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	Isaac Manjarres <isaacmanjarres@google.com>, "T.J. Mercier" <tjmercier@google.com>, 
-	android-mm <android-mm@google.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: CH3PR10MB7329:EE_|PH0PR10MB4710:EE_
+X-MS-Office365-Filtering-Correlation-Id: 2afcfce9-a073-4323-7d8a-08de75013657
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam: BCL:0;ARA:13230040|1800799024|376014|7416014|366016;
+X-Microsoft-Antispam-Message-Info:
+	A6ivwr4iSm7adkQsBu2oZA/Bq0LMXz1mP/fEdIITlkxG4f60kZMLuKCDsw4B5WhCWhCc9gyqqX1RDVrQe4k7epGt/B2q+20L0jdSb7U4tXAUQrtm+H89Z5cu4j90Rl+yvjfo/o5EONfCmV1iSvOesxnlixTmcr6mDi1utop2qw+syKoM99KpQG2vZ5EFk5MtkMcwbM09+Wtn/oLvPqq0PDCO4vWFTLxvOhaMLSrlyLWAV1xR3UDY1WpH6iICo09EwBS0oA7ElWdh/IBbFA4eaPFH/Dkd2in+FIaWPhMw8auSX6tpY7BaT6Gj2c+Hgdyn5IfAThbFptt+CiffrIrViwM8Y8KUCPOMXT9EAs+diQ3YztmxYUOJ7BPnnvBg+42tYRt94xbdwGZQlqKvsVmP8ArPR5PD7TdQoybrOtwNFWRReAcrLNcjPhBpwyn+c0WGK3tKqGDqGHJX6dsQVGW1j3BbVo69JJfjzfnW1+j8uKOxl16DrrYrTx5pwX2O1Pj0d3sLIb7ZPWBmX/kkObGM8uirOtYfmgmacO3F2GGNBCj02NGi3F2sZvJNhCFba2LCJS1fLFRJvabDxvOVRXEFCKZZL6/zt2ceotLVQVeJtZW57ChMVi3JTNKa0kJ9AKEpTi7tsCAS2mc21KbLGW3sgEKP6XDd6qDYPKsQXQvELetIcDh/v49iRGFsWGt+Mh25PVjaKNMQDbSU6JprFDl8Fx7/A5TT8hBZ1IueQhwgXTa8rdJO05x1cwbT3UPBfSoJ
+X-Forefront-Antispam-Report:
+	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR10MB7329.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(1800799024)(376014)(7416014)(366016);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	=?us-ascii?Q?TXQG4thlFA6tJJwRuBPLLVkJczrZdszdGBiJfi16HTrQZGFLorGsw+B+b7ps?=
+ =?us-ascii?Q?bpudP8QlyxneL/3IoNdNBtFiPtV6sbQkvQ5eGEUToicVXAhgT7oVQg/YaDIT?=
+ =?us-ascii?Q?SkQO3hHq/PYfrRV341V346YHMQ3i9nRaMjDB7+FOcmZBuMP6jI4C4BcY/VAW?=
+ =?us-ascii?Q?VuRdeJfBbhRVcbBUxsLyth3WIN2/RsK2UVlcs96VyGvp3IdlzHwGw/GID6j1?=
+ =?us-ascii?Q?3uYcdJ+iZI3xUN0BsG2qkaDYeVlnE8/f3Bp9Jc4uAKPqKuHAg0cTUIAr4uqg?=
+ =?us-ascii?Q?uB7r8Xsnerrm1p+QS1cn8pklP4RmskP5Hd+F/8oYDyeXN6lGWYnAi0ANAFop?=
+ =?us-ascii?Q?86hY/ZEL7buKtDVitWZxAxmMjOGBpnE9VzaSB9K4ZPqSTD9BkZPRspF4WUrE?=
+ =?us-ascii?Q?xHkprvBjHjSmGr5+juB9GysaF+//weW+SsUtdiXSA1R96NPbmmBzQAECGe1Z?=
+ =?us-ascii?Q?D+KhTz0u787XOBVDWDvTNFCf8vkOu9fi8guJscvj7CZO8DAi4YqvqCJQmhtJ?=
+ =?us-ascii?Q?+eV103Q6OuJ024iQ/OeTXI+P5nmgiINSSs+82DUSGkKGibAVBVQZIr9kLn2Y?=
+ =?us-ascii?Q?XIyqixlLwCesnKZgZdsHmREKkxsmR7GOwXkbBfQLz9f3R/7lGh5vhYWH9JdT?=
+ =?us-ascii?Q?UYiQv6MC5bl4ipVXMMDoQUv8NYILoEBk77kCSZr52qIHNALngRHCgu52nGiE?=
+ =?us-ascii?Q?kDCbgeqI17JwL69LcfrqkcqoUmGeZA2CXCwJO6IYJbOauQoDlfUz4d8/PFi0?=
+ =?us-ascii?Q?fCgvLa7/EfXF8iJOa+xzRVqMHa0vyQ9uCE+Er+AQbAVV4tVfcU/nudSDKSJ/?=
+ =?us-ascii?Q?j/e3kchMTzt69UA3nxOF+uwfdwGTE2rkbZB9WMT/9sg/Mj9oSel7g4SbOB4i?=
+ =?us-ascii?Q?JXvHAQJaXbQu4tG9KbuSA9rNLdTW04JEHQBstwfe5AjJwieaTasVGHHhF33U?=
+ =?us-ascii?Q?NvXQ5e6eEk+ut7wax+djXOvdmRgVplKWuRUNmHTA+FD2Vnwq3jc8fBMDvkiJ?=
+ =?us-ascii?Q?6tlVspulvLKcxfXtZmoOydLySj847Z5ZA4mi7A0jdK4zgMP2EpSDspo5hVJF?=
+ =?us-ascii?Q?Fr8RCIJhrHHveXHdYikzpFtM2rYd0NKwLppXfGAAv6lpuRKrZ7ivJp4ZQRN/?=
+ =?us-ascii?Q?uBv27/QOtWkUYR1kmNUX7h8lO4pEC2eZJX8SRoYE0vKu4FEGOHlEnMhoeBen?=
+ =?us-ascii?Q?7YyzX1s36jaHqikjCeOQSslgEQMdomPz8Z1vgefO5x7lrkqotn+ZzLgxL+X+?=
+ =?us-ascii?Q?5hnsENIF1UqiCxX4VScnxAffJiflJIJg8UCOpIXYXlK9sLkI03zxXvywHy2y?=
+ =?us-ascii?Q?AETVOxEjMS8k2A7ikJDBwAwLh12TkBHN3VV9PvK0J/DjWKHhjEDuZvlW0/Ce?=
+ =?us-ascii?Q?BjiS1HpxB44Tveo52oHfDQ7rfMXUIbl4fk8flIu+YKLUUXK60Dw6eeztYR7M?=
+ =?us-ascii?Q?dCjuGY2v1pKZOyomw0bpodKQL5BtfwqREYJ+LmbYH4s31fmI5LuzPDYqEFXS?=
+ =?us-ascii?Q?aI1v/4zGp6lQRL7YKg/rPS8Jh9DHkaGKN+9ymdyq12s32FVKg+cDsNGjMZkD?=
+ =?us-ascii?Q?iPTCSmvn6CWjub+isfFjiKOUVyEuJGVqiRW68w3FO1g6B4HK5eZUH6+koMub?=
+ =?us-ascii?Q?t2VaaCB50EeIBZe9HJ2ErSX3nSk5DM0j9wp7iuLn72Jq7U+Sg9MwT6iSIFFJ?=
+ =?us-ascii?Q?oQeQF4ZPA0JcKPo/Fl08glt+JZEOcUft8GbppZy9H1EQsl5UvVbLfq18tPMo?=
+ =?us-ascii?Q?UHdEuulWuQ=3D=3D?=
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
+	t7Ck6flw7F2bNcyfy6TPWFHI207pkKaW0DYIj5BWPhLwdaPKphRPXfrtWVSByysJ/4u0XVigiVK+TY/X2m2damJ/svhx0VV7lBKcO3/G2fZMascfcCYccJagAiqOmhTfXPKAQnDjZ5/ezx7Ve0PPTdFUzsp7k9WRckui68KV0DG1w3wlUDN1kX1Bc9TmPEbnQSokORN0AwL2/wzYbm4aLgjgmo7kZyiyVIUaPpBUFFKOOXMkubAfm6m6ZtKhkwWmZuh8dsNzcFFK2Jmu0Yk6axj51dBUM3ufdLzFIl2QUgwhUSw0e5ZMyKMcAJ+Vqrg+EDRmGjaUz5STgbb45C7nGYUPJD2d7CEUTaxzN/dDO1r+L4xu0XyJ11M63In9OHeYB1K1yaHmBf+nBR0nqlrVS5puhXgWUJqbmJ4RgWuBAyfGSCeC6FcnOmM6w0gqTTbN5lT7C5ILAwuBBHZ7ivjWZ+oXawdnA2Yfj/IJUa6BhT3iFjEfvbrd4vL2+oWRTjLUyFjATBdrjVvDyiuexPssqFmbMgTYlHnu8x9+VJ7e7WJ+Or4D9VAi8Jwce2kDEg+QmoyCNFRG63DDI3X1A8ICzhMlNewYPpvlZJuAdDfdCVs=
+X-OriginatorOrg: oracle.com
+X-MS-Exchange-CrossTenant-Network-Message-Id: 2afcfce9-a073-4323-7d8a-08de75013657
+X-MS-Exchange-CrossTenant-AuthSource: CH3PR10MB7329.namprd10.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Internal
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 26 Feb 2026 06:35:20.3422
+ (UTC)
+X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
+X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
+X-MS-Exchange-CrossTenant-MailboxType: HOSTED
+X-MS-Exchange-CrossTenant-UserPrincipalName: 02jGG/Lcwlatlj93eDZj8Q22ZAk2IWLKIrmt8jRnIGTGafe/d+2FSyi9NDyFP/SAPIG+2kMR3aaX9sUbNr4vMg==
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: PH0PR10MB4710
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1121,Hydra:6.1.51,FMLib:17.12.100.49
+ definitions=2026-02-25_04,2026-02-25_02,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 mlxscore=0 spamscore=0 bulkscore=0
+ malwarescore=0 mlxlogscore=999 phishscore=0 suspectscore=0 adultscore=0
+ classifier=spam adjust=0 reason=mlx scancount=1 engine=8.12.0-2602130000
+ definitions=main-2602260056
+X-Authority-Analysis: v=2.4 cv=BKK+bVQG c=1 sm=1 tr=0 ts=699fe9af b=1 cx=c_pps
+ a=WeWmnZmh0fydH62SvGsd2A==:117 a=WeWmnZmh0fydH62SvGsd2A==:17
+ a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
+ a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=kj9zAlcOel0A:10
+ a=HzLeVaNsDn8A:10 a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=Mpw57Om8IfrbqaoTuvik:22 a=GgsMoib0sEa3-_RKJdDe:22 a=VwQbUJbxAAAA:8
+ a=pGLkceISAAAA:8 a=VnNF1IyMAAAA:8 a=yPCof4ZbAAAA:8 a=Sd1HvPlFv4XxTduQrekA:9
+ a=CjuIK1q_8ugA:10
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMjI2MDA1NiBTYWx0ZWRfX/WFbjS9mq27q
+ NOl3nRAmelNR5e6HhdFc9mxAy2vUyFxytLvB9mhlcA7Z5WPsAVpNXiz6Jwrlr0Sluy3uHfb1fRu
+ PbQ9iG/z578lEhc9v5ZLSD41TD3ykFxRxWI5ufOMnaAz2/T+5y7LQawG0JUVGR9SWz1Sr5NS/hP
+ Z1DrOjG8BqX8NeBpPF0V2Vd/Q8oKfhnSLN3lbOpSdLJjY4RhUZtjC496e+Ix16nuX9R0GwAYJIF
+ cfu8pJK4+4dhRtzb9heoEYNR3yNkq2rJ6ciE7s8iLU3x4X+qt9GooD5zQCcT6CizQWZ9CoECHaT
+ 8Xz/Xz7NfeYGwqh2IvwqAl0rQUx9VfujLWbv9jBxtm6JOrDLjydNR9QNd87ShWMcP276uG2qoV3
+ gTUAHY0j3yYhEBAmSX1/U3nxDPi4z5nfw57qvASRtsTlGk9RlNtc5AjYfZeB5efcxMP/qnewJYs
+ iVl6aA5Z7dg9dJT9orA==
+X-Proofpoint-ORIG-GUID: xkUQt5XeGq-fwMBCtvTsTZDERH3-Sh1z
+X-Proofpoint-GUID: xkUQt5XeGq-fwMBCtvTsTZDERH3-Sh1z
 
-On Tue, Feb 24, 2026 at 1:40=E2=80=AFAM David Hildenbrand (Arm)
-<david@kernel.org> wrote:
->
-> > I believe that managing a pseudo-filesystem (msharefs) and mapping via
-> > ioctl during process creation could introduce overhead that impacts
-> > app startup latency. Ideally, child apps shouldn't be aware of this
-> > sharing or need to manage the pseudo-filesystem on their end.
-> All process must be aware of these special semantics.
->
-> I'd assume that fork() would simply replicate mshare region into the
-> fork'ed child process. So from that point of view, it's "transparent" as
-> in "no special mshare() handling required after fork".
+Hello, SLAB, LKMM, and KCSAN folks!
 
-Hi David,
+I'd like to discuss slab's assumption on users regarding memory ordering.
 
-That's agood  point. If fork() simply replicates the mshare region, it
-does achieve transparency in terms of setup.
+Recently, I've been investigating an interesting slab memory ordering
+issue [3] [4] in v7.0-rc1, which made me think about memory ordering
+for slab objects.
 
-I am still concerned about transparency in terms of observability.
-Applications and sometimes inspect their own mappings (from
-/proc/self/maps) to locate specific code or data regions for various
-anti-tamper and obfuscation techniques. [2] If those mappings suddenly
-point to an msharefs pseudo-file instead of the expected shared
-library backing, it may break user-space assumptions and cause
-compatibility issues.
+But without answering "What does slab expect users to do for correct
+operation?", I kept getting puzzled, and my brain hurt too much :/
+I'm writing things down to stop getting confused :)
 
-Perhaps we could advertise the shared VMAs in the /proc/*/[s]maps
-entries for the processes sharing these areas?
+Since I have never thought about this before, my reasoning could be
+partially or entirely incorrect. If so, please kindly let me know.
 
-[2] https://lore.kernel.org/all/CAC_TJveMB1_iAUt81D5-+z8gArbVcbfDM=3DdjCZG_=
-bRVaCEMRmg@mail.gmail.com/
+# Slab's assumption: Stores to object, its metadata, or struct slab
+# must be visible to the CPU that frees the object, when it is
+# passed to kfree(). It's users' responsibility to guarantee that.
 
-Thanks,
-Kalesh
+When the slab allocator allocates an object, it updates its metadata and
+struct slab fields. After allocation, the user of slab updates object's
+content. As long as the object is freed on the same CPU that it was
+allocated, kfree() can see those stores (A CPU must be able to see
+what's in its store buffer), so no problem!
 
+However, when e.g.) the pointer to object is stored in a shared variable
+and then freed on a different CPU, things become trickier.
 
->
-> --
-> Cheers,
->
-> David
+In this case, I think it's fair for the slab allocator to assume that:
+
+  1) Such stores must involve _at least_ a release barrier
+     (for example, via {cmp,}xchg{,_release}, or smp_store_release())
+     to ensure preceding stores are visible to other CPUs before
+     the pointer store becomes visible, and
+
+  2) The CPU that frees an object must invoke at least an acquire
+     barrier to ensure that stores to object content / metadata, etc.,
+     are visible to the freeing CPU when it calls kfree().
+
+Because the slab allocator itself doesn't guarantee that such
+barriers are invoked within the allocator, it relies on users to
+do this when needed.
+
+... and that's quite a reasonable assumption, isn't it?
+
+Actually, I'm not the first person to question this.
+
+[1] https://lore.kernel.org/linux-mm/CACT4Y+Yfz3XvT+w6a3WjcZuATb1b9JdQHHf637zdT=6QZ-hjKg@mail.gmail.com
+[2] https://lore.kernel.org/linux-mm/20140102203320.GA27615@linux.vnet.ibm.com
+
+# Now, let's take a look at the bug I've been investigating
+
+There were two bugs [3] [4] reported, with symptoms that appear to be
+caused by slab returning wrong metadata (the symptoms: incorrect
+reference counting of obj_cgroup, integer overflow as more memory is
+uncharged than charged).
+
+[3] https://lore.kernel.org/lkml/ca241daa-e7e7-4604-a48d-de91ec9184a5@linux.ibm.com
+[4] https://lore.kernel.org/all/ddff7c7d-c0c3-4780-808f-9a83268bbf0c@linux.ibm.com
+
+Hmm, if it's returning wrong metadata, how could that happen?
+
+Well, perhaps it's either 1) the calculation of metadata address is
+incorrect, or 2) reading the metadata itself is racy.
+
+Shakeel Butt pointed out [9] that there's a potential memory ordering
+issue. It suggests that no enforced ordering between slab->obj_exts
+and slab->stride can make the metadata address calculation incorrect.
+
+[9] https://lore.kernel.org/lkml/aZu9G9mVIVzSm6Ft@hyeyoo
+
+Let's say CPU X and Y are allocating/freeing slab objects from/to
+the same slab. They need to access metadata for the objects:
+
+CPU X				CPU Y
+
+// CPU X allocates metadata array
+- slab->obj_exts = <the address of the metadata array>
+- slab->stride = 16 (sizeof struct slab)
+
+- stride = plain load slab->stride
+- obj_exts = READ_ONCE(slab->obj_exts)
+- if (obj_exts)
+    - metadata_addr =
+      stride * index + obj_exts
+				- stride = plain load slab->stride
+				- obj_exts = READ_ONCE(slab->obj_exts)
+				- if (obj_exts)
+				  - metadata_addr = stride * index +
+						    obj_exts
+
+				// Wait, obj_exts is non-NULL,
+				// but slab->stride is stale!
+
+				// Now, metadata_addr is wrong.
+
+Hmm, this could definitely happen when two CPUs try to allocate/free
+objects from/to the same slab. We need to make sure that, CPUs cannot
+see stale slab->stride as long as slab->obj_exts is not NULL.
+
+# How I tried to fix it
+
+An expensive solution would be do:
+
+CPU X:					CPU Y:
+- slab->stride = 16			- READ_ONCE(slab->obj_exts)
+- smp_wmb()				- if (obj_exts)
+- slab->obj_exts = <something>		  - smp_rmb()
+					  - plain load slab->stride
+
+Then, CPU Y should see either (obj_exts == 0), or
+(obj_exts != 0 and a valid stride). (obj_exts != 0) && (invalid stride)
+is impossible.
+
+This fix [5] seems to resolve the bug [6], yay!
+
+Before testing this fix, I wasn't fully convinced that it was a memory
+ordering issue. But after testing it, it seems reasonable to assume that
+it's indeed a memory ordering issue.
+
+[5] https://lore.kernel.org/linux-mm/aZ2Gwie5dpXotxWc@hyeyoo
+[6] https://lore.kernel.org/linux-mm/84492f08-04c2-485c-9a18-cdafd5a9c3e5@linux.ibm.com 
+
+# How I tried to optimize the fix
+
+Hmm, but it's not great to have memory barriers in slab alloc/free
+path, right? So I tried to optimize it while maintaining correctness.
+
+Previously, slab->stride could be set during slab's initialization
+by alloc_slab_obj_exts_early(), or later by alloc_slab_obj_exts().
+
+Within the slab allocator, for the slab to be accessible by other CPUs,
+they need to go through per-node partial slab list
+(struct kmem_cache_node.partial), protected by a spinlock.
+
+Hmm, if we make sure that slab->stride is set early, before the slab
+becomes accessible to other CPUs, smp_wmb()/smp_rmb() pair is not
+necessary. So I made that change [7].
+
+But something strange happens when I tried to optimize it!
+The fix didn't resolve the bug [8].
+
+[7] https://lore.kernel.org/linux-mm/20260223075809.19265-1-harry.yoo@oracle.com 
+[8] https://lore.kernel.org/linux-mm/2d106583-4ec6-4da0-87ea-4ecad893b24f@linux.ibm.com
+
+Hmm... even when slabs don't go through the list protected by the
+spinlock, perhaps an object was allocated on CPU X, and then freed
+on CPU Y?
+
+But as long as "Slab's assumption" described above is satisfied,
+I can't explain why stores to slab->stride, or metadata won't be visible
+to the freeing CPU :/
+
+That makes me wonder "is somebody breaking that assumption?"
+
+If so, the smp_rmb() in the previous fix [5] might have unintentionally
+acted as a band-aid to make sure stores to slab->stride and the metadata
+are visible to the freeing CPU. But in fact, a barrier should have
+been invoked by the user.
+
+Looking at commit 9e6b7cd7e77d ("tty: fix data race in
+tty_buffer_flush") and commit f57e515a1b56 ("kernel/pid.c: convert
+struct pid count to refcount_t"), it doesn't seem too crazy to suspect
+that somebody is breaking the assumption.
+
+Does this sound reasonable, or am I missing something?
+
+p.s., Many thanks to Pedro Falcato and Vlastimil Babka, who actively
+discussed this off-list with me. That helped develop my understanding
+a lot!
+
+-- 
+Cheers,
+Harry / Hyeonggon
