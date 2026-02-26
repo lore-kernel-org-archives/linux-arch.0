@@ -1,91 +1,113 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f201.google.com (mail-pl1-f201.google.com [209.85.214.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E581F28750C;
-	Thu, 26 Feb 2026 18:20:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6689E3B52F6
+	for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 18:24:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772130040; cv=none; b=MeVUPYv1HCK6pAIkxBm9AOBe5eDwGyncJgBhh+Tiv1Xw3GC1MhWUtypXuF3UakG18rrrgQEH3Y4NTXCtCHq0HLLGBY/i8Zlxx/sqvwIVu+ROjdZzy2sA9Bw0d49yXfhauA9vizWTcruSCHa3CjUmbbZlhqs+uqeaOtVzGB9wlKM=
+	t=1772130299; cv=none; b=Rp96crghYUGmJKktysGxmKKy7fLlQ7l283rewT+VMLbluxDhtTn6DVn9AZ3V19ngleBQ4SfeTnbmlbXcqxkcBiS/IDgSbhdt4UjuYrIHk64yLV+DA94Qa8VIwsHwRhC6FVjcJvFMrsfJ3gpoZX+6KQmcb1EtgMCYBNPP9NgtBok=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772130040; c=relaxed/simple;
-	bh=HV1S/qrSmKMNPz1JBIra1UdVobFVeWulvDlaZO10nbE=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=CzSQpIPCJhe9VRSO2QCApkF0bA8H94fbkLARCS5++PQOZLFl0yMnWw1Y33YOLqBySAFvM2AcW532UgZlydbntueMI34MND1zsjWdQxU0IolNNJi6F1iya8wKQKC5Y/O5H88t6Ah2TmBMVtnP4JDQoMeyEHj4oa41IaGZUB+zLyk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=PabnRhzU; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772130299; c=relaxed/simple;
+	bh=k3soXQkk7YLuqSivAHD1V0eG6RUMSXYigk1r/BeTy8Q=;
+	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
+	 To:Cc:Content-Type; b=efTO9KyPoc1Ptveszq4QaF4Io8X97thPIAMkHBS7KUeT6gTH+L3gfeJmSqy6RiJYY6Y5403Jtdt7SZRkfF5ao/sZMT7AK8vAK9odHkvJlkRMJOR9f1HQxFwq3a6CtXda2o6Zg0nNpsm9SRpwhkD7UVXHlJHO3gZ57RPKkshzQ8Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=NGri9AOn; arc=none smtp.client-ip=209.85.214.201
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--seanjc.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="PabnRhzU"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BC48BC116C6;
-	Thu, 26 Feb 2026 18:20:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1772130039;
-	bh=HV1S/qrSmKMNPz1JBIra1UdVobFVeWulvDlaZO10nbE=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=PabnRhzU6AHT18WWRNM+FYnoFqe+hChSMy4cjmvk9ZcHJNCXAdiqYd9DXMpTA4IgR
-	 7sZPKkxDq1KXm+4nAHkDanvWCFUJp9dczwmhvEv3LBaJTNwaXyTLAreHodUOMltsf+
-	 iYrZK8OgzA+d74p/SRx/nc8YUk2EuT6G2bkC4R7Q=
-Date: Thu, 26 Feb 2026 10:20:37 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Richard Henderson <richard.henderson@linaro.org>, Matt Turner
- <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, Russell King
- <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will
- Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui
- <kernel@xen0n.name>, Madhavan Srinivasan <maddy@linux.ibm.com>, Michael
- Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
- "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, Paul Walmsley
- <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
- <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Heiko Carstens
- <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
- <agordeev@linux.ibm.com>, Christian Borntraeger
- <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>,
- "David S. Miller" <davem@davemloft.net>, Andreas Larsson
- <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov
- <anton.ivanov@cambridgegreys.com>, Johannes Berg
- <johannes@sipsolutions.net>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
- <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
- <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
- <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, Dan Williams
- <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba
- <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, Song Liu
- <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, Li Nan
- <linan122@huawei.com>, linux-alpha@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
- linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
- sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
- linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
-Subject: Re: cleanup the RAID5 XOR library
-Message-Id: <20260226102037.b855483efa0bf23c72d130d3@linux-foundation.org>
-In-Reply-To: <20260226151106.144735-1-hch@lst.de>
-References: <20260226151106.144735-1-hch@lst.de>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="NGri9AOn"
+Received: by mail-pl1-f201.google.com with SMTP id d9443c01a7336-2adc527eaf5so7558745ad.0
+        for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 10:24:58 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1772130298; x=1772735098; darn=vger.kernel.org;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:from:to:cc:subject:date:message-id:reply-to;
+        bh=X3CnbC2LzEBnADf0H4jNpgSa/BKh2OZoa8tvpC3rGZ8=;
+        b=NGri9AOnE3kuWDz43IjdMITNlyT/meOGX8wlNGKGPqTtFR+MxFkanXJoTwzBnpBsvC
+         A9rHG1yPa8ZOn3oGZbLw0oL7zAhn+OBYXzM+ccRHNTVVTI2R0NXT+xmRpWUMlneyCEGA
+         X+a5fevVuuTAdQtSZy+k+HWIqr1pZ/eoGyOStjThIbzgmFtOuHBnwUVkh3wfoNI8EWpJ
+         bMy2GcRsF/qUN6ZOwyh1Rd3V+S+7uOJqRudqvT+J3/Rnz97XYsgyBqAF3UXF+yYCiQ5D
+         Rxe3mVlMpUXFqfQxR/7GFTTGu5+nqerA0LbSLBwaclNyrpgTv5fYfVDGfrpU/6i03Bxf
+         P+RQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772130298; x=1772735098;
+        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
+         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=X3CnbC2LzEBnADf0H4jNpgSa/BKh2OZoa8tvpC3rGZ8=;
+        b=UU4Iu1l1b73rm+2lMBBKfqaUsOEqzXVmXaoc38f1wMBcPxEq1tKWNVY80INCE4t11U
+         7j7vXiUqls1txJGVd+gwr/I6qpdKM6ayKpKoroFgQCXFv0vttbo7v2Igh8ZM1ySqITCl
+         TETgv6z1vhljpsk/CBv+q4VuzS5UbkI9agyN0HeE3uYq8uRdcaJsk1CAHCR50OVnbE83
+         KpTW52c1uokPP0DvZxouI8K8jl1Kq8LjOoGaIqrtGotkPc9z/yobZbIPlpOD9LgXoBso
+         n7HOcx7Jp3ZL24lwqHezEMggFaIBAIYAmzVnxE6kg8LEsLMcM0F8J0QBWE15P9d8Ce5/
+         dxqA==
+X-Forwarded-Encrypted: i=1; AJvYcCVXHrT3omO/t2bukRKyLcWvW+bFB3C9ojRYm6ZtEkIW7h/3jKrUZF845+007X7yz6Q1g6Ub979xPvNr@vger.kernel.org
+X-Gm-Message-State: AOJu0YwcQl7HqK4QVawAdLlWF8UyTtOBfQK5tS4zDN9I44iRJJ9e8IUn
+	EH4RlpExkEkuoTLEjGAsZzQCM9KGX/1JLSkAbJJI9rMrmoyDtJyMw/cjhTb8x6IJaGuxltcfXnj
+	PJrRVXA==
+X-Received: from plau11.prod.google.com ([2002:a17:903:304b:b0:2aa:e682:e951])
+ (user=seanjc job=prod-delivery.src-stubby-dispatcher) by 2002:a17:902:e849:b0:2a7:d5c0:c659
+ with SMTP id d9443c01a7336-2ae0305efc8mr36873085ad.5.1772130297522; Thu, 26
+ Feb 2026 10:24:57 -0800 (PST)
+Date: Thu, 26 Feb 2026 10:24:55 -0800
+In-Reply-To: <e3cdcbfa-525d-4e0d-885a-8f7d69a7ee3d@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+References: <20260202074557.16544-1-lance.yang@linux.dev> <20260202074557.16544-4-lance.yang@linux.dev>
+ <aZ9Xcgxa0_ouGr31@google.com> <e3cdcbfa-525d-4e0d-885a-8f7d69a7ee3d@linux.dev>
+Message-ID: <aaCP95l-m8ISXF78@google.com>
+Subject: Re: [PATCH v4 3/3] x86/tlb: add architecture-specific TLB IPI
+ optimization support
+From: Sean Christopherson <seanjc@google.com>
+To: Lance Yang <lance.yang@linux.dev>
+Cc: akpm@linux-foundation.org, david@kernel.org, dave.hansen@intel.com, 
+	dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com, 
+	will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com, 
+	peterz@infradead.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de, 
+	x86@kernel.org, hpa@zytor.com, arnd@arndb.de, lorenzo.stoakes@oracle.com, 
+	ziy@nvidia.com, baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, 
+	npache@redhat.com, ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org, 
+	shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com, 
+	pbonzini@redhat.com, boris.ostrovsky@oracle.com, 
+	virtualization@lists.linux.dev, kvm@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, 
+	ioworker0@gmail.com
+Content-Type: text/plain; charset="us-ascii"
 
-On Thu, 26 Feb 2026 07:10:12 -0800 Christoph Hellwig <hch@lst.de> wrote:
-
-> the XOR library used for the RAID5 parity is a bit of a mess right now.
-> The main file sits in crypto/ despite not being cryptography and not
-> using the crypto API, with the generic implementations sitting in
-> include/asm-generic and the arch implementations sitting in an asm/
-> header in theory.  The latter doesn't work for many cases, so
-> architectures often build the code directly into the core kernel, or
-> create another module for the architecture code.
+On Thu, Feb 26, 2026, Lance Yang wrote:
+> On 2026/2/26 04:11, Sean Christopherson wrote:
+> > On Mon, Feb 02, 2026, Lance Yang wrote:
+> > > diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+> > > index 37dc8465e0f5..6a5e47ee4eb6 100644
+> > > --- a/arch/x86/kernel/kvm.c
+> > > +++ b/arch/x86/kernel/kvm.c
+> > > @@ -856,6 +856,12 @@ static void __init kvm_guest_init(void)
+> > >   #ifdef CONFIG_SMP
+> > >   	if (pv_tlb_flush_supported()) {
+> > >   		pv_ops.mmu.flush_tlb_multi = kvm_flush_tlb_multi;
+> > > +		/*
+> > > +		 * KVM's flush implementation calls native_flush_tlb_multi(),
+> > > +		 * which sends real IPIs when INVLPGB is not available.
+> > 
+> > Not on all (virtual) CPUs.  The entire point of KVM's PV TLB flush is to elide
+> > the IPIs.  If a vCPU was scheduled out by the host, the guest sets a flag and
+> > relies on the host to flush the TLB on behalf of the guest prior to the next
+> > VM-Enter.
 > 
-> Changes this to a single module in lib/ that also contains the
-> architecture optimizations, similar to the library work Eric Biggers
-> has done for the CRC and crypto libraries later.  After that it changes
-> to better calling conventions that allow for smarter architecture
-> implementations (although none is contained here yet), and uses
-> static_call to avoid indirection function call overhead.
+> Ah, I see. Thanks for the correction!
+> 
+> KVM only sends IPIs to running vCPUs; preempted ones are left out of the mask
+> and flushed on VM-Enter. So the old comment was wrong ...
+> 
+> IIUC, we still set the flag to true because only running vCPUs can be in a
+> software/lockless walk, and they all get the IPI, so the flush is enough.
+> 
+> Does that match what you had in mind?
 
-Thanks, I'll add this to mm.git's mm-nonmm-unstable tree for some
-testing in linux-next.
-
+No, because from the guest kernel's perspective, the vCPU is running.  The kernel
+can't make any assumptions about what code the vCPU was executing when the vCPU
+was preempted by the host scheduler, i.e. it's entirely possible the vCPU is in
+a software/lockless walk.
