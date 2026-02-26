@@ -1,159 +1,159 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.13])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F1E543634B;
-	Thu, 26 Feb 2026 19:09:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.13
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E69E396D3F
+	for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 21:22:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772132982; cv=none; b=qmrUu6M0e0DflKWmuHdSnhHF88AvObefn/wG/v3YCiIdcpMvhPMkI3Z9dfaHQVkBswdf8u5h19GKwH01PitVCrlidTjC+0hgx0EBLl/kEyhdR3vGU3TUNjoHSX2eY5MhyEsdpxedNF47lmNbmVXDdErG5cW0D3tqI1dCElou2vE=
+	t=1772140935; cv=none; b=fDxVO+oKplngIJchiHuEltCvAZ+3Gddzv5FIcpYPghj5ychGRIWFCOV3reoGkTyTHtNFQcRZ4VbRxWGseDp7dnfVYGppIFvkRCazIvDKVeVj3qjeDsNpxX3Y35PKxNGnNujOEk7sYVONL529mRMlvzXkT2jIZVwxqOJP2cSsFQI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772132982; c=relaxed/simple;
-	bh=+Qh4hrPxf2csFk7l+Yv36sFqLv+jWtc8xUqmcxjBL90=;
+	s=arc-20240116; t=1772140935; c=relaxed/simple;
+	bh=sfTslLLnI37XJQ6uxMdt3uWTnKJaFYngSG3T3NhVl6Y=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Ql4dWYJuF6NaTuQ8JNCN+RaGoS049smZfJFscOIT954kyJZ5JbmVimPNqIfKqyDUPgKqaOhsvJ00tej3AMDE9TJoUNEtQWNvbMbUlmz+m8I2Yz1RNBJYyH3PhyfchrbjSFFm+ne/zvie5XcLYAkOmzrq/+jphV3MUzHYPts9TlY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=QgFH5kSC; arc=none smtp.client-ip=192.198.163.13
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="QgFH5kSC"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1772132978; x=1803668978;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=+Qh4hrPxf2csFk7l+Yv36sFqLv+jWtc8xUqmcxjBL90=;
-  b=QgFH5kSCWKwZGdmBFo8py2AARIYJnMZNehAZvl8WMgJR8lUi861EfZT+
-   h3X98X9yOp/bHGtRHa1dKTPuWMGwDwbrNdIo1a46Wd56gBhTBzjVhqt3p
-   qpeMtd4GlMuJK8V6WrMhI2L5pNMtgVCRNPjzmfvqcxOe3nYJnyzqDEXIm
-   CUVOuinaTZmb7Rzl9aNITRMsBIDOQiRL9nYJejVZulJLK1Z5TRpppu9IR
-   YflBMugcMnNNvaxH0WnM14nWhvmAr3rvfpA+WkWcW/J9w7oFLpozX99V+
-   EjfDYis66B5wP3NlNelPSlptrmr6FfR61nq27M2cyCEF079gXk3dkxfi7
-   A==;
-X-CSE-ConnectionGUID: fp6tcPziS2SDD8JeK7ulMA==
-X-CSE-MsgGUID: EFJWpqNQT42UOPVypSyQjQ==
-X-IronPort-AV: E=McAfee;i="6800,10657,11713"; a="75808678"
-X-IronPort-AV: E=Sophos;i="6.21,312,1763452800"; 
-   d="scan'208";a="75808678"
-Received: from fmviesa010.fm.intel.com ([10.60.135.150])
-  by fmvoesa107.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 26 Feb 2026 11:09:37 -0800
-X-CSE-ConnectionGUID: h1bTSjSBQJKUkTEZeLrEUQ==
-X-CSE-MsgGUID: UcUjbMz5TL25U93Fajby4A==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,312,1763452800"; 
-   d="scan'208";a="214596013"
-Received: from lkp-server02.sh.intel.com (HELO a3936d6a266d) ([10.239.97.151])
-  by fmviesa010.fm.intel.com with ESMTP; 26 Feb 2026 11:09:33 -0800
-Received: from kbuild by a3936d6a266d with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1vvgjq-000000009n3-1ZOv;
-	Thu, 26 Feb 2026 19:09:30 +0000
-Date: Fri, 27 Feb 2026 03:09:28 +0800
-From: kernel test robot <lkp@intel.com>
-To: Rui Qi <qirui.001@bytedance.com>, paul.walmsley@sifive.com,
-	palmer@dabbelt.com, aou@eecs.berkeley.edu, alex@ghiti.fr,
-	cyrilbur@tenstorrent.com, tglx@kernel.org, peterz@infradead.org,
-	debug@rivosinc.com, andybnac@gmail.com, charlie@rivosinc.com,
-	geomatsi@gmail.com, thuth@redhat.com, bjorn@rivosinc.com,
-	songshuaishuai@tinylab.org, martin@kaiser.cx, masahiroy@kernel.org,
-	kees@kernel.org
-Cc: oe-kbuild-all@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-riscv@lists.infradead.org, linux-kernel@vger.kernel.org,
-	Rui Qi <qirui.001@bytedance.com>
-Subject: Re: [PATCH] riscv: add system error interrupt handler support
-Message-ID: <202602270355.h8QSG2vl-lkp@intel.com>
-References: <20260226082735.56108-1-qirui.001@bytedance.com>
+	 Content-Type:Content-Disposition:In-Reply-To; b=AreZl1lVQX4wzceHh8CTZaY4YKpT+OyDRdJy7/iJzqEGue2MQNsJTTSRiATz1AgSGAZqgxsYLpkUfnsmznGCktaso0DpEQWgu/Lc9x7FRcb/cTMTQPo7lt2nS7Rw1Mq+Qiue8hqsBCeFLju/hIiUQRuzOFjr+YYUdBTui8aoOcA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de; spf=pass smtp.mailfrom=suse.de; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=suse.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.de
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 6E4A24E2DB;
+	Thu, 26 Feb 2026 21:22:11 +0000 (UTC)
+Authentication-Results: smtp-out1.suse.de;
+	none
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 25AC63EA62;
+	Thu, 26 Feb 2026 21:22:08 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id CH6xBYC5oGlMRAAAD6G6ig
+	(envelope-from <pfalcato@suse.de>); Thu, 26 Feb 2026 21:22:08 +0000
+Date: Thu, 26 Feb 2026 21:22:06 +0000
+From: Pedro Falcato <pfalcato@suse.de>
+To: Kalesh Singh <kaleshsingh@google.com>
+Cc: "David Hildenbrand (Arm)" <david@kernel.org>, 
+	Anthony Yznaga <anthony.yznaga@oracle.com>, linux-mm@kvack.org, akpm@linux-foundation.org, 
+	andreyknvl@gmail.com, arnd@arndb.de, bp@alien8.de, brauner@kernel.org, 
+	bsegall@google.com, corbet@lwn.net, dave.hansen@linux.intel.com, 
+	dietmar.eggemann@arm.com, ebiederm@xmission.com, hpa@zytor.com, jakub.wartak@mailbox.org, 
+	jannh@google.com, juri.lelli@redhat.com, khalid@kernel.org, 
+	liam.howlett@oracle.com, linyongting@bytedance.com, lorenzo.stoakes@oracle.com, 
+	luto@kernel.org, markhemm@googlemail.com, maz@kernel.org, mhiramat@kernel.org, 
+	mgorman@suse.de, mhocko@suse.com, mingo@redhat.com, muchun.song@linux.dev, 
+	neilb@suse.de, osalvador@suse.de, pcc@google.com, peterz@infradead.org, 
+	rostedt@goodmis.org, rppt@kernel.org, shakeel.butt@linux.dev, surenb@google.com, 
+	tglx@linutronix.de, vasily.averin@linux.dev, vbabka@suse.cz, 
+	vincent.guittot@linaro.org, viro@zeniv.linux.org.uk, vschneid@redhat.com, 
+	willy@infradead.org, x86@kernel.org, xhao@linux.alibaba.com, 
+	linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
+	Isaac Manjarres <isaacmanjarres@google.com>, "T.J. Mercier" <tjmercier@google.com>, 
+	android-mm <android-mm@google.com>
+Subject: Re: [PATCH v3 00/22] Add support for shared PTEs across processes
+Message-ID: <5tdailzxoywzzunbwhtlk4yjfmzunntniqtudkb52q6hib74ql@oq4mi226dedv>
+References: <20250820010415.699353-1-anthony.yznaga@oracle.com>
+ <CAC_TJvcaJdEzK8n9BK0qgEXdzjzXtbA_Zk-ybfmG8kjNExVCzw@mail.gmail.com>
+ <b82a5ac3-33e9-4cbf-892a-f0c7f6fe0c20@kernel.org>
+ <CAC_TJvdgvyjyJsU4v6W+3tHKx_2e8UMJU3RT2HKLSngcC+yH3Q@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20260226082735.56108-1-qirui.001@bytedance.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAC_TJvdgvyjyJsU4v6W+3tHKx_2e8UMJU3RT2HKLSngcC+yH3Q@mail.gmail.com>
+X-Rspamd-Pre-Result: action=no action;
+	module=replies;
+	Message is reply to one we originated
+X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
+X-Spamd-Result: default: False [-4.00 / 50.00];
+	REPLY(-4.00)[]
+X-Rspamd-Queue-Id: 6E4A24E2DB
+X-Rspamd-Pre-Result: action=no action;
+	module=replies;
+	Message is reply to one we originated
+X-Rspamd-Action: no action
+X-Spam-Flag: NO
+X-Spam-Score: -4.00
+X-Spam-Level: 
 
-Hi Rui,
+On Wed, Feb 25, 2026 at 03:06:10PM -0800, Kalesh Singh wrote:
+> On Tue, Feb 24, 2026 at 1:40 AM David Hildenbrand (Arm)
+> <david@kernel.org> wrote:
+> >
+> > > I believe that managing a pseudo-filesystem (msharefs) and mapping via
+> > > ioctl during process creation could introduce overhead that impacts
+> > > app startup latency. Ideally, child apps shouldn't be aware of this
+> > > sharing or need to manage the pseudo-filesystem on their end.
+> > All process must be aware of these special semantics.
+> >
+> > I'd assume that fork() would simply replicate mshare region into the
+> > fork'ed child process. So from that point of view, it's "transparent" as
+> > in "no special mshare() handling required after fork".
+> 
+> Hi David,
+> 
+> That's agood  point. If fork() simply replicates the mshare region, it
+> does achieve transparency in terms of setup.
+> 
+> I am still concerned about transparency in terms of observability.
+> Applications and sometimes inspect their own mappings (from
+> /proc/self/maps) to locate specific code or data regions for various
+> anti-tamper and obfuscation techniques. [2] If those mappings suddenly
+> point to an msharefs pseudo-file instead of the expected shared
+> library backing, it may break user-space assumptions and cause
+> compatibility issues.
 
-kernel test robot noticed the following build errors:
+I'm not worried about transparency because this is not supposed to be
+transparent. This is not supposed to be used by most core system software.
+This is supposed to help replace hugetlb page table sharing.
 
-[auto build test ERROR on linus/master]
-[also build test ERROR on tip/smp/core v7.0-rc1 next-20260226]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+Transparent page table sharing has other constraints. I like the idea, in
+theory, but there are a number of constraints that make the idea unfeasible
+for now. There are a couple of problems we need to solve first:
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Rui-Qi/riscv-add-system-error-interrupt-handler-support/20260226-163131
-base:   linus/master
-patch link:    https://lore.kernel.org/r/20260226082735.56108-1-qirui.001%40bytedance.com
-patch subject: [PATCH] riscv: add system error interrupt handler support
-config: riscv-randconfig-r064-20260226 (https://download.01.org/0day-ci/archive/20260227/202602270355.h8QSG2vl-lkp@intel.com/config)
-compiler: riscv32-linux-gcc (GCC) 8.5.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260227/202602270355.h8QSG2vl-lkp@intel.com/reproduce)
+1) Every spot where we modify PTEs needs to be assessed and use different
+helpers (that can un-cow page tables). Every pte_offset_map_lock() can now
+feasibly fail for OOM reasons (and that also needs to be assessed).
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202602270355.h8QSG2vl-lkp@intel.com/
+2) Various bits of PTE modification/unmapping now needs special care wrt TLB
+invalidation. The kernel needs to be aware of how the page tables are shared.
+I don't think the current rmap data structures are well suited to this kind
+of stuff (perhaps with Lorenzo's WIP anon rmap rework we'll get something
+better). Basically every spot that goes "modify PTE, flush TLB for mm" now
+needs to go "modify PTE, for every mm that maps this page table, flush $mm"
+(if you're thinking that COW will save us, it technically won't, or shouldn't,
+because of stuff like try_to_unmap_one() that is used in reclaim).
 
-All errors (new ones prefixed by >>):
+3) Reclaim loses even more information as now N processes share the same A
+bits. I don't know what effects this can cause. It would require
+experimentation. Perhaps something like "if page table is shared, value
+pte_young more". I don't know if this can work as a bandaid, but it's not
+ideal.
 
-   In file included from arch/riscv/include/asm/errata_list.h:8,
-                    from arch/riscv/include/asm/vdso/processor.h:8,
-                    from include/vdso/processor.h:10,
-                    from arch/riscv/include/asm/processor.h:13,
-                    from arch/riscv/include/asm/cmpxchg.h:16,
-                    from arch/riscv/include/asm/barrier.h:14,
-                    from include/asm-generic/bitops/generic-non-atomic.h:7,
-                    from include/linux/bitops.h:28,
-                    from include/linux/kernel.h:23,
-                    from arch/riscv/kernel/sys_error.c:7:
-   arch/riscv/kernel/sys_error.c: In function 'riscv_serror_starting_cpu':
->> arch/riscv/kernel/sys_error.c:28:22: error: 'RV_IRQ_SYS_ERROR' undeclared (first use in this function); did you mean 'IRQ_SYS_ERROR'?
-     csr_set(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-                         ^~~~~~~~~~~~~~~~
-   arch/riscv/include/asm/csr.h:588:38: note: in definition of macro 'csr_set'
-     unsigned long __v = (unsigned long)(val);  \
-                                         ^~~
-   arch/riscv/kernel/sys_error.c:28:18: note: in expansion of macro 'BIT'
-     csr_set(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-                     ^~~
-   arch/riscv/kernel/sys_error.c:28:22: note: each undeclared identifier is reported only once for each function it appears in
-     csr_set(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-                         ^~~~~~~~~~~~~~~~
-   arch/riscv/include/asm/csr.h:588:38: note: in definition of macro 'csr_set'
-     unsigned long __v = (unsigned long)(val);  \
-                                         ^~~
-   arch/riscv/kernel/sys_error.c:28:18: note: in expansion of macro 'BIT'
-     csr_set(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-                     ^~~
-   arch/riscv/kernel/sys_error.c: In function 'riscv_serror_dying_cpu':
-   arch/riscv/kernel/sys_error.c:35:24: error: 'RV_IRQ_SYS_ERROR' undeclared (first use in this function); did you mean 'IRQ_SYS_ERROR'?
-     csr_clear(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-                           ^~~~~~~~~~~~~~~~
-   arch/riscv/include/asm/csr.h:605:38: note: in definition of macro 'csr_clear'
-     unsigned long __v = (unsigned long)(val);  \
-                                         ^~~
-   arch/riscv/kernel/sys_error.c:35:20: note: in expansion of macro 'BIT'
-     csr_clear(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-                       ^~~
-   arch/riscv/kernel/sys_error.c: In function 'sys_error_init':
-   arch/riscv/kernel/sys_error.c:52:51: error: 'RV_IRQ_SYS_ERROR' undeclared (first use in this function); did you mean 'IRQ_SYS_ERROR'?
-     riscv_sys_error_irq = irq_create_mapping(domain, RV_IRQ_SYS_ERROR);
-                                                      ^~~~~~~~~~~~~~~~
-                                                      IRQ_SYS_ERROR
+4) It's not known whether page table COW fork() is a real win in most cases,
+or all cases. Would want measurement.
 
+5) It becomes even harder to estimate RSS and PSS for each process.
 
-vim +28 arch/riscv/kernel/sys_error.c
+For these reasons (and more, certainly), I don't think working mshare() into
+a transparent, all-great thing that fits the zygote model can work. It has been
+discussed at length how to pull off certain hard bits like TLB invalidation and
+locking for mshare, and with mshare we have the advantage of not needing to
+support every feature ever (tailoring it more to the big database users of
+hugetlb). And we'll still need to adapt certain bits of arch code just to get
+it to work efficiently.
 
-    25	
-    26	static int riscv_serror_starting_cpu(unsigned int cpu)
-    27	{
-  > 28		csr_set(CSR_IE, BIT(RV_IRQ_SYS_ERROR));
-    29		enable_percpu_irq(riscv_sys_error_irq, irq_get_trigger_type(riscv_sys_error_irq));
-    30		return 0;
-    31	}
-    32	
+This said, if you want to discuss pulling this off, I'm all ears and it could
+be perhaps a fun discussion (too late for LSF, I guess), but I don't think
+it's workeable into the current mshare efforts. And, believe me, I would love
+a unified feature here :)
 
 -- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Pedro
