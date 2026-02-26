@@ -1,179 +1,91 @@
-Received: from mail-qv1-f45.google.com (mail-qv1-f45.google.com [209.85.219.45])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 58F6C3290A1
-	for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 18:06:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.219.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E581F28750C;
+	Thu, 26 Feb 2026 18:20:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772129217; cv=none; b=l4R8KFgpG1a/R8mmT5kJgXmTE+dBynSmvUo3t6NHjHIUXHYvq4Zs0QWrbd1JphLJF4k4WhFcPAbibEhW3cKhKHU9hfAh2tK5mVTutPtRV+PfdgomvmOeakZW83sgPSLApg0lZap44AKDYIWIR128xW0IxsnUVyZjkb1mEUoNCQQ=
+	t=1772130040; cv=none; b=MeVUPYv1HCK6pAIkxBm9AOBe5eDwGyncJgBhh+Tiv1Xw3GC1MhWUtypXuF3UakG18rrrgQEH3Y4NTXCtCHq0HLLGBY/i8Zlxx/sqvwIVu+ROjdZzy2sA9Bw0d49yXfhauA9vizWTcruSCHa3CjUmbbZlhqs+uqeaOtVzGB9wlKM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772129217; c=relaxed/simple;
-	bh=M3CGrm0VhU4itt4g6xjpQh7V8E2y4Aph7J+dstE5F1w=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=NX8BOw+S0E7/rssRG9JjY3HqdxxPKUtL9XgyRwNQYMQSJViA25T2h/KUSa0WZoJc2foiHt9t9GfF9WNTJDY8uRIszKfmjcU3DO80HXyeUX8yvxOu94GzPAj7IpBNh0qKU5d7ZBboc5hj3xQxbCN/tbl3tEizDhxr+ID2/hKA/Lw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rowland.harvard.edu; spf=fail smtp.mailfrom=g.harvard.edu; dkim=pass (2048-bit key) header.d=rowland.harvard.edu header.i=@rowland.harvard.edu header.b=u2+Wf/1t; arc=none smtp.client-ip=209.85.219.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=rowland.harvard.edu
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=g.harvard.edu
+	s=arc-20240116; t=1772130040; c=relaxed/simple;
+	bh=HV1S/qrSmKMNPz1JBIra1UdVobFVeWulvDlaZO10nbE=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=CzSQpIPCJhe9VRSO2QCApkF0bA8H94fbkLARCS5++PQOZLFl0yMnWw1Y33YOLqBySAFvM2AcW532UgZlydbntueMI34MND1zsjWdQxU0IolNNJi6F1iya8wKQKC5Y/O5H88t6Ah2TmBMVtnP4JDQoMeyEHj4oa41IaGZUB+zLyk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=PabnRhzU; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=rowland.harvard.edu header.i=@rowland.harvard.edu header.b="u2+Wf/1t"
-Received: by mail-qv1-f45.google.com with SMTP id 6a1803df08f44-899afcec41eso11943586d6.1
-        for <linux-arch@vger.kernel.org>; Thu, 26 Feb 2026 10:06:56 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=rowland.harvard.edu; s=google; t=1772129215; x=1772734015; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=4UbRn1/Zoh4IIbiAkpXZr+7zJlNAh6IGPdvB7q6Yi9o=;
-        b=u2+Wf/1thBsV6ilfGPrTtsH8g3TSSLDPwTN38qpsP0TvElVf6ZbvGiwL0xGfrR3JeA
-         ji7hwhN4EVjYns/Nfsgmq3yQH+KVghejaYon7eAlW4PBh+g4KWyLn13hIfaEOKXyn0w1
-         hpEdDUZZ56Of97pgr376rl5Q2VGFOT6QdVOfNOQa1id1+jMMNID7EUcfLniFJZlb+UzA
-         HrgZdGB8e4m5tmB60YilCkhwvEEtPY9j6R7Ip5pqvI4BilXoebTbk7ZwHUmsLvO+G9AZ
-         whOn4S+vlJX8y7fCmI0FU6r/rzX1Mp64g0p3dY/kkTdfOZ4gF6X90t82PfELxpQbdiLz
-         plUQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1772129215; x=1772734015;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=4UbRn1/Zoh4IIbiAkpXZr+7zJlNAh6IGPdvB7q6Yi9o=;
-        b=SpdhRC9YJzxDqHOkYYWArd7SWJ1vqgmWKbNo7qhxp0nvfE+vvmftlJkNZZEsnbC1pw
-         1tuh3iZXfZBnz8VtmYMIabrYqb3z0GJs+wAqE2aCH4Vcm79eKW+/Dq5acHZvK1nI6V5Z
-         38MKVA/9PykZH6u7SvwY3hKwyh4YT8gn77mgZ4bn30Fr5GZFlx/AY0k1JYHa8FzNqEsL
-         gV7oTI5qcvbUaUx81mhIyyBPEg/vx6AtKC7D0ob5X0mOirw+I6HsXpMzr49hzkH9tTf2
-         wD4IXi14xwos/jJXcmljYSJJB2XR4+eLv+Th/5VU2af0+AHJNNSgrPyX6WFx/+QjIEbS
-         bu7w==
-X-Forwarded-Encrypted: i=1; AJvYcCVxFeUoIxpgTakkbUsriwyH7LaqUgrPjk9+8TgCqGSxuhjM9lNu9AogoWm8obuMa2/y1de1Ivz6OLIO@vger.kernel.org
-X-Gm-Message-State: AOJu0YwGUIzSzQcIkAwfXvieGIkwFJp1XQ4nhGr7uZlo0rFtrWke0p7l
-	IWEkhG6i1GWrqdk6mGOvwHIasNiF6g5Oe/yBwSvpHIv6qidDFB1xiGK/XBjFh1TDMg==
-X-Gm-Gg: ATEYQzyNZ92cuy0vXGHRJvOtolRQ3o+/8eg9p6PqQQnv4OhWkqSqhvoITWxv4CBXGtR
-	QtYENJIe60E9cDJiCYbItu/jL57NvCAYcWE/UYhiZNq2iPrPAbg9NQ38nwvhruM2KfOifSMNHam
-	wMAFEWAS1CopOh5ggtQ5AwQq36CEJnS2bNGPfwFJCK0+Wuerj/iIaDJ/ksjgC1sa7kbFgIM1Zmj
-	LH1jkeWctlkWRzXKxGJAidvkU7one7lC1dasm0E7grPHag5Q1stWVRZGCvryWp13fj425TRydmw
-	GcqjGcmdGsgClCva6DSJJr3D2zCmS/Dy5uQjh5letq4kUpJQN8P0vHqcIgrjS4QX5E4JD+OYBFF
-	4ORwkvlNW4urpNj3b6fUoLXbKz6trPIvZvpGkCggjeHMGohBEM1JO2JRce/RRuVzkSNOtRJYMVi
-	r6rG50h7+dbUrAqp1f5UjHHYHfAl2wVNPZGV8bqsglQE4Sg9wfH3iVf/nGPTMA+R6VP594XAiiA
-	sYNFb4q22V3ErtoUKEx
-X-Received: by 2002:a05:6214:c2e:b0:895:4b79:83a5 with SMTP id 6a1803df08f44-89979e1bb72mr293888636d6.5.1772129215103;
-        Thu, 26 Feb 2026 10:06:55 -0800 (PST)
-Received: from rowland.harvard.edu (nat-65-112-8-51.harvard-secure.wrls.harvard.edu. [65.112.8.51])
-        by smtp.gmail.com with ESMTPSA id 6a1803df08f44-899c6fe55cesm23138596d6.0.2026.02.26.10.06.53
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 26 Feb 2026 10:06:54 -0800 (PST)
-Date: Thu, 26 Feb 2026 13:06:51 -0500
-From: Alan Stern <stern@rowland.harvard.edu>
-To: Harry Yoo <harry.yoo@oracle.com>
-Cc: linux-mm@kvack.org, Dmitry Vyukov <dvyukov@google.com>,
-	lkmm@lists.linux.dev, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	Joel Fernandes <joelagnelf@nvidia.com>,
-	Daniel Lustig <dlustig@nvidia.com>,
-	Akira Yokosawa <akiyks@gmail.com>,
-	"Paul E. McKenney" <paulmck@kernel.org>,
-	Luc Maranget <luc.maranget@inria.fr>,
-	Jade Alglave <j.alglave@ucl.ac.uk>,
-	David Howells <dhowells@redhat.com>,
-	Nicholas Piggin <npiggin@gmail.com>, Boqun Feng <boqun@kernel.org>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Will Deacon <will@kernel.org>,
-	Andrea Parri <parri.andrea@gmail.com>,
-	Pedro Falcato <pfalcato@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
-	Christoph Lameter <cl@gentwo.org>,
-	David Rientjes <rientjes@google.com>,
-	Roman Gushchin <roman.gushchin@linux.dev>,
-	Hao Li <hao.li@linux.dev>, Shakeel Butt <shakeel.butt@linux.dev>,
-	Venkat Rao Bagalkote <venkat88@linux.ibm.com>,
-	Mateusz Guzik <mjguzik@gmail.com>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Marco Elver <elver@google.com>
-Subject: Re: [BUG] Memory ordering between kmalloc() and kfree()? it's
- confusing!
-Message-ID: <9240040d-598e-48bd-b802-bf91cce92d0c@rowland.harvard.edu>
-References: <aZ_lJAqxh_hNGr_v@hyeyoo>
- <9dcd02b9-42da-455d-aa08-165e6ff0b921@rowland.harvard.edu>
- <aaByMLSAIJM8HdbO@hyeyoo>
- <d8308828-ed28-4650-8c8f-22a7e5cfd1a0@rowland.harvard.edu>
- <aaB-1e1LoxkcYl2f@hyeyoo>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="PabnRhzU"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id BC48BC116C6;
+	Thu, 26 Feb 2026 18:20:37 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1772130039;
+	bh=HV1S/qrSmKMNPz1JBIra1UdVobFVeWulvDlaZO10nbE=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=PabnRhzU6AHT18WWRNM+FYnoFqe+hChSMy4cjmvk9ZcHJNCXAdiqYd9DXMpTA4IgR
+	 7sZPKkxDq1KXm+4nAHkDanvWCFUJp9dczwmhvEv3LBaJTNwaXyTLAreHodUOMltsf+
+	 iYrZK8OgzA+d74p/SRx/nc8YUk2EuT6G2bkC4R7Q=
+Date: Thu, 26 Feb 2026 10:20:37 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Richard Henderson <richard.henderson@linaro.org>, Matt Turner
+ <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, Russell King
+ <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will
+ Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui
+ <kernel@xen0n.name>, Madhavan Srinivasan <maddy@linux.ibm.com>, Michael
+ Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
+ "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, Paul Walmsley
+ <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou
+ <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, Heiko Carstens
+ <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
+ <agordeev@linux.ibm.com>, Christian Borntraeger
+ <borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>,
+ "David S. Miller" <davem@davemloft.net>, Andreas Larsson
+ <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>, Anton Ivanov
+ <anton.ivanov@cambridgegreys.com>, Johannes Berg
+ <johannes@sipsolutions.net>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
+ <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+ <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, Dan Williams
+ <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba
+ <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, Song Liu
+ <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, Li Nan
+ <linan122@huawei.com>, linux-alpha@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+ linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+ sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+ linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: cleanup the RAID5 XOR library
+Message-Id: <20260226102037.b855483efa0bf23c72d130d3@linux-foundation.org>
+In-Reply-To: <20260226151106.144735-1-hch@lst.de>
+References: <20260226151106.144735-1-hch@lst.de>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aaB-1e1LoxkcYl2f@hyeyoo>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Fri, Feb 27, 2026 at 02:11:49AM +0900, Harry Yoo wrote:
-> On Thu, Feb 26, 2026 at 11:42:02AM -0500, Alan Stern wrote:
-> > On Fri, Feb 27, 2026 at 01:17:52AM +0900, Harry Yoo wrote:
-> > > On Thu, Feb 26, 2026 at 10:45:55AM -0500, Alan Stern wrote:
-> > > > On Thu, Feb 26, 2026 at 03:35:08PM +0900, Harry Yoo wrote:
-> > > > > Because the slab allocator itself doesn't guarantee that such
-> > > > > barriers are invoked within the allocator, it relies on users to
-> > > > > do this when needed.
-> > > > 
-> > > > It doesn't?  Then how does the slab allocator guarantee that two 
-> > > > different CPUs won't try to perform allocations or deallocations from 
-> > > > the same slab at the same time, messing everything up?
-> > > 
-> > > Ah, alloc/free slowpaths do use cmpxchg128 or spinlock and
-> > > don't mess things up.
-> > > 
-> > > But fastpath allocs/frees are served from percpu array that is protected
-> > > by a local_lock. local_lock has a compiler barrier in it, but that's
-> > > not enough.
-> > 
-> > If those things rely on a percpu array, how can one CPU possibly 
-> > manipulate a resource (slab or something else) that was changed by a 
-> > different CPU?
-> 
-> AFAICT that shouldn't happen within the slab allocator.
-> 
-> > The whole point of percpu data structures is that each 
-> > CPU gets its own copy.
-> 
-> Exactly.
-> 
-> But I'm not talking about what happens within the allocator,
-> but rather, about what slab expects to happen outside the allocator.
+On Thu, 26 Feb 2026 07:10:12 -0800 Christoph Hellwig <hch@lst.de> wrote:
 
-I understand.
-
-> Something like this:
+> the XOR library used for the RAID5 parity is a bit of a mess right now.
+> The main file sits in crypto/ despite not being cryptography and not
+> using the crypto API, with the generic implementations sitting in
+> include/asm-generic and the arch implementations sitting in an asm/
+> header in theory.  The latter doesn't work for many cases, so
+> architectures often build the code directly into the core kernel, or
+> create another module for the architecture code.
 > 
-> CPU X				CPU Y
-> ptr = kmalloc();
-> WRITE_ONCE(gp, ptr);
-> 				if (p = READ_ONCE(gp))
-> 					kfree(p);
-> 
-> Yes, it's a crazy thing to do. CPU Y isn't guaranteed to see
-> up-to-date version of object content or metadata.
-> 
-> Instead, the code should do:
-> 
-> CPU X				CPU Y
-> ptr = kmalloc();
-> gp = smp_store_release(&gp, ptr);
-> 
-> 				if (p = smp_load_acquire(&gp))
-> 					kfree(p);
-> 
-> One reason that I started this discussion was to argue that we should
-> have a well-defined a contract between the slab allocator and its users.
+> Changes this to a single module in lib/ that also contains the
+> architecture optimizations, similar to the library work Eric Biggers
+> has done for the CRC and crypto libraries later.  After that it changes
+> to better calling conventions that allow for smarter architecture
+> implementations (although none is contained here yet), and uses
+> static_call to avoid indirection function call overhead.
 
-Yes, you have made that quite clear.  But you're missing _my_ point.
+Thanks, I'll add this to mm.git's mm-nonmm-unstable tree for some
+testing in linux-next.
 
-Which is: The same mechanism that the slab allocator uses to ensure that 
-CPU X and CPU Y won't step on each other's toes if they both run 
-kmalloc/kfree at the same time should also be able to guarantee that the 
-metadata changes made by CPU X will be visible to CPU Y if Y manipulates 
-a slab that X just finished with.
-
-To put it another way, ensuring non-interference during simultaneous 
-accesses isn't all that different from ensuring coherence during 
-sequential accesses.  Doing the first should easily allow doing the 
-second.
-
-And if it doesn't then something questionable is going on.
-
-Alan Stern
