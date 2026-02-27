@@ -1,133 +1,121 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F65E47AF4B;
-	Fri, 27 Feb 2026 22:11:12 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 98DDC257431;
+	Fri, 27 Feb 2026 23:55:32 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772230273; cv=none; b=Yp7CE2FYlVEJ6UPkyBPwv0526MXOQN0N3n4xzEaUYA9p9TkniISboR4JxlUpwwYCOYhP1pSCclYpnxiZLYahfrqqp0ILNsva1ltExn+xVIfcjyc6BQn3BN5gnuoJM6Lym/fezYbBhyXNcvr1qyWiZC6DDv5KgzcLrESOC2w7FYw=
+	t=1772236532; cv=none; b=kOWBoK93+Y947mOnMCSBjas7ifdLVOX7ccAvFyk1vDqJ1Tn8DJ1peowk6Xw0mqsWfg33k6XsP1/Uq5KBg+DVOIPMmW4ynFvf8AbV05nW4jhDye78FifO1logcVGpBpSYYHB1iIbYbit1e1KiHQRAkvoxdDTAH6WamVwiuJDsUaQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772230273; c=relaxed/simple;
-	bh=xBkQMPHPSs/zMDHS8KArKPdBlnLGvJX0MzKYRKJH4JE=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=cGqGS9Gk8yufh3Sva6RBBvaUflzyZ14HDpuqpfLsDninZj8GgWHsTCbSBXXEcBeXMPKbtdslE0iHhCN53dwHdrers1N4i8cfwAtMTubfk7iKiD0LIdRPLJm9cg/dQ+EygCscwtLeooClfvgPFKrtE7a9DRmJySuqduKaGGWCR7g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=YS6i0NkH; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772236532; c=relaxed/simple;
+	bh=9epsKT1Tqv7365SBQ+LgdgBkS+QLvJq0YDfqzGCQppg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=DfDzI4rmuuG670rfVBaQpSv5MwnCFSyuWIXWv+G5wo7Hz8s1wlrVCEX9j7Z9Itta4SrX7zxz+eWTQg1c/iQlAXCVUdKfYTvtsez5OBA3dHui+MvaK6bvQz4vb08+3ZXmg1F8e9Fpl9FgpJJJJjpIJJZK7YpNn9qjbZiVyHStBXo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=XVTF8TDa; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="YS6i0NkH"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 52FC7C4AF0B;
-	Fri, 27 Feb 2026 22:11:12 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="XVTF8TDa"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 97119C116C6;
+	Fri, 27 Feb 2026 23:55:30 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772230272;
-	bh=xBkQMPHPSs/zMDHS8KArKPdBlnLGvJX0MzKYRKJH4JE=;
-	h=Date:From:To:Cc:In-Reply-To:References:Subject:From;
-	b=YS6i0NkHhU3rmbAGdEl7XkIdlOzzFqfAt2iuGpNE9oLz9A2vqg6m9QF20JQA3YVFU
-	 iZ/WutRQVJKFB34ziHeyUZJA61S53iP3GmDY27ppwtvW5bqU5Vl0Q4F0CxZONKJVmm
-	 LhPqCR5+LOZiftbvIXgkZ4KImwRs7JM0+bDApf4mXr8arYYSOflbKkVMr4HnrlBgGd
-	 1U21M7gz0magpM7vBeb7YQhLdig+JSu1Eg7xuGaZcbrkeNGGbvTO8m0wXyWN7xHzKk
-	 ByvNNA5DyIuuxHZ6/yvPrGfAHy5hl7FXWn8nwKSqmSNygm+8uYL8+FskPgLagGULzR
-	 7RisLylfhmf1w==
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 313BEF40068;
-	Fri, 27 Feb 2026 17:11:11 -0500 (EST)
-Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-01.internal (MEProxy); Fri, 27 Feb 2026 17:11:11 -0500
-X-ME-Sender: <xms:fxaiaSN8uccu8dDqA0AUgLxRpsrGobv_Qv9pMfKfsQ9gaXJx_p_APg>
-    <xme:fxaiabwgVFW9UU61h81Q5fXzHdubvm0TZ4W6hzcv-ZSOjL-FOEPYEjDFAZzQVncHj
-    BZfnXxHa4HO0ymX2Yj52x-EPhs2cEeXwVT_hWBqAnjrPw7I0iCh6yU>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgddvhedtudejucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrugcu
-    uehivghshhgvuhhvvghlfdcuoegrrhgusgeskhgvrhhnvghlrdhorhhgqeenucggtffrrg
-    htthgvrhhnpedvueehiedtvedtleekuddutefgffdtleetfeetveejveejieehfefhjeei
-    jeefudenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpe
-    grrhguodhmvghsmhhtphgruhhthhhpvghrshhonhgrlhhithihqdduieejtdehtddtjeel
-    qdeffedvudeigeduhedqrghruggspeepkhgvrhhnvghlrdhorhhgseifohhrkhhofhgrrh
-    gurdgtohhmpdhnsggprhgtphhtthhopeduhedpmhhouggvpehsmhhtphhouhhtpdhrtghp
-    thhtohepsghpsegrlhhivghnkedruggvpdhrtghpthhtoheprghrnhgusegrrhhnuggsrd
-    guvgdprhgtphhtthhopeifvghirdhlihhusehkvghrnhgvlhdrohhrghdprhgtphhtthho
-    peigkeeisehkvghrnhgvlhdrohhrghdprhgtphhtthhopehtghhlgieslhhinhhuthhroh
-    hnihigrdguvgdprhgtphhtthhopegurghvvgdrhhgrnhhsvghnsehlihhnuhigrdhinhht
-    vghlrdgtohhmpdhrtghpthhtohepmhhrrghthhhorheslhhinhhugidrmhhitghrohhsoh
-    hfthdrtghomhdprhgtphhtthhopeguvggtuhhisehmihgtrhhoshhofhhtrdgtohhmpdhr
-    tghpthhtohephhgrihihrghnghiisehmihgtrhhoshhofhhtrdgtohhm
-X-ME-Proxy: <xmx:fxaiaSxMu2ZGgzPSuLKnBUXBkhJtK_u-0KWeCeJEoIU3zMBYVml3Og>
-    <xmx:fxaiaT1Wchjzcwq8n8PocsyGqvQSoVwcf_NWNUQODIyIxXvGSz9Mnw>
-    <xmx:fxaiad4Nt5yZSwnWrrOMV4voRvU2Cl_te4jvr10TzfotVdNnskwrgA>
-    <xmx:fxaiaZaZlFyTr8u-DSiO4ZGR3eCBgZfl-EHTKU1z_kshFeWLmlTx-Q>
-    <xmx:fxaiabREhg14ER5TqoRSspkOuymxccAn2lVXUXpXDeQ1iO27_A8VFcuV>
-Feedback-ID: ice86485a:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 0EE39700065; Fri, 27 Feb 2026 17:11:11 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
+	s=k20201202; t=1772236532;
+	bh=9epsKT1Tqv7365SBQ+LgdgBkS+QLvJq0YDfqzGCQppg=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=XVTF8TDa48poxgWx9OMrHOWcWeX+DIvF8W0Cz9PzVZzIIYVyeCBp8CVqVCQqnKv6k
+	 5zzYRJst/PHEWqq92j85maQBi7plq+GNVhfHcc+9Pog+YMNqi1zTL7+4Ehtq9UJ7o9
+	 QJHa0cD62wS9Zi36AMnb9/VkZXXyv/qc0FNC/OF8hsDCWgrlGfX7gqqn/VNAfN6Fee
+	 CkNTC4E/BHSyzLgTwiN6IqzHfjJo9okaT9JcgxYGTsEHUQc31er3WUHfK/2Gx865yY
+	 ogRz41c7RbSVwCM0hpH/O2zyx2nKKDpUW5eh/FdyMQPRe2Q68ih/qS1f7bbUEX5IYc
+	 3kMoxNtkaet5g==
+Date: Fri, 27 Feb 2026 15:55:29 -0800
+From: Eric Biggers <ebiggers@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Hellwig <hch@lst.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Richard Henderson <richard.henderson@linaro.org>,
+	Matt Turner <mattst88@gmail.com>,
+	Magnus Lindholm <linmag7@gmail.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>, linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+	linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: [PATCH 18/25] x86: move the XOR code to lib/raid/
+Message-ID: <20260227235529.GA31321@quark>
+References: <20260226151106.144735-1-hch@lst.de>
+ <20260226151106.144735-19-hch@lst.de>
+ <20260227143016.GH1282955@noisy.programming.kicks-ass.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: ABHypM1vLXn-
-Date: Fri, 27 Feb 2026 23:10:25 +0100
-From: "Ard Biesheuvel" <ardb@kernel.org>
-To: "Wei Liu" <wei.liu@kernel.org>,
- "Mukesh Rathor" <mrathor@linux.microsoft.com>
-Cc: linux-hyperv@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, kys@microsoft.com, haiyangz@microsoft.com,
- decui@microsoft.com, "Thomas Gleixner" <tglx@linutronix.de>,
- "Ingo Molnar" <mingo@redhat.com>, "Borislav Petkov" <bp@alien8.de>,
- dave.hansen@linux.intel.com, x86@kernel.org,
- "H . Peter Anvin" <hpa@zytor.com>, "Arnd Bergmann" <arnd@arndb.de>
-Message-Id: <6fa1df5a-b4cf-4f70-9d46-7d82bedfb01c@app.fastmail.com>
-In-Reply-To: <20260227213733.GA976651@liuwe-devbox-debian-v2.local>
-References: <20250910001009.2651481-1-mrathor@linux.microsoft.com>
- <20250910001009.2651481-6-mrathor@linux.microsoft.com>
- <38cdec03-889e-43dd-9dad-e621aba9dc8d@app.fastmail.com>
- <f8199494-0c42-5eb0-f99e-cc6f6e304d40@linux.microsoft.com>
- <eb1c44d7-2664-4269-8824-e90e5a8494b2@app.fastmail.com>
- <6a601546-a26f-79f6-a3b0-be145dfa7781@linux.microsoft.com>
- <20260227213733.GA976651@liuwe-devbox-debian-v2.local>
-Subject: Re: [PATCH v1 5/6] x86/hyperv: Implement hypervisor ram collection into vmcore
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260227143016.GH1282955@noisy.programming.kicks-ass.net>
 
+On Fri, Feb 27, 2026 at 03:30:16PM +0100, Peter Zijlstra wrote:
+> On Thu, Feb 26, 2026 at 07:10:30AM -0800, Christoph Hellwig wrote:
+> > Move the optimized XOR code out of line into lib/raid.
+> > 
+> > Signed-off-by: Christoph Hellwig <hch@lst.de>
+> > ---
+> >  arch/x86/include/asm/xor.h                    | 518 ++----------------
+> >  arch/x86/include/asm/xor_64.h                 |  32 --
+> >  lib/raid/xor/Makefile                         |   8 +
+> >  .../xor_avx.h => lib/raid/xor/x86/xor-avx.c   |  14 +-
+> >  .../xor_32.h => lib/raid/xor/x86/xor-mmx.c    |  60 +-
+> >  lib/raid/xor/x86/xor-sse.c                    | 476 ++++++++++++++++
+> 
+> I gotta ask, why lib/raid/xor/$arch/ instead of something like
+> arch/$arch/lib/xor ?
 
+Similar to lib/crypto/ and lib/crc/, it allows the translation units
+(either .c or .S files) containing architecture-optimized XOR code to be
+included directly in the xor.ko module, where they should be.
 
-On Fri, 27 Feb 2026, at 22:37, Wei Liu wrote:
-> On Fri, Feb 27, 2026 at 12:05:13PM -0800, Mukesh R wrote:
-> [...]
->> > 
->> > So? But does it means to 'be in asmlinkage' in your interpretation? Did you check what 'asmlinkage' actually evaluates to?
->> > 
->> > I am not asking you to justify why this broken code works in practice, I am asking you to fix it.
->> 
->> 
->> STOP bossing me! I am not your servant nor your slave. And you are not the
->> only genius around here.
->> 
->> Now, many people looked at this code before it was merged and no one really
->> thought any self respecting compiler in modern times would create an issue
->> here. Still, I see the remote possibility of that happening. All you had
->> to do was to show your concern and suggest using __naked here (which looks
->> like we all missed, or maybe it came after the code was written), and it
->> would have been addressed. This is x64 specific code for very special case
->> of hyperv or kernel-on-hyperv crashing.
->> 
->> In future if you choose to correspond, watch your tone!
->
-> Mukesh, there is no need to be so emotional and defensive.
->
-> I don't think anyone, no matter how good he or she is, knows all the
-> intricacies in the kernel. We're lucky to have other people look at our
-> code and point out potential issues. Regardless of your opinion on the
-> discussion, we should be thankful for the time and effort people put
-> into even sending an email, let alone a patch.
->
-> Let's keep the discussion civil and constructive, and focus on the
-> technical aspects of the code.
->
-> Ard, I want to let you know that I appreciate you raising this issue
-> with us.
->
+Previously, these were always built into the core kernel even if
+XOR_BLOCKS was 'n' or 'm', or they were built into a separate module
+xor-neon.ko which xor.ko depended on.  So either the code was included
+unnecessarily, or there was an extra module.
 
-Much appreciated. And apologies to Mukesh for my harsh tone - I should have been more diplomatic in my response.
+Technically we could instead have the lib makefile compile stuff in
+arch/, but that would be unusual.  It's much cleaner to have the
+directory structure match the build system.
 
+If we made this code always built-in, like memcpy(), then we could put
+it anywhere.  But (like many of the crypto and CRC algorithms) many
+kernels don't need this code, and even if they do it may be needed only
+by 'm' code.  So it makes sense to support tristate.
+
+- Eric
