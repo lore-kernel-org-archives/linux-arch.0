@@ -1,171 +1,94 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3DC9B3346BF;
-	Fri, 27 Feb 2026 20:05:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51D111E00B4;
+	Fri, 27 Feb 2026 21:37:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772222721; cv=none; b=F3LTT8iWD3ou3+dqNNkj1ylDL843Z/VmkSCKNFvC4xr3+R1hRkMWZsDolKoViIy8Hoilzeu1oLlMqJX8BuaZ9u8b2Mrf/YahmOg2Vy4nqsM2vFKuZjenoggqA+T2nO4UtL/P89TPEHRaSAsIJHMmrDDJMkmdEbnTg0HYERsCzsk=
+	t=1772228255; cv=none; b=Hk1GH8aH1GBuRYia/E9tjW7r79AktCW2KRo8PUEmSO8wV3QofN2dmPQoyb0zxFwzs7RqPlq+Pcc5Hi+pgPQby2PHB5WSO4u4aBwSWYxW30rvv9pjgIvwtsaDxXrevgvo1R+/4ruqcZgt0d6DGcLCjbsJ6Vs/i5ose4Sz7WVri+A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772222721; c=relaxed/simple;
-	bh=x+FlnG5H4yl5wGmOO7WJQCAu+SW4m5eZ9juEuYScfCk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=k/vjvqR55Onz5EYyEcDe/HJ0yQTF/7uN4UabRp1Zw524y2VQqC5DUvUXW24V86HohP68lQ3XWlY8zFQe3z/uKSDmxefNkcGBI3WpRdAT3l8Rtic3wkiXoaOK+kV/VsMAuIrM3AqinuTuQHQ4uWwvEpVC8QFwlLVtD86Mx3Rwc58=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=Mu+n3C5j; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1772228255; c=relaxed/simple;
+	bh=r9Sg7xTfjq2gEX3/0CVF0anqfcyOhcWEqYw9kqqFzFc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=ed+Y36WMMjFmpSxqDf0INsWMM8WmMecTqb5JN8MJF86qfA6z7ytPC+0AJ/+EdTfEofPEwUsQb2P3z563nDVD910wFtucHYopXKOLNAME7j8jeuJvP2pbKzC2M5lDMUckPITjYCEHINcpF3ro3FsduJzChexZkI2gM+d+jsKvor4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ZW2bS5na; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="Mu+n3C5j"
-Received: from [192.168.0.88] (192-184-212-33.fiber.dynamic.sonic.net [192.184.212.33])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 9A53120B6F02;
-	Fri, 27 Feb 2026 12:05:13 -0800 (PST)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 9A53120B6F02
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1772222714;
-	bh=nFiRovFu19+kkoV1gMds6L93LGxU81m2ma5KAoPRXcc=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=Mu+n3C5j4pRnvV/FG92q+gcHqryz3HRSSQcf4KEVAtL1FPtnVkR9Pe1fgdIBQIQcy
-	 59MbIc2oxE3YE7u+Qm5cNbV5GyUakjZA6WpgV0aMsh7NXEc4xRlTBH66msJkmoP9oJ
-	 0x7/WeIaqlNNARqifmpKfaVZBxs5Zfj4ji0K4O1M=
-Message-ID: <6a601546-a26f-79f6-a3b0-be145dfa7781@linux.microsoft.com>
-Date: Fri, 27 Feb 2026 12:05:13 -0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ZW2bS5na"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E4783C116C6;
+	Fri, 27 Feb 2026 21:37:34 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1772228255;
+	bh=r9Sg7xTfjq2gEX3/0CVF0anqfcyOhcWEqYw9kqqFzFc=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=ZW2bS5naQ/VGOt9gGVxsq/bdmhCQXYziH79Cbp2XE1p+vCJZ1LLOtZdxFqQbjN+qG
+	 CpfiUiuoLd3AZp+1RdI1OlfJjkIe5tpIQ+nyYp6aADgsw7WKjkreXoolizBMXPOOTn
+	 rxa5E6Ftd6sYhlqmodZfqd/GFckRmHc0PO4YbHARzNfxbFXV6XpOs/15vnd0rpKCCa
+	 X+0p5smXb5ZfyLnko3mWv8/F7Ohhi5bq/o4ToVuCdyBvgu2NZ9AAiySb3sAbhGSGhV
+	 TQxQnV7e6guFxntWYV6wKpJImiLEDNAEZG3fj4WXeXQ9TLIa4cRxB7R1fW/tovmaok
+	 lu23k+pmlyYJQ==
+Date: Fri, 27 Feb 2026 21:37:33 +0000
+From: Wei Liu <wei.liu@kernel.org>
+To: Mukesh R <mrathor@linux.microsoft.com>, ardb@kernel.org
+Cc: Ard Biesheuvel <ardb@kernel.org>, linux-hyperv@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
+	decui@microsoft.com, Thomas Gleixner <tglx@linutronix.de>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	dave.hansen@linux.intel.com, x86@kernel.org,
+	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v1 5/6] x86/hyperv: Implement hypervisor ram collection
+ into vmcore
+Message-ID: <20260227213733.GA976651@liuwe-devbox-debian-v2.local>
+References: <20250910001009.2651481-1-mrathor@linux.microsoft.com>
+ <20250910001009.2651481-6-mrathor@linux.microsoft.com>
+ <38cdec03-889e-43dd-9dad-e621aba9dc8d@app.fastmail.com>
+ <f8199494-0c42-5eb0-f99e-cc6f6e304d40@linux.microsoft.com>
+ <eb1c44d7-2664-4269-8824-e90e5a8494b2@app.fastmail.com>
+ <6a601546-a26f-79f6-a3b0-be145dfa7781@linux.microsoft.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101
- Thunderbird/91.13.1
-Subject: Re: [PATCH v1 5/6] x86/hyperv: Implement hypervisor ram collection
- into vmcore
-Content-Language: en-US
-To: Ard Biesheuvel <ardb@kernel.org>, linux-hyperv@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: kys@microsoft.com, haiyangz@microsoft.com, wei.liu@kernel.org,
- decui@microsoft.com, Thomas Gleixner <tglx@linutronix.de>,
- Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
- dave.hansen@linux.intel.com, x86@kernel.org, "H . Peter Anvin"
- <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
-References: <20250910001009.2651481-1-mrathor@linux.microsoft.com>
- <20250910001009.2651481-6-mrathor@linux.microsoft.com>
- <38cdec03-889e-43dd-9dad-e621aba9dc8d@app.fastmail.com>
- <f8199494-0c42-5eb0-f99e-cc6f6e304d40@linux.microsoft.com>
- <eb1c44d7-2664-4269-8824-e90e5a8494b2@app.fastmail.com>
-From: Mukesh R <mrathor@linux.microsoft.com>
-In-Reply-To: <eb1c44d7-2664-4269-8824-e90e5a8494b2@app.fastmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <6a601546-a26f-79f6-a3b0-be145dfa7781@linux.microsoft.com>
 
-On 2/25/26 23:44, Ard Biesheuvel wrote:
-> 
-> On Wed, 25 Feb 2026, at 23:27, Mukesh R wrote:
->> On 2/21/26 08:43, Ard Biesheuvel wrote:
->>> Just spotted this code in v7.0-rc
->>>
->>> On Wed, 10 Sep 2025, at 02:10, Mukesh Rathor wrote:
->>> ...
->>>
->>>> +static asmlinkage void __noreturn hv_crash_c_entry(void)
->>>
->>> 'asmlinkage' means that the function may be called from another compilation unit written in assembler, but it doesn't actually evaluate to anything in most cases. Combining it with 'static' makes no sense whatsoever.
->>
->> 'static' means scope is limited to the file. Common in cases where function
->> pointers are used, like here in this file way below.
->>
->> Like the comment says:
->>       "This is the C entry point from the asm glue code after...."
->>
->> IOW, called from assembly function (asm == assembly).
->>
-> 
-> I wasn't asking you to explain what 'static' means. I was explaining to you that asmlinkage means 'external linkage' whereas 'static' means the opposite, and so combining them makes no sense.
+On Fri, Feb 27, 2026 at 12:05:13PM -0800, Mukesh R wrote:
+[...]
+> > 
+> > So? But does it means to 'be in asmlinkage' in your interpretation? Did you check what 'asmlinkage' actually evaluates to?
+> > 
+> > I am not asking you to justify why this broken code works in practice, I am asking you to fix it.
 > 
 > 
->>>
->>>> +{
->>>> +	struct hv_crash_ctxt *ctxt = &hv_crash_ctxt;
->>>> +
->>>> +	/* first thing, restore kernel gdt */
->>>> +	native_load_gdt(&ctxt->gdtr);
->>>> +
->>>> +	asm volatile("movw %%ax, %%ss" : : "a"(ctxt->ss));
->>>> +	asm volatile("movq %0, %%rsp" : : "m"(ctxt->rsp));
->>>> +
->>>
->>> This code is truly very broken. You cannot enter a C function without a stack, and assign RSP half way down the function. Especially after allocating local variables and/or calling other functions - it may happen to work in most cases, but it is very fragile. (Other architectures have the concept of 'naked' functions for this purpose but x86 does not)
->>
->> Local variable refers to static bss struct. IOW,
->>
->>         asm volatile("movq %0, %%rsp" : : "m"(ctxt->rsp));
->>
->> same as:
->>         asm volatile("movq %0, %%rsp" : : "m"(&hv_crash_ctxt.rsp));
->>
->>
+> STOP bossing me! I am not your servant nor your slave. And you are not the
+> only genius around here.
 > 
-> No, it is *not* the same. In practice, the compiler might perform this substitution, but there is no guarantee that this happens.
+> Now, many people looked at this code before it was merged and no one really
+> thought any self respecting compiler in modern times would create an issue
+> here. Still, I see the remote possibility of that happening. All you had
+> to do was to show your concern and suggest using __naked here (which looks
+> like we all missed, or maybe it came after the code was written), and it
+> would have been addressed. This is x64 specific code for very special case
+> of hyperv or kernel-on-hyperv crashing.
 > 
-> 
->>> IOW, this whole function should be written in asm.
->>>> +	asm volatile("movw %%ax, %%ds" : : "a"(ctxt->ds));
->>>> +	asm volatile("movw %%ax, %%es" : : "a"(ctxt->es));
->>>> +	asm volatile("movw %%ax, %%fs" : : "a"(ctxt->fs));
->>>> +	asm volatile("movw %%ax, %%gs" : : "a"(ctxt->gs));
->>>> +
->>>> +	native_wrmsrq(MSR_IA32_CR_PAT, ctxt->pat);
->>>> +	asm volatile("movq %0, %%cr0" : : "r"(ctxt->cr0));
->>>> +
->>>> +	asm volatile("movq %0, %%cr8" : : "r"(ctxt->cr8));
->>>> +	asm volatile("movq %0, %%cr4" : : "r"(ctxt->cr4));
->>>> +	asm volatile("movq %0, %%cr2" : : "r"(ctxt->cr4));
->>>> +
->>>> +	native_load_idt(&ctxt->idtr);
->>>> +	native_wrmsrq(MSR_GS_BASE, ctxt->gsbase);
->>>> +	native_wrmsrq(MSR_EFER, ctxt->efer);
->>>> +
->>>> +	/* restore the original kernel CS now via far return */
->>>> +	asm volatile("movzwq %0, %%rax\n\t"
->>>> +		     "pushq %%rax\n\t"
->>>> +		     "pushq $1f\n\t"
->>>> +		     "lretq\n\t"
->>>> +		     "1:nop\n\t" : : "m"(ctxt->cs) : "rax");
->>>> +
->>>> +	/* We are in asmlinkage without stack frame,
->>>
->>> You just switched to __KERNEL_CS via the stack.
->>
->> compiler doesn't know that.
->>
-> 
-> So? But does it means to 'be in asmlinkage' in your interpretation? Did you check what 'asmlinkage' actually evaluates to?
-> 
-> I am not asking you to justify why this broken code works in practice, I am asking you to fix it.
+> In future if you choose to correspond, watch your tone!
 
+Mukesh, there is no need to be so emotional and defensive.
 
-STOP bossing me! I am not your servant nor your slave. And you are not the
-only genius around here.
+I don't think anyone, no matter how good he or she is, knows all the
+intricacies in the kernel. We're lucky to have other people look at our
+code and point out potential issues. Regardless of your opinion on the
+discussion, we should be thankful for the time and effort people put
+into even sending an email, let alone a patch.
 
-Now, many people looked at this code before it was merged and no one really
-thought any self respecting compiler in modern times would create an issue
-here. Still, I see the remote possibility of that happening. All you had
-to do was to show your concern and suggest using __naked here (which looks
-like we all missed, or maybe it came after the code was written), and it
-would have been addressed. This is x64 specific code for very special case
-of hyperv or kernel-on-hyperv crashing.
+Let's keep the discussion civil and constructive, and focus on the
+technical aspects of the code.
 
-In future if you choose to correspond, watch your tone!
+Ard, I want to let you know that I appreciate you raising this issue
+with us.
 
-
-
->>>> hence make a C function
->>>> +	 * call which will buy stack frame to restore the tss or clear PT
->>>> entry.
->>>> +	 */
->>>
->>> Where does one buy a stack frame?
->>
->> A stack market :).  Callee will create stack frame now that rsp is
->> setup.
->>
-> 
-> This code is beyond broken. Please propose fixes rather than try to argue why carrying broken code like this is acceptable.
-
+Thanks,
+Wei
