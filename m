@@ -1,92 +1,123 @@
-Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 24707364EB6;
-	Sat, 28 Feb 2026 07:18:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 492DD280CFC;
+	Sat, 28 Feb 2026 07:35:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772263093; cv=none; b=Np7Oq7iaXfohsKhwZLIwkIVui/rpoRInPQOVudXq5D3gp3Eqn+3IGy9OrNNRv/RMraNHQtf+uMkLVrfh5WWO1kSFQVF33uPmDrbincacZdnxtpAUuHFMe3sd2wnNzmyW2ULR+UHF0w9vTsN9PGGrDJZiMHmlSYiVpP165+tmIfI=
+	t=1772264157; cv=none; b=hK/Kol6V2P5QBnMG0kt3xqYzXE+HnGzn5WQV/ibkJ8yuMXP4+SC2hZoRaw3oAYfqhmsiMfrKgzCQ/ETTdVZnSKDCzLFtu22h6yGUO+TJrR1+3JRpOflS4V7C+wzd9ghmT0itgNs5d5aN3gkOEjr95l8VotOhV6ie+4n76a3WOYE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772263093; c=relaxed/simple;
-	bh=rtPl1GSidCj9Q7S82rpjXcAkDzTVMlpDMIq1t2hnTHo=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=cX33w5lvtizBeGag+EZIob8tkAzmAXh+UZgI2nFLh4oUFW9uP6fgBHwnsbOITenzG82T3kENuwSv6a5PcqY8jna3HZ2J+dPZZgoSx+/s2P0Kjqi0L2d/2DdxLgcph7jT5HV6KWwhgxiMZEeWvoCdMOFuoGi6O1Lng2cNP4wQN6A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=XEb1hoyd; arc=none smtp.client-ip=198.137.202.133
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1772264157; c=relaxed/simple;
+	bh=6sJNyE+VY1nO/tYyDnefgTdhbr4qcMLaxVtizhQQLOk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Mmr3O2JO2lSzENY5/KVILdgy1zkWzep9wUNf584SWubh96uoLXS5eILlsS8TWSKNl0pqWMrRv0gPWpm/JK/r8PX+1K5hYsMSQpKP8HcudRQrDyrVyXkoAxZQYPDfZ+F9/HFo4jaA9/ZE9KfnqcbwLiA1luZE3n/YBbM29bRIogA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=N9tdtdMW; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="XEb1hoyd"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
-	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:Content-Type:
-	Content-ID:Content-Description:In-Reply-To:References;
-	bh=sM40aNoxqrveVrrmPbC2AFwNvJUNyHgEDPFS40cj40Q=; b=XEb1hoydGXAEq1pqQwQjplTYCU
-	pz1akGqlkpZYEHkJ5ePOgbcVEdlmub3+Mxckj3qeMcMZzduxq8PCGoU2uFabDN1VS7JVDQd5EECn8
-	qm8fbrUea/PqJOTrmA+aj67586klif7ePYuVTDxP1yeleesUl0QyNkXXieqFhygJULQMr0Cig+9+v
-	JvBq5v+8PWTzPc1tD/uvwfhh0R5I4qz3aId5k5WdGAxVCMgBLplbLpBZyGOndnzvxhPWcnEy5AncR
-	2xJmSnDMd4k84dEP366iarOrPMJMf/Eg6qVXr5yhLfaU3vqiJSj1pH6QIib+G89VH1oGfpMCG7sjX
-	cgEg21+A==;
-Received: from [50.53.43.113] (helo=bombadil.infradead.org)
-	by bombadil.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vwEaZ-00000009bmM-2ZP7;
-	Sat, 28 Feb 2026 07:18:11 +0000
-From: Randy Dunlap <rdunlap@infradead.org>
-To: linux-kernel@vger.kernel.org
-Cc: Randy Dunlap <rdunlap@infradead.org>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org,
-	Peter Zijlstra <peterz@infradead.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Will Deacon <will@kernel.org>,
-	Waiman Long <longman@redhat.com>
-Subject: [PATCH] locking/barrier: use correct parameter names
-Date: Fri, 27 Feb 2026 23:18:11 -0800
-Message-ID: <20260228071811.2663959-1-rdunlap@infradead.org>
-X-Mailer: git-send-email 2.53.0
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="N9tdtdMW"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E7026C116D0;
+	Sat, 28 Feb 2026 07:35:54 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1772264156;
+	bh=6sJNyE+VY1nO/tYyDnefgTdhbr4qcMLaxVtizhQQLOk=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=N9tdtdMWAI5Ijh2x1iw7nM2tuOn7VcN+8js+7SLSFQBQ9vU2vt9oqu+EgowziSK73
+	 sAzO21bZJQxKxmtHlu0vSUH2tGUcQRgjFGbZX7mbQPKN8WjwpFmWL8+xDtI3qS0EtF
+	 4Jfc+10mCY+RphkrG2fcHyK/TMz2wuYQYlWWVT80/0ZLPVgACgd9amxPCn3FPf0AgL
+	 JgqFFYCABzbxFrg5KHqTTW/MBNJ7iUh+0uZMyEIV2cew4CSOzs95au6LqecDztGc2s
+	 U0mqa9zSxlhCMSe8/lU1BD692HSjIX3cPWlCgttoWYJBTO4L+PB6fHsLYOLKccSpod
+	 azry3uoyDBKgg==
+Date: Fri, 27 Feb 2026 23:35:53 -0800
+From: Eric Biggers <ebiggers@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+	Richard Henderson <richard.henderson@linaro.org>,
+	Matt Turner <mattst88@gmail.com>,
+	Magnus Lindholm <linmag7@gmail.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>, linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+	linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: cleanup the RAID5 XOR library
+Message-ID: <20260228073553.GL65277@quark>
+References: <20260226151106.144735-1-hch@lst.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260226151106.144735-1-hch@lst.de>
 
-Use the correct parameter names in kernel-doc comments to avoid
-warnings:
+On Thu, Feb 26, 2026 at 07:10:12AM -0800, Christoph Hellwig wrote:
+> Hi all,
+> 
+> the XOR library used for the RAID5 parity is a bit of a mess right now.
+> The main file sits in crypto/ despite not being cryptography and not
+> using the crypto API, with the generic implementations sitting in
+> include/asm-generic and the arch implementations sitting in an asm/
+> header in theory.  The latter doesn't work for many cases, so
+> architectures often build the code directly into the core kernel, or
+> create another module for the architecture code.
+> 
+> Changes this to a single module in lib/ that also contains the
+> architecture optimizations, similar to the library work Eric Biggers
+> has done for the CRC and crypto libraries later.  After that it changes
+> to better calling conventions that allow for smarter architecture
+> implementations (although none is contained here yet), and uses
+> static_call to avoid indirection function call overhead.
+> 
+> A git tree is also available here:
+> 
+>     git://git.infradead.org/users/hch/misc.git xor-improvements
+> 
+> Gitweb:
+> 
+>     https://git.infradead.org/?p=users/hch/misc.git;a=shortlog;h=refs/heads/xor-improvements
 
-Warning: include/asm-generic/barrier.h:245 function parameter 'cond_expr'
- not described in 'smp_cond_load_relaxed'
-Warning: include/asm-generic/barrier.h:267 function parameter 'cond_expr'
- not described in 'smp_cond_load_acquire'
+Overall this looks great.  xor_gen() really needs a KUnit test, though.
+Without that, how was this tested?
 
-Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
----
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Waiman Long <longman@redhat.com>
+Later we should remove some of the obsolete implementations, such as the
+alpha or x86 MMX ones.  Those platforms have no optimized code in
+lib/crc/ or lib/crypto/, and I doubt anyone cares.  But that should be a
+separate series later: porting them over unchanged is the right call for
+now so that this series doesn't get blocked on debates about removals...
 
- include/asm-generic/barrier.h |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+Also, I notice that no one has optimized this for the latest x86_64 CPUs
+by using the vpternlogd instruction to do 3-input XORs.  That would be
+another good future project.
 
---- linux-next-20260213.orig/include/asm-generic/barrier.h
-+++ linux-next-20260213/include/asm-generic/barrier.h
-@@ -235,7 +235,7 @@ do {									\
- /**
-  * smp_cond_load_relaxed() - (Spin) wait for cond with no ordering guarantees
-  * @ptr: pointer to the variable to wait on
-- * @cond: boolean expression to wait for
-+ * @cond_expr: boolean expression to wait for
-  *
-  * Equivalent to using READ_ONCE() on the condition variable.
-  *
-@@ -259,7 +259,7 @@ do {									\
- /**
-  * smp_cond_load_acquire() - (Spin) wait for cond with ACQUIRE ordering
-  * @ptr: pointer to the variable to wait on
-- * @cond: boolean expression to wait for
-+ * @cond_expr: boolean expression to wait for
-  *
-  * Equivalent to using smp_load_acquire() on the condition variable but employs
-  * the control dependency of the wait to reduce the barrier on many platforms.
+- Eric
