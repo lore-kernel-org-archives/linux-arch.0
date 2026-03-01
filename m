@@ -1,444 +1,113 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out-173.mta1.migadu.com (out-173.mta1.migadu.com [95.215.58.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7352E3382D6;
-	Sat, 28 Feb 2026 18:01:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52DCF1DF980
+	for <linux-arch@vger.kernel.org>; Sun,  1 Mar 2026 06:56:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772301671; cv=none; b=sN+I7RfkcERKIHdbBMoJXN/uf2zOlbQSXm/MLpfnzSGbUuShJSwnnyFjg26yTAnMLC6abzlLht/p4ujkOVz0P1lNH/bJcE/nojJcc5PS6jj10VtX2wzViU+byZc9GpHDxKdd+qRo8JJzXQBRZLCGI2CwCStDP0fJMiva0mN6GqE=
+	t=1772348189; cv=none; b=JKQjsYDNN+Ub6SqPlhGLE2wPb2i40hp6g7lEPqN4PqP4i1SdRXCj5yaEj95EOYgNnkAoAJTLTB9+0n8V1bP28fiXATHaqdjDyaTM1INcFAs8MvoE16OIZxncs9lFvOpFhIdtKAeLeJ6p0+IXZdAae/cxjQBFNFmk4yqRBnBN5FA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772301671; c=relaxed/simple;
-	bh=KeoTj/Lb2emls8WbT/DfiGvKNGnic/tpCc5Nk4Fi6PI=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=UHKEDT1oTmXCFEYzwCKX1i17HvdRcMo7srpnxrayN5bulcjuFGMCWI0mz8NGnL/ZwhviTOEptiJGCIAkpl0exKGwwtaILhFZy5yksOPmqqb9PURPY+56XazccgsgF1swfkbgU56JhMuUCAy4ZjFx8yT4tmT5doXtWm3rF3GU9Kg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=joyFopgp; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772348189; c=relaxed/simple;
+	bh=o0y8DPmKyC9GpuR11MxEd1qNG1QYCLpqHggdKsZ9lak=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=GYhTwL6mYFpFvTvIm3P681nLaGkAc+RH4dvDQJRdIamfL8OxEANqv3Kpk2goSlG3vbRp5xJR6djEfTUKVHsD+VVO+Ub/TXPa4uS15+jHeFprCRVPrqxyDX+0NPnBARdRHo7h+fpotlh0QP6dGioKo7rn6KgJKh9J2e3gOGkgevw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=EMKrQY7W; arc=none smtp.client-ip=95.215.58.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="joyFopgp"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id AE620C116D0;
-	Sat, 28 Feb 2026 18:01:08 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772301671;
-	bh=KeoTj/Lb2emls8WbT/DfiGvKNGnic/tpCc5Nk4Fi6PI=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=joyFopgpuGbZlm85FvuhxgaLdKdvCyK/7Nt6MC7V7qJpfx3IE4uAthXemxrK20NaC
-	 EZhLwOnrdL0/bYtrpauzHAHlWDCIIKo1hjPJgrcnh+F/T5jzhB02DNbED8vfBRtrxZ
-	 Rx7idio7uElpongG2kzksg6z/gwIjyrJjqqq/zk4e3YbUHQKRcu++88/ATHWSMNcLT
-	 r3vbKLhbQIXuauccI6HzbDd9EsYwuwLejSuZpcXU5FvOgOlRViwnYhPB4ECiJAMuEw
-	 MYHCGnQCAxJtHI+SpEuZBjbtzIW11lbVriWN7gdc40vCDdcyuVQ88gMeEb2chWbZ/4
-	 4wT0e3ubkTL3w==
-From: Sasha Levin <sashal@kernel.org>
-To: patches@lists.linux.dev
-Cc: Steven Rostedt <rostedt@goodmis.org>,
-	linux-arch@vger.kernel.org,
-	"x86@kernel.org" <x86@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Mark Rutland <mark.rutland@arm.com>,
-	Will Deacon <will@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	Christophe Leroy <christophe.leroy@csgroup.eu>,
-	Naveen N Rao <naveen@kernel.org>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Paul Walmsley <paul.walmsley@sifive.com>,
-	Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Sven Schnelle <svens@linux.ibm.com>,
-	Thomas Gleixner <tglx@linutronix.de>,
-	Ingo Molnar <mingo@kernel.org>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>,
-	"Masami Hiramatsu (Google)" <mhiramat@kernel.org>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Sasha Levin <sashal@kernel.org>
-Subject: [PATCH 6.12 066/385] ftrace: Consolidate ftrace_regs accessor functions for archs using pt_regs
-Date: Sat, 28 Feb 2026 12:54:48 -0500
-Message-ID: <20260228180011.1568201-66-sashal@kernel.org>
-X-Mailer: git-send-email 2.51.0
-In-Reply-To: <20260228180011.1568201-1-sashal@kernel.org>
-References: <20260228180011.1568201-1-sashal@kernel.org>
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="EMKrQY7W"
+Message-ID: <7454cd72-3816-4a05-89f1-ded8b99acb41@linux.dev>
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1772348185;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7jVbiQXIQMX/1B8+z3NiDZcVvND9uVKdGlGO2tuqfdM=;
+	b=EMKrQY7WRXO8kYWzx1xdMTU5rEVlMVp9IHizMuBLddZGHk9vGaaiFIPCtNKy/esjK1Fdcn
+	0f4AVHD0lMvSwDLyupaQdautjy8Z5F5qRfp4hQHxi2VKY2kFJD6nVSIzo6ArC2A9XtumQ+
+	DuHdDT4XyvQvlIfnfHqthTSkSmlZAzA=
+Date: Sun, 1 Mar 2026 14:56:14 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-stable: review
-X-Patchwork-Hint: Ignore
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v4 3/3] x86/tlb: add architecture-specific TLB IPI
+ optimization support
+Content-Language: en-US
+To: Sean Christopherson <seanjc@google.com>
+Cc: akpm@linux-foundation.org, david@kernel.org, dave.hansen@intel.com,
+ dave.hansen@linux.intel.com, ypodemsk@redhat.com, hughd@google.com,
+ will@kernel.org, aneesh.kumar@kernel.org, npiggin@gmail.com,
+ peterz@infradead.org, tglx@linutronix.de, mingo@redhat.com, bp@alien8.de,
+ x86@kernel.org, hpa@zytor.com, arnd@arndb.de, lorenzo.stoakes@oracle.com,
+ ziy@nvidia.com, baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com,
+ npache@redhat.com, ryan.roberts@arm.com, dev.jain@arm.com,
+ baohua@kernel.org, shy828301@gmail.com, riel@surriel.com, jannh@google.com,
+ jgross@suse.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
+ virtualization@lists.linux.dev, kvm@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org, ioworker0@gmail.com
+References: <20260202074557.16544-1-lance.yang@linux.dev>
+ <20260202074557.16544-4-lance.yang@linux.dev> <aZ9Xcgxa0_ouGr31@google.com>
+ <e3cdcbfa-525d-4e0d-885a-8f7d69a7ee3d@linux.dev>
+ <aaCP95l-m8ISXF78@google.com>
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+From: Lance Yang <lance.yang@linux.dev>
+In-Reply-To: <aaCP95l-m8ISXF78@google.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-Migadu-Flow: FLOW_OUT
 
-From: Steven Rostedt <rostedt@goodmis.org>
 
-[ Upstream commit e4cf33ca48128d580e25ebe779b7ba7b4b4cf733 ]
 
-Most architectures use pt_regs within ftrace_regs making a lot of the
-accessor functions just calls to the pt_regs internally. Instead of
-duplication this effort, use a HAVE_ARCH_FTRACE_REGS for architectures
-that have their own ftrace_regs that is not based on pt_regs and will
-define all the accessor functions, and for the architectures that just use
-pt_regs, it will leave it undefined, and the default accessor functions
-will be used.
+On 2026/2/27 02:24, Sean Christopherson wrote:
+> On Thu, Feb 26, 2026, Lance Yang wrote:
+>> On 2026/2/26 04:11, Sean Christopherson wrote:
+>>> On Mon, Feb 02, 2026, Lance Yang wrote:
+>>>> diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+>>>> index 37dc8465e0f5..6a5e47ee4eb6 100644
+>>>> --- a/arch/x86/kernel/kvm.c
+>>>> +++ b/arch/x86/kernel/kvm.c
+>>>> @@ -856,6 +856,12 @@ static void __init kvm_guest_init(void)
+>>>>    #ifdef CONFIG_SMP
+>>>>    	if (pv_tlb_flush_supported()) {
+>>>>    		pv_ops.mmu.flush_tlb_multi = kvm_flush_tlb_multi;
+>>>> +		/*
+>>>> +		 * KVM's flush implementation calls native_flush_tlb_multi(),
+>>>> +		 * which sends real IPIs when INVLPGB is not available.
+>>>
+>>> Not on all (virtual) CPUs.  The entire point of KVM's PV TLB flush is to elide
+>>> the IPIs.  If a vCPU was scheduled out by the host, the guest sets a flag and
+>>> relies on the host to flush the TLB on behalf of the guest prior to the next
+>>> VM-Enter.
+>>
+>> Ah, I see. Thanks for the correction!
+>>
+>> KVM only sends IPIs to running vCPUs; preempted ones are left out of the mask
+>> and flushed on VM-Enter. So the old comment was wrong ...
+>>
+>> IIUC, we still set the flag to true because only running vCPUs can be in a
+>> software/lockless walk, and they all get the IPI, so the flush is enough.
+>>
+>> Does that match what you had in mind?
+> 
+> No, because from the guest kernel's perspective, the vCPU is running.  The kernel
+> can't make any assumptions about what code the vCPU was executing when the vCPU
+> was preempted by the host scheduler, i.e. it's entirely possible the vCPU is in
+> a software/lockless walk.
 
-Note, this will also make it easier to add new accessor functions to
-ftrace_regs as it will mean having to touch less architectures.
+Thanks a lot for setting me straight!
 
-Cc: <linux-arch@vger.kernel.org>
-Cc: "x86@kernel.org" <x86@kernel.org>
-Cc: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Mark Rutland <mark.rutland@arm.com>
-Cc: Will Deacon <will@kernel.org>
-Cc: Huacai Chen <chenhuacai@kernel.org>
-Cc: WANG Xuerui <kernel@xen0n.name>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Nicholas Piggin <npiggin@gmail.com>
-Cc: Christophe Leroy <christophe.leroy@csgroup.eu>
-Cc: Naveen N Rao <naveen@kernel.org>
-Cc: Madhavan Srinivasan <maddy@linux.ibm.com>
-Cc: Paul Walmsley <paul.walmsley@sifive.com>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: Albert Ou <aou@eecs.berkeley.edu>
-Cc: Heiko Carstens <hca@linux.ibm.com>
-Cc: Vasily Gorbik <gor@linux.ibm.com>
-Cc: Alexander Gordeev <agordeev@linux.ibm.com>
-Cc: Christian Borntraeger <borntraeger@linux.ibm.com>
-Cc: Sven Schnelle <svens@linux.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Hansen <dave.hansen@linux.intel.com>
-Link: https://lore.kernel.org/20241010202114.2289f6fd@gandalf.local.home
-Acked-by: Masami Hiramatsu (Google) <mhiramat@kernel.org>
-Acked-by: Heiko Carstens <hca@linux.ibm.com> # s390
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> # powerpc
-Suggested-by: Masami Hiramatsu (Google) <mhiramat@kernel.org>
-Signed-off-by: Steven Rostedt (Google) <rostedt@goodmis.org>
-Stable-dep-of: aea251799998 ("x86/fgraph,bpf: Switch kprobe_multi program stack unwind to hw_regs path")
-Signed-off-by: Sasha Levin <sashal@kernel.org>
----
- arch/arm64/include/asm/ftrace.h     |  1 +
- arch/loongarch/include/asm/ftrace.h | 25 +-------------------
- arch/powerpc/include/asm/ftrace.h   | 26 +--------------------
- arch/riscv/include/asm/ftrace.h     |  1 +
- arch/s390/include/asm/ftrace.h      | 26 +--------------------
- arch/x86/include/asm/ftrace.h       | 21 +----------------
- include/linux/ftrace.h              | 32 ++++++-------------------
- include/linux/ftrace_regs.h         | 36 +++++++++++++++++++++++++++++
- 8 files changed, 49 insertions(+), 119 deletions(-)
- create mode 100644 include/linux/ftrace_regs.h
+So any PV that has its own things and doesn't call
+native_flush_tlb_multi() directly cannot be trusted to provide the IPI
+guarantees we need.
 
-diff --git a/arch/arm64/include/asm/ftrace.h b/arch/arm64/include/asm/ftrace.h
-index bbb69c7751b99..5ccff4de7f091 100644
---- a/arch/arm64/include/asm/ftrace.h
-+++ b/arch/arm64/include/asm/ftrace.h
-@@ -54,6 +54,7 @@ extern void return_to_handler(void);
- unsigned long ftrace_call_adjust(unsigned long addr);
- 
- #ifdef CONFIG_DYNAMIC_FTRACE_WITH_ARGS
-+#define HAVE_ARCH_FTRACE_REGS
- struct dyn_ftrace;
- struct ftrace_ops;
- struct ftrace_regs;
-diff --git a/arch/loongarch/include/asm/ftrace.h b/arch/loongarch/include/asm/ftrace.h
-index 0e15d36ce2512..8f13eaeaa3251 100644
---- a/arch/loongarch/include/asm/ftrace.h
-+++ b/arch/loongarch/include/asm/ftrace.h
-@@ -43,43 +43,20 @@ void prepare_ftrace_return(unsigned long self_addr, unsigned long *parent);
- 
- #ifdef CONFIG_HAVE_DYNAMIC_FTRACE_WITH_ARGS
- struct ftrace_ops;
--struct ftrace_regs;
--#define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
- 
--struct __arch_ftrace_regs {
--	struct pt_regs regs;
--};
-+#include <linux/ftrace_regs.h>
- 
- static __always_inline struct pt_regs *arch_ftrace_get_regs(struct ftrace_regs *fregs)
- {
- 	return &arch_ftrace_regs(fregs)->regs;
- }
- 
--static __always_inline unsigned long
--ftrace_regs_get_instruction_pointer(struct ftrace_regs *fregs)
--{
--	return instruction_pointer(&arch_ftrace_regs(fregs)->regs);
--}
--
- static __always_inline void
- ftrace_regs_set_instruction_pointer(struct ftrace_regs *fregs, unsigned long ip)
- {
- 	instruction_pointer_set(&arch_ftrace_regs(fregs)->regs, ip);
- }
- 
--#define ftrace_regs_get_argument(fregs, n) \
--	regs_get_kernel_argument(&arch_ftrace_regs(fregs)->regs, n)
--#define ftrace_regs_get_stack_pointer(fregs) \
--	kernel_stack_pointer(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_return_value(fregs) \
--	regs_return_value(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_set_return_value(fregs, ret) \
--	regs_set_return_value(&arch_ftrace_regs(fregs)->regs, ret)
--#define ftrace_override_function_with_return(fregs) \
--	override_function_with_return(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_query_register_offset(name) \
--	regs_query_register_offset(name)
--
- #define ftrace_graph_func ftrace_graph_func
- void ftrace_graph_func(unsigned long ip, unsigned long parent_ip,
- 		       struct ftrace_ops *op, struct ftrace_regs *fregs);
-diff --git a/arch/powerpc/include/asm/ftrace.h b/arch/powerpc/include/asm/ftrace.h
-index e299fd47d2014..0edfb874eb02b 100644
---- a/arch/powerpc/include/asm/ftrace.h
-+++ b/arch/powerpc/include/asm/ftrace.h
-@@ -32,12 +32,7 @@ struct dyn_arch_ftrace {
- int ftrace_init_nop(struct module *mod, struct dyn_ftrace *rec);
- #define ftrace_init_nop ftrace_init_nop
- 
--struct ftrace_regs;
--#define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
--
--struct __arch_ftrace_regs {
--	struct pt_regs regs;
--};
-+#include <linux/ftrace_regs.h>
- 
- static __always_inline struct pt_regs *arch_ftrace_get_regs(struct ftrace_regs *fregs)
- {
-@@ -52,25 +47,6 @@ ftrace_regs_set_instruction_pointer(struct ftrace_regs *fregs,
- 	regs_set_return_ip(&arch_ftrace_regs(fregs)->regs, ip);
- }
- 
--static __always_inline unsigned long
--ftrace_regs_get_instruction_pointer(struct ftrace_regs *fregs)
--{
--	return instruction_pointer(&arch_ftrace_regs(fregs)->regs);
--}
--
--#define ftrace_regs_get_argument(fregs, n) \
--	regs_get_kernel_argument(&arch_ftrace_regs(fregs)->regs, n)
--#define ftrace_regs_get_stack_pointer(fregs) \
--	kernel_stack_pointer(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_return_value(fregs) \
--	regs_return_value(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_set_return_value(fregs, ret) \
--	regs_set_return_value(&arch_ftrace_regs(fregs)->regs, ret)
--#define ftrace_override_function_with_return(fregs) \
--	override_function_with_return(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_query_register_offset(name) \
--	regs_query_register_offset(name)
--
- struct ftrace_ops;
- 
- #define ftrace_graph_func ftrace_graph_func
-diff --git a/arch/riscv/include/asm/ftrace.h b/arch/riscv/include/asm/ftrace.h
-index 8a97ce5077e73..af174ea0c9451 100644
---- a/arch/riscv/include/asm/ftrace.h
-+++ b/arch/riscv/include/asm/ftrace.h
-@@ -125,6 +125,7 @@ int ftrace_init_nop(struct module *mod, struct dyn_ftrace *rec);
- 
- #ifdef CONFIG_DYNAMIC_FTRACE_WITH_ARGS
- #define arch_ftrace_get_regs(regs) NULL
-+#define HAVE_ARCH_FTRACE_REGS
- struct ftrace_ops;
- struct ftrace_regs;
- #define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
-diff --git a/arch/s390/include/asm/ftrace.h b/arch/s390/include/asm/ftrace.h
-index 1498d0a9c7625..fc97d75dc752c 100644
---- a/arch/s390/include/asm/ftrace.h
-+++ b/arch/s390/include/asm/ftrace.h
-@@ -51,12 +51,7 @@ static inline unsigned long ftrace_call_adjust(unsigned long addr)
- 	return addr;
- }
- 
--struct ftrace_regs;
--#define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
--
--struct __arch_ftrace_regs {
--	struct pt_regs regs;
--};
-+#include <linux/ftrace_regs.h>
- 
- static __always_inline struct pt_regs *arch_ftrace_get_regs(struct ftrace_regs *fregs)
- {
-@@ -84,12 +79,6 @@ static __always_inline unsigned long fgraph_ret_regs_frame_pointer(struct fgraph
- }
- #endif /* CONFIG_FUNCTION_GRAPH_TRACER */
- 
--static __always_inline unsigned long
--ftrace_regs_get_instruction_pointer(const struct ftrace_regs *fregs)
--{
--	return arch_ftrace_regs(fregs)->regs.psw.addr;
--}
--
- static __always_inline void
- ftrace_regs_set_instruction_pointer(struct ftrace_regs *fregs,
- 				    unsigned long ip)
-@@ -97,19 +86,6 @@ ftrace_regs_set_instruction_pointer(struct ftrace_regs *fregs,
- 	arch_ftrace_regs(fregs)->regs.psw.addr = ip;
- }
- 
--#define ftrace_regs_get_argument(fregs, n) \
--	regs_get_kernel_argument(&arch_ftrace_regs(fregs)->regs, n)
--#define ftrace_regs_get_stack_pointer(fregs) \
--	kernel_stack_pointer(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_return_value(fregs) \
--	regs_return_value(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_set_return_value(fregs, ret) \
--	regs_set_return_value(&arch_ftrace_regs(fregs)->regs, ret)
--#define ftrace_override_function_with_return(fregs) \
--	override_function_with_return(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_query_register_offset(name) \
--	regs_query_register_offset(name)
--
- #ifdef CONFIG_DYNAMIC_FTRACE_WITH_DIRECT_CALLS
- /*
-  * When an ftrace registered caller is tracing a function that is
-diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
-index 62fed5547c2e1..6e8cf0fa48fc6 100644
---- a/arch/x86/include/asm/ftrace.h
-+++ b/arch/x86/include/asm/ftrace.h
-@@ -35,12 +35,8 @@ static inline unsigned long ftrace_call_adjust(unsigned long addr)
- }
- 
- #ifdef CONFIG_HAVE_DYNAMIC_FTRACE_WITH_ARGS
--struct ftrace_regs;
--#define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
- 
--struct __arch_ftrace_regs {
--	struct pt_regs		regs;
--};
-+#include <linux/ftrace_regs.h>
- 
- static __always_inline struct pt_regs *
- arch_ftrace_get_regs(struct ftrace_regs *fregs)
-@@ -54,21 +50,6 @@ arch_ftrace_get_regs(struct ftrace_regs *fregs)
- #define ftrace_regs_set_instruction_pointer(fregs, _ip)	\
- 	do { arch_ftrace_regs(fregs)->regs.ip = (_ip); } while (0)
- 
--#define ftrace_regs_get_instruction_pointer(fregs) \
--	arch_ftrace_regs(fregs)->regs.ip)
--
--#define ftrace_regs_get_argument(fregs, n) \
--	regs_get_kernel_argument(&arch_ftrace_regs(fregs)->regs, n)
--#define ftrace_regs_get_stack_pointer(fregs) \
--	kernel_stack_pointer(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_return_value(fregs) \
--	regs_return_value(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_set_return_value(fregs, ret) \
--	regs_set_return_value(&arch_ftrace_regs(fregs)->regs, ret)
--#define ftrace_override_function_with_return(fregs) \
--	override_function_with_return(&arch_ftrace_regs(fregs)->regs)
--#define ftrace_regs_query_register_offset(name) \
--	regs_query_register_offset(name)
- 
- struct ftrace_ops;
- #define ftrace_graph_func ftrace_graph_func
-diff --git a/include/linux/ftrace.h b/include/linux/ftrace.h
-index fc76ce4bf0b7e..7930a3374bb52 100644
---- a/include/linux/ftrace.h
-+++ b/include/linux/ftrace.h
-@@ -113,6 +113,8 @@ static inline int ftrace_mod_get_kallsym(unsigned int symnum, unsigned long *val
- 
- #ifdef CONFIG_FUNCTION_TRACER
- 
-+#include <linux/ftrace_regs.h>
-+
- extern int ftrace_enabled;
- 
- /**
-@@ -150,14 +152,11 @@ struct ftrace_regs {
- #define ftrace_regs_size()	sizeof(struct __arch_ftrace_regs)
- 
- #ifndef CONFIG_HAVE_DYNAMIC_FTRACE_WITH_ARGS
--
--struct __arch_ftrace_regs {
--	struct pt_regs		regs;
--};
--
--struct ftrace_regs;
--#define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
--
-+/*
-+ * Architectures that define HAVE_DYNAMIC_FTRACE_WITH_ARGS must define their own
-+ * arch_ftrace_get_regs() where it only returns pt_regs *if* it is fully
-+ * populated. It should return NULL otherwise.
-+ */
- static inline struct pt_regs *arch_ftrace_get_regs(struct ftrace_regs *fregs)
- {
- 	return &arch_ftrace_regs(fregs)->regs;
-@@ -191,23 +190,6 @@ static __always_inline bool ftrace_regs_has_args(struct ftrace_regs *fregs)
- 	return ftrace_get_regs(fregs) != NULL;
- }
- 
--#ifndef CONFIG_HAVE_DYNAMIC_FTRACE_WITH_ARGS
--#define ftrace_regs_get_instruction_pointer(fregs) \
--	instruction_pointer(ftrace_get_regs(fregs))
--#define ftrace_regs_get_argument(fregs, n) \
--	regs_get_kernel_argument(ftrace_get_regs(fregs), n)
--#define ftrace_regs_get_stack_pointer(fregs) \
--	kernel_stack_pointer(ftrace_get_regs(fregs))
--#define ftrace_regs_return_value(fregs) \
--	regs_return_value(ftrace_get_regs(fregs))
--#define ftrace_regs_set_return_value(fregs, ret) \
--	regs_set_return_value(ftrace_get_regs(fregs), ret)
--#define ftrace_override_function_with_return(fregs) \
--	override_function_with_return(ftrace_get_regs(fregs))
--#define ftrace_regs_query_register_offset(name) \
--	regs_query_register_offset(name)
--#endif
--
- typedef void (*ftrace_func_t)(unsigned long ip, unsigned long parent_ip,
- 			      struct ftrace_ops *op, struct ftrace_regs *fregs);
- 
-diff --git a/include/linux/ftrace_regs.h b/include/linux/ftrace_regs.h
-new file mode 100644
-index 0000000000000..dea6a0851b749
---- /dev/null
-+++ b/include/linux/ftrace_regs.h
-@@ -0,0 +1,36 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
-+#ifndef _LINUX_FTRACE_REGS_H
-+#define _LINUX_FTRACE_REGS_H
-+
-+/*
-+ * For archs that just copy pt_regs in ftrace regs, it can use this default.
-+ * If an architecture does not use pt_regs, it must define all the below
-+ * accessor functions.
-+ */
-+#ifndef HAVE_ARCH_FTRACE_REGS
-+struct __arch_ftrace_regs {
-+	struct pt_regs		regs;
-+};
-+
-+#define arch_ftrace_regs(fregs) ((struct __arch_ftrace_regs *)(fregs))
-+
-+struct ftrace_regs;
-+
-+#define ftrace_regs_get_instruction_pointer(fregs) \
-+	instruction_pointer(arch_ftrace_get_regs(fregs))
-+#define ftrace_regs_get_argument(fregs, n) \
-+	regs_get_kernel_argument(arch_ftrace_get_regs(fregs), n)
-+#define ftrace_regs_get_stack_pointer(fregs) \
-+	kernel_stack_pointer(arch_ftrace_get_regs(fregs))
-+#define ftrace_regs_return_value(fregs) \
-+	regs_return_value(arch_ftrace_get_regs(fregs))
-+#define ftrace_regs_set_return_value(fregs, ret) \
-+	regs_set_return_value(arch_ftrace_get_regs(fregs), ret)
-+#define ftrace_override_function_with_return(fregs) \
-+	override_function_with_return(arch_ftrace_get_regs(fregs))
-+#define ftrace_regs_query_register_offset(name) \
-+	regs_query_register_offset(name)
-+
-+#endif /* HAVE_ARCH_FTRACE_REGS */
-+
-+#endif /* _LINUX_FTRACE_REGS_H */
--- 
-2.51.0
+So we should only set the flag for the native path, which truly calls
+native_flush_tlb_multi() directly.
 
+
+Have a great weekend,
+Lance
