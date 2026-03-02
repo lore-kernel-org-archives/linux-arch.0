@@ -1,243 +1,108 @@
-Received: from out-176.mta1.migadu.com (out-176.mta1.migadu.com [95.215.58.176])
+Received: from sipsolutions.net (s3.sipsolutions.net [168.119.38.16])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6ADCD430BBA
-	for <linux-arch@vger.kernel.org>; Mon,  2 Mar 2026 06:31:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.176
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4382A248F57;
+	Mon,  2 Mar 2026 07:39:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=168.119.38.16
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772433100; cv=none; b=kglTKC85v4nMLy6moWApjAEP7Kv/PTJrkFngIt/w9ztVy/9PvR6qQV0mm410xd8h/eHV5W6ejYGZcph/sfOBUtK1B78uEQ6MTKFLiWLXZ9is2xx75r6F+OpkhXz0mfcWBCCMaVD5DXwGdqg2o8KfFQjYBQzI2CbdN0GIGzqznQs=
+	t=1772437173; cv=none; b=oh07UElQ6ZzuesZFrjbMFJaCYPExQCZBpqk48FaYX6r/VwFjmxvU5lluUh2ExRYvMjsg315KHZrG5CKsdxsjSgHnthqEr+fkZD5BuU3PNJW7GbJpZfRO/Tym1ssUqhHUcLGgoM4BHogwJJqetT/iM6sb6TuVXoK6iuANjFbYkwg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772433100; c=relaxed/simple;
-	bh=yLsmO5W7JC5aPbOrAz3xMPpUYPJanHjXdS4qc/nKvXo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=QsFKftdfMW9OMQI7DV/WxXsomz3K7NSm3pFF5dnPilGEq4pVlwYdNo8LOsqubJYZxnGNYjz3bR0VXkxcv+73J+HMAg9CaumLN01gtNgeVupaVdvQw3WG2EwwmiTQPAmC5dINLOa2eowxJATvI3b34Y3QrKhN0OLKNq9ooSXIUno=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=YibaaDZz; arc=none smtp.client-ip=95.215.58.176
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1772437173; c=relaxed/simple;
+	bh=sRQsR35tocgGOPF+4BbdMojiyXXgifMPxfyFVJVZiCQ=;
+	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=JdUZaYf2+x57nP6B7XNbQ4MpqfLf0Kf7AHTOtABQZKmBfTq4MyOencfFX4CgvMdIFcDJKZQ0e6K3ZkqKwH5Q0d0LfvRH2FhyWB3XF8GqtaM2+f55sfycB5Ttzh8ssBcuBCJmxxsgoLb2WzOxjMMsDAMP3tqtYn3GspV59HD58x0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sipsolutions.net; spf=pass smtp.mailfrom=sipsolutions.net; dkim=pass (2048-bit key) header.d=sipsolutions.net header.i=@sipsolutions.net header.b=kua5aNVe; arc=none smtp.client-ip=168.119.38.16
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=sipsolutions.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sipsolutions.net
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="YibaaDZz"
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1772433097;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=I8gx42IHYEQCTDsiOiivkLZbaQbWhY24E85Lk6w39Tk=;
-	b=YibaaDZzBLg3a/3Lzh5+odGfgFy4rKCclMUZCLJe8oVE/bwTQq5eeGRW2n/iATLhzlFuh5
-	X0ieBE+2QbmggG/hWHCuLDq7DvHNaU84T2oUFsxdeTGqgWB5DpcfOGmuitzwpJz9A6mSNO
-	KMYpAP3NT27u9rnisSuI3b0J57v1rSU=
-From: Lance Yang <lance.yang@linux.dev>
-To: akpm@linux-foundation.org
-Cc: peterz@infradead.org,
-	david@kernel.org,
-	dave.hansen@intel.com,
-	dave.hansen@linux.intel.com,
-	ypodemsk@redhat.com,
-	hughd@google.com,
-	will@kernel.org,
-	aneesh.kumar@kernel.org,
-	npiggin@gmail.com,
-	tglx@linutronix.de,
-	mingo@redhat.com,
-	bp@alien8.de,
-	x86@kernel.org,
-	hpa@zytor.com,
-	arnd@arndb.de,
-	lorenzo.stoakes@oracle.com,
-	ziy@nvidia.com,
-	baolin.wang@linux.alibaba.com,
-	Liam.Howlett@oracle.com,
-	npache@redhat.com,
-	ryan.roberts@arm.com,
-	dev.jain@arm.com,
-	baohua@kernel.org,
-	shy828301@gmail.com,
-	riel@surriel.com,
-	jannh@google.com,
-	jgross@suse.com,
-	seanjc@google.com,
-	pbonzini@redhat.com,
-	boris.ostrovsky@oracle.com,
-	virtualization@lists.linux.dev,
-	kvm@vger.kernel.org,
-	linux-arch@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	ioworker0@gmail.com,
-	Lance Yang <lance.yang@linux.dev>
-Subject: [PATCH v5 2/2] x86/tlb: skip redundant sync IPIs for native TLB flush
-Date: Mon,  2 Mar 2026 14:30:36 +0800
-Message-ID: <20260302063048.9479-3-lance.yang@linux.dev>
-In-Reply-To: <20260302063048.9479-1-lance.yang@linux.dev>
-References: <20260302063048.9479-1-lance.yang@linux.dev>
+	dkim=pass (2048-bit key) header.d=sipsolutions.net header.i=@sipsolutions.net header.b="kua5aNVe"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=sipsolutions.net; s=mail; h=MIME-Version:Content-Transfer-Encoding:
+	Content-Type:References:In-Reply-To:Date:Cc:To:From:Subject:Message-ID:Sender
+	:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:Resent-To:
+	Resent-Cc:Resent-Message-ID; bh=s0B14b5FSBUEgAk+L55J5WroPPngMpauRKzhBytrof4=;
+	t=1772437172; x=1773646772; b=kua5aNVeUbfaBQdD2ly34qoR7qoIxaf+n8cAomfOPVOX7WT
+	8wvudIE1oLoXnebtkx4PUo7+vQKnIva+rUZwsHGVo9grqHvisKFaIWf0vpAXjH1N3bIjc7MkAzQup
+	pjWwtLtQGLKbw2EQB9ELxSiHccM0TYUN8C90vV0q9LjUbEyzqVaD7i/fhAcetfyuCtM1zvD+WrmVH
+	4HIUabu8/ELemD93y14rOhRYHoRXncLsiZzhAiGCh+TAQtZAjTL3+WOrhlfYrUGfBcPkJ7fvgfDnK
+	UgaToZNc0SOaM54itPN2ofW/axjbnxh6RwyLhG7Z8WOSB53E4FcZaKhf8bqAelYQ==;
+Received: by sipsolutions.net with esmtpsa (TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_256_GCM:256)
+	(Exim 4.98.2)
+	(envelope-from <johannes@sipsolutions.net>)
+	id 1vwxrd-00000005zul-3cbJ;
+	Mon, 02 Mar 2026 08:38:50 +0100
+Message-ID: <3e3f46aca653cf99799111279fc554b4ca31f6b7.camel@sipsolutions.net>
+Subject: Re: [PATCH 03/25] um/xor: don't override XOR_SELECT_TEMPLATE
+From: Johannes Berg <johannes@sipsolutions.net>
+To: Eric Biggers <ebiggers@kernel.org>, Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Richard Henderson	
+ <richard.henderson@linaro.org>, Matt Turner <mattst88@gmail.com>, Magnus
+ Lindholm <linmag7@gmail.com>, Russell King <linux@armlinux.org.uk>, Catalin
+ Marinas	 <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>, Huacai
+ Chen	 <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, Madhavan
+ Srinivasan	 <maddy@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>,
+ Nicholas Piggin	 <npiggin@gmail.com>, "Christophe Leroy (CS GROUP)"
+ <chleroy@kernel.org>,  Paul Walmsley	 <pjw@kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, Albert Ou	 <aou@eecs.berkeley.edu>, Alexandre Ghiti
+ <alex@ghiti.fr>, Heiko Carstens	 <hca@linux.ibm.com>, Vasily Gorbik
+ <gor@linux.ibm.com>, Alexander Gordeev	 <agordeev@linux.ibm.com>, Christian
+ Borntraeger <borntraeger@linux.ibm.com>,  Sven Schnelle
+ <svens@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, Andreas
+ Larsson	 <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>, Anton
+ Ivanov	 <anton.ivanov@cambridgegreys.com>, Thomas Gleixner
+ <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov
+ <bp@alien8.de>, Dave Hansen	 <dave.hansen@linux.intel.com>, x86@kernel.org,
+ "H. Peter Anvin" <hpa@zytor.com>,  Herbert Xu
+ <herbert@gondor.apana.org.au>, Dan Williams <dan.j.williams@intel.com>,
+ Chris Mason	 <clm@fb.com>, David Sterba <dsterba@suse.com>, Arnd Bergmann
+ <arnd@arndb.de>,  Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+ Li Nan <linan122@huawei.com>, 	linux-alpha@vger.kernel.org,
+ linux-kernel@vger.kernel.org, 	linux-arm-kernel@lists.infradead.org,
+ loongarch@lists.linux.dev, 	linuxppc-dev@lists.ozlabs.org,
+ linux-riscv@lists.infradead.org, 	linux-s390@vger.kernel.org,
+ sparclinux@vger.kernel.org, 	linux-um@lists.infradead.org,
+ linux-crypto@vger.kernel.org, 	linux-btrfs@vger.kernel.org,
+ linux-arch@vger.kernel.org, 	linux-raid@vger.kernel.org
+Date: Mon, 02 Mar 2026 08:38:47 +0100
+In-Reply-To: <20260228043006.GA65277@quark>
+References: <20260226151106.144735-1-hch@lst.de>
+	 <20260226151106.144735-4-hch@lst.de> <20260228043006.GA65277@quark>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.58.3 (3.58.3-1.fc43) 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Migadu-Flow: FLOW_OUT
+X-malware-bazaar: not-scanned
 
-From: Lance Yang <lance.yang@linux.dev>
+On Fri, 2026-02-27 at 20:30 -0800, Eric Biggers wrote:
+> On Thu, Feb 26, 2026 at 07:10:15AM -0800, Christoph Hellwig wrote:
+> > XOR_SELECT_TEMPLATE is only ever called with a NULL argument, so all th=
+e
+> > ifdef'ery doesn't do anything.  With our without this, the time travel
+> > mode should work fine on CPUs that support AVX2, as the AVX2
+> > implementation is forced in this case, and won't work otherwise.
+>=20
+[snip]
 
-Enable the optimization introduced in the previous patch for x86.
+> I'm not following this change.  Previously, in TT_MODE_INFCPU mode,
+> XOR_SELECT_TEMPLATE(NULL) returned &xor_block_avx, &xor_block_sse_pf64,
+> or &xor_block_8regs, causing the benchmark to be skipped.  After this
+> change, the benchmark starts being done on CPUs that don't support AVX.
 
-Add pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast to track whether
-flush_tlb_multi() sends real IPIs. Initialize it once in
-native_pv_tlb_init() during boot.
+Yeah the commit message is confusing - the change itself is really
+trading one (potential?) issue (CPUs w/o AVX) against another old issue
+(benchmark never terminates in TT_MODE_INFCPU).
 
-On CONFIG_PARAVIRT systems, tlb_table_flush_implies_ipi_broadcast() reads
-the pv_ops property. On non-PARAVIRT, it directly checks for INVLPGB.
+However, since commit c055e3eae0f1 ("crypto: xor - use ktime for
+template benchmarking") the latter issue doesn't even exist any more, so
+it now works without it, though it doesn't really benchmark anything.
+But that's fine too, nobody is going to be overly concerned about the
+performance here, I think, and if so there's really no good way to fix
+that other than providing a config option for an individual
+implementation.
 
-PV backends (KVM, Xen, Hyper-V) typically have their own implementations
-and don't call native_flush_tlb_multi() directly, so they cannot be trusted
-to provide the IPI guarantees we need. They keep the property false.
-
-Two-step plan as David suggested[1]:
-
-Step 1 (this patch): Skip redundant sync when we're 100% certain the TLB
-flush sent IPIs. INVLPGB is excluded because when supported, we cannot
-guarantee IPIs were sent, keeping it clean and simple.
-
-Step 2 (future work): Send targeted IPIs only to CPUs actually doing
-software/lockless page table walks, benefiting all architectures.
-
-Regarding Step 2, it obviously only applies to setups where Step 1 does
-not apply: like x86 with INVLPGB or arm64.
-
-[1] https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
-
-Suggested-by: David Hildenbrand (Arm) <david@kernel.org>
-Signed-off-by: Lance Yang <lance.yang@linux.dev>
----
- arch/x86/include/asm/paravirt_types.h |  5 +++++
- arch/x86/include/asm/smp.h            |  7 +++++++
- arch/x86/include/asm/tlb.h            | 20 +++++++++++++++++++-
- arch/x86/kernel/paravirt.c            | 16 ++++++++++++++++
- arch/x86/kernel/smpboot.c             |  1 +
- 5 files changed, 48 insertions(+), 1 deletion(-)
-
-diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
-index 9bcf6bce88f6..ec01268f2e3e 100644
---- a/arch/x86/include/asm/paravirt_types.h
-+++ b/arch/x86/include/asm/paravirt_types.h
-@@ -112,6 +112,11 @@ struct pv_mmu_ops {
- 	void (*flush_tlb_multi)(const struct cpumask *cpus,
- 				const struct flush_tlb_info *info);
- 
-+	/*
-+	 * True if flush_tlb_multi() sends real IPIs to all target CPUs.
-+	 */
-+	bool flush_tlb_multi_implies_ipi_broadcast;
-+
- 	/* Hook for intercepting the destruction of an mm_struct. */
- 	void (*exit_mmap)(struct mm_struct *mm);
- 	void (*notify_page_enc_status_changed)(unsigned long pfn, int npages, bool enc);
-diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
-index 84951572ab81..4ac175414ac1 100644
---- a/arch/x86/include/asm/smp.h
-+++ b/arch/x86/include/asm/smp.h
-@@ -105,6 +105,13 @@ void native_smp_prepare_boot_cpu(void);
- void smp_prepare_cpus_common(void);
- void native_smp_prepare_cpus(unsigned int max_cpus);
- void native_smp_cpus_done(unsigned int max_cpus);
-+
-+#ifdef CONFIG_PARAVIRT
-+void __init native_pv_tlb_init(void);
-+#else
-+static inline void native_pv_tlb_init(void) { }
-+#endif
-+
- int common_cpu_up(unsigned int cpunum, struct task_struct *tidle);
- int native_kick_ap(unsigned int cpu, struct task_struct *tidle);
- int native_cpu_disable(void);
-diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
-index 866ea78ba156..87ef7147eac8 100644
---- a/arch/x86/include/asm/tlb.h
-+++ b/arch/x86/include/asm/tlb.h
-@@ -5,10 +5,23 @@
- #define tlb_flush tlb_flush
- static inline void tlb_flush(struct mmu_gather *tlb);
- 
-+#define tlb_table_flush_implies_ipi_broadcast tlb_table_flush_implies_ipi_broadcast
-+static inline bool tlb_table_flush_implies_ipi_broadcast(void);
-+
- #include <asm-generic/tlb.h>
- #include <linux/kernel.h>
- #include <vdso/bits.h>
- #include <vdso/page.h>
-+#include <asm/paravirt.h>
-+
-+static inline bool tlb_table_flush_implies_ipi_broadcast(void)
-+{
-+#ifdef CONFIG_PARAVIRT
-+	return pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast;
-+#else
-+	return !cpu_feature_enabled(X86_FEATURE_INVLPGB);
-+#endif
-+}
- 
- static inline void tlb_flush(struct mmu_gather *tlb)
- {
-@@ -20,7 +33,12 @@ static inline void tlb_flush(struct mmu_gather *tlb)
- 		end = tlb->end;
- 	}
- 
--	flush_tlb_mm_range(tlb->mm, start, end, stride_shift, tlb->freed_tables);
-+	/*
-+	 * Pass both freed_tables and unshared_tables so that lazy-TLB CPUs
-+	 * also receive IPIs during unsharing page tables.
-+	 */
-+	flush_tlb_mm_range(tlb->mm, start, end, stride_shift,
-+			   tlb->freed_tables || tlb->unshared_tables);
- }
- 
- static inline void invlpg(unsigned long addr)
-diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
-index a6ed52cae003..b681b8319295 100644
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -154,6 +154,7 @@ struct paravirt_patch_template pv_ops = {
- 	.mmu.flush_tlb_kernel	= native_flush_tlb_global,
- 	.mmu.flush_tlb_one_user	= native_flush_tlb_one_user,
- 	.mmu.flush_tlb_multi	= native_flush_tlb_multi,
-+	.mmu.flush_tlb_multi_implies_ipi_broadcast = false,
- 
- 	.mmu.exit_mmap		= paravirt_nop,
- 	.mmu.notify_page_enc_status_changed	= paravirt_nop,
-@@ -221,3 +222,18 @@ NOKPROBE_SYMBOL(native_load_idt);
- 
- EXPORT_SYMBOL(pv_ops);
- EXPORT_SYMBOL_GPL(pv_info);
-+
-+void __init native_pv_tlb_init(void)
-+{
-+	/*
-+	 * If PV backend already set the property, respect it.
-+	 * Otherwise, check if native TLB flush sends real IPIs to all target
-+	 * CPUs (i.e., not using INVLPGB broadcast invalidation).
-+	 */
-+	if (pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast)
-+		return;
-+
-+	if (pv_ops.mmu.flush_tlb_multi == native_flush_tlb_multi &&
-+	    !cpu_feature_enabled(X86_FEATURE_INVLPGB))
-+		pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast = true;
-+}
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 5cd6950ab672..3cdb04162843 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -1167,6 +1167,7 @@ void __init native_smp_prepare_boot_cpu(void)
- 		switch_gdt_and_percpu_base(me);
- 
- 	native_pv_lock_init();
-+	native_pv_tlb_init();
- }
- 
- void __init native_smp_cpus_done(unsigned int max_cpus)
--- 
-2.49.0
-
+johannes
