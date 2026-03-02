@@ -1,177 +1,181 @@
-Received: from sg-1-100.ptr.blmpb.com (sg-1-100.ptr.blmpb.com [118.26.132.100])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out-185.mta0.migadu.com (out-185.mta0.migadu.com [91.218.175.185])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16F4033987
-	for <linux-arch@vger.kernel.org>; Mon,  2 Mar 2026 02:42:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=118.26.132.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E3222D23A6;
+	Mon,  2 Mar 2026 06:31:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.185
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772419338; cv=none; b=QYRRp+VVl20BIVYLJl4+0EKKNVBogS9BVXoo2JkQ5XAHR1YX8uAeppm1IP15mvcm7NT5gNJ+tnse8s0xXxKGOlk06LMOWSUhSrB1lZnI26Q25LMQgwVhmxyQ1D3n+4hMi6Gt1ZI0LeluDyNZvMA0ouEBRN+Uh81NgrK73sRnmC0=
+	t=1772433084; cv=none; b=WdJqojuTmQiYyquaPZnR9ABF/CSEF+ecQ5AHzQ6fkOpiJaNa/dksFRLRBXYvj4ZVCo8iDBsAKv2NonbgBg/YxbRkYRSgJj6c5Hug7xVCjTSu7n98iuVFYVOLmbaZTeDWFwBcDuCE0QJQZaxrcllz7HFQLVfuWwZmaW/SVXwaSWo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772419338; c=relaxed/simple;
-	bh=SLCaDIXfTpGuN0yh3HjmFh9+lzD39NDYAbWlrmxsA+0=;
-	h=To:From:Message-Id:Mime-Version:In-Reply-To:Cc:Subject:Date:
-	 References:Content-Type; b=DFKeOdS4kQH1mK4qDuZLqQTujedqjvvxm3bzzmaHtw/Jm76JBQ0T1Sm64nQqSTULCo4GZlKXMzA8RZRRrQ+dUuM+q6LJkyL65Pio//cOqYSbcfKd7tvgqdfd0SY2lQlhIb5wO2bLXctQ9rzSfobvGQ++BcCiHmwDrFYmwZt5i5M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com; spf=pass smtp.mailfrom=bytedance.com; dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b=N4xutGVP; arc=none smtp.client-ip=118.26.132.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=bytedance.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=bytedance.com
+	s=arc-20240116; t=1772433084; c=relaxed/simple;
+	bh=KME6LPeJ3dohr2G7tvG9f+9RaU2a6AbPm8ixRZaZV14=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=VcoFh+Tf5BL/stIHXQ0pkXhtEov4S2NZxxnfPyn/O4FvjKyZj79uOaZI5eX5i/JMGl1w2nQgsPeUrq4BTR0/F/YRi2HLnoI/gYe2TDVS8vJaLgSKxjMrG6+bHrzJgCOdfxiJ+qR21ICD+R5WAdun0GAqfjMeZo58xGBNyx5RBh4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=EL26oSKK; arc=none smtp.client-ip=91.218.175.185
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=bytedance.com header.i=@bytedance.com header.b="N4xutGVP"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
- s=2212171451; d=bytedance.com; t=1772419323; h=from:subject:
- mime-version:from:date:message-id:subject:to:cc:reply-to:content-type:
- mime-version:in-reply-to:message-id;
- bh=/eJxG3ytsS/czBn3wkR3RtXxETDxvhKr4cW1xKi3D/0=;
- b=N4xutGVPkdfgvmzt5HD54YPKQFkEkc/EZWpltQX99SxbYmI0aGPlUxd3xX2v+vmDvTGBT8
- zG7T3U+nCuZgI06Cjrtsn3KApBMkMMjbsNr+Oe5H6vPp9nyedSLz64CLP7K3PqOuc+Wq8R
- No9H4HD599UCuixpi54bDoYWjT3hi6O8rujPhB3eYg7xl3B8aiY4O6AI250nUNg2klR8oY
- zpSJ/uABIT/RVslZ4dpFkkuWHy98FTHzuyiN2X0Y6ItMOkbr/gjDwxitTEpdH/K+lIto2W
- rtFoHJvJtoa4zDoS3zBM/UXpGSneb0NMXdkbd9XpxRE8VnovA8Mg3mYgf2drdQ==
-Content-Transfer-Encoding: quoted-printable
-To: "Conor Dooley" <conor@kernel.org>
-From: "Rui Qi" <qirui.001@bytedance.com>
-Message-Id: <f4d46b2a-6375-4e86-8dc8-65753c1ca6ac@bytedance.com>
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="EL26oSKK"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1772433069;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=PCkDc+/JIEZu8yTcReQK9/dfFOjWNIdEfBJjK1+JSGg=;
+	b=EL26oSKKMmfqMxpSyKc7zpY9NL6kI0FEY4XuALcQ+valkHz1ft+atfA9XnRxyG8VaUhdmG
+	Xm6ekAWISZvCXUZJoNbLbOyxFkT5XdPoCY0xYHQlQoyhJeLbFoXB8QPFw0Y11xJopqgfpg
+	YM0WFZFes1OAmsYJEedg0Mo+OUB5ON4=
+From: Lance Yang <lance.yang@linux.dev>
+To: akpm@linux-foundation.org
+Cc: peterz@infradead.org,
+	david@kernel.org,
+	dave.hansen@intel.com,
+	dave.hansen@linux.intel.com,
+	ypodemsk@redhat.com,
+	hughd@google.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	tglx@linutronix.de,
+	mingo@redhat.com,
+	bp@alien8.de,
+	x86@kernel.org,
+	hpa@zytor.com,
+	arnd@arndb.de,
+	lorenzo.stoakes@oracle.com,
+	ziy@nvidia.com,
+	baolin.wang@linux.alibaba.com,
+	Liam.Howlett@oracle.com,
+	npache@redhat.com,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	baohua@kernel.org,
+	shy828301@gmail.com,
+	riel@surriel.com,
+	jannh@google.com,
+	jgross@suse.com,
+	seanjc@google.com,
+	pbonzini@redhat.com,
+	boris.ostrovsky@oracle.com,
+	virtualization@lists.linux.dev,
+	kvm@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	ioworker0@gmail.com
+Subject: [PATCH v5 0/2] skip redundant sync IPIs when TLB flush sent them
+Date: Mon,  2 Mar 2026 14:30:34 +0800
+Message-ID: <20260302063048.9479-1-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-X-Original-From: Rui Qi <qirui.001@bytedance.com>
-In-Reply-To: <20260227-scanner-trembling-5e41445f9e93@spud>
-Cc: <paul.walmsley@sifive.com>, <palmer@dabbelt.com>, 
-	<aou@eecs.berkeley.edu>, <alex@ghiti.fr>, <cyrilbur@tenstorrent.com>, 
-	<tglx@kernel.org>, <peterz@infradead.org>, <debug@rivosinc.com>, 
-	<andybnac@gmail.com>, <charlie@rivosinc.com>, <geomatsi@gmail.com>, 
-	<thuth@redhat.com>, <bjorn@rivosinc.com>, <songshuaishuai@tinylab.org>, 
-	<martin@kaiser.cx>, <masahiroy@kernel.org>, <kees@kernel.org>, 
-	<linux-arch@vger.kernel.org>, <linux-riscv@lists.infradead.org>, 
-	<linux-kernel@vger.kernel.org>
-Subject: Re: [PATCH] riscv: add system error interrupt handler support
-Date: Mon, 2 Mar 2026 10:41:39 +0800
-X-Lms-Return-Path: <lba+269a4f8f9+386d15+vger.kernel.org+qirui.001@bytedance.com>
-References: <20260226082735.56108-1-qirui.001@bytedance.com> <20260226-comprised-untold-1f2c0d2d48d6@spud> <2bc446a4-0082-4525-baab-0ac4c332cfa8@bytedance.com> <20260227-scanner-trembling-5e41445f9e93@spud>
-User-Agent: Mozilla Thunderbird
+MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On 2/27/26 6:08 PM, Conor Dooley wrote:
-> On Fri, Feb 27, 2026 at 03:54:39PM +0800, Rui Qi wrote:
->> On 2/26/26 5:22 PM, Conor Dooley wrote:
->>> On Thu, Feb 26, 2026 at 04:27:35PM +0800, Rui Qi wrote:
->>>> Add a system error interrupt handler for RISC-V that panics
->>>> the system when hardware errors are detected. The implementation inclu=
-des:
->>>>
->>>> - Add IRQ_SYS_ERROR (23) interrupt definition to CSR header
->>>> - Implement sys_error.c module with panic handler
->>>> - Register per-CPU interrupt handler for system error interrupts
->>>> - Add module to kernel build system
->>>>
->>>> When a system error interrupt occurs, the handler immediately panics
->>>> the system with a descriptive message to ensure the error is properly
->>>> captured and the system is halted safely.
->>>>
->>>> Signed-off-by: Rui Qi <qirui.001@bytedance.com>
->>>> ---
->>>>  arch/riscv/include/asm/csr.h  |  4 +-
->>>>  arch/riscv/kernel/Makefile    |  1 +
->>>>  arch/riscv/kernel/sys_error.c | 80 ++++++++++++++++++++++++++++++++++=
-+
->>>>  include/linux/cpuhotplug.h    |  1 +
->>>>  4 files changed, 85 insertions(+), 1 deletion(-)
->>>>  create mode 100644 arch/riscv/kernel/sys_error.c
->>>>
->>>> diff --git a/arch/riscv/include/asm/csr.h b/arch/riscv/include/asm/csr=
-.h
->>>> index 31b8988f4488..1f43c25b07ed 100644
->>>> --- a/arch/riscv/include/asm/csr.h
->>>> +++ b/arch/riscv/include/asm/csr.h
->>>> @@ -99,7 +99,8 @@
->>>>  #define IRQ_M_EXT		11
->>>>  #define IRQ_S_GEXT		12
->>>>  #define IRQ_PMU_OVF		13
->>>> -#define IRQ_LOCAL_MAX		(IRQ_PMU_OVF + 1)
->>>> +#define IRQ_SYS_ERROR		23
->>>
->>> Hmmm, two problems I think with this. 23 is one of the interrupts that
->>> has been reserved for use with AIA. I don't think they use it right now=
-,
->>> but in the future it might see use there.
->>>
->>> The first problem is kind of moot though, because reserving 16-23 for
->>> AIA is a retcon, and previously these interrupts were available custom
->>> use on any platform (as you have done here), so while it might be a
->>> system error on your platform, it could be something completely innocuo=
-us
->>> on mine!
->>>
->>> With that in mind, does having this in arch code make sense at all?
->>> Can this just be a normal driver, that'll only probe on your specific
->>> platform?
->>
->> Thanks for the comment.
->>
->> I checked the latest RISC-V Interrupt Spec (2025-03-12). In that
->> version, interrupts 16=E2=80=9323 are defined as architectural local int=
-errupts,
->> and interrupt 23 is tentatively proposed for a =E2=80=9CBus or system er=
-ror=E2=80=9D
->=20
-> Right, tentative is kinda no use to either of us though. Do you have
-> hardware that does this?
->=20
->> type condition. That suggests this interrupt number is no longer just a
->> free, platform-defined slot =E2=80=94 it now carries architectural inten=
-t and a
->> potential standardized meaning.
->=20
-> Emphasis on "potential", of course ;) Still a platform defined slot for
-> anyone that doesn't implement AIA, I think...
-> I don't understand the interaction between extensions and the priv spec
-> here, since the priv spec still says that 16 and higher are platform
-> specific.
->=20
->> Given this context, my current implementation treats interrupt 23 as a
->> local condition that matches the spec=E2=80=99s intent for a system-leve=
-l error
->> signal, rather than an arbitrary, custom platform interrupt. This seemed
->> reasonable as long as it aligns with the architectural semantics for
->> local interrupts.
->>
->> That said, I=E2=80=99m open to the concern about placing this handling i=
-n
->> arch/riscv, and I=E2=80=99d like to understand your preference: do you t=
-hink
->> this should be entirely moved into platform-specific code, or would a
->> conditional, spec-aware arch implementation (e.g., gated on the presence
->> of the relevant AIA/local interrupt support) be acceptable? Please let
->=20
-> It can't be gated on AIA, because AIA isn't the extension that says that
-> this is what interrupt 23 does (it specifically says that new extensions
-> are expected to define the use of the three interrupts "proposes"), and
-> we don't permit extension related stuff that is not frozen. I couldn't
-> find an extension at any stage that set the behaviour in stone, are you
-> aware of one? If one exists, a spec-aware arch implementation would be
-> okay. If one does not, you'll have to make this specific to your
-> platform until that extension shows up.
->=20
->> me know what approach you=E2=80=99d suggest.
+Hi all,
 
-Thanks for the clarification =E2=80=94 that makes sense.
+When page table operations require synchronization with software/lockless
+walkers, they call tlb_remove_table_sync_{one,rcu}() after flushing the
+TLB (tlb->freed_tables or tlb->unshared_tables).
 
-You're right that AIA itself does not normatively define the semantics
-of interrupt 23, and that the wording there is explicitly provisional. I
-also understand the policy around not merging extension-related behavior
-unless it is tied to a frozen specification.
+On architectures where the TLB flush already sends IPIs to all target CPUs,
+the subsequent sync IPI broadcast is redundant. This is not only costly on
+large systems where it disrupts all CPUs even for single-process page table
+operations, but has also been reported to hurt RT workloads[1].
 
-My reasoning was based on the architectural direction indicated in the
-interrupt spec, but I agree that =E2=80=9Ctentative=E2=80=9D does not const=
-itute a
-stable architectural contract, and therefore isn't sufficient to justify
-arch-level handling at this point.
+This series introduces tlb_table_flush_implies_ipi_broadcast() to check if
+the prior TLB flush already provided the necessary synchronization. When
+true, the sync calls can early-return.
 
-Given that, I can move this into platform-specific code for now. If and
-when a ratified extension formally assigns defined semantics to
-interrupt 23, we could then revisit a spec-aware arch implementation
-gated on that extension.
+A few cases rely on this synchronization:
 
-Please let me know if that approach aligns better with your expectations.
+1) hugetlb PMD unshare[2]: The problem is not the freeing but the reuse
+   of the PMD table for other purposes in the last remaining user after
+   unsharing.
+
+2) khugepaged collapse[3]: Ensure no concurrent GUP-fast before collapsing
+   and (possibly) freeing the page table / re-depositing it.
+
+Two-step plan as David suggested[4]:
+
+Step 1 (this series): Skip redundant sync when we're 100% certain the TLB
+flush sent IPIs. INVLPGB is excluded because when supported, we cannot
+guarantee IPIs were sent, keeping it clean and simple.
+
+Step 2 (future work): Send targeted IPIs only to CPUs actually doing
+software/lockless page table walks, benefiting all architectures.
+
+Regarding Step 2, it obviously only applies to setups where Step 1 does not
+apply: like x86 with INVLPGB or arm64. Step 2 work is ongoing; early
+attempts showed ~3% GUP-fast overhead. Reducing the overhead requires more
+work and tuning; it will be submitted separately once ready.
+
+David Hildenbrand did the initial implementation. I built on his work and
+relied on off-list discussions to push it further - thanks a lot David!
+
+[1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+[2] https://lore.kernel.org/linux-mm/6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org/
+[3] https://lore.kernel.org/linux-mm/2cb4503d-3a3f-4f6c-8038-7b3d1c74b3c2@kernel.org/
+[4] https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+
+v4 -> v5:
+- Drop per-CPU tracking (active_lockless_pt_walk_mm) from this series;
+  defer to Step 2 as it adds ~3% GUP-fast overhead
+- Keep pv_ops property false for PV backends like KVM: preempted vCPUs
+  cannot be assumed safe（per Sean)
+  https://lore.kernel.org/linux-mm/aaCP95l-m8ISXF78@google.com/
+- https://lore.kernel.org/linux-mm/20260202074557.16544-1-lance.yang@linux.dev/ 
+
+v3 -> v4:
+- Rework based on David's two-step direction and per-CPU idea:
+  1) Targeted IPIs: per-CPU variable when entering/leaving lockless page
+     table walk; tlb_remove_table_sync_mm() IPIs only those CPUs.
+  2) On x86, pv_mmu_ops property set at init to skip the extra sync when
+     flush_tlb_multi() already sends IPIs.
+  https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+- https://lore.kernel.org/linux-mm/20260106120303.38124-1-lance.yang@linux.dev/
+
+v2 -> v3:
+- Complete rewrite: use dynamic IPI tracking instead of static checks
+  (per Dave Hansen, thanks!)
+- Track IPIs via mmu_gather: native_flush_tlb_multi() sets flag when
+  actually sending IPIs
+- Motivation for skipping redundant IPIs explained by David:
+  https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+- https://lore.kernel.org/linux-mm/20251229145245.85452-1-lance.yang@linux.dev/
+
+v1 -> v2:
+- Fix cover letter encoding to resolve send-email issues. Apologies for
+  any email flood caused by the failed send attempts :(
+
+RFC -> v1:
+- Use a callback function in pv_mmu_ops instead of comparing function
+  pointers (per David)
+- Embed the check directly in tlb_remove_table_sync_one() instead of
+  requiring every caller to check explicitly (per David)
+- Move tlb_table_flush_implies_ipi_broadcast() outside of
+  CONFIG_MMU_GATHER_RCU_TABLE_FREE to fix build error on architectures
+  that don't enable this config.
+  https://lore.kernel.org/oe-kbuild-all/202512142156.cShiu6PU-lkp@intel.com/
+- https://lore.kernel.org/linux-mm/20251213080038.10917-1-lance.yang@linux.dev/
+
+Lance Yang (2):
+  mm/mmu_gather: prepare to skip redundant sync IPIs
+  x86/tlb: skip redundant sync IPIs for native TLB flush
+
+ arch/x86/include/asm/paravirt_types.h |  5 +++++
+ arch/x86/include/asm/smp.h            |  7 +++++++
+ arch/x86/include/asm/tlb.h            | 20 +++++++++++++++++++-
+ arch/x86/kernel/paravirt.c            | 16 ++++++++++++++++
+ arch/x86/kernel/smpboot.c             |  1 +
+ include/asm-generic/tlb.h             | 17 +++++++++++++++++
+ mm/mmu_gather.c                       | 15 +++++++++++++++
+ 7 files changed, 80 insertions(+), 1 deletion(-)
+
+-- 
+2.49.0
+
