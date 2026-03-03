@@ -1,106 +1,97 @@
-Received: from fanzine2.igalia.com (fanzine2.igalia.com [213.97.179.56])
+Received: from verein.lst.de (verein.lst.de [213.95.11.211])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 68A4239183D;
-	Tue,  3 Mar 2026 14:23:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.97.179.56
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85C0E4949F4;
+	Tue,  3 Mar 2026 16:01:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772547810; cv=none; b=HsYUUcH2jEvFmj5goUNXij2aDs4d+B9gDFXwEoQKKUXV9XEw6SUk8TKXQYh020yFvyC9mdEX5TIGaSNJDNSyNTH6QgZxerrPtY6J3qoryx4bafG2k33jsp5J4UsmNmmJPsgZ4KzX/fzMpxao17oWl/wQ6wxIPnLTwbKzsqPrrLk=
+	t=1772553665; cv=none; b=r2CjDofs+3X1lpffHG9DUXX2QKVM4JCzMiIaffTWk0IjY68AwMbU3g0ZcMNgQWszf47gCrZvbdfp6HRKFuO4zkkfIdm6O0rwmKWSbbRfBckOAwv+EgulFvka+2heC9y0EJeyJoKxD5crFhU6HJqdmBIuL5QJ2zJXrWBPHpjEVsw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772547810; c=relaxed/simple;
-	bh=Je4OV4hkw09I1QtAT6SMBbAN3iAzNxXFYdb1OSu2IEQ=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=WkvF+mYGBjj553cNOEYNzszmLPKZRjfQoOZeKTh2NgBC8cpBd9x2xmaFQkPOjYF13Uha0X/AXpFujWmLlhNkahHwQtwqKP7srP76iqjE+yUJZl3rtsj1oJKoiK0QdnvJ0LAQAoNZZzRc4IC40W8hnd3Dcu+cRkYK96s5ITAlUqc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com; spf=pass smtp.mailfrom=igalia.com; dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b=S2c71Kju; arc=none smtp.client-ip=213.97.179.56
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=igalia.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=igalia.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=igalia.com header.i=@igalia.com header.b="S2c71Kju"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=igalia.com;
-	s=20170329; h=Content-Transfer-Encoding:Content-Type:In-Reply-To:From:
-	References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender:Reply-To:
-	Content-ID:Content-Description:Resent-Date:Resent-From:Resent-Sender:
-	Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:
-	List-Subscribe:List-Post:List-Owner:List-Archive;
-	bh=V9K9eHwrlIRGUDb9b+vJ+/q2wTIDQ/HfwDI0lgkynIY=; b=S2c71KjujlLy3Uj7Ja/KnErDje
-	tWvlO9jIn+2+wBCqKNXICTJVdOBcONZhDBzgwYZgIMbLTEMaCj7C4Uv3vpKYIuD4LNahQBCPI2KAU
-	upEy8iT7LV+D75RpxSZKHqx2N6AZOya+DOkksC326FIb3DRJwjvwDDR17EccGYnRyyNrk+jIr0+uO
-	+te19htxb7DF7U0OFxeOcrZzJY026J7YWgeHNoHJo1Bl/AiHhYsqaWGnaDTLoGGym88EZTLKu5Z2j
-	E0lHsfSFL88cTdSexdmEXW/2IpeKlL5bepVT6ldjegEpzTgyaBk2UjXArZ6QqtXz0UZHFBSmIEgjN
-	RjQPA29Q==;
-Received: from [177.172.125.177] (helo=[192.168.15.100])
-	by fanzine2.igalia.com with esmtpsa 
-	(Cipher TLS1.3:ECDHE_X25519__RSA_PSS_RSAE_SHA256__AES_128_GCM:128) (Exim)
-	id 1vxQeX-008UJL-Hb; Tue, 03 Mar 2026 15:23:13 +0100
-Message-ID: <e619c5fd-2e92-49a4-897f-8497980b417a@igalia.com>
-Date: Tue, 3 Mar 2026 11:23:07 -0300
+	s=arc-20240116; t=1772553665; c=relaxed/simple;
+	bh=mTiv9QtnxAmDU7iBPLuvPKwF8m82DFxtJ9m30zudKqY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=p+BDHkJLd/ofyqJwviZvcVTkEz2TlstWbNlSTCcV+J3EhdvVWY3r5MDpwU6MrydizEZ+rhBrE98jUhZYdaXYkdtLSwG8V+3HeT/fLg/qvlplLHZiVCjZUz51Cnlg+IJt0vRYQgydAsWsAf3i4+4lW+Q9IXY14nWam1ck7rqnUu4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
+Received: by verein.lst.de (Postfix, from userid 2407)
+	id 89BBD68BFE; Tue,  3 Mar 2026 17:00:51 +0100 (CET)
+Date: Tue, 3 Mar 2026 17:00:50 +0100
+From: Christoph Hellwig <hch@lst.de>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Christoph Hellwig <hch@lst.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Richard Henderson <richard.henderson@linaro.org>,
+	Matt Turner <mattst88@gmail.com>,
+	Magnus Lindholm <linmag7@gmail.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>, linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+	linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: [PATCH 01/25] xor: assert that xor_blocks is not called from
+ interrupt context
+Message-ID: <20260303160050.GB7021@lst.de>
+References: <20260226151106.144735-1-hch@lst.de> <20260226151106.144735-2-hch@lst.de> <20260227142455.GG1282955@noisy.programming.kicks-ass.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird Beta
-Subject: Re: [PATCH] futex: add missing function parameter comments
-To: Randy Dunlap <rdunlap@infradead.org>
-Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Peter Zijlstra <peterz@infradead.org>, Darren Hart <dvhart@infradead.org>,
- Davidlohr Bueso <dave@stgolabs.net>, linux-kernel@vger.kernel.org,
- Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-References: <20260228071759.2663907-1-rdunlap@infradead.org>
-Content-Language: en-US
-From: =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>
-In-Reply-To: <20260228071759.2663907-1-rdunlap@infradead.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260227142455.GG1282955@noisy.programming.kicks-ass.net>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 
-Hi Randy,
-
-Thanks for your patch
-
-Em 28/02/2026 04:17, Randy Dunlap escreveu:
-> Correct or add the missing function parameter kernel-doc comments
-> to avoid warnings:
+On Fri, Feb 27, 2026 at 03:24:55PM +0100, Peter Zijlstra wrote:
+> >  	unsigned long *p1, *p2, *p3, *p4;
+> >  
+> > +	WARN_ON_ONCE(in_interrupt());
 > 
-> Warning: include/asm-generic/futex.h:38 function parameter 'op' not
->   described in 'futex_atomic_op_inuser_local'
-> Warning: include/asm-generic/futex.h:38 function parameter 'oparg' not
->   described in 'futex_atomic_op_inuser_local'
-> Warning: include/asm-generic/futex.h:38 function parameter 'oval' not
->   described in 'futex_atomic_op_inuser_local'
+> Your changelog makes it sound like you want:
 > 
-> Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
-> ---
-> Cc: Thomas Gleixner <tglx@kernel.org>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Cc: Darren Hart <dvhart@infradead.org>
-> Cc: Davidlohr Bueso <dave@stgolabs.net>
-> Cc: André Almeida <andrealmeid@igalia.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
+> 	WARN_ON_ONCE(!in_task());
 > 
->   include/asm-generic/futex.h |    4 +++-
->   1 file changed, 3 insertions(+), 1 deletion(-)
+> But perhaps something like so:
 > 
-> --- linux-next-20260211.orig/include/asm-generic/futex.h
-> +++ linux-next-20260211/include/asm-generic/futex.h
-> @@ -25,7 +25,9 @@
->    *			  argument and comparison of the previous
->    *			  futex value with another constant.
->    *
-> - * @encoded_op:	encoded operation to execute
-> + * @op:		encoded operation to execute
+> 	lockdep_assert_preempt_enabled();
+> 
+> Would do? That ensures we are in preemptible context, which is much the
+> same. That also ensures the cost of this assertion is only paid on debug
+> kernels.
 
-I think we don't need the "encoded" part anymore
-
-> + * @oparg:	operation code (one of FUTEX_OP_...)
-
-This is the argument of the operation, e.g when op is FUTEX_OP_ADD, 
-oparg is the value to be added.
-
-> + * @oval:	previous value at @uaddr on successful return
->    * @uaddr:	pointer to user space address
->    *
->    * Return:
+No idea honestly.  The kernel FPU/vector helpers generally don't work
+from irq context, and I want to assert that.  Happy to do whatever
+version works best for that.
 
