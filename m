@@ -1,49 +1,71 @@
-Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+Received: from out-180.mta0.migadu.com (out-180.mta0.migadu.com [91.218.175.180])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 739F84594A;
-	Wed,  4 Mar 2026 00:50:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08CF925BEF8
+	for <linux-arch@vger.kernel.org>; Wed,  4 Mar 2026 02:11:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772585411; cv=none; b=C87GCNWeMMZlf/aPkd4ZMIaK9QFp5hSPQCDSibKGXmzkeRGE9LafrgnTxrEaBfxHrsbGZY1Jgp3mSwnLYO0jNP1sLye40D9/T/opf/T5zyKpqbFtS4l/BEtmuN4itS6uizNOekxediQfo9Vxkg3FGkENuBjdaodQacWJpgiOjPE=
+	t=1772590283; cv=none; b=BYSzGLj+3H39uZAd5AM1kUfVetslsk/Y2lLhIjBPY8JRxc/xR5ZhxGwg8myogeZJp3315QqF+5qBWd508bv4q/YuCqnZ+xcD9+c3S00hC1e212tqrw91i7NgdWASsXVL9itXzH7yV8Zi0f4ouOMO3nSnQpd6oEptEmkwMUHpBnY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772585411; c=relaxed/simple;
-	bh=tghgoRdVx1Wu5cFf4gcpa8oLY8fuL3jhRm4M03f7Li4=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=LEitstmppiNEpFwL5HiHUM1FNzKBdTvsOV3HDuChoaBWO4PbwGDajLwtkZHEoEgkHjSEvlqwMmvVaPBozdaEhEFsNmiJPWSP7AXTvyH+uEKGSAVWXrSPOZMylwafMCCZw1eHM0wrtcHJYdFz3Tj8Sl8vH++FwGzr91ym7VgBZzY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=OjAy/CUB; arc=none smtp.client-ip=198.137.202.133
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1772590283; c=relaxed/simple;
+	bh=v0z5IM5DkjLk1Ued7sa2Hjlo1gS/yjWo8+q3na/hsVE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=D3QIOM8mC/yMilMr/ugDYIJEzZByvgz2CMBOZLSHSAUWCe5lJdyvh0t9fTT0oQ11Kf5PoH4PAFJ6lpEV5jp2LvLQCIwWUvtRsnjcjvxZBfdKiFVRMIPBa+qE8S5m/IFacz+3mbKR+cqzk2O1RmW+WESfWozLHWM6+yPp93MdTqU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=TfoAoGf+; arc=none smtp.client-ip=91.218.175.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="OjAy/CUB"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
-	Content-Type:MIME-Version:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
-	Content-ID:Content-Description:In-Reply-To:References;
-	bh=b7Ktm12Ia7mymNYEoqYtS66SI6284FUIrAD8tUKVZ3I=; b=OjAy/CUBHSjgRP/xN7yyBFcY2J
-	niyOq1JJVFOCeGavPg+UEAjQd/b9pGihao58gFNuGQ3qFDXDydLxFayj/QbhhA3CCwbb/2p1ekwJh
-	RFlxwQyACav8sSFOhHNtaHmbQHWqUJGbo9/EZ/vDbyXoQCzM9dW9Di7SzqW7gsSkWUdIav+DCNtQC
-	rAxnQa55WXJxDjoz8VxnJZQmwE9WIiDP4Ko3IR3MZnqhoEqixrxJAU3l1c9Pay298vk1Tbgmk0qBa
-	6fSPx7iLKpzz5EmPUizwkVpCsDqWjQrqSYD28BFakjsmqsjgj+ri314NFw/o4a53Uir8UJtkzPc8r
-	0T7Zf+tA==;
-Received: from [50.53.43.113] (helo=bombadil.infradead.org)
-	by bombadil.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vxaRF-0000000GBmG-2nrm;
-	Wed, 04 Mar 2026 00:50:09 +0000
-From: Randy Dunlap <rdunlap@infradead.org>
-To: linux-kernel@vger.kernel.org
-Cc: Randy Dunlap <rdunlap@infradead.org>,
-	Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Darren Hart <dvhart@infradead.org>,
-	Davidlohr Bueso <dave@stgolabs.net>,
-	=?UTF-8?q?Andr=C3=A9=20Almeida?= <andrealmeid@igalia.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	linux-arch@vger.kernel.org
-Subject: [PATCH v2] futex: add missing function parameter comments
-Date: Tue,  3 Mar 2026 16:50:03 -0800
-Message-ID: <20260304005008.409858-1-rdunlap@infradead.org>
-X-Mailer: git-send-email 2.53.0
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="TfoAoGf+"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1772590269;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=7JM7KJg1oz9+GC4H9JC1/W5RywkkP5XIUmh+2MLnGSo=;
+	b=TfoAoGf+iMnRCMxJ8U+btPdh+IIPPGxbuJdCC7Bd8LNMgByq7FyGFJ8m239RpK7m8U7Er9
+	ze4BIS3oQfjHrS/KLKbCq2w6tPQJZEG8QeCJFAm2gU8TVjN1SsvRtH/Oi+tGbYzvdufzn6
+	WMUcrLp1nIb5jDKxp24nvmO9DVyhCd0=
+From: Lance Yang <lance.yang@linux.dev>
+To: akpm@linux-foundation.org
+Cc: peterz@infradead.org,
+	david@kernel.org,
+	dave.hansen@intel.com,
+	dave.hansen@linux.intel.com,
+	ypodemsk@redhat.com,
+	hughd@google.com,
+	will@kernel.org,
+	aneesh.kumar@kernel.org,
+	npiggin@gmail.com,
+	tglx@linutronix.de,
+	mingo@redhat.com,
+	bp@alien8.de,
+	x86@kernel.org,
+	hpa@zytor.com,
+	arnd@arndb.de,
+	lorenzo.stoakes@oracle.com,
+	ziy@nvidia.com,
+	baolin.wang@linux.alibaba.com,
+	Liam.Howlett@oracle.com,
+	npache@redhat.com,
+	ryan.roberts@arm.com,
+	dev.jain@arm.com,
+	baohua@kernel.org,
+	shy828301@gmail.com,
+	riel@surriel.com,
+	jannh@google.com,
+	jgross@suse.com,
+	seanjc@google.com,
+	pbonzini@redhat.com,
+	boris.ostrovsky@oracle.com,
+	virtualization@lists.linux.dev,
+	kvm@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	ioworker0@gmail.com
+Subject: [PATCH v6 0/2] skip redundant sync IPIs when TLB flush sent them
+Date: Wed,  4 Mar 2026 10:10:42 +0800
+Message-ID: <20260304021046.18550-1-lance.yang@linux.dev>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,43 +74,114 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-Correct or add the missing function parameter kernel-doc comments
-to avoid warnings:
+Hi all,
 
-Warning: include/asm-generic/futex.h:38 function parameter 'op' not
- described in 'futex_atomic_op_inuser_local'
-Warning: include/asm-generic/futex.h:38 function parameter 'oparg' not
- described in 'futex_atomic_op_inuser_local'
-Warning: include/asm-generic/futex.h:38 function parameter 'oval' not
- described in 'futex_atomic_op_inuser_local'
+When page table operations require synchronization with software/lockless
+walkers, they call tlb_remove_table_sync_{one,rcu}() after flushing the
+TLB (tlb->freed_tables or tlb->unshared_tables).
 
-Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
----
-v2: clarify descriptions (André)
+On architectures where the TLB flush already sends IPIs to all target CPUs,
+the subsequent sync IPI broadcast is redundant. This is not only costly on
+large systems where it disrupts all CPUs even for single-process page table
+operations, but has also been reported to hurt RT workloads[1].
 
-Cc: Thomas Gleixner <tglx@kernel.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Darren Hart <dvhart@infradead.org>
-Cc: Davidlohr Bueso <dave@stgolabs.net>
-Cc: André Almeida <andrealmeid@igalia.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+This series introduces tlb_table_flush_implies_ipi_broadcast() to check if
+the prior TLB flush already provided the necessary synchronization. When
+true, the sync calls can early-return.
 
- include/asm-generic/futex.h |    4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+A few cases rely on this synchronization:
 
---- linux-next-20260227.orig/include/asm-generic/futex.h
-+++ linux-next-20260227/include/asm-generic/futex.h
-@@ -25,7 +25,9 @@
-  *			  argument and comparison of the previous
-  *			  futex value with another constant.
-  *
-- * @encoded_op:	encoded operation to execute
-+ * @op:		operation to execute
-+ * @oparg:	argument of the operation
-+ * @oval:	previous value at @uaddr on successful return
-  * @uaddr:	pointer to user space address
-  *
-  * Return:
+1) hugetlb PMD unshare[2]: The problem is not the freeing but the reuse
+   of the PMD table for other purposes in the last remaining user after
+   unsharing.
+
+2) khugepaged collapse[3]: Ensure no concurrent GUP-fast before collapsing
+   and (possibly) freeing the page table / re-depositing it.
+
+Two-step plan as David suggested[4]:
+
+Step 1 (this series): Skip redundant sync when we're 100% certain the TLB
+flush sent IPIs. INVLPGB is excluded because when supported, we cannot
+guarantee IPIs were sent, keeping it clean and simple.
+
+Step 2 (future work): Send targeted IPIs only to CPUs actually doing
+software/lockless page table walks, benefiting all architectures.
+
+Regarding Step 2, it obviously only applies to setups where Step 1 does not
+apply: like x86 with INVLPGB or arm64. Step 2 work is ongoing; early
+attempts showed ~3% GUP-fast overhead. Reducing the overhead requires more
+work and tuning; it will be submitted separately once ready.
+
+David Hildenbrand did the initial implementation. I built on his work and
+relied on off-list discussions to push it further - thanks a lot David!
+
+[1] https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+[2] https://lore.kernel.org/linux-mm/6a364356-5fea-4a6c-b959-ba3b22ce9c88@kernel.org/
+[3] https://lore.kernel.org/linux-mm/2cb4503d-3a3f-4f6c-8038-7b3d1c74b3c2@kernel.org/
+[4] https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+
+v5 -> v6:
+- Use static_branch to eliminating the branch overhead (per Peter)
+- https://lore.kernel.org/linux-mm/20260302063048.9479-1-lance.yang@linux.dev/
+
+v4 -> v5:
+- Drop per-CPU tracking (active_lockless_pt_walk_mm) from this series;
+  defer to Step 2 as it adds ~3% GUP-fast overhead
+- Keep pv_ops property false for PV backends like KVM: preempted vCPUs
+  cannot be assumed safe（per Sean)
+  https://lore.kernel.org/linux-mm/aaCP95l-m8ISXF78@google.com/
+- https://lore.kernel.org/linux-mm/20260202074557.16544-1-lance.yang@linux.dev/ 
+
+v3 -> v4:
+- Rework based on David's two-step direction and per-CPU idea:
+  1) Targeted IPIs: per-CPU variable when entering/leaving lockless page
+     table walk; tlb_remove_table_sync_mm() IPIs only those CPUs.
+  2) On x86, pv_mmu_ops property set at init to skip the extra sync when
+     flush_tlb_multi() already sends IPIs.
+  https://lore.kernel.org/linux-mm/bbfdf226-4660-4949-b17b-0d209ee4ef8c@kernel.org/
+- https://lore.kernel.org/linux-mm/20260106120303.38124-1-lance.yang@linux.dev/
+
+v2 -> v3:
+- Complete rewrite: use dynamic IPI tracking instead of static checks
+  (per Dave Hansen, thanks!)
+- Track IPIs via mmu_gather: native_flush_tlb_multi() sets flag when
+  actually sending IPIs
+- Motivation for skipping redundant IPIs explained by David:
+  https://lore.kernel.org/linux-mm/1b27a3fa-359a-43d0-bdeb-c31341749367@kernel.org/
+- https://lore.kernel.org/linux-mm/20251229145245.85452-1-lance.yang@linux.dev/
+
+v1 -> v2:
+- Fix cover letter encoding to resolve send-email issues. Apologies for
+  any email flood caused by the failed send attempts :(
+
+RFC -> v1:
+- Use a callback function in pv_mmu_ops instead of comparing function
+  pointers (per David)
+- Embed the check directly in tlb_remove_table_sync_one() instead of
+  requiring every caller to check explicitly (per David)
+- Move tlb_table_flush_implies_ipi_broadcast() outside of
+  CONFIG_MMU_GATHER_RCU_TABLE_FREE to fix build error on architectures
+  that don't enable this config.
+  https://lore.kernel.org/oe-kbuild-all/202512142156.cShiu6PU-lkp@intel.com/
+- https://lore.kernel.org/linux-mm/20251213080038.10917-1-lance.yang@linux.dev/
+
+Lance Yang (2):
+  mm/mmu_gather: prepare to skip redundant sync IPIs
+  x86/tlb: skip redundant sync IPIs for native TLB flush
+
+ arch/x86/include/asm/paravirt_types.h |  5 +++++
+ arch/x86/include/asm/smp.h            |  3 +++
+ arch/x86/include/asm/tlb.h            | 16 +++++++++++++++-
+ arch/x86/include/asm/tlbflush.h       |  3 +++
+ arch/x86/kernel/paravirt.c            | 20 ++++++++++++++++++++
+ arch/x86/kernel/smpboot.c             |  1 +
+ arch/x86/mm/tlb.c                     | 14 ++++++++++++++
+ include/asm-generic/tlb.h             | 17 +++++++++++++++++
+ mm/mmu_gather.c                       | 15 +++++++++++++++
+ 9 files changed, 93 insertions(+), 1 deletion(-)
+
+-- 
+2.49.0
+
