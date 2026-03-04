@@ -1,73 +1,72 @@
-Received: from mail-pf1-f182.google.com (mail-pf1-f182.google.com [209.85.210.182])
+Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C1FDB315D3E
-	for <linux-arch@vger.kernel.org>; Wed,  4 Mar 2026 13:52:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60666313558
+	for <linux-arch@vger.kernel.org>; Wed,  4 Mar 2026 13:52:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772632338; cv=none; b=Eyys5AeTSze7bbD2zOSiQcvncpHArlBvir1PCte31pVY+Izq2BO4URyD9DA9aGJW88mi3ap0oq0z36WDz5vjpilZ3Bc5yT3M73XxJJ/gkFJ8cS/TDAu3k4irg1NN6d/YggL4sEkj+ubihzEuZR/ys2nYPVlmw43Rckm4i9Y1NC4=
+	t=1772632344; cv=none; b=QpFfgaRdk2gWAGg2ah/FMpVY4XawqZVbLq7g704v14FScn6Njphd90SUNVgFMFcHd35jPXWNa/+5QujdgcVBpp96uie8t0KDcc/eT6tpDaHzygBd1J9ZPVHkApjgfrO/zpeiT/NqwH3Expn80GTDIXYZrc6B+RhWXKV5ZZtgjwA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772632338; c=relaxed/simple;
-	bh=Qd0rnZBE1xws3W96Pw5Blesuqote85Z9+msEuuIV0jA=;
+	s=arc-20240116; t=1772632344; c=relaxed/simple;
+	bh=HtPwdh/RwoBGXHuJf4+43ZMxxXvBkBrAxyR+gumSlkk=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=IQgHIR+EA+GS2NqVdcyw1XNx9BD9eSGkgsJ9y8CXXFRWfLFD8kpuqlW8PKZlzsioolu0JePLfOdKs4Dmv1euStbn6tujnvO4Gvo3/iQDFK3Znjzq7g2Fq1T3CYLjckSQ7BZ8mJZk0w/qgzNTqq2Rlwr0f6Jx8eP2hPs3rBSo9b4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=TTn6+YFa; arc=none smtp.client-ip=209.85.210.182
+	 MIME-Version:Content-Type; b=Sxb0H73wZliaL2NTNY8WzlaeDc06nvMdhsyPCExvz/4GCuqwh0rIEp8lFEt1Hx2bHO6KfBs8DAQpuGIPlmXDcCPEiW06RQpT1k30eXPdENwzSEwveAHgSeXp9vAgCcEEUnTLiFFZ7MsauuPv6s3WkT2Ov7jT87oAvmQI5VDAzM0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jYfFK3VY; arc=none smtp.client-ip=209.85.214.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="TTn6+YFa"
-Received: by mail-pf1-f182.google.com with SMTP id d2e1a72fcca58-8272a56b91cso5764004b3a.1
-        for <linux-arch@vger.kernel.org>; Wed, 04 Mar 2026 05:52:16 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jYfFK3VY"
+Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-2ae4d48dc2fso14897075ad.3
+        for <linux-arch@vger.kernel.org>; Wed, 04 Mar 2026 05:52:23 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1772632336; x=1773237136; darn=vger.kernel.org;
+        d=gmail.com; s=20230601; t=1772632343; x=1773237143; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=D2OLS1A4Uw6yTtRylm2HkzI1Tav6toxZGMwlbuYQ/RI=;
-        b=TTn6+YFa3yAte04xVzej6i18jmH3Oul6pfdYfoWepIyCDAcUYv9GIyNYmt4WJKDxrU
-         irRNLZ2lWp56kopNbMTvwktTf7rY2E6aBRuGbFvmcfPrA4NQ3XorqfrXoHkxthUvReIS
-         YY62x2XOQFKmZdyarGJyF7kea9rDjMjPqUfOS5H98Tuk1I281k9v7ohn7UcEURqu0iRI
-         fuay2S2KHXN84aRieS7LbltIBmmF6vdUp9w0aO1lUzU2BsViHPSj2MPhwhjIHroaf2Ll
-         B6PSK5zswssattKTDaDlEPVCkG+BDm9n7G42wCqM5yiWzZ/NztnsdshSa/pFiillnrcr
-         UyMw==
+        bh=VFxAhuVv3JTnbLlSrwYDpsB+eqc6+h6NlWQmCG4zYK0=;
+        b=jYfFK3VYuV47MBdlZH33SkgHNqT+ozmkbyU//rR2m2U9t5rcT9JG2ZYnpEfMHGH/43
+         AWhXAGyTGpsbxmpIZlWhiCKxVCpl9fJEbWokZ77SEi7WH6By8aldfDDc+/v7ALThY4WN
+         UxLDPaq9Qp2vKbGYw+/fIf/48EzzVPEVGV7YM9oj763gNLR+gsNYcOhfbL1QeUkVQEUr
+         17D4mwgNwHyruhk9xFD9RHguhct3HwVPxWzt4uZdHZUFRwkrvDKsvDHJh33AsLz6oRTW
+         u1/VyWDyuU457zTv2bLWKaFEPsZnczrqD35axvf1CO0L9AQQ5GROjLmdvS10bf9qoEgY
+         3pvw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1772632336; x=1773237136;
+        d=1e100.net; s=20230601; t=1772632343; x=1773237143;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=D2OLS1A4Uw6yTtRylm2HkzI1Tav6toxZGMwlbuYQ/RI=;
-        b=PWPz3yNRPEQ/I7n/ZRTiLVRyMpJ3hRmElwvSj8E3s6Y70RDGZ5bAchPjKWKLtUPrCi
-         vmvbkWKxZPML56Re9ppYSplyYo7N8DmLTZyhmh1cKQba5WH4+LU7V5WNCOehhX9Nqd+h
-         Mqt4w/C405MhUXx5ipHO21r5RSFnlV1BD7bO2enm1nfqKaGyZ1UnOQSZw2UhgBsDORkY
-         vjuaGaV6eOvg224vIXzRz0ACKMyh61JKsXJMYUPbtHnPiTnymnsBgRFdQi062JpAMczp
-         N+pv2CwG7Ahgb7FaVyZPtB5emd9YuyJK08s21phkAnQQSQRi3Iy8qyz3T4oqebDYbVWk
-         kg0g==
-X-Forwarded-Encrypted: i=1; AJvYcCVLt3U5Vh4CJy5tEaBUdzGHMVP2GMyNE0e6EJDWWRrYm4ldQlroJsd71349Qp77dWyy1sBvq/yJ4q1C@vger.kernel.org
-X-Gm-Message-State: AOJu0Yyh/lXi9fwTOQrCKNJICsY1Gw9td0O1WwsUYJ2jJtH7y4xvaFJj
-	JmZdqMyl0bRlwcwrsygUEzy5mXnfRufG0OyASSXqmYiZccjHY9ngyFLu
-X-Gm-Gg: ATEYQzxwnKyioFfAiYkHUNlW/84vQ1j4F4ez01Rug4xL7ZpyZm0gawsXx1O/p3sGgvh
-	hfDq36/72yx0UofG5uFm4cqUdtvBEDEAy0cqxZiYjYhJzsUaOqy27okantkhSIVEKrBjoyoZtw3
-	yc2dBVrfz16ZCPADuzSQo1rBx71nhnOFAUvccXdd9h6HGvjrND50424pNfwmnRQ5HkWgARdrR+J
-	Aq3+86zhA/wFqaecBnikJjhP5E2vamntENNS+SQlJStk6nbcxJBWUKNhIA2vPvTgOkPB0N1ujcF
-	E5F6N0NddlaXXD9ECaIBZaIZEDR1Gj6XSGP4sOh5MC9quFs8nWLpuIn0yoc7c4VJxCDN3feyatm
-	k3nvfpOxXTLoD2pfgyu/403vZIA4/G1RaymH2kSF/3fTfySzh3tlFqPOkX0oZpHCXDHPkQp6E8X
-	LukkHT1R8vwPJP9zW7RE4RGQ21VW5urAOK4g==
-X-Received: by 2002:a17:903:19ee:b0:2ae:4222:4535 with SMTP id d9443c01a7336-2ae6a9ed187mr19145415ad.12.1772632336110;
-        Wed, 04 Mar 2026 05:52:16 -0800 (PST)
+        bh=VFxAhuVv3JTnbLlSrwYDpsB+eqc6+h6NlWQmCG4zYK0=;
+        b=cpx2iwFX9yTTFMf0sJ7fO5ko8zOYkLu/09sAFpP4s5q3KN9VJUaFx5Of3ZkVSlq3If
+         h41CtmTF00zrUz4VlsmnJ1WVraa4j1IcxC0ex+YEl8qSbJnpZUEDfBRCXQ56bZp7u/5u
+         odk4JVJ7K6+ksfaDqDRHp+SraARiAa6kOAwwHrsAs++MBPuwkKLTrE1QRwvHNJzvbLRz
+         vdyBUaTqJFuemZ4MPe5D0yRB7vSmhzA6izmOXlqNiKlY3WG6dWOA427iAXl6S7+bVKw3
+         7g1S4uow4ioeaTZa/UDGoX+Lv5IfTtbNEIS60MXbFPNsbhZssPiZtND3vMWfhN1JbNaC
+         DoGw==
+X-Forwarded-Encrypted: i=1; AJvYcCUzMDT2nYfFC2F360pSJHUZUiEumjcYA0mLI8+BLTzNmzJ5zALq/pHYYfsVrJPrEfBHhSaw5R871UoX@vger.kernel.org
+X-Gm-Message-State: AOJu0YxRgEZpG/pJY/5jJFSG9GC9pBB52TgxE5Id8Soq9E3qfhz8fm+W
+	Mm2+y5iuUH61YRyt0fsGJsmpv1OzM1J4fc927RYmPEMt7czmSLGn7SeRqHcQ27mk
+X-Gm-Gg: ATEYQzy9ewd0LkL0FCPz2DvzLnjy2V/uFCVndxi8d8E7JSYpaItTvs5kp85lSP/GZY6
+	acLcmT8tFLn+fHa0sRjPm3U5Ecp34tns3nSUICyhIJ3XOjODOB55pdMMlEAS12lq15GrBH10Lso
+	Ntcu2SSNgORckuTUfV/vY23vfh75NsCGdMQoBWZ7Rri+6pMkNP5MLj0ulNzVdbNMv0VSCu77pdd
+	I8MygbxF87qtvBX0bFoXwUCL+eL3s4Yh+MHUEVucTfnkJthqlyilxo7ty6N/YkMEXsbTeYnqPvq
+	4eW4xGGvJtu5KoPw8Zq5r0+cURTPGSVRM7ssi7fccQ091DlHXfa1TN8dQb0y/mjrb/QdSlrLq9w
+	pby5+EZD7YCb6M0ECT8Tv258eSM1R4eR/f4nKNLwY3SGpp6xm+BBXZFOkMtGZEmtFGhyUI9agbz
+	8voDLX1JMG9pEN6GRJYXsAElRFPKhw+Cvj58/6nlibYHRa
+X-Received: by 2002:a17:903:19c7:b0:2ae:670e:309f with SMTP id d9443c01a7336-2ae6aaf6261mr19825925ad.34.1772632342691;
+        Wed, 04 Mar 2026 05:52:22 -0800 (PST)
 Received: from Modern-15.. ([2401:4900:86f4:d8e0:8d8d:c166:cad9:b4a])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2adfb6c4dd0sm199264225ad.70.2026.03.04.05.52.13
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2adfb6c4dd0sm199264225ad.70.2026.03.04.05.52.19
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 04 Mar 2026 05:52:15 -0800 (PST)
+        Wed, 04 Mar 2026 05:52:22 -0800 (PST)
 From: Mathura_Kumar <academic1mathura@gmail.com>
 To: brauner@kernel.org
 Cc: academic1mathura@gmail.com,
 	linux-arch@vger.kernel.org,
 	linux-kernel@vger.kernel.org,
-	viro@zeniv.linux.org.uk,
-	kernel test robot <lkp@intel.com>
-Subject: [PATCH 2/3] [PATCH-V2] mqueue: introduce new do_mq_timedreceive2() [ mq_peek syscall] for non-destructive       receive and inspection
-Date: Wed,  4 Mar 2026 19:21:22 +0530
-Message-ID: <20260304135126.77270-2-academic1mathura@gmail.com>
+	viro@zeniv.linux.org.uk
+Subject: [PATCH 3/3] [PATCH]-This patch series completes the implementation of do_mq_timedreceive2 new        system calls that provide non-destructive peek functionality        on POSIX message queues
+Date: Wed,  4 Mar 2026 19:21:23 +0530
+Message-ID: <20260304135126.77270-3-academic1mathura@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20260304135126.77270-1-academic1mathura@gmail.com>
 References: <20260304135126.77270-1-academic1mathura@gmail.com>
@@ -77,48 +76,218 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Following Two warning issue by build and test on V1:
+v1 of this series  was incomplete — syscall table entries for several
+architectures were missing, and false postive warning. This addresses all of that
+and has been tested on x86-64 with all tests passing.
 
-1) include/linux/syscalls.h:750:42: warning: declaration of 'struct mq_timedreceive2_args'
-   will not be visible outside of this function [-Wvisibility]
-fix-included the missing header for global visibility
+ Patch 1/3 — core implementation
+ Patch 2/3 — RFC about false postive build error
+ Patch 3/3 — remaining per-arch syscall table entries
 
-2)  warning: syscall mq_timedreceive2_time64 not implemented [-W#warnings]
+All older patch was still seem unseen/unmerged so for convenience i am including
+all required commit of previous patch with this.
 
-fix- This seem false postive warning, script not able to correctly map syscall table
- with handler
-in file - ~/linux/arch/x86/entry/syscalls/syscall_32.tbl
-473 causing warning due to now explicit handler for name "mq_timedrecive2_time64",because
-it also handle by same normal SYS_DEFINE for  64 bit arch  because logically both are
-same if 32bit machine call 64 bit, if we add named defined then it create unnessary
- redudancy and duplicacy, so even at this time i am not changing this, if required kindlly
-once test in runtime and guide me.
-
-472	i386	mq_timedreceive2	sys_mq_timedreceive2_time32
-473	i386	mq_timedreceive2_time64	sys_mq_timedreceive2
-
-Reported-by: kernel test robot <lkp@intel.com>
- Closes: https://lore.kernel.org/oe-kbuild-all/202602270443.k6N6t2u4-lkp@intel.com
+Architecture support: ALL Ready
 
 Signed-off-by: Mathura_Kumar <academic1mathura@gmail.com>
 ---
- include/linux/syscalls.h | 1 +
- 1 file changed, 1 insertion(+)
+ arch/alpha/kernel/syscalls/syscall.tbl      | 1 +
+ arch/arm/tools/syscall.tbl                  | 2 ++
+ arch/arm64/tools/syscall_32.tbl             | 2 ++
+ arch/m68k/kernel/syscalls/syscall.tbl       | 3 +++
+ arch/microblaze/kernel/syscalls/syscall.tbl | 3 +++
+ arch/mips/kernel/syscalls/syscall_n32.tbl   | 2 ++
+ arch/mips/kernel/syscalls/syscall_n64.tbl   | 1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl   | 2 ++
+ arch/powerpc/kernel/syscalls/syscall.tbl    | 3 +++
+ arch/s390/kernel/syscalls/syscall.tbl       | 1 +
+ arch/sh/kernel/syscalls/syscall.tbl         | 2 ++
+ arch/sparc/kernel/syscalls/syscall.tbl      | 3 +++
+ arch/xtensa/kernel/syscalls/syscall.tbl     | 2 ++
+ include/uapi/asm-generic/unistd.h           | 9 +++++----
+ scripts/checksyscalls.sh                    | 1 +
+ scripts/syscall.tbl                         | 3 +++
+ 16 files changed, 36 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index 4db405159a8b..307cfd6f154c 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -93,6 +93,7 @@ struct file_attr;
- #include <linux/key.h>
- #include <linux/personality.h>
- #include <trace/syscall.h>
-+#include <linux/mqueue.h>
+diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
+index f31b7afffc34..0ff42d241419 100644
+--- a/arch/alpha/kernel/syscalls/syscall.tbl
++++ b/arch/alpha/kernel/syscalls/syscall.tbl
+@@ -511,3 +511,4 @@
+ 579	common	file_setattr			sys_file_setattr
+ 580	common	listns				sys_listns
+ 581	common	rseq_slice_yield		sys_rseq_slice_yield
++582	common	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 94351e22bfcf..bcec28be852c 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -486,3 +486,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/arm64/tools/syscall_32.tbl b/arch/arm64/tools/syscall_32.tbl
+index 62d93d88e0fe..02603704231e 100644
+--- a/arch/arm64/tools/syscall_32.tbl
++++ b/arch/arm64/tools/syscall_32.tbl
+@@ -483,3 +483,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2_time64	sys_mq_timedreceive2
++473	common	mq_timedreceive2		sys_mq_timedreceive2_time32
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+index 248934257101..b67f23edda11 100644
+--- a/arch/m68k/kernel/syscalls/syscall.tbl
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -471,3 +471,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64	sys_mq_timedreceive2
++
+diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+index 223d26303627..89fb60006a99 100644
+--- a/arch/microblaze/kernel/syscalls/syscall.tbl
++++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+@@ -477,3 +477,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64	sys_mq_timedreceive2
++
+diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
+index 7430714e2b8f..fee830be67a6 100644
+--- a/arch/mips/kernel/syscalls/syscall_n32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
+@@ -410,3 +410,5 @@
+ 469	n32	file_setattr			sys_file_setattr
+ 470	n32	listns				sys_listns
+ 471	n32	rseq_slice_yield		sys_rseq_slice_yield
++472	n32	mq_timedreceive2	    sys_mq_timedreceive2_time32
++473	n32	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
+index 630aab9e5425..75de6ee2df94 100644
+--- a/arch/mips/kernel/syscalls/syscall_n64.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
+@@ -386,3 +386,4 @@
+ 469	n64	file_setattr			sys_file_setattr
+ 470	n64	listns				sys_listns
+ 471	n64	rseq_slice_yield		sys_rseq_slice_yield
++472	n64	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
+index 128653112284..8694a2d2f084 100644
+--- a/arch/mips/kernel/syscalls/syscall_o32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
+@@ -459,3 +459,5 @@
+ 469	o32	file_setattr			sys_file_setattr
+ 470	o32	listns				sys_listns
+ 471	o32	rseq_slice_yield		sys_rseq_slice_yield
++472	o32	mq_timedreceive2	    sys_mq_timedreceive2_time32
++473	o32	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
+index 4fcc7c58a105..fd90a2f500b6 100644
+--- a/arch/powerpc/kernel/syscalls/syscall.tbl
++++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+@@ -562,3 +562,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	nospu	rseq_slice_yield		sys_rseq_slice_yield
++472	32	mq_timedreceive2	        sys_mq_timedreceive2_time32
++473	64	mq_timedreceive2    		sys_mq_timedreceive2
++474	32	mq_timedreceive2_time64	    sys_mq_timedreceive2          sys_mq_timedreceive2
+diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
+index 09a7ef04d979..34df682061d9 100644
+--- a/arch/s390/kernel/syscalls/syscall.tbl
++++ b/arch/s390/kernel/syscalls/syscall.tbl
+@@ -398,3 +398,4 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
+index 70b315cbe710..1796ccd23d10 100644
+--- a/arch/sh/kernel/syscalls/syscall.tbl
++++ b/arch/sh/kernel/syscalls/syscall.tbl
+@@ -475,3 +475,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64		sys_mq_timedreceive2
+diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
+index 7e71bf7fcd14..5cfde6e0e6ba 100644
+--- a/arch/sparc/kernel/syscalls/syscall.tbl
++++ b/arch/sparc/kernel/syscalls/syscall.tbl
+@@ -517,3 +517,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	32	mq_timedreceive2			sys_mq_timedreceive2_time32
++473	64	mq_timedreceive2			sys_mq_timedreceive2
++474	32	mq_timedreceive2_time64		sys_mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+index a9bca4e484de..9f69ef99e617 100644
+--- a/arch/xtensa/kernel/syscalls/syscall.tbl
++++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+@@ -442,3 +442,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64		sys_mq_timedreceive2
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 1d27fd3e118e..ecfad24055b3 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -863,12 +863,13 @@ __SYSCALL(__NR_listns, sys_listns)
+ #define __NR_rseq_slice_yield 471
+ __SYSCALL(__NR_rseq_slice_yield, sys_rseq_slice_yield)
  
- #ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
+-#undef __NR_syscalls
+-#define __NR_syscalls 472
+-#define __NR_mq_timedreceive2 473
++
++#define __NR_mq_timedreceive2 472
+ __SC_3264(__NR_mq_timedreceive2, sys_mq_timedreceive2_time32, sys_mq_timedreceive2)
+-#define __NR_mq_timedreceive2_time64 474
++#define __NR_mq_timedreceive2_time64 473
+ __SYSCALL(__NR_mq_timedreceive2_time64, sys_mq_timedreceive2)
++#undef __NR_syscalls
++#define __NR_syscalls 474
  /*
+  * 32 bit systems traditionally used different
+  * syscalls for off_t and loff_t arguments, while
+diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
+index 1e5d2eeb726d..605a65cfa144 100755
+--- a/scripts/checksyscalls.sh
++++ b/scripts/checksyscalls.sh
+@@ -104,6 +104,7 @@ cat << EOF
+ #define __IGNORE_recvmmsg_time64
+ #define __IGNORE_mq_timedsend_time64
+ #define __IGNORE_mq_timedreceive_time64
++#define __IGNORE_mq_timedreceive2_time64
+ #define __IGNORE_semtimedop_time64
+ #define __IGNORE_rt_sigtimedwait_time64
+ #define __IGNORE_futex_time64
+diff --git a/scripts/syscall.tbl b/scripts/syscall.tbl
+index 7a42b32b6577..7a09cd65cd8d 100644
+--- a/scripts/syscall.tbl
++++ b/scripts/syscall.tbl
+@@ -412,3 +412,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	time32	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	64	mq_timedreceive2			sys_mq_timedreceive2
++474	32	mq_timedreceive_time64		sys_mq_timedreceive2
 -- 
 2.43.0
 
