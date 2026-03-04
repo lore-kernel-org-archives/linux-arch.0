@@ -1,50 +1,37 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.14])
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 56327377EAC;
-	Wed,  4 Mar 2026 17:59:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.14
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16DE43A6F10;
+	Wed,  4 Mar 2026 18:24:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772647148; cv=none; b=Z44kvCZ0wlAqGO5RH1NJgmMGMflOUBpQcIHQ7krDAssxZi0yDzpaThOhQYIhcgBEmhP3F3MHl19Sa8rlZOpTIY1OnOJH2eCwNPif8J3iVOUW4YbKMPmDja0wwyZHSPSwRUDIWDkOiMSQVXGy/r5OIC00oGkRdoWiBpY0M6jYrDw=
+	t=1772648672; cv=none; b=h8JfeoWuRjRBimXMKwHyOAy4WF+AcYmc3v+uWBSlk8LSIR3NWbxe0R9FHYZjFdaaaG+7uXyMbYtznbwMrqKqbm8/dk791Jm1xcXRlaFb8KrWcvdwo1BqlCjlzBMvftt9eeyeVAAPb9HEoCCwxKgTuPMTvu8qKzW93V7qJ0rk+dQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772647148; c=relaxed/simple;
-	bh=/CV0BOByGYSuzWxUSGsbDoPh7GMERLO9A3GhGMQraAA=;
+	s=arc-20240116; t=1772648672; c=relaxed/simple;
+	bh=X52ZPHFTiw4btiN2qBylA7cPx0ZJ7HvIeBfsmkj9cgg=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=TUX4RX27KNln7MxRSKPBr/ICIvQiyePjRYjbmpxfZU5Td19VtNTtlvf6NoZlvEolNng7nsMkVzy8TMW04FhwnzlBCHLObIbrRPBh41gvZGNzLCWZ3wapnKsie2F2LOEdiGPM8+Cs08oDJi1bgnf6qpdeNuJJa1ZnAhRrpjiq4m8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=AlDMCLmC; arc=none smtp.client-ip=192.198.163.14
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	 In-Reply-To:Content-Type; b=ndodpte0FXBuUG9XiOlUt+EWf7TuAQTojFCpeUQhnjsiw7X/la9Ms/Ucnha1/vGs3ZyBSzzTLrF/NkFV5+OoRQX9xB3BJ1cbV1/oDZ49DQuubismuGo4gEWsI0z9sGL6BiZXx51IsdiOsSl1Y9i81FGUgLe2BIu8QO5jabEooTM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=o+FSQ0nv; arc=none smtp.client-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="AlDMCLmC"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1772647148; x=1804183148;
-  h=message-id:date:mime-version:subject:to:cc:references:
-   from:in-reply-to:content-transfer-encoding;
-  bh=/CV0BOByGYSuzWxUSGsbDoPh7GMERLO9A3GhGMQraAA=;
-  b=AlDMCLmCSRZCWW9UitxGhyy4llheFqqcN5dqJEe4gOBnxKCBY5lf+kDF
-   XDNOrl/djQK7M3teDxV9POFQ5u/kSWqmajH8Ag1l4txDON82XXP7NGw3x
-   golHBI+FNTZ0mcs4PZqY1Z3ZHIOMzDgn50He+jFH7gtzOB9cx5zCCklNX
-   lt0h7IBpx03x63c1rA/bRSQqO1Hwd+yoBmeeRfBwC4RTUiyUW3spafB0b
-   MQYubVMENFN+kpZfiyqn3DNx7YEcoaDWXOopkPcZ8KFP5Txd5LpksZ2FE
-   JQsafOzk5Ko1d1WPhFAKY/qrNdQcGKy7VMmZnP/yDdbP9n/qN7uYd5zFX
-   Q==;
-X-CSE-ConnectionGUID: iwhxa97CSFOv9xL3CL2vuw==
-X-CSE-MsgGUID: X3R9V1wlSD++beltOfuxPg==
-X-IronPort-AV: E=McAfee;i="6800,10657,11719"; a="73787456"
-X-IronPort-AV: E=Sophos;i="6.21,324,1763452800"; 
-   d="scan'208";a="73787456"
-Received: from fmviesa009.fm.intel.com ([10.60.135.149])
-  by fmvoesa108.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 04 Mar 2026 09:59:07 -0800
-X-CSE-ConnectionGUID: 4TQsiUvKR6SROeOWGs/bKg==
-X-CSE-MsgGUID: m6KG54ICSbu6tHecqNx0sQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,324,1763452800"; 
-   d="scan'208";a="214537504"
-Received: from aschende-mobl.amr.corp.intel.com (HELO [10.125.108.205]) ([10.125.108.205])
-  by fmviesa009-auth.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 04 Mar 2026 09:59:05 -0800
-Message-ID: <7dc30fbf-17c0-47db-8457-24b531cd0071@intel.com>
-Date: Wed, 4 Mar 2026 09:59:11 -0800
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="o+FSQ0nv"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	Content-Type:In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:
+	Message-ID:Sender:Reply-To:Content-ID:Content-Description;
+	bh=HNpNhJIEQG7t1I+9WhldJ27xwkKDMYuJd+C3Vhkaw7Q=; b=o+FSQ0nv9+WkxqLgL98ghuoYOc
+	FdbUSTBSmDn1wed3whiqPVI1KM8TZfehNgwXmEuTSffSYkMrYDXp+4K2erkycw9e+QEs672QrgLX7
+	k3kaMwr5in+x6/vnzwg2OxKu1TUXdlxI6++oKQkSTeE9r57IUovkQxnqueDojHJxIW/q60NJHzbTM
+	DphQ4O1GGFkkcm30/XqlJ9dZURwB9wnRhVI4kXJ3vk7O79hDP9/+QeKEuLReu0v+oirbkz1Ay74VA
+	P/fVevAgQTMytZ2Rf3DYJJ6eIP+/HBBuSyMPCrLgj8TVg8Geb131SY+XkeQPZlDTImB2tB4HvGy0S
+	2JT8l8Iw==;
+Received: from [50.53.43.113] (helo=[192.168.254.34])
+	by bombadil.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1vxqtW-00000000Kdl-0KwW;
+	Wed, 04 Mar 2026 18:24:26 +0000
+Message-ID: <7811f15d-98f3-4af7-b9a4-b83d6be8ac1f@infradead.org>
+Date: Wed, 4 Mar 2026 10:24:24 -0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -52,130 +39,358 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v6 2/2] x86/tlb: skip redundant sync IPIs for native TLB
- flush
-To: Lance Yang <lance.yang@linux.dev>, akpm@linux-foundation.org
-Cc: peterz@infradead.org, david@kernel.org, dave.hansen@linux.intel.com,
- ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
- aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
- mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
- arnd@arndb.de, lorenzo.stoakes@oracle.com, ziy@nvidia.com,
- baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
- ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
- shy828301@gmail.com, riel@surriel.com, jannh@google.com, jgross@suse.com,
- seanjc@google.com, pbonzini@redhat.com, boris.ostrovsky@oracle.com,
- virtualization@lists.linux.dev, kvm@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, ioworker0@gmail.com
-References: <20260304021046.18550-1-lance.yang@linux.dev>
- <20260304021046.18550-3-lance.yang@linux.dev>
+Subject: Re: [PATCH 1/3] mqueue: introduce new do_mq_timedreceive2() [ mq_peek
+ syscall] for non-destructive receive and inspection
+To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ viro@zeniv.linux.org.uk
+References: <20260304135126.77270-1-academic1mathura@gmail.com>
 Content-Language: en-US
-From: Dave Hansen <dave.hansen@intel.com>
-Autocrypt: addr=dave.hansen@intel.com; keydata=
- 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
-In-Reply-To: <20260304021046.18550-3-lance.yang@linux.dev>
+From: Randy Dunlap <rdunlap@infradead.org>
+In-Reply-To: <20260304135126.77270-1-academic1mathura@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On 3/3/26 18:10, Lance Yang wrote:
-...
-> +	if (pv_ops.mmu.flush_tlb_multi == native_flush_tlb_multi &&
-> +	    !cpu_feature_enabled(X86_FEATURE_INVLPGB)) {
-> +		pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast = true;
-> +		static_branch_enable(&tlb_ipi_broadcast_key);
-> +	}
-> +}
-...
-> +#ifndef CONFIG_PARAVIRT
-> +void __init native_pv_tlb_init(void)
+Hi--
+
+On 3/4/26 5:51 AM, Mathura_Kumar wrote:
+>     POSIX message queues currently lack a mechanism to read
+>     a message without removing it from the queue. This is a
+>     long-standing limitation,when we require inspection of queue state
+>     without altering it.
+> 
+>     Modifying existing mq_receive() semantics via additional
+>     flags was considered. However, altering behavior of an
+>     existing syscall risks breaking backward compatibility
+>     for applications relying on current semantics. Since
+>     mq_receive() guarantees message removal, changing this
+>     contract is not safe.
+> 
+>     To preserve ABI stability, this patch introduces a new
+>     system call that performs a non-destructive receive
+>     operation (peek). The existing behavior remains unchanged.
+> 
+>     Design considerations:
+> 
+>     Two approaches for copying message data to userspace
+>     were evaluated:
+> 
+>     1) Refcount-based message lifecycle handling
+>        - This can help us  Avoids intermediate temp kernel copy
+>        - Extends message lifetime
+>        -But this may increase writer starvation under heavy load and
+>         add unneassery complication on priority  management and
+>         delay more time to free space in inode due refcount may prevent
+> 
+>     2) Temporary kernel buffer copy
+>        - Copies message into a bounded kernel buffer
+>        - Reduces time message remains locked
+>        - Improves fairness under write-heavy workloads
+>        - Simpler lifetime management
+> 
+>     My implementation adopts the temporary buffer approach
+>     to minimize starvation and reduce locking complexity.
+>     The design allows future transition if refcounting is
+>     deemed preferable.
+> 
+>     Architecture support: Entry was made in relevant system call table
+>       - x86
+>       - ARM
+
+I don't see any ARM changes in this patch.
+
+>     Testing:
+>       - 15+ functional test cases
+>       - Multi-threaded producer/consumer scenarios
+>       - concurrent pop and peek
+>       - Edge cases: empty queue, FIFO
+>         invalid flags, signal interruption etc.
+> 
+> Signed-off-by: Mathura_Kumar <academic1mathura@gmail.com>
+> ---
+>  arch/x86/entry/syscalls/syscall_32.tbl |   2 +
+>  arch/x86/entry/syscalls/syscall_64.tbl |   2 +
+>  include/linux/syscalls.h               |   9 +
+>  include/uapi/asm-generic/unistd.h      |   5 +-
+>  ipc/mqueue.c                           | 180 ++++++
+>  ipc/msg.c                              |   2 +-
+>  ipc/msgutil.c                          |  51 +-
+>  ipc/util.h                             |   3 +-
+>  tools/testing/selftests/ipc/.gitignore |   1 +
+>  tools/testing/selftests/ipc/Makefile   |   5 +-
+>  tools/testing/selftests/ipc/mq_peek.c  | 794 +++++++++++++++++++++++++
+>  11 files changed, 1022 insertions(+), 32 deletions(-)
+>  create mode 100644 tools/testing/selftests/ipc/mq_peek.c
+> 
+
+
+
+> diff --git a/ipc/mqueue.c b/ipc/mqueue.c
+> index 4798b375972b..f6c7462b818f 100644
+> --- a/ipc/mqueue.c
+> +++ b/ipc/mqueue.c
+> @@ -53,6 +53,7 @@ struct mqueue_fs_context {
+>  
+>  #define SEND		0
+>  #define RECV		1
+> +#define MQ_PEEK     2
+>  
+>  #define STATE_NONE	0
+>  #define STATE_READY	1
+> @@ -63,6 +64,12 @@ struct posix_msg_tree_node {
+>  	int			priority;
+>  };
+>  
+> +struct mq_timedreceive2_args {
+> +	size_t msg_len;
+> +	unsigned int  *msg_prio;
+> +    char  *msg_ptr;
+
+Indent above with tab, not spaces.
+
+> +};
+> +
+>  /*
+>   * Locking:
+>   *
+> @@ -1230,6 +1237,116 @@ static int do_mq_timedreceive(mqd_t mqdes, char __user *u_msg_ptr,
+>  	return ret;
+>  }
+>  
+> +static struct msg_msg *mq_peek_index(struct mqueue_inode_info *info, int index)
 > +{
-> +	/*
-> +	 * For non-PARAVIRT builds, check if native TLB flush sends real IPIs
-> +	 * (i.e., not using INVLPGB broadcast invalidation).
-> +	 */
-> +	if (!cpu_feature_enabled(X86_FEATURE_INVLPGB))
-> +		static_branch_enable(&tlb_ipi_broadcast_key);
+> +	struct rb_node *node;
+> +	struct posix_msg_tree_node *leaf;
+> +	struct msg_msg *msg;
+> +	int count = 0;
+
+Insert a blank line between data and code.
+
+> +	/* Start from highest priority */
+> +	node = rb_last(&info->msg_tree);
+> +	while (node) {
+> +		leaf = rb_entry(node, struct posix_msg_tree_node, rb_node);
+> +		list_for_each_entry(msg, &leaf->msg_list, m_list) {
+> +			if (count == index)
+> +				return msg;
+> +			count++;
+> +		}
+> +
+> +		node = rb_prev(node);
+> +	}
+> +
+> +	return NULL;
 > +}
-> +#endif
+> +
+> +static int do_mq_timedreceive2(mqd_t mqdes,
+> +			       struct mq_timedreceive2_args __user *uargs,
+> +			       unsigned int flags, unsigned long index,
+> +			       struct timespec64 *ts)
+> +{
+> +	struct mq_timedreceive2_args args;
+> +	ssize_t ret;
+> +	struct msg_msg *msg_ptr, *k_msg_buffer;
+> +	long k_m_type;
+> +	size_t k_m_ts;
+> +	struct inode *inode;
+> +	struct mqueue_inode_info *info;
+> +
+> +	if (copy_from_user(&args, uargs, sizeof(args)))
+> +		return -EFAULT;
+> +
+> +	if (!(flags & MQ_PEEK)) {
+> +		return do_mq_timedreceive(mqdes, args.msg_ptr, args.msg_len,
+> +					  args.msg_prio, ts);
+> +	}
+> +	audit_mq_sendrecv(mqdes, args.msg_len, 0, ts);
+> +	CLASS(fd, f)(mqdes);
+> +	if (fd_empty(f))
+> +		return -EBADF;
+> +
+> +	inode = file_inode(fd_file(f));
+> +	if (unlikely(fd_file(f)->f_op != &mqueue_file_operations))
+> +		return -EBADF;
+> +	info = MQUEUE_I(inode);
+> +	audit_file(fd_file(f));
+> +
+> +	if (unlikely(!(fd_file(f)->f_mode & FMODE_READ)))
+> +		return -EBADF;
+> +
+> +	if (unlikely(args.msg_len < info->attr.mq_msgsize))
+> +		return -EMSGSIZE;
+> +	if (index >= (unsigned long)info->attr.mq_maxmsg)
+> +		return -ENOENT;
+> +
+> +	spin_lock(&info->lock);
+> +	if (info->attr.mq_curmsgs == 0) {
+> +		spin_unlock(&info->lock);
+> +		return -EAGAIN;
+> +	}
+> +	msg_ptr = mq_peek_index(info, index);
+> +	if (!msg_ptr) {
+> +		spin_unlock(&info->lock);
+> +		return -ENOENT;
+> +	}
+> +	k_m_type = msg_ptr->m_type;
+> +	k_m_ts = msg_ptr->m_ts;
+> +	spin_unlock(&info->lock);
+> +
+> +	k_msg_buffer = alloc_msg(k_m_ts);
+> +	if (!k_msg_buffer)
+> +		return -ENOMEM;
+> +
+> +	/*Two spin lock is necessary we are avoiding atomic memory allocation
+> +    *and to early allocation without confirming that , is even msg exists to peek
+> +    */
 
-I really despise duplicated logic. The X86_FEATURE_INVLPGB check is
-small, but it is duplicated. You're also setting the static branch in a
-*bunch* of different places.
+Bad comment format and indentation.
 
-Can this be arranged so that the PV code just tells the core code that
-it is compatible with flush_tlb_multi_implies_ipi_broadcast?
+> +	spin_lock(&info->lock);
+> +	msg_ptr = mq_peek_index(info, index);
+> +	if (!msg_ptr || msg_ptr->m_type != k_m_type ||
+> +	    msg_ptr->m_ts != k_m_ts) {
+> +		spin_unlock(&info->lock);
+> +		free_msg(k_msg_buffer);
+> +		return -EAGAIN;
+> +	}
+> +	if (IS_ERR(copy_msg(msg_ptr, k_msg_buffer, k_m_ts))) {
+> +		spin_unlock(&info->lock);
+> +		free_msg(k_msg_buffer);
+> +		return -EINVAL;
+> +	}
+> +	spin_unlock(&info->lock);
+> +
+> +	ret = k_msg_buffer->m_ts;
+> +	if (args.msg_prio && put_user(k_m_type, args.msg_prio)) {
+> +		free_msg(k_msg_buffer);
+> +		return -EFAULT;
+> +	}
+> +	if (store_msg(args.msg_ptr, k_msg_buffer, k_m_ts)) {
+> +		free_msg(k_msg_buffer);
+> +		return -EFAULT;
+> +	}
+> +	free_msg(k_msg_buffer);
+> +	return ret;
+> +}
+> +
+>  SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes, const char __user *, u_msg_ptr,
+>  		size_t, msg_len, unsigned int, msg_prio,
+>  		const struct __kernel_timespec __user *, u_abs_timeout)
+> @@ -1258,6 +1375,23 @@ SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes, char __user *, u_msg_ptr,
+>  	return do_mq_timedreceive(mqdes, u_msg_ptr, msg_len, u_msg_prio, p);
+>  }
+>  
 
-void __init bool is_pv_ok(void)
-{
-	/* This check is super sketchy an unexplained: */
-	if (pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast)
-		return true;
+Please add kernel-doc comments to describe the function and its arguments.
+Or if not kernel-doc comments, then some kind of API documentation.
 
-	if (pv_ops.mmu.flush_tlb_multi != native_flush_tlb_multi)
-		return false;
+> +SYSCALL_DEFINE5(mq_timedreceive2, mqd_t, mqdes,
+> +		struct mq_timedreceive2_args __user *, uargs, unsigned int,
+> +		flags, const unsigned long, index,
+> +		const struct __kernel_timespec __user *, u_abs_timeout)
+> +{
+> +	struct timespec64 ts, *p = NULL;
+> +
+> +	if (u_abs_timeout) {
+> +		int res = prepare_timeout(u_abs_timeout, &ts);
+> +
+> +		if (res)
+> +			return res;
+> +		p = &ts;
+> +	}
+> +	return do_mq_timedreceive2(mqdes, uargs, flags, index, p);
+> +}
+> +
+>  /*
+>   * Notes: the case when user wants us to deregister (with NULL as pointer)
+>   * and he isn't currently owner of notification, will be silently discarded.
+> @@ -1450,6 +1584,7 @@ SYSCALL_DEFINE3(mq_getsetattr, mqd_t, mqdes,
+>  }
+>  
+>  #ifdef CONFIG_COMPAT
+> +#include "asm-generic/compat.h"
+>  
+>  struct compat_mq_attr {
+>  	compat_long_t mq_flags;      /* message queue flags		     */
+> @@ -1459,6 +1594,12 @@ struct compat_mq_attr {
+>  	compat_long_t __reserved[4]; /* ignored for input, zeroed for output */
+>  };
+>  
+> +struct compat_mq_timedreceive2_args {
+> +	compat_size_t msg_len;
+> +	compat_uptr_t msg_prio;
+> +	compat_uptr_t msg_ptr;
+> +};
+> +
+>  static inline int get_compat_mq_attr(struct mq_attr *attr,
+>  			const struct compat_mq_attr __user *uattr)
+>  {
+> @@ -1490,6 +1631,22 @@ static inline int put_compat_mq_attr(const struct mq_attr *attr,
+>  	return 0;
+>  }
+>  
+> +static inline int get_compat_mq_args(struct mq_timedreceive2_args *args,
+> +					struct compat_mq_timedreceive2_args __user *uargs)
+> +{
+> +	struct compat_mq_timedreceive2_args v;
+> +
+> +	if (copy_from_user(&v, uargs, sizeof(*uargs)))
+> +		return -EFAULT;
+> +
+> +	memset(args, 0, sizeof(*args));
+> +	args->msg_len = (size_t)compat_ptr(v.msg_len);
+> +	args->msg_prio = (unsigned int *)compat_ptr(v.msg_prio);
+> +	args->msg_ptr = (char *)compat_ptr(v.msg_ptr);
+> +
+> +	return 0;
+> +}
+> +
+>  COMPAT_SYSCALL_DEFINE4(mq_open, const char __user *, u_name,
+>  		       int, oflag, compat_mode_t, mode,
+>  		       struct compat_mq_attr __user *, u_attr)
+> @@ -1583,6 +1740,29 @@ SYSCALL_DEFINE5(mq_timedreceive_time32, mqd_t, mqdes,
+>  	}
+>  	return do_mq_timedreceive(mqdes, u_msg_ptr, msg_len, u_msg_prio, p);
+>  }
+> +
 
-	pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast = true;
+Add kernel-doc comments here also.
 
-	return true;
-}
+> +SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
+> +		struct compat_mq_timedreceive2_args __user *, uargs,
+> +		unsigned int, flags, const unsigned long, index,
+> +		const struct old_timespec32 __user *, u_abs_timeout)
+> +{
 
-void __init tlb_init(void)
-{
-	if (!is_pv_ok())
-		return;
 
-	if (cpu_feature_enabled(X86_FEATURE_INVLPGB))
-		return;
-		
-	static_branch_enable(&tlb_ipi_broadcast_key);
-}
+> diff --git a/ipc/msgutil.c b/ipc/msgutil.c
+> index e28f0cecb2ec..8c8622b78f12 100644
+> --- a/ipc/msgutil.c
+> +++ b/ipc/msgutil.c
+> @@ -51,7 +51,7 @@ static int __init init_msg_buckets(void)
+>  }
+>  subsys_initcall(init_msg_buckets);
+>  
+> -static struct msg_msg *alloc_msg(size_t len)
+> +struct msg_msg *alloc_msg(size_t len)
+>  {
+>  	struct msg_msg *msg;
+>  	struct msg_msgseg **pseg;
+> @@ -122,39 +122,34 @@ struct msg_msg *load_msg(const void __user *src, size_t len)
+>  	free_msg(msg);
+>  	return ERR_PTR(err);
+>  }
+> -#ifdef CONFIG_CHECKPOINT_RESTORE
+> -struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst)
+> +
+> +struct msg_msg *copy_msg(struct msg_msg *src,
+> +							struct msg_msg *dst,
+> +						size_t len)
 
-Isn't that like a billion times more readable? It has one
-X86_FEATURE_INVLPGB check and one static_branch_enable() point and no
-#ifdeffery other than defining a stub is_pv_ok().
+Strange indentation.
 
-BTW, why is there even an early return for the case where
-flush_tlb_multi_implies_ipi_broadcast is already set? Isn't this
-decision made once on the boot CPU and then never touched again? Do any
-PV instances actually set the bit?
+>  {
+
+-- 
+~Randy
+
