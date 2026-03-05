@@ -1,260 +1,173 @@
-Received: from out-181.mta0.migadu.com (out-181.mta0.migadu.com [91.218.175.181])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.19])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B480034E747
-	for <linux-arch@vger.kernel.org>; Thu,  5 Mar 2026 09:16:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.181
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BC84E3A0B01;
+	Thu,  5 Mar 2026 12:48:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.19
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772702202; cv=none; b=S48jZFWSK1/lPCaF1bJi7VIY7CJzC1nG8ZKbEZiOXHs/toDYMMLyfHEQz/C+zKZvAo6HENNEzCMtch7xBU7J1V5HXmcsxsus+FX2r+vwatgv+PD9wy3e89e5p0NyCi5zzpjT0KcADOhBsmGCkL8k5cojqYiF7COg9DwmmIpzN+k=
+	t=1772714929; cv=none; b=EZW6eoICoVP4/HXN9GgdItmXrqdwIwvCgaorAiS4hSIe2ci/ikNiR3W2TM6iM6PvhfoBwt6YQFBCmdLG6Lt9wPAyYjFNrg8h1f7pIOuEGclptRgVdArt6WT7/KPdvzryeDSB9tBzLZ5GvdX8A6r0VovdyAVH3C1CYIwcQqZZRyc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772702202; c=relaxed/simple;
-	bh=UMnrDwdAX1GIWTBc+oDF/W1dnRUB+o0y/Pccvdlj3XA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=gFzNtCFA1dEyVC6MVCkuVUJkkuPKn/SJle62bCgym8sDtOS+VxDAPG3GkF7DQmaKAWw0Z43RazAHTS5F33dJB6QPaE+PnREg6ik0eNG7vRBMO70oT6/BZYQymzvbcGoRkSvtwDTwZMw8mUxRX+vOAVHOlaW1+TwVGRcxLx3Lhx4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=vYTlFh5P; arc=none smtp.client-ip=91.218.175.181
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1772714929; c=relaxed/simple;
+	bh=moMV8HVJX7p9jmRdJK8ze+fOWbsQ1VQt5HqWB90F7VE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=QbrmjYnz/2H3iFkBH6DPpCSR6L/RCjrDY4Xhh7Z48arMJIorZEWu7SbTWKgWruj1vUVOodJgs9C5qUyi2oWC+Migt+p9E31aex2J7YgNKLlLbWawThe/opwuC8mg8MSQpTyKpqlGXfHh+MJf3Mo6+3w/D8lY/nli+o0CB67AsyM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=E37P6H+l; arc=none smtp.client-ip=192.198.163.19
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="vYTlFh5P"
-Message-ID: <5f0aea3d-3189-4712-a6e4-aaf70af3d830@linux.dev>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1772702188;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=fzXNnVl41rhrnz38phC4X7315ncIjw8uI7oB1uumDrY=;
-	b=vYTlFh5P4RnXap2bKi5iM3bSYos1avkWrWoyZ6S9ovnLXURX6Ng1OmFgRSMpye96k1cbwW
-	V1trl4Jl8R5kqscSzYNlyJ7l2iGMGX+aMJdR4/9OGfmBJnSnUmIPVuQ11NwJTaUGC8xEWM
-	A2pGtpUi3RscntX+HprODuj4hL30rkk=
-Date: Thu, 5 Mar 2026 17:16:12 +0800
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="E37P6H+l"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1772714927; x=1804250927;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=moMV8HVJX7p9jmRdJK8ze+fOWbsQ1VQt5HqWB90F7VE=;
+  b=E37P6H+lfRoxbmdsZx8A7Rtn1Ku6cupITLi3dTKqRAEAcasw+25qYoh+
+   Dv1aSUYV5C5bmymR2HgYcRyjcinUvnaFeBCpsjJNczL4KM/YEfnkmNFsZ
+   T/xk+oU66qzlaxOQ3FF6KF/pMvSTm0KFo+SE2b3UNHc8goSJnRkQTGxjt
+   yQqXd9P8tPwMEJRh7pi9hCnTn/buezCCZ1Id61udib0zOnbBbPGGu62Zd
+   tOOLT6hRub5RSKITbplRsvZAsyeGF2HQMlsQwkvGCXWaSoDSnNjGpAm+u
+   74y0+UWmTRX9lxENNbi/wiikMMLUhfPnFPL3Hz0fN3LoKs1Qjmq/nc/6P
+   g==;
+X-CSE-ConnectionGUID: P2An3MSbRv6Cn+fcPKLbww==
+X-CSE-MsgGUID: /EpzAQhcTsWg0l2zTjsNXw==
+X-IronPort-AV: E=McAfee;i="6800,10657,11719"; a="72826372"
+X-IronPort-AV: E=Sophos;i="6.23,103,1770624000"; 
+   d="scan'208";a="72826372"
+Received: from orviesa002.jf.intel.com ([10.64.159.142])
+  by fmvoesa113.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Mar 2026 04:48:46 -0800
+X-CSE-ConnectionGUID: vhPSk0zeSMm+HfNAiAc++w==
+X-CSE-MsgGUID: k6gZUd9oQ3asz6R9tmGFlA==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.23,103,1770624000"; 
+   d="scan'208";a="249143099"
+Received: from igk-lkp-server01.igk.intel.com (HELO 9958d990ccf2) ([10.211.93.152])
+  by orviesa002.jf.intel.com with ESMTP; 05 Mar 2026 04:48:44 -0800
+Received: from kbuild by 9958d990ccf2 with local (Exim 4.98.2)
+	(envelope-from <lkp@intel.com>)
+	id 1vy889-000000001zl-1Rk7;
+	Thu, 05 Mar 2026 12:48:41 +0000
+Date: Thu, 5 Mar 2026 13:48:00 +0100
+From: kernel test robot <lkp@intel.com>
+To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
+Cc: oe-kbuild-all@lists.linux.dev, academic1mathura@gmail.com,
+	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	viro@zeniv.linux.org.uk
+Subject: Re: [PATCH] mqueue: introduce new do_mq_timedreceive2() [ mq_peek
+ syscall] for non-destructive receive and inspection,fix minor issue,prepared
+ doc.
+Message-ID: <202603051326.wnlF51YD-lkp@intel.com>
+References: <20260305065212.83213-1-academic1mathura@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 2/2] x86/tlb: skip redundant sync IPIs for native TLB
- flush
-Content-Language: en-US
-To: Dave Hansen <dave.hansen@intel.com>
-Cc: peterz@infradead.org, david@kernel.org, dave.hansen@linux.intel.com,
- ypodemsk@redhat.com, hughd@google.com, will@kernel.org,
- aneesh.kumar@kernel.org, npiggin@gmail.com, tglx@linutronix.de,
- mingo@redhat.com, bp@alien8.de, x86@kernel.org, hpa@zytor.com,
- arnd@arndb.de, lorenzo.stoakes@oracle.com, ziy@nvidia.com,
- baolin.wang@linux.alibaba.com, Liam.Howlett@oracle.com, npache@redhat.com,
- ryan.roberts@arm.com, dev.jain@arm.com, baohua@kernel.org,
- akpm@linux-foundation.org, shy828301@gmail.com, riel@surriel.com,
- jannh@google.com, jgross@suse.com, seanjc@google.com, pbonzini@redhat.com,
- boris.ostrovsky@oracle.com, virtualization@lists.linux.dev,
- kvm@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org,
- linux-kernel@vger.kernel.org, ioworker0@gmail.com
-References: <20260304021046.18550-1-lance.yang@linux.dev>
- <20260304021046.18550-3-lance.yang@linux.dev>
- <7dc30fbf-17c0-47db-8457-24b531cd0071@intel.com>
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Lance Yang <lance.yang@linux.dev>
-In-Reply-To: <7dc30fbf-17c0-47db-8457-24b531cd0071@intel.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-X-Migadu-Flow: FLOW_OUT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260305065212.83213-1-academic1mathura@gmail.com>
 
-Hi Dave,
+Hi Mathura_Kumar,
 
-Thanks for taking time to review!
+kernel test robot noticed the following build warnings:
 
-On 2026/3/5 01:59, Dave Hansen wrote:
-> On 3/3/26 18:10, Lance Yang wrote:
-> ...
->> +	if (pv_ops.mmu.flush_tlb_multi == native_flush_tlb_multi &&
->> +	    !cpu_feature_enabled(X86_FEATURE_INVLPGB)) {
->> +		pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast = true;
->> +		static_branch_enable(&tlb_ipi_broadcast_key);
->> +	}
->> +}
-> ...
->> +#ifndef CONFIG_PARAVIRT
->> +void __init native_pv_tlb_init(void)
->> +{
->> +	/*
->> +	 * For non-PARAVIRT builds, check if native TLB flush sends real IPIs
->> +	 * (i.e., not using INVLPGB broadcast invalidation).
->> +	 */
->> +	if (!cpu_feature_enabled(X86_FEATURE_INVLPGB))
->> +		static_branch_enable(&tlb_ipi_broadcast_key);
->> +}
->> +#endif
-> 
-> I really despise duplicated logic. The X86_FEATURE_INVLPGB check is
-> small, but it is duplicated. You're also setting the static branch in a
-> *bunch* of different places.
+[auto build test WARNING on shuah-kselftest/next]
+[also build test WARNING on shuah-kselftest/fixes brauner-vfs/vfs.all linus/master v7.0-rc2 next-20260304]
+[cannot apply to tip/x86/asm]
+[If your patch is applied to the wrong git tree, kindly drop us a note.
+And when submitting patch, we suggest to use '--base' as documented in
+https://git-scm.com/docs/git-format-patch#_base_tree_information]
 
-Sorry for the mess :(
+url:    https://github.com/intel-lab-lkp/linux/commits/Mathura_Kumar/mqueue-introduce-new-do_mq_timedreceive2-mq_peek-syscall-for-non-destructive-receive-and-inspection-fix-minor-issue-prep/20260305-145412
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/shuah/linux-kselftest.git next
+patch link:    https://lore.kernel.org/r/20260305065212.83213-1-academic1mathura%40gmail.com
+patch subject: [PATCH] mqueue: introduce new do_mq_timedreceive2() [ mq_peek syscall] for non-destructive receive and inspection,fix minor issue,prepared doc.
+compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+docutils: docutils (Docutils 0.21.2, Python 3.13.5, on linux)
+reproduce: (https://download.01.org/0day-ci/archive/20260305/202603051326.wnlF51YD-lkp@intel.com/reproduce)
 
-> Can this be arranged so that the PV code just tells the core code that
-> it is compatible with flush_tlb_multi_implies_ipi_broadcast?
+If you fix the issue in a separate patch/commit (i.e. not just a new version of
+the same patch/commit), kindly add following tags
+| Reported-by: kernel test robot <lkp@intel.com>
+| Closes: https://lore.kernel.org/oe-kbuild-all/202603051326.wnlF51YD-lkp@intel.com/
 
-Yeah, much much better and cleaner!
+All warnings (new ones prefixed by >>):
 
-> void __init bool is_pv_ok(void)
-> {
-> 	/* This check is super sketchy an unexplained: */
-> 	if (pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast)
-> 		return true;
-> 
-> 	if (pv_ops.mmu.flush_tlb_multi != native_flush_tlb_multi)
-> 		return false;
-> 
-> 	pv_ops.mmu.flush_tlb_multi_implies_ipi_broadcast = true;
-> 
-> 	return true;
-> }
-> 
-> void __init tlb_init(void)
-> {
-> 	if (!is_pv_ok())
-> 		return;
-> 
-> 	if (cpu_feature_enabled(X86_FEATURE_INVLPGB))
-> 		return;
-> 		
-> 	static_branch_enable(&tlb_ipi_broadcast_key);
-> }
-> 
-> Isn't that like a billion times more readable? It has one
-> X86_FEATURE_INVLPGB check and one static_branch_enable() point and no
-> #ifdeffery other than defining a stub is_pv_ok().
-
-Yep, absolutely ;) Will rework it for v7 as you suggested.
-
-> BTW, why is there even an early return for the case where
-> flush_tlb_multi_implies_ipi_broadcast is already set? Isn't this
-> decision made once on the boot CPU and then never touched again? Do any
-> PV instances actually set the bit?
-
-Good point. No PV backend sets it today, so we don't need that check or
-even the property. I'll drop them. If a PV backend ever needs to
-indicate it sends real IPIs, we can add the property back then.
-
-Does the following look reasonable?
-
----8<---
-diff --git a/arch/x86/include/asm/tlb.h b/arch/x86/include/asm/tlb.h
-index 866ea78ba156..74292abe8852 100644
---- a/arch/x86/include/asm/tlb.h
-+++ b/arch/x86/include/asm/tlb.h
-@@ -5,11 +5,19 @@
-  #define tlb_flush tlb_flush
-  static inline void tlb_flush(struct mmu_gather *tlb);
-
-+#define tlb_table_flush_implies_ipi_broadcast 
-tlb_table_flush_implies_ipi_broadcast
-+static inline bool tlb_table_flush_implies_ipi_broadcast(void);
-+
-  #include <asm-generic/tlb.h>
-  #include <linux/kernel.h>
-  #include <vdso/bits.h>
-  #include <vdso/page.h>
-
-+static inline bool tlb_table_flush_implies_ipi_broadcast(void)
-+{
-+	return static_branch_likely(&tlb_ipi_broadcast_key);
-+}
-+
-  static inline void tlb_flush(struct mmu_gather *tlb)
-  {
-  	unsigned long start = 0UL, end = TLB_FLUSH_ALL;
-@@ -20,7 +28,12 @@ static inline void tlb_flush(struct mmu_gather *tlb)
-  		end = tlb->end;
-  	}
-
--	flush_tlb_mm_range(tlb->mm, start, end, stride_shift, tlb->freed_tables);
-+	/*
-+	 * Pass both freed_tables and unshared_tables so that lazy-TLB CPUs
-+	 * also receive IPIs during unsharing page tables.
-+	 */
-+	flush_tlb_mm_range(tlb->mm, start, end, stride_shift,
-+			   tlb->freed_tables || tlb->unshared_tables);
-  }
-
-  static inline void invlpg(unsigned long addr)
-diff --git a/arch/x86/include/asm/tlbflush.h 
-b/arch/x86/include/asm/tlbflush.h
-index 5a3cdc439e38..d086454eb760 100644
---- a/arch/x86/include/asm/tlbflush.h
-+++ b/arch/x86/include/asm/tlbflush.h
-@@ -5,6 +5,7 @@
-  #include <linux/mm_types.h>
-  #include <linux/mmu_notifier.h>
-  #include <linux/sched.h>
-+#include <linux/jump_label.h>
-
-  #include <asm/barrier.h>
-  #include <asm/processor.h>
-@@ -15,9 +16,35 @@
-  #include <asm/pti.h>
-  #include <asm/processor-flags.h>
-  #include <asm/pgtable.h>
-+#include <asm/paravirt.h>
-
-  DECLARE_PER_CPU(u64, tlbstate_untag_mask);
-
-+DECLARE_STATIC_KEY_FALSE(tlb_ipi_broadcast_key);
-+
-+#ifdef CONFIG_PARAVIRT
-+static inline bool __init pv_tlb_is_native(void)
-+{
-+	return pv_ops.mmu.flush_tlb_multi == native_flush_tlb_multi;
-+}
-+#else
-+static inline bool __init pv_tlb_is_native(void)
-+{
-+	return true;
-+}
-+#endif
-+
-+static inline void __init native_pv_tlb_init(void)
-+{
-+	if (!pv_tlb_is_native())
-+		return;
-+
-+	if (cpu_feature_enabled(X86_FEATURE_INVLPGB))
-+		return;
-+
-+	static_branch_enable(&tlb_ipi_broadcast_key);
-+}
-+
-  void __flush_tlb_all(void);
-
-  #define TLB_FLUSH_ALL	-1UL
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 5cd6950ab672..3cdb04162843 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -1167,6 +1167,7 @@ void __init native_smp_prepare_boot_cpu(void)
-  		switch_gdt_and_percpu_base(me);
-
-  	native_pv_lock_init();
-+	native_pv_tlb_init();
-  }
-
-  void __init native_smp_cpus_done(unsigned int max_cpus)
-diff --git a/arch/x86/mm/tlb.c b/arch/x86/mm/tlb.c
-index 621e09d049cb..43e60cca38f1 100644
---- a/arch/x86/mm/tlb.c
-+++ b/arch/x86/mm/tlb.c
-@@ -26,6 +26,8 @@
-
-  #include "mm_internal.h"
-
-+DEFINE_STATIC_KEY_FALSE(tlb_ipi_broadcast_key);
-+
-  #ifdef CONFIG_PARAVIRT
-  # define STATIC_NOPV
-  #else
----
+   Documentation/userspace-api/landlock:526: ./include/uapi/linux/landlock.h:45: ERROR: Unknown target name: "network flags". [docutils]
+   Documentation/userspace-api/landlock:526: ./include/uapi/linux/landlock.h:50: ERROR: Unknown target name: "scope flags". [docutils]
+   Documentation/userspace-api/landlock:526: ./include/uapi/linux/landlock.h:24: ERROR: Unknown target name: "filesystem flags". [docutils]
+   Documentation/userspace-api/landlock:535: ./include/uapi/linux/landlock.h:166: ERROR: Unknown target name: "filesystem flags". [docutils]
+   Documentation/userspace-api/landlock:535: ./include/uapi/linux/landlock.h:189: ERROR: Unknown target name: "network flags". [docutils]
+>> Documentation/userspace-api/syscall.rst:88: WARNING: Inline emphasis start-string without end-string. [docutils]
+>> Documentation/userspace-api/syscall.rst:88: WARNING: Inline emphasis start-string without end-string. [docutils]
+>> Documentation/userspace-api/syscall.rst:91: WARNING: Definition list ends without a blank line; unexpected unindent. [docutils]
+   Documentation/userspace-api/syscall.rst:94: WARNING: Inline emphasis start-string without end-string. [docutils]
+   Documentation/userspace-api/syscall.rst:94: WARNING: Inline emphasis start-string without end-string. [docutils]
+   Documentation/userspace-api/syscall.rst:110: ERROR: Unexpected indentation. [docutils]
+>> Documentation/userspace-api/syscall.rst:111: WARNING: Block quote ends without a blank line; unexpected unindent. [docutils]
+   Documentation/userspace-api/syscall.rst:145: WARNING: Definition list ends without a blank line; unexpected unindent. [docutils]
+   Documentation/userspace-api/syscall.rst:181: WARNING: Definition list ends without a blank line; unexpected unindent. [docutils]
+>> Documentation/userspace-api/syscall.rst: WARNING: document isn't included in any toctree [toc.not_included]
+   Documentation/networking/skbuff:36: ./include/linux/skbuff.h:181: WARNING: Failed to create a cross reference. A title or caption not found: 'crc' [ref.ref]
 
 
-Thanks,
-Lance
+vim +88 Documentation/userspace-api/syscall.rst
+
+    79	
+    80	NAME
+    81	        mq_timedreceive2 - receive or peek at a message from a
+    82	        POSIX message queue
+    83	
+    84	SYNOPSIS
+    85	        #include <mqueue.c>
+    86	
+    87	        struct mq_timedreceive2_args {
+  > 88	                size_t         msg_len;
+    89	                unsigned int  *msg_prio;
+    90	                char          *msg_ptr;
+  > 91	        };
+    92	
+    93	        ssize_t mq_timedreceive2(mqd_t mqdes,
+    94	                                 struct mq_timedreceive2_args *uargs,
+    95	                                 unsigned int flags,
+    96	                                 unsigned long index,
+    97	                                 const struct timespec *abs_timeout);
+    98	
+    99	        Note: As of now,no glibc wrapper exists for this syscall. Callers must
+   100	        invoke it directly using syscall().
+   101	
+   102	DESCRIPTION
+   103	        mq_timedreceive2() receives or peeks at a message from the
+   104	        message queue referred to by the descriptor mqdes.
+   105	
+   106	        The uargs structure provides the message buffer parameters:
+   107	
+   108	          msg_ptr   userspace buffer to receive the message body
+   109	          msg_len   size of msg_ptr in bytes, must be >= mq_msgsize
+   110	                    of the queue
+ > 111	          msg_prio  if not NULL, the priority of the received message
+   112	                    is stored here
+   113	
+   114	        The flags argument controls receive behavior. The following
+   115	        flags are defined:
+   116	
+   117	          MQ_PEEK
+   118	                    Copy the message into msg_ptr without removing it
+   119	                    from the queue. The queue is not modified. If this
+   120	                    flag is not set, behavior is identical to
+   121	                    mq_timedreceive() and the message is consumed.
+   122	
+   123	        The index argument selects which message to operate on within
+   124	        the priority-ordered queue. index 0 refers to the highest
+   125	        priority message. When MQ_PEEK is not set, index will be ignored but must be 0.
+   126	
+   127	        The abs_timeout argument specifies an absolute timeout. If
+   128	        MQ_PEEK is set,this take control to peek path and so timeout 
+   129	        will be ignored otherwise it will behave as mq_timedreceive().
+   130	
+   131	
+
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
