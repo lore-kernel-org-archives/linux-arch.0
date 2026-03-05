@@ -1,328 +1,191 @@
-Received: from mgamail.intel.com (mgamail.intel.com [198.175.65.15])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f73.google.com (mail-wm1-f73.google.com [209.85.128.73])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86FAE3909B4;
-	Thu,  5 Mar 2026 14:39:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.175.65.15
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EEBB3D5238
+	for <linux-arch@vger.kernel.org>; Thu,  5 Mar 2026 16:54:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.73
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772721588; cv=none; b=u8ClvXv05GUoo0IkUWAePZfmA6JBYxG3B9oih3vQ0JcbFgoXksOPU0MmAvKPGwFdLkrk4qsBYF0HzGb91+9NcEtxJzA+/KRH7jSoOL8Q+ksmIGyjgCatbkxRXrtdsYN2F4+i2Nmt+d93U4B4AwooUMjAbU9z909cJUNPvI1lcPo=
+	t=1772729670; cv=none; b=KgDCZZ4XFXj7N8rIaixaDD/QFxM205SvJcbBjnIdnH0/l4n0ChV0Jq6KutDxl1haKwbCO/a2kILj9Kpv0ibjlXPykbnMbdEWczGYxO9zpwFBKAEBfNU4+0DE034IYOjhTEy901jEJGBNgBroD0dPSyGoA02Gipo6k2dzjDTfxj8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772721588; c=relaxed/simple;
-	bh=+aX9flVoSFj+Nn6F8xwT3pn7chIpM3jv7VmnwZU67/c=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=T5RXz2NXXyVizuleXvY2NTO7nKDHAO1/UCvpdw21eOhSzz9Wcs0PquwticEDeuLPqn/u7e+KsZTipOxywmguSSpTkZd3plgm0i+QOYFGaP+H7rI/d8yeLsxiMicnepDpY3BlNqSvN4pEkbCzABcyDSzaq8nDvQe4ny85jb2QKAE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=Zy2G/ypr; arc=none smtp.client-ip=198.175.65.15
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1772729670; c=relaxed/simple;
+	bh=s0Oics6Xn5AHyPCT14/XnF0BJ1fix4G/sFQqfUg2/bs=;
+	h=Date:Mime-Version:Message-ID:Subject:From:To:Cc:Content-Type; b=EHVC7LWx38K5Q9N2A3GhksRR324tH9lO7UZUyHg2KfB2zWWfQKkJEWQpFImRvtEKkjpeYA1sOQItZzrdyjZaYDF8nze9Rb69ntvO14hDnm1MBvCs3dHDR9bd4nnS+UVfFCJ+IIhZ2ecsIKJ+TArH3MTF0GrKncq/GqURwr6ftdk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--sidnayyar.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=nDagf5Iu; arc=none smtp.client-ip=209.85.128.73
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--sidnayyar.bounces.google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="Zy2G/ypr"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1772721587; x=1804257587;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=+aX9flVoSFj+Nn6F8xwT3pn7chIpM3jv7VmnwZU67/c=;
-  b=Zy2G/yprUDOYewZ5dbjsDFp/XIwWfPdlrB0m84w1UMoKQxUgOqfKHc9a
-   9sywDXpmTA1kQLBzqQvlPAXa/lI6nMcrl8UtqCZOSWm+jDI78BWWtmrAI
-   sMODi3nFkN0/Bu2178skmLxZHTQyTAgwUfM4eN+kH7M/6G3Gj0BuJP1Hw
-   Swfkb91DLV/Ud/SoEMaAGuWX2zxTVB8dw2dtgQACnrbMgA+TFOpkUcSTN
-   jlKsUaIgnQW/IScLPcGTPshmEt29z10iDIhaitU6q9Um0DaAmAhn0vhZe
-   SA6wUesePBGv1pXAiaY7z1zQiOqjEgu7cbbj7PLp9VwujPEnIb0oHt+RK
-   Q==;
-X-CSE-ConnectionGUID: ADZnZydEQXS5RAlyt8o9Vw==
-X-CSE-MsgGUID: 3TAClMr/QjOk5U8h+lFcJw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11720"; a="77410857"
-X-IronPort-AV: E=Sophos;i="6.23,103,1770624000"; 
-   d="scan'208";a="77410857"
-Received: from orviesa008.jf.intel.com ([10.64.159.148])
-  by orvoesa107.jf.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 05 Mar 2026 06:39:46 -0800
-X-CSE-ConnectionGUID: 8wB+UnpXRtSEQrxf8oDyeQ==
-X-CSE-MsgGUID: 4sgGkf0sTqKJ69vih/rdrw==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.23,103,1770624000"; 
-   d="scan'208";a="218695987"
-Received: from igk-lkp-server01.igk.intel.com (HELO 9958d990ccf2) ([10.211.93.152])
-  by orviesa008.jf.intel.com with ESMTP; 05 Mar 2026 06:39:44 -0800
-Received: from kbuild by 9958d990ccf2 with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1vy9rZ-0000000020L-3qZx;
-	Thu, 05 Mar 2026 14:39:41 +0000
-Date: Thu, 5 Mar 2026 15:39:16 +0100
-From: kernel test robot <lkp@intel.com>
-To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
-Cc: oe-kbuild-all@lists.linux.dev, academic1mathura@gmail.com,
-	linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	viro@zeniv.linux.org.uk
-Subject: Re: [PATCH] mqueue: introduce new do_mq_timedreceive2() [ mq_peek
- syscall] for non-destructive receive and inspection,fix minor issue,prepared
- doc.
-Message-ID: <202603051544.tZ2QdW5s-lkp@intel.com>
-References: <20260305065212.83213-1-academic1mathura@gmail.com>
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="nDagf5Iu"
+Received: by mail-wm1-f73.google.com with SMTP id 5b1f17b1804b1-4836cc0b38eso83080655e9.2
+        for <linux-arch@vger.kernel.org>; Thu, 05 Mar 2026 08:54:28 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1772729667; x=1773334467; darn=vger.kernel.org;
+        h=cc:to:from:subject:message-id:mime-version:date:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=h0/N2d7xj++tCyhYWP1OaGkKTLDjkAyApILw+NOXPFo=;
+        b=nDagf5IulOL1DjodlFERBUUicPKF5LKntGPzj/jS73j6iPwej5+IejE0dYtFHSq2ml
+         8QOAI0na157VgRkbpEFyYMn+MGiNg8/O6ykZQe7Y7MHhBSzzMV41vV5TIEVBpXQYLR5E
+         rNGVOE2SbJhIEECTSQSmTNLaZomJsQwWkFUed7InGgkS0ew3F1y6GdsQZhgVhv+LtVta
+         H+xDx18DoCi88IhdBL6uYYTIEFWsGibk8z3WcjZC0uP3t7yaVxlq9aKsoO3xsq2Op2qS
+         9eBcP28OPaQtTY5RLL+ZhKNBz++bGYCBTKbBQzhjx81hyeQDLW7xq1xF0+yKAZTkwYHR
+         dptQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772729667; x=1773334467;
+        h=cc:to:from:subject:message-id:mime-version:date:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=h0/N2d7xj++tCyhYWP1OaGkKTLDjkAyApILw+NOXPFo=;
+        b=Vso+bpWJioScqqC+C5OT6H7HjiP8wbnoQeGjO2L5AuTL7sb0qeer3DCegC/EDCitt/
+         e5UNbK4Za0D9Z7oWYBlukZPjow/X8kuL81uIOENxDUqIE7pFurCEN3WtqRh3f9msv0Tg
+         nhvyMSsFJ0kQrkDybK6EFwvkjKlpTvusSP6CeRKc0q4m9FzduQcB+OUqOCP9PPAyVLmm
+         lDkuPoEogeKa8aNB0yOgSgIkYddhiZavqkFJP9OOcTm7TlcVnybgmKwt/3xEAd8p7yFy
+         VHQQgJih0IZda90W0avnwy1+mLDLbe1WU+0A5jZzQ/Cgxf59qk+r9aIOyHQutMJA/Fru
+         HyhA==
+X-Forwarded-Encrypted: i=1; AJvYcCVzAzYfWLwyatKnea6GSLviExtvFTrSaLmmsDYzwWcigKHQDjOTG9UrwJPgiYFoTU4NU3MPD9dp8gyc@vger.kernel.org
+X-Gm-Message-State: AOJu0YzLaAcuo9tGfwXOsrm5oOl8S+4KVNAu1QmXeGjW+sf9CqdPaYqZ
+	xPxkBg0oi9nEArrLSdyGBD3dfapJ5c/w5NMqf8/xbjgbUJ4SVBrZ7LjMBCUbAsdgnisAIJiPt8d
+	kZVUWwgNJZLpMICDSRQ==
+X-Received: from wmbbd15.prod.google.com ([2002:a05:600c:1f0f:b0:477:9dee:b5d5])
+ (user=sidnayyar job=prod-delivery.src-stubby-dispatcher) by
+ 2002:a05:600c:6383:b0:46f:d682:3c3d with SMTP id 5b1f17b1804b1-485235b4cbdmr2436905e9.13.1772729667399;
+ Thu, 05 Mar 2026 08:54:27 -0800 (PST)
+Date: Thu, 05 Mar 2026 16:54:20 +0000
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260305065212.83213-1-academic1mathura@gmail.com>
+Mime-Version: 1.0
+X-B4-Tracking: v=1; b=H4sIADy1qWkC/6tWKk4tykwtVrJSqFYqSi3LLM7MzwNyTHQUlJIzE
+ vPSU3UzU4B8JSMDIzMDYwNT3ey0nMT04pLEJF1Tw0QDi9S01BQjExMloPqCotS0zAqwWdGxtbU AeehqmVsAAAA=
+X-Change-Id: 20260305-kflagstab-51a08efed244
+X-Mailer: b4 0.14.3
+Message-ID: <20260305-kflagstab-v4-0-4fe6eea27e30@google.com>
+Subject: [PATCH v4 0/8] scalable symbol flags with __kflagstab
+From: Siddharth Nayyar <sidnayyar@google.com>
+To: Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
+	Daniel Gomez <da.gomez@kernel.org>, Sami Tolvanen <samitolvanen@google.com>, 
+	Aaron Tomlin <atomlin@atomlin.com>, Arnd Bergmann <arnd@arndb.de>, 
+	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>
+Cc: linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, 
+	linux-doc@vger.kernel.org, Siddharth Nayyar <sidnayyar@google.com>, maennich@google.com, 
+	gprocida@google.com
+Content-Type: text/plain; charset="utf-8"
 
-Hi Mathura_Kumar,
+This patch series implements a mechanism for scalable exported symbol
+flags using a separate section called __kflagstab. The series introduces
+__kflagstab support, removes *_gpl sections in favor of a GPL flag,
+simplifies symbol resolution during module loading.
 
-kernel test robot noticed the following build errors:
+The __kflagstab contains an 8-bit bitset which can represent up to 8
+boolean flags per symbol exported in the __ksymtab. The patch series
+also uses this bitset to store GPL-only flag values for kernel symbols,
+thereby eliminating the need for *_gpl sections for representing GPL
+only symbols.
 
-[auto build test ERROR on shuah-kselftest/next]
-[also build test ERROR on shuah-kselftest/fixes brauner-vfs/vfs.all next-20260304]
-[cannot apply to linus/master tip/x86/asm v6.16-rc1]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+Petr Pavlu ran a small test to get a better understanding of the
+different section sizes resulting from this patch series.  He used
+v6.17-rc6 together with the openSUSE x86_64 config [1], which is fairly
+large. The resulting vmlinux.bin (no debuginfo) had an on-disk size of
+58 MiB, and included 5937 + 6589 (GPL-only) exported symbols.
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Mathura_Kumar/mqueue-introduce-new-do_mq_timedreceive2-mq_peek-syscall-for-non-destructive-receive-and-inspection-fix-minor-issue-prep/20260305-145412
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/shuah/linux-kselftest.git next
-patch link:    https://lore.kernel.org/r/20260305065212.83213-1-academic1mathura%40gmail.com
-patch subject: [PATCH] mqueue: introduce new do_mq_timedreceive2() [ mq_peek syscall] for non-destructive receive and inspection,fix minor issue,prepared doc.
-config: x86_64-rhel-9.4-ltp (https://download.01.org/0day-ci/archive/20260305/202603051544.tZ2QdW5s-lkp@intel.com/config)
-compiler: gcc-14 (Debian 14.2.0-19) 14.2.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260305/202603051544.tZ2QdW5s-lkp@intel.com/reproduce)
+The following table summarizes his measurements and calculations
+regarding the sizes of all sections related to exported symbols:
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202603051544.tZ2QdW5s-lkp@intel.com/
+                      |  HAVE_ARCH_PREL32_RELOCATIONS  | !HAVE_ARCH_PREL32_RELOCATIONS
+ Section              | Base [B] | Ext. [B] | Sep. [B] | Base [B] | Ext. [B] | Sep. [B]
+----------------------------------------------------------------------------------------
+ __ksymtab            |    71244 |   200416 |   150312 |   142488 |   400832 |   300624
+ __ksymtab_gpl        |    79068 |       NA |       NA |   158136 |       NA |       NA
+ __kcrctab            |    23748 |    50104 |    50104 |    23748 |    50104 |    50104
+ __kcrctab_gpl        |    26356 |       NA |       NA |    26356 |       NA |       NA
+ __ksymtab_strings    |   253628 |   253628 |   253628 |   253628 |   253628 |   253628
+ __kflagstab          |       NA |       NA |    12526 |       NA |       NA |    12526
+----------------------------------------------------------------------------------------
+ Total                |   454044 |   504148 |   466570 |   604356 |   704564 |   616882
+ Increase to base [%] |       NA |     11.0 |      2.8 |       NA |     16.6 |      2.1
 
-All errors (new ones prefixed by >>):
+The column "HAVE_ARCH_PREL32_RELOCATIONS -> Base" contains themeasured
+numbers. The rest of the values are calculated. The "Ext." column
+represents an alternative approach of extending __ksymtab to include a
+bitset of symbol flags, and the "Sep." column represents the approach of
+having a separate __kflagstab. With HAVE_ARCH_PREL32_RELOCATIONS, each
+kernel_symbol is 12 B in size and is extended to 16 B. With
+!HAVE_ARCH_PREL32_RELOCATIONS, it is 24 B, extended to 32 B. Note that
+this does not include the metadata needed to relocate __ksymtab*, which
+is freed after the initial processing.
 
-   In file included from <command-line>:
-   ipc/mqueue.c:1749:24: warning: 'struct compat_mq_timedreceive2_args' declared inside parameter list will not be visible outside of this definition or declaration
-    1749 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/compiler_types.h:617:63: note: in definition of macro '__same_type'
-     617 | #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
-         |                                                               ^
-   include/linux/syscalls.h:131:26: note: in expansion of macro '__TYPE_AS'
-     131 | #define __TYPE_IS_LL(t) (__TYPE_AS(t, 0LL) || __TYPE_AS(t, 0ULL))
-         |                          ^~~~~~~~~
-   include/linux/syscalls.h:132:56: note: in expansion of macro '__TYPE_IS_LL'
-     132 | #define __SC_LONG(t, a) __typeof(__builtin_choose_expr(__TYPE_IS_LL(t), 0LL, 0L)) a
-         |                                                        ^~~~~~~~~~~~
-   include/linux/syscalls.h:122:27: note: in expansion of macro '__SC_LONG'
-     122 | #define __MAP4(m,t,a,...) m(t,a), __MAP3(m,__VA_ARGS__)
-         |                           ^
-   include/linux/syscalls.h:123:35: note: in expansion of macro '__MAP4'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ^~~~~~
-   include/linux/syscalls.h:125:22: note: in expansion of macro '__MAP5'
-     125 | #define __MAP(n,...) __MAP##n(__VA_ARGS__)
-         |                      ^~~~~
-   arch/x86/include/asm/syscall_wrapper.h:224:36: note: in expansion of macro '__MAP'
-     224 |         static long __se_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__));     \
-         |                                    ^~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   In file included from ipc/mqueue.c:29:
-   ipc/mqueue.c:1749:24: warning: 'struct compat_mq_timedreceive2_args' declared inside parameter list will not be visible outside of this definition or declaration
-    1749 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:127:25: note: in definition of macro '__SC_DECL'
-     127 | #define __SC_DECL(t, a) t a
-         |                         ^
-   include/linux/syscalls.h:123:35: note: in expansion of macro '__MAP4'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ^~~~~~
-   include/linux/syscalls.h:125:22: note: in expansion of macro '__MAP5'
-     125 | #define __MAP(n,...) __MAP##n(__VA_ARGS__)
-         |                      ^~~~~
-   arch/x86/include/asm/syscall_wrapper.h:225:43: note: in expansion of macro '__MAP'
-     225 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-         |                                           ^~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1749:24: warning: 'struct compat_mq_timedreceive2_args' declared inside parameter list will not be visible outside of this definition or declaration
-    1749 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/compiler_types.h:617:63: note: in definition of macro '__same_type'
-     617 | #define __same_type(a, b) __builtin_types_compatible_p(typeof(a), typeof(b))
-         |                                                               ^
-   include/linux/syscalls.h:131:26: note: in expansion of macro '__TYPE_AS'
-     131 | #define __TYPE_IS_LL(t) (__TYPE_AS(t, 0LL) || __TYPE_AS(t, 0ULL))
-         |                          ^~~~~~~~~
-   include/linux/syscalls.h:132:56: note: in expansion of macro '__TYPE_IS_LL'
-     132 | #define __SC_LONG(t, a) __typeof(__builtin_choose_expr(__TYPE_IS_LL(t), 0LL, 0L)) a
-         |                                                        ^~~~~~~~~~~~
-   include/linux/syscalls.h:122:27: note: in expansion of macro '__SC_LONG'
-     122 | #define __MAP4(m,t,a,...) m(t,a), __MAP3(m,__VA_ARGS__)
-         |                           ^
-   include/linux/syscalls.h:123:35: note: in expansion of macro '__MAP4'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ^~~~~~
-   include/linux/syscalls.h:125:22: note: in expansion of macro '__MAP5'
-     125 | #define __MAP(n,...) __MAP##n(__VA_ARGS__)
-         |                      ^~~~~
-   arch/x86/include/asm/syscall_wrapper.h:228:36: note: in expansion of macro '__MAP'
-     228 |         static long __se_sys##name(__MAP(x,__SC_LONG,__VA_ARGS__))      \
-         |                                    ^~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   ipc/mqueue.c: In function '__se_sys_mq_timedreceive2_time32':
->> include/linux/syscalls.h:133:25: error: passing argument 2 of '__do_sys_mq_timedreceive2_time32' from incompatible pointer type [-Wincompatible-pointer-types]
-     133 | #define __SC_CAST(t, a) (__force t) a
-   include/linux/syscalls.h:122:27: note: in expansion of macro '__SC_CAST'
-     122 | #define __MAP4(m,t,a,...) m(t,a), __MAP3(m,__VA_ARGS__)
-         |                           ^
-   include/linux/syscalls.h:123:35: note: in expansion of macro '__MAP4'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ^~~~~~
-   include/linux/syscalls.h:125:22: note: in expansion of macro '__MAP5'
-     125 | #define __MAP(n,...) __MAP##n(__VA_ARGS__)
-         |                      ^~~~~
-   arch/x86/include/asm/syscall_wrapper.h:230:43: note: in expansion of macro '__MAP'
-     230 |                 long ret = __do_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
-         |                                           ^~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1749:63: note: expected 'struct compat_mq_timedreceive2_args *' but argument is of type 'struct compat_mq_timedreceive2_args *'
-    1749 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
-   include/linux/syscalls.h:127:27: note: in definition of macro '__SC_DECL'
-     127 | #define __SC_DECL(t, a) t a
-         |                           ^
-   include/linux/syscalls.h:123:35: note: in expansion of macro '__MAP4'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ^~~~~~
-   include/linux/syscalls.h:125:22: note: in expansion of macro '__MAP5'
-     125 | #define __MAP(n,...) __MAP##n(__VA_ARGS__)
-         |                      ^~~~~
-   arch/x86/include/asm/syscall_wrapper.h:225:43: note: in expansion of macro '__MAP'
-     225 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-         |                                           ^~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   ipc/mqueue.c: At top level:
-   ipc/mqueue.c:1749:24: warning: 'struct compat_mq_timedreceive2_args' declared inside parameter list will not be visible outside of this definition or declaration
-    1749 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:127:25: note: in definition of macro '__SC_DECL'
-     127 | #define __SC_DECL(t, a) t a
-         |                         ^
-   include/linux/syscalls.h:123:35: note: in expansion of macro '__MAP4'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ^~~~~~
-   include/linux/syscalls.h:125:22: note: in expansion of macro '__MAP5'
-     125 | #define __MAP(n,...) __MAP##n(__VA_ARGS__)
-         |                      ^~~~~
-   arch/x86/include/asm/syscall_wrapper.h:235:43: note: in expansion of macro '__MAP'
-     235 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-         |                                           ^~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   In file included from include/linux/compat.h:34,
-                    from include/net/compat.h:8,
-                    from include/net/scm.h:13,
-                    from include/linux/netlink.h:9,
-                    from ipc/mqueue.c:28:
->> arch/x86/include/asm/syscall_wrapper.h:235:28: error: conflicting types for '__do_sys_mq_timedreceive2_time32'; have 'long int(mqd_t,  struct compat_mq_timedreceive2_args *, unsigned int,  const long unsigned int,  const struct old_timespec32 *)' {aka 'long int(int,  struct compat_mq_timedreceive2_args *, unsigned int,  const long unsigned int,  const struct old_timespec32 *)'}
-     235 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-         |                            ^~~~~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   arch/x86/include/asm/syscall_wrapper.h:225:28: note: previous declaration of '__do_sys_mq_timedreceive2_time32' with type 'long int(mqd_t,  struct compat_mq_timedreceive2_args *, unsigned int,  const long unsigned int,  const struct old_timespec32 *)' {aka 'long int(int,  struct compat_mq_timedreceive2_args *, unsigned int,  const long unsigned int,  const struct old_timespec32 *)'}
-     225 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-         |                            ^~~~~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
-   ipc/mqueue.c: In function '__do_sys_mq_timedreceive2_time32':
->> ipc/mqueue.c:1757:13: error: implicit declaration of function 'get_compat_mq_args'; did you mean 'get_compat_msghdr'? [-Wimplicit-function-declaration]
-    1757 |         if (get_compat_mq_args(pargs, uargs))
-         |             ^~~~~~~~~~~~~~~~~~
-         |             get_compat_msghdr
-   ipc/mqueue.c: At top level:
-   arch/x86/include/asm/syscall_wrapper.h:225:28: warning: '__do_sys_mq_timedreceive2_time32' used but never defined
-     225 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-         |                            ^~~~~~~~
-   include/linux/syscalls.h:237:9: note: in expansion of macro '__SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: in expansion of macro 'SYSCALL_DEFINEx'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~
-   ipc/mqueue.c:1748:1: note: in expansion of macro 'SYSCALL_DEFINE5'
-    1748 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~
+The base export data in this case totals 0.43 MiB. About 50% is used for
+storing the names of exported symbols.
 
+Adding __kflagstab as a separate section has a negligible impact, as
+expected. When extending __ksymtab (kernel_symbol) instead, the worst
+case with !HAVE_ARCH_PREL32_RELOCATIONS increases the export data size
+by 16.6%. Note that the larger increase in size for the latter approach
+is due to 4-byte alignment of kernel_symbol data structure, instead of
+1-byte alignment for the flags bitset in __kflagstab in the former
+approach.
 
-vim +/__do_sys_mq_timedreceive2_time32 +133 include/linux/syscalls.h
+Based on the above, it was concluded that introducing __kflagstab makes
+senses, as the added complexity is minimal over extending kernel_symbol,
+and there is overall simplification of symbol finding logic in the
+module loader.
 
-07fe6e00f6cca6 Al Viro            2013-01-21  126  
-07fe6e00f6cca6 Al Viro            2013-01-21  127  #define __SC_DECL(t, a)	t a
-4f59c718521a0f Al Viro            2017-07-08  128  #define __TYPE_AS(t, v)	__same_type((__force t)0, v)
-4f59c718521a0f Al Viro            2017-07-08  129  #define __TYPE_IS_L(t)	(__TYPE_AS(t, 0L))
-4f59c718521a0f Al Viro            2017-07-08  130  #define __TYPE_IS_UL(t)	(__TYPE_AS(t, 0UL))
-4f59c718521a0f Al Viro            2017-07-08  131  #define __TYPE_IS_LL(t) (__TYPE_AS(t, 0LL) || __TYPE_AS(t, 0ULL))
-4a0fd5bf0fd079 Al Viro            2013-01-21  132  #define __SC_LONG(t, a) __typeof(__builtin_choose_expr(__TYPE_IS_LL(t), 0LL, 0L)) a
-4f59c718521a0f Al Viro            2017-07-08 @133  #define __SC_CAST(t, a)	(__force t) a
-56062d60f117dc Richard Palethorpe 2024-01-10  134  #define __SC_TYPE(t, a)	t
-2cf0966683430b Al Viro            2013-01-21  135  #define __SC_ARGS(t, a)	a
-4a0fd5bf0fd079 Al Viro            2013-01-21  136  #define __SC_TEST(t, a) (void)BUILD_BUG_ON_ZERO(!__TYPE_IS_LL(t) && sizeof(t) > sizeof(long))
-1a94bc34768e46 Heiko Carstens     2009-01-14  137  
+Thank you Petr Pavlu for doing a section size analysis as well as Sami
+Tolvanen, Petr Pavlu and Jonathan Corbet for their valuable feedback.
 
+---
+Changes from v3:
+- made commit messages more descriptive
+
+v3:
+https://lore.kernel.org/20251103161954.1351784-1-sidnayyar@google.com/
+
+Changes from v2:
+- dropped symbol import protection to spin off into its own series
+
+v2:
+https://lore.kernel.org/20251013153918.2206045-1-sidnayyar@google.com/
+
+Changes from v1:
+- added a check to ensure __kflagstab is present
+- added warnings for the obsolete *_gpl sections
+- moved protected symbol check before ref_module() call
+- moved protected symbol check failure warning to issue detection point
+
+v1:
+https://lore.kernel.org/20250829105418.3053274-1-sidnayyar@google.com/
+
+[1] https://github.com/openSUSE/kernel-source/blob/307f149d9100a0e229eb94cbb997ae61187995c3/config/x86_64/default
+
+Signed-off-by: Siddharth Nayyar <sidnayyar@google.com>
+
+---
+Siddharth Nayyar (8):
+      define ksym_flags enumeration to represent kernel symbol flags
+      linker: add kflagstab section to vmlinux and modules
+      modpost: populate kflagstab
+      module loader: use kflagstab instead of *_gpl sections
+      modpost: remove fragmentation of ksymtab and kcrctab sections
+      module loader: deprecate usage of *_gpl sections
+      linker: remove *_gpl sections from vmlinux and modules
+      documentation: remove references to *_gpl sections
+
+ Documentation/kbuild/modules.rst  |  11 +++--
+ include/asm-generic/vmlinux.lds.h |  21 +++-----
+ include/linux/export-internal.h   |  28 +++++++----
+ include/linux/module.h            |   4 +-
+ include/linux/module_symbol.h     |   5 ++
+ kernel/module/internal.h          |   4 +-
+ kernel/module/main.c              | 101 ++++++++++++++++++--------------------
+ scripts/mod/modpost.c             |  16 ++++--
+ scripts/module.lds.S              |   3 +-
+ 9 files changed, 98 insertions(+), 95 deletions(-)
+---
+base-commit: c107785c7e8dbabd1c18301a1c362544b5786282
+change-id: 20260305-kflagstab-51a08efed244
+
+Best regards,
 -- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Siddharth Nayyar <sidnayyar@google.com>
+
