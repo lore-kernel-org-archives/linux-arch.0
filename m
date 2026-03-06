@@ -1,287 +1,1878 @@
-Received: from mx0a-00069f02.pphosted.com (mx0a-00069f02.pphosted.com [205.220.165.32])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj1-f54.google.com (mail-pj1-f54.google.com [209.85.216.54])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8716934C81F;
-	Fri,  6 Mar 2026 02:47:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=205.220.165.32
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772765254; cv=fail; b=jsq7LVSU3vXGr0Wc/vEfSaoCyxaeJ9LUFkOrobD2q5oiC83qGYKG2IdOxFj9Ihs1F14X8jgE0y8g7UxHqz83ykrG3ZOIEr1coJfTdTIvR9FY6AvBjXYzWPWQJWbw76BnJxtjVF2LUVR3Eevj3stXYOyVknILx2d00+ApfBJItqE=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772765254; c=relaxed/simple;
-	bh=vtmczWvXaAH2XM/SJXCNL+SwKVJwfDi/+N5b7rtfZj8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:Content-Type:
-	 Content-Disposition:In-Reply-To:MIME-Version; b=lTWlnqlPNHDq+g7t0+2r8VmI9wrL0/E8o8larF25Yy6BMSiviMtU+Ob6mu/WCIsBplh9bZeJ9x63MRGfRHHciiiFfiq/KdLeziPneR2FuzuQq+hpFIzZN2sd77amSxvbFGDNx6r3fBmOV9kuDnFb+77a6nGzymqfKVECEVNQMb4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com; spf=pass smtp.mailfrom=oracle.com; dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b=o4PfDgeZ; dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b=hdp+SZ97; arc=fail smtp.client-ip=205.220.165.32
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oracle.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oracle.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3601E334685
+	for <linux-arch@vger.kernel.org>; Fri,  6 Mar 2026 07:50:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.54
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1772783446; cv=none; b=OroFuJmvk71YR20m/4yKqSOFBD0ctevoQTiZFmV5Or6gfSe0z82UVde4FvPK1beo5qamLy9UuoBFpewLxxX2vCVxdba8mW675ZBCVvMAa+4KDvz2VV2eyDF1wQKnGAAsXhxWzkoGVFOKK5pQZs9ykVsMiTqw1h86ZMAVEVIUaqM=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1772783446; c=relaxed/simple;
+	bh=Tz3FE24ZS8cAxeashK+Iw+JLGV+7Kv9JAoZ9fyGLEks=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=D2+mnBU8eplQqPj/lMtLHjh4YKTwvTN8Uj0M7fOtQL2/Gs97Hf5ltRwvPCNXMP92Wu7TMgFYlEYNCHS/TjqLpoJ2EDycZCIcrZHIJt2Ic3qi2NyoC6zsQZBDKkq5Lxy1gYup59Nk+AsD5aO4swdJpm3oN9+82mgZADhYesPxc7Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=k47S+PLy; arc=none smtp.client-ip=209.85.216.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=oracle.com header.i=@oracle.com header.b="o4PfDgeZ";
-	dkim=pass (1024-bit key) header.d=oracle.onmicrosoft.com header.i=@oracle.onmicrosoft.com header.b="hdp+SZ97"
-Received: from pps.filterd (m0246629.ppops.net [127.0.0.1])
-	by mx0b-00069f02.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 6261Xlgk2180538;
-	Fri, 6 Mar 2026 02:46:46 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=oracle.com; h=cc
-	:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=corp-2025-04-25; bh=Dece5oLaaXHkOXL/2Y
-	kDxMC7psn72UhNbh0rSL9esm0=; b=o4PfDgeZMGStNVlOAjT8PsCzpfA+WZS+GG
-	G2LR5/1xLNmkZD+neJyMu7EHCXiW+Nrb8GCl78vfJuOFR+Pnqjr2baJtlWPd3cH9
-	DVVl+SCtoIWzEvgTO16nyaGxut4Fm1nqHHasyDFznKHL3qvDY5Yc7q0OSriX/yHz
-	jT4KhSXYHAudNfzbQVbwCxRZPq5iT416c6VPG9q44mZhJBLTZYYXBldeXLI5AiaE
-	QgtV4eo5sZrZkxfW3p9i7TBLN+t7Z8oUWZFEE595gJDynxTG8d2cpGCKPKaGOoMv
-	eLiPkzhhcJ9ODb/rG5v5f6/x3Iehn5fZ6ZbfRQKzF89jW1slE21w==
-Received: from iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (iadpaimrmta01.appoci.oracle.com [130.35.100.223])
-	by mx0b-00069f02.pphosted.com (PPS) with ESMTPS id 4cqnbwg25h-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 06 Mar 2026 02:46:46 +0000 (GMT)
-Received: from pps.filterd (iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com [127.0.0.1])
-	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (8.18.1.2/8.18.1.2) with ESMTP id 6260UNUW034772;
-	Fri, 6 Mar 2026 02:46:45 GMT
-Received: from ph0pr06cu001.outbound.protection.outlook.com (mail-westus3azon11011057.outbound.protection.outlook.com [40.107.208.57])
-	by iadpaimrmta01.imrmtpd1.prodappiadaev1.oraclevcn.com (PPS) with ESMTPS id 4ckptj3ypd-1
-	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
-	Fri, 06 Mar 2026 02:46:45 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=odLMIq+z3tqoAODbm52Bcn9+5vK3RKOVcMfHqrbx+eQSnBZTm8QFH4HctVUIQmjGLBc+whh3cyprt9T7T9/+esXTaiXIkRv3WnXpDCg2NYThyCOOInUJjg3ZJagCzNw4J0m0l1gM36gHjQRvLuwggMU940cYY0h6lAvH73cx4sVNVhuOXt5g35XQq9gaBojU32RfF6m5xaeoKjap7zceKixl0ilRpYrj65diK2CXbjCVu1+xZGQBhPJa/4jlh6tXPHtuPnIcVQsnkPmluyVxbZ4hx6TRZOemEnQaK6F0MzOklEmAgGvZUvwCpE7e0NlWGE1AXCq59TnZ3tNChM4meg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=Dece5oLaaXHkOXL/2YkDxMC7psn72UhNbh0rSL9esm0=;
- b=FjJs2DhdeCqYDii7VnrFrSTVHutSsopqrS5A9iT1N6B5JVSEtO779umTiTpBbZ02Q8Ul7vkbQ53ZAPpC/OF612fnhJ+ZyL5dam4m/Op81141TY6BWsZzXIDxJ/CT5Wi4MGFLwcBWbL+UQFWTtl3PCYB7pFEH0xdrxV566PE8+gsETNmPDsKR6jcQLnO0tAoEnwi92wPqWZTb2ZppbmH6mT6f3JeFzd/lq2YEnw48L7c5vx80WBWKP8IftMlDqohOrUsXE5v2rahfhDGYStqjoHEiVrtLFxSQ0sZk+sSF3RugyHjsflIqu/ibWZdbse9ri8C9A3TeJGSHzaBIf9gAng==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=oracle.com; dmarc=pass action=none header.from=oracle.com;
- dkim=pass header.d=oracle.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="k47S+PLy"
+Received: by mail-pj1-f54.google.com with SMTP id 98e67ed59e1d1-3591cc98871so3983108a91.3
+        for <linux-arch@vger.kernel.org>; Thu, 05 Mar 2026 23:50:43 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
- d=oracle.onmicrosoft.com; s=selector2-oracle-onmicrosoft-com;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=Dece5oLaaXHkOXL/2YkDxMC7psn72UhNbh0rSL9esm0=;
- b=hdp+SZ978muvO8TTIeWJgOttF6M9wi6I1IArWjG0U3wOlcv/iXhecE0ETOOkeqvPrsrUCxsZvthoC79aa1Br81ChvY476DUaL4n00BjX9LEALENw7uhOJ4v26HNLlMxNcT9xJiZvVQ09IdYJF07oy3xElcl+kF/JrAHCwdC+sfU=
-Received: from CH3PR10MB7329.namprd10.prod.outlook.com (2603:10b6:610:12c::16)
- by DM4PR10MB5917.namprd10.prod.outlook.com (2603:10b6:8:b1::5) with Microsoft
- SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.20.9678.17; Fri, 6 Mar 2026 02:46:41 +0000
-Received: from CH3PR10MB7329.namprd10.prod.outlook.com
- ([fe80::c2a4:fdda:f0c2:6f71]) by CH3PR10MB7329.namprd10.prod.outlook.com
- ([fe80::c2a4:fdda:f0c2:6f71%7]) with mapi id 15.20.9678.017; Fri, 6 Mar 2026
- 02:46:40 +0000
-Date: Fri, 6 Mar 2026 11:46:29 +0900
-From: Harry Yoo <harry.yoo@oracle.com>
-To: linux-mm@kvack.org
-Cc: Dmitry Vyukov <dvyukov@google.com>, lkmm@lists.linux.dev,
-        linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-        Joel Fernandes <joelagnelf@nvidia.com>,
-        Daniel Lustig <dlustig@nvidia.com>, Akira Yokosawa <akiyks@gmail.com>,
-        "Paul E. McKenney" <paulmck@kernel.org>,
-        Luc Maranget <luc.maranget@inria.fr>,
-        Jade Alglave <j.alglave@ucl.ac.uk>,
-        David Howells <dhowells@redhat.com>,
-        Nicholas Piggin <npiggin@gmail.com>, Boqun Feng <boqun@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>, Will Deacon <will@kernel.org>,
-        Andrea Parri <parri.andrea@gmail.com>,
-        Alan Stern <stern@rowland.harvard.edu>,
-        Pedro Falcato <pfalcato@suse.de>, Vlastimil Babka <vbabka@suse.cz>,
-        Christoph Lameter <cl@gentwo.org>,
-        David Rientjes <rientjes@google.com>,
-        Roman Gushchin <roman.gushchin@linux.dev>, Hao Li <hao.li@linux.dev>,
-        Shakeel Butt <shakeel.butt@linux.dev>,
-        Venkat Rao Bagalkote <venkat88@linux.ibm.com>,
-        Mateusz Guzik <mjguzik@gmail.com>,
-        Suren Baghdasaryan <surenb@google.com>, Marco Elver <elver@google.com>
-Subject: Re: [BUG] Memory ordering between kmalloc() and kfree()? it's
- confusing!
-Message-ID: <aapABVbVYNwhEV55@hyeyoo>
-References: <aZ_lJAqxh_hNGr_v@hyeyoo>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aZ_lJAqxh_hNGr_v@hyeyoo>
-X-ClientProxiedBy: SE2P216CA0171.KORP216.PROD.OUTLOOK.COM
- (2603:1096:101:2cb::9) To CH3PR10MB7329.namprd10.prod.outlook.com
- (2603:10b6:610:12c::16)
+        d=gmail.com; s=20230601; t=1772783442; x=1773388242; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=PDL+WZEnNPteR4/oCFyx33V0lKvLoJORVn7SpLk9/ME=;
+        b=k47S+PLyfVsK55ewiwEFTa6L195yW3RxgQS4Kwp7hVS8wEFGNj0/82rvh88rhG/ugl
+         /mygfPdU9Ki6PooRIGqKrANBaJjNXXZJIAkwGQtxruM+7sPsCLqETYioeUzlVpkiF5tF
+         2y7n5yCo492Qvwye7+kGedZAzv2vXI7UdsqAPjUVmghhqZOwlVBYxwHkAcOaDDCyMzsv
+         qUtTRNFA9CoquaOsLIWl0yRa4TAZkj1SiGLuDgyjoct7pBM7CfsvsIhX1IVDtRNikIQC
+         Gx/JZZrU0STbBW59XPAd27m4WzalEy4DDic3BmT1jMymZP7xTbHyi1WJ7udYRSKxQYbo
+         o+sw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772783442; x=1773388242;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=PDL+WZEnNPteR4/oCFyx33V0lKvLoJORVn7SpLk9/ME=;
+        b=axeEgqHy0jto01f3CQUyzs7tDYRD8dTJdYPRw8xgje0l+FhCAaNM26rB+0STNBm+xo
+         eB6RhVQrh0GPcMqsLT82G0kwgHJYF85PN1pLm7cJ7V4O3g3yjBGpWcsNgJb6sK8G35K7
+         SpOWHakXMlTey03zIzjaJnDILFO02INDRrg2gZ63vHzVGBYNknSiIeCq8fH5vWcL7nBk
+         QGLlSjuPwneQPp5jhrf8xCZSw4VsxT/70oArSpUp589cEM7shtjSuV7RA/GvX5qW4kPK
+         NeVU6pi6MdUMDZyQ4fqUYSuYboIc5fccy9anFSVQPup58tYXXQWj0BWW8rJHY58p8aiv
+         BQ9w==
+X-Forwarded-Encrypted: i=1; AJvYcCWUSLR19kKGUqg/hoPD8DrUo3OiIo/A5ZDTlFX+m8BUTqa8ecvn4sM/Yy5FKQrbzny2FYTLeowyItFt@vger.kernel.org
+X-Gm-Message-State: AOJu0YxIBn+BmQ81TEx/LMO4G2D5PhrF2W3VCOvQpV0lc40vmcVIT5Mq
+	vC6LdIVifT2puLidty92EVvjm1f6WuE8kEdxYOtZpLLf16MG3Uxqw/Je
+X-Gm-Gg: ATEYQzwrOlVpeiuGfjUDsFtFMlpAghkf+R2sqguGM1BzvaoBkOTmttW9j7NzsfWjsz/
+	zHrcwxF8plXA1AHwGiCHCmPlJhQC4qUp2w2SqM2A3E/zT+EGEYRjt16oDjQXaS5zEv+A9Xu5FGg
+	u/2ya4+pkyRJQ4a0vq0ubrNX+dBF1JI/7p32Xjq9x0iz7/ddLs0KhFymvh+iCwEin5CgA9jntRj
+	e6grZP71T6omT2/kMDyKw11zqoQs1HfhVRfZdk6Ua3c9tg4CPYi6upquPI4sdLcZS+PRnmFZZUc
+	sEm07xHa2Y79Ia6PpY8shjrfuCUmRo5IA/AI6CBjH+3A+2cq3+3T4SS4bVGf9BGguESqfxk4cwp
+	YbXFk+kwt15LBXHvD3wWF1yGEXkCl0uAM1wFV0dMUKdkxIzlAvFKHLFUIWgW86JGekhxkIQw5kE
+	vJfDf0HvFGNfFMIRIyhSlSN03SC0JkJcOf6njK3SlUIQ1txw==
+X-Received: by 2002:a17:90b:2f8f:b0:359:8812:7c01 with SMTP id 98e67ed59e1d1-359be3209bcmr1038273a91.28.1772783441870;
+        Thu, 05 Mar 2026 23:50:41 -0800 (PST)
+Received: from Modern-15.. ([2401:4900:82bd:9621:9cae:2f6a:7797:cff8])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c739e199993sm773471a12.34.2026.03.05.23.50.38
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 05 Mar 2026 23:50:41 -0800 (PST)
+From: Mathura_Kumar <academic1mathura@gmail.com>
+To: brauner@kernel.org
+Cc: academic1mathura@gmail.com,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	viro@zeniv.linux.org.uk
+Subject: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [ mq_peek syscall] for non-destructive receive and inspection,fix minor issue,prepared doc.
+Date: Fri,  6 Mar 2026 13:20:08 +0530
+Message-ID: <20260306075009.83723-1-academic1mathura@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: CH3PR10MB7329:EE_|DM4PR10MB5917:EE_
-X-MS-Office365-Filtering-Correlation-Id: 5dbfd4e7-a32b-4db9-1349-08de7b2a9827
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam: BCL:0;ARA:13230040|376014|7416014|1800799024|366016;
-X-Microsoft-Antispam-Message-Info:
-	ZlAMqPtGqb8Eu913Xmsw2oM9WANWx/2sotmxtA3ALDfoPGHI5bu2zGbeTTbqmVCcXktXb5CBJyJOwDyv8i6i5fKaj2Hfg3X0cI3oJxXUae/r97AG2rX8rXRJtJlifMoEg2L9xEXmCCxYmEbU7V0BXUcA1uHbbzhysMBaTA0miUbeRhumt7OE0ORBbhlWzOtZi0+Lw7riUo0qt6YnZKj8SNfdPrqrqoyqAapZTaoWafYYQhgKlQozCaoegzw1JlLvdVxnLdBbfMLSm9eNpKSHCiRUB20z/585T/JLgjtppXI8Bk500WZdP+SanUrioz9NjMkr1pP7IyUNvWUVDXBbnT5pDXtbNlIXPl+RoL1wszgYpMCWjHJmL9dzLlW8OLp7u2CiABxNg0CeMq0HIicumFFY93FhqnrMqnO/OBZaJ/Aa6Ce3VgjzVQntzeipakMAVyuxM9BrJQDCBwVswi1fYx3fhGUVI12rauofY2/x38c9w87Yke1DJ0umi3ICF1k7+3i9qGVt4CGX+9rYIzf78XhiVqaTAz9dA98dbtdlCB4x9Rj1KCeAQUtvB4nVE+Ft7Hr9WXsmUkPnLAKpecnwfJQUtJmDMaTTqvj+EaKDXWddwt7yFB4Nq+Cy08lFIEu8bdgVTZvz145PXoB3jIiaC/yrpvKHZcBqqmappt2+QCm+ZU0DWqtPH8I8NcSyhy667jN55HwialEQ+hgLgFlAfzv0Jr1Z+ecfYI1yRWRaSgbyWRhPSy9fBdl+j3b9NtIo
-X-Forefront-Antispam-Report:
-	CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:CH3PR10MB7329.namprd10.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(376014)(7416014)(1800799024)(366016);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	=?us-ascii?Q?Su1G+GRb7xOWP0XCQKAwlkjbe7NudKG/IPe/zVXeSq5hREveKG7+gXhBQTF/?=
- =?us-ascii?Q?UKMMNRRlnzBF3V/SOIHiyh7cLwTNvxKWkxc2sAH+Ux9yuqgnqX9jw20CKSVZ?=
- =?us-ascii?Q?UOuVwGTD81mwmsLqp7yBsAG3Y8htjRMs+QJC09jLkumWu4Dg5z1hEleKwYfk?=
- =?us-ascii?Q?q/VlRmZ9T4WOpjjS+Plyg/CCqyYFJwjuRQeGDeMGbLd7wUmI/tCdsA6I80BS?=
- =?us-ascii?Q?pAaSKy4lM8N4jdAfy4ZqqMpWx3X0V3oVAOINVCRotLSBblPaRSsJ9qUfRr2N?=
- =?us-ascii?Q?ga/lXWKKGGh0UxdsB1D2lNHOxnG1/UspJkj0w0wg6cXz7ldRtLPBiEqjFbL4?=
- =?us-ascii?Q?QC9Ru+wFzRQwGnpzRAcxY6b5adJ3GJsYCbwNtkrMkHc7lvcm4mmrRDsefVUk?=
- =?us-ascii?Q?nu8ibeKBiOx6i9Pe16PYkVoigbuVDZryAZM11+2sY1hFp2BXjld/z4YWtb5J?=
- =?us-ascii?Q?xmeMEYMzc50tr6tj6xEleV3DJe8Ma5Aj4YxpjGGngpPS2Sj+1I+JZGaPxcgd?=
- =?us-ascii?Q?PwyW8DPWw0HDxEoYKN8Rmc/6AMzyTF4ihTZh88m4gYFjRkG0QA8tJCZp77m8?=
- =?us-ascii?Q?oSo3O4YXD11F14Qci7za9Pz+EfAs+SjmPUqVh9qi4h2J2WML+MyoJUJQo0b8?=
- =?us-ascii?Q?8w1OEv7PNh6m8GF4UBfF/5besMhbsfai4GQp7VxJTwbwvgLFze/9dgqyK9fq?=
- =?us-ascii?Q?cmeFOxhXVZFdPgl0lcEsvI0nGKyP2hAhd5q0bgGnXFvzlD/uqSefrI04JrNZ?=
- =?us-ascii?Q?zD5VGgvKa4LWbpmOoui/8iaTo2bjl5oxLhazjPM6W6hvnUaf6fBw2J3Liijh?=
- =?us-ascii?Q?EYW0mIZph2yPU7Ni5cYaa+gqlDv/Y6V0tr01SU1XOzV5U7LMLAISf4ujQ31O?=
- =?us-ascii?Q?ZAX7MktV9LKbaWgWp1t7nlRUubDt50hlexvZaMcF4+56Op/QWN5TpaDd46AD?=
- =?us-ascii?Q?d3usF5nQW/FvUrHqxsPJaC0O1Umak5srnQsqpd04OSAsY6uYFVj3eB7PYBLf?=
- =?us-ascii?Q?i9BnA9j/AHFgsPOss0jlnMV5M9fZkoK/lsz+rRsKwF+eDPCA2/VQTLm95K0B?=
- =?us-ascii?Q?TEWH6XW37BniFkVnx1CMW/SZcNV/oWwEh91Gs4M/FysrDHXqE4BW9bQXVop5?=
- =?us-ascii?Q?RfdPXdfy2znMrSBBE6M40GoYomn7KvSETr7s8MTQbjMvvcsSpwYnVNeO7C0+?=
- =?us-ascii?Q?qR4RTxY9OrYQnebHsMPHyKslS4H29fmiasEGYVojLh0fNIId77SU5ilPxrz6?=
- =?us-ascii?Q?Eza5u456eKZYLdFnH1o+rTdlZDH739kfI+Nav4DRwymXO/m57iVPP5lDp1bl?=
- =?us-ascii?Q?W3w1fPMdHAq4XLIi4OZpaHxuj2F6ignMEIDu9yl3wQUf0cWWLxzYB2Yftj26?=
- =?us-ascii?Q?iAz1O45bEHOg3F8PGGk9LMgvRMphDCkLOfu7Yx6JZMGp7MLu/ezRppv1sYKE?=
- =?us-ascii?Q?TGBNm7H5hBXJ92cliqCc7DkYRMyHSlmFebEdxnPnkLOEn7/lacqoT7zupURm?=
- =?us-ascii?Q?yL2a7JQ0bHnrBanG0vvFmLxIwYtzV9oBvHqTkL/GUQw0sFE4l3joRM33rLN3?=
- =?us-ascii?Q?fuis8i5b+ICiuChWLza89Ach8dVzs0o1up89p36cZeTGSftHhJ/sXy4ptbUd?=
- =?us-ascii?Q?tAm+S61rdcidzlsUZPMJMTzUMmqmLvb6bPXvl6cVm4IASqP2QZRqn/ZYV6IQ?=
- =?us-ascii?Q?c8IHjU3+IA2/KHcoldN4aZjVZw1vEXlAq6SXzJcg7Nh1uYpJrUwATrqOtujK?=
- =?us-ascii?Q?pegLD9UVlg=3D=3D?=
-X-Exchange-RoutingPolicyChecked:
-	vY/HOV+XyTI5eUgvlKneqX32xe3/x2HeLD6GhJIWCH1vuUSRG2Nxu4WXIPeH3Ou0Sz06p3xWh/JYvwZOGpbWwQU8CXi/OM3zS0MqMTIyluFaYWmL5uNQ0nJ7J+J3Cxmo/g0LfvwMbM5WzWJRDMe9DtlzX05MW9IpNYfNZc0K/sJHzdhsxDLjPzHQlswT+gSkwKZiA/JXXyUbwP3NG5HVbM6ifxeehsioHjdqTnlmzBGAzco0i8E6t2N6U6RCit0cWSivcp7PljRnLfZLj7efuU0bW8yLsEezEYWR7CZQbZ1OHEO6kHv2mTn5R1VqgtE6m+76PiB6jFX/zvluV2I6eg==
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-ExternalHop-MessageData-0:
-	h832hIBD5Gi3DMAmqTuy+cCSbOlXa8M1u7IAqtYMJGLKnmEyxcPxpxdjnyraPL+tirJ4UOIMVFOpmUSTip+9eoNtaU1ADXQf1mR5Z3KLrQwWSAUmUsb0LrSzVJQgntsCSrik/X3IqGMCs+CYv/owGwAFtShhLBydAwpAUneIlKvIc/gK98ZwC0erSBPsoGeVv6xOIlSmscWRH6FuwKcaWgGgYuDrgdI+2pCslz7VBQO2457hp66BEv9SszW5nomFsZnruoUnTVOdDagxSgaVnZFgKvAuiMHqC0H1gbhoySvrLqZXxr7/YeDyed/ECfa9d/4QzGZa0DGXn2sCgFEmF/5zsYq+8rJUR3ixTYMFYLMAsryE4lrmXvtwIequo6RdfBzhUhRPjLeezAXmZrcZ0dzUr2AFPK59Ql9Ib0xjgnQt5y9coS6X6/d5/4n5wAqhPXCNB29J2B9NMPTPEOh65NN+xsiLUARd7cn1xGWIgchsaBKg3cZ684euDkHsQxmlwvwcu8H+Eio/7m4T0Dsddq1Kp8nrmtl/hSaKk0TvHg+w654Vcb+MfOROnwRC3tGlwijS11HCvLKcQyk0C5uT4IT84lTziO8kwBPu8GavZj8=
-X-OriginatorOrg: oracle.com
-X-MS-Exchange-CrossTenant-Network-Message-Id: 5dbfd4e7-a32b-4db9-1349-08de7b2a9827
-X-MS-Exchange-CrossTenant-AuthSource: CH3PR10MB7329.namprd10.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Internal
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 06 Mar 2026 02:46:40.7038
- (UTC)
-X-MS-Exchange-CrossTenant-FromEntityHeader: Hosted
-X-MS-Exchange-CrossTenant-Id: 4e2c6054-71cb-48f1-bd6c-3a9705aca71b
-X-MS-Exchange-CrossTenant-MailboxType: HOSTED
-X-MS-Exchange-CrossTenant-UserPrincipalName: 6DXmBW9fiZVE6mxbhA4wAZ7QYEyL9Bl9K4Ozs0si/M4MKKAYaZgxBUxUaWziO1gTOgmDKZkMStzQXHtplL6w5g==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: DM4PR10MB5917
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-03-05_07,2026-03-04_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=notspam policy=default score=0 suspectscore=0 adultscore=0
- malwarescore=0 mlxscore=0 phishscore=0 mlxlogscore=999 spamscore=0
- bulkscore=0 classifier=spam adjust=0 reason=mlx scancount=1
- engine=8.12.0-2602130000 definitions=main-2603060023
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMzA2MDAyMyBTYWx0ZWRfX5K2mW6+Z/TMk
- PC3AdG/7h/EXA8GlXH1yWtaTdEVlCIq+br7rAWGeb5Yi14uI4y1vR49h+uvT3utxZqkRMAsFz20
- ApuLRVtwq3okY2nybEjqufprQIkaxStuPHgHPtsqTDF/dPfK0mbg/eC8txMti9Y05tV+q7Ruc36
- a7ZCcCRKjxW5Xiqn2MKOB6IWN+Lp/n54KDNCvnwWVTVNeU1z1sOQCIZwTy2B/TheF9GeuUuJCi5
- donIuPh5l96sXgRoZUqGGAImktY3BwpVJuLNg7uEIRgcSJAio8yXU+CazCnJw6C6Xbsv5vD+WcQ
- 3IFXuduDmriwN31nf6f9qY8/or5Phd6TOYNzWFJv6J9LmwLk5hC4fmKqmwHgNAGnMr+n3vKsL3o
- PqKDjdEfXfIj8DqPkdshpmm6MQdFifRonlMYKqxvnE7jRMC1KcvlBfQ0bo7MI5P7iUz6YnLP6gc
- aKX+pKNUH2K/T3JWENMK4OfGv95iui7cCx7HPcPQ=
-X-Proofpoint-GUID: MNIsIYbN6jLQBJc88Fg7VozUt6oCxnv0
-X-Proofpoint-ORIG-GUID: MNIsIYbN6jLQBJc88Fg7VozUt6oCxnv0
-X-Authority-Analysis: v=2.4 cv=AOdXg2Ml c=1 sm=1 tr=0 ts=69aa4016 b=1 cx=c_pps
- a=zPCbziy225d3KhSqZt3L1A==:117 a=zPCbziy225d3KhSqZt3L1A==:17
- a=6eWqkTHjU83fiwn7nKZWdM+Sl24=:19 a=z/mQ4Ysz8XfWz/Q5cLBRGdckG28=:19
- a=lCpzRmAYbLLaTzLvsPZ7Mbvzbb8=:19 a=xqWC_Br6kY4A:10 a=kj9zAlcOel0A:10
- a=Yq5XynenixoA:10 a=GoEa3M9JfhUA:10 a=VkNPw1HP01LnGYTKEx00:22
- a=jiCTI4zE5U7BLdzWsZGv:22 a=EIcjfB9IiI4px24ztqRk:22 a=VwQbUJbxAAAA:8
- a=VnNF1IyMAAAA:8 a=yPCof4ZbAAAA:8 a=BGGeVFAilU1g4D6xJpkA:9 a=CjuIK1q_8ugA:10
- cc=ntf awl=host:12266
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Thu, Feb 26, 2026 at 03:35:08PM +0900, Harry Yoo wrote:
-> Hello, SLAB, LKMM, and KCSAN folks!
+ Change from v3 to v5:
 
-[...snip...]
+ -Styles issue fixed
+ -Doc was prepared/modified in Documentation/userspace-api/ipc.rst,
+ -Corrected file references
+ -I am squashing previous four commit in this latest one for convenience  in applying
+  and merging
+ -risc-v related macro handling error fixed
+ -some struct definition removed from ipc/mqueue.c for better compiler control flow
 
-> # Now, let's take a look at the bug I've been investigating
-> 
-> There were two bugs [3] [4] reported, with symptoms that appear to be
-> caused by slab returning wrong metadata (the symptoms: incorrect
-> reference counting of obj_cgroup, integer overflow as more memory is
-> uncharged than charged).
-> 
-> [3] https://lore.kernel.org/lkml/ca241daa-e7e7-4604-a48d-de91ec9184a5@linux.ibm.com
-> [4] https://lore.kernel.org/all/ddff7c7d-c0c3-4780-808f-9a83268bbf0c@linux.ibm.com
-> 
-> Hmm, if it's returning wrong metadata, how could that happen?
-> 
-> Well, perhaps it's either 1) the calculation of metadata address is
-> incorrect, or 2) reading the metadata itself is racy.
-> 
-> Shakeel Butt pointed out [9] that there's a potential memory ordering
-> issue. It suggests that no enforced ordering between slab->obj_exts
-> and slab->stride can make the metadata address calculation incorrect.
-> 
-> [9] https://lore.kernel.org/lkml/aZu9G9mVIVzSm6Ft@hyeyoo
-> 
-> Let's say CPU X and Y are allocating/freeing slab objects from/to
-> the same slab. They need to access metadata for the objects:
-> 
-> CPU X				CPU Y
-> 
-> // CPU X allocates metadata array
-> - slab->obj_exts = <the address of the metadata array>
-> - slab->stride = 16 (sizeof struct slab)
-> 
-> - stride = plain load slab->stride
-> - obj_exts = READ_ONCE(slab->obj_exts)
-> - if (obj_exts)
->     - metadata_addr =
->       stride * index + obj_exts
-> 				- stride = plain load slab->stride
-> 				- obj_exts = READ_ONCE(slab->obj_exts)
-> 				- if (obj_exts)
-> 				  - metadata_addr = stride * index +
-> 						    obj_exts
-> 
-> 				// Wait, obj_exts is non-NULL,
-> 				// but slab->stride is stale!
-> 
-> 				// Now, metadata_addr is wrong.
-> 
-> Hmm, this could definitely happen when two CPUs try to allocate/free
-> objects from/to the same slab. We need to make sure that, CPUs cannot
-> see stale slab->stride as long as slab->obj_exts is not NULL.
-> 
-> # How I tried to fix it
-> 
-> An expensive solution would be do:
-> 
-> CPU X:					CPU Y:
-> - slab->stride = 16			- READ_ONCE(slab->obj_exts)
-> - smp_wmb()				- if (obj_exts)
-> - slab->obj_exts = <something>		  - smp_rmb()
-> 					  - plain load slab->stride
-> 
-> Then, CPU Y should see either (obj_exts == 0), or
-> (obj_exts != 0 and a valid stride). (obj_exts != 0) && (invalid stride)
-> is impossible.
-> 
-> This fix [5] seems to resolve the bug [6], yay!
->
-> Before testing this fix, I wasn't fully convinced that it was a memory
-> ordering issue. But after testing it, it seems reasonable to assume that
-> it's indeed a memory ordering issue.
+Required Attention:-As per mail from bot
 
-Apologies for delay. I had to confirm that there was a confusion
-in the analysis above.
+kernel test robot noticed the following build errors:
+[auto build test ERROR on shuah-kselftest/next]
+[also build test ERROR on shuah-kselftest/fixes next-20260304]
+[cannot apply to arnd-asm-generic/master linus/master tip/x86/asm v6.16-rc1]
 
-It turns out that smp_wmb()+smp_rmb() pair didn't really fix the
-underlying problem [10]. And the confusion was that the bugs reported
-[5] [7] are actually caused by lack of enforced memory ordering.
+Short Description:
+    POSIX message queues currently lack a mechanism to read
+    a message without removing it from the queue. This is a
+    long-standing limitation,when we require inspection of queue state
+    without altering it.
 
-It's true that there was a theoretical memory ordering issue (now fixed
-in 7.0-rc2 [7]), but the reason why stride value was invalid was because
-stride's type was unsigned short, which was too small [9] [11].
+    Modifying existing mq_receive() semantics via additional
+    flags was considered. However, altering behavior of an
+    existing syscall risks breaking backward compatibility
+    for applications relying on current semantics. Since
+    mq_receive() guarantees message removal, changing this
+    contract is not safe.
 
-So my previous argument that "probably there is a user that violates
-slab's assumption" becomes invalid. That's a relif ;)
+    To preserve ABI stability, this patch introduces a new
+    system call that performs a non-destructive receive
+    operation (peek). The existing behavior remains unchanged.
 
-> [5] https://lore.kernel.org/linux-mm/aZ2Gwie5dpXotxWc@hyeyoo
-> [6] https://lore.kernel.org/linux-mm/84492f08-04c2-485c-9a18-cdafd5a9c3e5@linux.ibm.com 
+    Design considerations:
 
-[9] https://lore.kernel.org/linux-mm/20260303135722.2680521-1-harry.yoo@oracle.com
-[10] https://lore.kernel.org/linux-mm/aaj--Lej6kWE0aV-@hyeyoo 
-[11] https://lore.kernel.org/linux-mm/41f1c856-2c41-4d11-96e6-079d95d8efbb@linux.ibm.com
+    Two approaches for copying message data to userspace
+    were evaluated:
 
+    1) Refcount-based message lifecycle handling
+       - This can help us  Avoids intermediate temp kernel copy
+       - Extends message lifetime
+       -But this may increase writer starvation under heavy load and
+        add unnecessary complication on priority  management and
+        delay more time to free space in inode due refcount may prevent
+
+    2) Temporary kernel buffer copy
+       - Copies message into a bounded kernel buffer
+       - Reduces time message remains locked
+       - Improves fairness under write-heavy workloads
+       - Simpler lifetime management
+
+    My implementation adopts the temporary buffer approach
+    to minimize starvation and reduce locking complexity.
+    The design allows future transition if refcounting is
+    deemed preferable.
+
+    Architecture support: ALL
+
+    Testing:
+      - 15+ functional test cases
+      - Multi-threaded producer/consumer scenarios
+      - concurrent pop and peek
+      - Edge cases: empty queue, FIFO
+        invalid flags, signal interruption etc.
+
+Use Case:
+
+1) Observability in distributed systems
+ e.g Monitoring tools can inspect queue contents without interfering with
+    normal processing
+
+2) Check pointing system can have a look into queue without consuming and can store messages
+
+3) Resource-aware processing
+
+4) Selective Consumption for Specialized Workers
+
+Signed-off-by: Mathura_Kumar <academic1mathura@gmail.com>
+---
+ Documentation/userspace-api/index.rst       |   1 +
+ Documentation/userspace-api/ipc.rst         | 273 +++++++
+ arch/alpha/kernel/syscalls/syscall.tbl      |   1 +
+ arch/arm/tools/syscall.tbl                  |   2 +
+ arch/arm64/tools/syscall_32.tbl             |   2 +
+ arch/m68k/kernel/syscalls/syscall.tbl       |   3 +
+ arch/microblaze/kernel/syscalls/syscall.tbl |   3 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl   |   2 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl   |   1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl   |   2 +
+ arch/powerpc/kernel/syscalls/syscall.tbl    |   3 +
+ arch/s390/kernel/syscalls/syscall.tbl       |   1 +
+ arch/sh/kernel/syscalls/syscall.tbl         |   2 +
+ arch/sparc/kernel/syscalls/syscall.tbl      |   3 +
+ arch/x86/entry/syscalls/syscall_32.tbl      |   2 +
+ arch/x86/entry/syscalls/syscall_64.tbl      |   2 +
+ arch/xtensa/kernel/syscalls/syscall.tbl     |   2 +
+ include/linux/syscalls.h                    |  10 +
+ include/uapi/asm-generic/unistd.h           |  12 +-
+ ipc/mqueue.c                                | 184 +++++
+ ipc/msg.c                                   |   2 +-
+ ipc/msgutil.c                               |  48 +-
+ ipc/util.h                                  |   3 +-
+ kernel/sys_ni.c                             |   2 +
+ scripts/checksyscalls.sh                    |   1 +
+ scripts/syscall.tbl                         |   3 +
+ tools/testing/selftests/ipc/.gitignore      |   1 +
+ tools/testing/selftests/ipc/Makefile        |   5 +-
+ tools/testing/selftests/ipc/mq_peek.c       | 779 ++++++++++++++++++++
+ 29 files changed, 1323 insertions(+), 32 deletions(-)
+ create mode 100644 Documentation/userspace-api/ipc.rst
+ create mode 100644 tools/testing/selftests/ipc/mq_peek.c
+
+diff --git a/Documentation/userspace-api/index.rst b/Documentation/userspace-api/index.rst
+index a68b1bea57a8..bf747a91e74a 100644
+--- a/Documentation/userspace-api/index.rst
++++ b/Documentation/userspace-api/index.rst
+@@ -22,6 +22,7 @@ System calls
+    ioctl/index
+    mseal
+    rseq
++   ipc
+ 
+ Security-related interfaces
+ ===========================
+diff --git a/Documentation/userspace-api/ipc.rst b/Documentation/userspace-api/ipc.rst
+new file mode 100644
+index 000000000000..8feb98e6b02c
+--- /dev/null
++++ b/Documentation/userspace-api/ipc.rst
+@@ -0,0 +1,273 @@
++mq_timedreceive2 system call
++=============================
++
++This document describes the mq_timedreceive2() system call. It provides
++an overview of the feature, its motivation, interface specification,
++design, and test specification.
++
++Contents
++--------
++
++        1) Overview
++        2) Motivation
++        3) Functional Specification
++        4) Design
++        5) Implementation Notes
++        6) Test Specification
++
++1) Overview
++-----------
++
++POSIX message queues on Linux provide mq_receive() and mq_timedreceive()
++for consuming messages from a queue. Both interfaces require the caller
++to pass the message buffer, length, and priority pointer as individual
++arguments to the system call. This imposes a fixed calling convention
++that cannot be extended without breaking the ABI.
++
++mq_timedreceive2() introduces a new system call entry point that accepts
++message buffer parameters via a struct argument rather than as individual
++syscall arguments. This frees the remaining syscall argument slots for
++new functionality flags and a message index, enabling non-destructive
++peek and indexed access semantics that are not possible with the
++original interface.
++
++Two variants are provided:
++
++  mq_timedreceive2()         - primary variant, 64-bit time (Y2038-safe)
++  mq_timedreceive2_time32()  - 32-bit time variant for legacy and compat
++
++2) Motivation
++-------------
++
++The original mq_timedreceive() interface exhausts all usable syscall
++argument slots with mqdes, msg_ptr, msg_len, msg_prio, and abs_timeout.
++Adding new behavior such as peek-without-consume or indexed message
++access would require either a new syscall with a completely different
++signature, or overloading existing arguments in ways that harm clarity
++and correctness.
++
++By consolidating the message buffer parameters into a struct, this
++syscall recovers argument slots for:
++
++  flags   - controls peek vs consume and other future behavior
++  index   - selects a specific message position in the priority queue
++
++This design follows the precedent of other Linux syscalls that use
++struct arguments to allow forward-compatible extensibility, such as
++clone3() and openat2().
++
++2.1 Non-destructive peek
++~~~~~~~~~~~~~~~~~~~~~~~~
++
++When the appropriate flag is set, mq_timedreceive2() copies the
++message into the caller's buffer without removing it from the queue.
++The queue state and priority ordering are fully preserved. This allows
++applications to inspect a message before deciding whether to consume
++it, eliminating the need to re-queue messages and the race conditions
++that re-queuing introduces in multi-consumer scenarios.
++
++2.2 Indexed access
++~~~~~~~~~~~~~~~~~~
++
++The index argument allows the caller to address a specific position
++within the priority-ordered queue rather than always receiving the
++highest priority message. This is useful for queue inspection,
++debugging, and monitoring tools that need visibility into queue
++contents without disturbing normal consumers.
++
++3) Functional Specification
++---------------------------
++
++NAME
++        mq_timedreceive2 - receive or peek at a message from a
++        POSIX message queue
++
++SYNOPSIS
++
++.. code-block:: c
++
++        #include <mqueue.h>
++
++        struct mq_timedreceive2_args {
++                size_t         msg_len;
++                unsigned int  *msg_prio;
++                char          *msg_ptr;
++        };
++
++        ssize_t mq_timedreceive2(mqd_t mqdes,
++                                 struct mq_timedreceive2_args *uargs,
++                                 unsigned int flags,
++                                 unsigned long index,
++                                 const struct timespec *abs_timeout);
++
++Note: No glibc wrapper exists for this syscall. Callers must invoke it
++directly using syscall(2).
++
++DESCRIPTION
++        mq_timedreceive2() receives or peeks at a message from the
++        message queue referred to by the descriptor mqdes.
++
++        The uargs structure provides the message buffer parameters:
++
++        ``msg_ptr``
++                Userspace buffer to receive the message body.
++
++        ``msg_len``
++                Size of msg_ptr in bytes. Must be greater than or equal
++                to the mq_msgsize attribute of the queue.
++
++        ``msg_prio``
++                If not NULL, the priority of the received message is
++                stored here.
++
++        The flags argument controls receive behavior. The following
++        flag is defined:
++
++        ``MQ_PEEK``
++                Copy the message into msg_ptr without removing it from
++                the queue. The queue is not modified. If this flag is
++                not set, behavior is identical to mq_timedreceive() and
++                the message is consumed.
++
++        The index argument selects which message to operate on within
++        the priority-ordered queue. index 0 refers to the highest
++        priority message. When MQ_PEEK is not set, index is ignored
++        but must be 0.
++
++        The abs_timeout argument specifies an absolute timeout. When
++        MQ_PEEK is set, abs_timeout is ignored since peek is a
++        non-blocking snapshot operation. When MQ_PEEK is not set,
++        abs_timeout behaves identically to mq_timedreceive().
++
++RETURN VALUE
++        On success, returns the number of bytes copied into msg_ptr.
++        On failure, returns -1 and sets errno.
++
++ERRORS
++        ``EAGAIN``
++                Queue is empty and MQ_PEEK is set. Peek is always
++                non-blocking and returns immediately on empty queue.
++
++        ``EBADF``
++                mqdes is not a valid message queue descriptor open
++                for reading.
++
++        ``EFAULT``
++                uargs, msg_ptr, msg_prio, or abs_timeout points to
++                an invalid address.
++
++        ``EINVAL``
++                flags contains an unknown value, or index is nonzero
++                and MQ_PEEK is not set.
++
++        ``EMSGSIZE``
++                msg_len is less than the mq_msgsize attribute of
++                the queue.
++
++        ``ETIMEDOUT``
++                Pop path only. The call timed out before a message
++                became available. Never returned on peek path.
++
++4) Design
++---------
++
++4.1 Struct-based argument passing
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++The message buffer parameters (msg_ptr, msg_len, msg_prio) are
++consolidated into struct mq_timedreceive2_args rather than passed
++as individual syscall arguments. Linux syscalls are limited to six
++arguments. The original mq_timedreceive() consumes all six slots,
++leaving no room for extension. Consolidating the buffer parameters
++into a struct recovers two argument slots for flags and index while
++keeping the interface clean and forward-compatible.
++
++Future extensions can be made by adding new flag bits without
++requiring a new syscall number, following the same extensibility
++model as openat2() and clone3().
++
++4.2 Compat handling
++~~~~~~~~~~~~~~~~~~~~
++
++32-bit userspace on 64-bit kernels requires a separate compat
++variant because pointer sizes and alignment differ between ABIs.
++mq_timedreceive2_time32() accepts struct compat_mq_timedreceive2_args
++which uses compat_uptr_t and compat_size_t in place of native pointer
++and size_t types, and struct old_timespec32 for the timeout.
++
++.. code-block:: c
++
++        struct compat_mq_timedreceive2_args {
++                compat_size_t  msg_len;
++                compat_uptr_t  msg_prio;
++                compat_uptr_t  msg_ptr;
++        };
++
++The compat entry point performs the necessary conversions before
++calling the shared do_mq_timedreceive2() implementation.
++
++4.3 Peek implementation
++~~~~~~~~~~~~~~~~~~~~~~~~
++
++When MQ_PEEK is set, the implementation locates the target message
++in the priority tree but does not remove it. Two locks are taken:
++the first confirms a message exists before any allocation is
++attempted, avoiding allocation on empty queues. The second protects
++the kernel temporary buffer copy operation. The message is copied to
++userspace and both locks are released with the queue unmodified.
++
++4.4 Index argument
++~~~~~~~~~~~~~~~~~~~
++
++The priority tree is walked to the node at position index within
++the priority ordering. index 0 is always the highest priority
++message, consistent with what an unconditional mq_timedreceive()
++would return.
++
++5) Implementation Notes
++-----------------------
++
++The implementation lives in ipc/mqueue.c. The two syscall entry
++points mq_timedreceive2 and mq_timedreceive2_time32 are thin wrappers
++that validate and convert arguments before calling the shared internal
++function do_mq_timedreceive2(). This mirrors the existing pattern used
++by mq_timedreceive and mq_timedreceive_time32.
++
++Syscall numbers are assigned for all supported architectures. Refer
++to the respective syscall table files under arch/ for per-architecture
++numbers.
++
++6) Test Specification
++---------------------
++
++Tests for mq_timedreceive2() should cover the following:
++
++1) Basic receive: verify that without MQ_PEEK the message is consumed
++   and queue depth decreases by one. Verify message body and priority
++   are correct.
++
++2) Peek semantics: verify that with MQ_PEEK the message body and
++   priority are returned correctly and the queue depth is unchanged
++   after the call.
++
++3) Repeated peek: verify that calling mq_timedreceive2() with MQ_PEEK
++   multiple times on the same queue returns the same message each time
++   without modifying the queue.
++
++4) Index argument: verify that index 0 returns the highest priority
++   message. Verify that out-of-range index returns ENOENT.
++
++5) Empty queue: verify that peek on an empty queue returns EAGAIN
++   immediately without blocking.
++
++6) Memory behavior: verify that both small and large message copies
++   work correctly without corruption.
++
++7) Invalid arguments: verify EBADF for invalid mqdes, EFAULT for bad
++   pointers in uargs, EINVAL for unknown flags, EMSGSIZE for msg_len
++   smaller than queue mq_msgsize.
++
++8) Concurrent access: verify that simultaneous peek from multiple
++   threads returns consistent results and does not corrupt queue
++   state. Verify that a concurrent mq_receive() and mq_peek() do
++   not race or oops.
+diff --git a/arch/alpha/kernel/syscalls/syscall.tbl b/arch/alpha/kernel/syscalls/syscall.tbl
+index f31b7afffc34..0ff42d241419 100644
+--- a/arch/alpha/kernel/syscalls/syscall.tbl
++++ b/arch/alpha/kernel/syscalls/syscall.tbl
+@@ -511,3 +511,4 @@
+ 579	common	file_setattr			sys_file_setattr
+ 580	common	listns				sys_listns
+ 581	common	rseq_slice_yield		sys_rseq_slice_yield
++582	common	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/arm/tools/syscall.tbl b/arch/arm/tools/syscall.tbl
+index 94351e22bfcf..bcec28be852c 100644
+--- a/arch/arm/tools/syscall.tbl
++++ b/arch/arm/tools/syscall.tbl
+@@ -486,3 +486,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/arm64/tools/syscall_32.tbl b/arch/arm64/tools/syscall_32.tbl
+index 62d93d88e0fe..02603704231e 100644
+--- a/arch/arm64/tools/syscall_32.tbl
++++ b/arch/arm64/tools/syscall_32.tbl
+@@ -483,3 +483,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2_time64	sys_mq_timedreceive2
++473	common	mq_timedreceive2		sys_mq_timedreceive2_time32
+diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
+index 248934257101..b67f23edda11 100644
+--- a/arch/m68k/kernel/syscalls/syscall.tbl
++++ b/arch/m68k/kernel/syscalls/syscall.tbl
+@@ -471,3 +471,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64	sys_mq_timedreceive2
++
+diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
+index 223d26303627..89fb60006a99 100644
+--- a/arch/microblaze/kernel/syscalls/syscall.tbl
++++ b/arch/microblaze/kernel/syscalls/syscall.tbl
+@@ -477,3 +477,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64	sys_mq_timedreceive2
++
+diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
+index 7430714e2b8f..fee830be67a6 100644
+--- a/arch/mips/kernel/syscalls/syscall_n32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
+@@ -410,3 +410,5 @@
+ 469	n32	file_setattr			sys_file_setattr
+ 470	n32	listns				sys_listns
+ 471	n32	rseq_slice_yield		sys_rseq_slice_yield
++472	n32	mq_timedreceive2	    sys_mq_timedreceive2_time32
++473	n32	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
+index 630aab9e5425..75de6ee2df94 100644
+--- a/arch/mips/kernel/syscalls/syscall_n64.tbl
++++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
+@@ -386,3 +386,4 @@
+ 469	n64	file_setattr			sys_file_setattr
+ 470	n64	listns				sys_listns
+ 471	n64	rseq_slice_yield		sys_rseq_slice_yield
++472	n64	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
+index 128653112284..8694a2d2f084 100644
+--- a/arch/mips/kernel/syscalls/syscall_o32.tbl
++++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
+@@ -459,3 +459,5 @@
+ 469	o32	file_setattr			sys_file_setattr
+ 470	o32	listns				sys_listns
+ 471	o32	rseq_slice_yield		sys_rseq_slice_yield
++472	o32	mq_timedreceive2	    sys_mq_timedreceive2_time32
++473	o32	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
+index 4fcc7c58a105..fd90a2f500b6 100644
+--- a/arch/powerpc/kernel/syscalls/syscall.tbl
++++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+@@ -562,3 +562,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	nospu	rseq_slice_yield		sys_rseq_slice_yield
++472	32	mq_timedreceive2	        sys_mq_timedreceive2_time32
++473	64	mq_timedreceive2    		sys_mq_timedreceive2
++474	32	mq_timedreceive2_time64	    sys_mq_timedreceive2          sys_mq_timedreceive2
+diff --git a/arch/s390/kernel/syscalls/syscall.tbl b/arch/s390/kernel/syscalls/syscall.tbl
+index 09a7ef04d979..34df682061d9 100644
+--- a/arch/s390/kernel/syscalls/syscall.tbl
++++ b/arch/s390/kernel/syscalls/syscall.tbl
+@@ -398,3 +398,4 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/sh/kernel/syscalls/syscall.tbl b/arch/sh/kernel/syscalls/syscall.tbl
+index 70b315cbe710..1796ccd23d10 100644
+--- a/arch/sh/kernel/syscalls/syscall.tbl
++++ b/arch/sh/kernel/syscalls/syscall.tbl
+@@ -475,3 +475,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64		sys_mq_timedreceive2
+diff --git a/arch/sparc/kernel/syscalls/syscall.tbl b/arch/sparc/kernel/syscalls/syscall.tbl
+index 7e71bf7fcd14..5cfde6e0e6ba 100644
+--- a/arch/sparc/kernel/syscalls/syscall.tbl
++++ b/arch/sparc/kernel/syscalls/syscall.tbl
+@@ -517,3 +517,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	32	mq_timedreceive2			sys_mq_timedreceive2_time32
++473	64	mq_timedreceive2			sys_mq_timedreceive2
++474	32	mq_timedreceive2_time64		sys_mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index f832ebd2d79b..d6701f763203 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -477,3 +477,5 @@
+ 469	i386	file_setattr		sys_file_setattr
+ 470	i386	listns			sys_listns
+ 471	i386	rseq_slice_yield	sys_rseq_slice_yield
++472	i386	mq_timedreceive2	sys_mq_timedreceive2_time32
++473	i386	mq_timedreceive2_time64	sys_mq_timedreceive2
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 524155d655da..539654953280 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -441,3 +441,5 @@
+ 547	x32	pwritev2		compat_sys_pwritev64v2
+ # This is the end of the legacy x32 range.  Numbers 548 and above are
+ # not special and are not to be used for x32-specific syscalls.
++# Adding new syscalls from here to keep marginal gap intact in 472 to 511 for future expansion
++548	common	mq_timedreceive2		sys_mq_timedreceive2
+diff --git a/arch/xtensa/kernel/syscalls/syscall.tbl b/arch/xtensa/kernel/syscalls/syscall.tbl
+index a9bca4e484de..9f69ef99e617 100644
+--- a/arch/xtensa/kernel/syscalls/syscall.tbl
++++ b/arch/xtensa/kernel/syscalls/syscall.tbl
+@@ -442,3 +442,5 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472	common	mq_timedreceive2		sys_mq_timedreceive2_time32
++473	common	mq_timedreceive2_time64		sys_mq_timedreceive2
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 02bd6ddb6278..307cfd6f154c 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -93,6 +93,7 @@ struct file_attr;
+ #include <linux/key.h>
+ #include <linux/personality.h>
+ #include <trace/syscall.h>
++#include <linux/mqueue.h>
+ 
+ #ifdef CONFIG_ARCH_HAS_SYSCALL_WRAPPER
+ /*
+@@ -746,6 +747,15 @@ asmlinkage long sys_mq_timedsend_time32(mqd_t mqdes,
+ 			const char __user *u_msg_ptr,
+ 			unsigned int msg_len, unsigned int msg_prio,
+ 			const struct old_timespec32 __user *u_abs_timeout);
++asmlinkage long
++sys_mq_timedreceive2(mqd_t mqdes, struct mq_timedreceive2_args __user *uargs,
++		     unsigned int flags, unsigned long index,
++		     struct __kernel_timespec __user *abs_timeout);
++asmlinkage long
++sys_mq_timedreceive2_time32(mqd_t mqdes,
++			    struct mq_timedreceive2_args __user *uargs,
++			    unsigned int flags, unsigned long index,
++			    struct old_timespec32 __user *abs_timeout);
+ asmlinkage long sys_msgget(key_t key, int msgflg);
+ asmlinkage long sys_old_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+ asmlinkage long sys_msgctl(int msqid, int cmd, struct msqid_ds __user *buf);
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index a627acc8fb5f..3e1c580a8b1f 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -863,9 +863,17 @@ __SYSCALL(__NR_listns, sys_listns)
+ #define __NR_rseq_slice_yield 471
+ __SYSCALL(__NR_rseq_slice_yield, sys_rseq_slice_yield)
+ 
+-#undef __NR_syscalls
+-#define __NR_syscalls 472
++#if defined(__SYSCALL_COMPAT) || __BITS_PER_LONG == 32
++#define __NR_mq_timedreceive2_time64 472
++__SYSCALL(__NR_mq_timedreceive2_time64, sys_mq_timedreceive2)
++#endif
++#if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
++#define __NR_mq_timedreceive2 473
++__SC_3264(__NR_mq_timedreceive2, sys_mq_timedreceive2_time32, sys_mq_timedreceive2)
++#endif
+ 
++#undef __NR_syscalls
++#define __NR_syscalls 474
+ /*
+  * 32 bit systems traditionally used different
+  * syscalls for off_t and loff_t arguments, while
+diff --git a/ipc/mqueue.c b/ipc/mqueue.c
+index 4798b375972b..ff5089495204 100644
+--- a/ipc/mqueue.c
++++ b/ipc/mqueue.c
+@@ -53,6 +53,7 @@ struct mqueue_fs_context {
+ 
+ #define SEND		0
+ #define RECV		1
++#define MQ_PEEK     2
+ 
+ #define STATE_NONE	0
+ #define STATE_READY	1
+@@ -63,6 +64,12 @@ struct posix_msg_tree_node {
+ 	int			priority;
+ };
+ 
++struct mq_timedreceive2_args {
++	size_t msg_len;
++	unsigned int  *msg_prio;
++	char  *msg_ptr;
++};
++
+ /*
+  * Locking:
+  *
+@@ -1230,6 +1237,120 @@ static int do_mq_timedreceive(mqd_t mqdes, char __user *u_msg_ptr,
+ 	return ret;
+ }
+ 
++static struct msg_msg *mq_peek_index(struct mqueue_inode_info *info, int index)
++{
++	struct rb_node *node;
++	struct posix_msg_tree_node *leaf;
++	struct msg_msg *msg;
++
++	int count = 0;
++
++	/* Start from highest priority */
++	node = rb_last(&info->msg_tree);
++	while (node) {
++		leaf = rb_entry(node, struct posix_msg_tree_node, rb_node);
++		list_for_each_entry(msg, &leaf->msg_list, m_list) {
++			if (count == index)
++				return msg;
++			count++;
++		}
++
++		node = rb_prev(node);
++	}
++
++	return NULL;
++}
++
++static int do_mq_timedreceive2(mqd_t mqdes,
++			       struct mq_timedreceive2_args __user *uargs,
++			       unsigned int flags, unsigned long index,
++			       struct timespec64 *ts)
++{
++	struct mq_timedreceive2_args args;
++	ssize_t ret;
++	struct msg_msg *msg_ptr, *k_msg_buffer;
++	long k_m_type;
++	size_t k_m_ts;
++	struct inode *inode;
++	struct mqueue_inode_info *info;
++
++	if (copy_from_user(&args, uargs, sizeof(args)))
++		return -EFAULT;
++
++	if (!(flags & MQ_PEEK)) {
++		return do_mq_timedreceive(mqdes, args.msg_ptr, args.msg_len,
++					  args.msg_prio, ts);
++	}
++	audit_mq_sendrecv(mqdes, args.msg_len, 0, ts);
++	CLASS(fd, f)(mqdes);
++	if (fd_empty(f))
++		return -EBADF;
++
++	inode = file_inode(fd_file(f));
++	if (unlikely(fd_file(f)->f_op != &mqueue_file_operations))
++		return -EBADF;
++	info = MQUEUE_I(inode);
++	audit_file(fd_file(f));
++
++	if (unlikely(!(fd_file(f)->f_mode & FMODE_READ)))
++		return -EBADF;
++
++	if (unlikely(args.msg_len < info->attr.mq_msgsize))
++		return -EMSGSIZE;
++	if (index >= (unsigned long)info->attr.mq_maxmsg)
++		return -ENOENT;
++
++	spin_lock(&info->lock);
++	if (info->attr.mq_curmsgs == 0) {
++		spin_unlock(&info->lock);
++		return -EAGAIN;
++	}
++	msg_ptr = mq_peek_index(info, index);
++	if (!msg_ptr) {
++		spin_unlock(&info->lock);
++		return -ENOENT;
++	}
++	k_m_type = msg_ptr->m_type;
++	k_m_ts = msg_ptr->m_ts;
++	spin_unlock(&info->lock);
++
++	k_msg_buffer = alloc_msg(k_m_ts);
++	if (!k_msg_buffer)
++		return -ENOMEM;
++
++	/*
++	 * Two spin locks are necessary here. We avoid atomic memory
++	 * allocation and premature allocation before confirming that
++	 * a message actually exists to peek.
++	 */
++	spin_lock(&info->lock);
++	msg_ptr = mq_peek_index(info, index);
++	if (!msg_ptr || msg_ptr->m_type != k_m_type ||
++	    msg_ptr->m_ts != k_m_ts) {
++		spin_unlock(&info->lock);
++		free_msg(k_msg_buffer);
++		return -EAGAIN;
++	}
++	if (IS_ERR(copy_msg(msg_ptr, k_msg_buffer, k_m_ts))) {
++		spin_unlock(&info->lock);
++		free_msg(k_msg_buffer);
++		return -EINVAL;
++	}
++	spin_unlock(&info->lock);
++
++	ret = k_msg_buffer->m_ts;
++	if (args.msg_prio && put_user(k_m_type, args.msg_prio)) {
++		free_msg(k_msg_buffer);
++		return -EFAULT;
++	}
++	if (store_msg(args.msg_ptr, k_msg_buffer, k_m_ts)) {
++		free_msg(k_msg_buffer);
++		return -EFAULT;
++	}
++	free_msg(k_msg_buffer);
++	return ret;
++}
++
+ SYSCALL_DEFINE5(mq_timedsend, mqd_t, mqdes, const char __user *, u_msg_ptr,
+ 		size_t, msg_len, unsigned int, msg_prio,
+ 		const struct __kernel_timespec __user *, u_abs_timeout)
+@@ -1258,6 +1379,23 @@ SYSCALL_DEFINE5(mq_timedreceive, mqd_t, mqdes, char __user *, u_msg_ptr,
+ 	return do_mq_timedreceive(mqdes, u_msg_ptr, msg_len, u_msg_prio, p);
+ }
+ 
++SYSCALL_DEFINE5(mq_timedreceive2, mqd_t, mqdes,
++		struct mq_timedreceive2_args __user *, uargs, unsigned int,
++		flags, const unsigned long, index,
++		const struct __kernel_timespec __user *, u_abs_timeout)
++{
++	struct timespec64 ts, *p = NULL;
++
++	if (u_abs_timeout) {
++		int res = prepare_timeout(u_abs_timeout, &ts);
++
++		if (res)
++			return res;
++		p = &ts;
++	}
++	return do_mq_timedreceive2(mqdes, uargs, flags, index, p);
++}
++
+ /*
+  * Notes: the case when user wants us to deregister (with NULL as pointer)
+  * and he isn't currently owner of notification, will be silently discarded.
+@@ -1459,6 +1597,12 @@ struct compat_mq_attr {
+ 	compat_long_t __reserved[4]; /* ignored for input, zeroed for output */
+ };
+ 
++struct compat_mq_timedreceive2_args {
++	compat_size_t msg_len;
++	compat_uptr_t msg_prio;
++	compat_uptr_t msg_ptr;
++};
++
+ static inline int get_compat_mq_attr(struct mq_attr *attr,
+ 			const struct compat_mq_attr __user *uattr)
+ {
+@@ -1490,6 +1634,22 @@ static inline int put_compat_mq_attr(const struct mq_attr *attr,
+ 	return 0;
+ }
+ 
++static inline int get_compat_mq_args(struct mq_timedreceive2_args *args,
++					struct compat_mq_timedreceive2_args __user *uargs)
++{
++	struct compat_mq_timedreceive2_args v;
++
++	if (copy_from_user(&v, uargs, sizeof(*uargs)))
++		return -EFAULT;
++
++	memset(args, 0, sizeof(*args));
++	args->msg_len = (size_t)compat_ptr(v.msg_len);
++	args->msg_prio = (unsigned int *)compat_ptr(v.msg_prio);
++	args->msg_ptr = (char *)compat_ptr(v.msg_ptr);
++
++	return 0;
++}
++
+ COMPAT_SYSCALL_DEFINE4(mq_open, const char __user *, u_name,
+ 		       int, oflag, compat_mode_t, mode,
+ 		       struct compat_mq_attr __user *, u_attr)
+@@ -1583,6 +1743,30 @@ SYSCALL_DEFINE5(mq_timedreceive_time32, mqd_t, mqdes,
+ 	}
+ 	return do_mq_timedreceive(mqdes, u_msg_ptr, msg_len, u_msg_prio, p);
+ }
++
++SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
++		struct compat_mq_timedreceive2_args __user *, uargs,
++		unsigned int, flags, const unsigned long, index,
++		const struct old_timespec32 __user *, u_abs_timeout)
++{
++	struct mq_timedreceive2_args args, *pargs = NULL;
++
++	pargs = &args;
++
++	if (get_compat_mq_args(pargs, uargs))
++		return -EFAULT;
++
++	struct timespec64 ts, *p = NULL;
++
++	if (u_abs_timeout) {
++		int res = compat_prepare_timeout(u_abs_timeout, &ts);
++		
++		if (res)
++			return res;
++		p = &ts;
++	}
++	return do_mq_timedreceive2(mqdes, pargs, flags, index, p);
++}
+ #endif
+ 
+ static const struct inode_operations mqueue_dir_inode_operations = {
+diff --git a/ipc/msg.c b/ipc/msg.c
+index 62996b97f0ac..6392b11dd7f7 100644
+--- a/ipc/msg.c
++++ b/ipc/msg.c
+@@ -1156,7 +1156,7 @@ static long do_msgrcv(int msqid, void __user *buf, size_t bufsz, long msgtyp, in
+ 			 * not update queue parameters.
+ 			 */
+ 			if (msgflg & MSG_COPY) {
+-				msg = copy_msg(msg, copy);
++				msg = copy_msg(msg, copy, msg->m_ts);
+ 				goto out_unlock0;
+ 			}
+ 
+diff --git a/ipc/msgutil.c b/ipc/msgutil.c
+index e28f0cecb2ec..c5536ce47cc2 100644
+--- a/ipc/msgutil.c
++++ b/ipc/msgutil.c
+@@ -51,7 +51,7 @@ static int __init init_msg_buckets(void)
+ }
+ subsys_initcall(init_msg_buckets);
+ 
+-static struct msg_msg *alloc_msg(size_t len)
++struct msg_msg *alloc_msg(size_t len)
+ {
+ 	struct msg_msg *msg;
+ 	struct msg_msgseg **pseg;
+@@ -122,39 +122,33 @@ struct msg_msg *load_msg(const void __user *src, size_t len)
+ 	free_msg(msg);
+ 	return ERR_PTR(err);
+ }
+-#ifdef CONFIG_CHECKPOINT_RESTORE
+-struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst)
++
++struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst, size_t len)
+ {
+-	struct msg_msgseg *dst_pseg, *src_pseg;
+-	size_t len = src->m_ts;
+-	size_t alen;
++	struct msg_msgseg *src_seg, *dst_seg;
++	size_t remaining, chunk;
+ 
+-	if (src->m_ts > dst->m_ts)
++	if (len > src->m_ts)
+ 		return ERR_PTR(-EINVAL);
+-
+-	alen = min(len, DATALEN_MSG);
+-	memcpy(dst + 1, src + 1, alen);
+-
+-	for (dst_pseg = dst->next, src_pseg = src->next;
+-	     src_pseg != NULL;
+-	     dst_pseg = dst_pseg->next, src_pseg = src_pseg->next) {
+-
+-		len -= alen;
+-		alen = min(len, DATALEN_SEG);
+-		memcpy(dst_pseg + 1, src_pseg + 1, alen);
++	chunk = min(len, DATALEN_MSG);
++	memcpy(dst + 1, src + 1, chunk);
++	remaining = len - chunk;
++	src_seg = src->next;
++	dst_seg = dst->next;
++	while (remaining > 0 && src_seg && dst_seg) {
++		chunk = min(remaining, DATALEN_SEG);
++		memcpy(dst_seg + 1, src_seg + 1, chunk);
++		remaining -= chunk;
++		src_seg = src_seg->next;
++		dst_seg = dst_seg->next;
+ 	}
+-
++	if (remaining != 0)
++		return ERR_PTR(-EINVAL);
+ 	dst->m_type = src->m_type;
+-	dst->m_ts = src->m_ts;
+-
++	dst->m_ts   = src->m_ts;
+ 	return dst;
+ }
+-#else
+-struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst)
+-{
+-	return ERR_PTR(-ENOSYS);
+-}
+-#endif
++
+ int store_msg(void __user *dest, struct msg_msg *msg, size_t len)
+ {
+ 	size_t alen;
+diff --git a/ipc/util.h b/ipc/util.h
+index a55d6cebe6d3..374abeee79b3 100644
+--- a/ipc/util.h
++++ b/ipc/util.h
+@@ -197,8 +197,9 @@ int ipc_parse_version(int *cmd);
+ 
+ extern void free_msg(struct msg_msg *msg);
+ extern struct msg_msg *load_msg(const void __user *src, size_t len);
+-extern struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst);
++extern struct msg_msg *copy_msg(struct msg_msg *src, struct msg_msg *dst, size_t len);
+ extern int store_msg(void __user *dest, struct msg_msg *msg, size_t len);
++extern struct msg_msg *alloc_msg(size_t len);
+ 
+ static inline int ipc_checkid(struct kern_ipc_perm *ipcp, int id)
+ {
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index add3032da16f..e6adc8c4220e 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -391,6 +391,8 @@ COND_SYSCALL(setuid16);
+ /* restartable sequence */
+ COND_SYSCALL(rseq);
+ COND_SYSCALL(rseq_slice_yield);
++COND_SYSCALL(mq_timedreceive2);
++COND_SYSCALL(mq_timedreceive2_time32);
+ 
+ COND_SYSCALL(uretprobe);
+ COND_SYSCALL(uprobe);
+diff --git a/scripts/checksyscalls.sh b/scripts/checksyscalls.sh
+index 1e5d2eeb726d..605a65cfa144 100755
+--- a/scripts/checksyscalls.sh
++++ b/scripts/checksyscalls.sh
+@@ -104,6 +104,7 @@ cat << EOF
+ #define __IGNORE_recvmmsg_time64
+ #define __IGNORE_mq_timedsend_time64
+ #define __IGNORE_mq_timedreceive_time64
++#define __IGNORE_mq_timedreceive2_time64
+ #define __IGNORE_semtimedop_time64
+ #define __IGNORE_rt_sigtimedwait_time64
+ #define __IGNORE_futex_time64
+diff --git a/scripts/syscall.tbl b/scripts/syscall.tbl
+index 7a42b32b6577..57b711f93756 100644
+--- a/scripts/syscall.tbl
++++ b/scripts/syscall.tbl
+@@ -412,3 +412,6 @@
+ 469	common	file_setattr			sys_file_setattr
+ 470	common	listns				sys_listns
+ 471	common	rseq_slice_yield		sys_rseq_slice_yield
++472  32      mq_timedreceive2_time64   sys_mq_timedreceive2
++473  64      mq_timedreceive2          sys_mq_timedreceive2
++473  time32  mq_timedreceive2          sys_mq_timedreceive2_time32
+diff --git a/tools/testing/selftests/ipc/.gitignore b/tools/testing/selftests/ipc/.gitignore
+index 9ed280e4c704..fe609d98ecb2 100644
+--- a/tools/testing/selftests/ipc/.gitignore
++++ b/tools/testing/selftests/ipc/.gitignore
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ msgque_test
+ msgque
++mq_peek
+diff --git a/tools/testing/selftests/ipc/Makefile b/tools/testing/selftests/ipc/Makefile
+index 50e9c299fc4a..fa9d4f500783 100644
+--- a/tools/testing/selftests/ipc/Makefile
++++ b/tools/testing/selftests/ipc/Makefile
+@@ -1,6 +1,8 @@
+ # SPDX-License-Identifier: GPL-2.0
+ uname_M := $(shell uname -m 2>/dev/null || echo not)
+ ARCH ?= $(shell echo $(uname_M) | sed -e s/i.86/i386/)
++CC = gcc
++CFLAGS = -static -O2
+ ifeq ($(ARCH),i386)
+         ARCH := x86
+ 	CFLAGS := -DCONFIG_X86_32 -D__i386__
+@@ -12,7 +14,8 @@ endif
+ 
+ CFLAGS += $(KHDR_INCLUDES)
+ 
+-TEST_GEN_PROGS := msgque
++TEST_GEN_PROGS := msgque mq_peek
++LDLIBS += -lrt -lpthread
+ 
+ include ../lib.mk
+ 
+diff --git a/tools/testing/selftests/ipc/mq_peek.c b/tools/testing/selftests/ipc/mq_peek.c
+new file mode 100644
+index 000000000000..5803b1aa8767
+--- /dev/null
++++ b/tools/testing/selftests/ipc/mq_peek.c
+@@ -0,0 +1,779 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * mq_peek.c - Selftest for mq_timedreceive2(MQ_PEEK)
++ *
++ * Tests the peek-without-dequeue extension to POSIX message queues:
++ *   - Correct priority-rank indexed access (index 0 = highest priority)
++ *   - FIFO ordering within same priority level
++ *   - Non-destructive semantics (queue is never modified on peek)
++ *   - All error paths (-EBADF, -EMSGSIZE, -EFAULT, -EAGAIN, -ENOENT)
++ *   - Large (multi-segment) message payload copy
++ *   - Concurrent peek + receive / peek + send races
++ */
++
++#include "linux/array_size.h"
++#define _GNU_SOURCE
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <stdint.h>
++#include <unistd.h>
++#include <errno.h>
++#include <pthread.h>
++#include <sys/syscall.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <mqueue.h>
++#include <time.h>
++
++#include "kselftest.h"
++
++#ifndef __NR_mq_timedreceive2
++#if defined(__x86_64__)
++#define __NR_mq_timedreceive2 548
++#elif defined(__aarch64__)
++#define __NR_mq_timedreceive2 473
++#elif defined(__riscv)
++#define __NR_mq_timedreceive2 473
++#else
++#define __NR_mq_timedreceive2 548
++#endif
++#endif
++
++#define MQ_PEEK 2U
++
++struct mq_timedreceive2_args {
++	size_t msg_len;
++	unsigned int *msg_prio;
++	char *msg_ptr;
++};
++
++static long mq_timedreceive2(mqd_t mqdes, struct mq_timedreceive2_args *uargs,
++			     unsigned int flags, unsigned long index,
++			     const struct timespec *timeout)
++{
++	return syscall(__NR_mq_timedreceive2, (long)mqdes, uargs, (long)flags,
++		       index, timeout);
++}
++
++#define MQ_NAME_PREFIX "/mq_peek_test_"
++#define MAX_MSG_SIZE 128
++#define LARGE_MSG_SIZE 4064
++#define MQ_MAXMSG 16
++
++#define PRIO_HIGH 9
++#define PRIO_MED 5
++#define PRIO_LOW 1
++
++static mqd_t open_queue(const char *suffix, long msgsize)
++{
++	char name[64];
++	struct mq_attr attr = {
++		.mq_flags = 0,
++		.mq_maxmsg = MQ_MAXMSG,
++		.mq_msgsize = msgsize,
++		.mq_curmsgs = 0,
++	};
++	mqd_t mqd;
++
++	snprintf(name, sizeof(name), "%s%s", MQ_NAME_PREFIX, suffix);
++	mq_unlink(name);
++
++	mqd = mq_open(name, O_NONBLOCK | O_RDWR | O_CREAT | O_EXCL, 0600, &attr);
++	if (mqd == (mqd_t)-1) {
++		ksft_test_result_fail("mq_open(%s): %m\n", name);
++		ksft_exit_fail();
++	}
++
++	mq_unlink(name);
++	return mqd;
++}
++
++static void send_msg(mqd_t mqd, unsigned int prio, const char *text, size_t len)
++{
++	if (mq_send(mqd, text, len, prio) != 0) {
++		ksft_test_result_fail("mq_send(prio=%u): %m\n", prio);
++		ksft_exit_fail();
++	}
++}
++
++static long peek(mqd_t mqd, unsigned long index, char *buf, size_t bufsz,
++		 unsigned int *prio)
++{
++	struct mq_timedreceive2_args args = {
++		.msg_len = bufsz,
++		.msg_prio = prio,
++		.msg_ptr = buf,
++	};
++	return mq_timedreceive2(mqd, &args, MQ_PEEK, index, NULL);
++}
++
++static long queue_depth(mqd_t mqd)
++{
++	struct mq_attr attr;
++
++	if (mq_getattr(mqd, &attr) != 0)
++		return -1;
++	return attr.mq_curmsgs;
++}
++
++static void test_peek_empty_queue(void)
++{
++	mqd_t mqd = open_queue("empty", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++
++	ret = peek(mqd, 0, buf, sizeof(buf), &prio);
++	if (ret == -1 && errno == EAGAIN)
++		ksft_test_result_pass("peek on empty queue [EAGAIN]\n");
++	else
++		ksft_test_result_fail("peek on empty queue: expected EAGAIN, got ret=%ld errno=%d (%m)\n",
++							ret, errno);
++
++	mq_close(mqd);
++}
++
++static void test_peek_invalid_fd(void)
++{
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++
++	ret = peek((mqd_t)-1, 0, buf, sizeof(buf), &prio);
++	if (ret == -1 && errno == EBADF)
++		ksft_test_result_pass("peek invalid fd [ EBADF]\n");
++	else
++		ksft_test_result_fail("peek invalid fd: expected EBADF, got ret=%ld errno=%d\n",
++							   ret, errno);
++}
++
++static void test_peek_non_mqueue_fd(void)
++{
++	int pipefd[2];
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++
++	if (pipe(pipefd) != 0) {
++		ksft_test_result_skip("pipe() failed, skipping non-mqueue-fd test\n");
++		return;
++	}
++
++	ret = peek((mqd_t)pipefd[0], 0, buf, sizeof(buf), &prio);
++	if (ret == -1 && errno == EBADF)
++		ksft_test_result_pass("peek on pipe fd [EBADF]\n");
++	else
++		ksft_test_result_fail("peek non-mqueue fd: expected EBADF, got ret=%ld errno=%d\n",
++								ret, errno);
++
++	close(pipefd[0]);
++	close(pipefd[1]);
++}
++
++static void test_peek_writeonly_fd(void)
++{
++	char name[] = "/ksft_mq_peek_wo";
++	struct mq_attr attr = { .mq_maxmsg = 4, .mq_msgsize = MAX_MSG_SIZE };
++	mqd_t rw, wo;
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++
++	mq_unlink(name);
++	rw = mq_open(name, O_RDWR | O_CREAT, 0600, &attr);
++	if (rw == (mqd_t)-1) {
++		ksft_test_result_skip("mq_open RW failed: %m\n");
++		return;
++	}
++	wo = mq_open(name, O_WRONLY);
++	mq_unlink(name);
++
++	if (wo == (mqd_t)-1) {
++		ksft_test_result_skip("mq_open WO failed: %m\n");
++		mq_close(rw);
++		return;
++	}
++
++	send_msg(rw, PRIO_HIGH, "x", 1);
++
++	ret = peek(wo, 0, buf, sizeof(buf), &prio);
++	if (ret == -1 && errno == EBADF)
++		ksft_test_result_pass("peek on O_WRONLY fd [EBADF]\n");
++	else
++		ksft_test_result_fail("peek WO fd: expected EBADF, got ret=%ld errno=%d\n",
++								ret, errno);
++
++	mq_close(wo);
++	mq_close(rw);
++}
++
++static void test_peek_buffer_too_small(void)
++{
++	mqd_t mqd = open_queue("small", MAX_MSG_SIZE);
++	char tiny[1]; /* deliberately too small */
++	unsigned int prio;
++	struct mq_timedreceive2_args args = {
++		.msg_len = sizeof(tiny),
++		.msg_prio = &prio,
++		.msg_ptr = tiny,
++	};
++	long ret;
++
++	send_msg(mqd, PRIO_HIGH, "hello", 5);
++
++	ret = mq_timedreceive2(mqd, &args, MQ_PEEK, 0, NULL);
++	if (ret == -1 && errno == EMSGSIZE)
++		ksft_test_result_pass("peek with small buf [EMSGSIZE]\n");
++	else
++		ksft_test_result_fail("peek small buf: expected EMSGSIZE, got ret=%ld errno=%d\n",
++							ret, errno);
++
++	mq_close(mqd);
++}
++
++static void test_peek_bad_msg_ptr(void)
++{
++	mqd_t mqd = open_queue("bad_ptr", MAX_MSG_SIZE);
++	unsigned int prio;
++
++	struct mq_timedreceive2_args args = {
++		.msg_len = MAX_MSG_SIZE,
++		.msg_prio = &prio,
++		.msg_ptr = (char *)0x1,
++	};
++
++	long ret;
++
++	send_msg(mqd, PRIO_HIGH, "payload", 7);
++	ret = mq_timedreceive2(mqd, &args, MQ_PEEK, 0, NULL);
++	if (ret == -1 && errno == EFAULT)
++		ksft_test_result_pass("peek bad msg_ptr [EFAULT]\n");
++	else
++		ksft_test_result_fail("peek bad msg_ptr: expected EFAULT, got ret=%ld errno=%d\n",
++								ret, errno);
++
++	mq_close(mqd);
++}
++
++
++static void test_peek_index_out_of_range(void)
++{
++	mqd_t mqd = open_queue("oob", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++
++	send_msg(mqd, PRIO_MED, "one", 3);
++	ret = peek(mqd, 1, buf, sizeof(buf), &prio);
++	if (ret == -1 && errno == ENOENT)
++		ksft_test_result_pass("peek OOB index [ENOENT]\n");
++	else
++		ksft_test_result_fail("peek OOB: expected ENOENT, got ret=%ld errno=%d\n",
++								ret, errno);
++
++	mq_close(mqd);
++}
++
++static void test_peek_basic_data(void)
++{
++	mqd_t mqd = open_queue("basic", MAX_MSG_SIZE);
++	const char *payload = "peek-test-payload";
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio = 0;
++	long ret;
++
++	send_msg(mqd, PRIO_HIGH, payload, strlen(payload));
++
++	memset(buf, 0, sizeof(buf));
++	ret = peek(mqd, 0, buf, sizeof(buf), &prio);
++
++	if (ret < 0) {
++		ksft_test_result_fail("basic peek failed: ret=%ld errno=%d (%m)\n", ret, errno);
++		goto out;
++	}
++	if ((size_t)ret != strlen(payload)) {
++		ksft_test_result_fail("basic peek: wrong size %ld (expected %zu)\n", ret, strlen(payload));
++		goto out;
++	}
++	if (memcmp(buf, payload, strlen(payload)) != 0) {
++		ksft_test_result_fail("basic peek: payload mismatch\n");
++		goto out;
++	}
++	if (prio != PRIO_HIGH) {
++		ksft_test_result_fail("basic peek: wrong prio %u (expected %d)\n", prio, PRIO_HIGH);
++		goto out;
++	}
++	ksft_test_result_pass("basic peek: correct data and priority\n");
++out:
++	mq_close(mqd);
++}
++
++
++static void test_peek_nondestructive(void)
++{
++	mqd_t mqd = open_queue("nodestr", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	int i;
++
++	send_msg(mqd, PRIO_HIGH, "A", 1);
++	send_msg(mqd, PRIO_MED, "B", 1);
++	send_msg(mqd, PRIO_LOW, "C", 1);
++
++	if (queue_depth(mqd) != 3) {
++		ksft_test_result_fail("initial depth != 3\n");
++		mq_close(mqd);
++		return;
++	}
++
++	for (i = 0; i < 10; i++) {
++		peek(mqd, 0, buf, sizeof(buf), &prio);
++		peek(mqd, 1, buf, sizeof(buf), &prio);
++		peek(mqd, 2, buf, sizeof(buf), &prio);
++	}
++
++	if (queue_depth(mqd) == 3)
++		ksft_test_result_pass("peek is non-destructive (depth stays 3)\n");
++	else
++		ksft_test_result_fail("peek modified queue: depth=%ld (expected 3)\n", queue_depth(mqd));
++
++	mq_close(mqd);
++}
++
++static void test_peek_priority_order(void)
++{
++	mqd_t mqd = open_queue("prio_order", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++	int pass = 1;
++
++	send_msg(mqd, PRIO_LOW, "low", 3);
++	send_msg(mqd, PRIO_HIGH, "high", 4);
++	send_msg(mqd, PRIO_MED, "med", 3);
++
++	/* index 0 must return highest priority */
++	ret = peek(mqd, 0, buf, sizeof(buf), &prio);
++	if (ret < 0 || prio != PRIO_HIGH) {
++		ksft_test_result_fail(
++			"prio_order index0: prio=%u ret=%ld errno=%d\n", prio,
++			ret, errno);
++		pass = 0;
++	}
++	if (pass && memcmp(buf, "high", 4) != 0) {
++		ksft_test_result_fail("prio_order index0: wrong payload\n");
++		pass = 0;
++	}
++
++	/* index 1 must return medium priority */
++	ret = peek(mqd, 1, buf, sizeof(buf), &prio);
++	if (pass && (ret < 0 || prio != PRIO_MED)) {
++		ksft_test_result_fail("prio_order index1: prio=%u ret=%ld\n",
++				      prio, ret);
++		pass = 0;
++	}
++	if (pass && memcmp(buf, "med", 3) != 0) {
++		ksft_test_result_fail("prio_order index1: wrong payload\n");
++		pass = 0;
++	}
++
++	/* index 2 must return lowest priority */
++	ret = peek(mqd, 2, buf, sizeof(buf), &prio);
++	if (pass && (ret < 0 || prio != PRIO_LOW)) {
++		ksft_test_result_fail("prio_order index2: prio=%u ret=%ld\n",
++				      prio, ret);
++		pass = 0;
++	}
++	if (pass && memcmp(buf, "low", 3) != 0) {
++		ksft_test_result_fail("prio_order index2: wrong payload\n");
++		pass = 0;
++	}
++
++	if (pass)
++		ksft_test_result_pass(
++			"priority ordering: index0=HIGH, index1=MED, index2=LOW\n");
++
++	mq_close(mqd);
++}
++
++
++static void test_peek_fifo_within_priority(void)
++{
++	mqd_t mqd = open_queue("fifo", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++	int pass = 1;
++
++	send_msg(mqd, PRIO_HIGH, "first", 5);
++	send_msg(mqd, PRIO_HIGH, "second", 6);
++	send_msg(mqd, PRIO_HIGH, "third", 5);
++
++	memset(buf, 0, sizeof(buf));
++	ret = peek(mqd, 0, buf, sizeof(buf), &prio);
++	if (ret < 0 || memcmp(buf, "first", 5) != 0) {
++		ksft_test_result_fail(
++			"FIFO peek[0]: expected 'first', got '%.*s' ret=%ld\n",
++			(int)ret, buf, ret);
++		pass = 0;
++	}
++
++	if (pass) {
++		char rbuf[MAX_MSG_SIZE];
++		unsigned int rprio;
++
++		ssize_t r = mq_receive(mqd, rbuf, sizeof(rbuf), &rprio);
++		if (r < 0 || memcmp(rbuf, "first", 5) != 0) {
++			ksft_test_result_fail("mq_receive 'first' failed\n");
++			pass = 0;
++		}
++	}
++
++	if (pass) {
++		memset(buf, 0, sizeof(buf));
++		ret = peek(mqd, 0, buf, sizeof(buf), &prio);
++		if (ret < 0 || memcmp(buf, "second", 6) != 0) {
++			ksft_test_result_fail("FIFO peek after receive: expected 'second', got '%.*s'\n",
++								(int)ret, buf);
++			pass = 0;
++		}
++	}
++
++	if (pass)
++		ksft_test_result_pass("FIFO within same priority is correct\n");
++
++	mq_close(mqd);
++}
++
++static void test_peek_all_indices(void)
++{
++	const unsigned int prios[] = { 2, 7, 4, 9, 1, 6 };
++	const int N = ARRAY_SIZE(prios);
++	mqd_t mqd = open_queue("all_idx", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	char expected_payload[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++	int i, pass = 1;
++	unsigned int sorted[6];
++
++	for (i = 0; i < N; i++) {
++		snprintf(expected_payload, sizeof(expected_payload),
++			 "msg_prio_%u", prios[i]);
++		send_msg(mqd, prios[i], expected_payload,
++			 strlen(expected_payload));
++		sorted[i] = prios[i];
++	}
++
++	for (i = 0; i < N - 1; i++) {
++		int j;
++
++		for (j = i + 1; j < N; j++) {
++			if (sorted[j] > sorted[i]) {
++				unsigned int tmp = sorted[i];
++				sorted[i] = sorted[j];
++				sorted[j] = tmp;
++			}
++		}
++	}
++
++	for (i = 0; i < N && pass; i++) {
++		memset(buf, 0, sizeof(buf));
++		ret = peek(mqd, (unsigned long)i, buf, sizeof(buf), &prio);
++		if (ret < 0) {
++			ksft_test_result_fail("all_indices peek[%d] failed: ret=%ld errno=%d\n",
++								i, ret, errno);
++			pass = 0;
++			break;
++		}
++		if (prio != sorted[i]) {
++			ksft_test_result_fail("all_indices peek[%d]: prio=%u expected=%u\n",
++								i, prio, sorted[i]);
++			pass = 0;
++		}
++
++		snprintf(expected_payload, sizeof(expected_payload),
++			 "msg_prio_%u", sorted[i]);
++		if (memcmp(buf, expected_payload, strlen(expected_payload))) {
++			ksft_test_result_fail("all_indices peek[%d]: payload mismatch\n", i);
++			pass = 0;
++		}
++	}
++
++	if (pass && queue_depth(mqd) != N) {
++		ksft_test_result_fail("all_indices: depth=%ld expected=%d after peek\n",
++							queue_depth(mqd), N);
++		pass = 0;
++	}
++
++	if (pass) {
++		ret = peek(mqd, (unsigned long)N, buf, sizeof(buf), &prio);
++		if (!(ret == -1 && errno == ENOENT)) {
++			ksft_test_result_fail("all_indices OOB[%d]: expected ENOENT, got ret=%ld errno=%d\n",
++								N, ret, errno);
++			pass = 0;
++		}
++	}
++
++	if (pass)
++		ksft_test_result_pass("all-indices: correct prio order + OOB ENOENT\n");
++
++	mq_close(mqd);
++}
++
++static void test_peek_large_message(void)
++{
++	mqd_t mqd = open_queue("large", LARGE_MSG_SIZE);
++	char *send_buf, *recv_buf;
++	unsigned int prio = 0;
++	long ret;
++	int pass = 1;
++
++	send_buf = malloc(LARGE_MSG_SIZE);
++	recv_buf = calloc(1, LARGE_MSG_SIZE);
++	if (!send_buf || !recv_buf) {
++		ksft_test_result_skip("OOM allocating large message buffers\n");
++		goto out;
++	}
++
++	for (int i = 0; i < LARGE_MSG_SIZE; i++)
++		send_buf[i] = (char)(i & 0xFF);
++
++	send_msg(mqd, PRIO_HIGH, send_buf, LARGE_MSG_SIZE);
++
++	ret = peek(mqd, 0, recv_buf, LARGE_MSG_SIZE, &prio);
++	if (ret != LARGE_MSG_SIZE) {
++		ksft_test_result_fail("large msg peek: ret=%ld expected=%d\n",
++				      ret, LARGE_MSG_SIZE);
++		pass = 0;
++	}
++	if (pass && memcmp(send_buf, recv_buf, LARGE_MSG_SIZE) != 0) {
++		ksft_test_result_fail("large msg peek: payload mismatch\n");
++		pass = 0;
++	}
++	if (pass && prio != PRIO_HIGH) {
++		ksft_test_result_fail("large msg peek: prio=%u expected=%d\n", prio, PRIO_HIGH);
++		pass = 0;
++	}
++	if (pass && queue_depth(mqd) != 1) {
++		ksft_test_result_fail("large msg peek: queue modified (depth=%ld)\n",queue_depth(mqd));
++		pass = 0;
++	}
++	if (pass)
++		ksft_test_result_pass("large (%d B) multi-segment peek: correct\n",LARGE_MSG_SIZE);
++out:
++	free(send_buf);
++	free(recv_buf);
++	mq_close(mqd);
++}
++
++static void test_no_peek_flag_is_receive(void)
++{
++	mqd_t mqd = open_queue("nopeek", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio = 0;
++	struct mq_timedreceive2_args args = {
++		.msg_len = sizeof(buf),
++		.msg_prio = &prio,
++		.msg_ptr = buf,
++	};
++	long ret;
++
++	send_msg(mqd, PRIO_HIGH, "consume-me", 10);
++
++	ret = mq_timedreceive2(mqd, &args, 0, 0, NULL);
++	if (ret < 0) {
++		ksft_test_result_fail("no-peek receive failed: ret=%ld errno=%d\n", ret, errno);
++		mq_close(mqd);
++		return;
++	}
++	if (queue_depth(mqd) != 0)
++		ksft_test_result_fail("no-peek: queue still has messages (depth=%ld)\n", queue_depth(mqd));
++	else
++		ksft_test_result_pass("without MQ_PEEK the message is consumed normally\n");
++
++	mq_close(mqd);
++}
++
++struct race_ctx {
++	mqd_t mqd;
++	int errors;
++};
++
++static void *receiver_thread(void *arg)
++{
++	struct race_ctx *ctx = arg;
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	ssize_t r;
++
++	while ((r = mq_receive(ctx->mqd, buf, sizeof(buf), &prio)) > 0)
++		;
++
++	return NULL;
++}
++
++static void test_peek_concurrent_receive(void)
++{
++	struct race_ctx ctx;
++	pthread_t tid;
++	char buf[MAX_MSG_SIZE];
++	unsigned int prio;
++	long ret;
++	int i;
++
++	ctx.mqd = open_queue("concurrent", MAX_MSG_SIZE);
++	ctx.errors = 0;
++
++	for (i = 0; i < MQ_MAXMSG; i++) {
++		char payload[32];
++
++		snprintf(payload, sizeof(payload), "msg%d", i);
++		send_msg(ctx.mqd, (unsigned int)(i % 5) + 1, payload,
++			 strlen(payload));
++	}
++
++	if (pthread_create(&tid, NULL, receiver_thread, &ctx) != 0) {
++		ksft_test_result_skip("pthread_create failed\n");
++		mq_close(ctx.mqd);
++		return;
++	}
++
++	/*
++     * Peek repeatedly.The queue is being drained concurrently.
++	 */
++	for (i = 0; i < 200; i++) {
++		ret = peek(ctx.mqd, (unsigned long)(i % 4), buf, sizeof(buf),
++			   &prio);
++		if (ret < 0 && errno != EAGAIN && errno != ENOENT) {
++			ctx.errors++;
++		}
++	}
++
++	pthread_join(tid, NULL);
++
++	if (ctx.errors == 0)
++		ksft_test_result_pass("concurrent peek+receive: no unexpected errors\n");
++	else
++		ksft_test_result_fail("concurrent peek+receive: %d unexpected errors\n", ctx.errors);
++
++	mq_close(ctx.mqd);
++}
++
++static void test_peek_null_prio_ptr(void)
++{
++	mqd_t mqd = open_queue("null_prio", MAX_MSG_SIZE);
++	char buf[MAX_MSG_SIZE];
++	struct mq_timedreceive2_args args = {
++		.msg_len = sizeof(buf),
++		.msg_prio = NULL,
++		.msg_ptr = buf,
++	};
++	long ret;
++
++	send_msg(mqd, PRIO_MED, "no-prio-needed", 14);
++
++	ret = mq_timedreceive2(mqd, &args, MQ_PEEK, 0, NULL);
++	if (ret >= 0)
++		ksft_test_result_pass("peek with NULL msg_prio ptr: OK\n");
++	else
++		ksft_test_result_fail("peek NULL msg_prio: ret=%ld errno=%d (%m)\n", ret, errno);
++
++	mq_close(mqd);
++}
++
++static void test_peek_priority_matches_receive(void)
++{
++	mqd_t mqd = open_queue("prio_match", MAX_MSG_SIZE);
++	char peek_buf[MAX_MSG_SIZE], recv_buf[MAX_MSG_SIZE];
++	unsigned int peek_prio = 0, recv_prio = 0;
++	long peek_ret;
++	ssize_t recv_ret;
++	int pass = 1;
++
++	send_msg(mqd, PRIO_MED, "consistent-prio", 15);
++
++	peek_ret = peek(mqd, 0, peek_buf, sizeof(peek_buf), &peek_prio);
++	if (peek_ret < 0) {
++		ksft_test_result_fail("peek failed: %m\n");
++		mq_close(mqd);
++		return;
++	}
++
++	recv_ret = mq_receive(mqd, recv_buf, sizeof(recv_buf), &recv_prio);
++	if (recv_ret < 0) {
++		ksft_test_result_fail("mq_receive failed: %m\n");
++		mq_close(mqd);
++		return;
++	}
++
++	if (peek_prio != recv_prio) {
++		ksft_test_result_fail("prio mismatch: peek=%u receive=%u\n",
++							peek_prio, recv_prio);
++		pass = 0;
++	}
++	if (pass && peek_ret != recv_ret) {
++		ksft_test_result_fail("size mismatch: peek=%ld receive=%zd\n",
++				      peek_ret, recv_ret);
++		pass = 0;
++	}
++	if (pass && memcmp(peek_buf, recv_buf, (size_t)recv_ret) != 0) {
++		ksft_test_result_fail("payload mismatch between peek and receive\n");
++		pass = 0;
++	}
++	if (pass)
++		ksft_test_result_pass("peeked priority/payload matches mq_receive output\n");
++
++	mq_close(mqd);
++}
++
++static const struct {
++	const char *name;
++	void (*fn)(void);
++} tests[] = {
++	{ "empty queue → EAGAIN", test_peek_empty_queue },
++	{ "invalid fd → EBADF", test_peek_invalid_fd },
++	{ "non-mqueue fd → EBADF", test_peek_non_mqueue_fd },
++	{ "O_WRONLY fd → EBADF", test_peek_writeonly_fd },
++	{ "buffer too small → EMSGSIZE", test_peek_buffer_too_small },
++	{ "bad msg_ptr → EFAULT", test_peek_bad_msg_ptr },
++	{ "OOB index → ENOENT", test_peek_index_out_of_range },
++	{ "basic data+prio correctness", test_peek_basic_data },
++	{ "non-destructive semantics", test_peek_nondestructive },
++	{ "priority ordering across indices", test_peek_priority_order },
++	{ "FIFO within same priority", test_peek_fifo_within_priority },
++	{ "all distinct priority indices", test_peek_all_indices },
++	{ "large multi-segment message", test_peek_large_message },
++	{ "no MQ_PEEK → normal receive", test_no_peek_flag_is_receive },
++	{ "concurrent peek + receive", test_peek_concurrent_receive },
++	{ "NULL msg_prio ptr", test_peek_null_prio_ptr },
++	{ "peeked prio matches mq_receive",
++	  test_peek_priority_matches_receive },
++};
++
++int main(void)
++{
++	unsigned int i;
++	long sc_ret;
++
++	ksft_print_header();
++	ksft_set_plan(ARRAY_SIZE(tests));
++
++	{
++		struct mq_timedreceive2_args probe_args = { 0 };
++		sc_ret = mq_timedreceive2((mqd_t)-1, &probe_args, MQ_PEEK, 0,
++					  NULL);
++		if (sc_ret == -1 && errno == ENOSYS)
++			ksft_exit_skip("mq_timedreceive2 syscall not available "
++				"(NR=%d ENOSYS) — is the kernel too old?\n",
++				__NR_mq_timedreceive2);
++	}
++
++	for (i = 0; i < ARRAY_SIZE(tests); i++) {
++		ksft_print_msg("--- [%02u] %s ---\n", i + 1, tests[i].name);
++		tests[i].fn();
++	}
++
++	return ksft_get_fail_cnt() ? 1 : 0;
++}
 -- 
-Cheers,
-Harry / Hyeonggon
+2.43.0
+
