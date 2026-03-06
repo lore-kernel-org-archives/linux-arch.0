@@ -1,119 +1,284 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D22243988FA;
-	Fri,  6 Mar 2026 13:26:41 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BD8F33AE1A5;
+	Fri,  6 Mar 2026 15:04:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772803601; cv=none; b=FS2v6kMHWpWcjZmwREC73xzJkJUSjKCcuZaEfdwVIwTYWeqUyW644mGecrwsjXqWErwGvz6I5V2iJxW/Dv4LaahFTpIGbmBFe1gQiVolc3HaeKo3ah3TmnAhT+K6Mc7KSIxfT2rGbIoHbvBnAqZJyPfFFT/rP+0pbv4KXonFoOs=
+	t=1772809471; cv=none; b=Op0oCCLsF8Z8ctny1vV0/kqo+fHO74t4T08x3eq1YQ8RTzJTOt255/FkmPzr/qTKnogMaKWF8s/B4P4qFelqMY/6JdzqSZuMbuVj4MU0W1ucvxb3rN36WybN29cKmSjAiJ5qcQZC+gpBBACnaloC+upZhmOODf9HrnShcXMf5zg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772803601; c=relaxed/simple;
-	bh=sR/kIGYNND8K9nQw+FjdFBOKIkK/ANUJzx5w8waG85s=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=QJWzMndx7+g9k/2zrKQmhtDdDbyjmRmznI8jVMQBmf0Sf8GbEzxhd8+/p2pZ4SvKi5ciFbcEww34KqivsvNOkW6uySOoACAodfbxWBPdRRy6lfv1F6Uy46vZEb2DzBPtBTh20iRxSKp50ruDrNFYGL7tLib9NXKUZPMnaNwrnGk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=qVqpZu8S; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772809471; c=relaxed/simple;
+	bh=25CPe4EGSUbqlSDNHofrLGG8PR/WzU7sNEADToXqfos=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=QbkRlYC9YA5e/aZwWrJSIW3Enogz5yBcpzz5yTIgtq4bKxafm9YwK9akO0pZcVBUs5oioZEdwZlnvcxmyY0nVQF16QLlDQwjxPqHo5cZTr9pHxwo45K1xgLvkfFnOhq3K4lR5I7VXoy6B4d2Nv2WnUxwgomEE+emADQN0LfVuOA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=l00mYyAe; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="qVqpZu8S"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 92F89C4CEF7;
-	Fri,  6 Mar 2026 13:26:35 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="l00mYyAe"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CF2D7C4CEF7;
+	Fri,  6 Mar 2026 15:04:24 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772803601;
-	bh=sR/kIGYNND8K9nQw+FjdFBOKIkK/ANUJzx5w8waG85s=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=qVqpZu8S/0TQR7CEKgDfDM8hrU1N4lLByrpecHCFJ9rd9kU2UuFJCwUl8CKVXZxsb
-	 Fl/m8BIcs6TvfadSYBelOUxIOjBsO9TSySEvhI9Bw9VxhmMwHNHpBKsr/nf0NpApIE
-	 Lzno5NcUDSeRl4qBWWD+UQn3vFc599K7kr7pM+HLyerwq89vH8/qIsW7EMzkXbchZp
-	 wXnQcDRO0cNpto62BhoHJjxLyqNV9ovxlNkjrLgMhlD3d9ysgPfbkt2NWUo0i20Ajz
-	 n1KwwMzAD0NVYw/WOdaDwVApZdC/YrZqyeFYf92rdOTiyvFay3e02NZvcq4kWQXpTb
-	 wTPnLmsZLMXlA==
-Message-ID: <e404a5a0-a46b-450f-bbf3-7bd8ea494bc2@kernel.org>
-Date: Fri, 6 Mar 2026 14:26:33 +0100
+	s=k20201202; t=1772809471;
+	bh=25CPe4EGSUbqlSDNHofrLGG8PR/WzU7sNEADToXqfos=;
+	h=From:To:Cc:Subject:Date:From;
+	b=l00mYyAeVzZNhOkHGoBqNdxgrGLiNdHhVl3kHwWYeL1Y9cFWXVlXooc68wEuF7L0Q
+	 OF2NVmz98U+4tMbNLueBvXb1fQq7cXDImpDKIGf4tKnWW++vZxu/EY+wexkETnxwFD
+	 MWqyCam4Ic8JyGq5WqejMJe9U3A1XlNrnepTU7jea0jQaiV8DaUy+MCEWae68Risxu
+	 qkBXP3twWnqgmthNNhGJ5AZYReddCWjdC3dgnUrpIrec7ooGju9tx+THX/KeuImLH8
+	 yhx06aMwr48pfMFdKNoEE3NgYZYj6wC+11wNOWM+t5CSAxsd0lxY8gLOiIilbMEZIm
+	 dZ/eso6rn5L2w==
+From: Arnd Bergmann <arnd@kernel.org>
+To: Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Paul Moore <paul@paul-moore.com>,
+	James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jarkko Sakkinen <jarkko@kernel.org>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Ard Biesheuvel <ardb@kernel.org>,
+	Coiby Xu <coxu@redhat.com>
+Cc: Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Nick Desaulniers <nick.desaulniers+lkml@gmail.com>,
+	Bill Wendling <morbo@google.com>,
+	Justin Stitt <justinstitt@google.com>,
+	Andrew Donnellan <ajd@linux.ibm.com>,
+	linuxppc-dev@lists.ozlabs.org,
+	linux-kernel@vger.kernel.org,
+	linux-s390@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-integrity@vger.kernel.org,
+	linux-security-module@vger.kernel.org,
+	keyrings@vger.kernel.org,
+	llvm@lists.linux.dev
+Subject: [PATCH] integrity: avoid using __weak functions
+Date: Fri,  6 Mar 2026 16:03:24 +0100
+Message-Id: <20260306150421.270124-1-arnd@kernel.org>
+X-Mailer: git-send-email 2.39.5
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 0/5] vDSO: Use 32-bit CHECKFLAGS for compat vDSO
-To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-Cc: "David S. Miller" <davem@davemloft.net>,
- Andreas Larsson <andreas@gaisler.com>, Andy Lutomirski <luto@kernel.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
- Arnd Bergmann <arnd@arndb.de>, Heiko Carstens <hca@linux.ibm.com>,
- Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
- <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>,
- Sven Schnelle <svens@linux.ibm.com>,
- Madhavan Srinivasan <maddy@linux.ibm.com>,
- Michael Ellerman <mpe@ellerman.id.au>, Nicholas Piggin <npiggin@gmail.com>,
- sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
- David Laight <david.laight.linux@gmail.com>, linuxppc-dev@lists.ozlabs.org,
- Sun Jian <sun.jian.kdev@gmail.com>, kernel test robot <lkp@intel.com>,
- Dan Carpenter <dan.carpenter@linaro.org>
-References: <20260302-vdso-compat-checkflags-v2-0-78e55baa58ba@linutronix.de>
- <96cdd223-5139-4535-b82d-831dac472cc3@kernel.org>
- <20260306115350-ef265661-6d6b-4043-9bd0-8e6b437d0d67@linutronix.de>
-Content-Language: fr-FR
-From: "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>
-In-Reply-To: <20260306115350-ef265661-6d6b-4043-9bd0-8e6b437d0d67@linutronix.de>
-Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
+From: Arnd Bergmann <arnd@arndb.de>
 
+The security/integrity/secure_boot.c file containing only a __weak function
+leads to a build failure with clang:
 
-Le 06/03/2026 à 14:08, Thomas Weißschuh a écrit :
-> On Fri, Mar 06, 2026 at 11:43:24AM +0100, Christophe Leroy (CS GROUP) wrote:
->>
->>
->> Le 02/03/2026 à 08:58, Thomas Weißschuh a écrit :
->>> When building the compat vDSO the CHECKFLAGS from the 64-bit kernel
->>> are used. These are combined with the 32-bit CFLAGS. This confuses
->>> sparse, producing false-positive warnings or potentially missing
->>> real issues.
->>>
->>> Manually override the CHECKFLAGS for the compat vDSO with the correct
->>> 32-bit configuration.
->>>
->>> Not all architectures are supported, as many do not use sparse for their
->>> (compat) vDSO. These can be enabled later.
->>>
->>> Also add some checks to bitsperlong.h to detect such issues earlier.
->>>
->>> Based on tip/timers/vdso.
->>>
->>> Signed-off-by: Thomas Weißschuh <thomas.weissschuh@linutronix.de>
->>> ---
->>> Changes in v2:
->>> - Simplify __BITS_PER_LONG consistency checks
->>> - Fix an inconsistency in the powerpc audit code
->>
->> The powerpc audit code should be replaced by generic
->> AUDIT_ARCH_COMPAT_GENERIC, as there is no difference between them
->> apparently.
-> 
-> Agreed.
-> 
->> A tentative was made in the past but was declined by audit maintainers
->> because we were not able to test it allthought the failure was the same
->> before and after the patch, see
->> https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fgithub.com%2Flinuxppc%2Fissues%2Fissues%2F412&data=05%7C02%7Cchristophe.leroy%40csgroup.eu%7Cca6c85b42bd44c6a80c608de7b81819d%7C8b87af7d86474dc78df45f69a2011bb5%7C0%7C0%7C639083993321723266%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=VxTy22klpH9H8Altgcthr%2F%2ByUIL6q%2FbBkDV7FQS%2BljI%3D&reserved=0
-> 
-> On v7.0-rc1 the test failure of filter_exclude/test is gone.
-> It also keeps working when applying your patch. Some other tests are
-> broken, but it looks that is due to missing dependencies on Debian.
-> So maybe it is time to resubmit your patch.
-> 
-> In any case, I don't really want to entangle my series with the switch
-> to AUDIT_ARCH_COMPAT_GENERIC. My proposed cleanup does not make the code
-> worse and if both patches are applied the conflict will be trivial to
-> resolve.
+Cannot find symbol for section 2: .text.
+security/integrity/secure_boot.o: failed
 
-I didn't mean to interfere with your patch, it is just that your patch 
-reminded me that tentative.
+Moving the function into another file that has at least one non-__weak
+symbol would solve this, but this is always fragile.
 
-Thanks for testing, I will consider re-posting my patch based on your test.
+Avoid __weak definitions entirely and instead move the stub helper into
+an asm-generic header that gets used by default on architectures that
+do not provide their own version. This is consistent with how a lot
+of other architecture specific functionality works, and is more reliable.
 
-Christophe
+Fixes: a0f87ede3bf4 ("integrity: Make arch_ima_get_secureboot integrity-wide")
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+This is a larger change than I had hoped for.
+
+If you prefer a different way to address the build failure, please
+treat this as a Reported-by when you apply your own fix
+---
+ arch/powerpc/include/asm/secure_boot.h        |  6 +++
+ arch/powerpc/kernel/secure_boot.c             |  1 -
+ arch/s390/include/asm/secure_boot.h           |  9 +++++
+ include/asm-generic/Kbuild                    |  1 +
+ include/asm-generic/secure_boot.h             | 37 +++++++++++++++++++
+ include/linux/secure_boot.h                   |  8 +---
+ security/integrity/Makefile                   |  2 +-
+ .../integrity/platform_certs/load_powerpc.c   |  2 +-
+ security/integrity/secure_boot.c              | 16 --------
+ 9 files changed, 56 insertions(+), 26 deletions(-)
+ create mode 100644 arch/s390/include/asm/secure_boot.h
+ create mode 100644 include/asm-generic/secure_boot.h
+ delete mode 100644 security/integrity/secure_boot.c
+
+diff --git a/arch/powerpc/include/asm/secure_boot.h b/arch/powerpc/include/asm/secure_boot.h
+index a2ff556916c6..db72dcdf5bb3 100644
+--- a/arch/powerpc/include/asm/secure_boot.h
++++ b/arch/powerpc/include/asm/secure_boot.h
+@@ -10,11 +10,17 @@
+ 
+ #ifdef CONFIG_PPC_SECURE_BOOT
+ 
++bool arch_get_secureboot(void);
+ bool is_ppc_secureboot_enabled(void);
+ bool is_ppc_trustedboot_enabled(void);
+ 
+ #else
+ 
++static inline bool arch_get_secureboot(void)
++{
++	return false;
++}
++
+ static inline bool is_ppc_secureboot_enabled(void)
+ {
+ 	return false;
+diff --git a/arch/powerpc/kernel/secure_boot.c b/arch/powerpc/kernel/secure_boot.c
+index 28436c1599e0..e3ea46124180 100644
+--- a/arch/powerpc/kernel/secure_boot.c
++++ b/arch/powerpc/kernel/secure_boot.c
+@@ -7,7 +7,6 @@
+ #include <linux/of.h>
+ #include <linux/secure_boot.h>
+ #include <linux/string_choices.h>
+-#include <asm/secure_boot.h>
+ 
+ static struct device_node *get_ppc_fw_sb_node(void)
+ {
+diff --git a/arch/s390/include/asm/secure_boot.h b/arch/s390/include/asm/secure_boot.h
+new file mode 100644
+index 000000000000..4086fdfb9e5c
+--- /dev/null
++++ b/arch/s390/include/asm/secure_boot.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef _ASM_S390_SECURE_BOOT_H
++#define _ASM_S390_SECURE_BOOT_H
++
++#include <linux/types.h
++
++bool arch_get_secureboot(void);
++
++#endif
+diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
+index 0f97f7b594c3..8c0a499141fb 100644
+--- a/include/asm-generic/Kbuild
++++ b/include/asm-generic/Kbuild
+@@ -51,6 +51,7 @@ mandatory-y += rqspinlock.h
+ mandatory-y += runtime-const.h
+ mandatory-y += rwonce.h
+ mandatory-y += sections.h
++mandatory-y += secure_boot.h
+ mandatory-y += serial.h
+ mandatory-y += shmparam.h
+ mandatory-y += simd.h
+diff --git a/include/asm-generic/secure_boot.h b/include/asm-generic/secure_boot.h
+new file mode 100644
+index 000000000000..08d8e294576c
+--- /dev/null
++++ b/include/asm-generic/secure_boot.h
+@@ -0,0 +1,37 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (C) 2026 Red Hat, Inc. All Rights Reserved.
++ *
++ * Author: Coiby Xu <coxu@redhat.com>
++ */
++#ifndef _ASM_SECURE_BOOT_H
++#define _ASM_SECURE_BOOT_H
++
++
++#include <linux/types.h>
++
++#ifdef CONFIG_EFI
++
++/*
++ * Default implementation.
++ * Architectures that support secure boot must override this.
++ *
++ * Returns true if the platform secure boot is enabled.
++ * Returns false if disabled or not supported.
++ */
++bool arch_get_secureboot(void);
++
++#else
++
++/*
++ * Default implementation.
++ * Architectures that support secure boot must override this.
++ */
++static inline bool arch_get_secureboot(void)
++{
++	return false;
++}
++
++#endif
++
++#endif
+diff --git a/include/linux/secure_boot.h b/include/linux/secure_boot.h
+index 3ded3f03655c..9ddfbe109b1d 100644
+--- a/include/linux/secure_boot.h
++++ b/include/linux/secure_boot.h
+@@ -8,12 +8,6 @@
+ #ifndef _LINUX_SECURE_BOOT_H
+ #define _LINUX_SECURE_BOOT_H
+ 
+-#include <linux/types.h>
+-
+-/*
+- * Returns true if the platform secure boot is enabled.
+- * Returns false if disabled or not supported.
+- */
+-bool arch_get_secureboot(void);
++#include <asm/secure_boot.h>
+ 
+ #endif /* _LINUX_SECURE_BOOT_H */
+diff --git a/security/integrity/Makefile b/security/integrity/Makefile
+index 548665e2b702..45dfdedbdad4 100644
+--- a/security/integrity/Makefile
++++ b/security/integrity/Makefile
+@@ -5,7 +5,7 @@
+ 
+ obj-$(CONFIG_INTEGRITY) += integrity.o
+ 
+-integrity-y := iint.o secure_boot.o
++integrity-y := iint.o
+ integrity-$(CONFIG_INTEGRITY_AUDIT) += integrity_audit.o
+ integrity-$(CONFIG_INTEGRITY_SIGNATURE) += digsig.o
+ integrity-$(CONFIG_INTEGRITY_ASYMMETRIC_KEYS) += digsig_asymmetric.o
+diff --git a/security/integrity/platform_certs/load_powerpc.c b/security/integrity/platform_certs/load_powerpc.c
+index 714c961a00f5..ab74e947a8bc 100644
+--- a/security/integrity/platform_certs/load_powerpc.c
++++ b/security/integrity/platform_certs/load_powerpc.c
+@@ -10,7 +10,7 @@
+ #include <linux/cred.h>
+ #include <linux/err.h>
+ #include <linux/slab.h>
+-#include <asm/secure_boot.h>
++#include <linux/secure_boot.h>
+ #include <asm/secvar.h>
+ #include "keyring_handler.h"
+ #include "../integrity.h"
+diff --git a/security/integrity/secure_boot.c b/security/integrity/secure_boot.c
+deleted file mode 100644
+index fc2693c286f8..000000000000
+--- a/security/integrity/secure_boot.c
++++ /dev/null
+@@ -1,16 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0-only
+-/*
+- * Copyright (C) 2026 Red Hat, Inc. All Rights Reserved.
+- *
+- * Author: Coiby Xu <coxu@redhat.com>
+- */
+-#include <linux/secure_boot.h>
+-
+-/*
+- * Default weak implementation.
+- * Architectures that support secure boot must override this.
+- */
+-__weak bool arch_get_secureboot(void)
+-{
+-	return false;
+-}
+-- 
+2.39.5
+
