@@ -1,302 +1,179 @@
-Received: from mail-vs1-f44.google.com (mail-vs1-f44.google.com [209.85.217.44])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fout-b6-smtp.messagingengine.com (fout-b6-smtp.messagingengine.com [202.12.124.149])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 02932346AE6
-	for <linux-arch@vger.kernel.org>; Fri,  6 Mar 2026 09:38:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.217.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0ABC52874FB;
+	Fri,  6 Mar 2026 10:31:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.149
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772789915; cv=none; b=bu0R1R/KkXuV80hw3LMhvnZ0NaTvGQGs/hb49GdJKDLWamYL2CAia00iF1BFG3vXHzXJxqQfBFy8kfAw5E9koXu57+IuWgO8VAytbDSP+V9tBj7JRIK3jUhGKrf54bJuW6KfnCmE1ztJHxdmzJV369xDvmmGAVHDHSLEBhbXe78=
+	t=1772793087; cv=none; b=tbqH5LC6xvo/SFnAfQ0Y5KqO7VoRL8tWJXKniwFl1jbLsOgl+k3OG1TlxXdbhuDmrihWekw3Yh9Wb8ne943LEDRVCh6265nolPVLMnXlAjrYIlrrE9xdllHYK0xQ7Icdy5cS6PqMKOf/D5xKPVzYZIc21ItKdCuPNM6KnEj1QDU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772789915; c=relaxed/simple;
-	bh=cU2wNTra9723kV/tr6l5eppK6Q8QRnq+Gk85QesqItU=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=PoPlX7GCLEyvxYmbH/Pk1xzzZydRZ/hfxqTXJKO4qtyWciQJh6IZBPG9mD5owMB+YeO9DC0Txvl/GYQf8IHF8wQu3DjOzzIvIv9i4i32Kn37iQ0/3wyVNXC/B6JozKqqSKjfZI0AhPFx9M7/kQ5XiT96LmSKjTy0pThyRJHg9pc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.217.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Received: by mail-vs1-f44.google.com with SMTP id ada2fe7eead31-5ffc879c1aeso1164380137.2
-        for <linux-arch@vger.kernel.org>; Fri, 06 Mar 2026 01:38:32 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1772789912; x=1773394712;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=Bls+i4as7Lze2x+LjgSXb+odWTNfhZRM2QQTzPDuV4o=;
-        b=ZhnXz+7bffhCbLPfwAxsyQL4saJkaVPNu0UHUbvHj8RXW3ncrkWaamSqqmSJGcIC5n
-         owfXL7PMUt25zUos4slHeBxdaWmNB8XJJ7oNhHUOP5NUshSHP3cg++LqKFZcGpYKvRMT
-         iPpukYigfiYcbrH5DnZUpw7YWXLxO7DPbFcbAP0mRWwUzD1+4P0rNsWhsBtO663MooD8
-         7Xp3Fbyc5yQUIVtodtL6qbkKCrS+8fVFSbcH3PHIbgLHr1+/2D2W/0COPESsetp40wAi
-         S9J6vdzEPflyzxDPX5AjOJSt5XddIM9oiivTOYw4HeGRKIGgfeIkekjknyPSAkd8dOEz
-         AITw==
-X-Forwarded-Encrypted: i=1; AJvYcCUAVNqFGqnV73F5Kl9QyIe8eefui0gOrIMjoA/9RIXcP/jPNXTlTv0jTZsUBs5XUxShGR3V41Hf/wKA@vger.kernel.org
-X-Gm-Message-State: AOJu0YwPQtFjOvPyn5XgkndvzHcPv3VJH9gXlBQwaq+BFAHX5rCTLlrn
-	B1GNmCo3us10HqMW9OOqV6LKSiqOKS3OwmdAZYFZkXrmB8z2qQTmBKFM98f8zvZI4kw=
-X-Gm-Gg: ATEYQzzjtEZ3DhgmId+uY+GDf0tCr015ngGufS2tWhntLNm1aySyH6yQiSKpxR5k9IV
-	jKi4Emzll0PfSgEBAfEzpQ4lxhnIy6MjL8qpCRAU8iLcJJ7QFfgKQa9jm8/sFSKvwrbpFjHav28
-	lWVANlDFQHQHhn4XCadsECNprYydLTs5vJscVyWYH99bhDZwnltzvtNepUau8s7Ykx+8hVJb7DB
-	zduIXXNoKNQf7mkyhn4bXlzdwAYsS+TUlEGXhz68k2hTHupnm/8nJpam5OZoy8A3suu9SVa5l1E
-	E/u7jba2vC0ZS+QtrrVH87oqMalTfZvPGY/VuvpF+Rvx7P/zCTAa9rKgyUl92EGJd2x9dFpOxNs
-	SR3Ykod43zD+d83ZAcFp+BpukNvgVJfuU7BDB7/0grY/C0+G/cfcbTCUsAfffB0tduQxQKv3IEI
-	1K6RosgzKeSmu0jkWsf7bGtv8WIugWsT0Vi+MBjtBFtx3r1t5H+Mg+z7n7r5lD
-X-Received: by 2002:a05:6102:38ce:b0:5ff:1d94:b746 with SMTP id ada2fe7eead31-5ffe6183273mr588735137.27.1772789911725;
-        Fri, 06 Mar 2026 01:38:31 -0800 (PST)
-Received: from mail-ua1-f44.google.com (mail-ua1-f44.google.com. [209.85.222.44])
-        by smtp.gmail.com with ESMTPSA id a1e0cc1a2514c-94e7b30a7dfsm846676241.1.2026.03.06.01.38.31
-        for <linux-arch@vger.kernel.org>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 06 Mar 2026 01:38:31 -0800 (PST)
-Received: by mail-ua1-f44.google.com with SMTP id a1e0cc1a2514c-94acb3d6cceso5118971241.2
-        for <linux-arch@vger.kernel.org>; Fri, 06 Mar 2026 01:38:31 -0800 (PST)
-X-Forwarded-Encrypted: i=1; AJvYcCXJkoIO+U/ol7T30CElusBr6+OtUFW+NVBPKGOIT2ZbXLkxUzOWMfYOB6X62ORaD66oDqp3E5CtP8aY@vger.kernel.org
-X-Received: by 2002:a05:6102:c8d:b0:5ff:b684:f7a0 with SMTP id
- ada2fe7eead31-5ffe61dddb7mr585849137.30.1772789910765; Fri, 06 Mar 2026
- 01:38:30 -0800 (PST)
+	s=arc-20240116; t=1772793087; c=relaxed/simple;
+	bh=4fnqsiuPRlFg7+8dD99oK7wK943f6IziUzz9HAFaq1U=;
+	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
+	 Subject:Content-Type; b=DRLtD6iyYQVmYazCpUr/SPOya1K9Zoh2JGAJ5TSbblXbfbkb4FvhW/EOK6CeHH7x4fQRLlZ1eEH3kPt8E+BQ8sFIz5J+3FfQhFyTi+twftZUtaH5gNJncvB7wJeyAwhUpAfHbGwAa26/zwVFtG4OzCN+ripfo9Tnduf7jwFQrIc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=IbAw+Ls8; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=ciyRBOEX; arc=none smtp.client-ip=202.12.124.149
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="IbAw+Ls8";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="ciyRBOEX"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailfout.stl.internal (Postfix) with ESMTP id 0B6D91D00231;
+	Fri,  6 Mar 2026 05:31:24 -0500 (EST)
+Received: from phl-imap-02 ([10.202.2.81])
+  by phl-compute-04.internal (MEProxy); Fri, 06 Mar 2026 05:31:24 -0500
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
+	:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm3; t=1772793083;
+	 x=1772879483; bh=7lVi4wx23gEucWcmPTAuk8q/Qg53flc2xyWX/ahVfiE=; b=
+	IbAw+Ls8M5oSI28RI2AVx2AfgHxxFI30uT6wQOZMH5YrPf+vDXKkQXe49DEUeaZ4
+	ChA4kVlbLM+vvwVhv5TKjlWcbEIJNsDutNDW9VZjQUlyHnrrSzysekPkDbM2GiFN
+	WZ0dPw/eS7sXdNOum3i37cNH8LrVWX/4J2JtWhK1S2xtcAal2bSdTTHgV1j0ziHl
+	PPinAmehSQqZ5UlHeOTwkTpsvz8hH/rUxggVhFYnMRiaTdxhCA2q2ijNDRRg/sn6
+	49pz80yyFgavJbv7CNqFNWHMLGJHXjy4CELdILxekurf7qUTGfCyzer8q3tAIsJ/
+	VJG1xrRhV5zDwl221J0/fg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1772793083; x=
+	1772879483; bh=7lVi4wx23gEucWcmPTAuk8q/Qg53flc2xyWX/ahVfiE=; b=c
+	iyRBOEXsNw9TM1hxoVyw3KEpTKBmTCoQqyiARgB0bTltkATMajx0xuSCp2RhcWqr
+	M2rKubajdKJnDAbCmj2lJikZWa7jW4XBbkGlhwEgNyHhM6OjGqosWneRYB4VSmL6
+	SqzTdbJEbpGmZJyaQU/cxwPMxTzbJS/BNHxWAobfweJkx/qJ4IYWNqVn3nBBeOSK
+	kacl+/VyRRvl0NeUAi4v543/Lzfts7G+oYIGO6IktPHU5ulUpKv2vZ/fKWlEwkNv
+	PATfMd0bYksX1kpsAjGSw319x2GJZ4lrHwfHYBpJC+EoG950ypnow/pEVbKbxGr9
+	BvlhrkbyjXgNLtVqiFVQg==
+X-ME-Sender: <xms:-6yqaTwA9uX2sw_jTBEcLDr4voNFPSDIhQlVTQE2mkzIggV-BXsv_w>
+    <xme:-6yqaWHV0ggwgwksJHqPO7M6Hhe4_DviVJuQ3ueq7D7QfFpqNa2tdPO-WwdJobIQ4
+    A6570YmO94bRqrac1Z1jP3wOJmMPjjk-fMpffripufyzNG8bXGkGiM>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgddvieeltdeiucetufdoteggodetrf
+    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
+    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
+    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrnhgu
+    uceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrthhtvg
+    hrnhephfdthfdvtdefhedukeetgefggffhjeeggeetfefggfevudegudevledvkefhvdei
+    necuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprghrnh
+    gusegrrhhnuggsrdguvgdpnhgspghrtghpthhtohepiedpmhhouggvpehsmhhtphhouhht
+    pdhrtghpthhtoheprggtrgguvghmihgtudhmrghthhhurhgrsehgmhgrihhlrdgtohhmpd
+    hrtghpthhtohepsghrrghunhgvrheskhgvrhhnvghlrdhorhhgpdhrtghpthhtohepghgv
+    vghrtheslhhinhhugidqmheikehkrdhorhhgpdhrtghpthhtoheplhhinhhugidqrghrtg
+    hhsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtoheplhhinhhugidqkhgvrhhn
+    vghlsehvghgvrhdrkhgvrhhnvghlrdhorhhgpdhrtghpthhtohepvhhirhhoseiivghnih
+    hvrdhlihhnuhigrdhorhhgrdhukh
+X-ME-Proxy: <xmx:-6yqaWpGWcn8QbO-xLW-z5rfbUeeQyVHg9XSvK5YQdT-NmIuCVZmoQ>
+    <xmx:-6yqaVWlrVSsWT2a_DS2sXmlsCEMBV9GaHvy0zwtaUFRK6l3ml7CpQ>
+    <xmx:-6yqaZaXingR_ZBkpF5G2hiHWLfz23S1kZGYJzb3JodgUCUZpK3xwA>
+    <xmx:-6yqaaeuyPv4jSZkEZtc2uVTO75pPtCHF9YG48JmHBPnCy5_OO-P0w>
+    <xmx:-6yqaaKSKyaZKmHKyre9fZbBf_hdxTjxfzhg52cU2tbE_ijXcokBuIfc>
+Feedback-ID: i56a14606:Fastmail
+Received: by mailuser.phl.internal (Postfix, from userid 501)
+	id 36DA1700065; Fri,  6 Mar 2026 05:31:23 -0500 (EST)
+X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+X-ThreadId: ArmtIjJjdzS7
+Date: Fri, 06 Mar 2026 11:30:52 +0100
+From: "Arnd Bergmann" <arnd@arndb.de>
+To: "Geert Uytterhoeven" <geert@linux-m68k.org>,
+ Mathura_Kumar <academic1mathura@gmail.com>
+Cc: "Christian Brauner" <brauner@kernel.org>,
+ Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org,
+ "Alexander Viro" <viro@zeniv.linux.org.uk>
+Message-Id: <b0398b22-e964-4f7e-b29e-612386730dae@app.fastmail.com>
+In-Reply-To: 
+ <CAMuHMdXDeeeJH3x09YuZ-86=FPfwZg0mD5Gwnqvk7U_QT1eOhw@mail.gmail.com>
 References: <20260306075009.83723-1-academic1mathura@gmail.com>
-In-Reply-To: <20260306075009.83723-1-academic1mathura@gmail.com>
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Fri, 6 Mar 2026 10:38:19 +0100
-X-Gmail-Original-Message-ID: <CAMuHMdXDeeeJH3x09YuZ-86=FPfwZg0mD5Gwnqvk7U_QT1eOhw@mail.gmail.com>
-X-Gm-Features: AaiRm53rff3F-5Tq7LbrSA5mZ3FGA4E7qSiG13WNW2wBQzc-o21-AqX_icFuxGo
-Message-ID: <CAMuHMdXDeeeJH3x09YuZ-86=FPfwZg0mD5Gwnqvk7U_QT1eOhw@mail.gmail.com>
-Subject: Re: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [
- mq_peek syscall] for non-destructive receive and inspection,fix minor
- issue,prepared doc.
-To: Mathura_Kumar <academic1mathura@gmail.com>
-Cc: brauner@kernel.org, linux-arch@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk, 
-	Arnd Bergmann <arnd@arndb.de>
-Content-Type: text/plain; charset="UTF-8"
+ <CAMuHMdXDeeeJH3x09YuZ-86=FPfwZg0mD5Gwnqvk7U_QT1eOhw@mail.gmail.com>
+Subject: Re: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [ mq_peek
+ syscall] for non-destructive receive and inspection,fix minor issue,prepared
+ doc.
+Content-Type: text/plain
+Content-Transfer-Encoding: 7bit
 
-Hi Mathura,
+On Fri, Mar 6, 2026, at 10:38, Geert Uytterhoeven wrote:
+> CC Arnd
 
-CC Arnd
+Thanks!
 
-Thanks for your patch!
-
-On Fri, 6 Mar 2026 at 08:50, Mathura_Kumar <academic1mathura@gmail.com> wrote:
->  Change from v3 to v5:
+> On Fri, 6 Mar 2026 at 08:50, Mathura_Kumar <academic1mathura@gmail.com> wrote:
 >
->  -Styles issue fixed
->  -Doc was prepared/modified in Documentation/userspace-api/ipc.rst,
->  -Corrected file references
->  -I am squashing previous four commit in this latest one for convenience  in applying
->   and merging
->  -risc-v related macro handling error fixed
->  -some struct definition removed from ipc/mqueue.c for better compiler control flow
+>> +1) Overview
+>> +-----------
+>> +
+>> +POSIX message queues on Linux provide mq_receive() and mq_timedreceive()
+>> +for consuming messages from a queue. Both interfaces require the caller
+>> +to pass the message buffer, length, and priority pointer as individual
+>> +arguments to the system call. This imposes a fixed calling convention
+>> +that cannot be extended without breaking the ABI.
+>> +
+>> +mq_timedreceive2() introduces a new system call entry point that accepts
+>> +message buffer parameters via a struct argument rather than as individual
+>> +syscall arguments. This frees the remaining syscall argument slots for
+>> +new functionality flags and a message index, enabling non-destructive
+>> +peek and indexed access semantics that are not possible with the
+>> +original interface.
+>> +
+>> +Two variants are provided:
+>> +
+>> +  mq_timedreceive2()         - primary variant, 64-bit time (Y2038-safe)
+>> +  mq_timedreceive2_time32()  - 32-bit time variant for legacy and compat
 >
-> Required Attention:-As per mail from bot
+> What is the rationale behind adding a new syscall that is not Y2038-safe?
 
-What does this mean?
+Indeed, that would need a very strong reason. New userspace already has to
+support old kernels without the syscalls, and it would seem easy enough
+to just not support it on time32 libc implementations.
 
+>> index 4fcc7c58a105..fd90a2f500b6 100644
+>> --- a/arch/powerpc/kernel/syscalls/syscall.tbl
+>> +++ b/arch/powerpc/kernel/syscalls/syscall.tbl
+>> @@ -562,3 +562,6 @@
+>>  469    common  file_setattr                    sys_file_setattr
+>>  470    common  listns                          sys_listns
+>>  471    nospu   rseq_slice_yield                sys_rseq_slice_yield
+>> +472    32      mq_timedreceive2                sys_mq_timedreceive2_time32
+>> +473    64      mq_timedreceive2                sys_mq_timedreceive2
+>> +474    32      mq_timedreceive2_time64     sys_mq_timedreceive2          sys_mq_timedreceive2
 >
-> kernel test robot noticed the following build errors:
-> [auto build test ERROR on shuah-kselftest/next]
-> [also build test ERROR on shuah-kselftest/fixes next-20260304]
-> [cannot apply to arnd-asm-generic/master linus/master tip/x86/asm v6.16-rc1]
->
-> Short Description:
->     POSIX message queues currently lack a mechanism to read
->     a message without removing it from the queue. This is a
->     long-standing limitation,when we require inspection of queue state
->     without altering it.
->
->     Modifying existing mq_receive() semantics via additional
->     flags was considered. However, altering behavior of an
->     existing syscall risks breaking backward compatibility
->     for applications relying on current semantics. Since
->     mq_receive() guarantees message removal, changing this
->     contract is not safe.
->
->     To preserve ABI stability, this patch introduces a new
->     system call that performs a non-destructive receive
->     operation (peek). The existing behavior remains unchanged.
->
->     Design considerations:
->
->     Two approaches for copying message data to userspace
->     were evaluated:
->
->     1) Refcount-based message lifecycle handling
->        - This can help us  Avoids intermediate temp kernel copy
->        - Extends message lifetime
->        -But this may increase writer starvation under heavy load and
->         add unnecessary complication on priority  management and
->         delay more time to free space in inode due refcount may prevent
->
->     2) Temporary kernel buffer copy
->        - Copies message into a bounded kernel buffer
->        - Reduces time message remains locked
->        - Improves fairness under write-heavy workloads
->        - Simpler lifetime management
->
->     My implementation adopts the temporary buffer approach
->     to minimize starvation and reduce locking complexity.
->     The design allows future transition if refcounting is
->     deemed preferable.
->
->     Architecture support: ALL
->
->     Testing:
->       - 15+ functional test cases
->       - Multi-threaded producer/consumer scenarios
->       - concurrent pop and peek
->       - Edge cases: empty queue, FIFO
->         invalid flags, signal interruption etc.
->
-> Use Case:
->
-> 1) Observability in distributed systems
->  e.g Monitoring tools can inspect queue contents without interfering with
->     normal processing
->
-> 2) Check pointing system can have a look into queue without consuming and can store messages
->
-> 3) Resource-aware processing
->
-> 4) Selective Consumption for Specialized Workers
->
-> Signed-off-by: Mathura_Kumar <academic1mathura@gmail.com>
+> PowerPC receives three variants?
+> Oh, the first two are for 32-bit vs. 64-bit, so they should use the
+> same syscall number.
 
-> --- a/Documentation/userspace-api/index.rst
-> +++ b/Documentation/userspace-api/index.rst
+Probably just a typo there (same on sparc), I assume the intention was
+to use the same number as the generic scripts/syscall.tbl version.
 
-> --- /dev/null
-> +++ b/Documentation/userspace-api/ipc.rst
-> @@ -0,0 +1,273 @@
+> Furthermore, this breaks the "new syscalls use the same number on
+> most architectures"-rule. Next free slot is now 472, 473, or 474,
+> depending on architecture.
 
-> +1) Overview
-> +-----------
-> +
-> +POSIX message queues on Linux provide mq_receive() and mq_timedreceive()
-> +for consuming messages from a queue. Both interfaces require the caller
-> +to pass the message buffer, length, and priority pointer as individual
-> +arguments to the system call. This imposes a fixed calling convention
-> +that cannot be extended without breaking the ABI.
-> +
-> +mq_timedreceive2() introduces a new system call entry point that accepts
-> +message buffer parameters via a struct argument rather than as individual
-> +syscall arguments. This frees the remaining syscall argument slots for
-> +new functionality flags and a message index, enabling non-destructive
-> +peek and indexed access semantics that are not possible with the
-> +original interface.
-> +
-> +Two variants are provided:
-> +
-> +  mq_timedreceive2()         - primary variant, 64-bit time (Y2038-safe)
-> +  mq_timedreceive2_time32()  - 32-bit time variant for legacy and compat
+Right. I also noticed a few more mistakes with the numbers:
 
-What is the rationale behind adding a new syscall that is not Y2038-safe?
+- parisc is missing the syscall entirely
+- arm32 compat mode has the numbers reversed compared to native mode
+- x86 only gets a version in the 'x32' range, but is missing the
+  native x86-64 version.
+- The testcase hardcodes the x32 syscall number for all architectures
+  other than a couple of hardcoded ones
 
-> --- a/arch/arm/tools/syscall.tbl
-> +++ b/arch/arm/tools/syscall.tbl
-> @@ -486,3 +486,5 @@
->  469    common  file_setattr                    sys_file_setattr
->  470    common  listns                          sys_listns
->  471    common  rseq_slice_yield                sys_rseq_slice_yield
-> +472    common  mq_timedreceive2                sys_mq_timedreceive2_time32
-> +473    common  mq_timedreceive2_time64 sys_mq_timedreceive2
-> diff --git a/arch/arm64/tools/syscall_32.tbl b/arch/arm64/tools/syscall_32.tbl
-> index 62d93d88e0fe..02603704231e 100644
-> --- a/arch/arm64/tools/syscall_32.tbl
-> +++ b/arch/arm64/tools/syscall_32.tbl
-> @@ -483,3 +483,5 @@
->  469    common  file_setattr                    sys_file_setattr
->  470    common  listns                          sys_listns
->  471    common  rseq_slice_yield                sys_rseq_slice_yield
-> +472    common  mq_timedreceive2_time64 sys_mq_timedreceive2
-> +473    common  mq_timedreceive2                sys_mq_timedreceive2_time32
-> diff --git a/arch/m68k/kernel/syscalls/syscall.tbl b/arch/m68k/kernel/syscalls/syscall.tbl
-> index 248934257101..b67f23edda11 100644
-> --- a/arch/m68k/kernel/syscalls/syscall.tbl
-> +++ b/arch/m68k/kernel/syscalls/syscall.tbl
-> @@ -471,3 +471,6 @@
->  469    common  file_setattr                    sys_file_setattr
->  470    common  listns                          sys_listns
->  471    common  rseq_slice_yield                sys_rseq_slice_yield
-> +472    common  mq_timedreceive2                sys_mq_timedreceive2_time32
-> +473    common  mq_timedreceive2_time64 sys_mq_timedreceive2
-> +
-> diff --git a/arch/microblaze/kernel/syscalls/syscall.tbl b/arch/microblaze/kernel/syscalls/syscall.tbl
-> index 223d26303627..89fb60006a99 100644
-> --- a/arch/microblaze/kernel/syscalls/syscall.tbl
-> +++ b/arch/microblaze/kernel/syscalls/syscall.tbl
-> @@ -477,3 +477,6 @@
->  469    common  file_setattr                    sys_file_setattr
->  470    common  listns                          sys_listns
->  471    common  rseq_slice_yield                sys_rseq_slice_yield
-> +472    common  mq_timedreceive2                sys_mq_timedreceive2_time32
-> +473    common  mq_timedreceive2_time64 sys_mq_timedreceive2
-> +
-> diff --git a/arch/mips/kernel/syscalls/syscall_n32.tbl b/arch/mips/kernel/syscalls/syscall_n32.tbl
-> index 7430714e2b8f..fee830be67a6 100644
-> --- a/arch/mips/kernel/syscalls/syscall_n32.tbl
-> +++ b/arch/mips/kernel/syscalls/syscall_n32.tbl
-> @@ -410,3 +410,5 @@
->  469    n32     file_setattr                    sys_file_setattr
->  470    n32     listns                          sys_listns
->  471    n32     rseq_slice_yield                sys_rseq_slice_yield
-> +472    n32     mq_timedreceive2            sys_mq_timedreceive2_time32
-> +473    n32     mq_timedreceive2_time64 sys_mq_timedreceive2
+Also, I would point out few more general issues:
 
-So these receive two variants...
+- compat handling is is busted for the normal syscalls, and only
+  seems to work by accident on the time32 one.
+- the time32 syscall passes a kernel structure through a __user
+  pointer
+- this is the first patch (or public email) ever sent by the "author"
+- the changelog text and subject line make no sense whatsoever
+- four submissions of the series in three days, with the latest
+  one labeled 'V5'.
 
-> diff --git a/arch/mips/kernel/syscalls/syscall_n64.tbl b/arch/mips/kernel/syscalls/syscall_n64.tbl
-> index 630aab9e5425..75de6ee2df94 100644
-> --- a/arch/mips/kernel/syscalls/syscall_n64.tbl
-> +++ b/arch/mips/kernel/syscalls/syscall_n64.tbl
-> @@ -386,3 +386,4 @@
->  469    n64     file_setattr                    sys_file_setattr
->  470    n64     listns                          sys_listns
->  471    n64     rseq_slice_yield                sys_rseq_slice_yield
-> +472    n64     mq_timedreceive2                sys_mq_timedreceive2
+I don't normally dismiss new submissions easily, but I think it's
+safe to ignore this one.
 
-MIPS64 receives only one?
-
-> diff --git a/arch/mips/kernel/syscalls/syscall_o32.tbl b/arch/mips/kernel/syscalls/syscall_o32.tbl
-> index 128653112284..8694a2d2f084 100644
-> --- a/arch/mips/kernel/syscalls/syscall_o32.tbl
-> +++ b/arch/mips/kernel/syscalls/syscall_o32.tbl
-> @@ -459,3 +459,5 @@
->  469    o32     file_setattr                    sys_file_setattr
->  470    o32     listns                          sys_listns
->  471    o32     rseq_slice_yield                sys_rseq_slice_yield
-> +472    o32     mq_timedreceive2            sys_mq_timedreceive2_time32
-> +473    o32     mq_timedreceive2_time64 sys_mq_timedreceive2
-> diff --git a/arch/powerpc/kernel/syscalls/syscall.tbl b/arch/powerpc/kernel/syscalls/syscall.tbl
-> index 4fcc7c58a105..fd90a2f500b6 100644
-> --- a/arch/powerpc/kernel/syscalls/syscall.tbl
-> +++ b/arch/powerpc/kernel/syscalls/syscall.tbl
-> @@ -562,3 +562,6 @@
->  469    common  file_setattr                    sys_file_setattr
->  470    common  listns                          sys_listns
->  471    nospu   rseq_slice_yield                sys_rseq_slice_yield
-> +472    32      mq_timedreceive2                sys_mq_timedreceive2_time32
-> +473    64      mq_timedreceive2                sys_mq_timedreceive2
-> +474    32      mq_timedreceive2_time64     sys_mq_timedreceive2          sys_mq_timedreceive2
-
-PowerPC receives three variants?
-Oh, the first two are for 32-bit vs. 64-bit, so they should use the
-same syscall number.
-
-More of this below...
-
-Furthermore, this breaks the "new syscalls use the same number on
-most architectures"-rule. Next free slot is now 472, 473, or 474,
-depending on architecture.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
--- 
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+  Arnd 
