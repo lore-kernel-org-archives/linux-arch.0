@@ -1,136 +1,205 @@
-Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.7])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D0D327991E
-	for <linux-arch@vger.kernel.org>; Sat,  7 Mar 2026 09:22:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.180
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A09ED30BB97;
+	Sat,  7 Mar 2026 12:44:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.7
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772875323; cv=none; b=APR+KhFSv4svLPDyLs+pSrFDDLxwqQIFjSlUeNuu/27XpTOfZs5LxoVGmZLnHZjTKolCVf7+dpenc3ddzNQ9Etiza4qUTnCNGRPUxpMaBxfUqCUqLGKtKRZIlV04iVZa8hfYPKkSvXHUEJ2RbK4m+RVE/NDsqpLhqyoVxTgN910=
+	t=1772887457; cv=none; b=cqImQLKrQz8DvNDUBH5jp5agj7QipYXmaPktnXaXvSnosWtudHl1b96phEgJUEDA45KnkTWw3tILtZjILKEuxFogiw0ZvWh3g6+e2yEd32G/+eEeW2/ycf3vqQhkNTNRFALLF2tYwXYCCjumWbIm5plSjtKCC9Cee/IyZJ8N2SQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772875323; c=relaxed/simple;
-	bh=Ije5PRZmxTojxXIm7e2s1gqbY1PAvnVzbziTZqgQfyo=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=OrxAc5bNIC6n2uQOHSPt9Yj7snUmBgiwt56O6bj5/4+KZ9HGieBQ5Zl9Jd0BRXPjknBLLGGQK6beSp559qjA5ctWdr0tSaWzbWWIQK+7lkjh7ukx9uKp9lkfSIhTN7RjXq8l0ZnQICRKVcBCNSDqqVDQocFqoEv2AW3MKwe7NXs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=kgt6ldFM; arc=none smtp.client-ip=209.85.214.180
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1772887457; c=relaxed/simple;
+	bh=egICFilckyqhOCeUwSYsMbOVEf6BLClzIWoLFEf59Ck=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=W3tqd3DyJBjM9oH4lS+Y0I++ZIuD8Sz98l19Xp/TmBFd4k4P2uU//FR7GRxphDZFJCx/j+mE9JajfZ5dNzI9xlNKxOwfIZ7hvgbLZhVY/2B+so2ArNuoVWHPPXnkjQUTshI1UCWG28mUdbJg34leIApvKTkmJffTqNBCUGZPdCk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=CWM8JSu2; arc=none smtp.client-ip=192.198.163.7
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="kgt6ldFM"
-Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-2ad21f437eeso72178595ad.0
-        for <linux-arch@vger.kernel.org>; Sat, 07 Mar 2026 01:22:01 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1772875321; x=1773480121; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=tUDMCyWm+/oO4Lw6ZRAVy2JWY6tSsMFprlNQtLkw/dA=;
-        b=kgt6ldFMYULVx5+5bu6MZIbDIyDaCIjvPI6rC0SXvjp05eKLDFynbSMCUjTDZkM1No
-         so7X2gK2CWzyDcRguI4rhZ9vavaANfab2q8ZAQ03RzHAJL8xlZ8HpxHzGQLTBb5+7Rx3
-         acD5ZSCvws84Kefls3WN6PE5EHpsK04fVNph3/oywm789faIfNLCWlRBplOYk/g2sK76
-         PK8cupfWwToxdZ8Fc22dCwdIafVkMJyGNLb7RJQ6WmjTwx1oAPQRg7FMh73PPOQNwrOF
-         3+LFBhWoxgA1b8exQv1YDeg6QAOxJmF1dU7ZpdmEircSMf1zIOwRWAGtefqmtXZZYQfo
-         yOCg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1772875321; x=1773480121;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=tUDMCyWm+/oO4Lw6ZRAVy2JWY6tSsMFprlNQtLkw/dA=;
-        b=Epeu5rwZAohxgU4235uQZs9FU5Virk+Kpyc08VG6OOomeM5RFd1B6oDMzc134w54VW
-         O1ke5sbGvpmZmQRMFiaE0WK4tPusrTVzDKKv8IOR4G1Cl4IWoyBf436ZrlqAYIlo63/i
-         qnspbEpZ78topvfrwbEP/HmX3MQSNOsHY1W8k9ilGXYGQk+Xj+o+qyemVuDs9O0O5DJn
-         4wzJlgkGsg50TFP63beNwhl82LiQKyPE+8Fr4IYjlqzx85apPEqnO1I6HdorGmamhqhn
-         byTB636Pey7fg6KZp5aQVpTJILk97tQ6/pYNS1+P3+agfV6Xj5+r2sx9yxeWPa6dvpHQ
-         PcrA==
-X-Forwarded-Encrypted: i=1; AJvYcCVrO8D/bQfFKrQ7OGZlMn+fkxD4sHkh4SQAqVeiR548y6zuDVhRHbYS+gIiRSrRf1WwmyPuyciJeJjE@vger.kernel.org
-X-Gm-Message-State: AOJu0YyDild+UK7F1M110FT5fU1o71TQjxlOQgwzYi4mQLlnZ1x42YtS
-	7swUuMTBltAaEVVHBK8szNlmWgWVSUdRhjvB9qKAk6VXb8fBV2PPfBVHoppABA==
-X-Gm-Gg: ATEYQzxWfAvPoLo6SlCswqkKw/+w8mqrCjxHHAlWOS0BeZlRbM5CdnN0QutBJW748m1
-	AIdXOA6MWLGIv81Lu0jyWfb2l6ZdqU4T5L51RHZCZMX2zeyRyIcMauS0BXoXLB11b/r6kr9vQKU
-	Ngfcn2OstBLbz5exOJ95lNaroxUic3TN7wutKouL/sQbRPFnqq4YsidzifHzvw5DBVOyGLeNc6m
-	3UX2n9TROquSHdp9fydoLiADMI9I8I9ZI9QY89zdsvh8CNHp3aiGbcxA9VPNyyaZlpTFcAIDfjT
-	rP4AJsH4UNGKp2eLv02PM/CwLTB9+szqZVgyIPPV8RYOyaBnVWAapMMfU9rx2oPcL16BKtbWgUg
-	n3H28hueXcqsREM4DU88Tqk9YcRanvubbhc0/l8sgWfHMAg/dNIVGkl0U+mAZu4q0Aj/uBaTRoC
-	6VQL13R6kNki0+OKLg5gwHwlkweU8WtBSQa+k3TvfXuUV/Ro2sFvLSeD3r4RMdGCITE8TZ9BS68
-	o++BnaK219TbA==
-X-Received: by 2002:a17:902:e541:b0:2ae:5c39:89c9 with SMTP id d9443c01a7336-2ae82a2598bmr47067115ad.24.1772875320536;
-        Sat, 07 Mar 2026 01:22:00 -0800 (PST)
-Received: from localhost.localdomain (123-194-188-82.dynamic.kbronet.com.tw. [123.194.188.82])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ae840c9967sm57525115ad.90.2026.03.07.01.21.58
-        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Sat, 07 Mar 2026 01:22:00 -0800 (PST)
-From: Min-Hsun Chang <chmh0624@gmail.com>
-To: arnd@arndb.de
-Cc: msalter@redhat.com,
-	akpm@linux-foundation.org,
-	linux-arch@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	Min-Hsun Chang <chmh0624@gmail.com>
-Subject: [PATCH] asm-generic: replace ________addr with __UNIQUE_ID(addr)
-Date: Sat,  7 Mar 2026 17:21:19 +0800
-Message-ID: <20260307092119.20733-1-chmh0624@gmail.com>
-X-Mailer: git-send-email 2.50.1
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="CWM8JSu2"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1772887454; x=1804423454;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=egICFilckyqhOCeUwSYsMbOVEf6BLClzIWoLFEf59Ck=;
+  b=CWM8JSu2qWcvmlRUR5yN8LdS1tha9tmRLbLd0H+tWDQDk66kxwDCSAxW
+   qTOYNK/wSKIVaCSCu351x90DZfjHge1z216rFEX+LV0VDqmu/YKZWvFiw
+   LWgfsHpBOdCNXgl0HaMnbevIVVjx0RVKsClK2NON6YnoPaljAxqE1gryI
+   j4ISBQ0F4jxjL4ddFqzcqw30mZxyvZEepvbTdzgjLkSIELPa0j7v7UGe1
+   ccUNsfVbAnokMmSyWi3U2xsq52LXs7LaakvBIWO7Q57P7yvVVkVOaEJ8j
+   wEuw3NDvK7CcrkXvIrUXUOFMvNwUf2LSjS4NOemHHSXtQEpp7QlWH8XsK
+   g==;
+X-CSE-ConnectionGUID: GOJsJABPR2C5FAslBJUBkQ==
+X-CSE-MsgGUID: IkHqngmJS5OWVWuoyxNT5w==
+X-IronPort-AV: E=McAfee;i="6800,10657,11721"; a="99449721"
+X-IronPort-AV: E=Sophos;i="6.23,106,1770624000"; 
+   d="scan'208";a="99449721"
+Received: from fmviesa002.fm.intel.com ([10.60.135.142])
+  by fmvoesa101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 07 Mar 2026 04:44:14 -0800
+X-CSE-ConnectionGUID: yya9cmgLSwmCh1EtD2o9Dw==
+X-CSE-MsgGUID: +1GcB3TiTam/csmQlO5yLQ==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.23,106,1770624000"; 
+   d="scan'208";a="242289282"
+Received: from lkp-server01.sh.intel.com (HELO 058beb05654c) ([10.239.97.150])
+  by fmviesa002.fm.intel.com with ESMTP; 07 Mar 2026 04:44:12 -0800
+Received: from kbuild by 058beb05654c with local (Exim 4.98.2)
+	(envelope-from <lkp@intel.com>)
+	id 1vyr0s-000000001yz-0Sna;
+	Sat, 07 Mar 2026 12:44:10 +0000
+Date: Sat, 7 Mar 2026 20:43:25 +0800
+From: kernel test robot <lkp@intel.com>
+To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
+Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
+	academic1mathura@gmail.com, linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
+Subject: Re: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [
+ mq_peek syscall] for non-destructive receive and inspection,fix minor
+ issue,prepared doc.
+Message-ID: <202603072056.0e7wfE3v-lkp@intel.com>
+References: <20260306075009.83723-1-academic1mathura@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260306075009.83723-1-academic1mathura@gmail.com>
 
-The macro __set_fixmap_offset() uses a hardcoded identifier ________addr,
-which can lead to variable name shadowing if a caller happens to use the
-same name in its scope.
+Hi Mathura_Kumar,
 
-Following the pattern in commit 44238e82670e ("rcu: Replace ________p1 and
-_________p1 with __UNIQUE_ID(rcu)") and commit 589a9785ee3a ("min/max:
-remove sparse warnings when they're nested"), replace the hardcoded
-identifier with __UNIQUE_ID(addr).
+kernel test robot noticed the following build errors:
 
-Since __UNIQUE_ID() must be expanded once to remain consistent across
-declaration, assignment, and return within the statement expression,
-introduce a nested helper macro ___set_fixmap_offset.
+[auto build test ERROR on shuah-kselftest/next]
+[also build test ERROR on shuah-kselftest/fixes brauner-vfs/vfs.all linus/master v7.0-rc2 next-20260306]
+[cannot apply to tip/x86/asm]
+[If your patch is applied to the wrong git tree, kindly drop us a note.
+And when submitting patch, we suggest to use '--base' as documented in
+https://git-scm.com/docs/git-format-patch#_base_tree_information]
 
-Signed-off-by: Min-Hsun Chang <chmh0624@gmail.com>
----
- include/asm-generic/fixmap.h | 16 ++++++++++------
- 1 file changed, 10 insertions(+), 6 deletions(-)
+url:    https://github.com/intel-lab-lkp/linux/commits/Mathura_Kumar/mqueue-introduce-new-do_mq_timedreceive2-mq_peek-syscall-for-non-destructive-receive-and-inspection-fix-minor-issue-prep/20260306-155240
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/shuah/linux-kselftest.git next
+patch link:    https://lore.kernel.org/r/20260306075009.83723-1-academic1mathura%40gmail.com
+patch subject: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [ mq_peek syscall] for non-destructive receive and inspection,fix minor issue,prepared doc.
+config: x86_64-kexec (https://download.01.org/0day-ci/archive/20260307/202603072056.0e7wfE3v-lkp@intel.com/config)
+compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260307/202603072056.0e7wfE3v-lkp@intel.com/reproduce)
 
-diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-index 29cab7947980..2d1e9a2c6a3b 100644
---- a/include/asm-generic/fixmap.h
-+++ b/include/asm-generic/fixmap.h
-@@ -16,6 +16,7 @@
- #define __ASM_GENERIC_FIXMAP_H
- 
- #include <linux/bug.h>
-+#include <linux/compiler.h>
- #include <linux/mm_types.h>
- 
- #define __fix_to_virt(x)	(FIXADDR_TOP - ((x) << PAGE_SHIFT))
-@@ -71,14 +72,17 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
- #endif
- 
- /* Return a pointer with offset calculated */
--#define __set_fixmap_offset(idx, phys, flags)				\
--({									\
--	unsigned long ________addr;					\
--	__set_fixmap(idx, phys, flags);					\
--	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
--	________addr;							\
-+#define ___set_fixmap_offset(idx, phys, flags, uniq)            \
-+({                                                              \
-+	unsigned long uniq;                                         \
-+	__set_fixmap(idx, phys, flags);                             \
-+	uniq = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));       \
-+	uniq;                                                       \
- })
- 
-+#define __set_fixmap_offset(idx, phys, flags)                   \
-+	___set_fixmap_offset(idx, phys, flags, __UNIQUE_ID(addr))
-+
- #define set_fixmap_offset(idx, phys) \
- 	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
- 
+If you fix the issue in a separate patch/commit (i.e. not just a new version of
+the same patch/commit), kindly add following tags
+| Reported-by: kernel test robot <lkp@intel.com>
+| Closes: https://lore.kernel.org/oe-kbuild-all/202603072056.0e7wfE3v-lkp@intel.com/
+
+All errors (new ones prefixed by >>):
+
+   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
+    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
+         |                        ^
+   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
+   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
+>> ipc/mqueue.c:1747:1: error: incompatible pointer types passing 'struct compat_mq_timedreceive2_args *' to parameter of type 'struct compat_mq_timedreceive2_args *' [-Werror,-Wincompatible-pointer-types]
+    1747 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
+         | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
+         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    1749 |                 unsigned int, flags, const unsigned long, index,
+         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    1750 |                 const struct old_timespec32 __user *, u_abs_timeout)
+         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   include/linux/syscalls.h:230:36: note: expanded from macro 'SYSCALL_DEFINE5'
+     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
+         |                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   include/linux/syscalls.h:237:2: note: expanded from macro 'SYSCALL_DEFINEx'
+     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+         |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   arch/x86/include/asm/syscall_wrapper.h:230:37: note: expanded from macro '__SYSCALL_DEFINEx'
+     230 |                 long ret = __do_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
+         |                                           ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
+   note: (skipping 1 expansions in backtrace; use -fmacro-backtrace-limit=0 to see all)
+   include/linux/syscalls.h:123:42: note: expanded from macro '__MAP5'
+     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
+         |                                   ~~~~~~~^~~~~~~~~~~~~~
+   include/linux/syscalls.h:122:27: note: expanded from macro '__MAP4'
+     122 | #define __MAP4(m,t,a,...) m(t,a), __MAP3(m,__VA_ARGS__)
+         |                           ^~~~~~
+   include/linux/syscalls.h:133:25: note: expanded from macro '__SC_CAST'
+     133 | #define __SC_CAST(t, a) (__force t) a
+         |                         ^~~~~~~~~~~~~
+   ipc/mqueue.c:1748:49: note: passing argument to parameter 'uargs' here
+    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
+         |                                                               ^
+   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
+    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
+         |                        ^
+>> ipc/mqueue.c:1747:1: error: conflicting types for '__do_sys_mq_timedreceive2_time32'
+    1747 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
+         | ^
+   include/linux/syscalls.h:230:36: note: expanded from macro 'SYSCALL_DEFINE5'
+     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
+         |                                    ^
+   include/linux/syscalls.h:237:2: note: expanded from macro 'SYSCALL_DEFINEx'
+     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+         |         ^
+   arch/x86/include/asm/syscall_wrapper.h:235:21: note: expanded from macro '__SYSCALL_DEFINEx'
+     235 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
+         |                            ^
+   <scratch space>:71:1: note: expanded from here
+      71 | __do_sys_mq_timedreceive2_time32
+         | ^
+   ipc/mqueue.c:1747:1: note: previous declaration is here
+   include/linux/syscalls.h:230:36: note: expanded from macro 'SYSCALL_DEFINE5'
+     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
+         |                                    ^
+   include/linux/syscalls.h:237:2: note: expanded from macro 'SYSCALL_DEFINEx'
+     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
+         |         ^
+   arch/x86/include/asm/syscall_wrapper.h:225:21: note: expanded from macro '__SYSCALL_DEFINEx'
+     225 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
+         |                            ^
+   <scratch space>:44:1: note: expanded from here
+      44 | __do_sys_mq_timedreceive2_time32
+         | ^
+>> ipc/mqueue.c:1756:6: error: call to undeclared function 'get_compat_mq_args'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
+    1756 |         if (get_compat_mq_args(pargs, uargs))
+         |             ^
+   ipc/mqueue.c:1756:6: note: did you mean 'get_compat_msghdr'?
+   include/net/compat.h:51:5: note: 'get_compat_msghdr' declared here
+      51 | int get_compat_msghdr(struct msghdr *, struct compat_msghdr __user *,
+         |     ^
+   4 warnings and 3 errors generated.
+
+
+vim +1747 ipc/mqueue.c
+
+  1746	
+> 1747	SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
+> 1748			struct compat_mq_timedreceive2_args __user *, uargs,
+  1749			unsigned int, flags, const unsigned long, index,
+  1750			const struct old_timespec32 __user *, u_abs_timeout)
+  1751	{
+  1752		struct mq_timedreceive2_args args, *pargs = NULL;
+  1753	
+  1754		pargs = &args;
+  1755	
+> 1756		if (get_compat_mq_args(pargs, uargs))
+  1757			return -EFAULT;
+  1758	
+  1759		struct timespec64 ts, *p = NULL;
+  1760	
+  1761		if (u_abs_timeout) {
+  1762			int res = compat_prepare_timeout(u_abs_timeout, &ts);
+  1763			
+  1764			if (res)
+  1765				return res;
+  1766			p = &ts;
+  1767		}
+  1768		return do_mq_timedreceive2(mqdes, pargs, flags, index, p);
+  1769	}
+  1770	#endif
+  1771	
+
 -- 
-2.50.1
-
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
