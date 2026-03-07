@@ -1,138 +1,136 @@
-Received: from flow-a6-smtp.messagingengine.com (flow-a6-smtp.messagingengine.com [103.168.172.141])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 20937375F93;
-	Fri,  6 Mar 2026 23:29:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.141
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D0D327991E
+	for <linux-arch@vger.kernel.org>; Sat,  7 Mar 2026 09:22:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772839758; cv=none; b=PrBZRYsXzU8uWL1wWeghyHPVLxj2OplLJJnAt23bgwtSoUX372gUgKe7+61mdHef8ytGzhO+W3p51wZdUg6JRsAR+eycKacAPHTIBYI/KQC0firFYlsxoUNao3tQZd/XbuAfTPqJNQ0DUEXicloTYV578l+VvVuULquHVz7kGlI=
+	t=1772875323; cv=none; b=APR+KhFSv4svLPDyLs+pSrFDDLxwqQIFjSlUeNuu/27XpTOfZs5LxoVGmZLnHZjTKolCVf7+dpenc3ddzNQ9Etiza4qUTnCNGRPUxpMaBxfUqCUqLGKtKRZIlV04iVZa8hfYPKkSvXHUEJ2RbK4m+RVE/NDsqpLhqyoVxTgN910=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772839758; c=relaxed/simple;
-	bh=cY2s7/qEuxqwfkrFpJGX5cmRmBLdKB08nhmezUnAbEk=;
-	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=HR7XvDBx0mCTqRwt7Wf0fDfpBjUO0jT2uMjkE7feMR7+PxN70GV/lnRsfrR4ULUDZqCbWOgGorTrZnDxPvhdUGgNdxCt0B+f5GG3yj8rlT3QfqKdgZ3VpwexCCJwogNsiktJpNqhZC55HNPpEWdP6WCnCBOIbk7yJnsMMz8LsHA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de; spf=pass smtp.mailfrom=arndb.de; dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b=DZLtQeEa; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=wseMXmnJ; arc=none smtp.client-ip=103.168.172.141
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arndb.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arndb.de
+	s=arc-20240116; t=1772875323; c=relaxed/simple;
+	bh=Ije5PRZmxTojxXIm7e2s1gqbY1PAvnVzbziTZqgQfyo=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=OrxAc5bNIC6n2uQOHSPt9Yj7snUmBgiwt56O6bj5/4+KZ9HGieBQ5Zl9Jd0BRXPjknBLLGGQK6beSp559qjA5ctWdr0tSaWzbWWIQK+7lkjh7ukx9uKp9lkfSIhTN7RjXq8l0ZnQICRKVcBCNSDqqVDQocFqoEv2AW3MKwe7NXs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=kgt6ldFM; arc=none smtp.client-ip=209.85.214.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=arndb.de header.i=@arndb.de header.b="DZLtQeEa";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="wseMXmnJ"
-Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
-	by mailflow.phl.internal (Postfix) with ESMTP id 468D31380B55;
-	Fri,  6 Mar 2026 18:29:08 -0500 (EST)
-Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-04.internal (MEProxy); Fri, 06 Mar 2026 18:29:08 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arndb.de; h=cc
-	:cc:content-transfer-encoding:content-type:content-type:date
-	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to; s=fm3; t=1772839748;
-	 x=1772846948; bh=GETdZGM4YA8yA694WxEZkZM09wEgzGQFz172whB4Qxk=; b=
-	DZLtQeEaE1Dg/BQ7D4AeSS6PstNxPQGzBfjmzElVIT2ViU5ATfpUTqv7ybEr9Ht1
-	oNWpbiqL2pq7dtr+d/nQeWQrsgtFOolMVDDHLGag5CqmqYuNkKJu2fV6pYT4kFal
-	VDcmU/ygQtSSYNKAlWfynduCxhSfxMxJ/q6eqKV67R8jo3kpmDwFf+3Ik4ZFpRP+
-	kvRibMs1AygZJ5Mt/9LmTVRSM1O1u1satUPynemVwMfrv1RBET+4vzB1y5wKEJxP
-	mNV8qPxnb6oCZhF7tZuLWePLcH4p1BgF4X0Dl+jJZpUQtYR5ZhLhvmsR+wjOQQGx
-	O2oXve4Du80lwmuLrMWrCQ==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:cc:content-transfer-encoding
-	:content-type:content-type:date:date:feedback-id:feedback-id
-	:from:from:in-reply-to:in-reply-to:message-id:mime-version
-	:references:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1772839748; x=
-	1772846948; bh=GETdZGM4YA8yA694WxEZkZM09wEgzGQFz172whB4Qxk=; b=w
-	seMXmnJeT7pXctEfb0cuHkhDGFIved/RrLP41GOYSHJZIudzgjXdkCaMKc3/fuOc
-	VZSiKq/sFK46Wv0P1yfi6XTTGcjVcOF4t16lFjNAn0khkeQexoCxqlKk20jAOh5Z
-	3FXnJc/w+W/aHe8VwOhDWyYQlwq2ziIThwloozu1G1am3J/+FA4JrhkVlv382NxA
-	OLKtCAKtzSbyQfVzIG1J+C+7UP4aLUuKtIeM+0s/AdlXgqDkeRlkd44mZXcj+fa3
-	w3JdHa4D+s/qlnJKWqICmb+3+32uBHUCjfdPoY02ErP23mAM8KZErJQaJiORqdAK
-	1b4FEirgnOfR6NSecGlLA==
-X-ME-Sender: <xms:QmOraWsyLvlZyKLelmZchVJg1xBgRira818lH5Wjars5zRp85n6CQw>
-    <xme:QmOraWRtKrrRDmlCNZGOpBg7hN286NecEsEM-hXsK-CEU4Kvci-J_B3E_EW-_GbjF
-    PGKco_Wq02UUw_hQh5BDkaiv8zqs7AnWCU8vkT9nPcakQV0ANylFxQ>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgddvjedtiedvucetufdoteggodetrf
-    dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
-    rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
-    gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrnhgu
-    uceuvghrghhmrghnnhdfuceorghrnhgusegrrhhnuggsrdguvgeqnecuggftrfgrthhtvg
-    hrnhephfdthfdvtdefhedukeetgefggffhjeeggeetfefggfevudegudevledvkefhvdei
-    necuvehluhhsthgvrhfuihiivgeptdenucfrrghrrghmpehmrghilhhfrhhomheprghrnh
-    gusegrrhhnuggsrdguvgdpnhgspghrtghpthhtohepfeefpdhmohguvgepshhmthhpohhu
-    thdprhgtphhtthhopehmphgvsegvlhhlvghrmhgrnhdrihgurdgruhdprhgtphhtthhope
-    gumhhithhrhidrkhgrshgrthhkihhnsehgmhgrihhlrdgtohhmpdhrtghpthhtohepnhhi
-    tghkrdguvghsrghulhhnihgvrhhsodhlkhhmlhesghhmrghilhdrtghomhdprhgtphhtth
-    hopehnphhighhgihhnsehgmhgrihhlrdgtohhmpdhrtghpthhtohepjhhushhtihhnshht
-    ihhtthesghhoohhglhgvrdgtohhmpdhrtghpthhtohepmhhorhgsohesghhoohhglhgvrd
-    gtohhmpdhrtghpthhtohepshgvrhhgvgeshhgrlhhlhihnrdgtohhmpdhrtghpthhtohep
-    rhhosggvrhhtohdrshgrshhsuheshhhurgifvghirdgtohhmpdhrtghpthhtoheprghrug
-    gssehkvghrnhgvlhdrohhrgh
-X-ME-Proxy: <xmx:QmOraRrSb10jiymrzAb9WoZsi2Tz-RWq3EgTbOMgthiE6ddf2js5fg>
-    <xmx:QmOraV59nHhEl8HgbMxhoT5o00wgqHOBxJi98jSFMQacjFhPKo6bVA>
-    <xmx:QmOraeTzKignEiBCyYkH7DDUy6V7Tt_Ly1cVrUvLgxoPLAb5URLvJA>
-    <xmx:QmOraV22SWxKf9dNjfi4R5SgY50umdOU57z7mmavyGXn0CHg06wlMA>
-    <xmx:RGOraemTV6W3wcgRW43rhHE9NEY71V2JSNopp6mLKexfMh9JtslQFcRw>
-Feedback-ID: i56a14606:Fastmail
-Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 629A3700065; Fri,  6 Mar 2026 18:29:06 -0500 (EST)
-X-Mailer: MessagingEngine.com Webmail Interface
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="kgt6ldFM"
+Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-2ad21f437eeso72178595ad.0
+        for <linux-arch@vger.kernel.org>; Sat, 07 Mar 2026 01:22:01 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1772875321; x=1773480121; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=tUDMCyWm+/oO4Lw6ZRAVy2JWY6tSsMFprlNQtLkw/dA=;
+        b=kgt6ldFMYULVx5+5bu6MZIbDIyDaCIjvPI6rC0SXvjp05eKLDFynbSMCUjTDZkM1No
+         so7X2gK2CWzyDcRguI4rhZ9vavaANfab2q8ZAQ03RzHAJL8xlZ8HpxHzGQLTBb5+7Rx3
+         acD5ZSCvws84Kefls3WN6PE5EHpsK04fVNph3/oywm789faIfNLCWlRBplOYk/g2sK76
+         PK8cupfWwToxdZ8Fc22dCwdIafVkMJyGNLb7RJQ6WmjTwx1oAPQRg7FMh73PPOQNwrOF
+         3+LFBhWoxgA1b8exQv1YDeg6QAOxJmF1dU7ZpdmEircSMf1zIOwRWAGtefqmtXZZYQfo
+         yOCg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772875321; x=1773480121;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=tUDMCyWm+/oO4Lw6ZRAVy2JWY6tSsMFprlNQtLkw/dA=;
+        b=Epeu5rwZAohxgU4235uQZs9FU5Virk+Kpyc08VG6OOomeM5RFd1B6oDMzc134w54VW
+         O1ke5sbGvpmZmQRMFiaE0WK4tPusrTVzDKKv8IOR4G1Cl4IWoyBf436ZrlqAYIlo63/i
+         qnspbEpZ78topvfrwbEP/HmX3MQSNOsHY1W8k9ilGXYGQk+Xj+o+qyemVuDs9O0O5DJn
+         4wzJlgkGsg50TFP63beNwhl82LiQKyPE+8Fr4IYjlqzx85apPEqnO1I6HdorGmamhqhn
+         byTB636Pey7fg6KZp5aQVpTJILk97tQ6/pYNS1+P3+agfV6Xj5+r2sx9yxeWPa6dvpHQ
+         PcrA==
+X-Forwarded-Encrypted: i=1; AJvYcCVrO8D/bQfFKrQ7OGZlMn+fkxD4sHkh4SQAqVeiR548y6zuDVhRHbYS+gIiRSrRf1WwmyPuyciJeJjE@vger.kernel.org
+X-Gm-Message-State: AOJu0YyDild+UK7F1M110FT5fU1o71TQjxlOQgwzYi4mQLlnZ1x42YtS
+	7swUuMTBltAaEVVHBK8szNlmWgWVSUdRhjvB9qKAk6VXb8fBV2PPfBVHoppABA==
+X-Gm-Gg: ATEYQzxWfAvPoLo6SlCswqkKw/+w8mqrCjxHHAlWOS0BeZlRbM5CdnN0QutBJW748m1
+	AIdXOA6MWLGIv81Lu0jyWfb2l6ZdqU4T5L51RHZCZMX2zeyRyIcMauS0BXoXLB11b/r6kr9vQKU
+	Ngfcn2OstBLbz5exOJ95lNaroxUic3TN7wutKouL/sQbRPFnqq4YsidzifHzvw5DBVOyGLeNc6m
+	3UX2n9TROquSHdp9fydoLiADMI9I8I9ZI9QY89zdsvh8CNHp3aiGbcxA9VPNyyaZlpTFcAIDfjT
+	rP4AJsH4UNGKp2eLv02PM/CwLTB9+szqZVgyIPPV8RYOyaBnVWAapMMfU9rx2oPcL16BKtbWgUg
+	n3H28hueXcqsREM4DU88Tqk9YcRanvubbhc0/l8sgWfHMAg/dNIVGkl0U+mAZu4q0Aj/uBaTRoC
+	6VQL13R6kNki0+OKLg5gwHwlkweU8WtBSQa+k3TvfXuUV/Ro2sFvLSeD3r4RMdGCITE8TZ9BS68
+	o++BnaK219TbA==
+X-Received: by 2002:a17:902:e541:b0:2ae:5c39:89c9 with SMTP id d9443c01a7336-2ae82a2598bmr47067115ad.24.1772875320536;
+        Sat, 07 Mar 2026 01:22:00 -0800 (PST)
+Received: from localhost.localdomain (123-194-188-82.dynamic.kbronet.com.tw. [123.194.188.82])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ae840c9967sm57525115ad.90.2026.03.07.01.21.58
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Sat, 07 Mar 2026 01:22:00 -0800 (PST)
+From: Min-Hsun Chang <chmh0624@gmail.com>
+To: arnd@arndb.de
+Cc: msalter@redhat.com,
+	akpm@linux-foundation.org,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-kernel@vger.kernel.org,
+	Min-Hsun Chang <chmh0624@gmail.com>
+Subject: [PATCH] asm-generic: replace ________addr with __UNIQUE_ID(addr)
+Date: Sat,  7 Mar 2026 17:21:19 +0800
+Message-ID: <20260307092119.20733-1-chmh0624@gmail.com>
+X-Mailer: git-send-email 2.50.1
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: AYSH_HmCkp7N
-Date: Sat, 07 Mar 2026 00:28:27 +0100
-From: "Arnd Bergmann" <arnd@arndb.de>
-To: "Nathan Chancellor" <nathan@kernel.org>, "Arnd Bergmann" <arnd@kernel.org>
-Cc: "Madhavan Srinivasan" <maddy@linux.ibm.com>,
- "Michael Ellerman" <mpe@ellerman.id.au>,
- "Heiko Carstens" <hca@linux.ibm.com>,
- "Vasily Gorbik" <gor@linux.ibm.com>,
- "Alexander Gordeev" <agordeev@linux.ibm.com>,
- "Mimi Zohar" <zohar@linux.ibm.com>,
- "Roberto Sassu" <roberto.sassu@huawei.com>,
- "Dmitry Kasatkin" <dmitry.kasatkin@gmail.com>,
- "Paul Moore" <paul@paul-moore.com>, "James Morris" <jmorris@namei.org>,
- "Serge E. Hallyn" <serge@hallyn.com>,
- "Jarkko Sakkinen" <jarkko@kernel.org>,
- "Ard Biesheuvel" <ardb@kernel.org>, "Coiby Xu" <coxu@redhat.com>,
- "Nicholas Piggin" <npiggin@gmail.com>,
- "Christophe Leroy" <chleroy@kernel.org>,
- "Christian Borntraeger" <borntraeger@linux.ibm.com>,
- "Sven Schnelle" <svens@linux.ibm.com>,
- "Eric Snowberg" <eric.snowberg@oracle.com>,
- "Nick Desaulniers" <nick.desaulniers+lkml@gmail.com>,
- "Bill Wendling" <morbo@google.com>,
- "Justin Stitt" <justinstitt@google.com>,
- "Andrew Donnellan" <ajd@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org,
- linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
- Linux-Arch <linux-arch@vger.kernel.org>, linux-integrity@vger.kernel.org,
- linux-security-module@vger.kernel.org, keyrings@vger.kernel.org,
- llvm@lists.linux.dev
-Message-Id: <e16f0912-c928-4f25-94f8-18b260416ce3@app.fastmail.com>
-In-Reply-To: <20260306225648.GC2746259@ax162>
-References: <20260306150421.270124-1-arnd@kernel.org>
- <20260306225648.GC2746259@ax162>
-Subject: Re: [PATCH] integrity: avoid using __weak functions
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On Fri, Mar 6, 2026, at 23:56, Nathan Chancellor wrote:
-> On Fri, Mar 06, 2026 at 04:03:24PM +0100, Arnd Bergmann wrote:
->
-> Thanks, I noticed this as well. The version I came up with and have been
-> locally testing is the following, which is a little bit more compact.
->
->  arch/Kconfig                     |  3 +++
->  arch/powerpc/Kconfig             |  1 +
->  arch/s390/Kconfig                |  1 +
->  arch/s390/kernel/ipl.c           | 10 +++++-----
->  include/linux/secure_boot.h      |  4 ++++
->  security/integrity/Makefile      |  2 +-
->  security/integrity/secure_boot.c | 16 ----------------
->  7 files changed, 15 insertions(+), 22 deletions(-)
->
+The macro __set_fixmap_offset() uses a hardcoded identifier ________addr,
+which can lead to variable name shadowing if a caller happens to use the
+same name in its scope.
 
-Right, your version looks good to me as well.
+Following the pattern in commit 44238e82670e ("rcu: Replace ________p1 and
+_________p1 with __UNIQUE_ID(rcu)") and commit 589a9785ee3a ("min/max:
+remove sparse warnings when they're nested"), replace the hardcoded
+identifier with __UNIQUE_ID(addr).
 
-       Arnd
+Since __UNIQUE_ID() must be expanded once to remain consistent across
+declaration, assignment, and return within the statement expression,
+introduce a nested helper macro ___set_fixmap_offset.
+
+Signed-off-by: Min-Hsun Chang <chmh0624@gmail.com>
+---
+ include/asm-generic/fixmap.h | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index 29cab7947980..2d1e9a2c6a3b 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -16,6 +16,7 @@
+ #define __ASM_GENERIC_FIXMAP_H
+ 
+ #include <linux/bug.h>
++#include <linux/compiler.h>
+ #include <linux/mm_types.h>
+ 
+ #define __fix_to_virt(x)	(FIXADDR_TOP - ((x) << PAGE_SHIFT))
+@@ -71,14 +72,17 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+ #endif
+ 
+ /* Return a pointer with offset calculated */
+-#define __set_fixmap_offset(idx, phys, flags)				\
+-({									\
+-	unsigned long ________addr;					\
+-	__set_fixmap(idx, phys, flags);					\
+-	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
+-	________addr;							\
++#define ___set_fixmap_offset(idx, phys, flags, uniq)            \
++({                                                              \
++	unsigned long uniq;                                         \
++	__set_fixmap(idx, phys, flags);                             \
++	uniq = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));       \
++	uniq;                                                       \
+ })
+ 
++#define __set_fixmap_offset(idx, phys, flags)                   \
++	___set_fixmap_offset(idx, phys, flags, __UNIQUE_ID(addr))
++
+ #define set_fixmap_offset(idx, phys) \
+ 	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
+ 
+-- 
+2.50.1
+
