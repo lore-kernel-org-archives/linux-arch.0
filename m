@@ -1,205 +1,312 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.7])
+Received: from mx0a-001b2d01.pphosted.com (mx0a-001b2d01.pphosted.com [148.163.156.1])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A09ED30BB97;
-	Sat,  7 Mar 2026 12:44:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.7
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CBEC31F16B;
+	Mon,  9 Mar 2026 01:02:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=148.163.156.1
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772887457; cv=none; b=cqImQLKrQz8DvNDUBH5jp5agj7QipYXmaPktnXaXvSnosWtudHl1b96phEgJUEDA45KnkTWw3tILtZjILKEuxFogiw0ZvWh3g6+e2yEd32G/+eEeW2/ycf3vqQhkNTNRFALLF2tYwXYCCjumWbIm5plSjtKCC9Cee/IyZJ8N2SQ=
+	t=1773018163; cv=none; b=rxmpFdDs5XQc+pHg7felsA+PwU+GfxUAHIBqoGfPeD6r7OgnM/lZdh5L5KUN87BTUKPc1oPchKpYa/dteb7XuxXkMHfE9E0SBIHz+BWVp5cJFMA+R4hyzKjfbdZSI/SkEHLcH3LMAThCu8zsQVzmSXvmAyOaBNC0n+qSY3WcYFc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772887457; c=relaxed/simple;
-	bh=egICFilckyqhOCeUwSYsMbOVEf6BLClzIWoLFEf59Ck=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=W3tqd3DyJBjM9oH4lS+Y0I++ZIuD8Sz98l19Xp/TmBFd4k4P2uU//FR7GRxphDZFJCx/j+mE9JajfZ5dNzI9xlNKxOwfIZ7hvgbLZhVY/2B+so2ArNuoVWHPPXnkjQUTshI1UCWG28mUdbJg34leIApvKTkmJffTqNBCUGZPdCk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=CWM8JSu2; arc=none smtp.client-ip=192.198.163.7
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
+	s=arc-20240116; t=1773018163; c=relaxed/simple;
+	bh=74etvlk807ljjkZ6toEN/U0VfA3h0gxwcApl7bLvFvo=;
+	h=Message-ID:Subject:From:To:Cc:In-Reply-To:References:Content-Type:
+	 Date:MIME-Version; b=b5J0CVkGPF+4CfaSBQwKvSSo3ytfQH6369hMk5UrWf1m0H+KFv/E3NhwzLCUiGwhwRDqnNRkKYQXkbMpdhAMkHqd8EakaRRwHIoRFWNyTuV1qVRkKWUKguFMwBcOFnsIY+4lAVmnBpH+fK4MyV7ltOnKAdkaAlbrnBQdmVwJZ8Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com; spf=pass smtp.mailfrom=linux.ibm.com; dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b=qRg7p5Oh; arc=none smtp.client-ip=148.163.156.1
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.ibm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.ibm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="CWM8JSu2"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1772887454; x=1804423454;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=egICFilckyqhOCeUwSYsMbOVEf6BLClzIWoLFEf59Ck=;
-  b=CWM8JSu2qWcvmlRUR5yN8LdS1tha9tmRLbLd0H+tWDQDk66kxwDCSAxW
-   qTOYNK/wSKIVaCSCu351x90DZfjHge1z216rFEX+LV0VDqmu/YKZWvFiw
-   LWgfsHpBOdCNXgl0HaMnbevIVVjx0RVKsClK2NON6YnoPaljAxqE1gryI
-   j4ISBQ0F4jxjL4ddFqzcqw30mZxyvZEepvbTdzgjLkSIELPa0j7v7UGe1
-   ccUNsfVbAnokMmSyWi3U2xsq52LXs7LaakvBIWO7Q57P7yvVVkVOaEJ8j
-   wEuw3NDvK7CcrkXvIrUXUOFMvNwUf2LSjS4NOemHHSXtQEpp7QlWH8XsK
-   g==;
-X-CSE-ConnectionGUID: GOJsJABPR2C5FAslBJUBkQ==
-X-CSE-MsgGUID: IkHqngmJS5OWVWuoyxNT5w==
-X-IronPort-AV: E=McAfee;i="6800,10657,11721"; a="99449721"
-X-IronPort-AV: E=Sophos;i="6.23,106,1770624000"; 
-   d="scan'208";a="99449721"
-Received: from fmviesa002.fm.intel.com ([10.60.135.142])
-  by fmvoesa101.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 07 Mar 2026 04:44:14 -0800
-X-CSE-ConnectionGUID: yya9cmgLSwmCh1EtD2o9Dw==
-X-CSE-MsgGUID: +1GcB3TiTam/csmQlO5yLQ==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.23,106,1770624000"; 
-   d="scan'208";a="242289282"
-Received: from lkp-server01.sh.intel.com (HELO 058beb05654c) ([10.239.97.150])
-  by fmviesa002.fm.intel.com with ESMTP; 07 Mar 2026 04:44:12 -0800
-Received: from kbuild by 058beb05654c with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1vyr0s-000000001yz-0Sna;
-	Sat, 07 Mar 2026 12:44:10 +0000
-Date: Sat, 7 Mar 2026 20:43:25 +0800
-From: kernel test robot <lkp@intel.com>
-To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
-	academic1mathura@gmail.com, linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
-Subject: Re: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [
- mq_peek syscall] for non-destructive receive and inspection,fix minor
- issue,prepared doc.
-Message-ID: <202603072056.0e7wfE3v-lkp@intel.com>
-References: <20260306075009.83723-1-academic1mathura@gmail.com>
+	dkim=pass (2048-bit key) header.d=ibm.com header.i=@ibm.com header.b="qRg7p5Oh"
+Received: from pps.filterd (m0356517.ppops.net [127.0.0.1])
+	by mx0a-001b2d01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 628JrcRC1223472;
+	Mon, 9 Mar 2026 01:02:02 GMT
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ibm.com; h=cc
+	:content-transfer-encoding:content-type:date:from:in-reply-to
+	:message-id:mime-version:references:subject:to; s=pp1; bh=ZAx9/o
+	wdG0G6ICXDw5HgKVKEoK5USbJOvKksnS4Fpms=; b=qRg7p5Oh1tsCQ+aHqLUuGn
+	vCcGGePq9CtuDWvdb9r7Khed2e9ytRaLfOwXyW3/Jg9zXZcToOGDeM0l0nqowUOd
+	w3d/mv3o7fb24ykKQuaHxfQC3u3Al6VWdgwk8cpXRaMdWwVODCd0Z5MziawagM9C
+	6f10eiFV/OR8wFy4O5vFh/9ibHtVZhmKFkLBMJ8cepxKx8uNX+iiWJ4KU/kWbEz4
+	FsRYJc2MR0QO9LSe87nhLGCEBm4aKUSoGQK3Dc56TcOSf6aPlSmIwsalASrRMdDx
+	XzHo2vcEjEfiAugaJV+H+vXTUHayzFTFQZqMlcWZo7FlIzh/zRPYseqjdTpiyi7w
+	==
+Received: from ppma22.wdc07v.mail.ibm.com (5c.69.3da9.ip4.static.sl-reverse.com [169.61.105.92])
+	by mx0a-001b2d01.pphosted.com (PPS) with ESMTPS id 4crcyw4n0p-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Mon, 09 Mar 2026 01:02:01 +0000 (GMT)
+Received: from pps.filterd (ppma22.wdc07v.mail.ibm.com [127.0.0.1])
+	by ppma22.wdc07v.mail.ibm.com (8.18.1.2/8.18.1.2) with ESMTP id 628Kt5Me009091;
+	Mon, 9 Mar 2026 01:02:00 GMT
+Received: from smtprelay05.wdc07v.mail.ibm.com ([172.16.1.72])
+	by ppma22.wdc07v.mail.ibm.com (PPS) with ESMTPS id 4crxqy350k-1
+	(version=TLSv1.2 cipher=ECDHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Mon, 09 Mar 2026 01:02:00 +0000
+Received: from smtpav03.dal12v.mail.ibm.com (smtpav03.dal12v.mail.ibm.com [10.241.53.102])
+	by smtprelay05.wdc07v.mail.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id 62911x9X10355338
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=OK);
+	Mon, 9 Mar 2026 01:01:59 GMT
+Received: from smtpav03.dal12v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id 10D7B5805A;
+	Mon,  9 Mar 2026 01:01:59 +0000 (GMT)
+Received: from smtpav03.dal12v.mail.ibm.com (unknown [127.0.0.1])
+	by IMSVA (Postfix) with ESMTP id D67C05803F;
+	Mon,  9 Mar 2026 01:01:56 +0000 (GMT)
+Received: from li-43857255-d5e6-4659-90f1-fc5cee4750ad.ibm.com (unknown [9.61.45.230])
+	by smtpav03.dal12v.mail.ibm.com (Postfix) with ESMTP;
+	Mon,  9 Mar 2026 01:01:56 +0000 (GMT)
+Message-ID: <abb4d186d1ca76c080d5e15bcd9e0019cce3af39.camel@linux.ibm.com>
+Subject: Re: [PATCH] integrity: avoid using __weak functions
+From: Mimi Zohar <zohar@linux.ibm.com>
+To: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@kernel.org>
+Cc: Madhavan Srinivasan <maddy@linux.ibm.com>,
+        Michael Ellerman	
+ <mpe@ellerman.id.au>,
+        Heiko Carstens <hca@linux.ibm.com>,
+        Vasily Gorbik	
+ <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Arnd
+ Bergmann	 <arnd@arndb.de>,
+        Roberto Sassu <roberto.sassu@huawei.com>,
+        Dmitry
+ Kasatkin	 <dmitry.kasatkin@gmail.com>,
+        Paul Moore <paul@paul-moore.com>, James Morris	 <jmorris@namei.org>,
+        "Serge E. Hallyn" <serge@hallyn.com>,
+        Jarkko Sakkinen	 <jarkko@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
+        Coiby Xu <coxu@redhat.com>, Nicholas Piggin <npiggin@gmail.com>,
+        "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+        Christian Borntraeger	
+ <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>,
+        Eric
+ Snowberg	 <eric.snowberg@oracle.com>,
+        Nick Desaulniers
+ <nick.desaulniers+lkml@gmail.com>,
+        Bill Wendling <morbo@google.com>,
+        Justin Stitt <justinstitt@google.com>,
+        Andrew Donnellan
+ <ajd@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org,
+        linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
+        linux-arch@vger.kernel.org, linux-integrity@vger.kernel.org,
+        linux-security-module@vger.kernel.org, keyrings@vger.kernel.org,
+        llvm@lists.linux.dev
+In-Reply-To: <20260306225648.GC2746259@ax162>
+References: <20260306150421.270124-1-arnd@kernel.org>
+	 <20260306225648.GC2746259@ax162>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Date: Sun, 08 Mar 2026 21:01:58 -0400
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260306075009.83723-1-academic1mathura@gmail.com>
+User-Agent: Evolution 3.56.2 (3.56.2-2.fc42) 
+X-TM-AS-GCONF: 00
+X-Proofpoint-Reinject: loops=2 maxloops=12
+X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMzA5MDAwNyBTYWx0ZWRfX3/6s09a465jV
+ X5RMKcSgniR/weZ24VJoZk55Xtm/lAiCEumDwtMkgbw7l8qHW3aABWu1Ii6bpWYnZo+KZZQR+Ir
+ okBtoUHeLT0gp/D7Ttg4TSGALsBlB7VOPMHgSYsUfOLPhRllx72g3i+0cmD9abPmSeIleww4M4Z
+ tKuCL8UVJsQD2+0Wwsl2OTwxYSh41iyVrH4F/mCC5TNaJmjxx0Q0/KI7rjoHptb4hdvfPQ8YKwL
+ OD51zYKKm6IrMEIis519AD+VSszUibhD+rMGOMxui5yRpF6YPFtx6RbBRIYenbMKSLR1g0f24Od
+ QErYubUT6O76OSER0WRppUfj27l/9I103kzAywGBTXI3AJ4KIC96ExFlDz1vm1HehllIaTDs/RE
+ XlwpDC+RELOtoHv7PQcAGDrNA/jxyeL83oMycA/ABD0hCuKzBWvO2FlBr1Sx3o/stlk/k90+Y9w
+ Dh8CBsJhgwnIYmMUp5g==
+X-Authority-Analysis: v=2.4 cv=QaVrf8bv c=1 sm=1 tr=0 ts=69ae1c0a cx=c_pps
+ a=5BHTudwdYE3Te8bg5FgnPg==:117 a=5BHTudwdYE3Te8bg5FgnPg==:17
+ a=IkcTkHD0fZMA:10 a=Yq5XynenixoA:10 a=VkNPw1HP01LnGYTKEx00:22
+ a=RnoormkPH1_aCDwRdu11:22 a=U7nrCbtTmkRpXpFmAIza:22 a=20KFwNOVAAAA:8
+ a=i7x0JOCGzW7_FyAnX44A:9 a=QEXdDO2ut3YA:10
+X-Proofpoint-GUID: uteMIeVtaIqwHYQJDjZ7cWbjdPsRQTqb
+X-Proofpoint-ORIG-GUID: a4u9xCS4h4_FS-qJnm-SFm-cF9zF4d1h
+X-Proofpoint-Virus-Version: vendor=baseguard
+ engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
+ definitions=2026-03-08_07,2026-03-06_02,2025-10-01_01
+X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
+ malwarescore=0 spamscore=0 impostorscore=0 clxscore=1011 adultscore=0
+ bulkscore=0 lowpriorityscore=0 priorityscore=1501 suspectscore=0 phishscore=0
+ classifier=typeunknown authscore=0 authtc= authcc= route=outbound adjust=0
+ reason=mlx scancount=1 engine=8.22.0-2602130000 definitions=main-2603090007
 
-Hi Mathura_Kumar,
+On Fri, 2026-03-06 at 15:56 -0700, Nathan Chancellor wrote:
+> On Fri, Mar 06, 2026 at 04:03:24PM +0100, Arnd Bergmann wrote:
+> > From: Arnd Bergmann <arnd@arndb.de>
+> >=20
+> > The security/integrity/secure_boot.c file containing only a __weak func=
+tion
+> > leads to a build failure with clang:
+> >=20
+> > Cannot find symbol for section 2: .text.
+> > security/integrity/secure_boot.o: failed
+> >=20
+> > Moving the function into another file that has at least one non-__weak
+> > symbol would solve this, but this is always fragile.
+> >=20
+> > Avoid __weak definitions entirely and instead move the stub helper into
+> > an asm-generic header that gets used by default on architectures that
+> > do not provide their own version. This is consistent with how a lot
+> > of other architecture specific functionality works, and is more reliabl=
+e.
+> >=20
+> > Fixes: a0f87ede3bf4 ("integrity: Make arch_ima_get_secureboot integrity=
+-wide")
+> > Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> > ---
+> > This is a larger change than I had hoped for.
+> >=20
+> > If you prefer a different way to address the build failure, please
+> > treat this as a Reported-by when you apply your own fix
+> > ---
+> >  arch/powerpc/include/asm/secure_boot.h        |  6 +++
+> >  arch/powerpc/kernel/secure_boot.c             |  1 -
+> >  arch/s390/include/asm/secure_boot.h           |  9 +++++
+> >  include/asm-generic/Kbuild                    |  1 +
+> >  include/asm-generic/secure_boot.h             | 37 +++++++++++++++++++
+> >  include/linux/secure_boot.h                   |  8 +---
+> >  security/integrity/Makefile                   |  2 +-
+> >  .../integrity/platform_certs/load_powerpc.c   |  2 +-
+> >  security/integrity/secure_boot.c              | 16 --------
+> >  9 files changed, 56 insertions(+), 26 deletions(-)
+> >  create mode 100644 arch/s390/include/asm/secure_boot.h
+> >  create mode 100644 include/asm-generic/secure_boot.h
+> >  delete mode 100644 security/integrity/secure_boot.c
+>=20
+> Thanks, I noticed this as well. The version I came up with and have been
+> locally testing is the following, which is a little bit more compact.
 
-kernel test robot noticed the following build errors:
+Thanks Arnd, Nathan. LGTM.  Nathan, could you send a patch with a proper pa=
+tch
+description.
 
-[auto build test ERROR on shuah-kselftest/next]
-[also build test ERROR on shuah-kselftest/fixes brauner-vfs/vfs.all linus/master v7.0-rc2 next-20260306]
-[cannot apply to tip/x86/asm]
-[If your patch is applied to the wrong git tree, kindly drop us a note.
-And when submitting patch, we suggest to use '--base' as documented in
-https://git-scm.com/docs/git-format-patch#_base_tree_information]
+Mimi
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Mathura_Kumar/mqueue-introduce-new-do_mq_timedreceive2-mq_peek-syscall-for-non-destructive-receive-and-inspection-fix-minor-issue-prep/20260306-155240
-base:   https://git.kernel.org/pub/scm/linux/kernel/git/shuah/linux-kselftest.git next
-patch link:    https://lore.kernel.org/r/20260306075009.83723-1-academic1mathura%40gmail.com
-patch subject: [PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [ mq_peek syscall] for non-destructive receive and inspection,fix minor issue,prepared doc.
-config: x86_64-kexec (https://download.01.org/0day-ci/archive/20260307/202603072056.0e7wfE3v-lkp@intel.com/config)
-compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260307/202603072056.0e7wfE3v-lkp@intel.com/reproduce)
-
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202603072056.0e7wfE3v-lkp@intel.com/
-
-All errors (new ones prefixed by >>):
-
-   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
-    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                        ^
-   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
-   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
->> ipc/mqueue.c:1747:1: error: incompatible pointer types passing 'struct compat_mq_timedreceive2_args *' to parameter of type 'struct compat_mq_timedreceive2_args *' [-Werror,-Wincompatible-pointer-types]
-    1747 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    1749 |                 unsigned int, flags, const unsigned long, index,
-         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    1750 |                 const struct old_timespec32 __user *, u_abs_timeout)
-         |                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:230:36: note: expanded from macro 'SYSCALL_DEFINE5'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   include/linux/syscalls.h:237:2: note: expanded from macro 'SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   arch/x86/include/asm/syscall_wrapper.h:230:37: note: expanded from macro '__SYSCALL_DEFINEx'
-     230 |                 long ret = __do_sys##name(__MAP(x,__SC_CAST,__VA_ARGS__));\
-         |                                           ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
-   note: (skipping 1 expansions in backtrace; use -fmacro-backtrace-limit=0 to see all)
-   include/linux/syscalls.h:123:42: note: expanded from macro '__MAP5'
-     123 | #define __MAP5(m,t,a,...) m(t,a), __MAP4(m,__VA_ARGS__)
-         |                                   ~~~~~~~^~~~~~~~~~~~~~
-   include/linux/syscalls.h:122:27: note: expanded from macro '__MAP4'
-     122 | #define __MAP4(m,t,a,...) m(t,a), __MAP3(m,__VA_ARGS__)
-         |                           ^~~~~~
-   include/linux/syscalls.h:133:25: note: expanded from macro '__SC_CAST'
-     133 | #define __SC_CAST(t, a) (__force t) a
-         |                         ^~~~~~~~~~~~~
-   ipc/mqueue.c:1748:49: note: passing argument to parameter 'uargs' here
-    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                                                               ^
-   ipc/mqueue.c:1748:10: warning: declaration of 'struct compat_mq_timedreceive2_args' will not be visible outside of this function [-Wvisibility]
-    1748 |                 struct compat_mq_timedreceive2_args __user *, uargs,
-         |                        ^
->> ipc/mqueue.c:1747:1: error: conflicting types for '__do_sys_mq_timedreceive2_time32'
-    1747 | SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-         | ^
-   include/linux/syscalls.h:230:36: note: expanded from macro 'SYSCALL_DEFINE5'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^
-   include/linux/syscalls.h:237:2: note: expanded from macro 'SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^
-   arch/x86/include/asm/syscall_wrapper.h:235:21: note: expanded from macro '__SYSCALL_DEFINEx'
-     235 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))
-         |                            ^
-   <scratch space>:71:1: note: expanded from here
-      71 | __do_sys_mq_timedreceive2_time32
-         | ^
-   ipc/mqueue.c:1747:1: note: previous declaration is here
-   include/linux/syscalls.h:230:36: note: expanded from macro 'SYSCALL_DEFINE5'
-     230 | #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
-         |                                    ^
-   include/linux/syscalls.h:237:2: note: expanded from macro 'SYSCALL_DEFINEx'
-     237 |         __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)
-         |         ^
-   arch/x86/include/asm/syscall_wrapper.h:225:21: note: expanded from macro '__SYSCALL_DEFINEx'
-     225 |         static inline long __do_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));\
-         |                            ^
-   <scratch space>:44:1: note: expanded from here
-      44 | __do_sys_mq_timedreceive2_time32
-         | ^
->> ipc/mqueue.c:1756:6: error: call to undeclared function 'get_compat_mq_args'; ISO C99 and later do not support implicit function declarations [-Wimplicit-function-declaration]
-    1756 |         if (get_compat_mq_args(pargs, uargs))
-         |             ^
-   ipc/mqueue.c:1756:6: note: did you mean 'get_compat_msghdr'?
-   include/net/compat.h:51:5: note: 'get_compat_msghdr' declared here
-      51 | int get_compat_msghdr(struct msghdr *, struct compat_msghdr __user *,
-         |     ^
-   4 warnings and 3 errors generated.
-
-
-vim +1747 ipc/mqueue.c
-
-  1746	
-> 1747	SYSCALL_DEFINE5(mq_timedreceive2_time32, mqd_t, mqdes,
-> 1748			struct compat_mq_timedreceive2_args __user *, uargs,
-  1749			unsigned int, flags, const unsigned long, index,
-  1750			const struct old_timespec32 __user *, u_abs_timeout)
-  1751	{
-  1752		struct mq_timedreceive2_args args, *pargs = NULL;
-  1753	
-  1754		pargs = &args;
-  1755	
-> 1756		if (get_compat_mq_args(pargs, uargs))
-  1757			return -EFAULT;
-  1758	
-  1759		struct timespec64 ts, *p = NULL;
-  1760	
-  1761		if (u_abs_timeout) {
-  1762			int res = compat_prepare_timeout(u_abs_timeout, &ts);
-  1763			
-  1764			if (res)
-  1765				return res;
-  1766			p = &ts;
-  1767		}
-  1768		return do_mq_timedreceive2(mqdes, pargs, flags, index, p);
-  1769	}
-  1770	#endif
-  1771	
-
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+>=20
+>  arch/Kconfig                     |  3 +++
+>  arch/powerpc/Kconfig             |  1 +
+>  arch/s390/Kconfig                |  1 +
+>  arch/s390/kernel/ipl.c           | 10 +++++-----
+>  include/linux/secure_boot.h      |  4 ++++
+>  security/integrity/Makefile      |  2 +-
+>  security/integrity/secure_boot.c | 16 ----------------
+>  7 files changed, 15 insertions(+), 22 deletions(-)
+>=20
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 102ddbd4298e..a6d1c8cc1d64 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -1841,4 +1841,7 @@ config ARCH_WANTS_PRE_LINK_VMLINUX
+>  config ARCH_HAS_CPU_ATTACK_VECTORS
+>  	bool
+> =20
+> +config HAVE_ARCH_GET_SECUREBOOT
+> +	def_bool EFI
+> +
+>  endmenu
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index c28776660246..e76d6cf0c403 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -1062,6 +1062,7 @@ config PPC_SECURE_BOOT
+>  	depends on IMA_ARCH_POLICY
+>  	imply IMA_SECURE_AND_OR_TRUSTED_BOOT
+>  	select PSERIES_PLPKS if PPC_PSERIES
+> +	select HAVE_ARCH_GET_SECUREBOOT
+>  	help
+>  	  Systems with firmware secure boot enabled need to define security
+>  	  policies to extend secure boot to the OS. This config allows a user
+> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> index 24695ea29d5b..76f191dd208b 100644
+> --- a/arch/s390/Kconfig
+> +++ b/arch/s390/Kconfig
+> @@ -181,6 +181,7 @@ config S390
+>  	select GENERIC_IOREMAP if PCI
+>  	select HAVE_ALIGNED_STRUCT_PAGE
+>  	select HAVE_ARCH_AUDITSYSCALL
+> +	select HAVE_ARCH_GET_SECUREBOOT
+>  	select HAVE_ARCH_JUMP_LABEL
+>  	select HAVE_ARCH_JUMP_LABEL_RELATIVE
+>  	select HAVE_ARCH_KASAN
+> diff --git a/arch/s390/kernel/ipl.c b/arch/s390/kernel/ipl.c
+> index 2d01a1713938..3c346b02ceb9 100644
+> --- a/arch/s390/kernel/ipl.c
+> +++ b/arch/s390/kernel/ipl.c
+> @@ -2388,6 +2388,11 @@ void __no_stack_protector s390_reset_system(void)
+>  	diag_amode31_ops.diag308_reset();
+>  }
+> =20
+> +bool arch_get_secureboot(void)
+> +{
+> +	return ipl_secure_flag;
+> +}
+> +
+>  #ifdef CONFIG_KEXEC_FILE
+> =20
+>  int ipl_report_add_component(struct ipl_report *report, struct kexec_buf=
+ *kbuf,
+> @@ -2505,11 +2510,6 @@ void *ipl_report_finish(struct ipl_report *report)
+>  	return buf;
+>  }
+> =20
+> -bool arch_get_secureboot(void)
+> -{
+> -	return ipl_secure_flag;
+> -}
+> -
+>  int ipl_report_free(struct ipl_report *report)
+>  {
+>  	struct ipl_report_component *comp, *ncomp;
+> diff --git a/include/linux/secure_boot.h b/include/linux/secure_boot.h
+> index 3ded3f03655c..d17e92351567 100644
+> --- a/include/linux/secure_boot.h
+> +++ b/include/linux/secure_boot.h
+> @@ -10,10 +10,14 @@
+> =20
+>  #include <linux/types.h>
+> =20
+> +#ifdef CONFIG_HAVE_ARCH_GET_SECUREBOOT
+>  /*
+>   * Returns true if the platform secure boot is enabled.
+>   * Returns false if disabled or not supported.
+>   */
+>  bool arch_get_secureboot(void);
+> +#else
+> +static inline bool arch_get_secureboot(void) { return false; }
+> +#endif
+> =20
+>  #endif /* _LINUX_SECURE_BOOT_H */
+> diff --git a/security/integrity/Makefile b/security/integrity/Makefile
+> index 548665e2b702..45dfdedbdad4 100644
+> --- a/security/integrity/Makefile
+> +++ b/security/integrity/Makefile
+> @@ -5,7 +5,7 @@
+> =20
+>  obj-$(CONFIG_INTEGRITY) +=3D integrity.o
+> =20
+> -integrity-y :=3D iint.o secure_boot.o
+> +integrity-y :=3D iint.o
+>  integrity-$(CONFIG_INTEGRITY_AUDIT) +=3D integrity_audit.o
+>  integrity-$(CONFIG_INTEGRITY_SIGNATURE) +=3D digsig.o
+>  integrity-$(CONFIG_INTEGRITY_ASYMMETRIC_KEYS) +=3D digsig_asymmetric.o
+> diff --git a/security/integrity/secure_boot.c b/security/integrity/secure=
+_boot.c
+> deleted file mode 100644
+> index fc2693c286f8..000000000000
+> --- a/security/integrity/secure_boot.c
+> +++ /dev/null
+> @@ -1,16 +0,0 @@
+> -// SPDX-License-Identifier: GPL-2.0-only
+> -/*
+> - * Copyright (C) 2026 Red Hat, Inc. All Rights Reserved.
+> - *
+> - * Author: Coiby Xu <coxu@redhat.com>
+> - */
+> -#include <linux/secure_boot.h>
+> -
+> -/*
+> - * Default weak implementation.
+> - * Architectures that support secure boot must override this.
+> - */
+> -__weak bool arch_get_secureboot(void)
+> -{
+> -	return false;
+> -}
