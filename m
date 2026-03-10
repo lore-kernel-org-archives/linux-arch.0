@@ -1,32 +1,32 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CE9D279DCA;
-	Tue, 10 Mar 2026 21:11:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 297A43B0AE5;
+	Tue, 10 Mar 2026 21:12:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773177102; cv=none; b=X+m2/SOnTEkNTLQXpie88OMYdAdX04i34k14v7xpxdgvqs5joVY8o5rQkMJcAmAbGMPwJQXKtM4NPh/Zb1Ob6ufXuoVQ+/eP8/44xT8idjH2uLb8hAkMXUJNgB3XYCoWazQSlNMxSSklOTCSTvzQCyKHqnyRPDtYELGeUT4lxnE=
+	t=1773177129; cv=none; b=D4OO6mx9lcpwIwYxNcplB9kw6+KFqUm0yR++CLBONbAqOLNaseKRp3x8cGsvQI0BTJfOwUYI/sA3w50CDU+zEoeDDCZV7WazexIRwvpEEB3SIIje9XR7pOPuUaQHdqQz4c4OHi+3gCQQ/GI+/ENz6DvUFNbLT1GzwKXRPVnmgss=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773177102; c=relaxed/simple;
-	bh=u9D4qSIhsqbHAEaJC+KfjGBC0/+qWnDd2jVHhVc12Po=;
+	s=arc-20240116; t=1773177129; c=relaxed/simple;
+	bh=I0hRXA8vzphZyPkmaTEi2UnR4I9riSViZx4ZP8KHRbY=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Qx2rFt3b+90O5lV8X381fLwte3nxWA/TApYzWWWiRPu5LSijmYotmW4AaGidLOJWEcM+t1/kXhR2N3Xlg3Ufm1+lzkNR1837S8pECgflZ76gQ3ZWpOYGhvve0HUMz/QakeW3E6iUItz/J55I9pH2KyqPiCztMFbmewI5yieKqGg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=VH0SHwW2; arc=none smtp.client-ip=10.30.226.201
+	 Content-Type:Content-Disposition:In-Reply-To; b=TRuK3iwgcc02saHxWB1zAgdy0skPKVkQ6mjqh8aDqzZEAhQBOHCk8WJSuXswtebUwnYDHjoNQJ7FkAeulqRe95oOR/5vqHYctgO9azZu67IT2Ik0zWvSNWRaLdylqRmKamKM8h009qloNKDcuG6OXabAFtnFqfz8jFF8rtRmxlU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=R7fKUptr; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="VH0SHwW2"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DD220C19423;
-	Tue, 10 Mar 2026 21:11:40 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="R7fKUptr"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3BE8FC19423;
+	Tue, 10 Mar 2026 21:12:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1773177102;
-	bh=u9D4qSIhsqbHAEaJC+KfjGBC0/+qWnDd2jVHhVc12Po=;
+	s=k20201202; t=1773177128;
+	bh=I0hRXA8vzphZyPkmaTEi2UnR4I9riSViZx4ZP8KHRbY=;
 	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=VH0SHwW2EakhuoAOlXnHVG/DOFMds3YD5l8iS+OsAyWWfAno1uHNcQOkOsZg89/vB
-	 sz5gNWAqBUEneU4LKkjUrzRVARqs1112fvzBRDiOMYdvrEyNWjGXJ6Bvwdq/acoFSA
-	 U6+LmcJGgJFC49mosiJc7sTvP3V+uiVO16/Txt+eHELFQICkwZm983kOdwv6Q1QWkP
-	 y1OsGkdoUhwWPrrrb49qHzB2wtjJR3fPEyAnzxNnHFX3G+dAbwuLypQ1jQusvNgUwh
-	 hDA7v1J8dkw8hcBMyAzbwpeQZyNRNVBZWNOw+MGNxQJA/oBWuskHTU40OJv/9zXKlJ
-	 g19Oq0oWIxXSg==
-Date: Tue, 10 Mar 2026 14:11:39 -0700
+	b=R7fKUptrVOBNk+lqoq2TGcmqzyyjfveB/G4PfGYInXiYCctySVHzOBa/UUoB33G61
+	 MmJGLpJ+mo49MHhJD6aD1XApq+fSFdW/dHzoHTjOMiz6fetsczx/N6BP3wKmhjYRuT
+	 drpMGbJM9ukEMtNJyyFHtTD1ePlkUiafmvvtZN8JT6pAdwRYXD3+cTaqX/42GtCJ1E
+	 MMafX+lc4Ql0IAOp4t5FyN5fUaWaw2pCHhQjKDELAQ8Pik3Iut0hg+Bx85zMaVSQmQ
+	 vMGEHIo5jDcg8mMPiODtqCIvJhPlv0kMQVWgJKmRw9pF1k6OP3TUMj8/1LakJ/MrPO
+	 UqlCpZx+AHtog==
+Date: Tue, 10 Mar 2026 14:12:05 -0700
 From: Eric Biggers <ebiggers@kernel.org>
 To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
 Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
@@ -61,11 +61,10 @@ Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
 	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
 	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
 	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
-Subject: Re: [PATCH v4 03/17] ima: efi: Drop unnecessary check for
- CONFIG_MODULE_SIG/CONFIG_KEXEC_SIG
-Message-ID: <20260310211139.GB120274@quark>
+Subject: Re: [PATCH v4 04/17] module: Make mod_verify_sig() static
+Message-ID: <20260310211205.GC120274@quark>
 References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
- <20260113-module-hashes-v4-3-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-4-0b932db9b56b@weissschuh.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -75,18 +74,16 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
-In-Reply-To: <20260113-module-hashes-v4-3-0b932db9b56b@weissschuh.net>
+In-Reply-To: <20260113-module-hashes-v4-4-0b932db9b56b@weissschuh.net>
 
-On Tue, Jan 13, 2026 at 01:28:47PM +0100, Thomas Weiﬂschuh wrote:
-> When configuration settings are disabled the guarded functions are
-> defined as empty stubs, so the check is unnecessary.
-> The specific configuration option for set_module_sig_enforced() is
-> about to change and removing the checks avoids some later churn.
+On Tue, Jan 13, 2026 at 01:28:48PM +0100, Thomas Weiﬂschuh wrote:
+> It is not used outside of signing.c.
 > 
 > Signed-off-by: Thomas Weiﬂschuh <linux@weissschuh.net>
 > ---
->  security/integrity/ima/ima_efi.c | 6 ++----
->  1 file changed, 2 insertions(+), 4 deletions(-)
+>  kernel/module/internal.h | 1 -
+>  kernel/module/signing.c  | 2 +-
+>  2 files changed, 1 insertion(+), 2 deletions(-)
 
 Reviewed-by: Eric Biggers <ebiggers@kernel.org>
 
