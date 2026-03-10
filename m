@@ -1,65 +1,67 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from verein.lst.de (verein.lst.de [213.95.11.211])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0987E349AF5;
-	Mon,  9 Mar 2026 21:29:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E46953D6689;
+	Tue, 10 Mar 2026 06:58:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773091796; cv=none; b=kMTzCLSS1YERiKKiEqrwSHTMV5zWoLk/wWCIxXIDgIGf1zDTO/fE5bl70TvrhR2ZYiZhtxF1AIqgM4Kfrtye+eR6l6VvyLjthc0NWhnmAdcu/W+jKfko2wd9C/KCAWpp7sAJG24HqqhJbYUlSwUHahZSavTP91WrnH2caR241lI=
+	t=1773125936; cv=none; b=W5D04D/I/17SOGRKMWDqqB+kse9d2gGSXABrspb5tNtau9Xdnu9wQxOVfIxfbDmnSVvwX+5+/7STnRRisjRV8bb/5RHOajylmpEf836BX5YZeNe+6uZShZtH273pp6qOPWIH6Jl6l8o8W7ahaOU0zXAdRjZ7K6k59YHGLPvkh2w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773091796; c=relaxed/simple;
-	bh=dlZ+cYzjAVo9R0VWTOYYhJLvWL2hlTOrad+GmSBnVSA=;
+	s=arc-20240116; t=1773125936; c=relaxed/simple;
+	bh=TWEzqV1T6nOJN1sLUnuVvgCbRiWOhKncO+7Ywdr8dcg=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=mvXSACyh/DZgG4trOa12WobSyRtkwz8WeOprMW4UCYQkzQSC9IT+74IMFXByhsRrNjuyK++OUzw5hqr1WjX02ebZsQsjpov7f4mxV7ZSUCC0KWOyFdH4q9s+g36+QXV8mf3zqsJs6eLg/obwBFf5/ovJDPjWFK37jcTXIp+IxIA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=f3/uicOT; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="f3/uicOT"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E6059C4CEF7;
-	Mon,  9 Mar 2026 21:29:49 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1773091795;
-	bh=dlZ+cYzjAVo9R0VWTOYYhJLvWL2hlTOrad+GmSBnVSA=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=f3/uicOTsDKsMaKy7R9/QUtYshUxWJBEDQwtzxfFYZSOYp7emjBBTyp8sACuA41ZA
-	 uFsGingtwi4ZiWmLejlxSqNUNkNjw0whzlDh+lCbwMs55wI53/YT1Ff55j5rftp6o8
-	 oOrwNy0ee74jJWtZQbwM9TrIfiZrkgU3VAO6WCMPwrogviRRnIDsz2jXaiwdXTArip
-	 BUHMPgdDsJNuVgfrO91jO0Ue3qKjSl2/hysZ/hpLXypw3NvAf6W0ThbXJWgjEE6KbB
-	 fi8jmiRwgeznkfplbkcSANyKgAHU4JnbCic2pM968DnfoezBirmtWFcFwsvpUbx59O
-	 XpdOdy9PYrhUw==
-Date: Mon, 9 Mar 2026 14:29:47 -0700
-From: Nathan Chancellor <nathan@kernel.org>
-To: Mimi Zohar <zohar@linux.ibm.com>
-Cc: Arnd Bergmann <arnd@kernel.org>,
+	 Content-Type:Content-Disposition:In-Reply-To; b=uFiCDo2FgRGG98yt4wiLph8pvzLSJk5gg4xRjhFoBC2itq+PaxDL4LblSrolnkUNr3MAcO+6HtpNhmObpvD9o6YH3GNS3T47tWNqPtKsVOQ6fBZ4lXotrDyWNpl9TvaTXBpj3+Jh8DUbjoKke8yGc7PMjWs7nqqhEC/5cuK5bfA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
+Received: by verein.lst.de (Postfix, from userid 2407)
+	id 7056668AFE; Tue, 10 Mar 2026 07:58:40 +0100 (CET)
+Date: Tue, 10 Mar 2026 07:58:40 +0100
+From: Christoph Hellwig <hch@lst.de>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: Christoph Hellwig <hch@lst.de>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Richard Henderson <richard.henderson@linaro.org>,
+	Matt Turner <mattst88@gmail.com>,
+	Magnus Lindholm <linmag7@gmail.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
 	Madhavan Srinivasan <maddy@linux.ibm.com>,
 	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
 	Heiko Carstens <hca@linux.ibm.com>,
 	Vasily Gorbik <gor@linux.ibm.com>,
 	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Roberto Sassu <roberto.sassu@huawei.com>,
-	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-	"Serge E. Hallyn" <serge@hallyn.com>,
-	Jarkko Sakkinen <jarkko@kernel.org>,
-	Ard Biesheuvel <ardb@kernel.org>, Coiby Xu <coxu@redhat.com>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
 	Christian Borntraeger <borntraeger@linux.ibm.com>,
 	Sven Schnelle <svens@linux.ibm.com>,
-	Eric Snowberg <eric.snowberg@oracle.com>,
-	Nick Desaulniers <nick.desaulniers+lkml@gmail.com>,
-	Bill Wendling <morbo@google.com>,
-	Justin Stitt <justinstitt@google.com>,
-	Andrew Donnellan <ajd@linux.ibm.com>, linuxppc-dev@lists.ozlabs.org,
-	linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-integrity@vger.kernel.org,
-	linux-security-module@vger.kernel.org, keyrings@vger.kernel.org,
-	llvm@lists.linux.dev
-Subject: Re: [PATCH] integrity: avoid using __weak functions
-Message-ID: <20260309212947.GA4150408@ax162>
-References: <20260306150421.270124-1-arnd@kernel.org>
- <20260306225648.GC2746259@ax162>
- <abb4d186d1ca76c080d5e15bcd9e0019cce3af39.camel@linux.ibm.com>
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>, linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+	linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: [PATCH 21/25] xor: add a better public API
+Message-ID: <20260310065840.GA10296@lst.de>
+References: <20260226151106.144735-1-hch@lst.de> <20260226151106.144735-22-hch@lst.de> <20260228065038.GH65277@quark>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -68,15 +70,19 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <abb4d186d1ca76c080d5e15bcd9e0019cce3af39.camel@linux.ibm.com>
+In-Reply-To: <20260228065038.GH65277@quark>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 
-On Sun, Mar 08, 2026 at 09:01:58PM -0400, Mimi Zohar wrote:
-> Thanks Arnd, Nathan. LGTM.  Nathan, could you send a patch with a proper patch
-> description.
+On Fri, Feb 27, 2026 at 10:50:38PM -0800, Eric Biggers wrote:
+> > +void xor_gen(void *dest, void **srcss, unsigned int src_cnt,
+> > +		unsigned int bytes);
+> 
+> srcss => srcs
+> 
+> Ideally the source vectors would be 'const' as well.
 
-Done, thanks for the input!
+I looked at the constification, and it's a bit painful because the
+same source arrays are also passed to the raid6 code by the callers.
+I'll clean up the raid6 API first, and then will give it another
+spin.
 
-  https://lore.kernel.org/20260309-integrity-drop-weak-arch-get-secureboot-v1-1-6460d5c4bb89@kernel.org/
-
-Cheers,
-Nathan
