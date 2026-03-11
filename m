@@ -1,138 +1,114 @@
-Received: from mail-qt1-f170.google.com (mail-qt1-f170.google.com [209.85.160.170])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from bombadil.infradead.org (bombadil.infradead.org [198.137.202.133])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CFB2A3054EE
-	for <linux-arch@vger.kernel.org>; Wed, 11 Mar 2026 22:00:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.170
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773266404; cv=pass; b=dKc0VWZu0cuwD2ynfOIcpcCifM2G86mH+rJ/Jnw8bUll78HE09pyP+kaJvYevTh/5MDu3inLoQgP58SNy1vvq+YBp0bv+asLo1rTrM+0ASIh0bwsGBWw3hMIdOjtRxYl5TENy5MPDNw5Gmpc4oav4oeLJIgBhGZ8OIR+8rJRRpM=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773266404; c=relaxed/simple;
-	bh=KV9nkGqyTHCzH16M0zr6yOquFuNMaQs5gUPlT8AXuWQ=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=N75TuQWubJv7CCZYQvviiEoMtzAHekG6NhjdUdxTtBbQ7pnu0BOExOOL+x9dFAK34O2tVgo580Isw2X302tf6xfE93T8f5gZRRPqypbK+EpgRnBt24OSIfxWwTLZzoCDsrT4gAgTl9AwqfeWSt5QhYFHlTHYnn9kWjeiVocvQa4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=UVxYzdOb; arc=pass smtp.client-ip=209.85.160.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 30EF51DED42;
+	Wed, 11 Mar 2026 22:07:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.133
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1773266859; cv=none; b=SUFVqQCwy3cjcbPpQFzS13EWoT2IZlxnDbU5PIzF/UCqvy34JToJty/lqDu+lO74sYaByayqED9R0HLXzvnedOPpD8sUiDjWaagRrjCWELFuXQMxwTgiHj6jc6qLt0i+GQwueN4rwWPi1iUckavg1uMdt90MKrAYHGQcN/skR1w=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1773266859; c=relaxed/simple;
+	bh=Vat1pICapbmcHR9Yhv6pDlemcFa/Ln8lyN4yYwnQpmw=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=ptSqwktoprEeCN2n5u2Bngi8+DRyEYbZso5hmzrkVqf/mDJyCtw7EDKUXCS2sl7ubGOCRAyEbjOEJ3RfrqrZ80NdqvT2ylVda9DypsMlsTw6z2hCPj9+tZeBcBp6EqmxemvLoMJGTQPoaIzqNqJ7P3GELmgxL2G7mpUpJbvnKDU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=mfsizaRP; arc=none smtp.client-ip=198.137.202.133
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="UVxYzdOb"
-Received: by mail-qt1-f170.google.com with SMTP id d75a77b69052e-5091ed02c54so77761cf.1
-        for <linux-arch@vger.kernel.org>; Wed, 11 Mar 2026 15:00:02 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1773266402; cv=none;
-        d=google.com; s=arc-20240605;
-        b=kGLxnFLU7EnJbSYtsGI42CSCouGVW+nZu72I10ncGaFNESUQJTWsyB2qm+Tp+B1yvI
-         S/0ZFoBPBYIpD5Dhe0C2hhZNjvzluuwCBk5VSv/SGqfzvCslxCNqvSplEeZHokvVpPdm
-         EKGCTek1WAtKIgmg40uaLfv/pgtfQizn+YHXIIIRU05abBRYZbip2pNfAAXmJRKrhLL9
-         Ezu83njlEPAVZcgxNYb9ti3SVCW6imewio78rSFA4rGQu7CTPqVL7Ap4oDkt2S65OYNI
-         DRAS2NzeTPFmJBTpuPoyeDxlqvFqvQxB4O+IaPPYvuGqYCoW3zXUBEE07nzzEgKPK2va
-         phBw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=9/KedjfWy5Kjar9/btvlIUwnd/7kYotXnwSFyBrJ2Fo=;
-        fh=GTzyJH9C7zcHsv3CxaUd7U4D1NIGXi1V1CMw/1cjbpo=;
-        b=avioBQkXIJHTnqSzLDgGXa1x8T6smXnK+r1QXIIySsCRy9UElNVH4Uqm3B4LuisVlg
-         EG5jN6W4kKyNtnc3nnAbnBschtUww/HSRCdyZm78PSKsgqRgAn4n4vAyHCsII2/pXGoW
-         C4SrJjMtoFzY526ekvDfC30LSoBrqQjuyUhyl8+v8tdYIV+H8qJ7xPwP4KjEjD3WEStu
-         za14+12WDAmjKvMq4ubcVPsbiDSAk7azpgPt3+rWwM5zZegSC6aoQsfZreyZ//MidH/T
-         YttO3WthCjsr7brKaaF1JInsQXSZMv2pXjjJTWfqj3VvDVIR6pHHXXGs41wBHsbbq33p
-         yVlg==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20230601; t=1773266402; x=1773871202; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=9/KedjfWy5Kjar9/btvlIUwnd/7kYotXnwSFyBrJ2Fo=;
-        b=UVxYzdObuE8nUbkD2avV/19rDiCLMT9Mj4sE5XPTqpIqrrtdLAGUFRP+hCrncWF7wu
-         3haYqtcTYCnvIc2klnV6LQYFVj3Pj4C8KZORgMuDec1ZL+1AdmPqUIy8A/HQVIvTIaRl
-         //gHB9h7M279nPkcphp8AI1ev7iGvz4y0l/fnyVXMqsr7JZNF2XaFBO9pwXnNNXIPVb1
-         hgJ5MPm/oeHVR6mXoTWY9dbHO5JfeeyAer187wKsgHVuPrGacE1+fAy0Zr4Xmgtpi3gr
-         cMyLNp5+VJYhW9F5F2rmeEgmALyo0VmFGQWNH8PV/Irir2kp/RFTxY/evIFiuqFI7LFt
-         MLxA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1773266402; x=1773871202;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=9/KedjfWy5Kjar9/btvlIUwnd/7kYotXnwSFyBrJ2Fo=;
-        b=fZgbXHF9elexUNlLW1Ht8lu5Nb8TKnuwq6AIEFiuj4Ekh3urs1jvHclUv5rUqYvHvD
-         l0V6eu+xy8X+RSV5mpTdUT9ZZHNyTUwbseqKbsLzWf6aOdDUDdGsug3WeHN7lsRFioDy
-         9/Hnp+/+4XxFwPufFmx6lGDGJChez5yyAYWZN2CEXmeoWG7TlNDnCXzK5lAoSqI+pFT/
-         2dO3tp0w9x8K+sErfwnK8aTDFqwGowgyux10fMB0ypKHC/ZeLPV0yXDQeHNaZ2tKN4iY
-         k5471ZNuhtyURrcAdlkiiw7SPOlcWvD/LtBV+TaH7S+8ucJFkkgTJmHblhE0WyId03zq
-         C/9g==
-X-Forwarded-Encrypted: i=1; AJvYcCV1EfAyMMmCK8qP4DT54b9YO4+2+3lZR6As48P8U0SeERh0sqGio11GSAOa5z570UaaQU0CAaeXpfVS@vger.kernel.org
-X-Gm-Message-State: AOJu0YzieoJEoobuwDGgxsReT2UCfXObwUvdhiiaDPyfCWuupwWqnDbm
-	bQdq07uMTMi9Utp4W2aXVkPW+AL+CI951iULappqPnfUpUh0WebLxNZ6B0Fs6Pzzs3LduKZcKHK
-	Qkf7VovJqzE8M3rMugwLO8MM13mU8zBlB3ffHbrEd
-X-Gm-Gg: ATEYQzxIpnvproHG5XGzGGkTVcAfhd4SQeE1lDR6dY4C0PR9dAV38KMwCstgPjgebig
-	N8RZ7gDyUsCX/oddE8R8Plmm2NiOu9wZNxuTZx012N3omTWhb2KWeViyQRsvzvw5SNTeuhyLgs/
-	ELoJsI/ITFs5q3rrfhLSX2akQQJgxLK2t8zNcUUMp4J6FhAQU6oQLx8FhEHvTApA9fgyw7DyLjy
-	mXYoifDlB1cCSCQtLR0hT9QagH2TislOh8bZfUK9CgeB6I5kpxevYE9D9azRwPeivDvLRGAxaNG
-	2smmJrLb
-X-Received: by 2002:a05:622a:350:b0:509:72a:ae59 with SMTP id
- d75a77b69052e-509480417c1mr4291741cf.10.1773266401066; Wed, 11 Mar 2026
- 15:00:01 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="mfsizaRP"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=bombadil.20210309; h=Content-Transfer-Encoding:
+	Content-Type:In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:
+	Message-ID:Sender:Reply-To:Content-ID:Content-Description;
+	bh=3pz+oBXHX4ROsA5YC4AIYdLxIsTbPv3WtlHmYYvzFJQ=; b=mfsizaRPRhXs+5amb56bl26g5W
+	YaxoUOUXpIeafPhcOsHkl64NyTIBsDZUIlwP0/ntc1CfIbwXeYXBN+HoLT7tBPmmxFLti6/uYWrms
+	hlmGnxvqInK2XCyGGZ8wwopsERgKYVFKV1lvM0ngcCuXWTMHlljZ0MTGuTXqEzifZy2wYVpr1J2SQ
+	WjjMUArT4bINr9QN3u0NLNVZpMSkA7WijRlRIDzF9QkzLqeo1yni6lnEEBWPs1o/jObVUnOMnCKir
+	XXqthuqISXMOSS4FCoSF8RK04IVTHnGUNwXRW4ouCPnuz6lyVmJn6vBdJ7yKft75MLTOxQ9ym8p7A
+	WsoGd2zA==;
+Received: from [50.53.43.113] (helo=[192.168.254.34])
+	by bombadil.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1w0Rhr-0000000CclT-1mxV;
+	Wed, 11 Mar 2026 22:07:07 +0000
+Message-ID: <6cad9b7b-f5aa-478f-be23-0baf155b21d2@infradead.org>
+Date: Wed, 11 Mar 2026 15:07:05 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260220151216.873182-1-lrizzo@google.com>
-In-Reply-To: <20260220151216.873182-1-lrizzo@google.com>
-From: Luigi Rizzo <lrizzo@google.com>
-Date: Wed, 11 Mar 2026 22:59:23 +0100
-X-Gm-Features: AaiRm52ipaDg0AOnuFS0crd2gONcPDRiv4mJlmuJXZ2F7Hsq42gx5EP5HcomsF8
-Message-ID: <CAMOZA0Kz8k5cf-rPQXGEN_U8AwCqN+gyt3d+1bfU0S1-rXq90A@mail.gmail.com>
-Subject: Re: [PATCH] x86/apic: remove vector_lock from apic_retrigger_irq()
-To: Thomas Gleixner <tglx@linutronix.de>, Marc Zyngier <maz@kernel.org>, 
-	Luigi Rizzo <rizzo.unipi@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 25/25] meminspect: Add debug kinfo compatible driver
+To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>,
+ Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
+ Eugen Hristev <eugen.hristev@linaro.org>, Arnd Bergmann <arnd@arndb.de>,
+ Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+ Christoph Lameter <cl@gentwo.org>, Andrew Morton
+ <akpm@linux-foundation.org>, Thomas Gleixner <tglx@kernel.org>,
+ Peter Zijlstra <peterz@infradead.org>,
+ Anna-Maria Behnsen <anna-maria@linutronix.de>,
+ Frederic Weisbecker <frederic@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ Juri Lelli <juri.lelli@redhat.com>,
+ Vincent Guittot <vincent.guittot@linaro.org>,
+ Dietmar Eggemann <dietmar.eggemann@arm.com>,
+ Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
+ Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
+ David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <Liam.Howlett@oracle.com>,
+ Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
+ Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
+ Kees Cook <kees@kernel.org>, Brendan Jackman <jackmanb@google.com>,
+ Johannes Weiner <hannes@cmpxchg.org>, Zi Yan <ziy@nvidia.com>,
+ Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>,
+ Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>,
+ Baoquan He <bhe@redhat.com>, Barry Song <baohua@kernel.org>,
+ Youngjun Park <youngjun.park@lge.com>, Petr Mladek <pmladek@suse.com>,
+ John Ogness <john.ogness@linutronix.de>,
+ Sergey Senozhatsky <senozhatsky@chromium.org>,
+ Bjorn Andersson <andersson@kernel.org>,
+ Mathieu Poirier <mathieu.poirier@linaro.org>,
+ Konrad Dybcio <konradybcio@kernel.org>, Rob Herring <robh@kernel.org>,
+ Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley
+ <conor+dt@kernel.org>, Saravana Kannan <saravanak@kernel.org>
+Cc: workflows@vger.kernel.org, linux-doc@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+ linux-mm@kvack.org, linux-arm-msm@vger.kernel.org,
+ linux-remoteproc@vger.kernel.org, devicetree@vger.kernel.org
+References: <20260311-minidump-v2-v2-0-f91cedc6f99e@oss.qualcomm.com>
+ <20260311-minidump-v2-v2-25-f91cedc6f99e@oss.qualcomm.com>
+Content-Language: en-US
+From: Randy Dunlap <rdunlap@infradead.org>
+In-Reply-To: <20260311-minidump-v2-v2-25-f91cedc6f99e@oss.qualcomm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Feb 20, 2026 at 4:12=E2=80=AFPM Luigi Rizzo <lrizzo@google.com> wro=
-te:
->
-> apic_retrigger_irq() grabs vector_lock, but this is not needed because
-> any caller of this function holds the irqdesc lock, and that suffices to
-> protect apicd->vector.
->
-> Remove the unnecessary lock.
->
-> Thomas found this is a leftover from v2.6 when it was truly needed.
->
-> Signed-off-by: Luigi Rizzo <lrizzo@google.com>
-> ---
->  arch/x86/kernel/apic/vector.c | 3 ---
->  1 file changed, 3 deletions(-)
->
-> diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.=
-c
-> index bddc544653999..fd0f133b379fd 100644
-> --- a/arch/x86/kernel/apic/vector.c
-> +++ b/arch/x86/kernel/apic/vector.c
-> @@ -1002,11 +1002,8 @@ static void apic_force_complete_move(struct irq_da=
-ta *irqd)
->  static int apic_retrigger_irq(struct irq_data *irqd)
->  {
->         struct apic_chip_data *apicd =3D apic_chip_data(irqd);
-> -       unsigned long flags;
->
-> -       raw_spin_lock_irqsave(&vector_lock, flags);
->         __apic_send_IPI(apicd->cpu, apicd->vector);
-> -       raw_spin_unlock_irqrestore(&vector_lock, flags);
->
->         return 1;
->  }
-> --
-> 2.53.0.345.g96ddfc5eaa-goog
->
 
-Is there any concern with this proposed patch?
 
-cheers
-luigi
+On 3/10/26 1:16 PM, Mukesh Ojha wrote:
+> diff --git a/kernel/meminspect/Kconfig b/kernel/meminspect/Kconfig
+> index fa2b5a84b251..396510908e47 100644
+> --- a/kernel/meminspect/Kconfig
+> +++ b/kernel/meminspect/Kconfig
+> @@ -17,3 +17,14 @@ config MEMINSPECT
+>  
+>  	  Note that modules using this feature must be rebuilt if option
+>  	  changes.
+> +
+> +config MEMINSPECT_KINFO
+> +	tristate "Shared memory KInfo compatible driver"
+> +	depends on MEMINSPECT
+> +	help
+> +	  Say y here to enable the Shared memory KInfo compatible driver
+
+Use a period (full stop) ('.') at the end of the sentence above.
+
+> +	  With this driver, the registered regions are copied to a shared
+> +	  memory zone at register time.
+> +	  The shared memory zone is supplied via OF.
+> +	  This driver will select only regions that are of interest,
+> +	  and keep only addresses. The format of the list is Kinfo compatible.
+
+-- 
+~Randy
+
