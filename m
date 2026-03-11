@@ -1,84 +1,81 @@
-Received: from lithops.sigma-star.at (mailout.nod.at [116.203.167.152])
+Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 162173BC67A;
-	Wed, 11 Mar 2026 08:45:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=116.203.167.152
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF4543B7775;
+	Wed, 11 Mar 2026 08:50:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773218750; cv=none; b=Cal30klhOZ7Mpb9KegQbVi8XzNBujzNIhrqhEeoOraLzpfc3qm87Q6fPvIkpoEVDdwXxdeQY4/kqEfyeBfYzTlK4/D+kmK00mhZM3rQPYs18HPEIL0N5sXfW78jFULOZuD08mooy62ioJE/QoRdTE4SxtWofTgRgstt20liCjAU=
+	t=1773219018; cv=none; b=A5ZRB4C9p5ir5+pLHK4JjV6oaJsiNxZGtPWdvOBzPx0XIoYVHqJLk3QtEbJs0UgXCHXaqu2hroz6GAykHA8Iy408cbuW8LGz1qO931dUbjCAriLyFGPRF+tC6rD8DOvkbUv93UipnaFgDd3rCoPMTRD76PwXbhSM+gDyzcxY62g=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773218750; c=relaxed/simple;
-	bh=Tmt46hJ14n5mJT8WpkY0LC2/s3w1NMyJdvLKZ2I0GjA=;
-	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type; b=r+t/jZGdatnd6kVnL3evvunDjFdWGrs1dyuMH7UuN1xFNe3wrq0mlJRNcdk2h7OrZIz6azG1x2lrn+LrxUbt9Rx84GTzT11ixfe17Q/XX6Z3a2YrHQndV+qEkLmGXV0KIxN3QsTRRE7l7ZnPYSFYMXSpyZjXiQsbDmQfWQ+PEzw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=nod.at; spf=fail smtp.mailfrom=nod.at; arc=none smtp.client-ip=116.203.167.152
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=nod.at
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nod.at
-Received: from localhost (localhost [127.0.0.1])
-	by lithops.sigma-star.at (Postfix) with ESMTP id BC6442B03D8;
-	Wed, 11 Mar 2026 09:45:35 +0100 (CET)
-Received: from lithops.sigma-star.at ([127.0.0.1])
-	by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10032)
-	with ESMTP id U1QpR9pLQfYI; Wed, 11 Mar 2026 09:45:35 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-	by lithops.sigma-star.at (Postfix) with ESMTP id E817E2ABFDC;
-	Wed, 11 Mar 2026 09:45:34 +0100 (CET)
-Received: from lithops.sigma-star.at ([127.0.0.1])
-	by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10026)
-	with ESMTP id sQ20C_OvpL54; Wed, 11 Mar 2026 09:45:34 +0100 (CET)
-Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
-	by lithops.sigma-star.at (Postfix) with ESMTP id 297CD2A87F7;
-	Wed, 11 Mar 2026 09:45:34 +0100 (CET)
-Date: Wed, 11 Mar 2026 09:45:33 +0100 (CET)
-From: Richard Weinberger <richard@nod.at>
-To: hch <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Richard Henderson <richard.henderson@linaro.org>, 
-	Matt Turner <mattst88@gmail.com>, 
-	Magnus Lindholm <linmag7@gmail.com>, 
-	Russell King <linux@armlinux.org.uk>, 
-	Catalin Marinas <catalin.marinas@arm.com>, will <will@kernel.org>, 
-	Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
-	Madhavan Srinivasan <maddy@linux.ibm.com>, 
-	Michael Ellerman <mpe@ellerman.id.au>, 
-	Nicholas Piggin <npiggin@gmail.com>, 
-	"Christophe Leroy, CS GROUP" <chleroy@kernel.org>, 
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>, 
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>, 
-	Heiko Carstens <hca@linux.ibm.com>, 
-	Vasily Gorbik <gor@linux.ibm.com>, 
-	Alexander Gordeev <agordeev@linux.ibm.com>, 
-	Christian Borntraeger <borntraeger@linux.ibm.com>, 
-	Sven Schnelle <svens@linux.ibm.com>, davem <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, 
-	anton ivanov <anton.ivanov@cambridgegreys.com>, 
-	Johannes Berg <johannes@sipsolutions.net>, 
-	Thomas Gleixner <tglx@kernel.org>, mingo <mingo@redhat.com>, 
-	bp <bp@alien8.de>, dave hansen <dave.hansen@linux.intel.com>, 
-	x86 <x86@kernel.org>, hpa <hpa@zytor.com>, 
-	Herbert Xu <herbert@gondor.apana.org.au>, 
-	dan j williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, 
-	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, 
-	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, 
-	Li Nan <linan122@huawei.com>, tytso <tytso@mit.edu>, 
-	"Jason A. Donenfeld" <Jason@zx2c4.com>, 
-	linux-alpha <linux-alpha@vger.kernel.org>, 
-	linux-kernel <linux-kernel@vger.kernel.org>, 
-	linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, 
-	loongarch <loongarch@lists.linux.dev>, 
-	linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, 
-	linux-riscv <linux-riscv@lists.infradead.org>, 
-	linux-s390 <linux-s390@vger.kernel.org>, 
-	sparclinux <sparclinux@vger.kernel.org>, 
-	linux-um <linux-um@lists.infradead.org>, 
-	Linux Crypto Mailing List <linux-crypto@vger.kernel.org>, 
-	linux-btrfs <linux-btrfs@vger.kernel.org>, 
-	linux-arch <linux-arch@vger.kernel.org>, 
-	linux-raid <linux-raid@vger.kernel.org>
-Message-ID: <942530005.19163.1773218733711.JavaMail.zimbra@nod.at>
-In-Reply-To: <20260311070416.972667-4-hch@lst.de>
-References: <20260311070416.972667-1-hch@lst.de> <20260311070416.972667-4-hch@lst.de>
-Subject: Re: [PATCH 03/27] um/xor: cleanup xor.h
+	s=arc-20240116; t=1773219018; c=relaxed/simple;
+	bh=ZjFxYEjK8aozfmve4JoaBaV+xJQhTcTGAjUyYSMn6lQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=dkknLweiGRXZL0r0X9Aw7ULotf1kxciKseOAE0aUhy2ZsH2mOf/qpaLACyISXnyrR+vOFLV8EUkR967oU25kjN/LlyWJFVsrZr6VZEyM6BMqBNCIwm7ycQan5LFr3EIjA+LMpkE0staIdLHbCMi+wIxenVqy+A/N9xxucfZn7ME=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=o4tcifl1; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=LMTIauJ8; arc=none smtp.client-ip=193.142.43.55
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="o4tcifl1";
+	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="LMTIauJ8"
+Date: Wed, 11 Mar 2026 09:50:08 +0100
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020; t=1773219010;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Dh2u910Dr9v3m0hVo537X6ofb5vKqJBESKL7gfq66iU=;
+	b=o4tcifl1o8jywgLPdg/s+WX7sDPzz+eCAnhiMj3T66TG/Q1htV1GOGeOOud7SVVEX+GX92
+	OVl1a0sAtFbXIhn6q8VAYV3nbRQ8ydhQIs0OB6MXRRv1VFkebNYQxNtC6ZpsNfMUc2HPJe
+	my1FYPw0ldYH8kKSZm/D/y2nEimFEJIe4djKU6CH2C6et4c58of1WcZakycG05pAwk+5+R
+	vRjsqZMlne+14maN+9VGVI5qg7hbBIk6aqyB10RpJcYkoRJbGh9dKeD1rxtrSKP3zP2jcK
+	nzJWn+wPTcYCVcLlRx9uC67R6D4rj8jJI+lZcpjDoC0/26vEYJrmilrpcNilQg==
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
+	s=2020e; t=1773219010;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=Dh2u910Dr9v3m0hVo537X6ofb5vKqJBESKL7gfq66iU=;
+	b=LMTIauJ88fFcgqN/jXiJPCLOHnYrJyLVhh0TJD/NNsp9hdkMfEbyqHXmdDHdxxwf8KEeF3
+	WVtUAKnV6l5hwHDQ==
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+To: Eric Biggers <ebiggers@kernel.org>
+Cc: Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <linux@weissschuh.net>,
+	Nathan Chancellor <nathan@kernel.org>,
+	Arnd Bergmann <arnd@arndb.de>, Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Daniel Gomez <da.gomez@samsung.com>,
+	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
+	Roberto Sassu <roberto.sassu@huawei.com>,
+	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+	Eric Snowberg <eric.snowberg@oracle.com>,
+	Nicolas Schier <nicolas.schier@linux.dev>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Nicolas Schier <nsc@kernel.org>,
+	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
+	Xiu Jianfeng <xiujianfeng@huawei.com>,
+	Fabian =?utf-8?Q?Gr=C3=BCnbichler?= <f.gruenbichler@proxmox.com>,
+	Arnout Engelen <arnout@bzzt.net>,
+	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
+	Christian Heusel <christian@heusel.eu>,
+	=?utf-8?B?Q8OianU=?= Mihai-Drosi <mcaju95@gmail.com>,
+	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
+	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
+	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
+Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
+Message-ID: <20260311085008.TSnh3YR1@linutronix.de>
+References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
+ <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
+ <20260311011218.GA212983@quark>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -86,27 +83,65 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-X-Mailer: Zimbra 8.8.12_GA_3807 (ZimbraWebClient - FF147 (Linux)/8.8.12_GA_3809)
-Thread-Topic: um/xor: cleanup xor.h
-Thread-Index: ROrz3iTmErkYXUli/cm3A2WDQMn1kg==
+Content-Disposition: inline
+In-Reply-To: <20260311011218.GA212983@quark>
 
------ Urspr=C3=BCngliche Mail -----
-> Since commit c055e3eae0f1 ("crypto: xor - use ktime for template
-> benchmarking") the benchmarking works just fine even for TT_MODE_INFCPU,
-> so drop the workarounds.  Note that for CPUs supporting AVX2, which
-> includes almost everything built in the last 10 years, the AVX2
-> implementation is forced anyway.
->=20
-> CONFIG_X86_32 is always correctly set for UM in arch/x86/um/Kconfig,
-> so don't override it either.
->=20
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
-> arch/um/include/asm/xor.h | 16 ----------------
-> 1 file changed, 16 deletions(-)
+On 2026-03-10 18:12:18 [-0700], Eric Biggers wrote:
+> > diff --git a/scripts/modules-merkle-tree.c b/scripts/modules-merkle-tree.c
+> [...]
+> 
+> > +struct file_entry {
+> > +	char *name;
+> > +	unsigned int pos;
+> > +	unsigned char hash[EVP_MAX_MD_SIZE];
+> 
+> Considering that the hash algorithm is fixed, EVP_MAX_MD_SIZE can be
+> replaced with a tighter local definition:
+> 
+>     #define MAX_HASH_SIZE 32
+> 
+> > +static struct file_entry *fh_list;
+> > +static size_t num_files;
+> > +
+> > +struct leaf_hash {
+> > +	unsigned char hash[EVP_MAX_MD_SIZE];
+> > +};
+> > +
+> > +struct mtree {
+> > +	struct leaf_hash **l;
+> > +	unsigned int *entries;
+> > +	unsigned int levels;
+> > +};
+> 
+> 'struct leaf_hash' is confusing because it's actually used for the
+> hashes of internal nodes, not leaf nodes.
 
-Acked-by: Richard Weinberger <richard@nod.at>
+You could still consider the internal nodes as leafs.
 
-Thanks,
-//richard
+> Maybe rename it to 'struct hash' and use it for both the hashes and leaf
+> nodes and internal nodes.
+> 
+> Also, clearer naming would improve readability, e.g.:
+> 
+>     struct merkle_tree {
+>             struct hash **level_hashes;
+>             unsigned int level_size;
+>             unsigned int num_levels;
+>     };
+
+but this could improve it, indeed.
+
+> > +	hash_evp = EVP_get_digestbyname("sha256");
+> 
+> EVP_sha256()
+
+I would suggest to use EVP_MD_fetch() instead.
+
+> > +	hash_size = EVP_MD_get_size(hash_evp);
+> 
+> The old name 'EVP_MD_size()' would have wider compatibility.
+
+EVP_MD_fetch() and EVP_MD_get_size() are openssl 3.0.0+ and nothing
+below 3.0.0 is considered supported (while 3.0.0 is EOL 07 Sep 2026).
+
+Sebastian
