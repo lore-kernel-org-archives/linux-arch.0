@@ -1,117 +1,138 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qt1-f170.google.com (mail-qt1-f170.google.com [209.85.160.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9943231F9AB;
-	Wed, 11 Mar 2026 21:14:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773263677; cv=none; b=ruTruuBqqZwORMt6erWJEAqBJ/GQbbmkTE/W9A3JxvbQ1D8F/l+BsplEKzP4IbsMYA51PKQV+PkM5tdj3lJKQKjARJa5X7Jk22TmoXod028VCrwhw5kk5BYrzmyyaadg0KL4abx2BhkZqcwhlvdhDmxgu/39FC/1EHCr7D7E/cQ=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773263677; c=relaxed/simple;
-	bh=4AK1rqDz6/A4qjK/w9x6JibTYdqI2D5USa9Uljlor+U=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=G8Ba+jORxSVzx09M0OAT2/hugqsjaGtZXcbsQvktFn1MG4d1e6XYyP/pMxeq6LPHyU6x0IzprbFX6WZaf7ACKc0jvpzCy+iy0+XnPnCiANChwwp+I2nt06ai4GIQB0jjdGNu/fdhavmooleb3IiBKVw37puQ31G63V8su6bv7ls=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nB1ceOIT; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CFB2A3054EE
+	for <linux-arch@vger.kernel.org>; Wed, 11 Mar 2026 22:00:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.170
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1773266404; cv=pass; b=dKc0VWZu0cuwD2ynfOIcpcCifM2G86mH+rJ/Jnw8bUll78HE09pyP+kaJvYevTh/5MDu3inLoQgP58SNy1vvq+YBp0bv+asLo1rTrM+0ASIh0bwsGBWw3hMIdOjtRxYl5TENy5MPDNw5Gmpc4oav4oeLJIgBhGZ8OIR+8rJRRpM=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1773266404; c=relaxed/simple;
+	bh=KV9nkGqyTHCzH16M0zr6yOquFuNMaQs5gUPlT8AXuWQ=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=N75TuQWubJv7CCZYQvviiEoMtzAHekG6NhjdUdxTtBbQ7pnu0BOExOOL+x9dFAK34O2tVgo580Isw2X302tf6xfE93T8f5gZRRPqypbK+EpgRnBt24OSIfxWwTLZzoCDsrT4gAgTl9AwqfeWSt5QhYFHlTHYnn9kWjeiVocvQa4=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=UVxYzdOb; arc=pass smtp.client-ip=209.85.160.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nB1ceOIT"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BB722C4CEF7;
-	Wed, 11 Mar 2026 21:14:35 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1773263677;
-	bh=4AK1rqDz6/A4qjK/w9x6JibTYdqI2D5USa9Uljlor+U=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=nB1ceOIToPCiG2Ga6fYFvAKYgRMq4rBLUcUJz61ILzyuOdXns1FvKE63ZPdgZQHZl
-	 Sb4nNTfsbw0QQI5n6wXKZka0cIrk//AuTKoo0ISRoDGLOBcwr8YHsLLIUfXs3ewVur
-	 Y//Sw9zR3uoc7l0O5LZdS/vroMKyuP4eog+uvpPQG9u86rx9FDtkb5kBULGBJiQpKA
-	 ykMX0LdNVLH7xwVNGKzNvHSeT8rR69Tat3JUo29pWbE2YUJJsafK9N2xB5JCRpAIUo
-	 okDFx5h1iJaRVeUidyBXYGIr+WO3tVsGNN7BB1kj1hqBJl5sHNlsdHbQV7Px/yDwRA
-	 t4r5txKCfn75g==
-Date: Wed, 11 Mar 2026 21:14:34 +0000
-From: Eric Biggers <ebiggers@kernel.org>
-To: Thomas =?iso-8859-1?Q?Wei=DFschuh?= <linux@weissschuh.net>
-Cc: Nathan Chancellor <nathan@kernel.org>, Arnd Bergmann <arnd@arndb.de>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Petr Pavlu <petr.pavlu@suse.com>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Daniel Gomez <da.gomez@samsung.com>,
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
-	"Serge E. Hallyn" <serge@hallyn.com>,
-	Jonathan Corbet <corbet@lwn.net>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	Naveen N Rao <naveen@kernel.org>, Mimi Zohar <zohar@linux.ibm.com>,
-	Roberto Sassu <roberto.sassu@huawei.com>,
-	Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
-	Eric Snowberg <eric.snowberg@oracle.com>,
-	Nicolas Schier <nicolas.schier@linux.dev>,
-	Daniel Gomez <da.gomez@kernel.org>,
-	Aaron Tomlin <atomlin@atomlin.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Nicolas Schier <nsc@kernel.org>,
-	Nicolas Bouchinet <nicolas.bouchinet@oss.cyber.gouv.fr>,
-	Xiu Jianfeng <xiujianfeng@huawei.com>,
-	Fabian =?iso-8859-1?Q?Gr=FCnbichler?= <f.gruenbichler@proxmox.com>,
-	Arnout Engelen <arnout@bzzt.net>,
-	Mattia Rizzolo <mattia@mapreri.org>, kpcyrd <kpcyrd@archlinux.org>,
-	Christian Heusel <christian@heusel.eu>,
-	=?iso-8859-1?Q?C=E2ju?= Mihai-Drosi <mcaju95@gmail.com>,
-	Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
-	linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-modules@vger.kernel.org,
-	linux-security-module@vger.kernel.org, linux-doc@vger.kernel.org,
-	linuxppc-dev@lists.ozlabs.org, linux-integrity@vger.kernel.org
-Subject: Re: [PATCH v4 15/17] module: Introduce hash-based integrity checking
-Message-ID: <20260311211434.GA4173404@google.com>
-References: <20260113-module-hashes-v4-0-0b932db9b56b@weissschuh.net>
- <20260113-module-hashes-v4-15-0b932db9b56b@weissschuh.net>
- <20260311011218.GA212983@quark>
- <5726fc65-7d24-4353-b341-81b785f2575c@t-8ch.de>
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="UVxYzdOb"
+Received: by mail-qt1-f170.google.com with SMTP id d75a77b69052e-5091ed02c54so77761cf.1
+        for <linux-arch@vger.kernel.org>; Wed, 11 Mar 2026 15:00:02 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1773266402; cv=none;
+        d=google.com; s=arc-20240605;
+        b=kGLxnFLU7EnJbSYtsGI42CSCouGVW+nZu72I10ncGaFNESUQJTWsyB2qm+Tp+B1yvI
+         S/0ZFoBPBYIpD5Dhe0C2hhZNjvzluuwCBk5VSv/SGqfzvCslxCNqvSplEeZHokvVpPdm
+         EKGCTek1WAtKIgmg40uaLfv/pgtfQizn+YHXIIIRU05abBRYZbip2pNfAAXmJRKrhLL9
+         Ezu83njlEPAVZcgxNYb9ti3SVCW6imewio78rSFA4rGQu7CTPqVL7Ap4oDkt2S65OYNI
+         DRAS2NzeTPFmJBTpuPoyeDxlqvFqvQxB4O+IaPPYvuGqYCoW3zXUBEE07nzzEgKPK2va
+         phBw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=9/KedjfWy5Kjar9/btvlIUwnd/7kYotXnwSFyBrJ2Fo=;
+        fh=GTzyJH9C7zcHsv3CxaUd7U4D1NIGXi1V1CMw/1cjbpo=;
+        b=avioBQkXIJHTnqSzLDgGXa1x8T6smXnK+r1QXIIySsCRy9UElNVH4Uqm3B4LuisVlg
+         EG5jN6W4kKyNtnc3nnAbnBschtUww/HSRCdyZm78PSKsgqRgAn4n4vAyHCsII2/pXGoW
+         C4SrJjMtoFzY526ekvDfC30LSoBrqQjuyUhyl8+v8tdYIV+H8qJ7xPwP4KjEjD3WEStu
+         za14+12WDAmjKvMq4ubcVPsbiDSAk7azpgPt3+rWwM5zZegSC6aoQsfZreyZ//MidH/T
+         YttO3WthCjsr7brKaaF1JInsQXSZMv2pXjjJTWfqj3VvDVIR6pHHXXGs41wBHsbbq33p
+         yVlg==;
+        darn=vger.kernel.org
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1773266402; x=1773871202; darn=vger.kernel.org;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=9/KedjfWy5Kjar9/btvlIUwnd/7kYotXnwSFyBrJ2Fo=;
+        b=UVxYzdObuE8nUbkD2avV/19rDiCLMT9Mj4sE5XPTqpIqrrtdLAGUFRP+hCrncWF7wu
+         3haYqtcTYCnvIc2klnV6LQYFVj3Pj4C8KZORgMuDec1ZL+1AdmPqUIy8A/HQVIvTIaRl
+         //gHB9h7M279nPkcphp8AI1ev7iGvz4y0l/fnyVXMqsr7JZNF2XaFBO9pwXnNNXIPVb1
+         hgJ5MPm/oeHVR6mXoTWY9dbHO5JfeeyAer187wKsgHVuPrGacE1+fAy0Zr4Xmgtpi3gr
+         cMyLNp5+VJYhW9F5F2rmeEgmALyo0VmFGQWNH8PV/Irir2kp/RFTxY/evIFiuqFI7LFt
+         MLxA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1773266402; x=1773871202;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=9/KedjfWy5Kjar9/btvlIUwnd/7kYotXnwSFyBrJ2Fo=;
+        b=fZgbXHF9elexUNlLW1Ht8lu5Nb8TKnuwq6AIEFiuj4Ekh3urs1jvHclUv5rUqYvHvD
+         l0V6eu+xy8X+RSV5mpTdUT9ZZHNyTUwbseqKbsLzWf6aOdDUDdGsug3WeHN7lsRFioDy
+         9/Hnp+/+4XxFwPufFmx6lGDGJChez5yyAYWZN2CEXmeoWG7TlNDnCXzK5lAoSqI+pFT/
+         2dO3tp0w9x8K+sErfwnK8aTDFqwGowgyux10fMB0ypKHC/ZeLPV0yXDQeHNaZ2tKN4iY
+         k5471ZNuhtyURrcAdlkiiw7SPOlcWvD/LtBV+TaH7S+8ucJFkkgTJmHblhE0WyId03zq
+         C/9g==
+X-Forwarded-Encrypted: i=1; AJvYcCV1EfAyMMmCK8qP4DT54b9YO4+2+3lZR6As48P8U0SeERh0sqGio11GSAOa5z570UaaQU0CAaeXpfVS@vger.kernel.org
+X-Gm-Message-State: AOJu0YzieoJEoobuwDGgxsReT2UCfXObwUvdhiiaDPyfCWuupwWqnDbm
+	bQdq07uMTMi9Utp4W2aXVkPW+AL+CI951iULappqPnfUpUh0WebLxNZ6B0Fs6Pzzs3LduKZcKHK
+	Qkf7VovJqzE8M3rMugwLO8MM13mU8zBlB3ffHbrEd
+X-Gm-Gg: ATEYQzxIpnvproHG5XGzGGkTVcAfhd4SQeE1lDR6dY4C0PR9dAV38KMwCstgPjgebig
+	N8RZ7gDyUsCX/oddE8R8Plmm2NiOu9wZNxuTZx012N3omTWhb2KWeViyQRsvzvw5SNTeuhyLgs/
+	ELoJsI/ITFs5q3rrfhLSX2akQQJgxLK2t8zNcUUMp4J6FhAQU6oQLx8FhEHvTApA9fgyw7DyLjy
+	mXYoifDlB1cCSCQtLR0hT9QagH2TislOh8bZfUK9CgeB6I5kpxevYE9D9azRwPeivDvLRGAxaNG
+	2smmJrLb
+X-Received: by 2002:a05:622a:350:b0:509:72a:ae59 with SMTP id
+ d75a77b69052e-509480417c1mr4291741cf.10.1773266401066; Wed, 11 Mar 2026
+ 15:00:01 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <5726fc65-7d24-4353-b341-81b785f2575c@t-8ch.de>
+References: <20260220151216.873182-1-lrizzo@google.com>
+In-Reply-To: <20260220151216.873182-1-lrizzo@google.com>
+From: Luigi Rizzo <lrizzo@google.com>
+Date: Wed, 11 Mar 2026 22:59:23 +0100
+X-Gm-Features: AaiRm52ipaDg0AOnuFS0crd2gONcPDRiv4mJlmuJXZ2F7Hsq42gx5EP5HcomsF8
+Message-ID: <CAMOZA0Kz8k5cf-rPQXGEN_U8AwCqN+gyt3d+1bfU0S1-rXq90A@mail.gmail.com>
+Subject: Re: [PATCH] x86/apic: remove vector_lock from apic_retrigger_irq()
+To: Thomas Gleixner <tglx@linutronix.de>, Marc Zyngier <maz@kernel.org>, 
+	Luigi Rizzo <rizzo.unipi@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Mar 11, 2026 at 02:19:02PM +0100, Thomas Weißschuh wrote:
-> > > diff --git a/include/linux/module_signature.h b/include/linux/module_signature.h
-> > > index a45ce3b24403..3b510651830d 100644
-> > > --- a/include/linux/module_signature.h
-> > > +++ b/include/linux/module_signature.h
-> > > @@ -18,6 +18,7 @@ enum pkey_id_type {
-> > >  	PKEY_ID_PGP,		/* OpenPGP generated key ID */
-> > >  	PKEY_ID_X509,		/* X.509 arbitrary subjectKeyIdentifier */
-> > >  	PKEY_ID_PKCS7,		/* Signature in PKCS#7 message */
-> > > +	PKEY_ID_MERKLE,		/* Merkle proof for modules */
-> > 
-> > I recommend making the hash algorithm explicit:
-> > 
-> >         PKEY_ID_MERKLE_SHA256,	/* SHA-256 merkle proof for modules */
-> > 
-> > While I wouldn't encourage the addition of another hash algorithm
-> > (specifying one good algorithm for now is absolutely the right choice),
-> > if someone ever does need to add another one, we'd want them to be
-> > guided to simply introduce a new value of this enum rather than hack it
-> > in some other way.
-> 
-> The idea here was that this will only ever be used for module built as
-> part of the kernel build. So the actual implementation could change freely
-> without affecting anything.
-> 
-> But I don't have hard feelings about it.
+On Fri, Feb 20, 2026 at 4:12=E2=80=AFPM Luigi Rizzo <lrizzo@google.com> wro=
+te:
+>
+> apic_retrigger_irq() grabs vector_lock, but this is not needed because
+> any caller of this function holds the irqdesc lock, and that suffices to
+> protect apicd->vector.
+>
+> Remove the unnecessary lock.
+>
+> Thomas found this is a leftover from v2.6 when it was truly needed.
+>
+> Signed-off-by: Luigi Rizzo <lrizzo@google.com>
+> ---
+>  arch/x86/kernel/apic/vector.c | 3 ---
+>  1 file changed, 3 deletions(-)
+>
+> diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.=
+c
+> index bddc544653999..fd0f133b379fd 100644
+> --- a/arch/x86/kernel/apic/vector.c
+> +++ b/arch/x86/kernel/apic/vector.c
+> @@ -1002,11 +1002,8 @@ static void apic_force_complete_move(struct irq_da=
+ta *irqd)
+>  static int apic_retrigger_irq(struct irq_data *irqd)
+>  {
+>         struct apic_chip_data *apicd =3D apic_chip_data(irqd);
+> -       unsigned long flags;
+>
+> -       raw_spin_lock_irqsave(&vector_lock, flags);
+>         __apic_send_IPI(apicd->cpu, apicd->vector);
+> -       raw_spin_unlock_irqrestore(&vector_lock, flags);
+>
+>         return 1;
+>  }
+> --
+> 2.53.0.345.g96ddfc5eaa-goog
+>
 
-Ah, okay.  That's even better then: if someone adds another algorithm it
-would simply be a kconfig option.
+Is there any concern with this proposed patch?
 
-It seems 'struct module_signature' itself is intended to be a stable
-ABI, though.  So I think there's an opportunity for confusion here.  It
-might be worth leaving a note somewhere that the format of the
-PKEY_ID_MERKLE portion of the struct does not need to be kept stable and
-can freely change in each kernel build.
-
-- Eric
+cheers
+luigi
