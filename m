@@ -1,108 +1,179 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ot1-f44.google.com (mail-ot1-f44.google.com [209.85.210.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 75A1835DA45;
-	Fri, 13 Mar 2026 11:57:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3B5923164C7
+	for <linux-arch@vger.kernel.org>; Fri, 13 Mar 2026 13:11:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773403069; cv=none; b=SN6ESMzmO4CsQbKTC5102aXTGlVYg5033+kOKxZQ3cN++QaarOvj+MmHeaqTvQpFqvvjJ4RiEIh25bfdau9YIjBPGyA6XcU2RKn+JV6IDONsH6gYUH7/yGu/OEPWXmBES/X5IF8S9pGLX84TOX04ysE+k1m3tmZdQvi8DoG5AJA=
+	t=1773407503; cv=none; b=bcumKGmzyzCucJ/Bok1DGTPKtvh+6BfaOMieCquwTPNgFx4omXSHXRhOGrNa2VWGlwsDBSOD/uHIwwiUDc9LMz3JM7Qd86pIkCQPEZAEr3FiJ9Gy9Rjb7faJPG/ocsWYLlwyl4kSd4P2CZOPzLOrKi/VWLJz80/EBtgO6CJoaX0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773403069; c=relaxed/simple;
-	bh=CrD3I2JAdDJPk+hpeYfNjnkJT2Gk2XwXZZ5AIzoGlgU=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=P71tkdDgOmQKEiNcc7c57sxdrICnLE/VmxfvZigjOUuariEsPAYmr1rmuo5GnJdHXuxq5o2WgRyFHTdD/8eAHt7HChsfGRhDMP/ByjyWOUpDw+huyPHwVyaue7fewHHy7ZpaMy1f3WBAFD0Htmx8FzWZzZOW5AteA0kRFdUvdC0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=qo6KOLQw; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1773407503; c=relaxed/simple;
+	bh=IDRek7YZfB+4Kr1w0QgBbJ4cZK+zQPKPw+4cJp1INA0=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=ObW2KSmJYAtr20a7e/q0nzbZ0No+xUyYGTcscFcuY7wlhdBah34LrflDp7+QT5ycp0vdfdro9XYdD2eOyCI/vLGEjStFVjMqNsUTqEn00H7p8Nq4P68n1hgGh9VCLj2sX7rlbO0Z4Z2fra+POGeedrZjfMHzmy430IlFX+e7vcg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PcvJ/Oly; arc=none smtp.client-ip=209.85.210.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="qo6KOLQw"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=nfiAMheGFm3B9wEX22RY8FMrrz8Bp0H6yrIVSJqYtkE=; b=qo6KOLQwMn3ekceaiDDnPHv4WD
-	4LWyiqlIbC6wYdeylyf9WLTAPNBuMAu7HbV83tzMs+RHgKMEo7Dn4seWf33zhVoIIbciY79dBnuYT
-	O50eaYNg09aG+RDcwFoWbX4nelYbeolVOadVpLNr6gKLqeOP6A4iFIxdNhIVGFVhRQLIbX/AjX+Xq
-	xRwPeJ1fSfLTnwzSKSyUiTQbulTS2G9M380PMs0MeDA5zC82qkooDB7+Jt61zJSyqLdI6BwH8SLGx
-	0s4pVcM5WPIteXG3NkLiPG3ucRI01SzT/GSdau0kCE51WzUfzVZDwd9odSAVFBkKPMXPtjnG3VBki
-	J5OBlXWg==;
-Received: from 2001-1c00-8d85-5700-266e-96ff-fe07-7dcc.cable.dynamic.v6.ziggo.nl ([2001:1c00:8d85:5700:266e:96ff:fe07:7dcc] helo=noisy.programming.kicks-ass.net)
-	by casper.infradead.org with esmtpsa (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1w118X-0000000D2cC-3C3g;
-	Fri, 13 Mar 2026 11:57:01 +0000
-Received: by noisy.programming.kicks-ass.net (Postfix, from userid 1000)
-	id 87EC930327F; Fri, 13 Mar 2026 12:57:00 +0100 (CET)
-Date: Fri, 13 Mar 2026 12:57:00 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-To: Jinjie Ruan <ruanjinjie@huawei.com>
-Cc: catalin.marinas@arm.com, will@kernel.org, oleg@redhat.com,
-	hca@linux.ibm.com, gor@linux.ibm.com, agordeev@linux.ibm.com,
-	borntraeger@linux.ibm.com, svens@linux.ibm.com, tglx@kernel.org,
-	mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com,
-	hpa@zytor.com, arnd@arndb.de, shuah@kernel.org, kees@kernel.org,
-	luto@amacapital.net, wad@chromium.org, kevin.brodsky@arm.com,
-	charlie@rivosinc.com, macro@orcam.me.uk, deller@gmx.de,
-	ldv@strace.io, anshuman.khandual@arm.com, song@kernel.org,
-	ryan.roberts@arm.com, mark.rutland@arm.com, ada.coupriediaz@arm.com,
-	broonie@kernel.org, pengcan@kylinos.cn, liqiang01@kylinos.cn,
-	thuth@redhat.com, andreas@gaisler.com,
-	schuster.simon@siemens-energy.com, jremus@linux.ibm.com,
-	jgross@suse.com, mathieu.desnoyers@efficios.com,
-	yeoreum.yun@arm.com, kmal@cock.li, dvyukov@google.com,
-	akpm@linux-foundation.org, reddybalavignesh9979@gmail.com,
-	richard.weiyang@gmail.com, x86@kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
-	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-kselftest@vger.kernel.org
-Subject: Re: [PATCH v13 00/12] arm64: entry: Convert to Generic Entry
-Message-ID: <20260313115700.GA2872@noisy.programming.kicks-ass.net>
-References: <20260313094738.3985794-1-ruanjinjie@huawei.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PcvJ/Oly"
+Received: by mail-ot1-f44.google.com with SMTP id 46e09a7af769-7d73d6976adso1891895a34.2
+        for <linux-arch@vger.kernel.org>; Fri, 13 Mar 2026 06:11:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1773407501; x=1774012301; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=J7LRJl13Yqup7eJj7JB8u2raYRuugKEd6d7nm5DRaag=;
+        b=PcvJ/OlyC1eID0BVumFb1vdQIc7Tpwk7MkhA5KoWJZZGLhbgp9CDEARqi9nkFN2c+H
+         Y4DpWCpav6wdFazEHUONGatxGgi8GAIct+Zab47SQXichAm3v1RSdHEC2F5ORBqfwti8
+         H54PrnPdFDDzj+KECnOcENB/jUflFzn10Oj8K8sL2HxWUVZ+kXngZnFQCOWcQ4k1+HAZ
+         7F/d5q8/DBfJT4hamDPw9h01FHHikrHsP6yjvRw1nzndPf7oclQEgFD1Lgz84/idgIh2
+         PEQN3hKnlAAYz1a7vRckn2ujisQ2HVVVvm18Ay0wivzK8swKOXzQsguW7YMbyDkV+mCL
+         F3zQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1773407501; x=1774012301;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=J7LRJl13Yqup7eJj7JB8u2raYRuugKEd6d7nm5DRaag=;
+        b=WTCCKBLkrXm3aEKFQmdx4yxW5BZHY2lEWuk0o2+ByuJ30TWoNVovOzO/L6+fZbkwAf
+         v95LQF18NLId163+eXrvLnTOeqt0WUuhQqyZJxLZul1vOSYFnETe6SBjV0gCgF8/09Bl
+         dKm9Rj+wOfx5AI9LxPZMRRuIhpy6TR8Nk8v9Vyk1diioJlrk097yhq85PpVz2h2Vjllf
+         IJ5Vjm5Ze9AYswrGdTiNsFXu6sPFuwGQkpvqhsEmJSw5sKsMfuOL8vZSdx6ZKCsm6deW
+         XH41ORXoRp3lTqWr1BjJ8Nl32r49e9D19IH8QAZTZnainKdPJoXS4Ocm8QW/dKb3LYDL
+         Xr+g==
+X-Forwarded-Encrypted: i=1; AJvYcCUSy/Mr67weNDwY1kawOBW6UuDWwFAqAvFHf0b8uUEs2XwzdHoZDiQkeo7Flzeu4px5xo6A+1Azg0/7@vger.kernel.org
+X-Gm-Message-State: AOJu0Yxco2iTw3AWMEH/xzewqv1PzDpDFB12Pr3KjNodHu78OT7/HDOh
+	Y5rDZmlr+3XGhqc/xi4vBcUeHq48kZPNjUJ+ihK4O7w0VbG+wSBZx51y
+X-Gm-Gg: ATEYQzxS2/Xajop+mS9TQ4o//jZpM8rmDcoMJ0jmQ/aGwV1If2f5sCES87UaD7seXgU
+	2HwPIMOnqVaneG+8tqPOaLaVr1qR0kcK4JPDoS5YIRZBS/mI6C793XCc+nMmnDGJupDOpcZjhyI
+	Qe0ZqeYtnweinAkWbl/lMZnvFFoUBKo1G6h3DbMUraF7PNaY8K/bIBXq6LjwWz0LOmNFE7OM8sB
+	N/RFv/z4bEPELE3/JBlSQjDzd7rgibP6gF2WdTTwUCxCHqb4O3RswYrNvagxtkdFWfbT6IK/oL9
+	GJFidq/emRCmI+0JUODwOhMd1VapQqjOPR0Umx0f3vwbSObN8BZ/mXvWYFkzkQ9LV3QH+VmRzGX
+	luyyGSa1Ul1CEuY1rocMgj6xnfQnFOm1SAZAKg6rZxsPprwLLTMUn6m/GCCsZtJccdgqjm8qQe/
+	pBvKuXjR6zR9BAlobEE35kN1O7RUEY7pGLa/7feoYWbf7Rbt9X
+X-Received: by 2002:a05:6830:258c:b0:7d1:586a:32a2 with SMTP id 46e09a7af769-7d78232b1a0mr2235981a34.0.1773407500985;
+        Fri, 13 Mar 2026 06:11:40 -0700 (PDT)
+Received: from frodo (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
+        by smtp.googlemail.com with ESMTPSA id 46e09a7af769-7d76ae90586sm6733728a34.22.2026.03.13.06.11.39
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 13 Mar 2026 06:11:40 -0700 (PDT)
+From: Jim Cromie <jim.cromie@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Cc: Jim Cromie <jim.cromie@gmail.com>,
+	mripard@kernel.org,
+	tzimmermann@suse.de,
+	maarten.lankhorst@linux.intel.com,
+	jani.nikula@intel.com,
+	ville.syrjala@linux.intel.com,
+	christian.koenig@amd.com,
+	matthew.auld@intel.com,
+	arunpravin.paneerselvam@amd.com,
+	louis.chauvet@bootlin.com,
+	skhan@linuxfoundation.org,
+	pmladek@suse.com,
+	ukaszb@chromium.org,
+	dri-devel@lists.freedesktop.org,
+	intel-gfx@lists.freedesktop.org,
+	amd-gfx@lists.freedesktop.org,
+	kernel test robot <oliver.sang@intel.com>
+Subject: [PATCH v11 01/65] dyndbg: fix NULL ptr on i386 due to section alignment
+Date: Fri, 13 Mar 2026 07:09:08 -0600
+Message-ID: <20260313131045.2526422-2-jim.cromie@gmail.com>
+X-Mailer: git-send-email 2.53.0
+In-Reply-To: <20260313131045.2526422-1-jim.cromie@gmail.com>
+References: <20260313131045.2526422-1-jim.cromie@gmail.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260313094738.3985794-1-ruanjinjie@huawei.com>
+Content-Transfer-Encoding: 8bit
 
-On Fri, Mar 13, 2026 at 05:47:26PM +0800, Jinjie Ruan wrote:
+When dyndbg classmaps get used (later in this series), the
+__dyndbg_classes section (which has 28 byte structs on i386), causes
+mis-alignment of the following __dyndbg section, resulting in a NULL
+pointer deref in dynamic_debug_init().
 
-> Jinjie Ruan (11):
->   arm64/ptrace: Refactor syscall_trace_enter/exit() to accept flags
->     parameter
->   arm64/ptrace: Expand secure_computing() in place
->   arm64/ptrace: Use syscall_get_arguments() helper for audit
->   arm64: ptrace: Move rseq_syscall() before audit_syscall_exit()
->   arm64: syscall: Introduce syscall_exit_to_user_mode_work()
->   arm64/ptrace: Define and use _TIF_SYSCALL_EXIT_WORK
->   arm64/ptrace: Skip syscall exit reporting for PTRACE_SYSEMU_SINGLESTEP
->   arm64: entry: Convert to generic entry
->   arm64: Inline el0_svc_common()
->   s390: Rename TIF_SINGLE_STEP to TIF_SINGLESTEP
->   arm64: Use generic TIF bits for common thread flags
-> 
-> kemal (1):
->   selftests: sud_test: Support aarch64
-> 
->  arch/arm64/Kconfig                            |   3 +-
->  arch/arm64/include/asm/entry-common.h         |  76 ++++++++++++
->  arch/arm64/include/asm/syscall.h              |  19 ++-
->  arch/arm64/include/asm/thread_info.h          |  76 ++++--------
->  arch/arm64/kernel/debug-monitors.c            |   7 ++
->  arch/arm64/kernel/ptrace.c                    | 115 ------------------
->  arch/arm64/kernel/signal.c                    |   2 +-
->  arch/arm64/kernel/syscall.c                   |  29 ++---
->  arch/s390/include/asm/thread_info.h           |   7 +-
->  arch/s390/kernel/process.c                    |   2 +-
->  arch/s390/kernel/ptrace.c                     |  20 +--
->  arch/s390/kernel/signal.c                     |   6 +-
->  arch/x86/include/asm/thread_info.h            |   6 +-
->  include/asm-generic/thread_info_tif.h         |   5 +
->  .../syscall_user_dispatch/sud_benchmark.c     |   2 +-
->  .../syscall_user_dispatch/sud_test.c          |   4 +
->  16 files changed, 166 insertions(+), 213 deletions(-)
+To fix this, employ belt + suspenders:
 
-AFAICT arm64 is still using exit_to_user_mode_prepare_legacy() after
-this. This cannot be right.
+1. move __dyndbg section above __dyndbg_classes.  This restores it to
+its original position directly after the ALIGN(8), and fixes the
+immediate problem.
+
+2. add ALIGN(8) to the BOUNDED_SECTION* macros.  This aligns all
+existing sections using the macro, and also fixes a future
+dyndbg_class_* addition which would suffer the same misalignment on
+i386.  Many of the existing macro uses already have a preceding ALIGN,
+these are now redundant, but are harmless, so are left to avoid churn.
+
+3. remove BOUNDED_SECTION* uses in ORC_UNWINDER sections.  These have
+smaller alignments, *and* scripts/sorttable.c does not tolerate the
+added ALIGN(8) padding.
+
+Reported-by: kernel test robot <oliver.sang@intel.com>
+Closes: https://lore.kernel.org/oe-lkp/202601211325.7e1f336-lkp@intel.com
+Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
+---
+ include/asm-generic/vmlinux.lds.h | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index eeb070f330bd..a2ba7e3d9994 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -212,11 +212,13 @@
+ #endif
+ 
+ #define BOUNDED_SECTION_PRE_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
++	. = ALIGN(8);							\
+ 	_BEGIN_##_label_ = .;						\
+ 	KEEP(*(_sec_))							\
+ 	_END_##_label_ = .;
+ 
+ #define BOUNDED_SECTION_POST_LABEL(_sec_, _label_, _BEGIN_, _END_)	\
++	. = ALIGN(8);							\
+ 	_label_##_BEGIN_ = .;						\
+ 	KEEP(*(_sec_))							\
+ 	_label_##_END_ = .;
+@@ -383,8 +385,8 @@
+ 	*(__tracepoints)						\
+ 	/* implement dynamic printk debug */				\
+ 	. = ALIGN(8);							\
+-	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)		\
+ 	BOUNDED_SECTION_BY(__dyndbg, ___dyndbg)				\
++	BOUNDED_SECTION_BY(__dyndbg_classes, ___dyndbg_classes)		\
+ 	CODETAG_SECTIONS()						\
+ 	LIKELY_PROFILE()		       				\
+ 	BRANCH_PROFILE()						\
+@@ -867,15 +869,21 @@
+ #ifdef CONFIG_UNWINDER_ORC
+ #define ORC_UNWIND_TABLE						\
+ 	.orc_header : AT(ADDR(.orc_header) - LOAD_OFFSET) {		\
+-		BOUNDED_SECTION_BY(.orc_header, _orc_header)		\
++		__start_orc_header = .;					\
++		KEEP(*(.orc_header))					\
++		__stop_orc_header = .;					\
+ 	}								\
+ 	. = ALIGN(4);							\
+ 	.orc_unwind_ip : AT(ADDR(.orc_unwind_ip) - LOAD_OFFSET) {	\
+-		BOUNDED_SECTION_BY(.orc_unwind_ip, _orc_unwind_ip)	\
++		__start_orc_unwind_ip = .;				\
++		KEEP(*(.orc_unwind_ip))					\
++		__stop_orc_unwind_ip = .;				\
+ 	}								\
+ 	. = ALIGN(2);							\
+ 	.orc_unwind : AT(ADDR(.orc_unwind) - LOAD_OFFSET) {		\
+-		BOUNDED_SECTION_BY(.orc_unwind, _orc_unwind)		\
++		__start_orc_unwind = .;					\
++		KEEP(*(.orc_unwind))					\
++		__stop_orc_unwind = .;					\
+ 	}								\
+ 	text_size = _etext - _stext;					\
+ 	. = ALIGN(4);							\
+-- 
+2.53.0
+
