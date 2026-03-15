@@ -1,101 +1,71 @@
-Received: from mail-oi1-f182.google.com (mail-oi1-f182.google.com [209.85.167.182])
+Received: from mail-pf1-f170.google.com (mail-pf1-f170.google.com [209.85.210.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E14C539DBDA
-	for <linux-arch@vger.kernel.org>; Fri, 13 Mar 2026 13:23:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51ACD224B1E
+	for <linux-arch@vger.kernel.org>; Sun, 15 Mar 2026 04:09:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773408229; cv=none; b=AqbAHs/QOFL+382bW/Hzr54dEmIvJaptg6BjjnljuEH0SZYS0+BZNU18eQ1SjnaLkTeAexDEY9IBOOwPbGMr4vvb5ZziPQuG2AbS0t5M4bJ1ukk0iv6m20IR1t8m52CeZcnaNDAdh9tEt5enlSDpTbJWaavJ7RMoIVEZ5bln39A=
+	t=1773547764; cv=none; b=ZoKher/Lj8JkhMjaCsBJbP9BB4YO+iJ3Z8ca/rWKFWaqo+BIFDj2aHrO1z/M/LVow+oaLRm8xk5RiAowomd0rhmd3NshUbpBoyRKPlBB0ki0RH4UmSIYkwPi4EDWBfKNEFqVb/O+uN1PjjNwGIVhIy5Ihrntkijypp6RVRyieDM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773408229; c=relaxed/simple;
-	bh=0v4Z6ahcR8DyEpsorA2Z3hqAWonf0ZM/gpsitCEHZjo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=IE1qlfbdDtR/bcqehBuI58Q9KQtknEztyRO3y9GKkssj9wlZPait1raNAWPTOr6lH5C9U70GGrfx0gSScpit3xnGWTTGHXl20hx+TAtLq4Lk0fD3Mtyt8/S+2Ux2qMPCM1lf5TDHzbqzQ26gE7LvZTT+iG6/XHdS2sz4Le/V81g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GpXaGHXt; arc=none smtp.client-ip=209.85.167.182
+	s=arc-20240116; t=1773547764; c=relaxed/simple;
+	bh=INKAE0GpPshGqlXYveQDAFAlGDjfbfIa112TnAVqrkY=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=EDV+LgBYsv9X/kSQx4Hks9TzpP2rwZIlwZSNoNhbxUszzkBmK2l8XImwYPRREfrWXXzKnY+hm3Fc99wHgVSSMA0h292W2ItoWLntNHCDKXUCLVt31LfMHxPuMIByF5TWRZAs6KfSpPIcwau0Kk9hEjbKIyc71z9CCgoNQUBwhjM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=LRMP9zxM; arc=none smtp.client-ip=209.85.210.170
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GpXaGHXt"
-Received: by mail-oi1-f182.google.com with SMTP id 5614622812f47-46726528f1cso1546335b6e.0
-        for <linux-arch@vger.kernel.org>; Fri, 13 Mar 2026 06:23:45 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="LRMP9zxM"
+Received: by mail-pf1-f170.google.com with SMTP id d2e1a72fcca58-82a3d3235c9so79321b3a.2
+        for <linux-arch@vger.kernel.org>; Sat, 14 Mar 2026 21:09:22 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1773408225; x=1774013025; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=lB762FeEpTmiwe79svqmrJe7D/XsTTkp/IbU6vqNYr8=;
-        b=GpXaGHXtP9ouaUa3pfx01l8PrBnYRlKmAg+nmsznqPIgD8HM5BXGGPGjaBX8svyo3S
-         M011PGdaZ053X/z34BxIgOxjioaGVKrWsi6hGA0PX0YCyVySb6TYxuqSRM9khR6Tm96G
-         JKyUM1mkw6GVSJLMXO7L35wBoa4SzeeBdbzfz6j7+yEi12CS2wGExDI+LcVHc1Ivyd48
-         jLZSf9r+UwAD6B/U64NmjRrkkw9SgRjI8U7zxRQHUzNWb/MdZPwVT629IQxlHE9dqMIX
-         EOePeM8POPfPkidBTZcSG5Vgp+vbAj7kkdQ35M1sQ8/iqrdy3LLoHu/2HhsjJEREByeM
-         RZlw==
+        d=gmail.com; s=20230601; t=1773547762; x=1774152562; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=5r2zR4WWCFiXxARP5TrvCjNx825jrBhU1fBEzJevtCY=;
+        b=LRMP9zxMKo9NlbWMv02usUwr73Vjwa3rwFrxNKpn7+Yvfxlz6ffTnOXA4o2JuMARx2
+         /c4mr0DOQwwbh9Vvo0tABKrYdCvgz6aWAC+v9aW8tg9W8ODI4PuVEbYKAgicKF8Uqd1J
+         /HIny7+q+0bhfX5qSVZ5dAspLDQhQvmWIDYJzJpWBa9o5W57pGJLSMgwLWJdBubHFVT6
+         3dZDtbU5//g9JOpmp65utZpqw0h7BYjKmNq7Vucq4RpwOUOLL5o34wLIdGS6RLZkyG5J
+         3NEditgME2Yw7S/fpU8cEQTYkfqqWUnoCDLO/P6xzmXYtW/nZSoVQqsHnt7uQtLEXyLs
+         I53w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1773408225; x=1774013025;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=lB762FeEpTmiwe79svqmrJe7D/XsTTkp/IbU6vqNYr8=;
-        b=ehpvl56yZp7fB5KfSvHz2LFq0GaRcY9Wpduchxe6rvqx0z8DCSQobrG+8p8gZudJEy
-         TrAl4QtefYXSllHiOUHKrMFlhXJ4373H/ClwSTlJzkY8tFNWngG3jXdiDbCP6SRtFX8T
-         Kfc2veWXebcBt2SpL6582estmMsS7TUL8y8ZKux3kWymFdNlmWMA3h4eqnrwmu5+uJEz
-         oNNELttT7xkG53nIJh1Ll8QLRKDuwGrV6gPSz/z0YohD9VSmh9m1QYrRxALVjTVi+G1r
-         lxVxKfNpePEbddHEJCP2IiUarlVCOHY+D/jSomJaMQ8ZMk9TCDVXVvwPezUgFjsOQ16q
-         PECg==
-X-Forwarded-Encrypted: i=1; AJvYcCUq1k+HaxQZtg6aHjGtiWmfbRujR8DpBTj+kmM6BmydbnVe82uUwPer3MWUiKcB5nU5M8ksESGhtU6L@vger.kernel.org
-X-Gm-Message-State: AOJu0Yw9FCGMdNp7JaWkRytAEmjVOXiKIni8RUywEuhJN1iXJst943ZX
-	C8+oSSFg9TsfBOWqWP9pln/3UJySPHbk0U8OZhbDp82ywfvmUu4/SVrr
-X-Gm-Gg: ATEYQzzpcJQSQieS7If66otJA9b39nBFiEAknr7sHqWRTMrhJ38JDJzJt8f0L78eVLn
-	5ek4eSimW4D5DFT9xV8jdDg+zXI3rdp4O8vYaacbLpvoS/vwZ47ic0WiKJ6F1o+uOyrftbPY6x2
-	b4KjkF7kHrOaHiBBxJ0t81wFrQrDoH/h4gBIGHNXcev3sTjlZjurtBvII0jN/LHbPZCv82jUOrh
-	3mYHmdkrjN0t8NlKYfX6r8K1mfQzr6Ce15EQgYQB1O4HwuysI8Zg7RwQ5Ww1Ru4nDFlnn/jTsSs
-	PpRgz+xjJqoJsjr8+6APVl4GbjZDuE8TQL+0z6fETeuzshzqlUSyqg3qIFOiLa9p4OiRcYYph1F
-	VvwvscmyWhnNpA8Cv64mPoiTWmixy1sd0Ktc5OaXues7sdxmEdr7JZbFKCIh9hrvx8PO71VZZfl
-	um7/UF+/4+F7zzIj0XqYjpuGPPOVY2yOdI98B9lQonpOVnV40ykxJM4nSIW2k=
-X-Received: by 2002:a05:6808:1b14:b0:464:bb83:2761 with SMTP id 5614622812f47-4675755e8e0mr1657630b6e.53.1773408224314;
-        Fri, 13 Mar 2026 06:23:44 -0700 (PDT)
-Received: from frodo (c-98-38-17-99.hsd1.co.comcast.net. [98.38.17.99])
-        by smtp.googlemail.com with ESMTPSA id 5614622812f47-4673434a35csm4795987b6e.20.2026.03.13.06.23.42
+        d=1e100.net; s=20251104; t=1773547762; x=1774152562;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=5r2zR4WWCFiXxARP5TrvCjNx825jrBhU1fBEzJevtCY=;
+        b=FOxiIc04cFgtvtSFeiBDocV9UiIvsuZ1xmI796DylohZJ71Qgfque79UVyJwcwKJy8
+         zBjvKPgNrJ/Msb6my39WWG8zXqai952SlUcTXbS+zOreRoHpsy/bXyh4GK3SWFh9hs2n
+         16j+hOvEBENhNwKA+BHrAO+FF/nMANeN0kPoU1t42ECrXswDruX8QQzYCM1BtLTFItFO
+         cHYNM4wvdjack/eGQbwsc5L184v3GHRZRHrri9uLVHJJ3sfgAt8QxpkZ5z4fNr5a9pfx
+         foFDqX9L+9IqT4K5As0hpLKBA2i9EkmBUIiX+Te45lkNcb/0Di74dTDjYYwRlyQhunS/
+         D+Dg==
+X-Forwarded-Encrypted: i=1; AJvYcCWMOfWT+z305vwrDSHoZ399Ebtqd0Km5g1h9u/c1p5T4lSeeze2Cjj+JOjuSbm5xOImtbKwmFCLefjU@vger.kernel.org
+X-Gm-Message-State: AOJu0YwD+MgC9lVs6/ox05NQMa3HMy+BUbQbu+MshQnewNJhvK/l+SkK
+	Aqq0CBmLIMxo6lre8PhpLhgoNR3q4lhosanniDCibOeHLBXQ8hYQgUpt
+X-Gm-Gg: ATEYQzx7/LWvydrf7PZu/QD1oD5ruKfSF+JlQuGKd1xt6x6lMfFZ06ZgNK9zjj8GZHS
+	DcZQ+ogSeUBWqWjMsQMr37pdZHNkfq63Ij7tHRUJtnU1ukFIS0PaalxJfoYCHz0paNentDdEpEB
+	Pzn/SZ73u5Mec/X8qQdtPSdFLZ2ZuQ+okjSGdn2ySeF8S224pz7e57l7+41v16AenClRNAtIUva
+	0YWezdcamFrWa43tLI0vxLSgUFrWBJ/zUmSOiO925bxZrpUN4lFipFQWIFMYAoRQb3p32Q3MPcx
+	WAu79v0Xi8rQnWTyrMOTryUle9LJkdg7TTilRMaMKyigcaHPC+FQH7znXF2C12LmRd+9FGpKho6
+	CS3NS1uvfAiEbOQP/PdwKWzDgm/uXY42quRaioTsRYCp89HsFK54oXwb2k0y6Ovv+L1Hi9r+MS7
+	Qabh/TsUTUQ8jNEJolsWXI+9aZ/DeymGkgtg==
+X-Received: by 2002:a05:6a00:896:b0:829:7e6d:cf20 with SMTP id d2e1a72fcca58-82a19941b44mr8203865b3a.58.1773547761565;
+        Sat, 14 Mar 2026 21:09:21 -0700 (PDT)
+Received: from Modern-15.. ([2401:4900:b50e:ee5b:78d:f26b:704b:c464])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-82a072449fesm10192206b3a.13.2026.03.14.21.09.17
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 13 Mar 2026 06:23:43 -0700 (PDT)
-From: Jim Cromie <jim.cromie@gmail.com>
-To: airlied@gmail.com,
-	simona@ffwll.ch,
-	jbaron@akamai.com,
-	gregkh@linuxfoundation.org,
-	Arnd Bergmann <arnd@arndb.de>,
-	Jim Cromie <jim.cromie@gmail.com>,
-	Luis Chamberlain <mcgrof@kernel.org>,
-	Petr Pavlu <petr.pavlu@suse.com>,
-	Daniel Gomez <da.gomez@kernel.org>,
-	Sami Tolvanen <samitolvanen@google.com>,
-	Aaron Tomlin <atomlin@atomlin.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	linux-kernel@vger.kernel.org,
+        Sat, 14 Mar 2026 21:09:21 -0700 (PDT)
+From: Mathura_Kumar <academic1mathura@gmail.com>
+To: brauner@kernel.org
+Cc: academic1mathura@gmail.com,
 	linux-arch@vger.kernel.org,
-	linux-modules@vger.kernel.org
-Cc: mripard@kernel.org,
-	tzimmermann@suse.de,
-	maarten.lankhorst@linux.intel.com,
-	jani.nikula@intel.com,
-	ville.syrjala@linux.intel.com,
-	christian.koenig@amd.com,
-	matthew.auld@intel.com,
-	arunpravin.paneerselvam@amd.com,
-	louis.chauvet@bootlin.com,
-	skhan@linuxfoundation.org,
-	pmladek@suse.com,
-	ukaszb@chromium.org,
-	dri-devel@lists.freedesktop.org,
-	intel-gfx@lists.freedesktop.org,
-	amd-gfx@lists.freedesktop.org,
-	linux-doc@vger.kernel.org
-Subject: [PATCH v11 22/65] dyndbg-API: replace DECLARE_DYNDBG_CLASSMAP
-Date: Fri, 13 Mar 2026 07:19:47 -0600
-Message-ID: <20260313132103.2529746-23-jim.cromie@gmail.com>
-X-Mailer: git-send-email 2.53.0
-In-Reply-To: <20260313132103.2529746-1-jim.cromie@gmail.com>
-References: <20260313132103.2529746-1-jim.cromie@gmail.com>
+	linux-kernel@vger.kernel.org,
+	viro@zeniv.linux.org.uk
+Subject: [PATCH 0/4] Add new system call for non-destructive peek and inspection to posix ipc mqueue
+Date: Sun, 15 Mar 2026 09:37:56 +0530
+Message-ID: <20260315040827.156558-1-academic1mathura@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -104,988 +74,115 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-commit aad0214f3026 ("dyndbg: add DECLARE_DYNDBG_CLASSMAP macro")
 
-DECLARE_DYNDBG_CLASSMAP() has a design error; its usage fails a
-basic K&R rule: "define once, refer many times".
 
-When CONFIG_DRM_USE_DYNAMIC_DEBUG=y, it is used across DRM core &
-drivers; each invocation allocates/inits the classmap understood by
-that module.  They *all* must match for the DRM modules to respond
-consistently when drm.debug categories are enabled.  This is at least
-a maintenance hassle.
+Patch series overview:
 
-Worse, its the root-cause of the CONFIG_DRM_USE_DYNAMIC_DEBUG=Y
-regression; its use in both core & drivers obfuscates the 2 roles,
-muddling the design, yielding an incomplete initialization when
-modprobing drivers:
+  1. Add New system call do_mq_timedreceive2() and handler implementation
+  2. Add system call number in all  most common arch.
+  3. Prepared Documentation and test
+  4. Add entry in performance tools all most common file
 
-1st drm.ko loads, and dyndbg initializes its drm.debug callsites, then
-a drm-driver loads, but too late for the drm.debug enablement.
 
-And that gave us:
-commit bb2ff6c27bc9 ("drm: Disable dynamic debug as broken")
+Short Description:
 
-So retire it, replace with 2 macros:
-  DYNAMIC_DEBUG_CLASSMAP_DEFINE - invoked once from core - drm.ko
-  DYNAMIC_DEBUG_CLASSMAP_USE    - from all drm drivers and helpers.
-  NB: name-space de-noise
+    POSIX message queues currently lack a mechanism to read
+    a message without removing it from the queue. This is a
+    long-standing limitation,when we require inspection of queue state
+    without altering it.
 
-DYNAMIC_DEBUG_CLASSMAP_DEFINE: this reworks DECLARE_DYNDBG_CLASSMAP,
-basically by dropping the static qualifier on the classmap, and
-exporting it instead.
 
-DYNAMIC_DEBUG_CLASSMAP_USE: then refers to the exported var by name:
-  used from drivers, helper-mods
-  lets us drop the repetitive "classname" declarations
-  fixes 2nd-defn problem
-  creates a ddebug_class_user record in new __dyndbg_class_users section
-  new section is scanned "differently"
+    Design considerations:
+    Two approaches for copying message data to userspace
+    were evaluated:
 
-DECLARE_DYNDBG_CLASSMAP is preserved temporarily, to decouple DRM
-adaptation work and avoid compile-errs before its done.
+    1) Refcount-based message lifecycle handling
+       - This can help us  Avoids intermediate temp kernel copy
+       - Extends message lifetime
+       -But this may increase writer starvation under heavy load and
+        add unnecessary complication on priority  management and
+        delay more time to free space in inode due refcount may prevent
 
-The DEFINE,USE distinction, and the separate classmap-use record,
-allows dyndbg to initialize the driver's & helper's drm.debug
-callsites separately after each is modprobed.
+    2) Temporary kernel buffer copy
+       - Copies message into a bounded kernel buffer
+       - Reduces time message remains locked
+       - Improves fairness under write-heavy workloads
+       - Simpler lifetime management
 
-Basically, the classmap initial scan is repeated for classmap-users.
+    My implementation adopts the temporary buffer approach
+    to minimize starvation and reduce locking complexity.
+    The design allows future transition if refcounting is
+    deemed preferable.
 
-dyndbg's existing __dyndbg_classes[] section does:
+    Testing:
+      - 17 functional test cases
+      - Multi-threaded producer/consumer scenarios
+      - concurrent pop and peek
+      - Edge cases: empty queue, FIFO
+        invalid flags, signal interruption etc.
 
-. catalogs the module's classmaps
-. tells dyndbg about them, allowing >control
-. DYNAMIC_DEBUG_CLASSMAP_DEFINE creates section records.
-. we rename it to: __dyndbg_class_maps[]
+Use Case:
 
-this patch adds __dyndbg_class_users[] section:
+1) Observability in distributed systems
+ e.g Monitoring tools can inspect queue contents without interfering with
+    normal processing
 
-. catalogs users of classmap definitions from elsewhere
-. authorizes dyndbg to >control user's class'd prdbgs
-. DYNAMIC_DEBUG_CLASSMAP_USE() creates section records.
+2) Check pointing system like CRIU can have a look into queue without consuming and can store messages
 
-Now ddebug_add_module(etal) can handle classmap-uses similar to (and
-after) classmaps; when a dependent module is loaded, if it has
-classmap-uses (to a classmap-def in another module), that module's
-kernel params are scanned to find if it has a kparam that is wired to
-dyndbg's param-ops, and whose classmap is the one being ref'd.
+3) Resource-aware processing
 
-To support this, theres a few data/header changes:
+4) Selective Consumption for Specialized Workers
 
-new struct ddebug_class_user
-  contains: user-module-name, &classmap-defn
-  it records drm-driver's use of a classmap in the section, allowing lookup
+  Thanks for reviewing.
 
-struct ddebug_info gets 2 new fields for the new sections:
-  class_users, num_class_users.
-  set by dynamic_debug_init() for builtins.
-  or by kernel/module/main:load_info() for loadable modules.
+ Documentation/userspace-api/index.rst         |   1 +
+ Documentation/userspace-api/ipc.rst           | 222 +++++
+ arch/alpha/kernel/syscalls/syscall.tbl        |   1 +
+ arch/arm/tools/syscall.tbl                    |   1 +
+ arch/arm64/tools/syscall_32.tbl               |   1 +
+ arch/m68k/kernel/syscalls/syscall.tbl         |   1 +
+ arch/microblaze/kernel/syscalls/syscall.tbl   |   1 +
+ arch/mips/kernel/syscalls/syscall_n32.tbl     |   1 +
+ arch/mips/kernel/syscalls/syscall_n64.tbl     |   1 +
+ arch/mips/kernel/syscalls/syscall_o32.tbl     |   1 +
+ arch/parisc/kernel/syscalls/syscall.tbl       |   1 +
+ arch/powerpc/kernel/syscalls/syscall.tbl      |   1 +
+ arch/s390/kernel/syscalls/syscall.tbl         |   1 +
+ arch/sh/kernel/syscalls/syscall.tbl           |   1 +
+ arch/sparc/kernel/syscalls/syscall.tbl        |   1 +
+ arch/x86/entry/syscalls/syscall_32.tbl        |   1 +
+ arch/x86/entry/syscalls/syscall_64.tbl        |   1 +
+ arch/xtensa/kernel/syscalls/syscall.tbl       |   1 +
+ include/linux/compat.h                        |   6 +-
+ include/linux/syscalls.h                      |   6 +
+ include/uapi/asm-generic/unistd.h             |   7 +-
+ include/uapi/linux/mqueue.h                   |  18 +-
+ ipc/mqueue.c                                  | 186 ++++-
+ ipc/msg.c                                     |   2 +-
+ ipc/msgutil.c                                 |  48 +-
+ ipc/util.h                                    |   3 +-
+ kernel/sys_ni.c                               |   1 +
+ scripts/syscall.tbl                           |   1 +
+ .../arch/alpha/entry/syscalls/syscall.tbl     |   1 +
+ .../perf/arch/arm/entry/syscalls/syscall.tbl  |   1 +
+ .../arch/arm64/entry/syscalls/syscall_32.tbl  |   1 +
+ .../arch/mips/entry/syscalls/syscall_n64.tbl  |   1 +
+ .../arch/parisc/entry/syscalls/syscall.tbl    |   1 +
+ .../arch/powerpc/entry/syscalls/syscall.tbl   |   1 +
+ .../perf/arch/s390/entry/syscalls/syscall.tbl |   1 +
+ tools/perf/arch/sh/entry/syscalls/syscall.tbl |   1 +
+ .../arch/sparc/entry/syscalls/syscall.tbl     |   1 +
+ .../arch/x86/entry/syscalls/syscall_32.tbl    |   1 +
+ .../arch/x86/entry/syscalls/syscall_64.tbl    |   1 +
+ .../arch/xtensa/entry/syscalls/syscall.tbl    |   1 +
+ tools/scripts/syscall.tbl                     |   1 +
+ tools/testing/selftests/ipc/.gitignore        |   1 +
+ tools/testing/selftests/ipc/Makefile          |   9 +-
+ tools/testing/selftests/ipc/mq_peek.c         | 785 ++++++++++++++++++
+ 44 files changed, 1282 insertions(+), 43 deletions(-)
+ create mode 100644 Documentation/userspace-api/ipc.rst
+ create mode 100644 tools/testing/selftests/ipc/mq_peek.c
 
-vmlinux.lds.h: Add new BOUNDED_SECTION for __dyndbg_class_users.  this
-creates start,len C symbol-names for the section.
-
-TLDR ?
-
-dynamic_debug.c: 2 changes from ddebug_add_module() & ddebug_change():
-
-ddebug_add_module():
-
-ddebug_attach_module_classes() is reworked/renamed/split into
-debug_apply_class_maps(), ddebug_apply_class_users(), which both call
-ddebug_apply_params().
-
-ddebug_apply_params(new fn):
-
-It scans module's/builtin kernel-params, calls ddebug_match_apply_kparam
-for each to find any params/sysfs-nodes which may be wired to a classmap.
-
-ddebug_match_apply_kparam(new fn):
-
-1st, it tests the kernel-param.ops is dyndbg's; this guarantees that
-the attached arg is a struct ddebug_class_param, which has a ref to
-the param's state, and to the classmap defining the param's handling.
-
-2nd, it requires that the classmap ref'd by the kparam is the one
-we've been called for; modules can use many separate classmaps (as
-test_dynamic_debug does).
-
-Then apply the "parent" kparam's setting to the dependent module,
-using ddebug_apply_class_bitmap().
-
-ddebug_change(and callees) also gets adjustments:
-
-ddebug_find_valid_class(): This does a search over the module's
-classmaps, looking for the class FOO echo'd to >control.  So now it
-searches over __dyndbg_class_users[] after __dyndbg_classes[].
-
-ddebug_class_name(): return class-names for defined OR used classes.
-
-test_dynamic_debug.c, test_dynamic_debug_submod.c:
-
-This demonstrates the 2 types of classmaps & sysfs-params, following
-the 4-part recipe:
-
-0. define an enum for the classmap's class_ids
-   drm.debug gives us DRM_UT_<*> (aka <T>)
-   multiple classmaps in a module(s) must share 0-62 classid space.
-
-1. DYNAMIC_DEBUG_CLASSMAP_DEFINE(classmap_name, .. "<T>")
-   names the classes, maps them to consecutive class-ids.
-   convention here is stringified ENUM_SYMBOLS
-   these become API/ABI if 2 is done.
-
-2. DYNAMIC_DEBUG_CLASSMAP_PARAM* (classmap_name)
-   adds a controlling kparam to the class
-
-3. DYNAMIC_DEBUG_CLASSMAP_USE(classmap_name)
-   for subsystem/group/drivers to use extern created by 1.
-
-Move all the enum declarations together, to better explain how they
-share the 0..62 class-id space available to a module (non-overlapping
-subranges).
-
-reorg macros 2,3 by name.  This gives a tabular format, making it easy
-to see the pattern of repetition, and the points of change.
-
-And extend the test to replicate the 2-module (parent & dependent)
-scenario which caused the CONFIG_DRM_USE_DYNAMIC_DEBUG=y regression
-seen in drm & drivers.
-
-The _submod.c is a 2-line file: #define _SUBMOD, #include parent.
-
-This gives identical complements of prdbgs in parent & _submod, and
-thus identical print behavior when all of: >control, >params, and
-parent->_submod propagation are working correctly.
-
-It also puts all the parent/_submod declarations together in the same
-source; the new ifdef _SUBMOD block invokes DYNAMIC_DEBUG_CLASSMAP_USE
-for the 2 test-interfaces.  I think this is clearer.
-
-These 2 modules are both tristate, allowing 3 super/sub combos: Y/Y,
-Y/M, M/M (not N/Y, since this is disallowed by dependence).
-
-Y/Y, Y/M testing once exposed a missing __align(8) in the _METADATA
-macro, which M/M didn't see, probably because the module-loader memory
-placement constrained it from misalignment.
-
-Fixes: aad0214f3026 ("dyndbg: add DECLARE_DYNDBG_CLASSMAP macro")
-cc: linux-doc@vger.kernel.org
-Signed-off-by: Jim Cromie <jim.cromie@gmail.com>
----
-replace di with &dt->info, since di becomes stale
-fix dd_mark_vector_subrange macro param ordering to match kdoc
-s/base/offset/ in _ddebug_class_user, to reduce later churn
----
- MAINTAINERS                       |   2 +-
- include/asm-generic/vmlinux.lds.h |   1 +
- include/linux/dynamic_debug.h     | 138 +++++++++++++++++++++---
- kernel/module/main.c              |   3 +
- lib/Kconfig.debug                 |  24 ++++-
- lib/Makefile                      |   5 +
- lib/dynamic_debug.c               | 172 +++++++++++++++++++++++++-----
- lib/test_dynamic_debug.c          | 132 ++++++++++++++++-------
- lib/test_dynamic_debug_submod.c   |  14 +++
- 9 files changed, 412 insertions(+), 79 deletions(-)
- create mode 100644 lib/test_dynamic_debug_submod.c
-
-diff --git a/MAINTAINERS b/MAINTAINERS
-index af1d3f246962..67da16e209c5 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -9046,7 +9046,7 @@ M:	Jim Cromie <jim.cromie@gmail.com>
- S:	Maintained
- F:	include/linux/dynamic_debug.h
- F:	lib/dynamic_debug.c
--F:	lib/test_dynamic_debug.c
-+F:	lib/test_dynamic_debug*.c
- F:	tools/testing/selftests/dynamic_debug/*
- 
- DYNAMIC INTERRUPT MODERATION
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 62fc2b0e8d1c..c29bf967ad03 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -387,6 +387,7 @@
- 	. = ALIGN(8);							\
- 	BOUNDED_SECTION_BY(__dyndbg_descriptors, ___dyndbg_descs)	\
- 	BOUNDED_SECTION_BY(__dyndbg_class_maps, ___dyndbg_class_maps)	\
-+	BOUNDED_SECTION_BY(__dyndbg_class_users, ___dyndbg_class_users)	\
- 	CODETAG_SECTIONS()						\
- 	LIKELY_PROFILE()		       				\
- 	BRANCH_PROFILE()						\
-diff --git a/include/linux/dynamic_debug.h b/include/linux/dynamic_debug.h
-index 80160028461a..74ed18a038bd 100644
---- a/include/linux/dynamic_debug.h
-+++ b/include/linux/dynamic_debug.h
-@@ -72,8 +72,11 @@ enum ddebug_class_map_type {
- 	 */
- };
- 
-+/*
-+ * map @class_names 0..N to consecutive constants starting at @base.
-+ */
- struct _ddebug_class_map {
--	struct module *mod;	/* NULL for builtins */
-+	const struct module *mod;	/* NULL for builtins */
- 	const char *mod_name;
- 	const char **class_names;
- 	const int length;
-@@ -81,10 +84,18 @@ struct _ddebug_class_map {
- 	enum ddebug_class_map_type map_type;
- };
- 
-+struct _ddebug_class_user {
-+	char *mod_name;
-+	struct _ddebug_class_map *map;
-+	const int offset;	/* user offset to re-number the used map */
-+};
-+
- /*
-- * @_ddebug_info: gathers module/builtin dyndbg_* __sections together.
-+ * @_ddebug_info: gathers module/builtin __dyndbg_<T> __sections
-+ * together, each is a vec_<T>: a struct { struct T start[], int len }.
-+ *
-  * For builtins, it is used as a cursor, with the inner structs
-- * marking sub-vectors of the builtin __sections in DATA.
-+ * marking sub-vectors of the builtin __sections in DATA_DATA
-  */
- struct _ddebug_descs {
- 	struct _ddebug *start;
-@@ -96,10 +107,16 @@ struct _ddebug_class_maps {
- 	int len;
- };
- 
-+struct _ddebug_class_users {
-+	struct _ddebug_class_user *start;
-+	int len;
-+};
-+
- struct _ddebug_info {
- 	const char *mod_name;
- 	struct _ddebug_descs descs;
- 	struct _ddebug_class_maps maps;
-+	struct _ddebug_class_users users;
- };
- 
- struct _ddebug_class_param {
-@@ -118,12 +135,81 @@ struct _ddebug_class_param {
- #if defined(CONFIG_DYNAMIC_DEBUG) || \
- 	(defined(CONFIG_DYNAMIC_DEBUG_CORE) && defined(DYNAMIC_DEBUG_MODULE))
- 
-+/*
-+ * dyndbg classmaps is modelled closely upon drm.debug:
-+ *
-+ *  1. run-time control via sysfs node (api/abi)
-+ *  2. each bit 0..N controls a single "category"
-+ *  3. a pr_debug can have only 1 category, not several.
-+ *  4. "kind" is a compile-time constant: 0..N or BIT() thereof
-+ *  5. macro impls - give compile-time resolution or fail.
-+ *
-+ * dyndbg classmaps design axioms/constraints:
-+ *
-+ *  . optimizing compilers use 1-5 above, so preserve them.
-+ *  . classmaps.class_id *is* the category.
-+ *  . classmap definers/users are modules.
-+ *  . every user wants 0..N
-+ *  . 0..N exposes as ABI
-+ *  . no 1 use-case wants N > 32, 16 is more usable
-+ *  . N <= 64 in *all* cases
-+ *  . modules/subsystems make category/classmap decisions
-+ *  . ie an enum: DRM has DRM_UT_CORE..DRM_UT_DRMRES
-+ *  . some categories are exposed to user: ABI
-+ *  . making modules change their numbering is bogus, avoid if possible
-+ *
-+ * We can solve for all these at once:
-+ *  A: map class-names to a .class_id range at compile-time
-+ *  B: allow only "class NAME" changes to class'd callsites at run-time
-+ *  C: users/modules must manage 0..62 hardcoded .class_id range limit.
-+ *  D: existing pr_debugs get CLASS_DFLT=63
-+ *
-+ * By mapping class-names at >control to class-ids underneath, and
-+ * responding only to class-names DEFINEd or USEd by the module, we
-+ * can private-ize the class-id, and adjust class'd pr_debugs only by
-+ * their names.
-+ *
-+ * This give us:
-+ *  E: class_ids without classnames are unreachable
-+ *  F: user modules opt-in by DEFINEing a classmap and/or USEing another
-+ *
-+ * Multi-classmap modules/groups are supported, if the classmaps share
-+ * the class_id space [0..62] without overlap/conflict.
-+ *
-+ * NOTE: Due to the integer class_id, this api cannot disallow these:
-+ * __pr_debug_cls(0, "fake CORE msg");  works only if a classmap maps 0.
-+ * __pr_debug_cls(22, "no such class"); compiles but is not reachable
-+ */
-+
- /**
-- * DECLARE_DYNDBG_CLASSMAP - declare classnames known by a module
-- * @_var:   a struct ddebug_class_map, passed to module_param_cb
-- * @_type:  enum class_map_type, chooses bits/verbose, numeric/symbolic
-- * @_base:  offset of 1st class-name. splits .class_id space
-- * @classes: class-names used to control class'd prdbgs
-+ * DYNAMIC_DEBUG_CLASSMAP_DEFINE - define debug classes used by a module.
-+ * @_var:   name of the classmap, exported for other modules coordinated use.
-+ * @_mapty: enum ddebug_class_map_type: 0:DISJOINT - independent, 1:LEVEL - v2>v1
-+ * @_base:  reserve N classids starting at _base, to split 0..62 classid space
-+ * @classes: names of the N classes.
-+ *
-+ * This tells dyndbg what class_ids the module is using: _base..+N, by
-+ * mapping names onto them.  This qualifies "class NAME" >controls on
-+ * the defining module, ignoring unknown names.
-+ */
-+#define DYNAMIC_DEBUG_CLASSMAP_DEFINE(_var, _mapty, _base, ...)		\
-+	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
-+	extern struct _ddebug_class_map _var;				\
-+	struct _ddebug_class_map __aligned(8) __used			\
-+		__section("__dyndbg_class_maps") _var = {		\
-+		.mod = THIS_MODULE,					\
-+		.mod_name = KBUILD_MODNAME,				\
-+		.base = (_base),					\
-+		.map_type = (_mapty),					\
-+		.length = ARRAY_SIZE(_var##_classnames),		\
-+		.class_names = _var##_classnames,			\
-+	};								\
-+	EXPORT_SYMBOL(_var)
-+
-+/*
-+ * XXX: keep this until DRM adapts to use the DEFINE/USE api, it
-+ * differs from DYNAMIC_DEBUG_CLASSMAP_DEFINE by the lack of the
-+ * extern/EXPORT on the struct init, and cascading thinkos.
-  */
- #define DECLARE_DYNDBG_CLASSMAP(_var, _maptype, _base, ...)		\
- 	static const char *_var##_classnames[] = { __VA_ARGS__ };	\
-@@ -137,6 +223,25 @@ struct _ddebug_class_param {
- 		.class_names = _var##_classnames,			\
- 	}
- 
-+/**
-+ * DYNAMIC_DEBUG_CLASSMAP_USE - refer to a classmap, DEFINEd elsewhere.
-+ * @_var: name of the exported classmap var
-+ *
-+ * This tells dyndbg that the module has prdbgs with classids defined
-+ * in the named classmap.  This qualifies "class NAME" >controls on
-+ * the user module, and ignores unknown names.
-+ */
-+#define DYNAMIC_DEBUG_CLASSMAP_USE(_var)				\
-+	DYNAMIC_DEBUG_CLASSMAP_USE_(_var, 0, __UNIQUE_ID(_ddebug_class_user))
-+#define DYNAMIC_DEBUG_CLASSMAP_USE_(_var, _offset, _uname)		\
-+	extern struct _ddebug_class_map _var;				\
-+	static struct _ddebug_class_user __aligned(8) __used		\
-+	__section("__dyndbg_class_users") _uname = {			\
-+		.mod_name = KBUILD_MODNAME,				\
-+		.map = &(_var),						\
-+		.offset = _offset					\
-+	}
-+
- extern __printf(2, 3)
- void __dynamic_pr_debug(struct _ddebug *descriptor, const char *fmt, ...);
- 
-@@ -298,12 +403,18 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- 				   KERN_DEBUG, prefix_str, prefix_type,	\
- 				   rowsize, groupsize, buf, len, ascii)
- 
--/* for test only, generally expect drm.debug style macro wrappers */
--#define __pr_debug_cls(cls, fmt, ...) do {			\
-+/*
-+ * This is the "model" class variant of pr_debug.  It is not really
-+ * intended for direct use; I'd encourage DRM-style drm_dbg_<T>
-+ * macros for the interface, along with an enum for the <T>
-+ *
-+ * __printf(2, 3) would apply.
-+ */
-+#define __pr_debug_cls(cls, fmt, ...) ({			\
- 	BUILD_BUG_ON_MSG(!__builtin_constant_p(cls),		\
- 			 "expecting constant class int/enum");	\
- 	dynamic_pr_debug_cls(cls, fmt, ##__VA_ARGS__);		\
--	} while (0)
-+})
- 
- #else /* !(CONFIG_DYNAMIC_DEBUG || (CONFIG_DYNAMIC_DEBUG_CORE && DYNAMIC_DEBUG_MODULE)) */
- 
-@@ -311,6 +422,8 @@ void __dynamic_ibdev_dbg(struct _ddebug *descriptor,
- #include <linux/errno.h>
- #include <linux/printk.h>
- 
-+#define DYNAMIC_DEBUG_CLASSMAP_DEFINE(_var, _mapty, _base, ...)
-+#define DYNAMIC_DEBUG_CLASSMAP_USE(_var)
- #define DEFINE_DYNAMIC_DEBUG_METADATA(name, fmt)
- #define DYNAMIC_DEBUG_BRANCH(descriptor) false
- #define DECLARE_DYNDBG_CLASSMAP(...)
-@@ -357,8 +470,7 @@ static inline int param_set_dyndbg_classes(const char *instr, const struct kerne
- static inline int param_get_dyndbg_classes(char *buffer, const struct kernel_param *kp)
- { return 0; }
- 
--#endif
--
-+#endif /* !CONFIG_DYNAMIC_DEBUG_CORE */
- 
- extern const struct kernel_param_ops param_ops_dyndbg_classes;
- 
-diff --git a/kernel/module/main.c b/kernel/module/main.c
-index 49f7b12c9776..bfff5b849966 100644
---- a/kernel/module/main.c
-+++ b/kernel/module/main.c
-@@ -2716,6 +2716,9 @@ static int find_module_sections(struct module *mod, struct load_info *info)
- 	mod->dyndbg_info.maps.start = section_objs(info, "__dyndbg_class_maps",
- 						   sizeof(*mod->dyndbg_info.maps.start),
- 						   &mod->dyndbg_info.maps.len);
-+	mod->dyndbg_info.users.start = section_objs(info, "__dyndbg_class_users",
-+						   sizeof(*mod->dyndbg_info.users.start),
-+						   &mod->dyndbg_info.users.len);
- #endif
- 
- 	return 0;
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 93f356d2b3d9..302bb2656682 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -3106,12 +3106,26 @@ config TEST_STATIC_KEYS
- 	  If unsure, say N.
- 
- config TEST_DYNAMIC_DEBUG
--	tristate "Test DYNAMIC_DEBUG"
--	depends on DYNAMIC_DEBUG
-+	tristate "Build test-dynamic-debug module"
-+	depends on DYNAMIC_DEBUG || DYNAMIC_DEBUG_CORE
- 	help
--	  This module registers a tracer callback to count enabled
--	  pr_debugs in a 'do_debugging' function, then alters their
--	  enablements, calls the function, and compares counts.
-+	  This module exercises/demonstrates dyndbg's classmap API, by
-+	  creating 2 classes: a DISJOINT classmap (supporting DRM.debug)
-+	  and a LEVELS/VERBOSE classmap (like verbose2 > verbose1).
-+
-+	  If unsure, say N.
-+
-+config TEST_DYNAMIC_DEBUG_SUBMOD
-+	tristate "Build test-dynamic-debug submodule"
-+	default m
-+	depends on DYNAMIC_DEBUG || DYNAMIC_DEBUG_CORE
-+	depends on TEST_DYNAMIC_DEBUG
-+	help
-+	  This sub-module uses a classmap defined and exported by the
-+	  parent module, recapitulating drm & driver's shared use of
-+	  drm.debug to control enabled debug-categories.
-+	  It is tristate, independent of parent, to allow testing all
-+	  proper combinations of parent=y/m submod=y/m.
- 
- 	  If unsure, say N.
- 
-diff --git a/lib/Makefile b/lib/Makefile
-index 1b9ee167517f..19ab40903436 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -83,6 +83,9 @@ obj-$(CONFIG_TEST_RHASHTABLE) += test_rhashtable.o
- obj-$(CONFIG_TEST_STATIC_KEYS) += test_static_keys.o
- obj-$(CONFIG_TEST_STATIC_KEYS) += test_static_key_base.o
- obj-$(CONFIG_TEST_DYNAMIC_DEBUG) += test_dynamic_debug.o
-+obj-$(CONFIG_TEST_DYNAMIC_DEBUG_SUBMOD) += test_dynamic_debug_submod.o
-+obj-$(CONFIG_TEST_PRINTF) += test_printf.o
-+obj-$(CONFIG_TEST_SCANF) += test_scanf.o
- 
- obj-$(CONFIG_TEST_BITMAP) += test_bitmap.o
- ifeq ($(CONFIG_CC_IS_CLANG)$(CONFIG_KASAN),yy)
-@@ -206,6 +209,8 @@ obj-$(CONFIG_ARCH_NEED_CMPXCHG_1_EMU) += cmpxchg-emu.o
- obj-$(CONFIG_DYNAMIC_DEBUG_CORE) += dynamic_debug.o
- #ensure exported functions have prototypes
- CFLAGS_dynamic_debug.o := -DDYNAMIC_DEBUG_MODULE
-+CFLAGS_test_dynamic_debug.o := -DDYNAMIC_DEBUG_MODULE
-+CFLAGS_test_dynamic_debug_submod.o := -DDYNAMIC_DEBUG_MODULE
- 
- obj-$(CONFIG_SYMBOLIC_ERRNAME) += errname.o
- 
-diff --git a/lib/dynamic_debug.c b/lib/dynamic_debug.c
-index e8ffc2b5b330..66f4bfe39e89 100644
---- a/lib/dynamic_debug.c
-+++ b/lib/dynamic_debug.c
-@@ -29,6 +29,7 @@
- #include <linux/string_helpers.h>
- #include <linux/uaccess.h>
- #include <linux/dynamic_debug.h>
-+
- #include <linux/debugfs.h>
- #include <linux/slab.h>
- #include <linux/jump_label.h>
-@@ -43,6 +44,8 @@ extern struct _ddebug __start___dyndbg_descs[];
- extern struct _ddebug __stop___dyndbg_descs[];
- extern struct _ddebug_class_map __start___dyndbg_class_maps[];
- extern struct _ddebug_class_map __stop___dyndbg_class_maps[];
-+extern struct _ddebug_class_user __start___dyndbg_class_users[];
-+extern struct _ddebug_class_user __stop___dyndbg_class_users[];
- 
- struct ddebug_table {
- 	struct list_head link;
-@@ -168,20 +171,37 @@ static void vpr_info_dq(const struct ddebug_query *query, const char *msg)
- 		  query->first_lineno, query->last_lineno, query->class_string);
- }
- 
--static struct _ddebug_class_map *ddebug_find_valid_class(struct ddebug_table const *dt,
--							 const char *class_string,
--							 int *class_id)
-+#define vpr_di_info(di_p, msg_p, ...) ({				\
-+	struct _ddebug_info const *_di = di_p;				\
-+	v2pr_info(msg_p "module:%s nd:%d nc:%d nu:%d\n", ##__VA_ARGS__, \
-+		  _di->mod_name, _di->descs.len, _di->maps.len,		\
-+		  _di->users.len);					\
-+	})
-+
-+static struct _ddebug_class_map *
-+ddebug_find_valid_class(struct _ddebug_info const *di, const char *query_class, int *class_id)
- {
- 	struct _ddebug_class_map *map;
-+	struct _ddebug_class_user *cli;
- 	int i, idx;
- 
--	for_subvec(i, map, &dt->info, maps) {
--		idx = match_string(map->class_names, map->length, class_string);
-+	for_subvec(i, map, di, maps) {
-+		idx = match_string(map->class_names, map->length, query_class);
- 		if (idx >= 0) {
-+			vpr_di_info(di, "good-class: %s.%s ", map->mod_name, query_class);
- 			*class_id = idx + map->base;
- 			return map;
- 		}
- 	}
-+	for_subvec(i, cli, di, users) {
-+		idx = match_string(cli->map->class_names, cli->map->length, query_class);
-+		if (idx >= 0) {
-+			vpr_di_info(di, "class-ref: %s -> %s.%s ",
-+				    cli->mod_name, cli->map->mod_name, query_class);
-+			*class_id = idx + cli->map->base;
-+			return cli->map;
-+		}
-+	}
- 	*class_id = -ENOENT;
- 	return NULL;
- }
-@@ -238,8 +258,7 @@ static bool ddebug_match_desc(const struct ddebug_query *query,
- 	return true;
- }
- 
--static int ddebug_change(const struct ddebug_query *query,
--			 struct flag_settings *modifiers)
-+static int ddebug_change(const struct ddebug_query *query, struct flag_settings *modifiers)
- {
- 	int i;
- 	struct ddebug_table *dt;
-@@ -260,7 +279,8 @@ static int ddebug_change(const struct ddebug_query *query,
- 			continue;
- 
- 		if (query->class_string) {
--			map = ddebug_find_valid_class(dt, query->class_string, &valid_class);
-+			map = ddebug_find_valid_class(&dt->info, query->class_string,
-+						      &valid_class);
- 			if (!map)
- 				continue;
- 		} else {
-@@ -590,7 +610,7 @@ static int ddebug_exec_query(char *query_string, const char *modname)
- 
- /* handle multiple queries in query string, continue on error, return
-    last error or number of matching callsites.  Module name is either
--   in param (for boot arg) or perhaps in query string.
-+   in the modname arg (for boot args) or perhaps in query string.
- */
- static int ddebug_exec_queries(char *query, const char *modname)
- {
-@@ -721,7 +741,7 @@ static int param_set_dyndbg_module_classes(const char *instr,
- /**
-  * param_set_dyndbg_classes - classmap kparam setter
-  * @instr: string echo>d to sysfs, input depends on map_type
-- * @kp:    kp->arg has state: bits/lvl, map, map_type
-+ * @kp:    kp->arg has state: bits/lvl, classmap, map_type
-  *
-  * enable/disable all class'd pr_debugs in the classmap. For LEVEL
-  * map-types, enforce * relative levels by bitpos.
-@@ -758,6 +778,7 @@ int param_get_dyndbg_classes(char *buffer, const struct kernel_param *kp)
- 	default:
- 		return -1;
- 	}
-+	return 0;
- }
- EXPORT_SYMBOL(param_get_dyndbg_classes);
- 
-@@ -1073,12 +1094,17 @@ static bool ddebug_class_in_range(const int class_id, const struct _ddebug_class
- static const char *ddebug_class_name(struct _ddebug_info *di, struct _ddebug *dp)
- {
- 	struct _ddebug_class_map *map;
-+	struct _ddebug_class_user *cli;
- 	int i;
- 
- 	for_subvec(i, map, di, maps)
- 		if (ddebug_class_in_range(dp->class_id, map))
- 			return map->class_names[dp->class_id - map->base];
- 
-+	for_subvec(i, cli, di, users)
-+		if (ddebug_class_in_range(dp->class_id, cli->map))
-+			return cli->map->class_names[dp->class_id - cli->map->base];
-+
- 	return NULL;
- }
- 
-@@ -1159,9 +1185,85 @@ static const struct proc_ops proc_fops = {
- 	.proc_write = ddebug_proc_write
- };
- 
--static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug_info *di)
-+#define vpr_cm_info(cm_p, msg_fmt, ...) ({				\
-+	struct _ddebug_class_map const *_cm = cm_p;			\
-+	v2pr_info(msg_fmt "%s [%d..%d] %s..%s\n", ##__VA_ARGS__,	\
-+		  _cm->mod_name, _cm->base, _cm->base + _cm->length,	\
-+		  _cm->class_names[0], _cm->class_names[_cm->length - 1]); \
-+	})
-+
-+static void ddebug_sync_classbits(const struct kernel_param *kp, const char *modname)
-+{
-+	const struct _ddebug_class_param *dcp = kp->arg;
-+
-+	/* clamp initial bitvec, mask off hi-bits */
-+	if (*dcp->bits & ~CLASSMAP_BITMASK(dcp->map->length)) {
-+		*dcp->bits &= CLASSMAP_BITMASK(dcp->map->length);
-+		v2pr_info("preset classbits: %lx\n", *dcp->bits);
-+	}
-+	/* force class'd prdbgs (in USEr module) to match (DEFINEr module) class-param */
-+	ddebug_apply_class_bitmap(dcp, dcp->bits, ~0, modname);
-+	ddebug_apply_class_bitmap(dcp, dcp->bits, 0, modname);
-+}
-+
-+static void ddebug_match_apply_kparam(const struct kernel_param *kp,
-+				      const struct _ddebug_class_map *map,
-+				      const char *mod_name)
-+{
-+	struct _ddebug_class_param *dcp;
-+
-+	if (kp->ops != &param_ops_dyndbg_classes)
-+		return;
-+
-+	dcp = (struct _ddebug_class_param *)kp->arg;
-+
-+	if (map == dcp->map) {
-+		v2pr_info(" kp:%s.%s =0x%lx", mod_name, kp->name, *dcp->bits);
-+		vpr_cm_info(map, " %s maps ", mod_name);
-+		ddebug_sync_classbits(kp, mod_name);
-+	}
-+}
-+
-+static void ddebug_apply_params(const struct _ddebug_class_map *cm, const char *mod_name)
-+{
-+	const struct kernel_param *kp;
-+#if IS_ENABLED(CONFIG_MODULES)
-+	int i;
-+
-+	if (cm->mod) {
-+		vpr_cm_info(cm, "loaded classmap: %s ", mod_name);
-+		/* ifdef protects the cm->mod->kp deref */
-+		for (i = 0, kp = cm->mod->kp; i < cm->mod->num_kp; i++, kp++)
-+			ddebug_match_apply_kparam(kp, cm, mod_name);
-+	}
-+#endif
-+	if (!cm->mod) {
-+		vpr_cm_info(cm, "builtin classmap: %s ", mod_name);
-+		for (kp = __start___param; kp < __stop___param; kp++)
-+			ddebug_match_apply_kparam(kp, cm, mod_name);
-+	}
-+}
-+
-+static void ddebug_apply_class_maps(const struct _ddebug_info *di)
- {
--	vpr_info("module:%s attached %d classes\n", dt->info.mod_name, dt->info.maps.len);
-+	struct _ddebug_class_map *cm;
-+	int i;
-+
-+	for_subvec(i, cm, di, maps)
-+		ddebug_apply_params(cm, cm->mod_name);
-+
-+	vpr_di_info(di, "attached %d class-maps to ", i);
-+}
-+
-+static void ddebug_apply_class_users(const struct _ddebug_info *di)
-+{
-+	struct _ddebug_class_user *cli;
-+	int i;
-+
-+	for_subvec(i, cli, di, users)
-+		ddebug_apply_params(cli->map, cli->mod_name);
-+
-+	vpr_di_info(di, "attached %d class-users to ", i);
- }
- 
- /*
-@@ -1190,6 +1292,22 @@ static void ddebug_attach_module_classes(struct ddebug_table *dt, struct _ddebug
- 	(__dst)->info._vec.len = __nc;					\
- })
- 
-+static int __maybe_unused
-+ddebug_class_range_overlap(struct _ddebug_class_map *cm,
-+			   u64 *reserved_ids)
-+{
-+	u64 range = (((1ULL << cm->length) - 1) << cm->base);
-+
-+	if (range & *reserved_ids) {
-+		pr_err("[%d..%d] on %s conflicts with %llx\n", cm->base,
-+		       cm->base + cm->length - 1, cm->class_names[0],
-+		       *reserved_ids);
-+		return -EINVAL;
-+	}
-+	*reserved_ids |= range;
-+	return 0;
-+}
-+
- /*
-  * Allocate a new ddebug_table for the given module
-  * and add it to the global list.
-@@ -1198,6 +1316,7 @@ static int ddebug_add_module(struct _ddebug_info *di)
- {
- 	struct ddebug_table *dt;
- 	struct _ddebug_class_map *cm;
-+	struct _ddebug_class_user *cli;
- 	int i;
- 
- 	if (!di->descs.len)
-@@ -1210,26 +1329,29 @@ static int ddebug_add_module(struct _ddebug_info *di)
- 		pr_err("error adding module: %s\n", di->mod_name);
- 		return -ENOMEM;
- 	}
-+	INIT_LIST_HEAD(&dt->link);
- 	/*
--	 * For built-in modules, name (as supplied in di by its
--	 * callers) lives in .rodata and is immortal. For loaded
--	 * modules, name points at the name[] member of struct module,
--	 * which lives at least as long as this struct ddebug_table.
-+	 * For built-in modules, di-> referents live in .*data and are
-+	 * immortal. For loaded modules, di points at the dyndbg_info
-+	 * member of its struct module, which lives at least as
-+	 * long as this struct ddebug_table.
- 	 */
- 	dt->info = *di;
--
--	INIT_LIST_HEAD(&dt->link);
--
--	dd_mark_vector_subrange(i, cm, di, maps, dt);
--
--	if (di->maps.len)
--		ddebug_attach_module_classes(dt, di);
-+	dd_mark_vector_subrange(i, cm, &dt->info, maps, dt);
-+	dd_mark_vector_subrange(i, cli, &dt->info, users, dt);
-+	/* now di is stale */
- 
- 	mutex_lock(&ddebug_lock);
- 	list_add_tail(&dt->link, &ddebug_tables);
- 	mutex_unlock(&ddebug_lock);
- 
--	vpr_info("%3u debug prints in module %s\n", di->descs.len, di->mod_name);
-+	if (dt->info.maps.len)
-+		ddebug_apply_class_maps(&dt->info);
-+	if (dt->info.users.len)
-+		ddebug_apply_class_users(&dt->info);
-+
-+	vpr_info("%3u debug prints in module %s\n",
-+		 dt->info.descs.len, dt->info.mod_name);
- 	return 0;
- }
- 
-@@ -1379,8 +1501,10 @@ static int __init dynamic_debug_init(void)
- 	struct _ddebug_info di = {
- 		.descs.start = __start___dyndbg_descs,
- 		.maps.start  = __start___dyndbg_class_maps,
-+		.users.start = __start___dyndbg_class_users,
- 		.descs.len = __stop___dyndbg_descs - __start___dyndbg_descs,
- 		.maps.len  = __stop___dyndbg_class_maps - __start___dyndbg_class_maps,
-+		.users.len = __stop___dyndbg_class_users - __start___dyndbg_class_users,
- 	};
- 
- #ifdef CONFIG_MODULES
-diff --git a/lib/test_dynamic_debug.c b/lib/test_dynamic_debug.c
-index 9c3e53cd26bd..6c4548f63512 100644
---- a/lib/test_dynamic_debug.c
-+++ b/lib/test_dynamic_debug.c
-@@ -6,11 +6,30 @@
-  *      Jim Cromie	<jim.cromie@gmail.com>
-  */
- 
--#define pr_fmt(fmt) "test_dd: " fmt
-+/*
-+ * This file is built 2x, also making test_dynamic_debug_submod.ko,
-+ * whose 2-line src file #includes this file.  This gives us a _submod
-+ * clone with identical pr_debugs, without further maintenance.
-+ *
-+ * If things are working properly, they should operate identically
-+ * when printed or adjusted by >control.  This eases visual perusal of
-+ * the logs, and simplifies testing, by easing the proper accounting
-+ * of expectations.
-+ *
-+ * It also puts both halves of the subsystem _DEFINE & _USE use case
-+ * together, and integrates the common ENUM providing both class_ids
-+ * and class-names to both _DEFINErs and _USERs.  I think this makes
-+ * the usage clearer.
-+ */
-+#if defined(TEST_DYNAMIC_DEBUG_SUBMOD)
-+  #define pr_fmt(fmt) "test_dd_submod: " fmt
-+#else
-+  #define pr_fmt(fmt) "test_dd: " fmt
-+#endif
- 
- #include <linux/module.h>
- 
--/* run tests by reading or writing sysfs node: do_prints */
-+/* re-gen output by reading or writing sysfs node: do_prints */
- 
- static void do_prints(void); /* device under test */
- static int param_set_do_prints(const char *instr, const struct kernel_param *kp)
-@@ -29,24 +48,39 @@ static const struct kernel_param_ops param_ops_do_prints = {
- };
- module_param_cb(do_prints, &param_ops_do_prints, NULL, 0600);
- 
--/*
-- * Using the CLASSMAP api:
-- * - classmaps must have corresponding enum
-- * - enum symbols must match/correlate with class-name strings in the map.
-- * - base must equal enum's 1st value
-- * - multiple maps must set their base to share the 0-30 class_id space !!
-- *   (build-bug-on tips welcome)
-- * Additionally, here:
-- * - tie together sysname, mapname, bitsname, flagsname
-- */
--#define DD_SYS_WRAP(_model, _flags)					\
--	static unsigned long bits_##_model;				\
--	static struct _ddebug_class_param _flags##_model = {		\
-+#define CLASSMAP_BITMASK(width, base) (((1UL << (width)) - 1) << (base))
-+
-+/* sysfs param wrapper, proto-API */
-+#define DYNAMIC_DEBUG_CLASSMAP_PARAM_(_model, _flags, _init)		\
-+	static unsigned long bits_##_model = _init;			\
-+	static struct _ddebug_class_param _flags##_##_model = {		\
- 		.bits = &bits_##_model,					\
- 		.flags = #_flags,					\
- 		.map = &map_##_model,					\
- 	};								\
--	module_param_cb(_flags##_##_model, &param_ops_dyndbg_classes, &_flags##_model, 0600)
-+	module_param_cb(_flags##_##_model, &param_ops_dyndbg_classes,	\
-+			&_flags##_##_model, 0600)
-+#ifdef DEBUG
-+#define DYNAMIC_DEBUG_CLASSMAP_PARAM(_model, _flags)		\
-+	DYNAMIC_DEBUG_CLASSMAP_PARAM_(_model, _flags, ~0)
-+#else
-+#define DYNAMIC_DEBUG_CLASSMAP_PARAM(_model, _flags)		\
-+	DYNAMIC_DEBUG_CLASSMAP_PARAM_(_model, _flags, 0)
-+#endif
-+
-+/*
-+ * Demonstrate/test DISJOINT & LEVEL typed classmaps with a sys-param.
-+ *
-+ * To comport with DRM debug-category (an int), classmaps map names to
-+ * ids (also an int).  So a classmap starts with an enum; DRM has enum
-+ * debug_category: with DRM_UT_<CORE,DRIVER,KMS,etc>.  We use the enum
-+ * values as class-ids, and stringified enum-symbols as classnames.
-+ *
-+ * Modules with multiple CLASSMAPS must have enums with distinct
-+ * value-ranges, as arranged below with explicit enum_sym = X inits.
-+ * To clarify this sharing, declare the 2 enums now, for the 2
-+ * different classmap types
-+ */
- 
- /* numeric input, independent bits */
- enum cat_disjoint_bits {
-@@ -60,26 +94,51 @@ enum cat_disjoint_bits {
- 	D2_LEASE,
- 	D2_DP,
- 	D2_DRMRES };
--DECLARE_DYNDBG_CLASSMAP(map_disjoint_bits, DD_CLASS_TYPE_DISJOINT_BITS, 0,
--			"D2_CORE",
--			"D2_DRIVER",
--			"D2_KMS",
--			"D2_PRIME",
--			"D2_ATOMIC",
--			"D2_VBL",
--			"D2_STATE",
--			"D2_LEASE",
--			"D2_DP",
--			"D2_DRMRES");
--DD_SYS_WRAP(disjoint_bits, p);
--DD_SYS_WRAP(disjoint_bits, T);
--
--/* numeric verbosity, V2 > V1 related */
--enum cat_level_num { V0 = 14, V1, V2, V3, V4, V5, V6, V7 };
--DECLARE_DYNDBG_CLASSMAP(map_level_num, DD_CLASS_TYPE_LEVEL_NUM, 14,
--		       "V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7");
--DD_SYS_WRAP(level_num, p);
--DD_SYS_WRAP(level_num, T);
-+
-+/* numeric verbosity, V2 > V1 related.  V0 is > D2_DRMRES */
-+enum cat_level_num { V0 = 16, V1, V2, V3, V4, V5, V6, V7 };
-+
-+/* recapitulate DRM's multi-classmap setup */
-+#if !defined(TEST_DYNAMIC_DEBUG_SUBMOD)
-+/*
-+ * In single user, or parent / coordinator (drm.ko) modules, define
-+ * classmaps on the client enums above, and then declares the PARAMS
-+ * ref'g the classmaps.  Each is exported.
-+ */
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(map_disjoint_bits, DD_CLASS_TYPE_DISJOINT_BITS,
-+			      D2_CORE,
-+			      "D2_CORE",
-+			      "D2_DRIVER",
-+			      "D2_KMS",
-+			      "D2_PRIME",
-+			      "D2_ATOMIC",
-+			      "D2_VBL",
-+			      "D2_STATE",
-+			      "D2_LEASE",
-+			      "D2_DP",
-+			      "D2_DRMRES");
-+
-+DYNAMIC_DEBUG_CLASSMAP_DEFINE(map_level_num, DD_CLASS_TYPE_LEVEL_NUM,
-+			      V0, "V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7");
-+
-+/*
-+ * now add the sysfs-params
-+ */
-+
-+DYNAMIC_DEBUG_CLASSMAP_PARAM(disjoint_bits, p);
-+DYNAMIC_DEBUG_CLASSMAP_PARAM(level_num, p);
-+
-+#else /* TEST_DYNAMIC_DEBUG_SUBMOD */
-+
-+/*
-+ * in submod/drm-drivers, use the classmaps defined in top/parent
-+ * module above.
-+ */
-+
-+DYNAMIC_DEBUG_CLASSMAP_USE(map_disjoint_bits);
-+DYNAMIC_DEBUG_CLASSMAP_USE(map_level_num);
-+
-+#endif
- 
- /* stand-in for all pr_debug etc */
- #define prdbg(SYM) __pr_debug_cls(SYM, #SYM " msg\n")
-@@ -115,6 +174,7 @@ static void do_levels(void)
- 
- static void do_prints(void)
- {
-+	pr_debug("do_prints:\n");
- 	do_cats();
- 	do_levels();
- }
-diff --git a/lib/test_dynamic_debug_submod.c b/lib/test_dynamic_debug_submod.c
-new file mode 100644
-index 000000000000..672aabf40160
---- /dev/null
-+++ b/lib/test_dynamic_debug_submod.c
-@@ -0,0 +1,14 @@
-+// SPDX-License-Identifier: GPL-2.0
-+/*
-+ * Kernel module for testing dynamic_debug
-+ *
-+ * Authors:
-+ *      Jim Cromie	<jim.cromie@gmail.com>
-+ */
-+
-+/*
-+ * clone the parent, inherit all the properties, for consistency and
-+ * simpler accounting in test expectations.
-+ */
-+#define TEST_DYNAMIC_DEBUG_SUBMOD
-+#include "test_dynamic_debug.c"
 -- 
-2.53.0
+2.43.0
 
