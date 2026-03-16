@@ -1,224 +1,125 @@
-Received: from mail-wm1-f45.google.com (mail-wm1-f45.google.com [209.85.128.45])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5A4212BE62E
-	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 11:52:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.45
+Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 8387B1DFF0;
+	Mon, 16 Mar 2026 12:12:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773661950; cv=none; b=WElUdZxXgqA/PLzmWUumrRq3Ah/30M3HBVwmXCr8qJC2motSlE64BlX2E/m4U+JRts/tEGmGybwAZfK3tYf4eBKaQ6/KivMTOFvHHWb3HbK04UY808f89vJ6J4IEzg//N6KUlGSNx+rO9iHkTqJS+HFdGhSbIwKin9FD87AFSEw=
+	t=1773663173; cv=none; b=TUwQpPWlmIpA6MT44B7TVjqFRxn6uKWJR6ZTsXcoBfKGQyb0GV5qJ5S0FeWJPTlLuIgVqbRVONpjA5eoGvT0RrfasNVDInSTYpj3pW6nEllr3sfe4ZtP3rN1ukbQwAtF5A7IvxAtINJfC/MYzIgo5ntKoYY9GIJi5CQjbss5kv0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773661950; c=relaxed/simple;
-	bh=71IExVGtWUCM2N3COEM/mV1OmBFUH7sMjuEBU+ua+FM=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=hPG6taT1tfKfZa/BdjudKXbRYu0qc+Q6KUUx0egLP5y5kaDQ+iy+u8J29XYfhlyHjhVDUkqMFLjAtQhEJQvJN2vAlpU32A0dNtnyi/TLtvmhTinFcA9DQ6VZ4d74+VnWMY2HzUYbYP0xb2BoPQMHlTg7asHSBV3aOhdxJ9UwI9o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=US4mxDzj; arc=none smtp.client-ip=209.85.128.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1773663173; c=relaxed/simple;
+	bh=7ttwWgKOyWUOOcxX5hFVjj6/N1JzTZZH4T3vIM815XI=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=QBiyrofO+83/ashBaOXSEbZxKURbP1kB0KxtomEDxe2h6HC1Uu+3fSHhLFVN1qmJjaTDh6wzYIcl4gpQU4GrO7bf0qX/YsY+quk68WvB2ivhFd4MbUD2Nveuv3cxXKgCoPy6fA4vTeqyO1DvX6teLNN6QCdfzeqKdWfEkXsJybs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=KmMzN+L7; arc=none smtp.client-ip=13.77.154.182
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="US4mxDzj"
-Received: by mail-wm1-f45.google.com with SMTP id 5b1f17b1804b1-48534237460so49618875e9.3
-        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 04:52:28 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1773661947; x=1774266747; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=G1FINDvU0UxUqjZlFZpZ58KZuPwMyU/XPMlyrs5R8Wo=;
-        b=US4mxDzj1u8+TAMALm1jZ448UnUuwWyAVE3wFja/RD1q1QzX+/se20WkWNcfOWzG+t
-         B1mrDo4Bw/bj8+nUpbAD9rs1PrxI73TEH87/lKaGX+uR+aMBxC3VaqdfXYoAzEPPFXc5
-         ynXXBu23fz0QHeB1CPeeFLPSZZTkz8x+i6Iw6ybmQdS5LkMsD+GQNFdEw+Sp5sRVokeW
-         P4e8FWFyPvZVcmsqr4FlC3Li/UcHaZjxrOmHVnB4mkxCbOFOIb5ydZAaPwSL9cEx1Vnc
-         7ZdIsU7fSQiSZj2a0f/QFLMdbiIQAiG4r6sjLxgFxUCN2Cq88glz0RgP0DL9exaClzT8
-         2zoA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1773661947; x=1774266747;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=G1FINDvU0UxUqjZlFZpZ58KZuPwMyU/XPMlyrs5R8Wo=;
-        b=Ha4FdH14zCutvFyxXP9hI1O0aKskqil0FWW9sbEnIIwbfUX2cykKCowWBdtNCVqRkf
-         FiuhJ9gM9xXYLYsnRoDe7gsncO4fWnaQ7zvJHe0T1mw/1CoLM1l0TK+/aEktSyWvsNHp
-         zO7VjxusHu0mZ07V8YS1IqpbiQLionJLb+EKuBXfg/cwrI+wmcRXmFZ0p4pJ3LsTK6TS
-         y5SkuvMhNmf7G4y3tdbiq6UZewyuXyitNwcOH3SZSh3VMwSY0zeO/Z/4BogSYFraBJTb
-         yZspktXOS05CUVsckvPsMa7khc5GpnBlx0ricETEcOrsEp1gnKd3OG83dNm8zQxNc0Ct
-         M5bQ==
-X-Forwarded-Encrypted: i=1; AJvYcCWpAqHtIrCEd2WCUjYFvKe+0pzbtCWBwRMunmKy9ChXNkr7VGpWu6pnlReIenyVlExzCFtW3vGwMm25@vger.kernel.org
-X-Gm-Message-State: AOJu0Yy1eEfbP9BvXZpbaZ/yF3JklLVwsVLiU8O3EIi2GoW6e6CQOIud
-	+FsqWXoIg3OeLScoIV8Z2tBZXwWXEv5GCDAPGLQ2i3CTZeTXkuiCoae2
-X-Gm-Gg: ATEYQzz0jtgqlqoyGNiC0PJyN3VTS46fcYCiNCPsvsJCsU0mwLqEBbQV54W/Muk8GAF
-	5VE4Z7Kz3K1U7nA/OSC1ckNE076fQaN3Df7FK4ND/xOCOyZDdV4q20jf8QrCNfkPONVDG/x2PVa
-	JyQpuzt17Naezhr3ntsIMq4ledo/1J+aCKsxakXZuK8pybSZ0xbh+UfhsMzRhv1tRSh2084sXOs
-	tTa/rJvLlqb8+v2mg2m08QLNH6Zt0aHDLBYL0IlcBNrhDgFmlQ0/Q0kNJaxqTBwy7+bJ5CpX1MM
-	LpmcSmXehx8GEW9oU3Hq2TJvi63EDNO0qnrDNqE5RWh3uEJJnwjfDM4/yzKQ1bFGgq3IgEypbCU
-	fqYT7iBq6dArN3Tccr8ERqzpEEL2oujO4vAnkmcyakaKaQ7l98zRluHisbo6yD02FwoGeC8iFpS
-	YLeiV2hMPMDRWnOV1EWzKPcHqkY2GJlS/JvrkrR9lxAiRiZQFig8fwqNhbpM6ffvl/
-X-Received: by 2002:a05:600d:844f:10b0:485:40fd:8390 with SMTP id 5b1f17b1804b1-485567029cdmr158924705e9.26.1773661946379;
-        Mon, 16 Mar 2026 04:52:26 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-48541b7f255sm525678625e9.12.2026.03.16.04.52.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 16 Mar 2026 04:52:26 -0700 (PDT)
-Date: Mon, 16 Mar 2026 11:52:24 +0000
-From: David Laight <david.laight.linux@gmail.com>
-To: K Prateek Nayak <kprateek.nayak@amd.com>
-Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- "Peter Zijlstra" <peterz@infradead.org>, Sebastian Andrzej Siewior
- <bigeasy@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, "Will
- Deacon" <will@kernel.org>, Darren Hart <dvhart@infradead.org>, Davidlohr
- Bueso <dave@stgolabs.net>, =?UTF-8?B?QW5kcsOp?= Almeida
- <andrealmeid@igalia.com>, <linux-arch@vger.kernel.org>,
- <linux-kernel@vger.kernel.org>, <linux-arm-kernel@lists.infradead.org>,
- <linux-riscv@lists.infradead.org>, <linux-s390@vger.kernel.org>, Jisheng
- Zhang <jszhang@kernel.org>
-Subject: Re: [RFC PATCH v2 3/7] arm64/runtime-const: Use
- aarch64_insn_patch_text_nosync() for patching
-Message-ID: <20260316115224.036e0351@pumpkin>
-In-Reply-To: <20260316052401.18910-4-kprateek.nayak@amd.com>
-References: <20260316052401.18910-1-kprateek.nayak@amd.com>
-	<20260316052401.18910-4-kprateek.nayak@amd.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="KmMzN+L7"
+Received: from CPC-namja-026ON.redmond.corp.microsoft.com (unknown [4.213.232.19])
+	by linux.microsoft.com (Postfix) with ESMTPSA id 3BAAB20B710C;
+	Mon, 16 Mar 2026 05:12:45 -0700 (PDT)
+DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 3BAAB20B710C
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
+	s=default; t=1773663171;
+	bh=6E+dKhZEiGUG0B2R4F9V5NwBD3IvG5yQHAXHWZtspsE=;
+	h=From:To:Cc:Subject:Date:From;
+	b=KmMzN+L72LBHYNUzHaLuEqLmYUZbFE86Ghb9lbKG5LUyRumq1Pfq+2svrA0+xYFZO
+	 icrvijbYw47VQDkU6veDLhVKqlnse8g07r2eqLanFYIkoRzULa0MthPoLVSiv4VasW
+	 5uFwpbJrFIVM1RNuHNLwoLRVAHOnsvo3dZAS4584=
+From: Naman Jain <namjain@linux.microsoft.com>
+To: "K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>,
+	Wei Liu <wei.liu@kernel.org>,
+	Dexuan Cui <decui@microsoft.com>,
+	Long Li <longli@microsoft.com>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H . Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>,
+	Alexandre Ghiti <alex@ghiti.fr>
+Cc: Marc Zyngier <maz@kernel.org>,
+	Timothy Hayes <timothy.hayes@arm.com>,
+	Lorenzo Pieralisi <lpieralisi@kernel.org>,
+	mrigendrachaubey <mrigendra.chaubey@gmail.com>,
+	Naman Jain <namjain@linux.microsoft.com>,
+	ssengar@linux.microsoft.com,
+	Michael Kelley <mhklinux@outlook.com>,
+	linux-hyperv@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org,
+	linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-riscv@lists.infradead.org
+Subject: [PATCH 00/11] Drivers: hv: Add ARM64 support in mshv_vtl
+Date: Mon, 16 Mar 2026 12:12:30 +0000
+Message-ID: <20260316121241.910764-1-namjain@linux.microsoft.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On Mon, 16 Mar 2026 05:23:57 +0000
-K Prateek Nayak <kprateek.nayak@amd.com> wrote:
+The series intends to add support for ARM64 to mshv_vtl driver.
+For this, common Hyper-V code is refactored, necessary support is added,
+mshv_vtl_main.c is refactored and then finally support is added in
+Kconfig.
 
-> The current scheme to directly patch the kernel text for runtime
-> constants runs into the following issue with futex adapted to using
-> runtime constants on arm64:
+Based on commit 1f318b96cc84 ("Linux 7.0-rc3")
 
-Doesn't this need to come before the previous patch?
+Naman Jain (11):
+  arch: arm64: Export arch_smp_send_reschedule for mshv_vtl module
+  Drivers: hv: Move hv_vp_assist_page to common files
+  Drivers: hv: Add support to setup percpu vmbus handler
+  Drivers: hv: Refactor mshv_vtl for ARM64 support to be added
+  drivers: hv: Export vmbus_interrupt for mshv_vtl module
+  Drivers: hv: Make sint vector architecture neutral in MSHV_VTL
+  arch: arm64: Add support for mshv_vtl_return_call
+  Drivers: hv: mshv_vtl: Move register page config to arch-specific
+    files
+  Drivers: hv: mshv_vtl: Let userspace do VSM configuration
+  Drivers: hv: Add support for arm64 in MSHV_VTL
+  Drivers: hv: Kconfig: Add ARM64 support for MSHV_VTL
 
-	David
+ arch/arm64/hyperv/Makefile        |   1 +
+ arch/arm64/hyperv/hv_vtl.c        | 152 ++++++++++++++++++++++
+ arch/arm64/hyperv/mshyperv.c      |  13 ++
+ arch/arm64/include/asm/mshyperv.h |  28 ++++
+ arch/arm64/kernel/smp.c           |   1 +
+ arch/x86/hyperv/hv_init.c         |  88 +------------
+ arch/x86/hyperv/hv_vtl.c          | 130 +++++++++++++++++++
+ arch/x86/include/asm/mshyperv.h   |   8 +-
+ drivers/hv/Kconfig                |   2 +-
+ drivers/hv/hv_common.c            |  99 +++++++++++++++
+ drivers/hv/mshv.h                 |   8 --
+ drivers/hv/mshv_vtl_main.c        | 205 ++++--------------------------
+ drivers/hv/vmbus_drv.c            |   8 +-
+ include/asm-generic/mshyperv.h    |  49 +++++++
+ include/hyperv/hvgdk_mini.h       |   2 +
+ 15 files changed, 505 insertions(+), 289 deletions(-)
+ create mode 100644 arch/arm64/hyperv/hv_vtl.c
 
-> 
->   Unable to handle kernel write to read-only memory at virtual address fff0000000378fc8
->   Mem abort info:
->     ESR = 0x000000009600004e
->     EC = 0x25: DABT (current EL), IL = 32 bits
->     SET = 0, FnV = 0
->     EA = 0, S1PTW = 0
->     FSC = 0x0e: level 2 permission fault
->   Data abort info:
->     ISV = 0, ISS = 0x0000004e, ISS2 = 0x00000000
->     CM = 0, WnR = 1, TnD = 0, TagAccess = 0
->     GCS = 0, Overlay = 0, DirtyBit = 0, Xs = 0
->   swapper pgtable: 4k pages, 52-bit VAs, pgdp=00000000420a7000
->   [fff0000000378fc8] pgd=18000000bffff403, p4d=18000000bfffe403, pud=18000000bfffd403, pmd=0060000040200481
->   Internal error: Oops: 000000009600004e [#1]  SMP
->   Modules linked in:
->   CPU: 1 UID: 0 PID: 1 Comm: swapper/0 Not tainted 6.19.0-rc6-00004-g7e6457d29e6a-dirty #291 PREEMPT
->   Hardware name: linux,dummy-virt (DT)
->   pstate: 81400009 (Nzcv daif +PAN -UAO -TCO +DIT -SSBS BTYPE=--)
->   pc : futex_init+0x13c/0x348
->   lr : futex_init+0xc8/0x348
->   sp : ffff80008002bd40
->   x29: ffff80008002bd40 x28: ffffa4b73ba0a160 x27: ffffa4b73bd10d74
->   x26: ffffa4b73cb68b28 x25: ffffa4b73ba0b000 x24: ffffa4b73c66b000
->   x23: 0000000000003fe0 x22: 0000000000000000 x21: ffffa4b73bd10d74
->   x20: 0000000000008000 x19: 0000000000000000 x18: 00000000ffffffff
->   x17: 000000007014db06 x16: ffffa4b73ca3ec08 x15: ffff80010002b937
->   x14: 0000000000000006 x13: fff0000077200000 x12: 00000000000002b2
->   x11: 00000000000000e6 x10: fff0000079e00000 x9 : fff0000077200000
->   x8 : fff00000034df9e0 x7 : 0000000000000200 x6 : ffffa4b73ba0b000
->   x5 : fff0000003510000 x4 : 0000000052803fe0 x3 : 0000000072a00000
->   x2 : fff0000000378fc8 x1 : ffffa4b739d78fd0 x0 : ffffa4b739d78fc8
->   Call trace:
->    futex_init+0x13c/0x348 (P)
->    do_one_initcall+0x6c/0x1b0
->    kernel_init_freeable+0x204/0x2e0
->    kernel_init+0x20/0x1d8
->    ret_from_fork+0x10/0x20
->   Code: 120b3c84 120b3c63 2a170084 2a130063 (29000c44)
->   ---[ end trace 0000000000000000 ]---
-> 
-> The pc at "futex_init+0x13c/0x348" points to:
-> 
->   futex_init()
->     runtime_const_init(shift, __futex_shift)
->       __runtime_fixup_shift()
->         *p = cpu_to_le32(insn); /* <--- Here --- */
-> 
-> ... which points to core_initcall() being too late to patch the kernel
-> text directly unlike the "d_hash_shift", "__names_cache" which are
-> initialized during start_kernel() before the protections are in place.
-> 
-> Use aarch64_insn_patch_text_nosync() to patch the runtime constants
-> instead of doing it directly to allow for running runtime_const_init()
-> slightly later into the boot.
-> 
-> Since aarch64_insn_patch_text_nosync() calls caches_clean_inval_pou()
-> internally, __runtime_fixup_caches() ends up being redundant.
-> runtime_const_init() are rare and the overheads of multiple calls to
-> caches_clean_inval_pou() instead of batching them together should be
-> negligible in practice.
-> 
-> At least one usage in kprobes.c suggests cpu_to_le32() conversion is not
-> necessary for aarch64_insn_patch_text_nosync() unlike in the current
-> scheme of patching *p directly.
-> 
-> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
-> ---
->  arch/arm64/include/asm/runtime-const.h | 14 +++-----------
->  1 file changed, 3 insertions(+), 11 deletions(-)
-> 
-> diff --git a/arch/arm64/include/asm/runtime-const.h b/arch/arm64/include/asm/runtime-const.h
-> index 4c3f0b9aad98..764e244f06a4 100644
-> --- a/arch/arm64/include/asm/runtime-const.h
-> +++ b/arch/arm64/include/asm/runtime-const.h
-> @@ -7,6 +7,7 @@
->  #endif
->  
->  #include <asm/cacheflush.h>
-> +#include <asm/text-patching.h>
->  
->  /* Sigh. You can still run arm64 in BE mode */
->  #include <asm/byteorder.h>
-> @@ -63,13 +64,7 @@ static inline void __runtime_fixup_16(__le32 *p, unsigned int val)
->  	u32 insn = le32_to_cpu(*p);
->  	insn &= 0xffe0001f;
->  	insn |= (val & 0xffff) << 5;
-> -	*p = cpu_to_le32(insn);
-> -}
-> -
-> -static inline void __runtime_fixup_caches(void *where, unsigned int insns)
-> -{
-> -	unsigned long va = (unsigned long)where;
-> -	caches_clean_inval_pou(va, va + 4*insns);
-> +	aarch64_insn_patch_text_nosync(p, insn);
->  }
->  
->  static inline void __runtime_fixup_ptr(void *where, unsigned long val)
-> @@ -79,7 +74,6 @@ static inline void __runtime_fixup_ptr(void *where, unsigned long val)
->  	__runtime_fixup_16(p+1, val >> 16);
->  	__runtime_fixup_16(p+2, val >> 32);
->  	__runtime_fixup_16(p+3, val >> 48);
-> -	__runtime_fixup_caches(where, 4);
->  }
->  
->  /* Immediate value is 6 bits starting at bit #16 */
-> @@ -89,8 +83,7 @@ static inline void __runtime_fixup_shift(void *where, unsigned long val)
->  	u32 insn = le32_to_cpu(*p);
->  	insn &= 0xffc0ffff;
->  	insn |= (val & 63) << 16;
-> -	*p = cpu_to_le32(insn);
-> -	__runtime_fixup_caches(where, 1);
-> +	aarch64_insn_patch_text_nosync(p, insn);
->  }
->  
->  /* Immediate value is 6 bits starting at bit #16 */
-> @@ -99,7 +92,6 @@ static inline void __runtime_fixup_mask(void *where, unsigned long val)
->  	__le32 *p = lm_alias(where);
->  	__runtime_fixup_16(p, val);
->  	__runtime_fixup_16(p+1, val >> 16);
-> -	__runtime_fixup_caches(where, 2);
->  }
->  
->  static inline void runtime_const_fixup(void (*fn)(void *, unsigned long),
+
+base-commit: 1f318b96cc84d7c2ab792fcc0bfd42a7ca890681
+prerequisite-patch-id: 24022ec1fb63bc20de8114eedf03c81bb1086e0e
+prerequisite-patch-id: 801f2588d5c6db4ceb9a6705a09e4649fab411b1
+prerequisite-patch-id: 581c834aa268f0c54120c6efbc1393fbd9893f49
+prerequisite-patch-id: b0b153807bab40860502c52e4a59297258ade0db
+prerequisite-patch-id: 2bff6accea80e7976c58d80d847cd33f260a3cb9
+prerequisite-patch-id: 296ffbc4f119a5b249bc9c840f84129f5c151139
+prerequisite-patch-id: 3b54d121145e743ac5184518df33a1812280ec96
+prerequisite-patch-id: 06fc5b37b23ee3f91a2c8c9b9c126fde290834f2
+prerequisite-patch-id: 6e8afed988309b03485f5538815ea29c8fa5b0a9
+prerequisite-patch-id: 4f1fb1b7e9cfa8a3b1c02fafecdbb432b74ee367
+prerequisite-patch-id: 49944347e0b2d93e72911a153979c567ebb7e66b
+prerequisite-patch-id: 6dec75498eeae6365d15ac12b5d0a3bd32e9f91c
+-- 
+2.43.0
 
