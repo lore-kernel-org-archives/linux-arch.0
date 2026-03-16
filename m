@@ -1,234 +1,163 @@
-Received: from mx0b-0031df01.pphosted.com (mx0b-0031df01.pphosted.com [205.220.180.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E138227FD51
-	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 11:12:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=205.220.180.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 46F5539182E
+	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 11:50:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773659570; cv=none; b=oEpu0owZEsEXtxeB1S2+G5ySqmP1X9lvslOOU8cNHj/dfF964GZ4m1CbliAXrAUHrqy7Tl66Lp+EVDxxNll6hkKxgEj6m9DQFMLYmS5xdkBZogI/B6NOCuJ2EDS+U3QidF4G2fRUN0nomFnksTFVZwqTH38kcfdPihOCNKSXE+Q=
+	t=1773661837; cv=none; b=kZmWNxHD0Srlg+IDBdbnuWj/ml5ReaUz666njPw73v/v1BO1psT0pWAzUzx8BLlfd9kbVEVh6b7QH+S62wUbdLf5ic0a9YUtbQ9FYkD4jjllnWvCbH+h5dZXRWRTflN5skiJUflQ6AKIi9BD30BcEQ0cyvMRC3d5e6xPNNiR7WY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773659570; c=relaxed/simple;
-	bh=VNHNj2uQJLx3epL+SKkx9nYzWU47YY0RQ0DgGji/d8I=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=qYltas6SynGSVcQUR+r3IYPuaDkjygMICXl6sfLJoHeaIgDXqLTgVG9v00EcRPm02ryBQYTKL2QscoBoZlZna72VX/MX/VQGqJ5eXzRLB8DBE/My8V+eFkED2kxqOe4k4QjWU3yKLRSjWv7AzcjUaJ4oUg99CvU4NAhIf+stxXM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com; spf=pass smtp.mailfrom=oss.qualcomm.com; dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b=CDwxuEaj; dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b=ESjwQXO4; arc=none smtp.client-ip=205.220.180.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=oss.qualcomm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=oss.qualcomm.com
+	s=arc-20240116; t=1773661837; c=relaxed/simple;
+	bh=uPHgjUUn8VsVJXlffrTlOt7/AdJOHet4wTx4z9k4RXE=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=pqGky5JW47O9IrM9sZIvmRqG7IMKNBfbHvodwdxIG2m0xFlXW+QI1G8zjBH7snSefwFSVvN46yCUQo4G86T1/tjjwhJ83itbbaSm+vAKw90jkF0U3oS1vtZjaSAFXUQrljD3mFJOBVaPc4YRpYWZsv/gZCcBSmbWFCFiYVioZRY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ZwiqZVr7; arc=none smtp.client-ip=209.85.128.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=qualcomm.com header.i=@qualcomm.com header.b="CDwxuEaj";
-	dkim=pass (2048-bit key) header.d=oss.qualcomm.com header.i=@oss.qualcomm.com header.b="ESjwQXO4"
-Received: from pps.filterd (m0279873.ppops.net [127.0.0.1])
-	by mx0a-0031df01.pphosted.com (8.18.1.11/8.18.1.11) with ESMTP id 62G64h6m323609
-	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 11:12:48 GMT
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qualcomm.com; h=
-	cc:content-type:date:from:in-reply-to:message-id:mime-version
-	:references:subject:to; s=qcppdkim1; bh=w5/6niFrt5V7BFvAJhjkDkCn
-	F0DdVxA73yi+xL5S+XY=; b=CDwxuEajblCQa73IHjI1KRv+qjwCyoVNureInyV6
-	3AO1IsWyKP90P8HLWYMsgU5Gow0JYKUA18JfRh4ZlS44jXiwnKrqfaDyJdZ4dxWb
-	vaKLNySyjdPUqlLlxllawE6p29LtbZubiBLghUL3AFK/Z+5IplkxvtU0UuU5l2ys
-	G7xnUX+BaMSr7Qbho62ZhEvtS42LwJGFd4ksqW0xE/txBvTeFn24PZZJi8HMD2WD
-	nAQQOra67cDBT3Vnfc57Q4RlHG9uxUl6qAKSJxwFW45t6SEIYXH36w4oMA7Q1YMM
-	keFH4ckLoQgz1jMGYS5AnhgjfLH+UsO7//1wxanVlDlyUg==
-Received: from mail-pl1-f197.google.com (mail-pl1-f197.google.com [209.85.214.197])
-	by mx0a-0031df01.pphosted.com (PPS) with ESMTPS id 4cw03qng1k-1
-	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 11:12:47 +0000 (GMT)
-Received: by mail-pl1-f197.google.com with SMTP id d9443c01a7336-2adc527eaf5so36171015ad.0
-        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 04:12:47 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ZwiqZVr7"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-485445e80bdso39346135e9.0
+        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 04:50:34 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=oss.qualcomm.com; s=google; t=1773659567; x=1774264367; darn=vger.kernel.org;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=w5/6niFrt5V7BFvAJhjkDkCnF0DdVxA73yi+xL5S+XY=;
-        b=ESjwQXO4h/dzA4uZwHDO9jgXdKuFTnD+64c28sOhyI2Afexcz5iigN9weh+x5zju4B
-         M5BF8z5CiXexJtDpOnu7zUd/z7ZdArbSG7SJYbsCJit896cjHzCgyDhShFWxWw6Spt/i
-         11ytzLM75jwaFWSM4Itypkxcuy6b6jUjJr8soOAKMKQ6k94z0FTxqVqvlSl9bzdqeONh
-         AY0Ji0KE2gL6dt/G1z+z6JmXyGe4SI1MNs/ET80FEqcvBRAlYWtnltbkMz7UyZllqoVk
-         tdq3Mboyu0Nn4moUmif+zZPKham2r+XCT66uBKuAmNiERNtFb9bhqmw8QcLdrvhDEynW
-         iPSw==
+        d=gmail.com; s=20230601; t=1773661832; x=1774266632; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=5kQhGtTK/Lt5/UNF5mERVigZml+1Hw4HwS17dAwaToA=;
+        b=ZwiqZVr7kcG9m9YwtSy2CrLxZrMtxdPcTH/eDgk7vFYWMzcW9j5M+p9jUjxoIFNL2K
+         E4AtTAMQLyMWS/UDG5nc5iODFtuFsBIy9eq6/4EXgM5yAk3MBGnMuPRKdxDkFn1LNTBJ
+         fSbTkRQgemYKibMW9rLX/S2/QN5sTR/1mzTHM4bSUJIWL1nM6dRQumo4TCPiwcQjSp+i
+         PaJEDR8kCf3ahkytXox4yN/gKCdiQWIvLrDohBXOPm3zelLy4lLcu4/pjlocwnkvvwxd
+         7/OU0z3UtS1p1uocTIK6IJwRrUqf1l+ApOTUxk/dWHg9UUhEgYKqY4yOqpOunAsLNO9/
+         L3AQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1773659567; x=1774264367;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=w5/6niFrt5V7BFvAJhjkDkCnF0DdVxA73yi+xL5S+XY=;
-        b=JMmoIEVcQSidAJfQScpwoN9iFTf25huYbU5JpLDYMLfpYx8Iv5LL6FR59fl3nMcmNA
-         Dbrzgzlx24NzOqXu070TUSksglA5CbIDAWJfJ/ULi/haa4BIu0APLGwfXdFGNIC35CZ3
-         jZQPcY0nAICeaMgu2m82C1QyOjwqpGZSR/ga3vvPK9ke54L5Xd2/ku8LonLj5HEzr0Dp
-         ckmQroycIEQKURGbRld3/dfYmT6obnSTQSqLK9mzs8ICOVJkkAUzPT94Aj43MOJO3lC1
-         QqosMa1j/E82VEdgUVbir1hg73jpEtZp1vYjqZtu7LoOrgsOT950b+0TS/Qzd9ZavMMC
-         vIfg==
-X-Forwarded-Encrypted: i=1; AJvYcCXjLi/fhq/IsgrkGoPsOmYe+01esLx5NtcztBshhPvv0IeZ+6jf2xdHGC+WK/YzsbkcPbjMHtKd5DTG@vger.kernel.org
-X-Gm-Message-State: AOJu0YxiCXQAnuQYnkyG33jHGBCfvsObJDPFJ2q9xkzB9nM3KEgksRl0
-	PR5pGIJ7lit731nrDwBhg2YwVKZ5ww8qOVjlEeDhfICcigRLj8TlIF+yTM2nCFYWFmfNSbZ8flA
-	dClCREMLQTzsOm0kBe4V2su/yiY9kgbc2B+JJIdC++mAWvcML94gnlqxYgm9WsAyW
-X-Gm-Gg: ATEYQzyD1OpsWmPgnb8h07tgQRPbvD8gHvxLEzrNAK/n/GCjjijMZ2P0b7RuOAfeSrh
-	XzU86oUYZnEogUUAaeJGeq9qui7MZK7e8J511QwRXK/wpAj2kqShhZa7KPAAZSX+F5ra3wuxPd9
-	h5rCXZ50OxfTyt9vMwAP5j9ry0L6JLlnIZJ9pm+CcsEU3H56A96FvpBwDtPwarFRb7OMUTRB/b+
-	x9WviZgVb5xHVv6ad6Tg6jYvITkNQ0SFlyl/n/JqXFEk4jAmFpAYqyxhg0pAFfF7vRyi7GmoLq2
-	j7p+Kau1gNq0Asbc8pdDuq+4byE71+UR/OWzvhHHZPYl7TM0F1Zloqe+YZr5TqMo5fxnEwSmub+
-	Q2j7D/N0Hv7tmErPdnT+xJK82MJ/t/GPHGIAcy9PK7CDcO0kH
-X-Received: by 2002:a17:902:e94d:b0:2b0:5fa5:a68c with SMTP id d9443c01a7336-2b05fa5a811mr9896345ad.9.1773659566703;
-        Mon, 16 Mar 2026 04:12:46 -0700 (PDT)
-X-Received: by 2002:a17:902:e94d:b0:2b0:5fa5:a68c with SMTP id d9443c01a7336-2b05fa5a811mr9895615ad.9.1773659566145;
-        Mon, 16 Mar 2026 04:12:46 -0700 (PDT)
-Received: from hu-mojha-hyd.qualcomm.com ([202.46.23.25])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2aece7ed753sm133558805ad.45.2026.03.16.04.12.32
+        d=1e100.net; s=20251104; t=1773661832; x=1774266632;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=5kQhGtTK/Lt5/UNF5mERVigZml+1Hw4HwS17dAwaToA=;
+        b=JJU2nhUylYwIyw7R9tJjQEEefb4dO5UxCu8LcecXVWhgmWpONfZi/BSKYI/jzVSVcg
+         tf546YYwyKMPHEN+GudfxuKOJgE5eVOlTunoE1yHgROZnimHdpy7TzNkCf0uIXV3rkXz
+         yw1I/VdLrdbQyBP7Y7p9armdHR+8FUUiab6tuN1c8qjbilZV+dzAf8xfJOYb3W9Q0dOi
+         cokOxlXLR/mnL7iTu4VVYpMcVjITCOPHClvgC70cf40mdxbUkmsS5EVuNE2GITn6H1AK
+         qloUkjj2VFJVFAKvm7O7G2vUaNkI/KseNM+hcVR7s16iRfX0c/fZO7zRR0NupoIKWrf7
+         MfdQ==
+X-Forwarded-Encrypted: i=1; AJvYcCU4zHnvRAgDNP8mMNTwd0OvwyCJdPusNTENtLmS+3H73fjrbM25onoltIFOeB+DbtnFJ9Cls/fsMgiJ@vger.kernel.org
+X-Gm-Message-State: AOJu0Ywq5jqWs5GBw7rrLfNTyMX6bPB4w265z1zL2g0IsnjRg7KcJA/y
+	VXarWe3iBVva3nOlodF4oBOT7UuRrFJfWsWPSgIyWrP1jEHIUzhPpNAv
+X-Gm-Gg: ATEYQzxOeZgOeMswacAixJzImemuxLw0Z5pO7V2Z+3h3Y6xJxkpO+ivR/suBnUftmvq
+	/hkmMyQw+ZC1UedBYzczkV2wV/85fUW7wpxAj5CyTXnZc2A8DEDk3VV3/b9Bz5Q7efKZ4IkghJd
+	FiTt8J34da6JguHYlztWfRPJN8dhrfioOTfciT+cvIEXFDGef/MfunXuGOOgG3O2yzRvgMz5Gsb
+	oZWHRsTZpEVgj/fBisjpPXE/+9PBvk/Vl9xtmRu8pPszrfH7U0Oxwk8uSVs1Hd2nNvx6i06sNEQ
+	JQc1JoKPJ7RiOyhPvho4Oj8zNnmKpwtunJoJ26FR+DjVYdvlIQ5ex7N5xVhAi7jNKNTzEzbvg9A
+	KHUkpZQa4MxlMj7RDO4J1g4W1IBwSZmmPdRsNmEAXA3jRTWWjyIQnRD5wvKLlhYw7qh5JKuORku
+	R/tS582LXkbhzpF6dPl2PhLdscok8QNVWp7+sgmvcR6kdEW6gBoexKgDeMWE7P970K
+X-Received: by 2002:a05:600c:1e8b:b0:483:b505:9db7 with SMTP id 5b1f17b1804b1-4855672ada8mr206704535e9.32.1773661832366;
+        Mon, 16 Mar 2026 04:50:32 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4854b47145dsm421847035e9.0.2026.03.16.04.50.31
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 16 Mar 2026 04:12:45 -0700 (PDT)
-Date: Mon, 16 Mar 2026 16:42:29 +0530
-From: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
-To: Krzysztof Kozlowski <krzk@kernel.org>
-Cc: Jonathan Corbet <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>,
-        Eugen Hristev <eugen.hristev@linaro.org>,
-        Arnd Bergmann <arnd@arndb.de>, Dennis Zhou <dennis@kernel.org>,
-        Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Thomas Gleixner <tglx@kernel.org>,
-        Peter Zijlstra <peterz@infradead.org>,
-        Anna-Maria Behnsen <anna-maria@linutronix.de>,
-        Frederic Weisbecker <frederic@kernel.org>,
-        Ingo Molnar <mingo@redhat.com>, Juri Lelli <juri.lelli@redhat.com>,
-        Vincent Guittot <vincent.guittot@linaro.org>,
-        Dietmar Eggemann <dietmar.eggemann@arm.com>,
-        Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
-        Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
-        David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
-        "Liam R. Howlett" <Liam.Howlett@oracle.com>,
-        Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
-        Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
-        Kees Cook <kees@kernel.org>, Brendan Jackman <jackmanb@google.com>,
-        Johannes Weiner <hannes@cmpxchg.org>, Zi Yan <ziy@nvidia.com>,
-        Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>,
-        Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>,
-        Baoquan He <bhe@redhat.com>, Barry Song <baohua@kernel.org>,
-        Youngjun Park <youngjun.park@lge.com>, Petr Mladek <pmladek@suse.com>,
-        John Ogness <john.ogness@linutronix.de>,
-        Sergey Senozhatsky <senozhatsky@chromium.org>,
-        Bjorn Andersson <andersson@kernel.org>,
-        Mathieu Poirier <mathieu.poirier@linaro.org>,
-        Konrad Dybcio <konradybcio@kernel.org>, Rob Herring <robh@kernel.org>,
-        Krzysztof Kozlowski <krzk+dt@kernel.org>,
-        Conor Dooley <conor+dt@kernel.org>,
-        Saravana Kannan <saravanak@kernel.org>, workflows@vger.kernel.org,
-        linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org,
-        linux-arch@vger.kernel.org, linux-mm@kvack.org,
-        linux-arm-msm@vger.kernel.org, linux-remoteproc@vger.kernel.org,
-        devicetree@vger.kernel.org
-Subject: Re: [PATCH v2 24/25] dt-bindings: reserved-memory: Add Google Kinfo
- Pixel reserved memory
-Message-ID: <20260316111229.q7ip55q5h725owj6@hu-mojha-hyd.qualcomm.com>
-References: <20260311-minidump-v2-v2-0-f91cedc6f99e@oss.qualcomm.com>
- <20260311-minidump-v2-v2-24-f91cedc6f99e@oss.qualcomm.com>
- <20260311-light-terrestrial-bison-d9cd97@quoll>
+        Mon, 16 Mar 2026 04:50:32 -0700 (PDT)
+Date: Mon, 16 Mar 2026 11:50:30 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+ "Peter Zijlstra" <peterz@infradead.org>, Sebastian Andrzej Siewior
+ <bigeasy@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, "Will
+ Deacon" <will@kernel.org>, Darren Hart <dvhart@infradead.org>, Davidlohr
+ Bueso <dave@stgolabs.net>, =?UTF-8?B?QW5kcsOp?= Almeida
+ <andrealmeid@igalia.com>, <linux-arch@vger.kernel.org>,
+ <linux-kernel@vger.kernel.org>, <linux-arm-kernel@lists.infradead.org>,
+ <linux-riscv@lists.infradead.org>, <linux-s390@vger.kernel.org>, Jisheng
+ Zhang <jszhang@kernel.org>
+Subject: Re: [RFC PATCH v2 2/7] arm64/runtime-const: Introduce
+ runtime_const_mask_32()
+Message-ID: <20260316115030.6988ad62@pumpkin>
+In-Reply-To: <20260316052401.18910-3-kprateek.nayak@amd.com>
+References: <20260316052401.18910-1-kprateek.nayak@amd.com>
+	<20260316052401.18910-3-kprateek.nayak@amd.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260311-light-terrestrial-bison-d9cd97@quoll>
-X-Proofpoint-GUID: 38XDgncpsf1IFUDwjZLfb15Nc2vWyiAd
-X-Proofpoint-Spam-Details-Enc: AW1haW4tMjYwMzE2MDA4NSBTYWx0ZWRfX5yVysbnjQNNx
- uWRkKm8ud3PTvdFMtLY3+ruBzKCicwvptxmaEwg3cA3Ftsf0ygQ9GpH4S+Fv2J0GvYXfHW+ZNEs
- uoh8UzyCXlc4gTnDFAQ1rsP2TUgVsYlxyenRuTrBXRdcEiZbIP95S5fcVpTa0QKIKLAyntIrzv7
- BlYMhKKR05+X4z2LQnvUsUYQvGgoFutz0h5b0hcenVvDfgSdf8CYS7v0+ZWD6yyQLo91UCzNq6g
- 2YYu768hrjN45apRzMVspXFS/x+BMWVli1wzZX99KbTXGLW7qP2Wc/OkornFZzW3ryPJqcXMI8V
- YHF8Kcp5Tk+SYm74P1+RdEoE96HW7DF24m8rk/PM3IUPRoPNGOJ4BsNga4TkR4j0Ct1hhdi07XP
- OcPwtEz1U3PddKR1C7rz7HGoj/S3wcXwqs0IpasgXWD2VLxY9dayAI52bHnL0rCYdtO6kdN5ISb
- PmF2+mDUL1ItUPS35aw==
-X-Proofpoint-ORIG-GUID: 38XDgncpsf1IFUDwjZLfb15Nc2vWyiAd
-X-Authority-Analysis: v=2.4 cv=ZbQQ98VA c=1 sm=1 tr=0 ts=69b7e5af cx=c_pps
- a=cmESyDAEBpBGqyK7t0alAg==:117 a=ZePRamnt/+rB5gQjfz0u9A==:17
- a=kj9zAlcOel0A:10 a=Yq5XynenixoA:10 a=s4-Qcg_JpJYA:10
- a=VkNPw1HP01LnGYTKEx00:22 a=u7WPNUs3qKkmUXheDGA7:22 a=rJkE3RaqiGZ5pbrm-msn:22
- a=gEfo2CItAAAA:8 a=KKAkSRfTAAAA:8 a=EUspDBNiAAAA:8 a=mRjidWuB3r9cVBOPW6MA:9
- a=CjuIK1q_8ugA:10 a=1OuFwYUASf3TG4hYMiVC:22 a=sptkURWiP4Gy88Gu7hUp:22
- a=cvBusfyB2V15izCimMoJ:22
-X-Proofpoint-Virus-Version: vendor=baseguard
- engine=ICAP:2.0.293,Aquarius:18.0.1143,Hydra:6.1.51,FMLib:17.12.100.49
- definitions=2026-03-16_04,2026-03-13_01,2025-10-01_01
-X-Proofpoint-Spam-Details: rule=outbound_notspam policy=outbound score=0
- impostorscore=0 priorityscore=1501 adultscore=0 suspectscore=0
- lowpriorityscore=0 malwarescore=0 clxscore=1015 phishscore=0 spamscore=0
- bulkscore=0 classifier=typeunknown authscore=0 authtc= authcc= route=outbound
- adjust=0 reason=mlx scancount=1 engine=8.22.0-2603050001
- definitions=main-2603160085
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Wed, Mar 11, 2026 at 10:05:55AM +0100, Krzysztof Kozlowski wrote:
-> On Wed, Mar 11, 2026 at 01:46:08AM +0530, Mukesh Ojha wrote:
-> > Add documentation for Google Kinfo Pixel reserved memory area.
-> > 
-> > Co-developed-by: Eugen Hristev <eugen.hristev@linaro.org>
-> > Signed-off-by: Eugen Hristev <eugen.hristev@linaro.org>
-> > Signed-off-by: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
-> > ---
-> >  .../bindings/reserved-memory/google,kinfo.yaml     | 46 ++++++++++++++++++++++
-> >  MAINTAINERS                                        |  6 +++
-> >  2 files changed, 52 insertions(+)
-> > 
-> > diff --git a/Documentation/devicetree/bindings/reserved-memory/google,kinfo.yaml b/Documentation/devicetree/bindings/reserved-memory/google,kinfo.yaml
-> > new file mode 100644
-> > index 000000000000..2f964151f0c0
-> > --- /dev/null
-> > +++ b/Documentation/devicetree/bindings/reserved-memory/google,kinfo.yaml
+On Mon, 16 Mar 2026 05:23:56 +0000
+K Prateek Nayak <kprateek.nayak@amd.com> wrote:
+
+> Futex hash computation requires a mask operation with read-only after
+> init data that will be converted to a runtime constant in the subsequent
+> commit.
 > 
-> Nothing improved, read previous feedback.
+> Introduce runtime_const_mask_32 to further optimize the mask operation
+> in the futex hash computation hot path. GCC generates a:
+> 
+>   movz  w1, #lo16, lsl #0     // w1 = bits [15:0]
+>   movk  w1, #hi16, lsl #16    // w1 = full 32-bit value
+>   and   w0, w0, w1	      // w0 = w0 & w1
 
-Missed it, will need to fix this as per compatible name..
+I don't thing the '&' needs to be part of the asm block.
+Just generate the 32bit constant and do the mask in C.
+That will let the compiler schedule the instructions.
+It also make the code patching more generally useful.
+
+	David
+
 
 > 
-> > @@ -0,0 +1,46 @@
-> > +# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
-> > +%YAML 1.2
-> > +---
-> > +$id: http://devicetree.org/schemas/reserved-memory/google,kinfo.yaml#
-> > +$schema: http://devicetree.org/meta-schemas/core.yaml#
-> > +
-> > +title: Google Pixel Kinfo reserved memory
-> > +
-> > +maintainers:
-> > +  - Eugen Hristev <eugen.hristev@linaro.org>
-> > +  - Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
-> > +
-> > +description: |
+> pattern to tackle arbitrary 32-bit masks and the same was also suggested
+> by Claude which is implemented here. __runtime_fixup_ptr() already
+> patches a "movz, + movk lsl #16" sequence which has been reused to patch
+> the same sequence for __runtime_fixup_mask().
 > 
-> Do not need '|' unless you need to preserve formatting.
+> Assisted-by: Claude:claude-sonnet-4-5
+> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+> ---
+>  arch/arm64/include/asm/runtime-const.h | 22 ++++++++++++++++++++++
+>  1 file changed, 22 insertions(+)
 > 
-> > +  This binding represents reserved-memory used to store data for firmware/bootloader
-> 
-> Nothing improved.
+> diff --git a/arch/arm64/include/asm/runtime-const.h b/arch/arm64/include/asm/runtime-const.h
+> index c3dbd3ae68f6..4c3f0b9aad98 100644
+> --- a/arch/arm64/include/asm/runtime-const.h
+> +++ b/arch/arm64/include/asm/runtime-const.h
+> @@ -35,6 +35,19 @@
+>  		:"r" (0u+(val)));				\
+>  	__ret; })
+>  
+> +#define runtime_const_mask_32(val, sym) ({			\
+> +	unsigned long __ret;					\
+> +	asm_inline("1:\t"					\
+> +		"movz %w0, #0xcdef\n\t"				\
+> +		"movk %w0, #0x89ab, lsl #16\n\t"			\
+> +		"and %w0,%w0,%w1\n\t"				\
+> +		".pushsection runtime_mask_" #sym ",\"a\"\n\t"	\
+> +		".long 1b - .\n\t"				\
+> +		".popsection"					\
+> +		:"=r" (__ret)					\
+> +		:"r" (0u+(val)));				\
+> +	__ret; })
+> +
+>  #define runtime_const_init(type, sym) do {		\
+>  	extern s32 __start_runtime_##type##_##sym[];	\
+>  	extern s32 __stop_runtime_##type##_##sym[];	\
+> @@ -80,6 +93,15 @@ static inline void __runtime_fixup_shift(void *where, unsigned long val)
+>  	__runtime_fixup_caches(where, 1);
+>  }
+>  
+> +/* Immediate value is 6 bits starting at bit #16 */
+> +static inline void __runtime_fixup_mask(void *where, unsigned long val)
+> +{
+> +	__le32 *p = lm_alias(where);
+> +	__runtime_fixup_16(p, val);
+> +	__runtime_fixup_16(p+1, val >> 16);
+> +	__runtime_fixup_caches(where, 2);
+> +}
+> +
+>  static inline void runtime_const_fixup(void (*fn)(void *, unsigned long),
+>  	unsigned long val, s32 *start, s32 *end)
+>  {
 
-Will reword it.
-
-> 
-> > +  on the Pixel platform. The stored data is debugging information of the running
-> > +  kernel.
-> > +
-> > +allOf:
-> > +  - $ref: reserved-memory.yaml
-> > +
-> > +properties:
-> > +  compatible:
-> > +    const: google,debug-kinfo
-> > +
-> > +  reg:
-> > +    description: page-aligned region of memory containing debugging data of running kernel
-> 
-> Missing constraints.
-> 
-> Please wrap code according to the preferred limit expressed in Kernel
-> coding style (checkpatch is not a coding style description, but only a
-> tool).  However don't wrap blindly (see Kernel coding style).
-
-Sure., will fix this as well.
-
-> 
-> Best regards,
-> Krzysztof
-> 
-
--- 
--Mukesh Ojha
