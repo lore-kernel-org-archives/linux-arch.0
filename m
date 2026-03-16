@@ -1,113 +1,122 @@
-Received: from galois.linutronix.de (Galois.linutronix.de [193.142.43.55])
+Received: from canpmsgout05.his.huawei.com (canpmsgout05.his.huawei.com [113.46.200.220])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 37B9C37BE6A;
-	Mon, 16 Mar 2026 09:39:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=193.142.43.55
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA07233ADA2;
+	Mon, 16 Mar 2026 09:51:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.220
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773653952; cv=none; b=Hdb3NKt3sA05QAf/p2J+Itigtf7+8SWt7P0tipfb/sgSciONbQCWCxaJF206NIQiwazC3hLqDMfZVQpc70CS7z2IAnpSA7UXRBGnO2fOBSysuDHTFiqViKI3WuWuVdDoqivsMSsIv3GlX5fYkz5CDtYMcYmyuB2Eu9F3HHf9+co=
+	t=1773654703; cv=none; b=BKy+yHLlJJhr8rQLsjRu09+gxDkM7a91FPmSnehBWyPEL99ZolYQzAkrTUUm4WytwTPbExRraASUaWny6T368WPXor/KxLJ1syxN1yz75hqnjvPNUlx1Z5wA4J7lSJZjoa3MSBJOdNZ2VY260H8Zb1bjCtVh8N2fJ7JRdxkZzqA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773653952; c=relaxed/simple;
-	bh=OL6AhR5XAWCLAFO1ZFhQa7oUctDayRZhVu71HIg1Otc=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=JSQtd6iFiZEeZ+un0FFngYtGqDzks6TKA1WgUHVUuiiqjwXwX2nE5MerBdP3ijIrx9ZavL8ySXJQbJpcM15mZBEMSDqBc2vYlGT1Qy9A7jUXBjvp0GEdyrgQzQmXT59Xe48Br2Ecue2XsdDQCqISgKllVNmj9wPZLTN0SZWnP80=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de; spf=pass smtp.mailfrom=linutronix.de; dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=RGW/SC4M; dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b=QGIR75ZP; arc=none smtp.client-ip=193.142.43.55
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linutronix.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linutronix.de
+	s=arc-20240116; t=1773654703; c=relaxed/simple;
+	bh=vlPGwGwPhF0cwnp7ltkdbPiL0mtl2qAfel+dPE5bvWI=;
+	h=Message-ID:Date:MIME-Version:Subject:To:CC:References:From:
+	 In-Reply-To:Content-Type; b=KIOXARn9DXgHJrkF/M5Z2Lnsu2q5jd1rmQ4Blz6Fk7PanIdXohdSWB+ggwzbXfBP+vn9lP3x0RGaA2t3AwojlzASRW2gjI08+kYpKSbTvNrz3RTQPzl8n56tT7K0w4071UtStV7f9Zr/I35XgmQh/pHQdJHO7YnE55EaxyLNaX8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=KKdBc+DG; arc=none smtp.client-ip=113.46.200.220
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="RGW/SC4M";
-	dkim=permerror (0-bit key) header.d=linutronix.de header.i=@linutronix.de header.b="QGIR75ZP"
-From: John Ogness <john.ogness@linutronix.de>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020; t=1773653948;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=9yXXr7UYzVmKZqbUDqTRxeSr99PDOjbUs7jkHvsTHQc=;
-	b=RGW/SC4MMA/M4YgLuQp6J+nCgqUPKuzJkjfow4kMcP+Ja54NkGd+Iqxcg0INU5BTQJaqbd
-	zWuxfRRBwiYqp1zn+ygW2r9mucciJZQfAESPJPEVNCw0VFTSF2q5jqNKXze15EE/2LUqgs
-	7tBkXd3YwUwloSiTyIIjO2b3BZA4XAkvszc02Wytj120zLFKlqdZ3lc4ozLwb0uXovN+hS
-	zpPZPoCg+QW3Ip+nzLaHWLmdk+psjF1q/GdABgeoje1reSUDEUlS94ig22Rd/SWyObLkBQ
-	UVGOB0uvxkkbuO6RBzCm7k94ZLRQqqdVogqowh+uurx+9xqS/e59L4ZyOvGVDg==
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=linutronix.de;
-	s=2020e; t=1773653948;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=9yXXr7UYzVmKZqbUDqTRxeSr99PDOjbUs7jkHvsTHQc=;
-	b=QGIR75ZP1H0QscPuRjVvpUiSFT4GWZluKBzuY8RFXIJ9I/8MYYYcOktCRI31IQE1Zl+P0h
-	QgSBF55PD4+EkVCw==
-To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>, Jonathan Corbet
- <corbet@lwn.net>, Shuah Khan <skhan@linuxfoundation.org>, Eugen Hristev
- <eugen.hristev@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Dennis Zhou
- <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, Christoph Lameter
- <cl@gentwo.org>, Andrew Morton <akpm@linux-foundation.org>, Thomas
- Gleixner <tglx@kernel.org>, Peter Zijlstra <peterz@infradead.org>,
- Anna-Maria Behnsen <anna-maria@linutronix.de>, Frederic Weisbecker
- <frederic@kernel.org>, Ingo Molnar <mingo@redhat.com>, Juri Lelli
- <juri.lelli@redhat.com>, Vincent Guittot <vincent.guittot@linaro.org>,
- Dietmar Eggemann <dietmar.eggemann@arm.com>, Steven Rostedt
- <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>, Mel Gorman
- <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>, David
- Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>, "Liam R.
- Howlett" <Liam.Howlett@oracle.com>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, Brendan
- Jackman <jackmanb@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Zi
- Yan <ziy@nvidia.com>, Chris Li <chrisl@kernel.org>, Kairui Song
- <kasong@tencent.com>, Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham
- <nphamcs@gmail.com>, Baoquan He <bhe@redhat.com>, Barry Song
- <baohua@kernel.org>, Youngjun Park <youngjun.park@lge.com>, Petr Mladek
- <pmladek@suse.com>, Sergey Senozhatsky <senozhatsky@chromium.org>, Bjorn
- Andersson <andersson@kernel.org>, Mathieu Poirier
- <mathieu.poirier@linaro.org>, Konrad Dybcio <konradybcio@kernel.org>,
- Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>, Rob Herring <robh@kernel.org>,
- Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley
- <conor+dt@kernel.org>, Saravana Kannan <saravanak@kernel.org>
-Cc: workflows@vger.kernel.org, linux-doc@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
- linux-mm@kvack.org, linux-arm-msm@vger.kernel.org,
- linux-remoteproc@vger.kernel.org, devicetree@vger.kernel.org
-Subject: Re: [PATCH v2 20/25] printk: Register information into meminspect
-In-Reply-To: <20260311-minidump-v2-v2-20-f91cedc6f99e@oss.qualcomm.com>
-References: <20260311-minidump-v2-v2-0-f91cedc6f99e@oss.qualcomm.com>
- <20260311-minidump-v2-v2-20-f91cedc6f99e@oss.qualcomm.com>
-Date: Mon, 16 Mar 2026 10:45:06 +0106
-Message-ID: <87pl54f70l.fsf@jogness.linutronix.de>
+	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="KKdBc+DG"
+dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
+	c=relaxed/relaxed; q=dns/txt;
+	h=From;
+	bh=balSCgYcEbAY56RSuhkaZ0aLc2AhLdhLQy1g8WgNbj0=;
+	b=KKdBc+DGmyUhCo271f64VAYuX3SbUGzK2OPqk0EYZzDpk69J7P/Fej2zG8g3t0eS35Dw/yMGj
+	vx/vL7s2VNgucXFKIGc46t0PT34JlesQ3V+5TE0yR9eueuvodEj65SDAT5KfG4wmlXyCMhXMGR3
+	5j68uwwQ6TKiWtMOXcvNY4I=
+Received: from mail.maildlp.com (unknown [172.19.163.0])
+	by canpmsgout05.his.huawei.com (SkyGuard) with ESMTPS id 4fZ9Ff3Fz3z12LKJ;
+	Mon, 16 Mar 2026 17:45:58 +0800 (CST)
+Received: from dggpemf500011.china.huawei.com (unknown [7.185.36.131])
+	by mail.maildlp.com (Postfix) with ESMTPS id F1D424056B;
+	Mon, 16 Mar 2026 17:51:30 +0800 (CST)
+Received: from [10.67.109.254] (10.67.109.254) by
+ dggpemf500011.china.huawei.com (7.185.36.131) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.1544.11; Mon, 16 Mar 2026 17:51:28 +0800
+Message-ID: <b750c5eb-f8ff-0d19-f722-89785c096d13@huawei.com>
+Date: Mon, 16 Mar 2026 17:51:27 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
+ Thunderbird/102.2.0
+Subject: Re: [PATCH v13 00/12] arm64: entry: Convert to Generic Entry
+Content-Language: en-US
+To: Peter Zijlstra <peterz@infradead.org>
+CC: <catalin.marinas@arm.com>, <will@kernel.org>, <oleg@redhat.com>,
+	<hca@linux.ibm.com>, <gor@linux.ibm.com>, <agordeev@linux.ibm.com>,
+	<borntraeger@linux.ibm.com>, <svens@linux.ibm.com>, <tglx@kernel.org>,
+	<mingo@redhat.com>, <bp@alien8.de>, <dave.hansen@linux.intel.com>,
+	<hpa@zytor.com>, <arnd@arndb.de>, <shuah@kernel.org>, <kees@kernel.org>,
+	<luto@amacapital.net>, <wad@chromium.org>, <kevin.brodsky@arm.com>,
+	<charlie@rivosinc.com>, <macro@orcam.me.uk>, <deller@gmx.de>,
+	<ldv@strace.io>, <anshuman.khandual@arm.com>, <song@kernel.org>,
+	<ryan.roberts@arm.com>, <mark.rutland@arm.com>, <ada.coupriediaz@arm.com>,
+	<broonie@kernel.org>, <pengcan@kylinos.cn>, <liqiang01@kylinos.cn>,
+	<thuth@redhat.com>, <andreas@gaisler.com>,
+	<schuster.simon@siemens-energy.com>, <jremus@linux.ibm.com>,
+	<jgross@suse.com>, <mathieu.desnoyers@efficios.com>, <yeoreum.yun@arm.com>,
+	<kmal@cock.li>, <dvyukov@google.com>, <akpm@linux-foundation.org>,
+	<reddybalavignesh9979@gmail.com>, <richard.weiyang@gmail.com>,
+	<x86@kernel.org>, <linux-arm-kernel@lists.infradead.org>,
+	<linux-kernel@vger.kernel.org>, <linux-s390@vger.kernel.org>,
+	<linux-arch@vger.kernel.org>, <linux-kselftest@vger.kernel.org>
+References: <20260313094738.3985794-1-ruanjinjie@huawei.com>
+ <20260313115700.GA2872@noisy.programming.kicks-ass.net>
+From: Jinjie Ruan <ruanjinjie@huawei.com>
+In-Reply-To: <20260313115700.GA2872@noisy.programming.kicks-ass.net>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: kwepems500001.china.huawei.com (7.221.188.70) To
+ dggpemf500011.china.huawei.com (7.185.36.131)
 
-On 2026-03-11, Mukesh Ojha <mukesh.ojha@oss.qualcomm.com> wrote:
-> Annotate vital static, dynamic information into meminspect for debugging
->
-> Static:
->  - prb_descs
->  - prb_infos
->  - prb
->  - prb_data
->  - printk_rb_static
->  - printk_rb_dynamic
 
-FYI: vmcore also exports the symbol "clear_seq". It is not required if
-you are interested in reading _everything_ in the buffer. But it may be
-interesting if you want to mirror vmcore tool features.
 
-> Dynamic:
->  - new_descs
->  - new_infos
->  - new_log_buf
->
-> meminspect uses a different API to annotate variables for inspection,
-> and information about these variables is stored in the inspection table.
->
-> Reviewed-by: Petr Mladek <pmladek@suse.com>
-> Co-developed-by: Eugen Hristev <eugen.hristev@linaro.org>
-> Signed-off-by: Eugen Hristev <eugen.hristev@linaro.org>
-> Signed-off-by: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
+On 2026/3/13 19:57, Peter Zijlstra wrote:
+> On Fri, Mar 13, 2026 at 05:47:26PM +0800, Jinjie Ruan wrote:
+> 
+>> Jinjie Ruan (11):
+>>   arm64/ptrace: Refactor syscall_trace_enter/exit() to accept flags
+>>     parameter
+>>   arm64/ptrace: Expand secure_computing() in place
+>>   arm64/ptrace: Use syscall_get_arguments() helper for audit
+>>   arm64: ptrace: Move rseq_syscall() before audit_syscall_exit()
+>>   arm64: syscall: Introduce syscall_exit_to_user_mode_work()
+>>   arm64/ptrace: Define and use _TIF_SYSCALL_EXIT_WORK
+>>   arm64/ptrace: Skip syscall exit reporting for PTRACE_SYSEMU_SINGLESTEP
+>>   arm64: entry: Convert to generic entry
+>>   arm64: Inline el0_svc_common()
+>>   s390: Rename TIF_SINGLE_STEP to TIF_SINGLESTEP
+>>   arm64: Use generic TIF bits for common thread flags
+>>
+>> kemal (1):
+>>   selftests: sud_test: Support aarch64
+>>
+>>  arch/arm64/Kconfig                            |   3 +-
+>>  arch/arm64/include/asm/entry-common.h         |  76 ++++++++++++
+>>  arch/arm64/include/asm/syscall.h              |  19 ++-
+>>  arch/arm64/include/asm/thread_info.h          |  76 ++++--------
+>>  arch/arm64/kernel/debug-monitors.c            |   7 ++
+>>  arch/arm64/kernel/ptrace.c                    | 115 ------------------
+>>  arch/arm64/kernel/signal.c                    |   2 +-
+>>  arch/arm64/kernel/syscall.c                   |  29 ++---
+>>  arch/s390/include/asm/thread_info.h           |   7 +-
+>>  arch/s390/kernel/process.c                    |   2 +-
+>>  arch/s390/kernel/ptrace.c                     |  20 +--
+>>  arch/s390/kernel/signal.c                     |   6 +-
+>>  arch/x86/include/asm/thread_info.h            |   6 +-
+>>  include/asm-generic/thread_info_tif.h         |   5 +
+>>  .../syscall_user_dispatch/sud_benchmark.c     |   2 +-
+>>  .../syscall_user_dispatch/sud_test.c          |   4 +
+>>  16 files changed, 166 insertions(+), 213 deletions(-)
+> 
+> AFAICT arm64 is still using exit_to_user_mode_prepare_legacy() after
+> this. This cannot be right.
 
-Reviewed-by: John Ogness <john.ogness@linutronix.de>
+You are right. exit_to_user_mode_prepare_legacy() should be replaced
+with irqentry_exit_to_user_mode_prepare().
+
+> 
