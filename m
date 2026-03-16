@@ -1,154 +1,114 @@
-Received: from mail-ej1-f45.google.com (mail-ej1-f45.google.com [209.85.218.45])
+Received: from mail-wm1-f54.google.com (mail-wm1-f54.google.com [209.85.128.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1FB2536AB56
-	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 22:12:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.218.45
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773699176; cv=pass; b=jmunm01DQrEuxkUM+Gd77Tju0SpZCoiHGntxVQ23LuM95v9EZIKQOK0HbePEXnft87VT4DIlRUlVNt64mTLn73iq0C1alxsVxBHwCvdNmq7B58UKPtjY9zmen0yfIupgD1QicbaXzr87ZEiyGXOmHgWXafjK9jYveJ5tseCKP3U=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773699176; c=relaxed/simple;
-	bh=rsp7Ihi8TSAj7hc2vakkxGqqL2oEkNH6XMA5zjqI1qA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=h4FKCw5VhEMHa6PUIOIJjNJwqlLxez80XceKfXDTAaEGp+8qSiE3Bth6c42JGAobfcjnCpSO50tqi/3yZ92pqW+tLjtVM5ucI+7pRuzQgKW3ENIFVi7XHhsoX9tEBclCnJJx0olZt9iV7SCrV/4Z8yOWAMN9OhMxTwZGeWOlGUA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=nXFirVf+; arc=pass smtp.client-ip=209.85.218.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C58D8186A
+	for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 23:37:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.54
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1773704238; cv=none; b=rdHQDVZCh8svr/J8YNzgyWBmVNvZX81wKOsOm1B1GwOxmBq3q+fRjDkiU5jlkdKYHFVCSlr5Mj7Fx1QebA9UDjzCCgmeXWH/BqwTpeFkmE7gVhH2pIa8hcBPMQpXK7KR0Cv+rlsBRA8dVLI1lwx9ha1jtrZApTMpP4ueG7KM55E=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1773704238; c=relaxed/simple;
+	bh=2DmUkIQk68nUHosP/saZetuyTBWym4GTB8xne8YydJ0=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=tKH+N3Xa7nsn2gt81mMXo//WjNf/ZIDKqFKnxnEMk9ojdFZ2Lmb/otR6mdOC2nPXLMvDNy0Lv+cBvV9iE8bHTBpJuu7j9VhaAMlUPz6RN2RdJRWDh3swdlC4cSeh5x1GbqVxkNm8uuBFqZOhLLwjlTfgXMbBnbl0RW/g801TFAM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=QPC5WxpA; arc=none smtp.client-ip=209.85.128.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="nXFirVf+"
-Received: by mail-ej1-f45.google.com with SMTP id a640c23a62f3a-b97905516faso336716466b.1
-        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 15:12:53 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1773699172; cv=none;
-        d=google.com; s=arc-20240605;
-        b=MORCVXUSEcnlilqrvuUbCYANWQY+rG51IKlFxelNTmH5HPW2DgFpxiVe7lAIJOg8sP
-         hX2B7U0l8oDqaGiUgMEJkX0JM97Tn0E9emALb/3OTTBQRmKWBurQCVEg4Hko0gIppfxs
-         CDdBrwOMQxhpR/JkoEQB3zclgVSiXtrnwN1Kn6sWtdDXsZqdMChXtOfS5QPG1kLQymHO
-         Zqspy+E5zDpREoSa2xwLiUHNPmO1pbQkfVN+xStlOSkXRT53YHKgxAEPwKrYRvoNCqQK
-         2HlFINNucTrG3Pti+PMSknOZzi8cAvZ82jHp2iaP9RcwEUP16i+ofcX22HWUVlB4bICc
-         +VTQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=pAPcwDRyDaYRxv6m5ec0p6vencyIfyK+pU3obaup7wA=;
-        fh=RZw1dYPAzZo0MfVW+ek/NXMpxPG/3m+87MSHwc+JyGw=;
-        b=WQVg10pEZSHg4EcLkQUnwhhwjzHW5rdnJ0HSH9AudpCSxeRJDaoHNaXFcx7YlgtB4s
-         sI0MDhiwV2vhgKa9ONkfRhqdcRPFDuN05GENyei5gfhmC3q9tkMgev9dO/GKzfFlxjXT
-         5WHv5GqiF4/1mXZfE/ed5x1SgYrkpJaiMr5GCI57+R+12aTtCN83ljF9frB+yVeMThLR
-         dEgufLrMne0S7v/EfxXJSlTGqi21kcS6SzGrESM1CZ9juXAbLoeZeVgLzmSROl8KGq3T
-         geWXtqhTmwsAkeyYdGGSFf64wZKh/n88ZlofYIGwzOPrjkUry3DvWtBupS6rJsQnrvpa
-         wrUQ==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="QPC5WxpA"
+Received: by mail-wm1-f54.google.com with SMTP id 5b1f17b1804b1-485345e1013so1322335e9.1
+        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 16:37:16 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1773699172; x=1774303972; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
+        d=gmail.com; s=20230601; t=1773704235; x=1774309035; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=pAPcwDRyDaYRxv6m5ec0p6vencyIfyK+pU3obaup7wA=;
-        b=nXFirVf+3TZ7nayCWf+YAe8f5IxUtczrfP1EXNbBIrmwKiqwYyLnNpAauLND8FQtug
-         qyiFy+esPMVr68OOOX82lIQLtv4g9BlFNZaBwo4KsXwCVqnfA/cnHzxN3Su9BCI72YRq
-         auyRj61mHF94yEemJmjWC/U+E7H+3VcjkmPSPrWbYeT/sNINXe1KOC5DtsQxJjPZdVBP
-         hNMRzTNBiyInnITmm9ONHtYXDRin1mMnPr1z331IK2KJiXXPmzS1yp1rdXfeMlAWA2Ci
-         qg4RD1I8Hp+NegL76P7aa4Y8Cgz6Ykhx1YR2At11/HUaYDUKWkEbjQlI4WP+iffGCmKo
-         wGjA==
+        bh=FrJSvnP5t2ZAkb3zCRgf6mgahxyGJGt35l4bNQI7QjY=;
+        b=QPC5WxpABMCAeZi6z60g8BZHDoFHTdbDEMC5sJa1WQXmjRCtM7qyq1BN3aLbPQrknC
+         l1JpxGID+JiHi0+D8Eo3kaW7kskN56iB3hw4sSVwcb21I5MJm4pm32zKJs15qqp4L21u
+         nnQfljhQ27BTYWgKwQE2nxFLv61CZ3mkm/+5jIXnrPhihFBG6xfnJYijzGDNfY2RsQ5/
+         oA/ud4M333RvrCvS/BprY4etcc4XsZdKYFfI+xkKrzwq9Dw+nH9TtyokxzNwlIXPMItP
+         9fQXC7jZtjHgpskaUBFTZqqxDBQX76FAbyL7lE/nbtlKrRbnKhkg3Vve9tI8fS8qhoCq
+         nQ2Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1773699172; x=1774303972;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+        d=1e100.net; s=20251104; t=1773704235; x=1774309035;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=pAPcwDRyDaYRxv6m5ec0p6vencyIfyK+pU3obaup7wA=;
-        b=astmrgdSspHCdgvqcPGG3yLXpZhfQIXI77yHIYJ/yO8v/DvuhcaQipHPbgLU35XheN
-         18DtsY83OfdunXVtW0jZdltFKL9aUoQFA8+mgxKUe+xViklxKcyw0khkvq2RubGPqb/F
-         /owZEgAu+mW1RRpBd+pkxx1KuLZyiK5gu6CiovCILIP4n8soxUqZPlpqtr7MSWvhzp7e
-         6e3w9Y3mdN757GOjuIojW2Z8KuJu/aBne62D5r/DI22w+GjsPKnobfgnTg2RMmYrRZB2
-         54TJyBHTqnDPBsr46HHQevUgt+KvNv+4jwDgjuiYaWu/+AdFIc5ca1JyNamH48S75fuw
-         OQHw==
-X-Forwarded-Encrypted: i=1; AJvYcCXUj780tyrgmOF7AdvlEM7scY0EZotktg3d47jG8QpePVP3V3ALhlbkJgVDJdnyYbqnKWzebHBi8SIM@vger.kernel.org
-X-Gm-Message-State: AOJu0YwSMdCgbAUI+IqKh4X/HGhQaIiuGXNXrdsWizpCOPkWR6cTIsUi
-	VuaGXqbOSSJYBpXq7mpyYvD1bQC2G15KpYzSPoHDFS5U628sSK2tZltwsz624c/Fz2zLKJ1Yt54
-	SG/aqsyVmmdBScR84BekgtxQ4EiE5PPk=
-X-Gm-Gg: ATEYQzy+f0KVI+u46FqqAuZDKUub0dQuFMBn3px+jNDBhA3rqSzxLRaQpD1rBGAdcxs
-	NiObYQLDNankF12J0Gf1O4/zV37533+jdwGNJgLWnydNBcBxwOP8ZncEkUus93VwpjJMGNLnIR9
-	cxOZohPBMXSfYSt8Id1MaE6J+RgyEoD5D2sREQ7gToQ9A6RGRXnWW74N16GVGipgu6qq30XyQ5G
-	70436ZsOh6Sp9msifEqEpqL7p9hsjnQO9LtTU8X9pj+DwTOKfW4++6Z/OFREKs4Ei4dQJB55Slk
-	vDgB2m01ZK3gzzHLaFq+VuoTIDSMOTW84pwzSK3h
-X-Received: by 2002:a17:907:1c0b:b0:b97:b515:31e with SMTP id
- a640c23a62f3a-b97b51509acmr346111966b.50.1773699172087; Mon, 16 Mar 2026
- 15:12:52 -0700 (PDT)
+        bh=FrJSvnP5t2ZAkb3zCRgf6mgahxyGJGt35l4bNQI7QjY=;
+        b=pWwB9SXJjD1i3MJr4zCZ1Rrdn9oRuAmj2Op99hs1zJaLdsCpROsY7VbDIKPCOUeeh2
+         ZXMqtQu2EIb6XKbPZIDn5kb4Ho9CdQCC2ng08w9J7QF8ngsWbfLPjrAiScnDi+Nn8OhC
+         SusKcOxnWSb6jMtTF9WqNoJmlfe109cVI/w1qLhwHTBcD8JDRuSZVW+O9rkFPTH96PCz
+         XDTDhezM1BoP4lNpW0JMFMOK0o5UOCFjOWXxg/ZN/0sd86YJxptJrpo0MN+7DJ/H+kpD
+         ARpO2VUC+W0jF8ojIbvb0LEKZdp7oS9EyH2FF087SmRRZDnqkLIvGU7gOhWaqOW0Mu9Z
+         N48Q==
+X-Forwarded-Encrypted: i=1; AJvYcCXl/WuSnBNdrfDXVAQZgMH990XkfSQkKQVfst1/N5EDGx/sgl9xiIRph4LEj7wUub8MtJqR3T9ZJ6Na@vger.kernel.org
+X-Gm-Message-State: AOJu0YwT5onyWOsDklUzqroFpo23bq3XW7K7NtvoXmsZbRmwdhyVRmMO
+	PgpktDQSid+O4dYUy3cjAcxfeiqahM37gtGGTTcBF7f//qRZC7JH7LMP
+X-Gm-Gg: ATEYQzwQaVIsLFsfFFPU2NuRfEVUpAqy/JIxK3SG45Mot+UuhxZA2EOgTU6Lt4zoarS
+	a+ZWsNkjyj2EIYG/1rDQ1QpYCtflbMtUZ59l9IdK8qVIEKH0fFI/ormknVRv0mUeXNxmNjUI1NG
+	YDVdrDaRFIuyCaWP/ghG3ivpQ5Ui+GbkAAtgVdKl8jivB5NIUYBAFIMTGQqvc/1x+U+RGFn5nWA
+	sFkNpmUcB3YobIeKD/3eYapm+0+ZnjaGI5lNf4jRTKfo+dY0huz2bjdg42PO4Bod31sRLWygVOl
+	AkpmOPZ/QWWKWQX31jnpiY3+g1mpL5XW4BgYbOKCMPFA7OP5PlfZyh66mH3rOg82Qc5EFK/0yq6
+	w0pcJA04oSsDm+Py1TiZItC/8NzPwnQLprJAyIpOdq4tgGA+YjXDx/ZESFWdpFDom3QP3c4mErB
+	j4cQR6iOsy/koHqBni2AKcM4XJtjfrsZRZ5SUcaA2XMwW5b9i1XbKm93lHNyz6qyv0Y1w9Nvnga
+	EM=
+X-Received: by 2002:a05:600c:17ca:b0:485:343b:38d with SMTP id 5b1f17b1804b1-4856eaac647mr13270265e9.5.1773704234827;
+        Mon, 16 Mar 2026 16:37:14 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-43b42e680ddsm14706435f8f.13.2026.03.16.16.37.14
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 16 Mar 2026 16:37:14 -0700 (PDT)
+Date: Mon, 16 Mar 2026 23:37:12 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Ankur Arora <ankur.a.arora@oracle.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-pm@vger.kernel.org, bpf@vger.kernel.org, arnd@arndb.de,
+ catalin.marinas@arm.com, will@kernel.org, peterz@infradead.org,
+ mark.rutland@arm.com, harisokn@amazon.com, cl@gentwo.org, ast@kernel.org,
+ rafael@kernel.org, daniel.lezcano@linaro.org, memxor@gmail.com,
+ zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com, rdunlap@infradead.org,
+ joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
+ konrad.wilk@oracle.com
+Subject: Re: [PATCH v10 00/12] barrier: Add
+ smp_cond_load_{relaxed,acquire}_timeout()
+Message-ID: <20260316233712.7cbfac27@pumpkin>
+In-Reply-To: <874imftol4.fsf@oracle.com>
+References: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
+	<20260315184925.b6f93386e918ca79614843e3@linux-foundation.org>
+	<874imftol4.fsf@oracle.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260311070416.972667-1-hch@lst.de> <20260311070416.972667-11-hch@lst.de>
-In-Reply-To: <20260311070416.972667-11-hch@lst.de>
-From: Magnus Lindholm <linmag7@gmail.com>
-Date: Mon, 16 Mar 2026 23:12:39 +0100
-X-Gm-Features: AaiRm53MOL-S4iIRiZrnVZNNZCm-cfe6kMQGe2L4WL9TC_xpq_akeJ994p2lXMA
-Message-ID: <CA+=Fv5QkJm8+ysx8W=ypr84oSR=rrikfk-iMMU6_xrtS1PsWvg@mail.gmail.com>
-Subject: Re: [PATCH 10/27] alpha: move the XOR code to lib/raid/
-To: Christoph Hellwig <hch@lst.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Richard Henderson <richard.henderson@linaro.org>, Matt Turner <mattst88@gmail.com>, 
-	Russell King <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, 
-	Will Deacon <will@kernel.org>, Huacai Chen <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, 
-	Madhavan Srinivasan <maddy@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, 
-	Nicholas Piggin <npiggin@gmail.com>, "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>, Paul Walmsley <pjw@kernel.org>, 
-	Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, 
-	Alexandre Ghiti <alex@ghiti.fr>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
-	Alexander Gordeev <agordeev@linux.ibm.com>, Christian Borntraeger <borntraeger@linux.ibm.com>, 
-	Sven Schnelle <svens@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, 
-	Andreas Larsson <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>, 
-	Anton Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg <johannes@sipsolutions.net>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, 
-	"H. Peter Anvin" <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, 
-	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba <dsterba@suse.com>, 
-	Arnd Bergmann <arnd@arndb.de>, Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, 
-	Li Nan <linan122@huawei.com>, "Theodore Ts'o" <tytso@mit.edu>, 
-	"Jason A. Donenfeld" <Jason@zx2c4.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev, 
-	linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org, 
-	linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, 
-	linux-um@lists.infradead.org, linux-crypto@vger.kernel.org, 
-	linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-raid@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Wed, Mar 11, 2026 at 8:06=E2=80=AFAM Christoph Hellwig <hch@lst.de> wrot=
-e:
->
-> Move the optimized XOR code out of line into lib/raid.
->
-> Note that the giant inline assembly block might be better off as a
-> separate assembly source file now, but I'll leave that to the alpha
-> maintainers.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/alpha/include/asm/xor.h | 853 +----------------------------------
->  lib/raid/xor/Makefile        |   2 +
->  lib/raid/xor/alpha/xor.c     | 849 ++++++++++++++++++++++++++++++++++
->  3 files changed, 855 insertions(+), 849 deletions(-)
->  create mode 100644 lib/raid/xor/alpha/xor.c
->
+On Mon, 16 Mar 2026 15:08:07 -0700
+Ankur Arora <ankur.a.arora@oracle.com> wrote:
 
-Hi,
+...
+> However, as David Laight pointed out in this thread
+> (https://lore.kernel.org/lkml/20260214113122.70627a8b@pumpkin/)
+> that this would be fine so long as the polling is on memory, but would
+> need some work to handle MMIO.
 
-I applied this patch and ran it on my UP2000+
+I'm not sure the current code works with MMIO on arm64.
+I was looking at the osq_lock() code, it uses smp_cond_load() with 'expr'
+being 'VAL || need_resched()' expecting to get woken by the IPI associated
+with the preemption being requested.
+But the arm64 code relies on 'wfe' being woken when the memory write
+'breaks' the 'ldx' for the monitored location.
+That will only work for cached addresses.
 
-The kernel builds and boots, and I verified the new lib/raid/xor/alpha
-implementation using the XOR KUnit test, the test passed, see below:
+For osq_lock(), while an IPI will wake it up, there is also a small timing
+window where the IPI can happen before the ldx and so not actually wake up it.
+This is true whenever 'expr' is non-trivial.
+On arm64 I think you could use explicit sev and wfe - but that will wake all
+'sleeping' cpu; and you may not want the 'thundering herd'.
 
-[   25.705064]     KTAP version 1
-[   25.705064]     # Subtest: xor
-[   25.705064]     # module: xor_kunit
-[   25.705064]     1..1
-[   28.957992]     # xor_test: Test should be marked slow (runtime:
-3.253413330s)
-[   28.958969]     ok 1 xor_test
-
-Acked-by: Magnus Lindholm <linmag7@gmail.com>
-Tested-by: Magnus Lindholm <linmag7@gmail.com>
+	David
