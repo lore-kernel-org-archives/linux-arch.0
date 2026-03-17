@@ -1,69 +1,66 @@
-Received: from SA9PR02CU001.outbound.protection.outlook.com (mail-southcentralusazon11013017.outbound.protection.outlook.com [40.93.196.17])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oa1-f45.google.com (mail-oa1-f45.google.com [209.85.160.45])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5A99A3101B6;
-	Tue, 17 Mar 2026 01:55:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=40.93.196.17
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773712540; cv=fail; b=FzMPmnJQM/YJVUZygPVP7qMk1MfawfuS20L9rDK5JQa46+SezMjbJcENPMgJSbLCmbu71oCxJLwLv50eKC/J9D99chHy1Xbz5OJr3FmHK7vWy7SX07aOzbfRGI9rfdvprX7cPieRxJ+OD3sFlQN3/aUM8N2bb40YNw0V2JpTD2g=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773712540; c=relaxed/simple;
-	bh=AvP7DhuMS9xiWOTX8lgMfI6/i2qan63c0rM/JnHyjaM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:CC:References:From:
-	 In-Reply-To:Content-Type; b=Sti+hVM7wnwfBwfzMHmh3S2x8EEvKV4eMERE7hLI4QA5AXU9OkpmXzjB00hI8Nv0lnceUR1raDfDZpbk34bMQmrHomMNk/kl7IUHEKhgidQGMWVoxGkVoJxcdQTQj1FjmfjiOO9QV5YBhFG3TUZ75wVH6AYIH6zEi56DbB1vATc=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com; spf=fail smtp.mailfrom=amd.com; dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b=1uBJdr3n; arc=fail smtp.client-ip=40.93.196.17
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=amd.com
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=amd.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2AF182BEC27
+	for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2026 03:06:43 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.45
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1773716805; cv=none; b=qsYWgOBWhENcem7i5UVf6S4kx0qrR61tUh71/gY6xbRApcdrGQFsFr/t7SqzQtibUXMBjMSUPUKtBUlMUum0czD8oUmKOt5a1mSArKo4ZhoMsKgvZbJhh6avdAJGoeeUxTVhxnwDoZaJ0U2hErgYxcSSf1Q3ApT0GhjqoUWkkDs=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1773716805; c=relaxed/simple;
+	bh=f+U+RHB3J3u+dTioS7Vn6ot1T5etXD8kagp74lVKQ2o=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=JhvPlefeKKGZCYRRpgSiM6RHEJgjCBdQYZSp8IxdHIfaQR0JIABbaTuYkBG5nD58/EYMagKkYEFnesT7Co/tOvarMramkMYXcTz7h/sxd2XRpdENjW4FxCAof9OsuW/arHx1J3h6h8+KCUQ2oJwnDXFIjOL+TGdAdCFXWYQenzc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com; spf=pass smtp.mailfrom=sifive.com; dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b=jJrBdC/a; arc=none smtp.client-ip=209.85.160.45
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sifive.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=amd.com header.i=@amd.com header.b="1uBJdr3n"
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=O+Vu/eOpfTzF2KQoXKeSj2SgiKCxMMy5GR7wQUChUc8IS3lunaqCk/KSo+McvAVUnLsy80Ty4mLHrnQ7NosfA1bQyVfU7G6XsBcGPn/885V2012iUMG+7qY++UFEeZK3+5bpNoh+XiEKf8ylKI6G/wMwtHhhdfATgx8DP6BazaCMr3bbvDkTeUotU/grn1LOOJPZJylWBOWrcsnyjHquS3CX4eBMH/NmTAiicT0aiUDDQz83Zu/0PuFRvmP6EwUPsLMUVTG9zUAq8ePG1SHZDNzq7IbNShPt6hZ8Dy5icTS7Ct6Gjk/raohDgGj2ACYWRrtXQiNX8KeTC/02ZE5//g==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=iI/C0gsSslPlD4GdE2LcT43hHmTcYJQf9I5E3xpOyYE=;
- b=Dm/KzE0cuQU/EfgQEythgkhjyxOFQATErHqKlYzdcPPPAgsma9ws/Nk/z1Z76L2xa9X9UHaCWJN3AUy5mTqB2BuDhdr/t+QoeGK9noTf8MRSDCUmWXdGcRSI3VOFtWT8s8TRgae0jfsurcHo6ERTxiuZ0CSn42lOaAmODcU6bd18tPub5iWmcqJyuuEeuBC8rjUJKGfEKMMafFQNXxNm4XaTi86YIAURPYGFmwe/qxEXcETbo+zjPhIVu4JEbswrkZHo2zYJjzUI2pggn1+aHW0AHt0JiXS7/6IUgKm6uBdYn90KQ3IFaJXqTYcJny9nKFJxeuAolXxPj6opL0OTbw==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
- 165.204.84.17) smtp.rcpttodomain=linux.ibm.com smtp.mailfrom=amd.com;
- dmarc=pass (p=quarantine sp=quarantine pct=100) action=none
- header.from=amd.com; dkim=none (message not signed); arc=none (0)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amd.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=iI/C0gsSslPlD4GdE2LcT43hHmTcYJQf9I5E3xpOyYE=;
- b=1uBJdr3niw3JeVF0OkwQlbiozUzz1lCHosDKdR4S/cWJEc5i9iNKp+XrHK4zQ/oA7fyUJ6+7970NkMC0TZJu8eZLJSv3TcNxaMehov7RUc0HzE22paGeIXDAIy7LzKsJxhy3F0sGMIi2IYXxbeB8nH0Z9xzF42Ujht0Wo7EWQBQ=
-Received: from BLAPR05CA0033.namprd05.prod.outlook.com (2603:10b6:208:335::14)
- by CHXPR12MB999246.namprd12.prod.outlook.com (2603:10b6:610:2fc::15) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.16; Tue, 17 Mar
- 2026 01:55:36 +0000
-Received: from BL02EPF0001A100.namprd03.prod.outlook.com
- (2603:10b6:208:335:cafe::be) by BLAPR05CA0033.outlook.office365.com
- (2603:10b6:208:335::14) with Microsoft SMTP Server (version=TLS1_3,
- cipher=TLS_AES_256_GCM_SHA384) id 15.20.9700.27 via Frontend Transport; Tue,
- 17 Mar 2026 01:55:40 +0000
-X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 165.204.84.17)
- smtp.mailfrom=amd.com; dkim=none (message not signed)
- header.d=none;dmarc=pass action=none header.from=amd.com;
-Received-SPF: Pass (protection.outlook.com: domain of amd.com designates
- 165.204.84.17 as permitted sender) receiver=protection.outlook.com;
- client-ip=165.204.84.17; helo=satlexmb07.amd.com; pr=C
-Received: from satlexmb07.amd.com (165.204.84.17) by
- BL02EPF0001A100.mail.protection.outlook.com (10.167.242.107) with Microsoft
- SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.20.9700.17 via Frontend Transport; Tue, 17 Mar 2026 01:55:36 +0000
-Received: from SATLEXMB04.amd.com (10.181.40.145) by satlexmb07.amd.com
- (10.181.42.216) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id 15.2.2562.17; Mon, 16 Mar
- 2026 20:55:35 -0500
-Received: from satlexmb07.amd.com (10.181.42.216) by SATLEXMB04.amd.com
- (10.181.40.145) with Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256) id 15.1.2507.39; Mon, 16 Mar
- 2026 20:55:35 -0500
-Received: from [10.136.37.230] (10.180.168.240) by satlexmb07.amd.com
- (10.181.42.216) with Microsoft SMTP Server id 15.2.2562.17 via Frontend
- Transport; Mon, 16 Mar 2026 20:55:31 -0500
-Message-ID: <94239f7e-49f6-409b-9c87-25fefd52b2cd@amd.com>
-Date: Tue, 17 Mar 2026 07:25:25 +0530
+	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="jJrBdC/a"
+Received: by mail-oa1-f45.google.com with SMTP id 586e51a60fabf-40429b1d8baso2074230fac.0
+        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 20:06:43 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=sifive.com; s=google; t=1773716803; x=1774321603; darn=vger.kernel.org;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=pIA5bzRUo/kqjvuSbXtkhZ0/jdS0vsz2MPNHxmrgJFE=;
+        b=jJrBdC/aKbOHnB+ZkjMM3/rCJvj9a118PImJx9kNMH22uuhxpzk+Cicso8u51n3Z55
+         fZjcFKuXD03NyWdaRBTdnN3eutDjoRFW/k1HSpMlIERpFqWzYt3iJTVXrzu2SReyn6uF
+         pTXqF0Jco6wT4+3rAtPtOLK74o8PvgPX+g8x/3u0+8isKcopN+eix3GYBYuOmuHEW+gf
+         lJQBWuL+DsM+DgtnBhFc6wEo+jttZirs1GWoHr+sROkNEGGro1GVAMBPWMNa0UftuDzd
+         bHavUiY339Ld8wpSPfr5kCWKPYCKCoEVboA8EML3I+ISiBbr9ED+REsQMxyrOyOGRHDp
+         OWQA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1773716803; x=1774321603;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=pIA5bzRUo/kqjvuSbXtkhZ0/jdS0vsz2MPNHxmrgJFE=;
+        b=lpfZE5rboseQXZj6Xpx6lvJb0Jh044W4PqbW2OlsbF3or2WgOFY240oI0WOWNAW516
+         OvgcwPr2Ww4S346b6BlgkPxXASt03YMstyY1FoYwQFVRVwgae86fD95eDb5qn5efORlW
+         EECUN+kTNBlxqNct/mVnAYlj2WDv3FlViAbOtwv9Uj6fPI20B44FAplJyUUHFGva3Kxo
+         h+8RWhDQtJPGoR4/Fd2DdEXSE6H2xJQsvj+uCEp9SSyuv+9vW7RVnDjND++NsDV2vYrE
+         CGtsoWT7E9WTyTvtmAq93NWiV7WiCUyVpSAc+/2n7DLvwe+f9waiylgFCBqRfvkcI54n
+         9YdA==
+X-Forwarded-Encrypted: i=1; AJvYcCVSXLDAMTFjbDcxpq1msNYbFXTYn1+sbQPB+3IJCOFuXuujd/v29reteoaH28zNB0mURdtD7qPK+TAQ@vger.kernel.org
+X-Gm-Message-State: AOJu0YxCTFK3bF8EuD0oC82sZboKkWxq7Zml4TlH1Aa5Xy0b6sa8GTE4
+	87t3f48B1TPgnjSjyXstJwG6NkOJXLmbpfDhtdjKyfM2cH/kvyTuWx6NCXNw/u+f8WM=
+X-Gm-Gg: ATEYQzxl0MEFIv3bodpwjo7Gbkb9CntZru6f73xxd/0kKmhn5pCiz80oaBniPb5eI8S
+	G/jNlXB80cvJqWg1uCZU2bsgSkaIPcgjWM9N9XwS5mvYAxSRMKdsjL/+n6E3I/ItDSh8Z2FSVAf
+	/3C7gs24sOcnBZQKNSqypy6hF9JMVRzTfikfdfLA0YlQuX3g3naglA9beAYx9vCGug4WcjDDSZ3
+	FzQxZy3GMZBSt23ENsrJQuMHeA2ZDUUlMYqerpsBqoZ18uArT0s9Bff6KWc6utoX/irdDTVpDEC
+	62+3v4TqU9QA2rsT4hTupB3ybkuyH1TeoXRTh0DR5hT5bp8sigX5CjHxwwqdEVBzNxaYoNi2zUi
+	2cwsslz2D5i8fqBMzATHBOjouUFKFp8ad+b8WBMNCtXVplcE1HnYg/OW1j9CItwp8RvyN7gnSaT
+	vzX1wR18X3FXokMfQjuCAkKXTGJdAH71EC76RQ0CSA
+X-Received: by 2002:a05:6870:c154:b0:40e:a338:c8a1 with SMTP id 586e51a60fabf-417b9072c62mr8995239fac.11.1773716802857;
+        Mon, 16 Mar 2026 20:06:42 -0700 (PDT)
+Received: from [100.64.0.1] ([170.85.103.33])
+        by smtp.gmail.com with ESMTPSA id 586e51a60fabf-4177e1f9f86sm18099947fac.2.2026.03.16.20.06.41
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 16 Mar 2026 20:06:42 -0700 (PDT)
+Message-ID: <f25ed5b8-e785-414a-b13e-85c1a787665d@sifive.com>
+Date: Mon, 16 Mar 2026 22:06:40 -0500
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -71,90 +68,156 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v2 5/7] s390/runtime-const: Introduce
- runtime_const_mask_32()
-To: Heiko Carstens <hca@linux.ibm.com>
-CC: Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, "Peter
- Zijlstra" <peterz@infradead.org>, Sebastian Andrzej Siewior
-	<bigeasy@linutronix.de>, Vasily Gorbik <gor@linux.ibm.com>, Alexander Gordeev
-	<agordeev@linux.ibm.com>, Darren Hart <dvhart@infradead.org>, Davidlohr Bueso
-	<dave@stgolabs.net>, =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>,
-	<linux-arch@vger.kernel.org>, <linux-kernel@vger.kernel.org>,
-	<linux-arm-kernel@lists.infradead.org>, <linux-riscv@lists.infradead.org>,
-	<linux-s390@vger.kernel.org>, Christian Borntraeger
-	<borntraeger@linux.ibm.com>, Sven Schnelle <svens@linux.ibm.com>
+Subject: Re: [RFC PATCH v2 7/7] futex: Use runtime constants for
+ __futex_hash() hot path
+To: K Prateek Nayak <kprateek.nayak@amd.com>
+Cc: Darren Hart <dvhart@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>,
+ =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>,
+ linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+ linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org,
+ linux-s390@vger.kernel.org, Alexandre Ghiti <alex@ghiti.fr>,
+ "H. Peter Anvin" <hpa@zytor.com>, Kiryl Shutsemau <kas@kernel.org>,
+ Sean Christopherson <seanjc@google.com>,
+ Charlie Jenkins <charlie@rivosinc.com>,
+ Charles Mirabile <cmirabil@redhat.com>,
+ Christian Borntraeger <borntraeger@linux.ibm.com>,
+ Sven Schnelle <svens@linux.ibm.com>, Thomas Huth <thuth@redhat.com>,
+ Jisheng Zhang <jszhang@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
+ Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
+ Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+ Albert Ou <aou@eecs.berkeley.edu>, Borislav Petkov <bp@alien8.de>,
+ Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+ Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+ Alexander Gordeev <agordeev@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>
 References: <20260316052401.18910-1-kprateek.nayak@amd.com>
- <20260316052401.18910-6-kprateek.nayak@amd.com>
- <20260316191958.13160A9f-hca@linux.ibm.com>
+ <20260316052401.18910-8-kprateek.nayak@amd.com>
+From: Samuel Holland <samuel.holland@sifive.com>
 Content-Language: en-US
-From: K Prateek Nayak <kprateek.nayak@amd.com>
-In-Reply-To: <20260316191958.13160A9f-hca@linux.ibm.com>
-Content-Type: text/plain; charset="UTF-8"
+In-Reply-To: <20260316052401.18910-8-kprateek.nayak@amd.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Received-SPF: None (SATLEXMB04.amd.com: kprateek.nayak@amd.com does not
- designate permitted sender hosts)
-X-EOPAttributedMessage: 0
-X-MS-PublicTrafficType: Email
-X-MS-TrafficTypeDiagnostic: BL02EPF0001A100:EE_|CHXPR12MB999246:EE_
-X-MS-Office365-Filtering-Correlation-Id: 72c1f9dd-97f1-4b31-c51c-08de83c8483f
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|82310400026|7416014|1800799024|376014|36860700016|18002099003|56012099003|22082099003|7053199007;
-X-Microsoft-Antispam-Message-Info:
-	yQ68oX4hReP3ygDCldcZdhKqe8BQ4M1GUPHDfZqh0gp8yGhZqbq/jCsrbgroDbz7mENje0YAHwj0xpoSpQ4dPDcDJqqKy9comVzjrr40fKupYYnM9c0Z48TuG5TSQl84sPkZX2Q7r6uXbKF2S17mFr2zTlWQHMcgYwpF0ocrMLfMv0BEapxCPGwNSmmbaqy9/JBm6Z24o+fAlSmJI9d2tAODJaUGoN9dXXbv0bdzSbbwdngmYZq29RriUagTHrIbW/syrNIIw2inRAXOoNVD0B5XqeLKOGxwBpMBeEj04oSaO1V9HjOAR+xy6IKS1m3GaIuoE/KnPr1FCvHldlIhsvHuDeJNqIOJASkv7JdRC5Qqd5Ysa5VY5DKN0LA01820Wy7kKeAS0nzQS77keaz0iunBO7fWmkFaFy7P7wlIiGuy/SvrN815dbkH+oHd2KGHXXZiD8KkLfXfmBIdkK7w2J0a8+hh1GkdDWx23ihXuWTTfB0AZWx1ICj6V43Pb4RelVsk6hXGkeS5EIyMgey36OGsaqJ/J/dZLxqMIFsmcDiP4+kw9T3XZ6tW6b4zdQdIdOOuk8/+nx/51iLXT8uLDoy+Vbg2POX51t1GRyUoP3oCOnK7Fi92SfRQTIRx4blscF5gm2+M6llYIie4BTwIFOTqWrUOmsmqGxnlzahBWW5Ldfv9OL/BoTN7quunLvhiX2yl5UHHGxfXFqvJm+Xl7SCU64LH47Bds/G43KKv3butX1Tulpb5iW+WaqPWByPdzice9wNbZm+TrXX+GSW07w==
-X-Forefront-Antispam-Report:
-	CIP:165.204.84.17;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:satlexmb07.amd.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(82310400026)(7416014)(1800799024)(376014)(36860700016)(18002099003)(56012099003)(22082099003)(7053199007);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	OPW6o8O7R0KWwvWrG36EKa6KWP7hX6BDRZ+SEDAMEytZDnC8wMoD0uYID6tgz+pTqPRXQ1m9kv+nkaYWhLRPqP+Rr5sQy8E0azW2JHI/BrmPYTXG8ZUjXDU83DaRof0yUFh+1osiCkI0dGTMu5W3PFJujM/Io4eyqhpCPj9GaSO42UyR5Yufr5q2Y1GbkV7R/hF/YCX4PSc4ngX8VILVBV7Of34n1dNOSoAwLkq+07H5dsM35UB/6VvuGXGap3GvMysBRDbIq4zLkFgRHssHKWDRfrkltka1d54QWB4pzqE40OSTYuX3liU3luF0zZ4jrHzGt+aCwSs7Y30PQincee8scaFqHlyYk2GL00/TqxyLWH7C92uBQql4M28XUGNLpmn9i4cmimGeXuYxdiIaploXSkxkPvBjVZ79TL80OozSKUQUQPfYvgdcZNGl6OU1
-X-OriginatorOrg: amd.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 17 Mar 2026 01:55:36.1586
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: 72c1f9dd-97f1-4b31-c51c-08de83c8483f
-X-MS-Exchange-CrossTenant-Id: 3dd8961f-e488-4e60-8e11-a82d994e183d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=3dd8961f-e488-4e60-8e11-a82d994e183d;Ip=[165.204.84.17];Helo=[satlexmb07.amd.com]
-X-MS-Exchange-CrossTenant-AuthSource:
-	BL02EPF0001A100.namprd03.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: CHXPR12MB999246
 
-Hello Heiko,
+Hi Prateek,
 
-On 3/17/2026 12:49 AM, Heiko Carstens wrote:
->> +#define runtime_const_mask_32(val, sym)				\
->> +({								\
->> +	unsigned int __ret = (val);				\
->> +								\
->> +	asm_inline(						\
->> +		"0:	nilf	%[__ret],12\n"			\
->> +		".pushsection runtime_mask_" #sym ",\"a\"\n"	\
->> +		".long 0b - .\n"				\
->> +		".popsection"					\
->> +		: [__ret] "+d" (__ret));			\
->> +	__ret;							\
->> +})
+On 2026-03-16 12:24 AM, K Prateek Nayak wrote:
+> From: Peter Zijlstra <peterz@infradead.org>
 > 
-> The nilf instruction changes the condition code and this must be reflected in
-> the clobber list.
-
-Thanks a ton for catching that!
-
-> Besides that I would also appreciate if you would move the
-> existing comment above __runtime_fixup_32().
+> Runtime constify the read-only after init data  __futex_shift(shift_32),
+> __futex_mask(mask_32), and __futex_queues(ptr) used in __futex_hash()
+> hot path to avoid referencing global variable.
 > 
-> Or in other words, if you merge the patch below into this one feel free to
-> add:
-
-I'll fold in the suggested diff when spinning up the next version.
-
+> This also allows __futex_queues to be allocated dynamically to
+> "nr_node_ids" slots instead of reserving config dependent MAX_NUMNODES
+> (1 << CONFIG_NODES_SHIFT) worth of slots upfront.
 > 
-> Acked-by: Heiko Carstens <hca@linux.ibm.com>
+> No functional chages intended.
+> 
+>   [ prateek: Dynamically allocate __futex_queues, mark the global data
+>     __ro_after_init since they are constified after futex_init(). ]
+> 
+> Link: https://patch.msgid.link/20260227161841.GH606826@noisy.programming.kicks-ass.net
+> Reported-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de> # MAX_NUMNODES bloat
+> Not-yet-signed-off-by: Peter Zijlstra <peterz@infradead.org>
+> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
+> ---
+>  include/asm-generic/vmlinux.lds.h |  5 +++-
+>  kernel/futex/core.c               | 42 +++++++++++++++++--------------
+>  2 files changed, 27 insertions(+), 20 deletions(-)
+> 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index 1e1580febe4b..86f99fa6ae24 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -975,7 +975,10 @@
+>  		RUNTIME_CONST(shift, d_hash_shift)			\
+>  		RUNTIME_CONST(ptr, dentry_hashtable)			\
+>  		RUNTIME_CONST(ptr, __dentry_cache)			\
+> -		RUNTIME_CONST(ptr, __names_cache)
+> +		RUNTIME_CONST(ptr, __names_cache)			\
+> +		RUNTIME_CONST(shift, __futex_shift)			\
+> +		RUNTIME_CONST(mask,  __futex_mask)			\
+> +		RUNTIME_CONST(ptr,   __futex_queues)
+>  
+>  /* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
+>  #define KUNIT_TABLE()							\
+> diff --git a/kernel/futex/core.c b/kernel/futex/core.c
+> index cf7e610eac42..6b5c5a1596a5 100644
+> --- a/kernel/futex/core.c
+> +++ b/kernel/futex/core.c
+> @@ -45,23 +45,19 @@
+>  #include <linux/mempolicy.h>
+>  #include <linux/mmap_lock.h>
+>  
+> +#include <asm/runtime-const.h>
+> +
+>  #include "futex.h"
+>  #include "../locking/rtmutex_common.h"
+>  
+> -/*
+> - * The base of the bucket array and its size are always used together
+> - * (after initialization only in futex_hash()), so ensure that they
+> - * reside in the same cacheline.
+> - */
+> -static struct {
+> -	unsigned long            hashmask;
+> -	unsigned int		 hashshift;
+> -	struct futex_hash_bucket *queues[MAX_NUMNODES];
+> -} __futex_data __read_mostly __aligned(2*sizeof(long));
+> +static u32 __futex_mask __ro_after_init;
+> +static u32 __futex_shift __ro_after_init;
+> +static struct futex_hash_bucket **__futex_queues __ro_after_init;
+>  
+> -#define futex_hashmask	(__futex_data.hashmask)
+> -#define futex_hashshift	(__futex_data.hashshift)
+> -#define futex_queues	(__futex_data.queues)
+> +static __always_inline struct futex_hash_bucket **futex_queues(void)
+> +{
+> +	return runtime_const_ptr(__futex_queues);
+> +}
+>  
+>  struct futex_private_hash {
+>  	int		state;
+> @@ -439,14 +435,14 @@ __futex_hash(union futex_key *key, struct futex_private_hash *fph)
+>  		 * NOTE: this isn't perfectly uniform, but it is fast and
+>  		 * handles sparse node masks.
+>  		 */
+> -		node = (hash >> futex_hashshift) % nr_node_ids;
+> +		node = runtime_const_shift_right_32(hash, __futex_shift) % nr_node_ids;
+>  		if (!node_possible(node)) {
+>  			node = find_next_bit_wrap(node_possible_map.bits,
+>  						  nr_node_ids, node);
+>  		}
+>  	}
+>  
+> -	return &futex_queues[node][hash & futex_hashmask];
+> +	return &futex_queues()[node][runtime_const_mask_32(hash, __futex_mask)];
+>  }
+>  
+>  /**
+> @@ -1913,7 +1909,7 @@ int futex_hash_allocate_default(void)
+>  	 *   16 <= threads * 4 <= global hash size
+>  	 */
+>  	buckets = roundup_pow_of_two(4 * threads);
+> -	buckets = clamp(buckets, 16, futex_hashmask + 1);
+> +	buckets = clamp(buckets, 16, __futex_mask + 1);
+>  
+>  	if (current_buckets >= buckets)
+>  		return 0;
+> @@ -1983,10 +1979,19 @@ static int __init futex_init(void)
+>  	hashsize = max(4, hashsize);
+>  	hashsize = roundup_pow_of_two(hashsize);
+>  #endif
+> -	futex_hashshift = ilog2(hashsize);
+> +	__futex_mask = hashsize - 1;
+> +	__futex_shift = ilog2(hashsize);
 
-Thanks a ton for taking a look at the series!
+__futex_mask is always a power of two minus 1, in other words all low bits set.
+Would it be worth using an n-bit zero extension operation instead of an
+arbitrary 32-bit mask? This would use fewer instructions on some architectures:
+for example a single ubfx on arm64 and slli+srli on riscv.
 
--- 
-Thanks and Regards,
-Prateek
+Regards,
+Samuel
 
