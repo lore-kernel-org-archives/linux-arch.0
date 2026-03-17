@@ -1,223 +1,150 @@
-Received: from mail-oa1-f45.google.com (mail-oa1-f45.google.com [209.85.160.45])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mout-p-202.mailbox.org (mout-p-202.mailbox.org [80.241.56.172])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2AF182BEC27
-	for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2026 03:06:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F31AF2C178D;
+	Tue, 17 Mar 2026 03:34:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=80.241.56.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773716805; cv=none; b=qsYWgOBWhENcem7i5UVf6S4kx0qrR61tUh71/gY6xbRApcdrGQFsFr/t7SqzQtibUXMBjMSUPUKtBUlMUum0czD8oUmKOt5a1mSArKo4ZhoMsKgvZbJhh6avdAJGoeeUxTVhxnwDoZaJ0U2hErgYxcSSf1Q3ApT0GhjqoUWkkDs=
+	t=1773718474; cv=none; b=iCGomPg+DpkU0k13Pq42cioSUHMTMSdRuZu8EsWub6HdwOLtMGSefOCjKSWS2g52fWQWW4q9SMREYy/fLzCJp1s99maYqxhO1DV5/5ePJ2O9pdlVlM48Qx9jNeo2WwhsQobnBnI6Ao+Cx0aHThJTxVjurLvAzUWcViRxEbhF2xE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773716805; c=relaxed/simple;
-	bh=f+U+RHB3J3u+dTioS7Vn6ot1T5etXD8kagp74lVKQ2o=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=JhvPlefeKKGZCYRRpgSiM6RHEJgjCBdQYZSp8IxdHIfaQR0JIABbaTuYkBG5nD58/EYMagKkYEFnesT7Co/tOvarMramkMYXcTz7h/sxd2XRpdENjW4FxCAof9OsuW/arHx1J3h6h8+KCUQ2oJwnDXFIjOL+TGdAdCFXWYQenzc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com; spf=pass smtp.mailfrom=sifive.com; dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b=jJrBdC/a; arc=none smtp.client-ip=209.85.160.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=sifive.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=sifive.com
+	s=arc-20240116; t=1773718474; c=relaxed/simple;
+	bh=1cVrf0cVdvSC9kSjToaHiAHCCNH9jRcfwzG8dHsgb0w=;
+	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
+	 MIME-Version:Content-Type; b=uGzrCF5RD61bZG11SNUP/LR7EfDgW9jXHoCnUdMe2hPME5jV93KDmZOFZYcNM/BvzfAEq3JdPWHNtp/bvQ/8DJhCK7kTgCm4UidoHiwe20HVh83/PQhUunTdJxBNVivKCCrylVy/5paBDe/fl2RejcMu1eL+6KKIxZ8zb51xNTA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mailbox.org; spf=pass smtp.mailfrom=mailbox.org; dkim=pass (2048-bit key) header.d=mailbox.org header.i=@mailbox.org header.b=Ov74Wu4/; arc=none smtp.client-ip=80.241.56.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=mailbox.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mailbox.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=sifive.com header.i=@sifive.com header.b="jJrBdC/a"
-Received: by mail-oa1-f45.google.com with SMTP id 586e51a60fabf-40429b1d8baso2074230fac.0
-        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2026 20:06:43 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=sifive.com; s=google; t=1773716803; x=1774321603; darn=vger.kernel.org;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=pIA5bzRUo/kqjvuSbXtkhZ0/jdS0vsz2MPNHxmrgJFE=;
-        b=jJrBdC/aKbOHnB+ZkjMM3/rCJvj9a118PImJx9kNMH22uuhxpzk+Cicso8u51n3Z55
-         fZjcFKuXD03NyWdaRBTdnN3eutDjoRFW/k1HSpMlIERpFqWzYt3iJTVXrzu2SReyn6uF
-         pTXqF0Jco6wT4+3rAtPtOLK74o8PvgPX+g8x/3u0+8isKcopN+eix3GYBYuOmuHEW+gf
-         lJQBWuL+DsM+DgtnBhFc6wEo+jttZirs1GWoHr+sROkNEGGro1GVAMBPWMNa0UftuDzd
-         bHavUiY339Ld8wpSPfr5kCWKPYCKCoEVboA8EML3I+ISiBbr9ED+REsQMxyrOyOGRHDp
-         OWQA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1773716803; x=1774321603;
-        h=content-transfer-encoding:in-reply-to:content-language:from
-         :references:cc:to:subject:user-agent:mime-version:date:message-id
-         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=pIA5bzRUo/kqjvuSbXtkhZ0/jdS0vsz2MPNHxmrgJFE=;
-        b=lpfZE5rboseQXZj6Xpx6lvJb0Jh044W4PqbW2OlsbF3or2WgOFY240oI0WOWNAW516
-         OvgcwPr2Ww4S346b6BlgkPxXASt03YMstyY1FoYwQFVRVwgae86fD95eDb5qn5efORlW
-         EECUN+kTNBlxqNct/mVnAYlj2WDv3FlViAbOtwv9Uj6fPI20B44FAplJyUUHFGva3Kxo
-         h+8RWhDQtJPGoR4/Fd2DdEXSE6H2xJQsvj+uCEp9SSyuv+9vW7RVnDjND++NsDV2vYrE
-         CGtsoWT7E9WTyTvtmAq93NWiV7WiCUyVpSAc+/2n7DLvwe+f9waiylgFCBqRfvkcI54n
-         9YdA==
-X-Forwarded-Encrypted: i=1; AJvYcCVSXLDAMTFjbDcxpq1msNYbFXTYn1+sbQPB+3IJCOFuXuujd/v29reteoaH28zNB0mURdtD7qPK+TAQ@vger.kernel.org
-X-Gm-Message-State: AOJu0YxCTFK3bF8EuD0oC82sZboKkWxq7Zml4TlH1Aa5Xy0b6sa8GTE4
-	87t3f48B1TPgnjSjyXstJwG6NkOJXLmbpfDhtdjKyfM2cH/kvyTuWx6NCXNw/u+f8WM=
-X-Gm-Gg: ATEYQzxl0MEFIv3bodpwjo7Gbkb9CntZru6f73xxd/0kKmhn5pCiz80oaBniPb5eI8S
-	G/jNlXB80cvJqWg1uCZU2bsgSkaIPcgjWM9N9XwS5mvYAxSRMKdsjL/+n6E3I/ItDSh8Z2FSVAf
-	/3C7gs24sOcnBZQKNSqypy6hF9JMVRzTfikfdfLA0YlQuX3g3naglA9beAYx9vCGug4WcjDDSZ3
-	FzQxZy3GMZBSt23ENsrJQuMHeA2ZDUUlMYqerpsBqoZ18uArT0s9Bff6KWc6utoX/irdDTVpDEC
-	62+3v4TqU9QA2rsT4hTupB3ybkuyH1TeoXRTh0DR5hT5bp8sigX5CjHxwwqdEVBzNxaYoNi2zUi
-	2cwsslz2D5i8fqBMzATHBOjouUFKFp8ad+b8WBMNCtXVplcE1HnYg/OW1j9CItwp8RvyN7gnSaT
-	vzX1wR18X3FXokMfQjuCAkKXTGJdAH71EC76RQ0CSA
-X-Received: by 2002:a05:6870:c154:b0:40e:a338:c8a1 with SMTP id 586e51a60fabf-417b9072c62mr8995239fac.11.1773716802857;
-        Mon, 16 Mar 2026 20:06:42 -0700 (PDT)
-Received: from [100.64.0.1] ([170.85.103.33])
-        by smtp.gmail.com with ESMTPSA id 586e51a60fabf-4177e1f9f86sm18099947fac.2.2026.03.16.20.06.41
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Mon, 16 Mar 2026 20:06:42 -0700 (PDT)
-Message-ID: <f25ed5b8-e785-414a-b13e-85c1a787665d@sifive.com>
-Date: Mon, 16 Mar 2026 22:06:40 -0500
+	dkim=pass (2048-bit key) header.d=mailbox.org header.i=@mailbox.org header.b="Ov74Wu4/"
+Received: from smtp202.mailbox.org (smtp202.mailbox.org [IPv6:2001:67c:2050:b231:465::202])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by mout-p-202.mailbox.org (Postfix) with ESMTPS id 4fZcyQ4BJtz9tnK;
+	Tue, 17 Mar 2026 04:34:22 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mailbox.org; s=mail20150812;
+	t=1773718462;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=uvk8oVjzmRANMbF/sHn+D9/IRAR8TIyr9Hly+56noQ8=;
+	b=Ov74Wu4/8R4LezoE7zlwKi8qjigSeDb2mUjjW4IzGDcOg3igVrO94EY8x+xJVHaNbiUL+K
+	vdiznsbLL/wYRpgQN+VZXeR1kliYPzxeSnN516L5NQMH88N/3Zka0JMyXZdsM6h7+3CfD2
+	wbMsmsF0tETBwabnEbDBLD6zjb/oG03MDrYsBHMWuFCTYRvQwJOYOJtUV9R2DMEEmffDUZ
+	6dHUBC8gCHoZyVihM6gFGdtHbZWlj8arWi9gbRQybzthKLg+onwUSYqwEYqsdiU1pgIlcv
+	DVw+5+eTOj8dM9yJ6Z1/LGK8XBkTWti7peiN+PskUQczMIc/EyqRuvDX/Zx96g==
+Date: Mon, 16 Mar 2026 19:34:17 -0800 (PST)
+From: vdso@mailbox.org
+To: Naman Jain <namjain@linux.microsoft.com>, ssengar@linux.microsoft.com
+Cc: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
+	Lorenzo Pieralisi <lpieralisi@kernel.org>,
+	mrigendrachaubey <mrigendra.chaubey@gmail.com>,
+	Michael Kelley <mhklinux@outlook.com>, linux-hyperv@vger.kernel.org,
+	linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
+	"K . Y . Srinivasan" <kys@microsoft.com>,
+	Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
+	Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	"x86@kernel.org" <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <pjw@kernel.org>,
+	Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>
+Message-ID: <1755043210.33472.1773718457301@app.mailbox.org>
+In-Reply-To: <20260316121241.910764-1-namjain@linux.microsoft.com>
+References: <20260316121241.910764-1-namjain@linux.microsoft.com>
+Subject: Re: [PATCH 00/11] Drivers: hv: Add ARM64 support in mshv_vtl
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v2 7/7] futex: Use runtime constants for
- __futex_hash() hot path
-To: K Prateek Nayak <kprateek.nayak@amd.com>
-Cc: Darren Hart <dvhart@infradead.org>, Davidlohr Bueso <dave@stgolabs.net>,
- =?UTF-8?Q?Andr=C3=A9_Almeida?= <andrealmeid@igalia.com>,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org,
- linux-s390@vger.kernel.org, Alexandre Ghiti <alex@ghiti.fr>,
- "H. Peter Anvin" <hpa@zytor.com>, Kiryl Shutsemau <kas@kernel.org>,
- Sean Christopherson <seanjc@google.com>,
- Charlie Jenkins <charlie@rivosinc.com>,
- Charles Mirabile <cmirabil@redhat.com>,
- Christian Borntraeger <borntraeger@linux.ibm.com>,
- Sven Schnelle <svens@linux.ibm.com>, Thomas Huth <thuth@redhat.com>,
- Jisheng Zhang <jszhang@kernel.org>, Thomas Gleixner <tglx@kernel.org>,
- Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
- Sebastian Andrzej Siewior <bigeasy@linutronix.de>,
- Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
- Albert Ou <aou@eecs.berkeley.edu>, Borislav Petkov <bp@alien8.de>,
- Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
- Alexander Gordeev <agordeev@linux.ibm.com>, Arnd Bergmann <arnd@arndb.de>
-References: <20260316052401.18910-1-kprateek.nayak@amd.com>
- <20260316052401.18910-8-kprateek.nayak@amd.com>
-From: Samuel Holland <samuel.holland@sifive.com>
-Content-Language: en-US
-In-Reply-To: <20260316052401.18910-8-kprateek.nayak@amd.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
+X-Priority: 3
+Importance: Normal
+X-MBO-RS-ID: 6dc41640b0ac1e9fe30
+X-MBO-RS-META: wrn3tzu87eqwbcxxwe6mtaf6tg1g6t31
 
-Hi Prateek,
 
-On 2026-03-16 12:24 AM, K Prateek Nayak wrote:
-> From: Peter Zijlstra <peterz@infradead.org>
+> On 03/16/2026 5:12 AM  Naman Jain <namjain@linux.microsoft.com> wrote:
 > 
-> Runtime constify the read-only after init data  __futex_shift(shift_32),
-> __futex_mask(mask_32), and __futex_queues(ptr) used in __futex_hash()
-> hot path to avoid referencing global variable.
-> 
-> This also allows __futex_queues to be allocated dynamically to
-> "nr_node_ids" slots instead of reserving config dependent MAX_NUMNODES
-> (1 << CONFIG_NODES_SHIFT) worth of slots upfront.
-> 
-> No functional chages intended.
-> 
->   [ prateek: Dynamically allocate __futex_queues, mark the global data
->     __ro_after_init since they are constified after futex_init(). ]
-> 
-> Link: https://patch.msgid.link/20260227161841.GH606826@noisy.programming.kicks-ass.net
-> Reported-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de> # MAX_NUMNODES bloat
-> Not-yet-signed-off-by: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: K Prateek Nayak <kprateek.nayak@amd.com>
-> ---
->  include/asm-generic/vmlinux.lds.h |  5 +++-
->  kernel/futex/core.c               | 42 +++++++++++++++++--------------
->  2 files changed, 27 insertions(+), 20 deletions(-)
-> 
-> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-> index 1e1580febe4b..86f99fa6ae24 100644
-> --- a/include/asm-generic/vmlinux.lds.h
-> +++ b/include/asm-generic/vmlinux.lds.h
-> @@ -975,7 +975,10 @@
->  		RUNTIME_CONST(shift, d_hash_shift)			\
->  		RUNTIME_CONST(ptr, dentry_hashtable)			\
->  		RUNTIME_CONST(ptr, __dentry_cache)			\
-> -		RUNTIME_CONST(ptr, __names_cache)
-> +		RUNTIME_CONST(ptr, __names_cache)			\
-> +		RUNTIME_CONST(shift, __futex_shift)			\
-> +		RUNTIME_CONST(mask,  __futex_mask)			\
-> +		RUNTIME_CONST(ptr,   __futex_queues)
 >  
->  /* Alignment must be consistent with (kunit_suite *) in include/kunit/test.h */
->  #define KUNIT_TABLE()							\
-> diff --git a/kernel/futex/core.c b/kernel/futex/core.c
-> index cf7e610eac42..6b5c5a1596a5 100644
-> --- a/kernel/futex/core.c
-> +++ b/kernel/futex/core.c
-> @@ -45,23 +45,19 @@
->  #include <linux/mempolicy.h>
->  #include <linux/mmap_lock.h>
->  
-> +#include <asm/runtime-const.h>
-> +
->  #include "futex.h"
->  #include "../locking/rtmutex_common.h"
->  
-> -/*
-> - * The base of the bucket array and its size are always used together
-> - * (after initialization only in futex_hash()), so ensure that they
-> - * reside in the same cacheline.
-> - */
-> -static struct {
-> -	unsigned long            hashmask;
-> -	unsigned int		 hashshift;
-> -	struct futex_hash_bucket *queues[MAX_NUMNODES];
-> -} __futex_data __read_mostly __aligned(2*sizeof(long));
-> +static u32 __futex_mask __ro_after_init;
-> +static u32 __futex_shift __ro_after_init;
-> +static struct futex_hash_bucket **__futex_queues __ro_after_init;
->  
-> -#define futex_hashmask	(__futex_data.hashmask)
-> -#define futex_hashshift	(__futex_data.hashshift)
-> -#define futex_queues	(__futex_data.queues)
-> +static __always_inline struct futex_hash_bucket **futex_queues(void)
-> +{
-> +	return runtime_const_ptr(__futex_queues);
-> +}
->  
->  struct futex_private_hash {
->  	int		state;
-> @@ -439,14 +435,14 @@ __futex_hash(union futex_key *key, struct futex_private_hash *fph)
->  		 * NOTE: this isn't perfectly uniform, but it is fast and
->  		 * handles sparse node masks.
->  		 */
-> -		node = (hash >> futex_hashshift) % nr_node_ids;
-> +		node = runtime_const_shift_right_32(hash, __futex_shift) % nr_node_ids;
->  		if (!node_possible(node)) {
->  			node = find_next_bit_wrap(node_possible_map.bits,
->  						  nr_node_ids, node);
->  		}
->  	}
->  
-> -	return &futex_queues[node][hash & futex_hashmask];
-> +	return &futex_queues()[node][runtime_const_mask_32(hash, __futex_mask)];
->  }
->  
->  /**
-> @@ -1913,7 +1909,7 @@ int futex_hash_allocate_default(void)
->  	 *   16 <= threads * 4 <= global hash size
->  	 */
->  	buckets = roundup_pow_of_two(4 * threads);
-> -	buckets = clamp(buckets, 16, futex_hashmask + 1);
-> +	buckets = clamp(buckets, 16, __futex_mask + 1);
->  
->  	if (current_buckets >= buckets)
->  		return 0;
-> @@ -1983,10 +1979,19 @@ static int __init futex_init(void)
->  	hashsize = max(4, hashsize);
->  	hashsize = roundup_pow_of_two(hashsize);
->  #endif
-> -	futex_hashshift = ilog2(hashsize);
-> +	__futex_mask = hashsize - 1;
-> +	__futex_shift = ilog2(hashsize);
+> The series intends to add support for ARM64 to mshv_vtl driver.
+> For this, common Hyper-V code is refactored, necessary support is added,
+> mshv_vtl_main.c is refactored and then finally support is added in
+> Kconfig.
 
-__futex_mask is always a power of two minus 1, in other words all low bits set.
-Would it be worth using an n-bit zero extension operation instead of an
-arbitrary 32-bit mask? This would use fewer instructions on some architectures:
-for example a single ubfx on arm64 and slli+srli on riscv.
+Hi Naman, Saurabh,
 
-Regards,
-Samuel
+So awesome to see the ARM64 support for the VSM being upstreamed!!
 
+Few of the patches carry my old Microsoft "Signed-off-by" tag,
+and I really appreciate you folks very much kindly adding it
+although the code appears to be a far more evolved and crisper
+version of what it was back then!
+
+Do feel free to drop my SOB from these few patches so the below SRB
+doesn't look weird or as a conflict of interest - that is if you see
+adding my below SRB to these few patches as a good option. It's been
+2 years, and after 2 years who can really remember their code :D
+
+For the series,
+Reviewed-by: Roman Kisel <vdso@mailbox.org>
+
+> 
+> Based on commit 1f318b96cc84 ("Linux 7.0-rc3")
+> 
+> Naman Jain (11):
+>   arch: arm64: Export arch_smp_send_reschedule for mshv_vtl module
+>   Drivers: hv: Move hv_vp_assist_page to common files
+>   Drivers: hv: Add support to setup percpu vmbus handler
+>   Drivers: hv: Refactor mshv_vtl for ARM64 support to be added
+>   drivers: hv: Export vmbus_interrupt for mshv_vtl module
+>   Drivers: hv: Make sint vector architecture neutral in MSHV_VTL
+>   arch: arm64: Add support for mshv_vtl_return_call
+>   Drivers: hv: mshv_vtl: Move register page config to arch-specific
+>     files
+>   Drivers: hv: mshv_vtl: Let userspace do VSM configuration
+>   Drivers: hv: Add support for arm64 in MSHV_VTL
+>   Drivers: hv: Kconfig: Add ARM64 support for MSHV_VTL
+> 
+>  arch/arm64/hyperv/Makefile        |   1 +
+>  arch/arm64/hyperv/hv_vtl.c        | 152 ++++++++++++++++++++++
+>  arch/arm64/hyperv/mshyperv.c      |  13 ++
+>  arch/arm64/include/asm/mshyperv.h |  28 ++++
+>  arch/arm64/kernel/smp.c           |   1 +
+>  arch/x86/hyperv/hv_init.c         |  88 +------------
+>  arch/x86/hyperv/hv_vtl.c          | 130 +++++++++++++++++++
+>  arch/x86/include/asm/mshyperv.h   |   8 +-
+>  drivers/hv/Kconfig                |   2 +-
+>  drivers/hv/hv_common.c            |  99 +++++++++++++++
+>  drivers/hv/mshv.h                 |   8 --
+>  drivers/hv/mshv_vtl_main.c        | 205 ++++--------------------------
+>  drivers/hv/vmbus_drv.c            |   8 +-
+>  include/asm-generic/mshyperv.h    |  49 +++++++
+>  include/hyperv/hvgdk_mini.h       |   2 +
+>  15 files changed, 505 insertions(+), 289 deletions(-)
+>  create mode 100644 arch/arm64/hyperv/hv_vtl.c
+> 
+> 
+> base-commit: 1f318b96cc84d7c2ab792fcc0bfd42a7ca890681
+> prerequisite-patch-id: 24022ec1fb63bc20de8114eedf03c81bb1086e0e
+> prerequisite-patch-id: 801f2588d5c6db4ceb9a6705a09e4649fab411b1
+> prerequisite-patch-id: 581c834aa268f0c54120c6efbc1393fbd9893f49
+> prerequisite-patch-id: b0b153807bab40860502c52e4a59297258ade0db
+> prerequisite-patch-id: 2bff6accea80e7976c58d80d847cd33f260a3cb9
+> prerequisite-patch-id: 296ffbc4f119a5b249bc9c840f84129f5c151139
+> prerequisite-patch-id: 3b54d121145e743ac5184518df33a1812280ec96
+> prerequisite-patch-id: 06fc5b37b23ee3f91a2c8c9b9c126fde290834f2
+> prerequisite-patch-id: 6e8afed988309b03485f5538815ea29c8fa5b0a9
+> prerequisite-patch-id: 4f1fb1b7e9cfa8a3b1c02fafecdbb432b74ee367
+> prerequisite-patch-id: 49944347e0b2d93e72911a153979c567ebb7e66b
+> prerequisite-patch-id: 6dec75498eeae6365d15ac12b5d0a3bd32e9f91c
+> -- 
+> 2.43.0
