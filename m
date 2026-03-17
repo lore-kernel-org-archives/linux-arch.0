@@ -1,100 +1,110 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 64CC13A1A38;
-	Tue, 17 Mar 2026 09:51:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0028934F489
+	for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2026 10:03:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.41
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773741115; cv=none; b=iV9kY8mmo5CIycRmVQ/YouYEdRSTSxBB5d3E7z6NHRGB5AHu50lBHhTMgjtu7IAJ3PZzTxH1F5qxLw6qtfACVkxf8Uy2GTJhy/Z2yqhLteZF+hZpAC9aAh3aUNCFiuSUMOPdyqiOkTDXKPpPrp65Yw6gCnYi1FtXjShae8lOku8=
+	t=1773741802; cv=none; b=Qx3heTik/1Ino5ieV0/SrkvsGPRZDPmIGfxOFi3wDeJhL7M4GnY152HosrRiEod0O2v7nFidfmt9jhBU6LUXB7RFersySX/uZ1uxjeGubDfurM+qYotkYRUvhWG5qtoSM+o2xQknTQjLGhSD3aBI6E+tKTGhFl+OBtPQ4k9BFTM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773741115; c=relaxed/simple;
-	bh=ZfbAAGzHolQDpcCwIaogk9iC5IdaRXUEYFw8UIUKTrU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=b5shh+3AQ2UtvI9nYGkHCyvDnvTl3+MHisyxXQMA4sqcV2e9LqSe1iBHejve/jgL5uPAYaqy62tMnGBu7y67mrHw8LM4mUtcB0jRTFhOHktj2EPx1X7hV+GtU8GF0ezWIc8y2KQDBoHYlgqKodAwmmnWZ8nfRfhGdtVSU6bGuJk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=TlHV8gse; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1773741802; c=relaxed/simple;
+	bh=8fV85trx/R47h5vifBybTf4+W6z3VyyEvYi8IAwoEbM=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=hEjYwn8jugrCKfAYGu/RAMl3xEbR7kl2TBjMynTLmIbVFuR7f8lF0C14MAab1PXWPFWhPMVDWjeYJUnmslT6rX0tlGh6JZPS12gt/G/1TvvrK13Plz2jQvTLiuNukWEfluNkWJwowYkdHUbqckyd5jCDAKSB5ZAoQEsvKEIPhAg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linaro.org; spf=pass smtp.mailfrom=linaro.org; dkim=pass (2048-bit key) header.d=linaro.org header.i=@linaro.org header.b=rUbADpQk; arc=none smtp.client-ip=209.85.128.41
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linaro.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linaro.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="TlHV8gse"
-Received: from [10.18.143.174] (unknown [167.220.238.206])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 189EA20B7128;
-	Tue, 17 Mar 2026 02:51:45 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 189EA20B7128
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1773741112;
-	bh=xbh6eljYGdIRxffTU4mBqSyhNeDzEqtJalkt9/WqCMY=;
-	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
-	b=TlHV8gseTBNNxGEDRkCzVMCSmd3juWFaVPdWxwkFVsF6tEp6RFYQ9PhNIvO8/4zhO
-	 CwxZjNSs888nrrnCbWD+v1KrGqmach6lg7YTIFingtscICit44Aty6Ge9XFBSArwze
-	 0OX07pJe6ypUTXqx3/qSvI1tzRxdT46HbinGl2G0=
-Message-ID: <2b1c444c-7545-4ce7-90b0-208aee31904a@linux.microsoft.com>
-Date: Tue, 17 Mar 2026 15:21:42 +0530
+	dkim=pass (2048-bit key) header.d=linaro.org header.i=@linaro.org header.b="rUbADpQk"
+Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-4852f8ac7e9so66199355e9.1
+        for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2026 03:03:20 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linaro.org; s=google; t=1773741799; x=1774346599; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=MZ5u5gAltLh5uEgFrUNUWe9cgVa4WC5hN8ka5M2ffvk=;
+        b=rUbADpQkuiiBeXzifch61iUj/UQN8yFJYfMG7eI8mujtU8DoJFPex5YmujwzyVVfP4
+         31PNCh7y1ViR1VIxCVgCy7+rghs38AMrw55WfPVjwWh2ZTkmqAb/NAuT+TUiNtBb55kR
+         5w7QQXIIRDWlkrEjaqAvX82ps0ewx6Ffa7iE+rwPrl+UotT6f0LehGdjcZwg7Rk7XgZU
+         Lh2XGOu6Vw21D1xvzOqI+ILc1bgbyJ0dhKdkSmQ0f8tjXvYXd0dYAUUuJNaeOQgB3+XZ
+         JOcOCXvd6SRn+0tU+qZdYwZg7A/VGzBsIuxYraLz3ZZIeDCnpeJVLaiG5RLoQED8zcYy
+         aEmA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1773741799; x=1774346599;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=MZ5u5gAltLh5uEgFrUNUWe9cgVa4WC5hN8ka5M2ffvk=;
+        b=SbueHiRqHjdSc6HLRakfMwJ/TBh1ebsyPMiaNQPdZHBtujCD32787xkx+Caa0ss/lV
+         nrc0wzwNUl6qsVwXU7Y3b1g7NPA98Chk1dDGgdC74G9b4ZyRyKYAktrQPcrXInk9UL9r
+         NGWAx8knYzpHyAak2pQ9H5nUdzCu3k6uIBqbWrPBMRFh7JPFmdsME+YlzCdsqeaeIu4d
+         drn4ca1oPqXld4by6IIHp52ejSEl/9GIbCecvtv39NDAG6Q8oS5nqoJ+ei0ChUBE7LUg
+         ID5a2iLq0hN71wmz7d8dplWcRHyau0Joylnkx4Ydk68/Es+RaaoG0FO8sHXn1m0iazr3
+         i+Pw==
+X-Forwarded-Encrypted: i=1; AJvYcCXlGgyUkvpbWAb6/N8UIwOKYwaCKSwDc3rsz1ouizYQlePRFBl4sEdtbeohCJa1aB+oe0TEkEiZdB5z@vger.kernel.org
+X-Gm-Message-State: AOJu0YwS5qFhR2+qRbBbMkcuEFxRVwSRV12NaRNKGWChIM1dwYV16Xc9
+	teiUvC9MVsinEcW7ZuoYdEbdLED9BEw9oROaZrddLb6V9hlQBdNfA4McO9ZmqWHlAcE=
+X-Gm-Gg: ATEYQzxi6Wu1c6IkQhwmY4MG0F2+8JwL2fV0btcjoFIxIv/dEfzPjYi4Z0WgfRPA9Td
+	SdZRV8JuvxelbESFMP5DSjhqlqeR3qmkPBgSlz0iQABmDAsZ+V8Wqtr+OY+owdHo7hAPLgr4WCY
+	v2z6Oww6ZlXJa4wrFvrfP4jfNPAuefCddMiiL2cfjTdxFKlZcI0fuIQcFKXdjk7OYr3PCJ8ogI5
+	WdWsLaSvNk3czmyWqSd7x1GElQJY/coxIocqXEKcguqLHLXzq/8tpvU74eh9bfVmlE6dvexhBfV
+	mm0lcgDpTIX40nXM0TEdCnhPEZaz48hpZ+bbIRgRJKZmMunxLZTPHeRGL8lTBVEQ4I5LDjmTFVm
+	qjnqyt7xoasL6U3fyWkSXNU3HiEJ3otQ+8LZcPRjkZJYW3FpZ5NPqKEcf5sNDr0UzACgc18SaKD
+	V0Oyz0uHb/lsEk9OUiWAL7prz9sOXQ
+X-Received: by 2002:a05:600c:c4ac:b0:485:33ad:3c9f with SMTP id 5b1f17b1804b1-4855670c164mr271097835e9.25.1773741799028;
+        Tue, 17 Mar 2026 03:03:19 -0700 (PDT)
+Received: from localhost ([196.207.164.177])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4856eaa3b66sm63481085e9.11.2026.03.17.03.03.18
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 17 Mar 2026 03:03:18 -0700 (PDT)
+Date: Tue, 17 Mar 2026 13:03:15 +0300
+From: Dan Carpenter <dan.carpenter@linaro.org>
+To: Albert Esteve <aesteve@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>,
+	Brendan Higgins <brendan.higgins@linux.dev>,
+	David Gow <david@davidgow.net>, Rae Moar <raemoar63@gmail.com>,
+	Maarten Lankhorst <maarten.lankhorst@linux.intel.com>,
+	Maxime Ripard <mripard@kernel.org>,
+	Thomas Zimmermann <tzimmermann@suse.de>,
+	David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+	Jonathan Corbet <corbet@lwn.net>,
+	Shuah Khan <skhan@linuxfoundation.org>,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	linux-kselftest@vger.kernel.org, kunit-dev@googlegroups.com,
+	dri-devel@lists.freedesktop.org, workflows@vger.kernel.org,
+	linux-doc@vger.kernel.org,
+	Alessandro Carminati <acarmina@redhat.com>,
+	Guenter Roeck <linux@roeck-us.net>, Kees Cook <kees@kernel.org>,
+	Linux Kernel Functional Testing <lkft@linaro.org>,
+	=?iso-8859-1?Q?Ma=EDra?= Canal <mcanal@igalia.com>,
+	Simona Vetter <simona.vetter@ffwll.ch>
+Subject: Re: [PATCH v6 0/5] kunit: Add support for suppressing warning
+ backtraces
+Message-ID: <abkm46TIIBBbuuC_@stanley.mountain>
+References: <20260317-kunit_add_support-v6-0-dd22aeb3fe5d@redhat.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 00/11] Drivers: hv: Add ARM64 support in mshv_vtl
-To: vdso@mailbox.org, ssengar@linux.microsoft.com
-Cc: Marc Zyngier <maz@kernel.org>, Timothy Hayes <timothy.hayes@arm.com>,
- Lorenzo Pieralisi <lpieralisi@kernel.org>,
- mrigendrachaubey <mrigendra.chaubey@gmail.com>,
- Michael Kelley <mhklinux@outlook.com>, linux-hyperv@vger.kernel.org,
- linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-riscv@lists.infradead.org,
- "K . Y . Srinivasan" <kys@microsoft.com>,
- Haiyang Zhang <haiyangz@microsoft.com>, Wei Liu <wei.liu@kernel.org>,
- Dexuan Cui <decui@microsoft.com>, Long Li <longli@microsoft.com>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- "x86@kernel.org" <x86@kernel.org>, "H . Peter Anvin" <hpa@zytor.com>,
- Arnd Bergmann <arnd@arndb.de>, Paul Walmsley <pjw@kernel.org>,
- Palmer Dabbelt <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>,
- Alexandre Ghiti <alex@ghiti.fr>
-References: <20260316121241.910764-1-namjain@linux.microsoft.com>
- <1755043210.33472.1773718457301@app.mailbox.org>
-Content-Language: en-US
-From: Naman Jain <namjain@linux.microsoft.com>
-In-Reply-To: <1755043210.33472.1773718457301@app.mailbox.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260317-kunit_add_support-v6-0-dd22aeb3fe5d@redhat.com>
 
+I think this is great to suppress some warnings, and I already ACKed
+this patchset.  But we're still going to have some warnings where the
+warning is the whole point of the test.
 
+It would be great if marked these somehow:
+1) At minimum we should mark them so people seeing the warning know it's
+intentional.  "Intentional Stack Trace".  I've sent at least one patch
+to add that printk before the stack trace but it was ignored.  We could
+do this piecemeal.
 
-On 3/17/2026 9:04 AM, vdso@mailbox.org wrote:
-> 
->> On 03/16/2026 5:12 AM  Naman Jain <namjain@linux.microsoft.com> wrote:
->>
->>   
->> The series intends to add support for ARM64 to mshv_vtl driver.
->> For this, common Hyper-V code is refactored, necessary support is added,
->> mshv_vtl_main.c is refactored and then finally support is added in
->> Kconfig.
-> 
-> Hi Naman, Saurabh,
-> 
-> So awesome to see the ARM64 support for the VSM being upstreamed!!
-> 
-> Few of the patches carry my old Microsoft "Signed-off-by" tag,
-> and I really appreciate you folks very much kindly adding it
-> although the code appears to be a far more evolved and crisper
-> version of what it was back then!
-> 
-> Do feel free to drop my SOB from these few patches so the below SRB
-> doesn't look weird or as a conflict of interest - that is if you see
-> adding my below SRB to these few patches as a good option. It's been
-> 2 years, and after 2 years who can really remember their code :D
-> 
-> For the series,
-> Reviewed-by: Roman Kisel <vdso@mailbox.org>
+2) It would be nice if the print was standardized enough so CI systems
+could automatically filter it out.
 
-
-
-Thank you so much Roman for reviewing the changes. I think we can retain 
-both the tags from you. I'll let the maintainers decide.
-
-Regards,
-Naman
-
+regards,
+dan carpenter
 
