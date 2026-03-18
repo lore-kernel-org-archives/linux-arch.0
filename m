@@ -1,120 +1,117 @@
-Received: from mail-ej1-f51.google.com (mail-ej1-f51.google.com [209.85.218.51])
+Received: from mail-vk1-f172.google.com (mail-vk1-f172.google.com [209.85.221.172])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC7C03624AF
-	for <linux-arch@vger.kernel.org>; Wed, 18 Mar 2026 06:16:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.218.51
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773814601; cv=pass; b=k8+oSMQFIJkUOuKXO09e4NL84jPGL+LZrGZtkilcZBQKSOxlEr/iV096wXFto2a0rziOZKpYFm5tvL/YOJLGAkwpqN9lHrsYE+ArK4x//iYpCU6UMA9SqWo0gBxmNYv/sa3VxqPeXbmy4o09n7jYsOySoyYPHQn/1R8R2DEwL+Y=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773814601; c=relaxed/simple;
-	bh=LyvuvQqufknbMfPTy2o7n/T+OqohBBDpzWX+jX0Ni6Q=;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D752C36B056
+	for <linux-arch@vger.kernel.org>; Wed, 18 Mar 2026 08:31:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.172
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1773822693; cv=none; b=U/VC2MxU0kX3DkHy4pE5XoRemIOt5W4Q/thljyQonGrV6tyLZLTk2CoTCo+F9ijGUO+ydx3KQOTZtusCMXjeGX+H3uwhf+o0sOSAkmtmAXFULNxIv9BfVuk6rGJBM5kWuetd/6lfjrB6uXvGqlK5hCIHdhzPoBW8CjxdrnCzKYw=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1773822693; c=relaxed/simple;
+	bh=q0uH7nPVSKym/I6RVa0a0sYjUwRzNvGaPFeMIrsm9Lc=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=iYQlt6B3tQVCTEjGziBmH/WelTxG+Mj0Qv8LvyHY4DlYahr1r3ewkKY90ZNpKBbInuzNBn5AQlXXvM5SygxS95BqgW7UGVcItheTphgprs44P8ViblKujQyPUVwNz+LVkIwHdA6zavj0YP9DXseDz4Zc4ImDK2pYoBa3bP6+Mk4=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=czA+VIq9; arc=pass smtp.client-ip=209.85.218.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+	 To:Cc:Content-Type; b=M13Upbjh22S9Z21xz7nEZYOKU43yn8faS1pcEcLWmOPcJsAUy3QmpSnh6qdJa2DtCXX52I0i2LRoZ8R0hiw7wQJxGziYAWyvWwVgV10uAVlM0MQbF8t/2sRml5uc/zVTNYx3Fmob4jRKArZiKu1WjYxhh5lRw1uvj8sNutIkKbc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org; spf=pass smtp.mailfrom=gmail.com; arc=none smtp.client-ip=209.85.221.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-m68k.org
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="czA+VIq9"
-Received: by mail-ej1-f51.google.com with SMTP id a640c23a62f3a-b979d16dd0cso613516466b.1
-        for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2026 23:16:39 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1773814598; cv=none;
-        d=google.com; s=arc-20240605;
-        b=HXgiP+llJyuAwky+r3DNwvH7ulxXkaDozbmNP/WjUV1Augt06t9EfGbJ0GZuWwhvdj
-         CnMQOZ9sbtwV4tJCe74Z8NuSzYhvAudnMRWfhzDT7I9jf2XlP/V0hGW5/DAZ7cXCNaWD
-         8TfYZSmxasTYr0NfLVixw/seuiGrxumC2PBvKDY81Itd4Col39uLDjwmg64MR4YBCQjI
-         U/Ab/4HvErHNme00+8/YxUGdMqTRpuE4PysNRK4Veamtdw/Dfeq31pw44nUB9q+dh02q
-         GwyUoRIhHxLCXWINz0yCQmchw/8MZZwcnjbqYpa8Hiz+/XfYWocYoT9D9Y8WWfKrfQno
-         KHcQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=hNXx5fLw5itcSqfItrsW3d6my1DlKfO6NqzxE5+AiMo=;
-        fh=uVMoGJW479CTG9NT5+vpSXyljczjVR1rRe+t403z314=;
-        b=PDhKim2/JsGv41IGq8j3eHo1sPAd9CDV9p6c6BtFZnFQ0PTiP/5xIkEpGzWlpfBEUu
-         9gG3dahMYsT0bdUES2mE+nkDYwm+p6vljiNPkdCrBWphOcQRBsU+u342PajoXov5TmRa
-         l9MNsJhQfJcGpBNvVkDWfHB1x/vehqsdzenu4QfMHOOBmB9V7w+z3Y1Fx/r7wfwE8AtV
-         GSN003dPGn+edEUq1tXtXie6fQiq/R5iqacKYhLkeb5K6YAfvVihcmxsTfOgR2usX6Un
-         NTKErx7crOUbn/0GNymwUpSsPh/cKKYlgYboLq2loSvRksBULwT8wDUtakkD8Dpva6IK
-         DSQA==;
-        darn=vger.kernel.org
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1773814598; x=1774419398; darn=vger.kernel.org;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=hNXx5fLw5itcSqfItrsW3d6my1DlKfO6NqzxE5+AiMo=;
-        b=czA+VIq9QGWQxIWviOuOrte+AkszdW/h15AxwnnBl8PgQdCUSJeFt/rkA58JF8bw1z
-         MYdnPYGFr5y46Y9Ze6hH0uQbYgBxWhk4ISCFrpb1oCRqUKW8TesUGp2nfyk/tjdH6ZzI
-         DwOCFfQmjthVedmcIE7z/9904oV0s5pfRk6WMlT+ADyKZllzFK45VHyMvAMFKoo37U/j
-         J1nqKAueMk09QeZKqRnb2BbN9+d1iclFRFK4eWers79RzlXUT6c5NL6yIGsvvdDwBLkL
-         mIaXTaJyIolZxl+55rCZtIapNWvPnqXYQeH5Kjuv+rgtZgAO2r5C3jf4lHbFErXbdAiD
-         Zyfg==
+Received: by mail-vk1-f172.google.com with SMTP id 71dfb90a1353d-56b890d1687so2289504e0c.3
+        for <linux-arch@vger.kernel.org>; Wed, 18 Mar 2026 01:31:31 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1773814598; x=1774419398;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=hNXx5fLw5itcSqfItrsW3d6my1DlKfO6NqzxE5+AiMo=;
-        b=quMWLYjeJuv+8mE9TLbj005hwUm59TTAj9Q4L8HQjZtJwCLAQeqZA9A7lgbgL5Q8cJ
-         BvyqM5EEjIpgfTms7ewmrSE0Jf8w0qs7FrTInMPiqA3SK1nAedmeWc3hN2LKgsqmCbyh
-         aPeqXwVKCgNh7R/gIhveGA/lWeCe6sAKIkKsndX4r1GXBDwwW3oUoq7+o1WSlBBlRvuh
-         cTx0D5mrEe48xaOl/7JeddzgD9+hH0Tqhlii6aF62ma7/HDVccpdClkyAIy0Oj26DDlK
-         b7+CPo7wP3wbPSGjUtYALpF9pUcop+MDxdFjb6VUDtgiBS2+449exOB/VWYAetcLESfM
-         vwlw==
-X-Forwarded-Encrypted: i=1; AJvYcCXuV6cve/yyyGcu6xMbAntXOQBlVqdiEIGmHqdIrCxsOhNbJ7NWhtIJUmXQxNL9RjKlLOiCV92fO/v8@vger.kernel.org
-X-Gm-Message-State: AOJu0YyDqLck0pFGIYqkoBq5xnnPZCDOHOl4YxU+eNfen0QUew4ZY0Ap
-	I+/F1pfnZLsXxAY47/YLW9saQUjLm4Iv7kIwFvYlvhs9FTXr9Tk2QjEz4eoam+mEFRCvCfgkkxp
-	IRLDU1POZYiLn2LqDUTUmDDix2Le7Hl8=
-X-Gm-Gg: ATEYQzygu+8LUAvmgmfuk/uLxlX8CafXyxz3VYMaAtprRKkI1FBMiGXhe2eDWoNk7gi
-	2XZ/Y84C+P149GpGvmLFQBSICGHayIde9udNWsd8unKOMrrGP+Wn6XRWwV9zuNBypP2i/uHiiK6
-	U3i4AiN1EkubSGyaC9ZvLt68WyTXV41xNiAaOdwykSqnZA9b5yIO02Y4t98hbqrp51c0IYQwf4Q
-	YK8VxthSKMtY4tYQX5ebm0rfv+1Hl77WSAwplRrCm71uya+aSqJ4ooWiTLS8FaR5gDvA9Pc1Awb
-	AJZZpP7U1ePMeE+jmgQmWpt1AzkBhHiNCsxThv8iWalTO3g9X/U=
-X-Received: by 2002:a17:907:7b93:b0:b97:cc05:61b9 with SMTP id
- a640c23a62f3a-b97f4801ab5mr133040366b.15.1773814597747; Tue, 17 Mar 2026
- 23:16:37 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1773822691; x=1774427491;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=SwixgHnIrq2NIu4akG4GQIAEnmNYXXBC/KI0BlCcVos=;
+        b=kcSZEDe0GW7wExX+/oD+kB0t85MIuOR4rbePsZPoof4hKAnlOSnE7JdvvhZJ841usn
+         PrQuokvQvnpeB3YXLVOVZ1YkAcLPrGhY7mTkLWt4o3LDeslZ2eSIy9omISrkxBM0M5b0
+         OLOCh/grVug4/geldfApHu3877MMn0ie6fzMNdt5WlVWCJZOGW7iFnEWUNKEsYl7xelK
+         DmuWx2OItAxaILkoL6z6M0sUH4YEat8nsNfiNimsWJgojGguW5ObhHZyO96R9aSHuio/
+         svGdESzRns13dF1VK17V8EJoWo41Hi/ilbajnd7daXIX/PIYCvateVl5rM0Xyac7/yOT
+         QKWA==
+X-Forwarded-Encrypted: i=1; AJvYcCWnLJftRlIo9TIe6nDfCeqyZb+Wc1Lq9Nvtmov3ZTR+am1MNmngo892P0PAon3uxU7uJKIIwTbn2Muw@vger.kernel.org
+X-Gm-Message-State: AOJu0YyseThESYDSYzGkJ/OHmFxKUgx9J0GtrVkkeENUb2PIeVkTN6/a
+	XTiCdauWayjPro4wBmDutQHW9zhtSR/EM69uwCCer1PyN4Uu3wp3e8wRpGpoz5Y7xgM=
+X-Gm-Gg: ATEYQzwQjkV3NFGCa+qB31Dl0A5H2i2cEVaux8qgDUncZsWwaM93YuMZWI4r8UZBUbr
+	Ayh1C/cJqrxy2VbOhsMDtUA91rQaVn20z/GcQe5DGTWXvlXIPQ/RrWxdQfEJg9EQu+jzZ/+auYt
+	LBc2HWujRgWVDOFDsZy4fRzAIz6HeJgugIJWObxxium+4O0sHAajBceN7TwJzkEHdGpWTEkfhd0
+	4YSsA0jOSIuF4U+DD3nkpvxh7hFJkdMm1g9W9+//uuNshCxvHU/64EQ8hPaHvgju1Qb8lqHaLmU
+	ChAW4BmtzA0od4QxghIjjjDkFSovbJXGrgFT0sfBj9pTzrpdFI1T5ynX0htUv46GJPCEil0LS5u
+	o+7QGg85DLHBhz2uiDS02JFT4Evx0U0uNrP8OSx70B5/Yz2/9I4IYWih5o2UxPzyWyPODmbh910
+	Ribj1yJKADDP4ewzIJK1PKHrI92BsjKjm3wwZpiLFjs2nh4VPhS/Ertv29BbpV
+X-Received: by 2002:a05:6122:4698:b0:563:7062:2a75 with SMTP id 71dfb90a1353d-56ba7072833mr1681457e0c.8.1773822690710;
+        Wed, 18 Mar 2026 01:31:30 -0700 (PDT)
+Received: from mail-vs1-f50.google.com (mail-vs1-f50.google.com. [209.85.217.50])
+        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-56ba6fed64csm1239072e0c.9.2026.03.18.01.31.30
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 18 Mar 2026 01:31:30 -0700 (PDT)
+Received: by mail-vs1-f50.google.com with SMTP id ada2fe7eead31-5ffc8987050so4199394137.0
+        for <linux-arch@vger.kernel.org>; Wed, 18 Mar 2026 01:31:30 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCVYoZdqHyqPZre7PE7ECMBRV+Z68JzFfkE3edUEaQsparFcQAs3CKabIleE44d1yptkM/Ilz+nuujMG@vger.kernel.org
+X-Received: by 2002:a05:6102:c49:b0:5ff:fbe4:8ac with SMTP id
+ ada2fe7eead31-6027d2c0317mr1379748137.21.1773822690069; Wed, 18 Mar 2026
+ 01:31:30 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260302-at-vector-size-arch-v1-0-a11f03ba2ca8@linutronix.de> <20260302-at-vector-size-arch-v1-14-a11f03ba2ca8@linutronix.de>
-In-Reply-To: <20260302-at-vector-size-arch-v1-14-a11f03ba2ca8@linutronix.de>
-From: Magnus Lindholm <linmag7@gmail.com>
-Date: Wed, 18 Mar 2026 07:16:26 +0100
-X-Gm-Features: AaiRm51Xx89jeaivgNYAhMk2LxpIu3kD6j5N4SuQDZ84WCnP1EAzJIW2dMNKGiE
-Message-ID: <CA+=Fv5RLtUPp9BhXfFEUk3roE3Gah0iUamDEZ-MXCNM_xKm3PA@mail.gmail.com>
-Subject: Re: [PATCH 14/15] alpha: remove AT_VECTOR_SIZE_ARCH from UAPI
-To: =?UTF-8?Q?Thomas_Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>
-Cc: Kees Cook <kees@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, 
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 
-	linux-arm-kernel@lists.infradead.org, linux-riscv@lists.infradead.org, 
-	loongarch@lists.linux.dev, linux-s390@vger.kernel.org, 
-	linuxppc-dev@lists.ozlabs.org, linux-mips@vger.kernel.org, 
-	sparclinux@vger.kernel.org, linux-sh@vger.kernel.org, 
-	linux-alpha@vger.kernel.org
+References: <20260315214656.658590-1-academic1mathura@gmail.com>
+In-Reply-To: <20260315214656.658590-1-academic1mathura@gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Wed, 18 Mar 2026 09:31:18 +0100
+X-Gmail-Original-Message-ID: <CAMuHMdV4MTNUmZdqMd+PhChDLL6yom2zj1bsiJfiK5+gr+j7Ow@mail.gmail.com>
+X-Gm-Features: AaiRm53eIEeDb4TV3iilyorOvw50I8NeRxvbQihBvnqCrlWD-pUvRv7evCTCqP8
+Message-ID: <CAMuHMdV4MTNUmZdqMd+PhChDLL6yom2zj1bsiJfiK5+gr+j7Ow@mail.gmail.com>
+Subject: Re: [PATCH v2 0/4] Add new system call for non-destructive peek and
+ inspection to posix ipc mqueue
+To: Mathura_Kumar <academic1mathura@gmail.com>
+Cc: brauner@kernel.org, linux-arch@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Mon, Mar 2, 2026 at 1:32=E2=80=AFPM Thomas Wei=C3=9Fschuh
-<thomas.weissschuh@linutronix.de> wrote:
->
-> There is nothing userspace can do with this value. In the kernel is
-> always combined with AT_VECTOR_SIZE_BASE, which is not exposed to
-> userspace and also changes from time to time.
->
-> Move the symbol to a kernel-internal header.
->
-> Signed-off-by: Thomas Wei=C3=9Fschuh <thomas.weissschuh@linutronix.de>
-> ---
->  arch/alpha/include/asm/auxvec.h      | 7 +++++++
->  arch/alpha/include/uapi/asm/auxvec.h | 8 +++-----
->  2 files changed, 10 insertions(+), 5 deletions(-)
->
+Hi Mathura,
 
-Build-tested on alpha, no issues here.
+On Sun, 15 Mar 2026 at 22:47, Mathura_Kumar <academic1mathura@gmail.com> wrote:
+> Patch series overview:
+>
+>   1. Add New system call do_mq_timedreceive2() and handler implementation
+>   2. Add system call number in all  most common arch.
+>   3. Prepared Documentation and test
+>   4. Add entry in performance tools all most common file
+>
+>
+> Short Description:
+>
+>     POSIX message queues currently lack a mechanism to read
+>     a message without removing it from the queue. This is a
+>     long-standing limitation,when we require inspection of queue state
+>     without altering it.
 
-Acked-by: Magnus Lindholm <linmag7@gmail.com>
+[...]
+
+Thanks for your series!
+
+> change since v1:
+>  - minor update, header guard was removed from include/uapi/linux/mqueue.h
+>  - v1 Link: https://lore.kernel.org/all/20260315040827.156558-1-academic1mathura@gmail.com/T/#t
+
+Weren't you at v5 before, so how did you get to v1 and v2 again?
+What has changed?
+
+"[PATCH] [PATCH V5] mqueue: introduce new do_mq_timedreceive2() [
+mq_peek syscall] for non-destructive receive and inspection,fix minor
+issue,prepared doc."
+https://lore.kernel.org/20260306075009.83723-1-academic1mathura@gmail.com
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
