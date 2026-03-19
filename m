@@ -1,277 +1,103 @@
-Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D5933E4C95;
-	Wed, 18 Mar 2026 18:46:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB7B83876AD;
+	Thu, 19 Mar 2026 02:55:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773859567; cv=none; b=CpaznOgBBY/s+dQ+x/w0Mrw41tF6SA5OmiDXU6mV8UcEk9MCrBoA/uCr7hffedxPaMbFdnCdgfbclQ5g0dm6bu/Xoogh398zvGp5874WrzaEzVKyZTxvjFt8HI3Xl1xZzzXlHInFYjSrXRh+EtQGg9bGOD9G5M9GQMLq9OvxqYM=
+	t=1773888940; cv=none; b=cJ0XAtlI2nKQKX1AKcCkQNz12ma5UurQq47VBW0WTXbW/cPx+wYOPAaCt4FBtWse9UfZJgoa8hKj4TKNLjrfLgalSgHDoS7iOpZIsCIZmwasmzGZvXog0OmiYd/EujruHraSOltiaLwI3VPAzuLZSIw8SE/ANIG2ksQKViVeBwY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773859567; c=relaxed/simple;
-	bh=uf9RvEv1xcZX6RCRWRBQH7ivqQXNo4FzJkkXzxzJmpo=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=KThOWVC0Xe+7GA7gFhXSZjeLc10lT+AnACLA+P1RrqvBOTeLq0srvMoGDy1xAuBApZNkoYbLxDbzW25zeiQ7plyaHyivh5SSjkRowtoF4lNckv9X/xzHwtoOT3LHQP/vrEDYkATeI5TPZZ4RtJbu4bkzuvVTn9rZrRKg/xxl6l0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=gzii1qN3; arc=none smtp.client-ip=178.62.254.231
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
+	s=arc-20240116; t=1773888940; c=relaxed/simple;
+	bh=JBDcZtrG6mP/xc3gO7VDWwX/f7UpvWRqfTVDJQ9Ka3E=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=BR8OO+wbPGdqI/ywPZrk3bgLkrqpPh+h9jlU3HmLXuOab8fbb0qpwCSuPNZrZsMeTOEUHgUJxNTh0dcZUKmflQXk75NQDL0I9dVHsDME/9a9IXNNz8x1D84nkJYntoXpCn4NKmJ5gWQqbMx44qgjeXNGjG5iutgXnIBNOSSwSDs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=qaXE2ant; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="gzii1qN3"
-Received: from localhost.localdomain (shell.ilvokhin.com [138.68.190.75])
-	(Authenticated sender: d@ilvokhin.com)
-	by mail.ilvokhin.com (Postfix) with ESMTPSA id B906CB3E49;
-	Wed, 18 Mar 2026 18:45:54 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
-	s=mail; t=1773859554;
-	bh=UoJMtJZBdJt0FTbec+scIJtxKZOmfkRxPSoXFT7NQCU=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=gzii1qN3ZcHKYIqa7QmKZHgZRA1Jqvy2B437x/KXowu8/6H3zG8LQ/rwgSoiffBwj
-	 9Mxbl+/LOeX4RmEJE/y5eIdj4he16ieFYSOLvHc+fJQ9yxfojsxUq7XU6qjdPaBu0N
-	 uvUjccWiRig8BnciMa5g2jOr1Geng1zDcg8TZzxE=
-From: Dmitry Ilvokhin <d@ilvokhin.com>
-To: Arnd Bergmann <arnd@arndb.de>,
-	Dennis Zhou <dennis@kernel.org>,
-	Tejun Heo <tj@kernel.org>,
-	Christoph Lameter <cl@gentwo.org>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Masami Hiramatsu <mhiramat@kernel.org>,
-	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Ingo Molnar <mingo@redhat.com>,
-	Will Deacon <will@kernel.org>,
-	Boqun Feng <boqun@kernel.org>,
-	Waiman Long <longman@redhat.com>
-Cc: linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-trace-kernel@vger.kernel.org,
-	kernel-team@meta.com,
-	Dmitry Ilvokhin <d@ilvokhin.com>
-Subject: [RFC PATCH v3 4/4] locking: Add contended_release tracepoint to spinning locks
-Date: Wed, 18 Mar 2026 18:45:21 +0000
-Message-ID: <51aad0415b78c5a39f2029722118fa01eac77538.1773858853.git.d@ilvokhin.com>
-X-Mailer: git-send-email 2.53.0
-In-Reply-To: <cover.1773858853.git.d@ilvokhin.com>
-References: <cover.1773858853.git.d@ilvokhin.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="qaXE2ant"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E4591C19421;
+	Thu, 19 Mar 2026 02:55:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1773888939;
+	bh=JBDcZtrG6mP/xc3gO7VDWwX/f7UpvWRqfTVDJQ9Ka3E=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=qaXE2antR+2qcW2JyGyf3j3ytXGJhuhWliLmRXEZCYYn3f6Iz2vAzBbUw06nBEBFM
+	 TBSU4N0wO113tYoYLjp0HbJcD6+WDo8wE9KF+IF0K/FJxW9NQ+pv+vt9fpw0kYjLtI
+	 i/FfWVfuTuR8AQPYvbskeEq0gl92MOu8sruKbLBWqljXAWmLQvxKglVXDKO9dwy1Kh
+	 HW+fxYftX1Ge9fxykbUsL8fcIew9w1yQg32FFezUgESpVLQhu0GB8UIOXQ2LXp7/Lu
+	 10ralfWqjLT2qK79xcQWf3ckQP4IyjTB58kbURxZuvrG2Wwu/Kz1KuxHz27iBYUr4j
+	 ynjBwMPt4lsgA==
+Date: Wed, 18 Mar 2026 21:55:29 -0500
+From: Bjorn Andersson <andersson@kernel.org>
+To: Mukesh Ojha <mukesh.ojha@oss.qualcomm.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, 
+	Shuah Khan <skhan@linuxfoundation.org>, Eugen Hristev <eugen.hristev@linaro.org>, 
+	Arnd Bergmann <arnd@arndb.de>, Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>, 
+	Christoph Lameter <cl@gentwo.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	Thomas Gleixner <tglx@kernel.org>, Peter Zijlstra <peterz@infradead.org>, 
+	Anna-Maria Behnsen <anna-maria@linutronix.de>, Frederic Weisbecker <frederic@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Juri Lelli <juri.lelli@redhat.com>, 
+	Vincent Guittot <vincent.guittot@linaro.org>, Dietmar Eggemann <dietmar.eggemann@arm.com>, 
+	Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>, 
+	Valentin Schneider <vschneid@redhat.com>, David Hildenbrand <david@kernel.org>, 
+	Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett" <Liam.Howlett@oracle.com>, 
+	Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, 
+	Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Kees Cook <kees@kernel.org>, 
+	Brendan Jackman <jackmanb@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Zi Yan <ziy@nvidia.com>, 
+	Chris Li <chrisl@kernel.org>, Kairui Song <kasong@tencent.com>, 
+	Kemeng Shi <shikemeng@huaweicloud.com>, Nhat Pham <nphamcs@gmail.com>, Baoquan He <bhe@redhat.com>, 
+	Barry Song <baohua@kernel.org>, Youngjun Park <youngjun.park@lge.com>, 
+	Petr Mladek <pmladek@suse.com>, John Ogness <john.ogness@linutronix.de>, 
+	Sergey Senozhatsky <senozhatsky@chromium.org>, Mathieu Poirier <mathieu.poirier@linaro.org>, 
+	Konrad Dybcio <konradybcio@kernel.org>, Rob Herring <robh@kernel.org>, 
+	Krzysztof Kozlowski <krzk+dt@kernel.org>, Conor Dooley <conor+dt@kernel.org>, 
+	Saravana Kannan <saravanak@kernel.org>, workflows@vger.kernel.org, linux-doc@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, 
+	linux-arm-msm@vger.kernel.org, linux-remoteproc@vger.kernel.org, devicetree@vger.kernel.org
+Subject: Re: [PATCH v2 00/25] Introduce meminspect
+Message-ID: <abtlUQqMOxj5PwGB@baldur>
+References: <20260311-minidump-v2-v2-0-f91cedc6f99e@oss.qualcomm.com>
+ <abdnp90cC5PI9wyz@baldur>
+ <20260316181647.m7x4ncmwdjho6yvr@hu-mojha-hyd.qualcomm.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <20260316181647.m7x4ncmwdjho6yvr@hu-mojha-hyd.qualcomm.com>
 
-Extend the contended_release tracepoint to queued spinlocks and queued
-rwlocks.
+On Mon, Mar 16, 2026 at 11:46:47PM +0530, Mukesh Ojha wrote:
+> On Sun, Mar 15, 2026 at 09:24:39PM -0500, Bjorn Andersson wrote:
+> > On Wed, Mar 11, 2026 at 01:45:44AM +0530, Mukesh Ojha wrote:
+[..]
+> > >, to get all the regions as
+> > > separate files.  The tool from the host computer will list the regions
+> > > in the order they were downloaded.
+> > > 
+> > > Once you have all the files simply use `cat` to put them all together,
+> > > in the order of the indexes.  For my kernel config and setup, here is my
+> > > cat command : (you can use a script or something, I haven't done that so
+> > > far):
+> > 
+> > So these need to be sorted in numerical order, by that number at the end
+> > of the file name?
+> > 
+> > Do you manually punch these in? How do we make this user friendly?
+> 
+> Yes, manually.. but I think we can do better. We could make
+> this more user‑friendly by using the section header and string table in
+> the md_KELF binary both of which existed in the earlier implementation.
+> Then, we can write an upstream‑friendly script that reads this KELF
+> metadata file, checks whether a binary with the registered name is
+> present, and stitches everything together to form a complete ELF that
+> the crash tool can consume.  Let me know if you have any suggestion..
+> 
 
-When the tracepoint is disabled, the only addition to the hot path is a
-single NOP instruction (the static branch). When enabled, the contention
-check, trace call, and unlock are combined in an out-of-line function to
-minimize hot path impact, avoiding the compiler needing to preserve the
-lock pointer in a callee-saved register across the trace call.
+Can we somehow identify that these regions belong to the minidump and
+teach QDL to build the ELF for us?
 
-Binary size impact (x86_64, defconfig):
-  uninlined unlock (common case): +983 bytes  (+0.00%)
-  inlined unlock (worst case):    +71554 bytes (+0.30%)
-
-The inlined unlock case could not be achieved through Kconfig options on
-x86_64 as PREEMPT_BUILD unconditionally selects UNINLINE_SPIN_UNLOCK on
-x86_64. The UNINLINE_SPIN_UNLOCK guards were manually inverted to force
-inline the unlock path and estimate the worst case binary size increase.
-
-Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
----
- include/asm-generic/qrwlock.h   | 48 +++++++++++++++++++++++++++------
- include/asm-generic/qspinlock.h | 25 +++++++++++++++--
- kernel/locking/qrwlock.c        | 16 +++++++++++
- kernel/locking/qspinlock.c      |  8 ++++++
- 4 files changed, 87 insertions(+), 10 deletions(-)
-
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 75b8f4601b28..e24dc537fd66 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -14,6 +14,7 @@
- #define __ASM_GENERIC_QRWLOCK_H
- 
- #include <linux/atomic.h>
-+#include <linux/tracepoint-defs.h>
- #include <asm/barrier.h>
- #include <asm/processor.h>
- 
-@@ -35,6 +36,10 @@
-  */
- extern void queued_read_lock_slowpath(struct qrwlock *lock);
- extern void queued_write_lock_slowpath(struct qrwlock *lock);
-+extern void queued_read_unlock_traced(struct qrwlock *lock);
-+extern void queued_write_unlock_traced(struct qrwlock *lock);
-+
-+DECLARE_TRACEPOINT(contended_release);
- 
- /**
-  * queued_read_trylock - try to acquire read lock of a queued rwlock
-@@ -102,10 +107,16 @@ static inline void queued_write_lock(struct qrwlock *lock)
- }
- 
- /**
-- * queued_read_unlock - release read lock of a queued rwlock
-+ * queued_rwlock_is_contended - check if the lock is contended
-  * @lock : Pointer to queued rwlock structure
-+ * Return: 1 if lock contended, 0 otherwise
-  */
--static inline void queued_read_unlock(struct qrwlock *lock)
-+static inline int queued_rwlock_is_contended(struct qrwlock *lock)
-+{
-+	return arch_spin_is_locked(&lock->wait_lock);
-+}
-+
-+static __always_inline void __queued_read_unlock(struct qrwlock *lock)
- {
- 	/*
- 	 * Atomically decrement the reader count
-@@ -114,22 +125,43 @@ static inline void queued_read_unlock(struct qrwlock *lock)
- }
- 
- /**
-- * queued_write_unlock - release write lock of a queued rwlock
-+ * queued_read_unlock - release read lock of a queued rwlock
-  * @lock : Pointer to queued rwlock structure
-  */
--static inline void queued_write_unlock(struct qrwlock *lock)
-+static inline void queued_read_unlock(struct qrwlock *lock)
-+{
-+	/*
-+	 * Trace and unlock are combined in the traced unlock variant so
-+	 * the compiler does not need to preserve the lock pointer across
-+	 * the function call, avoiding callee-saved register save/restore
-+	 * on the hot path.
-+	 */
-+	if (tracepoint_enabled(contended_release)) {
-+		queued_read_unlock_traced(lock);
-+		return;
-+	}
-+
-+	__queued_read_unlock(lock);
-+}
-+
-+static __always_inline void __queued_write_unlock(struct qrwlock *lock)
- {
- 	smp_store_release(&lock->wlocked, 0);
- }
- 
- /**
-- * queued_rwlock_is_contended - check if the lock is contended
-+ * queued_write_unlock - release write lock of a queued rwlock
-  * @lock : Pointer to queued rwlock structure
-- * Return: 1 if lock contended, 0 otherwise
-  */
--static inline int queued_rwlock_is_contended(struct qrwlock *lock)
-+static inline void queued_write_unlock(struct qrwlock *lock)
- {
--	return arch_spin_is_locked(&lock->wait_lock);
-+	/* See comment in queued_read_unlock(). */
-+	if (tracepoint_enabled(contended_release)) {
-+		queued_write_unlock_traced(lock);
-+		return;
-+	}
-+
-+	__queued_write_unlock(lock);
- }
- 
- /*
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index bf47cca2c375..8ba463a3b891 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -41,6 +41,7 @@
- 
- #include <asm-generic/qspinlock_types.h>
- #include <linux/atomic.h>
-+#include <linux/tracepoint-defs.h>
- 
- #ifndef queued_spin_is_locked
- /**
-@@ -116,6 +117,19 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
- #endif
- 
- #ifndef queued_spin_unlock
-+
-+DECLARE_TRACEPOINT(contended_release);
-+
-+extern void queued_spin_unlock_traced(struct qspinlock *lock);
-+
-+static __always_inline void __queued_spin_unlock(struct qspinlock *lock)
-+{
-+	/*
-+	 * unlock() needs release semantics:
-+	 */
-+	smp_store_release(&lock->locked, 0);
-+}
-+
- /**
-  * queued_spin_unlock - release a queued spinlock
-  * @lock : Pointer to queued spinlock structure
-@@ -123,9 +137,16 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
- static __always_inline void queued_spin_unlock(struct qspinlock *lock)
- {
- 	/*
--	 * unlock() needs release semantics:
-+	 * Trace and unlock are combined in queued_spin_unlock_traced()
-+	 * so the compiler does not need to preserve the lock pointer
-+	 * across the function call, avoiding callee-saved register
-+	 * save/restore on the hot path.
- 	 */
--	smp_store_release(&lock->locked, 0);
-+	if (tracepoint_enabled(contended_release)) {
-+		queued_spin_unlock_traced(lock);
-+		return;
-+	}
-+	__queued_spin_unlock(lock);
- }
- #endif
- 
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index d2ef312a8611..5f7a0fc2b27a 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -90,3 +90,19 @@ void __lockfunc queued_write_lock_slowpath(struct qrwlock *lock)
- 	trace_contention_end(lock, 0);
- }
- EXPORT_SYMBOL(queued_write_lock_slowpath);
-+
-+void __lockfunc queued_read_unlock_traced(struct qrwlock *lock)
-+{
-+	if (queued_rwlock_is_contended(lock))
-+		trace_contended_release(lock);
-+	__queued_read_unlock(lock);
-+}
-+EXPORT_SYMBOL(queued_read_unlock_traced);
-+
-+void __lockfunc queued_write_unlock_traced(struct qrwlock *lock)
-+{
-+	if (queued_rwlock_is_contended(lock))
-+		trace_contended_release(lock);
-+	__queued_write_unlock(lock);
-+}
-+EXPORT_SYMBOL(queued_write_unlock_traced);
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index af8d122bb649..1544dcec65fa 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -104,6 +104,14 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
- #endif
- 
-+void __lockfunc queued_spin_unlock_traced(struct qspinlock *lock)
-+{
-+	if (queued_spin_is_contended(lock))
-+		trace_contended_release(lock);
-+	__queued_spin_unlock(lock);
-+}
-+EXPORT_SYMBOL(queued_spin_unlock_traced);
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
- 
- /**
--- 
-2.52.0
-
+Regards,
+Bjorn
