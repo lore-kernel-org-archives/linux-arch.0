@@ -1,235 +1,109 @@
-Received: from DU2PR03CU002.outbound.protection.outlook.com (mail-northeuropeazon11011030.outbound.protection.outlook.com [52.101.65.30])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C20A53D3D1D;
-	Thu, 19 Mar 2026 12:59:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.65.30
-ARC-Seal:i=3; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773925144; cv=fail; b=FVpzJCf2kOOHhnr3Ls0S9+qDX0MMYu5aeUYMnWY7HD/9THHn/RT908rf1e4OGmiF+otyrT/0sx3paRlHcWi6imDr9Lr1BQ8qqho1DW9YDSEOWVtFY5pukjtNS6zm4cwV9t/g8Vg9+jV4YUt3v8vZDBow8KcLXRkqcw/F1xtWg0w=
-ARC-Message-Signature:i=3; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773925144; c=relaxed/simple;
-	bh=LKe6XeYS4BkaYmJ2e9wcsewSTZlND4OLvJJWbtNmse0=;
-	h=Message-ID:Date:Cc:Subject:To:References:From:In-Reply-To:
-	 Content-Type:MIME-Version; b=TyOCXEJ6xkmxk6bUxBGzpVslQEOpKOeO9ZGtmIBDtDNTtPVGR+ms0ptEKD/bUsx2hsjFqi6vFk9qjAKW8Tj5LkqSmFbOH1dhONsSF0NQEVRbEYJFCHJZPUoWMQMG2moyyDc5JB+MPROnJsnMeMCtYi+HzXjUdkJuwE6x+MeCkg8=
-ARC-Authentication-Results:i=3; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=KjcySZ3z; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=KjcySZ3z; arc=fail smtp.client-ip=52.101.65.30
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA90B2DB7AB
+	for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 13:48:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1773928086; cv=none; b=mxGkoY2We3GpwZgx+LUmoUKbBMPFfB6pK14S6OE3YBtHUj7RKn0erucjqqqDsxuk7V4YmPWgPZQuprfeKCFFXO5XJOp0m86rTJaNZkoNRFbNlq49bR1vR2kQcqkLdk7w7wvZYEvMPWzhOMw4VECuhH6vVCPhPK8lxfxwlvIxYB8=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1773928086; c=relaxed/simple;
+	bh=QOJle0HAErcuAk1B1GgrI2OCaaOFq04voQ/vijiMH9Q=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=Nk5faVkaShLT5kmrX47u1GpfLuFe49jEjRcvdzWguW/JQcOUkRX2Wq7m2bjv1qOryRctI/7POaBg4rQlVCEx5ANV5P1it02CE70NL+6nkqI4AipSInuy44Q3TReOo0DARW1UHoLcIh8H2FzkXa03X1Lg0O2Haj/ZQc9zqsPEQoI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=KJfBrRJ8; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="KjcySZ3z";
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="KjcySZ3z"
-ARC-Seal: i=2; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=pass;
- b=lY6uNxByfukaZja9T9dUkHs9qRkoH8qT+TzyiCuUxsZH+Q3L3JQYHxJbAV8Q752GxYBWj6FJU5K8iAY+DWV8YspoTj6H2ePEt+nJshx+m5UI6MwLNBw4jTa2Kd3gi27yxAxioXjzU+dEU20danDjnTEqDorcLYawdBJBm5WSn7ZlJo+Jo3cZGfWR1VAspXllEnpahJufpv3rFt0lppJMgnheuOXXNE9fg0j23VhaT4cYlzOhCP8Mo82W4tauUPMP1ZVe7RuCZIBbGKCm43+FHPO3GEElshs+yZQDa7lKd+Q39133QBDh2xIjJsfBBvXgxI37iA8YZYAHfwlWmF7r6g==
-ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=U/hmd4o/njnqAsldvbgE5F7I/b0yNyzGK1vSU5V3kc8=;
- b=UII4xwLGY7Q5qHvw022aJ80t1wAJPLt6gUBSJ2VagsUuCC6cP8KOqRLive6dnzN/NRDRYgeWVd2MqlO2ibxPZl3Zrzubv8pFhZXmadVc487rM6xyted5lYZbbxWIYl5IhQVEJDaY8NePU6W9CAo3XuwgULncpq/ts8RDu5Ici2J7e93FgRn539JSuHUDrePdVxCpMR7pyqHmJkPPBj5sssMhHOulnP/rWhVVESPcnxJ4m3Huj+VOJqQrmMcgVFRSZH9cznCut+9nkmw4CRRzVXgn2+AF0eMzxOVFLpVZgj25l5WmDdc/1mlUmtdETM4zkz++56xu8kWXbtTMK+uKGw==
-ARC-Authentication-Results: i=2; mx.microsoft.com 1; spf=pass (sender ip is
- 4.158.2.129) smtp.rcpttodomain=arndb.de smtp.mailfrom=arm.com; dmarc=pass
- (p=none sp=none pct=100) action=none header.from=arm.com; dkim=pass
- (signature was verified) header.d=arm.com; arc=pass (0 oda=1 ltdi=1
- spf=[1,1,smtp.mailfrom=arm.com] dkim=[1,1,header.d=arm.com]
- dmarc=[1,1,header.from=arm.com])
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=U/hmd4o/njnqAsldvbgE5F7I/b0yNyzGK1vSU5V3kc8=;
- b=KjcySZ3zZTDNRy2/z51+LMyKkFWTnd2e8FzeGjXLv4IF7Bo5AVS7upyRVSHV+dxa5tkDNQIhlCP8m33Q5cYEujsTWzcf6Lys7w/jaI9hz4c7OEQUAAOiWU+hyA9sqyAquXT2WtnGCA0PF6wqgBw4xefaxXbMhWqr92oB1W+vMVs=
-Received: from AM9P250CA0019.EURP250.PROD.OUTLOOK.COM (2603:10a6:20b:21c::24)
- by PAVPR08MB9354.eurprd08.prod.outlook.com (2603:10a6:102:301::5) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9700.24; Thu, 19 Mar
- 2026 12:58:53 +0000
-Received: from AMS0EPF00000198.eurprd05.prod.outlook.com
- (2603:10a6:20b:21c:cafe::7a) by AM9P250CA0019.outlook.office365.com
- (2603:10a6:20b:21c::24) with Microsoft SMTP Server (version=TLS1_3,
- cipher=TLS_AES_256_GCM_SHA384) id 15.20.9723.19 via Frontend Transport; Thu,
- 19 Mar 2026 12:58:53 +0000
-X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 4.158.2.129)
- smtp.mailfrom=arm.com; dkim=pass (signature was verified)
- header.d=arm.com;dmarc=pass action=none header.from=arm.com;
-Received-SPF: Pass (protection.outlook.com: domain of arm.com designates
- 4.158.2.129 as permitted sender) receiver=protection.outlook.com;
- client-ip=4.158.2.129; helo=outbound-uk1.az.dlp.m.darktrace.com; pr=C
-Received: from outbound-uk1.az.dlp.m.darktrace.com (4.158.2.129) by
- AMS0EPF00000198.mail.protection.outlook.com (10.167.16.244) with Microsoft
- SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.20.9723.19
- via Frontend Transport; Thu, 19 Mar 2026 12:58:53 +0000
-ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
- b=FI5xg1DNlX724yJ4Gk1CLPyTy2I/mnYVL5HfCeHVOtYL7k1Rj57o1jGmf8HpthVXQ7Nv5zatqgT6jK9KTS8h0riVFqHIVjXvutNo6mXN7Y8KjYgFqyp3/iPJdUXfegBUoBLQrMVEIvubl/ukB9P4aDxkH4bpjmqmfKKbrW2zJGkOGcHyMhbTLtI7qf0w8PdXgnMJEhMFvsIaLIKBue4IqaLmaYs2j1p7w0Icb371+FE/BMZ1EmEzYAQLzmiW8c4HapH60Nh/kVuMPOqkVCtRyTuwvPev0gUu5isoFiVulMzCvP+um1VR8M6IxkjHugUSfa6kBeyjh2+fSp671wXg5w==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
- s=arcselector10001;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
- bh=U/hmd4o/njnqAsldvbgE5F7I/b0yNyzGK1vSU5V3kc8=;
- b=xvu6Fs6Bel0uBUDCHhu+1KYVa1y0SBiGmYKmCKqo9DdOM1tHi6jZZRHw8Qo4X67dNiUNbuS5cdgCF/kPt22ekLFDc8I2FIlQZ4hHycTs5lXaK9JgLMlf5b5FVqfs0idkEUwxmiuTjS5cGKpUgU7RkSIe4SlQnB52OqKh+NWZ3EaYYjXMySPNW8/7obuIOZOy9emopHb26n6qBfIostIuezYrEbLQNVqrQ8ygLkWg5G4epw4dVv5MLDFr/IUzuW2RgP/5eC8HxidLZTZMfIq7vvJ5AKL84mxewie1GXKm/KgfzPqC6hbsBl7JWWVTFLBy5Kt/vpROAKUQSoSXEjL5aA==
-ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass
- smtp.mailfrom=arm.com; dmarc=pass action=none header.from=arm.com; dkim=pass
- header.d=arm.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=arm.com; s=selector1;
- h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
- bh=U/hmd4o/njnqAsldvbgE5F7I/b0yNyzGK1vSU5V3kc8=;
- b=KjcySZ3zZTDNRy2/z51+LMyKkFWTnd2e8FzeGjXLv4IF7Bo5AVS7upyRVSHV+dxa5tkDNQIhlCP8m33Q5cYEujsTWzcf6Lys7w/jaI9hz4c7OEQUAAOiWU+hyA9sqyAquXT2WtnGCA0PF6wqgBw4xefaxXbMhWqr92oB1W+vMVs=
-Authentication-Results-Original: dkim=none (message not signed)
- header.d=none;dmarc=none action=none header.from=arm.com;
-Received: from AM6PR08MB3414.eurprd08.prod.outlook.com (2603:10a6:20b:49::10)
- by PAWPR08MB10996.eurprd08.prod.outlook.com (2603:10a6:102:471::16) with
- Microsoft SMTP Server (version=TLS1_2,
- cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.9723.19; Thu, 19 Mar
- 2026 12:57:47 +0000
-Received: from AM6PR08MB3414.eurprd08.prod.outlook.com
- ([fe80::dde8:bf0b:1dc:2a2]) by AM6PR08MB3414.eurprd08.prod.outlook.com
- ([fe80::dde8:bf0b:1dc:2a2%4]) with mapi id 15.20.9632.017; Thu, 19 Mar 2026
- 12:57:43 +0000
-Message-ID: <2c71db02-6fe4-4c07-a88b-eaad0a0961de@arm.com>
-Date: Thu, 19 Mar 2026 12:57:41 +0000
-User-Agent: Mozilla Thunderbird
-Cc: usama.anjum@arm.com
-Subject: Re: [PATCH 1/3] vmalloc: add __GFP_SKIP_KASAN support
-To: Ryan Roberts <ryan.roberts@arm.com>, Arnd Bergmann <arnd@arndb.de>,
- Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>,
- Juri Lelli <juri.lelli@redhat.com>,
- Vincent Guittot <vincent.guittot@linaro.org>,
- Dietmar Eggemann <dietmar.eggemann@arm.com>,
- Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
- Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
- Kees Cook <kees@kernel.org>, Andrew Morton <akpm@linux-foundation.org>,
- David Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
- "Liam R. Howlett" <Liam.Howlett@oracle.com>,
- Vlastimil Babka <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>,
- Suren Baghdasaryan <surenb@google.com>, Michal Hocko <mhocko@suse.com>,
- Uladzislau Rezki <urezki@gmail.com>, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-mm@kvack.org,
- Andrey Konovalov <andreyknvl@gmail.com>, Marco Elver <elver@google.com>,
- Vincenzo Frascino <vincenzo.frascino@arm.com>,
- Peter Collingbourne <pcc@google.com>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- david.hildenbrand@arm.com
-References: <20260319114952.3241359-1-usama.anjum@arm.com>
- <20260319114952.3241359-2-usama.anjum@arm.com>
- <0d963ff9-9222-4e0f-8e57-ff22088ce978@arm.com>
-From: Muhammad Usama Anjum <usama.anjum@arm.com>
-Content-Language: en-US
-In-Reply-To: <0d963ff9-9222-4e0f-8e57-ff22088ce978@arm.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-X-ClientProxiedBy: PA7P264CA0081.FRAP264.PROD.OUTLOOK.COM
- (2603:10a6:102:349::6) To AM6PR08MB3414.eurprd08.prod.outlook.com
- (2603:10a6:20b:49::10)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="KJfBrRJ8"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 86E87C4AF0C
+	for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 13:48:05 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1773928085;
+	bh=QOJle0HAErcuAk1B1GgrI2OCaaOFq04voQ/vijiMH9Q=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+	b=KJfBrRJ8sbFD3zMucjkhepLRMBdph3OktdEDcyFOVTXeM4G8ZT2NnK0Q3aOvuVzYa
+	 EohsHAGYO61CRJXeh1yVgHA3aLrHZBs0Bcixk+IUqO+mwrT+1iyxQqZ2z66egbbLMU
+	 P8hKWXA2iSqbRAZBe1hXdAI5cQ1yMZQ4cgP4Pt4rcrtg77ugCe4yyeo3/UKC1JfeF/
+	 cxxndBaoFJoKXbaD5srTgfCVfzvhMSDeJkBzgC56sLuDx+fBr8yNVn4SdEtBQCIcaU
+	 tEj+w/85QKFFNswve+Wp5aDVg+k0RGA1pcNxcNVfv3TBe5XZnC1hNcdaGiebRDFCmI
+	 TUF3sXcB1e9ZQ==
+Received: by mail-yw1-f177.google.com with SMTP id 00721157ae682-79a40fb9890so11018117b3.1
+        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 06:48:05 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCW5yZ6ZJ6YVhiiTda2Pvn8ZyOqvpl3vYoYq/YttTLoBFAuDHU/LJL8+w7NLh+65SUg1Tbpfg63Q1KpG@vger.kernel.org
+X-Gm-Message-State: AOJu0YzNohAhMlwWAJV4JmFPcEDg/H3/RngGBGU1IlLbMEjK6+oLPDv+
+	ZzR286GdLQ73/S8F0vZcdI30PRzCH6bDjRJw0rw64foEm1T5twgEEmWxX11AjOYqrw7GgZ1L6QE
+	6448A6Cop+CP6vwILV+G558kuU3X2uvc=
+X-Received: by 2002:a05:690c:ed6:b0:79a:47b4:397b with SMTP id
+ 00721157ae682-79a71c9679dmr78182707b3.57.1773928084138; Thu, 19 Mar 2026
+ 06:48:04 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-MS-TrafficTypeDiagnostic:
-	AM6PR08MB3414:EE_|PAWPR08MB10996:EE_|AMS0EPF00000198:EE_|PAVPR08MB9354:EE_
-X-MS-Office365-Filtering-Correlation-Id: 2b3b45c5-2b74-40f7-3729-08de85b74600
-x-checkrecipientrouted: true
-NoDisclaimer: true
-X-MS-Exchange-SenderADCheck: 1
-X-MS-Exchange-AntiSpam-Relay: 0
-X-Microsoft-Antispam-Untrusted:
- BCL:0;ARA:13230040|366016|1800799024|376014|7416014|921020|18002099003|56012099003|22082099003;
-X-Microsoft-Antispam-Message-Info-Original:
- H5FcwP+At673YHJV8Oh6d/hEZWBu4XoV8H7WpmTYZh0ITwDv9HX+rAqh7bFodpn/AHynnKXSLsVF110e3G4/d177cwUEZVezcig83XrfNA6mII/mXZ9j3LKCVi3/eg5ZsjuScpPqjpy/HKO1bc6m1TTMFPpihD1T3DDoF59D5nQkuQxTZKL3bPNhzAK25sWO+96OBZlxHw9s8zoTBpiaJQgVxKcnQnEHr3Fqu0ChN4JwekLizs4TOQ+9DqhCeFPWw4LehF1HkQrJUhxb4EE01579D7+6AHeS/RkK/+065k9PccB6VsFL/u49UFBi7PUvp2GeAokfwMi9fP8yE4gm3rD+J7oczLyQhtFFCc5bp46bG66GcfqpBHlGXt37rIsPTVVv5BN+bPxha6W1HwPcEkMwwlMAiSDrqZc2zMdea6upUglsp/RyDYL+iqSIA793UuvBPWotdfg09OgOmNEfHd1SWkbFVwJpAKoGCwNQXVoVtkuURUvQtG6OaBTEXPP2PP+Ep3n2KwGcsyRqsFgYVh7T24WXjWbLTm53nif3dwMsZDaL81b/8Z1NEnwQSO8Y1yxhYWDXt3NWRumc/S2hHnQLXvCGkhceQqUoUMWx6vrahgHnw8AeCCRQm9d/rOG4vkM1WKVkLYbSopuVChKIA/r2OQR+/zhJsj17Vzs4vFIT7RWLW4vldK9qKt2AE6zt/PdqoZehGlRV/BTKO/dDYJlYxsURW/7Sh9V/5uxKP2GhCrnt5sD0JUnUF1bgFQW3su70nBMx3YJ95CxcygsX1A==
-X-Forefront-Antispam-Report-Untrusted:
- CIP:255.255.255.255;CTRY:;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:AM6PR08MB3414.eurprd08.prod.outlook.com;PTR:;CAT:NONE;SFS:(13230040)(366016)(1800799024)(376014)(7416014)(921020)(18002099003)(56012099003)(22082099003);DIR:OUT;SFP:1101;
-X-Exchange-RoutingPolicyChecked:
- KxNrVKhAHJ/kOEXAcANweGHOF3+ru0NyIOAUvWDOKzWrDH5gaiYehkQEt7dSLoT8orr8L3CW0zOojGWR62TFFIhB+VvwF2Bx8zsXedw+OqSD0ORy8XJwEqvLHSnIPPjGCKqkvyTyErmO6MqSKXpQ1mxYFDlJPMmhusVsj8NdJIuZVj2JqSsL46o+tbteKj5wLFvNo14+02ZavWvUBL2TMT8h1rTH68ouWiIEQdzJlmtI+qNswZpPBxmCRDL4v/B6nBeK3Vjt6sSbQdJi5ncVhs8LaH8qHCAYT5EzyKi/aAg8nTDuFTifaEk+1iadRARJSEgUHtfoPczhv7Wf0P5wMg==
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: PAWPR08MB10996
-X-EOPAttributedMessage: 0
-X-MS-Exchange-Transport-CrossTenantHeadersStripped:
- AMS0EPF00000198.eurprd05.prod.outlook.com
-X-MS-PublicTrafficType: Email
-X-MS-Office365-Filtering-Correlation-Id-Prvs:
-	bd1e1ab7-7e21-498c-4e99-08de85b71bcf
-X-Microsoft-Antispam:
-	BCL:0;ARA:13230040|1800799024|14060799003|376014|82310400026|35042699022|7416014|36860700016|22082099003|56012099003|18002099003|921020;
-X-Microsoft-Antispam-Message-Info:
-	A3+e7kfA6wuVKjIEjBNXlOX3gyYxxNMae0coc9Qx4+DmsUJh1IDjk2pNYaOktZy+gqnn6sHmvMO2YXEPVgScvvCIEJawDjTsKfdO/rdQJRPPKQczUGBFfEU7U/CoDBEUB5qCB1TGlKdVLtEKbpOa9Z48WcFRj4ajzDrDhGniAnYUQow1SAwAII8MOY3oqRw5jGBR6V9BOLwdXLG1aFhC4GYB2QY+9/YHEhMVdm95iUZbnEiEvJPVf70B+vGAgfi2qDWW6AbjhMiz4Y8ZuW40t9l6uI9Ka/1jIYbTVhRtHQ0+20Wb8a7Ux8UvqCDG78At79mhgn7pnTDzcb3mAKcmjXN1SbMziscnQN2sKqJ88d6jpsXBAKeLumbtpXdLnSYFv/jllTI731kRJL+Jj1rl5LTC0ZffN6hmm+Sl1Y1LgKlkoeepfAlvb3K9d5woZzhUFBhMH8DuPm047jjyK1GyBSdBmT8w+1k1qetMdGf6KNROsgmCieSAimjcqfLfGjhi3GBNZSJOsVAELQBLP/y6sXj47PLqA+N1thSufqW1qHA9b/tA8Ax7y6lKpYR9zGo48Vwex7D+oyy9W8/Sg9CIDv9M0ULxxDpNjCYLoKXhzLpENrG9p6M/erJlphGIWtMJusjaqevOiZXNxBErdy84FmySKAfEVMSdEPFh4IGq0E6IT3mn1XEHstiVDQx6gYQoP8tt7+dwXNumKn+2plilSu0Q4nBzD9+QzG8NpYsnWSULfib9AuSOlLeUUx9mYD6yw299hgjDD/fo3xz6lZZxkNKNGCQSw1wQeWb3UuAwg30tzlG0FN3kZQ4YI8HCZ9tN
-X-Forefront-Antispam-Report:
-	CIP:4.158.2.129;CTRY:GB;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:outbound-uk1.az.dlp.m.darktrace.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(1800799024)(14060799003)(376014)(82310400026)(35042699022)(7416014)(36860700016)(22082099003)(56012099003)(18002099003)(921020);DIR:OUT;SFP:1101;
-X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
-X-MS-Exchange-AntiSpam-MessageData-0:
-	pfe9CKH1QC3TBdTsWsOOrIEp8K60F5lqYaEBotIzD6T5X0yK5JbzuQkchjfPsBgDqU7RLyugbmrELsO7hiwJPPxSVAdIWh4y77jbnsd+x2fEWtIimZqywFuSaK5zcZr3pVg4Fw40Q9Pk7CBtZT/2KrSs/LsPQEXzQN1xYNTtTHBqa9OW1wrswVSIQaM700ktatt+XrKobfUa4SqnxQsQl2CEy5oZeAE2XwJOfSfpkVWtxO20P1Ry6miiV3W2Qu+EzFoaLrEWKIflY8BwFQ+ee28R3o95THmcI6IpBUoJBmTzmWxqfeCmuxytquf6dEhi2FvBKFeJq31UvVYsxmSo8EJ2QRI5ge7QEbfjdLI4pJ63sDkxse+xDnRuP3nWuuMDTNYqFg+sOuarwbEzmdt9QkqAPEeztPv2KcjzV88MCll4gcGhuv3l2zV/v69BQXrP
-X-OriginatorOrg: arm.com
-X-MS-Exchange-CrossTenant-OriginalArrivalTime: 19 Mar 2026 12:58:53.2050
- (UTC)
-X-MS-Exchange-CrossTenant-Network-Message-Id: 2b3b45c5-2b74-40f7-3729-08de85b74600
-X-MS-Exchange-CrossTenant-Id: f34e5979-57d9-4aaa-ad4d-b122a662184d
-X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=f34e5979-57d9-4aaa-ad4d-b122a662184d;Ip=[4.158.2.129];Helo=[outbound-uk1.az.dlp.m.darktrace.com]
-X-MS-Exchange-CrossTenant-AuthSource:
-	AMS0EPF00000198.eurprd05.prod.outlook.com
-X-MS-Exchange-CrossTenant-AuthAs: Anonymous
-X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
-X-MS-Exchange-Transport-CrossTenantHeadersStamped: PAVPR08MB9354
+References: <20260317082020.737779-1-ruanjinjie@huawei.com> <20260317082020.737779-2-ruanjinjie@huawei.com>
+In-Reply-To: <20260317082020.737779-2-ruanjinjie@huawei.com>
+From: Linus Walleij <linusw@kernel.org>
+Date: Thu, 19 Mar 2026 14:47:53 +0100
+X-Gmail-Original-Message-ID: <CAD++jLnBpKm7Q0hjgkRMmivpYdzY8r1-FuQS=H3Km1G=mE1fTg@mail.gmail.com>
+X-Gm-Features: AaiRm50KZNLEM2TEBH0s8s1elOG_LwkGWTvhDRRNnuvJQ3BSSvTT7GXQ8nkJRwA
+Message-ID: <CAD++jLnBpKm7Q0hjgkRMmivpYdzY8r1-FuQS=H3Km1G=mE1fTg@mail.gmail.com>
+Subject: Re: [PATCH v13 RESEND 01/14] arm64/ptrace: Refactor
+ syscall_trace_enter/exit() to accept flags parameter
+To: Jinjie Ruan <ruanjinjie@huawei.com>
+Cc: catalin.marinas@arm.com, will@kernel.org, oleg@redhat.com, 
+	chenhuacai@kernel.org, kernel@xen0n.name, hca@linux.ibm.com, 
+	gor@linux.ibm.com, agordeev@linux.ibm.com, borntraeger@linux.ibm.com, 
+	svens@linux.ibm.com, tglx@kernel.org, mingo@redhat.com, bp@alien8.de, 
+	dave.hansen@linux.intel.com, hpa@zytor.com, arnd@arndb.de, 
+	peterz@infradead.org, luto@kernel.org, shuah@kernel.org, kees@kernel.org, 
+	wad@chromium.org, kevin.brodsky@arm.com, deller@gmx.de, macro@orcam.me.uk, 
+	akpm@linux-foundation.org, ldv@strace.io, anshuman.khandual@arm.com, 
+	ryan.roberts@arm.com, mark.rutland@arm.com, thuth@redhat.com, song@kernel.org, 
+	ada.coupriediaz@arm.com, broonie@kernel.org, pengcan@kylinos.cn, 
+	liqiang01@kylinos.cn, ziyao@disroot.org, guanwentao@uniontech.com, 
+	guoren@kernel.org, schuster.simon@siemens-energy.com, jremus@linux.ibm.com, 
+	david@kernel.org, mathieu.desnoyers@efficios.com, edumazet@google.com, 
+	kmal@cock.li, dvyukov@google.com, reddybalavignesh9979@gmail.com, 
+	x86@kernel.org, linux-arm-kernel@lists.infradead.org, 
+	linux-kernel@vger.kernel.org, loongarch@lists.linux.dev, 
+	linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On 19/03/2026 12:22 pm, Ryan Roberts wrote:
-> On 19/03/2026 11:49, Muhammad Usama Anjum wrote:
->> For allocations that will be accessed only with match-all pointers
->> (e.g., kernel stacks), setting tags is wasted work. If the caller
->> already set __GFP_SKIP_KASAN, don’t skip zeroing the pages and
->> don’t set KASAN_VMALLOC_PROT_NORMAL so kasan_unpoison_vmalloc()
->> returns early without tagging.
->>
->> Before this patch, __GFP_SKIP_KASAN wasn't being used with vmalloc
->> APIs. So it wasn't being checked. Now its being checked and acted
->> upon. Other KASAN modes are unchanged because __GFP_SKIP_KASAN isn't
->> defined there.
->>
->> This is a preparatory patch for optimizing kernel stack allocations.
->>
->> Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
->> ---
->>  mm/vmalloc.c | 8 ++++++--
->>  1 file changed, 6 insertions(+), 2 deletions(-)
->>
->> diff --git a/mm/vmalloc.c b/mm/vmalloc.c
->> index c607307c657a6..1baa602a0b9bb 100644
->> --- a/mm/vmalloc.c
->> +++ b/mm/vmalloc.c
->> @@ -4041,7 +4041,10 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
->>  	 * kasan_unpoison_vmalloc().
->>  	 */
->>  	if (pgprot_val(prot) == pgprot_val(PAGE_KERNEL)) {
->> -		if (kasan_hw_tags_enabled()) {
->> +		bool skip_kasan = kasan_hw_tags_enabled() &&
->> +				  (gfp_mask & __GFP_SKIP_KASAN);
->> +
->> +		if (kasan_hw_tags_enabled() && !skip_kasan) {
-> 
-> It's unfortunate that kasan_hw_tags_enabled() is involved twice in this expression.
-I've looked at this again and simplified based on the fact tha
-__GFP_SKIP_KASAN is zero in other than hw-tag modes.
+On Tue, Mar 17, 2026 at 9:20=E2=80=AFAM Jinjie Ruan <ruanjinjie@huawei.com>=
+ wrote:
 
-> 
->>  			/*
->>  			 * Modify protection bits to allow tagging.
->>  			 * This must be done before mapping.
->> @@ -4057,7 +4060,8 @@ void *__vmalloc_node_range_noprof(unsigned long size, unsigned long align,
->>  		}
->>  
->>  		/* Take note that the mapping is PAGE_KERNEL. */
->> -		kasan_flags |= KASAN_VMALLOC_PROT_NORMAL;
->> +		if (!skip_kasan)
->> +			kasan_flags |= KASAN_VMALLOC_PROT_NORMAL;
-> 
-> I wonder if it would be clearer to just not call kasan_unpoison_vmalloc() below
-> if the user passed in __GFP_SKIP_KASAN? It's really just an implementation
-> detail that kasan_unpoison_vmalloc() skips unpoisoning if
-> KASAN_VMALLOC_PROT_NORMAL is not provided.
-Then it would be confusing to set kasan_flags to KASAN_VMALLOC_PROT_NORMAL and
-not use it later. I've found a good of doing it this way.
+> Refactor syscall_trace_enter() and syscall_trace_exit() to move thread
+> flag reading to the caller. This aligns arm64's syscall trace enter/exit
+> function signature with generic entry framework.
+>
+> [Changes]
+> 1. Function signature changes:
+>    - syscall_trace_enter(regs) =E2=86=92 syscall_trace_enter(regs, flags)
+>    - syscall_trace_exit(regs) =E2=86=92 syscall_trace_exit(regs, flags)
+>
+> 2. Move flags reading to caller:
+>    - Previously: read_thread_flags() called inside each function.
+>    - Now: caller (like el0_svc_common) passes flags as parameter.
+>
+> 3. Update syscall.c:
+>    - el0_svc_common() now passes flags to tracing functions and
+>      re-fetches flags before exit to handle potential TIF updates.
+>
+> [Why this matters]
+> - Aligns arm64 with the generic entry interface.
+> - Makes future migration to generic entry framework.
+>
+> No functional changes intended.
+>
+> Cc: Will Deacon <will@kernel.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Reviewed-by: Kevin Brodsky <kevin.brodsky@arm.com>
+> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
 
-Thanks,
-Usama
+Reviewed-by: Linus Walleij <linusw@kernel.org>
 
-> 
-> Thanks,
-> Ryan
-> 
-> 
->>  	}
->>  
->>  	/* Allocate physical pages and map them into vmalloc space. */
-> 
-
+Yours,
+Linus Walleij
