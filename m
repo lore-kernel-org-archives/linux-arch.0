@@ -1,25 +1,25 @@
 Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id BE30C3CE48A;
-	Thu, 19 Mar 2026 12:09:07 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id 0DB5C3CE4B3;
+	Thu, 19 Mar 2026 12:09:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773922149; cv=none; b=euszN183nJOgnMzDrYmHv2kDdGq4c02Wy+n1pqjKbifA2HXZgZ/sqTQHg4s3S1BrQSuGYYLmTBptR2rYWXLPQTrg9PbUfmtXugvLS6atS5fQEXI2S+vMJOWw81nijJUkFCGFSkDvXY0OO79jvnbgQU7jektkH00MmsKOb07jDjU=
+	t=1773922183; cv=none; b=RF81nwqdGBUaA8EzbTSJOuLXtoF2oTWyJNBjKeAIlRHLTDCQS+WmUh0piWfz2VaScuc5Mj7Cec40kEXlofYIbs2aBGFzCXer7IR72KyJxpZEbZLqSG6ubHtHjufIKg6sveiU9yDPz7fK6GaJGWXA30qD2B6VF8pQ6iYXi7pPQhI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773922149; c=relaxed/simple;
-	bh=TW5IgCCp8VHyytIuxKqF/1+2MrXUjyG2pTHEJSqB2Xk=;
+	s=arc-20240116; t=1773922183; c=relaxed/simple;
+	bh=k2dB5HIm5ItXNSr9gTL1HS7FFDQBtj2HEtz4zT5K73E=;
 	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=KxU3bFtaHCh95EN9/+jRRdX8s4oSDdhqRW3m1KQ5hrw59ouSt+FqLwNJAeXMt2U4nhUM3GB/Sq/q67LH4xO+AXM7NkHEWPYCYkI+faZEPpLC6HhaTyQ2v9M01TBAAIjI7OnJrSGIR2Mj/VsPB6da54QEue5fOQVZhKgzgBTM77c=
+	 In-Reply-To:Content-Type; b=Y/6FmF7BM2NV9uunud7H+hmheGCTDhfYoT0Ke8JsIJTkpgnpUOnSyR0PivJhLvbJoBI/2CSxHosZYeaL4Xa/Z1wBoUQi/4ctjo7qbBcMg585zcdLzZueyJdNyZ1RgcQ8GekkTar/zh3hLwfEoDRCdIi7+sGFY/tGeM9PHKXQieE=
 ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id EA7B91A25;
-	Thu, 19 Mar 2026 05:09:00 -0700 (PDT)
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 431231BD0;
+	Thu, 19 Mar 2026 05:09:34 -0700 (PDT)
 Received: from [10.57.85.34] (unknown [10.57.85.34])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 185B93F778;
-	Thu, 19 Mar 2026 05:09:02 -0700 (PDT)
-Message-ID: <dc85cda7-cf66-4bfa-92ab-af23f550562a@arm.com>
-Date: Thu, 19 Mar 2026 12:09:01 +0000
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 648373F778;
+	Thu, 19 Mar 2026 05:09:36 -0700 (PDT)
+Message-ID: <75705c3d-2654-47cf-8fd3-8343136715fa@arm.com>
+Date: Thu, 19 Mar 2026 12:09:34 +0000
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -27,7 +27,7 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 2/3] fork: skip MTE tagging for kernel stacks
+Subject: Re: [PATCH 3/3] mm: SKIP KASAN for page table allocations
 Content-Language: en-GB
 To: Muhammad Usama Anjum <usama.anjum@arm.com>, Arnd Bergmann
  <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>,
@@ -49,80 +49,39 @@ To: Muhammad Usama Anjum <usama.anjum@arm.com>, Arnd Bergmann
  Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
  david.hildenbrand@arm.com
 References: <20260319114952.3241359-1-usama.anjum@arm.com>
- <20260319114952.3241359-3-usama.anjum@arm.com>
+ <20260319114952.3241359-4-usama.anjum@arm.com>
 From: Ryan Roberts <ryan.roberts@arm.com>
-In-Reply-To: <20260319114952.3241359-3-usama.anjum@arm.com>
+In-Reply-To: <20260319114952.3241359-4-usama.anjum@arm.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 On 19/03/2026 11:49, Muhammad Usama Anjum wrote:
-> The stack pointer always uses the match-all tag, so MTE never checks
-> tags on stack accesses. Tagging stack memory on every thread creation
-> is pure overhead.
-> 
-> - Pass __GFP_SKIP_KASAN in gfp_mask for vmalloc-backed stacks so the
->   vmalloc path skips HW tag setup (see previous patch).
-> - For the cached VMAP reuse path, skip kasan_unpoison_range() when HW
->   tags are enabled since the memory will only be accessed through the
->   match-all tagged SP.
-> - For the normal page allocator path, pass __GFP_SKIP_KASAN directly
->   to the page allocator.
+> Page tables are always accessed via __va(phys) / phys_to_virt(phys).
+> With a match-all tag in the pointer, MTE never checks memory tags on
+> access. Therefore: KASAN HW tags are set during page table allocation
+> but never checked during use. KASAN poisoning on free provides no
+> value for these pages as well. Its pure overhead - both at allocation
+> time and free time. Hence, skip the tag setting for all page tables.
 > 
 > Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
+
+Reviewed-by: Ryan Roberts <ryan.roberts@arm.com>
+
 > ---
->  kernel/fork.c | 8 +++++---
->  1 file changed, 5 insertions(+), 3 deletions(-)
+>  include/asm-generic/pgalloc.h | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/kernel/fork.c b/kernel/fork.c
-> index bb0c2613a5604..2baf4db39b5a4 100644
-> --- a/kernel/fork.c
-> +++ b/kernel/fork.c
-> @@ -345,7 +345,8 @@ static int alloc_thread_stack_node(struct task_struct *tsk, int node)
->  		}
+> diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
+> index 57137d3ac1592..051aa1331051c 100644
+> --- a/include/asm-generic/pgalloc.h
+> +++ b/include/asm-generic/pgalloc.h
+> @@ -4,7 +4,7 @@
 >  
->  		/* Reset stack metadata. */
-> -		kasan_unpoison_range(vm_area->addr, THREAD_SIZE);
-> +		if (!kasan_hw_tags_enabled())
-> +			kasan_unpoison_range(vm_area->addr, THREAD_SIZE);
+>  #ifdef CONFIG_MMU
 >  
->  		stack = kasan_reset_tag(vm_area->addr);
+> -#define GFP_PGTABLE_KERNEL	(GFP_KERNEL | __GFP_ZERO)
+> +#define GFP_PGTABLE_KERNEL	(GFP_KERNEL | __GFP_ZERO | __GFP_SKIP_KASAN)
+>  #define GFP_PGTABLE_USER	(GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
 >  
-> @@ -358,7 +359,7 @@ static int alloc_thread_stack_node(struct task_struct *tsk, int node)
->  	}
->  
->  	stack = __vmalloc_node(THREAD_SIZE, THREAD_ALIGN,
-> -				     GFP_VMAP_STACK,
-> +				     GFP_VMAP_STACK | __GFP_SKIP_KASAN,
-
-Perhaps cleaner to include __GFP_SKIP_KASAN in GFP_VMAP_STACK ?
-
->  				     node, __builtin_return_address(0));
->  	if (!stack)
->  		return -ENOMEM;
-> @@ -410,7 +411,8 @@ static void thread_stack_delayed_free(struct task_struct *tsk)
->  
->  static int alloc_thread_stack_node(struct task_struct *tsk, int node)
->  {
-> -	struct page *page = alloc_pages_node(node, THREADINFO_GFP,
-> +	struct page *page = alloc_pages_node(node,
-> +					     THREADINFO_GFP | __GFP_SKIP_KASAN,
-
-I think there are some other places that could benefit from __GFP_SKIP_KASAN;
-see arm64's arch_alloc_vmap_stack(), which allocates stacks for efi, irq and
-sdei. I think these are allocated at boot, so not really performance sensitive,
-but we might as well be consistent?
-
-You've also missed the alloc_thread_stack_node() implementation for !VMAP when
-PAGE_SIZE > STACK_SIZE.
-
-All of these sites use THREADINFO_GFP so perhaps it is better to just define
-THREADINFO_GFP to include __GFP_SKIP_KASAN ?
-
-Thanks,
-Ryan
-
-
->  					     THREAD_SIZE_ORDER);
->  
->  	if (likely(page)) {
+>  /**
 
