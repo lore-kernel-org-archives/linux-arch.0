@@ -1,55 +1,54 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 83D0635B626
-	for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 14:25:01 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E909536D50B
+	for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 14:26:16 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773930301; cv=none; b=nXROZI8X7oAA8KQaELLtZ4PE/6SlU76hxuZLQ4QScYEyC/aPw40a+HbYRL/1Xxuh1zuNKZQT0fKtEY3fw5r7ebWi1cbF4MEgRmIz9lzGQ+op3+8rCnkbcK/F6M8I7sk5ULs2nJeJHGG/vn0mrOc39NTuKWz39Ugy3JhDuntZFvg=
+	t=1773930377; cv=none; b=u7/H6XpK2hWVwoPgsOK4u2b1TYaCUOCkxRr56TigxrSOmI0l/ByY+2ieF+OSBXH7YZIAqqNLHoapMITg8gDW+/jOPbqP0BAhJzufsgQprxlEibFTUnXV6Xi0cHqmVG0Lvga83thltT5fCMBYEo1SeTFvZeHykzJN/TvJxl8OUr8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773930301; c=relaxed/simple;
-	bh=kNLFhe5koYhQ2GMx0yl+/l5hbVUXpsA6TkF04beCZE4=;
+	s=arc-20240116; t=1773930377; c=relaxed/simple;
+	bh=EfYzODYTn0NTm+Mvi25JjdLYLxLuMewomF3tXPZzqjU=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=tBomGNACwOGAiDRPZHSnrIBRTkTxda6bIygVgHh1H3Nly9wOg0zKzLcjrQf4ug5sfcr1+X6yfXYfPrTp4CJCMhgFsG61ZZg0i5PyZArqSwh1xR1KS63G1pyaFMbhBxg49QQko+VnHsIWLMCuf0od4VGnBItWne0H2Gv443Gm6Vg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=tgP0Grmh; arc=none smtp.client-ip=10.30.226.201
+	 To:Cc:Content-Type; b=jAer3UfpvGBWKbwhemGoqQ0y2LOJKnVA1a9OVIaVjGmAr6IzU5r0+w5pc5Pe3uWLBzst76lvc2ahf0p0mcQnUR0jwtDcpu9T26+tY2zaKHHjb2KaMzUuSRkDiyRczYUhQjW3UGnrTWOljAAfNIatwpogMP+Z22gjb8F2NHZSFv0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Dff3BK9q; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="tgP0Grmh"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4E518C2BCF4
-	for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 14:25:01 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Dff3BK9q"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CCB28C2BC9E
+	for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 14:26:16 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1773930301;
-	bh=kNLFhe5koYhQ2GMx0yl+/l5hbVUXpsA6TkF04beCZE4=;
+	s=k20201202; t=1773930376;
+	bh=EfYzODYTn0NTm+Mvi25JjdLYLxLuMewomF3tXPZzqjU=;
 	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=tgP0GrmhLHYfNTZB592HITldbUJTMcTzsT8AdlL0nJVr/6ov0c93Fj4guk+TOpD+C
-	 yLSaFhX2vWgCxvpt3j21j7bSa4wmN7WE1lPnHrUUOC3goZf910KuAHaq+ynDgM1Pzr
-	 HpVwrNRyzLE8KUthkJkIw22wVQ89VVwIy1efRUSxSlAzI6RCRXy02ERKEA8Zwibdjm
-	 ATSBD8PhSIorqTlR5+rU0nHTtIdW1iyqRQB1on/SQZmVNRdKOSDQCdvz2YZ1KLjHHj
-	 YnkPFffu+SJEX+fh72LFJcNgv6bmeUXhKsvO9lgwdETEzQMjXN8Cl/TDAhK62LPxos
-	 keV8JJ6mHpHtA==
-Received: by mail-yw1-f182.google.com with SMTP id 00721157ae682-7947cf097c1so10593057b3.2
-        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 07:25:01 -0700 (PDT)
-X-Forwarded-Encrypted: i=1; AJvYcCX/JVG9hsgZHZOrF2pc/z/K2FYWd3JIs7pDJAZjm+qLvUdrGKb0WPrQvtdQiQUEiRSjJkt4SWX6+LKP@vger.kernel.org
-X-Gm-Message-State: AOJu0Yyul+eBPmJzPhr7QoQqNN7yBVk6AeV3sR4ekA2FESkpeWli6NjV
-	vNbvY7DoBQJ7CylTnTDwXbQvDOrWuFXuwEfd6HKVFsC4h7BkOQ7nsdu4qQU/UlQVABn3ue0AKcv
-	DHtvpUVHcjWHynsVImQtA549pK7qQU08=
-X-Received: by 2002:a05:690c:c4e8:b0:79a:7d50:fbc5 with SMTP id
- 00721157ae682-79a7d50ffe2mr47392627b3.49.1773930300323; Thu, 19 Mar 2026
- 07:25:00 -0700 (PDT)
+	b=Dff3BK9qblMvdaGnMX1CDzOnH6xEGROfjGr6QMMmkKcKL7jiomhG+5Fw/BDFAmJPK
+	 xPUHtJhc+niI4/UoqiRzv/ppoiVu/XuEgVOyG7dWHdPmCWKBv0Y26L7XwSt6b5xHtg
+	 glEa3utWOkxMiEE+QRQ0BL7aPsv0RSEHYxPF4p4afgzyfbVFiZhX/uzWC17WvEj2PW
+	 ZbM++Dc1n9vxjq33XSgVnKNZ01bWq3a8hLRdoCFAW5nhn6I3ruLe+zr3y9KhQHP2CR
+	 w1u8XKrFTRayqvzqdMQ1syFj4zKaT/mfb92PN/rSEKQZAtVbOFq2Aq7XXwVugOW3Cq
+	 IaXoUwGxaV1cg==
+Received: by mail-yx1-f42.google.com with SMTP id 956f58d0204a3-64c31ca77b4so1302562d50.2
+        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2026 07:26:16 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCWzpX0bUL9digI4vFAUCWI/h0wLLhLXd7Oe7nrI7DAyUQb8Se4OmVUBVPjv/fNu3urgWx+V3dO3A/5H@vger.kernel.org
+X-Gm-Message-State: AOJu0Yy5RnpX4tt/t2aewxJevdMXgSKMF4V70v+U3cQgYeVF4CzSEnQo
+	Suc5gX5nv0spbgORFvAq4uAAOJxLX1FRdySN5zry6GA2aAqN7bCbY1QcZgouaLQOvbkGkt29PIx
+	SkTs7BsBJL5PxsYgkr8M5WW0C2pwddms=
+X-Received: by 2002:a05:690c:660e:b0:79a:37c5:5d29 with SMTP id
+ 00721157ae682-79a71db8246mr80698987b3.57.1773930375929; Thu, 19 Mar 2026
+ 07:26:15 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-References: <20260317082020.737779-1-ruanjinjie@huawei.com> <20260317082020.737779-14-ruanjinjie@huawei.com>
-In-Reply-To: <20260317082020.737779-14-ruanjinjie@huawei.com>
+References: <20260317082020.737779-1-ruanjinjie@huawei.com> <20260317082020.737779-15-ruanjinjie@huawei.com>
+In-Reply-To: <20260317082020.737779-15-ruanjinjie@huawei.com>
 From: Linus Walleij <linusw@kernel.org>
-Date: Thu, 19 Mar 2026 15:24:49 +0100
-X-Gmail-Original-Message-ID: <CAD++jLmq0NMEL7BLexugvyY_YvQMGCt7T9HpqkNbEkn1PU9cLg@mail.gmail.com>
-X-Gm-Features: AaiRm5035IAWAKizkHQuG2dwP1mJS80mfL8fV1T70pFNvBv5XvZbCQVCTwQtBCs
-Message-ID: <CAD++jLmq0NMEL7BLexugvyY_YvQMGCt7T9HpqkNbEkn1PU9cLg@mail.gmail.com>
-Subject: Re: [PATCH v13 RESEND 13/14] arm64: Use generic TIF bits for common
- thread flags
+Date: Thu, 19 Mar 2026 15:26:04 +0100
+X-Gmail-Original-Message-ID: <CAD++jLkpHbZ5rf=D+Az=XiWmDFOdD6MPjEVPBLCf820q1Jef4A@mail.gmail.com>
+X-Gm-Features: AaiRm514Fbz_01wtqZJwa0U5dvzrhpy5vnegDsf7QhH81-s0mjNJm5JdcFU2cz0
+Message-ID: <CAD++jLkpHbZ5rf=D+Az=XiWmDFOdD6MPjEVPBLCf820q1Jef4A@mail.gmail.com>
+Subject: Re: [PATCH v13 RESEND 14/14] selftests: sud_test: Support aarch64
 To: Jinjie Ruan <ruanjinjie@huawei.com>
 Cc: catalin.marinas@arm.com, will@kernel.org, oleg@redhat.com, 
 	chenhuacai@kernel.org, kernel@xen0n.name, hca@linux.ibm.com, 
@@ -75,23 +74,14 @@ Content-Transfer-Encoding: quoted-printable
 On Tue, Mar 17, 2026 at 9:20=E2=80=AFAM Jinjie Ruan <ruanjinjie@huawei.com>=
  wrote:
 
-> Use the generic TIF bits defined in <asm-generic/thread_info_tif.h> for
-> standard thread flags (TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUM=
-E,
-> TIF_RESTORE_SIGMASK, TIF_SINGLESTEP, etc.) instead of defining
-> them locally.
+> From: kemal <kmal@cock.li>
 >
-> Arm64-specific bits (TIF_FOREIGN_FPSTATE, TIF_MTE_ASYNC_FAULT, TIF_SVE,
-> TIF_SSBD, etc.) are renumbered to start at bit 16 to avoid conflicts.
+> Support aarch64 to test "Syscall User Dispatch" with sud_test
+> selftest testcase.
 >
-> This enables RSEQ optimizations which require CONFIG_HAVE_GENERIC_TIF_BIT=
-S
-> combined with the generic entry infrastructure (already used by arm64).
->
-> Cc: Thomas Gleixner <tglx@kernel.org>
-> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
+> Signed-off-by: kemal <kmal@cock.li>
 
-Reviewed-by: Linus Walleij <linusw@kernel.org>
+You need to sign this off since you are on the delivery path.
 
 Yours,
 Linus Walleij
