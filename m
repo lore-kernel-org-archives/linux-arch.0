@@ -1,182 +1,161 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from canpmsgout11.his.huawei.com (canpmsgout11.his.huawei.com [113.46.200.226])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E4D7C248886;
-	Fri, 20 Mar 2026 08:54:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 57BE333ADBA;
+	Fri, 20 Mar 2026 09:21:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=113.46.200.226
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773996844; cv=none; b=Bu1Dlkx+KvsTwyPpmgLvMr4xOp5u+TGmMVHA0ysJ2qZvHD78EijO+5iMotenKjDqSeFWVgZv9Jnwb/uBRiNdb45njjkHRXYszvPlIfObrtjuTUBXU135jauzGJrSHEfQ87gTcwCmtKpJPwGmsfK2SluptY6tIKW/UyVQAbvq+gI=
+	t=1773998487; cv=none; b=TNuy9zTGdNtNVocvNswLUiLeidTDF3XYoD0vfonprWhUAcxJi5AIJYHKHIAlSg9UfGbGj7jD0hRqsYVF3rSyHDuMrifsgW3Dx/ihFUSmouyk7wUEfAfW5YzpoxUhN/ytHCPbUDWdK//O0Fmv0h1vVWsVKklNZon5ZyaIYe3XJWo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773996844; c=relaxed/simple;
-	bh=5mLUmodt5SMNzEDiEElPU8YWvKdgRnZ2+ssB/oc4/U0=;
+	s=arc-20240116; t=1773998487; c=relaxed/simple;
+	bh=3m8Eshu25DLuulkOFyj7c2pOEu+9wu8nxRGbBQ/DhQE=;
 	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=UN4nKfPAuRUNSfjOyHPKB+BYzTxpqxjM5KrZcgls6BAQ3jrLaOENj12okYLL2LzJGpb5Wb42NJKU7sMgIbTpiYegGJgnn2U9wXmpoYTLN45VYIkqHY5lvbA7bdaX9eL2mFCCezns8fPjTN+tMnWdbvsjxAufhCHVBmFiFzCy7mw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Kx7eLUMe; arc=none smtp.client-ip=10.30.226.201
+	 In-Reply-To:Content-Type; b=lONxlu375+Rq/1D/CmjdwLNhGo4wqGN8mJxH2uND+oaL/rWLus1BPRA87r5iasPp/nu0bhl3usQrYmZ6xdzKzbUBZ6+30q7Za+l8uo4r1cJwr9fOCZwtuZ7ZYhsAuVZeBp6k2R5WKfwcOF+FX/vps5Wm2O9/X9nrde81AjH3bb8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com; spf=pass smtp.mailfrom=huawei.com; dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b=FgyWhZ0T; arc=none smtp.client-ip=113.46.200.226
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Kx7eLUMe"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A459BC4CEF7;
-	Fri, 20 Mar 2026 08:53:56 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1773996843;
-	bh=5mLUmodt5SMNzEDiEElPU8YWvKdgRnZ2+ssB/oc4/U0=;
-	h=Date:Subject:To:References:From:In-Reply-To:From;
-	b=Kx7eLUMey9gF3WXm9SZ7i3vb/q9mtGdACChDs6J8uPlH3PCtXhZxjl07Ie15PfFr5
-	 BhhX+G2XlhyjNUGe96kYrFykp+jL/LwP2J1KZoZtTsD9T2xc8PmY84TbH+B9Ep9MMs
-	 k+o/Ts5Wykt6zzTuT2ZZQCX/zACiEEVCCP+haDfWThndilA97kRD2d+TXIzG5j45iX
-	 Vc4Z5HyUzePYRkX5EsjDiA/rFc12NciN/lDLniwIzsgPYganqwrzJRMK5OC+N9oga7
-	 ttcUfazjmBS0ZzmBeybmu0r1CKLA8MjIXriTKvQL1oUkyfYXEUrLs4cCL1uT6D8ROZ
-	 04ZXU+p5gHlaQ==
-Message-ID: <1e71acc8-8dde-4fd5-8428-e76e8c86121b@kernel.org>
-Date: Fri, 20 Mar 2026 09:53:54 +0100
+	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.b="FgyWhZ0T"
+dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
+	c=relaxed/relaxed; q=dns/txt;
+	h=From;
+	bh=Vg0WdVEqTXSBpZm4qvokjHJVOQZLDCFu+VDlhdAL6G4=;
+	b=FgyWhZ0T5h9S4nlhkYys1pcjT6ZC/1I85cy8eT5YS7tx3+DSGmHWZ10EZE3CZ2WXQs5VhM6MF
+	FnvwCFH/7bx7ugv5LebsKdkh1RL7gPXdbAmgbld9PJVIxQZXNKqbgTz8AP3Gwom/WPQmUNz4hGI
+	i1pUtNpz2oiLDKm+uTscfwk=
+Received: from mail.maildlp.com (unknown [172.19.163.127])
+	by canpmsgout11.his.huawei.com (SkyGuard) with ESMTPS id 4fccPZ6NfrzKm4D;
+	Fri, 20 Mar 2026 17:16:18 +0800 (CST)
+Received: from dggpemf500011.china.huawei.com (unknown [7.185.36.131])
+	by mail.maildlp.com (Postfix) with ESMTPS id 4B5B6402AB;
+	Fri, 20 Mar 2026 17:21:20 +0800 (CST)
+Received: from [10.67.109.254] (10.67.109.254) by
+ dggpemf500011.china.huawei.com (7.185.36.131) with Microsoft SMTP Server
+ (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.2.1544.11; Fri, 20 Mar 2026 17:21:17 +0800
+Message-ID: <6a01d0ee-86b2-7dcf-eb62-61bc8b5864ef@huawei.com>
+Date: Fri, 20 Mar 2026 17:21:15 +0800
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 0/3] KASAN: HW_TAGS: Disable tagging for stack and
- page-tables
-To: Muhammad Usama Anjum <usama.anjum@arm.com>, Arnd Bergmann
- <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>,
- Peter Zijlstra <peterz@infradead.org>, Juri Lelli <juri.lelli@redhat.com>,
- Vincent Guittot <vincent.guittot@linaro.org>,
- Dietmar Eggemann <dietmar.eggemann@arm.com>,
- Steven Rostedt <rostedt@goodmis.org>, Ben Segall <bsegall@google.com>,
- Mel Gorman <mgorman@suse.de>, Valentin Schneider <vschneid@redhat.com>,
- Kees Cook <kees@kernel.org>, Andrew Morton <akpm@linux-foundation.org>,
- Lorenzo Stoakes <ljs@kernel.org>, "Liam R. Howlett"
- <Liam.Howlett@oracle.com>, Vlastimil Babka <vbabka@kernel.org>,
- Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan <surenb@google.com>,
- Michal Hocko <mhocko@suse.com>, Uladzislau Rezki <urezki@gmail.com>,
- linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
- linux-mm@kvack.org, Andrey Konovalov <andreyknvl@gmail.com>,
- Marco Elver <elver@google.com>, Vincenzo Frascino
- <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>,
- Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
- Ryan.Roberts@arm.com, david.hildenbrand@arm.com
-References: <20260319114952.3241359-1-usama.anjum@arm.com>
-From: "David Hildenbrand (Arm)" <david@kernel.org>
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:102.0) Gecko/20100101
+ Thunderbird/102.2.0
+Subject: Re: [PATCH v13 RESEND 13/14] arm64: Use generic TIF bits for common
+ thread flags
 Content-Language: en-US
-Autocrypt: addr=david@kernel.org; keydata=
- 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
- qIws/H2t
-In-Reply-To: <20260319114952.3241359-1-usama.anjum@arm.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+To: Kevin Brodsky <kevin.brodsky@arm.com>, <catalin.marinas@arm.com>,
+	<will@kernel.org>, <oleg@redhat.com>, <chenhuacai@kernel.org>,
+	<kernel@xen0n.name>, <hca@linux.ibm.com>, <gor@linux.ibm.com>,
+	<agordeev@linux.ibm.com>, <borntraeger@linux.ibm.com>, <svens@linux.ibm.com>,
+	<tglx@kernel.org>, <mingo@redhat.com>, <bp@alien8.de>,
+	<dave.hansen@linux.intel.com>, <hpa@zytor.com>, <arnd@arndb.de>,
+	<peterz@infradead.org>, <luto@kernel.org>, <shuah@kernel.org>,
+	<kees@kernel.org>, <wad@chromium.org>, <deller@gmx.de>, <macro@orcam.me.uk>,
+	<akpm@linux-foundation.org>, <ldv@strace.io>, <anshuman.khandual@arm.com>,
+	<ryan.roberts@arm.com>, <mark.rutland@arm.com>, <thuth@redhat.com>,
+	<song@kernel.org>, <ada.coupriediaz@arm.com>, <linusw@kernel.org>,
+	<broonie@kernel.org>, <pengcan@kylinos.cn>, <liqiang01@kylinos.cn>,
+	<ziyao@disroot.org>, <guanwentao@uniontech.com>, <guoren@kernel.org>,
+	<schuster.simon@siemens-energy.com>, <jremus@linux.ibm.com>,
+	<david@kernel.org>, <mathieu.desnoyers@efficios.com>, <edumazet@google.com>,
+	<kmal@cock.li>, <dvyukov@google.com>, <reddybalavignesh9979@gmail.com>,
+	<x86@kernel.org>, <linux-arm-kernel@lists.infradead.org>,
+	<linux-kernel@vger.kernel.org>, <loongarch@lists.linux.dev>,
+	<linux-s390@vger.kernel.org>, <linux-arch@vger.kernel.org>,
+	<linux-kselftest@vger.kernel.org>
+References: <20260317082020.737779-1-ruanjinjie@huawei.com>
+ <20260317082020.737779-14-ruanjinjie@huawei.com>
+ <16598f59-df24-488b-af74-e3f2a2732755@arm.com>
+From: Jinjie Ruan <ruanjinjie@huawei.com>
+In-Reply-To: <16598f59-df24-488b-af74-e3f2a2732755@arm.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+X-ClientProxiedBy: kwepems500002.china.huawei.com (7.221.188.17) To
+ dggpemf500011.china.huawei.com (7.185.36.131)
 
-On 3/19/26 12:49, Muhammad Usama Anjum wrote:
-> Stacks and page tables are always accessed with the match‑all tag,
-> so assigning a new random tag every time at allocation and setting
-> invalid tag at deallocation time, just adds overhead without improving
-> the detection.
+
+
+On 2026/3/20 1:07, Kevin Brodsky wrote:
+> On 17/03/2026 09:20, Jinjie Ruan wrote:
+>> Use the generic TIF bits defined in <asm-generic/thread_info_tif.h> for
+>> standard thread flags (TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME,
+>> TIF_RESTORE_SIGMASK, TIF_SINGLESTEP, etc.) instead of defining
+>> them locally.
+>>
+>> Arm64-specific bits (TIF_FOREIGN_FPSTATE, TIF_MTE_ASYNC_FAULT, TIF_SVE,
+>> TIF_SSBD, etc.) are renumbered to start at bit 16 to avoid conflicts.
+>>
+>> This enables RSEQ optimizations which require CONFIG_HAVE_GENERIC_TIF_BITS
+>> combined with the generic entry infrastructure (already used by arm64).
+>>
+>> Cc: Thomas Gleixner <tglx@kernel.org>
+>> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
+>> ---
+>>  arch/arm64/Kconfig                   |  1 +
+>>  arch/arm64/include/asm/thread_info.h | 62 ++++++++++++----------------
+>>  2 files changed, 28 insertions(+), 35 deletions(-)
+>>
+
+[...]
+
+>> + */
+>> +#define HAVE_TIF_NEED_RESCHED_LAZY
+>> +#define HAVE_TIF_RESTORE_SIGMASK
+>> +#define HAVE_TIF_SINGLESTEP
+>> +
+>> +#include <asm-generic/thread_info_tif.h>
+>> +
+>> +#define TIF_FOREIGN_FPSTATE	16	/* CPU's FP state is not current's */
+>> +#define TIF_MTE_ASYNC_FAULT	17	/* MTE Asynchronous Tag Check Fault */
+>> +#define TIF_FREEZE		18
 > 
-> With __GFP_SKIP_KASAN the page keeps its poison tag and KASAN_TAG_KERNEL
-> (match-all tag) is stored in the page flags while keeping the poison tag
-> in the hardware. The benefit of it is that 256 tag setting instruction
-> per 4 kB page aren't needed at allocation and deallocation time.
+> Turns out this flag became unused a long time ago, see commit
+> d88e4cb67197 ("freezer: remove now unused TIF_FREEZE"), and it was
+> probably reintroduced by mistake in the original arm64 implementation,
+> commit b3901d54dc4f ("arm64: Process management"). Good opportunity to
+> remove it I think.
+
+Totally agree. Let's get rid of it. No point in keeping dead code.
+
+Thanks for the review.
+
 > 
-> Thus match‑all pointers still work, while non‑match tags (other than
-> poison tag) still fault.
+> Otherwise:
 > 
-> __GFP_SKIP_KASAN only skips for KASAN_HW_TAGS mode, so coverage is
-> unchanged.
+> Reviewed-by: Kevin Brodsky <kevin.brodsky@arm.com>
 > 
-> Benchmark:
-> The benchmark has two modes. In thread mode, the child process forks
-> and creates N threads. In pgtable mode, the parent maps and faults a
-> specified memory size and then forks repeatedly with children exiting
-> immediately.
+>> +#define TIF_32BIT		19      /* 32bit process */
+>> +#define TIF_SVE			20	/* Scalable Vector Extension in use */
+>> +#define TIF_SVE_VL_INHERIT	21	/* Inherit SVE vl_onexec across exec */
+>> +#define TIF_SSBD		22	/* Wants SSB mitigation */
+>> +#define TIF_TAGGED_ADDR		23	/* Allow tagged user addresses */
+>> +#define TIF_SME			24	/* SME in use */
+>> +#define TIF_SME_VL_INHERIT	25	/* Inherit SME vl_onexec across exec */
+>> +#define TIF_KERNEL_FPSTATE	26	/* Task is in a kernel mode FPSIMD section */
+>> +#define TIF_TSC_SIGSEGV		27	/* SIGSEGV on counter-timer access */
+>> +#define TIF_LAZY_MMU_PENDING	28	/* Ops pending for lazy mmu mode exit */
+>>  
+>> -#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
+>> -#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
+>> -#define _TIF_NEED_RESCHED_LAZY	(1 << TIF_NEED_RESCHED_LAZY)
+>> -#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
+>> -#define _TIF_FOREIGN_FPSTATE	(1 << TIF_FOREIGN_FPSTATE)
+>> -#define _TIF_PATCH_PENDING	(1 << TIF_PATCH_PENDING)
+>> -#define _TIF_UPROBE		(1 << TIF_UPROBE)
+>> -#define _TIF_32BIT		(1 << TIF_32BIT)
+>> -#define _TIF_SVE		(1 << TIF_SVE)
+>> -#define _TIF_MTE_ASYNC_FAULT	(1 << TIF_MTE_ASYNC_FAULT)
+>> -#define _TIF_NOTIFY_SIGNAL	(1 << TIF_NOTIFY_SIGNAL)
+>> -#define _TIF_TSC_SIGSEGV	(1 << TIF_TSC_SIGSEGV)
+>> +#define _TIF_FOREIGN_FPSTATE	BIT(TIF_FOREIGN_FPSTATE)
+>> +#define _TIF_32BIT		BIT(TIF_32BIT)
+>> +#define _TIF_SVE		BIT(TIF_SVE)
+>> +#define _TIF_MTE_ASYNC_FAULT	BIT(TIF_MTE_ASYNC_FAULT)
+>> +#define _TIF_TSC_SIGSEGV	BIT(TIF_TSC_SIGSEGV)
+>>  
+>>  #ifdef CONFIG_SHADOW_CALL_STACK
+>>  #define INIT_SCS							\
 > 
-> Thread benchmark:
-> 2000 iterations, 2000 threads:	2.575 s → 2.229 s (~13.4% faster)
-> 
-> The pgtable samples:
-> - 2048 MB, 2000 iters		19.08 s → 17.62 s (~7.6% faster)
-
-As discussed offline, I think we should look into finding a better name
-for __GFP_SKIP_KASAN now that we are using it more broadly. It's confusing.
-
-The semantics are:
-* Only applies to HW KASAN right now. Otherwise it's ignored. So it
-  doesn't give any guarantees.
-* Will currently leave memory tagged with some tag (poisoned), but
-  tag checks will be disabled by using the match-all pointer.
-
-After pondering about that for a while, I realized that today, all
-memory is tagged by default, and __GFP_SKIP_KASAN is our mechanism to
-request memory that will not be tag-checked (close to if it would be not
-tagged).
-
-Is there a real difference to getting untagged memory, if supported by
-the architecture.
-
-So I was wondering if
-
-	__GFP_UNTAGGED: if possible, return memory that is either
-			untagged or that is tagged but has tag checks
-			disabled when accessed through page_address().
-			Using this flag can speed up page allocation
-			and freeing, and can reduce runtime overhead
-			by not performing page checking. For now,
-			only considered with HW-tag based KASAN.
-
-Would be the right thing to do.
-
-Assuming we could/would ever change the default from "all memory is
-tagged" to "all memory is untagged", we could similarly introduce:
-
-	__GFP_TAGGED:  if possible, return memory that is tagged and
-		       and has tag checks enabled.
-
-We could make it clearer that there are no guarantees. Like calling it
-__GFP_PREF_UNTAGGED / __GFP_PREF_TAGGED.
-
-
-(__GFP_TAGGED would obviously be something for the future)
-
--- 
-Cheers,
-
-David
