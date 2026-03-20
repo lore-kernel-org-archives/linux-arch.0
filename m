@@ -1,173 +1,80 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id E1E5F3563F6;
-	Thu, 19 Mar 2026 17:08:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5D50B652;
+	Fri, 20 Mar 2026 03:10:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773940093; cv=none; b=f0cty86WCVhtZ+jS7GwJ6IPf7SO+ZYSO2JQqr98th5lvKDzp9uTsRbdlDTMKT9ErfQsXF7WyEuOxv/Rmm0Xm89Lybnif/fSMJPiXPcXo6CSoB7KLQyACapC1PfzP8Ffmby3h0s3MC5TGRUZo0FMfoU3ZRgphFkggn0PHwi6ibAA=
+	t=1773976259; cv=none; b=m2PD5ATmQDVcZcQeh7NEQfPMAzAZ6Tbh+KopkUivl+cGI2JLRRdkRB9jhfSYvUlaW/bjar4aCIttFBU3AjjPw8qv3/ZJbZ9RBpyvj+az31uKdB1/KmigL0x4etY+dsYbRB8nadkTbEgbjK4Hr5K0vo4G4BSkMUkSh36j7c3MRtU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773940093; c=relaxed/simple;
-	bh=T43xfGTyy+CkhFtBZ/lvhJq/l+Hy1fuTD/+fXPUaTG0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=EamI1UnUI8qKb0a3lpttFyU88HH537oAfoKOrKcLlcH6+0jZCISbs+iSGD68yeCp39sN0MzMQ9wH2HITD/l4GEhlqcz6xEHVYJA1iuRhUYafWGJa+n7XwWMpkS68AN+LP0KzsGZZqoVNGSX1dJs55nAnKYiT6Amd8NN1VlA4W+c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 5406120E3;
-	Thu, 19 Mar 2026 10:08:05 -0700 (PDT)
-Received: from [10.57.60.82] (unknown [10.57.60.82])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 99D683F778;
-	Thu, 19 Mar 2026 10:08:01 -0700 (PDT)
-Message-ID: <16598f59-df24-488b-af74-e3f2a2732755@arm.com>
-Date: Thu, 19 Mar 2026 18:07:59 +0100
+	s=arc-20240116; t=1773976259; c=relaxed/simple;
+	bh=PWVgh1useoiif8rGVsyxHxI0CYpzSQvYe+hudbWgJgk=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=ZAlTynzlkItwDTyNjKeg2RJsjVo3z+C1Or5XtCexXjvpfssLHgjbZfTGaRE5DKMkiGIsfLQoFNzjWOg9x+oau64qiofhdsgbiu03SmhuS3ccO/8HBrnD5sRobhGr6weNYPxhnIzDTMxUcZmGcmR5oTwqEMdJW0vjEcEFW/h1h6I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=z71svX0W; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="z71svX0W"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4EA4DC19424;
+	Fri, 20 Mar 2026 03:10:58 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1773976259;
+	bh=PWVgh1useoiif8rGVsyxHxI0CYpzSQvYe+hudbWgJgk=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=z71svX0W9IEG9X0CljZclwmdPxrS2xt0DgkYPV0miyW6uLliBKplyUI9cqLWsAMID
+	 HknlgTOQAMOZMIJ0rHvOhVmKRO4JG7rzBzNqhHQadyrhW2vHnOnPmp9Trx7zagjUeA
+	 Gp5Uj70ZJr6CbF0U6zE8qTTGLs0kE3eFTNqcLYV0=
+Date: Thu, 19 Mar 2026 20:10:57 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Muhammad Usama Anjum <usama.anjum@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Peter
+ Zijlstra <peterz@infradead.org>, Juri Lelli <juri.lelli@redhat.com>,
+ Vincent Guittot <vincent.guittot@linaro.org>, Dietmar Eggemann
+ <dietmar.eggemann@arm.com>, Steven Rostedt <rostedt@goodmis.org>, Ben
+ Segall <bsegall@google.com>, Mel Gorman <mgorman@suse.de>, Valentin
+ Schneider <vschneid@redhat.com>, Kees Cook <kees@kernel.org>, David
+ Hildenbrand <david@kernel.org>, Lorenzo Stoakes <ljs@kernel.org>,
+ "Liam R. Howlett" <Liam.Howlett@oracle.com>, Vlastimil Babka
+ <vbabka@kernel.org>, Mike Rapoport <rppt@kernel.org>, Suren Baghdasaryan
+ <surenb@google.com>, Michal Hocko <mhocko@suse.com>, Uladzislau Rezki
+ <urezki@gmail.com>, linux-arch@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-mm@kvack.org, Andrey Konovalov
+ <andreyknvl@gmail.com>, Marco Elver <elver@google.com>, Vincenzo Frascino
+ <vincenzo.frascino@arm.com>, Peter Collingbourne <pcc@google.com>, Catalin
+ Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+ Ryan.Roberts@arm.com, david.hildenbrand@arm.com
+Subject: Re: [PATCH 0/3] KASAN: HW_TAGS: Disable tagging for stack and
+ page-tables
+Message-Id: <20260319201057.05d57006408a2f77342eedc2@linux-foundation.org>
+In-Reply-To: <20260319114952.3241359-1-usama.anjum@arm.com>
+References: <20260319114952.3241359-1-usama.anjum@arm.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v13 RESEND 13/14] arm64: Use generic TIF bits for common
- thread flags
-To: Jinjie Ruan <ruanjinjie@huawei.com>, catalin.marinas@arm.com,
- will@kernel.org, oleg@redhat.com, chenhuacai@kernel.org, kernel@xen0n.name,
- hca@linux.ibm.com, gor@linux.ibm.com, agordeev@linux.ibm.com,
- borntraeger@linux.ibm.com, svens@linux.ibm.com, tglx@kernel.org,
- mingo@redhat.com, bp@alien8.de, dave.hansen@linux.intel.com, hpa@zytor.com,
- arnd@arndb.de, peterz@infradead.org, luto@kernel.org, shuah@kernel.org,
- kees@kernel.org, wad@chromium.org, deller@gmx.de, macro@orcam.me.uk,
- akpm@linux-foundation.org, ldv@strace.io, anshuman.khandual@arm.com,
- ryan.roberts@arm.com, mark.rutland@arm.com, thuth@redhat.com,
- song@kernel.org, ada.coupriediaz@arm.com, linusw@kernel.org,
- broonie@kernel.org, pengcan@kylinos.cn, liqiang01@kylinos.cn,
- ziyao@disroot.org, guanwentao@uniontech.com, guoren@kernel.org,
- schuster.simon@siemens-energy.com, jremus@linux.ibm.com, david@kernel.org,
- mathieu.desnoyers@efficios.com, edumazet@google.com, kmal@cock.li,
- dvyukov@google.com, reddybalavignesh9979@gmail.com, x86@kernel.org,
- linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org,
- loongarch@lists.linux.dev, linux-s390@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-kselftest@vger.kernel.org
-References: <20260317082020.737779-1-ruanjinjie@huawei.com>
- <20260317082020.737779-14-ruanjinjie@huawei.com>
-From: Kevin Brodsky <kevin.brodsky@arm.com>
-Content-Language: en-GB
-In-Reply-To: <20260317082020.737779-14-ruanjinjie@huawei.com>
+Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 17/03/2026 09:20, Jinjie Ruan wrote:
-> Use the generic TIF bits defined in <asm-generic/thread_info_tif.h> for
-> standard thread flags (TIF_SIGPENDING, TIF_NEED_RESCHED, TIF_NOTIFY_RESUME,
-> TIF_RESTORE_SIGMASK, TIF_SINGLESTEP, etc.) instead of defining
-> them locally.
->
-> Arm64-specific bits (TIF_FOREIGN_FPSTATE, TIF_MTE_ASYNC_FAULT, TIF_SVE,
-> TIF_SSBD, etc.) are renumbered to start at bit 16 to avoid conflicts.
->
-> This enables RSEQ optimizations which require CONFIG_HAVE_GENERIC_TIF_BITS
-> combined with the generic entry infrastructure (already used by arm64).
->
-> Cc: Thomas Gleixner <tglx@kernel.org>
-> Signed-off-by: Jinjie Ruan <ruanjinjie@huawei.com>
-> ---
->  arch/arm64/Kconfig                   |  1 +
->  arch/arm64/include/asm/thread_info.h | 62 ++++++++++++----------------
->  2 files changed, 28 insertions(+), 35 deletions(-)
->
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 96fef01598be..33cf901fb1a0 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -224,6 +224,7 @@ config ARM64
->  	select HAVE_SAMPLE_FTRACE_DIRECT_MULTI
->  	select HAVE_BUILDTIME_MCOUNT_SORT
->  	select HAVE_EFFICIENT_UNALIGNED_ACCESS
-> +	select HAVE_GENERIC_TIF_BITS
->  	select HAVE_GUP_FAST
->  	select HAVE_FTRACE_GRAPH_FUNC
->  	select HAVE_FUNCTION_TRACER
-> diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-> index f89a15dc6ad5..be1a0651cfe2 100644
-> --- a/arch/arm64/include/asm/thread_info.h
-> +++ b/arch/arm64/include/asm/thread_info.h
-> @@ -58,42 +58,34 @@ void arch_setup_new_exec(void);
->  
->  #endif
->  
-> -#define TIF_SIGPENDING		0	/* signal pending */
-> -#define TIF_NEED_RESCHED	1	/* rescheduling necessary */
-> -#define TIF_NEED_RESCHED_LAZY	2	/* Lazy rescheduling needed */
-> -#define TIF_NOTIFY_RESUME	3	/* callback before returning to user */
-> -#define TIF_FOREIGN_FPSTATE	4	/* CPU's FP state is not current's */
-> -#define TIF_UPROBE		5	/* uprobe breakpoint or singlestep */
-> -#define TIF_MTE_ASYNC_FAULT	6	/* MTE Asynchronous Tag Check Fault */
-> -#define TIF_NOTIFY_SIGNAL	7	/* signal notifications exist */
-> -#define TIF_PATCH_PENDING	13	/* pending live patching update */
-> -#define TIF_MEMDIE		18	/* is terminating due to OOM killer */
-> -#define TIF_FREEZE		19
-> -#define TIF_RESTORE_SIGMASK	20
-> -#define TIF_SINGLESTEP		21
-> -#define TIF_32BIT		22	/* 32bit process */
-> -#define TIF_SVE			23	/* Scalable Vector Extension in use */
-> -#define TIF_SVE_VL_INHERIT	24	/* Inherit SVE vl_onexec across exec */
-> -#define TIF_SSBD		25	/* Wants SSB mitigation */
-> -#define TIF_TAGGED_ADDR		26	/* Allow tagged user addresses */
-> -#define TIF_SME			27	/* SME in use */
-> -#define TIF_SME_VL_INHERIT	28	/* Inherit SME vl_onexec across exec */
-> -#define TIF_KERNEL_FPSTATE	29	/* Task is in a kernel mode FPSIMD section */
-> -#define TIF_TSC_SIGSEGV		30	/* SIGSEGV on counter-timer access */
-> -#define TIF_LAZY_MMU_PENDING	31	/* Ops pending for lazy mmu mode exit */
-> +/*
-> + * Tell the generic TIF infrastructure which bits arm64 supports
-> + */
-> +#define HAVE_TIF_NEED_RESCHED_LAZY
-> +#define HAVE_TIF_RESTORE_SIGMASK
-> +#define HAVE_TIF_SINGLESTEP
-> +
-> +#include <asm-generic/thread_info_tif.h>
-> +
-> +#define TIF_FOREIGN_FPSTATE	16	/* CPU's FP state is not current's */
-> +#define TIF_MTE_ASYNC_FAULT	17	/* MTE Asynchronous Tag Check Fault */
-> +#define TIF_FREEZE		18
+On Thu, 19 Mar 2026 11:49:43 +0000 Muhammad Usama Anjum <usama.anjum@arm.com> wrote:
 
-Turns out this flag became unused a long time ago, see commit
-d88e4cb67197 ("freezer: remove now unused TIF_FREEZE"), and it was
-probably reintroduced by mistake in the original arm64 implementation,
-commit b3901d54dc4f ("arm64: Process management"). Good opportunity to
-remove it I think.
+> Stacks and page tables are always accessed with the match‑all tag,
+> so assigning a new random tag every time at allocation and setting
+> invalid tag at deallocation time, just adds overhead without improving
+> the detection.
+> 
+> With __GFP_SKIP_KASAN the page keeps its poison tag and KASAN_TAG_KERNEL
+> (match-all tag) is stored in the page flags while keeping the poison tag
+> in the hardware. The benefit of it is that 256 tag setting instruction
+> per 4 kB page aren't needed at allocation and deallocation time.
+> 
+> Thus match‑all pointers still work, while non‑match tags (other than
+> poison tag) still fault.
+> 
+> __GFP_SKIP_KASAN only skips for KASAN_HW_TAGS mode, so coverage is
+> unchanged.
+> 
 
-Otherwise:
-
-Reviewed-by: Kevin Brodsky <kevin.brodsky@arm.com>
-
-> +#define TIF_32BIT		19      /* 32bit process */
-> +#define TIF_SVE			20	/* Scalable Vector Extension in use */
-> +#define TIF_SVE_VL_INHERIT	21	/* Inherit SVE vl_onexec across exec */
-> +#define TIF_SSBD		22	/* Wants SSB mitigation */
-> +#define TIF_TAGGED_ADDR		23	/* Allow tagged user addresses */
-> +#define TIF_SME			24	/* SME in use */
-> +#define TIF_SME_VL_INHERIT	25	/* Inherit SME vl_onexec across exec */
-> +#define TIF_KERNEL_FPSTATE	26	/* Task is in a kernel mode FPSIMD section */
-> +#define TIF_TSC_SIGSEGV		27	/* SIGSEGV on counter-timer access */
-> +#define TIF_LAZY_MMU_PENDING	28	/* Ops pending for lazy mmu mode exit */
->  
-> -#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
-> -#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-> -#define _TIF_NEED_RESCHED_LAZY	(1 << TIF_NEED_RESCHED_LAZY)
-> -#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-> -#define _TIF_FOREIGN_FPSTATE	(1 << TIF_FOREIGN_FPSTATE)
-> -#define _TIF_PATCH_PENDING	(1 << TIF_PATCH_PENDING)
-> -#define _TIF_UPROBE		(1 << TIF_UPROBE)
-> -#define _TIF_32BIT		(1 << TIF_32BIT)
-> -#define _TIF_SVE		(1 << TIF_SVE)
-> -#define _TIF_MTE_ASYNC_FAULT	(1 << TIF_MTE_ASYNC_FAULT)
-> -#define _TIF_NOTIFY_SIGNAL	(1 << TIF_NOTIFY_SIGNAL)
-> -#define _TIF_TSC_SIGSEGV	(1 << TIF_TSC_SIGSEGV)
-> +#define _TIF_FOREIGN_FPSTATE	BIT(TIF_FOREIGN_FPSTATE)
-> +#define _TIF_32BIT		BIT(TIF_32BIT)
-> +#define _TIF_SVE		BIT(TIF_SVE)
-> +#define _TIF_MTE_ASYNC_FAULT	BIT(TIF_MTE_ASYNC_FAULT)
-> +#define _TIF_TSC_SIGSEGV	BIT(TIF_TSC_SIGSEGV)
->  
->  #ifdef CONFIG_SHADOW_CALL_STACK
->  #define INIT_SCS							\
+Some questions from Sashiko:
+	https://sashiko.dev/#/patchset/20260319114952.3241359-1-usama.anjum%40arm.com
