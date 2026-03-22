@@ -1,93 +1,161 @@
-Received: from mail-pj1-f41.google.com (mail-pj1-f41.google.com [209.85.216.41])
+Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B1EF2329C7B
-	for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2026 13:20:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 577891F03D2
+	for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2026 14:40:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774185632; cv=none; b=SQDohvgxpM3H2VYpxpJbBBBW37ANjJRG98pVXDYxjU8WIoyg9OdgB2JEI1yXNwMTs43QMbBb4ReQ5Nt4EuVX28hOpd7Lm+yHCmsbfUpP8bf9k2zvkrFzFKiROFNrh1eCyPtaZ9+gKtMNvkzU4g6EOGxp7qu2Q5BEdnGUDKUh2TY=
+	t=1774190436; cv=none; b=Sw1QlokW4P49XV0mlpqB/oor20fktrahqf7ULcK+nrG5HhpzsEfo4WwTS+CiBerWW5f1+l0QKCcwAauXBC2jVV9DJCsEq7wO+BTjoKvXo8HrGMrgTSxpdurYsZu9DW+VlnbPVaCnS7QYncwcylOLxmDwG/2t6zJyU9DexaTUqXY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774185632; c=relaxed/simple;
-	bh=JO8s6CvPJ60AKkie9O7leqHw9KEgz3znAI24wdcudkI=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Iq+Ge6n/Co2LPFV45t6+9qjCqqI3PIzar3kELlyKj6w9EQUqcLbMIh542rf4y9ja1TmkrLYBMr4Exk97cJJu8waRFeZ3aJlg+ZnKvOLXFyRatZTiQHOEHonKpCB2kx7kbbt70ZZpv2RmF0Li5kpU0A1X+gOsmnh8IwxYuNf+Fbw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GdD4ZHIj; arc=none smtp.client-ip=209.85.216.41
+	s=arc-20240116; t=1774190436; c=relaxed/simple;
+	bh=0BSCjzDruNP/AyDLj5vJICRGek2k34dplxcY5S/Zdlw=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=mx3va0lKRJPGfE79ujOccjf3UiZ+kmqvMJjRqwK4ezZX1+n0qSnQjlDVtZarHnIVY1lY75ETRS0QNIv39FMydYWiZoZd0rSDtE/12n82ypYZi3Gq8lnwbl2nuWuZ7HGidpu5D4OX2KLBOntIhMla2I1iKHU1UiNIbWBTNPP3i5E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=X0C0wDo8; arc=none smtp.client-ip=209.85.128.47
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GdD4ZHIj"
-Received: by mail-pj1-f41.google.com with SMTP id 98e67ed59e1d1-35b97ed057cso1187052a91.1
-        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2026 06:20:31 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="X0C0wDo8"
+Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-486fb112c09so17413315e9.1
+        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2026 07:40:35 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1774185631; x=1774790431; darn=vger.kernel.org;
+        d=gmail.com; s=20230601; t=1774190434; x=1774795234; darn=vger.kernel.org;
         h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=JO8s6CvPJ60AKkie9O7leqHw9KEgz3znAI24wdcudkI=;
-        b=GdD4ZHIjlZ0OL7FvRsqGxmZ9zUy9S9Nx5by5zXjHvPE1Ny+19BElskKmdpvPUBJY81
-         IfP5r/f2EGDrBNSproGx6v1UTXQn1RrlPezw7bpYm9QjwUfJuwvDSg/h9LWrApHzrpzI
-         Z6GZBiDNv0qpJ3uUOf2i0MQfPHRW2E1elwWyJomMpOx4boEq6OlZkNUmhCJRkISzSXc9
-         +EPvUNk9bD0EJdb2ggLjS38AF+eBFJggEOv48A+hYTB3oljQ0jZM/Gja8Vs+Tp1MtZ9R
-         2zkbX9W4XRUNmsgj0WDNURkSbaiaVXsAyIZJ4CRk/C1EUxpyiAVBV/KuCmwRCpcbvWuK
-         8LPw==
+        bh=5/IWr5vfvomOdGiQWFAG7XW5alVFwR3rmlBztzuDjME=;
+        b=X0C0wDo87jPB95VtQJcgUKB0qiDbhzo4bJFIQSGUy56qGcKSNwvQs3+p5tyxIS2KBi
+         8oLu2zMzRjecoL+BNbQYhWyQT5oT3ohJ5w1NM9i19Y/om8MJZuB5UwH6WQbr+VbvoTIN
+         nVTVdx1X23kAh8JIrgZWAVGSwldQVdm3+pm3RWA3bAUoDuLyCSujqHArx/9AdnQ/+3n2
+         bB7Vqznta2g2wHv7XwX34kvf08uPG3TDYpBjYgugg+egg/wKqwY5gDP/MT+urC6ZT9S4
+         SxAbrfT0d06LjU1VKtJVl77uT7wMKqT0j3VYhUE/nvcyBsqvsJrQ+QpatxuXIALBVzwr
+         gi2w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1774185631; x=1774790431;
+        d=1e100.net; s=20251104; t=1774190434; x=1774795234;
         h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=JO8s6CvPJ60AKkie9O7leqHw9KEgz3znAI24wdcudkI=;
-        b=AEdDh2v/7nWjMHd/bYWu1+qb2/RgdeZgjTUwU1ybSR83l1Yw4Hg32jGagvYzKcaljq
-         1vbLXt2BaemlKJ4OiFel52KPvAyAf99qEXLnQrhQ79jfu4CNUplj6xHkFZcxx7z+UtM7
-         1Dk2RlrT0n8fsarrXpjqfusMt7nM+u2lwuwHleaJFLFr13KFTheF9eQXV8HT0I/bRTqi
-         ui+pzsxcMisDATq3dTXSO6uH3/ZcbwtLHxcl2Hl4VbP26aF0n6kf0lDXouf465yUG1Ty
-         Br0eafLDZBGPCNGE3cOHltD48JI+NrAKruF3Y9HyWpk/3RXWdjnHuHIK4krG2F6BVZtd
-         kKBQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVmzFGFtzXvHDX3SiOrBd1fQROqPcJ46/9ExeYq+YYsDmhRvM4IJ9N7FfeylPp7UrqEw0pYTqYLSwdg@vger.kernel.org
-X-Gm-Message-State: AOJu0YxtWzm+0+lIrw6WV7IGHK0zjuHCBYPfyqALbmIpna2br216Ixn9
-	TtLFczlTXoEpLstTdy8t+qXdF/aqeKT8Zk0mOa26X817iewBAP/8exgL
-X-Gm-Gg: ATEYQzzBaTtDtG3W8rjGAwtaMadKagIe7yTsL5FmlU1XM9U7LeHjC+mpuUCeZ6JQnjl
-	H0bx+Uc4LmJ09BEU+JIQL0E3gLgU4F9LUi1BPJl/k+9Rfy60KD2wqTDWU8//25mYfYce+KV8CK4
-	oi0HXXVS1FLTK2ScxlETsfmXyH+nWfHgUstFp+vz0YEFmejYuK0rLG8zZMdXaP42DUTNuVl26PH
-	GCIWN/a4vrWp6WVjUKF2bYbvT0mh8oxZ5Sf0f5gezS+Z72Y68/V6HzEEblwTjeuW5fTEsiOzupA
-	5EgIQXaQgjkx1tUZ68w6Bghxusg369fFDf1lH4AxGqt2cC/N7xIW0Z2bdVl5M5e6D+DAU/LCMs0
-	gQlVhOW7qf9gnRfXDMKgrga0sP0y6dnGq0ArSL3rYkDeTjtvANTrmOi47vkh6q5UYRkP6rRiYSt
-	FzHQXXhYcAfFdn89EOpy3NADbdYoC6Dyqi4gdtKyH9rX42jI2dbfrZRdjGxG7PjSco7Mdwho6EK
-	vdBW65eZnUI2w==
-X-Received: by 2002:a17:902:ef45:b0:2b0:9aa7:9494 with SMTP id d9443c01a7336-2b09aa795c0mr4010775ad.28.1774185631131;
-        Sun, 22 Mar 2026 06:20:31 -0700 (PDT)
-Received: from localhost.localdomain (123-194-188-82.dynamic.kbronet.com.tw. [123.194.188.82])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2b083527f84sm76607375ad.18.2026.03.22.06.20.28
-        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Sun, 22 Mar 2026 06:20:30 -0700 (PDT)
-From: Min-Hsun Chang <chmh0624@gmail.com>
-To: arnd@arndb.de
-Cc: msalter@redhat.com,
-	akpm@linux-foundation.org,
-	linux-arch@vger.kernel.org,
-	linux-mm@kvack.org,
-	linux-kernel@vger.kernel.org,
-	chmh0624@gmail.com
-Subject: Re: [PATCH] asm-generic: replace ________addr with __UNIQUE_ID(addr)
-Date: Sun, 22 Mar 2026 21:20:26 +0800
-Message-ID: <20260322132026.13485-1-chmh0624@gmail.com>
-X-Mailer: git-send-email 2.50.1
+        bh=5/IWr5vfvomOdGiQWFAG7XW5alVFwR3rmlBztzuDjME=;
+        b=cpu0myJYd0mutAGAKvqUPVd7U8lxO7lBX/Ei/uYfPWaGv/y+5afFnZKuMmaGnF0pen
+         ujlGqLRj73KxvhZ0UJCWjEvI1dbzqZheORAy0Fv+YW87qM5IbBeiZvhqOl8K9oED34WU
+         DHwxyUVpnEHh+2UiD5j4p+08c/VU3rN+Q04F2b1f2QHvrVtSpaGNwAVRJtx0ZozSHapB
+         2oA7X4vczGUPYZHLeo7JSyL1lRu0seC31lARKwsfBBp0iEh07PQCr/0/kJLvhrjnrKk/
+         w77MiBWMS2MC5OZ2Mzhfj5PeYE7MngrLgb1yGTajbJpKXc7EOYXui6GdlTMuxQ5enIvY
+         wN1A==
+X-Forwarded-Encrypted: i=1; AJvYcCV81P3qyVseLIS2TLkAhCK80lQ0AVhGNvUshyJD4wGwWlKwIYYoa3QzWwEboQWE11NMFWjeXpNsYwc7@vger.kernel.org
+X-Gm-Message-State: AOJu0YyrZRiXlmhIB+4RIUaEyevQzuU1jf0l7HsxsP7mlDesSP7/d5fR
+	YaqMXSneuvFELsJDj2xqHrsjeLCZ4IaFglrKmkrJrq38fz1ZuaP97a+p
+X-Gm-Gg: ATEYQzxsNbDzC12NnEAVCmj8Bituln9g8eLT9SdvWkmXNiqgLHpfsR1tavNonDuYJ04
+	er6HJiBtD53RG1JSVHzVlkKl703fJF7Di1aIv3Um0TvMptskljyb/S94GGIkZWWTpeBdhRER8fW
+	YUUFthDXOQGhRi4OoxgfzSUVskr9VH/PYFulGNpBsqI1nKvJgHefEbmiWave+H15SDE3HjFY8x/
+	tOhi6b7u9CUS9uGUHIFb2rt9jv4qI9fHheXulRRRzShn9eQMLJ9pImwuEOBnJ4PkgTLN+akbhQX
+	s2ZosyJEE1yjFWa4RV2dZC+8gfI7fmmt8olK5i25MSfInk58RKZUeKX7QxnmnBAlnMI5xJ/bWEF
+	/qwl4xV54wP8fBNFRvLphVm0woLsUBIYj64OfRtqj3a5rY1ia1tvkeFjhdHUSFhFF8zThu8+wai
+	/CKEYS3S5T3LFM1EC9RkllDlNEFpKv/olhyWG15R43mhnjx3P3cXVOXmDNysoYUdfm
+X-Received: by 2002:a05:600c:4aaa:b0:477:7af8:c8ad with SMTP id 5b1f17b1804b1-4870306720emr48296925e9.31.1774190433483;
+        Sun, 22 Mar 2026 07:40:33 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-486fe68ec05sm319287775e9.0.2026.03.22.07.40.33
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 22 Mar 2026 07:40:33 -0700 (PDT)
+Date: Sun, 22 Mar 2026 14:40:32 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Min-Hsun Chang <chmh0624@gmail.com>
+Cc: arnd@arndb.de, msalter@redhat.com, akpm@linux-foundation.org,
+ linux-arch@vger.kernel.org, linux-mm@kvack.org,
+ linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] asm-generic: replace ________addr with
+ __UNIQUE_ID(addr)
+Message-ID: <20260322144032.7353997c@pumpkin>
 In-Reply-To: <20260307092119.20733-1-chmh0624@gmail.com>
 References: <20260307092119.20733-1-chmh0624@gmail.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-Hi Arnd,
+On Sat,  7 Mar 2026 17:21:19 +0800
+Min-Hsun Chang <chmh0624@gmail.com> wrote:
 
-I'm sending a gentle ping regarding this patch to replace the hardcoded
-identifier in __set_fixmap_offset with __UNIQUE_ID(addr).
+> The macro __set_fixmap_offset() uses a hardcoded identifier ________addr,
+> which can lead to variable name shadowing if a caller happens to use the
+> same name in its scope.
+> 
+> Following the pattern in commit 44238e82670e ("rcu: Replace ________p1 and
+> _________p1 with __UNIQUE_ID(rcu)") and commit 589a9785ee3a ("min/max:
+> remove sparse warnings when they're nested"), replace the hardcoded
+> identifier with __UNIQUE_ID(addr).
+> 
+> Since __UNIQUE_ID() must be expanded once to remain consistent across
+> declaration, assignment, and return within the statement expression,
+> introduce a nested helper macro ___set_fixmap_offset.
 
-Please let me know if any changes are needed.
+I'm not sure that is really relevant here - nested use is probably
+impossible.
+It is almost certainly enough to prefix locals with an leading _
+and an abbreviation of the macro name.
 
-Thanks.
+But see below. 
 
-Min-Hsun Chang
+
+> 
+> Signed-off-by: Min-Hsun Chang <chmh0624@gmail.com>
+> ---
+>  include/asm-generic/fixmap.h | 16 ++++++++++------
+>  1 file changed, 10 insertions(+), 6 deletions(-)
+> 
+> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+> index 29cab7947980..2d1e9a2c6a3b 100644
+> --- a/include/asm-generic/fixmap.h
+> +++ b/include/asm-generic/fixmap.h
+> @@ -16,6 +16,7 @@
+>  #define __ASM_GENERIC_FIXMAP_H
+>  
+>  #include <linux/bug.h>
+> +#include <linux/compiler.h>
+>  #include <linux/mm_types.h>
+>  
+>  #define __fix_to_virt(x)	(FIXADDR_TOP - ((x) << PAGE_SHIFT))
+> @@ -71,14 +72,17 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+>  #endif
+>  
+>  /* Return a pointer with offset calculated */
+> -#define __set_fixmap_offset(idx, phys, flags)				\
+> -({									\
+> -	unsigned long ________addr;					\
+> -	__set_fixmap(idx, phys, flags);					\
+> -	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
+> -	________addr;							\
+> +#define ___set_fixmap_offset(idx, phys, flags, uniq)            \
+> +({                                                              \
+> +	unsigned long uniq;                                         \
+> +	__set_fixmap(idx, phys, flags);                             \
+> +	uniq = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));       \
+> +	uniq;                                                       \
+
+You don't need a variable to hold the result at all.
+
+The real problem with this define is that both idx and phys are
+expanded twice.
+So you either need to copy those to locals or use a static inline
+function - which should be ok here because the types are fixed.
+(Assuming neither __set_fixmap() or fix_to_virt() are #defines
+that modify their arguments.)
+
+	David
+
+
+>  })
+>  
+> +#define __set_fixmap_offset(idx, phys, flags)                   \
+> +	___set_fixmap_offset(idx, phys, flags, __UNIQUE_ID(addr))
+> +
+>  #define set_fixmap_offset(idx, phys) \
+>  	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
+>  
+
