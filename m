@@ -1,108 +1,109 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id A0C283F9F40;
-	Tue, 24 Mar 2026 13:27:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3C8724207A;
+	Tue, 24 Mar 2026 14:37:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774358826; cv=none; b=auP8tM91owHclwWfCT/e6VzzBOlhfU5ZFmC6keKIlgx796LFSX+ocub69Ik7wmobfjJHa7v7Sv7wWz5mp5b76NwblHs6Yw6l8LchAZ3f0xOlSEt/KFo/Sg7bRg7/OoW+4ipZV8M4G1nMplVqKDutJpTrQXGxLbL+f/OWG0mMblQ=
+	t=1774363050; cv=none; b=ZigZRw94NUcdvAcB8ED55RHGXJtKuxD2OY01XtU/KMcXyrQ2J+cVhXvRGDZ8xVRLB6Y5jHUJ/dWP2x2d0JIDegAhu31kQZlkvYcHfeT5Q9ispu85dwBY1Tih8/4t9OMg6pEqX0nDG9tgcs3Yp3eJw7SCIXnjnsuBbgonKyVbpg4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774358826; c=relaxed/simple;
-	bh=Ia2GTAN1c3MwIjU4lUJMwHz1mGgU70Racq0g1YjJE6o=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=IDhDS71cEfYt0G8zkwOmQTmphJW/FGypWrSQFUvy117nGg85zap/xLpqFFWxW5P20HcZekmPgCPnUC0fsvxlKN9+PUvS5udoIRHJuMgZYfuzgTPM1DuT4f23uiGpLQL58PEXlkeEFbvvgEkieZyhmeENUjvn+XFyjpFKAwsRX1A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=s5ZzseGR; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1774363050; c=relaxed/simple;
+	bh=83lcskGFtr26z8P60Zmw50FYWLqcX0m/q7uMZBctmY8=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=bHOFeVYxWJxUp/ikZmS4GSz0e4ZzP1m3QuibxySBZeIzN0OWr8pVTM9Ccge2EtV8z5zZrMR2zC6sOZEg6xvEAzsX697JZu8IW4nIcStJZTjO28y1JSxTV7n2r2JEshylTCrqPWjc1LfIG4xQbMzp7Xr4puqxcJWNbVMkBOvvSAo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=HnGJ48Jc; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="s5ZzseGR"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C0CD6153B;
-	Tue, 24 Mar 2026 06:26:56 -0700 (PDT)
-Received: from e142334-100.cambridge.arm.com (e142334-100.cambridge.arm.com [10.1.194.63])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 581333FAF5;
-	Tue, 24 Mar 2026 06:26:58 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1774358822; bh=Ia2GTAN1c3MwIjU4lUJMwHz1mGgU70Racq0g1YjJE6o=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=s5ZzseGRA1gs8qALby0g1l4GKGjy1Qp7cx+PS3+ynQOJDMP10D/yyoQ1OHvTRzkxt
-	 kjq/61LFc3TC089l2AvWmSO+0nEW0teFeCijTyp1NWeEfoW/1oZeJ9bAuVR0e8ivXY
-	 51xIw/Q8egDHqIZ4MzLOzo4KaZq5vaffyPNhtCrw=
-From: Muhammad Usama Anjum <usama.anjum@arm.com>
-To: Arnd Bergmann <arnd@arndb.de>,
-	Ingo Molnar <mingo@redhat.com>,
-	Peter Zijlstra <peterz@infradead.org>,
-	Juri Lelli <juri.lelli@redhat.com>,
-	Vincent Guittot <vincent.guittot@linaro.org>,
-	Dietmar Eggemann <dietmar.eggemann@arm.com>,
-	Steven Rostedt <rostedt@goodmis.org>,
-	Ben Segall <bsegall@google.com>,
-	Mel Gorman <mgorman@suse.de>,
-	Valentin Schneider <vschneid@redhat.com>,
-	Kees Cook <kees@kernel.org>,
+	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="HnGJ48Jc"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4D8EDC2BCB3;
+	Tue, 24 Mar 2026 14:37:29 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
+	s=korg; t=1774363049;
+	bh=83lcskGFtr26z8P60Zmw50FYWLqcX0m/q7uMZBctmY8=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=HnGJ48JcdZfob2PnxdDIqwjMp7HxkDyFydLjtDLYKxoAXyQDNHv7NN6BXWUWxDDPK
+	 XDDFhnhF5Cr2mj/JDaBb6O2m36swmwTnclrFRoj740OVWvF8F+cgsQMcYa1ftZbcn1
+	 4KixlHzRddXljgt97mdjPncm94ahHEc//JRN/J20=
+Date: Tue, 24 Mar 2026 15:37:07 +0100
+From: Greg KH <gregkh@linuxfoundation.org>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
+	Jeff Layton <jlayton@kernel.org>,
+	Chuck Lever <chuck.lever@oracle.com>,
+	Alexander Aring <alex.aring@gmail.com>,
+	Arnd Bergmann <arnd@arndb.de>,
 	Andrew Morton <akpm@linux-foundation.org>,
-	David Hildenbrand <david@kernel.org>,
-	Lorenzo Stoakes <ljs@kernel.org>,
-	"Liam R. Howlett" <Liam.Howlett@oracle.com>,
-	Vlastimil Babka <vbabka@kernel.org>,
+	"Liam R . Howlett" <Liam.Howlett@oracle.com>,
 	Mike Rapoport <rppt@kernel.org>,
+	David Hildenbrand <david@redhat.com>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	zhang jiao <zhangjiao2@cmss.chinamobile.com>,
+	Kees Cook <kees@kernel.org>, Penglei Jiang <superman.xpt@gmail.com>,
+	Ethan Tidmore <ethantidmore06@gmail.com>,
+	Oleg Nesterov <oleg@redhat.com>,
 	Suren Baghdasaryan <surenb@google.com>,
-	Michal Hocko <mhocko@suse.com>,
-	Uladzislau Rezki <urezki@gmail.com>,
-	linux-arch@vger.kernel.org,
-	linux-kernel@vger.kernel.org,
-	linux-mm@kvack.org,
-	Andrey Konovalov <andreyknvl@gmail.com>,
-	Marco Elver <elver@google.com>,
-	Vincenzo Frascino <vincenzo.frascino@arm.com>,
-	Peter Collingbourne <pcc@google.com>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>,
-	Ryan.Roberts@arm.com,
-	david.hildenbrand@arm.com
-Cc: Muhammad Usama Anjum <usama.anjum@arm.com>,
-	Ryan Roberts <ryan.roberts@arm.com>
-Subject: [PATCH v2 3/3] mm: skip KASAN tagging for page-allocated page tables
-Date: Tue, 24 Mar 2026 13:26:29 +0000
-Message-ID: <20260324132631.482520-4-usama.anjum@arm.com>
-X-Mailer: git-send-email 2.47.3
-In-Reply-To: <20260324132631.482520-1-usama.anjum@arm.com>
-References: <20260324132631.482520-1-usama.anjum@arm.com>
+	Vlastimil Babka <vbabka@kernel.org>,
+	wangzijie <wangzijie1@honor.com>, NeilBrown <neil@brown.name>,
+	Amir Goldstein <amir73il@gmail.com>,
+	Mateusz Guzik <mjguzik@gmail.com>, linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	Namjae Jeon <linkinjeon@kernel.org>
+Subject: Re: [PATCH] vfs: transitive upgrade restrictions for fds
+Message-ID: <2026032403-slapstick-anvil-a68e@gregkh>
+References: <20260323220029.765874-1-jkoolstra@xs4all.nl>
+ <20260323220029.765874-2-jkoolstra@xs4all.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260323220029.765874-2-jkoolstra@xs4all.nl>
 
-Page tables are always accessed via the linear mapping with a match-all
-tag, so HW-tag KASAN never checks them. For page-allocated tables (PTEs
-and PGDs etc), avoid the tag setup and poisoning overhead by using
-__GFP_SKIP_KASAN. SLUB-backed page tables are unchanged for now. (They
-aren't widely used and require more SLUB related skip logic. Leave it
-later.)
+On Mon, Mar 23, 2026 at 11:00:22PM +0100, Jori Koolstra wrote:
+> Add upgrade restrictions to openat2(). Extend struct open_how to allow
+> setting transitive restrictions on using file descriptors to open other
+> files. A use case for this feature is to block services or containers
+> from re-opening/upgrading an O_PATH file descriptor through e.g.
+> /proc/<pid>/fd/<nr as O_WRONLY.
+> 
+> The idea for this features comes form the UAPI group kernel feature idea
+> list [1].
+> 
+> [1] https://github.com/uapi-group/kernel-features?tab=readme-ov-file#upgrade-masks-in-openat2
+> 
+> Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
+> ---
+>  fs/file_table.c                  |  2 ++
+>  fs/internal.h                    |  1 +
+>  fs/namei.c                       | 38 ++++++++++++++++++++++++++++----
+>  fs/open.c                        |  9 ++++++++
+>  fs/proc/base.c                   | 24 ++++++++++++++------
+>  fs/proc/fd.c                     |  6 ++++-
+>  fs/proc/internal.h               |  4 +++-
+>  include/linux/fcntl.h            |  6 ++++-
+>  include/linux/fs.h               |  1 +
+>  include/linux/namei.h            | 15 ++++++++++++-
+>  include/uapi/asm-generic/fcntl.h |  4 ++++
+>  include/uapi/linux/openat2.h     |  1 +
+>  12 files changed, 96 insertions(+), 15 deletions(-)
 
-Reviewed-by: Ryan Roberts <ryan.roberts@arm.com>
-Signed-off-by: Muhammad Usama Anjum <usama.anjum@arm.com>
----
-Changes since v1:
-- Update description to mention SLUB-backed page tables are unchanged
----
- include/asm-generic/pgalloc.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+Any chance to get a test for this as well to know if this keeps working
+(or works at all)?
 
-diff --git a/include/asm-generic/pgalloc.h b/include/asm-generic/pgalloc.h
-index 57137d3ac1592..051aa1331051c 100644
---- a/include/asm-generic/pgalloc.h
-+++ b/include/asm-generic/pgalloc.h
-@@ -4,7 +4,7 @@
- 
- #ifdef CONFIG_MMU
- 
--#define GFP_PGTABLE_KERNEL	(GFP_KERNEL | __GFP_ZERO)
-+#define GFP_PGTABLE_KERNEL	(GFP_KERNEL | __GFP_ZERO | __GFP_SKIP_KASAN)
- #define GFP_PGTABLE_USER	(GFP_PGTABLE_KERNEL | __GFP_ACCOUNT)
- 
- /**
--- 
-2.47.3
+>  /*
+>   * Helper to directly jump to a known parsed path from ->get_link,
+>   * caller must have taken a reference to path beforehand.
+>   */
+> -int nd_jump_link(const struct path *path)
+> +int nd_jump_link_how(const struct path *path, const struct jump_how how)
 
+Shouldn't that be "const struct jump_how *how"?
+
+Or do you really want to pass this structure on the stack?
+
+thanks,
+
+greg k-h
