@@ -1,109 +1,93 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3C8724207A;
-	Tue, 24 Mar 2026 14:37:30 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0455639B498;
+	Tue, 24 Mar 2026 16:42:22 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774363050; cv=none; b=ZigZRw94NUcdvAcB8ED55RHGXJtKuxD2OY01XtU/KMcXyrQ2J+cVhXvRGDZ8xVRLB6Y5jHUJ/dWP2x2d0JIDegAhu31kQZlkvYcHfeT5Q9ispu85dwBY1Tih8/4t9OMg6pEqX0nDG9tgcs3Yp3eJw7SCIXnjnsuBbgonKyVbpg4=
+	t=1774370543; cv=none; b=Nuh0JhSSlQCpAlPltz42D5WtRAPm50gmR/VrNv/Z0AwwI+HREHARp/mYbp31UDojx+3rAj3BjnclYd/sv5AxOmMjP36Fa1YsC3BVvYN5ZpS0B9EAjVtvX2AFB/0HC+K13YwIi8S/5LntMf/VrNrBDEfseIH9hE9mW2GFuxNXxjs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774363050; c=relaxed/simple;
-	bh=83lcskGFtr26z8P60Zmw50FYWLqcX0m/q7uMZBctmY8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=bHOFeVYxWJxUp/ikZmS4GSz0e4ZzP1m3QuibxySBZeIzN0OWr8pVTM9Ccge2EtV8z5zZrMR2zC6sOZEg6xvEAzsX697JZu8IW4nIcStJZTjO28y1JSxTV7n2r2JEshylTCrqPWjc1LfIG4xQbMzp7Xr4puqxcJWNbVMkBOvvSAo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b=HnGJ48Jc; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1774370543; c=relaxed/simple;
+	bh=TDgLcRhij5JQVZa60QmaxqOx203j51xbjV/q4WkoTac=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=XCHgQHGrHJAvm7GGtO77OFoXFntIc6XnX5lYMs/laTYSpgSLcAjccCpizO6dDhkIKBb224kzVCezwJH9t4RtXBnLGRWDAEKQYhTRntwXlQEtiVe0nA5OkyVuaoyupVS1WqDgBnjDOsHuzC9OcJBXYZt/+41EO5OCllAFLqHT+V4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=DQOwZZrw; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linuxfoundation.org header.i=@linuxfoundation.org header.b="HnGJ48Jc"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4D8EDC2BCB3;
-	Tue, 24 Mar 2026 14:37:29 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linuxfoundation.org;
-	s=korg; t=1774363049;
-	bh=83lcskGFtr26z8P60Zmw50FYWLqcX0m/q7uMZBctmY8=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=HnGJ48JcdZfob2PnxdDIqwjMp7HxkDyFydLjtDLYKxoAXyQDNHv7NN6BXWUWxDDPK
-	 XDDFhnhF5Cr2mj/JDaBb6O2m36swmwTnclrFRoj740OVWvF8F+cgsQMcYa1ftZbcn1
-	 4KixlHzRddXljgt97mdjPncm94ahHEc//JRN/J20=
-Date: Tue, 24 Mar 2026 15:37:07 +0100
-From: Greg KH <gregkh@linuxfoundation.org>
-To: Jori Koolstra <jkoolstra@xs4all.nl>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
-	Jeff Layton <jlayton@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Alexander Aring <alex.aring@gmail.com>,
-	Arnd Bergmann <arnd@arndb.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	"Liam R . Howlett" <Liam.Howlett@oracle.com>,
-	Mike Rapoport <rppt@kernel.org>,
-	David Hildenbrand <david@redhat.com>,
-	Lorenzo Stoakes <ljs@kernel.org>,
-	zhang jiao <zhangjiao2@cmss.chinamobile.com>,
-	Kees Cook <kees@kernel.org>, Penglei Jiang <superman.xpt@gmail.com>,
-	Ethan Tidmore <ethantidmore06@gmail.com>,
-	Oleg Nesterov <oleg@redhat.com>,
-	Suren Baghdasaryan <surenb@google.com>,
-	Vlastimil Babka <vbabka@kernel.org>,
-	wangzijie <wangzijie1@honor.com>, NeilBrown <neil@brown.name>,
-	Amir Goldstein <amir73il@gmail.com>,
-	Mateusz Guzik <mjguzik@gmail.com>, linux-fsdevel@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	Namjae Jeon <linkinjeon@kernel.org>
-Subject: Re: [PATCH] vfs: transitive upgrade restrictions for fds
-Message-ID: <2026032403-slapstick-anvil-a68e@gregkh>
-References: <20260323220029.765874-1-jkoolstra@xs4all.nl>
- <20260323220029.765874-2-jkoolstra@xs4all.nl>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="DQOwZZrw"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E44B6C19424;
+	Tue, 24 Mar 2026 16:42:20 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
+	s=korg; t=1774370542;
+	bh=TDgLcRhij5JQVZa60QmaxqOx203j51xbjV/q4WkoTac=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=DQOwZZrwl+GxIARWYI809PrjYZgIC0xfeubUvTNhKKAudWXflkBkHkOQxqHhcKfI5
+	 YEd8AoepFJifaDz0cIKUFkW85RTTMclmIhV4gfAqh3VY34KIx4Pm4UqjUG6y+A3vml
+	 FWjY7pXOdRDrlwOVcmMMkatFHeB/Fbf82T5tVjrs=
+Date: Tue, 24 Mar 2026 09:42:20 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Richard Henderson <richard.henderson@linaro.org>, Matt Turner
+ <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, Russell King
+ <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will
+ Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Huacai Chen
+ <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, Madhavan
+ Srinivasan <maddy@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>,
+ Nicholas Piggin <npiggin@gmail.com>, "Christophe Leroy (CS GROUP)"
+ <chleroy@kernel.org>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
+ <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti
+ <alex@ghiti.fr>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik
+ <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, Christian
+ Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle
+ <svens@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, Andreas
+ Larsson <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>, Anton
+ Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg
+ <johannes@sipsolutions.net>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
+ <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
+ <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
+ <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, Dan Williams
+ <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba
+ <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, Song Liu
+ <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, Li Nan
+ <linan122@huawei.com>, "Theodore Ts'o" <tytso@mit.edu>,
+ "Jason A. Donenfeld" <Jason@zx2c4.com>, linux-alpha@vger.kernel.org,
+ linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+ linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+ sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+ linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: cleanup the RAID5 XOR library v3
+Message-Id: <20260324094220.09e6eb90afc7f55937847f22@linux-foundation.org>
+In-Reply-To: <20260324062211.3216301-1-hch@lst.de>
+References: <20260324062211.3216301-1-hch@lst.de>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260323220029.765874-2-jkoolstra@xs4all.nl>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Mon, Mar 23, 2026 at 11:00:22PM +0100, Jori Koolstra wrote:
-> Add upgrade restrictions to openat2(). Extend struct open_how to allow
-> setting transitive restrictions on using file descriptors to open other
-> files. A use case for this feature is to block services or containers
-> from re-opening/upgrading an O_PATH file descriptor through e.g.
-> /proc/<pid>/fd/<nr as O_WRONLY.
+On Tue, 24 Mar 2026 07:21:36 +0100 Christoph Hellwig <hch@lst.de> wrote:
+
+> the XOR library used for the RAID5 parity is a bit of a mess right now.
+> The main file sits in crypto/ despite not being cryptography and not
+> using the crypto API, with the generic implementations sitting in
+> include/asm-generic and the arch implementations sitting in an asm/
+> header in theory.  The latter doesn't work for many cases, so
+> architectures often build the code directly into the core kernel, or
+> create another module for the architecture code.
 > 
-> The idea for this features comes form the UAPI group kernel feature idea
-> list [1].
-> 
-> [1] https://github.com/uapi-group/kernel-features?tab=readme-ov-file#upgrade-masks-in-openat2
-> 
-> Signed-off-by: Jori Koolstra <jkoolstra@xs4all.nl>
-> ---
->  fs/file_table.c                  |  2 ++
->  fs/internal.h                    |  1 +
->  fs/namei.c                       | 38 ++++++++++++++++++++++++++++----
->  fs/open.c                        |  9 ++++++++
->  fs/proc/base.c                   | 24 ++++++++++++++------
->  fs/proc/fd.c                     |  6 ++++-
->  fs/proc/internal.h               |  4 +++-
->  include/linux/fcntl.h            |  6 ++++-
->  include/linux/fs.h               |  1 +
->  include/linux/namei.h            | 15 ++++++++++++-
->  include/uapi/asm-generic/fcntl.h |  4 ++++
->  include/uapi/linux/openat2.h     |  1 +
->  12 files changed, 96 insertions(+), 15 deletions(-)
+> Changes this to a single module in lib/ that also contains the
+> architecture optimizations, similar to the library work Eric Biggers
+> has done for the CRC and crypto libraries later.  After that it changes
+> to better calling conventions that allow for smarter architecture
+> implementations (although none is contained here yet), and uses
+> static_call to avoid indirection function call overhead.
 
-Any chance to get a test for this as well to know if this keeps working
-(or works at all)?
+Thanks, I've updated mm.git's mm-nonmm-unstable branch to this version
+of the patchset.
 
->  /*
->   * Helper to directly jump to a known parsed path from ->get_link,
->   * caller must have taken a reference to path beforehand.
->   */
-> -int nd_jump_link(const struct path *path)
-> +int nd_jump_link_how(const struct path *path, const struct jump_how how)
 
-Shouldn't that be "const struct jump_how *how"?
-
-Or do you really want to pass this structure on the stack?
-
-thanks,
-
-greg k-h
