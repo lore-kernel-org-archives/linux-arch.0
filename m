@@ -1,93 +1,120 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CBAA929D265;
-	Tue, 24 Mar 2026 12:59:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+Received: from foss.arm.com (foss.arm.com [217.140.110.172])
+	by smtp.subspace.kernel.org (Postfix) with ESMTP id A405A3D567A;
+	Tue, 24 Mar 2026 13:26:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774357151; cv=none; b=NfSMl1JneZ8M0vINpNxv5+8vLRcVtcPKqLKAGAbJjtpCBogB4geWi0hxvxw066zao1fGeSKTUkxNyBiYxdu3yuEA75B1cZ1ldR32mbsl5BOTCKPhSJzgM3HTSJ6OkytMzYJJRILtZ/YC1P+kQkgUTco/B8iJvs2z14mhpi3NqGQ=
+	t=1774358811; cv=none; b=b2RZ9d/MZGTH3F0lM939CXx0qujQiOF4yygfmsecBAYppxr8j0nOVII5KN8J777usI6WnzyTm6Eh0LkVY5Z+uDL+iejlo3nem93geP2XluyJm22SQpdxcyZNSPOWsSymYY9198M/7oTpQMwJRqt7O5NsOLCjrYoj9UWi4c4STsM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774357151; c=relaxed/simple;
-	bh=DNZLnRzh+CvM88p8pkAqUjgyo33nZndxuNt19jJaIc0=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=a7NWM/UUwwIuu9pvztKNhYMjGzrgkCYF+zTHxrtBlHM4KE5b98GawHMCJhScTpw/Ys4cziL8lYCKjh89AJ5bOQZEhIp/uF6S8b4USRVtPgX/3fBJo5XQV5nmYb3dVmnbCwYCuVeZPGY27HT2lBeEqtLN06JfJNKfiPZv8rGWZZw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=L2bpOAmA; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1774358811; c=relaxed/simple;
+	bh=F/htvyFctlbNCF0Y3WWbR6ZEMytC7JSoA3t6ZZQxiTE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version:Content-Type; b=q4B+L0FkNterB1QlvIN1Q3TtE1R2PnMflsnWkBVdJzjYnDMIpn8+Mhi1tdWbhdNz6jRAiZOEhLy8anbe013aQj32bv0aGWybdDzowpqVwEcFU4hkMbspP1UB8BjgbKU9Q1fV4dWvU5C5TEYCgbMkCl6a+iPWQIMgX1/gMiAKTHQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=GAPjGmLN; arc=none smtp.client-ip=217.140.110.172
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="L2bpOAmA"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 928E0C19424;
-	Tue, 24 Mar 2026 12:59:08 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1774357150;
-	bh=DNZLnRzh+CvM88p8pkAqUjgyo33nZndxuNt19jJaIc0=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=L2bpOAmA8emgVd/ZYEB/zrSuE9jofQHFZ27BdcP53YODoh57XV9LR2CPX59ADyD0z
-	 q7r1taKZSMDWKO39Sv/SPts3ItWTubPfixNB+/Y98emGdt7nlHO096btK1O0vCkoQ1
-	 6OtPOaaEWYgTpw6T6Z7ovs8Hs1s7B0CHbZRMoxPo=
-Date: Tue, 24 Mar 2026 05:59:07 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Richard Henderson <richard.henderson@linaro.org>, Matt Turner
- <mattst88@gmail.com>, Magnus Lindholm <linmag7@gmail.com>, Russell King
- <linux@armlinux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will
- Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>, Huacai Chen
- <chenhuacai@kernel.org>, WANG Xuerui <kernel@xen0n.name>, Madhavan
- Srinivasan <maddy@linux.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>,
- Nicholas Piggin <npiggin@gmail.com>, "Christophe Leroy (CS GROUP)"
- <chleroy@kernel.org>, Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt
- <palmer@dabbelt.com>, Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti
- <alex@ghiti.fr>, Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik
- <gor@linux.ibm.com>, Alexander Gordeev <agordeev@linux.ibm.com>, Christian
- Borntraeger <borntraeger@linux.ibm.com>, Sven Schnelle
- <svens@linux.ibm.com>, "David S. Miller" <davem@davemloft.net>, Andreas
- Larsson <andreas@gaisler.com>, Richard Weinberger <richard@nod.at>, Anton
- Ivanov <anton.ivanov@cambridgegreys.com>, Johannes Berg
- <johannes@sipsolutions.net>, Thomas Gleixner <tglx@kernel.org>, Ingo Molnar
- <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Dave Hansen
- <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin"
- <hpa@zytor.com>, Herbert Xu <herbert@gondor.apana.org.au>, Dan Williams
- <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>, David Sterba
- <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>, Song Liu
- <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>, Li Nan
- <linan122@huawei.com>, "Theodore Ts'o" <tytso@mit.edu>,
- "Jason A. Donenfeld" <Jason@zx2c4.com>, linux-alpha@vger.kernel.org,
- linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
- linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
- sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
- linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
-Subject: Re: cleanup the RAID5 XOR library v3
-Message-Id: <20260324055907.52f2304d0be85c1087e0b9f1@linux-foundation.org>
-In-Reply-To: <20260324062211.3216301-1-hch@lst.de>
-References: <20260324062211.3216301-1-hch@lst.de>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="GAPjGmLN"
+Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
+	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id DFCBA1476;
+	Tue, 24 Mar 2026 06:26:42 -0700 (PDT)
+Received: from e142334-100.cambridge.arm.com (e142334-100.cambridge.arm.com [10.1.194.63])
+	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPA id 935103FAF5;
+	Tue, 24 Mar 2026 06:26:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
+	t=1774358808; bh=F/htvyFctlbNCF0Y3WWbR6ZEMytC7JSoA3t6ZZQxiTE=;
+	h=From:To:Cc:Subject:Date:From;
+	b=GAPjGmLNA2YBz+piw50rSr90wWg1hKu2xeFC6b9WohZRg5sJn/f7FEuJnwTJu0flv
+	 CWF5JGZxgDVFsK7L3pWn1XO/yZuSgRC5qDd1WdH/9cHcgbY29uCOLYoYZLWaRyJm4H
+	 phG4Qg87ZrNFvEut2qjD6YcSPCYyH4utTyOI86Js=
+From: Muhammad Usama Anjum <usama.anjum@arm.com>
+To: Arnd Bergmann <arnd@arndb.de>,
+	Ingo Molnar <mingo@redhat.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Juri Lelli <juri.lelli@redhat.com>,
+	Vincent Guittot <vincent.guittot@linaro.org>,
+	Dietmar Eggemann <dietmar.eggemann@arm.com>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Ben Segall <bsegall@google.com>,
+	Mel Gorman <mgorman@suse.de>,
+	Valentin Schneider <vschneid@redhat.com>,
+	Kees Cook <kees@kernel.org>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	David Hildenbrand <david@kernel.org>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	"Liam R. Howlett" <Liam.Howlett@oracle.com>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	Mike Rapoport <rppt@kernel.org>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Michal Hocko <mhocko@suse.com>,
+	Uladzislau Rezki <urezki@gmail.com>,
+	linux-arch@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	linux-mm@kvack.org,
+	Andrey Konovalov <andreyknvl@gmail.com>,
+	Marco Elver <elver@google.com>,
+	Vincenzo Frascino <vincenzo.frascino@arm.com>,
+	Peter Collingbourne <pcc@google.com>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>,
+	Ryan.Roberts@arm.com,
+	david.hildenbrand@arm.com
+Cc: Muhammad Usama Anjum <usama.anjum@arm.com>
+Subject: [PATCH v2 0/3] KASAN: HW_TAGS: Disable tagging for stack and page-tables
+Date: Tue, 24 Mar 2026 13:26:26 +0000
+Message-ID: <20260324132631.482520-1-usama.anjum@arm.com>
+X-Mailer: git-send-email 2.47.3
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On Tue, 24 Mar 2026 07:21:36 +0100 Christoph Hellwig <hch@lst.de> wrote:
+Stacks and page tables are always accessed with the match‑all tag,
+so assigning a new random tag every time at allocation and setting
+invalid tag at deallocation time, just adds overhead without improving
+the detection.
 
-> the XOR library used for the RAID5 parity is a bit of a mess right now.
-> The main file sits in crypto/ despite not being cryptography and not
-> using the crypto API, with the generic implementations sitting in
-> include/asm-generic and the arch implementations sitting in an asm/
-> header in theory.  The latter doesn't work for many cases, so
-> architectures often build the code directly into the core kernel, or
-> create another module for the architecture code.
-> 
-> Changes this to a single module in lib/ that also contains the
-> architecture optimizations, similar to the library work Eric Biggers
-> has done for the CRC and crypto libraries later.  After that it changes
-> to better calling conventions that allow for smarter architecture
-> implementations (although none is contained here yet), and uses
-> static_call to avoid indirection function call overhead.
+With __GFP_SKIP_KASAN the page keeps its poison tag and KASAN_TAG_KERNEL
+(match-all tag) is stored in the page flags while keeping the poison tag
+in the hardware. The benefit of it is that 256 tag setting instruction
+per 4 kB page aren't needed at allocation and deallocation time.
 
-Thanks, I'll update mm.git to this version.
+Thus match‑all pointers still work, while non‑match tags (other than
+poison tag) still fault.
 
-It looks like AI review has found a few things:
-	https://sashiko.dev/#/patchset/20260324062211.3216301-1-hch@lst.de
+__GFP_SKIP_KASAN only skips for KASAN_HW_TAGS mode, so coverage is
+unchanged.
+
+Benchmark:
+The benchmark has two modes. In thread mode, the child process forks
+and creates N threads. In pgtable mode, the parent maps and faults a
+specified memory size and then forks repeatedly with children exiting
+immediately.
+
+Thread benchmark:
+2000 iterations, 2000 threads:	2.575 s → 2.229 s (~13.4% faster)
+
+The pgtable samples:
+- 2048 MB, 2000 iters		19.08 s → 17.62 s (~7.6% faster)
+---
+Changes since v1: (summary only)
+- Update description/title
+- Patch 1: Simplify skip conditions based on the fact that __GFP_SKIP_KASAN
+- Patch 2: Specify _GFP_SKIP_KASAN in THREADINFO_GFP and GFP_VMAP_STACK
+
+Muhammad Usama Anjum (3):
+  vmalloc: add __GFP_SKIP_KASAN support
+  kasan: skip HW tagging for all kernel thread stacks
+  mm: skip KASAN tagging for page-allocated page tables
+
+ include/asm-generic/pgalloc.h |  2 +-
+ include/linux/thread_info.h   |  2 +-
+ kernel/fork.c                 |  5 +++--
+ mm/vmalloc.c                  | 11 ++++++++---
+ 4 files changed, 13 insertions(+), 7 deletions(-)
+
+-- 
+2.47.3
+
