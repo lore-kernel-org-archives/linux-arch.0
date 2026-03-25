@@ -1,150 +1,133 @@
-Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D621318BA6
-	for <linux-arch@vger.kernel.org>; Wed, 25 Mar 2026 19:36:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE0E9330D3B;
+	Wed, 25 Mar 2026 19:39:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774467375; cv=none; b=YJ0iN2aRwis0AVhPYn5y3p2rj7gc+Itnq4j81BmzCTcIpfBzoPeQ2h0wYNJm7axJBT7W3sLMg9eaq+tNid3w6Qsaz06aNSF0HFasXhd2TM1C6J5webjrG3vEOtL1LgVwG7f+JhKE3ELnM14ddmk2t0fS8YE78/4ojPOALwLE+Mg=
+	t=1774467600; cv=none; b=Ql9n7VrixanBSyguemPkD+b61sFZ0AugFAH9QAsRAN6L1xowOhUXgyWEsYJqclw3Tp4rkS6DGdGpyvGMNSSyf5uXDUxVq0hNVPTsuzlwGrCMYLroIdRGMePHjzrxPPLhoBy8/ukZ11cG62PvwseXw96BK42MdgEc8RSEjoO7qUU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774467375; c=relaxed/simple;
-	bh=t3vdFCTCCd/mYTmRbH029kf+rM34+Lq6Cw+Vdj1lzxI=;
-	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=YbAWsMwRAH9WEY+U9cPtOEIkH75tzSbh/mDG7W7j0Ef2n1gaJkpXUicDW4QVdqzXDgW1rF8epXksgNp/35ZOr00NjGRIqaFBzRl5xT+uLj05s9SrO3b70upFOU82K7SERFFPGP2ZOvNCpQy0jzEM0MPUf6AD09+D39BZCIfuL4Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jFUJQFLM; arc=none smtp.client-ip=209.85.221.51
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1774467600; c=relaxed/simple;
+	bh=vgzmS++XGgEKBkb/yAjVP8Sp4H+rVjAZlzJWbYtNQ5k=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=gw4kHJnU96JqfovIwNY5nBaNPBRAPi1QhLJ3S2iCoNwLbj8wSnjeaQtPpGR1ZQNVcS1TzQ2g79UVWSY+lQA5+GzwQ07o6iTrSDSV+YCpyyyFcUSW8nbxb+FWsh1ih9trQGSPWPe3ehWP/G9ODkd5n4EjRCtPLPUJbHV632K6H3s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=DygY0E8w; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jFUJQFLM"
-Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-439d8dc4ae4so148470f8f.2
-        for <linux-arch@vger.kernel.org>; Wed, 25 Mar 2026 12:36:13 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1774467372; x=1775072172; darn=vger.kernel.org;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=0xbLSrdYpjpwOAwc60D31b27IF6Zr0PDhPWePECVS50=;
-        b=jFUJQFLMQf3rtZYSyRGu1wRWWlFbMCsKPFtf6gFH+dqAxRQ9ywiUmSJcyT8najtaRM
-         68A+mpPZauHCLvMUXvZJiqU/MRdqDWwexT/6EtNJ2Q9EQpdPLqFq/LDwxEpCz8k3pbCc
-         a5bj/RIsth1DFrirmLypIdsNXBf1DE7faOoA9U/u7ii46ERZYhYg/DC45p9j5zxgYsUD
-         GOKjKoRvF8xgNRS6vD0TYWigpjZPaJf/BOJPyxfee4AaagYSHPVw0VgotUsa2bhEv1Wp
-         S2LKU9qR9jnEEGeGOWiLaaxMi/dpIHD6Yw8Br23Y01sRLnX21CElWkgyaa70jHC6URnF
-         UXFg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1774467372; x=1775072172;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=0xbLSrdYpjpwOAwc60D31b27IF6Zr0PDhPWePECVS50=;
-        b=XWr/vmm2kqaYUicgh7yBqStxgcbCfuhddR7EV8c2tS6+MN0VJIl7BRI0J23zd9KiLB
-         83dspvfnvIlr3oRKp89RJXNdJdOlhI52S1+7y+TpmoAFlixY3Qhrc8DMCeSM0Ny870Mn
-         HzCw+N/FrmZ1cn2i+xJrdDmwlkW9wwec5HRguk8Vj68ukfE2x4D4qojSZ7y1guuS4Epf
-         93KgyQgnRXQnkWuPqnz9PrHs5gJlFk3ebpOdMZAj3266hLQvXIZo9pJQyh4VjBFOFsee
-         Gcb3E8OIeg6YWqO8EvtGSgXltn+COHJCGjwWz0Yi6eDhHKLuU30ZKzkVXSgxHoMEusBA
-         Z42w==
-X-Forwarded-Encrypted: i=1; AJvYcCWDOpYra5+qIe60hommv45XAaAVUHzTsLfT4J3ERLt7OdF3bmSVgrlHQXKoyOxisCWdYdhFctSk+D5p@vger.kernel.org
-X-Gm-Message-State: AOJu0YxZ1kVc1pqQpW13PUqXOfNynXeGzQLzEe2TZlmgMQcMM3SHccZL
-	yn02B5cYzEVRPC+7UDRsvMCk5dKKCx6hJcbc036e6jw2fDUvWBy0ny9Y
-X-Gm-Gg: ATEYQzxyG8SFiAywADn5449x49z8IbGgh7AJ9AMUbavg3MrHRFCqBHjTaDP4+pzyARX
-	t7Dk+x3Azv2XP/iWFHr7c1bW9Z1wBQWKWme2QUkHgJZV1cZXt/F7sZGjbhdVHeMErNL9tfHT2k6
-	0+1nmiaQdYMGpNo11DnR3QLf5RLi57qCHx5uAqMJjrrBf3kaQo7/Lw27ew0DCA6QCTtjsha6nCn
-	gE1muorMcLYOlDktfUEVZOyMXYmkDFOeHXxm3sYsgBI7MgQnKC56pBOM/7QGPrHlJlmcBZz/KAI
-	Fxn6fwZkoURihjSomoySh5P0xop6+NhPrkBI1zclpPDWaXaRa/Ns37ZurwW9Kxyib4E8Ov27unD
-	nE6r3b2ToozUBxcnfSOhzbzHO0TWLp8U/rNblKry4SDOrbd3xFL8a1e1I19nghFtJkO8Qk0sgJu
-	KosjdVxiFxrTeZ/FubVk244WsFkdBrklkxVxOxx7iZp00b+JHN81RSdmomXcV0YsGIwoUa19rkM
-	3I=
-X-Received: by 2002:a5d:5f47:0:b0:43b:8823:c12b with SMTP id ffacd0b85a97d-43b887e6cb0mr7083427f8f.0.1774467371899;
-        Wed, 25 Mar 2026 12:36:11 -0700 (PDT)
-Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-43b919dfb54sm2097287f8f.31.2026.03.25.12.36.11
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 25 Mar 2026 12:36:11 -0700 (PDT)
-Date: Wed, 25 Mar 2026 19:36:08 +0000
-From: David Laight <david.laight.linux@gmail.com>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>, Andrew Morton
- <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org,
- linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
- linux-pm@vger.kernel.org, bpf@vger.kernel.org, arnd@arndb.de,
- will@kernel.org, peterz@infradead.org, mark.rutland@arm.com,
- harisokn@amazon.com, cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
- daniel.lezcano@linaro.org, memxor@gmail.com, zhenglifeng1@huawei.com,
- xueshuai@linux.alibaba.com, rdunlap@infradead.org,
- joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
- konrad.wilk@oracle.com
-Subject: Re: [PATCH v10 00/12] barrier: Add
- smp_cond_load_{relaxed,acquire}_timeout()
-Message-ID: <20260325193608.10e9eca5@pumpkin>
-In-Reply-To: <acQFaVR_bGZU2JmJ@arm.com>
-References: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
-	<20260315184925.b6f93386e918ca79614843e3@linux-foundation.org>
-	<874imftol4.fsf@oracle.com>
-	<20260316233712.7cbfac27@pumpkin>
-	<acQFaVR_bGZU2JmJ@arm.com>
-X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="DygY0E8w"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 86172C4CEF7;
+	Wed, 25 Mar 2026 19:39:56 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1774467599;
+	bh=vgzmS++XGgEKBkb/yAjVP8Sp4H+rVjAZlzJWbYtNQ5k=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=DygY0E8wyP/P9Q9kZFKoknR4RxtR6GMi9PjYKJh3Sbc2gqAytguh48eGOTnsx3c56
+	 Q2YVatKuDK+N4nU8v6AxKOfcBzhChhEI3Df1zCL0wcOyAKNQgEB7oAOxflILmausqP
+	 WOCeoLY2lmAchg2c7NGHGU4qpdmOxFI+jpbH1K0Ei46HKczGrbgGRBm1sI8nru20Vm
+	 WRYSdUfozTetH29mYvuSFOROlG1SXAHZGao0e1tIcm/PcakbXOz5jtLmbmhcaQDLw8
+	 UHpO2j30RaryLjmXyqJNpFRWy5VPKjdg008B9pxWETSOv3xeW2U6bVqeyivRW/5e7y
+	 efVryfxsae7fQ==
+Date: Wed, 25 Mar 2026 12:39:54 -0700
+From: Eric Biggers <ebiggers@kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>,
+	Richard Henderson <richard.henderson@linaro.org>,
+	Matt Turner <mattst88@gmail.com>,
+	Magnus Lindholm <linmag7@gmail.com>,
+	Russell King <linux@armlinux.org.uk>,
+	Catalin Marinas <catalin.marinas@arm.com>,
+	Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
+	Huacai Chen <chenhuacai@kernel.org>,
+	WANG Xuerui <kernel@xen0n.name>,
+	Madhavan Srinivasan <maddy@linux.ibm.com>,
+	Michael Ellerman <mpe@ellerman.id.au>,
+	Nicholas Piggin <npiggin@gmail.com>,
+	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+	Heiko Carstens <hca@linux.ibm.com>,
+	Vasily Gorbik <gor@linux.ibm.com>,
+	Alexander Gordeev <agordeev@linux.ibm.com>,
+	Christian Borntraeger <borntraeger@linux.ibm.com>,
+	Sven Schnelle <svens@linux.ibm.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Andreas Larsson <andreas@gaisler.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Herbert Xu <herbert@gondor.apana.org.au>,
+	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
+	Li Nan <linan122@huawei.com>, Theodore Ts'o <tytso@mit.edu>,
+	"Jason A. Donenfeld" <Jason@zx2c4.com>, linux-alpha@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+	loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
+	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
+	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
+	linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
+	linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
+Subject: Re: cleanup the RAID5 XOR library v3
+Message-ID: <20260325193954.GC2305@quark>
+References: <20260324062211.3216301-1-hch@lst.de>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260324062211.3216301-1-hch@lst.de>
 
-On Wed, 25 Mar 2026 15:55:21 +0000
-Catalin Marinas <catalin.marinas@arm.com> wrote:
-
-> On Mon, Mar 16, 2026 at 11:37:12PM +0000, David Laight wrote:
-...
-> > For osq_lock(), while an IPI will wake it up, there is also a small timing
-> > window where the IPI can happen before the ldx and so not actually wake up it.
-> > This is true whenever 'expr' is non-trivial.  
+On Tue, Mar 24, 2026 at 07:21:36AM +0100, Christoph Hellwig wrote:
+> Hi all,
 > 
-> Hmm, I thought this is fine because of the implicit SEVL on exception
-> return but the arm64 __cmpwait_relaxed() does a SEVL+WFE which clears
-> any prior event, it can wait in theory forever when the event stream is
-> disabled.
-
-Not forever, there will be a timer interrupt in the end.
-
-> Expanding smp_cond_load_relaxed() into asm, we have something like:
+> the XOR library used for the RAID5 parity is a bit of a mess right now.
+> The main file sits in crypto/ despite not being cryptography and not
+> using the crypto API, with the generic implementations sitting in
+> include/asm-generic and the arch implementations sitting in an asm/
+> header in theory.  The latter doesn't work for many cases, so
+> architectures often build the code directly into the core kernel, or
+> create another module for the architecture code.
 > 
-> 	LDR	X0, [PTR]
-> 	condition check for VAL || need_resched() with branch out
-> 	SEVL
-> 	WFE
-> 	LDXR	X1, [PTR]
-> 	EOR	X1, X1, X0
-> 	CBNZ	out
-> 	WFE
->   out:
+> Changes this to a single module in lib/ that also contains the
+> architecture optimizations, similar to the library work Eric Biggers
+> has done for the CRC and crypto libraries later.  After that it changes
+> to better calling conventions that allow for smarter architecture
+> implementations (although none is contained here yet), and uses
+> static_call to avoid indirection function call overhead.
 > 
-> If the condition is updated to become true (need_resched()) after the
-> condition check but before the first WFE while *PTR remains unchanged,
-> the IPI won't do anything. Maybe we should revert 1cfc63b5ae60 ("arm64:
-> cmpwait: Clear event register before arming exclusive monitor"). Not
-> great but probably better than reverting f5bfdc8e3947 ("locking/osq: Use
-> optimized spinning loop for arm64")).
+> A git tree is also available here:
+> 
+>     git://git.infradead.org/users/hch/misc.git xor-improvements
+> 
+> Gitweb:
+> 
+>     https://git.infradead.org/?p=users/hch/misc.git;a=shortlog;h=refs/heads/xor-improvements
 
-Could you change the order to:
-	LDR	X0, [PTR]
-	SEVL
-	WFE
-	condition check for VAL || need_resched() with branch out
-	LDXR	X1, [PTR]
-	EOR	X1, X1, X0
-	CBNZ	out
-	WFE
-  out:
+This generally looks good, but yes, please check the comments from
+https://sashiko.dev/#/patchset/20260324062211.3216301-1-hch@lst.de, as
+Andrew mentioned.
 
-that closes the timing window for the interrupt provided the condition
-check doesn't change the event register.
+The bug where the test generates length 0 is definitely real.  I
+verified it causes the test to crash on some platforms.
 
-I must get back to the osq_lock code again.
-I'm happy with the code - the per-cpu data is down to two cpu numbers.
-(Apart from the acquire/release semantics in a few places.)
-But the comments have got out of hand.
-Writing succinct and accurate comments is hard - too verbose and they
-hide too much code.
+raid_run_ops() calling xor_gen() (indirectly) with preemption disabled
+looks real as well, though I haven't tested it.  If preemption is indeed
+not the right thing to check, then I guess (following up from
+https://lore.kernel.org/linux-crypto/20260303195517.GC2846@sol/) it
+would need to be something like:
 
-	David
+    WARN_ON_ONCE(!in_task() || irqs_disabled() || softirq_count() != 0);
+
+Ugly, but we're running out of options.
+
+(This sort of thing is why the functions in lib/crypto/ and lib/crc/ are
+just supported in all contexts instead.  If FPU/vector/SIMD registers
+cannot be used in the current context, then a scalar fallback is used.)
+
+- Eric
