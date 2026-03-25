@@ -1,114 +1,89 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 644023BE156;
-	Wed, 25 Mar 2026 15:55:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail.zytor.com (terminus.zytor.com [198.137.202.136])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D8933E9580;
+	Wed, 25 Mar 2026 15:58:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=198.137.202.136
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774454131; cv=none; b=XKHXCH62VxvrstJhb4SW41T1Z6oA5qJiqARytUfPG7/qig8ddiqr1Y1xaykk45JUKl4uIgU1sWSUjvNp5wWG+C3Zrdt4bfx5cNv0S73Ycd+rWqqamo51GEoYRhzG9NysMdfjovUojhVHCJEPVU3EQcme37JaljdknsI+H/GaXz4=
+	t=1774454316; cv=none; b=Rf8l0BmT10S+p9Q1SwbmldrlK8vBBAc1Wvn0OQ6G7l8MMhZ9PjZfEDZ3sAp63FrOKI46h8Ol/DqnNOJa7INwIxMmhfY82xYJYx0Qpz1d7WxFRsqOSSnLTnl17/LEfK0jwnYB7/a2Yo4/33uFmOSNU6lhMokMTuoTm4z/qwWbI/o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774454131; c=relaxed/simple;
-	bh=YQUNJN6zkse+VSauT7FpCBg1zlDjtEPhRb6cnGEJo3I=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=mWt30c2/H13ucDem4BEzCHmcgNFVnVyImMv+5Uy30WD9yc+cyyD7X5hjeMgkeRIMxMx2LYhWWV5lpJy3lThYgUgwHDTOH/ArOfFlar0VvwpydxttXYq0AIgdkZI5xmDaNfEUiGnpjM7KqWfaaFPR0Cs/zZ0ZVxvN8CNjcStWZLM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=h8JB7WbL; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1774454316; c=relaxed/simple;
+	bh=3xxfI6gRTrix+3bAjHjl+NqvLIsP+3Ljt4acojJrtbk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=UXkurVSZsy/o9Z9tSPnzrSAAjCoveZHpl57DcBhGxHkZ7MQh3O+uwHTe9sPDY1hwYQ+jVlsCr/EB9rQbjCAtGjP5zjzvT2VGwdIcvA7HQmCR/uILU4XzvYicVPJ8lF6QUQHTgtRdAh18q9hSr/4DMYsofmCNqwOT+Td8/d1gj/c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com; spf=pass smtp.mailfrom=zytor.com; dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b=RHklxLfi; arc=none smtp.client-ip=198.137.202.136
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zytor.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=zytor.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="h8JB7WbL"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id 6E2191E8D;
-	Wed, 25 Mar 2026 08:55:22 -0700 (PDT)
-Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 066C33F915;
-	Wed, 25 Mar 2026 08:55:24 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1774454128; bh=YQUNJN6zkse+VSauT7FpCBg1zlDjtEPhRb6cnGEJo3I=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=h8JB7WbLLPhhNKdwHewQJz8w+JkyrvDnAG4/VGG5xLycbGrGIBZfkpXEzNGax363a
-	 DyMKpQnDFv5EJyjol41ofV3pwnkLQEaHLIv+H/8z64TWhKHXcywuIxr9f1hOB/Iedl
-	 g0IhNDMiR/fjZHdnXnvW74mg0i/jF65VNF2vtzks=
-Date: Wed, 25 Mar 2026 15:55:21 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
-	bpf@vger.kernel.org, arnd@arndb.de, will@kernel.org,
-	peterz@infradead.org, mark.rutland@arm.com, harisokn@amazon.com,
-	cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
-	daniel.lezcano@linaro.org, memxor@gmail.com,
-	zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-	rdunlap@infradead.org, joao.m.martins@oracle.com,
-	boris.ostrovsky@oracle.com, konrad.wilk@oracle.com
-Subject: Re: [PATCH v10 00/12] barrier: Add
- smp_cond_load_{relaxed,acquire}_timeout()
-Message-ID: <acQFaVR_bGZU2JmJ@arm.com>
-References: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
- <20260315184925.b6f93386e918ca79614843e3@linux-foundation.org>
- <874imftol4.fsf@oracle.com>
- <20260316233712.7cbfac27@pumpkin>
+	dkim=pass (2048-bit key) header.d=zytor.com header.i=@zytor.com header.b="RHklxLfi"
+Received: from [IPV6:2601:646:8081:9481:619:3ffd:957c:6748] ([IPv6:2601:646:8081:9481:619:3ffd:957c:6748])
+	(authenticated bits=0)
+	by mail.zytor.com (8.18.1/8.17.1) with ESMTPSA id 62PFE0CM3057644
+	(version=TLSv1.3 cipher=TLS_AES_128_GCM_SHA256 bits=128 verify=NO);
+	Wed, 25 Mar 2026 08:14:01 -0700
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail.zytor.com 62PFE0CM3057644
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=zytor.com;
+	s=2026022301; t=1774451646;
+	bh=m+c64TX9TAStG5n4QBbOwBHxDLYCJ+PjBNcVbNtGMx8=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=RHklxLfiOlJf6ydmRmJruDGnJeWMZSbz2TgxABeLCgguQaUbYsc9vR9kpgjAtaRk6
+	 D7BSdsEd+lvAoCQg+RbZcvgtOjl5ikAs97OdfN6AYdowAx+SkUCmf/8a7rxvIX1199
+	 n1C53Bc4syiY0JVf3wcgOdQFaGlli8ZPulCYU+tqXHoikLbqaKaukH46nBwaABbmkR
+	 FqzyBozoAq6ydYU475wWtUu9yg9VB2ezfO6KFROa2nbUotE425BtfRIaR4mJKhTxf8
+	 dVWONsYwf/QQWCyfrPeHYwfZmG0pn9A7Kw7p2V6FDiyY1iJynsS0qMGEvvGfkQIYvu
+	 dNPPZv5PxcbxQ==
+Message-ID: <59d1d178-c141-4229-81e9-a6c23fa81f2f@zytor.com>
+Date: Wed, 25 Mar 2026 08:13:55 -0700
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260316233712.7cbfac27@pumpkin>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 02/17] raid6: remove __KERNEL__ ifdefs
+To: Christoph Hellwig <hch@lst.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will@kernel.org>,
+        Ard Biesheuvel <ardb@kernel.org>, Huacai Chen <chenhuacai@kernel.org>,
+        WANG Xuerui <kernel@xen0n.name>,
+        Madhavan Srinivasan <maddy@linux.ibm.com>,
+        Michael Ellerman <mpe@ellerman.id.au>,
+        Nicholas Piggin <npiggin@gmail.com>,
+        "Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
+        Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
+        Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
+        Heiko Carstens <hca@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>,
+        Alexander Gordeev <agordeev@linux.ibm.com>,
+        Christian Borntraeger <borntraeger@linux.ibm.com>,
+        Sven Schnelle <svens@linux.ibm.com>, Thomas Gleixner <tglx@kernel.org>,
+        Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+        Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+        Herbert Xu <herbert@gondor.apana.org.au>,
+        Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
+        David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
+        Song Liu <song@kernel.org>,
+        Yu Kuai <yukuai@alb-78bjiv52429oh8qptp.cn-shenzhen.alb.aliyuncs.com>,
+        Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
+        linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
+        linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
+        linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
+        linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
+        linux-raid@vger.kernel.org
+References: <20260324064115.3217136-1-hch@lst.de>
+ <20260324064115.3217136-3-hch@lst.de>
+Content-Language: en-US, sv-SE
+From: "H. Peter Anvin" <hpa@zytor.com>
+In-Reply-To: <20260324064115.3217136-3-hch@lst.de>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Mon, Mar 16, 2026 at 11:37:12PM +0000, David Laight wrote:
-> On Mon, 16 Mar 2026 15:08:07 -0700
-> Ankur Arora <ankur.a.arora@oracle.com> wrote:
-> > However, as David Laight pointed out in this thread
-> > (https://lore.kernel.org/lkml/20260214113122.70627a8b@pumpkin/)
-> > that this would be fine so long as the polling is on memory, but would
-> > need some work to handle MMIO.
-> 
-> I'm not sure the current code works with MMIO on arm64.
+On 2026-03-23 23:40, Christoph Hellwig wrote:
+> With the test code ported to kernel space, none of this is required.
 
-It won't but also passing an MMIO pointer to smp_cond_load() is wrong in
-general. You'd need a new API that takes an __iomem pointer.
+I really *really* don't like this.
 
-> I was looking at the osq_lock() code, it uses smp_cond_load() with 'expr'
-> being 'VAL || need_resched()' expecting to get woken by the IPI associated
-> with the preemption being requested.
-> But the arm64 code relies on 'wfe' being woken when the memory write
-> 'breaks' the 'ldx' for the monitored location.
-> That will only work for cached addresses.
+The ability of running in user space is really useful when it comes to
+developing new code for new platforms, which happens often enough for this code.
 
-Even worse, depending on the hardware, you may even get a data abort
-when attempting LDXR on Device memory.
+	-hpa
 
-> For osq_lock(), while an IPI will wake it up, there is also a small timing
-> window where the IPI can happen before the ldx and so not actually wake up it.
-> This is true whenever 'expr' is non-trivial.
-
-Hmm, I thought this is fine because of the implicit SEVL on exception
-return but the arm64 __cmpwait_relaxed() does a SEVL+WFE which clears
-any prior event, it can wait in theory forever when the event stream is
-disabled.
-
-Expanding smp_cond_load_relaxed() into asm, we have something like:
-
-	LDR	X0, [PTR]
-	condition check for VAL || need_resched() with branch out
-	SEVL
-	WFE
-	LDXR	X1, [PTR]
-	EOR	X1, X1, X0
-	CBNZ	out
-	WFE
-  out:
-
-If the condition is updated to become true (need_resched()) after the
-condition check but before the first WFE while *PTR remains unchanged,
-the IPI won't do anything. Maybe we should revert 1cfc63b5ae60 ("arm64:
-cmpwait: Clear event register before arming exclusive monitor"). Not
-great but probably better than reverting f5bfdc8e3947 ("locking/osq: Use
-optimized spinning loop for arm64")).
-
-Using SEV instead of IPI would have the same problem.
-
--- 
-Catalin
