@@ -1,140 +1,150 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 6995A3FA5C9;
-	Wed, 25 Mar 2026 16:32:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from mail-wr1-f51.google.com (mail-wr1-f51.google.com [209.85.221.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D621318BA6
+	for <linux-arch@vger.kernel.org>; Wed, 25 Mar 2026 19:36:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774456377; cv=none; b=a4oBzkXvw/BD+VoEOL21XN4yK0iEjFmQ9KVJPHkEMhtFU0kXoo1CvzmQtTqL/0KYCfnMbJxaDHu2kr/q3zqBly4RZkfiCWwM13iRVMQIYnw5fozr9SNOc33bzxMQNbjtUkdp2NLqNRq12vTkY9ah9Y3NIRfbjxs+KzKAsq+TNg8=
+	t=1774467375; cv=none; b=YJ0iN2aRwis0AVhPYn5y3p2rj7gc+Itnq4j81BmzCTcIpfBzoPeQ2h0wYNJm7axJBT7W3sLMg9eaq+tNid3w6Qsaz06aNSF0HFasXhd2TM1C6J5webjrG3vEOtL1LgVwG7f+JhKE3ELnM14ddmk2t0fS8YE78/4ojPOALwLE+Mg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774456377; c=relaxed/simple;
-	bh=8KromqTmRdEzC0f/nh0v6DgYME2PY+4qjNyQaiTrV7o=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=EAmxx0YQkSmhx/guy9alHzQd9IRTlMOr1VobeAa0XcHz3uk8Hq8Nn5U0Rgv18Z4g+63wn/J/TqbDHw/K60PZWz4CxWMSwaj1Gbt3lHSoDuXhzNYVNqeWPPElhrPjoXi2yQXfGB0RP69EX8jxXpnexiipzwlBGwkUNn7eiLfYsow=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=ALxPshRs; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	s=arc-20240116; t=1774467375; c=relaxed/simple;
+	bh=t3vdFCTCCd/mYTmRbH029kf+rM34+Lq6Cw+Vdj1lzxI=;
+	h=Date:From:To:Cc:Subject:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=YbAWsMwRAH9WEY+U9cPtOEIkH75tzSbh/mDG7W7j0Ef2n1gaJkpXUicDW4QVdqzXDgW1rF8epXksgNp/35ZOr00NjGRIqaFBzRl5xT+uLj05s9SrO3b70upFOU82K7SERFFPGP2ZOvNCpQy0jzEM0MPUf6AD09+D39BZCIfuL4Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jFUJQFLM; arc=none smtp.client-ip=209.85.221.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="ALxPshRs"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id C378C25DD;
-	Wed, 25 Mar 2026 09:32:49 -0700 (PDT)
-Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id 59D2A3F915;
-	Wed, 25 Mar 2026 09:32:52 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1774456375; bh=8KromqTmRdEzC0f/nh0v6DgYME2PY+4qjNyQaiTrV7o=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=ALxPshRsDFuzUUSrAQLYb5oMb0tvtkxDp5jIXxdqmiTlZeXMf5KdiIGX4O1ZRzOAl
-	 aVHoJK/TwY8rW5hry6myIKboXKXRBeNCqnA6deW64JfWx1LBRlJOFK+43TxYKT1ESK
-	 YVwBkC6CymUCz98Qtl2lU+AYLcsJQEAvlp9zfpWc=
-Date: Wed, 25 Mar 2026 16:32:49 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
-	bpf@vger.kernel.org, arnd@arndb.de, will@kernel.org,
-	peterz@infradead.org, mark.rutland@arm.com, harisokn@amazon.com,
-	cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
-	daniel.lezcano@linaro.org, memxor@gmail.com,
-	zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-	rdunlap@infradead.org, joao.m.martins@oracle.com,
-	boris.ostrovsky@oracle.com, konrad.wilk@oracle.com
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jFUJQFLM"
+Received: by mail-wr1-f51.google.com with SMTP id ffacd0b85a97d-439d8dc4ae4so148470f8f.2
+        for <linux-arch@vger.kernel.org>; Wed, 25 Mar 2026 12:36:13 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1774467372; x=1775072172; darn=vger.kernel.org;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=0xbLSrdYpjpwOAwc60D31b27IF6Zr0PDhPWePECVS50=;
+        b=jFUJQFLMQf3rtZYSyRGu1wRWWlFbMCsKPFtf6gFH+dqAxRQ9ywiUmSJcyT8najtaRM
+         68A+mpPZauHCLvMUXvZJiqU/MRdqDWwexT/6EtNJ2Q9EQpdPLqFq/LDwxEpCz8k3pbCc
+         a5bj/RIsth1DFrirmLypIdsNXBf1DE7faOoA9U/u7ii46ERZYhYg/DC45p9j5zxgYsUD
+         GOKjKoRvF8xgNRS6vD0TYWigpjZPaJf/BOJPyxfee4AaagYSHPVw0VgotUsa2bhEv1Wp
+         S2LKU9qR9jnEEGeGOWiLaaxMi/dpIHD6Yw8Br23Y01sRLnX21CElWkgyaa70jHC6URnF
+         UXFg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1774467372; x=1775072172;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=0xbLSrdYpjpwOAwc60D31b27IF6Zr0PDhPWePECVS50=;
+        b=XWr/vmm2kqaYUicgh7yBqStxgcbCfuhddR7EV8c2tS6+MN0VJIl7BRI0J23zd9KiLB
+         83dspvfnvIlr3oRKp89RJXNdJdOlhI52S1+7y+TpmoAFlixY3Qhrc8DMCeSM0Ny870Mn
+         HzCw+N/FrmZ1cn2i+xJrdDmwlkW9wwec5HRguk8Vj68ukfE2x4D4qojSZ7y1guuS4Epf
+         93KgyQgnRXQnkWuPqnz9PrHs5gJlFk3ebpOdMZAj3266hLQvXIZo9pJQyh4VjBFOFsee
+         Gcb3E8OIeg6YWqO8EvtGSgXltn+COHJCGjwWz0Yi6eDhHKLuU30ZKzkVXSgxHoMEusBA
+         Z42w==
+X-Forwarded-Encrypted: i=1; AJvYcCWDOpYra5+qIe60hommv45XAaAVUHzTsLfT4J3ERLt7OdF3bmSVgrlHQXKoyOxisCWdYdhFctSk+D5p@vger.kernel.org
+X-Gm-Message-State: AOJu0YxZ1kVc1pqQpW13PUqXOfNynXeGzQLzEe2TZlmgMQcMM3SHccZL
+	yn02B5cYzEVRPC+7UDRsvMCk5dKKCx6hJcbc036e6jw2fDUvWBy0ny9Y
+X-Gm-Gg: ATEYQzxyG8SFiAywADn5449x49z8IbGgh7AJ9AMUbavg3MrHRFCqBHjTaDP4+pzyARX
+	t7Dk+x3Azv2XP/iWFHr7c1bW9Z1wBQWKWme2QUkHgJZV1cZXt/F7sZGjbhdVHeMErNL9tfHT2k6
+	0+1nmiaQdYMGpNo11DnR3QLf5RLi57qCHx5uAqMJjrrBf3kaQo7/Lw27ew0DCA6QCTtjsha6nCn
+	gE1muorMcLYOlDktfUEVZOyMXYmkDFOeHXxm3sYsgBI7MgQnKC56pBOM/7QGPrHlJlmcBZz/KAI
+	Fxn6fwZkoURihjSomoySh5P0xop6+NhPrkBI1zclpPDWaXaRa/Ns37ZurwW9Kxyib4E8Ov27unD
+	nE6r3b2ToozUBxcnfSOhzbzHO0TWLp8U/rNblKry4SDOrbd3xFL8a1e1I19nghFtJkO8Qk0sgJu
+	KosjdVxiFxrTeZ/FubVk244WsFkdBrklkxVxOxx7iZp00b+JHN81RSdmomXcV0YsGIwoUa19rkM
+	3I=
+X-Received: by 2002:a5d:5f47:0:b0:43b:8823:c12b with SMTP id ffacd0b85a97d-43b887e6cb0mr7083427f8f.0.1774467371899;
+        Wed, 25 Mar 2026 12:36:11 -0700 (PDT)
+Received: from pumpkin (82-69-66-36.dsl.in-addr.zen.co.uk. [82.69.66.36])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-43b919dfb54sm2097287f8f.31.2026.03.25.12.36.11
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 25 Mar 2026 12:36:11 -0700 (PDT)
+Date: Wed, 25 Mar 2026 19:36:08 +0000
+From: David Laight <david.laight.linux@gmail.com>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Ankur Arora <ankur.a.arora@oracle.com>, Andrew Morton
+ <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org,
+ linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
+ linux-pm@vger.kernel.org, bpf@vger.kernel.org, arnd@arndb.de,
+ will@kernel.org, peterz@infradead.org, mark.rutland@arm.com,
+ harisokn@amazon.com, cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
+ daniel.lezcano@linaro.org, memxor@gmail.com, zhenglifeng1@huawei.com,
+ xueshuai@linux.alibaba.com, rdunlap@infradead.org,
+ joao.m.martins@oracle.com, boris.ostrovsky@oracle.com,
+ konrad.wilk@oracle.com
 Subject: Re: [PATCH v10 00/12] barrier: Add
  smp_cond_load_{relaxed,acquire}_timeout()
-Message-ID: <acQOMZMk0OMfIgFO@arm.com>
+Message-ID: <20260325193608.10e9eca5@pumpkin>
+In-Reply-To: <acQFaVR_bGZU2JmJ@arm.com>
 References: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
- <20260315184925.b6f93386e918ca79614843e3@linux-foundation.org>
- <874imftol4.fsf@oracle.com>
- <20260316233712.7cbfac27@pumpkin>
- <87ms07rlp9.fsf@oracle.com>
- <20260317091705.5a64fc56@pumpkin>
- <acPo7l_pd5rnHpSX@arm.com>
- <20260325154210.79a621df@pumpkin>
+	<20260315184925.b6f93386e918ca79614843e3@linux-foundation.org>
+	<874imftol4.fsf@oracle.com>
+	<20260316233712.7cbfac27@pumpkin>
+	<acQFaVR_bGZU2JmJ@arm.com>
+X-Mailer: Claws Mail 4.1.1 (GTK 3.24.38; arm-unknown-linux-gnueabihf)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260325154210.79a621df@pumpkin>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Wed, Mar 25, 2026 at 03:42:10PM +0000, David Laight wrote:
-> On Wed, 25 Mar 2026 13:53:50 +0000
-> Catalin Marinas <catalin.marinas@arm.com> wrote:
+On Wed, 25 Mar 2026 15:55:21 +0000
+Catalin Marinas <catalin.marinas@arm.com> wrote:
+
+> On Mon, Mar 16, 2026 at 11:37:12PM +0000, David Laight wrote:
+...
+> > For osq_lock(), while an IPI will wake it up, there is also a small timing
+> > window where the IPI can happen before the ldx and so not actually wake up it.
+> > This is true whenever 'expr' is non-trivial.  
 > 
-> > On Tue, Mar 17, 2026 at 09:17:05AM +0000, David Laight wrote:
-> > > On Mon, 16 Mar 2026 23:53:22 -0700
-> > > Ankur Arora <ankur.a.arora@oracle.com> wrote:  
-> > > > David Laight <david.laight.linux@gmail.com> writes:  
-> > > > > On arm64 I think you could use explicit sev and wfe - but that will wake all
-> > > > > 'sleeping' cpu; and you may not want the 'thundering herd'.    
-> > > > 
-> > > > Wouldn't we still have the same narrow window where the CPU disregards the IPI?  
-> > > 
-> > > You need a 'sevl' in the interrupt exit path.  
-> > 
-> > No need to, see the rule below in
-> > https://developer.arm.com/documentation/ddi0487/maa/2983-beijhbbd:
-> > 
-> > R_XRZRK
-> >   The Event Register for a PE is set by any of the following:
-> >   [...]
-> >   - An exception return.
-> > 
+> Hmm, I thought this is fine because of the implicit SEVL on exception
+> return but the arm64 __cmpwait_relaxed() does a SEVL+WFE which clears
+> any prior event, it can wait in theory forever when the event stream is
+> disabled.
+
+Not forever, there will be a timer interrupt in the end.
+
+> Expanding smp_cond_load_relaxed() into asm, we have something like:
 > 
-> It is a shame the pages for the SEV and WFE instructions don't mention that.
-> And the copy I found doesn't have working hyperlinks to any other sections.
-> (Not even references to related instructions...)
+> 	LDR	X0, [PTR]
+> 	condition check for VAL || need_resched() with branch out
+> 	SEVL
+> 	WFE
+> 	LDXR	X1, [PTR]
+> 	EOR	X1, X1, X0
+> 	CBNZ	out
+> 	WFE
+>   out:
+> 
+> If the condition is updated to become true (need_resched()) after the
+> condition check but before the first WFE while *PTR remains unchanged,
+> the IPI won't do anything. Maybe we should revert 1cfc63b5ae60 ("arm64:
+> cmpwait: Clear event register before arming exclusive monitor"). Not
+> great but probably better than reverting f5bfdc8e3947 ("locking/osq: Use
+> optimized spinning loop for arm64")).
 
-The latest architecture spec (M.a.a) has working hyperlinks.
+Could you change the order to:
+	LDR	X0, [PTR]
+	SEVL
+	WFE
+	condition check for VAL || need_resched() with branch out
+	LDXR	X1, [PTR]
+	EOR	X1, X1, X0
+	CBNZ	out
+	WFE
+  out:
 
-> You do need to at least comment that the "msr s0_3_c1_c0_0, %[ecycles]" is
-> actually WFET.
-> Is that using an absolute cycle count?
+that closes the timing window for the interrupt provided the condition
+check doesn't change the event register.
 
-Yes, compared to CNTVCT.
+I must get back to the osq_lock code again.
+I'm happy with the code - the per-cpu data is down to two cpu numbers.
+(Apart from the acquire/release semantics in a few places.)
+But the comments have got out of hand.
+Writing succinct and accurate comments is hard - too verbose and they
+hide too much code.
 
-> If so does it work if the time has already passed?
-
-Yes, it exits immediately. These counters are not going to wrap in our
-(or device's) lifetime.
-
-> If it is absolute do you need to recalculate it every time around the loop?
-
-No but you do need to read CNTVCT, that's what __delay_cycles() does (it
-does not wait).
-
-> __delay_cycles() contains guard(preempt_notrace()). I haven't looked what
-> that does but is it needed here since preemption is disabled?
-
-The guard was added recently by commit e5cb94ba5f96 ("arm64: Fix
-sampling the "stable" virtual counter in preemptible section"). It's
-needed for the udelay() case but probably not for Ankur's series. Maybe
-we can move the guard in the caller?
-
-> Looking at the code I think the "sevl; wfe" pair should be higher up.
-
-Yes, I replied to your other message. We could move it higher indeed,
-before the condition check, but I can't get my head around the ordering.
-Can need_resched() check be speculated before the WFE? I need to think
-some more.
-
-> I also wonder how long it takes the cpu to leave any low power state.
-> We definitely found that was an issue on some x86 cpu and had to both
-> disable the lowest low power state and completely rework some wakeup
-> code that really wanted a 'thundering herd' rather than the very gentle
-> 'bring each cpu out of low power one at a time' that cv_broadcast()
-> gave it.
-
-WFE is a very shallow power state where all hardware state is retained.
-We have an even stream broadcast to all CPUs regularly already (10KHz)
-and I haven't heard people complaining about power degradation. If a CPU
-is a WFI state or even deeper into firmware (following a PSCI call), an
-exclusive monitor event won't wake it up. It's only for those cores
-waiting in WFE.
-
--- 
-Catalin
+	David
