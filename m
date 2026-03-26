@@ -1,32 +1,32 @@
 Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F1123FB7C2;
-	Thu, 26 Mar 2026 15:10:28 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 541D83F9F40;
+	Thu, 26 Mar 2026 15:17:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774537830; cv=none; b=imVhjkXbbOC8k8L4Ny9N/YW+cqZ9lD7uuBqxKknlzTvNOC6bPjWnqruA8XM0RClNw+q24QitYaGh626i9P+n2pgOi5U8COULthTEiO4UICsYsyXssZolz9i8ke1WmRFtXsQpOexScNGKxZVQhJwqhtVw7RT/HLxQQRe5xktThAE=
+	t=1774538261; cv=none; b=iS9uSqGrybl9ApybBrgCZXdKpfg3vGlSvqatjKRBG5IsaXhMnHzJexxNgrAB1oC14k6Zvulx0Q0wAXE55ZMyVbFP4M7V/2XVl/kzgvJKGAWOOiLoagaoDe6x2ONjJbf+IjGLc0D1Kdmq+DRXiPgQmAx/gDKpVfV/zllel851d3w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774537830; c=relaxed/simple;
-	bh=ImpOumTXiHhK2E/RRqtjHi28bu7nryXk7tD/1s0FNio=;
+	s=arc-20240116; t=1774538261; c=relaxed/simple;
+	bh=nkS2FNHvuD93wdW/3Ky4EndgW9Xd2ntRYc4kP5U6umY=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=AnYZkGy4DMYw+F7RS2e0LVSox5U+FDQ/XN60gUzRqT6QAcPcERHspx7JlG9O3pHihtAJmVQJdN/sidLYdo491y/HYvt0apDS302htnXP8KsSEVOjP6YO7r6Fky5voMdeNnxTFldKyWqCfqSTLwGHwCx4V+YMB0ywYj4m1Bp+jrs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=dLLqDI1p; arc=none smtp.client-ip=178.62.254.231
+	 MIME-Version; b=HrlQv1HP3wQEpStw/vhs787H+Lf3M/LFGuMaHiw1+aRVWzpl1Jq6zISDNpBJD3jPrjTmJx+o+fFN+MDs+Utj5cM/upGuvxnG0Vya56SiuFlF0E1rnULeUCP5K+9bzJEwKk/RrCauNF8mFDTJgY2BGzb32Tggstq8YyYAq3zynxY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=MCsPIKTS; arc=none smtp.client-ip=178.62.254.231
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="dLLqDI1p"
+	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="MCsPIKTS"
 Received: from localhost.localdomain (shell.ilvokhin.com [138.68.190.75])
 	(Authenticated sender: d@ilvokhin.com)
-	by mail.ilvokhin.com (Postfix) with ESMTPSA id 9D059BDE1E;
-	Thu, 26 Mar 2026 15:10:21 +0000 (UTC)
+	by mail.ilvokhin.com (Postfix) with ESMTPSA id 2C262BDE11;
+	Thu, 26 Mar 2026 15:10:20 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
-	s=mail; t=1774537822;
-	bh=vg6orVDTPecMi8OeXzXS8oUaQlC99nRHDPvEe4x4LeU=;
+	s=mail; t=1774537820;
+	bh=Jiq9HHreSKv9gJ1OxNDx05z/LXXiM1SwacfPI7vtSKY=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=dLLqDI1p21R53wCA8eob+BVI6XwqXJpZuprXjmvBjW/iBsJ7cf+ADApcxOKpwSyya
-	 A+lKSNgUYnHa1L7n0SzHyd2w1GjjlxWJLI8NECaewbUXU7VVQTj7a3s0E5eKkMk38Z
-	 dNvaBjriNbIT5ix6kJ00hgEddssmRBYJMPY+afno=
+	b=MCsPIKTSM3jO0DE+O7tGH9or4d7RA3oOYgCViVrViC7aFwieHCibxhbFDn+0u4iUu
+	 DxQ5xHMscPKl2VxBrGGVhwNfgbjQ48/yUGPMTAsfUS8AzcUMfc4XCPpvIdDrjm1wi3
+	 9Mcozrt1w+UiGqwn8R8+zaLsj7qE/0Qrbi9uF2aU=
 From: Dmitry Ilvokhin <d@ilvokhin.com>
 To: Peter Zijlstra <peterz@infradead.org>,
 	Ingo Molnar <mingo@redhat.com>,
@@ -57,10 +57,11 @@ Cc: linux-kernel@vger.kernel.org,
 	linux-mm@kvack.org,
 	linux-trace-kernel@vger.kernel.org,
 	kernel-team@meta.com,
-	Dmitry Ilvokhin <d@ilvokhin.com>
-Subject: [PATCH v4 5/5] locking: Add contended_release tracepoint to spinning locks
-Date: Thu, 26 Mar 2026 15:10:04 +0000
-Message-ID: <81eb8e0cd90b31e761e12721dbacb967281f840f.1774536681.git.d@ilvokhin.com>
+	Dmitry Ilvokhin <d@ilvokhin.com>,
+	Usama Arif <usama.arif@linux.dev>
+Subject: [PATCH v4 2/5] locking/percpu-rwsem: Extract __percpu_up_read()
+Date: Thu, 26 Mar 2026 15:10:01 +0000
+Message-ID: <223dd069af9f3395d0044398e7996a98a8c94e5a.1774536681.git.d@ilvokhin.com>
 X-Mailer: git-send-email 2.53.0
 In-Reply-To: <cover.1774536681.git.d@ilvokhin.com>
 References: <cover.1774536681.git.d@ilvokhin.com>
@@ -72,217 +73,76 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Extend the contended_release tracepoint to queued spinlocks and queued
-rwlocks.
-
-Use the arch-overridable queued_spin_release(), introduced in the
-previous commit, to ensure the tracepoint works correctly across all
-architectures, including those with custom unlock implementations (e.g.
-x86 paravirt).
-
-When the tracepoint is disabled, the only addition to the hot path is a
-single NOP instruction (the static branch). When enabled, the contention
-check, trace call, and unlock are combined in an out-of-line function to
-minimize hot path impact, avoiding the compiler needing to preserve the
-lock pointer in a callee-saved register across the trace call.
-
-Binary size impact (x86_64, defconfig):
-  uninlined unlock (common case): +983 bytes  (+0.00%)
-  inlined unlock (worst case):    +58165 bytes (+0.24%)
-
-The inlined unlock case could not be achieved through Kconfig options on
-x86_64 as PREEMPT_BUILD unconditionally selects UNINLINE_SPIN_UNLOCK on
-x86_64. The UNINLINE_SPIN_UNLOCK guards were manually inverted to force
-inline the unlock path and estimate the worst case binary size increase.
-
-Architectures with fully custom qspinlock implementations (e.g.
-PowerPC) are not covered by this change.
+Move the percpu_up_read() slowpath out of the inline function into a new
+__percpu_up_read() to avoid binary size increase from adding a
+tracepoint to an inlined function.
 
 Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
+Acked-by: Usama Arif <usama.arif@linux.dev>
 ---
- include/asm-generic/qrwlock.h   | 48 +++++++++++++++++++++++++++------
- include/asm-generic/qspinlock.h | 18 +++++++++++++
- kernel/locking/qrwlock.c        | 16 +++++++++++
- kernel/locking/qspinlock.c      |  8 ++++++
- 4 files changed, 82 insertions(+), 8 deletions(-)
+ include/linux/percpu-rwsem.h  | 15 +++------------
+ kernel/locking/percpu-rwsem.c | 18 ++++++++++++++++++
+ 2 files changed, 21 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 75b8f4601b28..e24dc537fd66 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -14,6 +14,7 @@
- #define __ASM_GENERIC_QRWLOCK_H
- 
- #include <linux/atomic.h>
-+#include <linux/tracepoint-defs.h>
- #include <asm/barrier.h>
- #include <asm/processor.h>
- 
-@@ -35,6 +36,10 @@
-  */
- extern void queued_read_lock_slowpath(struct qrwlock *lock);
- extern void queued_write_lock_slowpath(struct qrwlock *lock);
-+extern void queued_read_unlock_traced(struct qrwlock *lock);
-+extern void queued_write_unlock_traced(struct qrwlock *lock);
-+
-+DECLARE_TRACEPOINT(contended_release);
- 
- /**
-  * queued_read_trylock - try to acquire read lock of a queued rwlock
-@@ -102,10 +107,16 @@ static inline void queued_write_lock(struct qrwlock *lock)
+diff --git a/include/linux/percpu-rwsem.h b/include/linux/percpu-rwsem.h
+index c8cb010d655e..39d5bf8e6562 100644
+--- a/include/linux/percpu-rwsem.h
++++ b/include/linux/percpu-rwsem.h
+@@ -107,6 +107,8 @@ static inline bool percpu_down_read_trylock(struct percpu_rw_semaphore *sem)
+ 	return ret;
  }
  
- /**
-- * queued_read_unlock - release read lock of a queued rwlock
-+ * queued_rwlock_is_contended - check if the lock is contended
-  * @lock : Pointer to queued rwlock structure
-+ * Return: 1 if lock contended, 0 otherwise
-  */
--static inline void queued_read_unlock(struct qrwlock *lock)
-+static inline int queued_rwlock_is_contended(struct qrwlock *lock)
-+{
-+	return arch_spin_is_locked(&lock->wait_lock);
-+}
++extern void __percpu_up_read(struct percpu_rw_semaphore *sem);
 +
-+static __always_inline void __queued_read_unlock(struct qrwlock *lock)
+ static inline void percpu_up_read(struct percpu_rw_semaphore *sem)
  {
- 	/*
- 	 * Atomically decrement the reader count
-@@ -114,22 +125,43 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+ 	rwsem_release(&sem->dep_map, _RET_IP_);
+@@ -118,18 +120,7 @@ static inline void percpu_up_read(struct percpu_rw_semaphore *sem)
+ 	if (likely(rcu_sync_is_idle(&sem->rss))) {
+ 		this_cpu_dec(*sem->read_count);
+ 	} else {
+-		/*
+-		 * slowpath; reader will only ever wake a single blocked
+-		 * writer.
+-		 */
+-		smp_mb(); /* B matches C */
+-		/*
+-		 * In other words, if they see our decrement (presumably to
+-		 * aggregate zero, as that is the only time it matters) they
+-		 * will also see our critical section.
+-		 */
+-		this_cpu_dec(*sem->read_count);
+-		rcuwait_wake_up(&sem->writer);
++		__percpu_up_read(sem);
+ 	}
+ 	preempt_enable();
  }
- 
- /**
-- * queued_write_unlock - release write lock of a queued rwlock
-+ * queued_read_unlock - release read lock of a queued rwlock
-  * @lock : Pointer to queued rwlock structure
-  */
--static inline void queued_write_unlock(struct qrwlock *lock)
-+static inline void queued_read_unlock(struct qrwlock *lock)
+diff --git a/kernel/locking/percpu-rwsem.c b/kernel/locking/percpu-rwsem.c
+index ef234469baac..f3ee7a0d6047 100644
+--- a/kernel/locking/percpu-rwsem.c
++++ b/kernel/locking/percpu-rwsem.c
+@@ -288,3 +288,21 @@ void percpu_up_write(struct percpu_rw_semaphore *sem)
+ 	rcu_sync_exit(&sem->rss);
+ }
+ EXPORT_SYMBOL_GPL(percpu_up_write);
++
++void __percpu_up_read(struct percpu_rw_semaphore *sem)
 +{
++	lockdep_assert_preemption_disabled();
 +	/*
-+	 * Trace and unlock are combined in the traced unlock variant so
-+	 * the compiler does not need to preserve the lock pointer across
-+	 * the function call, avoiding callee-saved register save/restore
-+	 * on the hot path.
++	 * slowpath; reader will only ever wake a single blocked
++	 * writer.
 +	 */
-+	if (tracepoint_enabled(contended_release)) {
-+		queued_read_unlock_traced(lock);
-+		return;
-+	}
-+
-+	__queued_read_unlock(lock);
-+}
-+
-+static __always_inline void __queued_write_unlock(struct qrwlock *lock)
- {
- 	smp_store_release(&lock->wlocked, 0);
- }
- 
- /**
-- * queued_rwlock_is_contended - check if the lock is contended
-+ * queued_write_unlock - release write lock of a queued rwlock
-  * @lock : Pointer to queued rwlock structure
-- * Return: 1 if lock contended, 0 otherwise
-  */
--static inline int queued_rwlock_is_contended(struct qrwlock *lock)
-+static inline void queued_write_unlock(struct qrwlock *lock)
- {
--	return arch_spin_is_locked(&lock->wait_lock);
-+	/* See comment in queued_read_unlock(). */
-+	if (tracepoint_enabled(contended_release)) {
-+		queued_write_unlock_traced(lock);
-+		return;
-+	}
-+
-+	__queued_write_unlock(lock);
- }
- 
- /*
-diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
-index df76f34645a0..915a4c2777f6 100644
---- a/include/asm-generic/qspinlock.h
-+++ b/include/asm-generic/qspinlock.h
-@@ -41,6 +41,7 @@
- 
- #include <asm-generic/qspinlock_types.h>
- #include <linux/atomic.h>
-+#include <linux/tracepoint-defs.h>
- 
- #ifndef queued_spin_is_locked
- /**
-@@ -129,12 +130,29 @@ static __always_inline void queued_spin_release(struct qspinlock *lock)
- }
- #endif
- 
-+DECLARE_TRACEPOINT(contended_release);
-+
-+extern void queued_spin_release_traced(struct qspinlock *lock);
-+
- /**
-  * queued_spin_unlock - unlock a queued spinlock
-  * @lock : Pointer to queued spinlock structure
-+ *
-+ * Generic tracing wrapper around the arch-overridable
-+ * queued_spin_release().
-  */
- static __always_inline void queued_spin_unlock(struct qspinlock *lock)
- {
++	smp_mb(); /* B matches C */
 +	/*
-+	 * Trace and release are combined in queued_spin_release_traced() so
-+	 * the compiler does not need to preserve the lock pointer across the
-+	 * function call, avoiding callee-saved register save/restore on the
-+	 * hot path.
++	 * In other words, if they see our decrement (presumably to
++	 * aggregate zero, as that is the only time it matters) they
++	 * will also see our critical section.
 +	 */
-+	if (tracepoint_enabled(contended_release)) {
-+		queued_spin_release_traced(lock);
-+		return;
-+	}
- 	queued_spin_release(lock);
- }
- 
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index d2ef312a8611..5f7a0fc2b27a 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -90,3 +90,19 @@ void __lockfunc queued_write_lock_slowpath(struct qrwlock *lock)
- 	trace_contention_end(lock, 0);
- }
- EXPORT_SYMBOL(queued_write_lock_slowpath);
-+
-+void __lockfunc queued_read_unlock_traced(struct qrwlock *lock)
-+{
-+	if (queued_rwlock_is_contended(lock))
-+		trace_contended_release(lock);
-+	__queued_read_unlock(lock);
++	this_cpu_dec(*sem->read_count);
++	rcuwait_wake_up(&sem->writer);
 +}
-+EXPORT_SYMBOL(queued_read_unlock_traced);
-+
-+void __lockfunc queued_write_unlock_traced(struct qrwlock *lock)
-+{
-+	if (queued_rwlock_is_contended(lock))
-+		trace_contended_release(lock);
-+	__queued_write_unlock(lock);
-+}
-+EXPORT_SYMBOL(queued_write_unlock_traced);
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index af8d122bb649..c72610980ec7 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -104,6 +104,14 @@ static __always_inline u32  __pv_wait_head_or_lock(struct qspinlock *lock,
- #define queued_spin_lock_slowpath	native_queued_spin_lock_slowpath
- #endif
- 
-+void __lockfunc queued_spin_release_traced(struct qspinlock *lock)
-+{
-+	if (queued_spin_is_contended(lock))
-+		trace_contended_release(lock);
-+	queued_spin_release(lock);
-+}
-+EXPORT_SYMBOL(queued_spin_release_traced);
-+
- #endif /* _GEN_PV_LOCK_SLOWPATH */
- 
- /**
++EXPORT_SYMBOL_GPL(__percpu_up_read);
 -- 
 2.52.0
 
