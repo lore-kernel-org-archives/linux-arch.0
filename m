@@ -1,32 +1,32 @@
 Received: from mail.ilvokhin.com (mail.ilvokhin.com [178.62.254.231])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 541D83F9F40;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 459171AB6F1;
 	Thu, 26 Mar 2026 15:17:40 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.62.254.231
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774538261; cv=none; b=iS9uSqGrybl9ApybBrgCZXdKpfg3vGlSvqatjKRBG5IsaXhMnHzJexxNgrAB1oC14k6Zvulx0Q0wAXE55ZMyVbFP4M7V/2XVl/kzgvJKGAWOOiLoagaoDe6x2ONjJbf+IjGLc0D1Kdmq+DRXiPgQmAx/gDKpVfV/zllel851d3w=
+	t=1774538262; cv=none; b=l6UoM4RwbSF4o2SEpsYyDCvgdSKu5/f3N86kA19R1iFCdltE+KXzKEdCKb5ET+29mYeHsdAYPrrM9hak4rBlG+qC77f+ND0dCn38OlReS924z6TOreu5rGzghSOvhX/XLMs2ti1MfXwVxBjkItbjV+sLh6AN9P2mzuVMpv/2keo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774538261; c=relaxed/simple;
-	bh=nkS2FNHvuD93wdW/3Ky4EndgW9Xd2ntRYc4kP5U6umY=;
+	s=arc-20240116; t=1774538262; c=relaxed/simple;
+	bh=wf/IZX0UahYcXFFt0JEuOfwqMC51WnMMqOlntG+tTdQ=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=HrlQv1HP3wQEpStw/vhs787H+Lf3M/LFGuMaHiw1+aRVWzpl1Jq6zISDNpBJD3jPrjTmJx+o+fFN+MDs+Utj5cM/upGuvxnG0Vya56SiuFlF0E1rnULeUCP5K+9bzJEwKk/RrCauNF8mFDTJgY2BGzb32Tggstq8YyYAq3zynxY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=MCsPIKTS; arc=none smtp.client-ip=178.62.254.231
+	 MIME-Version; b=pjcAf6Wf5MYaMN+9NLuQSBIdV6pLhYgS4Jgs6X+0A+KC1U974Gcqz42v/F5V7Kb8z0kmxaWZVgzhr/eu8nNoASoKokxZ6WVUTwkj05KAcvOkuUytvE9thzGytRiM6ULHtWC6Ueup3CpZubH8mcNVftC5O1brUmy4744sPi3n/XI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com; spf=pass smtp.mailfrom=ilvokhin.com; dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b=fS1AnZ/H; arc=none smtp.client-ip=178.62.254.231
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ilvokhin.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="MCsPIKTS"
+	dkim=pass (1024-bit key) header.d=ilvokhin.com header.i=@ilvokhin.com header.b="fS1AnZ/H"
 Received: from localhost.localdomain (shell.ilvokhin.com [138.68.190.75])
 	(Authenticated sender: d@ilvokhin.com)
-	by mail.ilvokhin.com (Postfix) with ESMTPSA id 2C262BDE11;
-	Thu, 26 Mar 2026 15:10:20 +0000 (UTC)
+	by mail.ilvokhin.com (Postfix) with ESMTPSA id 21B38BDE1A;
+	Thu, 26 Mar 2026 15:10:21 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ilvokhin.com;
-	s=mail; t=1774537820;
-	bh=Jiq9HHreSKv9gJ1OxNDx05z/LXXiM1SwacfPI7vtSKY=;
+	s=mail; t=1774537821;
+	bh=72ZUqls9X5Zxxy0EgcvU1FGMJtT1EgV5tBxL8foNtm4=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=MCsPIKTSM3jO0DE+O7tGH9or4d7RA3oOYgCViVrViC7aFwieHCibxhbFDn+0u4iUu
-	 DxQ5xHMscPKl2VxBrGGVhwNfgbjQ48/yUGPMTAsfUS8AzcUMfc4XCPpvIdDrjm1wi3
-	 9Mcozrt1w+UiGqwn8R8+zaLsj7qE/0Qrbi9uF2aU=
+	b=fS1AnZ/HQlSe70Ax1fOuyRM8x6rg4qhAT4E8gFsscQUcDFKPsnj2VF77IxipYcdq5
+	 tccXuj0olEgX95inon7/ZI7w82wjSIIhdGV9NUfAXVQn+npzwnxxZFKMTKgFVBPLZZ
+	 6ym8V9XEZznruRazOkrIVPFlXWgY/0r9ml7F0dXE=
 From: Dmitry Ilvokhin <d@ilvokhin.com>
 To: Peter Zijlstra <peterz@infradead.org>,
 	Ingo Molnar <mingo@redhat.com>,
@@ -57,11 +57,10 @@ Cc: linux-kernel@vger.kernel.org,
 	linux-mm@kvack.org,
 	linux-trace-kernel@vger.kernel.org,
 	kernel-team@meta.com,
-	Dmitry Ilvokhin <d@ilvokhin.com>,
-	Usama Arif <usama.arif@linux.dev>
-Subject: [PATCH v4 2/5] locking/percpu-rwsem: Extract __percpu_up_read()
-Date: Thu, 26 Mar 2026 15:10:01 +0000
-Message-ID: <223dd069af9f3395d0044398e7996a98a8c94e5a.1774536681.git.d@ilvokhin.com>
+	Dmitry Ilvokhin <d@ilvokhin.com>
+Subject: [PATCH v4 4/5] locking: Factor out queued_spin_release()
+Date: Thu, 26 Mar 2026 15:10:03 +0000
+Message-ID: <c15d0462f57722aa9e7bd4fd4ec1b48a0420c442.1774536681.git.d@ilvokhin.com>
 X-Mailer: git-send-email 2.53.0
 In-Reply-To: <cover.1774536681.git.d@ilvokhin.com>
 References: <cover.1774536681.git.d@ilvokhin.com>
@@ -73,76 +72,104 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Move the percpu_up_read() slowpath out of the inline function into a new
-__percpu_up_read() to avoid binary size increase from adding a
-tracepoint to an inlined function.
+Introduce queued_spin_release() as an arch-overridable unlock primitive,
+and make queued_spin_unlock() a generic wrapper around it. This is a
+preparatory refactoring for the next commit, which adds
+contended_release tracepoint instrumentation to queued_spin_unlock().
+
+Rename the existing arch-specific queued_spin_unlock() overrides on
+x86 (paravirt) and MIPS to queued_spin_release().
+
+No functional change.
 
 Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
-Acked-by: Usama Arif <usama.arif@linux.dev>
 ---
- include/linux/percpu-rwsem.h  | 15 +++------------
- kernel/locking/percpu-rwsem.c | 18 ++++++++++++++++++
- 2 files changed, 21 insertions(+), 12 deletions(-)
+ arch/mips/include/asm/spinlock.h         |  6 +++---
+ arch/x86/include/asm/paravirt-spinlock.h |  6 +++---
+ include/asm-generic/qspinlock.h          | 15 ++++++++++++---
+ 3 files changed, 18 insertions(+), 9 deletions(-)
 
-diff --git a/include/linux/percpu-rwsem.h b/include/linux/percpu-rwsem.h
-index c8cb010d655e..39d5bf8e6562 100644
---- a/include/linux/percpu-rwsem.h
-+++ b/include/linux/percpu-rwsem.h
-@@ -107,6 +107,8 @@ static inline bool percpu_down_read_trylock(struct percpu_rw_semaphore *sem)
- 	return ret;
+diff --git a/arch/mips/include/asm/spinlock.h b/arch/mips/include/asm/spinlock.h
+index 6ce2117e49f6..c349162f15eb 100644
+--- a/arch/mips/include/asm/spinlock.h
++++ b/arch/mips/include/asm/spinlock.h
+@@ -13,12 +13,12 @@
+ 
+ #include <asm-generic/qspinlock_types.h>
+ 
+-#define	queued_spin_unlock queued_spin_unlock
++#define	queued_spin_release queued_spin_release
+ /**
+- * queued_spin_unlock - release a queued spinlock
++ * queued_spin_release - release a queued spinlock
+  * @lock : Pointer to queued spinlock structure
+  */
+-static inline void queued_spin_unlock(struct qspinlock *lock)
++static inline void queued_spin_release(struct qspinlock *lock)
+ {
+ 	/* This could be optimised with ARCH_HAS_MMIOWB */
+ 	mmiowb();
+diff --git a/arch/x86/include/asm/paravirt-spinlock.h b/arch/x86/include/asm/paravirt-spinlock.h
+index 7beffcb08ed6..ac75e0736198 100644
+--- a/arch/x86/include/asm/paravirt-spinlock.h
++++ b/arch/x86/include/asm/paravirt-spinlock.h
+@@ -49,9 +49,9 @@ static __always_inline bool pv_vcpu_is_preempted(long cpu)
+ 				ALT_NOT(X86_FEATURE_VCPUPREEMPT));
  }
  
-+extern void __percpu_up_read(struct percpu_rw_semaphore *sem);
-+
- static inline void percpu_up_read(struct percpu_rw_semaphore *sem)
+-#define queued_spin_unlock queued_spin_unlock
++#define queued_spin_release queued_spin_release
+ /**
+- * queued_spin_unlock - release a queued spinlock
++ * queued_spin_release - release a queued spinlock
+  * @lock : Pointer to queued spinlock structure
+  *
+  * A smp_store_release() on the least-significant byte.
+@@ -66,7 +66,7 @@ static inline void queued_spin_lock_slowpath(struct qspinlock *lock, u32 val)
+ 	pv_queued_spin_lock_slowpath(lock, val);
+ }
+ 
+-static inline void queued_spin_unlock(struct qspinlock *lock)
++static inline void queued_spin_release(struct qspinlock *lock)
  {
- 	rwsem_release(&sem->dep_map, _RET_IP_);
-@@ -118,18 +120,7 @@ static inline void percpu_up_read(struct percpu_rw_semaphore *sem)
- 	if (likely(rcu_sync_is_idle(&sem->rss))) {
- 		this_cpu_dec(*sem->read_count);
- 	} else {
--		/*
--		 * slowpath; reader will only ever wake a single blocked
--		 * writer.
--		 */
--		smp_mb(); /* B matches C */
--		/*
--		 * In other words, if they see our decrement (presumably to
--		 * aggregate zero, as that is the only time it matters) they
--		 * will also see our critical section.
--		 */
--		this_cpu_dec(*sem->read_count);
--		rcuwait_wake_up(&sem->writer);
-+		__percpu_up_read(sem);
- 	}
- 	preempt_enable();
+ 	kcsan_release();
+ 	pv_queued_spin_unlock(lock);
+diff --git a/include/asm-generic/qspinlock.h b/include/asm-generic/qspinlock.h
+index bf47cca2c375..df76f34645a0 100644
+--- a/include/asm-generic/qspinlock.h
++++ b/include/asm-generic/qspinlock.h
+@@ -115,12 +115,12 @@ static __always_inline void queued_spin_lock(struct qspinlock *lock)
  }
-diff --git a/kernel/locking/percpu-rwsem.c b/kernel/locking/percpu-rwsem.c
-index ef234469baac..f3ee7a0d6047 100644
---- a/kernel/locking/percpu-rwsem.c
-+++ b/kernel/locking/percpu-rwsem.c
-@@ -288,3 +288,21 @@ void percpu_up_write(struct percpu_rw_semaphore *sem)
- 	rcu_sync_exit(&sem->rss);
+ #endif
+ 
+-#ifndef queued_spin_unlock
++#ifndef queued_spin_release
+ /**
+- * queued_spin_unlock - release a queued spinlock
++ * queued_spin_release - release a queued spinlock
+  * @lock : Pointer to queued spinlock structure
+  */
+-static __always_inline void queued_spin_unlock(struct qspinlock *lock)
++static __always_inline void queued_spin_release(struct qspinlock *lock)
+ {
+ 	/*
+ 	 * unlock() needs release semantics:
+@@ -129,6 +129,15 @@ static __always_inline void queued_spin_unlock(struct qspinlock *lock)
  }
- EXPORT_SYMBOL_GPL(percpu_up_write);
-+
-+void __percpu_up_read(struct percpu_rw_semaphore *sem)
+ #endif
+ 
++/**
++ * queued_spin_unlock - unlock a queued spinlock
++ * @lock : Pointer to queued spinlock structure
++ */
++static __always_inline void queued_spin_unlock(struct qspinlock *lock)
 +{
-+	lockdep_assert_preemption_disabled();
-+	/*
-+	 * slowpath; reader will only ever wake a single blocked
-+	 * writer.
-+	 */
-+	smp_mb(); /* B matches C */
-+	/*
-+	 * In other words, if they see our decrement (presumably to
-+	 * aggregate zero, as that is the only time it matters) they
-+	 * will also see our critical section.
-+	 */
-+	this_cpu_dec(*sem->read_count);
-+	rcuwait_wake_up(&sem->writer);
++	queued_spin_release(lock);
 +}
-+EXPORT_SYMBOL_GPL(__percpu_up_read);
++
+ #ifndef virt_spin_lock
+ static __always_inline bool virt_spin_lock(struct qspinlock *lock)
+ {
 -- 
 2.52.0
 
