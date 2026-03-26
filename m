@@ -1,58 +1,61 @@
-Received: from foss.arm.com (foss.arm.com [217.140.110.172])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 7B7441AB6F1;
-	Thu, 26 Mar 2026 15:40:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=217.140.110.172
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0FF53EC2CF;
+	Thu, 26 Mar 2026 15:55:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774539606; cv=none; b=gQyOLnFOJI0qkk1iv0nk9TdWRRxLzZTdxCcao9ziwKMAFPbCHVbgrmP3HwYl4hzgNRVbEAYm8SDgYSsk3N1baWA45lLVKfbpGOfBdCCOygGne2Li6QcfEtG8z7Ndr/263g0gNqulbSr4f+LE1qC9l517VED/JHc6+3g3eXSvt6I=
+	t=1774540552; cv=none; b=MUXoZvELm/Vvxe2rsBtV9y3289LWMdPUaQcWBikDP3PDhC7s15YF3UePrPPNXMjT/15QkA3bCKAnrTjXH2hBBrOA1sV2p3qXXCaKMzdcS+S6mCz5W0kVd4sM61Dp2OxQBR4j6jW5jN81SvXNZ4HOL0/aC/B8EvFw8O6itPGR+lQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774539606; c=relaxed/simple;
-	bh=Q0dXKMwvqUVibjNiOVBckvLKDWg553EueB8+WMLxmc0=;
+	s=arc-20240116; t=1774540552; c=relaxed/simple;
+	bh=qFfgT9iRxpiHtI4D+5sPdo9t8IjEESJzXV9gLaascyc=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=H+FID+MQ6tQkAcPsw42QfmFdE2v2RZOpNGzBLfH2F2D/O/OiSTrvH0/tr9vqXwThJLV8D6kBz8RtYDGRr3SdzVfSu1UCkn1izkgH3Rv4jP7kWiBuVfiTxnd3HOk4mLL4Dbe0NrPn01UpAAMCP5zUpjHPfvwSM29exR41MI3AaT4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com; spf=pass smtp.mailfrom=arm.com; dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b=mc4lcYVY; arc=none smtp.client-ip=217.140.110.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=arm.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=arm.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=p64dsMe3vZllJuBphIapCmd8jCsEHInzN57+5wCEN8UcTDSeXcgfFV+a9jlQLV/HmaxfDpnmYh4dlNYCwZdpQJJtBx9IxMoYsD+UkIlyE429SyioUvaYED6QZcx1oqsVbr6doHLPEK5g/y3Ctzhxd4oTmxsk9XuJUuR0HMZ8n2c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=UiudyLeX; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=arm.com header.i=@arm.com header.b="mc4lcYVY"
-Received: from usa-sjc-imap-foss1.foss.arm.com (unknown [10.121.207.14])
-	by usa-sjc-mx-foss1.foss.arm.com (Postfix) with ESMTP id CD94D1E8D;
-	Thu, 26 Mar 2026 08:39:57 -0700 (PDT)
-Received: from arm.com (usa-sjc-mx-foss1.foss.arm.com [172.31.20.19])
-	by usa-sjc-imap-foss1.foss.arm.com (Postfix) with ESMTPSA id EABDB3F641;
-	Thu, 26 Mar 2026 08:40:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple; d=arm.com; s=foss;
-	t=1774539603; bh=Q0dXKMwvqUVibjNiOVBckvLKDWg553EueB8+WMLxmc0=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=mc4lcYVYUHKT2M7If7nhAWGnZP/hhh3sCwS0HbRbciFw5wsasz3C/I3bFUxD59SRT
-	 XrtbThR6As6fI/3wYPm16LoQDN+8TdK6wkg5JDRXsQ3uXh1fduUKdo504SF8KLGg5M
-	 NI0FNHJR4eVatqynexCUxM4hF5xdex24OOKPoqCQ=
-Date: Thu, 26 Mar 2026 15:39:58 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Ankur Arora <ankur.a.arora@oracle.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, linux-pm@vger.kernel.org,
-	bpf@vger.kernel.org, arnd@arndb.de, will@kernel.org,
-	peterz@infradead.org, mark.rutland@arm.com, harisokn@amazon.com,
-	cl@gentwo.org, ast@kernel.org, rafael@kernel.org,
-	daniel.lezcano@linaro.org, memxor@gmail.com,
-	zhenglifeng1@huawei.com, xueshuai@linux.alibaba.com,
-	rdunlap@infradead.org, joao.m.martins@oracle.com,
-	boris.ostrovsky@oracle.com, konrad.wilk@oracle.com
-Subject: Re: [PATCH v10 00/12] barrier: Add
- smp_cond_load_{relaxed,acquire}_timeout()
-Message-ID: <acVTTmGCZL4QPln2@arm.com>
-References: <20260316013651.3225328-1-ankur.a.arora@oracle.com>
- <20260315184925.b6f93386e918ca79614843e3@linux-foundation.org>
- <874imftol4.fsf@oracle.com>
- <20260316233712.7cbfac27@pumpkin>
- <87ms07rlp9.fsf@oracle.com>
- <20260317091705.5a64fc56@pumpkin>
- <acPo7l_pd5rnHpSX@arm.com>
- <20260325154210.79a621df@pumpkin>
- <acQOMZMk0OMfIgFO@arm.com>
- <20260325202357.3e203314@pumpkin>
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="UiudyLeX"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=HRMNAvoI8/jKpG3++5LCwSufZK5n9g0ksfmeuh3S+yc=; b=UiudyLeXKQzMSbmKfuP/Zq+N8l
+	IJDs6wTduVJKqHnN/f0afsAgOf4cS3xdwL0PxL8RL0k30hz/63Kd87bxVbI800dmZwSpgXXLgzcdL
+	mZR23rCOkayBzyq0F3GOwGI33G02XOgl6IxdMOJpMPmWjEJ1g9uOP9VrQhQ7vg8QHlnKw0NrQ5Pxw
+	epgi4PS1GTbZ3rWTK/n76XLji3ba4JKjQiI5cCMfxp2zEjjtcNaAfb5+0y/W4v+mzzYFViT7Me/KH
+	7H+iItNqVxtGm261E4WxJwf6Sxa4AVIWPLGHUtVHnDmM5EIixAKmj/bzZ6hfNTbbbCLSRJ9laMPxC
+	eIrBO/zA==;
+Received: from willy by casper.infradead.org with local (Exim 4.98.2 #2 (Red Hat Linux))
+	id 1w5n3K-00000000G5w-0Ka1;
+	Thu, 26 Mar 2026 15:55:22 +0000
+Date: Thu, 26 Mar 2026 15:55:21 +0000
+From: Matthew Wilcox <willy@infradead.org>
+To: Dmitry Ilvokhin <d@ilvokhin.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
+	Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>,
+	Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>, Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>, Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
+	linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com
+Subject: Re: [PATCH v4 0/5] locking: contended_release tracepoint
+ instrumentation
+Message-ID: <acVW6eFGwqACD91Y@casper.infradead.org>
+References: <cover.1774536681.git.d@ilvokhin.com>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -61,75 +64,37 @@ List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260325202357.3e203314@pumpkin>
+In-Reply-To: <cover.1774536681.git.d@ilvokhin.com>
 
-On Wed, Mar 25, 2026 at 08:23:57PM +0000, David Laight wrote:
-> On Wed, 25 Mar 2026 16:32:49 +0000
-> Catalin Marinas <catalin.marinas@arm.com> wrote:
+On Thu, Mar 26, 2026 at 03:09:59PM +0000, Dmitry Ilvokhin wrote:
+> The existing contention_begin/contention_end tracepoints fire on the
+> waiter side. The lock holder's identity and stack can be captured at
+> contention_begin time (e.g. perf lock contention --lock-owner), but
+> this reflects the holder's state when a waiter arrives, not when the
+> lock is actually released.
 > 
-> > On Wed, Mar 25, 2026 at 03:42:10PM +0000, David Laight wrote:
-> ...
-> > > Looking at the code I think the "sevl; wfe" pair should be higher up.  
-> > 
-> > Yes, I replied to your other message. We could move it higher indeed,
-> > before the condition check, but I can't get my head around the ordering.
-> > Can need_resched() check be speculated before the WFE? I need to think
-> > some more.
+> This series adds a contended_release tracepoint that fires on the
+> holder side when a lock with waiters is released. This provides:
 > 
-> I don't think speculation can matter.
-> Both SEVL and WFE must be serialised against any other instructions
-> that can change the event flag (as well as each other) otherwise
-> everything is broken.
+> - Hold time estimation: when the holder's own acquisition was
+>   contended, its contention_end (acquisition) and contended_release
+>   can be correlated to measure how long the lock was held under
+>   contention.
+> 
+> - The holder's stack at release time, which may differ from what perf lock
+>   contention --lock-owner captures if the holder does significant work between
+>   the waiter's arrival and the unlock.
 
-Welcome to the Arm memory model. We don't have any guarantee that an LDR
-will only access memory after SEVL+WFE. They are not serialising.
+As someone who's not an expert in this area (so please use short words
+to explain it to me), why do we want to know how long this holder took
+to release the lock from when it became contended?
 
-> Apart from that it doesn't matter, what matters is the instruction
-> boundary the interrupt happens at.
+I understand why we want to know how long any given waiter had to wait
+to gain the lock (but we already have tracepoints which show that).
 
-True. If an interrupt is taken before the LDR (that would be a
-need_resched() check for example), then a prior WFE would not matter.
-This won't work if we replace the IPI with a SEV though (suggested
-somewhere in this thread).
+I also don't understand why we want to know the holder's stack at
+release time.  The stack at contention-begin time will include
+the point at which the lock was acquired which should be correlated
+with where the lock was released.
 
-> Actually both SEVL and WFE may be synchronising instructions and very slow.
-
-Most likely not.
-
-> So you may not want to put them in the fast path where the condition
-> is true on entry (or even true after a retry).
-> So the code might have to look like:
-> 	for (;;) {
-> 		VAL = mem;
-
-If we only waited on the location passed to LDXR, things would have been
-much simpler. But the osq_lock() also wants to wait on the TIF flags via
-need_resched() (and vcpu_is_preempted()).
-
-> 		if (cond(VAL)) return;
-
-So the cond(VAL) here is actually a series of other memory loads
-unrelated to 'mem'
-
-> 		SEVL; WFE;
-> 		if (cond(VAL)) return;
-
-I think this will work in principle even if 'cond' accesses other memory
-locations, though I wouldn't bother with an additional 'cond' call, I'd
-expect SEVL+WFE to be mostly NOPs. However, 'cond' must not set a local
-event, otherwise the power saving on waiting is gone.
-
-> 		v1 = LDX(mem);
-> 		if (v1 == VAL)
-> 			WFE;
-> 	}
-
-I think it's cleaner to use Ankur's timeout API here for the very rare
-case where an IPI hits at the wrong time. We then keep
-smp_cond_load_relaxed() intact as it's really not meant to wait on
-multiple memory locations to change. Any changes of
-smp_cond_load_relaxed() with moving the WFE around are just hacks, not
-the intended use of this API.
-
--- 
-Catalin
+Perhaps examples might help me understand why we want this?
