@@ -1,108 +1,119 @@
-Received: from verein.lst.de (verein.lst.de [213.95.11.211])
+Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.184])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1709257843;
-	Thu, 26 Mar 2026 05:25:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AE1F038AC84
+	for <linux-arch@vger.kernel.org>; Thu, 26 Mar 2026 11:10:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.184
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774502746; cv=none; b=u1b36s9PPLwpVHKoYLJaqBTiNHM8Yi2jNQOK/UvV3QRMo9Co5k4pmKpFjI4MPuV1TUXJuYuEW1vzmBJ820hPIgafA7TzX92e+gKU11Ce/rQ6fP7BjQ0iVagfceHgGS3Pji8rGhPBGFmK1XfKF/P6MdMf82ljHlSyLOrGIIqvJAc=
+	t=1774523421; cv=none; b=HDqMmkLR4N6uGUCkd92i/5oz+nx99Wd2IdyGOlDemKveqfcm+r2SZqEZdDWF7zCCQ+soeLWNFeK8m6sLVJwb1POQ0x/NIJa3pcGIA7NEqtSpL8H4mPOxcaxfmVjW8NHaRkhGFljydoT/Zmtyy3B45yJx+h7d+K9bYkCl7u6ddSE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774502746; c=relaxed/simple;
-	bh=l8j7DWsTgVJlWmZiPw/yr9qIJjdDjTovhcHwfeIQJ8A=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=XituE51K5o5Po+5a8S40cf0W+3kQ7CkGIdinzP93QchZEjwu/7kQ1Y3anz3lZr9moiBnqHVfErpR+dKnUs+GpTHF4WEZhkKnZfpBJHp7x13SizTKfaNlTZCzukKCiN80+jpAxIZkhDIuTZRRfmLBxjEAks3dsLfjw0dtyPth03Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
-Received: by verein.lst.de (Postfix, from userid 2407)
-	id 2636068BEB; Thu, 26 Mar 2026 06:25:38 +0100 (CET)
-Date: Thu, 26 Mar 2026 06:25:37 +0100
-From: Christoph Hellwig <hch@lst.de>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Christoph Hellwig <hch@lst.de>,
+	s=arc-20240116; t=1774523421; c=relaxed/simple;
+	bh=RU0wq9XB/MAwM1WSxurR/DyaG7Wt9DpT1Mu3ktbvqOw=;
+	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
+	 MIME-Version:Content-Type; b=F8LYfRXFNWCi/G+EnW9PZUgq3eEvpOgUR+b1Rncz0t2z2AqJSe8aJsRJ2aQ7SnZpscVwO17V+Cuv13YS4Vy4WRY3AjTKDTgxQ19uJ5xNhIU7ycy42NuWCOVvRlPSLn1/KTHkF3eyWzw9kG77sbQGd6yQA67Sqt0CRPTpUmOyDJU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=oGttYA8/; arc=none smtp.client-ip=195.121.94.184
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="oGttYA8/"
+X-KPN-MessageId: 36136a8e-2904-11f1-afd9-005056994fde
+Received: from mta.kpnmail.nl (unknown [10.31.161.190])
+	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
+	id 36136a8e-2904-11f1-afd9-005056994fde;
+	Thu, 26 Mar 2026 12:09:08 +0100 (CET)
+Received: from mtaoutbound.kpnmail.nl (unknown [10.128.135.190])
+	by mta.kpnmail.nl (Halon) with ESMTP
+	id 3600e017-2904-11f1-99ca-0050569977a2;
+	Thu, 26 Mar 2026 12:09:08 +0100 (CET)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=xs4all.nl; s=xs4all01;
+	h=content-type:mime-version:subject:message-id:to:from:date;
+	bh=FBQEkVriU2wQC8scK1vGpQhIBNeQY+LoczBK8oqaaIQ=;
+	b=oGttYA8/jVRGnNmabXbqO/JnFL/u9KHRZFwiN2Op1XrWQAYwU+IeqRohCe0Cg6eQGlsJbSH55248/
+	 Lub3tVFs/dWvWTJOfsmAnP8gJoMXzx9rrucOqyIcC7vbp6axmM+lZ2GUq2sDxUrSBlmgoJ+LrPsQFd
+	 4M5gd/akuQEJJW257LwDoNpzXljLuRtDZqyui/00c97SUQCZ026zFerTl2XrrLkTHxNV/1/3fqQfRR
+	 w5/8bbVdjws3MeU6OV9qKI4EjidJYw0XB+kNMW+XnNXthAeYjEPER4rVxy3c2l/YXTqO48OrnfI5iw
+	 5PymsZFfUJlb6Rn/JMsHQxu1M9QaKKg==
+X-KPN-MID: 33|DnRppIcvz0vvgRLIHtLFb6wr8BW8Nrya+E6RlY681GJcrLw1+uzD2GsRXRSmn7+
+ MFmaWA03LXeZFR7ym+GV5SL6OR7EZxI3jwPOZTcjhD7I=
+X-CMASSUN: 33|AXbHEZx6/A3wNjLkkM4q5BDLM/E3sHISRdkWlQ4D8he7ebvHl/Ihv7Wjozv0SR1
+ XbhjVVcykIWMYLGeWg/zWOA==
+X-KPN-VerifiedSender: Yes
+Received: from cpxoxapps-mh02 (cpxoxapps-mh02.personalcloud.so.kpn.org [10.128.135.208])
+	by mtaoutbound.kpnmail.nl (Halon) with ESMTPSA
+	id 35ef7f62-2904-11f1-b8d7-005056995d6c;
+	Thu, 26 Mar 2026 12:09:08 +0100 (CET)
+Date: Thu, 26 Mar 2026 12:09:08 +0100 (CET)
+From: Jori Koolstra <jkoolstra@xs4all.nl>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
+	Jeff Layton <jlayton@kernel.org>,
+	Chuck Lever <chuck.lever@oracle.com>,
+	Alexander Aring <alex.aring@gmail.com>,
+	Arnd Bergmann <arnd@arndb.de>,
 	Andrew Morton <akpm@linux-foundation.org>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Sven Schnelle <svens@linux.ibm.com>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	Herbert Xu <herbert@gondor.apana.org.au>,
-	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
-	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
-	Song Liu <song@kernel.org>,
-	Yu Kuai <yukuai@alb-78bjiv52429oh8qptp.cn-shenzhen.alb.aliyuncs.com>,
-	Li Nan <linan122@huawei.com>, linux-kernel@vger.kernel.org,
-	linux-arm-kernel@lists.infradead.org, loongarch@lists.linux.dev,
-	linuxppc-dev@lists.ozlabs.org, linux-riscv@lists.infradead.org,
-	linux-s390@vger.kernel.org, linux-crypto@vger.kernel.org,
-	linux-btrfs@vger.kernel.org, linux-arch@vger.kernel.org,
-	linux-raid@vger.kernel.org
-Subject: Re: [PATCH 02/17] raid6: remove __KERNEL__ ifdefs
-Message-ID: <20260326052537.GA23044@lst.de>
-References: <20260324064115.3217136-1-hch@lst.de> <20260324064115.3217136-3-hch@lst.de> <59d1d178-c141-4229-81e9-a6c23fa81f2f@zytor.com> <fa11e4d3-1c70-4fa7-9f03-8772c002be6a@zytor.com> <20260325195821.GD2305@quark>
+	"Liam R . Howlett" <Liam.Howlett@oracle.com>,
+	Mike Rapoport <rppt@kernel.org>,
+	David Hildenbrand <david@redhat.com>,
+	Lorenzo Stoakes <ljs@kernel.org>,
+	zhang jiao <zhangjiao2@cmss.chinamobile.com>,
+	Kees Cook <kees@kernel.org>, Penglei Jiang <superman.xpt@gmail.com>,
+	Ethan Tidmore <ethantidmore06@gmail.com>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Suren Baghdasaryan <surenb@google.com>,
+	Vlastimil Babka <vbabka@kernel.org>,
+	wangzijie <wangzijie1@honor.com>, NeilBrown <neil@brown.name>,
+	Amir Goldstein <amir73il@gmail.com>,
+	Mateusz Guzik <mjguzik@gmail.com>, linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	Namjae Jeon <linkinjeon@kernel.org>
+Message-ID: <95547355.15637.1774523348666@kpc.webmail.kpnmail.nl>
+In-Reply-To: <2026032403-slapstick-anvil-a68e@gregkh>
+References: <20260323220029.765874-1-jkoolstra@xs4all.nl>
+ <20260323220029.765874-2-jkoolstra@xs4all.nl>
+ <2026032403-slapstick-anvil-a68e@gregkh>
+Subject: Re: [PATCH] vfs: transitive upgrade restrictions for fds
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260325195821.GD2305@quark>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-Priority: 3
+Importance: Normal
 
-On Wed, Mar 25, 2026 at 12:58:21PM -0700, Eric Biggers wrote:
-> While I do like developing code in userspace as well, I've been doing it
-> less over time as the kernel's tests and benchmarks have been improved.
-> Running the KUnit tests is pretty straightforward and fast.
 
-Yes.  I would have totally subscribed to hpa's position when he initially
-wrote the code, but 20+ years later things look different.  In fact these
-days I often write code intended for userspace in the kernel first to
-benefit from lockdep primarily, but also other checkers that are in theory
-available in userspace but as easy to use.  Now of course lockdep doesn't
-really matter for the algorithms here, but the rest still stands.
-
-I also find the point of developing new code for new platforms
-interesting: in this decade we had two new platforms added: loongarch
-and riscv and all other changes were to the wiring up and not the
-algorithms.  And of those riscv only had the compile in userspace
-support added 8 month after the algorithm, so it doesn't really look
-like development was aided by it.  We also plan to add new optimized
-code, and getting the library in shape and dropping the hard to
-maintain userspace code is actually prep work for making that not
-painful.
-
+> Op 24-03-2026 15:37 CET schreef Greg KH <gregkh@linuxfoundation.org>:
 > 
-> The issues with providing userspace build support in the tree are that:
+> Any chance to get a test for this as well to know if this keeps working
+> (or works at all)?
 > 
-> - It has to be maintained.
-> - It's fundamentally a bit of a hack that is used only by developers
->   (who always have the option of doing something locally that is
->   tailored to the specific function they're working on)
-> - It diverts effort from the kernel's actual test and benchmark.
-> 
-> So while the faster iteration speed that userspace development enables
-> is definitely nice, I do think we should be cautious with committing to
-> maintain it in the kernel tree.  If it's causing problems for the
-> ongoing refactoring, dropping it for now seems reasonable to me.
-> 
-> I would suggest adding a benchmark to the KUnit test similar to the
-> crypto and CRC ones, though.
 
-The code already has a benchmark used for runtime selection, although
-that could be improved on and run for bigger data sets from kunit.
+I do have some tests, can shape them up a bit so that they may go in selftest
+(if this fd stuff goes through). How should I do this? Send all as a v2, or
+inline it as a response here?
 
+> >  /*
+> >   * Helper to directly jump to a known parsed path from ->get_link,
+> >   * caller must have taken a reference to path beforehand.
+> >   */
+> > -int nd_jump_link(const struct path *path)
+> > +int nd_jump_link_how(const struct path *path, const struct jump_how how)
+> 
+> Shouldn't that be "const struct jump_how *how"?
+> 
+> Or do you really want to pass this structure on the stack?
+> 
+
+I save a pointer indirection, and jump_how is right now just an int. That was
+at least my reasoning here.
+
+> thanks,
+> 
+> greg k-h
+
+Thanks,
+Jori.
