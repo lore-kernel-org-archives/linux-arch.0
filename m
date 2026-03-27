@@ -1,64 +1,65 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C294E3D5679;
-	Fri, 27 Mar 2026 08:25:45 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ECA903DFC97;
+	Fri, 27 Mar 2026 10:38:02 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774599945; cv=none; b=UyYDVKVNF14D5NJe3YtGBSwBdpO7fS4rlzIeyi2DjXjThnw8JGlCrcD3XDMgYEgMz2vmm9b5FBiSEvQ/fX7k24Om0resbtUoEpCh8+oWfUsgmRz7cjdBuHy6XAe5V/pyCa9NcZvOgQdxHfUEdHBEKxMBuWEt0BEkLKAVYBYbgXk=
+	t=1774607883; cv=none; b=Fl8IioELvKr59bult23dB9D8/ar+awxApEyqe6xvAKHiSHAeLGADuByF4ya/i6dPlPYaIftkSrtTYixiAqFEDf+/g/5AJ96atdSbCqBqYN8ocToKt6w2nl+KtmWwh5ik5ZLq2qd/GEeKfiIyzYV9c5tp+LQPW+gR0GoJB1I9BD8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774599945; c=relaxed/simple;
-	bh=oGcTlThlcrf/a6X6Pba0yaQBbOhK2gU5HD6vMRqLYbw=;
+	s=arc-20240116; t=1774607883; c=relaxed/simple;
+	bh=fO1n3N31Hq1DYtmMY0Uiqq1O7a3QRkcXqeW2ikYyR7Y=;
 	h=MIME-Version:Date:From:To:Cc:Message-Id:In-Reply-To:References:
-	 Subject:Content-Type; b=IsqpKkyZvpr6+4JsNjEYRr2MtEzPXN58z4MImpmKH9HW98/oeXoQTySGqe37RQy98tsO5cJkFSoi+2I4UV9zcWdN7zHa1JJpVHwBIMp6ub4VYLNfweUTNM1SRotdtG516KSUB+jHabfbsI9vRc+uViODIEEBOOfiNRRWNzQF7qA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=njQORTNY; arc=none smtp.client-ip=10.30.226.201
+	 Subject:Content-Type; b=c3pfM21xxk2AhAm2xcTy8IYzy8SZ9iQFrKSMIX12nIOX6KrLCEY1ySuiVnOkWFG74it6VjiGawTJg9q1WAY4eg1eJILjVMlQBKInhOQJtIjmKzqxPNTDLeJ5UEnopUWkdoevdEhh3wuhMGID96tWgHl/PfOLT1uk2UmsNieGud0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=qCwEdbTg; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="njQORTNY"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 8D9BEC4AF0C;
-	Fri, 27 Mar 2026 08:25:44 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="qCwEdbTg"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id D57E8C2BCB2;
+	Fri, 27 Mar 2026 10:38:01 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1774599945;
-	bh=oGcTlThlcrf/a6X6Pba0yaQBbOhK2gU5HD6vMRqLYbw=;
+	s=k20201202; t=1774607882;
+	bh=fO1n3N31Hq1DYtmMY0Uiqq1O7a3QRkcXqeW2ikYyR7Y=;
 	h=Date:From:To:Cc:In-Reply-To:References:Subject:From;
-	b=njQORTNYseBfNIOCfwhdeA9ppWJ7maUSfI1m29FCLMsOAc3VLwzoUH5yF8yKr6mea
-	 bx+1V7DTQAZd4ojLaeGJ0Cf3haex4YnlcYGkJc6gqWpYVE6NyhljsbVP0BA8rn4ocl
-	 th3E+L/MxnnFaA65UP+0OZlA+Vah5cD2+QCQtpMoLgNIFhCA8eqtKOZpCOxJlAkmXg
-	 mk+TUk0Rtz4vIo7JSvIUgAmQeWqKyPfMFemVWMOZXJJwErSg1qzGGRRVp3lXzBSaJ8
-	 C68setmayjda5hFti2rXgLBBjXsEJfs82WxkzWojyXlsFObrjk5392Uz/bQO/irUHV
-	 e65UQpbwEdk/A==
+	b=qCwEdbTgrh8bxOunAXuZdrx4mWOGRxracbAbuzH+pFV0mDnwqOC6zcn4PkI7HFwkH
+	 Rdk63A+zqJxr+mmDIZ+nSAoV6xlgf4rY3E3kYHR8xLz+VuOcyBC2p/zI+iNGAbg0KO
+	 y25j8+eVyh0HojSnqr+yvp5T3l9+/db495LAkZ3KOkHWN9GU2oOoS9p+YAmx8uwMsz
+	 vKJSFXk+UWrAV+Jm4OdjQcmd7F14ukkYW+8nV+O/gnHBrfPEkSz8oL/WLoufyfoEt6
+	 RSzHHOkNjJQCpGP8ojjbrQTzW4+mjG19MGB7UIb/mSVRqf2mSL5fbviYlWHaRSH+pj
+	 ErJcCll8Tx00w==
 Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailfauth.phl.internal (Postfix) with ESMTP id 6F5B9F4006E;
-	Fri, 27 Mar 2026 04:25:43 -0400 (EDT)
+	by mailfauth.phl.internal (Postfix) with ESMTP id A301CF4007B;
+	Fri, 27 Mar 2026 06:38:00 -0400 (EDT)
 Received: from phl-imap-02 ([10.202.2.81])
-  by phl-compute-01.internal (MEProxy); Fri, 27 Mar 2026 04:25:43 -0400
-X-ME-Sender: <xms:Bz_GaeV3zNaSpHJHySYxTNOI14Bf1EmJgTqGji8Tx6XrdR-ly4fPVA>
-    <xme:Bz_GaVaecSFZVaUx_LS_q-dDchW3x2ph_U-FNZZvjkVa-2Cbgvi2qQJJQEWm1pEen
-    o2Nmsvazvbril7mJ2bFLAHoL0kR_6ydzStl4XH8vMJ4O7DQEb3zgw>
-X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgdefvdelkedtucetufdoteggodetrf
+  by phl-compute-01.internal (MEProxy); Fri, 27 Mar 2026 06:38:00 -0400
+X-ME-Sender: <xms:CF7GabpHu3v_u6fV8V_mdHz6sop4veHr9gldlSZav8Jy0ecQbG2kZg>
+    <xme:CF7GaQd6NTiStA_nuMJRyzxc--HbkJ0S1s7E49JLyq7o3XAbvBcTAa2AznFEPZAEY
+    OUf40tcUbSe7ZiR4cCBxK1pUd7gZu4raTVHGizBZPvHpJbXfFxNKA>
+X-ME-Proxy-Cause: gggruggvucftvghtrhhoucdtuddrgeefgedrtddtgdeffedttdeiucetufdoteggodetrf
     dotffvucfrrhhofhhilhgvmecuhfgrshhtofgrihhlpdfurfetoffkrfgpnffqhgenuceu
     rghilhhouhhtmecufedttdenucesvcftvggtihhpihgvnhhtshculddquddttddmnecujf
     gurhepofggfffhvfevkfgjfhfutgfgsehtjeertdertddtnecuhfhrohhmpedftehrugcu
     uehivghshhgvuhhvvghlfdcuoegrrhgusgeskhgvrhhnvghlrdhorhhgqeenucggtffrrg
-    htthgvrhhnpedvueehiedtvedtleekuddutefgffdtleetfeetveejveejieehfefhjeei
-    jeefudenucevlhhushhtvghrufhiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpe
-    grrhguodhmvghsmhhtphgruhhthhhpvghrshhonhgrlhhithihqdduieejtdehtddtjeel
-    qdeffedvudeigeduhedqrghruggspeepkhgvrhhnvghlrdhorhhgseifohhrkhhofhgrrh
-    gurdgtohhmpdhnsggprhgtphhtthhopeehtddpmhhouggvpehsmhhtphhouhhtpdhrtghp
-    thhtohepsghpsegrlhhivghnkedruggvpdhrtghpthhtoheptggrthgrlhhinhdrmhgrrh
-    hinhgrshesrghrmhdrtghomhdprhgtphhtthhopehlihhnuhigsegrrhhmlhhinhhugidr
-    ohhrghdruhhkpdhrtghpthhtoheprghrnhgusegrrhhnuggsrdguvgdprhgtphhtthhope
-    grnhhtohhnrdhivhgrnhhovhestggrmhgsrhhiughgvghgrhgvhihsrdgtohhmpdhrtghp
-    thhtohepphgrlhhmvghrsegurggssggvlhhtrdgtohhmpdhrtghpthhtohepuggrvhgvmh
-    esuggrvhgvmhhlohhfthdrnhgvthdprhgtphhtthhopegrohhusegvvggtshdrsggvrhhk
-    vghlvgihrdgvughupdhrtghpthhtohepmhhpvgesvghllhgvrhhmrghnrdhiugdrrghu
-X-ME-Proxy: <xmx:Bz_GadcJkX20GupXEUp-1Bp1i56g4LWcqwmuAAUTXMfU5fJkgo7Tdw>
-    <xmx:Bz_Gae4Ua-AeB83mS_pFrGVbAUqLQoAnmgxrDbHOol1S2B-duVR5XQ>
-    <xmx:Bz_GaRnLH2iPqmlmio84hLTWA0CS_wnMOI2-h11M3d92fo7SmGfrqA>
-    <xmx:Bz_GaUbPhoo7c5hIYcd0gM0CfIgT0rg3SwoJSuxv9v4EumISMkIDVQ>
-    <xmx:Bz_GafNBX4aAxc6vxqjfi2htd4zy-WLnaQnlHHZvUG3bWFOqd9K8W1h7>
+    htthgvrhhnpeetgedvtddttdeuffegvdefgffgteeiueejuefhjefhvdekkeelkeduteej
+    tdetheenucffohhmrghinhepihhnfhhrrgguvggrugdrohhrghenucevlhhushhtvghruf
+    hiiigvpedtnecurfgrrhgrmhepmhgrihhlfhhrohhmpegrrhguodhmvghsmhhtphgruhht
+    hhhpvghrshhonhgrlhhithihqdduieejtdehtddtjeelqdeffedvudeigeduhedqrghrug
+    gspeepkhgvrhhnvghlrdhorhhgseifohhrkhhofhgrrhgurdgtohhmpdhnsggprhgtphht
+    thhopeehtddpmhhouggvpehsmhhtphhouhhtpdhrtghpthhtohepsghpsegrlhhivghnke
+    druggvpdhrtghpthhtoheptggrthgrlhhinhdrmhgrrhhinhgrshesrghrmhdrtghomhdp
+    rhgtphhtthhopehlihhnuhigsegrrhhmlhhinhhugidrohhrghdruhhkpdhrtghpthhtoh
+    eprghrnhgusegrrhhnuggsrdguvgdprhgtphhtthhopegrnhhtohhnrdhivhgrnhhovhes
+    tggrmhgsrhhiughgvghgrhgvhihsrdgtohhmpdhrtghpthhtohepphgrlhhmvghrsegurg
+    gssggvlhhtrdgtohhmpdhrtghpthhtohepuggrvhgvmhesuggrvhgvmhhlohhfthdrnhgv
+    thdprhgtphhtthhopegrohhusegvvggtshdrsggvrhhkvghlvgihrdgvughupdhrtghpth
+    htohepmhhpvgesvghllhgvrhhmrghnrdhiugdrrghu
+X-ME-Proxy: <xmx:CF7Gaf8IJi0YURc1_Z-7XWWce32KTLQg0MgtSGjpDXebCVP8kjF1fg>
+    <xmx:CF7GaVb8rMguERdYH-uRjKmkbehDdibFJGzRPHkCAhl6T7z96o-pOw>
+    <xmx:CF7GaT-UHcu4LVpMMMFSjx_B0drCWxBBuaJzaeFjOkwZfnBqfgZ5rQ>
+    <xmx:CF7GafjVFP_InYrNfGUVD88lIgjoTxwR9RfXopF528_clTsktrNsYQ>
+    <xmx:CF7GaTly7jF5GPkZNeohixA93ZcJ20A7YlVUFe0lo5TI87Fbt8LPFZOZ>
 Feedback-ID: ice86485a:Fastmail
 Received: by mailuser.phl.internal (Postfix, from userid 501)
-	id 3B247700065; Fri, 27 Mar 2026 04:25:43 -0400 (EDT)
+	id 6D4BB700065; Fri, 27 Mar 2026 06:38:00 -0400 (EDT)
 X-Mailer: MessagingEngine.com Webmail Interface
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -66,8 +67,8 @@ List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-X-ThreadId: ALG_cRBuf6HF
-Date: Fri, 27 Mar 2026 09:25:22 +0100
+X-ThreadId: AUjF8VgfYQMk
+Date: Fri, 27 Mar 2026 11:37:39 +0100
 From: "Ard Biesheuvel" <ardb@kernel.org>
 To: "Christoph Hellwig" <hch@lst.de>,
  "Andrew Morton" <akpm@linux-foundation.org>
@@ -110,28 +111,87 @@ Cc: "Richard Henderson" <richard.henderson@linaro.org>,
  sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
  linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
  linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
-Message-Id: <e7979928-b33a-4132-b08b-d95b91b14295@app.fastmail.com>
-In-Reply-To: <20260327061704.3707577-4-hch@lst.de>
+Message-Id: <b5edd377-423f-4837-a622-ad78654811c4@app.fastmail.com>
+In-Reply-To: <20260327061704.3707577-1-hch@lst.de>
 References: <20260327061704.3707577-1-hch@lst.de>
- <20260327061704.3707577-4-hch@lst.de>
-Subject: Re: [PATCH 03/28] arm64/xor: fix conflicting attributes for xor_block_template
+Subject: Re: cleanup the RAID5 XOR library v4
 Content-Type: text/plain
 Content-Transfer-Encoding: 7bit
 
 
+
 On Fri, 27 Mar 2026, at 07:16, Christoph Hellwig wrote:
-> Commit 2c54b423cf85 ("arm64/xor: use EOR3 instructions when available")
-> changes the definition to __ro_after_init instead of const, but failed to
-> update the external declaration in xor.h.  This was not found because
-> xor-neon.c doesn't include <asm/xor.h>, and can't easily do that due to
-> current architecture of the XOR code.
+> Hi all,
+>
+> the XOR library used for the RAID5 parity is a bit of a mess right now.
+> The main file sits in crypto/ despite not being cryptography and not
+> using the crypto API, with the generic implementations sitting in
+> include/asm-generic and the arch implementations sitting in an asm/
+> header in theory.  The latter doesn't work for many cases, so
+> architectures often build the code directly into the core kernel, or
+> create another module for the architecture code.
+>
+> Changes this to a single module in lib/ that also contains the
+> architecture optimizations, similar to the library work Eric Biggers
+> has done for the CRC and crypto libraries later.  After that it changes
+> to better calling conventions that allow for smarter architecture
+> implementations (although none is contained here yet), and uses
+> static_call to avoid indirection function call overhead.
+>
+> A git tree is also available here:
+>
+>     git://git.infradead.org/users/hch/misc.git xor-improvements
+>
+> Gitweb:
+>
+>     
+> https://git.infradead.org/?p=users/hch/misc.git;a=shortlog;h=refs/heads/xor-improvements
+>
+> Changes since v3:
+>  - switch away from lockdep_assert_preemption_enabled() again
+>  - fix a @ reference in a kerneldoc comment.
+>  - build the arm4regs implementation also without kernel-mode neon
+>    support
+>  - fix a pre-existing issue about mismatched attributes on arm64's
+>    xor_block_inner_neon
+>  - reject 0-sized xor request and adjust the kunit test case to not
+>    generate them
+>
+> Changes since v2:
+>  - drop use of CONFIG_KERNEL_MODE_NEON for arm64
+>  - drop the new __limit_random_u32_below for the unit test
+>  - require 64-bit alignment because sparc64 requires it
+>  - use DEFINE_STATIC_CALL_NULL to avoid exposing a specific xor_gen
+>    routine
+>  - keep CONFIG_XOR_BLOCKS_ARCH self-contained in lib/raid/
+>  - don't select library option from kunit test and add a .kunitconfig
+>    instead
+>  - fix the module description for the kunit test
+>  - add a case where buffers are at the end of the allocation in the kunit test
+>  - use separate src/dst alignment in the kunit test
+>  - fix and improve the kunit assert message
+>
+> Changes since v1:
+>  - use lockdep_assert_preemption_enabled()
+>  - improve the commit message for the initial um xor.h cleanup
+>  - further clean up the um arch specific header
+>  - add SPDX identifier to the new build system files
+>  - use bool for xor_forced
+>  - fix an incorrect printk level conversion from warn to info
+>  - include xor_impl.h in xor-neon.c
+>  - remove unused exports for riscv
+>  - simply move the sparc code instead of splititng it
+>  - simplify the makefile for the x86-specific implementations
+>  - remove stray references to xor_blocks in crypto/async_tx
+>  - rework __DO_XOR_BLOCKS to avoid (theoretical) out of bounds references
+>  - improve the kerneldoc API documentration for xor_gen()
+>  - spell the name of the srcs argument to xor_gen correctly in xor.h
+>  - add a kunit test, and a new random helper for it.
 >
 
-Even if it did, it wouldn't matter - __ro_after_init has no effect on declarations, only on definitions - it only controls the placement of the object in the .data..ro_after_init section (and declarations don't generate any code)
+For the series,
 
-> Fixes: 2c54b423cf85 ("arm64/xor: use EOR3 instructions when available")
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  arch/arm64/include/asm/xor.h | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
->
+Acked-by: Ard Biesheuvel <ardb@kernel.org>
+
+As discussed, arm64 and ARM can share the NEON intrinsics implementation, which would allow for a bit of cleanup as well. I'll follow up with some patches based on this series.
+
