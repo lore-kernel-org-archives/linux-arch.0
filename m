@@ -1,31 +1,31 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D46B337C931;
-	Fri, 27 Mar 2026 17:55:55 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F4B22D7DC4;
+	Fri, 27 Mar 2026 18:06:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774634155; cv=none; b=PuuikJkM0v9KoZrITbwf92lSOINMtchU3i/CqNKdSPFT32UKKVPTCn+ky9F3FIHqj04DVAdDKm/D88Q9kjRivhc+VqJRlRNQ0CxXxBbCK5IawCQFlzWhd3zaUwla6SnzXRITqRk8oikhUEDVCsPesKuZTm1YIYqAk1T9IzY/cuY=
+	t=1774634771; cv=none; b=MNTosP00n5kcTHKeXC61gj98YJ5HPdKgTasMu+M30g8z7nF7RBRD8zZW76KF2hEyV/EgcTj0zMUicgFOU9ao4fi3ba0J5WCK8MR7Em555ikaeuO4hd5Gecpw8WlrPdJdWD4Ek4L21H0JcycbhB/aQRfwUdf7tL7KTkVGasXTwRU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774634155; c=relaxed/simple;
+	s=arc-20240116; t=1774634771; c=relaxed/simple;
 	bh=ExYu4MocTJ/m1GTF+9uD6AaFYfgRkiFOMtaD+oQsvJw=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=oAG0ez7xU56u729/0vrsjcG+W42+Pq/fUgTY2998WL/iZxH8rAsiaUzU6c2pM8ibxYF0oD/463IQmOxKMGKb8dOYhAlUYwSH93TUYN8dLKZywub8KFCOvWFZSMDfC88gqB1WASQSG8HbMgOKdOV3j9teEOLIAUVNg9nOFOCxCXI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=af1Wo0Zt; arc=none smtp.client-ip=10.30.226.201
+	 MIME-Version:Content-Type; b=Up+OyCCJYxRxWEw7E8yi3WhONYqr/R3bZgJifO6DR8XUsk7pHMH53cvSPnsn7twNINqv11YcN/qfT5q87zV12esa1DTnR2NTSf+DMBIPQQymU4DDa0R/TS1Rhvboq/wy4jor1eAjAPi6FUnNMIPSbDEpOOgdARrzOaVbBHTbZcc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=rK8ANFM4; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="af1Wo0Zt"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id C3CE0C19423;
-	Fri, 27 Mar 2026 17:55:52 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="rK8ANFM4"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0EB19C19424;
+	Fri, 27 Mar 2026 18:06:07 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1774634155;
+	s=k20201202; t=1774634770;
 	bh=ExYu4MocTJ/m1GTF+9uD6AaFYfgRkiFOMtaD+oQsvJw=;
 	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
-	b=af1Wo0ZtuO6MYBGrbihyFM0Wl2bpxPl4QrLEWLsCVRXyqTrC2m9luHH3f79eoCncd
-	 ATH97Q8I+CX0cMh45LGrN2UIEJIbanfJTaNqADDLTHRAOfXyJJtmVRLgTwx2AmXOM7
-	 oQV2YcTkYNG/z21ZEdDAgxZPoY4+z7qnPERyrgtcUZ4locVAgvc5hq7bvkaWgiDxTj
-	 mfM8W+SXAjeG+KuF8Ve3yOoG4SZeUm1jIL+Gb7f91RNIX0BJpn4p/N9PshUWy7/pY0
-	 w2aqOQRR+cTkE2M9UGAk7woUZBBny7ungDcY/1lEwNXJRCn168vWJnk79+IpK5THIl
-	 Yca2wiOv+tblQ==
+	b=rK8ANFM4BAL1hIC9sfKsJYzdwehNcOzQwqOMlalkfUfOIXWFry+LU0YGXCGaxOY3u
+	 X44QjXE9SH3Mjg7RhVZ2o2P0qQfdTrNKl2hfdMRMNwSvjcCGGakOe6uir5CBdr0xnK
+	 zWcVKB3G5/MEho8UFNtdmtwsvkyaXNQki52Ut3AvGYC0y+8c7OSjFSjWlH2VqODF93
+	 10KWWpL0yDLRu3N7trRaVbN1uylhI8qc46grthBUg693owEBaLQWvKHKj0ZTvQK+Ri
+	 hu0m0bmyiusF+Sdo2sw/Qgd2SY3kVhZRlHdIalsYRIbk23k2NfVf23jRaBe8I9P6zV
+	 wL7ezdmXggvTA==
 From: Daniel Lezcano <daniel.lezcano@kernel.org>
 To: daniel.lezcano@kernel.org,
 	tglx@kernel.org,
@@ -42,12 +42,12 @@ Cc: shawnguo@kernel.org,
 	Arnd Bergmann <arnd@arndb.de>,
 	Stephen Boyd <sboyd@kernel.org>,
 	linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/ASM HEADER FILES)
-Subject: [PATCH v1 1/7] clocksource/drivers/timer-probe: Create a platform_device before the framework is initialized
-Date: Fri, 27 Mar 2026 18:55:22 +0100
-Message-ID: <20260327175533.3044-2-daniel.lezcano@kernel.org>
+Subject: [PATCH resend v1 1/7] clocksource/drivers/timer-probe: Create a platform_device before the framework is initialized
+Date: Fri, 27 Mar 2026 19:05:53 +0100
+Message-ID: <20260327180600.8150-2-daniel.lezcano@kernel.org>
 X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260327175533.3044-1-daniel.lezcano@kernel.org>
-References: <20260327175533.3044-1-daniel.lezcano@kernel.org>
+In-Reply-To: <20260327180600.8150-1-daniel.lezcano@kernel.org>
+References: <20260327180600.8150-1-daniel.lezcano@kernel.org>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
