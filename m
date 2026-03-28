@@ -1,39 +1,65 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f44.google.com (mail-ed1-f44.google.com [209.85.208.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C84E3330650
-	for <linux-arch@vger.kernel.org>; Sat, 28 Mar 2026 15:15:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6D43939FCE
+	for <linux-arch@vger.kernel.org>; Sat, 28 Mar 2026 16:47:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774710952; cv=none; b=JkXDqTuHBBnvaVvWid4vgChKHj1p/tR2+Qs3AFUcjyMugE9du9mxrrXLwID1xyEYUf3ptafBYy8fIuP63pkeWeKfAfmiG7ouySX4CUsPGK8LZdWhtwOe/FEa8k4lchLGAhIC3wtWI/4eUVD6syt09UAR7fPpOVDOvmFjtKLHl4o=
+	t=1774716435; cv=none; b=HtTyBgivkEnkGthwf6c2qg4OIoypGXGXRINffXSh8YXxEnZi/Qgr6Ea+ftV9bs5bKoBav2Or/Fu5+oJ8cb0rMFeCrlhj+XgoDMctzEqTmqvm+YPKsB3j7ECUxJh/zQFua9v16YZviJUP+2iRVL0E9yc2Leamn0A+aJ7w0on3svA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774710952; c=relaxed/simple;
-	bh=M5v2YKLGoSwtpfgdVhTIfMqhFC8EhARAr+bEGNbA/tY=;
+	s=arc-20240116; t=1774716435; c=relaxed/simple;
+	bh=cySVpRVpoqgpj3Rv4lt8Q3EwaRu67POoOOiL6/gvItE=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=UHmEw+EYUKvU7q1i5Jluj/dQiHhlqiZjmlMwdlk0NTl+sRtJpsgy3fmAsreTpkb4HbO5Ud4IKG230oWNX6Qc3wyClz4ARVLu/sm0Df4StvtRSvwGuwe6IZhCMbdK5dObEFw8qpXahUBQuTwG6MxFZsZd+gGzR4KuzTm74nAvLfA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=A+5fzV43; arc=none smtp.client-ip=10.30.226.201
+	 To:Cc:Content-Type; b=iUqbnEZTbWQViO1wXBR1S41VenVwk4ZYex4Ub+XIQ12Kt8A5TiIguyNc191XaHf/ignXZc0al9Kivlo+fz//tlRfmhTbNetPmO/S/5JgQ4oWVNzaXwO309woqutesWCPvwT/mWjSLeh3YtYFmWagMsvSyVjYoCfeiwiKb71c5ao=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org; spf=pass smtp.mailfrom=linuxfoundation.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=fh/soAR8; arc=none smtp.client-ip=209.85.208.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="A+5fzV43"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 68F1DC4CEF7
-	for <linux-arch@vger.kernel.org>; Sat, 28 Mar 2026 15:15:52 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1774710952;
-	bh=M5v2YKLGoSwtpfgdVhTIfMqhFC8EhARAr+bEGNbA/tY=;
-	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
-	b=A+5fzV43+OEOgaKxRBxncxMnCCE+lKLzJMX5Ma8/7ijDBAxXwonTIitJnmsZ6EpNM
-	 WbfkhRGD4YLf1TIGr/4JvVIuKO0ploRDSPH2ebI8QwL4xM9TpCL6p4blVbzKFEPKua
-	 uYY0Nr9kRgEZzC+eWVfgurfO4+ifo20ECYo2Gdtq0wPDzs/S9Qx7bqQ8d6CJtj0QPw
-	 Oet55WFs3LCZfVXPS7P5Fesi9jWS/Lurq2sLExaoMRxdqLb90OYHt2reX60R5Ul+9G
-	 EvQWOPk9UMIqgITGoMrEWzi2kYg3mSVLF4Cwfh4k/CbihXwJiSTk63aWc8PfLPCcoJ
-	 LX1zL0cjNgogA==
-Received: by mail-ed1-f47.google.com with SMTP id 4fb4d7f45d1cf-661cfb9f3aaso4665698a12.2
-        for <linux-arch@vger.kernel.org>; Sat, 28 Mar 2026 08:15:52 -0700 (PDT)
-X-Gm-Message-State: AOJu0Yybv46Tvd+d6SZ9iAclwBQqsDFss+XuDeTS8x9PnH2J/PhhqvHa
-	8nFH9eaWbOfqsMM2/Na78+3qcIArvsy5jpe/1MHdxFCMfvl+9iLkY6E7cTIWOsA+HrX19yGaMbm
-	RovpDGVMx+ZK+E0HgYyo7gy3zOTFtLiA=
-X-Received: by 2002:a17:907:8b95:b0:b94:21a8:f7d9 with SMTP id
- a640c23a62f3a-b9b507b5d93mr374153366b.36.1774700208640; Sat, 28 Mar 2026
- 05:16:48 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="fh/soAR8"
+Received: by mail-ed1-f44.google.com with SMTP id 4fb4d7f45d1cf-66b1019bb55so2869471a12.1
+        for <linux-arch@vger.kernel.org>; Sat, 28 Mar 2026 09:47:13 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=linux-foundation.org; s=google; t=1774716432; x=1775321232; darn=vger.kernel.org;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=wDIFOBZ2dvSZcfvYrWLXHj0gbJfPgQHdwiiJOGfve8k=;
+        b=fh/soAR8f2oRDIDWo+rmKpoU42DAWr01dfA3nUtDpxR/TkJOIuhuZmVEbIp/lvkvjK
+         DutJ8KF88bSkJeYXYbKL7+01oAwGq0hxYO4HXh4NN+2Q/JLR8ILQEQIciCgc2EesW907
+         Su2+E+jDDDSctO/02H1VTi6SqLirZ9Glhv624=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1774716432; x=1775321232;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=wDIFOBZ2dvSZcfvYrWLXHj0gbJfPgQHdwiiJOGfve8k=;
+        b=n33Rd/WNqfhzSG/uCqGA1jM7O3d/dfQB8ehhtINjdeQUE3HFjNbhPXKz+vNmoECtwR
+         zh0cYy85eIjy7BRwTGWfz3Qt5aOFiczl/EPdIBWlVyCm1pNQeG7KVO/sgJ0Q30UcqGNf
+         /+d7cXe5KX0cU4uWk1ckiH8CqOHl2GmCEhcA9Dpu4gHMPCac9Mk3HoHS2eDrAPP5/YXB
+         EDTNSwZRGxJDeEkasKx4QqW81c3EHCxZu54CFzEhypVwBuHGLmw/0Uc34dKNQCrfW/hK
+         PTnBk8lc9NyAN6T71qzStzLb0SjxQzzCDEaXNWKhFpuURcf8+mZ4x3V2YEor8/1kNooU
+         mSeg==
+X-Gm-Message-State: AOJu0Yyc5l+EwsCnO3bnHd6kaM7kbwoinT8Uuz176GHpcWpLmYF5p6Eq
+	VPz772xtriqHvq7q8fqjCV9lADKOlttQkxTjqdHsbbtgG60PIvglXlgcvpudE2Gf/6nwtsW43RC
+	NwTol0dg=
+X-Gm-Gg: ATEYQzz9ri20TTZSTO6hN3dN5yHkZNZe6CgZvO/A9bVp6ixfiZSF0omPd1pwT8vI6KS
+	WpRGU5L4nCTDAb/FyMr1ijmJFLA7SPYE6vEoLd/N59a2zJRLHivRTMrbMbtY8kwCwdNxyXQe4HA
+	tLFyZUhet7xXM2wpDSdAJ0/dpvDzTj1z+/49qi3uvFX2iGMe3koWL882Wr2miS66iKKdVA2p9K4
+	bubxwv9u6kZZtBQOXQ/b483uX7KrUGn4eEcTGnrwboanGt/xFC7eGCE1p6UiI0drFK2FVqGfK0N
+	oTt0QpKDs+AuEoj6zEnCDxNphtYA3y+qpwN2fYoGrLf21+tHhLq4LFErnEvxYhJHlD8W27OBUeI
+	5uV+9khnGOGG4F3zAb39McX8spN8s8DEa65/Lopzl93wMel7HmWrTBG6OZyD/HWZcfgb1Nr0tvY
+	Jnbri9dWRm9e3K1bLSQRLD2FJxkokk/l07oF1A0yV2WDaLEC+N5RMe7efNloloN/m0DVqp04sP
+X-Received: by 2002:a17:907:7b94:b0:b98:7f7:50f8 with SMTP id a640c23a62f3a-b9b507c4640mr398921266b.29.1774716431633;
+        Sat, 28 Mar 2026 09:47:11 -0700 (PDT)
+Received: from mail-ej1-f54.google.com (mail-ej1-f54.google.com. [209.85.218.54])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b9b7b227393sm89394866b.63.2026.03.28.09.47.10
+        for <linux-arch@vger.kernel.org>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 28 Mar 2026 09:47:11 -0700 (PDT)
+Received: by mail-ej1-f54.google.com with SMTP id a640c23a62f3a-b97c44417ffso313305666b.2
+        for <linux-arch@vger.kernel.org>; Sat, 28 Mar 2026 09:47:10 -0700 (PDT)
+X-Received: by 2002:a17:907:94cc:b0:b9b:5164:9059 with SMTP id
+ a640c23a62f3a-b9b5164930dmr381644266b.8.1774716430659; Sat, 28 Mar 2026
+ 09:47:10 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
@@ -41,82 +67,58 @@ List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
 References: <CAHk-=wgg1QVWNWG-UCFo1hx0zqrPnB3qhPzUTrWNft+MtXQXig@mail.gmail.com>
-In-Reply-To: <CAHk-=wgg1QVWNWG-UCFo1hx0zqrPnB3qhPzUTrWNft+MtXQXig@mail.gmail.com>
-From: Huacai Chen <chenhuacai@kernel.org>
-Date: Sat, 28 Mar 2026 20:16:36 +0800
-X-Gmail-Original-Message-ID: <CAAhV-H5zCHZeE02RON-4OVb482TirSUNsr+3zTZLmcVpeuNdFg@mail.gmail.com>
-X-Gm-Features: AQROBzB2CMxEYm5mnrNBg7Tp1reiR2nFwBWzW2mYXdlo7akKo3YY5W7iJ4MIu4g
-Message-ID: <CAAhV-H5zCHZeE02RON-4OVb482TirSUNsr+3zTZLmcVpeuNdFg@mail.gmail.com>
+ <ttcld3h@ub.hpns>
+In-Reply-To: <ttcld3h@ub.hpns>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 28 Mar 2026 09:46:54 -0700
+X-Gmail-Original-Message-ID: <CAHk-=wiwjhtFFc1WKtLns4BTQFUpjso7859KAtqw2KM3fdHVWw@mail.gmail.com>
+X-Gm-Features: AQROBzA6w1N7OZ2_YIErAAdgLNelQtmKBzFFXadq1aEk8PF0_mPWv9yW8ahT0c8
+Message-ID: <CAHk-=wiwjhtFFc1WKtLns4BTQFUpjso7859KAtqw2KM3fdHVWw@mail.gmail.com>
 Subject: Re: Attempting to unify some user space copying APIs
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: Vasily Gorbik <gor@linux.ibm.com>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, Russell King <rmk@armlinux.org.uk>, 
-	Madhavan Srinivasan <maddy@linux.ibm.com>, Vasily Gorbik <gor@linux.ibm.com>, 
-	Helge Deller <deller@kernel.org>, Huacai Chen <chenhuacai@loongson.cn>, 
-	Will Deacon <will@kernel.org>
+	Madhavan Srinivasan <maddy@linux.ibm.com>, Helge Deller <deller@kernel.org>, 
+	Huacai Chen <chenhuacai@loongson.cn>, Will Deacon <will@kernel.org>
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Sat, Mar 28, 2026 at 8:21=E2=80=AFAM Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+On Fri, 27 Mar 2026 at 21:14, Vasily Gorbik <gor@linux.ibm.com> wrote:
 >
-> I'm sending this out to the architecture maintainer list (and a random
-> collection of arch maintainers that I just took from "recent pull
-> requests") in the hope that people can test this on platforms that I'm
-> too incompetent to check myself (read: I haven't installed all the
-> cross-compiler environments).
+> One thing I noticed: copy_from_user_iter is clean - the boilerplate just
+> wraps raw_copy_from_user which has no instrumentation of its own.
 >
-> The impetus for this was trying to have some shared code in
-> lib/iov_iter.c by having a common wrapper function for a couple of
-> user copy functions that most architectures don't even have. But when
-> doing so I noticed that even the common function that we all *do* have
-> doesn't have a consistent calling convention: raw_copy_from_user().
->
-> So the compiler ended up being unhappy just because I want to pass a
-> function pointer around, and different architectures had different
-> types for the functions (and in the case of arm64, used a macro to
-> implement it, which really didn't work for this).
->
-> So I fixed it all up, and I think the end result looks better, but I'd
-> like people to at least build-test this on the platforms that I didn't
-> have immediate access to. I've tested this on arm64, x86-64 and i386
-> (and then I made changes, and didn't necessarily test all the changes
-> on all plaforms, but it LooksGoodToMe(tm), and some earlier version of
-> this patch did work on those architectures, so it must be perfect).
->
-> The patch was generated on current tip-of-the-day, but I don't think
-> any of this has changed in a while, so it should apply and be testable
-> pretty much on any half-way modern code base.
->
-> I fixed up powerpc blindly (we really had very odd types for
-> __copy_from_user_flushcache), and as mentioned the arm64 and x86 side
-> should be tested. Everything else lacks the flushcache and nocache
-> versions of the user copy functions, and it *looks* like only arm64
-> had that odd pattern for raw_copy_from_user().
->
-> But maybe my grep missed some case... Considering that three
-> architectures needed some header file fixups, let's make sure it's
-> _only_ those three, ok?
->
-> My initial version tried to use 'size_t', but the type of that is
-> typically - but not always - 'unsigned int' on 32-bit architectures.
-> And since I didn't want to mess with this low-level architecture
-> function more than necessary, the traditional 'unsigned long' it is
-> and most architectures should JustWork(tm).
->
-> [ Traditional, that is, except for those cache control versions, which
->  just used completely random types with wrong sizes and signs and
-> everything.
->
->   Not that we even allow IO that big in the first place, but it was
-> still a 'that shouldn't even work' kind of reaction from me ]
->
-> Anyway, could I please ask architecture maintainers to check that
-> there isn't some odd corner case that I missed? I could put this in
-> linux-next, but even before I do that, I'd like to do the basic "it
-> won't break anything" smell test.
-Successfully compile- and run-tested on LoongArch.
+> copy_from_user_iter_nocache is a bit different: the boilerplate wraps
+> the actor with instrument_copy_from_user_before/after, but the nocache
+> actors already instrument internally.
 
-Huacai
+Good catch. I only looked at the iov_iter side and reacted to the
+"that's not doing all the required steps", without noticing that we
+had added that instrumentation separately to the nocache actor (well,
+the __copy_from_user_inatomic() wrapper), but not to the
+__copy_from_user_flushcache() one.
 
->
->              Linus
+And as you say, it's all also very inconsistent wrt kasan/kmsan/kcsan.
+
+So the whole inconsistency goes even deeper.
+
+Gaah. What a pain. Following all the randomly named wrapper functions
+that do slightly different things on different architectures is a
+nightmare. Thanks for noticing.
+
+This only makes me more convinced we need to make this all more
+consistent, but clearly I need to think about this some more.
+
+I suspect I should make the consistency be about naming too, and
+introduce "raw_copy_from_user_inatomic()" and
+"raw_copy_from_user_flushcache()", which do just that part - matching
+our raw_copy_from_user() model (which in turn evolved from many years
+of crazy inconsistency in the *basic* user access code, with varying
+amounts of underscores etc).
+
+The good news being that the inatomic and flushcache cases aren't
+actually implemented by most architectures, so that cleanup should be
+minor.
+
+Again, thanks for noticing, and I have to go back and improve on that
+patch. But it looks like it's _almost_ good.
+
+                 Linus
