@@ -1,84 +1,69 @@
-Received: from verein.lst.de (verein.lst.de [213.95.11.211])
+Received: from ms.lwn.net (ms.lwn.net [45.79.88.28])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 35EB121B192;
-	Mon, 30 Mar 2026 05:27:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4234437647F;
+	Mon, 30 Mar 2026 20:02:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.79.88.28
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774848430; cv=none; b=nW/DPhXnkFyYbMbQdTE+cMhliO0npYozI27LMHRBhYVrIl15aR53ualk4GGaD0safyQ5hfCU/78xMwLsb+Giqi80po4NLHA67MZcBgvCqLzWurT3xskQAWNUUWxmuqTckKplTfpwxHqrvOtLHbL5wtujI3dfKbBl3oGPBcnct7Q=
+	t=1774900938; cv=none; b=khPUnc3a5Ai5Smnn/nrZFsfcaS4PSy4C8So+nieVgL8KSUFQerpRzWdZp/gE9CvauqxbXvOZ2pWBXGWQI3BAjw7CRRy8o4YKWpouJr2ED5Mywo0FHnZTBSmC6tTQRnyMcnOPOWQN7uac4dT/NpiHGpIHZY1vqefRfDJI7g5VQfc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774848430; c=relaxed/simple;
-	bh=GpPfrbO8ZObn0n6Rf8KY0Ma52KsUrpz3vk6UtR7SLOI=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Idz1Vb42SDwyUY8o/bwH79jP9dN4y15EG88bt2wGCdOWxrf3RAdRFa7UhHwwwAT5pQrYVOE0D4S0J2wj4VRMBNtPBDUYgeUrqV3DSisCGU/jyzvo8Mm1ctl79VL1ktGfMSb+0ifYKG9F8B5If/4AdEi7sQWUXRg45U04ItRcHGo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
-Received: by verein.lst.de (Postfix, from userid 2407)
-	id 6E3C268B05; Mon, 30 Mar 2026 07:26:55 +0200 (CEST)
-Date: Mon, 30 Mar 2026 07:26:55 +0200
-From: Christoph Hellwig <hch@lst.de>
-To: Eric Biggers <ebiggers@kernel.org>
-Cc: Christoph Hellwig <hch@lst.de>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Richard Henderson <richard.henderson@linaro.org>,
-	Matt Turner <mattst88@gmail.com>,
-	Magnus Lindholm <linmag7@gmail.com>,
-	Russell King <linux@armlinux.org.uk>,
-	Catalin Marinas <catalin.marinas@arm.com>,
-	Will Deacon <will@kernel.org>, Ard Biesheuvel <ardb@kernel.org>,
-	Huacai Chen <chenhuacai@kernel.org>,
-	WANG Xuerui <kernel@xen0n.name>,
-	Madhavan Srinivasan <maddy@linux.ibm.com>,
-	Michael Ellerman <mpe@ellerman.id.au>,
-	Nicholas Piggin <npiggin@gmail.com>,
-	"Christophe Leroy (CS GROUP)" <chleroy@kernel.org>,
-	Paul Walmsley <pjw@kernel.org>, Palmer Dabbelt <palmer@dabbelt.com>,
-	Albert Ou <aou@eecs.berkeley.edu>, Alexandre Ghiti <alex@ghiti.fr>,
-	Heiko Carstens <hca@linux.ibm.com>,
-	Vasily Gorbik <gor@linux.ibm.com>,
-	Alexander Gordeev <agordeev@linux.ibm.com>,
-	Christian Borntraeger <borntraeger@linux.ibm.com>,
-	Sven Schnelle <svens@linux.ibm.com>,
-	"David S. Miller" <davem@davemloft.net>,
-	Andreas Larsson <andreas@gaisler.com>,
-	Richard Weinberger <richard@nod.at>,
-	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
-	Johannes Berg <johannes@sipsolutions.net>,
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>,
-	Borislav Petkov <bp@alien8.de>,
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org,
-	"H. Peter Anvin" <hpa@zytor.com>,
-	Herbert Xu <herbert@gondor.apana.org.au>,
-	Dan Williams <dan.j.williams@intel.com>, Chris Mason <clm@fb.com>,
-	David Sterba <dsterba@suse.com>, Arnd Bergmann <arnd@arndb.de>,
-	Song Liu <song@kernel.org>, Yu Kuai <yukuai@fnnas.com>,
-	Li Nan <linan122@huawei.com>, Theodore Ts'o <tytso@mit.edu>,
-	"Jason A. Donenfeld" <Jason@zx2c4.com>, linux-alpha@vger.kernel.org,
-	linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org,
-	loongarch@lists.linux.dev, linuxppc-dev@lists.ozlabs.org,
-	linux-riscv@lists.infradead.org, linux-s390@vger.kernel.org,
-	sparclinux@vger.kernel.org, linux-um@lists.infradead.org,
-	linux-crypto@vger.kernel.org, linux-btrfs@vger.kernel.org,
-	linux-arch@vger.kernel.org, linux-raid@vger.kernel.org
-Subject: Re: cleanup the RAID5 XOR library v4
-Message-ID: <20260330052655.GA4592@lst.de>
-References: <20260327061704.3707577-1-hch@lst.de> <20260329213119.GA2106@quark>
+	s=arc-20240116; t=1774900938; c=relaxed/simple;
+	bh=V+NcacMveegugzis6ICoIVgTcKhrvN49QZp/qw84TSc=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=aCkqyUt3B72DbXl8IR59aNuGkvR8U7jRa1Y1iA/91JJhuWJ+wHab2heylHjpCeh1M4hLvuTJ+HWhJAqUnJeFknMEWN4W05qjnL0MeIVh4z5HU2LGW/xizxVRJyskNh92BIOn0+rYyWnMWkNiLnOYET9/GkTSz1XtFVuQZfxqZas=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lwn.net; spf=pass smtp.mailfrom=lwn.net; dkim=pass (2048-bit key) header.d=lwn.net header.i=@lwn.net header.b=AGJpfg1v; arc=none smtp.client-ip=45.79.88.28
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lwn.net
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lwn.net
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=lwn.net header.i=@lwn.net header.b="AGJpfg1v"
+DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 888EF40C6F
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
+	t=1774900936; bh=gvxKdlVfj9crjkocpKlPUIrPoQndHcaebycm/F3XEHc=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
+	b=AGJpfg1vWF8xXcArwWdOwY+oHYlHJ7DQF1qR1kNBggB6W82wKClmysG6Ty1hstge/
+	 ieZu22hmiHY3xWsO+DtnNcRlXndilQRE1PcTFVpXAmHu7aPrg+MyoKiH1WnXmwEr4+
+	 k21IWST63At42MJA9fzMH5JeeLvlvVRS2U6V0Ju5F/dysXBIula1got+jJmUrVH3MN
+	 rGuhpYBeRfPD4Ou/BpfuVrNQwszJLuTw8IP5QNsVfDBHffRR/fy56hZOHXarnI3aPQ
+	 EiyZyagqmUldfDl9/dlTEY6V/ZzMrtFZSo1jHYWKzdAJAmNaTy5wT+hAEOVtv5hiEw
+	 1/BhU75gLGLMQ==
+Received: from localhost (mdns.lwn.net [45.79.72.68])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (prime256v1) server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by ms.lwn.net (Postfix) with ESMTPSA id 888EF40C6F;
+	Mon, 30 Mar 2026 20:02:16 +0000 (UTC)
+From: Jonathan Corbet <corbet@lwn.net>
+To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
+Cc: academic1mathura@gmail.com, linux-arch@vger.kernel.org,
+ linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
+Subject: Re: [PATCH RESEND v2 1/4]IPC: Added New system call
+ do_mq_timedreceive2() for non-destructive peek on posix mqueue
+In-Reply-To: <20260320052340.6696-2-academic1mathura@gmail.com>
+References: <20260320052340.6696-1-academic1mathura@gmail.com>
+ <20260320052340.6696-2-academic1mathura@gmail.com>
+Date: Mon, 30 Mar 2026 14:02:15 -0600
+Message-ID: <87a4vpm6go.fsf@trenco.lwn.net>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260329213119.GA2106@quark>
-User-Agent: Mutt/1.5.17 (2007-11-01)
+Content-Type: text/plain
 
-On Sun, Mar 29, 2026 at 02:31:19PM -0700, Eric Biggers wrote:
-> But yes, as Andrew mentioned there are two "xor: add a better public
-> API" patches.  They should be folded together.
+Mathura_Kumar <academic1mathura@gmail.com> writes:
 
-Yes.  This is the ages old git bug of creating duplicate commits when
-a rebase has conflicts biting again, sorry.
+> +SYSCALL_DEFINE5(mq_timedreceive2, mqd_t, mqdes,
+> +		struct mq_timedreceive2_args __user *, uargs, unsigned int,
+> +		flags, const unsigned long, index,
+> +		const struct __kernel_timespec __user *, u_abs_timeout)
 
+So the pattern that seems to have emerged when creating this kind of
+argument structure for system calls is to pass the size of the structure
+itself as an argument.  That allows the structure to be expanded in
+compatible ways in the future, so you won't have to do
+mq_timedreceive3().  Is there a reason you didn't do it that way here?
+
+Thanks,
+
+jon
