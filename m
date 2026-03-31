@@ -1,124 +1,87 @@
-Received: from linux.microsoft.com (linux.microsoft.com [13.77.154.182])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id 3D97C39BFF0;
-	Mon, 30 Mar 2026 21:54:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=13.77.154.182
+Received: from out-176.mta1.migadu.com (out-176.mta1.migadu.com [95.215.58.176])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A34503A4F22
+	for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 10:11:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.176
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774907656; cv=none; b=D4ReFZ5jsIu3RdAz/lNEggzq7POTVOqFXcXTvUcRZuSSe24pjwDKKUyOLm7+leAX1baB+s2qlur/W52PbxMBdnMUnuQctR4mTozMcYiW+z2qrL/ObCdeHTNKiflQpr85I4yw5j2WwdEXdKwpzIBld2FrXBljiJ3b54acXn+aFt4=
+	t=1774951921; cv=none; b=fpcjatCiTkiKo+oaJTWiJIEN30G/PJidSBbP15oHsYjNE9ytlPdrUUl7M34qrL19pyL6VvzmH7ndOHt3yDDYiTulT0b0vVASspkqDp1EmPoEzmbjE8stzsEMb7Kzg3ufV7S8AZr6kVv8L4kXxcRR94QMyEiKcdojdnRvs3aLfUI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774907656; c=relaxed/simple;
-	bh=JEBw6hwWq1DZE3Fu6dPLv0yd/UdvKbFe2oe5klh8h7c=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ePE13WrDgvjJseFzr+kazhDx+AqYzjiFr320BNpbe7tB0KZKeI/T2bKpE33CM+zTXZDzE5b0azbgxzI5dxJoA5HPuFF+9SqKFvXkD6/bVVXnNxBw7gQx0ma2nU7jJonZxU93yOp5QooPQ2Io9GqC/tLw+LskGew2OuOnYcQVB9M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com; spf=pass smtp.mailfrom=linux.microsoft.com; dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b=IGxCMn01; arc=none smtp.client-ip=13.77.154.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.microsoft.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.microsoft.com
+	s=arc-20240116; t=1774951921; c=relaxed/simple;
+	bh=HHo+6RORxqzwkw1Oh/DBYbRN33EnFnNxrGcTNZrX4Z0=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=L2i3/kAj6XnIkHmf5Zv/7wHxnPKKww7s67BEQPLBC5RWlxQVq3bMz3iei4WYO8mqtJ4eGr8sn782m0Mfc0jg+NkLMCoQA4jbjsImeGYu2wxkXEwpYta1OqvYbwc8QFDHpr0TBHl7NThcD9/2hmh+tQ4p5kl+0TkqMBcCIYiyWPI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=ZV77eGoB; arc=none smtp.client-ip=95.215.58.176
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.microsoft.com header.i=@linux.microsoft.com header.b="IGxCMn01"
-Received: from skinsburskii.localdomain (unknown [20.236.10.163])
-	by linux.microsoft.com (Postfix) with ESMTPSA id 7DA4120B6F01;
-	Mon, 30 Mar 2026 14:54:14 -0700 (PDT)
-DKIM-Filter: OpenDKIM Filter v2.11.0 linux.microsoft.com 7DA4120B6F01
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.microsoft.com;
-	s=default; t=1774907655;
-	bh=Wl0Mv/HTB+nf9JxpV3RJEQ7c5BcPtjN5d5ojZBGMlP4=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
-	b=IGxCMn015pQ1mDXDeEEAYrVtFAbYsrKno6EwJZZ05tQ2B38I+uS4tr+a5FkbEb+vY
-	 A31O0Szr5z6xDPjih8myKxlSsDaHFglre8sMUwHSQHun5srzkTYulj1zQUq5XffRIL
-	 PH8wEgRaSEUEYKZB5D27q3HC6houYJCk2CpxDDX0=
-Date: Mon, 30 Mar 2026 14:54:12 -0700
-From: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-To: Jork Loeser <jloeser@linux.microsoft.com>
-Cc: linux-hyperv@vger.kernel.org, x86@kernel.org,
-	"K . Y . Srinivasan" <kys@microsoft.com>,
-	Haiyang Zhang <haiyangz@microsoft.com>,
-	Wei Liu <wei.liu@kernel.org>, Dexuan Cui <decui@microsoft.com>,
-	Long Li <longli@microsoft.com>, Thomas Gleixner <tglx@kernel.org>,
-	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>,
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="ZV77eGoB"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1774951907;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=G/KT1XoeoGhxQZGd0moPT/YeBL0YVj4iz/EMh/8Na9M=;
+	b=ZV77eGoBYxkTQ01Z1xvT+NwWiLOnJG01ICF7R8IEluW7BoQaYyfRsHnF4bxuJdehzxdj8i
+	m5gLxZ96FaWK0TlLmANrVzEeuUXgeDwIUAYiYJMSXgUyIuQtaXpJnCSPnF9/D0yIb0gnxj
+	f7KmNc4JXej6hhm5RiNUBa77Va9m+5E=
+From: Usama Arif <usama.arif@linux.dev>
+To: Dmitry Ilvokhin <d@ilvokhin.com>
+Cc: Usama Arif <usama.arif@linux.dev>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Will Deacon <will@kernel.org>,
+	Boqun Feng <boqun@kernel.org>,
+	Waiman Long <longman@redhat.com>,
+	Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
+	Juergen Gross <jgross@suse.com>,
+	Ajay Kaher <ajay.kaher@broadcom.com>,
+	Alexey Makhalov <alexey.makhalov@broadcom.com>,
+	Broadcom internal kernel review list <bcm-kernel-feedback-list@broadcom.com>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Borislav Petkov <bp@alien8.de>,
 	Dave Hansen <dave.hansen@linux.intel.com>,
-	"H . Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>,
-	Roman Kisel <romank@linux.microsoft.com>,
-	Michael Kelley <mhklinux@outlook.com>, linux-kernel@vger.kernel.org,
-	linux-arch@vger.kernel.org
-Subject: Re: [PATCH 6/6] mshv: unmap debugfs stats pages on kexec
-Message-ID: <acrxBOLaHdku6kdZ@skinsburskii.localdomain>
-References: <20260327201920.2100427-1-jloeser@linux.microsoft.com>
- <20260327201920.2100427-7-jloeser@linux.microsoft.com>
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Dennis Zhou <dennis@kernel.org>,
+	Tejun Heo <tj@kernel.org>,
+	Christoph Lameter <cl@gentwo.org>,
+	Steven Rostedt <rostedt@goodmis.org>,
+	Masami Hiramatsu <mhiramat@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	linux-kernel@vger.kernel.org,
+	linux-mips@vger.kernel.org,
+	virtualization@lists.linux.dev,
+	linux-arch@vger.kernel.org,
+	linux-mm@kvack.org,
+	linux-trace-kernel@vger.kernel.org,
+	kernel-team@meta.com
+Subject: Re: [PATCH v4 1/5] tracing/lock: Remove unnecessary linux/sched.h include
+Date: Tue, 31 Mar 2026 03:11:32 -0700
+Message-ID: <20260331101134.643490-1-usama.arif@linux.dev>
+In-Reply-To: <5593ed9718b1a6e4ec51d99772c485734029d4d4.1774536681.git.d@ilvokhin.com>
+References: 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260327201920.2100427-7-jloeser@linux.microsoft.com>
+Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-On Fri, Mar 27, 2026 at 01:19:17PM -0700, Jork Loeser wrote:
-> On L1VH, debugfs stats pages are overlay pages: the kernel allocates
-> them and registers the GPAs with the hypervisor via
-> HVCALL_MAP_STATS_PAGE2. These overlay mappings persist in the
-> hypervisor across kexec. If the kexec'd kernel reuses those physical
-> pages, the hypervisor's overlay semantics cause a machine check
-> exception.
+On Thu, 26 Mar 2026 15:10:00 +0000 Dmitry Ilvokhin <d@ilvokhin.com> wrote:
+
+> None of the trace events in lock.h reference anything from
+> linux/sched.h. Remove the unnecessary include.
 > 
-> Fix this by calling mshv_debugfs_exit() from the reboot notifier,
-> which issues HVCALL_UNMAP_STATS_PAGE for each mapped stats page before
-> kexec. This releases the overlay bindings so the physical pages can be
-> safely reused. Guard mshv_debugfs_exit() against being called when
-> init failed.
-> 
-> Signed-off-by: Jork Loeser <jloeser@linux.microsoft.com>
+> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
 > ---
->  drivers/hv/mshv_debugfs.c   | 7 ++++++-
->  drivers/hv/mshv_root_main.c | 1 +
->  2 files changed, 7 insertions(+), 1 deletion(-)
+>  include/trace/events/lock.h | 1 -
+>  1 file changed, 1 deletion(-)
 > 
-> diff --git a/drivers/hv/mshv_debugfs.c b/drivers/hv/mshv_debugfs.c
-> index ebf2549eb44d..f9a4499cf8f3 100644
-> --- a/drivers/hv/mshv_debugfs.c
-> +++ b/drivers/hv/mshv_debugfs.c
-> @@ -676,8 +676,10 @@ int __init mshv_debugfs_init(void)
->  
->  	mshv_debugfs = debugfs_create_dir("mshv", NULL);
->  	if (IS_ERR(mshv_debugfs)) {
-> +		err = PTR_ERR(mshv_debugfs);
-> +		mshv_debugfs = NULL;
->  		pr_err("%s: failed to create debugfs directory\n", __func__);
-> -		return PTR_ERR(mshv_debugfs);
-> +		return err;
->  	}
->  
->  	if (hv_root_partition()) {
-> @@ -712,6 +714,9 @@ int __init mshv_debugfs_init(void)
->  
->  void mshv_debugfs_exit(void)
->  {
-> +	if (!mshv_debugfs)
 
-nit: this should allow to avoid setting mshv_debugfs to NULL in the
-error path of mshv_debugfs_init():
-
-if (!IS_ERR_OR_NULL(mshv_debugfs))
-
-Reviewed-by: Stanislav Kinsburskii <skinsburskii@linux.microsoft.com>
-
-> +		return;
-> +
->  	mshv_debugfs_parent_partition_remove();
->  
->  	if (hv_root_partition()) {
-> diff --git a/drivers/hv/mshv_root_main.c b/drivers/hv/mshv_root_main.c
-> index 281f530b68a9..7038fd830646 100644
-> --- a/drivers/hv/mshv_root_main.c
-> +++ b/drivers/hv/mshv_root_main.c
-> @@ -2252,6 +2252,7 @@ root_scheduler_deinit(void)
->  static int mshv_reboot_notify(struct notifier_block *nb,
->  			      unsigned long code, void *unused)
->  {
-> +	mshv_debugfs_exit();
->  	cpuhp_remove_state(mshv_cpuhp_online);
->  	return 0;
->  }
-> -- 
-> 2.43.0
-> 
+Acked-by: Usama Arif <usama.arif@linux.dev>
