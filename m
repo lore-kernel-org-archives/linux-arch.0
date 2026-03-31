@@ -1,32 +1,32 @@
-Received: from out-171.mta0.migadu.com (out-171.mta0.migadu.com [91.218.175.171])
+Received: from out-179.mta0.migadu.com (out-179.mta0.migadu.com [91.218.175.179])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E5133ED5A2
-	for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 10:27:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AA15337F00F;
+	Tue, 31 Mar 2026 10:35:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.179
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774952845; cv=none; b=VhKRXACLXixoN4rEHSgWlq1qagoJ5vgUogTgBa8nMnOrJ4Ffm/UnwM2nFnXZfdYe7Fs6td8oZ+GYTTAGkHukMboA7FqjlwI7rzh+UVFoDN19HbIdNjLCBgwz98PKirZWUZ77cMhfgIlYpQL/KVLvgrHrdFKdhwe3Uza6/IoPWdQ=
+	t=1774953315; cv=none; b=rrc4sFzGFBwg715GyBXI8pHpmkNDlqAhSrEy/33JfkOZMyt/kUZhqxKcujglSSl8Pg/myFI+zNQfPT8RmQ5nx0V+GbnbN9BNqUQyPX30jsH2inAXvmr7e12NtHE+BsiuRbk3WEQu4qxBoB76+OyGfUoaMraMuOHnvcaL330eTlU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774952845; c=relaxed/simple;
-	bh=qzZkQ3i93l0FQlsjhTVvBhRGCZM8HqmGjGodNljUlIA=;
+	s=arc-20240116; t=1774953315; c=relaxed/simple;
+	bh=muUGB/hVsXba530bq091OpV1HBQwDeWHgy3f9fXku+A=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=VNX9ko9pbIxQr0xWaOVhoIrl5jnuAQUTG8TlCjIfwB1B8QfJrBjRFUeppRlYo8E9O0q0rqHip3aRgyPHnT5nStI7CC9IdMqZjsX0Fm0MIIaqP6fw3xQUs3QKFCbc9A+2wMiOxSzY1aOljW562zOcBjEFg+us872Zz8jAeZwOC3o=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=o7RBAi13; arc=none smtp.client-ip=91.218.175.171
+	 MIME-Version; b=pXUhhJEPMAYGsA8SxnpAuunCUgE9dncH1MQTZnu4GzcEmV4PIQ43aRrKCU3qlBakDvSlQNb9JcFqi1GAR92EYp886i4zIl6DNe8Cnv9oBbAqlZ1TiTBATI1s5VPlOiUmyTiaLSDisqx6qtD9hkzxkrMi4NABDEdPDN13EXzJE2Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=p33ibMJl; arc=none smtp.client-ip=91.218.175.179
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="o7RBAi13"
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="p33ibMJl"
 X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1774952832;
+	t=1774953301;
 	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
 	 to:to:cc:cc:mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=a18x6ZQjYkqeWxFtayZuE5Lz8yKC0RDpl9ExxmZO+X0=;
-	b=o7RBAi13M3ymJIxeIcVVcVU7ArACtE8dCrjJjGz5z+vEZYGgF1B1ZaS7f35w+NpdDX2Unp
-	f/ElyU26K/tOyOtBeLLhv7VbxMV4S/xMG+FcVulhOO1Crwahfpdetbbi4j8NsAeXAtuv9D
-	TtMRPMhTEuuHOtV/fbSvHdHBJxbrGZs=
+	bh=eGoJpSFt6qPU5Tj1tCTJazBok4fp1H7/lxXOEKF1LAE=;
+	b=p33ibMJltLANQa/bsMRalz0WLn9BlHm8C+vEC5ite7qjEZ0cbDSZL23LJhIXOh4mWTMMG4
+	TBKLq9j8Mz6GbrKJDMbOx9Su5uRTDWM/gjU81JtLwKyzFf6t4mVUaxKYeCN9VzzuGjwlZt
+	rIOn5+Mdz2haHATDFp1JJcwSMAvzAHM=
 From: Usama Arif <usama.arif@linux.dev>
 To: Dmitry Ilvokhin <d@ilvokhin.com>
 Cc: Usama Arif <usama.arif@linux.dev>,
@@ -59,10 +59,10 @@ Cc: Usama Arif <usama.arif@linux.dev>,
 	linux-mm@kvack.org,
 	linux-trace-kernel@vger.kernel.org,
 	kernel-team@meta.com
-Subject: Re: [PATCH v4 0/5] locking: contended_release tracepoint instrumentation
-Date: Tue, 31 Mar 2026 03:27:03 -0700
-Message-ID: <20260331102704.921355-1-usama.arif@linux.dev>
-In-Reply-To: <cover.1774536681.git.d@ilvokhin.com>
+Subject: Re: [PATCH v4 3/5] locking: Add contended_release tracepoint to sleepable locks
+Date: Tue, 31 Mar 2026 03:34:50 -0700
+Message-ID: <20260331103451.1070175-1-usama.arif@linux.dev>
+In-Reply-To: <d2e5763278812499335b22a013aafb4979e3324b.1774536681.git.d@ilvokhin.com>
 References: 
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
@@ -73,33 +73,80 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 X-Migadu-Flow: FLOW_OUT
 
-On Thu, 26 Mar 2026 15:09:59 +0000 Dmitry Ilvokhin <d@ilvokhin.com> wrote:
+On Thu, 26 Mar 2026 15:10:02 +0000 Dmitry Ilvokhin <d@ilvokhin.com> wrote:
 
-> The existing contention_begin/contention_end tracepoints fire on the
-> waiter side. The lock holder's identity and stack can be captured at
-> contention_begin time (e.g. perf lock contention --lock-owner), but
-> this reflects the holder's state when a waiter arrives, not when the
-> lock is actually released.
+> Add the contended_release trace event. This tracepoint fires on the
+> holder side when a contended lock is released, complementing the
+> existing contention_begin/contention_end tracepoints which fire on the
+> waiter side.
 > 
-> This series adds a contended_release tracepoint that fires on the
-> holder side when a lock with waiters is released. This provides:
+> This enables correlating lock hold time under contention with waiter
+> events by lock address.
 > 
-> - Hold time estimation: when the holder's own acquisition was
->   contended, its contention_end (acquisition) and contended_release
->   can be correlated to measure how long the lock was held under
->   contention.
+> Add trace_contended_release() calls to the slowpath unlock paths of
+> sleepable locks: mutex, rtmutex, semaphore, rwsem, percpu-rwsem, and
+> RT-specific rwbase locks.
 > 
-> - The holder's stack at release time, which may differ from what perf lock
->   contention --lock-owner captures if the holder does significant work between
->   the waiter's arrival and the unlock.
+> Where possible, trace_contended_release() fires before the lock is
+> released and before the waiter is woken. For some lock types, the
+> tracepoint fires after the release but before the wake. Making the
+> placement consistent across all lock types is not worth the added
+> complexity.
 > 
-> Note: for reader/writer locks, the tracepoint fires for every reader
-> releasing while a writer is waiting, not only for the last reader.
+> For reader/writer locks, the tracepoint fires for every reader releasing
+> while a writer is waiting, not only for the last reader.
 > 
+> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
+> ---
+>  include/trace/events/lock.h   | 17 +++++++++++++++++
+>  kernel/locking/mutex.c        |  4 ++++
+>  kernel/locking/percpu-rwsem.c | 11 +++++++++++
+>  kernel/locking/rtmutex.c      |  1 +
+>  kernel/locking/rwbase_rt.c    |  6 ++++++
+>  kernel/locking/rwsem.c        | 10 ++++++++--
+>  kernel/locking/semaphore.c    |  4 ++++
+>  7 files changed, 51 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/trace/events/lock.h b/include/trace/events/lock.h
+> index da978f2afb45..1ded869cd619 100644
+> --- a/include/trace/events/lock.h
+> +++ b/include/trace/events/lock.h
+> @@ -137,6 +137,23 @@ TRACE_EVENT(contention_end,
+>  	TP_printk("%p (ret=%d)", __entry->lock_addr, __entry->ret)
+>  );
+>  
+> +TRACE_EVENT(contended_release,
+> +
+> +	TP_PROTO(void *lock),
+> +
+> +	TP_ARGS(lock),
+> +
+> +	TP_STRUCT__entry(
+> +		__field(void *, lock_addr)
+> +	),
+> +
+> +	TP_fast_assign(
+> +		__entry->lock_addr = lock;
+> +	),
+> +
+> +	TP_printk("%p", __entry->lock_addr)
+> +);
+> +
+>  #endif /* _TRACE_LOCK_H */
+>  
+>  /* This part must be outside protection */
+> diff --git a/kernel/locking/mutex.c b/kernel/locking/mutex.c
+> index 427187ff02db..6c2c9312eb8f 100644
+> --- a/kernel/locking/mutex.c
+> +++ b/kernel/locking/mutex.c
+> @@ -997,6 +997,9 @@ static noinline void __sched __mutex_unlock_slowpath(struct mutex *lock, unsigne
+>  		wake_q_add(&wake_q, next);
+>  	}
+>  
+> +	if (trace_contended_release_enabled() && waiter)
+> +		trace_contended_release(lock);
+> +
 
-Would it be better to reorder the patches? It would help with git
-bisectability as well. Move the refractoring work in patch 4 and
-5 (excluding adding the tracepoints ofcourse) earlier, and then add
-all the tracepoints in the same commit at the end? It would help
-in the future with git blame to see where all the tracepoints
-were added as well.
+This won't compile? waiter is declared in the if block, so you are using
+it outside scope here.
+
