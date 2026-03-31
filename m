@@ -1,92 +1,124 @@
-Received: from ms.lwn.net (ms.lwn.net [45.79.88.28])
+Received: from ewsoutbound.kpnmail.nl (ewsoutbound.kpnmail.nl [195.121.94.184])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7E4E12C15BB;
-	Tue, 31 Mar 2026 16:17:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=45.79.88.28
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 70A85345722
+	for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 17:20:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.121.94.184
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774973858; cv=none; b=GeUynQOS796W5VxvEvzLwP9iEEmGc6/gW3jYFncjRwPVMovQz/dSG1pgK+By0+k/3RcAlUHMfVWKSSTcqOAjS2t8xPeUpQUxAthoXMgJBVUwaCe9g5PaE2At29Oix5LJkMI42aJ0RWW9vpywAZiCyqL38CA2lWiseVuleiZzzeI=
+	t=1774977619; cv=none; b=JrIDUFztRx4TuR7FsYXl4FvK2vJ7NJwwxTXuWSa5Z3pR/TeYTdBRXUUQvAk6hF7k0y3iZLSHceFhEVXhflycwgXuY8s4XbpNVqU2kLJbRUdANKWR3cNUEBUT9IzHRe4LEIQ9a+eZjnGslidB1HqaxNmSmuD8ZHMAQq+0xggOBKc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774973858; c=relaxed/simple;
-	bh=4dr8PUXfbrgq84H+mHgxTP35N7Wqw+KDeRuZIzRf9y0=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
-	 MIME-Version:Content-Type; b=eY4zLW/4HQM23MUHB9tz32iVeTZXvyYLqMkftlSiX+5zK5I15y2HfXcf6zZ2QedhrPMMY8A6qP9DBe6SaJKuJyXuL6zo7kGVxEjAc54TVMZCDJ42B/LsrvRfjNiujvn0hP7WT4Vx7gARbYxvu8JxbeedUbt+wRcgIxt1KM79uAc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lwn.net; spf=pass smtp.mailfrom=lwn.net; dkim=pass (2048-bit key) header.d=lwn.net header.i=@lwn.net header.b=MzmUOR9p; arc=none smtp.client-ip=45.79.88.28
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lwn.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lwn.net
+	s=arc-20240116; t=1774977619; c=relaxed/simple;
+	bh=9a07OI6G1FdXoYEj20uLFgzwaAk/WzZPhJzya892ozs=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=cKwtSme1n3Hg9JqqFA81Ji6fRFFch/d4JyuXGR6tRM9uQLocY27TmMsoJZ9Zyw7u7FADqf+Z6aP5VSb6ea/rB6/0VrFGrToQpC+iubvXLazxEb4VP3LNXCFvzNT3IPxPAxYRJkm92bSRYk7US2Ka27sogjtER/KtvcUm/rekhoM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl; spf=pass smtp.mailfrom=xs4all.nl; dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b=tqB1VxkX; arc=none smtp.client-ip=195.121.94.184
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=xs4all.nl
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=xs4all.nl
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=lwn.net header.i=@lwn.net header.b="MzmUOR9p"
-DKIM-Filter: OpenDKIM Filter v2.11.0 ms.lwn.net 6514040C6F
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=lwn.net; s=20201203;
-	t=1774973851; bh=WmpBWBdx107Bxh0at4HFA8TNqz4JmQ2baYL397MFDj8=;
-	h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
-	b=MzmUOR9pwvMunqazLB6QzbwYsuzEiKYwkoXkdQmAO7D0bSdok9TJFhhZX5ShOfvVY
-	 uLaP8OVA1dL34n9O8A0iPC8QPC7tf7kv1BMCVuUTcBfPtWeA9eky3p3LWO+Yef3u2j
-	 9BBSXe3XLS7ewnhPAdVSQ+jpYYeK5vZhLWQt75U1DAZ5xVL/38Jw9poNoCRVyYoYyD
-	 04SDHGE+tYC6S15N4nB1e5J6spgoJ7ktZypzFOybcRhUGsE/KYYqVAn98ZQGKrdVFj
-	 Splu7OB5gC9FbpF1aobbsO6v8ii3fIGmgN4D3PP7uPPHKgz39y6WyreMjkqhboCFR6
-	 thmamlBZCR2kA==
-Received: from localhost (mdns.lwn.net [45.79.72.68])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange ECDHE (prime256v1) server-signature ECDSA (prime256v1) server-digest SHA256)
-	(No client certificate requested)
-	by ms.lwn.net (Postfix) with ESMTPSA id 6514040C6F;
-	Tue, 31 Mar 2026 16:17:31 +0000 (UTC)
-From: Jonathan Corbet <corbet@lwn.net>
-To: Mathura_Kumar <academic1mathura@gmail.com>, brauner@kernel.org
-Cc: academic1mathura@gmail.com, linux-arch@vger.kernel.org,
- linux-kernel@vger.kernel.org, viro@zeniv.linux.org.uk
-Subject: Re: [PATCH RESEND v2 1/4]IPC: Added New system call
- do_mq_timedreceive2() for non-destructive peek on posix mqueue
-In-Reply-To: <20260320052340.6696-2-academic1mathura@gmail.com>
-References: <20260320052340.6696-1-academic1mathura@gmail.com>
- <20260320052340.6696-2-academic1mathura@gmail.com>
-Date: Tue, 31 Mar 2026 10:17:30 -0600
-Message-ID: <87jyuskm79.fsf@trenco.lwn.net>
+	dkim=pass (2048-bit key) header.d=xs4all.nl header.i=@xs4all.nl header.b="tqB1VxkX"
+X-KPN-MessageId: de11ed37-2d25-11f1-afda-005056994fde
+Received: from smtp.kpnmail.nl (unknown [10.31.155.7])
+	by ewsoutbound.so.kpn.org (Halon) with ESMTPS
+	id de11ed37-2d25-11f1-afda-005056994fde;
+	Tue, 31 Mar 2026 19:20:08 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=xs4all.nl; s=xs4all01;
+	h=mime-version:message-id:date:subject:to:from;
+	bh=SIY1aVd3TcIR+nTkIuM5SR5/9+HgkFFEgimZ8yE4G08=;
+	b=tqB1VxkXY04rr1gw4sen7pOZ+4espDd5si4hmDvbDs3rI2V5zC6l9XiPEiOj85Ml7m46NJFPIFgbN
+	 PyC2DkHepNrlNZcf3dGv7IEj57keOh4w1I6sbxia37z7GfDHnwUSsxaS3N6GVpCyJZrEvlx2ojG/LE
+	 I4zc1CGQU+Mr6+56eBMgjL181Lx5CfFabpzOjokHsBf1Q5rWE9QAg5UrVpbdKYIJyUArZNOI3uWr6W
+	 CPYl7/yw0/fX9WXCaOEIhAYDBHTxVomB/OQi8BqPoEB5vVRseePONCGJQzRX98prtxkMLEjF5vbzT3
+	 utSsfnQlE0eF+o8CxfP1auwtZyPndrQ==
+X-KPN-MID: 33|XhdlY57GqcJB9oU2yafxIvsJwRD0xG8SHogByN+EIthGLyczyWBdQ2S/dNClDRD
+ cG/2KpUPLW1cZ4+fpJaskse1e5/a7GSk9YTLm0WWcpyI=
+X-KPN-VerifiedSender: Yes
+X-CMASSUN: 33|Bvc7FnJEwJFayum3+kDCzfBY/LJYd9rL59Eha9ifk0Jbk0xbsrPs+Z10Nufunsa
+ 7payj/KUH2JoFtYqtlu00/Q==
+Received: from daedalus.home (unknown [178.227.25.158])
+	by smtp.xs4all.nl (Halon) with ESMTPSA
+	id daba308f-2d25-11f1-86d5-005056998788;
+	Tue, 31 Mar 2026 19:20:08 +0200 (CEST)
+From: Jori Koolstra <jkoolstra@xs4all.nl>
+To: Andy Lutomirski <luto@kernel.org>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Jeff Layton <jlayton@kernel.org>,
+	Chuck Lever <chuck.lever@oracle.com>,
+	Arnd Bergmann <arnd@arndb.de>,
+	Shuah Khan <shuah@kernel.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: "H . Peter Anvin" <hpa@zytor.com>,
+	Jan Kara <jack@suse.cz>,
+	Alexander Aring <alex.aring@gmail.com>,
+	Peter Zijlstra <peterz@infradead.org>,
+	Oleg Nesterov <oleg@redhat.com>,
+	Andrey Albershteyn <aalbersh@redhat.com>,
+	Jiri Olsa <jolsa@kernel.org>,
+	Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+	=?UTF-8?q?Thomas=20Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>,
+	Namhyung Kim <namhyung@kernel.org>,
+	Arnaldo Carvalho de Melo <acme@redhat.com>,
+	Aleksa Sarai <cyphar@cyphar.com>,
+	linux-kernel@vger.kernel.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-api@vger.kernel.org,
+	linux-arch@vger.kernel.org,
+	linux-kselftest@vger.kernel.org,
+	cmirabil@redhat.com,
+	Jori Koolstra <jkoolstra@xs4all.nl>
+Subject: [RFC PATCH 0/2] vfs: mkdirat_fd() syscall
+Date: Tue, 31 Mar 2026 19:19:57 +0200
+Message-ID: <20260331172011.3512876-1-jkoolstra@xs4all.nl>
+X-Mailer: git-send-email 2.53.0
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Transfer-Encoding: 8bit
 
-One other thing I noticed ...
+This series implements the mkdirat_fd() syscall that was suggested over
+at the UAPI group kernel feature page [1] with some tests.
 
-Mathura_Kumar <academic1mathura@gmail.com> writes:
+Obviously, if we want this we should also implement mknodeat_fd() and
+symlinkat_fd(), but their implementation can be done quite similar I
+believe.
 
-> Signed-off-by: Mathura_Kumar <academic1mathura@gmail.com>
-> ---
->  include/linux/compat.h            |   6 +-
->  include/linux/syscalls.h          |   6 +
->  include/uapi/asm-generic/unistd.h |   7 +-
->  include/uapi/linux/mqueue.h       |  14 ++-
->  ipc/mqueue.c                      | 186 ++++++++++++++++++++++++++++--
->  ipc/msg.c                         |   2 +-
->  ipc/msgutil.c                     |  48 ++++----
->  ipc/util.h                        |   3 +-
->  kernel/sys_ni.c                   |   1 +
->  9 files changed, 231 insertions(+), 42 deletions(-)
+I have added an unigned int flags like [2] suggests and an example flag
+that we may want to remove (it right now mainly serves an internal
+purpose). But it marks where I would want to place the definitions.
 
-[...]
+This has been compiled and tested on x86 only. [2] is a bit confusing
+here and there, so I hope I have added the proper syscall definitions
+everywhere where they needs to be added.
 
-> +static int do_mq_timedreceive2(mqd_t mqdes, struct mq_timedreceive2_args *args,
-> +			       unsigned int flags, unsigned long index,
-> +			       struct timespec64 *ts)
-> +{
-> +	ssize_t ret;
-> +	struct msg_msg *msg_ptr, *k_msg_buffer;
-> +	long k_m_type;
-> +	size_t k_m_ts;
-> +	struct inode *inode;
-> +	struct mqueue_inode_info *info;
-> +
-> +	if (!(flags & MQ_PEEK)) {
-> +		return do_mq_timedreceive(mqdes, args->msg_ptr, args->msg_len,
-> +					  args->msg_prio, ts);
-> +	}
+[1]: https://github.com/uapi-group/kernel-features?tab=readme-ov-file#race-free-creation-and-opening-of-non-file-inodes
+[2]: https://www.kernel.org/doc/html/latest/process/adding-syscalls.html
 
-You don't check for unknown flags here; that will make impossible to add
-new flags in the future.
+Jori Koolstra (2):
+  vfs: syscalls: add mkdirat_fd()
+  selftest: add tests for mkdirat_fd()
 
-jon
+ arch/x86/entry/syscalls/syscall_64.tbl        |   1 +
+ fs/internal.h                                 |   1 +
+ fs/namei.c                                    |  26 +++-
+ include/linux/fcntl.h                         |   2 +
+ include/linux/syscalls.h                      |   2 +
+ include/uapi/asm-generic/fcntl.h              |   3 +
+ include/uapi/asm-generic/unistd.h             |   5 +-
+ scripts/syscall.tbl                           |   1 +
+ tools/include/uapi/asm-generic/unistd.h       |   5 +-
+ tools/testing/selftests/filesystems/Makefile  |   4 +-
+ .../selftests/filesystems/mkdirat_fd_test.c   | 139 ++++++++++++++++++
+ 11 files changed, 183 insertions(+), 6 deletions(-)
+ create mode 100644 tools/testing/selftests/filesystems/mkdirat_fd_test.c
+
+-- 
+2.53.0
+
