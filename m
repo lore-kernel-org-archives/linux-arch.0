@@ -1,157 +1,142 @@
-Received: from out-172.mta1.migadu.com (out-172.mta1.migadu.com [95.215.58.172])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED27939BFF1
-	for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 14:11:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.172
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3E7123B6343;
+	Tue, 31 Mar 2026 15:22:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774966314; cv=none; b=FuAREQCeJ2SxaVzB/EXC2UkzALH/lsv5h187jyR5X0udFtiQz92U12wYMVLwALPU5sXQCZmSiEaRo5HvQKeNsqbPzQv9uEDcYGs7wZ3WImAiVxb8sjqgiBoBPEgK4iCRMbz6eWspQByU1tV4xSy2CyECtUHWtnc1GFbdEyAlLQY=
+	t=1774970557; cv=none; b=C4branK3CF0NFAdZ9o1MUgRDJYRy7hkG+pyVt0SQYecxOfm3v2mL1EcmmPClImFx7fdz4iA+cQvcnZhExacgTr9Ze0E07b4DgRoudGHxGNOJ8tomqWg430zUNitZl89zlixbR3l5n+jD1Ns94iC65/SlsdZzDyuQERKLcwzKqDE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774966314; c=relaxed/simple;
-	bh=SEFtJVL8+fOnpDt6n+BLZJiIueQF4OjMlbAULfzAbiE=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=rfiwu5K/RPzYxaYomauRnZH/y2q95jjj/3v7Mvixmm/nh0TTlqj8NbY7wtiCuBU2ZI+TwPlzPpUzGTexMIu6F7nMLtz61A/BbM7R6ZM2WPQkj8IRtIPV3iX4ApHzt5BJTZDAKeTvb7tgzKnWKiYAU1SNW+6FzrA8h+DyFyWyGyc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=jeSL2mHH; arc=none smtp.client-ip=95.215.58.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
+	s=arc-20240116; t=1774970557; c=relaxed/simple;
+	bh=IpNYmnq+KCC/eprohuYWOdwRfb7D8eal26lhDfTICdA=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=E56l5U+SZpNCrA/KAY7hOf2SZj2T/H7p8UbcRj30jAJlWIAuc5Kuxz6esiKrERFZI2AX8seIkEUyDzYaNqO9IlvHl+DWRcj2D2GNLDYFJbQIfiOdV36A1cGz0gZyJoYh8gET8hNl8/qe5OXzPXycQTRzpbAlAm1F2Vxf0iW4sLA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=da1MLMGr; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="jeSL2mHH"
-Message-ID: <157dc048-4b2f-4170-b9ed-a72f5599e460@linux.dev>
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1774966309;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=TdPxN9QaNf36x/V2Ie3LXQAiv3fTO3U7y0mPTWEOTDE=;
-	b=jeSL2mHHnGMx63cxD4zvGwxlACLsVsl7hBb6An0yUyWU4Keh1E51CS0u318GzzMGMiEsRG
-	uYkNEF5p9F59Ki2EdLT+y7fWRrnDmJjgI3VFCB+QP786AS6D1cxHmuDUvO9KE9wZof7vPe
-	8vNKYD8P0hSJBsNkzW8Q2/LDRkXOY6E=
-Date: Tue, 31 Mar 2026 15:11:15 +0100
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="da1MLMGr"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id E6716C19423;
+	Tue, 31 Mar 2026 15:22:35 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1774970556;
+	bh=IpNYmnq+KCC/eprohuYWOdwRfb7D8eal26lhDfTICdA=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:From;
+	b=da1MLMGrPDAl8TCvBdgq9gkJpOiAOut+lzpmhKNX9MT2dlEJpKvcbdISZeSzFRZup
+	 r4R3kKIYWw5xbiuM+dXlIzVXBhf6EU5In8Hq/s95I8AQWPp6VFK6BQyW3VMImDE7gV
+	 cEGqDRfYrkfXepigmSCnxWM9IpNptHl95XYUb5E2Z7cO9kPUDNbnbuLzi5Z3NgTLss
+	 6KzMVEgLnbj8wY1qUepr1od9RBQcLA3Ah+gtfmgQZozBZkvjOp/BTCS3o+/Pdu02/E
+	 2pju7vjERA6N49RcxZnjza50Wcjn0w0gb94yoLpvarci0v3KHpFYilQL5psq52ytza
+	 Fi3HnLiih4CVw==
+From: Thomas Gleixner <tglx@kernel.org>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Mathieu Desnoyers
+ <mathieu.desnoyers@efficios.com>, =?utf-8?Q?Andr=C3=A8?= Almeida
+ <andrealmeid@igalia.com>,
+ Sebastian Andrzej Siewior <bigeasy@linutronix.de>, Carlos O'Donell
+ <carlos@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Florian Weimer
+ <fweimer@redhat.com>, Rich Felker <dalias@aerifal.cx>, Torvald Riegel
+ <triegel@redhat.com>, Darren Hart <dvhart@infradead.org>, Ingo Molnar
+ <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Arnd Bergmann
+ <arnd@arndb.de>, "Liam R . Howlett" <Liam.Howlett@oracle.com>, Uros Bizjak
+ <ubizjak@gmail.com>, Thomas =?utf-8?Q?Wei=C3=9Fschuh?=
+ <linux@weissschuh.net>, linux-arch@vger.kernel.org
+Subject: Re: [patch V3 00/14] futex: Address the robust futex unlock race
+ for real
+In-Reply-To: <acp-l792SFNG9ROS@J2N7QTR9R3>
+References: <20260330114212.927686587@kernel.org> <acp-l792SFNG9ROS@J2N7QTR9R3>
+Date: Tue, 31 Mar 2026 17:22:32 +0200
+Message-ID: <878qb89g7b.ffs@tglx>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH v4 3/5] locking: Add contended_release tracepoint to
- sleepable locks
-Content-Language: en-GB
-To: Dmitry Ilvokhin <d@ilvokhin.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>,
- Will Deacon <will@kernel.org>, Boqun Feng <boqun@kernel.org>,
- Waiman Long <longman@redhat.com>,
- Thomas Bogendoerfer <tsbogend@alpha.franken.de>,
- Juergen Gross <jgross@suse.com>, Ajay Kaher <ajay.kaher@broadcom.com>,
- Alexey Makhalov <alexey.makhalov@broadcom.com>,
- Broadcom internal kernel review list
- <bcm-kernel-feedback-list@broadcom.com>, Thomas Gleixner <tglx@kernel.org>,
- Borislav Petkov <bp@alien8.de>, Dave Hansen <dave.hansen@linux.intel.com>,
- x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>,
- Arnd Bergmann <arnd@arndb.de>, Dennis Zhou <dennis@kernel.org>,
- Tejun Heo <tj@kernel.org>, Christoph Lameter <cl@gentwo.org>,
- Steven Rostedt <rostedt@goodmis.org>, Masami Hiramatsu
- <mhiramat@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
- linux-kernel@vger.kernel.org, linux-mips@vger.kernel.org,
- virtualization@lists.linux.dev, linux-arch@vger.kernel.org,
- linux-mm@kvack.org, linux-trace-kernel@vger.kernel.org, kernel-team@meta.com
-References: <d2e5763278812499335b22a013aafb4979e3324b.1774536681.git.d@ilvokhin.com>
- <20260331103451.1070175-1-usama.arif@linux.dev>
- <acu7LdegiZ5_-dEW@shell.ilvokhin.com>
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-From: Usama Arif <usama.arif@linux.dev>
-In-Reply-To: <acu7LdegiZ5_-dEW@shell.ilvokhin.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-Migadu-Flow: FLOW_OUT
+Content-Type: text/plain
 
 
+Resending with linux-arch in CC and a bit more context.
 
-On 31/03/2026 15:16, Dmitry Ilvokhin wrote:
-> On Tue, Mar 31, 2026 at 03:34:50AM -0700, Usama Arif wrote:
->> On Thu, 26 Mar 2026 15:10:02 +0000 Dmitry Ilvokhin <d@ilvokhin.com> wrote:
->>
->>> Add the contended_release trace event. This tracepoint fires on the
->>> holder side when a contended lock is released, complementing the
->>> existing contention_begin/contention_end tracepoints which fire on the
->>> waiter side.
->>>
->>> This enables correlating lock hold time under contention with waiter
->>> events by lock address.
->>>
->>> Add trace_contended_release() calls to the slowpath unlock paths of
->>> sleepable locks: mutex, rtmutex, semaphore, rwsem, percpu-rwsem, and
->>> RT-specific rwbase locks.
->>>
->>> Where possible, trace_contended_release() fires before the lock is
->>> released and before the waiter is woken. For some lock types, the
->>> tracepoint fires after the release but before the wake. Making the
->>> placement consistent across all lock types is not worth the added
->>> complexity.
->>>
->>> For reader/writer locks, the tracepoint fires for every reader releasing
->>> while a writer is waiting, not only for the last reader.
->>>
->>> Signed-off-by: Dmitry Ilvokhin <d@ilvokhin.com>
->>> ---
->>>  include/trace/events/lock.h   | 17 +++++++++++++++++
->>>  kernel/locking/mutex.c        |  4 ++++
->>>  kernel/locking/percpu-rwsem.c | 11 +++++++++++
->>>  kernel/locking/rtmutex.c      |  1 +
->>>  kernel/locking/rwbase_rt.c    |  6 ++++++
->>>  kernel/locking/rwsem.c        | 10 ++++++++--
->>>  kernel/locking/semaphore.c    |  4 ++++
->>>  7 files changed, 51 insertions(+), 2 deletions(-)
->>>
->>> diff --git a/include/trace/events/lock.h b/include/trace/events/lock.h
->>> index da978f2afb45..1ded869cd619 100644
->>> --- a/include/trace/events/lock.h
->>> +++ b/include/trace/events/lock.h
->>> @@ -137,6 +137,23 @@ TRACE_EVENT(contention_end,
->>>  	TP_printk("%p (ret=%d)", __entry->lock_addr, __entry->ret)
->>>  );
->>>  
->>> +TRACE_EVENT(contended_release,
->>> +
->>> +	TP_PROTO(void *lock),
->>> +
->>> +	TP_ARGS(lock),
->>> +
->>> +	TP_STRUCT__entry(
->>> +		__field(void *, lock_addr)
->>> +	),
->>> +
->>> +	TP_fast_assign(
->>> +		__entry->lock_addr = lock;
->>> +	),
->>> +
->>> +	TP_printk("%p", __entry->lock_addr)
->>> +);
->>> +
->>>  #endif /* _TRACE_LOCK_H */
->>>  
->>>  /* This part must be outside protection */
->>> diff --git a/kernel/locking/mutex.c b/kernel/locking/mutex.c
->>> index 427187ff02db..6c2c9312eb8f 100644
->>> --- a/kernel/locking/mutex.c
->>> +++ b/kernel/locking/mutex.c
->>> @@ -997,6 +997,9 @@ static noinline void __sched __mutex_unlock_slowpath(struct mutex *lock, unsigne
->>>  		wake_q_add(&wake_q, next);
->>>  	}
->>>  
->>> +	if (trace_contended_release_enabled() && waiter)
->>> +		trace_contended_release(lock);
->>> +
->>
->> This won't compile? waiter is declared in the if block, so you are using
->> it outside scope here.
->>
-> 
-> Thanks for the feedback, Usama.
-> 
-> waiter is declared at function scope, right on top. It's also assigned
-> before the if block, so it's still in scope at the tracepoint.
+On Mon, Mar 30 2026 at 14:45, Mark Rutland wrote:
+> On Mon, Mar 30, 2026 at 02:01:58PM +0200, Thomas Gleixner wrote:
+>> User space can't solve this problem without help from the kernel. This
+>> series provides the kernel side infrastructure to help it along:
+[ 6 more citation lines. Click/Enter to show. ]
+>> 
+>>   1) Combined unlock, pointer clearing, wake-up for the contended case
+>> 
+>>   2) VDSO based unlock and pointer clearing helpers with a fix-up function
+>>      in the kernel when user space was interrupted within the critical
+>>      section.
 
-Ah ok, I was reviewing on top of mm-new branch from today where waiter
-is declared in the if block. Probably something changed related to
-locking/tracing and its not in mm-new yet.
+There is an effort to solve the long standing issue of robust futexes
+versus unlock and clearing the list op pointer not being atomic. See:
+
+   https://lore.kernel.org/20260316162316.356674433@kernel.org
+
+TLDR:
+
+The robust futex unlock mechanism is racy in respect to the clearing of the
+robust_list_head::list_op_pending pointer because unlock and clearing the
+pointer are not atomic. The race window is between the unlock and clearing
+the pending op pointer. If the task is forced to exit in this window, exit
+will access a potentially invalid pending op pointer when cleaning up the
+robust list. That happens if another task manages to unmap the object
+containing the lock before the cleanup, which results in an UAF. In the
+worst case this UAF can lead to memory corruption when unrelated content
+has been mapped to the same address by the time the access happens.
+
+The contended unlock case will be solved with an extension to the
+futex() syscall so that the kernel handles the "atomicity".
+
+The uncontended case where user space unlocks the futex needs VDSO
+support, so that the kernel can clear the list op pending pointer when
+user space gets interrupted between unlock and clearing. Below is how
+this works on x86. The series in progress covers only x86, so this a
+heads up for that's coming to architectures which support VDSO. If
+anyone sees a problem with then, then please issue your concerns now.
+
+> I see the vdso bits in this series are specific to x86. Do other
+> architectures need something here?
+
+Yes.
+
+> I might be missing some context; I'm not sure whether that's not
+> necessary or just not implemented by this series, and so I'm not sure
+> whether arm64 folk and other need to go dig into this.
+
+The VDSO functions __vdso_futex_robust_list64_try_unlock() and
+__vdso_futex_robust_list32_try_unlock() are architecture specific.
+
+The scheme in x86 ASM is:
+
+	mov		%esi,%eax	// Load TID into EAX
+	xor		%ecx,%ecx	// Set ECX to 0
+	lock cmpxchg	%ecx,(%rdi)	// Try the TID -> 0 transition
+  .Lstart:
+	jnz    		.Lend
+	movq		%rcx,(%rdx)	// Clear list_op_pending
+  .Lend:
+	ret
+
+.Lstart is the start of the critical section, .Lend the end. These two
+addresses need to be retrieved from the VDSO when the VDSO is mapped to
+user space and stored in mm::futex:unlock::cs_ranges[]. See patch 11/14.
+
+If the cmpxchg was successful, then the pending pointer has to be
+cleared when user space was interrupted before reaching .Lend.
+
+So .Lstart has to be immediately after the instruction which did the try
+compare exchange and the architecture needs to have their ASM variant
+and the helper function which tells the generic code whether the pointer
+has to be cleared or not. On x86 that is:
+
+	return regs->flags & X86_EFLAGS_ZF ? (void __user *)regs->dx : NULL;
+
+as the result of CMPXCHG is in the Zero Flag and the pointer is in
+[ER]DX. The former is defined by the ISA, the latter is enforced by the
+ASM constraints and has to be kept in sync between the VDSO ASM and the
+evaluation helper.
+
+Thanks,
+
+	tglx
