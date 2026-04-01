@@ -1,108 +1,127 @@
-Received: from mail-dy1-f201.google.com (mail-dy1-f201.google.com [74.125.82.201])
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EC5C2D0C9C
-	for <linux-arch@vger.kernel.org>; Wed,  1 Apr 2026 01:30:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 219D43659E4
+	for <linux-arch@vger.kernel.org>; Wed,  1 Apr 2026 04:19:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775007023; cv=none; b=nzcUNocIRlEa5B+NC0Bx6PnHFpbchsWnq3Rk4rjnwQugyEcsAvuvPoMEw0NSpiXrPBl7tDBGtv+oqTG6GKY9GUGcx1GVKa31gVnBadGckvd3A1SWcsnMVlcBvR9wNlZglzBJBxRipDGr+FDFlPzfjKBu9Xtk65tBJMedEMkYOPI=
+	t=1775017199; cv=none; b=No4sp+V0du2NLXJExGnjjb6OtYB9DzXN86lE2ZI4g3f9KrTBqwJk0lHqLsNAJ8AdPVAPVU6hRwnMj01Cklt2J6ila4b9lWMqK6+l3zOTj8991bEfgxcoMKmAMFrgBcr1ACbq0LVb8sRLAnjpBq/r6TXX1aIZ/7Tn9nA6sS42INs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775007023; c=relaxed/simple;
-	bh=31TfvCLwbknK8QU0XVOHI6FK0vdxmYqr/snmIVckegg=;
-	h=Date:In-Reply-To:Mime-Version:References:Message-ID:Subject:From:
-	 To:Cc:Content-Type; b=suNWaRIBqJxo9hFpjTTekJBkce0hv/uWY6wN6+attLXZ1TnPqBKLT+vyvZeylSf+HmNfNoF1+z/6MLHvNre4kO6h3tsCfj1GN1ZFrJPMvQLGVX49+FKmbzhZbmkEfH7Uv869xyrP+fnQGSG3b0QWmReDRwZWqzjca67bjHLHtWk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--samitolvanen.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=jKEW9F1G; arc=none smtp.client-ip=74.125.82.201
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--samitolvanen.bounces.google.com
+	s=arc-20240116; t=1775017199; c=relaxed/simple;
+	bh=GW93UXZZL/AJcKizbF9MiVumq3K474SVj7RsNaKwVOA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=pvixUcRVMm42DQHjM0eVor+lg64D1aPd6EEuAsqJHKO2dpuJ99JopJzP9TXkHtE69suIrZSR6gUFAIitgmV3yGmadnAuf33ZpkfSoCU5PZnQ+HxlSgBYkci4lRBEcSjFMwcEO2WdUUrCK2Zp3Go4+Rjwp/WQwJtt67RcbscvcyE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=SoAsePdW; arc=none smtp.client-ip=209.85.128.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="jKEW9F1G"
-Received: by mail-dy1-f201.google.com with SMTP id 5a478bee46e88-2bdf75bc88fso5470652eec.0
-        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 18:30:22 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="SoAsePdW"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-4852a9c6309so53288515e9.0
+        for <linux-arch@vger.kernel.org>; Tue, 31 Mar 2026 21:19:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1775007022; x=1775611822; darn=vger.kernel.org;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:from:to:cc:subject:date:message-id:reply-to;
-        bh=k1/BQLq9I+ernXavRvxZYNZROQSXYmepGs6Tk+w+QVg=;
-        b=jKEW9F1GtFDJu1oSrVQ4fBmh51vm0ej6HPOhm4jQHGM0AICgFsvYpC5w8JyATLvuKt
-         qgGnGu59RpjSsyH4RR9wt3fFvKp7V+i9dI8RJ6ckYyfCYtrJ/zDydvrhc8O/3kJ/jjSN
-         q0sJ3cCNpafYYrlmhGucxhDyn4CDKIgirsGlyfDsCHT6Rfdom+k/cHN3svkXwjCPfYXj
-         94HrWnd5CHpLT88AGgNxxb0ObQ7k533Y02V3hf/sPB/E8+zey7klT4NJVuva4Pkeqakc
-         cIudRDdfke5m7rVJDhxNjUxZngRaGbjfmYz1S1gdiRdk+uKztHrqcWONAKbMzGO8ZdJx
-         Sjzg==
+        d=gmail.com; s=20251104; t=1775017195; x=1775621995; darn=vger.kernel.org;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=FpxTHYW9PCEMGlcpR0vGWm0MEHjo8lB3T6MyF9di0eg=;
+        b=SoAsePdWP+Ziu75muCsKjEsNT5foNHSfACGEKlH+KoatdtogWSGBjns4ClD/iv4mJt
+         Ri3qw7tPE90PLba3ryuu4fY+h1eQFTRZUhq6wVZopWnamtXCXY6ehGhl5fxtIu2R+0JD
+         Ed1GhIHmbKmeBVHjtNqhv9+Jy7nluoh9gRQe0vHgmf/Xs+c91QYDTLI2bG58VEyyp67k
+         vHG0GmkP/UA0TJFx0xmDqPLIuKKwg5DE+5gR0QUop0Ywgs8XzWcEXy01CrNF9hW3TH6I
+         SmNNdxw1ImY+Y598Oc1pxiLHnTMZsEt1bKCenZRGU2GjSCFIJ4YhSJM2huqsHZbGNfIY
+         NOsg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775007022; x=1775611822;
-        h=cc:to:from:subject:message-id:references:mime-version:in-reply-to
-         :date:x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=k1/BQLq9I+ernXavRvxZYNZROQSXYmepGs6Tk+w+QVg=;
-        b=WWW26JvNqvV+Q2g4CDD60DDLxF/4/aHNiz/GtOyBVQUticeDxgEwV4x1EBwE1eeP4J
-         4kvS17jR4DKvo0cxXPn084+dNgfUR1NmHFKpeImsn/UhPFk8Zs5jbdXO2QAJO14OLC6Z
-         9665EzBrxI5gUb+sGFyrIXin1/m2VhUG7cT6a4tHbj8E7S08fBGHJoMFxqfvqnGGpbFX
-         GgZaqAbwceamo5rYjzLOZ5Rk9UK8OQpTEAGtsW0FCK2WziWCpgom4Sh0yP8Dy0NTyvaK
-         JpeGJ7LwTPrieH5bng06q6FUra/cBgNZSDIYHKj+XPjqYadJGj+KlwPi4+tEcznqexm6
-         Bacw==
-X-Forwarded-Encrypted: i=1; AJvYcCXABcQG61avD+qkRSJ+b0NyAmkiDkQbTwC/4zWTcp6xNRkZ/de005z6EI7h0n3DNe2uZ8YWuD9ZbyUU@vger.kernel.org
-X-Gm-Message-State: AOJu0YxONmyoKvCjPR38iWtWsFnRsb4e9LgN8AnTObJ3GDEBKioV7Jx3
-	UfRi1ryuOXif8PWX1lr7WNrU8HfClmJyDZ1EFkI7vege/OWGcT51ZdjqB/R9h08AdHq3m9+SR45
-	5bENsczskd/r1gEQmDAR0utNrgjwUfw==
-X-Received: from dybmh41.prod.google.com ([2002:a05:7301:f29:b0:2c3:dfe3:6dbb])
- (user=samitolvanen job=prod-delivery.src-stubby-dispatcher) by
- 2002:a05:693c:2c8c:b0:2c6:2bac:8a8 with SMTP id 5a478bee46e88-2c9333b8061mr822830eec.30.1775007021499;
- Tue, 31 Mar 2026 18:30:21 -0700 (PDT)
-Date: Wed, 01 Apr 2026 01:30:19 +0000
-In-Reply-To: <20260326-kflagstab-v5-0-fa0796fe88d9@google.com>
+        d=1e100.net; s=20251104; t=1775017195; x=1775621995;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=FpxTHYW9PCEMGlcpR0vGWm0MEHjo8lB3T6MyF9di0eg=;
+        b=E/+oVIf1mpPEbOwOJLG4Gmi/byjEbSbvmxtk5ghssjLBCnLf+uVvTulZL5V5A03DOs
+         jU94GTrdxfp6uYjOkmtM6I23MxbH/Ux5As1Onu5xPoVNe8R9eOLjgI8E50anWkx6dOtq
+         slPoyWWxCmErkvoKhf9Oqx1gNAtX1sVU+C7DreEWSMaWUqBWsdU0GgcDWqxBXwduwg2h
+         5sPUNEURdMKBIqoFParwajaDGBLqPsAqTyt/gX7CXfwT6nfIE5lLbYtTSGqDZcAkkh3B
+         +fdt8AXaMgbJrDs6lr8WSY7Lnc+IyXqh9ly/Zhhc3eVwmVTRjd+PD7KBsM5SHwJYhknZ
+         Wwew==
+X-Forwarded-Encrypted: i=1; AJvYcCVwtHWNuTfxh9e3xrtORCwbG0+eGzr0cY1ou9oPfZ25HprJYsb1fsvx10IEFnah685IFTXC/iMlh4gZ@vger.kernel.org
+X-Gm-Message-State: AOJu0YxGZZpUpwD5ozbLtrn1EseT1KM2eeYPpu6CJnh4xeXQSSv220TM
+	LTmVakRg9mYb76UKUdfK1k7+W8/dDSLAi3AJNwZL1OGDrUoYtLZQUzfv
+X-Gm-Gg: ATEYQzxpM5Mw5qkQoqW7vpDjrEek8JUiUoeUrOjUcK0HCrJ7woGA3LbSbkQOfbvNiD3
+	PXVg+/h0/5qFUSnXZlGlCzuhKFt4ofxooPxyANv/We4AqZpGgI2O6oNzvPFUm1ygeoAUWWdqjBt
+	ZCkkuG7hKijI9vWXeBXREwMSWYPw3RKFLdaCOo3GGHGlkMwmtbrM7IdW4KomHY7MOQVQfn9lFT8
+	7t1fPYhdYXN5BezWEjZYWc67p1P1Kqt9fqD94/KRXyEnRAVCvOqUmKzCd1gS5wjN7S2cWgQ1SkF
+	mtuBAvqZZMNjZLkJhm3qqak8n9I9avrhz96rhFKgHlHGs1P5w5Pb94E9RAOlPcyTyoxXyq8cCKV
+	IBkFEs8L0eqyixeG3Rw6gZPkrDppo1R1rIuGitOAzy4Q5YfbDBHxZ3whrW4BdG64FzFgzcAzTf+
+	YokNZMMlr7/xwKwHEYLflRjul9ak4fEx0ms1ojy/QlDHrXkMkqbbNzWTYa+t189O+EoE8YvVI=
+X-Received: by 2002:a05:600c:c178:b0:486:f8e9:add5 with SMTP id 5b1f17b1804b1-48883591777mr30069195e9.19.1775017195266;
+        Tue, 31 Mar 2026 21:19:55 -0700 (PDT)
+Received: from f (cst-prg-89-171.cust.vodafone.cz. [46.135.89.171])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4887e7e9728sm87601455e9.1.2026.03.31.21.19.50
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 31 Mar 2026 21:19:54 -0700 (PDT)
+Date: Wed, 1 Apr 2026 06:19:40 +0200
+From: Mateusz Guzik <mjguzik@gmail.com>
+To: Jori Koolstra <jkoolstra@xs4all.nl>
+Cc: Andy Lutomirski <luto@kernel.org>, Thomas Gleixner <tglx@kernel.org>, 
+	Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, 
+	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, Jeff Layton <jlayton@kernel.org>, 
+	Chuck Lever <chuck.lever@oracle.com>, Arnd Bergmann <arnd@arndb.de>, Shuah Khan <shuah@kernel.org>, 
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Jan Kara <jack@suse.cz>, 
+	Alexander Aring <alex.aring@gmail.com>, Peter Zijlstra <peterz@infradead.org>, 
+	Oleg Nesterov <oleg@redhat.com>, Andrey Albershteyn <aalbersh@redhat.com>, 
+	Jiri Olsa <jolsa@kernel.org>, Mathieu Desnoyers <mathieu.desnoyers@efficios.com>, 
+	Thomas =?utf-8?Q?Wei=C3=9Fschuh?= <thomas.weissschuh@linutronix.de>, Namhyung Kim <namhyung@kernel.org>, 
+	Arnaldo Carvalho de Melo <acme@redhat.com>, Aleksa Sarai <cyphar@cyphar.com>, linux-kernel@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, 
+	linux-kselftest@vger.kernel.org, cmirabil@redhat.com, 
+	"Masami Hiramatsu (Google)" <mhiramat@kernel.org>
+Subject: Re: [RFC PATCH 1/2] vfs: syscalls: add mkdirat_fd()
+Message-ID: <pbobkjhtuli53o3z34ajyxztaosmztwlygxfxhhjq5ajt47inc@ngtoge3ucdm5>
+References: <20260331172011.3512876-1-jkoolstra@xs4all.nl>
+ <20260331172011.3512876-2-jkoolstra@xs4all.nl>
 Precedence: bulk
 X-Mailing-List: linux-arch@vger.kernel.org
 List-Id: <linux-arch.vger.kernel.org>
 List-Subscribe: <mailto:linux-arch+subscribe@vger.kernel.org>
 List-Unsubscribe: <mailto:linux-arch+unsubscribe@vger.kernel.org>
-Mime-Version: 1.0
-References: <20260326-kflagstab-v5-0-fa0796fe88d9@google.com>
-X-Mailer: b4 0.14.3
-Message-ID: <177500701994.1603852.8130352881871388132.b4-ty@google.com>
-Subject: Re: [PATCH v5 0/7] scalable symbol flags with __kflagstab
-From: Sami Tolvanen <samitolvanen@google.com>
-To: Luis Chamberlain <mcgrof@kernel.org>, Petr Pavlu <petr.pavlu@suse.com>, 
-	Daniel Gomez <da.gomez@kernel.org>, Aaron Tomlin <atomlin@atomlin.com>, Arnd Bergmann <arnd@arndb.de>, 
-	Nathan Chancellor <nathan@kernel.org>, Nicolas Schier <nsc@kernel.org>, Jonathan Corbet <corbet@lwn.net>, 
-	Shuah Khan <skhan@linuxfoundation.org>, Siddharth Nayyar <sidnayyar@google.com>
-Cc: linux-modules@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, 
-	linux-doc@vger.kernel.org, maennich@google.com, gprocida@google.com
-Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20260331172011.3512876-2-jkoolstra@xs4all.nl>
 
-On Thu, 26 Mar 2026 21:25:01 +0000, Siddharth Nayyar wrote:
-> This patch series implements a mechanism for scalable exported symbol
-> flags using a separate section called __kflagstab. The series introduces
-> __kflagstab support, removes *_gpl sections in favor of a GPL flag,
-> simplifies symbol resolution during module loading.
-> 
-> The __kflagstab contains an 8-bit bitset which can represent up to 8
-> boolean flags per symbol exported in the __ksymtab. The patch series
-> also uses this bitset to store GPL-only flag values for kernel symbols,
-> thereby eliminating the need for *_gpl sections for representing GPL
-> only symbols.
-> 
-> [...]
-
-Applied to modules-next, thanks!
-
-[1/7] module: define ksym_flags enumeration to represent kernel symbol flags
-      commit: 10a4eb5882ba16164ece86d99486084f02f148bb
-[2/7] module: add kflagstab section to vmlinux and modules
-      commit: 9743311b4535dc76ce81f46303da0f69bfaa5fd6
-[3/7] module: populate kflagstab in modpost
-      commit: 16d0e04f546ffba78c74bbfeb57d93147bcaf2c5
-[4/7] module: use kflagstab instead of *_gpl sections
-      commit: 55fcb926b6d8b5cfb40873e4840a69961db1bb69
-[5/7] module: deprecate usage of *_gpl sections in module loader
-      commit: b4760ff2a5e4351c59d185967735f59c0b0bd7f6
-[6/7] module: remove *_gpl sections from vmlinux and modules
-      commit: f18540256b70c9e1f0e26e2c38f3d43a131926d9
-[7/7] documentation: remove references to *_gpl sections
-      commit: 3b1299f25b07ef83e020d049dfc62ced9c09450d
-
-Best regards,
-
-	Sami
+On Tue, Mar 31, 2026 at 07:19:58PM +0200, Jori Koolstra wrote:
+> @@ -5286,7 +5290,25 @@ int filename_mkdirat(int dfd, struct filename *name, umode_t mode)
+>  		lookup_flags |= LOOKUP_REVAL;
+>  		goto retry;
+>  	}
+> +
+> +	if (!error && (flags & MKDIRAT_FD_NEED_FD)) {
+> +		struct path new_path = { .mnt = path.mnt, .dentry = dentry };
+> +		error = FD_ADD(0, dentry_open(&new_path, O_DIRECTORY, current_cred()));
+> +	}
+> +	end_creating_path(&path, dentry);
+>  	return error;
 
 
+You can't do it like this. Should it turn out no fd can be allocated,
+the entire thing is going to error out while keeping the newly created
+directory behind. You need to allocate the fd first, then do the hard
+work, and only then fd_install and or free the fd. The FD_ADD machinery
+can probably still be used provided proper wrapping of the real new
+mkdir.
+
+It should be perfectly feasible to de facto wrap existing mkdir
+functionality by this syscall.
+
+On top of that similarly to what other people mentioned the new syscall
+will definitely want to support O_CLOEXEC and probably other flags down
+the line.
+
+Trying to handle this in open() is a no-go. openat2 is rather
+problematic.
+
+I tend to agree mkdirat_fd is not a good name for the syscall either,
+but I don't have a suggestion I'm happy with. I think least bad name
+would follow the existing stuff and be mkdirat2 or similar.
+
+The routine would have to start with validating the passed O_ flags, for
+now only allowing O_CLOEXEC and EINVAL-ing otherwise.
